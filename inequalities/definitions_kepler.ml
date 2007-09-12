@@ -321,10 +321,11 @@ let kappa = kepler_def(`kappa y1 y2 y3 y4 y5 y6 =
 let level_at = kepler_def(`level_at h t = if (h<t) then h else t`);;
 
 let vorstar = kepler_def(`vorstar h1 h2 h3 a1 a2 a3 t=
-        a1*((&1)-(level_at h1 t)/t)*(phi h1 t - phi0)
-        +a2*((&1)-(level_at h2 t)/t)*(phi h2 t - phi0)
-        +a3*((&1)-(level_at h3 t)/t)*(phi h3 t - phi0)
-        +(a1+a2+a3-pi)*phi0`);;
+       let phit = phi(t,t) in
+        a1*((&1)-(level_at h1 t)/t)*(phi h1 t - phit)
+        +a2*((&1)-(level_at h2 t)/t)*(phi h2 t - phit)
+        +a3*((&1)-(level_at h3 t)/t)*(phi h3 t - phit)
+        +(a1+a2+a3-pi)*phit`);;
 
 let vort_y = kepler_def(`vort_y y1 y2 y3 y4 y5 y6 t =
         let h1 = y1/(&2) in

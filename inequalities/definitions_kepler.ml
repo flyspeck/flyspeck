@@ -14,6 +14,14 @@ let deriv = new_definition(`deriv f x = @d. (f diffl d)(x)`);;
 let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 
 (* ------------------------------------------------------------------ *)
+(*  Extend atn to allow zero denominators.                            *)
+(* ------------------------------------------------------------------ *)
+
+let atn2 = new_definition(`atn2(x,y) = 
+    if ( ~(y = &0 ) ) then atn(x/y) else 
+    (if (x >. &0) then (pi / &2) else (--. (pi/ &2)))`);;
+
+(* ------------------------------------------------------------------ *)
 
 let sqrt8 = kepler_def (`sqrt8 = sqrt (&8) `);;
 let sqrt2 = kepler_def (`sqrt2 = sqrt (&2) `);;
@@ -132,13 +140,12 @@ let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
 (*   The formula for the dihedral angle of a simplex.                 *)
 (*   The variables xi are the squares of the lengths of the edges.    *)
 (*   The angle is computed along the first edge (x1).                 *)
-(*   This doesn't work when delta =0                                  *)
 (* ------------------------------------------------------------------ *)
 
 let dih_x = kepler_def(`dih_x x1 x2 x3 x4 x5 x6 = 
        let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
        let d = delta_x x1 x2 x3 x4 x5 x6 in
-       pi/ (&2) +  atn(--  d_x4/ (sqrt ((&4) * x1 * d)))`);;
+       pi/ (&2) +  atn2(--  d_x4, (sqrt ((&4) * x1 * d)))`);;
 
 
 let dih_y = kepler_def(`dih_y y1 y2 y3 y4 y5 y6 =
@@ -190,17 +197,17 @@ let beta = kepler_def(`beta psi theta =
         (acs (sqrt arg))`);;
 
 let arclength = kepler_def(`arclength a b c =
-        pi/(&2) + (atn ((c*c - a*a  -b*b)/(sqrt (u_x (a*a) (b*b) (c*c)))))`);;
+        pi/(&2) + (atn2 ((c*c - a*a  -b*b), (sqrt (u_x (a*a) (b*b) (c*c)))))`);;
 
 
 let volR = kepler_def(`volR a b c =
         (sqrt (a*a*(b*b-a*a)*(c*c-b*b)))/(&6)`);;
 
 let solR = kepler_def(`solR a b c =
-        (&2)*atn( sqrt ((c-b)*(b-a)/((c+b)*(b+a))))`);;
+        (&2)*atn2( sqrt ((c-b)*(b-a)), sqrt(((c+b)*(b+a))))`);;
 
 let dihR = kepler_def(`dihR a b c =
-        atn (sqrt ((c*c-b*b)/(b*b-a*a)))`);;
+        atn2 (sqrt (c*c-b*b), sqrt(b*b-a*a))`);;
 
 let vorR = kepler_def(`vorR a b c =
         (&4)*(--doct*(volR a b c) + (solR a b c)/(&3))`);;
@@ -216,7 +223,7 @@ let quoin = kepler_def(`quoin a b c =
         if ((a>=b) \/ (b>=c)) then (&0) else
         (--(a*a + a*c-(&2)*c*c)*(c-a)*atn(u)/(&6) +
         a*(b*b-a*a)*u/(&6) 
-        - ((&2)/(&3))*c*c*c*(atn((u*(b-a))/(b+c))))`);;
+        - ((&2)/(&3))*c*c*c*(atn2((u*(b-a)),(b+c))))`);;
 
 let qy = kepler_def(`qy y1 y2 y3 t =
         quoin (y1/(&2)) (eta_y y1 y2 y3) t`);;
@@ -439,7 +446,7 @@ let sigma1_qrtet_x = kepler_def(`sigma1_qrtet_x x1 x2 x3 x4 x5 x6=
 	sigma_qrtet_x x1 x2 x3 x4 x5 x6 - (sol_x x1 x2 x3 x4 x5 x6)*zeta*pt`);;
 
 let tau_sigma_x = kepler_def `tau_sigma_x x1 x2 x3 x4 x5 x6=
-       --. (sigma_qrtet_x x1 x2 x3 x4 x5 x6)`;;
+       --. (sigma1_qrtet_x x1 x2 x3 x4 x5 x6)`;;
 
 let sigma32_qrtet_x = kepler_def(`sigma32_qrtet_x x1 x2 x3 x4 x5 x6=
 	sigma_qrtet_x x1 x2 x3 x4 x5 x6 - 

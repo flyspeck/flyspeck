@@ -1,14 +1,21 @@
+needs "Examples/analysis.ml";;
+needs "Examples/transc.ml";;
+needs "Jordan/lib_ext.ml";;
 
 
-let kepler_def = local_definition "kepler";;
+let kepler_def = local_definition "kepler";;  
 
 prioritize_real();;
 
 let max_real = new_definition(`max_real x y =
-        if (y <. x) then x else y`);;
+        if (y < x) then x else y`);;
 
 let min_real = new_definition(`min_real x y =
-        if (x <. y) then x else y`);;
+        if (x < y) then x else y`);;
+
+let min_num = new_definition
+  `min_num (X:num->bool) = @m. (m IN X) /\ (!n. (n IN X) ==> (m <= n))`;;
+
 
 let deriv = new_definition(`deriv f x = @d. (f diffl d)(x)`);;
 let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
@@ -18,8 +25,8 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 (* ------------------------------------------------------------------ *)
 
 let atn2 = new_definition(`atn2(x,y) = 
-    if ( ~(y = &0 ) ) then atn(x/y) else 
-    (if (x >. &0) then (pi / &2) else (--. (pi/ &2)))`);;
+    if ( ~(y = &0 ) ) then atn(x / y) else 
+    (if (x > &0) then (pi / &2) else (-- (pi/ &2)))`);;
 
 (* ------------------------------------------------------------------ *)
 
@@ -55,7 +62,7 @@ let squander_target=kepler_def(`squander_target =
 let xiV=kepler_def(`xiV=(#0.003521)`);;
 let xi_gamma=kepler_def(`xi_gamma=(#0.01561)`);;
 let xi'_gamma=kepler_def(`xi'_gamma=(#0.00935)`);;
-let xi_kappa=kepler_def(`xi_kappa= --. (#0.029)`);;
+let xi_kappa=kepler_def(`xi_kappa= -- (#0.029)`);;
 let xi_kappa_gamma=kepler_def(`xi_kappa_gamma=
         xi_kappa+xi_gamma`);;
 let pi_max =kepler_def(`xi_max = (#0.006688)`);;
@@ -70,7 +77,7 @@ let s7 = kepler_def(`s7= --(#0.17112)`);;
 let s8 = kepler_def(`s8= --(#0.22816)`);;
 
 let Z31 = kepler_def(`Z31 = (#0.00005)`);;
-let Z32 = kepler_def(`Z32 = --. (#0.05714)`);;
+let Z32 = kepler_def(`Z32 = -- (#0.05714)`);;
 let Z33 = kepler_def(`Z33 = s6 - (#3.0)*Z31`);;
 let Z41 = kepler_def(`Z41 = s5 - Z31`);;
 let Z42 = kepler_def(`Z42 = s6 - (#2.0)*Z31`);;
@@ -258,14 +265,14 @@ let anc = kepler_def(`anc y1 y2 y6 =
                 -(solR h2 b c)*(phi0) + (vorR h2 b c)`);;
 
 let K0 = kepler_def(`K0 y1 y2 y6 = 
-	(vorR (y1/(&.2)) (eta_y y1 y2 y6) (sqrt2)) +
-	(vorR (y2/(&.2)) (eta_y y1 y2 y6) (sqrt2)) -
-        (dihR (y1/(&.2)) (eta_y y1 y2 y6) (sqrt2))*
-		      (&.1 - (y1/(sqrt8)))*(phi (y1/(&.2)) sqrt2)`);;
+	(vorR (y1/(&2)) (eta_y y1 y2 y6) (sqrt2)) +
+	(vorR (y2/(&2)) (eta_y y1 y2 y6) (sqrt2)) -
+        (dihR (y1/(&2)) (eta_y y1 y2 y6) (sqrt2))*
+		      (&1 - (y1/(sqrt8)))*(phi (y1/(&2)) sqrt2)`);;
 
-let AH = kepler_def(`AH h t = (&.1 -. (h/t))*((phi h t) - (phi t t))`);;
+let AH = kepler_def(`AH h t = (&1 - (h/t))*((phi h t) - (phi t t))`);;
 
-let BHY = kepler_def(`BHY y = (AH (y/(&.2)) t0) + phi0`);;
+let BHY = kepler_def(`BHY y = (AH (y/(&2)) t0) + phi0`);;
 
 (*
 
@@ -277,11 +284,11 @@ let overlap_f = kepler_def(
     let dih1 = dih_y y1 t0 y2 lam ell lam in
     let dih2 = dih_y y2 t0 y1 lam ell lam in
     let s = sol_y y2 t0 y1 lam ell lam in
-    let phi1 = phi (y1/(&.2)) t0 in
-    let phi2 = phi (y2/(&.2)) t0 in
+    let phi1 = phi (y1/(&2)) t0 in
+    let phi2 = phi (y2/(&2)) t0 in
     (&2)*(zeta*pt - phi0)*s 
-      + (&.2)*dih1*((&.1) - (y1/two_t0))*(phi0-phi1)
-      + (&.2)*dih2*((&.1) - (y2/two_t0))*(phi0-phi2)
+      + (&2)*dih1*((&1) - (y1/two_t0))*(phi0-phi1)
+      + (&2)*dih2*((&1) - (y2/two_t0))*(phi0-phi2)
    + xxxxx-- need to insert tau terms ---xxxxx`);;
 *)
 
@@ -289,11 +296,11 @@ let overlap_f = kepler_def(
 (* ------------------------------------------------------------------ *)
 (*   Analytic and truncated Voronoi function                          *)
 (* ------------------------------------------------------------------ *)
-
+;;
 let KY = kepler_def(`KY y1 y2 y3 y4 y5 y6 =
    (K0 y1 y2 y6) + (K0 y1 y3 y5) + 
   (dih_y y1 y2 y3 y4 y5 y6)*
-    (&.1 - (y1/(sqrt8)))*(phi (y1/(&.2)) sqrt2)`);;
+    (&1 - (y1/(sqrt8)))*(phi (y1/(&2)) sqrt2)`);;
 
 let KX = kepler_def(`KX x1 x2 x3 x4 x5 x6 =
    KY (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6)`);;
@@ -328,7 +335,7 @@ let kappa = kepler_def(`kappa y1 y2 y3 y4 y5 y6 =
 let level_at = kepler_def(`level_at h t = if (h<t) then h else t`);;
 
 let vorstar = kepler_def(`vorstar h1 h2 h3 a1 a2 a3 t=
-       let phit = phi(t,t) in
+       let phit = phi t t in
         a1*((&1)-(level_at h1 t)/t)*(phi h1 t - phit)
         +a2*((&1)-(level_at h2 t)/t)*(phi h2 t - phit)
         +a3*((&1)-(level_at h3 t)/t)*(phi h3 t - phit)
@@ -370,8 +377,8 @@ let tauVt_x = kepler_def(`tauVt_x x1 x2 x3 x4 x5 x6 t =
                 (vort_x x1 x2 x3 x4 x5 x6 t)`);;
 
 let vorA_x = kepler_def(`vorA_x x1 x2 x3 x4 x5 x6 =
-    if ((x5 <=. (square (#2.77))) /\ (x6 <=. (square (#2.77))) /\
-	(((eta_x x4 x5 x6) <. sqrt2)))
+    if ((x5 <= (square (#2.77))) /\ (x6 <= (square (#2.77))) /\
+	(((eta_x x4 x5 x6) < sqrt2)))
     then (vor_analytic_x x1 x2 x3 x4 x5 x6 )
     else (vor_0_x x1 x2 x3 x4 x5 x6)`);;
 
@@ -380,8 +387,8 @@ let tauA_x = kepler_def(`tauA_x x1 x2 x3 x4 x5 x6 =
                 (vorA_x x1 x2 x3 x4 x5 x6)`);;
 
 let vorC0_x = kepler_def(`vorC0_x x1 x2 x3 x4 x5 x6 =
-    if ((x4 <=. (square (#2.77))) \/ 
-	((eta_x x4 x5 x6 <=. sqrt2) /\ (eta_x x2 x3 x4 <=. sqrt2)))
+    if ((x4 <= (square (#2.77))) \/ 
+	((eta_x x4 x5 x6 <= sqrt2) /\ (eta_x x2 x3 x4 <= sqrt2)))
     then (vor_analytic_x x1 x2 x3 x4 x5 x6 )
     else (vor_0_x x1 x2 x3 x4 x5 x6)`);;
 
@@ -390,9 +397,9 @@ let tauC0_x = kepler_def(`tauC0_x x1 x2 x3 x4 x5 x6 =
                 (vorC0_x x1 x2 x3 x4 x5 x6)`);;
 
 let vorC_x = kepler_def(`vorC_x x1 x2 x3 x4 x5 x6 =
-    if ((x4 <=. (square (#2.77))) \/ 
-	((eta_x x4 x5 x6 <=. sqrt2) /\ (eta_x x2 x3 x4 <=. sqrt2)) \/
-       ((square (#2.45) <=. x2) /\ ((square (#2.45) <=. x6))))
+    if ((x4 <= (square (#2.77))) \/ 
+	((eta_x x4 x5 x6 <= sqrt2) /\ (eta_x x2 x3 x4 <= sqrt2)) \/
+       ((square (#2.45) <= x2) /\ ((square (#2.45) <= x6))))
     then (vor_analytic_x x1 x2 x3 x4 x5 x6 )
     else (vor_0_x x1 x2 x3 x4 x5 x6)`);;
 
@@ -403,15 +410,15 @@ let tauC_x = kepler_def(`tauC_x x1 x2 x3 x4 x5 x6 =
 
 let v0x = kepler_def(`v0x x1 x2 x3 x4 x5 x6 =
 	let (y1,y2,y3) = (sqrt x1,sqrt x2,sqrt x3) in
-	(--. (BHY y1))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
+	(-- (BHY y1))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
 	(BHY y2)* y2* (u_x x1 x3 x5) +
-	  (--. (BHY y3))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
+	  (-- (BHY y3))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
 
 let v1x = kepler_def(`v1x x1 x2 x3 x4 x5 x6 =
 	let (y1,y2,y3) = (sqrt x1,sqrt x2,sqrt x3) in
-	(--. (BHY y1 - (zeta*pt)))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
+	(-- (BHY y1 - (zeta*pt)))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
 	(BHY y2 - (zeta*pt))* y2* (u_x x1 x3 x5) +
-	  (--. (BHY y3 - (zeta*pt)))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
+	  (-- (BHY y3 - (zeta*pt)))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
 
 
 (* ------------------------------------------------------------------ *)
@@ -446,7 +453,7 @@ let sigma1_qrtet_x = kepler_def(`sigma1_qrtet_x x1 x2 x3 x4 x5 x6=
 	sigma_qrtet_x x1 x2 x3 x4 x5 x6 - (sol_x x1 x2 x3 x4 x5 x6)*zeta*pt`);;
 
 let tau_sigma_x = kepler_def `tau_sigma_x x1 x2 x3 x4 x5 x6=
-       --. (sigma1_qrtet_x x1 x2 x3 x4 x5 x6)`;;
+       -- (sigma1_qrtet_x x1 x2 x3 x4 x5 x6)`;;
 
 let sigma32_qrtet_x = kepler_def(`sigma32_qrtet_x x1 x2 x3 x4 x5 x6=
 	sigma_qrtet_x x1 x2 x3 x4 x5 x6 - 
@@ -492,7 +499,7 @@ let nu_x = kepler_def(`nu_x x1 x2 x3 x4 x5 x6 =
 let nu_gamma_x = kepler_def(`nu_gamma_x x1 x2 x3 x4 x5 x6 =
         ((&1)/(&2))*
         (
-               (&.2 * (gamma_x x1 x2 x3 x4 x5 x6))+
+               (&2 * (gamma_x x1 x2 x3 x4 x5 x6))+
                (vor_0_x x1 x2 x3 x4 x5 x6)-
                (vor_0_x x1 x5 x6 x4 x2 x3))`);;
 
@@ -511,26 +518,26 @@ let octa_x = kepler_def(`octa_x x1 x2 x3 x4 x5 x6 =
 let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
         let r234 = eta_x x2 x3 x4 in
         let r456 = eta_x x4 x5 x6 in
-        let v0 = (if (sqrt2 <=. r456) then
+        let v0 = (if (sqrt2 <= r456) then
 	  (vor_0_x x1 x2 x3 x4 x5 x6) 
-	else if (sqrt2 <=. r234) then
+	else if (sqrt2 <= r234) then
 	  (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	else 
 	  (gamma_x x1 x2 x3 x4 x5 x6)) in
-	let v1 = (if ((r234 <=. sqrt2) /\ (r456 <=. sqrt2)) then
+	let v1 = (if ((r234 <= sqrt2) /\ (r456 <= sqrt2)) then
 		    max_real v0 (gamma_x x1 x2 x3 x4 x5 x6) 
 		  else v0) in
-	let v2 = (if (sqrt2 <=. r234) then
+	let v2 = (if (sqrt2 <= r234) then
 		    max_real v1 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 		  else v1) in
-	let v3 = (if ((square (#2.6)) <=. x4) /\ ((square (#2.2)) <=. x2)
+	let v3 = (if ((square (#2.6)) <= x4) /\ ((square (#2.2)) <= x2)
 		  then max_real v2 	  (vor_0_x x1 x2 x3 x4 x5 x6) 
 		  else v2) in
-	let v4 = (if ((square (#2.7) <=. x4))
+	let v4 = (if ((square (#2.7) <= x4))
 		  then 
 		    max_real v3 (vor_0_x x1 x2 x3 x4 x5 x6) 
 		  else v3) in
-	  if (sqrt2 <=. r456) 
+	  if (sqrt2 <= r456) 
 	  then
 	    max_real v4 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	  else v4`);;
@@ -541,26 +548,26 @@ let sigmahatpi_x = kepler_def(`sigmahatpi_x x1 x2 x3 x4 x5 x6 =
         let r234 = eta_x x2 x3 x4 in
         let r456 = eta_x x4 x5 x6 in
 	let piF = (#2.0)*(xiV) + (xi_gamma) in
-        let v0 = (if (sqrt2 <=. r456) then
+        let v0 = (if (sqrt2 <= r456) then
 	  (vor_0_x x1 x2 x3 x4 x5 x6) 
-	else if (sqrt2 <=. r234) then
+	else if (sqrt2 <= r234) then
 	  (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	else 
 	  (gamma_x x1 x2 x3 x4 x5 x6)) in
-	let v1 = (if ((r234 <=. sqrt2) /\ (r456 <=. sqrt2)) then
+	let v1 = (if ((r234 <= sqrt2) /\ (r456 <= sqrt2)) then
 		    max_real v0 (gamma_x x1 x2 x3 x4 x5 x6) 
 		  else v0) in
-	let v2 = (if (sqrt2 <=. r234) then
+	let v2 = (if (sqrt2 <= r234) then
 		    max_real v1 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 		  else v1) in
-	let v3 = (if ((square (#2.6)) <=. x4) /\ ((square (#2.2)) <=. x2)
-		  then max_real v2 (piF +. (vor_0_x x1 x2 x3 x4 x5 x6)) 
+	let v3 = (if ((square (#2.6)) <= x4) /\ ((square (#2.2)) <= x2)
+		  then max_real v2 (piF + (vor_0_x x1 x2 x3 x4 x5 x6)) 
 		  else v2) in
-	let v4 = (if ((square (#2.7) <=. x4))
+	let v4 = (if ((square (#2.7) <= x4))
 		  then 
-		    max_real v3 (piF +. (vor_0_x x1 x2 x3 x4 x5 x6) )
+		    max_real v3 (piF + (vor_0_x x1 x2 x3 x4 x5 x6) )
 		  else v3) in
-	  if (sqrt2 <=. r456) 
+	  if (sqrt2 <= r456) 
 	  then
 	    max_real v4 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	  else v4`);;
@@ -574,16 +581,67 @@ let tauhatpi_x = kepler_def(`tauhatpi_x x1 x2 x3 x4 x5 x6 =
 
 let pi_prime_tau = kepler_def
   `pi_prime_tau k0 k1 k2 = 
-    if (k2=0) then (&.0)
+    if (k2=0) then (&0)
     else if (k0=1) /\ (k1=1) /\ (k2=1) then (#0.0254)
-    else (#0.04683 +. (&.k0 + &.(2*k2) - #3.0)*((#0.008)/(#3.0))
-     + (&.k2) * (#0.0066))`;;
+    else (#0.04683 + (&k0 + &(2*k2) - #3.0)*((#0.008)/(#3.0))
+     + (&k2) * (#0.0066))`;;
 
 let pi_prime_sigma = kepler_def
   `pi_prime_sigma k0 (k1:num) k2 = 
-    if (k2=0) then (&.0)
+    if (k2=0) then (&0)
     else if (k0=1) /\ (k2=1) then (#0.009)
-    else (&. (k0 + 2*k2))*((#0.008)/(#3.0)) + (&.k2)* (#0.009)`;;
+    else (& (k0 + 2*k2))*((#0.008)/(#3.0)) + (&k2)* (#0.009)`;;
+
+
+(* ------------------------------------------------------------------ *)
+(* The following definitions also appear in Jordan/misc_defs_and_lemmas.ml *)
+(* ------------------------------------------------------------------ *)
+
+
+;;
+mk_local_interface "kepler";;
+
+overload_interface
+ ("+", `kepler'euclid_plus:(num->real)->(num->real)->(num->real)`);;
+
+make_overloadable "*#" `:A -> B -> B`;;
+
+let euclid_scale = kepler_def
+  `euclid_scale t f = \ (i:num). (t* (f i))`;;
+
+overload_interface ("*#",`kepler'euclid_scale`);;
+
+parse_as_infix("*#",(20,"right"));;
+
+let euclid_neg = kepler_def `euclid_neg (f:num->real) = \ (i:num). (-- (f i))`;;
+
+(* This is highly ambiguous: -- f x can be read as
+   (-- f) x or as -- (f x).  *)
+overload_interface ("--",`kepler'euclid_neg`);;
+
+overload_interface
+  ("-", `kepler'euclid_minus:(num->real)->(num->real)->(num->real)`);;
+
+let euclid_plus = kepler_def
+  `euclid_plus (f:num->real) g = \ (i:num). (f i) + (g i)`;;
+
+let euclid_minus = kepler_def
+  `euclid_minus (f:num->real) g = \(i:num). (f i) - (g i)`;;
+
+let euclid = kepler_def `euclid n v <=> !m. (n <= m) ==> (v (m:num) = &0)`;;
+
+let euclid0 = kepler_def `euclid0 = \(i:num). &0`;;
+
+let coord = kepler_def `coord i (f:num->real) = f i`;;
+
+let dot = kepler_def `dot f g =
+  let (n = (min_num (\m. (euclid m f) /\ (euclid m g)))) in
+  sum (0,n) (\i. (f i)*(g i))`;;
+
+let norm = kepler_def `norm f = sqrt(dot f f)`;;
+
+
+let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
 
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
@@ -591,7 +649,7 @@ let pi_prime_sigma = kepler_def
 
 
 let dirac_delta = kepler_def `dirac_delta (i:num) = 
-     (\j. if (i=j) then (&.1) else (&.0))`;;
+     (\j. if (i=j) then (&1) else (&0))`;;
 
 let mk_vec3 = kepler_def `mk_vec3 a b c = 
   a *# (dirac_delta 0) + b *# (dirac_delta 1) + c *# (dirac_delta 2)`;;
@@ -604,17 +662,17 @@ let mk_vec3 = kepler_def `mk_vec3 a b c =
 *)
 let findpoint = kepler_def `findpoint a b c y4 v3_1 v3_2 sgn =
   let y5 = sqrt (v3_1*v3_1 + v3_2*v3_2) in
-  let w1 = (a*a + y4*y4 - b*b)/((&.2)*y4) in
-  let w2 = (a*a + y5*y5 -c*c - (&.2)*w1*v3_1)/((&.2)*v3_2) in
+  let w1 = (a*a + y4*y4 - b*b)/((&2)*y4) in
+  let w2 = (a*a + y5*y5 -c*c - (&2)*w1*v3_1)/((&2)*v3_2) in
   let w3 = sgn* (sqrt(a*a - w1*w1 - w2*w2)) in
   mk_vec3 w1 w2 w3`;;
 
 let enclosed = kepler_def `enclosed y1 y2 y3 y4 y5 y6 y1' y2' y3' = 
-   let v1 = mk_vec3 (&.0) (&.0) (&.0) in
-   let v2 = mk_vec3 y4 (&.0) (&.0) in
-   let a = ((y5*y5) + (y4*y4) - (y6*y6))/((&.2)*y4) in
+   let v1 = mk_vec3 (&0) (&0) (&0) in
+   let v2 = mk_vec3 y4 (&0) (&0) in
+   let a = ((y5*y5) + (y4*y4) - (y6*y6))/((&2)*y4) in
    let b = sqrt((y5*y5) - (a*a)) in
-   let v3 = mk_vec3 a b (&.0) in
+   let v3 = mk_vec3 a b (&0) in
    let v4 = findpoint y3 y2 y1  y4 a b (#1.0) in
    let v5 = findpoint y3' y2' y1'  y4 a b (--(#1.0)) in
    d_euclid v4 v5`;;
@@ -635,7 +693,7 @@ let cross_diag_x = kepler_def `cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9=
 (* ------------------------------------------------------------------ *)
 
 let ineq = kepler_def `ineq (bounds:(real#real#real) list) (A:bool) = 
-   (!(a,x,b). ((MEM (a,x,b) bounds) ==> ((a <=. x) /\ (x <=. b)))) /\ A`;;
+   ((!(a,x,b). ((MEM (a,x,b) bounds) ==> ((a <= x) /\ (x <= b)))) /\ A)`;;
 
 let all_forall bod = 
   let mk_forall = mk_binder "!" in

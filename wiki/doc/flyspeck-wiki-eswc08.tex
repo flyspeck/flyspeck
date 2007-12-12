@@ -80,10 +80,8 @@
 % \setkomafont{pagenumber}{\normalfont\small\sffamily\slshape}
 %
 % % Listing styles
-\lstset{float=htb,columns=flexible,frame=lines,basicstyle=\scriptsize,
-        indexstyle=\indextt,indexstyle=[1]\indexelement,indexstyle=[2]\indexattribute,
-        showstringspaces=false}
-\lstset{basicstyle=\ttfamily,basewidth=.5em}
+\lstset{float=htb,columns=flexible,frame=lines,basicstyle=\footnotesize\ttfamily,
+        showstringspaces=false,basewidth=.5em}
 %
 % % Array setup
 % \newcolumntype{v}[1]{>{\raggedright\arraybackslash\hspace{0pt}}p{#1}}
@@ -358,12 +356,12 @@ representation\ednote{@Sean: Will the structure of the wiki mirror the structure
   mathematical topics, such as the Mathematical Subject Classification
   (MSC)\ednote{reference}, could be added later.
 \item[Project-organization metadata] such as the information whether a lemma has already
-  been proven formally.\ednote{@Sean: more?}
+  been proven formally, or in what theorem proving language there are proof objects
+  available.\ednote{@Sean: more?}
 \item[Dependency links:] These can be links from individual symbols in mathematical
   formulae to the place where they are declared, or from any page $p$ to other pages
   containing knowledge that is required for understanding $p$ --- either pages in the same
-  wiki, or external resources like PlanetMath or Wikipedia articles.\ednote{Note: If we
-    import from a formal source (like Twelf), we can auto-generate some of them.}
+  wiki, or external resources like PlanetMath or Wikipedia articles.
 \item[Discussion posts] should be strongly tied to the topic being discussed, and they
   should be classified into categories like question, answer, explanation,
   etc.
@@ -376,18 +374,20 @@ The topical structure as well as the dependencies must be browsable via links.  
 should it be possible to query knowledge items by their annotations, but important query
 results must also be available as dynamically generated lists.  Examples for queries are:
 
-\begin{itemize}
-\item ``Which lemmas about composite regions have not been formally proven so far?''
+\begin{enumerate}
+\item\label{item:proven-lemma} ``Which lemmas about composite regions have not been
+  formally proven so far?''
 \item ``What do I need to read in order to understand Jordan's curve
   theorem?''\ednote{internal dependency graph, tutorial, planetmath}
 \item ``What lemmas are difficult to prove?''
-  \begin{itemize}
+  \begin{enumerate}
   \item \ldots in the sense that many invalid proofs have already been submitted
-  \item \ldots in the sense that many people have asked questions in the related discussion
-  \end{itemize}
+  \item\label{item:question-count} \ldots in the sense that many people have asked
+    questions in the related discussion
+  \end{enumerate}
 \item \ldots\ednote{@Christoph: develop some ideas about which dynamic queries are
     relevant. Check Matthias' BSc thesis. --CL}
-\end{itemize}
+\end{enumerate}
 
 A volunteer who is willing to work out and contribute a formal proof for some lemma should
 be able to download a self-contained formal representation of this lemma and everything it
@@ -472,8 +472,7 @@ theories have been implemented.  Relevant classes for Flyspeck would be
 \textit{Definition}, and the properties \textit{Proof--proves--Assertion} and
 \textit{Symbol--hasDefinition--Definition}.  Dependencies can partly be inferred using DL
 reasoning, but for a complete support of OMDoc's notion of dependency, an OMDoc-specific
-calculus will have to be used, which is currently in development\ednote{To do: Check
-  this!}.
+calculus will have to be used, which is currently in development.
 
 \begin{figure}
   \centering
@@ -540,20 +539,19 @@ OMDoc documents into SWiM using the built-in import functionality.  We found SWi
 suitable for making Flyspeck browsable, as it supports breaking down mathematical
 knowledge to the statement level and recognizes all required link types.  As every SWiM
 page has an associated discussion page and discussion posts are semantically represented
-using the SIOC ontology~\cite{SIOC:web}, SWiM can also support the coordination of the
-project.  OMDoc markup and mathematical formulae in discussion pages are not yet
-implemented, though.  Pages and non-OMDoc links can be annotated with types from
-ontologies loaded into the wiki\footnote{Types of OMDoc links are automatically extracted
-  from the markup; see above.}.  That means that the annotations required by Flyspeck are
-possible, but not in an ad-hoc way, which we would have found useful in the prototyping
-phase.  Instead, one would have to create or import a formal ontology first (SWiM supports
-basic ontology editing), and then one would be able to annotate documents using terms from
-that ontology.
+using the SIOC ontology~\cite{SIOC:web}, one could also support the coordination of the
+project by queries like query~\ref{item:question-count} from section~\ref{sec:req}.  OMDoc
+markup and mathematical formulae in discussion pages are not yet implemented, though.
+Pages and non-OMDoc links can be annotated with types from ontologies loaded into the
+wiki\footnote{Types of OMDoc links are automatically extracted from the markup; see
+  above.}.  That means that the annotations required by Flyspeck are possible, but not in
+an ad-hoc way, which we would have found useful in the prototyping phase.  Instead, one
+would have to create or import a formal ontology first (SWiM supports basic ontology
+editing), and then one would be able to annotate documents using terms from that ontology.
 
 Searching for arbitrary RDF triples is not yet supported by the user interface, but
 authors can embed inline SPARQL queries into wiki pages.  Note that not all desirable
-queries are easy to express in SPARQL; consider the query about lemmas about a certain
-topic that have not been proven so far:
+queries are easy to express in SPARQL; consider query~\ref{item:proven-lemma}:
 
 \begin{lstlisting}
 SELECT ?l WHERE { ?l rdf:type odo:Lemma .
@@ -595,9 +593,24 @@ support a full \emph{import} of external ontologies.  Moreover, Semantic MediaWi
 not understand the semantics of mathematical formulae, as the {\LaTeX} formulae cannot be
 annotated.
 
-
-
-Extensions and plugins can easily be developed using a well-documented API.
+In Semantic MediaWiki, we imported the formal Twelf representation of Flyspeck via a
+customly implemented special page that uses the well-documented extension API of
+MediaWiki.  The Twelf file was first enhanced by special comment lines marking beginning
+and end of a declaration\ednote{@Sean/Florian: What's the general term?} with information
+about topical categorization.  The Twelf upload extension breaks an uploaded file down
+into declarations and creates two wiki pages for each Twelf declaration: one page that
+just contains the Twelf listing, categorized in its respective category of the OMDoc
+document ontology (e.\,g.\ \textit{Lemma}), and one container page that includes the Twelf
+page via MediaWiki's template inclusion mechanism, but also allows for including a
+{\LaTeX} representation and leaving space for free-form annotations.  For typing knowledge
+items, we used a simple-minded syntax-driven approach of encoding the type in the
+identifier of the declaration; the identifier of a lemma would start with ``lemma-''.  We
+could also have employed Twelf's inference to determine the type\ednote{@Florian: Reword
+  this correctly!}, as our Twelf-to-OMDoc converter does.  Additionally, the upload
+extension recognizes all previously imported symbols in Twelf expressions and turns them
+into links of the type \textit{\ldots--uses--Symbol}.  In our prototypical implementation,
+this was easy to realize, but more sophisticated ways of processing input could be
+supported better by the existing XML-based infrastructure for OMDoc.
 
 \begin{figure}
   \centering
@@ -606,34 +619,32 @@ Extensions and plugins can easily be developed using a well-documented API.
   \label{fig:smw-lemma}
 \end{figure}
 
-\begin{todo}{@Christoph: describe the current implementation with a few
-    screenshots/mockups}
-  \begin{itemize}
-  \item import the one large Twelf file
-  \item break it down into declarations, add annotations gained from the symbol IDs
-    (e.\,g.\ ``instanceOf Lemma'')\issue{@Sean, can we also gain sth.\ valuable from the
-      Twelf declarations themselves, without too much effort? --CL}
-  \item declarations go to individual wiki pages
-  \item Twelf presented as \LaTeX, also broken down into fragments
-  \item Aggregate each pair of Twelf/\LaTeX\ fragment to one wiki page that includes both
-    and offers space for annotations
-  \item Users can make formal or informal annotations: e.\,g.\ plain-text comments, or
-    further semantic links or categorizations
-  \item Show the potential of inline queries: all unproven lemmas in the area of graph
-    theory
-  \end{itemize}
-\end{todo}
+The annotations generated that way can be used for browsing, either via the summary of all
+typed links in the ``fact box'', or by the special ``browse'' page.  For querying,
+Semantic MediaWiki offers a simple triple search, as well as inline queries.  The latter
+are intuitive to write but less powerful than SPARQL queries on an RDF store using an
+OWL-DL reasoner; the query language corresponds to the description logic
+$\mathcal{EL}^{++}$~\cite{KrSchVr:semwiki-reasoning07}, which, for example, does not
+support negation.  A query for proven lemmas about a certain topic that have a Twelf
+representation would be written as follows:
 
-``Evaluation'' (annotation/browsing/querying):
+\begin{lstlisting}
+<ask>[[Category:Proven]] [[Category:Lemma]]
+     [[Category:Trigonometry]] [[written in::Twelf]]</ask>
+\end{lstlisting}
 
-Cons of SMW:
-\begin{itemize}
-\item reasoning not yet appropriate; lacks inference of dependencies
-\item working with wiki text is quite clumsy (e.g. symbol linking), compared to the
-  existing OMDoc infrastructure
-\end{itemize}
+Here, most annotations are modelled by categorization, which corresponds to the
+instance-of relation in description logic---certainly not the most formal way of
+structuring knowledge, but the one that is supported best by Semantic MediaWiki.  More
+complex reasoning tasks like inference of dependencies are not possible in Semantic
+MediaWiki; in this domain-specific setting one could realize them by hard-coded extension
+functions.
 
-\subsection{Outlook: Towards Full Flyspeck Support in SWiM (mostly Christoph)}
+For exporting formal representations of knowledge items, one would also have to implement
+a special page.  Currently, the Twelf listings can be viewed on their own pages, but due
+to the auto-generated symbol links in the source code, they are not suitable for download.
+
+\subsection{Outlook: Towards Full Flyspeck Support in SWiM}
 \label{sec:flyspeck-swim}
 
 first lessons learned from the pre-study
@@ -685,14 +696,15 @@ Linking symbols to their declarations has already been done for OMDoc.
 Recently, there is a growing interest in integrating automated theorem provers or proof
 assistants with wikis\footnote{See \url{http://homepages.inf.ed.ac.uk/da/mathwiki/} for
   relevant activities.}.  Both Logiweb and ProofWiki are wiki-like systems that support
-checking or interactive development of proofs.  Developing and verifying formal proofs in
-the wiki is not yet the focus of Flyspeck in this early stage, but it may be required
-later if the central maintainer approach does not turn out to work.
+checking or interactive development of proofs.  Both systems are ``semantic'' in the sense
+that the integrated proof checker can utilize the mathematical knowledge in the wiki
+pages.  On the other hand, the semantics is not utilized for purposes other than that,
+such as facilitating browsing or editing, or connecting to services on the semantic
+web.  
 
-and they are ``semantic'' in the sense that the integrated proof checker can utilize the
-mathematical knowledge in the wiki pages.  On the other hand, the semantics is not
-utilized for purposes other than that, such as facilitating browsing or editing, or
-connecting to services on the semantic web.
+Developing and verifying formal proofs in the wiki is not yet the focus of Flyspeck in
+this early stage, but it may be required later if the central maintainer approach does not
+turn out to work.
 
 \paragraph{Logiweb~\cite{Grue:Logiweb07}} is an open source, distributed system for
 publishing machine checked mathematics in high-quality PDF.  While the author does not
@@ -742,7 +754,6 @@ metalanguage for exchanging or converting data.
 \begin{itemize}
 \item Michael Kohlhase
 \item Immanuel Normann
-\item Robert J.\ Simmons(?)
 \item Stefan Decker
 \end{itemize}
 

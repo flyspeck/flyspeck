@@ -1,3 +1,10 @@
+(* system dependent : 
+
+   load_path := 
+     ["/Users/thomashales/Desktop/flyspeck_google/source/inequalities/"] 
+        @ (!load_path)
+*)
+
 needs "Examples/analysis.ml";;
 needs "Examples/transc.ml";;
 needs "Jordan/lib_ext.ml";;
@@ -71,10 +78,19 @@ let t5 = kepler_def(`t5= (#0.27113)`);;
 let t6 = kepler_def(`t6= (#0.41056)`);;
 let t7 = kepler_def(`t7= (#0.54999)`);;
 let t8 = kepler_def(`t8= (#0.6045)`);;
+let t9 = kepler_def(`t9= (#0.6978)`);;
+let t10= kepler_def(`t10=(#0.7891)`);;
 let s5 = kepler_def(`s5= --(#0.05704)`);;
 let s6 = kepler_def(`s6= --(#0.11408)`);;
 let s7 = kepler_def(`s7= --(#0.17112)`);;
 let s8 = kepler_def(`s8= --(#0.22816)`);;
+let s9 = kepler_def(`s9= --(#0.1972)`);;
+
+(* Note this is what s10 is in DCG p128, but for the blueprint
+   it should be made -eps0 so that the 8pt bound holds by margin eps0 *)
+let s10= kepler_def(`s10= #0.0`);;
+let eps0 = kepler_def(`eps0 = #0.000000000001`); (* eps0 = 10^-12 *)
+
 
 let Z31 = kepler_def(`Z31 = (#0.00005)`);;
 let Z32 = kepler_def(`Z32 = -- (#0.05714)`);;

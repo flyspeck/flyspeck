@@ -16,7 +16,7 @@
 
 (*
  Author: Thomas C. Hales
- Copyright 2003,2004. Thomas C. Hales
+ copyright 2003-2008.
 
  Acknowledgement:  I would like to thank Carole Bunting for
  typing many of these inequalities in a machine readable form.
@@ -40,6 +40,11 @@ I'm suspicious of I_354217730.
 The sqrt2 looks odd and it doesn't fit with the interval arithmetic code.
 Note that similar inequalities such as I_938003786 use sqrt8 
 instead of sqrt2.
+
+Nov 8, 2007: Fixed the x1 bound on calc 815492935 and
+729988292 (SPIV-2002 Sec. A2-A3).  It should be (square_2t0,x1,(#8.0))
+
+Dec 16, 2007: Fixed the direction of inequalities in 690626704_*
 
 *)
 
@@ -7412,8 +7417,8 @@ Section A2
 
 let I_413688580=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
+    [(square_2t0, x1, (#8.0));
+          ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
     
@@ -7426,7 +7431,7 @@ let I_413688580=
 
 let I_805296510=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7440,7 +7445,7 @@ let I_805296510=
 
 let I_136610219=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7454,7 +7459,7 @@ let I_136610219=
 
 let I_379204810=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7469,7 +7474,7 @@ let I_379204810=
 
 let I_878731435=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7483,7 +7488,7 @@ let I_878731435=
 
 let I_891740103=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7507,7 +7512,7 @@ Section A3
 
 let I_334002329=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7522,7 +7527,7 @@ let I_334002329=
 
 let I_883139937=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7536,7 +7541,7 @@ let I_883139937=
 
 let I_507989176=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7551,7 +7556,7 @@ let I_507989176=
 
 let I_244435805=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7565,7 +7570,7 @@ let I_244435805=
 
 let I_930176500=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -7579,7 +7584,7 @@ let I_930176500=
 
 let I_815681339=
    all_forall `ineq 
-    [((#4.0), x1, square_2t0);
+    [(square_2t0, x1, (#8.0));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#4.0), x4, square_2t0);
@@ -9337,6 +9342,8 @@ let I_695180203_5=
     (((tau_0_x x1 x2 x3 x4 x5 x6) >. #0.06585) \/
      (eta_x x4 x5 x6 <. (sqrt (#2.0))))`;;
 
+(* direction of inequality corrected in 690626704_* on Dec 16, 2007, tch *)
+
 let I_690626704_1=
   all_forall `ineq
     [
@@ -9347,7 +9354,7 @@ let I_690626704_1=
 ((#4.0), x5, square_2t0);
 ((#4.0), x6, square_2t0)
     ]
-    (mu_flat_x x1 x2 x3 x4 x5 x6 >. #0.0)`;;
+    (mu_flat_x x1 x2 x3 x4 x5 x6 <. #0.0)`;;
 
 let I_690626704_2=
   all_forall `ineq
@@ -9359,7 +9366,7 @@ let I_690626704_2=
 ((#4.0), x5, square_2t0);
 ((#4.0), x6, square_2t0)
     ]
-    ((--(#0.0063)) + (vor_0_x x1 x2 x3 x4 x5 x6) >. #0.0)`;;
+    ((--(#0.0063)) + (vor_0_x x1 x2 x3 x4 x5 x6) <. #0.0)`;;
 
 let I_690626704_3=
   all_forall `ineq
@@ -9371,7 +9378,7 @@ let I_690626704_3=
 ((#4.0), x5, square_2t0);
 ((#4.0), x6, square_2t0)
     ]
-    ((--(#0.0114)) + (vor_0_x x1 x2 x3 x4 x5 x6) >. #0.0)`;;
+    ((--(#0.0114)) + (vor_0_x x1 x2 x3 x4 x5 x6) <. #0.0)`;;
 
 (* In this fourth case, we get half from each upright quarter. *)
 let I_690626704_4=
@@ -9384,7 +9391,7 @@ let I_690626704_4=
 ((#4.0), x5, square_2t0);
 ((#4.0), x6, square_2t0)
     ]
-    ((nu_x x1 x2 x3 x4 x5 x6) >. (#0.0))`;;
+    ((nu_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
 let I_690626704_5=
   all_forall `ineq
@@ -9396,7 +9403,7 @@ let I_690626704_5=
 ((#4.0), x5, square_2t0);
 ((#4.0), x6, square_2t0)
     ]
-    (((vor_0_x x1 x2 x3 x4 x5 x6) >. #0.0) \/
+    (((vor_0_x x1 x2 x3 x4 x5 x6) <. #0.0) \/
      (eta_x x4 x5 x6 <. (sqrt (#2.0))))`;;
 
 

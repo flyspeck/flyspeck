@@ -106,7 +106,7 @@ EOT;
 == [[written in::Twelf]] ==
 {{:$wikiTitle}}
 
-== [[written in::LaTeX]] ==
+== LaTeX ==
 {{:$texTitle}}
 
 == Annotations ==

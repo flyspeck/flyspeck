@@ -1,4 +1,4 @@
-
+ 
 type const = Decimal of int * int
            | Sqr of const
            | Named of string

@@ -87,6 +87,31 @@ struct
     | "kepler'xiV" -> Xiv
     | _ -> failwith ("not a constant: " ^ const)
 
+  let const_to_string const = match const with
+    | Dd_31 -> "D31"
+    | Dd_32 -> "D32"
+    | Dd_33 -> "D33"
+    | Dd_41 -> "D41"
+    | Dd_42 -> "D42"
+    | Dd_51 -> "D51"
+    | Zz_32 -> "Z32"
+    | Zz_33 -> "Z33"
+    | Zz_41 -> "Z41"
+    | Zz_42 -> "Z42"
+    | Doct -> "Doct"
+    | Pi -> "Pi"
+    | Pt -> "Pt"
+    | Ss_5 -> "S5"
+    | Sqrt2 -> "Sqrt2"
+    | Sqrt8 -> "Sqrt8"
+    | Square_2t0 -> "Square_2t0"
+    | Square_4t0 -> "Square_4t0"
+    | Tt_0 -> "T0"
+    | Tt_5 -> "T5"
+    | Two_t0 -> "Two_t0"
+    | Xi'_gamma -> "Xi'_gamma"
+    | XiV -> "XiV"
+
   (* -------------------------------------------------------------------------- *)
   (*  Functions                                                                 *)
   (* -------------------------------------------------------------------------- *)
@@ -207,6 +232,63 @@ struct
     | "kepler'vor_analytic_x_flipped" -> Vor_analytic_x_flipped
     | "kepler'vort_x" -> Vort_x
     | _ -> failwith ("no such const: " ^ func) 
+
+  let func_to_string func = match func with
+    | Edge_sqrt -> "EdgeSqrt"
+    | Acs -> "Acs"
+    | Cos -> "Cos" 
+    | Anc -> "Anc" 
+    | Arclength -> "Arclength"
+    | Beta -> "Beta"
+    | Chi_x -> "Chi_x"
+    | Cross_diag_x -> "Cross_diag_x"
+    | Crown -> "Crown"
+    | Delta_x -> "Delta_x"
+    | Dih2_x -> "Dih2_x"
+    | Dih3_x -> "Dih3_x"
+    | Dihr -> "Dihr"
+    | Dih_x -> "Dih_x"
+    | Eta_x -> "Eta_x"
+    | Gamma_x -> "Gamma_x"
+    | Kappa -> "Kappa"
+    | Kx -> "Kx"
+    | Mu_flat_x -> "Mu_flat_x"
+    | Mu_flipped_x -> "Mu_flipped_x"
+    | Mu_upright_x -> "Mu_upright_x"
+    | Nu_gamma_x -> "Nu_gamma_x"
+    | Nu_x -> "Nu_x"
+    | Octa_x -> "Octa_x"
+    | Octavor0_x -> "Octavor0_x"
+    | Octavor_analytic_x -> "Octavor_analytic_x"
+    | Overlap_f -> "Overlap_f"
+    | Quo_x -> "Quo_x"
+    | Rad2_x -> "Rad2_x"
+    | Sigma1_qrtet_x -> "Sigma1_qrtet_x"
+    | Sigma32_qrtet_x -> "Sigma32_qrtet_x"
+    | Sigma_qrtet_x -> "Sigma_qrtet_x"
+    | Sigmahat_x -> "Sigmahat_x"
+    | Sol_x -> "Sol_x"
+    | Taua_x -> "Taua_x"
+    | Tauc0_x -> "Tauc0_x"
+    | Tauvt_x -> "Tauvt_x"
+    | Tau_0_x -> "Tau_0_x"
+    | Tau_analytic_x -> "Tau_analytic_x"
+    | Tau_sigma_x -> "Tau_sigma_x"
+    | Tauhat_x -> "Tauhat_x"
+    | Tauhatpi_x -> "Tauhatpi_x"
+    | Taumu_flat_x -> "Taumu_flat_x"
+    | Taunu_x -> "Taunu_x"
+    | U_x -> "U_x"
+    | V0x -> "V0x"
+    | V1x -> "V1x"
+    | Vora_x -> "Vora_x"
+    | Vorc0_x -> "Vorc0_x"
+    | Vorc_x -> "Vorc_x"
+    | Vor_0_x -> "Vor_0_x"
+    | Vor_0_x_flipped -> "Vor_0_x_flipped"
+    | Vor_analytic_x -> "Vor_analytic_x"
+    | Vor_analytic_x_flipped -> "Vor_analytic_x_flipped"
+    | Vort_x -> "Vort_x"
 
   (* -------------------------------------------------------------------------- *)
   (*  Terms                                                                     *)
@@ -507,6 +589,45 @@ struct
   let translate_list ineqs = map translate ineqs
 
   open Format
+
+  let pp_int n = 
+    begin 
+      open_hbox ();
+      print_string "!\"";print_string (string_of_int n);print_string ".0\"";
+      close_box ();
+    end
+
+  let pp_pair f (l,r) = 
+    begin 
+      open_hbox();
+      print_string "(";f l;print_string ",";f r;print_string ")";
+      close_box();
+    end
+
+  let pp_decimal (x,y) = 
+    begin 
+      open_hbox();
+      pp_pair pp_int (x,y);
+      close_box();
+    end
+
+  let pp_named n = print_string (const_to_string n)
+
+  let rec pp_const c = match c with
+    | Decimal (x,y) -> pp_decimal(x,y)
+    | Int n -> pp_int n
+    | Named n -> pp_named n
+    | Sqr c -> pp_sqr c
+    | Sqrt c -> pp_sqrt c
+    | Copp c -> pp_copp c
+    | Cplus (x,y) -> pp_copp(x,y)
+    | Cmul (x,y) -> pp_cmul(x,y)
+    | Cdiv (x,y) -> pp_div(x,y)
+
+  and pp_sqr c = 
+
+
+pp_decimal ((3,4))
 
   let pp_bound (v, {lo=lo;hi=hi}) = 
     

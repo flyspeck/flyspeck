@@ -1,16 +1,17 @@
-(* system dependent : 
+(* system dependent :
 
-   load_path := 
-     ["/Users/thomashales/Desktop/flyspeck_google/source/inequalities/"] 
+   load_path :=
+     ["/Users/thomashales/Desktop/flyspeck_google/source/inequalities/"]
         @ (!load_path)
 *)
 
+(*
 needs "Examples/analysis.ml";;
 needs "Examples/transc.ml";;
 needs "Jordan/lib_ext.ml";;
+*)
 
-
-let kepler_def = local_definition "kepler";;  
+let kepler_def = local_definition "kepler";;
 
 prioritize_real();;
 
@@ -31,8 +32,8 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 (*  Extend atn to allow zero denominators.                            *)
 (* ------------------------------------------------------------------ *)
 
-let atn2 = new_definition(`atn2(x,y) = 
-    if ( ~(y = &0 ) ) then atn(x / y) else 
+let atn2 = new_definition(`atn2(x,y) =
+    if ( ~(y = &0 ) ) then atn(x / y) else
     (if (x > &0) then (pi / &2) else (-- (pi/ &2)))`);;
 
 (* ------------------------------------------------------------------ *)
@@ -119,7 +120,7 @@ let delta_x = kepler_def (`delta_x x1 x2 x3 x4 x5 x6 =
 (* ------------------------------------------------------------------ *)
 
 let delta_x4 = kepler_def(`delta_x4 x1 x2 x3 x4 x5 x6
-        =  -- x2* x3 -  x1* x4 + x2* x5 
+        =  -- x2* x3 -  x1* x4 + x2* x5
         + x3* x6 -  x5* x6 + x1* (-- x1 +  x2 +  x3 -  x4 +  x5 +  x6)`);;
 
 let delta_x6 = kepler_def(`delta_x6 x1 x2 x3 x4 x5 x6
@@ -131,10 +132,10 @@ let delta_x6 = kepler_def(`delta_x6 x1 x2 x3 x4 x5 x6
 (* ------------------------------------------------------------------ *)
 
 let u_x = kepler_def(
-        `u_x x1 x2 x3 = (--(x1*x1+x2*x2+x3*x3)) + 
+        `u_x x1 x2 x3 = (--(x1*x1+x2*x2+x3*x3)) +
         (&2) * (x1*x2+x2*x3+x3*x1)`);;
 
-let eta_x = kepler_def(`eta_x x1 x2 x3 = 
+let eta_x = kepler_def(`eta_x x1 x2 x3 =
         (sqrt ((x1*x2*x3)/(u_x x1 x2 x3)))
         `);;
 
@@ -144,7 +145,7 @@ let eta_y = kepler_def(`eta_y y1 y2 y3 =
                 let x3 = y3*y3 in
                 eta_x x1 x2 x3`);;
 
-let rho_x = kepler_def(`rho_x x1 x2 x3 x4 x5 x6 = 
+let rho_x = kepler_def(`rho_x x1 x2 x3 x4 x5 x6 =
         --x1*x1*x4*x4 - x2*x2*x5*x5 - x3*x3*x6*x6 +
         (&2)*x1*x2*x4*x5 + (&2)*x1*x3*x4*x6 + (&2)*x2*x3*x5*x6`);;
 
@@ -154,7 +155,7 @@ let rad2_y = kepler_def(`rad2_y y1 y2 y3 y4 y5 y6 =
 
 
 let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
-        = -- (x1*x4*x4) + x1*x4*x5 + x2*x4*x5 -  x2*x5*x5 
+        = -- (x1*x4*x4) + x1*x4*x5 + x2*x4*x5 -  x2*x5*x5
         + x1*x4*x6 + x3*x4*x6 +
    x2*x5*x6 + x3*x5*x6 -  (&2) * x4*x5*x6 -  x3*x6*x6`);;
 
@@ -165,7 +166,7 @@ let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
 (*   The angle is computed along the first edge (x1).                 *)
 (* ------------------------------------------------------------------ *)
 
-let dih_x = kepler_def(`dih_x x1 x2 x3 x4 x5 x6 = 
+let dih_x = kepler_def(`dih_x x1 x2 x3 x4 x5 x6 =
        let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
        let d = delta_x x1 x2 x3 x4 x5 x6 in
        pi/ (&2) +  atn2(--  d_x4, (sqrt ((&4) * x1 * d)))`);;
@@ -193,12 +194,12 @@ let dih3_x = kepler_def(`dih3_x x1 x2 x3 x4 x5 x6 =
 (*   in terms of the angles: area = alpha+beta+gamma - pi             *)
 (* ------------------------------------------------------------------ *)
 
-let sol_x = kepler_def(`sol_x x1 x2 x3 x4 x5 x6 = 
-        (dih_x x1 x2 x3 x4 x5 x6) + 
+let sol_x = kepler_def(`sol_x x1 x2 x3 x4 x5 x6 =
+        (dih_x x1 x2 x3 x4 x5 x6) +
         (dih_x x2 x3 x1 x5 x6 x4) +  (dih_x x3 x1 x2 x6 x4 x5) -  pi`);;
 
-let sol_y = kepler_def(`sol_y y1 y2 y3 y4 y5 y6 = 
-        (dih_y y1 y2 y3 y4 y5 y6) + 
+let sol_y = kepler_def(`sol_y y1 y2 y3 y4 y5 y6 =
+        (dih_y y1 y2 y3 y4 y5 y6) +
         (dih_y y2 y3 y1 y5 y6 y4) +  (dih_y y3 y1 y2 y6 y4 y5) -  pi`);;
 
 
@@ -207,14 +208,14 @@ let sol_y = kepler_def(`sol_y y1 y2 y3 y4 y5 y6 =
 (*   The variables xi are the squares of the lengths of the edges.    *)
 (* ------------------------------------------------------------------ *)
 
-let vol_x = kepler_def(`vol_x x1 x2 x3 x4 x5 x6 = 
+let vol_x = kepler_def(`vol_x x1 x2 x3 x4 x5 x6 =
         (sqrt (delta_x x1 x2 x3 x4 x5 x6))/ (&12)`);;
 
 (* ------------------------------------------------------------------ *)
 (*   Some lower dimensional funcions and Rogers simplices.            *)
 (* ------------------------------------------------------------------ *)
 
-let beta = kepler_def(`beta psi theta = 
+let beta = kepler_def(`beta psi theta =
         let arg = ((cos psi)*(cos psi) -  (cos theta)*(cos theta))/
         ((&1) -  (cos theta)*(cos theta))  in
         (acs (sqrt arg))`);;
@@ -312,7 +313,7 @@ let overlap_f = kepler_def(
 (* ------------------------------------------------------------------ *)
 (*   Analytic and truncated Voronoi function                          *)
 (* ------------------------------------------------------------------ *)
-;;
+
 let KY = kepler_def(`KY y1 y2 y3 y4 y5 y6 =
    (K0 y1 y2 y6) + (K0 y1 y3 y5) + 
   (dih_y y1 y2 y3 y4 y5 y6)*

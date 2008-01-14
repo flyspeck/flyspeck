@@ -89,7 +89,7 @@ let s9 = kepler_def(`s9= --(#0.1972)`);;
 (* Note this is what s10 is in DCG p128, but for the blueprint
    it should be made -eps0 so that the 8pt bound holds by margin eps0 *)
 let s10= kepler_def(`s10= #0.0`);;
-let eps0 = kepler_def(`eps0 = #0.000000000001`); (* eps0 = 10^-12 *)
+let eps0 = kepler_def(`eps0 = #0.000000000001`);; (* eps0 = 10^-12 *)
 
 
 let Z31 = kepler_def(`Z31 = (#0.00005)`);;

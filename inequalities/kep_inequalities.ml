@@ -705,7 +705,6 @@ let I_867513567_10=
             (sqrt x1)) +.  (  (#0.19) *.  (sqrt x2)) +.  (  (#0.19) *.  (sqrt x3))) <.  (#1.449))`;;
 
 
-
 let I_867513567_11=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -717,7 +716,7 @@ let I_867513567_11=
     ]
     (
             ( (sigmahat_x x1 x2 x3 x4 x5 x6) +.  (  (#0.419351) *.  (sol_x x1 x2 x3 x4 x5 x6))) <. 
-                ( (--. (#0.01465)) +.  (  (#0.0436) *.  (sqrt x5)) +.  (  (#0.436) *.  (sqrt x6)) +.  (  (#0.079431) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
+              ( (--. (#0.01465)) +.  (  (#0.0436) *.  (sqrt x5)) +.  (  (#0.436) *.  (sqrt x6)) +.  (  (#0.079431) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
 
 
 
@@ -9436,6 +9435,7 @@ let I_590577214=
             ( (tau_analytic_x x1 x2 x3 x4 x5 x6) >.  (#0.13943)) \/ 
             ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_949210508_1=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9445,8 +9445,8 @@ let I_949210508_1=
 (square_2t0, x5, (#8.0));
 (square_2t0, x6, (#8.0))
     ] 
-   (vor_0_x x1 x2 x3 x4 x5 x6 <. Z32) \/
-   (eta_x x4 x5 x6 >. (sqrt (#2.0)) )`;;
+    ((vor_0_x x1 x2 x3 x4 x5 x6 <. Z32) \/
+       (eta_x x4 x5 x6 >. (sqrt (#2.0)) ))`;;
 
 let I_949210508_2=
   all_forall `ineq
@@ -9459,6 +9459,7 @@ let I_949210508_2=
     ] 
    (vor_0_x x1 x2 x3 x4 x5 x6 <. Z32)`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_671961774_1=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9468,8 +9469,8 @@ let I_671961774_1=
 (square_2t0, x5, (#8.0));
 (square_2t0, x6, (#8.0))
     ] 
-   (tau_0_x x1 x2 x3 x4 x5 x6 >. (#0.13943)) \/
-   (eta_x x4 x5 x6 >. (sqrt (#2.0)) )`;;
+   ((tau_0_x x1 x2 x3 x4 x5 x6 >. (#0.13943)) \/
+   (eta_x x4 x5 x6 >. (sqrt (#2.0)) ))`;;
 
 let I_671961774_2=
   all_forall `ineq
@@ -9947,6 +9948,7 @@ let I_898647773_16=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`0`;`2`;`0`]));;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_844634710_1=
   all_forall `
 let a2 = (#4.0) in
@@ -9961,13 +9963,14 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
+   ((((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     Z42 - (#0.0461) - (#0.009) - (&.2)*(#0.008)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_844634710_2=
   all_forall `
 let a2 = (square_2t0) in
@@ -9982,13 +9985,14 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
+   ((((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     Z42 - (#0.0461) - (#0.009) - (&.2)*(#0.008)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_844634710_3=
   all_forall `
 let a2 = (#4.0) in
@@ -10003,13 +10007,14 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
+   ((((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     Z42 - (#0.0461) - (#0.009) - (&.2)*(#0.008)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_844634710_4=
   all_forall `
 let a2 = (square_2t0) in
@@ -10022,14 +10027,13 @@ let x3 = (#4.0) in
 let x5 = (b3) in
 let x6 = (b4) in 
  (ineq
-[
-((#8.0), (x4:real), (square (#3.2)))]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
+[((#8.0), (x4:real), (square (#3.2)))]
+   ((((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     (Z42 - (#0.0461) - (#0.009) - (&.2)*(#0.008))))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 
 let I_328845176_1=
@@ -10046,12 +10050,12 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
+   ((((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
     D51 + (#0.04683)+(#0.008)+(&.2)*(#0.066)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 let I_328845176_2=
   all_forall `
@@ -10067,13 +10071,14 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
+   ((((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
     D51 + (#0.04683)+(#0.008)+(&.2)*(#0.066)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_328845176_3=
   all_forall `
 let a2 = (#4.0) in
@@ -10088,13 +10093,14 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
+   ((((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
     D51 + (#0.04683)+(#0.008)+(&.2)*(#0.066)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
+(* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
 let I_328845176_4=
   all_forall `
 let a2 = (square_2t0) in
@@ -10107,14 +10113,13 @@ let x3 = (#4.0) in
 let x5 = (b3) in
 let x6 = (b4) in 
  (ineq
-[
-((#8.0), (x4:real), (square (#3.2)))]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
+[((#8.0), (x4:real), (square (#3.2)))]
+   ((((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
     D51 + (#0.04683)+(#0.008)+(&.2)*(#0.066)))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 
 let I_233273785_1=
@@ -10131,12 +10136,12 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   ((vor_0_x x1 x2 x3 x4 x5 x6) +
+   (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     s5 - (#0.0461) - (#0.008))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 let I_233273785_2=
   all_forall `
@@ -10152,12 +10157,12 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   ((vor_0_x x1 x2 x3 x4 x5 x6) +
+   (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) <.
     s5 - (#0.0461) - (#0.008))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 let I_96695550_1=
   all_forall `
@@ -10173,12 +10178,12 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   ((tau_0_x x1 x2 x3 x4 x5 x6) +
+   (((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
       t5 + (#0.008))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 let I_96695550_2=
   all_forall `
@@ -10194,12 +10199,12 @@ let x6 = (b4) in
  (ineq
 [
 ((#8.0), (x4:real), (square (#3.2)))]
-   ((tau_0_x x1 x2 x3 x4 x5 x6) +
+   (((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x (a2) x2 x3 x4 (#4.0) (#4.0)) >.
       t5 + (#0.008))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
-       <. ((#3.2))))`;;
+       <. ((#3.2)))))`;;
 
 let CIVA20_874876755 = list_mk_conj 
  [  I_193776341_1;I_193776341_2;I_193776341_3;I_193776341_4;
@@ -11700,15 +11705,11 @@ let J_241241504_1=
     [((#4.0), x1, square_2t0);
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
-    
-        ((square (#2.177303)), x4, square_2t0);
+     ((square (#2.177303)), x4, square_2t0);
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <.  (  0.028794285 ))`;;
-
-
-
+    ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <.  (  #0.028794285 ))`;; (* STM, added '#' *)
 
 let J_144820927=
    all_forall `ineq 
@@ -11752,7 +11753,6 @@ let J_938408928=
     ]
     ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <. 
                 ( (#0.28365) +.  (  (--. (#0.207045)) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
-
 
 
 let J_739415811=

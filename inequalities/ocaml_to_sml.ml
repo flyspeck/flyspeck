@@ -881,7 +881,6 @@ unambiguous_interface();;
 #use "../../kepler/notes/holl/definitions_kepler.ml";;
 #use "../../kepler/notes/holl/kep_inequalities.ml";;
 #use "../../kepler/notes/holl/ineq_names.ml";;
-
 #use "../../kepler/notes/holl/ocaml_to_sml.ml";;
 module Sml = Ocaml_sml;;
 let ocaml_ineqs = Sml.translate_list ineqs;;
@@ -917,7 +916,5 @@ Sml.ineq_to_sml q
    translate_ineq I_867513567_13
    let t = `tau_sigma_x x1 x2 x3 x4 x5 x6 -. #0.2529 *. dih_x x1 x2 x3 x4 x5 x6 >.
    --. #0.3442`
-
-
 
  *) 

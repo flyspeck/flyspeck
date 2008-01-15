@@ -505,20 +505,35 @@ let vor_0_x_flipped = kepler_def(`vor_0_x_flipped x1 x2 x3 x4 x5 x6=
 let octavor0_x = kepler_def(`octavor0_x x1 x2 x3 x4 x5 x6 = 
      (#0.5)* (vor_0_x x1 x2 x3 x4 x5 x6 + (vor_0_x_flipped x1 x2 x3 x4 x5 x6))`);;
 
+(* STM changed to use mu_flipped_x and vor_0_x_flipped instead of the definition *)
+(* let nu_x = kepler_def(`nu_x x1 x2 x3 x4 x5 x6 = *)
+(*         ((&1)/(&2))* *)
+(*         ( *)
+(*                (mu_upright_x x1 x2 x3 x4 x5 x6)+ *)
+(*                (mu_upright_x x1 x5 x6 x4 x2 x3)+ *)
+(*                (vor_0_x x1 x2 x3 x4 x5 x6)- *)
+(*                (vor_0_x x1 x5 x6 x4 x2 x3))`);; *)
 let nu_x = kepler_def(`nu_x x1 x2 x3 x4 x5 x6 =
         ((&1)/(&2))*
         (
                (mu_upright_x x1 x2 x3 x4 x5 x6)+
-               (mu_upright_x x1 x5 x6 x4 x2 x3)+
+               (mu_flipped_x x1 x2 x3 x4 x5 x6)+
                (vor_0_x x1 x2 x3 x4 x5 x6)-
-               (vor_0_x x1 x5 x6 x4 x2 x3))`);;
+               (vor_0_x_flipped x1 x2 x3 x4 x5 x6))`);;
 
+(* STM changed to use vor_0_x_flipped instead of the definition *)
+(* let nu_gamma_x = kepler_def(`nu_gamma_x x1 x2 x3 x4 x5 x6 = *)
+(*         ((&1)/(&2))* *)
+(*         ( *)
+(*                (&2 * (gamma_x x1 x2 x3 x4 x5 x6))+ *)
+(*                (vor_0_x x1 x2 x3 x4 x5 x6)- *)
+(*                (vor_0_x x1 x5 x6 x4 x2 x3))`);; *)
 let nu_gamma_x = kepler_def(`nu_gamma_x x1 x2 x3 x4 x5 x6 =
         ((&1)/(&2))*
         (
                (&2 * (gamma_x x1 x2 x3 x4 x5 x6))+
                (vor_0_x x1 x2 x3 x4 x5 x6)-
-               (vor_0_x x1 x5 x6 x4 x2 x3))`);;
+               (vor_0_x_flipped x1 x2 x3 x4 x5 x6))`);;
 
 let taunu_x = kepler_def(`taunu_x x1 x2 x3 x4 x5 x6 =
 	(sol_x x1 x2 x3 x4 x5 x6)*zeta*pt - (nu_x x1 x2 x3 x4 x5 x6)`);;
@@ -527,10 +542,15 @@ let taunu_x = kepler_def(`taunu_x x1 x2 x3 x4 x5 x6 =
 
 (* score for upright quarters in a quasi-regular octahedron.
    I don't think I had a name for this specifically. *)
+(* let octa_x = kepler_def(`octa_x x1 x2 x3 x4 x5 x6 =  *)
+(* 	(#0.5)*( *)
+(*                (mu_upright_x x1 x2 x3 x4 x5 x6)+ *)
+(*                (mu_upright_x x1 x5 x6 x4 x2 x3))`);; *)
+
 let octa_x = kepler_def(`octa_x x1 x2 x3 x4 x5 x6 = 
 	(#0.5)*(
                (mu_upright_x x1 x2 x3 x4 x5 x6)+
-               (mu_upright_x x1 x5 x6 x4 x2 x3))`);;
+               (mu_flipped_x x1 x2 x3 x4 x5 x6))`);;
 
 let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
         let r234 = eta_x x2 x3 x4 in
@@ -614,8 +634,6 @@ let pi_prime_sigma = kepler_def
 (* The following definitions also appear in Jordan/misc_defs_and_lemmas.ml *)
 (* ------------------------------------------------------------------ *)
 
-
-;;
 mk_local_interface "kepler";;
 
 overload_interface

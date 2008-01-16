@@ -1,4 +1,8 @@
 
+(* -------------------------------------------------------------------------- *)
+(*  Signature                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
 module type Ocaml_sml =
 sig
 
@@ -27,12 +31,10 @@ sig
     | Xi'_gamma
     | Xiv
 
-  type func_name = | Acs
-                   | Anc
+  type func_name = | Anc
                    | Arclength
                    | Beta
                    | Chi_x
-                   | Cos
                    | Cross_diag_x
                    | Crown
                    | Delta_x
@@ -87,6 +89,8 @@ sig
                | Named of const_name
                | Sqr of const
                | Sqrt of const
+               | Cos of const
+               | Acos of const
                | Copp of const
                | Cplus of const * const
                | Cmul of const * const
@@ -95,9 +99,11 @@ sig
   type expr = | Const of const
               | Funcall of func_name * expr list
               | Var of string
+              | Varsqrt of string
               | Opp of expr
               | Mul of expr * expr
               | Div of expr * expr
+              | One
 
   type monom = const * expr
 
@@ -110,10 +116,24 @@ sig
                vars : (string * bounds) list;
                rels : lcomb list}
 
+  (* 
+     put the hales inequalities in a normal form 
+
+     !x_1 ... x_n. ineq [lower_1,x_1,upper_1;
+                         ...;
+                         lower_n,x_n,upper_n]
+                        c_1_1 f_1 + ... + c_1_m f_m < &0 \/
+                        ... \/
+                        c_k_1 f_k + ... + c_k_m f_m < &0
+   *)
+  val normalize : Term.term -> Term.term
+
+
   (* Translate HOL Light term to OCaml datatype *)
   val translate : string * Term.term -> ineq
 
-  val translate_list : (string * Term.term) list -> ineq list
+  val translate_list : ignore : string list -> 
+                       terms : (string * Term.term) list -> ineq list
 
   (* Print Ocaml datatype as an SML datatype *)
   val ineq_to_sml : ineq -> unit
@@ -122,12 +142,12 @@ sig
 
 end
 
+(* -------------------------------------------------------------------------- *)
+(*  Structure                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
 module Ocaml_sml : Ocaml_sml = 
 struct 
-
-  (* -------------------------------------------------------------------------- *)
-  (*  Constants                                                                 *)
-  (* -------------------------------------------------------------------------- *)
 
   type const_name = 
     | Dd_31
@@ -153,6 +173,95 @@ struct
     | Two_t0
     | Xi'_gamma
     | Xiv
+
+  type func_name = | Anc
+                   | Arclength
+                   | Beta
+                   | Chi_x
+                   | Cross_diag_x
+                   | Crown
+                   | Delta_x
+                   | Dih_x
+                   | Dih2_x
+                   | Dih3_x
+                   | Dihr
+                   | Eta_x
+                   | Gamma_x
+                   | Kappa
+                   | Kx
+                   | Mu_flat_x
+                   | Mu_flipped_x
+                   | Mu_upright_x
+                   | Nu_gamma_x
+                   | Nu_x
+                   | Octa_x
+                   | Octavor0_x
+                   | Octavor_analytic_x
+                   | Overlap_f
+                   | Quo_x
+                   | Rad2_x
+                   | Sigma1_qrtet_x
+                   | Sigma32_qrtet_x
+                   | Sigma_qrtet_x
+                   | Sigmahat_x
+                   | Sol_x
+                   | Taua_x
+                   | Tauc0_x
+                   | Tauvt_x
+                   | Tau_0_x
+                   | Tau_analytic_x
+                   | Tau_sigma_x
+                   | Tauhat_x
+                   | Tauhatpi_x
+                   | Taumu_flat_x
+                   | Taunu_x
+                   | U_x
+                   | V0x
+                   | V1x
+                   | Vora_x
+                   | Vorc0_x
+                   | Vorc_x
+                   | Vor_0_x
+                   | Vor_0_x_flipped
+                   | Vor_analytic_x
+                   | Vor_analytic_x_flipped
+                   | Vort_x
+
+  type const = | Decimal of int * int
+               | Int of int
+               | Named of const_name
+               | Sqr of const
+               | Sqrt of const
+               | Cos of const
+               | Acos of const
+               | Copp of const
+               | Cplus of const * const
+               | Cmul of const * const
+               | Cdiv of const * const
+
+  type expr = | Const of const
+              | Funcall of func_name * expr list
+              | Var of string
+              | Varsqrt of string
+              | Opp of expr
+              | Mul of expr * expr
+              | Div of expr * expr
+              | One
+
+  type monom = const * expr
+
+  type lcomb = monom list
+
+  type bounds = {lo : const;
+                 hi : const}
+
+  type ineq = {name : string;
+               vars : (string * bounds) list;
+               rels : lcomb list}
+
+  (* -------------------------------------------------------------------------- *)
+  (*  Util                                                                      *)
+  (* -------------------------------------------------------------------------- *)
 
   let const_of_string const = match const with
     | "kepler'D31" -> Dd_31
@@ -205,69 +314,7 @@ struct
     | Xi'_gamma -> "Xi'_gamma"
     | XiV -> "XiV"
 
-  (* -------------------------------------------------------------------------- *)
-  (*  Functions                                                                 *)
-  (* -------------------------------------------------------------------------- *)
-
-  type func_name = | Acs
-                   | Anc
-                   | Arclength
-                   | Beta
-                   | Chi_x
-                   | Cos
-                   | Cross_diag_x
-                   | Crown
-                   | Delta_x
-                   | Dih_x
-                   | Dih2_x
-                   | Dih3_x
-                   | Dihr
-                   | Eta_x
-                   | Gamma_x
-                   | Kappa
-                   | Kx
-                   | Mu_flat_x
-                   | Mu_flipped_x
-                   | Mu_upright_x
-                   | Nu_gamma_x
-                   | Nu_x
-                   | Octa_x
-                   | Octavor0_x
-                   | Octavor_analytic_x
-                   | Overlap_f
-                   | Quo_x
-                   | Rad2_x
-                   | Sigma1_qrtet_x
-                   | Sigma32_qrtet_x
-                   | Sigma_qrtet_x
-                   | Sigmahat_x
-                   | Sol_x
-                   | Taua_x
-                   | Tauc0_x
-                   | Tauvt_x
-                   | Tau_0_x
-                   | Tau_analytic_x
-                   | Tau_sigma_x
-                   | Tauhat_x
-                   | Tauhatpi_x
-                   | Taumu_flat_x
-                   | Taunu_x
-                   | U_x
-                   | V0x
-                   | V1x
-                   | Vora_x
-                   | Vorc0_x
-                   | Vorc_x
-                   | Vor_0_x
-                   | Vor_0_x_flipped
-                   | Vor_analytic_x
-                   | Vor_analytic_x_flipped
-                   | Vort_x
-
   let func_of_string func = match func with
-    | "sqrt" -> Sqrt
-    | "acs" -> Acs
-    | "cos" -> Cos
     | "kepler'anc" -> Anc
     | "kepler'arclength" -> Arclength
     | "kepler'beta" -> Beta
@@ -323,8 +370,6 @@ struct
     | _ -> failwith ("no such const: " ^ func) 
 
   let func_to_string func = match func with
-    | Acs -> "Acs"
-    | Cos -> "Cos" 
     | Anc -> "Anc" 
     | Arclength -> "Arclength"
     | Beta -> "Beta"
@@ -378,42 +423,6 @@ struct
     | Vor_analytic_x_flipped -> "Vor_analytic_x_flipped"
     | Vort_x -> "Vort_x"
 
-  (* -------------------------------------------------------------------------- *)
-  (*  Terms                                                                     *)
-  (* -------------------------------------------------------------------------- *)
-
-  type const = | Decimal of int * int
-               | Int of int
-               | Named of const_name
-               | Sqr of const
-               | Sqrt of const
-               | Copp of const
-               | Cplus of const * const
-               | Cmul of const * const
-               | Cdiv of const * const
-
-  type expr = | Const of const
-              | Funcall of func_name * expr list
-              | Var of string
-              | Opp of expr
-              | Mul of expr * expr
-              | Div of expr * expr
-
-  type monom = const * expr
-
-  type lcomb = monom list
-
-  type bounds = {lo : const;
-                 hi : const}
-
-  type ineq = {name : string;
-               vars : (string * bounds) list;
-               rels : lcomb list}
-
-  (* -------------------------------------------------------------------------- *)
-  (*  Util                                                                      *)
-  (* -------------------------------------------------------------------------- *)
-
   let var_to_string v = fst (dest_var v)
   let dest_add t = try Some (dest_binop `(+.)` t) with _ -> None
   let dest_sub t = try Some (dest_binop `(-.)` t) with _ -> None
@@ -464,6 +473,12 @@ struct
     match translate_named t with
         Some _ as c -> c
       | None ->
+    match translate_cos t with
+        Some _ as c -> c
+      | None ->
+    match translate_acos t with
+        Some _ as c -> c
+      | None ->
     match translate_sqr t with
         Some _ as c -> c
       | None ->
@@ -502,6 +517,8 @@ struct
         | _ -> None 
     with _ -> None 
 
+  and translate_cos t = translate_unop `cos` (fun x -> Cos x) t
+  and translate_acos t = translate_unop `acs` (fun x -> Acos x) t
   and translate_sqr t = translate_unop `square` (fun x -> Sqr x) t
   and translate_sqrt t = translate_unop `sqrt` (fun x -> Sqrt x) t
   and translate_copp t = translate_unop `(--.)` (fun x -> Copp x) t
@@ -512,11 +529,22 @@ struct
   let translate_var t = 
     if is_var t then Some (Var (fst (dest_var t))) else None 
 
+  let translate_varsqrt t = 
+    try
+      let sqrt,x = dest_comb t in
+      if sqrt = `sqrt` && is_var x then
+        Some (Varsqrt (fst (dest_var x))) 
+      else None 
+    with _ -> None 
+
   let rec translate_expr t : expr option = 
     match translate_const t with
         Some c -> Some (Const c)
       | None ->
     match translate_funcall t with
+        Some _ as c -> c
+      | None ->
+    match translate_varsqrt t with
         Some _ as c -> c
       | None ->
     match translate_var t with
@@ -566,7 +594,7 @@ struct
 
   let translate_monom t : monom option = 
     match translate_const t with
-        Some x -> Some (x,Funcall(One,[]))
+        Some x -> Some (x,One)
       | None -> 
     match dest_mul t with
         Some (c,e) -> 
@@ -617,16 +645,9 @@ struct
         (bounds',ineqs)
     with _ -> failwith "translate_ineq"
 
-  (* 
-     put the hales inequalities in a normal form 
-
-     !x_1 ... x_n. ineq [lower_1,x_1,upper_1;
-                         ...;
-                         lower_n,x_n,upper_n]
-                        c_1_1 f_1 + ... + c_1_m f_m < &0 \/
-                        ... \/
-                        c_k_1 f_k + ... + c_k_m f_m < &0
-   *)
+  (* -------------------------------------------------------------------------- *)
+  (*  Normalize                                                                 *)
+  (* -------------------------------------------------------------------------- *)
 
   let normalize =
     let thms = [
@@ -640,7 +661,6 @@ struct
                  REAL_ARITH `x + (&0) = x`;
                  REAL_ARITH `--. (x + y) = (--. x) + (-- y)`;
                  REAL_ARITH `--. (-- x) = x`;
-                 REAL_ARITH `&1 * x = x`;
                  REAL_ARITH `!f:real->real->real->real->real->real->real. (-- (f x1 x2 x3 x4 x5 x6)) = (-- (&1) *. (f x1 x2 x3 x4 x5 x6))`;
                  MESON [] `(a \/ (b \/ c)) = (a \/ b \/ c)`;
                  pi_prime_tau;
@@ -660,22 +680,14 @@ struct
                                NUM_REDUCE_CONV) x)))
 
   let translate (name,q) =
-    let dummy = {name = "dummy";
-                 vars = [];
-                 rels = []} in
-    if mem name ignore then
-      begin
-        print_endline ("ignoring ineq: " ^ name);
-        dummy
-      end
-    else
-      let _ = print_endline ("translating ineq: " ^ name) in
-      let bounds,rels = translate_ineq (normalize q) in
-        {name = name;
-         vars = bounds;
-         rels = rels}
+    let _ = print_endline ("translating ineq: " ^ name) in
+    let bounds,rels = translate_ineq (normalize q) in
+      {name = name;
+       vars = bounds;
+       rels = rels}
 
-  let translate_list ineqs = map translate ineqs
+  let translate_list ~ignore ~terms = 
+    map translate (List.filter (fun x,_ -> not (mem x ignore)) terms)
 
   (* -------------------------------------------------------------------------- *)
   (*  Pretty Printing                                                           *)
@@ -686,7 +698,7 @@ struct
   let pp_int n = 
     begin 
       open_hbox ();
-      print_string "!\"";print_string (string_of_int n);print_string ".0\"";
+      print_string (string_of_int n);
       close_box ();
     end
 
@@ -725,7 +737,7 @@ struct
 
   let pp_list_vert f l = if l = [] then print_string "[]" else
     begin 
-      open_vbox 0;
+      open_vbox 1;
       print_string "[";
       iter_butlast (fun x -> (f x; print_string ",";print_cut())) l;
       f (last l);
@@ -758,6 +770,7 @@ struct
   let pp_decimal (x,y) = 
     begin 
       open_hbox();
+      print_string "Decimal";
       pp_pair pp_int (x,y);
       close_box();
     end
@@ -766,8 +779,10 @@ struct
 
   let rec pp_const c = match c with
     | Decimal (x,y) -> pp_decimal(x,y)
-    | Int n -> pp_int n
-    | Named n -> pp_named n
+    | Int n -> (print_string "Int "; pp_int n)
+    | Named n -> (print_string "Named ";pp_named n)
+    | Cos c -> pp_cos c
+    | Acos c -> pp_acos c
     | Sqr c -> pp_sqr c
     | Sqrt c -> pp_sqrt c
     | Copp c -> pp_copp c
@@ -775,26 +790,29 @@ struct
     | Cmul (x,y) -> pp_cmul x y
     | Cdiv (x,y) -> pp_cdiv x y
 
+  and pp_cos c = pp_unop pp_const "Cos" c
+  and pp_acos c = pp_unop pp_const "Acos" c
   and pp_sqr c = pp_unop pp_const "Sqr" c
   and pp_sqrt c = pp_unop pp_const "Sqrt" c
-  and pp_copp c = pp_unop pp_const "COpp" c
-  and pp_cplus c1 c2 = pp_binop pp_const "CPlus" c1 c2
-  and pp_cmul c1 c2 = pp_binop pp_const "CMul" c1 c2
-  and pp_cdiv c1 c2 = pp_binop pp_const "CDiv" c1 c2
-
+  and pp_copp c = pp_unop pp_const "Copp" c
+  and pp_cplus c1 c2 = pp_binop pp_const "Cplus" c1 c2
+  and pp_cmul c1 c2 = pp_binop pp_const "Cmul" c1 c2
+  and pp_cdiv c1 c2 = pp_binop pp_const "Cdiv" c1 c2
 
   let rec pp_expr e = match e with
-    | Const c -> pp_const c
+    | Const c -> (print_string "Const (";pp_const c;print_string ")")
     | Funcall (f,xs) -> pp_funcall f xs
     | Var v -> pp_var v
+    | Varsqrt v -> pp_varsqrt v
     | Opp e -> pp_opp e
     | Mul(x,y) -> pp_mul x y
     | Div(x,y) -> pp_div x y
+    | One -> print_string "One"
 
   and pp_funcall f xs = 
     begin 
       open_hbox();
-      print_string "(";
+      print_string "Funcall(";
       print_string (func_to_string f);
       print_string ", ";
       pp_list_horiz pp_expr xs;
@@ -803,6 +821,7 @@ struct
     end
 
   and pp_var v = print_string ("Var \"" ^ v ^ "\"")
+  and pp_varsqrt v = print_string ("Varsqrt \"" ^ v ^ "\"")
   and pp_opp e = pp_unop pp_expr "Opp" e 
   and pp_mul e1 e2 = pp_binop pp_expr "Mul" e1 e2
   and pp_div e1 e2 = pp_binop pp_expr "Div" e1 e2
@@ -823,48 +842,114 @@ struct
   let pp_bounds (v, {lo=lo;hi=hi}) =
     begin 
       open_vbox 1;
-      print_string ("(" ^ v ^ ",");
+      print_string ("(\"" ^ v ^ "\",");
       print_cut();
        open_hbox();
        print_string "{lo = ";
        pp_const lo;
        close_box();
+       print_string ",";
        print_cut();
        open_hbox();
        print_string " hi = ";
        pp_const hi;
-       print_string "}";
+       print_string "})";
        close_box();
       close_box(); 
     end
 
   let ineq_to_sml q = 
     begin
-      print_cut();
       open_vbox 1;
       print_string "{";
       print_string "name = \"";
       print_string q.name;
       print_string "\",";
       print_cut();
-      print_string "kind = general,";
       print_cut();
-      print_string "bounds =";
-       open_vbox 0;
-       List.iter (fun x -> pp_bounds x; print_cut()) q.vars;
-       close_box();
-      print_string "fs =";
-       open_vbox 0;
-       List.iter (fun x -> pp_lcomb x; print_cut()) q.rels;
-       close_box();       
+      print_string "vars = ";
+       pp_list_vert pp_bounds q.vars;
+       print_string ",";
+      print_cut();
+      print_cut();
+      print_string "rels = ";
+       pp_list_vert pp_lcomb q.rels;
+       print_string "}";
       close_box();
     end
+
+  let ineqs_to_sml qs =
+    let doit q = 
+      begin
+        ineq_to_sml q;
+        print_string ",";
+        print_cut();
+        print_cut();
+      end in
+    begin
+      open_vbox 6;
+      print_cut();
+      iter_butlast doit qs;
+      ineq_to_sml (last qs);
+      close_box();
+    end
+
+  let header = 
+"
+structure InequalitySyntax :> INEQUALITY_SYNTAX =
+struct 
+
+  open FunctionUtil
+
+  datatype const = Decimal of int * int
+                 | Int of int
+                 | Named of FunctionUtil.const_name
+                 | Sqr of const
+                 | Sqrt of const
+                 | Cos of const
+                 | Acos of const
+                 | Copp of const
+                 | Cplus of const * const
+                 | Cmul of const * const
+                 | Cdiv of const * const
+
+  datatype expr = Const of const
+                | Funcall of FunctionUtil.func_name * expr list
+                | Var of string
+                | Varsqrt of string
+                | Opp of expr
+                | Mul of expr * expr
+                | Div of expr * expr
+                | One
+
+  type monom = const * expr
+
+  type lcomb = monom list
+
+  type bounds = {lo : const,
+                 hi : const}
+
+  type ineq = {name : string,
+               vars : (string * bounds) list,
+               rels : lcomb list}
+
+  val the_ineqs = [
+"
+
+  let footer = 
+"
+  ]
+
+end" 
 
   let ineqs_to_sml ~file ~ineqs = 
     let chan = open_out file in
       begin 
-        set_formatter_out_channel stdout;
-        List.iter ineq_to_sml ineqs;
+        set_formatter_out_channel chan;
+        print_string header;
+        ineqs_to_sml ineqs;
+        print_string footer;
+        set_formatter_out_channel stdout;        
         close_out chan;
       end 
 
@@ -878,35 +963,35 @@ needs "Jordan/lib_ext.ml";;
 needs "Jordan/parse_ext_override_interface.ml";;
 unambiguous_interface();;
 
-#use "../../kepler/notes/holl/definitions_kepler.ml";;
-#use "../../kepler/notes/holl/kep_inequalities.ml";;
-#use "../../kepler/notes/holl/ineq_names.ml";;
-#use "../../kepler/notes/holl/ocaml_to_sml.ml";;
-module Sml = Ocaml_sml;;
-let ocaml_ineqs = Sml.translate_list ineqs;;
-let q = hd ocaml_ineqs;;
-Sml.ineq_to_sml q
+#use "../../kepler/sml/inequalities/holl/definitions_kepler.ml";;
+#use "../../kepler/sml/inequalities/holl/kep_inequalities.ml";;
+#use "../../kepler/sml/inequalities/holl/ineq_names.ml";;
+#use "../../kepler/sml/inequalities/holl/ocaml_to_sml.ml";;
+let ocaml_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.ineqs;;
+
+Ocaml_sml.ineqs_to_sml 
+   ~file:"/Users/seanmcl/save/versioned/projects/kepler/sml/inequalities/inequality-syntax.sml" 
+   ~ineqs:ocaml_ineqs;;
+
+let file = "/Users/seanmcl/save/versioned/projects/kepler/sml/inequalities/inequality-syntax.sml"
+
+let q = List.nth ocaml_ineqs 0;;
+(print_endline ""; Ocaml_sml.ineq_to_sml q; print_endline "";)
+
+   let t = Ocaml_sml.normalize I_799187442;;
+   Ocaml_sml.translate_ineq t
 
 
-#use "../../kepler/notes/holl/print.ml";;
-
-
-
-
-   let t = Sml.normalize J_586706757;;
-   Sml.translate_ineq t
-
-
-   #trace Sml.translate_const;;
-   #trace Sml.translate_cdiv;;
-   #trace Sml.translate_expr;;
-   #trace Sml.translate_funcall;;
-   #trace Sml.translate_div;;
-   #trace Sml.translate_monom;;
-   #trace Sml.translate_lcomb;;
-   #trace Sml.translate_rel;;
-   #trace Sml.translate_ineq;;
-   #trace Sml.translate;;
+   #trace Ocaml_sml.translate_const;;
+   #trace Ocaml_sml.translate_cdiv;;
+   #trace Ocaml_sml.translate_expr;;
+   #trace Ocaml_sml.translate_funcall;;
+   #trace Ocaml_sml.translate_div;;
+   #trace Ocaml_sml.translate_monom;;
+   #trace Ocaml_sml.translate_lcomb;;
+   #trace Ocaml_sml.translate_rel;;
+   #trace Ocaml_sml.translate_ineq;;
+   #trace Ocaml_sml.translate;;
 
    #untrace_all;;
 
@@ -916,5 +1001,6 @@ Sml.ineq_to_sml q
    translate_ineq I_867513567_13
    let t = `tau_sigma_x x1 x2 x3 x4 x5 x6 -. #0.2529 *. dih_x x1 x2 x3 x4 x5 x6 >.
    --. #0.3442`
+
 
  *) 

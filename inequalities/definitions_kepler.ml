@@ -285,7 +285,7 @@ let K0 = kepler_def(`K0 y1 y2 y6 =
 	(vorR (y1/(&2)) (eta_y y1 y2 y6) (sqrt2)) +
 	(vorR (y2/(&2)) (eta_y y1 y2 y6) (sqrt2)) -
         (dihR (y1/(&2)) (eta_y y1 y2 y6) (sqrt2))*
-		      (&1 - (y1/(sqrt8)))*(phi (y1/(&2)) sqrt2)`);;
+          (&1 - (y1/(sqrt8)))*(phi (y1/(&2)) sqrt2)`);;
 
 let AH = kepler_def(`AH h t = (&1 - (h/t))*((phi h t) - (phi t t))`);;
 

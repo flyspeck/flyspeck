@@ -377,7 +377,7 @@ let I_644534985=
     ]
     (
          (
-            ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.2391))) \/ 
+           ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.2391))) \/ 
          ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)))`;;
 
 
@@ -855,6 +855,10 @@ let I_498839271_7=
 
 
 
+(* XXX Seems to be wrong
+   check at 
+   (8, 4.77946715116, 4.0, 6.30009999999, 6.30009999999, 4)
+*)
 let I_498839271_8=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -865,8 +869,8 @@ let I_498839271_8=
      ((#4.0), x6, square_2t0)
     ]
     (
-                ( (( --. ) (dih3_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.454)) *.  (sqrt x1)) +.  (  (#0.34) *.  (sqrt x3)) +.  (  (#0.154) *.  (sqrt x2)) +. 
-                (  (--. (#0.364)) *.  (sqrt x4)) +.  (  (#0.805) *.  (sqrt x6))) >.  (--. (#0.3429)))`;;
+      ( (( --. ) (dih3_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.454)) *.  (sqrt x1)) +.  (  (#0.34) *.  (sqrt x3)) +.  (  (#0.154) *.  (sqrt x2)) +. 
+          (  (--. (#0.364)) *.  (sqrt x4)) +.  (  (#0.805) *.  (sqrt x6))) >.  (--. (#0.3429)))`;;
 
 
 
@@ -3578,6 +3582,7 @@ let I_961078136=
                 ( ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x square_2t0 x2 x3 x4 (#4.0) (#4.0))) <.  (--. (#0.043))) \/ 
                 ( (cross_diag_x x1 x2 x3 x4 x5 x6 square_2t0 (#4.0) (#4.0)) <.  two_t0))`;;
 
+(* XXX first variable has bad bounds *)
 let I_424186517_1=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.12)));
@@ -3801,7 +3806,10 @@ let I_674284283=
 
 
 
-
+ 
+(* XXX Appears this is false.  
+  Check point (4,10.432)
+*)
 let I_775220784=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -6801,6 +6809,9 @@ LOC: 2002 k.c page 60
 Group_18.11
 *)
 
+(* XXX 
+Error:  for much of this group a3 is not in scope here!
+*)
 let I_160800042_GEN= 
    `(\ a2 a4 . 
  (ineq

@@ -556,13 +556,13 @@ let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
         let r234 = eta_x x2 x3 x4 in
         let r456 = eta_x x4 x5 x6 in
         let v0 = (if (sqrt2 <= r456) then
-	  (vor_0_x x1 x2 x3 x4 x5 x6) 
-	else if (sqrt2 <= r234) then
-	  (vor_analytic_x x1 x2 x3 x4 x5 x6)
-	else 
-	  (gamma_x x1 x2 x3 x4 x5 x6)) in
+	              (vor_0_x x1 x2 x3 x4 x5 x6) 
+	          else if (sqrt2 <= r234) then
+	            (vor_analytic_x x1 x2 x3 x4 x5 x6)
+	          else 
+	            (gamma_x x1 x2 x3 x4 x5 x6)) in
 	let v1 = (if ((r234 <= sqrt2) /\ (r456 <= sqrt2)) then
-		    max_real v0 (gamma_x x1 x2 x3 x4 x5 x6) 
+		      max_real v0 (gamma_x x1 x2 x3 x4 x5 x6) 
 		  else v0) in
 	let v2 = (if (sqrt2 <= r234) then
 		    max_real v1 (vor_analytic_x x1 x2 x3 x4 x5 x6)

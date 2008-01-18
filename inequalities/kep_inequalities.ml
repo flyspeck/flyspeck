@@ -2474,6 +2474,10 @@ let I_163030624=
 
 
 
+(* 
+XXX Looks false
+try at (4.0,4.0,4.0,4.0,5.5225,5.5225)
+*)
 let I_181462710=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.2)));
@@ -2485,7 +2489,9 @@ let I_181462710=
      ((#4.0), x6, (square (#2.35)))
     ]
     (  (gamma_x x1 x2 x3 x4 x5 x6) <. 
-            ( (#0.000001) +.  (#1.4) +.  (  (--. (#0.1)) *.  (sqrt x1)) +.  (  (--. (#0.15)) *.  ( (sqrt x2) +.  (sqrt x3) +.  (sqrt x5) +.  (sqrt x6)))))`;;
+            ( (#0.000001) +.  (#1.4) +.  ( (--. (#0.1)) *.  (sqrt x1))
+            +.  ( (--. (#0.15)) *.  ( (sqrt x2) +.  (sqrt x3) +.
+            (sqrt x5) +.  (sqrt x6)))))`;;
 
 
 
@@ -2543,6 +2549,10 @@ let I_569240360=
 
 
 
+(* XXX looks false 
+SphereIn[5]:= VorVc @@ Sqrt [{4,4,4,6.708,6.1,4.4}]
+SphereOut[5]= -0.0625133
+*)
 let I_252231882=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2615,6 +2625,9 @@ LOC: 2002 k.c page 48
 
 
 
+(* XXX
+false.  try (4,4,4,8,6.3001,6.3001)
+*)
 let I_594246986=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -3885,6 +3898,9 @@ let I_302085207_4=
 let I_302085207_5= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
+(* XXX 
+  This seems unfeasible due to cross_diag constraints
+*)
 let I_302085207_6= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
@@ -3943,6 +3959,9 @@ let I_411491283_4=
 let I_411491283_5= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
+(* 
+XXX Seems infeasible due to cross_diag_x constraints
+*)
 let I_411491283_6= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
@@ -4831,39 +4850,48 @@ let I_583626763_GEN=
   (delta_x (#4.0) a3 a4 (#4.0) x' x  <. (#0.0)) \/
   (delta_x (#4.0) a4 (#4.0) (#4.0) (#8.0) x'<. (#0.0)))))`;;
 
+(* XXX false *)
 let I_583626763_1= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* XXX false *)
 let I_583626763_2= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* XXX false *)
 let I_583626763_3= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* XXX false *)
 let I_583626763_4= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* XXX Infeasible *)
 let I_583626763_5= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* XXX Infeasible *)
 let I_583626763_6= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* XXX false *)
 let I_583626763_7= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* XXX false *)
 let I_583626763_8= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* XXX all false or infeasible *)
 let I_390951718_GEN=
    `(\ a2 a3 a4. 
  (ineq
@@ -4949,6 +4977,7 @@ let I_621852152_2=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* XXX infeasible *)
 let I_621852152_3=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
@@ -4973,19 +5002,22 @@ let I_621852152_8=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
-
+(* XXX infeasible *)
 let I_621852152_9=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* XXX infeasible *)
 let I_621852152_10=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* XXX infeasible *)
 let I_621852152_11=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* XXX infeasible *)
 let I_621852152_12=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
@@ -5014,6 +5046,7 @@ let I_621852152_18=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* XXX infeasible *)
 let I_621852152_19=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
@@ -5046,6 +5079,7 @@ let I_621852152_26=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* XXX infeasible *)
 let I_621852152_27=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;

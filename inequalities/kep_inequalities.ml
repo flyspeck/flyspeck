@@ -54,6 +54,10 @@ Dec 16, 2007: Fixed the direction of inequalities in 690626704_*
 partK.cc = http://www.math.pitt.edu/~thales/kepler98/interval/partK.cc
   533270809 appears in partK.cc but not below.
   353116995 appears in partK.cc but not below.
+part3.cc = http://www.math.pitt.edu/~thales/kepler98/interval/PART3/part3.c
+part3a.cc
+part3more.c
+
 *)
 
 
@@ -2552,8 +2556,8 @@ let I_163030624=
 
 
 (* 
-XXX Looks false
-try at (4.0,4.0,4.0,4.0,5.5225,5.5225)
+Earlier version was false at (4.0,4.0,4.0,4.0,5.5225,5.5225).
+Bug fixed 1/19/2008 : lower bound on x4 was a typo. It should be square_2t0.
 *)
 (* interval verification in partK.cc *)
 let I_181462710=
@@ -2561,7 +2565,7 @@ let I_181462710=
     [((#4.0), x1, (square (#2.2)));
      ((#4.0), x2, (square (#2.2)));
      ((#4.0), x3, (square (#2.2)));
-     ((#4.0), x4, (#8.0));
+     (square_2t0, x4, (#8.0));
      ((#4.0), x5, (square (#2.35)));
      ((#4.0), x6, (square (#2.35)))
     ]
@@ -2629,9 +2633,10 @@ let I_569240360=
 
 
 
-(* XXX looks false 
-SphereIn[5]:= VorVc @@ Sqrt [{4,4,4,6.708,6.1,4.4}]
-SphereOut[5]= -0.0625133
+(* False at 
+SphereIn[5]:= VorVc @@ Sqrt [{4,4,4,6.7081,6.1009,4.41}]
+SphereOut[5]= -0.0625133.
+1/19/2008.  Added the missing eta456 constraint to eliminate counterexample.
 *)
 (* interval verification in partK.cc *)
 let I_252231882=
@@ -2643,7 +2648,8 @@ let I_252231882=
      ((square (#2.47)), x5, square_2t0);
      ((square (#2.1)), x6, (square (#3.51)))
     ]
-    (  (vor_0_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.0713)))`;;
+    ((  (vor_0_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.0713))) \/
+    ( (eta_x x4 x5 x6) <. (sqrt (#2.0))))`;;
 
 
 
@@ -2707,8 +2713,11 @@ LOC: 2002 k.c page 48
 
 
 
-(* XXX
-false.  try (4,4,4,8,6.3001,6.3001)
+(* 
+Was false at (4,4,4,8,6.3001,6.3001)
+Fixed by inserting the missing circumradius condition on 1/19/2008.
+Also, the lower bound on x4 was changed to 7.29 from square_2t0 
+to bring it into agreement with the interval calculation in partK.cc
 *)
 (* interval verification in partK.cc *)
 let I_594246986=
@@ -2716,12 +2725,13 @@ let I_594246986=
     [((#4.0), x1, (square (#2.14)));
      ((#4.0), x2, (square (#2.14)));
      ((#4.0), x3, (square (#2.14)));
-     (square_2t0, x4, (#8.0));
+     (* (square_2t0, x4, (#8.0)); *)
+      ((square (#7.29), x4, (#8.0))); 
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( ( (( --. ) (gamma_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.145)) *.  (sqrt x1)) +.  (  (--. (#0.08)) *.  ( (sqrt x2) +.  (sqrt x3))) +. 
-            (  (--. (#0.133)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#1.146)))`;;
+    (( ( (( --. ) (gamma_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.145)) *.  (sqrt x1)) +.  (  (--. (#0.08)) *.  ( (sqrt x2) +.  (sqrt x3))) +. 
+            (  (--. (#0.133)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#1.146))) \/ (  (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
 
 
@@ -3707,11 +3717,11 @@ let I_961078136=
                 ( ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x square_2t0 x2 x3 x4 (#4.0) (#4.0))) <.  (--. (#0.043))) \/ 
                 ( (cross_diag_x x1 x2 x3 x4 x5 x6 square_2t0 (#4.0) (#4.0)) <.  two_t0))`;;
 
-(* XXX first variable has bad bounds *)
+(* Fixed bad bounds on first variable on 1/19/2008  *)
 (* interval verification in part4.cc:424186517+1 *)
 let I_424186517_1=
    all_forall `ineq 
-    [(square_2t0, x1, (square (#2.12)));
+    [((#4.0), x1, (square (#2.12)));
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, (square (#3.2)));
@@ -3949,7 +3959,7 @@ let I_674284283=
 
  
 (* XXX Appears this is false.  
-  Check point (4,10.432)
+  Check point (4,10.4329)
 *)
 (* interval verification in partK.cc *)
 let I_775220784=
@@ -11979,6 +11989,8 @@ let J_649712615=
 LOC: 2002 III, page 14--15
 Sec. 10, Group_3:
 *)
+
+(* interval verification in part3.cc, but labeled there as C619245724 *)
 let J_539256862=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -11992,7 +12004,7 @@ let J_539256862=
             ( (  (#0.37898) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.4111))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C678284947 *)
 let J_864218323=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12006,7 +12018,7 @@ let J_864218323=
             ( (  (--. (#0.142)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.23021)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C970731712 *)
 let J_776305271=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12020,7 +12032,7 @@ let J_776305271=
             ( (  (--. (#0.3302)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.5353)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C921602098 *)
 let J_927432550=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12034,7 +12046,7 @@ let J_927432550=
             ( (  (#0.3897) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.4666))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C338482233 *)
 let J_221945658=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12049,7 +12061,7 @@ let J_221945658=
             ( (  (#0.2993) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.3683))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C47923787 *)
 let J_53415898=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12062,7 +12074,7 @@ let J_53415898=
     ( (sigma1_qrtet_x x1 x2 x3 x4 x5 x6) <=.  (#0.0))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C156673846 *)
 let J_106537269=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12077,7 +12089,7 @@ let J_106537269=
             ( (  (--. (#0.1689)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.208)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C363044842 *)
 let J_254627291=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12092,7 +12104,7 @@ let J_254627291=
             ( (  (--. (#0.2529)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.3442)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C68229886 *)
 let J_170403135=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12107,7 +12119,7 @@ let J_170403135=
             ( (  (#0.4233) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.5974))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C996335124 *)
 let J_802409438=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12122,7 +12134,7 @@ let J_802409438=
             ( (  (#0.1083) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.255))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C722658871 *)
 let J_195296574=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12137,7 +12149,7 @@ let J_195296574=
             ( (  (--. (#0.0953)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.0045))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C226224557  *)
 let J_16189133=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12152,7 +12164,7 @@ let J_16189133=
             ( (  (--. (#0.1966)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.1369)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C914585134 *)
 let J_584511898=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12167,7 +12179,7 @@ let J_584511898=
                (  (#0.796456) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (--. (#0.5786316))))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C296182719 *)
 let J_98170671=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12183,7 +12195,7 @@ let J_98170671=
                (  (#0.0610397) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.211419)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C538860011 *)
 let J_868828815=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12199,7 +12211,7 @@ let J_868828815=
                (  (--. (#0.0162028)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.308526)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C886673381 *)
 let J_809197575=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12215,7 +12227,7 @@ let J_809197575=
                (  (--. (#0.0499559)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#0.35641)))`;;
 
 
-
+(* interval verification in part3.cc, but labeled there as C681494013 *)
 let J_73203677=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);

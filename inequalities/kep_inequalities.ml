@@ -36,8 +36,10 @@ is used in the proof of the Keper Conjecture.
 
 
 Tue Feb 24 09:30:41 EST 2004: 
+(* interval verification in partK.cc *)
 I'm suspicious of I_354217730.
 The sqrt2 looks odd and it doesn't fit with the interval arithmetic code.
+(* interval verification in partK.cc *)
 Note that similar inequalities such as I_938003786 use sqrt8 
 instead of sqrt2.
 
@@ -46,6 +48,12 @@ Nov 8, 2007: Fixed the x1 bound on calc 815492935 and
 
 Dec 16, 2007: Fixed the direction of inequalities in 690626704_*
 
+*)
+
+(* Files for 1998 interval verification:
+partK.cc = http://www.math.pitt.edu/~thales/kepler98/interval/partK.cc
+  533270809 appears in partK.cc but not below.
+  353116995 appears in partK.cc but not below.
 *)
 
 
@@ -235,6 +243,7 @@ LOC: 2002 k.c page 42.
 17.1  Group_1
 *)
 
+(* interval verification in partK.cc *)
 let I_572068135=
    all_forall `ineq 
     [((square (#2.3)), x1, (#6.3001));
@@ -253,6 +262,7 @@ let I_572068135=
 
 
 
+(* interval verification in partK.cc *)
 let I_723700608=
    all_forall `ineq 
     [((square (#2.3)), x1, (#6.3001));
@@ -272,6 +282,7 @@ let I_723700608=
 
 
 
+(* interval verification in partK.cc *)
 let I_560470084=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -287,6 +298,7 @@ let I_560470084=
 
 
 
+(* interval verification in partK.cc *)
 let I_535502975=
    all_forall `ineq 
     [((square (#2.3)), x1, square_2t0);
@@ -325,6 +337,7 @@ LOC: 2002 k.c page 42
 (*     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63))`;; *)
 
 (* XXX needed delta_x > 0 *)
+(* interval verification by Ferguson *)
 let I_821707685=
    all_forall `ineq 
     [((#4.0), x1, (#6.3001));
@@ -337,7 +350,7 @@ let I_821707685=
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63) \/ 
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
-
+(* interval verification by Ferguson *)
 let I_115383627=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -349,7 +362,7 @@ let I_115383627=
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.51) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) `;;
-
+(* interval verification by Ferguson *)
 let I_576221766=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -363,7 +376,7 @@ let I_576221766=
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_122081309=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -375,7 +388,7 @@ let I_122081309=
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.77) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
+(* interval verification by Ferguson *)
 let I_644534985=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -392,7 +405,7 @@ let I_644534985=
            (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_467530297=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -409,7 +422,7 @@ let I_467530297=
            (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_603910880=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -425,6 +438,7 @@ let I_603910880=
            ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
            (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
+(* interval verification by Ferguson *)
 let I_135427691=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -440,6 +454,7 @@ let I_135427691=
            ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
            (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
 
+(* interval verification by Ferguson *)
 let I_60314528=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -454,7 +469,7 @@ let I_60314528=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_312132053=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -528,6 +543,7 @@ LOC: 2002 k.c page 42
 *)
 
 
+(* interval verification in partK.cc *)
 let I_161665083=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -552,6 +568,7 @@ LOC: 2002 k.c page 42-43
 
 
 
+(* interval verification in partK.cc *)
 let I_867513567_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -618,7 +635,7 @@ let I_867513567_4=
             (sqrt x5)) +.  (  (#0.3972) *.  (sqrt x6))) >.  (#2.37095))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_867513567_5=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -634,7 +651,7 @@ let I_867513567_5=
             (sqrt x5)) +.  (  (#0.479) *.  (sqrt x6))) >.  (#0.437235))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_867513567_6=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -762,6 +779,7 @@ LOC: 2002 k.c page 43
 17.6 Group_6
 *)
 
+(* interval verification in partK.cc *)
 (* let I_498839271_1= *)
 (*    all_forall `ineq  *)
 (*     [(square_2t0, x1, (#8.0)); *)
@@ -1130,6 +1148,7 @@ LOC: 2002 k.c page 44
 *)
 
 
+(* interval verification in partK.cc *)
 let I_319046543_1=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -1380,6 +1399,7 @@ LOC: 2002 k.c page 44--45
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1394,6 +1414,7 @@ let I_853728973_1=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1409,6 +1430,7 @@ let I_853728973_2=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_3=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1423,6 +1445,7 @@ let I_853728973_3=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_4=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1437,6 +1460,7 @@ let I_853728973_4=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_5=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1451,6 +1475,7 @@ let I_853728973_5=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_6=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1466,6 +1491,7 @@ let I_853728973_6=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_7=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1480,6 +1506,7 @@ let I_853728973_7=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_8=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1495,6 +1522,7 @@ let I_853728973_8=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_9=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1509,6 +1537,7 @@ let I_853728973_9=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_10=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1523,6 +1552,7 @@ let I_853728973_10=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_11=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1537,6 +1567,7 @@ let I_853728973_11=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_12=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1552,6 +1583,7 @@ let I_853728973_12=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_13=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1566,6 +1598,7 @@ let I_853728973_13=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_14=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1580,6 +1613,7 @@ let I_853728973_14=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_15=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1594,6 +1628,7 @@ let I_853728973_15=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_16=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1608,6 +1643,7 @@ let I_853728973_16=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_17=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1622,6 +1658,7 @@ let I_853728973_17=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_18=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1636,6 +1673,7 @@ let I_853728973_18=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_19=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1650,6 +1688,7 @@ let I_853728973_19=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_20=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1664,6 +1703,7 @@ let I_853728973_20=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_21=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1677,6 +1717,7 @@ let I_853728973_21=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_22=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1691,6 +1732,7 @@ let I_853728973_22=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_23=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1705,6 +1747,7 @@ let I_853728973_23=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_24=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1718,6 +1761,7 @@ let I_853728973_24=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_25=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1732,6 +1776,7 @@ let I_853728973_25=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_26=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1745,6 +1790,7 @@ let I_853728973_26=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_27=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1759,6 +1805,7 @@ let I_853728973_27=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_28=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1773,6 +1820,7 @@ let I_853728973_28=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_29=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1787,6 +1835,7 @@ let I_853728973_29=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_30=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1801,6 +1850,7 @@ let I_853728973_30=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_31=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1815,6 +1865,7 @@ let I_853728973_31=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_32=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1830,6 +1881,7 @@ let I_853728973_32=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_33=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1844,6 +1896,7 @@ let I_853728973_33=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_34=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1857,6 +1910,7 @@ let I_853728973_34=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_35=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1871,6 +1925,7 @@ let I_853728973_35=
 
 
 
+(* interval verification by Ferguson *)
 let I_853728973_36=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1891,6 +1946,7 @@ LOC: 2002 k.c page 45--46
 
 
 
+(* interval verification by Ferguson *)
 let I_529738375_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1907,7 +1963,7 @@ let I_529738375_1=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1922,7 +1978,7 @@ let I_529738375_2=
             (  (--. (#0.321)) *.  (sqrt x5)) +.  (  (--. (#0.397)) *.  (sqrt x6)) +.  (( --. ) (dih_x x1 x2 x3 x4 x5 x6)) ) <.   (--. (#2.47277)))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_3=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1938,7 +1994,7 @@ let I_529738375_3=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_4=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1954,7 +2010,7 @@ let I_529738375_4=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_5=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1970,7 +2026,7 @@ let I_529738375_5=
 
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_6=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1983,7 +2039,7 @@ let I_529738375_6=
     ( (tauA_x x1 x2 x3 x4 x5 x6) >.  D32)`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_7=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1998,7 +2054,7 @@ let I_529738375_7=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_8=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2014,7 +2070,7 @@ let I_529738375_8=
 
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_9=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2030,7 +2086,7 @@ let I_529738375_9=
 
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_10=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2045,7 +2101,7 @@ let I_529738375_10=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_11=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2061,7 +2117,7 @@ let I_529738375_11=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_12=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2077,7 +2133,7 @@ let I_529738375_12=
 
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_13=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2092,7 +2148,7 @@ let I_529738375_13=
 
 
 
-
+(* interval verification in partK.cc *)
 let I_529738375_14=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2105,7 +2161,7 @@ let I_529738375_14=
     (  ((tau_0_x x1 x2 x3 x4 x5 x6)) >.  (#0.21301))`;;
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_15=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2122,7 +2178,7 @@ let I_529738375_15=
 
 
 
-
+(* interval verification by Ferguson *)
 let I_529738375_16=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2269,6 +2325,7 @@ LOC: 2002 k.c page 47
 *)
 
 
+(* interval verification in partK.cc *)
 let I_704795925_1=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -2297,6 +2354,7 @@ let I_704795925_2=
 
 
 
+(* interval verification in partK.cc *)
 let I_332919646_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2325,6 +2383,7 @@ let I_332919646_2=
 
 
 
+(* interval verification in partK.cc *)
 let I_335795137_1=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -2353,6 +2412,8 @@ let I_335795137_2=
 
 
 
+(* interval verification by Ferguson *)
+(* interval verification by Ferguson *)
 let I_605071818_1=
    all_forall `ineq 
     [((square (#2.45)), x1, square_2t0);
@@ -2381,6 +2442,7 @@ let I_605071818_2=
 
 
 
+(* interval verification by Ferguson *)
 let I_642806938_1=
    all_forall `ineq 
     [((square (#2.45)), x1, square_2t0);
@@ -2415,6 +2477,7 @@ LOC: 2002 k.c page 47
 *)
 
 
+(* interval verification in partK.cc *)
 let I_104506452=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -2432,6 +2495,7 @@ let I_104506452=
 
 
 
+(* interval verification in partK.cc *)
 let I_601083647=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -2455,6 +2519,7 @@ LOC: 2002 k.c page 47
 
 
 
+(* interval verification in partK.cc *)
 let I_543730647=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2470,6 +2535,7 @@ let I_543730647=
 
 
 
+(* interval verification in partK.cc *)
 let I_163030624=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2489,6 +2555,7 @@ let I_163030624=
 XXX Looks false
 try at (4.0,4.0,4.0,4.0,5.5225,5.5225)
 *)
+(* interval verification in partK.cc *)
 let I_181462710=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.2)));
@@ -2512,6 +2579,7 @@ LOC: 2002 k.c page 48
 17.15 Group_15
 *)
 
+(* interval verification in partK.cc *)
 let I_463544803=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2527,6 +2595,7 @@ let I_463544803=
 
 
 
+(* interval verification in partK.cc *)
 let I_399326202=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2543,6 +2612,7 @@ let I_399326202=
 
 
 
+(* interval verification in partK.cc *)
 let I_569240360=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2563,6 +2633,7 @@ let I_569240360=
 SphereIn[5]:= VorVc @@ Sqrt [{4,4,4,6.708,6.1,4.4}]
 SphereOut[5]= -0.0625133
 *)
+(* interval verification in partK.cc *)
 let I_252231882=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2593,6 +2664,7 @@ let I_472436131=
 
 
 
+(* interval verification in partK.cc *)
 let I_913534858=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2610,6 +2682,7 @@ let I_913534858=
 
 
 
+(* interval verification in partK.cc *)
 let I_850226792=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2637,6 +2710,7 @@ LOC: 2002 k.c page 48
 (* XXX
 false.  try (4,4,4,8,6.3001,6.3001)
 *)
+(* interval verification in partK.cc *)
 let I_594246986=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2651,6 +2725,7 @@ let I_594246986=
 
 
 
+(* interval verification in partK.cc *)
 let I_381970727=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2667,6 +2742,7 @@ let I_381970727=
 
 
 
+(* interval verification in partK.cc *)
 let I_951798877=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2683,6 +2759,7 @@ let I_951798877=
 
 
 
+(* interval verification in partK.cc *)
 let I_923397705=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2701,6 +2778,7 @@ let I_923397705=
 
 
 
+(* interval verification in partK.cc *)
 let I_312481617=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2715,6 +2793,7 @@ let I_312481617=
 
 
 
+(* interval verification in partK.cc *)
 let I_292760488=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2730,6 +2809,7 @@ let I_292760488=
 
 
 
+(* interval verification in partK.cc *)
 let I_155008179=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2747,6 +2827,7 @@ let I_155008179=
 
 
 
+(* interval verification in partK.cc *)
 let I_819450002=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.13)));
@@ -2763,6 +2844,7 @@ let I_819450002=
 
 
 
+(* interval verification in partK.cc *)
 let I_495568072=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2779,6 +2861,7 @@ let I_495568072=
 
 
 
+(* interval verification in partK.cc *)
 let I_838887715=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2796,6 +2879,7 @@ let I_838887715=
 
 
 
+(* interval verification in partK.cc *)
 let I_794413343=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2820,6 +2904,7 @@ LOC: 2002 k.c page 48
 
 
 
+(* interval verification in partK.cc *)
 let I_378020227=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2837,6 +2922,7 @@ let I_378020227=
 (* 
 Changed x5 from 4..(2t)^2
 *)
+(* interval verification in partK.cc *)
 let I_256893386=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2854,6 +2940,7 @@ let I_256893386=
 
 
 
+(* interval verification in partK.cc *)
 let I_749955642=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2870,6 +2957,7 @@ let I_749955642=
 
 
 
+(* interval verification in partK.cc *)
 let I_653849975=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2889,6 +2977,7 @@ let I_653849975=
 
 
 
+(* interval verification in partK.cc *)
 let I_480930831=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2903,6 +2992,7 @@ let I_480930831=
 
 
 
+(* interval verification in partK.cc *)
 let I_271703736=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2914,6 +3004,7 @@ let I_271703736=
     ]
     ( ( (vor_analytic_x x1 x2 x3 x4 x5 x6) +.  (  (#0.419351) *.  (sol_x x1 x2 x3 x4 x5 x6))) <.  (#0.289))`;;
 
+(* interval verification in partK.cc *)
 let I_900212351=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2937,6 +3028,7 @@ LOC: 2002 k.c page 49
 
 
 
+(* interval verification in partK.cc *)
 let I_455329491=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -2952,6 +3044,7 @@ let I_455329491=
 
 
 
+(* interval verification in partK.cc *)
 let I_857241493=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -3009,6 +3102,7 @@ inequalities give the desired result.
 
 
 
+(* interval verification in partK.cc *)
 let I_912536613=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -3025,6 +3119,7 @@ let I_912536613=
 
 
 
+(* interval verification in partK.cc *)
 let I_640248153=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -3042,6 +3137,7 @@ let I_640248153=
 
 
 
+(* interval verification in partK.cc *)
 let I_594902677=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -3067,6 +3163,7 @@ is >= 1.41, then tau > 1.8 pt and many of the inequalities hold
 
 *)
 
+(* interval verification by Ferguson *)
 let I_551665569=
   all_forall 
   `
@@ -3117,6 +3214,7 @@ let x2A = x3E in
 	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi
     )))`;;
 
+(* interval verification by Ferguson *)
 let I_824762926=
   all_forall 
   `
@@ -3167,6 +3265,7 @@ let x2A = x3E in
 	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi
     )))`;;
 
+(* interval verification by Ferguson *)
 let I_675785884=
   all_forall 
   `
@@ -3220,6 +3319,7 @@ let x2A = x3E in
       (dih_x x1 x2E x3E x4E x5E x6E <. #1.32 )
       ))`;;
 
+(* interval verification by Ferguson *)
 let I_193592217=
   all_forall 
   `
@@ -3288,6 +3388,7 @@ is assumed.
 
 *)
 
+(* interval verification by Ferguson *)
 let I_325738864=
   all_forall 
   `
@@ -3340,6 +3441,7 @@ let x2A = x3E in
 	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi )
       ))`;;
 
+(* interval verification by Ferguson *)
 let I_314974315=
   all_forall 
   `
@@ -3400,6 +3502,9 @@ LOC: 2002 k.c page 50
 [The constraint sum dih <= 2pi was not explicitly stated in the text.]
 *)
 
+(* interval verification by Ferguson, I think.  In SPVI-1998, it carries
+a dagger, which means that Ferguson has done the verification, but the
+dagger has been commented out in the tex file. -TCH 1/19/2008 *)
 let I_867359387=
   all_forall 
   `
@@ -3462,6 +3567,7 @@ LOC: 2002 k.c page 50
 *)
 
 
+(* interval verification in partK.cc *)
 let I_365179082_1=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -3534,10 +3640,13 @@ lengths in $[2,2t_0]$. The bound $0$ is found in \cite[Lemma
 deformations, reducing the inequality to the following interval
 calculations.
 
+(* interval verification by Ferguson *)
 \refno{368244553\dag}
 
+(* interval verification by Ferguson *)
 \refno{820900672\dag}
 
+(* interval verification by Ferguson *)
 \refno{961078136\dag}
 
 
@@ -3599,6 +3708,7 @@ let I_961078136=
                 ( (cross_diag_x x1 x2 x3 x4 x5 x6 square_2t0 (#4.0) (#4.0)) <.  two_t0))`;;
 
 (* XXX first variable has bad bounds *)
+(* interval verification in part4.cc:424186517+1 *)
 let I_424186517_1=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.12)));
@@ -3613,6 +3723,7 @@ let I_424186517_1=
                 ( (vor_0_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.033))) \/ 
                 ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.8)))`;;
 
+(* interval verification in part4.cc:424186517+2 *)
 let I_424186517_2=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -3627,6 +3738,8 @@ let I_424186517_2=
                 ( (vor_0_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.058))) \/ 
                 ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#2.5)))`;;
 
+(* interval code in part4.cc:424186517+3 not used *)
+(* interval verification by Ferguson *)
 let I_424186517_3=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -3693,6 +3806,7 @@ length at most $3.23$ because
 
 *)
 
+(* interval verification by Ferguson *)
 let I_587781327=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -3704,6 +3818,7 @@ let I_587781327=
 
 
 
+(* interval verification by Ferguson *)
 let I_807067544=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -3716,6 +3831,8 @@ let I_807067544=
 
 
 
+(* interval verification (commented out) in partK.cc *)
+(* interval verification by Ferguson *)
 let I_986970370=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -3727,6 +3844,8 @@ let I_986970370=
 
 
 
+(* interval verification (commented out) in partK.cc *)
+(* interval verification by Ferguson *)
 let I_677910379=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -3739,6 +3858,7 @@ let I_677910379=
 
 
 
+(* interval verification in partK.cc *)
 let I_276168273=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -3749,6 +3869,7 @@ let I_276168273=
 
 
 
+(* interval verification in partK.cc *)
 let I_411203982=
    all_forall `ineq 
     [((square (#3.06)), x5, (square (#3.23)));
@@ -3759,6 +3880,7 @@ let I_411203982=
 
 
 
+(* interval verification in partK.cc *)
 let I_860823724=
    all_forall `ineq 
     [((square (#3.06)), x5, (square (#3.23)));
@@ -3783,6 +3905,7 @@ let I_353116955=
 
 
 
+(* interval verification in partK.cc *)
 let I_943315982=
    all_forall `ineq 
     [((#4.0), x2, square_2t0);
@@ -3798,6 +3921,7 @@ let I_943315982=
 
 
 
+(* interval verification in partK.cc *)
 let I_941799628=
    all_forall `ineq 
     [((#4.0), x2, square_2t0);
@@ -3812,6 +3936,7 @@ let I_941799628=
 
 
 
+(* interval verification in partK.cc *)
 let I_674284283=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -3826,6 +3951,7 @@ let I_674284283=
 (* XXX Appears this is false.  
   Check point (4,10.432)
 *)
+(* interval verification in partK.cc *)
 let I_775220784=
    all_forall `ineq 
     [((#4.0), x3, square_2t0);
@@ -3836,6 +3962,7 @@ let I_775220784=
 
 
 
+(* interval verification in partK.cc *)
 let I_286076305=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -3846,6 +3973,7 @@ let I_286076305=
 
 
 
+(* interval verification in partK.cc *)
 let I_589319960=
    all_forall `ineq 
     [((square (#3.06)), x4, (square (#3.105)))
@@ -3876,6 +4004,7 @@ assumption by phrasing the inequality this way?
 
 *)
 
+(* interval verification by Ferguson *)
 let I_302085207_GEN= 
    `\ a1 a2 a3 a4. (ineq
    [
@@ -3886,57 +4015,74 @@ let I_302085207_GEN=
     ((cross_diag_x a1 a2 a4 x4 (square_2t0) (square_2t0) a3 (#4.0) (#4.0)) <. (#3.2)) \/
     ((cross_diag_x a1 a2 a4 x4 (square_2t0) (square_2t0) a3 (#4.0) (#4.0)) >. (#3.46))))`;;
 
+(* interval verification by Ferguson *)
 let I_302085207_1= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_2= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_3= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_4= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_5= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
 (* XXX 
   This seems unfeasible due to cross_diag constraints
 *)
+(* interval verification by Ferguson *)
 let I_302085207_6= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_7= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_8= 
   all_forall (list_mk_comb( I_302085207_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_9= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_10= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_11= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_12= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_13= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_14= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_15= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_302085207_16= 
   all_forall (list_mk_comb( I_302085207_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_GEN= 
    `\ a1 a2 a3 a4. (ineq
    [
@@ -3947,54 +4093,70 @@ let I_411491283_GEN=
     ((cross_diag_x a1 a2 a4 x4 (square_2t0) (square_2t0) a3 (#4.0) (#4.0)) <. (#3.2)) \/
     ((cross_diag_x a1 a2 a4 x4 (square_2t0) (square_2t0) a3 (#4.0) (#4.0)) >. (#3.46))))`;;
 
+(* interval verification by Ferguson *)
 let I_411491283_1= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_2= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_3= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_4= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_5= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
 (* 
 XXX Seems infeasible due to cross_diag_x constraints
 *)
+(* interval verification by Ferguson *)
 let I_411491283_6= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_7= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_8= 
   all_forall (list_mk_comb( I_411491283_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_9= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_10= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_11= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_12= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_13= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_14= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_15= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));; 
 
+(* interval verification by Ferguson *)
 let I_411491283_16= 
   all_forall (list_mk_comb( I_411491283_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
 
@@ -4044,6 +4206,7 @@ The inequalities above are verified in smaller pieces:
 *)
 
 
+(* interval verification in partK.cc *)
 let I_131574415=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.2)));
@@ -4061,6 +4224,7 @@ let I_131574415=
 
 
 
+(* interval verification in partK.cc *)
 let I_929773933=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4080,6 +4244,7 @@ let I_929773933=
 
 
 
+(* interval verification in partK.cc *)
 let I_223261160=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.08)));
@@ -4096,6 +4261,7 @@ let I_223261160=
 
 
 
+(* interval verification in partK.cc *)
 let I_135018647=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4113,6 +4279,7 @@ let I_135018647=
 
 
 
+(* interval verification in partK.cc *)
 let I_559676877=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4141,6 +4308,7 @@ LOC: 2002 k.c page 52--53
 17.28 Group_28
 *)
 
+(* interval verification by Ferguson *)
 let I_615073260=
   all_forall 
   `
@@ -4184,6 +4352,7 @@ let x2A = x3E in
       ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
        (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.42)))`;;
 
+(* interval verification by Ferguson *)
 let I_844430737=
   all_forall 
   `
@@ -4256,6 +4425,7 @@ $y_4\in[2\sqrt2,3.2]$, and $y_4'\ge2t_0$ (the cross-diagonal).
 *)
 
 
+(* interval verification by Ferguson *)
 let I_967376139=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4273,6 +4443,7 @@ let I_967376139=
 
 
 
+(* interval verification by Ferguson *)
 let I_666869244=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4290,6 +4461,7 @@ let I_666869244=
 
 
 
+(* interval verification by Ferguson *)
 let I_268066802=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4308,6 +4480,7 @@ let I_268066802=
 
 
 
+(* interval verification by Ferguson *)
 let I_508108214=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4326,6 +4499,7 @@ let I_508108214=
 
 
 
+(* interval verification by Ferguson *)
 let I_322505397=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4340,6 +4514,7 @@ let I_322505397=
 
 
 
+(* interval verification by Ferguson *)
 let I_736616321=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4355,6 +4530,7 @@ let I_736616321=
 
 
 
+(* interval verification by Ferguson *)
 let I_689417023=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4369,6 +4545,7 @@ let I_689417023=
 
 
 
+(* interval verification by Ferguson *)
 let I_748466752=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -4406,10 +4583,12 @@ interval calculations for $S$ and $S'$.
 
 This inequality  results from the following four inequalities:
 
+(* interval verification by Ferguson *)
 $\vor_0(S) < -0.126$ and $\tau_0(S) > 0.16$ \refno{369386367\dag}
 
 $\vor_0(S') < -0.114$ and $\tau_0(S') >0.186$ (There are two cases
 for each, depending on which of $y_5,y_6$ is longer.)
+(* interval verification by Ferguson *)
 \refno{724943459\dag}
 
 Sun Feb 22 07:47:31 EST 2004: I assume S' is a special below.
@@ -4495,6 +4674,7 @@ LOC: 2002 k.c page 53
 17.31 Group_31
 *)
 
+(* interval verification by Ferguson *)
 let I_836331201_1=
  all_forall `ineq
     [((#4.0), x1, square_2t0);
@@ -4553,8 +4733,10 @@ bounds $\vor_0(S')<-0.126$, $\tau_0(S')>0.16$ that have already
 been established above.  We then show that the quad cluster
 satisfies
 
+(* interval verification by Ferguson *)
 $\vor_0 < -0.128$ and $\tau_0 > 0.26625$. \refno{327474205\dag}
 
+(* interval verification in partK.cc *)
 For this, use deformations to reduce either to the case where the
 diagonal is $2\sqrt2$, or to the case where $b_1=b_2=b_3=2$,
 $a_2,a_3\in\{2,2t_0\}$.  When the diagonal is $2\sqrt2$, the flat
@@ -4785,6 +4967,7 @@ Last part of 18.2.
 *)
 
 
+(* interval verification by Ferguson *)
 let I_725257062=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4799,6 +4982,7 @@ let I_725257062=
 
 
 
+(* interval verification by Ferguson *)
 let I_977272202=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4837,6 +5021,7 @@ let CKC_938091791= (* kc group 18.16 : app:p11 *)
 
 *)
 
+(* interval verification by Ferguson *)
 let I_583626763_GEN=
    `(\ a2 a3 a4. 
  (ineq
@@ -4854,47 +5039,56 @@ let I_583626763_GEN=
   (delta_x (#4.0) a4 (#4.0) (#4.0) (#8.0) x'<. (#0.0)))))`;;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_1= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_2= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_3= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_4= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
 (* XXX Infeasible *)
+(* interval verification by Ferguson *)
 let I_583626763_5= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
 (* XXX Infeasible *)
+(* interval verification by Ferguson *)
 let I_583626763_6= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_7= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
 (* XXX false *)
+(* interval verification by Ferguson *)
 let I_583626763_8= 
   all_forall 
   (list_mk_comb(I_583626763_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
 (* XXX all false or infeasible *)
+(* interval verification by Ferguson *)
 let I_390951718_GEN=
    `(\ a2 a3 a4. 
  (ineq
@@ -4911,34 +5105,42 @@ let I_390951718_GEN=
   (delta_x (#4.0) a3 a4 (#4.0) x' x  <. (#0.0)) \/
   (delta_x (#4.0) a4 (#4.0) (#4.0) (#8.0) x'<. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_390951718_1= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_2= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_3= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_4= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_5= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_6= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_7= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_390951718_8= 
   all_forall 
   (list_mk_comb(I_390951718_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -4955,6 +5157,7 @@ LOC: 2002 k.c page 59
 Group_18.4
 *)
 
+(* interval verification by Ferguson *)
 let I_621852152_GEN=
    `(\ a1 a2 a3 a4 a5. 
  (ineq
@@ -4972,142 +5175,175 @@ let I_621852152_GEN=
   (delta_x a3 a1 a5 b5 x' x <. (#0.0)) \/
   (delta_x a3 a5 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_621852152_1=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_2=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_3=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_4=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_5=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_6=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_7=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_8=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_9=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_10=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_11=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_12=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_13=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_14=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_15=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_16=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_17=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_18=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_19=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_20=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_21=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_22=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_23=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_24=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_25=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_26=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* XXX infeasible *)
+(* interval verification by Ferguson *)
 let I_621852152_27=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_28=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_29=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_30=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_31=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_621852152_32=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_207203174_GEN=
    `(\ a1 a2 a3 a4 a5. 
  (ineq
@@ -5125,131 +5361,163 @@ let I_207203174_GEN=
   (delta_x a3 a1 a5 b5 x' x <. (#0.0)) \/
   (delta_x a3 a5 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_207203174_1=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_2=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_3=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_4=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_5=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_6=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_7=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_8=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_207203174_9=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_10=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_11=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_12=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_13=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_14=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_15=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_16=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_17=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_18=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_19=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_20=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_21=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_22=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_23=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_24=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_25=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_26=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_27=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_28=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_29=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_30=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_31=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_207203174_32=
   all_forall 
   (list_mk_comb(I_207203174_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -5281,6 +5549,7 @@ Group_18.5
 *)
 
 
+(* interval verification by Ferguson *)
 let I_368258024_GEN=
    `(\ a1 a2 a3 a4 a5 a6. 
  (ineq
@@ -5302,265 +5571,330 @@ let I_368258024_GEN=
   (delta_x a1 a4 a5 (#4.0) xd5 xd4 <. (#0.0)) \/
   (delta_x a1 a5 a6 (#4.0) (#4.0) xd5 <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_368258024_1=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_2=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_3=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_4=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_5=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_6=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_7=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_8=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_368258024_9=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_10=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_11=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_12=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_13=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_14=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_15=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_16=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_17=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_18=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_19=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_20=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_21=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_22=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_23=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_24=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_25=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_26=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_27=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_28=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_29=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_30=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_31=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_32=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_33=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_34=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_35=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_36=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_37=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_38=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_39=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_40=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_368258024_41=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_42=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_43=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_44=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_45=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_46=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_47=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_48=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_49=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_50=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_51=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_52=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_53=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_54=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_55=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_56=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_57=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_58=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_59=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_60=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_61=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_62=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_63=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_368258024_64=
   all_forall 
   (list_mk_comb(I_368258024_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_564618342_GEN=
    `(\ a1 a2 a3 a4 a5 a6. 
  (ineq
@@ -5582,260 +5916,324 @@ let I_564618342_GEN=
   (delta_x a1 a4 a5 (#4.0) xd5 xd4 <. (#0.0)) \/
   (delta_x a1 a5 a6 (#4.0) (#4.0) xd5 <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_564618342_1=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_2=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_3=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_4=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_5=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_6=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_7=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_8=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_564618342_9=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_10=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_11=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_12=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_13=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_14=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_15=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_16=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_17=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_18=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_19=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_20=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_21=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_22=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_23=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_24=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_25=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_26=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_27=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_28=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_29=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_30=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_31=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_32=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_33=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_34=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_35=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_36=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_37=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_38=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_39=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_40=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_564618342_41=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_42=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_43=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_44=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_45=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_46=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_47=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_48=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_49=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_50=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_51=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_52=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_53=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_54=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_55=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_56=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_57=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_58=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_59=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_60=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_61=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_62=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_63=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_564618342_64=
   all_forall 
   (list_mk_comb(I_564618342_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -5873,6 +6271,7 @@ Group_18.6
 *)
 
 
+(* interval verification by Ferguson *)
 let I_498774382_GEN= 
    `(\ a1 a2 a3 a4 a5 a6. 
  (ineq
@@ -5894,265 +6293,330 @@ let I_498774382_GEN=
   (delta_x a2 a3 a5 x'' x' (#4.0) <. (#0.0)) \/
   (delta_x a3 a4 a5 (#4.0) x'' (#4.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_498774382_1=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_2=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_3=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_4=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_5=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_6=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_7=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_8=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_498774382_9=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_10=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_11=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_12=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_13=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_14=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_15=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_16=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_17=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_18=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_19=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_20=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_21=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_22=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_23=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_24=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_25=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_26=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_27=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_28=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_29=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_30=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_31=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_32=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_33=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_34=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_35=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_36=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_37=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_38=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_39=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_40=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_498774382_41=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_42=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_43=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_44=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_45=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_46=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_47=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_48=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_49=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_50=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_51=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_52=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_53=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_54=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_55=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_56=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_57=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_58=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_59=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_60=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_61=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_62=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_63=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_498774382_64=
   all_forall 
   (list_mk_comb(I_498774382_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_544865225_GEN= 
    `(\ a1 a2 a3 a4 a5 a6. 
  (ineq
@@ -6174,260 +6638,324 @@ let I_544865225_GEN=
   (delta_x a2 a3 a5 x'' x' (#4.0) <. (#0.0)) \/
   (delta_x a3 a4 a5 (#4.0) x'' (#4.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_544865225_1=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_2=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_3=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_4=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_5=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_6=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_7=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_8=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_544865225_9=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_10=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_11=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_12=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_13=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_14=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_15=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_16=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_17=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_18=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_19=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_20=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_21=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_22=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_23=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_24=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_25=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_26=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_27=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_28=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_29=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_30=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_31=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_32=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_33=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_34=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_35=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_36=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_37=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_38=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_39=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_40=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_544865225_41=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_42=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_43=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_44=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_45=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_46=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_47=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_48=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_49=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_50=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_51=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_52=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_53=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_54=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_55=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_56=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_57=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_58=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_59=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_60=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_61=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_62=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_63=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_544865225_64=
   all_forall 
   (list_mk_comb(I_544865225_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -6461,6 +6989,7 @@ Group_18.7
 *)
 
 
+(* interval verification by Ferguson *)
 let I_234734606=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6474,6 +7003,7 @@ let I_234734606=
         (  (vor_0_x x1 x2 x3 x4 x5 x6 ) <. (--(#0.221))-(&.2)*(#0.009)))` ;;
 
 
+(* interval verification by Ferguson *)
 let I_791682321=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6493,6 +7023,7 @@ LOC: 2002 k.c page 59
  Group_18.8
 *)
 
+(* interval verification by Ferguson *)
 let I_995351614_GEN= 
    `(\ a2 a3 a4 . 
  (ineq
@@ -6510,39 +7041,48 @@ let I_995351614_GEN=
   (delta_x a1 a2 a4 x square_2t0 b1 <. (#0.0)) \/
   (delta_x a3 a2 a4 x (#4.0) (#4.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_995351614_1=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_2=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_3=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_4=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_5=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_6=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_7=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_995351614_8=
   all_forall 
   (list_mk_comb(I_995351614_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_321843503_GEN= 
    `(\ a2 a3 a4 . 
  (ineq
@@ -6560,34 +7100,42 @@ let I_321843503_GEN=
   (delta_x a1 a2 a4 x square_2t0 b1 <. (#0.0)) \/
   (delta_x a3 a2 a4 x (#4.0) (#4.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_321843503_1=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_2=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_3=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_4=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_5=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_6=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_7=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_321843503_8=
   all_forall 
   (list_mk_comb(I_321843503_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -6602,6 +7150,7 @@ LOC: 2002 k.c page 59--60
 Group_18.9
 *)
 
+(* interval verification by Ferguson *)
 let I_354217730=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6614,6 +7163,8 @@ let I_354217730=
     (
         (  (vor_0_x x1 x2 x3 x4 x5 x6 ) <. (--(#0.19))-((sqrt x5)-(sqrt2))*(#0.14)))`;;
 
+
+(* interval verification in partK.cc, possibly also in Ferguson *)
 let I_595674181=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6627,6 +7178,7 @@ let I_595674181=
         (  (tau_0_x x1 x2 x3 x4 x5 x6 ) >. (#0.281)))`;;
 
 
+(* interval verification by Ferguson *)
 let I_547486831=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6639,6 +7191,7 @@ let I_547486831=
     (
         (  (vor_0_x x1 x2 x3 x4 x5 x6 ) <. (--(#0.11))))`;;
 
+(* interval verification by Ferguson *)
 let I_683897354=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6651,6 +7204,7 @@ let I_683897354=
     (
         (  (tau_0_x x1 x2 x3 x4 x5 x6 ) >. ((#0.205))))`;;
 
+(* interval verification by Ferguson *)
 let I_938003786=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -6672,6 +7226,7 @@ LOC: 2002 k.c page 60
 *)
 
 
+(* interval verification by Ferguson *)
 let I_109046923_GEN= 
    `(\ a1 a2 a3 a4 . 
  (ineq
@@ -6687,72 +7242,89 @@ let I_109046923_GEN=
   (delta_x a1 a2 a4 x square_2t0 (#4.0) <. (#0.0)) \/
   (delta_x a3 a2 a4 x (#4.0) (#8.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_109046923_1=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_2=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_3=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_4=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_5=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_6=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_7=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_8=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_9=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_10=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_11=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_12=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_13=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_14=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_15=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_109046923_16=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
 
+(* interval verification by Ferguson *)
 let I_642590101_GEN= 
    `(\ a1 a2 a3 a4 . 
  (ineq
@@ -6768,66 +7340,82 @@ let I_642590101_GEN=
   (delta_x a1 a2 a4 x square_2t0 (#4.0) <. (#0.0)) \/
   (delta_x a3 a2 a4 x (#4.0) (#8.0) <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_642590101_1=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_2=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_3=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_4=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_5=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_6=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_7=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_8=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_9=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_10=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_11=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_12=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_13=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_14=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_15=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_642590101_16=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -6849,6 +7437,7 @@ Group_18.11
 (* XXX 
 Error:  for much of this group a3 is not in scope here!
 *)
+(* interval verification by Ferguson *)
 let I_160800042_GEN= 
    `(\ a2 a4 . 
  (ineq
@@ -6865,22 +7454,27 @@ let I_160800042_GEN=
   (delta_x a1 a3 a5 x' square_2t0 x <. (#0.0)) \/
   (delta_x a5 a3 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_160800042_1=
   all_forall 
   (list_mk_comb(I_160800042_GEN,[`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_160800042_2=
   all_forall 
   (list_mk_comb(I_160800042_GEN,[`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_160800042_3=
   all_forall 
   (list_mk_comb(I_160800042_GEN,[`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_160800042_4=
   all_forall 
   (list_mk_comb(I_160800042_GEN,[`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_690272881_GEN= 
    `(\ a2 a4 . 
  (ineq
@@ -6897,18 +7491,22 @@ let I_690272881_GEN=
   (delta_x a1 a3 a5 x' square_2t0 x <. (#0.0)) \/
   (delta_x a5 a3 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_690272881_1=
   all_forall 
   (list_mk_comb(I_690272881_GEN,[`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_690272881_2=
   all_forall 
   (list_mk_comb(I_690272881_GEN,[`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_690272881_3=
   all_forall 
   (list_mk_comb(I_690272881_GEN,[`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_690272881_4=
   all_forall 
   (list_mk_comb(I_690272881_GEN,[`square_2t0`;`square_2t0`]));;
@@ -6925,6 +7523,7 @@ Group_18.12
 
 
 
+(* interval verification by Ferguson *)
 let I_713930036_GEN= 
    `(\ a1 a5 . 
  (ineq
@@ -6944,24 +7543,29 @@ let I_713930036_GEN=
   (delta_x a1 (#4.0) a5 x' square_2t0 x <. (#0.0)) \/
   (delta_x a5 (#4.0) (#4.0) (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_713930036_1=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_713930036_2=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_713930036_3=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_713930036_4=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`square_2t0`;`square_2t0`]));;
 
 
 
+(* interval verification by Ferguson *)
 let I_724922588_GEN= 
    `(\ a1 a5 . 
  (ineq
@@ -6981,18 +7585,22 @@ let I_724922588_GEN=
   (delta_x a1 (#4.0) a5 x' square_2t0 x <. (#0.0)) \/
   (delta_x a5 (#4.0) (#4.0) (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
+(* interval verification by Ferguson *)
 let I_724922588_1=
   all_forall 
   (list_mk_comb(I_724922588_GEN,[`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_724922588_2=
   all_forall 
   (list_mk_comb(I_724922588_GEN,[`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_724922588_3=
   all_forall 
   (list_mk_comb(I_724922588_GEN,[`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_724922588_4=
   all_forall 
   (list_mk_comb(I_724922588_GEN,[`square_2t0`;`square_2t0`]));;
@@ -7006,6 +7614,7 @@ Group_18.13
 *)
 
 
+(* interval verification by Ferguson *)
 let I_821730621_GEN= 
    `(\ a2 a4 a5 . 
  (ineq
@@ -7025,39 +7634,48 @@ let I_821730621_GEN=
   (delta_x (#4.0) a4 a5 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 
+(* interval verification by Ferguson *)
 let I_821730621_1=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_2=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_3=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_4=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_5=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_6=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_7=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_821730621_8=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+(* interval verification by Ferguson *)
 let I_890642961_GEN= 
    `(\ a2 a4 a5 . 
  (ineq
@@ -7077,34 +7695,42 @@ let I_890642961_GEN=
   (delta_x (#4.0) a4 a5 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 
+(* interval verification by Ferguson *)
 let I_890642961_1=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_2=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_3=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_4=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_5=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_6=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_7=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
+(* interval verification by Ferguson *)
 let I_890642961_8=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -7119,6 +7745,7 @@ LOC: 2002 k.c page 60
 Group_18.14
 *)
 
+(* interval verification by Ferguson *)
 let I_341667126=
   all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -7131,6 +7758,7 @@ let I_341667126=
   (vor_0_x x1 x2 x3 x4 x5 x6 <. --(#0.168) - (#0.009))
   `;;
 
+(* interval verification by Ferguson *)
 let I_535906363=
   all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -7210,6 +7838,7 @@ let I_531861442=
   `;;
 
 
+(* interval verification in partK.cc *)
 let I_292827481=
   all_forall `ineq
   [((#4.0), x1, (#4.0) );
@@ -7222,6 +7851,7 @@ let I_292827481=
   (vor_0_x x1 x2 x3 x4 x5 x6 <. --(#0.084) - ((sqrt x5 - sqrt8)*(#0.1))  )
   `;;
 
+(* interval verification in partK.cc *)
 let I_710875528=
   all_forall `ineq
   [((#4.0), x1, (#4.0) );
@@ -7301,6 +7931,7 @@ Section A1
 (*
 It says we may assume y6=2, and equality is entered below in the bounds
 *)
+(* interval verification by Ferguson *)
 let I_757995764=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -7318,6 +7949,7 @@ let I_757995764=
 
 
 
+(* interval verification by Ferguson *)
 let I_735258244=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -7335,6 +7967,7 @@ let I_735258244=
 
 
 
+(* interval verification by Ferguson *)
 let I_343330051=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -7351,6 +7984,7 @@ let I_343330051=
 
 
 
+(* interval verification by Ferguson *)
 let I_49446087=
    all_forall `ineq 
     [((square (#2.2)), x1, square_2t0);
@@ -7367,6 +8001,7 @@ let I_49446087=
 
 
 
+(* interval verification by Ferguson *)
 let I_799187442 =
   all_forall `ineq
     [
@@ -8244,6 +8879,7 @@ Section A9
 *)
 
 
+(* interval verification by Ferguson *)
 let I_956875054=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -8258,6 +8894,7 @@ let I_956875054=
 
 
 
+(* interval verification by Ferguson *)
 let I_664200787=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -8273,6 +8910,7 @@ let I_664200787=
 
 
 
+(* interval verification by Ferguson *)
 let I_390273147=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
@@ -8292,6 +8930,7 @@ let I_390273147=
 (*
 Equality has been assumed with x4 term
 *)
+(* interval verification by Ferguson *)
 let I_654422246=
    all_forall `ineq 
     [((square (#2.57)), x1, (#8.0));
@@ -8310,6 +8949,7 @@ let I_654422246=
 (*
 Equality has been assumed with x4 term
 *)
+(* interval verification by Ferguson *)
 let I_366536370=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.57)));
@@ -8328,6 +8968,7 @@ let I_366536370=
 (*
 Equality has been assumed with x4 term
 *)
+(* interval verification by Ferguson *)
 let I_62532125=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.57)));
@@ -8345,6 +8986,7 @@ let I_62532125=
 
 
 
+(* interval verification by Ferguson *)
 let I_370631902=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.57)));
@@ -8569,6 +9211,7 @@ Section A12
 *)
 
 
+(* interval verification by Ferguson *)
 let I_970291025=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -8587,6 +9230,7 @@ let I_970291025=
 
 
 
+(* interval verification by Ferguson *)
 let I_524345535=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -8755,6 +9399,7 @@ let I_712696695=
 
 
 
+(* interval verification in partK.cc *)
 let I_269048407=
    all_forall `ineq 
     [((square (#2.696)), x1, (#8.0));
@@ -8770,6 +9415,7 @@ let I_269048407=
 
 
 
+(* interval verification in partK.cc *)
 let I_553285469=
    all_forall `ineq 
     [((square (#2.6)), x1, (square (#2.696)));
@@ -8784,6 +9430,7 @@ let I_553285469=
 
 
 
+(* interval verification in partK.cc *)
 let I_293389410=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8799,6 +9446,7 @@ let I_293389410=
 
 
 
+(* interval verification in partK.cc *)
 let I_695069283=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.17)));
@@ -8814,6 +9462,7 @@ let I_695069283=
 
 
 
+(* interval verification in partK.cc *)
 let I_814398901=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8829,6 +9478,7 @@ let I_814398901=
 
 
 
+(* interval verification in partK.cc *)
 let I_352079526=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8845,6 +9495,7 @@ let I_352079526=
 
 
 
+(* interval verification in partK.cc *)
 let I_179025673 = 
   all_forall `ineq
 	[
@@ -8874,8 +9525,7 @@ LOC: 2002 IV, page 49
 Section A14
 *)
 
-
-
+(* interval verification by Ferguson *)
 let I_424011442=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8895,6 +9545,7 @@ let I_424011442=
 
 
 
+(* interval verification by Ferguson *)
 let I_140881233=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8913,6 +9564,7 @@ let I_140881233=
 
 
 
+(* interval verification by Ferguson *)
 let I_601456709_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8930,6 +9582,7 @@ let I_601456709_1=
 
 
 
+(* interval verification by Ferguson *)
 let I_601456709_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8946,6 +9599,7 @@ let I_601456709_2=
 
 
 
+(* interval verification by Ferguson *)
 let I_292977281_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8963,6 +9617,7 @@ let I_292977281_1=
 
 
 
+(* interval verification by Ferguson *)
 let I_292977281_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8983,6 +9638,7 @@ let I_292977281_2=
 (*
 Two sets of bounds for x5   I used the more restrictive set
 *)
+(* interval verification by Ferguson *)
 let I_927286061_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9003,6 +9659,7 @@ let I_927286061_1=
 (*
 Two sets of bounds for x5   I used the more restrictive set
 *)
+(* interval verification by Ferguson *)
 let I_927286061_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9024,6 +9681,7 @@ let I_927286061_2=
 Two sets of bounds for x5   I used the more restrictive set
 
 *)
+(* interval verification by Ferguson *)
 let I_340409511_1=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9046,6 +9704,7 @@ let I_340409511_1=
 (*
 Two sets of bounds for x5   I used the more restrictive set
 *)
+(* interval verification by Ferguson *)
 let I_340409511_2=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9064,6 +9723,7 @@ let I_340409511_2=
 
 
 
+(* interval verification by Ferguson *)
 let I_727498658=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9080,6 +9740,7 @@ let I_727498658=
             ( (eta_x x1 x3 x5) >.  t0))`;;
 
 
+(* interval verification by Ferguson *)
 let I_484314425 = all_forall `ineq
    [((#4.0), x1, square_2t0);
     ((#4.0), x3, square_2t0);
@@ -9090,6 +9751,7 @@ let I_484314425 = all_forall `ineq
                 (deriv (\x. (quo_x x3 x1 x)) x5))
                 <. (#0.82))`;;
 
+(* interval verification by Ferguson *)
 let I_440223030 = all_forall `ineq
    [((#4.0), x1, square_2t0);
     ((#4.0), x3, square_2t0);
@@ -9104,6 +9766,7 @@ let I_440223030 = all_forall `ineq
 Handwritten note says to change ( >=. ) to ( >. )
  overlap_f is the function of 1998:IV.4.11, or 2002,IV,Sec.4.14
 *)
+(* interval verification by Ferguson *)
 let I_115756648=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9125,6 +9788,7 @@ Section A15
 Remember to include this in the summary list-mk-conj
 *)
 
+(* interval verification by Ferguson *)
 let I_329882546_1= all_forall `ineq
   [((#4.0), x1, square_2t0);
 ((#4.0), x2, square_2t0);
@@ -9139,6 +9803,7 @@ let I_329882546_1= all_forall `ineq
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_329882546_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9154,6 +9819,7 @@ let I_329882546_2=
   ~(deriv (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 = (&.0)) \/
   (deriv2 (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_427688691_1= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9169,6 +9835,7 @@ let I_427688691_1=
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_427688691_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9184,6 +9851,7 @@ let I_427688691_2=
   ~(deriv (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 = (&.0)) \/
   (deriv2 (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_562103670_1= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9199,6 +9867,7 @@ let I_562103670_1=
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_562103670_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9214,6 +9883,7 @@ let I_562103670_2=
   ~(deriv (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 = (&.0)) \/
   (deriv2 (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_564506426_1= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9229,6 +9899,7 @@ let I_564506426_1=
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_564506426_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9244,6 +9915,7 @@ let I_564506426_2=
   ~(deriv (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 = (&.0)) \/
   (deriv2 (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_288224597_1= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9259,6 +9931,7 @@ let I_288224597_1=
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_288224597_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9274,6 +9947,7 @@ let I_288224597_2=
   ~(deriv (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 = (&.0)) \/
   (deriv2 (\x. (-- (tau_0_x x x2 x3 x4 x5 x6))) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_979916330_1= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9289,6 +9963,7 @@ let I_979916330_1=
   ~(deriv (\x. vor_0_x x x2 x3 x4 x5 x6) x1 = (&.0)) \/
   (deriv2 (\x. vor_0_x x x2 x3 x4 x5 x6) x1 >. (&.0)))`;;
 
+(* interval verification by Ferguson *)
 let I_749968927_2= 
  all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -9560,6 +10235,7 @@ Six Cases:
 
 *)
 
+(* interval verification by Ferguson *)
 let I_645264496_102=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9571,6 +10247,7 @@ let I_645264496_102=
     ] 
    ((tau_0_x x1 x2 x3 x4 x5 x6)- (pi_prime_tau 1 0 2) >. D32)`;;
 
+(* interval verification by Ferguson *)
 let I_645264496_111=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9582,6 +10259,7 @@ let I_645264496_111=
     ] 
    ((tau_0_x x1 x2 x3 x4 x5 x6)- (pi_prime_tau 1 1 1) >. D32)`;;
 
+(* interval verification by Ferguson *)
 let I_645264496_030=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9593,6 +10271,7 @@ let I_645264496_030=
     ] 
    ((tau_0_x x1 x2 x3 x4 x5 x6)- (pi_prime_tau 0 3 0) >. D33)`;;
 
+(* interval verification by Ferguson *)
 let I_645264496_021=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9604,6 +10283,7 @@ let I_645264496_021=
     ] 
    ((tau_0_x x1 x2 x3 x4 x5 x6)- (pi_prime_tau 0 2 1) >. D33)`;;
 
+(* interval verification by Ferguson *)
 let I_645264496_012=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9615,6 +10295,7 @@ let I_645264496_012=
     ] 
    ((tau_0_x x1 x2 x3 x4 x5 x6)- (pi_prime_tau 0 1 2) >. D33)`;;
 
+(* interval verification by Ferguson *)
 let I_645264496_003=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9629,6 +10310,7 @@ let I_645264496_003=
 
 
 
+(* interval verification by Ferguson *)
 let I_910154674=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9643,6 +10325,7 @@ let I_910154674=
 
 
 
+(* interval verification by Ferguson *)
 let I_877743345=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9668,6 +10351,7 @@ Section A18
 *)
 
 
+(* interval verification by Ferguson *)
 let I_612259047_102=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9679,6 +10363,7 @@ let I_612259047_102=
     ] 
    ((vor_0_x x1 x2 x3 x4 x5 x6)+ (pi_prime_sigma 1 0 2) <. Z32)`;;
 
+(* interval verification by Ferguson *)
 let I_612259047_111=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9690,6 +10375,7 @@ let I_612259047_111=
     ] 
    ((vor_0_x x1 x2 x3 x4 x5 x6)+ (pi_prime_sigma 1 1 1) <. Z32)`;;
 
+(* interval verification by Ferguson *)
 let I_612259047_030=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9701,6 +10387,7 @@ let I_612259047_030=
     ] 
    ((vor_0_x x1 x2 x3 x4 x5 x6)+ (pi_prime_sigma 0 3 0) <. Z33)`;;
 
+(* interval verification by Ferguson *)
 let I_612259047_021=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9712,6 +10399,7 @@ let I_612259047_021=
     ] 
    ((vor_0_x x1 x2 x3 x4 x5 x6)+ (pi_prime_sigma 0 2 1) <. Z33)`;;
 
+(* interval verification by Ferguson *)
 let I_612259047_012=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9723,6 +10411,7 @@ let I_612259047_012=
     ] 
    ((vor_0_x x1 x2 x3 x4 x5 x6)+ (pi_prime_sigma 0 1 2) <. Z33)`;;
 
+(* interval verification by Ferguson *)
 let I_612259047_003=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9751,6 +10440,7 @@ Without loss of generality in Section 19, we can divide the
 quad along the shorter diagonal.
 *)
 
+(* interval verification by Ferguson *)
 let I_357477295_1=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9763,6 +10453,7 @@ let I_357477295_1=
   (cross_diag_x x1 (#4.0) x3 x4 x5 (#4.0) (#4.0) (#4.0) (#4.0) 
        <. (sqrt x4)))`;;
 
+(* interval verification by Ferguson *)
 let I_357477295_2=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9775,6 +10466,7 @@ let I_357477295_2=
   (cross_diag_x x1 (#4.0) x3 x4 x5 (#4.0) (#4.0) (#4.0) (#4.0) 
        <. (sqrt x4)))`;;
 
+(* interval verification by Ferguson *)
 let I_357477295_3=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9787,6 +10479,7 @@ let I_357477295_3=
   (cross_diag_x x1 (#4.0) x3 x4 x5 (#4.0) (#4.0) (#4.0) (#4.0) 
        <. (sqrt x4)))`;;
 
+(* interval verification by Ferguson *)
 let I_357477295_4=
   all_forall `ineq
 [((#4.0), x1, square_2t0);
@@ -9831,6 +10524,7 @@ Need Z42 and Z41
 *)
 
 (* b4 b3 a2 a4 *)
+(* interval verification by Ferguson *)
 let I_193776341_GEN=
    `(\ b4 b3 a2 a4 k0 k1 k2. (
 let x1 = (a4) in
@@ -9850,69 +10544,86 @@ let x6 = (b4) in
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
        <. ((#3.2)))))))`;;
 
+(* interval verification by Ferguson *)
 let I_193776341_1= 
  all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#8.0`;`#4.0`;`#4.0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_2= 
  all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#8.0`;`#4.0`;`square_2t0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_3=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#8.0`;`square_2t0`;`square_2t0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_4=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#8.0`;`square_2t0`;`#4.0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_5=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`square_2t0`;`#4.0`;`#4.0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_6=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`square_2t0`;`#4.0`;`square_2t0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_7=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`square_2t0`;`square_2t0`;`square_2t0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_8=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`square_2t0`;`square_2t0`;`#4.0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_9=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#4.0`;`#4.0`;`#4.0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_10=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#4.0`;`#4.0`;`square_2t0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_11=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#4.0`;`square_2t0`;`square_2t0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_12=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`#8.0`;`#4.0`;`square_2t0`;`#4.0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_13= all_forall (list_mk_comb(I_193776341_GEN,
    [`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_14=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_15=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_193776341_16=
   all_forall (list_mk_comb(I_193776341_GEN,
    [`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_GEN=
    `(\ b4 b3 a2 a4 k0 k1 k2. (
 let x1 = (a4) in
@@ -9933,70 +10644,87 @@ let x6 = (b4) in
        <. ((#3.2)))))))`;;
 
 
+(* interval verification by Ferguson *)
 let I_898647773_1=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#8.0`;`#4.0`;`#4.0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_2= 
  all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#8.0`;`#4.0`;`square_2t0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_3=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#8.0`;`square_2t0`;`square_2t0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_4=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#8.0`;`square_2t0`;`#4.0`;`0`;`0`;`2`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_5=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`square_2t0`;`#4.0`;`#4.0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_6= all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`square_2t0`;`#4.0`;`square_2t0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_7=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`square_2t0`;`square_2t0`;`square_2t0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_8=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`square_2t0`;`square_2t0`;`#4.0`;`0`;`1`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_9=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#4.0`;`#4.0`;`#4.0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_10=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#4.0`;`#4.0`;`square_2t0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_11=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#4.0`;`square_2t0`;`square_2t0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_12=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`#8.0`;`#4.0`;`square_2t0`;`#4.0`;`1`;`0`;`1`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_13=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`square_2t0`;`square_2t0`;`#4.0`;`#4.0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_14=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_15=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`;`0`;`2`;`0`]));;
 
+(* interval verification by Ferguson *)
 let I_898647773_16=
   all_forall (list_mk_comb(I_898647773_GEN,
    [`square_2t0`;`square_2t0`;`square_2t0`;`#4.0`;`0`;`2`;`0`]));;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_844634710_1=
   all_forall `
 let a2 = (#4.0) in
@@ -10019,6 +10747,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_844634710_2=
   all_forall `
 let a2 = (square_2t0) in
@@ -10041,6 +10770,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_844634710_3=
   all_forall `
 let a2 = (#4.0) in
@@ -10063,6 +10793,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_844634710_4=
   all_forall `
 let a2 = (square_2t0) in
@@ -10084,6 +10815,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 
+(* interval verification by Ferguson *)
 let I_328845176_1=
   all_forall `
 let a2 = (#4.0) in
@@ -10105,6 +10837,7 @@ let x6 = (b4) in
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
        <. ((#3.2)))))`;;
 
+(* interval verification by Ferguson *)
 let I_328845176_2=
   all_forall `
 let a2 = (square_2t0) in
@@ -10127,6 +10860,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_328845176_3=
   all_forall `
 let a2 = (#4.0) in
@@ -10149,6 +10883,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 (* STM 1/13/08.  Added parentheses.  This was not parsing correctly *)
+(* interval verification by Ferguson *)
 let I_328845176_4=
   all_forall `
 let a2 = (square_2t0) in
@@ -10170,6 +10905,7 @@ let x6 = (b4) in
        <. ((#3.2)))))`;;
 
 
+(* interval verification by Ferguson *)
 let I_233273785_1=
   all_forall `
 let a2 = (#4.0) in
@@ -10191,6 +10927,7 @@ let x6 = (b4) in
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
        <. ((#3.2)))))`;;
 
+(* interval verification by Ferguson *)
 let I_233273785_2=
   all_forall `
 let a2 = (square_2t0) in
@@ -10212,6 +10949,7 @@ let x6 = (b4) in
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
        <. ((#3.2)))))`;;
 
+(* interval verification by Ferguson *)
 let I_96695550_1=
   all_forall `
 let a2 = (#4.0) in
@@ -10233,6 +10971,7 @@ let x6 = (b4) in
   (cross_diag_x x1 x2 x3 x4 x5 x6 a2 (#4.0) (#4.0)
        <. ((#3.2)))))`;;
 
+(* interval verification by Ferguson *)
 let I_96695550_2=
   all_forall `
 let a2 = (square_2t0) in
@@ -10274,6 +11013,7 @@ Section A21
 
 
 
+(* interval verification by Ferguson *)
 let I_275286804=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -10287,6 +11027,7 @@ let I_275286804=
 
 
 
+(* interval verification by Ferguson *)
 let I_627654828=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -10299,6 +11040,7 @@ let I_627654828=
 
 
 
+(* interval verification by Ferguson *)
 let I_995177961=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -10311,6 +11053,7 @@ let I_995177961=
 
 
 
+(* interval verification by Ferguson *)
 let I_735892048=
    all_forall `ineq 
     [((#8.0), x4, (square (#3.2)));
@@ -10340,6 +11083,7 @@ that $y_1(S')=2$.  Also by deformations, $y_5(S')=y_6(S')=2$.
 
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_53502142= 
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10354,6 +11098,7 @@ let I_53502142=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_134398524=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10368,6 +11113,7 @@ let I_134398524=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_371491817=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10382,6 +11128,7 @@ let I_371491817=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_832922998=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10396,6 +11143,7 @@ let I_832922998=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_724796759=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10410,6 +11158,7 @@ let I_724796759=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 (* ineq changed from weak to strick on dih *)
+(* interval verification by Ferguson *)
 let I_431940343=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10426,6 +11175,7 @@ let I_431940343=
 
 
 
+(* interval verification by Ferguson *)
 let I_980721294=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10440,6 +11190,7 @@ let I_980721294=
 
 
 
+(* interval verification by Ferguson *)
 let I_989564937=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10454,6 +11205,7 @@ let I_989564937=
 
 
 
+(* interval verification by Ferguson *)
 let I_263355808=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10468,6 +11220,7 @@ let I_263355808=
 
 
 
+(* interval verification by Ferguson *)
 let I_445132132=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10483,6 +11236,7 @@ let I_445132132=
 
 
 
+(* interval verification by Ferguson *)
 let I_806767374=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10500,6 +11254,7 @@ let I_806767374=
 
 
 
+(* interval verification by Ferguson *)
 let I_511038592=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10552,6 +11307,7 @@ direction. Let $S''$ be an upright quarter with $y_5=2t_0$. Set $\tau_0
 
 
 
+(* interval verification by Ferguson *)
 let I_4591018_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10568,6 +11324,7 @@ let I_4591018_1=
     (--(#3.48) + (#2.1747)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_193728878_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10584,6 +11341,7 @@ let I_193728878_1=
     (--(#3.06) + (#1.87427)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_2724096_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10600,6 +11358,7 @@ let I_2724096_1=
     (--(#1.58) + (#0.83046)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_213514168_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10616,6 +11375,7 @@ let I_213514168_1=
     (--(#1.06) + (#0.48263)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_750768322_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10632,6 +11392,7 @@ let I_750768322_1=
     (--(#0.83) + (#0.34833)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_371464244_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10648,6 +11409,7 @@ let I_371464244_1=
     (--(#0.5) + (#0.1694)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_657011065_1=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10665,6 +11427,7 @@ let I_657011065_1=
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
 
+(* interval verification by Ferguson *)
 let I_4591018_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10681,6 +11444,7 @@ let I_4591018_2=
     (--(#3.48) + (#2.1747)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_193728878_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10697,6 +11461,7 @@ let I_193728878_2=
     (--(#3.06) + (#1.87427)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_2724096_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10713,6 +11478,7 @@ let I_2724096_2=
     (--(#1.58) + (#0.83046)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_213514168_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10729,6 +11495,7 @@ let I_213514168_2=
     (--(#1.06) + (#0.48263)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_750768322_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10745,6 +11512,7 @@ let I_750768322_2=
     (--(#0.83) + (#0.34833)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_371464244_2=
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10761,6 +11529,7 @@ let I_371464244_2=
     (--(#0.5) + (#0.1694)*(dih_x x1 x2 x3 x4 x5 x6))) \/
     (dih_x x1 x2 x3 x4 x5 x6 >. (#2.46)))`;;
 
+(* interval verification by Ferguson *)
 let I_657011065_2 =
    all_forall `ineq
    [(square_2t0,x1,(#8.0));
@@ -10779,6 +11548,7 @@ let I_657011065_2 =
 
 
 (* calcs 8 --9 *)
+(* interval verification by Ferguson *)
 let I_55753311=
    all_forall `ineq
    [ ((#4.0), x2, square_2t0);
@@ -10789,6 +11559,7 @@ let I_55753311=
      (tau_0_x (square_2t0) x2 x3 x4 (#4.0) (#4.0) ) >. (#0.06585)
     )`;;
 
+(* interval verification by Ferguson *)
 let I_762922223=
    all_forall `ineq
    [ ((#4.0), x2, (square (#2.2)));
@@ -10801,6 +11572,7 @@ let I_762922223=
 
 
 (* calcs 10 -- 16 *)
+(* interval verification by Ferguson *)
 let I_953023504=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10816,6 +11588,7 @@ let I_953023504=
             ( (  (--. (#3.48)) /  (#2.0)) +.  
        (  (#2.1747) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
 
+(* interval verification by Ferguson *)
 let I_887276655=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10831,6 +11604,7 @@ let I_887276655=
             ( (  (--. (#3.06)) /  (#2.0)) +.  
    (  (#1.87427) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
 
+(* interval verification by Ferguson *)
 let I_246315515=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10846,6 +11620,7 @@ let I_246315515=
             ( (  (--. (#1.58)) /  (#2.0)) +.  
       (  (#0.83046) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
 
+(* interval verification by Ferguson *)
 let I_784421604=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10863,6 +11638,7 @@ let I_784421604=
 
 
 
+(* interval verification by Ferguson *)
 let I_258632246=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10880,6 +11656,7 @@ let I_258632246=
 
 
 
+(* interval verification by Ferguson *)
 let I_404164527=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10899,6 +11676,7 @@ let I_404164527=
 
 
 
+(* interval verification by Ferguson *)
 let I_163088471=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10931,6 +11709,8 @@ Section A24
 *)
 
 
+(* interval verification in partK.cc *)
+(* interval verification by Ferguson *)
 let I_968721007=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10946,6 +11726,8 @@ let I_968721007=
 
 
 
+(* interval verification in partK.cc *)
+(* interval verification by Ferguson *)
 let I_783968228=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -10960,6 +11742,8 @@ let I_783968228=
 
 
 
+(* interval verification in partK.cc *)
+(* interval verification by Ferguson *)
 let I_745174731=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));

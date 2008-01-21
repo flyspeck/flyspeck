@@ -15,9 +15,6 @@
 *)
 
 (*
- Author: Thomas C. Hales
- copyright 2003-2008.
-
  Acknowledgement:  I would like to thank Carole Bunting for
  typing many of these inequalities in a machine readable form.
 *)
@@ -340,7 +337,7 @@ LOC: 2002 k.c page 42
 (*     ] *)
 (*     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63))`;; *)
 
-(* XXX needed delta_x > 0 *)
+(* Added delta_x > 0, Jan 2008 *)
 (* interval verification by Ferguson *)
 let I_821707685=
    all_forall `ineq 
@@ -783,7 +780,7 @@ LOC: 2002 k.c page 43
 17.6 Group_6
 *)
 
-(* interval verification in partK.cc *)
+
 (* let I_498839271_1= *)
 (*    all_forall `ineq  *)
 (*     [(square_2t0, x1, (#8.0)); *)
@@ -811,7 +808,7 @@ LOC: 2002 k.c page 43
 
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_3=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -826,7 +823,7 @@ let I_498839271_3=
                 (  (--. (#0.82)) *.  (sqrt x4)) +.  (  (#0.462) *.  (sqrt x5)) +.  (  (#0.462) *.  (sqrt x6))) >=.  (#1.82419))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_4=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -840,7 +837,7 @@ let I_498839271_4=
                 ( (( --. ) (dih_x x1 x2 x3 x4 x5 x6)) +.  (  (#0.55) *.  (sqrt x1)) +.  (  (--. (#0.214)) *.  (sqrt x2)) +.  (  (--. (#0.214)) *.  (sqrt x3)) +. 
                 (  (#1.24) *.  (sqrt x4)) +.  (  (--. (#0.214)) *.  (sqrt x5)) +.  (  (--. (#0.214)) *.  (sqrt x6))) >.  (#0.75281))`;;
 
-
+(* interval verification in partK.cc *)
 let I_498839271_5=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -855,7 +852,7 @@ let I_498839271_5=
                 (  (#0.631) *.  (sqrt x4)) +.  (  (--. (#0.57)) *.  (sqrt x5)) +.  (  (#0.23) *.  (sqrt x6))) >.  (#2.5481))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_6=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -870,7 +867,7 @@ let I_498839271_6=
                 (  (--. (#0.346)) *.  (sqrt x4)) +.  (  (#0.805) *.  (sqrt x5))) >.  (--. (#0.3429)))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_7=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -887,11 +884,13 @@ let I_498839271_7=
 
 
 
-(* XXX Seems to be wrong
-   check at 
+(* Seems to be wrong : check at 
    (8, 4.77946715116, 4.0, 6.30009999999, 6.30009999999, 4)
   STM changed from 0.364 
+  1/20/2008.  This seems to fix the problem.  The
+  left hand side evaluates to -0.342688 > -0.3429.
 *)
+(* interval verification in partK.cc *)
 let I_498839271_8=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -906,7 +905,7 @@ let I_498839271_8=
           (  (--. (#0.346)) *.  (sqrt x4)) +.  (  (#0.805) *.  (sqrt x6))) >.  (--. (#0.3429)))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_9=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -921,7 +920,7 @@ let I_498839271_9=
                 (  (--. (#0.115)) *.  (sqrt x5)) +.  (  (--. (#0.115)) *.  (sqrt x6))) >.  (#0.2618))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_10=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -936,7 +935,7 @@ let I_498839271_10=
                 (  (#0.12) *.  (sqrt x4)) +.  (  (#0.325) *.  (sqrt x5)) +.  (  (#0.325) *.  (sqrt x6))) >.  (#0.2514))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_11=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -950,7 +949,7 @@ let I_498839271_11=
                 ( (( --. ) (nu_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.0538)) *.  (sqrt x2)) +.  (  (--. (#0.0538)) *.  (sqrt x3)) +. 
                 (  (--. (#0.083)) *.  (sqrt x4)) +.  (  (--. (#0.0538)) *.  (sqrt x5)) +.  (  (--. (#0.0538)) *.  (sqrt x6))) >.  (--. (#0.5995)))`;;
 
-
+(* interval verification in partK.cc *)
 let I_498839271_12=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -963,7 +962,7 @@ let I_498839271_12=
     ( (nu_x x1 x2 x3 x4 x5 x6) >=.  (#0.0))`;;
 
 
-
+(* interval verification in partK.cc *)
 let I_498839271_13=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -978,7 +977,8 @@ let I_498839271_13=
 
 
 
-
+(* Duplicate inequality.  This is the same as 413688580 *)
+(*
 let J_549774315_1=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -990,9 +990,11 @@ let J_549774315_1=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#4.10113)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#4.3223)))`;;
+*)
 
 
-
+(* Duplicate inequality.  This is the same as 805296510 *)
+(*
 let J_549774315_2=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1004,9 +1006,10 @@ let J_549774315_2=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.80449)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.9871)))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 136610219 *)
+(*
 let J_549774315_3=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1018,8 +1021,10 @@ let J_549774315_3=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.70186)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.8756)))`;;
+*)
 
-
+(* Duplicate inequality.  This is the same as 379204810 *)
+(*
 let J_549774315_4=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1031,8 +1036,10 @@ let J_549774315_4=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.24573)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.3404)))`;;
+*)
 
-
+(* Duplicate inequality.  This is the same as 878731435 *)
+(*
 let J_549774315_5=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1044,9 +1051,10 @@ let J_549774315_5=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.00154)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.0024)))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 891740103 *)
+(*
 let J_549774315_6=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1058,9 +1066,10 @@ let J_549774315_6=
     ]
     (
                 ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.07611) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (#0.1196))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 334002329 *)
+(*
 let J_574435320_1=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1072,9 +1081,10 @@ let J_574435320_1=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#4.16523) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#4.42873))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 883139937 *)
+(*
 let J_574435320_2=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1086,9 +1096,10 @@ let J_574435320_2=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.78701) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#1.01104))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 507989176 *)
+(*
 let J_574435320_3=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1100,9 +1111,10 @@ let J_574435320_3=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.77627) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.99937))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 244435805 *)
+(*
 let J_574435320_4=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1114,9 +1126,10 @@ let J_574435320_4=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.21916) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.34877))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 930176500 *)
+(*
 let J_574435320_5=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1128,9 +1141,10 @@ let J_574435320_5=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.05107) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.11434))`;;
+*)
 
-
-
+(* Duplicate inequality.  This is the same as 815681339 *)
+(*
 let J_574435320_6=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1142,7 +1156,7 @@ let J_574435320_6=
     ]
     (
                 ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.07106)) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.07749)))`;;
-
+*)
 
 
 (*
@@ -3961,6 +3975,14 @@ let I_674284283=
 (* XXX Appears this is false.  
   Check point (4,10.4329)
 *)
+(* This inequality agrees with what is written in SPVI-2002-Group25,p.52.
+   This does not agree with what appears in partK.cc, which has
+   right-hand-side = 0.05925 - 0.14 (y5 - sqrt8).
+   If we take the interval code to be the authority, we need to change
+   the sign of 0.14 to -0.14.
+
+   This inequality only gets used in the proof of SPVI-2002-Prop~17.2,page52.
+ *)
 (* interval verification in partK.cc *)
 let I_775220784=
    all_forall `ineq 
@@ -13968,6 +13990,17 @@ let J_855677395=
     ( ( (mu_upright_x x1 x2 x3 x4 x5 x6) +.  (mu_flipped_x x1 x2 x3 x4 x5 x6)) <. 
            ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x_flipped x1 x2 x3 x4 x5 x6) +. 
               (  (#0.02) *.  ( (  pi /  (#2.0)) +.  (( --. ) (dih_x x1 x2 x3 x4 x5 x6))))))`;;
+
+
+(* ****************************************************** *)
+(* NEW INEQUALITIES THAT DO NOT APPEAR IN THE 1998 PROOF  *)
+(* BLUEPRINT REVISION INEQUALITIES                        *)
+
+
+(* DEPRECATED INEQUALITIES ********************************)
+(* THESE ARE INEQUALITIES IN THE 1998, THAT ARE NOT USED  *)
+(* IN THE BLUEPRINT VERSION *******************************)
+
 
 
 

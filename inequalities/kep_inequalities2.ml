@@ -656,3 +656,131 @@ let x2A = x3E in
 	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi )
       ))`;;
 
+
+(*
+LOC: 2002 III, page 15.
+Sec. 10, Group_4
+SKIP equation 2.  
+It asserts that the angle sum around a vertex is 2pi.  
+This is not an interval calculation.
+*)
+
+(*
+LOC: 2002 III, page 15.
+Sec. 10, Group_4
+equation 3.  Dihedral sum changed to an inequality.
+*)
+
+let J_694278521=
+  all_forall 
+  `
+let x6B = x5A in
+let x2B = x3A in
+let x6C = x5B in
+let x2C = x3B in
+let x6D = x5C in
+let x2D = x3C in
+let x6E = x5D in
+let x2E = x3D in
+let x6A = x5E in
+let x2A = x3E in
+   (ineq
+   [((#4.0), x1, square_2t0);
+    ((#4.0), x2A, square_2t0);
+    ((#4.0), x3A, square_2t0);
+    ((#4.0), x4A, square_2t0);
+    ((#4.0), x5A, square_2t0);
+    ((#4.0), x6A, square_2t0);
+    ((#4.0), x2B, square_2t0);
+    ((#4.0), x3B, square_2t0);
+    ((#4.0), x4B, square_2t0);
+    ((#4.0), x5B, square_2t0);
+    ((#4.0), x6B, square_2t0);
+    ((#4.0), x2C, square_2t0);
+    ((#4.0), x3C, square_2t0);
+    ((#4.0), x4C, square_2t0); 
+    ((#4.0), x5C, square_2t0);
+    ((#4.0), x6C, square_2t0);
+    ((#4.0), x2D, square_2t0);
+    ((#4.0), x3D, square_2t0);
+    ((#4.0), x4D, square_2t0);
+    ((#4.0), x5D, square_2t0);
+    ((#4.0), x6D, square_2t0);
+    ((#4.0), x2E, square_2t0);
+    ((#4.0), x3E, square_2t0);
+    ((#4.0), x4E, square_2t0); 
+    ((#4.0), x5E, square_2t0);
+    ((#4.0), x6E, square_2t0)]
+      ((
+	((sigma_qrtet_x x1 x2A x3A x4A x5A x6A) +. 
+	   #0.419351*. (sol_x x1 x2A x3A x4A x5A x6A)) +.
+	((sigma_qrtet_x x1 x2B x3B x4B x5B x6B) +. 
+	   #0.419351*. (sol_x x1 x2B x3B x4B x5B x6B)) +.
+	((sigma_qrtet_x x1 x2C x3C x4C x5C x6C) +. 
+	   #0.419351*. (sol_x x1 x2C x3C x4C x5C x6C)) +.
+	((sigma_qrtet_x x1 x2D x3D x4D x5D x6D) +. 
+	   #0.419351*. (sol_x x1 x2D x3D x4D x5D x6D)) +.
+	((sigma_qrtet_x x1 x2E x3E x4E x5E x6E) +. 
+	   #0.419351*. (sol_x x1 x2E x3E x4E x5E x6E)) 
+    <. (#5.0 *. (#0.2856354))) \/
+
+       ((dih_x x1 x2A x3A x4A x5A x6A) +.
+	  (dih_x x1 x2B x3B x4B x5B x6B) +.
+	 (dih_x x1 x2C x3C x4C x5C x6C) +.
+	 (dih_x x1 x2D x3D x4D x5D x6D) +.
+	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi
+    )))`;;
+
+
+(*
+ 
+LOC: 2002 III, page 15.
+Sec. 10, Group_4
+*)
+
+(*
+equation 1. Dihedral sum changed to inequality.
+*)
+
+let J_895315463=
+  all_forall 
+  `
+let x6B = x5A in
+let x2B = x3A in
+let x6C = x5B in
+let x2C = x3B in
+let x6D = x5C in
+let x2D = x3C in
+let x6A = x5D in
+let x2A = x3D in
+   (ineq
+   [((#4.0), x1, square_2t0);
+    ((#4.0), x2A, square_2t0);
+    ((#4.0), x3A, square_2t0);
+    ((#4.0), x4A, square_2t0);
+    ((#4.0), x5A, square_2t0);
+    ((#4.0), x6A, square_2t0);
+    ((#4.0), x2B, square_2t0);
+    ((#4.0), x3B, square_2t0);
+    ((#4.0), x4B, square_2t0);
+    ((#4.0), x5B, square_2t0);
+    ((#4.0), x6B, square_2t0);
+    ((#4.0), x2C, square_2t0);
+    ((#4.0), x3C, square_2t0);
+    ((#4.0), x4C, square_2t0);
+    ((#4.0), x5C, square_2t0);
+    ((#4.0), x6C, square_2t0);
+    ((#4.0), x2D, square_2t0);
+    ((#4.0), x3D, square_2t0);
+    ((#4.0), x4D, square_2t0);
+    ((#4.0), x5D, square_2t0);
+    ((#4.0), x6D, square_2t0)]
+      (((sigma_qrtet_x x1 x2A x3A x4A x5A x6A) +. 
+       (sigma_qrtet_x x1 x2B x3B x4B x5B x6B) +.
+       (sigma_qrtet_x x1 x2C x3C x4C x5C x6C) +.
+      (sigma_qrtet_x x1 x2D x3D x4D x5D x6D) <. (#0.33) *. pt) \/
+       ((dih_x x1 x2A x3A x4A x5A x6A) +.
+	  (dih_x x1 x2B x3B x4B x5B x6B) +.
+	 (dih_x x1 x2C x3C x4C x5C x6C) +.
+	 (dih_x x1 x2D x3D x4D x5D x6D)  <. (#2.0) *. pi
+    )))`;;

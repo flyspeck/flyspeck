@@ -389,7 +389,13 @@ let I_122081309=
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.77) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
+
+
 (* interval verification by Ferguson *)
+(* XXX false 
+bug = {4.63819949615, 4.66049671047, 4.09692910296, 5.04974164466, 4.613058661, 24.6625187406}
+this point is undefined in tau_0
+*)
 let I_644534985=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -685,7 +691,11 @@ let I_867513567_7=
 
 
 
-
+(* XXX This is false at 
+   point: [4, 4, 4, 6.75999999999, 4, 4]
+   value: 0.00366265861696
+   in the vor_analytic part of the max_real
+*)
 let I_867513567_8=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -718,6 +728,11 @@ let I_867513567_9=
 
 
 
+(* XXX This is false at 
+   point: [4, 4, 4, 6.75999999999, 5.23872683413, 5.23872688303]
+   value: .0005
+   in the vor_0_x part of the max_real
+*)
 
 let I_867513567_10=
    all_forall `ineq 
@@ -748,6 +763,12 @@ let I_867513567_11=
 
 
 
+(* XXX This is false (twice) at 
+   point: [4, 4, 4, 6.75999999999, 4, 4]
+   value: about 0.0006
+   in the vor_analytic part of the max_real
+   AND the vor_0_x part
+*)
 
 let I_867513567_12=
    all_forall `ineq 
@@ -761,6 +782,12 @@ let I_867513567_12=
     ( (sigmahat_x x1 x2 x3 x4 x5 x6) <.  (#0.0114))`;;
 
 
+(* XXX This is false (twice) at 
+   point: [4, 4, 4, 6.75999999999, 4, 4]
+   value: about 0.001
+   in the vor_analytic part of the max_real
+   AND the vor_0_x part
+*)
 
 let I_867513567_13=
    all_forall `ineq 
@@ -2385,6 +2412,11 @@ let I_332919646_1=
     (  (sigmahat_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.039)))`;;
 
 
+(* XXX This is false at 
+   point: [4, 6.3001, 4, 6.756, 4, 4]
+   value: about 0.001
+   vor_0_x part
+*)
 
 let I_332919646_2=
    all_forall `ineq 
@@ -2734,22 +2766,30 @@ Also, the lower bound on x4 was changed to 7.29 from square_2t0
 to bring it into agreement with the interval calculation in partK.cc
 *)
 (* interval verification in partK.cc *)
+
+(* changed (square_2t0, x4, (#8.0)); *)
+
 let I_594246986=
-   all_forall `ineq 
+  all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
      ((#4.0), x2, (square (#2.14)));
      ((#4.0), x3, (square (#2.14)));
-     (* (square_2t0, x4, (#8.0)); *)
-      ((square (#7.29), x4, (#8.0))); 
+     ((square (#7.29), x4, (#8.0))); 
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
     (( ( (( --. ) (gamma_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.145)) *.  (sqrt x1)) +.  (  (--. (#0.08)) *.  ( (sqrt x2) +.  (sqrt x3))) +. 
-            (  (--. (#0.133)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#1.146))) \/ (  (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
+           (  (--. (#0.133)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#1.146))) \/ (  (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
 
 
 (* interval verification in partK.cc *)
+
+(* XXX This is false at 
+   point: [4, 4, 4, 6.3001, 5.29, 5.29]
+   value: about 0.0001
+*)
+
 let I_381970727=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -11869,134 +11909,6 @@ SKIP statement about Quad clusters at end of Group_3
 This is Prop 4.1 and Prop 4.2 -- a long list of quad ineqs.
 These inequalities are in the file kep_inequalities2.ml
 *)
-
-(*
- 
-LOC: 2002 III, page 15.
-Sec. 10, Group_4
-*)
-
-(*
-equation 1. Dihedral sum changed to inequality.
-*)
-
-let J_895315463=
-  all_forall 
-  `
-let x6B = x5A in
-let x2B = x3A in
-let x6C = x5B in
-let x2C = x3B in
-let x6D = x5C in
-let x2D = x3C in
-let x6A = x5D in
-let x2A = x3D in
-   (ineq
-   [((#4.0), x1, square_2t0);
-    ((#4.0), x2A, square_2t0);
-    ((#4.0), x3A, square_2t0);
-    ((#4.0), x4A, square_2t0);
-    ((#4.0), x5A, square_2t0);
-    ((#4.0), x6A, square_2t0);
-    ((#4.0), x2B, square_2t0);
-    ((#4.0), x3B, square_2t0);
-    ((#4.0), x4B, square_2t0);
-    ((#4.0), x5B, square_2t0);
-    ((#4.0), x6B, square_2t0);
-    ((#4.0), x2C, square_2t0);
-    ((#4.0), x3C, square_2t0);
-    ((#4.0), x4C, square_2t0);
-    ((#4.0), x5C, square_2t0);
-    ((#4.0), x6C, square_2t0);
-    ((#4.0), x2D, square_2t0);
-    ((#4.0), x3D, square_2t0);
-    ((#4.0), x4D, square_2t0);
-    ((#4.0), x5D, square_2t0);
-    ((#4.0), x6D, square_2t0)]
-      (((sigma_qrtet_x x1 x2A x3A x4A x5A x6A) +. 
-       (sigma_qrtet_x x1 x2B x3B x4B x5B x6B) +.
-       (sigma_qrtet_x x1 x2C x3C x4C x5C x6C) +.
-      (sigma_qrtet_x x1 x2D x3D x4D x5D x6D) <. (#0.33) *. pt) \/
-       ((dih_x x1 x2A x3A x4A x5A x6A) +.
-	  (dih_x x1 x2B x3B x4B x5B x6B) +.
-	 (dih_x x1 x2C x3C x4C x5C x6C) +.
-	 (dih_x x1 x2D x3D x4D x5D x6D)  <. (#2.0) *. pi
-    )))`;;
-
-(*
-LOC: 2002 III, page 15.
-Sec. 10, Group_4
-SKIP equation 2.  
-It asserts that the angle sum around a vertex is 2pi.  
-This is not an interval calculation.
-*)
-
-(*
-LOC: 2002 III, page 15.
-Sec. 10, Group_4
-equation 3.  Dihedral sum changed to an inequality.
-*)
-
-let J_694278521=
-  all_forall 
-  `
-let x6B = x5A in
-let x2B = x3A in
-let x6C = x5B in
-let x2C = x3B in
-let x6D = x5C in
-let x2D = x3C in
-let x6E = x5D in
-let x2E = x3D in
-let x6A = x5E in
-let x2A = x3E in
-   (ineq
-   [((#4.0), x1, square_2t0);
-    ((#4.0), x2A, square_2t0);
-    ((#4.0), x3A, square_2t0);
-    ((#4.0), x4A, square_2t0);
-    ((#4.0), x5A, square_2t0);
-    ((#4.0), x6A, square_2t0);
-    ((#4.0), x2B, square_2t0);
-    ((#4.0), x3B, square_2t0);
-    ((#4.0), x4B, square_2t0);
-    ((#4.0), x5B, square_2t0);
-    ((#4.0), x6B, square_2t0);
-    ((#4.0), x2C, square_2t0);
-    ((#4.0), x3C, square_2t0);
-    ((#4.0), x4C, square_2t0); 
-    ((#4.0), x5C, square_2t0);
-    ((#4.0), x6C, square_2t0);
-    ((#4.0), x2D, square_2t0);
-    ((#4.0), x3D, square_2t0);
-    ((#4.0), x4D, square_2t0);
-    ((#4.0), x5D, square_2t0);
-    ((#4.0), x6D, square_2t0);
-    ((#4.0), x2E, square_2t0);
-    ((#4.0), x3E, square_2t0);
-    ((#4.0), x4E, square_2t0); 
-    ((#4.0), x5E, square_2t0);
-    ((#4.0), x6E, square_2t0)]
-      ((
-	((sigma_qrtet_x x1 x2A x3A x4A x5A x6A) +. 
-	   #0.419351*. (sol_x x1 x2A x3A x4A x5A x6A)) +.
-	((sigma_qrtet_x x1 x2B x3B x4B x5B x6B) +. 
-	   #0.419351*. (sol_x x1 x2B x3B x4B x5B x6B)) +.
-	((sigma_qrtet_x x1 x2C x3C x4C x5C x6C) +. 
-	   #0.419351*. (sol_x x1 x2C x3C x4C x5C x6C)) +.
-	((sigma_qrtet_x x1 x2D x3D x4D x5D x6D) +. 
-	   #0.419351*. (sol_x x1 x2D x3D x4D x5D x6D)) +.
-	((sigma_qrtet_x x1 x2E x3E x4E x5E x6E) +. 
-	   #0.419351*. (sol_x x1 x2E x3E x4E x5E x6E)) 
-    <. (#5.0 *. (#0.2856354))) \/
-
-       ((dih_x x1 x2A x3A x4A x5A x6A) +.
-	  (dih_x x1 x2B x3B x4B x5B x6B) +.
-	 (dih_x x1 x2C x3C x4C x5C x6C) +.
-	 (dih_x x1 x2D x3D x4D x5D x6D) +.
-	 (dih_x x1 x2E x3E x4E x5E x6E) >. (#2.0) *. pi
-    )))`;;
-
 
 let J_395086940=
    all_forall `ineq 

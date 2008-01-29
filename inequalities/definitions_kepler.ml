@@ -579,7 +579,7 @@ let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
 	    max_real v4 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	  else v4`);;
 
-let sigmahat_sean_x = kepler_def(`sigmahat_sean_x x1 x2 x3 x4 x5 x6 =
+let sigmahat_x' = kepler_def(`sigmahat_sean_x x1 x2 x3 x4 x5 x6 =
     let r234 = eta_x x2 x3 x4 in
     let r456 = eta_x x4 x5 x6 in
     let P1 = sqrt2 <= r456 in

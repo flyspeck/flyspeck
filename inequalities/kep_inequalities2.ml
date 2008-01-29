@@ -784,3 +784,98 @@ let x2A = x3D in
 	 (dih_x x1 x2C x3C x4C x5C x6C) +.
 	 (dih_x x1 x2D x3D x4D x5D x6D)  <. (#2.0) *. pi
     )))`;;
+
+(*
+ 
+LOC: 2002 k.c page 52--53
+17.28 Group_28
+*)
+
+(* interval verification by Ferguson *)
+let I_615073260=
+  all_forall 
+  `
+let x6B = x5A in
+let x2B = x3A in
+let x6C = x5B in
+let x2C = x3B in
+let x6D = x5C in
+let x2D = x3C in
+let x6E = x5D in
+let x2E = x3D in
+let x6A = x5E in
+let x2A = x3E in
+   (ineq
+   [((#4.0), x1, square_2t0);
+    ((#4.0), x2A, square_2t0);
+    ((#4.0), x3A, square_2t0);
+    ((#4.0), x4A, square_2t0);
+    ((#4.0), x5A, square_2t0);
+    ((#4.0), x6A, square_2t0);
+    ((#4.0), x2B, square_2t0);
+    ((#4.0), x3B, square_2t0);
+    ((#4.0), x4B, square_2t0);
+    ((#4.0), x5B, square_2t0);
+    ((#4.0), x6B, square_2t0);
+    ((#4.0), x2C, square_2t0);
+    ((#4.0), x3C, square_2t0);
+    ((#4.0), x4C, square_2t0); 
+    ((#4.0), x5C, square_2t0);
+    ((#4.0), x6C, square_2t0);
+    ((#4.0), x2D, square_2t0);
+    ((#4.0), x3D, square_2t0);
+    ((#4.0), x4D, square_2t0);
+    ((#4.0), x5D, square_2t0);
+    ((#4.0), x6D, square_2t0);
+    ((#4.0), x2E, square_2t0);
+    ((#4.0), x3E, square_2t0);
+    ((square_2t0), x4E, (square_4t0)); // (* NB *) 
+    ((#4.0), x5E, square_2t0);
+    ((#4.0), x6E, square_2t0)]
+      ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
+       (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.42)))`;;
+
+(* interval verification by Ferguson *)
+let I_844430737=
+  all_forall 
+  `
+let x6B = x5A in
+let x2B = x3A in
+let x6C = x5B in
+let x2C = x3B in
+let x6D = x5C in
+let x2D = x3C in
+let x6E = x5D in
+let x2E = x3D in
+let x6A = x5E in
+let x2A = x3E in
+   (ineq
+   [((#4.0), x1, square_2t0);
+    ((#4.0), x2A, square_2t0);
+    ((#4.0), x3A, square_2t0);
+    ((#4.0), x4A, square_2t0);
+    ((#4.0), x5A, square_2t0);
+    ((#4.0), x6A, square_2t0);
+    ((#4.0), x2B, square_2t0);
+    ((#4.0), x3B, square_2t0);
+    ((#4.0), x4B, square_2t0);
+    ((#4.0), x5B, square_2t0);
+    ((#4.0), x6B, square_2t0);
+    ((#4.0), x2C, square_2t0);
+    ((#4.0), x3C, square_2t0);
+    ((#4.0), x4C, square_2t0); 
+    ((#4.0), x5C, square_2t0);
+    ((#4.0), x6C, square_2t0);
+    ((#4.0), x2D, square_2t0);
+    ((#4.0), x3D, square_2t0);
+    ((#4.0), x4D, square_2t0);
+    ((#4.0), x5D, square_2t0);
+    ((#4.0), x6D, square_2t0);
+    ((#4.0), x2E, square_2t0);
+    ((#4.0), x3E, square_2t0);
+    ((#8.0), x4E, (square_4t0)); // (* NB *) 
+    ((#4.0), x5E, square_2t0);
+    ((#4.0), x6E, square_2t0)]
+      ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
+       (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.76)))`;;
+

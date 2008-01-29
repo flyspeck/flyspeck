@@ -1793,6 +1793,10 @@ let I_853728973_23=
 
 
 (* interval verification by Ferguson *)
+(* 
+XXX This is false
+gives equality at [8,4,4,8,4,4]
+*)
 let I_853728973_24=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1822,6 +1826,10 @@ let I_853728973_25=
 
 
 (* interval verification by Ferguson *)
+(* 
+XXX This is false
+gives equality at [8,4,4,8,4,4]
+*)
 let I_853728973_26=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1851,6 +1859,10 @@ let I_853728973_27=
 
 
 (* interval verification by Ferguson *)
+(* 
+XXX This is false
+gives equality at [8,4,4,8,4,4]
+*)
 let I_853728973_28=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1927,6 +1939,11 @@ let I_853728973_32=
 
 
 (* interval verification by Ferguson *)
+(* 
+XXX This is false
+gives equality at [4,4,8,4,4,8]
+*)
+
 let I_853728973_33=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -2807,6 +2824,12 @@ let I_381970727=
 
 
 (* interval verification in partK.cc *)
+
+(* XXX This is false at 
+   point: [4, 4, 4, 8, 4, 4]
+   value: about 0.02
+*)
+
 let I_951798877=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
@@ -2843,14 +2866,21 @@ let I_923397705=
 
 
 (* interval verification in partK.cc *)
+(* 
+XXX This is false.  Gamma seems unstable as
+x5 gets very large.
+
+value: about .4
+point: {4, 4, 4, 7.99999999999, 15.3886219273, 6.30009999999}]
+
+*)
 let I_312481617=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.14)));
      ((#4.0), x2, (square (#2.14)));
      ((#4.0), x3, (square (#2.14)));
      (square_2t0, x4, (#8.0));
-    
-        ((square (#2.35)), x5, square_4t0);
+     ((square (#2.35)), x5, square_4t0);
      ((#4.0), x6, square_2t0)
     ]
     ( (gamma_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.053)))`;;
@@ -3965,104 +3995,6 @@ let I_559676877=
                (  (#0.419351) *.  ( (sol_x x1 x2 x3 x4 x5 x6) +.  (sol_x x1' x2 x3 x4 x5' x6')))) <. 
                ( (#0.4542) +.  (  (#0.0238) *.  ( (sqrt x5) +.  (sqrt x6) +.  (sqrt x6'))))) \/ 
             ( (cross_diag_x x1 x2 x3 x4 x5 x6 x1' x5' x6') <.  (  (#2.0) *.  (sqrt (#2.0)))))`;;
-
-
-
-(*
- 
-LOC: 2002 k.c page 52--53
-17.28 Group_28
-*)
-
-(* interval verification by Ferguson *)
-let I_615073260=
-  all_forall 
-  `
-let x6B = x5A in
-let x2B = x3A in
-let x6C = x5B in
-let x2C = x3B in
-let x6D = x5C in
-let x2D = x3C in
-let x6E = x5D in
-let x2E = x3D in
-let x6A = x5E in
-let x2A = x3E in
-   (ineq
-   [((#4.0), x1, square_2t0);
-    ((#4.0), x2A, square_2t0);
-    ((#4.0), x3A, square_2t0);
-    ((#4.0), x4A, square_2t0);
-    ((#4.0), x5A, square_2t0);
-    ((#4.0), x6A, square_2t0);
-    ((#4.0), x2B, square_2t0);
-    ((#4.0), x3B, square_2t0);
-    ((#4.0), x4B, square_2t0);
-    ((#4.0), x5B, square_2t0);
-    ((#4.0), x6B, square_2t0);
-    ((#4.0), x2C, square_2t0);
-    ((#4.0), x3C, square_2t0);
-    ((#4.0), x4C, square_2t0); 
-    ((#4.0), x5C, square_2t0);
-    ((#4.0), x6C, square_2t0);
-    ((#4.0), x2D, square_2t0);
-    ((#4.0), x3D, square_2t0);
-    ((#4.0), x4D, square_2t0);
-    ((#4.0), x5D, square_2t0);
-    ((#4.0), x6D, square_2t0);
-    ((#4.0), x2E, square_2t0);
-    ((#4.0), x3E, square_2t0);
-    ((square_2t0), x4E, (square_4t0)); // (* NB *) 
-    ((#4.0), x5E, square_2t0);
-    ((#4.0), x6E, square_2t0)]
-      ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
-       (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.42)))`;;
-
-(* interval verification by Ferguson *)
-let I_844430737=
-  all_forall 
-  `
-let x6B = x5A in
-let x2B = x3A in
-let x6C = x5B in
-let x2C = x3B in
-let x6D = x5C in
-let x2D = x3C in
-let x6E = x5D in
-let x2E = x3D in
-let x6A = x5E in
-let x2A = x3E in
-   (ineq
-   [((#4.0), x1, square_2t0);
-    ((#4.0), x2A, square_2t0);
-    ((#4.0), x3A, square_2t0);
-    ((#4.0), x4A, square_2t0);
-    ((#4.0), x5A, square_2t0);
-    ((#4.0), x6A, square_2t0);
-    ((#4.0), x2B, square_2t0);
-    ((#4.0), x3B, square_2t0);
-    ((#4.0), x4B, square_2t0);
-    ((#4.0), x5B, square_2t0);
-    ((#4.0), x6B, square_2t0);
-    ((#4.0), x2C, square_2t0);
-    ((#4.0), x3C, square_2t0);
-    ((#4.0), x4C, square_2t0); 
-    ((#4.0), x5C, square_2t0);
-    ((#4.0), x6C, square_2t0);
-    ((#4.0), x2D, square_2t0);
-    ((#4.0), x3D, square_2t0);
-    ((#4.0), x4D, square_2t0);
-    ((#4.0), x5D, square_2t0);
-    ((#4.0), x6D, square_2t0);
-    ((#4.0), x2E, square_2t0);
-    ((#4.0), x3E, square_2t0);
-    ((#8.0), x4E, (square_4t0)); // (* NB *) 
-    ((#4.0), x5E, square_2t0);
-    ((#4.0), x6E, square_2t0)]
-      ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
-       (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.76)))`;;
-
-
 
 (*
  

@@ -8,10 +8,12 @@
  Converted from kep_inequalities.ml CVS:1.4,
  using "modify()" in "kep_inequalities_convert.ml"
 
+
  Eventually this file will become the final authority about
  the various inequalities.  For now, there are still typos,
  so that 2002-version of Kepler Conjecture and the
  interval arithmetic C++ files have higher authority.
+ The C++ code inequalities have been put into the form F < = 0.
 *)
 
 (*
@@ -1757,11 +1759,15 @@ let I_853728973_23=
 
 
 
-(* interval verification by Ferguson *)
+
 (* 
-XXX This is false
-gives equality at [8,4,4,8,4,4]
+This was false for strict inequality.
+gives equality at [8,4,4,8,4,4].
+It is trivially true when wean inequality is used, because dih(simplex)<=pi
+without any constraints on the simplex.  So we don't need interval arithmetic
+for its verification.  Commented out.
 *)
+(* 
 let I_853728973_24=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1771,8 +1777,8 @@ let I_853728973_24=
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  pi)`;;
-
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
 
 
 (* interval verification by Ferguson *)
@@ -1790,11 +1796,14 @@ let I_853728973_25=
 
 
 
-(* interval verification by Ferguson *)
+
 (* 
-XXX This is false
-gives equality at [8,4,4,8,4,4]
+dih < pi is false
+gives equality at [8,4,4,8,4,4].
+See comments for I_853728973_24.
 *)
+
+(*
 let I_853728973_26=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1804,8 +1813,8 @@ let I_853728973_26=
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  pi)`;;
-
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
 
 
 (* interval verification by Ferguson *)
@@ -1823,11 +1832,15 @@ let I_853728973_27=
 
 
 
-(* interval verification by Ferguson *)
+
 (* 
-XXX This is false
-gives equality at [8,4,4,8,4,4]
+dih < pi is false
+gives equality at [8,4,4,8,4,4].
+Interval verification not needed.
+See comments for I_853728973_24.
 *)
+
+(*
 let I_853728973_28=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -1837,7 +1850,8 @@ let I_853728973_28=
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  pi)`;;
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
 
 
 
@@ -1900,15 +1914,15 @@ let I_853728973_32=
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (  (#2.0) *.  pi))`;;
 
 
-
-
-
-(* interval verification by Ferguson *)
 (* 
-XXX This is false
+dih > 0 is false
 gives equality at [4,4,8,4,4,8]
+Interval verification not needed, 
+since dih is always >= 0.
+See comments for I_853728973_24.
 *)
 
+(*
 let I_853728973_33=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -1918,7 +1932,8 @@ let I_853728973_33=
      ((#4.0), x5, square_2t0);
      (square_2t0, x6, (#8.0))
     ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#0.0))`;;
+    ( (dih_x x1 x2 x3 x4 x5 x6) =>.  (#0.0))`;;
+*)
 
 
 
@@ -2394,10 +2409,14 @@ let I_332919646_1=
     (  (sigmahat_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.039)))`;;
 
 
-(* XXX This is false at 
+(* This is false at 
    point: [4, 6.3001, 4, 6.756, 4, 4]
    value: about 0.001
-   vor_0_x part
+   vor_0_x part.
+   However, this is not in the domain of the vor_0_x branch.
+   Not a true C/E:
+   Bug in McLaughlin's sigmahat function.
+   Constraint P3 should be square(#2.2) <= x1.  (instead of x2).
 *)
 
 let I_332919646_2=
@@ -2767,9 +2786,17 @@ let I_594246986=
 
 (* interval verification in partK.cc *)
 
-(* XXX This is false at 
+(* This is false at 
    point: [4, 4, 4, 6.3001, 5.29, 5.29]
-   value: about 0.0001
+   value: about 0.0001.
+
+   The interval arithmetic code for 381970727 in partK.c has a lower
+   bound on x4 of 7.29.  This seems to be a bug in the 1998 interval arithmetic
+   code.  A note has been added to the dcg_errata.
+   This affects the 1998 linear programs.
+
+   I am changing the lower bound on x4 to 7.29, even though we would like
+   it to be at its original 6.3001.  TCH 1/29/2008.
 *)
 
 let I_381970727=
@@ -2777,7 +2804,8 @@ let I_381970727=
     [((#4.0), x1, (square (#2.14)));
      ((#4.0), x2, (square (#2.14)));
      ((#4.0), x3, (square (#2.14)));
-     (square_2t0, x4, (#8.0));
+     (*  (square_2t0, x4, (#8.0)); *)
+      ((#7.29), x4, (#8.0));
     
         ((#4.0), x5, (square (#2.3)));
      ((#4.0), x6, (square (#2.3)))
@@ -2790,9 +2818,13 @@ let I_381970727=
 
 (* interval verification in partK.cc *)
 
-(* XXX This is false at 
+(* This is false at 
    point: [4, 4, 4, 8, 4, 4]
-   value: about 0.02
+   value: about 0.02.
+   However, this doesn't satisfy the second constraint: 
+   In the paper and in partK.cc, there is a constraint that y5+y6 >= 4.3.
+   This was overlooked when this inequality was originally typed.
+   This fixes the problem.
 *)
 
 let I_951798877=
@@ -2805,8 +2837,8 @@ let I_951798877=
         ((#4.0), x5, (square (#2.3)));
      ((#4.0), x6, (square (#2.3)))
     ]
-    ( ( (( --. ) (gamma_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.03)) *.  (sqrt x1)) +.  (  (--. (#0.03)) *.  ( (sqrt x2) +.  (sqrt x3))) +. 
-            (  (--. (#0.094)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#0.5361)))`;;
+    (( ( (( --. ) (gamma_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.03)) *.  (sqrt x1)) +.  (  (--. (#0.03)) *.  ( (sqrt x2) +.  (sqrt x3))) +. 
+            (  (--. (#0.094)) *.  ( (sqrt x5) +.  (sqrt x6)))) >.   (--. (#0.5361))) \/ ((sqrt x5) + (sqrt x6) <. 4.3))`;;
 
 
 
@@ -2832,11 +2864,14 @@ let I_923397705=
 
 (* interval verification in partK.cc *)
 (* 
-XXX This is false.  Gamma seems unstable as
+This is false.  Gamma seems unstable as
 x5 gets very large.
 
 value: about .4
 point: {4, 4, 4, 7.99999999999, 15.3886219273, 6.30009999999}]
+
+Typo fixed on the upper bound of x5.  
+The correct upper bound square_2t0.
 
 *)
 let I_312481617=
@@ -2845,7 +2880,7 @@ let I_312481617=
      ((#4.0), x2, (square (#2.14)));
      ((#4.0), x3, (square (#2.14)));
      (square_2t0, x4, (#8.0));
-     ((square (#2.35)), x5, square_4t0);
+     ((square (#2.35)), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
     ( (gamma_x x1 x2 x3 x4 x5 x6) <.  (--. (#0.053)))`;;
@@ -3210,7 +3245,7 @@ let I_594902677=
     ( ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.316) *.  (dih2_x x1 x2 x3 x4 x5 x6))) >.  (#0.2778))`;;
 
 
-(* XXX Note I moved the huge non-interval-arithmetic inequalitites
+(* Note I moved the huge non-interval-arithmetic inequalitites
    to kep_inequalities2.ml *)
 
 (*

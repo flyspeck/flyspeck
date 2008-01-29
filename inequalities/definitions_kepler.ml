@@ -567,7 +567,7 @@ let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
 	let v2 = (if (sqrt2 <= r234) then
 		    max_real v1 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 		  else v1) in
-	let v3 = (if ((square (#2.6)) <= x4) /\ ((square (#2.2)) <= x2)
+	let v3 = (if ((square (#2.6)) <= x4) /\ ((square (#2.2)) <= x1)
 		  then max_real v2 	  (vor_0_x x1 x2 x3 x4 x5 x6) 
 		  else v2) in
 	let v4 = (if ((square (#2.7) <= x4))

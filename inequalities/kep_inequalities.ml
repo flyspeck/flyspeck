@@ -392,10 +392,6 @@ let I_122081309=
 
 
 (* interval verification by Ferguson *)
-(* XXX false 
-bug = {4.63819949615, 4.66049671047, 4.09692910296, 5.04974164466, 4.613058661, 24.6625187406}
-this point is undefined in tau_0
-*)
 let I_644534985=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -689,13 +685,6 @@ let I_867513567_7=
             (sqrt x2)) +.  (  (--. (#0.081)) *.  (sqrt x3)) +.  (  (--. (#0.133)) *.  (sqrt x5)) +.  (  (--. (#0.133)) *. 
             (sqrt x6))) >.  (--. (#1.17401)))`;;
 
-
-
-(* XXX This is false at 
-   point: [4, 4, 4, 6.75999999999, 4, 4]
-   value: 0.00366265861696
-   in the vor_analytic part of the max_real
-*)
 let I_867513567_8=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -725,15 +714,6 @@ let I_867513567_9=
             ( (sigmahat_x x1 x2 x3 x4 x5 x6) +.  (  (#0.153) *.  (sqrt x4)) +.  (  (#0.153) *. 
             (sqrt x5)) +.  (  (#0.153) *.  (sqrt x6))) <.  (#1.05382))`;;
 
-
-
-
-(* XXX This is false at 
-   point: [4, 4, 4, 6.75999999999, 5.23872683413, 5.23872688303]
-   value: .0005
-   in the vor_0_x part of the max_real
-*)
-
 let I_867513567_10=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -762,14 +742,6 @@ let I_867513567_11=
               ( (--. (#0.01465)) +.  (  (#0.0436) *.  (sqrt x5)) +.  (  (#0.436) *.  (sqrt x6)) +.  (  (#0.079431) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
 
 
-
-(* XXX This is false (twice) at 
-   point: [4, 4, 4, 6.75999999999, 4, 4]
-   value: about 0.0006
-   in the vor_analytic part of the max_real
-   AND the vor_0_x part
-*)
-
 let I_867513567_12=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -781,13 +753,6 @@ let I_867513567_12=
     ]
     ( (sigmahat_x x1 x2 x3 x4 x5 x6) <.  (#0.0114))`;;
 
-
-(* XXX This is false (twice) at 
-   point: [4, 4, 4, 6.75999999999, 4, 4]
-   value: about 0.001
-   in the vor_analytic part of the max_real
-   AND the vor_0_x part
-*)
 
 let I_867513567_13=
    all_forall `ineq 

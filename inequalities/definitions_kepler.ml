@@ -579,7 +579,22 @@ let sigmahat_x = kepler_def(`sigmahat_x x1 x2 x3 x4 x5 x6 =
 	    max_real v4 (vor_analytic_x x1 x2 x3 x4 x5 x6)
 	  else v4`);;
 
-
+let sigmahat_sean_x = kepler_def(`sigmahat_sean_x x1 x2 x3 x4 x5 x6 =
+    let r234 = eta_x x2 x3 x4 in
+    let r456 = eta_x x4 x5 x6 in
+    let P1 = sqrt2 <= r456 in
+    let P2 = sqrt2 <= r234 in
+    let P3 = square (#2.2) <= x2 in
+    let P4 = square (#2.6) <= x4 in
+    let P5 = square (#2.7) <= x4 in
+    if ~P1 /\ P2 /\ ~P5 /\ (~P3 \/ ~P4) then 
+      vor_analytic_x x1 x2 x3 x4 x5 x6
+    else if ~P1 /\ ~P2 /\ ~P5 /\ (~P3 \/ ~P4) then
+      gamma_x x1 x2 x3 x4 x5 x6
+    else if ~P1 /\ ~P2 /\ P4 /\ (P3 \/ P5) then
+      max_real (gamma_x x1 x2 x3 x4 x5 x6) (vor_0_x x1 x2 x3 x4 x5 x6)
+    else
+      max_real (vor_analytic_x x1 x2 x3 x4 x5 x6) (vor_0_x x1 x2 x3 x4 x5 x6)`);;
 
 let sigmahatpi_x = kepler_def(`sigmahatpi_x x1 x2 x3 x4 x5 x6 =
         let r234 = eta_x x2 x3 x4 in

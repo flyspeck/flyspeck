@@ -7028,12 +7028,11 @@ let CKC_746445726= list_mk_conj[
   I_109046923_2;I_109046923_1;  ];; (* kc group 18.10  *)
 
 (*
-LOC: 2002 k.c page 60
+LOC: 2002 k.c page 61
 Group_18.11
 *)
 
-(* XXX 
-Error:  for much of this group a3 is not in scope here!
+(* 
 *)
 (* interval verification by Ferguson *)
 let I_160800042_GEN= 
@@ -7043,14 +7042,14 @@ let I_160800042_GEN=
 ((#8.0)  , x, (square(#3.2)));
 ((#8.0)  , x', (square(#3.2)))
 ]
-   (((vor_0_x a2 a3 a1 x (#4.0) (#4.0))+
-     (vor_0_x a1 a3 a5 x' square_2t0 x)+
-    (vor_0_x a5 a3 a4 (#4.0) (#4.0) x')
+   (((vor_0_x a2 (#4.0) (#4.0) x (#4.0) (#4.0))+
+     (vor_0_x (#4.0) (#4.0) (#4.0) x' square_2t0 x)+
+    (vor_0_x (#4.0) (#4.0) a4 (#4.0) (#4.0) x')
    <. (--(#0.221)))
    \/
-  (delta_x a2 a3 a1 x (#4.0) (#4.0) <. (#0.0)) \/
-  (delta_x a1 a3 a5 x' square_2t0 x <. (#0.0)) \/
-  (delta_x a5 a3 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
+  (delta_x a2 (#4.0) (#4.0) x (#4.0) (#4.0) <. (#0.0)) \/
+  (delta_x (#4.0) (#4.0) (#4.0) x' square_2t0 x <. (#0.0)) \/
+  (delta_x (#4.0) (#4.0) a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
 let I_160800042_1=
@@ -7080,14 +7079,14 @@ let I_690272881_GEN=
 ((#8.0)  , x, (square(#3.2)));
 ((#8.0)  , x', (square(#3.2)))
 ]
-   (((tau_0_x a2 a3 a1 x (#4.0) (#4.0))+
-     (tau_0_x a1 a3 a5 x' square_2t0 x)+
-    (tau_0_x a5 a3 a4 (#4.0) (#4.0) x')
+   (((tau_0_x a2 (#4.0) (#4.0) x (#4.0) (#4.0))+
+     (tau_0_x (#4.0) (#4.0) (#4.0) x' square_2t0 x)+
+    (tau_0_x (#4.0) (#4.0) a4 (#4.0) (#4.0) x')
    >. (#0.486))
    \/
-  (delta_x a2 a3 a1 x (#4.0) (#4.0) <. (#0.0)) \/
-  (delta_x a1 a3 a5 x' square_2t0 x <. (#0.0)) \/
-  (delta_x a5 a3 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
+  (delta_x a2 (#4.0) (#4.0) x (#4.0) (#4.0) <. (#0.0)) \/
+  (delta_x (#4.0) (#4.0) (#4.0) x' square_2t0 x <. (#0.0)) \/
+  (delta_x (#4.0) (#4.0) a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
 let I_690272881_1=

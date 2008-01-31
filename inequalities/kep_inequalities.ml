@@ -7481,6 +7481,13 @@ LOC: 2002 k.c page 60
 Group_18.15
 *)
 
+(*
+XXX fail XXX concerned about this one...
+
+Bound: 0.0215663812919
+
+Point: [3.99999999999, 3.99999999999, 3.99999999999, 3.99999999999, 7.99999999999, 8]
+*)
 let I_516537931=
   all_forall `ineq
   [((#4.0), x1, square_2t0);
@@ -7542,6 +7549,13 @@ let I_531861442=
 
 
 (* interval verification in partK.cc *)
+(*
+XXX false
+
+Bound: 0.0109646865132
+
+Point: [4, 3.99999999999, 3.99999999999, 3.99999999999, 10.2399999999, 6.30009999999]
+*)
 let I_292827481=
   all_forall `ineq
   [((#4.0), x1, (#4.0) );

@@ -337,7 +337,7 @@ LOC: 2002 k.c page 42
 (*      ((#4.0), x3, (square (#2.168))); *)
 (*      ((#4.0), x4, (#6.3001)); *)
 (*      ((#4.0), x5, (#6.3001)); *)
-(*      (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51)))) *)
+(*      (square_2t0, x6, square_4t0) *)
 (*     ] *)
 (*     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63))`;; *)
 
@@ -350,7 +350,7 @@ let I_821707685=
      ((#4.0), x3, (square (#2.168)));
      ((#4.0), x4, (#6.3001));
      ((#4.0), x5, (#6.3001));
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63) \/ 
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
@@ -363,7 +363,7 @@ let I_115383627=
      ((#4.0), x3, (square (#2.168)));
      ((#4.0), x4, square_2t0);
      (square_2t0, x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.51) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) `;;
@@ -375,7 +375,7 @@ let I_576221766=
      ((#4.0), x3, (square (#2.168)));
      ((#8.0), x4, (#8.0));
      ((#4.0), x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.93) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
@@ -389,7 +389,7 @@ let I_122081309=
      ((#4.0), x3, (square (#2.168)));
      ((#8.0), x4, (#8.0));
      (square_2t0, x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.77) \/
       (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
@@ -403,7 +403,7 @@ let I_644534985=
      ((#4.0), x3, (square (#2.168)));
      ((#4.0), x4, square_2t0);
      ((#4.0), x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     (
          (
@@ -420,7 +420,7 @@ let I_467530297=
      ((#4.0), x3, (square (#2.168)));
      ((#4.0), x4, square_2t0);
      (square_2t0, x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     (
          (
@@ -437,7 +437,7 @@ let I_603910880=
      ((#4.0), x3, (square (#2.168)));
      (square_2t0, x4, (#8.0));
      ((#4.0), x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     (
          (
@@ -453,7 +453,7 @@ let I_135427691=
      ((#4.0), x3, (square (#2.168)));
      (square_2t0, x4, (#8.0));
      (square_2t0, x5, square_2t0);
-     (square_2t0, x6, (square ( ( *. ) (#2.0) (#2.51))))
+     (square_2t0, x6, square_4t0)
     ]
     (
          (
@@ -536,7 +536,7 @@ let I_690646028=
      ((#4.0), x2, (square (#2.168)));
      ((#4.0), x3, (square (#2.168)));
      ((#4.0), x4, square_2t0);
-     (square_2t0, x5, (square ( ( *. ) (#2.0) (#2.51))));
+     (square_2t0, x5, square_4t0);
      ((#4.0), x6, square_2t0)
     ]
     ( ( (dih_x x1 x2 x3 x4 x5 x6) +.  (  (#0.5) *.  ( (#2.402) -.  (sqrt x4)))) <.  (  pi /  (#2.0)))`;;
@@ -805,6 +805,10 @@ LOC: 2002 k.c page 43
 
 
 (* interval verification in partK.cc *)
+
+(* XXX Shouldn't this say > rather than >= ? 
+  I'm changing it...
+*)
 let I_498839271_3=
    all_forall `ineq 
     [(square_2t0, x1, (#8.0));
@@ -816,7 +820,7 @@ let I_498839271_3=
     ]
     (
                 ( (dih_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.636)) *.  (sqrt x1)) +.  (  (#0.462) *.  (sqrt x2)) +.  (  (#0.462) *.  (sqrt x3)) +. 
-                (  (--. (#0.82)) *.  (sqrt x4)) +.  (  (#0.462) *.  (sqrt x5)) +.  (  (#0.462) *.  (sqrt x6))) >=.  (#1.82419))`;;
+                (  (--. (#0.82)) *.  (sqrt x4)) +.  (  (#0.462) *.  (sqrt x5)) +.  (  (#0.462) *.  (sqrt x6))) >.  (#1.82419))`;;
 
 
 (* interval verification in partK.cc *)
@@ -973,187 +977,6 @@ let I_498839271_13=
 
 
 
-(* Duplicate inequality.  This is the same as 413688580 *)
-(*
-let J_549774315_1=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#4.10113)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#4.3223)))`;;
-*)
-
-
-(* Duplicate inequality.  This is the same as 805296510 *)
-(*
-let J_549774315_2=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.80449)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.9871)))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 136610219 *)
-(*
-let J_549774315_3=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.70186)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.8756)))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 379204810 *)
-(*
-let J_549774315_4=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.24573)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.3404)))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 878731435 *)
-(*
-let J_549774315_5=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.00154)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.0024)))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 891740103 *)
-(*
-let J_549774315_6=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.07611) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (#0.1196))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 334002329 *)
-(*
-let J_574435320_1=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#4.16523) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#4.42873))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 883139937 *)
-(*
-let J_574435320_2=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.78701) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#1.01104))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 507989176 *)
-(*
-let J_574435320_3=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.77627) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.99937))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 244435805 *)
-(*
-let J_574435320_4=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.21916) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.34877))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 930176500 *)
-(*
-let J_574435320_5=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.05107) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.11434))`;;
-*)
-
-(* Duplicate inequality.  This is the same as 815681339 *)
-(*
-let J_574435320_6=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.07106)) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.07749)))`;;
-*)
-
 
 (*
  
@@ -1305,7 +1128,7 @@ A note has been added to the dcg_errata (even though it is not an error there).
 
 The interval arithmetic file partK.c (1998) states it correctly.
 *)
-Let I_319046543_10=
+let I_319046543_10=
    all_forall `ineq 
     [(square_2t0, x1, (square (#2.696)));
      ((#4.0), x2, square_2t0);
@@ -1773,26 +1596,6 @@ let I_853728973_23=
 
 
 
-(* 
-This was false for strict inequality.
-gives equality at [8,4,4,8,4,4].
-It is trivially true when weak inequality is used, because dih(simplex)<=pi
-without any constraints on the simplex.  So we don't need interval arithmetic
-for its verification.  Commented out.
-*)
-(* 
-let I_853728973_24=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     (square_2t0, x4, (#8.0));
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
-*)
-
 
 (* interval verification by Ferguson *)
 let I_853728973_25=
@@ -1809,27 +1612,6 @@ let I_853728973_25=
 
 
 
-
-(* 
-dih < pi is false
-gives equality at [8,4,4,8,4,4].
-See comments for I_853728973_24.
-*)
-
-(*
-let I_853728973_26=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     (square_2t0, x4, square_4t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
-*)
-
-
 (* interval verification by Ferguson *)
 let I_853728973_27=
    all_forall `ineq 
@@ -1841,33 +1623,6 @@ let I_853728973_27=
      ((#4.0), x6, square_2t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.416))`;;
-
-
-
-
-
-(* 
-dih < pi is false
-gives equality at [8,4,4,8,4,4].
-Interval verification not needed.
-See comments for I_853728973_24.
-*)
-
-(*
-let I_853728973_28=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#8.0), x4, square_4t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
-*)
-
-
-
 
 (* interval verification by Ferguson *)
 let I_853728973_29=
@@ -1925,31 +1680,6 @@ let I_853728973_32=
      ((#4.0), x6, square_2t0)
     ]
     ( (dih_x x1 x2 x3 x4 x5 x6) <.  (  (#2.0) *.  pi))`;;
-
-
-(* 
-dih > 0 is false
-gives equality at [4,4,8,4,4,8]
-Interval verification not needed, 
-since dih is always >= 0.
-See comments for I_853728973_24.
-*)
-
-(*
-let I_853728973_33=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     (square_2t0, x3, (#8.0));
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     (square_2t0, x6, (#8.0))
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) =>.  (#0.0))`;;
-*)
-
-
-
 
 (* interval verification by Ferguson *)
 let I_853728973_34=
@@ -3221,14 +2951,16 @@ let I_912536613=
 
 
 (* interval verification in partK.cc *)
+(* 
+XXX fails:  this one needs delta > 0
+*)
 let I_640248153=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
      ((#4.0), x2, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
-    
-        ((#4.0), x5, square_2t0);
+     ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
     (
@@ -3889,6 +3621,7 @@ The inequalities above are verified in smaller pieces:
 
 
 (* interval verification in partK.cc *)
+(* XXX needs delta > 0 *)
 let I_131574415=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.2)));
@@ -3962,6 +3695,7 @@ let I_135018647=
 
 
 (* interval verification in partK.cc *)
+(* XXX i think you need delta constraints *)
 let I_559676877=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -4259,6 +3993,7 @@ LOC: 2002 k.c page 53
 *)
 
 (* interval verification by Ferguson *)
+(* XXX delta constraints *)
 let I_836331201_1=
  all_forall `ineq
     [((#4.0), x1, square_2t0);
@@ -4275,6 +4010,7 @@ let I_836331201_1=
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)))`;;
 
+(* XXX delta constraints *)
 let I_836331201_2=
  all_forall `ineq
     [((#4.0), x1, square_2t0);
@@ -4333,7 +4069,7 @@ length $2\sqrt2$ runs.)
 
 *)
 
-
+(* XXX delta constraints *)
 let I_327474205_1=
  all_forall `
 let x2 = (#4.0) in
@@ -4352,6 +4088,7 @@ let x9 = (#4.0) in
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))))`;;
 
+(* XXX delta constraints *)
 let I_327474205_2=
  all_forall `
 let x2 = (square_2t0) in
@@ -4629,6 +4366,7 @@ let I_583626763_GEN=
 (* The diagonals of the pentagon
    run between (v1,v3) and (v3,v5).  The long edge
    of the pentagon is (v1,v5).  See SPVI,2002,page 60,group 18.3. *) 
+
 let I_583626763_GEN=
    `(\ a2 a3 a4. 
  (ineq
@@ -4642,7 +4380,7 @@ let I_583626763_GEN=
     <. (--(#0.212)))
    \/
   (delta_x (#4.0) a2 a3 (#4.0) x (#4.0) <. (#0.0)) \/
-  (delta_x (vor_0_x a3 (#4.0) (#4.0) (#8.0) x x')  <. (#0.0)) \/
+  (delta_x a3 (#4.0) (#4.0) (#8.0) x x'  <. (#0.0)) \/
   (delta_x (#4.0) a4  a3 (#4.0) x' (#4.0)  <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
@@ -4750,7 +4488,7 @@ let I_390951718_GEN=
    run between (v1,v3) and (v3,v5).  The long edge
    of the pentagon is (v1,v5).  See SPVI,2002,page 60,group 18.3. *) 
 
-let I_583626763_GEN=
+let I_390951718_GEN =
    `(\ a2 a3 a4. 
  (ineq
 [
@@ -4763,7 +4501,7 @@ let I_583626763_GEN=
    >. (#0.54525))
    \/
   (delta_x (#4.0) a2 a3 (#4.0) x (#4.0) <. (#0.0)) \/
-  (delta_x (vor_0_x a3 (#4.0) (#4.0) (#8.0) x x')  <. (#0.0)) \/
+  (delta_x a3 (#4.0) (#4.0) (#8.0) x x'  <. (#0.0)) \/
   (delta_x (#4.0) a4  a3 (#4.0) x' (#4.0)  <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
@@ -6805,6 +6543,11 @@ let I_109046923_5=
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(* XXX false 
+
+Bound: 0.122198000542
+Point: [16.9619640963]
+*)
 let I_109046923_6=
   all_forall 
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
@@ -6904,6 +6647,11 @@ let I_642590101_5=
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(* XXX false
+Bound: 0.218305970844
+
+Point: [16.9397074241]
+*)
 let I_642590101_6=
   all_forall 
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`#4.0`;`square_2t0`]));;
@@ -7082,21 +6830,42 @@ let I_713930036_GEN=
   (delta_x a5 (#4.0) (#4.0) (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
+(* XXX false
+
+Bound: 0.0217796824472
+
+Point: [11.9999999999, 11.9999999999]
+*)
 let I_713930036_1=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(* XXX false
+Bound: 0.115194228067
+
+Point: [11.9999999999, 13.9200392904]
+*)
 let I_713930036_2=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
+(* xxx false
+Bound: 0.115194262265
+
+Point: [13.9200392904, 11.9999999999]
+*)
 let I_713930036_3=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(*  XXX false
+Bound: 0.113049012731
+
+Point: [13.9200392904, 13.9200392904]
+*)
 let I_713930036_4=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`square_2t0`;`square_2t0`]));;
@@ -7174,6 +6943,12 @@ let I_821730621_GEN=
 
 
 (* interval verification by Ferguson *)
+(* XXX false
+Bound: 0.189254861226
+
+Point: [10.0605373011, 11.9999998741]
+*)
+
 let I_821730621_1=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
@@ -7184,6 +6959,11 @@ let I_821730621_2=
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
+(* XXX false
+Bound: 0.0948377771411
+
+Point: [8.57185841044, 13.3519358538]
+*)
 let I_821730621_3=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
@@ -7194,6 +6974,13 @@ let I_821730621_4=
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
+(*
+XXX
+Bound: 0.177722784329
+
+Point: [9.69989999996, 11.9999999999]
+
+*)
 let I_821730621_5=
   all_forall 
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
@@ -7236,6 +7023,12 @@ let I_890642961_GEN=
 
 
 (* interval verification by Ferguson *)
+(*
+XXX
+Bound: 0.282549826421
+
+Point: [9.27255301111, 11.9999999996]
+*)
 let I_890642961_1=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`#4.0`;`#4.0`]));;
@@ -7251,11 +7044,21 @@ let I_890642961_3=
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(* xxx
+Bound: 0.0169200764
+
+Point: [9.26173984803, 11.7132329274]
+*) 
 let I_890642961_4=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
+(* xxx
+Bound: 0.245027755733
+
+Point: [9.42893490619, 11.9999999297]
+*) 
 let I_890642961_5=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`#4.0`;`#4.0`]));;
@@ -7266,11 +7069,21 @@ let I_890642961_6=
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
+(* xxx
+Bound: 0.00265356467075
+
+Point: [8.13556916171, 12.1086273347]
+*) 
 let I_890642961_7=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
+(* XXX
+Bound: 0.0405287948262
+
+Point: [9.69989999999, 11.7132329804]
+*) 
 let I_890642961_8=
   all_forall 
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
@@ -7416,7 +7229,7 @@ let I_286122364=
   (tau_0_x x1 x2 x3 x4 x5 x6 >. (#0.176) )
   `;;
 
-let CKC_938091791= list_mk_conj[I_286122364;I_710875528;I_292827481;I_531861442;  ];; (* kc group 18.16  *)
+let CKC_938091791= list_mk_conj[I_286122364;I_710875528;(* I_292827481;*)I_531861442;  ];; (* kc group 18.16  *)
 
 (* end of 2002:kc *)
 
@@ -9021,9 +8834,11 @@ let I_814398901=
 (* 
 CCC false in multiple branches of tauhat.  Domain has been corrected. Should be flat quarters.
 
-Bound: 0.0136820511595
+XXX still false in vor0 branch
 
-Point: [3.99999999999, 6.30009999999, 6.30009999999, 5.354769995, 3.99999999999, 3.99999999999]
+Bound: 0.0206833063205
+
+Point: [4.10991923445, 4.05029743735, 4.15049810846, 7.32673562767, 4.73630950763, 4.85438443725]
 
 *)
 
@@ -9073,6 +8888,22 @@ Section A14
 *)
 
 (* interval verification by Ferguson *)
+(* let I_424011442= *)
+(*    all_forall `ineq  *)
+(*     [((#4.0), x1, square_2t0); *)
+(*      ((#4.0), x2, square_2t0); *)
+(*      ((#4.0), x3, square_2t0); *)
+    
+(*         ((#4.0), x4, square_4t0); *)
+(*      ((#4.0), x5, (square (#3.2))); *)
+(*      (x5, x6, (square (#3.2))) *)
+(*     ] *)
+(*     ( *)
+(*             ( (v0x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/  *)
+(*             ( (sqrt x4) >.  ( (sqrt x2) +.  (sqrt x3))) \/  *)
+(*             ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)))`;; *)
+
+(* XXX made nonconstant bound a constraint *)
 let I_424011442=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9081,18 +8912,36 @@ let I_424011442=
     
         ((#4.0), x4, square_4t0);
      ((#4.0), x5, (square (#3.2)));
-     (x5, x6, (square (#3.2)))
+     ((#4.0), x6, (square (#3.2)))
     ]
     (
             ( (v0x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
             ( (sqrt x4) >.  ( (sqrt x2) +.  (sqrt x3))) \/ 
-            ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)))`;;
+            ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/
+            ( x6 <. x5 )
+              
+    )`;;
 
-
+(* (\* interval verification by Ferguson *\) *)
+(* let I_140881233= *)
+(*    all_forall `ineq  *)
+(*     [((#4.0), x1, square_2t0); *)
+(*      ((#4.0), x2, square_2t0); *)
+(*      ((#4.0), x3, square_2t0); *)
+    
+(*         ((#4.0), x4, square_4t0); *)
+(*      ((#4.0), x5, (square (#3.2))); *)
+(*      (x5, x6, (square (#3.2))) *)
+(*     ] *)
+(*     ( *)
+(*             ( (v1x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/  *)
+(*             ( (sqrt x4) >.  ( (sqrt x2) +.  (sqrt x3))) \/  *)
+(*             ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)))`;; *)
 
 
 
 (* interval verification by Ferguson *)
+(* XXX made nonconstant bound a constraint *)
 let I_140881233=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -9101,12 +8950,14 @@ let I_140881233=
     
         ((#4.0), x4, square_4t0);
      ((#4.0), x5, (square (#3.2)));
-     (x5, x6, (square (#3.2)))
+     ((#4.0), x6, (square (#3.2)))
     ]
     (
             ( (v1x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
             ( (sqrt x4) >.  ( (sqrt x2) +.  (sqrt x3))) \/ 
-            ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)))`;;
+            ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/
+            ( x6 <. x5 )
+    )`;;
 
 
 
@@ -12712,6 +12563,11 @@ let J_163177561=
 
 
 
+(* XXX
+Bound: 0.0207472140662
+
+Point: [4.3332764986, 4.0214270778, 4.12912710387, 5.03818306425, 5.36790850639, 4.93072243755]
+*) 
 let J_225583331=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.13)));
@@ -12830,7 +12686,11 @@ let J_675872124=
 
 
 
+(* XXX
+Bound: 0.0071026022964
 
+Point: [4.53689999999, 4.53689999999, 4.53689999999, 4.34027778215, 4.34027782266, 4.34027772851]
+*)
 let J_498007387=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.13)));
@@ -12928,6 +12788,12 @@ let J_778150947=
 LOC: DCG II, page 147 (published DCG pages).
 Cases (8) (9) (10) (11)
 Used in Formulation
+
+XXX
+Bound: 0.00257586721418
+
+Point: [8, 3.99999999999, 6.30009999999, 3.99999999999, 8, 4]
+
 *)
 
 let J_629256313=
@@ -13319,6 +13185,11 @@ let J_766771911=
 (*
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.1:
+XXX many cases fail, e.g.
+Bound: 0.394287252586
+
+Point: [7.99999999999, 3.99999999999, 6.30009999999, 6.30009999999, 3.99999999999, 4.00000002705]
+
 *)
 let J_554253147=
    all_forall `ineq 
@@ -13340,6 +13211,7 @@ let J_554253147=
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.2:
 *)
+
 let J_906566422=
    all_forall `ineq 
     [((square (#1.255)), x, (#4.0))

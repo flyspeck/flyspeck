@@ -879,3 +879,268 @@ let x2A = x3E in
       ((sqrt x2A) + (sqrt x2B) + (sqrt x2C) + (sqrt x2D) + (sqrt x2E) +
        (sqrt x6A) + (sqrt x6B) + (sqrt x6C) + (sqrt x6D) + (sqrt x6E) >. (#20.76)))`;;
 
+
+(* Duplicate inequality.  This is the same as 413688580 *)
+(*
+let J_549774315_1=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#4.10113)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#4.3223)))`;;
+*)
+
+
+(* Duplicate inequality.  This is the same as 805296510 *)
+(*
+let J_549774315_2=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.80449)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.9871)))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 136610219 *)
+(*
+let J_549774315_3=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.70186)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.8756)))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 379204810 *)
+(*
+let J_549774315_4=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.24573)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.3404)))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 878731435 *)
+(*
+let J_549774315_5=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.00154)) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (--. (#0.0024)))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 891740103 *)
+(*
+let J_549774315_6=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (nu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.07611) *.  (dih_x x1 x2 x3 x4 x5 x6))) <.  (#0.1196))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 334002329 *)
+(*
+let J_574435320_1=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#4.16523) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#4.42873))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 883139937 *)
+(*
+let J_574435320_2=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.78701) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#1.01104))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 507989176 *)
+(*
+let J_574435320_3=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.77627) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.99937))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 244435805 *)
+(*
+let J_574435320_4=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.21916) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.34877))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 930176500 *)
+(*
+let J_574435320_5=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (#0.05107) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.11434))`;;
+*)
+
+(* Duplicate inequality.  This is the same as 815681339 *)
+(*
+let J_574435320_6=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    (
+                ( (taunu_x x1 x2 x3 x4 x5 x6) +.  (  (--. (#0.07106)) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.07749)))`;;
+*)
+
+(* 
+This was false for strict inequality.
+gives equality at [8,4,4,8,4,4].
+It is trivially true when weak inequality is used, because dih(simplex)<=pi
+without any constraints on the simplex.  So we don't need interval arithmetic
+for its verification.  Commented out.
+*)
+(* 
+let I_853728973_24=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     (square_2t0, x4, (#8.0));
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
+
+
+
+(* 
+dih < pi is false
+gives equality at [8,4,4,8,4,4].
+See comments for I_853728973_24.
+*)
+
+(*
+let I_853728973_26=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     (square_2t0, x4, square_4t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
+
+
+(* 
+dih < pi is false
+gives equality at [8,4,4,8,4,4].
+Interval verification not needed.
+See comments for I_853728973_24.
+*)
+
+(*
+let I_853728973_28=
+   all_forall `ineq 
+    [(square_2t0, x1, (#8.0));
+     ((#4.0), x2, square_2t0);
+     ((#4.0), x3, square_2t0);
+     ((#8.0), x4, square_4t0);
+     ((#4.0), x5, square_2t0);
+     ((#4.0), x6, square_2t0)
+    ]
+    ( (dih_x x1 x2 x3 x4 x5 x6) <=.  pi)`;;
+*)
+
+
+(* 
+dih > 0 is false
+gives equality at [4,4,8,4,4,8]
+Interval verification not needed, 
+since dih is always >= 0.
+See comments for I_853728973_24.
+*)
+
+(*
+let I_853728973_33=
+   all_forall `ineq 
+    [((#4.0), x1, square_2t0);
+     ((#4.0), x2, square_2t0);
+     (square_2t0, x3, (#8.0));
+     ((#4.0), x4, square_2t0);
+     ((#4.0), x5, square_2t0);
+     (square_2t0, x6, (#8.0))
+    ]
+    ( (dih_x x1 x2 x3 x4 x5 x6) =>.  (#0.0))`;;
+*)

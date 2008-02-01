@@ -806,8 +806,9 @@ LOC: 2002 k.c page 43
 
 (* interval verification in partK.cc *)
 
-(* XXX Shouldn't this say > rather than >= ? 
+(* CCC Shouldn't this say > rather than >= ? 
   I'm changing it...
+  Yes, that's right.
 *)
 let I_498839271_3=
    all_forall `ineq 
@@ -2571,7 +2572,7 @@ let I_381970727=
 
 (* interval verification in partK.cc *)
 
-(* This is false at 
+(* This was false at 
    point: [4, 4, 4, 8, 4, 4]
    value: about 0.02.
    However, this doesn't satisfy the second constraint: 
@@ -2613,7 +2614,7 @@ let I_923397705=
 
 (* interval verification in partK.cc *)
 (* 
-This is false.  Gamma seems unstable as
+This was false.  Gamma seems unstable as
 x5 gets very large.
 
 value: about .4
@@ -2952,7 +2953,7 @@ let I_912536613=
 
 (* interval verification in partK.cc *)
 (* 
-XXX fails:  this one needs delta > 0
+CCC fails:  added delta > 0
 *)
 let I_640248153=
    all_forall `ineq 
@@ -2965,7 +2966,8 @@ let I_640248153=
     ]
     (
             ( ( (tau_0_x x1 x2 x3 x4 x5 x6) +.  (  (#0.316) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (#0.5765)) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.55)))`;;
+            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.55)) \/
+            ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)))`;;
 
 
 
@@ -3621,7 +3623,7 @@ The inequalities above are verified in smaller pieces:
 
 
 (* interval verification in partK.cc *)
-(* XXX needs delta > 0 *)
+(* CCC added delta >= 0 *)
 let I_131574415=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.2)));
@@ -3635,7 +3637,8 @@ let I_131574415=
             ( (vor_0_x x1 x2 x3 x4 x5 x6) <. 
                ( (#1.01) +.  (  (--. (#0.1)) *.  (sqrt x1)) +.  (  (--. (#0.05)) *.  (sqrt x2)) +.  (  (--. (#0.05)) *.  (sqrt x3)) +. 
                (  (--. (#0.15)) *.  (sqrt x5)) +.  (  (--. (#0.15)) *.  (sqrt x6)))) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.9)))`;;
+            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.9)) \/
+        ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)))`;;
 
 
 
@@ -3695,7 +3698,7 @@ let I_135018647=
 
 
 (* interval verification in partK.cc *)
-(* XXX i think you need delta constraints *)
+(* CCC i think you need delta constraints, added. *)
 let I_559676877=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -3714,7 +3717,9 @@ let I_559676877=
             ( ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x x1' x2 x3 x4 x5' x6') +. 
                (  (#0.419351) *.  ( (sol_x x1 x2 x3 x4 x5 x6) +.  (sol_x x1' x2 x3 x4 x5' x6')))) <. 
                ( (#0.4542) +.  (  (#0.0238) *.  ( (sqrt x5) +.  (sqrt x6) +.  (sqrt x6'))))) \/ 
-            ( (cross_diag_x x1 x2 x3 x4 x5 x6 x1' x5' x6') <.  (  (#2.0) *.  (sqrt (#2.0)))))`;;
+            ( (cross_diag_x x1 x2 x3 x4 x5 x6 x1' x5' x6') <.  (  (#2.0) *.  (sqrt (#2.0)))) \/
+    ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+    ((delta_x x1' x2 x3 x4 x5' x6') <. (#0.0)))`;;
 
 (*
  
@@ -3993,7 +3998,7 @@ LOC: 2002 k.c page 53
 *)
 
 (* interval verification by Ferguson *)
-(* XXX delta constraints *)
+(* CCC delta constraints added *)
 let I_836331201_1=
  all_forall `ineq
     [((#4.0), x1, square_2t0);
@@ -4008,9 +4013,11 @@ let I_836331201_1=
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.149)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)))`;;
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)) \/
+  ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
-(* XXX delta constraints *)
+(* CCC delta constraints added *)
 let I_836331201_2=
  all_forall `ineq
     [((#4.0), x1, square_2t0);
@@ -4025,7 +4032,9 @@ let I_836331201_2=
    (((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.281))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)))`;;
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)) \/
+  ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
 
 (*
@@ -4069,7 +4078,7 @@ length $2\sqrt2$ runs.)
 
 *)
 
-(* XXX delta constraints *)
+(* CCC delta constraints added *)
 let I_327474205_1=
  all_forall `
 let x2 = (#4.0) in
@@ -4086,9 +4095,11 @@ let x9 = (#4.0) in
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))))`;;
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
+   ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
-(* XXX delta constraints *)
+(* CCC delta constraints added *)
 let I_327474205_2=
  all_forall `
 let x2 = (square_2t0) in
@@ -4105,7 +4116,9 @@ let x9 = (#4.0) in
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))))`;;
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)))
+  ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
 let I_327474205_3=
  all_forall `
@@ -6543,10 +6556,12 @@ let I_109046923_5=
   (list_mk_comb(I_109046923_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(* XXX false 
+(* CCC false 
 
 Bound: 0.122198000542
 Point: [16.9619640963]
+My calculation of the cross-diag is < 3.2 which means that this
+isn't a counterexample.
 *)
 let I_109046923_6=
   all_forall 
@@ -6647,10 +6662,11 @@ let I_642590101_5=
   (list_mk_comb(I_642590101_GEN,[`#4.0`;`square_2t0`;`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(* XXX false
+(* CCC false
 Bound: 0.218305970844
 
 Point: [16.9397074241]
+My calculation of the cross-diag is < 3.2, so this is not a counterexample.
 *)
 let I_642590101_6=
   all_forall 
@@ -6808,7 +6824,7 @@ Group_18.12
 
 
 (* interval verification by Ferguson *)
-(* XXX many false/infeasible.  I don't see any problem with it. Do you have a counterexample?
+(* CCC many false/infeasible.  I don't see any problem with it. Do you have a counterexample?
    In SPVI2002 there is a typo, but it appears correct in this file.   *)
 let I_713930036_GEN= 
    `(\ a1 a5 . 
@@ -6830,41 +6846,49 @@ let I_713930036_GEN=
   (delta_x a5 (#4.0) (#4.0) (#4.0) (#4.0) x' <. (#0.0)))))`;;
 
 (* interval verification by Ferguson *)
-(* XXX false
+(* CCC false
 
 Bound: 0.0217796824472
 
 Point: [11.9999999999, 11.9999999999]
+
+This passes on the dihedral angle constraint quite easily.
+This is not a counterexample.  But it is near Delta=0, so the numerical
+optimization package might be quite unstable here.
 *)
 let I_713930036_1=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(* XXX false
+(* CCC false
 Bound: 0.115194228067
 
-Point: [11.9999999999, 13.9200392904]
+Point: [11.9999999999, 13.9200392904].
+
+See comment on I_713930036_1.
 *)
 let I_713930036_2=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
-(* xxx false
+(* CCC false
 Bound: 0.115194262265
 
 Point: [13.9200392904, 11.9999999999]
+See comment on I_713930036_1
 *)
 let I_713930036_3=
   all_forall 
   (list_mk_comb(I_713930036_GEN,[`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(*  XXX false
+(*  CCC false
 Bound: 0.113049012731
 
 Point: [13.9200392904, 13.9200392904]
+See comment on I_713930036_1
 *)
 let I_713930036_4=
   all_forall 
@@ -6916,13 +6940,16 @@ let CKC_928952883= list_mk_conj[I_724922588_4;I_724922588_3;I_724922588_2;I_7249
    I_713930036_4;I_713930036_3;I_713930036_2;I_713930036_1;  ];; (* kc group 18.12  *)
 
 (*
-LOC: 2002 k.c page 60
+LOC: 2002 k.c page 61
 Group_18.13
 *)
 
-
 (* interval verification by Ferguson *)
-(* cross_diag constraint fixed 1/31/2008 *)
+(* cross_diag constraint fixed 1/31/2008,
+   Fixed bug in third branch of vor_0_x and delta_x 2/1/2008.
+   It is correctly stated in SPVI2002.
+    *)
+
 let I_821730621_GEN= 
    `(\ a2 a4 a5 . 
  (ineq
@@ -6932,21 +6959,32 @@ let I_821730621_GEN=
 ]
    (((vor_0_x (#4.0) a2 (#4.0) (#4.0) x (#4.0))+
     (vor_0_x (#4.0) (#4.0) a4 (#4.0) x' x)+
-    (vor_0_x (#4.0) a4 a5 (#4.0) (#4.0) x')
+    (vor_0_x (#4.0) a4 a5 (#4.0) (square_2t0) x')
    <. (--(#0.221)))
    \/
   (cross_diag_x (#4.0) (#4.0) a4 x' (#4.0) x a5 (#4.0) square_2t0
         <. ((#3.2))) \/
   (delta_x (#4.0) a2 (#4.0) (#4.0) x (#4.0) <. (#0.0)) \/
   (delta_x (#4.0) (#4.0) a4 (#4.0) x' x <. (#0.0)) \/
-  (delta_x (#4.0) a4 a5 (#4.0) (#4.0) x' <. (#0.0)))))`;;
+  (delta_x (#4.0) a4 a5 (#4.0) (square_2t0) x' <. (#0.0)))))`;;
 
 
 (* interval verification by Ferguson *)
-(* XXX false
+(* CCC (not) false
 Bound: 0.189254861226
 
 Point: [10.0605373011, 11.9999998741]
+{y,yp} = {y, yp} = {10.0605373011, 11.9999998741} // Sqrt;
+CrossDiag[y1_, y2_, y3_, y4_, y5_, y6_, y7_, y8_, y9_] := 
+  Enclosed[y1, y5, y6,
+       y4, y2, y3, y7, y8, y9];
+CrossDiag[2, 2, 2, yp, 2, y, 2, 2, 2.51];  (* yields 3.28.. *)
+tt = {VorVc[2, 2, 2, 2, y, 2], VorVc[2, 2, 2, 2, yp, y], VorVc[2, 2, 2, 2, 2.51, yp]};
+Plus @@ tt
+
+{Delta[2, 2, 2, 2, y, 2], Delta[2, 2, 2, 2, yp, y], Delta[2, 2, 2, 2, 2.51, yp]};
+(* Yields {78.04, 143.98, 6.043*10^-6} *)
+
 *)
 
 let I_821730621_1=
@@ -6959,7 +6997,7 @@ let I_821730621_2=
   (list_mk_comb(I_821730621_GEN,[`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
-(* XXX false
+(* CCC false
 Bound: 0.0948377771411
 
 Point: [8.57185841044, 13.3519358538]
@@ -6975,7 +7013,7 @@ let I_821730621_4=
 
 (* interval verification by Ferguson *)
 (*
-XXX
+CCC
 Bound: 0.177722784329
 
 Point: [9.69989999996, 11.9999999999]
@@ -7001,8 +7039,11 @@ let I_821730621_8=
   (list_mk_comb(I_821730621_GEN,[`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
+
 (* interval verification by Ferguson *)
 (* cross diag constraint fixed 1/31/2008 *)
+(* b5 edge length  in tau_0_x and delta_x fixed 2/1/2008 *)
+
 let I_890642961_GEN= 
    `(\ a2 a4 a5 . 
  (ineq
@@ -7012,22 +7053,27 @@ let I_890642961_GEN=
 ]
    (((tau_0_x (#4.0) a2 (#4.0) (#4.0) x (#4.0))+
     (tau_0_x (#4.0) (#4.0) a4 (#4.0) x' x)+
-    (tau_0_x (#4.0) a4 a5 (#4.0) (#4.0) x')
+    (tau_0_x (#4.0) a4 a5 (#4.0) (square_2t0) x')
    >. (#0.486))
    \/
   (cross_diag_x (#4.0) (#4.0) a4 x' (#4.0) x a5 (#4.0) square_2t0
         <. ((#3.2))) \/
   (delta_x (#4.0) a2 (#4.0) (#4.0) x (#4.0) <. (#0.0)) \/
   (delta_x (#4.0) (#4.0) a4 (#4.0) x' x <. (#0.0)) \/
-  (delta_x (#4.0) a4 a5 (#4.0) (#4.0) x' <. (#0.0)))))`;;
+  (delta_x (#4.0) a4 a5 (#4.0) (square_2t0) x' <. (#0.0)))))`;;
 
 
 (* interval verification by Ferguson *)
 (*
-XXX
+CCC
 Bound: 0.282549826421
 
-Point: [9.27255301111, 11.9999999996]
+Point: [9.27255301111, 11.9999999996];
+{y,yp} = {9.27255301111, 11.9999999996}//Sqrt;
+tt = {tauVc[2,2,2,2,y,2],tauVc[2,2,2,2,yp,y],tauVc[2,2,2,2,2.51,yp]}
+Plus @@ tt
+{Delta[2,2,2,2,y,2],Delta[2,2,2,2,yp,y],Delta[2,2,2,2,2.51,yp]}
+CrossDiagE[2,2,2,yp,2,y,2,2,2.51]
 *)
 let I_890642961_1=
   all_forall 
@@ -7044,7 +7090,7 @@ let I_890642961_3=
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(* xxx
+(* CCC See comments above
 Bound: 0.0169200764
 
 Point: [9.26173984803, 11.7132329274]
@@ -7054,7 +7100,7 @@ let I_890642961_4=
   (list_mk_comb(I_890642961_GEN,[`#4.0`;`square_2t0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
-(* xxx
+(* CCC See comments above
 Bound: 0.245027755733
 
 Point: [9.42893490619, 11.9999999297]
@@ -7069,7 +7115,7 @@ let I_890642961_6=
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`#4.0`;`square_2t0`]));;
 
 (* interval verification by Ferguson *)
-(* xxx
+(* CCC See comments above
 Bound: 0.00265356467075
 
 Point: [8.13556916171, 12.1086273347]
@@ -7079,7 +7125,7 @@ let I_890642961_7=
   (list_mk_comb(I_890642961_GEN,[`square_2t0`;`square_2t0`;`#4.0`]));;
 
 (* interval verification by Ferguson *)
-(* XXX
+(* CCC See comments above
 Bound: 0.0405287948262
 
 Point: [9.69989999999, 11.7132329804]
@@ -8832,13 +8878,21 @@ let I_814398901=
 
 (* interval verification in partK.cc *)
 (* 
-CCC false in multiple branches of tauhat.  Domain has been corrected. Should be flat quarters.
+CCC false in multiple branches of tauhat.  
+Domain has been corrected. Should be flat quarters.
 
-XXX still false in vor0 branch
+CCC still false in vor0 branch.
+Not a counterexample, because the dihedral angle > 1.32.
 
 Bound: 0.0206833063205
 
-Point: [4.10991923445, 4.05029743735, 4.15049810846, 7.32673562767, 4.73630950763, 4.85438443725]
+Point: [4.10991923445, 4.05029743735, 4.15049810846, 7.32673562767, 4.73630950763, 4.85438443725];
+
+yy = {4.10991923445, 4.05029743735, 4.15049810846, 7.32673562767, 4.73630950763, 4.85438443725}//Sqrt
+
+tauVc @@ yy
+
+Dihedral @@ yy  (* yields 1.651, so OK *)
 
 *)
 
@@ -8903,7 +8957,7 @@ Section A14
 (*             ( (sqrt x4) >.  ( (sqrt x2) +.  (sqrt x3))) \/  *)
 (*             ( (delta_x x1 x2 x3 x4 x5 x6) <.  (#0.0)))`;; *)
 
-(* XXX made nonconstant bound a constraint *)
+(* CCC made nonconstant bound a constraint *)
 let I_424011442=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -8941,7 +8995,7 @@ let I_424011442=
 
 
 (* interval verification by Ferguson *)
-(* XXX made nonconstant bound a constraint *)
+(* CCC made nonconstant bound a constraint *)
 let I_140881233=
    all_forall `ineq 
     [((#4.0), x1, square_2t0);
@@ -12563,10 +12617,19 @@ let J_163177561=
 
 
 
-(* XXX
+(* CCC
 Bound: 0.0207472140662
 
 Point: [4.3332764986, 4.0214270778, 4.12912710387, 5.03818306425, 5.36790850639, 4.93072243755]
+
+yy = {4.3332764986, 4.0214270778, 4.12912710387, 5.03818306425, 5.36790850639, 4.93072243755}//Sqrt
+
+cstr1 = ( yy[[4]]+yy[[5]]+yy[[6]] > 6.25 )
+
+cstr2 =  ( -(Gamma @@ yy) - 0.14135 (Plus @@ yy) > -1.7515737 )
+
+(* both constraints are satisfied.  This is not a counterexample. It is not
+   even close to being a counterexample.  Why does a question even come up? *)
 *) 
 let J_225583331=
    all_forall `ineq 
@@ -12686,11 +12749,30 @@ let J_675872124=
 
 
 
-(* XXX
+(* CCC  Added 6.13 constraint on 2/1/2008.
 Bound: 0.0071026022964
 
 Point: [4.53689999999, 4.53689999999, 4.53689999999, 4.34027778215, 4.34027782266, 4.34027772851]
+
+yy = {y1,y2,y3,y4,y5,y6}={4.53689999999, 4.53689999999, 4.53689999999, 4.34027778215, 4.34027782266, 4.34027772851}//Sqrt;
+
+cnstr1 = (y4 + y5+y6 < 6.25)  (* lands right at 6.25 *)
+
+constr2 = ( -(Solid @@ yy) - 0.254 (y1+y2+y3) + 0.3405 (y4+y5+y6) > -0.008855)
 *)
+
+(* interval verification in part3.cc (numbered as 465988688)
+   Notes on interval verification.
+   It uses constant -0.61298 + 0.3405 6.25   -0.254 6 = -0.008855.
+   F is the main inequality.
+   G is the y4+y5+y6 < 6.25 constraint.
+   H is the inequality 6.13 < y1 + y2 +y3.  H is not stated in SPVI2002.
+   It seems to have been a constraint of the original inequality and then left
+   out of the writeup.  This explains the difference.
+   There is one more inequality J that is a consequence of F, hence redundant.
+   Note added to dcg_errata, adding the precondition.
+ *)
+
 let J_498007387=
    all_forall `ineq 
     [((#4.0), x1, (square (#2.13)));
@@ -12706,7 +12788,8 @@ let J_498007387=
             ( (( --. ) (sol_x x1 x2 x3 x4 x5 x6)) +.  (  (--. (#0.254)) *.  (sqrt x1)) +.  (  (--. (#0.254)) *.  (sqrt x2)) +.  (  (--. (#0.254)) *.  (sqrt x3)) +. 
                (  (#0.3405) *.  (sqrt x4)) +.  (  (#0.3405) *.  (sqrt x5)) +.  (  (#0.3405) *.  (sqrt x6))) >. 
             (--. (#0.008855))) \/ 
-         ( ( (sqrt x4) +.  (sqrt x5) +.  (sqrt x6)) <.  (#6.25)))`;;
+         ( ( (sqrt x4) +.  (sqrt x5) +.  (sqrt x6)) <.  (#6.25)) \/
+         ( ( (sqrt x1) +.  (sqrt x2) +.   (sqrt x3)) >. (#6.13)))`;;
 
 
 
@@ -12789,10 +12872,15 @@ LOC: DCG II, page 147 (published DCG pages).
 Cases (8) (9) (10) (11)
 Used in Formulation
 
-XXX
+CCC Fixed circumradius constraints 2/1/2008
+
 Bound: 0.00257586721418
 
 Point: [8, 3.99999999999, 6.30009999999, 3.99999999999, 8, 4]
+
+yy = {8, 3.99999999999, 6.30009999999, 3.99999999999, 8, 4}//Sqrt
+
+vorAnalytic @@ yy
 
 *)
 
@@ -12808,11 +12896,12 @@ let J_629256313=
     ]
     (
             ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (#2.0)) \/ 
-            ( (eta_x x2 x3 x4) >.  (#2.0)) \/ 
-            ( (eta_x x1 x3 x5) >.  (#2.0)) \/ 
-            ( (eta_x x4 x5 x6) >.  (#2.0)))`;;
+            ( (eta_x x1 x2 x6) >. (sqrt (#2.0))) \/ 
+            ( (eta_x x2 x3 x4) >. (sqrt (#2.0))) \/ 
+            ( (eta_x x1 x3 x5) >. (sqrt (#2.0))) \/ 
+            ( (eta_x x4 x5 x6) >. (sqrt (#2.0))))`;;
 
+(* eta_x constraint fixed 2/1/2008 *)
 
 let J_917032944=
    all_forall `ineq 
@@ -12826,11 +12915,12 @@ let J_917032944=
     ]
     (
             ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (#2.0)) \/ 
-            ( (eta_x x2 x3 x4) >.  (#2.0)) \/ 
-            ( (eta_x x1 x3 x5) >.  (#2.0)) \/ 
-            ( (eta_x x4 x5 x6) >.  (#2.0)))`;;
+            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
+(* eta_x constraint fixed 2/1/2008 *)
 
 let J_738318844=
    all_forall `ineq 
@@ -12844,11 +12934,12 @@ let J_738318844=
     ]
     (
             ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (#2.0)) \/ 
-            ( (eta_x x2 x3 x4) >.  (#2.0)) \/ 
-            ( (eta_x x1 x3 x5) >.  (#2.0)) \/ 
-            ( (eta_x x4 x5 x6) >.  (#2.0)))`;;
+            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
+(* eta_x constraint fixed 2/1/2008 *)
 
 let J_587618947=
    all_forall `ineq 
@@ -12862,10 +12953,10 @@ let J_587618947=
     ]
     (
             ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (#2.0)) \/ 
-            ( (eta_x x2 x3 x4) >.  (#2.0)) \/ 
-            ( (eta_x x1 x3 x5) >.  (#2.0)) \/ 
-            ( (eta_x x4 x5 x6) >.  (#2.0)))`;;
+            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
+            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
 
 
 (*
@@ -13185,10 +13276,16 @@ let J_766771911=
 (*
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.1:
-XXX many cases fail, e.g.
+
+Corrected 2/1/2008,  mu_flat_x -> mu_upright_x
+
+CCC many cases
 Bound: 0.394287252586
 
 Point: [7.99999999999, 3.99999999999, 6.30009999999, 6.30009999999, 3.99999999999, 4.00000002705]
+
+yy = {y1,y2,y3,y4,y5,y6}={7.99999999999, 3.99999999999, 6.30009999999, 6.30009999999, 3.99999999999, 4.00000002705}//Sqrt;
+
 
 *)
 let J_554253147=
@@ -13201,7 +13298,7 @@ let J_554253147=
      ((#4.0), x5, square_2t0);
      ((#4.0), x6, square_2t0)
     ]
-    ( ( (mu_flat_x x1 x2 x3 x4 x5 x6) +.  (mu_flipped_x x1 x2 x3 x4 x5 x6) +. 
+    ( ( (mu_upright_x x1 x2 x3 x4 x5 x6) +.  (mu_flipped_x x1 x2 x3 x4 x5 x6) +. 
            (  (crown (  (sqrt x1) /  (#2.0))) *.  ( (#1.0) +.  (  (( --. ) (dih_x x1 x2 x3 x4 x5 x6)) /  pi))) +. 
            (  (#2.0) *.  (anc (sqrt x1) (sqrt x2) (sqrt x6)))) <. 
            ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x_flipped x1 x2 x3 x4 x5 x6)))`;;

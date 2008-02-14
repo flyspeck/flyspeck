@@ -32,9 +32,11 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 (*  Extend atn to allow zero denominators.                            *)
 (* ------------------------------------------------------------------ *)
 
+(* new argument order 2/14/2008 *)
+
 let atn2 = new_definition(`atn2(x,y) =
-    if ( ~(y = &0 ) ) then atn(x / y) else
-    (if (x > &0) then (pi / &2) else (-- (pi/ &2)))`);;
+    if ( ~(x = &0 ) ) then atn(y / x) else
+    (if (y > &0) then (pi / &2) else (-- (pi/ &2)))`);;
 
 (* ------------------------------------------------------------------ *)
 
@@ -169,7 +171,7 @@ let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
 let dih_x = kepler_def(`dih_x x1 x2 x3 x4 x5 x6 =
        let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
        let d = delta_x x1 x2 x3 x4 x5 x6 in
-       pi/ (&2) +  atn2(--  d_x4, (sqrt ((&4) * x1 * d)))`);;
+       pi/ (&2) +  atn2( (sqrt ((&4) * x1 * d)),--  d_x4)`);;
 
 
 let dih_y = kepler_def(`dih_y y1 y2 y3 y4 y5 y6 =
@@ -221,17 +223,17 @@ let beta = kepler_def(`beta psi theta =
         (acs (sqrt arg))`);;
 
 let arclength = kepler_def(`arclength a b c =
-        pi/(&2) + (atn2 ((c*c - a*a  -b*b), (sqrt (u_x (a*a) (b*b) (c*c)))))`);;
+        pi/(&2) + (atn2( (sqrt (u_x (a*a) (b*b) (c*c))),(c*c - a*a  -b*b)))`);;
 
 
 let volR = kepler_def(`volR a b c =
         (sqrt (a*a*(b*b-a*a)*(c*c-b*b)))/(&6)`);;
 
 let solR = kepler_def(`solR a b c =
-        (&2)*atn2( sqrt ((c-b)*(b-a)), sqrt(((c+b)*(b+a))))`);;
+        (&2)*atn2( sqrt(((c+b)*(b+a))), sqrt ((c-b)*(b-a)))`);;
 
 let dihR = kepler_def(`dihR a b c =
-        atn2 (sqrt (c*c-b*b), sqrt(b*b-a*a))`);;
+        atn2( sqrt(b*b-a*a),sqrt (c*c-b*b))`);;
 
 let vorR = kepler_def(`vorR a b c =
         (&4)*(--doct*(volR a b c) + (solR a b c)/(&3))`);;
@@ -247,7 +249,7 @@ let quoin = kepler_def(`quoin a b c =
         if ((a>=b) \/ (b>=c)) then (&0) else
         (--(a*a + a*c-(&2)*c*c)*(c-a)*atn(u)/(&6) +
         a*(b*b-a*a)*u/(&6) 
-        - ((&2)/(&3))*c*c*c*(atn2((u*(b-a)),(b+c))))`);;
+        - ((&2)/(&3))*c*c*c*(atn2((b+c)),(u*(b-a))))`);;
 
 let qy = kepler_def(`qy y1 y2 y3 t =
         quoin (y1/(&2)) (eta_y y1 y2 y3) t`);;

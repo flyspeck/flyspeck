@@ -4116,7 +4116,7 @@ let x9 = (#4.0) in
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)))
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
   ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
   ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 

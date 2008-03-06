@@ -8,10 +8,10 @@
 (*
 needs "Examples/analysis.ml";;
 needs "Examples/transc.ml";;
-needs "Jordan/lib_ext.ml";;
+no longer needs "Jordan/lib_ext.ml";;
 *)
 
-let kepler_def = local_definition "kepler";;
+let kepler_def = (* local_definition "kepler";; *) new_definition;;
 
 prioritize_real();;
 
@@ -32,11 +32,17 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 (*  Extend atn to allow zero denominators.                            *)
 (* ------------------------------------------------------------------ *)
 
-(* new argument order 2/14/2008 *)
+(* new argument order 2/14/2008 to make it compatible with the 
+   ANSI C arctan2 function.  Also reworked for better numerical
+   stability in the regions that matter for us.  The way things
+   are defined, it gives atn2(0,0) = -pi.  This is a bit strange,
+   but we never need its value at the origin anyway.
+*)
 
 let atn2 = new_definition(`atn2(x,y) =
-    if ( ~(x = &0 ) ) then atn(y / x) else
-    (if (y > &0) then (pi / &2) else (-- (pi/ &2)))`);;
+    if ( x > abs y ) then atn(y / x) else
+    (if (y > &0) then ((pi / &2) - atn(x / y)) else
+    (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else ( -- pi )))`);;
 
 (* ------------------------------------------------------------------ *)
 
@@ -107,6 +113,22 @@ let D33 = kepler_def(`D33 = t6 - (#0.06585)*(#3.0)`);;
 let D41 = kepler_def(`D41 = t5 - (#0.06585)`);;
 let D42 = kepler_def(`D42 = t6 - (#2.0)*(#0.06585)`);;
 let D51 = kepler_def(`D51 = t6 - (#0.06585)`);;
+
+(* ------------------------------------------------------------------ *)
+(*  Ferguson's thesis constants from DCG-2006-Sec 17.4                *)
+(* ------------------------------------------------------------------ *)
+
+let pp_a1 = kepler_def(`pp_a1 = #0.38606588081240521`);;
+let pp_a2 = kepler_def(`pp_a2 = #0.4198577862`);;
+let pp_d0 = kepler_def(`pp_d0 = #1.4674`);;
+let pp_m  = kepler_def(`pp_m = #0.3621`);;
+let pp_b  = kepler_def(`pp_b = #0.49246`);;
+let pp_a  = kepler_def(`pp_a = #0.0739626`);;
+let pp_bc  = kepler_def(`pp_bc = #0.253095`);;
+let pp_c = kepler_def(`pp_c = #0.1533667634670977`);;
+let pp_d = kepler_def(`pp_d = #0.2265`);;
+(* solt0 = Solid[2,2,2,2,2,Sqrt[8]] *)
+let pp_solt0 = kepler_def(`pp_solt0 = &2 * atn2 (&1, sqrt8)`);;
 
 (* ------------------------------------------------------------------ *)
 (*  This polynomial is essentially the Cayley-Menger determinant.     *)
@@ -249,7 +271,7 @@ let quoin = kepler_def(`quoin a b c =
         if ((a>=b) \/ (b>=c)) then (&0) else
         (--(a*a + a*c-(&2)*c*c)*(c-a)*atn(u)/(&6) +
         a*(b*b-a*a)*u/(&6) 
-        - ((&2)/(&3))*c*c*c*(atn2((b+c)),(u*(b-a))))`);;
+        - ((&2)/(&3))*c*c*c*(atn2((b+c),(u*(b-a)))))`);;
 
 let qy = kepler_def(`qy y1 y2 y3 t =
         quoin (y1/(&2)) (eta_y y1 y2 y3) t`);;
@@ -651,17 +673,17 @@ let pi_prime_sigma = kepler_def
 (* The following definitions also appear in Jordan/misc_defs_and_lemmas.ml *)
 (* ------------------------------------------------------------------ *)
 
-mk_local_interface "kepler";;
+(* mk_local_interface "kepler";; *)
 
 overload_interface
- ("+", `kepler'euclid_plus:(num->real)->(num->real)->(num->real)`);;
+ ("+", `euclid_plus:(num->real)->(num->real)->(num->real)`);;
 
 make_overloadable "*#" `:A -> B -> B`;;
 
 let euclid_scale = kepler_def
   `euclid_scale t f = \ (i:num). (t* (f i))`;;
 
-overload_interface ("*#",`kepler'euclid_scale`);;
+overload_interface ("*#",`euclid_scale`);; (* `kepler'euclid_scale`);; *)
 
 parse_as_infix("*#",(20,"right"));;
 
@@ -669,10 +691,10 @@ let euclid_neg = kepler_def `euclid_neg (f:num->real) = \ (i:num). (-- (f i))`;;
 
 (* This is highly ambiguous: -- f x can be read as
    (-- f) x or as -- (f x).  *)
-overload_interface ("--",`kepler'euclid_neg`);;
+overload_interface ("--",`euclid_neg`);; (* `kepler'euclid_neg`);; *)
 
 overload_interface
-  ("-", `kepler'euclid_minus:(num->real)->(num->real)->(num->real)`);;
+  ("-", `euclid_minus:(num->real)->(num->real)->(num->real)`);;
 
 let euclid_plus = kepler_def
   `euclid_plus (f:num->real) g = \ (i:num). (f i) + (g i)`;;

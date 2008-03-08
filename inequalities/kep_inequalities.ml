@@ -13729,6 +13729,15 @@ Time Eval vm_compute in min_bb_Q_Ff steps (prec (-10))
     : Q * Q * bool * (nat * nat * nat)
 Finished transaction in 2. secs (1.963554u,0.021168s)
 
+all_forall `ineq
+   [
+   ((#4.0),x1,square_2t0);
+   ((#4.0),x2,square_2t0);
+   ((#4.0),x3,square_2t0);
+   ((#4.0),x4,square_2t0);
+   ((#4.0),x5,(#8.0));  (* upper bound changed 3/7/08, new domain *)
+   ((#4.0),x6,(#8.0))
+
 *)
 
 let I_2298281931=
@@ -13738,7 +13747,7 @@ all_forall `ineq
    ((#4.0),x2,square_2t0);
    ((#4.0),x3,square_2t0);
    ((#4.0),x4,square_2t0);
-   ((#4.0),x5,(#8.0));  (* upper bound changed 3/7/08, new domain *)
+   ((#4.0),x5,(#8.0));  
    ((#4.0),x6,(#8.0))
    ]
    (((x1 pow 5)*x4 - (&2)*(x1 pow 4)*x2*x4 + (x1 pow 3)*(x2 pow 2)*x4 - (&2)*(x1 pow 4)*x3*x4 + 

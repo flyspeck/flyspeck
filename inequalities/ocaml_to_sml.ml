@@ -146,7 +146,7 @@ end
 (*  Structure                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
-module Ocaml_sml : Ocaml_sml = 
+module Ocaml_sml (* : Ocaml_sml *) = 
 struct 
 
   type const_name = 
@@ -263,31 +263,41 @@ struct
   (*  Util                                                                      *)
   (* -------------------------------------------------------------------------- *)
 
+  (* remove "kepler'" from the front of a name *)
+  let unkepler s = 
+    try
+      let kep = String.sub s 0 7 in
+        if kep = "kepler'" then String.sub s 7 (String.length s - 7)
+        else s
+    with Invalid_argument _ -> s
+
   let const_of_string const = match const with
-    | "kepler'D31" -> Dd_31
-    | "kepler'D32" -> Dd_32
-    | "kepler'D33" -> Dd_33
-    | "kepler'D41" -> Dd_41
-    | "kepler'D42" -> Dd_42
-    | "kepler'D51" -> Dd_51
-    | "kepler'Z32" -> Zz_32
-    | "kepler'Z33" -> Zz_33
-    | "kepler'Z41" -> Zz_41
-    | "kepler'Z42" -> Zz_42
-    | "kepler'doct" -> Doct
+    | "D31" -> Dd_31
+    | "D32" -> Dd_32
+    | "D33" -> Dd_33
+    | "D41" -> Dd_41
+    | "D42" -> Dd_42
+    | "D51" -> Dd_51
+    | "Z32" -> Zz_32
+    | "Z33" -> Zz_33
+    | "Z41" -> Zz_41
+    | "Z42" -> Zz_42
+    | "doct" -> Doct
     | "pi" -> Pi
-    | "kepler'pt" -> Pt
-    | "kepler's5" -> Ss_5
-    | "kepler'sqrt2" -> Sqrt2
-    | "kepler'sqrt8" -> Sqrt8
-    | "kepler'square_2t0" -> Square_2t0
-    | "kepler'square_4t0" -> Square_4t0
-    | "kepler't0" -> Tt_0
-    | "kepler't5" -> Tt_5
-    | "kepler'two_t0" -> Two_t0
-    | "kepler'xi'_gamma" -> Xi'_gamma
-    | "kepler'xiV" -> Xiv
+    | "pt" -> Pt
+    | "s5" -> Ss_5
+    | "sqrt2" -> Sqrt2
+    | "sqrt8" -> Sqrt8
+    | "square_2t0" -> Square_2t0
+    | "square_4t0" -> Square_4t0
+    | "t0" -> Tt_0
+    | "t5" -> Tt_5
+    | "two_t0" -> Two_t0
+    | "xi'_gamma" -> Xi'_gamma
+    | "xiV" -> Xiv
     | _ -> failwith ("not a constant: " ^ const)
+
+  let const_of_string = const_of_string o unkepler 
 
   let const_to_string const = match const with
     | Dd_31 -> "D31"
@@ -315,59 +325,61 @@ struct
     | XiV -> "XiV"
 
   let func_of_string func = match func with
-    | "kepler'anc" -> Anc
-    | "kepler'arclength" -> Arclength
-    | "kepler'beta" -> Beta
-    | "kepler'chi_x" -> Chi_x
-    | "kepler'cross_diag_x" -> Cross_diag_x
-    | "kepler'crown" -> Crown
-    | "kepler'delta_x" -> Delta_x
-    | "kepler'dih2_x" -> Dih2_x
-    | "kepler'dih3_x" -> Dih3_x
-    | "kepler'dihR" -> Dihr
-    | "kepler'dih_x" -> Dih_x
-    | "kepler'eta_x" -> Eta_x
-    | "kepler'gamma_x" -> Gamma_x
-    | "kepler'kappa" -> Kappa
-    | "kepler'KX" -> Kx
-    | "kepler'mu_flat_x" -> Mu_flat_x
-    | "kepler'mu_flipped_x" -> Mu_flipped_x
-    | "kepler'mu_upright_x" -> Mu_upright_x
-    | "kepler'nu_gamma_x" -> Nu_gamma_x
-    | "kepler'nu_x" -> Nu_x
-    | "kepler'octa_x" -> Octa_x
-    | "kepler'octavor0_x" -> Octavor0_x
-    | "kepler'octavor_analytic_x" -> Octavor_analytic_x
-    | "kepler'overlap_f" -> Overlap_f
-    | "kepler'quo_x" -> Quo_x
-    | "kepler'rad2_x" -> Rad2_x
-    | "kepler'sigma1_qrtet_x" -> Sigma1_qrtet_x
-    | "kepler'sigma32_qrtet_x" -> Sigma32_qrtet_x
-    | "kepler'sigma_qrtet_x" -> Sigma_qrtet_x
-    | "kepler'sigmahat_x" -> Sigmahat_x
-    | "kepler'sol_x" -> Sol_x
-    | "kepler'tauA_x" -> Taua_x
-    | "kepler'tauC0_x" -> Tauc0_x
-    | "kepler'tauVt_x" -> Tauvt_x
-    | "kepler'tau_0_x" -> Tau_0_x
-    | "kepler'tau_analytic_x" -> Tau_analytic_x
-    | "kepler'tau_sigma_x" -> Tau_sigma_x
-    | "kepler'tauhat_x" -> Tauhat_x
-    | "kepler'tauhatpi_x" -> Tauhatpi_x
-    | "kepler'taumu_flat_x" -> Taumu_flat_x
-    | "kepler'taunu_x" -> Taunu_x
-    | "kepler'u_x" -> U_x
-    | "kepler'v0x" -> V0x
-    | "kepler'v1x" -> V1x
-    | "kepler'vorA_x" -> Vora_x
-    | "kepler'vorC0_x" -> Vorc0_x
-    | "kepler'vorC_x" -> Vorc_x
-    | "kepler'vor_0_x" -> Vor_0_x
-    | "kepler'vor_0_x_flipped" -> Vor_0_x_flipped
-    | "kepler'vor_analytic_x" -> Vor_analytic_x
-    | "kepler'vor_analytic_x_flipped" -> Vor_analytic_x_flipped
-    | "kepler'vort_x" -> Vort_x
+    | "anc" -> Anc
+    | "arclength" -> Arclength
+    | "beta" -> Beta
+    | "chi_x" -> Chi_x
+    | "cross_diag_x" -> Cross_diag_x
+    | "crown" -> Crown
+    | "delta_x" -> Delta_x
+    | "dih2_x" -> Dih2_x
+    | "dih3_x" -> Dih3_x
+    | "dihR" -> Dihr
+    | "dih_x" -> Dih_x
+    | "eta_x" -> Eta_x
+    | "gamma_x" -> Gamma_x
+    | "kappa" -> Kappa
+    | "KX" -> Kx
+    | "mu_flat_x" -> Mu_flat_x
+    | "mu_flipped_x" -> Mu_flipped_x
+    | "mu_upright_x" -> Mu_upright_x
+    | "nu_gamma_x" -> Nu_gamma_x
+    | "nu_x" -> Nu_x
+    | "octa_x" -> Octa_x
+    | "octavor0_x" -> Octavor0_x
+    | "octavor_analytic_x" -> Octavor_analytic_x
+    | "overlap_f" -> Overlap_f
+    | "quo_x" -> Quo_x
+    | "rad2_x" -> Rad2_x
+    | "sigma1_qrtet_x" -> Sigma1_qrtet_x
+    | "sigma32_qrtet_x" -> Sigma32_qrtet_x
+    | "sigma_qrtet_x" -> Sigma_qrtet_x
+    | "sigmahat_x" -> Sigmahat_x
+    | "sol_x" -> Sol_x
+    | "tauA_x" -> Taua_x
+    | "tauC0_x" -> Tauc0_x
+    | "tauVt_x" -> Tauvt_x
+    | "tau_0_x" -> Tau_0_x
+    | "tau_analytic_x" -> Tau_analytic_x
+    | "tau_sigma_x" -> Tau_sigma_x
+    | "tauhat_x" -> Tauhat_x
+    | "tauhatpi_x" -> Tauhatpi_x
+    | "taumu_flat_x" -> Taumu_flat_x
+    | "taunu_x" -> Taunu_x
+    | "u_x" -> U_x
+    | "v0x" -> V0x
+    | "v1x" -> V1x
+    | "vorA_x" -> Vora_x
+    | "vorC0_x" -> Vorc0_x
+    | "vorC_x" -> Vorc_x
+    | "vor_0_x" -> Vor_0_x
+    | "vor_0_x_flipped" -> Vor_0_x_flipped
+    | "vor_analytic_x" -> Vor_analytic_x
+    | "vor_analytic_x_flipped" -> Vor_analytic_x_flipped
+    | "vort_x" -> Vort_x
     | _ -> failwith ("no such const: " ^ func) 
+
+  let func_of_string = func_of_string o unkepler
 
   let func_to_string func = match func with
     | Anc -> "Anc" 
@@ -887,7 +899,7 @@ struct
         print_cut();
       end in
     begin
-      open_vbox 6;
+      open_vbox 4;
       print_cut();
       iter_butlast doit qs;
       ineq_to_sml (last qs);
@@ -896,49 +908,53 @@ struct
 
   let header = 
 "
-structure InequalitySyntax :> INEQUALITY_SYNTAX =
+(*============================================================================*)
+(* THIS FILE IS AUTOGENERATED.  DO NOT EDIT!!!                                *)
+(*============================================================================*)
+
+structure InequalitySyntax:> INEQUALITY_SYNTAX =
 struct 
 
-  open FunctionUtil
+open FunctionUtil
 
-  datatype const = Decimal of int * int
-                 | Int of int
-                 | Named of FunctionUtil.const_name
-                 | Sqr of const
-                 | Sqrt of const
-                 | Cos of const
-                 | Acos of const
-                 | Copp of const
-                 | Cplus of const * const
-                 | Cmul of const * const
-                 | Cdiv of const * const
+datatype const = Decimal of int * int
+               | Int of int
+               | Named of FunctionUtil.const_name
+               | Sqr of const
+               | Sqrt of const
+               | Cos of const
+               | Acos of const
+               | Copp of const
+               | Cplus of const * const
+               | Cmul of const * const
+               | Cdiv of const * const
 
-  datatype expr = Const of const
-                | Funcall of FunctionUtil.func_name * expr list
-                | Var of string
-                | Varsqrt of string
-                | Opp of expr
-                | Mul of expr * expr
-                | Div of expr * expr
-                | One
+datatype expr = Const of const
+              | Funcall of FunctionUtil.func_name * expr list
+              | Var of string
+              | Varsqrt of string
+              | Opp of expr
+              | Mul of expr * expr
+              | Div of expr * expr
+              | One
 
-  type monom = const * expr
+type monom = const * expr
 
-  type lcomb = monom list
+type lcomb = monom list
 
-  type bounds = {lo : const,
-                 hi : const}
+type bounds = {lo : const,
+               hi : const}
 
-  type ineq = {name : string,
-               vars : (string * bounds) list,
-               rels : lcomb list}
+type ineq = {name : string,
+             vars : (string * bounds) list,
+             rels : lcomb list}
 
-  val the_ineqs = [
+val the_ineqs = [
 "
 
   let footer = 
 "
-  ]
+]
 
 end" 
 
@@ -978,7 +994,7 @@ let file = "/Users/seanmcl/save/versioned/projects/kepler/sml/inequalities/inequ
 let q = List.nth ocaml_ineqs 0;;
 (print_endline ""; Ocaml_sml.ineq_to_sml q; print_endline "";)
 
-   let t = Ocaml_sml.normalize I_799187442;;
+   let t = Ocaml_sml.normalize I_572068135;;
    Ocaml_sml.translate_ineq t
 
 

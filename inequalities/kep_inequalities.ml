@@ -242,6 +242,8 @@ Search for LOC: to find preprint locations.
 *)
 
 
+(* XXX Note:  please don't write comments in HOL Light terms.
+ * this does not work.  *)
 
 (*
 LOC: 2002 k.c page 42.

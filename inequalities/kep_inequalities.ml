@@ -13490,6 +13490,13 @@ let I_2045090718=
 (* LOC: DCG 2006, V, page 198. Calc 17.4.2.1. *)
 
 (* verification uses dimension reduction.  See note on Calc 17.4.2.2 
+
+XXX false
+Bound: 0.119559830004
+
+Point: [4.00000445799, 4.00000445799, 4.00000286459, 4.00004119188, 4.00004119188, 7.99987944373]
+
+
    *)
 
 let I_9046001781=
@@ -13525,7 +13532,16 @@ depending on things like derivative information,
 dimension reduction, a separate calculation in a small
 neighborhood of the tight corner at (2,2,2,2,2,Sqrt[8]), etc. 
 I am combining them here.  Ferguson's discussion may be needed in their formal
-verification. *)
+verification. 
+
+XXX false
+
+Bound: 0.118099592077
+
+Point: [4.00593290879, 4.00593290879, 4.000991016, 4.02090803522, 4.02090803742, 7.99999120025]
+
+
+*)
 
 let I_4075001492=
 all_forall `ineq
@@ -13540,6 +13556,16 @@ all_forall `ineq
        (eta_x x1 x2  x6 < sqrt2) \/
    (vor_analytic_x x1 x2 x3 x4 x5 x6 < -- (#1.04)*  pt))`;;
 
+
+(* 
+
+XXX false
+
+Bound: 0.119559508184
+
+Point: [4.00000394962, 4.00000394962, 4.00000197481, 4.0001220805, 4.0001220805, 7.99999999627]
+
+*) 
 let I_8777240900=
 all_forall `ineq
    [((#4.0),x1,square_2t0);
@@ -13630,7 +13656,15 @@ all_forall `ineq
 
 
 (* LOC: DCG 2006, V, page 200. Calc 17.4.3.4. *)
+(* 
+XXX false
 
+
+Bound: 0.0249615271277
+
+Point: [7.89609717439, 4.000001105, 4.000001105, 6.30008811007, 4.00000159981, 4.00000159981]
+
+*) 
 let I_2785497175=
 all_forall `ineq
    [(square (#2.716),x1,square (#2.81));
@@ -13704,7 +13738,14 @@ all_forall `ineq
 
 (* LOC: DCG 2006, V, page 201. Calc 17.4.4.... *)
 (* See note in DCG errata.  We need to check that each half is nonpositive for the proof
-   of Lemma DCG 16.7, page 182. *)
+   of Lemma DCG 16.7, page 182. 
+
+XXX false
+Bound: 0.152942962259
+
+Point: [6.30009985876, 6.30009985876, 4.00000006053, 4.00000007573, 4.00000007573, 12.6001995643]
+
+*)
 
 let I_5127197465=
 all_forall `ineq

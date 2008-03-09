@@ -13,12 +13,18 @@ sig
     | Dd_41
     | Dd_42
     | Dd_51
-    | Zz_32
-    | Zz_33
-    | Zz_41
-    | Zz_42
     | Doct
     | Pi
+    | Ppa1
+    | Ppa2
+    | Ppd0
+    | Ppm
+    | Ppb
+    | Ppa
+    | Ppbc
+    | Ppc
+    | Ppd
+    | Ppsolt0
     | Pt
     | Ss_5
     | Sqrt2
@@ -28,8 +34,13 @@ sig
     | Tt_0
     | Tt_5
     | Two_t0
+    | Xi_gamma
     | Xi'_gamma
     | Xiv
+    | Zz_32
+    | Zz_33
+    | Zz_41
+    | Zz_42
 
   type func_name = | Anc
                    | Arclength
@@ -156,12 +167,18 @@ struct
     | Dd_41
     | Dd_42
     | Dd_51
-    | Zz_32
-    | Zz_33
-    | Zz_41
-    | Zz_42
     | Doct
     | Pi
+    | Ppa1
+    | Ppa2
+    | Ppd0
+    | Ppm
+    | Ppb
+    | Ppa
+    | Ppbc
+    | Ppc
+    | Ppd
+    | Ppsolt0
     | Pt
     | Ss_5
     | Sqrt2
@@ -171,8 +188,13 @@ struct
     | Tt_0
     | Tt_5
     | Two_t0
+    | Xi_gamma
     | Xi'_gamma
     | Xiv
+    | Zz_32
+    | Zz_33
+    | Zz_41
+    | Zz_42
 
   type func_name = | Anc
                    | Arclength
@@ -243,6 +265,7 @@ struct
               | Funcall of func_name * expr list
               | Var of string
               | Varsqrt of string
+              | Pow of expr * int
               | Opp of expr
               | Mul of expr * expr
               | Div of expr * expr
@@ -284,6 +307,16 @@ struct
     | "Z42" -> Zz_42
     | "doct" -> Doct
     | "pi" -> Pi
+    | "pp_a1" -> Ppa1
+    | "pp_a2" -> Ppa2
+    | "pp_d0" -> Ppd0
+    | "pp_m" -> Ppm
+    | "pp_b" -> Ppb
+    | "pp_a" -> Ppa
+    | "pp_bc" -> Ppbc
+    | "pp_c" -> Ppc
+    | "pp_d" -> Ppd
+    | "pp_solt0" -> Ppsolt0
     | "pt" -> Pt
     | "s5" -> Ss_5
     | "sqrt2" -> Sqrt2
@@ -293,6 +326,7 @@ struct
     | "t0" -> Tt_0
     | "t5" -> Tt_5
     | "two_t0" -> Two_t0
+    | "xi_gamma" -> Xi_gamma
     | "xi'_gamma" -> Xi'_gamma
     | "xiV" -> Xiv
     | _ -> failwith ("not a constant: " ^ const)
@@ -312,6 +346,16 @@ struct
     | Zz_42 -> "Z42"
     | Doct -> "Doct"
     | Pi -> "Pi"
+    | Ppa1 -> "Ppa1" 
+    | Ppa2 -> "Ppa2" 
+    | Ppd0 -> "Ppd0" 
+    | Ppm -> "Ppm" 
+    | Ppb -> "Ppb" 
+    | Ppa -> "Ppa" 
+    | Ppbc -> "Ppbc" 
+    | Ppc -> "Ppc" 
+    | Ppd -> "Ppd" 
+    | Ppsolt0 -> "Ppsolt0" 
     | Pt -> "Pt"
     | Ss_5 -> "S5"
     | Sqrt2 -> "Sqrt2"
@@ -321,6 +365,7 @@ struct
     | Tt_0 -> "T0"
     | Tt_5 -> "T5"
     | Two_t0 -> "TwoT0"
+    | Xi_gamma -> "XiGamma"
     | Xi'_gamma -> "Xi'Gamma"
     | XiV -> "XiV"
 
@@ -458,7 +503,7 @@ struct
     with _ -> None
 
   (* `&5` *)  
-  let translate_int t : const option = 
+  let translate_rint t : const option = 
     try
       let amp,n = dest_comb t in
         if amp = `&.` then 
@@ -466,6 +511,14 @@ struct
               Num.Int n' -> Some (Int n')
             | _ -> None 
         else None 
+    with _ -> None 
+
+  (*  `5` *)
+  let translate_int t : int option = 
+    try
+      match dest_numeral n with
+          Num.Int n' -> Some n'
+        | _ -> None 
     with _ -> None 
 
   (* `square_2t0` *)
@@ -479,7 +532,7 @@ struct
     match translate_decimal t with
         Some _ as c -> c
       | None ->
-    match translate_int t with
+    match translate_rint t with
         Some _ as c -> c
       | None ->
     match translate_named t with
@@ -570,6 +623,9 @@ struct
       | None ->
     match translate_div t with
         Some _ as c -> c
+      | None ->
+    match translate_pow t with
+        Some _ as c -> c
       | None -> failwith "translate_expr"
 
   and translate_funcall t =
@@ -603,6 +659,14 @@ struct
   and translate_opp t = translate_unop `(--.)` (fun x -> Opp x) t
   and translate_mul t = translate_binop `( *. )` (fun x,y -> Mul (x,y)) t
   and translate_div t = translate_binop `( / )` (fun x,y -> Div (x,y)) t
+  and translate_pow t = 
+    try
+      let f,[x;n] = strip_comb t in
+      if not(f = `((pow):real->num->real)`) then None else
+      let Some x' = translate_expr x in
+      let Some n' = translate_int n in
+        Some (Pow(x',n'))
+    with _ -> None 
 
   let translate_monom t : monom option = 
     match translate_const t with
@@ -767,14 +831,14 @@ struct
       close_box();
     end
 
-  let pp_binop p s c1 c2 = 
+  let pp_binop p1 p2 s c1 c2 = 
     begin
       open_hbox();
       print_string s;
       print_string "(";
-      p c1;
+      p1 c1;
       print_string ",";
-      p c2;
+      p2 c2;
       print_string ")";    
       close_box();
     end
@@ -807,9 +871,9 @@ struct
   and pp_sqr c = pp_unop pp_const "Sqr" c
   and pp_sqrt c = pp_unop pp_const "Sqrt" c
   and pp_copp c = pp_unop pp_const "Copp" c
-  and pp_cplus c1 c2 = pp_binop pp_const "Cplus" c1 c2
-  and pp_cmul c1 c2 = pp_binop pp_const "Cmul" c1 c2
-  and pp_cdiv c1 c2 = pp_binop pp_const "Cdiv" c1 c2
+  and pp_cplus c1 c2 = pp_binop pp_const pp_const "Cplus" c1 c2
+  and pp_cmul c1 c2 = pp_binop pp_const pp_const "Cmul" c1 c2
+  and pp_cdiv c1 c2 = pp_binop pp_const pp_const "Cdiv" c1 c2
 
   let rec pp_expr e = match e with
     | Const c -> (print_string "Const (";pp_const c;print_string ")")
@@ -819,6 +883,7 @@ struct
     | Opp e -> pp_opp e
     | Mul(x,y) -> pp_mul x y
     | Div(x,y) -> pp_div x y
+    | Pow(x,n) -> pp_pow x n
     | One -> print_string "One"
 
   and pp_funcall f xs = 
@@ -835,8 +900,9 @@ struct
   and pp_var v = print_string ("Var \"" ^ v ^ "\"")
   and pp_varsqrt v = print_string ("Varsqrt \"" ^ v ^ "\"")
   and pp_opp e = pp_unop pp_expr "Opp" e 
-  and pp_mul e1 e2 = pp_binop pp_expr "Mul" e1 e2
-  and pp_div e1 e2 = pp_binop pp_expr "Div" e1 e2
+  and pp_mul e1 e2 = pp_binop pp_expr pp_expr "Mul" e1 e2
+  and pp_div e1 e2 = pp_binop pp_expr pp_expr "Div" e1 e2
+  and pp_pow e1 e2 = pp_binop pp_expr pp_int "Pow" e1 e2
 
   let pp_monom (c,e) = 
     begin 
@@ -936,6 +1002,7 @@ datatype expr = Const of const
               | Opp of expr
               | Mul of expr * expr
               | Div of expr * expr
+              | Pow of expr * int
               | One
 
 type monom = const * expr
@@ -960,14 +1027,17 @@ end"
 
   let ineqs_to_sml ~file ~ineqs = 
     let chan = open_out file in
-      begin 
+      try
         set_formatter_out_channel chan;
         print_string header;
         ineqs_to_sml ineqs;
         print_string footer;
         set_formatter_out_channel stdout;        
         close_out chan;
-      end 
+      with exn -> 
+        set_formatter_out_channel stdout;
+        close_out chan;        
+        raise exn
 
 end
 
@@ -1007,6 +1077,7 @@ let q = List.nth ocaml_ineqs 0;;
    #trace Ocaml_sml.translate_lcomb;;
    #trace Ocaml_sml.translate_rel;;
    #trace Ocaml_sml.translate_ineq;;
+   #trace Ocaml_sml.translate_pow;;
    #trace Ocaml_sml.translate;;
 
    #untrace_all;;

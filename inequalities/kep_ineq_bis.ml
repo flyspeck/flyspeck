@@ -6,6 +6,12 @@ LOC: DCG errata :
 http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
 (svn 338)
 Added March7,2008.
+
+XXX false
+Bound: 0.064541497335
+
+Point: [6.30010733228, 6.30007582978, 5.35475339765, 4.00000309308, 6.30007582977, 5.35475339763]
+
  *)
 
 let I_9467217686=
@@ -97,7 +103,7 @@ all_forall `ineq
     ((#2.51),y5,(#2.51));
     ((#2.0),y6,(#2.51))
    ]
-   ((kappa y1 y2 y3 y4 y5 y6 < -- (#2.0)*xi_gamma + (#0.029)))`;;
+   ((kappa y1 y2 y3 y4 y5 y6 < (-- (#2.0)*xi_gamma) + (#0.029)))`;;
 
 
 (* L41e257
@@ -105,6 +111,12 @@ LOC: DCG errata :
 http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
 (svn 338)
 Added March7,2008.
+
+XXX false
+Bound: 0.223878304374
+
+Point: [6.30010754072, 6.30009424726, 4.00000591053, 4, 4.00000591051, 6.3001]
+
  *)
 
 let I_6410186704=
@@ -119,6 +131,14 @@ all_forall `ineq
    ((dih_x  x1 x2 x3 x4 x5 x6  > 
     dih_x (#2.51) (#2.51) x3 x4 x5 (#2.51) - (#0.0084)))`;;
 
+
+(* 
+XXX false
+Bound: 0.194552580073
+
+Point: [6.30011135252, 6.30009239209, 4.00000677596, 3.2, 4.00000677583, 6.3001]
+
+*) 
 
 let I_3008133607=
 all_forall `ineq

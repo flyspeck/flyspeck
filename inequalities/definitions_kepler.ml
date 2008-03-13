@@ -184,6 +184,8 @@ let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
    x2*x5*x6 + x3*x5*x6 -  (&2) * x4*x5*x6 -  x3*x6*x6`);;
 
 
+let ups_x = kepler_def(`ups_x x1 x2 x6 = --x1*x1 - x2*x2 - x6*x6 + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
+
 (* ------------------------------------------------------------------ *)
 (*   The formula for the dihedral angle of a simplex.                 *)
 (*   The variables xi are the squares of the lengths of the edges.    *)
@@ -770,12 +772,11 @@ let real3_of_triple = new_definition `real3_of_triple (a,b,c) = mk_real3 (mk_vec
 
 let triple_of_real3 = new_definition `triple_of_real3 v = (coord3 0 v,coord3 1 v, coord3 2 v)`;;
 
+let orig3 = new_definition `orig3 = real3_of_triple (&0,&0,&0)`;;
 
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
 (* ------------------------------------------------------------------ *)
-
-
 
 
 (* find point in euclidean 3 space atdistance a b c 
@@ -872,8 +873,37 @@ let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
 let closed_half_space = new_definition `closed_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_ge {u,v,w} {w'}))`;;
 let open_half_space = new_definition `open_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_gt {u,v,w} {w'}))`;;
 
+(* ANGLE *)
 
-  
+let arcV = new_definition `arcV u v w = acs ((dot3 (v - u) (w - u))/((norm3 (v-u)) * (norm3 (w-u))))`;;
+
+let cross = new_definition `cross u v = let (x,y,z) = triple_of_real3 u in 
+      let (x',y',z') = triple_of_real3 v in
+      (real3_of_triple (y*z' - y'*z, z*x' - z'*x, x*y' - x'*y))`;;
+
+let dihV = new_definition  `dihV w0 w1 w2 w3 = 
+     let va = w2 - w0 in
+     let vb = w3 - w0 in
+     let vc = w1 - w0 in
+     let vap = (dot3 vc vc) *# va - (dot3 va vc)*# vc in
+     let vbp = (dot3 vc vc) *# vb - (dot3 vb vc)*# vc in
+       arcV orig3 vap vbp`;;
+
+(* conventional ordering on variables *)
+
+let ylist = new_definition `ylist w0 w1 w2 w3 = 
+      ((d3 w0 w1),(d3 w0 w2),(d3 w0 w3),(d3 w2 w3),(d3 w1 w3),(d3 w1 w2))`;;
+
+let xlist = new_definition `xlist w0 w1 w2 w3 =
+    let (y1,y2,y3,y4,y5,y6) = ylist w0 w1 w2 w3 in
+    (y1 pow 2, y2 pow 2, y3 pow 2, y4 pow 2, y5 pow 2, y6 pow 2)`;;
+
+let euler_p = new_definition `euler_p v0 v1 v2 v3 = 
+    (let (y1,y2,y3,y4,y5,y6) = ylist v0 v1 v2 v3 in
+     let w1 = v1 - v0 in
+     let w2 = v2 - v0 in
+     let w3 = v3 - v0 in
+    y1*y2*y3 + y1*(dot3 w2 w3) + y2*(dot3 w3 w1) + y3*(dot3 w1 w2))`;;
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

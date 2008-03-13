@@ -7,6 +7,7 @@ let mk_vec3 = kepler_def `mk_vec3 y1 y2 y3 =
    else (&.0))`;;
 *)
 
+(*
 let mk_lattice = kepler_def `mk_lattice v1 v2 v3 =
   { z | ?m1 m2 m3. (z = (dest_int m1) *# v1 + (dest_int m2) *# v2 +
       (dest_int m3) *# v3 ) }`;;
@@ -25,8 +26,10 @@ let hcp_packing = kepler_def `hcp_packing =
   let v4 = mk_vec3 (&.0) (&.0) ((&.4)*sqrt(&.6)/(&.3)) in
   let L = mk_lattice v1 v2 v4 in
   L UNION (set_translate v3 L)`;;
+*)
 
 (* B(x,r).  Changed from closed in text.  *)
+
 let ball3 = kepler_def `ball3 x r = 
       open_ball (euclid 3,d_euclid) x r`;;
 

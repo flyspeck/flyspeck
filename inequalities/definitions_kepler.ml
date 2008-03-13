@@ -717,16 +717,66 @@ let norm = kepler_def `norm f = sqrt(dot f f)`;;
 
 let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
 
+
+(* ------------------------------------------------------------------ *)
+(* Three space *)
+(* ------------------------------------------------------------------ *)
+
+let real3_exists = prove( `?f. (!n. (n> 2) ==> (f n = &0))`,
+       EXISTS_TAC `(\j:num. &0)` THEN
+       BETA_TAC THEN (REWRITE_TAC[])
+			);;
+
+let real3 = new_type_definition "real3" ("mk_real3","dest_real3") real3_exists;;
+
+overload_interface
+ ("+", `real3_plus:real3->real3 ->real3`);;
+
+let real3_scale = new_definition
+  `real3_scale t v = mk_real3 (t *# dest_real3 v)`;;
+
+overload_interface ("*#",`real3_scale`);;
+
+let real3_neg = new_definition `real3_neg v = mk_real3 (-- dest_real3 v)`;;
+
+(* This is highly ambiguous: -- f x can be read as
+   (-- f) x or as -- (f x).  *)
+overload_interface ("--",`real3_neg`);; 
+
+overload_interface
+  ("-", `real3_minus:real3->real3->real3`);;
+
+let real3_plus =new_definition
+  `real3_plus v w = mk_real3 (euclid_plus (dest_real3 v) (dest_real3 w))`;;
+
+let real3_minus = new_definition
+  `real3_minus v w = mk_real3 (euclid_minus (dest_real3 v)  (dest_real3 w))`;;
+
+let coord3 = new_definition `coord3 i v = coord i (dest_real3 v)`;;
+
+let dot3 = new_definition `dot3 v w = dot (dest_real3 v) (dest_real3 w)`;;
+
+let norm3 = new_definition `norm3 v = sqrt(dot3 v v)`;;
+
+let d3 = new_definition `d3 v w = norm3 (v - w)`;;
+
+let dirac_delta = new_definition `dirac_delta (i:num) = 
+     (\j. if (i=j) then (&1) else (&0))`;;
+
+let mk_vec3 = new_definition `mk_vec3 a b c = 
+  a *# (dirac_delta 0) + b *# (dirac_delta 1) + c *# (dirac_delta 2)`;;
+
+let real3_of_triple = new_definition `real3_of_triple (a,b,c) = mk_real3 (mk_vec3 a b c)`;;
+
+let triple_of_real3 = new_definition `triple_of_real3 v = (coord3 0 v,coord3 1 v, coord3 2 v)`;;
+
+
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
 (* ------------------------------------------------------------------ *)
 
 
-let dirac_delta = kepler_def `dirac_delta (i:num) = 
-     (\j. if (i=j) then (&1) else (&0))`;;
 
-let mk_vec3 = kepler_def `mk_vec3 a b c = 
-  a *# (dirac_delta 0) + b *# (dirac_delta 1) + c *# (dirac_delta 2)`;;
 
 (* find point in euclidean 3 space atdistance a b c 
    from 
@@ -758,6 +808,69 @@ let cross_diag_x = kepler_def `cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9=
    cross_diag (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5)
     (sqrt x6) (sqrt x7) (sqrt x8) (sqrt x9)`;;
 
+(* ------------------------------------------------------------------ *)
+(*   Definitions of Affine Geometry (from BLUEPRINT : Trigonometry )  *)
+(* ------------------------------------------------------------------ *)
+
+
+let aff_insert = new_definition `aff_insert v S w = 
+   ( ?(u:real3) t.  (v INSERT S) u /\ (w = (t *# v) + (&1 - t)*# u))`;;
+
+let aff_insert_sym = new_definition 
+     `aff_insert_sym = (!x y S. ~(x=y) ==> 
+         aff_insert x (aff_insert y S) = aff_insert y (aff_insert x S))`;;
+
+let aff_spec = prove(
+  `?g. aff_insert_sym ==> 
+      ((g {} = {}) /\  (!v S.  (FINITE S) ==> (g (v INSERT S) =
+	(if (v IN S) then (g S) else (aff_insert v (g S))))))`,
+     (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN
+     (REWRITE_TAC[aff_insert_sym]) THEN
+     (STRIP_TAC) THEN
+     (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN
+     (ASM_REWRITE_TAC[]));;
+
+let aff = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *)
+
+let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w = 
+    ( ?(u:real3) t.  (v INSERT S) u /\ ( w= (t*# v) + (&1 - t) *# u) /\ (sgn t))`;;
+
+let aff_sgn_insert_sym = new_definition 
+     `aff_sgn_insert_sym =  (!x y S. ~(x=y)  ==> 
+         aff_sgn_insert sgn x (aff_sgn_insert sgn y S) = aff_sgn_insert sgn y (aff_sgn_insert sgn x S))`;;
+
+let aff_sgn_spec = prove(
+  `?g. !sgn S1. aff_sgn_insert_sym sgn ==> 
+      ((g sgn S1 {} = aff S1) /\  (!v S.  (FINITE S) ==> (g sgn S1 (v INSERT S) =
+	(if (v IN S) then (g sgn S1  S) else (aff_sgn_insert sgn v (g sgn S1 S))))))`,
+     (REWRITE_TAC[GSYM SKOLEM_THM]) THEN
+     (REPEAT STRIP_TAC) THEN
+     (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN
+     (REWRITE_TAC[aff_sgn_insert_sym]) THEN
+     (STRIP_TAC) THEN
+     (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN
+     (ASM_REWRITE_TAC[]));;
+
+let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *)
+
+let aff_gt = new_definition `aff_gt = aff_sgn (\t. (t > &0) )`;;
+let aff_ge = new_definition `aff_ge = aff_sgn (\t. (t >= &0) )`;;
+let aff_lt = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;;
+let aff_le = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;;
+let conv = new_definition `conv S = aff_ge {} S`;;
+let conv0 = new_definition `conv0 S = aff_gt {} S`;;
+let cone = new_definition `cone v S = aff_ge {v} S`;;
+let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
+let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
+
+let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = aff {v,w}))`;;
+let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; 
+let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff {u,v,w}))`;;
+let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
+let open_half_plane = new_definition `open_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_gt {u,v} {w}))`;;
+let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
+let closed_half_space = new_definition `closed_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_ge {u,v,w} {w'}))`;;
+let open_half_space = new_definition `open_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_gt {u,v,w} {w'}))`;;
 
 
   

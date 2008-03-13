@@ -905,6 +905,26 @@ let euler_p = new_definition `euler_p v0 v1 v2 v3 =
      let w3 = v3 - v0 in
     y1*y2*y3 + y1*(dot3 w2 w3) + y2*(dot3 w3 w1) + y3*(dot3 w1 w2))`;;
 
+(* polar coordinates *)
+
+let radius = new_definition `radius x y = sqrt((x pow 2) + (y pow 2))`;;
+let polar_angle = new_definition `polar_angle x y = 
+         let theta = atn2(x,y) in
+	 if (theta < &0) then (theta + (&2 * pi)) else theta`;;
+let polar_c = new_definition `polar_c x y = (radius x y,polar_angle x y)`;;
+
+let less_polar = new_definition `less_polar (x,y) (x',y') = 
+        let (r,theta) = polar_c x y in
+	let (r',theta') = polar_c x' y' in
+        (theta < theta') \/ ((theta =theta') /\ (r < r'))`;;
+
+let min_polar = new_definition `min_polar V = ( @ u. V u /\ (!w. V w /\ ~(u = w) ==> (less_polar u w)))`;;
+
+let polar_cycle = new_definition `polar_cycle V v =  
+       let W = {u  | V u /\ less_polar v u} in
+       if (W = EMPTY) then min_polar V else min_polar W`;;
+
+
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)
 (* ------------------------------------------------------------------ *)

@@ -837,7 +837,7 @@ let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w =
     ( ?(u:real3) t.  (v INSERT S) u /\ ( w= (t*# v) + (&1 - t) *# u) /\ (sgn t))`;;
 
 let aff_sgn_insert_sym = new_definition 
-     `aff_sgn_insert_sym =  (!x y S. ~(x=y)  ==> 
+     `aff_sgn_insert_sym sgn =  (!x y S. ~(x=y)  ==> 
          aff_sgn_insert sgn x (aff_sgn_insert sgn y S) = aff_sgn_insert sgn y (aff_sgn_insert sgn x S))`;;
 
 let aff_sgn_spec = prove(
@@ -924,13 +924,27 @@ let polar_cycle = new_definition `polar_cycle V v =
        let W = {u  | V u /\ less_polar v u} in
        if (W = EMPTY) then min_polar V else min_polar W`;;
 
+(* iterates of a function must be done already, but I don't know where *)
+
+let iter_spec = prove(`?iter. !f u:A. (iter 0 f u = u) /\ (!n. (iter (SUC n) f u = f(iter n f u)))`,
+    (SUBGOAL_THEN `?g. !f (u:A).  (g f u 0 = u) /\ (!n. (g f u (SUC n) = f (g f u n)))` CHOOSE_TAC) THENL
+     ([REWRITE_TAC[GSYM SKOLEM_THM;num_RECURSION_STD];REWRITE_TAC[]]) THEN
+     (EXISTS_TAC `\ (i:num) (f:A->A)  (u:A). (g f u i):A`) THEN
+      (BETA_TAC) THEN
+     (ASM_REWRITE_TAC[]));;
+
+let iter = new_specification ["iter"] iter_spec;;
+
+(*
 let polar_power_spec = prove(`?fn. !V v.  (fn V v 0 = v ) /\ (!n. (fn V v (SUC n) = polar_cycle V (fn V v n)))`, 
      (REWRITE_TAC[GSYM SKOLEM_THM;num_RECURSION_STD]));;
 
 let polar_power = new_specification ["polar_power"] polar_power_spec;;
+*)
+
 
 (* spherical coordinates *)
-let azim_spec_t = new_definition `azim_spec = (!v w w1 w2. ?theta. !e1 e2. ?psi h1 h2 r1 r2.
+let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2. ?psi h1 h2 r1 r2.
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
    (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
    (&0 < dot3 (cross e1 e2) (w-v) ) ==>
@@ -939,7 +953,7 @@ let azim_spec_t = new_definition `azim_spec = (!v w w1 w2. ?theta. !e1 e2. ?psi 
    (w2 = (r2 * cos(psi + theta)) *# e1 + (r2 * sin(psi + theta)) *# e2 + h2 *# (w-v))))`;;
 
 let azim_spec = prove(`?theta. !v w w1 w2 e1 e2. ?psi h1 h2 r1 r2.
-   (azim_spec) ==>
+   (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
    (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
    (&0 < dot3 (cross e1 e2) (w-v) ) ==>
@@ -947,7 +961,7 @@ let azim_spec = prove(`?theta. !v w w1 w2 e1 e2. ?psi h1 h2 r1 r2.
    (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
    (w2 = (r2 * cos(psi + theta v w w1 w2)) *# e1 + (r2 * sin(psi + theta v w w1 w2)) *# e2 + h2 *# (w-v)))`,
    (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
-     (REWRITE_TAC[azim_spec_t]) THEN
+     (REWRITE_TAC[azim_hyp_def]) THEN
      (REPEAT STRIP_TAC) THEN
      (ASM_REWRITE_TAC[RIGHT_IMP_EXISTS_THM]));;
 
@@ -965,7 +979,7 @@ let cyclic_set = new_definition `cyclic_set W v w =
 
 
 
-let azim_cycle_hyp = new_definition `azim_cycle_hyp = 
+let azim_cycle_hyp_def = new_definition `azim_cycle_hyp = 
   (?sigma.  !W proj v w e1 e2 e3 p. 
         (W p) /\
         (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
@@ -979,7 +993,7 @@ let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3)))) ==> (proj (sigma W p) = polar_cycle (IMAGE proj W) (proj p))`,
 	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
-	  (REWRITE_TAC[azim_cycle_hyp])
+	  (REWRITE_TAC[azim_cycle_hyp_def])
 	   );;
 
 let azim_cycle = new_specification ["azim_cycle"] azim_cycle_spec;;	

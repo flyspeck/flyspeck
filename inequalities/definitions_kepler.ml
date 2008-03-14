@@ -924,6 +924,81 @@ let polar_cycle = new_definition `polar_cycle V v =
        let W = {u  | V u /\ less_polar v u} in
        if (W = EMPTY) then min_polar V else min_polar W`;;
 
+let polar_power_spec = prove(`?fn. !V v.  (fn V v 0 = v ) /\ (!n. (fn V v (SUC n) = polar_cycle V (fn V v n)))`, 
+     (REWRITE_TAC[GSYM SKOLEM_THM;num_RECURSION_STD]));;
+
+let polar_power = new_specification ["polar_power"] polar_power_spec;;
+
+(* spherical coordinates *)
+let azim_spec_t = new_definition `azim_spec = (!v w w1 w2. ?theta. !e1 e2. ?psi h1 h2 r1 r2.
+   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
+   (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
+   (&0 < dot3 (cross e1 e2) (w-v) ) ==>
+   ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
+   (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
+   (w2 = (r2 * cos(psi + theta)) *# e1 + (r2 * sin(psi + theta)) *# e2 + h2 *# (w-v))))`;;
+
+let azim_spec = prove(`?theta. !v w w1 w2 e1 e2. ?psi h1 h2 r1 r2.
+   (azim_spec) ==>
+   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
+   (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
+   (&0 < dot3 (cross e1 e2) (w-v) ) ==>
+   ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
+   (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
+   (w2 = (r2 * cos(psi + theta v w w1 w2)) *# e1 + (r2 * sin(psi + theta v w w1 w2)) *# e2 + h2 *# (w-v)))`,
+   (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
+     (REWRITE_TAC[azim_spec_t]) THEN
+     (REPEAT STRIP_TAC) THEN
+     (ASM_REWRITE_TAC[RIGHT_IMP_EXISTS_THM]));;
+
+let azim = new_specification ["azim"] azim_spec;;
+
+let orthonormal = new_definition `orthonormal e1 e2 e3 = 
+     ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
+     (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
+     (dot3 (cross e1 e2) e3 > &0))`;;
+
+let cyclic_set = new_definition `cyclic_set W v w = 
+     (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h *# (v - w)) ==> (p=q)) /\
+        (W INTER (aff {v,w}) = EMPTY))`;;
+
+(* We need the existence of an inverse function.  This is
+   done in Jordan/misc_defs_and_lemmas.ml : INVERSE_FN (= inverse_spec below).  
+   For now, lets make an empty definition of INV.  *)
+(* NO.  I don't need it after all. *)
+(*
+
+let inverse_spec = new_definition `inverse_spec (t:A->B) = (?INV. (! (f:A->B) a b. (SURJ f a b) ==> ((INJ (INV f a b) b a) /\
+       (!(x:B). (x IN b) ==> (f ((INV f a b) x) = x)))))`;;
+
+let inverse_exists = prove(`?INV. (! (f:A->B) a b. (inverse_spec f) ==> ((SURJ f a b) ==> ((INJ (INV f a b) b a) /\
+       (!(x:B). (x IN b) ==> (f ((INV f a b) x) = x)))))`,
+    (REWRITE_TAC[inverse_spec]) THEN
+    (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) 
+			  );;
+
+let INV_DEF = new_specification ["INV"] inverse_exists;;
+*)
+
+
+let azim_cycle_hyp = new_definition `azim_cycle_hyp = 
+  (?sigma.  !W proj v w e1 e2 e3 p. 
+        (W p) /\
+        (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
+	(orthonormal e1 e2 e3) /\ 
+	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3))) ==>
+	(proj (sigma W p) = polar_cycle (IMAGE proj W) (proj p)))`;;
+
+let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
+   (azim_cycle_hyp) ==> ( (W p) /\
+        (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
+	(orthonormal e1 e2 e3) /\ 
+	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3)))) ==> (proj (sigma W p) = polar_cycle (IMAGE proj W) (proj p))`,
+	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
+	  (REWRITE_TAC[azim_cycle_hyp])
+	   );;
+
+let azim_cycle = new_specification ["azim_cycle"] azim_cycle_spec;;	
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

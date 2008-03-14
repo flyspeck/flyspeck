@@ -962,23 +962,7 @@ let cyclic_set = new_definition `cyclic_set W v w =
      (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h *# (v - w)) ==> (p=q)) /\
         (W INTER (aff {v,w}) = EMPTY))`;;
 
-(* We need the existence of an inverse function.  This is
-   done in Jordan/misc_defs_and_lemmas.ml : INVERSE_FN (= inverse_spec below).  
-   For now, lets make an empty definition of INV.  *)
-(* NO.  I don't need it after all. *)
-(*
 
-let inverse_spec = new_definition `inverse_spec (t:A->B) = (?INV. (! (f:A->B) a b. (SURJ f a b) ==> ((INJ (INV f a b) b a) /\
-       (!(x:B). (x IN b) ==> (f ((INV f a b) x) = x)))))`;;
-
-let inverse_exists = prove(`?INV. (! (f:A->B) a b. (inverse_spec f) ==> ((SURJ f a b) ==> ((INJ (INV f a b) b a) /\
-       (!(x:B). (x IN b) ==> (f ((INV f a b) x) = x)))))`,
-    (REWRITE_TAC[inverse_spec]) THEN
-    (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) 
-			  );;
-
-let INV_DEF = new_specification ["INV"] inverse_exists;;
-*)
 
 
 let azim_cycle_hyp = new_definition `azim_cycle_hyp = 

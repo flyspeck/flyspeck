@@ -831,7 +831,7 @@ let aff_spec = prove(
      (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN
      (ASM_REWRITE_TAC[]));;
 
-let aff = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *)
+let aff_def = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *)
 
 let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w = 
     ( ?(u:real3) t.  (v INSERT S) u /\ ( w= (t*# v) + (&1 - t) *# u) /\ (sgn t))`;;
@@ -854,10 +854,10 @@ let aff_sgn_spec = prove(
 
 let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *)
 
-let aff_gt = new_definition `aff_gt = aff_sgn (\t. (t > &0) )`;;
-let aff_ge = new_definition `aff_ge = aff_sgn (\t. (t >= &0) )`;;
-let aff_lt = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;;
-let aff_le = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;;
+let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (t > &0) )`;;
+let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (t >= &0) )`;;
+let aff_lt_def = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;;
+let aff_le_def = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;;
 let conv = new_definition `conv S = aff_ge {} S`;;
 let conv0 = new_definition `conv0 S = aff_gt {} S`;;
 let cone = new_definition `cone v S = aff_ge {v} S`;;
@@ -942,21 +942,23 @@ let polar_power_spec = prove(`?fn. !V v.  (fn V v 0 = v ) /\ (!n. (fn V v (SUC n
 let polar_power = new_specification ["polar_power"] polar_power_spec;;
 *)
 
+let orthonormal = new_definition `orthonormal e1 e2 e3 = 
+     ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
+     (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
+     (dot3 (cross e1 e2) e3 > &0))`;;
 
 (* spherical coordinates *)
-let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2. ?psi h1 h2 r1 r2.
+let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
-   (&0 < dot3 (cross e1 e2) (w-v) ) ==>
+   (orthonormal e1 e2 e3) /\ ((d3 w v) *# e3 = (w - v)) ==>
    ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
    (w2 = (r2 * cos(psi + theta)) *# e1 + (r2 * sin(psi + theta)) *# e2 + h2 *# (w-v))))`;;
 
-let azim_spec = prove(`?theta. !v w w1 w2 e1 e2. ?psi h1 h2 r1 r2.
+let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
    (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (dot3 e1 (v-w) = &0) /\ (dot3 e2 (v-w) = &0) /\ (dot3 e1 e2 = &1) /\
-   (&0 < dot3 (cross e1 e2) (w-v) ) ==>
+   (orthonormal e1 e2 e3) /\ ((d3 w v) *# e3 = (w - v)) ==>
    ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
    (w2 = (r2 * cos(psi + theta v w w1 w2)) *# e1 + (r2 * sin(psi + theta v w w1 w2)) *# e2 + h2 *# (w-v)))`,
@@ -965,12 +967,8 @@ let azim_spec = prove(`?theta. !v w w1 w2 e1 e2. ?psi h1 h2 r1 r2.
      (REPEAT STRIP_TAC) THEN
      (ASM_REWRITE_TAC[RIGHT_IMP_EXISTS_THM]));;
 
-let azim = new_specification ["azim"] azim_spec;;
+let azim_def = new_specification ["azim"] azim_spec;;
 
-let orthonormal = new_definition `orthonormal e1 e2 e3 = 
-     ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
-     (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
-     (dot3 (cross e1 e2) e3 > &0))`;;
 
 let cyclic_set = new_definition `cyclic_set W v w = 
      (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h *# (v - w)) ==> (p=q)) /\

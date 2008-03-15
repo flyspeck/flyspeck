@@ -11,7 +11,7 @@ prioritize_real();;
 sin;;
 cos;;
 DIFF_SIN;; (* derivative of sin is cos *)
-DIFF_COS;; (* derivative of cos is sin *)
+DIFF_COS;; (* derivative of cos is -sin *)
 SIN_0;; (* sin(0) = 0 *)
 COS_0;; (* cos(0) =1 *)
 SIN_CIRCLE;; (* blueprint/lemma:circle *)

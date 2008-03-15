@@ -994,7 +994,7 @@ let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
 	  (REWRITE_TAC[azim_cycle_hyp_def])
 	   );;
 
-let azim_cycle = new_specification ["azim_cycle"] azim_cycle_spec;;	
+let azim_cycle_def = new_specification ["azim_cycle"] azim_cycle_spec;;	
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

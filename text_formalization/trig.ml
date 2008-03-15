@@ -1,7 +1,4 @@
-(* Blueprint Chapter  on Trigonometry *)
-
-
-
+(* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
 needs "Examples/transc.ml";;
 needs "definitions_kepler.ml";;
@@ -91,7 +88,7 @@ let spherical_loc2_t = `!v0 va vb vc.
 	  let beta = dihV v0 vb va vc in
 	  let gamma = dihV v0 vc vb va in
 	  let c = arcV v0 va vb in
-	    (cos(c) = (cos(gamma) + cos(alpha)*cos(beta))/(sin(a)*sin(b))))`;;
+	    (cos(c) = (cos(gamma) + cos(alpha)*cos(beta))/(sin(alpha)*sin(beta))))`;;
 
 let dih_formula_t = `!v0 v1 v2 v3. 
    ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) ==>
@@ -101,9 +98,9 @@ let dih_formula_t = `!v0 v1 v2 v3.
    )`;;
 
 let dih_x_acs_t = `!x1 x2 x3 x4 x5 x6.
-   (ups x1 x2 x6 > &0) /\ (ups x1 x3 x5 > &0) /\ (delta_x x1 x2 x3 x4 x5 x6 >= &0) /\ (x1 >= &0) ==>
+   (ups_x x1 x2 x6 > &0) /\ (ups_x x1 x3 x5 > &0) /\ (delta_x x1 x2 x3 x4 x5 x6 >= &0) /\ (x1 >= &0) ==>
    dih_x x1 x2 x3 x4 x5 x6 = acs ((delta_x4 x1 x2 x3 x4 x5 x6)/
-	((sqrt (ups x1 x2 x6)) * (sqrt (ups x1 x3 x5))))`;;
+	((sqrt (ups_x x1 x2 x6)) * (sqrt (ups_x x1 x3 x5))))`;;
 
 let beta_cone_t = `!v0 v1 v2 v3.
     ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ 
@@ -123,8 +120,8 @@ let euler_triangle_t = `!v0 v1 v2 v3.
 let polar_coords_t = `!x y. (x = (radius x y)*(cos(polar_angle x y))) /\
      (y = (radius x y)*(sin(polar_angle x y)))`;;
 
-let polar_cycle_rotate_t = `!V psi u.
-       let f (x,y) = (x*cos psi + y*sin psi, -- x*sin psi + y*cos psi) in
+let polar_cycle_rotate_t = `!V psi u f.
+       (!x y. f (x,y) = (x*cos psi + y*sin psi, -- x*sin psi + y*cos psi)) /\
        FINITE V  /\ V u ==>
        (polar_cycle (IMAGE f V) (f u) =  f (polar_cycle V u))`;;
 
@@ -203,3 +200,240 @@ let aff_sgn_insert_sym_le_t = `aff_sgn_insert_sym (\t. t <= &0)`;;
 let azim_hyp_t = `azim_hyp`;;
 let azim_cycle_hyp_t = `azim_cycle_hyp`;;
 
+(* definitions without obligations *)
+
+let aff_t = `(aff {} = {}) /\
+         (!v S.
+              FINITE S
+              ==> aff (v INSERT S) =
+                  (if v IN S then aff S else aff_insert v (aff S)))`;;
+
+let aff_gt_t = `!S1.
+          (aff_gt S1 {} = aff S1) /\
+             (!v S.
+                  FINITE S
+                  ==> aff_gt S1 (v INSERT S) =
+                      (if v IN S
+                       then aff_gt S1 S
+                       else aff_sgn_insert (\t. t > &0) v (aff_gt S1 S)))`;;
+
+let aff_ge_t = `!S1.
+          (aff_ge S1 {} = aff S1) /\
+             (!v S.
+                  FINITE S
+                  ==> aff_ge S1 (v INSERT S) =
+                      (if v IN S
+                       then aff_ge S1 S
+                       else aff_sgn_insert (\t. t >= &0) v (aff_ge S1 S)))`;;
+
+let aff_lt_t = `!S1.
+          (aff_lt S1 {} = aff S1) /\
+             (!v S.
+                  FINITE S
+                  ==> aff_lt S1 (v INSERT S) =
+                      (if v IN S
+                       then aff_lt S1 S
+                       else aff_sgn_insert (\t. t < &0) v (aff_lt S1 S)))`;;
+
+let aff_le_t = `!S1.
+          (aff_le S1 {} = aff S1) /\
+             (!v S.
+                  FINITE S
+                  ==> aff_le S1 (v INSERT S) =
+                      (if v IN S
+                       then aff_le S1 S
+                       else aff_sgn_insert (\t. t <= &0) v (aff_le S1 S)))`;;
+
+let azim_t = `!v w w1 w2 e1 e2 e3.
+         ?psi h1 h2 r1 r2.
+                 ~collinear {v, w, w1} /\
+                 ~collinear {v, w, w2} /\
+                 orthonormal e1 e2 e3 /\
+                 (d3 w v *# e3 = w - v)
+             ==> &0 <= azim v w w1 w2 /\
+                 azim v w w1 w2 < &2 * pi /\
+                 &0 < r1 /\
+                 &0 < r2 /\
+                 w1 =
+                 (r1 * cos psi) *# e1 + (r1 * sin psi) *# e2 + h1 *# (w - v) /\
+                 (w2 =
+                 (r2 * cos (psi + azim v w w1 w2)) *# e1 +
+                 (r2 * sin (psi + azim v w w1 w2)) *# e2 +
+                 h2 *# (w - v))`;;
+
+let azim_cycle_t = `!W proj v w e1 e2 e3 p.
+             W p /\
+             cyclic_set W v w /\
+             (d3 v w *# e3 = w - v) /\
+             orthonormal e1 e2 e3 /\
+             (!u x y.
+                  proj u = x,y <=> (?h. u = v + x *# e1 + y *# e2 + h *# e3))
+         ==> (proj (azim_cycle W p) = polar_cycle (IMAGE proj W) (proj p))`;;
+
+
+(* signature for trig theorems.
+   This is the list of theorems that should be provided by
+   an implementation of the blueprint on trig.
+   The signature can be extended, but care needs to made
+   in removing anything, because it may create incompatibilities
+   with other pieces of code. *)
+
+(* In every case, there is a term giving the precise theorem to
+   be proved *)
+
+
+module type Trigsig = sig
+  val atn2_spec : thm (* atn2_spec_t  *)
+  val sin_acs : thm (* sin_acs_t *)
+  val acs_atn2: thm  (* acs_atn2_t *)
+  val arcVarc : thm (*  arcVarc_t *)
+  val law_of_cosines : thm (*  law_of_cosines_t *)
+  val law_of_sines : thm (*  law_of_sines_t *)
+  val cross_mag : thm (*  cross_mag_t *)
+  val cross_skew : thm (*  cross_skew_t *)
+  val cross_triple : thm (*  cross_triple_t *)
+  val spherical_loc : thm (*  spherical_loc_t *)
+  val spherical_loc2 : thm (*  spherical_loc2_t *)
+  val dih_formula : thm (*  dih_formula_t *)
+  val dih_x_acs : thm (*  dih_x_acs_t *)
+  val beta_cone : thm (*  beta_cone_t *)
+  val euler_triangle : thm (*  euler_triangle_t *)
+  val polar_coords : thm (*  polar_coords_t *)
+  val polar_cycle_rotate : thm (*  polar_cycle_rotate_t *)
+  val thetaij : thm (*  thetaij_t *)
+  val thetapq_wind : thm (*  thetapq_wind_t *)
+  val zenith : thm (*  zenith_t *)
+  val spherical_coord : thm (*  spherical_coord_t *)
+  val polar_coord_zenith : thm (*  polar_coord_zenith_t *)
+  val azim_pair : thm (*  azim_pair_t *)
+  val azim_cycle_sum : thm (*  azim_cycle_sum_t *)
+  val dih_azim : thm (*  dih_azim_t *)
+  val sph_triangle_ineq : thm (*  sph_triangle_ineq_t *)
+  val sph_triangle_ineq_sum : thm (*  sph_triangle_ineq_sum_t *)
+  val aff_insert_sym : thm (*  aff_insert_sym_t *)
+  val aff_sgn_insert_sym_gt : thm (*  aff_sgn_insert_sym_gt_t *)
+  val aff_sgn_insert_sym_ge : thm (*  aff_sgn_insert_sym_ge_t *)
+  val aff_sgn_insert_sym_lt : thm (*  aff_sgn_insert_sym_lt_t *)
+  val aff_sgn_insert_sym_le : thm (*  aff_sgn_insert_sym_le_t *)
+  val azim_hyp : thm (*  azim_hyp_t *)
+  val azim_cycle_hyp : thm (*  azim_cycle_hyp_t *)
+  val aff : thm (* aff_t *)
+  val aff_gt : thm (*  aff_gt_t   *)
+  val aff_ge : thm (*  aff_ge_t   *)
+  val aff_lt : thm (*  aff_lt_t   *)
+  val aff_le : thm (*  aff_le_t   *)
+  val azim : thm (*  azim_t   *)
+  val azim_cycle : thm (*  azim_cycle_t   *)
+end;;
+
+(* Here is a single axiom that permits a quick implementation of the
+   module with the given signature.
+   The axiom can be used so that the proofs in different chapters can
+   proceed independently.  *)
+
+let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
+   [
+ atn2_spec_t  ;
+ sin_acs_t ;
+ acs_atn2_t ;
+  arcVarc_t ;
+  law_of_cosines_t ;
+  law_of_sines_t ;
+  cross_mag_t ;
+  cross_skew_t ;
+  cross_triple_t ;
+  spherical_loc_t ;
+  spherical_loc2_t ;
+  dih_formula_t ;
+  dih_x_acs_t ;
+  beta_cone_t ;
+  euler_triangle_t ;
+  polar_coords_t ;
+  polar_cycle_rotate_t ;
+  thetaij_t ;
+  thetapq_wind_t ;
+  zenith_t ;
+  spherical_coord_t ;
+  polar_coord_zenith_t ;
+  azim_pair_t ;
+  azim_cycle_sum_t ;
+  dih_azim_t ;
+  sph_triangle_ineq_t ;
+  sph_triangle_ineq_sum_t ;
+  aff_insert_sym_t ;
+  aff_sgn_insert_sym_gt_t ;
+  aff_sgn_insert_sym_ge_t ;
+  aff_sgn_insert_sym_lt_t ;
+  aff_sgn_insert_sym_le_t ;
+  azim_hyp_t ;
+  azim_cycle_hyp_t ;
+  aff_t;
+  aff_gt_t;
+  aff_ge_t;
+  aff_lt_t;
+  aff_le_t;
+  azim_t;
+  azim_cycle_t;
+   ])));;
+
+(* axiomatic implementation of  Trigsig *)
+
+(* 
+
+let trig_axiom = new_axiom `trig_axiom`;; 
+
+module Trig : Trigsig = struct
+  let trigAxiomProofA a_t = prove(a_t,
+      (MP_TAC trig_axiom) THEN (REWRITE_TAC[trig_axiom_list]) THEN 
+      (DISCH_THEN (fun t-> ASM_REWRITE_TAC[t]))
+      )
+  let trigAxiomProofB a_t = prove(a_t,
+      (MP_TAC trig_axiom) THEN (REWRITE_TAC[trig_axiom_list]) THEN 
+      (REPEAT STRIP_TAC)
+      )
+  let atn2_spec = trigAxiomProofB atn2_spec_t
+  let sin_acs = trigAxiomProofB sin_acs_t
+  let acs_atn2 = trigAxiomProofB  acs_atn2_t 
+  let  arcVarc = trigAxiomProofB   arcVarc_t 
+  let  law_of_cosines = trigAxiomProofB   law_of_cosines_t 
+  let  law_of_sines = trigAxiomProofB   law_of_sines_t 
+  let  cross_mag = trigAxiomProofB   cross_mag_t 
+  let  cross_skew = trigAxiomProofB cross_skew_t
+  let  cross_triple = trigAxiomProofB   cross_triple_t 
+  let  spherical_loc = trigAxiomProofB   spherical_loc_t 
+  let  spherical_loc2 = trigAxiomProofB   spherical_loc2_t 
+  let  dih_formula = trigAxiomProofB   dih_formula_t 
+  let  dih_x_acs = trigAxiomProofB   dih_x_acs_t 
+  let  beta_cone = trigAxiomProofB   beta_cone_t 
+  let  euler_triangle = trigAxiomProofB   euler_triangle_t 
+  let  polar_coords = trigAxiomProofB   polar_coords_t 
+  let  polar_cycle_rotate = trigAxiomProofB   polar_cycle_rotate_t 
+  let  thetaij = trigAxiomProofB   thetaij_t 
+  let  thetapq_wind = trigAxiomProofB   thetapq_wind_t 
+  let  zenith = trigAxiomProofB   zenith_t 
+  let  spherical_coord = trigAxiomProofB   spherical_coord_t 
+  let  polar_coord_zenith = trigAxiomProofB   polar_coord_zenith_t 
+  let  azim_pair = trigAxiomProofB   azim_pair_t 
+  let  azim_cycle_sum = trigAxiomProofB   azim_cycle_sum_t 
+  let  dih_azim = trigAxiomProofB   dih_azim_t 
+  let  sph_triangle_ineq = trigAxiomProofB   sph_triangle_ineq_t 
+  let  sph_triangle_ineq_sum = trigAxiomProofB   sph_triangle_ineq_sum_t 
+  let  aff_insert_sym = trigAxiomProofB   aff_insert_sym_t 
+  let  aff_sgn_insert_sym_gt = trigAxiomProofB   aff_sgn_insert_sym_gt_t 
+  let  aff_sgn_insert_sym_ge = trigAxiomProofB   aff_sgn_insert_sym_ge_t 
+  let  aff_sgn_insert_sym_lt = trigAxiomProofB   aff_sgn_insert_sym_lt_t 
+  let  aff_sgn_insert_sym_le = trigAxiomProofB   aff_sgn_insert_sym_le_t 
+  let  azim_hyp = trigAxiomProofB   azim_hyp_t 
+  let  azim_cycle_hyp = trigAxiomProofB   azim_cycle_hyp_t 
+  let  aff = trigAxiomProofA   aff_t
+  let  aff_gt = trigAxiomProofB   aff_gt_t
+  let  aff_ge = trigAxiomProofB   aff_ge_t
+  let  aff_lt = trigAxiomProofB   aff_lt_t
+  let  aff_le = trigAxiomProofB   aff_le_t
+  let  azim = trigAxiomProofB   azim_t
+  let  azim_cycle = trigAxiomProofB   azim_cycle_t
+end;;
+
+open Trig;;
+
+*)

@@ -813,6 +813,49 @@ let cross_diag_x = kepler_def `cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9=
 (*   Definitions of Affine Geometry (from BLUEPRINT : Trigonometry )  *)
 (* ------------------------------------------------------------------ *)
 
+(* Notes on unique existence of definitions:
+
+>         min_num
+Exists uniquely on all nonempty subsets of N. 
+Can be uniquely extended to all subsets by defining min_num {} = 0
+
+>         deriv
+This is the derivative of a function of a real variable.  Its domain is more difficult to describe.
+
+>         aff
+Exists uniquely on all finite subsets of R3.
+It will only be used on finite sets.
+Can be uniquely extended to all subsets by defining aff S = S, when S is infinite
+
+>         aff_sgn
+It is only used on finite sets.
+Assuming that aff has first been extended to all subsets as above, then
+aff_sgn sgn S S1 exists uniquely for all sgn, all S, and all finite S1
+Can be uniquely extended to all subsets by defining aff_sgn sgn sgn S S1 = S1, when S1 is infinite
+
+>         min_polar
+Exists uniquely on all nonempty finite sets of ordered pairs of real numbers
+Can be uniquely extended to all sets of ordered pairs by setting min_polar X = ( &0, &0 ), when X is empty or infinite.
+This definition actually holds for some infinite sets, but I never use it, except on finite sets, so you are free
+to redefine it to be (&0,&0) on infinite sets.
+
+>         iter
+iter is uniquely defined with no domain conditions, no preconditions
+
+>         azim
+Exists uniquely when the stated non collinearity preconditions are met: ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2})
+(The preconditions azim_hyp, orthonormality, and e3 normalization are not domain constraints, because they do not restrict v w w1 w2.)
+Can be uniquely extended to all cases, by setting azim w1 w2 w3 w4 = &0, when the non-collinearity preconditions are not met.
+
+
+>         azim_cycle
+azim_cycle W v w p exists uniquely under the preconditions (W p)  /\ (cyclic_set W v w).
+It is only used when the preconditions are met.
+Can be uniquely extended to all cases, by setting azim_cycle W v w p = p, when these two preconditions are not met.
+
+
+
+*)
 
 let aff_insert = new_definition `aff_insert v S w = 
    ( ?(u:real3) t.  (v INSERT S) u /\ (w = (t *# v) + (&1 - t)*# u))`;;

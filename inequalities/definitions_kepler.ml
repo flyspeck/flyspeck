@@ -983,13 +983,13 @@ let azim_cycle_hyp_def = new_definition `azim_cycle_hyp =
         (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3))) ==>
-	(proj (sigma W p) = polar_cycle (IMAGE proj W) (proj p)))`;;
+	(proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p)))`;;
 
 let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
    (azim_cycle_hyp) ==> ( (W p) /\
         (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
-	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3)))) ==> (proj (sigma W p) = polar_cycle (IMAGE proj W) (proj p))`,
+	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3)))) ==> (proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p))`,
 	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
 	  (REWRITE_TAC[azim_cycle_hyp_def])
 	   );;

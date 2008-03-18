@@ -174,7 +174,7 @@ let azim_cycle_sum_t = `!W v w n.
    (W HAS_SIZE n) ==>
    (!p i j. (W p /\ (0 <= i) /\ (i <= j) /\ (j < n)) ==> 
        ((!q.  W q ==> (azim v w p q = &0) ) \/
-       (sum(0,n) (\i. azim v w (iter i (azim_cycle W) p) (iter (SUC i) (azim_cycle W) p)) = &2 * pi   )))`;;
+       (sum(0,n) (\i. azim v w (iter i (azim_cycle W v w) p) (iter (SUC i) (azim_cycle W v w) p)) = &2 * pi   )))`;;
 
 let dih_azim_t = `!v w v1 v2. 
    ~(collinear {v,w,v1}) /\ ~(collinear {v,w,v2}) ==>
@@ -268,7 +268,7 @@ let azim_cycle_t = `!W proj v w e1 e2 e3 p.
              orthonormal e1 e2 e3 /\
              (!u x y.
                   proj u = x,y <=> (?h. u = v + x *# e1 + y *# e2 + h *# e3))
-         ==> (proj (azim_cycle W p) = polar_cycle (IMAGE proj W) (proj p))`;;
+         ==> (proj (azim_cycle W v w p) = polar_cycle (IMAGE proj W) (proj p))`;;
 
 
 (* signature for trig theorems.

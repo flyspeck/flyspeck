@@ -417,27 +417,27 @@ This section brings the upright quarters in the $Q$-system
 under control. 
 The brick wall analogy explains the purpose of quarters in the
 $Q$-system.  An uneven brick wall is evened out by shifting the
-bricks along the top of the wall.  Quarters are the bricks.  A flat quarter
+bricks along the top of the wall.  The quarters are bricks.  A flat quarter
 transfers volume into the Voronoi cell from a neighboring Voronoi
 cell where it stands upright.  Quarters are designed to pump extra
-volume into Voronoi cells undervolumed cells such as the pentahedral prisms,
+volume into undervolumed Voronoi cells such as the pentahedral prisms,
 borrowing against cells with volume to spare.  Flat quarters are always
 welcome, because they improve the estimates.  Upright quarters are
 unwelcome, worsen
-the estimates, and are avoided wherever possible.  The lead-up to
-the main estimate makes the reckoning of upright quarters.
+the estimates, and are avoided wherever possible. This section
+makes the reckoning of upright quarters.
 
 Upright quarters are unwelcome, and we will try to remove them whenever
 possible.  Let $Q=\{v_0,v_1,v_2,v_3\}$ be an upright quarter in the $Q$-system.   Recall the estimate of $\sigma(\Lambda,v_0)$.  It consists of a function
 $\sigma$ on simplices in the $Q$-system, fitted crowns, special truncation rules on the alphabet simplices and pure quad clusters.  Outside these special structures, the Voronoi cell is truncated at radius $t_0$.
 In inexact form, this means we compare $\sigma(Q,v_0,c)$, which
-is the contribution from $Q$ to $\sigma(\Lambda,v_0)$, against what
+is the contribution from an upright quarter $Q$ to $\sigma(\Lambda,v_0)$, against what
 we get by the truncation of a Voronoi cell at radius $t_0$.  We attempt
 to show that the truncated Voronoi cell gives an upper bound on $\sigma(Q,v_0,c)$.  If so, we drop the quarter $Q$ from the $Q$-system and revert to
 the default scoring rule given by the truncated Voronoi cell.  This
 is a process that we call {\it erasing an upright quarter}.  
 
-This strategy is inexact for various reasons.  
+The strategy, as just described, remains inexact for various reasons.  
 First of all, the upright quarters
 come in batches along a shared upright diagonal.  We always want 
 to treat the batch of upright
@@ -450,7 +450,7 @@ meet the convex hulls of the upright quarters in the $Q$-system.
 We call such flat quarters {\it masked flat quarters}.  When an upright
 quarter is erased, the flat quarter becomes exposed or {\it unmasked}.
 Approximating such unmasked flat by the $t_0$-truncated Voronoi cell
-yields overly weak estimates of $\sigma(\Lambda,v_0)$.  Thus, stricter
+yields overly weak estimates.  Thus, stricter
 approximations must be provided for unmasked flat quarters.
 Fourth, sometimes we fall short desired upper bound on
 $\sigma(Q,v_0,c)$,  where the shortfall is an explicit constant $\pi_0$.
@@ -460,14 +460,157 @@ estimates and move forward.
 
 With these modifications,  strategy of erasing upright quarters
 works remarkably well.  
-The following subsection on slices describes the strategy that
-we follow when erasing fails.  After that, 
-we turn to the implementation details of erasing and expunging.
+Next, we turn to the implementation details of erasing and expunging.
+
+
+
+
+
+\subsection{erase and expunge}
+
+We give a precise definition of what it means to erase.  We always
+erase all the upright quarters around a given diagonal at once.  Thus
+we can express definitions in terms of the upright diagonal.
+
+
+\begin{definition}[erase]  Let $(\Lambda,v_0)$ be a centered packing.
+Let $d=\{v_0,v_1\}$ be
+an upright system diagonal.  Let $c$ be its context.  We say that $d$
+can be erased with penalty $\pi_0$ if
+$$
+\sum_{Q\mapsto d}(\sigma(Q,c,v_0) - \op{sv}_0(...)) + 
+\sum_{S\mapsto d}(\sigma(S...) - \op{sv}_0(...)) +
+\sum_{K\mapsto d}\sigma(K...)
+< \pi_0
+$$
+The first sum runs over upright quarters with diagonal $d$.  The
+second sum runs over alphabet simplices of type $C$ with diagonal $d$.
+The third sum runs over fitted crowns with diagonal $d$.
+We say that $d$ can be erased, if it can be erased with penalty $0$.
+\end{definition}
+
+The strategy is to erase as many upright system diagonals as possible.
+In the presence of masked flat quarters,  erasing is not the appropriate
+action.  We must 
+accommodate the flat quarters.  We call this {\it expunging} the upright diagonal.  
+
+
+\begin{definition}[mask]
+Let $(\Lambda,v_0)$ be a centered packing.
+A flat quarter $\{v_0,\ldots\}$ is masked by an upright system diagonal $\{v_0,v_1\}$ if there is an upright quarter $Q\in\CalQ(\Lambda,v_0)$ 
+along the diagonal such that
+$\op{conv}^0(S)$ meets $\op{conv}^0(Q)$.
+\end{definition}
+
+
+Next we define a function $\op{mask}(Q)$ on flat quarters.
+This function contains everything
+but the kitchen sink.  It was obtained by analyzing the 
+1998 solution of the sphere packing problem, listing
+every estimate ever used
+on a masked flat quarter $Q$, and packaging it all into a definition.
+
+\begin{definition}[mask function]
+Let $\op{mask}(Q)$, defined on the set of all flat quarters, be
+given as follows.  Consider the following five functions
+$f_i$ on slightly different domains $C_i$:
+$$
+\begin{array}{llll}
+  i & f_i & C_i \\
+  1 & \Gamma{}{}   & \eta_{234},\eta_{456}\le \sqrt2\\
+  2 & \op{sv} & \eta_{234}\ge \sqrt2\\
+  3 & \op{sv}_0 - 0.0063 & y_4\ge 2.6, y_1\ge 2.2\\
+  4 & \op{sv}_0 - 0.0114 & y_4 \ge 2.7\\
+  5 & \op{bound}_{456} & \eta_{456}\ge \sqrt2.\\
+  \end{array}
+$$
+where
+  $$
+  \op{bound}_{456}(Q) = \min
+  \begin{cases}
+  \op{sv}_0(Q) &\\
+  Z_{3,1} &\\
+  \op{sol}(Q)\zeta\,\op{pt} - D_{3,1}.&\\
+  \end{cases}
+  $$
+and
+  $$
+  Z_{3,1} = 0.00005,\qquad  D_{3,1} = 0.06585.
+  $$
+\index{Symbol}{D@\ensuremath{D_(\y{(3,1)})}}
+\index{Symbol}{Z@\ensuremath{Z(\y{(3,1)})}}
+\index{Symbol}{D@\ensuremath{D_{3,1}}}
+\index{Symbol}{Z@\ensuremath{Z_{3,1}}}
+For each flat quarter $Q$, let $I_Q$ be the set of indices such
+that $Q\in C_i$, for $i\in I_Q$.  Then set
+  $$
+  \op{mask}(Q) = \max_{i\in I_Q} f_i(Q).
+  $$
+It is trivial to see that $I_Q\ne\emptyset$.
+% (compare $\hat\sigma$ defined in Sec~11.10).  (Imagine each of the
+%cases as taking the value $-\infty$ outside
+%the constraint of the case constraint.)
+\end{definition}
+
+
+\begin{definition}[expunge]
+When an upright system diagonal 
+masks flat quarters $Q_1,\ldots,Q_r$,
+then we say that we can {\it expunge} the upright system diagonal with penalty $\pi_0$, if 
+  $$
+  \sum_{S\mapsto d}^k (\sigma^*(S) -\op{sv}_0(S))  + \text{ fitted crown }
+  < \pi_0 
+   +\sum_{i=0}^r (\op{mask}(Q_i) - \op{sv}_0(Q_i)).
+  $$
+We take $\sigma^*(S)$ to be $\sigma(S)$ when $S$ is an upright quarter; $\sigma(V_S(t_S))$ when it is a simplex of type $C$; and $\op{sv}_0(S)$ otherwise.
+\end{definition}
+
+When we merely erase rather than expunge, the sum over $r$ is absent. 
+%Compare p.112, Section~11.1.
+If there are no masked flat quarters,  there is no distinction between erasing and expunging.   In general, we try to expunge rather than just erase.
+Here are a few basic results about expunging upright diagonals.
+
+\begin{lemma}
+Let $(\Lambda,v_0)$ be a centered packing.  Let $d=\{v_0,v_1\}$ be an upright
+system diagonal.  Suppose that $d$ is enclosed over  
+a flat quarter $Q=\{v_0,\ldots\}$ (which is necessarily masked).  
+Then either
+\begin{itemize}
+  \item $d$ is a loop, having context $\x{(3,1)}$, and such that
+    $|v_0-v_1| < 2.91$; or
+  \item $d$ can be expunged.
+\end{itemize}
+\end{lemma}
+
+\begin{proof} This is Lemma~\ref{lemma:ex-x31}.
+\end{proof}
+
+
+
+\begin{lemma}
+Let $(\Lambda,v_0)$ be a contravening centered packing.  Let $d$ be an
+upright system diagonal (enclosed over an exceptional standard component)
+whose context is $\x{(p,r)}$, with $p+r\ne 4,5$.  Then,
+$d$ can be expunged.
+\end{lemma}
+
+\begin{proof}
+Expunge context $\x{(1,1)}$ as in Lemma~\ref{lemma:mixed-vor0}.
+Expunge contexts $\x{(2,1)}$ and $\x{(1,2)}$
+as in Section~\ref{lemma:mixed-vor0} %DCG 11.3 
+(or Lemma~\ref{XX} % DCG 11.26 
+if there is a masked flat
+quarter).  Lemma~\ref{lemma:context6-erase} % DCG 11.4 
+shows that six or more anchors do not contravene.
+\end{proof}
+
 
 
 \subsection{slice}
 \label{sec:slice}  % was sec:anchored-simplex
 
+This subsection  describes the strategy that
+we follow when erasing fails.  
 When we are unable to erase or expunge, the strategy will be to
 add additional simplices around the upright diagonal, to ``fill it out''
 if possible.   This section describes these new simplices (called {\it slices}).
@@ -493,12 +636,17 @@ is a gap along $d$ between $w_1$ and $w_2$.
 \index{Index}{slice}\index{Index}{loop}\index{Index}{gap}
 \end{definition}
 
-\begin{definition}[mask]
-Let $(\Lambda,v_0)$ be a centered packing.
-A flat quarter $\{v_0,\ldots\}$ is masked by an upright system diagonal $\{v_0,v_1\}$ if there is an upright quarter $Q\in\CalQ(\Lambda,v_0)$ 
-along the diagonal such that
-$\op{conv}^0(S)$ meets $\op{conv}^0(Q)$.
-\end{definition}
+
+\begin{lemma}  Let $(\Lambda,v_0)$ be a centered packing with upright
+system diagonal $d=\{v_0,v_1\}$.  Suppose that there is some slice
+$S$ with diagonal $d$ and some flat quarter $Q$ with vertex $v_0$ such
+that $\op{conv}^0(S)$ meets $\op{conv}^0(Q)$.  Then $Q$ is masked by
+$d$.
+\end{lemma}
+
+\begin{proof} \FIXX{Insert}
+\end{proof}
+
 
 
 \begin{definition}[enhanced context]
@@ -511,36 +659,63 @@ notation for contexts, writing
  $\xtazimlt$ for this context.  % 3-unconfined.
 If there is a gap with azimuth angle at least $\pi$, we say it
 has context $\xtazimge$.  % 3-crowded.
-We write $\xfgap$ for context $\x(4,1)$, when there is
+We write $\xfgap$ for context $\x{(4,1)}$, when there is
 a gap. % 4-crowded
+More generally, we embellish the notation for context with symbols that
+denote specialized contexts, such at $\x{(p,r : \op{loop})}$ if
+the context is a loop, or $\x{(p,1 : \op{gap})}$ if there is a gap.
 \end{definition}
 
-Sections~\ref{x-3.4} and \ref{x-3.5}
-reduce everything to contexts with four or five anchors around each
-vertex.  If there are $5$ darts, 
-Remark~\ref{rem:5dart} shows that we can assume at most one
-gap. This gives contexts $\x{(5,0)}$ and $\x{(4,1)}$.  If there are four
-anchors, then Lemma~\ref{x-3.9.1} will dismiss all contexts except
-$\x{(4,0)}$ and $\x{(3,1)}$. Thus, every upright diagonal will
-reduce to exactly one of
-the following: a loop, $\x{(3,1,:\op{azim}(\op{gap})<\pi)}$,
-$\x{(3,1: \op{azim}(\op{gap}) \ge \pi)}$,
-$\x{(4,1:\op{gap})}$
+%Sections~\ref{x-3.4} and \ref{x-3.5}
+%reduce everything to contexts with four or five anchors around each
+%vertex.  If there are $5$ darts, 
+%Remark~\ref{rem:5dart} shows that we can assume at most one
+%gap. This gives contexts $\x{(5,0)}$ and $\x{(4,1)}$.  If there are four
+%anchors, then Lemma~\ref{x-3.9.1} will dismiss all contexts except
+%$\x{(4,0)}$ and $\x{(3,1)}$. Thus, every upright diagonal will
+%reduce to exactly one of
+%the following: a loop, $\x{(3,1,:\op{azim}(\op{gap})<\pi)}$,
+%$\x{(3,1: \op{azim}(\op{gap}) \ge \pi)}$,
+%$\x{(4,1:\op{gap})}$
 
 
-This lemma is a consequence of the two others that follow
+
+\begin{lemma}  Let $(\Lambda,v_0)$ be a centred packing.  
+Let $\CalR$ be the set of alphabet simplices and simplices in the $Q$-system.
+Let $(v_0,V,E)=(v_0,V_{std}(\CalR),E_{std}(\CalR))$ be the standard fan, extended
+by $\CalR$.  Let $U\in[Y(v_0,V,E)]$.
+Let $d = \{v_0,v_1\}$ be an upright system diagonal, and $(v_0,v_1,w_1,w_2)$
+a dart that leads into $U$.  Assume that $S=\{v_0,v_1,w_1,w_2\}$ is a slice.
+Assume that $S\not\in\CalR$; that is, $S$ is not an alphabet simplex or
+an upright quarter.  Then $\op{aff}_+^0(v_0,\{v_1,w_1,w_2\})\subset U$.
+Morover $$\op{conv}^0(S) \cap \op{conv}^0(S') =\emptyset$$
+for every $S'\in \CalR$.
+\end{lemma}
+
+
+
+
+
+The next lemma is a consequence of the two others that follow
 (Lemma~\ref{lemma:slice-quarter}, Lemma~\ref{lemma:3-crowded}).
-\FIXX{Extract the geometry as a lemma that is independent.
-The
-context of the lemma is the set of slices that have
-not been erased by previous reductions.}
+\FIXX{Extract the geometry as a lemma that is independent.}
+
+
+
 
 \begin{lemma}\tlabel{lemma:anchor-no-overlap}
-The interiors of slices do not meet.
+Let $(\Lambda,v_0)$ be a centered packing.  Assume that $U$ is a
+standard component in which ever upright system diagonal has four
+or five anchors, and does not have context $\xtazimge$.  Let
+$d = \{v_0,v_1\}$, $d'=\{v_0,v_1'\}$ be upright system diagonals
+with $v_1,v_1'\in U$.
+Let $S$ be an slice along $d$, and $S'$ one along $d'$.
+If $S\ne S'$, then 
+$$\op{conv}^0\,S \cap \op{conv}^0\,S' = \emptyset.$$
 \end{lemma}
 
 \begin{proof}
-The remaining contexts have four or  five anchors. Let $w$ and the
+Let $w$ and the
 slice $S=\{v_0,v,v_1,v_2\}$ be as in Section~\ref{sec:slice}.
 Our object is to describe the local geometry when an upright
 diagonal is enclosed over a slice. If $|v_1-v_2|\le
@@ -558,7 +733,7 @@ By a calculation\footnote{\calc{83777706}} %A8
     $$\pi\ge \dih(S_1)+\cdots+\dih(S_{k-1})\ge (k-1)0.956.$$
 
 Thus, $k=4$. The common upright diagonal  of the three simplices
-$\{S_i\}$ is {\it $\xtazimge$}.  We claim that
+$\{S_i\}$ has context {\it $\xtazimge$}.  We claim that
 $\{v_1,v_2\}=\{w_1,w_4\}$. Suppose to the contrary that, after
 reindexing as necessary, $S_0=\{v_0,w,w_1,v_1\}$ is a simplex, with
 $v_1\ne w_1$, that does not overlap $S_1,\ldots,S_3$. Then $\pi\ge
@@ -576,229 +751,46 @@ This contradiction establishes that $v_1=w_1$.
 
 
 
-\begin{definition}[tag]\tlabel{def:leads-to}
-Let $(\Lambda,v_0)$ be a centered packing.  Let $(v_0,V,E)$ be a fan
-and $\CalR$ a set of simplices such that the fan is
-that is $(\Lambda,\CalR)$-compatible.  A face $F$ of the hypermap is said
-to {\it tag} $\{v_0,v_1,v_2,v_3\}\in \CalR$ if 
-\begin{itemize}
- \item $F$ is a triangle,
- \item  $\op{aff}_+(v_0,\{v_1,v_2,v_3\})$ is a component of
-  $Y(v_0,V,E)$.
- \item $F$ leads into that component.
-\end{itemize}
-\end{definition}
-
-
-\subsection{erasure}
-
-We give a precise definition of what it means to erase.  We always
-erase all the upright quarters around a given diagonal at once.  Thus
-we can express definitions in terms of the upright diagonal.
-
-
-\begin{definition}[erase]  Let $(\Lambda,v_0)$ be a centered packing.
-Let $d=\{v_0,v_1\}$ be
-an upright system diagonal.  Let $c$ be its context.  We say that $d$
-can be erased with penalty $\pi_0$ if
-$$
-\sum_{Q\mapsto d}(\sigma(Q,c,v_0) - \op{sv}_0(...)) + 
-\sum_{S\mapsto d}(\sigma(S...) - \op{sv}_0(...)) +
-\sum_{K\mapsto d}\sigma(K...)
-< \pi_0
-$$
-The first sum runs over upright quarters with diagonal $d$.  The
-second sum runs over alphabet simplices of type $C$ with diagonal $d$.
-The third sum runs over fitted crowns with diagonal $d$.
-We say that $d$ can be erased, if it can be erased with penalty $0$.
-\end{definition}
-
-The strategy is to erase as many upright system diagonals as possible.
-
-
-\subsection{expunge}
-
-In the presence of masked flat quarters,  erasing is not the appropriate
-action.  We must 
-accommodate the flat quarters.  We call this {\it expunging} the upright diagonal.  Before we define this precisely, we need a lemma
-that relates anchored simplices to masked flat quarters.
-
-\begin{lemma}  Let $(\Lambda,v_0)$ be a centered packing with upright
-system diagonal $d=\{v_0,v_1\}$.  Suppose that there is some anchored simplex
-$S$ with diagonal $d$ and some flat quarter $Q$ with vertex $v_0$ such
-that $\op{conv}^0(S)$ meets $\op{conv}^0(Q)$.  Then $Q$ is masked by
-$d$.
-\end{lemma}
-
-\begin{proof} \FIXX{Insert}
-\end{proof}
-
-Next we define a function $\op{mask}(Q)$ on flat quarters.
-This function contains everything
-but the kitchen sink.  It was obtained by analyzing the 
-1998 solution of the sphere packing problem, listing
-every estimate ever used
-on a masked flat quarter $Q$, and packaging it all into a definition.
-
-\begin{definition}{mask function}
-Let $\op{mask}(Q)$, defined on the set of all flat quarters, be
-given as follows.  Consider the following five functions
-$f_i$ on slightly different domains $C_i$:
-$$
-\begin{array}{lll}
-  \Gamma{}{},   & \eta_{234},\eta_{456}\le \sqrt2\\
-  \op{sv}, & \eta_{234}\ge \sqrt2\\
-  \op{sv}_0 - 0.0063, & y_4\ge 2.6, y_1\ge 2.2\\
-  \op{sv}_0 - 0.0114, & y_4 \ge 2.7\\
-  \op{bound}_{456}, & \eta_{456}\ge \sqrt2.\\
-  \end{array}
-$$
-where
-  $$
-  \op{bound}_{456}(Q) = \min
-  \begin{cases}
-  \op{sv}_0(Q) &\\
-  Z(\y{(3,1)}) &\\
-  \op{sol}(Q)\zeta\,\op{pt} - D(\y{(3,1)}).&\\
-  \end{cases}
-  $$
-For each flat quarter $Q$, let $I_Q$ be the set of indices such
-that $Q\in C_i$, for $i\in I_Q$.  Then set
-  $$
-  \op{mask}(Q) = \max_{i\in I_Q} f_i(Q).
-  $$
-It is trivial to see that $I_Q\ne\emptyset$.
-% (compare $\hat\sigma$ defined in Sec~11.10).  (Imagine each of the
-%cases as taking the value $-\infty$ outside
-%the constraint of the case constraint.)
-\end{definition}
-
-
-\begin{definition}[expunge]
-When the anchored simplices around an upright system diagonal 
-mask flat quarters 
-$\CalQ'$, then we say that we can {\it expunge} the upright system diagonal with penalty $\pi_0$, if 
-  $$
-  \sum_{i=0}^k (\sigma^*(S_i) -\op{sv}_0(S_i))  + \text{ fitted crown }
-  < \pi_0 
-   +\sum_{i=0}^r (\op{mask}(Q_i) - \op{sv}_0(Q_i)).
-  $$
-We take $\sigma^*(S)$ to be $\sigma(S)$ when $S$ is an upright quarter; $\sigma(V_S(t_S))$ when it is a simplex of type $C$; and $\op{sv}_0(S)$ otherwise.
-\end{definition}
-
-When we merely erase rather than expunge, the sum over $r$ is absent. 
-%Compare p.112, Section~11.1.
-If there are no masked flat quarters,  there is no distinction between erasing and expunging.   In general, we try to expunge rather than just erase.
-
-\begin{lemma}
-{\it We can always expunge $\xtazimge$ configurations.}  
-\end{lemma}
-
-\begin{proof}
-To expunge,
-we need a new inequality for upright quarters of compression type:
-   $$
-   \Gamma(S) < \op{octavor}_0(S) + 0.5\,\op{dih}(S) - 0.54125.
-   \qquad \text{(HYPOTHESIS I 9467217686)}
-   $$
-Case 1: Assume first that there is no masked quarter.
-When all three upright quarters have compression type, we use
-$\sum_{(3)} \op{dih}(S) \le \pi$ to get
-   $$\sum_{(3)}(\sigma-\op{vor}_0) < 
-      [0.5\pi - 3 (0.54125)] < 0.$$
-When one of the three uprights has Voronoi type, we use
-  $$\sum_{(3)}(\sigma - \op{vor}_0 ) <
-    (0.5(\pi - 0.956_{\text{dih min}}) - 2(0.54125)) 
-    - 0.02274_{\kappa}
-    + \xi_V < 0.$$
-When two or three uprights have Voronoi type, then we use
-   $$\sum_{(3)}(\sigma - \op{vor}_0 ) <
-   \xi_\Gamma + 2\xi_V -0.02274 < 0.$$
-Case 2: Assume that there is masked flat quarter.  Then there
-is exactly one and the upright diagonal is not enclosed over it.
-The proof of Lemma~11.23 (page 121) applies to this situation
-to show that we can expunge the $\xtazimge$ upright diagonal.
-\end{proof}
-
-Note that by expunging the $\xtazimge$ upright diagonal, we
-no longer need the argument of page 117 that follows the statement of Lemma~11.9.  Also, Lemma~11.12 is no longer needed on page 118.
-In particular, the interval calculations 855294746 that use truncation at $\sqrt2$ are no longer needed.  We no longer
-need Lemma~11.10 that states all the anchored simplices are
-quarters.
-
-\begin{lemma}
-We can always expunge an upright diagonal that is enclosed
-over a masked flat quarter in an exceptional region, except possibly a loop with three quarters and one other anchored simplex with $y_4\in (2.51,2.91)$.
-\end{lemma}
-
-\begin{proof}
-  (Since one of the cases of
-the function $\op{mask}(Q)$ is $\op{sv}_0$, when
-$\eta_{456}\ge\sqrt2$, in this situation there is no difference between erasing and expunging.) Let $\{0,v\}$ be the upright
-diagonal.  Let $\{0,v_1,v_2,v_3\}$ be the flat quarter, with
-diagonal $\{v_1,v_3\}$.  If $|v-v_2|>2t_0$, then geometric
-considerations show that the upright diagonal is not in the
-$Q$-system.  (It is part of an isolated quarter, or inside
-a quad.)  So we have $|v-v_2|\le 2t_0$.  We are in the situation of
-$\op{bound}_{456}$ ($\eta_{456}\ge0$).  
-Lemma~11.27 (page 124) and the estimates
-of Inequality~13.1 (page 147) and~13.2 (page 148)
-prove the the two upright quarters with anchor $v_2$ can
-be erased.  In the case that there are three anchors to the upright diagonal, the proof is now complete.  In the remaining case, by Corollary~11.25, 11.17, there are four anchors, forming a loop (with four anchored simplices).  Moreover, at least three of the anchored simplices are upright quarters.  We use the following
-calculation: if an anchored simplex has $y_4\in [2.91,3.2]$, then
-\begin{equation}\label{eqn:0201}
- \kappa < -0.0201\qquad\text{(HYPOTHESIS I 1427782443)}.
-\end{equation}
-If an anchored simplex
-in the loop has $y_4> 2.91$, then we expunge the two upright quarters with anchor $v_2$ as described above. The third quarter and
-anchored simplex give
-  $\xi_V - 0.0201_\kappa < 0$.
-Also, the ``masked''
-anchored simplex $S=\{0,v,v_1,v_3\}$ satisfies $\op{sv}_0(S) <0$
-(because there are no quoins and $\phi(1,t_0)<0$).
-Hence the upright diagonal can be expunged.
-\end{proof}
-
-
-\begin{lemma}
-We can always expunge in the cases with fewer than four or more than five anchors.
-\end{lemma}
-
-\begin{proof}
-Expunge context $\x{(1,1)}$ as in Section~\ref{XX} %11.2.  
-Expunge contexts $\x{(2,1)}$ and $\x{(1,2)}$
-as in Section~\ref{XX} %DCG 11.3 
-(or Lemma~\ref{XX} % DCG 11.26 
-if there is a masked flat
-quarter).  Section~\ref{XX} % DCG 11.4 
-shows that six or more anchors do not
-occur in a contravening star.  
-\end{proof}
-
 
 
 \subsection{five anchors}
 
-We review the results on five anchors. 
-Lemmas~11.4, 11.5 show that in the five anchored situation there is at most one large gap in a contravening star.  When there is one large gap (Lemma~11.18), the four anchored simplices are all upright quarters. If the five anchors form a loop, the parameters are $\y{(n,k)}=\y{(5,0)}$ or $\y{(5,1)}$.  (The proof that we are over target in cases $(5,\ge2)$ relies on drawing an edge of length up to length $3.2$.  However, since this immediately puts the figure over target, so that the deformation argument is not needed, and there is no need to restrict to lengths $\le 2.91$.) Also, in the case $\y{(5,0)}$, the standard region is a polygon to begin with and no deformation is required.  Thus, the only two cases in which the deformation argument is relevant are one large gap (OLGA5) and a loop (L51) with parameters $\y{(5,1)}$.
+\FIXX{Rewrite}
 
-(OLGA5) When there is one large gap five anchors, we have estimates of the score and squander
-from Lemmas~11.18 and Lemmas~11.19.  In particular, the material from the upright diagonal squanders at least 
-  $$(0.4 + 0.02274) > \op{squander-target}/2.$$  We can expunge with penalty
+We review the results on five anchors. 
+Lemmas~11.4, 11.5 show that in the five anchored situation there is at most one  gap in a contravening star.  When there is one  gap (Lemma~11.18), the four slices are all upright quarters. If the five anchors form a loop, the parameters are $\x{(p,r)}=\x{(5,0)}$ or $\x{(4,1)}$.  (The proof that we are over target in cases $(5,\ge2)$ relies on drawing an edge of length up to length $3.2$.  However, since this immediately puts the figure over target, so that the deformation argument is not needed, and there is no need to restrict to lengths $\le 2.91$.) Also, in the case $\x{(5,0)}$, the standard region is a polygon to begin with and no deformation is required.  Thus, the only two cases in which the deformation argument is relevant are one  gap $\x{(4,1:\op{gap})}$ and a loop $\x{(4,1:\op{loop})}$.g
+
+\begin{lemma}
+Consider an upright system diagonal with one gap $\x{(4,1:\op{gap})}$.
+It can be erased with penalty $3\xi_\Gamma$.  Also, the material
+from the upright diagonal squanders more than $\op{squander-target}/2$.
+\end{lemma}
+
+\begin{proof}
+ When there is one gap and five anchors, we have estimates of the score and squander
+from Lemmas~11.18 and Lemmas~11.19.  
+In particular, the material from the upright diagonal squanders at least 
+  $$(0.4 + 0.02274) > \op{squander-target}/2.$$  
+We can expunge with penalty
   $$\max \left(\begin{array}{lll}
   3\xi_\Gamma + \xi_{\kappa,\Gamma}\\
   2\xi_\Gamma + 0.0114 - 0.02274_\kappa\\
   2 (0.0114) - 0.02274_\kappa\\
   \end{array}
    \right)\le 0.03344 < 3\xi_\Gamma.$$
+\end{proof}
   
-(L51) When there is a loop $\y{(n,k)}=\y{(5,1)}$, 
-the material from the loop satisfies by the table
+\begin{lemma}  When there is an upright system diagonal with context
+$\x{(4,1:\op{loop})}$, then \FIXX{Insert from proof.}
+\end{lemma}
+
+\begin{proof}
+The material from the loop satisfies by the table
 of page 155
   $$
   \tau > 0.5941 > \op{squander-target}/2,\quad \sigma < -0.376.
   $$
-When the upright diagonal has height $h$, and there exists an anchored simplex
+When the upright diagonal has height $h$, and there exists an slice
 with $y_4 > 2.91$, we can expunge with penalty
   $$
   \begin{cases}
@@ -806,24 +798,40 @@ with $y_4 > 2.91$, we can expunge with penalty
   2 \max(2\xi_\Gamma,0.0114+2\xi_V) - 0.0201_\kappa < 3 \xi_\Gamma, & h < 2.57\\
   \end{cases}
   $$
-Write L51e for a loop 51 with some $y_4 > 2.91$ and L51s, otherwise.
+\end{proof}
+
+Write $\x{(4,1:\op{loop}:2.91+)}$ for with some $y_4 > 2.91$ and $\x{(4,1:\op{loop}:2.91-)}$, otherwise.
 
 \subsection{four anchors}
+
 We review four anchors.
 Lemma~\ref{XX} % DCG 11.21 
-treats two large gaps.  If there is one large gap and a masked flat, then it can be expunged (Lemma~\ref{XX}).  % DCG 11.23).  
+treats two  gaps.  If there is one  gap and a masked flat, then it can be expunged (Lemma~\ref{XX}).  % DCG 11.23).  
 If there
 is no masked flat (OLGA4), 
-the anchored simplices can be erased with penalty $0.008$ (or even $0.0022$ if some anchored simplex is not a quarter) by Lemma~\ref{XX}. % DCG 11.23.  
-For loops, the context $\x{(p,r)}=\x{(4,0)}$
+the slices can be erased with penalty $0.008$ (or even $0.0022$ if some slice is not a quarter) by Lemma~\ref{XX}. % DCG 11.23.  
+For loops, the context $\x{(4,0)}$
 is not relevant for deformation, because it is a quad cluster.  This leaves contexts $\x{(3,1)}$, $\x{(2,2)}$, $\x{(1,3)}$, 
 described in Section~\ref{XX}\FIXX{loop table, page 155, DCG}. 
 
-(L43) We can expunge an $\x{(p,r)}=\x{(1,3)}$ loop if there is an anchored simplex with $y_4\ge 2.91$.  (There is no masked quarter and no distinction between erasing and expunging.)  We use Equation~\ref{eqn:0201} and $\xi_\Gamma - 0.0201 < 0$.  So on a $\y{(4,3)}$ loop we may assume that the anchored simplices satisfy $y_4 < 2.91$.
 
-(L42) Consider an $\x{(p,r)}=\x{(2,2)}$ loop when there is an anchored simplex with $y_4\ge 2.91$.  
+\begin{lemma}
+Let $(\Lambda,v_0)$ be a centered packing.  
+Let $d = \{v_0,v_1\}$ be an upright
+system diagonal with context $\x{(3,1)}$.  
+Assume that $\op{azim}(v_0,v_1,w_1,w_2)\ge\pi$ for some pair of consecutive anchors $w_1,w_2$ of $d$.   Then $d$ can be expunged.
+\end{lemma}
+
+\begin{proof} This is Lemma~\ref{lemma:ex-xtazimge}.
+\end{proof}
+
+
+
+$\x{(1,3:\op{loop})}$.  We can expunge an $\x{(1,3)}$ loop if there is an slice with $y_4\ge 2.91$.  (There is no masked quarter and no distinction between erasing and expunging.)  We use Equation~\ref{eqn:0201} and $\xi_\Gamma - 0.0201 < 0$.  So on a $\x{(1,3)}$ loop we may assume that the slices satisfy $y_4 < 2.91$.
+
+$\x{(2,2:\op{loop})}$. Consider an $\x{(2,2)}$ loop when there is an slice with $y_4\ge 2.91$.  
 If there is a masked flat (wlog we can take the diagonal not to be enclosed, since we have treated enclosed already),  we can expunge the diagonal $2\xi_V - 0.0201_\kappa < \min(-0.0063,-0.0114)$.  If the height of the diagonal satisfies $y_1\ge 2.57$, we can erase: $2\xi_V - 0.0201_\kappa < 0$.  We introduce the following
-hypothesis on anchored simplices with $y_1 \le 2.57$ and $y_4 \ge 2.91$:
+hypothesis on slices with $y_1 \le 2.57$ and $y_4 \ge 2.91$:
   \begin{equation}
   \kappa(S) < - 0.022\qquad\text{(HYPOTHESIS I 8220246614)}
   \end{equation}
@@ -837,17 +845,19 @@ Then the material squandered around the loop is, by the chart of page 155, at le
   0.3992 + 0.022_\kappa > \op{squander-target}/2.
   $$
 We can expunge with penalty $\max(2\xi_\Gamma,0.0114+2\xi_V)$.
-Write L42s for a loop 42 such that all $y_4\le 2.91$ and $L42e$ for a loop
+Write $\x{(4,2:\op{loop}:2.91-)}$ for a loop such that all $y_4\le 2.91$ and  
+$\x{(4,2:\op{loop}:2.91+)}$ for a loop
 42 such that some $y_4>2.91$.
 
   
-(L41) Consider an $\x{(p,r)}=\x{(3,1)}$ loop when there is an anchored simplex with $y_4\ge 2.91$ and the upright diagonal has height at least $2.57$.  If there is a masked
+$\x{(3,1:\op{loop})}$.   Consider an $\x{(3,1)}$ loop when there is an slice with $y_4\ge 2.91$ and the upright diagonal has height at least $2.57$.  If there is a masked
 flat quarter, we may assume that the diagonal is not enclosed (that case
 has been treated above).  It can be expunged: $$-0.03_\kappa + \xi'_\Gamma + 2\xi_V < \min(-0.0063,-0.0114).$$  If there is no masked flat quarter, it can
-still be expunged (erased):  $3\xi'_\Gamma - 0.03_\kappa < 0$.  What remains are loops L41 with $y_4\le 2.91$ or diagonal height at most $2.57$.
+still be expunged (erased):  $3\xi'_\Gamma - 0.03_\kappa < 0$.  What remains are loops $\x{(3,1:\op{loop})}$ with $y_4\le 2.91$ or diagonal height at most $2.57$.
 
-(L41e257) consider an $\x{(p,r)}=\x{(3,1)}$ loop with $y_4>2.91$ for some anchored simplex $S_0$ and diagonal
-height at most $2.57$.  (Call these L41e257.)  
+
+($\x{(3,1:\op{loop}:2.91+:2.57-)}$) consider an $\x{(3,1)}$ loop with $y_4>2.91$ for some slice $S_0$ and diagonal
+height at most $2.57$.  (Call these $\x{(3,1:\op{loop}:2.91+:2.57-)}$.)  
 \begin{lemma}
 If the dihedral angle of $S_0$ is at least $2\pi - 3.3$, and if $\kappa(S_0)< -2\xi_\Gamma$
 then the loop can be expunged.
@@ -869,11 +879,11 @@ Assume that all loops satisfying these conditions have been expunged.
 
 
 
-There is at most one of OLGA5, L51e, L42e because any two add up to more
-than the squander target.  We can expunge the OLGA5, L51e, or L42e together
+There is at most one of $\x{(4,1:\op{gap})}$, $\x{(4,1:\op{loop}:2.91+)}$, $\x{(4,2:\op{loop}:2.91+)}$  because any two add up to more
+than the squander target.  We can expunge the $\x{(4,1:\op{gap})}$, $\x{(4,1:\op{loop}:2.91+)}$, or $\x{(4,2:\op{loop}:2.91+)}$ together
 with all the OLGA4's with penalty at most $\pi_{max}=0.06688$ (Lemma~12.6 continues
 to hold in this slightly modified situation.)  When we expunge all this,
-we are only left with loops such that every $y_4\le 2.91$ (call these constricted loops) and with loops L41
+we are only left with loops such that every $y_4\le 2.91$ (call these constricted loops) and with loops $\x{(3,1)}$
 with diagonal height at most $2.57$.    We subdivide the subregions first with
 distinguished edges of length at most $2\sqrt2$, then out to $2.91$ (provided
 that it doesn't form a special simplex and provided the edge doesn't cross another distinguished edge).  Doing this separates off all the
@@ -883,13 +893,13 @@ As in DCG, we work with a single standard region,
 removing all vertices and edges
 external to the region.
 
-\subsection{deformation argument}
+\section{Deformation}
 
 It is in this setting that we finally apply the reduction to polygon argument of
-Section~12.7.  The deformation should move rigidly all the anchored simplices around each L41e257.  
+Section~12.7.  The deformation should move rigidly all the slices around each $\x{(3,1:\op{loop}:2.91+:2.57-)}$.  
 The stopping condition for the deformations is any of the three
 following.  (A) A new edge develops of length $\le2.91$ between two vertices
-of height $\le 2.51$ such that (a1) does not cross any other such edge or anchor and such that (a2) is not a special diagonal.  (B) An upright diagonal in a L41e257 acquires a new anchor
+of height $\le 2.51$ such that (a1) does not cross any other such edge or anchor and such that (a2) is not a special diagonal.  (B) An upright diagonal in a $\x{(3,1:\op{loop}:2.91+:2.57-)}$ acquires a new anchor
 (with distance exactly $2t_0$ to the top of the diagonal).  (C) The distance
 between tops of upright diagonals becomes $2$.  In general, there
 may be several connected components of the boundary of the subregion.
@@ -938,12 +948,12 @@ This completes the proof of the claim.
 \end{proof}
 
 Recall that by Corollary~11.6, a vertex of height at most $2t_0$ is
-never enclosed over an anchored simplex.  We can also assert that
-a vertex of height at most $2.57$ is never enclosed over an anchored
-simplex.  In fact, if this occurs, in view of what has been expunged,
-the vertex is part of a L41e257.  In view of the results on the non-crossing
+never enclosed over an slice.  We can also assert that
+a vertex of height at most $2.57$ is never enclosed over a slice.
+  In fact, if this occurs, in view of what has been expunged,
+the vertex is part of a $\x{(3,1:\op{loop}:2.91+:2.57-)}$.  In view of the results on the non-crossing
 of edges, an anchor of that loop  would also be enclosed over the
-anchored simplex, which is impossible by Corollary~11.6.
+slice, which is impossible by Corollary~11.6.
 
 \begin{lemma}
 We claim that the stopping condition with type
@@ -957,7 +967,7 @@ Let $\{0,v\}$ be the upright diagonal, and let $\{v_1,\ldots,v_4\}$ be the ancho
   $$
 and $\{v_4,v_1\}$ has length at most $3.2$ and passes through $\{0,v,v_0\}$.  
 
-We add a few details.  Recall, we have expunged loops L41e257 in which there is an anchored simplex with $y_4\ge 2.91$, $\kappa(S)<-2\xi_\Gamma$ and $\op{dih}(S)\ge 2\pi-3.3$.  The new anchor (from type B) breaks the slice into two
+We add a few details.  Recall, we have expunged loops $\x{(3,1:\op{loop}:2.91+:2.57-)}$ in which there is an slice with $y_4\ge 2.91$, $\kappa(S)<-2\xi_\Gamma$ and $\op{dih}(S)\ge 2\pi-3.3$.  The new anchor (from type B) breaks the slice into two
 pieces.  
 In this situation, we have that $\kappa = \kappa_1 + \kappa_2$, where $\kappa_1 < -0.029$ as usual.  Assume that
 $y_1\in[2.51,2.57]$, $y_4\in[2,2.51]$, $y_5=2.51$, then (compare $(y_1,\ldots,y_6) = (2.51,2,2.51,2,2.51,2)$: 
@@ -985,7 +995,7 @@ occurs.
 Assume to the contrary that such an edge forms.
 Let $\{0,v\}$ and $\{0,w\}$ be the upright diagonals of height at most
 $2.57$.  let $v_1,\ldots,v_r$ be the anchors of $\{0,v\}$.  By argument on $B$-edges in the previous
-paragraph, we may assume that $r=4$, the number of anchors in a L41e257 loop.  Order the anchors so
+paragraph, we may assume that $r=4$, the number of anchors in a $\x{(3,1:\op{loop}:2.91+:2.57-)}$ loop.  Order the anchors so
 that the edge $C$ between $v$ and $w$ appears
 between $v_1$ and $v_4$.  We claim that the
 conditions $|w-v_1|\ge 2.51$ and $|w-v_4|\ge 2.51$ cannot
@@ -1003,7 +1013,129 @@ This completes the proof that the $C$ edge cannot form.
 
 
 
-Thus, deformation only creates new $A$ edges.  We continue deformations until each polygon is simple.  Then we continue in DCG as before.  We add additional edges up to length $3.2$; break off L41e257 loops; and obtain estimates as in DCG.
+Thus, deformation only creates new $A$ edges.  We continue deformations until each polygon is simple.  Then we continue in DCG as before.  We add additional edges up to length $3.2$; break off $\x{(3,1:\op{loop}:2.91+:2.57-)}$ loops; and obtain estimates as in DCG.
+
+
+
+
+
+
+
+\subsection{distinguished blades} %DCG 12.3, p128
+    \oldlabel{4.2}
+
+Take an exceptional cluster.  We prepare the cluster by erasing
+upright diagonals, including those that in context $\xtazimlt$,
+$\xtazimge$, or $\xfgap$.  The only upright diagonals that we
+leave unerased are loops.  When the upright diagonal is erased, we
+score with the truncated function $\op{sovo}(\cdot,\lambda_{oct})$ 
+away from flat
+quarters.  Flat quarters are scored with the function
+$\hat\sigma$. The exceptional clusters in this chapter and Chapter~\ref{x-5} 
+are assumed to be prepared in this way.
+
+
+\begin{definition}[special]
+A simplex $S$ is {\it special\/} if the fourth edge has length at
+least $2\sqrt{2}$ and at most $3.2$, and the others have length at
+most $2t_0$. The fourth edge will be called its diagonal.
+\end{definition}
+
+We create a fan.  Each vertex will have
+height at most $2t_0$.  The blades of the fan
+will divide the standard component into substandard components. We
+call an (open) blade {\it nonexternal\/} if it
+edge lies entirely in the exceptional component.
+
+\begin{enumerate}
+\item Draw all nonexternal blades from edges of length at most $2\sqrt{2}$
+except those between nonconsecutive anchors of a remaining upright
+diagonal. These blades do not cross (Lemma~\ref{tarski:skew-quad}).
+These blades do not cross the blades of slices
+(Lemma~\ref{tarski:qrtet-pair-pass} and
+Lemma~\ref{tarski:pass-anchor}).
+
+\item Draw all blades of (remaining) slices
+that are opposite the upright diagonal, except when the blade gives
+a special simplex. The interiors of distinct slices do
+not meet (Lemma~\ref{lemma:anchor-no-overlap}), so these (open) blades do
+not meet. They are are nonexternal 
+(Lemma~\ref{lemma:anc-simplex-not-enc} and
+Lemma~\ref{tarski:2t0-doesnt-pass-through}).
+
+\item Draw as many additional nonexternal blades as possible of
+length at most $3.2$ subject to not meeting another blade, not
+crossing any blade of a slice, and not coming from  the
+diagonal of a special simplex.
+\end{enumerate}
+
+We fix once and for all a maximal collection of edges subject to
+these constraints. Edges in this collection are called {\it
+distinguished\/} edges.  They form a fan.  The components of the complement
+of this fan are
+called the {\it substandard components}.  Each standard component is a union of
+substandard components (together with separating blades). 
+The vertices of height at most $2t_0$ and the vertices
+of the remaining upright diagonals are said to form a {\it
+subcluster}.
+
+
+By construction, the special simplices and slices
+around an upright quarter form a subcluster.  Flat quarters in the
+$Q$-system, flat quarters of an isolated pair, and simplices of
+type $\SA$ and $\SB$ are subclusters.  Other subclusters are
+scored by the function $\op{sovo}(\cdot,\lambda_{oct})$. 
+For these subclusters,
+Formula~\ref{eqn:3.7} extends without modification.
+
+
+\subsection{convex deformation} %DCG 13.1, p143
+    \oldlabel{5.1}
+We divide the bounding edges over the polygon according to length
+$[2,2t_0]$, $[2t_0,2\sqrt{2}]$, $[2\sqrt{2},3.2]$. The deformations of
+Section~\ref{x-4.9} contract edges to the lower bound of the intervals
+($2,2t_0$, or $2\sqrt{2}$) unless a new distinguished edge is formed. By
+deforming the polygon, we assume that the bounding edges have length
+$2,2t_0$, or $2\sqrt{2}$. (There are a few instances of triangles or
+quadrilaterals that do not satisfy the hypotheses needed for the
+deformations. These instances will be treated in Sections~\ref{x-5.7}
+and \ref{x-5.8}.)
+
+\begin{lemma}
+    \oldlabel{5.1.1}
+Let $S$ with edges $(y_1,\ldots,y_6)$ following the edge labeling
+convention, and with $x_i=y_i^2$,
+as usual.  Let $y_4\ge 2$,
+    $y_5,y_6\in\{2,2t_0,2\sqrt{2}\}$.
+Assume that the coordinates $y_1,\ldots,y_6$ are realized by
+some simplex $\{v_1,\ldots,v_4\}$.  % Avoid mention of Deelta. 
+Fixing all the variables but $x_1$, let $f(x_1)$ be one of the
+functions $\op{sovo}_0(v_0,S,\lambda_{oct})$ or 
+$-\op{sovo}_0(v_0,S,\lambda_{sq})$. We have $f''(x_1)>0$
+whenever $f'(x_1)=0$.
+\end{lemma}
+
+\begin{proof} This is an interval calculation.%
+\footnote{\calc{311189443}} %A15
+% We put the condition about realization to avoid mention of Deelta.
+\end{proof}
+
+
+
+The lemma implies that $f$ does not have an interior point local maximum
+for $x_1\in[2^2,2t_0^2]$.  Fix three consecutive corners, $v_1,v_2,v_3$
+of the convex polygon, and apply the lemma to the variable $x_1 =
+|v_2-v_1|^2$ of the simplex $S=\{v_0,v_1,v_2,v_3\}$. We deform the simplex,
+increasing $f$.  If the deformation produces flattens out the simplex, 
+so that some
+dihedral angle is $\pi$, then the arguments for nonconvex components bring
+us eventually back to the convex situation. Eventually $y_1$ is $2$ or
+$2t_0$.  Applying the lemma at each corner, we may assume that the
+height of every corner is $2$ or $2t_0$.   (There are a few cases where
+the hypotheses of the lemma are not met, and these are discussed in
+Sections~\ref{x-5.7} and \ref{x-5.8}.)
+
+
 
 
 
@@ -1197,11 +1329,11 @@ does not contravene.
 
 \begin{proof} By Theorem~\ref{thm:the-main-theorem},
 if there is a non-triangular component, we have
-    $$\tau(\Lambda,v)\ge\tlp\pqr{(7,0,0)}+t_4>\squander.$$
+    $$\tau(\Lambda,v)\ge\tlp(\pqr{(7,0,0)})+t_4>\squander.$$
 Assume that all standard components are triangular.  If there is a
 vertex that does not lie on one of seven triangles, we have by
 Lemma~\ref{lemma:pq}:
-    $$\tau(\Lambda,v)\ge\tlp\pqr{(7,0,0)}+0.55\,\pt>\squander.$$
+    $$\tau(\Lambda,v)\ge\tlp(\pqr{(7,0,0)})+0.55\,\pt>\squander.$$
 Thus, all vertices lie on one of the seven triangles.  The
 complement of these seven triangles is a  triangulation by
 five standard components.  There is some vertex of these five that does
@@ -1211,9 +1343,10 @@ Lemma~\ref{lemma:pq-impossible}.
 %By the results of Part I, which
 %treats the case in which all standard components are triangles, we
 %may assume that the centered packing has at least one quadrilateral.  We then
-%have $\tau(\Lambda,v)\ge\tlp\pqr{(7,0,0)} + t_4
+%have $\tau(\Lambda,v)\ge\tlp(\pqr{(7,0,0)}) + t_4
 %>\squander$.  The result follows.
 \end{proof}
+
 
 
 \subsection{nonagon} %DCG 12.2 p127
@@ -1230,6 +1363,10 @@ polygon with at most nine edges.  Assume  that
 where $s_9=-0.1972$ and $t_9=0.6978$.  Then $(\Lambda,v)$ does not
 contravene.
 \end{lemma}
+
+\begin{proof} This is the proof that was used as an illustration
+of  assembly problems.  See section~\ref{lemma:nonagon}.
+\end{proof}
 
 \begin{proof}
 Suppose that $n=9$, and that $R$ squanders at least $t_9$ and
@@ -1259,72 +1396,6 @@ Theorem~\ref{lemma:quad0}.  If $\ell>0$, we squander at least
     $t_{10}+ 0.55\,\pt > \squander$ (Lemma~\ref{lemma:0.55}).
 
 
-\subsection{distinguished blades} %DCG 12.3, p128
-    \oldlabel{4.2}
-
-Take an exceptional cluster.  We prepare the cluster by erasing
-upright diagonals, including those that in context $\xtazimlt$,
-$\xtazimge$, or $\xfgap$.  The only upright diagonals that we
-leave unerased are loops.  When the upright diagonal is erased, we
-score with the truncated function $\op{sovo}(\cdot,\lambda_{oct})$ 
-away from flat
-quarters.  Flat quarters are scored with the function
-$\hat\sigma$. The exceptional clusters in this chapter and Chapter~\ref{x-5} 
-are assumed to be prepared in this way.
-
-
-\begin{definition}[special]
-A simplex $S$ is {\it special\/} if the fourth edge has length at
-least $2\sqrt{2}$ and at most $3.2$, and the others have length at
-most $2t_0$. The fourth edge will be called its diagonal.
-\end{definition}
-
-We create a fan.  Each vertex will have
-height at most $2t_0$.  The blades of the fan
-will divide the standard component into substandard components. We
-call an (open) blade {\it nonexternal\/} if it
-edge lies entirely in the exceptional component.
-
-\begin{enumerate}
-\item Draw all nonexternal blades from edges of length at most $2\sqrt{2}$
-except those between nonconsecutive anchors of a remaining upright
-diagonal. These blades do not cross (Lemma~\ref{tarski:skew-quad}).
-These blades do not cross the blades of slices
-(Lemma~\ref{tarski:qrtet-pair-pass} and
-Lemma~\ref{tarski:pass-anchor}).
-
-\item Draw all blades of (remaining) slices
-that are opposite the upright diagonal, except when the blade gives
-a special simplex. The interiors of distinct slices do
-not meet (Lemma~\ref{lemma:anchor-no-overlap}), so these (open) blades do
-not meet. They are are nonexternal 
-(Lemma~\ref{lemma:anc-simplex-not-enc} and
-Lemma~\ref{tarski:2t0-doesnt-pass-through}).
-
-\item Draw as many additional nonexternal blades as possible of
-length at most $3.2$ subject to not meeting another blade, not
-crossing any blade of a slice, and not coming from  the
-diagonal of a special simplex.
-\end{enumerate}
-
-We fix once and for all a maximal collection of edges subject to
-these constraints. Edges in this collection are called {\it
-distinguished\/} edges.  They form a fan.  The components of the complement
-of this fan are
-called the {\it substandard components}.  Each standard component is a union of
-substandard components (together with separating blades). 
-The vertices of height at most $2t_0$ and the vertices
-of the remaining upright diagonals are said to form a {\it
-subcluster}.
-
-
-By construction, the special simplices and slices
-around an upright quarter form a subcluster.  Flat quarters in the
-$Q$-system, flat quarters of an isolated pair, and simplices of
-type $\SA$ and $\SB$ are subclusters.  Other subclusters are
-scored by the function $\op{sovo}(\cdot,\lambda_{oct})$. 
-For these subclusters,
-Formula~\ref{eqn:3.7} extends without modification.
 
 \subsection{scoring subcluster} %DCG 12.4, p128
     \oldlabel{4.3}
@@ -1635,82 +1706,7 @@ We conclude that all substandard components can be deformed into convex polygons
 \section{Main Estimate (continued)}%DCG Sec.13,p.143.
     \oldlabel{5}
 
-\subsection{deformation} %DCG 13.1, p143
-    \oldlabel{5.1}
-We divide the bounding edges over the polygon according to length
-$[2,2t_0]$, $[2t_0,2\sqrt{2}]$, $[2\sqrt{2},3.2]$. The deformations of
-Section~\ref{x-4.9} contract edges to the lower bound of the intervals
-($2,2t_0$, or $2\sqrt{2}$) unless a new distinguished edge is formed. By
-deforming the polygon, we assume that the bounding edges have length
-$2,2t_0$, or $2\sqrt{2}$. (There are a few instances of triangles or
-quadrilaterals that do not satisfy the hypotheses needed for the
-deformations. These instances will be treated in Sections~\ref{x-5.7}
-and \ref{x-5.8}.)
 
-\begin{lemma}
-    \oldlabel{5.1.1}
-Let $S$ with edges $(y_1,\ldots,y_6)$ following the edge labeling
-convention, and with $x_i=y_i^2$,
-as usual.  Let $y_4\ge 2$,
-    $y_5,y_6\in\{2,2t_0,2\sqrt{2}\}$.
-Assume that the coordinates $y_1,\ldots,y_6$ are realized by
-some simplex $\{v_1,\ldots,v_4\}$.  % Avoid mention of Deelta. 
-Fixing all the variables but $x_1$, let $f(x_1)$ be one of the
-functions $\op{sovo}_0(v_0,S,\lambda_{oct})$ or 
-$-\op{sovo}_0(v_0,S,\lambda_{sq})$. We have $f''(x_1)>0$
-whenever $f'(x_1)=0$.
-\end{lemma}
-
-\begin{proof} This is an interval calculation.%
-\footnote{\calc{311189443}} %A15
-% We put the condition about realization to avoid mention of Deelta.
-\end{proof}
-
-
-
-The lemma implies that $f$ does not have an interior point local maximum
-for $x_1\in[2^2,2t_0^2]$.  Fix three consecutive corners, $v_1,v_2,v_3$
-of the convex polygon, and apply the lemma to the variable $x_1 =
-|v_2-v_1|^2$ of the simplex $S=\{v_0,v_1,v_2,v_3\}$. We deform the simplex,
-increasing $f$.  If the deformation produces flattens out the simplex, 
-so that some
-dihedral angle is $\pi$, then the arguments for nonconvex components bring
-us eventually back to the convex situation. Eventually $y_1$ is $2$ or
-$2t_0$.  Applying the lemma at each corner, we may assume that the
-height of every corner is $2$ or $2t_0$.   (There are a few cases where
-the hypotheses of the lemma are not met, and these are discussed in
-Sections~\ref{x-5.7} and \ref{x-5.8}.)
-
-
-\subsection{truncated corner cell} %DCG 13.2, p143
-    \oldlabel{5.2}
-
-The following lemma justifies using tccs at the corners as an upper
-bound on the score (and lower bound on what is squandered). We fix the
-truncation parameter at $\lambda=1.6$.
-
-\begin{lemma}
-Take a convex substandard component that is not a triangle.  Assume edges between
-adjacent corners have lengths $\in\{2,2t_0,2\sqrt{2},3.2\}$. Assume
-nonadjacent corners are separated by distances $\ge3.2$.  Then the
-truncated corner cell at each vertex lies in the cone over the
-substandard component.
-\end{lemma}
-
-\begin{proof}
-Place a tcc at $v_1$. For a contradiction, let $\{v_2,v_3\}$ be an
-edge that the tcc meets at an interior point.  
-If $|v_1-v_i|\ge 2t_0$, then the result follows from
-Lemma~\ref{tarski:beta:dcg-144a}.  
-
-Assume that
- $|v_1-v_2|<2t_0$.  By the hypotheses of the lemma,
-$|v_1-v_2|=2$.  If $|v_1-v_3|<3.2$, then $\{v_0,v_1,v_2,v_3\}$ is
-triangular, contrary to hypothesis.  So $|v_1-v_3|\ge3.2$.
-The result now follows from Lemma~\ref{tarski:beta:dcg-144b} when
-$y_1\ge 2.2$ and from Lemma~\ref{tarski:beta:dcg-144c} when
-$y_1\le 2.2$.
-\end{proof}
 
 
 \subsection{penalty} %DCG 13.4, p145
@@ -1910,86 +1906,6 @@ The first of these inequalities follows.%
 \footnote{\calc{148776243}} %A13
 \footnote{\calc{163548682}} %A16
 % form $\A_1,\A_{13},\A_{16}$.
-
-
-\subsection{penalty} %DCG 13.6, p148
-\label{sec:4.2} \label{sec:penalty}
-
-Erasing a compressed upright quarter gives a penalty of
-at most $\xiG$ and a decompressed one gives at most $\xiV$. We
-take the worst possible penalty.  It is at most $n\xiG$ in an
-$n$-gon. If there is a masked flat quarter, the penalty is at most
-$2\xi_V$ from the two upright quarters along the flat quarter.  We
-note in this connection that both edges of a polygon along a flat
-quarter lie on upright quarters, or neither does.
-
-If an upright diagonal appears enclosed over a flat quarter, the
-flat quarter is part of a loop with context $\x{(p,r)}=\x{(3,1)}$, for a
-penalty at most $2\xi'_\Gamma+\xi_V$.  This is smaller than the
-bound on the penalty obtained from a loop with context
-$\x{(p,r)}=\x{(3,1)}$, when the upright diagonal is not enclosed over the
-flat quarter:
-    $$\xi_\Gamma + 2\xi_V.$$
-So we calculate the worst-case penalties under the assumption that
-the upright diagonals are not enclosed over flat quarters.
-
-A loop of context $\x{(p,r)}=\x{(3,1)}$ gives $\xi_\Gamma+2\xi_V$ or
-$3\xi_\Gamma$.  A loop of context $\x{(p,r)}=\x{(2,2)}$ gives
-$2\xi_\Gamma$ or $2\xi_V$.
-
-If we erase an  upright diagonal of context $\xtazimlt$, there is a penalty
-of $0.008$ (or 0 if it masks a flat quarter.) This is dominated by
-the penalty $3\xi_\Gamma$ of context $\x{(p,r)}=\x{(3,1)}$.
-
-Suppose we have an octagonal standard component.  We claim that a loop
-does not occur in context $\x{(p,r)}=\x{(2,2)}$. If there are at most three
-vertices that are not corners of the octagon, then there are at most
-twelve quasi-regular tetrahedra, and the score is at most
-$$s_8 + 12\,\pt<8\,\pt.$$
-Assume there are more than three vertices that are not corners
-over the octagon. We squander
-$$t_8+ \dloop(\y{(4,2)})+4\tlp\pqr{(5,0,0)} > \squander.$$
-As a consequence, context $\x{(p,r)}=\x{(2,2)}$ does not occur.
-
-So there are at most two upright diagonals and at most six quarters,
-and the penalty is at most $6\xi_\Gamma$. Let $f$ be the number of
-flat quarters This leads to
-    $$
-    \piF = \begin{cases} 6\xiG, & f=0,1,\\
-                   4\xiG+2\xiV, & f=2,\\
-                    2\xiG+4\xiV, & f=3,\\
-                    0, & f=4.
-            \end{cases}
-    $$
-The 0 is justified by a parity argument.  Each upright quarter
-occurs in a pair at each masked flat quarter.  But there is an odd
-number of quarters along the upright diagonal, so no penalty at
-all can occur.
-
-Suppose we have a heptagonal standard component.  Three loops are a
-geometric impossibility. Assume there are at most two upright
-diagonals.
- If there is no context $\x{(p,r)}=\x{(2,2)}$,
- then we have the following bounds on the penalty
-    $$
-    \piF = \begin{cases} 6\xiG, & f=0,\\
-                 4\xiG+2\xiV, & f=1,\\
-                3\xiG, & f=2,\\
-                \xiG+2\xiV, & f=3.
-            \end{cases}
-    $$
-If an upright diagonal has context $\x{(p,r)}=\x{(2,2)}$, then
-    $$
-    \piF = \begin{cases} 5\xiG, & f=0,1,\\
-                3\xiG + 2\xiV, & f=2,\\
-                \xiG + 4 \xiV, &f = 3.\\
-            \end{cases}
-    $$
-This gives the bounds used in the diagrams of cases.
-
-% WW Estimates moved to Assembly Listing.
-
-
 
 
 \subsection{small dihedral angle} %DCG 14.1, p157

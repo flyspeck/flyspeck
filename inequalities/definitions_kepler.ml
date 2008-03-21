@@ -57,6 +57,7 @@ let square_2t0 = kepler_def(`square_2t0 = two_t0*two_t0`);;
 let square_4t0 = kepler_def(`square_4t0 = (&4)*square_2t0`);;
 let pt = kepler_def(`pt = (&4)*(atn (sqrt2/(&5))) - (pi/(&3))`);;
 let square = kepler_def(`square x = x*x`);;
+let square_2t0 = kepler_def(`sqrt_2t0 = sqrt two_t0`);;
 
 (* ------------------------------------------------------------------ *)
 (*  Standard constants.                                               *)

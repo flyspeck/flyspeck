@@ -30,6 +30,7 @@ sig
     | Sqrt2
     | Sqrt8
     | Square_2t0
+    | Sqrt_2t0
     | Square_4t0
     | Tt_0
     | Tt_5
@@ -183,6 +184,7 @@ struct
     | Ss_5
     | Sqrt2
     | Sqrt8
+    | Sqrt_2t0
     | Square_2t0
     | Square_4t0
     | Tt_0
@@ -321,6 +323,7 @@ struct
     | "s5" -> Ss_5
     | "sqrt2" -> Sqrt2
     | "sqrt8" -> Sqrt8
+    | "sqrt_2t0" -> Sqrt_2t0
     | "square_2t0" -> Square_2t0
     | "square_4t0" -> Square_4t0
     | "t0" -> Tt_0
@@ -360,6 +363,7 @@ struct
     | Ss_5 -> "S5"
     | Sqrt2 -> "Sqrt2"
     | Sqrt8 -> "Sqrt8"
+    | Sqrt_2t0 -> "Sqrt2t0"
     | Square_2t0 -> "Square2t0"
     | Square_4t0 -> "Square4t0"
     | Tt_0 -> "T0"
@@ -516,7 +520,7 @@ struct
   (*  `5` *)
   let translate_int t : int option = 
     try
-      match dest_numeral n with
+      match dest_numeral t with
           Num.Int n' -> Some n'
         | _ -> None 
     with _ -> None 
@@ -1064,10 +1068,12 @@ let file = "/Users/seanmcl/save/versioned/projects/kepler/sml/inequalities/inequ
 let q = List.nth ocaml_ineqs 0;;
 (print_endline ""; Ocaml_sml.ineq_to_sml q; print_endline "";)
 
-   let t = Ocaml_sml.normalize I_572068135;;
+   let t = Ocaml_sml.normalize x;;
    Ocaml_sml.translate_ineq t
 
 
+   #trace Ocaml_sml.;;
+   #trace Ocaml_sml.normalize;;
    #trace Ocaml_sml.translate_const;;
    #trace Ocaml_sml.translate_cdiv;;
    #trace Ocaml_sml.translate_expr;;
@@ -1082,8 +1088,9 @@ let q = List.nth ocaml_ineqs 0;;
 
    #untrace_all;;
 
-   let x = I_572068135
-   translate_ineq ineq
+   let x = I_327474205_1
+   Ocaml_sml.translate_ineq (Ocaml_sml.normalize x)
+   Ocaml_sml.normalize I_327474205_1
 
    translate_ineq I_867513567_13
    let t = `tau_sigma_x x1 x2 x3 x4 x5 x6 -. #0.2529 *. dih_x x1 x2 x3 x4 x5 x6 >.

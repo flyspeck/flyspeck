@@ -4082,6 +4082,7 @@ length $2\sqrt2$ runs.)
 *)
 
 (* CCC delta constraints added *)
+(* XXX fixed syntax *) 
 
 let I_327474205_1=
  all_forall `
@@ -4089,7 +4090,7 @@ let x2 = (#4.0) in
 let x7 = (#4.0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
@@ -4099,10 +4100,11 @@ let x9 = (#4.0) in
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
-   ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
-  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
+    (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)) \/
+    ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+    ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
+(* XXX fixed syntax *) 
 (* CCC delta constraints added *)
 let I_327474205_2=
  all_forall `
@@ -4110,8 +4112,8 @@ let x2 = (square_2t0) in
 let x7 = (#4.0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
-    [     
+  ineq
+     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
@@ -4120,47 +4122,49 @@ let x9 = (#4.0) in
    (((vor_0_x x1 x2 x3 x4 x5 x6) +
     (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
    \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
+  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8)) \/
   ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
   ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
+(* XXX fixed syntax *) 
 let I_327474205_3=
  all_forall `
 let x2 = (square_2t0) in
 let x7 = (square_2t0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
      ((#8.0), x5, (square (#3.2)));
      ((#4.0), x6, square_2t0)]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
-    (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
-   \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
-       <. (sqrt8))))`;;
+    (((vor_0_x x1 x2 x3 x4 x5 x6) +
+        (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
+       \/
+        (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
+         <. (sqrt8)))`;;
 
+(* XXX fixed syntax *) 
 let I_327474205_4=
  all_forall `
 let x2 = (#4.0) in
 let x7 = (square_2t0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
      ((#8.0), x5, (square (#3.2)));
      ((#4.0), x6, square_2t0)]
-   (((vor_0_x x1 x2 x3 x4 x5 x6) +
-    (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
-   \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
-       <. (sqrt8))))`;;
+    (((vor_0_x x1 x2 x3 x4 x5 x6) +
+        (vor_0_x x7 x2 x3 x4 x8 x9) <. (-- (#0.128)))
+       \/
+        (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
+         <. (sqrt8)))`;;
 
 let I_327474205_5=
  all_forall `ineq
@@ -4194,19 +4198,19 @@ let x2 = (#4.0) in
 let x7 = (#4.0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
      ((#8.0), x5, (square (#3.2)));
      ((#4.0), x6, square_2t0)]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
-    (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.26625))
-   \/
-  (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
-   ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
-  ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
+    ((((tau_0_x x1 x2 x3 x4 x5 x6) +
+         (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.26625))
+        \/
+         (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
+       ((delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) \/
+         ((delta_x x7 x2 x3 x4 x8 x9) <. (#0.0)))`;;
 
 let I_327474205_8=
  all_forall `
@@ -4214,14 +4218,14 @@ let x2 = (square_2t0) in
 let x7 = (#4.0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
      ((#8.0), x4, square_4t0);
      ((#8.0), x5, (square (#3.2)));
      ((#4.0), x6, square_2t0)]
-   (((tau_0_x x1 x2 x3 x4 x5 x6) +
+   ((((tau_0_x x1 x2 x3 x4 x5 x6) +
     (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.26625))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9 <. (sqrt8))) \/
@@ -4234,7 +4238,7 @@ let x2 = (square_2t0) in
 let x7 = (square_2t0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
@@ -4245,7 +4249,7 @@ let x9 = (#4.0) in
     (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.26625))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
-       <. (sqrt8))))`;;
+       <. (sqrt8)))`;;
 
 let I_327474205_10=
  all_forall `
@@ -4253,7 +4257,7 @@ let x2 = (#4.0) in
 let x7 = (square_2t0) in
 let x8 = (#4.0) in
 let x9 = (#4.0) in
-  (ineq
+  ineq
     [     
      ((square(#2.45)), x1, square_2t0);
      ((#4.0), x3, square_2t0);
@@ -4264,7 +4268,7 @@ let x9 = (#4.0) in
     (tau_0_x x7 x2 x3 x4 x8 x9) >. (#0.26625))
    \/
   (cross_diag_x x1 x2 x3 x4 x5 x6 x7 x8 x9
-       <. (sqrt8))))`;;
+       <. (sqrt8)))`;;
 
 let I_327474205_11=
  all_forall `ineq
@@ -4819,13 +4823,11 @@ let I_207203174_GEN=
    (((tau_0_x a3 a2 a1 (#4.0)  x (#4.0)) +.
     (tau_0_x a3 a1 a5 b5 x' x) +.
       (tau_0_x a3 a5 a4 (#4.0) (#4.0) x') 
-    >. (#0.54525))
+    >. (#0.54525)) \/
   (dih_x a3 a2 a1 (#4.0) x (#4.0) +.
    dih_x a3 a1 a5 b5 xp x +.
    dih_x a3 a5 a4 (#4.0) (#4.0) xp <. dih_x a3 a2 a4 (#8.0) (#4.0) (#4.0)) \/
   (delta_x a3 a2 a1 (#4.0)  x (#4.0) <. (#0.0)) \/
-
-   \/
   (delta_x a3 a2 a1 (#4.0)  x (#4.0) <. (#0.0)) \/
   (delta_x a3 a1 a5 b5 x' x <. (#0.0)) \/
   (delta_x a3 a5 a4 (#4.0) (#4.0) x' <. (#0.0)))))`;;
@@ -7163,6 +7165,9 @@ when it should be returning an angle near 0.
 
 Note that your constant 1.91893398547 + (2.3557 - 1.13184) is
 approximately 3.13562, which is suspiciously close to pi.
+
+Tom, It was worse than that.  I didn't implement acos
+correctly. :(
 
 *)
 let I_713930036_4=
@@ -11455,7 +11460,7 @@ let CIVA23_209361863= list_mk_conj
   [  I_4591018_1;I_193728878_1;I_2724096_1;I_213514168_1;
      I_750768322_1;I_371464244_1;I_657011065_1;I_4591018_2;
      I_193728878_2;I_2724096_2;I_213514168_2;I_750768322_2;
-     I_371464244_2;I_657011065_2 ;I_55753311;I_762922223;
+     I_371464244_2;I_657011065_2 ;I_66753311;I_762922223;
      I_953023504;I_887276655;I_246315515;I_784421604;
      I_258632246;I_404164527;I_163088471;];;
 (*

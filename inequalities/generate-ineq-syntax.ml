@@ -14,12 +14,12 @@ unambiguous_interface();;
 
 let kepler_home = Sys.getenv "KEPLER_HOME";;
 (* 
-let kepler_home = "/home/sean/save/versioned/projects/kepler/src";;
+let kepler_home = "/Users/seanmcl/save/versioned/projects/kepler/src";;
 #use "/home/sean/save/versioned/projects/kepler/src/inequalities/holl/kep_inequalities.ml";;
 *) 
 needs (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
 needs (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
-needs (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml.ml");;
+needs (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
 needs (kepler_home ^ "/inequalities/holl/ineq_names.ml");;
 needs (kepler_home ^ "/inequalities/holl/ocaml_to_sml.ml");;
 

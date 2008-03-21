@@ -371,9 +371,16 @@ let tau_analytic_x = kepler_def(`tau_analytic_x x1 x2 x3 x4 x5 x6 =
         (sol_x x1 x2 x3 x4 x5 x6)*zeta*pt - 
                 (vor_analytic_x x1 x2 x3 x4 x5 x6)`);;
 
+(* bug found 3/21/2008: had parenthesis misplaced. -tch *)
+
 let kappa = kepler_def(`kappa y1 y2 y3 y4 y5 y6 =
-        (crown y1/(&2))*(dih_y y1 y2 y3 y4 y5 y6)/((&2)*pi) 
+        (crown (y1/(&2)))*(dih_y y1 y2 y3 y4 y5 y6)/((&2)*pi) 
         + (anc y1 y2 y6) + (anc y1 y3 y5)`);;
+
+let kappa_dih_y = kepler_def(`kappa_dih_y y1 y2 y3 y5 y6 d =
+        (crown (y1/(&2)))*d/((&2)*pi) 
+        + (anc y1 y2 y6) + (anc y1 y3 y5)`);;
+
 
 let level_at = kepler_def(`level_at h t = if (h<t) then h else t`);;
 

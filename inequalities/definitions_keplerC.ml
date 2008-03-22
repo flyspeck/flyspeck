@@ -233,7 +233,7 @@ degenerate case of delta = 0 in distinguishing between angle 0 and pi *)
 
 let dih_alt_x = kepler_def(`dih_alt_x x1 x2 x3 x4 x5 x6 =
         acs ((delta_x4 x1 x2 x3 x4 x5 x6)/
-                sqrt((u_x x1 x2 x6)*(u_x x1 x3 x5)))`);;
+                sqrt((ups_x x1 x2 x6)*(ups_x x1 x3 x5)))`);;
 
 let dih_alt_y = kepler_def(`dih_alt_y y1 y2 y3 y4 y5 y6 = 
         let (x1,x2,x3,x4,x5,x6)=(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6) in

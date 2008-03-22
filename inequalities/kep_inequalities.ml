@@ -157,7 +157,7 @@ tauhatpi_x
 taumu_flat_x
 taunu_x
 two_t0
-u_x
+ups_x
 v0x
 v1x
 vorA_x
@@ -9479,7 +9479,7 @@ let I_484314425 = all_forall `ineq
     ((#4.0), x3, square_2t0);
     ((#4.0), x5, square_2t0)
    ]
-        (--(&.4)*doct*(u_x x1 x3 x5)*
+        (--(&.4)*doct*(ups_x x1 x3 x5)*
                 ((deriv (\x. (quo_x x1 x3 x)) x5) +.
                 (deriv (\x. (quo_x x3 x1 x)) x5))
                 <. (#0.82))`;;
@@ -9490,7 +9490,7 @@ let I_440223030 = all_forall `ineq
     ((#4.0), x3, square_2t0);
     ((square (#2.189)), x5, square_2t0)
    ]
-        (--(&.4)*doct*(u_x x1 x3 x5)*
+        (--(&.4)*doct*(ups_x x1 x3 x5)*
                 ((deriv (\x. (quo_x x1 x3 x)) x5) +.
                 (deriv (\x. (quo_x x3 x1 x)) x5))
                 <. (#0.50))`;;

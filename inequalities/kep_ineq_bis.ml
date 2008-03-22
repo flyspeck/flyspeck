@@ -47,7 +47,7 @@ let I_7710172071_1=
   [`(square (#2.3))`;`#4.0`;`#4.0`;`#4.0`]));;
 
 (* 
-XXX false
+CCC false. fixed square
 
 Bound: 0.47653139353
 
@@ -57,10 +57,10 @@ Point: [8.00000008497]
 
 let I_7710172071_2=
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`#4.0`;`sqrt_2t0`]));;
+  [`(square (#2.3))`;`#4.0`;`#4.0`;`square_2t0`]));;
 
 (* 
-XXX false
+CCC false. fixed square
 
 Bound: 0.472007641148
 
@@ -68,11 +68,11 @@ Point: [8.18163440844]
 *) 
 let I_7710172071_3=
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`sqrt_2t0`;`#4.0`]));;
+  [`(square (#2.3))`;`#4.0`;`square_2t0`;`#4.0`]));;
 
 
 (* 
-XXX false 
+CCC false. fixed square
 
 Bound: 1.20170306839
 
@@ -81,75 +81,75 @@ Point: [8.00000019731]
 
 let I_7710172071_4=
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`sqrt_2t0`;`sqrt_2t0`]));;
+  [`(square (#2.3))`;`#4.0`;`square_2t0`;`square_2t0`]));;
 
 let I_7710172071_5=
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`sqrt_2t0`;`#4.0`;`sqrt_2t0`]));;
+  [`(square (#2.3))`;`square_2t0`;`#4.0`;`square_2t0`]));;
 
 let I_7710172071_6=
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`sqrt_2t0`;`sqrt_2t0`;`sqrt_2t0`]));;
+  [`(square (#2.3))`;`square_2t0`;`square_2t0`;`square_2t0`]));;
 
 
 let I_7710172071_7= 
   all_forall (list_mk_comb( I_302085207_GEN,
   [`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));; 
 
-(* XXX false *) 
+(* CCC false. fixed square *) 
 let I_7710172071_8= 
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`#4.0`;`sqrt_2t0`]));; 
+  [`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));; 
 
-(* XXX false *) 
+(* CCC false. fixed square *) 
 let I_7710172071_9= 
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`sqrt_2t0`;`#4.0`]));; 
+  [`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));; 
 
-(* XXX false *) 
+(* CCC false. fixed square *) 
 let I_7710172071_10= 
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`sqrt_2t0`;`sqrt_2t0`]));; 
+  [`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
 
 let I_7710172071_11= 
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`sqrt_2t0`;`#4.0`;`sqrt_2t0`]));; 
+  [`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
 
 let I_7710172071_12= 
   all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`sqrt_2t0`;`sqrt_2t0`;`sqrt_2t0`]));; 
+  [`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
 
 
 (* cases when the diagonal hits sqrt8 *)
 (*
 XXX doesn't parse
  *)
-(* let I_7710172071_13= *)
-(* all_forall `ineq *)
-(*    [(square (#2.3),x1,square_2t0); *)
-(*     ((#4.0),x2,square_2t0); *)
-(*     ((#4.0),x3,square_2t0); *)
-(*     ((#8.0),x4,(#8.0)); *)
-(*     ((#4.0),x5,square_2t0); *)
-(*     ((#4.0),x6,square_2t0) *)
-(*    ] *)
-(*    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#1.04) *pt - (#0.009)))`;; *)
+ let I_7710172071_13= 
+ all_forall `ineq 
+    [(square (#2.3),x1,square_2t0); 
+     ((#4.0),x2,square_2t0); 
+     ((#4.0),x3,square_2t0); 
+     ((#8.0),x4,(#8.0)); 
+     ((#4.0),x5,square_2t0); 
+     ((#4.0),x6,square_2t0) 
+    ] 
+    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#1.04) *pt - (#0.009)))`;; 
 
 (*
 XXX doesn't parse
  *)
 
-(* let I_7710172071_14= *)
-(* all_forall `ineq *)
-(*    [ *)
-(*     ((#4.0),x1,square_2t0); *)
-(*      (square (#2.3),x2,square_2t0); *)
-(*     ((#4.0),x3,square_2t0); *)
-(*     ((#8.0),x4,(#8.0)); *)
-(*     ((#4.0),x5,square_2t0); *)
-(*     ((#4.0),x6,square_2t0) *)
-(*    ] *)
-(*    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#0.52) *pt))`;; *)
+ let I_7710172071_14= 
+ all_forall `ineq 
+    [ 
+     ((#4.0),x1,square_2t0); 
+      (square (#2.3),x2,square_2t0); 
+     ((#4.0),x3,square_2t0); 
+     ((#8.0),x4,(#8.0)); 
+     ((#4.0),x5,square_2t0); 
+     ((#4.0),x6,square_2t0) 
+    ] 
+    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#0.52) *pt))`;; 
 
 
 
@@ -164,25 +164,25 @@ Bound: 0.064541497335
 
 Point: [6.30010733228, 6.30007582978, 5.35475339765, 4.00000309308, 6.30007582977, 5.35475339763]
 
-3/10/2008, changed. octavor_analytic_x to octavor_0_x
+3/10/2008, changed. octavor_analytic_x to octavor0_x
 
-XXX octavor_0_x is not defined.  I feel like we're programming
+CCC octavor_0_x is not defined.  I feel like we're programming
 in assembly language...
 
  *)
 
-(* let I_9467217686= *)
-(* all_forall `ineq *)
-(*    [(square_2t0,x1,(#8.0)); *)
-(*     ((#4.0),x2,square_2t0); *)
-(*     ((#4.0),x3,square_2t0); *)
-(*     ((#4.0),x4,square_2t0); *)
-(*     ((#4.0),x5,square_2t0); *)
-(*     ((#4.0),x6,square_2t0) *)
-(*    ] *)
-(*    ((gamma_x  x1 x2 x3 x4 x5 x6 < octavor_0_x x1 x2 x3 x4 x5 x6 + *)
-(*         (#0.5)*(dih_x x1 x2 x3 x4 x5 x6) - (#0.54125)) \/ *)
-(*     (eta_x x1 x2 x6 > sqrt2) \/ (eta_x x1 x3 x5 > sqrt2))`;; *)
+ let I_9467217686= 
+ all_forall `ineq 
+    [(square_2t0,x1,(#8.0)); 
+     ((#4.0),x2,square_2t0); 
+     ((#4.0),x3,square_2t0); 
+     ((#4.0),x4,square_2t0); 
+     ((#4.0),x5,square_2t0); 
+     ((#4.0),x6,square_2t0) 
+    ] 
+    ((gamma_x  x1 x2 x3 x4 x5 x6 < octavor0_x x1 x2 x3 x4 x5 x6 + 
+         (#0.5)*(dih_x x1 x2 x3 x4 x5 x6) - (#0.54125)) \/ 
+     (eta_x x1 x2 x6 > sqrt2) \/ (eta_x x1 x3 x5 > sqrt2))`;; 
 
 (* EXPUNGE UPRIGHT DIAG OVER FLAT QUARTER
 LOC: DCG errata : 

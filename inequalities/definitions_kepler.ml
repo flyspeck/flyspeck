@@ -57,7 +57,6 @@ let square_2t0 = kepler_def(`square_2t0 = two_t0*two_t0`);;
 let square_4t0 = kepler_def(`square_4t0 = (&4)*square_2t0`);;
 let pt = kepler_def(`pt = (&4)*(atn (sqrt2/(&5))) - (pi/(&3))`);;
 let square = kepler_def(`square x = x*x`);;
-let square_2t0 = kepler_def(`sqrt_2t0 = sqrt two_t0`);;
 
 (* ------------------------------------------------------------------ *)
 (*  Standard constants.                                               *)
@@ -156,12 +155,14 @@ let delta_x6 = kepler_def(`delta_x6 x1 x2 x3 x4 x5 x6
 (*  Circumradius       .                                              *)
 (* ------------------------------------------------------------------ *)
 
+(* same as ups_x 
 let u_x = kepler_def(
         `u_x x1 x2 x3 = (--(x1*x1+x2*x2+x3*x3)) +
         (&2) * (x1*x2+x2*x3+x3*x1)`);;
+*)
 
 let eta_x = kepler_def(`eta_x x1 x2 x3 =
-        (sqrt ((x1*x2*x3)/(u_x x1 x2 x3)))
+        (sqrt ((x1*x2*x3)/(ups_x x1 x2 x3)))
         `);;
 
 let eta_y = kepler_def(`eta_y y1 y2 y3 =
@@ -248,7 +249,7 @@ let beta = kepler_def(`beta psi theta =
         (acs (sqrt arg))`);;
 
 let arclength = kepler_def(`arclength a b c =
-        pi/(&2) + (atn2( (sqrt (u_x (a*a) (b*b) (c*c))),(c*c - a*a  -b*b)))`);;
+        pi/(&2) + (atn2( (sqrt (ups_x (a*a) (b*b) (c*c))),(c*c - a*a  -b*b)))`);;
 
 
 let volR = kepler_def(`volR a b c =
@@ -351,9 +352,9 @@ let KX = kepler_def(`KX x1 x2 x3 x4 x5 x6 =
 
 let vor_analytic_x = kepler_def(`vor_analytic_x x1 x2 x3 x4 x5 x6 =
         let del = sqrt (delta_x x1 x2 x3 x4 x5 x6) in
-        let u126 = u_x x1 x2 x6 in
-        let u135 = u_x x1 x3 x5 in
-        let u234 = u_x x2 x3 x4 in
+        let u126 = ups_x x1 x2 x6 in
+        let u135 = ups_x x1 x3 x5 in
+        let u234 = ups_x x2 x3 x4 in
         let vol = ((&1)/((&48)*del))*
                 ((x1*(x2+x6-x1)+x2*(x1+x6-x2))*(chi_x x4 x5 x3 x1 x2 x6)/u126
                +(x2*(x3+x4-x2)+x3*(--x3+x4+x2))*(chi_x x6 x5 x1 x3 x2 x4)/u234
@@ -462,13 +463,13 @@ let tauC_x = kepler_def(`tauC_x x1 x2 x3 x4 x5 x6 =
 let v0x = kepler_def(`v0x x1 x2 x3 x4 x5 x6 =
 	let (y1,y2,y3) = (sqrt x1,sqrt x2,sqrt x3) in
 	(-- (BHY y1))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
-	(BHY y2)* y2* (u_x x1 x3 x5) +
+	(BHY y2)* y2* (ups_x x1 x3 x5) +
 	  (-- (BHY y3))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
 
 let v1x = kepler_def(`v1x x1 x2 x3 x4 x5 x6 =
 	let (y1,y2,y3) = (sqrt x1,sqrt x2,sqrt x3) in
 	(-- (BHY y1 - (zeta*pt)))*y1*(delta_x6 x1 x2 x3 x4 x5 x6) +
-	(BHY y2 - (zeta*pt))* y2* (u_x x1 x3 x5) +
+	(BHY y2 - (zeta*pt))* y2* (ups_x x1 x3 x5) +
 	  (-- (BHY y3 - (zeta*pt)))*y3*(delta_x4 x1 x2 x3 x4 x5 x6)`);;
 
 

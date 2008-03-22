@@ -161,6 +161,9 @@ let u_x = kepler_def(
         (&2) * (x1*x2+x2*x3+x3*x1)`);;
 *)
 
+let ups_x = kepler_def(`ups_x x1 x2 x6 = --x1*x1 - x2*x2 - x6*x6 + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
+
+
 let eta_x = kepler_def(`eta_x x1 x2 x3 =
         (sqrt ((x1*x2*x3)/(ups_x x1 x2 x3)))
         `);;
@@ -186,7 +189,6 @@ let chi_x = kepler_def(`chi_x x1 x2 x3 x4 x5 x6
    x2*x5*x6 + x3*x5*x6 -  (&2) * x4*x5*x6 -  x3*x6*x6`);;
 
 
-let ups_x = kepler_def(`ups_x x1 x2 x6 = --x1*x1 - x2*x2 - x6*x6 + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
 
 (* ------------------------------------------------------------------ *)
 (*   The formula for the dihedral angle of a simplex.                 *)

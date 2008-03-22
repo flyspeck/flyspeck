@@ -121,9 +121,7 @@ let I_7710172071_12=
 
 
 (* cases when the diagonal hits sqrt8 *)
-(*
-XXX doesn't parse
- *)
+
  let I_7710172071_13= 
  all_forall `ineq 
     [(square (#2.3),x1,square_2t0); 
@@ -133,11 +131,9 @@ XXX doesn't parse
      ((#4.0),x5,square_2t0); 
      ((#4.0),x6,square_2t0) 
     ] 
-    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#1.04) *pt - (#0.009)))`;; 
+    ((vor_0_x  x1 x2 x3 x4 x5 x6 < -- (#1.04) *pt - (#0.009)))`;; 
 
-(*
-XXX doesn't parse
- *)
+
 
  let I_7710172071_14= 
  all_forall `ineq 
@@ -149,7 +145,7 @@ XXX doesn't parse
      ((#4.0),x5,square_2t0); 
      ((#4.0),x6,square_2t0) 
     ] 
-    ((vor_0_x  x1 x2 x3 x4 x5 x6 sqrt2 < -- (#0.52) *pt))`;; 
+    ((vor_0_x  x1 x2 x3 x4 x5 x6  < -- (#0.52) *pt))`;; 
 
 
 

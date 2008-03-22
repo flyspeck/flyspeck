@@ -33,16 +33,9 @@ as a typo in the 9-digit identifier for the inequality), missing inequalities,
 false inequalities, incompatibilities
 between the stated inequality and the interval arithmetic verification,
 and incompatibilities between the stated inequality and how the inequality
-is used in the proof of the Keper Conjecture.
+is used in the proof of the Kepler Conjecture.
 
 
-Tue Feb 24 09:30:41 EST 2004: 
-(* interval verification in partK.cc *)
-I'm suspicious of I_354217730.
-The sqrt2 looks odd and it doesn't fit with the interval arithmetic code.
-(* interval verification in partK.cc *)
-Note that similar inequalities such as I_938003786 use sqrt8 
-instead of sqrt2.
 
 Nov 8, 2007: Fixed the x1 bound on calc 815492935 and
 729988292 (SPIV-2002 Sec. A2-A3).  It should be (square_2t0,x1,(#8.0))
@@ -73,6 +66,7 @@ part3more.c
  II. (a couple that are needed)
  I. (one? inequality)
  Form.
+ V
 *)
 
 (* CONSTANT LIST:
@@ -240,6 +234,31 @@ $\sqrt8$.
 Search for SKIP to find sections skipped.
 Search for LOC: to find preprint locations.
 *)
+
+(* avoid Jordan/parse_ext_override_interface.ml *)
+
+(* real number operations *)
+parse_as_infix("+.",(16,"right"));
+parse_as_infix("-.",(18,"left"));
+parse_as_infix("*.",(20,"right"));
+parse_as_infix("**.",(24,"left")); 
+parse_as_infix("<.",(12,"right"));
+parse_as_infix("<=.",(12,"right"));
+parse_as_infix(">.",(12,"right"));
+parse_as_infix(">=.",(12,"right"));
+override_interface("+.",`real_add:real->real->real`);
+override_interface("-.",`real_sub:real->real->real`);
+override_interface("*.",`real_mul:real->real->real`);
+override_interface("**.",`real_pow:real->num->real`);
+(* boolean *)
+override_interface("<.",`real_lt:real->real->bool`);
+override_interface("<=.",`real_le:real->real->bool`);
+override_interface(">.",`real_gt:real->real->bool`);
+override_interface(">=.",`real_ge:real->real->bool`);
+(* unary *)
+override_interface("--.",`real_neg:real->real`);
+override_interface("&.",`real_of_num:num->real`);
+override_interface("||.",`real_abs:real->real`);;
 
 
 (* XXX Note:  please don't write comments in HOL Light terms.
@@ -4080,7 +4099,7 @@ length $2\sqrt2$ runs.)
 
 
 *)
-
+      
 (* CCC delta constraints added *)
 (* XXX fixed syntax *) 
 

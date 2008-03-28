@@ -18,6 +18,7 @@ let kepler_home = "/Users/seanmcl/save/versioned/projects/kepler/src";;
 #use "/home/sean/save/versioned/projects/kepler/src/inequalities/holl/kep_inequalities.ml";;
 *) 
 loads (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
+loads (kepler_home ^ "/inequalities/holl/dodec_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
 loads (kepler_home ^ "/inequalities/holl/ineq_names.ml");;

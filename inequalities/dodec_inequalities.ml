@@ -36,19 +36,40 @@ val rand = Random.rand (3498743,108217949);
 Random.randRange(0,valOf Int.maxInt) rand;
 *)
 
+
+(* 
+ * t = 1.25841
+ * 2t = 2.51682
+ * (2t)^2 = 6.3343829124
+ *)
+let dodecTruncSq = kepler_def `dodecTruncSq = #6.3343829124`
+let four = kepler_def `four = #4.0`
+let zero = kepler_def `zero = #0.0`
+
+let tmp = `basicTet (x1 > x1)`
+
+let basicTet =
+  let bnds = `ineq 
+    [(four, x1, dodecTruncSq);
+     (four, x2, dodecTruncSq);
+     (four, x3, dodecTruncSq);
+     (four, x4, dodecTruncSq);
+     (four, x5, dodecTruncSq);
+     (four, x6, dodecTruncSq)]` 
+  and mk_times x y = mk_binop `( *. )` x y 
+  and mk_plus x y = mk_binop `( +. )` x y 
+  and mk_gt x y = mk_binop `( >. )` x y 
+  and mk_p (vol,sol,dih,const) = 
+    let vt = mk_times vol `vol_x x1 x2 x3 x4 x5 x6` 
+    and st = mk_times sol `sol_x x1 x2 x3 x4 x5 x6` 
+    and dt = mk_times dih `dih_x x1 x2 x3 x4 x5 x6` in
+      mk_gt (mk_plus vt (mk_plus st (mk_plus dt const))) `zero` in
+    fun args -> all_forall (mk_comb(bnds,mk_p args))
+
 (* interval verification in partK.cc *)
-let D_576061419 =
-   all_forall `ineq 
-    [((#, x1, (#6.3001));
-     ((#4.0), x2, (#6.3001));
-     ((#4.0), x3, (#6.3001));
-     ((#4.0), x4, (#6.3001));
-     ((#4.0), x5, (#6.3001));
-     ((#4.0), x6, (#6.3001))
-    ]
-    (
-            (
-                ( (tau_sigma_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >. 
+let D_576061419 = 
+  basicTet 
+    ( (tau_sigma_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >. 
                 (--. (#0.3442))) \/ 
             ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.51)))`;;
 

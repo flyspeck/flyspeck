@@ -17,11 +17,11 @@ let kepler_home = Sys.getenv "KEPLER_HOME";;
 let kepler_home = "/Users/seanmcl/save/versioned/projects/kepler/src";;
 #use "/home/sean/save/versioned/projects/kepler/src/inequalities/holl/kep_inequalities.ml";;
 *) 
-needs (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
-needs (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
-needs (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
-needs (kepler_home ^ "/inequalities/holl/ineq_names.ml");;
-needs (kepler_home ^ "/inequalities/holl/ocaml_to_sml.ml");;
+loads (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
+loads (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
+loads (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
+loads (kepler_home ^ "/inequalities/holl/ineq_names.ml");;
+loads (kepler_home ^ "/inequalities/holl/ocaml_to_sml.ml");;
 
 let ocaml_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.ineqs;;
 

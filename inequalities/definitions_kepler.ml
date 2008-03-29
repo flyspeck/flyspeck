@@ -161,7 +161,9 @@ let u_x = kepler_def(
         (&2) * (x1*x2+x2*x3+x3*x1)`);;
 *)
 
-let ups_x = kepler_def(`ups_x x1 x2 x6 = --x1*x1 - x2*x2 - x6*x6 + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
+let ups_x = kepler_def(`ups_x x1 x2 x6 = 
+    --x1*x1 - x2*x2 - x6*x6 
+    + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
 
 
 let eta_x = kepler_def(`eta_x x1 x2 x3 =

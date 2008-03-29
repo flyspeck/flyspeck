@@ -25,7 +25,7 @@ let twoDodecTrunc = kepler_def `twoDodecTrunc = #2.51682`
 let twoDodecTruncSq = kepler_def `twoDodecTruncSq = #6.3343829124`
 let dodecSlope = kepler_def `dodecSlope = #0.42755`
 
-let volume_x = kepler_def(`truncated_volume_x x1 x2 x3 x4 x5 x6 =
+let volume_x = kepler_def(`volume_x x1 x2 x3 x4 x5 x6 =
         let del = sqrt (delta_x x1 x2 x3 x4 x5 x6) in
         let u126 = ups_x x1 x2 x6 in
         let u135 = ups_x x1 x3 x5 in
@@ -211,7 +211,7 @@ let D_544371408 = basicQuad (_0,_1,_0,`-- #0.731937`)
 let D_997664158 = basicQuad (_0,m_1,_0,`#2.85860`)
 let D_364076929 = basicQuad (_0,_0,_1,`-- #1.15242`)
 let D_718802901 = basicQuad (_0,_0,m_1,`#3.25887`)
-let D_559041824 = basicQuad (_1,`-- #0.42755`,_0,`--#0.031350`)
+let D_559041824 = basicQuad (_1,`-- #0.42755`,_0,`-- #0.031350`)
 let D_112735258 = basicQuad (_1,`-- #0.42775`,`-- #0.15098`,`-- #0.3670`)
 let D_320227884 = basicQuad (_1,`-- #0.42775`,`-- #0.09098`,`-- #0.1737`)
 let D_119714323 = basicQuad (_1,`-- #0.42775`,`-- #0.00000`,`#0.0310`)

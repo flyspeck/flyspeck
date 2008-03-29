@@ -6,42 +6,45 @@
 module type Ocaml_sml =
 sig
 
-  type const_name = 
-    | Dd_31
-    | Dd_32
-    | Dd_33
-    | Dd_41
-    | Dd_42
-    | Dd_51
-    | Doct
-    | Pi
-    | Ppa1
-    | Ppa2
-    | Ppd0
-    | Ppm
-    | Ppb
-    | Ppa
-    | Ppbc
-    | Ppc
-    | Ppd
-    | Ppsolt0
-    | Pt
-    | Ss_5
-    | Sqrt2
-    | Sqrt8
-    | Square_2t0
-    | Sqrt_2t0
-    | Square_4t0
-    | Tt_0
-    | Tt_5
-    | Two_t0
-    | Xi_gamma
-    | Xi'_gamma
-    | Xiv
-    | Zz_32
-    | Zz_33
-    | Zz_41
-    | Zz_42
+  type const_name = | Dodec_slope
+                    | Dd_31
+                    | Dd_32
+                    | Dd_33
+                    | Dd_41
+                    | Dd_42
+                    | Dd_51
+                    | Doct
+                    | Dodec_trunc
+                    | Pi
+                    | Ppa1
+                    | Ppa2
+                    | Ppd0
+                    | Ppm
+                    | Ppb
+                    | Ppa
+                    | Ppbc
+                    | Ppc
+                    | Ppd
+                    | Ppsolt0
+                    | Pt
+                    | Ss_5
+                    | Sqrt2
+                    | Sqrt8
+                    | Square_2t0
+                    | Sqrt_2t0
+                    | Square_4t0
+                    | Tt_0
+                    | Tt_5
+                    | Two_dodec_trunc
+                    | Two_dodec_trunc_sq
+                    | Two_t0
+                    | Xi_gamma
+                    | Xi'_gamma
+                    | Xiv
+                    | Zz_32
+                    | Zz_33
+                    | Zz_41
+                    | Zz_42
 
   type func_name = | Anc
                    | Arclength
@@ -66,6 +69,7 @@ sig
                    | Octa_x
                    | Octavor0_x
                    | Octavor_analytic_x
+                   | Omega_x
                    | Overlap_f
                    | Quo_x
                    | Rad2_x
@@ -74,6 +78,7 @@ sig
                    | Sigma_qrtet_x
                    | Sigmahat_x
                    | Sol_x
+                   | Squander_x
                    | Taua_x
                    | Tauc0_x
                    | Tauvt_x
@@ -84,9 +89,11 @@ sig
                    | Tauhatpi_x
                    | Taumu_flat_x
                    | Taunu_x
+                   | Truncated_volume_x
                    | U_x
                    | V0x
                    | V1x
+                   | Volume_x
                    | Vora_x
                    | Vorc0_x
                    | Vorc_x
@@ -115,6 +122,7 @@ sig
               | Opp of expr
               | Mul of expr * expr
               | Div of expr * expr
+              | Pow of expr * int
               | One
 
   type monom = const * expr
@@ -161,42 +169,45 @@ end
 module Ocaml_sml (* : Ocaml_sml *) = 
 struct 
 
-  type const_name = 
-    | Dd_31
-    | Dd_32
-    | Dd_33
-    | Dd_41
-    | Dd_42
-    | Dd_51
-    | Doct
-    | Pi
-    | Ppa1
-    | Ppa2
-    | Ppd0
-    | Ppm
-    | Ppb
-    | Ppa
-    | Ppbc
-    | Ppc
-    | Ppd
-    | Ppsolt0
-    | Pt
-    | Ss_5
-    | Sqrt2
-    | Sqrt8
-    | Sqrt_2t0
-    | Square_2t0
-    | Square_4t0
-    | Tt_0
-    | Tt_5
-    | Two_t0
-    | Xi_gamma
-    | Xi'_gamma
-    | Xiv
-    | Zz_32
-    | Zz_33
-    | Zz_41
-    | Zz_42
+  type const_name = | Dodec_slope
+                    | Dd_31
+                    | Dd_32
+                    | Dd_33
+                    | Dd_41
+                    | Dd_42
+                    | Dd_51
+                    | Doct
+                    | Dodec_trunc
+                    | Pi
+                    | Ppa1
+                    | Ppa2
+                    | Ppd0
+                    | Ppm
+                    | Ppb
+                    | Ppa
+                    | Ppbc
+                    | Ppc
+                    | Ppd
+                    | Ppsolt0
+                    | Pt
+                    | Ss_5
+                    | Sqrt2
+                    | Sqrt8
+                    | Square_2t0
+                    | Sqrt_2t0
+                    | Square_4t0
+                    | Tt_0
+                    | Tt_5
+                    | Two_dodec_trunc
+                    | Two_dodec_trunc_sq
+                    | Two_t0
+                    | Xi_gamma
+                    | Xi'_gamma
+                    | Xiv
+                    | Zz_32
+                    | Zz_33
+                    | Zz_41
+                    | Zz_42
 
   type func_name = | Anc
                    | Arclength
@@ -221,6 +232,7 @@ struct
                    | Octa_x
                    | Octavor0_x
                    | Octavor_analytic_x
+                   | Omega_x
                    | Overlap_f
                    | Quo_x
                    | Rad2_x
@@ -229,6 +241,7 @@ struct
                    | Sigma_qrtet_x
                    | Sigmahat_x
                    | Sol_x
+                   | Squander_x
                    | Taua_x
                    | Tauc0_x
                    | Tauvt_x
@@ -239,9 +252,11 @@ struct
                    | Tauhatpi_x
                    | Taumu_flat_x
                    | Taunu_x
+                   | Truncated_volume_x
                    | U_x
                    | V0x
                    | V1x
+                   | Volume_x
                    | Vora_x
                    | Vorc0_x
                    | Vorc_x
@@ -267,10 +282,10 @@ struct
               | Funcall of func_name * expr list
               | Var of string
               | Varsqrt of string
-              | Pow of expr * int
               | Opp of expr
               | Mul of expr * expr
               | Div of expr * expr
+              | Pow of expr * int
               | One
 
   type monom = const * expr
@@ -303,6 +318,8 @@ struct
     | "D41" -> Dd_41
     | "D42" -> Dd_42
     | "D51" -> Dd_51
+    | "dodecSlope" -> Dodec_slope
+    | "dodecTrunc" -> Dodec_trunc
     | "Z32" -> Zz_32
     | "Z33" -> Zz_33
     | "Z41" -> Zz_41
@@ -329,6 +346,8 @@ struct
     | "t0" -> Tt_0
     | "t5" -> Tt_5
     | "two_t0" -> Two_t0
+    | "twoDodecTrunc" -> Two_dodec_trunc
+    | "twoDodecTruncSq" -> Two_dodec_trunc_sq
     | "xi_gamma" -> Xi_gamma
     | "xi'_gamma" -> Xi'_gamma
     | "xiV" -> Xiv
@@ -343,6 +362,8 @@ struct
     | Dd_41 -> "D41"
     | Dd_42 -> "D42"
     | Dd_51 -> "D51"
+    | Dodec_slope -> "DodecSlope"
+    | Dodec_trunc -> "DodecTrunc"
     | Zz_32 -> "Z32"
     | Zz_33 -> "Z33"
     | Zz_41 -> "Z41"
@@ -368,6 +389,8 @@ struct
     | Square_4t0 -> "Square4t0"
     | Tt_0 -> "T0"
     | Tt_5 -> "T5"
+    | Two_dodec_trunc -> "TwoDodecTrunc"
+    | Two_dodec_trunc_sq -> "TwoDodecTruncSq"
     | Two_t0 -> "TwoT0"
     | Xi_gamma -> "XiGamma"
     | Xi'_gamma -> "Xi'Gamma"
@@ -397,6 +420,7 @@ struct
     | "octa_x" -> Octa_x
     | "octavor0_x" -> Octavor0_x
     | "octavor_analytic_x" -> Octavor_analytic_x
+    | "omega_x" -> Omega_x
     | "overlap_f" -> Overlap_f
     | "quo_x" -> Quo_x
     | "rad2_x" -> Rad2_x
@@ -405,6 +429,7 @@ struct
     | "sigma_qrtet_x" -> Sigma_qrtet_x
     | "sigmahat_x" -> Sigmahat_x
     | "sol_x" -> Sol_x
+    | "squander_x" -> Squander_x
     | "tauA_x" -> Taua_x
     | "tauC0_x" -> Tauc0_x
     | "tauVt_x" -> Tauvt_x
@@ -415,9 +440,11 @@ struct
     | "tauhatpi_x" -> Tauhatpi_x
     | "taumu_flat_x" -> Taumu_flat_x
     | "taunu_x" -> Taunu_x
+    | "truncated_volume_x" -> Truncated_volume_x
     | "u_x" -> U_x
     | "v0x" -> V0x
     | "v1x" -> V1x
+    | "volume_x" -> Volume_x
     | "vorA_x" -> Vora_x
     | "vorC0_x" -> Vorc0_x
     | "vorC_x" -> Vorc_x
@@ -454,6 +481,7 @@ struct
     | Octa_x -> "OctaX"
     | Octavor0_x -> "Octavor0X"
     | Octavor_analytic_x -> "OctavorAnalyticX"
+    | Omega_x -> "OmegaX"
     | Overlap_f -> "OverlapF"
     | Quo_x -> "QuoX"
     | Rad2_x -> "Rad2X"
@@ -462,6 +490,7 @@ struct
     | Sigma_qrtet_x -> "SigmaQrtetX"
     | Sigmahat_x -> "SigmahatX"
     | Sol_x -> "SolX"
+    | Squander_x -> "SquanderX"
     | Taua_x -> "TauaX"
     | Tauc0_x -> "Tauc0X"
     | Tauvt_x -> "TauvtX"
@@ -472,9 +501,11 @@ struct
     | Tauhatpi_x -> "TauhatpiX"
     | Taumu_flat_x -> "TaumuFlatX"
     | Taunu_x -> "TaunuX"
+    | Truncated_volume_x -> "TruncatedVolumeX"
     | U_x -> "UX"
     | V0x -> "V0x"
     | V1x -> "V1x"
+    | Volume_x -> "VolumeX"
     | Vora_x -> "VoraX"
     | Vorc0_x -> "Vorc0X"
     | Vorc_x -> "VorcX"
@@ -976,51 +1007,19 @@ struct
       close_box();
     end
 
-  let header = 
+  let header univ = 
 "
 (*============================================================================*)
 (* THIS FILE IS AUTOGENERATED.  DO NOT EDIT!!!                                *)
 (*============================================================================*)
 
-structure InequalitySyntax:> INEQUALITY_SYNTAX =
+structure " ^ univ ^ "InequalitySyntaxBase:> INEQUALITY_SYNTAX_BASE =
 struct 
 
 open FunctionUtil
+open InequalityUtil
 
-datatype const = Decimal of int * int
-               | Int of int
-               | Named of FunctionUtil.const_name
-               | Sqr of const
-               | Sqrt of const
-               | Cos of const
-               | Acos of const
-               | Copp of const
-               | Cplus of const * const
-               | Cmul of const * const
-               | Cdiv of const * const
-
-datatype expr = Const of const
-              | Funcall of FunctionUtil.func_name * expr list
-              | Var of string
-              | Varsqrt of string
-              | Opp of expr
-              | Mul of expr * expr
-              | Div of expr * expr
-              | Pow of expr * int
-              | One
-
-type monom = const * expr
-
-type lcomb = monom list
-
-type bounds = {lo : const,
-               hi : const}
-
-type ineq = {name : string,
-             vars : (string * bounds) list,
-             rels : lcomb list}
-
-val theIneqs = [
+val unexpandedIneqs = [
 "
 
   let footer = 
@@ -1029,11 +1028,11 @@ val theIneqs = [
 
 end" 
 
-  let ineqs_to_sml ~file ~ineqs = 
+  let ineqs_to_sml ~file ~ineqs ~univ = 
     let chan = open_out file in
       try
         set_formatter_out_channel chan;
-        print_string header;
+        print_string (header univ);
         ineqs_to_sml ineqs;
         print_string footer;
         set_formatter_out_channel stdout;        

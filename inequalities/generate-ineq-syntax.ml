@@ -15,18 +15,25 @@ unambiguous_interface();;
 let kepler_home = Sys.getenv "KEPLER_HOME";;
 (* 
 let kepler_home = "/Users/seanmcl/save/versioned/projects/kepler/src";;
-#use "/home/sean/save/versioned/projects/kepler/src/inequalities/holl/kep_inequalities.ml";;
 *) 
 loads (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
-loads (kepler_home ^ "/inequalities/holl/dodec_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
+loads (kepler_home ^ "/inequalities/holl/dodec_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/ineq_names.ml");;
 loads (kepler_home ^ "/inequalities/holl/ocaml_to_sml.ml");;
 
-let ocaml_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.ineqs;;
+let kepler_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.kepler_ineqs;;
+let dodec_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.dodec_ineqs;;
 
 let _ =
   Ocaml_sml.ineqs_to_sml
-    ~file:(kepler_home ^ "/inequalities/inequality-syntax.sml")
-    ~ineqs:ocaml_ineqs;;
+    ~file:(kepler_home ^ "/inequalities/kepler-inequality-syntax-base.sml")
+    ~ineqs:kepler_ineqs
+    ~univ:"Kepler";;
+
+let _ =
+  Ocaml_sml.ineqs_to_sml
+    ~file:(kepler_home ^ "/inequalities/dodec-inequality-syntax-base.sml")
+    ~ineqs:dodec_ineqs
+    ~univ:"Dodec";;

@@ -19,12 +19,13 @@ let kepler_home = "/Users/seanmcl/save/versioned/projects/kepler/src";;
 loads (kepler_home ^ "/inequalities/holl/definitions_kepler.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_inequalities.ml");;
 loads (kepler_home ^ "/inequalities/holl/kep_ineq_bis.ml");;
+loads (kepler_home ^ "/inequalities/holl/kepler_ineq_names.ml");;
 loads (kepler_home ^ "/inequalities/holl/dodec_inequalities.ml");;
-loads (kepler_home ^ "/inequalities/holl/ineq_names.ml");;
+loads (kepler_home ^ "/inequalities/holl/dodec_ineq_names.ml");;
 loads (kepler_home ^ "/inequalities/holl/ocaml_to_sml.ml");;
 
-let kepler_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.kepler_ineqs;;
-let dodec_ineqs = Ocaml_sml.translate_list ~ignore:Ineq_names.ignore ~terms:Ineq_names.dodec_ineqs;;
+let kepler_ineqs = Ocaml_sml.translate_list ~ignore:Kepler_ineq_names.ignore ~terms:Kepler_ineq_names.kepler_ineqs;;
+let dodec_ineqs = Ocaml_sml.translate_list ~ignore:[] ~terms:Dodec_ineq_names.dodec_ineqs;;
 
 let _ =
   Ocaml_sml.ineqs_to_sml

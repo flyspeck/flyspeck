@@ -764,12 +764,15 @@ struct
     let thms = [
                  REAL_ARITH `x *. (y + z) = x * y + x * z`;
                  REAL_ARITH `(x +. y) * z = z * x + z * y`;
+                 REAL_ARITH `&0 *. x = &0`;
                  REAL_ARITH `x * -- y = -- x * y`;
                  REAL_ARITH `(x -. y) = x + (-- y)`;
                  REAL_ARITH `(x +. y) + z = x + y + z`;
                  REAL_ARITH `--. (x * y) = (--. x) * y`;
                  REAL_ARITH `-- #0.0 = &0`;
-                 REAL_ARITH `x + (&0) = x`;
+                 REAL_ARITH `-- &0 = &0`;
+                 REAL_ARITH `x + &0 = x`;
+                 REAL_ARITH `&0 + x = x`;
                  REAL_ARITH `--. (x + y) = (--. x) + (-- y)`;
                  REAL_ARITH `--. (-- x) = x`;
                  REAL_ARITH `!f:real->real->real->real->real->real->real. (-- (f x1 x2 x3 x4 x5 x6)) = (-- (&1) *. (f x1 x2 x3 x4 x5 x6))`;

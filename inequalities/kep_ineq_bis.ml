@@ -30,123 +30,6 @@ it reduces to the following cases.
 This also gives vort_x ... sqrt2 < -1.04 pt. *)
 
 
-let I_7710172071_GEN=
-   `(\ a1 a2 a3 a4. (ineq
-[
-((#8.0), x, (square (#4.0)))]
-   (vor_0_x a4 a1 a2 (#4.0) x (#4.0)  +
-    vor_0_x a2 a3 a4 (#4.0) x (#4.0) < -- (#1.04) * pt) \/
-    delta_x a4 a1 a2 (#4.0) x (#4.0)  < (#0.0) \/
-    delta_x a2 a3 a4 (#4.0) x (#4.0) < (#0.0) \/
-  (cross_diag_x a1 a2 a4 x (#4.0) (#4.0) a3 (#4.0) (#4.0) < sqrt8)))`;;
-
-(* wlog a2 <= a4 *)
-
-let I_7710172071_1=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`#4.0`;`#4.0`]));;
-
-(* 
-CCC false. fixed square
-
-Bound: 0.47653139353
-
-Point: [8.00000008497]
-
- *)
-
-let I_7710172071_2=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`#4.0`;`square_2t0`]));;
-
-(* 
-CCC false. fixed square
-
-Bound: 0.472007641148
-
-Point: [8.18163440844]
-*) 
-let I_7710172071_3=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`square_2t0`;`#4.0`]));;
-
-
-(* 
-CCC false. fixed square
-
-Bound: 1.20170306839
-
-Point: [8.00000019731]
-*) 
-
-let I_7710172071_4=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`square_2t0`;`square_2t0`]));;
-
-let I_7710172071_5=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`square_2t0`;`#4.0`;`square_2t0`]));;
-
-let I_7710172071_6=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`square_2t0`;`square_2t0`;`square_2t0`]));;
-
-
-let I_7710172071_7= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_8= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_9= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_10= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
-
-let I_7710172071_11= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
-
-let I_7710172071_12= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
-
-
-(* cases when the diagonal hits sqrt8 *)
-
- let I_7710172071_13= 
- all_forall `ineq 
-    [(square (#2.3),x1,square_2t0); 
-     ((#4.0),x2,square_2t0); 
-     ((#4.0),x3,square_2t0); 
-     ((#8.0),x4,(#8.0)); 
-     ((#4.0),x5,square_2t0); 
-     ((#4.0),x6,square_2t0) 
-    ] 
-    ((vor_0_x  x1 x2 x3 x4 x5 x6 < -- (#1.04) *pt - (#0.009)))`;; 
-
-
-
- let I_7710172071_14= 
- all_forall `ineq 
-    [ 
-     ((#4.0),x1,square_2t0); 
-      (square (#2.3),x2,square_2t0); 
-     ((#4.0),x3,square_2t0); 
-     ((#8.0),x4,(#8.0)); 
-     ((#4.0),x5,square_2t0); 
-     ((#4.0),x6,square_2t0) 
-    ] 
-    ((vor_0_x  x1 x2 x3 x4 x5 x6  < -- (#0.52) *pt))`;; 
-
 
 
 (* EXPUNGE 3-CROWDED. 
@@ -420,3 +303,237 @@ all_forall `ineq
    (vor_0_x  x1 x2 x3 x4 x5 x6  < -- (#1.04) * pt - (#0.009))`;;
 
 (* 6337649845 deleted, March 21, 2008 *)
+
+
+
+(* Next one is a consequence of others and deformation.  Don't prove separately. *)
+
+let I_8227268739_99=
+all_forall `ineq
+  [( (#4.0),x0, square_2t0);
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#8.0),x3, (#8.0));
+   ( (square (#2.43)),x4, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( (#4.0),x5, square_2t0);
+   ( (#4.0),x6, square_2t0);
+   ( (#4.0),x7, square_2t0)
+  ]
+  ( -- (vor_0_x x0 x1 x2 x3 x4 x5)
+    - vor_0_x x1 x2 x6 x7 x8 x3 - (#1.04)* pt  > (#0.0))`;;
+
+
+
+let I_1852976279=
+all_forall `ineq
+  [( two_t0,y0, (#8.0));
+   ( (#2.0),y1, two_t0);
+   ( (#2.0),y2, two_t0);
+   ( sqrt8,y3, sqrt8);
+   ( (#2.0),y4, two_t0);
+   ( (#2.0),y5, two_t0)
+  ]
+  ( -- (kappa y0 y1 y2 y3 y4 y5) - (#0.019) > (#0.0))`;;
+
+
+
+let I_8587053087=
+all_forall `ineq
+  [( two_t0,x0, sqrt8);
+   ( (#2.0),x1, two_t0);
+   ( (#2.0),x2, two_t0);
+   ( (#2.0),x3, two_t0);
+   ( (#2.0),x4, two_t0)
+  ]
+  ( -- (kappa_dih_y y0 y1 y2 y3 y4 (#2.9)) - (#0.019) > (#0.0))`;;
+
+
+
+let I_9401027298=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, (square (#2.43)));
+   ( (#4.0),x4, (square (#3.17)));
+   ( (#4.0),x5, (square (#3.17)))
+  ]
+  ( -- (dih_x x0 x1 x2 x3 x4 x5) + (#2.0672) > (#0.0))`;;
+
+
+
+let I_8713619400=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, (#4.0));
+   ( (square (#3.17)),x4, (square (#3.8)));
+   ( (#4.0),x5, (square (#3.17)))
+  ]
+  ( -- (dih_x x0 x1 x2 x3 x4 x5)  + (#1.0743) > (#0.0))`;;
+
+
+
+let I_5815318817=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, (#4.0));
+   ( (square (#3.17)),x4, (square (#3.8)));
+   ( (square (#3.17)),x5, (square (#3.8)))
+  ]
+  ( -- (dih_x x0 x1 x2 x3 x4 x5) + (#2.0672)  > (#0.0))`;;
+
+
+
+let I_5817445944=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( square_2t0,x4, (square (#3.17)));
+   ( square_2t0,x5, (square (#3.17)))
+  ]
+  ( -- (vor_0_x x0 x1 x2 x3 x4 x5) - (#0.05) > (#0.0))`;;
+
+
+
+let I_5781533845=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( square_2t0,x5, (square (#3.17)))
+  ]
+  ( -- (vor_0_x x0 x1 x2 x3 x4 x5) + (#0.005) > (#0.0))`;;
+
+
+
+let I_3006850743=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, (#4.0));
+   ( square_2t0,x5, square_2t0)
+  ]
+  ( -- (vor_0_x x0 x1 x2 x3 x4 x5)  > (#0.0))`;;
+
+
+
+let I_3915426488=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( square_2t0,x5, square_2t0);
+   ( (#4.0),x6, square_2t0);
+   ( (#4.0),x7, square_2t0);
+   ( (#4.0),x8, square_2t0)
+  ]
+  (( -- (vor_0_x x0 x1 x2 x3 x4 x5 )
+    - vor_0_x x0 x1 x8 x6 x7 x5 - (#0.039) > (#0.0)) \/
+  ( -- dih_x x0 x1 x2 x3 x4 x5 
+    -dih_x x0 x1 x8 x6 x7 x5+ (#2.9) > (#0.0)))`;;
+
+
+
+let I_7031224851=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( square_2t0,x5, square_2t0);
+   ( (#4.0),x6, square_2t0);
+   ( (#4.0),x7, square_2t0);
+   ( (#4.0),x8, square_2t0)
+  ]
+  (( -- (vor_0_x x0 x1 x2 x3 x4 x5 )
+    -vor_0_x x0 x1 x8 x6 x7 x5 - (#0.035) > (#0.0)) \/
+   ( sqrt8 - crossdiag_x x0 x1 x2 x3 x4 x5 x6 x7 x8   > (#0.0)))`;;
+
+
+(*  gamma branch. *)
+
+let I_2172978729_1=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( (#4.0),x5, square_2t0)
+  ]
+  (( -- (nu_x x0 x1 x2 x3 x4 x5) - (#0.0036) > (#0.0)) \/
+  (pi  - (#2.9) / (#2.0) - dih_x x0 x1 x2 x3 x4 x5 > (#0.0) ))`;;
+
+
+(* vor branch. *)
+
+let I_2172978729_2=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, square_2t0);
+   ( (#4.0),x4, square_2t0);
+   ( (#4.0),x5, square_2t0)
+  ]
+  (( -- (nu_x x0 x1 x2 x3 x4 x5) - (#0.0036) > (#0.0)) \/
+   (pi  - (#2.9) / (#2.0) - dih_x x0 x1 x2 x3 x4 x5 > (#0.0) ) \/
+   (sqrt2 - eta_x x0 x1 x5 > (#0.0) ))`;;
+
+
+
+let I_1480860075=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( square_2t0,x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, (#4.0));
+   ( (#4.0),x4, square_2t0);
+   ( square_2t0,x5, (square (#3.17)))
+  ]
+  ( -- (vor_0_x x0 x1 x2 x3 x4 x5) - (#0.02) > (#0.0))`;;
+
+
+
+let I_6479729349=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, (#4.0));
+   ( (#4.0),x2, square_2t0);
+   ( (#4.0),x3, (#4.0));
+   ( (#4.0),x4, square_2t0);
+   ( square_2t0,x5, (square (#3.17)))
+  ]
+  ( -- (dih_x x0 x1 x2 x3 x4 x5) + pi / (#2.0) > (#0.0))`;;
+
+
+
+let I_1741049647=
+all_forall `ineq
+  [( square_2t0,x0, (#8.0));
+   ( (#4.0),x1, square_2t0);
+   ( (#4.0),x2, square_2t0);
+   ( square_2t0,x3, (square (#3.17)));
+   ( (#4.0),x4, square_2t0);
+   ( (#4.0),x5, square_2t0)
+  ]
+  (( sqrt8 - crossdiag_x x1 x0 (#4.0) x3 (#4.0) x5 x2 (#4.0) x4  > (#0.0)) \/
+   ( -- (vor_0_x x0 x1 (#4.0) (#4.0) x3 x5)
+    -vor_0_x x0 x2 (#4.0) (#4.0) x3 x4 
+    -kappa (sqrt x0) (sqrt x1) (sqrt x2) sqrt8 (sqrt x4) (sqrt x5) - (#1.04)*pt > (#0.0) ))`;;
+
+

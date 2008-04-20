@@ -35,14 +35,16 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 (* new argument order 2/14/2008 to make it compatible with the 
    ANSI C arctan2 function.  Also reworked for better numerical
    stability in the regions that matter for us.  The way things
-   are defined, it gives atn2(0,0) = -pi.  This is a bit strange,
+   are defined, it gives atn2(0,0) = pi.  This is a bit strange,
    but we never need its value at the origin anyway.
+
+   4/19/2008: changed final case to pi along the negative real axis.
 *)
 
 let atn2 = new_definition(`atn2(x,y) =
     if ( x > abs y ) then atn(y / x) else
     (if (y > &0) then ((pi / &2) - atn(x / y)) else
-    (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else ( -- pi )))`);;
+    (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else (  pi )))`);;
 
 (* ------------------------------------------------------------------ *)
 

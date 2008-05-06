@@ -52,6 +52,14 @@ holds for every Voronoi cell with at most twelve facets.
 This result is reviewed in Section~\ref{XX}.  It
 is an ingredient in our proof. 
 
+Lower bounds on the volume $M$ of a Voronoi cell can be expressed
+as upper bounds on the density $4\pi M/3$ of packings of congruent balls
+in three dimensions. The Dodecahedral conjecture gives an upper
+bound on density of $0.755$.  
+Upper bounds on the density based on lower bounds on the volume of a Voronoi cell
+literature include Rogers's upper bound of 0.7797 \cite{Rog}, and Muder's upper 
+bounds of 0.77836 \cite{Muder1} and 0.7731 \cite{Muder2}. 
+
 In 1993, Hsiang published what seemed to be a proof of the Kepler
 conjecture which would prove the Dodecahedral conjecture 
 as well \cite{Hsiang}.
@@ -138,11 +146,18 @@ was published, the path became clear for the publication of Dodecahedral
 conjecture.  
 
 The details of the proof in the current publication are essentially the
-same as those in the preprint posted on the arXiv in 1998 \cite{arx}.  No
+same as those in the preprint posted on the arXiv in 1998.  No
 significant errors have emerged in the original 1998 preprint.   However,
 the paper has undergone three rewrites since then, an expanded version in 2002, followed by an abridged version in 2003, then a newly expanded version in 2008, all coming at the request by the editors.  It was as if a complex computer proof caused a discomfort that might be relived by a long series of
 rewrites. The computer code has
 also been entirely rewritten.
+
+As an abridgement of a longer version, this article replaces 
+some proofs with summaries and references.  The most complete version.
+is \cite{arx}.  That version is written in such a way that it is
+entirely independent of the proof of the Kepler conjecture. 
+We refer the reader when necessary to relevant
+passages in that article.
 
 A formalization project, called Flyspeck, aims to
 provide a complete formalization of the proof of the Kepler conjecture \cite{fly},\cite{Fl}.  (A formalized proof is one in which every logical inference of the proof has been independently checked by computer, all the way to the primitive axioms at the foundations of mathematics.)
@@ -305,6 +320,9 @@ have been imported by analogy, and qualified with the adjective
 \item tame, squander, contravening, basic
 \end{itemize}
 
+
+
+
 \section{Outline}
 
 In this section, we give a precise statement of the main theorem
@@ -329,13 +347,14 @@ Let $\CalQ_{dod}(\Lambda,v_0)$
 be the set of all $S=\{v_0,v_1,v_2,v_3\}\subset\Lambda(v_0,2t_{dod})$
 consisting of four distinct points such that $|v_i-v_j|\le 2t_{dod}$ for all $i,j$
 and such that the circumradius of each triangle $\{v_i,v_j,v_k\}\subset S$ is at most
-$\sqrt2$.   Write $\op{conv}(S)$ for the convex hull of $S\in\CalQ_{dod}(\Lambda,v_0)$ and $\op{conv}^0(S)$ for its interior.
-A simple lemma (Lemma~\ref{XX})
-shows that distinct $S,S'\in\CalQ_{dod}(\Lambda,v_0)$ have disjoint
-interiors:
-   $$\op{conv}^0(S) \cap \op{conv}^0(S') \ne \emptyset 
-   \quad\Rightarrow (S = S').
-   $$
+$\sqrt2$.   Write $\op{conv}(S)$ for the convex hull of $S\in\CalQ_{dod}(\Lambda,v_0)$. 
+% and $\op{conv}^0(S)$ for its interior.
+%A simple lemma (Lemma~\ref{XX})
+%shows that distinct $S,S'\in\CalQ_{dod}(\Lambda,v_0)$ have disjoint
+%interiors:
+%   $$\op{conv}^0(S) \cap \op{conv}^0(S') \ne \emptyset 
+%   \quad\Rightarrow (S = S').
+%   $$
 
 
 Define the following truncation $\Omega_{trunc}(\Lambda,v_0)$ 
@@ -459,20 +478,20 @@ a hypermap system $(H,\Phi)$
 is feasible if there is some $x=(x_1,\ldots,x_\ell)\in V^\ell$
 such that $\phi(x)$ holds for all $\phi\in\Phi$.  Otherwise,
 it is infeasible.   Appendix~\ref{XX} defines
-a hypermap system, called the basic hypermap system, 
+a hypermap system, called the dodecahedral hypermap system, 
 for each case $H$ arising in the classification of
 structurally tame graphs.
 
-Another major step of the proof is the proof that every basic hypermap
+Another major step of the proof is the proof that every dodecahedral hypermap
 system is infeasible (Theorem~\ref{XX}).   The proof of this theorem
 is a case-by-case analysis based on the explicit enumeration of
 structurally tame graphs, up to isomorphism.   The feasibility problem for 
-each basic hypermap system is converted to a system of linear programs.
-The infeasibility of the basic hypermap system follows from the
+each dodecahedral hypermap system is converted to a system of linear programs.
+The infeasibility of the dodecahedral hypermap system follows from the
 infeasibility of the corresponding linear program.
 
 If there exists a counterexample to the Dodecahedral conjecture, then
-we can consider its basic hypermap system $(H,\Phi)$.  By the preceding
+we can consider its dodecahedral hypermap system $(H,\Phi)$.  By the preceding
 result, this hypermap system is infeasible.  On the other hand, we can
 use the counterexample to construct a feasible solution to the system 
 (Theorem~\ref{XX}).
@@ -484,123 +503,549 @@ In this way, the Dodecahedral conjecture is proved.
 
 
 
+
+\section{Computation}
+
+The proof of the Dodecahedral conjecture is based on a series
+of computer calculations.  This section briefly describes the
+computer algorithms, the code implementing those algorithms,
+and issues of the reliability of the computer code.
+
+There are three main computer programs that are used in the proof.
+The first is a graph generator that generates, up to isomorphism,
+ all planar graphs satisfying a list of properties.  The second is
+a linear programming package.  The third is a piece of code based
+on interval arithmetic that
+automatically proves nonlinear inequalities over the real numbers.
+We discuss each in turn.  
+
+This section discusses  also some
+additional computer programs.  Although these computer programs,
+strictly speaking, are not part of the proof, they are relevant
+to understanding the structure of the proof and the reliability of
+the computer implementation.   We include a brief discussion of
+nonlinear optimization software, Tarski's decision procedure for
+real-closed fields, and formal theorem proving packages.
+
+\subsection{Tarski arithmetic}
+
+
+The Dodecahedral conjecture, after a few preliminary reductions, 
+can be expressed as a statement
+in the elementary theory of the real numbers.  By a fundamental
+result of Tarski, the elementary theory of the real numbers
+is decidable.  Thus, the
+truth of the Dodecahedral 
+conjecture can be decided in theory by standard
+algorithms such as Collin's cylindrical algebraic decomposition \cite{ColXX}, or the Cohen-H\"ormander algorithm \cite{CHX}.  However,
+in practice, these decision procedures are exponential time in the
+number of quantifiers, and thus are far too slow to be of practical
+value for this conjecture.
+
+To formulate the Dodecahedral conjecture as a statement in the
+elementary theory of the reals, we use Voronoi cells without
+truncation, centered at the origin.  We remark first of all that the
+volume of the regular dodecahedron is an algebraic number $V_{dod}$,
+hence definable in Tarski arithmetic.  Also, we can give an
+a priori bound $n$ on the number of faces of the Voronoi cell, and thus also
+on the size of the clusters of balls that give candidates for counterexamples. (For example, by adding balls to the packing to decrease the volume, we may assume the packing is saturated.  Assuming saturation, E. Harshbarger gives a quick calculation of $n\le58$ faces \cite{Har}. The exact value of this constant is not important as long as it is explicitly given.)
+The assertion of the dodecahedral conjecture is then expressed as an enormous conjunction
+of cases, with conjuncts indexed by an explicit enumeration of all possible combinatorial structures of a Voronoi cell, including a fixed triangulation of each face of the cell.  The fixed triangulation determines
+a partition of the Voronoi cell into tetrahedra.  The volume of each tetrahedron is expressed by means of a Cayley-Menger determinant as a definable function of the the edge lengths of the tetrahedron.  Thus, for each combinatorial structure $X$ with $m\le 58$ faces, we can express the statement that
+for all vectors $v_1,\ldots,v_m\in\ring{R}^3$, if the Voronoi cell defined by the vectors $v_i$ has combinatorial structure $X$, then the volume of the cell is at least $V_{dod}$.  The outer block of $3\cdot 58$ universal quantifiers -- not to mention the nested existential quantifiers -- is hopelessly beyond the practical reach of current algorithms.  The statement that the regular dodecahedron is the unique minimizer can be similarly expressed.
+
+If the entire dodecahedral conjecture can be expressed
+in Tarski arithmetic, then perhaps it is not so surprising that
+many of the intermediate steps in the proof can also be so expressed.
+These intermediate steps also tend to be beyond the reach of
+current decision procedures.  
+But here the situation is not so hopeless.  Many of these
+intermediate problems involve no more than a dozen quantifiers.
+One can imagine the day that these problems might fall within the
+reach of decision procedures for Tarski arithmetic.
+
+We find that describing various intermediate steps 
+of the proof as exercises
+in Tarski arithmetic is a useful point of view.  Doing so, identifies
+a family of subproblems that can be expressed in a common language,
+and that can often be solved by similar techniques.  
+The complexity of the
+problems can be measured objectively by counting the number
+quantifiers.
+
+Here are some geometrical 
+objects that are definable within the Tarski arithmetic
+that appear in the proof of the Dodecahedral conjecture.
+The following three polynomials appear repeatedly.
+\begin{definition}
+$$
+\begin{array}{lll}
+\ups(x,y,z) &= -x^2 - y^2 - z^2 + 2 x y + 2 y z + 2 z x.\\
+\\
+ \chi(x_{ij}) &= \chi(x_{12},x_{13},x_{14},x_{34},x_{24},x_{23})\\
+     &=
+      x_{13} x_{23} x_{24} + x_{14} x_{23} x_{24}  + 
+      x_{12} x_{23} x_{34} + x_{14} x_{23} x_{34} + x_{12} x_{24} x_{34}\\ 
+      &\quad + x_{13} x_{24} x_{34} - 
+      2 x_{23} x_{24} x_{34} - x_{12} x_{34}^2 
+      - x_{14} x_{23}^2 - x_{13} x_{24}^2\\
+   % &= x_1 x_4 x_5 + x_1 x_6 x_4 + x_2 x_6 x_5 + x_2 x_4 x_5 + x_5 x_3 x_6 \\
+   %&\quad+ x_3 x_4 x_6 - 2 x_5 x_6 x_4 - x_1 x_4^2 - x_2 x_5^2 - x_3 x_6^2.\\
+\\
+\Delta(x_{ij}) &= 
+   -x_{12} x_{13} x_{23} - x_{12} x_{14} x_{24} - x_{13} x_{14} x_{34} 
+    - x_{23} x_{24} x_{34}\\
+    &\quad + x_{12} x_{34} (-x_{12} + x_{13} + x_{14} + x_{23} + x_{24} - x_{34}) \\
+  &\quad + x_{13} x_{24} (x_{12} - x_{13} + x_{14} + x_{23} - x_{24} + x_{34})\\
+    &\quad + x_{14} x_{23} (x_{12} + x_{13} - x_{14} - x_{23} + x_{24} + x_{34})\\
+   %x_1 x_4 (- x_1+x_2+x_3- x_4+x_5+x_6)+\\&
+   %         x_2 x_5 (x_1- x_2+x_3+x_4- x_5+x_6)
+   %         +x_3 x_6 (x_1+x_2- x_3+x_4+x_5- x_6)
+   %         - \\&x_2 x_3 x_4- x_1 x_3 x_5- x_1 x_2 x_6- x_4 x_5 x_6\\
+\end{array}
+    \label{def:chi}
+\label{def:tar:delta}
+\label{def:ups}
+$$
+\end{definition}
+
+By Heron's formula, the circumradius $\eta(x,y,z)$ of a triangle with sides $x,y,z$ is elementary definable:
+$$\eta(x,y,z) = x y z/\sqrt{\ups(x^2,y^2,z^2)}.$$
+By Cayley-Menger determinants, the volume  of a tetrahedron with vertices $v_1,\ldots,v_4$ is elementary definable:
+   $$
+   \sqrt{\Delta(x_{ij})}/12,\quad x_{ij}=|v_i-v_j|^2.
+   $$
+In particular, $\Delta(x_{ij})\ge0$, whenever $x_{ij}$ have
+the form $|v_i-v_j|^2$ for some points $v_i\in\ring{R}^3$
+\cite[Lemma~8.1.4]{SPI}.
+
+Again, if $x_{ij}=|v_i-v_j|^2$, then we say that the orientation
+of $v_1$ is positive (zero, negative) in $S=\{v_1,\ldots,v_4\}$,
+according to the sign of $\chi(x_{12},x_{13},x_{14},x_{34},x_{24},x_{23})$.
+It is know that the sign of the orientation is positive (negative) exactly
+when $v_1$ and the circumcenter of $S$ lie on the same side (opposite sides) of the
+plane passing through $\{v_2,v_3,v_4\}$ \cite[Lemma~5.15]{DCG}.  This is an elementary condition. 
+
+
+
+
+
+
+
+\subsection{formal proof}
+
+A formal proof is a proof in which every logical inference has
+been checked, back to the foundational axioms of mathematics. 
+Except in trivial cases, a computer is used to generate a formal
+proof, because of the large number of inferences involved.
+Both conventional proofs and computer assisted proofs can be
+formalized.  In a computer assisted proof, this amounts to a
+formal verification of the correctness of the computer code.
+Formal verification of computer code is a difficult task.
+For that reason,  formal verification tends to be reserved
+for situations where correct performance 
+is critically important, such as the verification of aircraft
+control systems, cryptography algorithms, 
+and security protocols for the internet.
+There is no other means of checking 
+computer software that can assure reliability at levels that
+remotely compare with the
+assurance afforded by formal verification. 
+
+
+
+We are involved in a long term project, 
+called Flyspeck Light, to give a formal verification of the
+Dodecahedral conjecture.  Although this project is far from
+complete, parts of this project have already
+been carried out.  This means that some of the computer code
+for this project now carries a proof of correctness,
+according to formal mathematical standards.  One such
+program is discussed in the next subsection.
+
+
+
+
+%what it is, graph generator BN, Obua, McLaughlin, Zumkeller.
+%Where Trust is important, aircraft control, 
+%security protocals for the internet.  Difficult time-consuming
+%to do this kind of analysis of software.
+%There is no higher standard of software reliability in existence.
+
+%Ongoing project (Flyspeck Light).
+
+\subsection{graph generation}
+
+The proof of the Dodecahedral conjecture is based on three separate
+computer programs.  The first of these is a planar graph generator.
+It generates all planar graphs, up to isomorphism, that satisfy
+a given list of restrictions.  The restrictions include a bound on
+the number of vertices in the graph, so that it is obvious that there are only a finite number of possible graphs.
+
+The correctness of the graph generator program has been the 
+subject of extensive
+mathematical investigation.  Early versions of the program were
+written by Hales in 1994 (in Mathematica), 1997 (in Java), and 2000 (in Java).  The same computer program is used in the Kepler conjecture
+and Dodecahedral conjecture.  They differ only in their input parameters.
+This computer program became the subject of  G. Bauer's
+dissertation in computer science at the Technical University of Munich
+\cite{Bauer}.
+This 172-page dissertation translates the Java code into the
+formal theorem proving system Isabelle/HOL and gives a detailed 
+mathematical treatment of the graph theory underpinning the
+computer code.  The dissertation analyzes every line of code.  
+Building on the work of this thesis, B. Bauer
+and T. Nipkow have completed the formal correctness proof of the HOL implementation
+of the graph generator \cite{BN06}.  (Their published paper mentions
+only the Kepler conjecture, but the formal verification 
+has been extended to
+apply to the input parameters of the Dodecahedral conjecture as well.)
+As a result of this work, the graph generation is currently the
+most scrupulously checked part of the proof of the Dodecahedral
+conjecture.
+
+There are several published sources that provide details of this
+algorithm, and there is no need to repeat details here.   The basic idea is to start
+with a small set of planar graphs  (called `seed' graphs) with
+the property that every planar graph to be classified is known to have
+one of the seed graphs as a subgraph.  The seed graphs are then
+extended by adding one face at a time.  Faces are added in all
+possible ways so that it is clear at every step of the algorithm
+that every connected planar graph will be generated.  At the same time,
+pruning operations discard partially completed graphs when it can
+be shown that the partial graph is not a subgraph of any of the
+graphs to be classified.  The pruning operations prevent a
+combinatorial explosion of cases.
+See \cite[sec.5]{alg}, \cite[sec.19]{DCG}, \cite{Bauer}, \cite{BN06}.
+
+
+%What it is, several implementations, bug 2000,  Mathematica, java,
+%java, ML (Isabelle), formal proof of correctness.
+
+\subsection{linear programs}
+
+The second computer 
+program that is used in the proof of the Dodecahedral
+conjecture is linear programming.  There are several hundred
+linear programs that appear in the proof.
+
+Formal verification has not yet been extended to this portion
+of the computer code.  However, the recent dissertation of
+S. Obua takes the first steps in this direction \cite{Ob}.
+That work gives a formal correctness proof of the {\it basic} linear
+programs that appear in the proof of the Kepler conjecture.
+In particular, he has developed all the infrastructure needed to
+carry out formal correctness proofs of linear programming problems.
+The formalization  completed by Obua is a larger project than the
+formalization of the linear programming segment of the Dodecahedral
+conjecture.
+Thus, we can expect that the formalization of this piece of
+computer code  will soon follow suit.
+
+In the 1998 proof, computer code written in C was used to generate
+the linear programs, which were then fed to the 
+commercial linear programming
+package CPLEX.  In preparation for a formal proof, the computer
+code has been rewritten in the programming language ML, with
+an external interface to the lp solver GLPK.
+
+We stress that it is not necessary to trust the algorithms of the
+linear programming packages (such as CPLEX and GLPK) that solve
+the linear programs.  These packages produce dual certificates that
+can be used to give independent verification of the solutions
+of the linear programming problems.
+
+In the proof of the Dodecahedral conjecture, we encounter the
+following situation.  We wish to prove that the maximum of a
+linear function 
+$x\mapsto c x$ is less than given constant $M$, when subject
+to a system of linear constraints $A x \le b$.  (Here $x$, $c$, $b$
+are vectors with real entries and $A$ is a matrix with real
+entries.  The products are given by matrix multiplication of compatibly sized matrices and vectors. 
+We write
+a vector inequality $u\le v$
+to mean that $u_i \le v_i$ for each coordinate $i$.) We are given
+explicit lower and upper bounds on the variables: $\ell \le x \le u$.
+Expressed equivalently, we wish to show that the linear 
+system of inequalities
+  $$
+  A x \le b,\quad \ell \le x\le u,\quad c x \ge M
+  $$
+has no solutions in $x$.
+The external linear programming package produces a dual certificate
+in the form of a vector $y$, which that package claims to have
+the properties 
+  \begin{equation}
+  y A = c,\quad y\ge 0,\quad y b < M.
+  \end{equation}
+If $y$ indeed has these properties, then for any $x$ satisfying
+$A x \le b$, we have
+   \begin{equation}\label{eqn:cxM}
+   c x = y A x \le y b < M
+   \end{equation}
+as desired.
+
+Because of inexact arithmetic used by the external packages, 
+these identities will only be
+approximately correct.   The imprecision in the dual
+certificate can be readily eliminated as follows. If $u$ is
+any vector, let $u^+$ be the vector obtained by replacing the
+negative entries of $u$ with $0$, and let $u^-$ be the vector
+obtained by replacing the positive entries of $u$ with $0$.
+By replacing the vector $y$ with $y^+$, we may always assume
+that $0\le y$.  In the following lemma, $s_1$ and $s_2$ are
+small error terms that result from machine approximation.
+By including them in the bounds on $c x$, a rigorous bound
+can be recovered.
+
+
+\begin{lemma}  Suppose that the real-valued vectors and matrices
+$A,A_1,A_2$, $c,c_1,c_2$, $x,b,\ell,u$, $y$ satisfy the following
+relations
+  $$
+  A x\le b, \quad A_1 \le A \le A_2,
+  \quad c_1 \le c \le c_2,\quad \ell\le x\le u,\quad
+  0\le y.
+  $$
+Define residuals
+  $$
+   s_1 = c_1 - y A_2,\quad s_2 = c_2  - y A_1.
+  $$
+If
+$$
+y b + s_2^+ u^+ + s_1^+ u^- + s_2^- l^+ + s_1^- l^- < M,
+$$
+then $c x < M$.
+\end{lemma}
+
+\begin{proof}  S. Obua has given a formal proof of this lemma in
+the Isabelle/HOL system \cite[3.7.2]{Ob}.  In fact, the proof is
+nothing but a slight
+embellishment of Inequality~\ref{eqn:cxM}.
+\end{proof}
+
+We note that $A_1,A_2,c_1,c_2,\ell,u,y,b$ are all explicitly given
+numerical data, so that explicit bounds are obtained by this
+method.  It is not necessary to trust the package
+that produces the certificate $y$, because
+all of the assumptions of the lemma can be checked directly with
+simple matrix multiplications.
+
+
+XX note about checking certificates with interval arithmetic.
+
+\subsection{interval arithmetic}
+
+The third major computer program that is used in the proof of
+the Dodecahedral conjecture is an nonlinear-inequality prover
+over the real numbers based on interval arithmetic.  
+This subsection describes the
+methods involved and the computer implementation.
+
+A finite number of nonlinear functions $f_1,\ldots,f_k$ are given.
+It is assumed that all functions have the same domain
+   $$R= [a_1,b_1] \times [a_2,b_2] \times [a_m,b_m],$$
+given as a product of intervals in $\ring{R}^m$, for some $m$.
+The computer program verifies that
+  \begin{equation}\label{eqn:fpos}
+  (f_1(x) >0) \lor (f_2(x) >0) \lor \cdots \lor (f_r(x) >0),
+  \end{equation}
+for every point $x\in R$.
+The approach we take is similar to the approach described in
+R. B. Kearfott \cite{Kea96}, based on interval arithmetic.
+Our methods are similar to algorithms in widespread use for
+rigorous global optimization.  Closely related algorithms
+are also described in \cite{Zu}.
+
+The method is based on an iteratively refined 
+partition of the domain into $R$
+into a finite number of smaller and smaller rectangles that cover $R$.
+% Grothendieck topologies again!
+We give a somewhat simplified description of the algorithm.
+At iteration $p$, we have a cover of $R$ by smaller rectangles
+$R^p_1,\ldots,R^p_{k_p}$ and determine lower bounds
+   $$
+   f_j(x) > a_{p,i,j},\quad \text{ for } j=1,\ldots,r;\quad i=1,\ldots,k_p.
+   $$
+%If $a_{p,i,j}\ge 0$ for some $j\le r$, then the condition~\ref{eqn:fpos}
+%holds for $x\in R^p_i$.  
+If for every $i$, there exists a $j$ such that $a_{p,i,j}\ge 0$,
+then condition~\ref{eqn:fpos} holds for $x\in R$, and the algorithm
+terminates.
+
+If not, pick $i' \le k_p$ for which no such $j$ exists.  We
+pass to the next iterate $p+1$ of the algorithm.  Cover $R^p_{i'}$
+with finitely many rectangles $S^{p+1}_1,\ldots$, and let
+  $$
+  R^{p+1}_1,\ldots,R^{p+1}_{k_{p+1}}
+  $$
+be the collection consisting of $S^{p+1}_1,\ldots$ and $R^p_1,\ldots$
+(omitting $R^p_{i'}$).  We compute new lower bounds $a_{p+1,i,j}$ 
+for $f_j$ on each new rectangle, and continue as before.
+
+
+When we subdivide rectangles to obtain smaller covers, we do
+it in such a way the the width of the rectangle tends to zero
+with increasing $p$.
+In this way, we are able to arrange for the approximations
+$a_{p,i,j}$ to $f$ to converge to the true minimum of $f$ on the
+rectangle.
+
+The lower bounds $a_{p,i,j}$ to a function $f_j$ on a rectangle
+are obtained by methods of interval arithmetic.  The function
+$f=f_j$ is generally $C^2$ on its domain.\footnote{The functions
+we encounter in practice are usually $C^2$, but not always so.  When functions are not
+$C^2$, we avoid the use of Taylor approximations.}  We expand
+the function $f$ in a Taylor polynomial approximation with
+explicit error bounds.  Derivatives are calculated by automatic
+differentiation.  The error bounds are based on the Lagrange form of
+the error term in the Taylor approximation.  Interval arithmetic is used to produce rigorous bounds on the error terms.
+
+We take comfort in the fact that we have
+been able to give rigorous proofs of difficult inequalities,
+especially when confronted with the fact that 
+nonlinear optimization is NP hard.  Considerable work has gone
+into the implementation of these algorithms.
+
+There have been several separate implementations of the interval
+arithmetic package.  
+The source code for all of these packages
+is publicly available. (The code that is used for the proof of 
+the Kepler conjecture is the same as the code that is used for
+the proof of the Dodecahedral conjecture.  Only the statements
+of the inequalities to be proved differ.) 
+The first version, written in C++, 
+was developed by T. Hales
+over the period 1994-1998.  
+A second version, written in C, was developed by S. Ferguson 
+1995-1997.  A third version, written in ML, was developed by S. McLaughlin 2006-2008.  A interval arithmetic package has also been developed
+by R. Zumkeller for the theorem proving system COQ, although it has not  been used to give a formal verification of any of the inequalities that arise in the proof of the Dodecahedral conjecture \cite{Zu}.
+These implementations are all independent of one another. (Algorithms
+were shared among us, but the code was independently implemented.) 
+By comparing the proofs of different inequalities in different 
+systems, we have developed 
+a high degree of confidence that the implementations
+of the algorithms are essentially correct.  Of course, it would
+be desirable to have a formal correctness proof, but this part
+of the Flyspeck Light project has not been completed.  (The ML
+implementation and Zumkeller's research are partial steps
+in this direction.)
+
+XX give references to package locations.
+
+
+
+Same parameters, 2nd order taylor, 6-7 variables, 2-3 disjuncts?
+dimension reduction.
+What is interval arithmetic, 
+
+
+\subsection{nonlinear optimization}
+
+cfsqp, Sean's new package, use to weed out false inequalities during
+proof process.  Use as a double check on the interval arithmetic.
+Not used in any proof.  Tends to have small second derivatives,
+monotonoic on the domain, maximum at a corner.
+
+
+
+
 \section{Fejes T\'oth's Reduction}
 
 L. Fejes T\'oth proved  the Dodecahedral conjecture 
 under the extra hypothesis that $\Lambda(v_0,2t_{dod})\setminus\{v_0\}$
-has at most $12$  elements.  He never published the details when
-there is truncation. Here
-we sketch a proof of Fejes T\'oth's theorem.
+has at most $12$  elements.  The proof occupies about
+eight pages of the book {\it Regular Figures}.  See the main
+theorem of
+Section~33 and the main theorem of Section~41 (including
+the note on page 265) in \cite{Toth2}.  Fejes T\'oth's
+bound is a general bound about the volume of truncated polyhedra.
+The polyhedra do not have to be Voronoi cells in a sphere packing.
+We sketch a proof of his theorem.
 
-\begin{lemma}  If $\Lambda(v_0,2t_{dod})\setminus\{v_0\}$ has at most
-$12$ elements, then
-     $$
-   \op{vol}(\Omega_{trunc}(\Lambda,v_0))\ge \op{vol}(\Omega(\Lambda_{dod},0)).
+\begin{theorem}  Let $P$ be any polyhedron with at most $12$ sides
+that contains a unit sphere $S^2$.  Let $B$ be the ball of
+radius $t_0$ concentric with $S^2$.  The volume of the intersection
+of $P$ with $B$ is
+at least that of a regular
+dodecahedron $D$ with inradius $1$.
+Equality holds exactly $P$ is congruent to $D$.
+\end{theorem}
+
+\begin{proof} (Sketch)  By translation, we may assume that
+the origin is the center of $S^2$.
+We may consider the case of $k<12$ faces as a degenerate
+case of a polyhedron with $12$ faces, where some of the faces
+have degenerated to a single point at the vertex.  Similarly,
+we may consider the case in which some vertices of the polyhedron
+have degree greater than $3$ as degenerate cases of polyhedra 
+where all degrees are three, where some of the vertices have
+coalesced.   With these conventions, 
+we may assume there are $12$ faces, $30$ edges,
+and $20$ vertices.
+
+Let 
+  $$g(x) = \begin{cases}
+          \frac13 \sec^2 (x), & x \le \theta_0\\
+          \frac13 \sec^2 (\theta_0) & x \ge \theta_0,
+          \end{cases}
    $$
-Equality holds exactly when $\Omega(\Lambda,v_0)$ is congruent to
-$\Omega(\Lambda_{dod},0)$.
-\end{lemma}
+where $\cos(\theta_0) = 1/t_0$.
+For each face $F_i$ of the polyhedron $i=1,\ldots, 12$, 
+let $w_i$ be the point 
+on the unit sphere $S^2$ at the origin closest to the plane through $F_i$.
+Let $S_i$ be the radial projection of $F_i$ to a spherical polygon
+on $S^2$.   The volume $V$ of the $t_0$-truncated polyhedron satisfies
+    $$
+    V \ge \sum_{i=1}^{12} \int_{S_i} g(\theta(w_i,x))\,dx
+    $$
+where $dx$ is the usual measure on $S^2$,
+and $\theta(w_i,x)$ is the length of the geodesic on $S^2$ joining
+$w_i$ to $x$. The integral on the
+right is exactly the volume of the truncated polyhedron obtained
+by projecting each polygon $S_j$ back out to a plane parallel to $F_i$
+through $w_i$.
 
-\begin{proof} (Sketch) By translation, we may assume that $v_0=0$.
-For each nonzero $v$ in $\Lambda(v_0,2t_{dod})$, 
-let $v'=2v/|v|$,We have $|v'|\le|v|$.
-The Voronoi cell $\Omega'$ at the origin for $X = \{v'\mid v\in\Lambda(0,2t_{dod})\}$ is a subset of $\Omega(\Lambda,v_0)$ because face planes move to parallel planes closer to the origin.  
-Set $\Omega'' = \Omega'\cap B(0,t_{dod})$.
-Thus, it is enough to show
-that 
-   $$\op{vol}(\Omega'')\ge \op{vol}(\Omega(\Lambda_{dod},0))$$
-and to analyze cases of equality.
-
-As in Leech's solution to the kissing number problem, 
-take the Delaunay triangulation of $X$ (now on the sphere of radius $2$).
-For each triangle, there is a triple of points $\{v_1,v_2,v_3\}\subset X$ (dropping primes from the notation).
-In Leech's proof, the area of the sphere
-is a sum
-of contributions from each face of the planar graph.
-In this proof, the volume of $\Omega''$ is a sum of contributions
-from each face of the planar graph.  Explicit formulas for the
-contributions are developed later in this book.  They are as follows.
-Let $t$ be the circumradius of $S=\{0,v_1,v_2,v_3\}$.  Set
-   $$\op{vol}_{dod}(S) =
-     \begin{cases}
-       \op{volan}(0,S) & t < t_{dod}\\
-       \op{vol}_{dod,trunc}(S) & t\ge t_{dod}\\
-     \end{cases}
-     $$
-where 
-  $$\op{vol}_{dod,trunc}(S) = \op{sv}_0(0,S,t_{dod},\lambda),\quad
-     \lambda = (\lambda_v,\lambda_s) = (1,0).
-  $$
-The functions $\op{volan}$ and $\op{sv}_0$ 
-are explicitly defined in Definitions~\ref{def:volan}
-and~\ref{def:svor}. 
-%% vol_dod is the basic quoin-Adih formula with t_dod truncation,
-%% without regard for whether it is "geometric".
-The sum of $\op{vol}_{dod}$ over all Delaunay triangles is 
-the volume of $\Omega''$.
-
-The function $\op{vol}_{dod}(\{0,v_1,v_2,v_3\})$ can be viewed as a function of three
-variables $y_i = |v_j-v_k|$, for $(i,j,k)=(1,2,3),(2,3,1),(3,1,2)$.
-The area $A$ of the Delaunay triangle can also be viewed as a function of
-$y_1,y_2,y_3$.
-We hold $y_1$ constant, vary $y_2$, and define $y_3$ as an implicit
-function of $y_2$ on a level curve of $A(y_1,y_2,y_3)$.
-
-By computing the derivative of $\op{vol}_{dod}(y_1,y_2,y_3)$ along
-the level curve, we see that if $y_2 < y_3 \le y_1$, 
-then $\op{vol}_{dod}$
-is decreasing in $y_2$.  (This involves two calculations, one
-when $t<t_{dod}$ and another when $t\ge t_{dod}$.)  Thus, we 
-may decrease volume for constant Delaunay triangle areas by making
-$y_1=y_2=y_3$.\endnote{The code for the Dodecahedral problem for $12$ balls
-appears in a Mathematica Notebook at 
-http://flyspeck.googlecode.com/svn/trunk/book\_code/sphereBook.nb.  This notebook supplements the
-arguments in the text 
-with calculations that show that the circumradius of the simplex
-is properly behaved under these deformations.}
-(The triangles no longer fit together, but this
-does not matter.  Their areas still sum to $4\pi$.)
-
-By computing the derivative of $\op{vol}_{dod}(y,y,y)+\op{vol}_{dod}(z,z,z)$
-along a level curve of $A(y,y,y)+A(z,z,z)$, we see that if $y<z$,
-then the volume may be decreased by increasing $y$ (and decreasing $z$).
-(This involves three calculations, depending how the two circumradii
-compare with $t_{dod}$.)  Thus, we may decrease volume by
-making all triangles congruent and equilateral.  The areas of the
-triangles still sum to $4\pi$.  
-
-If $V$ is the cardinality
-of $X$, then by the Euler formula the number $F$ 
-of triangles is $(2V-4)$, which is at most $20$,
-and each triangle has area $4\pi/F$.  Our bound on volume is
+By the estimate of Sec.~33 of the book, 
+the integral on the right is at least
    $$
-   F\, \op{vol}_{dod}(y,y,y), \text { where } F\, A(y,y,y)=4\pi.
+   120 \int_{T} g(\theta(w,x))\, dx,
    $$
-Extend $F$ as a real-valued variable, and
-let the area formula define $y$ as an implicit function of $F$.
-The function $F\op{vol}_{dod}(y(F),y(F),y(F))$ 
-is decreasing in $F$, so a lower bound is obtained
-when $F$ is as large as possible.  The lower bound 
-$20\,\op{vol}_{dod}(y(20),y(20),y(20))$ equals the volume of
-$\Omega(\Lambda_{dod},0)$ (as the Delaunay triangulation
-for $\Lambda_{dod}$ also consists of $20$
-congruent triangles with total area $4\pi$).  
-This proves the bound. 
-All the derivatives involved in these
-calculations are explicit.  Hence the case of equality is easily
-traced.
+where $T$ is a spherical triangle with angles $\pi/2$,
+$\pi/5$, $\pi/3$.  Here $w$ is the vertex of the triangle $T$
+that has angle $\pi/5$.  (This estimate
+holds in fact for any non-decreasing
+function $g$.)
+
+We claim that this integral is precisely the volume of a regular
+dodecahedron of inradius $1$.  Since the angle at $w$ is $\pi/5$,
+$10$ triangles $T$ form a regular pentagonal face.  By Girard's
+formula for the area of a spherical triangle, the area of $T$ is
+   $$
+   \pi/2 + \pi/5 + \pi/3 - \pi = (4\pi)/(120).
+   $$
+Thus, $120$ triangles $T$ tile the sphere as $12$ congruent
+regular pentagons.
+Also, the maximum of $\theta(w,x)$ over the triangle is exactly $\theta_0$,
+so $g(|w-x|) = (\sec^2\theta(w,x))/3$. The interpretation of the integral
+as the volume of a regular dodecahedron now follows easily.
+
+L. Fejes T\'oth also considers the case of equality and finds that
+the only minimizing polyhedron is the regular dodecahedron.
 \end{proof}
 
-Fejes Toth's proof uses simple convexity arguments to prove an
-apparently difficult result.  This method of proof has become
- is an essential part of the solution to the packing
-problem.   Ferguson's thesis calculates the volume of a truncated
-Voronoi cell, subject to a fixed area constraint 
-\cite[sec.~16.9.5]{Fer97}.  In fact, his thesis provides details
-to the sketch provided above, by giving the derivatives explicitly,
-for truncated Voronoi cells.  Many of his calculations have been
-reproduced in this book.  See, in particular, 
-Lemma~\ref{lemma:quoin-equilize}.
+
+
+
+
+
+\section{Geometry of Voronoi Cells}
+
+In this section, we describe the basic geometry of Voronoi cells and
+their truncation.  
+
+Let $\Lambda = \Lambda(0,2t_{dod})$ be a finite
+packing containing $0$, and let $\Omega(\Lambda,0)$ be the Voronoi cell.
 
 
 
@@ -698,12 +1143,12 @@ in a uniform way for every structurally tame hypermap $H$.  This determines,
 for every structurally tame hypermap $H$, we then have a well-defined extension
 to a hypermap system $(H,\Phi)$.  We call this particular hypermap
 system, by structural analogy with the Kepler conjecture,
-the {\it basic hypermap system}.  
+the {\it dodecahedral hypermap system}.  
 
 
 \begin{theorem}\label{thm:graph-system}  Let 
 $H$ be any structurally tame hypermap with corresponding
-basic hypermap system $(H,\Phi)$.  Then $(H,\Phi)$ is infeasible.
+dodecahedral hypermap system $(H,\Phi)$.  Then $(H,\Phi)$ is infeasible.
 \end{theorem}
 
 This proof is carried out by computer as a collection of linear
@@ -719,7 +1164,7 @@ hypermap systems in Section~\ref{XX}.  Thus,  we may prove
 Theorem~\ref{thm:graph-system} through a case-by-case treatment
 of cases.  This is how we proceed.
 
-Let's turn our attention for a moment, to one structurally tame hypermap $H=(D,e,n,f)$ and the corresponding basic hypermap system $(H,\Phi)$.
+Let's turn our attention for a moment, to one structurally tame hypermap $H=(D,e,n,f)$ and the corresponding dodecahedral hypermap system $(H,\Phi)$.
 We describe the strategy that we use to show that it is infeasible.
 For some $\ell\in\ring{N}$,
 each constraint $\phi$ is a function on $V^\ell$, where $V$ is
@@ -792,7 +1237,7 @@ $14$ cases (XX?) use a guard condition.
 \section{Appendix: Basic Hypermap System}
 
 In this appendix, we list the system of constraints determining
-the basic hypermap system.  As the main body of the text explains
+the dodecahedral hypermap system.  As the main body of the text explains
 a hypermap system is a pair $(H,\Phi)$, where $H$ is a hypermap
 and $\Phi$ is a finite set of constraints on $H$.  To describe
 the constraints $\Phi$ in precise terms requires some notation.
@@ -806,7 +1251,7 @@ with its namesake.  For example, the linear constraints on
 $\optt{sol}\in V$, mirror  nonlinear relations satisfied by the
 nonlinear function $\sol$ in the main text.  This correspondence
 between functions in $V$ and functions does not enter into the
-definition of the basic hypermap system.  For the purposes of this
+definition of the dodecahedral hypermap system.  For the purposes of this
 appendix, this correspondence is simply an aid to the
 intuition.
 

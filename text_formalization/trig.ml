@@ -39,12 +39,12 @@ atn2;;  (* definitions_kepler.ml *)
 (* This is close to CIRCLE_SINCOS *)
 
 let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
-     (x = r* (cos(atn2(x,y)))) /\ (y = r* (cos (atn2( x, y)))) /\ 
+     (x = r* (cos(atn2(x,y)))) /\ (y = r* (sin (atn2( x, y)))) /\ 
      (r >= &0))`;;
 
 (* lemma:sin-arccos *)
 
-let sin_acs_t = `!y. (-- &1 <= y /\ y <= &1) ==> (cos (acs(y)) = sqrt(&1 - y pow 2))`;;
+let sin_acs_t = `!y. (-- &1 <= y /\ y <= &1) ==> (sin (acs(y)) = sqrt(&1 - y pow 2))`;;
 
 (* lemma:arccos-arctan *)
 
@@ -376,10 +376,10 @@ let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
   azim_cycle_t;
    ])));;
 
-(* axiomatic implementation of  Trigsig *)
+(* partial implementation of  Trigsig *)
 
-(* 
 
+ 
 let trig_axiom = new_axiom `trig_axiom`;; 
 
 module Trig : Trigsig = struct
@@ -391,9 +391,398 @@ module Trig : Trigsig = struct
       (MP_TAC trig_axiom) THEN (REWRITE_TAC[trig_axiom_list]) THEN 
       (REPEAT STRIP_TAC)
       )
-  let atn2_spec = trigAxiomProofB atn2_spec_t
-  let sin_acs = trigAxiomProofB sin_acs_t
-  let acs_atn2 = trigAxiomProofB  acs_atn2_t 
+      
+  (* lemma:atn2_spec *)
+     
+  let arith_lemma = prove 
+   (`!a d x. &0 < d ==> 
+        ?y. (a <= y /\ y <= a + d) /\ ?n. y = x + &n * d \/ x = y + &n * d`,
+    REPEAT STRIP_TAC THEN DISJ_CASES_TAC (SPEC `(x - a):real` REAL_LE_NEGTOTAL) 
+    THEN IMP_RES_THEN (IMP_RES_THEN STRIP_ASSUME_TAC) REAL_ARCH_LEAST THENL
+    [ EXISTS_TAC `x - &n * d` THEN STRIP_TAC THENL
+      [ (POP_ASSUM MP_TAC) THEN (POP_ASSUM MP_TAC) THEN 
+        REWRITE_TAC [GSYM REAL_OF_NUM_SUC] THEN REAL_ARITH_TAC ;
+        EXISTS_TAC `n:num` THEN REAL_ARITH_TAC ] ;
+      EXISTS_TAC `x + &(SUC n) * d` THEN STRIP_TAC THENL
+      [ (POP_ASSUM MP_TAC) THEN (POP_ASSUM MP_TAC) THEN 
+        REWRITE_TAC [GSYM REAL_OF_NUM_SUC] THEN REAL_ARITH_TAC ;
+        EXISTS_TAC `(SUC n):num` THEN REAL_ARITH_TAC ]]);; 
+
+  let SIN_PERIODIC_N2PI = prove
+   (`!x n. sin(x + &n * (&2 * pi)) = sin(x)`,
+    GEN_TAC THEN INDUCT_TAC THEN REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID] THEN
+    REWRITE_TAC[GSYM REAL_OF_NUM_SUC; REAL_ADD_RDISTRIB; REAL_MUL_LID] THEN
+    ASM_REWRITE_TAC[REAL_ADD_ASSOC; SIN_PERIODIC]);;
+  
+  let COS_PERIODIC_N2PI = prove
+   (`!x n. cos(x + &n * (&2 * pi)) = cos(x)`,
+    GEN_TAC THEN INDUCT_TAC THEN REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID] THEN
+    REWRITE_TAC[GSYM REAL_OF_NUM_SUC; REAL_ADD_RDISTRIB; REAL_MUL_LID] THEN
+    ASM_REWRITE_TAC[REAL_ADD_ASSOC; COS_PERIODIC]);;
+
+  let TWOPI_POS = prove (`&0 < &2 * pi`, MP_TAC PI_POS THEN REAL_ARITH_TAC);;
+  
+  let CIRCLE_SINCOS_PI_LEMMA = prove
+   (`!x y. (x pow 2 + y pow 2 = &1) ==> 
+       ?t. (--pi <= t /\ t <= pi) /\ ((x = cos(t)) /\ (y = sin(t)))`,
+    REPEAT STRIP_TAC THEN IMP_RES_THEN STRIP_ASSUME_TAC CIRCLE_SINCOS THEN
+    STRIP_ASSUME_TAC (REWRITE_RULE [TWOPI_POS] 
+    (SPECL [`--pi`;`&2 * pi`;`t:real`] arith_lemma)) THEN EXISTS_TAC `y':real` THEN 
+    STRIP_TAC THENL
+    [ POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+      REAL_ARITH_TAC ;
+      ASM_REWRITE_TAC [COS_PERIODIC_N2PI; SIN_PERIODIC_N2PI] ;
+      POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+      REAL_ARITH_TAC ;
+      ASM_REWRITE_TAC [COS_PERIODIC_N2PI; SIN_PERIODIC_N2PI] ]);;
+    
+  let CIRCLE_SINCOS_PI = prove
+   (`!x y. (x pow 2 + y pow 2 = &1) ==> 
+       ?t. (--pi < t /\ t <= pi) /\ ((x = cos(t)) /\ (y = sin(t)))`,
+    REPEAT STRIP_TAC THEN IMP_RES_THEN STRIP_ASSUME_TAC CIRCLE_SINCOS_PI_LEMMA 
+    THEN FIND_ASSUM (DISJ_CASES_TAC o (REWRITE_RULE [REAL_LE_LT])) `--pi <= t`
+    THENL
+    [ EXISTS_TAC `t:real` THEN ASM_REWRITE_TAC [];
+      EXISTS_TAC `pi:real` THEN POP_ASSUM (ASSUME_TAC o GSYM) THEN
+      ASM_REWRITE_TAC [SIN_NEG; COS_NEG; SIN_PI] THEN MP_TAC PI_POS THEN
+      REAL_ARITH_TAC ]);;
+    
+  let dist_lemma = prove
+   (`!x y. ~(x = &0) \/ ~(y = &0) ==> 
+      (x / sqrt(x pow 2 + y pow 2)) pow 2 +
+      (y / sqrt(x pow 2 + y pow 2)) pow 2 = &1 /\
+      &0 < sqrt(x pow 2 + y pow 2)`,
+    STRIP_TAC THEN STRIP_TAC THEN STRIP_TAC THEN
+    SUBGOAL_TAC "sum_pos" `&0 < x pow 2 + y pow 2 /\ &0 <= x pow 2 + y pow 2`
+    [ MP_TAC (SPEC `x:real` REAL_LE_POW_2) THEN 
+      MP_TAC (SPEC `y:real` REAL_LE_POW_2) THEN
+      IMP_RES_THEN MP_TAC (SPECL [`x:real`; `2`] REAL_POW_NZ) THEN 
+      IMP_RES_THEN MP_TAC (SPECL [`y:real`; `2`] REAL_POW_NZ) THEN 
+      REAL_ARITH_TAC ] THEN
+    POP_ASSUM MP_TAC THEN STRIP_TAC THEN 
+    ASM_SIMP_TAC [REAL_POW_DIV; SQRT_POW_2; SQRT_POS_LT] THEN
+    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+    CONV_TAC REAL_FIELD);;
+  
+  let ATAN2_EXISTS = prove 
+   (`!x y. ?t. (--pi < t /\ t <= pi) /\
+         x = sqrt(x pow 2 + y pow 2) * cos t /\
+         y = sqrt(x pow 2 + y pow 2) * sin t`,
+    REPEAT STRIP_TAC THEN ASM_CASES_TAC `(x = &0) /\ (y = &0)` THENL
+    [ ASM_REWRITE_TAC [(SPEC `2` REAL_POW_ZERO)] THEN 
+      NUM_REDUCE_TAC THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN 
+      REWRITE_TAC [SQRT_0] THEN EXISTS_TAC `pi` THEN MP_TAC PI_POS THEN
+      REAL_ARITH_TAC ;
+      IMP_RES_THEN STRIP_ASSUME_TAC 
+      (REWRITE_RULE [TAUT `(~A \/ ~B) <=> ~(A /\ B)`] dist_lemma) THEN
+      IMP_RES_THEN STRIP_ASSUME_TAC CIRCLE_SINCOS_PI THEN 
+      POP_ASSUM (MP_TAC o GSYM) THEN POP_ASSUM (MP_TAC o GSYM) THEN
+      STRIP_TAC THEN STRIP_TAC THEN EXISTS_TAC `t:real` THEN 
+      ASM_REWRITE_TAC [] THEN
+      POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN 
+      POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
+      POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD ]);;
+
+  let ATAN2_TEMP_DEF = new_definition
+    `atan2_temp (x,y) = if (x = &0 /\ y = &0) 
+                        then pi 
+                        else @t. (--pi < t /\ t <= pi) /\
+                                 x = sqrt(x pow 2 + y pow 2) * cos t /\
+                                 y = sqrt(x pow 2 + y pow 2) * sin t`;;
+                     
+  let ATAN2_TEMP = prove
+   (`!x y. (--pi < atan2_temp (x,y) /\ atan2_temp (x,y) <= pi) /\
+           x = sqrt(x pow 2 + y pow 2) * cos (atan2_temp (x,y)) /\
+           y = sqrt(x pow 2 + y pow 2) * sin (atan2_temp (x,y))`,
+    STRIP_TAC THEN STRIP_TAC THEN REWRITE_TAC [ATAN2_TEMP_DEF] THEN
+    COND_CASES_TAC THENL
+    [ ASM_REWRITE_TAC [(SPEC `2` REAL_POW_ZERO)] THEN 
+      NUM_REDUCE_TAC THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN 
+      REWRITE_TAC [SQRT_0] THEN MP_TAC PI_POS THEN
+      REAL_ARITH_TAC ; 
+      REWRITE_TAC [(SELECT_RULE (SPECL [`x:real`;`y:real`] ATAN2_EXISTS))]]);;
+
+  let ATAN2_TEMP_SPEC = prove
+   (`!x y. ?r. ((-- pi < atan2_temp(x, y)) /\ (atan2_temp(x,y) <= pi) /\
+       (x = r* (cos(atan2_temp(x,y)))) /\ (y = r* (sin (atan2_temp( x, y)))) /\ 
+       (r >= &0))`,
+    STRIP_TAC THEN STRIP_TAC THEN EXISTS_TAC `sqrt(x pow 2 + y pow 2)` THEN
+    REWRITE_TAC [ATAN2_TEMP] THEN SUBGOAL_TAC "sum_pos" `&0 <= x pow 2 + y pow 2`
+    [ MP_TAC (SPEC `x:real` REAL_LE_POW_2) THEN 
+      MP_TAC (SPEC `y:real` REAL_LE_POW_2) THEN
+      IMP_RES_THEN MP_TAC (SPECL [`x:real`; `2`] REAL_POW_NZ) THEN 
+      IMP_RES_THEN MP_TAC (SPECL [`y:real`; `2`] REAL_POW_NZ) THEN 
+      REAL_ARITH_TAC ] THEN
+    MP_TAC (SPEC `x pow 2 + y pow 2` SQRT_POS_LE) THEN POP_ASSUM MP_TAC THEN
+    REAL_ARITH_TAC);;
+      
+  let SIN_NEGPOS_PI = prove 
+   (`!x. (--pi < x /\ x <= pi) ==>
+         (sin x < &0 <=> --pi < x /\ x < &0) /\
+         (sin x = &0 <=> (x = &0 \/ x = pi)) /\
+         (sin x > &0 <=> &0 < x /\ x < pi)`,
+    STRIP_TAC THEN STRIP_TAC THEN SUBGOAL_THEN
+      `if (sin x < &0) then (sin x < &0 <=> --pi < x /\ x < &0) else
+       if (sin x = &0) then (sin x = &0 <=> (x = &0 \/ x = pi)) else
+       (sin x > &0 <=> &0 < x /\ x < pi)` MP_TAC THENL
+    [ SUBGOAL_TAC "a" `--pi < x /\ x < &0 ==> sin x < &0`
+      [ MP_TAC (REWRITE_RULE [SIN_NEG] (SPEC `--x:real` SIN_POS_PI)) THEN
+        REAL_ARITH_TAC ] THEN
+      SUBGOAL_TAC "b" `x = &0 ==> sin x = &0`
+      [ STRIP_TAC THEN ASM_REWRITE_TAC [SIN_0] ] THEN
+      SUBGOAL_TAC "c" `x = pi ==> sin x = &0`
+      [ STRIP_TAC THEN ASM_REWRITE_TAC [SIN_PI] ] THEN
+      LABEL_TAC "d" (SPEC `x:real` SIN_POS_PI) THEN
+      REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+      REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
+
+  let COS_NEGPOS_PI = prove
+   (`!x. (--pi < x /\ x <= pi) ==>
+         (cos x < &0 <=> (--pi < x /\ x < --(pi / &2)) \/ 
+                         (pi / &2 < x /\ x <= pi)) /\
+         (cos x = &0 <=> (x = --(pi / &2) \/ x = pi / &2)) /\
+         (cos x > &0 <=> --(pi / &2) < x /\ x < pi / &2)`,
+    STRIP_TAC THEN STRIP_TAC THEN SUBGOAL_THEN
+      `if (cos x < &0) then (cos x < &0 <=> (--pi < x /\ x < --(pi / &2)) \/ 
+                            (pi / &2 < x /\ x <= pi)) else
+       if (cos x = &0) then 
+       (cos x = &0 <=> (x = --(pi / &2) \/ x = pi / &2)) else
+       (cos x > &0 <=> --(pi / &2) < x /\ x < pi / &2)` MP_TAC THENL
+    [ SUBGOAL_TAC "a" `--pi < x /\ x < --(pi / &2) ==> cos x < &0`
+      [ MP_TAC (REWRITE_RULE [COS_PERIODIC_PI] 
+               (SPEC `x + pi:real` COS_POS_PI2)) THEN
+        REAL_ARITH_TAC ] THEN
+      SUBGOAL_TAC "b" `pi / &2 < x /\ x <= pi ==> cos x < &0`
+      [ MP_TAC (REWRITE_RULE [SIN_NEG; GSYM COS_SIN] 
+               (SPEC `--(pi / &2 - x)` SIN_POS_PI2)) THEN
+        SUBGOAL_TAC "b1" `x = pi ==> cos x < &0` 
+        [ STRIP_TAC THEN ASM_REWRITE_TAC [COS_PI; REAL_ARITH `&0 < &1`] THEN
+          REAL_ARITH_TAC ] THEN
+        POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ] THEN
+      SUBGOAL_TAC "c" `x = --(pi / &2) ==> cos x = &0`
+      [ STRIP_TAC THEN ASM_REWRITE_TAC [COS_NEG; COS_PI2] ] THEN
+      SUBGOAL_TAC "d" `x = pi / &2 ==> cos x = &0`
+      [ STRIP_TAC THEN ASM_REWRITE_TAC [COS_PI2] ] THEN
+      LABEL_TAC "e" (SPEC `x:real` COS_POS_PI) THEN
+      REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+      REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
+     
+  let ATAN2_TEMP_BREAKDOWN = prove
+   (`!x y. (&0 < x ==> atan2_temp(x,y) = atn(y / x)) /\
+           (&0 < y ==> atan2_temp(x,y) = pi / &2 - atn(x / y)) /\
+           (y < &0 ==> atan2_temp(x,y) = --(pi / &2) - atn(x / y)) /\
+           (y = &0 /\ x <= &0 ==> atan2_temp(x,y) = pi)`,
+    REPEAT GEN_TAC THEN REPEAT CONJ_TAC THENL
+    [ STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
+      ABBREV_TAC `t = atan2_temp (x,y)` THEN 
+      ABBREV_TAC `r = sqrt (x pow 2 + y pow 2)` THEN STRIP_TAC THEN
+      SUBGOAL_TAC "r_pos" `&0 < r` 
+      [ EXPAND_TAC "r" THEN MP_TAC (SPECL [`x:real`;`y:real`] dist_lemma) THEN
+        POP_ASSUM MP_TAC THEN REAL_ARITH_TAC] THEN
+      SUBGOAL_TAC "tan" `(r * sin t) / (r * cos t) = tan t`
+      [ REWRITE_TAC [tan] THEN POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD ] THEN
+      ASM_REWRITE_TAC [] THEN MATCH_MP_TAC (GSYM TAN_ATN) THEN 
+      POP_ASSUM (K ALL_TAC) THEN 
+      POP_ASSUM (fun th -> POP_ASSUM MP_TAC THEN ASSUME_TAC th) THEN
+      ASM_SIMP_TAC [GSYM COS_NEGPOS_PI; REAL_LT_LMUL_0] THEN REAL_ARITH_TAC ;
+
+      STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
+      ABBREV_TAC `t = atan2_temp (x,y)` THEN 
+      ABBREV_TAC `r = sqrt (x pow 2 + y pow 2)` THEN STRIP_TAC THEN
+      SUBGOAL_TAC "r_pos" `&0 < r` 
+      [ EXPAND_TAC "r" THEN MP_TAC (SPECL [`x:real`;`y:real`] dist_lemma) THEN
+        POP_ASSUM MP_TAC THEN REAL_ARITH_TAC] THEN
+      SUBGOAL_TAC "tan" `(r * cos t) / (r * sin t) = inv (tan t)`
+      [ REWRITE_TAC [tan] THEN POP_ASSUM MP_TAC THEN 
+        CONV_TAC REAL_FIELD ] THEN
+      ASM_REWRITE_TAC [GSYM TAN_COT] THEN
+      SUBGOAL_THEN `pi / &2 - t = atn (tan (pi / &2 - t))` 
+                   (fun th -> REWRITE_TAC [GSYM th] THEN REAL_ARITH_TAC) THEN
+      MATCH_MP_TAC (GSYM TAN_ATN) THEN 
+      SUBGOAL_THEN `&0 < t /\ t < pi` 
+                   (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+      POP_ASSUM (K ALL_TAC) THEN 
+      POP_ASSUM (fun th -> POP_ASSUM MP_TAC THEN ASSUME_TAC th) THEN
+      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_LMUL_0] THEN REAL_ARITH_TAC ;
+    
+      STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
+      ABBREV_TAC `t = atan2_temp (x,y)` THEN 
+      ABBREV_TAC `r = sqrt (x pow 2 + y pow 2)` THEN STRIP_TAC THEN
+      SUBGOAL_TAC "r_pos" `&0 < r` 
+      [ EXPAND_TAC "r" THEN MP_TAC (SPECL [`x:real`;`y:real`] dist_lemma) THEN
+        POP_ASSUM MP_TAC THEN REAL_ARITH_TAC] THEN
+      SUBGOAL_TAC "tan" `(r * cos t) / (r * sin t) = --inv (tan (--t))`
+      [ REWRITE_TAC [TAN_NEG; REAL_INV_NEG] THEN 
+        REWRITE_TAC [tan; REAL_NEG_NEG] THEN 
+        POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD ] THEN
+      ASM_REWRITE_TAC [GSYM TAN_COT; ATN_NEG] THEN
+      SUBGOAL_THEN `pi / &2 + t = atn (tan (pi / &2 + t))` 
+        (fun th -> REWRITE_TAC [REAL_ARITH `pi / &2 - --t = pi / &2 + t`;GSYM th] 
+                   THEN REAL_ARITH_TAC) THEN
+      MATCH_MP_TAC (GSYM TAN_ATN) THEN 
+      SUBGOAL_THEN `--pi < t /\ t < &0` 
+                   (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+      POP_ASSUM (K ALL_TAC) THEN
+      POP_ASSUM (fun th -> POP_ASSUM (MP_TAC o (REWRITE_RULE [GSYM REAL_NEG_GT0]))
+                           THEN ASSUME_TAC th) THEN
+      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_LMUL_0; REAL_NEG_RMUL] THEN 
+      REAL_ARITH_TAC ;
+    
+      ASM_CASES_TAC `x = &0` THENL
+    [ STRIP_TAC THEN ASM_REWRITE_TAC [ATAN2_TEMP_DEF];
+      ALL_TAC] THEN
+    STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
+    ABBREV_TAC `t = atan2_temp (x,y)` THEN 
+    ABBREV_TAC `r = sqrt (x pow 2 + y pow 2)` THEN STRIP_TAC THEN
+    SUBGOAL_TAC "r_pos" `&0 < r` 
+    [ EXPAND_TAC "r" THEN MP_TAC (SPECL [`x:real`;`y:real`] dist_lemma) THEN
+      POP_ASSUM MP_TAC THEN FIND_ASSUM MP_TAC `~(x = &0)` THEN 
+      REAL_ARITH_TAC ] THEN
+    SUBGOAL_TAC "sin_cos" `sin t = &0 /\ cos t < &0 ==> t = pi`
+    [ ASM_SIMP_TAC [SIN_NEGPOS_PI; COS_NEGPOS_PI] THEN MP_TAC PI_POS THEN
+      REAL_ARITH_TAC ] THEN
+    POP_ASSUM MATCH_MP_TAC THEN 
+    SUBGOAL_TAC "x_pos" `&0 < --x` 
+    [ FIND_ASSUM MP_TAC `x <= &0` THEN FIND_ASSUM MP_TAC `~(x = &0)` THEN
+      REAL_ARITH_TAC ] THEN
+    POP_ASSUM MP_TAC THEN   
+    POP_ASSUM (fun th -> POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN 
+                         ASSUME_TAC th) THEN
+    ASM_SIMP_TAC [REAL_LT_LMUL_0; REAL_NEG_RMUL] THEN POP_ASSUM MP_TAC THEN
+    CONV_TAC REAL_FIELD]);;
+    
+  let ATAN2_TEMP_ALT = prove
+   (`!x y. atan2_temp (x,y) = 
+     if ( x > abs y ) then atn(y / x) else
+     (if (y > &0) then ((pi / &2) - atn(x / y)) else
+     (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else (  pi )))`,
+    STRIP_TAC THEN STRIP_TAC THEN COND_CASES_TAC THENL 
+    [ SUBGOAL_THEN `&0 < x` 
+                  (fun th -> SIMP_TAC [th; ATAN2_TEMP_BREAKDOWN]) THEN
+      POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+      COND_CASES_TAC THENL
+      [ SUBGOAL_THEN `&0 < y` 
+                     (fun th -> SIMP_TAC [th; ATAN2_TEMP_BREAKDOWN]) THEN
+        POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+        COND_CASES_TAC THENL
+        [ SUBGOAL_THEN `y < &0` 
+                      (fun th -> SIMP_TAC [th; ATAN2_TEMP_BREAKDOWN]) THEN
+          POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+          SUBGOAL_THEN `y = &0` 
+            (fun th -> POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
+                       ASSUME_TAC th) THENL
+          [ POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ;
+            SUBGOAL_THEN `x <= &0` 
+                        (fun th -> ASM_SIMP_TAC [th; ATAN2_TEMP_BREAKDOWN]) THEN
+            POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ]]]]);;  
+              
+  let ATAN_TEMP_ATN2 = prove
+   (`atn2 = atan2_temp`,
+    REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM; atn2; ATAN2_TEMP_ALT]);;
+
+  let atn2_spec = prove
+   (atn2_spec_t,
+    REWRITE_TAC [ATAN_TEMP_ATN2; ATAN2_TEMP_SPEC]);; 
+  
+  (* lemma:sin_acs *)
+  
+  let SQRT_UNIQUE = prove
+   (`!x y. &0 <= y /\ (y pow 2 = x) ==> (sqrt(x) = y)`,
+    REPEAT STRIP_TAC THEN REWRITE_TAC[sqrt_def] THEN MATCH_MP_TAC SELECT_UNIQUE THEN
+    FIRST_X_ASSUM(SUBST1_TAC o SYM) THEN REWRITE_TAC[REAL_POW_2] THEN
+    REWRITE_TAC[REAL_ARITH `(x * x = y * y) <=> ((x + y) * (x - y) = &0)`] THEN
+    REWRITE_TAC[REAL_ENTIRE] THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+  
+  (* Note that if you ever switch to Multivariate/transc that               *)
+  (* ACS_COS is COS_ACS, but then SIN_ASC already exists                    *)  
+    
+  let sin_acs = prove
+   (sin_acs_t,
+    REPEAT STRIP_TAC THEN MATCH_MP_TAC(GSYM SQRT_UNIQUE) THEN
+    ASM_SIMP_TAC[ACS_BOUNDS; SIN_POS_PI_LE; REAL_EQ_SUB_RADD] THEN
+    ASM_MESON_TAC[ACS_COS; SIN_CIRCLE]);;
+  
+  (* lemma:acs_atn2 *)
+  
+  let PI_POS_LE = prove
+   (`&0 <= pi`,
+    REWRITE_TAC[REAL_LE_LT; PI_POS]);;
+    
+  (* Note that if you ever switch to Multivariate/transc that               *)
+  (* ACS_COS is COS_ACS, but then ACS_1, ACS_NEG1, ACS_TAN already exist    *)
+  
+  let ACS_1 = prove
+   (`acs(&1) = &0`,
+    REWRITE_TAC [GSYM COS_0] THEN 
+    ASM_SIMP_TAC [REAL_ARITH `&0 <= &0`; PI_POS_LE; COS_ACS]);;
+    
+  let ACS_NEG_1 = prove
+   (`acs(-- &1) = pi`,    
+    REWRITE_TAC [GSYM COS_PI] THEN 
+    ASM_SIMP_TAC [REAL_ARITH `pi <= pi`; PI_POS_LE; COS_ACS]);;
+   
+  let ACS_ATN = prove
+   (`!x. -- &1 < x /\ x < &1 ==> 
+         acs(x) = pi / &2 - atn(x / sqrt(&1 - x pow 2))`,
+    STRIP_TAC THEN STRIP_TAC THEN ABBREV_TAC `y = acs(x)` THEN 
+    ABBREV_TAC `z = atn(x / sqrt(&1 - x pow 2))` THEN 
+    SUBGOAL_TAC "y_bounds" `--(pi / &2) < pi / &2 - y /\ pi / &2 - y < pi / &2`
+    [ EXPAND_TAC "y" THEN MP_TAC (SPEC `x:real` ACS_BOUNDS_LT) THEN 
+      ASM_REWRITE_TAC [] THEN REAL_ARITH_TAC ] THEN
+    SUBGOAL_TAC "z_bounds" `--(pi / &2) < z /\ z < pi / &2`
+    [ EXPAND_TAC "z" THEN REWRITE_TAC [ATN_BOUNDS] ] THEN
+    SUBGOAL_THEN `atn(tan(pi / &2 - y)) = atn(tan(z))` 
+                 (fun th -> MP_TAC th THEN ASM_SIMP_TAC [TAN_ATN] THEN
+                            REAL_ARITH_TAC) THEN
+    AP_TERM_TAC THEN SUBGOAL_TAC "tan" `inv (tan y) =(cos y) / (sin y)`
+    [ REWRITE_TAC [tan] THEN POP_ASSUM MP_TAC THEN 
+      CONV_TAC REAL_FIELD ] THEN
+    ASM_REWRITE_TAC [TAN_COT] THEN EXPAND_TAC "y" THEN EXPAND_TAC "z" THEN
+    REWRITE_TAC [ATN_TAN] THEN POP_ASSUM (K ALL_TAC) THEN
+    POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
+    POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
+    SUBGOAL_TAC "x_LE" `--(&1) <= x /\ x <= &1`
+    [ POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ] THEN
+    ASM_SIMP_TAC [ACS_COS; sin_acs]);;
+  
+  let ATN2_BREAKDOWN = prove
+   (`!x y. (&0 < x ==> atn2 (x,y) = atn(y / x)) /\
+           (&0 < y ==> atn2 (x,y) = pi / &2 - atn(x / y)) /\
+           (y < &0 ==> atn2 (x,y) = --(pi / &2) - atn(x / y)) /\
+           (y = &0 /\ x <= &0 ==> atn2(x,y) = pi)`,
+    REWRITE_TAC [ATAN_TEMP_ATN2; ATAN2_TEMP_BREAKDOWN]);;
+    
+  let ATN2_0_1 = prove
+   (`atn2 (&0, &1) = pi / &2`,
+    ASSUME_TAC (REAL_ARITH `&0 < &1`) THEN 
+    ASM_SIMP_TAC [ATN2_BREAKDOWN] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+    REWRITE_TAC [ATN_0] THEN REAL_ARITH_TAC);;
+    
+  let ATN2_0_NEG_1 = prove
+   (`atn2 (&0, --(&1)) = --(pi / &2)`,
+    ASSUME_TAC (REAL_ARITH `--(&1) < &0`) THEN 
+    ASM_SIMP_TAC [ATN2_BREAKDOWN] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+    REWRITE_TAC [ATN_0] THEN REAL_ARITH_TAC);;
+     
+  let acs_atn2 = prove
+   (acs_atn2_t,
+    STRIP_TAC THEN ASM_CASES_TAC `y = &1 \/ y = --(&1)` THENL
+    [ POP_ASSUM DISJ_CASES_TAC THENL
+      [ ASM_REWRITE_TAC [] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN 
+        REWRITE_TAC [ACS_1; SQRT_0; ATN2_0_1] THEN REAL_ARITH_TAC ;
+        ASM_REWRITE_TAC [] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN 
+        REWRITE_TAC [ACS_NEG_1; SQRT_0; ATN2_0_NEG_1] THEN REAL_ARITH_TAC ] ;
+      STRIP_TAC THEN 
+      SUBGOAL_TAC "sqrt" `&0 < sqrt (&1 - y pow 2)`
+      [ MATCH_MP_TAC SQRT_POS_LT THEN
+        SUBGOAL_THEN `&0 <= y pow 2 /\ y pow 2 < &1`
+                     (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+        REWRITE_TAC [REAL_LE_SQUARE_POW; REAL_ARITH `a < &1 <=> a < &1 pow 2`;
+                     GSYM REAL_LT_SQUARE_ABS ] THEN 
+        REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ] THEN
+       ASM_SIMP_TAC [ATN2_BREAKDOWN] THEN MATCH_MP_TAC ACS_ATN THEN
+       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
+  
   let  arcVarc = trigAxiomProofB   arcVarc_t 
   let  law_of_cosines = trigAxiomProofB   law_of_cosines_t 
   let  law_of_sines = trigAxiomProofB   law_of_sines_t 
@@ -435,5 +824,3 @@ module Trig : Trigsig = struct
 end;;
 
 open Trig;;
-
-*)

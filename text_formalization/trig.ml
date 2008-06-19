@@ -784,8 +784,193 @@ module Trig : Trigsig = struct
        REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
   
   let  arcVarc = trigAxiomProofB   arcVarc_t 
-  let  law_of_cosines = trigAxiomProofB   law_of_cosines_t 
-  let  law_of_sines = trigAxiomProofB   law_of_sines_t 
+	
+	(* TODO format and organize this stuff better! *)
+	
+let ATN2_LMUL_EQ = prove
+ (`!a x y. &0 < a ==> atn2(a * x, a * y) = atn2 (x, y)`,
+  REPEAT STRIP_TAC THEN STRIP_ASSUME_TAC 
+	  (REAL_ARITH `&0 < x \/ &0 < y \/ y < &0 \/ (y = &0 /\ x <= &0)`) THENL
+  [ SUBGOAL_TAC "pos_x" `&0 < a * x` 
+     [let th = SPECL [`a:real`;`&0`;`x:real`] REAL_LT_LMUL_EQ in
+		  let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
+		  ASM_SIMP_TAC [th2] ] ;
+    SUBGOAL_TAC "pos_y" `&0 < a * y` 
+	   [let th = SPECL [`a:real`;`&0`;`y:real`] REAL_LT_LMUL_EQ in
+		  let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
+		  ASM_SIMP_TAC [th2] ] ;
+ 	  SUBGOAL_TAC "neg_y" `a * y < &0` 
+	   [let th = SPECL [`a:real`;`y:real`;`&0`] REAL_LT_LMUL_EQ in
+	    let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
+		  ASM_SIMP_TAC [th2] ] ;
+    SUBGOAL_TAC "other" `a * y = &0 /\ a * x <= &0`
+	   [ASM_REWRITE_TAC [REAL_MUL_RZERO] THEN
+		  let th = SPECL [`x:real`;`&0`;`a:real`] REAL_LE_LMUL_EQ in
+		  let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
+		  ASM_SIMP_TAC [th2] ] ] THEN
+  let th1 = SPECL [`x:real`;`y:real`] ATN2_BREAKDOWN in
+	let th2 = SPECL [`a * x:real`;`a * y:real`] ATN2_BREAKDOWN in
+	let th3 = REAL_ARITH `!x. (x < &0 \/ &0 < x) ==> ~(&0 = x)` in
+	ASM_SIMP_TAC [th1; th2; th3; GSYM (SPEC `a:real` REAL_DIV_MUL2)] );;
+  
+let ATN2_RNEG = prove
+ (`!x y. (~(y = &0) \/ &0 < x) ==> atn2(x,--y) = --(atn2(x,y))`,
+  STRIP_TAC THEN STRIP_TAC THEN STRIP_ASSUME_TAC 
+	  (REAL_ARITH `&0 < x \/ &0 < y \/ y < &0 \/ (y = &0 /\ x <= &0)`) THENL
+	[ ASM_REWRITE_TAC [] ;
+	  ASM_SIMP_TAC [REAL_LT_IMP_NE] THEN SUBGOAL_TAC "neg" `--y < &0`
+	   [ ASM_REWRITE_TAC [REAL_NEG_LT0] ] ;
+		ASM_SIMP_TAC [REAL_LT_IMP_NE] THEN SUBGOAL_TAC "pos" `&0 < --y`
+	   [ ASM_REWRITE_TAC [REAL_NEG_GT0] ] ;
+		ASM_REWRITE_TAC [real_lt] ] THEN
+  let th1 = SPECL [`x:real`;`y:real`] ATN2_BREAKDOWN in
+	let th2 = SPECL [`x:real`;`--y:real`] ATN2_BREAKDOWN in
+	let th3 = REAL_ARITH `(--x)/y = --(x/y)` in
+	let th4 = REAL_FIELD `(y < &0 \/ &0 < y) ==>  x / (--y) = --(x/y)` in
+	ASM_SIMP_TAC [th1; th2; th3; th4; ATN_NEG] THEN REAL_ARITH_TAC);;
+
+let ups_lemma = prove
+ (`!a b c. ups_x (a * a) (b * b) (c * c) =
+         &16 * ((a + b + c) / &2) * 
+				 (((a + b + c) / &2) - a) * 
+				 (((a + b + c) / &2) - b) * 
+				 (((a + b + c) / &2) - c)`,
+	REPEAT STRIP_TAC THEN REWRITE_TAC [ups_x] THEN REAL_ARITH_TAC);;
+
+let ups_pos = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   &0 <= ups_x (a * a) (b * b) (c * c)`,
+	REPEAT STRIP_TAC THEN REWRITE_TAC [ups_lemma] THEN
+	REPEAT (MATCH_MP_TAC REAL_LE_MUL THEN STRIP_TAC) THENL
+	[ REAL_ARITH_TAC ;
+	  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ;
+	  SUBGOAL_THEN `&2 * a <= a + b + c` 
+		             (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+	  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ;
+		SUBGOAL_THEN `&2 * b <= a + b + c` 
+		             (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+	  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ;
+		SUBGOAL_THEN `&2 * c <= a + b + c` 
+		             (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+	  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
+	
+let REAL_LT_MUL_3 = prove
+ (`!x y z. &0 < x /\ &0 < y /\ &0 < z ==> &0 < x * y * z`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC [] THEN
+	MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC []);;
+	
+let lemma_abc = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   --(&1) <= ((a * a) + (b * b) - (c * c)) / (&2 * a * b) /\
+	 ((a * a) + (b * b) - (c * c)) / (&2 * a * b) <= &1`,
+	REPEAT STRIP_TAC THEN 
+	SUBGOAL_TAC "2ab_pos" `&0 < &2 * a * b` 
+	[ ASM_SIMP_TAC [REAL_LT_MUL_3; REAL_ARITH `&0 < &2`] ] THENL
+  [ SUBGOAL_TAC "abc_square" `c*c <= (a + b) * (a + b)`
+	  [ MATCH_MP_TAC (REWRITE_RULE [IMP_IMP] REAL_LE_MUL2) THEN 
+		  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ] THEN
+		ASM_SIMP_TAC [REAL_LE_RDIV_EQ] THEN REMOVE_THEN "abc_square" MP_TAC THEN
+    REAL_ARITH_TAC ;
+		SUBGOAL_TAC "abc_square" `(a - b) * (a - b) <= c*c`
+		[ DISJ_CASES_TAC (REAL_ARITH `a <= b \/ b <= a`) THENL
+		  [ SUBST1_TAC (REAL_ARITH `(a-b)*(a-b)=(b-a)*(b-a)`); ALL_TAC ] THEN
+		  MATCH_MP_TAC (REWRITE_RULE [IMP_IMP] REAL_LE_MUL2) THEN 
+		  REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ] THEN
+		ASM_SIMP_TAC [REAL_LE_LDIV_EQ] THEN REMOVE_THEN "abc_square" MP_TAC THEN
+    REAL_ARITH_TAC ]);;
+
+(* FIXME : come up with better names (not "lemma") and organize better *)
+
+let lemma = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   arclength a b c = pi / &2 - atn2(sqrt(ups_x (a*a) (b*b) (c*c)), (a*a) + (b*b) - (c*c))`,
+  REPEAT STRIP_TAC THEN 
+	let th = REAL_ARITH `c * c - a * a - b * b = --(a * a + b * b - c * c)` in
+	REWRITE_TAC [arclength; th; ATN2_RNEG] THEN
+	SUBGOAL_THEN `~(a * a + b * b - c * c = &0) \/
+	             &0 < sqrt(ups_x (a*a) (b*b) (c*c))` 
+							(fun th -> ASM_SIMP_TAC [th; ATN2_RNEG] THEN REAL_ARITH_TAC) THEN
+  REWRITE_TAC [TAUT `(~A \/ B) <=> (A ==> B)`] THEN STRIP_TAC THEN
+	SUBGOAL_TAC "c_ab" `c*c = a*a + b*b` 
+	[ POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ] THEN 
+	REMOVE_THEN "c_ab" (fun th -> REWRITE_TAC [ups_x; th])
+	THEN MATCH_MP_TAC SQRT_POS_LT THEN 
+	CONV_TAC (DEPTH_BINOP_CONV `(<)` REAL_POLY_CONV) THEN
+	MATCH_MP_TAC REAL_LT_MUL_3 THEN STRIP_TAC THENL
+	[ REAL_ARITH_TAC ;
+	  ASM_SIMP_TAC [REAL_POW_LT] ]);;
+
+let SQRT_MUL_L = prove
+ (`!x y. &0 <= x /\ &0 <= y ==> x * sqrt y = sqrt(x pow 2 * y)`,
+  REPEAT STRIP_TAC THEN ASM_SIMP_TAC [REAL_LE_POW_2; SQRT_MUL; POW_2_SQRT]);;
+
+
+(* This is in HOL-Light Multivariate/transc.ml.  By John Harrison. *)
+
+let ABS_SQUARE_LE_1 = prove
+ (`!x. x pow 2 <= &1 <=> abs(x) <= &1`,
+  ONCE_REWRITE_TAC[GSYM REAL_ABS_NUM] THEN
+  REWRITE_TAC[REAL_LT_SQUARE_ABS; GSYM REAL_NOT_LT] THEN REAL_ARITH_TAC);;
+
+let lemma2 = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   (&2 * a * b) * (a * a + b * b - c * c) / (&2 * a * b) =
+	 a * a + b * b - c * c`,
+	REPEAT STRIP_TAC THEN 
+	SUBGOAL_TAC "2ab_pos" `&0 < &2 * a * b`
+	[ ASM_SIMP_TAC [REAL_LT_MUL_3; REAL_ARITH `&0 < &2`] ] THEN
+	SUBGOAL_TAC "2ab_not0" `~(&2 * a * b = &0)` 
+	[ POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ] THEN
+	ASM_SIMP_TAC [REAL_DIV_LMUL]);;
+
+let lemma3 = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   ups_x (a * a) (b * b) (c * c) =
+	 (&2 * a * b) pow 2 * (&1 - ((a * a + b * b - c * c) / (&2 * a * b)) pow 2)`,
+  REPEAT STRIP_TAC THEN
+	ASM_SIMP_TAC [ups_x; REAL_SUB_LDISTRIB; GSYM REAL_POW_MUL; lemma2] THEN
+	REAL_ARITH_TAC);;
+
+let lemma4 = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   sqrt(ups_x (a * a) (b * b) (c * c)) =
+	 (&2 * a * b) * sqrt(&1 - ((a * a + b * b - c * c) / (&2 * a * b)) pow 2)`,
+  REPEAT STRIP_TAC THEN
+	SUBGOAL_TAC "2ab_pos" `&0 < &2 * a * b`
+	[ ASM_SIMP_TAC [REAL_LT_MUL_3; REAL_ARITH `&0 < &2`] ] THEN
+	SUBGOAL_TAC "other_pos" `&0 <= &1 - ((a * a + b * b - c * c) / (&2 * a * b)) pow 2`
+	[ SUBGOAL_THEN `((a * a + b * b - c * c) / (&2 * a * b)) pow 2 <= &1`
+	    (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
+	  ASM_SIMP_TAC [ABS_SQUARE_LE_1; REAL_ABS_BOUNDS; lemma_abc] ] THEN
+	ASM_SIMP_TAC [SQRT_MUL_L; REAL_LT_IMP_LE; lemma3] );;
+
+let ACS_ARCLENGTH = prove
+ (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   arclength a b c = acs (((a * a) + (b * b) - (c * c)) / (&2 * a * b))`,
+  REPEAT STRIP_TAC THEN ASM_SIMP_TAC [lemma; lemma_abc; acs_atn2] THEN
+	SUBGOAL_TAC "2ab_pos" `&0 < &2 * a * b`
+	[ ASM_SIMP_TAC [REAL_LT_MUL_3; REAL_ARITH `&0 < &2`] ] THEN
+	SUBGOAL_THEN 
+	  `(sqrt (ups_x (a * a) (b * b) (c * c)), a * a + b * b - c * c) =
+		 ((&2 * a * b) * sqrt (&1 - ((a * a + b * b - c * c) / (&2 * a * b)) pow 2),
+		  (&2 * a * b) * ((a * a + b * b - c * c) / (&2 * a * b)))`
+		(fun th -> ASM_SIMP_TAC [ATN2_LMUL_EQ; th]) THEN 
+  ASM_SIMP_TAC [lemma4; lemma2]);;
+
+let law_of_cosines = prove		
+ (law_of_cosines_t,
+  REWRITE_TAC [real_gt; real_ge] THEN REPEAT STRIP_TAC THEN 
+	REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`] THEN
+	ASM_SIMP_TAC [ACS_ARCLENGTH; lemma_abc; ACS_COS; lemma2] THEN 
+	REAL_ARITH_TAC);;
+
+let law_of_sines =  prove
+ (law_of_sines_t,
+  REWRITE_TAC [real_gt; real_ge] THEN REPEAT STRIP_TAC THEN
+	REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`;
+	             REAL_ARITH `x pow 2 = x * x` ] THEN
+	ASM_SIMP_TAC [ACS_ARCLENGTH; lemma_abc; sin_acs; lemma4]);;
+
   let  cross_mag = trigAxiomProofB   cross_mag_t 
   let  cross_skew = trigAxiomProofB cross_skew_t
   let  cross_triple = trigAxiomProofB   cross_triple_t 

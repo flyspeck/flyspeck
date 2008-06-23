@@ -42,8 +42,8 @@ let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
 *)
 
 let atn2 = new_definition(`atn2(x,y) =
-    if ( x > abs y ) then atn(y / x) else
-    (if (y > &0) then ((pi / &2) - atn(x / y)) else
+    if ( abs y < x ) then atn(y / x) else
+    (if (&0 < y) then ((pi / &2) - atn(x / y)) else
     (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else (  pi )))`);;
 
 (* ------------------------------------------------------------------ *)
@@ -503,7 +503,7 @@ let rad2_x = kepler_def(`rad2_x x1 x2 x3 x4 x5 x6 =
 let sigma_qrtet_x = kepler_def(`sigma_qrtet_x x1 x2 x3 x4 x5 x6=
         let r = rad2_x x1 x2 x3 x4 x5 x6 in
         let r_cut = (#1.9881) in
-        if (r >= r_cut) then
+        if (r_cut <= r) then
                 vor_analytic_x x1 x2 x3 x4 x5 x6
         else gamma_x x1 x2 x3 x4 x5 x6`);;
 
@@ -520,7 +520,7 @@ let sigma32_qrtet_x = kepler_def(`sigma32_qrtet_x x1 x2 x3 x4 x5 x6=
 let mu_flat_x = kepler_def(`mu_flat_x x1 x2 x3 x4 x5 x6 =
         let r1 = eta_x x2 x3 x4 in
         let r2 = eta_x x4 x5 x6 in
-        if ((r1 >= sqrt2)\/(r2 >= sqrt2)) 
+        if ((sqrt2 <= r1)\/(sqrt2 <= r2)) 
                 then vor_analytic_x x1 x2 x3 x4 x5 x6
         else gamma_x x1 x2 x3 x4 x5 x6`);;
 
@@ -531,7 +531,7 @@ let taumu_flat_x = kepler_def(`taumu_flat_x x1 x2 x3 x4 x5 x6 =
 let mu_upright_x = kepler_def(`mu_upright_x x1 x2 x3 x4 x5 x6 =
         let r1 = eta_x x1 x2 x6 in
         let r2 = eta_x x1 x3 x5 in
-        if ((r1 >= sqrt2)\/(r2 >= sqrt2)) 
+        if ((sqrt2 <= r1)\/(sqrt2 <= r2)) 
                 then vor_analytic_x x1 x2 x3 x4 x5 x6
         else gamma_x x1 x2 x3 x4 x5 x6`);;
 
@@ -912,8 +912,8 @@ let aff_sgn_spec = prove(
 
 let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *)
 
-let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (t > &0) )`;;
-let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (t >= &0) )`;;
+let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (&0 < t) )`;;
+let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (&0 <= t) )`;;
 let aff_lt_def = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;;
 let aff_le_def = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;;
 let conv = new_definition `conv S = aff_ge {} S`;;
@@ -1003,7 +1003,7 @@ let polar_power = new_specification ["polar_power"] polar_power_spec;;
 let orthonormal = new_definition `orthonormal e1 e2 e3 = 
      ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
      (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
-     (dot3 (cross e1 e2) e3 > &0))`;;
+     (&0 < dot3 (cross e1 e2) e3))`;;
 
 (* spherical coordinates *)
 let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.

@@ -40,7 +40,7 @@ atn2;;  (* definitions_kepler.ml *)
 
 let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
      (x = r* (cos(atn2(x,y)))) /\ (y = r* (sin (atn2( x, y)))) /\ 
-     (r >= &0))`;;
+     (&0 <= r))`;;
 
 (* lemma:sin-arccos *)
 
@@ -58,10 +58,11 @@ let acs_atn2_t = `!y. (-- &1 <= y /\ y <=  &1) ==> (acs y = pi/(&2) - atn2(sqrt(
 
 let arcVarc_t = `!u v w. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (d3 u v) (d3 u w) (d3 v w)`;;
 
-let law_of_cosines_t = `!a b c. (a > &0) /\ (b > &0) /\ (c >= &0) /\ (a + b >= c) /\ (b + c >= a) /\ (c + a >= b) ==> 
+let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
    ((c pow 2) = (a pow 2) + (b pow 2) - &2 * a * b * (cos(arclength a b c)))`;;
 
-let law_of_sines_t = `!a b c. (a> &0) /\ (b> &0) /\ (c >= &0) /\ (a + b >= c) /\ (b + c >= a) /\ (c + a >= b) ==> (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
+let law_of_sines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
 
 let cross_mag_t = `!u v. norm3 (cross u v) = (norm3 u) * (norm3 v) * sin(arcV orig3 u v)`;;
 
@@ -98,7 +99,7 @@ let dih_formula_t = `!v0 v1 v2 v3.
    )`;;
 
 let dih_x_acs_t = `!x1 x2 x3 x4 x5 x6.
-   (ups_x x1 x2 x6 > &0) /\ (ups_x x1 x3 x5 > &0) /\ (delta_x x1 x2 x3 x4 x5 x6 >= &0) /\ (x1 >= &0) ==>
+   (&0 < ups_x x1 x2 x6) /\ (&0 < ups_x x1 x3 x5) /\ (&0 <= delta_x x1 x2 x3 x4 x5 x6) /\ (&0 <= x1) ==>
    dih_x x1 x2 x3 x4 x5 x6 = acs ((delta_x4 x1 x2 x3 x4 x5 x6)/
   ((sqrt (ups_x x1 x2 x6)) * (sqrt (ups_x x1 x3 x5))))`;;
 
@@ -114,7 +115,7 @@ let euler_triangle_t = `!v0 v1 v2 v3.
     let alpha2 = dihV v0 v2 v3 v1 in
     let alpha3 = dihV v0 v3 v1 v2 in
     let d = delta_x x1 x2 x3 x4 x5 x6 in
-    ((d > &0) ==>
+    ((&0 < d) ==>
       (alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2(sqrt(d), (&2 * p))))`;;
 
 let polar_coords_t = `!x y. (x = (radius x y)*(cos(polar_angle x y))) /\
@@ -192,8 +193,8 @@ let sph_triangle_ineq_sum_t = `!p u r.
 (* obligations created by definition by specification, to make them useable. *)
 
 let aff_insert_sym_t = `aff_insert_sym`;;
-let aff_sgn_insert_sym_gt_t = `aff_sgn_insert_sym (\t. t > &0)`;;
-let aff_sgn_insert_sym_ge_t = `aff_sgn_insert_sym (\t. t >= &0)`;;
+let aff_sgn_insert_sym_gt_t = `aff_sgn_insert_sym (\t. &0 < t)`;;
+let aff_sgn_insert_sym_ge_t = `aff_sgn_insert_sym (\t. &0 <= t)`;;
 let aff_sgn_insert_sym_lt_t = `aff_sgn_insert_sym (\t. t < &0)`;;
 let aff_sgn_insert_sym_le_t = `aff_sgn_insert_sym (\t. t <= &0)`;;
 
@@ -215,7 +216,7 @@ let aff_gt_t = `!S1.
                   ==> aff_gt S1 (v INSERT S) =
                       (if v IN S
                        then aff_gt S1 S
-                       else aff_sgn_insert (\t. t > &0) v (aff_gt S1 S)))`;;
+                       else aff_sgn_insert (\t. &0 < t) v (aff_gt S1 S)))`;;
 
 let aff_ge_t = `!S1.
           (aff_ge S1 {} = aff S1) /\
@@ -224,7 +225,7 @@ let aff_ge_t = `!S1.
                   ==> aff_ge S1 (v INSERT S) =
                       (if v IN S
                        then aff_ge S1 S
-                       else aff_sgn_insert (\t. t >= &0) v (aff_ge S1 S)))`;;
+                       else aff_sgn_insert (\t. &0 <= t) v (aff_ge S1 S)))`;;
 
 let aff_lt_t = `!S1.
           (aff_lt S1 {} = aff S1) /\
@@ -477,11 +478,11 @@ module Trig : Trigsig = struct
    (`!x. (--pi < x /\ x <= pi) ==>
          (sin x < &0 <=> --pi < x /\ x < &0) /\
          (sin x = &0 <=> (x = &0 \/ x = pi)) /\
-         (sin x > &0 <=> &0 < x /\ x < pi)`,
+         (&0 < sin x <=> &0 < x /\ x < pi)`,
     STRIP_TAC THEN STRIP_TAC THEN SUBGOAL_THEN
       `if (sin x < &0) then (sin x < &0 <=> --pi < x /\ x < &0) else
        if (sin x = &0) then (sin x = &0 <=> (x = &0 \/ x = pi)) else
-       (sin x > &0 <=> &0 < x /\ x < pi)` MP_TAC THENL
+       (&0 < sin x <=> &0 < x /\ x < pi)` MP_TAC THENL
     [ SUBGOAL_TAC "a" `--pi < x /\ x < &0 ==> sin x < &0`
       [ MP_TAC (REWRITE_RULE [SIN_NEG] (SPEC `--x:real` SIN_POS_PI)) THEN
         REAL_ARITH_TAC ] THEN
@@ -498,13 +499,13 @@ module Trig : Trigsig = struct
          (cos x < &0 <=> (--pi < x /\ x < --(pi / &2)) \/ 
                          (pi / &2 < x /\ x <= pi)) /\
          (cos x = &0 <=> (x = --(pi / &2) \/ x = pi / &2)) /\
-         (cos x > &0 <=> --(pi / &2) < x /\ x < pi / &2)`,
+         (&0 < cos x <=> --(pi / &2) < x /\ x < pi / &2)`,
     STRIP_TAC THEN STRIP_TAC THEN SUBGOAL_THEN
       `if (cos x < &0) then (cos x < &0 <=> (--pi < x /\ x < --(pi / &2)) \/ 
                             (pi / &2 < x /\ x <= pi)) else
        if (cos x = &0) then 
        (cos x = &0 <=> (x = --(pi / &2) \/ x = pi / &2)) else
-       (cos x > &0 <=> --(pi / &2) < x /\ x < pi / &2)` MP_TAC THENL
+       (&0 < cos x <=> --(pi / &2) < x /\ x < pi / &2)` MP_TAC THENL
     [ SUBGOAL_TAC "a" `--pi < x /\ x < --(pi / &2) ==> cos x < &0`
       [ MP_TAC (REWRITE_RULE [COS_PERIODIC_PI] 
                (SPEC `x + pi:real` COS_POS_PI2)) THEN
@@ -659,7 +660,7 @@ module Trig : Trigsig = struct
   let ATAN2_TEMP_SPEC = prove
    (`!x y. ?r. ((-- pi < atan2_temp(x, y)) /\ (atan2_temp(x,y) <= pi) /\
        (x = r* (cos(atan2_temp(x,y)))) /\ (y = r* (sin (atan2_temp( x, y)))) /\ 
-       (r >= &0))`,
+       (&0 <= r))`,
     STRIP_TAC THEN STRIP_TAC THEN EXISTS_TAC `sqrt(x pow 2 + y pow 2)` THEN
     REWRITE_TAC [ATAN2_TEMP] THEN SUBGOAL_TAC "sum_pos" `&0 <= x pow 2 + y pow 2`
     [ MP_TAC (SPEC `x:real` REAL_LE_POW_2) THEN 
@@ -756,8 +757,8 @@ module Trig : Trigsig = struct
     
   let ATAN2_TEMP_ALT = prove
    (`!x y. atan2_temp (x,y) = 
-     if ( x > abs y ) then atn(y / x) else
-     (if (y > &0) then ((pi / &2) - atn(x / y)) else
+     if ( abs y < x ) then atn(y / x) else
+     (if (&0 < y) then ((pi / &2) - atn(x / y)) else
      (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else (  pi )))`,
     STRIP_TAC THEN STRIP_TAC THEN COND_CASES_TAC THENL 
     [ SUBGOAL_THEN `&0 < x` 
@@ -1000,14 +1001,14 @@ module Trig : Trigsig = struct
 
   let law_of_cosines = prove    
    (law_of_cosines_t,
-    REWRITE_TAC [real_gt; real_ge] THEN REPEAT STRIP_TAC THEN 
+    REPEAT STRIP_TAC THEN 
     REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`] THEN
     ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; ACS_COS; TRI_LEMMA] THEN 
     REAL_ARITH_TAC);;
 
   let law_of_sines =  prove
    (law_of_sines_t,
-    REWRITE_TAC [real_gt; real_ge] THEN REPEAT STRIP_TAC THEN
+    REPEAT STRIP_TAC THEN
     REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`;
                  REAL_ARITH `x pow 2 = x * x` ] THEN
     ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; sin_acs; TRI_UPS_X_SQRT]);;

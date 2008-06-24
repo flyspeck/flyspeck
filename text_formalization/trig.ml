@@ -1,6 +1,8 @@
 (* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
-needs "Examples/transc.ml";;
+needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
+                                     (* multivariate-complex theory.    *)
+needs "Examples/transc.ml";;         (* Then it won't need these. *) 
 needs "definitions_kepler.ml";;
 
 prioritize_real();;
@@ -148,16 +150,16 @@ let thetapq_wind_t = `!W n thetapq kpq.
 
 let zenith_t = `!u v w.  ~(u=v) /\ ~(w = v)  ==>
    (?u' r phi e3.
-        (phi = arcV v u w) /\ (r = d3 u v) /\ ((d3 w v) *# e3 = (w-v)) /\
-  (dot3 u' e3 = &0) /\ (u = v + u' + (r*cos(phi)) *# e3))`;;
+        (phi = arcV v u w) /\ (r = d3 u v) /\ ((d3 w v) % e3 = (w-v)) /\
+  (dot3 u' e3 = &0) /\ (u = v + u' + (r*cos(phi)) % e3))`;;
 
 let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
         ~(collinear {v,w,u}) /\ ~(collinear {v,w,u'}) /\
-       orthonormal e1 e2 e3 /\ ((d3 v w) *# e3 = (v-w)) /\
+       orthonormal e1 e2 e3 /\ ((d3 v w) % e3 = (v-w)) /\
   (aff_gt {v,w} {u} e1) /\ (e2 = cross e3 e1) /\
   (r = d3 v u') /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
-  (u' = u + (r*cos(theta)*sin(phi)) *# e1 + (r*sin(theta)*sin(phi)) *# e2 
-      + (r * cos(phi)) *# e3)`;;
+  (u' = u + (r*cos(theta)*sin(phi)) % e1 + (r*sin(theta)*sin(phi)) % e2 
+      + (r * cos(phi)) % e3)`;;
 
 let polar_coord_zenith_t = `!u v w u' n.
   ~(collinear {u,v,w}) /\ (aff {u,v,w} u') /\ ~(u' = v) /\
@@ -250,25 +252,25 @@ let azim_t = `!v w w1 w2 e1 e2 e3.
                  ~collinear {v, w, w1} /\
                  ~collinear {v, w, w2} /\
                  orthonormal e1 e2 e3 /\
-                 (d3 w v *# e3 = w - v)
+                 (d3 w v % e3 = w - v)
              ==> &0 <= azim v w w1 w2 /\
                  azim v w w1 w2 < &2 * pi /\
                  &0 < r1 /\
                  &0 < r2 /\
                  w1 =
-                 (r1 * cos psi) *# e1 + (r1 * sin psi) *# e2 + h1 *# (w - v) /\
+                 (r1 * cos psi) % e1 + (r1 * sin psi) % e2 + h1 % (w - v) /\
                  (w2 =
-                 (r2 * cos (psi + azim v w w1 w2)) *# e1 +
-                 (r2 * sin (psi + azim v w w1 w2)) *# e2 +
-                 h2 *# (w - v))`;;
+                 (r2 * cos (psi + azim v w w1 w2)) % e1 +
+                 (r2 * sin (psi + azim v w w1 w2)) % e2 +
+                 h2 % (w - v))`;;
 
 let azim_cycle_t = `!W proj v w e1 e2 e3 p.
              W p /\
              cyclic_set W v w /\
-             (d3 v w *# e3 = w - v) /\
+             (d3 v w % e3 = w - v) /\
              orthonormal e1 e2 e3 /\
              (!u x y.
-                  proj u = x,y <=> (?h. u = v + x *# e1 + y *# e2 + h *# e3))
+                  proj u = x,y <=> (?h. u = v + x % e1 + y % e2 + h % e3))
          ==> (proj (azim_cycle W v w p) = polar_cycle (IMAGE proj W) (proj p))`;;
 
 

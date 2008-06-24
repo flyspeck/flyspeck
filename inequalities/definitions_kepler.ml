@@ -6,8 +6,9 @@
 *)
 
 (*
-needs "Examples/analysis.ml";;
-needs "Examples/transc.ml";;
+needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
+needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
+needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
 no longer needs "Jordan/lib_ext.ml";;
 *)
 
@@ -692,6 +693,9 @@ let pi_prime_sigma = kepler_def
 
 (* mk_local_interface "kepler";; *)
 
+(* No long need this since we are switching from real3 (based on num->real)  *)
+(* to real^3.  Maybe it should just be deleted rather than commented out.    *)
+(* 
 overload_interface
  ("+", `euclid_plus:(num->real)->(num->real)->(num->real)`);;
 
@@ -734,11 +738,15 @@ let norm = kepler_def `norm f = sqrt(dot f f)`;;
 
 let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
 
+*)
 
 (* ------------------------------------------------------------------ *)
 (* Three space *)
 (* ------------------------------------------------------------------ *)
 
+(* We are swithing from real3 to real^3. *)
+
+(*
 let real3_exists = prove( `?f. (!n. (n> 2) ==> (f n = &0))`,
        EXISTS_TAC `(\j:num. &0)` THEN
        BETA_TAC THEN (REWRITE_TAC[])
@@ -768,26 +776,37 @@ let real3_plus =new_definition
 
 let real3_minus = new_definition
   `real3_minus v w = mk_real3 (euclid_minus (dest_real3 v)  (dest_real3 w))`;;
+*)
 
+(* No need for this one.  v$i does the same thing. *)
+(*
 let coord3 = new_definition `coord3 i v = coord i (dest_real3 v)`;;
+*)
 
-let dot3 = new_definition `dot3 v w = dot (dest_real3 v) (dest_real3 w)`;;
+(* For now I'm keeping these definitons (at least the names, the definitions*)
+(* themselves are changed radically), but it might be better to just get    *)
+(* rid of most of them.                                                     *)
 
-let norm3 = new_definition `norm3 v = sqrt(dot3 v v)`;;
+let dot3 = new_definition `dot3 (v:real^3) w = v dot w`;;
 
-let d3 = new_definition `d3 v w = norm3 (v - w)`;;
+let norm3 = new_definition `norm3 (v:real^3) = norm v`;;
 
+let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;;
+
+(* No need for this one.  "basis" does something similar. *)
+(*
 let dirac_delta = new_definition `dirac_delta (i:num) = 
      (\j. if (i=j) then (&1) else (&0))`;;
+*)
 
-let mk_vec3 = new_definition `mk_vec3 a b c = 
-  a *# (dirac_delta 0) + b *# (dirac_delta 1) + c *# (dirac_delta 2)`;;
+let mk_vec3 = new_definition `mk_vec3 a b c = vector[a; b; c]`;;
 
-let real3_of_triple = new_definition `real3_of_triple (a,b,c) = mk_real3 (mk_vec3 a b c)`;;
+let real3_of_triple = new_definition `real3_of_triple (a,b,c) = (mk_vec3 a b c):real^3`;;
 
-let triple_of_real3 = new_definition `triple_of_real3 v = (coord3 0 v,coord3 1 v, coord3 2 v)`;;
+let triple_of_real3 = new_definition `triple_of_real3 (v:real^3) = 
+    (v$0, v$2, v$3)`;;
 
-let orig3 = new_definition `orig3 = real3_of_triple (&0,&0,&0)`;;
+let orig3 = new_definition `orig3 = (vec 0):real^3`;;
 
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
@@ -808,14 +827,14 @@ let findpoint = kepler_def `findpoint a b c y4 v3_1 v3_2 sgn =
   mk_vec3 w1 w2 w3`;;
 
 let enclosed = kepler_def `enclosed y1 y2 y3 y4 y5 y6 y1' y2' y3' = 
-   let v1 = mk_vec3 (&0) (&0) (&0) in
-   let v2 = mk_vec3 y4 (&0) (&0) in
+   let v1:real^3 = mk_vec3 (&0) (&0) (&0) in
+   let v2:real^3 = mk_vec3 y4 (&0) (&0) in
    let a = ((y5*y5) + (y4*y4) - (y6*y6))/((&2)*y4) in
    let b = sqrt((y5*y5) - (a*a)) in
-   let v3 = mk_vec3 a b (&0) in
-   let v4 = findpoint y3 y2 y1  y4 a b (#1.0) in
+   let v3:real^3 = mk_vec3 a b (&0) in
+   let v4:real^3 = findpoint y3 y2 y1  y4 a b (#1.0) in
    let v5 = findpoint y3' y2' y1'  y4 a b (--(#1.0)) in
-   d_euclid v4 v5`;;
+   dist(v4,v5)`;;
 
 let cross_diag = kepler_def `cross_diag y1 y2 y3 y4 y5 y6 y7 y8 y9= 
    enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9`;;
@@ -873,7 +892,7 @@ Can be uniquely extended to all cases, by setting azim_cycle W v w p = p, when t
 *)
 
 let aff_insert = new_definition `aff_insert v S w = 
-   ( ?(u:real3) t.  (v INSERT S) u /\ (w = (t *# v) + (&1 - t)*# u))`;;
+   ( ?(u:real^3) t.  (v INSERT S) u /\ (w = (t % v) + (&1 - t) % u))`;;
 
 let aff_insert_sym = new_definition 
      `aff_insert_sym = (!x y S. ~(x=y) ==> 
@@ -892,7 +911,7 @@ let aff_spec = prove(
 let aff_def = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *)
 
 let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w = 
-    ( ?(u:real3) t.  (v INSERT S) u /\ ( w= (t*# v) + (&1 - t) *# u) /\ (sgn t))`;;
+    ( ?(u:real^3) t.  (v INSERT S) u /\ ( w= (t % v) + (&1 - t) % u) /\ (sgn t))`;;
 
 let aff_sgn_insert_sym = new_definition 
      `aff_sgn_insert_sym sgn =  (!x y S. ~(x=y)  ==> 
@@ -922,8 +941,11 @@ let cone = new_definition `cone v S = aff_ge {v} S`;;
 let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
 let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
 
+(* "collinear" already defined in Multivariate/vectors.ml.  *)
+(*
 let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = aff {v,w}))`;;
 let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; 
+*)
 let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
 let open_half_plane = new_definition `open_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_gt {u,v} {w}))`;;
@@ -943,8 +965,8 @@ let dihV = new_definition  `dihV w0 w1 w2 w3 =
      let va = w2 - w0 in
      let vb = w3 - w0 in
      let vc = w1 - w0 in
-     let vap = (dot3 vc vc) *# va - (dot3 va vc)*# vc in
-     let vbp = (dot3 vc vc) *# vb - (dot3 vb vc)*# vc in
+     let vap = (dot3 vc vc) % va - (dot3 va vc) % vc in
+     let vbp = (dot3 vc vc) % vb - (dot3 vb vc) % vc in
        arcV orig3 vap vbp`;;
 
 (* conventional ordering on variables *)
@@ -1008,18 +1030,18 @@ let orthonormal = new_definition `orthonormal e1 e2 e3 =
 (* spherical coordinates *)
 let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) *# e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
    ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
-   (w2 = (r2 * cos(psi + theta)) *# e1 + (r2 * sin(psi + theta)) *# e2 + h2 *# (w-v))))`;;
+   (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
 
 let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
    (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) *# e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
    ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 = (r1 * cos(psi)) *# e1 + (r1 * sin(psi)) *# e2 + h1 *# (w-v)) /\
-   (w2 = (r2 * cos(psi + theta v w w1 w2)) *# e1 + (r2 * sin(psi + theta v w w1 w2)) *# e2 + h2 *# (w-v)))`,
+   (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
    (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
      (REWRITE_TAC[azim_hyp_def]) THEN
      (REPEAT STRIP_TAC) THEN
@@ -1029,7 +1051,7 @@ let azim_def = new_specification ["azim"] azim_spec;;
 
 
 let cyclic_set = new_definition `cyclic_set W v w = 
-     (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h *# (v - w)) ==> (p=q)) /\
+     (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h % (v - w)) ==> (p=q)) /\
         (W INTER (aff {v,w}) = EMPTY))`;;
 
 
@@ -1038,16 +1060,16 @@ let cyclic_set = new_definition `cyclic_set W v w =
 let azim_cycle_hyp_def = new_definition `azim_cycle_hyp = 
   (?sigma.  !W proj v w e1 e2 e3 p. 
         (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
-	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3))) ==>
+	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3))) ==>
 	(proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p)))`;;
 
 let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
    (azim_cycle_hyp) ==> ( (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) *# e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
-	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x *# e1 + y *# e2 + h *# e3)))) ==> (proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p))`,
+	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3)))) ==> (proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p))`,
 	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
 	  (REWRITE_TAC[azim_cycle_hyp_def])
 	   );;

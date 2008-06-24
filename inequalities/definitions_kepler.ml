@@ -804,7 +804,7 @@ let mk_vec3 = new_definition `mk_vec3 a b c = vector[a; b; c]`;;
 let real3_of_triple = new_definition `real3_of_triple (a,b,c) = (mk_vec3 a b c):real^3`;;
 
 let triple_of_real3 = new_definition `triple_of_real3 (v:real^3) = 
-    (v$0, v$2, v$3)`;;
+    (v$1, v$2, v$3)`;;
 
 let orig3 = new_definition `orig3 = (vec 0):real^3`;;
 

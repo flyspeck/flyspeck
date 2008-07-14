@@ -398,13 +398,17 @@ module Trig : Trigsig = struct
   (* Useful theorems about real numbers.                                    *)
   (* ---------------------------------------------------------------------- *)
   
-    let REAL_LT_MUL_3 = prove
+  let REAL_LT_MUL_3 = prove
    (`!x y z. &0 < x /\ &0 < y /\ &0 < z ==> &0 < x * y * z`,
     REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC [] THEN
     MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC []);;
 
   let SQRT_MUL_L = prove
    (`!x y. &0 <= x /\ &0 <= y ==> x * sqrt y = sqrt(x pow 2 * y)`,
+    REPEAT STRIP_TAC THEN ASM_SIMP_TAC [REAL_LE_POW_2; SQRT_MUL; POW_2_SQRT]);;
+
+  let SQRT_MUL_R = prove
+   (`!x y. &0 <= x /\ &0 <= y ==> sqrt x * y = sqrt(x * y pow 2)`,
     REPEAT STRIP_TAC THEN ASM_SIMP_TAC [REAL_LE_POW_2; SQRT_MUL; POW_2_SQRT]);;
 
   (* ABS_SQUARE_LE_1 is in HOL-Light Multivariate/transc.ml.  *)
@@ -527,7 +531,7 @@ module Trig : Trigsig = struct
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
   
-  (* PI_POS_LE is in Examples/misc.ml. Proof by John Harrison *)
+  (* PI_POS_LE is in Multivariate/transc.ml. Proof by John Harrison *)
   
   let PI_POS_LE = prove
    (`&0 <= pi`,
@@ -1015,12 +1019,236 @@ module Trig : Trigsig = struct
                  REAL_ARITH `x pow 2 = x * x` ] THEN
     ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; sin_acs; TRI_UPS_X_SQRT]);;
 
+  (* ----------------------------------------------------------------------- *)
+	(* Conversion tool for defintions of form:                                 *)
+	(*   `let (a,b,c) = triple_of_real3 v in P[a,b,c]`                         *)
+	(* Converts it to                                                          *)
+	(*   `P[v$1,v$2,v$3]                                                       *)
+	(* Also handles dot3, d3, norm3, etc.                                      *)
+	(* ----------------------------------------------------------------------- *)
+	
+	let KEP_REAL3_CONV = REDEPTH_CONV 
+	  (REWRITE_CONV [dot3; d3; norm3; mk_vec3; real3_of_triple; 
+		               triple_of_real3; orig3] THENC
+		 let_CONV);;
+
+  (* ----------------------------------------------------------------------- *)
+  (* Cross product properties.                                               *)
+  (* ----------------------------------------------------------------------- *)
+
+(* work in progress *)
+
+  let DIST_TRIANGLE_DETAILS = prove
+	 (`~(u = v) /\ ~(u = w) <=>
+	   &0 < dist(u,v) /\ &0 < dist(u,w) /\
+     &0 <= dist(v,w) /\
+     dist(v,w) <= dist(u,v) + dist(u,w) /\
+     dist(u,v) <= dist(u,w) + dist(v,w) /\
+     dist(u,w) <= dist(v,w) + dist(u,v)`,
+		NORM_ARITH_TAC);;
+
+  let arcVarc = prove
+	 (arcVarc_t,
+	  SIMP_TAC [DIST_TRIANGLE_DETAILS; d3; dot3; norm3; arcV; ACS_ARCLENGTH] THEN
+		REPEAT STRIP_TAC THEN AP_TERM_TAC THEN 
+		REWRITE_TAC [DOT_NORM_NEG; dist] THEN 
+		let tha = NORM_ARITH `norm (v - u) = norm (u - v)` in
+		let thb = NORM_ARITH `norm (w - u) = norm (u - w)` in
+		let thc = NORM_ARITH `norm (v - u - (w - u)) = norm (v - w)` in
+		REWRITE_TAC [tha; thb; thc] THEN CONV_TAC REAL_FIELD);;
+
+  let DIST_LAW_OF_COS = prove
+	 (`~(u = v) /\ ~(u = w) ==>
+	   (dist(v,w)) pow 2 = (dist(u,v)) pow 2 + (dist(u,w)) pow 2 - 
+		                     &2 * (dist(u,v)) * (dist(u,w)) * cos (arcV u v w)`,
+    SIMP_TAC [arcVarc; d3] THEN 
+		REWRITE_TAC [law_of_cosines; DIST_TRIANGLE_DETAILS]);;
+
+  let DIST_L_ZERO = prove
+	 (`!v. dist(vec 0, v) = norm v`,
+    NORM_ARITH_TAC);;
+	
+  (* I would like to change this to real^N but that means changing arcV to real^N *)
+  let DOT_COS = prove 
+	 (`~(vec 0 = u) /\ ~(vec 0 = v) ==>
+     u dot v = (norm u) * (norm v) * cos (arcV (vec 0) u v)`,
+    DISCH_TAC THEN IMP_RES_THEN MP_TAC DIST_LAW_OF_COS THEN 
+		SUBGOAL_THEN 
+		  `dist(u:real^3,v) pow 2 = 
+		   dist(vec 0, v) pow 2 + dist(vec 0, u) pow 2 - &2 * u dot v` 
+			(fun th -> REWRITE_TAC [th; DIST_L_ZERO] THEN REAL_ARITH_TAC) THEN
+		REWRITE_TAC [NORM_POW_2; dist; DOT_RSUB; DOT_LSUB; 
+		             DOT_SYM; DOT_LZERO; DOT_RZERO] THEN
+    REAL_ARITH_TAC);;
+
+  (* DIMINDEX_3, FORALL_3, SUM_3, DOT_3, VECTOR_3, FORALL_VECTOR_3          *)
+	(* are all very useful.  Any time you see a theorem you need with         *)
+	(* 1 <= i /\ i <= dimindex(:3), first use INST_TYPE and then rewrite      *)
+	(* with DIMINDEX_3 and FORALL_3 or see if it's in the list below.         *)
+	
+  let CART_EQ_3 = prove
+   (`!x y. (x:A^3) = y <=> x$1 = y$1 /\ x$2 = y$2 /\ x$3 = y$3`,
+	  REWRITE_TAC [CART_EQ; DIMINDEX_3; FORALL_3]);;
+	
+	let LAMBDA_BETA_3 = prove
+   (`((lambda) g:A^3) $1 = g 1 /\
+	   ((lambda) g:A^3) $2 = g 2 /\
+		 ((lambda) g:A^3) $3 = g 3`,
+    let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:B`] LAMBDA_BETA) in
+		REWRITE_TAC [th]);;
+
+  let VEC_COMPONENT_3 = prove
+   (`!k. (vec k :real^3)$1 = &k /\ 
+	       (vec k :real^3)$2 = &k /\ 
+		     (vec k :real^3)$3 = &k`,
+    let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:N`] VEC_COMPONENT) in
+		REWRITE_TAC [th]);;
+
+  let VECTOR_ADD_COMPONENT_3 = prove
+   (`!x:real^3 y. (x + y)$1 = x$1 + y$1 /\
+	                (x + y)$2 = x$2 + y$2 /\
+									(x + y)$3 = x$3 + y$3`,
+		let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:N`] VECTOR_ADD_COMPONENT) in
+		REWRITE_TAC [th]);;
+
+  let VECTOR_SUB_COMPONENT_3 = prove
+   (`!x:real^3 y. (x - y)$1 = x$1 - y$1 /\
+	                (x - y)$2 = x$2 - y$2 /\
+									(x - y)$3 = x$3 - y$3`,
+		let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:N`] VECTOR_SUB_COMPONENT) in
+		REWRITE_TAC [th]);;
+
+  let VECTOR_NEG_COMPONENT_3 = prove
+   (`!x:real^3. (--x)$1 = --(x$1) /\
+	              (--x)$2 = --(x$2) /\
+								(--x)$3 = --(x$3)`,
+    let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:N`] VECTOR_NEG_COMPONENT) in
+		REWRITE_TAC [th]);;
+
+  let VECTOR_MUL_COMPONENT_3 = prove
+   (`!c x:real^3. (c % x)$1 = c * x$1 /\
+	                (c % x)$2 = c * x$2 /\
+									(c % x)$3 = c * x$3`,
+    let th = REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+		                      (INST_TYPE [`:3`,`:N`] VECTOR_MUL_COMPONENT) in
+		REWRITE_TAC [th]);;
+
+ (* COND_COMPONENT_3 - no need, COND_COMPONENT works fine. *)
+
+  let BASIS_3 = prove
+   (`(basis 1:real^3)$1 = &1 /\ (basis 1:real^3)$2 = &0 /\ (basis 1:real^3)$3 = &0 /\
+	   (basis 2:real^3)$1 = &0 /\ (basis 2:real^3)$2 = &1 /\ (basis 2:real^3)$3 = &0 /\
+	   (basis 3:real^3)$1 = &0 /\ (basis 3:real^3)$2 = &0 /\ (basis 3:real^3)$3 = &1`,
+	  REWRITE_TAC [basis; 
+	               REWRITE_RULE [DIMINDEX_3; FORALL_3] 
+							                (INST_TYPE [`:3`,`:B`] LAMBDA_BETA)] THEN
+	  ARITH_TAC);;
+
+  let COMPONENTS_3 = prove
+	 (`!v. v:real^3 = v$1 % basis 1 + v$2 % basis 2 + v$3 % basis 3`,
+    REWRITE_TAC [CART_EQ_3; VECTOR_ADD_COMPONENT_3; 
+		             VECTOR_MUL_COMPONENT_3; BASIS_3] THEN REAL_ARITH_TAC);;
+
+  let VECTOR_COMPONENTS_3 = prove
+	 (`!a b c. vector [a;b;c]:real^3 = a % basis 1 + b % basis 2 + c % basis 3`,
+	  let th = REWRITE_RULE [VECTOR_3] 
+		                      (ISPEC `vector [a;b;c]:real^3` COMPONENTS_3) in
+    REWRITE_TAC [th]);;
+	
+	let CROSS_COMPONENTS = prove
+	 (`!u v. (cross u v)$1 = u$2 * v$3 - v$2 * u$3 /\
+	         (cross u v)$2 = u$3 * v$1 - v$3 * u$1 /\
+					 (cross u v)$3 = u$1 * v$2 - v$1 * u$2`,
+		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV cross; VECTOR_3]);;
+					
+	let cross_def = prove
+	 (`!u v. cross u v = vector [u$2 * v$3 - v$2 * u$3; 
+	                           u$3 * v$1 - v$3 * u$1; 
+														 u$1 * v$2 - v$1 * u$2]`,
+    REWRITE_TAC [CONV_RULE KEP_REAL3_CONV cross]);;
+
+  let cross_skew = prove
+	 (cross_skew_t,
+	  REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VECTOR_NEG_COMPONENT_3] THEN 
+		REAL_ARITH_TAC);;
+	  
+  let cross_triple = prove
+	 (cross_triple_t,
+	  REWRITE_TAC [dot3; DOT_3; CROSS_COMPONENTS] THEN REAL_ARITH_TAC);;
+  
+	let NORM_CAUCHY_SCHWARZ_FRAC = prove
+	 (`!(u:real^N) v. ~(u = vec 0) /\ ~(v = vec 0) ==>
+	         -- &1 <= (u dot v) / (norm u * norm v) /\
+	         (u dot v) / (norm u * norm v) <= &1`,
+		REPEAT STRIP_TAC THEN
+		SUBGOAL_TAC "norm_pos" `&0 < norm (u:real^N) * norm (v:real^N)`
+		[ POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN 
+		  SIMP_TAC [GSYM NORM_POS_LT; IMP_IMP; REAL_LT_MUL] ] THEN
+		MP_TAC (SPECL [`u:real^N`;`v:real^N`] NORM_CAUCHY_SCHWARZ_ABS) THEN
+		ASM_SIMP_TAC [REAL_ABS_BOUNDS; REAL_LE_RDIV_EQ; REAL_LE_LDIV_EQ] THEN
+		REAL_ARITH_TAC);;
+	
+	let CROSS_LZERO = prove
+	 (`!x. cross (vec 0) x = vec 0`,
+	   REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VEC_COMPONENT_3] THEN 
+	   REAL_ARITH_TAC);;
+
+	let CROSS_RZERO = prove
+	 (`!x. cross x (vec 0) = vec 0`,
+	   REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VEC_COMPONENT_3] THEN 
+	   REAL_ARITH_TAC);;
+ 
+  let CROSS_SQUARED = prove
+	 (`!u v. (cross u v) dot (cross u v) = 
+		       (ups_x (u dot u) (v dot v) ((u - v) dot (u - v))) / &4`,
+	  REWRITE_TAC [DOT_3; CROSS_COMPONENTS; ups_x; VECTOR_SUB_COMPONENT_3] THEN
+	  REAL_ARITH_TAC);;
+ 
+  let DIST_UPS_X_POS = prove
+   (`~(u = v) /\ ~(u = w) ==>
+	   &0 <= ups_x (dist(u,v) pow 2) (dist(u,w) pow 2) (dist(v,w) pow 2)`,
+		REWRITE_TAC [DIST_TRIANGLE_DETAILS; TRI_UPS_X_POS; REAL_POW_2]);;
+  
+	let SQRT_DIV_R = prove
+	 (`&0 <= x /\ &0 <= y ==> sqrt (x) / y = sqrt (x/ (y pow 2)) /\ &0 <= x/(y pow 2)`,
+		SIMP_TAC [SQRT_DIV; REAL_LE_POW_2; POW_2_SQRT; REAL_LE_DIV]);;
+	
+  let NORM_CROSS = prove
+	 (`!u v. ~(vec 0 = u) /\ ~(vec 0 = v) ==>
+	           norm (cross u v) = 
+		         sqrt (ups_x ((norm u) pow 2) 
+					               ((norm v) pow 2) 
+								  			 ((dist(u,v)) pow 2)) / &2`,
+		REPEAT GEN_TAC THEN DISCH_TAC THEN IMP_RES_THEN MP_TAC DIST_UPS_X_POS THEN
+		REWRITE_TAC [DIST_L_ZERO] THEN 
+		SIMP_TAC[SQRT_DIV_R; REAL_ARITH `&0 <= &2`; REAL_ARITH `&2 pow 2 = &4`] THEN 
+		DISCH_TAC THEN MATCH_MP_TAC (GSYM SQRT_UNIQUE) THEN 
+		REWRITE_TAC [dist; NORM_POW_2; CROSS_SQUARED] THEN NORM_ARITH_TAC);;
+				
+	let VECTOR_LAW_OF_SINES = prove			
+	 (`~(vec 0 = u) /\ ~(vec 0 = v) ==>
+	   &2 * (norm u) * (norm v) * sin (arcV (vec 0) u v) =
+              sqrt (ups_x (norm u pow 2) (norm v pow 2) (dist (u,v) pow 2))`,
+		 SIMP_TAC [arcVarc; DIST_TRIANGLE_DETAILS; law_of_sines; d3; DIST_L_ZERO]);; 	
+						
+	let cross_mag = prove
+	 (cross_mag_t,
+	  REPEAT STRIP_TAC THEN 
+		REWRITE_TAC [arcVarc; dot3; norm3; orig3; VECTOR_SUB_RZERO] THEN
+		ASM_CASES_TAC `(u:real^3) = vec 0 \/ (v:real^3) = vec 0` THENL
+		[ POP_ASSUM STRIP_ASSUME_TAC THEN 
+		  ASM_REWRITE_TAC [CROSS_LZERO; CROSS_RZERO; NORM_0] THEN REAL_ARITH_TAC ;
+			POP_ASSUM MP_TAC THEN 
+			REWRITE_TAC [DE_MORGAN_THM; MESON [] `a = vec 0 <=> vec 0 = a`] THEN 
+			SIMP_TAC [NORM_CROSS; GSYM VECTOR_LAW_OF_SINES] THEN REAL_ARITH_TAC ]);;
+			
   (* yet unproven theorems: *)
   
-  let  arcVarc = trigAxiomProofB   arcVarc_t 
-  let  cross_mag = trigAxiomProofB   cross_mag_t 
-  let  cross_skew = trigAxiomProofB cross_skew_t
-  let  cross_triple = trigAxiomProofB   cross_triple_t 
   let  spherical_loc = trigAxiomProofB   spherical_loc_t 
   let  spherical_loc2 = trigAxiomProofB   spherical_loc2_t 
   let  dih_formula = trigAxiomProofB   dih_formula_t 

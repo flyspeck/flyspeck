@@ -1,5 +1,9 @@
 
-all : flypaper.pdf
+all : proofdodec.pdf
+
+proofdodec.pdf : *.tex
+
+#all : flypaper.pdf
 
 
 %.dvi : %.tex

@@ -1,3 +1,8 @@
+(* This file now uses Harrison's R^n from hol-light version 2.20.
+   It should also be compatible with the Feb 2008 release of HOL-Light.
+   It is not compatible with pre-2.20 versions of HOL-LIGHT.
+*)
+
 (* system dependent :
 
    load_path :=
@@ -687,58 +692,6 @@ let pi_prime_sigma = kepler_def
     else (& (k0 + 2*k2))*((#0.008)/(#3.0)) + (&k2)* (#0.009)`;;
 
 
-(* ------------------------------------------------------------------ *)
-(* The following definitions also appear in Jordan/misc_defs_and_lemmas.ml *)
-(* ------------------------------------------------------------------ *)
-
-(* mk_local_interface "kepler";; *)
-
-(* No long need this since we are switching from real3 (based on num->real)  *)
-(* to real^3.  Maybe it should just be deleted rather than commented out.    *)
-(* 
-overload_interface
- ("+", `euclid_plus:(num->real)->(num->real)->(num->real)`);;
-
-make_overloadable "*#" `:A -> B -> B`;;
-
-let euclid_scale = kepler_def
-  `euclid_scale t f = \ (i:num). (t* (f i))`;;
-
-overload_interface ("*#",`euclid_scale`);; (* `kepler'euclid_scale`);; *)
-
-parse_as_infix("*#",(20,"right"));;
-
-let euclid_neg = kepler_def `euclid_neg (f:num->real) = \ (i:num). (-- (f i))`;;
-
-(* This is highly ambiguous: -- f x can be read as
-   (-- f) x or as -- (f x).  *)
-overload_interface ("--",`euclid_neg`);; (* `kepler'euclid_neg`);; *)
-
-overload_interface
-  ("-", `euclid_minus:(num->real)->(num->real)->(num->real)`);;
-
-let euclid_plus = kepler_def
-  `euclid_plus (f:num->real) g = \ (i:num). (f i) + (g i)`;;
-
-let euclid_minus = kepler_def
-  `euclid_minus (f:num->real) g = \(i:num). (f i) - (g i)`;;
-
-let euclid = kepler_def `euclid n v <=> !m. (n <= m) ==> (v (m:num) = &0)`;;
-
-let euclid0 = kepler_def `euclid0 = \(i:num). &0`;;
-
-let coord = kepler_def `coord i (f:num->real) = f i`;;
-
-let dot = kepler_def `dot f g =
-  let (n = (min_num (\m. (euclid m f) /\ (euclid m g)))) in
-  sum (0,n) (\i. (f i)*(g i))`;;
-
-let norm = kepler_def `norm f = sqrt(dot f f)`;;
-
-
-let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
-
-*)
 
 (* ------------------------------------------------------------------ *)
 (* Three space *)
@@ -746,42 +699,6 @@ let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
 
 (* We are swithing from real3 to real^3. *)
 
-(*
-let real3_exists = prove( `?f. (!n. (n> 2) ==> (f n = &0))`,
-       EXISTS_TAC `(\j:num. &0)` THEN
-       BETA_TAC THEN (REWRITE_TAC[])
-			);;
-
-let real3 = new_type_definition "real3" ("mk_real3","dest_real3") real3_exists;;
-
-overload_interface
- ("+", `real3_plus:real3->real3 ->real3`);;
-
-let real3_scale = new_definition
-  `real3_scale t v = mk_real3 (t *# dest_real3 v)`;;
-
-overload_interface ("*#",`real3_scale`);;
-
-let real3_neg = new_definition `real3_neg v = mk_real3 (-- dest_real3 v)`;;
-
-(* This is highly ambiguous: -- f x can be read as
-   (-- f) x or as -- (f x).  *)
-overload_interface ("--",`real3_neg`);; 
-
-overload_interface
-  ("-", `real3_minus:real3->real3->real3`);;
-
-let real3_plus =new_definition
-  `real3_plus v w = mk_real3 (euclid_plus (dest_real3 v) (dest_real3 w))`;;
-
-let real3_minus = new_definition
-  `real3_minus v w = mk_real3 (euclid_minus (dest_real3 v)  (dest_real3 w))`;;
-*)
-
-(* No need for this one.  v$i does the same thing. *)
-(*
-let coord3 = new_definition `coord3 i v = coord i (dest_real3 v)`;;
-*)
 
 (* For now I'm keeping these definitons (at least the names, the definitions*)
 (* themselves are changed radically), but it might be better to just get    *)
@@ -941,11 +858,15 @@ let cone = new_definition `cone v S = aff_ge {v} S`;;
 let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
 let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
 
-(* "collinear" already defined in Multivariate/vectors.ml.  *)
-(*
+
+
 let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = aff {v,w}))`;;
-let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; 
-*)
+(* Done in Harrison's Multilinear/vectors.ml (Feb 2008 release only)   : let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; *)
+(* repeat of definition for 2.20 version *)
+let collinear = new_definition
+ `collinear s <=> ?u. !x y. x IN s /\ y IN s ==> ?c. x - y = c % u`;;
+
+
 let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
 let open_half_plane = new_definition `open_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_gt {u,v} {w}))`;;

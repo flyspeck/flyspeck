@@ -1027,10 +1027,10 @@ module Trig : Trigsig = struct
 	(* Also handles dot3, d3, norm3, etc.                                      *)
 	(* ----------------------------------------------------------------------- *)
 	
-	let KEP_REAL3_CONV = REDEPTH_CONV 
-	  (REWRITE_CONV [dot3; d3; norm3; mk_vec3; real3_of_triple; 
+	let KEP_REAL3_CONV = REDEPTH_CONV (CHANGED_CONV 
+		(REWRITE_CONV [dot3; d3; norm3; mk_vec3; real3_of_triple; 
 		               triple_of_real3; orig3] THENC
-		 let_CONV);;
+		 TRY_CONV (let_CONV)));;
 
   (* ----------------------------------------------------------------------- *)
   (* Cross product properties.                                               *)
@@ -1247,8 +1247,90 @@ module Trig : Trigsig = struct
 			REWRITE_TAC [DE_MORGAN_THM; MESON [] `a = vec 0 <=> vec 0 = a`] THEN 
 			SIMP_TAC [NORM_CROSS; GSYM VECTOR_LAW_OF_SINES] THEN REAL_ARITH_TAC ]);;
 			
-  (* yet unproven theorems: *)
+(*** work in progress
+
+  prove
+	 (`!u v w. arcV u v w = arcV (vec 0) (v - u) (w - u)`,
+	   REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; VECTOR_SUB_RZERO]);;
+
+  let ARCV_BILINEAR_L = prove
+	 (`!u v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
+	     arcV (vec 0) (s % u) v = arcV (vec 0) u v`,
+	  REWRITE_TAC [REAL_ARITH `!x. &0 < x <=> ~(&0 = x) /\ &0 <= x`] THEN
+		REWRITE_TAC [GSYM NORM_POS_LT] THEN	REPEAT STRIP_TAC THEN 
+		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; VECTOR_SUB_RZERO; DOT_LMUL;
+		             NORM_MUL; GSYM REAL_MUL_ASSOC] THEN
+		SUBGOAL_TAC "norm_pos" `&0 < norm (u:real^3) * norm (v:real^3)`
+		 [MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC []] THEN 
+		SUBGOAL_TAC "norm_nonzero" `~(&0 = norm (u:real^3) * norm (v:real^3))` 
+		 [POP_ASSUM MP_TAC THEN REAL_ARITH_TAC] THEN
+		SUBGOAL_TAC "stuff" `abs s = s`
+		 [ASM_REWRITE_TAC [REAL_ABS_REFL]] THEN 
+		ASM_SIMP_TAC [GSYM REAL_DIV_MUL2]);;
+	
+	let ARCV_SYM = prove
+	 (`!u v w. arcV u v w = arcV u w v`,
+	 REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; DOT_SYM; REAL_MUL_SYM]);;
+
+  let ARCV_BILINEAR_R = prove
+	 (`!u v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
+	     arcV (vec 0) u (s % v) = arcV (vec 0) u v`,
+		REPEAT STRIP_TAC THEN
+		SUBGOAL_TAC "switch" `arcV (vec 0) u (s % v) = arcV (vec 0) (s % v)	u`
+		 [REWRITE_TAC [ARCV_SYM]] THEN 
+		POP_ASSUM SUBST1_TAC THEN ASM_SIMP_TAC [ARCV_BILINEAR_L; ARCV_SYM]);;
+
   
+  prove
+	 (`!u v. ~(u = vec 0) /\ ~(v = vec 0) ==>
+	      arcV (vec 0) u v = 
+			  arcV (vec 0) ((inv (norm u)) % u) ((inv (norm v)) % v)`,
+		REPEAT STRIP_TAC THEN
+		SUBGOAL_TAC "u" `&0 < inv (norm (u:real^3))`
+		[ REPEAT (POP_ASSUM MP_TAC) THEN 
+		  SIMP_TAC [GSYM NORM_POS_LT; REAL_LT_INV] ] THEN
+		SUBGOAL_TAC "v" `&0 < inv (norm (v:real^3))`
+		[ REPEAT (POP_ASSUM MP_TAC) THEN 
+		  SIMP_TAC [GSYM NORM_POS_LT; REAL_LT_INV] ] THEN
+		SUBGOAL_TAC "vv" `~(inv (norm v) % (v:real^3) = vec 0)` 
+		[ ASM_REWRITE_TAC [VECTOR_MUL_EQ_0] THEN POP_ASSUM MP_TAC THEN 
+		  REAL_ARITH_TAC ] THEN
+    ASM_SIMP_TAC [ARCV_BILINEAR_L; ARCV_BILINEAR_R]);;
+
+  prove
+	 (`!v:real^N. ~(v = vec 0) ==> norm((inv (norm v)) % v) = &1`,
+	  REWRITE_TAC [NORM_MUL; REAL_ABS_INV; REAL_ABS_NORM; GSYM NORM_POS_LT] THEN
+		CONV_TAC REAL_FIELD);;
+	
+	prove
+	 (`!v0 va vb vc. 
+	    dihV v0 va vb vc = 
+		  dihV (vec 0) (va - v0) (vb - v0) (vc - v0)`,
+	  REWRITE_TAC [CONV_RULE KEP_REAL3_CONV dihV; VECTOR_SUB_RZERO]);;
+
+  prove
+	 (`!va vb vc s. ~(va = vec 0) /\ ~(vb = vec 0) /\ ~(vb = vec 0) /\ &0 < s ==> 
+	     dihV (vec 0) (s % va) vb vc = dihV (vec 0) va vb vc`,
+		REWRITE_TAC [REAL_ARITH `!x. &0 < x <=> ~(&0 = x) /\ &0 <= x`] THEN
+		REWRITE_TAC [GSYM NORM_POS_LT] THEN	REPEAT STRIP_TAC THEN 
+		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV dihV; VECTOR_SUB_RZERO; DOT_LMUL;
+		             DOT_RMUL; NORM_MUL; GSYM REAL_MUL_ASSOC; VECTOR_MUL_ASSOC] THEN
+		let thm1 = 
+			VECTOR_ARITH `!x v. (s * s * x) % (v:real^3) = (s pow 2) % (x % v)` in
+		let thm2 =
+			VECTOR_ARITH `!x v. (s * x * s) % (v:real^3) = (s pow 2) % (x % v)` in
+		REWRITE_TAC [thm1; thm2; GSYM VECTOR_SUB_LDISTRIB]
+		);;
+					  
+  prove
+	 (spherical_loc_t,
+	  REPEAT STRIP_TAC THEN REPEAT (CONV_TAC let_CONV) THEN 
+		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV dihV]
+
+***)
+			
+	(* yet unproven theorems: *)
+	
   let  spherical_loc = trigAxiomProofB   spherical_loc_t 
   let  spherical_loc2 = trigAxiomProofB   spherical_loc2_t 
   let  dih_formula = trigAxiomProofB   dih_formula_t 

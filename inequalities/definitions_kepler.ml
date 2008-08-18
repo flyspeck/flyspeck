@@ -14,8 +14,11 @@
 needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
 needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
 needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
-no longer needs "Jordan/lib_ext.ml";;
+
+
 *)
+
+
 
 let kepler_def = (* local_definition "kepler";; *) new_definition;;
 
@@ -808,66 +811,113 @@ Can be uniquely extended to all cases, by setting azim_cycle W v w p = p, when t
 
 *)
 
-let aff_insert = new_definition `aff_insert v S w = 
-   ( ?(u:real^3) t.  (v INSERT S) u /\ (w = (t % v) + (&1 - t) % u))`;;
+(* from convex.ml:  *)
 
-let aff_insert_sym = new_definition 
-     `aff_insert_sym = (!x y S. ~(x=y) ==> 
-         aff_insert x (aff_insert y S) = aff_insert y (aff_insert x S))`;;
+let affine = new_definition
+  `affine s <=> !x y u v. x IN s /\ y IN s /\ (u + v = &1)
+                          ==> (u % x + v % y) IN s`;;
+let convex = new_definition
+  `convex s <=>
+        !x y u v. x IN s /\ y IN s /\ &0 <= u /\ &0 <= v /\ (u + v = &1)
+                  ==> (u % x + v % y) IN s`;;
 
-let aff_spec = prove(
-  `?g. aff_insert_sym ==> 
-      ((g {} = {}) /\  (!v S.  (FINITE S) ==> (g (v INSERT S) =
-	(if (v IN S) then (g S) else (aff_insert v (g S))))))`,
-     (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN
-     (REWRITE_TAC[aff_insert_sym]) THEN
-     (STRIP_TAC) THEN
-     (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN
-     (ASM_REWRITE_TAC[]));;
+(* aff is deprecated *)
+let aff = new_definition `aff = ( hull ) affine`;;
 
-let aff_def = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *)
+let semiconvex = new_definition
+  `semiconvex sgn s t <=>  
+        !x y z u v w. x IN (affine hull s) /\ y IN t /\ z IN t /\ sgn v /\ sgn w /\ (u + v + w = &1)
+                  ==> (u % x + v % y + w % z) IN t`;;
 
-let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w = 
-    ( ?(u:real^3) t.  (v INSERT S) u /\ ( w= (t % v) + (&1 - t) % u) /\ (sgn t))`;;
+let aff_gt_def = new_definition `aff_gt s t = (semiconvex (\u. (&0 < u)) s) hull t`;;
+let aff_ge_def = new_definition `aff_ge s t = (semiconvex (\u. (&0 <= u)) s) hull t`;;
+let aff_lt_def = new_definition `aff_lt s t = (semiconvex (\u. (u < &0)) s) hull t`;;
+let aff_le_def = new_definition `aff_le s t = (semiconvex (\u. (u <= &0)) s) hull t`;;
 
-let aff_sgn_insert_sym = new_definition 
-     `aff_sgn_insert_sym sgn =  (!x y S. ~(x=y)  ==> 
-         aff_sgn_insert sgn x (aff_sgn_insert sgn y S) = aff_sgn_insert sgn y (aff_sgn_insert sgn x S))`;;
 
-let aff_sgn_spec = prove(
-  `?g. !sgn S1. aff_sgn_insert_sym sgn ==> 
-      ((g sgn S1 {} = aff S1) /\  (!v S.  (FINITE S) ==> (g sgn S1 (v INSERT S) =
-	(if (v IN S) then (g sgn S1  S) else (aff_sgn_insert sgn v (g sgn S1 S))))))`,
-     (REWRITE_TAC[GSYM SKOLEM_THM]) THEN
-     (REPEAT STRIP_TAC) THEN
-     (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN
-     (REWRITE_TAC[aff_sgn_insert_sym]) THEN
-     (STRIP_TAC) THEN
-     (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN
-     (ASM_REWRITE_TAC[]));;
+(* conv is deprecated.  Use `convex hull S` instead *)
 
-let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *)
-
-let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (&0 < t) )`;;
-let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (&0 <= t) )`;;
-let aff_lt_def = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;;
-let aff_le_def = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;;
 let conv = new_definition `conv S = aff_ge {} S`;;
 let conv0 = new_definition `conv0 S = aff_gt {} S`;;
 let cone = new_definition `cone v S = aff_ge {v} S`;;
 let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
+
+
+
+(* Vuong Quyen has pointed out that this definition of aff_insert
+   is incorrect.
+
+   New definitions are based on Multivariate/convex.ml.
+
+   -TCH 8/17/08.
+*)
+
+
+(* let aff_insert = new_definition `aff_insert v S w =  *)
+(*    ( ?(u:real^3) t.  (v INSERT S) u /\ (w = (t % v) + (&1 - t) % u))`;; *)
+
+(* let aff_insert_sym = new_definition  *)
+(*      `aff_insert_sym = (!x y S. ~(x=y) ==>  *)
+(*          aff_insert x (aff_insert y S) = aff_insert y (aff_insert x S))`;; *)
+
+(* let aff_spec = prove( *)
+(*   `?g. aff_insert_sym ==>  *)
+(*       ((g {} = {}) /\  (!v S.  (FINITE S) ==> (g (v INSERT S) = *)
+(* 	(if (v IN S) then (g S) else (aff_insert v (g S))))))`, *)
+(*      (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN *)
+(*      (REWRITE_TAC[aff_insert_sym]) THEN *)
+(*      (STRIP_TAC) THEN *)
+(*      (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN *)
+(*      (ASM_REWRITE_TAC[]));; *)
+
+(* let aff_def = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *) *)
+
+(* let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w =  *)
+(*     ( ?(u:real^3) t.  (v INSERT S) u /\ ( w= (t % v) + (&1 - t) % u) /\ (sgn t))`;; *)
+
+(* let aff_sgn_insert_sym = new_definition  *)
+(*      `aff_sgn_insert_sym sgn =  (!x y S. ~(x=y)  ==>  *)
+(*          aff_sgn_insert sgn x (aff_sgn_insert sgn y S) = aff_sgn_insert sgn y (aff_sgn_insert sgn x S))`;; *)
+
+(* let aff_sgn_spec = prove( *)
+(*   `?g. !sgn S1. aff_sgn_insert_sym sgn ==>  *)
+(*       ((g sgn S1 {} = aff S1) /\  (!v S.  (FINITE S) ==> (g sgn S1 (v INSERT S) = *)
+(* 	(if (v IN S) then (g sgn S1  S) else (aff_sgn_insert sgn v (g sgn S1 S))))))`, *)
+(*      (REWRITE_TAC[GSYM SKOLEM_THM]) THEN *)
+(*      (REPEAT STRIP_TAC) THEN *)
+(*      (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN *)
+(*      (REWRITE_TAC[aff_sgn_insert_sym]) THEN *)
+(*      (STRIP_TAC) THEN *)
+(*      (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN *)
+(*      (ASM_REWRITE_TAC[]));; *)
+(*  *)
+(* let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *) *)
+(*  *)
+(* let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (&0 < t) )`;; *)
+(* let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (&0 <= t) )`;; *)
+(* let aff_lt_def = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;; *)
+(* let aff_le_def = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;; *)
+(* let conv = new_definition `conv S = aff_ge {} S`;; *)
+(* let conv0 = new_definition `conv0 S = aff_gt {} S`;; *)
+(* let cone = new_definition `cone v S = aff_ge {v} S`;; *)
+(* let cone0 = new_definition `cone0 v S = aff_gt {v} S`;; *)
+
+
+
 let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
 
 
 
-let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = aff {v,w}))`;;
+
+
+let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = affine hull {v,w}))`;;
 (* Done in Harrison's Multilinear/vectors.ml (Feb 2008 release only)   : let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; *)
 (* repeat of definition for 2.20 version *)
 let collinear = new_definition
  `collinear s <=> ?u. !x y. x IN s /\ y IN s ==> ?c. x - y = c % u`;;
 
 
-let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff {u,v,w}))`;;
+let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = affine hull {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
 let open_half_plane = new_definition `open_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_gt {u,v} {w}))`;;
 let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
@@ -973,7 +1023,7 @@ let azim_def = new_specification ["azim"] azim_spec;;
 
 let cyclic_set = new_definition `cyclic_set W v w = 
      (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h % (v - w)) ==> (p=q)) /\
-        (W INTER (aff {v,w}) = EMPTY))`;;
+        (W INTER (affine hull {v,w}) = EMPTY))`;;
 
 
 

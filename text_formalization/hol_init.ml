@@ -8,6 +8,7 @@
 
 (* #use "/Users/thomashales/Desktop/flyspeck_google/source/text_formalization/kep_init.ml";; *)  
 
+needs "Multivariate/vectors.ml";;
 needs "Examples/analysis.ml";;
 needs "Examples/transc.ml";;
 

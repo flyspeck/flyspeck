@@ -22,6 +22,10 @@ All references to rendering have been removed from the graphics directory.
 The rendering material hasn't been compiled or checked.  The code
 will probably have to be tweaked a bit to make it runnable from this new directory.
 
+July 13, 2008
+Moved everything over to flyspeck google.
+
+
 
 
 

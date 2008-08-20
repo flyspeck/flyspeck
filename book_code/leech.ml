@@ -2,7 +2,8 @@
 
 
 (* Program to compute the constants in Leech's paper on 13 spheres *)
-(* See essay on "THIRTEEN SPHERES"  presentation fo the mathematics involved. *)
+(* See essay on "THIRTEEN SPHERES"  presentation of the mathematics involved. *)
+(* code proofread 3/31/2008 *)
 
 (* assertions and general utilities *)
 let assertions = ref true;;
@@ -100,6 +101,8 @@ let row5 = min_list [
           areaSSC b b b d default;
           areaSSC c b b d default;
           areaSSC c c b d default;
+	  areaSSC d b b b default;
+	  areaSSC d c b b default;
 	  areaSSS b b d;
 	  areaSSS b c d;
 	  areaSSS c c d;
@@ -109,6 +112,40 @@ also_assert(row5 >= delta);;
 let row6 = triangle_min b c b c b c;;
 also_assert(abs_float(row6 -. delta) < 1.0e-6);;
 
+(* compute Dmin in gamma_max table *)
+
+let b' = 1.15;;
+let b'' = 1.251;;
+let gammarow1 = min_list [
+   areaSSS b b b;
+  areaSSS b b b';
+  areaSSS b c b;
+  areaSSS b c b';
+  areaSSS c c b;
+  areaSSS c c b';
+];;
+also_assert(gammarow1 >= delta);;
+
+let gammarow2 = min_list [
+   areaSSS b b b';
+  areaSSS b b b'';
+  areaSSS b c b';
+  areaSSS b c b'';
+  areaSSS c c b';
+  areaSSS c c b'';
+];;
+also_assert(gammarow2 >= delta +. eps/. 12.0);;
+
+let gammarow3 = min_list [
+   areaSSS b b b'';
+  areaSSS b b c;
+  areaSSS b c b'';
+  areaSSS b c c;
+  areaSSS c c b'';
+  areaSSS c c c;
+];;
+also_assert(gammarow3 >= delta +. eps/. 6.0);;
+
 (* compute max valence *)
 let valence  = let min_angle = min_list [
     (gammaCBA b b b);
@@ -116,6 +153,8 @@ let valence  = let min_angle = min_list [
      (gammaCBA b c c)] in
    2.0 *. pi /. min_angle;;  (* 5.9753... *)
 also_assert (valence < 6.0);;
+
+(* treat the degree six along a long edge as a degree 5 with one a quad *)
 
 (* check the angles > pi/2 on a quad with diags > 1.7 *)
 let angle_bigquad = min_list [
@@ -149,6 +188,9 @@ let r x = maxAngle b c b c x -. pi/. 2.0;;
 r 1.15;;  (* -0.21292 *)
 r 1.251;; (* -0.0859 *)
 r 1.42;;  (* 0.13342 *)
+also_assert (r 1.15 < -0.21);;
+also_assert (r 1.251 < -0.08);;
+also_assert (r 1.42 < 0.14);;
 gammaCBA 1.15 b b  -. pi/.2.0;;
 gammaCBA 1.251 b b -. pi/.2.0;;
 gammaCBA 1.42 b b -. pi/.2.0;;  (* same answers! *)

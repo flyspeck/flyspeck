@@ -84,7 +84,7 @@ let basicTet =
 structure R = Random
 val rand = R.rand(1029,4139871)
 fun n () = R.randRange(100000000,999999999) rand
-
+n()
   
  *)
 

@@ -13,7 +13,7 @@ let cm3_ups_x = new_definition `!(v1:real^3) (v2:real^3) (v3:real^3).
   (((v2 - v1)$3 * (v3 - v1)$1 ) - ((v2 - v1)$1 * (v3 - v1)$3)) pow 2 +
   (((v2 - v1)$1 * (v3 - v1)$2 ) - ((v2 - v1)$2 * (v3 - v1)$1)) pow 2 `;;
 
-(* Nguyen Duc Phuong, Nguyen Tuyen Hoang *)
+(* Nguyen Tuyen Hoang, Nguyen Duc Phuong *)
 
 (* The polynomial ups can be expressed as a Cayley- Menger square *)  
 

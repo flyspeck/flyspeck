@@ -1,3 +1,8 @@
+(*Nguyen Tat Thang*)
+
+
+(*Definition of null set*)
+
 let pl =new_definition `pl(a:real^3,b:real)={x:real^3 | a$1*x$1+a$2*x$2+a$3*x$3+b= &0}`;;
 
 let plane =new_definition `plane (P:real^3->bool)=(? (a:real^3) (b:real).P= pl (a,b))`;;

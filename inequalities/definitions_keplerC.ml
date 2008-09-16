@@ -1,6 +1,11 @@
 (* Start from the beginning of the text of Unabridged Proof
    of the Kepler Conjecture. Version Nov 26, 2003 *)
 
+(* This file is not current.  It is based on the model
+   of R^n used in the proof of the Jordan curve theorem (:int->real).
+   The proof of the Kepler conjecture is based on Harrison's
+   :real^N representation of vectors *)
+
 (*
 let mk_vec3 = kepler_def `mk_vec3 y1 y2 y3 = 
   (\i. if (i=0) then y1 else if (i=1) then y2 else if (i=2) then y3

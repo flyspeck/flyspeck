@@ -781,11 +781,6 @@ Exists uniquely on all finite subsets of R3.
 It will only be used on finite sets.
 Can be uniquely extended to all subsets by defining aff S = S, when S is infinite
 
->         aff_sgn
-It is only used on finite sets.
-Assuming that aff has first been extended to all subsets as above, then
-aff_sgn sgn S S1 exists uniquely for all sgn, all S, and all finite S1
-Can be uniquely extended to all subsets by defining aff_sgn sgn sgn S S1 = S1, when S1 is infinite
 
 >         min_polar
 Exists uniquely on all nonempty finite sets of ordered pairs of real numbers
@@ -824,27 +819,54 @@ let convex = new_definition
 (* aff is deprecated *)
 let aff = new_definition `aff = ( hull ) affine`;;
 
+let lin_combo = new_definition `lin_combo V f = vsum V (\v. f v % (v:real^N))`;;
+
+(* Fix "sum" because Harrison's interface is too special in analysis.ml *)
+
+reduce_interface("sum",`sum:(num->bool)->(num->real)->real`);;
+reduce_interface("sum",`psum:(num#num)->(num->real)->real`);;
+let remove_overload sym =
+  let overload_skeletons = filter ((<>)sym o fst) (!the_overload_skeletons) in
+  the_overload_skeletons := overload_skeletons;;
+remove_overload "sum";;
+make_overloadable "sum" `:A->(B->real)->real`;;
+overload_interface("sum",`sum:(A->bool)->(A->real)->real`);;
+overload_interface("sum",`psum:(num#num)->(num->real)->real`);;
+
+let affsign = new_definition `affsign sgn s t (v:real^A) = (?f.
+  (v = lin_combo (s UNION t) f) /\ (!w. t w ==> sgn (f w)) /\ (sum (s UNION t) f = &1))`;;
+
+
+let sgn_gt = new_definition `sgn_gt = (\t. (&0 < t))`;;
+let sgn_ge = new_definition `sgn_ge = (\t. (&0 <= t))`;;
+let sgn_lt = new_definition `sgn_lt = (\t. (t < &0))`;;
+let sgn_le = new_definition `sgn_le = (\t. (t <= &0))`;;
+
+(* conv is deprecated.  Use `convex hull S` instead *)
+
+let conv = new_definition `conv S:real^A->bool = affsign sgn_ge {} S`;;
+let conv0 = new_definition `conv0 S:real^A->bool = affsign sgn_gt {} S`;;
+let cone = new_definition `cone v S:real^A->bool = affsign sgn_ge {v} S`;;
+let cone0 = new_definition `cone0 v S:real^A->bool = affsign sgn_gt {v} S`;;
+
+(* deprecated:
+
 let semiconvex = new_definition
   `semiconvex sgn s t <=>  
         !x y z u v w. x IN (affine hull s) /\ y IN t /\ z IN t /\ sgn v /\ sgn w /\ (u + v + w = &1)
                   ==> (u % x + v % y + w % z) IN t`;;
 
-let aff_gt_def = new_definition `aff_gt s t = (semiconvex (\u. (&0 < u)) s) hull t`;;
-let aff_ge_def = new_definition `aff_ge s t = (semiconvex (\u. (&0 <= u)) s) hull t`;;
-let aff_lt_def = new_definition `aff_lt s t = (semiconvex (\u. (u < &0)) s) hull t`;;
-let aff_le_def = new_definition `aff_le s t = (semiconvex (\u. (u <= &0)) s) hull t`;;
+*)
+
+let aff_gt_def = new_definition `aff_gt = affsign sgn_gt`;;
+let aff_ge_def = new_definition `aff_ge = affsign sgn_ge`;;
+let aff_lt_def = new_definition `aff_lt = affsign sgn_lt`;;
+let aff_le_def = new_definition `aff_le = affsign sgn_le`;;
 
 
 (* conv is deprecated.  Use `convex hull S` instead *)
 
-let conv = new_definition `conv S = aff_ge {} S`;;
-let conv0 = new_definition `conv0 S = aff_gt {} S`;;
-let cone = new_definition `cone v S = aff_ge {v} S`;;
-let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
-
-
-
-(* Vuong Quyen has pointed out that this definition of aff_insert
+(* Vuong Quyen has pointed out that the definition of aff_insert
    is incorrect.
 
    New definitions are based on Multivariate/convex.ml.
@@ -852,55 +874,6 @@ let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
    -TCH 8/17/08.
 *)
 
-
-(* let aff_insert = new_definition `aff_insert v S w =  *)
-(*    ( ?(u:real^3) t.  (v INSERT S) u /\ (w = (t % v) + (&1 - t) % u))`;; *)
-
-(* let aff_insert_sym = new_definition  *)
-(*      `aff_insert_sym = (!x y S. ~(x=y) ==>  *)
-(*          aff_insert x (aff_insert y S) = aff_insert y (aff_insert x S))`;; *)
-
-(* let aff_spec = prove( *)
-(*   `?g. aff_insert_sym ==>  *)
-(*       ((g {} = {}) /\  (!v S.  (FINITE S) ==> (g (v INSERT S) = *)
-(* 	(if (v IN S) then (g S) else (aff_insert v (g S))))))`, *)
-(*      (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN *)
-(*      (REWRITE_TAC[aff_insert_sym]) THEN *)
-(*      (STRIP_TAC) THEN *)
-(*      (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN *)
-(*      (ASM_REWRITE_TAC[]));; *)
-
-(* let aff_def = new_specification ["aff"] aff_spec;;  (* blueprint def:affine *) *)
-
-(* let aff_sgn_insert = new_definition `aff_sgn_insert sgn v S w =  *)
-(*     ( ?(u:real^3) t.  (v INSERT S) u /\ ( w= (t % v) + (&1 - t) % u) /\ (sgn t))`;; *)
-
-(* let aff_sgn_insert_sym = new_definition  *)
-(*      `aff_sgn_insert_sym sgn =  (!x y S. ~(x=y)  ==>  *)
-(*          aff_sgn_insert sgn x (aff_sgn_insert sgn y S) = aff_sgn_insert sgn y (aff_sgn_insert sgn x S))`;; *)
-
-(* let aff_sgn_spec = prove( *)
-(*   `?g. !sgn S1. aff_sgn_insert_sym sgn ==>  *)
-(*       ((g sgn S1 {} = aff S1) /\  (!v S.  (FINITE S) ==> (g sgn S1 (v INSERT S) = *)
-(* 	(if (v IN S) then (g sgn S1  S) else (aff_sgn_insert sgn v (g sgn S1 S))))))`, *)
-(*      (REWRITE_TAC[GSYM SKOLEM_THM]) THEN *)
-(*      (REPEAT STRIP_TAC) THEN *)
-(*      (REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]) THEN *)
-(*      (REWRITE_TAC[aff_sgn_insert_sym]) THEN *)
-(*      (STRIP_TAC) THEN *)
-(*      (MATCH_MP_TAC SET_RECURSION_LEMMA) THEN *)
-(*      (ASM_REWRITE_TAC[]));; *)
-(*  *)
-(* let aff_sgn = new_specification ["aff_sgn"] aff_sgn_spec;; (* blueprint def:affine *) *)
-(*  *)
-(* let aff_gt_def = new_definition `aff_gt = aff_sgn (\t. (&0 < t) )`;; *)
-(* let aff_ge_def = new_definition `aff_ge = aff_sgn (\t. (&0 <= t) )`;; *)
-(* let aff_lt_def = new_definition `aff_lt = aff_sgn (\t. (t < &0) )`;; *)
-(* let aff_le_def = new_definition `aff_le = aff_sgn (\t. (t <= &0) )`;; *)
-(* let conv = new_definition `conv S = aff_ge {} S`;; *)
-(* let conv0 = new_definition `conv0 S = aff_gt {} S`;; *)
-(* let cone = new_definition `cone v S = aff_ge {v} S`;; *)
-(* let cone0 = new_definition `cone0 v S = aff_gt {v} S`;; *)
 
 
 

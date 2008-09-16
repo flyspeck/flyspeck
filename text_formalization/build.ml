@@ -57,10 +57,6 @@ needs "hypermap.ml";;
 needs "fan_spec.ml";;
 needs "fan.ml";;
 
-(* assembly *)
-needs "assembly_spec.ml";;
-needs "assembly.ml";;
-
 (* toplevel *)
 needs "toplevel_spec.ml";;
 needs "toplevel.ml";;
@@ -69,8 +65,21 @@ needs "toplevel.ml";;
 needs "geomdetail_spec.ml";;
 needs "geomdetail.ml";;
 
+(* assembly_listing *)
+needs "assembly_listing_spec.ml";;
+needs "assembly_listing.ml";;
+needs "assembly_spec.ml";;
+needs "assembly.ml";;
+
 (* tame *)
 needs "tame_spec.ml";;
 needs "tame.ml";;
+
+(* computer code contributions *)
+needs "graph_generator_spec.ml";;
+needs "lp_bounds_spec.ml";;
+
+(* final result *)
+needs "kepler_theorem.ml";;
 
 

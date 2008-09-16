@@ -26,6 +26,10 @@ let fan = new_definition`fan(x,V,E)<=>  ((UNIONS E) SUBSET V) /\ graph(E)/\ fan1
 
 let base_point_fan=new_definition`base_point_fan (x,V,E)=x`;;
 
+let set_of_edges=new_definition`set_of_edges v E={w|{v,w} IN E}`;;
+
+let asfan=prove(`{w,v}={v,w}`, SET_TAC[]);;
+
 let remark_fan1=prove(`!v w E. (w IN set_of_edges v E)<=>(v IN set_of_edges w E)`, REPEAT GEN_TAC THEN REWRITE_TAC[set_of_edges] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[asfan]);;
 
 let azim_cycle_fan= new_definition`azim_cycle_fan fan x V E  = 

@@ -44,10 +44,7 @@ MATH_MP_TAC azim_cycle_spec THEN REWRITE_TAC[azim_cycle_fan]);;
 let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;
 
 
-
-
-
-let D1=new_definition`D1 fan(x,V,E)={mk_pair{x,v,w,w1}|(V v)/\(w IN set_of_edges v E)/\(w1=sigma(v,w))}`;;
+let D1=new_definition`D1 fan(x,V,E)={mk_pair{x,v,w,w1}|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan(v,w))}`;;
 
 
 let D2=new_definition`D2 fan(x,V,E)={ mk_pair {x,v}|(V v)/\(set_of_edges v E={})}`;;

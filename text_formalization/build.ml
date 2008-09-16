@@ -15,7 +15,7 @@ needs "Examples/transc.ml";;         (* Then it won't need these three. *)
 
 (* 
 
-This runs through the complete proof, except for the
+This build runs through the complete proof, except for the
    * interval arithmetic inequalities,
    * graph classification, and
    * linear programming

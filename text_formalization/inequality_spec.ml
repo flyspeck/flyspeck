@@ -45,6 +45,28 @@ of several inequalites.
 128523606 C
 *)
 
+parse_as_infix("+.",(16,"right"));
+parse_as_infix("-.",(18,"left"));
+parse_as_infix("*.",(20,"right"));
+parse_as_infix("**.",(24,"left")); 
+parse_as_infix("<.",(12,"right"));
+parse_as_infix("<=.",(12,"right"));
+parse_as_infix(">.",(12,"right"));
+parse_as_infix(">=.",(12,"right"));
+override_interface("+.",`real_add:real->real->real`);
+override_interface("-.",`real_sub:real->real->real`);
+override_interface("*.",`real_mul:real->real->real`);
+override_interface("**.",`real_pow:real->num->real`);
+(* boolean *)
+override_interface("<.",`real_lt:real->real->bool`);
+override_interface("<=.",`real_le:real->real->bool`);
+override_interface(">.",`real_gt:real->real->bool`);
+override_interface(">=.",`real_ge:real->real->bool`);
+(* unary *)
+override_interface("--.",`real_neg:real->real`);
+override_interface("&.",`real_of_num:num->real`);
+override_interface("||.",`real_abs:real->real`);;
+
 
 let I_115383627=
    all_forall `ineq 

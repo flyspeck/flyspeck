@@ -58,7 +58,7 @@ let acs_atn2_t = `!y. (-- &1 <= y /\ y <=  &1) ==> (acs y = pi/(&2) - atn2(sqrt(
 
 (* affine geometry definitions are in definitions_kepler.ml *)
 
-let arcVarc_t = `!u v w. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (d3 u v) (d3 u w) (d3 v w)`;;
+let arcVarc_t = `!u v w:real^3. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (dist( u, v)) (dist( u, w)) (dist( v, w))`;;
 
 let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
    ((c pow 2) = (a pow 2) + (b pow 2) - &2 * a * b * (cos(arclength a b c)))`;;
@@ -66,16 +66,16 @@ let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b
 let law_of_sines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
    (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
 
-let cross_mag_t = `!u v. norm3 (cross u v) = (norm3 u) * (norm3 v) * sin(arcV orig3 u v)`;;
+let cross_mag_t = `!u v. norm (cross u v) = (norm u) * (norm v) * sin(arcV (vec 0) u v)`;;
 
 let cross_skew_t = `!u v. (cross u v) = -- (cross v u)`;;
 
-let cross_triple_t = `!u v w. dot3 (cross u v) w = dot3 (cross v w) u`;;
+let cross_triple_t = `!u v w.  (cross u v) dot w =  (cross v w) dot u`;;
 
 
 (* law of cosines *)
 
-let spherical_loc_t = `!v0 va vb vc.
+let spherical_loc_t = `!v0 va vb vc:real^3.
   ~(collinear {v0,va,vc}) /\ ~(collinear {v0,vb,vc}) ==>
         (
     let gamma = dihV v0 vc va vb in
@@ -84,7 +84,7 @@ let spherical_loc_t = `!v0 va vb vc.
     let c = arcV v0 va vb in
       (cos(gamma) = (cos(c) - cos(a)*cos(b))/(sin(a)*sin(b))))`;;
 
-let spherical_loc2_t = `!v0 va vb vc.
+let spherical_loc2_t = `!v0 va vb vc:real^3.
  ~(collinear {v0,va,vc}) /\ ~(collinear {v0,vb,vc}) ==>
         (
     let alpha = dihV v0 va vb vc in
@@ -93,7 +93,7 @@ let spherical_loc2_t = `!v0 va vb vc.
     let c = arcV v0 va vb in
       (cos(c) = (cos(gamma) + cos(alpha)*cos(beta))/(sin(alpha)*sin(beta))))`;;
 
-let dih_formula_t = `!v0 v1 v2 v3. 
+let dih_formula_t = `!v0 v1 v2 v3:real^3. 
    ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) ==>
    (
    let (x1,x2,x3,x4,x5,x6) = xlist v0 v1 v2 v3 in
@@ -105,12 +105,12 @@ let dih_x_acs_t = `!x1 x2 x3 x4 x5 x6.
    dih_x x1 x2 x3 x4 x5 x6 = acs ((delta_x4 x1 x2 x3 x4 x5 x6)/
   ((sqrt (ups_x x1 x2 x6)) * (sqrt (ups_x x1 x3 x5))))`;;
 
-let beta_cone_t = `!v0 v1 v2 v3.
+let beta_cone_t = `!v0 v1 v2 v3:real^3.
     ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ 
     (dihV v0 v3 v1 v2 = pi/(&2)) ==>
     (dihV v0 v1 v2 v3 = beta (arcV v0 v1 v3) (arcV v0 v1 v2))`;;
 
-let euler_triangle_t = `!v0 v1 v2 v3. 
+let euler_triangle_t = `!v0 v1 v2 v3:real^3. 
     let p = euler_p v0 v1 v2 v3 in
     let (x1,x2,x3,x4,x5,x6) = xlist v0 v1 v2 v3 in
     let alpha1 = dihV v0 v1 v2 v3 in
@@ -148,16 +148,16 @@ let thetapq_wind_t = `!W n thetapq kpq.
     ((!u v.  (W u /\ W v) ==> (polar_angle (FST u) (SND u) = polar_angle (FST v) (SND v))) \/
      (!u. (W u)  ==> (sum(0,n) (\i. thetapq (iter i (polar_cycle W) u) (iter (SUC i) (polar_cycle W) u))  = &2 * pi)) ))`;;
 
-let zenith_t = `!u v w.  ~(u=v) /\ ~(w = v)  ==>
+let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
    (?u' r phi e3.
-        (phi = arcV v u w) /\ (r = d3 u v) /\ ((d3 w v) % e3 = (w-v)) /\
-  (dot3 u' e3 = &0) /\ (u = v + u' + (r*cos(phi)) % e3))`;;
+        (phi = arcV v u w) /\ (r = dist( u, v)) /\ ((dist( w, v)) % e3 = (w-v)) /\
+  ( u' dot e3 = &0) /\ (u = v + u' + (r*cos(phi)) % e3))`;;
 
 let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
         ~(collinear {v,w,u}) /\ ~(collinear {v,w,u'}) /\
-       orthonormal e1 e2 e3 /\ ((d3 v w) % e3 = (v-w)) /\
+       orthonormal e1 e2 e3 /\ ((dist( v, w)) % e3 = (v-w)) /\
   (aff_gt {v,w} {u} e1) /\ (e2 = cross e3 e1) /\
-  (r = d3 v u') /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
+  (r = dist( v, u')) /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
   (u' = u + (r*cos(theta)*sin(phi)) % e1 + (r*sin(theta)*sin(phi)) % e2 
       + (r * cos(phi)) % e3)`;;
 
@@ -183,11 +183,11 @@ let dih_azim_t = `!v w v1 v2.
    ~(collinear {v,w,v1}) /\ ~(collinear {v,w,v2}) ==>
   (cos(azim v w v1 v2) = cos(dihV v w v1 v2))`;;
 
-let sph_triangle_ineq_t = `!p u v w.
+let sph_triangle_ineq_t = `!p u v w:real^3.
    ~(collinear {p,u,w}) /\ ~(collinear {p,u,v}) /\ ~(collinear {p,v,w}) ==>
   (arcV p u w <= arcV p u v + arcV p v w)`;;
 
-let sph_triangle_ineq_sum_t = `!p u r.
+let sph_triangle_ineq_sum_t = `!p:real^3 u r.
    (!i. (i < r) ==> ~(collinear {p,u i, u (SUC i)})) /\
    ~(collinear {p,u 0, u r}) ==>
    (arcV p (u 0) (u r) <= sum(0,r) (\i. arcV p (u i) (u (SUC i))))`;;
@@ -256,7 +256,7 @@ let azim_t = `!v w w1 w2 e1 e2 e3.
                  ~collinear {v, w, w1} /\
                  ~collinear {v, w, w2} /\
                  orthonormal e1 e2 e3 /\
-                 (d3 w v % e3 = w - v)
+                 (dist( w, v) % e3 = w - v)
              ==> &0 <= azim v w w1 w2 /\
                  azim v w w1 w2 < &2 * pi /\
                  &0 < r1 /\
@@ -271,7 +271,7 @@ let azim_t = `!v w w1 w2 e1 e2 e3.
 let azim_cycle_t = `!W proj v w e1 e2 e3 p.
              W p /\
              cyclic_set W v w /\
-             (d3 v w % e3 = w - v) /\
+             (dist( v, w) % e3 = w - v) /\
              orthonormal e1 e2 e3 /\
              (!u x y.
                   proj u = x,y <=> (?h. u = v + x % e1 + y % e2 + h % e3))
@@ -1036,12 +1036,12 @@ module Trig : Trigsig = struct
 	(*   `let (a,b,c) = triple_of_real3 v in P[a,b,c]`                         *)
 	(* Converts it to                                                          *)
 	(*   `P[v$1,v$2,v$3]                                                       *)
-	(* Also handles dot3, d3, norm3, etc.                                      *)
+	(* Also handles etc.                                      *)
 	(* ----------------------------------------------------------------------- *)
 	
 	let KEP_REAL3_CONV = REDEPTH_CONV (CHANGED_CONV 
-		(REWRITE_CONV [dot3; d3; norm3; mk_vec3; real3_of_triple; 
-		               triple_of_real3; orig3] THENC
+		(REWRITE_CONV [ mk_vec3; real3_of_triple; 
+		               triple_of_real3] THENC
 		 TRY_CONV (let_CONV)));;
 
   (* ----------------------------------------------------------------------- *)
@@ -1061,7 +1061,7 @@ module Trig : Trigsig = struct
 
   let arcVarc = prove
 	 (arcVarc_t,
-	  SIMP_TAC [DIST_TRIANGLE_DETAILS; d3; dot3; norm3; arcV; ACS_ARCLENGTH] THEN
+	  SIMP_TAC [DIST_TRIANGLE_DETAILS;  arcV; ACS_ARCLENGTH] THEN
 		REPEAT STRIP_TAC THEN AP_TERM_TAC THEN 
 		REWRITE_TAC [DOT_NORM_NEG; dist] THEN 
 		let tha = NORM_ARITH `norm (v - u) = norm (u - v)` in
@@ -1070,10 +1070,10 @@ module Trig : Trigsig = struct
 		REWRITE_TAC [tha; thb; thc] THEN CONV_TAC REAL_FIELD);;
 
   let DIST_LAW_OF_COS = prove
-	 (`~(u = v) /\ ~(u = w) ==>
+	 (`~(u = v:real^3) /\ ~(u = w) ==>
 	   (dist(v,w)) pow 2 = (dist(u,v)) pow 2 + (dist(u,w)) pow 2 - 
 		                     &2 * (dist(u,v)) * (dist(u,w)) * cos (arcV u v w)`,
-    SIMP_TAC [arcVarc; d3] THEN 
+    SIMP_TAC [arcVarc] THEN 
 		REWRITE_TAC [law_of_cosines; DIST_TRIANGLE_DETAILS]);;
 
   let DIST_L_ZERO = prove
@@ -1082,7 +1082,7 @@ module Trig : Trigsig = struct
 	
   (* I would like to change this to real^N but that means changing arcV to real^N *)
   let DOT_COS = prove 
-	 (`~(vec 0 = u) /\ ~(vec 0 = v) ==>
+	 (`~(vec 0 = u:real^3) /\ ~(vec 0 = v) ==>
      u dot v = (norm u) * (norm v) * cos (arcV (vec 0) u v)`,
     DISCH_TAC THEN IMP_RES_THEN MP_TAC DIST_LAW_OF_COS THEN 
 		SUBGOAL_THEN 
@@ -1191,7 +1191,7 @@ module Trig : Trigsig = struct
 	  
   let cross_triple = prove
 	 (cross_triple_t,
-	  REWRITE_TAC [dot3; DOT_3; CROSS_COMPONENTS] THEN REAL_ARITH_TAC);;
+	  REWRITE_TAC [ DOT_3; CROSS_COMPONENTS] THEN REAL_ARITH_TAC);;
   
 	let NORM_CAUCHY_SCHWARZ_FRAC = prove
 	 (`!(u:real^N) v. ~(u = vec 0) /\ ~(v = vec 0) ==>
@@ -1243,15 +1243,15 @@ module Trig : Trigsig = struct
 		REWRITE_TAC [dist; NORM_POW_2; CROSS_SQUARED] THEN NORM_ARITH_TAC);;
 				
 	let VECTOR_LAW_OF_SINES = prove			
-	 (`~(vec 0 = u) /\ ~(vec 0 = v) ==>
+	 (`~(vec 0 = u:real^3) /\ ~(vec 0 = v) ==>
 	   &2 * (norm u) * (norm v) * sin (arcV (vec 0) u v) =
               sqrt (ups_x (norm u pow 2) (norm v pow 2) (dist (u,v) pow 2))`,
-		 SIMP_TAC [arcVarc; DIST_TRIANGLE_DETAILS; law_of_sines; d3; DIST_L_ZERO]);; 	
+		 SIMP_TAC [arcVarc; DIST_TRIANGLE_DETAILS; law_of_sines; DIST_L_ZERO]);; 	
 						
 	let cross_mag = prove
 	 (cross_mag_t,
 	  REPEAT STRIP_TAC THEN 
-		REWRITE_TAC [arcVarc; dot3; norm3; orig3; VECTOR_SUB_RZERO] THEN
+		REWRITE_TAC [arcVarc; VECTOR_SUB_RZERO] THEN
 		ASM_CASES_TAC `(u:real^3) = vec 0 \/ (v:real^3) = vec 0` THENL
 		[ POP_ASSUM STRIP_ASSUME_TAC THEN 
 		  ASM_REWRITE_TAC [CROSS_LZERO; CROSS_RZERO; NORM_0] THEN REAL_ARITH_TAC ;

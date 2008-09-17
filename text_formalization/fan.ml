@@ -32,13 +32,17 @@ let asfan=prove(`{w,v}={v,w}`, SET_TAC[]);;
 
 let remark_fan1=prove(`!v w E. (w IN set_of_edges v E)<=>(v IN set_of_edges w E)`, REPEAT GEN_TAC THEN REWRITE_TAC[set_of_edges] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[asfan]);;
 
+(* This last part generates an error. -t.hales
+   For example, MATH_MP_TAC is not defined. *)
+
+(*
 let azim_cycle_fan= new_definition`azim_cycle_fan fan x V E  = 
 (?sigma. !v w proj e1 e2 e3. 
-(V v)/\({v,w} IN E)/\((d3 v w) % e3 = (x-v))/\
+(V v)/\({v,w} IN E)/\((d( v, w)) % e3 = (x-v))/\
 (!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) 
 ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w))) `;;
 
-let azim_cycle_fan1= prove (`! fan x V E. ?sigma. !v w proj e1 e2 e3. (azim_cycle_fan) ==> (V v)/\({v,w} IN E)/\((d3 v w) % e3 = (x-v))/\(!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w)))`,
+let azim_cycle_fan1= prove (`! fan x V E. ?sigma. !v w proj e1 e2 e3. (azim_cycle_fan) ==> (V v)/\({v,w} IN E)/\((d( v, w)) % e3 = (x-v))/\(!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w)))`,
 MATH_MP_TAC azim_cycle_spec THEN REWRITE_TAC[azim_cycle_fan]);;
 
 let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;
@@ -52,3 +56,4 @@ let D2=new_definition`D2 fan(x,V,E)={ mk_pair {x,v}|(V v)/\(set_of_edges v E={})
 
 let D=new_definition`D fan(x,V,E)= D1 fan(x,V,E) UNION D2 fan(x,V,E)`;;
 
+*)

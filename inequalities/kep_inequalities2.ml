@@ -1,3 +1,9 @@
+(* This file is a continuation of kep_inequalities.ml.
+   It contains the inequalities related to quad clusters.
+   It also contains some particularly long, tricky, or high-dimensional verifications *)
+
+
+
 (* ----------------------------------------------------------------------- *)
 (* 
 latex-format comment

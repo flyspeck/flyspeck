@@ -270,76 +270,28 @@ LOC: 2002 k.c page 42.
 *)
 
 (* interval verification in partK.cc *)
-let I_572068135=
-   all_forall `ineq 
-    [((square (#2.3)), x1, (#6.3001));
-     ((#4.0), x2, (#6.3001));
-     ((#4.0), x3, (#6.3001));
-     ((#4.0), x4, (#6.3001));
-     ((#4.0), x5, (#6.3001));
-     ((#4.0), x6, (#6.3001))
-    ]
-    (
-            (
-                ( (tau_sigma_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >. 
-                (--. (#0.3442))) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.51)))`;;
+(* moved 572068135 to inequality_spec.ml *)
+
 
 
 
 
 (* interval verification in partK.cc *)
-let I_723700608=
-   all_forall `ineq 
-    [((square (#2.3)), x1, (#6.3001));
-     ((#4.0), x2, (#6.3001));
-     ((#4.0), x3, (#6.3001));
-     ((#4.0), x4, (#6.3001));
-     ((#4.0), x5, (#6.3001));
-     ((#8.0), x6, (square (#3.02)))
-    ]
-    (
-            (
-                ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >. 
-                (--. (#0.1787))) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.26)) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.63)))`;;
+(* moved 723700608 to inequality_spec.ml *)
+
 
 
 
 
 (* interval verification in partK.cc *)
-let I_560470084=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((square (#2.3)), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     (square_2t0, x4, (#8.0));
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-                ( (tauhat_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih2_x x1 x2 x3 x4 x5 x6))) >. 
-                (--. (#0.2137)))`;;
+(* moved 560470084 to inequality_spec.ml *)
+
 
 
 
 (* interval verification in partK.cc *)
-let I_535502975=
-   all_forall `ineq 
-    [((square (#2.3)), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x5, (square (#3.02)));
-     (square_2t0, x6, (square (#3.02)))
-    ]
-    (
-            (
-                ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >. 
-                (--. (#0.1371))) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.14)) \/ 
-            ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#1.51)))`;;
+(* moved 535502975 to inequality_spec.ml *)
+
 
 
 
@@ -351,7 +303,7 @@ LOC: 2002 k.c page 42
 
 
 
-(* let I_821707685= *)
+(* let I_821_707685= *)
 (*    all_forall `ineq  *)
 (*     [((#4.0), x1, (#6.3001)); *)
 (*      ((#4.0), x2, (square (#2.168))); *)
@@ -364,152 +316,48 @@ LOC: 2002 k.c page 42
 
 (* Added delta_x > 0, Jan 2008 *)
 (* interval verification by Ferguson *)
-let I_821707685=
-   all_forall `ineq 
-    [((#4.0), x1, (#6.3001));
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, (#6.3001));
-     ((#4.0), x5, (#6.3001));
-     (square_2t0, x6, square_4t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.63) \/ 
-      (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
-(* interval verification by Ferguson *)
-let I_115383627=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.51) \/
-      (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0)) `;;
-
-(* interval verification by Ferguson *)
-let I_576221766=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#8.0), x4, (#8.0));
-     ((#4.0), x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.93) \/
-      (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
+(* moved 821707685 to inequality_spec.ml *)
 
 
 (* interval verification by Ferguson *)
-let I_122081309=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#8.0), x4, (#8.0));
-     (square_2t0, x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.77) \/
-      (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
+(* moved 115383627 to inequality_spec.ml *)
 
 
 (* interval verification by Ferguson *)
-let I_644534985=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    (
-         (
-           ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.2391))) \/ 
-           ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
-           (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
-
-(* interval verification by Ferguson *)
-let I_467530297=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    (
-         (
-           ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.1376))) \/ 
-           ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
-           (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
-
-(* interval verification by Ferguson *)
-let I_603910880=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     (square_2t0, x4, (#8.0));
-     ((#4.0), x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    (
-         (
-            ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.266))) \/ 
-           ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
-           (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
-(* interval verification by Ferguson *)
-let I_135427691=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     (square_2t0, x4, (#8.0));
-     (square_2t0, x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    (
-         (
-            ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.12))) \/ 
-           ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.2)) \/
-           (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
-
-(* interval verification by Ferguson *)
-let I_60314528=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, (#4.0));
-     (square_2t0, x5, square_2t0);
-     (square_2t0, x6, square_4t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.16) \/
-        (delta_x x1 x2 x3 x4 x5 x6) <. (#0.0))`;;
+(* moved 576221766 to inequality_spec.ml *)
 
 
 
 (* interval verification by Ferguson *)
-let I_312132053=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x5, (square (#3.488)));
-     (square_2t0, x6, square_2t0)
-    ]
-    (
-      ( (tau_0_x x1 x2 x3 x4 x5 x6) -.  (  (#0.2529) *.  (dih_x x1 x2 x3 x4 x5 x6))) >.  (--. (#0.1453)))`;;
+(* moved 122081309 to inequality_spec.ml *)
+
+
+
+(* interval verification by Ferguson *)
+(* moved 644534985 to inequality_spec.ml *)
+
+
+
+(* interval verification by Ferguson *)
+(* moved 467530297 to inequality_spec.ml *)
+
+
+
+(* interval verification by Ferguson *)
+(* moved 603910880 to inequality_spec.ml *)
+
+
+(* interval verification by Ferguson *)
+(* moved 135427691 to inequality_spec.ml *)
+
+
+(* interval verification by Ferguson *)
+(* moved 60314528 to inequality_spec.ml *)
+
+
+(* interval verification by Ferguson *)
+(* moved 312132053 to inequality_spec.ml *)
+
 
 
 
@@ -520,16 +368,8 @@ LOC: 2002 k.c page 42
 17.3 Group_3
 *)
 
-let I_751442360=
-   all_forall `ineq 
-    [(square_2t0, x1, (square (#2.696)));
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih2_x x1 x2 x3 x4 x5 x6) >.  (#0.74))`;;
+(* moved 751442360 to inequality_spec.ml *)
+
 
 
 
@@ -554,17 +394,10 @@ let I_893059266=
 (* 
 Added delta constraint, 3/9/08
 *)
-let I_690646028=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.168)));
-     ((#4.0), x3, (square (#2.168)));
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x5, square_4t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (dih_x x1 x2 x3 x4 x5 x6) +.  (  (#0.5) *.  ( (#2.402) -.  (sqrt x4)))) <.  (  pi /  (#2.0)) \/
-     (delta_x x1 x2 x3 x4 x5 x6 < (#0.0)))`;;
+
+(* mistyped as 69064028 *)
+(* moved 69064028 to inequality_spec.ml *)
+
 
 
 
@@ -7591,30 +7424,47 @@ group hash codes spIV :
 Here are the composite inequalities 
 for the various groups:
 
+
 CIVA1_193836552
+
 CIVA2_815492935
+
 CIVA3_729988292
+
 CIVA4_531888597
+
 CIVA5_628964355
 CIVA6_934150983
+
 CIVA7_187932932
+
 CIVA8_83777706
+
 CIVA9_618205535
+
 CIVA10_73974037
+
 
 CIVA11_764978100
 CIVA12_855294746
+
+
 CIVA13_148776243
 CIVA14_984628285
+
 CIVA15_311189443
+
 CIVA16_163548682
 CIVA17_852270725
 CIVA18_819209129
+
 CIVA19_128523606
 CIVA20_874876755
 
+
 CIVA21_692155251
 CIVA22_485049042
+
 CIVA23_209361863
 CIVA24_835344007
 
@@ -7630,37 +7480,26 @@ Section A1
 It says we may assume y6=2, and equality is entered below in the bounds
 *)
 (* interval verification by Ferguson *)
-let I_757995764=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, (square (#2.23)));
-     ((#4.0), x3, (square (#2.23)));
-     ((square (#2.77)), x4, (#8.0));
-    
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, (#4.0))
-    ]
-    (
-            (beta (acs (  (sqrt x1) /  (#2.77))) (arclength (sqrt x1) (sqrt x3) (sqrt x5))) <. 
-            (dih3_x x1 x2 x3 x4 x5 x6))`;;
+(* moved 757995764 to inequality_spec.ml *)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 (* interval verification by Ferguson *)
-let I_735258244=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((square (#3.2)), x4, (square (#3.2)));
-    
-        (square_2t0, x5, square_2t0);
-     ((#4.0), x6, (#4.0))
-    ]
-    (
-            (beta (acs (  (sqrt x1) /  (#2.51))) (arclength (sqrt x1) (sqrt x3) (sqrt x5))) <. 
-            (dih3_x x1 x2 x3 x4 x5 x6))`;;
+(* moved 735258244 to inequality_spec.ml *)
+
 
 
 
@@ -7679,6 +7518,13 @@ let I_343330051=
     (
             (beta (arclength (sqrt x1) t0 (#1.6)) (arclength (sqrt x1) (sqrt x2) (sqrt x6))) <. 
             (dih2_x x1 x2 x3 x4 x5 x6))`;;
+
+
+
+
+
+
+
 
 
 
@@ -9520,12 +9366,8 @@ Handwritten note says to change ( >=. ) to ( >. )
  overlap_f is the function of 1998:IV.4.11, or 2002,IV,Sec.4.14
 *)
 (* interval verification by Ferguson *)
-let I_115756648=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0)
-    ]
-    ( (overlap_f (sqrt x1) (sqrt x2)) >.  (#0.887))`;;
+(* moved 115756648 to inequality_spec.ml *)
+
 
 
 let CIVA14_984628285 = list_mk_conj 
@@ -11553,45 +11395,18 @@ Sec. 10. Group 1.
 
 
 
-let J_586468779=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <=.  pt)`;;
+(* moved 586468779 to inequality_spec.ml *)
 
 
 
-let J_984463800=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) <.  (#1.874445))`;;
+
+(* moved 984463800 to inequality_spec.ml *)
 
 
 
-let J_208809199=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (dih_x x1 x2 x3 x4 x5 x6) >.  (#0.8638))`;;
+
+(* moved 208809199 to inequality_spec.ml *)
+
 
 
 
@@ -11837,16 +11652,8 @@ let J_221945658=
 
 
 (* interval verification in part3.cc, but labeled there as C47923787 *)
-let J_53415898=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (sigma1_qrtet_x x1 x2 x3 x4 x5 x6) <=.  (#0.0))`;;
+(* moved 53415898 to inequality_spec.ml *)
+
 
 
 (* interval verification in part3.cc, but labeled there as C156673846 *)
@@ -12017,11 +11824,13 @@ let J_73203677=
             ( (  (--. (#0.419351)) *.  (sol_x x1 x2 x3 x4 x5 x6)) +. 
                (  (--. (#0.64713719)) *.  (dih_x x1 x2 x3 x4 x5 x6)) +.  (#1.3225)))`;;
 
+
 let C_830854305 = list_mk_conj[   
    J_539256862;J_864218323;J_776305271;J_927432550;J_221945658;
    J_53415898;J_106537269;J_254627291;J_170403135;J_802409438;
    J_195296574;J_16189133;J_584511898;J_98170671;J_868828815;
    J_809197575;J_73203677;];;
+
 
 (*
 SKIP statement about Quad clusters at end of Group_3
@@ -12172,10 +11981,12 @@ let J_904445624=
                (  (#0.2384) *.  ( (dih_x x1 x2 x3 x4 x5 x6) +.  (dih2_x x1 x2 x3 x4 x5 x6) +. 
                             (dih3_x x1 x2 x3 x4 x5 x6)))))`;;
 
+
 let C_636208429 = 
   list_mk_conj[ 
    J_550901847;J_559163627;J_571492944;J_471806843;J_610154063;
    J_466112442;J_904445624;];;
+
 
 let J_241241504=
    all_forall `ineq 
@@ -12191,16 +12002,8 @@ let J_241241504=
 
 (* Added March 10, 2005.  Requested by Lagarias for DCG *)
 (* Note to Google flyspeck group, March 10, 2005 *)
-let J_241241504_1=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((square (#2.177303)), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <.  (  #0.028794285 ))`;; (* STM, added '#' *)
+(* moved 241241504_1 to inequality_spec.ml *)
+ 
 
 let J_144820927=
    all_forall `ineq 
@@ -12217,18 +12020,8 @@ let J_144820927=
 
 
 
-let J_82950290=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, (square (#2.177303)));
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (sigma_qrtet_x x1 x2 x3 x4 x5 x6) <. 
-                ( (#0.31023815) +.  (  (--. (#0.207045)) *.  (dih_x x1 x2 x3 x4 x5 x6))))`;;
+(* moved 82950290 to inequality_spec.ml *)
+
 
 
 
@@ -12292,9 +12085,11 @@ let J_413792383=
                 (  (--. (#0.207045)) *.  ( (dih_x x1 x2 x3 x4 x5 x6) +.  (dih2_x x1 x2 x3 x4 x5 x6) +. 
                                 (dih3_x x1 x2 x3 x4 x5 x6)))))`;;
 
+
 let C_129662166 = list_mk_conj [ 
    J_241241504;J_144820927;J_82950290;J_938408928;J_739415811;
    J_898558502;J_413792383;];;
+
 
 
 
@@ -13198,79 +12993,23 @@ vorAnalytic @@ yy
 
 *)
 
-let J_629256313=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-    
-         (square_2t0, x5, (#8.0));
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-            ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >. (sqrt (#2.0))) \/ 
-            ( (eta_x x2 x3 x4) >. (sqrt (#2.0))) \/ 
-            ( (eta_x x1 x3 x5) >. (sqrt (#2.0))) \/ 
-            ( (eta_x x4 x5 x6) >. (sqrt (#2.0))))`;;
+(* moved 629256313 to inequality_spec.ml *)
+
 
 (* eta_x constraint fixed 2/1/2008 *)
 
-let J_917032944=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-    
-         (square_2t0, x5, (#8.0));
-     (square_2t0, x6, (#8.0))
-    ]
-    (
-            ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
+(* moved 917032944 to inequality_spec.ml *)
+
 
 (* eta_x constraint fixed 2/1/2008 *)
 
-let J_738318844=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-         (square_2t0, x4, (#8.0));
-     (square_2t0, x5, (#8.0));
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-            ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
+(* moved 738318844 to inequality_spec.ml *)
+
 
 (* eta_x constraint fixed 2/1/2008 *)
 
-let J_587618947=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-         (square_2t0, x4, (#8.0));
-     (square_2t0, x5, (#8.0));
-     (square_2t0, x6, (#8.0))
-    ]
-    (
-            ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x2 x3 x4) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x1 x3 x5) >.  (sqrt (#2.0))) \/ 
-            ( (eta_x x4 x5 x6) >.  (sqrt (#2.0))))`;;
+(* moved 587618947 to inequality_spec.ml *)
+
 
 
 (*
@@ -13282,22 +13021,8 @@ let J_587618947=
  of equality.
 *)
 
-let J_346093004=
-   all_forall `ineq 
-    [((#4.0), x1, square_2t0);
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-         (square_2t0, x4, (#8.0));
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (
-            ( (gamma_x x1 x2 x3 x4 x5 x6) <=.  (#0.0)) \/ 
-            ( (eta_x x1 x2 x6) >.  (#2.0)) \/ 
-            ( (eta_x x2 x3 x4) >.  (#2.0)) \/ 
-            ( (eta_x x1 x3 x5) >.  (#2.0)) \/ 
-            ( (eta_x x4 x5 x6) >.  (#2.0)))`;;
+(* moved 346093004 to inequality_spec.ml *)
+
 
 
 
@@ -13329,17 +13054,8 @@ LOC: 2002 Form, Appendix 1, page 19
 
 *)
 
-let J_5901405=
-   all_forall `ineq 
-    [((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     (square_2t0, x1, (#8.0));
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    (( (vor_analytic_x x1 x2 x3 x4 x5 x6) <=.  (#0.0)) \/
-    (chi_x x5 x6 x1  x2 x3 x4 >. (#0.0)   ))`;;
+(* moved 5901405 to inequality_spec.ml *)
+
 
 
 (*
@@ -13347,55 +13063,24 @@ LOC: 2002 Form, Appendix 1, page 19
  2002_Calc_3.13.2:
  We need that equality implies that x1=8 and the other edges are 4.0.
 *)
-let J_40003553=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (vor_analytic_x x1 x2 x3 x4 x5 x6) <=.  (#0.0))`;;
+(* moved 40003553 to inequality_spec.ml *)
+
 
 
 (*
 LOC: 2002 Form, Appendix 1, page 19
  2002_Calc_3.13.3
 *)
-let J_522528841=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-    
-        ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (  (#2.0) *.  (gamma_x x1 x2 x3 x4 x5 x6)) +.  
-       (vor_0_x x1 x2 x3 x4 x5 x6) +. 
-     (( --. ) (vor_0_x_flipped x1 x2 x3 x4 x5 x6))) <=.  (#0.0))`;;
+(* moved 522528841 to inequality_spec.ml *)
+
 
 
 (*
 LOC: 2002 Form, Appendix 1, page 19
  2002_Calc_3.13.4
 *)
-let J_892806084=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (vor_analytic_x x1 x2 x3 x4 x5 x6) +.  
-     (vor_analytic_x_flipped x1 x2 x3 x4 x5 x6) +. 
-               (vor_0_x x1 x2 x3 x4 x5 x6) +.  
-      (( --. ) (vor_0_x_flipped x1 x2 x3 x4 x5 x6))) <=.  (#0.0))`;;
+(* moved 892806084 to inequality_spec.ml *)
+
 
 
 (*
@@ -13434,20 +13119,8 @@ Point: [7.50977085644, 4.00000080978, 5.91871675372, 4.00003052831, 5.9187466424
 eta_x are near sqrt 2
 
 *)
-let J_554253147=
-   all_forall `ineq 
-    [        
-     (square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4,square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (mu_upright_x x1 x2 x3 x4 x5 x6) +.  (mu_flipped_x x1 x2 x3 x4 x5 x6) +. 
-           (  (crown (  (sqrt x1) /  (#2.0))) *.  ( (#1.0) +.  (  (( --. ) (dih_x x1 x2 x3 x4 x5 x6)) /  pi))) +. 
-           (  (#2.0) *.  (anc (sqrt x1) (sqrt x2) (sqrt x6)))) <. 
-           ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x_flipped x1 x2 x3 x4 x5 x6)))`;;
+(* moved 554253147 to inequality_spec.ml *)
+
 
 
 (*
@@ -13458,24 +13131,16 @@ CCC Fixed bounds.
 crown[Sqrt[2.575]] --> 0
 *)
 
-let J_906566422=
-   all_forall `ineq 
-    [((square (#1.255)), x, (#2.0))
-    ]
-    ( (crown (sqrt x)) <.  (--. (#0.1378)))`;;
+(* moved 906566422 to inequality_spec.ml *)
+
 
 
 (*
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.3:
 *)
-let J_703457064=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( (anc (sqrt x1) (sqrt x2) (sqrt x6)) <.  (#0.0263))`;;
+(* moved 703457064 to inequality_spec.ml *)
+
 
 
 
@@ -13483,37 +13148,16 @@ let J_703457064=
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.4
 *)
-let J_175514843=
-   all_forall `ineq 
-    [(square_2t0, x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (mu_upright_x x1 x2 x3 x4 x5 x6) +. 
-           (  (--. (#0.1378)) *.  ( (#1.0) +.  (  (( --. ) (dih_x x1 x2 x3 x4 x5 x6)) /  (  (#2.0) *.  pi)))) +. 
-           (  (#2.0) *.  (#0.0263))) <. 
-           (vor_0_x x1 x2 x3 x4 x5 x6))`;;
+(* moved 175514843 to inequality_spec.ml *)
+
 
 
 (*
 LOC: 2002 Form, Appendix 1, page 20
  2002_Formulation_4.7.5
 *)
-let J_855677395=
-   all_forall `ineq 
-    [((square (#2.69)), x1, (#8.0));
-     ((#4.0), x2, square_2t0);
-     ((#4.0), x3, square_2t0);
-     ((#4.0), x4, square_2t0);
-     ((#4.0), x5, square_2t0);
-     ((#4.0), x6, square_2t0)
-    ]
-    ( ( (mu_upright_x x1 x2 x3 x4 x5 x6) +.  (mu_flipped_x x1 x2 x3 x4 x5 x6)) <. 
-           ( (vor_0_x x1 x2 x3 x4 x5 x6) +.  (vor_0_x_flipped x1 x2 x3 x4 x5 x6) +. 
-              (  (#0.02) *.  ( (  pi /  (#2.0)) +.  (( --. ) (dih_x x1 x2 x3 x4 x5 x6))))))`;;
+(* moved 855677395 to inequality_spec.ml *)
+
 
 
 
@@ -13908,51 +13552,8 @@ Finished transaction in 2. secs (1.963554u,0.021168s)
  (* upper bound on x4 changed 3/7/08, new domain *)
 *)
 
-let I_2298281931=
-all_forall `ineq
-   [
-   ((#4.0),x1,square_2t0);
-   ((#4.0),x2,square_2t0);
-   ((#4.0),x3,square_2t0);
-   ((#4.0),x4,(#8.0)); 
-   ((#4.0),x5,square_2t0);
-   ((#4.0),x6,(#8.0))
-   ]
-   (((x1 pow 5)*x4 - (&2)*(x1 pow 4)*x2*x4 + (x1 pow 3)*(x2 pow 2)*x4 - (&2)*(x1 pow 4)*x3*x4 + 
-   (&4)*(x1 pow 3)*x2*x3*x4 - (&2)*(x1 pow 2)*(x2 pow 2)*x3*x4 + (x1 pow 3)*(x3 pow 2)*x4 - 
-   (&2)*(x1 pow 2)*x2*(x3 pow 2)*x4 + x1*(x2 pow 2)*(x3 pow 2)*x4 - (x1 pow 4)*x2*x5 + 
-   (&2)*(x1 pow 3)*(x2 pow 2)*x5 - (x1 pow 2)*(x2 pow 3)*x5 + (x1 pow 4)*x3*x5 - 
-   (x1 pow 3)*x2*x3*x5 - (x1 pow 2)*(x2 pow 2)*x3*x5 + x1*(x2 pow 3)*x3*x5 - 
-   (x1 pow 3)*(x3 pow 2)*x5 + (&2)*(x1 pow 2)*x2*(x3 pow 2)*x5 - 
-   x1*(x2 pow 2)*(x3 pow 2)*x5 - (&2)*(x1 pow 4)*x4*x5 + (&4)*(x1 pow 3)*x2*x4*x5 - 
-   (&2)*(x1 pow 2)*(x2 pow 2)*x4*x5 + (&2)*(x1 pow 3)*x2*(x5 pow 2) - 
-   (&4)*(x1 pow 2)*(x2 pow 2)*(x5 pow 2) + (&2)*x1*(x2 pow 3)*(x5 pow 2) - 
-   (x1 pow 3)*x3*(x5 pow 2) + (&3)*(x1 pow 2)*x2*x3*(x5 pow 2) - 
-   (&3)*x1*(x2 pow 2)*x3*(x5 pow 2) + (x2 pow 3)*x3*(x5 pow 2) + (x1 pow 3)*x4*(x5 pow 2) - 
-   (&2)*(x1 pow 2)*x2*x4*(x5 pow 2) + x1*(x2 pow 2)*x4*(x5 pow 2) - 
-   (x1 pow 2)*x2*(x5 pow 3) + (&2)*x1*(x2 pow 2)*(x5 pow 3) - (x2 pow 3)*(x5 pow 3) + 
-   (x1 pow 4)*x2*x6 - (x1 pow 3)*(x2 pow 2)*x6 - (x1 pow 4)*x3*x6 - (x1 pow 3)*x2*x3*x6 + 
-   (&2)*(x1 pow 2)*(x2 pow 2)*x3*x6 + (&2)*(x1 pow 3)*(x3 pow 2)*x6 - 
-   (x1 pow 2)*x2*(x3 pow 2)*x6 - x1*(x2 pow 2)*(x3 pow 2)*x6 - (x1 pow 2)*(x3 pow 3)*x6 + 
-   x1*x2*(x3 pow 3)*x6 - (&2)*(x1 pow 4)*x4*x6 + (&4)*(x1 pow 3)*x3*x4*x6 - 
-   (&2)*(x1 pow 2)*(x3 pow 2)*x4*x6 - (x1 pow 3)*x2*x5*x6 + (&3)*(x1 pow 2)*(x2 pow 2)*x5*x6 - 
-   (x1 pow 3)*x3*x5*x6 - (&4)*(x1 pow 2)*x2*x3*x5*x6 + x1*(x2 pow 2)*x3*x5*x6 + 
-   (&3)*(x1 pow 2)*(x3 pow 2)*x5*x6 + x1*x2*(x3 pow 2)*x5*x6 - 
-   (&2)*(x2 pow 2)*(x3 pow 2)*x5*x6 + (&4)*(x1 pow 3)*x4*x5*x6 - (&4)*x1*x2*x3*x4*x5*x6 - 
-   (x1 pow 2)*x2*(x5 pow 2)*x6 - (&3)*x1*(x2 pow 2)*(x5 pow 2)*x6 + 
-   (&2)*(x1 pow 2)*x3*(x5 pow 2)*x6 + x1*x2*x3*(x5 pow 2)*x6 + (x2 pow 2)*x3*(x5 pow 2)*x6 - 
-   (&2)*(x1 pow 2)*x4*(x5 pow 2)*x6 + x1*x2*(x5 pow 3)*x6 + (x2 pow 2)*(x5 pow 3)*x6 - 
-   (x1 pow 3)*x2*(x6 pow 2) + (&2)*(x1 pow 3)*x3*(x6 pow 2) + 
-   (&3)*(x1 pow 2)*x2*x3*(x6 pow 2) - (&4)*(x1 pow 2)*(x3 pow 2)*(x6 pow 2) - 
-   (&3)*x1*x2*(x3 pow 2)*(x6 pow 2) + (&2)*x1*(x3 pow 3)*(x6 pow 2) + 
-   x2*(x3 pow 3)*(x6 pow 2) + (x1 pow 3)*x4*(x6 pow 2) - (&2)*(x1 pow 2)*x3*x4*(x6 pow 2) + 
-   x1*(x3 pow 2)*x4*(x6 pow 2) + (&2)*(x1 pow 2)*x2*x5*(x6 pow 2) - 
-   (x1 pow 2)*x3*x5*(x6 pow 2) + x1*x2*x3*x5*(x6 pow 2) - (&3)*x1*(x3 pow 2)*x5*(x6 pow 2) + 
-   x2*(x3 pow 2)*x5*(x6 pow 2) - (&2)*(x1 pow 2)*x4*x5*(x6 pow 2) - 
-   x1*x2*(x5 pow 2)*(x6 pow 2) - x1*x3*(x5 pow 2)*(x6 pow 2) - 
-   (&2)*x2*x3*(x5 pow 2)*(x6 pow 2) + x1*x4*(x5 pow 2)*(x6 pow 2) - 
-   (x1 pow 2)*x3*(x6 pow 3) + (&2)*x1*(x3 pow 2)*(x6 pow 3) - (x3 pow 3)*(x6 pow 3) + 
-   x1*x3*x5*(x6 pow 3) + (x3 pow 2)*x5*(x6 pow 3)) < (#0.0))`;;
+(* moved 2298281931 to inequality_spec.ml *)
+
 
 
 (* End of Sphere Packings V, DCG, Ferguson's thesis *)

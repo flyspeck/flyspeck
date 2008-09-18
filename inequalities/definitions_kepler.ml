@@ -707,17 +707,21 @@ let pi_prime_sigma = kepler_def
 (* themselves are changed radically), but it might be better to just get    *)
 (* rid of most of them.                                                     *)
 
-let dot3 = new_definition `dot3 (v:real^3) w = v dot w`;;
+(* deprecated *)
+(* let dot3 = new_definition `dot3 (v:real^3) w = v dot w`;; *)
 
-let norm3 = new_definition `norm3 (v:real^3) = norm v`;;
+(* deprecated *)
+(* let norm3 = new_definition `norm3 (v:real^3) = norm v`;; *)
 
-let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;;
+(* deprecated *) (* let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;; *)
 
 (* No need for this one.  "basis" does something similar. *)
 (*
 let dirac_delta = new_definition `dirac_delta (i:num) = 
      (\j. if (i=j) then (&1) else (&0))`;;
 *)
+
+
 
 let mk_vec3 = new_definition `mk_vec3 a b c = vector[a; b; c]`;;
 
@@ -726,11 +730,13 @@ let real3_of_triple = new_definition `real3_of_triple (a,b,c) = (mk_vec3 a b c):
 let triple_of_real3 = new_definition `triple_of_real3 (v:real^3) = 
     (v$1, v$2, v$3)`;;
 
-let orig3 = new_definition `orig3 = (vec 0):real^3`;;
+(* deprecated *)
+(* let orig3 = new_definition `orig3 = (vec 0):real^3`;; *)
 
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
 (* ------------------------------------------------------------------ *)
+
 
 
 (* find point in euclidean 3 space atdistance a b c 
@@ -806,6 +812,7 @@ Can be uniquely extended to all cases, by setting azim_cycle W v w p = p, when t
 
 *)
 
+
 (* from convex.ml:  *)
 
 let affine = new_definition
@@ -875,20 +882,27 @@ let aff_le_def = new_definition `aff_le = affsign sgn_le`;;
 *)
 
 
+(* SWSAMQE *)
+
+let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) < dist( x, w)) }`;;
+
+let voronoi_le = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) <= dist( x, w)) }`;;
 
 
-let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
 
-
-
-
+(* LFQMLPU *)
 
 let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = affine hull {v,w}))`;;
+
 (* Done in Harrison's Multilinear/vectors.ml (Feb 2008 release only)   : let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; *)
 (* repeat of definition for 2.20 version *)
+(* PPZSAYG *)
 let collinear = new_definition
  `collinear s <=> ?u. !x y. x IN s /\ y IN s ==> ?c. x - y = c % u`;;
 
+(* BUGLQNN *)
+(* MHHXNTW *)
+(* QTQNLKK *)
 
 let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = affine hull {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
@@ -897,9 +911,24 @@ let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
 let closed_half_space = new_definition `closed_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_ge {u,v,w} {w'}))`;;
 let open_half_space = new_definition `open_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_gt {u,v,w} {w'}))`;;
 
+(* WMJHKBL *)
+let bis = new_definition `bis u v:real^3 = {x | dist(x,u) = dist(x,v)}`;;
+
+(* TIWZVEW *)
+let bis_le = new_definition `bis_le u v = {x | dist(x,u) <= dist(x,v) }`;;
+let bis_lt = new_definition `bis_lt u v = {x | dist(x,u) < dist(x,v) }`;;
+
+(* XCJABYH *)
+let circumcenter = new_definition `circumcenter S = {v | ?c. !s. (S s) ==> (c = dist(v,s))}`;;
+
+(* XPLPHNG *)
+(*
+let circumrad2 = new_definition `
+*)
+
 (* ANGLE *)
 
-let arcV = new_definition `arcV u v w = acs ((dot3 (v - u) (w - u))/((norm3 (v-u)) * (norm3 (w-u))))`;;
+let arcV = new_definition `arcV u v w = acs (( (v - u) dot (w - u))/((norm (v-u)) * (norm (w-u))))`;;
 
 let cross = new_definition `cross u v = let (x,y,z) = triple_of_real3 u in 
       let (x',y',z') = triple_of_real3 v in
@@ -909,14 +938,14 @@ let dihV = new_definition  `dihV w0 w1 w2 w3 =
      let va = w2 - w0 in
      let vb = w3 - w0 in
      let vc = w1 - w0 in
-     let vap = (dot3 vc vc) % va - (dot3 va vc) % vc in
-     let vbp = (dot3 vc vc) % vb - (dot3 vb vc) % vc in
-       arcV orig3 vap vbp`;;
+     let vap = ( vc dot vc) % va - ( va dot vc) % vc in
+     let vbp = ( vc dot vc) % vb - ( vb dot vc) % vc in
+       arcV (vec 0) vap vbp`;;
 
 (* conventional ordering on variables *)
 
 let ylist = new_definition `ylist w0 w1 w2 w3 = 
-      ((d3 w0 w1),(d3 w0 w2),(d3 w0 w3),(d3 w2 w3),(d3 w1 w3),(d3 w1 w2))`;;
+      ((dist (w0, w1)),(dist( w0, w2)),(dist( w0, w3)),(dist( w2, w3)),(dist( w1, w3)),(dist( w1, w2)))`;;
 
 let xlist = new_definition `xlist w0 w1 w2 w3 =
     let (y1,y2,y3,y4,y5,y6) = ylist w0 w1 w2 w3 in
@@ -927,7 +956,7 @@ let euler_p = new_definition `euler_p v0 v1 v2 v3 =
      let w1 = v1 - v0 in
      let w2 = v2 - v0 in
      let w3 = v3 - v0 in
-    y1*y2*y3 + y1*(dot3 w2 w3) + y2*(dot3 w3 w1) + y3*(dot3 w1 w2))`;;
+    y1*y2*y3 + y1*( w2 dot w3) + y2*( w3 dot w1) + y3*( w1 dot w2))`;;
 
 (* polar coordinates *)
 
@@ -967,14 +996,14 @@ let polar_power = new_specification ["polar_power"] polar_power_spec;;
 *)
 
 let orthonormal = new_definition `orthonormal e1 e2 e3 = 
-     ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
-     (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
-     (&0 < dot3 (cross e1 e2) e3))`;;
+     (( e1 dot e1 = &1) /\ (e2 dot e2 = &1) /\ ( e3 dot e3 = &1) /\
+     ( e1 dot e2 = &0) /\ ( e1 dot e3 = &0) /\ ( e2 dot e3 = &0) /\
+     (&0 <  (cross e1 e2) dot e3))`;;
 
 (* spherical coordinates *)
 let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
    (w2 = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
@@ -982,7 +1011,7 @@ let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?p
 let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
    (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
    (w2 = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
@@ -1004,14 +1033,14 @@ let cyclic_set = new_definition `cyclic_set W v w =
 let azim_cycle_hyp_def = new_definition `azim_cycle_hyp = 
   (?sigma.  !W proj v w e1 e2 e3 p. 
         (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((dist( v ,w)) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3))) ==>
 	(proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p)))`;;
 
 let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
    (azim_cycle_hyp) ==> ( (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((dist( v ,w)) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3)))) ==> (proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p))`,
 	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
@@ -1019,6 +1048,56 @@ let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
 	   );;
 
 let azim_cycle_def = new_specification ["azim_cycle"] azim_cycle_spec;;	
+
+
+(* ------------------------------------------------------------------ *)
+(*   Definitions from the Collection in Elementary Geometry           *)
+(* ------------------------------------------------------------------ *)
+
+(* EDSFZOT *)
+
+let cayleyR = new_definition `cayleyR x12 x13 x14 x15  x23 x24 x25  x34 x35 x45 = 
+  -- (x14*x14*x23*x23) + &2 *x14*x15*x23*x23 - x15*x15*x23*x23 + &2 *x13*x14*x23*x24 - &2 *x13*x15*x23*x24 - &2 *x14*x15*x23*x24 + 
+   &2 *x15*x15*x23*x24 - x13*x13*x24*x24 + &2 *x13*x15*x24*x24 - x15*x15*x24*x24 - &2 *x13*x14*x23*x25 + 
+   &2 *x14*x14*x23*x25 + &2 *x13*x15*x23*x25 - &2 *x14*x15*x23*x25 + &2 *x13*x13*x24*x25 - &2 *x13*x14*x24*x25 - &2 *x13*x15*x24*x25 + 
+   &2 *x14*x15*x24*x25 - x13*x13*x25*x25 + &2 *x13*x14*x25*x25 - x14*x14*x25*x25 + &2 *x12*x14*x23*x34 - &2 *x12*x15*x23*x34 - 
+   &2 *x14*x15*x23*x34 + &2 *x15*x15*x23*x34 + &2 *x12*x13*x24*x34 - &2 *x12*x15*x24*x34 - &2 *x13*x15*x24*x34 + &2 *x15*x15*x24*x34 + 
+   &4 *x15*x23*x24*x34 - &2 *x12*x13*x25*x34 - &2 *x12*x14*x25*x34 + &4 *x13*x14*x25*x34 + &4 *x12*x15*x25*x34 - &2 *x13*x15*x25*x34 - &2 *x14*x15*x25*x34 - 
+   &2 *x14*x23*x25*x34 - &2 *x15*x23*x25*x34 - &2 *x13*x24*x25*x34 - &2 *x15*x24*x25*x34 + &2 *x13*x25*x25*x34 + &2 *x14*x25*x25*x34 - 
+   x12*x12*x34*x34 + &2 *x12*x15*x34*x34 - x15*x15*x34*x34 + &2 *x12*x25*x34*x34 + &2 *x15*x25*x34*x34 - 
+   x25*x25*x34*x34 - &2 *x12*x14*x23*x35 + &2 *x14*x14*x23*x35 + &2 *x12*x15*x23*x35 - &2 *x14*x15*x23*x35 - &2 *x12*x13*x24*x35 + 
+   &4 *x12*x14*x24*x35 - &2 *x13*x14*x24*x35 - &2 *x12*x15*x24*x35 + &4 *x13*x15*x24*x35 - &2 *x14*x15*x24*x35 - &2 *x14*x23*x24*x35 - &2 *x15*x23*x24*x35 + 
+   &2 *x13*x24*x24*x35 + &2 *x15*x24*x24*x35 + &2 *x12*x13*x25*x35 - &2 *x12*x14*x25*x35 - &2 *x13*x14*x25*x35 + &2 *x14*x14*x25*x35 + 
+   &4 *x14*x23*x25*x35 - &2 *x13*x24*x25*x35 - &2 *x14*x24*x25*x35 + &2 *x12*x12*x34*x35 - &2 *x12*x14*x34*x35 - &2 *x12*x15*x34*x35 + 
+   &2 *x14*x15*x34*x35 - &2 *x12*x24*x34*x35 - &2 *x15*x24*x34*x35 - &2 *x12*x25*x34*x35 - &2 *x14*x25*x34*x35 + &2 *x24*x25*x34*x35 - 
+   x12*x12*x35*x35 + &2 *x12*x14*x35*x35 - x14*x14*x35*x35 + &2 *x12*x24*x35*x35 + &2 *x14*x24*x35*x35 - 
+   x24*x24*x35*x35 + &4 *x12*x13*x23*x45 - &2 *x12*x14*x23*x45 - &2 *x13*x14*x23*x45 - &2 *x12*x15*x23*x45 - &2 *x13*x15*x23*x45 + 
+   &4 *x14*x15*x23*x45 + &2 *x14*x23*x23*x45 + &2 *x15*x23*x23*x45 - &2 *x12*x13*x24*x45 + &2 *x13*x13*x24*x45 + &2 *x12*x15*x24*x45 - 
+   &2 *x13*x15*x24*x45 - &2 *x13*x23*x24*x45 - &2 *x15*x23*x24*x45 - &2 *x12*x13*x25*x45 + &2 *x13*x13*x25*x45 + &2 *x12*x14*x25*x45 - 
+   &2 *x13*x14*x25*x45 - &2 *x13*x23*x25*x45 - &2 *x14*x23*x25*x45 + &4 *x13*x24*x25*x45 + &2 *x12*x12*x34*x45 - &2 *x12*x13*x34*x45 - 
+   &2 *x12*x15*x34*x45 + &2 *x13*x15*x34*x45 - &2 *x12*x23*x34*x45 - &2 *x15*x23*x34*x45 - &2 *x12*x25*x34*x45 - &2 *x13*x25*x34*x45 + &2 *x23*x25*x34*x45 + 
+   &2 *x12*x12*x35*x45 - &2 *x12*x13*x35*x45 - &2 *x12*x14*x35*x45 + &2 *x13*x14*x35*x45 - &2 *x12*x23*x35*x45 - &2 *x14*x23*x35*x45 - 
+   &2 *x12*x24*x35*x45 - &2 *x13*x24*x35*x45 + &2 *x23*x24*x35*x45 + &4 *x12*x34*x35*x45 - x12*x12*x45*x45 + &2 *x12*x13*x45*x45 - 
+   x13*x13*x45*x45 + &2 *x12*x23*x45*x45 + &2 *x13*x23*x45*x45 - x23*x23*x45*x45`;;
+
+
+(* PUSACOU *)
+
+let packing = new_definition `packing S = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;
+
+(* SIDEXYO *)
+
+let wedge = new_definition (`wedge v1 v2 w1 w2 = 
+   let z = v2 - v1 in
+   let u1 = w1 - v1 in
+   let u2 = w2 - v1 in
+   let n = cross z u1 in
+   let d =  n dot u2 in
+     if (aff_ge {v1,v2} {w1} w2) then {} else
+     if (aff_lt {v1,v2} {w1} w2) then aff_gt {v1,v2,w1} {n} else
+     if (d > &0) then aff_gt {v1,v2} {w1,w2} else
+     (:real^3) DIFF aff_ge {v1,v2} {w1,w2}`);;
+
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

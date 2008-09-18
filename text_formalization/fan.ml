@@ -43,7 +43,7 @@ let azim_cycle_fan= new_definition`azim_cycle_fan fan x V E  =
 ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w))) `;;
 
 let azim_cycle_fan1= prove (`! fan x V E. ?sigma. !v w proj e1 e2 e3. (azim_cycle_fan) ==> (V v)/\({v,w} IN E)/\((d( v, w)) % e3 = (x-v))/\(!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w)))`,
-MATH_MP_TAC azim_cycle_spec THEN REWRITE_TAC[azim_cycle_fan]);;
+MATCH_MP_TAC azim_cycle_spec THEN REWRITE_TAC[azim_cycle_fan]);;
 
 let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;
 

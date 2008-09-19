@@ -707,17 +707,21 @@ let pi_prime_sigma = kepler_def
 (* themselves are changed radically), but it might be better to just get    *)
 (* rid of most of them.                                                     *)
 
-let dot3 = new_definition `dot3 (v:real^3) w = v dot w`;;
+(* deprecated *)
+(* let dot3 = new_definition `dot3 (v:real^3) w = v dot w`;; *)
 
-let norm3 = new_definition `norm3 (v:real^3) = norm v`;;
+(* deprecated *)
+(* let norm3 = new_definition `norm3 (v:real^3) = norm v`;; *)
 
-let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;;
+(* deprecated *) (* let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;; *)
 
 (* No need for this one.  "basis" does something similar. *)
 (*
 let dirac_delta = new_definition `dirac_delta (i:num) = 
      (\j. if (i=j) then (&1) else (&0))`;;
 *)
+
+
 
 let mk_vec3 = new_definition `mk_vec3 a b c = vector[a; b; c]`;;
 
@@ -726,11 +730,13 @@ let real3_of_triple = new_definition `real3_of_triple (a,b,c) = (mk_vec3 a b c):
 let triple_of_real3 = new_definition `triple_of_real3 (v:real^3) = 
     (v$1, v$2, v$3)`;;
 
-let orig3 = new_definition `orig3 = (vec 0):real^3`;;
+(* deprecated *)
+(* let orig3 = new_definition `orig3 = (vec 0):real^3`;; *)
 
 (* ------------------------------------------------------------------ *)
 (*   Cross diagonal  and Enclosed                                     *)
 (* ------------------------------------------------------------------ *)
+
 
 
 (* find point in euclidean 3 space atdistance a b c 
@@ -781,11 +787,6 @@ Exists uniquely on all finite subsets of R3.
 It will only be used on finite sets.
 Can be uniquely extended to all subsets by defining aff S = S, when S is infinite
 
->         aff_sgn
-It is only used on finite sets.
-Assuming that aff has first been extended to all subsets as above, then
-aff_sgn sgn S S1 exists uniquely for all sgn, all S, and all finite S1
-Can be uniquely extended to all subsets by defining aff_sgn sgn sgn S S1 = S1, when S1 is infinite
 
 >         min_polar
 Exists uniquely on all nonempty finite sets of ordered pairs of real numbers
@@ -811,260 +812,97 @@ Can be uniquely extended to all cases, by setting azim_cycle W v w p = p, when t
 
 *)
 
+
 (* from convex.ml:  *)
 
-
-(*VUONG ANH QUYEN *)
-(* DEFINITIONS OF AFFINE HULL.                                          *)
-(* ==================================================================== *)
-
-(* -------------------------------------------------------------------- *)
-(* Two ways to define affine set & affine hull.                        *)
-(* -------------------------------------------------------------------- *)
-
-(* Define as in convex.ml                                               *)
-(* -------------------------------------------------------------------- *)
-let affine = new_definition `!(s: real^N ->bool). affine s = !(u:real^N) (v:real^N) (t:real). s u /\ s v ==> s (t % u + (&1-t) % v)`;;
-
-let aff = new_definition `!s. aff s = affine hull s`;;
-
-(* Define using affine combination                                      *)
-(* -------------------------------------------------------------------- *)
-
-let affine_comb = new_definition `!(s:real^N->bool). affine_comb s = ! (n:num) (t:num->real) (v:num->real^N).
-  ( sum (1..n) (\i. t i) = &1)/\(!i. ((1..n) i) ==>(s (v i)))
-  ==> (s (vsum (1..n) (\i. (t i) % (v i))))`;;
-
-let aff_comb = new_definition `! (S:real^N -> bool) (w:real^N). aff_comb S w =(
-  ? (n:num) (t:num->real) (v:num->real^N). 
-  (  sum (1..n) (\i. t i) = &1 ) /\ 
-  (w = vsum (1..n) (\i. (t i) % (v i)))/\ (!i. ((1..n) i) ==> (S (v i))) )`;;
-
-(* Some simple properties of affine, aff, affine_comb, aff_comb, hull   *)
-(* -------------------------------------------------------------------- *)
-
-let affine_INTERS = prove 
-  ( `(!s. s IN f ==> affine s) ==> affine(INTERS f)`,
-  (REWRITE_TAC[affine;INTERS;IN;IN_ELIM_THM] THEN MESON_TAC[]));;
-
-let affine_aff = prove 
-  ( `!(s:real^N->bool). affine (aff s)`,
-  (GEN_TAC THEN REWRITE_TAC[aff] THEN MESON_TAC[affine_INTERS;P_HULL]));;
-
-let aff_affine = prove
-  ( `!s. affine S ==> aff S = S`,
-  (SIMP_TAC[HULL_EQ;aff;affine_INTERS]));;
-
-let SUBSET_hull = prove  
-  (`! s P. s SUBSET (P hull s)`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET;hull;IN_INTERS] THEN SET_TAC[]);;
-
-let SUBSET_aff = prove 
-  ( `!(S:real^N->bool). S SUBSET aff S`, MESON_TAC [SUBSET;aff;SUBSET_hull]);;
-
-let SUBSET_affcomb = prove
-(`!(S:real^N->bool). S SUBSET (aff_comb S)`,
-GEN_TAC THEN REWRITE_TAC[SUBSET;IN;aff_comb] THEN GEN_TAC THEN STRIP_TAC THEN
-EXISTS_TAC `1` THEN EXISTS_TAC `(\(i:num). &1)` THEN EXISTS_TAC `(\(i:num). x:real^N)` THEN 
-ASM_SIMP_TAC[SUM_SING_NUMSEG;NUMSEG_SING;VSUM_SING;VECTOR_MUL_LID;IN;IN_SING]);;
-
-let aff_SUBSET = prove
-  (`!A B. A SUBSET B ==> aff A SUBSET aff B`,
-  (REPEAT GEN_TAC THEN 
-   REWRITE_TAC [aff; hull;SUBSET;IN;INTERS;IN_INTERS;IN_ELIM_THM] THEN MESON_TAC[]));;
-
-let INTERS_SUBSET = prove
-(`!(S:(A->bool)->bool) (u:A->bool). u IN S ==> (INTERS S) SUBSET u`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET;IN_INTERS] THEN MESON_TAC[]);;
-
-let hull_SUBSET = prove
-( `!(P:(A->bool)->bool) (S:A->bool) (u:A->bool). (S SUBSET u)/\(P u) ==> (P hull S) SUBSET u`,
-  REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[hull] THEN MATCH_MP_TAC (INTERS_SUBSET) THEN
-  ASM_REWRITE_TAC[IN;IN_ELIM_THM]);;
-
-(* Some lemmas need using                                          *)
-(* --------------------------------------------------------------- *)
-let VSUM_2 = prove
-  ( `! (v:num->real^N). vsum (1..2)  v  = (v 1) + (v 2)`,
-  GEN_TAC THEN REWRITE_TAC[vsum; vector_add; SUM_2]);;
-
-let REAL_OF_NUM_NOT_EQ = prove
-   ( `!n m. ~(m = n) <=> ~(&m = &n)`, MESON_TAC[REAL_OF_NUM_EQ]);;
-
-let VMUL_CASES = prove
-  (`!(P:A->bool) (t:A->real) (t':A->real) (v:A->real^N) (v':A->real^N). (if P i then t i else t' i) % (if P i then v i else v' i) = (if P i then ( t i % v i) else (t' i % v' i))`,
-  REPEAT GEN_TAC THEN REPEAT COND_CASES_TAC THEN ASM_MESON_TAC[]);;
-
-(* Relation between affine and affine_comb                         *)
-(* --------------------------------------------------------------- *)
-
-let affcomb_imp_aff = prove
-  ( `!(S:real^N->bool). affine_comb S ==> affine S`,
-    GEN_TAC THEN REWRITE_TAC[affine;affine_comb] THEN STRIP_TAC THEN REPEAT GEN_TAC THEN 
-    FIRST_X_ASSUM (MP_TAC o SPECL [`2`;`(\i. if (i=1) then t else (&1-t))`;`(\i. if (i=1) then (u:real^N) else (v:real^N))`])
-    THEN SIMP_TAC[SUM_2;VSUM_2;ARITH_RULE `~(1=2)/\(!t. t + (&1 - t) = &1)`] THEN MESON_TAC[]);;
-
-let comb_trans = prove (
-  `! (n:num) (t:num->real) (v:num->real^N). 
-~(n=0)/\(sum (1..n+1) (\i. t i) = &1)==> 
-(vsum (1..n+1) (\i. (t i) % (v i)) = vsum (1..n) (\i. (&1 / &n) % ((&n * (t i)) % (v i) + (&1 - &n * (t i)) % (v (n+1)))))`,
-  REPEAT GEN_TAC THEN 
-  REWRITE_TAC[ REAL_OF_NUM_NOT_EQ;VSUM_CMUL_NUMSEG; VECTOR_ADD_LDISTRIB;VSUM_ADD_NUMSEG] THEN
-  REWRITE_TAC[GSYM VSUM_CMUL_NUMSEG; VECTOR_MUL_ASSOC;REAL_MUL_ASSOC;REAL_SUB_LDISTRIB] THEN
-  STRIP_TAC THEN (FIRST_ASSUM (MP_TAC o MATCH_MP REAL_DIV_RMUL)) THEN STRIP_TAC THEN
-  ASM_REWRITE_TAC[REAL_MUL_LID;REAL_MUL_RID] THEN
-  REWRITE_TAC[MATCH_MP VSUM_CLAUSES_RIGHT (ARITH_RULE ` (0 < (n+1))/\(1 <= (n+1))`)] THEN
-  ASM_REWRITE_TAC[ ARITH_RULE `! (n:num). (n + 1)-1 = n`;VSUM_RMUL] THEN
-  ASM_REWRITE_TAC[SUM_CONST_NUMSEG;SUM_SUB_NUMSEG;REAL_MUL_SYM; ARITH_RULE `(n+1) -1 = n`] THEN
-  (UNDISCH_TAC `sum (1..n + 1) (\i. t i) = &1`) THEN
-  ASM_REWRITE_TAC [MATCH_MP SUM_CLAUSES_RIGHT (ARITH_RULE ` (0 < (n+1))/\(1 <= (n+1))`);ARITH_RULE `(n+1) - 1 = n`] THEN
-  STRIP_TAC THEN 
-  FIRST_ASSUM (MP_TAC o MATCH_MP (ARITH_RULE ` (a + b= &1) ==> (&1 - a = b)`)) THEN REWRITE_TAC[ETA_AX] THEN
-  MESON_TAC[vsum]);;
-
-let aff_imp_affcomb = prove
-( `!(S:real^N->bool). affine S ==> affine_comb S`,
-GEN_TAC THEN REWRITE_TAC[affine;affine_comb] THEN 
-DISCH_THEN (LABEL_TAC "1") THEN INDUCT_TAC THENL
-[ SIMP_TAC[SUM_CLAUSES_NUMSEG; ARITH_RULE `~(1=0) /\ ~ ( &1 = &0)`]; ALL_TAC ] THEN
-REPEAT GEN_TAC THEN REWRITE_TAC[ADD1] THEN ASM_CASES_TAC `( n = 0)` THENL
-[ ASM_SIMP_TAC[ARITH_RULE `0+1=1`] THEN REWRITE_TAC[SUM_SING_NUMSEG;NUMSEG_SING;VSUM_SING] THEN
-STRIP_TAC THEN ASM_SIMP_TAC[VECTOR_MUL_LID] THEN FIRST_ASSUM (MATCH_MP_TAC o SPEC `1`) THEN
-REWRITE_TAC[IN_SING; GSYM IN]; ALL_TAC ] THEN 
-DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "3") (LABEL_TAC "4")) THEN
-UNDISCH_TAC (`sum (1..n + 1) (\i. t i) = &1`) THEN UNDISCH_TAC (`~(n=0)`)  THEN
-REWRITE_TAC[IMP_IMP] THEN DISCH_THEN (LABEL_TAC "5") THEN
-FIRST_ASSUM(MP_TAC o (MATCH_MP comb_trans)) THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
-ABBREV_TAC `(f:num->real^N) (i:num) = (&n * (t:num->real) i) % (v:num->real^N) i + (&1 - &n * t i) % v (n + 1)` THEN
-FIRST_X_ASSUM ((LABEL_TAC "6") o GSYM) THEN
-ABBREV_TAC `(ts:num->real) (i:num) = &1 / &n` THEN
-FIRST_X_ASSUM ((LABEL_TAC "7") o GSYM) THEN
-FIRST_ASSUM(MATCH_MP_TAC o (SPECL [`(ts:num->real)`;`(f:num->real^N)`])) THEN CONJ_TAC THENL
-[ ASM_REWRITE_TAC[SUM_CONST_NUMSEG; ARITH_RULE ` (n+1) - 1 = n`] THEN 
-USE_THEN "5" (MP_TAC o (MATCH_MP (TAUT ` A/\B ==> A`))) THEN 
-MESON_TAC[REAL_OF_NUM_NOT_EQ;REAL_DIV_LMUL]; GEN_TAC ] THEN ASM_REWRITE_TAC[] THEN
-DISCH_THEN (LABEL_TAC "8") THEN 
-USE_THEN "1" (MATCH_MP_TAC o (SPECL [`(v:num->real^N) (i:num)`;`(v:num->real^N) ((n:num) +1)`;`(&n * t i):real`])) THEN
-CONJ_TAC THENL
-[ USE_THEN "4" (MATCH_MP_TAC o (SPEC `i:num`)) THEN UNDISCH_TAC (`(1..n) i`) THEN
-  REWRITE_TAC[numseg;IN_ELIM_THM] THEN ARITH_TAC;
-  USE_THEN "4" (MATCH_MP_TAC o (SPEC `(n+1):num`)) THEN UNDISCH_TAC (`(1..n) i`) THEN
-  REWRITE_TAC[numseg;IN_ELIM_THM] THEN ARITH_TAC]);;
-
-(* The equality between two ways of defining, aff & aff_comb         *)
-(* ------------------------------------------------------------------*)
-
-let affine_affcomb = prove
-( ` !(S:real^N->bool). affine(aff_comb S)`,
-REWRITE_TAC[affine;aff_comb] THEN REPEAT GEN_TAC THEN STRIP_TAC THEN EXISTS_TAC `(n:num) + (n':num)` THEN
-ABBREV_TAC `(ts:num->real) (i:num) = (if ((1..n) i) then ((t:real)*((t':num->real) i)) else (&1 - t)*((t'':num->real)(i - n)) )` THEN
-FIRST_X_ASSUM(LABEL_TAC "ts" o GSYM) THEN
-EXISTS_TAC `ts : num->real` THEN
-ABBREV_TAC `(vs:num->real^N) (i:num) = (if ((1..n) i) then (v':num->real^N) i else (v'':num->real^N) (i - n) )` THEN
-FIRST_X_ASSUM(LABEL_TAC "vs" o GSYM) THEN
-EXISTS_TAC `vs:num->real^N` THEN REPEAT CONJ_TAC THENL
-[ASM_REWRITE_TAC[GSYM (MATCH_MP SUM_COMBINE_R (ARITH_RULE `1 <= n+1 /\ n <= n+n'`))] THEN
- REWRITE_TAC[MATCH_MP SUM_CASES (SPEC_ALL FINITE_NUMSEG);IN;numseg;IN_ELIM_THM] THEN
-SIMP_TAC[ARITH_RULE `((1 <= i /\ i <= n) /\ ~(1 <= i /\ i <= n))= F`] THEN
-SIMP_TAC[ARITH_RULE `((n + 1 <= i /\ i <= n + n')/\1 <= i /\ i <= n)= F`] THEN
-SIMP_TAC[ARITH_RULE `((n + 1 <= i /\ i <= n + n') /\ ~(1 <= i /\ i <= n))= (1 + n <= i /\ i <= n' + n)`] THEN
-REWRITE_TAC[EMPTY_GSPEC;SUM_CLAUSES;REAL_ADD_LID;REAL_ADD_RID;REAL_ADD_AC] THEN
-REWRITE_TAC[SUM_LMUL;SUM_OFFSET;GSYM numseg] THEN
-UNDISCH_TAC `sum (1..n) (\i. t' i) = &1` THEN REWRITE_TAC[ETA_AX] THEN DISCH_TAC THEN
-ASM_REWRITE_TAC[ARITH_RULE `!(i:num). (i+n)-n=i`;REAL_MUL_RID] THEN ARITH_TAC;
-ASM_REWRITE_TAC[VMUL_CASES] THEN REWRITE_TAC [MATCH_MP VSUM_CASES (SPECL [`1`;`n+n':num`] FINITE_NUMSEG)] THEN
-REWRITE_TAC [IN;IN_ELIM_THM;numseg] THEN 
-REWRITE_TAC [ARITH_RULE `((1 <= i /\ i <= n + n') /\ 1 <= i /\ i <= n) = (1 <= i /\ i <= n)`] THEN
-REWRITE_TAC [ARITH_RULE `((1 <= i /\ i <= n + n') /\ ~(1 <= i /\ i <= n)) = (1+n <= i /\ i <= n' + n)`] THEN
-REWRITE_TAC[GSYM VECTOR_MUL_ASSOC;GSYM numseg;VSUM_LMUL;VSUM_OFFSET;ARITH_RULE `!(i:num).(i+n)-n = i`]; ALL_TAC] THEN
-GEN_TAC THEN ASM_REWRITE_TAC[] THEN COND_CASES_TAC THENL
-[ UNDISCH_TAC `(1..n) i` ;UNDISCH_TAC `~(1..n) i`] THEN REWRITE_TAC[IMP_IMP;IN;IN_ELIM_THM;numseg] THENL
-[REWRITE_TAC[ARITH_RULE `((1 <= i /\ i <= n) /\ 1 <= i /\ i <= n + n')=(1 <= i /\ i <= n)`];
- REWRITE_TAC[ARITH_RULE `(~(1 <= i /\ i <= n) /\ 1 <= i /\ i <= n + n')=(1 <= (i - n) /\ (i-n) <= n')`]] THEN 
-DISCH_TAC THENL
-[FIRST_ASSUM(MATCH_MP_TAC o (SPEC `i:num`));FIRST_ASSUM(MATCH_MP_TAC o (SPEC `(i-n):num`))] THEN
-ASM_REWRITE_TAC[numseg;IN;IN_ELIM_THM]);;
-
-let aff_eq_affcomb = prove
-( `!(S:real^N->bool). aff S = aff_comb S`,
-GEN_TAC THEN MATCH_MP_TAC  SUBSET_ANTISYM THEN CONJ_TAC THENL
-[ REWRITE_TAC[aff] THEN MATCH_MP_TAC(hull_SUBSET) THEN MESON_TAC[SUBSET_affcomb;affine_affcomb];
-  REWRITE_TAC[SUBSET;IN;aff_comb] THEN REPEAT GEN_TAC THEN STRIP_TAC THEN
-  MP_TAC ( MATCH_MP aff_imp_affcomb (SPEC `S:real^N->bool` affine_aff)) THEN 
-  ASM_REWRITE_TAC[affine_comb] THEN DISCH_TAC THEN
-  FIRST_X_ASSUM(MATCH_MP_TAC o (SPECL [`n:num`;`t:num->real`;`v:num->real^N`])) THEN
-  ASM_REWRITE_TAC[] THEN GEN_TAC THEN FIRST_X_ASSUM (MP_TAC o (SPEC `i:num`)) THEN
-  MATCH_MP_TAC(TAUT `(B==>C) ==> ((A==>B)==> A ==> C)`) THEN
-  MP_TAC (SPEC `S:real^N->bool` SUBSET_aff) THEN MESON_TAC [SUBSET;IN]]);;
-
-let aff_2 = prove (` ! (a:real^N) (b:real^N). aff {a,b} = {u| ?(t:real). u = t % a + (&1 - t) % b}`,
-REPEAT GEN_TAC THEN (ABBREV_TAC `(M:real^N ->bool) = {u| ?(t:real). u = t % a + (&1 - t) % b}`) THEN 
-FIRST_X_ASSUM(LABEL_TAC "M" o GSYM) THEN
-MATCH_MP_TAC(SUBSET_ANTISYM) THEN CONJ_TAC THENL
-[ REWRITE_TAC[aff] THEN MATCH_MP_TAC(hull_SUBSET) THEN CONJ_TAC THENL
-  [ ASM_REWRITE_TAC[SET_RULE ` {a,b} SUBSET M <=> (a IN M /\ b IN M)`;IN_ELIM_THM;IN] THEN
-    CONJ_TAC  THENL [EXISTS_TAC `&1`; EXISTS_TAC `&0`] THEN VECTOR_ARITH_TAC;
-    ASM_REWRITE_TAC[affine;IN_ELIM_THM] THEN REPEAT GEN_TAC THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
-    EXISTS_TAC ` t * t' + (&1- t) * t''` THEN 
-    REWRITE_TAC[ARITH_RULE ` &1 - (t * t' + (&1 - t) * t'') = t * (&1 - t') + (&1 - t) * (&1 - t'')`] THEN
-    VECTOR_ARITH_TAC
-  ] ;
-  ASM_REWRITE_TAC[SUBSET;IN_ELIM_THM;IN;aff_eq_affcomb;aff_comb] THEN GEN_TAC THEN STRIP_TAC THEN
-  ABBREV_TAC `(ts: num ->real) i = ( if ( i = 1) then t else ( &1 - t))` THEN
-  FIRST_X_ASSUM(LABEL_TAC "ts" o GSYM) THEN 
-  ABBREV_TAC `(vs: num ->real^N) i = ( if ( i = 1) then a else b)` THEN
-  FIRST_X_ASSUM(LABEL_TAC "vs" o GSYM) THEN 
-  EXISTS_TAC `2` THEN EXISTS_TAC `(ts:num->real)` THEN EXISTS_TAC ` (vs:num->real^N) ` THEN
-  ASM_REWRITE_TAC[SUM_2;VSUM_2;ARITH_RULE `~(2=1) /\ (t + &1 - t = &1)`] THEN
-  GEN_TAC THEN STRIP_TAC THEN COND_CASES_TAC THEN ONCE_REWRITE_TAC[GSYM IN] THEN SET_TAC[]
-]);;
-
-(* Definition of convex *)
-
+let affine = new_definition
+  `affine s <=> !x y u v. x IN s /\ y IN s /\ (u + v = &1)
+                          ==> (u % x + v % y) IN s`;;
 let convex = new_definition
   `convex s <=>
         !x y u v. x IN s /\ y IN s /\ &0 <= u /\ &0 <= v /\ (u + v = &1)
                   ==> (u % x + v % y) IN s`;;
 
+(* aff is deprecated *)
+let aff = new_definition `aff = ( hull ) affine`;;
+
+let lin_combo = new_definition `lin_combo V f = vsum V (\v. f v % (v:real^N))`;;
+
+(* Fix "sum" because Harrison's interface is too special in analysis.ml *)
+
+reduce_interface("sum",`sum:(num->bool)->(num->real)->real`);;
+reduce_interface("sum",`psum:(num#num)->(num->real)->real`);;
+let remove_overload sym =
+  let overload_skeletons = filter ((<>)sym o fst) (!the_overload_skeletons) in
+  the_overload_skeletons := overload_skeletons;;
+remove_overload "sum";;
+make_overloadable "sum" `:A->(B->real)->real`;;
+overload_interface("sum",`sum:(A->bool)->(A->real)->real`);;
+overload_interface("sum",`psum:(num#num)->(num->real)->real`);;
+
+let affsign = new_definition `affsign sgn s t (v:real^A) = (?f.
+  (v = lin_combo (s UNION t) f) /\ (!w. t w ==> sgn (f w)) /\ (sum (s UNION t) f = &1))`;;
+
+
+let sgn_gt = new_definition `sgn_gt = (\t. (&0 < t))`;;
+let sgn_ge = new_definition `sgn_ge = (\t. (&0 <= t))`;;
+let sgn_lt = new_definition `sgn_lt = (\t. (t < &0))`;;
+let sgn_le = new_definition `sgn_le = (\t. (t <= &0))`;;
+
+(* conv is deprecated.  Use `convex hull S` instead *)
+
+let conv = new_definition `conv S:real^A->bool = affsign sgn_ge {} S`;;
+let conv0 = new_definition `conv0 S:real^A->bool = affsign sgn_gt {} S`;;
+let cone = new_definition `cone v S:real^A->bool = affsign sgn_ge {v} S`;;
+let cone0 = new_definition `cone0 v S:real^A->bool = affsign sgn_gt {v} S`;;
+
+(* deprecated:
 
 let semiconvex = new_definition
   `semiconvex sgn s t <=>  
         !x y z u v w. x IN (affine hull s) /\ y IN t /\ z IN t /\ sgn v /\ sgn w /\ (u + v + w = &1)
                   ==> (u % x + v % y + w % z) IN t`;;
 
-let aff_gt_def = new_definition `aff_gt s t = (semiconvex (\u. (&0 < u)) s) hull t`;;
-let aff_ge_def = new_definition `aff_ge s t = (semiconvex (\u. (&0 <= u)) s) hull t`;;
-let aff_lt_def = new_definition `aff_lt s t = (semiconvex (\u. (u < &0)) s) hull t`;;
-let aff_le_def = new_definition `aff_le s t = (semiconvex (\u. (u <= &0)) s) hull t`;;
+*)
+
+let aff_gt_def = new_definition `aff_gt = affsign sgn_gt`;;
+let aff_ge_def = new_definition `aff_ge = affsign sgn_ge`;;
+let aff_lt_def = new_definition `aff_lt = affsign sgn_lt`;;
+let aff_le_def = new_definition `aff_le = affsign sgn_le`;;
 
 
 (* conv is deprecated.  Use `convex hull S` instead *)
 
-let conv = new_definition `conv S = aff_ge {} S`;;
-let conv0 = new_definition `conv0 S = aff_gt {} S`;;
-let cone = new_definition `cone v S = aff_ge {v} S`;;
-let cone0 = new_definition `cone0 v S = aff_gt {v} S`;;
+(* Vuong Quyen has pointed out that the definition of aff_insert
+   is incorrect.
+
+   New definitions are based on Multivariate/convex.ml.
+
+   -TCH 8/17/08.
+*)
+
+
+(* SWSAMQE *)
+
+let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) < dist( x, w)) }`;;
+
+let voronoi_le = new_definition `voronoi_le v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) <= dist( x, w)) }`;;
 
 
 
-
-
-
-
-
-
-let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (d3 x v < d3 x w) }`;;
-
-
-
-
+(* LFQMLPU *)
 
 let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = affine hull {v,w}))`;;
+
 (* Done in Harrison's Multilinear/vectors.ml (Feb 2008 release only)   : let collinear = new_definition `collinear S = (?x. line x /\ S SUBSET x)`;; *)
 (* repeat of definition for 2.20 version *)
+(* PPZSAYG *)
 let collinear = new_definition
  `collinear s <=> ?u. !x y. x IN s /\ y IN s ==> ?c. x - y = c % u`;;
 
+(* BUGLQNN *)
+(* MHHXNTW *)
+(* QTQNLKK *)
 
 let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = affine hull {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
@@ -1073,9 +911,27 @@ let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
 let closed_half_space = new_definition `closed_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_ge {u,v,w} {w'}))`;;
 let open_half_space = new_definition `open_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_gt {u,v,w} {w'}))`;;
 
+(* WMJHKBL *)
+let bis = new_definition `bis u v = {x | dist(x,u) = dist(x,v)}`;;
+
+(* TIWZVEW *)
+let bis_le = new_definition `bis_le u v = {x | dist(x,u) <= dist(x,v) }`;;
+let bis_lt = new_definition `bis_lt u v = {x | dist(x,u) < dist(x,v) }`;;
+
+(* XCJABYH *)
+(*
+TO HERE: 
+let circumcenter = new_definition `circumcenter S = {v | affine hull S v /\ (?c. !s. (S s) ==> (c = dist(v,s))) }`;;
+*)
+
+(* XPLPHNG *)
+(*
+let circumrad2 = new_definition `
+*)
+
 (* ANGLE *)
 
-let arcV = new_definition `arcV u v w = acs ((dot3 (v - u) (w - u))/((norm3 (v-u)) * (norm3 (w-u))))`;;
+let arcV = new_definition `arcV u v w = acs (( (v - u) dot (w - u))/((norm (v-u)) * (norm (w-u))))`;;
 
 let cross = new_definition `cross u v = let (x,y,z) = triple_of_real3 u in 
       let (x',y',z') = triple_of_real3 v in
@@ -1085,14 +941,14 @@ let dihV = new_definition  `dihV w0 w1 w2 w3 =
      let va = w2 - w0 in
      let vb = w3 - w0 in
      let vc = w1 - w0 in
-     let vap = (dot3 vc vc) % va - (dot3 va vc) % vc in
-     let vbp = (dot3 vc vc) % vb - (dot3 vb vc) % vc in
-       arcV orig3 vap vbp`;;
+     let vap = ( vc dot vc) % va - ( va dot vc) % vc in
+     let vbp = ( vc dot vc) % vb - ( vb dot vc) % vc in
+       arcV (vec 0) vap vbp`;;
 
 (* conventional ordering on variables *)
 
 let ylist = new_definition `ylist w0 w1 w2 w3 = 
-      ((d3 w0 w1),(d3 w0 w2),(d3 w0 w3),(d3 w2 w3),(d3 w1 w3),(d3 w1 w2))`;;
+      ((dist (w0, w1)),(dist( w0, w2)),(dist( w0, w3)),(dist( w2, w3)),(dist( w1, w3)),(dist( w1, w2)))`;;
 
 let xlist = new_definition `xlist w0 w1 w2 w3 =
     let (y1,y2,y3,y4,y5,y6) = ylist w0 w1 w2 w3 in
@@ -1103,7 +959,7 @@ let euler_p = new_definition `euler_p v0 v1 v2 v3 =
      let w1 = v1 - v0 in
      let w2 = v2 - v0 in
      let w3 = v3 - v0 in
-    y1*y2*y3 + y1*(dot3 w2 w3) + y2*(dot3 w3 w1) + y3*(dot3 w1 w2))`;;
+    y1*y2*y3 + y1*( w2 dot w3) + y2*( w3 dot w1) + y3*( w1 dot w2))`;;
 
 (* polar coordinates *)
 
@@ -1143,14 +999,14 @@ let polar_power = new_specification ["polar_power"] polar_power_spec;;
 *)
 
 let orthonormal = new_definition `orthonormal e1 e2 e3 = 
-     ((dot3 e1 e1 = &1) /\ (dot3 e2 e2 = &1) /\ (dot3 e3 e3 = &1) /\
-     (dot3 e1 e2 = &0) /\ (dot3 e1 e3 = &0) /\ (dot3 e2 e3 = &0) /\
-     (&0 < dot3 (cross e1 e2) e3))`;;
+     (( e1 dot e1 = &1) /\ (e2 dot e2 = &1) /\ ( e3 dot e3 = &1) /\
+     ( e1 dot e2 = &0) /\ ( e1 dot e3 = &0) /\ ( e2 dot e3 = &0) /\
+     (&0 <  (cross e1 e2) dot e3))`;;
 
 (* spherical coordinates *)
 let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
    (w2 = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
@@ -1158,7 +1014,7 @@ let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?p
 let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
    (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((d3 w v) % e3 = (w - v)) ==>
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
    (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
    (w2 = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
@@ -1180,14 +1036,14 @@ let cyclic_set = new_definition `cyclic_set W v w =
 let azim_cycle_hyp_def = new_definition `azim_cycle_hyp = 
   (?sigma.  !W proj v w e1 e2 e3 p. 
         (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((dist( v ,w)) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3))) ==>
 	(proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p)))`;;
 
 let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
    (azim_cycle_hyp) ==> ( (W p) /\
-        (cyclic_set W v w) /\ ((d3 v w) % e3 = (w-v)) /\
+        (cyclic_set W v w) /\ ((dist( v ,w)) % e3 = (w-v)) /\
 	(orthonormal e1 e2 e3) /\ 
 	(!u x y. (proj u = (x,y)) <=> (?h. (u = v + x % e1 + y % e2 + h % e3)))) ==> (proj (sigma W v w p) = polar_cycle (IMAGE proj W) (proj p))`,
 	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
@@ -1195,6 +1051,56 @@ let azim_cycle_spec = prove(`?sigma. !W proj v w e1 e2 e3 p.
 	   );;
 
 let azim_cycle_def = new_specification ["azim_cycle"] azim_cycle_spec;;	
+
+
+(* ------------------------------------------------------------------ *)
+(*   Definitions from the Collection in Elementary Geometry           *)
+(* ------------------------------------------------------------------ *)
+
+(* EDSFZOT *)
+
+let cayleyR = new_definition `cayleyR x12 x13 x14 x15  x23 x24 x25  x34 x35 x45 = 
+  -- (x14*x14*x23*x23) + &2 *x14*x15*x23*x23 - x15*x15*x23*x23 + &2 *x13*x14*x23*x24 - &2 *x13*x15*x23*x24 - &2 *x14*x15*x23*x24 + 
+   &2 *x15*x15*x23*x24 - x13*x13*x24*x24 + &2 *x13*x15*x24*x24 - x15*x15*x24*x24 - &2 *x13*x14*x23*x25 + 
+   &2 *x14*x14*x23*x25 + &2 *x13*x15*x23*x25 - &2 *x14*x15*x23*x25 + &2 *x13*x13*x24*x25 - &2 *x13*x14*x24*x25 - &2 *x13*x15*x24*x25 + 
+   &2 *x14*x15*x24*x25 - x13*x13*x25*x25 + &2 *x13*x14*x25*x25 - x14*x14*x25*x25 + &2 *x12*x14*x23*x34 - &2 *x12*x15*x23*x34 - 
+   &2 *x14*x15*x23*x34 + &2 *x15*x15*x23*x34 + &2 *x12*x13*x24*x34 - &2 *x12*x15*x24*x34 - &2 *x13*x15*x24*x34 + &2 *x15*x15*x24*x34 + 
+   &4 *x15*x23*x24*x34 - &2 *x12*x13*x25*x34 - &2 *x12*x14*x25*x34 + &4 *x13*x14*x25*x34 + &4 *x12*x15*x25*x34 - &2 *x13*x15*x25*x34 - &2 *x14*x15*x25*x34 - 
+   &2 *x14*x23*x25*x34 - &2 *x15*x23*x25*x34 - &2 *x13*x24*x25*x34 - &2 *x15*x24*x25*x34 + &2 *x13*x25*x25*x34 + &2 *x14*x25*x25*x34 - 
+   x12*x12*x34*x34 + &2 *x12*x15*x34*x34 - x15*x15*x34*x34 + &2 *x12*x25*x34*x34 + &2 *x15*x25*x34*x34 - 
+   x25*x25*x34*x34 - &2 *x12*x14*x23*x35 + &2 *x14*x14*x23*x35 + &2 *x12*x15*x23*x35 - &2 *x14*x15*x23*x35 - &2 *x12*x13*x24*x35 + 
+   &4 *x12*x14*x24*x35 - &2 *x13*x14*x24*x35 - &2 *x12*x15*x24*x35 + &4 *x13*x15*x24*x35 - &2 *x14*x15*x24*x35 - &2 *x14*x23*x24*x35 - &2 *x15*x23*x24*x35 + 
+   &2 *x13*x24*x24*x35 + &2 *x15*x24*x24*x35 + &2 *x12*x13*x25*x35 - &2 *x12*x14*x25*x35 - &2 *x13*x14*x25*x35 + &2 *x14*x14*x25*x35 + 
+   &4 *x14*x23*x25*x35 - &2 *x13*x24*x25*x35 - &2 *x14*x24*x25*x35 + &2 *x12*x12*x34*x35 - &2 *x12*x14*x34*x35 - &2 *x12*x15*x34*x35 + 
+   &2 *x14*x15*x34*x35 - &2 *x12*x24*x34*x35 - &2 *x15*x24*x34*x35 - &2 *x12*x25*x34*x35 - &2 *x14*x25*x34*x35 + &2 *x24*x25*x34*x35 - 
+   x12*x12*x35*x35 + &2 *x12*x14*x35*x35 - x14*x14*x35*x35 + &2 *x12*x24*x35*x35 + &2 *x14*x24*x35*x35 - 
+   x24*x24*x35*x35 + &4 *x12*x13*x23*x45 - &2 *x12*x14*x23*x45 - &2 *x13*x14*x23*x45 - &2 *x12*x15*x23*x45 - &2 *x13*x15*x23*x45 + 
+   &4 *x14*x15*x23*x45 + &2 *x14*x23*x23*x45 + &2 *x15*x23*x23*x45 - &2 *x12*x13*x24*x45 + &2 *x13*x13*x24*x45 + &2 *x12*x15*x24*x45 - 
+   &2 *x13*x15*x24*x45 - &2 *x13*x23*x24*x45 - &2 *x15*x23*x24*x45 - &2 *x12*x13*x25*x45 + &2 *x13*x13*x25*x45 + &2 *x12*x14*x25*x45 - 
+   &2 *x13*x14*x25*x45 - &2 *x13*x23*x25*x45 - &2 *x14*x23*x25*x45 + &4 *x13*x24*x25*x45 + &2 *x12*x12*x34*x45 - &2 *x12*x13*x34*x45 - 
+   &2 *x12*x15*x34*x45 + &2 *x13*x15*x34*x45 - &2 *x12*x23*x34*x45 - &2 *x15*x23*x34*x45 - &2 *x12*x25*x34*x45 - &2 *x13*x25*x34*x45 + &2 *x23*x25*x34*x45 + 
+   &2 *x12*x12*x35*x45 - &2 *x12*x13*x35*x45 - &2 *x12*x14*x35*x45 + &2 *x13*x14*x35*x45 - &2 *x12*x23*x35*x45 - &2 *x14*x23*x35*x45 - 
+   &2 *x12*x24*x35*x45 - &2 *x13*x24*x35*x45 + &2 *x23*x24*x35*x45 + &4 *x12*x34*x35*x45 - x12*x12*x45*x45 + &2 *x12*x13*x45*x45 - 
+   x13*x13*x45*x45 + &2 *x12*x23*x45*x45 + &2 *x13*x23*x45*x45 - x23*x23*x45*x45`;;
+
+
+(* PUSACOU *)
+
+let packing = new_definition `packing S = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;
+
+(* SIDEXYO *)
+
+let wedge = new_definition (`wedge v1 v2 w1 w2 = 
+   let z = v2 - v1 in
+   let u1 = w1 - v1 in
+   let u2 = w2 - v1 in
+   let n = cross z u1 in
+   let d =  n dot u2 in
+     if (aff_ge {v1,v2} {w1} w2) then {} else
+     if (aff_lt {v1,v2} {w1} w2) then aff_gt {v1,v2,w1} {n} else
+     if (d > &0) then aff_gt {v1,v2} {w1,w2} else
+     (:real^3) DIFF aff_ge {v1,v2} {w1,w2}`);;
+
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

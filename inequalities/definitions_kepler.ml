@@ -919,7 +919,10 @@ let bis_le = new_definition `bis_le u v = {x | dist(x,u) <= dist(x,v) }`;;
 let bis_lt = new_definition `bis_lt u v = {x | dist(x,u) < dist(x,v) }`;;
 
 (* XCJABYH *)
-let circumcenter = new_definition `circumcenter S = {v | ?c. !s. (S s) ==> (c = dist(v,s))}`;;
+(*
+TO HERE: 
+let circumcenter = new_definition `circumcenter S = {v | affine hull S v /\ (?c. !s. (S s) ==> (c = dist(v,s))) }`;;
+*)
 
 (* XPLPHNG *)
 (*

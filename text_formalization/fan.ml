@@ -38,12 +38,25 @@ let remark_fan1=prove(`!v w E. (w IN set_of_edges v E)<=>(v IN set_of_edges w E)
 (*
 let azim_cycle_fan= new_definition`azim_cycle_fan fan x V E  = 
 (?sigma. !v w proj e1 e2 e3. 
-(V v)/\({v,w} IN E)/\((d( v, w)) % e3 = (x-v))/\
+(V v)/\({v,w} IN E)/\((dist(v,w)) % e3 = (x-v))/\
+(orthonormal e1 e2 e3) /\
 (!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) 
-==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w))) `;;
+==> (proj (sigma  v w) = polar_cycle (IMAGE proj {x|{v,x} IN E}) (proj w))) `;;
 
-let azim_cycle_fan1= prove (`! fan x V E. ?sigma. !v w proj e1 e2 e3. (azim_cycle_fan) ==> (V v)/\({v,w} IN E)/\((d( v, w)) % e3 = (x-v))/\(!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) ==> (proj (sigma  v w) = polar_cycle (IMAGE proj {w|{v,w} IN E}) (proj w)))`,
-MATCH_MP_TAC azim_cycle_spec THEN REWRITE_TAC[azim_cycle_fan]);;
+
+
+
+
+
+
+let azim_cycle_fan1= prove (`?sigma. !v w proj e1 e2 e3. 
+(azim_cycle_fan fan x V E) ==> ((V v)/\({v,w} IN E)/\((dist(v,w)) % e3 = (x-v))/\
+(orthonormal e1 e2 e3) /\
+(!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3))) 
+==> (proj (sigma  v w) = polar_cycle (IMAGE proj {x|{v,x} IN E}) (proj w)))`,
+	(REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
+	  (REWRITE_TAC[azim_cycle_fan])
+	   );;
 
 let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;
 

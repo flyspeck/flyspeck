@@ -66,10 +66,10 @@ let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;;
 
 
 
-let D1=new_definition`D1 fan(x,V,E)={mk_pair{x,v,w,w1}|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
+let D1=new_definition`D1 fan(x,V,E)={(x,v,w,w1)|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
 
 
-let D2=new_definition`D2 fan(x,V,E)={ mk_pair {x,v}|(V v)/\(set_of_edges v E={})}`;;
+let D2=new_definition`D2 fan(x,V,E)={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
 
 (* This last part generates an error. -t.hales
    For example, MATH_MP_TAC is not defined. *)
@@ -77,6 +77,6 @@ let D2=new_definition`D2 fan(x,V,E)={ mk_pair {x,v}|(V v)/\(set_of_edges v E={})
 (*
 
 
-let D_fan=new_definition`D fan(x,V,E)= D1 fan(x,V,E) UNION D2 fan(x,V,E)`;;
+let D_fan=new_definition`D_fan fan(x,V,E)= D1 fan(x,V,E) UNION D2 fan(x,V,E)`;;
 
 *)

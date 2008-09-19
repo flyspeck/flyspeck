@@ -5,6 +5,7 @@
 
 needs "Multivariate/vector.ml";;
 needs "definitions_kepler.ml";;
+needs "Multivariate/topology.ml";;
 
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
@@ -23,6 +24,13 @@ let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
 
 let equiv = new_definition `equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B | 
 ((s DIFF t) UNION (t DIFF s)) SUBSET B)`;;
+
+
+(*Radial*)
+
+let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (?u. (x+u) IN C ==> (!t.(t> &0) /\ (t< r/ norm(u))==>(x+ t % u) IN C))`;;
+let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
+
 
 
 (*4.2.11 combining solid angle and volume*)

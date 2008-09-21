@@ -31,11 +31,15 @@ needs "definitions_kepler.ml";;
 (* load inequalities used in text.  Skip interval arith verifications. *)
 needs "inequality_spec.ml";;
 
+(* load any custom tactics by various users.  *)
+needs "thales_tactic.ml";;
+
 (* trig *)
 needs "trig_spec.ml";;
 needs "trig.ml";;
 
 (* tarski *)
+needs "hull.ml";;
 needs "collect_geom_spec.ml";;
 needs "collect_geom.ml";;
 

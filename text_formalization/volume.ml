@@ -28,7 +28,7 @@ let equiv = new_definition `equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULL
 
 (*Radial*)
 
-let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (?u. (x+u) IN C ==> (!t.(t> &0) /\ (t< r/ norm(u))==>(x+ t % u) IN C))`;;
+let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t< r/ norm(u))==>(x+ t % u) IN C))`;;
 let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
 
 

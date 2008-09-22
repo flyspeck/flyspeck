@@ -1,11 +1,6 @@
 (* Start from the beginning of the text of Unabridged Proof
    of the Kepler Conjecture. Version Nov 26, 2003 *)
-
-(* This file is not current.  It is based on the model
-   of R^n used in the proof of the Jordan curve theorem (:int->real).
-   The proof of the Kepler conjecture is based on Harrison's
-   :real^N representation of vectors *)
-
+ 
 (*
 let mk_vec3 = kepler_def `mk_vec3 y1 y2 y3 = 
   (\i. if (i=0) then y1 else if (i=1) then y2 else if (i=2) then y3
@@ -76,7 +71,7 @@ let euclid_minus = kepler_def
 
 let euclid = kepler_def `euclid n v <=> !m. (n <= m) ==> (v (m:num) = &0)`;;
 
-(*
+
 let euclid0 = kepler_def `euclid0 = \(i:num). &0`;;
 
 let coord = kepler_def `coord i (f:num->real) = f i`;;
@@ -89,9 +84,9 @@ let norm = kepler_def `norm f = sqrt(dot f f)`;;
 
 
 let d_euclid = kepler_def `d_euclid f g = norm (f - g)`;;
-*)
 
-(*
+
+
 let real3_exists = prove( `?f. (!n. (n> 2) ==> (f n = &0))`,
        EXISTS_TAC `(\j:num. &0)` THEN
        BETA_TAC THEN (REWRITE_TAC[])
@@ -121,14 +116,14 @@ let real3_plus =new_definition
 
 let real3_minus = new_definition
   `real3_minus v w = mk_real3 (euclid_minus (dest_real3 v)  (dest_real3 w))`;;
-*)
+
 
 (* No need for this one.  v$i does the same thing. *)
-(*
+
 let coord3 = new_definition `coord3 i v = coord i (dest_real3 v)`;;
-*)
 
-
+let open_ball = new_definition
+  `open_ball(X,d) (x:A) r = { y | (X x) /\ (X y) /\ (d x y <. r) }`;;
 
 let ball3 = kepler_def `ball3 x r = 
       open_ball (euclid 3,d_euclid) x r`;;
@@ -139,9 +134,16 @@ let ball3_lambda = kepler_def
    ( ball3 x r) INTER (UNIONS(IMAGE (\v. ball3 v (&.1)) Lambda))`;;
 
 (* delta(x,r,Lambda) *)
-let delta_finite = kepler_def
+
+
+
+(*let delta_finite = kepler_def
   `delta_finite x r Lambda = 
     (vol 3 (ball3_lambda x r Lambda))/(vol 3 (ball3 x r))`;;
+*)
+
+
+
 
 (* Lambda(x,r) *)
 let truncated_packing = kepler_def
@@ -171,9 +173,11 @@ let negligible = kepler_def
      ITSET (\v acc. A(v) +. acc) (truncated_packing x r Lambda) (&.0)
      <=. (C * r * r))`;;
 
-let fcc_compatible = kepler_def
-  `fcc_compatible Lambda A = !v. (Lambda v) ==> 
-    (sqrt(&.32) <=. (vol 3 (open_voronoi_cell v Lambda)) + (A v))`;;
+
+(*let fcc_compatible = kepler_def
+  ` fcc_compatible Lambda (A:Lambda->real) = ( !v. (Lambda v) ==> 
+    (sqrt(&.32) <=. (( vol 3 (open_voronoi_cell v Lambda)) + (A v))))`;;
+*)
 
 let compatible_density = 
   `!Lambda. 
@@ -192,6 +196,9 @@ let kepler_conjecture =
 
 (* skipped some top-down material that doesn't make sense at this point *)
 
+(*
+
+
 let tetrahedron_vol = kepler_def 
   `tetrahedron_vol = 
   let v0 = mk_vec3 (&.0) (&.0) (&.0) in 
@@ -199,6 +206,7 @@ let tetrahedron_vol = kepler_def
   let v2 = mk_vec3 (&.1) (sqrt (&.3)) (&.0) in
   let v3 = mk_vec3 (&.1) ((sqrt (&.3))/(&.3)) ((&.2)*sqrt(&.6)/(&.3)) in
   vol 3 (convex_hull {v0,v1,v2,v3})`;;
+
 
 let tetrahedron_ball_vol = kepler_def 
   `tetrahedron_ball_vol = 
@@ -246,80 +254,92 @@ let pt_dtet =
 
 let pt_doct = 
   `pt = (-- (&.2))*(sqrt(&.2)*doct - pi/(&.3))`;;
+*)
+
+
+
 
 (* Construction of the Q-system *)
 
-let quasi_regular_triangle = kepler_def
-  `quasi_regular_triangle Lambda S = (S HAS_SIZE 3) /\
-   (S SUBSET Lambda) /\
-   (!v w. (S v ) /\ (S w) ==> (d_euclid w v <= two_t0))`;;
+let packing = kepler_def 
+`packing Lambda = (!v w. (((Lambda v)/\(Lambda w)/\(norm(v-w) < &2))==>(v=w)))`;;
 
-let simplex = kepler_def
-  `simplex Lambda (S:(num->real)->bool) = (S HAS_SIZE 4) /\
-    (S SUBSET Lambda)`;;
+let two_t0 = kepler_def `two_t0 = #2.51 `;;
+
+let quasi_regular_trig = kepler_def
+  `quasi_regular_trig Lambda S = ((S HAS_SIZE 3) /\
+   (S SUBSET Lambda) /\
+   (!v w. (((S v ) /\ (S w)) ==> (d_euclid w v <= two_t0))))`;;
+
+let simplx = kepler_def `simplx Lambda S = ((S SUBSET Lambda) /\(S HAS_SIZE 4))`;;
 
 let quasi_regular_tet = kepler_def
-  `quasi_regular_tet Lambda S = (simplex Lambda S) /\ 
-    (!v w. (S v) /\ (S w) ==> (d_euclid w v <= two_t0))`;;
+  `quasi_regular_tet Lambda S = ((simplx Lambda S) /\ 
+    (!v w. ((S v) /\ (S w)) ==> (d_euclid w v <= two_t0)))`;;
+
+let two_to_2t0 = kepler_def `two_to_2t0 x =
+        (((&2)<= x) /\ (x <= two_t0))`;;
+
+let twot0_to_sqrt8 = kepler_def `twot0_to_sqrt8 x = 
+        ((two_t0 <= x) /\ (x <= sqrt8))`;;
+
+let two_to_sqrt8 = kepler_def `two_to_sqrt8 x =
+        (((&2)<= x) /\ (x <= sqrt8))`;;
+
+let strict_twot0_to_sqrt8 = kepler_def `strict_twot0_to_sqrt8 x = 
+        ((two_t0 < x) /\ (x < sqrt8))`;;
+
+let pre_quarter = kepler_def 
+`pre_quarter Lambda S = ((simplx Lambda S) /\ (!v w. (((Lambda v)/\(Lambda w))==>(two_to_sqrt8 (d_euclid v w )))))`;;
 
 let quarter = kepler_def
-  `quarter Lambda S = (simplex Lambda S) /\
-    (?v w. (S v) /\ (S w) /\ (two_t0 <=. d_euclid w v) /\
-       (d_euclid w v <=. sqrt8) /\ 
-       (!x y. (S x) /\ (S y) /\ (two_t0 <. d_euclid x y) 
-          ==> ({x,y} = {v,w})))`;;
+  `quarter Lambda S = ((pre_quarter Lambda S) /\
+    (?v w. (S v) /\ (S w) /\ (twot0_to_sqrt8 (d_euclid v w))/\ 
+       (!x y. (((S x) /\ (S y) /\ (two_t0 <= (d_euclid x y) )) ==>({x,y}={v,w}) ))))`;;
 
 let strict_quarter = kepler_def
-  `strict_quarter Lambda S = (simplex Lambda S) /\
-    (?v w. (S v) /\ (S w) /\ (two_t0 <. d_euclid w v) /\
-       (d_euclid w v <. sqrt8) /\ 
-       (!x y. (S x) /\ (S y) /\ (two_t0 <. d_euclid x y) 
-          ==> ({x,y} = {v,w})))`;;
+  `strict_quarter Lambda S = ( (quarter Lambda S) /\
+    (?v w. (S v) /\ (S w) /\ (strict_twot0_to_sqrt8 (d_euclid w v))))`;;
 
 let diagonal = kepler_def
-  `diagonal S d = (d SUBSET S) /\ 
+  `diagonal S d = ((d SUBSET S) /\ 
      (?d1 d2. (d = {d1,d2}) /\ 
-         (!u v. (S u) /\ (S v) ==>(d_euclid u v <=. d_euclid d1 d2)))`;;
+         (!u v. (S u) /\ (S v) ==>(d_euclid u v <=. d_euclid d1 d2))))`;;
 
-
-let two_to_2t0 = kepler_def(`two_to_2t0 x =
-        ((&2)<= x) /\ (x <= two_t0)`);;
-
-let twot0_to_sqrt8 = kepler_def(`twot0_to_sqrt8 x = 
-        (two_t0 <= x) /\ (x <= sqrt8)`);;
-
-let is_qrtet_y = kepler_def(`is_qrtet_y y1 y2 y3 y4 y5 y6 =
-        (two_to_2t0 y1) /\
+let is_qrtet_y = kepler_def
+ `is_qrtet_y y1 y2 y3 y4 y5 y6 =
+        ((two_to_2t0 y1) /\
         (two_to_2t0 y2) /\
         (two_to_2t0 y3) /\
         (two_to_2t0 y4) /\
         (two_to_2t0 y5) /\
-        (two_to_2t0 y6)`);;
+        (two_to_2t0 y6))`;;
 
-let s_to_8 = kepler_def(`s_to_8 x =
-        ((#6.3001 <= x) /\ (x <= (&.8)))`);;
+let s_to_8 = kepler_def `s_to_8 x =
+        ( (#6.3001 <= x) /\ (x <= (&.8)) )`;;
 
-let four_to_s = kepler_def(`four_to_s x =
-        ((&.4)<= x) /\ (x <= #6.3001)`);;
+let four_to_s = kepler_def `four_to_s x =
+        (((&.4)<= x) /\ (x <= #6.3001))`;;
 
 let is_qrtet_x = kepler_def(`is_qrtet_x x1 x2 x3 x4 x5 x6 =
-        (four_to_s x1) /\
+        ((four_to_s x1) /\
         (four_to_s x2) /\
         (four_to_s x3) /\
         (four_to_s x4) /\
         (four_to_s x5) /\
-        (four_to_s x6)`);;
+        (four_to_s x6))`);;
 
-let is_upright_quarter_y = kepler_def(`is_upright_quarter_y y1 y2 y3 y4 y5
-y6 = 
-        (twot0_to_sqrt8 y1) /\
+let is_upright_quarter_y = kepler_def
+(`is_upright_quarter_y y1 y2 y3 y4 y5 y6 = 
+        ((twot0_to_sqrt8 y1) /\
         (two_to_2t0 y2) /\
         (two_to_2t0 y3) /\
         (two_to_2t0 y4) /\
         (two_to_2t0 y5) /\
-        (two_to_2t0 y6)`);;
+        (two_to_2t0 y6))`);;
 
-let is_upright_quarter_v = kepler_def(`is_upright_quarter_v v0 v1 v2 v3=
+let is_upright_quarter_v = kepler_def
+(`is_upright_quarter_v v0 v1 v2 v3 =
         is_upright_quarter_y
         (d_euclid v0 v1) (d_euclid v0 v2) (d_euclid v0 v3)
         (d_euclid v2 v3) (d_euclid v1 v3) (d_euclid v2 v3)`);;
@@ -391,8 +411,8 @@ let upright_oct_v = kepler_def(`upright_oct_v v0 w v1 v2 v3 v4 =
         (is_upright_quarter_v v0 w v4 v1))`);;
 
 let is_pairflat13 = kepler_def(`is_pairflat13 v0 v1 v2 v3 v4 =
-        (is_quad_cluster_v v0 v1  v2 v3 v4) /\
-        ((d_euclid v1 v3) <= sqrt8)`);;
+        ((is_quad_cluster_v v0 v1  v2 v3 v4) /\
+        ((d_euclid v1 v3) <= sqrt8))`);;
 
 let is_pairflat24 = kepler_def(`is_pairflat24 v0 v1 v2 v3 v4 =
         (is_quad_cluster_v v0 v1  v2 v3 v4) /\

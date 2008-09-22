@@ -1,8 +1,10 @@
 (* Start from the beginning of the text of Unabridged Proof
    of the Kepler Conjecture. Version Nov 26, 2003 *)
- 
-(*
-let mk_vec3 = kepler_def `mk_vec3 y1 y2 y3 = 
+ (* #use "generate-ineq-syntax.ml";;
+    #use "definitions_kepler.ml";;
+  *)
+
+(*let mk_vec3 = kepler_def `mk_vec3 y1 y2 y3 = 
   (\i. if (i=0) then y1 else if (i=1) then y2 else if (i=2) then y3
    else (&.0))`;;
 *)
@@ -133,7 +135,7 @@ let ball3_lambda = kepler_def
   `ball3_lambda x r Lambda =
    ( ball3 x r) INTER (UNIONS(IMAGE (\v. ball3 v (&.1)) Lambda))`;;
 
-(* delta(x,r,Lambda) *)
+(* delta(x,r,Lambda) - THIS DEFINITION IS NOT WORKING (VU KHAC KY)*)
 
 
 
@@ -174,7 +176,10 @@ let negligible = kepler_def
      <=. (C * r * r))`;;
 
 
-(*let fcc_compatible = kepler_def
+(* fcc_compatible : THIS DEFINITION IS NOT WORKING (VUKHACKY) *)
+
+(*
+let fcc_compatible = kepler_def
   ` fcc_compatible Lambda (A:Lambda->real) = ( !v. (Lambda v) ==> 
     (sqrt(&.32) <=. (( vol 3 (open_voronoi_cell v Lambda)) + (A v))))`;;
 *)
@@ -259,18 +264,23 @@ let pt_doct =
 
 
 
-(* Construction of the Q-system *)
 
+
+
+
+(* Construction of the Q-system *) 
+
+(* VU KHAC KY *)
 let packing = kepler_def 
 `packing Lambda = (!v w. (((Lambda v)/\(Lambda w)/\(norm(v-w) < &2))==>(v=w)))`;;
 
 let two_t0 = kepler_def `two_t0 = #2.51 `;;
-
+(*THE NAME OF QUASI_REGULAR_TRIANGLE HAS BEEN CHANGED INTO QUASI_REGULAR_TRIG (VU KHAC KY)*)
 let quasi_regular_trig = kepler_def
   `quasi_regular_trig Lambda S = ((S HAS_SIZE 3) /\
    (S SUBSET Lambda) /\
    (!v w. (((S v ) /\ (S w)) ==> (d_euclid w v <= two_t0))))`;;
-
+(*THE NAME OF SIMPLEX HAS BEEN CHANGED INTO SIMPLX ( VU KHAC KY)*)
 let simplx = kepler_def `simplx Lambda S = ((S SUBSET Lambda) /\(S HAS_SIZE 4))`;;
 
 let quasi_regular_tet = kepler_def
@@ -305,6 +315,14 @@ let diagonal = kepler_def
   `diagonal S d = ((d SUBSET S) /\ 
      (?d1 d2. (d = {d1,d2}) /\ 
          (!u v. (S u) /\ (S v) ==>(d_euclid u v <=. d_euclid d1 d2))))`;;
+
+
+
+
+
+
+
+
 
 let is_qrtet_y = kepler_def
  `is_qrtet_y y1 y2 y3 y4 y5 y6 =

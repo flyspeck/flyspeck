@@ -1224,7 +1224,7 @@ let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) =
      (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
      (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
 
-let vol = new_definition `vol = ( @ ) volume_props`;;
+let vol_def = new_definition `vol = ( @ ) volume_props`;;
 
 let solid = new_definition `solid x C = (@s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> 
      (s = &3 * vol(C INTER normball x r)/(r pow 3))))  `;;

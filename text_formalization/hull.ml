@@ -67,7 +67,7 @@ let hull_SUBSET = prove
 (* --------------------------------------------------------------- *)
 let VSUM_2 = prove
   ( `! (v:num->real^N). vsum (1..2)  v  = (v 1) + (v 2)`,
-  GEN_TAC THEN REWRITE_TAC[vsum; vector_add; SUM_2]);;
+  GEN_TAC THEN REWRITE_TAC[vsum; SUM_2] THEN VECTOR_ARITH_TAC);;
 
 let REAL_OF_NUM_NOT_EQ = prove
    ( `!n m. ~(m = n) <=> ~(&m = &n)`, MESON_TAC[REAL_OF_NUM_EQ]);;

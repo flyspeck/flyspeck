@@ -82,7 +82,7 @@ let pi_rt18 = kepler_def(`pi_rt18= pi/(sqrt (&18))`);;
 (*  Technical constants.                                              *)
 (* ------------------------------------------------------------------ *)
 
-let rogers=kepler_def(`rogers= sqrt2/zeta`);;
+let rogers_density=kepler_def(`rogers_density= sqrt2/zeta`);;
 let compression_cut=kepler_def(`compression_cut=(#1.41)`);;
 let squander_target=kepler_def(`squander_target =
         ((&4)*pi*zeta - (&8))*pt`);;
@@ -722,7 +722,7 @@ let dirac_delta = new_definition `dirac_delta (i:num) =
 *)
 
 
-
+(* deprecated, use vector, instead *)
 let mk_vec3 = new_definition `mk_vec3 a b c = vector[a; b; c]`;;
 
 let real3_of_triple = new_definition `real3_of_triple (a,b,c) = (mk_vec3 a b c):real^3`;;
@@ -919,15 +919,15 @@ let bis_le = new_definition `bis_le u v = {x | dist(x,u) <= dist(x,v) }`;;
 let bis_lt = new_definition `bis_lt u v = {x | dist(x,u) < dist(x,v) }`;;
 
 (* XCJABYH *)
-(*
-TO HERE: 
-let circumcenter = new_definition `circumcenter S = {v | affine hull S v /\ (?c. !s. (S s) ==> (c = dist(v,s))) }`;;
-*)
+let circumcenter = new_definition `circumcenter S = @v. ( (affine hull S) v /\ (?c. !w. (S w) ==> (c = dist(v,w))))`;;
 
 (* XPLPHNG *)
-(*
-let circumrad2 = new_definition `
-*)
+(* circumradius *)
+let radV = new_definition `radV S = @c. !w. (S w) ==> (c = dist(circumcenter S,w))`;;
+
+
+(* EOBLRCS *)
+let orientation = new_definition `orientation S v sgn = affsign sgn (S DIFF {v}) {v} (circumcenter S)`;;
 
 (* ANGLE *)
 
@@ -1101,6 +1101,160 @@ let wedge = new_definition (`wedge v1 v2 w1 w2 =
      if (d > &0) then aff_gt {v1,v2} {w1,w2} else
      (:real^3) DIFF aff_ge {v1,v2} {w1,w2}`);;
 
+(* ------------------------------------------------------------------ *)
+(*   Measure and Volume, following Nguyen Tat Thang  *)
+(* ------------------------------------------------------------------ *)
+
+let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
+
+let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
+
+let circular_cone =new_definition `circular_cone (V:real^3-> bool)=
+(? (v,w:real^3)(r:real). V= c_cone (v,w,r))`;;
+
+let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
+  new_inductive_definition
+    `(!P. ((plane P)\/ (sphere P) \/ (circular_cone P)) ==> NULLSET P) /\
+     !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;
+
+let null_equiv = new_definition `null_equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B /\ 
+((s DIFF t) UNION (t DIFF s)) SUBSET B)`;;
+
+
+let normball = new_definition `normball x r = { y:real^A | dist(y,x) < r}`;;
+
+let radial = new_definition `radial r x C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
+
+let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER normball x r))`;;
+
+let solid_triangle = new_definition `solid_triangle v0 S r = normball v0 r INTER cone v0 S`;;
+
+let rconesgn = new_definition `rconesgn sgn v w h = {x:real^A | sgn ((x-v) dot (w-v)) (dist(x,v)*dist(w,v)*h)}`;;
+
+(* drop primes *)
+
+let rcone_ge = new_definition `rcone_ge = rconesgn ( >= )`;;
+let rcone_gt = new_definition `rcone_gt = rconesgn ( > )`;;
+let rcone_lt = new_definition `rcone_lt = rconesgn ( < )`;;
+let rcone_eq = new_definition `rcone_eq = rconesgn ( = )`;;
+
+let scale = new_definition `scale (t:real^3) (u:real^3) = vector[t$1 * u$1; t$2 * u$2; t$3 * u$3]`;;
+
+let ellipsoid = new_definition `ellipsoid t r = IMAGE (scale t) (normball(vec 0)r)`;;
+
+let conic_cap = new_definition `conic_cap v0 v1 r a = normball v0 r INTER rcone_gt v0 v1 a`;;
+
+let frustum = new_definition `frustum v0 v1 h1 h2 a = { y | rcone_gt v0 v1 a y /\
+		let d = (y - v0) dot (v1 - v0) in
+		let n = norm(v1 - v0) in
+                  (h1*n < d /\ d < h2*n)}`;;
+
+let frustt = new_definition `frustt v0 v1 h a = frustum v0 v1 (&0) h a`;;
+
+let rect = new_definition `rect (a:real^3) (b:real^3) = {(v:real^3) | !i. ( a$i < v$i /\ v$i < b$i )}`;;
+
+(*
+let is_tetrahedron = new_definition `is_tetrahedron S = ?v0 v1 v2 v3. (S = conv0 {v0,v1,v2,v3})`;;
+*)
+
+let primitive = new_definition `primitive (C:real^3->bool) = 
+  ((?v0 v1 v2 v3 r.  (C = solid_triangle v0 {v1,v2,v3} r)) \/
+  (?v0 v1 v2 v3. (C = conv0 {v0,v1,v2,v3})) \/
+  (?v0 v1 v2 v3 h a. (C = frustt v0 v1 h a INTER wedge v0 v1 v2 v3)) \/
+  (?v0 v1 v2 v3 r c. (C = conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3)) \/
+  (?a b.  (C = rect a b)) \/
+  (?t r. (C = ellipsoid t r)) \/
+  (?v0 v1 v2 v3 r. (C = normball v0 r INTER wedge v0 v1 v2 v3)))`;;
+
+let MEASURABLE_RULES,MEASURABLE_INDUCT,MEASURABLE_CASES =
+  new_inductive_definition
+    `(!C. primitive C ==> measurable C) /\
+    ( !Z. NULLSET Z ==> measurable Z) /\
+    ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s UNION t)) /\
+    ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s INTER t)) /\
+    ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s DIFF t))
+   `;;
+
+
+let SDIFF = new_definition `SDIFF X Y = (X DIFF Y) UNION (Y DIFF X)`;;
+
+
+let vol_solid_triangle = new_definition `vol_solid_triangle v0 v1 v2 v3 r = 
+   let a123 = dihV v0 v1 v2 v3 in
+   let a231 = dihV v0 v2 v3 v1 in
+   let a312 = dihV v0 v3 v1 v2 in
+     (a123 + a231 + a312 - pi)*(r pow 3)/(&3)`;;
+
+let vol_frustt_wedge = new_definition `vol_frustt_wedge v0 v1 v2 v3 h a = 
+       (azim v0 v1 v2 v3)*(h pow 3)*(&1/(a*a) - &1)/(&6)`;;
+
+(* volume of intersection of conic cap and wedge *)
+let vol_conic_cap_wedge = new_definition `vol_conic_cap_wedge v0 v1 v2 v3 r c = 
+       (azim v0 v1 v2 v3)*(&1 - c)*(r pow 3)/(&3)`;;
+
+
+let vol_conv = new_definition `vol_conv v1 v2 v3 v4 =
+   let x12 = dist(v1,v2) pow 2 in
+   let x13 = dist(v1,v3) pow 2 in
+   let x14 = dist(v1,v4) pow 2 in
+   let x23 = dist(v2,v3) pow 2 in
+   let x24 = dist(v2,v4) pow 2 in
+   let x34 = dist(v3,v4) pow 2 in
+   sqrt(delta_x x12 x13 x14 x34 x24 x34)/(&12)`;;
+
+let vol_rect = new_definition `vol_rect a b = 
+   if (a$1 < b$1) /\ (a$2 < b$2) /\ (a$3 < b$3) then (b$3-a$3)*(b$2-a$2)*(b$1-a$1) else &0`;;
+
+let vol_ball_wedge = new_definition `vol_ball_wedge v0 v1 v2 v3 r = 
+   (azim v0 v1 v2 v3)*(&2)*(r pow 3)/(&3)`;;
+
+
+let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) = 
+    ( (!C. vol C >= &0) /\
+     (!Z. NULLSET Z ==> (vol Z = &0)) /\
+     (!X Y. measurable X /\ measurable Y /\ NULLSET (SDIFF X Y) ==> (vol X = vol Y)) /\
+     (!X t. measurable X ==> (measurable (IMAGE (scale t) X))) /\
+     (!X t. (measurable X) /\ (measurable (IMAGE (scale t) X)) ==> (vol (IMAGE (scale t) X) = abs(t$1 * t$2 * t$3)*vol(X))) /\
+     (!X v. measurable X ==> (measurable (IMAGE ((+) v) X))) /\
+     (!X v. measurable X ==> (vol (IMAGE ((+) v) X) = vol X)) /\
+     (!v0 v1 v2 v3 r. (r > &0) /\ (~(collinear {v0,v1,v2})) /\ ~(collinear {v0,v1,v3}) ==> vol (solid_triangle v0 {v1,v2,v3} r) = vol_solid_triangle v0 v1 v2 v3 r) /\
+     (!v0 v1 v2 v3. vol(conv0 {v0,v1,v2,v3}) = vol_conv v0 v1 v2 v3) /\
+     (!v0 v1 v2 v3 h a. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (h >= &0) /\ (a > &0) /\ (a <= &1) ==> vol(frustt v0 v1 h a INTER wedge v0 v1 v2 v3) = vol_frustt_wedge v0 v1 v2 v3 h a) /\
+     (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
+     (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
+     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
+
+let vol = new_definition `vol = ( @ ) volume_props`;;
+
+let solid = new_definition `solid x C = (@s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> 
+     (s = &3 * vol(C INTER normball x r)/(r pow 3))))  `;;
+
+let sovo = new_definition `sovo x C (v,s) = v* vol(C) + s* solid x C`;;
+
+let phivo = new_definition `phivo h t (v,s) = v*t*h*(t+h)/(&6) + s`;;
+
+let avo = new_definition `avo h t l= (&1 - h/t)*(phivo h t l - phivo t t l)`;;
+
+let ortho0 = new_definition `ortho0 x v1 v2 v3 = conv0 {x,x+v1,x+v1+v2,x+v1+v2+v3}`;;
+
+let make_point = new_definition `make_point v1 v2 v3 w r1 r2 r3 = @v. (aff_ge {v1,v2,v3} {w} (v:real^3)) /\ (r1 = dist(v1,v)) /\ (r2 = dist(v2,v)) /\ (r3 = dist(v3,v))`;;
+
+let rogers = new_definition `rogers v0 v1 v2 v3 c = 
+   let w = (&1/ (&2)) % (v0 + v1) in
+   let p = circumcenter {v0,v1,v2} in
+   let q = make_point v0 v1 v2 v3 c c c in
+   conv {v0,w,p,q}`;;
+
+let rogers0 = new_definition `rogers0 v0 v1 v2 v3 c = 
+   let w = (&1/ (&2)) % (v0 + v1) in
+   let p = circumcenter {v0,v1,v2} in
+   let q = make_point v0 v1 v2 v3 c c c in
+   conv0 {v0,w,p,q}`;;
+
+let abc_param = new_definition `abc_param v0 v1 v2 c = 
+    let a = (&1/(&2)) * dist(v0,v1) in
+    let b = radV {v0,v1,v2} in
+     (a,b,c)`;;
 
 (* ------------------------------------------------------------------ *)
 (*   Format of inequalities in the archive.                           *)

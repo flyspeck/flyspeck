@@ -318,7 +318,35 @@ let diagonal = kepler_def
 
 
 
+(* VU KHAC KY *)
+let six_point = new_definition  
+  `six_point x1 x2 x3 x4 x5 x6 = 
+  (!x y. (((x IN {x1, x2 ,x3, x4, x5, x6})/\(y IN {x1, x2 ,x3, x4, x5, x6}))==>(norm(x-y) >(&0))))`;;
 
+let pre_quarter_oct = new_definition
+  `pre_quarter_oct Lambda v w x1 x2 x3 x4 = 
+  let S1= {v,w,x1,x2} in
+  let S2= {v,w,x2,x3} in
+  let S3= {v,w,x3,x4} in
+  let S4= {v,w,x4,x1} in
+  (strict_quarter Lambda S1)/\
+  (strict_quarter Lambda S2)/\
+  (strict_quarter Lambda S3)/\
+  (strict_quarter Lambda S4)/\
+  (diagonal S1 {v,w})/\
+  (diagonal S2 {v,w})/\
+  (diagonal S3 {v,w})/\
+  (diagonal S4 {v,w})/\
+  ((convex hull (S1) INTER convex hull (S2))= {})/\
+  ((convex hull (S1) INTER convex hull (S3))= {})/\
+  ((convex hull (S1) INTER convex hull (S4))= {})/\
+  ((convex hull (S2) INTER convex hull (S3))= {})/\
+  ((convex hull (S2) INTER convex hull (S4))= {})/\
+  ((convex hull (S3) INTER convex hull (S4))= {})`;;
+
+let quartered_oct = kepler_def 
+`quartered_oct Lambda v w x1 x2 x3 x4 = 
+((six_point v w x1 x2 x3 x4 )/\(pre_quarter_oct Lambda v w x1 x2 x3 x4))`;;
 
 
 
@@ -585,7 +613,7 @@ let sigma_quad_approx1_lambda = kepler_def(`sigma_quad_approx1_lambda
 
 
 
-
+(* VU KHAC KY *)
 
 
 

@@ -10,8 +10,13 @@ needs "Multivariate/topology.ml";;
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
 
+(* It is enough to work with one branch of the cone.  This
+simplifies the definition a bit *)
+(*
 let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | (x=v) \/ ((x-v) dot w 
 = norm (x-v)* norm w* r)\/ ((x-v) dot w = --norm (x-v)* norm w* r)}`;;
+*)
+let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
 
 let circular_cone =new_definition `circular_cone (V:real^3-> bool)=
 (? (v,w:real^3)(r:real). V= c_cone (v,w,r))`;;
@@ -22,14 +27,17 @@ let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
      !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;
 
 
-let equiv = new_definition `equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B | 
+let null_equiv = new_definition `null_equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B  /\
 ((s DIFF t) UNION (t DIFF s)) SUBSET B)`;;
 
 
 (*Radial*)
+(* moved to definitions_kepler.ml *)
+(*
+let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
 
-let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t< r/ norm(u))==>(x+ t % u) IN C))`;;
 let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
+*)
 
 
 

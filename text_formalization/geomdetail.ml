@@ -1,5 +1,22 @@
 
+(* Comments by T. Hales:
+* The definition of strict_qua is not quite correct.  You need `d3 x y < sqrt (&8)`.
 
+* my definition is quartered_oct is correct, but probably hard to use. It should
+be rewritten.
+
+* The definition of Q_SYS is incomplete.
+
+* The definition of isolated pair is missing.
+
+* You should put theorems in "packaged" form with then.  I see that the theorem is still proved the way you did it, but as the project gets bigger, it is better to write the theorems this way.
+
+* I modified VC_INFI
+
+* The definition of VC is incorrect.  A definition based on Def. 7.19 is proposed below.
+This affects the proof of Lemma 8.1.
+
+ *)
 
 
 needs "definitions_kepler.ml";;
@@ -83,17 +100,57 @@ let anchor = new_definition ` anchor (v:real^3) v1 v2 = ( d3 v1 v2 <= sqrt (
 &8 ) /\
 d3 v1 v2 >= &2 * t0 /\ d3 v v1 <= &2 * t0 /\ d3 v v2 <= &2 * t0 )`;;
 
+(* the definition of Q_SYS is not completed yet, but it don't affect what we do
+later*)
+
 let Q_SYS = new_definition ` Q_SYS s = { q | quasi_reg_tet q s
 \/ ( strict_qua q s /\ (? c d. ! qq. c IN q /\ d IN q /\
 d3 c d > &2 * t0 /\ (quasi_reg_tet qq s \/ strict_qua qq s )
 /\ ( conv0_2 { c, d } INTER conv0 qq = {} ))) }`;;
 
-(* this definition is not completed yet, but it don't affect what we do
-later*)
+
 let barrier = new_definition ` barrier s = { { (v1 : real^3 ) , ( v2 :real^3
 ) , (v3 :real^3) } |
 quasi_tri { v1 , v2 , v3 } s \/
 (? v4. ( { v1 , v2 , v3 } UNION { v4 }) IN Q_SYS s ) } `;;
+
+let obstructed = new_definition ` obstructed x y s = ( ? bar. bar IN barrier
+s /\
+( ~ (conv0_2 { x , y } INTER conv_trg bar = {})))`;;
+
+let unobstructed = new_definition ` unobstructed x y s = ( ~( obstructed x y
+s ))`;;
+
+(* 
+
+let lambda_x = new_definition `lambda_x x s = {w | w IN s /\ d3 w x < &2 /\
+   ~obstructed w x s }`;;
+
+let VC = new_definition `VC v s = { x | v IN lambda_x x s /\ 
+   (!w. w IN lambda_x x s /\ ~(w = v) ==> d3 x v < d3 x w) }`;;
+
+let VC_INFI = new_definition ` VC_INFI s = { z | ( ! x. ~( z IN VC x s ))}`;;
+*)
+
+(* The following definition of VC is not correct, because
+   y is not allowed to range over all of s, but only over those elements of
+   s that are unobstructed....
+*)
+
+let VC = new_definition ` VC x s = { z | d3 x z < &2 /\ ~obstructed x z s /\
+(! y. y IN s /\ ~ ( x = y ) ==> d3 x z < d3 y z )} `;;
+
+(* In VC_INFI  /\ changed to ==>, thales.  A simpler definition appears above. *)
+
+let VC_INFI = new_definition ` VC_INFI s = { z | ( ! x. x IN s ==>
+~( z IN VC x s ))}`;;
+
+(*This definition only correct with s with CARD s = 3*)
+let conv0_3_trg = new_definition ` conv0_3_trg s = { x | ?a b c t z r. ~( a
+= b ) /\ ~( b = c) /\ ~(c = a )
+/\ a IN s /\ b IN s /\ c IN s
+/\ &0 < t /\ t < &1 /\ &0 < z /\ z < &1 /\ &0 < r /\ r < &1
+/\ t + z + r = &1 /\ x = t % a + z % b + r % c}`;;
 
 
 (* AXIOMS *)
@@ -218,18 +275,7 @@ y /\ ( ~(x=y))
 *)
 
 
-let obstructed = new_definition ` obstructed x y s = ( ? bar. bar IN barrier
-s /\
-( ~ (conv0_2 { x , y } INTER conv_trg bar = {})))`;;
 
-let unobstructed = new_definition ` unobstructed x y s = ( ~( obstructed x y
-s ))`;;
-
-let VC = new_definition ` VC x s = { z | d3 x z < &2 /\ ~obstructed x z s /\
-(! y. y IN s /\ ~ ( x = y ) ==> d3 x z < d3 y z )} `;;
-
-let VC_INFI = new_definition ` VC_INFI s = { z | ( ! x. x IN s /\
-~( z IN VC x s ))}`;;
 
 let trg_sub_bo = prove ( `A SUBSET B <=> (!x. A x ==> B x)`, SET_TAC[] );;
 
@@ -268,12 +314,7 @@ m n p . P a b u v m n p <=> P b a v u m n p)
 
 
 
-(*This definition only correct with s with CARD s = 3*)
-let conv0_3_trg = new_definition ` conv0_3_trg s = { x | ?a b c t z r. ~( a
-= b ) /\ ~( b = c) /\ ~(c = a )
-/\ a IN s /\ b IN s /\ c IN s
-/\ &0 < t /\ t < &1 /\ &0 < z /\ z < &1 /\ &0 < r /\ r < &1
-/\ t + z + r = &1 /\ x = t % a + z % b + r % c}`;;
+
 
 
 let AFFINE_HULL_SINGLE = prove(`!x. affine hull {x} = {x}`,

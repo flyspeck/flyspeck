@@ -35,9 +35,7 @@ let d3 = new_definition `d3 x y = dist(x,y)`;;
 let voronoi2 = new_definition ` voronoi2 v S = {x| x IN voronoi_trg v S /\
 d3 x v < &2 }`;;
 
-(*
 let t0 = new_definition ` t0 = #1.255`;;
-*)
 
 let quasi_tri = new_definition ` quasi_tri tri s = ( packing s /\
 tri SUBSET s /\

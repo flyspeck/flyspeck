@@ -6,6 +6,7 @@
 needs "Multivariate/vector.ml";;
 needs "definitions_kepler.ml";;
 needs "Multivariate/topology.ml";;
+needs "definitions_kepler.ml";;
 
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
@@ -39,6 +40,15 @@ let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u
 let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
 *)
 
+(*Lemma 4.3*)
+
+
+let tr5=prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C' ==> (!u. ((v0+u) IN (C INTER C')) ==> (!t.(t > &0) /\ (t * norm u < r)==> (v0+t % u IN (C INTER C')))))`, REPEAT GEN_TAC THEN REWRITE_TAC[IN_INTER] THEN MESON_TAC[radial;IN_INTER]);;
+
+let tr6=prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C' ==> C INTER C' SUBSET normball v0 r)`, REPEAT GEN_TAC THEN MESON_TAC[radial;INTER_SUBSET;SUBSET_TRANS]);;
+
+
+let inter_radial =prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C') ==> radial r v0 (C INTER C')`, REPEAT GEN_TAC THEN MESON_TAC[radial;tr5;tr6]);; 
 
 
 (*4.2.11 combining solid angle and volume*)

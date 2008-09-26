@@ -713,7 +713,7 @@ let pi_prime_sigma = kepler_def
 (* deprecated *)
 (* let norm3 = new_definition `norm3 (v:real^3) = norm v`;; *)
 
-(* deprecated *) (* let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;; *)
+(* deprecated *) let d3 = new_definition `d3 (v:real^3) w = dist(v,w)`;; 
 
 (* No need for this one.  "basis" does something similar. *)
 (*

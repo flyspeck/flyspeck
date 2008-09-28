@@ -24,3 +24,6 @@ tarskis.js : array_tarski.js  # remove chars: _ \ $
 	tr -d "_\\$$" < array_tarski.js > tarskis.js
 
 fig : # take all figpy/*.py convert to fig/*.pdf
+
+svninfo.txt : *.tex
+	svn info | grep "^Revision" > svninfo.txt

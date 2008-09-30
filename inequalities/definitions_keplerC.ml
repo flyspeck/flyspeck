@@ -348,6 +348,58 @@ let quartered_oct = kepler_def
 `quartered_oct Lambda v w x1 x2 x3 x4 = 
 ((six_point v w x1 x2 x3 x4 )/\(pre_quarter_oct Lambda v w x1 x2 x3 x4))`;;
 
+let adjacent_pair = kepler_def 
+  `adjacent_pair Lambda v v1 v3 v2 v4 =
+   let Q  = {v, v1, v3, v2} in 
+   let Q1 = {v, v1,v3,v4}  in
+  (strict_quarter Lambda Q)/\
+  (strict_quarter Lambda Q1)/\
+  (diagonal Q {v1,v3})/\
+  (diagonal Q1 {v1,v3})/\
+  (conv0 Q INTER conv Q1 = EMPTY )`;;
+
+let conflict_diagonal = new_definition 
+`conflict_diagonal Lambda v v1 v3 v2 v4 = ((adjacent_pair Lambda v v1 v3 v2 v4)/\(adjacent_pair Lambda v v2 v4 v1 v3))`;;
+
+let inter_position = kepler_def 
+` inter_position Lambda v v1 v3 v2 v4 =
+  ((conflict_diagonal Lambda v v1 v3 v2 v4) /\
+(conv {v1,v3} INTER conv0 {v,v2,v4}= EMPTY))`;;
+
+let isolated_pair = new_definition 
+`isolated_pair Lambda  Q = 
+((quarter Lambda Q)/\
+(~(?v v1 v2 v3 v4. (Q v1)/\(Q v2)/\(Q v3)/\(Q v4)==>(adjacent_pair Lambda v v1 v3 v2 v4))))`;;
+
+
+let anchor = new_definition 
+`anchor Lambda v v1 v2 = ( (Lambda v)/\
+                          (twot0_to_sqrt8 (d_euclid v1 v2))/\
+                          (~(v = v1))/\
+                          (~(v = v2))/\
+                          ( d_euclid v v1 <= two_t0)/\
+                          ( d_euclid v v2 <= two_t0))`;; 
+
+(* Definition of Q- System  ..to be continue.. *)
+(*
+let Q-system = new_definition 
+`Q-system (Lambda:packing) Q = 
+ (!S. (Q S)==>
+           (quasi_regular_tet Lambda S)\/
+           (strict_quarter Lambda S) 
+
+`;;
+*)
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -218,3 +218,38 @@ let conv1pt = prove(`!u. conv {u:real^A} = {u}`,
   MESON_TAC[VECTOR_MUL_LID;REAL_ARITH `&0 <= &1`]
 		   );;
 
+
+
+(*
+
+
+let conv_insert = prove(`!S (v:real^3).
+     FINITE S ==> 
+     (conv (v INSERT S) = {x | ?s t. (conv S s) /\ &0 <= t /\ t <= &1 /\ (x = t % s + (&1-t) % v)})`,
+   REWRITE_TAC[conv;affsign;sgn_ge;FUN_EQ_THM;lin_combo;UNION_EMPTY];
+   SIMP_TAC[FINITE_INSERT;FINITE_RULES;VSUM_CLAUSES;SUM_CLAUSES];
+   REPEAT STRIP_TAC;
+   ASM_REWRITE_TAC[elimin IN_INSERT;IN_ELIM_THM];
+   REWRITE_TAC[TAUT `(p <=> q) = ((p ==> q) /\ (q ==> p))`] ;
+   (*  *)
+   DISJ_CASES_TAC (TAUT `(v IN S) \/ ~((v:real^3) IN S)`);;
+   
+   REPEAT STRIP_TAC;
+   EXISTS_TAC `x:real^3`;
+   EXISTS_TAC `&1`;
+   ASM_REWRITE_TAC[REAL_ARITH `&0 <= (&1) /\ (&1 <= (&1)) /\ (&1 - &1 = &0)`;VECTOR_MUL_LID;VECTOR_MUL_LZERO;VECTOR_ADD_RID;];
+   ASM_MESON_TAC[];
+   (* 2 *)
+   ABBREV_TAC `g = \w. (if (w=v:real^3) then (t* f v + (&1 - t)) else t * f w)`;
+   EXISTS_TAC `g:real^3->real`;
+   CONJ_TAC;
+   EXPAND_TAC "g";
+   ASM_REWRITE_TAC[];
+   UNDISCH_TAC `FINITE (S:real^3->bool)`;
+   (* to here *)
+   
+
+
+*)
+   
+

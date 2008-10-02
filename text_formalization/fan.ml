@@ -9,7 +9,9 @@ lemmas
 
 *)
 
-
+needs "Multivariate/vectors.ml";;    
+needs "Examples/analysis.ml";;       
+needs "Examples/transc.ml";;         
 needs "definitions_kepler.ml";;
 
 
@@ -76,7 +78,23 @@ let D2=new_definition`D2 fan(x,V,E)={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
 
 (*
 
-
 let D_fan=new_definition`D_fan fan(x,V,E)= D1 fan(x,V,E) UNION D2 fan(x,V,E)`;;
 
 *)
+
+let inverse_sigma_fan=new_definition`inverse_sigma_fan v w = @a. sigma_fan v a=w`;;
+
+let e_fan=new_definition`e_fan=(\x v w w1. x w v (sigma_fan w v))`;;
+
+let f_fan=new_definition`f_fan = (\x v w w1. x w (inverse_sigma_fan w v) v )`;;
+
+let n_fan=new_definition`n_fan=(\x v w w1. x v (sigma_fan v w) (sigma_fan v (sigma_fan v w)))`;;
+
+let i_fan=new_definition`i_fan=(\x v w w1. x v w (sigma_fan v w))`;;
+
+let lem_fan1=prove(`(!v w. sigma_fan v (inverse_sigma_fan v w)=w)==> (e_fan o f_fan o n_fan=i_fan)`, 
+REWRITE_TAC[o_DEF; e_fan; f_fan; n_fan; i_fan] 
+THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);
+
+let lem_fan2=prove(`e_fan o e_fan =i_fan`, REWRITE_TAC[o_DEF; e_fan; i_fan;]);;
+

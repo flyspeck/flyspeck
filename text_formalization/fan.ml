@@ -94,7 +94,7 @@ let i_fan=new_definition`i_fan=(\x v w w1. x v w (sigma_fan v w))`;;
 
 let lem_fan1=prove(`(!v w. sigma_fan v (inverse_sigma_fan v w)=w)==> (e_fan o f_fan o n_fan=i_fan)`, 
 REWRITE_TAC[o_DEF; e_fan; f_fan; n_fan; i_fan] 
-THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);
+THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);;
 
 let lem_fan2=prove(`e_fan o e_fan =i_fan`, REWRITE_TAC[o_DEF; e_fan; i_fan;]);;
 

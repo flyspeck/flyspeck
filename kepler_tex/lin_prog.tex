@@ -1,44 +1,2475 @@
+
 \chapter{Linear Programs}
     \label{sec:lp}
 
 
+\section{Introduction}
+
+Until now, the most poorly redacted part of the proof of the
+packing problem has been the linear programming.  The proof
+involves approximately 100,000 linear programs, each involving
+some 200 variables and 2000 constraints.  The data for these
+linear programs fills about three gigabytes of storage.
+
+The purpose of this document is to give a specification of the
+linear programs. This specification has never been produced,
+except in highly abbreviated form in the original 1998 proof. The
+linear programs are left so vague that it would be extremely
+difficult from that description alone to give independent
+corroboration of the results.
+
+The original proof appeared as a series of papers named {\it
+Sphere Packings I} through {\it Sphere Packings VI}.  This paper
+may be viewed as a detailed version of the second half of 
+{\it Sphere Packings VI}.
+
+\subsubsection{flyspeck}
+
+An important part of the motivation for the work comes from the
+Flyspeck project, which aims to give a formal proof of the packing
+problem.  The word flyspeck has the form F*P*K, which is an
+acronym for the Formal Proof of the Kepler conjecture.
+
+Steven Obua has made important progress toward the formal
+verification of linear programs, as needed for the Flyspeck
+project.  A specification
+of the linear programs in a form suitable for formal verification
+is required to complete that project.
+This chapter is the first step toward bridging that gap.
+
+\subsubsection{geometry}
+
+This chapter eliminates all geometry.  The problem is transformed
+into a purely combinatorial and algebraic problem.
+A hypermap (which is just a finite set
+with two permutations) encodes most of the combinatorial
+structure.  The rest is encoded as discrete collection of flags.
+The linear programs can be specified directly from the hypermap
+and flags.  There is a database of a few thousand hypermaps that
+are used in the construction of the systems of inequalities.  The
+flags are abstractions of various geometric conditions, and yet
+it is not necessary to understand anything about these geometric
+conditions to work with the flags.
+
+\subsubsection{formal inequality}
+
+There is a tight relationship between the linear inequalities that
+appear in the linear programs and certain nonlinear inequalities
+that appear in a database.  A simple example is illustrated in
+Figure~\ref{XX}.  The three angles $\alpha_i$ of the triangle
+satisfy
+    \begin{equation}
+    \label{eqn:2pi}
+    \alpha_1 + \alpha_2 + \alpha_3 = 2\pi.
+    \end{equation}
+This equality can be viewed two ways.  It can be viewed linearly
+as the equation of an affine plane in $\ring{R}^3$.  Or, it can be
+viewed nonlinearly, where each $\alpha_i$ is a nonlinear function
+of the edge lengths of the triangles, and the equation asserts a
+nonlinear relation among edge lengths.
+
+For humans it is a simple matter to switch back and forth between
+these points of view.  To understand the 1998 solution to the 
+packing problem, it is necessary to jump continually back and forth
+between these two views of an equation.
+
+For computers, it is not such a simple matter to jump from one
+point of view to another.  To assist in the full automation of the
+proof, we create a new object called {\it formal inequalities}
+whose purpose is to provide the connection between the two types
+of inequalities.  A formal inequality can be {\it deformalized}
+into an ordinary linear inequality.  It can also admits a
+nonlinear {\it interpretion}.  A formal inequality thus appears as
+a structure that unifies a linear inequality with a nonlinear
+inequality (Figure~\ref{fig:formal}). With this new structure, we
+have the framework that would allow us to completely automate the
+process of retrieving linear programs from a database of nonlinear
+inequalities.
+
+\begin{figure}[htb]
+  \centering
+  %% WW \myincludegraphics{\ps/formal.eps}
+  \caption{Unification of nonlinear and linear inequalities}
+  \label{fig:formal}
+\end{figure}
+
+\subsubsection{infeasibility}
+
+To solve the packing problem, it is enough to show that no
+counterexamples exist.  In technical terms, it is enough to show
+that no contravening centered packings exist (except for those
+attached to the face-centered cubic and hexagonal close packings).
+
+The strategy for proving the nonexistence of counterexamples is
+remarkably naive. In simple terms, it goes as follows.  First, put
+all the counterexamples in a box. Then measure the width of the
+box. If the width of the box is negative, the box contains no
+counterexamples.
+
+This basic idea can be embellished in various ways.  The box can
+be replaced by more general polyhedra defined by hyperplane
+inequalities.  Instead of showing that the box has negative width,
+we can show that the system of hyperplane inequalities admits no
+feasible solutions.
+
+A further refinement of this idea allows us to cover the set of
+counterexamples with a finite collection of polyhedra and then
+show that each polyhedron is empty.  We can do this in with an
+iterative refinement.  If a given cover of the space of
+counterexamples contains a polyhedron that is not empty, we can
+replace it with two others that give a finer cover of the space of
+counterexamples.  If by a series of  refinements we eventually
+arrive at a cover by empty polyhedra, our goal (of eliminating all
+counterexamples) is accomplished.
+
+In the original 1998 proof, the series of refinements was guided
+by detailed geometric information about the space of centered
+packings.  In this revision of the proof, the series of
+refinements is purely algebraic and combinatorial.
+
+\subsubsection{linear program}
+
+This idea of covering the space of counterexamples with a finite
+collection of empty polyhedron can be expressed somewhat
+differently in terms of linear programming.  In fact, it is
+possible to describe the problem in such a way that no reference
+is made to the space of counterexamples.
+
+The basic aim of the linear program is to show the infeasibility
+of a certain system.  However, the primary linear programs are not
+infeasible in the traditional sense.  It is necessary to weaken
+the definition of infeasibility to encompass systems that
+eventually become infeasible after certain branch and bound
+operations.  These operations are somewhat subtle, because the
+underlying combinatorial structure of the linear program changes
+as branching operations progress.   In Section~\ref{sec:weak}, we
+will say that a system is weakly infeasible, if a combinatorial
+tree of systems can be constructed starting with the given system
+as the root, and infeasible systems as the outermost leaves.  The
+hypermap and its flags encode the possible branchings of the tree.
+The main theorem of this chapter will then assert that each
+primary system is weakly infeasible.
+
+This weak infeasibility result is one of the main steps of the
+solution to the packing problem.  Another chapter will show that
+if there is a counterexample, then it can
+be used to construct a strongly feasible solution to a primary
+system.  The existence of a strongly feasible solution is
+incompatible with weak infeasibility.  Thus, weak infeasibility
+leads to a proof that there are no counterexamples.
+
+
+\subsubsection{functional language}
+
+Our aim has been to give a description of the linear programming
+part of the packing problem in a way that is conducive to
+implementation in a functional programming language.  We have
+allowed ourselves to drift somewhat from conventional mathematical
+syntax toward expressions that have a bit more the look and feel
+of a functional programming language.  We note that there are
+scarcely any theorems in this chapter.  This is actually a highly
+desirable thing, from the point of view of formalization.
+
+\subsubsection{modular design}
+
+In a long and complex proof, it is desirable to modularize and
+encapsulate the various parts of the proof to the greatest extent
+possible.  We have been able to make this chapter almost entirely
+self contained: it can be read with almost no reference to other
+chapters in this book.  To achieve this, we have repeated a few
+results from earlier chapters, such as material on hypermaps.
+There are a few outside facts that we make reference to, such as
+the existence of a database of nonlinear inequalities, and the
+existence of an archive of planar hypermaps.  For the purposes of
+this chapter, is not necessary to understand the origin of this
+database or this archive. They can simply be accepted as part of
+the givens of our situation.
+
+The main theorem (Theorem~\ref{thm:lpbound}) of this chapter solves
+one of the main parts of the packing problem.
+Although the theorem seems at first glance to be rather simple,
+this apparent simplicity is deceptive, because the definitions on
+which the theorem rests, are extremely long and cumbersome.  This
+was the price of encapsulation.
+
+\subsubsection{warning and hope}
+
+There are some minor incompatibilities between how things are set
+up here and how things were set up in the original 1998 solution.
+These incompatibilities were introduced to
+simplify matters.  My hope is that they have not broken anything.
+However, the only way to be sure of this is to generate all the
+linear programs and check that they all hold.  I have not carried
+this out, so the reader is encouraged to be a bit skeptical of
+everything that is written here, at least until those
+verifications have been made.
+
+As part of the Flyspeck project, it is our hope that one day there
+will be a formal proof of the main theorem of this chapter.  S.
+Obua can provide details about the current status of this project.
+
+\section{Hypermap Review}
+
+The combinatorial structure of the packing problem is expressed
+through various hypermaps.   This chapter takes
+the connected sums of hypermaps, as described in Section~\ref{sec:csum}.
+
+%
+%\subsection{basic Definitions}
+%
+%\begin{definition}[hypermap]  A {\it hypermap} $H=(D,e,n,f)$ is a finite set $D$
+%together with three permutations $e,n,f:D\to D$ satisfying the
+%identity $e\circ n\circ f = I$.  The elements of $D$ are called
+%{\it darts}.  The permutations $e,n,f$ are called the {\it edge},
+%{\it node}, and {\it face} permutations, respectively.
+%\end{definition}
+%
+
+\begin{definition}[face,~$H/f$]  A {\it face} of a hypermap $H=(D,e,n,f)$ is an orbit of $D$
+under $f$.  We write $\op{face}(\alpha)$ for the face of
+$\alpha\in D$.  We write $H/f$ for the set of faces.
+\end{definition}
+
+\begin{definition}[edge,~$H/e$]  An {\it edge} of a hypermap $H=(D,e,n,f)$ is an orbit of $D$
+under $e$.  We write $\op{edge}(\alpha)$ for the edge of
+$\alpha\in D$.  We write $H/e$ for the set of edges.
+\end{definition}
+
+\begin{definition}[node,~$H/n$]  A {\it node} of a hypermap $H=(D,e,n,f)$ is an orbit of $D$
+under $n$.  We write $\op{node}(\alpha)$ for the node of
+$\alpha\in D$.  We write $H/n$ for the set of nodes.
+\end{definition}
+
+
+\section{Linear Programming}
+
+
+
+\subsection{abstract theory}
+
+We assume a finite indexing set $I$ that will be used  to index
+all the variables for a linear program. Let $\ring{R}^I$ be the
+vector space of real-valued functions on $I$. We define the
+standard dot product $(\cdot)$ on $\ring{R}^I$ by
+    $$v\cdot w = \sum_{i\in I} v_i w_i.$$
+
+\begin{definition}[formal~inequality]
+A formal inequality (on the indexing set $I$) is a triple
+    $$(f:I\to\ring{R},s\in\{(\le),(=),(\ge)\},c\in\ring{R}).$$
+The second coordinate $s$ is a binary relation on $\ring{R}$.
+\end{definition}
+
+Let $\op{FOR}_I$ be the set of formal inequalities.  We drop the
+subscript $I$ when the indexing set $I$ is fixed.  There is a
+function $\op{def}:\op{FOR}\to \ring{R}^I \to \bool$ (short for
+deformalize) given by
+    $$\op{def}:\ (f,s,c)\ v \mapsto s(f\cdot v,c).$$
+
+\begin{remark}
+We use the shorthand of writing $(f,\op{sgn},c)$ as
+   $$f\,\,\op{{\bf sgn}},\, c,$$
+where $\op{{\bf sign}}$ is the curly version $(\seq,\sle,\sge)$ of
+the relation symbol $(=,\le,\ge)$. For example, the formal
+inequality
+    $(\optt{y}(\alpha),(\ge),0)$ is written simply as $\optt{y}(\alpha)\sge 0$.
+The curly relation symbol reminds us that the inequality is
+formal.  Without the modified relation symbol, this shorthand
+would be dangerously ambiguous, because a formula such as
+    $$\optt{y}(\alpha) = 0$$
+could be read either as a formal identity
+$(\optt{y}(\alpha),(=),0)$, or as an ordinary vector equality
+between the vector $\optt{y}(\alpha)$ and the zero vector $0$.
+
+We generalize the notation to allow statements such as
+    $$v \seq w$$
+for the formal inequality $(v-w,(=),0)$.
+\end{remark}
+
+%The image of $\op{def}$ on a formal inequalities is called an
+%inequality (or equality if we wish to stress that it comes from an
+%equality constraint). Let $\op{INEQ}$ be the set of inequalities.
+
+\begin{definition}[formal~disjunction]
+A formal disjunction $A$ is a finite set of finite sets of
+$\op{FOR}_I$. (Intuitively, the set is to be thought of as
+representing a formula in disjunctive normal form, whose atomic
+formulas are formal inequalities.) Let $\op{LFOR}_I$ be the set of
+formal disjunctions. Again, we drop the subscript $I$, when the
+indexing set $I$ is fixed.  We may consider a formal inequality as
+a formal disjunction under the map
+    $$a \mapsto \{\{a\}\}.$$
+\end{definition}
+
+\begin{remark}
+The formal disjunction
+    $$A = \{\{a_{11},a_{12},\ldots,\},\ldots,\{a_{k1},\ldots\}\}$$
+will be written more suggestively as
+    $$A = (a_{11}\wedge a_{12}\wedge\cdots) \vee \cdots \vee (a_{k1}\wedge
+    \cdots)$$
+as a formula in disjunctive normal form.  For example, the formal
+disjunction
+    $$A =  \{\{(y,(\le),0)\},\{y,(\ge),0\}\}$$
+will be written
+    $$A = (y\sle 0) \vee (y \sge 0).$$
+If $A$ is a singleton: $A = \{\{\{a_{11},a_{12},\ldots,\}\}$ then
+we write it as a conjunction:
+    $$
+    A = (a_{11}\wedge a_{12}\wedge\cdots)
+    $$
+\end{remark}
+
+We extend $\op{def}$ to a function $\op{ldef}$ on $\op{LFOR}$ by
+    $$\op{ldef}\ A \ v  =
+    (a'_{11}\wedge a'_{12}\wedge\cdots) \vee \cdots \vee (a'_{k1}\wedge
+    \cdots).$$
+where $a'_{ij} = \op{def}(a_{ij}) v$ and $A\in \op{LFOR}$ has the
+form
+    $$
+    A = \{\{a_{11},a_{12},\ldots,\},\ldots,\{a_{k1},\ldots\}\}$$
+
+If $S$ is a set of formal disjunctions, let $\op{single}(S)$ be
+the union of singleton sets (that is, conjunctions):
+    $$
+    \op{single}(S) = \bigcup \{a \mid \{a\} \in S\}
+    $$
+
+\begin{definition}[infeasible]
+Let $S$ be a set of formal disjunctions (on an indexing set $I$).
+We say that $S$ is {\it infeasible} and write
+    $$\op{INFEAS}(S)$$
+if $\op{single}(S)$ is an infeasible system of linear
+inequalities.
+\end{definition}
+
+
+\subsection{inequalities from a database}
+\label{sec:lookup}
+
+There is a large database of nonlinear inequalities in a small
+number of variables that has been proved correct by means of
+interval arithmetic.  This subsection indicates how to extract
+linear inequalities from that database to be used for linear
+programming.
+
+%Suppose that we are given a set of  configurations $C$ and wish to
+%generate inequalities that are valid on a subset $S\subset C$.
+
+We assume that the indexing set $I$ contains a subset $I'$ (called
+the set of nonlinear indices). Assume a nonlinearization function
+    $$
+    \op{interp}:\ I' \to \ring{R}^{I} \to \ring{R}.
+    $$
+Extend it to
+    $$
+    \begin{array}{rll}
+    \op{interp\_vec}:&\ \ring{R}^{I} \to \ring{R}^I \to
+    \ring{R}\\
+    u\ v \mapsto& \sum_{i\in I'} v_i (\op{interp}_i u) +
+        \sum_{j\in I\setminus I'} v_j u_j.
+    \end{array}
+    $$
+Extend it to
+    $$
+    \begin{array}{rll}
+    \op{interp\_for}:&\ \op{FOR}\to\ring{R}^I\to\bool\\
+    (f,s,c)\ u\mapsto& s(\op{interp\_vec} f u,c)\\
+    \end{array}
+    $$
+Finally, extend it to
+    $$
+    \begin{array}{rll}
+    \op{interp\_lfor}:\ \op{LFOR}\to&\ring{R}^I\to\bool\\
+    ((a_{11}\wedge a_{12}\wedge\cdots) \vee \cdots \vee (a_{k1}\wedge
+    \cdots)\ u\mapsto& (a'_{11}\wedge a'_{12}\wedge\cdots) \vee \cdots \vee (a'_{k1}\wedge
+    \cdots)\\
+    \end{array}
+    $$
+where $a'_{ij} = \op{interp\_for} (a_{ij}) u$.
+
+
+Let $\op{nonlin}(C,L)$ be the formula
+    $$
+    \forall y\in\ring{R}^\ring{N}.\ (\forall c\in C.\
+    c(y)) \Rightarrow L(y).
+    $$
+Suppose that we have a database $B$ of such nonlinear
+inequalities.  Given a map $\psi:\ring{N}\to I$, there is a dual
+map
+    $$
+    \pi_\psi: \ring{R}^I \to \ring{N}\to \ring{R},\quad v\ n\mapsto
+    v_{\psi n}.
+    $$
+
+
+\begin{definition}[lookup]
+    We say that the formal disjunction $A$ is a {\it lookup} in
+    database $B$ with domain constraints in $S$ (a set of formal disjunctions),
+    if there exists
+        $$
+        \op{nonlin}(C,L)\in B
+        $$
+    and there exist $\psi:\ring{N}\to I$ and
+    $r:C\to\op{FOR}_I$
+    such that the following two conditions hold
+    \begin{itemize}
+    \item The system $S$ implies the domain restrictions of
+    $\op{nonlin}(C,L)$.  That is, for every $c \in C$,
+        $$
+        \forall v\in\ring{R}^I.\ \op{interp\_for} (r(c)) v
+        \Rightarrow (c(\pi_\psi v))
+        $$
+    \item The predicate $L$ comes by interpretation of $A$.  That
+    is,
+        $$
+        \forall v\in \ring{R}^I.\ (\forall c\in C.\ \op{interp\_for}(r(c)) v)
+        \Rightarrow (L(\pi_\psi v) =
+        \op{interp\_lfor}(A) v).
+        $$
+    \end{itemize}
+\end{definition}
+
+
+In brief, a formal disjunction $A$ is a lookup of
+$\op{nonlin}(C,L)$ if the interpretation of $A$ coincides with the
+predicate $L$ on a suitably restricted domain, and if those domain
+constraints are in the system $S$.
+
+It should be possible to write a completely automated tool that
+finds the lookups from a database $B$ whose domain constraints lie
+in $S$.
+
+\begin{example}  We give a somewhat contrived example of lookup.
+Later, nonlinear lookup will be performed on a massive database of
+inequalities.  Suppose that our database contains the nonlinear
+inequality:
+    $$\forall y_1,\ldots,y_6.\ (2\le y_i \le 2.1,\ i=1,\ldots
+    6) \Rightarrow (\Gamma(y_1,\ldots,y_6) \le \pt),
+    $$
+    for some nonlinear function $\Gamma$ and constant $\pt$.
+We can put this in the form $N = \op{nonlin}(C,L)$ with
+    $$
+    \begin{array}{llll}
+    %J &=\{1,\ldots,6\}\\
+    C &= \{\\
+        &y&\mapsto (y_1\ge 2)\\
+        &y&\mapsto (y_1\le 2.1)\\
+        &&\cdots\\
+        &y&\mapsto (y_6\le 2.1)\}\\
+    L &= (y&\mapsto (\Gamma(y_1,\ldots,y_6)\le \pt)).
+    \end{array}
+    $$
+Suppose, further, for the sake of an example that our indexing
+sets contain elements $g\in I'$ and $i_1,\ldots,i_6\in I\setminus
+I'$ and that
+    $$
+    \op{interp}(g) = (v \mapsto \Gamma(v_{i_1},\ldots,v_{i_6})).
+    $$
+Let $\optt{gamma} = e_g \in\ring{R}^{I}$. Then we see that the
+formal disjunction (in this case a single formal inequality)
+$\optt{gamma} \sle \pt$ is a lookup in the database $B = \{N\}$
+with domain constraints in
+    $$
+    S = \{e_{i_1}\sge 2,\ldots,e_{i_6}\sge 2,
+          e_{i_1}\sle 2.1,\ldots, e_{i_6}\sle 2.1\},
+    $$
+\end{example}
+
+
 \section{Hypermap Systems}
 
-A classification of tame hypermaps has been obtained in an earlier
-chapter.  The object of this chapter is to show that each is infeasible
-in a sense to be made precise.  By proving infeasibility, we rule
-it out as a possible counterexample to the sphere packing problem.
+The previous sections have described the general theory of linear
+programming without reference to the specifics of the packing
+problem.  It is now time to develop linear programming in the
+specific context of  hypermaps.
 
+\subsection{statement of the main lp bound}
 
-\begin{definition}
-A hypermap system is a tuple $(H,F,\ell,\Phi)$, where 
-\begin{itemize}
-\item $H$ is a
-hypermap, 
-%\item $V$ is the vector space of real valued functions on the
-%set of darts of $H$, 
-\item $F$ is a finite set (called the set of flags), 
-\item $\ell\ge 0$, and 
-\item $\Phi$ is a set of boolean conditions on the
-disjoint union, $V^\ell\cup F$ for some $\ell$, where $V$
-is the vector space of real-valued functinos on the set of darts of $H$.
-\end{itemize}
+Let $\mathcal H$ be the set of  hypermaps that are connected,
+plain, planar, and simple. For each $H\in \mathcal H$, there is a
+set of combinatorial flags $\op{fl}$.  This set is defined in
+Section~\ref{sec:flag}.  Section~\ref{sec:var-index} will specify
+an indexing set $I$, a subset of nonlinear indices $I'\subset I$,
+and an interpretation
+  $$\op{interp}:\ I'\to \ring{R}^I\to\ring{R}$$
+for $I'$.  The data $I$, $I'$, and $\op{interp}$ depend on the
+parameters $(H,\op{fl})$: $I = I(H,\op{fl})$, etc.
+
+\begin{definition}[hypermap~system]
+A {\it hypermap system} is a triple $(H,\op{fl},S)$ where
+    $H\in {\mathcal H}$,
+    $\op{fl}$ is a
+    combinatorial flag,
+    and $S\subset \op{LFOR}_I$, with $I = I(H,\op{fl})$.
+    Let $\op{HS}$ be the set of hypermap systems.
 \end{definition}
 
-\begin{definition}
-A morphism $f:(H,F,\ell,\Phi)\to (H',F',\ell',\Phi')$
-of hypermap systems is a tuple 
-$f=(f_*,f_F^*,f_V^*)$, where
-\begin{itemize}
-\item $f_*:H\to H'$ is a covering map,
-\item $f_F^*:F'\mapsto F$ is any function,
-\item $f_V^*:(V')^{\ell'}\to V^\ell$ is linear, such that
-\item $\Phi' \vdash (x',v')\mapsto \phi(f_F^*x',f_V^*v')$, for
-all $\phi\in\Phi$
-\end{itemize}
+Section~\ref{sec:PTHS} defines a subset $\op{PTHS}$ of $\op{HS}$
+(the set of primary tame hypermap systems).  There is a database
+of nonlinear inequalities (B) that is described in
+Section~\ref{XX}. Section~\ref{sec:basic} will describe the
+systems $S$ for $(H,\op{fl},S)\in\op{PTHS}$.  A predicate
+$\op{weak\_infeas}$ (weak infeasibility) on hypermap systems
+$\op{HS}$ will be described in Section~\ref{sec:weak}.
+
+\begin{theorem}[Main LP Bound]\label{thm:lpbound} Assume the nonlinear
+inequalities (B).  Then for every $\rho\in \op{PTHS}$, we have
+$\op{weak\_infeas}(\rho)$.
+\end{theorem}
+
+Briefly put, every primary tame hypermap system is weakly
+infeasible.  The result is obtained by linear relaxation and
+linear programming.\footnote{The warning that appears at the
+beginning of the chapter should be repeated.  There are some mild
+incompatibilities with the linear programming verifications done
+in 1998, and the new linear programs have not yet been executed.
+Thus, it is possible that some adjustments may have to be made
+before claiming the Main LP Bound as a theorem.}
+
+\begin{remark}  Each of the nonlinear inequalities in the database
+(B) was proved by interval arithmetic as part of the 1998 proof.
+Thus, we can state the Main LP Bound with this hypothesis.  The
+hypothesis is included simply to keep interval arithmetic out of
+the proof.
+\end{remark}
+
+\subsection{flags}
+\label{sec:flag}
+
+The second component of a  hypermap system $(H,\op{fl},S)$ is a
+combinatorial flag.  This subsection describes the flag and some
+auxiliary functions.
+
+\begin{definition}[flag]
+ A flag is a tuple
+    $$
+    \op{fl}=(\op{qrn},\op{qre},\op{hex\_loop\_diag},
+    \op{typ}(4),\op{sum\_typ}(4),\ldots,
+    \op{typ}(8),\op{sum\_typ}(8))
+    $$
+ with flag components $\op{qrn},\ldots,\op{sum\_typ}(8)$ to be listed below.
+ \end{definition}
+
+We give a brief description of each of the flag components.  The
+interpretations of the flag components are irrelevant to the proof
+of the Main LP Bound.  The interpretations are needed to relate the Main LP Bound to bounds on the score of a centered packing.  Beyond that, 
+interpretations are merely provided as a
+guide to the intuition.  All that is relevant is the domain and
+range of each function.  For instance, in the following
+definition, the comment that $\op{qrn}$ ``detects quasi-regular
+nodes'' is irrelevant to the Main LP Bound.  Any function $\op{qrn}:H/n\to\bool$
+qualifies as a flag component.
+
+ \begin{definition}[quasi-regular~node~and~edge,~qrn,~qre]
+ The flag components $\op{qrn}$ and $\op{qre}$ detect {\it quasi-regular
+ nodes and edges}.
+        $$\op{qrn}:H \to \bool$$
+        $$\op{qre}:H \to \bool$$
+%These functions satisfy the constraint that for every dart $x$, if
+%  $\op{qre}(x)$ then $\op{qrn}(x)$.
+ The function $\op{qrn}$ is constant on orbits of $n$, so that it
+ descends to a function on $H/n$.  The function $\op{qre}$ is
+ constant on the orbits of $e$, so that it descends to a function
+ on $H/e$.
 \end{definition}
 
-The set of all hypermap systems forms a category.
+\begin{interpretation}[qrn,~qre] 
+Let $(\Lambda,v_0)$ be a centered packing.  Let
+$H$ be the hypermap of a $(\Lambda,\CalQ)$-compatible fan $(v_0,V,E)$.  
+If $x=(v_0,v,\ldots)$ is a dart in that hypermap, we
+set $\op{qrn}(x)$ to be true exactly when $|v_0-v|\le 2t_0$.  Each 
+edge $z=\{x,ex\}$ of the hypermap corresponds with some edge $\{v_1,v_2\}\in E$.
+We set $\op{qre}(x) = \op{qre}(e x)$ to be true exactly when
+$|v_1-v_2|\le 2t_0$. %, $|v_0-v_1|\le 2t_0$, and $|v_0-v_2|\le 2t_0$.
+\end{interpretation}
+
+\begin{definition}[standard~face,~std] The function $\op{std}$ detects standard faces
+in a hypermap.
+    $$\op{std}:H/f \to \bool$$
+$$\op{std}(F) = \forall\alpha\in F.\
+\op{qrn}(\alpha)\wedge \op{qre}(\alpha)
+$$
+\end{definition}
+
+\begin{notation}
+We write $(H/f)_X$ to denote the subset of $H/f$ described by the
+satisfying the given flags in $X$.  If the subscript is a natural
+number, we let $(H/f)_n$ be the set of faces in $H$ of cardinality
+$n$.  For example, $(H/f)_{4,\op{std}}$ is the set
+    $$
+    \{F \in H/f \mid \card(F) = 4 \wedge \op{std}(F)\}.
+    $$
+\end{notation}
+
+%\begin{definition}[pri]
+%The flag component $\op{pri}:(H/f)_{\op{std}}\to\bool$ tells
+%whether a standard face is primary.
+%\end{definition}
+
+%\begin{definition}[is-refined]
+%The flag component $\op{is\_refined}$ keeps tracks of changes to
+%an initial configuration hypermap.
+%   $$\op{is\_refined}:H/f\to \bool$$
+%\end{definition}
+
+In the following definitions, we give symbolic names to elements
+of various sets.  For example, in the following definition
+    $$\{\op{patchable},\op{puremix}\}$$
+is to be understood as a finite set of cardinality two, with
+elements $\op{patchable}$ and $\op{puremix}$.  Also, some of the
+values depend on parameters.  For example, in the following
+definition, if $F=\{\alpha_1,\ldots,\alpha_4\}$, then
+    $$
+    \op{sum\_typ}(4)(F)
+    $$
+can take on five distinct values:
+    $$
+    \op{upright}, \op{flat}(\alpha_1), \ldots,
+    \op{flat}(\alpha_4).
+    $$
+This is indicated in abbreviated form in the following
+definitions.
+
+\begin{definition}[$\op{typ}$,~$\op{sum\_typ}$]
+The flag components $\op{typ}(4)$ and $\op{sum\_typ}(4)$
+classify the type of a standard quad face.
+    $$
+    \begin{array}{rll}
+    \op{typ}(4):& F\in (H/f)_{4,\op{std}}
+    \to
+    \{\op{patchable},\op{puremix}\}\\
+    \op{sum\_typ}(4):& F\in (H/f)_{4,\op{patchable}}
+    \to
+    \{\op{upright},\op{flat}(\alpha:F)\}.
+    \end{array}
+    $$
+\end{definition}
+
+\begin{remark}
+The data for $\op{flat}(\alpha)$ and $\op{flat}(f^2\alpha)$ are
+equivalence in a sense that I won't spell out in detail here.
+Roughly, they both correspond to a connected sum obtained by drawing the
+diagonal of a quadrilateral. In the 1998 proof, these two cases
+were combined into a single proof. This creates fewer cases, but
+leads to a proof obligation of proving their equivalence.  (This
+is geometrically obvious, but it is not obvious in formal
+verification.) Following Nipkow's work on the formalization of the
+classification of tame plane graphs, it is my hunch that the
+formal proof will go more smoothly if the proof obligation is
+dropped, and the two are treated as separate cases.
+\end{remark}
+
+\begin{definition}[$op{typ}$,~$\op{sum\_typ}$]
+The flag components $\op{typ}(5)$ and $\op{sum\_typ}(5)$
+classify the type of a standard pentagonal face.
+    $$
+    \begin{array}{rll}
+    \op{typ}(5):& F\in (H/f)_{5,\op{std}}
+    \to
+    \{\op{patchable},\op{trunc},\op{aggA},\op{aggB},\op{crowd3},\op{notpri}\}\\
+    \op{sum\_typ}(5):& F\in (H/f)_{5,\op{patchable}}
+    \to
+    \{\op{loop5},\op{flat}(\alpha:F),\op{flat2}(\alpha:F),\op{loop4}\}.
+    \end{array}
+    $$
+\end{definition}
+%% not primary is standard but occurring in a connected sum.
+
+\begin{definition}[$op{typ}$,~$\op{sum\_typ}$]
+The flag components $\op{typ}(6)$ and $\op{sum\_typ}(6)$
+classify the type of a standard hexagonal face.
+    $$
+    \begin{array}{rll}
+    \op{typ}(6):& F\in (H/f)_{6,\op{std}}
+    \to
+    \{\op{patchable},\op{trunc},\op{agg},\op{crowd3},\op{crowd4},\op{loop51}\}\\
+    \op{sum\_typ}(6):& F\in (H/f)_{6,\op{patchable}}
+    \to
+    \{\text{list connected sumes}\ldots\}.
+    \end{array}
+    $$
+\end{definition}
+\FIXX{list connected sums 6,7,8}
+
+\begin{definition}[$op{typ}$,~$\op{sum\_typ}$]
+The flag components $\op{typ}(7)$ and $\op{sum\_typ}(7)$
+classify the type of a standard heptagonal face.
+    $$
+    \begin{array}{rll}
+    \op{typ}(7):& F\in (H/f)_{7,\op{std}}
+    \to
+    \{\op{patchable},\op{trunc},\op{crowd3},\op{crowd4}\}\\
+    \op{sum\_typ}(7):& F\in (H/f)_{7,\op{patchable}}
+    \to
+    \{\text{list connected sumes}\ldots\}.
+    \end{array}
+    $$
+\end{definition}
+
+\begin{definition}[$op{typ}$,~$\op{sum\_typ}$]
+The flag components $\op{typ}(8)$ and $\op{sum\_typ}(8)$
+classify the type of a standard octagonal face.
+    $$
+    \begin{array}{rll}
+    \op{typ}(8):& F\in (H/f)_{8,\op{std}}
+    \to
+    \{\op{patchable},\op{trunc},\op{crowd3},\op{crowd4}\}\\
+    \op{sum\_typ}(8):& F\in (H/f)_{8,\op{patchable}}
+    \to
+    \{\text{list connected sumes}\ldots,\op{agg51}\}.
+    \end{array}
+    $$
+\end{definition}
+
+
+\begin{definition}[upright~quarter,~upq] The function $\op{upq}$ detects upright
+quarters in a hypermap.
+    $$\op{upq}:\op{dart}(H) \to \bool$$
+    $$\op{upq}(\beta) =  (\card(\op{face}\beta)=3)\wedge
+      \forall\alpha\in \op{face}(\beta).\
+         \op{qre}(\alpha)\wedge
+         (\op{qrn}(\alpha)\Leftrightarrow
+         (\beta\ne\alpha))$$
+\end{definition}
+
+\begin{definition}[flat~quarter,~flatq]
+The function $\op{flatq}$ detects flat quarters in a hypermap.
+     $$\op{flatq}:H \to \bool$$
+    $$\op{flatq}(\beta) = (\card(\op{face}\beta)=3)\wedge
+       \forall\alpha\in \op{face}(\beta).\
+         \op{qrn}(\alpha)\wedge
+         (\op{qre}(\alpha) \Leftrightarrow
+         (\beta\ne\alpha)).$$
+\end{definition}
+(Note: the dart $\beta$ on which $\op{flatq}$ is true is the one
+for which $\op{edge}(\beta)$ is not quasi-regular; that is, the
+diagonal.)
+
+
+\begin{definition}[inquad]
+The function
+    $$\op{inquad}:(H/n)\to \bool$$
+gives whether an upright diagonal lies on upright quarter of type
+$\x{(4,0)}$ inside a quad cluster.
+    $$\op{inquad}(N) =
+    (\card(N)=4) \wedge (\forall \alpha\in N.\
+        \op{upq}(\alpha))
+    $$
+\end{definition}
+
+\begin{definition}[$\op{quad\_diag}$]
+The function
+    $$\op{quad\_diag}:\op{dart}(H)_{\neg\op{qre}} \to \bool$$
+tells whether an edge that is not quasi-regular is the diagonal of
+a quadrilateral.  The function $\op{quad\_diag}$ is constant on
+orbits of $e$, so it descends to a function on a subset of $H/e$.
+$$
+    \op{quad\_diag}(\alpha) = \op{flatq}(\alpha)\wedge
+    \op{flatq}(e\alpha).
+$$
+\end{definition}
+
+\begin{definition}[$\op{hex\_loop\_diag}$]
+The flag component
+    $$
+    \op{hex\_loop\_diag}:\op{dart}(H)_{\neg\op{qre}}\to\bool
+    $$
+tells whether an edge that is not quasi-regular is the diagonal of
+a hexagon, along a slice in a loop.  The function
+$\op{hex\_loop\_diag}$ is constant on orbits of $e$, so it
+descends to a function on a subset of $H/e$.
+\end{definition}
+
+
+\begin{definition}[$\op{fqex}$]
+Let $\op{fqex}$ be the predicate that picks out a dart in flat
+quarters that are not part of a quadrilateral pair.
+\begin{equation}
+    \begin{array}{llll}
+    \op{fqex}(\beta) &= \exists F\in(H/f)_{3,\neg\op{std}}.\ \op{flatq}(\beta) &\wedge\\
+        \beta\in F &\wedge
+        \ \neg\op{quad\_diag}(\beta).
+    \end{array}
+\end{equation}
+\end{definition}
 
 
 
+
+\subsection{bifurcation}
+
+
+
+\begin{definition}[bifurcation,~bif]
+We define a bifurcation relation $\op{bif}(\rho,\rho',\rho'')$ on
+triples of  hypermap systems.  Let $\rho=(H,\op{fl},S)$, and
+similarly for $\rho'$ and $\rho''$ with appropriately primed
+notation.  We say that $\rho$ {\it bifurcates} into $\rho'$ and
+$\rho''$, and write $\op{bif}(\rho,\rho',\rho'')$ if there exists
+a formal disjunction $A\in S$, and formal disjunctions $A',A''$
+such that
+    $$
+    \begin{array}{rlll}
+    H &= H' &= H''\\
+    \op{fl} &= \op{fl}' &= \op{fl}''\\
+        A &= A'&\cup\ A''\\
+    S'\setminus  \{A'\} &\subset S &\cup\ \op{single}(S)\\
+    S''\setminus  \{A''\} &\subset S&\cup\ \op{single}(S)\\
+    \end{array}
+    $$
+\end{definition}
+The simplest way to bifurcate is to break a disjunction into two
+disjuncts, putting one disjunct into each of the two branches of
+the bifurcation.
+
+
+
+\subsection{weak infeasibility}
+\label{sec:weak}
+
+We define a notion of infeasibility of  hypermap systems that is
+broad enough to encompass branch and bound.  We describe the
+predicate $\op{weak\_infeas}$ on the set of hypermap systems.
+
+We define a tree structure that keeps track of the
+branch-and-bound operations used in the search for infeasible
+hypermap systems.  We define a type of an $\op{tree}$ by
+    $$
+    \begin{array}{lll}
+    |\ \op{LEAF}&\\
+    |\ \op{DATA} &\text{of } \alpha * \op{tree}\\
+    |\ \op{NODE} &\text{of } \op{tree} * \op{tree}\\
+    \end{array}
+    $$
+%
+We define a predicate $\op{is\_data}$ on trees which is true
+exactly when it has the form $\op{DATA}(\cdot,\cdot)$. We define a
+relation $\op{head}:(\op{tree},\alpha)\to \bool$ by
+    $$
+    \begin{array}{lll}
+    |\ \op{DATA}(\rho,s),\rho &\to \true\\
+    |\  \op{\_} &\to \false
+    \end{array}
+    $$
+Section~\ref{sec:refine} defines a binary relation
+$\op{ref}(\rho,\rho')$ (called refinement) on hypermap systems. We
+define a recursive predicate $\op{wft}$ (well-formed trees) on the
+trees by
+    $$
+    \begin{array}{lll}
+    |\ \op{LEAF} &\to\true\\
+    |\ \op{NODE}(s,t) &\to \op{wft}(s) \wedge \op{wft}(t)
+    \wedge \op{is\_data}(s) \wedge \op{is\_data}(t)\\
+    |\ \op{DATA}(\rho,s) &\to \op{wft}(s) \wedge\\
+        &\quad \text{case}\ s\ \text{of}\\
+        &\qquad|\op{LEAF}\to\true\\
+        &\qquad|\op{DATA}(\rho',s')\to \ \op{ref}(\rho,\rho')\\
+        &\qquad|\op{NODE}(\op{DATA}(\rho',s'),\op{DATA}(\rho'',s''))\to
+        \ \op{bif}(\rho,\rho',\rho'')\\
+        &\qquad|\op{\_} \to \false\\
+    \end{array}
+    $$
+In brief, in a well-formed tree, a child must be obtained from the
+parent by bifurcating or refinement.
+%
+By abuse of notation, we write $\op{INFEAS}(H,\op{fl},S)$ for
+$\op{INFEAS}(S)$.
+
+We define a predicate $\op{infeas}$ (infeasible trees) on trees by
+    $$
+    \begin{array}{lll}
+    |\ \op{LEAF} &\to \false\\
+    |\ \op{DATA}(\rho,\op{LEAF}) &\to \op{INFEAS}(\rho)\\
+    |\ \op{NODE}(s,s') &\to \op{infeas}(s) \wedge \op{infeas}(s')\\
+    |\ \op{DATA}(\rho,s) &\to \op{infeas}(s)\\
+    |\ \op{\_} &\to \false\\
+    \end{array}
+    $$
+In brief, the data closest to the leaves must be infeasible
+systems of equations.
+
+\begin{definition}[$\op{weak\_infeas}$]
+    Let $\op{weak\_infeas}$ be the predicate on hypermap systems given by
+        $$
+        \op{weak\_infeas}(\rho) = \exists t.\
+        \op{head}(t,\rho) \wedge \op{wft}(t) \wedge
+        \op{infeas}(t).
+        $$
+\end{definition}
+
+In the actual linear programming, the trees are not used directly.
+Rather, all the needed properties of the function
+$\op{weak\_infeas}$ are given by the following three lemmas.
+
+\begin{lemma}\guid{ZGVVZXL}
+If $\op{bif}(\rho,\rho',\rho'',L)$, $\op{weak\_infeas}(\rho')$,
+and
+    $\op{weak\_infeas}(\rho'')$ then $\op{weak\_infeas}(\rho)$.
+\end{lemma}
+
+\begin{proof} If $t'$ and $t''$ are the trees for $\rho'$ and
+$\rho''$, then use the tree $\op{DATA}(\rho,\op{NODE}(t',t''))$
+for $\rho$.
+\end{proof}
+
+\begin{lemma}\guid{SPHYLTX}
+If $\op{INFEAS}(\rho)$, then $\op{weak\_infeas}(\rho)$.
+\end{lemma}
+
+\begin{proof} Use the tree $\op{DATA}(\rho,\op{LEAF})$.
+\end{proof}
+
+\begin{lemma}\guid{AVPPMYF}
+If $\op{ref}(\rho,\rho')$ and $\op{weak\_infeas}(\rho')$, then
+  $\op{weak\_infeas}(\rho)$.
+\end{lemma}
+
+\begin{proof} If $t'$ is a tree for $\rho'$, then for $\rho$ use
+    $$
+    \op{DATA}(\rho,t')
+    $$
+\end{proof}
+
+
+\subsection{variable indexing}
+\label{sec:var-index}
+
+We describe the finite set $I = I(H,\op{fl})$ of variable indices.
+Extend notation by setting $I(\rho) = I(H,\op{fl})$, for $\rho =
+(H,\op{fl},S)$.  If $e_i\in \ring{R}^I$ is a standard basis
+vector, we let $\iota(e_i)=i\in I$ be the corresponding index.  We
+generally give names to the basis vectors, and refer to the
+corresponding indices by means of the function $\iota$.
+
+
+
+
+
+\begin{definition}[indexing~set,~$I$]
+Let $D$ be the set of darts of hypermap $H$.  The set $I$ (for
+$(H,\op{fl})$ is defined as the disjoint union of the following
+indexing sets:\FIXX{Finish List}
+    $$\begin{array}{llll}
+        \text{index} &\text{basis vector name}&\text{namesake?}
+        \\
+        %
+        \alpha\in D, &\optt{azim}(\alpha), &\text{yes}
+        \\
+        %
+        \alpha\in D, &\optt{yn} (\alpha)
+        \\
+        %%
+        \alpha\in D,
+        &\optt{ye} (\alpha),
+        \\
+        %%
+        F\in H/f,
+        &\optt{sol} (F), &\text{yes}
+        \\
+        %%
+        F\in H/f
+        &\optt{sc} (F)
+        \\
+        %%
+        F\in H/f
+        &{\optt{tau\_sc}} (F)
+        &\text{ }\\
+        %%
+        F\in (H/f)_{3,flq}
+        &\optt{sigmahat} (F)
+        &  \text{yes}\\
+        %%
+        F\in (H/f)_{3,flq}
+        &\optt{tauhat} (F)
+        &\text{yes}\\
+        %%
+        F\in (H/f)_{3,\neg\op{std}}
+        &\optt{eta}(F)
+        &\text{yes}\\
+        %%
+        \alpha\in H
+        &\optt{eta}'(\alpha)
+        &\text{yes}\\
+        %%
+        F\in (H/f)_{3,std}
+        &\optt{sigma\_qrtet\_x} (F)
+        &\text{yes} \\
+        %%
+        F\in (H/f)_{3,std}
+        &\optt{tau\_sigma\_x} (F)
+        &\text{yes} \\
+        %%
+        F\in (H/f)_{\ge4,\neg\op{std}}
+        &\optt{vor0}(F)
+        &\text{yes}\\
+        %%
+        F\in (H/f)_{\ge4,\neg\op{std}}
+        &\optt{tau0}(F)
+        &\text{yes}\\
+        %%
+        \alpha\in D
+        &\optt{Adih}(\alpha)
+        &\text{yes}\\
+        %%
+        \alpha\in D
+        &\optt{quo}(\alpha)
+        &\text{yes}\\
+        %%
+        \alpha\in D
+        &\optt{quob}(\alpha)
+        &\\
+        %%
+        \alpha \in \op{flatq}
+        &\optt{mu}(\alpha)
+        &\text{yes}\\
+        %%
+        \alpha\in \op{upq}
+        &\optt{nu}(\alpha)
+        &\text{yes}\\
+        %%
+    \end{array}
+    $$
+\end{definition}
+
+\subsection{interpretation}
+
+There are a number of interpretations of variables that have the
+general form
+    $$\op{interp}(\iota\optt{mango})\ v\mapsto
+    \op{mango}(u_0\cdot v,u_2\cdot v,\ldots,u_k\cdot v)$$
+for some nonlinear function $\op{mango}$, and vectors $u_i\in
+\ring{R}^I$.  We typeset the name ($\optt{mango}$) of the basis
+vector in $\optt{tt}$ font and typeset name of the nonlinear
+interpreting function $\op{mango}$ as an operator. Greek symbols
+are expanded as text to make the correspondence with function
+names in the file
+    {\it definitions\_kepler.ml} explicit. (Thus, the nonlinear
+    function $\sigma$ appears
+    as $\optt{sigma\_qrtet\_x}$ and so forth.)
+When the correspondence between a basis vector and nonlinear
+interpreting function occurs on a name-by-name basis in this way,
+we will omit details.  We will simply say that it is a {\it
+namesake} interpretation.
+
+In namesake interpretations, the vectors $u_i$ are general tightly
+related to the index $\iota\optt{func}\in I$.  Generally, if
+$\alpha$ is a dart, $F=\op{face}(\alpha)$,  and $\card(F)=3$, and
+if $\optt{func}(\alpha)$ has nonlinear namesake
+$\op{func}(y_1\cdot v,\ldots,v_{i_6})$, then $u_i$ follow the
+standard convention:
+    $$
+    \begin{array}{llll}
+    u_i &= \optt{yn}_i(f^i\alpha), &i &=0,1,2\\
+    u_i &= \optt{ye}_i(f\alpha), &i &=3,4,5
+    \end{array}
+    $$
+This indexing convention is followed with the nonlinear functions:
+    $$
+    \optt{gamma},\ \optt{nu},\ \optt{mu},\ \text{list.}
+    %
+    $$
+(N.B. This list is incomplete.)\FIXX{Complete and correct.}
+
+
+\subsection{penalty}
+\label{sec:pc}
+
+
+We define a function $\xi:(H/f)_{\neg\op{std}}\to\ring{R}$ as
+follows.
+
+If $\op{qrn}(\alpha)$ for all $\alpha\in F$, and $n=\card(F)\ge
+4$, then we define $\xi$ as follows.  Let $k$ be the number of
+edges of $F$ such that $\neg\op{qre}(\alpha)$.  Set
+    $$
+    \begin{array}{lll}
+    \xi(F) & \y{(n,k)}\\
+    6 \xi_\Gamma & \y{(8,0)}\\
+    6 \xi_\Gamma & \y{(7,1)}\\
+    4 \xi_\Gamma + 2 \xi_V & \y{(6,2)}\\
+    2 \xi_\Gamma + 4 \xi_V & \y{(5,3)}\\
+    0 & \y{(4,4)}\\
+    6 \xi_\Gamma & \y{(7,0)}\\
+    5 \xi_\Gamma & \y{(6,1)}\\
+    3\xi_\Gamma + 2 \xi_V & \y{(5,2)}\\
+    \xi_\Gamma + 4\xi_V & \y{(4,3)}\\
+    2(0.008) & \y{(6,0)} \\
+    0.008 & \y{(5,1)} \\
+    0 & \y{(4,2)} \\
+    0.008 & \y{(5,0)} \\
+    0 & \y{(4,1)} \\
+    0 & \y{(4,0)}
+    \end{array}
+    $$
+%
+\begin{itemize}
+\item Set
+    $\xi(F) = 3\xi_\Gamma$, if $F$ has the properties $\card(F)=5$
+    and
+    $$\forall\alpha\in F.\
+    \op{qre}(\alpha)$$
+    %
+    $$
+    \exists\beta\in F.\forall\alpha\in F.\
+    \op{qrn}(\alpha)\Leftrightarrow
+(\beta\ne\alpha).$$
+%
+%
+\item Set $\xi(F) = \xi_\Gamma + 2\xi_V$, if $F$ has the
+properties
+    $\card(F)=4$ and
+    $$\exists\beta\in F.\forall\alpha\in F.\
+    \op{qre}(\alpha)\Leftrightarrow (\beta\ne\alpha)
+    $$
+    $$\exists\beta\in F.\ \op{qrn}(\alpha)\Leftrightarrow
+    (\beta\ne\alpha).$$
+\item Set
+    $$
+    \begin{array}{lll}
+    \xi(F) & \card(F)\\
+    3 \xi_\Gamma & 4\\
+     \xi_\Gamma + 2\xi_V & 3\\
+    \end{array}
+    $$
+if $F$ has the properties
+    $$
+    \exists\alpha\in F.\ \op{hex\_loop\_diag}(\alpha)
+    $$
+    $$
+    \forall\alpha\in F.\ \op{qrn}(\alpha).
+    $$
+\item In all other cases, set $\xi(F)=0$.
+\end{itemize}
+
+
+\section{Inequalities}
+%
+\label{sec:basic}
+
+This section gives a set $S=\op{basic}(H,\op{fl})$ of formal
+disjunctions on the indexing set $I=I(H,\op{fl})$. Elements of
+this set are call {\it basic formulas}.
+
+The following are basic formulas.  The first formal inequality is
+key.
+
+\begin{equation}
+    \sum_{F\in (H/f)} \optt{sc}(F) \sge 8\,\pt.
+    \label{eqn:8pt}
+\end{equation}
+
+The next family of formal disjunctions allows quite arbitrary
+bifurcations. For every $f\in\ring{R}^I$ and $c\in \ring{R}$, we
+have basic formulas:
+\begin{equation}
+    (f \sle c) \vee (f \sge c).
+\end{equation}
+
+Some of the variables are constant on orbits:
+
+\begin{equation}
+    \begin{array}{lll}
+  \optt{yn}(\alpha) &\seq \optt{yn}(n\alpha),\\
+  \optt{ye}(\alpha) &\seq \optt{ye}(e\alpha),\\
+  \optt{eta}'(\alpha) &\seq \optt{eta}'(e\alpha),\\
+  \end{array}
+\end{equation}
+
+
+\begin{equation}
+\optt{tau\_sc}(F) = \optt{sol}(F)\,\zeta\,\pt - \optt{sc}(F).
+\end{equation}
+
+Many of the basic formulas hold subject to various restrictions on
+the indexing set.  These restrictions are indicated in a line
+following the basic formula.  For example, the following basic
+formula holds under the restriction that $F$ is a non-standard
+face of cardinality at least four:
+\begin{equation}
+    \label{eqn:xi}
+    \begin{array}{lll}
+    \optt{sc}(F) \sle \optt{vor0} + \xi(F),\\
+    &F\in (H/f)_{\ge4,\neg\op{std}}
+    \end{array}
+\end{equation}
+
+\begin{equation}  % Type potA along a hex loop.
+    \begin{array}{lll}
+    \optt{sc}(F) &\sle \optt{vor0} + \xi(F),\\
+    &&F\in (H/f)_{3,\exists\alpha\in F.\ \op{hex\_loop\_diag}(\alpha)}
+    \end{array}
+\end{equation}
+
+\begin{equation}  % DCG 25.6.1 page 250, one flat quarter.
+    \begin{array}{lll}
+    \optt{sc}(F) & \sle (s_{1+\card(F)} - Z\y{(3,1)}) + \xi_\Gamma + 2 \xi_V,\\
+    &&F\in (H/f)_{\ge6}\\
+    &&\exists!\alpha\in F.\ \neg\op{qre}(\alpha)
+    \end{array}
+\end{equation}
+
+\begin{equation}  % DCG 25.6.1 page 251, one flat quarter.
+    \begin{array}{llll}
+    \optt{yn}(\beta)&\sge 2.2&\vee\\
+    \optt{ye}(\alpha)&\sge 2.7&\vee\\
+    \optt{sc}(F) & \sle (s_{1+\card(F)} - Z\y{(3,1)}),\\
+    &&&\neg\op{qre}(\alpha),\\
+    &&&\beta=f^2e\alpha,\\
+    &&&\alpha\in F\in (H/f)_{\ge6}\\
+    &&&\exists!\alpha\in F.\ \neg\op{qre}(\alpha)
+    \end{array}
+\end{equation}
+
+%% Two flat quarters, DCG 25.6.2, page 252.
+\begin{equation}
+    \begin{array}{lllll}
+    \optt{yn}(\beta')&\sge 2.2&&\vee\\
+    \optt{yn}(\beta')&\sge 2.2&&\vee\\
+    \optt{ye}(\alpha')&\sge 2.7&&\vee\\
+        \optt{ye}(\alpha')&\sge 2.7&&\vee\\
+    (\optt{sc}(F) & \sle (s_{2+\card(F)} - 2 Z\y{(3,1)})&\wedge \\
+    \optt{tau\_sc}(F) & \sge (t_{2+\card(F)} - 2 D\y{(3,1)})&\wedge \\
+    \optt{sc}(F) & \sle \optt{vor0} + 3\xi_\Gamma), \\
+    &&&&\neg\op{qre}(\alpha),\\
+    &&&&\beta=f^2e\alpha,\ \beta'=f^2e\alpha',\\
+    &&&&\alpha\ne\alpha'\in F\in (H/f)_{\ge5}\\
+    &&&&\forall\gamma\in F.\ \op{qre}(\gamma)\Leftrightarrow (\gamma\ne\alpha,\alpha')\\
+    \end{array}
+\end{equation}
+
+%% DCG 25.6.2, page 252, loop of type \y{(n,k)} = \y{(4,2)}, or not.
+%% Constants from table 25.1.
+\begin{equation}
+    \begin{array}{lllll}
+    \optt{sc}(F) + \optt{sc}(\op{face}(\beta)) +
+    \optt{sc}(\op{face}(\beta')) &\sle -0.1999&\wedge \\
+    \optt{tau\_sc}(F) + \optt{tau\_sc}(\op{face}(\beta)) +
+    \optt{tau\_sc}(\op{face}(\beta')) &\sge 0.5309 &\wedge \\
+    \optt{sc}(F) & \sle s_{2+\card(F)} - 2 Z\y{(3,1)} + 2(\xi_\Gamma + 2\xi_V), \\
+    &&\neg\op{qre}(\alpha),\\
+    &&\beta=f^2e\alpha,\ \beta'=f^2e\alpha',\\
+    &&\alpha\ne\alpha'\in F\in (H/f)_{\ge5}\\
+    &&\forall\gamma\in F.\ \op{qre}(\gamma)\Leftrightarrow (\gamma\ne\alpha,\alpha')\\
+    \end{array}
+\end{equation}
+
+
+
+% Page 239 DCG
+Let $(H,\op{fl},S)\in\op{HS}$.   Let $F\in H/f$ and $N\in H/n$. We
+have the following formal equalities:
+\begin{equation}
+    \begin{array}{lll}
+    \tau_{sc}(F) &\seq \sol(F)\zeta\pt - \op{sc}(F)\\
+    %%
+    \sum_{\alpha\in N}\op{azim}(\alpha) &\seq
+    2\pi\\
+    %%
+    \op{sol}(F) &\seq \sum_{\alpha\in F}\op{azim}(\alpha) - (\card(F)
+    - 2)\pi\\
+    %%
+    \end{array}
+    \label{eqn:tau-sc}
+\end{equation}
+
+
+\begin{remark}  For every  primary tame hypermap system $(H,\op{fl},S)$, the
+hypermap $H$ is connected, plane, and planar.  Thus, the Euler
+relation holds in the form:
+    $$
+    \card(H/f) - \card(H/e) + \card(H/n) = 2.
+    $$
+From this and the previous formal inequality, it follows that
+    \begin{equation}
+    \sum_{F\in H/f} \optt{sol}(F) \seq 4\pi.
+    \end{equation}
+As a linear consequence of other equations program, it is
+redundant.  Thus, it does not need to be inserted explicitly into
+the linear programs.
+\end{remark}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{variable bound}
+%% Page 239 DCG.
+\begin{equation}
+    \begin{array}{lll}
+        \optt{yn}(\alpha) &\sge0\\
+        \optt{yn}(\alpha) &\sle 2\sqrt2\\
+        \optt{yn}(\alpha) &\sle 2t_0 &\text{if }
+        \op{qrn}(\alpha)\\
+        \optt{ye}(\alpha)&\sge0\\
+        \optt{ye}(\alpha)&\sle 2\sqrt2\\
+        \optt{ye}(\alpha)&\sle 2t_0&\text{if }
+        \op{qre}(\alpha)\\
+        \optt{azim}(F) &\sge 0\\
+        \optt{azim}(F) &\sle 2\pi\\
+        \optt{sol}(F) &\sge 0\\
+        \optt{sol}(F) &\sle 4\pi\\
+    \end{array}
+\end{equation}
+
+
+
+
+
+\begin{remark}
+The way the infeasibility certificates are set up in
+Inequality~\ref{eqn:lpsys}, it is necessary to have lower and
+upper bounds on all the variables, not just those shown here.\FIXX{Add bounds}
+\end{remark}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{triangle}
+
+%
+\begin{equation}
+    \optt{sc}(F) = \optt{sigma\_qrtet\_x}(F),\quad\text{if } F\in
+    (H/f)_{3,\op{std}}.
+\end{equation}
+%
+\begin{equation}
+        \optt{tau\_sc}(F) =
+        \optt{tau\_sigma\_x}(F),\quad\text{if } F\in
+        (H/f)_{3,\op{std}}.
+\end{equation}
+%
+\begin{equation}
+    \begin{array}{lll}
+    \optt{sc}(\op{face}(\alpha)) &\sle \optt{sigmahat}(\alpha),\\
+    \optt{tau\_sc}(\op{face}(\alpha)) &\sge \optt{tauhat}(\alpha),\\
+    &&\alpha\in \op{fqex}
+    \end{array}
+\end{equation}
+%
+\begin{equation}
+    \begin{array}{lll}
+    \optt{sc}(\op{face}(\alpha)) &\sle \optt{mu}(\alpha),\\
+    \optt{tau\_sc}(\op{face}(\alpha)) &\sge \optt{tau\_mu}(\alpha),\\
+    &&\alpha\in \op{quad\_diag}
+    \end{array}
+\end{equation}
+
+
+
+%%25.7 page 252, Branching on Upright Quarters (triangles with a potC).
+\FIXX{Put in as a condition that the long flat edge is not a hex-loop-diag.}
+
+
+
+\subsection{quadrilateral}
+
+\begin{equation}
+ \optt{sc}(F) = \optt{sigma\_quad}(F),\quad\text{if } F\in
+    (H/f)_{4,\op{std}}.
+\end{equation}
+%
+\begin{equation}
+ \optt{tau\_sc}(F) = \optt{tau\_quad}(F),\quad\text{if } F\in
+    (H/f)_{4,\op{std}}.
+\end{equation}
+%
+
+There is a list of nonlinear inequalities that appears in the
+database for quadrilaterals.  The first of these reads
+
+
+
+\begin{equation}
+\label{eqn:exdih}
+\begin{array}{lll} \op{let}\ \op{J\_310151857} &= (`\forall\ v_0\ v_1\ v_2\ v_3\ v_4.\
+  (\op{is\_quad\_cluster\_v}\ v_0\ v_1\ v_2\ v_3\ v_4\ \ \Rightarrow\\
+        &\ \ ((\op{sigma\_quad\_approx1}\ v_0\ v_1\ v_2\ v_3\ v_4) &<
+        -5.7906\\
+                + &&\ 4.56766*(\op{dih\_or\_v}\ v_0\ v_1\ v_2\ v_4)))`);;
+\end{array}
+\end{equation}
+
+Let $C$ be a constant less than the right hand sides of all the
+inequalities.  The function $\op{dih\_or\_v}$ takes non-negative
+values.  So for instance, from Inequality~\ref{eqn:exdih}, we have
+the constraint
+    $$C < -5.7906.$$
+Then let $\op{squad}(\op{sol},\op{azim}_1,\op{azim}_2)$ be the
+maximum of $\op{sigma\_quad\_approx1}$ subject to the constraints
+that the simplex formed by $v_0,v_1,v_2,v_3,v_4$ has solid angle
+$\op{sol}$, and azimuth angles $\op{azim}_i$.  Or let
+$\op{squad}=C$, if no such simplices exist. More precisely, set
+    $$\begin{array}{rll}
+    \op{squad}(s,d_1,d_2) =
+        \sup \{\sigma&\mid \exists v_0\cdots v_4.\ \\
+           \sigma &= \op{sig\_quad\_approx1}\ v_0\cdots v_4 \\
+           &\quad \op{is\_quad\_cluster}\ v_0\cdots v_4\\
+           s &= \op{solid\_v}\ v_0\cdots v_4\\
+           d_1 &= \op{azim}\\
+           d_2 &= \op{azim}
+           \}\cup \{C\}
+    \end{array}
+    $$
+
+
+
+
+With this definition, we can rewrite the quadrilateral
+inequalities and then write them as formal inequalities that take
+the following shape:
+    \begin{equation}
+    \label{eqn:quad}
+    \op{QU}(\optt{squad},\optt{sol},\optt{azim}_1,\optt{azim}_2,i) :
+    (\optt{squad} \sle a_i \optt{azim}_1 + b_i \optt{azim}_2 + c_i \optt{sol}
+    + d_i),
+    \end{equation}
+for constants $a_i,b_i,c_i,d_i$, $i=1,\ldots,N$.  The formal
+inequalities $\op{QU}$ (\ref{eqn:quad}) hold for all indices $i$
+and the following parameter values:
+
+
+\begin{equation}
+  \begin{array}{rll}
+    \optt{squad} &= \optt{sc}(F),\\
+    \op{sol} &= \optt{sol}(F),\\
+    \op{azim}_1 &= \optt{azim}(\alpha),\\
+    \op{azim}_2 &= \optt{azim}(f\alpha),\\
+    &&\alpha\in F\in (H/f)_{4,\op{std}}
+   \end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{rll}
+    \optt{squad} &=\sum_{i=0}^3\optt{sc}(\op{face}(n^i\alpha)),\\
+    \op{sol} &=
+          \sum_{i=0}^3\optt{sol}(\op{face}(n^i\alpha)),\\
+    \op{azim}_1 &=\optt{azim}(f\alpha)+\optt{azim}(n f\alpha),\\
+     \op{azim}_2 &= \optt{azim}(f^{-1}\alpha)+\optt{azim}(n^{-1}f^{-1}\alpha),
+         \\
+    &&\alpha\in N\in (H/n)_{\op{inquad}},\\
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{rll}
+    \optt{squad} &=\optt{sc}(\op{face}(\alpha))+\optt{sc}(\op{face}(\beta)),\\
+    \op{sol} &= \optt{sol}(\op{face}(\alpha))+\optt{sol}(\op{face}(\beta)),\\
+    \op{azim}_1 &=\optt{azim}(\alpha)+\optt{azim}(f\beta),\\
+     \op{azim}_2 &= \optt{azim}(f^{-1}\beta),
+         \\
+    &&\alpha,\beta \in (H)_{\op{quad\_diag}},\ \beta=e\alpha.\\
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{rll}
+    \optt{squad} &=\optt{sc}(\op{face}(\alpha))+\optt{sc}(\op{face}(\beta)),\\
+    \op{sol} &= \optt{sol}(\op{face}(\alpha))+\optt{sol}(\op{face}(\beta)),\\
+    \op{azim}_1 &=\optt{azim}(f^{-1}\beta),\\
+     \op{azim}_2 &= \optt{azim}(\beta)+\optt{azim}(f\alpha),
+         \\
+    &\alpha,\beta \in (H)_{\op{quad\_diag}},\ \beta=e\alpha\\
+\end{array}
+\end{equation}
+
+\begin{remark}  There is a small conflict between nonlinear and
+linear variables here that is easy to resolve.  The variables
+$\optt{azim}$ are nonlinear and are interpreted as the azimuth
+function.  However, in the quadrilateral inequalities give above,
+they are independent variables to the function $\optt{squad}$, and
+should be treated as linear variables.  To overcome these
+conflicting constraints, we introduce two copies of each variable,
+say $\optt{azim}$ and $\optt{azim}'$, related by the equation
+    $$
+    \optt{azim}(\alpha) = \optt{azim}(\alpha)'.
+    $$
+We then use the nonlinear copy everywhere but in the quadrilateral
+inequalities, we switch to the linear copy.
+\end{remark}
+
+\subsubsection{specialized  constraint}
+
+
+
+\begin{equation}
+    \begin{array}{lll}
+        \optt{sc}(F) &\sle s_8 + \pt\\
+        \optt{tau\_sc}(F) &\sge t_8\\
+        &&F \in (H/f)_{5,\op{aggA}}.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{lll}
+        \optt{sc}(F) &\sle s_7\\
+        \optt{tau\_sc}(F) &\sge t_7\\
+        &&F \in (H/f)_{5,\op{aggB}}.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{lllll}
+        \optt{yn}(\alpha) &\sge 2.168,&\text{some }\alpha\in F
+        &\vee\\
+        \optt{azim}(\alpha) &\sge 2.89,&\text{some }\alpha\in
+        F&\vee\\
+        \optt{ye}(\alpha)+\optt{ye}(f\alpha)&\sge
+        4.804,&\text{some }\alpha\in F&\vee\\
+        \sum_{\alpha\in F} \optt{ye}(\alpha) &\sge
+        11.4707&&\vee\\
+        \optt{sc}(F) &\sle -0.2345&&\vee\\
+        \optt{tau\_sc}(F) &\sge 0.6079,\\
+        &&&&F\in (H/f)_{5,\op{aggB}}.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{llll}
+        \optt{sc}(F) &\sle -0.4339&\vee\\
+        \optt{sc}(F) &\sge 0.5606\\
+        &&&F\in (H/f)_{n,\op{crowd3}},\quad n\ge 5.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{llll}
+        \optt{sc}(F) &\sle -0.25\\
+        \optt{tau\_sc}(F) &\sge 0.4\\
+        &&F\in (H/f)_{n,\op{crowd4}},\quad n\ge 6.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{lllll}
+        \optt{sc}(F) &\sle -0.31547&&\vee\\
+        \optt{yn}(\alpha) + \optt{yn}(f^4\alpha) &\sge 4.6 &\text{some
+        }\alpha\in F,\\
+        &&&F\in (H/f)_{n,\op{crowd4}},\quad n\ge 6.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{llll}
+        \optt{sc}(F) &\sle s_8\\
+        \optt{tau\_sc}(F) &\sge t_8\\
+        &&F\in (H/f)_{6,\op{agg}}.
+    \end{array}
+\end{equation}
+
+\begin{equation}
+    \begin{array}{llll}
+        \optt{sc}(F) &\sle -0.37595\\
+        \optt{tau\_sc}(F) &\sge 0.65995\\
+        &&F\in (H/f)_{6,\op{loop51}}.
+    \end{array}
+\end{equation}
+
+
+
+
+
+\begin{equation}
+    \begin{array}{lllll}
+        \optt{yn}(\alpha) &\sge 2.14 &\text{some }\alpha\in F&\vee\\
+        \optt{ye}(\alpha) &\sge 2.77 &\text{some }\alpha\in
+        F&\vee\\
+        (\optt{sc}(F) &\sle \optt{gamma}(F) &\wedge\\
+         \optt{yn}(\alpha) &\sle 2.14 \text{ all }\alpha\in
+         F&\wedge\\
+        \optt{eta}(F) &\sle \sqrt2) &&\vee\\
+        (\optt{ye}(\alpha) &\sle 2.7 &\wedge\\
+        \optt{yn}(\alpha) &\sle 2.14 \text{ all }\alpha\in
+         F&\wedge\\
+        \optt{eta}(F) &\sge \sqrt2 &\wedge\\
+        \optt{sc}(F) &\sle \optt{svor0}(F)) &&\vee\\
+        (\optt{ye}(\alpha) &\sge 2.7 &\wedge\\
+        \optt{yn}(\alpha) &\sle 2.14 \text{ all }\alpha\in
+         F&\wedge\\
+        \optt{sc}(F) &\sle \optt{svor0}(F)),\\
+        &&&&\alpha\in F\in (H/f)_{3,\op{fqex}}.
+    \end{array}
+\end{equation}
+
+ Let $\op{potA}$ be the predicate on $(H/f)_{3,\neg\op{std}}$
+that picks out potentially type A.  That is, $\op{qrn}(\alpha)$
+holds for all three darts, $\op{qre}(\alpha)$ holds for exactly
+one of the three darts, and no dart is in a hex diagonal.
+
+\begin{equation}
+    \begin{array}{lll}
+    \op{potA}(F) &= \exists\beta\in F.\ \forall\alpha\in F. \\
+        &\op{qrn}(\alpha)\\
+        &\op{qre}(\alpha) \Leftrightarrow (\alpha=\beta)\\
+        &\neg\op{hex\_loop\_diag}(\alpha).
+    \end{array}
+\end{equation}
+
+\begin{equation}
+ \begin{array}{lllll}
+    \optt{yn}(\alpha) &\sge 2.77 &&\vee\\
+      \optt{yn}(\beta) &\sge 2.77 &&\vee\\
+    (\optt{yn}(\alpha) &\sle 2.77 &\wedge\\
+      \optt{yn}(\beta) &\sle 2.77 &\wedge\\
+      \optt{sc}(F) &\sle \optt{svoran}) &&\vee\\
+   (\optt{yn}(\alpha) &\sle 2.77 &\wedge\\
+      \optt{yn}(\beta) &\sle 2.77 &\wedge\\
+      \optt{eta}(F) &\sge \sqrt2) &&\vee\\
+     &&&&\alpha\ne\beta,\gamma\in F\in (H/f)_{3,potA}\\
+     &&&&\neg\op{qre}(\alpha),\neg\op{qre}(\beta),\op{qre}(\gamma).
+ \end{array}
+\end{equation}
+
+Let $\op{potC}$ be the set of triangles that are potentially of
+type $C$. That is, for $F\in (H/f)_{3,\neg\op{std}}$:
+\begin{equation}
+    \begin{array}{lll}
+    \op{potC}(\beta,F) &= \beta\in F \wedge\ \forall\alpha\in F. \\
+        &\op{qrn}(\alpha)\Leftrightarrow (\alpha\ne\beta)&\wedge \\
+        &\op{qre}(\alpha) \Leftrightarrow (\alpha\ne f\beta).
+    \end{array}
+\end{equation}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Final Specs}
+
+
+\subsection{primary tame hypermap system}
+\label{sec:PTHS}
+
+This subsection gives a specification of primary tame hypermap
+systems ($\op{PTHS}$).
+
+Define $\op{type}(N):H/n\to\ring{N}^3$ by $\op{type}(N) = (p,q,r)$
+if there are $p$ triangles, $q$ quadrilaterals, and $r$
+exceptional faces that meet the node $N$.  (An exceptional face is
+defined to be one with at least $5$ darts.)
+
+
+\begin{definition}[primary~flag]
+Let $H$ be a hypermap.  A flag $\op{fl} = (\op{qrn},\ldots)$ is a
+{\it primary flag} for $H$ if it satisfies the following
+conditions:
+    \begin{enumerate}
+        \item $\op{qrn}(\alpha)$, for every dart $\alpha$.
+        \item $\op{qre}(\alpha)$, for every dart $\alpha$.
+        \item $\op{typ}(5)\ne\op{notpri}$.  (This is a double negation: the flag is
+        {\it not not\/} primary.)
+        \item $\exists\alpha\in F.\ \op{type}(\op{node}(\alpha)) \ne
+    (3,0,1),\quad F\in (F/f)_{5,\op{aggA}}$.
+        \item Except for the preceding two restrictions on $\op{typ}(n)$, the flags
+        $\op{typ}(n)$ and $\op{sum\_typ}(n)$ are arbitrary, for $n=4,\ldots,8$.
+    \end{enumerate}
+\end{definition}
+
+\begin{remark} By the first two properties, every face is
+standard.  Furthermore, the domains of $\op{quad\_diag}$ and
+$\op{hex\_loop\_diag}$ are empty, and so they leave nothing to
+specify.
+\end{remark}
+
+\begin{definition}[primary~tame~hypermap~system]
+A triple $\rho=(H,\op{fl},S)$ is a primary tame hypermap system if
+    \begin{enumerate}
+    \item $H$ is a tame hypermap in the archive.
+    \item $\op{fl}$ is a primary flag for $H$.
+    \item $S=\op{basic}(H,\op{fl})$ is the set of basic formulas for $I=I(H,\op{fl})$.
+    \end{enumerate}
+\end{definition}
+
+
+\subsection{refinement -- lookup}
+%
+\label{sec:refine}
+
+The refinement predicate $\op{ref}(\rho,\rho')$ is a disjunction
+    \begin{equation}
+    \op{ref}(\rho,\rho') =
+    \op{lookup\_database}(\rho,\rho')\vee
+    \op{sum\_hyper}(\rho,\rho').
+    \end{equation}
+This subsection describes the predicate $\op{lookup\_database}$,
+and the following subsections  will describe the more complicated
+predicate $\op{path\_hyper}$.
+
+As the name suggests, $\op{lookup\_database}(\rho,\rho')$ holds
+when $\rho'$ is obtained from $\rho=(H,\op{fl},S)$ by adding
+lookups from a database.
+
+\begin{definition}[derived~lookup]
+We say that $\rho'$ is derived from $\rho=(H,\op{fl},S)$ by lookup
+in the database $B$ and write
+    $$\op{lookup\_database}(\rho,\rho')$$
+if $\rho' = (H,\op{fl},S \cup S')$ where $S'$ is a set of lookups
+in $B$ with domain constraints in $\op{single}(S)$. (The database
+$B$ is fixed once and for all and hence is omitted from notation.)
+\end{definition}
+
+\subsection{connected sum -- hypermap}
+
+The second mode of refinement is the connected sum of a hypermap.  This
+subsection gives the details of this construction.
+
+Let $\rho=(H,\op{fl},S)$ and $\rho'=(H',\op{fl}',S')$.   The rough
+idea is that $\op{sum\_hyper}(\rho,\rho')$ holds if we can
+obtain $H'$ from $H$ by a connected sum. That is,
+    $$H' = H\,\#_\phi\, B.
+    $$
+The actual
+construction of the predicate $\op{sum\_hyper}$ is somewhat more
+involved because it involves a change in hypermap and
+corresponding flags. This means that the indexing sets for the
+system of formal disjunctions also change.  Part of the connected sum
+operation involves relating the formal disjunctions $S$ on
+indexing set $I(H,\op{fl})$ to formal disjunctions $S'$ on the
+indexing set $I(H',\op{fl'})$.
+
+\subsubsection{sum kit}.
+
+
+A connected sum of hypermaps $H\,\#\,B$  requires an
+orientation reversing bijection $\phi:F\to F_B$ between a face of
+$H$ and a face of $B$.  Some of the flags have been designed to
+give such bijections.  In fact,  if $n=\card(F)$, every flag
+$\op{sum\_typ}(n)(F)$ of a patchable face $F\in (H/f)_{n}$
+uniquely determines a hypermap $B$ and an orientation reversing
+bijection $\phi:F\to F_B$, for some face $F_B$ of $F$.
+
+The data of $B,\phi$ and some auxiliary information about flags is
+what we call a {\it connected sum kit}.  The connected sum kits are described by
+various figures.  We list the figures (Figure~\ref{XX}) and then
+say how to interpret them.
+
+(N.B. This section is incomplete.  It is necessary to give all the
+figures, labeled according to the interpretive key.)\FIXX{Do this.}
+
+The following comments provide an interpretive key to the
+figures.
+\begin{itemize}
+    \item $B$ is the connected, plain, planar
+    hypermap obtained by inserting darts at each angle of the
+    planar graph, in the usual way, as illustrated in
+    Figure~\ref{XX}.%% Not yet drawn.
+    (N.B. Figure is to be inserted later.)
+    \item The face $F_B$ is the outermost face; that is, the one
+    bounding the unbounded region.
+    \item The face $F_B$ has a distinguished dart $x$ marked on it,
+    indicated as a small black triangle.
+    \item In cases when the hypermap $B$ is not isomorphic to the
+    mirror-image of $B$, there is a second hypermap that is
+    relevant. In these cases, the figure for mirror 
+    connected sum is obtained as the
+    mirror image of the figure.  Thus, we draw a single figure
+    and give it a second mirror name that is used to refer to the
+    mirror data.
+    \item The orientation-reversing bijection $\phi:F\to F_B$ is
+    determined by choosing $\alpha\in F$ and specifying that
+    $\phi(\alpha) =x$.  The map $\phi$ extends by the rule
+        $$f_B^i\phi(f^i\alpha ) = x.$$
+    \item Each figure has a name that we use as the name of the connected sum kit.
+\end{itemize}
+
+\begin{remark} As just mentioned, the orientation-reversing bijection $\phi:F\to F_B$
+is determined by $\alpha\in F$.  The $\alpha$ and $f^i\alpha$ give
+isomorphic connected sums if there is an automorphism of the hypermap
+carrying $\alpha$ to $f^i\alpha$.  In this case, the infeasibility
+for the parameter $f^i\alpha$ can be deduced from the
+infeasibility for the parameter $\alpha$.  Thus, the two cases can
+be combined into one.  From a mathematical point of view this
+reduces the amount of verification to be done.  However, Nipkow's
+experience with the formal verification of tame graphs suggest
+that case mergings generate additional proof obligations, and
+sometimes actually increase the amount of work required for a
+formal proof.
+\end{remark}
+
+
+
+
+
+
+
+
+\subsubsection{flag compatibility}
+\label{sec:com}
+
+Let $H'= H \,\#_\phi\, B$.   There is a natural inclusion of
+darts.
+    $$
+    \iota: H\setminus F \to H'.
+    $$
+There is a natural inclusion of faces, which we will express by
+the same symbol:
+    $$
+    \iota: H/f \setminus \{F\}\to H'/f.
+    $$
+
+\begin{definition}[compatible~flag]
+We say that a flag $\op{fl}'$ is compatible with
+$(H,\op{fl},B,\phi)$  if the following conditions hold:
+    \begin{enumerate}
+    \item $\op{fl}'$ is a flag on $H'= H\,\#_\phi\, B$.
+    \item The domain $F$ of $\phi$ is a patchable face.  That is,
+    $\op{type}(\card(F))(F) = \op{patchable}$.
+    \item The connected sum kit $(B,F_B,\phi,\ldots)$ of $F$ is given by
+    $\op{sum\_typ}(\card(F))(F)$.
+    \item We have $\op{qrn}(\alpha) = \op{qrn}'(\iota\alpha)$.
+    (We recall also $\op{qrn}'$ is required to be constant on each
+    node.)
+    \item The node $N$ of $H'/n'$ (there is at most one) that does not lie in the image of
+    $\iota$ has
+        $\op{qrn}'(\beta)$ for $\beta\in N$ exactly when that node
+        is {\it not} marked $\otimes$ in the Figure~\ref{XX}.  (That is, in
+        every case except Figure~\ref{XX}, darts at a new node satisfy
+        $\neg\op{qrn}'(\beta)$.)
+    \item We have $\op{qre}(\alpha)= \op{qre}'(\iota\alpha)$.
+    (We recall that $\op{qre}'$ is required to be constant on each
+    edge.)
+    \item The edges $E$ of $H'/e'$ that do not lie in the image of
+    $\iota$ satisfy $\op{qre}'(\beta)$ for $\beta\in E$ exactly
+    when that edge is marked as a single line in Figure~\ref{XX}.
+    (That is, double lines give $\neg\op{qre}'(\beta)$.)
+    \item We have $\op{hex\_loop\_diag}(\alpha) =
+    \op{hex\_loop\_diag}(\iota\alpha)$.
+    \item The edges $E$ of $H'/e'$ that do not lie in the image of
+    $\iota$ satisfy $\op{hex\_loop\_diag}(\alpha)$ for $\alpha\in E$
+    exactly when the edge is explicitly marked as such in the
+    figures.  (The figures also shed some light on the terminology: such
+    edges always run between opposite corners of a hexagonal face
+    and run alongside a loop of four triangles.)
+    \item The flags $\op{typ}(i)$ and
+    $\op{sum\_typ}(i)$ are preserved on faces:
+        $$
+        \begin{array}{lll}
+        \op{typ}(\card(F))(F) &= \op{typ}'(\card(F))(\iota F),\\
+        \op{sum\_typ}(\card(F))(F) &= \op{sum\_typ}'(\card(F))(\iota F),\\
+        \end{array}
+        $$
+    \item Usually, a face that is not in the image of $\iota$ is
+    not standard, and hence lies outside the domain of the flags
+    $\op{typ}(i)$ and $\op{sum\_typ}(i)$.  In this case there is
+    no compatibility condition.
+    \item If $\card(F)=8$, $\op{typ}(8)(F)=\op{patchable}$,
+    $\op{sum\_typ}(8)(F) = \op{agg51}$, then there is a
+    pentagonal face $F'$ in $B$ that carries over to $H'$.  In this case, we
+    give the compatibility condition
+        $$\op{typ}'(5)(F') = \op{notpri}.$$
+    (This is, in fact, the only way to obtain the flag value
+    $\op{notpri}$.)
+    \end{enumerate}
+\end{definition}
+
+
+\begin{remark}
+We note that if $H'= H\,\#_\phi\, B$ and $\op{fl}$ are given,
+then there is at most one flag $\op{fl}'$ that gives
+compatibility.
+\end{remark}
+
+\begin{remark}
+We also note that if $H' = H\,\#_\phi\, B$, then by the
+compatibility conditions, the faces coming from $B$ never have
+type $\op{patchable}$. This means that we can never apply one
+connected sum upon another.
+\end{remark}
+
+\subsubsection{indexing}
+
+We assume that $H' = H\,\#_\phi\, B$.  As in the previous
+subsection (\ref{sec:com}) we write $\iota$ for the natural
+inclusion  on darts and faces.
+
+Under the natural inclusion
+    $$\iota:H\setminus F \to H'$$
+there is a correspondence between a subset of $I=I(H,\op{fl})$ and
+$I'=I(H',\op{fl}')$.  We make this correspondence more explicit
+here.
+
+
+
+All the indexing sets for $I=I(H,\op{fl})$ run over a subset of
+darts (for $\op{azim}$, $\op{yn}$, $\op{ye}$, and so forth) or
+over a subset of faces (for $\op{sc}$, $\op{sol}$, and so forth).
+Let $I^F\subset I$ be the subset of the indexing set that does not
+involve any of the darts of $F$, and does not involve the face $F$
+itself.
+
+We then have a one-to-one map $I^F \to I'$.  This gives a
+one-to-one map between the subset of the set of formal
+inequalities on the indexing set $I$ (those involving only the
+indices $I'$) and the set of formal inequalities on the indexing
+set $I'$. Extending to formal disjunctions, we get a one-to-one
+map $\op{LFOR}_{I^F}\to \op{LFOR}_{I'}$.
+
+\begin{definition}[inheritance]  We say that a formal disjunction on the
+indexing set $I'$ is {\it inherited} from one of $I$, if it lies
+in the image of this one-to-one map with domain
+    $$\op{LFOR}_{I^F}\subset \op{LFOR}_I.$$
+\end{definition}
+
+
+
+\begin{definition}[connected~sum]
+We say that $\rho'=(H',\op{fl}',S')$ is obtained by a hypermap
+connected sum $\rho =(H,\op{fl},S)$  and write
+$\op{sum\_hyper}(\rho,\rho')$ if there exists a patchable face
+$F\in H/f$ such that
+    \begin{enumerate}
+    \item $(B,\phi)$ is the data determined by $\op{sum\_type}(\card(F))(F)$.
+    \item $H' = H\,\#_\phi\, B$.
+    \item The flag $\op{fl}'$ is compatible with $(H,\op{fl},B,\phi)$.
+    \item Every formal disjunction $A'$ in $S'$ is either a basic
+    formula for $(H,\op{fl})$ or is inherited from $S$.
+    \end{enumerate}
+\end{definition}
+
+\subsection{constants}
+
+This chapter has used a number of constants: $\xi_\Gamma$,
+$\xi_V$, $\pt$, $s_i$, $t_i$. $D\y{(n,k)}$, $Z\y{(n,k)}$, $t_0$, $\phi_0$,
+$\delta_\op{oct}$.
+%
+These constants are all the same as in \cite{DCG}.  They are
+listed in its index.
+
+
+\section{Implementing the Proof of Weak Infeasibility}
+
+By the definition of weak infeasibility, there exists a tree that
+describes the branches followed in the search for infeasibility.
+Ultimately the proof of the main LP bound is constructive, in the
+sense that the proof gives all of the data needed to construct the
+search tree.
+
+Of course, many different infeasibility trees can be used as
+certificate of weak infeasibility.  Making less than optimal
+decisions about how to construct the tree may increase the amount
+of computation needed, but if a reasonable strategy is followed,
+the exact choices are not too important.  What we give in this
+section are some search strategies that seem to be helpful, and
+that were in fact helpful in the original 1998 solution.
+  We wish to emphasize that it may very well be
+possible to devise much more efficient search strategies than
+those described here.
+
+At every stage of the search there are many possible options about
+how to proceed.  Some of the options are to
+    \begin{itemize}
+    \item Obtain a new hypermap by a connected sum of the current one.
+    \item Bifurcate on a disjunctive formula.
+    \item Enhancing the system of formal disjunctions by adding
+    lookups.
+    \end{itemize}
+The simple act of bifurcating on a formula has infinitely many
+possibilities.
+
+To construct the infeasibility trees, it is necessary to be guided
+by various heuristics.  We are not looking for a precise
+algorithm, merely heuristics that can guide a computer program to
+construct the appropriate trees. What actions should have high
+priority and what actions should be used as a last resort?
+
+
+
+Of course, it may be the the original system is infeasible.  The
+first thing to try is the infeasibility of the system obtained
+without including any inequalities that depend on the value of the
+flags.  (It is often best to ignore the inequalities depending on
+flags in the early stages.)  If this system is infeasible, it
+implies in one fell swoop the weak infeasibility of all primary
+tame hypermap systems $(H,\op{fl},S)$ with a given hypermap $H$.
+In fact, thousands of hypermaps can be quickly eliminated by this
+one simple strategy.  We now confine our remarks to primary tame
+hypermap systems for which this simple strategy fails.
+
+Sometimes the heuristic can be guided by geometry.  The nodes of
+the hypermap represent the centers of a finite cluster of balls
+surrounding the origin.
+ The variables $\optt{yn}(\alpha)$ represent the distances of
+ these ball centers from the origin.  The idea is move the
+ system in the direction of a cluster of balls in which all of
+ the distances $\optt{yn}(\alpha)$ are constrained to be about
+ 2.0:
+    $$2 \sle \optt{yn}(\alpha) \sle 2+\epsilon.$$
+ Once these variables are heavily constrained, the focus moves to the
+ variables $\optt{ye}(\alpha)$.  The strategy is then to constrain
+ these variables as tightly as possible between an upper and lower
+ bound.  Once strong constraints are obtained on these variables,
+ the weak infeasibility often follows quite easily.
+
+Another rough guide is to keep the number of branches under
+control.  For example, we could easily get exponential growth in
+the tree if we repeatedly bifurcate all active branches of the
+tree.  Large exponential growths should be avoided.  Thus, it is
+often good to bifurcate in a way that one of two possibilities is
+infeasible.  For example, we can choose a constant $c$ (obtained
+by linear programming) for which
+    $$\optt{yn}(\alpha)\sge c$$ is infeasible.  Then a bifurcation
+    on
+$$(\optt{yn}(\alpha) \sge c) \vee (\optt{yn}(\alpha) \sle c)$$
+has a single continuation.  This allows us to add
+    $$\optt{yn}(\alpha)\sle c$$
+to the system.  Adding such an inequality has further
+consequences, because there are many nonlinear lookups whose
+domain constraints take precisely this shape.
+
+One rough guide is that the most useful inequalities come from
+faces of the smallest size.  In particular, the inequalities for
+triangles are by far the most useful.  Thus, one strategy is to
+make triangles the focus of the bifurcation for as far into the
+search tree as possible, bringing in large faces only as necessary
+late in the game.
+
+Since all triangles in a primary tame hypermap system are
+standard, the opening moves should concentrate on standard
+triangles.  A good opening strategy might be to narrow the
+feasible range on the variables $\optt{yn}(\alpha)$.
+
+\section{Conclusion}
+
+This chapter is still sketchy in many places.  However, the
+general framework of the linear programming has been placed on
+solid foundation.  There are other references that may be
+consulted for further details.  These references include the
+published solution to the packing problem in \cite{DCG} (Section
+23, pages 236ff). There is the database of nonlinear inequalities
+at Hales's web page. There is the archive of tame planar graphs.
+
+\subsection{Mathematica}
+
+There are Mathematica files that were used to generate the linear
+programs.  The most important of these is {\it MathToCplex.m}
+which appears with the linear programming materials in the
+original 1998 proof.  This file is important because it generates
+all of the basic linear programs.  There are also supplementary
+files {\it MathToCplexExcept.m} and {\it MathToCplexPent.m} that
+handle the more sophisticated branch and bound operations.  All
+the linear programs were generated by these files.
+
+Interactive Mathematica sessions were used to run and analyze the
+linear programs.  The Mathematica programs generate text files in
+cplex format and stored as external files. The Cplex linear
+programming package was run on these files, by issuing a command
+from Mathematica to the operating system.  The results from the
+linear programs were stored as text files, then parsed back into
+the Mathematica session for analysis.  The human controller
+(Hales) made interactive decisions about how to branch the linear
+programs, based on heuristics and intuition about how to establish
+infeasibily in the quickest way possible.  Various Mathematica
+procedures were written to automate the branch and bound process.
+
+These interactive sessions were summarized in the form of log
+files, to make it possible to reconstruct the moves that led to
+infeasibility. These log files consist of notes written by Hales.
+Mixed in with the notes are snippets of the Mathematica code that
+was used to direct the branch and bound operations.  Thus, in
+principle, the log files contain all that is necessary to
+reconstruct the sequence of linear programs.  These are all
+available from Hales's web page.
+
+The files terminating in .m are Mathematica files.  Those in .exec
+are files that control the execution of Cplex.  Those in .lp are
+cplex format linear programs.  Those in .log are the output from
+Cplex sessions that get parsed back into a Mathematica session.
+Those in .html contain my notes and snippets of Mathematical code
+that describe the branch and bound for the linear programs.
+
+It would be clearly very valuable to rework this, so that the
+process is automated from beginning to end.  The Flyspeck project
+hopes to carry this even further, to give a formal proof of the
+main theorem of this paper.
+
+\subsection{log file}
+
+The following is the file from Hales's webpage
+(/SHORT/OCT/oct.zip/OCT/index.html) that describes how the
+hypermaps containing an octahedral face were handled.  It is a
+mixture of plain text and Mathematica code.  A few comments have
+been added.  Otherwise, it is identical to the 1998 log.  The
+hypermaps with octahedral faces would be a good place to start in
+a second generation treatment of the linear programs for hypermaps
+with an exceptional face.
+
+\bigskip
+
+{\obeylines\tt
+
+(* How to do the octagonal cases.  This first block of code
+generates all the linear programs for the octahedra.  The files
+are stored in the SHORT/OCT/LP directory, and the file names all
+start with cplexE.lp.  *) \
+
+\
+
+\
+
+f[i\_] := (
+        exceptStem = "SHORT/OCT/LP/cplexE.lp";
+        Initialize[8,i];
+        Array[(Print[{8,i, \#1}];
+        WRITEOUTexcept[8,i, Length[GBLregions], \#1]) \& , Length[AllOct]]
+        );
+Map[f,locthi];
+
+\
+
+\
+
+(* The following block of code generates code for an interactive
+cplex session.  It tells cplex to read each of the files and run
+the linear programming optimization in the file. *)
+
+\
+
+\
+
+optText[n\_,i\_]:= Module[{},
+Initialize[n,i];
+        Array[{"read ",
+            fileText["cplexE.lp",n,i,Length[GBLregions],\#], " lp$\backslash$n",
+            "opt$\backslash$n"
+            }\&, Length[AllOct]
+            ]//StringJoin
+        ];
+
+\
+
+\
+
+(* This stores the cplex instructions to an external file called
+cplexE.exec *)
+
+\
+
+\
+
+Module[{vv,stream},
+    vv = Map[optText[8,\#]\&,locthi]//StringJoin;
+    stream=OpenWrite["SHORT/OCT/cplexE.exec"];
+    WriteString[stream,vv];
+    Close[stream]
+    ];
+
+\
+
+\
+
+
+(* After running the cplex program, the results are parsed back
+into Mathematica as an array called values.  The following command
+finds that there is just one case that didn't pass on this first
+attempt.  The command is everything up to the symbol ==.
+Everything following the symbol "==" is the output from the
+command.  The constant 0.4429 is approximately 8 pt.  *)
+
+\
+
+\
+
+hh= Select[values,\#[[1]]>0.4429\&]== {{0.459297, 8, 14, 17, 21}};
+
+\
+
+\
+
+(* The rest gives a few hints about how to eliminate this final
+case.  It is based on the inequalities from DCG page 252, section
+25.6.2. We are able to get a smaller value of the penalty from the
+final lines of DCG section 25.6.2.  What follows is a mixture of
+plain text and Mathematica.  *)
+
+\
+
+\
+
+LPmax[bf,"-sigma{17}"] == 0.299186; if there is a Z(4,2):   s8 +
+ZLP(4,2)-Z(4,2) = -0.31398. So no (4,2)s.  Since the two flats are
+opposite, the only penalties
+    are from (4,1)s that mask a flat, so pen17 < 2(xiG+2xiV) = 0.045304.
+    Edit the file so pen17 = 0.045304.
+bf = "SHORT/OCT/LP/cplexE.lp8.14.F17.C21pen"
+
+\
+
+\
+
+(* With this smaller penalty in place, we branch and bound on
+eight of the triangular faces, with the usual 6.25 cutoff, as
+described in DCG, Sec 24.1, page 241. We find that in every case
+the bound comes out less than 8 pt. Again, everything before the
+"==" is the Mathematica command, and everything following it is
+the output from the interactive session.  Since this constant is
+less than 8 pt, we are done. *)
+
+\
+
+\
+
+ww=( Initialize[8,14]; Array[
+LPdisplay["SHORT/OCT/LP/cplexE.lp8.14.F17.C21pen",
+    Branch[{6,7,9,10,11,12,13,14},\#] ]\&,2\^8])//Max ==  0.441675
+
+\
+
+\
+
+OCTs are done.
+
+}
+
+
+
+
+\subsubsection{second generation lp}
+
+A couple of years after the proof was completed, an independent
+check was made of the linear programs for tame plane graphs that
+contain only triangles and quadrilaterals (2000, unpublished, but
+available on Hales's web page). This is an entirely new and
+independent implementation of the linear programming, but it was
+not done in sufficient generality to handle hypermaps with
+exceptional faces. This code is written in Java.  The results of
+the linear programs are checked with a Java-based implementation
+of interval arithmetic. This code has the advantage that the
+branch and bound operations are entirely automated.  This code is
+available from Hales's website.
+
+The reason that this code is unable to treat hypermaps with
+exceptional faces is that no implementation has been given of the
+connected sum operation (called faced refinements in the original 1998
+proof).
+
+
+\subsection {what is still missing from this chapter}
+
+This chapter is starting to get quite long, and it still is far
+from complete.  Based on what is here, it now looks as if a
+detailed specification of the linear programming part of the proof
+may run to some 100 pages. My hope at this point is that it
+contains enough about the structure of the task, to make the other
+sources of information comprehensible.
+
+This final subsection has been written as a work in progress,
+giving lists of topics that must eventually be carefully
+specified, but that have not yet been.
+
+\subsubsection{inequality}
+
+This chapter does not contain a complete list of the inequalities
+that are used in the linear programming infeasibility.  Consult
+the Mathematica files and \cite{DCG} for the list.  There are
+various important inequalities that need to be added.
+
+\begin{itemize}
+    \item There is an important identity for $\optt{vor0}$ in terms of the
+    variables $\optt{quo}$, $\optt{Adih}$, etc.
+    \begin{equation}
+    \optt{vor0}(F) = \phi_0 \optt{sol}(F) +\sum_{\alpha\in F}
+    (\optt{Adih}(\alpha) - 4\delta_\op{oct}(\optt{quo}(\alpha)
+    +\optt{quob}(\alpha))).
+    \end{equation}
+    (Compare \cite{DCG}, Sec 25.12, page 257.)
+%
+    \item There are various inequalities for $\optt{quo}$ obtained
+    by nonlinear lookup.
+%
+    \item We have
+        \begin{equation}
+        \optt{quob}(\alpha) = \optt{quo}(e\alpha),\quad
+        \forall\alpha.
+        \end{equation}
+    The nonlinear interpretation of $\optt{quo}(\alpha)$ is
+    the function $\op{quo}(v,w)$ of \cite{DCG}, and that of
+    $\optt{quob}(\alpha)$ is $\op{quo}(w,v)$.
+%
+    \item There are various inequalities for $\optt{Adih}(\alpha)$
+    obtained by nonlinear lookup.  These are rather
+    unconventional, because they require the input of lower and
+    upper bounds on the variable $\optt{azim}(\alpha)$.  There is
+    a note about this at the end of Sec 25.12 of \cite{DCG}, page 257.
+%
+    \item When $\optt{eta}'(\alpha)\sge t_0$, then $\optt{quo}(\alpha)
+    = \optt{quob}(\alpha)=0$.
+    \item There are lower and upper bounds on $\optt{azim}(\alpha)$ for all
+    darts $\alpha$, depending on the structure of the face to
+    which $\alpha$ belongs.  These are given in a table in
+    \cite[VI,p.54]{Hal98D}.  The same bounds appear in the database as
+    inequality 853728973.
+    \item There are the hexagonal inequalities of \cite[25.13]{DCG}.
+  There are some problems -- still unresolved by this chapter --
+  about the interpretation of the variables $\sigma_R$,
+  $\sigma_R^+$, $\tau_R$, $\tau_R^+$ of that paper in terms of the variables
+  of this chapter.
+  \item There is the ``$3.0$'' quadrilateral inequality of
+  \cite[Sec.25.10]{DCG}.
+  \item There are the $t(n)$ and $s(n)$ inequalities when there
+  are no aggregates, and the weaker version of the same
+  inequalities that hold over aggregates.
+\end{itemize}
+
+There are several important inequalities that hold over groups of
+faces.
+
+\begin{itemize}
+  \item There are the ``$0.55$'' and ``$0.48$'' bounds found in
+  \cite[Lemma 10.6,p.101]{DCG}.
+  \item There are the ``$1.4$'' and ``$1.5$'' bounds found in
+  \cite[Lemma~22.12,p.233]{DCG}.  There is a remark at the end of
+  Section~4.10 of \cite[VI,p.37]{Hal98D} that shows how these
+  inequalities can sometimes be improved by removing certain faces
+  from the sums of those inequalities.
+\end{itemize}
+
+
+There are special inequalities on simplices that are potentially
+of type C or C'.  See the note below in
+Subsection~\ref{sec:wrong}.
+
+
+
+
+
+\subsubsection{connected sum}
+
+This chapter does not yet draw all of the connected sum possibilities.
+Again, this is found in \cite[Sec.25.5--25.6,pp.249--251]{DCG}.
+When drawing these connected sum kits, it is necessary to add a mirror
+case to each one that does not have reflectional symmetry.  When
+drawing these connected sum kits, it is necessary to add markings as
+described in the interpretive key in this chapter.
+
+The penalties from \cite{DCG} have been changed in this chapter
+so that they adhere to a specific face, rather than to the entire
+connected sum kit.  Doing so, cleans up the scoring rule of
+Equation~\ref{eqn:xi}.
+
+
+
+
+\subsubsection{lookup}
+
+Detailed information about which inequalities were pulled from the
+nonlinear database by lookup can be determined by consulting the
+Mathematica files.
+
+
+
+
+
+\subsubsection{variable}
+
+Complete the list of variable names.  Check the names of variables
+on such things as $\optt{sigmaflat}$ $\optt{tauflat}$,
+$\optt{svoran}$, $\optt{nu}$, $\optt{vorx}$.
+
+\subsubsection{extension}
+
+There are other linear programs, besides the Main LP Bound that
+arise in the proof of the packing problem.  These are the {\it
+small} linear programs, so-called because they involve a small
+number of variables and constraints.  An example of small linear
+programs are those appearing in the proof of Lemma~10.5 in
+\cite{DCG}.  There are similar linear programs scattered
+throughout the paper.
+
+The linear programs for the proof of the dodecahedral conjecture
+should be developed along similar lines as this.
+
+This chapter separates the linear programming infeasibility
+results from the geometry.  To build a bridge between the Main LP
+Bound and the proof of the packing problem, it is necessary to
+prove that any counterexample  leads to a
+strong solution to a tame hypermap system.  The basic ingredients
+to prove this are already in \cite{DCG}, but it will be necessary
+to write this up, to show exactly how it follows from results in
+those papers.
+
+
+
+
+\subsubsection{things that may be wrong or incomplete}
+\label{sec:wrong}
+
+The treatment of linear programming variables related to the score
+is very muddy in \cite{DCG}.   I am not aware of any explicit
+errors, but it is extremely difficult to piece together precise
+linear programming inequalities, based on what is written there.
+Section 25.12 of \cite{DCG} is particularly confusing, and should
+be avoided whenever possible.  The description of penalties in
+Section~\ref{sec:pc} and Equation~\ref{eqn:xi} are intended to be
+clarified versions of \cite{DCG}.
+
+There is one important case of the scoring function that has not
+been entirely specified in this chapter.  This concerns the
+inequalities for $\optt{sc}(F)$ for triangular faces $F$ with one
+edge that is not quasi-regular and one node that is not
+quasi-regular.  These include the cases of simplices of type C and
+type C' from \cite[Sec.9.4,pp.94--99]{DCG}, which have special
+scoring rules.  On such simplices there will be an inequality that
+takes the general form
+    $$
+    \optt{sc}(F)\sle \optt{vorx}(F).
+    $$
+There are a number of lookup inequalities for $\optt{vorx}$.  What
+I still need to confirm is that nothing funny is going on with the
+switches to type C, C', etc.
+
+All the linear programs use weak inequalities $(\le),(\ge)$.  When
+we branch over a disjunction
+    \begin{equation}
+    \label{eqn:dis}
+    (\optt{A}\sle C)\vee (\optt{A}\sge C),
+    \end{equation}
+there is overlap between the two cases when equality occurs.
+Normally, this is not a problem; but in a couple of special
+situations it creates a problem.  (In the 1998 proof this was
+handled carefully at a conceptual level, but it does not find its
+way into the code.  For the fully automated proof, it has to find
+its way into the code.)
+
+Even though this issue may seem minor, I think that it may be
+necessary to add some components to the flags to resolve the
+problems this creates.  What I am hoping to avoid is a
+modification of the flag that makes it so that in a connected sum, there
+can be more than one compatible flag $\op{fl}'$.  I prefer to
+maintain uniqueness for $\op{fl}'$.
+
+One place where it creates a problem is when there is explicit
+branches between scoring systems.   For example, sometimes it is
+necessary to consider two cases of scoring (compressed and 
+decompressed) on quarters.  Since the scoring type cannot be
+determined by weak inequalities (in the ambiguous case when a face
+circumradius is exactly $\sqrt2$), weak inequalities are
+inadequate in such cases.  The branching should really run over a
+flag giving the scoring type, rather than over weak inequalities
+for the circumradius of a face.
+
+
+There is a trick that can often be used to avoid the case of
+equality in the Formula~\ref{eqn:dis}.   One helpful strategy is
+to transform disjunctions $A\vee (\optt{x} < B)$ into implications
+    \begin{equation}
+    (\optt{x} \ge B) \Rightarrow A.
+    \end{equation}
+(where there is no weakening), rather than into weak inequalities
+    \begin{equation}
+    A \vee (\optt{x}\le B)
+    \end{equation}
+Implications can be handled with nonlinear lookups,
+$\op{nonlin}(C,L)$, where the antecedent is placed in $C$ and the
+consequent is placed in $L$.
+
+\begin{example}  For example, consider the branching over edge
+lengths at the cutoff $2.45$ as discussed in \cite[Sec.25.7]{DCG}.
+The inequalities $\optt{ye}(\alpha)\sle 2.45$ should transformed
+as antecedents in the nonlinear lookup.\FIXX{Check this. Does it really work?}
+\end{example}

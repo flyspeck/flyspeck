@@ -107,3 +107,19 @@ REPEAT GEN_TAC THEN REWRITE_TAC[e_fan] THEN MESON_TAC[PAIR_EQ] );;
 
 let f_fan_no_fix_point=prove(`!x v w w1. (v=w) <=>(f_fan(x,v,w,(sigma_fan v w))=(x,v,w,(sigma_fan v w)))`, 
 REPEAT GEN_TAC THEN REWRITE_TAC[f_fan] THEN MESON_TAC[PAIR_EQ] );;
+
+
+
+*******************************
+let X= new_definition`X fan(x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
+
+let Y= new_definition`Y fan(x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
+
+let w_dart=new_definition`w_dart x v w w1= wedge x v w w1`;;
+
+let azim_fan=new_definition`azim_fan x v w w1= azim x v w w1`;;
+
+let w_dart0=new_definition`w_dart0 x v w w1 y=(w_dart x v w w1) INTER (rcone_gt x v y)`;;
+
+let C=new_definition`C x v w y ={c | (c IN aff_ge {x} {v,w})/\ (~((c IN rcone_gt x v y)\/(c IN rcone_gt x w y)))}`;;
+

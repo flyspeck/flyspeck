@@ -37,7 +37,8 @@ let set_of_edges=new_definition`set_of_edges v E={w|{v,w} IN E}`;;
 
 let asfan=prove(`{w,v}={v,w}`, SET_TAC[]);;
 
-let remark_fan1=prove(`!v w E. (w IN set_of_edges v E)<=>(v IN set_of_edges w E)`, REPEAT GEN_TAC THEN REWRITE_TAC[set_of_edges] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[asfan]);;
+let remark_fan1=prove(`!v w E. (w IN set_of_edges v E)<=>(v IN set_of_edges w E)`, 
+REPEAT GEN_TAC THEN REWRITE_TAC[set_of_edges] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[asfan]);;
 
 
 
@@ -96,13 +97,17 @@ let p4=new_definition`p4=(\(x,v,w,w1). w1)`;;
 
 let o_fun=new_definition`!(f:A#B#C#D->A#B#C#D) (g:A#B#C#D->A#B#C#D). o_fun f g =(\(x:A,y:B,z:C,t:D).  f (p1 (g (x,y,z,t)),p2(g(x,y,z,t)),p3(g(x,y,z,t)),p4(g(x,y,z,t))))`;;
 
-let lem_fan411=prove(`(!v w. sigma_fan v (inverse_sigma_fan v w)=w)==> (o_fun e_fan (o_fun n_fan f_fan)=i_fan)`, REWRITE_TAC[o_fun; e_fan; f_fan; n_fan; i_fan;] THEN REWRITE_TAC[p1; p2; p3; p4] THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);;
+let lem_fan411=prove(`(!v w. sigma_fan v (inverse_sigma_fan v w)=w)==> (o_fun e_fan (o_fun n_fan f_fan)=i_fan)`, 
+REWRITE_TAC[o_fun; e_fan; f_fan; n_fan; i_fan;] THEN REWRITE_TAC[p1; p2; p3; p4] THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);;
 
-let lem_fan412=prove(`o_fun e_fan  e_fan =i_fan`, REWRITE_TAC[o_fun; e_fan; i_fan;] THEN REWRITE_TAC[p1; p2; p3; p4]);;
+let lem_fan412=prove(`o_fun e_fan  e_fan =i_fan`, 
+REWRITE_TAC[o_fun; e_fan; i_fan;] THEN REWRITE_TAC[p1; p2; p3; p4]);;
 
-let e_fan_no_fix_point=prove(`!x v w w1. (v=w) <=>(e_fan(x,v,w,(sigma_fan v w))=(x,v,w,(sigma_fan v w)))`, REPEAT GEN_TAC THEN REWRITE_TAC[e_fan] THEN MESON_TAC[PAIR_EQ] );;
+let e_fan_no_fix_point=prove(`!x v w w1. (v=w) <=>(e_fan(x,v,w,(sigma_fan v w))=(x,v,w,(sigma_fan v w)))`, 
+REPEAT GEN_TAC THEN REWRITE_TAC[e_fan] THEN MESON_TAC[PAIR_EQ] );;
 
-let f_fan_no_fix_point=prove(`!x v w w1. (f_fan(x,v,w,(sigma_fan v w))=(x,v,w,(sigma_fan v w)))==>(v=w)`, REPEAT GEN_TAC THEN REWRITE_TAC[f_fan] THEN MESON_TAC[PAIR_EQ] );;
+let f_fan_no_fix_point=prove(`!x v w w1. (f_fan(x,v,w,(sigma_fan v w))=(x,v,w,(sigma_fan v w)))==>(v=w)`, 
+REPEAT GEN_TAC THEN REWRITE_TAC[f_fan] THEN MESON_TAC[PAIR_EQ] );;
 
 let power_map= new_recursive_definition num_RECURSION `(power_map f 0 = I)/\(power_map f  (SUC n)= o_fun f  (power_map f  n))`;;
 
@@ -114,6 +119,17 @@ let power_n_fan= new_definition`power_n_fan n=(\(x,v,w,w1). (x,v,(power_map_poin
 let lem_fan4131=prove(`w = power_map_point sigma_fan v w m ==> (x,v,power_map_point sigma_fan v w m,
  sigma_fan v (power_map_point sigma_fan v w m) =
  x,v,w,sigma_fan v w)`, MESON_TAC[]);;
+
+let lem_fan413=prove(`!x v w w1 n m. o_fun (power_n_fan n)  e_fan (x,v,w,w1)=o_fun e_fan (power_n_fan m) (x,v,w,w1)
+==> power_n_fan m (x,v,w,w1) =i_fan (x,v,w,w1)`, 
+REWRITE_TAC[o_fun; e_fan; power_n_fan; i_fan; p1; p2; p3; p4;] THEN REPEAT GEN_TAC THEN DISCH_TAC THEN 
+SUBGOAL_THEN `w=power_map_point sigma_fan v w m` ASSUME_TAC 
+THENL [POP_ASSUM MP_TAC THEN MESON_TAC[PAIR_EQ]; 
+POP_ASSUM MP_TAC THEN REWRITE_TAC[power_map_point] THEN MESON_TAC[lem_fan4131]]);;
+
+
+let lem_fan414=prove(`!x v w w1 n. power_n_fan n (x,v,w,w1)=e_fan (x,v,w,w1)==>(v=w)`, 
+REWRITE_TAC[e_fan; power_n_fan;]  THEN REPEAT GEN_TAC THEN MESON_TAC[PAIR_EQ]);;
 
 
 

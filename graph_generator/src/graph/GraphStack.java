@@ -32,11 +32,13 @@ public class GraphStack {
     private void buildExceptionalArchive(int series,Parameter P) {
         int sz = graphDispatch.size(series);
         for(int i = 0;i < sz;i++) {
-            if(0 == (i % 50))
+            if(0 == (i % 5000))
                 System.out.println("***  " + i);
             String S = graphDispatch.getArchiveString(series, i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
+	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
+	    if (G.vertexSize() > Constants.getVertexCountMax()) continue;
             if (Score.neglectable(G,P))
                 continue;
             Invariant inv = new Invariant(G);
@@ -65,6 +67,8 @@ public class GraphStack {
             String S = graphDispatch.getArchiveString(series, i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
+	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
+	    if (G.vertexSize() > Constants.getVertexCountMax()) continue;
             if (!Structure.hasType(G, Constants.getQuadCases(casenum)))
                 continue;
             if (Score.neglectable(G,P))
@@ -91,6 +95,8 @@ public class GraphStack {
         Invariant inv = new Invariant(G);
         if(terminal.contains(inv))
             return ;
+        if (G.vertexSize() < Constants.getVertexCountMin()) return;
+	if (G.vertexSize() > Constants.getVertexCountMax()) return;
         if(archive.contains(inv)) {
             hashFound.add(new Long(inv.getHash()));
             return ;
@@ -125,8 +131,9 @@ public class GraphStack {
         Collection C = terminal.values();
         Invariant[] list = (Invariant[])C.toArray(new Invariant[C.size()]);
         Graph[] glist = new Graph[list.length];
-        for(int i = 0;i < list.length;i++)
+        for(int i = 0;i < list.length;i++) {
             glist[i] = list[i].toGraph();
+	}
         return glist;
     }
 

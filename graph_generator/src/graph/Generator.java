@@ -5,7 +5,7 @@ import java.util.*;
  * Generate all graphs with a given set of properties.
  */
 public class Generator {
-    private GraphStack stack;
+    private static GraphStack stack;
     private Parameter param;
     private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
     /**
@@ -77,7 +77,7 @@ public class Generator {
      * These two types are vertices enclosed in a quad cluster.
      */
 
-    static boolean isQuadFriendly(Graph G, Parameter param) {
+    public static boolean isQuadFriendly(Graph G, Parameter param) {
         if (G.vertexSize()<6)
             return false;
         int s = Score.faceSquanderLowerBound(G, param) + Score.ExcessNotAt(null, G, param);
@@ -259,8 +259,10 @@ public class Generator {
         Structure.makeTrianglesFinal(G);
         //if(track
         //    track.matchAndShow(G, param);
+	
         if (!Score.neglectable(G, param))
             stack.push(G);
+	
     }
 
 
@@ -273,6 +275,8 @@ public class Generator {
      */
 
     void loop(Graph G) {
+	//0. vertex max
+	//if(G.vertexSize()> Constants.getVertexCountMax()) return;
         //1. triangles first
         if(handleForcedTriangle(G))
             return ;
@@ -403,12 +407,23 @@ public class Generator {
     public static void main(String[] args) {
 
         /**
-        for (int i=0;i<Constants.getQuadCasesLength();i++)
-            Generator.generateQuadSeries(i);
+        
         **/
 
-        for (int i=6;i<9;i++)
+        for (int i=6;i<9;i++) {
             Generator.generateExceptionalSeries(i);
+            Graph[] glist = stack.getTerminalList();
+	    for (int j=0;j<glist.length;j++) {
+		System.out.println(Formatter.toArchiveString(glist[j]));
+	    }
+	}
+	for (int i=0;i<Constants.getQuadCasesLength();i++) {
+            Generator.generateQuadSeries(i);
+	    Graph[] glist = stack.getTerminalList();
+	    for (int j=0;j<glist.length;j++) {
+		System.out.println(Formatter.toArchiveString(glist[j]));
+	    }
+        }
         //System.out.println(archive.graphPE);
 
         /**

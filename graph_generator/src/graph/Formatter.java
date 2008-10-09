@@ -33,6 +33,7 @@ import java.util.Enumeration;
 
 /**
  * format of graph*.java:
+ * first integer is the number of temp faces if this is positive, else it is the hash code of the graph.
  * first group is (1+n) elements, where n is the first element.
  * n = number of temporary faces, followed by the facenumber of each temp.
  * the main group follows next m+f1+f2+...fm
@@ -251,6 +252,7 @@ public class Formatter {
      */
 
     public static String toArchiveString(Graph G) {
+        Invariant inv = new Invariant(G);
         int numTemp = 0;
         StringBuffer pre = new StringBuffer();
         StringBuffer S = new StringBuffer();
@@ -275,7 +277,8 @@ public class Formatter {
             }
             S = S.append(faceToString(vertexList, F));
         }
-        return "" + numTemp + " " + pre + G.faceSize() + " " + S.toString();
+	long r = (numTemp>0 ? numTemp : inv.getHash());
+        return "" + r + " " + pre + G.faceSize() + " " + S.toString();
     }
 
     /**

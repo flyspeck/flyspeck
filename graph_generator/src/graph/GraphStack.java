@@ -30,6 +30,7 @@ public class GraphStack {
      */
 
     private void buildExceptionalArchive(int series,Parameter P) {
+	if (!Constants.ignoreArchive()) {
         int sz = graphDispatch.size(series);
         for(int i = 0;i < sz;i++) {
             if(0 == (i % 5000))
@@ -45,7 +46,8 @@ public class GraphStack {
             if(!archive.contains(inv))
                 archive.add(inv);
         }
-        System.out.println("archive size = "+archive.size());
+	}
+        System.out.println("//archive series/size = "+series+"/"+archive.size());
     }
 
     /**
@@ -60,6 +62,7 @@ public class GraphStack {
      * the desired seed before adding it to the archive.
      */
     private void buildQuadArchive(int series, int casenum, Parameter P) {
+	if (!Constants.ignoreArchive()) {
         //0. precondition
         util.Eiffel.jassert(casenum<Constants.getQuadCasesLength());
         int sz = graphDispatch.size(series);
@@ -77,7 +80,8 @@ public class GraphStack {
             if(!archive.contains(inv))
                 archive.add(inv);
         }
-        System.out.println("//archive size = "+archive.size());
+	}
+        System.out.println("//archive series/casenum/size = "+series+"/"+casenum+"/"+archive.size());
     }
 
     /**

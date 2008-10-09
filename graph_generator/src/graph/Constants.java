@@ -24,7 +24,7 @@ public class Constants {
      * static initialization
      */
     private static Config config;
-    private static String propertiesFile = "/Users/thomashales/Documents/code/graph08/anghel.properties";
+    private static String propertiesFile = "/Users/thomashales/Desktop/flyspeck_google/source/graph_generator/anghel.properties";
     static {
       try {
         config = new Config(propertiesFile);
@@ -46,6 +46,16 @@ public class Constants {
       return excludePentQRTet;
     }
     private final static boolean excludePentQRTet = config.getBooleanProperty("excludePentQRTet",false);
+
+
+    /**
+     * true means that we build the archive from scratch, ignoring what is already there.
+     */
+    public static boolean ignoreArchive() {
+      return ignoreArchive;
+    }
+    private final static boolean ignoreArchive = config.getBooleanProperty("ignoreArchive",false);
+
 
     /**
      * Minimum number of vertices in a graph.

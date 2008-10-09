@@ -341,7 +341,7 @@ public class Generator {
         String S = "***** ";
         for (int i=0;i<type.length;i++)
             S = S + " "+type[i];
-        System.out.println("********  "+casenum+"/"+Constants.getQuadCasesLength()+":  "+S);
+        System.out.println("//********  "+casenum+"/"+Constants.getQuadCasesLength()+":  "+S);
         //2. initialize.
         int series = graphDispatch.ALL;
         //if (true)
@@ -400,7 +400,7 @@ public class Generator {
             F.close();
         }
         catch (Exception e) {
-            System.out.println("save failed");
+            System.out.println("//save failed");
         }
     }
 
@@ -414,14 +414,14 @@ public class Generator {
             Generator.generateExceptionalSeries(i);
             Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {
-		System.out.println(Formatter.toArchiveString(glist[j]));
+		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
 	    }
 	}
 	for (int i=0;i<Constants.getQuadCasesLength();i++) {
             Generator.generateQuadSeries(i);
 	    Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {
-		System.out.println(Formatter.toArchiveString(glist[j]));
+		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
 	    }
         }
         //System.out.println(archive.graphPE);

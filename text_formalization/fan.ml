@@ -1,13 +1,3 @@
-(* Hoang Le Truong *)
-
-(* since you define C0,C1 independently, you need lemmas to relate this to other chapters.
-
-lemmas 
-`aff_gt {v} {v1,v2}={t1 % v+t2 % v1+t3 % v2 | ?t1 t2 t3. (t2 > &0)/\(t3 > &0)/\(t1+t2+t3= &1)}`;;
-
-`aff_ge {v} {v1,v2}={t1 % v+t2 % v1+t3 % v2 | ?t1 t2 t3. (t2 >= &0)/\(t3 >= &0)/\(t1+t2+t3= &1)}`;;
-
-*)
 
 
 (* Hoang Le Truong *)

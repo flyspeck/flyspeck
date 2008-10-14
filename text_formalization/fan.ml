@@ -106,7 +106,7 @@ needs "definitions_kepler.ml";;
  let power_n_fan= new_definition`power_n_fan n=(\(x,v,w,w1). (x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`;; 
 
 
- let a_node_fans=new_definition`a_node_fans (x,v,w,w1)={a | ?n. a=(power_map  n_fan n) (x,v,w,sigma_fan v w)}`;;
+ let a_node_fan=new_definition`a_node_fan (x,v,w,w1)={a | ?n. a=(power_map  n_fan n) (x,v,w,sigma_fan v w)}`;;
 
 
 
@@ -117,7 +117,7 @@ needs "definitions_kepler.ml";;
 
  let Y= new_definition`Y fan(x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
 
- let w_dart=new_definition`w_dart x v w = wedge x v w sigma_fan v w`;;
+ let w_dart=new_definition`w_dart x v w w1= wedge x v w (sigma_fan v w)`;;
 
  let azim_fan=new_definition`azim_fan x v w w1= azim x v w w1`;;
 
@@ -176,6 +176,6 @@ REWRITE_TAC[node_fan; e_fan; power_n_fan;]  THEN REPEAT GEN_TAC THEN MESON_TAC[P
 (* Proof of Lemma 4.2 *)
 
 
-let lemma421=prove(`a IN a_node_fans (x,v,w,w1)==>(?n. a=(x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`, REWRITE_TAC[a_node_fans; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;
+let lemma421=prove(`a IN a_node_fan (x,v,w,w1)==>(?n. a=(x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`, REWRITE_TAC[a_node_fan; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;
 
 

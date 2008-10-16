@@ -1170,6 +1170,8 @@ let MEASURABLE_RULES,MEASURABLE_INDUCT,MEASURABLE_CASES =
   new_inductive_definition
     `(!C. primitive C ==> measurable C) /\
     ( !Z. NULLSET Z ==> measurable Z) /\
+     (!X t. measurable X ==> (measurable (IMAGE (scale t) X))) /\
+     (!X v. measurable X ==> (measurable (IMAGE ((+) v) X))) /\
     ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s UNION t)) /\
     ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s INTER t)) /\
     ( !(s:real^3->bool) t. (measurable s /\ measurable t) ==> measurable (s DIFF t))
@@ -1213,9 +1215,7 @@ let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) =
     ( (!C. vol C >= &0) /\
      (!Z. NULLSET Z ==> (vol Z = &0)) /\
      (!X Y. measurable X /\ measurable Y /\ NULLSET (SDIFF X Y) ==> (vol X = vol Y)) /\
-     (!X t. measurable X ==> (measurable (IMAGE (scale t) X))) /\
      (!X t. (measurable X) /\ (measurable (IMAGE (scale t) X)) ==> (vol (IMAGE (scale t) X) = abs(t$1 * t$2 * t$3)*vol(X))) /\
-     (!X v. measurable X ==> (measurable (IMAGE ((+) v) X))) /\
      (!X v. measurable X ==> (vol (IMAGE ((+) v) X) = vol X)) /\
      (!v0 v1 v2 v3 r. (r > &0) /\ (~(collinear {v0,v1,v2})) /\ ~(collinear {v0,v1,v3}) ==> vol (solid_triangle v0 {v1,v2,v3} r) = vol_solid_triangle v0 v1 v2 v3 r) /\
      (!v0 v1 v2 v3. vol(conv0 {v0,v1,v2,v3}) = vol_conv v0 v1 v2 v3) /\

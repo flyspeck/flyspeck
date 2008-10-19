@@ -198,4 +198,124 @@ let lemma_graph = prove(`center_pac (s:real^3->bool) (v0:real^3) ==> graph (e_st
                                         THEN ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY] THEN EXISTS_TAC `v:real^3` THEN EXISTS_TAC `{}:real^3->bool`
                                         THEN ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY]);;
 
+let uni_lemma1 = prove( ` UNIONS
+ {{u, v} | u IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+           v IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+           ~(u = v) /\
+           d3 u v <= &2 * t0} =UNIONS
+ {{u1, v1} | u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+           v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+           ~(u1 = v1) /\
+           d3 u1 v1 <= &2 * t0}`,SET_TAC[]);;
+
+let in_lemma1 = REWRITE_CONV[IN_ELIM_THM]
+`u IN
+      {{u1, v1} | u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                  v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                  ~(u1 = v1) /\
+                  d3 u1 v1 <= &2 * t0}`;;
+
+let in_lemma = ONCE_REWRITE_CONV[IN_ELIM_THM]
+`x IN
+     {y | ?u. u IN
+              {{u1, v1} | u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          ~(u1 = v1) /\
+                          d3 u1 v1 <= &2 * t0} /\
+              y IN u}`;;
+
+let exist_lemma = prove(` (?u. (?u1 v1.
+           (u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+            v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+            ~(u1 = v1) /\
+            d3 u1 v1 <= &2 * t0) /\
+           u = {u1, v1}) /\
+      x IN u) <=> (?u1 v1.
+           (u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+            v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+            ~(u1 = v1) /\
+            d3 u1 v1 <= &2 * t0 /\
+           x IN { u1, v1 }))`, MESON_TAC[]);;
+
+let cha_lemma1 = prove (`{x | ?u. u IN
+              {{u1, v1} | u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          ~(u1 = v1) /\
+                          d3 u1 v1 <= &2 * t0} /\
+              x IN u} = {y | ?u. u IN
+              {{u1, v1} | u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                          ~(u1 = v1) /\
+                          d3 u1 v1 <= &2 * t0} /\
+              y IN u}`,SET_TAC[]);;
+
+let exist_lemma1 = prove(` (?u1 v1.
+      u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      ~(u1 = v1) /\
+      d3 u1 v1 <= &2 * t0 /\
+      x = u1 \/
+      u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      ~(u1 = v1) /\
+      d3 u1 v1 <= &2 * t0 /\
+      x = v1) <=> 
+  ( ?v1.
+      x IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      ~(x = v1) /\
+      d3 x v1 <= &2 * t0 ) \/
+  ( ?u1.
+      u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      x IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+      ~(u1 = x) /\
+      d3 u1 x <= &2 * t0 )`,MESON_TAC[]);;
+
+let unions_lemma = prove (`!(v0:real^3) (s:real^3->bool). center_pac (s:real^3->bool) (v0:real^3) ==> UNIONS (e_std s v0) SUBSET v_std s v0`, 
+                                     REPEAT GEN_TAC THEN REWRITE_TAC[e_std;v_std;tru_pack]
+                                     THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN 
+                                     REWRITE_TAC[SET_RULE` {x | x IN s /\ x IN open_ball v0 (&2 * t0)}= s INTER open_ball v0 (&2 * t0)`] THEN
+                                     ONCE_REWRITE_TAC[uni_lemma1] THEN REWRITE_TAC[SUBSET;UNIONS] THEN ONCE_REWRITE_TAC[cha_lemma1] THEN
+                                     ONCE_REWRITE_TAC[in_lemma] THEN GEN_TAC THEN ONCE_REWRITE_TAC[in_lemma1] THEN REWRITE_TAC[exist_lemma] THEN
+                                     REWRITE_TAC[SET_RULE ` x IN {u1 , v1} <=> x = u1 \/ x = v1`] THEN 
+                                     REWRITE_TAC[TAUT ` u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                          v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                        ~(u1 = v1) /\
+                                          d3 u1 v1 <= &2 * t0 /\
+                                          (x = u1 \/ x = v1) <=> ( u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                           v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                         ~(u1 = v1) /\
+                                          d3 u1 v1 <= &2 * t0 /\
+                                          x = u1) \/ ( u1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                           v1 IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
+                                        ~(u1 = v1) /\
+                                         d3 u1 v1 <= &2 * t0 /\
+                                         x = v1 )`] THEN 
+                                     REWRITE_TAC[exist_lemma1] THEN STRIP_TAC);;
+
+let lemma7_1 = new_axiom `!(v0:real^3) (s:real^3->bool) r:real. center_pac (s:real^3->bool) (v0:real^3) ==> 
+                           FINITE (tru_pack v0 r s )`;;
+
+let fini_lemma = prove(` FINITE (tru_pack v0 (&2 * t0) s)
+                          ==> FINITE (tru_pack v0 (&2 * t0) s DIFF {v0})`, REWRITE_TAC[FINITE_DIFF]);;
+
+let infi_lemma2 = prove(`center_pac s v0 ==> FINITE (tru_pack v0 (&2 * t0) s) `, REWRITE_TAC[lemma7_1]);;
+
+let fini_lemma1 = prove(`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> FINITE ( v_std s v0 )`,
+                       REPEAT GEN_TAC THEN REWRITE_TAC[v_std] THEN DISCH_TAC THEN
+                       MATCH_MP_TAC ( fini_lemma) THEN 
+                       UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)` THEN REWRITE_TAC[infi_lemma2]);;
+
+let fan1_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac (s:real^3->bool) (v0:real^3) /\ ~( v_std s v0 = {}) ==> 
+                       fan1 (v0 , v_std s v0 , e_std s v0 )` , REPEAT GEN_TAC THEN REWRITE_TAC[fan1] THEN 
+                       REWRITE_TAC[TAUT `center_pac s v0 /\ ~(v_std s v0 = {} ) ==> FINITE ( v_std s v0 ) /\ ~(v_std s v0 SUBSET {}) <=> 
+                                    ( center_pac s v0 /\ ~( v_std s v0 = {}) ==> FINITE ( v_std s v0 ) ) /\ 
+                                    ( center_pac s v0 /\ ~( v_std s v0 = {}) ==> ~(v_std s v0 SUBSET {}))`] THEN
+                       REWRITE_TAC[SET_RULE ` ~( v_std s v0 SUBSET {}) <=> ~( v_std s v0 = {})`] THEN
+                       MESON_TAC[fini_lemma1]);;
+
+let fan2_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan2 (v0,v_std s v0,e_std s v0 )`,
+                       REPEAT GEN_TAC THEN REWRITE_TAC[fan2;v_std;DIFF] THEN SET_TAC[]);;
+
+
 (*=====================================================================*)

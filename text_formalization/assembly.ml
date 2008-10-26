@@ -317,5 +317,108 @@ let fan1_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac (s:real^3->boo
 let fan2_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan2 (v0,v_std s v0,e_std s v0 )`,
                        REPEAT GEN_TAC THEN REWRITE_TAC[fan2;v_std;DIFF] THEN SET_TAC[]);;
 
+let lemmaf3 = prove(`{v, w} IN
+     {{x, y} | x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               ~(x = y) /\
+               d3 x y <= &2 * t0} <=>
+     (?x y.
+          (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+           y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+           ~(x = y) /\
+           d3 x y <= &2 * t0) /\
+          {v, w} = {x, y})`, REWRITE_TAC[IN_ELIM_THM]);;
+
+let lemma_subset = prove ( `{w | ?x y.
+              (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               ~(x = y) /\
+               d3 x y <= &2 * t0) /\
+              {v, w} = {x, y}} SUBSET tru_pack v0 (&2 * t0) s DIFF {v0}`, SET_TAC[]);;
+
+let lemmaf32 = prove (` FINITE (tru_pack v0 (&2 * t0) s DIFF {v0})
+ ==> FINITE
+     {w | ?x y.
+              (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               ~(x = y) /\
+               d3 x y <= &2 * t0) /\
+              {v, w} = {x, y}} <=> ( FINITE (tru_pack v0 (&2 * t0) s DIFF {v0}) /\ {w | ?x y.
+              (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               ~(x = y) /\
+               d3 x y <= &2 * t0) /\
+              {v, w} = {x, y}} SUBSET
+     tru_pack v0 (&2 * t0) s DIFF {v0} )
+ ==> FINITE
+     {w | ?x y.
+              (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+               ~(x = y) /\
+               d3 x y <= &2 * t0) /\
+              {v, w} = {x, y}}`, MESON_TAC[lemma_subset]);;
+
+let lemmaf33 = prove(` FINITE (tru_pack v0 (&2 * t0) s DIFF {v0})
+     ==> FINITE
+         {w | ?x y.
+                  (x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                   y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                   ~(x = y) /\
+                   d3 x y <= &2 * t0) /\
+                  {v, w} = {x, y}}`, REWRITE_TAC[lemmaf32] THEN REWRITE_TAC[FINITE_SUBSET]);;
+
+let have_not_proved = new_axiom (`center_pac s v0
+ ==> (v IN v_std s v0
+      ==> (!p q h.
+               {w | {v, w} IN e_std s v0} p /\
+               {w | {v, w} IN e_std s v0} q /\
+               p = q + h % (v0 - v)
+               ==> p = q)) /\
+     (v IN v_std s v0
+      ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`);;
+
+g`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan3 (v0,v_std s v0,e_std s v0 )`;;
+e(REPEAT GEN_TAC);;
+e(REWRITE_TAC[fan3;cyclic_set]);;
+e(DISCH_TAC);;
+e(GEN_TAC);;
+e(REWRITE_TAC[TAUT ` v IN v_std s v0
+ ==> ~(v0 = v) /\
+     FINITE {w | {v, w} IN e_std s v0} /\
+     (!p q h.
+          {w | {v, w} IN e_std s v0} p /\
+          {w | {v, w} IN e_std s v0} q /\
+          p = q + h % (v0 - v)
+          ==> p = q) /\
+     {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {} <=> 
+  ( v IN v_std s v0 ==> ~(v0 = v)) /\ ( v IN v_std s v0 ==> FINITE {w | {v, w} IN e_std s v0}) /\
+  ( v IN v_std s v0 ==> (!p q h.
+          {w | {v, w} IN e_std s v0} p /\
+          {w | {v, w} IN e_std s v0} q /\
+          p = q + h % (v0 - v)
+          ==> p = q)) /\
+  ( v IN v_std s v0 ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`]);;
+e(CONJ_TAC);;
+e(REWRITE_TAC[v_std;DIFF]);;
+e(SET_TAC[]);;
+e(CONJ_TAC);;
+e(REWRITE_TAC[e_std]);;
+e(ONCE_REWRITE_TAC[SET_RULE `{{u, v} | u IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                      v IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                      ~(u = v) /\
+                      d3 u v <= &2 * t0} = {{x, y} | x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                      y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                      ~(x = y) /\
+                      d3 x y <= &2 * t0}`]);;
+e(DISCH_TAC);;
+e(ONCE_REWRITE_TAC[lemmaf3]);;
+e(MATCH_MP_TAC (lemmaf33));;
+e(MATCH_MP_TAC (fini_lemma));;
+e(UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)`);;
+e(REWRITE_TAC[infi_lemma2]);;
+e(UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)`);;
+e(REWRITE_TAC[have_not_proved]);;
+let fan3_lemma = top_thm();;
+
 
 (*=====================================================================*)

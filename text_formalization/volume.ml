@@ -39,6 +39,31 @@ let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u
 let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
 *)
 
+(*To prove Lemma 4.2*)
+
+let th1= prove(`!a b c. [a; b; c]= CONS a (CONS b [c])`,REPEAT GEN_TAC THEN MESON_TAC[]);;
+
+
+let dodai=prove(`!a b c. LENGTH [a; b; c] = 3`,REPEAT GEN_TAC THEN REWRITE_TAC[LENGTH;th1] THEN ARITH_TAC);;
+
+
+let th3=prove(`!i. (1<=i /\ i<= 3)==>(vec 1:real^3)$i= &1`,GEN_TAC THEN DISCH_TAC THEN (ASM_SIMP_TAC[VEC_COMPONENT;DIMINDEX_3]));;
+
+let identity_scale=prove(`scale (vec 1)= I`,REWRITE_TAC[FUN_EQ_THM] THEN GEN_TAC THEN REWRITE_TAC[I_THM] THEN REWRITE_TAC[scale] THEN REWRITE_TAC[vector] THEN SIMP_TAC[dodai] THEN REWRITE_TAC[CART_EQ] THEN REWRITE_TAC[DIMINDEX_3] THEN GEN_TAC THEN DISCH_TAC THEN ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_3] THEN MP_TAC (ARITH_RULE `(1 <= i /\ i <= 3) <=> ( i=1 \/ i=2 \/ i=3)`) THEN ASM_REWRITE_TAC[] THEN REPEAT STRIP_TAC THENL [ASM_REWRITE_TAC[];ASM_REWRITE_TAC[];ASM_REWRITE_TAC[]] THENL [ASM_REWRITE_TAC[ARITH_RULE `1-1=0`];REWRITE_TAC[ARITH_RULE `2-1= SUC 0 `];REWRITE_TAC[ARITH_RULE `3-1= SUC 1 `]] THENL [REWRITE_TAC[EL];REWRITE_TAC[EL];REWRITE_TAC[EL]] THENL [REWRITE_TAC[HD];REWRITE_TAC[HD;TL];REWRITE_TAC[ARITH_RULE `1= SUC 0 `;EL]] THENL [SIMP_TAC[th3;ARITH_RULE `1<=1 /\ 1<=3`];SIMP_TAC[th3;ARITH_RULE `1<=2 /\ 2<=3`];REWRITE_TAC[HD;TL]] THENL [ARITH_TAC;ARITH_TAC;REWRITE_TAC[ARITH_RULE `SUC 0=1`]] THEN SIMP_TAC[th3;ARITH_RULE `1<=3 /\ 3<=3`] THEN ARITH_TAC);;
+
+let th4=prove(`!(S: A->bool). IMAGE I S= S`,GEN_TAC THEN REWRITE_TAC[IMAGE] THEN REWRITE_TAC[I_THM] THEN SET_TAC[]);;
+
+let SET_EQ=prove(`(A: real^3 -> bool) = B <=> (!a. a IN A ==> a IN B) /\ (!a. a IN B ==> a IN A)`,SET_TAC[]);;
+
+let normball_ellip0=prove(`!r. normball (vec 0:real^3) r = ellipsoid (vec 1) r`,GEN_TAC THEN REWRITE_TAC[ellipsoid] THEN REWRITE_TAC[SET_EQ] THEN STRIP_TAC THENL [GEN_TAC;GEN_TAC] THENL [REWRITE_TAC[IN_IMAGE];REWRITE_TAC[IN_IMAGE]] THENL [DISCH_TAC;SIMP_TAC[identity_scale]] THENL [(EXISTS_TAC `a:real^3`);REWRITE_TAC[I_THM]] THENL [CONJ_TAC;REPEAT STRIP_TAC] THENL [SIMP_TAC[identity_scale];ASM_REWRITE_TAC[];ASM_REWRITE_TAC[]] THEN REWRITE_TAC[I_THM]);;
+
+let strans_normball=prove(`!(x:real^3) r. normball x r = IMAGE ((+) x) (normball (vec 0) r)`,REPEAT GEN_TAC THEN REWRITE_TAC[SET_EQ] THEN STRIP_TAC THENL [GEN_TAC;GEN_TAC] THENL [REWRITE_TAC[IN_IMAGE;normball];REWRITE_TAC[IN_IMAGE;normball]] THENL [REWRITE_TAC[IN_ELIM_THM];REWRITE_TAC[IN_ELIM_THM]] THENL [REWRITE_TAC[dist];REWRITE_TAC[dist]] THENL [DISCH_TAC;REWRITE_TAC[VECTOR_SUB_RZERO]] THENL [EXISTS_TAC `a-x:real^3`;REPEAT STRIP_TAC] THENL [REWRITE_TAC[VECTOR_ADD_SUB];ASM_REWRITE_TAC[]] THENL [CONJ_TAC;REWRITE_TAC[VECTOR_ADD_SUB]] THENL [REWRITE_TAC[VECTOR_SUB_ADD2];REWRITE_TAC[VECTOR_SUB_RZERO];ASM_REWRITE_TAC[]] THEN ASM_REWRITE_TAC[]);;
+
+let measurable_normball0=prove(`!r. measurable (normball (vec 0:real^3) r)`,GEN_TAC THEN MESON_TAC[primitive;MEASURABLE_RULES;normball_ellip0]);;
+
+let measurable_normball=prove(`!(x:real^3) r. measurable (normball x r)`,REPEAT GEN_TAC THEN MESON_TAC[MEASURABLE_RULES;strans_normball;measurable_normball0]);;
+
+
 (*Lemma 4.3*)
 
 

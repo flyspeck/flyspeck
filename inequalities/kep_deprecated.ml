@@ -6,8 +6,9 @@ If a new version of the inequalities are introduced, they should carry
 a new 9-digit identification number.  The numbers of the following
 inequalities should be retired.
 
-We keep these inequalities around for reference, because they were
-part of the 1998 proof.  Hence it is still necessary to refer to them
+We keep these inequalities around for reference, because some were
+part of the 1998 proof. Others are here just to keep a record of what happened to them.  
+It may still be necessary to refer to them
 sometimes.
 
 *)
@@ -439,3 +440,249 @@ let I_7710172071_12=
      ((#4.0),x6,square_2t0) 
     ] 
     ((vor_0_x  x1 x2 x3 x4 x5 x6  < -- (#0.52) *pt))`;; 
+
+
+
+
+(* 
+
+
+A number of inequalities were provisionally added in Dec 2007 to deal with the
+deformation (biconnectedness problem) on page 131 of DCG.  This argument was rewritten
+in October 2008 for the paper "A Revision of the Proof of the Kepler Conjecture."
+These provisional inequalities are now deprecated.
+
+They will be labeled "BICONNECTED-131".  These were deprecated on Nov 2, 2008.
+
+*)
+
+(* EXPUNGE 3-CROWDED. 
+LOC: DCG errata : 
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+
+CCC false
+Bound: 0.064541497335
+
+Point: [6.30010733228, 6.30007582978, 5.35475339765, 4.00000309308, 6.30007582977, 5.35475339763]
+
+3/10/2008, changed. octavor_analytic_x to octavor0_x
+
+CCC octavor_0_x is not defined.  I feel like we're programming
+in assembly language...
+
+BICONNECTED-131
+
+ *)
+
+ let I_9467217686= 
+ all_forall `ineq 
+    [(square_2t0,x1,(#8.0)); 
+     ((#4.0),x2,square_2t0); 
+     ((#4.0),x3,square_2t0); 
+     ((#4.0),x4,square_2t0); 
+     ((#4.0),x5,square_2t0); 
+     ((#4.0),x6,square_2t0) 
+    ] 
+    ((gamma_x  x1 x2 x3 x4 x5 x6 < octavor0_x x1 x2 x3 x4 x5 x6 + 
+         (#0.5)*(dih_x x1 x2 x3 x4 x5 x6) - (#0.54125)) \/ 
+     (eta_x x1 x2 x6 > sqrt2) \/ (eta_x x1 x3 x5 > sqrt2))`;; 
+
+
+
+(* EXPUNGE UPRIGHT DIAG OVER FLAT QUARTER
+LOC: DCG errata : 
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+BICONNECTED-131
+It is a consequence of I_2333917810, I_8220246614.
+ *)
+(* use monotonicity on upper end of y4.  Used for y4 out to 3.2. *)
+
+let I_1427782443=
+all_forall `ineq
+   [((#2.51),y1,(#2.0)* sqrt2);
+    ((#2.0),y2,(#2.51));
+    ((#2.0),y3,(#2.51));
+    ((#2.91),y4,(#2.91));
+    ((#2.0),y5,(#2.51));
+    ((#2.0),y6,(#2.51))
+   ]
+   ((kappa y1 y2 y3 y4 y5 y6 < -- (#0.0201)))`;;
+
+(* (l42)
+LOC: DCG errata : 
+BICONNECTED-131
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+ *)
+
+(* use monotonicity on upper end of y4 *)
+let I_8220246614=
+all_forall `ineq
+   [((#2.51),y1,(#2.57));
+    ((#2.0),y2,(#2.51));
+    ((#2.0),y3,(#2.51));
+    ((#2.91),y4,(#2.91)); 
+    ((#2.0),y5,(#2.51));
+    ((#2.0),y6,(#2.51))
+   ]
+   ((kappa y1 y2 y3 y4 y5 y6 < -- (#0.022)))`;;
+
+(* (L42)
+LOC: DCG errata : 
+BICONNECTED-131
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+ *)
+
+(* use monotonicity on upper end of y4 *)
+
+(* 
+XXX false
+
+
+Bound: 2.88750850026E~4
+
+Point: [2.57000013158, 2.00000021362, 2.50999916311, 2.91, 2.5099991631, 2.00000023519]
+
+*) 
+let I_2333917810=
+all_forall `ineq
+   [((#2.57),y1,(#2.0)*sqrt2);
+    ((#2.0),y2,(#2.51));
+    ((#2.0),y3,(#2.51));
+    ((#2.91),y4,(#2.91)); 
+    ((#2.0),y5,(#2.51));
+    ((#2.0),y6,(#2.51))
+   ]
+   ((kappa y1 y2 y3 y4 y5 y6 < -- (#0.03)))`;;
+
+
+(* L41e257
+LOC: DCG errata : 
+BICONNECTED-131
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+ *)
+
+(* use monotonicity on upper end of y4 *)
+let I_6863978831=
+all_forall `ineq
+   [((#2.51),y1,(#2.57));
+    ((#2.0),y2,(#2.51));
+    ((#2.0),y3,(#2.51));
+    ((#2.0),y4,(#2.51)); 
+    ((#2.51),y5,(#2.51));
+    ((#2.0),y6,(#2.51))
+   ]
+   ((kappa y1 y2 y3 y4 y5 y6 < (-- (#2.0)*xi_gamma) + (#0.029)))`;;
+
+
+(* L41e257
+LOC: DCG errata : 
+BICONNECTED-131
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+
+CCC Fixed (#2.51) --> (square (#2.51))
+Bound: 0.223878304374
+
+Point: [6.30010754072, 6.30009424726, 4.00000591053, 4, 4.00000591051, 6.3001]
+
+ *)
+
+let I_6410186704=
+all_forall `ineq
+   [(square_2t0,x1,square (#2.57));
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,(#4.0));
+    ((#4.0),x5,square_2t0);
+    (square_2t0,x6,square_2t0)
+   ]
+   ((dih_x  x1 x2 x3 x4 x5 x6  > 
+    dih_x (square_2t0) (square_2t0) x3 x4 x5 (square_2t0) - (#0.0084)))`;;
+
+
+(* 
+BICONNECTED-131
+
+CCC fixed (#2.51) -> square_2t0
+Bound: 0.194552580073
+
+Point: [6.30011135252, 6.30009239209, 4.00000677596, 3.2, 4.00000677583, 6.3001]
+
+XXX false
+
+Bound: 0.0044085164046
+
+Point: [6.30010017942, 4.00000040706, 6.30009980299, 3.2, 4.00000045964, 6.3001]
+
+*) 
+
+let I_3008133607=
+all_forall `ineq
+   [(square_2t0,x1,square (#2.57));
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    ((#3.2),x4,(#3.2));
+    ((#4.0),x5,square_2t0);
+    (square_2t0,x6,square_2t0)
+   ]
+   ((dih_x  x1 x2 x3 x4 x5 x6  > 
+    dih_x (square_2t0) (square_2t0) x3 x4 x5 (square_2t0) - (#0.0084)))`;;
+
+(* BICONNECTED-131 *)
+
+let I_5617427593=
+all_forall `ineq
+   [(square_2t0,x1,square_2t0);
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#4.0),x6,square_2t0)
+   ]
+   ((dih_x  x1 square_2t0 x3 (#4.0) x5 square_2t0  +
+     dih_x  x1 x2 square_2t0 (square (#3.2)) square_2t0 x6 > (#3.0)) \/ 
+    (delta_x x1 x2 x3 x4 x5 x6 < (#0.0)))`;;
+
+
+(* type C.
+LOC: DCG errata : 
+BICONNECTED-131
+http://flyspeck.googlecode.com/svn/trunk/dcg_errata/dcg_errata.tex
+(svn 338)
+Added March7,2008.
+ *)
+
+let I_2377396571=
+all_forall `ineq
+   [((#4.0),x1,square_2t0);
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    (square (#3.2),x4,square (#3.2));
+    (square (#2.91),x5,square (#3.2));
+    (square (#2.91),x6,square (#3.2))
+   ]
+   (dih_x  x1 x2 x3 x4 x5 x6  > (#1.2))`;;
+
+(* BICONNECTED-131 *)
+
+let I_3656545285=
+all_forall `ineq
+   [((#4.0),x1,square_2t0);
+    (square_2t0,x2,square (#2.57));
+    (square_2t0,x3,square (#2.57));
+    ((#4.0),x4,(#4.0));
+    ((#4.0),x5,square_2t0);
+    ((#4.0),x6,square_2t0)
+   ]
+   (dih_x  x1 x2 x3 x4 x5 x6  < (#1.2))`;;
+

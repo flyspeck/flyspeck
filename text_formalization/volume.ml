@@ -39,6 +39,9 @@ let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u
 let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x,r)))`;;
 *)
 
+
+
+
 (*To prove Lemma 4.2*)
 
 let th1= prove(`!a b c. [a; b; c]= CONS a (CONS b [c])`,REPEAT GEN_TAC THEN MESON_TAC[]);;
@@ -65,6 +68,404 @@ let trans_normball=prove(`!(x:real^3) r. normball x r = IMAGE ((+) x) (normball 
 let measurable_normball0=prove(`!r. measurable (normball (vec 0:real^3) r)`,GEN_TAC THEN MESON_TAC[primitive;MEASURABLE_RULES;normball_ellip0]);;
 
 let measurable_normball=prove(`!(x:real^3) r. measurable (normball x r)`,REPEAT GEN_TAC THEN MESON_TAC[MEASURABLE_RULES;trans_normball;measurable_normball0]);;
+
+let rsduong=prove(`!(s:real) (r:real). (s> &0) /\ (s<r)==> r/s> &0`,REPEAT GEN_TAC THEN STRIP_TAC THEN UNDISCH_TAC `(s> &0):bool` THEN REWRITE_TAC[ARITH_RULE `s> &0 <=> &0 <s`] THEN SIMP_TAC[REAL_LT_RDIV_EQ] THEN REWRITE_TAC[ARITH_RULE `&0*s= &0`] THEN ASM_REAL_ARITH_TAC);;
+
+let rsnon_zero=prove(`!(s:real) (r:real). (s> &0) /\ (s<r)==> ~(r/s= &0)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `r/s> &0` MP_TAC THENL[ASM_SIMP_TAC[rsduong];REAL_ARITH_TAC]);;
+
+let rduong=prove(`!(s:real) (r:real). (s> &0) /\ (s<r)==> (r> &0)`,REPEAT GEN_TAC THEN STRIP_TAC THEN UNDISCH_TAC `(s<r):bool` THEN UNDISCH_TAC `(s> &0):bool`THEN REAL_ARITH_TAC);;
+
+let rnon_zero=prove(`!(s:real) (r:real). (s> &0) /\ (s<r)==> ~(r= &0)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `r> &0` MP_TAC THENL[UNDISCH_TAC `(s<r):bool`THEN UNDISCH_TAC `(s> &0):bool`THEN REWRITE_TAC[TAUT `A==>B ==> C <=> A/\B==>C`];REAL_ARITH_TAC] THEN ASM_REWRITE_TAC[rduong]);;
+
+let rs_sr_unit= prove(`!(s:real) (r:real). (s> &0) /\ (s<r)==> (s / r * r / s= &1)`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `~(r/s= &0)` MP_TAC
+THENL [UNDISCH_TAC `(s<r):bool`THEN UNDISCH_TAC `(s> &0):bool`THEN REWRITE_TAC[TAUT `A==>B ==> C <=> A/\B==>C`];STRIP_TAC]
+THENL [ASM_REWRITE_TAC[rsnon_zero];SUBGOAL_THEN `r/s= inv(s/r)` MP_TAC] 
+THENL [UNDISCH_TAC `~(r / s = &0):bool`;SIMP_TAC[]]
+THENL [ASM_SIMP_TAC[REAL_INV_DIV];DISCH_TAC]
+THEN SUBGOAL_THEN `~(s/r= &0)` MP_TAC
+THENL [MP_TAC(ARITH_RULE `s> &0 ==> ~(s= &0)`);SIMP_TAC[REAL_MUL_RINV]]
+THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[CONTRAPOS_THM]
+THEN DISCH_TAC THEN SUBGOAL_THEN `r*s/r = r* &0` MP_TAC
+THENL [REWRITE_TAC[ARITH_RULE `r * s / r = r * &0 <=> r * s / r - r * &0 = &0`];SUBGOAL_THEN `~(r= &0)` MP_TAC]
+THENL [REWRITE_TAC[ARITH_RULE `r * s / r - r * &0 = r*(s/r- &0)`];UNDISCH_TAC `(s<r):bool`THEN UNDISCH_TAC `(s> &0):bool`THEN REWRITE_TAC[TAUT `A==>B ==> C <=> A/\B==>C`];ASM_SIMP_TAC[REAL_DIV_LMUL]]
+THENL [ASM_REWRITE_TAC[];ASM_REWRITE_TAC[rnon_zero];REAL_ARITH_TAC]
+THEN ARITH_TAC);;
+
+
+let SQRT_MUL_POW_2= prove(`!(a:real) b. (a>= &0) /\ (b>= &0) ==> sqrt((a*a)*b)= a* sqrt(b)`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `a*a>= &0` MP_TAC
+THENL [REWRITE_TAC[ARITH_RULE `s>= &0 <=> &0<= s`];DISCH_TAC THEN UNDISCH_TAC `(b>= &0):bool`]
+THENL [SIMP_TAC[REAL_LE_SQUARE];REWRITE_TAC[ARITH_RULE `s>= &0 <=> &0<= s`]]
+THEN UNDISCH_TAC `(a * a >= &0):bool` THEN REWRITE_TAC[ARITH_RULE `a*a>= &0 <=> &0 <= a*a`]
+THEN REWRITE_TAC[TAUT `A==>B ==>C <=> A/\ B ==> C`]
+THEN SIMP_TAC[SQRT_MUL] THEN SUBGOAL_THEN `sqrt(a*a)= a` MP_TAC
+THENL [UNDISCH_TAC `(a>= &0):bool`;MESON_TAC[]]
+THEN REWRITE_TAC[ARITH_RULE `s>= &0 <=> &0<= s`]
+THEN SIMP_TAC[SQRT_MUL] THEN SIMP_TAC[SQRT_POW_2] THEN MESON_TAC[REAL_POW_2;SQRT_POW_2]);;
+
+g `!r s (x:real^3) C. radial r x C /\ (s > &0) /\ (s < r) ==> (C INTER normball x s = IMAGE ((+) x) (IMAGE (scale (s/r % (vec 1)))(IMAGE ((+) (--x)) (C INTER normball x r))))`;;
+
+e (REPEAT GEN_TAC THEN STRIP_TAC);;
+
+e (REWRITE_TAC[SET_EQ] THEN CONJ_TAC THEN GEN_TAC);;
+
+e (REWRITE_TAC[IN_INTER;IN_IMAGE]);;
+
+e (STRIP_TAC);;
+
+e (EXISTS_TAC `a-x:real^3`);;
+
+e (REWRITE_TAC[VECTOR_ARITH `(a:real^3)= x+a-x`]);;
+
+e (EXISTS_TAC `scale (r/s% vec 1)(a-x):real^3`);;
+
+e (SIMP_TAC[scale_mul] THEN SIMP_TAC[identity_scale] THEN REWRITE_TAC[I_THM]);;
+
+e (REWRITE_TAC[VECTOR_MUL_ASSOC]);;
+
+e (UNDISCH_TAC `(s> &0):bool` THEN UNDISCH_TAC `(s<r):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[rs_sr_unit]);;
+
+e (STRIP_TAC);;
+
+e (CONJ_TAC);;
+
+e (VECTOR_ARITH_TAC);;
+
+e (EXISTS_TAC `(x+r / s % (a - x)):real^3`);;
+
+e (CONJ_TAC);;
+
+e (VECTOR_ARITH_TAC);;
+
+e (CONJ_TAC);;
+
+e (SUBGOAL_THEN `(x:real^3)+(a-x) IN (C:real^3->bool)` MP_TAC);;
+
+e (UNDISCH_TAC `(a:real^3 IN (C:real^3->bool)):bool`);;
+
+e (MP_TAC(VECTOR_ARITH `(a:real^3)=x+(a-x)`));;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SET_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `(r/s)> &0 /\ (r/s) * (norm (a:real^3-x):real)< r` MP_TAC);;
+
+e (UNDISCH_TAC `(s> &0):bool` THEN UNDISCH_TAC `(s<r):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[rsduong]);;
+
+e (STRIP_TAC);;
+
+e (UNDISCH_TAC `(a:real^3 IN normball x s):bool`);;
+
+e (REWRITE_TAC[normball]);;
+
+e (REWRITE_TAC[IN_ELIM_THM;dist]);;
+
+e (ABBREV_TAC `c= norm(a:real^3 -x)`);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `r/s> &0` MP_TAC);;
+
+e (UNDISCH_TAC `(s<r):bool` THEN UNDISCH_TAC `(s> &0):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[rsduong]);;
+
+e (REWRITE_TAC[ARITH_RULE `s> &0 <=> &0< s`]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `r/s*c < r/s*s` MP_TAC);;
+
+e (UNDISCH_TAC `(c < s):bool` THEN UNDISCH_TAC `(&0< r/s):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (REWRITE_TAC[TAUT `A/\B==>C <=> B/\A==>C`] THEN REWRITE_TAC[ARITH_RULE `r / s * c < r / s * s <=> c*r/s < s*r/s`]);;
+
+e (REWRITE_TAC[REAL_LT_RMUL]);;
+
+e (MP_TAC(ARITH_RULE `s> &0 ==> ~(s= &0)`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=>A/\B==>C`]);;
+
+e (SIMP_TAC[]);;
+
+e (MESON_TAC[REAL_DIV_RMUL]);;
+
+e (ASM_MESON_TAC[radial]);;
+
+e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
+
+e (REWRITE_TAC[VECTOR_ARITH `((x:real^3) + r / s % (a - x)) - x= r / s % (a - x)`]);;
+
+e (REWRITE_TAC[vector_norm]);;
+
+e (REWRITE_TAC[VECTOR_ARITH `r / s % ((a:real^3) - x) dot r / s % (a - x)= (r/s *r/s) * (a-x) dot (a-x)`]);;
+
+e (SUBGOAL_THEN `r/s> &0` MP_TAC);;
+
+e (UNDISCH_TAC `(s<r):bool` THEN UNDISCH_TAC `(s> &0):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (REWRITE_TAC[rsduong]);;
+
+e (DISCH_TAC);;
+
+e (UNDISCH_TAC `(a IN normball (x:real^3) s):bool`);;
+
+e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
+
+e (REWRITE_TAC[vector_norm]);;
+
+e (ABBREV_TAC `q2= (a:real^3 - x) dot (a - x)`);;
+
+e (DISCH_TAC);;
+
+e (UNDISCH_TAC `(sqrt q2 < s):bool`);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `q2>= &0` MP_TAC);;
+
+
+e (REWRITE_TAC[ARITH_RULE `q2>= &0 <=> &0<= q2`]);;
+
+e (ASM_MESON_TAC[DOT_POS_LE]);;
+
+e (MP_TAC(ARITH_RULE `r/s> &0 ==> r/s>= &0`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[SQRT_MUL_POW_2]);;
+
+e (STRIP_TAC);;
+
+e (SUBGOAL_THEN `r/s*sqrt q2<r/s * s` MP_TAC);;
+
+e (REWRITE_TAC[ARITH_RULE `r / s * sqrt q2 < r / s * s<=> sqrt q2* r/s< s* r/s`]);;
+
+e (UNDISCH_TAC `(r / s > &0):bool` THEN REWRITE_TAC[ARITH_RULE `r / s > &0<=> &0< r/s`] THEN UNDISCH_TAC `(sqrt q2 < s):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[REAL_LT_RMUL]);;
+
+e (MP_TAC(ARITH_RULE `s> &0==> ~(s= &0)`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (MESON_TAC[REAL_DIV_RMUL]);;
+
+e (REWRITE_TAC[IN_IMAGE;IN_INTER]);;
+
+e (REWRITE_TAC[scale_mul;identity_scale;I_THM]);;
+
+e(STRIP_TAC THEN CONJ_TAC);;
+
+e (ASM_SIMP_TAC[]);;
+
+e (SUBGOAL_THEN `(x:real^3) + (--x + x''') IN C` MP_TAC);;
+
+e (MP_TAC(VECTOR_ARITH `x'''= (x:real^3)+ (--x + x''')`));;
+
+e (ABBREV_TAC `u1= (x:real^3) + --x + x'''`);;
+
+e (UNDISCH_TAC `(x''' IN (C:real^3->bool)):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SET_TAC[]);;
+
+e (SUBGOAL_THEN `s/r> &0 /\s/r* norm (--x+ x''':real^3)< r` MP_TAC);;
+
+
+e (CONJ_TAC);;
+
+e (MP_TAC(ARITH_RULE `s<r /\ s> &0 ==> r> &0`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ARITH_RULE `a> &0 <=> &0<a`]);;
+
+e (REWRITE_TAC[REAL_LT_LDIV_EQ]);;
+
+e (REWRITE_TAC[REAL_LT_RDIV_EQ]);;
+
+e (SIMP_TAC[REAL_LT_RDIV_EQ]);;
+
+e (REWRITE_TAC[ARITH_RULE `&0*r= &0`]);;
+
+e (DISCH_TAC);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ARITH_RULE `&0< s <=> s> &0`]);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN `s/r> &0` ASSUME_TAC);;
+
+e (MP_TAC(ARITH_RULE `s<r /\ s> &0 ==> r> &0`) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[ARITH_RULE `a> &0 <=> &0<a`] THEN REWRITE_TAC[REAL_LT_LDIV_EQ] THEN REWRITE_TAC[REAL_LT_RDIV_EQ] THEN SIMP_TAC[REAL_LT_RDIV_EQ] THEN REWRITE_TAC[ARITH_RULE `&0*r= &0`] THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[ARITH_RULE `&0< s <=> s> &0`] THEN ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN `s/r< &1` ASSUME_TAC);;
+
+e (MP_TAC(ARITH_RULE `s<r /\ s> &0 ==> r> &0`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ARITH_RULE `r> &0 <=> &0 <r`]);;
+
+e (REWRITE_TAC[ARITH_RULE `&1 * r= r`]);;
+
+e (DISCH_TAC);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (UNDISCH_TAC `( &0<r):bool`);;
+
+e (SIMP_TAC[REAL_LT_LDIV_EQ]);;
+
+
+e (REWRITE_TAC[ARITH_RULE `&1*r=r`]);;
+
+e (DISCH_TAC);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (UNDISCH_TAC `(x''':real^3 IN normball x r):bool`);;
+
+e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
+
+e (SUBGOAL_THEN `norm (x''':real^3 - x)= norm (--x + x''')` ASSUME_TAC);;
+
+e (MP_TAC(VECTOR_ARITH `x''':real^3 - x = --x + x'''`));;
+
+e (ABBREV_TAC `v1= x''':real^3 - x`);;
+
+e (MESON_TAC[]);;
+
+e (ASM_SIMP_TAC[]);;
+
+e (SUBGOAL_THEN `&0<= norm (--x + x''':real^3)` MP_TAC);;
+
+e (SIMP_TAC[NORM_POS_LE]);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (MP_TAC(ARITH_RULE `s/r> &0 /\ s/r< &1==> &0<= s/r /\ s/r< &1`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[TAUT `A==>B/\C==>D <=> A/\B/\C==>D`]);;
+
+e (ABBREV_TAC `y= norm (--x + x''':real^3)`);;
+
+e (UNDISCH_TAC `(s / r < &1):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B/\C/\D==>E <=> (B/\A/\C/\D==>E)`]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `s/r*y< &1*r` MP_TAC);;
+
+e (UNDISCH_TAC `(&0 <= s / r /\ s / r < &1 /\ &0 <= y /\ y < r):bool`);;
+
+e (MESON_TAC[REAL_LT_MUL2]);;
+
+e (MESON_TAC[ARITH_RULE `&1*r= r`]);;
+
+e (REWRITE_TAC[TAUT `A/\B==>C==>D <=> A/\B/\C==>D`]);;
+
+e (ASM_MESON_TAC[radial]);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
+
+e (REWRITE_TAC[VECTOR_ARITH `(x + s / r % (--x + x''')) - x= s / r % (--x + x''')`]);;
+
+e (SIMP_TAC[NORM_MUL]);;
+
+e (SUBGOAL_THEN `s/r> &0` ASSUME_TAC);;
+
+e (MP_TAC(ARITH_RULE `s<r /\ s> &0 ==> r> &0`) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[ARITH_RULE `a> &0 <=> &0<a`] THEN REWRITE_TAC[REAL_LT_LDIV_EQ] THEN REWRITE_TAC[REAL_LT_RDIV_EQ] THEN SIMP_TAC[REAL_LT_RDIV_EQ] THEN REWRITE_TAC[ARITH_RULE `&0*r= &0`] THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[ARITH_RULE `&0< s <=> s> &0`] THEN ASM_REWRITE_TAC[]);;
+
+e (MP_TAC(ARITH_RULE `s/r> &0==> s/r>= &0`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ARITH_RULE `s/r>= &0 <=> &0<= s/r`]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `abs (s / r)= s/r` MP_TAC);;
+
+e (ASM_SIMP_TAC[REAL_ABS_REFL]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (UNDISCH_TAC `(x''':real^3 IN normball x r):bool`);;
+
+e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
+
+e (SUBGOAL_THEN `norm (x''':real^3 - x)= norm (--x + x''')` ASSUME_TAC);;
+
+e (MP_TAC(VECTOR_ARITH `x''':real^3 - x = --x + x'''`));;
+
+
+e (ABBREV_TAC `v2= x''':real^3 - x`);;
+
+e (MESON_TAC[]);;
+
+e (ASM_SIMP_TAC[]);;
+
+e (ABBREV_TAC `p= norm (--x + x''':real^3)`);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `p*s/r< r*s/r` MP_TAC);;
+
+e (MP_TAC(ARITH_RULE `s / r > &0 ==> &0< s/r`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (UNDISCH_TAC `(p < r):bool` THEN REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[REAL_LT_RMUL]);;
+
+e (REWRITE_TAC[ARITH_RULE `s/r*p<s <=> p*s/r< s`]);;
+
+e (MP_TAC(ARITH_RULE `s<r/\s> &0 ==> ~(r= &0)`));;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (MESON_TAC[REAL_DIV_LMUL]);;
+
+
+let trans_strech_trans_radial=top_thm();;
+
+
+
+
+
+
+
+
+
+(*---------------------------------------------------------------------------------------------------------------*)
 
 
 

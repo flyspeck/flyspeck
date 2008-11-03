@@ -379,7 +379,7 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > pi / (#2.0) )`;;
 
 (* Revision, lemma:double-cross *)
-(*
+
 let I_7431506800=
 all_forall `ineq
    [((#4.0),x1,(square (#2.23)));
@@ -387,7 +387,44 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0));
     (square(#3.2),x5,square(#3.2));
-    ((#4.0),x6,square_2t0); XX bad entry..!
+    (square_2t0,x6,square_2t0); 
    ]
-   (dih_x  x1 x2 x3 x4 x5 x6  < (#1.4))`;;  (* fix XX *)
-*)
+   (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
+
+(* Revision, lemma:double-cross *)
+let I_5568465464 =
+all_forall `ineq
+   [((#4.0),x1,(square (#2.23)));
+    (square_2t0,x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    (square_2t0,x4,square_2t0); 
+    (square(#3.2),x5,square(#3.2));
+    ((#4.0),x6,square_2t0);
+   ]
+   (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
+
+(* Revision, lemma:double-cross *)
+let I_4741571261 =
+all_forall `ineq
+   [((#4.0),x1,(square (#2.23)));
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,(#4.0)); 
+    (square(#3.2),x5,square(#3.2));
+    (square(#3.2),x6,square(#3.2));
+   ]
+   (dih_x  x1 x2 x3 x4 x5 x6  > (#0.8))`;; 
+
+(* Revision, lemma:double-cross *)
+let I_6915275259 =
+all_forall `ineq
+   [((#4.0),x1,(square (#2.23)));
+    ((#4.0),x2,square_2t0);
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,(#4.0)); 
+    (square_2t0,x5,square_2t0);
+    (square_2t0,x6,square_2t0);
+   ]
+   (dih_x  x1 x2 x3 x4 x5 x6  < (#1.3))`;; 
+
+

@@ -86,7 +86,7 @@ let diagonal = new_definition ` diagonal d1 d2 q s = ( quarter q s /\
          {d1, d2} SUBSET q /\
          (!x y. x IN q /\ y IN q ==> d3 x y <= d3 d1 d2))`;;
 
- let strict_qua = new_definition ` strict_qua d s = ( quarter d s /\ 
+let strict_qua = new_definition ` strict_qua d s = ( quarter d s /\ 
   ( ? x y. x IN d /\ y IN d /\ &2 * t0 < d3 x y /\ d3 x y < sqrt( &8 ) ))`;; 
 
 let strict_qua2 = new_definition ` strict_qua2 d (ch:real^3 -> bool ) s = ( quarter d s /\ ch SUBSET d 
@@ -4024,7 +4024,7 @@ ONCE_REWRITE_TAC[ MESON[]`(? x y. P x y ) /\ a <=> a /\ (? x y. P x y )`] THEN P
 ONCE_REWRITE_TAC[ MESON[] ` (? x y . P x y ) /\ a /\ b <=> a /\ b /\ (? x y. P x y)`] THEN 
 NHANH (CUTHE4 NOV2 ) THEN MESON_TAC[]);;
 
-(* ===================== end simplize ======================== *)
+(* =====================  ======================== *)
 
 let NOV1 = prove(` ! s v0 v1 v2 . (?v4. quasi_reg_tet ({v0, v1, v2} UNION {v4}) s)
  ==> (!xx yy.
@@ -4041,3 +4041,68 @@ let NOV1 = prove(` ! s v0 v1 v2 . (?v4. quasi_reg_tet ({v0, v1, v2} UNION {v4}) 
 REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[]` (b ==> c) ==> a /\ b ==> c `) THEN 
  REWRITE_TAC[ A_LEMMA]);;
 
+
+let TRIANGLE_IN_BARRIER = prove(` ! s v0 v1 v2 . {v0, v1, v2} IN barrier s
+ ==> (!xx yy.
+          ~(xx = yy) /\ {xx, yy} SUBSET {v1, v2, v0}
+          ==> &2 <= dist (xx,yy) /\ dist (xx,yy) <= sqrt (&8)) /\
+     ((!aa bb.
+           aa IN {v1, v2, v0} /\ bb IN {v1, v2, v0} ==> dist (aa,bb) <= #2.51) \/
+      (?aa bb.
+           {aa, bb} SUBSET {v1, v2, v0} /\
+           #2.51 < dist (aa,bb) /\
+           (!x y.
+                ~({x, y} = {aa, bb}) /\ {x, y} SUBSET {v1, v2, v0}
+                ==> dist (x,y) <= #2.51)))`,
+REWRITE_TAC[ barrier; IN_ELIM_THM] THEN 
+REWRITE_TAC[ GSYM (MESON[]` P {x, y, z} <=> 
+       (?a b c. P {a, b, c} /\ {x, y, z} = {a, b, c})`)] THEN 
+MP_TAC A_LEMMA THEN 
+REWRITE_TAC[ MESON[]` (! a b c d. P a b c d ==> las a b c d ) ==> (! a b c d .
+  P a b c d \/ Q a b c d ==> las a b c d) <=> 
+  (! a b c d. P a b c d ==> las a b c d ) ==> (! a b c d .
+  Q a b c d ==> las a b c d)`] THEN DISCH_TAC THEN 
+NHANH (CUTHE2 CASES_OF_Q_SYS) THEN 
+REPEAT GEN_TAC THEN 
+MATCH_MP_TAC (MESON[]` ((? a. Q a) ==> l) /\ ((?a. R a ) ==> l) ==> 
+  (? a. P a /\ ( Q a \/ R a )) ==> l `) THEN 
+REWRITE_TAC[ NOV1] THEN 
+NHANH (CUTHE4 TRIANGLE_IN_STRICT_QUA) THEN 
+MATCH_MP_TAC (MESON[]` (b ==> l) /\ ( a /\ c ==> l) ==> a /\ ( b \/ c ) ==> l`) THEN 
+ASM_REWRITE_TAC[] THEN 
+REWRITE_TAC[ strict_qua; quarter; SET_RULE `{a,b,c} UNION {d} = {a,b,c,d}`;  def_simplex] THEN 
+PHA THEN 
+REWRITE_TAC[ MESON[]` a /\ a /\ l <=> a /\ l `; packing ] THEN 
+MATCH_MP_TAC (MESON[] `(a ==> aa) /\ (b ==> bb) ==> a /\ b ==> aa /\ (cc \/ bb)`) THEN 
+SIMP_TAC[ SET_RULE `{a,b,c} = {c,a,b} `] THEN 
+NHANH (SET_RULE `  {v0, v1, v2, v4} SUBSET s ==> {v0,v1,v2} SUBSET s `) THEN 
+NHANH ( MESON[SET_RULE ` x IN a /\ a SUBSET s ==> s x `]`(!u v. s u /\ s v /\ ~(u = v) ==> &2 <= dist (u,v)) /\
+       ({v0, v1, v2, v4} SUBSET s /\ {v0, v1, v2} SUBSET s) /\ l ==>
+  (!u v. u IN {v0,v1,v2} /\ v IN {v0,v1,v2} /\ ~(u = v) ==> &2 <= dist (u,v))`) THEN 
+REWRITE_TAC[t0] THEN 
+NHANH ( MESON[PAIR_D3] ` d3 v w <= sqrt (&8) ==> (! x y. x IN {v0, v1, v2, v4} /\
+                  y IN {v0, v1, v2, v4} /\ {x,y} = {v,w} ==> d3 x y <= sqrt (&8) )`) THEN 
+REWRITE_TAC[ SET_RULE ` {a,b} SUBSET s <=> a IN s /\ b IN s `] THEN 
+SIMP_TAC[ SET_RULE ` {a,b,c} = {c,a,b} `] THEN 
+REWRITE_TAC[ GSYM d3 ] THEN 
+MESON_TAC[ MATCH_MP REAL_LE_RSQRT (REAL_ARITH ` (&2 * #1.255 ) pow 2 <= &8 `);
+  SET_RULE ` x IN {a,b,c} ==> x IN {a,b,c,d} `; REAL_ARITH ` a <= b /\ b <= c ==> a <= c `]);;
+
+(* ============== *)
+
+let DIA_OF_QUARTER = prove(`! a b q s. diagonal a b q s ==> &2 * t0 <= d3 a b /\ d3 a b 
+   <= sqrt (&8) `,
+REWRITE_TAC[ diagonal; quarter] THEN 
+REWRITE_TAC[ SET_RULE ` {a,b} SUBSET s <=> a IN s /\ b IN s `] THEN 
+REWRITE_TAC[ SET_RULE ` {a,b} SUBSET s <=> a IN s /\ b IN s `; t0] THEN 
+MESON_TAC[PAIR_D3; MATCH_MP REAL_LE_RSQRT (REAL_ARITH ` (&2 * #1.255) pow 2 <= &8 `);
+  REAL_ARITH ` a <= b /\ b <= c ==> a <= c `]);;
+
+
+let SUB_PACKING = prove(`!sub s.
+     packing s /\ sub SUBSET s
+     ==> (!x y. sub x /\ sub y /\ ~(x = y) ==> &2 <= d3 x y)`,
+REWRITE_TAC[ packing; GSYM d3] THEN SET_TAC[]);;
+
+
+(* =============== end simplize ====================== *)

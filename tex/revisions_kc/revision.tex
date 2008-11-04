@@ -25,7 +25,7 @@
 \usepackage{amscd}
 \usepackage{amssymb}
 \usepackage{alltt}
-%\usepackage{pdfsync}
+\usepackage{pdfsync}
 %\usepackage{amsmath,amsthm}
 
 % automatically generate revision number by
@@ -250,7 +250,7 @@ M\"unchen}
 The Kepler conjecture asserts that no packing of congruent balls in three-dimensional Euclidean space 
 has density greater than that of the face-centered cubic packing.  The original proof,
 announced in 1998 and published in 2006, is long and complex. The process of  revision and review did not end with the publication of the proof.
-This article summarizes the current status of several long-term iniatiatives to
+This article summarizes the current status of several long-term initiatives to
 reorganize the original proof into a more transparent form and to provide a greater
 level of certification of the correctness of the computer code and other details of the proof.
 A final section contains errata in the original proof of the Kepler conjecture.
@@ -280,7 +280,7 @@ approach, and that the reduction method led to nonlinear programming problems of
 tractable size.''
 
 The process of review and revision did not end when the proof was published.
-This article summarizes the current status of several long-term iniatiatives to
+This article summarizes the current status of several long-term initiatives to
 reorganize the original proof into a more transparent form and to provide a greater
 level of certification of the correctness of the computer code and other details of the proof.
 
@@ -292,7 +292,7 @@ in \cite{Hales:2006:DCG}.
 \subsection*{Formal proof}
 
 A formal proof is a proof in which every logical inference has been checked, all the way back to the foundational axioms of mathematics.  No step is skipped no matter how obvious it may be to a mathematician.  
-A formal proof may be less intuititve, and yet is less susceptible to logical
+A formal proof may be less intuitive, and yet is less susceptible to logical
 errors.  Because of the large number of inferences involved, a computer is used to check the steps of a formal proof.
 
 It is a large labor-intensive
@@ -401,7 +401,7 @@ lemmas deal with the existence or non-existence of configurations of several poi
 various metric constraints.)  Also, the lemmas can be stated without reference to the Kepler conjecture and all of the
 technical notions that have been introduced to give a proof.
 Finally, the proofs rely on similar methods and are best considered
-together~\cite{1271687}.  Section~\ref{sec:ordinary} on {\it Enchanced Automation} gives an approach to proving the lemmas in this collection.
+together~\cite{1271687}.  Section~\ref{sec:ordinary} on {\it Enhanced Automation} gives an approach to proving the lemmas in this collection.
 
  
 
@@ -617,9 +617,6 @@ $$ |\|w - z\| - r| = d \And \|u - w\| < d/2 \And \|x - z\| = r
    \Imp d/2 \leq \|x - u\|
 $$
 
-
-
-
 \section{Standard ML reimplementation of code}
 \label{sec:code}
 
@@ -647,7 +644,7 @@ al.}~\cite{Robertson:1997:JCTB} is less than 3,000 lines of C.
 Another difficulty is in the organization of the code. The
 calculations were done over the space of four years and involved 
 %10->4, tch, Oct 11, 2008 
-thousands of executions of the various
+thousands of executions of a multitude of independent
 programs. The variety of computational tasks include, among others,
 estimating global bounds on inequalities using nonlinear methods,
 proving inequalities rigorously using interval arithmetic, generating
@@ -655,7 +652,8 @@ graphs satisfying certain properties, generating linear programs from
 graphs, and bounding linear programs. Despite a labeling scheme used
 in the original proof to uniquely identify the calculations, some
 computations relied upon by the proof are difficult to find in the
-original source code.  Ferguson has no such labeling scheme.  To
+original source code\footnote{Ferguson does not use a labeling scheme.
+As a result his computations are more difficult to recover.}.  To
 locate, for instance, computation ``CALC-821707685'' from the original
 proof~\cite[p.159]{Hales:2006:DCG}, one can search on the
 website~\cite{website:Hales:1998:Code} in vain.  While records of the
@@ -675,7 +673,8 @@ Finally, Hales uses C++ and Ferguson uses C to carry out
 \emph{interval arithmetic} calculations. In the process, they
 explicitly set the IEEE 754~\cite{IEEE:1985:IEE754} rounding modes on
 the floating point unit. There are a number of difficulties with using
-floating point numbers and rounding modes directly. The first is that
+floating point numbers and rounding modes directly from the point of view
+of verification. The first is that
 reasoning about floating point instructions requires a relatively deep
 understanding of the machine architecture~\cite{Monniaux:2008:TOPLAS}.
 For instance, setting the rounding mode 
@@ -690,10 +689,11 @@ the year the Kepler project was completed, contains the following
 comment (after describing fixes for a number of other 754-related
 bugs): ``When you use fpu/cpu to do rounding, you have to mark the
 variable volatile. Otherwise, the compiler may do something  you don't
-want.'' On the other hand, the volatile keyword is not defined by
+want.'' On the other hand, the \texttt{volatile} keyword\footnote{\texttt{volatile} is not
+used in the original implementation.} is not defined by
 the C language definition~\cite{Kernighan:1988:C}, meaning that a C
-program using the volatile keyword is undefined by the
-language definition. This is an unsatisfactory state of affairs.
+program using \texttt{volatile} is undefined by the
+language definition.  This is an unsatisfactory state of affairs.
 
 % ------------------------------------------------------------------------------
 %  Motivation                                                                   
@@ -705,8 +705,27 @@ language definition. This is an unsatisfactory state of affairs.
 Our motivations for this work have been to bring the computational
 aspects of the Kepler conjecture closer to the level of simplicity and
 clarity necessary for formalization by a proof assistant, and to
-organize the computations in a unified framework.  Some desired
-features were:
+organize the computations in a unified framework.  
+
+The main computational tasks as we see them are:
+
+\begin{itemize} 
+\item Inequality experimentation (C)
+\item Inequality verification (C, C++)
+\item Graph generation (Java)
+\item Graph visualization (Java)
+\item Linear program generation (Mathematica)
+\item Linear program bounding (CPLEX)
+\item Linear program bound verification (Not implemented)
+\end{itemize} 
+
+\noindent Each task is labeled with the language of the
+original implementation.  The final task, rigorous checking
+of the bounds returned by linear programming libraries by
+checking the dual variables, had not been done before.
+This task is discussed in detail in section~\ref{sec:lp}.
+
+The desired features for the new implementation were:
 
 \begin{enumerate}
 \item The code should be rewritten in a functional language with a
@@ -733,35 +752,75 @@ Coq proof assistant.
 
 We chose Standard ML for the reimplementation for a number of reasons.
 It has a formal definition~\cite{Milner:1990:SML}, and thus programs
-have a meaning apart from the particular compiler used. 
-It has a very efficient compiler, named MLton~\cite{website:MLton}, and 
-our reimplementation runs between \%50 and \%200 the speed
-of the original C++ implementation compiled with GCC.
-MLton has a foreign function interface that allows us to use external
-libraries with relative ease. It has an expressive module system, and
-thus it is possible to write the code with respect to abstract
-libraries and arithmetics. This allows us, for instance, to use
-multiple independent implementations of interval arithmetic such as
-MPFI~\cite{Revol:2005:MPFI}, as well as our own implementation.
+have a meaning apart from the particular compiler used\footnote{The
+language is not perfectly defined.  For example, the \texttt{int} type
+is left unspecified, and can be implemented as either fixed or
+arbitrary precision without deviating for the definition.  It is
+however a significant improvement over most languages.}.  It has an
+efficient compiler, named MLton~\cite{website:MLton}.  (Our
+reimplementation runs between \%50 and \%200 the speed of the original
+implementation compiled with GCC.)  MLton has the ability to use
+external libraries, e.g. linear program solvers, written in languages
+other than SML with relative ease.  It has an expressive module
+system, and thus it is possible to write the code with respect to
+abstract libraries and arithmetics. This allows us, for instance, to
+use multiple independent implementations of interval arithmetic such
+as MPFI~\cite{Revol:2005:MPFI}, as well as our own implementation.
 
 We have made significant progress toward our goals. Almost all the
-code has been completely rewritten~\cite{McLaughlin:2008:KeplerCode} in
-SML. The graph generator
-from~\cite{NipkowBS-IJCAR06} has been incorporated into the user
-interface (see Section~\ref{sec:graph}). Using the module system, we have completed a generic linear
-programming interface to check the linear programs. We have
-incorporated the GLPK and CPLEX libraries for solving linear programs
-via the foreign function interface. The dual variables of the linear
-programming solutions are rigorously checked in SML using interval
-arithmetic, similar to the project described in Section~\ref{sec:lp}~\cite{Obua:2005:Thesis}. We have
-also incorporated the nonlinear optimization packages CFSQP and Knitro
-into our interface to allow (non-rigorous) testing of inequalities.
-This has allowed us to catch a number of transcription errors in
-the computer code for the Flyspeck project. 
-Thus, we have a fairly complete suite
-of software support for the Flyspeck project. We are now in the
-process of organizing and reevaluating the thousands of computations
-found in the proof.
+code has been completely rewritten~\cite{McLaughlin:2008:KeplerCode}
+in SML, and is executable from a single command-line program.
+The remainder of this section gives some details about the status
+of the current implementation.
+
+\paragraph{\emph{Inequalities}}
+
+The inequality verification code has been rewritten using the interval
+arithmetic method of the original source, though independent of the
+specifics of the interval implementation.  We can use a fast native
+floating point implementation, or less efficient but more careful
+alternatives such as MPFI.  The ability to use different
+implementations gives us more confidence that our results are
+independent of computer architecture.  (Though see Zumkeller's method
+of section~\ref{sec:zumkeller} for more rigorous results.)  Many of
+the inequalities from the paper are organized using a unique
+identifier, and thus can be executed from the user interface.  We are
+still in the process of incorporating the thousands of such
+inequalities.
+
+We have also included the nonlinear optimization packages CFSQP
+and Knitro to allow experimental testing of inequalities.  This has
+allowed us to develop new inequalities for this revision, and to catch
+a number of transcription errors in the computer code for the Flyspeck
+project.
+
+\paragraph{\emph{Graphs}} The graph generator
+from~\cite{NipkowBS-IJCAR06} has been adapted into our interface (see
+Section~\ref{sec:graph}).  Additionally we can generate an image of
+any graph in the archive.  
+
+\paragraph{\emph{Linear Programs}}
+
+For each graph, we generate the corresponding linear programs using
+the inequalities mentioned above.  In addition to generating linear
+programs from graphs and lists of inequalities, we can bound them and
+check the dual certificates using interval arithmetic as discussed in
+Section~\ref{sec:lp}~\cite{Obua:2005:Thesis}.
+There are also a number of linear programs used in the original proof
+that do not correspond directly to graphs.  These will be added to
+the user interface in the near future.
+
+In the original implementation, the myriad computations were done with
+many different programs written in a half dozen programming languages.
+The results of these computations are not always easy to find or
+interpret.  % spread over Hell's half acre 
+Now all the computations
+are executed from the same source, with organized output.  In addition
+to giving us added confidence that the original computations were
+sound, we have a fairly complete suite of software support for the
+Flyspeck project. We are now in the process of organizing and
+reevaluating the thousands of computations upon which the proof
+depends.
 
 \section{Proving nonlinear inequalities with Bernstein bases}
 \label{sec:zumkeller}
@@ -1216,7 +1275,7 @@ The edges of $S$ have lengths between $\sqrt8$ and $3.2$.
  The projection of the line segments formed by $E$ to the
 unit sphere is a planar graph.
 The complement of this graph in the unit sphere
-is a disjoint union of connected componenents.  The closures of these connected components are called subregions.
+is a disjoint union of connected components.  The closures of these connected components are called subregions.
 
 We call a loop subregion one that contains an unerased loop.
 If $R$ is a subregion that comes from a loop, then there are no enclosed vertices of height $\le 2.51$ over the
@@ -1483,7 +1542,7 @@ being located over the region $A$.
 A vertex $u_2$ cannot be enclosed over an upright quarter $\{0,u,v,u_i\}$.  This excludes
  region $C$.  Finally, an edge $\{v,u_i\}$
 of length at most $2.51$ cannot pass through a triangle $\{0,u,u_j\}$
-of sidges at most $2.51,2.51,\sqrt8$ (excluding $D$).
+of sides at most $2.51,2.51,\sqrt8$ (excluding $D$).
 \end{proof}
 
 \begin{figure}

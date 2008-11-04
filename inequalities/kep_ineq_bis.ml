@@ -329,6 +329,8 @@ Inequalities added October 30, 2008 for use in "A Revision of the Kepler Conject
 *)
 
 (* lemma:three-edge *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_2799256461=
 all_forall `ineq
    [((#4.0),x1,square_2t0);
@@ -341,6 +343,8 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.7))`;;
 
 (* lemma:three-edge *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_5470795818=
 all_forall `ineq
    [((#4.0),x1,square_2t0);
@@ -353,6 +357,8 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.4))`;;
 
 (* Revision, lemma:double-edge *)
+(* XX FALSE *)
+(* biconnected section *)
 let I_8167927350=
 all_forall `ineq
    [
@@ -367,6 +373,8 @@ all_forall `ineq
    dih_x x1 square_2t0 x3 (#4.0) x5 (square (#2.7)) > pi)`;;
 
 (* Revision, lemma:double-edge *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_6040218010=
 all_forall `ineq
    [((square (#2.36)),x1,square_2t0);
@@ -379,7 +387,8 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > pi / (#2.0) )`;;
 
 (* Revision, lemma:double-cross *)
-
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_7431506800=
 all_forall `ineq
    [((#4.0),x1,(square (#2.23)));
@@ -392,6 +401,8 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
 
 (* Revision, lemma:double-cross *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_5568465464 =
 all_forall `ineq
    [((#4.0),x1,(square (#2.23)));
@@ -404,6 +415,8 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
 
 (* Revision, lemma:double-cross *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
 let I_4741571261 =
 all_forall `ineq
    [((#4.0),x1,(square (#2.23)));
@@ -416,6 +429,9 @@ all_forall `ineq
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.8))`;; 
 
 (* Revision, lemma:double-cross *)
+(* verified by S. McLaughlin Nov 3, 2008 *)
+(* biconnected section *)
+
 let I_6915275259 =
 all_forall `ineq
    [((#4.0),x1,(square (#2.23)));

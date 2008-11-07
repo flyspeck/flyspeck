@@ -317,6 +317,7 @@ is a bug-free implementation of its specification.
 
 
 \subsection*{Formal proof of the Kepler conjecture}
+\label{sec:intro}
 
 The purpose of the Flyspeck project is to give a formal proof of the Kepler conjecture.  (The project name {\it Flyspeck} comes from the acronym {\it FPK}, for the {\it Formal} {\it Proof} of the {\it Kepler} conjecture.)  This is the most complex formal proof ever undertaken.  We estimate that it may take about twenty work-years to complete this formalization project.  
 
@@ -623,18 +624,17 @@ $$
 
 \subsection*{Code}
 
-The original proof of the Kepler
-Conjecture relies significantly
-on computation. Computer code is used extensively, and is
-central both to the correctness of the result and to a thorough
-understanding of the proof. 
+The original proof of the Kepler Conjecture relies significantly on
+computation. Computer code is used extensively, and is central both to
+the correctness of the result and to a thorough understanding of the
+proof.
 
   There are four major difficulties with understanding and verifying
 the original code base. The first and most glaring difficulty is
 simply the amount of code. At the website~\cite{website:Hales:1998:Code}
-that posts the code for the original proof,
+that posts the code for the original proof
 there are well over 50,000 lines of programs in Java, C++, and
-Mathematica. This represents only the calculations that Hales did himself.
+Mathematica (among others). This represents only the calculations that Hales did himself.
 Samuel Ferguson also completed many of the calculations with an entirely
 different code base of 137,000\footnote{There is a large amount of
 code copying in Ferguson's code, resulting in a much larger code base.
@@ -643,19 +643,22 @@ contrast, the proof of the Four Color Theorem by Robinson \textit{et.
 al.}~\cite{Robertson:1997:JCTB} is less than 3,000 lines of C.
 
 Another difficulty is in the organization of the code. The
-calculations were done over the space of four years and involved 
-%10->4, tch, Oct 11, 2008 
-thousands of executions of a multitude of independent
-programs. The variety of computational tasks include, among others,
-estimating global bounds on inequalities using nonlinear methods,
-proving inequalities rigorously using interval arithmetic, generating
-graphs satisfying certain properties, generating linear programs from
-graphs, and bounding linear programs. Despite a labeling scheme used
-in the original proof to uniquely identify the calculations, some
-computations relied upon by the proof are difficult to find in the
-original source code\footnote{Ferguson does not use a labeling scheme.
-As a result his computations are more difficult to recover.}.  To
-locate, for instance, computation ``CALC-821707685'' from the original
+calculations were done over the space of four years and involved
+thousands of executions of a multitude of independent programs.  In
+section~\ref{sec:intro} we identified the three main computational
+tasks of the proof, viz.: tame graph generation, linear program
+bounding, and nonlinear inequality verification.  Each of these main
+tasks consists of several subtasks.  For example, verifying the
+inequalities required dozens of relatively complicated preprocessing
+phases where second derivatives of the relevant functions were bounded
+over fixed domains.  As another example, many linear programs were
+solved only after a branch and bound period which were recorded in
+voluminous log files.  In an attempt to organize the complex 
+web of calculations, Hales
+devised a labeling scheme to uniquely identify the calculations.
+However, even now some computations relied upon by the proof are
+difficult to find in the original source code.  To locate, for
+instance, computation ``CALC-821707685'' from the original
 proof~\cite[p.159]{Hales:2006:DCG}, one can search on the
 website~\cite{website:Hales:1998:Code} in vain.  While records of the
 computations were made, it is not always an easy matter to find them
@@ -670,159 +673,77 @@ weeks instead of months or years, the code is extensively
 optimized. The optimizations were often implemented without comment in
 the source, and in some cases are difficult to understand.
 
-Finally, Hales uses C++ and Ferguson uses C to carry out
-\emph{interval arithmetic} calculations. In the process, they
-explicitly set the IEEE 754~\cite{IEEE:1985:IEE754} rounding modes on
-the floating point unit. There are a number of difficulties with using
-floating point numbers and rounding modes directly from the point of view
-of verification. The first is that
+Finally, Hales and Ferguson use C and C++ to carry out \emph{interval
+arithmetic} calculations based on \emph{floating point arithmetic}. In
+the process, they explicitly set the IEEE 754~\cite{IEEE:1985:IEE754}
+rounding modes on the processor's floating point unit.  While floating
+point is desirable for its speed, there are difficulties with using
+floating point for software that requires a very high level of rigor
+such as that supporting mathematical proof.  The first is that
 reasoning about floating point instructions requires a relatively deep
 understanding of the machine architecture~\cite{Monniaux:2008:TOPLAS}.
-For instance, setting the rounding mode 
-changes the state of the processor itself. Such an instruction has a
-global effect on all subsequent floating point computations. 
-In the original code base the rounding modes are explicitly changed at
-least 400 times.  Moreover,
+For instance, setting the rounding mode changes the state of the
+processor itself. Such an instruction has a global effect on all
+subsequent floating point computations.  In the original code base the
+rounding modes are explicitly changed at least 400 times.  Moreover,
 compilers, libraries, and even processors are notorious for unsound
-implementations of the 754 standard. A GCC mailing list entry from
-1998\footnote{\url{http://gcc.gnu.org/ml/gcc/1998-02/msg00998.html}},
-the year the Kepler project was completed, contains the following
-comment (after describing fixes for a number of other 754-related
-bugs): ``When you use fpu/cpu to do rounding, you have to mark the
-variable volatile. Otherwise, the compiler may do something  you don't
-want.'' On the other hand, the \texttt{volatile} keyword\footnote{\texttt{volatile} is not
-used in the original implementation.} is not defined by
-the C language definition~\cite{Kernighan:1988:C}, meaning that a C
-program using \texttt{volatile} is undefined by the
-language definition.  This is an unsatisfactory state of affairs.
+implementations of the 754 standard.  
 
 % ------------------------------------------------------------------------------
 %  Motivation                                                                   
 % ------------------------------------------------------------------------------
 
-\subsection*{Motivation}
+\subsection*{Reimplementation}
 \label{sec:sean}
 
-Our motivations for this work have been to bring the computational
-aspects of the Kepler conjecture closer to the level of simplicity and
-clarity necessary for formalization by a proof assistant, and to
-organize the computations in a unified framework.  
-
-The main computational tasks as we see them are:
-
-\begin{itemize} 
-\item Inequality experimentation (C)
-\item Inequality verification (C, C++)
-\item Graph generation (Java)
-\item Graph visualization (Java)
-\item Linear program generation (Mathematica)
-\item Linear program bounding (CPLEX)
-\item Linear program bound verification (Not implemented)
-\end{itemize} 
-
-\noindent Each task is labeled with the language of the
-original implementation.  The final task, rigorous checking
-of the bounds returned by linear programming libraries by
-checking the dual variables, had not been done before.
-This task is discussed in detail in Section~\ref{sec:lp}.
-The desired features for the new implementation were:
-
-\begin{enumerate}
-\item The code should be rewritten in a functional language with a
-  rigorous definition whose semantics resembles those supported by
-  proof assistants such as HOL Light and Coq.
-\item The implementation should be written in a subset of the language
-  that is easily translatable to the object languages of Coq and HOL
-  Light. This means it should not, for instance, use features such as state
-  (references) that do not have obvious analogues in proof assistants.
-\item The implementation should not depend on the use of floating
-  point numbers and rounding modes.
-\item The code should be organized in such a way that any
-  computation upon which the proof relies can be evaluated from a single
-  interface.  This will allow Flyspeck developers to easily find and
-  check the paper results during the formalization process.
-\end{enumerate} 
-
-\noindent This
-work is in the spirit of Robinson, \textit{et.
+In 2004 we decided to begin a reimplementation of the original code
+base.  We decided that the new implementation should not \emph{depend}
+on the use of floating point numbers and rounding modes.  Though speed
+was important, we wanted the code to be independent of any particular
+interval arithmetic implementation.  This meant we could use a fast
+floating point implementation of interval arithmetic for our daily
+work, but could use a slower but more trustworthy implementation such
+as MPFI~\cite{Revol:2005:MPFI} to double check important computations.
+We also wanted to organize the new implementation such that any of the
+many computations upon which the proof relies could be evaluated from
+a single interface.  This would allow Flyspeck developers to easily
+find and check the paper results during the formalization process.
+Finally, we wished to bring the computational aspects of the
+Kepler conjecture closer to the level of simplicity and clarity
+necessary for formalization by a proof assistant.  We began this work
+in the spirit of Robinson, \textit{et.
 al.}~\cite{Robertson:1997:JCTB}, which simplified the original code of
-Appel and Haken~\cite{Appel:1986:FourColor}, and was used by Gonthier to
-construct the fully formal proof~\cite{gonthier:2008:formal} in the
-Coq proof assistant. 
-
-\subsection{Current status}
+Appel and Haken~\cite{Appel:1986:FourColor}, and was used by Gonthier
+to construct the fully formal proof~\cite{gonthier:2008:formal} in the
+Coq proof assistant.
 
 We chose Standard ML for the reimplementation for a number of reasons.
 It has a formal definition~\cite{Milner:1990:SML}, and thus programs
-have a meaning apart from the particular compiler used\footnote{The
-language is not perfectly defined.  For example, the \texttt{int} type
-is left unspecified, and can be implemented as either fixed or
-arbitrary precision without deviating for the definition.  It is
-however a significant improvement over most languages.}.  It has an
+have a meaning apart from the particular compiler used.  It has an
 efficient compiler, named MLton~\cite{website:MLton}.  (Our
 reimplementation runs between 50\% and 200\% the speed of the original
 implementation compiled with GCC.)  MLton has the ability to use
-external libraries, e.g. linear program solvers, written in languages
-other than SML with relative ease.  It has an expressive module
-system, and thus it is possible to write the code with respect to
-abstract libraries and arithmetics. This allows us, for instance, to
-use multiple independent implementations of interval arithmetic such
-as MPFI~\cite{Revol:2005:MPFI}, as well as our own implementation.
-
-We have made significant progress toward our goals. Almost all the
-code has been completely rewritten~\cite{McLaughlin:2008:KeplerCode}
-in SML, and is executable from a single command-line program.
-The remainder of this section gives some details about the status
-of the current implementation.
-
-\paragraph{\emph{Inequalities}}
-
-The inequality verification code has been rewritten using the interval
-arithmetic method of the original source, though independent of the
-specifics of the interval implementation.  We can use a fast native
-floating point implementation, or less efficient but more careful
-alternatives such as MPFI.  The ability to use different
-implementations gives us more confidence that our results are
-independent of computer architecture.  (Though see Zumkeller's method
-of Section~\ref{sec:zumkeller} for more rigorous results.)  Many of
-the inequalities from the paper are organized using a unique
-identifier, and thus can be executed from the user interface.  We are
-still in the process of incorporating the thousands of such
-inequalities.
-
-We have also included the nonlinear optimization packages CFSQP
-and Knitro to allow experimental testing of inequalities.  This has
-allowed us to develop new inequalities for this revision, and to catch
-a number of transcription errors in the computer code for the Flyspeck
-project.
-
-\paragraph{\emph{Graphs}} The graph generator
-from~\cite{NipkowBS-IJCAR06} has been adapted into our interface (see
-Section~\ref{sec:graph}).  Additionally we can generate an image of
-any graph in the archive.  
-
-\paragraph{\emph{Linear Programs}}
-
-For each graph, we generate the corresponding linear programs using
-the inequalities mentioned above.  In addition to generating linear
-programs from graphs and lists of inequalities, we can bound them and
-check the dual certificates using interval arithmetic as discussed in
-Section~\ref{sec:lp}~\cite{Obua:2005:Thesis}.
-There are also a number of linear programs used in the original proof
-that do not correspond directly to graphs.  These will be added to
-the user interface in the near future.
+external libraries written in languages other than SML with relative
+ease.  This allowed us, from one programming environment, to control multiple linear programming solvers,
+interval arithmetic implementations, and nonlinear optimization
+packages.
+SML has an expressive module system, and thus it was simple to write
+our code with respect to an abstract type of interval arithmetic. 
+Thus we could use multiple independent implementations
+with ease.  As of 2008, most of the code has been completely
+rewritten in SML, and is executable
+from a single command-line program.  The code is freely available
+at the project website~\cite{McLaughlin:2008:KeplerCode}.
 
 In the original implementation, the myriad computations were done with
 many different programs written in a half dozen programming languages.
 The results of these computations are not always easy to find or
-interpret.  % spread over Hell's half acre 
-Now all the computations
-are executed from the same source, with organized output.  In addition
-to giving us added confidence that the original computations were
-sound, we have a fairly complete suite of software support for the
-Flyspeck project. We are now in the process of organizing and
-reevaluating the thousands of computations upon which the proof
-depends.
+interpret.  Now all the computations are executed from the same
+source, with organized output.  In addition to giving us added
+confidence that the original computations were sound, we have a fairly
+complete suite of software support for the Flyspeck project. We are
+now in the process of organizing and reevaluating the thousands of
+computations upon which the proof depends.
 
 \section{Proving nonlinear inequalities with Bernstein bases}
 \label{sec:zumkeller}

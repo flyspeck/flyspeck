@@ -119,7 +119,7 @@ needs "definitions_kepler.ml";;
 
 
 *************************************************
-(* Proof remark 4.1 *)
+(* Proof remark rem:fan *)
 let asfan=prove(`{w,v}={v,w}`, SET_TAC[]);;
 
 
@@ -129,7 +129,7 @@ REPEAT GEN_TAC THEN REWRITE_TAC[set_of_edges] THEN REWRITE_TAC[IN_ELIM_THM] THEN
 
 
 
-(* Proof Lemma 4.1 *)
+(* Proof Lemma 6.1 [AAUHTVE] *)
 
 
 
@@ -163,9 +163,9 @@ POP_ASSUM MP_TAC THEN REWRITE_TAC[power_map_point] THEN MESON_TAC[lem_fan4131]])
 let lem_fan414=prove(`!x v w w1 n. (power_map n_fan n) (x,v,w,w1)=e_fan (x,v,w,w1)==>(v=w)`, 
 REWRITE_TAC[node_fan; e_fan; power_n_fan;]  THEN REPEAT GEN_TAC THEN MESON_TAC[PAIR_EQ]);;
 
-(* Proof of Lemma 4.2 *)
+(* Proof of Lemma [VBTIKLP] *)
 
 
-let lemma421=prove(`a IN a_node_fan (x,v,w,w1)==>(?n. a=(x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`, REWRITE_TAC[a_node_fan; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;
+let lemma62=prove(`a IN a_node_fan (x,v,w,w1)==>(?n. a=(x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`, REWRITE_TAC[a_node_fan; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;
 
 

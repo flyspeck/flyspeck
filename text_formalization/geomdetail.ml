@@ -4268,4 +4268,155 @@ MESON_TAC[ARITH_RULE ` 1 <= 2 /\ 2 <= 2 `]);;
 
 
 
+
+let CARD3 = prove(`! a b c . CARD {a,b,c} <= 3 /\ 
+  ( CARD {a,b,c} = 3 <=> ~( a =b \/ b= c\/ c= a ))`, 
+REWRITE_TAC[ SET_RULE ` {a,b,c} = {a} UNION {b,c}`] THEN 
+REWRITE_TAC[ ARITH_RULE ` CARD ({a} UNION {b, c}) <= 3 <=>
+  CARD ({a} UNION {b, c}) + CARD ({a} INTER {b, c}) <= 3 + CARD ({a} INTER {b, c})`] THEN 
+REWRITE_TAC[ ARITH_RULE ` CARD ({a} UNION {b, c}) = 3 <=>
+  CARD ({a} UNION {b, c}) + CARD ({a} INTER {b, c}) = 3 + CARD ({a} INTER {b, c})`] THEN 
+REWRITE_TAC[ MESON[ FINITE_RULES; CARD_EQUATION] ` CARD ({a} UNION {b, c}) + CARD ({a} INTER {b, c})
+  = CARD {a} + CARD {b,c} `] THEN REWRITE_TAC[ CARD_SING] THEN 
+REWRITE_TAC[ ARITH_RULE `! a b. (1 + a <= 3 + b <=> a <= 2 + b ) /\
+  (1 + a = 3 + b <=> a = 2 + b )`] THEN 
+REWRITE_TAC[ MESON[CARD2; ARITH_RULE ` a <= b ==> a <= b + c: num`] ` CARD {b, c} <=   2 + CARD ({a} INTER {b, c})`] THEN 
+ONCE_REWRITE_TAC[ MESON[CARD2]` CARD {b, c} = P b c <=> CARD {b, c} <= 2 /\   CARD {b, c} = P b c`] THEN 
+REWRITE_TAC[ ARITH_RULE ` a <= 2 /\ a = 2 + b <=> a = 2 /\ b = 0`] THEN 
+REWRITE_TAC[ MESON[FINITE_RULES; CARD2; FINITE_INTER; CARD_EQ_0] ` CARD {b, c} = 2 /\ CARD ({a} INTER {b, c}) = 0 
+  <=> ~(b=c) /\ {a} INTER {b, c} = {}`] THEN SET_TAC[]);;
+
+(* ========= *)
+
+
+let IN_SET3 = SET_RULE ` x IN {a,b,c} <=> x = a \/ x = b \/ x = c `;;
+let IN_SET4 = SET_RULE ` x IN {a,b,c,d} <=> x = a \/ x = b \/ x = c \/ x = d `;;
+
+let SHORT_EDGES = prove(` ! a b c w. d3 c a <= &2 * t0 /\
+ d3 c b <= &2 * t0 /\
+ (!aa. aa IN {a, b, c} ==> d3 aa w <= &2 * t0)
+ ==> (!x y.
+          x IN {a, b, c, w} /\ y IN {a, b, c, w} /\ ~({x, y} = {a, b})
+          ==> d3 x y <= &2 * t0)`,
+REPEAT GEN_TAC THEN 
+REWRITE_TAC[ IN_SET3; IN_SET4; PAIR_EQ_EXPAND; t0] THEN 
+MESON_TAC[ D3_REFL; trg_d3_sym; REAL_ARITH ` &0 <= &2 * #1.255`]);;
+
+
+let CARD4 = prove(`!a b c d.
+     CARD {a, b, c, d} <= 4 /\
+     (CARD {a, b, c, d} = 4 <=>
+      ~(a IN {b, c, d}) /\ ~(b = c \/ c = d \/ d = b))`,
+NHANH (MESON[FINITE6; CARD_CLAUSES_IMP]` CARD {a, b, c, d} <= 4 ==> CARD {a, b, c, d} 
+   <= SUC (CARD {b,c,d})`) THEN 
+NHANH ( MESON[CARD3] ` aa <= SUC (CARD {b, c, d}) ==> CARD {b,c,d} <= 3 `) THEN 
+REWRITE_TAC[ ARITH_RULE ` CARD {a, b, c, d} <= 4 /\
+     CARD {a, b, c, d} <= SUC (CARD {b, c, d}) /\
+     CARD {b, c, d} <= 3 <=>
+     CARD {a, b, c, d} <= SUC (CARD {b, c, d}) /\ CARD {b, c, d} <= 3`] THEN 
+SIMP_TAC[MESON[FINITE_RULES; CARD_CLAUSES_IMP] ` CARD {a, b, c, d} <= SUC 
+        (CARD {b, c, d})`; CARD3; CARD_CLAUSES_IMP] THEN 
+REWRITE_TAC[ ARITH_RULE ` CARD {a, b, c, d} = 4 <=> CARD {a, b, c, d} + CARD ( {a} 
+   INTER {b,c,d} ) = 4 + CARD ({a} INTER {b,c,d})`] THEN 
+REWRITE_TAC[ SET_RULE ` {a,b,c,d} = {a} UNION {b,c,d} ` ] THEN 
+REWRITE_TAC[ MESON[FINITE_RULES; CARD_EQUATION; CARD_SING] ` CARD ({a} UNION {b, c, d}) + CARD ({a} INTER {b, c, d})
+  = 1 + CARD {b,c,d} `] THEN 
+NHANH (MESON[CARD3] ` 1 + CARD {b, c, d} = aa ==> CARD {b,c,d} <= 3 `) THEN 
+REWRITE_TAC[ ARITH_RULE `1 + CARD {b, c, d} = 4 + CARD ({a} INTER {b, c, d}) /\
+     CARD {b, c, d} <= 3 <=>
+     CARD {b, c, d} = 3 /\ CARD ({a} INTER {b, c, d}) = 0`] THEN  
+REWRITE_TAC[ CARD3] THEN 
+MESON_TAC[ FINITE_RULES; FINITE_INTER; CARD_EQ_0; SET_RULE ` 
+  {a} INTER {b, c, d} = {} <=> ~(a IN {b, c, d})` ]);;
+
+
+let CARD5 = prove(` ! a b c d e. CARD {a,b,c,d,e} <= 5 /\
+  ( CARD {a,b,c,d,e} = 5 <=> ~( a IN {b,c,d,e}) /\ 
+                            ~(b IN {c, d, e}) /\ ~(c = d \/ d = e \/ e = c))`,
+ONCE_REWRITE_TAC[ MESON[ FINITE_RULES; CARD_CLAUSES_IMP] ` CARD {a, b, c, d, e} <= 5 <=>
+  CARD {a, b, c, d, e} <= SUC ( CARD {b,c,d,e} ) ==> CARD {a, b, c, d, e} <= 5`] THEN 
+ONCE_REWRITE_TAC[ MESON[CARD4] ` aa ==> CARD {a, b, c, d, e} <= 5 <=>
+  aa /\ CARD {b,c,d,e} <= 4 ==> CARD {a, b, c, d, e} <= 5`] THEN 
+REWRITE_TAC[ ARITH_RULE ` a <= SUC b /\ b <= 4 ==> a <= 5 `] THEN 
+REWRITE_TAC[ ARITH_RULE ` CARD {a, b, c, d, e} = 5 <=>
+  CARD {a, b, c, d, e} + CARD ({a} INTER {b,c,d,e} ) = 5 + CARD ({a} INTER {b,c,d,e} )`] THEN 
+REWRITE_TAC[ SET_RULE ` {a,b,c,d,e} = {a} UNION {b,c,d,e} `] THEN 
+REWRITE_TAC[ MESON[FINITE_RULES; CARD_EQUATION; CARD_SING ]` CARD ({a} UNION {b, c, d, e}) + 
+  CARD ({a} INTER {b, c, d, e})  = 1 + CARD {b,c,d,e} `] THEN 
+ONCE_REWRITE_TAC[ MESON[ CARD4] ` 1 + CARD {b, c, d, e} = aa <=> CARD {b,c,d,e} <= 4 /\ 
+     1 + CARD {b, c, d, e} = aa `] THEN 
+REWRITE_TAC[ ARITH_RULE ` a <= 4 /\ 1 + a = 5 + b <=> a = 4 /\ b = 0`] THEN 
+REWRITE_TAC[ CARD4; MESON[FINITE_RULES; FINITE_INTER; CARD_EQ_0] `
+  CARD ({a} INTER {b, c, d, e}) = 0 <=> {a} INTER {b, c, d, e} ={} `] THEN SET_TAC[]);;
+
+(* ========== end simplize ========== *)
+
+
+
+let NOV6 = prove(` ! s v0 v1 v2 w. packing s /\ 
+  CARD {v0, v1, v2, w} = 4 /\
+ (!a. a IN {v1, v2, v0} ==> dist (w,a) <= #2.51) /\
+ {v0, v1, v2, w} SUBSET s /\
+ (?a b c.
+      {a, b, c} = {v0, v1, v2} /\
+      &2 * t0 <= d3 a b /\
+      d3 a b <= sqrt (&8) /\
+      c IN anchor_points a b s)
+ ==> quarter {v0, v1, v2, w} s`,
+REWRITE_TAC[ quarter; def_simplex] THEN 
+REWRITE_TAC[ prove(`! v0 v1 v2 w. CARD {v0, v1, v2, w} = 4  <=> ~(v0 = v1 \/ v0 = v2 \/ v0 = w \/ v1 = v2 \/ v1 = w \/ v2 = w)`,
+  REWRITE_TAC[ CARD4] THEN SET_TAC[])] THEN 
+SIMP_TAC[] THEN 
+NHANH ( SET_RULE ` {a, b, c} = {v0, v1, v2} ==> a IN {v0,v1,v2,w} /\
+  b IN {v0,v1,v2,w} `) THEN 
+REWRITE_TAC[ MESON[]` (!a . P a ) /\ a /\ (? a b c. Q a b c) <=>
+  a /\ (?a b c. Q a b c /\ (!a . P a ))`] THEN 
+REWRITE_TAC[ anchor_points; anchor; IN_ELIM_THM] THEN PHA THEN 
+SIMP_TAC[ SET_RULE ` {v1, v2, v0} = {v0, v1, v2}`] THEN 
+PURE_ONCE_REWRITE_TAC[ MESON []`  {a, b, c} = {v0, v1, v2} /\ P {v0, v1, v2}
+  <=> {a, b, c} = {v0, v1, v2} /\ P {a, b, c}`] THEN 
+ONCE_REWRITE_TAC[ DIST_SYM] THEN 
+REWRITE_TAC[ GSYM d3 ] THEN 
+REWRITE_TAC[ MESON[t0; REAL_ARITH ` #2.51 = &2 * #1.255 `] ` #2.51 = &2 * t0 `] THEN 
+NHANH (CUTHE4 SHORT_EDGES) THEN 
+PURE_ONCE_REWRITE_TAC[ SET_RULE ` {a, b, c, w} = w INSERT {a,b,c} `] THEN 
+PURE_ONCE_REWRITE_TAC[ GSYM (MESON []`  {a, b, c} = {v0, v1, v2} /\ P {v0, v1, v2}
+  <=> {a, b, c} = {v0, v1, v2} /\ P {a, b, c}`)] THEN MESON_TAC[]);;
+
+(* ============ *)
+
+let NOV7 = prove(`!s v0 v1 v2 w x . CARD {v0, v1, v2, w, x} = 5 /\ 
+     (!a. a IN {v1, v2, v0} ==> dist (w,a) <= #2.51) /\
+     {v0, v1, v2, w} SUBSET s /\
+     (?a b c.
+          (?q. diagonal a b q s /\ q IN Q_SYS s /\ c IN anchor_points a b s) /\
+          {v0, v1, v2} = {a, b, c})
+     ==> {v0, v1, v2, w} IN Q_SYS s`, 
+ONCE_REWRITE_TAC[ SET_RULE ` {v0, v1, v2, w, x} = {x,v0, v1, v2, w}`] THEN 
+REWRITE_TAC[CARD5; GSYM CARD4] THEN 
+NHANH (CUTHE4 DIA_OF_QUARTER) THEN 
+NHANH (MESON[diagonal; quarter] `diagonal a b q s ==> packing s `) THEN 
+PHA THEN REWRITE_TAC[ MESON[]` (?q. diagonal a b q s /\ a1 /\ a2 /\ a3 /\ q IN Q_SYS s /\ a4) <=>
+     a1 /\ a2 /\ a3 /\ a4 /\ (?q. diagonal a b q s /\ q IN Q_SYS s) `] THEN 
+NHANH ( MESON[NOV6]` CARD {v0, v1, v2, w} = 4 /\
+     (!a. a IN {v1, v2, v0} ==> dist (w,a) <= #2.51) /\
+     {v0, v1, v2, w} SUBSET s /\
+     (?a b c.
+          (packing s /\
+           &2 * t0 <= d3 a b /\
+           d3 a b <= sqrt (&8) /\
+           c IN anchor_points a b s /\
+           (?q. diagonal a b q s /\ q IN Q_SYS s)) /\
+          {v0, v1, v2} = {a, b, c})
+     ==> quarter {v0, v1, v2, w} s`) THEN 
+PHA THEN REWRITE_TAC[ MESON[]` (? a. P a) /\ aa <=> (? a . P a /\ aa )`] THEN 
+NHANH (MESON[diagonal] ` diagonal a b q s ==> {a,b} SUBSET q `) THEN 
+PHA THEN REWRITE_TAC[ MESON[]` (? a. P a) /\ aa <=> (? a . P a /\ aa )`] THEN 
+NHANH (SET_RULE ` {v0, v1, v2} = {a, b, c} ==> {a,b} SUBSET {v0,v1,v2,w} `) THEN 
+REWRITE_TAC[ SET_RULE ` {a, b} SUBSET q /\ aa /\ bb /\ {a, b} SUBSET {v0, v1, v2, w} <=>
+     {a, b} SUBSET q INTER {v0, v1, v2, w} /\ aa /\ bb`] THEN 
+MESON_TAC[lemma7_7_CXRHOVG]);;
+
+
+
 (* =============== end simplize ====================== *)

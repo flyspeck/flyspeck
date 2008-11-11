@@ -7,7 +7,9 @@ prioritize_real();;
 let open_ball = new_definition `open_ball (x:real^3) (r:real)= { y | norm(y-x)< r }`;;  
 
 (* Packing Lambda *)
+(* packing already defined in definitione_kepler.ml 
 let packing = new_definition `packing (Lambda:real^3 -> bool) = (!x y. ( x IN Lambda) /\ ( y IN Lambda) /\ ~(x = y) ==> norm(x - y) >= &2 )`;;
+*)
 
 (* B( x , r , Lambda) *) 
 let ball3_lambda = new_definition ` ball3_lambda (x:real^3) (r:real) (Lambda:real^3 -> bool) = ((open_ball x r ) INTER ( UNIONS ( IMAGE (\v. open_ball v (&1)

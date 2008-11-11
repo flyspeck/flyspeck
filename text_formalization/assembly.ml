@@ -4,7 +4,8 @@
 (*
 needs "database_more.ml";;
 needs "definitions_kepler.ml";;
-needs "Multivariate/convex.ml";;
+(* removed convex.ml by thales, not compatible with other loads *)
+(* needs "Multivariate/convex.ml";; *)
 needs "geomdetail.ml";;              (* Writen by Nguyen Quang TRuong   *)
 *)
 (*========================================================*)
@@ -56,18 +57,19 @@ let find_dia = new_definition ` find_dia q (s:real^3->bool) =
                                    let d = find_diagonal q s in
                                    @(u,v). u IN d /\ v IN d /\ ~( u = v ) `;;
 
-let anchor = new_definition ` anchor (v:real^3) v1 v2 = ( d3 v1 v2 <= sqrt ( &8 ) /\
+(* thales, nov 11. anchor is already defined in geomdetail.ml *)
+let anchor_alt = new_definition ` anchor_alt (v:real^3) v1 v2 = ( d3 v1 v2 <= sqrt ( &8 ) /\
                d3 v1 v2 >= &2 * t0 /\ d3 v v1 <= &2 * t0 /\ d3 v v2 <= &2 * t0 )`;;
 
 (* Definition 7.20 =============================================*)
 
 let context = new_definition ` context (v , w) s (p:num, r) = ( 
                     CARD { d | diag { v , w } d s } = p /\
-                    CARD { t | &2 * t0 <= d3 v w /\ anchor t v w } = (p + r ))`;;
+                    CARD { t | &2 * t0 <= d3 v w /\ anchor_alt t v w } = (p + r ))`;;
 
 let cotext = new_definition ` cotext (v , w) (s:real^3->bool) = @( (p:num) , (r:num) ). 
                                            CARD { d | diag { v , w } d s } = p /\ 
-                                           CARD { t | &2 * t0 <= d3 v w /\ anchor t v w } = (p + r )`;;
+                                           CARD { t | &2 * t0 <= d3 v w /\ anchor_alt t v w } = (p + r )`;;
                     
 (* Definition 7.21 =============================================*)
 

@@ -103,9 +103,9 @@ needs "definitions_kepler.ml";;
 
 
 
- let X= new_definition`X fan(x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
+ let xfan= new_definition`xfan fan(x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
 
- let Y= new_definition`Y fan(x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
+ let yfan= new_definition`yfan fan(x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
 
  let w_dart=new_definition`w_dart x v w w1= wedge x v w (sigma_fan v w)`;;
 
@@ -118,7 +118,7 @@ needs "definitions_kepler.ml";;
 
 
 
-*************************************************
+(* ************************************************* *)
 (* Proof remark rem:fan *)
 let asfan=prove(`{w,v}={v,w}`, SET_TAC[]);;
 

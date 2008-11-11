@@ -12,6 +12,7 @@
 needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
 needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
 needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
+needs "convex_header.ml";;    (* replace with Multivariate/convex.ml after it is revised to be compatible with these files *)
 
 (* 
 

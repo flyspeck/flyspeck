@@ -8,7 +8,9 @@ needs "Examples/analysis.ml";; (* multivariate-complex theory. *)
 needs "Examples/transc.ml";; (* Then it won't need these three. *) 
 
 needs "definitions_kepler.ml";;
-needs "Multivariate/convex.ml";;
+
+(* Multivariate/convex.ml load removed by thales, Nov 11, 2008.  Not compatible with other loads *)
+needs "convex_header.ml";; 
 
 
 

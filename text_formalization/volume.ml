@@ -3,9 +3,11 @@
 
 (*Definition of null set*)
 
-needs "Multivariate/vector.ml";;
+needs "Multivariate/vectors.ml";;
 needs "definitions_kepler.ml";;
-needs "Multivariate/topology.ml";;
+
+(* tchales, topology.ml is incompatible with previously loaded files *)
+(* needs "Multivariate/topology.ml";; *)
 
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
@@ -480,9 +482,13 @@ let inter_radial =prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C') ==> radial
 
 (*4.2.11 combining solid angle and volume*)
 
+(* removed by thales, nov 11, 2008.  Conflicts with definition of phi already provided *)
 
+(*
 let phi=new_definition `phi(h:real,t:real,l:real^2)= l$1*t*h*(t+h)/ &6 + l$2`;;
 let A=new_definition `A(h:real,t:real,l:real^2)=(&1-h/t)*(phi (h,t,l)-phi (t,t,l))`;;
+
+*)
 
 
 

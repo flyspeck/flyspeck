@@ -4420,5 +4420,114 @@ REWRITE_TAC[ SET_RULE ` {a, b} SUBSET q /\ aa /\ bb /\ {a, b} SUBSET {v0, v1, v2
 MESON_TAC[lemma7_7_CXRHOVG]);;
 
 
+(* ======simplize===== *)
 
-(* =============== end simplize ====================== *)
+let OBS_SYM = prove(` ! a b s. obstructed a b s <=> obstructed b a s `, 
+ REWRITE_TAC[ def_obstructed] THEN SIMP_TAC[ SET_RULE` {a,b} = {b,a}`]);;
+
+let OBS_IMP_NOT_IN_VC = prove(`!x w s. obstructed x w s ==> ~(x IN VC w s \/ w IN VC x s)`,
+REWRITE_TAC[VC; lambda_x; IN_ELIM_THM] THEN MESON_TAC[ OBS_SYM]);;
+
+let IN_Q_IMP_BAR = 
+prove(` {v0, v1, v2, w} IN Q_SYS s ==> {v0,v1,v2} IN barrier s `, 
+REWRITE_TAC[ barrier; SET_RULE` {a,b,c} UNION {d} = {a,b,c,d} `; IN_ELIM_THM]
+ THEN MESON_TAC[]);;
+
+(* ======= end simplize ========= *)
+
+
+let lemma8_3_OVOAHCG =prove(`!s v0 v1 v2 w x. {v0, v1, v2, w} SUBSET s /\ CARD {v0,v1,v2,w,x} = 5  /\
+     centered_pac s v0 /\
+     ~(conv {x, w} INTER aff_ge {v0} {v1, v2} = {}) /\
+     {v0, v1, v2} IN barrier' v0 s /\
+     unobstructed v0 x s /\
+     dist (x,v0) < dist (x,v1) /\
+     dist (x,v0) < dist (x,v2)
+     ==> ~(x IN VC w s)`,
+REPEAT GEN_TAC THEN ONCE_REWRITE_TAC[ MESON[] ` a ==> ~b <=> a /\ b ==> ~b`] THEN 
+REWRITE_TAC[IN_ELIM_THM] THEN 
+NHANH (MESON[CARD5] ` CARD {x, w, v0, v1, v2} = 5 ==> ~(x IN {w,v0,v1,v2})`) THEN 
+NHANH ( SET_RULE ` ~(x IN {w,v0,v1,v2}) ==> ~( x = w ) `) THEN 
+PHA THEN  REWRITE_TAC[  MESON[]` unobstructed v0 x s /\ a <=> a /\ 
+  unobstructed v0 x s `] THEN REWRITE_TAC[ MESON[]` ~(x = w) /\ a <=> a /\ ~(x = w) `]
+   THEN PHA THEN 
+NHANH (SET_RULE ` ~(v0 IN {v1, v2, w, x}) ==> ~( v0 = w )`) THEN 
+NGOAC THEN MATCH_MP_TAC (MESON[] ` (a ==> c) ==> ( a /\ b ==> c ) `) THEN PHA THEN 
+REWRITE_TAC[ unobstructed] THEN 
+REWRITE_TAC[ MESON[] ` ~(v0 = w) /\ centered_pac s v0 /\ aa /\ bb /\ cc /\
+  x IN VC w s /\  ~obstructed v0 x s /\ las <=>
+  aa /\ bb /\ cc /\ las /\ ( centered_pac s v0 /\ ~(v0 = w) /\
+  ~obstructed v0 x s  /\ x IN VC w s   )`] THEN 
+NHANH (CUTHE4 (prove(` ! s v0 w x . centered_pac s v0 /\ ~(v0 = w) /\ ~obstructed v0 x s /\ x IN VC w s 
+==> d3 w x < d3 v0 x`, REWRITE_TAC[ VC; lambda_x; IN_ELIM_THM] THEN PURE_ONCE_REWRITE_TAC
+[ MESON[] `( !s v0 w x. a v0 x s w ==> b v0 x w ) <=> ( ! s v0 w x. ( d3 v0 x < &2 \/ 
+~(d3 v0 x < &2)) /\ a v0 x s w ==> b v0 x w) `] THEN MESON_TAC[centered_pac; trg_d3_sym;
+  REAL_ARITH` ~(d3 v0 x < &2) /\ d3 w x < &2 ==> d3 w x < d3 v0 x`]))) THEN 
+NHANH (CUTHE4 TRIANGLE_IN_BARRIER') THEN 
+PHA THEN 
+ONCE_REWRITE_TAC[MESON[] ` a1 /\
+     a2 /\
+     a3 /\
+     a4 /\
+     ~(conv {x, w} INTER aff_ge {v0} {v1, v2} = {}) /\
+     aa /\
+     bb /\
+     cc /\
+     dd /\
+     a5 <=>
+     aa /\
+     bb /\
+     cc /\
+     dd /\
+     ~(conv {x, w} INTER aff_ge {v0} {v1, v2} = {}) /\
+     a3 /\
+     a4 /\
+     a5 /\
+     a1 /\
+     a2`] THEN 
+ONCE_REWRITE_TAC[ trg_d3_sym] THEN REWRITE_TAC[d3] THEN 
+REWRITE_TAC[MESON[aff_ge_def; cone]` aff_ge {v0} {v1, v2} = cone v0 {v1,v2}`] THEN 
+ONCE_REWRITE_TAC[ MESON[] ` CARD {v0, v1, v2, w, x} = 5 /\ a1 /\ a2 /\ a3 /\ a4 /\ a5 /\ a6 /\ l <=>
+     a1 /\ a2 /\ a3 /\ a4 /\ a5 /\ a6 /\ CARD {v0, v1, v2, w, x} = 5 /\ l`] THEN 
+NHANH (CUTHE5 tarski_UMMNOJN) THEN 
+PHA THEN REWRITE_TAC[ MESON[] ` ( a \/ b ) /\ c <=> c /\ ( a \/ b ) `] THEN 
+REWRITE_TAC[ MESON[] `{v0, v1, v2} IN barrier' v0 s /\ a <=>  
+  a /\ {v0, v1, v2} IN barrier' v0 s`] THEN 
+REWRITE_TAC[ barrier'; IN_ELIM_THM] THEN 
+PURE_ONCE_REWRITE_TAC[ MESON[]` (?a b c.
+      ( P  {a, b, c} \/
+       Q a b c ) /\
+      {v0, v1, v2} = {a, b, c})
+  <=> P {v0, v1, v2} \/  (? a b c. Q a b c /\ {v0, v1, v2} = {a, b, c})`] THEN PHA THEN 
+ONCE_REWRITE_TAC[ MESON[] ` ~(conv {v0, v1, v2} INTER conv0 {x, w} = {}) /\ aa /\ (b \/ bb) <=>
+     ~(conv {v0, v1, v2} INTER conv0 {x, w} = {}) /\
+     aa /\
+     (~(conv {v0, v1, v2} INTER conv0 {x, w} = {}) /\ b \/ bb)`] THEN 
+REWRITE_TAC[ SET_RULE ` conv {v0, v1, v2} INTER conv0 {x, w} = 
+          conv0 {x, w} INTER conv {v0, v1, v2}`] THEN 
+NHANH (MESON[ def_obstructed] ` ~(conv0 {x, w} INTER conv {v0, v1, v2} = {}) /\
+  {v0, v1, v2} IN barrier s /\ l ==> obstructed x w s `) THEN 
+PHA THEN REWRITE_TAC[ MESON[] ` {v0, v1, v2, w} SUBSET s /\ a <=> a /\ {v0, v1, v2, w} 
+   SUBSET s`] THEN 
+REWRITE_TAC[ MESON[] ` (!a. a IN {v1, v2, v0} ==> dist (w,a) <= #2.51) /\ a <=> 
+   a /\ (!a. a IN {v1, v2, v0} ==> dist (w,a) <= #2.51)`] THEN 
+REWRITE_TAC[ MESON[]` CARD {v0, v1, v2, w, x} = 5 /\ a <=>
+    a /\ CARD {v0, v1, v2, w, x} = 5 `] THEN 
+PHA THEN 
+ONCE_REWRITE_TAC[ MESON[] ` ( a \/ b) /\ a1 /\ a2 /\ {v0, v1, v2, w} SUBSET s <=> ( a \/ 
+  a2 /\ a1 /\ {v0, v1, v2, w} SUBSET s /\ b) /\ a1 /\ a2 /\ {v0, v1, v2, w} SUBSET s`] THEN 
+NHANH (CUTHE6 NOV7) THEN 
+NHANH (prove(` {v0, v1, v2, w} IN Q_SYS s ==> {v0,v1,v2} IN barrier s `, 
+  REWRITE_TAC[ barrier; SET_RULE` {a,b,c} UNION {d} = {a,b,c,d} `; IN_ELIM_THM]
+   THEN MESON_TAC[])) THEN 
+ONCE_REWRITE_TAC[ MESON[] ` ~(conv0 {x, w} INTER conv {v0, v1, v2} = {}) /\ a1 
+  /\ ( a \/ b ) /\ l <=>  ~(conv0 {x, w} INTER conv {v0, v1, v2} = {}) /\ a1 
+  /\ ( a \/ b /\ ~(conv0 {x, w} INTER conv {v0, v1, v2} = {}) ) /\ l`] THEN 
+PHA THEN NHANH (MESON[def_obstructed] ` {v0, v1, v2} IN barrier s /\
+  ~(conv0 {x, w} INTER conv {v0, v1, v2} = {}) ==> obstructed x w s`) THEN 
+REWRITE_TAC[ MESON[]` (a /\ b \/ a /\ c ) <=> a /\ ( b \/ c ) `] THEN 
+DAO THEN 
+REWRITE_TAC[ MESON[] `( obstructed x w s /\ b \/ obstructed x w s
+  /\ c ) <=>  obstructed x w s /\ ( b \/ c ) `] THEN PHA THEN 
+REWRITE_TAC[MESON[ OBS_IMP_NOT_IN_VC] ` a1/\a2/\a3 /\ obstructed x w s /\ l 
+  ==> ~(x IN VC w s)`]);;

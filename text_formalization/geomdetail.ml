@@ -1,4 +1,5 @@
-(* ============================= NGUYEN QUANG TRUONG ============================== *)
+(* ============================= *)
+(* ==== NGUYEN QUANG TRUONG ==== *)
 
 	   
 needs "Multivariate/vectors.ml";; (* Eventually should load entire *) 
@@ -7,12 +8,13 @@ needs "Examples/analysis.ml";; (* multivariate-complex theory. *)
 	   
 needs "Examples/transc.ml";; (* Then it won't need these three. *) 
 
+needs "convex_header.ml";;
+
 needs "definitions_kepler.ml";;
+
 
 (* Multivariate/convex.ml load removed by thales, Nov 11, 2008.  Not compatible with other loads *)
 needs "convex_header.ml";; 
-
-
 
 let voronoi_trg = new_definition `voronoi_trg v S = { x | !w. ((S w) /\ ~(w=v))
 ==> (dist ( x , v ) < dist ( x , w )) }`;;
@@ -29,18 +31,13 @@ let convex = new_definition
 	   
 ==> (u % x + v % y) IN s`;;
 (* aff is deprecated *)	   
-let aff = new_definition `aff = ( hull ) affine`;;	   
-	   
 
+let aff = new_definition `aff = ( hull ) affine`;;
 
 let conv_trg = new_definition ` conv_trg s = convex hull s`;;
 
  let border = new_definition ` border s = { x | ! ep. ep > &0 /\ ( ? a b. ~ (b IN s ) /\
  dist (b, x) < ep /\ a IN s /\ dist (a, x) < ep ) }`;;
- 
-	   
-
-
 
 let packing_trg = new_definition `packing_trg (s:real^3 -> bool) = (! x y.  s x /\ s y /\ ( ~(x=y))
   ==> dist ( x, y) >= &2 ) `;;
@@ -1688,7 +1685,8 @@ let tarski_FFSXOWD = new_axiom ` !v0 v1 v2 v3 s.
 
 (* ==============================  simplize.ml =========================== *)
 
-
+let db_t0 = prove(`&2 * t0 = &2 * #1.255 /\ &2 * t0 = #2.51 /\ &2 * #1.255 = #2.51`,
+  REWRITE_TAC[t0] THEN REAL_ARITH_TAC);;
 
 let without_lost = MESON[] ` ! P x. (!a b. P a b <=> P b a) /\ (?a b. P a b /\ x = a)
      ==> (?a b. P a b /\ (x = a \/ x = b))`;;
@@ -4045,7 +4043,7 @@ REWRITE_TAC[ packing; GSYM d3] THEN SET_TAC[]);;
 
 let D3_REFL = prove(` !x. d3 x x = &0 ` , MESON_TAC[d3; DIST_REFL]);;
 
-let X = MATCH_MP REAL_LT_RSQRT (REAL_ARITH ` #2.51 pow 2 < &8 `);;
+let db_t0_sq8 = MATCH_MP REAL_LT_RSQRT (REAL_ARITH ` #2.51 pow 2 < &8 `);;
 
 let def_obstructed = prove(`!s x y.
      obstructed x y s <=>
@@ -4053,7 +4051,6 @@ let def_obstructed = prove(`!s x y.
   REWRITE_TAC[ obstructed; conv0_2] THEN REWRITE_TAC[ simp_def]);;
 
 (* ===================== end simplize ======================== *)
-
 
 
 let TRIANGLE_IN_BARRIER' = prove( 
@@ -4152,12 +4149,12 @@ REWRITE_TAC[ SET_RULE ` x IN {a,b,c} <=> x = a \/ x = b \/ x = c `] THEN
 REPEAT GEN_TAC THEN DISCH_TAC THEN EXISTS_TAC `a:real^3` THEN EXISTS_TAC `b:real^3`
 THEN FIRST_X_ASSUM MP_TAC THEN 
 REWRITE_TAC[ SET_RULE `{a,b} ={x,y} <=> a = x /\ b = y \/ a = y /\ b = x `] THEN 
-MESON_TAC[trg_d3_sym; X; D3_REFL; REAL_ARITH ` &0 <= #2.51 /\ (! a b c. a <= b /\ b < c ==> a <= c )`]))) THEN 
+MESON_TAC[trg_d3_sym; db_t0_sq8; D3_REFL; REAL_ARITH ` &0 <= #2.51 /\ (! a b c. a <= b /\ b < c ==> a <= c )`]))) THEN 
 PHA THEN 
 ONCE_REWRITE_TAC[ MESON[] `(! x y. P x y ) /\ l <=> l /\ (! x y. P x y) `] THEN 
 PHA THEN 
 ONCE_REWRITE_TAC[ SET_RULE ` {v0, v1, v2} = {a, b, c} <=> {v1, v2, v0} = {a, b, c}`] THEN 
-NHANH ( MESON[X; REAL_ARITH ` a <= b /\ b < c ==> a <= c `]` (!aa bb. aa IN {a, b, c} /\ bb IN {a, b, c} ==> d3 aa bb <= #2.51) /\
+NHANH ( MESON[db_t0_sq8 ; REAL_ARITH ` a <= b /\ b < c ==> a <= c `]` (!aa bb. aa IN {a, b, c} /\ bb IN {a, b, c} ==> d3 aa bb <= #2.51) /\
       {v1, v2, v0} = {a, b, c} /\
       (!x y. x IN {a, b, c} /\ y IN {a, b, c} /\ ~(x = y) ==> &2 <= d3 x y)
   ==> (! x y. ~(x=y) /\ x IN {v1,v2,v0} /\ y IN {v1,v2,v0}==> &2 <= d3 x y /\
@@ -4166,7 +4163,6 @@ PHA THEN REWRITE_TAC[ MESON[]` {v1, v2, v0} = {a, b, c} /\ l <=> l /\ {v1, v2, v
 PURE_ONCE_REWRITE_TAC[ MESON[]` P {a,b,c} /\ Q {a,b,c} /\ R {a,b,c} /\ {v1,v2,v0} = {a,b,c} <=> P {v1,v2,v0} /\
   Q {v1,v2,v0} /\ R {v1,v2,v0} /\ {v1,v2,v0} = {a,b,c} ` ] THEN 
 MESON_TAC[]);;
-
 
 (* ============== *)
 

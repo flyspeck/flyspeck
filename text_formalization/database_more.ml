@@ -1768,7 +1768,343 @@ thm_region_array := [("EXISTS_DIFF",EXISTS_DIFF);
 ("azim_cycle_hyp_def",azim_cycle_hyp_def);
 ("azim_cycle_spec",azim_cycle_spec);
 ("azim_cycle_def",azim_cycle_def);
-("ineq",ineq);
+("ineq",ineq)
+
+
+(* ==================== *)
+(* ==== QUANG TRUONG ======= *)
+(* ====== if you load geomdetail, you should load the following things
+, so that you can find thm in geomdetail.ml 
+
+
+("VC_DISJOINT", VC_DISJOINT );
+("trg_sub_bo", trg_sub_bo);
+("trg_sub_se", trg_sub_se);
+
+("not_in_set3", not_in_set3);
+
+("trg_d3_sym", trg_d3_sym);
+
+("affine_hull_e", affine_hull_e);
+
+("wlog", wlog );
+
+("wlog_real", wlog_real);
+
+("dkdx", dkdx);
+
+("tarski_arith", tarski_arith);
+
+("simp_def", simp_def);
+
+("AFFINE_HULL_SINGLE", AFFINE_HULL_SINGLE);
+
+("usefull", usefull );
+
+("near", near);
+
+("near2t0", near2t0);
+
+("e_plane", e_plane);
+
+("bis", bis);
+
+("min_dist", min_dist);
+
+("exists_min_dist", exists_min_dist);
+
+
+
+
+
+
+
+
+
+
+
+("centered_pac", centered_pac);
+
+("Q_SYS", Q_SYS);
+
+
+
+
+
+
+
+
+
+("a_le_sub", a_le_sub);
+
+("strict_qua_in_oct", strict_qua_in_oct);
+
+("set_3elements", set_3elements);
+
+
+
+
+("without_lost", without_lost );
+
+("condi_of_wlofg", condi_of_wlofg);
+
+("SET_OF_4", SET_OF_4);
+
+("def_simplex", def_simplex);
+
+("strict_qua2_interior_pos", strict_qua2_interior_pos);
+
+("simplex_interior_pos", simplex_interior_pos);
+
+
+
+
+
+
+("WHEN_IN_QSYS", WHEN_IN_Q_SYS);
+
+
+
+
+
+
+
+
+("strict_qua2_imply_strict_qua", strict_qua2_imply_strict_qua);
+
+
+("CASES_OF_Q_SYS", CASES_OF_Q_SYS);
+
+("RELATE_Q_SYS", RELATE_Q_SYS);
+
+("tarski_FFSXOWD", tarski_FFSXOWD);
+
+
+
+
+
+("barrier'", barrier');
+ 
+("lemma7_7_CXRHOVG", lemma7_7_CXRHOVG);
+
+("tarski_UMMNOJN", tarski_UMMNOJN);
+
+("CARD_SING", CARD_SING);
+
+("FINITE6", FINITE6);
+
+("CARD_SET2", CARD_SET2);
+
+("CARD_EQUATION ", CARD_EQUATION);
+
+(" CARD5", CARD5 );
+
+(" CARD_DISJOINT", CARD_DISJOINT);
+
+("QUA_TET_IMPLY_QUA_TRI", QUA_TET_IMPLY_QUA_TRI);
+
+("PAIR_D3", PAIR_D3);
+
+("PAIR_DIST", PAIR_DIST);
+
+("TRIANGLE_IN_STRICT_QUA", TRIANGLE_IN_STRICT_QUA);
+
+("TRIANGLE_IN_BARRIER", TRIANGLE_IN_BARRIER);
+
+("DIA_OF_QUARTER", DIA_OF_QUARTER);
+
+("SUB_PACKING", SUB_PACKING);
+
+("D3_REFL", D3_REFL);
+
+("db_t0_sq8", db_t0_sq8);
+
+("db_t0", db_t0);
+
+("TRIANGLE_IN_BARRIER'", TRIANGLE_IN_BARRIER');
+
+
+
+("IN_AFF_GE_CON", IN_AFF_GE_CON );
+
+("OCT23", OCT23);
+
+
+(* ---------------
+("OTHER_LEMMA", OTHER_LEMMA );
+
+("quasi_reg_tet_case", quasi_reg_tet_case );
+
+("in_VC", in_VC);
+
+("MEETING_CONDITION", MEETING_CONDITION); 
+
+("quasi_tri_case", quasi_tri_case);
+
+("OCTOR23", OCTOR23);
+
+("OCTO23", OCTO23);
+
+("OCT24", OCT24);
+
+("hard_case", hard_case );
+
+("v_near2t0_v", v_near2t0_v);
+
+("lemma_of_lemma82", lemma_of_lemma82);
+
+("le1_82", le1_82);
+
+("rhand_subset_lhand", rhand_subset_lhand);
+
+("import_le", import_le);
+
+("v1_in_convex3", v1_in_convex3);
+
+("v1v2v3_in_convex3", v1v2v3_in_convex3);
+
+("minconvex3", minconvex3);
+
+("convex3_in_inters", convex3_in_inters) 
+----------------- *)
+
+
+
+("DIAGONAL_QUA", DIAGONAL_QUA);
+
+("DIAGONAL_STRICT_QUA", DIAGONAL_STRICT_QUA);
+
+("DIAGONAL_BARRIER", DIAGONAL_BARRIER);
+
+("simp_def", simp_def);
+
+("def_obstructed", def_obstructed );
+
+("CARD_CLAUSES_IMP", CARD_CLAUSES_IMP);
+
+("CARD2", CARD2);
+
+("CARD3", CARD3);
+
+(" CARD4", CARD4);
+
+("PAIR_EQ_EXPAND", PAIR_EQ_EXPAND);
+
+("IN_SET3", IN_SET3);
+
+("IN_SET4", IN_SET4);
+
+("SHORT_EDGES", SHORT_EDGES);
+
+("CONV_EM", CONV_EM);
+
+("CONV_SING", CONV_SING);
+
+("IN_ACT_SING", IN_ACT_SING);
+
+("IN_SET2", IN_SET2);
+
+("VSUM_DIS2", VSUM_DIS2);
+
+("SUM_DIS2", SUM_DIS2);
+
+("CONV_SET2", CONV_SET2);
+
+("CEWWWDQ", CEWWWDQ);
+
+("QHSEWMI", QHSEWMI );
+
+("TCQPONA", TCQPONA );
+
+("CONV3_A_EQ", CONV3_A_EQ);
+
+("VSUM_DIS3", VSUM_DIS3);
+
+("SUM_DIS3", SUM_DIS3);
+
+("EQ_EXPAND", EQ_EXPAND);
+
+("CONV_SET3", CONV_SET3);
+("SET3_SUBSET", SET3_SUBSET);
+
+
+
+
+("convex3", convex3);
+("INTERS_SUBSET", INTERS_SUBSET);
+
+("SUM_TWO_RATIO ", SUM_TWO_RATIO);
+
+("OTHER_CONVEX_CONDI ", OTHER_CONVEX_CONDI );
+
+("CONV_BAR_EQ", CONV_BAR_EQ);
+
+("CONV3_EQ", CONV3_EQ);
+
+("DOT_SUB_ADD", DOT_SUB_ADD);
+
+("DIST_LT_HALF_PLANE", DIST_LT_HALF_PLANE);
+
+("OR_IMP_EX", OR_IMP_EX);
+
+("HALF_PLANE_CONV", HALF_PLANE_CONV);
+
+("HALF_PLANE_CONV_EP", HALF_PLANE_CONV_EP );
+("VORONOI_CONV ", VORONOI_CONV );
+
+("CONVEX_IM_CONV2_SU", CONVEX_IM_CONV2_SU );
+
+("CONVEX_AS_CONV2", CONVEX_AS_CONV2 );
+
+("CONV0_SING", CONV0_SING);
+
+("CONV0_SET2", CONV0_SET2);
+
+("CONV02_SU_CONV2", CONV02_SU_CONV2);
+
+("CONVEX_IM_CONV02_SU ", CONVEX_IM_CONV02_SU );
+
+("BAR_TRI", BAR_TRI);
+
+("X_IN_VOR_X", X_IN_VOR_X);
+
+("IN_VO2_EQ", IN_VO2_EQ);
+
+("IN_VO_EQ", IN_VO_EQ);
+
+("IN_BAR_DISTINCT", IN_BAR_DISTINCT);
+
+("FOUR_POINTS", FOUR_POINTS);
+
+("IN_Q_SYS_IMP4", IN_Q_SYS_IMP4 );
+
+("D3_SYM", D3_SYM);
+
+("SET2_SU_EX", SET2_SU_EX);
+
+("QUARTER_EQ_EX_DIA", QUARTER_EQ_EX_DIA );
+
+("IN_Q_IMP", IN_Q_IMP);
+
+("EXISTS_DIA", EXISTS_DIA);
+
+("COND_Q_SYS", COND_Q_SYS);
+
+("SET4_SUB_EX", SET4_SUB_EX);
+
+("IMP_QUA_RE_TE", IMP_QUA_RE_TE);
+
+("SET3_U_SET1", SET3_U_SET1);
+
+("IN_BA_IM_PA_SU ", IN_BA_IM_PA_SU );
+
+("QUA_TRI_EDGE", QUA_TRI_EDGE);
+
+("BAR_WI_LONG_ED", BAR_WI_LONG_ED)
+
+
+========== *)
+
 ];;
 
 theorems := !theorems @ !thm_region_array;;

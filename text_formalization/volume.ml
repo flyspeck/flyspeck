@@ -46,11 +46,10 @@ let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /
 
 (*To prove Lemma 4.2*)
 
+
 let th1= prove(`!a b c. [a; b; c]= CONS a (CONS b [c])`,REPEAT GEN_TAC THEN MESON_TAC[]);;
 
-
 let dodai=prove(`!a b c. LENGTH [a; b; c] = 3`,REPEAT GEN_TAC THEN REWRITE_TAC[LENGTH;th1] THEN ARITH_TAC);;
-
 
 let th3=prove(`!i. (1<=i /\ i<= 3)==>(vec 1:real^3)$i= &1`,GEN_TAC THEN DISCH_TAC THEN (ASM_SIMP_TAC[VEC_COMPONENT;DIMINDEX_3]));;
 
@@ -458,6 +457,253 @@ e (MESON_TAC[REAL_DIV_LMUL]);;
 
 
 let trans_strech_trans_radial=top_thm();;
+
+g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_props (vol) /\ radial r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
+
+e (REPEAT GEN_TAC THEN STRIP_TAC THEN CONJ_TAC);;
+
+e (ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball]);;
+
+e (SUBGOAL_THEN `C INTER normball x s = IMAGE ((+) x) (IMAGE (scale (s/r % (vec 1)))(IMAGE ((+) (--x)) (C INTER normball x r)))` ASSUME_TAC);;
+
+e (ASM_SIMP_TAC[trans_strech_trans_radial]);;
+
+e (ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN `measurable (C INTER normball x r)` ASSUME_TAC);;
+
+e (ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball]);;
+
+e (SUBGOAL_THEN `measurable (IMAGE ((+) (--x)) (C INTER normball x r))` ASSUME_TAC);;
+
+e (ASM_MESON_TAC[MEASURABLE_RULES]);;
+
+e (SUBGOAL_THEN `measurable (IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r)))` ASSUME_TAC);;
+
+e (ASM_MESON_TAC[MEASURABLE_RULES]);;
+
+e (SUBGOAL_THEN `measurable (IMAGE ((+) x)
+ (IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r))))` ASSUME_TAC);;
+
+e (ASM_MESON_TAC[MEASURABLE_RULES]);;
+
+e (ABBREV_TAC `A2:real^3->bool= (IMAGE (scale (s / r % vec 1))
+      (IMAGE ((+) (--x)) (C INTER normball x r)))`);;
+
+e (SUBGOAL_THEN `vol (IMAGE ((+) x) A2)=vol (A2)` MP_TAC);;
+
+e (UNDISCH_TAC `(volume_props vol):bool`);;
+
+e (UNDISCH_TAC `(measurable A2):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[volume_props]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (UNDISCH_TAC `(IMAGE (scale (s / r % vec 1))
+      (IMAGE ((+) (--x)) (C INTER normball x r)):real^3->bool =
+      A2):bool`);;
+
+e (REWRITE_TAC[SET_RULE `IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r)) =
+ A2:real^3->bool <=> A2= IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r))`]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+
+e (ABBREV_TAC `M1:real^3->bool= (IMAGE ((+) (--x)) (C INTER normball x r))`);;
+
+e (ABBREV_TAC `w:real^3= s / r % vec 1`);;
+
+e (SUBGOAL_THEN `vol (IMAGE (scale (w:real^3)) M1)= abs (w$1*w$2*w$3)*vol (M1)` MP_TAC);;
+
+e (SUBGOAL_THEN `measurable (IMAGE (scale w) M1)` MP_TAC);;
+
+e (UNDISCH_TAC `(A2 = IMAGE (scale w) M1:real^3->bool):bool`);;
+
+e (REWRITE_TAC[SET_RULE `A2 = IMAGE (scale w) M1 <=> IMAGE (scale w) M1= A2`]);;
+
+e (SIMP_TAC[]);;
+
+e (ASM_MESON_TAC[]);;
+
+e (UNDISCH_TAC `(volume_props vol):bool`);;
+
+e (UNDISCH_TAC `(measurable M1):bool`);;
+
+e (REWRITE_TAC[TAUT `P1 ==> P2 ==> P3 ==> P4 <=> P1 /\ P2 /\ P3 ==> P4`]);;
+
+e (SIMP_TAC[volume_props]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `((w:real^3)$1 = s/r)/\ (w$2 = s/r) /\ (w$3 = s/r)` MP_TAC);;
+
+e (REPEAT STRIP_TAC);;
+
+e (UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`);;
+
+e (REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=1 /\ 1<=3`]);;
+
+e (SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=1 /\ 1<= 3`]);;
+
+e (ARITH_TAC);;
+
+e (UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`);;
+
+e (REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=2 /\ 2<=3`]);;
+
+e (SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=2 /\ 2<= 3`]);;
+
+e (ARITH_TAC);;
+
+e (UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`);;
+
+e (REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=3 /\ 3<=3`]);;
+
+e (SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=3 /\ 3<= 3`]);;
+
+e (ARITH_TAC);;
+
+e (SIMP_TAC[]);;
+
+e (REWRITE_TAC[ARITH_RULE `s / r * s / r * s / r= (s/r) pow 3`]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `s/r > &0` MP_TAC);;
+
+e (SUBGOAL_THEN `r> &0` MP_TAC);;
+
+e (UNDISCH_TAC `(s < r):bool` THEN UNDISCH_TAC `(s > &0):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (MESON_TAC[rduong]);;
+
+e (REWRITE_TAC[ARITH_RULE `(r> &0 <=> &0< r) /\ (s / r > &0 <=> &0 < s/r)`]);;
+
+e (SIMP_TAC[REAL_LT_RDIV_EQ]);;
+
+e (DISCH_TAC);;
+
+e (REWRITE_TAC[ARITH_RULE `&0*r= &0`]);;
+
+e (ASM_REWRITE_TAC[ARITH_RULE `&0< s<=> s> &0`]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `&0<= s/r` MP_TAC);;
+
+e (REWRITE_TAC[ARITH_RULE `&0 <= s / r <=> s/r >= &0`]);;
+
+e (UNDISCH_TAC `(s / r > &0):bool`);;
+
+e (ARITH_TAC);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `&0<= (s / r) pow 3` MP_TAC);;
+
+e (UNDISCH_TAC `(&0<=s / r):bool`);;
+
+e (MP_TAC(ARITH_RULE `&0 <= &0`));;
+
+e (REWRITE_TAC[TAUT `a==>b==>c <=> a/\b==>c`]);;
+
+e (DISCH_TAC);;
+
+e (REWRITE_TAC[ARITH_RULE `&0<= (s/r) pow 3 <=> &0 pow 3<= (s/r) pow 3`]);;
+
+e (UNDISCH_TAC `(&0 <= &0 /\ &0 <= s / r):bool`);;
+
+e (MP_TAC(ARITH_RULE `~(3= 0)`));;
+
+e (REWRITE_TAC[TAUT `a==>b==>c <=> a/\b==>c`]);;
+
+e (SIMP_TAC[REAL_POW_LE2]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `abs ((s / r) pow 3)=(s / r) pow 3` MP_TAC);;
+
+e (SIMP_TAC[REAL_ABS_REFL]);;
+
+e (ASM_MESON_TAC[]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (REWRITE_TAC[ARITH_RULE `(s / r) pow 3 * vol M1= vol M1 * (s / r) pow 3`]);;
+
+e (SUBGOAL_THEN `vol M1= vol C` MP_TAC);;
+
+e (UNDISCH_TAC `(IMAGE ((+) (--x:real^3)) (C INTER normball x r) = M1):bool`);;
+
+e (REWRITE_TAC[SET_RULE `IMAGE ((+) (--x)) (C INTER normball x r) = M1 <=> M1= IMAGE ((+) (--x)) (C INTER normball x r)`]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `vol (IMAGE ((+) (--x)) (C INTER normball x r))= vol (C INTER normball (x:real^3) r)` MP_TAC);;
+
+e (UNDISCH_TAC `(volume_props vol):bool`);;
+
+e (UNDISCH_TAC `(measurable (C INTER normball x r)):bool`);;
+
+e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
+
+e (SIMP_TAC[volume_props]);;
+
+e (SIMP_TAC[]);;
+
+e (DISCH_TAC);;
+
+e (SUBGOAL_THEN `C INTER normball (x:real^3) r= C` MP_TAC);;
+
+e (UNDISCH_TAC `(radial r (x:real^3) C):bool`);;
+
+e (REWRITE_TAC[radial]);;
+
+e (REPEAT STRIP_TAC);;
+
+e (UNDISCH_TAC `(C SUBSET normball (x:real^3) r):bool`);;
+
+e (SIMP_TAC[SUBSET_INTER_ABSORPTION]);;
+
+e (DISCH_TAC);;
+
+e (ABBREV_TAC `(E:real^3->bool)= C INTER normball x r`);;
+
+e (ASM_MESON_TAC[]);;
+
 
 
 

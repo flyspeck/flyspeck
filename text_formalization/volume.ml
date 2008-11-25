@@ -42,10 +42,9 @@ let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /
 *)
 
 
-
+(*----------------------------------------------------------*)
 
 (*To prove Lemma 4.2*)
-
 
 let th1= prove(`!a b c. [a; b; c]= CONS a (CONS b [c])`,REPEAT GEN_TAC THEN MESON_TAC[]);;
 
@@ -458,6 +457,13 @@ e (MESON_TAC[REAL_DIV_LMUL]);;
 
 let trans_strech_trans_radial=top_thm();;
 
+
+(*----------------------------------------------*)
+
+(* Lemma 4.2*)
+
+
+
 g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_props (vol) /\ radial r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
 
 e (REPEAT GEN_TAC THEN STRIP_TAC THEN CONJ_TAC);;
@@ -704,7 +710,13 @@ e (ABBREV_TAC `(E:real^3->bool)= C INTER normball x r`);;
 
 e (ASM_MESON_TAC[]);;
 
+e (ABBREV_TAC `a:real= (s / r) pow 3`);;
 
+e (ABBREV_TAC `a1:real= vol M1` THEN ABBREV_TAC `a2:real= vol C`);;
+
+e (SIMP_TAC[]);;
+
+let lemma_r_r'=top_thm();; 
 
 
 

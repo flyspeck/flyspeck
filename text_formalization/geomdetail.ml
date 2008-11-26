@@ -1,9 +1,11 @@
 (* ================================ *)
 (* ===== NGUYEN QUANG TRUONG ====== *)
-(* out side file *)
-
+	   
+needs "Multivariate/vectors.ml";; (* Eventually should load entire *) 	   
+needs "Examples/analysis.ml";; (* multivariate-complex theory. *)	   
+needs "Examples/transc.ml";; (* Then it won't need these three. *)
+needs "convex_header.ml";; 
 needs "definitions_kepler.ml";;
-(*  needs "Multivariate/convex.ml";;  *)
 
 let voronoi_trg = new_definition ` voronoi_trg v S = { x | !w. ((S w) /\ ~(w=v))
 ==> (dist ( x , v ) < dist ( x , w )) }`;;
@@ -67,8 +69,7 @@ let quarter = new_definition ` quarter (q:real^3 -> bool) s =
               (!x y.
                    x IN q /\ y IN q /\ ~({x, y} = {v, w})
                    ==> d3 x y <= &2 * t0)))`;;
-(* WRONG let diagonal = new_definition ` diagonal dgcheo d s = ( quarter d s /\
-  ( ? x y. x IN d /\ y IN d /\ { x, y } = dgcheo /\ d3 x y >= &2 * t0 ))`;; *)
+
 
 let diagonal = new_definition ` diagonal d1 d2 q s = ( quarter q s /\
          {d1, d2} SUBSET q /\
@@ -176,7 +177,23 @@ let VC = new_definition `VC v s = { x | v IN lambda_x x s /\
 
 let VC_INFI = new_definition ` VC_INFI s = { z | ( ! x. ~( z IN VC x s ))}`;;
 
+let SET_TAC =
+   let basicthms =
+    [NOT_IN_EMPTY; IN_UNIV; IN_UNION; IN_INTER; IN_DIFF; IN_INSERT;
+     IN_DELETE; IN_REST; IN_INTERS; IN_UNIONS; IN_IMAGE] in
+   let allthms = basicthms @ map (REWRITE_RULE[IN]) basicthms @
+                 [IN_ELIM_THM; IN] in
+   let PRESET_TAC =
+     TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ)) THEN
+     REPEAT COND_CASES_TAC THEN
+     REWRITE_TAC[EXTENSION; SUBSET; PSUBSET; DISJOINT; SING] THEN
+     REWRITE_TAC allthms in
+   fun ths ->
+     PRESET_TAC THEN
+     (if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
+     MESON_TAC[];;
 
+ let SET_RULE tm = prove(tm,SET_TAC[]);;
 
 (* some TRUONG TACTICS *)
 
@@ -270,13 +287,6 @@ let simp_def = new_axiom ` (!v0 v1 v2.
      ( ! v0 v1. conv0_2 { v0, v1 } = { x | ? t. &0 < t /\ t < &1 /\ x = t % v0 + (&1 - t ) % v1 } ) /\
      (! s. conv_trg s = conv s )`;;
 
-(* let conv0_3_trg = new_definition ` conv0_3_trg s = { x | ?a b c t z r. ~( a = b ) /\
- ~( b = c) /\ ~(c = a )
-   /\ a IN s /\ b IN s /\ c IN s
-   /\ &0 < t /\ t < &1 /\ &0 < z /\ z < &1 /\ &0 < r /\ r < &1 
-   /\ t + z + r = &1 /\ x = t % a + z % b + r % c}`;; not needs *)
-
-(*This definition only correct with s with CARD s = 3*)
 
 let AFFINE_HULL_SINGLE = prove(`!x. affine hull {x} = {x}`,
   SIMP_TAC[AFFINE_SING; AFFINE_HULL_EQ]);;
@@ -708,16 +718,6 @@ SET_TAC[]);;
 
 
 
-(* 
-
-g ` ! s v0 . center_pac s v0 ==>
-let Z = UNIONS { aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s} in 
-let X = UNIONS {aff_gt {v0} {v1, v2, v3} INTER
-       aff_le {v1, v2, v3} {v0} INTER
-       voronoi2 v0 s | {v0, v1, v2, v3} IN Q_SYS s} in 
-voronoi2 v0 s SUBSET X UNION Z UNION VC_trg v0 s `;; 
-
-*)
 
 
 (* quang truong *)
@@ -802,25 +802,6 @@ PURE_ONCE_REWRITE_TAC[ SET_RULE ` conv_trg bar INTER conv0_2 {v0, x} = {} <=>
 ASM_REWRITE_TAC[ MESON[] ` (! x. p x ==> q x ) ==> ( ? x. p x ) ==> e 
   <=> (! x. p x ==> q x ) ==> ( ? x. p x /\ q x ) ==> e `]);;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(* old work *)
 e (REWRITE_TAC[ MESON[barrier] `  (bar IN barrier s /\
              ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
              ~(v0 IN bar) /\
@@ -873,11 +854,6 @@ REWRITE_TAC[MESON [] `(?bar v1 v2 v3.
           ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
           {v0} UNION {v1, v2, v3} IN Q_SYS s) `] THEN 
 REWRITE_TAC[ SET_RULE` ~ (a INTER b ={}) <=> (? i j. i IN a /\ j IN b /\ i = j)`] THEN 
-
-
-
-
-
 
 PURE_ONCE_REWRITE_TAC[SET_RULE ` ~ ( a INTER b = {}) <=> ( ? x y. x IN a /\ y IN b /\ x = y)`] THEN
 REWRITE_TAC[simp_def; simpl_conv3] THEN
@@ -1213,15 +1189,10 @@ ONCE_REWRITE_TAC[MESON [SET_RULE ` ! a b c. { a, b, c} = {b, a, c}` ]`( ! a b c 
 e (MATCH_MP_TAC (MESON[]` ( b ==> c ) ==> ( a /\ b ==> c ) ` ) THEN 
 REWRITE_TAC[ MESON[]` (?a b v1 v2. a <= b /\(?v3 t c. Q a b c v1 v2 v3 t )) <=>
   (? a b c v1 v2 v3 t. a <= b /\ Q a b c v1 v2 v3 t )`] THEN 
-
-
 MATCH_MP_TAC (MESON[ REAL_ARITH ` ! a (b:real). a <= b \/ b <= a `; REAL_ARITH`! a b c:real. a <= b /\ b <= c ==> a <= c`] ` ( !(a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
   Q a b c v1 v2 v3 t <=> Q c b a v3 v2 v1 t ) /\ ((? (a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
   a <= b /\ a <= c /\ Q a b c v1 v2 v3 t ) ==> last )  ==> ((? (a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
   a <= b /\  Q a b c v1 v2 v3 t ) ==> last ) `));;
-
-
-
 e (CONJ_TAC THEN REPEAT GEN_TAC);;
 e (MESON_TAC[REAL_ARITH ` !a b c.
          a + b + c = &1 /\
@@ -1553,11 +1524,7 @@ let lemma81_ZKYMYWJ = top_thm();;
 
 
 
-
-
-
-
-(* ================== begining lemma 8.2 ========================== *)
+(* ================== begining lemma 8.2 ================ *)
 
 let near = new_definition ` near (v0:real^N) (r:real) s = { x | x IN s /\
   dist(x,v0) < r } `;;
@@ -1877,7 +1844,7 @@ let OBSTRUCT_EQ = prove(`!x y s. obstruct x y s <=> obstructed x y s`,
 REWRITE_TAC[obstruct; obstructed] THEN REWRITE_TAC[obstruct; obstructed; conv0_2] THEN 
 MESON_TAC[CONV_BAR_EQ]);;
 
-(* ============== repare VC ======== *)
+(* ========== repare VC ======== *)
 
 let set_3elements = prove(`(?a b c. ~(a = b \/ b = c \/ c = a) /\ {a, b, c} = {v1, v2, v3}) <=>
  ~(v1 = v2 \/ v2 = v3 \/ v3 = v1)`,
@@ -1916,7 +1883,7 @@ let condi_of_wlofg = MESON[]` (!a b. P a b <=> P b a)
      ==> ((?a b. P a b /\ (x = a \/ x = b)) <=> (?a b. P a b /\ x = a))`;;
 
 
-(* ===== prove by Harrison ( nice proof ) ======= *)
+(* ================ *)
  let CARD_SET_OF_LIST_LE = prove
   (`!l. CARD(set_of_list l) <= LENGTH l`,
    LIST_INDUCT_TAC THEN
@@ -1931,19 +1898,19 @@ let condi_of_wlofg = MESON[]` (!a b. P a b <=> P b a)
    COND_CASES_TAC THEN ASM_REWRITE_TAC[SUC_INJ] THEN
    ASM_MESON_TAC[CARD_SET_OF_LIST_LE; ARITH_RULE `~(SUC n <= n)`]);;
 
-(* ====================In your theorem we want the n=4 case, so we instantiate it:
-=========================== *)
+(* ===In your theorem we want the n=4 case, so we instantiate it:
+====== *)
 
  let HAS_SIZE_SET_OF_LIST_4 = prove
   (`!a b c d:A. {a,b,c,d} HAS_SIZE 4 <=> PAIRWISE (\x y. ~(x = y)) [a;b;c;d]`,
    REPEAT GEN_TAC THEN MP_TAC(ISPEC `[a;b;c;d]:A list`HAS_SIZE_SET_OF_LIST) THEN
    REWRITE_TAC[LENGTH; set_of_list; ARITH])  ;;
 
-(* ============================================================================
+(* =========
  Then finally, using this and a bit of straightforward rearrangement,
 we can collapse the desired theorem to a lemma that MESON can prove
 automatically: 
-===============================================================================*)
+ =========*)
 
  let SET_OF_4 = prove
   (`! a b c d. ( ? v1 v2 v3 v4:A. ~( v1 = v2 \/ v3 = v4 ) /\
@@ -1972,161 +1939,7 @@ let strict_qua2_imply_strict_qua = prove(`! q d s. strict_qua2 q d s ==> strict_
 REWRITE_TAC[ strict_qua2; strict_qua] THEN NHANH (SET_RULE` d = {x, y} ==> x IN d /\
  y IN d `) THEN MESON_TAC[ SET_RULE ` x IN d /\ d SUBSET s ==> x IN s `]);;
 
-(* ========== have added to database more =====================*)
-
-
-(* ================== prove by Nguyen Quang Truong ===========================
-
-
-
-
-
-let xxx = prove(`~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
- {v1, v2, v3, v4} = {a, b, c, d} /\
- a = v1 /\
- b = v1 <=>
- F`,
-REWRITE_TAC[ SET_RULE ` a = v1 /\ b = v1 <=> a = v1 /\ b = v1 /\ {a, b, c, d} = {b, c, d}`] THEN 
-REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d} /\
-     a = v1 /\
-     b = v1 /\
-     {a, b, c, d} = {b, c, d} <=>
-     {v1, v2, v3, v4} = {b, c, d} /\
-     a = v1 /\
-     b = v1 /\
-     {a, b, c, d} = {b, c, d} `] THEN 
-ONCE_REWRITE_TAC[ MESON[ SET_RULE ` {v1, v2, v3, v4} = {b, c, d}
-     ==> {v1, v3, v4} = {b, c, d} \/
-         {v2, v3, v4} = {b, c, d} \/
-         {v1, v2, v4} = {b, c, d} \/
-         {v1, v2, v3} = {b, c, d} ` ]` {v1, v2, v3, v4} = {b, c, d}
-  <=> {v1, v2, v3, v4} = {b, c, d} /\ ({v1, v3, v4} = {b, c, d} \/
-         {v2, v3, v4} = {b, c, d} \/
-         {v1, v2, v4} = {b, c, d} \/
-         {v1, v2, v3} = {b, c, d} ) ` ] THEN PHA THEN 
- MATCH_MP_TAC (MESON[]` ~( a /\ b /\ c ) ==> ~ ( a /\ b/\ c/\ d ) `) THEN 
-KHANANG THEN 
- SET_TAC[]);;
-
-
-
-
-
-let SET_OF_4 = prove(`! s a b c d. simplex {a, b, c, d} s <=>
-  packing s /\
-         {a, b, c, d} SUBSET s /\
-  ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d ) `, 
-REWRITE_TAC[simplex] THEN 
-NGOAC THEN REWRITE_TAC[ SET_RULE ` ~(v1 = v2 \/ v3 = v4) /\ {v1, v2} INTER {v3, v4} = {} <=>
-     ~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4)`] THEN 
-REPEAT GEN_TAC THEN 
-MATCH_MP_TAC (MESON[]` ( b <=> c ) ==> ( a /\ b <=> a /\ c )`) THEN 
-ONCE_REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d} <=>
-  {v1, v2, v3, v4} = {a, b, c, d} /\ ( a = v1 \/ a = v2 \/ a = v3 \/ a = v4 ) `] THEN 
-NGOAC THEN MATCH_MP_TAC (MESON[]` (!a b c d.
-          (P a b c d <=> P b a c d) /\
-          (P a b c d <=> P c b a d) /\
-          (P a b c d <=> P d b c a)) /\
-     ((?a b c d. P a b c d /\ x = a) <=> last)
-     ==> ((?a b c d. P a b c d /\ (x = a \/ x = b \/ x = c \/ x = d)) <=>
-          last) `) THEN 
-REWRITE_TAC[ SET_RULE `  (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} <=>
-       ~(v2 = v1 \/ v3 = v4 \/ v2 = v3 \/ v2 = v4 \/ v1 = v3 \/ v1 = v4) /\
-       {v2, v1, v3, v4} = {a, b, c, d}) /\
-      (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} <=>
-       ~(v3 = v2 \/ v1 = v4 \/ v3 = v1 \/ v3 = v4 \/ v2 = v1 \/ v2 = v4) /\
-       {v3, v2, v1, v4} = {a, b, c, d}) /\
-      (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} <=>
-       ~(v4 = v2 \/ v3 = v1 \/ v4 = v3 \/ v4 = v1 \/ v2 = v3 \/ v2 = v1) /\
-       {v4, v2, v3, v1} = {a, b, c, d}) `] THEN 
-ONCE_REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d}
-  <=> {v1, v2, v3, v4} = {a, b, c, d} /\ ( b = v1 \/ b = v2 \/ b = v3 \/ b = v4 )`] THEN 
-REWRITE_TAC[ MESON[xxx]` (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} /\
-       (b = v1 \/ b = v2 \/ b = v3 \/ b = v4)) /\
-      a = v1 <=> (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} /\
-       ( b = v2 \/ b = v3 \/ b = v4)) /\
-      a = v1`] THEN 
-NGOAC THEN 
-MATCH_MP_TAC (MESON[]` (!a b c d.
-          (P a b c d <=> P a c b d) /\
-          (P a b c d <=> P a d c b)) /\
-     ((?a b c d. P a b c d /\ x = b /\ la a) <=> last)
-     ==> ((?a b c d. ( P a b c d /\ (x = b \/ x = c \/ x = d)) /\ la a) <=>
-          last) `) THEN 
-REWRITE_TAC[ SET_RULE ` (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} <=>
-       ~(v1 = v3 \/ v2 = v4 \/ v1 = v2 \/ v1 = v4 \/ v3 = v2 \/ v3 = v4) /\
-       {v1, v3, v2, v4} = {a, b, c, d}) /\
-      (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-       {v1, v2, v3, v4} = {a, b, c, d} <=>
-       ~(v1 = v4 \/ v3 = v2 \/ v1 = v3 \/ v1 = v2 \/ v4 = v3 \/ v4 = v2) /\
-       {v1, v4, v3, v2} = {a, b, c, d}) `] THEN 
-ONCE_REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d}
-  <=> {v1, v2, v3, v4} = {a, b, c, d} /\ ( c = v1 \/ c = v2 \/ c = v3 \/ c = v4 ) `] THEN PHA THEN 
-REWRITE_TAC[ MESON[]` a /\ b /\ ( aa \/ bb \/ cc ) /\ c 
-  <=> a /\ b /\ c /\ ( aa \/ bb ) \/ a /\ b /\ c /\ cc `] THEN 
-ONCE_REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d} /\
-     (b = v2 /\ a = v1) /\
-     (c = v1 \/ c = v2)
-     <=> {v1, v2, v3, v4} = {a, b, d} /\  {v1, v2, v3, v4} = {a, b, c, d} /\
-     (b = v2 /\ a = v1) /\
-     (c = v1 \/ c = v2) ` ] THEN 
-ONCE_REWRITE_TAC[ MESON[ SET_RULE ` {v1, v2, v3, v4} = {a, b, d}
-     ==> {v2, v3, v4} = {a, b, d} \/
-         {v1, v3, v4} = {a, b, d} \/
-         {v1, v2, v4} = {a, b, d} \/
-         {v1, v2, v3} = {a, b, d} `] `{v1, v2, v3, v4} = {a, b, d}
-  <=> {v1, v2, v3, v4} = {a, b, d} /\ ({v2, v3, v4} = {a, b, d} \/
-         {v1, v3, v4} = {a, b, d} \/
-         {v1, v2, v4} = {a, b, d} \/
-         {v1, v2, v3} = {a, b, d} )`] THEN 
-NGOAC THEN REWRITE_TAC[ SET_RULE ` (~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-      {v1, v2, v3, v4} = {a, b, d}) /\
-     ({v2, v3, v4} = {a, b, d} \/
-      {v1, v3, v4} = {a, b, d} \/
-      {v1, v2, v4} = {a, b, d} \/
-      {v1, v2, v3} = {a, b, d}) <=>
-     F`] THEN PHA THEN 
-REWRITE_TAC[ MESON[]` a /\ b/\ c /\ d /\ e <=> ( a /\ b ) /\ e /\ c /\ d `] THEN 
-MATCH_MP_TAC (MESON[]` (!a b c d. P a b c d <=> P a b d c) /\
-     ((?a b c d. P a b c d /\ x = c /\ las a b) <=> last)
-     ==> ((?a b c d. P a b c d /\ (x = c \/ x = d) /\ las a b) <=> last)`) THEN 
-
-REWRITE_TAC[ SET_RULE ` ~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-      {v1, v2, v3, v4} = {a, b, c, d} <=>
-      ~(v1 = v2 \/ v4 = v3 \/ v1 = v4 \/ v1 = v3 \/ v2 = v4 \/ v2 = v3) /\
-      {v1, v2, v4, v3} = {a, b, c, d}`] THEN 
-ONCE_REWRITE_TAC[ SET_RULE ` {v1, v2, v3, v4} = {a, b, c, d}
-  <=> {v1, v2, v3, v4} = {a, b, c, d} /\ ( d = v1 \/ d = v2 \/ d = v3 \/ d = v4 )`] THEN 
-PHA THEN REWRITE_TAC[ MESON[]` aa /\
-       bb /\
-       (d = v1 \/ d = v2 \/ d = v3 \/ d = v4) /\
-      cc
-  <=> aa /\
-       bb /\
-       (d = v1 \/ d = v2 \/ d = v3 ) /\
-     cc \/
-  aa  /\
-       bb /\
-        d = v4 /\ cc`] THEN 
-REWRITE_TAC[ SET_RULE `  ~(v1 = v2 \/ v3 = v4 \/ v1 = v3 \/ v1 = v4 \/ v2 = v3 \/ v2 = v4) /\
-     {v1, v2, v3, v4} = {a, b, c, d} /\
-     (d = v1 \/ d = v2 \/ d = v3) /\
-     c = v3 /\
-     b = v2 /\
-     a = v1 <=>
-     F `] THEN 
-MESON_TAC[]);;
-
-===================================================== *)
-
-
-(* OCT 23 ngay 23 - 10 *) 
+(* ================*)
 
 let strict_qua2_interior_pos = prove( `!s v v1 v2 v3 v4.
      interior_pos v v1 v3 v2 v4 s
@@ -2981,17 +2794,6 @@ REPEAT GEN_TAC THEN
 REWRITE_TAC[ IN_SET3; IN_SET4; PAIR_EQ_EXPAND; t0] THEN 
 MESON_TAC[ D3_REFL; trg_d3_sym; REAL_ARITH ` &0 <= &2 * #1.255`]);;
 
-(* changing truong
-
-let SUB_PACKING = prove(`!sub s.
-     packing s /\ sub SUBSET s
-     ==> (!x y. x IN sub /\ y IN sub /\ ~(x = y) ==> &2 <= d3 x y)`,
-REWRITE_TAC[ packing; GSYM d3] THEN SET_TAC[]);;
-
-*)
-
-
-
 
 
 (* == CARD ASSERTIONN == *)
@@ -3061,23 +2863,6 @@ REWRITE_TAC[ MESON[FINITE_RULES; CARD2; FINITE_INTER; CARD_EQ_0] ` CARD {b, c} =
   <=> ~(b=c) /\ {a} INTER {b, c} = {}`] THEN SET_TAC[]);;
 
 (* ========= *)
-
-(* changing truong
-
-
-let IN_SET3 = SET_RULE ` x IN {a,b,c} <=> x = a \/ x = b \/ x = c `;;
-let IN_SET4 = SET_RULE ` x IN {a,b,c,d} <=> x = a \/ x = b \/ x = c \/ x = d `;;
-
-let SHORT_EDGES = prove(` ! a b c w. d3 c a <= &2 * t0 /\
- d3 c b <= &2 * t0 /\
- (!aa. aa IN {a, b, c} ==> d3 aa w <= &2 * t0)
- ==> (!x y.
-          x IN {a, b, c, w} /\ y IN {a, b, c, w} /\ ~({x, y} = {a, b})
-          ==> d3 x y <= &2 * t0)`,
-REPEAT GEN_TAC THEN 
-REWRITE_TAC[ IN_SET3; IN_SET4; PAIR_EQ_EXPAND; t0] THEN 
-MESON_TAC[ D3_REFL; trg_d3_sym; REAL_ARITH ` &0 <= &2 * #1.255`]);;
-*)
 
 let CARD4 = prove(`!a b c d.
      CARD {a, b, c, d} <= 4 /\
@@ -3555,7 +3340,7 @@ REWRITE_TAC[ MESON[]` d3 b c <= &2 * t0 /\
                d3 c d <= &2 * t0  /\ a <=> a /\ d3 b c <= &2 * t0 /\
                d3 c d <= &2 * t0  `] THEN 
 MESON_TAC[]);;
-(* +++++++++++++++++++++++= *)
+(* ==================== *)
 
 
 (* ++++++++++++++++++++++ *)
@@ -3657,7 +3442,7 @@ REWRITE_TAC[ MESON[]` (?a b c. P a b c \/ Q a b c \/ R a b c) <=>
 MATCH_MP_TAC (MESON[]` ( a ==> l ) /\ ( b==> l ) /\ ( c==> l ) ==> a \/ b\/ c ==> l `) THEN
 REWRITE_TAC[ quasi_tri_case; OCT24; OCTOR23 ]);;
 
-(* +++++++++++++++++++++++ *)
+(* ============= *)
 
 
 let import_le = prove( `!x y s.
@@ -4006,7 +3791,7 @@ let le1_82 = prove (`!s v0 Y.
          Y`, SIMP_TAC[] THEN SET_TAC[]);;
 
 
-(* ++++++++++++++++++++++++ *)
+(* ============= *)
 
 
 
@@ -4356,7 +4141,6 @@ SIMP_TAC[ MESON[VC_DISJOINT ] `  ~(w = v0) /\
                  x IN VC w s /\
                  x IN VC v0 s <=> F `]);;
 
-(* +++++++++++++++++++++++++ *)
 (* +++++++++++++++++++++++++ *)
 
 let lemma82_FOCUDTG = prove (`! (s:real^3 -> bool) (v0:real^3) Z Y.
@@ -4731,11 +4515,11 @@ let CEWWWDQ = new_axiom ` !s v v1 v2 v3 set.
 let QHSEWMI = new_axiom `!v1 v2 v3 w1 w2.
      ~(conv {w1, w2} INTER conv {v1, v2, v3} = {}) /\ ~(w1 IN {v1, v2, v3})
      ==> w2 IN cone w1 {v1, v2, v3}`;;
-(* ================ *)
 
 
 
-(* ======= have added to database_more =========== *)
+
+(* ================== *)
 
 
 

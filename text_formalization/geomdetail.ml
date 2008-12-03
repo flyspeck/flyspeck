@@ -1,3 +1,6 @@
+(* ================================ *)
+(* ===== NGUYEN QUANG TRUONG ====== *)
+
 needs "Multivariate/vectors.ml";; (* Eventually should load entire *) 	   
 needs "Examples/analysis.ml";; (* multivariate-complex theory. *)	   
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
@@ -1104,7 +1107,7 @@ REWRITE_TAC [ MESON[]` (quasi_tri {v2, v1, v3} s \/ (?v4. {v2, v1, v3} UNION {v4
      ( b + a + c = &1 /\
       --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1 )/\ nnn` ] THEN 
 REWRITE_TAC[ MESON[]` ( a <=> b ) <=> ( a ==> b ) /\ ( b==> a )`] THEN REWRITE_TAC[]);;
-e (CONJ_TAC );; (*truong *)
+e (CONJ_TAC );; 
 e (DISCH_TAC THEN 
 ONCE_REWRITE_TAC[ REAL_ARITH ` (b + a + c = &1 /\
       --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1) 
@@ -3345,7 +3348,7 @@ MATCH_MP_TAC (MESON[]` ((? v1 v2 v3 . (? a b c d. aa a b c d v1 v2 v3 /\ bb a b 
   /\ las v1 v2 v3 ) ==> last `) THEN 
 REWRITE_TAC[ hard_case]);;
 
-(* +++++++++++++++++++++++ *)
+(* ============ *)
 
 
 let OCTO23 = prove (` ! s x y. (?v1 v2 v3.
@@ -3376,113 +3379,9 @@ MATCH_MP_TAC (MESON[]` ( a ==> l ) /\ ( b==> l ) /\ ( c==> l ) ==> a \/ b\/ c ==
 REWRITE_TAC[ quasi_tri_case; OCT24; OCTOR23 ]);;
 
 
-let without_lost = MESON[] ` ! P x. (!a b. P a b <=> P b a) /\ (?a b. P a b /\ x = a)
-     ==> (?a b. P a b /\ (x = a \/ x = b))`;;
 
-let condi_of_wlofg = MESON[]` (!a b. P a b <=> P b a)
-     ==> ((?a b. P a b /\ (x = a \/ x = b)) <=> (?a b. P a b /\ x = a))`;;
-
-(* by Harrison *)
-
- let CARD_SET_OF_LIST_LE = prove
-  (`!l. CARD(set_of_list l) <= LENGTH l`,
-   LIST_INDUCT_TAC THEN
-   SIMP_TAC[LENGTH; set_of_list; CARD_CLAUSES; FINITE_SET_OF_LIST] THEN
-   ASM_ARITH_TAC);;
-
- let HAS_SIZE_SET_OF_LIST = prove
-  (`!l. (set_of_list l) HAS_SIZE (LENGTH l) <=> PAIRWISE (\x y. ~(x = y)) l`,
-   REWRITE_TAC[HAS_SIZE; FINITE_SET_OF_LIST] THEN LIST_INDUCT_TAC THEN
-   ASM_SIMP_TAC[CARD_CLAUSES; LENGTH; set_of_list; PAIRWISE; ALL;
-                FINITE_SET_OF_LIST; GSYM ALL_MEM; IN_SET_OF_LIST] THEN
-   COND_CASES_TAC THEN ASM_REWRITE_TAC[SUC_INJ] THEN
-   ASM_MESON_TAC[CARD_SET_OF_LIST_LE; ARITH_RULE `~(SUC n <= n)`]);;
-
-(* ====================In your theorem we want the n=4 case, so we instantiate it:
-=========================== *)
-
- let HAS_SIZE_SET_OF_LIST_4 = prove
-  (`!a b c d:A. {a,b,c,d} HAS_SIZE 4 <=> PAIRWISE (\x y. ~(x = y)) [a;b;c;d]`,
-   REPEAT GEN_TAC THEN MP_TAC(ISPEC `[a;b;c;d]:A list`HAS_SIZE_SET_OF_LIST) THEN
-   REWRITE_TAC[LENGTH; set_of_list; ARITH])  ;;
-
-(* ============================================================================
- Then finally, using this and a bit of straightforward rearrangement,
-we can collapse the desired theorem to a lemma that MESON can prove
-automatically: 
-===============================================================================*)
-
- let SET_OF_4 = prove
-  (`! a b c d. ( ? v1 v2 v3 v4:A. ~( v1 = v2 \/ v3 = v4 ) /\
-                                {v1, v2 } INTER {v3, v4 } = {} /\
-                                { a , b , c , d } = { v1 , v2, v3 ,v4}) <=>
-    ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d )`,
-   REPEAT GEN_TAC THEN
-   REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; INTER_EMPTY; SET_RULE
-    `(a INSERT s) INTER t = {} <=> ~(a IN t) /\ s INTER t = {}`] THEN
-   MP_TAC(MESON[]
-    `(?v1 v2 v3 v4:A. {a,b,c,d} = {v1,v2,v3,v4} /\ {v1,v2,v3,v4} HAS_SIZE 4) <=>
-     {a,b,c,d} HAS_SIZE 4`) THEN
-   REWRITE_TAC[HAS_SIZE_SET_OF_LIST_4; PAIRWISE; ALL; DE_MORGAN_THM; CONJ_ACI]);;
-
-
-let def_simplex = prove(`! s a b c d. simplex {a, b, c, d} s <=>
-  packing s /\
-         {a, b, c, d} SUBSET s /\
-  ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d ) `, REWRITE_TAC[ simplex]
-THEN REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[] ` ( x <=> y ) ==> ( a /\ b /\ x <=> 
-a /\ b /\ y ) `) THEN ONCE_REWRITE_TAC[MESON[]` {v1, v2, v3, v4} = {a, b, c, d} <=>
- {a, b, c, d}  = {v1, v2, v3, v4} ` ] THEN REWRITE_TAC[ SET_OF_4]);;
-
-
-let strict_qua2_imply_strict_qua = prove(`! q d s. strict_qua2 q d s ==> strict_qua q s `,
-REWRITE_TAC[ strict_qua2; strict_qua] THEN NHANH (SET_RULE` d = {x, y} ==> x IN d /\
- y IN d `) THEN MESON_TAC[ SET_RULE ` x IN d /\ d SUBSET s ==> x IN s `]);;
-
-(* ========== have added to database more =====================*)
-
-
-let strict_qua2_interior_pos = prove( `!s v v1 v2 v3 v4.
-     interior_pos v v1 v3 v2 v4 s
-     ==> strict_qua2 {v, v1, v3, v2} {v1, v3} s /\
-         strict_qua2 {v, v1, v3, v4} {v1, v3} s /\
-         strict_qua2 {v, v2, v4, v1} {v2, v4} s /\
-         strict_qua2 {v, v2, v4, v3} {v2, v4} s`,
-REWRITE_TAC[ interior_pos; conflicting_dia; adjacent_pai] THEN MESON_TAC[]);;
-
-(* *************** *)
-
-let RELATE_Q_SYS = prove (` ! q s. (?v v1 v3 v2 v4.
-      (q = {v, v1, v2, v3} \/ q = {v, v1, v3, v4}) /\
-      interior_pos v v1 v3 v2 v4 s /\
-      anchor_points v1 v3 s = {v, v2, v4} /\
-      anchor_points v2 v4 s = {v, v1, v3})
- ==> strict_qua q s`,
-NHANH (MATCH_MP (MESON[]`( ! a b c d e f. P a b c d e f ) 
-   ==> P a b c d e f`) strict_qua2_interior_pos) THEN 
-NHANH (MATCH_MP (MESON[] `( ! x y z. P x y z ) ==> P x y z `) 
-  strict_qua2_imply_strict_qua) THEN 
-MESON_TAC[ SET_RULE ` {v, v1, v2 , v3 } = {v, v1, v3, v2}`]);;
-
-(* ======= *)
-
-let WHEN_IN_Q_SYS = prove (`! q s. q IN Q_SYS s ==> quasi_reg_tet q s \/ strict_qua q s \/ 
-(?v v1 v3 v2 v4.
-                   (q = {v, v1, v2, v3} \/ q = {v, v1, v3, v4}) /\
-                   interior_pos v v1 v3 v2 v4 s /\
-                   anchor_points v1 v3 s = {v, v2, v4} /\
-                   anchor_points v2 v4 s = {v, v1, v3})`,
-REWRITE_TAC[ Q_SYS; IN_ELIM_THM] THEN MESON_TAC[strict_qua_in_oct] );; 
 
 (* ===== *)
-
-
-let CASES_OF_Q_SYS = prove (`!q s. q IN Q_SYS s ==> quasi_reg_tet q s \/ strict_qua q s`,
-NHANH (MATCH_MP (MESON[]` ( ! a b. P a b) ==> P a b` ) WHEN_IN_Q_SYS) THEN 
-REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[]` ( c ==> b) ==>  aa /\ ( a \/ b\/ c )
-  ==> a \/ b `) THEN REWRITE_TAC[ RELATE_Q_SYS]);;
-
-(* =========== *)
 
 let IN_AFF_GE_CON = prove(`!x y v3 v2.
      ~(conv0 {x, y} INTER conv_trg {x, v2, v3} = {})
@@ -3538,46 +3437,9 @@ MESON_TAC[MESON[REAL_FIELD `~(&1 - t = &0) /\ a + b + c = &1
   /\ (a - t) / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1  `]);;
 
 
-
-
-
-(* ============== NOVEMBER 2008 ====================== *)
-
-
-let QUA_TET_IMPLY_QUA_TRI = prove(` ! s v0 v1 v2 . (?v4. quasi_reg_tet ({v0, v1, v2} UNION {v4}) s)
- ==> quasi_tri {v0, v1, v2} s`, REWRITE_TAC[ quasi_reg_tet; quasi_tri] THEN 
-REWRITE_TAC[ SET_RULE ` {a,b,c} UNION {d} = {a,b,c,d} `; def_simplex; set_3elements] THEN 
-MESON_TAC[SET_RULE ` {a,b,c} SUBSET {a,b,c,d} ` ; SUBSET; SUBSET_TRANS]);;
-
-let PAIR_D3 = prove(` ! i j u w. {u,w} = {i,j} ==> d3 i j = d3 u w `, 
-REWRITE_TAC[ SET_RULE ` {u, w} = {i, j} <=>  u= i /\ w = j \/ u = j /\ w = i `] THEN 
-MESON_TAC[ trg_d3_sym]);;
-
-let PAIR_DIST = prove(` ! i j u w. {u,w} = {i,j} ==> dist(i,j) = dist(u,w) `, 
-REWRITE_TAC[ SET_RULE ` {u, w} = {i, j} <=>  u= i /\ w = j \/ u = j /\ w = i `] THEN 
-MESON_TAC[ DIST_SYM]);;
-
-
-
-
-
 (* ============= *)
 
-let xxzz = MATCH_MP REAL_LT_RSQRT (REAL_ARITH `(&2 * #1.255) pow 2 < &8`);;
-
-
-(* ========== *) 
-
-let PAIR_EQ_EXPAND =
- SET_RULE `{a,b} = {c,d} <=> a = c /\ b = d \/ a = d /\ b = c`;;
-
-
-let DIST_PAIR_LEMMA = prove
- (`{a,b} = {c,d} ==> dist(a,b) = dist(c,d)`,
- REWRITE_TAC[PAIR_EQ_EXPAND] THEN MESON_TAC[DIST_SYM]);;
-
-(* ======= *)
-
+let xxii = MATCH_MP REAL_LT_RSQRT (REAL_ARITH `(&2 * #1.255) pow 2 < &8`);;
 
 
 let import_le = prove( `!x y s.
@@ -3640,6 +3502,7 @@ MATCH_MP_TAC (MESON[]` ((? v1 v2 v3.  P v1 v2 v3 /\ PP v1 v2 v3 )
   ==> last `) THEN 
 REWRITE_TAC[ IN_UNIONS; IN_ELIM_THM] THEN 
 MESON_TAC[]);;
+
 
 
 
@@ -5223,6 +5086,8 @@ let STRIP_TR = REPEAT STRIP_TAC THEN REPEAT (FIRST_X_ASSUM MP_TAC)
 let INTER_DIF_EM_EX = SET_RULE `! a b. ~(a INTER b = {}) <=> (? x. x IN a /\ x IN b ) `;;
 
 
+
+
 let AFF_LE_CONE =prove(` ! a b x y z. ~( conv0 {a,b} INTER conv {x,y,z} = {}) 
   ==> ( b IN aff_le {x,y,z} {a}) /\ ( b IN cone a {x,y,z}) `,
 REWRITE_TAC[CONV_SET3; CONV0_SET2; INTER_DIF_EM_EX; IN_ELIM_THM] THEN 
@@ -5274,10 +5139,6 @@ PHA THEN REWRITE_TAC[ MESON[]` aaa = b' / b' % b /\ &0 < b' /\
 THEN REWRITE_TAC[ VECTOR_MUL_LID] THEN MESON_TAC[]);;
 
 
-
-
-
-
 let NOVE30 = prove(`! P l. ( ! x y z i j k s. ( P x y z i j k s <=> P y x z j i k s)
  /\ ( l x y z <=> l y x z ) ) /\ (! x y z i j k s. i <= j /\ P x y z i j k s ==> 
 l x y z )   ==> (! x y z i j k s. P x y z i j k s ==> l x y z ) `, 
@@ -5287,47 +5148,4 @@ ONCE_REWRITE_TAC[ MESON[]` a ==> (!x y z i j k s. P x y z i j k s ==> l x y z) <
 GEN_TAC THEN 
 CONJ_TAC THENL [MESON_TAC[]; MESON_TAC[REAL_ARITH ` ~( a <= b ) ==> b <= a `]]);;
 
-
-
-let NOVE31 = prove(`! P l. ( ! x y z i j k s. ( P x y z i j k s <=> P z y x k j i s )
- /\ ( l x y z <=> l z y x ) ) /\ (! x y z i j k s. i <= j /\ i <= k /\ P x y z i j k s
- ==> l x y z )   ==> (! x y z i j k s. i <= j /\ P x y z i j k s ==> l x y z ) `, 
-ONCE_REWRITE_TAC[ MESON[]` a ==> (!x y z i j k s. P x y z i j k s ==> l x y z) <=>
-     (a ==> (!x y z i j k s. i <= k /\ P x y z i j k s ==> l x y z)) /\(a ==>
- (!x y z i j k s. ~(i <= k) /\ P x y z i j k s ==> l x y z)) `] THEN REPEAT
-GEN_TAC THEN CONJ_TAC THENL [MESON_TAC[];   MESON_TAC[REAL_LE_TRANS; 
-REAL_ARITH ` ~( a <= b ) ==> b <= a `]]);;
-
-
-
-
-let IMP_IN_BA = prove(`! x y z a s. {x,y,z} UNION {a} IN Q_SYS s ==> {x,y,z} IN barrier s `,
-REWRITE_TAC[barrier; IN_ELIM_THM] THEN MESON_TAC[]);;
-
-
-
-let IMP_IN_AFF4  = prove(` ! s v0 xx x y z. xx IN cone v0 {x, y, z} /\
- ~(xx IN UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | barrier s {v0, v1, v2}}) /\
- {v0, x, y, z} IN Q_SYS s ==> xx IN aff_gt {v0} {x, y, z}`, 
-REWRITE_TAC[cone; GSYM aff_ge_def; simp_def; IN_ELIM_THM] THEN 
-REPLICATE_TAC 3 GEN_TAC THEN REWRITE_TAC[MESON[]` ( ! x y z. (? s i j k.
- P s i j k x y z ) /\ Q x y z ==> l x y z) <=> ( ! x y z i j k s. 
-P s i j k x y z /\ Q x y z ==> l x y z ) `] THEN MATCH_MP_TAC NOVE30 THEN 
-CONJ_TAC THENL [MESON_TAC[PER_SET3; REAL_ARITH ` a + b + c = b + a + c ` ;
-  VECTOR_ARITH `(a:real^N ) + b + c = b + a + c `]; MATCH_MP_TAC NOVE31 THEN 
-CONJ_TAC]THENL [MESON_TAC[PER_SET3; REAL_ARITH ` a + b + c = c + b + a ` ;
- VECTOR_ARITH `(a:real^N ) + b + c = c + b + a `]; PHA] THEN 
-REWRITE_TAC[MESON[REAL_ARITH ` &0 <= i <=> i = &0 \/ &0 < i `]`
-  &0 <= i /\ &0 <= j /\ &0 <= k /\ l <=> ( i = &0 \/ &0 < i ) /\ &0 <= j /\
-   &0 <= k /\ l `] THEN KHANANG THEN REPEAT GEN_TAC THEN 
-STRIP_TAC THENL [REPEAT (FIRST_X_ASSUM MP_TAC) THEN REPLICATE_TAC 3 DISCH_TAC
- THEN REWRITE_TAC[IMP_IMP] THEN ASM_SIMP_TAC[] THEN REWRITE_TAC[VECTOR_MUL_LZERO; 
-VECTOR_ADD_LID; REAL_ADD_LID] THEN REWRITE_TAC[SET_RULE ` {v0, x, y, z} = {v0,y,z}
- UNION {x} `] THEN NHANH (SPEC_ALL IMP_IN_BA) THEN REWRITE_TAC[IN_UNIONS; 
-IN_ELIM_THM] THEN REWRITE_TAC[MESON[IN]` barrier s a /\ l <=> a IN barrier s /\ 
-l`] THEN PHA THEN REWRITE_TAC[MESON[]` (? t. (? v1 v2 . P v1 v2 /\ t = Q v1 v2 ) 
-/\ xx IN t )  <=> (? v1 v2. P v1 v2 /\ xx IN Q v1 v2 ) `] THEN REWRITE_TAC[IN_ELIM_THM]
- THEN MESON_TAC[]; STRIP_TR THEN REWRITE_TAC[MESON[REAL_ARITH ` i <= j /\ &0 < i 
-==> &0 < j `]`  i <= j /\ i <= k /\ &0 < i /\l  <=> i <= j /\ i <= k /\ &0 < j /\
- &0 < k /\ &0 < i /\ l`] THEN MESON_TAC[]]);;
 

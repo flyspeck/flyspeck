@@ -322,7 +322,7 @@ all_forall `ineq
     ((#4.0),x5,square_2t0);
     ((#8.0),x6,(#16.0))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 < (#0.0)) \/
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 <= (#0.0)) \/
     (x1 + x2 < x6))`;;
 
 (* add inequality that vor_0 of quad cluster is < -1.04 pt if any vertex ht > 2.3.  By dimension reduction (DCG Lemma 13.1, Lemma 12.10) 

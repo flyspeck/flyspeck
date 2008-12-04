@@ -312,18 +312,31 @@ Bound: 0.152942962259
 Point: [6.30009985876, 6.30009985876, 4.00000006053, 4.00000007573, 4.00000007573, 12.6001995643]
 
 *)
-
+(* modified x1-interval 12/4/2008 by tch *)
 let I_5127197465=
 all_forall `ineq
-   [((#4.0),x1,(square (#2.3)));
+   [(square (#2.1),x1,(square (#2.3)));
     ((#4.0),x2,(square (#2.3)));
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,square_2t0);
     ((#4.0),x5,square_2t0);
-    ((#8.0),x6,(#16.0))
+    ((#8.0),x6,(#10.58))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 <= (#0.0)) \/
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 < (#0.0)) \/
     (x1 + x2 < x6))`;;
+
+(* variant of 5127197465 in a small corner f the tight spot *)
+let I_1017723951=
+(* 8.82 = (2.1 Sqrt[2])^2, for triangle acuteness condition *)
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#8.0),x6,(#8.82))
+   ]
+   (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0))`;;
 
 (* add inequality that vor_0 of quad cluster is < -1.04 pt if any vertex ht > 2.3.  By dimension reduction (DCG Lemma 13.1, Lemma 12.10) 
 it reduces to the following cases.  
@@ -418,6 +431,8 @@ all_forall `ineq
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.3))`;; 
 
+(* Revision, errata [DCG-p182,Lemma 16.7,SPV] *)
+(* added 12/4/2008 *)
 
  let I_8990938295=
  all_forall `ineq 

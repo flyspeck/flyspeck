@@ -360,6 +360,7 @@ all_forall `ineq
 
 (* Revision, lemma:double-cross *)
 (* changed 11/25/2008 *)
+(* verified by S. McLaughlin Dec 3, 2008 *)
 (* biconnected section *)
 let I_7431506800=
 all_forall `ineq
@@ -374,6 +375,7 @@ all_forall `ineq
 
 (* Revision, lemma:double-cross *)
 (* changed 11/25/2008 *)
+(* verified by S. McLaughlin Dec 3, 2008 *)
 (* biconnected section *)
 let I_5568465464 =
 all_forall `ineq
@@ -402,6 +404,7 @@ all_forall `ineq
 
 (* Revision, lemma:double-cross *)
 (* revised 11/25/2008 *)
+(* verified by S. McLaughlin Dec 3, 2008 *)
 (* biconnected section *)
 
 let I_6915275259 =

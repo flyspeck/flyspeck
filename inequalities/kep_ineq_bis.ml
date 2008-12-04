@@ -418,131 +418,14 @@ all_forall `ineq
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.3))`;; 
 
-(* 
-LOC: Blueprint, Lemma:1.04.
-This was never verified with interval arithmetic.
-*)
 
-
-let I_7710172071_GEN=
-   `(\ a1 a2 a3 a4. (ineq
-[
-((#8.0), x, (square (#4.0)))]
-   (vor_0_x a4 a1 a2 (#4.0) x (#4.0)  +
-    vor_0_x a2 a3 a4 (#4.0) x (#4.0) < -- (#1.04) * pt) \/
-    delta_x a4 a1 a2 (#4.0) x (#4.0)  < (#0.0) \/
-    delta_x a2 a3 a4 (#4.0) x (#4.0) < (#0.0) \/
-  (cross_diag_x a1 a2 a4 x (#4.0) (#4.0) a3 (#4.0) (#4.0) < sqrt8)))`;;
-
-(* wlog a2 <= a4 *)
-
-let I_7710172071_1=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`#4.0`;`#4.0`]));;
-
-(* 
-CCC false. fixed square
-
-Bound: 0.47653139353
-
-Point: [8.00000008497]
-
- *)
-
-let I_7710172071_2=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`#4.0`;`square_2t0`]));;
-
-(* 
-CCC false. fixed square
-
-Bound: 0.472007641148
-
-Point: [8.18163440844]
-*) 
-let I_7710172071_3=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`square_2t0`;`#4.0`]));;
-
-
-(* 
-CCC false. fixed square
-
-Bound: 1.20170306839
-
-Point: [8.00000019731]
-*) 
-
-let I_7710172071_4=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`#4.0`;`square_2t0`;`square_2t0`]));;
-
-let I_7710172071_5=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`square_2t0`;`#4.0`;`square_2t0`]));;
-
-let I_7710172071_6=
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`(square (#2.3))`;`square_2t0`;`square_2t0`;`square_2t0`]));;
-
-
-let I_7710172071_7= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`#4.0`;`#4.0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_8= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`#4.0`;`square_2t0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_9= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`square_2t0`;`#4.0`]));; 
-
-(* CCC false. fixed square *) 
-let I_7710172071_10= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`#4.0`;`square_2t0`;`square_2t0`]));; 
-
-let I_7710172071_11= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`square_2t0`;`#4.0`;`square_2t0`]));; 
-
-let I_7710172071_12= 
-  all_forall (list_mk_comb( I_302085207_GEN,
-  [`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));; 
-
-
-(* cases when the diagonal hits sqrt8 *)
-
- let I_7710172071_13= 
+ let I_8990938295=
  all_forall `ineq 
     [(square (#2.3),x1,square_2t0); 
      ((#4.0),x2,square_2t0); 
      ((#4.0),x3,square_2t0); 
      ((#8.0),x4,(#8.0)); 
-     ((#4.0),x5,square_2t0); 
-     ((#4.0),x6,square_2t0) 
+     ((#4.0),x5,(#4.0));
+     ((#4.0),x6,(#4.0));
     ] 
     ((vor_0_x  x1 x2 x3 x4 x5 x6 < -- (#1.04) *pt - (#0.009)))`;; 
-
-
-
- let I_7710172071_14= 
- all_forall `ineq 
-    [ 
-     ((#4.0),x1,square_2t0); 
-      (square (#2.3),x2,square_2t0); 
-     ((#4.0),x3,square_2t0); 
-     ((#8.0),x4,(#8.0)); 
-     ((#4.0),x5,square_2t0); 
-     ((#4.0),x6,square_2t0) 
-    ] 
-    ((vor_0_x  x1 x2 x3 x4 x5 x6  < -- (#0.52) *pt))`;; 
-
-
-
-
-
-

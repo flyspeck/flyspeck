@@ -353,6 +353,21 @@ all_forall `ineq
    ]
    ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) + (#0.015)*(x1 + x2 - x6) < (#0.0)))`;;
 
+
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* added 12/9/2008 as an alternative to 1017723951 *)
+(* dim reduction on x5 *)
+let I_4723770703=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,(square (#2.1)));
+    ((#4.0),x4,(square (#2.02)));
+    ((#4.0),x5,(square (#2.02)));
+    ((#8.0),x6,(#8.00))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) + (#0.015)*(x1 + x2 - x6) < (#0.0)))`;;
+
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* dim reduction on x3 *)
 let I_3013446042=

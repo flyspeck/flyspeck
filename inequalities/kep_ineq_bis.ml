@@ -356,7 +356,7 @@ all_forall `ineq
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* added 12/9/2008 as an alternative to 1017723951 *)
-(* dim reduction on x5 *)
+(* dim reduction on x6 *)
 let I_4723770703=
 all_forall `ineq
    [((#4.0),x1,(square (#2.1)));

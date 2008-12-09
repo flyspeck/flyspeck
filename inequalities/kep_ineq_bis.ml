@@ -351,7 +351,7 @@ all_forall `ineq
     ((#4.0),x5,(#4.0));
     ((#8.0),x6,(#8.82))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) < (#0.0)))`;;
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) + (#0.015)*(x1 + x2 - x6) < (#0.0)))`;;
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* dim reduction on x3 *)
@@ -364,10 +364,11 @@ all_forall `ineq
     ((#4.0),x5,square_2t0);
     ((#8.0),x6,(#8.82))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) < (#0.0)))`;;
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) + (#0.015)*(x1 + x2 - x6) < (#0.0)))`;;
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* complement to SPV page 183, Lemma 16.9 *)
+(* XX deprecated *)
 let I_7220423821=
 all_forall `ineq
    [((#4.0),x1,(square (#2.1)));
@@ -381,6 +382,7 @@ all_forall `ineq
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* dim reduction on x3 *)
+(* XX deprecated *)
 let I_7188502846=
 all_forall `ineq
    [((#4.0),x1,(square (#2.1)));

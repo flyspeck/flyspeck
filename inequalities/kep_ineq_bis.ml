@@ -326,6 +326,7 @@ all_forall `ineq
     (x1 + x2 < x6))`;;
 
 (* variant of 5127197465 in a small corner f the tight spot *)
+(* deprecate? 12/9/08 *)
 let I_1017723951=
 (* 8.82 = (2.1 Sqrt[2])^2, for triangle acuteness condition *)
 all_forall `ineq
@@ -337,6 +338,60 @@ all_forall `ineq
     ((#8.0),x6,(#8.82))
    ]
    (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0))`;;
+
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* added 12/9/2008 as an alternative to 1017723951 *)
+(* dim reduction on x5 *)
+let I_1551562505=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,(#4.0));
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0)))`;;
+
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* dim reduction on x3 *)
+let I_3013446042=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,(#4.0));
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0)))`;;
+
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* complement to SPV page 183, Lemma 16.9 *)
+let I_7220423821=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,(#4.0));
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (vort_x x1 x2 x3 x4 x5 x6 sqrt2 > -- (pt * (#1.04))))`;;
+
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* dim reduction on x3 *)
+let I_7188502846=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,(#4.0));
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (vort_x x1 x2 x3 x4 x5 x6 sqrt2 > -- (pt * (#1.04))))`;;
+
 
 (* add inequality that vor_0 of quad cluster is < -1.04 pt if any vertex ht > 2.3.  By dimension reduction (DCG Lemma 13.1, Lemma 12.10) 
 it reduces to the following cases.  

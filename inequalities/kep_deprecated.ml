@@ -728,6 +728,30 @@ let I_7710172071_12=
 
 
 
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* complement to SPV page 183, Lemma 16.9 *)
+(* deprecated 12/9/2008 *)
+let I_7220423821=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,(#4.0));
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (vort_x x1 x2 x3 x4 x5 x6 sqrt2 > -- (pt * (#1.04))))`;;
 
-
-
+(* Revision errata SPV p 182, Lemma 16.7--16.9 *)
+(* dim reduction on x3 *)
+(* deprecated 12/9/2008 *)
+let I_7188502846=
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,(#4.0));
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#8.0),x6,(#8.82))
+   ]
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (vort_x x1 x2 x3 x4 x5 x6 sqrt2 > -- (pt * (#1.04))))`;;

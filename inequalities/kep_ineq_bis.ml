@@ -351,7 +351,7 @@ all_forall `ineq
     ((#4.0),x5,(#4.0));
     ((#8.0),x6,(#8.82))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0)))`;;
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) < (#0.0)))`;;
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* dim reduction on x3 *)
@@ -364,7 +364,7 @@ all_forall `ineq
     ((#4.0),x5,square_2t0);
     ((#8.0),x6,(#8.82))
    ]
-   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0)))`;;
+   ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (solid_x x1 x2 x3 x4 x5 x6 > solid_x (#4.0) (#4.0) (#4.0) (#4.0) (#4.0) (#8.0)) \/ (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) < (#0.0)))`;;
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* complement to SPV page 183, Lemma 16.9 *)
@@ -408,7 +408,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0));
     (square (#2.91),x5,square (#3.2));
-    (square (#2.91),x6,square (#3.2));
+    (square (#2.91),x6,square (#3.2))
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.7))`;;
 
@@ -422,7 +422,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0));
     ((#4.0),x5,square_2t0);
-    ((#4.0),x6,square_2t0);
+    ((#4.0),x6,square_2t0)
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.4))`;;
 
@@ -437,7 +437,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0));
     (square(#3.2),x5,square(#3.2));
-    (square_2t0,x6,square_2t0); 
+    (square_2t0,x6,square_2t0) 
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
 
@@ -452,7 +452,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     (square_2t0,x4,square_2t0); 
     (square(#3.2),x5,square(#3.2));
-    ((#4.0),x6,square_2t0);
+    ((#4.0),x6,square_2t0)
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.5))`;; 
 
@@ -466,7 +466,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0)); 
     (square(#3.2),x5,square(#3.2));
-    (square(#3.2),x6,square(#3.2));
+    (square(#3.2),x6,square(#3.2))
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.8))`;; 
 
@@ -482,7 +482,7 @@ all_forall `ineq
     ((#4.0),x3,square_2t0);
     ((#4.0),x4,(#4.0)); 
     ((#4.0),x5,square_2t0);
-    ((#4.0),x6,square_2t0);
+    ((#4.0),x6,square_2t0)
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.3))`;; 
 
@@ -496,6 +496,6 @@ all_forall `ineq
      ((#4.0),x3,square_2t0); 
      ((#8.0),x4,(#8.0)); 
      ((#4.0),x5,(#4.0));
-     ((#4.0),x6,(#4.0));
+     ((#4.0),x6,(#4.0))
     ] 
     ((vor_0_x  x1 x2 x3 x4 x5 x6 < -- (#1.04) *pt - (#0.009)))`;; 

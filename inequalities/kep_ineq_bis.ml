@@ -313,6 +313,7 @@ Point: [6.30009985876, 6.30009985876, 4.00000006053, 4.00000007573, 4.0000000757
 
 *)
 (* modified x1-interval 12/4/2008 by tch *)
+(* verified by STM 12/4/2008 *)
 let I_5127197465=
 all_forall `ineq
    [(square (#2.1),x1,(square (#2.3)));
@@ -325,19 +326,6 @@ all_forall `ineq
    ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 < (#0.0)) \/
     (x1 + x2 < x6))`;;
 
-(* variant of 5127197465 in a small corner f the tight spot *)
-(* deprecate? 12/9/08 *)
-let I_1017723951=
-(* 8.82 = (2.1 Sqrt[2])^2, for triangle acuteness condition *)
-all_forall `ineq
-   [((#4.0),x1,(square (#2.1)));
-    ((#4.0),x2,(square (#2.1)));
-    ((#4.0),x3,square_2t0);
-    ((#4.0),x4,square_2t0);
-    ((#4.0),x5,square_2t0);
-    ((#8.0),x6,(#8.82))
-   ]
-   (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0))`;;
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* added 12/9/2008 as an alternative to 1017723951 *)
@@ -357,6 +345,7 @@ all_forall `ineq
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* added 12/9/2008 as an alternative to 1017723951 *)
 (* dim reduction on x6 *)
+(* verified by STM 12/9/2008 *)
 let I_4723770703=
 all_forall `ineq
    [((#4.0),x1,(square (#2.1)));
@@ -370,6 +359,7 @@ all_forall `ineq
 
 (* Revision errata SPV p 182, Lemma 16.7--16.9 *)
 (* dim reduction on x3 *)
+(* verified by STM 12/9/2008 *)
 let I_3013446042=
 all_forall `ineq
    [((#4.0),x1,(square (#2.1)));
@@ -387,7 +377,7 @@ all_forall `ineq
 it reduces to the following cases.  
 This also gives vort_x ... sqrt2 < -1.04 pt. *)
 
-
+(* Revision errata *)
 (* lemma:three-edge *)
 (* verified by S. McLaughlin Nov 3, 2008 *)
 (* biconnected section *)
@@ -402,6 +392,7 @@ all_forall `ineq
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  > (#0.7))`;;
 
+(* Revision errata *)
 (* lemma:three-edge *)
 (* verified by S. McLaughlin Nov 3, 2008 *)
 (* biconnected section *)
@@ -415,6 +406,7 @@ all_forall `ineq
     ((#4.0),x6,square_2t0)
    ]
    (dih_x  x1 x2 x3 x4 x5 x6  < (#1.4))`;;
+
 
 (* Revision, lemma:double-cross *)
 (* changed 11/25/2008 *)
@@ -478,6 +470,7 @@ all_forall `ineq
 
 (* Revision, errata [DCG-p182,Lemma 16.7,SPV] *)
 (* added 12/4/2008 *)
+(* verified by STM 12/4/2008 *)
 
  let I_8990938295=
  all_forall `ineq 

@@ -755,3 +755,18 @@ all_forall `ineq
     ((#8.0),x6,(#8.82))
    ]
    ((vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + pp_m* solid_x x1 x2 x3 x4 x5 x6 - pp_b/(#2.0) < (#0.0)) \/ (vort_x x1 x2 x3 x4 x5 x6 sqrt2 > -- (pt * (#1.04))))`;;
+
+(* variant of 5127197465 in a small corner f the tight spot *)
+(* deprecated 12/9/08 *)
+let I_1017723951=
+(* 8.82 = (2.1 Sqrt[2])^2, for triangle acuteness condition *)
+all_forall `ineq
+   [((#4.0),x1,(square (#2.1)));
+    ((#4.0),x2,(square (#2.1)));
+    ((#4.0),x3,square_2t0);
+    ((#4.0),x4,square_2t0);
+    ((#4.0),x5,square_2t0);
+    ((#8.0),x6,(#8.82))
+   ]
+   (vort_x  x1 x2 x3 x4 x5 x6 sqrt2 + (#0.05)*(x1 + x2 - x6) <= (#0.0))`;;
+

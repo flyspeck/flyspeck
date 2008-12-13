@@ -480,1068 +480,28 @@ MATCH_MP_TAC (MATCH_MP ( MESON[] `(! a b. P a b) ==> P a b` ) (MESON[INTERS_SUBS
 REWRITE_TAC[ SET_RULE` v1 IN t /\ v2 IN t /\ v3 IN t <=> {v1, v2, v3} SUBSET t`] THEN 
 REWRITE_TAC[convex3_in_inters]);;
 
-(* ============ *)
 
-(* MARKED     den het lemma 8.1
-let chuachungminh = prove (`! bar. bar IN barrier s /\
-            ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-            ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) 
-  ==> ~ (v0 IN bar ) `, 
-GEN_TAC THEN REWRITE_TAC[ MESON[]` a /\ b /\ ~ c ==> ~ d <=> a /\ b /\ d ==> c `] THEN 
-REWRITE_TAC[ barrier; IN_ELIM_THM] THEN 
-MATCH_MP_TAC (MESON[ MESON[] ` (?v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          bar = {v1, v2, v3}) /\
-     ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-     v0 IN bar
-     ==> (?v1 v2 v3.
-              (quasi_tri {v1, v2, v3} s \/
-               (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-              ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-              v0 IN {v1, v2, v3}) /\
-         ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-         v0 IN bar ` ] ` ( (?v1 v2 v3.
-              (quasi_tri {v1, v2, v3} s \/
-               (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-              ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-              v0 IN {v1, v2, v3}) /\
-         ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-         v0 IN bar 
-  ==> x IN
-     UNIONS
-     {aff_ge {v0} {v1, v2} | ?v1' v2' v3.
-                                 (quasi_tri {v1', v2', v3} s \/
-                                  (?v4. {v1', v2', v3} UNION {v4} IN Q_SYS s)) /\
-                                 {v0, v1, v2} = {v1', v2', v3}} )
-  ==> ((?v1 v2 v3.
-      (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-      bar = {v1, v2, v3}) /\
- ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
- v0 IN bar
- ==> x IN
-     UNIONS
-     {aff_ge {v0} {v1, v2} | ?v1' v2' v3.
-                                 (quasi_tri {v1', v2', v3} s \/
-                                  (?v4. {v1', v2', v3} UNION {v4} IN Q_SYS s)) /\
-                                 {v0, v1, v2} = {v1', v2', v3}})`) THEN 
-REWRITE_TAC[SET_RULE` v0 IN {v1, v2, v3} <=> v0 = v1 \/ v0 = v2 \/ v0 = v3`] THEN 
-REWRITE_TAC[ MESON[] ` (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-      (v0 = v1 \/ v0 = v2 \/ v0 = v3) <=>
-  ((quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) ) /\
-      (v0 = v1 \/ v0 = v2 \/ v0 = v3)`] THEN 
-MATCH_MP_TAC (MESON[]`! P. (! (a:real^3) (b:real^3) (c:real^3). P a b c <=> P b a c ) /\ (
-  (? (a:real^3) (b:real^3) (c:real^3). P a b c /\ (v = a \/ v = c )) /\ cc ==> last )
-  ==> ( (?(a:real^3) (b:real^3) (c:real^3). P a b c /\ ( v = a \/ v= b \/ v = c )) /\ cc ==> last )`) THEN 
-REWRITE_TAC[MESON[ SET_RULE ` ! (a:real^3) (b:real^3) (c:real^3). {a, b, c} = { b, a, c}`]`
-  (!v1 v2 v3.
-      (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) <=>
-      (quasi_tri {v2, v1, v3} s \/ (?v4. {v2, v1, v3} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v2, v1, v3} = {}))`] THEN 
-MATCH_MP_TAC (MESON[]` !P. (!(a:real^3) (b:real^3) (c:real^3). P a b c <=> P c b a) /\
-         ((?(a:real^3) (b:real^3) (c:real^3). P a b c /\ v = a) /\ cc ==> last)
-         ==> (?(a:real^3) (b:real^3) (c:real^3). P a b c /\ (v = a \/ v = c)) /\ cc
-         ==> last `) THEN 
-REWRITE_TAC[MESON[ SET_RULE ` ! (a:real^3) (b:real^3) (c:real^3). { a, b , c } = { c, b , a }`]`
-  (!v1 v2 v3.
-      (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) <=>
-      (quasi_tri {v3, v2, v1} s \/ (?v4. {v3, v2, v1} UNION {v4} IN Q_SYS s)) /\
-      ~(conv0_2 {v0, x} INTER conv_trg {v3, v2, v1} = {})) `] THEN 
-REWRITE_TAC[ SET_RULE ` ~ ( a INTER b = {} ) <=> ( ? i j. i IN a/\ j IN b /\ i = j )`] THEN 
-REWRITE_TAC[simpl_conv3; simp_def; IN_ELIM_THM] THEN 
-REWRITE_TAC[ MESON[]` (?i j.
-            (?t. &0 < t /\ t < &1 /\ i = t % v0 + (&1 - t) % x) /\
-            (?a b c.
-                 &0 <= a /\
-                 &0 <= b /\
-                 &0 <= c /\
-                 a + b + c = &1 /\
-                 j = a % v1 + b % v2 + c % v3) /\
-            i = j)
-  <=> ( ? a b c t. &0 < t /\ t < &1 /\ &0 <= a /\
-                 &0 <= b /\
-                 &0 <= c /\
-                 a + b + c = &1 /\ t % v0 + (&1 - t) % x = a % v1 + b % v2 + c % v3 )`] THEN 
-REWRITE_TAC[ MESON[] ` ((quasi_tri {v1, v2, v3} s \/
-        (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-       (?a b c t.
-            &0 < t /\
-            t < &1 /\
-            &0 <= a /\
-            &0 <= b /\
-            &0 <= c /\
-            a + b + c = &1 /\
-            t % v0 + (&1 - t) % x = a % v1 + b % v2 + c % v3)) /\
-      v0 = v1 
-  <=>  ((quasi_tri {v1, v2, v3} s \/
-        (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-       (?a b c t.
-            &0 < t /\
-            t < &1 /\
-            &0 <= a /\
-            &0 <= b /\
-            &0 <= c /\
-            a + b + c = &1 /\
-            t % v1 + (&1 - t) % x = a % v1 + b % v2 + c % v3)) /\
-      v0 = v1 `] THEN 
-REWRITE_TAC [ VECTOR_ARITH ` t % v1 + (&1 - t) % x = a % v1 + b % v2 + c % v3 <=>
-     (&1 - t) % x = --t % v1 + a % v1 + b % v2 + c % v3`] THEN 
-REWRITE_TAC[ MESON[REAL_FIELD` (! t.  t < &1 <=> &0 < &1 - t ) /\ (! a b. &0 < a ==> b = a * ( b / a )) ` ] `
-  (?a b c t.
-          &0 < t /\
-          t < &1 /\
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          (&1 - t) % x = --t % v1 + a % v1 + b % v2 + c % v3) <=>
-     (?a b c t.
-          &0 < t /\
-          t < &1 /\
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          --t = (&1 - t) * --t / (&1 - t) /\
-          a = (&1 - t) * a / (&1 - t) /\
-          b = (&1 - t) * b / (&1 - t) /\
-          c = (&1 - t) * c / (&1 - t) /\
-          (&1 - t) % x = --t % v1 + a % v1 + b % v2 + c % v3) `] THEN 
-REWRITE_TAC[MESON[]` --t = (&1 - t) * --t / (&1 - t) /\
-     a = (&1 - t) * a / (&1 - t) /\
-     b = (&1 - t) * b / (&1 - t) /\
-     c = (&1 - t) * c / (&1 - t) /\
-     (&1 - t) % x = --t % v1 + a % v1 + b % v2 + c % v3 <=>
-     --t = (&1 - t) * --t / (&1 - t) /\
-     a = (&1 - t) * a / (&1 - t) /\
-     b = (&1 - t) * b / (&1 - t) /\
-     c = (&1 - t) * c / (&1 - t) /\
-     (&1 - t) % x =
-     ((&1 - t) * --t / (&1 - t)) % v1 +
-     ((&1 - t) * a / (&1 - t)) % v1 +
-     ((&1 - t) * b / (&1 - t)) % v2 +
-     ((&1 - t) * c / (&1 - t)) % v3 `] THEN 
-REWRITE_TAC[ VECTOR_ARITH ` ( a * b ) % w = a % ( b % w ) /\ a % v + a % w = a % ( v + w )`] THEN 
-REWRITE_TAC[ MESON[REAL_ARITH ` t < &1 ==> ~ ( &1 - t = &0 )`; VECTOR_MUL_LCANCEL_IMP ]`
-  &0 < t /\
-     t < &1 /\
-     &0 <= a /\
-     &0 <= b /\
-     &0 <= c /\
-     a + b + c = &1 /\
-     --t = (&1 - t) * --t / (&1 - t) /\
-     a = (&1 - t) * a / (&1 - t) /\
-     b = (&1 - t) * b / (&1 - t) /\
-     c = (&1 - t) * c / (&1 - t) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v1 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) <=>
-     &0 < t /\
-     t < &1 /\
-     &0 <= a /\
-     &0 <= b /\
-     &0 <= c /\
-     a + b + c = &1 /\
-     --t = (&1 - t) * --t / (&1 - t) /\
-     a = (&1 - t) * a / (&1 - t) /\
-     b = (&1 - t) * b / (&1 - t) /\
-     c = (&1 - t) * c / (&1 - t) /\
-     x =
-     --t / (&1 - t) % v1 +
-     a / (&1 - t) % v1 +
-     b / (&1 - t) % v2 +
-     c / (&1 - t) % v3 `] THEN 
-REWRITE_TAC[ VECTOR_ARITH ` a % v1 + b % v1 + c % v2 + d % v3 = ( a + b ) % v1 + c % v2 + d % v3 `] THEN 
-ONCE_REWRITE_TAC[ REAL_ARITH ` t < &1 <=> t < &1 /\ &0 <= &1 - t `] THEN 
-REWRITE_TAC[ MESON[REAL_LE_DIV; REAL_FIELD ` a + b + c = &1 /\ t < &1 ==> (--t / (&1 - t) + a / (&1 - t)) +
-  b / (&1 - t) + c / (&1 - t) = &1 ` ]` (?a b c t.
-          &0 < t /\
-          (t < &1 /\ &0 <= &1 - t) /\
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          --t = (&1 - t) * --t / (&1 - t) /\
-          a = (&1 - t) * a / (&1 - t) /\
-          b = (&1 - t) * b / (&1 - t) /\
-          c = (&1 - t) * c / (&1 - t) /\
-          x =
-          (--t / (&1 - t) + a / (&1 - t)) % v1 +
-          b / (&1 - t) % v2 +
-          c / (&1 - t) % v3) <=>
-     (?a b c t.
-          &0 < t /\
-          (t < &1 /\ &0 <= &1 - t) /\
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          --t = (&1 - t) * --t / (&1 - t) /\
-          a = (&1 - t) * a / (&1 - t) /\
-          b = (&1 - t) * b / (&1 - t) /\
-          c = (&1 - t) * c / (&1 - t) /\
-          &0 <= b / (&1 - t) /\
-          &0 <= c / (&1 - t) /\
-          (--t / (&1 - t) + a / (&1 - t)) + b / (&1 - t) + c / (&1 - t) = &1 /\
-          x =
-          (--t / (&1 - t) + a / (&1 - t)) % v1 +
-          b / (&1 - t) % v2 +
-          c / (&1 - t) % v3) `] THEN 
-ONCE_REWRITE_TAC[ MESON[] ` ( ?v1' v2' v3.
-         (quasi_tri {v1', v2', v3} s \/
-          (?v4. {v1', v2', v3} UNION {v4} IN Q_SYS s)) /\
-         {v0, v1, v2} = {v1', v2', v3} ) <=>
-         quasi_tri {v0, v1, v2} s \/
-         (?v4. {v0, v1, v2} UNION {v4} IN Q_SYS s)`] THEN  
-REWRITE_TAC[ IN_UNIONS; IN_ELIM_THM] THEN 
 
-REWRITE_TAC[ MESON[] ` (?t. (?v0 v1 v2.
-               (quasi_tri {v0, v1, v2} s \/
-                (?v4. {v0, v1, v2} UNION {v4} IN Q_SYS s)) /\
-               t =
-               {t | ?u v w.
-                        &0 <= v /\
-                        &0 <= w /\
-                        u + v + w = &1 /\
-                        t = u % v0 + v % v1 + w % v2}) /\
-          x IN t)
-  <=> (?v0 v1 v2.
-               (quasi_tri {v0, v1, v2} s \/
-                (?v4. {v0, v1, v2} UNION {v4} IN Q_SYS s)) /\
-            x IN {t | ?u v w.
-                        &0 <= v /\
-                        &0 <= w /\
-                        u + v + w = &1 /\
-                        t = u % v0 + v % v1 + w % v2}) `] THEN 
-SET_TAC[]);;
 
 
 
 
-g `! X Z s v0. ( center_pac s v0 /\
-  Z = UNIONS { aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s} /\
-  X = UNIONS {aff_gt {v0} {v1, v2, v3} INTER
-       aff_le {v1, v2, v3} {v0} INTER
-       voronoi2 v0 s | {v0, v1, v2, v3} IN Q_SYS s} )
-  ==> ( voronoi2 v0 s SUBSET X UNION Z UNION VC_trg v0 s )`;;
 
 
 
-e (REPEAT GEN_TAC THEN DISCH_TAC THEN SIMP_TAC[trg_sub_se] THEN SIMP_TAC [ trg_in_union ] 
- THEN REWRITE_TAC[ MESON[] `( !x. x IN voronoi2 v0 s ==> x IN X \/ x IN Z \/ x IN VC_trg v0 s )
-   <=> ( !x. x IN voronoi2 v0 s ==> x IN Z \/ x IN VC_trg v0 s \/ x IN X )`] THEN
-SIMP_TAC [ MESON[] ` A ==> B \/ C <=> A /\ ~ B ==> C`] THEN 
-ASM_REWRITE_TAC[voronoi2 ; VC_trg ] THEN REWRITE_TAC[ not_in_set3] THEN REWRITE_TAC [IN_ELIM_THM] THEN
- REWRITE_TAC[trg_d3_sym]THEN REWRITE_TAC[ MESON[] ` (( A /\ B ) /\ C ) /\ ( ~B \/ D \/ E ) <=>
-  (( A /\ B ) /\ C ) /\ ( D \/ E )`] THEN SIMP_TAC[ MESON[] ` ((A/\B) /\ C) <=> A /\ B /\ C`]
-THEN REWRITE_TAC [d3 ; voronoi_trg;IN_ELIM_THM] THEN 
- REWRITE_TAC [ MESON[ IN ; EQ_SYM_EQ ; DIST_SYM] `(!w. s w /\ ~(w = v0) ==> dist (x,v0) < dist (x,w))
-                   <=> (!y. y IN s /\ ~(v0 = y) ==> dist (v0,x) < dist (x,y)) ` ] THEN
-REWRITE_TAC[ MESON[] ` A /\ B /\ C /\ ( D \/ ~A) <=> A /\ B /\ C /\ D` ; DIST_SYM ; EQ_SYM_EQ ]
- THEN REWRITE_TAC[obstructed] THEN REWRITE_TAC[ MESON[] ` a /\ b /\c/\( d \/ e ) <=> a /\ b /\ c /\ d \/ a /\ b /\ c /\ e `]
-THEN SIMP_TAC[MESON[]` (!y. y IN s /\ ~(v0 = y) ==> dist (v0,x) < dist (x,y)) /\
-     dist (v0,x) < &2 /\
-     ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-     ~(!y. y IN s /\
-           ~(v0 = y) /\
-           ~(?bar. bar IN barrier s /\
-                   ~(conv0_2 {x, y} INTER conv_trg bar = {}))
-           ==> dist (v0,x) < dist (x,y)) <=> F `] THEN 
-REWRITE_TAC[MESON[] ` 
-     ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-     (?bar. bar IN barrier s /\ ~(conv0_2 {v0, x} INTER conv_trg bar = {})) 
-  <=> (?bar. bar IN barrier s /\ ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-  ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}))`]
-THEN GEN_TAC THEN REWRITE_TAC[TAUT `( a /\ b /\ c ==> d) = ( c ==> ( a /\ b) ==> d )`] 
-THEN MP_TAC chuachungminh THEN REWRITE_TAC[usefull] THEN 
-UNDISCH_TAC `center_pac s v0 /\
-      Z = UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s} /\
-      X =
-      UNIONS
-      {aff_gt {v0} {v1, v2, v3} INTER
-       aff_le {v1, v2, v3} {v0} INTER
-       voronoi2 v0 s | {v0, v1, v2, v3} IN Q_SYS s}` THEN
- REWRITE_TAC[ TAUT ` a ==> b ==> c ==> d ==> e <=> 
-  b ==> a ==> c ==> d ==> e `] THEN DISCH_TAC THEN POP_ASSUM_LIST REWRITE_TAC 
-THEN DISCH_TAC THEN REWRITE_TAC[ MESON[] ` a ==> b ==> c <=> a /\ b ==> c `]
-THEN REWRITE_TAC[ MESON[] ` ( ? x . p x ) /\ ng <=> ( ? x. p x /\ ng )`] THEN 
-REWRITE_TAC[MESON [IN ; EQ_SYM_EQ ; DIST_SYM ] ` ( !y. (y IN s /\ ~(v0 = y) ==> dist (v0,x) < dist (x,y))) <=>
-  ( !y. ( s y /\ ~(y = v0) ==> dist (x,v0) < dist (x,y)) ) `] THEN 
-PURE_ONCE_REWRITE_TAC[SET_RULE ` (!y. s y /\ ~(y = v0) ==> dist (x,v0) < dist (x,y)) <=>   ( x IN { x | !y. s y /\ ~(y = v0) ==> dist (x,v0) < dist (x,y)} )`]
-THEN REWRITE_TAC [ MESON[voronoi_trg] ` ( x IN {x | !y. s y /\ ~(y = v0) ==> dist (x,v0) < dist (x,y)} )
-  <=> x IN voronoi_trg v0 s `] THEN REWRITE_TAC [ GSYM d3 ] THEN 
-PURE_ONCE_REWRITE_TAC[ SET_RULE ` x IN voronoi_trg v0 s /\
-        d3 v0 x < &2 <=> x IN { x | x IN voronoi_trg v0 s /\ d3 v0 x < &2 } `] THEN
-PURE_ONCE_REWRITE_TAC[ MESON[ trg_d3_sym] ` d3 v0 x = d3 x v0`] THEN 
-PURE_ONCE_REWRITE_TAC[ MESON[voronoi2] `{x | x IN voronoi_trg v0 s /\ d3 x v0 < &2} = voronoi2 v0 s `]
- THEN REWRITE_TAC [ TAUT ` (( a /\ b /\ c)/\d)/\e <=>  a /\ b /\ c/\d/\e `]);;
 
 
-e (PURE_ONCE_REWRITE_TAC [ TAUT `( bar IN barrier s /\
-        ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-        ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-        ~(v0 IN bar) /\
-        x IN voronoi2 v0 s )
-  =
-  (      bar IN barrier s /\
-         ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-          ~(v0 IN bar) /\
-           x IN voronoi2 v0 s /\ 
-         ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) 
-  )`] THEN MP_TAC tarski_arith THEN
-PURE_ONCE_REWRITE_TAC[ SET_RULE ` conv_trg bar INTER conv0_2 {v0, x} = {} <=> 
-  conv0_2 {v0, x} INTER  conv_trg bar = {} `] THEN 
-ASM_REWRITE_TAC[ MESON[] ` (! x. p x ==> q x ) ==> ( ? x. p x ) ==> e 
-  <=> (! x. p x ==> q x ) ==> ( ? x. p x /\ q x ) ==> e `]);;
 
 
 
 
-e (REWRITE_TAC[ MESON[barrier] `  (bar IN barrier s /\
-             ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-             ~(v0 IN bar) /\
-             x IN voronoi2 v0 s /\
-             ~(x IN
-               UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s})) /\
-            {v0} UNION bar IN Q_SYS s
-  <=>    bar IN {{v1, v2, v3} | quasi_tri {v1, v2, v3} s \/
-                     (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)} /\
-             ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-             ~(v0 IN bar) /\
-             x IN voronoi2 v0 s /\
-             ~(x IN
-               UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-            {v0} UNION bar IN Q_SYS s `] THEN 
-REWRITE_TAC[IN_ELIM_THM] THEN 
-REWRITE_TAC[ MESON[] `(?v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          bar = {v1, v2, v3}) /\
-     ~(conv0_2 {v0, x} INTER conv_trg bar = {}) /\
-     ~(v0 IN bar) /\
-     x IN voronoi2 v0 s /\
-     ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-     {v0} UNION bar IN Q_SYS s <=>
-     (?v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          bar = {v1, v2, v3} /\
-          ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-          ~(v0 IN {v1, v2, v3}) /\
-          x IN voronoi2 v0 s /\
-          ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-          {v0} UNION {v1, v2, v3} IN Q_SYS s) `] THEN 
-REWRITE_TAC[MESON [] `(?bar v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          bar = {v1, v2, v3} /\
-          ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-          ~(v0 IN {v1, v2, v3}) /\
-          x IN voronoi2 v0 s /\
-          ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-          {v0} UNION {v1, v2, v3} IN Q_SYS s) <=>
-     (?v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          ~(conv0_2 {v0, x} INTER conv_trg {v1, v2, v3} = {}) /\
-          ~(v0 IN {v1, v2, v3}) /\
-          x IN voronoi2 v0 s /\
-          ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-          {v0} UNION {v1, v2, v3} IN Q_SYS s) `] THEN 
-REWRITE_TAC[ SET_RULE` ~ (a INTER b ={}) <=> (? i j. i IN a /\ j IN b /\ i = j)`] THEN 
 
 
 
 
 
 
-PURE_ONCE_REWRITE_TAC[SET_RULE ` ~ ( a INTER b = {}) <=> ( ? x y. x IN a /\ y IN b /\ x = y)`] THEN
-REWRITE_TAC[simp_def; simpl_conv3] THEN
-REWRITE_TAC[IN_ELIM_THM] THEN 
-REWRITE_TAC[MESON[] `(?i j.
-          (?t. &0 < t /\ t < &1 /\ i = t % v0 + (&1 - t) % x) /\
-          (?a b c.
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1 /\
-               j = a % v1 + b % v2 + c % v3) /\
-          i = j) <=>
-     (?t a b c.
-          &0 < t /\
-          t < &1 /\
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          t % v0 + (&1 - t) % x = a % v1 + b % v2 + c % v3) `] THEN 
-REWRITE_TAC[ VECTOR_ARITH ` t % v0 + (&1 - t) % x = a % v1 + b % v2 + c % v3
-  <=> (&1 - t ) % x = -- ( t % v0 ) + a % v1 + b % v2 + c % v3 `] THEN 
-REWRITE_TAC[ VECTOR_ARITH ` --( t % v0 ) = ( -- t) % v0 `] THEN 
-REWRITE_TAC [ REAL_ARITH ` t < &1 <=> &0 < &1 - t `] THEN 
-PURE_ONCE_REWRITE_TAC[MESON[ REAL_FIELD ` &0 < &1 - t ==> ( ! a . a = (&1 - t ) * ( a / ( &1 - t )))`]`
-  &0 < &1 - t <=> &0 < &1 - t /\ --t = (&1 - t) * ( --t ) / (&1 - t) /\  a = (&1 - t) * a / (&1 - t) 
-  /\  b = (&1 - t) * b / (&1 - t) /\  c = (&1 - t) * c / (&1 - t)`] THEN 
-REWRITE_TAC[MESON[]` (?t a b c.
-               &0 < t /\
-               (&0 < &1 - t /\
-                --t = (&1 - t) * --t / (&1 - t) /\
-                a = (&1 - t) * a / (&1 - t) /\
-                b = (&1 - t) * b / (&1 - t) /\
-                c = (&1 - t) * c / (&1 - t)) /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1 /\
-               (&1 - t) % x = --t % v0 + a % v1 + b % v2 + c % v3)
-  <=> (?t a b c.
-               &0 < t /\
-               (&0 < &1 - t /\
-                --t = (&1 - t) * --t / (&1 - t) /\
-                a = (&1 - t) * a / (&1 - t) /\
-                b = (&1 - t) * b / (&1 - t) /\
-                c = (&1 - t) * c / (&1 - t)) /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1 /\
-               (&1 - t) % x = ((&1 - t) * --t / (&1 - t)) % v0 + ((&1 - t) * a / (&1 - t)) % v1 + ((&1 - t) * b / (&1 - t)) % v2 +((&1 - t) * c / (&1 - t)) % v3)`] THEN 
-REWRITE_TAC[VECTOR_ARITH` ((&1 - t) * --t / (&1 - t)) % v0 +
-               ((&1 - t) * a / (&1 - t)) % v1 +
-               ((&1 - t) * b / (&1 - t)) % v2 +
-               ((&1 - t) * c / (&1 - t)) % v3 
-   =          (&1 - t ) % ( (--t / (&1 - t)) % v0 + (a / (&1 - t)) % v1 + (b / (&1 - t)) % v2 + (c / (&1 - t)) % v3)`] THEN 
-PURE_ONCE_REWRITE_TAC[REAL_ARITH` &0 < a <=> &0 < a /\ ~ ( a = &0 )`] THEN 
-REWRITE_TAC[MESON[MESON[VECTOR_MUL_LCANCEL_IMP]` ~ (( &1 - t) = &0 ) /\ (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3) <=> ~ (( &1 - t) = &0 ) /\ (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3)/\ x =
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3) `] ` (&0 < t /\ ~(t = &0)) /\
-               ((&0 < &1 - t /\ ~(&1 - t = &0)) /\
-                --t = (&1 - t) * --t / (&1 - t) /\
-                a = (&1 - t) * a / (&1 - t) /\
-                b = (&1 - t) * b / (&1 - t) /\
-                c = (&1 - t) * c / (&1 - t)) /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1 /\
-               (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3)
-  <=> (&0 < t /\ ~(t = &0)) /\
-               ((&0 < &1 - t /\ ~(&1 - t = &0)) /\
-                --t = (&1 - t) * --t / (&1 - t) /\
-                a = (&1 - t) * a / (&1 - t) /\
-                b = (&1 - t) * b / (&1 - t) /\
-                c = (&1 - t) * c / (&1 - t)) /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1 /\
-               (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3) /\
-     x =
-     --t / (&1 - t) % v0 +
-     a / (&1 - t) % v1 +
-     b / (&1 - t) % v2 +
-     c / (&1 - t) % v3 `] THEN 
-REWRITE_TAC[ REAL_ARITH `(&0 < t /\ ~(t = &0)) <=> ( &0 < t )`] THEN 
-REWRITE_TAC[ MESON[REAL_LT_IMP_NZ ; REAL_FIELD ` ~ ( a = &0 ) ==> ( ! b. b = a * b / a )`]`(&0 < &1 - t /\
-                --t = (&1 - t) * --t / (&1 - t) /\
-                a = (&1 - t) * a / (&1 - t) /\
-                b = (&1 - t) * b / (&1 - t) /\
-                c = (&1 - t) * c / (&1 - t)) <=> (&0 < &1 - t )`] THEN 
-PURE_ONCE_REWRITE_TAC [ MESON[REAL_ARITH ` (! a . &0 < a ==> &0 <= a)` ; REAL_LE_DIV ] `
-   &0 < t /\ &0 < &1 - t /\ &0 <= a /\ &0 <= b /\ &0 <= c /\ vc <=>
-     &0 < t /\
-     &0 < &1 - t /\
-     &0 <= a /\
-     &0 <= b /\
-     &0 <= c /\
-     &0 <= t / (&1 - t) /\
-     &0 <= a / (&1 - t) /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     vc `] THEN 
-REWRITE_TAC[REAL_ARITH` &0 <= t / (&1 - t) <=> --t /(&1 - t ) <= &0 `] THEN 
-PURE_ONCE_REWRITE_TAC[ MESON[ REAL_FIELD ` a + b + c = &1 /\ &0 < &1 - t ==> --t / (&1 - t) +
-               a / (&1 - t) +
-               b / (&1 - t) +
-               c / (&1 - t) = &1 `]
-  ` &0 < t /\
-               &0 < &1 - t /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               --t / (&1 - t) <= &0 /\
-               &0 <= a / (&1 - t) /\
-               &0 <= b / (&1 - t) /\
-               &0 <= c / (&1 - t) /\
-               a + b + c = &1 /\ vc  <=>
-  &0 < t /\
-               &0 < &1 - t /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               --t / (&1 - t) <= &0 /\
-               &0 <= a / (&1 - t) /\
-               &0 <= b / (&1 - t) /\
-               &0 <= c / (&1 - t) /\
-               a + b + c = &1 /\ --t / (&1 - t) +
-               a / (&1 - t) +
-               b / (&1 - t) +
-               c / (&1 - t) = &1 /\ vc`] THEN REWRITE_TAC[ GSYM simp_def] THEN 
-PURE_ONCE_REWRITE_TAC[MESON[]` (?v1 v2 v3.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-          (?t a b c.
-               &0 < t /\
-               &0 < &1 - t /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               --t / (&1 - t) <= &0 /\
-               &0 <= a / (&1 - t) /\
-               &0 <= b / (&1 - t) /\
-               &0 <= c / (&1 - t) /\
-               a + b + c = &1 /\
-               --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) =
-               &1 /\
-               (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3) /\
-               x =
-               --t / (&1 - t) % v0 +
-               a / (&1 - t) % v1 +
-               b / (&1 - t) % v2 +
-               c / (&1 - t) % v3) /\
-          ~(v0 IN {v1, v2, v3}) /\
-          x IN voronoi2 v0 s /\
-          ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-          {v0} UNION {v1, v2, v3} IN Q_SYS s)
-  <=> (? a b v1 v2. (?v3 t c.
-          (quasi_tri {v1, v2, v3} s \/
-           (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-         
-               &0 < t /\
-               &0 < &1 - t /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               --t / (&1 - t) <= &0 /\
-               &0 <= a / (&1 - t) /\
-               &0 <= b / (&1 - t) /\
-               &0 <= c / (&1 - t) /\
-               a + b + c = &1 /\
-               --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) =
-               &1 /\
-               (&1 - t) % x =
-               (&1 - t) %
-               (--t / (&1 - t) % v0 +
-                a / (&1 - t) % v1 +
-                b / (&1 - t) % v2 +
-                c / (&1 - t) % v3) /\
-               x =
-               --t / (&1 - t) % v0 +
-               a / (&1 - t) % v1 +
-               b / (&1 - t) % v2 +
-               c / (&1 - t) % v3 /\
-          ~(v0 IN {v1, v2, v3}) /\
-          x IN voronoi2 v0 s /\
-          ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-          {v0} UNION {v1, v2, v3} IN Q_SYS s))`] THEN 
-DISCH_TAC THEN 
-MATCH_MP_TAC (MESON[REAL_ARITH ` ! a b. a <= b \/ b <= a `] ` ( ! (a:real) b (v1:real^3) (v2:real^3). Q a b v1 v2 = Q b a v2 v1 ) /\
-  ((? (a:real) (b:real) (v1:real^3) (v2:real^3). Q a b v1 v2 ) /\ (? (a:real) b (v1:real^3) (v2:real^3). a <= b /\ Q a b v1 v2) ==> c) ==> ((? a b (v1:real^3) (v2:real^3). Q a b v1 v2) ==> c ) `) THEN 
-CONJ_TAC THEN REPEAT GEN_TAC THEN 
-REWRITE_TAC [ MESON[]` (quasi_tri {v2, v1, v3} s \/ (?v4. {v2, v1, v3} UNION {v4} IN Q_SYS s)) /\
-      &0 < t /\
-      &0 < &1 - t /\
-      &0 <= b /\
-      &0 <= a /\
-      &0 <= c /\
-      --t / (&1 - t) <= &0 /\
-      &0 <= b / (&1 - t) /\
-      &0 <= a / (&1 - t) /\
-      &0 <= c / (&1 - t) /\
-      b + a + c = &1 /\
-      --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1 /\ nnn
-  <=> (quasi_tri {v2, v1, v3} s \/ (?v4. {v2, v1, v3} UNION {v4} IN Q_SYS s)) /\
-      &0 < t /\
-      &0 < &1 - t /\
-      &0 <= b /\
-      &0 <= a /\
-      &0 <= c /\
-      --t / (&1 - t) <= &0 /\
-      &0 <= b / (&1 - t) /\
-      &0 <= a / (&1 - t) /\
-      &0 <= c / (&1 - t) /\
-     ( b + a + c = &1 /\
-      --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1 )/\ nnn` ] THEN 
-REWRITE_TAC[ MESON[]` ( a <=> b ) <=> ( a ==> b ) /\ ( b==> a )`] THEN REWRITE_TAC[]);;
-e (CONJ_TAC );; 
-e (DISCH_TAC THEN 
-ONCE_REWRITE_TAC[ REAL_ARITH ` (b + a + c = &1 /\
-      --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1) 
-  <=> (a + b + c = &1 /\
-           --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) `] THEN 
-REWRITE_TAC [VECTOR_ARITH ` (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      b / (&1 - t) % v2 +
-      a / (&1 - t) % v1 +
-      c / (&1 - t) % v3) <=> (&1 - t) % x =
-          (&1 - t) %
-          (--t / (&1 - t) % v0 +
-           a / (&1 - t) % v1 +
-           b / (&1 - t) % v2 +
-           c / (&1 - t) % v3) `] THEN 
-REWRITE_TAC[ VECTOR_ARITH ` x =
-     --t / (&1 - t) % v0 +
-     b / (&1 - t) % v2 +
-     a / (&1 - t) % v1 +
-     c / (&1 - t) % v3 <=> x =
-          --t / (&1 - t) % v0 +
-          a / (&1 - t) % v1 +
-          b / (&1 - t) % v2 +
-          c / (&1 - t) % v3 `] THEN 
-REWRITE_TAC [ SET_RULE ` ! v1 v2 (v3:real^3 ). { v1, v2 , v3} = { v2 , v1 , v3}`] THEN 
-FIRST_X_ASSUM MP_TAC THEN MESON_TAC[] THEN 
-DISCH_TAC THEN ONCE_REWRITE_TAC[  REAL_ARITH ` ! a b (c:real). (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1)
-  
-  <=> (b + a + c = &1 /\
-           --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1) `] THEN 
-ONCE_REWRITE_TAC [VECTOR_ARITH ` (&1 - t) % x =
-          (&1 - t) %
-          (--t / (&1 - t) % v0 +
-           a / (&1 - t) % v1 +
-           b / (&1 - t) % v2 +
-           c / (&1 - t) % v3)  <=> (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      b / (&1 - t) % v2 +
-      a / (&1 - t) % v1 +
-      c / (&1 - t) % v3)` ] THEN 
-ONCE_REWRITE_TAC [VECTOR_ARITH ` x =
-     --t / (&1 - t) % v0 +
-     a / (&1 - t) % v1 +
-     b / (&1 - t) % v2 +
-     c / (&1 - t) % v3  <=> x =
-          --t / (&1 - t) % v0 +
-          b / (&1 - t) % v2 +
-          a / (&1 - t) % v1 +
-          c / (&1 - t) % v3` ] THEN 
-ONCE_REWRITE_TAC [ SET_RULE ` ! v1 v2 (v3:real^3). {v1 , v2 ,v3} = { v2, v1, v3}`] THEN 
-REWRITE_TAC[ MESON[ SET_RULE ` { a , b, c} = { b, a , c}`]` {v1, v0, v2} IN barrier s
-  <=> {v0, v1, v2} IN barrier s `] THEN 
-FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);;  
-
-
-
-e (DISCH_TAC THEN ONCE_REWRITE_TAC[REAL_ARITH ` !a b c.
-         a + b + c = &1 /\
-         --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1 <=>
-         b + a + c = &1 /\
-         --t / (&1 - t) + b / (&1 - t) + a / (&1 - t) + c / (&1 - t) = &1 `;
-  VECTOR_ARITH ` (&1 - t) % x =
- (&1 - t) %
- (--t / (&1 - t) % v0 +
-  a / (&1 - t) % v1 +
-  b / (&1 - t) % v2 +
-  c / (&1 - t) % v3) <=> (&1 - t) % x 
-  = ( &1 - t ) % (--t / (&1 - t) % v0  +
-      b / (&1 - t) % v2 +
-      a / (&1 - t) % v1 +
-      c / (&1 - t) % v3 ) `; VECTOR_ARITH ` x =
- --t / (&1 - t) % v0 +
- a / (&1 - t) % v1 +
- b / (&1 - t) % v2 +
- c / (&1 - t) % v3 <=> x =
-     --t / (&1 - t) % v0  +
-     b / (&1 - t) % v2 +
-     a / (&1 - t) % v1 +
-     c / (&1 - t) % v3 `] THEN 
-ONCE_REWRITE_TAC[  SET_RULE `! v1 v2 (v3:real^3). { v1, v2, v3} = {v2, v1 ,v3} `] THEN 
-ONCE_REWRITE_TAC[MESON [SET_RULE ` ! a b c. { a, b, c} = {b, a, c}` ]`( ! a b c s. {a, b, c} IN
-    barrier s <=> {b, a, c } IN barrier s) `] THEN FIRST_X_ASSUM MP_TAC THEN MESON_TAC[] );; 
-e (MATCH_MP_TAC (MESON[]` ( b ==> c ) ==> ( a /\ b ==> c ) ` ) THEN 
-REWRITE_TAC[ MESON[]` (?a b v1 v2. a <= b /\(?v3 t c. Q a b c v1 v2 v3 t )) <=>
-  (? a b c v1 v2 v3 t. a <= b /\ Q a b c v1 v2 v3 t )`] THEN 
-
-
-MATCH_MP_TAC (MESON[ REAL_ARITH ` ! a (b:real). a <= b \/ b <= a `; REAL_ARITH`! a b c:real. a <= b /\ b <= c ==> a <= c`] ` ( !(a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
-  Q a b c v1 v2 v3 t <=> Q c b a v3 v2 v1 t ) /\ ((? (a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
-  a <= b /\ a <= c /\ Q a b c v1 v2 v3 t ) ==> last )  ==> ((? (a:real) b (c:real) (v1:real^3) (v2:real^3) (v3:real^3) t.
-  a <= b /\  Q a b c v1 v2 v3 t ) ==> last ) `));;
-
-
-
-e (CONJ_TAC THEN REPEAT GEN_TAC);;
-e (MESON_TAC[REAL_ARITH ` !a b c.
-         a + b + c = &1 /\
-         --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1 <=>
-         c + b + a = &1 /\
-         --t / (&1 - t) + c / (&1 - t) + b / (&1 - t) + a / (&1 - t) = &1 `;
-  VECTOR_ARITH ` (&1 - t) % x =
- (&1 - t) %
- (--t / (&1 - t) % v0 +
-  a / (&1 - t) % v1 +
-  b / (&1 - t) % v2 +
-  c / (&1 - t) % v3) <=> (&1 - t) % x 
-  = ( &1 - t ) % (--t / (&1 - t) % v0 +
-      c / (&1 - t) % v3 +
-      b / (&1 - t) % v2 +
-      a / (&1 - t) % v1) `; VECTOR_ARITH ` x =
- --t / (&1 - t) % v0 +
- a / (&1 - t) % v1 +
- b / (&1 - t) % v2 +
- c / (&1 - t) % v3 <=> x =
-     --t / (&1 - t) % v0 +
-     c / (&1 - t) % v3 +
-     b / (&1 - t) % v2 +
-     a / (&1 - t) % v1 ` ;MESON[SET_RULE ` ! a b c. { a, b, c} = {c, b, a}` ]`( ! a b c s. {a, b, c} IN
-    barrier s <=> {c, b, a } IN barrier s) ` ;  SET_RULE `! v1 v2 (v3:real^3). { v1, v2, v3} = {v3, v2 ,v1} `]);;
-e (REWRITE_TAC[ MESON[ REAL_ARITH ` ! a. &0 <= a <=> &0 = a \/ &0 < a `] ` 
-  a <= b /\
-     a <= c /\
-     (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-     &0 < t /\
-     &0 < &1 - t /\
-     &0 <= a /\
-     ccc <=>
-     &0 = a /\
-     a <= b /\
-     a <= c /\
-     (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-     &0 < t /\
-     &0 < &1 - t /\
-     ccc \/
-     &0 < a /\
-     a <= b /\
-     a <= c /\
-     (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-     &0 < t /\
-     &0 < &1 - t /\
-     ccc `]);;
-e (REWRITE_TAC[ MESON[REAL_FIELD ` &0 = a ==> a / b = &0 `; VECTOR_ARITH`! v w. &0 % v + w = w `] `
-  &0 = a /\
-     a <= b /\
-     a <= c /\
-     (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-     &0 < t /\
-     &0 < &1 - t /\
-     &0 <= b /\
-     &0 <= c /\
-     --t / (&1 - t) <= &0 /\
-     &0 <= a / (&1 - t) /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     x =
-     --t / (&1 - t) % v0 +
-     a / (&1 - t) % v1 +
-     b / (&1 - t) % v2 +
-     c / (&1 - t) % v3 /\
-     last <=>
-     a <= b /\
-     a <= c /\
-     (quasi_tri {v1, v2, v3} s \/ (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)) /\
-     &0 < t /\
-     &0 < &1 - t /\
-     &0 <= b /\
-     &0 <= c /\
-     --t / (&1 - t) <= &0 /\
-     &0 <= a / (&1 - t) /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     (&0 = a /\
-      x =
-      --t / (&1 - t) % v0 + &0 % v1 + b / (&1 - t) % v2 + c / (&1 - t) % v3) /\
-     last `]);;
-e (REWRITE_TAC[ MESON[REAL_FIELD ` &0 = a ==> a / b = &0 `; VECTOR_ARITH`! v w. &0 % v + w = w `] `
-  x =
-       --t / (&1 - t) % v0 + &0 % v1 + b / (&1 - t) % v2 + c / (&1 - t) % v3
-  <=> x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3 `]);;
-e (REWRITE_TAC[ MESON[ SET_RULE ` {v0} UNION {v1, v2, v3} = {v0, v2, v3} UNION {v1 } ` ; 
-  barrier ] ` (&0 = a /\
-       x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3) /\
-      ~(v0 IN {v1, v2, v3}) /\
-      x IN voronoi2 v0 s /\
-      ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-      {v0} UNION {v1, v2, v3} IN Q_SYS s
-  <=> (&0 = a /\
-       x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3) /\
-      ~(v0 IN {v1, v2, v3}) /\
-      x IN voronoi2 v0 s /\ {v0, v2, v3} UNION {v1} IN Q_SYS s /\ 
-      ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-      {v0} UNION {v1, v2, v3} IN Q_SYS s`]);;
-
-e (ONCE_REWRITE_TAC[ MESON[ MESON[barrier; SET_RULE ` {v0, v2, v3} UNION {v1} IN Q_SYS s ==> {v0, v2, v3} IN {{v1, v2, v3} | quasi_tri {v1, v2, v3} s \/
-                         (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s)} `]` {v0, v2, v3} UNION {v1} IN Q_SYS s ==> {v0, v2, v3} IN barrier s `]
-  ` {v0, v2, v3} UNION {v1} IN Q_SYS s <=>{v0, v2, v3} UNION {v1} IN Q_SYS s  /\ {v0, v2, v3} IN barrier s `]);;
-
-e (REWRITE_TAC[MESON[] ` --t / (&1 - t) <= &0 /\
-     &0 <= a / (&1 - t) /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     (&0 = a /\
-      x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3) /\
-     ~(v0 IN {v1, v2, v3}) /\
-     x IN voronoi2 v0 s /\
-     ({v0, v2, v3} UNION {v1} IN Q_SYS s /\ {v0, v2, v3} IN barrier s) /\
-     ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) /\
-     {v0} UNION {v1, v2, v3} IN Q_SYS s <=>
-     &0 <= a / (&1 - t) /\
-     {v0, v2, v3} UNION {v1} IN Q_SYS s /\
-     {v0} UNION {v1, v2, v3} IN Q_SYS s /\
-     ~(v0 IN {v1, v2, v3}) /\
-     x IN voronoi2 v0 s /\
-     (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     (&0 = a /\
-      &0 <= b / (&1 - t) /\
-      &0 <= c / (&1 - t) /\
-      --t / (&1 - t) <= &0 /\
-      {v0, v2, v3} IN barrier s /\
-      x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3) /\
-     ~(x IN UNIONS {aff_ge {v0} {v1, v2} | {v0, v1, v2} IN barrier s}) `]);;
-
-
-
-
-e (REWRITE_TAC[ IN_UNIONS; IN_ELIM_THM]);;
-e (REWRITE_TAC[MESON[]` (?t. (?v0 v1 v2. {v0, v1, v2} IN barrier s /\ t = aff_ge {v0} {v1, v2}) /\
-          x IN t) <=>
-     (?v0 v1 v2. {v0, v1, v2} IN barrier s /\ x IN aff_ge {v0} {v1, v2}) `]);;
-e (REWRITE_TAC[simp_def; IN_ELIM_THM]);;
-e (REWRITE_TAC[ MESON[]`
-  (a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     ( &0 = a /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     --t / (&1 - t) <= &0 /\
-     {v0, v2, v3} IN barrier s /\
-     x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3 ) /\ last  <=>
-     (&0 = a /\
-      a + b + c = &1 /\
-      --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-     (&1 - t) % x =
-     (&1 - t) %
-     (--t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3) /\
-     &0 <= b / (&1 - t) /\
-     &0 <= c / (&1 - t) /\
-     --t / (&1 - t) <= &0 /\
-     {v0, v2, v3} IN barrier s /\
-     x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3 /\ last `]);;
-e (REWRITE_TAC[ REAL_FIELD ` (&0 = a /\
-       a + b + c = &1 /\
-       --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1)
-  <=> (&0 = a /\
-       b + c = &1 /\
-       --t / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) `]);;
-
-e (SIMP_TAC[MESON[] ` a <= b /\
-      a <= c /\
-      (quasi_tri {v1, v2, v3} s \/
-       (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s /\ {v1, v2, v3} IN barrier s)) /\
-      &0 < t /\
-      &0 < &1 - t /\
-      &0 <= b /\
-      &0 <= c /\
-      &0 <= a / (&1 - t) /\
-      {v0, v2, v3} UNION {v1} IN Q_SYS s /\
-      {v0} UNION {v1, v2, v3} IN Q_SYS s /\
-      ~(v0 IN {v1, v2, v3}) /\
-      x IN voronoi2 v0 s /\
-      (&0 = a /\
-       b + c = &1 /\
-       --t / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1) /\
-      (&1 - t) % x =
-      (&1 - t) %
-      (--t / (&1 - t) % v0 +
-       a / (&1 - t) % v1 +
-       b / (&1 - t) % v2 +
-       c / (&1 - t) % v3) /\
-      &0 <= b / (&1 - t) /\
-      &0 <= c / (&1 - t) /\
-      --t / (&1 - t) <= &0 /\
-      {v0, v2, v3} IN barrier s /\
-      x = --t / (&1 - t) % v0 + b / (&1 - t) % v2 + c / (&1 - t) % v3 /\
-      ~(?v0 v1 v2.
-            {v0, v1, v2} IN barrier s /\
-            (?u v w.
-                 &0 <= v /\
-                 &0 <= w /\
-                 u + v + w = &1 /\
-                 x = u % v0 + v % v1 + w % v2))  <=> F `]);; 
-
-
-
-
-
-
- e (REWRITE_TAC[ MESON []`&0 < a /\ a <= b /\ a <= c /\ last <=> ( &0 < a /\ a <= b /\ a <= c ) /\ last`;
-  REAL_ARITH ` &0 < a /\ a <= b /\ a <= c <=> a <= b /\ a <= c /\ &0 < a /\ &0 < b /\ &0 < c `]);;
-e (REWRITE_TAC[ MESON[] ` (a <= b /\ a <= c /\ &0 < a /\ &0 < b /\ &0 < c) /\
-      (quasi_tri {v1, v2, v3} s \/
-       (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s /\ {v1, v2, v3} IN barrier s)) /\
-      &0 < t /\
-      &0 < &1 - t /\ last 
-  <=> a <= b /\ a <= c /\
-      (quasi_tri {v1, v2, v3} s \/
-       (?v4. {v1, v2, v3} UNION {v4} IN Q_SYS s /\ {v1, v2, v3} IN barrier s)) /\
-     ( &0 < t /\  &0 < a /\ &0 < b /\ &0 < c /\
-      &0 < &1 - t ) /\ last `]);;
-e (REWRITE_TAC[ MESON[REAL_LT_DIV] ` (&0 < t /\ &0 < a /\ &0 < b /\ &0 < c /\ &0 < &1 - t)
-  <=> (&0 < t /\ &0 < a /\ &0 < b /\ &0 < c /\ &0 < &1 - t /\
-  &0 < a / ( &1 - t ) /\
-  &0 < b / ( &1 - t ) /\
-  &0 < c / ( &1 - t ) )`]);;
-e (ONCE_REWRITE_TAC [ VECTOR_ARITH `  x =
-      --t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3 <=>  x =
-      --t / (&1 - t) % v0 +
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3 /\  x =
-     
-      a / (&1 - t) % v1 +
-      b / (&1 - t) % v2 +
-      c / (&1 - t) % v3 +  --t / (&1 - t) % v0 `; 
-  REAL_ARITH `  --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1 <=> 
-  --t / (&1 - t) + a / (&1 - t) + b / (&1 - t) + c / (&1 - t) = &1 /\ 
-  a / (&1 - t) + b / (&1 - t) + c / (&1 - t) + ( --t / (&1 - t)) = &1 `]);;
-e (ONCE_REWRITE_TAC[ MESON[] `(?t. (?v1 v2 v3 v0 s.
-               {v0, v1, v2, v3} IN Q_SYS s /\
-               t =
-               {t | ?x y z w.
-                        &0 < y /\
-                        &0 < z /\
-                        &0 < w /\
-                        x + y + z + w = &1 /\
-                        t = x % v0 + y % v1 + z % v2 + w % v3} INTER
-               {t | ?a b c d.
-                        d <= &0 /\
-                        a + b + c + d = &1 /\
-                        t = a % v1 + b % v2 + c % v3 + d % v0} INTER
-               {x | x IN voronoi2 v0 s}) /\
-          x IN t)
-  <=> (?v1 v2 v3 v0 s.
-               {v0, v1, v2, v3} IN Q_SYS s /\
-              x IN {t | ?x y z w.
-                        &0 < y /\
-                        &0 < z /\
-                        &0 < w /\
-                        x + y + z + w = &1 /\
-                        t = x % v0 + y % v1 + z % v2 + w % v3} INTER
-               {t | ?a b c d.
-                        d <= &0 /\
-                        a + b + c + d = &1 /\
-                        t = a % v1 + b % v2 + c % v3 + d % v0} INTER
-               {x | x IN voronoi2 v0 s}) `]);;
-e (REWRITE_TAC[ MESON[SET_RULE` { a } UNION { f, b , c } = {a, f, b, c}`] 
-  ` {v0} UNION {v1, v2, v3} IN Q_SYS s <=> {v0, v1, v2, v3} IN Q_SYS s `]);;
-e (SET_TAC[]);; 
-let lemma81_ZKYMYWJ = top_thm();; 
-
- MARKED *)
-(* da het lemma 8.1 *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(* ================== begining lemma 8.2 ========================== *)
+(* =========== begining lemma 8.2 ========== *)
 
 let near = new_definition ` near (v0:real^N) (r:real) s = { x | x IN s /\
   dist(x,v0) < r } `;;
@@ -5149,3 +4109,132 @@ GEN_TAC THEN
 CONJ_TAC THENL [MESON_TAC[]; MESON_TAC[REAL_ARITH ` ~( a <= b ) ==> b <= a `]]);;
 
 
+
+let NOVE31 = prove(`! P l. ( ! x y z i j k s. ( P x y z i j k s <=> P z y x k j i s )
+ /\ ( l x y z <=> l z y x ) ) /\ (! x y z i j k s. i <= j /\ i <= k /\ P x y z i j k s
+ ==> l x y z )   ==> (! x y z i j k s. i <= j /\ P x y z i j k s ==> l x y z ) `, 
+ONCE_REWRITE_TAC[ MESON[]` a ==> (!x y z i j k s. P x y z i j k s ==> l x y z) <=>
+     (a ==> (!x y z i j k s. i <= k /\ P x y z i j k s ==> l x y z)) /\(a ==>
+ (!x y z i j k s. ~(i <= k) /\ P x y z i j k s ==> l x y z)) `] THEN REPEAT
+GEN_TAC THEN CONJ_TAC THENL [MESON_TAC[];   MESON_TAC[REAL_LE_TRANS; 
+REAL_ARITH ` ~( a <= b ) ==> b <= a `]]);;
+
+
+
+
+let IMP_IN_BA = prove(`! x y z a s. {x,y,z} UNION {a} IN Q_SYS s ==> {x,y,z} IN barrier s `,
+REWRITE_TAC[barrier; IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+
+let IMP_IN_AFF4  = prove(` ! s v0 xx x y z. xx IN cone v0 {x, y, z} /\
+ ~(xx IN UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | barrier s {v0, v1, v2}}) /\
+ {v0, x, y, z} IN Q_SYS s ==> xx IN aff_gt {v0} {x, y, z}`, 
+REWRITE_TAC[cone; GSYM aff_ge_def; simp_def; IN_ELIM_THM] THEN 
+REPLICATE_TAC 3 GEN_TAC THEN REWRITE_TAC[MESON[]` ( ! x y z. (? s i j k.
+ P s i j k x y z ) /\ Q x y z ==> l x y z) <=> ( ! x y z i j k s. 
+P s i j k x y z /\ Q x y z ==> l x y z ) `] THEN MATCH_MP_TAC NOVE30 THEN 
+CONJ_TAC THENL [MESON_TAC[PER_SET3; REAL_ARITH ` a + b + c = b + a + c ` ;
+  VECTOR_ARITH `(a:real^N ) + b + c = b + a + c `]; MATCH_MP_TAC NOVE31 THEN 
+CONJ_TAC]THENL [MESON_TAC[PER_SET3; REAL_ARITH ` a + b + c = c + b + a ` ;
+ VECTOR_ARITH `(a:real^N ) + b + c = c + b + a `]; PHA] THEN 
+REWRITE_TAC[MESON[REAL_ARITH ` &0 <= i <=> i = &0 \/ &0 < i `]`
+  &0 <= i /\ &0 <= j /\ &0 <= k /\ l <=> ( i = &0 \/ &0 < i ) /\ &0 <= j /\
+   &0 <= k /\ l `] THEN KHANANG THEN REPEAT GEN_TAC THEN 
+STRIP_TAC THENL [REPEAT (FIRST_X_ASSUM MP_TAC) THEN REPLICATE_TAC 3 DISCH_TAC
+ THEN REWRITE_TAC[IMP_IMP] THEN ASM_SIMP_TAC[] THEN REWRITE_TAC[VECTOR_MUL_LZERO; 
+VECTOR_ADD_LID; REAL_ADD_LID] THEN REWRITE_TAC[SET_RULE ` {v0, x, y, z} = {v0,y,z}
+ UNION {x} `] THEN NHANH (SPEC_ALL IMP_IN_BA) THEN REWRITE_TAC[IN_UNIONS; 
+IN_ELIM_THM] THEN REWRITE_TAC[MESON[IN]` barrier s a /\ l <=> a IN barrier s /\ 
+l`] THEN PHA THEN REWRITE_TAC[MESON[]` (? t. (? v1 v2 . P v1 v2 /\ t = Q v1 v2 ) 
+/\ xx IN t )  <=> (? v1 v2. P v1 v2 /\ xx IN Q v1 v2 ) `] THEN REWRITE_TAC[IN_ELIM_THM]
+ THEN MESON_TAC[]; STRIP_TR THEN REWRITE_TAC[MESON[REAL_ARITH ` i <= j /\ &0 < i 
+==> &0 < j `]`  i <= j /\ i <= k /\ &0 < i /\l  <=> i <= j /\ i <= k /\ &0 < j /\
+ &0 < k /\ &0 < i /\ l`] THEN MESON_TAC[]]);;
+
+
+
+
+
+let VORO2_EX =prove(`! v0 s. voro2 v0 s = {x | (!w. s w /\ ~(w = v0) ==>
+  d3 x v0 < d3 x w) /\ d3 x v0 < &2} `, REWRITE_TAC[voro2; voronoi; d3 ] 
+ THEN SET_TAC[]);;
+
+
+
+let LEMMA81 = prove(`!(X:real^3 -> bool) Z s v0:real^3 .
+     centered_pac s v0 /\
+     Z = UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | {v0, v1, v2} IN barrier s} /\
+     X = UNIONS
+     {aff_gt {v0} {v1, v2, v3} INTER
+      aff_le {v1, v2, v3} {v0} INTER
+      voro2 v0 s | v1,v2,v3 | {v0, v1, v2, v3} IN Q_SYS s}
+     ==> voro2 v0 s SUBSET X UNION Z UNION VC v0 s`,
+REPEAT GEN_TAC THEN ONCE_REWRITE_TAC[SET_RULE ` as SUBSET a UNION b UNION c <=> 
+( as DIFF (b UNION c))   SUBSET a`] THEN REWRITE_TAC[SUBSET; IN_DIFF; IN_UNION;
+ VC; lambda_x; IN_ELIM_THM; voro2;voronoi; GSYM d3;  DE_MORGAN_THM; centered_pac]
+ THEN ABBREV_TAC ` ketluan x  = ((x:real^3) IN (X:real^3 -> bool))` THEN SIMP_TAC[]
+ THEN PHA THEN REWRITE_TAC[MESON[]` a /\b/\e/\c==>d <=> c ==> a/\b/\e==>d`] THEN
+ DISCH_TAC THEN REWRITE_TAC[GSYM (MESON[]` a /\b/\e/\c==>d <=> c ==> a/\b/\e==>d`)] 
+THEN REWRITE_TAC[MESON[trg_d3_sym]` d3 x v0 < &2 /\ aa/\
+          ((~(d3 v0 x < &2) \/ l) \/ l') <=> d3 x v0 < &2 /\ aa/\ (l\/ l')`; IN] THEN 
+PHA THEN REWRITE_TAC[MESON[]` (!w. s w /\ ~(w = v0) ==> d3 x v0 < d3 x w) /\
+ aa /\ bb /\ (cc \/ ~(!w. s w /\ dd w /\ ee w /\ ~(w = v0) ==> d3 x v0 < d3 x w)) <=>
+     (!w. s w /\ ~(w = v0) ==> d3 x v0 < d3 x w) /\ aa /\ bb /\ cc`] THEN 
+REWRITE_TAC[obstruct] THEN ONCE_REWRITE_TAC[BAR_TRI] THEN 
+REWRITE_TAC[ MESON[]`(?bar. (?x y z. bar = {x, y, z} /\ P {x, y, z}) /\ Q bar) <=>
+     (?x y z. P {x, y, z} /\ Q {x, y, z})`] THEN NHANH (MESON[]` ~(conv0 {v0, x} INTER 
+conv {x', y, z} = {}) ==>  v0 IN {x' ,y,z} \/ ~( v0 IN {x', y,z})`) THEN KHANANG THEN 
+NHANH (MESON[IN_SET3; SET_RULE` x = a ==> {x,b,c} = {a,b,c} /\ {x,b,c} = {b,c,a} /\
+ {x,b,c} = {b,a,c}  `]`  x IN {a,b,c} ==> (? yy zz. {x,yy,zz} = {a,b,c})`) THEN 
+REWRITE_TAC[EXISTS_OR_THM] THEN NGOAC THEN REWRITE_TAC[MESON[]`(?x' y z. P {x', y, z} 
+/\ (?yy zz. {x, yy, zz} = {x', y, z})) <=> (?y z. P {x, y, z})`] THEN 
+NHANH (CUTHE4 IN_AFF_GE_CON) THEN PHA THEN 
+REWRITE_TAC[SET_RULE`  ~UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | barrier s {v0, v1, v2}} x /\
+((?y z. {v0, y, z} IN barrier s /\ aaa y z /\ x IN aff_ge {v0} {y, z} /\
+ bbb y z) \/  last) <=> ~UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | barrier s {v0, v1, v2}} x /\
+     last`] THEN REWRITE_TAC[DE_MORGAN_THM] THEN SIMP_TAC[GSYM NOV20] THEN 
+REWRITE_TAC[d3; GSYM IN_VO_EQ] THEN NHANH (MESON[X_IN_VOR_X; VORONOI_CONV]` x IN voronoi v0 s 
+   ==> v0 IN voronoi v0 s /\ convex (voronoi v0 s )`) THEN 
+NHANH (MESON[CONVEX_IM_CONV02_SU ]` x IN voronoi v0 s /\    v0 IN voronoi v0 s /\
+ convex (voronoi v0 s) ==> conv0 {v0,x} SUBSET voronoi v0 s `) THEN PHA THEN 
+DISCH_TAC THEN GEN_TAC THEN STRIP_TAC THENL [REPEAT (FIRST_X_ASSUM MP_TAC) THEN 
+REWRITE_TAC[ IMP_IMP] THEN PHA THEN NHANH (SET_RULE` conv0 {v0, x} SUBSET voronoi v0 s 
+/\a1  /\a2  /\a3  /\ ~(conv0 {v0, x} INTER conv {x', y, z} = {}) /\ l ==>
+  ~( voronoi v0 s INTER conv {x', y, z} = {})`) THEN NHANH (MESON[FOUR_POINTS]
+` {x', y, z} IN barrier s /\ a1 /\   ~(v0 IN {x', y, z}) ==> CARD {x',y,z, v0} = 4 `)
+ THEN PHA THEN NHANH (SET_RULE `  conv0 {v0, x} SUBSET s /\ a1 /\a2 /\a3 /\
+ ~(conv0 {v0, x} INTER s1  = {}) /\ l ==> ~( s INTER s1 = {}) `) THEN PHA THEN 
+REWRITE_TAC[MESON[]`( s x /\ l <=>l/\ s x)/\ (a IN barrier s /\ l <=>
+   l /\ a IN barrier s) `] THEN NHANH (SPEC_ALL (REWRITE_RULE[CONV3_EQ] IN_AFF_GE_CON))
+ THEN PHA THEN REWRITE_TAC[SET_RULE ` ~UNIONS {aff_ge {v0} {v1, v2} | v1,v2 | 
+  barrier s {v0, v1, v2}} x /\  a1 /\ x IN aff_ge {v0} {y, z} /\
+   a2 /\ a3/\ {v0, y, z} IN barrier s /\ a4 <=> F `] ; REPEAT (FIRST_X_ASSUM MP_TAC)]
+ THEN REWRITE_TAC[ IMP_IMP] THEN PHA THEN 
+NHANH (SET_RULE` conv0 {v0, x} SUBSET voronoi v0 s /\a1  /\a2  /\a3  /\
+ ~(conv0 {v0, x} INTER conv {x', y, z} = {}) /\ l ==>
+  ~( voronoi v0 s INTER conv {x', y, z} = {})`) THEN 
+NHANH (MESON[FOUR_POINTS]` {x', y, z} IN barrier s /\ a1 /\ 
+  ~(v0 IN {x', y, z}) ==> CARD {x',y,z, v0} = 4 `) THEN PHA THEN NHANH (SET_RULE ` 
+ conv0 {v0, x} SUBSET s /\ a1 /\a2 /\a3 /\ ~(conv0 {v0, x} INTER s1  = {}) /\ l 
+==> ~( s INTER s1 = {}) `) THEN PHA THEN REWRITE_TAC[MESON[]`( s x /\ l <=>l/\
+ s x)/\ (a IN barrier s /\ l <=>   l /\ a IN barrier s) `] THEN PHA THEN 
+NHANH (MESON[IMP_IN_Q_SYS; IN]` CARD {x', y, z, v0} = 4 /\
+ ~(voronoi v0 s INTER conv {x', y, z} = {}) /\ {x', y, z} IN barrier s /\
+ s v0 ==> {v0,x',y,z} IN Q_SYS s `) THEN NHANH (SPEC_ALL AFF_LE_CONE) THEN PHA THEN 
+ONCE_REWRITE_TAC[MESON[IN] ` ~ UNIONS s x <=> ~ ( x IN UNIONS s ) `] THEN 
+ONCE_REWRITE_TAC[MESON[]` a1 /\a /\ b /\ x IN cone v0 {x', y, z} /\ l <=>a /\ b /\ l /\
+  x IN cone v0 {x', y, z} /\ a1 `] THEN PHA THEN REWRITE_TAC[MESON[]` a IN Q_SYS s /\
+ b /\ c <=> b /\ c /\ a IN Q_SYS s`] THEN NHANH (SPEC_ALL IMP_IN_AFF4) THEN 
+NGOAC THEN REWRITE_TAC[MESON[]` (a /\ b ) /\ x IN aff_gt {v0} {x', y, z} <=> 
+  x IN aff_gt {v0} {x', y, z}/\ b/\ a `] THEN PHA THEN DAO THEN 
+REWRITE_TAC[GSYM VORO2_EX] THEN REWRITE_TAC[prove(`dist (x,v0) < &2 /\a1/\a2/\a3 /\
+x IN voronoi v0 s /\ l  <=> a1/\a2/\a3 /\ l /\ x IN voro2 v0 s`, REWRITE_TAC[GSYM d3; 
+  voro2; IN_ELIM_THM] THEN MESON_TAC[])] THEN REWRITE_TAC[MESON[]`x IN aff_le a s /\
+ l <=> l /\ x IN aff_le a s `] THEN DAO THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[] THEN ONCE_REWRITE_TAC[MESON[]` (! x. P x ) /\ a = b /\ l <=> b = a /\ l /\ 
+  (! x . P x )`] THEN SIMP_TAC[] THEN MATCH_MP_TAC (MESON[]` ( a1 /\a2/\a3/\a4 ==> l ) 
+==> ( a1/\a2/\a3/\a4/\a5 ==> l ) `) THEN REWRITE_TAC[IN_UNIONS; IN_ELIM_THM] THEN 
+REWRITE_TAC[ MESON[]` (?t. (? a b c. P a b c /\ t = Q a b c ) /\ x IN t )
+  <=> (? a b c. P a b c /\ x IN Q a b c ) `] THEN REWRITE_TAC[IN_INTER] THEN 
+SET_TAC[]);;

@@ -1,13 +1,13 @@
 (* Main estimate file*)
 (* Author: PHAN HOANG CHON *)
 (*========================================================*)
-(*
+
 needs "database_more.ml";;
 needs "definitions_kepler.ml";;
 (* removed convex.ml by thales, not compatible with other loads *)
 (* needs "Multivariate/convex.ml";; *)
 needs "geomdetail.ml";;              (* Writen by Nguyen Quang TRuong   *)
-*)
+
 (*========================================================*)
 (* These definitions are defined by other authors*)
 (*========================================================*)
@@ -174,6 +174,12 @@ let e_std = new_definition ` e_std (s:real^3->bool) (v0:real^3) =
                          { { u , v } | u IN (tru_pack v0 ( &2 * t0 ) s ) DIFF {v0}  /\ 
                                    v IN (tru_pack v0 ( &2 * t0 ) s ) DIFF {v0}  /\ 
                                   ~(u = v) /\ d3 u v <= ( &2 * t0 ) }`;;
+
+(*=====================================================================*)
+(* Definition 26 in collection_geom file ==============================*)
+let condC = new_definition ` condC (M13:real) (m12:real) (m14:real) (M24:real) (m34:real) (m23:real) =
+                         (( m12 + m23 >= M13 ) /\ ( m14 + m34 >= M13 ) /\ ( m12 + m14 > M24 ) /\ ( m23 + m34 > M24 ) /\
+                         ( delta_x (M13 pow 2) (m12 pow 2) (m14 pow 2) (M24 pow 2) (m34 pow 2) (m23 pow 2) >= &0 ))` ;;
 (*=====================================================================*)
 (* prove lemma 8.30 *)
 (*=====================================================================*)
@@ -368,6 +374,179 @@ let lemmaf33 = prove(` FINITE (tru_pack v0 (&2 * t0) s DIFF {v0})
                    ~(x = y) /\
                    d3 x y <= &2 * t0) /\
                   {v, w} = {x, y}}`, REWRITE_TAC[lemmaf32] THEN REWRITE_TAC[FINITE_SUBSET]);;
+
+let lemmaf34 = prove (` condC (#2.6) (&2) (&2) (#2.6) (&2) (&2)`, REWRITE_TAC[condC;delta_x] THEN REAL_ARITH_TAC);;
+
+(* prove lemma have_not_prove*)
+
+let lemma_c = REWRITE_CONV[IN_ELIM_THM]`&1 / (h + &1) % p + h / (h + &1) % v IN
+                                       {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % p + b % v}`;;
+
+let lemma_2 = REWRITE_CONV[IN_ELIM_THM]`&1 / (h + &1) % p + h / (h + &1) % v IN
+                                        {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % q + b % v0}`;;
+
+let lemma_c1 = prove (` &0 <= h ==> &0 <= &1 / (h + &1)`, DISCH_TAC THEN MATCH_MP_TAC (REAL_LE_DIV) THEN UNDISCH_TAC `&0 <= h`
+                 THEN REWRITE_TAC[MESON[]` &0 <= h ==> &0 <= &1 /\ &0 <= h + &1 <=> ( &0 <= h ==> &0 <= &1 ) /\ (&0 <= h ==> &0 <= h + &1 )`]
+                 THEN REAL_ARITH_TAC);;
+
+let lemma_c11 = prove (`&0 < &1 / ( h + &1) ==> &0 <= &1 / (h + &1) `, REAL_ARITH_TAC);;
+
+let lemma_c111 = prove (`h >= &0 ==> &0 <= &1 / (h + &1)`, DISCH_TAC THEN MATCH_MP_TAC (lemma_c1)
+                           THEN UNDISCH_TAC `h:real >= &0` THEN REAL_ARITH_TAC);;
+
+let lemma_ch = prove (` &0 <= h ==> &0 <= h / (h + &1)`, DISCH_TAC THEN MATCH_MP_TAC (REAL_LE_DIV) THEN UNDISCH_TAC `&0 <= h`
+                 THEN REWRITE_TAC[MESON[]` &0 <= h ==> &0 <= h /\ &0 <= h + &1 <=> ( &0 <= h ==> &0 <= h ) /\ (&0 <= h ==> &0 <= h + &1 )`]
+                 THEN REAL_ARITH_TAC);;
+
+let lemma_ch1 = prove (`&0 < h / ( h + &1) ==> &0 <= h / (h + &1) `, REAL_ARITH_TAC);;
+
+let lemma_ch11 = prove (`h >= &0 ==> &0 <= h / (h + &1)`, DISCH_TAC THEN MATCH_MP_TAC (lemma_ch)
+                           THEN UNDISCH_TAC `h:real >= &0` THEN REAL_ARITH_TAC);;
+
+let lemma_1 = prove (` h >= &0 ==> &1 / (h + &1) + h / (h + &1) = &1`, STRIP_TAC THEN
+                       REWRITE_TAC[REAL_ARITH `&1 / (h + &1) + h / (h + &1) = (h + &1)/ (h + &1)`] THEN
+                       MATCH_MP_TAC (REAL_DIV_REFL) THEN UNDISCH_TAC `h >= &0` THEN REAL_ARITH_TAC);;
+
+let le1_diag_trape = prove (` p:real^3 = q + (h:real) % (v0 - v) /\ h >= &0 
+                                ==> &1 / (h + &1) % p + h / (h + &1) % v IN {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % p + b % v}`,
+                             REWRITE_TAC[lemma_c]THEN STRIP_TAC THEN EXISTS_TAC ` &1 / (h+ &1)` THEN EXISTS_TAC ` h:real / (h+ &1)` THEN
+                             UNDISCH_TAC `h:real >= &0` THEN 
+                             REWRITE_TAC[MESON[] ` h >= &0
+                                      ==> &0 <= &1 / (h + &1) /\
+                                         &0 <= h / (h + &1) /\
+                                         &1 / (h + &1) + h / (h + &1) = &1 /\
+                                         &1 / (h + &1) % p + h / (h + &1) % v =
+                                         &1 / (h + &1) % p + h / (h + &1) % v <=> 
+                                         ( h >= &0 ==> &0 <= &1 / (h + &1) ) /\
+                                         ( h >= &0 ==> &0 <= h / (h + &1) ) /\
+                                         ( h >= &0 ==> &1 / (h + &1) + h / (h + &1) = &1 ) /\
+                                         ( h >= &0 ==> &1 / (h + &1) % p + h / (h + &1) % v =
+                                            &1 / (h + &1) % p + h / (h + &1) % v )`] THEN
+                             REWRITE_TAC[lemma_c111;lemma_ch11;lemma_1]);;
+
+let diag_trape = prove (` !(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p = q + h % (v0 - v) /\ h >= &0 ==> 
+                             ~(conv {p, v} INTER conv {q, v0} = {})`, REPEAT GEN_TAC THEN DISCH_TAC THEN
+                             REWRITE_TAC[SET_RULE ` ~(conv {p, v} INTER conv {q, v0} = {}) <=> ? x. x IN conv {p, v} /\ x IN conv {q, v0}`] THEN
+                             EXISTS_TAC ` (&1/(h + &1)) % (p:real^3) + ((h:real)/(h + &1)) % (v:real^3)` THEN
+                             UNDISCH_TAC `p:real^3 = q + h % (v0 - v) /\ h >= &0 ` THEN REWRITE_TAC[CONV_SET2] THEN
+                             REWRITE_TAC[MESON[] ` p = q + h % (v0 - v) /\ h >= &0
+                                   ==> &1 / (h + &1) % p + h / (h + &1) % v IN
+                                    {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % p + b % v} /\
+                                    &1 / (h + &1) % p + h / (h + &1) % v IN
+                                    {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % q + b % v0} <=> 
+                                   ( p = q + h % (v0 - v) /\ h >= &0
+                                 ==> &1 / (h + &1) % p + h / (h + &1) % v IN
+                                     {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % p + b % v} ) /\ 
+                                   ( p = q + h % (v0 - v) /\ h >= &0
+                                 ==> &1 / (h + &1) % p + h / (h + &1) % v IN
+                                     {w | ?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\ w = a % q + b % v0} )`] THEN
+                             REWRITE_TAC[le1_diag_trape] THEN REWRITE_TAC[lemma_2] THEN STRIP_TAC THEN
+                             EXISTS_TAC ` &1 / (h+ &1)` THEN EXISTS_TAC ` h:real / (h+ &1)` THEN UNDISCH_TAC `h >= &0` THEN
+                             REWRITE_TAC[MESON[] ` h >= &0
+                                          ==> &0 <= &1 / (h + &1) /\
+                                             &0 <= h / (h + &1) /\
+                                             &1 / (h + &1) + h / (h + &1) = &1 /\
+                                             &1 / (h + &1) % p + h / (h + &1) % v =
+                                             &1 / (h + &1) % q + h / (h + &1) % v0 <=> 
+                                             ( h >= &0 ==> &0 <= &1 / (h + &1) ) /\
+                                             ( h >= &0 ==> &0 <= h / (h + &1) ) /\
+                                             ( h >= &0 ==> &1 / (h + &1) + h / (h + &1) = &1 ) /\
+                                             ( h >= &0 ==> &1 / (h + &1) % p + h / (h + &1) % v =
+                                                &1 / (h + &1) % q + h / (h + &1) % v0 )`] THEN
+                              REWRITE_TAC[lemma_c111; lemma_ch11; lemma_1] THEN DISCH_TAC THEN 
+                              REWRITE_TAC[VECTOR_ARITH `&1 / (h + &1) % p + h / (h + &1) % v = &1 / (h + &1) % q + h / (h + &1) % v0 <=>
+                               &1 / (h + &1) % p = &1 / (h + &1) % q + h / (h + &1) % v0 - ( h / (h + &1) % v )`] THEN
+                              REWRITE_TAC[VECTOR_ARITH `&1 / (h + &1) % p = &1 / (h + &1) % q + h / (h + &1) % v0 - h / (h + &1) % v
+                                <=> &1 / (h + &1) % p = &1 / (h + &1) % q + h / (h + &1) % (v0 - v)`] THEN ASM_REWRITE_TAC[] THEN
+                              VECTOR_ARITH_TAC ) ;;
+
+let inv_diag = prove(`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p = q + h % (v0 - v) /\ conv {p, v} INTER conv {q, v0} = {} ==> ~(h >= &0)`,
+                      REWRITE_TAC[TAUT `p = q + h % (v0 - v) /\ conv {p, v} INTER conv {q, v0} = {}
+                          ==> ~(h >= &0) <=> p = q + h % (v0 - v) ==> ( conv {p, v} INTER conv {q, v0} = {} ==> ~(h >= &0) )`] THEN
+                      REWRITE_TAC[TAUT ` conv {p, v} INTER conv {q, v0} = {}
+                          ==> ~(h >= &0) <=> ( h >= &0 ==> ~(conv {p, v} INTER conv {q, v0} = {}))`] THEN
+                      REWRITE_TAC[TAUT `p = q + h % (v0 - v)==> h >= &0
+                          ==> ~(conv {p, v} INTER conv {q, v0} = {}) <=> ( p = q + h % (v0 - v) /\ h >= &0 ) ==> ~(conv {p, v} INTER conv {q, v0} = {})`] THEN
+                      REWRITE_TAC[diag_trape]);;
+
+let vec_le = prove (` (h:real) % ( v0:real^3 - v ) = -- h % (v - v0)`, VECTOR_ARITH_TAC);;
+
+
+let diag_trape1 = prove ( ` !(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p = q + h % (v0 - v) /\ h <= &0 ==> 
+                             ~(conv {p, v0} INTER conv {q, v} = {})`, REWRITE_TAC[REAL_ARITH ` h <= &0 <=> -- h >= &0`] THEN
+                              ONCE_REWRITE_TAC[vec_le] THEN REWRITE_TAC[diag_trape]);;
+
+let inv_diag1 = prove(`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p = q + h % (v0 - v) /\ conv {p, v0} INTER conv {q, v} = {} ==> ~(h <= &0)`,
+                      REWRITE_TAC[TAUT `p = q + h % (v0 - v) /\ conv {p, v0} INTER conv {q, v} = {}
+                          ==> ~(h <= &0) <=> p = q + h % (v0 - v) ==> ( conv {p, v0} INTER conv {q, v} = {} ==> ~(h <= &0) )`] THEN
+                      REWRITE_TAC[TAUT ` conv {p, v0} INTER conv {q, v} = {}
+                          ==> ~(h <= &0) <=> ( h <= &0 ==> ~(conv {p, v0} INTER conv {q, v} = {}))`] THEN
+                      REWRITE_TAC[TAUT `p = q + h % (v0 - v)==> h <= &0
+                          ==> ~(conv {p, v0} INTER conv {q, v} = {}) <=> ( p = q + h % (v0 - v) /\ h <= &0 ) ==> ~(conv {p, v0} INTER conv {q, v} = {})`] THEN
+                      REWRITE_TAC[diag_trape1]);;
+
+
+let lemma_3_4 = new_axiom (` !(v1:real^3) (v2:real^3) (v3:real^3) (v4:real^3).
+                             !(m12:real) (m23:real) (m34:real) (m14:real) (M13:real) (M24:real).  
+                               d3 v1 v2 >= m12 /\
+                               d3 v2 v3 >= m23 /\
+                               d3 v3 v4 >= m34 /\
+                               d3 v4 v1 >= m14 /\
+                               d3 v1 v3 <  M13 /\
+                               d3 v2 v4 <= M24 /\
+                               condC M13 m12 m14 M24 m34 m23 
+                            ==> conv {v1 , v3} INTER conv {v2 , v4} = {}`);;
+
+let lemma_3_4_c = new_axiom (` !(p:real^3) (q:real^3) (v:real^3) (v0:real^3).
+                               d3 p q >= m12 /\
+                               d3 q v >= m23 /\
+                               d3 v v0 >= m34 /\
+                               d3 v0 p >= m14 /\
+                               d3 p v <  M13 /\
+                               d3 q v0 <= M24 /\
+                               condC M13 m12 m14 M24 m34 m23 
+                            ==> conv {p , v} INTER conv {q , v0} = {}`);;
+
+let affine_two_points = prove (`!(x:real^3) (y:real^3). affine {z | ?u v. u + v = &1 /\ z = u % x + v % y}`, REPEAT GEN_TAC THEN
+                               REWRITE_TAC[affine] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+                               ASM_REWRITE_TAC[] THEN EXISTS_TAC `( u:real) * u' + v * u''` THEN EXISTS_TAC ` u:real * v' + v * v''` THEN
+                               REWRITE_TAC[REAL_RING `(u * u' + v * u'') + u * v' + v * v'' = u * (u' + v') + v * (u'' + v'')`] THEN 
+                               ASM_REWRITE_TAC[] THEN REWRITE_TAC[REAL_RING `u * &1 + v * &1 = u + v`] THEN ASM_REWRITE_TAC[] THEN
+                               VECTOR_ARITH_TAC);;
+
+let ch_le = prove (`(!x y u v. x IN t /\ y IN t /\ u + v = &1 ==> u % x + v % y IN t) <=>
+                        (!v1 v2 r s. v1 IN t /\ v2 IN t /\ r + s = &1 ==> r % v1 + s % v2 IN t)`, MESON_TAC[]);;
+
+let sub_aff = prove ( ` ! (t:real^3->bool) v1:real^3 v2:real^3 . affine t /\ {v1 , v2} SUBSET t ==> 
+                        {w | ?r s. r + s = &1 /\ w = r % v1 + s % v2} SUBSET t`, REPEAT GEN_TAC THEN REWRITE_TAC[affine] THEN
+                        REWRITE_TAC[SET_RULE `{v1, v2} SUBSET t <=> v1 IN t /\ v2 IN t`] THEN STRIP_TAC THEN REWRITE_TAC[SUBSET] THEN
+                        GEN_TAC THEN ONCE_REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+                        UNDISCH_TAC `!x:real^3 y:real^3 u:real v. x IN (t:real^3->bool) /\ y IN t /\ u + v = &1 ==> u % x + v % y IN t` THEN
+                        ONCE_REWRITE_TAC[ch_le] THEN UNDISCH_TAC `v1:real^3 IN t:real^3->bool` THEN UNDISCH_TAC `v2:real^3 IN t:real^3->bool` THEN
+                        UNDISCH_TAC `r + s = &1 ` THEN MESON_TAC[]);;
+
+let ans = prove (` INTERS {t:real^3->bool | affine t /\ {v1:real^3, v2} SUBSET t} = {w:real^3 | ?r:real s. r + s = &1 /\ w = r % v1 + s % v2}
+                     <=> INTERS {t | affine t /\ {v1, v2} SUBSET t} SUBSET {w | ?r s. r + s = &1 /\ w = r % v1 + s % v2} /\
+                         {w | ?r s. r + s = &1 /\ w = r % v1 + s % v2} SUBSET INTERS {t | affine t /\ {v1, v2} SUBSET t} `, SET_TAC[]);;
+
+let anss = SET_RULE `(!t:real^3->bool. affine t /\ {v1, v2} SUBSET t ==> {w | ?r s. r + s = &1 /\ w = r % v1 + s % v2} SUBSET t ) ==>
+                  {w | ?r s. r + s = &1 /\ w = r % v1 + s % v2} SUBSET INTERS {t | affine t /\ {v1, v2} SUBSET t}`;;
+
+let chon = SET_RULE `!s:A->bool. s IN { t | P t} ==> INTERS { t| P t} SUBSET s`;;
+
+let subset_two_points = SET_RULE `{a , b } SUBSET s <=> a IN s /\ b IN s`;;
+
+let sub_1 = prove (`{w | ?r s. r + s = &1 /\ w = r % (v1:real^3) + s % (v2:real^3)} SUBSET
+                      INTERS {(t:real^3->bool) | affine t /\ {v1, v2} SUBSET t}`, MATCH_MP_TAC(anss) THEN REWRITE_TAC[sub_aff]);;
+
+let AFF_HULL_TWO_POINTS = prove (` ! v1:real^3 v2:real^3 . affine hull {v1 , v2} = { w | ? r s . r + s = &1 /\ w = r % v1 + s % v2 }`,
+                             REPEAT GEN_TAC THEN REWRITE_TAC[hull] THEN REWRITE_TAC[ans] THEN REWRITE_TAC[sub_1] THEN MATCH_MP_TAC(chon) THEN
+                             REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[affine_two_points] THEN REWRITE_TAC[subset_two_points] THEN
+                             REWRITE_TAC[IN_ELIM_THM] THEN CONJ_TAC THENL [EXISTS_TAC `&1`; EXISTS_TAC `&0`] THENL [EXISTS_TAC `&0`; EXISTS_TAC `&1`]
+                             THENL [REWRITE_TAC[REAL_ARITH ` &1 + &0 = &1`]; REWRITE_TAC[REAL_ARITH ` &0 + &1 = &1`]] THEN VECTOR_ARITH_TAC);;
+
+
+(*=========================================================*)
 
 let have_not_proved = new_axiom (`center_pac s v0
  ==> (v IN v_std s v0

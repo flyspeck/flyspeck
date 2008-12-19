@@ -181,8 +181,11 @@ let condC = new_definition ` condC (M13:real) (m12:real) (m14:real) (M24:real) (
                          (( m12 + m23 >= M13 ) /\ ( m14 + m34 >= M13 ) /\ ( m12 + m14 > M24 ) /\ ( m23 + m34 > M24 ) /\
                          ( delta_x (M13 pow 2) (m12 pow 2) (m14 pow 2) (M24 pow 2) (m34 pow 2) (m23 pow 2) >= &0 ))` ;;
 (*=====================================================================*)
-(* prove lemma 8.30 *)
+(* Begin to prove lemma 8.30 *)
 (*=====================================================================*)
+
+(* lemma_grap*)
+
 let in_lemma2 = REWRITE_CONV[IN_ELIM_THM]
   `e IN {{u, v} | u IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
                v IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
@@ -205,6 +208,11 @@ let lemma_graph = prove(`center_pac (s:real^3->bool) (v0:real^3) ==> graph (e_st
                                         THEN EXISTS_TAC`u:real^3` THEN EXISTS_TAC`{v:real^3}`
                                         THEN ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY] THEN EXISTS_TAC `v:real^3` THEN EXISTS_TAC `{}:real^3->bool`
                                         THEN ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY]);;
+(*==============================================================================*)
+(* end lemma_graph*)
+(*==============================================================================*)
+
+(*unions_lemma*)
 
 let uni_lemma1 = prove( ` UNIONS
  {{u, v} | u IN s INTER open_ball v0 (&2 * t0) DIFF {v0} /\
@@ -300,6 +308,11 @@ let unions_lemma = prove (`!(v0:real^3) (s:real^3->bool). center_pac (s:real^3->
                                          d3 u1 v1 <= &2 * t0 /\
                                          x = v1 )`] THEN 
                                      REWRITE_TAC[exist_lemma1] THEN STRIP_TAC);;
+(*==================================================================================*)
+(* end of unions_lemma*)
+(*==================================================================================*)
+
+(*fan1_lemma*)
 
 let lemma7_1 = new_axiom `!(v0:real^3) (s:real^3->bool) r:real. center_pac (s:real^3->bool) (v0:real^3) ==> 
                            FINITE (tru_pack v0 r s )`;;
@@ -321,9 +334,19 @@ let fan1_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac (s:real^3->boo
                                     ( center_pac s v0 /\ ~( v_std s v0 = {}) ==> ~(v_std s v0 SUBSET {}))`] THEN
                        REWRITE_TAC[SET_RULE ` ~( v_std s v0 SUBSET {}) <=> ~( v_std s v0 = {})`] THEN
                        MESON_TAC[fini_lemma1]);;
+(*======================================================================================*)
+(* end of fan1_lemma*)
+(*======================================================================================*)
+
+(* fan2_lemma*)
 
 let fan2_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan2 (v0,v_std s v0,e_std s v0 )`,
                        REPEAT GEN_TAC THEN REWRITE_TAC[fan2;v_std;DIFF] THEN SET_TAC[]);;
+(*======================================================================================*)
+(*end of fan2_lemma*)
+(*======================================================================================*)
+
+(* fan3_lemma*)
 
 let lemmaf3 = prove(`{v, w} IN
      {{x, y} | x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
@@ -469,6 +492,9 @@ let inv_diag = prove(`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p 
                           ==> ~(conv {p, v} INTER conv {q, v0} = {}) <=> ( p = q + h % (v0 - v) /\ h >= &0 ) ==> ~(conv {p, v} INTER conv {q, v0} = {})`] THEN
                       REWRITE_TAC[diag_trape]);;
 
+let inv1_diag = prove (`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). 
+                         conv {p, v} INTER conv {q, v0} = {} /\ h >= &0 ==> ~(p = q + h % (v0 - v))`, MESON_TAC[diag_trape]);;
+
 let vec_le = prove (` (h:real) % ( v0:real^3 - v ) = -- h % (v - v0)`, VECTOR_ARITH_TAC);;
 
 
@@ -485,6 +511,8 @@ let inv_diag1 = prove(`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). p
                           ==> ~(conv {p, v0} INTER conv {q, v} = {}) <=> ( p = q + h % (v0 - v) /\ h <= &0 ) ==> ~(conv {p, v0} INTER conv {q, v} = {})`] THEN
                       REWRITE_TAC[diag_trape1]);;
 
+let inv1_diag1 = prove (`!(p:real^3) (q:real^3) (v0:real^3) (v:real^3) (h:real). 
+                         conv {p, v0} INTER conv {q, v} = {} /\ h <= &0 ==> ~(p = q + h % (v0 - v))`, MESON_TAC[diag_trape1]);;
 
 let lemma_3_4 = new_axiom (` !(v1:real^3) (v2:real^3) (v3:real^3) (v4:real^3).
                              !(m12:real) (m23:real) (m34:real) (m14:real) (M13:real) (M24:real).  
@@ -545,61 +573,492 @@ let AFF_HULL_TWO_POINTS = prove (` ! v1:real^3 v2:real^3 . affine hull {v1 , v2}
                              REWRITE_TAC[IN_ELIM_THM] THEN CONJ_TAC THENL [EXISTS_TAC `&1`; EXISTS_TAC `&0`] THENL [EXISTS_TAC `&0`; EXISTS_TAC `&1`]
                              THENL [REWRITE_TAC[REAL_ARITH ` &1 + &0 = &1`]; REWRITE_TAC[REAL_ARITH ` &0 + &1 = &1`]] THEN VECTOR_ARITH_TAC);;
 
+let fa4 = prove(`(p:real^3) = (q:real^3) + (h:real) % ((v0:real^3) - (v:real^3)) /\ h = &0 ==> p = q`, 
+                  REWRITE_TAC[TAUT` p = q + h % (v0 - v) /\ h = &0 ==> p = q <=> h = &0 /\ p = q + h % (v0 - v) ==> p = q`]THEN
+                  REWRITE_TAC[TAUT `h = &0 /\ p = q + h % (v0 - v) ==> p = q <=> h = &0 ==> p = q + h % (v0 - v) ==> p = q`] THEN 
+                  DISCH_TAC THEN ASM_REWRITE_TAC[] THEN VECTOR_ARITH_TAC);;
 
-(*=========================================================*)
+let tam = prove (` (p:real^3) = (q:real^3) + (h:real) % ((v0:real^3) - (v:real^3)) /\ ~(h = &0) ==> 
+                  ~(conv {p, v} INTER conv {q, v0} = {}) \/ ~(conv {p, v0} INTER conv {q, v} = {})`, 
+                 REWRITE_TAC[REAL_ARITH `~(h = &0) <=> (h > &0 \/ h < &0)`] THEN
+                 REWRITE_TAC[TAUT ` p = q + h % (v0 - v) /\ (h > &0 \/ h < &0) <=> p = q + h % (v0 - v) /\ h > &0 \/ 
+                            p = q + h % (v0 - v) /\  h < &0 `] THEN STRIP_TAC
+                THENL[ MATCH_MP_TAC(TAUT ` ~(conv {(p:real^3) , (v:real^3)} INTER conv {(q:real^3), (v0:real^3)} = {}) ==> 
+                       ~(conv {p, v} INTER conv {q, v0} = {}) \/ ~(conv {p, v0} INTER conv {q, v} = {})`); 
+                       MATCH_MP_TAC(TAUT ` ~(conv {(p:real^3) , (v0:real^3)} INTER conv {(q:real^3), (v:real^3)} = {}) ==> 
+                       ~(conv {p, v} INTER conv {q, v0} = {}) \/ ~(conv {p, v0} INTER conv {q, v} = {})`)]
+                THENL[MATCH_MP_TAC(diag_trape);MATCH_MP_TAC(diag_trape1)] THEN EXISTS_TAC ` h:real` 
+                THENL[STRIP_TAC THENL[ASM_REWRITE_TAC[]; UNDISCH_TAC ` h > &0 ` ] THEN REAL_ARITH_TAC ;
+                      STRIP_TAC THENL[ASM_REWRITE_TAC[]; UNDISCH_TAC ` h < &0 ` ] THEN REAL_ARITH_TAC]);;
 
-let have_not_proved = new_axiom (`center_pac s v0
- ==> (v IN v_std s v0
-      ==> (!p q h.
-               {w | {v, w} IN e_std s v0} p /\
-               {w | {v, w} IN e_std s v0} q /\
-               p = q + h % (v0 - v)
-               ==> p = q)) /\
-     (v IN v_std s v0
-      ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`);;
+let tam1 = prove (` (p:real^3) = (q:real^3) + (h:real) % ( (v0:real^3) - (v:real^3)) /\ ~(p = q ) 
+                   ==> ~(conv {p, v} INTER conv {q, v0} = {}) \/ ~(conv {p, v0} INTER conv {q, v} = {})`,
+                   STRIP_TAC THEN MATCH_MP_TAC(tam) THEN STRIP_TAC 
+                   THENL[ASM_REWRITE_TAC[];UNDISCH_TAC `~(p:real^3 = q)` THEN UNDISCH_TAC `p:real^3 = q + h % (v0 - v)`]
+                   THEN REWRITE_TAC[TAUT` ~(p = q) ==> ~(h = &0) <=> h = &0 ==> p = q`] THEN MESON_TAC[fa4]);;
 
-g`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan3 (v0,v_std s v0,e_std s v0 )`;;
-e(REPEAT GEN_TAC);;
-e(REWRITE_TAC[fan3;cyclic_set]);;
-e(DISCH_TAC);;
-e(GEN_TAC);;
-e(REWRITE_TAC[TAUT ` v IN v_std s v0
- ==> ~(v0 = v) /\
-     FINITE {w | {v, w} IN e_std s v0} /\
-     (!p q h.
-          {w | {v, w} IN e_std s v0} p /\
-          {w | {v, w} IN e_std s v0} q /\
-          p = q + h % (v0 - v)
-          ==> p = q) /\
-     {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {} <=> 
-  ( v IN v_std s v0 ==> ~(v0 = v)) /\ ( v IN v_std s v0 ==> FINITE {w | {v, w} IN e_std s v0}) /\
-  ( v IN v_std s v0 ==> (!p q h.
-          {w | {v, w} IN e_std s v0} p /\
-          {w | {v, w} IN e_std s v0} q /\
-          p = q + h % (v0 - v)
-          ==> p = q)) /\
-  ( v IN v_std s v0 ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`]);;
-e(CONJ_TAC);;
-e(REWRITE_TAC[v_std;DIFF]);;
-e(SET_TAC[]);;
-e(CONJ_TAC);;
-e(REWRITE_TAC[e_std]);;
-e(ONCE_REWRITE_TAC[SET_RULE `{{u, v} | u IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
-                      v IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
-                      ~(u = v) /\
-                      d3 u v <= &2 * t0} = {{x, y} | x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
-                      y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
-                      ~(x = y) /\
-                      d3 x y <= &2 * t0}`]);;
-e(DISCH_TAC);;
-e(ONCE_REWRITE_TAC[lemmaf3]);;
-e(MATCH_MP_TAC (lemmaf33));;
-e(MATCH_MP_TAC (fini_lemma));;
-e(UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)`);;
-e(REWRITE_TAC[infi_lemma2]);;
-e(UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)`);;
-e(REWRITE_TAC[have_not_proved]);;
-let fan3_lemma = top_thm();;
+let tam2 = prove (` ~(p:real^3 = q) /\ conv {p, v:real^3} INTER conv {q, v0:real^3} = {} /\ conv {p, v0} INTER conv {q, v} = {}
+   ==> ~(p = q + (h:real) % (v0 - v) )`, MESON_TAC[tam1]);;
 
+let c_nov16 = prove (` ~(p:real^3 = q) ==> (!(x:real^3) (y:real^3). x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ 
+                      (v0:real^3) IN s ==> (v:real^3) IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)
+                                       ==> (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           ~(v = p) /\ norm (v - p) <= &2 * t0) \/
+                                           ((p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           ~(p = v) /\ norm (p - v) <= &2 * t0))
+                                      ==> (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          (q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                          ~(v = q) /\ norm (v - q) <= &2 * t0) \/
+                                         ((q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                         (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          ~(q = v) /\ norm (q - v) <= &2 * t0))
+                                    ==> ~(p = q + h % (v0 - v))`, 
+                  REWRITE_TAC[MESON[NORM_SUB]` (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                        (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                         ~(v = p) /\ norm (v - p) <= &2 * t0 \/
+                                        (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                        (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                        ~(p = v) /\ norm (p - v) <= &2 * t0  
+                                    <=> (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                        (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                        ~(p = v) /\ norm (p - v) <= &2 * t0 `] THEN REPEAT STRIP_TAC THEN
+                 UNDISCH_TAC `p:real^3 = q + (h:real) % (v0 - v)` THEN 
+                 REWRITE_TAC[MESON[]`p = q + h % (v0 - v) ==> F <=> ~(p = q + h % (v0 - v))`] THEN
+                 MATCH_MP_TAC(tam2) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN MATCH_MP_TAC(lemma_3_4) THEN
+                 EXISTS_TAC ` &2` THEN EXISTS_TAC ` &2` THEN EXISTS_TAC ` &2` THEN EXISTS_TAC ` &2` THEN 
+                 EXISTS_TAC ` #2.6` THEN EXISTS_TAC ` #2.6` THEN REWRITE_TAC[lemmaf34] THEN REWRITE_TAC[d3;dist]
+                 THENL[UNDISCH_TAC ` norm (q:real^3 - v0) < &2 * t0` ; UNDISCH_TAC` norm (q:real^3 - v) <= &2 * t0` ] THEN
+                 REWRITE_TAC[t0] THEN REWRITE_TAC[REAL_ARITH ` &2 * #1.255 = #2.51`]
+                 THENL[REWRITE_TAC[TAUT ` norm (q - v0) < #2.51
+                              ==> norm (p - q) >= &2 /\
+                                  norm (q - v) >= &2 /\
+                                  norm (v - v0) >= &2 /\
+                                  norm (v0 - p) >= &2 /\
+                                  norm (p - v) < #2.6 /\
+                                  norm (q - v0) <= #2.6 
+                              <=> ( norm (q - v0) < #2.51
+                              ==> norm (p - q) >= &2 /\
+                                  norm (q - v) >= &2 /\
+                                  norm (v - v0) >= &2 /\
+                                  norm (v0 - p) >= &2 /\
+                                  norm (p - v) < #2.6) /\ 
+                                 (norm (q - v0) < #2.51 
+                             ==> norm (q - v0) <= #2.6 )`] THEN CONJ_TAC THENL [DISCH_TAC ; REAL_ARITH_TAC]; 
+                     REWRITE_TAC[TAUT `norm (q - v) <= #2.51
+                              ==> norm (p - q) >= &2 /\
+                                  norm (q - v0) >= &2 /\
+                                  norm (v0 - v) >= &2 /\
+                                  norm (v - p) >= &2 /\
+                                  norm (p - v0) < #2.6 /\
+                                  norm (q - v) <= #2.6 
+                             <=> ( norm (q - v) <= #2.51
+                              ==> norm (p - q) >= &2 /\
+                                  norm (q - v0) >= &2 /\
+                                  norm (v0 - v) >= &2 /\
+                                  norm (v - p) >= &2 /\
+                                  norm (p - v0) < #2.6 ) /\ 
+                                ( norm (q - v) <= #2.51
+                              ==> norm (q - v) <= #2.6 ) `] THEN CONJ_TAC THENL [DISCH_TAC ; REAL_ARITH_TAC]]  
+                      THENL[UNDISCH_TAC `norm (p:real^3 - v) <= &2 * t0` THEN REWRITE_TAC[t0] THEN REWRITE_TAC[REAL_ARITH ` &2 * #1.255 = #2.51`] THEN
+                               REWRITE_TAC[TAUT ` norm (p - v) <= #2.51
+                               ==> norm (p - q) >= &2 /\
+                                   norm (q - v) >= &2 /\
+                                   norm (v - v0) >= &2 /\
+                                   norm (v0 - p) >= &2 /\
+                                   norm (p - v) < #2.6 <=> ( norm (p - v) <= #2.51
+                               ==> norm (p - q) >= &2 /\
+                                   norm (q - v) >= &2 /\
+                                   norm (v - v0) >= &2 /\
+                                   norm (v0 - p) >= &2 ) /\ (norm (p - v) <= #2.51 ==> 
+                                   norm (p - v) < #2.6 )`] THEN CONJ_TAC THENL [DISCH_TAC; REAL_ARITH_TAC] THEN 
+                           UNDISCH_TAC ` ~(p:real^3 = v0)` THEN UNDISCH_TAC ` v0:real^3 IN s:real^3->bool` THEN
+                           UNDISCH_TAC` !x:real^3 y:real^3. x IN s:real^3->bool /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2` THEN
+                           UNDISCH_TAC ` p:real^3 IN s:real^3->bool` THEN UNDISCH_TAC `q:real^3 IN (s:real^3->bool)` THEN 
+                           UNDISCH_TAC ` ~(p:real^3 = q)` THEN UNDISCH_TAC ` v:real^3 IN (s:real^3->bool)` 
+                           THEN UNDISCH_TAC ` ~(q:real^3 = v)` THEN UNDISCH_TAC ` ~(v:real^3 = v0)` ; 
+                           UNDISCH_TAC` norm (p:real^3 - v0) < &2 * t0` THEN REWRITE_TAC[t0] THEN REWRITE_TAC[REAL_ARITH ` &2 * #1.255 = #2.51`] THEN
+                           REWRITE_TAC[TAUT ` norm (p - v0) < #2.51
+                                  ==> norm (p - q) >= &2 /\
+                                      norm (q - v0) >= &2 /\
+                                      norm (v0 - v) >= &2 /\
+                                      norm (v - p) >= &2 /\
+                                      norm (p - v0) < #2.6 <=> (norm (p - v0) < #2.51
+                                  ==> norm (p - q) >= &2 /\
+                                      norm (q - v0) >= &2 /\
+                                      norm (v0 - v) >= &2 /\
+                                      norm (v - p) >= &2 ) /\ (norm (p - v0) < #2.51
+                                  ==> norm (p - v0) < #2.6)`] THEN CONJ_TAC THENL [DISCH_TAC; REAL_ARITH_TAC] THEN
+                           UNDISCH_TAC ` p:real^3 IN (s:real^3->bool) ` THEN UNDISCH_TAC ` q:real^3 IN (s:real^3->bool) ` THEN
+                           UNDISCH_TAC ` v:real^3 IN (s:real^3->bool) ` THEN UNDISCH_TAC ` v0:real^3 IN (s:real^3->bool) ` THEN
+                           UNDISCH_TAC ` ~(p:real^3 = q) ` THEN UNDISCH_TAC ` ~(p:real^3 = v) ` THEN 
+                           UNDISCH_TAC ` ~(v:real^3 = v0) ` THEN UNDISCH_TAC ` ~(q:real^3 = v0) ` THEN 
+                           UNDISCH_TAC ` !x:real^3 y:real^3. x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2 `]
+                    THEN MESON_TAC[NORM_SUB]);;
 
+let c_nov17 = prove (` ( ~(p:real^3 = q) /\ (!(x:real^3) (y:real^3). x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ 
+                      (v0:real^3) IN s /\ (v:real^3) IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)
+                                       /\ (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           ~(v = p) /\ norm (v - p) <= &2 * t0) \/
+                                           ((p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           ~(p = v) /\ norm (p - v) <= &2 * t0))
+                                      /\ (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          (q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                          ~(v = q) /\ norm (v - q) <= &2 * t0) \/
+                                         ((q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                         (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          ~(q = v) /\ norm (q - v) <= &2 * t0)) )
+                                    ==> ~(p = q + h % (v0 - v))`, 
+                   REWRITE_TAC[TAUT ` ~(p = q) /\
+                                    (!x y. x IN s /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\
+                                     v0 IN s /\
+                                     v IN s /\
+                                     norm (v - v0) < &2 * t0 /\
+                                     ~(v = v0) /\
+                                    ((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                    ~(v = p) /\
+                                     norm (v - p) <= &2 * t0 \/
+                                    (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                    (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    ~(p = v) /\
+                                    norm (p - v) <= &2 * t0) /\
+                                    ((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    (q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                    ~(v = q) /\
+                                    norm (v - q) <= &2 * t0 \/
+                                    (q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                    (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                   ~(q = v) /\
+                                    norm (q - v) <= &2 * t0)
+                                     ==> ~(p = q + h % (v0 - v)) <=> 
+                                     ~(p:real^3 = q) 
+                                       ==> (!(x:real^3) (y:real^3). x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ 
+                                           (v0:real^3) IN s ==> (v:real^3) IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)
+                                       ==> (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           (p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           ~(v = p) /\ norm (v - p) <= &2 * t0) \/
+                                           ((p IN s /\ norm (p - v0) < &2 * t0 /\ ~(p = v0)) /\
+                                           (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           ~(p = v) /\ norm (p - v) <= &2 * t0))
+                                      ==> (((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          (q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                          ~(v = q) /\ norm (v - q) <= &2 * t0) \/
+                                         ((q IN s /\ norm (q - v0) < &2 * t0 /\ ~(q = v0)) /\
+                                         (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                          ~(q = v) /\ norm (q - v) <= &2 * t0))
+                                      ==> ~(p = q + h % (v0 - v))`] THEN REWRITE_TAC[c_nov16]);;
+
+let fa2 = REWRITE_CONV[IN_ELIM_THM] `{v, q} IN
+     {{u, v'} | (u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                ~(u = v') /\
+                norm (u - v') <= &2 * t0}`;;
+
+let fa1 = REWRITE_CONV[IN_ELIM_THM]`p IN {w | {v, w} IN e_std s v0}`;;
+
+let c_nov1_17 = prove( ` center_pac (s:real^3->bool) (v0:real^3)
+                          ==> (v IN v_std s v0
+                               ==> (!p q h.
+                                   {w | {v, w} IN e_std s v0} p /\
+                                   {w | {v, w} IN e_std s v0} q /\
+                                   p = q + h % (v0 - v)
+                                   ==> p = q))`, 
+                      REWRITE_TAC[SET_RULE `{w | {v, w} IN e_std s v0} p <=> p IN {w | {v, w} IN e_std s v0}`] THEN 
+                      REWRITE_TAC[fa1] THEN REPEAT DISCH_TAC THEN REPEAT GEN_TAC THEN
+                      UNDISCH_TAC `(v:real^3) IN v_std (s:real^3->bool) v0` THEN UNDISCH_TAC `center_pac (s:real^3->bool) v0` THEN
+                      REWRITE_TAC[TAUT `center_pac s v0
+                                        ==> v IN v_std s v0
+                                        ==> {v, p} IN e_std s v0 /\ {v, q} IN e_std s v0 /\ p = q + h % (v0 - v)
+                                        ==> p = q <=> 
+                                     ~(p = q ) /\  center_pac s v0 /\ v IN v_std s v0 /\ {v, p} IN e_std s v0 /\ {v, q} IN e_std s v0
+                                      ==> ~(p = q + h % (v0 - v))`] THEN 
+                    REWRITE_TAC[TAUT ` ~(p = q) /\
+                                       center_pac s v0 /\
+                                       v IN v_std s v0 /\
+                                      {v, p} IN e_std s v0 /\
+                                      {v, q} IN e_std s v0
+                                      ==> ~(p = q + h % (v0 - v)) <=> 
+                                      ~(p = q) ==> ( center_pac s v0 ==> ( v IN v_std s v0 /\
+                                      {v, p} IN e_std s v0 /\
+                                      {v, q} IN e_std s v0
+                                      ==> ~(p = q + h % (v0 - v)))) `] THEN DISCH_TAC THEN DISCH_TAC THEN 
+                   REWRITE_TAC[v_std;e_std;tru_pack] THEN ASM_REWRITE_TAC[] THEN 
+                   REWRITE_TAC[SET_RULE ` v IN {x | x IN s /\ x IN open_ball v0 (&2 * t0)} DIFF {v0} <=>
+                                          v IN s /\ v IN open_ball v0 (&2 * t0) /\ ~ ( v = v0)`] THEN 
+                   ONCE_REWRITE_TAC[SET_RULE `{{u, v} | (u IN s /\ u IN open_ball v0 (&2 * t0) /\ ~(u = v0)) /\
+                                             (v IN s /\ v IN open_ball v0 (&2 * t0) /\ ~(v = v0)) /\
+                                             ~(u = v) /\
+                                             d3 u v <= &2 * t0} = 
+                                            {{u, v'} | (u IN s /\ u IN open_ball v0 (&2 * t0) /\ ~(u = v0)) /\
+                                            (v' IN s /\ v' IN open_ball v0 (&2 * t0) /\ ~(v' = v0)) /\
+                                            ~(u = v') /\
+                                            d3 u v' <= &2 * t0}`] THEN UNDISCH_TAC ` center_pac (s:real^3->bool) v0` THEN
+                  REWRITE_TAC[center_pac;packing_trg;d3;dist;open_ball] THEN 
+                  REWRITE_TAC[SET_RULE `u IN {y | norm (y - v0) < &2 * t0} <=> norm (u - v0) < &2 * t0`] THEN
+                  REWRITE_TAC[SET_RULE ` (s:real^3->bool) x <=> x IN s`] THEN REWRITE_TAC[SET_RULE ` ~(v0 IN (=) u) <=> ~ (u = v0)`] THEN
+                  REWRITE_TAC[fa2] THEN REWRITE_TAC[SET_RULE ` {v, p} = {u, v'} <=> ( v = u /\ p = v') \/ ( v = v' /\ p = u )`] THEN
+                  REPEAT DISCH_TAC THEN UNDISCH_TAC `(p:real^3) = (q:real^3) + (h:real) % ((v0:real^3) - (v:real^3))` THEN
+                  REWRITE_TAC[TAUT ` p = q + h % (v0 - v) ==> F <=> ~(p = q + h % (v0 - v))`] THEN MATCH_MP_TAC(c_nov17) THEN
+                  ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[]);;
+
+let c_nov18 = prove(` ! x:real^3. x IN affine hull {v1:real^3 , v2:real^3} ==> norm ( x - v1) = norm (x - v2) + norm (v2 - v1) \/ 
+                        norm ( x - v2) = norm (x - v1) + norm (v2 - v1) \/ norm ( v1 - v2) = norm ( x - v1) + norm (x - v2)`,
+                    GEN_TAC THEN REWRITE_TAC[AFF_HULL_TWO_POINTS] THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+                    ASM_REWRITE_TAC[] THEN UNDISCH_TAC ` (r:real) + (s:real) = &1 ` THEN 
+                    REWRITE_TAC [REAL_ARITH ` r + s = &1 <=> r = &1 - s`] THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+                    REWRITE_TAC[VECTOR_ARITH ` ((&1 - s) % v1 + s % v2) - v1 = s % ( v2 - v1) `] THEN
+                    REWRITE_TAC[VECTOR_ARITH ` ((&1 - s) % v1 + s % v2) - v2 = (&1 - s) % (v1 - v2)`] THEN REWRITE_TAC[NORM_MUL] THEN
+                    REWRITE_TAC[TAUT ` abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1) \/
+                                abs (&1 - s) * norm (v1 - v2) = abs s * norm (v2 - v1) + norm (v2 - v1) \/
+                                norm (v1 - v2) = abs s * norm (v2 - v1) + abs (&1 - s) * norm (v1 - v2) <=> 
+                                ~( abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1)) /\
+                                ~( abs (&1 - s) * norm (v1 - v2) = abs s * norm (v2 - v1) + norm (v2 - v1)) ==>
+                                norm (v1 - v2) = abs s * norm (v2 - v1) + abs (&1 - s) * norm (v1 - v2)`] THEN
+                    DISCH_TAC THEN REWRITE_TAC[NORM_SUB] THEN 
+                    REWRITE_TAC[REAL_ARITH ` abs s * norm (v1 - v2) + abs (&1 - s) * norm (v1 - v2)
+                                = (abs s + abs (&1 - s))*norm (v1 - v2)`] THEN
+                    MATCH_MP_TAC(REAL_ARITH` (abs s + abs (&1 - s)) = &1 ==> norm (v1 - v2) = (abs s + abs (&1 - s)) * norm (v1 - v2)`) THEN
+                    MATCH_MP_TAC(REAL_ARITH ` abs s = s /\ abs (&1 - s) = (&1 - s) ==> abs s + abs (&1 - s) = &1`) THEN
+                    REWRITE_TAC[REAL_ABS_REFL] THEN
+                    UNDISCH_TAC ` ~(abs (s:real) * norm (v2:real^3 - v1:real^3) =
+                                   abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1)) /\
+                                  ~(abs (&1 - s) * norm (v1 - v2) =
+                                   abs s * norm (v2 - v1) + norm (v2 - v1))` THEN
+                    REWRITE_TAC[TAUT ` ~(abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1)) /\
+                                       ~(abs (&1 - s) * norm (v1 - v2) = abs s * norm (v2 - v1) + norm (v2 - v1))
+                                    ==> &0 <= s /\ &0 <= &1 - s <=> 
+                                      ~(&0 <= s /\ &0 <= &1 - s ) /\ ~(abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1))
+                                    ==> (abs (&1 - s) * norm (v1 - v2) = abs s * norm (v2 - v1) + norm (v2 - v1))`] THEN 
+                    STRIP_TAC THEN REWRITE_TAC[NORM_SUB] THEN
+                    REWRITE_TAC[REAL_ARITH ` abs (&1 - s) * norm (v1 - v2) = abs s * norm (v1 - v2) + norm (v1 - v2) <=>
+                                             abs (&1 - s) * norm (v1 - v2) - abs s * norm (v1 - v2) = norm (v1 - v2)`] THEN
+                    REWRITE_TAC[REAL_ARITH `abs (&1 - s) * norm (v1 - v2) - abs s * norm (v1 - v2) = 
+                                          ( abs (&1 - s) - abs s ) * norm (v1 - v2)`] THEN
+                    REWRITE_TAC[REAL_ARITH ` (abs (&1 - s) - abs s) * norm (v1 - v2) = norm (v1 - v2) <=> 
+                                            norm (v1 - v2) = (abs (&1 - s) - abs s) * norm (v1 - v2)`] THEN
+                    MATCH_MP_TAC( REAL_RING `(abs (&1 - s:real) - abs s) = &1 ==> 
+                                            norm (v1 - v2) = (abs (&1 - s) - abs s) * norm (v1 - v2)`) THEN
+                    MATCH_MP_TAC(REAL_ARITH ` abs (&1 - s) = (&1 - s) /\ abs s = -- s ==> abs (&1 - s) - abs s = &1`) THEN
+                    REWRITE_TAC[REAL_ARITH ` abs s = --s <=> abs (--s) = --s`] THEN REWRITE_TAC[REAL_ABS_REFL] THEN
+                    UNDISCH_TAC ` ~(abs s * norm ((v2:real^3) - (v1:real^3)) =
+                                    abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1))` THEN
+                    REWRITE_TAC[TAUT ` ~(abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1))
+                                      ==> &0 <= &1 - s /\ &0 <= --s <=> ~(&0 <= &1 - s /\ &0 <= --s) ==>   
+                                       abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1)`] THEN
+                    REWRITE_TAC[REAL_ARITH ` abs s * norm (v2 - v1) = abs (&1 - s) * norm (v1 - v2) + norm (v2 - v1)
+                                       <=> norm (v2 - v1) = abs s * norm (v2 - v1) - abs (&1 - s) * norm (v1 - v2)`] THEN
+                    REWRITE_TAC[NORM_SUB] THEN 
+                    REWRITE_TAC[REAL_ARITH ` abs s * norm (v1 - v2) - abs (&1 - s) * norm (v1 - v2) = ( abs s - abs (&1 - s)) * norm (v1 - v2)`] THEN
+                    DISCH_TAC THEN MATCH_MP_TAC(REAL_RING ` (abs s - abs (&1 - s)) = &1 ==> norm (v1 - v2) = (abs s - abs (&1 - s)) * norm (v1 - v2)`) THEN
+                    REWRITE_TAC[REAL_ARITH ` abs (&1 - s) = abs (s - &1)`] THEN 
+                    MATCH_MP_TAC(REAL_ARITH ` abs s = s /\ abs (s - &1) = (s - &1) ==> abs s - abs (s - &1) = &1`) THEN REWRITE_TAC[REAL_ABS_REFL] THEN
+                    UNDISCH_TAC `~(&0 <= &1 - s /\ &0 <= --s)` THEN UNDISCH_TAC ` ~(&0 <= s /\ &0 <= &1 - s)` THEN REAL_ARITH_TAC);;
+
+let c_inv_nov18 = prove (` ~(norm ( x:real^3 - v1:real^3) = norm (x - v2:real^3) + norm (v2 - v1)) /\ 
+                           ~(norm ( x - v2) = norm (x - v1) + norm (v2 - v1)) /\
+                           ~(norm ( v1 - v2) = norm ( x - v1) + norm (x - v2)) ==> ~(x IN affine hull {v1 , v2})`, MESON_TAC[c_nov18]);;
+
+let fa5 = prove( `!a:real b:real c:real. a >= &2 /\ a <= #2.51 /\ b >= &2 /\ b <= #2.51 /\ c >= &2 /\ c <= #2.51
+                    ==> ~(a = b + c) /\ ~(b = a + c) /\ ~(c = a + b)`, REAL_ARITH_TAC);;
+
+let c_nov18e = prove( `(!x:real^3 y:real^3. x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ v0:real^3 IN s
+                                ==> v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)
+                                ==> (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                   ~(v = w) /\ norm (v - w) <= &2 * t0 \/
+                                    (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                    (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                   ~(w = v) /\ norm (w - v) <= &2 * t0
+                               ==> ~(w IN affine hull {v0, v})`, 
+                   REWRITE_TAC[MESON[NORM_SUB] ` (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                             (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                            ~(v = w) /\ norm (v - w) <= &2 * t0 \/
+                                             (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                             (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                            ~(w = v) /\ norm (w - v) <= &2 * t0 <=> (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                             (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                            ~(w = v) /\ norm (w - v) <= &2 * t0 `] THEN REPEAT STRIP_TAC THEN
+                   UNDISCH_TAC ` w:real^3 IN affine hull {v0:real^3, v:real^3}` THEN
+                   REWRITE_TAC[TAUT ` w IN affine hull {v0, v} ==> F <=> ~(w IN affine hull {v0, v})`] THEN
+                   MATCH_MP_TAC(c_inv_nov18) THEN 
+                   UNDISCH_TAC ` !x:real^3 y:real^3. x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2` THEN
+                   UNDISCH_TAC ` v0:real^3 IN (s:real^3->bool)` THEN UNDISCH_TAC ` v:real^3 IN (s:real^3->bool)` THEN
+                   UNDISCH_TAC ` w:real^3 IN (s:real^3->bool)` THEN UNDISCH_TAC ` norm (v:real^3 - v0) < &2 * t0` THEN 
+                   UNDISCH_TAC ` norm (w:real^3 - v0) < &2 * t0` THEN UNDISCH_TAC ` norm (w:real^3 - v) <= &2 * t0` THEN
+                   UNDISCH_TAC ` ~(v:real^3 = v0)` THEN UNDISCH_TAC ` ~(w:real^3 = v0)` THEN UNDISCH_TAC ` ~(w:real^3 = v)` THEN
+                   REWRITE_TAC[t0] THEN REWRITE_TAC[REAL_ARITH ` &2 * #1.255 = #2.51`] THEN REWRITE_TAC[NORM_SUB] THEN
+                   REPEAT DISCH_TAC THEN MATCH_MP_TAC(fa5) THEN UNDISCH_TAC `norm (v0:real^3 - w) < #2.51` THEN
+                   REWRITE_TAC[TAUT ` norm (v0 - w) < #2.51
+                               ==> norm (v0 - w) >= &2 /\
+                                   norm (v0 - w) <= #2.51 /\
+                                   norm (v - w) >= &2 /\
+                                   norm (v - w) <= #2.51 /\
+                                   norm (v - v0) >= &2 /\
+                                   norm (v - v0) <= #2.51 
+                              <=> (norm (v0 - w) < #2.51
+                               ==> norm (v0 - w) >= &2 /\
+                                   norm (v - w) >= &2 /\
+                                   norm (v - w) <= #2.51 /\
+                                   norm (v - v0) >= &2 /\
+                                   norm (v - v0) <= #2.51 ) /\ 
+                                  (norm (v0 - w) < #2.51 
+                              ==>  norm (v0 - w) <= #2.51 )`] THEN
+                  CONJ_TAC THENL[DISCH_TAC; REAL_ARITH_TAC] THEN UNDISCH_TAC ` norm (v:real^3 - v0) < #2.51` THEN
+                  REWRITE_TAC[TAUT ` norm (v - v0) < #2.51
+                                     ==> norm (v0 - w) >= &2 /\
+                                         norm (v - w) >= &2 /\
+                                         norm (v - w) <= #2.51 /\
+                                         norm (v - v0) >= &2 /\
+                                         norm (v - v0) <= #2.51
+                                <=> (norm (v - v0) < #2.51 
+                                     ==> norm (v0 - w) >= &2 /\
+                                         norm (v - w) >= &2 /\
+                                         norm (v - w) <= #2.51 /\
+                                         norm (v - v0) >= &2 ) /\
+                                   (norm (v - v0) < #2.51
+                                     ==> norm (v - v0) <= #2.51 )`] THEN CONJ_TAC THENL[DISCH_TAC;REAL_ARITH_TAC] THEN
+                 ASM_MESON_TAC[NORM_SUB]);;
+
+let c_nov18e1 = prove ( `((!x:real^3 y:real^3. x IN (s:real^3->bool) /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ v0:real^3 IN s ) /\
+                                    (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    ((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                    (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                   ~(v = w) /\ norm (v - w) <= &2 * t0 \/
+                                    (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                    (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                   ~(w = v) /\ norm (w - v) <= &2 * t0 )
+                               ==> ~(w IN affine hull {v0, v})`, 
+                        REWRITE_TAC[TAUT ` ((!x y. x IN s /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ v0 IN s) /\
+                                           (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                           ((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                            (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                             ~(v = w) /\
+                                             norm (v - w) <= &2 * t0 \/
+                                            (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                            (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                            ~(w = v) /\
+                                             norm (w - v) <= &2 * t0)
+                                             ==> ~(w IN affine hull {v0, v})
+                                     <=>
+                                           ((!x y. x IN s /\ y IN s /\ ~(x = y) ==> norm (x - y) >= &2) /\ v0 IN s) 
+                                        ==> (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) 
+                                        ==> ((v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                             (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                             ~(v = w) /\
+                                              norm (v - w) <= &2 * t0 \/
+                                             (w IN s /\ norm (w - v0) < &2 * t0 /\ ~(w = v0)) /\
+                                             (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                            ~(w = v) /\
+                                              norm (w - v) <= &2 * t0)
+                                         ==> ~(w IN affine hull {v0, v})`] THEN REWRITE_TAC[c_nov18e]);;
+
+let c_nov18e2 = prove( `center_pac (s:real^3->bool) (v0:real^3) ==> 
+                               (v:real^3 IN v_std s v0
+                               ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`,
+                      DISCH_TAC THEN REWRITE_TAC[v_std;e_std;tru_pack] THEN ASM_REWRITE_TAC[] THEN
+                      REWRITE_TAC[SET_RULE ` u IN {x | x IN s /\ x IN open_ball v0 (&2 * t0)} DIFF {v0} <=>
+                                             u IN s /\ u IN open_ball v0 (&2 * t0) /\ ~(u = v0)`] THEN
+                      REWRITE_TAC[open_ball] THEN REWRITE_TAC[SET_RULE ` v IN {y | norm (y - v0) < &2 * t0} <=> norm (v - v0) < &2 * t0 `] THEN 
+                      ONCE_REWRITE_TAC[SET_RULE ` {{u, v} | (u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                                  (v IN s /\ norm (v - v0) < &2 * t0 /\ ~(v = v0)) /\
+                                                 ~(u = v) /\ d3 u v <= &2 * t0} = 
+                                                  {{u, v'} | (u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                                  (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                                  ~(u = v') /\ d3 u v' <= &2 * t0}`] THEN
+                     UNDISCH_TAC ` center_pac (s:real^3->bool) (v0:real^3)` THEN REWRITE_TAC[center_pac; packing_trg;d3;dist] THEN
+                     REWRITE_TAC[SET_RULE ` {w | {v, w} IN
+                                            {{u, v'} | (u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                                       (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                                       ~(u = v') /\ norm (u - v') <= &2 * t0}} INTER affine hull {v0, v} = {} 
+                                           <=> !w. w IN {w | {v, w} IN
+                                               {{u, v'} | (u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                                          (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                                           ~(u = v') /\ norm (u - v') <= &2 * t0}} 
+                                          ==> ~(w IN affine hull {v0, v})`] THEN DISCH_TAC THEN DISCH_TAC THEN GEN_TAC THEN DISCH_TAC THEN
+                    UNDISCH_TAC ` (!x:real^3 y:real^3. (s:real^3->bool) x /\ s y /\ ~(x = y) ==> norm (x - y) >= &2) /\ s (v0:real^3)` THEN
+                    REWRITE_TAC[SET_RULE ` (s:real^3->bool) x <=> x IN s `] THEN REWRITE_TAC[SET_RULE `~(y IN (=) x) <=> ~(x = y)`] THEN DISCH_TAC THEN
+                    UNDISCH_TAC `(w:real^3) IN
+                                 {w | {v:real^3, w} IN
+                                 {{u:real^3, v'} | (u IN (s:real^3->bool) /\ norm (u - v0:real^3) < &2 * t0 /\ ~(u = v0)) /\
+                                                   (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                                   ~(u = v') /\ norm (u - v') <= &2 * t0}}` THEN ONCE_REWRITE_TAC[IN_ELIM_THM] THEN
+                   REWRITE_TAC[fa2] THEN REWRITE_TAC[SET_RULE ` {v, w} = {u, v'} <=> ( v = u /\ w = v') \/ (v = v' /\ w = u)`] THEN
+                   REWRITE_TAC[TAUT ` ((u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                      (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                      ~(u = v') /\ norm (u - v') <= &2 * t0) /\
+                                      (v = u /\ w = v' \/ v = v' /\ w = u)
+                                  <=> (((u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                      (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                      ~(u = v') /\ norm (u - v') <= &2 * t0) /\
+                                      v = u /\ w = v') \/ (((u IN s /\ norm (u - v0) < &2 * t0 /\ ~(u = v0)) /\
+                                     (v' IN s /\ norm (v' - v0) < &2 * t0 /\ ~(v' = v0)) /\
+                                     ~(u = v') /\ norm (u - v') <= &2 * t0) /\
+                                      v = v' /\ w = u)`] THEN DISCH_TAC THEN MATCH_MP_TAC(c_nov18e1) THEN ASM_MESON_TAC[]);;
+
+let c_nov18e3 = prove( `center_pac (s:real^3->bool) (v0:real^3)
+                        ==> (v:real^3 IN v_std s v0
+                            ==> (!p q h.
+                                     {w | {v, w} IN e_std s v0} p /\
+                                     {w | {v, w} IN e_std s v0} q /\
+                                     p = q + h % (v0 - v)
+                                     ==> p = q)) /\
+                           (v IN v_std s v0
+                           ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`,
+                   REWRITE_TAC[TAUT ` center_pac s v0
+                                      ==> (v IN v_std s v0
+                                           ==> (!p q h.
+                                                      {w | {v, w} IN e_std s v0} p /\
+                                                      {w | {v, w} IN e_std s v0} q /\
+                                                       p = q + h % (v0 - v)
+                                                       ==> p = q)) /\
+                                         (v IN v_std s v0
+                                          ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {}) 
+                                   <=> ( center_pac s v0
+                                        ==> (v IN v_std s v0
+                                             ==> (!p q h.
+                                                        {w | {v, w} IN e_std s v0} p /\
+                                                        {w | {v, w} IN e_std s v0} q /\
+                                                        p = q + h % (v0 - v)
+                                                        ==> p = q))) /\
+                                      ( center_pac s v0
+                                       ==> (v IN v_std s v0
+                                            ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {}))`] THEN 
+                  REWRITE_TAC[c_nov18e2;c_nov1_17]);;
+
+let fan3_lemma = prove(`!(v0:real^3) (s:real^3->bool). center_pac s v0 ==> fan3 (v0,v_std s v0,e_std s v0 )`, REPEAT GEN_TAC THEN 
+                        REWRITE_TAC[fan3;cyclic_set] THEN DISCH_TAC THEN GEN_TAC THEN
+                        REWRITE_TAC[TAUT ` v IN v_std s v0
+                                      ==> ~(v0 = v) /\
+                                           FINITE {w | {v, w} IN e_std s v0} /\
+                                          (!p q h.
+                                                 {w | {v, w} IN e_std s v0} p /\
+                                                 {w | {v, w} IN e_std s v0} q /\
+                                                 p = q + h % (v0 - v)
+                                                 ==> p = q) /\
+                                           {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {} <=> 
+                                           ( v IN v_std s v0 ==> ~(v0 = v)) /\ ( v IN v_std s v0 ==> FINITE {w | {v, w} IN e_std s v0}) /\
+                                           ( v IN v_std s v0 ==> (!p q h.
+                                                          {w | {v, w} IN e_std s v0} p /\
+                                                          {w | {v, w} IN e_std s v0} q /\
+                                                          p = q + h % (v0 - v)
+                                                          ==> p = q)) /\
+                                   ( v IN v_std s v0 ==> {w | {v, w} IN e_std s v0} INTER affine hull {v0, v} = {})`] THEN
+                       CONJ_TAC THENL[REWRITE_TAC[v_std;DIFF] THEN SET_TAC[]; ALL_TAC] THEN
+                       CONJ_TAC THENL[REWRITE_TAC[e_std] THEN ONCE_REWRITE_TAC[SET_RULE `{{u, v} | u IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                                                       v IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                                                      ~(u = v) /\
+                                                      d3 u v <= &2 * t0} = {{x, y} | x IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                                                      y IN tru_pack v0 (&2 * t0) s DIFF {v0} /\
+                                                     ~(x = y) /\
+                                                     d3 x y <= &2 * t0}`] THEN DISCH_TAC THEN ONCE_REWRITE_TAC[lemmaf3] THEN 
+                      MATCH_MP_TAC (lemmaf33) THEN MATCH_MP_TAC (fini_lemma) THEN 
+                      UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)` THEN REWRITE_TAC[infi_lemma2];
+                      UNDISCH_TAC `center_pac (s:real^3->bool) (v0:real^3)` THEN REWRITE_TAC[c_nov18e3]]);;
+
+(*=====================================================================*)
+(* end of fan3_lemma*)
 (*=====================================================================*)

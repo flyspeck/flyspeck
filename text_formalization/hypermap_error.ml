@@ -1,6 +1,7 @@
 (* Tran Nam Trung *)
 
 needs "Examples/permutations.ml";;
+prioritize_num();;
 
 (* Iterate of a function f with n times *)
 
@@ -203,7 +204,7 @@ THEN ASM_REWRITE_TAC[] ]);;
 
 let LEMMA_INJ = prove(`(!(n:num) (f:num->A). ~(n = 0) ==> (!i:num j:num. i < n /\ j < i ==> ~(f(i) = f(j))) ==> (!x:num y:num. x IN 0..n - 1 /\ y IN 0..n - 1 /\ f x = f y ==> x = y))`,
 REWRITE_TAC[numseg; IN_ELIM_THM; ARITH_RULE `0 <= x /\ 0 <= y`] THEN REPEAT STRIP_TAC 
-THEN SIMP_TAC[ARITH_RULE `(x = y) <=> ~(x < y \/ y < x)`] THEN STRIP_TAC 
+THEN SIMP_TAC[ARITH_RULE `(x:num = y) <=> ~(x < y \/ y < x)`] THEN STRIP_TAC 
 THENL[FIRST_X_ASSUM(MP_TAC o (SPECL[`y:num`;`x:num`])) THEN SIMP_TAC[NOT_IMP] 
 THEN ASM_REWRITE_TAC[] THEN MP_TAC (ARITH_RULE `~(n = 0) /\ (y <= n-1) ==> y < n`) 
 THEN ASM_REWRITE_TAC[]; FIRST_X_ASSUM(MP_TAC o (SPECL[`x:num`;`y:num`])) 
@@ -374,3 +375,6 @@ THEN MP_TAC (SPECL[`f:A->A`; `2`; `y:A`] card_orbit_le)
 THEN ASM_REWRITE_TAC[ARITH; iterate_map2; o_DEF] THEN DISCH_TAC
 THEN REMOVE_THEN "c8" (MP_TAC o (SPEC `y:A`)) THEN ASM_REWRITE_TAC[IN] 
 THEN POP_ASSUM MP_TAC THEN ARITH_TAC);;
+
+
+prioritize_real();;

@@ -9,6 +9,7 @@
    in the load path
 *)
 
+needs "Examples/permutations.ml";;
 needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
 needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
 needs "Examples/transc.ml";;         (* Then it won't need these three. *) 

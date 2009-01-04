@@ -112,6 +112,63 @@ let POLFLZY = new_axiom ` ! x1 x2 x3 (x4: real^3).
          coplane {x1, x2, x3, x4} <=> delta x12 x13 x14 x23 x24 x34 = &0 `;;
 let circumradius = new_definition ` circumradius s = (@r. ? x. x IN s /\
   r = dist( x , circumcenter s ) )`;;
+(* =============== *)
+(* ====  *   ===== *)
+(* ==   * *     == *)
+(*       *         *)
+(*    3 rd time    *)
+(* =============== *)
+(* le 17, p 17 *)
+let CDEUSDF = new_axiom`! va vb (vc:real^3) a b c. a = d3 vb vc /\
+         b = d3 va vc /\
+         c = d3 va vb /\
+         ~collinear {va, vb, vc}
+         ==> (let al_a =
+                  (a pow 2 * (b pow 2 + c pow 2 - a pow 2)) /
+                  (&2 * ups_x (a pow 2) (b pow 2) (c pow 2)) in
+              let al_b =
+                  (b pow 2 * (a pow 2 + c pow 2 - b pow 2)) /
+                  (&2 * ups_x (a pow 2) (b pow 2) (c pow 2)) in
+              let al_c =
+                  (c pow 2 * (a pow 2 + b pow 2 - c pow 2)) /
+                  (&2 * ups_x (a pow 2) (b pow 2) (c pow 2)) in
+              al_a % va + al_b % vb + al_c % vc = circumcenter {va, vb, vc}) 
+              /\ radV {va, vb, vc} = eta_y a b c `;;
+(* le 18, p 17 *)
+let WSMRDKN = new_axiom `! x y z: real^3 p.
+  d3 x z pow 2 < d3 x y pow 2 + d3 y z pow 2 /\
+         p = circumcenter {x, y, z}
+         ==> conv0 {y, p} INTER aff {x, z} = {}`;;
+(* le 20, p 18 *)
+let BFYVLKP = new_axiom ` ! x y z: real^3.
+   &2 <= d3 x y /\
+         d3 x y <= #2.52 /\
+         &2 <= d3 x z /\
+         d3 x z <= #2.2 /\
+         &2 <= d3 y z /\
+         d3 y z <= #2.2
+         ==> ~collinear {x, y, z} /\ radV {x, y, z} < sqrt (&2)`;;
+(* le 21. p 18 *)
+let WDOMZXH = new_axiom` ! y. &2 <= y /\ y <= sqrt8 ==> eta_y y (&2) #2.51 < #1.453`;;
+(* le 22. p 18 *)
+let ZEDIDCF = new_axiom ` ! v0 v1 (v2:real^3).
+         &2 <= d3 v0 v1 /\
+         d3 v0 v1 <= #2.51 /\
+         #2.45 <= d3 v1 v2 /\
+         d3 v1 v2 <= #2.51 /\
+         #2.77 <= d3 v0 v2 /\
+         d3 v0 v2 <= sqrt8
+         ==> sqrt2 < radV {v0, v1, v2}`;;
+(* le 23, p 19 *)
+let NHSJMDH = new_axiom ` ! y. #2.696 <= y /\ y <= sqrt8 ==>
+     eta_y y (&2) (#2.51) <= eta_y y #2.45 (#2.45) `;;
+
+let max_real3 = new_definition ` max_real3 x y z = max_real (max_real x y ) z `;;
+let ups_x_pow2 = new_definition` ups_x_pow2 x y z = ups_x ( x*x ) ( y * y) ( z * z)`;;
+
+(* le 24 , p 19 *)
+let HVXIKHW = new_axiom ` ! x y z. &0 <= x /\ &0 <= y /\ &0 <= z /\ 
+          &0 < ups_x_pow2 x y z ==> max_real3 x y z / &2 <= eta_y x y z `;;
 (* le 25. p 19 *)
 let HMWTCNS = new_axiom ` ! a b (c:real^3). 
             CARD {a, b, c} = 3 /\ packing {a, b, c}

@@ -63,7 +63,7 @@ THEN CONJ_TAC
 THEN (ASM_REWRITE_TAC[pow_g]));;
 
 let GONTONG = REAL_RING ` ((a + b) + c = a + b + c ) `;;
-let SUB_SUM_SUB = REAL_RING ` (a - ( b + c ) = a - b - c )/\( a - (b- c) = a - b + c );;
+let SUB_SUM_SUB = REAL_RING ` (a - ( b + c ) = a - b - c )/\( a - (b- c) = a - b + c )` ;;
 
 (* lemma 4, p 7 *)
 let JVUNDLC = prove(`!a b c s.

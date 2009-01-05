@@ -59,3 +59,15 @@ THEN (MATCH_MP_TAC (SPEC_ALL REAL_LE_ADD))
 THEN CONJ_TAC
 THEN (ASM_REWRITE_TAC[pow_g]));;
 
+
+let GONTONG = REAL_RING ` ((a + b) + c = a + b + c ) `;;
+let SUB_SUM_SUB = REAL_RING ` (a - ( b + c ) = a - b - c )/\( a - (b- c) = a - b + c );;
+
+let JVUNDLC = prove(`!a b c s.
+     s = (a + b + c) / &2
+     ==> &16 * s * (s - a) * (s - b) * (s - c) =
+         ups_x (a pow 2) (b pow 2) (c pow 2)`, SIMP_TAC [ ups_x] THEN 
+REWRITE_TAC[REAL_FIELD` a / &2 - b = ( a - &2 * b ) / &2 `] THEN 
+REWRITE_TAC[REAL_FIELD ` &16 * ( a / &2 ) * ( b / &2 ) * (c / &2 ) *
+( d / &2 ) = a * b * c * d `] THEN REAL_ARITH_TAC);;
+

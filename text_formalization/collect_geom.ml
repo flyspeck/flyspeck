@@ -5,8 +5,53 @@ needs "Examples/analysis.ml";; (* multivariate-complex theory. *)
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
 needs "convex_header.ml";; 
 needs "definitions_kepler.ml";;
+needs "geomdetail.ml";;
 
 prioritize_real();;
+
+let ups_x = new_definition ` ups_x x1 x2 x6 =
+         --x1 * x1 - x2 * x2 - x6 * x6 +
+         &2 * x1 * x6 +
+         &2 * x1 * x2 +
+         &2 * x2 * x6 `;;
+let rho = new_definition ` rho (x12 :real) x13 x14 x23 x24 x34 =
+         --(x14 * x14 * x23 * x23) -
+         x13 * x13 * x24 * x24 -
+         x12 * x12 * x34 * x34 +
+         &2 *
+         (x12 * x14 * x23 * x34 +
+          x12 * x13 * x24 * x34 +
+          x13 * x14 * x23 * x24) `;;
+let chi = new_definition ` chi x12 x13 x14 x23 x24 x34 =
+         x13 * x23 * x24 +
+         x14 * x23 * x24 +
+         x12 * x23 * x34 +
+         x14 * x23 * x34 +
+         x12 * x24 * x34 +
+         x13 * x24 * x34 -
+         &2 * x23 * x24 * x34 -
+         x12 * x34 * x34 -
+         x14 * x23 * x23 -
+         x13 * x24 * x24 `;;
+let delta = new_definition ` delta x12 x13 x14 x23 x24 x34 =
+   --(x12 * x13 * x23) -
+         x12 * x14 * x24 -
+         x13 * x14 * x34 -
+         x23 * x24 * x34 +
+         x12 * x34 * (--x12 + x13 + x14 + x23 + x24 - x34) + 
+         x13 * x24 * (x12 - x13 + x14 + x23 - x24 + x34 ) +
+         x14 * x23 * ( x12 + x13 - x14 - x23 + x24 + x34 ) `;;
+(* How can I write the definition of R(xij)? Do I have to compute the determinant *)
+let eta_v = new_definition ` eta_v v1 v2 (v3: real^N) =
+        let e1 = dist (v2, v3) in
+  	  let e2 = dist (v1, v3) in
+  	  let e3 = dist (v2, v1) in
+  	  e1 * e2 * e3 / sqrt ( ups_x (e1 pow 2 ) ( e2 pow 2) ( e3 pow 2 ) ) `;;
+
+
+let max_real3 = new_definition ` max_real3 x y z = max_real (max_real x y ) z `;;
+let ups_x_pow2 = new_definition` ups_x_pow2 x y z = ups_x ( x*x ) ( y * y) ( z * z)`;;
+
 
 (* NGUYEN DUC PHUONG *)
 (* Definition of Cayley – Menger square cm3 *)
@@ -312,3 +357,241 @@ EXISTS_TAC ` -- &1 ` THEN ASM_MESON_TAC[VECTOR_ARITH ` v3 - v2 = -- &1 % (v2 - v
 
 
 ASM_MESON_TAC[]]);;
+
+
+(* le 2. p 6 *)
+let RHUFIIB = prove( ` !x12 x13 x14 x23 x24 x34.
+         rho x12 x13 x14 x23 x24 x34 * ups_x x34 x24 x23 =
+         chi x12 x13 x14 x23 x24 x34 pow 2 +
+         &4 * delta x12 x13 x14 x23 x24 x34 * x34 * x24 * x23 `,
+REWRITE_TAC[rho; chi; delta; ups_x] THEN REAL_ARITH_TAC);;
+
+
+let RIGHT_END_POINT = prove( `!x aa bb.
+     (?a b. &0 < a /\ b = &0 /\ a + b = &1 /\ x = a % aa + b % bb) <=> x = aa`,
+REPEAT GEN_TAC THEN EQ_TAC THENL [STRIP_TR THEN 
+REWRITE_TAC[ MESON[REAL_ARITH `b = &0 /\ a + b = &1 <=> b= &0 /\ a = &1 `]`
+   b = &0 /\ a + b = &1 /\ P a b  <=>  b = &0 /\ a = &1 /\ P (&1 ) ( &0 ) `] THEN 
+MESON_TAC[VECTOR_ARITH ` &1 % aa + &0 % bb = aa `];
+DISCH_TAC  THEN 
+EXISTS_TAC ` &1 ` THEN 
+EXISTS_TAC ` &0 ` THEN 
+REWRITE_TAC[REAL_ARITH ` &0 < &1 /\ &1 + &0 = &1 `] THEN 
+ASM_MESON_TAC[VECTOR_ARITH ` &1 % aa + &0 % bb = aa `]]);;
+
+let LEFT_END_POINT = prove(` !x aa bb.
+     (?a b. a = &0 /\ &0 < b /\ a + b = &1 /\ x = &0 % aa + &1 % bb)
+  <=> x = bb `,
+REWRITE_TAC[VECTOR_ARITH ` &0 % aa + &1 % bb = bb `] THEN 
+MESON_TAC[REAL_ARITH ` &0 = &0 /\ &0 < &1 /\ &0 + &1 = &1 `]);;
+
+
+let CONV_CONV0 = prove(`! x a b. x IN conv {a,b} <=> x = a \/ x = b \/ x IN conv0 {a,b} `,
+REWRITE_TAC[CONV_SET2; CONV0_SET2; IN_ELIM_THM] THEN 
+REWRITE_TAC[REAL_ARITH ` &0 <= a <=> a = &0 \/ &0 < a `] THEN 
+KHANANG THEN REWRITE_TAC[EXISTS_OR_THM] THEN 
+SIMP_TAC[MESON[REAL_ARITH ` ~(a = &0 /\ b = &0 /\ a + b = &1)`]`
+  ~(a = &0 /\ b = &0 /\ a + b = &1 /\ las )` ] THEN 
+REWRITE_TAC[MESON[REAL_ARITH ` a = &0 /\ a + b = &1 <=> a = &0 /\ b = &1 `]`
+  a = &0 /\ &0 < b /\ a + b = &1 /\ x = a % aa + b % ba <=>
+     a = &0 /\ &0 < b /\ a + b = &1 /\ x = &0 % aa + &1 % ba`] THEN 
+MESON_TAC[ RIGHT_END_POINT; LEFT_END_POINT]);;
+
+
+
+
+let CON3_SUB_CONE3 = prove(` ! w1 v1 v2 v3. conv {v1, v2, v3} SUBSET cone w1 {v1,v2,v3}`,
+REWRITE_TAC[CONV_SET3; cone; GSYM aff_ge_def; simp_def] THEN 
+REWRITE_TAC[ SET_RULE ` {x | p x} SUBSET {x | q x} <=> ( ! x. p x ==> q x)`] THEN 
+MESON_TAC[ REAL_ARITH ` &0 + a = a `; VECTOR_ARITH ` &0 % x + y = y `]);;
+
+
+
+let QHSEWMI = prove (` !v1 v2 v3 w1 w2.
+         ~(conv {w1, w2} INTER conv {v1, v2, v3} = {}) /\
+         ~(w1 IN conv {v1, v2, v3})
+         ==> w2 IN cone w1 {v1, v2, v3}`,
+REWRITE_TAC[INTER_DIF_EM_EX] THEN REPEAT GEN_TAC THEN REWRITE_TAC[CONV_CONV0] THEN 
+STRIP_TAC THENL [ASM_MESON_TAC[]; 
+ASM_MESON_TAC[CON3_SUB_CONE3;SET_RULE`a SUBSET b <=> (! x. x IN a ==> x IN b )`];
+ASM_MESON_TAC[REWRITE_RULE[INTER_DIF_EM_EX] AFF_LE_CONE ]]);;
+
+
+let GONTONG = REWRITE_TAC[REAL_ARITH ` ( a + b ) + c = a + b + c `];;
+
+(* le 27. p 20 *)
+let MAEWNPU = prove(` ?b c.
+         !x12 x13 x14 x23 x24 x34.
+             delta x12 x13 x14 x23 x24 x34 =
+             --x12 * x34 pow 2 +
+             b x12 x13 x14 x23 x24 * x34 +
+             c x12 x13 x14 x23 x24 `,
+REWRITE_TAC[delta; REAL_ARITH ` a - b = a + -- b `; 
+  REAL_ARITH ` a * (b + c )= a * b + a * c ` ] THEN 
+REWRITE_TAC[REAL_ARITH ` a * b * -- c = -- a * b * c /\ -- ( a * b ) = -- a * b `] THEN 
+REWRITE_TAC[REAL_ARITH` x12 * x34 * x23 + x12 * x34 * x24 +
+   --x12 * x34 * x34 = x12 * x34 * x23 + x12 * x34 * x24 +
+   -- x12 * ( x34 pow 2 )  `] THEN 
+REWRITE_TAC[REAL_ARITH ` ( a + b ) + c = a + b + c `] THEN 
+REWRITE_TAC[REAL_ARITH ` a + b * c pow 2 + d = b * c pow 2 + a + d `] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH `a + b + c + d + e = a + d + b + c + e `] THEN 
+REWRITE_TAC[REAL_ARITH ` a * b * c = ( a * b ) * c `] THEN 
+REPLICATE_TAC 30 ( ONCE_REWRITE_TAC[REAL_ARITH ` a * x pow 2 + b * x + d + e
+  = a * x pow 2 + b * x + e + d `] THEN GONTONG THEN REWRITE_TAC[ REAL_ARITH 
+ ` a * x pow 2 + b * x + d * x  + e = a * x pow 2 + ( b  +  d)  * x  + e`]) THEN 
+REPLICATE_TAC 50 ( ONCE_REWRITE_TAC[REAL_ARITH ` a * x pow 2 + b * x + d + e
+  = a * x pow 2 + b * x + e + d `] THEN GONTONG THEN ONCE_REWRITE_TAC[ REAL_ARITH ` a * x pow 2 + b * x + (d * x) * h  + e
+ = a * x pow 2 + ( b  +  d * h )  * x  + e`]) THEN 
+EXISTS_TAC ` (\ x12 x13 x14 x23 x24. --x13 * x14 +
+          --x23 * x24 +
+          x13 * x24 +
+          x14 * x23 +
+          --x12 * x12 +
+          x12 * x14 +
+          x12 * x24 +
+          x12 * x13 +
+          x12 * x23 ) ` THEN 
+EXISTS_TAC ` (\ x12 x13 x14 x23 x24. (x14 * x23) * x12 +
+         (x14 * x23) * x13 +
+         (--x14 * x23) * x14 +
+         (--x14 * x23) * x23 +
+         (x14 * x23) * x24 +
+         (--x12 * x13) * x23 +
+         (--x12 * x14) * x24 +
+         (x13 * x24) * x12 +
+         (--x13 * x24) * x13 +
+         (x13 * x24) * x14 +
+         (x13 * x24) * x23 +
+         (--x13 * x24) * x24 ) ` THEN 
+SIMP_TAC[]);;
+
+(* ----new ------- *)
+
+let DELTA_COEFS = new_specification ["b_coef"; "c_coef"] MAEWNPU;;
+
+
+let DELTA_X34 = prove(` !x12 x13 x14 x23 x24 x34.
+     delta x12 x13 x14 x23 x24 x34 =
+     --x12 * x34 pow 2 +
+     (--x13 * x14 +
+      --x23 * x24 +
+      x13 * x24 +
+      x14 * x23 +
+      --x12 * x12 +
+      x12 * x14 +
+      x12 * x24 +
+      x12 * x13 +
+      x12 * x23) *
+     x34 +
+     (x14 * x23) * x12 +
+     (x14 * x23) * x13 +
+     (--x14 * x23) * x14 +
+     (--x14 * x23) * x23 +
+     (x14 * x23) * x24 +
+     (--x12 * x13) * x23 +
+     (--x12 * x14) * x24 +
+     (x13 * x24) * x12 +
+     (--x13 * x24) * x13 +
+     (x13 * x24) * x14 +
+     (x13 * x24) * x23 +
+     (--x13 * x24) * x24`, REWRITE_TAC[delta] THEN REAL_ARITH_TAC);;
+
+
+let C_COEF_FORMULA = prove(`! x12 x13 x14 x23 x24. c_coef x12 x13 x14 x23 x24
+  = (x14 * x23) * x12 +
+         (x14 * x23) * x13 +
+         (--x14 * x23) * x14 +
+         (--x14 * x23) * x23 +
+         (x14 * x23) * x24 +
+         (--x12 * x13) * x23 +
+         (--x12 * x14) * x24 +
+         (x13 * x24) * x12 +
+         (--x13 * x24) * x13 +
+         (x13 * x24) * x14 +
+         (x13 * x24) * x23 +
+         (--x13 * x24) * x24`, MP_TAC DELTA_COEFS THEN 
+NHANH (MESON[]` (!x12 x13 x14 x23 x24 x34. p x12 x13 x14 x23 x24 x34)
+  ==> (! x12 x13 x14 x23 x24. p x12 x13 x14 x23 x24 (&0) ) `) THEN 
+REWRITE_TAC[DELTA_X34] THEN 
+REWRITE_TAC[REAL_ARITH ` &0 pow 2 = &0 `; REAL_MUL_RZERO; REAL_ADD_LID] THEN 
+SIMP_TAC[]);;
+
+let BC_DEL_FOR = prove(` ! x12 x13 x14 x23 x24. b_coef x12 x13 x14 x23 x24 =
+  --x13 * x14 +
+          --x23 * x24 +
+          x13 * x24 +
+          x14 * x23 +
+          --x12 * x12 +
+          x12 * x14 +
+          x12 * x24 +
+          x12 * x13 +
+          x12 * x23 /\ 
+  c_coef x12 x13 x14 x23 x24 =
+         (x14 * x23) * x12 +
+         (x14 * x23) * x13 +
+         (--x14 * x23) * x14 +
+         (--x14 * x23) * x23 +
+         (x14 * x23) * x24 +
+         (--x12 * x13) * x23 +
+         (--x12 * x14) * x24 +
+         (x13 * x24) * x12 +
+         (--x13 * x24) * x13 +
+         (x13 * x24) * x14 +
+         (x13 * x24) * x23 +
+         (--x13 * x24) * x24 `, REWRITE_TAC[C_COEF_FORMULA] THEN 
+MP_TAC DELTA_COEFS THEN NHANH (MESON[]` (!x12 x13 x14 x23 x24 x34. 
+p x12 x13 x14 x23 x24 x34)
+  ==> (! x12 x13 x14 x23 x24. p x12 x13 x14 x23 x24 (&1) ) `) THEN 
+REWRITE_TAC[DELTA_X34; C_COEF_FORMULA] THEN 
+REWRITE_TAC[REAL_ARITH ` a + b + c = a + b' + c <=> b = b' `] THEN 
+SIMP_TAC[REAL_RING` a * &1 = a `]);;
+
+let AGBWHRD = prove(` !x12 x13 x14 x23 x24 x12 x13 x14 x23 x24.
+         b_coef x12 x13 x14 x23 x24 pow 2 +
+         &4 * x12 * c_coef x12 x13 x14 x23 x24 =
+         ups_x x12 x23 x13 * ups_x x12 x24 x14`, REWRITE_TAC[BC_DEL_FOR; ups_x] THEN 
+REAL_ARITH_TAC);;
+
+
+let COLLINEAR_EX = prove(` ! x y (z:real^3) . collinear {x,y,z} <=> ( ? a b c. a + b + c = &0 /\ ~ ( a = &0 /\
+b = &0 /\ c = &0 ) /\ a % x + b % y + c % z = vec 0 ) `,
+REWRITE_TAC[collinear] THEN 
+REPEAT GEN_TAC THEN 
+STRIP_TR THEN 
+EQ_TAC THENL [
+
+
+NHANH (SET_RULE` (!x' y'. x' IN {x, y, z} /\ y' IN {x, y, z} ==> P x' y' )
+    ==> P x y /\ P x z `) THEN 
+STRIP_TR THEN 
+DISJ_CASES_TAC (MESON[]` c = &0 /\ c' = &0 \/ ~( c = &0 /\ c' = &0  ) `) THENL [
+
+
+ASM_SIMP_TAC[VECTOR_ARITH ` x - y = &0 % t <=> y = x`] THEN 
+DISCH_TAC THEN 
+EXISTS_TAC ` &1 ` THEN EXISTS_TAC ` &1 ` THEN 
+EXISTS_TAC ` -- &2 ` THEN 
+REWRITE_TAC[REAL_ARITH ` &1 + &1 + -- &2 = &0 /\
+ ~(&1 = &0 /\ &1 = &0 /\ -- &2 = &0)`; VECTOR_ARITH` &1 % x + &1 % x + 
+  -- &2 % x = vec 0`];
+
+
+
+NHANH (MESON[VECTOR_MUL_LCANCEL]` x = c % u /\
+  y  = c' % u ==> c' % x = c' % (c % u) /\ c % y = c % c' % u `) THEN 
+REWRITE_TAC[VECTOR_ARITH ` x = c' % c % u /\ y = c % c' % u <=>
+   x = y /\ y = c % c' % u`] THEN 
+REWRITE_TAC[VECTOR_ARITH ` c' % (x - y) = c % (x - z) <=> (c - c' ) % x + c' % y +
+  -- c % z = vec 0 `] THEN 
+ASM_MESON_TAC[REAL_ARITH ` (( c - b ) + b + -- c = &0 ) /\ (~( c = &0 ) 
+   <=> ~( -- c = &0 ))`]];REWRITE_TAC[GSYM collinear] THEN MESON_TAC[SGFCDZO]]);;
+
+
+let MAX_REAL_LESS_EX = prove(`!x y a. max_real x y <= a <=> x <= a /\ y <= a`,
+REWRITE_TAC[max_real; COND_EXPAND; COND_ELIM_THM;COND_RAND; COND_RATOR] THEN 
+REPEAT GEN_TAC THEN 
+MESON_TAC[REAL_ARITH ` (~ ( b < a ) /\ b <= c ==> a <= c)`;  REAL_ARITH ` a < b /\ b <= c ==> a <= c `]);;
+
+
+let MAX_REAL3_LESS_EX = prove(`! x y z a. max_real3 x y z <= a <=> x <= a /\ 
+y <= a /\ z <= a `, REWRITE_TAC[max_real3; MAX_REAL_LESS_EX] THEN MESON_TAC[]);;

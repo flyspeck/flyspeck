@@ -34,7 +34,7 @@ let delta = new_definition ` delta x12 x13 x14 x23 x24 x34 =
          x13 * x14 * x34 -
          x23 * x24 * x34 +
          x12 * x34 * (--x12 + x13 + x14 + x23 + x24 - x34) + 
-         x13 * x34 * (x12 - x13 + x14 + x23 - x24 + x34 ) +
+         x13 * x24 * (x12 - x13 + x14 + x23 - x24 + x34 ) +
          x14 * x23 * ( x12 + x13 - x14 - x23 + x24 + x34 ) `;;
 (* How can I write the definition of R(xij)? Do I have to compute the determinant *)
 let eta_v = new_definition ` eta_v v1 v2 (v3: real^N) =
@@ -68,7 +68,7 @@ let JVUNDLC = new_axiom ` ! a b (c:real ) s. s = ( a + b + c ) / &2 ==>
  &16 * s * (s - a) * (s - b) * (s - c) =
              ups_x (a pow 2) (b pow 2) (c pow 2)`;;
 (* lemma 5, page 12 *)
-let RCEABUJ = new_axiom ` ! a (b:real^3) x y. line x /\ {a,b} SUBSET x /\ ~( a = b) 
+let RCEABUJ = new_axiom ` ! a (b:real^3) x. line x /\ {a,b} SUBSET x /\ ~( a = b) 
     ==> x = aff {a,b} `;;
 (* lem 6. p 12 *)
 let BXVMKNF = new_axiom ` ! u v:real ^3. ~( u=v) ==> plane ( bis u v ) `;;
@@ -92,11 +92,31 @@ let FHFMKIY = new_axiom ` ! (v1: real^3) v2 v3 x12 x13 x23.
 let ZPGPXNN = new_axiom `! v1 v2 (v:real^3).
          dist (v1,v2) < dist (v,v1) + dist (v,v2) ==> ~(v IN conv {v1, v2})`;;
 (* le 11. p14 *)
-let FAFKVLR = new_axiom `! v1 v2 (v3: real ^3) v p. plane p /\
-         {v1, v2, v3} SUBSET p /\
-         ~collinear {v1, v2, v3} /\
-         v IN p
-         ==> (?!t1 t2 t3. v = t1 % v1 + t2 % v2 + t3 % v3)`;;
+let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3) p.
+   plane p /\ {v1, v2, v3} SUBSET p /\
+   ~collinear {v1, v2, v3} /\ v IN p
+             ==> v = t1 v1 v2 v3 v % v1 + t2 v1 v2 v3 v % v2 + t3 v1 v2 v3 v % v3 /\
+                 t1 v1 v2 v3 v + t2 v1 v2 v3 v + t3 v1 v2 v3 v = &1 /\
+                 (!ta tb tc. v = ta % v1 + tb % v2 + tc % v3
+                    ==> ta = t1 v1 v2 v3 v /\
+                        tb = t2 v1 v2 v3 v /\
+                        tc = t3 v1 v2 v3 v )`;;
+
+let COEFS = new_specification [" coef1"; "coef2"; "coef3"] FAFKVLR;;
+let plane_3p = new_definition `plane_3p (a:real^3) b c =
+         {x | ~collinear {a, b, c} /\
+              (?ta tb tc. ta + tb + tc = &1 /\ x = ta % a + tb % b + tc % c)}`;;
+(* le 12. p 15 *)
+let CNXIFFC = new_axiom ` ! v1 v2 v3 v. ~ collinear {v1,v2,v3} /\ v IN plane_3p v1 v2 v3 
+  ==> ( &0 < coef1 v1 v2 v3 v <=> v1 IN aff_gt {v2,v3} {v} ) /\
+  ( &0 = coef1 v1 v2 v3 v <=> v IN aff {v2,v3} ) /\
+  ( coef1 v1 v2 v3 v < &0 <=> v1 IN aff_lt {v2,v3} {v} )`;;
+(* le 13. p 15 *)
+let MYOQCBS = new_axiom ` ! v1 v2 v3 (v:real^3). ~ collinear {v1,v2,v3} ==>
+   ( v IN conv {v1,v2,v3} <=> &0 <= coef1 v1 v2 v3 v /\ &0 <= coef2 v1 v2 v3 v /\
+   &0 <= coef3 v1 v2 v3 v ) /\ 
+   ( v IN conv0 {v1,v2,v3} <=> &0 < coef1 v1 v2 v3 v /\ &0 < coef2 v1 v2 v3 v /\
+   &0 < coef3 v1 v2 v3 v )`;;
 (* le 14. p 15 *)
 let TXDIACY = new_axiom `! a b c d (v0: real^3) r.
          &0 < r /\ {a, b, c, d} SUBSET normball v0 r
@@ -173,3 +193,124 @@ let HVXIKHW = new_axiom ` ! x y z. &0 <= x /\ &0 <= y /\ &0 <= z /\
 let HMWTCNS = new_axiom ` ! a b (c:real^3). 
             CARD {a, b, c} = 3 /\ packing {a, b, c}
          ==> &2 / sqrt (&3) <= circumradius {a, b, c}`;;
+(* le 26 . p 20 *)
+let POXDVXO = new_axiom ` ! v1 v2 (v3:real^3) p.
+         !v1 v2 v3 p.
+         CARD {v1, v2, v3} = 3 /\
+         ~collinear {v1, v2, v3} /\
+         p = circumcenter {v1, v2, v3}
+         ==> (p - &1 / &2 % (v1 + v2)) dot (v1 - v2) = &0 /\
+         ( p - &1 / &2 % ( v2 + v3 )) dot (v2 - v3 ) = &0 /\
+         ( p - &1 / &2 % ( v3 + v1 )) dot ( v3 - v1 ) = &0 `;;
+(* le 27. p 20 *)
+let MAEWNPU = new_axiom` ? b c. ! x12 x13 x14 x23 x24 x34.
+  delta x12 x13 x14 x23 x24 x34 = -- x12 * ( x34  pow 2 ) + b x12 x13 x14 x23 x24 * x34 +
+  c x12 x13 x14 x23 x24`;;
+
+let DELTA_COEFS = new_specification ["b_coef"; "c_coef"] MAEWNPU;;
+(* le 28. p 20 *)
+let AGBWHRD = new_axiom ` ! x12 x13 x14 x23 x24.
+   !x12 x13 x14 x23 x24.
+         b_coef x12 x13 x14 x23 x24 pow 2 +
+         &4 * x12 * c_coef x12 x13 x14 x23 x24 =
+         ups_x x12 x23 x13 * ups_x x12 x24 x14 `;;
+let condA = new_definition `condA (v1:real^3) v2 v3 v4 x12 x13 x14 x23 x24 x34 = 
+  ( ~ ( v1 = v2 ) /\
+  ( dist ( v1, v2) pow 2 ) = x12 /\
+  dist (v1,v3) pow 2 = x13 /\
+  dist (v1,v4) pow 2 = x14 /\
+  dist (v2,v3) pow 2 = x23 /\ dist (v2,v4) pow 2 = x24 )`;;
+let muy_delta = new_definition ` muy_detal = delta `;;
+
+(* le 29 . p 21 *)
+let VCRJIHC = new_axiom` ! x34 x12 x13 v1 x14 v3 x23 v2 v4 x24.
+  condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 ==>
+  muy_delta x12 x13 x14 x23 x24 ( dist( v3,v4) pow 2 ) = &0 `;;
+(* le 30. p21 *)
+let EWVIFXW = new_axiom` !v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 a b c.
+     condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\
+     (!x12 x13 x14 x23 x24 x34.
+          muy_delta x12 x13 x14 x23 x24 x34 =
+          a x12 x13 x14 x23 x24 * x34 pow 2 +
+          b x12 x13 x14 x23 x24 * x34 +
+          c x12 x13 x14 x23 x24 x34)
+     ==> (v3 IN aff {v1, v2} \/ v4 IN aff {v1, v2} <=>
+          b x12 x13 x14 x23 x24 pow 2 -
+          &4 * a x12 x13 x14 x23 x24 * c x12 x13 x14 x23 x24 x34 =
+          &0)`;;
+
+(* le 31. p 21 *)
+let FFBNQOB = new_axiom` !v1 v2 v3 v4 x12 x13 x14 x23 x24 x34. 
+        !v1 v2 v3 v4 x12 x13 x14 x23 x24 x34.
+         condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\
+         ~(conv {v3, v4} INTER affine hull {v1, v2} = {})
+         ==> muy_delta x12 x13 x14 x23 x24 (dist (v3,v4) pow 2) = &0 /\
+             (!root. muy_delta x12 x13 x14 x23 x24 root = &0
+                     ==> root <= dist (v3,v4) pow 2) `;;
+(* le 32 . p 21 *)
+let CHHSZEO = new_axiom `!v1 v2 v3 v4 x12 x13 x14 x23 x24 x34.
+         condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\
+         conv {v3, v4} INTER affine hull {v1, v2} = {}
+         ==> muy_delta x12 x13 x14 x23 x24 (dist (v3,v4) pow 2) = &0 /\
+             (!root. muy_delta x12 x13 x14 x23 x24 root = &0
+                     ==>dist (v3,v4) pow 2 <= root )`;;
+
+(* le 36. p 23 *)
+let ZZSBSIO = new_axiom` ! u v w. CARD {u,v,w} = 3 /\ packing {u,v,w} /\
+  dist (u,v) < sqrt8 ==>  dist (u,v) / &2 < dist (w, &1 / &2 % ( u + v )) `;;
+
+(* le 37. p24 *)
+let JGYWWBX = new_axiom `~(?v1 v2 w1 (w2:real^3).
+           CARD {v1, v2, w1, w2} = 4 /\
+           packing {v1, v2, w1, w2} /\
+           dist (v1,w2) >= sqrt8 /\
+           dist (v1,v2) <= #3.2 /\
+           dist (w1,w2) <= sqrt8 /\
+           ~(conv {v1, v2} INTER conv {w1, w2} = {}))`;;
+
+let PAHFWSI = new_axiom` !v1 v2 v3 v4.
+         CARD {v1, v2, v3, v4} = 4 /\
+         packing {v1, v2, v3, v4} /\
+         dist (v1,v3) <= #3.2 /\
+         #2.51 <= dist (v1,v2) /\
+         dist (v2,v4) <= #2.51
+         ==> conv {v1, v3} INTER conv {v2, v4} = {} `;;
+(* le 39. p 24 *)
+let UVGVIXB = new_axiom ` ! v1 v2 w1 w2.
+         CARD {v1, v2, w1, w2} = 4 /\
+         packing {v1, v2, w1, w2} /\
+         dist (w1,w2) <= #2.51 /\
+         dist (v1,v2) <= #3.07
+         ==> conv {w1, w2} INTER conv {v1, v2} = {}`;;
+(* le 40. p 25 *)
+let PJFAXXI = new_axiom` ! v1 v2 w1 w2.
+ CARD {v1, v2, w1, w2} = 4 /\
+         packing {v1, v2, w1, w2} /\
+         dist (v1,v2) <= #3.2 /\
+         dist (w1,w2) <= #2.51 /\
+         #2.2 <= dist (v1,w1)
+         ==> conv {v1, v2} INTER conv {w1, w2} = {}`;;
+(* le 41. p 25 *)
+let YXWIPMH = new_axiom ` ! v1 v2 v3 (v4:real^3).
+ CARD {v1,v2,v3,v4} = 4 /\ 
+ d3 v1 v2 = #2.51 /\
+         d3 v1 v3 = &2 /\
+         d3 v1 v4 = &2 /\
+         d3 v2 v3 = &2 /\
+         d3 v2 v4 = &2
+         ==> d3 v3 v4 <= #3.114467 `;;
+(* le 42. p 25 *)
+let PAATDXJ = new_axiom ` ! v1 v2 v3 (v4:real^3).
+         CARD {v1,v2,v3,v4} = 4 /\ 
+         d3 v1 v2 = #2.51 /\
+         d3 v1 v4 = #2.51 /\
+         d3 v2 v3 = &2 /\
+         d3 v3 v4 = &2 /\
+         sqrt8 <= d3 v2 v4
+         ==> d3 v1 v3 < #3.488
+
+(* le 56. p 36 *)
+let QHSEWMI = new_axiom `!v1 v2 v3 w1 w2.
+     ~(conv {w1, w2} INTER conv {v1, v2, v3} = {}) /\
+     ~(w1 IN conv {v1, v2, v3})
+     ==> w2 IN cone w1 {v1, v2, v3}`;;

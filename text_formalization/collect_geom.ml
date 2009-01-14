@@ -1,5 +1,3 @@
-(* Formal Spec of Blueprint Chapter  on Collection of Problems in Geometry *)
-
 needs "Multivariate/vectors.ml";; (* Eventually should load entire *) 	   
 needs "Examples/analysis.ml";; (* multivariate-complex theory. *)	   
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
@@ -107,6 +105,9 @@ THEN (MATCH_MP_TAC (SPEC_ALL REAL_LE_ADD))
 THEN CONJ_TAC
 THEN (ASM_REWRITE_TAC[pow_g]));;
 
+(* ========== *)
+(* QUANG TRUONG *)
+(* ============ *)
 let GONTONG = REAL_RING ` ((a + b) + c = a + b + c ) `;;
 let SUB_SUM_SUB = REAL_RING ` (a - ( b + c ) = a - b - c )/\( a - (b- c) = a - b + c )` ;;
 
@@ -595,3 +596,97 @@ MESON_TAC[REAL_ARITH ` (~ ( b < a ) /\ b <= c ==> a <= c)`;  REAL_ARITH ` a < b 
 
 let MAX_REAL3_LESS_EX = prove(`! x y z a. max_real3 x y z <= a <=> x <= a /\ 
 y <= a /\ z <= a `, REWRITE_TAC[max_real3; MAX_REAL_LESS_EX] THEN MESON_TAC[]);;
+
+
+MESON[]` (!x y z.
+          (P x y z <=> P y x z) /\
+          (P x y z <=> P x z y) /\
+          (Q x y z <=> Q y x z) /\
+          (Q x y z <=> Q x z y)) /\
+     (!x y z. P x y z ==> Q x y z)
+     ==> (!x y z. P x y z ==> Q x y z /\ Q y x z /\ Q z x y)`;;
+(* ========== *)
+
+
+
+
+
+
+let UPS_X_SYM = prove(` ! x y z. ups_x x y z = ups_x y x z /\
+  ups_x x y z = ups_x x z y `, REWRITE_TAC[ups_x] THEN REAL_ARITH_TAC);;
+
+let PER_MUL3 = REAL_ARITH ` a*b*c = b * a * c /\ a *b *c = a * c * b `;;
+
+let ETA_X_SYM = prove(` ! x y z. &0 <= x /\ &0 <= y /\ &0 <= z /\ &0 <= ups_x x y z ==>
+  eta_x x y z = eta_x y x z /\ eta_x x y z = eta_x x z y `,
+REWRITE_TAC[eta_x] THEN 
+NHANH (MESON[UPS_X_SYM]` &0 <= ups_x x y z ==> &0 <= ups_x y x z 
+  /\ &0 <= ups_x x z y `) THEN 
+NHANH (MESON[REAL_LE_MUL]`&0 <= x /\ &0 <= y /\ &0 <= z /\ las ==> 
+  &0 <= x * y * z`) THEN 
+PHA THEN NHANH (MESON[REAL_LE_DIV; REAL_ARITH ` a * b * c = b * a * c 
+  /\ a * b * c = a * c * b `]`
+  &0 <= ups_x x y z /\ &0 <= aa /\ &0 <= bb /\ &0 <= x * y * z
+     ==> &0 <= (x * y * z) / ups_x x y z /\
+         &0 <= (y * x * z) / aa /\
+         &0 <= (x * z * y) / bb`) THEN 
+SIMP_TAC[SQRT_INJ] THEN 
+MESON_TAC[UPS_X_SYM; PER_MUL3]);;
+
+let ETA_Y_SYM = prove(` ! x y z. &0 <= ups_x (x * x) (y * y) (z * z) ==>
+  eta_y x y z = eta_y y x z /\ eta_y x y z = eta_y x z y `,
+REWRITE_TAC[eta_y] THEN REPEAT LET_TAC THEN MESON_TAC[ETA_X_SYM; REAL_LE_SQUARE]);;
+
+
+
+let ETA_Y_SYMM = MESON[UPS_X_SYM; ETA_Y_SYM]` ! x y z. &0 <= ups_x (x * x) (y * y) (z * z)
+   ==> eta_y x y z = eta_y x z y /\
+         eta_y x y z = eta_y y x z /\
+         eta_y x y z = eta_y z x y /\
+         eta_y x y z = eta_y y z x /\
+         eta_y x y z = eta_y z y x`;;
+
+
+let IMPLY_POS = prove(`! x y z . &0 <= ups_x (x * x) (y * y) (z * z) ==>
+  &0 <= ((z * z) * (x * x) * y * y) / ups_x (z * z) (x * x) (y * y) /\ 
+  &0 <= ((x * x) * (y * y) * z * z) / ups_x (x * x) (y * y) (z * z) /\
+  &0 <= ((y * y) * (z * z) * x * x) / ups_x (y * y) (z * z) (x * x) `, MP_TAC
+ REAL_LE_SQUARE THEN MP_TAC REAL_LE_MUL THEN MESON_TAC[UPS_X_SYM; REAL_LE_DIV]);;
+
+let POW2_COND = MESON[REAL_ABS_REFL; REAL_LE_SQUARE_ABS]` ! a b. &0 <= a /\ &0 <= b ==> 
+( a <= b <=> a pow 2 <= b pow 2 ) `;;
+
+
+let TRUONGG = prove(`! x y z. &0 < ups_x_pow2 z x y ==> 
+ ((z * z) * (x * x) * y * y) / ups_x (z * z) (x * x) (y * y) -
+    z pow 2 / &4 = ( z pow 2 * (( z pow 2 - x pow 2 - y pow 2 ) pow 2 )) 
+   / (&4 * ups_x_pow2 z x y )`,
+REWRITE_TAC[ups_x; ups_x_pow2] THEN CONV_TAC REAL_FIELD);;
+
+let RE_TRUONGG = REWRITE_RULE[GSYM ups_x_pow2] TRUONGG;;
+
+
+let HVXIKHW = prove(` !x y z.
+         &0 <= x /\ &0 <= y /\ &0 <= z /\ &0 < ups_x_pow2 x y z
+         ==> max_real3 x y z / &2 <= eta_y x y z`,
+REWRITE_TAC[REAL_ARITH` a / &2 <= b <=> a <= &2 * b `; MAX_REAL3_LESS_EX] THEN 
+REWRITE_TAC[eta_x; ups_x_pow2] THEN 
+NHANH (REAL_ARITH` &0 < a ==> &0 <= a `) THEN 
+DAO THEN REPEAT GEN_TAC THEN 
+REWRITE_TAC[MESON[ETA_Y_SYMM]` &0 <= ups_x (x * x) (y * y) (z * z) /\ las
+ ==> z <= &2 * eta_y x y z /\ x <= &2 * eta_y x y z /\ y <= &2 * eta_y x y z 
+  <=> &0 <= ups_x (x * x) (y * y) (z * z) /\ las
+ ==> z <= &2 * eta_y z x y /\ x <= &2 * eta_y x y z /\ y <= &2 * eta_y y z x`] THEN 
+REWRITE_TAC[eta_y] THEN CONV_TAC (TOP_DEPTH_CONV let_CONV) THEN REWRITE_TAC[eta_x] 
+THEN NHANH (SPEC_ALL IMPLY_POS) THEN 
+NHANH (SPEC_ALL (prove(` ! a b x y. &0 <= a / b /\ &0 <= x /\ &0 <= y ==>
+   &0 <=  &2 * sqrt ( a/b) /\ &0 <= &2 * sqrt x /\ &0 <= &2 * sqrt y `,
+REWRITE_TAC[REAL_ARITH ` &0 <= &2 * a <=> &0 <= a `] THEN 
+SIMP_TAC[SQRT_WORKS]))) THEN SIMP_TAC[POW2_COND] THEN 
+REWRITE_TAC[REAL_ARITH ` x <= ( &2 * y ) pow 2 <=> x / &4 <= y pow 2 `] THEN 
+SIMP_TAC[ SQRT_POW_2] THEN REWRITE_TAC[ GSYM ups_x_pow2] THEN 
+REWRITE_TAC[REAL_FIELD` a / b <= c <=> &0 <= c - a / b `] THEN 
+SIMP_TAC[ups_x_pow2; UPS_X_SYM; RE_TRUONGG] THEN DAO THEN 
+MATCH_MP_TAC (MESON[]` (a4 ==> l) ==> (a1/\a2/\a3/\a4/\a5) ==> l `) THEN 
+MP_TAC REAL_LE_SQUARE THEN MP_TAC REAL_LE_MUL THEN MP_TAC REAL_LE_DIV THEN 
+REWRITE_TAC[GSYM REAL_POW_2] THEN MESON_TAC[REAL_ARITH ` &0 < a ==> &0 <= &4 * a `]);;

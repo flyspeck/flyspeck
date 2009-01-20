@@ -3,8 +3,8 @@ needs "Examples/analysis.ml";; (* multivariate-complex theory. *)
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
 needs "convex_header.ml";; 
 needs "definitions_kepler.ml";;
-needs "geomdetail.ml";;
-
+(* needs "geomdetail.ml";; *)
+needs "basic_geom.ml";; 
 prioritize_real();;
 
 let ups_x = new_definition ` ups_x x1 x2 x6 =
@@ -237,6 +237,10 @@ REWRITE_TAC[VECTOR_ARITH ` (a % v1 + (&1 - a) % v2) - v1 = ( a - &1 )%( v1 - v2)
 REWRITE_TAC[VECTOR_ARITH` (a % v1 + (&1 - a) % v2) - v2 = a % ( v1 - v2) `] THEN 
 SIMP_TAC[NORM_MUL; GSYM REAL_ABS_REFL] THEN REWRITE_TAC[ REAL_ARITH ` abs ( a - &1 )
  = abs ( &1 - a ) `] THEN REAL_ARITH_TAC);;
+
+let LENGTH_EQUA = prove(` ! v v1 v2. v IN conv {v1,v2} ==> dist (v,v1) + 
+ dist (v,v2) = dist (v1,v2) `,REWRITE_TAC[CONV_SET2; IN_ELIM_THM] THEN 
+MESON_TAC[LE_OF_ZPGPXNN]);;
 
 (* lemma 10. p 14 *)
 let ZPGPXNN = prove(`!v1 v2 v. dist (v1,v2) < dist (v,v1) + dist (v,v2) ==> 
@@ -607,11 +611,6 @@ MESON[]` (!x y z.
      ==> (!x y z. P x y z ==> Q x y z /\ Q y x z /\ Q z x y)`;;
 (* ========== *)
 
-
-
-
-
-
 let UPS_X_SYM = prove(` ! x y z. ups_x x y z = ups_x y x z /\
   ups_x x y z = ups_x x z y `, REWRITE_TAC[ups_x] THEN REAL_ARITH_TAC);;
 
@@ -665,7 +664,6 @@ REWRITE_TAC[ups_x; ups_x_pow2] THEN CONV_TAC REAL_FIELD);;
 
 let RE_TRUONGG = REWRITE_RULE[GSYM ups_x_pow2] TRUONGG;;
 
-
 let HVXIKHW = prove(` !x y z.
          &0 <= x /\ &0 <= y /\ &0 <= z /\ &0 < ups_x_pow2 x y z
          ==> max_real3 x y z / &2 <= eta_y x y z`,
@@ -690,3 +688,168 @@ SIMP_TAC[ups_x_pow2; UPS_X_SYM; RE_TRUONGG] THEN DAO THEN
 MATCH_MP_TAC (MESON[]` (a4 ==> l) ==> (a1/\a2/\a3/\a4/\a5) ==> l `) THEN 
 MP_TAC REAL_LE_SQUARE THEN MP_TAC REAL_LE_MUL THEN MP_TAC REAL_LE_DIV THEN 
 REWRITE_TAC[GSYM REAL_POW_2] THEN MESON_TAC[REAL_ARITH ` &0 < a ==> &0 <= &4 * a `]);;
+
+
+let EXISTS_INV = REAL_FIELD` ~( a = &0 ) <=> a * &1 / a = &1 /\ &1 / a * a = &1 `;;
+
+
+let MIDDLE_POINT = prove(` ! x y (z:real^3) . collinear {x,y,z} ==> x IN conv {y,z} \/ 
+y IN conv {x,z} \/  z IN conv {x,y} `, REWRITE_TAC[COLLINEAR_EX] THEN REPEAT 
+GEN_TAC THEN 
+MATCH_MP_TAC (prove(`(!(a:real) (b:real) (c:real). P a b c <=> P (--a) (--b) (--c)) /\
+   ((?a b c. &0 <= a /\ P a b c) ==> l) ==>  ( ? a b c. P a b c ) ==> l `,
+ DISCH_TAC THEN ASM_MESON_TAC[REAL_ARITH ` ! a. a <= &0 \/ &0 <= a`;
+   REAL_ARITH ` a <= &0 <=> &0 <= -- a `])) THEN 
+CONJ_TAC THENL [MESON_TAC[REAL_ARITH` a = &0 <=> -- a = &0 `; REAL_ARITH ` a + b + c = &0
+  <=> --a + --b + --c = &0`; VECTOR_ARITH ` a % x + b % y + c % z = vec 0
+  <=> --a % x + --b % y + --c % z = vec 0 `]; STRIP_TAC] THEN 
+DISJ_CASES_TAC (REAL_ARITH ` &0 < b \/ b <= &0`) THENL
+[STRIP_TR THEN REWRITE_TAC[VECTOR_ARITH ` a + b + c % z = vec 0 <=>
+  --c % z = a + b `] THEN 
+NHANH (MESON[VECTOR_MUL_LCANCEL]` a % x = y ==> (&1 / a) % a % x = &1 / a % y `) THEN 
+REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC] THEN 
+REWRITE_TAC[MESON[]` a1/\a2/\a3/\a4/\a5 ==> l <=> a1 /\ a5 /\ a2 ==>
+  a3/\a4 ==> l `] THEN 
+NHANH (REAL_FIELD ` &0 <= a /\ &0 < b /\ a + b + c = &0 ==> 
+  a / ( -- c ) + b /( -- c ) = &1 /\ ~ ( -- c = &0 )/\ &0 < -- c `) THEN 
+SIMP_TAC[EXISTS_INV] THEN 
+ONCE_REWRITE_TAC[MESON[POS_EQ_INV_POS]` a /\ &0 < c <=> a /\ &0 < &1 / c `] THEN 
+REWRITE_TAC[VECTOR_MUL_LID; CONV_SET2; IN_ELIM_THM; GSYM (REAL_ARITH` a / b =
+   &1 / b * a `)] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` a / b = &1 / b * a `] THEN 
+MP_TAC (GEN_ALL (MESON[REAL_ARITH`( a * &1 = a ) /\ ( &0 < a ==> &0 <= a )`; 
+ REAL_LE_MUL]` &0 < &1 / c * &1 /\ ( &0 <= a \/ &0 < a ) ==> &0 <= &1 / c * a `)) THEN 
+MESON_TAC[]; STRIP_TR THEN 
+NHANH (MESON[REAL_ARITH` &0 <= c \/ c <= &0`]` a + b + v = &0 ==>
+  &0 <= v \/ v <= &0 `) THEN 
+REWRITE_TAC[MESON[]` a1/\(a2 /\ (aa\/ bb))/\ dd <=>
+  (aa\/bb) /\ a1/\a2/\dd`] THEN SPEC_TAC (`a:real`, `a:real`) THEN 
+SPEC_TAC (`b:real`, `b:real`) THEN SPEC_TAC (`c:real`, `c:real`) THEN 
+KHANANG THEN REWRITE_TAC[(prove( `&0 <= c /\ &0 <= a /\ a + b + c = &0 /\
+ ~(a = &0 /\ b = &0 /\ c = &0) /\ a % x + b % y + c % z = vec 0 /\
+ b <= &0 <=> --a <= &0 /\ &0 <= --b /\ --b + --c + --a = &0 /\
+ ~(--b = &0 /\ --c = &0 /\ --a = &0) /\ --b % y + --c % z + -- a % x = vec 0 /\
+ --c <= &0`, MESON_TAC[
+REAL_ARITH ` (a = &0 <=> --a = &0) /\ ( b <= &0 <=> &0 <= -- b ) /\
+     (&0 <= a <=> --a <= &0) /\
+     (a + b + c = &0 <=> --b + --c + -- a = &0)`;
+VECTOR_ARITH` a % x + b % y + c % z = vec 0 <=> 
+ --b % y + --c % z + --a % x = vec 0 `]))] THEN 
+REWRITE_TAC[MESON[]` a \/ b ==> c <=> (a ==> c) /\(b==>c)`] THEN 
+REWRITE_TAC[MESON[REAL_ARITH `&0 <= a <=> a = &0 \/ &0 < a `]`
+  c <= &0 /\ &0 <= a /\ l <=> ( a = &0 \/ &0 < a ) /\ c <= &0 /\ l`] THEN 
+KHANANG THEN 
+REWRITE_TAC[MESON[REAL_ARITH `a = &0 /\ c <= &0 /\ a + b + c = &0 /\ b <= &0
+     ==> a = &0 /\ b = &0 /\ c = &0`]`a = &0 /\      c <= &0 /\
+      a + b + c = &0 /\ ~(a = &0 /\ b = &0 /\ c = &0) /\a2/\ b <= &0 <=> F `] THEN 
+NHANH (MESON[REAL_FIELD ` &0 < a /\
+         a + b + c = &0 ==> -- b / a + -- c / a = &1 `]`&0 < a /\      c <= &0 /\
+      a + b + c = &0 /\ l ==> --b / a + --c / a = &1 `) THEN 
+REWRITE_TAC[VECTOR_ARITH `  a % x + b % y + c % z = vec 0 <=>
+  a % x = -- b % y + -- c % z `] THEN 
+NHANH (MESON[VECTOR_MUL_LCANCEL]` a % x = y ==> &1 / a % a % x = &1 / a % y `) THEN 
+REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC; REAL_ARITH ` &1 / a * b 
+  = b / a `;VECTOR_MUL_LID ] THEN PHA THEN 
+PURE_ONCE_REWRITE_TAC[MESON[REAL_FIELD ` &0 < a ==> a / a = &1`]`
+   &0 < a /\ P ( a / a) <=> &0 < a /\ P ( &1 ) `] THEN 
+REWRITE_TAC[VECTOR_MUL_LID ] THEN 
+REWRITE_TAC[MESON[SET_RULE ` {a,b} = {b,a}`]` y IN conv {x, z} \/ z IN conv {x, y}
+  <=> y IN conv {z,x} \/ z IN conv {x,y} `] THEN 
+REWRITE_TAC[CONV_SET2; IN_ELIM_THM] THEN 
+REWRITE_TAC[ REAL_ARITH ` a <= &0 <=> &0 <= -- a `] THEN 
+MESON_TAC[REAL_LE_DIV; REAL_ARITH ` &0 < a ==> &0 <= a `]]);;
+
+
+let IN_CONV_COLLINEAR = prove(` ! (v:real^3) v1 v2. v IN conv {v1,v2} ==> 
+collinear {v,v1,v2} `, REWRITE_TAC[COLLINEAR_EX] THEN 
+REWRITE_TAC[COLLINEAR_EX; CONV_SET2; IN_ELIM_THM] THEN 
+REWRITE_TAC[VECTOR_ARITH ` v = a % v1 + b % v2 <=> 
+   &1 % v + -- a % v1 + -- b % v2 = vec 0 `] THEN 
+MESON_TAC[REAL_ARITH `~ ( &1 = &0 ) /\ (a + b = &1 <=> &1 + --a + --b = &0 )`]);;
+
+let COLLINERA_AS_IN_CONV2 = prove(` ! x y (z:real^3) . collinear {x,y,z} <=> 
+x IN conv {y,z} \/ 
+y IN conv {x,z} \/  z IN conv {x,y}`, 
+MESON_TAC[PER_SET3; IN_CONV_COLLINEAR; MIDDLE_POINT]);;
+
+
+let LENGTH_EQ_EX = prove(`!v v1 v2.
+     dist (v1,v) + dist (v,v2) = dist (v1,v2) <=>
+     ~(dist (v1,v2) < dist (v1,v) + dist (v,v2))`,
+REPEAT GEN_TAC THEN 
+REWRITE_TAC[REAL_ARITH ` ~( a < b) <=> b <= a `] THEN 
+EQ_TAC THENL [REAL_ARITH_TAC; 
+NHANH (MESON[DIST_TRIANGLE]` dist (v1,v) + dist (v,v2) <= dist (v1,v2)
+  ==> dist(v1,v2) <= dist (v1,v) + dist (v,v2)`) THEN 
+REAL_ARITH_TAC]);;
+
+
+let BETWEEN_IMP_IN_CONVEX_HULL = new_axiom` !v v1 v2. dist(v1,v) + dist(v,v2) = 
+dist(v1,v2)
+ ==> (?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\  v = a % v1 + b % v2)`;;
+(* HARRISON have proved this lemma *)
+
+
+
+let PRE_HE = prove(` ! x y z. let p = ( x + y + z ) / &2 in
+  ups_x_pow2 x y z = &16 * p * ( p - x ) * ( p - y ) * ( p - z ) `,
+CONV_TAC (TOP_DEPTH_CONV let_CONV) THEN 
+REWRITE_TAC[ups_x_pow2; ups_x] THEN REAL_ARITH_TAC);;
+
+let PRE_HER = prove(`!x y z.
+     ups_x_pow2 x y z =
+     &16 *
+     (x + y + z) / &2 *
+     ((x + y + z) / &2 - x) *
+     ((x + y + z) / &2 - y) *
+     ((x + y + z) / &2 - z)`, 
+REWRITE_TAC[ups_x_pow2; ups_x] THEN REAL_ARITH_TAC);;
+
+
+
+
+
+let TRIVIVAL_LE = prove(`!v1 v2 v3.
+     ~(v2 = v3 /\ v1 = v2)
+     ==> ~(dist (v1,v2) + dist (v1,v3) + dist (v2,v3) = &0)`,
+SIMP_TAC[DE_MORGAN_THM; DIST_NZ] THEN 
+NHANH (MESON[DIST_POS_LE]`&0 < dist (v2,v3) \/ &0 < dist (v1,v2) ==>
+  &0 <= dist(v1,v3) `) THEN MP_TAC DIST_POS_LE THEN KHANANG THEN 
+REWRITE_TAC[OR_IMP_EX] THEN 
+NHANH (MESON[DIST_POS_LE]`&0 < dist (v2,v3) /\ &0 <= dist (v1,v3)
+  ==> &0 <= dist(v1,v2) `) THEN 
+SIMP_TAC[REAL_ARITH`( &0 < a /\ &0 <= b ) /\ &0 <= c ==> ~(c + b + a = &0 ) `] THEN 
+NHANH (MESON[DIST_POS_LE]`&0 < dist (v1,v2) /\ &0 <= dist (v1,v3) ==>
+  &0 <= dist(v2,v3) `) THEN 
+MESON_TAC[REAL_ARITH ` &0 < a /\ &0 <= b /\ &0 <= c ==> ~( a + b + c = &0 ) `]);;
+
+
+
+let MID_COND = prove(` ! v v1 v2. v IN conv {v1,v2} <=> dist(v1,v) + dist(v,v2)
+ = dist(v1,v2) `, REPEAT GEN_TAC THEN EQ_TAC THENL [MESON_TAC[LENGTH_EQUA; DIST_SYM];
+REWRITE_TAC[CONV_SET2; IN_ELIM_THM] THEN 
+MESON_TAC[DIST_SYM; BETWEEN_IMP_IN_CONVEX_HULL]]);;
+
+
+(* lemma 9. p 13 *)
+let FHFMKIY = prove(`!(v1:real^3) v2 v3 x12 x13 x23.
+         x12 = dist (v1,v2) pow 2 /\
+         x13 = dist (v1,v3) pow 2 /\
+         x23 = dist (v2,v3) pow 2
+         ==> (collinear {v1, v2, v3} <=> ups_x x12 x13 x23 = &0)`,
+REPEAT STRIP_TAC THEN ASM_SIMP_TAC[] THEN REWRITE_TAC[COLLINERA_AS_IN_CONV2]
+ THEN REWRITE_TAC[REAL_ARITH ` x pow 2 = x * x `; GSYM ups_x_pow2] THEN 
+REWRITE_TAC[PRE_HER] THEN REWRITE_TAC[REAL_ENTIRE] THEN 
+ONCE_REWRITE_TAC[MESON[]`( v1 IN conv {v2, v3} \/ a \/ b <=> l ) <=> 
+(v1 = v2 /\ v1 = v3 ) \/  ~(v1 = v2 /\ v1 = v3) ==> ( v1 IN conv {v2, v3} 
+\/ a \/ b <=> l )`] THEN REWRITE_TAC[OR_IMP_EX] THEN 
+SIMP_TAC[DIST_SYM; DIST_REFL; MESON[]` a= b/\ a= c <=> b = c /\ a= b`] THEN 
+SIMP_TAC[SET_RULE ` {a,a} = {a} /\ a IN {a} `; CONV_SING;
+   REAL_ARITH ` (&0 + &0 + &0)/ &2 = &0 `] THEN SIMP_TAC[ TRIVIVAL_LE; 
+REAL_ARITH `~( &16 = &0) /\(~( a = &0) ==> ~( a / &2 = &0))`] THEN 
+REWRITE_TAC[REAL_ARITH ` (a+ b + c ) / &2 - a = &0 <=> b + c = a `] THEN 
+REWRITE_TAC[REAL_ARITH ` (a+ b + c ) / &2 - b = &0 <=> c + a = b  `] THEN 
+REWRITE_TAC[REAL_ARITH ` (a+ b + c ) / &2 - c = &0 <=> a + b = c `] THEN 
+REWRITE_TAC[MESON[SET_RULE `{a,b} = {b,a} `]`v2 IN conv {v1, v3} \/ v3 IN 
+conv {v1, v2}  <=> v2 IN conv {v3,v1} \/ v3 IN conv {v1, v2}`] THEN 
+REWRITE_TAC[MID_COND] THEN MESON_TAC[DIST_SYM]);;

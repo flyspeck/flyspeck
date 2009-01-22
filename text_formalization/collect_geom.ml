@@ -3,8 +3,8 @@ needs "Examples/analysis.ml";; (* multivariate-complex theory. *)
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
 needs "convex_header.ml";; 
 needs "definitions_kepler.ml";;
-(* needs "geomdetail.ml";; *)
-needs "basic_geom.ml";; 
+needs "geomdetail.ml";;
+
 prioritize_real();;
 
 let ups_x = new_definition ` ups_x x1 x2 x6 =

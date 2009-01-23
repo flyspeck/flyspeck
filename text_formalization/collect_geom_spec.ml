@@ -82,19 +82,22 @@ let SGFCDZO = new_axiom `! v1 v2 v3:real^3 t1 t2 (t3:real).
          t1 + t2 + t3 = &0 /\
          ~(t1 = &0 /\ t2 = &0 /\ t3 = &0)
          ==> collinear {v1, v2, v3}`;;
+let lemma8 = SGFCDZO;;
 (* le 9. p 13 *)
 let FHFMKIY = new_axiom ` ! (v1: real^3) v2 v3 x12 x13 x23.
          x12 = dist (v1,v2) pow 2 /\
          x13 = dist (v1,v3) pow 2 /\
          x23 = dist (v2,v3) pow 2
          ==> (collinear {v1, v2, v3} <=> ups_x x12 x13 x23 = &0)`;;
+let lemma9 = FHFMKIY;;
 (* le 10. p 14 *)
 let ZPGPXNN = new_axiom `! v1 v2 (v:real^3).
          dist (v1,v2) < dist (v,v1) + dist (v,v2) ==> ~(v IN conv {v1, v2})`;;
+let lemma10 = ZPGPXNN;;
 (* le 11. p14 *)
-let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3) p.
-   plane p /\ {v1, v2, v3} SUBSET p /\
-   ~collinear {v1, v2, v3} /\ v IN p
+let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3).
+   v IN ( affine hull {v1,v2,v3} ) /\
+   ~collinear {v1, v2, v3} 
              ==> v = t1 v1 v2 v3 v % v1 + t2 v1 v2 v3 v % v2 + t3 v1 v2 v3 v % v3 /\
                  t1 v1 v2 v3 v + t2 v1 v2 v3 v + t3 v1 v2 v3 v = &1 /\
                  (!ta tb tc. v = ta % v1 + tb % v2 + tc % v3
@@ -102,21 +105,54 @@ let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3) p.
                         tb = t2 v1 v2 v3 v /\
                         tc = t3 v1 v2 v3 v )`;;
 
-let COEFS = new_specification [" coef1"; "coef2"; "coef3"] FAFKVLR;;
+let equivalent_lemma = prove(` (?t1 t2 t3.
+         !v1 v2 v3 (v:real^N).
+             v IN affine hull {v1, v2, v3} /\ ~collinear {v1, v2, v3}
+             ==> v =
+                 t1 v1 v2 v3 v % v1 + t2 v1 v2 v3 v % v2 + t3 v1 v2 v3 v % v3 /\
+                 t1 v1 v2 v3 v + t2 v1 v2 v3 v + t3 v1 v2 v3 v = &1 /\
+                 (!ta tb tc.
+                      v = ta % v1 + tb % v2 + tc % v3
+                      ==> ta = t1 v1 v2 v3 v /\
+                          tb = t2 v1 v2 v3 v /\
+                          tc = t3 v1 v2 v3 v))  <=>
+     
+          ( !v1 v2 v3 (v:real^N).
+             v IN affine hull {v1, v2, v3} /\ ~collinear {v1, v2, v3}
+          ==> (?t1 t2 t3.
+                   v = t1 % v1 + t2 % v2 + t3 % v3 /\
+                   t1 + t2 + t3 = &1 /\
+                   (!ta tb tc.
+                        v = ta % v1 + tb % v2 + tc % v3
+                        ==> ta = t1 /\ tb = t2 /\ tc = t3))) `,
+REWRITE_TAC[GSYM SKOLEM_THM; LEFT_FORALL_IMP_THM; RIGHT_EXISTS_IMP_THM]);;
+
+let lemma11 = REWRITE_RULE[equivalent_lemma] FAFKVLR;;
+let COEFS = new_specification ["coef1"; "coef2"; "coef3"] FAFKVLR;;
 let plane_3p = new_definition `plane_3p (a:real^3) b c =
          {x | ~collinear {a, b, c} /\
               (?ta tb tc. ta + tb + tc = &1 /\ x = ta % a + tb % b + tc % c)}`;;
 (* le 12. p 15 *)
-let CNXIFFC = new_axiom ` ! v1 v2 v3 v. ~ collinear {v1,v2,v3} /\ v IN plane_3p v1 v2 v3 
-  ==> ( &0 < coef1 v1 v2 v3 v <=> v1 IN aff_gt {v2,v3} {v} ) /\
+let CNXIFFC = new_axiom ` ! (v1:real^3) (v2:real^3) (v3:real^3) (v:real^3). ~ collinear {v1,v2,v3} /\ v IN affine hull 
+{v1, v2, v3} 
+  ==> ( &0 < coef1 v1 v2 v3 v <=> v IN aff_gt {v2,v3} {v1} ) /\
   ( &0 = coef1 v1 v2 v3 v <=> v IN aff {v2,v3} ) /\
-  ( coef1 v1 v2 v3 v < &0 <=> v1 IN aff_lt {v2,v3} {v} )`;;
+  ( coef1 v1 v2 v3 v < &0 <=> v IN aff_lt {v2,v3} {v1} ) /\
+   ( &0 < coef2 v1 v2 v3 v <=> v IN aff_gt {v3,v1} {v2} ) /\
+  ( &0 = coef2 v1 v2 v3 v <=> v IN aff {v3,v1} ) /\
+  ( coef2 v1 v2 v3 v < &0 <=> v IN aff_lt {v3,v1} {v2} )/\
+   ( &0 < coef3 v1 v2 v3 v <=> v IN aff_gt {v1,v2} {v3} ) /\
+  ( &0 = coef3 v1 v2 v3 v <=> v IN aff {v1,v2} ) /\
+  ( coef3 v1 v2 v3 v < &0 <=> v IN aff_lt {v1,v2} {v3})`;;
+let lemma12 = CNXIFFC;;
 (* le 13. p 15 *)
-let MYOQCBS = new_axiom ` ! v1 v2 v3 (v:real^3). ~ collinear {v1,v2,v3} ==>
+let MYOQCBS = new_axiom ` ! v1 v2 v3 (v:real^3). ~ collinear {v1,v2,v3}/\
+  v IN affine hull {v1,v2,v3} ==>
    ( v IN conv {v1,v2,v3} <=> &0 <= coef1 v1 v2 v3 v /\ &0 <= coef2 v1 v2 v3 v /\
    &0 <= coef3 v1 v2 v3 v ) /\ 
    ( v IN conv0 {v1,v2,v3} <=> &0 < coef1 v1 v2 v3 v /\ &0 < coef2 v1 v2 v3 v /\
    &0 < coef3 v1 v2 v3 v )`;;
+let lemma13 = MYOQCBS;;
 (* le 14. p 15 *)
 let TXDIACY = new_axiom `! a b c d (v0: real^3) r.
          &0 < r /\ {a, b, c, d} SUBSET normball v0 r
@@ -138,6 +174,39 @@ let circumradius = new_definition ` circumradius s = (@r. ? x. x IN s /\
 (*       *         *)
 (*    3 rd time    *)
 (* =============== *)
+let delta_x12 = new_definition ` delta_x12 x12 x13 x14 x23 x24 x34 =
+  -- x13 * x23 + -- x14 * x24 + x34 * ( -- x12 + x13 + x14 + x23 + x24 + -- x34 )
+  + -- x12 * x34 + x13 * x24 + x14 * x23 `;;
+
+let delta_x13 = new_definition` delta_x13 x12 x13 x14 x23 x24 x34 =
+  -- x12 * x23 + -- x14 * x34 + x12 * x34 + x24 * ( x12 + -- x13 + x14 + x23 + 
+  -- x24 + x34 ) + -- x13 * x24 + x14 * x23 `;;
+
+let delta_x14 = new_definition`delta_x14 x12 x13 x14 x23 x24 x34 =
+         --x12 * x24 +
+         --x13 * x34 +
+         x12 * x34 +
+         x13 * x24 +
+         x23 * (x12 + x13 + --x14 + --x23 + x24 + x34) +
+         --x14 * x23`;;
+(* le 16 *)
+let SDIHJZK = new_axiom`! (v1:real^3) v2 v3 (a01: real) a02 a03.
+         ~collinear {v1, v2, v3} /\
+         (let x12 = d3 v1 v2 pow 2 in
+          let x13 = d3 v1 v3 pow 2 in
+          let x23 = d3 v2 v3 pow 2 in delta a01 a02 a03 x23 x13 x12 = &0)
+         ==> (?!v0. a01 = d3 v0 v1 pow 2 /\
+                    a02 = d3 v0 v2 pow 2 /\
+                    a03 = d3 v0 v3 pow 2 /\
+                    (let x12 = d3 v1 v2 pow 2 in
+                     let x13 = d3 v1 v3 pow 2 in
+                     let x23 = d3 v2 v3 pow 2 in
+                     let vv = ups_x x12 x13 x23 in
+                     let t1 = delta_x12 a01 a02 a03 x23 x13 x12 / vv in
+                     let t2 = delta_x13 a01 a02 a03 x23 x13 x12 / vv in
+                     let t3 = delta_x14 a01 a02 a03 x23 x13 x12 / vv in
+                     v0 = t1 % v1 + t2 % v2 + t3 % v3))`;;
+
 (* le 17, p 17 *)
 let CDEUSDF = new_axiom`! va vb (vc:real^3) a b c. a = d3 vb vc /\
          b = d3 va vc /\
@@ -254,20 +323,69 @@ let CHHSZEO = new_axiom `!v1 v2 v3 v4 x12 x13 x14 x23 x24 x34.
          ==> muy_delta x12 x13 x14 x23 x24 (dist (v3,v4) pow 2) = &0 /\
              (!root. muy_delta x12 x13 x14 x23 x24 root = &0
                      ==>dist (v3,v4) pow 2 <= root )`;;
+(* def 26. p 22 *)
+let condC = new_definition ` condC M13 m12 m14 M24 m34 (m23:real) =
+  ((! x. x IN {M13, m12, m14, M24, m34, m23 } ==> &0 <= x ) /\
+  M13 <= m12 + m23 /\
+  M13 <= m14 + m34 /\ 
+  M24 < m12 + m14 /\
+  M24 < m23 + m34 /\ 
+  &0 <= delta (M13 pow 2) (m12 pow 2) (m14 pow 2) (M24 pow 2) (m34 pow 2 )
+   (m23 pow 2 ) )`;;
 
+(* le 33. P 22 *)
+let CMUDPKT = new_axiom` !x34 x12 x13 v1 x14 v3 x23 v2 v4 x24.
+         condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\
+         muy_delta x12 x13 x14 x23 x24 xx34' = &0 /\
+         muy_delta x12 x13 x14 x23 x24 xx34'' = &0 /\
+         (!x. muy_delta x12 x13 x14 x23 x24 x = &0
+              ==> xx34' <= x /\ x <= xx34 '')
+         ==> delta_x34 x12 x13 x14 x23 x24 xx34' =
+             sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24) /\
+             delta_x34 x12 x13 x14 x23 x24 xx34' =
+             --sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24)`;;
+(* le 34. p 22 *)
+let CXWOCGN = new_axiom` !M13 m12 m14 M24 m34 m23 (v1:real^3) v2 v3 v4.
+         condC M13 m12 m14 M24 m34 m23 /\
+  CARD {v1,v2,v3,v4} = 4 /\
+  m12 <= d3 v1 v2 /\ 
+  m23 <= d3 v2 v3 /\
+  m34 <= d3 v3 v4 /\ 
+  m14 <= d3 v1 v4 /\ 
+  d3 v1 v3 < M13 /\
+  d3 v2 v4 <= M24 ==>
+  conv {v1,v3} INTER conv {v2,v4} = {} `;;
+
+(* le 35. p 22 *)
+let THADGSB = new_axiom` !M13 m12 m14 M24 m34 m23 v1 v2 v3 v4.
+         (!x. x IN {M13, m12, m14, M24, m34, m23} ==> &0 <= x) /\
+         M13 < m12 + m23 /\
+         M13 < m14 + m34 /\
+         M24 < m12 + m14 /\
+         M24 < m23 + m34 /\
+         &0 <
+         delta (M13 pow 2) (m12 pow 2) (m14 pow 2) (M24 pow 2) (m34 pow 2)
+         (m23 pow 2) /\
+         CARD {v1, v2, v3, v4} = 4 /\ 
+   m12 <= d3 v1 v2 /\
+         m23 <= d3 v2 v3 /\
+         m34 <= d3 v3 v4 /\
+         m14 <= d3 v1 v4 /\
+         d3 v1 v3 < M13 /\
+         d3 v2 v4 <= M24 ==> conv {v1,v3} INTER conv {v2,v4} = {} `;;
 (* le 36. p 23 *)
 let ZZSBSIO = new_axiom` ! u v w. CARD {u,v,w} = 3 /\ packing {u,v,w} /\
   dist (u,v) < sqrt8 ==>  dist (u,v) / &2 < dist (w, &1 / &2 % ( u + v )) `;;
 
 (* le 37. p24 *)
-let JGYWWBX = new_axiom `~(?v1 v2 w1 (w2:real^3).
+let JGYWWBX = new_axiom ` ~ (?v1 v2 w1 (w2:real^3).
            CARD {v1, v2, w1, w2} = 4 /\
            packing {v1, v2, w1, w2} /\
            dist (v1,w2) >= sqrt8 /\
            dist (v1,v2) <= #3.2 /\
            dist (w1,w2) <= sqrt8 /\
            ~(conv {v1, v2} INTER conv {w1, w2} = {}))`;;
-
+(* le 38. p 24 *)
 let PAHFWSI = new_axiom` !v1 v2 v3 v4.
          CARD {v1, v2, v3, v4} = 4 /\
          packing {v1, v2, v3, v4} /\
@@ -307,8 +425,54 @@ let PAATDXJ = new_axiom ` ! v1 v2 v3 (v4:real^3).
          d3 v2 v3 = &2 /\
          d3 v3 v4 = &2 /\
          sqrt8 <= d3 v2 v4
-         ==> d3 v1 v3 < #3.488
+         ==> d3 v1 v3 < #3.488 `;;
+let condF = new_definition` condF m14 m24 m34 M23 M13 M12 =
+         ((!x. x IN {m14, m24, m34, M23, M13, M12} ==> &0 < x) /\
+         M12 < m14 + m24 /\
+         M13 < m14 + m34 /\
+         M23 < m24 + m34 /\
+         &0 <
+         delta (m14 pow 2) (m24 pow 2) (m34 pow 2) (M23 pow 2) (M13 pow 2)
+         (M12 pow 2)) `;;
 
+(* le 43 . p 26 *)
+let YJHQPAL = new_axiom `
+!m14 m24 m34 M23 M13 M12.
+         condF m14 m24 m34 M23 M13 M12
+         ==> ~(?v1 v2 v3 v4.
+                   coplanar {v1, v2, v3, v4} /\
+                   v4 IN conv {v1, v2, v3} /\
+                   (let y12 = d3 v1 v2 in
+                    let y13 = d3 v1 v3 in
+                    let y14 = d3 v1 v4 in
+                    let y23 = d3 v2 v3 in
+                    let y24 = d3 v2 v4 in
+                    let y34 = d3 v3 v4 in
+                    m14 <= y14 /\
+                    m24 <= y24 /\
+                    m34 <= y34 /\
+                    y23 <= M23 /\
+                    y13 <= M13 /\
+                    y12 <= M12))`;;
+
+let condS = new_definition ` condS m m34 M13 M23 <=>
+     (!t. t IN {m, m34, M13, M23} ==> &0 < t) /\
+     M13 < m + m34 /\
+     M23 < m + m34 /\
+     M13 pow 2 < M23 pow 2 + &4 * m * m /\
+     M23 pow 2 < M13 pow 2 + &4 * m * m /\
+     (!r. delta (&4 * m * m) (M13 pow 2) (M23 pow 2) r (M13 pow 2) (M23 pow 2) = &0
+          ==> r < &4 * m34 * m34) `;;
+(* le 44 . p 27 *)
+let MPXSJDI = new_axiom` !m M13 M23 m34. condS m m34 M13 M23
+     ==> ~(?v1 v2 v3 v4.
+               coplanar {v1, v2, v3, v4} /\
+               v4 IN conv {v1, v2, v3} /\
+               m <= d3 v1 v4 /\
+               m <= d3 v2 v4 /\
+               m34 <= d3 v3 v4 /\
+               d3 v2 v3 <= M23 /\
+               d3 v1 v3 <= M13)`;;
 (* le 56. p 36 *)
 let QHSEWMI = new_axiom `!v1 v2 v3 w1 w2.
      ~(conv {w1, w2} INTER conv {v1, v2, v3} = {}) /\

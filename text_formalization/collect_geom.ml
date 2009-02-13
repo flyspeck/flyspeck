@@ -5,7 +5,6 @@ needs "convex_header.ml";;
 needs "definitions_kepler.ml";;
 needs "geomdetail.ml";;
 
-
 prioritize_real();;
 
 let ups_x = new_definition ` ups_x x1 x2 x6 =
@@ -807,7 +806,7 @@ REAL_ARITH_TAC]);;
 let BETWEEN_IMP_IN_CONVEX_HULL = new_axiom` !v v1 v2. dist(v1,v) + dist(v,v2) = 
 dist(v1,v2)
  ==> (?a b. &0 <= a /\ &0 <= b /\ a + b = &1 /\  v = a % v1 + b % v2)`;;
-(* HARRISON have proved this lemma as following  *)
+(* HARRISON have proved this lemma as following, but it must be loaded after convec.ml *)
 (*   let BETWEEN_IFF_IN_CONVEX_HULL = prove
   (`!v v1 v2:real^N.
          dist(v1,v) + dist(v,v2) = dist(v1,v2) <=> v IN convex hull {v1,v2}`,
@@ -859,9 +858,6 @@ let PRE_HER = prove(`!x y z.
 REWRITE_TAC[ups_x_pow2; ups_x] THEN REAL_ARITH_TAC);;
 
 
-
-
-
 let TRIVIVAL_LE = prove(`!v1 v2 v3.
      ~(v2 = v3 /\ v1 = v2)
      ==> ~(dist (v1,v2) + dist (v1,v3) + dist (v2,v3) = &0)`,
@@ -907,6 +903,7 @@ REWRITE_TAC[MESON[SET_RULE `{a,b} = {b,a} `]`v2 IN conv {v1, v3} \/ v3 IN
 conv {v1, v2}  <=> v2 IN conv {v3,v1} \/ v3 IN conv {v1, v2}`] THEN 
 REWRITE_TAC[MID_COND] THEN MESON_TAC[DIST_SYM]);;
 
+(* le 11. p 14 *)
 let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3).
    v IN ( affine hull {v1,v2,v3} ) /\
    ~collinear {v1, v2, v3} 
@@ -1111,7 +1108,7 @@ let RCEABUJ = LEMMA5;;
 
 
 
-(* lemma 26 *)
+(* lemma 17 *)
 
 let CDEUSDF = new_axiom `!va vb vc a b c.
      a = d3 vb vc /\ b = d3 va vc /\ c = d3 va vb /\ ~collinear {va, vb, vc}
@@ -1403,6 +1400,63 @@ DOWN_TAC THEN DAO THEN PURE_ONCE_REWRITE_TAC[MESON[]` &0 = a /\
 STRIP_TAC THEN DOWN_TAC THEN DAO THEN 
 MESON_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID; REAL_ADD_LID]]);;
 
+
+let cayleytr = new_definition ` 
+  cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = 
+  &2 * x23 * x25 * x34 +
+      &2 * x23 * x24 * x35 +
+      -- &1 * x23 pow 2 * x45 +
+      -- &2 * x15 * x23 * x34 +
+      -- &2 * x15 * x23 * x24 +
+      &2 * x15 * x23 pow 2 +
+      -- &2 * x14 * x23 * x35 +
+      -- &2 * x14 * x23 * x25 +
+      &2 * x14 * x23 pow 2 +
+      &4 * x14 * x15 * x23 +
+      -- &2 * x13 * x25 * x34 +
+      -- &2 * x13 * x24 * x35 +
+      &4 * x13 * x24 * x25 +
+      &2 * x13 * x23 * x45 +
+      -- &2 * x13 * x23 * x25 +
+      -- &2 * x13 * x23 * x24 +
+      &2 * x13 * x15 * x34 +
+      -- &2 * x13 * x15 * x24 +
+      -- &2 * x13 * x15 * x23 +
+      &2 * x13 * x14 * x35 +
+      -- &2 * x13 * x14 * x25 +
+      -- &2 * x13 * x14 * x23 +
+      -- &1 * x13 pow 2 * x45 +
+      &2 * x13 pow 2 * x25 +
+      &2 * x13 pow 2 * x24 +
+      &4 * x12 * x34 * x35 +
+      -- &2 * x12 * x25 * x34 +
+      -- &2 * x12 * x24 * x35 +
+      &2 * x12 * x23 * x45 +
+      -- &2 * x12 * x23 * x35 +
+      -- &2 * x12 * x23 * x34 +
+   -- &2 * x12 * x15 * x34 +
+      &2 * x12 * x15 * x24 +
+      -- &2 * x12 * x15 * x23 +
+      -- &2 * x12 * x14 * x35 +
+      &2 * x12 * x14 * x25 +
+      -- &2 * x12 * x14 * x23 +
+      &2 * x12 * x13 * x45 +
+      -- &2 * x12 * x13 * x35 +
+      -- &2 * x12 * x13 * x34 +
+      -- &2 * x12 * x13 * x25 +
+      -- &2 * x12 * x13 * x24 +
+      &4 * x12 * x13 * x23 +
+      -- &1 * x12 pow 2 * x45 +
+      &2 * x12 pow 2 * x35 +
+      &2 * x12 pow 2 * x34 `;;
+
+(* NGUYEN QUANG TRUONG *)
+let LTCTBAN = prove(` cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = 
+ups_x x12 x13 x23 * x45 pow 2 + cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 )
+* x45 + cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 ) `,
+REWRITE_TAC[ups_x; cayleyR;cayleytr] THEN REAL_ARITH_TAC);;
+
+
 let COEF1_NEG_IFF_V1_IN_AFF_LT = prove(` ! v1 v2 v3 v. ~collinear {v1, v2, v3} /\
  v IN affine hull {v1, v2, v3}
   ==> (coef1 v1 v2 v3 v < &0 <=> v IN aff_lt {v2, v3} {v1}) `,
@@ -1436,6 +1490,8 @@ let VCRLIHC = prove(`!(v1:real^3) v2 v3 v4 x34 x12 x13 x14 x23 x24.
 REWRITE_TAC[condA; muy_delta] THEN MP_TAC POLFLZY THEN LET_TR THEN MESON_TAC[]);;
 
 
+let ZERO_NEUTRAL = REAL_ARITH ` ! x. &0 * x = &0 /\ x * &0 = &0 /\ &0 + x = x /\ x + &0 = x /\ x - &0 = x /\
+  -- &0 = &0 `;;
 
 let EQUATE_CONEFS_POLINOMIAL_POW2 = prove( `!a b c aa bb cc. ( ! x. 
      a * x pow 2 + b * x + c = aa * x pow 2 + bb * x + cc ) <=>
@@ -1443,7 +1499,17 @@ let EQUATE_CONEFS_POLINOMIAL_POW2 = prove( `!a b c aa bb cc. ( ! x.
 NHANH (MESON[]` (! (x:real). P x ) ==> P ( &0 ) /\ P ( &1 ) /\ P ( &2 )`) THEN 
 REAL_ARITH_TAC THEN REAL_ARITH_TAC; SIMP_TAC[]]);;
 
+let GJWYYPS = prove(`!x12 x13 x14 x15 x23 x24 x25 x34 x35 a b c.
+    (! x45.  cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 =
+     a  * x45 pow 2 + b * x45 + c )
+     ==> b pow 2 - &4 * a * c =
+         &16 * delta x12 x13 x14 x23 x24 x34 * delta x12 x13 x15 x23 x25 x35`,
+ONCE_REWRITE_TAC[LTCTBAN] THEN REPEAT GEN_TAC THEN 
+REWRITE_TAC[EQUATE_CONEFS_POLINOMIAL_POW2] THEN ONCE_REWRITE_TAC[EQ_SYM_EQ]
+THEN SIMP_TAC[] THEN DISCH_TAC THEN REWRITE_TAC[ups_x; cayleytr; cayleyR;
+ delta; ZERO_NEUTRAL] THEN REAL_ARITH_TAC);;
 
+let LEMMA51 = GJWYYPS ;;
 
 g `!v1 v2 (v:real^3). ~(v1 = v2) ==> (collinear {v, v1, v2} <=> v IN aff {v1, v2})`;;
 e (REWRITE_TAC[COLLINEAR_EX]);;
@@ -1568,67 +1634,175 @@ let MYOQCBS = prove(` !(v1:real^3) v2 v3 v.
               &0 < coef3 v1 v2 v3 v) `,
 SIMP_TAC[IN_CONV3_EQ; IN_CONV03_EQ; NGAY_23_THANG1; CNXIFFC ] THEN MESON_TAC[]);;
 
+let LEMMA51 = GJWYYPS;;
+let LEMMA50 = LTCTBAN;;
+let muy_v = new_definition ` muy_v (x1: real^N ) (x2:real^N) (x3:real^N) (x4:real^N)
+(x5:real^N) x45 = 
+          (let x12 = dist (x1,x2) pow 2 in
+          let x13 = dist (x1,x3) pow 2 in
+          let x14 = dist (x1,x4) pow 2 in
+          let x15 = dist (x1,x5) pow 2 in
+          let x23 = dist (x2,x3) pow 2 in
+          let x24 = dist (x2,x4) pow 2 in
+          let x25 = dist (x2,x5) pow 2 in
+          let x34 = dist (x3,x4) pow 2 in
+          let x35 = dist (x3,x5) pow 2 in
+          cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45) `;;
 
-let cayleytr = new_definition ` 
-  cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = 
-  &2 * x23 * x25 * x34 +
-      &2 * x23 * x24 * x35 +
-      -- &1 * x23 pow 2 * x45 +
-      -- &2 * x15 * x23 * x34 +
-      -- &2 * x15 * x23 * x24 +
-      &2 * x15 * x23 pow 2 +
-      -- &2 * x14 * x23 * x35 +
-      -- &2 * x14 * x23 * x25 +
-      &2 * x14 * x23 pow 2 +
-      &4 * x14 * x15 * x23 +
-      -- &2 * x13 * x25 * x34 +
-      -- &2 * x13 * x24 * x35 +
-      &4 * x13 * x24 * x25 +
-      &2 * x13 * x23 * x45 +
-      -- &2 * x13 * x23 * x25 +
-      -- &2 * x13 * x23 * x24 +
-      &2 * x13 * x15 * x34 +
-      -- &2 * x13 * x15 * x24 +
-      -- &2 * x13 * x15 * x23 +
-      &2 * x13 * x14 * x35 +
-      -- &2 * x13 * x14 * x25 +
-      -- &2 * x13 * x14 * x23 +
-      -- &1 * x13 pow 2 * x45 +
-      &2 * x13 pow 2 * x25 +
-      &2 * x13 pow 2 * x24 +
-      &4 * x12 * x34 * x35 +
-      -- &2 * x12 * x25 * x34 +
-      -- &2 * x12 * x24 * x35 +
-      &2 * x12 * x23 * x45 +
-      -- &2 * x12 * x23 * x35 +
-      -- &2 * x12 * x23 * x34 +
-   -- &2 * x12 * x15 * x34 +
-      &2 * x12 * x15 * x24 +
-      -- &2 * x12 * x15 * x23 +
-      -- &2 * x12 * x14 * x35 +
-      &2 * x12 * x14 * x25 +
-      -- &2 * x12 * x14 * x23 +
-      &2 * x12 * x13 * x45 +
-      -- &2 * x12 * x13 * x35 +
-      -- &2 * x12 * x13 * x34 +
-      -- &2 * x12 * x13 * x25 +
-      -- &2 * x12 * x13 * x24 +
-      &4 * x12 * x13 * x23 +
-      -- &1 * x12 pow 2 * x45 +
-      &2 * x12 pow 2 * x35 +
-      &2 * x12 pow 2 * x34 `;;
+let REMOVE_TAC = MATCH_MP_TAC (MESON[]` a ==> b ==> a `);;
 
-(* NGUYEN QUANG TRUONG *)
-let LTCTBAN = prove(` cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = 
-ups_x x12 x13 x23 * x45 pow 2 + cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 )
-* x45 + cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 ) `,
-REWRITE_TAC[ups_x; cayleyR;cayleytr] THEN REAL_ARITH_TAC);;
+let ALE = MESON[LTCTBAN]`!x12 x13 x14 x15 x23 x24 x25 x34 x35.
+     (!a b c. (! x.
+          cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x =
+          a * x pow 2 + b * x + c )
+          ==> b pow 2 - &4 * a * c = &0)
+     ==> cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0) pow 2 -
+         &4 *
+         ups_x x12 x13 x23 *
+         cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0) =
+         &0`;;
 
-(* NGUYEN QUANG TRUONG *)
-let GJWYYPS = GEN_ALL (prove(`(cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = 
-ups_x x12 x13 x23 * x45 pow 2 + cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 )
-* x45 + cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 ( &0 ) ) /\
-( cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0)) pow 2 - 
-  &4 * ups_x x12 x13 x23 * cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0)
-  = &16 * delta x12 x13 x14 x23 x24 x34 * delta x12 x13 x15 x23 x25 x35 `,
-REWRITE_TAC[LTCTBAN; cayleyR; cayleytr; ups_x; delta] THEN REAL_ARITH_TAC));;
+let DISCRIMINANT_OF_CAY = MESON[LTCTBAN; GJWYYPS]`cayleytr x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0) pow 2 -
+ &4 * ups_x x12 x13 x23 * cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 (&0) =
+ &16 * delta x12 x13 x14 x23 x24 x34 * delta x12 x13 x15 x23 x25 x35`;;
+
+let NOT_TWO_EQ_IMP_COL_EQUAVALENT = NOT_TOW_EQ_IMP_COL_EQUAVALENT;;
+
+let GDLRUZB = prove(` ! (v1:real^3) (v2:real^3) (v3:real^3) (v4:real^3) (v5:real^3) a b c.
+  coplanar {v1, v2, v3, v4} \/ coplanar {v1, v2, v3, v5} <=>
+         (! a b c. (! x. muy_v v1 v2 v3 v4 v5 x = a * x pow 2 + b * x + c )
+ ==> b pow 2 - &4 * a * c = &0) `,REWRITE_TAC[muy_v] THEN LET_TR THEN 
+REPEAT GEN_TAC THEN EQ_TAC THENL [DISCH_TAC THEN 
+NHANH (MESON[GJWYYPS]` (!x45. cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 =
+                a * x45 pow 2 + b * x45 + c)
+         ==> b pow 2 - &4 * a * c =
+             &16 *
+             delta x12 x13 x14 x23 x24 x34 *
+             delta x12 x13 x15 x23 x25 x35`) THEN SIMP_TAC[] THEN 
+UNDISCH_TAC ` coplanar {(v1:real^3), v2, v3, v4}\/ coplanar {v1, v2, v3, v5}` THEN 
+MP_TAC LEMMA15 THEN LET_TR THEN REWRITE_TAC[REAL_FIELD` &16 * a * b = &0 
+<=> a = &0 \/ b = &0 `] THEN SIMP_TAC[]; NHANH (SPEC_ALL ALE) THEN 
+REWRITE_TAC[DISCRIMINANT_OF_CAY ] THEN MP_TAC POLFLZY THEN LET_TR THEN 
+REWRITE_TAC[REAL_FIELD` &16 * a * b = &0 <=> a = &0 \/ b = &0 `] THEN 
+MESON_TAC[]]);;
+
+
+let det_vec3 = new_definition ` det_vec3 (a:real^3) (b:real^3) (c:real^3) = 
+  a$1 * b$2 * c$3 + b$1 * c$2 * a$3 + c$1 * a$2 * b$3 - 
+  ( a$1 * c$2 * b$3 + b$1 * a$2 * c$3 + c$1 * b$2 * a$3 ) `;;
+
+let DET_VEC3_AND_DELTA = prove(`!(a:real^3) b c d.
+     &4 * ( det_vec3 (a - d) (b - d) (c - d) ) pow 2 =
+     delta  ( d3 a d pow 2)
+     (d3 b d pow 2)
+     (d3 c d pow 2) (d3 a b pow 2) (d3 a c pow 2) (d3 b c pow 2)   `,
+SIMP_TAC[d3; dist] THEN 
+REWRITE_TAC[GSYM (MESON[VECTOR_ARITH ` (a :real^N) - b = ( a - x ) - ( b - x ) `]`
+  delta      (norm (a - d) pow 2)     (norm (b - d) pow 2)
+     (norm (c - d) pow 2) (norm ((a - d)  - (b - d )) pow 2) 
+(norm ((a - d)  - ( c - d )) pow 2) (norm ((b - d ) - ( c - d )) pow 2)    =
+   delta   (norm (a - d) pow 2)     (norm (b - d) pow 2)   (norm (c - d) pow 2)
+(norm (a - b) pow 2) (norm (a - c) pow 2) (norm (b - c) pow 2)    `)] THEN 
+SIMP_TAC[ vector_norm; DOT_POS_LE; SQRT_WORKS] THEN 
+REWRITE_TAC[DOT_3] THEN 
+REWRITE_TAC[MESON[lemma_cm3]`((a:real^3) - d - (b - d))$1 = (a - d)$1 - (b - d)$1 /\
+  (a - d - (b - d))$2 = (a - d)$2 - (b - d)$2 /\
+  (a - d - (b - d))$3 = (a - d)$3 - (b - d)$3 `] THEN 
+REWRITE_TAC[delta; det_vec3] THEN 
+REAL_ARITH_TAC);;
+
+
+let DET_VECC3_AND_DELTA = prove(` (! d a b c .
+      delta (d3 d a pow 2) (d3 d b pow 2) (d3 d c pow 2) (d3 a b pow 2)
+      (d3 a c pow 2)
+      (d3 b c pow 2) =
+      &4 * det_vec3 (a - d) (b - d) (c - d) pow 2) `, MESON_TAC[D3_SYM; 
+DET_VEC3_AND_DELTA]);;
+
+
+let DELTA_POS_4POINTS = prove(`!x1 x2 x3 (x4:real^3).
+     &0 <=
+     delta (dist (x1,x2) pow 2) (dist (x1,x3) pow 2) (dist (x1,x4) pow 2)
+     (dist (x2,x3) pow 2)
+     (dist (x2,x4) pow 2)
+     (dist (x3,x4) pow 2)`, REWRITE_TAC[GSYM d3] THEN SIMP_TAC[D3_SYM] THEN 
+MP_TAC (DET_VECC3_AND_DELTA) THEN SIMP_TAC[] THEN DISCH_TAC THEN MP_TAC
+ REAL_LE_SQUARE_POW THEN MESON_TAC[REAL_ARITH` &0 <= x <=> &0 <= &4 * x `]);;
+
+
+
+let DIST_POW2_DOT = 
+prove(` ! a (b:real^N) . dist (a,b) pow 2 = ( a - b ) dot ( a- b) `,
+SIMP_TAC[dist; vector_norm; DOT_POS_LE; SQRT_WORKS]);;
+
+(* this lemma is proved as below, but it take time to run it *)
+let CAYLEYR_5POINTS = new_axiom` !x1 x2 x3 x4 (x5 :real^3). 
+         let x12 = dist (x1,x2) pow 2 in
+         let x13 = dist (x1,x3) pow 2 in
+         let x14 = dist (x1,x4) pow 2 in
+         let x15 = dist (x1,x5) pow 2 in
+         let x23 = dist (x2,x3) pow 2 in
+         let x24 = dist (x2,x4) pow 2 in
+         let x25 = dist (x2,x5) pow 2 in
+         let x34 = dist (x3,x4) pow 2 in
+         let x35 = dist (x3,x5) pow 2 in
+         let x45 = dist (x4,x5) pow 2 in
+         cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = &0 `;;
+
+(* let CAYLEYR_5POINTS = prove(`  !x1 x2 x3 x4 (x5 :real^3). 
+         let x12 = dist (x1,x2) pow 2 in
+         let x13 = dist (x1,x3) pow 2 in
+         let x14 = dist (x1,x4) pow 2 in
+         let x15 = dist (x1,x5) pow 2 in
+         let x23 = dist (x2,x3) pow 2 in
+         let x24 = dist (x2,x4) pow 2 in
+         let x25 = dist (x2,x5) pow 2 in
+         let x34 = dist (x3,x4) pow 2 in
+         let x35 = dist (x3,x5) pow 2 in
+         let x45 = dist (x4,x5) pow 2 in
+         cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = &0 `,
+LET_TR THEN REWRITE_TAC[ DIST_POW2_DOT] THEN REPEAT GEN_TAC THEN 
+REWRITE_TAC[ MESON[VECTOR_ARITH` (a:real^n) - b = a - x - ( b - x ) `]`
+  AA ( (x1 - x5 ) dot ( x1 - x5)) ((x2 - x3) dot (x2 - x3))
+ ((x2 - x4) dot (x2 - x4))
+ ((x2 - x5) dot (x2 - x5))
+ ((x3 - x4) dot (x3 - x4))
+ ((x3 - x5) dot (x3 - x5))
+ ((x4 - x5) dot (x4 - x5)) =
+  AA ( (x1 - x5 ) dot ( x1 - x5)) ((x2 - x1 - ( x3 - x1 )) dot (x2 - x1 - ( x3 - x1 )))
+  ((x2 - x1 - ( x4 - x1 )) dot (x2 - x1 - ( x4 - x1 )))
+  ((x2 - x1 - ( x5 - x1 )) dot (x2 - x1 - ( x5 - x1 )))
+  ((x3 - x1 - ( x4 - x1 )) dot (x3 - x1 - ( x4 - x1 )))
+  ((x3 - x1 - ( x5 - x1 )) dot (x3 - x1 - ( x5 - x1 )))
+    ((x4 - x1 - ( x5 - x1 )) dot (x4 - x1 - ( x5 - x1 ))) ` ] THEN 
+SIMP_TAC[VECTOR_ARITH ` ((x4: real^N) - x1 - (x5 - x1)) = x1 - x5 - ( x1 - x4 ) `] THEN 
+ABBREV_TAC ` x12 = (x1 - ( x2:real^3)) ` THEN 
+ABBREV_TAC ` x13 = (x1 - ( x3:real^3)) ` THEN 
+ABBREV_TAC ` x14 = (x1 - ( x4:real^3)) ` THEN 
+ABBREV_TAC ` x15 = (x1 - ( x5:real^3)) ` THEN 
+REWRITE_TAC[DOT_3] THEN REWRITE_TAC[lemma_cm3; cayleyR] THEN REAL_AROTH_TAC);; *)
+
+
+let UPS_X_POS = MESON[lemma8; UPS_X_SYM; NORM_SUB]` &0 <=
+          ups_x (norm ((x1 : real^3) - x2) pow 2) (norm (x1 - x3) pow 2)
+          (norm (x2 - x3) pow 2) `;;
+
+let UPS_X_SYM = MESON[UPS_X_SYM]` !x y z. ups_x x y z = ups_x y x z /\ ups_x x y z = ups_x x z y
+  /\ ups_x x y z = ups_x x z y `;;
+
+let LEMMA3 = prove(` !x1 x2 x3 x4 (x5 :real^3). 
+                 let x12 = dist (x1,x2) pow 2 in
+         let x13 = dist (x1,x3) pow 2 in
+         let x14 = dist (x1,x4) pow 2 in
+         let x15 = dist (x1,x5) pow 2 in
+         let x23 = dist (x2,x3) pow 2 in
+         let x24 = dist (x2,x4) pow 2 in
+         let x25 = dist (x2,x5) pow 2 in
+         let x34 = dist (x3,x4) pow 2 in
+         let x35 = dist (x3,x5) pow 2 in
+         let x45 = dist (x4,x5) pow 2 in
+         &0 <= ups_x x12 x13 x23 /\
+         &0 <= delta x12 x13 x14 x23 x24 x34 /\
+         cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = &0 `, MP_TAC 
+CAYLEYR_5POINTS THEN LET_TR THEN 
+SIMP_TAC[ dist; UPS_X_POS; DELTA_POS_4POINTS]);;

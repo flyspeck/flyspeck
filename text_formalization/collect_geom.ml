@@ -39,7 +39,7 @@ let delta = new_definition ` delta x12 x13 x14 x23 x24 x34 =
          x12 * x34 * (--x12 + x13 + x14 + x23 + x24 - x34) + 
          x13 * x24 * (x12 - x13 + x14 + x23 - x24 + x34 ) +
          x14 * x23 * ( x12 + x13 - x14 - x23 + x24 + x34 ) `;;
-(* How can I write the definition of R(xij)? Do I have to compute the determinant *)
+
 let eta_v = new_definition ` eta_v v1 v2 (v3: real^N) =
         let e1 = dist (v2, v3) in
   	  let e2 = dist (v1, v3) in
@@ -49,7 +49,9 @@ let eta_v = new_definition ` eta_v v1 v2 (v3: real^N) =
 
 let max_real3 = new_definition ` max_real3 x y z = max_real (max_real x y ) z `;;
 let ups_x_pow2 = new_definition` ups_x_pow2 x y z = ups_x ( x*x ) ( y * y) ( z * z)`;;
-
+let plane_norm = new_definition `
+  plane_norm p <=>
+         (?n v0. ~(n = vec 0) /\ p = {v | n dot (v - v0) = &0}) `;;
 
 (* NGUYEN DUC PHUONG *)
 (* Definition of Cayley – Menger square cm3 *)
@@ -524,6 +526,17 @@ let DELTA_X34 = prove(` !x12 x13 x14 x23 x24 x34.
      (x13 * x24) * x23 +
      (--x13 * x24) * x24`, REWRITE_TAC[delta] THEN REAL_ARITH_TAC);;
 
+let delta_x34 = new_definition ` delta_x34 x12 x13 x14 x23 x24 x34  = 
+-- &2 * x12 * x34 + 
+(--x13 * x14 +
+      --x23 * x24 +
+      x13 * x24 +
+      x14 * x23 +
+      --x12 * x12 +
+      x12 * x14 +
+      x12 * x24 +
+      x12 * x13 +
+      x12 * x23) `;;
 
 let C_COEF_FORMULA = prove(`! x12 x13 x14 x23 x24. c_coef x12 x13 x14 x23 x24
   = (x14 * x23) * x12 +
@@ -904,6 +917,8 @@ conv {v1, v2}  <=> v2 IN conv {v3,v1} \/ v3 IN conv {v1, v2}`] THEN
 REWRITE_TAC[MID_COND] THEN MESON_TAC[DIST_SYM]);;
 
 (* le 11. p 14 *)
+(* this lemma is prove below, but it work smoothly only after load convex.ml *)
+
 let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3).
    v IN ( affine hull {v1,v2,v3} ) /\
    ~collinear {v1, v2, v3} 
@@ -913,6 +928,117 @@ let FAFKVLR = new_axiom ` ? t1 t2 t3. ! v1 v2 v3 (v:real^3).
                     ==> ta = t1 v1 v2 v3 v /\
                         tb = t2 v1 v2 v3 v /\
                         tc = t3 v1 v2 v3 v )`;;
+let LEMMA11 = FAFKVLR;;
+
+(*
+
+ let AFFINE_HULL_FINITE = prove
+  (`!s:real^N->bool.
+       FINITE s
+       ==> affine hull s = {y | ?u. sum s u = &1 /\ vsum s (\v. u v % v) = y}`,
+   GEN_TAC THEN DISCH_TAC THEN
+   REWRITE_TAC[EXTENSION; AFFINE_HULL_EXPLICIT; IN_ELIM_THM] THEN
+   X_GEN_TAC `x:real^N` THEN EQ_TAC THEN REWRITE_TAC[LEFT_IMP_EXISTS_THM] THENL
+    [MAP_EVERY X_GEN_TAC [`t:real^N->bool`; `f:real^N->real`] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `\x:real^N. if x IN t then f x else &0` THEN
+     REWRITE_TAC[] THEN ONCE_REWRITE_TAC[COND_RAND] THEN
+     ONCE_REWRITE_TAC[COND_RATOR] THEN REWRITE_TAC[VECTOR_MUL_LZERO] THEN
+     ASM_SIMP_TAC[GSYM VSUM_RESTRICT_SET; GSYM SUM_RESTRICT_SET] THEN
+     ASM_SIMP_TAC[SET_RULE `t SUBSET s ==> {x | x IN s /\ x IN t} = t`];
+     X_GEN_TAC `f:real^N->real` THEN
+     ASM_CASES_TAC `s:real^N->bool = {}` THEN
+     ASM_REWRITE_TAC[SUM_CLAUSES; REAL_OF_NUM_EQ; ARITH] THEN STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`s:real^N->bool`; `f:real^N->real`] THEN
+     ASM_REWRITE_TAC[GSYM EXTENSION; SUBSET_REFL]]);;
+
+ let IN_AFFINE_HULL_IMP_COLLINEAR = prove
+  (`!a b c:real^N. a IN (affine hull {b,c}) ==> collinear {a,b,c}`,
+   REPEAT GEN_TAC THEN MAP_EVERY ASM_CASES_TAC
+    [`a:real^N = b`; `a:real^N = c`; `b:real^N = c`] THEN
+   TRY(ASM_REWRITE_TAC[INSERT_AC; COLLINEAR_SING; COLLINEAR_2] THEN NO_TAC) THEN
+   SIMP_TAC[AFFINE_HULL_FINITE; FINITE_INSERT; FINITE_SING] THEN
+   SIMP_TAC[SUM_CLAUSES; VSUM_CLAUSES; FINITE_RULES; REAL_ADD_RID] THEN
+   ASM_REWRITE_TAC[IN_INSERT; IN_ELIM_THM; NOT_IN_EMPTY; VECTOR_ADD_RID] THEN
+   DISCH_THEN(X_CHOOSE_THEN `f:real^N->real` STRIP_ASSUME_TAC) THEN
+   ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {c,b,a}`] THEN
+   ASM_REWRITE_TAC[COLLINEAR_3; COLLINEAR_LEMMA; VECTOR_SUB_EQ] THEN
+   EXISTS_TAC `(f:real^N->real) c` THEN EXPAND_TAC "a" THEN
+   FIRST_X_ASSUM(SUBST1_TAC o MATCH_MP (REAL_ARITH
+    `b + c = &1 ==> b = &1 - c`)) THEN VECTOR_ARITH_TAC);;
+
+
+ let AFFINE_DEPENDENT_3_IMP_COLLINEAR = prove
+  (`!a b c:real^N. affine_dependent{a,b,c} ==> collinear{a,b,c}`,
+   REPEAT GEN_TAC THEN
+   MAP_EVERY ASM_CASES_TAC
+    [`a:real^N = b`; `a:real^N = c`; `b:real^N = c`] THEN
+   TRY(ASM_REWRITE_TAC[INSERT_AC; COLLINEAR_SING; COLLINEAR_2] THEN NO_TAC) THEN
+   REWRITE_TAC[affine_dependent; IN_INSERT; NOT_IN_EMPTY] THEN STRIP_TAC THEN
+   FIRST_X_ASSUM SUBST_ALL_TAC THENL
+    [ALL_TAC;
+     ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {b,a,c}`];
+     ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {c,b,a}`]] THEN
+   MATCH_MP_TAC IN_AFFINE_HULL_IMP_COLLINEAR THEN
+   FIRST_X_ASSUM(MATCH_MP_TAC o MATCH_MP (MESON[]
+    `x IN s ==> s = t ==> x IN t`)) THEN
+   AP_TERM_TAC THEN ASM SET_TAC[]);;
+
+
+let FAFKVLR = prove
+ (`!v1 v2 v3 v:real^N.
+       ~collinear{v1,v2,v3} /\ v IN (affine hull {v1,v2,v3})
+
+       ==> ?t1 t2 t3. v = t1 % v1 + t2 % v2 + t3 % v3 /\
+                      t1 + t2 + t3 = &1 /\
+                      !ta tb tc. v = ta % v1 + tb % v2 + tc % v3 /\
+
+                                 ta + tb + tc = &1
+                                 ==> ta = t1 /\ tb = t2 /\ tc = t3`,
+ REPEAT GEN_TAC THEN
+ MAP_EVERY ASM_CASES_TAC
+  [`v1:real^N = v2`; `v2:real^N = v3`; `v1:real^N = v3`] THEN
+ TRY(ASM_REWRITE_TAC[INSERT_AC; COLLINEAR_SING; COLLINEAR_2] THEN NO_TAC) THEN
+ SIMP_TAC[AFFINE_HULL_FINITE; FINITE_INSERT; FINITE_SING; IN_ELIM_THM] THEN
+ DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
+ SIMP_TAC[SUM_CLAUSES; VSUM_CLAUSES; FINITE_INSERT; FINITE_SING;
+          SUM_SING; VSUM_SING] THEN
+ ASM_REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; LEFT_IMP_EXISTS_THM] THEN
+ X_GEN_TAC `f:real^N->real` THEN STRIP_TAC THEN
+ MAP_EVERY EXISTS_TAC
+  [`(f:real^N->real) v1`; `(f:real^N->real) v2`; `(f:real^N->real) v3`] THEN
+ ASM_REWRITE_TAC[] THEN REPEAT GEN_TAC THEN EXPAND_TAC "v" THEN
+ DISCH_TAC THEN MATCH_MP_TAC(TAUT `(~p ==> F) ==> p`) THEN DISCH_TAC THEN
+ UNDISCH_TAC `~collinear{v1:real^N,v2,v3}` THEN REWRITE_TAC[] THEN
+ MATCH_MP_TAC AFFINE_DEPENDENT_3_IMP_COLLINEAR THEN
+ SIMP_TAC[AFFINE_DEPENDENT_EXPLICIT_FINITE; FINITE_INSERT; FINITE_RULES;
+          SUM_CLAUSES; VSUM_CLAUSES] THEN
+ ASM_REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY] THEN
+ EXISTS_TAC `\x. if x = v1 then f v1 - ta
+                 else if x = v2 then f v2 - tb
+                 else (f:real^N->real) v3 - tc` THEN
+ ASM_REWRITE_TAC[REAL_ADD_RID; VECTOR_ADD_RID] THEN REPEAT CONJ_TAC THENL
+  [ASM_REAL_ARITH_TAC;
+   ASM_REWRITE_TAC[EXISTS_OR_THM; RIGHT_OR_DISTRIB; UNWIND_THM2] THEN
+   ASM_REWRITE_TAC[REAL_SUB_0] THEN ASM_MESON_TAC[];
+   ASM_REWRITE_TAC[VECTOR_ARITH
+    `(a - a') % x + (b - b') % y + (c - c') % z = vec 0 <=>
+     a % x + b % y + c % z = a' % x + b' % y + c' % z`] THEN
+   ASM_MESON_TAC[]]);;
+
+
+
+ let FAFKVLR_ALT = prove
+  (`!v1 v2 v3 v:real^N.
+         ~collinear{v1,v2,v3} /\ v IN (affine hull {v1,v2,v3})
+         ==> ?!(t1,t2,t3). v = t1 % v1 + t2 % v2 + t3 % v3 /\
+                           t1 + t2 + t3 = &1`,
+   REWRITE_TAC(map(REWRITE_RULE[ETA_AX])
+    [EXISTS_UNIQUE; FORALL_PAIR_THM; EXISTS_PAIR_THM]) THEN
+   REWRITE_TAC[PAIR_EQ; GSYM CONJ_ASSOC; FAFKVLR]);;
+
+*)
+
 
 let equivalent_lemma = prove(` (?t1 t2 t3.
          !v1 v2 v3 (v:real^N).
@@ -1806,3 +1932,130 @@ let LEMMA3 = prove(` !x1 x2 x3 x4 (x5 :real^3).
          cayleyR x12 x13 x14 x15 x23 x24 x25 x34 x35 x45 = &0 `, MP_TAC 
 CAYLEYR_5POINTS THEN LET_TR THEN 
 SIMP_TAC[ dist; UPS_X_POS; DELTA_POS_4POINTS]);;
+
+
+let LEMMA52 = prove( `! v1 v2 v3 v4 (v5:real^3).
+  muy_v v1 v2 v3 v4 v5 ( (d3 v4 v5) pow 2 ) = &0 `,
+REWRITE_TAC[muy_v; d3] THEN MP_TAC LEMMA3 THEN 
+LET_TR THEN SIMP_TAC[]);;
+
+let PFDFWWV = LEMMA52;;
+
+let PRE_VIET = 
+REAL_ARITH `!x x1 x2. (x - x1) * (x - x2) = x pow 2 - (x1 + x2) * x + x1 * x2 /\
+ a * (x - x1) * (x - x2) = a * x pow 2 + ( -- a * (x1 + x2)) * x + a * x1 * x2 `;;
+
+
+let VIET_THEOREM = prove(`! x1 x2 a b c. (!x. a * x pow 2 + b * x + c = 
+a * (x - x1) * (x - x2)) ==>  -- b = a * ( x1 + x2 ) /\ c = a * x1 * x2 `,
+REWRITE_TAC[PRE_VIET; REAL_LDISTRIB;REAL_SUB_LDISTRIB;
+REAL_ARITH ` a - b * c = a + -- b * c `; REAL_ARITH` ( a + b ) + c = 
+a + b + c `] THEN 
+REWRITE_TAC[REAL_MUL_ASSOC; EQUATE_CONEFS_POLINOMIAL_POW2] THEN 
+SIMP_TAC[] THEN REAL_ARITH_TAC);;
+
+let ADD_SUB_POW2_EX = REAL_RING ` ( a + b ) pow 2 = a pow 2 + &2 * a * b + b pow 2 /\
+( a - b ) pow 2 = a pow 2 - &2 * a * b + b pow 2 `;;
+
+let PRESENT_SUB_POW2 = REAL_RING` ! a b. ( a - b ) pow 2 = ( a + b ) pow 2 
+  - &4 * a * b `;;
+
+let DIST_ROOT_AND_DISCRIMINANT = prove(` ! a b c x1 x2. ( ! x. a * x pow 2 + b * x + c =
+ a * ( x - x1 ) * ( x - x2 ) )
+  ==> ( a pow 2 ) * ( x1 - x2 ) pow 2 = b pow 2 - &4 * a * c `,
+NHANH (SPEC_ALL VIET_THEOREM) THEN REWRITE_TAC[PRESENT_SUB_POW2] THEN 
+SIMP_TAC[REAL_ARITH ` -- b = a <=> b = -- a `] THEN REAL_ARITH_TAC);;
+let CMUDPKT = new_axiom` !x34 x12 x13 v1 x14 v3 x23 v2 v4 x24 x34' x34'' a.
+         condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\ x34' <= x34'' /\
+  (! x. muy_delta x12 x13 x14 x23 x24 x = a * ( x - x34' ) * ( x - x34'')) 
+  ==> delta_x34 x12 x13 x14 x23 x24 x34' =
+             sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24) /\
+             delta_x34 x12 x13 x14 x23 x24 x34' =
+             --sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24) `;;
+
+let REAL_EQ_TO_LE_LT = REAL_ARITH ` 
+  ( a = b <=> ~( a < b \/ b < a ) )`;;
+
+let FEBRUARY_13_09 = prove(` &0 < (u - v) dot (&2 % x - (u + v)) <=>
+  &0 < (u - v) dot (x - &1 / &2 % (u + v)) `,
+ONCE_REWRITE_TAC[MESON[REAL_ARITH ` &0 < a <=> &0 < &2 * a `]` (a <=> &0 < b ) <=>
+  ( a <=> &0 < &2 * b ) `] THEN ONCE_REWRITE_TAC[VECTOR_ARITH ` x * (a dot b) =
+  a dot x % b `] THEN 
+REWRITE_TAC[GSYM VECTOR_SUB_DISTRIBUTE; VECTOR_MUL_ASSOC] THEN 
+REWRITE_TAC[REAL_ARITH ` &2 * &1 / &2 = &1 `; VECTOR_MUL_LID]);;
+
+let SUB_DOT_NEG_TO_POS = MESON[VECTOR_ARITH ` ( a - b ) dot x = 
+--  (( b - a ) dot x ) `;  REAL_ARITH ` -- a < &0 <=> &0 < a `]
+`! a b.  ( a - b ) dot x < &0 <=> &0 < ( b - a ) dot x `;;
+
+
+let LEMMA6 = prove(` !(u:real^3) v. ~(u = v) ==> plane_norm (bis u v) `,
+REWRITE_TAC[plane_norm; bis] THEN REPEAT STRIP_TAC THEN 
+EXISTS_TAC ` (u: real^3) - v ` THEN 
+EXISTS_TAC ` &1 / &2 % ((u: real^3) + v )` THEN 
+REWRITE_TAC[FUN_EQ_THM; IN_ELIM_THM] THEN ASM_SIMP_TAC[VECTOR_SUB_EQ] THEN 
+REWRITE_TAC[REAL_EQ_TO_LE_LT; DIST_LT_HALF_PLANE;FEBRUARY_13_09;
+ SUB_DOT_NEG_TO_POS] THEN SIMP_TAC[VECTOR_ADD_SYM] THEN MESON_TAC[]);;
+
+let BXVMKNF = LEMMA6;;
+
+
+let b_coef = BC_DEL_FOR;;
+let c_coef = b_coef ;;
+
+let DELTA_X34_B = prove(` ! x12 x13 x14 x23 x24 x. delta_x34 x12 x13 x14 x23 x24 x =
+  -- &2 * x12 * x + b_coef x12 x13 x14 x23 x24 `, REWRITE_TAC[ delta_x34; b_coef]);;
+
+let TROI_OI_DAT_HOI = MESON[ lemma8; dist; DIST_SYM]` &0 <=
+           ups_x ( dist((v1:real^3),v2) pow 2) (dist(v2,v3) pow 2)
+           (dist(v1,v3) pow 2)`;;
+
+
+let EQ_POW2_COND = prove(`!a b. &0 <= a /\ &0 <= b ==> (a = b <=> a pow 2 = b pow 2)`,
+REWRITE_TAC[REAL_ARITH` a = b <=> a <= b /\ b <= a `] THEN SIMP_TAC[POW2_COND]);;
+
+
+let EQ_SQRT_POW2_EQ = prove(` &0 <= a /\ &0 <= b ==> ( a = sqrt b <=> a pow 2 = b ) `,
+SIMP_TAC[SQRT_WORKS; EQ_POW2_COND]);;
+
+
+let LEMMA33 = prove(` !x34 x12 x13 v1 x14 v3 x23 v2 v4 x24 x34' x34'' a.
+ condA v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 /\
+          (! x. muy_delta x12 x13 x14 x23 x24 x = a * ( x - x34' ) * ( x - x34'')) 
+/\ x34' <= x34'' 
+  ==> delta_x34 x12 x13 x14 x23 x24 x34' =
+             sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24) /\
+             delta_x34 x12 x13 x14 x23 x24 x34'' =
+             --sqrt (ups_x x12 x13 x23 * ups_x x12 x14 x24) `,
+REWRITE_TAC[muy_delta; DELTA_X34_B; DELTA_COEFS] THEN 
+SIMP_TAC[EQUATE_CONEFS_POLINOMIAL_POW2; PRE_VIET; 
+REAL_ARITH ` -- a = b <=> b = -- a`] THEN 
+SIMP_TAC[REAL_RING `-- &2 * x12 * x34' + -- --x12 * (x34' + x34'') = a <=>
+  -- &2 * x12 * x34'' + -- --x12 * (x34' + x34'') = -- a `] THEN 
+REWRITE_TAC[REAL_ARITH` -- &2 * x12 * x34'' + -- --x12 * (x34' + x34'')
+  = x12 * ( x34' - x34'' ) `; condA] THEN REPEAT STRIP_TAC THEN 
+EXPAND_TAC "x12"  THEN EXPAND_TAC "x13" THEN EXPAND_TAC "x23" THEN 
+EXPAND_TAC "x14" THEN EXPAND_TAC "x24" THEN 
+UNDISCH_TAC ` x34' <= (x34'':real)` THEN 
+ONCE_REWRITE_TAC[REAL_ARITH ` a <= b <=> &0 <= b - a `] THEN 
+ONCE_REWRITE_TAC[ REAL_ARITH ` a * ( b - c ) = -- ( a * ( c - b ) ) `] THEN 
+MP_TAC (GEN_ALL TROI_OI_DAT_HOI) THEN MP_TAC REAL_LE_POW_2 THEN 
+REWRITE_TAC[REAL_ARITH` -- a = -- b <=> a = b `] THEN 
+SIMP_TAC[UPS_X_SYM; REAL_LE_MUL; EQ_SQRT_POW2_EQ ] THEN 
+ASM_SIMP_TAC[] THEN REPEAT STRIP_TAC THEN 
+ONCE_REWRITE_TAC[ REAL_ARITH ` ( a * b ) pow 2 = a pow 2 * b pow 2 `] THEN 
+REWRITE_TAC[PRESENT_SUB_POW2] THEN 
+REWRITE_TAC[REAL_SUB_LDISTRIB; REAL_ARITH ` a pow 2 * b pow 2 = 
+( -- a * b ) pow 2   /\ a pow 2 * &4 * b = -- a * &4 * -- a * b `] THEN 
+UNDISCH_TAC `b_coef x12 x13 x14 x23 x24 = --a * (x34' + x34'')` THEN 
+UNDISCH_TAC `c_coef x12 x13 x14 x23 x24 = a * x34' * x34''` THEN 
+UNDISCH_TAC `(a: real) = --x12` THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[] THEN SIMP_TAC[REAL_ARITH` -- -- a = a /\ ( -- a * b) pow 2 = 
+  ( a * b ) pow 2 /\ ( a * -- b) pow 2 = ( a * b ) pow 2  `; REAL_ADD_SYM;
+ REAL_MUL_SYM] THEN SIMP_TAC[REAL_ADD_SYM; REAL_MUL_SYM] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH ` ( a * b ) pow 2 = ( b * -- a ) pow 2 `] THEN 
+SIMP_TAC[] THEN REPEAT STRIP_TAC THEN EXPAND_TAC "a" THEN 
+REWRITE_TAC[REAL_RING ` a - -- c * b * &4 = a + &4 * c * b `] THEN 
+MESON_TAC[AGBWHRD; UPS_X_SYM]);;
+
+let CMUDPKT = LEMMA33;;

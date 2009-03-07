@@ -4556,7 +4556,7 @@ let I_621852152_15=
 let I_621852152_16=
   all_forall 
   (list_mk_comb(I_621852152_GEN,[`#4.0`;`square_2t0`;`square_2t0`;`square_2t0`;`square_2t0`]));;
-g
+
 (* interval verification by Ferguson *)
 let I_621852152_17=
   all_forall 

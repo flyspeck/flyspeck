@@ -160,7 +160,8 @@ double gg1(double y1,double y2,double y3,double y4,double y5,double y6) {
   double vvterm =  vv(y1,y2,y6) + vv(y1,y3,y5);
   double dihrest = dih_y(y1,y2,y3,y4,y5,y6) - dih_y(y1,y2,s2,s2,s2,y6) - dih_y(y1,y3,s2,s2,s2,y5);
   double cell2 = dihrest*(cell2vol(y1/2) - cell2estimate(y1/2));
-  return cell2 + vvterm;
+  // there are 2 2-cells along the edge, so double .
+  return 2*cell2 + vvterm;
 }
 
 double dihcc = dih_y(2*hmid,2,2,2,2,2);

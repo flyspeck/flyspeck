@@ -371,7 +371,7 @@ public class Generator {
         //2. main loop
         while(stack.size() > 0) {
             loop(stack.pop());
-            if(0 == Misc.mod(++counter, 10000)) /* adapt as needed */ {
+            if(0 == Misc.mod(++counter, 50000)) /* adapt as needed */ {
                 System.out.print("// stack sizes = " + stack.size());
                 System.out.print("// cases found= " +stack.getHashFound().length);
                 System.out.println("// cases considered= " + counter);
@@ -410,7 +410,8 @@ public class Generator {
         
         **/
 
-        for (int i=6;i<9;i++) {
+        for (int i=5;i<9;i++) {
+	    System.out.println("//***** generating exceptional series "+i);
             Generator.generateExceptionalSeries(i);
             Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {

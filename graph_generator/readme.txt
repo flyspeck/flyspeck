@@ -25,3 +25,6 @@ will probably have to be tweaked a bit to make it runnable from this new directo
 October 8, 2008
 Local settings: To run, you need to set the string propertiesFile in Constants.java to the path of anghel.properties (or whatever properties file is in used).
 
+May 6, 2009
+I'm having memory slow-down.  I'm now trying
+java -Xms300m -Xmx1g graph/Generator  

@@ -385,10 +385,16 @@ public class Generator {
         Graph[] list = stack.getTerminalList();
         //for(int i = 0;i < Math.min(list.length, 0);i++)
         //    new CoordinatesDemo(list[i], "" + i);
-        System.out.println("// terminalList = " + list.length);
-        System.out.println("// total acceptable found = " + stack.getHashFound().length);
-        int over = stack.displayOverlookedCases(5, param);
-        System.out.println("// some missed cases = "+over);
+	int over = stack.displayOverlookedCases(5, param);
+        
+        
+        
+
+	System.out.println("// number of graphs found meeting criteria = " + stack.getHashFound().length);
+	System.out.println("// --number of graphs found meeting criteria, but not in archive = " + list.length);
+	System.out.println("// -- (Those not in the archive are dumped below)");
+        System.out.println("// number of graphs in selected archive, reported above as archive series/size");
+        System.out.println("// --number of graphs in selected archive, not meeting criteria (under normal circumstances this should be 0) = "+over);
         //4. Write out the new cases:
         if (list.length>0) try {
             System.out.println("//********************");

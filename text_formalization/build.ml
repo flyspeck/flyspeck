@@ -8,9 +8,11 @@
 (* Use load_path to include source/inequalities and source/text_formalization
    in the load path
 *)
-
-needs "Examples/permutations.ml";;
 needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
+needs "collect_geom_a.ml";;
+needs "Examples/permutations.ml";;
+
+
 needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
 needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
 needs "convex_header.ml";;    (* replace with Multivariate/convex.ml after it is revised to be compatible with these files *)
@@ -42,7 +44,14 @@ needs "trig.ml";;
 
 (* tarski *)
 needs "hull.ml";;
-needs "collect_geom_spec.ml";;
+(*
+collect_geom_spec.ml is incompatible with collect_geom.ml,
+because of incompatible new_specifications, starting with
+point_eq.
+*)
+(*
+needs "collect_geom_spec.ml";; 
+*)
 needs "collect_geom.ml";;
 
 (* derivatives *)

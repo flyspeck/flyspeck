@@ -1008,16 +1008,16 @@ let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?p
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
    (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
-   (w2 = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
+   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 - v = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
 
 let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
    (azim_hyp) ==>
    ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
    (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
    ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
-   (w2 = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
+   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 - v = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
    (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
      (REWRITE_TAC[azim_hyp_def]) THEN
      (REPEAT STRIP_TAC) THEN

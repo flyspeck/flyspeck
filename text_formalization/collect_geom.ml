@@ -1,10 +1,9 @@
 needs "Multivariate/vectors.ml";; (* Eventually should load entire *)
-(*
-let DOT_BASIS_BASIS_UNEQUAL = prove(`!i j. ~(i = j) ==> (basis i) dot (basis j) = &0`,
-  SIMP_TAC[basis; dot; LAMBDA_BETA] THEN ONCE_REWRITE_TAC[COND_RAND] THEN
-   SIMP_TAC[SUM_0; REAL_MUL_RZERO; REAL_MUL_LZERO; COND_ID]);;
-*)
 
+
+(* let DOT_BASIS_BASIS_UNEQUAL = prove(`!i j. ~(i = j) ==> (basis i) dot (basis j) = &0`,
+  SIMP_TAC[basis; dot; LAMBDA_BETA] THEN ONCE_REWRITE_TAC[COND_RAND] THEN
+   SIMP_TAC[SUM_0; REAL_MUL_RZERO; REAL_MUL_LZERO; COND_ID]);; *)
 
 needs "Examples/analysis.ml";; (* multivariate-complex theory. *)	   
 needs "Examples/transc.ml";; (* Then it won't need these three. *)
@@ -5362,9 +5361,406 @@ REWRITE_TAC[COPLANAR_DET_VEC3_EQ_0; COL_EQ_NORM_CROSS; DET_VEC3_AS_CROSS_DOT ] T
 REWRITE_TAC[GSYM RELATE_POW2; NORM_EQ_0] THEN REPEAT GEN_TAC THEN 
 SIMP_TAC[VECTOR_ARITH ` vec 0 dot x = &0 `]);;
 
+(* MAY WORKS, LEMMA 85 ; VBVYGGT *)
 
-(* lemma 85 *)
-let VBVYGGT = new_axiom `!(v1:real^3) v2 v3 v4.
+
+
+
+let POS_EQ_NOT_COPLANANR = prove(` &0 <   delta (dist ((x1:real^3),x2) pow 2) (dist (x1,x3) pow 2)
+           (dist (x1,x4) pow 2)
+           (dist (x2,x3) pow 2)
+           (dist (x2,x4) pow 2)
+           (dist (x3,x4) pow 2) <=> ~coplanar {x1, x2, x3, x4} `,
+MP_TAC (DELTA_POS_4POINTS) THEN MP_TAC POLFLZY THEN LET_TR THEN 
+REWRITE_TAC[REAL_ARITH` a <= b <=> a = b \/ a < b `] THEN 
+MESON_TAC[REAL_ARITH` ~( a = b /\ a < b ) `]);;
+
+let SUM_CHI_EQ_2DELTA = prove(` let chi11 = chi x12 x13 x14 x23 x24 x34 in
+ let chi22 = chi x12 x24 x23 x14 x13 x34 in
+ let chi33 = chi x34 x13 x23 x14 x24 x12 in
+ let chi44 = chi x34 x24 x14 x23 x13 x12 in
+ &2 * delta x12 x13 x14 x23 x24 x34 = chi11 + chi22 + chi33 + chi44`, LET_TR THEN 
+REWRITE_TAC[chi; delta] THEN REAL_ARITH_TAC);;
+
+let NOT_0_IMP_SUM_CHI_1 = prove(`~(delta x12 x13 x14 x23 x24 x34 = &0)
+ ==> chi x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) +
+     chi x12 x24 x23 x14 x13 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) +
+     chi x34 x13 x23 x14 x24 x12 / (&2 * delta x12 x13 x14 x23 x24 x34) +
+     chi x34 x24 x14 x23 x13 x12 / (&2 * delta x12 x13 x14 x23 x24 x34) =
+     &1`, MP_TAC SUM_CHI_EQ_2DELTA THEN 
+LET_TR THEN CONV_TAC REAL_FIELD);;
+
+(* MAY WORKS *)
+
+let PROVE_DIST_FROM_V1 = prove(` ~coplanar {v1, v2, v3, v4} ==>
+let x12 = dist (v1,v2) pow 2 in
+ let x13 = dist (v1,v3) pow 2 in
+ let x14 = dist (v1,v4) pow 2 in
+ let x23 = dist (v2,v3) pow 2 in
+ let x24 = dist (v2,v4) pow 2 in
+ let x34 = dist (v3,v4) pow 2 in
+ let chi11 = chi x12 x13 x14 x23 x24 x34 in
+ let chi22 = chi x12 x24 x23 x14 x13 x34 in
+ let chi33 = chi x34 x13 x23 x14 x24 x12 in
+ let chi44 = chi x34 x24 x14 x23 x13 x12 in
+ p =
+ &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
+ (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)
+ ==> d3 p v1 pow 2 =
+    ( &1 / &2 ) * rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) `,
+REWRITE_TAC[ GSYM POS_EQ_NOT_COPLANANR] THEN 
+NHANH (REAL_ARITH` a < b ==> ~( b = a ) `) THEN 
+NHANH NOT_0_IMP_SUM_CHI_1  THEN 
+LET_TR THEN REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC;
+  REAL_ARITH` ( &1 / a ) * b = b / a `] THEN 
+ABBREV_TAC ` a1 = chi (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+     (dist (v2,v3) pow 2)
+     (dist (v2,v4) pow 2)
+     (dist (v3,v4) pow 2) /
+     (&2 *
+      delta (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+      (dist (v2,v3) pow 2)
+      (dist (v2,v4) pow 2)
+      (dist (v3,(v4:real^3)) pow 2))` THEN 
+ABBREV_TAC ` a2 = chi (dist (v1,v2) pow 2) (dist (v2,v4) pow 2) (dist (v2,v3) pow 2)
+     (dist (v1,v4) pow 2)
+     (dist (v1,v3) pow 2)
+     (dist (v3,v4) pow 2) /
+     (&2 *
+      delta (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+      (dist (v2,v3) pow 2)
+      (dist (v2,v4) pow 2)
+      (dist (v3,(v4:real^3)) pow 2)) ` THEN 
+REWRITE_TAC[ GSYM d3] THEN 
+ABBREV_TAC ` a3 = chi (d3 v3 v4 pow 2) (d3 v1 v3 pow 2) (d3 v2 v3 pow 2) (d3 v1 v4 pow 2)
+     (d3 v2 v4 pow 2)
+     (d3 v1 v2 pow 2) /
+     (&2 *
+      delta (d3 v1 v2 pow 2) (d3 v1 v3 pow 2) (d3 v1 v4 pow 2)
+      (d3 v2 v3 pow 2)
+      (d3 v2 v4 pow 2)
+      (d3 v3 v4 pow 2)) ` THEN 
+ABBREV_TAC ` a4 = chi (d3 v3 v4 pow 2) (d3 v2 v4 pow 2) (d3 v1 v4 pow 2) (d3 v2 v3 pow 2)
+     (d3 v1 v3 pow 2)
+     (d3 v1 v2 pow 2) /
+     (&2 *
+      delta (d3 v1 v2 pow 2) (d3 v1 v3 pow 2) (d3 v1 v4 pow 2)
+      (d3 v2 v3 pow 2)
+      (d3 v2 v4 pow 2)
+      (d3 v3 v4 pow 2)) ` THEN 
+SIMP_TAC[REAL_ARITH` a + b = &1 <=> a = &1 - b `] THEN 
+REPEAT STRIP_TAC THEN 
+REWRITE_TAC[d3; dist; NORM_POW_2; VECTOR_ARITH` 
+  (((&1 - (a2 + a3 + a4)) % v1 + a2 % v2 + a3 % v3 + a4 % v4) - v1) =
+  a2 % ( v2 - v1 ) + a3 % (v3 - v1 ) + a4 % ( v4 - v1 ) `;
+  VECTOR_ARITH` ( a + b ) dot ( a + b ) = a dot a + &2 * ( a dot b )
+  + b dot b `] THEN 
+REWRITE_TAC[DOT_RADD; DOT_LMUL; DOT_RMUL] THEN 
+REWRITE_TAC[X_DOT_X_EQ] THEN 
+REWRITE_TAC[DOT_NORM_NEG; VECTOR_ARITH` v2 - v1 - (v4 - v1)
+  = (v2:real^N) - v4 `] THEN 
+SIMP_TAC[GSYM dist; DIST_SYM; GSYM d3; D3_SYM] THEN 
+EXPAND_TAC "a2" THEN 
+EXPAND_TAC "a3" THEN 
+EXPAND_TAC "a4" THEN 
+REWRITE_TAC[GSYM d3 ] THEN 
+ABBREV_TAC ` x12 = d3 v1 v2 pow 2 ` THEN 
+ABBREV_TAC ` x13 = d3 v1 v3 pow 2 ` THEN 
+ABBREV_TAC ` x14 = d3 v1 v4 pow 2 ` THEN 
+ABBREV_TAC ` x23 = d3 v2 v3 pow 2 ` THEN 
+ABBREV_TAC ` x24 = d3 v2 v4 pow 2 ` THEN 
+ABBREV_TAC ` x34 = d3 v3 v4 pow 2 ` THEN 
+UNDISCH_TAC ` &0 < delta x12 x13 x14 x23 x24 x34 ` THEN 
+ONCE_REWRITE_TAC[REAL_FIELD` &0 < a ==> b = c <=> &0 < a
+ ==> b * ( &2 * a) pow 2 = c * ( &2 * a ) pow 2 `] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` &0 < a <=> &0 < &2 * a `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < b ==> ( a / b ) * b pow 2 = a * b `;
+  REAL_RDISTRIB; REAL_FIELD` &0 < b ==> ( a / b ) * ( aa / b ) * c * 
+b pow 2 = a * aa * c `; REAL_ADD_LDISTRIB] THEN 
+SIMP_TAC[REAL_LDISTRIB; REAL_ARITH` (a*b)*c = a *b * c `;
+  REAL_FIELD` &0 < b ==> ( a / b ) * ( a / b ) * c * b pow 2 = a pow 2 * c `;
+  REAL_ARITH` &2 * a * b * c / &2 * d = a * b * d * c `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> ( b / a ) * ( bb / a ) * a pow 2 
+  * d = b * bb * d `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> b / a / &2 * a pow 2 =
+  a * b / &2 `] THEN 
+REWRITE_TAC[chi; rho; delta] THEN 
+REAL_ARITH_TAC);;
+
+
+
+let PROVE_EQ_DIST_FROM4 = prove(` ~coplanar {v1, v2, v3, v4} ==>
+let x12 = dist (v1,v2) pow 2 in
+ let x13 = dist (v1,v3) pow 2 in
+ let x14 = dist (v1,v4) pow 2 in
+ let x23 = dist (v2,v3) pow 2 in
+ let x24 = dist (v2,v4) pow 2 in
+ let x34 = dist (v3,v4) pow 2 in
+ let chi11 = chi x12 x13 x14 x23 x24 x34 in
+ let chi22 = chi x12 x24 x23 x14 x13 x34 in
+ let chi33 = chi x34 x13 x23 x14 x24 x12 in
+ let chi44 = chi x34 x24 x14 x23 x13 x12 in
+ p =
+ &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
+ (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)
+==>
+d3 p v2 pow 2 = ( &1 / &2 ) * rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) /\
+d3 p v3 pow 2 = ( &1 / &2 ) * rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) /\
+d3 p v4 pow 2 =
+ ( &1 / &2 ) * rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34)  `,
+REWRITE_TAC[ GSYM POS_EQ_NOT_COPLANANR] THEN 
+NHANH (REAL_ARITH` a < b ==> ~( b = a ) `) THEN 
+NHANH NOT_0_IMP_SUM_CHI_1  THEN 
+LET_TR THEN REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC;
+  REAL_ARITH` ( &1 / a ) * b = b / a `] THEN 
+ABBREV_TAC ` a1 = chi (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+     (dist (v2,v3) pow 2)
+     (dist (v2,v4) pow 2)
+     (dist (v3,v4) pow 2) /
+     (&2 *
+      delta (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+      (dist (v2,v3) pow 2)
+      (dist (v2,v4) pow 2)
+      (dist (v3,(v4:real^3)) pow 2))` THEN 
+ABBREV_TAC ` a2 = chi (dist (v1,v2) pow 2) (dist (v2,v4) pow 2) (dist (v2,v3) pow 2)
+     (dist (v1,v4) pow 2)
+     (dist (v1,v3) pow 2)
+     (dist (v3,v4) pow 2) /
+     (&2 *
+      delta (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+      (dist (v2,v3) pow 2)
+      (dist (v2,v4) pow 2)
+      (dist (v3,(v4:real^3)) pow 2)) ` THEN 
+REWRITE_TAC[ GSYM d3] THEN 
+ABBREV_TAC ` a3 = chi (d3 v3 v4 pow 2) (d3 v1 v3 pow 2) (d3 v2 v3 pow 2) (d3 v1 v4 pow 2)
+     (d3 v2 v4 pow 2)
+     (d3 v1 v2 pow 2) /
+     (&2 *
+      delta (d3 v1 v2 pow 2) (d3 v1 v3 pow 2) (d3 v1 v4 pow 2)
+      (d3 v2 v3 pow 2)
+      (d3 v2 v4 pow 2)
+      (d3 v3 v4 pow 2)) ` THEN 
+ABBREV_TAC ` a4 = chi (d3 v3 v4 pow 2) (d3 v2 v4 pow 2) (d3 v1 v4 pow 2) (d3 v2 v3 pow 2)
+     (d3 v1 v3 pow 2)
+     (d3 v1 v2 pow 2) /
+     (&2 *
+      delta (d3 v1 v2 pow 2) (d3 v1 v3 pow 2) (d3 v1 v4 pow 2)
+      (d3 v2 v3 pow 2)
+      (d3 v2 v4 pow 2)
+      (d3 v3 v4 pow 2)) ` THEN 
+ONCE_REWRITE_TAC[MESON[VECTOR_ARITH` &1 % x = x `]` d3 a b pow 2 =
+  aa <=> d3 a ( &1 % b ) pow 2 = aa `] THEN 
+ONCE_REWRITE_TAC[MESON[]` a = &1 <=> &1 = a `] THEN 
+SIMP_TAC[] THEN 
+STRIP_TAC THEN STRIP_TAC THEN 
+REWRITE_TAC[d3; dist] THEN 
+REWRITE_TAC[VECTOR_ARITH` (a1 % v1 + a2 % v2 + a3 % v3 + a4 % v4) - (a1 + a2 + a3 + a4) % v2
+  = a1 % ( v1 - v2 ) + a3 % ( v3 - v2 ) + a4 % (v4 - v2 ) `;
+  VECTOR_ARITH` (a1 % v1 + a2 % v2 + a3 % v3 + a4 % v4) - (a1 + a2 + a3 + a4) % v3
+  = a1 % ( v1 - v3 ) + a2 % ( v2 - v3 ) + a4 % (v4 - v3 )`;
+  VECTOR_ARITH` (a1 % v1 + a2 % v2 + a3 % v3 + a4 % v4) - (a1 + a2 + a3 + a4) % v4 =
+  a1 % ( v1 - v4 ) + a2 % ( v2 - v4 ) + a3 % (v3 - v4 )`] THEN 
+REWRITE_TAC[NORM_POW_2] THEN 
+REWRITE_TAC[DOT_LADD; DOT_RADD; DOT_LMUL; DOT_RMUL; GSYM NORM_POW_2] THEN 
+REWRITE_TAC[DOT_NORM_NEG; VECTOR_ARITH` v3 - v4 - (v2 - v4) =
+  (v3:real^N) - v2 `; GSYM dist; GSYM d3 ] THEN 
+EXPAND_TAC "a1" THEN 
+EXPAND_TAC "a2" THEN 
+EXPAND_TAC "a3" THEN 
+EXPAND_TAC "a4" THEN 
+REWRITE_TAC[GSYM d3 ] THEN 
+REWRITE_TAC[prove(` d3 (v4 - v3) (v1 - v3) = d3 v1 v4 `, 
+REWRITE_TAC[d3] THEN CONV_TAC NORM_ARITH)] THEN 
+SIMP_TAC[D3_SYM] THEN 
+ABBREV_TAC ` x12 = d3 v1 v2 pow 2 ` THEN 
+ABBREV_TAC ` x13 = d3 v1 v3 pow 2 ` THEN 
+ABBREV_TAC ` x14 = d3 v1 v4 pow 2 ` THEN 
+ABBREV_TAC ` x23 = d3 v2 v3 pow 2 ` THEN 
+ABBREV_TAC ` x24 = d3 v2 v4 pow 2 ` THEN 
+ABBREV_TAC ` x34 = d3 v3 v4 pow 2 ` THEN 
+UNDISCH_TAC ` &0 < delta x12 x13 x14 x23 x24 x34 ` THEN 
+ONCE_REWRITE_TAC[REAL_FIELD` &0 < a ==> ( b = c ) /\ ( bb = cc ) /\ ( bbb = ccc ) 
+<=> &0 < a
+ ==> ( b * ( &2 * a) pow 2 = c * ( &2 * a ) pow 2 ) /\
+( bb * ( &2 * a) pow 2 = cc * ( &2 * a ) pow 2 ) /\
+( bbb * ( &2 * a) pow 2 = ccc * ( &2 * a ) pow 2 ) `] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` &0 < a <=> &0 < &2 * a `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < b ==> ( a / b ) * b pow 2 = a * b `;
+  REAL_RDISTRIB; REAL_FIELD` &0 < b ==> ( a / b ) * ( aa / b ) * c * 
+b pow 2 = a * aa * c `; REAL_ADD_LDISTRIB] THEN 
+SIMP_TAC[REAL_LDISTRIB; REAL_ARITH` (a*b)*c = a *b * c `;
+  REAL_FIELD` &0 < b ==> ( a / b ) * ( a / b ) * c * b pow 2 = a pow 2 * c `;
+  REAL_ARITH` &2 * a * b * c / &2 * d = a * b * d * c `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> ( b / a ) * ( bb / a ) * a pow 2 
+  * d = b * bb * d `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> b / a / &2 * a pow 2 =
+  a * b / &2 `] THEN SIMP_TAC[REAL_FIELD` &0 < b ==> ( a / b ) * b pow 2 = a * b `;
+  REAL_RDISTRIB; REAL_FIELD` &0 < b ==> ( a / b ) * ( aa / b ) * c * 
+b pow 2 = a * aa * c `; REAL_ADD_LDISTRIB] THEN 
+SIMP_TAC[REAL_LDISTRIB; REAL_ARITH` (a*b)*c = a *b * c `;
+  REAL_FIELD` &0 < b ==> ( a / b ) * ( a / b ) * c * b pow 2 = a pow 2 * c `;
+  REAL_ARITH` &2 * a * b * c / &2 * d = a * b * d * c `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> ( b / a ) * ( bb / a ) * a pow 2 
+  * d = b * bb * d `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> b / a / &2 * a pow 2 =
+  a * b / &2 `] THEN 
+DISCH_TAC THEN REWRITE_TAC[chi; rho; delta] THEN 
+REAL_ARITH_TAC);;
+
+
+
+(* the following lemma is in Multivariate/convex.ml *)
+let AFFINE_HULL_FINITE_STEP = new_axiom
+`((?u. sum {} u = w /\ vsum {} (\x. u(x) % x) = y) <=>
+    w = &0 /\ y = vec 0) /\
+   (FINITE(s:real^N->bool)
+    ==> ((?u. sum (a INSERT s) u = w /\
+              vsum (a INSERT s) (\x. u(x) % x) = y) <=>
+         ?v u.  sum s u = w - v /\
+                vsum s (\x. u(x) % x) = y - v % a))`;;
+
+let AFFINE_HULL_3 = prove
+ (`affine hull {a,b,c} =
+    { u % a + v % b + w % c | u + v + w = &1}`,
+  SIMP_TAC[AFFINE_HULL_FINITE; FINITE_INSERT; FINITE_RULES] THEN
+  SIMP_TAC[AFFINE_HULL_FINITE_STEP; FINITE_INSERT; FINITE_RULES] THEN
+  REWRITE_TAC[REAL_ARITH `x - y = z:real <=> x = y + z`;
+              VECTOR_ARITH `x - y = z:real^N <=> x = y + z`] THEN
+  REWRITE_TAC[VECTOR_ADD_RID; REAL_ADD_RID] THEN SET_TAC[]);;
+
+let AFFINE_HULL_4 = prove
+ (`affine hull {a,b,c,d} =
+    { u % a + v % b + w % c + z % d | u + v + w + z = &1}`,
+  SIMP_TAC[AFFINE_HULL_FINITE; FINITE_INSERT; FINITE_RULES] THEN
+  SIMP_TAC[AFFINE_HULL_FINITE_STEP; FINITE_INSERT; FINITE_RULES] THEN
+  REWRITE_TAC[REAL_ARITH `x - y = z:real <=> x = y + z`;
+              VECTOR_ARITH `x - y = z:real^N <=> x = y + z`] THEN
+  REWRITE_TAC[VECTOR_ADD_RID; REAL_ADD_RID] THEN SET_TAC[]);;
+
+
+let PROVE_EXISTS_CIR_OF_FOUR_POINTS = prove(`!(v1:real^3) v2 v3 v4.
+         CARD {v1, v2, v3, v4} = 4 /\ ~coplanar {v1, v2, v3, v4}
+         ==> (? p. p IN affine hull {v1, v2, v3, v4} /\
+             (?r. !v. v IN {v1, v2, v3, v4}
+                      ==> r = dist (p, v))) `,
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM]  (GEN `p:real^3` PROVE_DIST_FROM_V1)) THEN 
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM]  (GEN `p:real^3` PROVE_EQ_DIST_FROM4 )) THEN 
+REPEAT GEN_TAC THEN REPEAT LET_TAC THEN ABBREV_TAC `rr = &1 / &2 *
+       rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) ` THEN 
+REWRITE_TAC[GSYM POS_EQ_NOT_COPLANANR] THEN 
+NHANH (SPEC_ALL REAL_POS_NZ) THEN ASM_SIMP_TAC[] THEN 
+NHANH (NOT_0_IMP_SUM_CHI_1 ) THEN ASM_SIMP_TAC[] THEN 
+REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC;
+  REAL_ARITH ` &1 / a * b = b / a `] THEN 
+REWRITE_TAC[FORALL_IN_CLAUSES; MESON[]`(? r. (r:real) = a /\
+  r = b /\ r = c /\ r = d ) <=> a = b /\ a = c /\ a = d `] THEN 
+REWRITE_TAC[MESON[]` (! x. x = a ==> P a ) <=> P a `] THEN DISCH_TAC THEN 
+EXISTS_TAC ` chi11 / (&2 * delta x12 x13 x14 x23 x24 x34) % (v1:real^3) +
+      chi22 / (&2 * delta x12 x13 x14 x23 x24 x34) % v2 +
+      chi33 / (&2 * delta x12 x13 x14 x23 x24 x34) % v3 +
+      chi44 / (&2 * delta x12 x13 x14 x23 x24 x34) % v4 ` THEN 
+CONJ_TAC THENL [REWRITE_TAC[AFFINE_HULL_4; IN_ELIM_THM] THEN 
+FIRST_X_ASSUM MP_TAC THEN MESON_TAC[NOT_0_IMP_SUM_CHI_1 ]; 
+FIRST_X_ASSUM MP_TAC THEN SIMP_TAC[d3; DIST_POS_LE; EQ_POW2_COND]]);;
+
+
+
+
+
+
+
+
+
+
+
+
+let IMP_PROPERTIES_OF_CIR4 = prove(`!(v1:real^3) v2 v3 v4.
+         CARD {v1, v2, v3, v4} = 4 /\ ~coplanar {v1, v2, v3, v4}
+         ==> circumcenter {v1, v2, v3, v4} IN affine hull {v1, v2, v3, v4} /\
+             (?r. !v. v IN {v1, v2, v3, v4}
+                      ==> r = dist (circumcenter {v1, v2, v3, v4},v))`,
+NHANH (SPEC_ALL PROVE_EXISTS_CIR_OF_FOUR_POINTS ) THEN REWRITE_TAC[circumcenter; IN]
+THEN MESON_TAC[EXISTS_THM]);;
+
+
+
+
+let DIST_EQ_IMP_ORTHOGONAL = prove(` dist (pp,v2) = dist (pp,v1) /\
+  dist (p,v2) = dist (p,v1) ==>
+  (pp - p ) dot (v2 - v1 ) = &0 `,
+REWRITE_TAC[MONG7_ROI; DOT_LSUB] THEN REAL_ARITH_TAC);;
+
+
+
+let IMP_OTHO4 = prove(` n dot (v2 - v1) = &0 /\
+  n dot (v3 - v1) = &0 /\
+  n dot (v4 - v1) = &0 /\
+  x IN affine hull {v1,v2,v3,v4} /\
+  y IN affine hull {v1,v2,v3,v4} ==>
+  n dot (x - y ) = &0 `,
+REWRITE_TAC[AFFINE_HULL_4; IN_ELIM_THM] THEN STRIP_TAC THEN 
+DOWN_TAC THEN IMP_TAC THEN SIMP_TAC[REAL_ARITH`a + b = c <=> a = c - b `] THEN 
+PHA THEN REWRITE_TAC[VECTOR_ARITH` ((&1 - (v' + w' + z')) % v1 + v' % v2 +
+ w' % v3 + z' % v4) - ((&1 - (v + w + z)) % v1 + v % v2 + w % v3 + z % v4)  =
+  ( v' - v ) % ( v2 - v1 ) + ( w' - w ) % ( v3 - v1 ) +
+  ( z' - z ) % ( v4 - v1 ) `] THEN 
+SIMP_TAC[DOT_RADD; DOT_RMUL; ZERO_NEUTRAL]);;
+
+
+
+
+
+let UNIQUE_EXISISTING_PROPERTY_C4 = prove(`!(v1:real^3) v2 v3 v4.
+         CARD {v1, v2, v3, v4} = 4 /\ ~coplanar {v1, v2, v3, v4}
+         ==>   (!p. p IN affine hull {v1, v2, v3, v4} /\
+                  (?r. !v. v IN {v1, v2, v3, v4} ==> r = dist (p,v))
+                  ==> p = circumcenter {v1, v2, v3, v4}) `,
+NHANH (SPEC_ALL IMP_PROPERTIES_OF_CIR4 ) THEN 
+REPEAT GEN_TAC THEN 
+ABBREV_TAC ` pp = circumcenter {(v1:real^3), v2, v3, v4}` THEN 
+REPEAT STRIP_TAC THEN 
+DOWN_TAC THEN 
+REWRITE_TAC[FORALL_IN_CLAUSES] THEN 
+REWRITE_TAC[MESON[]` r = a /\ r = b /\ r = c /\ r = d <=> r = a /\ b = a /\ c = a 
+  /\ d = a `] THEN 
+PHA THEN 
+NHANH (MESON[DIST_EQ_IMP_ORTHOGONAL ]`dist (pp,v2) = dist (pp,v1) /\
+ dist (pp,v3) = dist (pp,v1) /\
+ dist (pp,v4) = dist (pp,v1) /\a11/\a2/\
+ dist (p,v2) = dist (p,v1) /\
+ dist (p,v3) = dist (p,v1) /\
+ dist (p,v4) = dist (p,v1) ==>
+  ( p - pp) dot ( v2 - v1 ) = &0 /\
+  ( p - pp ) dot ( v3 - v1 ) = &0 /\
+  ( p - pp ) dot ( v4 - v1 ) = &0 `) THEN 
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN 
+REWRITE_TAC[GSYM DOT_EQ_0] THEN MESON_TAC[IMP_OTHO4 ]);;
+
+
+
+
+let PROVE_IN_AFFINE_HULL_4 = prove(
+`~(delta x12 x13 x14 x23 x24 x34 = &0)
+ ==> &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
+     (chi x12 x13 x14 x23 x24 x34 % v1 +
+      chi x12 x24 x23 x14 x13 x34 % v2 +
+      chi x34 x13 x23 x14 x24 x12 % v3 +
+      chi x34 x24 x14 x23 x13 x12 % v4) IN
+     affine hull {(v1:real^3), v2, v3, v4}`,
+REWRITE_TAC[AFFINE_HULL_4; IN_ELIM_THM; VECTOR_ADD_LDISTRIB;
+  VECTOR_MUL_ASSOC; REAL_ARITH ` ( &1 / a ) * b = b/a `]
+ THEN MESON_TAC[NOT_0_IMP_SUM_CHI_1]);;
+
+
+
+(* VBVYGGT , le 85 *)
+
+
+
+MESON[POW_2_SQRT; DIST_POS_LE]` dist (x,y) pow 2 = r ==> dist (x,y) = sqrt ( r ) `;;
+
+(* LEMMA 85 *)
+let VBVYGGT = prove(`!(v1:real^3) v2 v3 v4.
          CARD {v1, v2, v3, v4} = 4 /\ ~coplanar {v1, v2, v3, v4}
          ==> circumcenter {v1, v2, v3, v4} IN affine hull {v1, v2, v3, v4} /\
              (?r. !v. v IN {v1, v2, v3, v4}
@@ -5384,7 +5780,59 @@ let VBVYGGT = new_axiom `!(v1:real^3) v2 v3 v4.
               let chi44 = chi x34 x24 x14 x23 x13 x12 in
               circumcenter {v1, v2, v3, v4} =
               &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
-              (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)) `;;
+              (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)) `,
+NHANH (SPEC_ALL UNIQUE_EXISISTING_PROPERTY_C4 ) THEN 
+NHANH (SPEC_ALL IMP_PROPERTIES_OF_CIR4 ) THEN 
+REWRITE_TAC[MESON[]` (a /\ b1/\b2) /\ b ==> b1 /\b2/\ b/\ d <=> a /\ b1 /\b2/\b==>d `] THEN 
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM] ( GEN `p: real^3 `PROVE_DIST_FROM_V1)) THEN 
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM] ( GEN `p: real^3 ` PROVE_EQ_DIST_FROM4)) THEN 
+REPEAT GEN_TAC THEN REPEAT LET_TAC THEN ABBREV_TAC `rr = &1 / &2 *
+       rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) ` THEN 
+REWRITE_TAC[MESON[]` (! x. x = a ==> P x ) <=> P a `] THEN 
+REWRITE_TAC[GSYM POS_EQ_NOT_COPLANANR] THEN 
+NHANH (REAL_ARITH` &0 < a ==> ~( a = &0 )`) THEN 
+NHANH (PROVE_IN_AFFINE_HULL_4 ) THEN 
+UNDISCH_TAC ` dist ((v1:real^3),v2) pow 2 = x12` THEN 
+UNDISCH_TAC ` dist ((v1:real^3),v3) pow 2 = x13` THEN 
+UNDISCH_TAC ` dist ((v1:real^3),v4) pow 2 = x14` THEN 
+UNDISCH_TAC ` dist ((v2:real^3),v3) pow 2 = x23` THEN 
+UNDISCH_TAC ` dist ((v2:real^3),v4) pow 2 = x24` THEN 
+UNDISCH_TAC ` dist ((v3:real^3),v4) pow 2 = x34` THEN 
+UNDISCH_TAC ` chi x12 x13 x14 x23 x24 x34 = chi11 ` THEN 
+UNDISCH_TAC ` chi x12 x24 x23 x14 x13 x34 = chi22 ` THEN 
+UNDISCH_TAC ` chi x34 x13 x23 x14 x24 x12 = chi33` THEN 
+UNDISCH_TAC ` chi x34 x24 x14 x23 x13 x12 = chi44` THEN 
+REWRITE_TAC[MESON[]` a = b ==> P a <=> a = b ==> P b `] THEN 
+ABBREV_TAC ` w =  &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
+     (chi11 % (v1:real^3) + chi22 % v2 + chi33 % v3 + chi44 % v4)` THEN 
+REWRITE_TAC[MESON[]` a /\ b ==> c <=> a ==> b ==> c `]
+THEN REPLICATE_TAC 13 DISCH_TAC THEN 
+REWRITE_TAC[FORALL_IN_CLAUSES;d3] THEN PHA THEN 
+NHANH (MESON[POW_2_SQRT; DIST_POS_LE]` dist (x,y) pow 2 = r
+ ==> dist (x,y) = sqrt ( r ) `) THEN MESON_TAC[]);;
+
+(* lemma 85 *)
+(* let VBVYGGT = new_axiom `!(v1:real^3) v2 v3 v4.
+         CARD {v1, v2, v3, v4} = 4 /\ ~coplanar {v1, v2, v3, v4}
+         ==> circumcenter {v1, v2, v3, v4} IN affine hull {v1, v2, v3, v4} /\
+             (?r. !v. v IN {v1, v2, v3, v4}
+                      ==> r = dist (circumcenter {v1, v2, v3, v4},v)) /\
+             (!p. p IN affine hull {v1, v2, v3, v4} /\
+                  (?r. !v. v IN {v1, v2, v3, v4} ==> r = dist (p,v))
+                  ==> p = circumcenter {v1, v2, v3, v4}) /\
+             (let x12 = dist (v1,v2) pow 2 in
+              let x13 = dist (v1,v3) pow 2 in
+              let x14 = dist (v1,v4) pow 2 in
+              let x23 = dist (v2,v3) pow 2 in
+              let x24 = dist (v2,v4) pow 2 in
+              let x34 = dist (v3,v4) pow 2 in
+              let chi11 = chi x12 x13 x14 x23 x24 x34 in
+              let chi22 = chi x12 x24 x23 x14 x13 x34 in
+              let chi33 = chi x34 x13 x23 x14 x24 x12 in
+              let chi44 = chi x34 x24 x14 x23 x13 x12 in
+              circumcenter {v1, v2, v3, v4} =
+              &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
+              (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)) `;; *)
 
 
 
@@ -6085,31 +6533,6 @@ MESON_TAC[REAL_ARITH` a + b + c + d = d + a + b + c `;
   VECTOR_ARITH` a + b + c + d = d + a + b + (c:real^N)`]);;
 
 
-let SUM_CHI_EQ_2DELTA = prove(` let chi11 = chi x12 x13 x14 x23 x24 x34 in
- let chi22 = chi x12 x24 x23 x14 x13 x34 in
- let chi33 = chi x34 x13 x23 x14 x24 x12 in
- let chi44 = chi x34 x24 x14 x23 x13 x12 in
- &2 * delta x12 x13 x14 x23 x24 x34 = chi11 + chi22 + chi33 + chi44`, LET_TR THEN 
-REWRITE_TAC[chi; delta] THEN REAL_ARITH_TAC);;
-
-let NOT_0_IMP_SUM_CHI_1 = prove(`~(delta x12 x13 x14 x23 x24 x34 = &0)
- ==> chi x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) +
-     chi x12 x24 x23 x14 x13 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) +
-     chi x34 x13 x23 x14 x24 x12 / (&2 * delta x12 x13 x14 x23 x24 x34) +
-     chi x34 x24 x14 x23 x13 x12 / (&2 * delta x12 x13 x14 x23 x24 x34) =
-     &1`, MP_TAC SUM_CHI_EQ_2DELTA THEN 
-LET_TR THEN CONV_TAC REAL_FIELD);;
-
-
-let POS_EQ_NOT_COPLANANR = prove(` &0 <   delta (dist ((x1:real^3),x2) pow 2) (dist (x1,x3) pow 2)
-           (dist (x1,x4) pow 2)
-           (dist (x2,x3) pow 2)
-           (dist (x2,x4) pow 2)
-           (dist (x3,x4) pow 2) <=> ~coplanar {x1, x2, x3, x4} `,
-MP_TAC (DELTA_POS_4POINTS) THEN MP_TAC POLFLZY THEN LET_TR THEN 
-REWRITE_TAC[REAL_ARITH` a <= b <=> a = b \/ a < b `] THEN 
-MESON_TAC[REAL_ARITH` ~( a = b /\ a < b ) `]);;
-
 
 
 (* LEMMA 85 *)
@@ -6214,4 +6637,749 @@ ABBREV_TAC ` c44 = chi x34 x24 x14 x23 x13 x12 / (&2 * delta x12 x13 x14 x23 x24
 REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC THEN REMOVE_TAC) THEN 
 REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC) THEN UNDISCH_TAC 
 ` (p:real^3) = c11 % v1 + c22 % v2 + c33 % v3 + c44 % v4` THEN MESON_TAC[]);;
+
+
+
+
+
+
+
+
+
+
+
+
+let SQRT4_EQ2 = prove(` sqrt ( &4 ) = &2 `,
+REWRITE_TAC[REAL_ARITH` &4 = &2 pow 2 `] THEN 
+MESON_TAC[POW_2_SQRT; REAL_ARITH` &0 <= &2 `]);;
+
+
+
+
+
+
+
+
+
+let RHUFIIB = prove( ` !x12 x13 x14 x23 x24 x34.
+         rho x12 x13 x14 x23 x24 x34 * ups_x x34 x24 x23 =
+         chi x12 x13 x14 x23 x24 x34 pow 2 +
+         &4 * delta x12 x13 x14 x23 x24 x34 * x34 * x24 * x23 `,
+REWRITE_TAC[rho; chi; delta; ups_x] THEN REAL_ARITH_TAC);;
+
+
+(* lemma 84 *)
+let SHOGYBS = prove(` ! x1 x2 x3 (x4:real^3).
+  ~coplanar {x1,x2,x3,x4} ==>
+         let x12 = dist (x1,x2) pow 2 in
+         let x13 = dist (x1,x3) pow 2 in
+         let x14 = dist (x1,x4) pow 2 in
+         let x23 = dist (x2,x3) pow 2 in
+         let x24 = dist (x2,x4) pow 2 in
+         let x34 = dist (x3,x4) pow 2 in
+  &0 <= rho x12 x13 x14 x23 x24 x34  `,
+ONCE_REWRITE_TAC[SET_RULE` {v1,v2,v3,v4} =  {v2,v3,v4,v1} `] THEN 
+NHANH (NOT_COPLANAR_IMP_NOT_COLLINEAR) THEN 
+ONCE_REWRITE_TAC[GSYM (SET_RULE` {v1,v2,v3,v4} =  {v2,v3,v4,v1} `)] THEN 
+REWRITE_TAC[NOT_COL_EQ_UPS_X_POS] THEN REPEAT GEN_TAC THEN 
+MP_TAC (SPEC_ALL DELTA_POS_4POINTS) THEN 
+REPEAT LET_TAC THEN MP_TAC (SPEC_ALL RHUFIIB) THEN DOWN_TAC THEN 
+NHANH (MESON[REAL_LE_POW_2]` a pow 2 = b   ==> &0 <= b `) THEN DAO THEN 
+SIMP_TAC[UPS_X_SYM] THEN 
+REWRITE_TAC[MESON[REAL_FIELD` &0 < a ==> (b * a = c <=> b = c / a )`]`
+  &0 < a /\a1 /\a2/\ b * a = c /\l <=>  &0 < a /\a1 /\a2/\ b = c / a /\ l `] THEN 
+MP_TAC (REAL_ARITH` &0 <= &4 `) THEN PHA THEN 
+NHANH (MESON[REAL_LT_IMP_LE; REAL_LE_DIV;
+  REAL_LE_MUL; REAL_LE_ADD; REAL_LE_POW_2]`  &0 <= &4 /\
+ &0 < ups_x x23 x24 x34 /\a1/\
+ &0 <= delta x12 x13 x14 x23 x24 x34 /\ a2 /\
+ &0 <= x34 /\a3 /\ &0 <= x24 /\a4 /\ &0 <= x23 /\a5/\
+ &0 <= x14 /\a6 /\ &0 <= x13 /\a7 /\a8 /\ &0 <= x12 ==> 
+  &0 <= &4 * delta x12 x13 x14 x23 x24 x34 * x34 * x24 * x23 `) THEN 
+ABBREV_TAC ` aaa = &4 * delta x12 x13 x14 x23 x24 x34 * x34 * x24 * x23 ` THEN STRIP_TAC THEN 
+FIRST_X_ASSUM MP_TAC THEN UNDISCH_TAC ` rho x12 x13 x14 x23 x24 x34 =
+      (chi x12 x13 x14 x23 x24 x34 pow 2 + aaa) / ups_x x23 x24 x34 ` THEN 
+UNDISCH_TAC`&0 < ups_x x23 x24 x34` THEN MESON_TAC[REAL_LT_IMP_LE; REAL_LE_DIV;
+  REAL_LE_MUL; REAL_LE_ADD; REAL_LE_POW_2]);;
+
+
+(* le 86 . GDRQXLG *)
+
+
+let GDRQXLG = prove(` ! v1 v2 v3 (v4:real^3).
+  let s = {v1, v2, v3, v4} in
+let x12 = dist (v1,v2) pow 2 in
+                    let x13 = dist (v1,v3) pow 2 in
+                    let x14 = dist (v1,v4) pow 2 in
+                    let x23 = dist (v2,v3) pow 2 in
+                    let x24 = dist (v2,v4) pow 2 in
+                    let x34 = dist (v3,v4) pow 2 in
+     CARD s = 4 /\ ~coplanar s
+     ==> radV s =
+        sqrt ( rho x12 x13 x14 x23 x24 x34) /
+         (&2 * sqrt (delta x12 x13 x14 x23 x24 x34))`,
+REPEAT GEN_TAC THEN REPEAT LET_TAC THEN EXPAND_TAC "s" THEN 
+NHANH (NOT_COPLANAR_IMP_RADV_PROPERTIES) THEN 
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM] (GEN `p:real^3` PROVE_DIST_FROM_V1  )) THEN 
+NHANH (REWRITE_RULE[RIGHT_FORALL_IMP_THM] (GEN `p:real^3` PROVE_EQ_DIST_FROM4 ) ) THEN 
+REWRITE_TAC[GSYM POS_EQ_NOT_COPLANANR] THEN 
+NHANH (REAL_ARITH` &0 < a ==> ~( a = &0 )`) THEN 
+NHANH (PROVE_IN_AFFINE_HULL_4 ) THEN LET_TR THEN 
+REWRITE_TAC[MESON[]`(!x. x = a ==> p x) <=> p a `] THEN 
+ABBREV_TAC `taa = (&1 /    (&2 *
+     delta (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+     (dist (v2,v3) pow 2)
+     (dist (v2,v4) pow 2)
+     (dist (v3,v4) pow 2)) %
+    (chi (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+     (dist (v2,v3) pow 2)
+     (dist (v2,v4) pow 2)
+     (dist (v3,v4) pow 2) %
+     (v1:real^3) +
+     chi (dist (v1,v2) pow 2) (dist (v2,v4) pow 2) (dist (v2,v3) pow 2)
+     (dist (v1,v4) pow 2)
+     (dist (v1,v3) pow 2)
+     (dist (v3,v4) pow 2) %
+     v2 +
+     chi (dist (v3,v4) pow 2) (dist (v1,v3) pow 2) (dist (v2,v3) pow 2)
+     (dist (v1,v4) pow 2)
+     (dist (v2,v4) pow 2)
+     (dist (v1,v2) pow 2) %
+     v3 +
+     chi (dist (v3,v4) pow 2) (dist (v2,v4) pow 2) (dist (v1,v4) pow 2)
+     (dist (v2,v3) pow 2)
+     (dist (v1,v3) pow 2)
+     (dist (v1,v2) pow 2) %
+     v4)) ` THEN 
+REWRITE_TAC[ POS_EQ_NOT_COPLANANR] THEN NGOAC THEN 
+NHANH (SPEC_ALL UNIQUE_EXISISTING_PROPERTY_C4 ) THEN 
+REWRITE_TAC[FORALL_IN_CLAUSES] THEN ABBREV_TAC ` abc = &1 / &2 *
+ rho (dist (v1,v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+ (dist (v2,v3) pow 2) (dist (v2,v4) pow 2) (dist (v3,v4) pow 2) /
+ (&2 *
+  delta (dist ((v1:real^3),v2) pow 2) (dist (v1,v3) pow 2) (dist (v1,v4) pow 2)
+  (dist (v2,v3) pow 2)
+  (dist (v2,v4) pow 2)
+  (dist (v3,v4) pow 2)) ` THEN REWRITE_TAC[d3] THEN 
+NHANH (MESON[POW_2_SQRT; DIST_POS_LE]` dist (taa,v2) pow 2 = a ==>
+  dist(taa,v2) = sqrt a `) THEN PHA THEN 
+NHANH (MESON[]`(!p. p IN affine hull {v1, v2, v3, v4} /\
+      (?r. r = dist (p,v1) /\
+           r = dist (p,v2) /\
+           r = dist (p,v3) /\
+           r = dist (p,v4))
+      ==> p = circumcenter {v1, v2, v3, v4}) /\ a11 /\
+ taa IN affine hull {v1, v2, v3, v4} /\
+ dist (taa,v2) pow 2 = abc /\
+ dist (taa,v2) = sqrt abc /\
+ dist (taa,v3) pow 2 = abc /\
+ dist (taa,v3) = sqrt abc /\
+ dist (taa,v4) pow 2 = abc /\
+ dist (taa,v4) = sqrt abc /\
+ dist (taa,v1) pow 2 = abc /\
+ dist (taa,v1) = sqrt abc /\ lll ==> taa = circumcenter {v1, v2, v3, v4} `) THEN 
+NHANH (SET_RULE ` (!w. {v1, v2, v3, v4} w ==> P w ) ==> P v1 `) THEN PHA THEN 
+REWRITE_TAC[MESON[]` a = dist (aa,b) /\ ta = aa <=> ta = aa  /\ a = dist (ta,b) `] THEN 
+NHANH (MESON[]` a = b /\ a1 /\ a2 /\ c = a ==> c = b `) THEN NHANH (SPEC_ALL SHOGYBS) THEN 
+MP_TAC (SPECL [`v1:real^3`;` v2:real^3`;`v3:real^3`;`v4:real^3`] 
+DELTA_POS_4POINTS) THEN REPEAT LET_TAC THEN IMP_TAC THEN REPEAT (FIRST_X_ASSUM MP_TAC) THEN 
+REWRITE_TAC[MESON[]` a = b ==> P a <=> a = b ==> P b `] THEN 
+REWRITE_TAC[MESON[]` a = b ==> a = c <=> a = b ==> c = b `] THEN REPEAT STRIP_TAC THEN 
+UNDISCH_TAC ` &1 / &2 *      rho x12 x13 x14 x23 x24 x34 / (&2 * delta x12 x13 x14 x23 x24 x34) =
+      abc ` THEN UNDISCH_TAC ` &0 <= rho x12 x13 x14 x23 x24 x34 ` THEN 
+ABBREV_TAC ` edl = delta x12 x13 x14 x23 x24 x34 ` THEN UNDISCH_TAC` &0 <= edl ` THEN 
+SIMP_TAC[REAL_ARITH` &0 <= &4 `; GSYM SQRT_MUL; GSYM SQRT4_EQ2] THEN 
+SIMP_TAC[REAL_ARITH` &0 <= &4 `; REAL_LE_MUL;  GSYM SQRT_DIV] THEN 
+REWRITE_TAC[SQRT4_EQ2] THEN MESON_TAC[REAL_FIELD` &1 / &2 * x34 / (&2 * edl) =  x34 / (&4 * edl)`]);;
+
+
+let BAJSVHC =  ` ! v1 v2 v3 v4 (v5:real^3).
+   CARD {v1, v2, v3, v4, v5} = 5 /\
+     ~coplanar {v1, v2, v3, v4} /\
+     v5 IN aff_ge {v1, v3} {v2, v4} /\
+     ~(v5 IN aff {v1, v3})
+     ==> aff_ge {v1, v3} {v2, v4} =
+         aff_ge {v1, v3} {v2, v5} UNION aff_ge {v1, v3} {v4, v5} /\
+         aff_gt {v1, v3} {v2, v5} INTER aff_gt {v1, v3} {v4, v5} = {}`;;
+let LEMMA104 = BAJSVHC;;
+
+
+
+
+
+let AFF_GE22 = prove(`!v1 v2 w1 (w2:real^N).
+     {v1, v2} INTER {w1, w2} = {}
+     ==> aff_ge {v1, v2} {w1, w2} =
+         {x | ?a1 a2 b1 b2.
+                  &0 <= b1 /\
+                  &0 <= b2 /\
+                  a1 + a2 + b1 + b2 = &1 /\
+                  x = a1 % v1 + a2 % v2 + b1 % w1 + b2 % w2}`,
+REWRITE_TAC[aff_ge_def; affsign; FUN_EQ_THM; lin_combo; sgn_ge] THEN 
+REWRITE_TAC[MESON[]` (a = aa )/\ (! w. P w ) /\ b <=>
+  (!w. P w ) /\ b /\ ( aa = a ) `] THEN 
+ONCE_REWRITE_TAC[SET_RULE` {w1, w2} w ==> P w <=> w IN ( v1 INSERT ( v2 
+  INSERT {w1, w2} )) ==> {w1, w2} w ==> P w `;
+  SET_RULE` {a,b} UNION {c,d} = {a,b,c,d} `] THEN 
+SIMP_TAC[AFFINE_HULL_FINITE_STEP_GEN;
+            REAL_ARITH `&0 <= x /\ &0 <= y ==> &0 <= x + y`;
+            REAL_ARITH `&0 <= x ==> &0 <= x / &2`;
+            FINITE_INSERT; CONJUNCT1 FINITE_RULES
+; RIGHT_EXISTS_AND_THM]  THEN 
+SIMP_TAC[SET_RULE`(!x. ({v1, v2} INTER {w1, w2}) x <=> {} x)
+  <=> ~ ({w1,w2} v1 ) /\ ~({w1,w2} v2 )`;
+  SET_RULE` {a,b} a /\ {a,b} b `] THEN 
+REPEAT STRIP_TAC THEN REWRITE_TAC[RIGHT_AND_EXISTS_THM; IN_ELIM_THM;
+  REAL_ARITH` a - b = c <=> a = b + c `; ZERO_NEUTRAL;
+  VECTOR_ARITH` a - b = c <=> a = b + (c:real^N)`; VECTOR_ADD_RID;
+  REAL_ARITH` &1 = a <=> a = &1 `]);;
+
+
+
+
+
+let PROVE_UNION_AFF22_SUBSET = prove(` ! v1 v2 v3 v4 (v5:real^3).
+   CARD {v1, v2, v3, v4, v5} = 5 /\ ~coplanar {v1, v2, v3, v4} /\
+     v5 IN aff_ge {v1, v3} {v2, v4} /\
+     ~(v5 IN aff {v1, v3})
+     ==>  aff_ge {v1, v3} {v2, v5} UNION aff_ge {v1, v3} {v4, v5} 
+ SUBSET aff_ge {v1, v3} {v2, v4} `,
+REWRITE_TAC[UNION_SUBSET] THEN 
+ONCE_REWRITE_TAC[MESON[INSERT_AC]` a /\ b SUBSET 
+  s {v1,v2} <=> a /\ b SUBSET s {v2,v1} `] THEN 
+MATCH_MP_TAC (MESON[]` (! v1 v2 v3 v4 v5. P v1 v2 v3 v4 v5 <=>
+  P v1 v4 v3 v2 v5 ) /\ (! v1 v2 v3 v4 v5.
+  P v1 v2 v3 v4 v5 ==> Q v1 v2 v3 v4 v5 ) ==>
+  (! v1 v2 v3 v4 v5. P v1 v2 v3 v4 v5 ==>
+  Q v1 v2 v3 v4 v5 /\ Q v1 v4 v3 v2 v5 ) `) THEN 
+SIMP_TAC[INSERT_AC] THEN REPEAT GEN_TAC THEN 
+ONCE_REWRITE_TAC[SET_RULE ` {a,b,c,d,e} = {e,a,b,c,d}`] THEN 
+REWRITE_TAC[CARD5] THEN 
+NHANH (SET_RULE` ~(v1 IN {v2, v3, v4}) /\
+      ~(v2 = v3 \/ v3 = v4 \/ v4 = v2) ==>
+  {v1,v3} INTER {v2,v4} = {} `) THEN 
+NHANH (SPEC_ALL AFF_GE22) THEN PHA THEN 
+REWRITE_TAC[IN_ELIM_THM; MESON[]` a = b /\ a1 /\ v IN a /\l <=>
+  a = b /\ a1 /\ v IN b /\ l`] THEN 
+NHANH (SET_RULE` ~(v5 IN {v1, v2, v3, v4}) /\
+ ~(v1 IN {v2, v3, v4}) /\
+ ~(v2 = v3 \/ v3 = v4 \/ v4 = v2) /\ l ==>
+  {v1,v3} INTER {v2,v5} = {} /\
+  {v1,v3} INTER {v4,v5} = {} `) THEN 
+SIMP_TAC[AFF_GE22] THEN STRIP_TAC THEN 
+SIMP_TAC[UNION_SUBSET; SUBSET; IN_ELIM_THM] THEN 
+GEN_TAC THEN STRIP_TAC THEN 
+UNDISCH_TAC ` x = a1' % v1 + a2' % v3 + b1' % v2 + b2' % (v5:real^3)` THEN 
+UNDISCH_TAC ` v5 = a1 % v1 + a2 % v3 + b1 % v2 + b2 % (v4:real^3)` THEN 
+PHA THEN 
+PURE_ONCE_REWRITE_TAC[MESON[]` a = b /\ P a <=> a = b /\ P (b:real^3) `] THEN 
+REWRITE_TAC[VECTOR_ARITH` a1' % v1 + a2' % v3 + b1' % v2 +
+ b2' % (a1 % v1 + a2 % v3 + b1 % v2 + b2 % v4) =
+  (a1' + b2' * a1 ) % v1 + (a2' + b2' * a2 ) % v3
+  + (b1' + b2' * b1 ) % v2 + (b2' * b2 ) % v4 `] THEN 
+STRIP_TAC THEN EXISTS_TAC `a1' + b2' * a1` THEN 
+EXISTS_TAC `a2' + b2' * a2` THEN 
+EXISTS_TAC `b1' + b2' * b1` THEN EXISTS_TAC `b2' * b2` THEN 
+ASM_SIMP_TAC[REAL_LE_ADD; REAL_LE_MUL;
+prove(`a1 + a2 + b1 + b2 = &1 /\ a1' + a2' + b1' + b2' = &1
+ ==> (a1' + b2' * a1) + (a2' + b2' * a2) + (b1' + b2' * b1) + b2' * b2 = &1`,
+SIMP_TAC[REAL_ARITH` a + b = c <=> a = c - b `] THEN REAL_ARITH_TAC)]);;
+
+
+
+
+
+
+
+
+
+(* AFF_GES_GTS *)
+
+let AFF_GT21 = MESON[AFF_GES_GTS]`!a b v0.
+         ~(a = v0) /\ ~(b = v0) 
+         ==> aff_gt {a, b} {v0} =
+             {x | ?ta tb t.
+                      ta + tb + t = &1 /\
+                      &0 < t /\
+                      x = ta % a + tb % b + t % v0}`;;
+ let AFF_GE21 = MESON[AFF_GES_GTS]`!a b v0.
+         ~(a = v0) /\ ~(b = v0) 
+         ==> aff_ge {a, b} {v0} =
+             {x | ?ta tb t.
+                      ta + tb + t = &1 /\
+                      &0 <= t /\
+                      x = ta % a + tb % b + t % v0}`;;
+
+
+let AFF_GT31 = MESON[AFF_GES_GTS]`!a b c v0.
+         ~(a = v0) /\ ~(b = v0) /\ ~(c = v0 )
+         ==> aff_gt {a, b, c} {v0} =
+             {x | ?ta tb tc t.
+                      &0 < t /\
+                      ta + tb + tc + t = &1 /\
+                      x = ta % a + tb % b + tc % c + t % v0}`;;
+let AFF_GE31 = MESON[AFF_GES_GTS]`!a b c v0.
+         ~(a = v0) /\ ~(b = v0) /\ ~(c = v0 )
+         ==> aff_ge {a, b, c} {v0} =
+             {x | ?ta tb tc t.
+                      &0 <= t /\
+                      ta + tb + tc + t = &1 /\
+                      x = ta % a + tb % b + tc % c + t % v0}`;;
+
+
+
+
+
+
+
+let AFF_GE21_SUBSET_AFF22 = prove(`{a,b} INTER {x,y} = {}
+==>  aff_ge {a,b} {y} SUBSET aff_ge {a,b} {x,y} `,
+NHANH (SET_RULE ` {a,b} INTER {x,y} = {} ==>
+   ~ ( a = y ) /\ ~ ( b = y ) `) THEN 
+SIMP_TAC[AFF_GE22; AFF_GE21; SUBSET; IN_ELIM_THM] THEN 
+REPEAT STRIP_TAC THEN 
+EXISTS_TAC`ta :real` THEN 
+EXISTS_TAC`tb :real` THEN 
+EXISTS_TAC`&0 ` THEN 
+EXISTS_TAC`t :real` THEN 
+ASM_SIMP_TAC[REAL_LE_REFL; ZERO_NEUTRAL; 
+VECTOR_MUL_LZERO; VECTOR_ADD_LID]);;
+
+
+
+
+
+
+
+
+
+
+let V5_IN_AFF21_IMP_SET_EQ = prove(`   (v5:real^3) IN aff_ge {v1, v3} {v4} /\
+ ~coplanar {v1, v2, v3, v4} /\
+ ~(v5 IN aff {v1, v3}) /\ CARD {v1, v2, v3, v4, v5} = 5 
+ ==> aff_ge {v1, v3} {v2, v4} = aff_ge {v1, v3} {v2, v5}`,
+REWRITE_TAC[CARD5] THEN NHANH (SET_RULE` ~(v1 IN {v2, v3, v4, v5}) /\
+ ~(v2 IN {v3, v4, v5}) /\ ~(v3 = v4 \/ v4 = v5 \/ v5 = v3) ==>  {v1,v3} INTER {v2,v4} = {} `) THEN 
+NHANH (AFF_GE21_SUBSET_AFF22 ) THEN REWRITE_TAC[ GSYM CARD5] THEN 
+REWRITE_TAC[MESON[]` x IN s /\l <=> l /\ x IN s `] THEN  PHA THEN 
+NHANH (SET_RULE ` a SUBSET b /\ x IN a ==> x IN b `) THEN ONCE_REWRITE_TAC[MESON[]` a1 /\ a2 /\ CARD s = 5
+  /\ a4 /\ a5 /\ a6 <=>a4 /\ a5 /\ CARD s = 5 /\ a1 /\a6 /\a2 `] THEN 
+NHANH (SPEC_ALL PROVE_UNION_AFF22_SUBSET ) THEN SIMP_TAC[UNION_SUBSET; SET_EQ_TO_SUBSET] THEN 
+SIMP_TAC[GSYM SET_EQ_TO_SUBSET; CARD5] THEN NHANH (SET_RULE` ~(v1 IN {v2, v3, v4, v5}) /\
+   ~(v2 IN {v3, v4, v5}) /\   ~(v3 = v4 \/ v4 = v5 \/ v5 = v3) ==>
+  {v1, v3} INTER {v2, v5} = {} `) THEN SIMP_TAC[AFF_GE22] THEN 
+REWRITE_TAC[GSYM SET_EQ_TO_SUBSET; SET_RULE ` {v1, v3} INTER {v2, v4} = {}
+  <=> ~(v1 = v4) /\ ~(v3 = v4) /\ ~(v1 = v2) /\ ~(v3 = v2)`] THEN 
+ONCE_REWRITE_TAC[MESON[]` a /\b ==> c <=> a ==> b ==> c `] THEN SIMP_TAC[AFF_GE21] THEN 
+REWRITE_TAC[IN_ELIM_THM; AFF_2POINTS_INTERPRET] THEN REPEAT STRIP_TAC THEN 
+ASM_CASES_TAC `t = &0 ` THENL [UNDISCH_TAC `ta + tb + t = &1` THEN 
+UNDISCH_TAC `(v5:real^3) = ta % v1 + tb % v3 + t % v4` THEN UNDISCH_TAC` t = &0 ` THEN 
+SIMP_TAC[ZERO_NEUTRAL; VECTOR_MUL_LZERO; VECTOR_ADD_RID] THEN PHA THEN ASM_MESON_TAC[];
+REWRITE_TAC[SUBSET; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN 
+UNDISCH_TAC `x = a1 % v1 + a2 % v3 + b1 % v2 + b2 % (v4:real^3)` THEN 
+ONCE_REWRITE_TAC[MESON[]` a ==> b <=> ~b ==> ~ a `] THEN DISCH_TAC THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` x = a <=> x = a - (b2 /t) % (v5:real^3) + (b2 /t) % (v5:real^3)`] THEN 
+UNDISCH_TAC` (v5:real^3) = ta % v1 + tb % v3 + t % v4 ` THEN SIMP_TAC[] THEN 
+REWRITE_TAC[VECTOR_ARITH` (a1 % v1 + a2 % v3 + b1 % v2 + b2 % v4) -
+        tt % (ta % v1 + tb % v3 + t % v4) =   ( a1 - tt * ta ) % v1 + ( a2 - tt * tb ) % v3  + b1 % v2 +
+  ( b2 - tt * t ) % v4 `] THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+UNDISCH_TAC`~(t = &0 )` THEN SIMP_TAC[REAL_FIELD` ~( a = &0) ==> b / a * a = b `;
+  REAL_SUB_REFL; VECTOR_MUL_LZERO; VECTOR_ADD_RID] THEN UNDISCH_TAC`ta + tb + t = &1` THEN 
+UNDISCH_TAC ` a1 + a2 + b1 + b2 = &1 ` THEN PHA THEN DAO THEN NHANH (REAL_FIELD` ~(t = &0) /\
+ a1 + a2 + b1 + b2 = &1 /\ ta + tb + t = &1 ==> a1 - b2 / t * ta + a2 - b2 / t * tb + b1 + b2 / t = &1`) THEN 
+UNDISCH_TAC ` &0 <= b2 ` THEN UNDISCH_TAC ` &0 <= t ` THEN PHA THEN 
+NHANH (MESON[REAL_LE_DIV]` &0 <= t /\ &0 <= b /\ l ==> &0 <= b / t `) THEN 
+REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[VECTOR_ARITH` ((a:real^N) + b ) + c =
+  a + b + c `] THEN MESON_TAC[]]);;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let AFF_GT22 = prove( `{(a:real^N), b} INTER {x, y} = {}
+ ==> aff_gt {a, b} {x, y} =
+     {w | ?ta tb tx ty.
+              &0 < tx /\
+              &0 < ty /\
+              ta + tb + tx + ty = &1 /\
+              w = ta % a + tb % b + tx % x + ty % y}`,
+REWRITE_TAC[aff_gt_def; FUN_EQ_THM; affsign; sgn_gt;
+  lin_combo] THEN 
+ONCE_REWRITE_TAC[SET_RULE` {x, y} w ==> P <=>
+  w IN ({a, b} UNION {x, y}) ==> {x, y} w ==> P`] THEN 
+REWRITE_TAC[MESON[]` a = b /\ cc /\ j <=> cc /\ j 
+  /\ b = a `] THEN 
+REWRITE_TAC[SET_RULE` {a, b} UNION {x, y} =
+  {a,b,x,y}`] THEN 
+ SIMP_TAC[AFFINE_HULL_FINITE_STEP_GEN;
+            REAL_ARITH `&0 < x /\ &0 < y ==> &0 < x + y`;
+            REAL_ARITH `&0 < x ==> &0 < x / &2`;
+            FINITE_INSERT; CONJUNCT1 FINITE_RULES
+; RIGHT_EXISTS_AND_THM]  THEN 
+NHANH (SET_RULE` (!x'. ({a, b} INTER {x, y}) x' <=> {} x')
+    ==> ~( {x,y} a ) /\ ~( {x,y} b ) /\ {x,y} x /\ {x,y} y `) THEN 
+SIMP_TAC[RIGHT_AND_EXISTS_THM; REAL_ARITH` a - b = c 
+  <=> a = b + c `; ZERO_NEUTRAL; VECTOR_ARITH` (a:real^N) - b 
+  = c <=> a = b + c `; VECTOR_ADD_RID; IN_ELIM_THM] THEN 
+SIMP_TAC[EQ_SYM_EQ]);;
+
+
+
+
+let PROVE_B1B2_POS = prove(` ~((?ta tb t. ta + tb + t = &1 /\ &0 <= t /\ v5 = ta % v1 + tb % v3 + t % v2) \/
+   (?ta tb t. ta + tb + t = &1 /\ &0 <= t /\ v5 = ta % v1 + tb % v3 + t % v4)) /\
+ ~coplanar {v1, v2, v3, v4} /\
+ &0 <= b1 /\
+ &0 <= b2 /\
+ a1 + a2 + b1 + b2 = &1 /\
+ v5 = a1 % v1 + a2 % v3 + b1 % v2 + b2 % v4 /\ l
+  ==> &0 < b1 /\ &0 < b2 `,
+ASM_CASES_TAC `b1 = &0 ` THENL [
+ASM_SIMP_TAC[ZERO_NEUTRAL; VECTOR_MUL_LZERO; VECTOR_ADD_LID] THEN 
+MESON_TAC[]; ASM_CASES_TAC `b2 = &0 ` THENL [
+ASM_SIMP_TAC[ZERO_NEUTRAL; VECTOR_MUL_LZERO; VECTOR_ADD_LID; VECTOR_ADD_RID] 
+THEN MESON_TAC[]; ASM_SIMP_TAC[REAL_ARITH` a <= b <=> b = a \/ a < b `]]]);;
+
+
+
+let NOT_COPLANAR_AND_SUM_IMP_UNIQUE = prove(
+` ~coplanar {(v1:real^3), v2, v3, v4} ==>
+(! x s1 s2 s3 s4 t1 t2 t3 t4.
+  t1 + t2 + t3 + t4 = &1 /\
+  x = t1 % v1 + t2 % v2 + t3 % v3 + t4 % v4 /\
+ s1 + s2 + s3 + s4 = &1 /\
+  x = s1 % v1 + s2 % v2 + s3 % v3 + s4 % v4 ==>
+  s1 = t1 /\ s2 = t2 /\ s3 = t3 /\ s4 = t4 ) `,
+NHANH (SPEC_ALL (REWRITE_RULE[RIGHT_FORALL_IMP_THM] COEFS_4)) 
+THEN MESON_TAC[]);;
+
+
+
+g ` ! (v1:real^3) (v2:real^3) (v3:real^3) (v4:real^3) (v5:real^3).
+   CARD {v1, v2, v3, v4, v5} = 5 /\
+     ~coplanar {v1, v2, v3, v4} /\
+     v5 IN aff_ge {v1, v3} {v2, v4} /\
+     ~(v5 IN aff {v1, v3})
+     ==> aff_ge {v1, v3} {v2, v4} =
+         aff_ge {v1, v3} {v2, v5} UNION aff_ge {v1, v3} {v4, v5} /\
+         aff_gt {v1, v3} {v2, v5} INTER aff_gt {v1, v3} {v4, v5} = {}`;;
+e (SIMP_TAC[GSYM SUBSET_ANTISYM_EQ; PROVE_UNION_AFF22_SUBSET; 
+EMPTY_SUBSET ]);;
+e (REPEAT GEN_TAC);;
+e (ASM_CASES_TAC ` (v5:real^3) IN aff_ge {v1,v3} {v2} \/
+  v5 IN aff_ge {v1,v3} {v4} `);;
+e (DOWN_TAC);;
+e (SPEC_TAC (`v2:real^3`,`v2:real^3`));;
+e (SPEC_TAC (`v4:real^3`,`v4:real^3`));;
+e (ONCE_REWRITE_TAC[MESON[]` a /\ b ==> c <=> 
+  a ==> b ==> c `]);;
+e (MATCH_MP_TAC (MESON[]`(! a b. L a b <=> L b a ) /\ (! a b . P a ==> L a b )  ==> (! a b. P b \/ P a ==>
+  L a b ) `));;
+e (CONJ_TAC);;
+e (SIMP_TAC[UNION_COMM; INTER_COMM; INSERT_AC]);;
+e (PHA);;
+e (ONCE_REWRITE_TAC[MESON[]`a1 /\a2/\a3/\a4/\a5 <=>
+  a4 /\ a1 /\a3/\a5/\a2`]);;
+e (NHANH (V5_IN_AFF21_IMP_SET_EQ));;
+e (SIMP_TAC[SET_RULE` a = b ==> a SUBSET (b UNION cc )`]);;
+e (ONCE_REWRITE_TAC[MESON[]`a IN s /\ b /\ ss = tt ==> l
+  <=> ss = tt ==> a IN s /\ b ==> l`]);;
+e (ONCE_REWRITE_TAC[GSYM (MESON[]`a1 /\a2/\a3/\a4/\a5 <=>
+  a4 /\ a1 /\a3/\a5/\a2`)]);;
+e (ONCE_REWRITE_TAC[SET_RULE ` {a,b,c,d,e} = {e,a,b,c,d}`]);;
+e (REWRITE_TAC[CARD5]);;
+e (NHANH (SET_RULE` ~(v1 IN {v2, v3, v4}) /\
+      ~(v2 = v3 \/ v3 = v4 \/ v4 = v2) ==>
+  {v1,v3} INTER {v2,v4} = {} `));;
+e (NHANH (SPEC_ALL AFF_GE22));;
+e (PHA);;
+e (REWRITE_TAC[IN_ELIM_THM; MESON[]` a = b /\ a1 /\ v IN a /\l <=>
+  a = b /\ a1 /\ v IN b /\ l`]);;
+e (REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; DE_MORGAN_THM]);;
+e (PHA);;
+e (NHANH (MESON[AFF_GE21]` ~(v1 = v4) /\
+     ~(v2 = v3) /\
+     ~(v3 = v4) /\ ll ==>
+  aff_ge {v1,v3} {v4} = 
+               {x | ?ta tb t.
+                        ta + tb + t = &1 /\
+                        &0 <= t /\
+                        x = ta % v1 + tb % v3 + t % v4}`));;
+e (REWRITE_TAC[MESON[]` a IN s /\ l <=> l /\ a IN s `]);;
+e (REWRITE_TAC[MESON[]` a IN s /\ l <=> l /\ a IN s `;
+  MESON[]` a = b /\ x IN a <=> a = b /\ x IN b `; IN_ELIM_THM]);;
+e (PHA);;
+e (REWRITE_TAC[MESON[]` a = b /\ x IN a <=>
+  x IN b /\ a = b `; IN_ELIM_THM]);;
+e (NHANH (SET_RULE`  ~(v5 = v1) /\
+     ~(v5 = v2) /\
+     ~(v5 = v3) /\
+     ~(v5 = v4) /\
+     ~(v1 = v2) /\
+     ~(v1 = v3) /\
+     ~(v1 = v4) /\
+     ~(v2 = v3) /\
+     ~(v3 = v4) /\
+     ~(v4 = v2) /\ l ==> {v1, v3} INTER {v2, v5} = {} /\
+  {v1,v3} INTER {v4,v5} = {} `));;
+e (SIMP_TAC[AFF_GT22]);;
+e (REWRITE_TAC[SET_RULE` a INTER b SUBSET {} <=> (! x. ~( x IN a 
+  /\ x IN b ))`]);;
+e (REWRITE_TAC[SET_RULE` a INTER b SUBSET {} <=> (! x. ~( x IN a 
+  /\ x IN b ))`; IN_ELIM_THM] THEN REPEAT STRIP_TAC);;
+e (ASM_CASES_TAC ` t = &0 `);;
+
+
+
+e (UNDISCH_TAC `v5 = ta % v1 + tb % v3 + t % (v4:real^3)`);;
+e (UNDISCH_TAC `ta + tb + t = &1`);;
+e (UNDISCH_TAC `t = &0`);;
+e (UNDISCH_TAC `~(v5 IN aff {v1, (v3:real^3)})`);;
+e (SIMP_TAC[ZERO_NEUTRAL; VECTOR_MUL_LZERO; VECTOR_ADD_RID;
+ AFF_2POINTS_INTERPRET; IN_ELIM_THM]);;
+e (MESON_TAC[]);;
+e (REPLICATE_TAC 13 (FIRST_X_ASSUM MP_TAC));;
+e (PURE_ONCE_REWRITE_TAC[MESON[]` a = b ==> p a <=> a = b ==> p b `]);;
+
+
+e (REWRITE_TAC[  VECTOR_ARITH` ta' % v1 + tb' % v3 + tx % v2 + ty % (ta % v1 + tb % v3 + t % v4) = 
+  ( ta' + ty * ta ) % v1 + ( tb' + ty * tb ) % v3 + tx % v2 + ( ty * t ) % v4 `]);;
+
+
+e (REWRITE_TAC[VECTOR_ARITH` (ta'' + ty' * ta) % v1 +
+     (tb'' + ty' * tb) % v3 +
+     tx' % v4 +
+     (ty' * t) % v4 =
+  (ta'' + ty' * ta ) % v1 + (tb'' + ty' * tb ) % v3 + &0 % v2 + (tx' + ty' * t ) % v4 `]);;
+
+e (REPEAT STRIP_TAC);;
+e (UNDISCH_TAC `ta + tb + t = &1`);;
+e (UNDISCH_TAC `ta' + tb' + tx + ty = &1`);;
+e (UNDISCH_TAC `ta'' + tb'' + tx' + ty' = &1`);;
+e (PHA);;
+e (NHANH (REAL_FIELD`ta'' + tb'' + tx' + ty' = &1 /\ ta' + tb' + tx + ty = &1 /\ ta + tb + t = &1 ==>
+  (ta' + ty * ta) + (tb' + ty * tb) + tx + (ty * t) = &1 /\
+  (ta'' + ty' * ta) + (tb'' + ty' * tb) + &0 + (tx' + ty' * t ) = &1 `));;
+e (MATCH_MP_TAC (MESON[]` (b ==> c) ==> ( a /\ b ==> c)`));;
+e (UNDISCH_TAC `x =
+      (ta' + ty * ta) % v1 + (tb' + ty * tb) % v3 + tx % v2 + (ty * t) % (v4:real^3)`);;
+e (UNDISCH_TAC `x =
+      (ta'' + ty' * ta) % v1 +
+      (tb'' + ty' * tb) % v3 +
+      &0 % v2 +
+      (tx' + ty' * t) % (v4:real^3)`);;
+e (UNDISCH_TAC `~coplanar {v1, v2, v3, (v4:real^3)}`);;
+e (ONCE_REWRITE_TAC[SET_RULE` {v1, v2, v3, v4} =
+  {v1,v3,v2,v4}`]);;
+e (PHA THEN ONCE_REWRITE_TAC[MESON[]`a1/\a2/\a3/\a4/\a5 <=>
+  a1/\a5/\a2/\a4/\a3`]);;
+e (ABBREV_TAC ` t11 = (ta'' + ty' * ta) `);;
+e (ABBREV_TAC ` t33 = (tb'' + ty' * tb) `);;
+e (ABBREV_TAC ` t44 = (tx' + ty' * t) `);;
+e (ABBREV_TAC ` s11 = (ta' + ty * ta) `);;
+e (ABBREV_TAC ` s33 = (tb' + ty * tb) `);;
+e (ABBREV_TAC ` s44 = (ty * t) `);;
+e (NHANH (SPEC_ALL (REWRITE_RULE[RIGHT_FORALL_IMP_THM] COEFS_4)));;
+e (NHANH (MESON[]`(! x. p x ) ==> p (x:real^3)`));;
+e (PHA);;
+e (NHANH (MESON[]`(!ta tb tc td.
+      x = ta % v1 + tb % v3 + tc % v2 + td % v4 /\ ta + tb + tc + td = &1
+      ==> ta = COEF4_1 v1 v3 v2 v4 x /\
+          tb = COEF4_2 v1 v3 v2 v4 x /\
+          tc = COEF4_3 v1 v3 v2 v4 x /\
+          td = COEF4_4 v1 v3 v2 v4 x) /\
+ t11 + t33 + &0 + t44 = &1 /\
+ x = t11 % v1 + t33 % v3 + &0 % v2 + t44 % v4 /\
+ s11 + s33 + tx + s44 = &1 /\
+ x = s11 % v1 + s33 % v3 + tx % v2 + s44 % v4 ==>
+  tx = &0 `));;
+e (STRIP_TAC);;
+e (UNDISCH_TAC `&0 < tx `);;
+e (UNDISCH_TAC ` tx = &0 `);;
+e (MESON_TAC[REAL_ARITH`~( a = &0 /\ &0 < a )`]);;
+
+
+
+e (DOWN_TAC);;
+e (ONCE_REWRITE_TAC[MESON[]` a/\b/\c ==> l <=> b ==> a /\ c ==> l`]);;
+e (REWRITE_TAC[CARD5]);;
+e (NHANH (SET_RULE` ~(v1 IN {v2, v3, v4, v5}) /\
+ ~(v2 IN {v3, v4, v5}) /\
+ ~(v3 = v4 \/ v4 = v5 \/ v5 = v3) ==>
+  ~(v1 = v2 ) /\ ~(v3 = v2) /\ ~(v1 = v4) /\ ~ (v3 = v4) /\
+  {v1,v3} INTER {v2,v4} = {} /\
+  {v1, v3} INTER {v2, v5} = {} /\
+  {v1, v3} INTER {v4, v5} = {}`));;
+e (SIMP_TAC[AFF_GE22; AFF_GT22; AFF_GE21]);;
+e (REWRITE_TAC[IN_ELIM_THM]);;
+e (STRIP_TAC THEN STRIP_TAC);;
+e (DOWN_TAC);;
+
+(* *)
+e (NHANH (PROVE_B1B2_POS ));;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[FUN_EQ_THM; IN_ELIM_THM; SUBSET; IN_UNION]);;
+e (REPEAT STRIP_TAC);;
+e (ABBREV_TAC ` r = b1 * b2' - b1' * b2`);;
+e (ASM_CASES_TAC ` &0 <= r `);;
+e (UNDISCH_TAC `x = a1' % v1 + a2' % v3 + b1' % v2 + b2' % (v4:real^3)`);;
+e (ONCE_REWRITE_TAC[MESON[VECTOR_ARITH` a = a - b + (b:real^N)`]` x = a ==> l <=>
+  x = a - ( b1' / b1 ) % v5 + ( b1' / b1 ) % v5 ==> l `]);;
+e (UNDISCH_TAC `v5 = a1 % v1 + a2 % v3 + b1 % v2 + b2 % (v4:real^3)`);;
+e (PHA THEN PURE_ONCE_REWRITE_TAC[MESON[]`v = b /\ x = aa - t % v + t % v <=>
+  v = b /\ x = aa - t % b + t % v `]);;
+e (REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC]);;
+e (IMP_TAC);;
+e (DISCH_TAC);;
+e (UNDISCH_TAC` &0 < b1 `);;
+e (SIMP_TAC[REAL_FIELD` &0 < b ==> a / b * b = a `]);;
+e (REWRITE_TAC[VECTOR_ARITH` (a1' % v1 + a2' % v3 + b1' % v2 + b2' % v4) -
+     (b1 % v1 +
+      b2 % v3 +
+      b1' % v2 +
+       bb % v4) = (a1' - b1 ) % v1 
+  + (a2' - b2 ) % v3 + ( b2' - bb ) % v4 `]);;
+e (SIMP_TAC[REAL_FIELD`&0 < b ==> a - x / b * c = ( a * b - x * c ) / b `]);;
+e (REPEAT STRIP_TAC THEN DISJ2_TAC);;
+e (EXISTS_TAC`(a1' * b1 - b1' * a1) / b1 `);;
+e (EXISTS_TAC`(a2' * b1 - b1' * a2) / b1`);;
+e (EXISTS_TAC`(b2' * b1 - b1' * b2) / b1`);;
+e (EXISTS_TAC`b1' / b1`);;
+e (SIMP_TAC[VECTOR_ARITH` (a+b) + (c:real^N) = a + b + c `]);;
+e (ASM_SIMP_TAC[REAL_LE_DIV; REAL_ARITH` b1 * b2' - b1' * b2
+  = b2' * b1 - b1' * b2 `]);;
+e (ASM_MESON_TAC[REAL_FIELD` &0 < b1 /\ a1 + a2 + b1 + b2 = &1 /\
+  a1' + a2' + b1' + b2' = &1 /\ b1 * b2' - b1' * b2 = r ==>
+  (a1' * b1 - b1' * a1) / b1 + (a2' * b1 - b1' * a2) / b1 + r / b1 + b1' / b1 =
+ &1 `]);;
+e (UNDISCH_TAC `x = a1' % v1 + a2' % v3 + b1' % v2 + b2' % (v4:real^3)`);;
+e (ONCE_REWRITE_TAC[MESON[VECTOR_ARITH` a = a - b + (b:real^N)`]` x = a ==> l <=>
+  x = a - ( b2' / b2 ) % v5 + ( b2' / b2 ) % v5 ==> l `]);;
+e (UNDISCH_TAC `v5 = a1 % v1 + a2 % v3 + b1 % v2 + b2 % (v4:real^3)`);;
+e (PHA THEN PURE_ONCE_REWRITE_TAC[MESON[]`v = b /\ x = aa - t % v + t % v <=>
+  v = b /\ x = aa - t % b + t % v `]);;
+e (REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC]);;
+e (UNDISCH_TAC` &0 < b2 `);;
+e (ONCE_REWRITE_TAC[MESON[]` a ==> b /\ c ==> l <=>
+  b ==> a /\ c ==> l`]);;
+e (DISCH_TAC);;
+e (IMP_TAC THEN SIMP_TAC[REAL_FIELD` &0 < b2 ==> b2' / b2 * b2 = b2'`]);;
+e (REWRITE_TAC[VECTOR_ARITH`(a1' % v1 + a2' % v3 + b1' % v2 + a44 % v4) -
+     (a11 % v1 + a33 % v3 + a22 % v2 + a44 % v4) +
+     a55 % v5 =
+     (a1' - a11) % v1 + (a2' - a33) % v3 + (b1' - a22) % v2 + a55 % v5`]);;
+e (REPEAT STRIP_TAC THEN DISJ1_TAC);;
+e (EXISTS_TAC` (a1' - b2' / b2 * a1) `);;
+e (EXISTS_TAC` (a2' - b2' / b2 * a2) `);;
+e (EXISTS_TAC` (b1' - b2' / b2 * b1) `);;
+e (EXISTS_TAC` b2' / b2 `);;
+e (UNDISCH_TAC ` ~( &0 <= r )`);;
+e (ASM_SIMP_TAC[REAL_LE_DIV; REAL_FIELD` &0 < b2 ==>
+  b1' - b2' / b2 * b1 = ( -- ( b1 * b2' - b1' * b2 ))/ b2 `;
+  REAL_ARITH` ~( &0 <= a) <=> &0 <= -- a /\ ~( a = &0 ) `]);;
+e (STRIP_TAC);;
+e (EXPAND_TAC "r");;
+e (ASM_SIMP_TAC[REAL_FIELD` &0 < b2 /\ a1' + a2' + b1' + b2' = &1 /\ a1 + a2 + b1 + b2 = &1
+     ==> --(a1 * b2' - a1' * b2) / b2 +
+         --(a2 * b2' - a2' * b2) / b2 +
+         --(b1 * b2' - b1' * b2) / b2 +
+         b2' / b2 =
+         &1 `]);;
+e (REWRITE_TAC[SET_RULE`a INTER b SUBSET {} <=> (! x. ~( x IN a /\ x IN b ))`; IN_ELIM_THM]);;
+e (GEN_TAC);;
+e (ASM_SIMP_TAC[VECTOR_ARITH` ta % v1 +
+        tb % v3 +
+        tx % v2 +
+        ty % (a1 % v1 + a2 % v3 + b1 % v2 + b2 % v4)
+  = (ta + ty * a1 ) % v1 + ( tb + ty * a2 ) % v3 +
+  ( tx + ty * b1 ) % v2 + ( ty * b2 ) % v4 `;
+  VECTOR_ARITH` ta % v1 +
+        tb % v3 +
+        tx % v4 +
+        ty % (a1 % v1 + a2 % v3 + b1 % v2 + b2 % v4) =
+  ( ta + ty * a1 ) % v1 + ( tb + ty * a2 ) % v3 +
+  ( ty * b1 ) % v2 + ( tx + ty * b2 ) % v4 `]);;
+e (ONCE_REWRITE_TAC[MESON[]` ~ a <=> a ==> F `] THEN STRIP_TAC);;
+e (UNDISCH_TAC` ta + tb + tx + ty = &1 `);;
+e (UNDISCH_TAC` a1 + a2 + b1 + b2 = &1 `);;
+e (UNDISCH_TAC` ta' + tb' + tx' + ty' = &1 `);;
+e (PHA);;
+e (NHANH (REAL_FIELD`ta' + tb' + tx' + ty' = &1 /\
+   a1 + a2 + b1 + b2 = &1 /\
+   ta + tb + tx + ty = &1 ==>
+  (ta' + ty' * a1) + (tb' + ty' * a2) + (ty' * b1) +
+  (tx' + ty' * b2) = &1 /\
+  (ta + ty * a1) + (tb + ty * a2) + (tx + ty * b1) +
+  (ty * b2) = &1 `));;
+e (STRIP_TAC);;
+e (UNDISCH_TAC `x =
+      (ta + ty * a1) % v1 +
+      (tb + ty * a2) % v3 +
+      (tx + ty * b1) % v2 +
+      (ty * b2) % (v4:real^3)`);;
+e (UNDISCH_TAC `(ta + ty * a1) + (tb + ty * a2) + (tx + ty * b1) + ty * b2 = &1`);;
+e (UNDISCH_TAC`x =
+      (ta' + ty' * a1) % v1 +
+      (tb' + ty' * a2) % v3 +
+      (ty' * b1) % v2 +
+      (tx' + ty' * b2) % (v4:real^3) `);;
+e (UNDISCH_TAC`(ta' + ty' * a1) + (tb' + ty' * a2) + ty' * b1 + tx' + ty' * b2 = &1 `);;
+e (UNDISCH_TAC `~coplanar {(v1:real^3), v2, v3, v4}`);;
+e (PHA);;
+e (ONCE_REWRITE_TAC[SET_RULE` {a,b,c,d} = {a,c,b,d}`]);;
+e (NHANH (NOT_COPLANAR_AND_SUM_IMP_UNIQUE));;
+e (PHA);;
+e (NHANH (MESON[]`(!x s1 s2 s3 s4 t1 t2 t3 t4.
+        t1 + t2 + t3 + t4 = &1 /\
+        x = t1 % v1 + t2 % v3 + t3 % v2 + t4 % v4 /\
+        s1 + s2 + s3 + s4 = &1 /\
+        x = s1 % v1 + s2 % v3 + s3 % v2 + s4 % v4
+        ==> s1 = t1 /\ s2 = t2 /\ s3 = t3 /\ s4 = t4) /\
+   (ta' + ty' * a1) + (tb' + ty' * a2) + ty' * b1 + tx' + ty' * b2 = &1 /\
+   x =
+   (ta' + ty' * a1) % v1 +
+   (tb' + ty' * a2) % v3 +
+   (ty' * b1) % v2 +
+   (tx' + ty' * b2) % v4 /\
+   (ta + ty * a1) + (tb + ty * a2) + (tx + ty * b1) + ty * b2 = &1 /\
+   x =
+   (ta + ty * a1) % v1 +
+   (tb + ty * a2) % v3 +
+   (tx + ty * b1) % v2 +
+   (ty * b2) % v4 ==>
+  ty' * b1 = (tx + ty * b1) /\
+  (tx' + ty' * b2) = (ty * b2) `));;
+e (NHANH (REAL_FIELD`a = b /\ aa = bb ==>
+  a * bb - b * aa = &0 `));;
+
+e (STRIP_TAC);;
+e (FIRST_X_ASSUM MP_TAC);;
+e (ONCE_REWRITE_TAC[REAL_ARITH` a = &0 <=> -- a = &0 `]);;
+e (ONCE_REWRITE_TAC[REAL_ARITH` a = &0 <=> -- a = &0 `]);;
+e (REWRITE_TAC[REAL_POLY_CONV` --((ty' * b1) * ty * b2 - (tx + ty * b1) * (tx' + ty' * b2)) `]);;
+e (UNDISCH_TAC ` &0 < b1 `);;
+e (UNDISCH_TAC ` &0 < b2 `);;
+e (UNDISCH_TAC ` &0 < tx `);;
+e (UNDISCH_TAC ` &0 < ty `);;
+e (UNDISCH_TAC ` &0 < tx' `);;
+e (UNDISCH_TAC ` &0 < ty' `);;
+e (PHA);;
+e (NHANH (MESON[REAL_LT_MUL]`
+  &0 < ty' /\ &0 < tx' /\ &0 < ty /\ &0 < tx /\ &0 < b2 /\ &0 < b1
+  ==> &0 < b1 * tx' * ty  /\ &0 < b2 * tx * ty' /\ &0 < tx * tx' `));;
+e (MESON_TAC[REAL_LT_IMP_NZ; REAL_LT_ADD]);;
+let BAJSVHC = top_thm();;
+
+
+
+
 

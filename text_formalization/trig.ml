@@ -1069,22 +1069,26 @@ module Trig : Trigsig = struct
 		let thc = NORM_ARITH `norm (v - u - (w - u)) = norm (v - w)` in
 		REWRITE_TAC [tha; thb; thc] THEN CONV_TAC REAL_FIELD);;
 
-  let DIST_LAW_OF_COS = prove
-	 (`~(u = v:real^3) /\ ~(u = w) ==>
-	   (dist(v,w)) pow 2 = (dist(u,v)) pow 2 + (dist(u,w)) pow 2 - 
+let DIST_LAW_OF_COS = prove
+	 (`(dist(v:real^3,w)) pow 2 = (dist(u,v)) pow 2 + (dist(u,w)) pow 2 - 
 		                     &2 * (dist(u,v)) * (dist(u,w)) * cos (arcV u v w)`,
-    SIMP_TAC [arcVarc] THEN 
-		REWRITE_TAC [law_of_cosines; DIST_TRIANGLE_DETAILS]);;
+    ASM_CASES_TAC `~(u = v:real^3) /\ ~(u = w)` THEN POP_ASSUM MP_TAC THENL
+		[ ASM_SIMP_TAC [arcVarc] THEN 
+		  REWRITE_TAC [law_of_cosines; DIST_TRIANGLE_DETAILS];
+		  REWRITE_TAC [TAUT `~(~A /\ ~B) <=> (A \/ B)`] THEN STRIP_TAC THEN 
+			ASM_REWRITE_TAC [DIST_REFL; DIST_SYM] THEN REAL_ARITH_TAC]);;
 
   let DIST_L_ZERO = prove
 	 (`!v. dist(vec 0, v) = norm v`,
     NORM_ARITH_TAC);;
 	
   (* I would like to change this to real^N but that means changing arcV to real^N *)
+
   let DOT_COS = prove 
-	 (`~(vec 0 = u:real^3) /\ ~(vec 0 = v) ==>
-     u dot v = (norm u) * (norm v) * cos (arcV (vec 0) u v)`,
-    DISCH_TAC THEN IMP_RES_THEN MP_TAC DIST_LAW_OF_COS THEN 
+	 (`u:real^3 dot v = (norm u) * (norm v) * cos (arcV (vec 0) u v)`,
+    MP_TAC (INST [`vec 0:real^3`,`u:real^3`; 
+		              `u:real^3`,`v:real^3`; 
+								  `v:real^3`,`w:real^3`] DIST_LAW_OF_COS) THEN  
 		SUBGOAL_THEN 
 		  `dist(u:real^3,v) pow 2 = 
 		   dist(vec 0, v) pow 2 + dist(vec 0, u) pow 2 - &2 * u dot v` 
@@ -1266,29 +1270,29 @@ module Trig : Trigsig = struct
 	   REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; VECTOR_SUB_RZERO]);;
 
   let ARCV_BILINEAR_L = prove
-	 (`!u v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
+	 (`!(u:real^N) v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
 	     arcV (vec 0) (s % u) v = arcV (vec 0) u v`,
 	  REWRITE_TAC [REAL_ARITH `!x. &0 < x <=> ~(&0 = x) /\ &0 <= x`] THEN
 		REWRITE_TAC [GSYM NORM_POS_LT] THEN	REPEAT STRIP_TAC THEN 
 		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; VECTOR_SUB_RZERO; DOT_LMUL;
 		             NORM_MUL; GSYM REAL_MUL_ASSOC] THEN
-		SUBGOAL_TAC "norm_pos" `&0 < norm (u:real^3) * norm (v:real^3)`
+		SUBGOAL_TAC "norm_pos" `&0 < norm (u:real^N) * norm (v:real^N)`
 		 [MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC []] THEN 
-		SUBGOAL_TAC "norm_nonzero" `~(&0 = norm (u:real^3) * norm (v:real^3))` 
+		SUBGOAL_TAC "norm_nonzero" `~(&0 = norm (u:real^N) * norm (v:real^N))` 
 		 [POP_ASSUM MP_TAC THEN REAL_ARITH_TAC] THEN
 		SUBGOAL_TAC "stuff" `abs s = s`
 		 [ASM_REWRITE_TAC [REAL_ABS_REFL]] THEN 
 		ASM_SIMP_TAC [GSYM REAL_DIV_MUL2]);;
 	
 	let ARCV_SYM = prove
-	 (`!u v w. arcV u v w = arcV u w v`,
+	 (`!(u:real^N) v w. arcV u v w = arcV u w v`,
 	 REWRITE_TAC [CONV_RULE KEP_REAL3_CONV arcV; DOT_SYM; REAL_MUL_SYM]);;
 
   let ARCV_BILINEAR_R = prove
-	 (`!u v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
+	 (`!(u:real^N) v s. ~(u = vec 0) /\ ~(v = vec 0) /\ &0 < s ==> 
 	     arcV (vec 0) u (s % v) = arcV (vec 0) u v`,
 		REPEAT STRIP_TAC THEN
-		SUBGOAL_TAC "switch" `arcV (vec 0) u (s % v) = arcV (vec 0) (s % v)	u`
+		SUBGOAL_TAC "switch" `arcV (vec 0) (u:real^N) (s % v) = arcV (vec 0) (s % v)	u`
 		 [REWRITE_TAC [ARCV_SYM]] THEN 
 		POP_ASSUM SUBST1_TAC THEN ASM_SIMP_TAC [ARCV_BILINEAR_L; ARCV_SYM]);;
 
@@ -1333,11 +1337,101 @@ module Trig : Trigsig = struct
 			VECTOR_ARITH `!x v. (s * x * s) % (v:real^3) = (s pow 2) % (x % v)` in
 		REWRITE_TAC [thm1; thm2; GSYM VECTOR_SUB_LDISTRIB]
 		);;
-					  
+	
+  let COLLINEAR_TRANSLATE = prove 
+	 (`collinear (s:real^N->bool) <=> collinear {v - v0 | v IN s}`,
+	  REWRITE_TAC [collinear; IN_ELIM_THM] THEN EQ_TAC THEN STRIP_TAC THEN
+		EXISTS_TAC `u :real^N` THEN REPEAT STRIP_TAC THENL 
+		[ ASM_SIMP_TAC [VECTOR_ARITH `!u:real^N v w. u - w - (v - w) = u - v`] ;
+		  ONCE_REWRITE_TAC [VECTOR_ARITH `x:real^N - y = (x - v0) - (y - v0)`] THEN
+		  SUBGOAL_THEN
+			  `(?v:real^N. v IN s /\ x - v0 = v - v0) /\
+				 (?v. v IN s /\ y - v0 = v - v0)`
+	      (fun th -> ASM_SIMP_TAC [th]) THEN 
+			STRIP_TAC THENL [EXISTS_TAC `x:real^N`; EXISTS_TAC `y:real^N`] THEN
+			ASM_REWRITE_TAC [] ]);;
+
+	let SET_MAP_3 = prove 
+	 (`{f x | x IN {a, b, c}} = {f a, f b, f c}`,
+	  REWRITE_TAC [EXTENSION; IN_ELIM_THM; 
+		             SET_RULE `x IN {a, b, c} <=> (x = a \/ x = b \/ x = c)`] THEN
+		MESON_TAC []);;
+	
+	let COLLINEAR_TRANSLATE_3 = prove 
+	 (`collinear {u:real^N, v, w} <=> collinear {u - v0, v - v0, w - v0}`,
+	  SUBGOAL_TAC "step1"
+		  `collinear {u:real^N, v, w} <=> collinear {x - v0 | x IN {u, v, w}}`
+		  [ REWRITE_TAC [GSYM COLLINEAR_TRANSLATE] ] THEN
+		SUBGOAL_TAC "step2"
+		  `{x - v0 | x:real^N IN {u, v, w}} = {u - v0, v - v0, w - v0}`
+			[ REWRITE_TAC [SET_MAP_3] ] THEN
+		ASM_REWRITE_TAC [] );;
+
+	let COLLINEAR_ZERO = prove 
+	 (`collinear {u:real^N, v, w} <=> collinear {vec 0, v - u, w - u}`,
+	  SUBGOAL_TAC "zero"
+		  `vec 0 :real^N = u - u`
+			[ REWRITE_TAC [VECTOR_SUB_REFL] ] THEN
+		ASM_REWRITE_TAC [GSYM COLLINEAR_TRANSLATE_3]);;
+
+  let COLLINEAR_SYM = prove
+	 (`collinear {vec 0: real^N, x, y} <=> collinear {vec 0: real^N, y, x}`,
+	  AP_TERM_TAC THEN SET_TAC [] );;
+
+  let COLLINEAR_FACT = prove 
+	 (`collinear {vec 0: real^N, x, y} <=> 
+	   ((y dot y) % x = (x dot y) % y)`,
+		ONCE_REWRITE_TAC [COLLINEAR_SYM] THEN EQ_TAC THENL 
+		[ REWRITE_TAC [COLLINEAR_LEMMA] THEN STRIP_TAC THEN
+		  ASM_REWRITE_TAC [DOT_LZERO; DOT_RZERO; VECTOR_MUL_LZERO; 
+		                   VECTOR_MUL_RZERO; VECTOR_MUL_ASSOC; 
+											 DOT_LMUL; REAL_MUL_SYM];
+			REWRITE_TAC [COLLINEAR_LEMMA;
+			             TAUT `A \/ B \/ C <=> ((~A /\ ~B) ==> C)`] THEN 
+			REPEAT STRIP_TAC THEN EXISTS_TAC `(x:real^N dot y) / (y dot y)` THEN
+			MATCH_MP_TAC 
+			  (ISPECL [`y:real^N dot y`;`x:real^N`] VECTOR_MUL_LCANCEL_IMP) THEN
+			SUBGOAL_TAC "zero"
+			  `~((y:real^N) dot y = &0)` [ ASM_REWRITE_TAC [DOT_EQ_0] ] THEN
+			ASM_SIMP_TAC [VECTOR_MUL_ASSOC; REAL_DIV_LMUL] ] );;
+	  
+
+  let COLLINEAR_NOT_ZERO = prove 
+	 (`~collinear {u:real^N, v, w} ==> ~(vec 0 = v - u) /\ ~(vec 0 = w - u)`,
+	  ONCE_REWRITE_TAC [COLLINEAR_ZERO] THEN REWRITE_TAC [COLLINEAR_LEMMA] THEN 
+		MESON_TAC [] );;
+
+	let COS_ARCV = prove
+	 (`~(vec 0 = u:real^3) /\ ~(vec 0 = v) ==>
+	   cos (arcV (vec 0) u v)	= (u dot v) / (norm u * norm v)`,
+		REWRITE_TAC [DOT_COS; 
+		             MESON [NORM_EQ_0] `!v. vec 0 = v <=> norm v = &0`]	THEN
+	  CONV_TAC REAL_FIELD);;
+
+		
+	prove
+	 (`~(collinear {v0:real^3,va,vc}) /\ ~(collinear {v0,vb,vc}) ==>
+    (let gamma = dihV v0 vc va vb in
+     let a = arcV v0 vb vc in
+     let b = arcV v0 va vc in
+     let c = arcV v0 va vb in
+       cos(gamma) pow 2 = ((cos(c) - cos(a)*cos(b))/(sin(a)*sin(b))) pow 2)`,			
+
+		sin (arcV v0 vb vc) = 
+		norm (((vc - v0) dot (vc - v0)) % (va - v0) -
+          ((va - v0) dot (vc - v0)) % (vc - v0))
+		
+		cos (arcV v0 va vb) = 
+																												
+																																															  
   prove
 	 (spherical_loc_t,
-	  REPEAT STRIP_TAC THEN REPEAT (CONV_TAC let_CONV) THEN 
-		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV dihV]
+	  REWRITE_TAC [COLLINEAR_ZERO ;COLLINEAR_FACT] THEN 
+		ONCE_REWRITE_TAC [VECTOR_ARITH `a = b <=> vec 0 = a - b`] THEN 
+		REPEAT STRIP_TAC THEN 
+		REPEAT (CONV_TAC let_CONV) THEN 
+		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV dihV] THEN
+		ASM_SIMP_TAC [COS_ARCV ; COLLINEAR_NOT_ZERO]
 
 ***)
 			

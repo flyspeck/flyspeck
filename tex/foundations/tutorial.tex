@@ -838,4 +838,225 @@ for the type of \verb!(=)! in curried form.
 \end{itemize}
 
 
+
+\section{more facts}
+
+Let \verb!hol_type! be the set of all types.
+
+Every type has the form \verb!<h,a>! where \verb!h=tyvar! or \verb!h=tyapp!.  Two types \verb!<h,a>!, \verb!<h',a'>! are equal precisely when \verb!h=h'! and \verb!a=a'!.
+
+\begin{lemma}[induction]  Let $X$ is a set of types. Assume that $X$ includes all types of the form \verb!<tyvar,k>!.  Assume that for every element \verb!<s,n>! of \verb!tycon!, and every list \verb!p! of length $n$ all of whose elements belong to $X$, the type \verb!<tyapp,s,p>! belongs to $X$.  Then \verb!X=hol_type!.
+\end{lemma}
+
+\begin{proof} If the conclusion if false, the set $\verb!hol_type!\setminus X$ has an element $t$ of least depth $N$.  By assumption it does not have the form \verb!<tyvar,k>!.  So $t$ does not have depth $0$.  So \verb!t=<tyapp,s,p>!   By the definition of types of depth at most $N$, there exists $n$ such that \verb!<s,n>! belongs to \verb!tycon!, \verb!p! has length $n$, and all elements of \verb!p! have depth at most $N-1$.  Since $t$ is a counterexample of least depth, we have that every element of \verb!p! belongs to $X$.  The assumption of the lemma now gives the result.
+\end{proof}
+
+
+
+\section{type variables}
+
+
+
+
+There is a recursively defined function $f:\ring{N}\times \verb!hol_type!\to P(\verb!hol_type!)$ that sends $(k,t)$ to the set of type variables in $t$ of depth at most $k$:
+$$
+\begin{array}{lll}
+f(0,t) &= \begin{cases} \{t\} &\hbox{if } t = \verb!<tyvar,k>!\\ \emptyset &\hbox{if } t = \verb!<tyapp,s,p>!\end{cases}\\
+f(n+1,t) &= \begin{cases} \{t\} &\hbox{if } t= \verb!<tyvar,k>!\\ \bigcup\{ f(n,x) \mid x \in \verb!setify!(p) \} &\hbox{if } t = \verb!<tyapp,s,p>!\end{cases}\\
+\end{array}
+$$
+We then define the function
+$$
+\verb!tyvars:hol_type!\mapsto P(\verb!hol_type!),\quad
+t \mapsto f(n,t),
+$$
+where $n$ is the minimal depth of the type $t$.
+
+\begin{example}
+\begin{verbatim}
+tyvars(`:(A->B)->bool`) = f(2,`:(A->B)->bool`)! 
+     = f(1,`:A->B`) UNION f(1,`:bool`)
+     = f(0,`:A`) UNION f(0,`:B`) UNION {}
+     = {`:A`,`:B`}.
+\end{verbatim}
+\end{example}
+
+\subsection{type substitution}
+
+We define a function
+$$
+\verb!type_subst!:(\ring{N}\to \verb!hol_type!)\to \verb!hol_type! \to \verb!hol_type!
+$$
+that replaces each variable with a type according to a given substitution function $\theta:\ring{N}\to \verb!hol_type!$.
+
+By recursion, we have a function 
+$$f:\ring{N}\times (\ring{N}\to \verb!hol_type!)\to \verb!hol_type! \to \verb!hol_type!$$
+$$
+\begin{array}{lll}
+f~0~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ t &\hbox{otherwise}\end{cases}\\
+f~(n+1)~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ \verb!<tyapp,s,p'>! &\hbox{if } t = \verb!<tyapp,s,p>!\end{cases}\\
+\end{array}
+$$
+where $p'$ is the list obtained by applying $f(n,\theta,\cdot)$ to each entry of $p'$:
+if $p=[a_0;a_1;\cdots;a_k]$, then
+$$
+p' = [f(n,\theta,a_0);\cdots;f(n,\theta,a_k)].
+$$
+If $ty$ is a type of depth $n$, we set
+\begin{equation}
+\verb!typ_subst!~\theta~ty = f~n~\theta~ty.
+\end{equation}
+
+\begin{example}
+Let $\theta$ be the function
+$$
+\begin{array}{lll}
+\theta(\verb!`:A`!) &=\verb!`:B`!\\
+\theta(\verb!`:B`!) &=\verb!`:bool`!\\
+\theta(t) &= t,\quad\hbox{otherwise}.
+\end{array}
+$$
+Then
+\begin{verbatim}
+type_subst f `:A->B` = `:B->bool`.
+\end{verbatim}
+\end{example}
+
+\subsection{recursion analyzed}
+
+The type substitution function \verb!type_subst! was defined through an auxiliary function $f$.  The first
+argument of $f$ is a natural number that was used in the recursive definition of $f$.  Once the recursive definition was complete, we eliminated the first variable by setting it equal to the type.  The function \verb!typ_subst! satisfies the following {\it recursion relation}:
+$$
+\begin{array}{lll}
+\verb!typ_subst!~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ t &\hbox{otherwise}\end{cases}\\
+\verb!typ_subst!~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ \verb!<tyapp,s,![a'_0;\ldots;a'_i]\verb!>! &\hbox{if } t = \verb!<tyapp,s,![a_0;\ldots,a_i]\verb!>!\end{cases}\\
+\end{array}
+$$
+where $a'_j = \verb!typ_subst!~\theta~a_j$.
+
+In the future, we will simply express the definition in this form, rather than giving the auxiliary definition of $f$ directly.  We will generally indicate in passing what the recursion variable is.
+
+
+\chapter{terms}
+
+The collective name for mathematical functions, equations, inequalities, formulas, expressions, etc. is {\it term}.  Just about any grammatically correct mathemtical expression is a {\it term}.  A term is a mathematical thing.  This chapter gives a precise definition of the set of all terms in the HOL system.
+
+Since HOL is a typed system, {\it every term has a type}.
+Here are some examples of terms.
+
+\verb!`0`!  This is the constant $0$ in the HOL system.  Its type the type of natural numbers.  The backquotes mean that it is a term in the HOL system, as opposed to the number $0\in\ring{N}$ in the metamathematical system.  The notation distinguished between types and terms by marking types with a colon.  Thus, \verb!`:0` = <tyvar,"0">! is a type whose name is the ASCII string \verb!"0"!, but \verb`0` is a term.
+
+\verb!`(+)`!  This term is the addition function in HOL.  It is a prefix curried function with type `:num->num->num`.
+
+\verb!(=)`!  This term is the equality function in HOL.  It is a prefixed curried function with type \verb!`:A->A->bool`!.  As we will see, more accurately, there is an entire family of equality terms in HOL, obtained by applying type substitutions on the variable \verb!`:A`! in \verb!`:A->A->bool`!
+
+\verb!`0=0`!  This is an equation in HOL.  Its type is \verb!`:bool`!.  The subterm \verb!`(=)`! has type \verb!`:nat->nat->bool`!.
+
+\verb!`0`=`0`!  This is a metaequation beween two HOL terms.  The equals sign is not a part of HOL.  It is a metamathemtical equality between two terms.
+
+\verb!`6=2+4`!  This is a term of type \verb!`:bool`!.
+
+\verb!`6`=`2+4`!  This is a {\bf false} assertion.  It asserts that \verb!`6`! is the same expresion as \verb!`2+4`!, which is not correct.  
+
+\section{definition}
+
+Now we turn to the definition of terms.  First we define {\it raw terms} and then the raw terms that satisfy an additional compatibility condition will be terms. The definition of raw terms depends
+on a set \verb!tmpat! of term constant patterns:
+$$
+\verb!tmpat {("=",`:A->A->bool`),("@",`:(A->bool)->A`),...}!
+$$
+We assume that it contains at least the two indicated elements.
+We assume that each element of this set has the
+form $(k,ty)$, where $k\in \ring{N}$ and $ty\in\verb!hol_typ!$.
+We assume that if $(k,ty)=(k,ty')$, then $ty=ty'$.
+
+Let \verb!tmvar=0!, \verb!tmcon=1!, \verb!comb=2!, \verb!abs=3!.
+
+\begin{definition} The set of raw terms of depth at most $0$ is
+the union of
+\begin{itemize}
+\item $\{\verb!<tmvar,k,ty>! \mid k\in\ring{N},\quad ty\in\verb!hol_typ!\}$.
+\item $$\{\verb!<tmcon,k,ty>! \mid \exists\theta~ty'.~
+  (k,ty')\in \verb!tmpat! \hbox{ and } ty = \verb!type_sub!~\theta ty'\}.$$
+\end{itemize}
+The set of raw terms of depth at most $n+1$ is the union of
+\begin{itemize}
+\item the set of raw terms of depth at most $n$;
+\item $$\{\verb!<comb,t1,t2>!\mid t1,t2\hbox{ raw terms of depth at most } n\}$$
+\item $$\{\verb!<abs,v,t>!\mid \ldots\}.$$
+where the membership condition is that $v$ is a raw term of depth at most zero of the form \verb!<tmvar,k,ty>! and \verb!t! is a raw term of depth at most $n$.
+\end{itemize}
+The depth of a raw term is the smallest $n$ for which the
+term is a raw term of depth at most $n$.
+\end{definition}
+
+
+
+\begin{definition} The type of a raw term is defined by recursion over the depth: Let \verb!false=0! and \verb!true=1! in
+the following definition.
+The raw type \verb!rt! of a raw term of depth at most $0$ is
+$$
+\begin{array}{lll}
+\verb!<tmvar,k,ty>!&\mapsto \verb!(true,ty)!\\
+\verb!<tmcon,k,ty>!&\mapsto \verb!(true,ty)!
+\end{array}
+$$
+The raw type of a raw term of depth at most $n+1$ is
+$$
+\begin{array}{lll}
+\verb!<comb,t1,t2>!&\mapsto 
+\begin{cases}
+\verb!(true,ty)! &\hbox{if } \verb!(rt(t1)=(true,<"fun",[ty1;ty]>)! \hbox{ and } \verb!(rt(t2)=(true,ty1)!\\
+\verb!(false,snd(rt(t1))! & \hbox{otherwise}
+\end{cases}\\
+\verb!<abs,v,t>!&\mapsto
+ \begin{cases}
+\verb!(true,<"fun",[ty1;ty2]>)!&\hbox{if } \verb!rt(v)=(true,t1), rt(t)=(true,ty2)!\\
+\verb!(false,snd(rt(v)))!&\hbox{otherwise}.
+\end{cases}
+\end{array}
+$$
+\end{definition}
+
+\begin{definition}
+We say that a raw term $t$ is well typed if its raw type has the form \verb!(true,.)!.  We define a term to be a raw term that is well-typed.  We define the type of a term $t$ to be \verb!snd(rt(t))!.
+\end{definition}
+
+\subsection{combination}
+
+A combination is a term of the form \verb!<comb,f,x>!.  The well-typing condition is a compatibility condition on the types of $f$ and $x$ for any combination.  It is the requirement that $f$ must have the type of a function
+\verb!<"fun",[a;b]>! and that the domain type \verb!a! matches the type of \verb!x!.  The combination \verb!<comb,f,x>! represents the term obtained by applying the function \verb!f! to the element \verb!x! in its domain.
+
+There is a convention shorthand notation for combinations.
+$$
+\begin{array}{lll}
+\hbox{shorthand notation}&\hbox{full form}\\
+\verb!`f(x)`! & \verb!<comb,<tmvar,"f",`:A->B`>,<tmvar,"x",`:A`>>!\\
+\verb!`f~x`! & \verb!<comb,<tmvar,"f",`:A->B`>,<tmvar,"x",`:A`>>!\\
+\verb!`x:A`!&\verb!<tmvar,x,`:A`>!\\
+\verb!`(+)~x~y`! & \verb!<comb,<comb,<tmcon,"+",`:nat->nat->nat`>,<tmvar,"x",`:nat`>>,<tmvar,"y",`:nat`>>!\\
+\end{array}
+$$
+
+The function \verb!`f`! in a combination always takes a single argument \verb!`x`!.  As terms cannot accommodate functions of several variables, they are always put in curried form.
+
+If the raw term is not well-typed, then there is no corresponding term.  For example, if \verb!`f:A->A`! is a term and
+\verb!`x:bool`! is another term, there is no term \verb!`f~x`!, because the raw type
+$$
+\verb!<comb,<tyvar,"f",`:A->A`>,<tyvar,"x",`:bool`>>!
+$$
+is not well-typed.
+
+\subsection{abstraction}
+
+An abstraction is a term of the form \verb!<abs,v,t>!.  It
+represents the function that maps \verb!v! to \verb!t!.
+
+For example, \verb!<abs,`x`,`x+1`>! is the function that
+takes a term of type \verb!`:nat`! and adds \verb!`!`! to
+it.  The type of this abstraction is \verb!`:nat->nat`!.
+
+
+
+
 \end{document}

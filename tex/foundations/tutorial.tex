@@ -1022,7 +1022,17 @@ $$
 We say that a raw term $t$ is well typed if its raw type has the form \verb!(true,.)!.  We define a term to be a raw term that is well-typed.  We define the type of a term $t$ to be \verb!snd(rt(t))!.
 \end{definition}
 
+Write \verb!term! for the set of all terms.  It is a subset of $\ring{N}$.
+
 \subsection{combination}
+
+Every term has one of the forms
+$$
+\verb!<tmvar,_>    <tmcon,_>   <comb,_,_>   <abs,_,_>!
+$$
+We call these four kinds of terms: variables, constants,
+combinations, and abstractions.  We discuss each kind
+of term in turn, starting with combinations.
 
 A combination is a term of the form \verb!<comb,f,x>!.  The well-typing condition is a compatibility condition on the types of $f$ and $x$ for any combination.  It is the requirement that $f$ must have the type of a function
 \verb!<"fun",[a;b]>! and that the domain type \verb!a! matches the type of \verb!x!.  The combination \verb!<comb,f,x>! represents the term obtained by applying the function \verb!f! to the element \verb!x! in its domain.
@@ -1056,6 +1066,127 @@ For example, \verb!<abs,`x`,`x+1`>! is the function that
 takes a term of type \verb!`:nat`! and adds \verb!`!`! to
 it.  The type of this abstraction is \verb!`:nat->nat`!.
 
+The HOL system is a descendant of Church's $\lambda$-calculus.
+In Church's $\lambda$-calculus, the function $x\mapsto x+1$
+is denoted
+$$
+\lambda x.~x+1.
+$$
+For ease of typing at a standard keyboard, we represent the Greek lambda as a backslash \verb!\!.
+Following Church, we introduce the following abbreviations
+for abstractions:
+$$
+\begin{array}{lll}
+\hbox{shorthand notation}&\hbox{standard math}&\hbox{full form}\\
+\verb!`\x. x+1`!&x\mapsto x+1&\verb!<"abs",`x`,`x+1`>!\\
+\verb!`\x. x+y`!&x\mapsto x+y&\verb!<"abs",`x`,`x+y`>!\\
+\verb!`\t. 3`!&t\mapsto 3&\verb!<"abs",`t`,`3`>!\\
+\verb!`\t. f(t)`!&t\mapsto f(t)&\verb!<"abs",`t`,`f t`>!\\
+\verb!`\x \y. x+y`!&(x,y)\mapsto x+y&\verb!<"abs",`x`,<"abs",`y`,`x+y`>>!\\
+\end{array}
+$$
+In the last example, we have converted the standard math formula into uncurried form.
+
+\subsection{variables}
+
+A term variable functions as an ordinary mathematical variable in the HOL system.  It can stand for an unknown quantity of a given type.
+$$
+\begin{array}{lll}
+\hbox{shorthand notation}&\hbox{full form}\\
+\verb!`x:A`!&\verb!<tmvar,"x",`:A`>!\\
+\verb!`u:bool`!&\verb!<tmvar,"u",`:bool`>!\\
+\verb!`f:A->B`!&\verb!<tmvar,"f",`:A->B`>!\\
+\end{array}
+$$
+
+\subsection{constants}
+
+Term constants represent terms that have been given a precise fixed mathematical definition, or whose usage has been fixed by the axioms (which we will be describing later).
+
+The HOL system contains a large number of contants.  It
+includes mathematical constants such as
+$$
+\verb!`pi` `e` `0`!
+$$
+corresponding to the real numbers $\pi$, $e$, and natural number $0$.
+It includes logical symbols such as
+$$
+\verb#`(/\)`  `(\/)` `(==>)`  `(!)` `(?)`#
+$$
+that are the HOL constants for the logical operations of 
+$$
+\hbox{\it and},\quad \hbox{\it or},\quad \hbox{\it implies},\quad \hbox{\it for all},\quad \hbox{\it there exists}.$$
+It includes mathematical symbols of fixed meanings and standard mathematical functions:
+$$
+\verb!`sum` `lim` `sqrt` `sin` `cos`!
+$$
+for 
+$$
+\sum,\quad \lim,\quad \sqrt{\cdot},\quad \sin,\quad \cos.
+$$
+
+\section{concluding remarks}
+
+This completes our discussion of the four kinds of terms.  We will see that just about any formula, expression, equation, inequality, in just about any math book in the library can be expressed as a HOL term.\footnote{Honestly, there are many books beyond the HOL system, but as we will see, it does remarkable well.}
+
+The set of terms depends on the set of term constants patterns \verb!tmpat!.  One term pattern is
+$$
+\verb!<"=",`:A->A->bool`>!
+$$
+Type substitution on this pattern gives an unlimited number of different constants.
+\begin{verbatim}
+  `(=):A->A->bool`
+  `(=):B->B->bool`
+  `(=):bool->bool->bool`
+  `(=):(A->C)->(A->C)->bool`
+\end{verbatim}
+and so forth.  To repeat, there is no single constant \verb!`(=)`!, but various constants denoted by the same symbol and distinguished by their type.
+In particular,
+\begin{verbatim}
+  `((=):A->A->bool) = ((=):B->B->bool)`
+\end{verbatim}
+is not well-typed and
+$$
+\verb!`(=):A->A->bool`! \ne \verb!`(=):B->B->bool`!
+$$
+Also,
+$\verb!"A"!\ne \verb!"B"!$ implies that
+$$
+\verb!`:A`=<tyvar,"A">!\ne\verb!<tyvar,"B">=`:B`!
+$$ 
+\section{free variables}
+
+In a term \verb!\x. t`, the variable \verb!x! is said to be
+bound in \verb!t!.  In any abstraction
+$$
+\verb!<abs,x,t>!
+$$
+all occurrences of the variable \verb!x! (with identical type) in \verb!t! are {\it bound variables}.  Variables that are not bound by any abstraction are free.
+
+Bound variables are similar to {\it dummy variables} in expressions such as 
+$$
+\begin{array}{lll}
+\int_0^3 f(t) dt &= \int_0^3 f(u) du\\
+\sum_{i=1}^{10} a_i &= \sum_{j=1}^{10} a_j\\
+(\exists x.~x>0)  \Leftrightarrow (\exists y.~y>0).\\
+\end{array}
+$$
+In fact, later we will see that these dummy variables are just paricular cases of binding variables through abstraction.
+
+Let \verb!var! be the set of term variables; that is, the
+set of all terms of the form \verb!<tmvar,_,_>!.
+We define a function $\verb!frees:term!\to \verb!P(var)!$
+that takes a term and returns all free variables in that term.  For example,
+$$
+\begin{array}{lll}
+\verb!frees `x+y` = {`x`,`y`}!\\
+\verb!frees `x+y+x` = {`x`,`y`}!\\
+\verb!frees `\x. x` = {`x`}!\\
+\verb!frees `\x. x+y` = {`y`}!\\
+\verb!frees `x x` = {`x:A->B`,`x:A`}!\\
+\verb!frees `(x+0=y)=x` = {`x:nat`,`x:bool`,`y:nat`}!\\
+\end{array}
+$$
 
 
 

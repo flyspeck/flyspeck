@@ -1539,21 +1539,70 @@ At first, one might object to this rule of inference because it can lead to absu
 
 \subsection{antisymmetric deduction}
 
-The previous rule \verb!ASSUME!  is the only rule to create an assumption.  This rule,  antisymmetric deduction, is the only rule to remove an assumption from the list of assumptions in a sequent.
+The previous rule \verb!ASSUME!  is the only rule to create an assumption.  This rule,  antisymmetric deduction, is the only rule to remove an assumption from the list of assumptions in a sequent.  
 
-This rule gets to the heart... XXD
+This rule governs the interaction between the assumption list and bi-implication (equality of boolean terms).
+{\it We should be able to conclude $p \Leftrightarrow q$, when we can conclude $q$ assuming $p$ and can also conclude $p$ assume $q$.}
+
+To describe the antisymmetric deduction rule, we need to rely on a function that removes an entry from the assumption list.  There is a recursively defined function
+$$
+\verb!DROP:list -> !\ring{N} \verb! -> list!.
+$$
+\verb!DROP p a! removes from a serial list $p$ every entry that is equal to \verb!a!.
+\begin{example}
+\begin{verbatim}
+DROP [1;2;3] 2 = [1;3]
+DROP [1;1;1;2] 1 = [2]
+DROP [2;3;4;1;2;1;4] 2 = [3;4;1;1;4]
+DROP [] 3 = []
+DROP [4;5;6] 1 = [4;5;6]
+\end{verbatim}
+\end{example}
 
 If the assumption $q$ gives conclusion $p$ and the assumption $p$ gives $q$, then they have the same truth value:
 $$
-\frac{\Gamma \vdash p;~~~\Delta\vdash q}
-{(\Gamma\setminus q)\cup (\Delta\setminus p)
+\verb!DEDUCT_ANTI!\quad\frac{\Gamma \vdash p;~~~\Delta\vdash q}
+{(\hbox{DROP}~\Gamma~q)~@~(\hbox{DROP}~\Delta~p)
 \vdash p=q}
 $$
+This is a curried function
+$$
+\verb!DEDUCT_ANTI:sequent -> sequent -> sequent.!
+$$
+The rule never produces an error.
+
+If the assumption list $\Gamma$ of the first sequent contains assumptions other than $q$, then they are carried into the assumption list of the sequent produced by the rule.  If the assumption list $\Gamma$ does not contain $q$, then nothing is dropped.  Similar comments apply to the assumption list $\Delta$ of the second sequent.
+
+\begin{example}
+\begin{verbatim}
+DEDUCT_ANTI <[`p`],`q`> <[`q`],`p`>
+ = <[],`q=p`>
+DEDUCT_ANTI <[`b`],`b`> <[`c`;`b`]>,`a`>
+ = <[`b`;`c`],`b=a`>
+DEDUCT_ANTI <[],`p`> <[],`q`>
+ = <[],`p=q`>
+\end{verbatim}
+\end{example}
+Note the relationship between this final example and the \verb!MP_EQ! rule.  This example shows that any two conclusions have the same truth-value.  The \verb!MP_EQ! rule states that any boolean term with the same truth-value as a conclusion of a theorem can also be concluded.
+
+
+
 
 
 \subsection{type substitition}
 
+The final two rules of inference treat variables.  The HOL sytem contains two kinds of variables: type variables such as \verb!`:A`! and term variables such as \verb!`x`!.  There is one inference rule for type variables and one inference rule for term variables.  We consider type variables first.
+
+When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
+
+This rule has its restrictions, because of the danger of variable capture.  
+
+
+
+
 Type variable substitution holds.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.
+
+
 
 \subsection{term substitution}
 

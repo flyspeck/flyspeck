@@ -1589,18 +1589,94 @@ Note the relationship between this final example and the \verb!MP_EQ! rule.  Thi
 
 
 
-\subsection{type substitition}
+\subsection{variable capture}
 
-The final two rules of inference treat variables.  The HOL sytem contains two kinds of variables: type variables such as \verb!`:A`! and term variables such as \verb!`x`!.  There is one inference rule for type variables and one inference rule for term variables.  We consider type variables first.
+The final two rules of inference treat variables.  The HOL sytem contains two kinds of variables: type variables such as \verb!`:A`! and term variables such as \verb!`x`!.  There is one inference rule for type variables and one inference rule for term variables.  
 
+
+We consider type variables first.
 When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
 
-This rule has its restrictions, because of the danger of variable capture.  
+This rule has its restrictions, because of the danger of variable capture.  Variable capture is a particular kind of transformation on sequents that is known to produce inconsistencies in a formal system.  We illustrate with the following example.\footnote{This example uses some elementary arithmetic and existential quantifiers.  These notions will not be introduced into the HOL system until much later.  This is meant as an illustrative example only and may be skipped without affecting the development of the HOL system.}  Consider the following mathematical statement: There exists $f:A\to\ring{N}$ and $x:A$ such that
+$$
+(f:B->\ring{N})~x < (f:A\to\ring{N})~x.
+$$
+This statement contains two entirely different variables $x$.  One has type \verb!`:A`! and the other has type \verb!`:B`!.  The statement contains to entirely different functions with the same name $f$.  One has type \verb!`:A->nat`! and the other has type \verb!`:B->nat`!.  We know that the two $x$s are different and the two $f$s are different because each term has a uniquely determined type.  The statement expresses an arithmetic truth.  It is $\alpha$-equivalent to the statement: 
+There exists $g:A\to\ring{N}$ and $y:A$ such that
+$$
+(f:B->\ring{N})~x < (g:A\to\ring{N})~y.
+$$
+no matter the value of the function on the left, we could take $g$ to be defined by $g = \lambda y.~f~x + 1$, and then
+$$
+f~x < f~x + 1,
+$$
+which is an arithmetic truth.
+
+However, by giving distinct variables the same name, we have created a dangerous situation.  If we make the type substitution on type variables:
+$$
+\theta(`:B`) = `:A`;\quad \theta(t)=t\hbox{ otherwise}
+$$
+then the statement becomes:
+There exists $f:A\to\ring{N}$ and $x:A$ such that
+$$
+(f:A->\ring{N})~x < (f:A\to\ring{N})~x.
+$$
+In this statement the variables $x$ all have the same type and are equal to one another.  Also, the variables $f$ have the same type and are equal to one another.  The statement expresses an arithmetic falsehood; the value of the function cannot be less than itself.
+
+We have thus transformed an arithmetic truth into an arithmetic falsehood by making an unrestricted substitution of type variables.
+
+The problem is precisely that the variable $f:B\to \ring{N}$ is free before the substitution; it lies within the body of an abstraction; and becomes identical to the binding variable $f:A\to\ring{N}$ of the abstraction.  It is captured.
 
 
+\subsection{type substitution}
+
+We consider type variables first.
+When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
 
 
-Type variable substitution holds.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.
+Type variable substitution holds provided no variable capture occurs.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.  Type instantiation for sequents is defined through a type instantiation function for terms:
+$$
+\verb!inst: list -> (tyvar -> typ) -> term UNION {error} -> term UNION {error}!
+$$
+The first argument \verb!e:list = [<y1,y1'>;<y2,y2'>...]! keeps tabs on the bound variables $y$ in the current scope and what they become $y'$ after variable substitution.  This first argument is needed in order to watch for variable capture.  The second argument $\theta:\verb!tyvar->typ!$ is the function describing the substitutions to be performed on type variables.  The next argument is the term $t$ on which the substitution is to be performed.
+
+Here is a description of how \verb!inst! works.  
+\begin{itemize}
+\item  If \verb!t=error! then the result of \verb!inst! is also an error.
+\item If the term $t$ is a constant \verb!<cons,c,ty>!, then
+the output is the constant
+$$
+\verb!<cons,c,ty_sub theta ty>!
+$$
+\item If the term $t$ is a combination \verb!<comb,f,x>!, then
+recursively call the function \verb!inst! on the two parts:
+$$
+\verb!<comb,inst e theta f, inst e theta x>!
+$$
+\item If the term $t$ is a variable \verb!<tmvar,x,ty>!, then
+let \verb!ty' = ty_sub theta ty! be its type after substitution
+and let \verb!t' = <tmvar,x,ty'>! be the new variable.
+If \verb!<t,t'>! is an element of the environment $e$, then
+the output is $t'$.  If there is no element of the environment $e$ of the form \verb!<t,_>!, then the output is $t'$.  Otherwise a variable capture has been detected, and the output is \verb!error!.
+\item If the variable $t$ is an abstraction \verb!<abs,x,f>!, let
+\verb!x' = inst [] theta x! be the new variable, and
+\verb!e' = <cons,<x,x'>,e>! the new environment, and 
+\verb!f' = inst e' theta f! the new body of the abstraction.
+If \verb!t'=error!, then the output is error; otherwise the output
+is \verb!<abs,x',f'>!.
+\end{itemize}
+
+The rule of inference \verb!INST_TYPE! is curried:
+$$
+\verb!INST_TYPE: (tyvar->type) -> sequent -> sequent!\cup {\verb!error!}.
+$$
+Given a type substitution function $\theta$, to apply the rule of inference \verb!INST_TYPE! to a 
+sequent \verb!<p,b>!, Let \verb!p'! be the list of terms obtained by applying \verb!inst [] theta! to each entry of \verb!p!, and \verb!b'! the term obtained by applying the same function to \verb!b!.
+If \verb!error! is equal to any of the entries of \verb!p'! or to \verb!b!, then the output is \verb!error!; otherwise the result
+is the sequent.
+$$
+INST_TYPE theta <p,b> = <p',b'>
+$$
 
 
 

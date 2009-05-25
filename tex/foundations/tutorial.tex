@@ -1328,19 +1328,30 @@ The rule of reflection is a prime example of a rule of inference that conforms t
 
 \begin{exer} Define by recursion over the length of a list a function (written in infix notation)
 $$
-\verb!(@): list -> list -> list!
+\verb!(MERGE): list -> list -> list!
 $$
-that concatenates serial lists.  For example,
-$$
-\verb![2;4;6] @ [1;3;5] = [2;4;6;1;3;5]!.
-$$
+that concatenates serial lists, omitting any duplication from the first list.  For example,
+\begin{verbatim}
+[2;4;6] MERGE [1;3;5] = [2;4;6;1;3;5].
+[1;1;3] MERGE [2;3;3;4] 
+ = [1;1] MERGE (3 MERGE1 [2;3;3;4])
+ = [1;1] MERGE [2;3;3;4]
+ = 1 MERGE1 (1 MERGE1 [2;3;3;4])
+ = 1 MERGE1 [1;2;3;3;4]
+ = [1;2;3;4].
+[2;3;4;3;4] MERGE []
+ = 2 MERGE1 (3 MERGE1 (4 MERGE1 (3 MERGE1 (4 MERGE1 []))))
+ = 2 MERGE1 (3 MERGE1 (4 MERGE1 [3;4]))
+ = 2 MERGE1 [3;4]
+ = [2;3;4]
+\end{verbatim}
 \end{exer}
 
 The second rule of inference is the transitive rule of equality.
 
 
 $$
-\verb!TRANS!:  \frac{\Gamma \vdash a = b;\quad \Delta\vdash b'=c}{\Gamma~@~\Delta \vdash a = c}
+\verb!TRANS!:  \frac{\Gamma \vdash a = b;\quad \Delta\vdash b'=c}{\Gamma~\hbox{MERGE}~\Delta \vdash a = c}
 $$
 where $b$ and $b'$ are $\alpha$-convertible terms.
 
@@ -1362,7 +1373,7 @@ where $b$ and $b'$ are $\alpha$-convertible.
 When the sequents have this special form, then the result is
 the sequent
 $$
-\verb!<A1 @ A2,<comb,<comb,`(=)`,a>,c>>>!
+\verb!<A1 MERGE A2,<comb,<comb,`(=)`,a>,c>>>!
 $$
 
 In this rule of inference, the theorems input may have nonempty assumption lists.  If so, the assumptions of both theorems carry through to the conclusion without any modification.
@@ -1403,7 +1414,7 @@ From a given conclusion $p$, we may conclude any other boolean term $q$ of equal
 %% EQ_MP
 $$
 \verb!EQ_MP!\quad\frac{\Gamma\vdash p;~~~\Delta \vdash p=q}
-{\Gamma~@~\Delta \vdash q}
+{\Gamma~\hbox{MERGE}~\Delta \vdash q}
 $$
 The function is curried:
 $$
@@ -1437,7 +1448,7 @@ We have said that a combination \verb!f x = <comb,f,x>! is intended to represent
 The third rule of inference declares that equal functions applied to equal inputs produce equal outputs.  This rule fixes the interaction between combinations and equality.  It is called \verb!MK_COMB!  
 $$
 \verb!MK_COMB!: \frac{\Gamma\vdash f=g;~~~\Delta\vdash a=b}
-{\Gamma~@~\Delta\vdash f\hskip0.1em a = g\hskip0.1em b}
+{\Gamma~\hbox{MERGE}~\Delta\vdash f\hskip0.1em a = g\hskip0.1em b}
 $$
 The rule of inference is a curried function:
 $$
@@ -1562,7 +1573,7 @@ DROP [4;5;6] 1 = [4;5;6]
 If the assumption $q$ gives conclusion $p$ and the assumption $p$ gives $q$, then they have the same truth value:
 $$
 \verb!DEDUCT_ANTI!\quad\frac{\Gamma \vdash p;~~~\Delta\vdash q}
-{(\hbox{DROP}~\Gamma~q)~@~(\hbox{DROP}~\Delta~p)
+{(\hbox{DROP}~\Gamma~q)~\hbox{MERGE}~(\hbox{DROP}~\Delta~p)
 \vdash p=q}
 $$
 This is a curried function
@@ -1662,27 +1673,105 @@ the output is $t'$.  If there is no element of the environment $e$ of the form \
 \verb!x' = inst [] theta x! be the new variable, and
 \verb!e' = <cons,<x,x'>,e>! the new environment, and 
 \verb!f' = inst e' theta f! the new body of the abstraction.
-If \verb!t'=error!, then the output is error; otherwise the output
+If \verb!f'=error!, then the output is error; otherwise the output
 is \verb!<abs,x',f'>!.
 \end{itemize}
 
 The rule of inference \verb!INST_TYPE! is curried:
 $$
-\verb!INST_TYPE: (tyvar->type) -> sequent -> sequent!\cup {\verb!error!}.
+\verb!INST_TYPE: (tyvar->type) -> sequent -> sequent!\cup \verb!{error}!.
 $$
 Given a type substitution function $\theta$, to apply the rule of inference \verb!INST_TYPE! to a 
 sequent \verb!<p,b>!, Let \verb!p'! be the list of terms obtained by applying \verb!inst [] theta! to each entry of \verb!p!, and \verb!b'! the term obtained by applying the same function to \verb!b!.
 If \verb!error! is equal to any of the entries of \verb!p'! or to \verb!b!, then the output is \verb!error!; otherwise the result
 is the sequent.
 $$
-INST_TYPE theta <p,b> = <p',b'>
+\verb!INST_TYPE theta <p,b> = <p',b'>!
+$$
+
+A rule of inference for type substitution is essential to the useability of the HOL system.  Otherwise, by proving a theorem for example about \verb!`(=):A->A->bool`! would tell us nothing about \verb!(=):B->B->bool`!  Without type substitution, we would have an unbounded number of variants of each theorem to prove, depending on the variable names.  With a type substitution rule, we can prove one generic theorem with whatever names we please for the type variables, and then instantiate it as needed to any other type variables.
+
+\begin{example}
+Let $\theta(\verb!`:A`!) = \verb!`:B`!$ and $\theta(v) = v$,
+for $v\ne \verb!`:A`!$.
+\begin{verbatim}
+INST_TYPE theta <[],`x:A = x:A`>
+ = <[],`x:B = x:B`>
+\end{verbatim}
+\end{example}
+
+\begin{example}
+Let $\theta(\verb!`:A`!) = \verb!`:bool`!$ and $\theta(v) = v$,
+for $v\ne \verb!`:A`!$.
+\begin{verbatim}
+INST_TYPE theta <[],`x:A = x:A`>
+ = <[],`x:bool = x:bool`>
+\end{verbatim}
+\end{example}
+
+
+
+\subsection{term instantiation}
+
+The second type of variable is a term variable such as \verb!`x:bool`!.  The rule of inference \verb!INST! replaces each free variable in a term with another given term.  As with type instantiation care must be taken to avoid free variable capture.
+
+Here is an example of capture.  The following statement expresses an arithmetic truth:
+There exists \verb!y:nat! such that
+$$
+\verb!x < y!
+$$
+If we were to be allowed to instantiate the \verb!x:nat! to \verb!y:nat!, we obtain an arithmetic falsehood:
+There exists
+\verb!y:nat! such that
+$$
+\verb!y < y!
 $$
 
 
+Let $\theta=\verb![<y1,t1>;<y2,t2>...]!$ be a list with elements of the form \verb!<y,t>!, where $y$ is a term variable and $t$ is a term.  We assume that the pairs preserve types:
+$$
+\verb!type_of y = type_of t!
+$$
+for all \verb!<y,t>! in $\theta$.
 
-\subsection{term substitution}
+Define a recursive function that makes substitutions of terms for variables, using $\theta$.  It is a curried function:
+$$
+\verb!term_subst:(var -> term) -> term UNION {error} -> term UNION {error}.
+$$
+The value \verb!term_subst theta t = t'! is computed as follows
+\begin{itemize}
+\item Error results if the substitution list $\theta$ does not preserve types.
+\item Error results if \verb!t=error!
+\item The value is \verb!t'! if $\theta$ contains an element of the
+form \verb!<t,_>! and \verb!<t,t'>! is the first such term.
+\item The value is $t$, if $t$ is a constant.
+\item The value is defined recursively as
+$$
+\verb!<comb,term_subst theta f,term_subst theta x>!
+$$
+if \verb!t=<comb,f,x>! is a combination.
+\item Finally, if \verb!t=<abs,x,f>! is an abstraction.  
+Let \verb!theta' = <cons,<x,x>,theta>! be the augmented list (bound variables are to be left alone).
+The result is an error if
+ $\theta$ contains an entry of the form \verb!<y,t>!, where
+ $y\ne x$, $y$ is occurs freely in $f$, and $x$ occurs freely in $t$ (because of potential variable capture).  Otherwise, define the result to
+be
+$$
+\verb!<abs,x,term_subst theta' f>!.
+$$
+\end{itemize}
 
-Term variable substitution holds.  If arbitrary terms are substituted in parallel for term variables in a sequent, a theorem results.
+\verb!INST!  Term variable substitution holds.  If arbitrary terms are substituted in parallel for term variables in a sequent, a sequent results, provided variable capture is avoided.  The function is
+curried:
+$$
+\verb!INST: list -> sequent -> sequent! \cup \verb!{error}!
+$$
+\verb!INST theta <p,a>! is computed as follows.
+Let $p'$ be the list obtained by applying \verb!term_subst theta! to each entry of $p$, and let $a'$ be the term obtained by applying the same function to $a$.  If $a'$ or any entry of $p'$ is \verb!error!, then error results.  Otherwise, the result is the sequent \verb!<p',a'>!.
+
+
+
+
 
 \section{Axioms}
 

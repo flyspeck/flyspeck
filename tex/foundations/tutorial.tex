@@ -96,6 +96,8 @@
 
 What I have done for the course and for this book is to translate Harrison's computer system into something that has more of the look and feel of mathematics, and less of the look of a computer program.  Where Harrison uses computer code implemented in Objective CAML, I use traditional mathematical functions.  
 
+For me it has been a worthwhile exercise to rewrite a nontrivial body of computer code in rigorous mathematical form.  It is evidence of the great progress of computer language semantics that the code lends itself so readily to rigorous mathematical description.
+
 It is intended for this book to be easier for math students to read and understand than computer code.  Of course, there are some serious drawbacks in replacing computer code with traditional mathematics.  Computer code is compiled; compilation catches bugs.  Traditional mathematics is not compiled.  Traditions change.  My hope is that the readers of this book will combine their study of this book with practical hands-on experience with proof assistants such as HOL, to obtain a deeper understanding of the foundations of mathematics.
 
    I thank the students of my undergraduate course: Introduction to the Foundations of Mathematics, for their many contributions.
@@ -276,7 +278,7 @@ The distinction between prefix, infix, and postfix can be made at both the mathe
 
 
 
-\section{set formation}
+\section{sets}
 
 The set with no elements is called the {\it empty set} and is denoted \mc{$\emptyset$} or \mc{$\{\}$}.
 A set \mc{$\{a\}$} that contains exactly one element \mc{$a$} is called a {\it singleton set}. 
@@ -858,6 +860,10 @@ both denote the same type as
 $$
 \scriptsize
 \verb!<tyapp,"fun",[<tyvar,"A">;<tyapp,"fun",[<tyvar,"B">;<tyvar,"C">]>]>!
+$$
+Also, write
+$$
+\verb!fun_ty a b = <tyapp,"fun",[a;b]>!
 $$
 
 
@@ -1795,24 +1801,69 @@ This completes the description of all the rules of inference in the HOL system.
 
 Now that we have a complete list of the rules of inference, we can give a description of the primitive theorems of the HOL system.
 
+\section{state}
+
+We  make the dependence of the system on type constants and term constant patterns explicit.  As we see in a moment are four lists that influence the construction of types, terms, and theorems. The state of the HOL system depends on four lists, which we package together as a single list $s$ with four entries:
+\begin{equation}\label{eqn:state}
+\verb!s = [tycon;tmpat;axiom_list;def_list].!
+\end{equation}
+We let \verb!state! be the set of all lists of length four such that every entry is itself a list.
+We have a function
+$$
+\verb!type_from:state -> !\ring{N}
+$$
+depending only on the first entry of the state,
+that constructs the types from the list of type constants.
+\begin{example}
+The set of types for the primitive HOL system is
+$$
+\verb!type = type_from [[<"bool",0>];[];[];[]]!
+$$
+\end{example}
+
+The set of terms depends on the set of type constants and on the set of term constant patterns:
+$$
+\verb!term_from:state -> !\ring{N}.
+$$
+\begin{example}
+The set of terms for the primite HOL system is
+$$
+\verb!term = term_from [[<"bool",0>];[<"=",`:A->A->bool`>];[];[]]!
+$$
+\end{example}
+
+
+
 \section{primitive theorems}
 
-The set of all types depends on a set of type constants.  In this section, we take the set of type constants to be the singleton set
+Given these four lists, we can construct types, terms, and theorems as outlined.  If these lists change, we get different sets of types, terms, and theorems.
+
+
+We define a function
+$$
+\verb!thm_from: state -> P(sequent)!
+$$
+that constructs a set of sequents from the state.
+The recursive definition of
+$$
+\verb!thm_from [tycon; tmpat; axiom_list; def_list]!
+$$
+is as follows.  The set of theorems of depth at most $0$ is the set of axioms and definitions:
+ $$\verb!setify (def_list MERGE axiom_list)!.$$  
+A theorem of depth at most $n+1$ can be any theorem of depth at most $n$,  or any sequent that can be obtained as the error-free output of any of the ten rules of inference, where the input sequents (for the rules of inference that require one or more sequents) are theorems of depth at most $n$.  The depth of a theorem is the smallest $n$ such that it is a theorem of depth at most $n$.
+
+\begin{definition}
+The set of {\it primitive theorems} is the set of theorems associated with the following state lists.  The set of type constants is the singleton set
 $$
 \verb!tycon = {<"bool",0>}!
 $$
-The set of all terms depends on a set of term constant patterns.  In this section, we take
+The set of term constant patterns is
 $$
 \verb!tmpat {<"=",`:A->A->bool`>}!
 $$
-This fixes the set of all types and terms.
+For primitive theorems, we take the list of axioms to be empty: \verb!axiom_list=[]!.  We also take the definition list to be empty: \verb!def_list=[]!.
+\end{definition}
 
-We also require a list of axioms and a list of definitions to get us started.  Each axiom is a sequent.  For primitive theorems, we take the list of axioms to be empty: \verb!axiom_list=[]!.  We also take the definition list to be empty: \verb!def_list=[]!.
-
-
-Define the set of primitive theorems by recursion as a subset of the set of all sequents (which is a subset of the set of natural numbers).  The set of primitive theorems of depth at most $0$ is the set of axioms and definitions:
- $$\verb!setify (def_list MERGE axiom_list)!.$$  
-A primitive theorem of depth at most $n+1$ can be any primitive theorem of depth at most $n$,  or any sequent that can be obtained as the error-free output of any of the ten rules of inference, where the input sequents (for the rules of inference that require one or more sequents) are primitive theorems of depth at most $n$.  The depth of a primitive theorem is the smallest $n$ such that it is a primitive theorem of depth at most $n$.
 
 \begin{example}  There are no primitive theorems of depth $0$.
 Example of primitive theorems of depth $1$ are
@@ -1822,6 +1873,8 @@ ASSUME `p:bool` = <[`p:bool`],`p:bool`>
 \end{verbatim}
 \end{example}
 
+
+
 \section{Definitions}
 
 The primitive HOL system may be extended with definitions.  There are two kinds of definitions: definitions that define new types and definitions that define new terms.
@@ -1830,48 +1883,158 @@ The primitive HOL system may be extended with definitions.  There are two kinds 
 
 It is possible to extend the primitive HOL system by defining new types.  The set of all elements of a given new type is required to be in bijection with a non-empty subset of an existing type.
 
+
+A type definition is a uncurried function
 $$
-\verb!TY_DEF!\quad \frac{(s,abs,rep);\quad \vdash P~t}
+\verb!TY_DEF:state ->! \ring{N}^3\verb! -> sequent -> state!
+$$
+that modifies the state of the HOL system.
+
+As with the rules of inference, there are various inputs that trigger an error.  In this case, we bail out by returning the same four-tuple of lists that was input.  In other words, we abandon our edits and return to the original state.
+
+We compute
+\begin{verbatim}
+TY_DEF [tycon;tmpat;axiom_list;def_list] (s,rep,abs) <A,q> 
+ = [tycon';tmpat';axiom_list';def_list']
+\end{verbatim}
+as follows.  First, we mention some requirements; if any of the following conditions fails to hold, an error is triggered and the state is left unchanged:
+\begin{itemize}
+\item There is no entry of the form \verb!<s,_>! in \verb!tycon!.
+\item There is no entry of the form \verb!<rep,_>! or \verb!<abs,_>! in \verb!tmpat!.
+\item $\verb!A = []!$.
+\item $q$ is a combination \verb!<comb,P,t>!.
+\item $P$ contains no free variables.
+\end{itemize}  
+Let \verb!tyv! be the list of all type variables in $P$, listed without duplication.  Let $n$ be the length of that list.  
+
+One new type is created:
+$$
+\verb!tycon' = <cons,<s,n>,tycon>!
+$$
+We have the type constant `:s`
+$$
+\begin{array}{lll}
+\verb!sty = <tycon,s,tyv>!\in \verb!type_from tycon'!\\
+\verb!rty = type_of t!\in \verb!type_from tycon'!\\
+\end{array}
+$$
+Two new constant patterns are created (functions giving a correspondence in both directions between the old type and the new type):
+\begin{verbatim}
+tmpat' = <cons,abspat,<cons,reppat,tmpat>>
+abspat = <abs,fun_ty rty sty>
+reppat = <rep,fun_ty sty rty>
+\end{verbatim}
+We have term constants \verb!`abs`! and \verb!`rep`! given in expanded form as
+$$
+\begin{array}{lll}
+\verb!<tmcon,abs,fun_ty rty sty>!\in \verb!term_from tycon' tmpat'!\\
+\verb!<tmcon,rep,fun_ty sty rty>!\in \verb!term_from tycon' tmpat'!\\
+\end{array}
+$$
+The axiom list remains unchanged:
+$$
+\verb!axiom_list' = axiom_list!
+$$
+Two new sequents are added (concluding that the functions giving the correspondence between the old type and the new type define a bijection):
+$$
+\verb!def_list' = <cons,abs_rep,<cons,rep_abs,def_list>>!
+$$
+The two sequents are given in the following stylized form:
+$$
+\verb!abs_rep, rep_abs!\quad \frac{\vdash P~t}
 {\begin{array}{rll}\vdash& abs(rep~a) = a\\ \vdash& P~r = (rep(abs~r) = r)\end{array}}
 $$
-The function \verb!TY_DEF! is a curried function:
-$$
-\verb!TY_DEF:!\ring{N}^3\verb!-> sequent -> (sequent!\cup\verb!{error})!^2.
-$$
+Here \verb!abs! and \verb!rep! are the new term constants given above, and $a$ and $r$ are type variables whose types are determined by the those of the constants.
 
-To state how type definitions extend the HOL system, we need to make the dependence of the system on type constants and term constant patterns explicit.
-We have functions
-$$
-\verb!type_from:list -> !\ring{N}
-$$
-that constructs the types from the list of type constants.
-\begin{example}
-The set of types for the primitive HOL system is
-$$
-\verb!type = type_from [<"bool",0>]!
-$$
-\end{example}
+We will see many examples of new type definitions in this book.
 
-The set of terms depends on the set of type constants and on the set of term constant patterns:
-$$
-\verb!term_from:list -> list -> !\ring{N}.
-$$
-\begin{example}
-The set of terms for the primite HOL system is
-$$
-\verb!term = term_from [<"bool",0>] [<"=",`:A->A->bool`>]!
-$$
-\end{example}
 
 
 
 
 \subsection{term definitions}
 
+It is possible to extend the HOL system with new term definitions.  This
+section explains how.  In stylized form it is given as follows:
+$$
+\verb!DEF!\quad \frac{c~=~t}
+{\vdash~c~=~t}
+$$
+It is a curried function
+$$
+\verb!DEF:state -> term -> state!
+$$
+that modifies the four lists (\ref{eqn:state}) giving the state of the HOL system.
+
+As with the rules of inference, there are various inputs that trigger an
+error.  In this case, we bail out by returning the same four-tuple of lists that was input.  In other words, we abandon our edits and return to the original state.
+
+We compute
+\begin{verbatim}
+DEF [tycon;tmpat;axiom_list;def_list]  q 
+ = [tycon';tmpat';axiom_list';def_list']
+\end{verbatim}
+as follows.  First, we mention some requirements; if any of the following conditions fails to hold, an error is triggered and the state is left unchanged:
+\begin{itemize}
+\item $q$ is a boolean term of the form $c=t$.
+\item $c$ is a term variable \verb!<tmvar,c0,ty>!.
+\item There is no constant pattern of the form \verb!<c0,_>! in \verb!tmpat!.
+\item $t$ is a term that contains no free variables.
+\item Every type variable in $t$ is contained is a type variables in $ty$.
+\end{itemize}  
+The set of type constants remains unchanged: \verb!tycon'=tycon!.
+There is one new term constant pattern: 
+$$
+\verb!tmpat' = <cons,<c0,ty>,tmpat>!
+$$
+There are no new axoms: \verb!axiom_list'=axiom_list!.
+There is one new sequent:
+\begin{verbatim}
+def_list' = <cons,newdef,def_list>
+\end{verbatim}
+where the new sequent has no assumptions and a conclusion in the the same form $c=t$ as $q$, except that now $c$ is a term constant \verb!<tmcon,c0,ty>! matching the new pattern.
+
+\begin{example}
+\begin{verbatim}
+DEF [a;b;c;d] `two = 1+1`
+ = [a; <cons,<"two",`:nat`>,b>; c; <cons,<[],`two = 1+1`>,d>]
+\end{verbatim}
+\end{example}
+
+
+Nothing stops us from making outrageous definitions
+\begin{verbatim}
+DEF [tycon;tmpat;axiom_list;def_list] `the_Riemann_hypothesis = (0=0)` 
+ = [tycon;tmpat';axiom_list;def_list']
+tmpat' = <cons,<"the_Riemann_hypothesis",`:bool`>,tmpat>
+def_list' = <cons,<[],`the_Riemann_hypothesis = (0=0)`>,def_list>
+\end{verbatim}
+With this definition, the theorem \verb!<[],`the_Riemann_hypothesis`>! is easily derived. However, although anything goes with definitions, all definitions are permanently recorded in the state of the HOL system.
+
+
+
 \section{Axioms}
 
+It is possible to extend the HOL system with new axioms.  A new axiom changes the state:
 
-The axioms will be discussed in depth later.  Here we list them for future refernce.  There are only three mathematical axioms.
+$$
+\verb!AXIOM!\quad \frac{p\tc bool}
+{\vdash~p}
+$$
+It is a curried function
+$$
+\verb!DEF:state \verb! -> {p : boolean term} -> state
+$$
+that modifies the state of the HOL system.  In fact, it only modifies the axiom list by adding a new sequent with empty assumption list and conclusion $p\tc bool$:
+\begin{verbatim}
+AXIOM [tycon;tmpat;axiom_list;def_list] p 
+ = [tycon;tmpat;axiom_list';def_list]
+axiom_list' = <cons,<[],p>,axiom_list>
+\end{verbatim}
+
+
+
+This section states the axioms that will be used in this book. These axioms will be discussed in depth later.  Here we list them for future refernce.  There are only three mathematical axioms.
 $$\begin{array}{lll}
 \hbox{Axiom of Extensionality:} &\quad\forall f.\hskip1em(\lambda x.\, f\, x) = f.\\
 \hbox{Axiom of Infinity:} &\quad\exists f\tc ind\to ind.~~(\op{ONE\_ONE}\,f) \land \neg(\op{ONTO}\, f).\\
@@ -1883,9 +2046,9 @@ Extensionality asserts that every function is determined by its input-output rel
 predicate is satisfiable.
 
 
+\section{extensions}
 
-
-
+Starting from the primitive HOL system we can make a finite number of extensions.  Each extension adds an axiom, a new type definition, or a new term definition to the previous extension.  In the chapters that follow many new definitions and types will be added, enlarging the state of the system as we develop more and more logic and mathematics.
 
 
 \end{document}

@@ -24,7 +24,7 @@ public class Constants {
      * static initialization
      */
     private static Config config;
-    private static String propertiesFile = "/Users/thomashales/Desktop/flyspeck_google/source/graph_generator/Kepler2009.properties";
+    private static String propertiesFile = "/Users/thomashales/Desktop/flyspeck_google/source/graph_generator/fejesToth.properties";
     static {
       try {
         config = new Config(propertiesFile);

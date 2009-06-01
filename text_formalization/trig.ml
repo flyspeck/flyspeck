@@ -1476,3 +1476,954 @@ let DIST_LAW_OF_COS = prove
 end;;
 
 open Trig;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* ========== QUANG TRUONG ========== *)
+
+needs "definitions_kepler.ml";;
+
+let cosV = new_definition` cosV u v = (u dot v) / (norm u * norm v) `;;
+let sinV = new_definition` sinV u v = sqrt ( &1 - cosV u v pow 2 ) `;;
+
+
+let SET_TAC =
+   let basicthms =
+    [NOT_IN_EMPTY; IN_UNIV; IN_UNION; IN_INTER; IN_DIFF; IN_INSERT;
+     IN_DELETE; IN_REST; IN_INTERS; IN_UNIONS; IN_IMAGE] in
+   let allthms = basicthms @ map (REWRITE_RULE[IN]) basicthms @
+                 [IN_ELIM_THM; IN] in
+   let PRESET_TAC =
+     TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ)) THEN
+     REPEAT COND_CASES_TAC THEN
+     REWRITE_TAC[EXTENSION; SUBSET; PSUBSET; DISJOINT; SING] THEN
+     REWRITE_TAC allthms in
+   fun ths ->
+     PRESET_TAC THEN
+     (if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
+     MESON_TAC[];;
+
+ let SET_RULE tm = prove(tm,SET_TAC[]);;
+
+(* some TRUONG TACTICS *)
+
+let PHA = REWRITE_TAC[ MESON[] ` (a/\b)/\c <=> a/\ b /\ c `; MESON[]` 
+a ==> b ==> c <=> a /\ b ==> c `];;
+
+let NGOAC = REWRITE_TAC[ MESON[] ` a/\b/\c <=> (a/\b)/\c `];;
+
+let DAO = NGOAC THEN REWRITE_TAC[ MESON[]` a /\ b <=> b /\ a`];;
+
+let PHAT = REWRITE_TAC[ MESON[] ` (a\/b)\/c <=> a\/b\/c `];;
+
+let NGOACT =  REWRITE_TAC[ GSYM (MESON[] ` (a\/b)\/c <=> a\/b\/c `)];;
+
+let KHANANG = PHA THEN REWRITE_TAC[ MESON[]` ( a\/ b ) /\ c <=> a /\ c \/ b /\ c `] THEN 
+ REWRITE_TAC[ MESON[]` a /\ ( b \/ c ) <=> a /\ b \/ a /\ c `];;
+
+let ATTACH thm = MATCH_MP (MESON[]` ! a b. ( a ==> b ) ==> ( a <=> a /\ b )`) thm;;
+
+let NHANH tm = ONCE_REWRITE_TAC[ ATTACH (SPEC_ALL ( tm ))];;
+let LET_TR = CONV_TAC (TOP_DEPTH_CONV let_CONV);;
+
+let DOWN_TAC = REPEAT (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[IMP_IMP] THEN PHA;;
+let IMP_IMP_TAC = REWRITE_TAC[GSYM IMP_IMP] ;;
+
+
+
+
+let NOT_EQ_IMPCOS_ARC = prove(`~( v0 = (u:real^N) ) /\ ~ ( v0 = w ) ==> cos (arcV v0 u w) = 
+((u - v0) dot (w - v0)) / (norm (u - v0) * norm (w - v0))`,
+REWRITE_TAC[GSYM VECTOR_SUB_EQ; GSYM NORM_EQ_0] THEN 
+NHANH (MESON[NORM_POS_LE]` ~(norm (x:real^N) = &0 ) ==> &0 <= norm x `) THEN 
+REWRITE_TAC[REAL_ARITH` ~ ( a = &0 ) /\ &0 <= a <=>
+  &0 < a `] THEN 
+SIMP_TAC[NORM_SUB] THEN 
+MP_TAC (SPECL[` u - (v0:real^N)`; `v0 - (w :real^N) `] NORM_CAUCHY_SCHWARZ_ABS) THEN 
+NHANH (REAL_LT_MUL) THEN PHA THEN 
+REWRITE_TAC[MESON[REAL_LE_DIV2_EQ; REAL_FIELD ` &0 < a ==> a / a = &1 `]` a <= b /\ l1 /\ l2 /\  &0 < b <=>
+  a / b <= &1  /\ l1 /\ l2 /\ &0 < b `] THEN 
+NHANH (MESON[REAL_LT_IMP_LE; ABS_REFL; REAL_ABS_DIV]`
+  abs b / a <= &1 /\ l1 /\ l2 /\ &0 < a ==>
+  abs ( b / a ) <= &1 `) THEN 
+ONCE_REWRITE_TAC[ GSYM REAL_ABS_NEG] THEN 
+REWRITE_TAC[REAL_ARITH` -- ( a / b ) = ( --a ) / b `;
+  VECTOR_ARITH` --((u - v0) dot (v0 - w)) = ((u - v0) dot (w - v0)) `] THEN 
+REWRITE_TAC[ABS_BOUNDS; arcV] THEN 
+SIMP_TAC[NORM_SUB] THEN MESON_TAC[ACS_COS]);;
+
+
+
+
+let COLLINEAR_TRANSABLE = prove(
+`collinear {(a:real^N), b, c} <=> collinear {vec 0, b - a, c - a}`,
+REWRITE_TAC[collinear; IN_INSERT; NOT_IN_EMPTY] THEN EQ_TAC THENL 
+[STRIP_TAC THEN EXISTS_TAC `u: real^N` THEN REPEAT GEN_TAC THEN 
+ASM_MESON_TAC[VECTOR_ARITH` ( a - c ) - ( b - c ) = a - (b:real^N)`;
+  VECTOR_SUB_REFL; VECTOR_ARITH` vec 0 - ( a - b ) = b - a `;
+  VECTOR_ARITH` a - vec 0 = a `]; STRIP_TAC THEN EXISTS_TAC `u:real^N`
+THEN REPEAT GEN_TAC] THEN ASM_MESON_TAC[VECTOR_ARITH` ( a - c ) - ( b - c ) = a - (b:real^N)`;
+  VECTOR_SUB_REFL; VECTOR_ARITH` vec 0 - ( a - b ) = b - a `;
+  VECTOR_ARITH` a - vec 0 = a `]);;
+
+
+
+
+
+let ALLEMI_COLLINEAR = prove(`((vc - v0) dot ((vc: real^N) - v0)) % (va - v0) =
+ ((va - v0) dot (vc - v0)) % (vc - v0)
+ ==> collinear {v0, vc, va}`,
+ASM_CASES_TAC ` (vc - v0) dot (vc - (v0:real^N)) = &0 ` THENL 
+[FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[DOT_EQ_0; VECTOR_SUB_EQ] THEN 
+SIMP_TAC[INSERT_INSERT; COLLINEAR_2]; FIRST_X_ASSUM MP_TAC THEN 
+PHA THEN NHANH (MESON[]` ~( a = &0 ) /\ b = c ==> &1 / a % b =
+  &1 / a % c `) THEN SIMP_TAC[VECTOR_MUL_ASSOC] THEN PHA THEN 
+ONCE_REWRITE_TAC[MESON[]` a /\b ==> c <=> a ==> b ==> c `] THEN 
+SIMP_TAC[REAL_FIELD` ~ ( a = &0 ) ==> &1 / a * a = &1 `;
+  VECTOR_MUL_LID] THEN ONCE_REWRITE_TAC[COLLINEAR_TRANSABLE ] THEN 
+MESON_TAC[COLLINEAR_LEMMA]]);;
+
+
+
+let NOT_VEC0_IMP_LE1 = prove(`~( x = vec 0 ) /\ ~( y = vec 0 ) ==> 
+abs (( x dot y )/ (( norm x ) * ( norm y ))) <= &1 `,
+REWRITE_TAC[GSYM NORM_POS_LT; REAL_ABS_DIV; ABS_MUL; REAL_ABS_NORM] THEN 
+NHANH (REAL_LT_MUL) THEN 
+SIMP_TAC[REAL_LE_LDIV_EQ; REAL_MUL_LID; NORM_CAUCHY_SCHWARZ_ABS]);;
+
+let sin_acs_t = prove(`! y. (-- &1 <= y /\ y <= &1) ==> (sin (acs(y)) = sqrt(&1 - y pow 2))`,
+    REPEAT STRIP_TAC THEN MATCH_MP_TAC(GSYM SQRT_UNIQUE) THEN
+    ASM_SIMP_TAC[ACS_BOUNDS; SIN_POS_PI_LE; REAL_EQ_SUB_RADD] THEN
+    ASM_MESON_TAC[ACS_COS; SIN_CIRCLE]);;
+
+
+let ABS_LE_1_IMP_SIN_ACS = prove(`!y. abs y <= &1 ==> sin (acs y) = sqrt (&1 - y pow 2)`,
+SIMP_TAC[REAL_ABS_BOUNDS; sin_acs_t]);;
+
+
+let NOT_2EQ_IMP_SIN_ARCV = prove(`~( v0 = va) /\ ~(v0 = (vb:real^N)) ==>
+ sin ( arcV v0 va vb ) = sqrt
+     (&1 -
+      (((va - v0) dot (vb - v0)) / (norm (va - v0) * norm (vb - v0))) pow 2) `,
+REWRITE_TAC[arcV] THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN NHANH (NOT_VEC0_IMP_LE1 ) THEN 
+SIMP_TAC[ABS_LE_1_IMP_SIN_ACS]);;
+
+
+let ABS_NOT_EQ_NORM_MUL = prove(` ~ ( abs ( x dot y )  = norm x * norm y ) <=>
+  abs ( x dot y ) < norm x * norm y `,
+SIMP_TAC[REAL_LT_LE; NORM_CAUCHY_SCHWARZ_ABS]);;
+
+
+
+let SQUARE_NORM_CAUCHY_SCHWARZ_POW2 = prove(`((x:real^N) dot y) pow 2 <= (norm x * norm y) pow 2`,
+REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN 
+MESON_TAC[GSYM ABS_REFL; REAL_LE_MUL; NORM_POS_LE;
+  NORM_CAUCHY_SCHWARZ_ABS]);;
+
+
+
+
+let SQRT_SEPARATED = prove(`sqrt (((norm x * norm y) pow 2 - ((x:real^N) dot y) pow 2) / (norm x * norm y) pow 2) =
+ sqrt ((norm x * norm y) pow 2 - (x dot y) pow 2) /
+ sqrt ((norm x * norm y) pow 2)`,
+MP_TAC SQUARE_NORM_CAUCHY_SCHWARZ_POW2 THEN 
+ONCE_REWRITE_TAC[GSYM REAL_SUB_LE] THEN SIMP_TAC[REAL_LE_POW_2; SQRT_DIV]);;
+
+
+
+
+let COMPUTE_NORM_OF_P = prove(`norm ((vc dot vc) % va - (va dot vc) % vc) =
+ sqrt ((vc dot vc) * ((va dot va) * (vc dot vc) - (va dot vc) pow 2))`,
+REWRITE_TAC[vector_norm; DOT_LSUB; DOT_RSUB; DOT_LMUL; DOT_RMUL] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> P a = P b `) THEN SIMP_TAC[DOT_SYM] THEN REAL_ARITH_TAC);;
+
+
+
+
+let MOVE_NORM_OUT_OF_SQRT = prove(`sqrt (norm (vc:real^N) pow 2 * ((norm va * norm vc) pow 2 - (va dot vc) pow 2)) =
+ norm vc * sqrt ((norm va * norm vc) pow 2 - (va dot vc) pow 2)`,
+MP_TAC (MESON[SQUARE_NORM_CAUCHY_SCHWARZ_POW2]`
+  ((va: real^N) dot vc) pow 2 <= (norm va * norm vc) pow 2 `) THEN 
+ONCE_REWRITE_TAC[GSYM REAL_SUB_LE] THEN 
+SIMP_TAC[REAL_LE_POW_2; SQRT_MUL; NORM_POS_LE; POW_2_SQRT]);;
+
+
+(* lemma 16 *)
+
+let RLXWSTK = prove(`! (v0: real^N) va vb vc. let gam = dihV v0 vc va vb in
+ let a = arcV v0 vc vb in
+ let b = arcV v0 vc va in
+ let c = arcV v0 va vb in
+ ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb}
+ ==> cos gam = (cos c - cos a * cos b) / ( sin a * sin b )`, 
+REPEAT GEN_TAC THEN REPEAT LET_TAC THEN EXPAND_TAC "gam" THEN 
+REWRITE_TAC[dihV] THEN LET_TR THEN 
+NHANH (ONCE_REWRITE_RULE[GSYM CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> vec 0 = a - b `] THEN 
+SIMP_TAC[NOT_EQ_IMPCOS_ARC; VECTOR_SUB_RZERO ] THEN 
+ABBREV_TAC ` (va_v0p: real^N) = ((vc - v0) dot (vc - v0)) % (va - v0) -
+((va - v0) dot (vc - v0)) % (vc - v0) ` THEN 
+ABBREV_TAC ` (vb_v0p :real^N) = ((vc - v0) dot (vc - v0)) % (vb - v0) -
+       ((vb - v0) dot (vc - v0)) % (vc - v0) ` THEN 
+EXPAND_TAC "c" THEN EXPAND_TAC "a" THEN EXPAND_TAC "b" THEN 
+NHANH (MESON[COLLINEAR_2; INSERT_INSERT; INSERT_AC]` 
+  ~collinear {v0, vc, va} ==> ~( v0 = vc) /\ ~( v0 = va ) `) THEN 
+SIMP_TAC[NOT_2EQ_IMP_SIN_ARCV; NOT_EQ_IMPCOS_ARC] THEN 
+ONCE_REWRITE_TAC[COLLINEAR_TRANSABLE] THEN 
+REWRITE_TAC[GSYM NORM_CAUCHY_SCHWARZ_EQUAL] THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> b - a = vec 0`] THEN 
+SIMP_TAC[ GSYM NORM_EQ_0] THEN ONCE_REWRITE_TAC[ GSYM DE_MORGAN_THM] THEN 
+REWRITE_TAC[GSYM REAL_ENTIRE] THEN SIMP_TAC[REAL_FIELD`~ ( c = &0 ) ==>  
+  &1 - ( b / c ) pow 2 = ( c pow 2 - b pow 2) / c pow 2 `] THEN 
+SIMP_TAC[SQRT_SEPARATED] THEN SIMP_TAC[REAL_LE_MUL; NORM_POS_LE; POW_2_SQRT] THEN 
+SIMP_TAC[REAL_FIELD` x / (( b / a ) * ( c / aa )) = ( x * a * aa ) / ( b * c ) `] THEN 
+REWRITE_TAC[REAL_SUB_RDISTRIB; REAL_MUL_AC; REAL_ENTIRE; DE_MORGAN_THM] THEN 
+SIMP_TAC[REAL_FIELD` ~( a = &0 ) /\ ~( b = &0 ) 
+  ==> x / ( a * b ) * a * b * c = x * c `;
+  REAL_FIELD` ~( a = &0 ) /\ ~ ( b = &0 ) /\ ~ ( c = &0)  ==> 
+  x / ( a * c ) * y / ( b * c ) * a * b * c * c = x * y `] THEN 
+STRIP_TAC THEN EXPAND_TAC "va_v0p" THEN EXPAND_TAC "vb_v0p" THEN 
+REWRITE_TAC[COMPUTE_NORM_OF_P] THEN 
+REWRITE_TAC[ GSYM NORM_POW_2; REAL_ARITH` a pow 2 * b pow 2 = ( a * b ) pow 2`] THEN 
+ABBREV_TAC `vaa = ( va - (v0:real^N))` THEN 
+ABBREV_TAC `vbb = ( vb - (v0:real^N))` THEN 
+ABBREV_TAC `vcc = ( vc - (v0:real^N))` THEN 
+SIMP_TAC[MOVE_NORM_OUT_OF_SQRT; DOT_LSUB; DOT_RSUB] THEN 
+SIMP_TAC[MOVE_NORM_OUT_OF_SQRT; DOT_LSUB; DOT_RSUB;
+ DOT_LMUL; DOT_RMUL; DOT_SYM; GSYM NORM_POW_2] THEN 
+REWRITE_TAC[REAL_ARITH` ( a * b ) * a * c = a pow 2 * b * c `] THEN 
+REWRITE_TAC[REAL_FIELD` a / ( b * c ) = ( a / b ) / c `] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / c = b / c `) THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / c = b / c `) THEN 
+REWRITE_TAC[REAL_ARITH` norm vcc pow 2 * norm vcc pow 2 * (vaa dot vbb) -
+     norm vcc pow 2 * (vbb dot vcc) * (vaa dot vcc) -
+     ((vaa dot vcc) * norm vcc pow 2 * (vbb dot vcc) -
+      (vaa dot vcc) * (vbb dot vcc) * norm vcc pow 2) =
+  norm vcc pow 2 * ( norm vcc pow 2 * (vaa dot vbb) - (vaa dot vcc) * (vbb dot vcc) ) `] THEN 
+UNDISCH_TAC `~ ( norm (vcc:real^N) = &0 ) ` THEN CONV_TAC REAL_FIELD);;
+
+
+
+
+
+let SIN_POW2_EQ_1_SUB_COS_POW2 = prove(` sin x pow 2 = &1 - cos x pow 2 `,
+MP_TAC (SPEC_ALL SIN_CIRCLE) THEN REAL_ARITH_TAC);;
+
+
+
+
+let LE_AND_NOT_0_EQ_LT = REAL_ARITH` &0 <= a /\ ~( a = &0 ) <=> &0 < a `;;
+
+
+let LT_IMP_ABS_REFL = MESON[ABS_REFL; REAL_LT_IMP_LE]`&0 < a ==> abs a = a`;;
+
+
+let NOT_COLLINEAR_IMP_NOT_SIN0 = prove(`~collinear {v0, va, vb}  ==> ~(sin ( arcV v0 va vb ) = &0)`,
+SIMP_TAC[] THEN NHANH (MESON[INSERT_AC; COLLINEAR_2]` ~collinear {v0, va, vb}
+  ==> ~( v0 = va ) /\ ~(v0 = vb) `) THEN 
+SIMP_TAC[NOT_2EQ_IMP_SIN_ARCV] THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> b - a = vec 0 `] THEN 
+SIMP_TAC[ GSYM NORM_POS_LT] THEN 
+STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[SQRT_EQ_0]` &0 <= x /\ ~( x = &0 ) ==> ~( sqrt x = &0 ) `) THEN 
+DOWN_TAC THEN 
+ONCE_REWRITE_TAC[ COLLINEAR_TRANSABLE ] THEN 
+REWRITE_TAC[ GSYM NORM_CAUCHY_SCHWARZ_EQUAL; ABS_NOT_EQ_NORM_MUL;
+LE_AND_NOT_0_EQ_LT ] THEN 
+SIMP_TAC[REAL_FIELD`&0 < a /\ &0 < aa ==> &1 - ( b / ( a * aa )) pow 2
+  = ( ( a * aa ) pow 2 - b pow 2 ) / ( a * aa ) pow 2 `] THEN 
+STRIP_TAC THEN 
+MATCH_MP_TAC (SPEC_ALL REAL_LT_DIV) THEN 
+REWRITE_TAC[REAL_SUB_LT; GSYM REAL_LT_SQUARE_ABS] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` &0 = &0 pow 2 `] THEN 
+DOWN_TAC THEN 
+REWRITE_TAC[REAL_SUB_LT; GSYM REAL_LT_SQUARE_ABS; REAL_ABS_0;
+  ABS_MUL] THEN 
+SIMP_TAC[LT_IMP_ABS_REFL; REAL_LT_MUL ]);;
+
+
+
+let NOT_IDEN_IMP_ABS_LE = prove(`~(v0 = va) /\ ~(v0 = vb)
+ ==> abs (((va - v0) dot (vb - v0)) / (norm (va - v0) * norm (vb - v0))) <=
+     &1`,
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> b - a = vec 0`] THEN 
+SIMP_TAC[REAL_ABS_DIV; REAL_ABS_MUL; REAL_ABS_NORM; GSYM NORM_POS_LT] THEN 
+STRIP_TAC THEN MATCH_MP_TAC REAL_LE_LDIV THEN 
+ASM_SIMP_TAC[REAL_LT_MUL; REAL_MUL_LID; NORM_CAUCHY_SCHWARZ_ABS]);;
+
+
+
+let PROVE_SIN_LE = prove(`~(v0 = va) /\ ~(v0 = vb)  ==> &0 <= sin ( arcV v0 va vb )`,
+SIMP_TAC[NOT_2EQ_IMP_SIN_ARCV; arcV] THEN 
+NGOAC THEN NHANH (NOT_IDEN_IMP_ABS_LE ) THEN 
+SIMP_TAC[ABS_LE_1_IMP_SIN_ACS] THEN STRIP_TAC THEN MATCH_MP_TAC SQRT_POS_LE THEN 
+DOWN_TAC THEN ONCE_REWRITE_TAC[ GSYM ABS_1] THEN 
+ASM_SIMP_TAC[REAL_SUB_LE; GSYM ABS_1; REAL_LE_SQUARE_ABS] THEN 
+SIMP_TAC[REAL_ARITH`( &1 ) pow 2 = &1`; ABS_1]);;
+
+
+
+let MUL_POW2 = REAL_ARITH` (a*b) pow 2 = a pow 2 * b pow 2 `;;
+
+
+
+
+let COMPUTE_SIN_DIVH_POW2 = prove(`! (v0: real^N) va vb vc.
+     let beta = dihV v0 vc va vb in
+     let a = arcV v0 vc vb in
+     let b = arcV v0 vc va in
+     let c = arcV v0 va vb in
+     let p =
+         &1 - cos a pow 2 - cos b pow 2 - cos c pow 2 +
+         &2 * cos a * cos b * cos c in
+~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} ==>
+     ( sin beta ) pow 2 = p / ((sin a * sin b) pow 2) `,
+REPEAT STRIP_TAC THEN MP_TAC (SPEC_ALL RLXWSTK ) THEN 
+REPEAT LET_TAC THEN SIMP_TAC[SIN_POW2_EQ_1_SUB_COS_POW2 ] THEN 
+REPEAT STRIP_TAC THEN REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN 
+NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN 
+EXPAND_TAC "a" THEN EXPAND_TAC "b" THEN PHA THEN 
+SIMP_TAC[REAL_FIELD` ~( a = &0 ) /\ ~ ( b = &0 ) ==>
+  &1 - ( x / ( a * b )) pow 2 = (( a * b ) pow 2 - x pow 2 ) / (( a * b ) pow 2 ) `] THEN 
+ASM_SIMP_TAC[] THEN STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / x  = b / x `) THEN 
+EXPAND_TAC "p" THEN SIMP_TAC[MUL_POW2; SIN_POW2_EQ_1_SUB_COS_POW2] THEN 
+REAL_ARITH_TAC);;
+
+
+
+
+let PROVE_P_LE = prove(`!(v0:real^N) va vb vc.
+     let a = arcV v0 vc vb in
+     let b = arcV v0 vc va in
+     let c = arcV v0 va vb in
+     let p =
+         &1 - cos a pow 2 - cos b pow 2 - cos c pow 2 +
+         &2 * cos a * cos b * cos c in
+     ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} ==> &0 <= p`,
+REPEAT GEN_TAC THEN MP_TAC (SPEC_ALL COMPUTE_SIN_DIVH_POW2 ) THEN 
+REPEAT LET_TAC THEN REWRITE_TAC[MESON[]` ( a ==> b ) ==> a ==> c <=>
+  a /\ b ==> c `] THEN NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN 
+ASM_SIMP_TAC[] THEN STRIP_TAC THEN FIRST_X_ASSUM MP_TAC THEN 
+ASM_SIMP_TAC[REAL_FIELD` ~( a = &0 ) /\ ~( b = &0 ) ==>
+  ( x = y / ( a * b ) pow 2 <=> x * ( a * b ) pow 2 = y ) `] THEN 
+MESON_TAC[GSYM MUL_POW2; REAL_LE_POW_2]);;
+
+
+let POW2_COND = MESON[REAL_ABS_REFL; REAL_LE_SQUARE_ABS]` ! a b. &0 <= a /\ &0 <= b ==> 
+( a <= b <=> a pow 2 <= b pow 2 ) `;;
+
+
+let EQ_POW2_COND = prove(`!a b. &0 <= a /\ &0 <= b ==> (a = b <=> a pow 2 = b pow 2)`,
+REWRITE_TAC[REAL_ARITH` a = b <=> a <= b /\ b <= a `] THEN SIMP_TAC[POW2_COND]);;
+
+let NOT_COLLINEAR_IMP_2_UNEQUAL = MESON[INSERT_INSERT; COLLINEAR_2; INSERT_AC]`
+  ~collinear {v0, va, vb} ==> ~(v0 = va) /\ ~(v0 = vb) `;;
+
+
+let NOT_COLL_IM_SIN_LT = prove(`~collinear {v0, va, vb} ==> &0 < sin (arcV v0 va vb)`,
+REWRITE_TAC[GSYM LE_AND_NOT_0_EQ_LT] THEN 
+NHANH (NOT_COLLINEAR_IMP_2_UNEQUAL ) THEN 
+SIMP_TAC[NOT_COLLINEAR_IMP_NOT_SIN0; PROVE_SIN_LE]);;
+
+let ARC_SYM = prove(` arcV v0 vc vb = arcV v0 vb vc `,
+SIMP_TAC[arcV; DOT_SYM; REAL_MUL_SYM]);;
+
+
+let DIV_POW2 = REAL_FIELD` ( a / b ) pow 2 = a pow 2 / b pow 2 `;;
+
+
+ONCE_REWRITE_RULE[GSYM  CONTRAPOS_THM] ALLEMI_COLLINEAR;;
+
+let SIN_MUL_EXPAND = prove(` !(v0:real^N) va vb vc.
+         let gam = dihV v0 vc va vb in 
+         let bet = dihV v0 vb vc va in
+         let a = arcV v0 vc vb in
+         let b = arcV v0 vc va in
+         let c = arcV v0 va vb in
+         let p =
+             &1 - cos a pow 2 - cos b pow 2 - cos c pow 2 +
+             &2 * cos a * cos b * cos c in
+         ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} /\
+  ~ collinear {v0,va,vb} ==>
+  sin gam * sin bet = p / ( sin b * sin c * ( sin a pow 2 )) `,
+REPEAT GEN_TAC THEN 
+MP_TAC (COMPUTE_SIN_DIVH_POW2) THEN 
+REPEAT LET_TAC THEN 
+REPEAT STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[EQ_POW2_COND]` &0 <= a /\ &0 <= b /\ a pow 2 = b pow 2
+  ==> a = b `) THEN 
+CONJ_TAC THENL [ REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN 
+EXPAND_TAC "gam" THEN EXPAND_TAC "beta'" THEN 
+EXPAND_TAC "bet" THEN REWRITE_TAC[dihV] THEN LET_TR THEN 
+NHANH (ONCE_REWRITE_RULE[GSYM  CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN 
+ONCE_REWRITE_TAC[SET_RULE` {a,b} = {b,a}`] THEN 
+NHANH (ONCE_REWRITE_RULE[GSYM  CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH ` a = b <=> vec 0 = a - b `] THEN 
+REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LE_MUL THEN 
+ASM_SIMP_TAC[PROVE_SIN_LE]; REWRITE_TAC[]] THEN 
+CONJ_TAC THENL [MP_TAC (SPEC_ALL PROVE_P_LE ) THEN 
+REPEAT LET_TAC THEN 
+DOWN_TAC THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+STRIP_TAC THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+ASM_SIMP_TAC[] THEN 
+MATCH_MP_TAC (MESON[]` (! a. a = b ==> &0 <= a ==>  P a )
+   ==> &0 <= b ==> P b `) THEN 
+GEN_TAC THEN STRIP_TAC THEN 
+UNDISCH_TAC `~collinear {v0, vc, (vb: real^N)}` THEN 
+UNDISCH_TAC `~collinear {v0, vc, (va: real^N)}` THEN 
+UNDISCH_TAC `~collinear {v0, va, (vb: real^N)}` THEN 
+NHANH (NOT_COLL_IM_SIN_LT  ) THEN 
+NHANH (REAL_LT_IMP_LE) THEN 
+REPEAT STRIP_TAC THEN 
+MATCH_MP_TAC REAL_LE_DIV THEN 
+ASM_SIMP_TAC[REAL_LE_MUL; REAL_LE_POW_2]; REWRITE_TAC[]] THEN 
+EXPAND_TAC "gam" THEN 
+EXPAND_TAC "beta'" THEN 
+EXPAND_TAC "bet" THEN 
+SIMP_TAC[MUL_POW2] THEN 
+REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN 
+PHA THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+SIMP_TAC[] THEN 
+DISCH_TAC THEN 
+ONCE_REWRITE_TAC[SET_RULE` {a,b} = {b,a}`] THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+SIMP_TAC[] THEN 
+REWRITE_TAC[REAL_FIELD` a / x * aa / y = ( a * aa ) / ( x * y ) `] THEN 
+REPEAT STRIP_TAC THEN 
+ASM_SIMP_TAC[ARC_SYM] THEN 
+ONCE_REWRITE_TAC[ARC_SYM] THEN 
+ASM_SIMP_TAC[] THEN 
+SIMP_TAC[DIV_POW2; REAL_ARITH` ((sin a * sin b) pow 2 * (sin c * sin a) pow 2) =
+  (sin b * sin c * sin a pow 2) pow 2 `] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / x = b / x `) THEN 
+EXPAND_TAC "p'" THEN 
+EXPAND_TAC "p" THEN 
+EXPAND_TAC "a" THEN 
+EXPAND_TAC "b" THEN 
+EXPAND_TAC "c" THEN 
+EXPAND_TAC "a'" THEN 
+EXPAND_TAC "b'" THEN 
+EXPAND_TAC "c'" THEN 
+SIMP_TAC[ARC_SYM] THEN 
+REAL_ARITH_TAC);;
+
+let DIHV_SYM = prove(`dihV a b x y = dihV a b y x `,
+REWRITE_TAC[dihV] THEN LET_TR THEN SIMP_TAC[DOT_SYM; ARC_SYM]);;
+
+(* lemma 17 *)
+let NLVWBBW = prove(` !(v0:real^N) va vb vc.
+let al = dihV v0 va vb vc in
+         let ga = dihV v0 vc va vb in 
+         let be = dihV v0 vb vc va in
+         let a = arcV v0 vc vb in
+         let b = arcV v0 vc va in
+         let c = arcV v0 va vb in
+         let p =
+             &1 - cos a pow 2 - cos b pow 2 - cos c pow 2 +
+             &2 * cos a * cos b * cos c in
+         ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} /\
+  ~ collinear {v0,va,vb} ==>
+cos c * sin al * sin be = cos ga + cos al * cos be `,
+REPEAT GEN_TAC THEN MP_TAC RLXWSTK THEN REPEAT LET_TAC THEN 
+EXPAND_TAC "al" THEN EXPAND_TAC "be" THEN EXPAND_TAC "ga" THEN 
+EXPAND_TAC "gam" THEN SIMP_TAC[INSERT_AC] THEN STRIP_TAC THEN 
+MP_TAC SIN_MUL_EXPAND THEN REPEAT LET_TAC THEN EXPAND_TAC "bet" THEN 
+SIMP_TAC[INSERT_AC; DIHV_SYM; ARC_SYM] THEN 
+ONCE_REWRITE_TAC[MESON[DIHV_SYM]` aa * sin (dihV v0 va vb vc) * sin (dihV v0 vb va vc) =
+  aa * sin (dihV v0 va vc vb) * sin (dihV v0 vb vc va)`] THEN 
+DISCH_TAC THEN ONCE_REWRITE_TAC[MESON[INSERT_AC]`~collinear {v0, va, vc} /\
+ ~collinear {v0, vb, vc} /\ ~collinear {v0, va, vb} <=>
+~collinear {v0, vc, va} /\ ~collinear {v0, vb, va} /\
+ ~collinear {v0, vc, vb}  `] THEN FIRST_X_ASSUM MP_TAC THEN 
+SIMP_TAC[] THEN DOWN_TAC THEN SIMP_TAC[ARC_SYM; DIHV_SYM] THEN 
+STRIP_TAC THEN REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN 
+NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN ASM_SIMP_TAC[ARC_SYM] THEN 
+REPEAT STRIP_TAC THEN UNDISCH_TAC `~( sin a = &0 )` THEN 
+UNDISCH_TAC `~( sin b = &0 )` THEN UNDISCH_TAC `~( sin c = &0 )` THEN 
+PHA THEN SIMP_TAC[REAL_FIELD `~(c = &0) /\ ~(b = &0) /\ ~(a = &0)
+  ==> x / (a * b) +     y / (b * c) *     z / (c * a) = ( x * c pow 2 + y * z ) / ( b * a * c pow 2 ) `] THEN 
+STRIP_TAC THEN REWRITE_TAC[REAL_ARITH` a * ( x / y ) = ( a * x ) / y `] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / x = b / x `) THEN 
+SIMP_TAC[SIN_POW2_EQ_1_SUB_COS_POW2] THEN REAL_ARITH_TAC);;
+
+
+let COMPUTE_NORM_POW2 = prove(`
+ norm ((vc dot vc) % vb - (vb dot vc) % vc ) pow 2 = ((norm vc pow 2 + norm vc pow 2) - dist (vc,vc) pow 2) / &2 *
+ (((norm vc pow 2 + norm vc pow 2) - dist (vc,vc) pow 2) / &2 *
+  ((norm vb pow 2 + norm vb pow 2) - dist (vb,vb) pow 2) / &2 -
+  ((norm vb pow 2 + norm vc pow 2) - dist (vb,vc) pow 2) / &2 *
+  ((norm vb pow 2 + norm vc pow 2) - dist (vb,vc) pow 2) / &2) -
+ ((norm vb pow 2 + norm vc pow 2) - dist (vb,vc) pow 2) / &2 *
+ (((norm vc pow 2 + norm vc pow 2) - dist (vc,vc) pow 2) / &2 *
+  ((norm vc pow 2 + norm vb pow 2) - dist (vc,vb) pow 2) / &2 -
+  ((norm vb pow 2 + norm vc pow 2) - dist (vb,vc) pow 2) / &2 *
+  ((norm vc pow 2 + norm vc pow 2) - dist (vc,vc) pow 2) / &2) `,
+MATCH_MP_TAC (MESON[]`(! c. c = b ==> a = c ) ==> a = b`) THEN REPEAT STRIP_TAC THEN 
+SIMP_TAC[NORM_POW_2] THEN SIMP_TAC[GSYM dist; 
+VECTOR_SUB_RZERO; DOT_LSUB; DOT_RSUB; DOT_LMUL; 
+DOT_RMUL; DOT_NORM_NEG] THEN ASM_SIMP_TAC[]);;
+
+
+let UPS_X_AND_HERON = prove(`ups_x (x1 pow 2) (x2 pow 2) (x6 pow 2) =
+ (x1 + x2 + x6) * (x1 + x2 - x6) * (x2 + x6 - x1) * (x6 + x1 - x2)`,
+SIMP_TAC[ups_x] THEN REAL_ARITH_TAC);;
+
+
+let UPS_X_POS = prove(`dist (v0,v1) pow 2 = v01 /\
+ dist (v0,v2) pow 2 = v02 /\
+ dist (v1,v2) pow 2 = v12
+ ==> &0 <= ups_x v01 v02 v12`,
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[UPS_X_AND_HERON] THEN 
+DISCH_TAC THEN 
+MATCH_MP_TAC REAL_LE_MUL THEN 
+SIMP_TAC[DIST_POS_LE; REAL_LE_ADD] THEN 
+MATCH_MP_TAC REAL_LE_MUL THEN 
+CONJ_TAC THENL [
+MESON_TAC[ONCE_REWRITE_RULE[REAL_ARITH` a <= b + c <=> &0 <= b + c - a `]
+    DIST_TRIANGLE; DIST_SYM; DIST_POS_LE];
+MATCH_MP_TAC REAL_LE_MUL] THEN 
+MESON_TAC[ONCE_REWRITE_RULE[REAL_ARITH` a <= b + c <=> &0 <= b + c - a `]
+    DIST_TRIANGLE; DIST_SYM; DIST_POS_LE]);;
+
+
+let DIST_TRANSABLE = prove(` dist ( a - v0, b ) = dist ( a , b + v0 ) `,
+REWRITE_TAC[dist; VECTOR_ARITH` a - v0 - b = (a:real^N) - ( b + v0 ) `]);;
+
+prove(` v2 - v0 = va /\
+ v3 - v0 = vb ==> dist (va,vb) = dist ( v2,v3) `,
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[DIST_TRANSABLE; VECTOR_ARITH` a - b + b = ( a:real^N)`]);;
+
+
+g ` dist ((v0:real^N),v1) pow 2 = v01 /\
+ dist (v0,v2) pow 2 = v02 /\
+ dist (v0,v3) pow 2 = v03 /\
+ dist (v1,v2) pow 2 = v12 /\
+ dist (v1,v3) pow 2 = v13 /\
+ dist (v2,v3) pow 2 = v23 /\
+ ~collinear {v0, v1, v2} /\
+ ~collinear {v0, v1, v3}
+ ==> (let va = v2 - v0 in
+      let vb = v3 - v0 in
+      let vc = v1 - v0 in
+      let vap = (vc dot vc) % va - (va dot vc) % vc in
+      let vbp = (vc dot vc) % vb - (vb dot vc) % vc in
+            (((vap - vec 0) dot (vbp - vec 0)) /
+       (norm (vap - vec 0) * norm (vbp - vec 0)))) =
+          (delta_x4 v01 v02 v03 v23 v13 v12 /
+      sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13))`;;
+e (REPEAT LET_TAC THEN STRIP_TAC);;
+e (EXPAND_TAC "vap" THEN EXPAND_TAC "vbp");;
+e (ONCE_REWRITE_TAC[MESON[NORM_POS_LE; POW_2_SQRT]` norm x = sqrt ( norm x pow 2 ) `] THEN 
+REWRITE_TAC[MESON[REAL_LE_POW_2; SQRT_MUL]` sqrt ( x pow 2 ) * 
+  sqrt ( y pow 2 ) = sqrt ( x pow 2 * y pow 2 ) `]);;
+e (SIMP_TAC[VECTOR_SUB_RZERO; COMPUTE_NORM_POW2 ] THEN 
+REWRITE_TAC[GSYM (MESON[NORM_POS_LE; POW_2_SQRT]` norm x = sqrt ( norm x pow 2 ) `)] THEN 
+REWRITE_TAC[DIST_REFL; REAL_SUB_RZERO; REAL_ARITH` &0 pow 2 = &0`] THEN 
+EXPAND_TAC "va" THEN EXPAND_TAC "vb" THEN 
+EXPAND_TAC "vc" THEN SIMP_TAC[VECTOR_ARITH` a - b - (c - b ) = a -(c:real^N)`; GSYM dist] THEN 
+FIRST_X_ASSUM MP_TAC);;
+e (NHANH (MESON[COLLINEAR_2; INSERT_INSERT]` ~ collinear {a,b,c} 
+  ==> ~( a = b ) `) THEN REWRITE_TAC[DIST_NZ] THEN 
+NHANH (REAL_FIELD` &0 < a ==> &1 = ( &1 / &4 * (a pow 2 ))/ ( &1 / &4 * (a pow 2 )) `) THEN 
+ONCE_REWRITE_TAC[MESON[REAL_MUL_LID]` l ==> a = b <=> l ==> a 
+  = &1 * b `]);;
+e (ABBREV_TAC ` as = (&1 / &4 * dist ((v0:real^N),v1) pow 2 ) ` THEN 
+SIMP_TAC[REAL_FIELD` a / b * aa / bb = ( a * aa ) / ( b * bb ) `] THEN 
+STRIP_TAC THEN MATCH_MP_TAC (MESON[]` a = aa /\ b = bb ==>
+  a /  b = aa / bb `));;
+e (CONJ_TAC THENL [ SIMP_TAC[GSYM NORM_POW_2; GSYM dist] THEN 
+ASM_SIMP_TAC[] THEN 
+SIMP_TAC[DIST_SYM; DOT_LSUB; DOT_RSUB; DOT_LMUL; DOT_RMUL] THEN 
+SIMP_TAC[DOT_NORM_NEG] THEN EXPAND_TAC "va" THEN 
+EXPAND_TAC "vb" THEN EXPAND_TAC "vc" THEN 
+REWRITE_TAC[ VECTOR_ARITH` a - b - ( c - b ) = a - (c:real^N)`] THEN 
+REWRITE_TAC[GSYM dist] THEN EXPAND_TAC "as" THEN 
+UNDISCH_TAC `&1 / &4 * dist ((v0:real^N),v1) pow 2 = as` THEN 
+FIRST_X_ASSUM MP_TAC THEN PHA THEN 
+MATCH_MP_TAC (MESON[]` a ==> b ==> a `) THEN 
+ASM_SIMP_TAC[DIST_SYM; DIST_REFL; delta_x4] THEN 
+REAL_ARITH_TAC; UNDISCH_TAC`&1 / &4 * dist ((v0:real^N),v1) pow 2 = as`]
+THEN MP_TAC (SPEC ` dist ((v0:real^N),v1)` REAL_LE_POW_2) THEN 
+PHA THEN NHANH (REAL_ARITH `&0 <= a /\ &1 / &4 * a = as ==> &0 <= as `) THEN 
+REWRITE_TAC[MESON[POW_2_SQRT]` da /\ &0 <= a ==>  p1 = a * p2 <=>
+  da /\ &0 <= a ==> p1 = sqrt ( a pow 2 ) * p2  `] THEN DOWN_TAC THEN 
+NHANH (MESON[UPS_X_POS; DIST_SYM ]`dist (v0,v1) pow 2 = v01 /\
+ dist (v0,v2) pow 2 = v02 /\ dist (v0,v3) pow 2 = v03 /\
+ dist (v1,v2) pow 2 = v12 /\ dist (v1,v3) pow 2 = v13 /\
+ dist (v2,v3) pow 2 = v23 /\ l ==> &0 <= ups_x v01 v02 v12 
+  /\ &0 <= ups_x v01 v03 v13 `) THEN NHANH (REAL_LE_MUL) THEN 
+SIMP_TAC[REAL_LE_SQUARE_POW; GSYM SQRT_MUL] THEN 
+STRIP_TAC THEN MATCH_MP_TAC (MESON[]` a = b ==> p a = p b `) THEN 
+REPLICATE_TAC 6 (FIRST_X_ASSUM MP_TAC) THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+REPEAT STRIP_TAC THEN ASM_SIMP_TAC[DIST_SYM] THEN DOWN_TAC THEN 
+NHANH (MESON[prove(` v2 - v0 = va /\
+ v3 - v0 = vb ==> dist (va,vb) = dist ( v2,v3) `,
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[DIST_TRANSABLE; VECTOR_ARITH` a - b + b = ( a:real^N)`]); DIST_SYM]`
+ v2 - v0 = va /\ v3 - v0 = vb /\
+ v1 - v0 = vc /\ l ==> dist (va,vb ) = dist (v2,v3) /\ dist (vb,vc) =
+dist(v1,v3) /\ dist (va,vc) = dist (v1,v2)`) THEN SIMP_TAC[ups_x] THEN 
+STRIP_TAC THEN REAL_ARITH_TAC);;
+
+let PROVE_DELTA_OVER_SQRT_2UPS = top_thm();;
+
+
+
+let FOR_LEMMA19 = prove(`!(v0:real^N) v1 v2 v3.
+     let ga = dihV v0 v1 v2 v3 in
+     let v01 = dist (v0,v1) pow 2 in
+     let v02 = dist (v0,v2) pow 2 in
+     let v03 = dist (v0,v3) pow 2 in
+     let v12 = dist (v1,v2) pow 2 in
+     let v13 = dist (v1,v3) pow 2 in
+     let v23 = dist (v2,v3) pow 2 in
+     ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
+     ==> ga =
+         acs
+         (delta_x4 v01 v02 v03 v23 v13 v12 /
+          sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13))`,
+REPEAT STRIP_TAC THEN REPEAT LET_TAC THEN EXPAND_TAC "ga" THEN 
+SIMP_TAC[dihV; arcV] THEN REPEAT LET_TAC THEN REPEAT STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> p a = p b `) THEN 
+MP_TAC PROVE_DELTA_OVER_SQRT_2UPS THEN REPEAT LET_TAC THEN ASM_MESON_TAC[]);;
+
+
+let COMPUTE_DELTA_OVER = prove(`dist ((v0:real^N),v1) pow 2 = v01 /\
+ dist (v0,v2) pow 2 = v02 /\
+ dist (v0,v3) pow 2 = v03 /\
+ dist (v1,v2) pow 2 = v12 /\
+ dist (v1,v3) pow 2 = v13 /\
+ dist (v2,v3) pow 2 = v23 /\
+ ~collinear {v0, v1, v2} /\
+ ~collinear {v0, v1, v3}
+ ==> ((((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
+       ((v2 - v0) dot (v1 - v0)) % (v1 - v0)) dot
+      (((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
+       ((v3 - v0) dot (v1 - v0)) % (v1 - v0))) /
+     (norm
+      (((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
+       ((v2 - v0) dot (v1 - v0)) % (v1 - v0)) *
+      norm
+      (((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
+       ((v3 - v0) dot (v1 - v0)) % (v1 - v0))) =
+     delta_x4 v01 v02 v03 v23 v13 v12 /
+     sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)`,
+MP_TAC PROVE_DELTA_OVER_SQRT_2UPS THEN REWRITE_TAC[VECTOR_ARITH` a -  vec 0 = a `]
+THEN LET_TR THEN SIMP_TAC[]);;
+
+
+
+
+
+
+let POS_COMPATIBLE_WITH_ATN2 = prove(` &0 < a ==> atn2 (x,y) = atn2 (a * x,a * y)`,
+SIMP_TAC[atn2; REAL_FIELD` &0 < a ==> ( a * b ) / (a * c ) = b / c `] THEN 
+SIMP_TAC[ABS_MUL] THEN REWRITE_TAC[REAL_ARITH` a * y < &0 <=> &0 < a * ( -- y )`;
+REAL_ARITH` b < &0 <=> &0 < -- b `] THEN 
+SIMP_TAC[ABS_MUL; LT_IMP_ABS_REFL; REAL_LT_LMUL_EQ; REAL_LT_MUL_EQ]);;
+
+
+
+
+
+(* need to be proved *)
+let NOT_COLLINEAR_IMP_UPS_LT = new_axiom `
+~( collinear {(v0:real^N),v1,v2} ) ==>
+let v01 = dist (v0,v1) pow 2 in
+let v02 = dist (v0,v2) pow 2 in
+let v12 = dist (v1,v2) pow 2 in
+ &0 < ups_x v01 v02 v12 `;;
+
+
+
+let REAL_LE_RDIV_0 = prove(` ! a b. &0 < b ==> ( &0 <= a / b <=> &0 <= a ) `,
+REWRITE_TAC[REAL_ARITH ` &0 <= a <=> &0 < a \/ a = &0 `] THEN 
+SIMP_TAC[REAL_LT_RDIV_0] THEN 
+SIMP_TAC[REAL_FIELD `&0 < b ==> ( a / b = &0 <=> a = &0 ) `]);;
+
+
+
+
+let NOT_ZERO_EQ_POW2_LT = prove(` ~( a = &0 ) <=> &0 < a pow 2 `,
+SIMP_TAC[GSYM LE_AND_NOT_0_EQ_LT; POW_2; 
+REAL_ENTIRE; REAL_LE_SQUARE]);;
+
+
+(* lemma 18 *)
+let OJEKOJF = prove(`!(v0:real^N) v1 v2 v3.
+     let ga = dihV v0 v1 v2 v3 in
+     let v01 = dist (v0,v1) pow 2 in
+     let v02 = dist (v0,v2) pow 2 in
+     let v03 = dist (v0,v3) pow 2 in
+     let v12 = dist (v1,v2) pow 2 in
+     let v13 = dist (v1,v3) pow 2 in
+     let v23 = dist (v2,v3) pow 2 in
+     ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
+     ==> ga =
+         acs
+         (delta_x4 v01 v02 v03 v23 v13 v12 /
+          sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)) /\
+ga = pi / &2 - atn2( sqrt ( &4 * v01 * delta_x v01 v02 v03 v23 v13 v12 ),
+delta_x4 v01 v02 v03 v23 v13 v12 ) `, REPEAT STRIP_TAC THEN 
+MP_TAC (SPEC_ALL FOR_LEMMA19 ) THEN REPEAT LET_TAC THEN 
+SIMP_TAC[] THEN DOWN_TAC THEN NGOAC THEN REWRITE_TAC[MESON[]`l/\ ( a ==> b ) <=>
+  ( a ==> b ) /\ l `] THEN PHA THEN NHANH (COMPUTE_DELTA_OVER ) THEN 
+NHANH (ONCE_REWRITE_RULE[GSYM CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN 
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN 
+ABBREV_TAC ` (w1:real^N) = ((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
+     ((v2 - v0) dot (v1 - v0)) % (v1 - v0)` THEN 
+ABBREV_TAC ` (w2:real^N) = ((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
+   ((v3 - v0) dot (v1 - v0)) % (v1 - v0) ` THEN 
+ONCE_REWRITE_TAC[MESON[]`( a/\ b ) /\ c /\ d <=>
+  a /\ c /\ b /\ d `] THEN NHANH (NOT_VEC0_IMP_LE1) THEN PHA THEN 
+REWRITE_TAC[MESON[]` P a /\ a = b <=> a = b /\ P b `] THEN 
+SIMP_TAC[REAL_ABS_BOUNDS; acs_atn2; REAL_ARITH ` a - x = 
+  a - y <=> x = y `] THEN NHANH (NOT_COLLINEAR_IMP_UPS_LT ) THEN 
+LET_TR THEN PHA THEN NHANH (MESON[REAL_LT_MUL]` &0 < x /\ a1 /\ &0 < y /\ a2 ==>
+  &0 < x * y `) THEN STRIP_TAC THEN FIRST_X_ASSUM MP_TAC THEN 
+ASM_SIMP_TAC[] THEN NHANH SQRT_POS_LT THEN 
+SIMP_TAC[MESON[POS_COMPATIBLE_WITH_ATN2]` &0 < a ==> 
+  atn2 ( x, y / a ) = atn2 ( a * x , a * ( y / a ) ) `] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> a * ( y / a ) = y `] THEN 
+REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN 
+PHA THEN NGOAC THEN REWRITE_TAC[GSYM REAL_ABS_BOUNDS] THEN 
+ONCE_REWRITE_TAC[GSYM ABS_1] THEN 
+SIMP_TAC[REAL_LE_SQUARE_ABS; REAL_ARITH` a <= &1 <=>
+  &0 <= &1 - a `; REAL_ARITH` ( &1 ) pow 2 = &1 `; ABS_1] THEN 
+DAO THEN ONCE_REWRITE_TAC[GSYM IMP_IMP] THEN 
+SIMP_TAC[REAL_FIELD` &0 < a ==> &1 - ( b / a ) pow 2
+  = ( a pow 2 - b pow 2 ) / ( a pow 2 ) `] THEN 
+NHANH (REAL_LT_IMP_NZ) THEN NHANH (REAL_LT_IMP_LE) THEN 
+SIMP_TAC[NOT_ZERO_EQ_POW2_LT; REAL_LE_RDIV_0 ; SQRT_DIV] THEN 
+NHANH (REAL_LT_IMP_LE) THEN SIMP_TAC[SQRT_DIV; REAL_LE_POW2] THEN 
+SIMP_TAC[SQRT_DIV; REAL_LE_POW2; POW_2_SQRT; REAL_FIELD` &0 < a ==>
+a * b / a = b `] THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC 
+(MESON[]` a = b ==> atn2 ( sqrt a, c )  = atn2 ( sqrt b, c ) `) THEN 
+ASM_SIMP_TAC[SQRT_WORKS; ups_x; delta_x4; delta_x] THEN 
+REAL_ARITH_TAC);;
+
+
+
+
+
+let LEMMA16_INTERPRETE = prove(`!(v0: real^N) va vb vc.
+          ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb}
+          ==> cos (dihV v0 vc va vb) =
+              (cos (arcV v0 va vb) -
+               cos (arcV v0 vc vb) * cos (arcV v0 vc va)) /
+              (sin (arcV v0 vc vb) * sin (arcV v0 vc va))`,
+MP_TAC RLXWSTK THEN REPEAT LET_TAC THEN SIMP_TAC[]);;
+
+
+
+let NOT_COLLINEAR_IMP_VEC_FOR_DIHV = ONCE_REWRITE_RULE[GSYM VECTOR_SUB_EQ] 
+(ONCE_REWRITE_RULE[GSYM CONTRAPOS_THM] ALLEMI_COLLINEAR);;
+
+
+let NOT_COLLINEAR_IMP_DIHV_BOUNDED = 
+prove(` ~( collinear {v0,v1,v2} ) /\ ~( collinear {v0,v1,v3} ) 
+==> &0 <= dihV v0 v1 v2 v3 /\ dihV v0 v1 v2 v3 <= pi`,
+REWRITE_TAC[dihV; arcV] THEN REPEAT LET_TAC THEN 
+NHANH (NOT_COLLINEAR_IMP_VEC_FOR_DIHV ) THEN 
+ASM_SIMP_TAC[VECTOR_SUB_RZERO] THEN 
+ONCE_REWRITE_TAC[MESON[]` ( a/\b) /\c /\d <=>
+  a /\c/\b/\d`] THEN NHANH (NOT_VEC0_IMP_LE1) THEN 
+SIMP_TAC[REAL_ABS_BOUNDS; ACS]) ;;
+
+
+
+let DIHV_FORMULAR = prove(` dihV v0 v1 v2 v3 = arcV (vec 0)
+ (((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
+  ((v2 - v0) dot (v1 - v0)) % (v1 - v0))
+ (((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
+  ((v3 - v0) dot (v1 - v0)) % (v1 - v0)) `, REWRITE_TAC[dihV]
+THEN REPEAT LET_TAC THEN REWRITE_TAC[]);;
+
+
+
+let COS_POW2_INTER = prove(` cos x pow 2 = &1 - sin x pow 2 `,
+MP_TAC (SPEC_ALL SIN_CIRCLE) THEN REAL_ARITH_TAC);;
+
+(* lemma 19 *)
+let ISTYLPH = prove(` ! (v0:real^N) v1 v2 v3. 
+  &0 <= cos (arcV (v0:real^N) v2 v3) /\
+  dihV v0 v3 v1 v2 = pi / &2 /\
+  ~ collinear {v0,v1,v2} /\
+  ~ collinear {v0,v1,v3} /\
+  ~ collinear {v0,v2,v3} /\
+  psi = arcV v0 v2 v3 /\
+  tte = arcV v0 v1 v2 ==>
+   dihV v0 v1 v2 v3  = beta psi tte `,
+REPEAT GEN_TAC THEN 
+ONCE_REWRITE_TAC[MESON[]` a /\ b ==> c <=>
+  a ==> b ==> c `] THEN 
+DISCH_TAC THEN 
+ONCE_REWRITE_TAC[SET_RULE` {a,b} = {b,a} `] THEN 
+REWRITE_TAC[ MESON[]` a /\ b /\ c /\ d /\ e <=>
+  a /\ b /\ (c /\ d )/\ e`] THEN 
+NHANH (LEMMA16_INTERPRETE ) THEN 
+PURE_ONCE_REWRITE_TAC[MESON[]` a = b /\ P a <=> a = b
+  /\ P b `] THEN 
+SIMP_TAC[COS_PI2] THEN 
+NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN 
+PHA THEN 
+ONCE_REWRITE_TAC[MESON[REAL_ENTIRE]`~( a = &0 ) /\ a1 /\ ~( b = &0 ) /\ &0 = l /\ ll
+  <=> a1 /\ ~ ( b * a = &0 ) /\ &0 = l /\ ll`] THEN 
+ONCE_REWRITE_TAC[SET_RULE` {a,b} = {b,a} `] THEN 
+ONCE_REWRITE_TAC[MESON[]`a /\ ~( aa = &0 ) /\ b /\ c <=>
+  ~( aa = &0 ) /\ c /\ a /\ b `] THEN 
+ABBREV_TAC `TU = sin (arcV v0 v3 v2) * sin (arcV v0 v3 (v1:real^N))` THEN 
+ABBREV_TAC `MA = (cos (arcV v0 v1 v2) - cos (arcV v0 v3 v2) * cos (arcV v0 v3 (v1:real^N)))` THEN 
+NHANH (MESON[REAL_FIELD`~( b = &0 ) /\ a / b = &0 ==> a = &0 `]`
+  ~(TU = &0) /\
+  &0 = MA / TU /\ ll ==> MA = &0 `) THEN 
+REWRITE_TAC[dihV;beta; arcV] THEN 
+REPEAT LET_TAC THEN 
+STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> P a = P b `) THEN 
+REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN 
+NHANH ( NOT_COLLINEAR_IMP_VEC_FOR_DIHV ) THEN 
+ASM_SIMP_TAC[] THEN 
+PHA THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[GSYM NOT_EQ_IMPCOS_ARC] THEN 
+DOWN_TAC THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[] THEN 
+STRIP_TAC THEN 
+EXPAND_TAC "va" THEN 
+EXPAND_TAC "vb" THEN 
+EXPAND_TAC "vc" THEN 
+UNDISCH_TAC `vb' = v2 - (v0:real^N)` THEN 
+UNDISCH_TAC `va' = v1 - (v0:real^N)` THEN 
+UNDISCH_TAC `vc' = v3 - (v0:real^N)` THEN 
+PHA THEN SIMP_TAC[GSYM DIHV_FORMULAR] THEN 
+ASM_SIMP_TAC[LEMMA16_INTERPRETE] THEN 
+DISCH_TAC THEN 
+UNDISCH_TAC `&0 = MA ` THEN 
+ASM_SIMP_TAC[REAL_ARITH` &0 = a - b <=> a = b `; ARC_SYM;
+  REAL_ARITH` a * b * a = b * a pow 2 `] THEN 
+SIMP_TAC[COS_POW2_INTER; REAL_SUB_LDISTRIB; REAL_MUL_RID;
+  REAL_ARITH` a - ( a - b ) = b `] THEN 
+UNDISCH_TAC `~collinear {v0, v1,(v3:real^N)}` THEN 
+NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN 
+PHA THEN SIMP_TAC[REAL_FIELD` ~( a = &0 ) ==>
+  ( b * a pow 2) / ( a * c ) = (b * a) / c `] THEN 
+UNDISCH_TAC` ~collinear {v0, v1, (v2:real^N)}` THEN 
+NHANH (NOT_COLL_IM_SIN_LT) THEN 
+NHANH (REAL_LT_IMP_LE) THEN 
+UNDISCH_TAC `&0 <= cos (arcV v0 v2 (v3:real^N))` THEN 
+PHA THEN 
+NHANH (MESON[REAL_LE_MUL; REAL_LE_DIV]`
+  &0 <= a1 /\aa /\aa1/\
+ &0 <= a3 /\aa2/\aa3/\
+ &0 <= a2 /\ lll ==> &0 <= ( a1 * a2 )/ a3 `) THEN 
+STRIP_TAC THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+SIMP_TAC[MESON[POW_2_SQRT]`&0 <= a ==> ( a = b 
+  <=> sqrt ( a pow 2 ) = b )`] THEN 
+STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> P a = P b `) THEN 
+EXPAND_TAC "psi" THEN 
+EXPAND_TAC "tte" THEN 
+UNDISCH_TAC `va' = (vc:real^N)` THEN 
+UNDISCH_TAC `vb' = (va:real^N)` THEN 
+UNDISCH_TAC `vc' = (vb:real^N)` THEN 
+UNDISCH_TAC ` vb = v3 - v0 /\ vc = v1 - v0 /\ va = v2 - (v0 :real^N)` THEN 
+PHA THEN SIMP_TAC[GSYM arcV] THEN 
+STRIP_TAC THEN 
+SIMP_TAC[REAL_FIELD` ( a / b ) pow 2 = a pow 2 / b pow 2 `] THEN 
+MATCH_MP_TAC (MESON[]` a = b /\ aa = bb ==> a / aa 
+  = b / bb `) THEN 
+SIMP_TAC[SIN_POW2_EQ_1_SUB_COS_POW2; GSYM POW_2] THEN 
+SIMP_TAC[REAL_ARITH`(A * B ) pow 2 = A pow 2 * 
+  B pow 2 `; SIN_POW2_EQ_1_SUB_COS_POW2] THEN 
+ASM_SIMP_TAC[] THEN REAL_ARITH_TAC);;
+
+
+(* I am proving this lemma *)
+let ARCV_INEQUALTY = new_axiom ` ! (p:real^N) u v w.  ~ ( p IN {u,v,w} )
+  ==> arcV p u w <= arcV p u v + arcV p v w `;;
+
+g `! (p:real^N) (n:num) fv.
+     2 <= n /\ (!i. i <= n ==> ~(p = fv i))
+     ==> arcV p (fv 0) (fv n) <=
+         sum (0..n - 1) (\i. arcV p (fv i) (fv (i + 1)))`;;
+e (GEN_TAC);;
+e (INDUCT_TAC);;
+e (SIMP_TAC[ARITH_RULE` ~( 2 <= 0 ) `]);;
+e (SPEC_TAC (`n:num`,` a:num`));;
+e (INDUCT_TAC);;
+e (SIMP_TAC[ONE; ARITH_RULE` ~(2 <= SUC 0) `]);;
+e (SPEC_TAC(`a:num`,`u:num`));;
+e (INDUCT_TAC);;
+e (SIMP_TAC[ARITH_RULE` 2 <= 2 `;ARITH_RULE `SUC ( SUC 0 ) = 2 `  ]);;
+e (SIMP_TAC[ARITH_RULE` 0 < 1 /\ 2 - 1 = 1 `;ARITH_RULE` 0 <= 1 `;
+  SUM_CLAUSES_RIGHT]);;
+e (SIMP_TAC[SUB_REFL; SUM_SING_NUMSEG; ADD; ARITH_RULE` 1 + 1 = 2 `;
+  ARITH_RULE` i <= 2 <=> i = 0 \/ i = 1 \/ i = 2 `]);;
+e (SIMP_TAC[MESON[]` (! a. a = x \/ a = y \/ a = z ==> Q a ) <=> 
+  Q x /\ Q y /\ Q z `]);;
+e (MP_TAC ARCV_INEQUALTY );;
+e (SIMP_TAC[IN_INSERT; NOT_IN_EMPTY]);;
+e (GEN_TAC);;
+e (MP_TAC (ARITH_RULE` 2 <= SUC ( SUC u )`));;
+e (ABBREV_TAC ` ed = ( SUC (SUC u ))`);;
+e (REWRITE_TAC[ADD1; ARITH_RULE` a <= b + 1 <=> a <= b \/
+  a = b + 1 `; MESON[]` (! x. p x \/ x = a ==> h x ) <=>
+  (! x. p x ==> h x ) /\ h a `]);;
+e (PHA);;
+e (ONCE_REWRITE_TAC[MESON[]` a /\ b/\ c/\ d <=> b /\ d /\ a /\ c `]);;
+e (REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC));;
+e (PHA);;
+e (NHANH (MESON[]`(!fv. 2 <= ed /\ (!i. i <= ed ==> ~(p = fv i))
+       ==> Q fv) /\a1 /\a2 /\a3 /\ 2 <= ed /\ (!i. i <= ed ==> ~(p = fv i)) ==> Q fv `));;
+e (NHANH (ARITH_RULE` 2 <= d ==> 0 < d - 1 + 1 /\ 0 <= d - 1 + 1 `));;
+e (SIMP_TAC[ARITH_RULE` 2 <= a ==> ( a + 1 ) - 1 = a - 1 + 1 `;
+  SUM_CLAUSES_RIGHT]);;
+e (ASM_SIMP_TAC[ARITH_RULE` (ed - 1 + 1) - 1 = ed - 1 `]);;
+e (SIMP_TAC[ARITH_RULE` 2 <= d ==> d - 1 + 1 = d `]);;
+e (PHA);;
+e (REWRITE_TAC[MESON[ARITH_RULE` 2 = ed + 1 ==> ~( 2 <= ed ) `]`
+  ( a \/ 2 = ed + 1) /\ aa /\
+ 2 <= ed /\ ll <=> a /\ aa /\
+ 2 <= ed /\ ll `]);;
+e (STRIP_TAC THEN FIRST_X_ASSUM MP_TAC);;
+e (MATCH_MP_TAC (REAL_ARITH` a <= b + c ==> b <= x ==> a <= x + c `));;
+e (FIRST_X_ASSUM MP_TAC);;
+e (NHANH (MESON[LE_REFL; LE_0]` (! i. i <= d ==> p i ) ==> p ( 0 ) /\
+  p ( d ) `));;
+e (MP_TAC (ARCV_INEQUALTY));;
+e (ASM_SIMP_TAC[IN_INSERT; NOT_IN_EMPTY]);;
+let LEMMA3_22 = top_thm();;

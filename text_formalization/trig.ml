@@ -2426,4 +2426,4 @@ e (NHANH (MESON[LE_REFL; LE_0]` (! i. i <= d ==> p i ) ==> p ( 0 ) /\
   p ( d ) `));;
 e (MP_TAC (ARCV_INEQUALTY));;
 e (ASM_SIMP_TAC[IN_INSERT; NOT_IN_EMPTY]);;
-let LEMMA3_22 = top_thm();;
+let FGNMPAV = top_thm();;

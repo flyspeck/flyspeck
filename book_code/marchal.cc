@@ -115,6 +115,13 @@ int wtcount(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (wtrange(y6)) { count++; }
   return count;
 }
+int wtcount3(double y1,double y2,double y3) {
+  int count =0;
+  if (wtrange(y1)) { count++; }
+  if (wtrange(y2)) { count++; }
+  if (wtrange(y3)) { count++; }
+  return count;
+}
 double gamma4wt(double y1,double y2,double y3,double y4,double y5,double y6) {
   gamma4cell(y1,y2,y3,y4,y5,y6)/wtcount(y1,y2,y3,y4,y5,y6);
 }
@@ -149,6 +156,11 @@ double gamma3cell(double y1,double y2,double y3) {
   if (radf(y1,y2,y3)>sqrt(2.0)) { return 0.0; }
   return vol3(y1,y2,y3) - vol3estimate2(y1,y2,y3);
 }
+double gamma3wt(double y1,double y2,double y3) {
+  return gamma3cell(y1,y2,y3)/wtcount3(y1,y2,y3);
+}
+
+
 // dih*cell2vol(y/2) is the volume of a 2-cell (inside two-stacked Rogers of given dihR).
 double cell2vol(double r) {
   return 2*(2 - r*r)*r/6.0;
@@ -162,6 +174,14 @@ double gamma2divalpha(double r) {
 // combined 2 and 3 cell for simplices greater than sqrt2 in rad:
 double gg1(double y1,double y2,double y3,double y4,double y5,double y6) {
   double gamma3cellterm =  gamma3cell(y1,y2,y6) + gamma3cell(y1,y3,y5);
+  double dihrest = dih_y(y1,y2,y3,y4,y5,y6) - dih_y(y1,y2,s2,s2,s2,y6) - dih_y(y1,y3,s2,s2,s2,y5);
+  double cell2 = dihrest*gamma2divalpha(y1/2);
+  return cell2 + gamma3cellterm;
+}
+// wtd combined 2 and 3 cell for simplices greater than sqrt2 in rad:
+// assumes that the 2-cell has wt 1 (say, along a supercell)
+double ggwt1(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double gamma3cellterm =  gamma3wt(y1,y2,y6) + gamma3wt(y1,y3,y5);
   double dihrest = dih_y(y1,y2,y3,y4,y5,y6) - dih_y(y1,y2,s2,s2,s2,y6) - dih_y(y1,y3,s2,s2,s2,y5);
   double cell2 = dihrest*gamma2divalpha(y1/2);
   return cell2 + gamma3cellterm;
@@ -188,6 +208,15 @@ void smallrady(int numargs,int whichFn,double* y, double* ret,void*) {
 //constraint rady > s2 
 void bigrady(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = -rady(y[0],y[1],y[2],y[3],y[4],y[5]) + (s2);
+};
+//constraint rady > s2  rad126, rad135 < s2.
+void bigradysmallrafy(int numargs,int whichFn,double* y, double* ret,void*) {
+  switch(whichFn) {
+  case 1: *ret = -rady(y[0],y[1],y[2],y[3],y[4],y[5]) + (s2); break;
+  case 2: *ret = radf(y[0],y[1],y[5]) - (s2); break;
+  default: *ret = radf(y[0],y[2],y[4]) - (s2); break;
+    
+  }
 };
 //constraint gamma4cell < 0:
 void gamma4cell_neg(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -378,67 +407,84 @@ Minimizer m22() {
 }
 trialdata d22(m22(),"ID BIXPCGW: cc:3bl: d22: Marchal, dih > 2.3 ==> gamma4cell() > 0.0057");
 
-////////// NEW INEQ
-// this is minimized.  failure reported if min is negative.
-void t23(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gg1(y[0],y[1],y[2],y[3],y[4],y[5]) - (0.2147) + 0.20495 * (dih_y(y[0],y[1],y[2],y[3],y[4],y[5]));
-	}
-Minimizer m23() {
-  double t = 2.0*hmin;
-  double xmin[6]= {2.0*hmin,2,2,2,2,2};
-  double xmax[6]= {2.0*hmax,t,t,sqrt(8.0),t,t};
-	Minimizer M(trialcount,6,1,xmin,xmax);
-	M.func = t23;
-	M.cFunc = bigrady;
-	return M;
-}
-trialdata d23(m23(),"ID TTAMHQQ: cc:6bl: d23: Marchal, gamma3cell >= 0.2147/2 - 0.20495 dih");
 
-////////// NEW INEQ
-// this is minimized.  failure reported if min is negative.
-void t24(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4wt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.2147 + 0.20495 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
-	}
-double m24m(int i) {
+double xxmin(int i) {
   if (i==0) { return 2.0; }
   if (i==1) { return 2.0*hmin + eps; }
   return 2*hmax + eps;
 }
-double m24x(int i) {
+double xxmax(int i) {
   if (i==0) {return 2*hmin - eps; }
   if (i==1) {return 2.0*hmax - eps; }
   return sqrt(8.0);
 }
-Minimizer m24(int i2,int i3,int i4,int i5,int i6) {
-  double xmin[6]= {m24m(1),m24m(i2),m24m(i3),m24m(i4),m24m(i5),m24m(i6)};
-  double xmax[6]= {m24x(1),m24x(i2),m24x(i3),m24x(i4),m24x(i5),m24x(i6)}; 
+
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t25(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4wt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0560305 + 0.0445813 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+Minimizer m25(int i2,int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(i2),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(i2),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
 	Minimizer M(40,6,1,xmin,xmax);
-	M.func = t24;
+	M.func = t25;
 	M.cFunc = smallrady;
 	return M;
 }
-// d24 in main().
+// d25 in main().
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t25a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = ggwt1(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0560305 + 0.0445813 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+Minimizer m25a(int i2,int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(i2),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(i2),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
+	Minimizer M(40,6,3,xmin,xmax);
+	M.func = t25a;
+	M.cFunc = bigradysmallrafy;
+	return M;
+}
+// d25a in main().
 
 
 int main()
 {
-  // LEAVE EMPTY.
-  // d24 has many cases:
-  /*
 double xmin[6];
+
+  // d25 has many cases:
+for (int i2=0;i2<3;i2++)
+for (int i3=i2;i3<3;i3++)
+for (int i4=0;i4<3;i4++)
+for (int i5=0;i5<3;i5++)
+for (int i6=0;i6<3;i6++)
+  {
+xmin[0]=xxmin(1); xmin[1]=xxmin(i2); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else 
+{
+trialdata d25(m25(i2,i3,i4,i5,i6),"ID ZTGIJCF: 5:bl: d25: Marchal, gamma4wt >=  0.0560305 - 0.0445813 dih, many cases ");
+}
+  }
+
+  // d25a has many cases:
 for (int i2=0;i2<3;i2++)
 for (int i3=0;i3<3;i3++)
 for (int i4=0;i4<3;i4++)
 for (int i5=0;i5<3;i5++)
 for (int i6=0;i6<3;i6++)
   {
-xmin[0]=m24m(1); xmin[1]=m24m(i2); xmin[2]=m24m(i3); xmin[3]=m24m(i4); xmin[4]=m24m(i5); xmin[5]=m24m(i6);
-if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
-else 
+    xmin[0]=xxmin(1); xmin[1]=xxmin(i2); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+    if (radf(xmin[0],xmin[1],xmin[5])> s2) continue;
+    else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
+    else 
 {
-trialdata d24(m24(i2,i3,i4,i5,i6),"ID TTAMHQQ: 6:bl: d24: Marchal, gamma4wt >=  0.2147 - 0.2045 dih, many cases ");
+trialdata d25a(m25a(i2,i3,i4,i5,i6),"ID ZTGIJCF: 5:bl: d25a: Marchal, ggwt1 >=  0.0560305 - 0.0445813 dih, many cases ");
 }
   }
-  */
 
 }

@@ -424,16 +424,21 @@ int main()
 {
   // LEAVE EMPTY.
   // d24 has many cases:
-    /*
+  /*
+double xmin[6];
 for (int i2=0;i2<3;i2++)
 for (int i3=0;i3<3;i3++)
 for (int i4=0;i4<3;i4++)
 for (int i5=0;i5<3;i5++)
 for (int i6=0;i6<3;i6++)
   {
+xmin[0]=m24m(1); xmin[1]=m24m(i2); xmin[2]=m24m(i3); xmin[3]=m24m(i4); xmin[4]=m24m(i5); xmin[5]=m24m(i6);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else 
+{
 trialdata d24(m24(i2,i3,i4,i5,i6),"ID TTAMHQQ: 6:bl: d24: Marchal, gamma4wt >=  0.2147 - 0.2045 dih, many cases ");
+}
   }
-    */
-  
+  */
 
 }

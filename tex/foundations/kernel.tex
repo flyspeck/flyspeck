@@ -659,12 +659,11 @@ Here are some basic facts about types.
 \begin{itemize}
 \item Every type has exactly one of the following forms:
 \verb!<tyvar,_>!, \verb!<tyapp,_>!.
-Every term in HOL will have a type. (We have not defined terms yet; we will do so soon.)
+\item Every term in HOL will have a type. (We have not defined terms yet; we will do so soon.)
 The type \verb!`:bool`! represents the boolean type.  Eventually, we will prove that every term of this type is equal to true or false.
 \item A type of the form \verb!`:A->B`xs! is a function type.  Any function \verb!`f:A->B`! with domain \verb!`:A`! and range \verb!`:B`! has this type.
 \item Types with multiple arrows are the types of curried functions.  A function \verb!`f:A->B->C`! has domain \verb!`:A`! and range \verb!`:B->C`!, which is again a function type.
-\item Type variables \verb!<tyvar,_>! represent indeterminate types.   The prime example is the type of \verb!(=)! (equality).  The equals sign takes any two terms of the same type and yields a term of type \verb!`:bool`!.
-\item The two terms that are compared under \verb!(=)! must have the same type, but there are no further restrictions.  We write
+\item Type variables \verb!<tyvar,_>! represent indeterminate types.   The paradigmatic example is the type of the term \verb!(=)! (equality).  The equals sign takes any two terms of the same type and yields a term of type \verb!`:bool`!.  The two terms that are compared under \verb!(=)! must have the same type, but there are no further restrictions.  We write
 $$
 \verb!`:A -> A -> bool`!
 $$
@@ -677,7 +676,7 @@ for the type of \verb!(=)! in curried form.
 
 Let \verb!hol_type! be the set of all types.
 
-Every type has the form \verb!<h,a>! where \verb!h=tyvar! or \verb!h=tyapp!.  Two types \verb!<h,a>!, \verb!<h',a'>! are equal precisely when \verb!h=h'! and \verb!a=a'!.
+%Every type has the form \verb!<h,a>! where \verb!h=tyvar! or \verb!h=tyapp!.  Two types \verb!<h,a>!, \verb!<h',a'>! are equal precisely when \verb!h=h'! and \verb!a=a'!.
 
 \begin{lemma}[induction]  Let $X$ is a set of types. Assume that $X$ includes all types of the form \verb!<tyvar,k>!.  Assume that for every element \verb!<s,n>! of \verb!tycon!, and every list \verb!p! of length $n$ all of whose elements belong to $X$, the type \verb!<tyapp,s,p>! belongs to $X$.  Then \verb!X=hol_type!.
 \end{lemma}
@@ -714,6 +713,14 @@ tyvars(`:(A->B)->bool`) = f(2,`:(A->B)->bool`)!
      = {`:A`,`:B`}.
 \end{verbatim}
 \end{example}
+
+\begin{exer}\label{ex:tyvars} 
+Show that \verb!tyvars! satisfies the following relations:
+\begin{verbatim}
+tyvars <tyvar,k> = {<tyvar,k>}
+tyvars <tyapp,s,p> = UNIONS { tyvars x | x IN setify p }.
+\end{verbatim}
+\end{exer}
 
 \subsection{type substitution}
 
@@ -752,23 +759,25 @@ $$
 $$
 Then
 \begin{verbatim}
-type_subst f `:A->B` = `:B->bool`.
+type_subst theta `:A->B` = `:B->bool`.
 \end{verbatim}
 \end{example}
 
+\begin{exer}\label{ex:type_subst}
+Show that \verb!type_subst! satisfies the following relations:
+\begin{verbatim}
+type_subst theta <tyvar,k> = <tyvar,theta k>
+type_subst theta <tyapp,s,[a0;...;ai]> 
+  = <tyapp,s,[type_subst theta a0;...;type_subst theta ai]>
+\end{verbatim}
+\end{exer}
+
 \subsection{recursion analyzed}
 
-The type substitution function \verb!type_subst! was defined through an auxiliary function $f$.  The first
-argument of $f$ is a natural number that was used in the recursive definition of $f$.  Once the recursive definition was complete, we eliminated the first variable by setting it equal to the type.  The function \verb!typ_subst! satisfies the following {\it recursion relation}:
-$$
-\begin{array}{lll}
-\verb!typ_subst!~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ t &\hbox{otherwise}\end{cases}\\
-\verb!typ_subst!~\theta~t &=\begin{cases} \theta(k) &\hbox{if } t = \verb!<tyvar,k>!\\ \verb!<tyapp,s,![a'_0;\ldots;a'_i]\verb!>! &\hbox{if } t = \verb!<tyapp,s,![a_0;\ldots,a_i]\verb!>!\end{cases}\\
-\end{array}
-$$
-where $a'_j = \verb!typ_subst!~\theta~a_j$.
+The type substitution function \verb!type_subst! was defined through an auxiliary function $f$.  The type variables function \verb!tyvars! was also defined through a different auxiliary function $f$.  In both cases, the first
+argument of $f$ is a natural number that was used in the recursive definition of $f$.  Once the recursive definition was complete, we eliminated the first variable by setting it equal to the depth of the type.  The function \verb!typ_subst! satisfies the {\it recursion relation} of Exercise~\ref{ex:type_subst}.
 
-In the future, we will simply express the definition in this form, rather than giving the auxiliary definition of $f$ directly.  We will generally indicate in passing what the recursion variable is.
+In the future, we will simply express the definition in the form given by the exercise, rather than giving the auxiliary definition of $f$ directly.  We will say that the definition is given by recursion over the {\it depth}.
 
 
 \chapter{Terms}
@@ -776,21 +785,25 @@ In the future, we will simply express the definition in this form, rather than g
 The collective name for mathematical functions, equations, inequalities, formulas, expressions, etc. is {\it term}.  Just about any grammatically correct mathemtical expression is a {\it term}.  A term is a mathematical thing.  This chapter gives a precise definition of the set of all terms in the HOL system.
 
 Since HOL is a typed system, {\it every term has a type}.
+
+\begin{example}
 Here are some examples of terms.
-
-\verb!`0`!  This is the constant $0$ in the HOL system.  Its type the type of natural numbers.  The backquotes mean that it is a term in the HOL system, as opposed to the number $0\in\ring{N}$ in the metamathematical system.  The notation distinguished between types and terms by marking types with a colon.  Thus, \verb!`:0` = <tyvar,"0">! is a type whose name is the ASCII string \verb!"0"!, but \verb`0` is a term.
-
-\verb!`(+)`!  This term is the addition function in HOL.  It is a prefix curried function with type \verb!`:num->num->num`!.
-
-\verb!(=)`!  This term is the equality function in HOL.  It is a prefixed curried function with type \verb!`:A->A->bool`!.  As we will see, more accurately, there is an entire family of equality terms in HOL, obtained by applying type substitutions on the variable \verb!`:A`! in \verb!`:A->A->bool`!
-
-\verb!`0=0`!  This is an equation in HOL.  Its type is \verb!`:bool`!.  The subterm \verb!`(=)`! has type \verb!`:nat->nat->bool`!.
-
-\verb!`0`=`0`!  This is a metaequation beween two HOL terms.  The equals sign is not a part of HOL.  It is a metamathemtical equality between two terms.
-
-\verb!`6=2+4`!  This is a term of type \verb!`:bool`!.
-
-\verb!`6`=`2+4`!  This is a {\bf false} assertion.  It asserts that \verb!`6`! is the same expresion as \verb!`2+4`!, which is not correct.  
+\begin{itemize}
+\item \verb!`0`!  This is the constant $0$ in the HOL system.  Its type the type of natural numbers.  The backquotes mean that it is a term in the HOL system, as opposed to the number $0\in\ring{N}$ in the metamathematical system.  The notation distinguished between types and terms by marking types with a colon.  Thus, \verb!`:0` = <tyvar,"0">! is a type whose name is the ASCII string \verb!"0"!, but \verb`0` is a term.
+%
+\item \verb!`(+)`!  This term is the addition function in HOL.  It is a prefix curried function with type \verb!`:num->num->num`!.
+%
+\item \verb!(=)`!  This term is the equality function in HOL.  It is a prefixed curried function with type \verb!`:A->A->bool`!.  As we will see, more accurately, there is an entire family of equality terms in HOL, obtained by applying type substitutions on the variable \verb!`:A`! in \verb!`:A->A->bool`!
+%
+\item \verb!`0=0`!  This is an equation in HOL.  Its type is \verb!`:bool`!.  The subterm \verb!`(=)`! has type \verb!`:nat->nat->bool`!.
+%
+\item \verb!`0`=`0`!  This is a metaequation beween two HOL terms.  The equals sign is not a part of HOL.  It is a metamathemtical equality between two terms.
+%
+\item \verb!`6=2+4`!  This is a term of type \verb!`:bool`!.
+%
+\item \verb!`6`=`2+4`!  This is a {\bf false} assertion.  It asserts that \verb!`6`! is the same expresion as \verb!`2+4`!, which is not correct.  
+\end{itemize}
+\end{example}
 
 \section{definition}
 
@@ -822,7 +835,7 @@ The set of raw terms of depth at most $n+1$ is the union of
 \item the set of raw terms of depth at most $n$;
 \item $\{\verb!<comb,t1,t2>!\mid t1,t2\hbox{ raw terms of depth at most } n\}$
 \item $\{\verb!<abs,v,t>!\mid \ldots\}.$
-where the membership condition is that $v$ is a raw term of depth at most zero of the form \verb!<tmvar,k,ty>! and \verb!t! is a raw term of depth at most $n$.
+where the membership condition is that $v$ is a term variable and \verb!t! is a raw term of depth at most $n$.
 \end{itemize}
 The depth of a raw term is the smallest $n$ for which the
 term is a raw term of depth at most $n$.
@@ -830,43 +843,49 @@ term is a raw term of depth at most $n$.
 
 
 
-\begin{definition} The type of a raw term is defined by recursion over the depth: Let \verb!false=0! and \verb!true=1! in
-the following definition.
-The raw type \verb!rt! of a raw term of depth at most $0$ is
+\begin{definition} Let \verb!error=0!.  The type of a raw term is defined by recursion over the depth.  It is a function
+$$
+\verb!hol_type:raw_term -> type UNION {error}!.
+$$
+%Let \verb!false=0! and \verb!true=1! in the following definition.
+The type \verb!hol_type! of a raw term of depth at most $0$ is
 $$
 \begin{array}{lll}
-\verb!<tmvar,k,ty>!&\mapsto \verb!(true,ty)!\\
-\verb!<tmcon,k,ty>!&\mapsto \verb!(true,ty)!
+\verb!<tmvar,k,ty>!&\mapsto \verb!ty!\\
+\verb!<tmcon,k,ty>!&\mapsto \verb!ty!
 \end{array}
 $$
-The raw type of a raw term of depth at most $n+1$ is
+The type of a raw term of depth at most $n+1$ is
 $$
 \begin{array}{lll}
-\verb!<comb,t1,t2>!&\mapsto 
+\verb!<comb,f,x>!&\mapsto 
 \begin{cases}
-\verb!(true,ty)! &\hbox{if } \verb!(rt(t1)=(true,<"fun",[ty1;ty]>)! \hbox{ and } \verb!(rt(t2)=(true,ty1)!\\
-\verb!(false,snd(rt(t1))! & \hbox{otherwise}
+\verb!ty! &\hbox{if } \verb!hol_type f = <"fun",[xty;ty]>)! 
+            \hbox{ and } \verb!hol_type x = xty!\\
+\verb!error! & \hbox{otherwise}
 \end{cases}\\
-\verb!<abs,v,t>!&\mapsto
+\verb!<abs,v,b>!&\mapsto
  \begin{cases}
-\verb!(true,<"fun",[ty1;ty2]>)!&\hbox{if } \verb!rt(v)=(true,t1), rt(t)=(true,ty2)!\\
-\verb!(false,snd(rt(v)))!&\hbox{otherwise}.
+\verb!<"fun",[hol_type v;hol_type b]>)!&\hbox{if } \verb!hol_type b!\ne\verb!error!\\
+\verb!error!&\hbox{otherwise}.
 \end{cases}
 \end{array}
 $$
 \end{definition}
 
 \begin{definition}
-We say that a raw term $t$ is well typed if its raw type has the form \verb!(true,.)!.  We define a term to be a raw term that is well-typed.  We define the type of a term $t$ to be \verb!snd(rt(t))!.
+We say that a raw term $t$ is well typed if 
+$$
+\verb!hol_type t!\ne\verb!error!.
+$$  
+We define a term to be a raw term that is well-typed.  We define the type of a term $t$ to be \verb!hol_type t!. Write \verb!term! for the set of all terms.
 \end{definition}
 
-Write \verb!term! for the set of all terms.  It is a subset of $\ring{N}$.  Every term has one of the forms
+The set of terms is a subset of $\ring{N}$.  Every term has one of the forms
 $$
 \verb!<tmvar,_>    <tmcon,_>   <comb,_,_>   <abs,_,_>!
 $$
-We call these four kinds of terms: variables, constants,
-combinations, and abstractions.  We discuss each kind
-of term in turn, starting with combinations.
+We call these four kinds of terms: variables, constants, combinations, and abstractions.  We discuss each kind of term in turn, starting with combinations.
 
 
 \subsection{combination}

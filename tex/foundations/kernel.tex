@@ -92,7 +92,7 @@ Just as it is important not to confound English with Vietnamese, it is important
 
 This book uses Zermelo set theory as the metamathematical system.  Zermelo set theory is used because it is currently the the most widespread mathematical system.  Only simple properties of Zermelo set theory will be used.  The target mathematical system is Higher Order Logic (HOL).  
 
-In mathematics, there is a greater danger of confounding the metamathematical system with the target mathematical system, because some of the symbols will be the same in both systems.  For example, the natural number \verb!0! will exist as both a set in Zermelo set theory and as a term in Higher Order Logic.   Or convention will be to distinguish terms in the target Higher Order Logic with backquotes.  For example, \verb!`0`! denotes the term in Higher-Order Logic and \verb!0! denotes a set in Zermelo set theory.
+In mathematics, there is a greater danger of confounding the metamathematical system with the target mathematical system, because some of the symbols will be the same in both systems.  For example, the natural number \verb!0! will exist as both a set in Zermelo set theory and as a term in Higher Order Logic.   Our convention will be to distinguish terms in the target Higher Order Logic with backquotes.  For example, \verb!`0`! denotes the term in Higher-Order Logic and \verb!0! denotes a set in Zermelo set theory.
 
 We use the terms {\it metalanguage}, {\it metalogic}, and {\it metamathematics} to refer to the familiar informal language, logic, and math that is being used to construct the system of Higher Order Logic.  We use the terms {\it HOL language}, {\it HOL logic}, and {\it HOL mathematics} to refer to the target foundational system of Higher Order Logic. 
 
@@ -100,7 +100,9 @@ We use the terms {\it metalanguage}, {\it metalogic}, and {\it metamathematics} 
 \chapter{Naive Set Theory}
 
 This chapter gives a review of basic set theory.  We only present enough set theory to make sense of the metamathematical constructions in this book.
-The book assumes an elementary knowledge of the theory of sets.  The set of greatest interest to us is the set of natural numbers:
+The book assumes an elementary knowledge of the theory of sets.  
+
+The set of greatest interest to us is the set of natural numbers:
 $$
 \mc{\ring{N}=\{0,1,2,3,4,5,\ldots\}}.
 $$
@@ -286,7 +288,8 @@ An ordered triple \mc{$(x,y,z)$} is alternate notation for \mc{$(x,(y,z))$}.  (T
 \section{natural numbers}
 
 We let \mc{$\ring{N}=\{0,1,2,3,\ldots\}$} be the set of natural numbers. 
-Zero $\mc{0}$ is a natural number.
+Zero $\mc{0}$ is a natural number.  From a metamathematical point of view, we are not interested in the set of natural numbers from a number theoretic point of view.  Rather, it is a set large enough (countably infinite) to contain all of the structures needed to do metamathematics.  Moreover, we know various facts about the set of natural numbers that make it a convenient choice. For example, this section will review the principle of mathematical induction for the natural numbers, and will state the recursion theorem for natural numbers.
+
 
 \subsection{base}
 
@@ -661,7 +664,7 @@ Here are some basic facts about types.
 \verb!<tyvar,_>!, \verb!<tyapp,_>!.
 \item Every term in HOL will have a type. (We have not defined terms yet; we will do so soon.)
 The type \verb!`:bool`! represents the boolean type.  Eventually, we will prove that every term of this type is equal to true or false.
-\item A type of the form \verb!`:A->B`xs! is a function type.  Any function \verb!`f:A->B`! with domain \verb!`:A`! and range \verb!`:B`! has this type.
+\item A type of the form \verb!`:A->B`! is a function type.  Any function \verb!`f:A->B`! with domain \verb!`:A`! and range \verb!`:B`! has this type.
 \item Types with multiple arrows are the types of curried functions.  A function \verb!`f:A->B->C`! has domain \verb!`:A`! and range \verb!`:B->C`!, which is again a function type.
 \item Type variables \verb!<tyvar,_>! represent indeterminate types.   The paradigmatic example is the type of the term \verb!(=)! (equality).  The equals sign takes any two terms of the same type and yields a term of type \verb!`:bool`!.  The two terms that are compared under \verb!(=)! must have the same type, but there are no further restrictions.  We write
 $$
@@ -808,9 +811,9 @@ Here are some examples of terms.
 \section{definition}
 
 Now we turn to the definition of terms.  First we define {\it raw terms} and then the raw terms that satisfy an additional compatibility condition will be terms. The definition of raw terms depends
-on a set $\verb!tmpat!\subset\ring{N}$ of term constant patterns:
+on a list $\verb!tmpat!\subset\ring{N}$ of term constant patterns:
 $$
-\verb!tmpat {<"=",`:A->A->bool`>,<"@",`:(A->bool)->A`>,...}!
+\verb!tmpat = [<"=",`:A->A->bool`>;<"@",`:(A->bool)->A`>;...]!
 $$
 We assume that it contains at least the two indicated elements.
 We assume that each element of this set has the
@@ -1630,9 +1633,10 @@ depending only on the first entry of the state,
 that constructs the types from the list of type constants.
 \begin{example}
 The set of types for the primitive HOL system is
-$$
-\verb!type = type_from [[<"bool",0>];[];[];[]]!
-$$
+\begin{verbatim}
+type = type_from [primtycon;[];[];[]]
+primtycon = [<"bool",0>;<"ind",0>]
+\end{verbatim}
 \end{example}
 
 The set of terms depends on the set of type constants and on the set of term constant patterns:
@@ -1642,7 +1646,7 @@ $$
 \begin{example}
 The set of terms for the primite HOL system is
 $$
-\verb!term = term_from [[<"bool",0>];[<"=",`:A->A->bool`>];[];[]]!
+\verb!term = term_from [primtycon;primtmpat;[];[]]!
 $$
 \end{example}
 
@@ -1652,7 +1656,7 @@ $$
 
 Given these four lists, we can construct types, terms, and theorems as outlined.  If these lists change, we get different sets of types, terms, and theorems.
 
-
+\begin{definition}[{\tt thm from}]
 We define a function
 $$
 \verb!thm_from: state -> P(sequent)!
@@ -1665,15 +1669,16 @@ $$
 is as follows.  The set of theorems of depth at most $0$ is the set of axioms and definitions:
  $$\verb!setify (def_list MERGE axiom_list)!.$$  
 A theorem of depth at most $n+1$ can be any theorem of depth at most $n$,  or any sequent that can be obtained as the error-free output of any of the ten rules of inference, where the input sequents (for the rules of inference that require one or more sequents) are theorems of depth at most $n$.  The depth of a theorem is the smallest $n$ such that it is a theorem of depth at most $n$.
+\end{definition}
 
-\begin{definition}
-The set of {\it primitive theorems} is the set of theorems associated with the following state lists.  The set of type constants is the singleton set
+\begin{definition}[primitive theorems]
+The set of {\it primitive theorems} is the set of theorems associated with the following state lists.  The list of type constants is 
 $$
-\verb!tycon = {<"bool",0>}!
+\verb!primtycon!
 $$
-The set of term constant patterns is
+The list of term constant patterns is
 $$
-\verb!tmpat {<"=",`:A->A->bool`>}!
+\verb!primtmpat = [<"=",`:A->A->bool`>;<"@",`:(A->bool)->A`>]!
 $$
 For primitive theorems, we take the list of axioms to be empty: \verb!axiom_list=[]!.  We also take the definition list to be empty: \verb!def_list=[]!.
 \end{definition}
@@ -1837,7 +1842,7 @@ $$
 $$
 It is a curried function
 $$
-\verb!DEF:state \verb! -> {p : boolean term} -> state
+\verb!DEF:state -> {p : boolean term} -> state!
 $$
 that modifies the state of the HOL system.  In fact, it only modifies the axiom list by adding a new sequent with empty assumption list and conclusion $p\tc bool$:
 \begin{verbatim}

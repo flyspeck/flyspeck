@@ -3,6 +3,7 @@
 % Types
 % Terms
 % Theorems
+% XX theta as function , theta as list of pairs.
 
 \chapter{Overview} 
 
@@ -498,8 +499,8 @@ defined by recursion.  We do not give the proof here, because recursion will be 
 \begin{assert}[recursion]  For any set $Y$, for any element $a\in Y$, and any function $b:\ring{N}\times Y\to Y$, there exists a unique function $f:\ring{N}\to Y$ such that
 $$
 \begin{array}{lll}
-f(0,x) &= a\\
-f(n+1,x) &= b(n,f(n)),\hbox{ for all } n\in\ring{N}.
+f(0) &= a\\
+f(n+1) &= b(n,f(n)),\hbox{ for all } n\in\ring{N}.
 \end{array}
 $$
 \end{assert}
@@ -652,6 +653,20 @@ that applies \verb!insert! to all of the entries of the first list. For example,
 %\end{verbatim}
 %\end{example}
 
+There is a recursively defined function
+$$
+\verb!DROP:list -> !\ring{N} \verb! -> list!.
+$$
+\verb!DROP p a! removes from a list $p$ every entry that is equal to \verb!a!.
+\begin{example}
+\begin{verbatim}
+DROP [1;2;3] 2 = [1;3]
+DROP [1;1;1;2] 1 = [2]
+DROP [2;3;4;1;2;1;4] 2 = [3;4;1;1;4]
+DROP [] 3 = []
+DROP [4;5;6] 1 = [4;5;6]
+\end{verbatim}
+\end{example}
 
 \subsubsection{complete recursion}
 
@@ -744,7 +759,7 @@ what kind of object it is.   It is a descriptive label.  For example, $0$ is a n
 We give a construction of the set of types in the HOL system.  It is a subset of
 $\ring{N}$, depending on a set \verb!typecon!.
 Let \verb!tyvar=0!, and \verb!tyapp=1!.
-Let \verb!tycon! be a finite set of natural numbers of the form \verb!<s,n>!.
+Let \verb!tycon! be a finite list of natural numbers of the form \verb!<s,n>!.
 We assume that \verb!tycon! contains the elements
 \verb!<"bool",0>! and \verb!<"fun",2>!.  We assume that if \verb!<s,n>=<s,n'>!,
 then \verb!n=n'!, for any two elements of \verb!tycon!.
@@ -753,11 +768,10 @@ then \verb!n=n'!, for any two elements of \verb!tycon!.
 We define the set of types of depth \verb!0! to be
 the set of order pairs of the form \verb!<tyvar,n>!.  By recursion, we define
 the set of types of depth at most \verb!n+1! to be the union of the set
-of types of depth at most \verb!n!, and the set of all \verb!<tyapp,s,nlist>!, where for some \verb!n!,
+of types of depth at most \verb!n!, and the set of all \verb!<tyapp,s,p>!, where
 \begin{itemize}
-\item \verb!nlist! is a list of length \verb!n!, 
-\item each element of \verb!nlist! is a type of depth at most \verb!n!,
-\item \verb!<s,n>! is an element of \verb!tycon!.
+\item each element of \verb!p! is a type of depth at most \verb!n!,
+\item \verb!<s,len p>! is an element of \verb!tycon!.
 \end{itemize}
 The set of types is the union of the sets of types of depth at most \verb!n! for all \verb!n!.  
 \end{definition}
@@ -857,7 +871,7 @@ tyvars(`:(A->B)->bool`)
 
 We define a function
 $$
-\verb!type_subst!:(\ring{N}\to \verb!hol_type!)\to \verb!hol_type! \to \verb!hol_type!
+\verb!type_subst!:list\to \verb!hol_type! \to \verb!hol_type!
 $$
 that replaces each variable with a type according to a given substitution function $\theta:\ring{N}\to \verb!hol_type!$.
 
@@ -880,9 +894,9 @@ that replaces each variable with a type according to a given substitution functi
 %\end{equation}
 
 \begin{definition}[rev\_assocd]
-Define the following function by complete recursion:
+Fix the first and last variables.  Define the following function by complete recursion over the second variable.
 \begin{verbatim}
-rev_assocd a <cons,<x,y>,t> = if (y=a) then x else rev_assocd a t d.
+rev_assocd a <cons,<x,y>,t> d = if (y=a) then x else rev_assocd a t d.
 rev_assocd a n d = d, otherwise
 \end{verbatim}
 \end{definition}
@@ -896,14 +910,10 @@ type_subst theta n = rev_assocd n theta n, otherwise
 \end{definition}
 
 \begin{example}
-Let $\theta$ be the function
-$$
-\begin{array}{lll}
-\theta(\verb!`:A`!) &=\verb!`:B`!\\
-\theta(\verb!`:B`!) &=\verb!`:bool`!\\
-\theta(t) &= t,\quad\hbox{otherwise}.
-\end{array}
-$$
+Let $\theta$ be the list
+\begin{verbatim}
+[<`:B`;`:A`>;<`:bool`;`:B`>].
+\end{verbatim}
 Then
 \begin{verbatim}
 type_subst theta `:A->B` = `:B->bool`.
@@ -927,11 +937,11 @@ Since HOL is a typed system, {\it every term has a type}.
 \begin{example}
 Here are some examples of terms.
 \begin{itemize}
-\item \verb!`0`!  This is the constant $0$ in the HOL system.  Its type the type of natural numbers.  The backquotes mean that it is a term in the HOL system, as opposed to the number $0\in\ring{N}$ in the metamathematical system.  The notation distinguished between types and terms by marking types with a colon.  Thus, \verb!`:0` = <tyvar,"0">! is a type whose name is the ASCII string \verb!"0"!, but \verb`0` is a term.
+\item \verb!`0`!  This is the constant $0$ in the HOL system.  Its type the type of natural numbers.  The backquotes mean that it is a term in the HOL system, as opposed to the number $0\in\ring{N}$ in the metamathematical system.  The notation distinguished between types and terms by marking types with a colon.  Thus, \verb!`:0` = <tyvar,"0">! is a type whose name is the ASCII string \verb!"0"!, but \verb!`0`! is a term.
 %
 \item \verb!`(+)`!  This term is the addition function in HOL.  It is a prefix curried function with type \verb!`:num->num->num`!.
 %
-\item \verb!(=)`!  This term is the equality function in HOL.  It is a prefixed curried function with type \verb!`:A->A->bool`!.  As we will see, more accurately, there is an entire family of equality terms in HOL, obtained by applying type substitutions on the variable \verb!`:A`! in \verb!`:A->A->bool`!
+\item \verb!`(=)`!  This term is the equality function in HOL.  It is a prefixed curried function with type \verb!`:A->A->bool`!.  As we will see, more accurately, there is an entire family of equality terms in HOL, obtained by applying type substitutions on the variable \verb!`:A`! in \verb!`:A->A->bool`!
 %
 \item \verb!`0=0`!  This is an equation in HOL.  Its type is \verb!`:bool`!.  The subterm \verb!`(=)`! has type \verb!`:nat->nat->bool`!.
 %
@@ -945,7 +955,8 @@ Here are some examples of terms.
 
 \section{definition}
 
-Now we turn to the definition of terms.  First we define {\it raw terms} and then the raw terms that satisfy an additional compatibility condition will be terms. The definition of raw terms depends
+Now we turn to the definition of terms.  First we define {\it raw terms} and then the raw terms that satisfy an additional compatibility condition will be terms. Let \verb!tmvar=0!, \verb!tmcon=1!, \verb!comb=2!, \verb!abs=3!.
+The definition of raw terms depends
 on a list $\verb!tmpat!\subset\ring{N}$ of term constant patterns:
 $$
 \verb!tmpat = [<"=",`:A->A->bool`>;<"@",`:(A->bool)->A`>;...]!
@@ -955,7 +966,7 @@ We assume that each element of this set has the
 form \verb!<k,ty>!, where $k\in \ring{N}$ and $ty\in\verb!hol_typ!$.
 We assume that if \verb!<k,ty>=<k,ty'>!, then \verb!ty=ty'!.
 
-Let \verb!tmvar=0!, \verb!tmcon=1!, \verb!comb=2!, \verb!abs=3!.
+
 
 \begin{definition} The set of term variables is
 $$\verb!var! = \{\verb!<tmvar,k,ty>! \mid k\in\ring{N},\quad ty\in\verb!hol_typ!\}.$$
@@ -966,7 +977,7 @@ the union of
 \begin{itemize}
 \item \verb!var!
 \item $\{\verb!<tmcon,k,ty>! \mid \exists\theta~ty'.~
-  (k,ty')\in \verb!tmpat! \hbox{ and } ty = \verb!type_sub!~\theta ty'\}.$
+  \verb!<k,ty'>!\in \verb!setify tmpat! \hbox{ and } ty = \verb!type_subst!~\theta ty'\}.$
 \end{itemize}
 The set of raw terms of depth at most $n+1$ is the union of
 \begin{itemize}
@@ -981,34 +992,21 @@ term is a raw term of depth at most $n$.
 
 
 
-\begin{definition} Let \verb!error=0!.  The type of a raw term is defined by recursion over the depth.  It is a function
+\begin{definition} Let \verb!error=0!.  The type of a raw term is defined by complete recursion.  It is a function
 $$
 \verb!hol_type:raw_term -> type UNION {error}!.
 $$
 %Let \verb!false=0! and \verb!true=1! in the following definition.
-The type \verb!hol_type! of a raw term of depth at most $0$ is
-$$
-\begin{array}{lll}
-\verb!<tmvar,k,ty>!&\mapsto \verb!ty!\\
-\verb!<tmcon,k,ty>!&\mapsto \verb!ty!
-\end{array}
-$$
-The type of a raw term of depth at most $n+1$ is
-$$
-\begin{array}{lll}
-\verb!<comb,f,x>!&\mapsto 
-\begin{cases}
-\verb!ty! &\hbox{if } \verb!hol_type f = <"fun",[xty;ty]>)! 
-            \hbox{ and } \verb!hol_type x = xty!\\
-\verb!error! & \hbox{otherwise}
-\end{cases}\\
-\verb!<abs,v,b>!&\mapsto
- \begin{cases}
-\verb!<"fun",[hol_type v;hol_type b]>)!&\hbox{if } \verb!hol_type b!\ne\verb!error!\\
-\verb!error!&\hbox{otherwise}.
-\end{cases}
-\end{array}
-$$
+The \verb!hol_type! of a natural number is
+\begin{verbatim}
+hol_type <tmvar,k,ty> = ty
+hol_type <tmcon,k,ty> = ty
+hol_type <comb,f,x> = ty, if hol_type f = <"fun",[xty;ty]> 
+                             and hol_type x = xty
+hol_type <abs,v,b> = <"fun",[hol_type v;hol_type b]>, 
+             (if hol_type b != error and hol_type v != error).
+hol_type n = error, otherwise.
+\end{verbatim}
 \end{definition}
 
 \begin{definition}
@@ -1038,7 +1036,8 @@ $$
 \verb!`f(x)`! & \verb!<comb,<tmvar,"f",`:A->B`>,<tmvar,"x",`:A`>>!\\
 \verb!`f x`! & \verb!<comb,<tmvar,"f",`:A->B`>,<tmvar,"x",`:A`>>!\\
 \verb!`x:A`!&\verb!<tmvar,x,`:A`>!\\
-\verb!`(+) x y`! & \verb!<comb,<comb,<tmcon,"+",`:nat->nat->nat`>,<tmvar,"x",`:nat`>>,<tmvar,"y",`:nat`>>!\\
+\verb!`(+) x y`! & \verb!<comb,<comb,<tmcon,"+",`:nat->nat->nat`>,!\\
+&\verb!   <tmvar,"x",`:nat`>>,<tmvar,"y",`:nat`>>!\\
 \end{array}
 $$
 
@@ -1119,7 +1118,7 @@ $$
 \sum,\quad \lim,\quad \sqrt{\cdot},\quad \sin,\quad \cos.
 $$
 
-This completes our discussion of the four kinds of terms.  We will see that just about any formula, expression, equation, inequality, in just about any math book in the library can be expressed as a HOL term.\footnote{Honestly, there are many books beyond the HOL system, but as we will see, it does remarkable well.}
+This completes our discussion of the four kinds of terms.  We will see that just about any formula, expression, equation, inequality, in just about any math book in the library can be expressed as a HOL term.\footnote{Honestly, there are many branches of mathematics beyond the HOL system, but as we will see, it does remarkable well.}
 
 \section{equality}
 
@@ -1169,49 +1168,45 @@ In fact, later we will see that these dummy variables are just paricular cases o
 
 Let \verb!var! be the set of term variables; that is, the
 set of all terms of the form \verb!<tmvar,_,_>!.
-We define a function $\verb!frees:term!\to \verb!P(var)!$
-that takes a term and returns all free variables in that term.  For example,
+We define a function $\verb!frees:term -> list!$
+that takes a term and returns a list of free variables in that term.  For example,
 $$
 \begin{array}{lll}
-\verb!frees `x+y` = {`x`,`y`}!\\
-\verb!frees `x+y+x` = {`x`,`y`}!\\
-\verb!frees `\x. x` = {}!\\
-\verb!frees `\x. x+y` = {`y`}!\\
-\verb!frees `x x` = {`x:A->B`,`x:A`}!\\
-\verb!frees `(x+0=y)=x` = {`x:nat`,`x:bool`,`y:nat`}!\\
-\verb!frees `x+(\x. x+3) 4` = {`x:nat`}!\\
-\verb!frees `x+(\t. t+3) 4` = {`x:nat`}!\\
+\verb!frees `x+y` = [`x`;`y`]!\\
+\verb!frees `x+y+x` = [`x`;`y`]!\\
+\verb!frees `\x. x` = []!\\
+\verb!frees `\x. x+y` = [`y`]!\\
+\verb!frees `x x` = [`x:A->B`;`x:A`]!\\
+\verb!frees `(x+0=y)=x` = [`x:nat`;`x:bool`;`y:nat`]!\\
+\verb!frees `x+(\x. x+3) 4` = [`x:nat`]!\\
+\verb!frees `x+(\t. t+3) 4` = [`x:nat`]!\\
 \end{array}
 $$
 
-We now give the precise definition of \verb!frees! by
-recursion (in terms of an implicit natural number giving the depth of the term):
-$$
-\verb!frees t! =\begin{cases}
-{t} & \hbox{if } \verb!t=<tmvar,_,_>!\\
-\emptyset & \hbox{if } \verb!t=<tmcon,_,_>!\\
-\verb!(frees f)! \cup \verb!(frees x)!&\hbox{if }\verb!t=<comb,f,x>!\\
-\verb!(frees f)!\setminus \{x\}&\hbox{if }\verb!t=<abs,x,f>!
-\end{cases}
-$$
+We now give the precise definition of \verb!frees! by complete recursion:
+\begin{verbatim}
+frees <abs,x,f> = (frees f) DROP x
+frees <comb,f,x> = (frees f) union (frees x)
+frees <tmvar,x,ty> = [<tmvar,x,ty>]
+frees n = [], otherwise
+\end{verbatim}
 
 \begin{example}
 \begin{verbatim}
 frees `x + (\x. x+3) 4`
- = (frees `(+) x`) UNION (frees `(\x. x+3) 4`)
- = (frees `(+)`) UNION (frees `x`) UNION (frees `(\x. x+3)`) UNION (frees `4`)
- = EMPTYSET UNION {`x`} UNION (frees `(\x. x+3)`) UNION EMPTYSET
- = {`x`} UNION ({`x`} SETMINUS {`x`})
- = {`x`} UNION EMPTYSET
- = {`x`}
+ = (frees `(+) x`) union (frees `(\x. x+3) 4`)
+ = (frees `(+)`) union (frees `x`) union (frees `(\x. x+3)`) union (frees `4`)
+ = [] union [`x`] union (frees `(\x. x+3)`) union []
+ = [`x`] union ([`x`] DROP `x`)
+ = [`x`] union []
+ = [`x`]
 \end{verbatim}
 \end{example}
 
 \begin{definition} Two terms are $\alpha$-convertible if one can be transformed into another by renaming bound variables.
 \end{definition}
 
-We define a function \verb!alphavar! that tests for $\alpha$-convertibility of term variables using a list \verb!env! giving the conversion table. It is recursive over the length of the list.
-
+We define a function \verb!alphavar! that tests for $\alpha$-convertibility of term variables using a list \verb!env! giving the conversion table. It is defined by complete recursion.
 $$
 \begin{array}{lll}
 \verb!alphavar env v1 v2! =
@@ -1227,7 +1222,7 @@ $$
 The definition of $\alpha$-convertibility with conversion table is now 
 $$\verb!alpha t1 t2 = alpha_env [] t1 t2!
 $$
-where \verb!alpha_env env t1 t2! is defined by the following conditions:
+where \verb!alpha_env env t1 t2! is defined by the following conditions (complete recursion on $t_1$):
 \begin{itemize}
 \item It is false unless \verb!t1! and \verb!t2! are both terms of the same kind (variables, constants, combinations, or abstractions).
 \item If both are variables, the value is \verb!alphavar env t1 t2!
@@ -1235,6 +1230,72 @@ where \verb!alpha_env env t1 t2! is defined by the following conditions:
 \item If both are combinations: \verb!t1=<comb,f1,x1>, t2=<comb,f2,x2>! both parts must recursively be $\alpha$-convertible in the given environment: \verb!alpha_env env f1 f2! and \verb!alpha_env env x1 x2!
 \item If both are abstractions: \verb!t1=<abs,x1,f1>, t2=<abs,x2,f>!, then the condition is that the type of $x1$ must equal the type of $x2$ and the bodies of the abstraction must recursively be $\alpha$-convertible in the augmented environment: \verb!alpha_env <cons,<x1,x2>,env> f1 f2!
 \end{itemize}
+
+\section{variable capture}
+
+Variable capture is a particular kind of transformation that is known to produce inconsistencies in a formal system.  We illustrate with the following example.\footnote{This example uses some elementary arithmetic and existential quantifiers.  These notions will not be introduced into the HOL system until much later.  This is meant as an illustrative example only and may be skipped without affecting the development of the HOL system.}  Consider the following mathematical statement: There exists $f:A\to\ring{N}$ and $x:A$ such that
+$$
+(f:B->\ring{N})~x < (f:A\to\ring{N})~x.
+$$
+This statement contains two entirely different variables $x$.  One has type \verb!`:A`! and the other has type \verb!`:B`!.  The statement also contains two entirely different functions with the same name $f$.  One has type \verb!`:A->nat`! and the other has type \verb!`:B->nat`!.  We know that the two $x$s are different and the two $f$s are different because each term has a uniquely determined type.  The statement expresses an arithmetic truth.  It is $\alpha$-equivalent to the statement: 
+There exists $g:A\to\ring{N}$ and $y:A$ such that
+$$
+(f:B->\ring{N})~x < (g:A\to\ring{N})~y.
+$$
+no matter the value of the function on the left, we could take $g$ to be defined by $g = \lambda y.~f~x + 1$, and then
+$$
+f~x < f~x + 1,
+$$
+which is an arithmetic truth.
+
+However, by giving distinct variables the same name, we have created a dangerous situation.  If we make the type substitution on type variables:
+$$
+\theta(`:B`) = `:A`;\quad \theta(t)=t\hbox{ otherwise}
+$$
+then the statement becomes:
+There exists $f:A\to\ring{N}$ and $x:A$ such that
+$$
+(f:A->\ring{N})~x < (f:A\to\ring{N})~x.
+$$
+In this statement the variables $x$ all have the same type and are equal to one another.  Also, the variables $f$ have the same type and are equal to one another.  The statement expresses an arithmetic falsehood; the value of the function cannot be less than itself.
+
+We have thus transformed an arithmetic truth into an arithmetic falsehood by making an unrestricted substitution of type variables.  The problem is precisely that the variable $f:B\to \ring{N}$ is free before the type substitution; it lies within the body of an abstraction; and becomes identical to the binding variable $f:A\to\ring{N}$ of the abstraction.  It is captured.
+
+\subsection{term substitution}
+
+Let $\theta=\verb![<y1,t1>;<y2,t2>...]!$ be a list with elements of the form \verb!<y,t>!, where $y$ is a term variable and $t$ is a term.  We assume that the pairs preserve types:
+$$
+\verb!type_of y = type_of t!
+$$
+for all \verb!<y,t>! in $\theta$.
+
+Define a recursive function that makes substitutions of terms for variables, using $\theta$.  It is a curried function:
+$$
+\verb!term_subst:(var -> term) -> term UNION {error} -> term UNION {error}!.
+$$
+The value \verb!term_subst theta t = t'! is computed as follows
+\begin{itemize}
+\item Error results if the substitution list $\theta$ does not preserve types.
+\item Error results if \verb!t=error!
+\item If $t$ is a variable, the value is \verb!t'! if $\theta$ contains an element of the
+form \verb!<t,_>! and \verb!<t,t'>! is the first such term.
+\item The value is $t$, if $t$ is a constant.
+\item The value is defined recursively as
+$$
+\verb!<comb,term_subst theta f,term_subst theta x>!
+$$
+if \verb!t=<comb,f,x>! is a combination.
+\item Finally, if \verb!t=<abs,x,f>! is an abstraction.  
+Let \verb!theta' = <cons,<x,x>,theta>! be the augmented list (bound variables are to be left alone).
+The result is an error if
+ $\theta$ contains an entry of the form \verb!<y,t>!, where
+ $y\ne x$, $y$ is occurs freely in $f$, and $x$ occurs freely in $t$ (because of potential variable capture).  Otherwise, define the result to
+be
+$$
+\verb!<abs,x,term_subst theta' f>!.
+$$
+\end{itemize}
+
 
 \chapter{Rules of Inference}
 
@@ -1494,20 +1555,8 @@ The previous rule \verb!ASSUME!  is the only rule to create an assumption.  This
 This rule governs the interaction between the assumption list and bi-implication (equality of boolean terms).
 {\it We should be able to conclude $p \Leftrightarrow q$, when we can conclude $q$ assuming $p$ and can also conclude $p$ assume $q$.}
 
-To describe the antisymmetric deduction rule, we need to rely on a function that removes an entry from the assumption list.  There is a recursively defined function
-$$
-\verb!DROP:list -> !\ring{N} \verb! -> list!.
-$$
-\verb!DROP p a! removes from a list $p$ every entry that is equal to \verb!a!.
-\begin{example}
-\begin{verbatim}
-DROP [1;2;3] 2 = [1;3]
-DROP [1;1;1;2] 1 = [2]
-DROP [2;3;4;1;2;1;4] 2 = [3;4;1;1;4]
-DROP [] 3 = []
-DROP [4;5;6] 1 = [4;5;6]
-\end{verbatim}
-\end{example}
+To describe the antisymmetric deduction rule, we need to rely on a function that removes an entry from the assumption list.  
+
 
 If the assumption $q$ gives conclusion $p$ and the assumption $p$ gives $q$, then they have the same truth value:
 $$
@@ -1539,7 +1588,9 @@ Note the relationship between this final example and the \verb!MP_EQ! rule.  Thi
 
 
 
-\section{variable capture}
+
+
+\section{type substitution}
 
 The final two rules of inference treat variables.  The HOL sytem contains two kinds of variables: type variables such as \verb!`:A`! and term variables such as \verb!`x`!.  There is one inference rule for type variables and one inference rule for term variables.  
 
@@ -1547,39 +1598,8 @@ The final two rules of inference treat variables.  The HOL sytem contains two ki
 We consider type variables first.
 When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
 
-This rule has its restrictions, because of the danger of variable capture.  Variable capture is a particular kind of transformation on sequents that is known to produce inconsistencies in a formal system.  We illustrate with the following example.\footnote{This example uses some elementary arithmetic and existential quantifiers.  These notions will not be introduced into the HOL system until much later.  This is meant as an illustrative example only and may be skipped without affecting the development of the HOL system.}  Consider the following mathematical statement: There exists $f:A\to\ring{N}$ and $x:A$ such that
-$$
-(f:B->\ring{N})~x < (f:A\to\ring{N})~x.
-$$
-This statement contains two entirely different variables $x$.  One has type \verb!`:A`! and the other has type \verb!`:B`!.  The statement also contains two entirely different functions with the same name $f$.  One has type \verb!`:A->nat`! and the other has type \verb!`:B->nat`!.  We know that the two $x$s are different and the two $f$s are different because each term has a uniquely determined type.  The statement expresses an arithmetic truth.  It is $\alpha$-equivalent to the statement: 
-There exists $g:A\to\ring{N}$ and $y:A$ such that
-$$
-(f:B->\ring{N})~x < (g:A\to\ring{N})~y.
-$$
-no matter the value of the function on the left, we could take $g$ to be defined by $g = \lambda y.~f~x + 1$, and then
-$$
-f~x < f~x + 1,
-$$
-which is an arithmetic truth.
+This rule has its restrictions, because of the danger of variable capture.  
 
-However, by giving distinct variables the same name, we have created a dangerous situation.  If we make the type substitution on type variables:
-$$
-\theta(`:B`) = `:A`;\quad \theta(t)=t\hbox{ otherwise}
-$$
-then the statement becomes:
-There exists $f:A\to\ring{N}$ and $x:A$ such that
-$$
-(f:A->\ring{N})~x < (f:A\to\ring{N})~x.
-$$
-In this statement the variables $x$ all have the same type and are equal to one another.  Also, the variables $f$ have the same type and are equal to one another.  The statement expresses an arithmetic falsehood; the value of the function cannot be less than itself.
-
-We have thus transformed an arithmetic truth into an arithmetic falsehood by making an unrestricted substitution of type variables.  The problem is precisely that the variable $f:B\to \ring{N}$ is free before the type substitution; it lies within the body of an abstraction; and becomes identical to the binding variable $f:A\to\ring{N}$ of the abstraction.  It is captured.
-
-
-\section{type substitution}
-
-We consider type variables first.
-When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
 
 
 Type variable substitution holds provided no variable capture occurs.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.  Type instantiation for sequents is defined through a type instantiation function for terms:
@@ -1648,6 +1668,7 @@ INST_TYPE theta <[],`x:A = x:A`>
 
 
 
+
 \section{term instantiation}
 
 The second type of variable is a term variable such as \verb!`x:bool`!.  The rule of inference \verb!INST! replaces each free variable in a term with another given term.  As with type instantiation care must be taken to avoid free variable capture.
@@ -1664,39 +1685,6 @@ $$
 \verb!y < y!
 $$
 
-
-Let $\theta=\verb![<y1,t1>;<y2,t2>...]!$ be a list with elements of the form \verb!<y,t>!, where $y$ is a term variable and $t$ is a term.  We assume that the pairs preserve types:
-$$
-\verb!type_of y = type_of t!
-$$
-for all \verb!<y,t>! in $\theta$.
-
-Define a recursive function that makes substitutions of terms for variables, using $\theta$.  It is a curried function:
-$$
-\verb!term_subst:(var -> term) -> term UNION {error} -> term UNION {error}!.
-$$
-The value \verb!term_subst theta t = t'! is computed as follows
-\begin{itemize}
-\item Error results if the substitution list $\theta$ does not preserve types.
-\item Error results if \verb!t=error!
-\item If $t$ is a variable, the value is \verb!t'! if $\theta$ contains an element of the
-form \verb!<t,_>! and \verb!<t,t'>! is the first such term.
-\item The value is $t$, if $t$ is a constant.
-\item The value is defined recursively as
-$$
-\verb!<comb,term_subst theta f,term_subst theta x>!
-$$
-if \verb!t=<comb,f,x>! is a combination.
-\item Finally, if \verb!t=<abs,x,f>! is an abstraction.  
-Let \verb!theta' = <cons,<x,x>,theta>! be the augmented list (bound variables are to be left alone).
-The result is an error if
- $\theta$ contains an entry of the form \verb!<y,t>!, where
- $y\ne x$, $y$ is occurs freely in $f$, and $x$ occurs freely in $t$ (because of potential variable capture).  Otherwise, define the result to
-be
-$$
-\verb!<abs,x,term_subst theta' f>!.
-$$
-\end{itemize}
 
 \verb!INST!  Term variable substitution holds.  If arbitrary terms are substituted in parallel for term variables in a sequent, a sequent results, provided variable capture is avoided.  The function is
 curried:

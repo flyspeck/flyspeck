@@ -46,8 +46,9 @@ public class GraphStack {
             if(!archive.contains(inv))
                 archive.add(inv);
         }
+	System.out.println("//archive series/size = "+series+"/"+archive.size());
 	}
-        System.out.println("//archive series/size = "+series+"/"+archive.size());
+        
     }
 
     /**
@@ -62,10 +63,12 @@ public class GraphStack {
      * the desired seed before adding it to the archive.
      */
     private void buildQuadArchive(int series, int casenum, Parameter P) {
+	int szx = 0;
 	if (!Constants.ignoreArchive()) {
         //0. precondition
         util.Eiffel.jassert(casenum<Constants.getQuadCasesLength());
         int sz = graphDispatch.size(series);
+	szx = archive.size();
         for(int i = 0;i < sz;i++) {
             String S = graphDispatch.getArchiveString(series, i);
             Graph G = Graph.getInstance(new Formatter(S));
@@ -81,7 +84,7 @@ public class GraphStack {
                 archive.add(inv);
         }
 	}
-        System.out.println("//archive series/casenum/size = "+series+"/"+casenum+"/"+archive.size());
+        System.out.println("//archive series/casenum/size = "+series+"/"+casenum+"/"+szx);
     }
 
     /**

@@ -413,8 +413,8 @@ public class Generator {
     public static void main(String[] args) {
 
         /**
-        
-        **/
+        **/        
+
 
         for (int i=5;i<9;i++) {
 	    System.out.println("//***** generating exceptional series "+i);
@@ -424,6 +424,7 @@ public class Generator {
 		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
 	    }
 	}
+
 	for (int i=0;i<Constants.getQuadCasesLength();i++) {
             Generator.generateQuadSeries(i);
 	    Graph[] glist = stack.getTerminalList();

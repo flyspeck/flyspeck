@@ -397,3 +397,38 @@ THENL
        [MESON_TAC[union_aff];
         REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
 
+(***********[Cor:W]********************)
+
+
+
+
+let wedge_fan5 = new_definition`wedge_fan5 x v u i  =
+{y | ( f_azim_fan x v u (i) =azim_fan x v u y) /\ 
+(azim_fan x (power_map_point sigma_fan v u i) u v =azim_fan x (power_map_point sigma_fan v u i) u y)
+/\ (y IN (UNIV:real^3->bool))
+}`;;
+
+let subset_fan_6dot1=prove(`!x:real^3 v:real^3 u:real^3 i y:real^3. 
+(y IN wedge_fan5 x v u i)==>(y IN wedge_fan2 x v u i UNION aff {x, v})`,
+REPEAT GEN_TAC THEN REWRITE_TAC[wedge_fan2; wedge_fan5] THEN
+ REWRITE_TAC[UNION] THEN REWRITE_TAC[IN_ELIM_THM] THEN
+STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+SUBGOAL_THEN `(UNIV:real^3->bool) = aff{x, v} UNION  complement_set {x, v}` ASSUME_TAC 
+THENL
+ [MESON_TAC[union_aff];
+  SUBGOAL_THEN `(y IN complement_set {x, v} \/ y IN aff {x, v})<=> (y IN (aff{x, v} UNION  complement_set {x, v}))` ASSUME_TAC 
+   THENL
+     [ REWRITE_TAC[IN_UNION] THEN MESON_TAC[];
+       REPEAT(POP_ASSUM MP_TAC) THEN MESON_TAC[]
+]]);;
+
+
+
+
+
+
+let subset_fan6dot1=prove(`!x:real^3 v:real^3 u:real^3 i y:real^3. 
+wedge_fan5 x v u i SUBSET (wedge_fan2 x v u i UNION aff {x, v})`,
+REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN MESON_TAC[subset_fan_6dot1]);;
+`
+

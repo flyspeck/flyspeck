@@ -1,5 +1,4 @@
 
-
 (* Hoang Le Truong *)
 
 (* since you define C0,C1 independently, you need lemmas to relate this to other chapters.
@@ -11,12 +10,11 @@ lemmas
 
 *)
 
-needs "Multivariate/vectors.ml";;    
+
+needs "Multivariate/vectors.ml";;
 needs "Examples/analysis.ml";;       
 needs "Examples/transc.ml";;         
 needs "definitions_kepler.ml";;
-
-
 
 
  let graph = new_definition `graph E <=> (!e. E e ==> (e HAS_SIZE 2))`;;
@@ -168,4 +166,234 @@ REWRITE_TAC[node_fan; e_fan; power_n_fan;]  THEN REPEAT GEN_TAC THEN MESON_TAC[P
 
 let lemma62=prove(`a IN a_node_fan (x,v,w,w1)==>(?n. a=(x,v,(power_map_point sigma_fan v w n),(power_map_point sigma_fan v w (SUC n))))`, REWRITE_TAC[a_node_fan; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;
 
+
+let lemfan=new_definition`lemfan x v w n=wedge x v w (power_map_point sigma_fan v w n)`;;
+
+let lemfan1=new_definition`lemfan1 x v w n=(lemfan x v w n) UNION (aff_ge {x,v} {power_map_point sigma_fan v w n})`;;
+
+let complement_set= new_definition`complement_set {x:real^3, v:real^3} = {y:real^3| ~(y IN aff {x,v})} `;;
+
+let subset_aff=prove(`!x v:real^3. (aff{x, v} SUBSET (UNIV:real^3->bool))`, REPEAT GEN_TAC THEN SET_TAC[]);;
+
+let a_lemma = prove(`!x v point. point IN complement_set {x, v} UNION aff 
+{x, v}`, REWRITE_TAC[complement_set] THEN SET_TAC[]);; 
+
+let union_aff=prove(`!x v:real^3. (UNIV:real^3->bool) = aff{x, v} UNION  complement_set {x, v}  `,
+REPEAT GEN_TAC  THEN REWRITE_TAC[complement_set] THEN SET_TAC[]);;
+
+
+let f_azim_fan= new_definition` f_azim_fan x v u=
+(\i. azim_fan x v u (power_map_point sigma_fan v u i))`;;
+
+
+let lemma_disjiont_exists_fan1=prove(` !x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(y IN complement_set {x,v})/\(f_azim_fan x v u (0) <=azim_fan x v u y)/\
+(f_azim_fan x v u (0) =azim_fan x v u y)/\
+(f_azim_fan x v u (n) >azim_fan x v u y)/\(CARD E=n)
+/\(!i. (i IN (0..(n-1)))/\(f_azim_fan x v u (i)<f_azim_fan x v u (i+1)))
+==>(?i. (i IN (0..(n-1)))/\
+((f_azim_fan x v u (i) =azim_fan x v u y)
+\/
+((f_azim_fan x v u (i) <azim_fan x v u y)
+/\(azim_fan x v u y < f_azim_fan x v u(i+1)))))`, MESON_TAC[]);;
+
+
+
+
+
+let lemma_disjiont_exists_fan2=prove(`!x v u n. 
+azim x v u u = &0 ==> f_azim_fan x v u (0) = &0`, 
+REWRITE_TAC[f_azim_fan] THEN REWRITE_TAC[power_map_point] THEN REWRITE_TAC[azim_fan]);;
+
+
+let lemma_disjiont_exists_fan3=prove(`!x v u y n. 
+(azim x v u u = &0)/\ (&0<= azim_fan x v u y) ==> (f_azim_fan x v u (0) <= azim_fan x v u y)`, 
+MESON_TAC[lemma_disjiont_exists_fan2]);;
+
+
+
+let wedge_fan2=new_definition`wedge_fan2 x v u i =
+{y | ( f_azim_fan x v u (i) =azim_fan x v u y)/\( y IN complement_set {x, v})}`;;
+
+let wedge_fan3=new_definition`wedge_fan3 x v u i =
+{y | ( f_azim_fan x v u (i) <azim_fan x v u y)/\
+(azim_fan x v u y < f_azim_fan x v u (i+1))/\( y IN complement_set {x, v})}`;;
+
+let wedge_fan6=new_definition`wedge_fan6 x v u i ={y | (( f_azim_fan x v u (i) =azim_fan x v u y)\/(( f_azim_fan x v u (i) <azim_fan x v u y)/\(azim_fan x v u y < f_azim_fan x v u (i+1))))/\( y IN complement_set {x, v})}`;;
+
+
+let lemma_disjiont_union=prove(`wedge_fan6 x v u i=wedge_fan2 x v u i UNION wedge_fan3 x v u i`, REWRITE_TAC[wedge_fan2;wedge_fan3;wedge_fan6;FUN_EQ_THM; UNION] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM]
+THEN MESON_TAC[]);;
+
+
+
+let wedge_fans= new_recursive_definition num_RECURSION `(wedge_fans x v u 0 = wedge_fan6 x v u (0))/\(wedge_fans x v u (SUC n)=(wedge_fans x v u n) UNION wedge_fan6 x v u (SUC n))`;;
+
+let complement_sets=new_definition`complement_sets x v u n=
+{ y|(y IN complement_set {x,v})/\
+(f_azim_fan x v u (0) <azim_fan x v u y)/\
+(f_azim_fan x v u (0) =azim_fan x v u y)/\
+(f_azim_fan x v u (n) >azim_fan x v u y)/\
+(!i. (i IN (0..(n-1)))/\(f_azim_fan x v u (i)<f_azim_fan x v u (i+1))) } `;;
+
+
+
+let lemma_disjiont_union1=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(y IN complement_sets x v u n) ==>(?i. (i IN (0..(n-1)))/\( y IN (wedge_fan6 x v u i)))`, REPEAT GEN_TAC THEN
+REWRITE_TAC[complement_sets; wedge_fan6] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+let lemma_disjiont_union2=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan6 x v u i))) ==> (y IN complement_set {x,v}) `, REPEAT GEN_TAC THEN REWRITE_TAC[complement_set; wedge_fan6] THEN
+REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+
+
+
+
+let lemma_disjiont_unions=prove(`(y IN UNIONS {wedge_fan6 x v u i| i IN (0..(n-1))}) <=> 
+(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan6 x v u i)))  `,
+REWRITE_TAC[UNIONS] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+
+let lemma_disjiont_unions2=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(y IN UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))}) ==>(y IN complement_set {x,v}) `,
+REPEAT GEN_TAC THEN STRIP_TAC THEN 
+SUBGOAL_THEN `(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan6 x v u i)))` ASSUME_TAC 
+THENL
+  [POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_unions];
+   POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_union2]]);;
+
+
+
+
+
+
+let lemma_disjiont_unions1= prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n.
+(y IN complement_sets x v u n) ==> (y IN UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))})`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN 
+SUBGOAL_THEN `(?i. (i IN (0..(n-1))) /\ (y IN (wedge_fan6 x v u i)))` ASSUME_TAC
+THENL 
+   [POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_union1];
+     POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_unions]]);;
+
+
+
+
+
+
+
+
+let disjiont_union1=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+complement_sets x v u n = complement_set {x,v}==>
+(!y. ((y IN UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))})<=>(y IN complement_set {x,v})))`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN GEN_TAC THEN EQ_TAC 
+THENL 
+  [MESON_TAC[lemma_disjiont_unions2];
+   SUBGOAL_THEN `(y IN complement_sets x v u n) ==> (y IN UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))})` ASSUME_TAC
+      THENL 
+        [MESON_TAC[lemma_disjiont_unions1]; 
+         REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
+
+
+let disjiont_union2=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+complement_sets x v u n = complement_set {x,v}==>
+(UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))}=complement_set {x,v})`, 
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[FUN_EQ_THM] THEN
+SUBGOAL_THEN `(!y. ((y IN UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))})<=>(y IN complement_set {x,v})))` ASSUME_TAC
+THENL 
+  [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_union1]; 
+   POP_ASSUM MP_TAC THEN REWRITE_TAC[IN]]);;
+
+
+
+let lemma_disjiont1=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+(complement_sets x v u n = complement_set {x,v})==>
+((UNIV:real^3->bool)=aff {x,v} UNION (UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))}))`, REPEAT GEN_TAC THEN STRIP_TAC THEN
+SUBGOAL_THEN `(UNIONS {wedge_fan6 x v u i | i IN (0..(n-1))}=complement_set {x,v})` ASSUME_TAC 
+THENL 
+ [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_union2];
+ SUBGOAL_THEN `(UNIV:real^3->bool) = aff{x, v} UNION  complement_set {x, v}` ASSUME_TAC
+     THENL
+       [MESON_TAC[union_aff];
+        REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
+
+
+
+
+(*****************************************************************)
+
+
+
+
+
+
+let lemma_disjiont_union1a=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(y IN complement_sets x v u n) ==>(?i. (i IN (0..(n-1))) /\ ( y IN (wedge_fan2 x v u i UNION wedge_fan3 x v u i)))`, REPEAT GEN_TAC THEN
+REWRITE_TAC[complement_sets; wedge_fan2; wedge_fan3; UNION] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+let lemma_disjiont_union2a=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan2 x v u i UNION wedge_fan3 x v u i))) ==> (y IN complement_set {x,v}) `, 
+REPEAT GEN_TAC THEN REWRITE_TAC[complement_set; wedge_fan2; wedge_fan3; UNION] THEN
+REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+let lemma_disjiont_unionsa=prove(`(y IN UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))}) <=> 
+(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan2 x v u i UNION wedge_fan3 x v u i)))  `,
+REWRITE_TAC[UNIONS] THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+
+let lemma_disjiont_unions2a=prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n. 
+(y IN UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i| i IN (0..(n-1))}) ==>(y IN complement_set {x,v}) `,
+REPEAT GEN_TAC THEN STRIP_TAC THEN 
+SUBGOAL_THEN `(?i. (i IN (0..(n-1)))/\ (y IN (wedge_fan2 x v u i UNION wedge_fan3 x v u i)))` ASSUME_TAC 
+THENL
+  [POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_unionsa];
+   POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_union2a]]);;
+
+
+let lemma_disjiont_unions1a= prove(`!x:real^3 v:real^3 u:real^3 y:real^3 E:real^3->bool n.
+(y IN complement_sets x v u n) ==> (y IN UNIONS { (wedge_fan2 x v u i UNION wedge_fan3 x v u i) | i IN (0..(n-1))})`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN 
+ SUBGOAL_THEN `(?i. (i IN (0..(n-1))) /\ (y IN (wedge_fan2 x v u i UNION wedge_fan3 x v u i)))` ASSUME_TAC
+THENL 
+   [ POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_union1a];
+    POP_ASSUM MP_TAC THEN MESON_TAC[lemma_disjiont_unionsa]]);;
+
+
+let disjiont_union1a=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+complement_sets x v u n = complement_set {x,v}==>
+(!y. ((y IN UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))})<=>(y IN complement_set {x,v})))`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN GEN_TAC THEN EQ_TAC 
+THENL 
+  [MESON_TAC[lemma_disjiont_unions2a];
+   SUBGOAL_THEN `(y IN complement_sets x v u n) ==> (y IN UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))})` ASSUME_TAC
+      THENL 
+        [MESON_TAC[lemma_disjiont_unions1a]; 
+         REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
+
+
+let disjiont_union2a=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+complement_sets x v u n = complement_set {x,v}==>
+(UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))}=complement_set {x,v})`, 
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[FUN_EQ_THM] THEN
+SUBGOAL_THEN `(!y. ((y IN UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))})<=>(y IN complement_set {x,v})))` ASSUME_TAC
+THENL 
+  [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_union1a]; 
+   POP_ASSUM MP_TAC THEN REWRITE_TAC[IN]]);;
+
+let lemma_disjiont1a=prove(`!x:real^3 v:real^3 u:real^3  E:real^3->bool n.
+(complement_sets x v u n = complement_set {x,v})==>
+((UNIV:real^3->bool)=aff {x,v} UNION (UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))}))`, REPEAT GEN_TAC THEN STRIP_TAC THEN
+SUBGOAL_THEN `(UNIONS {wedge_fan2 x v u i UNION wedge_fan3 x v u i | i IN (0..(n-1))}=complement_set {x,v})` ASSUME_TAC 
+THENL 
+ [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_union2a];
+ SUBGOAL_THEN `(UNIV:real^3->bool) = aff{x, v} UNION  complement_set {x, v}` ASSUME_TAC
+     THENL
+       [MESON_TAC[union_aff];
+        REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
 

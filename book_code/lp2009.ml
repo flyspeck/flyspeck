@@ -20,18 +20,28 @@ diag[dart,dart]  // diagonals.
 azimdiag
 
 *******************
-equality relations:
+invariance relations:
 yn[dart] depends only on the node
 ln[dart] depends only on the node
 ye[dart] depends only on the edge
 sol[dart] depends only on the face
 tau[dart] depends only on the face
+
+*******************
+equality relations:
 SUM of azim around each node is 2Pi.
 SUM of lnazim around each node is 2Pi*ln
 SUM of azim around each face is sol + (n-2)*Pi, where n = CARD(face).
-SUM of lnazim around each face is "tau def XX -flypaper.pdf:100"
 ln[dart] = linear interpolation in yn[dart] of {2,1}, {2.52,0}.
   =   2*(2.52 - yn)/0.52
+tau[face] = sol[face](1+delta0/Pi) - (delta0/Pi) SUM lnazim[dart],
+   (sum over darts in the face)
+
+*********************
+consequences (do not enter directly into LP):
+
+SUM of sol over faces is 4 Pi.
+SUM of tau over faces is less than tgt
 
 *********************
 variable bounds:
@@ -43,6 +53,16 @@ variable bounds:
 2 <= ye <= 2.52
 0 <= sol <= 4*Pi
 0 <= tau <= tgt (squander target)
+
+******************
+MAIN INEQUALITY:
+
+SUM of ln over all nodes is >= 12.
+
+******************
+predicate:
+
+face-has-card
 
 ******************
 

@@ -430,5 +430,5 @@ THENL
 let subset_fan6dot1=prove(`!x:real^3 v:real^3 u:real^3 i y:real^3. 
 wedge_fan5 x v u i SUBSET (wedge_fan2 x v u i UNION aff {x, v})`,
 REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN MESON_TAC[subset_fan_6dot1]);;
-`
+
 

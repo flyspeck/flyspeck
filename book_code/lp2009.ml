@@ -71,11 +71,27 @@ inequalities (new J-series):
 ******************
 azim inequalities:
 ******************
-lnazim inequalities:
+lnazim inequalities (including lnazim-azim):
+
+
+
 ******************
 sol inequalities:
 ******************
 tau inequalities:
+
+face-has-card 3 ==> tau >= 0
+face-has-card 4 ==> tau >= 0.206
+face-has-card 5 ==> tau >= 0.483
+face-has-card 6 ==> tau >= 0.760
+
+face-has-card 3 ==>    // checked in cfsqp.
+  tau + 0.626 azim - 0.77 >=0
+  tau - 0.259 azim + 0.32 >=0
+  tau - 0.507 azim + 0.724 >=0.
+
+
+
 
 
 

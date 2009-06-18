@@ -10,7 +10,6 @@ lemmas
 
 *)
 
-
 needs "Multivariate/vectors.ml";;
 needs "Examples/analysis.ml";;       
 needs "Examples/transc.ml";;         
@@ -397,7 +396,108 @@ THENL
        [MESON_TAC[union_aff];
         REPEAT (POP_ASSUM MP_TAC) THEN MESON_TAC[]]]);;
 
-(***********[Cor:W]********************)
+
+
+
+(*******************[cor:W]*************************)
+
+let disjiont_cor6dot1=prove(`!x:real^3 v:real^3 u:real^3 i. wedge_fan2 x v u i INTER wedge_fan3 x v u i={}`,
+REPEAT GEN_TAC THEN REWRITE_TAC[wedge_fan2;wedge_fan3;FUN_EQ_THM] THEN GEN_TAC THEN 
+REWRITE_TAC[INTER; EMPTY; IN_ELIM_THM] THEN
+STRIP_TAC THEN REPEAT(POP_ASSUM MP_TAC) THEN DISCH_THEN(LABEL_TAC "a") THEN 
+DISCH_THEN(LABEL_TAC "b") THEN
+DISCH_THEN(LABEL_TAC "c") THEN
+DISCH_THEN(LABEL_TAC "d") THEN
+USE_THEN "a" MP_TAC THEN
+USE_THEN "c" MP_TAC THEN
+REAL_ARITH_TAC);;
+
+
+
+
+let disjiont_cor6dot1a=prove(`!x:real^3 v:real^3 u:real^3 i j. 
+(f_azim_fan x v u i<=f_azim_fan x v u j) ==> 
+(wedge_fan2 x v u i INTER wedge_fan3 x v u j={})`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[wedge_fan2;wedge_fan3;FUN_EQ_THM] THEN GEN_TAC THEN 
+REWRITE_TAC[INTER; EMPTY; IN_ELIM_THM] THEN
+STRIP_TAC THEN REPEAT(POP_ASSUM MP_TAC) THEN DISCH_THEN(LABEL_TAC "a") THEN 
+DISCH_THEN(LABEL_TAC "b") THEN
+DISCH_THEN(LABEL_TAC "c") THEN
+DISCH_THEN(LABEL_TAC "d") 
+THEN DISCH_THEN(LABEL_TAC "f") THEN
+SUBGOAL_THEN `(f_azim_fan x v u j < f_azim_fan x v u i)` ASSUME_TAC
+THENL
+  [ASM_REWRITE_TAC[];
+    POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC "g") THEN USE_THEN "a" MP_TAC THEN
+USE_THEN "g" MP_TAC THEN REAL_ARITH_TAC]);;
+
+
+
+
+let disjiont_cor6dot1b=prove(`!x:real^3 v:real^3 u:real^3 i j. 
+(f_azim_fan x v u (j+1) <= f_azim_fan x v u i) ==> 
+(wedge_fan2 x v u i INTER wedge_fan3 x v u j={})`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[wedge_fan2;wedge_fan3;FUN_EQ_THM] THEN GEN_TAC THEN 
+REWRITE_TAC[INTER; EMPTY; IN_ELIM_THM] THEN
+STRIP_TAC THEN REPEAT(POP_ASSUM MP_TAC) THEN DISCH_THEN(LABEL_TAC "a") THEN 
+DISCH_THEN(LABEL_TAC "b") THEN
+DISCH_THEN(LABEL_TAC "c") THEN
+DISCH_THEN(LABEL_TAC "d") 
+THEN DISCH_THEN(LABEL_TAC "f") THEN
+SUBGOAL_THEN `(f_azim_fan x v u i < f_azim_fan x v u (j+1))` ASSUME_TAC
+THENL
+  [ASM_REWRITE_TAC[];
+    POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC "g")
+      THEN USE_THEN "a" MP_TAC THEN
+      USE_THEN "g" MP_TAC THEN REAL_ARITH_TAC]);;
+
+
+
+let disjiont_cor6dot1c= prove(`!x:real^3 v:real^3 u:real^3 i j.
+(f_azim_fan x v u (j+1) <= f_azim_fan x v u i)\/(f_azim_fan x v u i<=f_azim_fan x v u j) ==> 
+(wedge_fan2 x v u i INTER wedge_fan3 x v u j={})`,
+REPEAT GEN_TAC THEN STRIP_TAC 
+THENL 
+     [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_cor6dot1b];
+      POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_cor6dot1a]]);;
+
+
+
+
+
+let disjiont1_cor6dot1 = prove(`!x:real^3 v:real^3 u:real^3 i. wedge_fan3 x v u i INTER aff {x,v}={}`,
+REPEAT GEN_TAC THEN REWRITE_TAC[wedge_fan3; INTER] THEN REWRITE_TAC[complement_set; FUN_EQ_THM; EMPTY] THEN
+GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC
+  THEN MESON_TAC[]);;
+
+
+let disjiont2_cor6dot1=prove(`!x:real^3 v:real^3 u:real^3 i. wedge_fan3 x v u i INTER (aff {x,v} UNION wedge_fan2 x v u i)={}`,
+REPEAT GEN_TAC THEN REWRITE_TAC[UNION_OVER_INTER] THEN SUBGOAL_THEN `wedge_fan3 x v u i INTER aff {x,v}={}` ASSUME_TAC
+    THENL [MESON_TAC[disjiont1_cor6dot1];
+          SUBGOAL_THEN `wedge_fan2 x v u i INTER wedge_fan3 x v u i={}` ASSUME_TAC
+          THENL
+              [MESON_TAC[disjiont_cor6dot1];
+               SET_TAC[]]]);;
+
+
+let disjiont2_cor6dot1a=prove(`!x:real^3 v:real^3 u:real^3 i. 
+((f_azim_fan x v u (j+1) <= f_azim_fan x v u i)\/(f_azim_fan x v u i<=f_azim_fan x v u j))==>
+(wedge_fan3 x v u j INTER (aff {x,v} UNION wedge_fan2 x v u i)={})`,
+REPEAT GEN_TAC THEN REWRITE_TAC[UNION_OVER_INTER] THEN DISCH_TAC THEN 
+SUBGOAL_THEN `wedge_fan3 x v u j INTER aff {x,v}={}` ASSUME_TAC
+    THENL 
+       [MESON_TAC[disjiont1_cor6dot1];
+        SUBGOAL_THEN `wedge_fan2 x v u i INTER wedge_fan3 x v u j={}` ASSUME_TAC
+       THENL
+          [ REPEAT(POP_ASSUM MP_TAC) THEN 
+            DISCH_THEN (LABEL_TAC "a") THEN 
+            DISCH_THEN(LABEL_TAC "b")  THEN
+            USE_THEN "a" MP_TAC THEN MESON_TAC[disjiont_cor6dot1c];
+                SET_TAC[]]]);;
+
+
+
+
 
 
 
@@ -407,6 +507,7 @@ let wedge_fan5 = new_definition`wedge_fan5 x v u i  =
 (azim_fan x (power_map_point sigma_fan v u i) u v =azim_fan x (power_map_point sigma_fan v u i) u y)
 /\ (y IN (UNIV:real^3->bool))
 }`;;
+
 
 let subset_fan_6dot1=prove(`!x:real^3 v:real^3 u:real^3 i y:real^3. 
 (y IN wedge_fan5 x v u i)==>(y IN wedge_fan2 x v u i UNION aff {x, v})`,
@@ -425,10 +526,30 @@ THENL
 
 
 
-
-
 let subset_fan6dot1=prove(`!x:real^3 v:real^3 u:real^3 i y:real^3. 
 wedge_fan5 x v u i SUBSET (wedge_fan2 x v u i UNION aff {x, v})`,
 REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN MESON_TAC[subset_fan_6dot1]);;
 
+
+
+
+let disjiont_fan6dot1=prove(`((wedge_fan5 x v u i) INTER (wedge_fan3 x v u i) )= {} `,
+SUBGOAL_THEN `wedge_fan5 x v u i SUBSET (wedge_fan2 x v u i UNION aff {x, v})` ASSUME_TAC 
+THENL
+  [MESON_TAC[subset_fan6dot1];
+   SUBGOAL_THEN `wedge_fan3 x v u i INTER (aff {x,v} UNION wedge_fan2 x v u i)={}` ASSUME_TAC
+    THENL
+       [MESON_TAC[disjiont2_cor6dot1];
+        SET_TAC[]]]);;
+
+let disjiont_fan6dot1a=prove(`!x:real^3 v:real^3 u:real^3 i. 
+((f_azim_fan x v u (j+1) <= f_azim_fan x v u i)\/(f_azim_fan x v u i<=f_azim_fan x v u j))==>
+((wedge_fan5 x v u i) INTER (wedge_fan3 x v u j) )= {} `,
+REPEAT GEN_TAC THEN SUBGOAL_THEN `wedge_fan5 x v u i SUBSET (wedge_fan2 x v u i UNION aff {x, v})` ASSUME_TAC
+THENL
+  [MESON_TAC[subset_fan6dot1];
+   DISCH_TAC THEN SUBGOAL_THEN `wedge_fan3 x v u j INTER (aff {x,v} UNION wedge_fan2 x v u i)={}` ASSUME_TAC
+     THENL
+       [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont2_cor6dot1a];
+          SET_TAC[]]]);;
 

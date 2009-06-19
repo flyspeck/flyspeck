@@ -55,10 +55,10 @@ needs "definitions_kepler.ml";;
  let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;;
 
 
- let D1=new_definition`D1 fan(x,V,E)={(x,v,w,w1)|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
+ let D1=new_definition`D1 x V E={(x,v,w,w1)|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
 
 
- let D2=new_definition`D2 fan(x,V,E)={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
+ let D2=new_definition`D2 x V E={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
 
 
  let inverse_sigma_fan=new_definition`inverse_sigma_fan v w = @a. sigma_fan v a=w`;;
@@ -100,9 +100,9 @@ needs "definitions_kepler.ml";;
 
 
 
- let xfan= new_definition`xfan fan(x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
+ let xfan= new_definition`xfan x V E={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
 
- let yfan= new_definition`yfan fan(x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
+ let yfan= new_definition`yfan x V E={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
 
  let w_dart=new_definition`w_dart x v w w1= wedge x v w (sigma_fan v w)`;;
 

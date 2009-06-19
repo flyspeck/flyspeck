@@ -64,7 +64,40 @@ double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
     c1*(lnazim(y1,y2,y3,y4,y5,y6)+lnazim(y2,y3,y1,y5,y6,y4)+lnazim(y3,y1,y2,y6,y4,y5));
 }
 
+double tauq(double y1,double y2,double y3,double y4,double y5,double y6,double y7,double y8,double y9) {
+  return taum(y1,y2,y3,y4,y5,y6)+taum(y7,y2,y3,y4,y8,y9);
+}
 
+double deltay(double y1,double y2,double y3,double y4,double y5,double y6) {
+  return delta_x(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6);
+}
+
+double deltaquad(int i,double y1,double y2,double y3,double y4,double y5,double y6,double y7,double y8,double y9) {
+  return (i=0 ? deltay(y1,y2,y3,y4,y5,y6) : deltay(y7,y2,y3,y4,y8,y9));
+}
+
+//constraint: crossdiag > 2.52
+void bigcross(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -crossdiag(y) +2.52;
+};
+
+//constraint: y > 2.5
+void testcon(int numargs,int whichFn,double* y, double* ret,void*) {
+  switch(whichFn) {
+  case 1: *ret = (-y[0] +2.5); break;
+  default: *ret = -y[0] + 2.4; break;
+  }
+  
+};
+
+//constraint: crossdiag > 2.52, deltas positive.
+void bigcrossdelta(int numargs,int whichFn,double* y, double* ret,void*) {
+  switch(whichFn) {
+  case 1: *ret = (-crossdiag(y) +2.52); break;
+  case 2: *ret = -deltaquad(0,y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]); break;
+  case 3: *ret = -deltaquad(1,y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]); break;
+  }
+};
 
 
 
@@ -114,6 +147,7 @@ Minimizer m2() {
 }
 trialdata d2(m2(),"ID taum2: 2nd taum-tri-ineq");
 
+
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t3(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -130,7 +164,124 @@ Minimizer m3() {
 trialdata d3(m3(),"ID dihmin");
 
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t4(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) +4.72*azim(y[0],y[1],y[2],y[3],y[4],y[5]) - 6.248;
+	}
+Minimizer m4() {
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 4.37,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t4;
+	M.cFunc = bigcross;
+	return M;
+}
+trialdata d4(m4(),"ID tauq: 0 tauq-quad-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t5(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) +0.972*azim(y[0],y[1],y[2],y[3],y[4],y[5]) - 1.707;
+	}
+Minimizer m5() {
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 4.37,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t5;
+	M.cFunc = bigcross;
+	return M;
+}
+trialdata d5(m5(),"ID tauq: 1 tauq-quad-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t6(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) 
+    +0.7573*azim(y[0],y[1],y[2],y[3],y[4],y[5])
+    //(azim(y[2],y[0],y[1],y[5],y[3],y[4])+azim(y[2],y[6],y[1],y[8],y[3],y[7])) 
+   - 1.433;
+	}
+Minimizer m6() {
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 3.5,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,3,xmin,xmax);
+	M.func = t6;
+	M.cFunc = bigcrossdelta;
+	return M;
+}
+trialdata d6(m6(),"ID tauq: 2 tauq-quad-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t7(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = y[0];
+	}
+Minimizer m7() {
+  double xmin[1]= {2};
+  double xmax[1]= {3};
+	Minimizer M(trialcount,1,1,xmin,xmax);
+	M.func = t7;
+	M.cFunc = testcon;
+	return M;
+}
+//trialdata d7(m7(),"test of constraints");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t8(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) 
+    //0*azim(y[0],y[1],y[2],y[3],y[4],y[5])
+    //(azim(y[2],y[0],y[1],y[5],y[3],y[4])+azim(y[2],y[6],y[1],y[8],y[3],y[7])) 
+   - 0.206;
+	}
+Minimizer m8() {
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 3.3,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,3,xmin,xmax);
+	M.func = t8;
+	M.cFunc = bigcrossdelta;
+	return M;
+}
+trialdata d8(m8(),"ID tauq: 4 tauq-quad-ineq");
+
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t9(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) 
+    -0.453*azim(y[0],y[1],y[2],y[3],y[4],y[5])
+   + 0.777;
+	}
+Minimizer m9() {
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 3.3,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,3,xmin,xmax);
+	M.func = t9;
+	M.cFunc = bigcrossdelta;
+	return M;
+}
+trialdata d9(m9(),"ID tauq: 5 tauq-quad-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t10(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.001
+    - 0.18 * (y[0]+y[1]+y[2] - 6) - 0.125* (y[3]+y[4]+y[5]-6) ;
+	}
+Minimizer m10() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t10;
+	//M.cFunc = smallrad;
+	return M;
+}
+trialdata d10(m10(),"ID taum:  taum-y-ineq");
 
 
 int main() {
+  //double y[9]= 
+    //cout << crossdiag(y);
 }

@@ -1,72 +1,97 @@
 /* AMPL model for the Kepler conjecture
 File created May 8, 2009
+Revised June 20, 2009
 Thomas C. Hales
 */
 
+# data file supplies param: CVERTEX, CFACE, set: EDART
 
-param pi;
 
-param CVERTEX >= 13, <= 14;   # card of vertices in the hypermap
-param CFACE >= 0;   # card of faces in the hypermap
+param pi := 3.1415926535897932;
+param delta0 := 0.5512855984325308;
+param tgt := 1.54065864570856;
 
-set IVERTEX = 1..CVERTEX;
 
-set IFACE = 1..CFACE;
-set FACE{IFACE} circular;
+param CVERTEX 'number of vertices' >= 1, <= 14; 
+param CFACE 'number of faces' >= 0; 
 
-set ITRIANGLE := {j in IFACE : card(FACE[j]) = 3};
-set IQUAD := {j in IFACE: card(FACE[j]) = 4};
-set IEXCEPT:= IFACE diff (ITRIANGLE union IQUAD);
 
-## darts and directed edges
-# directed edge (i,j) is identified with (i,i2) i2 = nextw(i,FACE[j]);
-set DART := {i in IVERTEX , j in IFACE: i in FACE[j]};
+# directed edge (i,j) with its tail i.
+# edart (i1,i2,i3,j), s.t. f(i1,j) = (i2,j), f(i2,j) = (i3,j)
+set IVERTEX := 1..CVERTEX;
+set IFACE := 1..CFACE;
+set EDART 'extended dart' within IVERTEX cross IVERTEX cross IVERTEX cross IFACE;
+set DART := setof {(i1,i2,i3,j) in EDART} (i1,j);
 set DEDGE := DART;
 
+set faceof{i in IVERTEX} := setof {  (i,j) in DART}(j);
+set vertexof{j in IFACE}:= setof { (i,j) in DART} (i);
+set ITRIANGLE := {j in IFACE : card(vertexof[j]) = 3};
+set IQUAD := {j in IFACE: card(vertexof[j]) = 4};
+set IPENT := {j in IFACE: card(vertexof[j]) = 5};
+set IHEX := {j in IFACE: card(vertexof[j]) = 6};
+set IEXCEPT:= {j in IFACE: card(vertexof[j]) > 4};
+set EDART3:= {(i1,i2,i3,j) in EDART: j in ITRIANGLE};
 
-## variable declarations
-var azim{DART} >= 0, <= 2.0*pi;
-var area{IFACE} >= 0, <= 4.0*pi;
-var sqface{IFACE};  # squander face
-var yv{IVERTEX} >= 2, <= 2.52;
-var fm{IVERTEX} >= 0, <= 1;
+
+
+# variables
+var azim{DART} >= 0, <= pi;
+var ln{IVERTEX} >= 0, <= 1;
+var rhazim{DART} >=0, <= pi + delta0;
+var yn{IVERTEX} >= 2, <= 2.52;
 var ye{DEDGE} >= 2, <= 2.52;
+var rho{IVERTEX} >= 1, <= 1 + delta0/pi;
+var sol{IFACE} >= 0, <= 4.0*pi;
+var tau{IFACE} >= 0, <= tgt;
+var y1{EDART};
+var y2{EDART};
+var y3{EDART};
+var y4{EDART3};
+var y5{EDART};
+var y6{EDART};
 
-#var alpha_fm{DART} >= 0, <= 2.0*pi;  # product of azim[i,j]*fm[i]
-#var local_area{DART} >= 0, <= 4.0*pi; 
 
 ## objective
-maximize objective:  sum {i in IVERTEX} fm[i];
+maximize objective:  sum {i in IVERTEX} yn[i];
 
-## constraints
-subject to fm_def{i in IVERTEX}: fm[i] =  (1 - (yv[i]/2.52 - 1) );
-subject to vertex_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
-subject to area_def{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi) = area[j] - 2.0*pi;
-#subject to area_local{j in IFACE}: sum{(i,j) in DART} local_area[i,j] <= area[j];
-subject to sqface_def{j in IFACE}: 
+## equality constraints
+s.t. azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
+s.t. rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
+s.t. sol_sum{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
+s.t. tau_sum{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
+s.t. ln_def{i in IVERTEX}: ln[i] = 2*(2.52 - yn[i])/0.52;
+s.t. rho_def{i in IVERTEX}: rho[i] = (1 + delta0/pi) - ln[i] * delta0/pi;
+s.t. y1_def{(i3,i1,i2,j) in EDART} : y1[i3,i1,i2,j] = yn[i1];
+s.t. y2_def{(i3,i1,i2,j) in EDART} : y2[i3,i1,i2,j] = yn[i2];
+s.t. y3_def{(i3,i1,i2,j) in EDART} : y3[i3,i1,i2,j] = yn[i3];
+s.t. y4_def{(i3,i1,i2,j) in EDART3} : y4[i3,i1,i2,j] = ye[i2,j];
+s.t. y5_def{(i3,i1,i2,j) in EDART} : y5[i3,i1,i2,j] = ye[i3,j];
+s.t. y6_def{(i3,i1,i2,j) in EDART} : y6[i3,i1,i2,j] = ye[i1,j];
 
+# inequality constraints
+s.t. main: sum{i in IVERTEX} ln[i] >= 12;
+s.t. azmin{(i,j) in DART : j in ITRIANGLE} : azim[i,j] >= 0.52;
+s.t. RHA{(i,j) in DART} : azim[i,j] <= rhazim[i,j];
+s.t. RHB{(i,j) in DART} : rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
 
-param dihminp;
-param dihmaxp;
-param dihminq;
-param dihmaxq;
-param target;
-param cc2Pi;
-param SFACE := 3..8;
-param SQFACE[SFACE];
+s.t. soly{(i1,i2,i3,j) in EDART3} : sol[j] - 0.55125 - 0.196*(y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-6) + 0.38*(y1[i1,i2,i3,j]+y2[i1,i2,i3,j]+y3[i1,i2,i3,j]);
 
-subject to azim_dihminp {(i,j) in DART: j in ITRIANGLE}:  azim[i,j] >= dihminp;
-subject to azim_dihmaxp {(i,j) in DART: j in ITRIANGLE}:  azim[i,j] <= dihmaxp;
-subject to azim_dihminq {(i,j) in DART: j in IQUAD union IEXCEPT}:  azim[i,j] >= dihminq;
-subject to azim_dihmaxp {(i,j) in DART: j in IQUAD union IEXCEPT}:  azim[i,j] <= dihmaxq;
-subject to face_sq{j in IQUAD union IEXCEPT} sqface[j] >= SQFACE[card(FACE[j])];
-subject to target_def: sum{j in IFACE} sqface[j] = target + cc2Pi*(12.0 -sum {i in IVERTEX} fm[i]);
+# tau inequality
+s.t. tau3{j in ITRIANGLE}: tau[j] >= 0;
+s.t. tau4{j in IQUAD}: tau[j] >= 0.206;
+s.t. tau5{j in IPENT}: tau[j] >= 0.483;
+s.t. tau6{j in IHEX}: tau[j] >= 0.76;
 
-# add squander target constraints.
-# add area inequalities
-# add if degree is 2 then yv=2.0;
-# give parameter definitions.
+s.t. tau_azim3A{(i,j) in DART : j in ITRIANGLE}: tau[j]+0.626*azim[i,j] - 0.77 >= 0;
+s.t. tau_azim3B{(i,j) in DART : j in ITRIANGLE}: tau[j]-0.259*azim[i,j] + 0.32 >= 0;
+s.t. tau_azim3C{(i,j) in DART : j in ITRIANGLE}: tau[j]-0.507*azim[i,j] + 0.724 >= 0;
+s.t. tau_azim3D{(i1,i2,i3,j) in EDART3}: tau[j] + 0.001 -0.18*(y1[i1,i2,i3,j]+y2[i1,i2,i3,j]+y3[i1,i2,i3,j]-6) - 0.125*(y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-6) >= 0;
 
+s.t. tau_azim4A{(i,j) in DART : j in IQUAD}: tau[j] + 4.72*azim[i,j] - 6.248 >= 0;
+s.t. tau_azim4B{(i,j) in DART : j in IQUAD}: tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
+s.t. tau_azim4C{(i,j) in DART : j in IQUAD}: tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
+s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
 
 
 

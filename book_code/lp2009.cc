@@ -280,6 +280,40 @@ Minimizer m10() {
 }
 trialdata d10(m10(),"ID taum:  taum-y-ineq");
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t11(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = sol_y(y[0],y[1],y[2],y[3],y[4],y[5]) -
+   0.55125
+    - 0.196 *(y[3]+y[4]+y[5]-6) + 0.38*(y[0]+y[1]+y[2]-6);
+	}
+Minimizer m11() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t11;
+	//M.cFunc = smallrad;
+	return M;
+}
+trialdata d11(m11(),"ID taum:  taum-sol-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t12(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) -
+   1.23096
+    +0.153598 *(y[1]+y[2]+y[4]+y[5]-8) + 0.38*(y[0]+y[1]+y[2]-6);
+	}
+Minimizer m12() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t12;
+	//M.cFunc = smallrad;
+	return M;
+}
+trialdata d12(m12(),"ID taum:  taum-dih-ineq");
+
 
 int main() {
   //double y[9]= 

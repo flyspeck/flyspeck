@@ -7,7 +7,8 @@ variables:
 
 azim[dart]
 ln[dart]     // =L[yn[dart]/2]
-lnazim[dart]  // =ln[dart]*azim[dart]
+rho[dart]    // =(1+delta0/pi (1-ln))
+rhazim[dart]  // =rho[dart]*azim[dart]
 yn[dart]
 ye[dart]
 sol[dart]
@@ -23,6 +24,7 @@ azimdiag
 invariance relations:
 yn[dart] depends only on the node
 ln[dart] depends only on the node
+rho[dart] depends only on the node
 ye[dart] depends only on the edge
 sol[dart] depends only on the face
 tau[dart] depends only on the face
@@ -30,12 +32,14 @@ tau[dart] depends only on the face
 *******************
 equality relations:
 SUM of azim around each node is 2Pi.
-SUM of lnazim around each node is 2Pi*ln
+SUM of rhazim around each node is 2Pi*rho
 SUM of azim around each face is sol + (n-2)*Pi, where n = CARD(face).
+SUM of rhazim around each face is tau + (n-2)*(Pi+Delta0), where n = CARD(face)
 ln[dart] = linear interpolation in yn[dart] of {2,1}, {2.52,0}.
   =   2*(2.52 - yn)/0.52
-tau[face] = sol[face](1+delta0/Pi) - (delta0/Pi) SUM lnazim[dart],
-   (sum over darts in the face)
+rho[dart] = (1+ delta0/Pi) - ln[dart] * delta0/Pi
+
+
 
 *********************
 consequences (do not enter directly into LP):
@@ -48,9 +52,10 @@ variable bounds:
 
 0 <= azim <= Pi
 0 <= ln <= 1.
-0 <= lnazim <= Pi
+0 <= rhazim <= Pi + Delta0.
 2 <= yn <= 2.52
 2 <= ye <= 2.52
+1 <= rho <= 1 + Delta0/Pi. 
 0 <= sol <= 4*Pi
 0 <= tau <= tgt (squander target)
 
@@ -75,14 +80,19 @@ face-has-card 3 ==>
   azim >= 0.852
 
 ******************
-lnazim inequalities (including lnazim-azim):
+rhazim inequalities (including rhazim-azim):
+
+azim <= rhazim
+rhazim <= (1+Delta0/Pi) azim.
 
 
 
 ******************
 sol inequalities:
 
-face-has-card 3 ==>  XX.
+face-has-card 3 ==> 
+   sol - 0.55125 - 0.196 (y4+y5+y6-6) + 0.38 (y1+y2+y3-6) >= 0
+
 ******************
 tau inequalities:
 

@@ -4,9 +4,9 @@ Revised June 20, 2009
 Thomas C. Hales
 */
 
-# data file supplies param: CVERTEX, CFACE, set: EDART
+# data file supplies param: graphID, CVERTEX, CFACE, set: EDART ITRIANGLE IQUAD IPENT IHEX
 
-
+param graphID;
 param pi := 3.1415926535897932;
 param delta0 := 0.5512855984325308;
 param tgt := 1.54065864570856;
@@ -26,11 +26,10 @@ set DEDGE := DART;
 
 set faceof{i in IVERTEX} := setof {  (i,j) in DART}(j);
 set vertexof{j in IFACE}:= setof { (i,j) in DART} (i);
-set ITRIANGLE := {j in IFACE : card(vertexof[j]) = 3};
-set IQUAD := {j in IFACE: card(vertexof[j]) = 4};
-set IPENT := {j in IFACE: card(vertexof[j]) = 5};
-set IHEX := {j in IFACE: card(vertexof[j]) = 6};
-set IEXCEPT:= {j in IFACE: card(vertexof[j]) > 4};
+set ITRIANGLE;
+set IQUAD;
+set IPENT;
+set IHEX;
 set EDART3:= {(i1,i2,i3,j) in EDART: j in ITRIANGLE};
 
 
@@ -50,16 +49,18 @@ var y3{EDART};
 var y4{EDART3};
 var y5{EDART};
 var y6{EDART};
-
+var lnsum;
 
 ## objective
-maximize objective:  sum {i in IVERTEX} yn[i];
+#maximize objective:  sum {i in IVERTEX} yn[i];
+maximize objective:  lnsum;
 
 ## equality constraints
+s.t. lnsum_def: sum{i in IVERTEX} ln[i]  = lnsum;
 s.t. azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 s.t. rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
 s.t. sol_sum{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
-s.t. tau_sum{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
+s.t. tau_sum{j in IFACE}: sum{(i,j) in DART} (rhazim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
 s.t. ln_def{i in IVERTEX}: ln[i] = (2.52 - yn[i])/0.52;
 s.t. rho_def{i in IVERTEX}: rho[i] = (1 + delta0/pi) - ln[i] * delta0/pi;
 s.t. y1_def{(i3,i1,i2,j) in EDART} : y1[i3,i1,i2,j] = yn[i1];
@@ -75,7 +76,7 @@ s.t. azmin{(i,j) in DART : j in ITRIANGLE} : azim[i,j] >= 0.52;
 s.t. RHA{(i,j) in DART} : azim[i,j] <= rhazim[i,j];
 s.t. RHB{(i,j) in DART} : rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
 
-s.t. soly{(i1,i2,i3,j) in EDART3} : sol[j] - 0.55125 - 0.196*(y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-6) + 0.38*(y1[i1,i2,i3,j]+y2[i1,i2,i3,j]+y3[i1,i2,i3,j]);
+s.t. soly{(i1,i2,i3,j) in EDART3} : sol[j] - 0.55125 - 0.196*(y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-6) + 0.38*(y1[i1,i2,i3,j]+y2[i1,i2,i3,j]+y3[i1,i2,i3,j]) >= 0;
 
 # tau inequality
 s.t. tau3{j in ITRIANGLE}: tau[j] >= 0;
@@ -92,6 +93,15 @@ s.t. tau_azim4A{(i,j) in DART : j in IQUAD}: tau[j] + 4.72*azim[i,j] - 6.248 >= 
 s.t. tau_azim4B{(i,j) in DART : j in IQUAD}: tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
 s.t. tau_azim4C{(i,j) in DART : j in IQUAD}: tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
 s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
+
+
+
+solve;
+display graphID;
+display lnsum;
+#display solve_result_num;
+#display solve_result;
+
 
 
 

@@ -28,3 +28,9 @@ Local settings: To run, you need to set the string propertiesFile in Constants.j
 May 6, 2009
 I'm having memory slow-down.  I'm now trying
 java -Xms300m -Xmx1g graph/Generator  
+
+June 21, 2009
+The archive now has an interface.  It is selected at the top of the Generator.java file
+To get the number of distinct hash codes:
+grep "\"" kepler2009.out2 | cut -f1 -d" " | sort -u | wc   
+grep "\"" kepler2009.out2 | cut -f1 -d" " | sort | uniq -c | grep -v " 1 "

@@ -105,11 +105,7 @@ public class Constants {
     }
     private final static int fixedSquanderFace[] =  new int[9];
 
-    static {
-      for (int i=0;i<fixedSquanderFace.length;i++) {
-        fixedSquanderFace[i]= config.getIntProperty("squanderFace"+i,0);
-      }
-    }
+
 
     /**
      * Entry[i] contains an upper bound on what is scored by a polygon with
@@ -126,6 +122,13 @@ public class Constants {
       for (int i=0;i<fixedScoreFace.length;i++) {
         fixedScoreFace[i]= config.getIntProperty("scoreFace"+i,0);
       }
+    }
+
+    public static int getMaxFaceSize() {
+	 int i=8;
+	 while ((getFixedSquanderFace(i) >= squanderTarget) && (i > 0)) 
+	     {  i--; }
+	 return i;
     }
 
     /**
@@ -168,6 +171,11 @@ public class Constants {
     static {
       for (int i=0;i<excessTCount.length;i++) {
         excessTCount[i]= config.getIntProperty("excessTCount"+i,x);
+      }
+    }
+    static {
+      for (int i=0;i<fixedSquanderFace.length;i++) {
+        fixedSquanderFace[i]= config.getIntProperty("squanderFace"+i,x);
       }
     }
 

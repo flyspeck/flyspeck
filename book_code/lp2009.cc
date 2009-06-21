@@ -163,6 +163,21 @@ Minimizer m3() {
 }
 trialdata d3(m3(),"ID dihmin");
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t3a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -azim(y[0],y[1],y[2],y[3],y[4],y[5]) + 1.893;
+	}
+Minimizer m3a() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t3a;
+	//M.cFunc = smallrad;
+	return M;
+}
+trialdata d3a(m3a(),"ID dihmax");
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -295,14 +310,15 @@ Minimizer m11() {
 	//M.cFunc = smallrad;
 	return M;
 }
-trialdata d11(m11(),"ID taum:  taum-sol-ineq");
+//compare J_544014470 from 1998
+trialdata d11(m11(),"ID:  sol-ineq");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t12(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) -
-   1.23096
-    +0.153598 *(y[1]+y[2]+y[4]+y[5]-8) + 0.38*(y[0]+y[1]+y[2]-6);
+   1.2308
+    +0.3639 *(y[1]+y[2]+y[4]+y[5]-8) - 0.235*(y[0]-2) - 0.685*(y[3]-2);
 	}
 Minimizer m12() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -312,7 +328,26 @@ Minimizer m12() {
 	//M.cFunc = smallrad;
 	return M;
 }
-trialdata d12(m12(),"ID taum:  taum-dih-ineq");
+//compare J_568731327 from 1998
+trialdata d12(m12(),"model(azminA):ID taum:  dih-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t13(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -sol_y(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.5513
+    + 0.3232 * (y[3]+y[4]+y[5]-6) 
+    - 0.151*(y[0]+y[1]+y[2]-6);
+	}
+Minimizer m13() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t13;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_38243071
+trialdata d13(m13(),"ID taum:  sol-ineq");
 
 
 int main() {

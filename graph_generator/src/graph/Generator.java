@@ -393,7 +393,7 @@ public class Generator {
         **/        
 
 
-        for (int i=5;i<9;i++) {
+        for (int i=5;i<= Constants.getMaxFaceSize();i++) {
 	    System.out.println("//***** generating exceptional series "+i);
             Generator.generateExceptionalSeries(i);
             Graph[] glist = stack.getTerminalList();
@@ -406,10 +406,11 @@ public class Generator {
             Generator.generateQuadSeries(i);
 	    Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {
-		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
+		System.out.println("\""+i+"_"+Formatter.toArchiveString(glist[j])+"\",");
 	    }
         }
         //System.out.println(archive.graphPE);
+	//Invariant.testArchive(series);
 
         /**
         String[] hex = new String[] {

@@ -1,5 +1,6 @@
 package graph;
 import java.util.ArrayList;
+import java.math.BigInteger;	
 
 /**
  * This class contains methods that rely on Constants,
@@ -34,6 +35,13 @@ abstract public class Parameter {
      */
 
     abstract int squanderVertex(int triangleCount, int quadCount);
+
+    /**
+       returns true if it is a previously considered case.
+     */
+    /*
+    abstract boolean priorCase(int[] type);
+    */
 
     /**
      * A lower bound on what a face squanders.
@@ -141,6 +149,49 @@ class QuadParameter extends Parameter {
      */
     private int quadCaseNumber = -1;
 
+    /*
+    // encode each quad case as a single BigInteger.
+    private BigInteger spair(BigInteger a,BigInteger b) {
+	BigInteger s = a.add(b);
+	return (s.multiply(s)).add(b).add(BigInteger.ONE);
+    }
+    private BigInteger four(int i) {
+	if (i==4)  { return BigInteger.ZERO; }
+	return BigInteger.ZERO;
+    }
+    private BigInteger zipcase(int[] type,int offset,int r) {
+	BigInteger acc = BigInteger.ZERO;
+	for (int i=0;i<type.length;i++) {
+	    acc = spair(four(type[(r*(i + offset)) % type.length]),acc);
+	}
+	return acc;
+    }
+    private BigInteger zipcyc(int[] type,int r) {
+	BigInteger acc = BigInteger.ZERO;
+	for (int i=0;i<type.length;i++) {
+	    BigInteger z = zipcase(type,i,r);
+	    if (acc.compareTo(z) > 0)  { acc = z; }
+	}
+	return acc;
+    }
+    private BigInteger zipdih(int[] type) {
+	BigInteger a = zipcyc(type,1);
+	BigInteger b = zipcyc(type,-1);
+	if (a.compareTo(b) <0)  { return a; }
+	return b;
+    }
+    public boolean priorCase(int[] type) {
+	BigInteger a = zipdih(type);
+	for (int i=0;i<quadCaseNumber;i++) {
+	    if (a.compareTo(zipdih(Constants.getQuadCases(i)))==0) {
+		return true;
+	    }
+	}
+	return false;
+    }
+    */
+
+
     /**
      * Helper to squanderVertex. Counts triangles in a given seed.
      */
@@ -247,6 +298,12 @@ class ExceptionalParameter extends Parameter {
      * This keeps track of the case in the Exceptional Series.
      */
     private int maxGon = -1;
+
+    /*
+    public  boolean priorCase(int[] type) {
+	return false;
+    }
+    */
 
     /**
      * implements abstract method.

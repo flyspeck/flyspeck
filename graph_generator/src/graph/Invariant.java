@@ -1,6 +1,7 @@
 package graph;
 import java.util.*;
 import java.lang.*;
+import java.math.BigInteger;
 
 
 /**
@@ -22,9 +23,11 @@ public class Invariant {
     private Invariant mirror;
     final private Hashtable vertexInvariant = new Hashtable(); // { Vertex-> hashcode }
     final private Hashtable faceInvariant = new Hashtable(); // { Face -> hashcode }
-    final private long hash;
-    private static final long prime = 15485863; //Prime[10^6];
-    //private static final long prime = 252097800623; //Prime[10^10];
+    //final private long hash;
+    final private BigInteger hashB;
+    //private static final long prime = 15485863; //Prime[10^6];
+    private static final long prime = 252097800623L; //Prime[10^10];
+    private static final BigInteger primeB = new BigInteger("252097800623",10);
     final private Dart[] coupleList; //return value of selectDart
 
     public Invariant(Graph G) {
@@ -35,8 +38,22 @@ public class Invariant {
     private Invariant(Graph G, Invariant M) {
         this.G = G;
         mirror = M;
-        hash = computeInvariant(G, vertexInvariant, faceInvariant); //side-effects to args.
+        hashB = computeInvariant(G, vertexInvariant, faceInvariant); //side-effects to args.
         coupleList = selectDart(G, vertexInvariant, faceInvariant);
+    }
+
+    // BigInteger ops:
+    private static long longOf(BigInteger j) {
+	return j.longValue();
+    }
+    private static BigInteger sum(BigInteger i,BigInteger j) {
+	return (i.add(j)).mod(primeB);
+    }
+    private static BigInteger mul(BigInteger i,BigInteger j) {
+	return (i.multiply(j)).mod(primeB);
+    }
+    private static BigInteger sq(BigInteger a) {
+	return mul(a,a);
     }
 
 
@@ -46,36 +63,37 @@ public class Invariant {
      */
 
     public long getHash() {
-        return (hash * hash + mirror.hash * mirror.hash) % prime;
+        return longOf(sum(sq(hashB),sq(mirror.hashB)));
     }
-
+ 
     /**
      * A value depending only on the cyclic ordering.
      * $\sum x_i^2 x_{i+1} mod p$.
      */
 
-    private static long symcyc(long x[]) {
-        long total = 0;
+    private static BigInteger symcyc(BigInteger x[]) {
+        BigInteger total = BigInteger.ZERO;
         for(int i = 0;i < x.length;i++) {
-            long t = (x[i] * x[i]) % prime;
-            t = t * x[(i + 1) % x.length] % prime;
-            total = (total + t) % prime;
+            total = sum(total,mul(x[(i + 1) % x.length],sq(x[i])));
         }
         return total;
     }
 
     //Table[Random[Integer,{1,10^6}]//Prime,{i,0,10}]
-    private static long[] vHash =  {
-        7184057, 6907723, 12428951, 846749, 9432197, 2488777,
-        6632911, 5368189, 13123039, 3197849, 4405699
+    private static BigInteger[] vHash = {
+        new BigInteger("7184057"), new BigInteger("6907723"), new BigInteger("12428951"), new BigInteger("846749"), new BigInteger("9432197"), new BigInteger("2488777"),
+        new BigInteger("6632911"), new BigInteger("5368189"), new BigInteger("13123039"), new BigInteger("3197849"), new BigInteger("4405699")
+
     };
+
+
 
     /**
      * Returns a hash of the proper iso class of the vertex.
      */
 
-    private static long vertexInvariant0(Vertex V) {
-        long[] x = new long[V.size()];
+    private static BigInteger vertexInvariant0(Vertex V) {
+        BigInteger[] x = new BigInteger[V.size()];
         Face F = V.getAny();
         for(int i = 0;i < V.size();i++)
             x[i] = vHash[V.next(F, i).size() % vHash.length];
@@ -83,15 +101,15 @@ public class Invariant {
     }
 
     /**
-     * Returns a hash of the proper iso clsas of a vertex.
+     * Returns a hash of the proper iso class of a vertex.
      * invariant: faceHash is read-only.
      */
 
-    private static long vertexInvariant(Vertex V, Hashtable faceHash) {
-        long[] x = new long[V.size()];
+    private static BigInteger vertexInvariant(Vertex V, Hashtable faceHash) {
+        BigInteger[] x = new BigInteger[V.size()];
         Face F = V.getAny();
         for(int i = 0;i < V.size();i++)
-            x[i] = ((Long)faceHash.get(V.next(F, i))).longValue();
+            x[i] = ((BigInteger)faceHash.get(V.next(F, i)));
         return symcyc(x);
     }
 
@@ -100,11 +118,11 @@ public class Invariant {
      * invariant: vertexHash is read-only.
      */
 
-    private static long faceInvariant(Face F, Hashtable vertexHash) {
-        long[] x = new long[F.size()];
+    private static BigInteger faceInvariant(Face F, Hashtable vertexHash) {
+        BigInteger[] x = new BigInteger[F.size()];
         Vertex V = F.getAny();
         for(int i = 0;i < F.size();i++)
-            x[i] = ((Long)vertexHash.get(F.next(V, i))).longValue();
+            x[i] = ((BigInteger)vertexHash.get(F.next(V, i)));
         return symcyc(x);
     }
 
@@ -117,8 +135,8 @@ public class Invariant {
      * @param faceHash: Hashtable { Face -> hash code}. Side-effect generates this hashtable.
      */
 
-    static private long computeInvariant(Graph G, Hashtable vertexHash, Hashtable faceHash) {
-        long accumulator = 0;
+    static private BigInteger computeInvariant(Graph G, Hashtable vertexHash, Hashtable faceHash) {
+        BigInteger accumulator = BigInteger.ZERO;
         Vertex[] vertexList = new Vertex[G.vertexSize()];
         Face[] faceList = new Face[G.faceSize()];
 
@@ -129,14 +147,14 @@ public class Invariant {
             while(vEnumeration.hasMoreElements()) {
                 Vertex V = (Vertex)vEnumeration.nextElement();
                 vertexList[i++] = V;
-                vertexHash.put(V, new Long(vertexInvariant0(V)));
+                vertexHash.put(V, vertexInvariant0(V));
             }
         }
 
          /* 2. initialize faceList and faceHash */{
             faceHash.clear();
             int i = 0;
-            Long L0 = new Long((long)0);
+            BigInteger L0 = BigInteger.ZERO;
             Enumeration fEnumeration = G.faceEnumeration();
             while(fEnumeration.hasMoreElements()) {
                 Face F = (Face)fEnumeration.nextElement();
@@ -146,19 +164,19 @@ public class Invariant {
         }
 
         /* 3. iterate a couple of times */
-        final int iterLimit = 2;
+        final int iterLimit = 3; // was 2.
         for(int level = 0;level < iterLimit;level++) {
             for(int i = 0;i < faceList.length;i++) {
                 Face F = faceList[i];
-                long hash = faceInvariant(F, vertexHash);
-                faceHash.put(F, new Long(hash));
-                accumulator = (accumulator + hash * hash) % prime;
+                BigInteger hashB = faceInvariant(F, vertexHash);
+                faceHash.put(F, hashB);
+                accumulator = sum(accumulator,sq(hashB));
             }
             for(int i = 0;i < vertexList.length;i++) {
                 Vertex V = vertexList[i];
-                long hash = vertexInvariant(V, faceHash);
-                vertexHash.put(V, new Long(hash));
-                accumulator = (accumulator + hash * hash) % prime;
+                BigInteger hashB = vertexInvariant(V, faceHash);
+                vertexHash.put(V, hashB);
+                accumulator = sum(accumulator,sq(hashB));
             }
         }
         return accumulator;
@@ -168,10 +186,11 @@ public class Invariant {
      * helper for selectDart
      */
 
-    private static long hash(Dart C, Hashtable Vertexhash, Hashtable Facehash) {
-        long hashV = ((Long)Vertexhash.get(C.getV())).longValue();
-        long hashF = ((Long)Facehash.get(C.getF())).longValue();
-        return (hashV * hashV + hashF * hashF) % prime;
+    private static BigInteger hash(Dart C, Hashtable Vertexhash, Hashtable Facehash) {
+	BigInteger primeC = new BigInteger("39731340001");
+        BigInteger hashV = (BigInteger)Vertexhash.get(C.getV());
+        BigInteger hashF = (BigInteger)Facehash.get(C.getF());
+        return sum(sq(hashV),mul(primeC,sq(hashF)));
     }
 
     /**
@@ -198,32 +217,31 @@ public class Invariant {
         Hashtable InvariantCounter = new Hashtable(); // { hash -> count}
         for(int i = 0;i < fullC.length;i++) {
             Dart C = fullC[i];
-            long hashC = hash(C, Vertexhash, Facehash);
-            Long hashCwrap = new Long(hashC);
-            Integer count = (Integer)InvariantCounter.get(hashCwrap);
+            BigInteger hashC = hash(C, Vertexhash, Facehash);
+            Integer count = (Integer)InvariantCounter.get(hashC);
             if(count == null)
                 count = new Integer(0);
-            InvariantCounter.put(hashCwrap, increment(count, 1));
+            InvariantCounter.put(hashC, increment(count, 1));
         }
         //3. pick out the smallest hash among those that appear least often.
-        long smallestHash = Long.MAX_VALUE;
+        BigInteger smallestHash = primeB.add(primeB); // > Max Hash.
         int leastCount = Integer.MAX_VALUE;
         for(Enumeration E = InvariantCounter.keys();E.hasMoreElements(); /*--*/) {
-            Long hashCwrap = (Long)E.nextElement();
-            int count = ((Integer)InvariantCounter.get(hashCwrap)).intValue();
+            BigInteger hashC = (BigInteger)E.nextElement();
+            int count = ((Integer)InvariantCounter.get(hashC)).intValue();
             if(count < leastCount) {
                 leastCount = count;
-                smallestHash = hashCwrap.longValue();
+                smallestHash = hashC;
             }
             if(count == leastCount) {
-                if(hashCwrap.longValue() < smallestHash)
-                    smallestHash = hashCwrap.longValue();
+                if(hashC.compareTo(smallestHash) < 0)
+                    smallestHash = hashC;
             }
         }
         //4. pick all Darts with that invariant.
         Collection bestC = new ArrayList();
         for(int i = 0;i < fullC.length;i++) {
-            if(hash(fullC[i], Vertexhash, Facehash) == smallestHash)
+            if((hash(fullC[i], Vertexhash, Facehash)).compareTo(smallestHash)==0)
                 bestC.add(fullC[i]);
         }
         //5. return.
@@ -262,7 +280,7 @@ public class Invariant {
      */
 
     public boolean ProperlyIsomorphic(Invariant inv) {
-        if(this.hash != inv.hash)
+        if(this.hashB.compareTo(inv.hashB)!=0)
             return false;
         if(this.coupleList.length != inv.coupleList.length)
             return false;
@@ -318,6 +336,28 @@ public class Invariant {
     public Graph toGraph() {
         return G;
     }
+
+ public static void testArchive(stringArchive series) { 
+            // slow test.. make it public to run.
+            Hashtable H = new Hashtable(); // { hash -> graph }
+            for(int i = 0;i < series.size();i++) {
+                if(0 == (i % 5000))
+                    System.out.println("//***  " + i);
+                String S = series.getArchiveString(i);
+                Graph G = Graph.getInstance(new Formatter(S));
+                Invariant inv = new Invariant(G);
+                Long hash = new Long(inv.getHash());
+                if(H.containsKey(hash)) {
+                    Invariant inv2 = (Invariant)H.get(hash);
+                    if(!inv.Isomorphic(inv2))
+                        System.out.println("//nonisomorphic graphs with same hash found... " + i + " " + hash);
+                    else
+                        System.out.println("//duplicate found... " + i + " "+ hash);
+                }
+                H.put(hash, inv);
+            }
+        }
+
     public static class Test extends util.UnitTest {
 
         public void test_invariant() {
@@ -330,37 +370,18 @@ public class Invariant {
                 jassert(X.ProperlyIsomorphic(X), "self id failed at " + i);
                 Graph G2 = G.copy(true, new Vertex[0], new Face[0]);
                 Invariant X2 = new Invariant(G2);
-                jassert(X.hash != X2.hash);
+                jassert((X.hashB).compareTo(X2.hashB) != 0);
                 jassert(X.getHash() == X2.getHash());
                 jassert(!X.ProperlyIsomorphic(X2));
                 jassert(X.Isomorphic(X2));
                 Graph G3 = G.copy(false, new Vertex[0], new Face[0]);
                 Invariant X3 = new Invariant(G3);
-                jassert(X3.hash == X.hash);
-                jassert(X3.hash == X2.mirror.hash);
+                jassert(X3.hashB.compareTo(X.hashB) ==0);
+                jassert(X3.hashB.compareTo(X2.mirror.hashB) ==0);
                 jassert(X.ProperlyIsomorphic(X3));
             }
         }
 
-        public void test_archive() { // slow test.. make it public to run.
-            //look at QUAD, sort by hash.
-            Hashtable H = new Hashtable(); // { hash -> graph }
-            for(int i = 0;i < graphDispatch.size(graphDispatch.ALL);i++) {
-                if(0 == (i % 5000))
-                    System.out.println("//***  " + i);
-                String S = graphDispatch.getArchiveString(graphDispatch.ALL, i);
-                Graph G = Graph.getInstance(new Formatter(S));
-                Invariant inv = new Invariant(G);
-                Long hash = new Long(inv.getHash());
-                if(H.containsKey(hash)) {
-                    Invariant inv2 = (Invariant)H.get(hash);
-                    if(!inv.Isomorphic(inv2))
-                        System.out.println("//nonisomorphic graphs with same hash found... " + i);
-                    else
-                        System.out.println("//duplicate found... " + i);
-                }
-                H.put(hash, inv);
-            }
-        }
+       
     }
 }

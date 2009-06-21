@@ -14370,5 +14370,9 @@ final static String data[] = {
         return data[i];
     }
 
+    public String name() {
+	return "[Kepler-1998-archive]";
+    }
+
 
 };

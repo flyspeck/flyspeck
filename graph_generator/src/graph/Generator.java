@@ -5,6 +5,7 @@ import java.util.*;
  * Generate all graphs with a given set of properties.
  */
 public class Generator {
+    private static stringArchive series = new archive();
     private static GraphStack stack;
     private Parameter param;
     private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
@@ -304,31 +305,10 @@ public class Generator {
 
     public static void generateExceptionalSeries(int NGON) {
         Parameter param = Parameter.getExceptionalCase(NGON);
-        int series;
-        switch(NGON) {
-            case 5:
-                series = graphDispatch.ALL;
-                break;
-
-            case 6:
-                series = graphDispatch.ALL;
-                break;
-
-            case 7:
-                series = graphDispatch.ALL;
-                break;
-
-            default:
-                series = graphDispatch.ALL;
-                break;
-        }
         Graph Seed = Graph.getInstance(NGON);
-        //if (true)
-          //series = graphDispatch.ALL;
         String outfile = path + "newExcept"+NGON+".java";
-        //String archive = graphDispatch.getArchiveString(graphDispatch.ALL, 2393);
 
-        Generator gen = new Generator(param, Seed, series, new GraphStack(series, param), outfile);
+        Generator gen = new Generator(param, Seed, new GraphStack(series, param), outfile);
     }
     /**
      * This takes the Quad case number and generates a list of all the graphs
@@ -343,24 +323,21 @@ public class Generator {
             S = S + " "+type[i];
         System.out.println("//********  "+casenum+"/"+Constants.getQuadCasesLength()+":  "+S);
         //2. initialize.
-        int series = graphDispatch.ALL;
-        //if (true)
-        //  series = graphDispatch.ALL;
         Parameter param = Parameter.getQuadCase(casenum);
         GraphStack stack = new GraphStack(series, casenum, param);
         Graph Seed = Graph.getInstance(Constants.getQuadCases(casenum));
         String outfile = path + "newQuad"+casenum+".java";
-        Generator gen = new Generator(param, Seed, series, stack, outfile);
+        Generator gen = new Generator(param, Seed, stack, outfile);
     }
 
     /**
      * Constructor, generates all possible Graphs.
      * @param param Scoring parameters
      * @param Seed Graph
-     * @param series int constant from GraphDispatch.# describing the series.
+     * @param series archiveString
      */
 
-    Generator(Parameter param, Graph Seed, int series, GraphStack stack, String outfile) {
+    Generator(Parameter param, Graph Seed, GraphStack stack, String outfile) {
         //1. initialize
         //this.track = track;
         this.param = param;

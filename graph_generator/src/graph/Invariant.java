@@ -346,8 +346,8 @@ public class Invariant {
             //look at QUAD, sort by hash.
             Hashtable H = new Hashtable(); // { hash -> graph }
             for(int i = 0;i < graphDispatch.size(graphDispatch.ALL);i++) {
-                if(0 == (i % 50))
-                    System.out.println("***  " + i);
+                if(0 == (i % 5000))
+                    System.out.println("//***  " + i);
                 String S = graphDispatch.getArchiveString(graphDispatch.ALL, i);
                 Graph G = Graph.getInstance(new Formatter(S));
                 Invariant inv = new Invariant(G);
@@ -355,9 +355,9 @@ public class Invariant {
                 if(H.containsKey(hash)) {
                     Invariant inv2 = (Invariant)H.get(hash);
                     if(!inv.Isomorphic(inv2))
-                        System.out.println("nonisomorphic graphs with same hash found... " + i);
+                        System.out.println("//nonisomorphic graphs with same hash found... " + i);
                     else
-                        System.out.println("duplicate found... " + i);
+                        System.out.println("//duplicate found... " + i);
                 }
                 H.put(hash, inv);
             }

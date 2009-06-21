@@ -29,13 +29,13 @@ public class GraphStack {
      * build hashtable.
      */
 
-    private void buildExceptionalArchive(int series,Parameter P) {
+    private void buildExceptionalArchive(stringArchive series,Parameter P) {
 	if (!Constants.ignoreArchive()) {
-        int sz = graphDispatch.size(series);
+        int sz = series.size();
         for(int i = 0;i < sz;i++) {
             if(0 == (i % 5000))
                 System.out.println("***  " + i);
-            String S = graphDispatch.getArchiveString(series, i);
+            String S = series.getArchiveString(i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
 	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
@@ -46,7 +46,7 @@ public class GraphStack {
             if(!archive.contains(inv))
                 archive.add(inv);
         }
-	System.out.println("//archive series/size = "+series+"/"+archive.size());
+	System.out.println("//archive series/size = "+series.name()+"/"+series.size());
 	}
         
     }
@@ -54,7 +54,7 @@ public class GraphStack {
     /**
      * Constructor for exceptional series cases.
      */
-    GraphStack(int series, Parameter P) {
+    GraphStack(stringArchive series, Parameter P) {
         buildExceptionalArchive(series, P);
     }
 
@@ -62,15 +62,15 @@ public class GraphStack {
      * Similar to buildExceptionalArchive, but it tests that the Graph contains
      * the desired seed before adding it to the archive.
      */
-    private void buildQuadArchive(int series, int casenum, Parameter P) {
+    private void buildQuadArchive(stringArchive series, int casenum, Parameter P) {
 	int szx = 0;
 	if (!Constants.ignoreArchive()) {
         //0. precondition
         util.Eiffel.jassert(casenum<Constants.getQuadCasesLength());
-        int sz = graphDispatch.size(series);
+        int sz = series.size();
 	szx = archive.size();
         for(int i = 0;i < sz;i++) {
-            String S = graphDispatch.getArchiveString(series, i);
+            String S = series.getArchiveString( i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
 	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
@@ -84,13 +84,13 @@ public class GraphStack {
                 archive.add(inv);
         }
 	}
-        System.out.println("//archive series/casenum/size = "+series+"/"+casenum+"/"+szx);
+        System.out.println("//archive series/casenum/size = "+series.name()+"/"+casenum+"/"+szx);
     }
 
     /**
      * Constructor for quad series cases.
      */
-    GraphStack(int series,int casenum, Parameter P) {
+    GraphStack(stringArchive series,int casenum, Parameter P) {
         buildQuadArchive(series, casenum, P);
     }
 

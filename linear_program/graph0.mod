@@ -72,7 +72,7 @@ s.t. y6_def{(i3,i1,i2,j) in EDART} : y6[i3,i1,i2,j] = ye[i1,j];
 
 # inequality constraints
 s.t. main: sum{i in IVERTEX} ln[i] >= 12;
-s.t. azmin{(i,j) in DART : j in ITRIANGLE} : azim[i,j] >= 0.52;
+s.t. azmin{(i,j) in DART : j in ITRIANGLE} : azim[i,j] >= 0.852;
 s.t. RHA{(i,j) in DART} : azim[i,j] <= rhazim[i,j];
 s.t. RHB{(i,j) in DART} : rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
 
@@ -99,6 +99,7 @@ s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >=
 solve;
 display graphID;
 display lnsum;
+display yn;
 #display solve_result_num;
 #display solve_result;
 

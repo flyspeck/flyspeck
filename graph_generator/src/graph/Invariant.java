@@ -24,6 +24,7 @@ public class Invariant {
     final private Hashtable faceInvariant = new Hashtable(); // { Face -> hashcode }
     final private long hash;
     private static final long prime = 15485863; //Prime[10^6];
+    //private static final long prime = 252097800623; //Prime[10^10];
     final private Dart[] coupleList; //return value of selectDart
 
     public Invariant(Graph G) {
@@ -341,7 +342,7 @@ public class Invariant {
             }
         }
 
-        private void test_archive() { // slow test.. make it public to run.
+        public void test_archive() { // slow test.. make it public to run.
             //look at QUAD, sort by hash.
             Hashtable H = new Hashtable(); // { hash -> graph }
             for(int i = 0;i < graphDispatch.size(graphDispatch.ALL);i++) {

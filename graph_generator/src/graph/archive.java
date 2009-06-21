@@ -3,7 +3,7 @@ package graph;
 // full list of all generated on Sep 13, 1997
 // using version 1.1 of java files
 
-class archive {
+class archive implements stringArchive {
 	final static String data[] = {
 
   "0 16 3 0 2 1 3 1 2 11 3 1 11 7 3 2 3 11 3 3 "+
@@ -14359,5 +14359,16 @@ final static String data[] = {
 "0 23 5 0 1 2 3 4 4 0 4 5 6 3 5 4 7 3 7 4 8 3 8 4 3 3 8 3 2 3 8 2 9 3 9 2 1 3 9 1 10 3 10 1 11 4 11 1 0 6 3 11 6 12 3 12 6 5 3 12 5 13 3 13 5 7 3 13 7 14 4 14 7 8 9 3 14 9 10 3 14 10 15 3 15 10 11 3 15 11 12 3 15 12 13 3 13 14 15 "
 
 };
+
+    public int size() {
+	return data.length;
+    }
+
+    public  String getArchiveString(int i) {
+        if(i < 0 || i >= data.length)
+            return null;
+        return data[i];
+    }
+
 
 };

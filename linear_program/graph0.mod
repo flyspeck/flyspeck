@@ -90,8 +90,10 @@ s.t. solyB{(i1,i2,i3,j) in EDART3} : -sol[j] + 0.5513 + 0.3232*(y4[i1,i2,i3,j]+y
 s.t.  azminA{(i1,i2,i3,j) in EDART3}: azim[i2,j] - 1.2308 
   + 0.3639*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) - 0.235*(y1[i1,i2,i3,j]-2) - 0.685*(y4[i1,i2,i3,j]-2) >= 0;
 s.t.  azmaxA{(i1,i2,i3,j) in EDART3}: -azim[i2,j] + 1.231 
-  - 0.152*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) + 0.5*(y1[i1,i2,i3,j]-2) + 0.77*(y4[i1,i2,i3,j]-2) >= 0;
+  - 0.152*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) + 0.5*(y1[i1,i2,i3,j]-2) + 0.773*(y4[i1,i2,i3,j]-2) >= 0;
 
+s.t.   rhazminA{(i1,i2,i3,j) in EDART3}: rhazim[i2,j] - 1.2308 
+  + 0.3639*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) - 0.6*(y1[i1,i2,i3,j]-2) - 0.685*(y4[i1,i2,i3,j]-2) >= 0;
 
 # tau inequality
 s.t. tau3{j in ITRIANGLE}: tau[j] >= 0;
@@ -118,7 +120,9 @@ display lnsum;
 #display yn;
 #display ye;
 #display azim;
+display rhazim;
 #display sol;
+#display tau;
 #display solve_result_num;
 #display solve_result;
 

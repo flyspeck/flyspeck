@@ -114,11 +114,11 @@ s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >=
 solve;
 display graphID;
 display lnsum;
-display ynsum;
-display yn;
-display ye;
-display azim;
-display sol;
+#display ynsum;
+#display yn;
+#display ye;
+#display azim;
+#display sol;
 #display solve_result_num;
 #display solve_result;
 

@@ -51,6 +51,7 @@ var y4{EDART3};
 var y5{EDART};
 var y6{EDART};
 var lnsum;
+var ynsum;
 
 ## objective
 #maximize objective:  sum {i in IVERTEX} yn[i];
@@ -61,6 +62,7 @@ maximize objective:  lnsum;
 
 ## equality constraints
 s.t. lnsum_def: sum{i in IVERTEX} ln[i]  = lnsum;
+s.t. ynsum_def: sum{i in IVERTEX} yn[i] = ynsum;
 s.t. azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 s.t. rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
 s.t. sol_sum{j in IFACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
@@ -87,6 +89,9 @@ s.t. solyB{(i1,i2,i3,j) in EDART3} : -sol[j] + 0.5513 + 0.3232*(y4[i1,i2,i3,j]+y
 
 s.t.  azminA{(i1,i2,i3,j) in EDART3}: azim[i2,j] - 1.2308 
   + 0.3639*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) - 0.235*(y1[i1,i2,i3,j]-2) - 0.685*(y4[i1,i2,i3,j]-2) >= 0;
+s.t.  azmaxA{(i1,i2,i3,j) in EDART3}: -azim[i2,j] + 1.231 
+  - 0.152*(y2[i1,i2,i3,j]+y3[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j]-8) + 0.5*(y1[i1,i2,i3,j]-2) + 0.77*(y4[i1,i2,i3,j]-2) >= 0;
+
 
 # tau inequality
 s.t. tau3{j in ITRIANGLE}: tau[j] >= 0;
@@ -109,6 +114,7 @@ s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >=
 solve;
 display graphID;
 display lnsum;
+display ynsum;
 display yn;
 display ye;
 display azim;

@@ -2,12 +2,12 @@
 #include <iostream>
 #include <list>
 #include <vector>
-#include <conio.h>
+//#include <conio.h>
 using namespace std;
 
 list< list< list <int> > > bigBigList;
 //ifstream fin("stripped_kepler.out");
-ifstream fin("keplergraph_fixedhash.out");
+ifstream fin("kepler-stripped.out");
 ofstream fout;
 //ofstream fbatch;
 vector<string> hashCodeList;
@@ -59,26 +59,66 @@ void genGraphData() {
      int count;
      int maxVer;
      vector<int> oneface;
+     vector<int> listTrig, listQuad, listPent, listHex;
      
      tt = 0;
      cout << bigBigList.size() << endl;
      for (it3 = bigBigList.begin(); it3 != bigBigList.end(); it3++) {
+	 cout << hashCodeList[tt] << " "<< tt << endl;
+	 
          s = "GraphDat/graph" + hashCodeList[tt] + ".dat";
          sbat1 = "graph" + hashCodeList[tt] + ".dat";
          sbat2 = "Unix/graph" + hashCodeList[tt] + ".dat";
          fout.open( s.c_str() );
          //fbatch << "eol Unix " << sbat1 << " " << sbat2 << endl;
          maxVer = 0;
+         listTrig.clear(); listQuad.clear(); listPent.clear(); listHex.clear();
          
-         // Find CVERTEX
+         // Find CVERTEX, ITRIANGLE, IQUAD, IPENT, IHEX
+         int iface;
+         iface = 0;
          for (it2 = (*it3).begin(); it2 != (*it3).end(); it2++) {
+             iface++;
+             if ( (*it2).size() == 3 ) listTrig.push_back(iface);
+             if ( (*it2).size() == 4 ) listQuad.push_back(iface);
+             if ( (*it2).size() == 5 ) listPent.push_back(iface);
+             if ( (*it2).size() == 6 ) listHex.push_back(iface);
              for (it1 = (*it2).begin(); it1 != (*it2).end(); it1++) {
                  if (maxVer < *it1) maxVer = *it1;
              }
          }
          
+         fout << "param graphID := " << hashCodeList[tt] << ";" << endl;
          fout << "param CVERTEX := " << maxVer + 1 << ";" << endl;
          fout << "param CFACE := " << (*it3).size() << ";" << endl << endl;
+         
+         // Four new parameters
+         vector<int>::iterator iparam;
+         
+         fout << "set ITRIANGLE :=";
+         for (iparam = listTrig.begin(); iparam != listTrig.end(); iparam++) {
+             fout << " " << *iparam;
+         }
+         fout << ";" << endl;
+
+         fout << "set IQUAD :=";
+         for (iparam = listQuad.begin(); iparam != listQuad.end(); iparam++) {
+             fout << " " << *iparam;
+         }
+         fout << ";" << endl;
+
+         fout << "set IPENT :=";
+         for (iparam = listPent.begin(); iparam != listPent.end(); iparam++) {
+             fout << " " << *iparam;
+         }
+         fout << ";" << endl;
+
+         fout << "set IHEX :=";
+         for (iparam = listHex.begin(); iparam != listHex.end(); iparam++) {
+             fout << " " << *iparam;
+         }
+         fout << ";" << endl;
+         
          fout << "set EDART :=" << endl;
          
          count = 1;
@@ -90,7 +130,7 @@ void genGraphData() {
              
              // Print the EDARTs
              fout << " (*,*,*," << count << ")";
-             for (int i = 0; i < oneface.size(); i++) {
+             for (unsigned int i = 0; i < oneface.size(); i++) {
                  fout << " " << oneface[i % oneface.size()] << " " << oneface[(i+1) % oneface.size()] << " " << oneface[(i+2) % oneface.size()];
                  if (i < oneface.size() - 1) fout << ",";
              }
@@ -110,6 +150,6 @@ int main() {
     genGraphData();
     
     cout << "Finish!" << endl;
-    getch();
+//    getch();
     return 0;
 }

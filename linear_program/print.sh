@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cd GraphDat
 for i in *.dat ; do 

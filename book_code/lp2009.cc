@@ -1,5 +1,5 @@
 // nonlinear inequalities for linear programming relaxation.
-// basic functions to be studied: azim, lnazim, sol (3), taum (3).
+// basic functions to be studied: azim, rhazim, sol (3), taum (3).
 
 /* Thomas C. Hales
    file created June 17, 2009
@@ -26,7 +26,7 @@ public:
   };
 };
 
-int trialcount = 80;
+int trialcount = 300;
 double eps = 1.0e-6;
 
 double interp(double x,double x1,double y1,double x2,double y2) {
@@ -39,9 +39,17 @@ double minn(double a,double b) {
   return (a>b?b:a);
 }
 
+double c1 = sol_y(2,2,2,2,2,2)/pi(); // delta0/Pi
 
 double ly(double y) {
   return interp(y,  2.0,1.0,    2.52,0.0);
+}
+double rho(double y) {
+  return (1+c1) - c1*ly(y);
+}
+
+double rhazim(double y1,double y2,double y3,double y4,double y5,double y6) {
+  return rho(y1)*dih_y(y1,y2,y3,y4,y5,y6);
 }
 
 double lnazim(double y1,double y2,double y3,double y4,double y5,double y6) {
@@ -56,7 +64,7 @@ double sol(double y1,double y2,double y3,double y4,double y5,double y6) {
   return sol_y(y1,y2,y3,y4,y5,y6);
 }
 
-double c1 = sol_y(2,2,2,2,2,2)/pi(); // delta0/Pi
+
 
 
 double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
@@ -348,6 +356,64 @@ Minimizer m13() {
 }
 //compare J_38243071
 trialdata d13(m13(),"ID taum:  sol-ineq");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t14(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -azim(y[0],y[1],y[2],y[3],y[4],y[5]) + 1.231
+    - 0.152 * (y[1]+y[2]+y[4]+y[5]-8) 
+    + 0.5*(y[0]-2)
+    + 0.773*(y[3]-2);
+	}
+Minimizer m14() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t14;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_507227930
+trialdata d14(m14(),"ID taum:  dih-ineq");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t15(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = rhazim(y[0],y[1],y[2],y[3],y[4],y[5]) -
+   1.2308
+    +0.3639 *(y[1]+y[2]+y[4]+y[5]-8) - 0.60*(y[0]-2) - 0.685*(y[3]-2); //-0.235
+	}
+Minimizer m15() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t15;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_507227930
+trialdata d15(m15(),"ID taum:  rhazim-ineq");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t16(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) -
+   1.629
+    +0.402 *(y[1]+y[2]+y[4]+y[5]-8) - 0.315*(y[0]-2) ;
+	}
+Minimizer m16() {
+  double xmin[6]= {2,2,2,2.52,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t16;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_568731327 from 1998
+trialdata d16(m16(),"ID:  dih-quad-min-ineq");
 
 
 int main() {

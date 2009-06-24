@@ -6,8 +6,8 @@
 
 
 // marchal.cc
-// $ make marchal.x
-// $ ./marchal.x
+// $ make marchal.o
+// $ ./marchal.o
 
 // constructor calls optimizer.  No need to place in main loop.
 class trialdata {

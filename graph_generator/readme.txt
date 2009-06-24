@@ -34,3 +34,4 @@ The archive now has an interface.  It is selected at the top of the Generator.ja
 To get the number of distinct hash codes:
 grep "\"" kepler2009.out2 | cut -f1 -d" " | sort -u | wc   
 grep "\"" kepler2009.out2 | cut -f1 -d" " | sort | uniq -c | grep -v " 1 "
+Isomorphic graphs appear between the 2 cases 33344 and 33434, because the second case does not disallow the first.  An underscore is added to give them different names.

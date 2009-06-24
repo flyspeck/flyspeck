@@ -9,7 +9,7 @@
 
 # Next process the file for use with Isabelle and for generating graph data for glpk
 echo -n "val Oct = " > process.out
-tail --lines=+70 tame_graph.txt | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee kepler-stripped.out
+tail -n +70 tame_graph.txt | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee kepler-stripped.out
 #./process | tee -a process.out
 echo ";" >> process.out
 

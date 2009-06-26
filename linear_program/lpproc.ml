@@ -62,3 +62,20 @@ let mk_basic_data s =
   edart=map triples faces;
  };;
 
+let list_of xs = fold_right (fun x y -> (Printf.sprintf " %d" x)^y) xs "";;
+
+let print_basic_data bd = 
+  Printf.sprintf 
+  "
+param graphID := %s;
+param CVERTEX := %d;
+param CFACE := %d
+
+set ITRIANGLE := %s;
+set IQUAD := %s;
+set IPENT := %s;
+set IHEX := %s;
+
+set EDART;;
+" 
+bd.graphid bd.cvertex bd.cface (list_of bd.itriangle) (list_of bd.iquad) (list_of bd.ipent) (list_of bd.ihex);;

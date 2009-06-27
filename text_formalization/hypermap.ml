@@ -461,7 +461,12 @@ REWRITE_TAC[I_O_ID]
 THEN DISCH_THEN (ASSUME_TAC o SYM) THEN EXISTS_TAC `PRE n` THEN
 ASM_SIMP_TAC[]);;
 
-let inverse_relation = prove(`!(s:A->bool) p:A->A x:A y:A. FINITE s /\ p permutes s /\ y = p x ==>(?k:num. x = (iterate_map p k) y)`, REPEAT STRIP_TAC THEN MP_TAC(SPECL[`s:A->bool`; `p:A->A`] inverse_element_lemma) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `j:num` THEN POP_ASSUM(fun th -> REWRITE_TAC[SYM th]) THEN REWRITE_TAC[GSYM(ISPECL[`(inverse (p:A->A)):(A->A)`; `p:A->A`; `(x:A)`] o_THM)] THEN UNDISCH_THEN `p:A->A permutes s`(fun th-> REWRITE_TAC[CONJUNCT2 (MATCH_MP PERMUTES_INVERSES_o th);I_THM]));;
+let inverse_relation = prove(`!(s:A->bool) p:A->A x:A y:A. FINITE s /\ p permutes s /\ y = p x ==>(?k:num. x = (iterate_map p k) y)`, 
+REPEAT STRIP_TAC THEN MP_TAC(SPECL[`s:A->bool`; `p:A->A`] inverse_element_lemma) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `j:num` 
+THEN POP_ASSUM(fun th -> REWRITE_TAC[SYM th]) 
+THEN REWRITE_TAC[GSYM(ISPECL[`(inverse (p:A->A)):(A->A)`; `p:A->A`; `(x:A)`] o_THM)] 
+THEN UNDISCH_THEN `p:A->A permutes s`(fun th-> REWRITE_TAC[CONJUNCT2 (MATCH_MP PERMUTES_INVERSES_o th);I_THM]));;
 
 (* some properties of orbits *)
 
@@ -622,13 +627,20 @@ let connected_hypermap = new_definition `connected_hypermap (H:(A)hypermap) <=> 
 (* Some lemmas about counting the orbits of a permutation *)
 
 
-let finite_orbits_lemma = prove(`!D:A->bool p:A->A. (FINITE D /\ p permutes D) ==> FINITE (set_of_orbits D p)`, REPEAT STRIP_TAC THEN SUBGOAL_THEN `IMAGE (\x:A. orbit_map (p:A->A) x) (D:A->bool) = set_of_orbits D p` ASSUME_TAC THENL[REWRITE_TAC[EXTENSION] THEN STRIP_TAC THEN EQ_TAC THENL[REWRITE_TAC[set_of_orbits;IMAGE;IN;IN_ELIM_THM];ALL_TAC] THEN REWRITE_TAC[set_of_orbits;IMAGE;IN;IN_ELIM_THM];ALL_TAC] THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_SIMP_TAC[]);;
+let finite_orbits_lemma = prove(`!D:A->bool p:A->A. (FINITE D /\ p permutes D) ==> FINITE (set_of_orbits D p)`, 
+REPEAT STRIP_TAC THEN SUBGOAL_THEN `IMAGE (\x:A. orbit_map (p:A->A) x) (D:A->bool) = set_of_orbits D p` ASSUME_TAC 
+THENL[REWRITE_TAC[EXTENSION] THEN STRIP_TAC THEN EQ_TAC THENL[REWRITE_TAC[set_of_orbits;IMAGE;IN;IN_ELIM_THM];ALL_TAC] 
+THEN REWRITE_TAC[set_of_orbits;IMAGE;IN;IN_ELIM_THM];ALL_TAC] 
+THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) 
+THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_SIMP_TAC[]);;
 
 
 let lemma_disjoints = prove(`!(s:(A->bool)->bool) (t:A->bool). (!(v:A->bool). v IN s ==> DISJOINT t v) ==> DISJOINT t (UNIONS s)`, SET_TAC[]);;
 
 
-let SET_SIZE_CLAUSES = prove (`(!s. s HAS_SIZE 0 <=> (s = {})) /\(!s (n:num). s HAS_SIZE (SUC n) <=> ?a t. t HAS_SIZE n /\ ~(a IN t) /\ (s = a INSERT t))`,let lemma = SET_RULE `a IN s ==> (s = a INSERT (s DELETE a))` in REWRITE_TAC[HAS_SIZE_0] THEN REPEAT STRIP_TAC THEN EQ_TAC THENL [REWRITE_TAC[HAS_SIZE_SUC; GSYM MEMBER_NOT_EMPTY] THEN MESON_TAC[lemma; IN_DELETE]; SIMP_TAC[LEFT_IMP_EXISTS_THM; HAS_SIZE; CARD_CLAUSES; FINITE_INSERT]]);;
+let SET_SIZE_CLAUSES = prove (`(!s. s HAS_SIZE 0 <=> (s = {})) /\(!s (n:num). s HAS_SIZE (SUC n) <=> ?a t. t HAS_SIZE n /\ ~(a IN t) /\ (s = a INSERT t))`,let lemma = SET_RULE `a IN s ==> (s = a INSERT (s DELETE a))` in REWRITE_TAC[HAS_SIZE_0] THEN REPEAT STRIP_TAC THEN EQ_TAC 
+THENL [REWRITE_TAC[HAS_SIZE_SUC; GSYM MEMBER_NOT_EMPTY] THEN MESON_TAC[lemma; IN_DELETE]; 
+SIMP_TAC[LEFT_IMP_EXISTS_THM; HAS_SIZE; CARD_CLAUSES; FINITE_INSERT]]);;
 
 
 let TYPED_FINITE_UNIONS = prove
@@ -716,7 +728,12 @@ THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[] THEN STRIP_TAC
 THEN ASM_MESON_TAC[ARITH_RULE `a <= b /\ c <= d ==> a + c <= b+d`]);;
 
 
-let lemma_partition = prove( `!s:A->bool p:A->A. FINITE s /\ p permutes s ==> s = UNIONS (set_of_orbits s p)`,REPEAT STRIP_TAC THEN REWRITE_TAC[EXTENSION;IN_UNIONS] THEN  GEN_TAC THEN EQ_TAC THENL[MP_TAC (ISPECL[`p:A->A`;`x:A`] orbit_reflect) THEN REWRITE_TAC[set_of_orbits] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `(orbit_map p x):A->bool` THEN (SET_TAC[]); DISCH_THEN(X_CHOOSE_THEN `t:A->bool` MP_TAC) THEN REWRITE_TAC[IN_ELIM_THM;set_of_orbits] THEN STRIP_TAC THEN FIRST_ASSUM SUBST_ALL_TAC THEN FIRST_ASSUM(MP_TAC o MATCH_MP  orbit_subset) THEN SET_TAC[]]);;
+let lemma_partition = prove( `!s:A->bool p:A->A. FINITE s /\ p permutes s ==> s = UNIONS (set_of_orbits s p)`,
+REPEAT STRIP_TAC THEN REWRITE_TAC[EXTENSION;IN_UNIONS] THEN  GEN_TAC THEN EQ_TAC 
+THENL[MP_TAC (ISPECL[`p:A->A`;`x:A`] orbit_reflect) THEN REWRITE_TAC[set_of_orbits] 
+THEN REPEAT STRIP_TAC THEN EXISTS_TAC `(orbit_map p x):A->bool` THEN (SET_TAC[]); 
+DISCH_THEN(X_CHOOSE_THEN `t:A->bool` MP_TAC) THEN REWRITE_TAC[IN_ELIM_THM;set_of_orbits] 
+THEN STRIP_TAC THEN FIRST_ASSUM SUBST_ALL_TAC THEN FIRST_ASSUM(MP_TAC o MATCH_MP  orbit_subset) THEN SET_TAC[]]);;
 
 
 let lemma_card_eq = prove
@@ -872,20 +889,54 @@ GEN_TAC THEN REWRITE_TAC[connected_hypermap; plain_hypermap; planar_hypermap;num
 (* We set up some lemmas on combinatorial commponents *)
 
 
-let lemma_subpath = prove(`!H:(A)hypermap p:num->A n:num. is_path H p n ==> (!i. i <= n ==> is_path H p i)`,REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC THENL[ SIMP_TAC[is_path; ARITH_RULE `i <= 0 ==> i = 0`]; ALL_TAC] THEN STRIP_TAC THEN GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<=SUC n <=> i = SUC n \/ i <= n`] THEN STRIP_TAC  THENL[ASM_REWRITE_TAC[]; UNDISCH_TAC `is_path (H:(A)hypermap) (p:num->A) (SUC n)` THEN ASM_REWRITE_TAC[is_path] THEN ASM_MESON_TAC[]]);;
+let lemma_subpath = prove(`!H:(A)hypermap p:num->A n:num. is_path H p n ==> (!i. i <= n ==> is_path H p i)`,
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC THENL[ SIMP_TAC[is_path; ARITH_RULE `i <= 0 ==> i = 0`]; ALL_TAC] 
+THEN STRIP_TAC THEN GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<=SUC n <=> i = SUC n \/ i <= n`] THEN STRIP_TAC  
+THENL[ASM_REWRITE_TAC[]; UNDISCH_TAC `is_path (H:(A)hypermap) (p:num->A) (SUC n)` THEN ASM_REWRITE_TAC[is_path] THEN ASM_MESON_TAC[]]);;
 
-let lemm_path_subset = prove(`!H:(A)hypermap x:A p:num->A n:num. (x IN dart H) /\ (p 0 = x) /\ (is_path H p n) ==> p n IN dart H`, REPLICATE_TAC 3 GEN_TAC THEN INDUCT_TAC THENL[SIMP_TAC[is_path;go_one_step];ALL_TAC] THEN POP_ASSUM(LABEL_TAC "F1") THEN STRIP_TAC THEN POP_ASSUM(fun th -> (MP_TAC(MATCH_MP lemma_subpath th) THEN LABEL_TAC "F2" th)) THEN REWRITE_TAC[LEFT_AND_FORALL_THM] THEN DISCH_THEN(MP_TAC o SPEC `n:num`) THEN REWRITE_TAC[ARITH_RULE `n <= SUC n`] THEN  STRIP_TAC THEN REMOVE_THEN "F1" MP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN REMOVE_THEN "F2" MP_TAC THEN ASM_REWRITE_TAC[is_path;go_one_step] THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) THEN ASM_REWRITE_TAC[] THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) THEN ABBREV_TAC `D = dart (H:(A)hypermap)` THEN ABBREV_TAC `e = edge_map (H:(A)hypermap)` THEN ABBREV_TAC `nn = node_map (H:(A)hypermap)` THEN ABBREV_TAC `f = face_map (H:(A)hypermap)` THEN ABBREV_TAC `u = (p:num->A) (SUC n)` THEN ABBREV_TAC `v = (p:num->A) n` THEN MP_TAC(ISPECL[`e:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL[`nn:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL[`f:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) THEN ASM_REWRITE_TAC[] THEN MESON_TAC[]);;
+let lemm_path_subset = prove(`!H:(A)hypermap x:A p:num->A n:num. (x IN dart H) /\ (p 0 = x) /\ (is_path H p n) ==> p n IN dart H`, 
+REPLICATE_TAC 3 GEN_TAC THEN INDUCT_TAC THENL[SIMP_TAC[is_path;go_one_step];ALL_TAC] THEN POP_ASSUM(LABEL_TAC "F1") 
+THEN STRIP_TAC THEN POP_ASSUM(fun th -> (MP_TAC(MATCH_MP lemma_subpath th) THEN LABEL_TAC "F2" th)) 
+THEN REWRITE_TAC[LEFT_AND_FORALL_THM] THEN DISCH_THEN(MP_TAC o SPEC `n:num`) 
+THEN REWRITE_TAC[ARITH_RULE `n <= SUC n`] THEN  STRIP_TAC 
+THEN REMOVE_THEN "F1" MP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN REMOVE_THEN "F2" MP_TAC THEN ASM_REWRITE_TAC[is_path;go_one_step] 
+THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) THEN ASM_REWRITE_TAC[] 
+THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) 
+THEN ABBREV_TAC `D = dart (H:(A)hypermap)` 
+THEN ABBREV_TAC `e = edge_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `nn = node_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `f = face_map (H:(A)hypermap)`
+THEN ABBREV_TAC `u = (p:num->A) (SUC n)` 
+THEN ABBREV_TAC `v = (p:num->A) n` 
+THEN MP_TAC(ISPECL[`e:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) 
+THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL[`nn:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) 
+THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL[`f:A->A`; `D:A->bool`; `v:A`] PERMUTES_IN_IMAGE) 
+THEN ASM_REWRITE_TAC[] THEN MESON_TAC[]);;
 
 
-let lemma_component_subset = prove(`!H:(A)hypermap x:A. x IN dart H ==> combinatorial_component H x SUBSET dart H`, REPEAT STRIP_TAC THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) THEN REWRITE_TAC[SUBSET;IN_ELIM_THM;combinatorial_component] THEN GEN_TAC THEN REWRITE_TAC[is_in_component] THEN ASM_MESON_TAC[lemm_path_subset]);;
 
-let lemma_component_reflect = prove(`!H:(A)hypermap x:A. x IN dart H ==> x IN combinatorial_component H x`, REPEAT STRIP_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component;is_in_component] THEN EXISTS_TAC `(\k:num. x:A)` THEN EXISTS_TAC `0` THEN MESON_TAC[is_path]);;
+
+let lemma_component_subset = prove(`!H:(A)hypermap x:A. x IN dart H ==> combinatorial_component H x SUBSET dart H`, 
+REPEAT STRIP_TAC THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) 
+THEN REWRITE_TAC[SUBSET;IN_ELIM_THM;combinatorial_component] 
+THEN GEN_TAC THEN REWRITE_TAC[is_in_component] THEN ASM_MESON_TAC[lemm_path_subset]);;
+
+let lemma_component_reflect = prove(`!H:(A)hypermap x:A. x IN dart H ==> x IN combinatorial_component H x`, 
+REPEAT STRIP_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component;is_in_component] 
+THEN EXISTS_TAC `(\k:num. x:A)` THEN EXISTS_TAC `0` THEN MESON_TAC[is_path]);;
 
 
 (* The definition of path is exactly here *)
 
 
-let lemma_def_path = prove(`!H:(A)hypermap p:num->A n:num.(is_path H p n <=> (!i:num. i < n ==> go_one_step H (p i) (p (SUC i))))`, REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC THENL[REWRITE_TAC[is_path] THEN ARITH_TAC; ALL_TAC] THEN ASM_REWRITE_TAC[is_path] THEN EQ_TAC THENL[STRIP_TAC THEN  GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN ASM_MESON_TAC[]; ALL_TAC] THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN STRIP_TAC THEN     ASM_MESON_TAC[ARITH_RULE `n < SUC n /\ i < SUC n <=> (i = n \/ i < n)`]);;
+let lemma_def_path = prove(`!H:(A)hypermap p:num->A n:num.(is_path H p n <=> (!i:num. i < n ==> go_one_step H (p i) (p (SUC i))))`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[REWRITE_TAC[is_path] THEN ARITH_TAC; ALL_TAC] 
+THEN ASM_REWRITE_TAC[is_path] THEN EQ_TAC THENL[STRIP_TAC THEN  GEN_TAC 
+THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN ASM_MESON_TAC[]; ALL_TAC] 
+THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN STRIP_TAC 
+THEN ASM_MESON_TAC[ARITH_RULE `n < SUC n /\ i < SUC n <=> (i = n \/ i < n)`]);;
 
 
 
@@ -893,288 +944,136 @@ let lemma_def_path = prove(`!H:(A)hypermap p:num->A n:num.(is_path H p n <=> (!i
 
 
 let lemma_edges_path = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (edge_map H) k) x) /\ is_path H p k)`,
-REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (edge_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_path] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] THEN DISJ1_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
+REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (edge_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC 
+THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] 
+THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] 
+THEN REWRITE_TAC[lemma_def_path] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] 
+THEN DISJ1_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
 
 let lemma_nodes_path = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (node_map H) k) x) /\ is_path H p k)`,
-REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (node_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_path] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] THEN DISJ2_TAC THEN DISJ1_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
+REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (node_map (H:(A)hypermap)) m) (x:A))` 
+THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] 
+THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_path] 
+THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] 
+THEN DISJ2_TAC THEN DISJ1_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
 
 let lemma_faces_path = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (face_map H) k) x) /\ is_path H p k)`,
-REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (face_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_path] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] THEN DISJ2_TAC THEN DISJ2_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
-
-
-
-
-g `!H:(A)hypermap p:num->A q:num->A n:num m:num. is_path H p n /\ is_path H q m /\(p n = q 0) ==> ?g:num->A. g 0 = p 0 /\ g (n+m) = q m /\ is_path H g (n+m)`;;
-
-e (REPLICATE_TAC 4 GEN_TAC);;
-
-e INDUCT_TAC;;
-
-(* R1 *)
-
-e (REPEAT STRIP_TAC);;
-
-e (EXISTS_TAC `p:num->A`);; 
-
-e (ASM_REWRITE_TAC[ADD_0]);;
-
-(* THE INDUCTIVE STEP *)
-
-e (POP_ASSUM (LABEL_TAC "F1"));;
-
-
-e (DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))));;
-
-
-e (USE_THEN "F3" (MP_TAC o SPEC `m:num` o MATCH_MP lemma_subpath));;
-
-
-e (SIMP_TAC [ARITH_RULE `m <= SUC m`]);; 
-
-e (DISCH_THEN (LABEL_TAC "F5"));;
-
-e (REMOVE_THEN "F1" MP_TAC);;
-
-e (ASM_REWRITE_TAC[]);; 
-
-
-e (DISCH_THEN(X_CHOOSE_THEN `h:num->A` (LABEL_TAC "F6")));;
-
-e (EXISTS_TAC `(\k:num. if k = (n:num) + (SUC (m:num)) then (q:num->A) (SUC m) else (h:num->A) k)`);;
-
-
-(* 1 of 3 *)
-
-e (REPEAT STRIP_TAC);;
-
-e (REWRITE_TAC[]);;
-
-e (COND_CASES_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (ARITH_TAC);;
-
-(* *)
-
-e (ASM_REWRITE_TAC []);;
-
-
-(* *)
-
-e (REWRITE_TAC[]);;
-
-(* ONLY 1 *)
-
-e (REWRITE_TAC[ADD_SUC]);;
-
-
-e (REWRITE_TAC[SPECL[`H:(A)hypermap`;`(\k:num. if k = SUC (n+m) then (q:num->A) (SUC m) else (h:num->A) k):num->A`;`SUC ((n+m):num)`] lemma_def_path]);;
-
-e (REPEAT STRIP_TAC);;
-
-e (COND_CASES_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (ARITH_TAC);;
-
-
-e (CONV_TAC CONDS_ELIM_CONV);;
-
-e (DISJ_CASES_TAC (ARITH_RULE `(SUC i = SUC (n+m)) \/ ~(SUC i = SUC (n+m))`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC(ISPECL[`i:num`;`(n+m):num`] EQ_SUC));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (DISCH_THEN SUBST_ALL_TAC);;
-
-e (REMOVE_THEN "F6" (fun th -> SUBST_ALL_TAC (CONJUNCT1 (CONJUNCT2 th))));;
-
-e (REMOVE_THEN "F3" (fun th -> MESON_TAC[is_path;th]));;
-
-
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC (SPECL[`i:num`;`(n+m):num`] LT_SUC_LE));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC(ARITH_RULE `~(SUC i = SUC (n+m)) ==> ~(i = n+m)`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (REPEAT STRIP_TAC);;
-
-e (MP_TAC(ARITH_RULE `((i:num) <= n+m) /\ ~(i = n+m) ==> i < n+m `));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-e (MP_TAC(ARITH_RULE `i< n+m ==> SUC i <= n+m`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (REMOVE_THEN "F6" (fun th -> MP_TAC(SPEC `SUC i:num` (MATCH_MP lemma_subpath  (CONJUNCT2(CONJUNCT2 th))))));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MESON_TAC[is_path]);;
-
-let concatenate_paths =top_thm();;
-
-
-let lemma_component_trans = prove(`!H:(A)hypermap x:A y:A z:A. y IN combinatorial_component H x /\ z IN combinatorial_component H y ==> z IN combinatorial_component H x`, REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] THEN REPEAT STRIP_TAC THEN MP_TAC(ISPECL[`H:(A)hypermap`; `p:num->A`;`p':num->A`;`n:num`;`n':num`] concatenate_paths) THEN ASM_REWRITE_TAC[] THEN MESON_TAC[]);;
-
-
-
-
-g `!H:(A)hypermap p:num->A n:num. is_path H p n ==> ?q:num->A m:num. q 0 = p n /\ q m = p 0 /\ is_path H q m`;;
-
-
-e (REPLICATE_TAC 2 GEN_TAC);;
-
-e INDUCT_TAC;;
-
-
-e STRIP_TAC;;
-
-e (EXISTS_TAC `p:num->A`);;
-
-e (EXISTS_TAC `0`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-
-e (DISCH_THEN (fun th-> (ASSUME_TAC th THEN MP_TAC(SPEC `n:num` (MATCH_MP lemma_subpath th)))));;
-
-e (ASM_REWRITE_TAC[ARITH_RULE `n <= SUC n`]);;
-
-e STRIP_TAC;;
-
-e (STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma));;
-
-e (ABBREV_TAC `D = dart (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `em = edge_map (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `nm = node_map (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `fm = face_map (H:(A)hypermap)`);;
-
-
-e (FIRST_X_ASSUM(MP_TAC o check(is_imp o concl)));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-
-e (UNDISCH_TAC `is_path (H:(A)hypermap) (p:num->A) (SUC n)`);;
-
-e (ASM_REWRITE_TAC[is_path; go_one_step]);;
-
-e STRIP_TAC;;
-
-
-(* for edge case *)
-
-e (MP_TAC (ISPECL[`D:A->bool`; `em:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]));;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_edges_path));;
-
-e (REPEAT STRIP_TAC);;
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `((k:num)+(m:num)):num`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-(* the node case *)
-
-e (MP_TAC (ISPECL[`D:A->bool`; `nm:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]));;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_nodes_path));;
-
-e (REPEAT STRIP_TAC);;
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `((k:num)+(m:num)):num`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-(* for face case *)
-
-
-e (MP_TAC (ISPECL[`D:A->bool`; `fm:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]));;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_faces_path));;
-
-e (REPEAT STRIP_TAC);;
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `((k:num)+(m:num)):num`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-let lemma_reverse_path = top_thm();;
-
-
-
-let lemma_component_symmetry = prove(`!H:(A)hypermap x:A y:A. y IN combinatorial_component H x ==> x IN combinatorial_component H y`,REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] THEN REPEAT STRIP_TAC THEN POP_ASSUM (MP_TAC o MATCH_MP lemma_reverse_path) THEN ASM_REWRITE_TAC[]);;
-
-
-let partition_components = prove(`!(H:(A)hypermap) x:A y:A. combinatorial_component H x = combinatorial_component H y \/ combinatorial_component H x INTER combinatorial_component H y ={}`, REPEAT GEN_TAC THEN ASM_CASES_TAC `combinatorial_component (H:(A)hypermap) (x:A) INTER combinatorial_component H (y:A) ={}` THEN ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN DISCH_THEN (X_CHOOSE_THEN `t:A` MP_TAC) THEN REWRITE_TAC[INTER; IN_ELIM_THM] THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2")) THEN REWRITE_TAC[EXTENSION] THEN GEN_TAC THEN  EQ_TAC THENL[USE_THEN "F1" (LABEL_TAC "F3"  o MATCH_MP lemma_component_symmetry) THEN DISCH_THEN (LABEL_TAC "F4") THEN REMOVE_THEN "F4"(fun th1 -> REMOVE_THEN "F3" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1)))) THEN DISCH_THEN(fun th1 -> (REMOVE_THEN "F2" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1))))) THEN REWRITE_TAC[];ALL_TAC] THEN USE_THEN "F2" (LABEL_TAC "F5"  o MATCH_MP lemma_component_symmetry) THEN DISCH_THEN (LABEL_TAC "F6") THEN REMOVE_THEN "F6"(fun th1 -> REMOVE_THEN "F5" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1)))) THEN DISCH_THEN(fun th1 -> (REMOVE_THEN "F1" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1))))) THEN REWRITE_TAC[]);;
-
-
-(* We define the component *)
+REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (face_map (H:(A)hypermap)) m) (x:A))`
+THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] 
+THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN 
+REWRITE_TAC[lemma_def_path] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[go_one_step] 
+THEN DISJ2_TAC THEN DISJ2_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
+
+
+
+let identify_path = prove(`!(H:(A)hypermap) p:num->A q:num->A n:num. is_path H p n /\ (!i:num. i<= n ==> p i = q i) ==> is_path H q n`,
+REPLICATE_TAC 3 GEN_TAC THEN INDUCT_TAC THENL[STRIP_TAC THEN REWRITE_TAC[is_path]; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "F1") THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) 
+THEN REMOVE_THEN "F2" MP_TAC THEN GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [is_path] 
+THEN STRIP_TAC THEN REMOVE_THEN "F1" MP_TAC THEN ASM_REWRITE_TAC[] 
+THEN SUBGOAL_THEN `!i:num. i <= (n:num) ==> (p:num->A) i = (q:num->A) i` ASSUME_TAC 
+THENL[REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= n:num ==> i <= SUC n`) THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[is_path] 
+THEN SUBGOAL_THEN `(p:num->A) (n:num) = (q:num->A) (n:num)` ASSUME_TAC THENL[ASM_MESON_TAC[ARITH_RULE `n <= SUC n`];ALL_TAC]
+THEN SUBGOAL_THEN `(p:num->A) (SUC(n:num)) = (q:num->A) (SUC(n:num))` ASSUME_TAC 
+THENL[ASM_MESON_TAC[ARITH_RULE `SUC n <= SUC n`];ALL_TAC] 
+THEN UNDISCH_THEN `go_one_step (H:(A)hypermap) ((p:num->A) (n:num)) ((p:num->A) (SUC n:num))` MP_TAC 
+THEN ASM_REWRITE_TAC[]);;
+
+
+let concatenate_paths = prove( `!H:(A)hypermap p:num->A q:num->A n:num m:num. is_path H p n /\ is_path H q m /\ (p n = q 0) ==> ?g:num->A. g 0 = p 0 /\ g (n+m) = q m /\ is_path H g (n+m)`, 
+REPLICATE_TAC 4 GEN_TAC THEN INDUCT_TAC 
+THENL[REPEAT STRIP_TAC THEN EXISTS_TAC `p:num->A` THEN ASM_REWRITE_TAC[ADD_0]; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "F1") 
+THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))) 
+THEN USE_THEN "F3" (MP_TAC o SPEC `m:num` o MATCH_MP lemma_subpath) 
+THEN SIMP_TAC [ARITH_RULE `m <= SUC m`] 
+THEN DISCH_THEN (LABEL_TAC "F5") THEN REMOVE_THEN "F1" MP_TAC 
+THEN ASM_REWRITE_TAC[] THEN DISCH_THEN(X_CHOOSE_THEN `h:num->A` (LABEL_TAC "F6")) 
+THEN EXISTS_TAC `(\k:num. if k = (n:num) + (SUC (m:num)) then (q:num->A) (SUC m) else (h:num->A) k)` 
+THEN REPEAT STRIP_TAC 
+THENL[REWRITE_TAC[ARITH_RULE `~(n+SUC m = 0)`] THEN ASM_REWRITE_TAC[]; REWRITE_TAC []; ALL_TAC] 
+THEN REWRITE_TAC [ADD_SUC]
+THEN ABBREV_TAC `t = (\k:num. if k = SUC ((n:num)+(m:num)) then (q:num->A) (SUC m) else (h:num->A) k)` 
+THEN SUBGOAL_THEN `!i:num. i <= (n:num) + (m:num) ==> (h:num->A) i = (t:num->A) i` (LABEL_TAC "FA") 
+THENL [REPEAT  STRIP_TAC THEN MP_TAC(ARITH_RULE `(i:num) <= (n:num)+(m:num) ==> ~(i = SUC (n+m))`) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXPAND_TAC "t" 
+THEN POP_ASSUM (fun th -> REWRITE_TAC[th; COND_ELIM_THM]);ALL_TAC] 
+THEN SUBGOAL_THEN `(t:num->A) (SUC((n:num) + (m:num))) = (q:num->A) (SUC m)` ASSUME_TAC 
+THENL[EXPAND_TAC "t" THEN REWRITE_TAC[COND_ELIM_THM]; ALL_TAC] 
+THEN REWRITE_TAC[] 
+THEN MP_TAC(SPECL[`H:(A)hypermap`; `h:num->A`;`t:num->A`;`(n:num)+(m:num)` ] identify_path) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN REWRITE_TAC[is_path] THEN ASM_REWRITE_TAC[] 
+THEN REMOVE_THEN "FA" (MP_TAC o SPEC `(n:num) + (m:num)`) 
+THEN REWRITE_TAC[ARITH_RULE `(n:num) + (m:num) <= n + m`] 
+THEN DISCH_THEN (SUBST1_TAC o SYM) THEN ASM_REWRITE_TAC[] 
+THEN REMOVE_THEN "F3" (fun th -> MESON_TAC[th; is_path]));;
+
+
+let lemma_component_trans = prove(`!H:(A)hypermap x:A y:A z:A. y IN combinatorial_component H x /\ z IN combinatorial_component H y ==> z IN combinatorial_component H x`, 
+REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] 
+THEN REPEAT STRIP_TAC 
+THEN MP_TAC(ISPECL[`H:(A)hypermap`; `p:num->A`;`p':num->A`;`n:num`;`n':num`] concatenate_paths) 
+THEN ASM_REWRITE_TAC[] THEN MESON_TAC[]);;
+
+
+let lemma_reverse_path = prove(`!H:(A)hypermap p:num->A n:num. is_path H p n ==> ?q:num->A m:num. q 0 = p n /\ q m = p 0 /\ is_path H q m`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC
+THENL[STRIP_TAC THEN EXISTS_TAC `p:num->A` THEN EXISTS_TAC `0` 
+THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN DISCH_THEN (fun th-> (ASSUME_TAC th THEN MP_TAC(SPEC `n:num` (MATCH_MP lemma_subpath th)))) 
+THEN ASM_REWRITE_TAC[ARITH_RULE `n <= SUC n`] 
+THEN STRIP_TAC THEN STRIP_ASSUME_TAC(SPEC `H:(A)hypermap` hypermap_lemma) 
+THEN ABBREV_TAC `D = dart (H:(A)hypermap)` THEN ABBREV_TAC `em = edge_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `nm = node_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `fm = face_map (H:(A)hypermap)` 
+THEN FIRST_X_ASSUM(MP_TAC o check(is_imp o concl)) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN UNDISCH_TAC `is_path (H:(A)hypermap) (p:num->A) (SUC n)` 
+THEN ASM_REWRITE_TAC[is_path; go_one_step] THEN STRIP_TAC 
+THENL[MP_TAC (ISPECL[`D:A->bool`; `em:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation) 
+THEN ASM_REWRITE_TAC[] THEN 
+POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]) 
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_edges_path)
+THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `g:num->A` THEN EXISTS_TAC `((k:num)+(m:num)):num` 
+THEN ASM_REWRITE_TAC[]; 
+MP_TAC (ISPECL[`D:A->bool`; `nm:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation) 
+THEN ASM_REWRITE_TAC[] THEN POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]) 
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_nodes_path) 
+THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN EXISTS_TAC `g:num->A` THEN EXISTS_TAC `((k:num)+(m:num)):num` THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN MP_TAC (ISPECL[`D:A->bool`; `fm:A->A`; `((p:num->A) (n:num)):A`; `((p:num->A) (SUC (n:num))):A`] inverse_relation) 
+THEN ASM_REWRITE_TAC[] 
+THEN POP_ASSUM(fun th -> ASM_REWRITE_TAC[SYM th]) THEN MP_TAC(SPECL[`H:(A)hypermap`;`(p:num->A) (SUC n)`] lemma_faces_path) 
+THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL[`H:(A)hypermap`;`p':num->A`;`q:num->A`;`k:num`;`m:num`] concatenate_paths) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `g:num->A` 
+THEN EXISTS_TAC `((k:num)+(m:num)):num` THEN ASM_REWRITE_TAC[]);;
+
+
+let lemma_component_symmetry = prove(`!H:(A)hypermap x:A y:A. y IN combinatorial_component H x ==> x IN combinatorial_component H y`,
+REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] 
+THEN REPEAT STRIP_TAC THEN POP_ASSUM (MP_TAC o MATCH_MP lemma_reverse_path) 
+THEN ASM_REWRITE_TAC[]);;
+
+
+let partition_components = prove(`!(H:(A)hypermap) x:A y:A. combinatorial_component H x = combinatorial_component H y \/ combinatorial_component H x INTER combinatorial_component H y ={}`, 
+REPEAT GEN_TAC THEN ASM_CASES_TAC `combinatorial_component (H:(A)hypermap) (x:A) INTER combinatorial_component H (y:A) ={}` 
+THEN ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] 
+THEN DISCH_THEN (X_CHOOSE_THEN `t:A` MP_TAC) THEN REWRITE_TAC[INTER; IN_ELIM_THM] 
+THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2")) THEN REWRITE_TAC[EXTENSION] 
+THEN GEN_TAC THEN  EQ_TAC THENL[USE_THEN "F1" (LABEL_TAC "F3"  o MATCH_MP lemma_component_symmetry) 
+THEN DISCH_THEN (LABEL_TAC "F4") 
+THEN REMOVE_THEN "F4"(fun th1 -> REMOVE_THEN "F3" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1)))) 
+THEN DISCH_THEN(fun th1 -> (REMOVE_THEN "F2" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1))))) THEN REWRITE_TAC[];ALL_TAC] 
+THEN USE_THEN "F2" (LABEL_TAC "F5"  o MATCH_MP lemma_component_symmetry) 
+THEN DISCH_THEN (LABEL_TAC "F6") 
+THEN REMOVE_THEN "F6"(fun th1 -> REMOVE_THEN "F5" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1)))) 
+THEN DISCH_THEN(fun th1 -> (REMOVE_THEN "F1" (fun th2 -> MP_TAC (MATCH_MP lemma_component_trans (CONJ th2 th1))))) 
+THEN REWRITE_TAC[]);;
+
+
+(* We define the CONTOUR PATHS *)
 
 
 let one_step_contour = new_definition `one_step_contour (H:(A)hypermap) (x:A) (y:A) <=> (y = (face_map H) x) \/ (y = (inverse (node_map H)) x)`;;
@@ -1182,337 +1081,262 @@ let one_step_contour = new_definition `one_step_contour (H:(A)hypermap) (x:A) (y
 let is_contour= new_recursive_definition num_RECURSION  `(is_contour (H:(A)hypermap) (p:num->A) 0 <=> T)/\
 (is_contour (H:(A)hypermap) (p:num->A) (SUC n) <=> ((is_contour H p n) /\ one_step_contour H (p n) (p (SUC n))))`;; 
 
-let lemma_subcontour = prove(`!H:(A)hypermap p:num->A n:num. is_contour H p n ==> (!i. i <= n ==> is_contour H p i)`,REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC THENL[ SIMP_TAC[is_contour; ARITH_RULE `i <= 0 ==> i = 0`]; ALL_TAC] THEN STRIP_TAC THEN GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<=SUC n <=> i = SUC n \/ i <= n`] THEN STRIP_TAC  THENL[ASM_REWRITE_TAC[]; UNDISCH_TAC `is_contour (H:(A)hypermap) (p:num->A) (SUC n)` THEN ASM_REWRITE_TAC[is_contour] THEN ASM_MESON_TAC[]]);;
-
-let lemma_def_contour = prove(`!H:(A)hypermap p:num->A n:num.(is_contour H p n <=> (!i:num. i < n ==> one_step_contour H (p i) (p (SUC i))))`, REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC THENL[REWRITE_TAC[is_contour] THEN ARITH_TAC; ALL_TAC] THEN ASM_REWRITE_TAC[is_contour] THEN EQ_TAC THENL[STRIP_TAC THEN  GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN ASM_MESON_TAC[]; ALL_TAC] THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN STRIP_TAC THEN     ASM_MESON_TAC[ARITH_RULE `n < SUC n /\ i < SUC n <=> (i = n \/ i < n)`]);;
-
-
-
-g `!H:(A)hypermap p:num->A q:num->A n:num m:num. is_contour H p n /\ is_contour H q m /\(p n = q 0) ==> ?g:num->A. g 0 = p 0 /\ g (n+m) = q m /\ is_contour H g (n+m)`;;
-
-e (REPLICATE_TAC 4 GEN_TAC);;
-
-e INDUCT_TAC;;
-
-(* R1 *)
-
-e (REPEAT STRIP_TAC);;
-
-e (EXISTS_TAC `p:num->A`);; 
-
-e (ASM_REWRITE_TAC[ADD_0]);;
-
-(* THE INDUCTIVE STEP *)
-
-e (POP_ASSUM (LABEL_TAC "F1"));;
-
-
-e (DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))));;
-
-
-e (USE_THEN "F3" (MP_TAC o SPEC `m:num` o MATCH_MP lemma_subcontour));;
-
-
-e (SIMP_TAC [ARITH_RULE `m <= SUC m`]);; 
-
-e (DISCH_THEN (LABEL_TAC "F5"));;
-
-e (REMOVE_THEN "F1" MP_TAC);;
-
-e (ASM_REWRITE_TAC[]);; 
-
-
-e (DISCH_THEN(X_CHOOSE_THEN `h:num->A` (LABEL_TAC "F6")));;
-
-e (EXISTS_TAC `(\k:num. if k = (n:num) + (SUC (m:num)) then (q:num->A) (SUC m) else (h:num->A) k)`);;
-
-
-(* 1 of 3 *)
-
-e (REPEAT STRIP_TAC);;
-
-e (REWRITE_TAC[]);;
-
-e (COND_CASES_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (ARITH_TAC);;
-
-(* *)
-
-e (ASM_REWRITE_TAC []);;
-
-
-(* *)
-
-e (REWRITE_TAC[]);;
-
-(* ONLY 1 *)
-
-e (REWRITE_TAC[ADD_SUC]);;
-
-
-e (REWRITE_TAC[SPECL[`H:(A)hypermap`;`(\k:num. if k = SUC (n+m) then (q:num->A) (SUC m) else (h:num->A) k):num->A`;`SUC ((n+m):num)`] lemma_def_contour]);;
-
-e (REPEAT STRIP_TAC);;
-
-e (COND_CASES_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (POP_ASSUM MP_TAC);;
-
-e (ARITH_TAC);;
-
-
-e (CONV_TAC CONDS_ELIM_CONV);;
-
-e (DISJ_CASES_TAC (ARITH_RULE `(SUC i = SUC (n+m)) \/ ~(SUC i = SUC (n+m))`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC(ISPECL[`i:num`;`(n+m):num`] EQ_SUC));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (DISCH_THEN SUBST_ALL_TAC);;
-
-e (REMOVE_THEN "F6" (fun th -> SUBST_ALL_TAC (CONJUNCT1 (CONJUNCT2 th))));;
-
-e (REMOVE_THEN "F3" (fun th -> MESON_TAC[is_contour;th]));;
-
-
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC (SPECL[`i:num`;`(n+m):num`] LT_SUC_LE));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MP_TAC(ARITH_RULE `~(SUC i = SUC (n+m)) ==> ~(i = n+m)`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (REPEAT STRIP_TAC);;
-
-e (MP_TAC(ARITH_RULE `((i:num) <= n+m) /\ ~(i = n+m) ==> i < n+m `));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-e (MP_TAC(ARITH_RULE `i< n+m ==> SUC i <= n+m`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (REMOVE_THEN "F6" (fun th -> MP_TAC(SPEC `SUC i:num` (MATCH_MP lemma_subcontour  (CONJUNCT2(CONJUNCT2 th))))));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (MESON_TAC[is_contour]);;
-
-let concatenate_contours = top_thm();;
-
-
-
-let lemma_nodes_contour = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (inverse(node_map H)) k) x) /\ is_contour H p k)`,
-REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (inverse (node_map (H:(A)hypermap))) m) (x:A))` THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_contour] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[one_step_contour] THEN DISJ2_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
+let lemma_subcontour = prove(`!H:(A)hypermap p:num->A n:num. is_contour H p n ==> (!i. i <= n ==> is_contour H p i)`,
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[ SIMP_TAC[is_contour; ARITH_RULE `i <= 0 ==> i = 0`]; ALL_TAC] 
+THEN STRIP_TAC THEN GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<=SUC n <=> i = SUC n \/ i <= n`] 
+THEN STRIP_TAC 
+THENL[ASM_REWRITE_TAC[]; 
+UNDISCH_TAC `is_contour (H:(A)hypermap) (p:num->A) (SUC n)` THEN ASM_REWRITE_TAC[is_contour] THEN ASM_MESON_TAC[]]);;
+
+let lemma_def_contour = prove(`!H:(A)hypermap p:num->A n:num.(is_contour H p n <=> (!i:num. i < n ==> one_step_contour H (p i) (p (SUC i))))`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[REWRITE_TAC[is_contour] THEN ARITH_TAC; ALL_TAC] 
+THEN ASM_REWRITE_TAC[is_contour] THEN EQ_TAC 
+THENL[STRIP_TAC THEN  GEN_TAC THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] THEN ASM_MESON_TAC[]; ALL_TAC] 
+THEN REWRITE_TAC[ARITH_RULE `i<SUC n <=> i = n \/ i < n`] 
+THEN STRIP_TAC 
+THEN ASM_MESON_TAC[ARITH_RULE `n < SUC n /\ i < SUC n <=> (i = n \/ i < n)`]);;
+
+
+let identify_contour = prove(`!(H:(A)hypermap) p:num->A q:num->A n:num. is_contour H p n /\ (!i:num. i<= n ==> p i = q i) ==> is_contour H q n`,
+REPLICATE_TAC 3 GEN_TAC THEN INDUCT_TAC 
+THENL[STRIP_TAC THEN REWRITE_TAC[is_contour]; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "F1") 
+THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) 
+THEN REMOVE_THEN "F2" MP_TAC THEN GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [is_contour] 
+THEN STRIP_TAC THEN REMOVE_THEN "F1" MP_TAC THEN ASM_REWRITE_TAC[] 
+THEN SUBGOAL_THEN `!i:num. i <= (n:num) ==> (p:num->A) i = (q:num->A) i` ASSUME_TAC 
+THENL[REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= n:num ==> i <= SUC n`) THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[is_contour] 
+THEN SUBGOAL_THEN `(p:num->A) (n:num) = (q:num->A) (n:num)` ASSUME_TAC 
+THENL[ASM_MESON_TAC[ARITH_RULE `n <= SUC n`];ALL_TAC] 
+THEN SUBGOAL_THEN `(p:num->A) (SUC(n:num)) = (q:num->A) (SUC(n:num))` ASSUME_TAC 
+THENL[ASM_MESON_TAC[ARITH_RULE `SUC n <= SUC n`];ALL_TAC] 
+THEN UNDISCH_THEN `one_step_contour (H:(A)hypermap) ((p:num->A) (n:num)) ((p:num->A) (SUC n:num))` MP_TAC 
+THEN ASM_REWRITE_TAC[]);;
+
+
+let concatenate_contours = prove( `!H:(A)hypermap p:num->A q:num->A n:num m:num. is_contour H p n /\ is_contour H q m /\ (p n = q 0) ==> ?g:num->A. g 0 = p 0 /\ g (n+m) = q m /\ is_contour H g (n+m)`, 
+REPLICATE_TAC 4 GEN_TAC THEN INDUCT_TAC 
+THENL[REPEAT STRIP_TAC THEN EXISTS_TAC `p:num->A` THEN ASM_REWRITE_TAC[ADD_0]; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "F1") 
+THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))) 
+THEN USE_THEN "F3" (MP_TAC o SPEC `m:num` o MATCH_MP lemma_subcontour) THEN SIMP_TAC [ARITH_RULE `m <= SUC m`] 
+THEN DISCH_THEN (LABEL_TAC "F5") THEN REMOVE_THEN "F1" MP_TAC 
+THEN ASM_REWRITE_TAC[] 
+THEN DISCH_THEN(X_CHOOSE_THEN `h:num->A` (LABEL_TAC "F6")) 
+THEN EXISTS_TAC `(\k:num. if k = (n:num) + (SUC (m:num)) then (q:num->A) (SUC m) else (h:num->A) k)` 
+THEN REPEAT STRIP_TAC 
+THENL[REWRITE_TAC[ARITH_RULE `~(n+SUC m = 0)`] THEN ASM_REWRITE_TAC[]; REWRITE_TAC []; ALL_TAC] 
+THEN REWRITE_TAC [ADD_SUC] 
+THEN ABBREV_TAC `t = (\k:num. if k = SUC ((n:num)+(m:num)) then (q:num->A) (SUC m) else (h:num->A) k)` 
+THEN SUBGOAL_THEN `!i:num. i <= (n:num) + (m:num) ==> (h:num->A) i = (t:num->A) i` (LABEL_TAC "FA") 
+ THENL[ REPEAT  STRIP_TAC THEN MP_TAC(ARITH_RULE `(i:num) <= (n:num)+(m:num) ==> ~(i = SUC (n+m))`) 
+ THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXPAND_TAC "t" 
+ THEN POP_ASSUM (fun th -> REWRITE_TAC[th; COND_ELIM_THM]); ALL_TAC]
+THEN SUBGOAL_THEN `(t:num->A) (SUC((n:num) + (m:num))) = (q:num->A) (SUC m)` ASSUME_TAC 
+THENL[ EXPAND_TAC "t" THEN REWRITE_TAC[COND_ELIM_THM]; ALL_TAC] THEN REWRITE_TAC[] 
+THEN MP_TAC(SPECL[`H:(A)hypermap`; `h:num->A`;`t:num->A`;`(n:num)+(m:num)` ] identify_contour) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN REWRITE_TAC[is_contour] THEN ASM_REWRITE_TAC[] 
+THEN REMOVE_THEN "FA" (MP_TAC o SPEC `(n:num) + (m:num)`) 
+THEN REWRITE_TAC[ARITH_RULE `(n:num) + (m:num) <= n + m`] THEN 
+DISCH_THEN (SUBST1_TAC o SYM) THEN ASM_REWRITE_TAC[] 
+THEN REMOVE_THEN "F3" (fun th -> MESON_TAC[th; is_contour]));;
+
+
+let lemma_nodes_contour = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (inverse(node_map H)) k) x) /\ is_contour H p k)`, 
+REPEAT GEN_TAC 
+THEN EXISTS_TAC `(\m:num. (iterate_map (inverse (node_map (H:(A)hypermap))) m) (x:A))` 
+THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] 
+THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] 
+THEN REWRITE_TAC[lemma_def_contour] THEN REPEAT STRIP_TAC 
+THEN REWRITE_TAC[one_step_contour] THEN DISJ2_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
 
 
 let lemma_faces_contour = prove(`!(H:(A)hypermap) x:A. ?p:num->A. p 0 = x /\ (!k:num. (p k = (iterate_map (face_map H) k) x) /\ is_contour H p k)`,
-REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (face_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] THEN REWRITE_TAC[lemma_def_contour] THEN REPEAT STRIP_TAC THEN REWRITE_TAC[one_step_contour] THEN DISJ1_TAC THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
-
-
-
-g `!H:(A)hypermap p:num->A n:num. is_path H p n ==> ?q:num->A m:num. q 0 = p 0 /\ q m = p n /\ is_contour H q m`;;
-
-
-e (REPLICATE_TAC 2 GEN_TAC);;
-
-e INDUCT_TAC;;
-
-
-e STRIP_TAC;;
-
-e (EXISTS_TAC `p:num->A`);;
-
-e (EXISTS_TAC `0`);;
-
-e (ASM_REWRITE_TAC[is_contour]);;
-
-
-e (DISCH_THEN (fun th-> ((LABEL_TAC "F1" th) THEN MP_TAC(SPEC `n:num` (MATCH_MP lemma_subpath th)))));;
-
-e (ASM_REWRITE_TAC[ARITH_RULE `n <= SUC n`]);;
-
-e (DISCH_THEN (LABEL_TAC "F2"));;
-
-e (MP_TAC(SPEC `H:(A)hypermap` hypermap_lemma));;
-
-e (ABBREV_TAC `D = dart (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `em = edge_map (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `nm = node_map (H:(A)hypermap)`);;
-
-e (ABBREV_TAC `fm = face_map (H:(A)hypermap)`);;
-
-e (DISCH_THEN(fun th -> (CONJUNCTS_THEN2 (LABEL_TAC "B1") (LABEL_TAC "B2") (MATCH_MP cyclic_maps th)) THEN ASSUME_TAC th));;
-
-e (POP_ASSUM(CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7" ))) )));;
-
-
-e (FIRST_X_ASSUM(MP_TAC o check(is_imp o concl)));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-e (REMOVE_THEN "F1" MP_TAC);;
-
-e (ASM_REWRITE_TAC[is_path; go_one_step]);;
-
-e STRIP_TAC;;
-
-
-(* for edge case *)
-
-
-e (MP_TAC (ISPECL[`D:A->bool`;`nm:A->A`; `(fm:A->A) o (em:A->A)`; `I:A->A`] LEFT_INVERSE_EQUATION));;
-
-e (ASM_REWRITE_TAC[I_O_ID]);;
-
-e STRIP_TAC;;
-
-e (MP_TAC (ISPECL[`D:A->bool`;`fm:A->A`; `em:A->A`; `inverse(nm:A->A)`] LEFT_INVERSE_EQUATION));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (USE_THEN "F3"(fun th1 -> USE_THEN "F6"(fun th2 -> MP_TAC(MATCH_MP inverse_element_lemma (CONJ th1 th2)))));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `l:num` SUBST1_TAC ));;
-
-e (DISCH_THEN (LABEL_TAC "F8" ));;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_nodes_contour));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `pe:num->A` STRIP_ASSUME_TAC));;
-
-e (POP_ASSUM(MP_TAC o SPEC `1`));;
-
-e (ASM_REWRITE_TAC[iterate_map1]);;
-
-e STRIP_TAC;;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pe:num->A`; `m:num`; `1`] concatenate_contours));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (DISCH_THEN(X_CHOOSE_THEN `qe:num->A` ASSUME_TAC ));;
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`((qe:num->A) ((m:num)+1)):A`] lemma_faces_contour));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `pf:num->A` STRIP_ASSUME_TAC));;
-
-e (POP_ASSUM(MP_TAC o SPEC `l:num`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`; `qe:num->A`; `pf:num->A`; `(m:num)+1`; `l:num`] concatenate_contours));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `((m:num)+1)+(l:num)`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (REWRITE_TAC[o_THM]);;
-
-
-(* the node case *)
-
-
-e (USE_THEN "F5"((LABEL_TAC "B3") o MATCH_MP PERMUTES_INVERSE));;
-
-e (USE_THEN "F3"(fun th1 -> USE_THEN "B3"(fun th2 -> MP_TAC(MATCH_MP inverse_element_lemma (CONJ th1 th2)))));;
-
-e (USE_THEN "F5"(ASSUME_TAC o MATCH_MP PERMUTES_INVERSE_INVERSE));;
-
-e (POP_ASSUM(fun th->REWRITE_TAC[th]));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `l:num` (LABEL_TAC "F9" )));;
-
-
- e (MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_nodes_contour));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `pe:num->A` STRIP_ASSUME_TAC));;
-
-e (POP_ASSUM(MP_TAC o SPEC `l:num`));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e STRIP_TAC;;
-
-e (MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pe:num->A`; `m:num`; `l:num`] concatenate_contours));;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `((m+l):num)`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-e (USE_THEN "F9" (fun th -> REWRITE_TAC[SYM th]));;
-
-
-(* the face case *)
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_faces_contour));;
-
-e (DISCH_THEN (X_CHOOSE_THEN `pf:num->A` STRIP_ASSUME_TAC));;
-
-e (POP_ASSUM(MP_TAC o SPEC `1`));;
-
-e (ASM_REWRITE_TAC[iterate_map1]);;
-
-e STRIP_TAC;;
-
-
-e (MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pf:num->A`; `m:num`; `1`] concatenate_contours));;
-
-e (ASM_REWRITE_TAC[]);;
-
-e (STRIP_TAC);;
-
-e (EXISTS_TAC `g:num->A`);;
-
-e (EXISTS_TAC `(m:num)+1`);;
-
-e (ASM_REWRITE_TAC[]);;
-
-
-let existence_contour = top_thm();; 
-
-
-
-let lemmaKDAEDEX = prove(`!H:(A)hypermap x:A y:A. y IN combinatorial_component H x ==> ?p:num->A n:num. (p 0 = x) /\ (p n = y) /\ (is_contour H p n)`, REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] THEN REPEAT STRIP_TAC THEN POP_ASSUM (MP_TAC o MATCH_MP existence_contour) THEN REPEAT STRIP_TAC THEN EXISTS_TAC `q:num->A` THEN EXISTS_TAC `m:num` THEN ASM_REWRITE_TAC[]);;
-
+REPEAT GEN_TAC THEN EXISTS_TAC `(\m:num. (iterate_map (face_map (H:(A)hypermap)) m) (x:A))` THEN STRIP_TAC 
+THENL[CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[iterate_map;I_THM];ALL_TAC] 
+THEN STRIP_TAC THEN CONV_TAC(DEPTH_CONV BETA_CONV) THEN SIMP_TAC[] 
+THEN REWRITE_TAC[lemma_def_contour] THEN REPEAT STRIP_TAC 
+THEN REWRITE_TAC[one_step_contour] THEN DISJ1_TAC 
+THEN REWRITE_TAC[comm_iterate_map;o_THM]);;
+
+
+let existence_contour = prove(`!H:(A)hypermap p:num->A n:num. is_path H p n ==> ?q:num->A m:num. q 0 = p 0 /\ q m = p n /\ is_contour H q m`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[STRIP_TAC THEN EXISTS_TAC `p:num->A` THEN EXISTS_TAC `0` THEN ASM_REWRITE_TAC[is_contour]; ALL_TAC] 
+THEN DISCH_THEN (fun th-> ((LABEL_TAC "F1" th) THEN MP_TAC(SPEC `n:num` (MATCH_MP lemma_subpath th)))) 
+THEN ASM_REWRITE_TAC[ARITH_RULE `n <= SUC n`] 
+THEN DISCH_THEN (LABEL_TAC "F2") THEN MP_TAC(SPEC `H:(A)hypermap` hypermap_lemma) 
+THEN ABBREV_TAC `D = dart (H:(A)hypermap)` 
+THEN ABBREV_TAC `em = edge_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `nm = node_map (H:(A)hypermap)` 
+THEN ABBREV_TAC `fm = face_map (H:(A)hypermap)` 
+THEN DISCH_THEN(fun th -> (CONJUNCTS_THEN2 (LABEL_TAC "B1") (LABEL_TAC "B2") (MATCH_MP cyclic_maps th)) THEN ASSUME_TAC th) 
+THEN POP_ASSUM(CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7" ))))) 
+THEN FIRST_X_ASSUM(MP_TAC o check(is_imp o concl)) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN REMOVE_THEN "F1" MP_TAC 
+THEN ASM_REWRITE_TAC[is_path; go_one_step] THEN STRIP_TAC 
+THENL[MP_TAC (ISPECL[`D:A->bool`;`nm:A->A`; `(fm:A->A) o (em:A->A)`; `I:A->A`] LEFT_INVERSE_EQUATION) 
+THEN ASM_REWRITE_TAC[I_O_ID] THEN STRIP_TAC 
+THEN MP_TAC (ISPECL[`D:A->bool`;`fm:A->A`; `em:A->A`; `inverse(nm:A->A)`] LEFT_INVERSE_EQUATION) 
+THEN ASM_REWRITE_TAC[] 
+THEN USE_THEN "F3"(fun th1 -> USE_THEN "F6"(fun th2 -> MP_TAC(MATCH_MP inverse_element_lemma (CONJ th1 th2)))) 
+THEN DISCH_THEN (X_CHOOSE_THEN `l:num` SUBST1_TAC ) THEN DISCH_THEN (LABEL_TAC "F8")
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_nodes_contour) 
+THEN DISCH_THEN (X_CHOOSE_THEN `pe:num->A` STRIP_ASSUME_TAC) 
+THEN POP_ASSUM(MP_TAC o SPEC `1`) THEN ASM_REWRITE_TAC[iterate_map1] THEN STRIP_TAC 
+THEN MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pe:num->A`; `m:num`; `1`] concatenate_contours) THEN ASM_REWRITE_TAC[] 
+THEN DISCH_THEN(X_CHOOSE_THEN `qe:num->A` ASSUME_TAC) 
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`((qe:num->A) ((m:num)+1)):A`] lemma_faces_contour) 
+THEN DISCH_THEN (X_CHOOSE_THEN `pf:num->A` STRIP_ASSUME_TAC) THEN POP_ASSUM(MP_TAC o SPEC `l:num`) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN 
+MP_TAC(SPECL[`H:(A)hypermap`; `qe:num->A`; `pf:num->A`; `(m:num)+1`; `l:num`] concatenate_contours) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `g:num->A` 
+THEN EXISTS_TAC `((m:num)+1)+(l:num)` THEN ASM_REWRITE_TAC[] 
+THEN REWRITE_TAC[o_THM]; USE_THEN "F5"((LABEL_TAC "B3") o MATCH_MP PERMUTES_INVERSE) 
+THEN USE_THEN "F3"(fun th1 -> USE_THEN "B3"(fun th2 -> MP_TAC(MATCH_MP inverse_element_lemma (CONJ th1 th2))))
+THEN USE_THEN "F5"(ASSUME_TAC o MATCH_MP PERMUTES_INVERSE_INVERSE) 
+THEN POP_ASSUM(fun th->REWRITE_TAC[th]) 
+THEN DISCH_THEN (X_CHOOSE_THEN `l:num` (LABEL_TAC "F9" )) 
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_nodes_contour) 
+THEN DISCH_THEN (X_CHOOSE_THEN `pe:num->A` STRIP_ASSUME_TAC) 
+THEN POP_ASSUM(MP_TAC o SPEC `l:num`) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pe:num->A`; `m:num`; `l:num`] concatenate_contours) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `g:num->A` THEN EXISTS_TAC `((m+l):num)` THEN ASM_REWRITE_TAC[] 
+THEN USE_THEN "F9" (fun th -> REWRITE_TAC[SYM th]); ALL_TAC] 
+THEN MP_TAC(SPECL[`H:(A)hypermap`;`((q:num->A) (m:num)):A`] lemma_faces_contour) 
+THEN DISCH_THEN (X_CHOOSE_THEN `pf:num->A` STRIP_ASSUME_TAC) THEN POP_ASSUM(MP_TAC o SPEC `1`) 
+THEN ASM_REWRITE_TAC[iterate_map1] THEN  STRIP_TAC 
+THEN MP_TAC(SPECL[`H:(A)hypermap`; `q:num->A`; `pf:num->A`; `m:num`; `1`] concatenate_contours) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `g:num->A` THEN EXISTS_TAC `(m:num)+1` 
+THEN ASM_REWRITE_TAC[]);;
+
+
+let lemmaKDAEDEX = prove(`!H:(A)hypermap x:A y:A. y IN combinatorial_component H x ==> ?p:num->A n:num. (p 0 = x) /\ (p n = y) /\ (is_contour H p n)`, 
+REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM; combinatorial_component; is_in_component] 
+THEN REPEAT STRIP_TAC THEN POP_ASSUM (MP_TAC o MATCH_MP existence_contour) 
+THEN REPEAT STRIP_TAC THEN EXISTS_TAC `q:num->A` THEN EXISTS_TAC `m:num` 
+THEN ASM_REWRITE_TAC[]);;
+
+
+(* the definition of injectve contours *)
+
+let is_inj_contour = new_recursive_definition num_RECURSION  `(is_inj_contour (H:(A)hypermap) (p:num->A) 0 <=> T) /\ 
+        (is_inj_contour (H:(A)hypermap) (p:num->A) (SUC n) <=> ((is_inj_contour H p n) /\ one_step_contour H (p n) (p (SUC n)) /\ 
+                 (!i:num. i <= n ==> ~(p i = p (SUC n))) ))`;; 
+
+let lemma_sub_inj_contour = prove(`!H:(A)hypermap p:num->A n:num. is_inj_contour H p n ==> (!i. i <= n ==> is_inj_contour H p i)`,
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[ SIMP_TAC[is_inj_contour; ARITH_RULE `i <= 0 ==> i = 0`]; ALL_TAC] 
+THEN STRIP_TAC THEN GEN_TAC THEN 
+REWRITE_TAC[ARITH_RULE `i<=SUC n <=> i = SUC n \/ i <= n`] 
+THEN STRIP_TAC  THENL[ASM_REWRITE_TAC[]; 
+UNDISCH_TAC `is_inj_contour (H:(A)hypermap) (p:num->A) (SUC n)` 
+THEN ASM_REWRITE_TAC[is_inj_contour] THEN ASM_MESON_TAC[]]);;
+
+
+let identify_inj_contour = prove(`!(H:(A)hypermap) p:num->A q:num->A n:num. is_inj_contour H p n /\ (!i:num. i<= n ==> p i = q i) ==> is_inj_contour H q n`, 
+REPLICATE_TAC 3 GEN_TAC THEN INDUCT_TAC 
+THENL[STRIP_TAC THEN REWRITE_TAC[is_inj_contour]; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "F1") 
+THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) 
+THEN REMOVE_THEN "F2" MP_TAC 
+THEN GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [is_inj_contour] 
+THEN STRIP_TAC THEN REMOVE_THEN "F1" MP_TAC THEN ASM_REWRITE_TAC[] 
+THEN SUBGOAL_THEN `!i:num. i <= (n:num) ==> (p:num->A) i = (q:num->A) i` ASSUME_TAC 
+THENL[REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= n:num ==> i <= SUC n`) 
+THEN ASM_REWRITE_TAC[]; ALL_TAC] THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN ASM_REWRITE_TAC[is_inj_contour] 
+THEN SUBGOAL_THEN `(p:num->A) (n:num) = (q:num->A) (n:num)` (ASSUME_TAC o SYM) 
+THENL[ASM_MESON_TAC[ARITH_RULE `n <= SUC n`]; ALL_TAC] 
+THEN  SUBGOAL_THEN `(p:num->A) (SUC(n:num)) = (q:num->A) (SUC(n:num))`  (ASSUME_TAC o SYM) 
+THENL[ASM_MESON_TAC[ARITH_RULE `SUC n <= SUC n`]; ALL_TAC] 
+THEN UNDISCH_THEN `one_step_contour (H:(A)hypermap) ((p:num->A) (n:num)) ((p:num->A) (SUC n:num))` 
+MP_TAC THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN REPLICATE_TAC 2 STRIP_TAC 
+THEN UNDISCH_THEN `!i:num. i <= (n:num) ==> (p:num->A) i = (q:num->A) i` (MP_TAC o SPEC `i:num`) 
+THEN ASM_REWRITE_TAC[] THEN DISCH_THEN (SUBST1_TAC o SYM) 
+THEN ASM_MESON_TAC[ARITH_RULE `i <= n ==> i <= SUC n`]);;
+
+
+let lemma_def_inj_contour = prove(`!(H:(A)hypermap) p:num->A n:num. is_inj_contour H p n <=> is_contour H p n /\ (!i:num j:num. i <= n /\ j < i ==> ~(p j = p i))`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[REWRITE_TAC[is_inj_contour; is_contour] THEN ARITH_TAC; ALL_TAC] 
+THEN POP_ASSUM (LABEL_TAC "B1") 
+THEN ASM_REWRITE_TAC[is_inj_contour; is_contour] THEN EQ_TAC 
+THENL[STRIP_TAC THEN ASM_REWRITE_TAC[] THEN REMOVE_THEN "B1" MP_TAC 
+   THEN ASM_REWRITE_TAC[] THEN REPEAT STRIP_TAC 
+   THEN ASM_CASES_TAC `i:num = SUC (n:num)` 
+   THENL[POP_ASSUM SUBST_ALL_TAC THEN MP_TAC (ARITH_RULE `j:num < SUC (n:num) ==> j <= n`) 
+   THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+   THEN UNDISCH_THEN `!i:num. i <= (n:num) ==> ~((p:num->A) i = p (SUC n))` (MP_TAC o SPEC `j:num`) 
+   THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN MP_TAC (ARITH_RULE `(i:num <= SUC (n:num)) /\ ~(i = SUC n) ==> i <= n`) 
+   THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+   THEN UNDISCH_THEN `!(i:num) (j:num). i <= (n:num) /\ j < i ==> ~((p:num->A) j = p i)` (MP_TAC o ISPECL[`i:num`;`j:num`]) 
+   THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THENL[ REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= n:num ==> i <= SUC n`) 
+   THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN 
+   UNDISCH_THEN `!i:num j:num. i <= SUC (n:num) /\ j < i ==> ~((p:num->A) j = p i)` (MP_TAC o SPECL[`i:num`;`j:num`]) 
+   THEN ASM_REWRITE_TAC[]; ALL_TAC] 
+THEN REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= n:num ==> i < SUC n`) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN UNDISCH_THEN `!i:num j:num. i <= SUC (n:num) /\ j < i ==> ~((p:num->A) j = p i)` (MP_TAC o SPECL[`SUC(n:num)`;`i:num`]) 
+THEN ASM_REWRITE_TAC[] THEN ARITH_TAC);;
+
+
+let lemma3dot1 = prove(`!(H:(A)hypermap) p:num->A n:num. is_contour H p n ==> ?q:num->A m:num. q 0 = p 0 /\ q m = p n /\ is_inj_contour H q m /\ (!i:num. (i < m)==>(?j:num. j < n /\ q i = p j /\ q (SUC i) = p (SUC j)) )`, 
+REPLICATE_TAC 2 GEN_TAC THEN INDUCT_TAC 
+THENL[STRIP_TAC THEN EXISTS_TAC `p:num->A` THEN EXISTS_TAC `0` THEN ASM_REWRITE_TAC[is_inj_contour] THEN  ARITH_TAC; ALL_TAC]
+THEN REWRITE_TAC[is_contour] THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2")) 
+THEN FIRST_X_ASSUM(MP_TAC o check(is_imp o concl))
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_CASES_TAC `?k:num. k <= m:num /\ (q:num->A) k = p (SUC n:num)`
+THENL[POP_ASSUM (X_CHOOSE_THEN `k:num` STRIP_ASSUME_TAC) 
+THEN EXISTS_TAC `q:num->A` 
+THEN EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[] 
+THEN UNDISCH_THEN `is_inj_contour (H:(A)hypermap) (q:num->A) (m:num)` (MP_TAC o (SPEC `k:num`) o MATCH_MP lemma_sub_inj_contour) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[] 
+THEN REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `k:num <= m:num /\ i < k ==> i < m`) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
+THEN UNDISCH_THEN `!(i:num). i < (m:num) ==> (?(j:num). j < (n:num) /\ (q:num->A) i = (p:num->A) j /\ q (SUC i) = p (SUC j))` (MP_TAC o SPEC `i:num`) 
+THEN ASM_REWRITE_TAC[] THEN DISCH_THEN(X_CHOOSE_THEN `j:num` MP_TAC) THEN STRIP_TAC THEN 
+EXISTS_TAC `j:num` THEN ASM_REWRITE_TAC[] THEN UNDISCH_THEN `j:num < n:num` MP_TAC  THEN ARITH_TAC; ALL_TAC]
+THEN REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN DISCH_THEN (LABEL_TAC "F3") 
+THEN DISCH_THEN (LABEL_TAC "F4") 
+THEN EXISTS_TAC `(\l:num. if l = SUC (m:num) then (p:num->A) (SUC (n:num)) else (q:num->A) l)` 
+THEN EXISTS_TAC `SUC (m:num)` 
+THEN ABBREV_TAC `t = (\l:num. if l = SUC (m:num) then (p:num->A) (SUC (n:num)) else (q:num->A) l)` 
+THEN SUBGOAL_THEN `!i:num. i <= m ==> (q:num->A) i= (t:num->A) i` (LABEL_TAC "B1")
+   THENL[REPEAT STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num <= m:num ==> ~(i = SUC m)`) THEN ASM_REWRITE_TAC[] 
+   THEN EXPAND_TAC "t" THEN DISCH_THEN (fun th -> (REWRITE_TAC[th;COND_ELIM_THM])); ALL_TAC]
+THEN SUBGOAL_THEN `(t:num->A) (SUC (m:num)) = (p:num->A) (SUC (n:num))` (LABEL_TAC "B2") 
+THENL[EXPAND_TAC "t" THEN REWRITE_TAC[]; ALL_TAC]
+THEN USE_THEN "B1" (MP_TAC o SPEC `0`) THEN REWRITE_TAC[ARITH_RULE `0 <= m`] 
+THEN DISCH_THEN (ASSUME_TAC o SYM) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC
+THENL[
+UNDISCH_THEN `is_inj_contour (H:(A)hypermap) (q:num->A) (m:num)` (fun th1 -> USE_THEN "B1" (fun th2 -> ASSUME_TAC(MATCH_MP identify_inj_contour (CONJ th1 (th2))))) 
+   THEN ASM_REWRITE_TAC[is_inj_contour] THEN USE_THEN "B1" (MP_TAC o SPEC `m:num`) 
+   THEN REWRITE_TAC[ARITH_RULE `(m:num) <= m`] THEN DISCH_THEN (ASSUME_TAC o SYM) THEN ASM_REWRITE_TAC[] 
+   THEN REPEAT STRIP_TAC THEN REMOVE_THEN "F4" MP_TAC 
+   THEN REWRITE_TAC[CONTRAPOS_THM] THEN EXISTS_TAC `i: num` THEN ASM_REWRITE_TAC[] 
+   THEN REMOVE_THEN "B1" (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[]; ALL_TAC]
+THEN REPEAT STRIP_TAC THEN ASM_CASES_TAC `i:num = m:num`
+THENL[EXISTS_TAC `n:num` THEN ASM_REWRITE_TAC[ARITH_RULE `n < SUC n`] 
+   THEN USE_THEN "B1" (MP_TAC o SPEC `m:num`) 
+   THEN REWRITE_TAC[ARITH_RULE `(m:num) <= m`] 
+   THEN DISCH_THEN (ASSUME_TAC o SYM) THEN ASM_REWRITE_TAC[]; ALL_TAC]
+THEN MP_TAC(ARITH_RULE `i:num < SUC (m:num) /\ ~(i = m) ==> i < m`) THEN ASM_REWRITE_TAC[] 
+THEN STRIP_TAC THEN REMOVE_THEN "F3" (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] 
+THEN DISCH_THEN (X_CHOOSE_THEN `j:num` STRIP_ASSUME_TAC) THEN EXISTS_TAC `j:num` 
+THEN MP_TAC(ARITH_RULE `j:num < n:num ==> j < SUC n`) THEN ASM_REWRITE_TAC[] 
+THEN STRIP_TAC THEN MP_TAC(ARITH_RULE `i:num < m:num ==> i <= m`) 
+THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN USE_THEN "B1" (MP_TAC o SPEC `i:num`) 
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th]) THEN DISCH_THEN(fun th -> REWRITE_TAC[SYM th]) 
+THEN MP_TAC(ARITH_RULE `i:num < m:num ==> SUC i <= m`) THEN ASM_REWRITE_TAC[] 
+THEN  STRIP_TAC THEN USE_THEN "B1" (MP_TAC o SPEC `SUC (i:num)`) 
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th]) 
+THEN DISCH_THEN(fun th -> REWRITE_TAC[SYM th]) THEN ASM_REWRITE_TAC[] ) ;;
 
 
 prioritize_real();;

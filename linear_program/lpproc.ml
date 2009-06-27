@@ -10,10 +10,10 @@ open List;;
 let sprintf = Printf.sprintf;;
 
 
-let archiveraw = "/tmp/tame_graph01.txt";;
-let archive = "/tmp/k09.txt";;
+let archiveraw = "/tmp/tame_graph.txt";;
+let archive = "/tmp/tame_stripped.txt";;
 let clean_archive () =
-  Sys.command(sprintf " "
+  Sys.command(sprintf "tail -n +70 %s | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee %s" archiveraw archive);;
 
 
 let range = 

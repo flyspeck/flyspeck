@@ -9,24 +9,34 @@ open Str;;
 open List;;
 let sprintf = Printf.sprintf;;
 
+(* example of java style string from graph generator. *)
+let pentstring = "13_150834109178 18 3 0 1 2 3 3 2 7 3 3 0 2 4 5 4 0 3 4 6 1 0 4 3 7 2 8 3 8 2 1 4 8 1 6 9 3 9 6 10 3 10 6 4 3 10 4 5 4 5 3 7 11 3 10 5 11 3 11 7 12 3 12 7 8 3 12 8 9 3 9 10 11 3 11 12 9 ";;
 
+(* read in the tame graph archive as java style strings *)
 let archiveraw = "/tmp/tame_graph.txt";;
 let archive = "/tmp/tame_stripped.txt";;
-let clean_archive () =
-  Sys.command(sprintf "tail -n +70 %s | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee %s" archiveraw archive);;
-
+let strip_text () =
+  Sys.command(sprintf "tail -n +70 %s | grep -v '//' | grep -v '^$' | sed 's/\"[,]*//g' | sed 's/_//g' > %s" archiveraw archive);;
+let load_file filename = 
+  let ic = open_in filename in
+  let rec lf ichan a = 
+    try
+      lf ic ((input_line ic)::a)
+    with End_of_file -> a in
+    let rs = lf ic [] in
+      close_in ic; rs;;
+let read_archive() = load_file archive;;
+(* let tame = rev (read_archive());; *)
 
 let range = 
   let rec rangeA a i j  = if (i >= j) then a
    else rangeA ((j-1)::a) i (j-1)  in
   rangeA [];;
 
-(* example of java style string from graph generator. *)
-let pentstring = "13_150834109178 18 3 0 1 2 3 3 2 7 3 3 0 2 4 5 4 0 3 4 6 1 0 4 3 7 2 8 3 8 2 1 4 8 1 6 9 3 9 6 10 3 10 6 4 3 10 4 5 4 5 3 7 11 3 10 5 11 3 11 7 12 3 12 7 8 3 12 8 9 3 9 10 11 3 11 12 9 ";;
 
 (* conversion to list data.  e.g. convert_to_list pentstring *)
 let convert_to_list = 
-  let split_sp=  split (regexp " ") in
+  let split_sp=  Str.split (regexp " ") in
   let strip_ = global_replace (regexp "_") "" in
   let rec movelist n (x,a) = 
     if n==0 then (x,a) else match x with y::ys -> movelist (n-1) (ys, y::a) in
@@ -52,6 +62,7 @@ type basic_data =
   mutable  iquad: int list;
   mutable  ipent:  int list;
   mutable  ihex: int list;
+  mutable  shex: int list;
   mutable  edart:  int list list list};;
 
 let mk_basic_data s = 
@@ -70,8 +81,10 @@ let mk_basic_data s =
   iquad=len 4;
   ipent=len 5;
   ihex=len 6;
+  shex=[];
   edart=map triples faces;
  };;
+(* let tame_data = map mk_basic_data tame;; *)
 
 (* printing of basic data *)
 
@@ -99,14 +112,37 @@ set IHEX := %s;
 set EDART := 
 %s
 ;
+
+# branch and bound on hexagons
+set SHEX := %s;
 " 
-bd.graphid bd.cvertex bd.cface (list_of bd.itriangle) (list_of bd.iquad) (list_of bd.ipent) (list_of bd.ihex) (edata bd.edart)
+(* graphid *) bd.graphid 
+(* CVERTEX *) bd.cvertex 
+(* CFACE *)   bd.cface 
+(* ITRIANGLE *) (list_of bd.itriangle) 
+(* IQUAD *) (list_of bd.iquad) 
+(* IPENT *) (list_of bd.ipent) 
+(* IHEX *) (list_of bd.ihex) 
+(* EDART *) (edata bd.edart)
+(* SHEX *)  (list_of bd.shex)
   ; close_out out;;
 
 (* running of basic data *)
 let model = "/tmp/graph0.mod";;
 let data = "/tmp/graph.dat";;
+let silent _ = ();;
 let solve_basic bd =
   print_basic_data data bd;
-  Sys.command(sprintf "echo %s; glpsol -m %s -d %s | grep 'lnsum ='" bd.graphid model data );;
+  let fileIO = sprintf "/tmp/out/sol%s.txt" bd.graphid in
+    silent (Sys.command(sprintf "glpsol -m %s -d %s | grep 'lnsum =' | sed 's/lnsum = //' > %s"  model data fileIO));
+    let inp = load_file fileIO in
+    if (length inp != 1) then raise (Failure "Bad format:"^bd.graphid)
+      else (bd.graphid, float_of_string (hd inp));;
+  
+
+(*
+loop to run:
+ let hex_data = filter (fun x -> length (x.ihex) > 0) tame_data;;
+for i = 0 to (length hex_data - 1) do let i = (solve_basic (nth hex_data i)) in print_int i; done;;
+*)
 

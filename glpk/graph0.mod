@@ -32,6 +32,7 @@ set IQUAD;
 #set BQUAD;
 set IPENT;
 set IHEX;
+set SHEX;
 set EDART3:= {(i1,i2,i3,j) in EDART: j in ITRIANGLE};
 set EDARTX:= {(i1,i2,i3,j) in EDART: j not in ITRIANGLE};
 
@@ -116,6 +117,10 @@ s.t. tau_azim4A{(i,j) in DART : j in IQUAD}: tau[j] + 4.72*azim[i,j] - 6.248 >= 
 s.t. tau_azim4B{(i,j) in DART : j in IQUAD}: tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
 s.t. tau_azim4C{(i,j) in DART : j in IQUAD}: tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
 s.t. tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
+
+#superhex inequality (branch and bound case)
+tau6h{j in SHEX}: tau[j] >= 0.91;
+
 
 
 

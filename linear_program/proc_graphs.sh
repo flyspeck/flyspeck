@@ -8,10 +8,10 @@
 [ -f tame_graph.txt ] || wget  http://weyl.math.pitt.edu/hanoi2009/uploads/Kepler/tame_graph.txt
 
 # Next process the file for use with Isabelle and for generating graph data for glpk
-echo -n "val Oct = " > process.out
-tail -n +70 tame_graph.txt | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee kepler-stripped.out
+#echo -n "val Oct = " > process.out
+tail -n +70 tame_graph.txt | grep -v "//" | sed s/\"[,]*//g | sed s/_//g | tee /tmp/kepler-stripped.out
 #./process | tee -a process.out
-echo ";" >> process.out
+#echo ";" >> /tmp/process.out
 
 
 # Next generate the glpk files, but first make the directory if necessary

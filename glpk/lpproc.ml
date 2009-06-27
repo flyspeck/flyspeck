@@ -134,15 +134,34 @@ let silent _ = ();;
 let solve_basic bd =
   print_basic_data data bd;
   let fileIO = sprintf "/tmp/out/sol%s.txt" bd.graphid in
-    silent (Sys.command(sprintf "glpsol -m %s -d %s | grep 'lnsum =' | sed 's/lnsum = //' > %s"  model data fileIO));
+    silent (Sys.command(sprintf "echo %s; glpsol -m %s -d %s | grep 'lnsum =' | sed 's/lnsum = //' > %s"  bd.graphid model data fileIO));
     let inp = load_file fileIO in
-    if (length inp != 1) then raise (Failure "Bad format:"^bd.graphid)
+    if (length inp != 1) then raise (Failure ("Bad format:"^bd.graphid))
       else (bd.graphid, float_of_string (hd inp));;
   
+(* HEXAGON ANALYSIS *)
+(* loop to run: *)
+let hex_data = filter (fun x -> length (x.ihex) > 0) tame_data;;
+let hex_sol = map solve_basic hex_data;;
+let hex_hi = 
+  let (h,_) = split (filter (fun (_,(_,r)) -> (r > 11.0)) (combine (range 0 (length hex_sol)) hex_sol)) in 
+  map (nth hex_data) h;;
 
-(*
-loop to run:
- let hex_data = filter (fun x -> length (x.ihex) > 0) tame_data;;
-for i = 0 to (length hex_data - 1) do let i = (solve_basic (nth hex_data i)) in print_int i; done;;
-*)
+(* branching *)
+(* every hexagon either satisfies SHEX ineqs, or some dart in the hexagon is in SHEXDART *)
+
+let solve_shex bd = 
+   let r = { graphid = bd.graphid^ "00";
+	       cvertex = bd.cvertex;
+	       cface = bd.cface;
+	       itriangle = bd.itriangle;
+	       iquad = bd.iquad;
+	       ipent = bd.ipent;
+	       ihex = bd.ihex;
+	       shex = (hd bd. ihex)::[];
+	       edart = bd.edart;
+	   } in
+    solve_basic r;;
+
+
 

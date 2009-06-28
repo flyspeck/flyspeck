@@ -38,10 +38,10 @@ set SHEX within IHEX;
 set FLAT within {(i,j) in DART : j not in ITRIANGLE};
 set APIECE within {(i,j) in DART : j in IPENT};
 set FA := FLAT union APIECE;
-set BIGPIECE within {(i,j) in DART : j in IPENT union IHEX};
+set BIGPIECE within {(i,j) in FLAT : j in IPENT union IHEX};
 set BIGTRI within ITRIANGLE;
 set SMALLTRI within ITRIANGLE;
-set HIVERTEX within IVERTEX;
+set HIGHVERTEX within IVERTEX;
 set LOWVERTEX within IVERTEX;
 
 # basic variables
@@ -59,13 +59,14 @@ var y3{EDART} >=0, <=2.52;
 var y4{EDART3} >=0, <=2.52;
 var y5{EDART} >=0, <=2.52;
 var y6{EDART} >=0, <=2.52;
-var diag{DART} >=0, <= 2.0*2.52;
+
 
 #report variables
 var lnsum;
 var ynsum;
 
 #branch variables FLAT and APIECE
+var diag{FLAT} >=0, <= 2.0*2.52;
 var y1FA{FA} >=0, <= 2.52;
 var y2FA{FA} >=0, <= 2.52;
 var y3FA{FA} >=0, <= 2.52;
@@ -154,14 +155,37 @@ y3A_def{(i1,i2,i3,j) in EDART: (i3,j) in APIECE}: y3FA[i3,j] = yn[i1];
 y4A_def{(i1,i2,i3,j) in EDART: (i1,j) in APIECE}: y4FA[i1,j] = ye[i3,j];
 y5A_def{(i1,i2,i3,j) in EDART: (i3,j) in APIECE}: y5FA[i3,j] = diag[i2,j];
 y6A_def{(i1,i2,i3,j) in EDART: (i1,j) in APIECE}: y6FA[i1,j]= diag[i2,j];
+solA_def{(i,j) in APIECE}: solFA[i,j] = azim1FA[i,j]+azim2FA[i,j]+azim3FA[i,j] - pi;
+tauA_def{(i,j) in APIECE}: tauFA[i,j] = rhazim1FA[i,j]+rhazim2FA[i,j]+rhazim3FA[i,j] - (pi+delta0);
+azim1AF_sum{(i1,i2,i3,j) in EDART : (i1,j) in FLAT and (i2,j) in APIECE and (i3,j) in FLAT}:
+  azim2FA[i1,j]+azim1FA[i2,j]+azim3FA[i3,j]=azim[i2,j];
+rhazim1AF_sum{(i1,i2,i3,j) in EDART : (i1,j) in FLAT and (i2,j) in APIECE and (i3,j) in FLAT}:
+  rhazim2FA[i1,j]+rhazim1FA[i2,j]+rhazim3FA[i3,j]=rhazim[i2,j];
+azim2AF_sum{(i1,i2,i3,j) in EDART : (i1,j) in APIECE and (i2,j) in FLAT}:
+  azim2FA[i1,j] + azim2FA[i2,j] = azim[i3,j];
+rhazim2AF_sum{(i1,i2,i3,j) in EDART : (i1,j) in APIECE and (i2,j) in FLAT}:
+  rhazim2FA[i1,j] + rhazim2FA[i2,j] = rhazim[i3,j];
+azim3AF_sum{(i1,i2,i3,j) in EDART : (i3,j) in APIECE and (i2,j) in FLAT}:
+  azim3FA[i2,j] + azim3FA[i3,j] = azim[i1,j];
+rhazim3AF_sum{(i1,i2,i3,j) in EDART : (i3,j) in APIECE and (i2,j) in FLAT}:
+  rhazim3FA[i2,j] + rhazim3FA[i3,j] = rhazim[i1,j];
 
+#equality BIGPIECE.
+solB{(i,j) in BIGPIECE}: solFA[i,j]+solBIG[i,j] = sol[j];
+tauB{(i,j) in BIGPIECE}: tauFA[i,j]+tauBIG[i,j] = tau[j];
+y1R_def{(i,j) in BIGPIECE}: y1R[i,j] = y2FA[i,j];
+y2R_def{(i1,i2,i3,j) in EDART: (i1,j) in BIGPIECE}: y2R[i1,j] = yn[i3];
+y3R_def{(i,j) in BIGPIECE}: y3R[i,j] = y3FA[i,j];
+y5R_def{(i,j) in BIGPIECE}: y5R[i,j] = diag[i,j];
+y6R_def{(i1,i2,i3,j) in EDART: (i2,j) in BIGPIECE}: y6R[i2,j] = ye[i3,j];
 
+y1P_def{(i,j) in BIGPIECE}: y1P[i,j] = y3FA[i,j];
+y2P_def{(i,j) in BIGPIECE}: y2P[i,j] = y2FA[i,j];
+y3P_def{(i1,i2,i3,j) in EDART: (i3,j) in BIGPIECE}: y3P[i3,j] = yn[i1];
+y5P_def{(i1,i2,i3,j)in EDART: (i3,j) in BIGPIECE}: y5P[i3,j] = ye[i1,j];
+y6P_def{(i,j) in BIGPIECE}: y6P[i,j] = diag[i,j];
 
-
-
-
-
-# inequality constraints
+## inequality constraints
 main: sum{i in IVERTEX} ln[i] >= 12;
 azmin{(i,j) in DART : j in ITRIANGLE} : azim[i,j] >= 0.852;
 azmax{(i,j) in DART : j in ITRIANGLE} : azim[i,j] <= 1.893;
@@ -198,26 +222,36 @@ tau_azim4B{(i,j) in DART : j in IQUAD}: tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
 tau_azim4C{(i,j) in DART : j in IQUAD}: tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
 tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
 
-#superhex inequality (branch and bound case)
+#branch SUPER inequality
 tau6h{j in SHEX}: tau[j] >= 0.91;
-
 tau4B{j in SQUAD}: tau[j] >= 0.256;
-tau5h{j in IPENT}: tau[j] >= 0.751;
+tau5h{j in SPENT}: tau[j] >= 0.751;
+#XX add super8-dih.
 
+#branch FLAT inequality
 
+#branch APIECE inequality
 
+#branch BIGPIECE inequality
+
+#branch BIGTRI inequality
+ybig{(i1,i2,i3,j) in EDART3 : j in SMALLTRI}: 
+  y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j] >= 6.25;
+
+#branch SMALLTRI inequality
+ysmall{(i1,i2,i3,j) in EDART3 : j in SMALLTRI}: 
+  y4[i1,i2,i3,j]+y5[i1,i2,i3,j]+y6[i1,i2,i3,j] <= 6.25;
+
+#branch HIGHVERTEX inequality
+yhigh{i in HIGHVERTEX}: yn[i] >= 2.18;
+
+#branch LOWVERTEX inequality
+ylow{i in LOWVERTEX}: yn[i] <= 2.18;
 
 solve;
-#display graphID;
+display graphID;
 display lnsum;
-#display ynsum;
-#display yn;
-#display ye;
-#display azim;
-#display rhazim;
-#display sol;
-#display solve_result_num;
-#display solve_result;
+
 
 
 

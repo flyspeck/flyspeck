@@ -138,6 +138,16 @@ let solve_basic bd =
     let inp = load_file fileIO in
     if (length inp != 1) then raise (Failure ("Bad format:"^bd.graphid))
       else (bd.graphid, float_of_string (hd inp));;
+
+(* split off a flat *)
+let rec rotateL i xs = 
+  if (i<=0) then xs 
+  else match xs with
+    | x::xss -> rotateL (i-1) (xss @ [x])
+    | [] -> [];;
+let split_face i xs =  (* {y1,y3} is the new diagonal *)
+  let y1::y2::y3::ys = rotateL i xs in
+  ([y1;y2;y3],(y3 :: ys @ [y1]));;
   
 (* HEXAGON ANALYSIS *)
 (* loop to run: *)

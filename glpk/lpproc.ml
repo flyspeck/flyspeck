@@ -193,11 +193,6 @@ let solve_basic bd =
     (h,r);;
 
 
-for i=0 to (length hex_data) do
-   let (h,r) = solve_basic (nth hex_data i) in
-   let s = sprintf "%s : %3f\n" h r in
-   print_string s
-done;;
 
 (* split off a flat quarter *)
 let split_face xs i =  (* {y1,y3} is the new diagonal *)
@@ -212,7 +207,7 @@ let asplit_pent xs i = (* y3 is the point of the A, {y1,y3}, {y3,y5} diags *)
 (* HEXAGON ANALYSIS *)
 (* loop to run: *)
 let hex_data = filter (fun x -> length (lenface x 6) > 0) tame_data;;
-let hex_sol = map (solve_basic true) hex_data;;
+let hex_sol = map solve_basic hex_data;;
 let hex_hi = 
   let (h,_) = split (filter (fun (_,(_,r)) -> (r > 11.0)) (combine (range 0 (length hex_sol)) hex_sol)) in 
   map (nth hex_data) h;;

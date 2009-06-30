@@ -6,6 +6,8 @@ Process linear programs for the proof of the Kepler conjecture.
 needs to use ocamlstr (new top level with Str preloaded) on platforms that do not support dynamic loading of Str.
 
 ocamlmktop unix.cma str.cma -o ocampl
+./ocampl
+
 *)
 open Str;;
 open List;;
@@ -14,6 +16,7 @@ let sprintf = Printf.sprintf;;
 (* external files *)
 let archiveraw = "/tmp/tame_graph.txt";;
 let model = "/tmp/graph0.mod";;
+let tamehi = "/tmp/tamehi.txt";; (* output *)
 
 (* list operations *)
 let range = 
@@ -51,6 +54,14 @@ let load_and_close_channel do_close ic =
 
 let load_file filename = 
   let ic = open_in filename in load_and_close_channel true ic;;
+
+let save_stringarray filename xs = 
+  let oc = open_out filename in
+    for i=0 to length(xs) -1
+    do
+      output_string oc ((nth xs i)^"\n");
+      done;
+    close_out oc;;
 
 let strip_archive () =
   let (ic,oc) = Unix.open_process(sprintf "tail -n +70 %s | grep -v '//' | grep -v '^$' | sed 's/\"[,]*//g' | sed 's/_//g' " archiveraw) in
@@ -192,6 +203,35 @@ let solve_basic bd =
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" h r) in 
     (h,r);;
 
+(*
+let filter_feasible_old  sols datas =
+   let (h,_) = split (filter (fun (_,(_,r)) ->  (r > 12.0)) (combine (range 0 (length sols)) sols)) in 
+  map (nth datas) h;;
+*)
+
+(* zip from Harrison's lib.ml. List.combine causes a stack overflow for mysterious reasons. *)
+let rec zip l1 l2 =
+  match (l1,l2) with
+        ([],[]) -> []
+      | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
+      | _ -> failwith "zip";;
+
+let filter_feasible f bs cs = 
+  let combs =	zip cs (zip bs (range 0 (length bs))) in
+  let (h,_) = split (filter (fun (_,(r,_)) -> f r) combs) in
+    h;;
+
+
+let tame_hi_compute() = 
+  let tame_sol = map solve_basic tame_data in
+  filter_feasible (fun (_,r) -> (r > 11.0)) tame_sol tame;;
+
+(*
+let tame_hi = tame_hi_compute();;
+Stack overflow during evaluation (looping recursion?).
+*)
+  
+
 
 
 (* split off a flat quarter *)
@@ -208,9 +248,8 @@ let asplit_pent xs i = (* y3 is the point of the A, {y1,y3}, {y3,y5} diags *)
 (* loop to run: *)
 let hex_data = filter (fun x -> length (lenface x 6) > 0) tame_data;;
 let hex_sol = map solve_basic hex_data;;
-let hex_hi = 
-  let (h,_) = split (filter (fun (_,(_,r)) -> (r > 11.0)) (combine (range 0 (length hex_sol)) hex_sol)) in 
-  map (nth hex_data) h;;
+let hex_hi = filter_feasible hex_sol hex_data;;
+
 
 (* branching *)
 (* every hexagon either satisfies SHEX ineqs, or some dart in the hexagon is in SHEXDART *)

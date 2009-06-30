@@ -203,13 +203,11 @@ let solve_basic bd =
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" h r) in 
     (h,r);;
 
-(*
-let filter_feasible_old  sols datas =
-   let (h,_) = split (filter (fun (_,(_,r)) ->  (r > 12.0)) (combine (range 0 (length sols)) sols)) in 
-  map (nth datas) h;;
-*)
 
-(* zip from Harrison's lib.ml. List.combine causes a stack overflow for mysterious reasons. *)
+(* zip from Harrison's lib.ml. List.combine causes a stack overflow for mysterious reasons. 
+let tt = range 0 30000 in combine tt tt;;
+Stack overflow during evaluation (looping recursion?).
+*)
 let rec zip l1 l2 =
   match (l1,l2) with
         ([],[]) -> []
@@ -227,8 +225,12 @@ let tame_hi_compute() =
   filter_feasible (fun (_,r) -> (r > 11.0)) tame_sol tame;;
 
 (*
-let tame_hi = tame_hi_compute();;
-Stack overflow during evaluation (looping recursion?).
+let tame_hi = 
+  let _ = Sys.command("date") in
+  let h =  tame_hi_compute() in
+  let _ =  Sys.command("date") in
+  h;;
+
 *)
   
 

@@ -16,7 +16,7 @@ let sprintf = Printf.sprintf;;
 (* external files *)
 let archiveraw = "/tmp/tame_graph.txt";;
 let model = "/tmp/graph0.mod";;
-let tamehi = "/tmp/tamehi.txt";; (* output *)
+let archive_tame_hi = "/tmp/tamehi.txt";; (* output *)
 
 (* list operations *)
 let range = 
@@ -230,7 +230,8 @@ let tame_hi =
   let h =  tame_hi_compute() in
   let _ =  Sys.command("date") in
   h;;
-
+(* 20:46-22:13 *)
+save_stringarray archive_tame_hi tame_hi;;
 *)
   
 

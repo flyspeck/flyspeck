@@ -1,8 +1,61 @@
+(*
+
+
+needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
+needs "collect_geom_a.ml";;
+needs "Examples/permutations.ml";;
+
+
+
+needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
+
+needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
+needs "convex_header.ml";;    (* replace with Multivariate/convex.ml after it is revised to be compatible with these files *)
+
+(* 
+
+This build runs through the complete proof, except for the
+   * interval arithmetic inequalities,
+   * graph classification, and
+   * linear programming
+
+The order of the load is the order of the logical dependencies
+in the proof.
+
+*)
+
+(* load all definitions *)
+needs "definitions_kepler.ml";;
+
+(* load inequalities used in text.  Skip interval arith verifications. *)
+needs "inequality_spec.ml";;
+
+(* load any custom tactics by various users.  *)
+needs "thales_tactic.ml";;
+
+(* trig *)
+needs "trig_spec.ml";;
+(* begin trig.ml *)
+
+
+
+(* ==================== *)
+(* to the file built.ml *)
+(* ==================== *)
+(* ==================== *)
+*)
+
+
+
+
+
+(* needs "Multivariate/transc.ml";; *)
 (* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
 needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
                                      (* multivariate-complex theory.    *)
-needs "Examples/transc.ml";;         (* Then it won't need these. *) 
+needs "Examples/transc.ml";;   
+needs "convex_header.ml";;      (* Then it won't need these. *) 
 needs "definitions_kepler.ml";;
 
 prioritize_real();;
@@ -2372,9 +2425,329 @@ SIMP_TAC[REAL_ARITH`(A * B ) pow 2 = A pow 2 *
 ASM_SIMP_TAC[] THEN REAL_ARITH_TAC);;
 
 
-(* I am proving this lemma *)
-let ARCV_INEQUALTY = new_axiom ` ! (p:real^N) u v w.  ~ ( p IN {u,v,w} )
-  ==> arcV p u w <= arcV p u v + arcV p v w `;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let INTERS_SUBSET = SET_RULE` P a ==> INTERS { x | P x } SUBSET a `;;
+
+let AFFINE_SET_GENERARTED2 = prove(` affine {x | ? t. x = t % u + ( &1 - t ) % v }  `,
+REWRITE_TAC[affine; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN 
+EXISTS_TAC `t * u' + (t':real) * v'` THEN FIRST_X_ASSUM MP_TAC THEN 
+SIMP_TAC[REAL_ARITH` a + b = c <=> a = c - b `] THEN 
+DISCH_TAC THEN ASM_SIMP_TAC[] THEN CONV_TAC VECTOR_ARITH);;
+
+let BASED_POINT2 = prove(` {(u:real^N),v} SUBSET {x | ? t. x = t % u + ( &1 - t ) % v } `,
+SIMP_TAC[INSERT_SUBSET; EMPTY_SUBSET; IN_ELIM_THM] THEN CONJ_TAC THENL 
+[EXISTS_TAC ` &1 ` THEN CONV_TAC VECTOR_ARITH; EXISTS_TAC ` &0 `] THEN 
+CONV_TAC VECTOR_ARITH);;
+
+let AFFINE_AFF = prove(` affine ( aff s ) `,
+SIMP_TAC[aff; AFFINE_AFFINE_HULL]);;
+
+let INSERT_EMPTY_SUBSET = prove(`(x INSERT s SUBSET t <=> x IN t /\ s SUBSET t)
+/\ (!s. {} SUBSET s)`, SIMP_TAC[INSERT_SUBSET; EMPTY_SUBSET]);;
+
+
+
+let IN_P_HULL_INSERT = prove(`a IN P hull (a INSERT s)`, 
+MATCH_MP_TAC (SET_RULE` a IN A /\ A SUBSET P hull A ==> a IN P hull A `) THEN 
+SIMP_TAC[IN_INSERT; HULL_SUBSET]);;
+
+let UV_IN_AFF2 = MESON[INSERT_AC;IN_P_HULL_INSERT  ]` 
+u IN affine hull {u,v}/\ v IN affine hull {u,v}`;;
+
+
+let AFF2 = prove(` ! u (v:real^N). aff {u,v} = {x | ? t. x =  t % u + ( &1 - t ) % v } `,
+SIMP_TAC[GSYM SUBSET_ANTISYM_EQ] THEN REPEAT STRIP_TAC THENL 
+[SIMP_TAC[aff; hull] THEN MATCH_MP_TAC (INTERS_SUBSET) THEN 
+SIMP_TAC[BASED_POINT2 ;AFFINE_SET_GENERARTED2 ]; 
+SIMP_TAC[SUBSET; IN_ELIM_THM]] THEN REPEAT STRIP_TAC THEN 
+MP_TAC (MESON[AFFINE_AFF]` affine ( aff {u, (v:real^N)})`) THEN 
+ASM_SIMP_TAC[aff; affine] THEN
+MESON_TAC[UV_IN_AFF2; REAL_RING` a + &1 - a = &1 `]);;
+
+
+GEN_ALL (SPECL [`p - (v0:real^N)`;`(u:real^N) - v0 `]
+ VECTOR_SUB_PROJECT_ORTHOGONAL);;
+
+SPECL[` (u - (v:real^N))`;` (p:real^N)`] 
+VECTOR_SUB_PROJECT_ORTHOGONAL;;
+
+
+let EXISTS_PROJECTING_POINT = prove(
+`! (p:real^N) u v. ? pp. (u + pp ) IN aff {u,v} /\ (p - pp ) dot ( u - v ) = &0 `,
+REPEAT STRIP_TAC THEN MP_TAC (SPECL[` (u - (v:real^N))`;` (p:real^N)`]
+VECTOR_SUB_PROJECT_ORTHOGONAL) THEN STRIP_TAC THEN 
+EXISTS_TAC `((u - v) dot p) / ((u - v) dot (u - v)) % (u - (v:real^N))` THEN 
+ONCE_REWRITE_TAC[DOT_SYM] THEN 
+CONJ_TAC THENL [SIMP_TAC[AFF2; IN_ELIM_THM; VECTOR_ARITH` a + x % ( a - b ) =
+  (&1 + x ) % a + ( &1 - ( &1 + x )) % b `] THEN MESON_TAC[] ;
+ASM_MESON_TAC[DOT_SYM]]);;
+
+
+let UV_IN_AFF2_IMP_TRANSABLE = prove(`! v0 v1 u v.
+  u IN aff {v0,v1} /\ v IN aff {v0,v1} ==>
+  ( ( u - v0 ) dot ( v1 - v0 )) * ( ( v - v0) dot ( v1 - v0 )) =
+  (( v1 - v0 ) dot ( v1 - v0 ) ) * ((u - v0 ) dot ( v - v0 )) `,
+REPEAT GEN_TAC THEN REWRITE_TAC[AFF2; IN_ELIM_THM] THEN 
+STRIP_TAC THEN ASM_SIMP_TAC[VECTOR_ARITH`(t % v0 + (&1 - t) % v1) - v0
+= ( &1 - t ) % ( v1 - v0 )`] THEN SIMP_TAC[DOT_LMUL; DOT_RMUL] THEN
+REAL_ARITH_TAC);;
+
+let WHEN_K_POS_ARCV_STABLE = prove(` &0 < k ==>
+  arcV ( vec 0 ) u v = arcV ( vec 0 ) u ( k % v ) `,
+REWRITE_TAC[arcV; VECTOR_SUB_RZERO; DOT_RMUL; NORM_MUL] THEN 
+SIMP_TAC[LT_IMP_ABS_REFL; REAL_FIELD`&0 < a ==> ( a * b ) /
+  ( d * a * s ) = b / ( d * s ) `]);;
+
+
+let ARCV_VEC0_FORM = prove(`arcV v0 u v = arcV (vec 0) (u - v0) (v - v0)`,
+REWRITE_TAC[arcV; VECTOR_SUB_RZERO]);;
+
+let WHEN_K_POS_ARCV_STABLE2 = prove(` k < &0  ==>
+  arcV ( vec 0 ) u v = arcV ( vec 0 ) u ( ( -- k) % v ) `,
+REWRITE_TAC[REAL_ARITH` n < &0 <=> &0 < -- n `;
+  WHEN_K_POS_ARCV_STABLE ]);;
+
+let WHEN_K_DIFF0_ARCV = prove(` ~ ( k = &0 ) ==> 
+ arcV ( vec 0 ) u v = arcV ( vec 0 ) u ( ( abs k ) % v ) `,
+REWRITE_TAC[REAL_ABS_NZ; WHEN_K_POS_ARCV_STABLE ]);;
+
+
+
+let PITHAGO_THEOREM = prove(`x dot y = &0
+ ==> norm (x + y) pow 2 = norm x pow 2 + norm y pow 2 /\
+     norm (x - y) pow 2 = norm x pow 2 + norm y pow 2`,
+SIMP_TAC[NORM_POW_2; DOT_LADD; DOT_RADD; DOT_RSUB; DOT_LSUB; DOT_SYM] THEN 
+REAL_ARITH_TAC);;
+
+
+let NORM_SUB_INVERTABLE = NORM_ARITH` norm (x - y) = norm (y - x)`;;
+
+
+
+let OTHORGONAL_WITH_COS = prove(` ! v0 v1 w (p:real^N). 
+     ~(v0 = w) /\
+     ~(v0 = v1) /\
+     (w - p) dot (v1 - v0) = &0
+     ==> cos (arcV v0 v1 w) = 
+((p - v0) dot (v1 - v0)) / (norm (v1 - v0) * norm (w - v0))`,
+REPEAT GEN_TAC THEN SIMP_TAC[NOT_EQ_IMPCOS_ARC] THEN 
+REPEAT STRIP_TAC THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / c = b / c `) THEN 
+ONCE_REWRITE_TAC[REAL_RING` a = b <=> a - b = &0 `] THEN 
+ONCE_REWRITE_TAC[MESON[DOT_SYM]` a dot b - c = b dot a - c `] THEN 
+FIRST_X_ASSUM MP_TAC THEN SIMP_TAC[GSYM DOT_LSUB; VECTOR_ARITH` 
+w - v0 - (p - v0) = w - (p:real^N)`; REAL_SUB_RZERO; DOT_SYM]);;
+
+
+let SIMPLIZE_COS_IF_OTHOR = prove(` ! v0 v1 w (p:real^N). 
+     ~(v0 = w) /\
+     ~(v0 = v1) /\ ( p - v0 ) = k % (v1 - v0 ) /\
+     (w - p) dot (v1 - v0) = &0
+     ==> cos (arcV v0 v1 w) = 
+k * norm ( v1 - v0 ) / norm (w - v0) `,
+SIMP_TAC[OTHORGONAL_WITH_COS; DOT_LMUL; GSYM NORM_POW_2] THEN 
+REPEAT STRIP_TAC THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN REWRITE_TAC[GSYM NORM_POS_LT]
+THEN CONV_TAC REAL_FIELD);;
+
+
+let SIN_EQ_SQRT_ONE_SUB = prove(` ~((v0:real^N) = va) /\ ~(v0 = vb) ==>
+  sin ( arcV v0 va vb ) = sqrt ( &1 - cos ( arcV v0 va vb ) pow 2 ) `,
+DISCH_TAC THEN MATCH_MP_TAC (SIN_COS_SQRT) THEN ASM_SIMP_TAC[PROVE_SIN_LE]);;
+
+
+
+let SIN_DI_HOC = prove(`~((v0:real^N) = w) /\ ~(v0 = vb) /\ p IN aff {v0, w} /\ (p - vb) dot (w - v0) = &0
+ ==> sin (arcV v0 w vb) = norm (p - vb) / norm (vb - v0)`,
+SIMP_TAC[SIN_EQ_SQRT_ONE_SUB] THEN ONCE_REWRITE_TAC[REAL_ARITH` a = &0 <=> -- a = &0 `] THEN 
+SIMP_TAC[GSYM DOT_LNEG; VECTOR_NEG_SUB; OTHORGONAL_WITH_COS] THEN 
+SIMP_TAC[AFF2; IN_ELIM_THM; VECTOR_ARITH` p = t % v0 + (&1 - t) % w
+  <=> p - v0 = (&1 - t ) % ( w - v0 ) `] THEN 
+STRIP_TAC THEN ASM_SIMP_TAC[DOT_LMUL; GSYM NORM_POW_2] THEN 
+ONCE_REWRITE_TAC[MESON[REAL_LE_DIV; POW_2_SQRT; NORM_POS_LE]`
+  norm a / norm b = sqrt (( norm a / norm b ) pow 2 ) `] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> p a = p b `) THEN 
+UNDISCH_TAC` ~(v0 = (w:real^N))` THEN UNDISCH_TAC`~(v0 = (vb:real^N))` THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> (b:real^N) - a = vec 0 `] THEN 
+SIMP_TAC[ GSYM NORM_POS_LT; REAL_FIELD` &0 < a ==>
+  ( c * a pow 2 ) / ( a * b ) = (c * a )/ b /\
+&1 - ( b / a ) pow 2 = ( a pow 2 - b pow 2 ) / a pow 2 `] THEN 
+REPEAT STRIP_TAC THEN SIMP_TAC[DIV_POW2] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / x = b / x `) THEN 
+SIMP_TAC[MUL_POW2] THEN ONCE_REWRITE_TAC[MESON[REAL_POW2_ABS]`
+ a pow 2 * t = ( abs a ) pow 2 * t`] THEN 
+SIMP_TAC[GSYM MUL_POW2; GSYM NORM_MUL] THEN DOWN_TAC THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN SIMP_TAC[] THEN 
+NHANH (MESON[]` a = b ==> ( vb - (p:real^N)) dot a 
+  = ( vb - (p:real^N)) dot b `) THEN 
+REWRITE_TAC[DOT_RMUL; MESON[]` ( a /\ x * t = c ) /\
+  &0 = t /\ l <=> a /\ c = x * ( &0 )  /\ t = &0 /\ l `;
+  REAL_MUL_RZERO] THEN NHANH (PITHAGO_THEOREM) THEN 
+SIMP_TAC[VECTOR_ARITH` vb - p + p - v0 = vb - (v0:real^N)`] THEN 
+STRIP_TAC THEN SIMP_TAC[NORM_SUB] THEN REAL_ARITH_TAC );;
+
+
+let CHANG_BIET_GI = prove(`pu - p = (&1 - t) % (w - p) ==> pu IN aff {p, w}`,
+REWRITE_TAC[AFF2; IN_ELIM_THM; VECTOR_ARITH`pu - p = (&1 - t) % (w - p) <=>
+  pu = t % p + ( &1 - t ) % w `] THEN MESON_TAC[]);;
+
+
+let SUB_DOT_EQ_0_INVERTALE = prove(` ( a - b ) dot c = &0 <=> ( b - a ) dot c = &0 `,
+SIMP_TAC[DOT_LSUB] THEN REAL_ARITH_TAC);;
+
+
+let SIN_DI_HOC2 = ONCE_REWRITE_RULE[SUB_DOT_EQ_0_INVERTALE] SIN_DI_HOC;;
+
+
+
+let KEY_LEMMA_FOR_ANGLES = prove(`! (p:real^N) u v w pu pv. pu IN aff {p,w} /\ pv IN aff {p,w} /\
+( u - pu ) dot (w - p ) = &0 /\
+( v - pv ) dot (w - p ) = &0  /\
+~( p = u \/ p = v \/ p = w ) ==>
+cos ( arcV p w u + arcV p w v ) - cos ( arcV p u v ) =
+(-- ( v - pv ) dot ( u - pu ) - norm ( v - pv ) * norm ( u - pu )) /
+(norm ( p - u ) * norm ( p - v ))`,
+SIMP_TAC[COS_ADD; AFF2; IN_ELIM_THM; VECTOR_ARITH` pu = t % p + (&1 - t) % w <=> pu - p = ( &1 - t ) % (w - p ) `;
+  DE_MORGAN_THM] THEN 
+REPEAT STRIP_TAC THEN 
+DOWN_TAC THEN 
+NHANH (MESON[SIMPLIZE_COS_IF_OTHOR]` pu - p = (&1 - t) % (w - p) /\
+ pv - p = (&1 - t') % (w - p) /\
+ (u - pu) dot (w - p) = &0 /\
+ (v - pv) dot (w - p) = &0 /\
+ ~(p = u) /\
+ ~(p = v) /\
+ ~(p = w) ==> cos (arcV p w u) = 
+  (&1 - t ) * norm (w - p) / norm (u - p) /\
+  cos (arcV p w v) =
+  ( &1 - t') * norm (w - p ) / norm ( v - p ) `) THEN 
+NHANH (CHANG_BIET_GI) THEN 
+NHANH (MESON[SIN_DI_HOC2]`(a11 /\ pu IN aff {p, w}) /\
+  (a22 /\ pv IN aff {p, w}) /\
+  (u - pu) dot (w - p) = &0 /\
+  (v - pv) dot (w - p) = &0 /\
+  ~(p = u) /\
+  ~(p = v) /\
+  ~(p = w) ==>
+   sin (arcV p w u) = norm ( pu - u ) / norm ( u - p ) /\
+  sin (arcV p w v) = norm ( pv - v ) / norm ( v - p ) `) THEN 
+STRIP_TAC THEN 
+ASM_SIMP_TAC[NOT_EQ_IMPCOS_ARC; REAL_FIELD` a / b * aa / bb 
+  = ( a * aa ) / ( b * bb ) `; REAL_RING` (a * b ) * c * d = a * c * b * d `;
+  REAL_FIELD` a * b / c = ( a * b ) / c `; REAL_FIELD ` a / b - c / b
+  = ( a - c ) / b `; NORM_SUB] THEN 
+MATCH_MP_TAC (MESON[]` a = b ==> a / x = b / x `) THEN 
+SIMP_TAC[NORM_SUB; REAL_MUL_SYM; REAL_ARITH` a - b - c = v - b <=>
+  a - c - v = &0 `] THEN 
+REWRITE_TAC[MESON[VECTOR_ARITH` a - b = a - x + x - (b:real^N)`]`
+  a - (u - p) dot (v - p) = a - (u - pu + pu - p) dot (v - pv + pv - p) `;
+  DOT_LADD; DOT_RADD] THEN 
+ASM_SIMP_TAC[DOT_LMUL; DOT_RMUL; DOT_SYM; REAL_MUL_RZERO;
+  REAL_ADD_RID; GSYM NORM_POW_2; GSYM POW_2; NORM_SUB;DOT_LNEG; 
+REAL_ADD_LID] THEN REAL_ARITH_TAC);;
+
+
+
+
+let ARCV_BOUNDED = prove(` ~( v0 = u ) /\ ~ ( v0 = v ) ==>
+&0 <= arcV v0 u v /\ arcV v0 u v <= pi`,
+NHANH (NOT_IDEN_IMP_ABS_LE) THEN REWRITE_TAC[arcV; REAL_ABS_BOUNDS]
+THEN SIMP_TAC[ACS_BOUNDS]);;
+
+
+(* This lemma in Multivariate/transc.ml *)
+let COS_MONO_LT_EQ = new_axiom
+`!x y. &0 <= x /\ x <= pi /\ &0 <= y /\ y <= pi
+         ==> (cos(x) < cos(y) <=> y < x)`;;
+
+
+
+let COS_MONOPOLY = prove(
+` ! a b. &0 <= a /\ a <= pi /\ &0 <= b /\ b <= pi ==>
+( a < b <=> cos b < cos a ) `, MESON_TAC[COS_MONO_LT_EQ]);;
+
+let COS_MONOPOLY_EQ = prove(` ! a b. &0 <= a /\ a <= pi /\ &0 <= b /\ b <= pi ==>
+( a <= b <=> cos b <= cos a ) `, REPEAT STRIP_TAC THEN 
+REWRITE_TAC[real_le] THEN ASM_MESON_TAC[COS_MONOPOLY ]);;
+
+
+let END_POINT_ADD_IN_AFF2 = prove(`!k (u:real^N) v. u + k % (u - v) IN aff {u, v} /\
+u + k % (v - u ) IN aff {u,v} `,
+REWRITE_TAC[AFF2; VECTOR_ARITH` u + k % (u - v) = 
+  ( &1 + k ) % u + ( &1 - ( &1 + k )) % v `] THEN 
+SIMP_TAC[VECTOR_ARITH` u + k % (v - u) = 
+  (&1 - k) % u + (&1 - (&1 - k)) % v`]  THEN SET_TAC[]);;
+
+let EXISTS_PROJECTING_POINT2 = prove(`!(p:real^N) u v0 . ?pp. pp IN aff {u, v0} /\ (p - pp) dot (u - v0) = &0`,
+REPEAT GEN_TAC THEN MP_TAC (SPECL[` u - (v0:real^N) `; `p - ( v0 :real^N)`] 
+VECTOR_SUB_PROJECT_ORTHOGONAL) THEN 
+SIMP_TAC[DOT_SYM; VECTOR_ARITH` a - b - c = a - ( b + (c:real^N))`] THEN 
+ONCE_REWRITE_TAC[INSERT_AC] THEN MESON_TAC[END_POINT_ADD_IN_AFF2 ]);;
+
+
+let KEY_LEMMA_FOR_ANGLES1 = 
+ONCE_REWRITE_RULE[ INSERT_AC] KEY_LEMMA_FOR_ANGLES;;
+
+SPECL[`p:real^N`; `u:real^N`; `v:real^N`;`x:real^N`;`ux:real^N`;`vx:real^N`] 
+KEY_LEMMA_FOR_ANGLES1;;
+
+let ARCV_INEQUALTY = prove(`! p u v (x:real^N). ~ ( p = x ) /\ ~( p = u ) /\ ~( p = v )  ==>
+arcV p u v <= arcV p u x + arcV p x v `,
+NHANH (ARCV_BOUNDED) THEN 
+REPEAT GEN_TAC THEN 
+ASM_CASES_TAC` pi <= arcV p u x + arcV p x (v:real^N)` THENL 
+[ASM_MESON_TAC[REAL_LE_TRANS];
+PHA THEN 
+NHANH (MESON[ARCV_BOUNDED ]`~(p = x) /\ ~(p = u) /\ ~(p = v) /\ l
+  ==> &0 <= arcV p u x /\ &0 <= arcV p x v `) THEN 
+NHANH (REAL_LE_ADD) THEN 
+DOWN_TAC THEN 
+NHANH (REAL_ARITH` ~(a <= b ) ==> b <= a `) THEN 
+SIMP_TAC[COS_MONOPOLY_EQ ] THEN 
+MP_TAC (MESON[EXISTS_PROJECTING_POINT2]` ? (ux:real^N) vx.
+  ux IN aff {x,p} /\ vx IN aff {x,p} /\
+  ( u - ux ) dot (x - p ) = &0 /\
+  ( v - vx ) dot ( x - p ) = &0 `) THEN 
+REPEAT STRIP_TAC THEN 
+DOWN_TAC THEN 
+REWRITE_TAC[MESON[]` ux IN aff {x, p} /\
+ vx IN aff {x, p} /\
+ (u - ux) dot (x - p) = &0 /\
+ (v - vx) dot (x - p) = &0 /\a11/\a22 /\
+ ~(p = x) /\
+ ~(p = u) /\
+ ~(p = v) /\ l <=> a11 /\ a22 /\ l /\ ux IN aff {x, p} /\
+     vx IN aff {x, p} /\
+     (u - ux) dot (x - p) = &0 /\
+     (v - vx) dot (x - p) = &0 /\
+     ~(p = u \/ p = v \/ p = x) `] THEN 
+NHANH (SPECL[`p:real^N`; `u:real^N`; `v:real^N`;`x:real^N`;`ux:real^N`;`vx:real^N`] 
+KEY_LEMMA_FOR_ANGLES1) THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` a <= b <=> a - b <= &0 `] THEN 
+SIMP_TAC[ARC_SYM; DE_MORGAN_THM] THEN 
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN 
+SIMP_TAC[GSYM NORM_POS_LT; REAL_FIELD` a / ( b * c ) =  ( a / b) / c `] THEN 
+SIMP_TAC[REAL_ARITH` (a/ b ) / c <= &0 <=> &0 <= (( -- a ) / b ) / c `;
+  REAL_LE_RDIV_0] THEN 
+STRIP_TAC THEN 
+REWRITE_TAC[REAL_ARITH`&0 <= -- ( a - b ) <=> a <= b `] THEN 
+MESON_TAC[NORM_NEG; NORM_CAUCHY_SCHWARZ]]);;
+
+let KEITDWB = ARCV_INEQUALTY;;
 
 g `! (p:real^N) (n:num) fv.
      2 <= n /\ (!i. i <= n ==> ~(p = fv i))
@@ -2427,3 +2800,189 @@ e (NHANH (MESON[LE_REFL; LE_0]` (! i. i <= d ==> p i ) ==> p ( 0 ) /\
 e (MP_TAC (ARCV_INEQUALTY));;
 e (ASM_SIMP_TAC[IN_INSERT; NOT_IN_EMPTY]);;
 let FGNMPAV = top_thm();;
+
+
+
+
+let IMP_TAC = ONCE_REWRITE_TAC[MESON[]` a/\ b ==> c 
+  <=> a ==> b ==> c `];;
+
+g ` &0 <= t12 /\ t12 < &2 * pi /\ t12 = &2 * pi * real_of_int k12 
+==> t12 = &0 `;;
+e (ASM_CASES_TAC` (k12:int) < &0 `);;
+e (MP_TAC (PI_POS));;
+e (DOWN_TAC);;
+e (SIMP_TAC[GSYM REAL_NEG_GT0; int_lt; int_of_num_th]);;
+e (NGOAC THEN NHANH (REAL_LT_MUL));;
+e (REWRITE_TAC[REAL_ARITH` &0 < -- a * b <=> &2 * b * a < &0 `]);;
+e (MESON_TAC[REAL_ARITH` ~( a < &0 /\ &0 <= a ) `]);;
+e (ASM_CASES_TAC `(k12:int) = &0 `);;
+e (ASM_SIMP_TAC[int_of_num_th; REAL_MUL_RZERO]);;
+e (DOWN_TAC);;
+e (NGOAC);;
+e (REWRITE_TAC[ARITH_RULE` ~(k12 < &0) /\ ~((k12:int) = &0) <=> &1 <= k12 `]);;
+e (SIMP_TAC[int_le; int_of_num_th]);;
+e (MP_TAC PI_POS);;
+e (PHA);;
+e (ONCE_REWRITE_TAC[MESON[REAL_LE_LMUL_EQ]` &0 < pi /\
+   &1 <= aa  /\ l <=> &0 < pi /\ pi * &1 <= pi * aa /\ l `]);;
+e (REWRITE_TAC[REAL_ARITH` a * &1 <= b <=> &2 * a <= &2 * b `]);;
+e (MESON_TAC[REAL_ARITH` ~( a < b /\ b <= a ) `]);;
+let IN_A_PERIOD_IDE0 = top_thm();;
+
+
+let UNIQUE_PROPERTY_IN_A_PERIOD = prove(
+`&0 <= t12 /\ t12 < &2 * pi /\ &0 <= a /\  a < &2 * pi /\
+t12 = a + &2 * pi * real_of_int k12 ==> t12 = a `,
+NHANH (REAL_FIELD` &0 <= t12 /\
+ t12 < &2 * pi /\
+ &0 <= a /\
+ a < &2 * pi  /\ ll ==> t12 + -- a < &2 * pi /\
+  -- ( t12 + -- a ) < &2 * pi `) THEN 
+ASM_CASES_TAC` &0 <= t12 + -- a ` THENL [
+REWRITE_TAC[REAL_ARITH` a = b + c <=> a + -- b = c `] THEN 
+STRIP_TAC THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` a = b <=> a + -- b = &0 `] THEN 
+DOWN_TAC THEN 
+MESON_TAC[IN_A_PERIOD_IDE0 ];
+SIMP_TAC[REAL_ARITH` a = b + c * d * e <=>
+  -- ( a + -- b ) = c * d * ( -- e ) `; GSYM int_neg_th] THEN 
+STRIP_TAC THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` a = b <=> -- ( a + -- b ) = &0 `] THEN 
+DOWN_TAC THEN 
+NHANH (REAL_ARITH` ~(&0 <= b ) ==> &0 <= -- b `) THEN 
+MESON_TAC[IN_A_PERIOD_IDE0 ]]);;
+
+
+
+
+
+
+
+
+g `!t1 t2 k12 k21.
+     &0 <= t1 /\
+     t1 < &2 * pi /\
+     &0 <= t2 /\
+     t2 < &2 * pi /\
+     &0 <= t12 /\
+     t12 < &2 * pi /\
+     &0 <= t21 /\
+     t21 < &2 * pi /\
+     t12 = t1 - t2 + &2 * pi * real_of_int k12 /\
+     t21 = t2 - t1 + &2 * pi * real_of_int k21
+     ==> (t1 = t2 ==> t12 + t21 = &0) /\ (~(t1 = t2) ==> t12 + t21 = &2 * pi)`;;
+e (REPEAT STRIP_TAC);;
+e (DOWN_TAC);;
+e (DAO);;
+e (IMP_TAC);;
+e (SIMP_TAC[REAL_SUB_REFL; REAL_ADD_LID; REAL_ADD_RID]);;
+e (NHANH (MESON[IN_A_PERIOD_IDE0]` t21 = &2 * pi * real_of_int k21 /\
+     t12 = &2 * pi * real_of_int k12 /\
+     t21 < &2 * pi /\
+     &0 <= t21 /\
+     t12 < &2 * pi /\
+     &0 <= t12 /\ l ==> &0 = t12  /\ &0 = t21 `));;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (SIMP_TAC[REAL_ADD_LID]);;
+
+
+e (DOWN_TAC);;
+e (SPEC_TAC(`t1:real`,` t1:real`));;
+e (SPEC_TAC(`t2:real`,` t2:real`));;
+e (SPEC_TAC(`t12:real`,` t12:real`));;
+e (SPEC_TAC(`t21:real`,` t21:real`));;
+e (SPEC_TAC(`k12:int`,` k12:int`));;
+e (SPEC_TAC(`k21:int`,` k21:int`));;
+e (MATCH_MP_TAC (MESON[REAL_ARITH` a <= b \/ b <= a `]` (! a1 b1 a2 b2 a b.
+  P a1 b1 a2 b2 a b <=> P b1 a1 b2 a2 b a ) /\
+  (! a2 b2. L a2 b2 <=> L b2 a2 ) /\
+  (! a1 b1 a2 b2 a b.
+  P a1 b1 a2 b2 a b /\ a <= (b:real) ==> L a2 b2 )  
+  ==> (! a1 b1 a2 b2 a b. P a1 b1 a2 b2 a b ==>
+  L a2 b2 )   `));;
+e (CONJ_TAC);;
+e (MESON_TAC[]);;
+
+e (CONJ_TAC);;
+e (SIMP_TAC[REAL_ADD_SYM]);;
+e (NHANH (REAL_FIELD` &0 <= t1 /\
+      t1 < &2 * pi /\
+      &0 <= t2 /\
+      t2 < &2 * pi /\
+      &0 <= t12 /\
+      t12 < &2 * pi /\ l ==> t1 - t2 < &2 * pi`));;
+e (REPEAT STRIP_TAC);;
+e (REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC));;
+e (ONCE_REWRITE_TAC[REAL_ARITH` a <= b <=> &0 <= b - a `]);;
+e (PHA);;
+e (ONCE_REWRITE_TAC[GSYM REAL_SUB_0]);;
+e (NHANH (REAL_FIELD` ~( t2 = &0) /\
+    t2 < pp /\
+     &0 <= t2 ==> &0 <= pp - t2 /\ pp - t2 < pp `));;
+e (FIRST_X_ASSUM MP_TAC);;
+e (ONCE_REWRITE_TAC[REAL_ARITH` a - b + &2* pi * c =
+  &2 * pi - ( b - a ) + &2 * pi * ( c - &1 ) `]);;
+e (ABBREV_TAC ` ttt = &2 * pi - (t1 - t2)`);;
+e (ONCE_REWRITE_TAC[MESON[int_of_num_th]` &1 = real_of_int (&1)`]);;
+e (DOWN_TAC);;
+e (REWRITE_TAC[GSYM int_sub_th]);;
+e (NHANH (MESON[UNIQUE_PROPERTY_IN_A_PERIOD]`
+  &0 <= t12 /\
+ t12 < &2 * pi /\
+ &0 <= t21 /\
+ t21 < &2 * pi /\
+ t12 = t1 - t2 + &2 * pi * real_of_int k12 /\
+ &2 * pi - (t1 - t2) = ttt /\
+ t21 = ttt + &2 * pi * real_of_int (k21 - &1)  /\
+ ~(t1 - t2 = &0) /\
+ t1 - t2 < &2 * pi /\
+ &0 <= t1 - t2 /\
+ &0 <= ttt /\
+ ttt < &2 * pi ==> t1 - t2 = t12 /\ ttt = t21 `));;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (SIMP_TAC[]);;
+e (STRIP_TAC);;
+e (CONV_TAC REAL_RING);;
+
+let PDPFQUK = top_thm();;
+
+
+let QAFHJNM = prove(` ! (v:real^N) w x .
+let e3 = ( &1 / norm ( w - v )) % (w - v ) in 
+let r = norm ( x - v ) in
+let phi = arcV v w x in 
+ ~( v = x ) /\ ~ ( v = w ) 
+==> (? u'. u' dot e3 = &0 /\
+x = v + u' + ( r * cos phi ) % e3 ) `,
+NHANH (MESON[EXISTS_PROJECTING_POINT2]`l /\ ~(v = w) ==> (?pp. (pp:real^N) IN aff {w, v} 
+ /\ (x - pp) dot (w - v) = &0 ) `) THEN REPEAT STRIP_TAC THEN REPEAT LET_TAC THEN 
+SIMP_TAC[AFF2; IN_ELIM_THM; VECTOR_ARITH`  pp = t % w + (&1 - t) % v <=> pp - v = t % ( w - v ) `] THEN 
+EXPAND_TAC "phi'" THEN STRIP_TAC THEN EXISTS_TAC ` x - (pp:real^N)` THEN 
+REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC) THEN PHA THEN NHANH (SIMPLIZE_COS_IF_OTHOR) THEN 
+EXPAND_TAC "e3" THEN SIMP_TAC[DOT_RMUL; REAL_MUL_RZERO; VECTOR_MUL_ASSOC] THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> b - a = vec 0 `] THEN 
+SIMP_TAC[GSYM NORM_EQ_0] THEN EXPAND_TAC "r" THEN SIMP_TAC[GSYM NORM_EQ_0; REAL_FIELD` ~(x = &0) /\
+  ~(w = &0) ==>  ( x * t * w / x ) * &1 / w = t `] THEN 
+SIMP_TAC[VECTOR_ARITH` (v + x - pp + tt ) - x  = (tt: real^N) - (pp - v) `]);;
+
+
+(* 
+("SIMPLIZE_COS_IF_OTHOR ",
+    |- !v0 v1 w p.
+           ~(v0 = w) /\
+           ~(v0 = v1) /\
+           p - v0 = k % (v1 - v0) /\
+           (w - p) dot (v1 - v0) = &0
+           ==> cos (arcV v0 v1 w) = k * norm (v1 - v0) / norm (w - v0))]
+
+
+*)
+
+
+
+
+
+
+
+

@@ -30,10 +30,12 @@ let range =
   rangeA [];;
 
 let rec rotateL i xs = 
-  if (i<=0) then xs 
+  if (i=0) then xs 
   else match xs with
-    | x::xss -> rotateL (i-1) (xss @ [x])
+    | x::xss -> rotateL ((i-1) mod (length xs)) (xss @ [x])
     | [] -> [];;
+
+let rotateR i = rotateL (-i);;
 
 let rec rotateTo xs i repmax = 
   match xs with
@@ -162,7 +164,7 @@ type branchnbound =
   };;
 
 let modify_bb bb drop1std fields vfields = 
-  let add key xs ys = get_values key xs @ ys in
+  let add key xs = (@) (get_values key xs)  in
   let std = bb.std_faces_not_super in
 {
 hypermapid = bb.hypermapid;
@@ -179,10 +181,11 @@ highvertex = add "hv" vfields bb.highvertex;
 lowvertex = add "lv" vfields bb.lowvertex;
 }
 ;;
+
 (*
 Example: move [8;1;6;9] from std to super8.
  let pbb = mk_bb pentstring;;
- modify_bb pbb true ["s8",[8;1;6;9]] [];;
+ modify_bb pbb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
 *)
 
 let mk_bb s = 
@@ -232,8 +235,8 @@ let std_face_of_size bb r=
 let unsplit d f = function
   | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
   | [] -> "";;
-let join_lines  = unsplit "\n" (fun x-> x);;
 
+let join_lines  = unsplit "\n" (fun x-> x);;
 
 let ampl_of_bb outs bb = 
   let fs = faces bb in
@@ -265,12 +268,6 @@ let ampl_of_bb outs bb =
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
 
-(* XXD 
-next : XX
-next : make highvertex lowvertex modify to work.
-next : write branch and bound routines.
-*)
-
 let testps () =
   let file = "/tmp/out1.txt" in
   let outs = open_out file in
@@ -300,7 +297,7 @@ let filter_lp f bbs =
   let (bbs,_) = split (filter (fun (_,r) -> f r) sol) in
     bbs;;
 
-let feasible r = (r > 11.0);;
+let feasible r = (r > 11.999);; (* relax a bit from 12.0 *)
 
 (*
 let tame_hi = 
@@ -311,36 +308,55 @@ let tame_hi =
 (* 20:46-22:13 *)
 save_stringarray archive_tame_hi (map (fun x -> x.string_rep) tame_hi);;
 *)
-  
 
 
+(* 
+split faces.  
+switch_face does all the branching on the leading std face 
+*)
 
-(* split off a flat quarter *)
-let split_face xs i =  (* {y1,y3} is the new diagonal *)
+let split_flatq xs i =  (* {y1,y3} is the new diagonal *)
   let y1::y2::y3::ys = rotateL i xs in
-  ([y1;y2;y3],(y3 :: ys @ [y1]));;
-let asplit_pent xs i = (* y3 is the point of the A, {y1,y3}, {y3,y5} diags *)
+  ([y2;y3;y1],rotateR 1 (y1 :: y3 :: ys));;
+
+let asplit_pent xs i = 
+(* y2,y4 darts of flat; y3 is the point of the A, {y1,y3}, {y3,y5} diags *)
   let y1::y2::y3::y4::[y5] = rotateL i xs in
-  ([y1;y2;y3],[y1;y3;y5],[y5;y3;y4]);;
+  ([y2;y3;y1],[y3;y5;y1],[y4;y5;y3]);;
+
+let switch3 bb =
+  let fc::_ = bb.std_faces_not_super in
+  [modify_bb bb true ["bt",fc] [];modify_bb bb true ["st",fc] []];;
+
+let switch4 bb = 
+  let fc::_ = bb.std_faces_not_super in
+  let mo (a,b) = modify_bb bb true ["ff",a;"ff",b] [] in
+  let f i = mo (split_flatq fc i) in
+  [f 0;f 1; modify_bb bb true ["s8",fc] []];;
+
+let switch5 bb = 
+  let fc::_ = bb.std_faces_not_super in
+  let mo (a,b) = modify_bb bb true ["ff",a;"b4",b] [] in    
+  let f i = mo (split_flatq fc i) in
+  let bbs = map f (range 0 5) in
+  let mo (a,b,c) = modify_bb bb true ["ff",a;"af",b;"ff",c] [] in
+  let f i = mo (asplit_pent fc i) in
+  let ccs = map f (range 0 5) in
+   (modify_bb bb true ["s8",fc] []) :: bbs @ ccs ;;
+
+let switch6 bb = 
+  let fc::_ = bb.std_faces_not_super in
+  let mo (a,b) = modify_bb bb true ["ff",a;"b5",b] [] in
+  let f i = mo (split_flatq fc i) in
+   (modify_bb bb true ["s8",fc] []) :: (map f (range 0 6));;
+
+let switch_face bb = 
+  let fc::_ = bb.std_faces_not_super in
+  let j = length fc in
+  let fn = (nth [switch3;switch4;switch5;switch6] (j-3)) in
+    fn bb;;
 
 
-  
-(* HEXAGON ANALYSIS *)
-(* loop to run: *)
-let hex_bb = filter (fun x -> length (std_face_of_size x 6) > 0) tame_bb;;
-let hex_sol = map solve_branch hex_bb;;
-let hex_hi = filter_feasible hex_sol hex_bb;;
-
-
-(* branching *)
-(* every hexagon either satisfies SHEX ineqs, or some dart in the hexagon is in SHEXDART *)
-
-let solve_shex bb = 
-   let r = { hypermapid = bb.hypermapid^ "00";
-	       shex = (hd bb. ihex)::[];
-	       faces = (faces bb);
-	   } in
-    solve_branch r;;
 
 
 

@@ -3,7 +3,7 @@ Thomas C. Hales
 June 25, 2009
 Process linear programs for the proof of the Kepler conjecture.
 
-needs to use ocamlstr (new top level with Str preloaded) on platforms that do not support dynamic loading of Str.
+needs new mktop on platforms that do not support dynamic loading of Str.
 
 ocamlmktop unix.cma str.cma -o ocampl
 ./ocampl
@@ -19,7 +19,10 @@ let model = "/tmp/graph0.mod";;
 let archive_tame_hi = "/tmp/tamehi.txt";; (* output *)
 
 (* list operations *)
-let maxlist0 xs = fold_right max xs 0;; (* NB: always at least 0 *)
+let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
+
+let get_values key xs = 
+  map (fun (_,y) -> y) (find_all (fun (k,_) -> (k=key)) xs);;
 
 let range = 
   let rec rangeA a i j  = if (i >= j) then a
@@ -61,7 +64,6 @@ let enumerate xs = zip (range 0 (length xs)) xs;;
 let whereis i xs = 
   let (p,_) = find (fun (_,j) -> (j=i)) (enumerate xs) in
     p;;
-
 
 
 (* read and write *)
@@ -150,7 +152,7 @@ type branchnbound =
     bigtri : int list list;
     smalltri : int list list;
     (* special dart appears first *)
-    flat_face : int list list;
+    flat_quarter : int list list;
     a_face : int list list;
     big5_face : int list list;
     big4_face : int list list;
@@ -158,6 +160,30 @@ type branchnbound =
     highvertex : int list;
     lowvertex : int list;
   };;
+
+let modify_bb bb drop1std fields vfields = 
+  let add key xs ys = get_values key xs @ ys in
+  let s::ss = bb.std_faces_not_super in
+{
+hypermapid = bb.hypermapid;
+string_rep = bb.string_rep;
+std_faces_not_super = if drop1std then ss else bb.std_faces_not_super;
+super8 = add "s8" fields bb.super8;
+bigtri = add "bigt" fields bb.bigtri;
+smalltri = add "st" fields bb.smalltri;
+flat_quarter = add "ff" fields bb.flat_quarter;
+a_face = add "af" fields bb.a_face;
+big5_face = add "b5" fields bb.big5_face;
+big4_face = add "b4" fields bb.big4_face;
+highvertex = add "hv" vfields bb.highvertex;
+lowvertex = add "lv" vfields bb.lowvertex;
+}
+;;
+(*
+Example: move [8;1;6;9] from std to super8.
+ let pbb = mk_bb pentstring;;
+ modify_bb pbb true ["s8",[8;1;6;9]] [];;
+*)
 
 let mk_bb s = 
   let (h,face1) = convert_to_list s in
@@ -167,7 +193,7 @@ let mk_bb s =
   super8=[];
   bigtri=[];
   smalltri=[];
-  flat_face=[];
+  flat_quarter=[];
   a_face=[];
   big5_face=[];
   big4_face=[];
@@ -179,10 +205,10 @@ let tame_bb = map mk_bb tame;;
 
 (* functions on branch n bound *)
 
-let faces bd = bd.std_faces_not_super @ bd.super8 @ 
-  bd.smalltri @ bd.a_face @ bd.big5_face @ bd.big4_face;;
+let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.bigtri @ bb.smalltri;;
 
-let std_faces bd = bd.std_faces_not_super @ bd.super8;;
+let faces bb = (std_faces bb) @ bb.flat_quarter @ 
+  bb.a_face @ bb.big5_face @ bb.big4_face;;
 
 let triples w = 
   let r j = nth w (j mod length w)  in
@@ -207,12 +233,13 @@ let unsplit d f = function
   | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
   | [] -> "";;
 
-(* XXD *)
 
-let ampl_string_of_bb outs bd = 
-  let list_of xs = unsplit " " string_of_int xs in
+let ampl_string_of_bb outs bb = 
+  let fs = faces bb in
+  let number xs = map (fun i -> whereis i fs) xs in
+  let list_of = unsplit " " string_of_int in
   let edart_raw  = 
-    map triples (faces bd) in
+    map triples (faces bb) in
   let edart =
     let edata_row (i,x) = (sprintf "(*,*,*,%d) " i) ^ (unsplit ", " list_of x) in
       unsplit "\n" edata_row (enumerate edart_raw) in 
@@ -241,23 +268,23 @@ set SMALLTRI := %s;
 set HIGHVERTEX := %s;
 set LOWVERTEX := %s;
 " 
-    (* hypermapid *) bd.hypermapid 
-    (* CVERTEX *) (cvertex bd)
-    (* CFACE *)   (cface bd)
-    (* ITRIANGLE *) (list_of (std_face_of_size bd 3)) 
-    (* IQUAD *) (list_of (std_face_of_size bd 4) )
-    (* IPENT *) (list_of (std_face_of_size bd 5)) 
-    (* IHEX *) (list_of (std_face_of_size bd 6))
+    (* hypermapid *) bb.hypermapid 
+    (* CVERTEX *) (cvertex bb)
+    (* CFACE *)   (cface bb)
+    (* ITRIANGLE *) (list_of (std_face_of_size bb 3)) 
+    (* IQUAD *) (list_of (std_face_of_size bb 4) )
+    (* IPENT *) (list_of (std_face_of_size bb 5)) 
+    (* IHEX *) (list_of (std_face_of_size bb 6))
     (* EDART *) (edart)
-    (* SUPER8 *)  (list_of bd.super8)
-    (* FLAT *) ""  (* these final fields are zero in basic lps *)
-    (* APIECE *) ""
-    (* BIG5APEX *) ""
-    (* BIG4APEX *) ""
-    (* BIGTRI *) ""
-    (* SMALLTRI *) ""
-    (* HIGHVERTEX *) ""
-    (* LOWVERTEX *) "";;
+    (* SUPER8 *)  (list_of (number bb.super8))
+    (* FLAT *)  (list_of (number bb.flat_quarter))
+    (* APIECE *) (list_of (number bb.a_face))
+    (* BIG5APEX *) ""  (* XX *)
+    (* BIG4APEX *) ""  (* XX *)
+    (* BIGTRI *) (list_of (number bb.bigtri))
+    (* SMALLTRI *) (list_of (number bb.smalltri))
+    (* HIGHVERTEX *) ""  (* XX *)
+    (* LOWVERTEX *) "";;  (* XX *)
 
 let testps () =
   let file = "/tmp/out1.txt" in
@@ -268,22 +295,22 @@ let testps () =
  
 (* running of branch in glpsol *)
 
-let solve_branch bd = 
+let solve_branch bb = 
   let (ic,oc) = Unix.open_process(sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model) in 
-  let _ = ampl_string_of_bb oc bd in
+  let _ = ampl_string_of_bb oc bb in
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
   let r = 
-    if (length inp != 1) then raise (Failure ("Bad format:"^bd.hypermapid))
+    if (length inp != 1) then raise (Failure ("Bad format:"^bb.hypermapid))
     else float_of_string (hd inp) in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bd.hypermapid r) in 
-    (bd,r);;
+  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
+    (bb,r);;
 
-let filter_lp f bds = 
-  let sol = map solve_branch bds in
-  let (bds,_) = split (filter (fun (_,r) -> f r) sol) in
-    bds;;
+let filter_lp f bbs = 
+  let sol = map solve_branch bbs in
+  let (bbs,_) = split (filter (fun (_,r) -> f r) sol) in
+    bbs;;
 
 let feasible r = (r > 11.0);;
 
@@ -320,10 +347,10 @@ let hex_hi = filter_feasible hex_sol hex_bb;;
 (* branching *)
 (* every hexagon either satisfies SHEX ineqs, or some dart in the hexagon is in SHEXDART *)
 
-let solve_shex bd = 
-   let r = { hypermapid = bd.hypermapid^ "00";
-	       shex = (hd bd. ihex)::[];
-	       faces = (faces bd);
+let solve_shex bb = 
+   let r = { hypermapid = bb.hypermapid^ "00";
+	       shex = (hd bb. ihex)::[];
+	       faces = (faces bb);
 	   } in
     solve_branch r;;
 

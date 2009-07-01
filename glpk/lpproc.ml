@@ -163,13 +163,13 @@ type branchnbound =
 
 let modify_bb bb drop1std fields vfields = 
   let add key xs ys = get_values key xs @ ys in
-  let s::ss = bb.std_faces_not_super in
+  let std = bb.std_faces_not_super in
 {
 hypermapid = bb.hypermapid;
 string_rep = bb.string_rep;
-std_faces_not_super = if drop1std then ss else bb.std_faces_not_super;
+std_faces_not_super = if drop1std then tl std else std;
 super8 = add "s8" fields bb.super8;
-bigtri = add "bigt" fields bb.bigtri;
+bigtri = add "bt" fields bb.bigtri;
 smalltri = add "st" fields bb.smalltri;
 flat_quarter = add "ff" fields bb.flat_quarter;
 a_face = add "af" fields bb.a_face;
@@ -232,77 +232,65 @@ let std_face_of_size bb r=
 let unsplit d f = function
   | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
   | [] -> "";;
+let join_lines  = unsplit "\n" (fun x-> x);;
 
 
-let ampl_string_of_bb outs bb = 
+let ampl_of_bb outs bb = 
   let fs = faces bb in
   let number xs = map (fun i -> whereis i fs) xs in
   let list_of = unsplit " " string_of_int in
   let edart_raw  = 
     map triples (faces bb) in
   let edart =
-    let edata_row (i,x) = (sprintf "(*,*,*,%d) " i) ^ (unsplit ", " list_of x) in
+    let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(unsplit ", " list_of x) in
       unsplit "\n" edata_row (enumerate edart_raw) in 
-  Printf.fprintf outs
-  "
-param hypermapID := %s;
-param CVERTEX := %d;
-param CFACE := %d;
+  let p = sprintf in
+  let j = join_lines [
+    p"param CVERTEX := %d;" (cvertex bb) ;
+    p"param hypermapID := %s;" bb.hypermapid ; 
+    p"param CFACE := %d;\n" (cface bb);
+    p"set ITRIANGLE := %s;" (list_of (std_face_of_size bb 3)) ;
+    p"set IQUAD := %s;" (list_of (std_face_of_size bb 4) );
+    p"set IPENT := %s;" (list_of (std_face_of_size bb 5)) ;
+    p"set IHEX := %s;\n" (list_of (std_face_of_size bb 6));
+    p"set EDART := \n%s;\n"  (edart);
+    p"set SUPER8 := %s;" (list_of (number bb.super8));
+    p"set FLAT := %s;" (list_of (number bb.flat_quarter));
+    p"set APIECE := %s;" (list_of (number bb.a_face));
+    p"set BIG5APEX := %s;" ""  (* XX *);
+    p"set BIG4APEX := %s;" ""  (* XX *);
+    p"set BIGTRI := %s;" (list_of (number bb.bigtri));
+    p"set SMALLTRI := %s;"  (list_of (number bb.smalltri));
+    p"set HIGHVERTEX := %s;" (list_of bb.highvertex);
+    p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
+    Printf.fprintf outs "%s" j;;  
 
-set ITRIANGLE := %s;
-set IQUAD := %s;
-set IPENT := %s;
-set IHEX := %s;
-
-set EDART := 
-%s
-;
-
-set SUPER8 := %s;
-set FLAT := %s;
-set APIECE := %s;
-set BIG5APEX := %s;
-set BIG4APEX := %s;
-set BIGTRI := %s;
-set SMALLTRI := %s;
-set HIGHVERTEX := %s;
-set LOWVERTEX := %s;
-" 
-    (* hypermapid *) bb.hypermapid 
-    (* CVERTEX *) (cvertex bb)
-    (* CFACE *)   (cface bb)
-    (* ITRIANGLE *) (list_of (std_face_of_size bb 3)) 
-    (* IQUAD *) (list_of (std_face_of_size bb 4) )
-    (* IPENT *) (list_of (std_face_of_size bb 5)) 
-    (* IHEX *) (list_of (std_face_of_size bb 6))
-    (* EDART *) (edart)
-    (* SUPER8 *)  (list_of (number bb.super8))
-    (* FLAT *)  (list_of (number bb.flat_quarter))
-    (* APIECE *) (list_of (number bb.a_face))
-    (* BIG5APEX *) ""  (* XX *)
-    (* BIG4APEX *) ""  (* XX *)
-    (* BIGTRI *) (list_of (number bb.bigtri))
-    (* SMALLTRI *) (list_of (number bb.smalltri))
-    (* HIGHVERTEX *) ""  (* XX *)
-    (* LOWVERTEX *) "";;  (* XX *)
+(* XXD 
+next : XX
+next : make highvertex lowvertex modify to work.
+next : write branch and bound routines.
+*)
 
 let testps () =
   let file = "/tmp/out1.txt" in
   let outs = open_out file in
-  let _ = ampl_string_of_bb outs (mk_bb pentstring) in
+  let bb = mk_bb pentstring in
+  let bb =  modify_bb bb false [] ["hv",8] in
+  let _ = ampl_of_bb outs bb in
   let _ = close_out outs in
     Sys.command(sprintf "cat %s" file);;
  
 (* running of branch in glpsol *)
 
 let solve_branch bb = 
-  let (ic,oc) = Unix.open_process(sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model) in 
-  let _ = ampl_string_of_bb oc bb in
+  let com = sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model in 
+  let (ic,oc) = Unix.open_process(com) in 
+  let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
   let r = 
-    if (length inp != 1) then raise (Failure ("Bad format:"^bb.hypermapid))
+    if (length inp != 1) then raise (Failure ("Bad format:"^bb.hypermapid^(unsplit "\n " (fun x -> x) inp)))
     else float_of_string (hd inp) in
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
     (bb,r);;

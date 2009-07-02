@@ -98,7 +98,8 @@ let strip_archive filename =  (* strip // comments, blank lines, quotes etc. *)
 
 (* read in the tame hypermap archive as java style strings *)
 
-let tame = strip_archive archiveraw;;
+(* let tame = strip_archive archiveraw;; *)
+let tame = strip_archive archive_tame_hi;;
 
 (* example of java style string from hypermap generator. *)
 let pentstring = "13_150834109178 18 3 0 1 2 3 3 2 7 3 3 0 2 4 5 4 0 3 4 6 1 0 4 3 7 2 8 3 8 2 1 4 8 1 6 9 3 9 6 10 3 10 6 4 3 10 4 5 4 5 3 7 11 3 10 5 11 3 11 7 12 3 12 7 8 3 12 8 9 3 9 10 11 3 11 12 9 ";;
@@ -144,9 +145,11 @@ let convert_to_list =
 
 (* conversion to branchnbound.  e.g. mk_bb pentstring  *)
 
+
 type branchnbound = 
   { 
     hypermapid : string;
+    mutable lpvalue : float option;
     string_rep : string;
     (* should be in canonical order: *)
     std_faces_not_super: int list list;
@@ -168,6 +171,7 @@ let modify_bb bb drop1std fields vfields =
   let std = bb.std_faces_not_super in
 {
 hypermapid = bb.hypermapid;
+lpvalue = None;
 string_rep = bb.string_rep;
 std_faces_not_super = if drop1std then tl std else std;
 super8 = add "s8" fields bb.super8;
@@ -191,6 +195,7 @@ Example: move [8;1;6;9] from std to super8.
 let mk_bb s = 
   let (h,face1) = convert_to_list s in
  {hypermapid= h;
+  lpvalue = None;
   string_rep=s;
   std_faces_not_super = face1;
   super8=[];
@@ -203,12 +208,13 @@ let mk_bb s =
   highvertex=[];
   lowvertex=[];
  };;
+
 let tame_bb = map mk_bb tame;; 
 
 
 (* functions on branch n bound *)
 
-let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.bigtri @ bb.smalltri;;
+let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.bigtri @ bb.smalltri;;;
 
 let faces bb = (std_faces bb) @ bb.flat_quarter @ 
   bb.a_face @ bb.big5_face @ bb.big4_face;;
@@ -242,11 +248,14 @@ let ampl_of_bb outs bb =
   let fs = faces bb in
   let number xs = map (fun i -> whereis i fs) xs in
   let list_of = unsplit " " string_of_int in
+  let mk_faces xs = list_of (number xs) in
   let edart_raw  = 
     map triples (faces bb) in
   let edart =
     let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(unsplit ", " list_of x) in
       unsplit "\n" edata_row (enumerate edart_raw) in 
+  let mk_dart xs = sprintf "%d %d" (hd xs) (whereis xs fs) in
+  let mk_darts xs = (unsplit ", " mk_dart xs) in
   let p = sprintf in
   let j = join_lines [
     p"param CVERTEX := %d;" (cvertex bb) ;
@@ -257,13 +266,13 @@ let ampl_of_bb outs bb =
     p"set IPENT := %s;" (list_of (std_face_of_size bb 5)) ;
     p"set IHEX := %s;\n" (list_of (std_face_of_size bb 6));
     p"set EDART := \n%s;\n"  (edart);
-    p"set SUPER8 := %s;" (list_of (number bb.super8));
-    p"set FLAT := %s;" (list_of (number bb.flat_quarter));
-    p"set APIECE := %s;" (list_of (number bb.a_face));
-    p"set BIG5APEX := %s;" ""  (* XX *);
-    p"set BIG4APEX := %s;" ""  (* XX *);
-    p"set BIGTRI := %s;" (list_of (number bb.bigtri));
-    p"set SMALLTRI := %s;"  (list_of (number bb.smalltri));
+    p"set SUPER8 := %s;" (mk_faces bb.super8);
+    p"set FLAT := %s;" (mk_darts bb.flat_quarter);
+    p"set APIECE := %s;" (mk_darts bb.a_face);
+    p"set BIG5APEX := %s;" (mk_darts bb.big5_face);
+    p"set BIG4APEX := %s;" (mk_darts bb.big4_face);
+    p"set BIGTRI := %s;" (mk_faces bb.bigtri);
+    p"set SMALLTRI := %s;"  (mk_faces bb.smalltri);
     p"set HIGHVERTEX := %s;" (list_of bb.highvertex);
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
@@ -272,37 +281,48 @@ let testps () =
   let file = "/tmp/out1.txt" in
   let outs = open_out file in
   let bb = mk_bb pentstring in
-  let bb =  modify_bb bb false [] ["hv",8] in
+  let bb =  modify_bb bb false ["ff",[0;1;2];"s8",[8;1;6;9];"ff",[12;7;8]] ["hv",8] in
   let _ = ampl_of_bb outs bb in
   let _ = close_out outs in
     Sys.command(sprintf "cat %s" file);;
  
 (* running of branch in glpsol *)
 
-let solve_branch bb = 
+let set_some bb r = (* side effects *)
+   if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else ();;
+
+
+let solve_branch bb = (* side effects, lpvalue mutable *)
   let com = sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-  let r = 
-    if (length inp != 1) then raise (Failure ("Bad format:"^bb.hypermapid^(unsplit "\n " (fun x -> x) inp)))
-    else float_of_string (hd inp) in
+  let _ = set_some bb inp in
+  let r = match bb.lpvalue with
+    | None -> -1.0
+    | Some r -> r in
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
-    (bb,r);;
+    bb;;
 
-let filter_lp f bbs = 
-  let sol = map solve_branch bbs in
-  let (bbs,_) = split (filter (fun (_,r) -> f r) sol) in
-    bbs;;
+let solve bb = match bb.lpvalue with
+  | None -> solve_branch bb
+  | Some _ -> bb;;
+
+let filterout_infeas f bbs = 
+  let sol = map solve bbs in
+    let fil ro = match ro.lpvalue with
+	None -> true
+      | Some r -> f r in 
+      filter fil sol;;
 
 let feasible r = (r > 11.999);; (* relax a bit from 12.0 *)
 
 (*
 let tame_hi = 
   let _ = Sys.command("date") in
-  let h =  filter_lp feasible tame_bb
+  let h =  filter_out_infeas feasible tame_bb
   let _ =  Sys.command("date") in
   h;;
 (* 20:46-22:13 *)
@@ -350,13 +370,14 @@ let switch6 bb =
   let f i = mo (split_flatq fc i) in
    (modify_bb bb true ["s8",fc] []) :: (map f (range 0 6));;
 
-let switch_face bb = 
-  let fc::_ = bb.std_faces_not_super in
-  let j = length fc in
-  let fn = (nth [switch3;switch4;switch5;switch6] (j-3)) in
-    fn bb;;
+let switch_face bb = match bb.std_faces_not_super with
+  | [] -> [bb]
+  | fc::_ ->
+      let j = length fc in
+      let fn = (nth [switch3;switch4;switch5;switch6] (j-3)) in
+	fn bb;;
 
-
-
-
+let onepass bbs = 
+  let branches = flatten (map switch_face bbs) in
+    filterout_infeas feasible branches;;
 

@@ -89,7 +89,6 @@ set DARTX := BIG4APEX union
    setof{(i1,i2,i3,j) in EDART: (i2,j) in BIG5APEX}(i3,j) union
    {(i,j) in DART: j in IQUAD union IPENT union IHEX};
 
-# set LONGEDGE within DEDGE  #length 2.52 to sqrt8.
 
 # basic variables
 var azim{DART} >= 0, <= pi;

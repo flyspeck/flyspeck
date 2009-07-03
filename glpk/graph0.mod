@@ -27,9 +27,10 @@ CFACE: the number of faces.  Standard regions that have been subdivided are not 
 EDART: quadruples (i1,i2,i3,j) where (i1,j) is a dart such that f(i1,j) = (i2,j), f(i2,j)=(i3,j).
 ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.
 SUPER8: quads, pents, and hexes that are known not to have any flat quarters.
-FLAT: the apex darts of flat quarters.
+FLAT: the apex darts of flat quarters.  It is the dart opposite the long edge.
 APIECE: the apex darts of flat quarters.
-BIG5APEX: apex dart of complement of flat in hex
+BIG5APEX: apex dart of complement of flat in hex, where the apex dart is defined as 
+  in the BIG4APEX.  It is *not* the dart opposite the long edge.
 BIG4APEX: apex dart in complement of flat in pent, where the apex dart is defined as
   the dart x s.t. f x and f^2 x are the two darts along the long edge.
 BIGTRI: standard triangles with y4+y5+y6>=6.25;
@@ -63,6 +64,7 @@ set IPENT;
 set IHEX; 
 set STANDARDR := ITRIANGLE union IQUAD union IPENT union IHEX; # standard regions.
 set DART3:= {(i,j) in DART: j in ITRIANGLE};
+set DART4:= {(i,j) in DART: j in IQUAD};
 
 # branch sets
 set SUPER8 within IQUAD union IPENT union IHEX;
@@ -73,21 +75,35 @@ set APIECE within {(i,j) in DART : j in SUBREGION};
 # APEX3 does not include all darts of FLAT and APIECE, only the distinguished one.
 set APEX3 := FLAT union APIECE union {(i,j) in DART: j in ITRIANGLE};
 set BIG5APEX within {(i,j) in DART : j in SUBREGION};  
-set BIG5FACE := setof{(i,j) in BIG5APEX}(j);
 set BIG4APEX within {(i,j) in DART: j in SUBREGION};  
-set BIG4FACE := setof{(i,j) in BIG4APEX}(j);
 set BIGTRI within ITRIANGLE;
 set SMALLTRI within ITRIANGLE;
 set HIGHVERTEX within IVERTEX;
 set LOWVERTEX within IVERTEX;
 
-# darts originally on a standard region with more than 4 sides.
-set DARTX := BIG4APEX union
-   setof{(i1,i2,i3,j) in EDART: (i2,j) in BIG4APEX}(i1,j) union
-   BIG5APEX union
-   setof{(i1,i2,i3,j) in EDART: (i2,j) in BIG5APEX}(i1,j) union
-   setof{(i1,i2,i3,j) in EDART: (i2,j) in BIG5APEX}(i3,j) union
+## SPECIAL SETS OF DARTS ##
+
+# darts with opposite at least 2.52 others in [2,2.52].
+set DARTX :=  BIG5APEX union
+   setof{(i1,i2,i3,j) in EDART: (i3,j) in BIG5APEX}(i1,j) union
+   setof{(i1,i2,i3,j) in EDART: (i3,j) in BIG5APEX}(i2,j) union
    {(i,j) in DART: j in IQUAD union IPENT union IHEX};
+
+# darts with opposite at least s8, others in [2,2.52].
+set DARTZ := {(i,j) in DART: j in SUPER8} union BIG4APEX union
+    setof{(i1,i2,i3,j) in EDART : (i2,j) in BIG4APEX}(i1,j);
+
+# darts with y4>= 2.52, y6 [2,2.52], others [2,2.52]
+set DART46 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG5APEX}(i2,j);
+
+# darts with y4>= 2.52, y5 [2,2.52], others [2,2.52]
+set DART56 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG5APEX}(i3,j);
+
+# darts with y4>= s8, y6 [2,2.52], others [2,2.52]
+set DART46s8 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG4APEX}(i2,j);
+
+# darts with y4>= s8, y5 [2,2.52], others [2,2.52]
+set DART56s8 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG4APEX}(i3,j);
 
 
 # basic variables
@@ -134,10 +150,16 @@ y6_def{(i3,i1,i2,j) in EDART}: y6[i1,j] = ye[i1,j];
 
 ## inequality constraints
 main: sum{i in IVERTEX} ln[i] >= 12;
-azmin{(i,j) in DART : j in ITRIANGLE}: azim[i,j] >= 0.852;
-azmax{(i,j) in DART : j in ITRIANGLE}: azim[i,j] <= 1.893;
 RHA{(i,j) in DART}: azim[i,j] <= rhazim[i,j];
 RHB{(i,j) in DART}: rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
+
+## branch definitional inequalities
+ybig{(i,j) in DART3 : j in SMALLTRI}: 
+  y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
+ysmall{(i,j) in DART3 : j in SMALLTRI}: 
+  y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
+yhigh{i in HIGHVERTEX}: yn[i] >= 2.18;
+ylow{i in LOWVERTEX}: yn[i] <= 2.18;
 
 # The corresponding bounds on APIECE, BIGAPEX4, BIGAPEX5 are redundant:
 y4_bound{(i,j) in DART3}: y4[i,j] <= 2.52;
@@ -147,62 +169,92 @@ y4_boundF{(i,j) in FLAT}: y4[i,j] >= 2.52;
 y5_boundF{(i,j) in FLAT}: y5[i,j] <= 2.52;
 y6_boundF{(i,j) in FLAT}: y6[i,j] <= 2.52;
 
+# tau inequality (Main Estimate)
 
-solyA{(i,j) in DART3}: sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-solyB{(i,j) in DART3}: -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-
-azminA{(i,j) in DART3}: azim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-azmaxA{(i,j) in DART3}: -azim[i,j] + 1.231 
-  - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
-azminX{(i,j) in DARTX}: azim[i,j] - 1.629 
-  + 0.402*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.315*(y1[i,j]-2)  >= 0;
-
-rhazminA{(i,j) in DART3}: rhazim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-
-# tau inequality
 tau3{j in ITRIANGLE}: tau[j] >= 0;
 tau4{j in IQUAD}: tau[j] >= 0.206;
 tau5{j in IPENT}: tau[j] >= 0.483;
 tau6{j in IHEX}: tau[j] >= 0.76;
 
-tau_azim3A{(i,j) in DART : j in ITRIANGLE}: tau[j]+0.626*azim[i,j] - 0.77 >= 0;
-tau_azim3B{(i,j) in DART : j in ITRIANGLE}: tau[j]-0.259*azim[i,j] + 0.32 >= 0;
-tau_azim3C{(i,j) in DART : j in ITRIANGLE}: tau[j]-0.507*azim[i,j] + 0.724 >= 0;
-tau_azim3D{(i,j) in DART3}: tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
+## interval arithmetic bounds DART3 ##
 
-tau_azim4A{(i,j) in DART : j in IQUAD}: tau[j] + 4.72*azim[i,j] - 6.248 >= 0;
-tau_azim4B{(i,j) in DART : j in IQUAD}: tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
-tau_azim4C{(i,j) in DART : j in IQUAD}: tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
-tau_azim4D{(i,j) in DART : j in IQUAD}: tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
+azmin 'ID[5735387903]' {(i,j) in DART3} : azim[i,j] >= 0.852;
 
-#branch SUPER8 inequality
-tau4B{j in IQUAD inter SUPER8}: tau[j] >= 0.256;
+azmax 'ID[5490182221]' {(i,j) in DART3}: azim[i,j] <= 1.893;
+
+tau_azim3A 'ID[3296257235]' {(i,j) in DART3}: 
+  tau[j]+0.626*azim[i,j] - 0.77 >= 0;
+
+tau_azim3B 'ID[8519146937]' {(i,j) in DART3}: 
+  tau[j]-0.259*azim[i,j] + 0.32 >= 0;
+
+tau_azim3C 'ID[4667071578]' {(i,j) in DART3}: 
+  tau[j]-0.507*azim[i,j] + 0.724 >= 0;
+
+tau_azim3D 'ID[1395142356]' {(i,j) in DART3}: 
+  tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
+
+solyA 'ID[7394240696]' {(i,j) in DART3}: 
+  sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
+
+solyB 'ID[7726998381]' {(i,j) in DART3}: 
+  -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
+
+azminA 'ID[4047599236]'  {(i,j) in DART3}: azim[i,j] - 1.2308 
+  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
+
+azmaxA 'ID[3526497018]' {(i,j) in DART3}: -azim[i,j] + 1.231 
+  - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
+
+
+rhazminA 'ID[5957966880]' {(i,j) in DART3}: rhazim[i,j] - 1.2308 
+  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
+
+
+
+## interval arithmetic bounds DART4 ##
+
+tau_azim4A 'ID[7043724150]' {(i,j) in DART4}:
+  tau[j] + 4.72*azim[i,j] - 6.248 >= 0;
+
+tau_azim4B 'ID[6944699408]' {(i,j) in DART4}:
+  tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
+
+tau_azim4C 'ID[4240815464]' {(i,j) in DART4}:
+  tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
+
+tau_azim4D 'ID[3862621143]' {(i,j) in DART4}:
+  tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
+
+## MAIN ESTIMATE SUPER8 BIG4 BIG5 ##
+
+tau3h {j in (setof{(i,j) in FLAT}(j))}: tau[j] >= 0.103;
+tauAh {j in (setof{(i,j) in APIECE}(j))}: tau[j] >= 0.277;
+tauB4h {j in (setof{(i,j) in BIG4APEX}(j))}: tau[j] >= 0.492;
+tauB5h {j in (setof{(i,j) in BIG5APEX}(j))}: tau[j] >= 0.657;
+tau4h{j in IQUAD inter SUPER8}: tau[j] >= 0.256;
 tau5h{j in IPENT inter SUPER8}: tau[j] >= 0.751;
 tau6h{j in IHEX inter SUPER8}: tau[j] >= 0.91;
 
-#XX add super8-dih.
+
+## more interval arithmetic on nonstandard triangles  ##
+
+azminX 'ID[3020140039]' {(i,j) in DARTX}: 
+  azim[i,j] - 1.629  + 0.402*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.315*(y1[i,j]-2)  >= 0;
+
+azminZ 'ID[9414951439]' {(i,j) in DARTZ}:
+  azim[i,j] - 1.91 + 0.458 * (y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.342*(y1[i,j]-2) >= 0;
+
 
 #branch FLAT inequality
-
 #branch APIECE inequality
-
 #branch BIGPIECE inequality
 
 #branch BIGTRI inequality
-ybig{(i,j) in DART3 : j in SMALLTRI}: 
-  y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
-
 #branch SMALLTRI inequality
-ysmall{(i,j) in DART3 : j in SMALLTRI}: 
-  y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
-
 #branch HIGHVERTEX inequality
-yhigh{i in HIGHVERTEX}: yn[i] >= 2.18;
-
 #branch LOWVERTEX inequality
-ylow{i in LOWVERTEX}: yn[i] <= 2.18;
+
 
 solve;
 display hypermapID;

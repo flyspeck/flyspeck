@@ -228,10 +228,10 @@ tau_azim4D 'ID[3862621143]' {(i,j) in DART4}:
 
 ## MAIN ESTIMATE SUPER8 BIG4 BIG5 ##
 
-tau3h {j in (setof{(i,j) in FLAT}(j))}: tau[j] >= 0.103;
-tauAh {j in (setof{(i,j) in APIECE}(j))}: tau[j] >= 0.277;
-tauB4h {j in (setof{(i,j) in BIG4APEX}(j))}: tau[j] >= 0.492;
-tauB5h {j in (setof{(i,j) in BIG5APEX}(j))}: tau[j] >= 0.657;
+tau3h {(i,j) in FLAT}: tau[j] >= 0.103;
+tauAh {(i,j) in APIECE}: tau[j] >= 0.277;
+tauB4h {(i,j) in BIG4APEX}: tau[j] >= 0.492;
+tauB5h {(i,j) in BIG5APEX}: tau[j] >= 0.657;
 tau4h{j in IQUAD inter SUPER8}: tau[j] >= 0.256;
 tau5h{j in IPENT inter SUPER8}: tau[j] >= 0.751;
 tau6h{j in IHEX inter SUPER8}: tau[j] >= 0.91;

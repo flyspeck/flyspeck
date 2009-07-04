@@ -247,6 +247,13 @@ azminZ 'ID[9414951439]' {(i,j) in DARTZ}:
 
 
 #branch FLAT inequality
+
+flattau 'ID[8248508703]' {(i,j) in FLAT}:
+  tau[j] - 0.1 - 0.265*(y5[i,j]+y6[i,j]-4) - 0.06*(y4[i,j]-2.52) 
+   - 0.16*(y1[i,j]-2) -  0.115*(y2[i,j]+y3[i,j]-4) >=0;
+
+# flatdihmin, flatdihmin, flatrhazimmin, flatrhazimmin.
+
 #branch APIECE inequality
 #branch BIGPIECE inequality
 

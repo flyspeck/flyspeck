@@ -16,7 +16,8 @@ let sprintf = Printf.sprintf;;
 (* external files *)
 let archiveraw = "/tmp/tame_graph.txt";;
 let model = "/tmp/graph0.mod";;
-let archive_tame_hi = "/tmp/tamehi.txt";; (* output *)
+let archive_tame_hi = "/tmp/tamehi.txt";; 
+let tmpfile = "/tmp/lpproc_tmp.txt";;
 
 (* list operations *)
 let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
@@ -278,7 +279,7 @@ let ampl_of_bb outs bb =
     Printf.fprintf outs "%s" j;;  
 
 let testps () =
-  let file = "/tmp/out1.txt" in
+  let file = tmpfile in 
   let outs = open_out file in
   let bb = mk_bb pentstring in
   let bb =  modify_bb bb false ["ff",[0;1;2];"s8",[8;1;6;9];"ff",[12;7;8]] ["hv",8] in
@@ -305,6 +306,14 @@ let solve_branch bb = (* side effects, lpvalue mutable *)
     | Some r -> r in
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
     bb;;
+
+let display_lp bb = (* for debugging *)
+  let oc = open_out tmpfile in
+  let _ = ampl_of_bb oc bb in
+  let _ = close_out oc in
+  let com = sprintf "glpsol -m %s -d %s" model tmpfile in
+  let _ = Sys.command(com) in 
+    ();;
 
 let solve bb = match bb.lpvalue with
   | None -> solve_branch bb
@@ -381,3 +390,5 @@ let onepass bbs =
   let branches = flatten (map switch_face bbs) in
     filterout_infeas feasible branches;;
 
+
+let hexes = filter (fun bb -> 6 = maxlist0 (map length (faces bb))) tame_bb;;

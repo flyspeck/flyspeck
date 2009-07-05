@@ -449,9 +449,9 @@ trialdata d17(m17(),"ID[9414951439]:  dih-super8-min-ineq");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t30(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5])  -0.1
-    - 0.265*(y[4]+y[5]-4) -0.06 *(y[3]-2.52) -0.16*(y[0]-2) - 0.115*(y[1]+y[2]-4);
-	}
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5])  
+    -0.1  - 0.265*(y[4]+y[5]-4) -0.06 *(y[3]-2.52) -0.16*(y[0]-2) - 0.115*(y[1]+y[2]-4);
+    	}
 Minimizer m30() {
   double xmin[6]= {2,2,2,2.52,2,2};
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
@@ -460,6 +460,42 @@ Minimizer m30() {
 	return M;
 }
 trialdata d30(m30(),"ID[8248508703] taum: flat quarter");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t33(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) -
+   1.629
+    +0.402 *(y[1]+y[2]+y[4]+y[5]-8) +0.764*(y[3]-2.52) - 0.315*(y[0]-2) ;
+	}
+Minimizer m33() {
+  double xmin[6]= {2,2,2,2.52,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t33;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_568731327 from 1998
+trialdata d33(m33(),"ID[XXD 3318775219]:  dih-flat-min-ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t34(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) +
+   1.6294
+    -0.2213 *(y[1]+y[2]+y[4]+y[5]-8) +0.913*(y[3]-2.52) + 0.728*(y[0]-2) ;
+	}
+Minimizer m34() {
+  double xmin[6]= {2,2,2,2.52,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t34;
+	//M.cFunc = smallrad;
+	return M;
+}
+//compare J_568731327 from 1998
+trialdata d34(m33(),"ID[9922699028]:  dih-flat-max-ineq");
 
 
 int main() {

@@ -142,7 +142,7 @@ RHA{(i,j) in DART}: azim[i,j] <= rhazim[i,j];
 RHB{(i,j) in DART}: rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
 
 ## branch definitional inequalities
-ybig{(i,j) in DART3 : j in SMALLTRI}: 
+ybig{(i,j) in DART3 : j in BIGTRI}: 
   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
 ysmall{(i,j) in DART3 : j in SMALLTRI}: 
   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
@@ -328,12 +328,16 @@ smalltritau 'ID[9225295803]' {(i,j) in DART: j in SMALLTRI}:
   tau[j] +0.0034
   -0.166*(y1[i,j]+y2[i,j]+y3[i,j]-6) -0.22*(y4[i,j]+y5[i,j]+y6[i,j]-6) >=0;
 
-smalltridih 'ID[]' {(i,j) in DART: j in SMALLTRI}:
+smalltridih 'ID[9291937879]' {(i,j) in DART: j in SMALLTRI}:
   azim[i,j] - 1.23
   -0.235*(y1[i,j]-2) + 0.362*(y2[i,j]+y3[i,j]-4)
   -0.694*(y4[i,j]-2) + 0.26*(y5[i,j]+y6[i,j]-4) >=0;
 
 #branch BIGTRI inequality
+
+bigtritau 'ID[7761782916]' {(i,j) in DART: j in BIGTRI}:
+  tau[j] - 0.05 -0.137*(y1[i,j]+y2[i,j]+y3[i,j]-6)
+  -0.17*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
 #branch HIGHVERTEX inequality
 #branch LOWVERTEX inequality

@@ -93,11 +93,6 @@ set DARTX :=  BIG5APEX union
 set DARTZ := {(i,j) in DART: j in SUPER8} union BIG4APEX union
     setof{(i1,i2,i3,j) in EDART : (i2,j) in BIG4APEX}(i1,j);
 
-# darts with y4>= 2.52, y6 [2,2.52], others [2,2.52]
-set DART46 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG5APEX}(i2,j);
-
-# darts with y4>= 2.52, y5 [2,2.52], others [2,2.52]
-set DART56 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG5APEX}(i3,j);
 
 # darts with y4>= s8, y6 [2,2.52], others [2,2.52]
 set DART46s8 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG4APEX}(i2,j);
@@ -252,10 +247,67 @@ flattau 'ID[8248508703]' {(i,j) in FLAT}:
   tau[j] - 0.1 - 0.265*(y5[i,j]+y6[i,j]-4) - 0.06*(y4[i,j]-2.52) 
    - 0.16*(y1[i,j]-2) -  0.115*(y2[i,j]+y3[i,j]-4) >=0;
 
-# flatdihmin, flatdihmin, flatrhazimmin, flatrhazimmin.
+flatazim 'ID[3318775219]' {(i,j) in FLAT}:
+  azim[i,j] - 1.629 + 0.414*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
+-0.763*(y4[i,j]-2.52) - 0.315*(y1[i,j]-2) >= 0;
 
-#branch APIECE inequality
-#branch BIGPIECE inequality
+flatazimmax 'ID[9922699028]' {(i,j) in FLAT}:
+  -azim[i,j] + 1.6294 - 0.2213*(y2[i,j]+y3[i,j]+y5[i,j]-y6[i,j]-8)
+  +0.913*(y4[i,j]-2.52) + 0.728*(y1[i,j]-2) >= 0;
+
+flatazim2 'ID[5000076558]' {(i1,i,i3,j) in EDART : (i,j) in FLAT}:
+  azim[i3,j] - 1.083 + 0.6365*(y1[i,j]-2) - 0.198*(y2[i,j]-2)
+  +0.352*(y3[i,j]-2) + 0.416*(y4[i,j]-2.52)
+  -0.66*(y5[i,j]-2) + 0.071*(y6[i,j]-2) >= 0;
+
+flatrhazim 'ID[9251360200]' {(i,j) in FLAT}:
+  rhazim[i,j]
+  -1.629 - 0.866*(y1[i,j]-2) + 0.3805*(y2[i,j]+y3[i,j]-4)
+  -0.841*(y4[i,j]-2.52) + 0.501*(y5[i,j]+y6[i,j]-4) >= 0;
+
+flatrhazim2 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
+  rhazim[i3,j] -1.08
+  +0.6362*(y1[i,j]-2) -0.565*(y2[i,j]-2)+0.359*(y3[i,j]-2)
+  +0.416*(y4[i,j]-2.52) -0.666*(y5[i,j]-2) +0.061*(y6[i,j]-2) >=0;
+
+#branch APIECE-BIGPIECE inequality
+#We get six inequalities from a single non-linear inequality,
+#  depending on the constraints on y4, and symmetries.
+
+# darts with y4>= 2.52, y6 [2.52,s8], others [2,2.52]
+big5azim46 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i1,j) in BIG5APEX}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y2[i,j]-2) + 0.57*(y3[i,j]-2)
+   -0.745*(2.52-2.52)   + 0.268*(y5[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
+
+big4azim46 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i1,j) in BIG4APEX}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y2[i,j]-2) + 0.57*(y3[i,j]-2)
+  -0.745*(sqrt8-2.52)  +0.268*(y5[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
+
+apieceazim3 'ID[1812128999]' {(i,i2,i3,j) in EDART: (i2,j) in APIECE}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y2[i,j]-2) + 0.57*(y3[i,j]-2)
+  -0.745*(y4[i,j]-2.52)  +0.268*(y5[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
+
+# Three more obtained from preceding by y2<->y3, y5<->y6.
+# darts with y4>= 2.52, y5 [2.52,s8], others [2,2.52]
+big5azim56 'ID[1812128999]' {(i1,i2,i,j) in EDART: (i1,j) in BIG5APEX}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y3[i,j]-2) + 0.57*(y2[i,j]-2)
+  -0.745*(2.52-2.52)  +0.268*(y6[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
+
+big4azim56 'ID[1812128999]' {(i1,i2,i,j) in EDART: (i1,j) in BIG4APEX}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y3[i,j]-2) + 0.57*(y2[i,j]-2)
+  -0.745*(sqrt8-2.52)  +0.268*(y6[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
+
+apieceazim2 'ID[1812128999]' {(i1,i2,i,j) in EDART: (i2,j) in APIECE}: 
+  azim[i,j]  - 1.448
+  -0.266*(y1[i,j]-2) + 0.295*(y3[i,j]-2) + 0.57*(y2[i,j]-2)
+  -0.745*(y4[i,j]-2.52)  +0.268*(y6[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
+
+#branch APIECE inequality.
 
 #branch BIGTRI inequality
 #branch SMALLTRI inequality

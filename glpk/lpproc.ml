@@ -328,6 +328,10 @@ let filterout_infeas f bbs =
 
 let feasible r = (r > 11.999);; (* relax a bit from 12.0 *)
 
+let is_none bb = match bb.lpvalue with
+    None -> true
+  | Some _ -> false;;
+
 (*
 let tame_hi = 
   let _ = Sys.command("date") in

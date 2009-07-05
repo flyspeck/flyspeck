@@ -94,13 +94,6 @@ set DARTZ := {(i,j) in DART: j in SUPER8} union BIG4APEX union
     setof{(i1,i2,i3,j) in EDART : (i2,j) in BIG4APEX}(i1,j);
 
 
-# darts with y4>= s8, y6 [2,2.52], others [2,2.52]
-set DART46s8 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG4APEX}(i2,j);
-
-# darts with y4>= s8, y5 [2,2.52], others [2,2.52]
-set DART56s8 := setof{(i1,i2,i3,j) in EDART: (i1,j) in BIG4APEX}(i3,j);
-
-
 # basic variables
 var azim{DART} >= 0, <= pi;
 var ln{IVERTEX} >= 0, <= 1;
@@ -285,10 +278,12 @@ big4azim46 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i1,j) in BIG4APEX}:
   -0.266*(y1[i,j]-2) + 0.295*(y2[i,j]-2) + 0.57*(y3[i,j]-2)
   -0.745*(sqrt8-2.52)  +0.268*(y5[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
 
-apieceazim3 'ID[1812128999]' {(i,i2,i3,j) in EDART: (i2,j) in APIECE}: 
-  azim[i,j]  - 1.448
-  -0.266*(y1[i,j]-2) + 0.295*(y2[i,j]-2) + 0.57*(y3[i,j]-2)
-  -0.745*(y4[i,j]-2.52)  +0.268*(y5[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
+# permute the y coordinates so that [i,j] is the apiece dart
+# y6 is opposite, y5 is other long in APIECE.
+apieceazim3 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i,j) in APIECE}: 
+  azim[i1,j]  - 1.448
+  -0.266*(y3[i,j]-2) + 0.295*(y1[i,j]-2) + 0.57*(y2[i,j]-2)
+  -0.745*(y6[i,j]-2.52)  +0.268*(y4[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
 
 # Three more obtained from preceding by y2<->y3, y5<->y6.
 # darts with y4>= 2.52, y5 [2.52,s8], others [2,2.52]
@@ -302,10 +297,12 @@ big4azim56 'ID[1812128999]' {(i1,i2,i,j) in EDART: (i1,j) in BIG4APEX}:
   -0.266*(y1[i,j]-2) + 0.295*(y3[i,j]-2) + 0.57*(y2[i,j]-2)
   -0.745*(sqrt8-2.52)  +0.268*(y6[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
 
-apieceazim2 'ID[1812128999]' {(i1,i2,i,j) in EDART: (i2,j) in APIECE}: 
-  azim[i,j]  - 1.448
-  -0.266*(y1[i,j]-2) + 0.295*(y3[i,j]-2) + 0.57*(y2[i,j]-2)
-  -0.745*(y4[i,j]-2.52)  +0.268*(y6[i,j]-2) + 0.385*(y5[i,j]-2.52) >= 0;
+# permute the y coordinates so that [i,j] is the apiece dart
+# y5 is opposite, y6 is other long.
+apieceazim2 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i,j) in APIECE}: 
+  azim[i3,j]  - 1.448
+  -0.266*(y2[i,j]-2) + 0.295*(y1[i,j]-2) + 0.57*(y3[i,j]-2)
+  -0.745*(y5[i,j]-2.52)  +0.268*(y4[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
 
 #branch APIECE inequality.
 

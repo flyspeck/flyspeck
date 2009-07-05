@@ -161,8 +161,8 @@ y6_boundF{(i,j) in FLAT}: y6[i,j] <= 2.52;
 
 tau3{j in ITRIANGLE}: tau[j] >= 0;
 tau4{j in IQUAD}: tau[j] >= 0.206;
-tau5{j in IPENT}: tau[j] >= 0.483;
-tau6{j in IHEX}: tau[j] >= 0.76;
+tau5{j in IPENT}: tau[j] >= 0.4819;
+tau6{j in IHEX}: tau[j] >= 0.7578;
 
 ## interval arithmetic bounds DART3 ##
 
@@ -263,7 +263,7 @@ flatrhazim2 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
   +0.6362*(y1[i,j]-2) -0.565*(y2[i,j]-2)+0.359*(y3[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y5[i,j]-2) +0.061*(y6[i,j]-2) >=0;
 
-#branch APIECE-BIGPIECE inequality
+#branch azim APIECE-BIGPIECE inequality
 #We get six inequalities from a single non-linear inequality,
 #  depending on the constraints on y4, and symmetries.
 
@@ -306,8 +306,35 @@ apieceazim2 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i,j) in APIECE}:
 
 #branch APIECE inequality.
 
-#branch BIGTRI inequality
+apieceazim 'ID[5760733457]' {(i,j) in APIECE}:
+  azim[i,j] - 1.0705 
+  -0.1*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
+  -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
+
+apiecerhazim 'ID[2563100177]' {(i,j) in APIECE}:
+  rhazim[i,j] - 1.0685 
+  -0.4635*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
+  -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
+
+apiecetau 'ID[7931207804]' {(i,j) in APIECE}:
+  tau[j] - 0.27
+  +0.0295*(y1[i,j]-2) - 0.0778*(y2[i,j]-2) - 0.0778*(y3[i,j]-2) 
+  -0.37*(y4[i,j]-2) - 0.27*(y5[i,j]-2.52) - 0.27*(y6[i,j]-2.52) >= 0;
+
+
 #branch SMALLTRI inequality
+
+smalltritau 'ID[9225295803]' {(i,j) in DART: j in SMALLTRI}:
+  tau[j] +0.0034
+  -0.166*(y1[i,j]+y2[i,j]+y3[i,j]-6) -0.22*(y4[i,j]+y5[i,j]+y6[i,j]-6) >=0;
+
+smalltridih 'ID[]' {(i,j) in DART: j in SMALLTRI}:
+  azim[i,j] - 1.23
+  -0.235*(y1[i,j]-2) + 0.362*(y2[i,j]+y3[i,j]-4)
+  -0.694*(y4[i,j]-2) + 0.26*(y5[i,j]+y6[i,j]-4) >=0;
+
+#branch BIGTRI inequality
+
 #branch HIGHVERTEX inequality
 #branch LOWVERTEX inequality
 

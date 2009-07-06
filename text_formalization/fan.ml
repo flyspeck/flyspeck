@@ -55,10 +55,11 @@ needs "definitions_kepler.ml";;
  let sigma_fan= new_specification ["sigma_fan"] azim_cycle_fan1;;
 
 
- let D1=new_definition`D1 x V E={(x,v,w,w1)|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
+ let D1=new_definition`D1 (x,V,E)={(x,v,w,w1)|(V v)/\(w IN set_of_edges v E)/\(w1=sigma_fan v w)}`;;
 
 
- let D2=new_definition`D2 x V E={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
+
+ let D2=new_definition`D2 (x,V,E)={ (x,v)|(V v)/\(set_of_edges v E={})}`;;
 
 
  let inverse_sigma_fan=new_definition`inverse_sigma_fan v w = @a. sigma_fan v a=w`;;
@@ -100,9 +101,9 @@ needs "definitions_kepler.ml";;
 
 
 
- let xfan= new_definition`xfan x V E={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
+ let xfan= new_definition`xfan (x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
 
- let yfan= new_definition`yfan x V E={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
+ let yfan= new_definition`yfan (x,V,E)={v:real^3 | ?e. (E e)/\(~(v IN aff_ge {x} e))}`;;
 
  let w_dart=new_definition`w_dart x v w w1= wedge x v w (sigma_fan v w)`;;
 
@@ -552,4 +553,23 @@ THENL
      THENL
        [POP_ASSUM MP_TAC THEN MESON_TAC[disjiont2_cor6dot1a];
           SET_TAC[]]]);;
+
+
+let rcone_fan = new_definition `rcone_fan  x v h = {y:real^3 | (y-x) dot (v-x) >(dist(y,x)*dist(v,x)*h)}`;;
+
+
+let wedge_fane=new_definition`wedge_fane x v u i h= wedge_fan3 x v u i INTER rcone_fan x v h`;;
+
+
+let wedge_cap1=new_definition`wedge_cap1 x v u i h r= (normball x r) INTER (wedge_fane x v u i h)`;;
+
+let wedge_cap2=new_definition`wedge_cap2 x v u i r= (normball x r) INTER (wedge_fan5 x v u i)`;;
+
+let lemma_4dot31=prove(`((f_azim_fan x v u (j+1) <= f_azim_fan x v u i)\/(f_azim_fan x v u i<=f_azim_fan x v u j))==>
+((wedge_fan5 x v u i) INTER (wedge_fane x v u j h) )= {} `,
+DISCH_TAC THEN REWRITE_TAC[wedge_fane] THEN
+SUBGOAL_THEN `((wedge_fan5 x v u i) INTER (wedge_fan3 x v u j) )= {}` ASSUME_TAC
+THENL
+[POP_ASSUM MP_TAC THEN MESON_TAC[disjiont_fan6dot1a];
+ SET_TAC[]]);;
 

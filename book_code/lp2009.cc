@@ -721,6 +721,24 @@ Minimizer m46() {
 trialdata d46(m46(),"ID[7761782916]:  taum-bigtri");
 
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t47(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  - sol_y(y[0],y[1],y[2],y[3],y[4],y[5])
+   +0.27564
+    +2.43334*(pi()/2.0 - dih_y(y[0],y[1],y[2],y[3],y[4],y[5]));
+	}
+Minimizer m47() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t47;
+	return M;
+}
+trialdata d47(m47(),"ID[]:  taum-sol-tri");
+
+
+
 
 int main() {
 

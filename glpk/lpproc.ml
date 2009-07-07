@@ -383,6 +383,22 @@ let switch6 bb =
   let f i = mo (split_flatq fc i) in
    (modify_bb bb true ["s8",fc] []) :: (map f (range 0 6));;
 
+let switch_vertex bb i = 
+  [modify_bb bb false [] ["hv",i];modify_bb bb false [] ["lv",i]];;
+
+let get_vertex bb = 
+   let x = range 0 (cvertex bb) in
+   let y = bb.highvertex @ bb.lowvertex in
+   let z = try
+     find (fun t -> not(mem t y)) x 
+       with Not_ound -> (-1);;
+
+let switch_v bb = switch_vertex bb (get_vertex bb);;
+
+(*
+let f i k = filterout_infeas feasible
+*)
+
 let switch_face bb = match bb.std_faces_not_super with
   | [] -> [bb]
   | fc::_ ->

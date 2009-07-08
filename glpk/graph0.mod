@@ -13,7 +13,7 @@ The sets ITRIANGLE, IQUAD, IPENT, IHEX index the remaining standard regions.  Th
 The branching has have following types.
 * 2-way split on a triangular standard region according to y4+y5+y6 <= 6.25.
 * 2-way  split on a node according to yn <= 2.18
-* 3-way split on a standard quad, according to SUPER8, flats one way, flats the other way.
+* 4-way split on a standard quad, according to SUPERDUPERQ, SUPER8, flats one way, flats the other way.  The SUPERDUPERQ has both diags at least 3, the SUPER8 has both diags at least sqrt(8), but is not SUPERDUPER8.  A flat has a diagonal at most sqrt(8).
 * 11-way split on std. pent, SUPER8, 5 (flat+big4face), 5 (flat+flat+Apiece).
 * 6-way split on std. hex, SUPER8, 6 (flat+big5face).
 Note that a big5face may have other flats within it, that are not used in branching.  This is done to keep the branching on hexagons to a minimum.
@@ -26,6 +26,7 @@ CVERTEX: the number of vertices.
 CFACE: the number of faces.  Standard regions that have been subdivided are not counted.
 EDART: quadruples (i1,i2,i3,j) where (i1,j) is a dart such that f(i1,j) = (i2,j), f(i2,j)=(i3,j).
 ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.
+SUPERDUPERQ: quads with both diags at least 3.
 SUPER8: quads, pents, and hexes that are known not to have any flat quarters.
 FLAT: the apex darts of flat quarters.  It is the dart opposite the long edge.
 APIECE: the apex darts of flat quarters.
@@ -68,6 +69,7 @@ set DART4:= {(i,j) in DART: j in IQUAD};
 
 # branch sets
 set SUPER8 within IQUAD union IPENT union IHEX;
+set SUPERDUPERQ within (IQUAD diff SUPER8);
 set SUBREGION := FACE diff STANDARDR;
 set FLAT within {(i,j) in DART : j in SUBREGION};
 set APIECE within {(i,j) in DART : j in SUBREGION};
@@ -90,8 +92,11 @@ set DARTX :=  BIG5APEX union
    {(i,j) in DART: j in IQUAD union IPENT union IHEX};
 
 # darts with opposite at least s8, others in [2,2.52].
-set DARTZ := {(i,j) in DART: j in SUPER8} union BIG4APEX union
+set DARTY := {(i,j) in DART: j in SUPER8} union BIG4APEX union
     setof{(i1,i2,i3,j) in EDART : (i2,j) in BIG4APEX}(i1,j);
+
+# darts with opposite at least 3, others in [2,2.52].
+set DARTZ := {(i,j) in DART: j in SUPERDUPERQ};
 
 
 # basic variables
@@ -217,12 +222,14 @@ tau_azim4D 'ID[3862621143]' {(i,j) in DART4}:
 ## MAIN ESTIMATE SUPER8 BIG4 BIG5 ##
 
 tau3h {(i,j) in FLAT}: tau[j] >= 0.103;
-tauAh {(i,j) in APIECE}: tau[j] >= 0.277;
+tauAh {(i,j) in APIECE}: tau[j] >= 0.2759;
 tauB4h {(i,j) in BIG4APEX}: tau[j] >= 0.492;
 tauB5h {(i,j) in BIG5APEX}: tau[j] >= 0.657;
 tau4h{j in IQUAD inter SUPER8}: tau[j] >= 0.256;
+tau4s 'ID[5769230427]' {j in SUPERDUPERQ}: tau[j] >= 2.0*0.231;
 tau5h{j in IPENT inter SUPER8}: tau[j] >= 0.751;
 tau6h{j in IHEX inter SUPER8}: tau[j] >= 0.91;
+
 
 
 ## more interval arithmetic on nonstandard triangles  ##
@@ -230,8 +237,11 @@ tau6h{j in IHEX inter SUPER8}: tau[j] >= 0.91;
 azminX 'ID[3020140039]' {(i,j) in DARTX}: 
   azim[i,j] - 1.629  + 0.402*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.315*(y1[i,j]-2)  >= 0;
 
-azminZ 'ID[9414951439]' {(i,j) in DARTZ}:
+azminY 'ID[9414951439]' {(i,j) in DARTY}:
   azim[i,j] - 1.91 + 0.458 * (y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.342*(y1[i,j]-2) >= 0;
+
+azminZ 'ID[9995621667]' {(i,j) in DARTZ}:
+  azim[i,j] - 2.09 + 0.578 * (y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.54*(y1[i,j]-2) >= 0;
 
 
 #branch FLAT inequality
@@ -253,6 +263,11 @@ flatazim2 'ID[5000076558]' {(i1,i,i3,j) in EDART : (i,j) in FLAT}:
   +0.352*(y3[i,j]-2) + 0.416*(y4[i,j]-2.52)
   -0.66*(y5[i,j]-2) + 0.071*(y6[i,j]-2) >= 0;
 
+flatazim3 'ID[5000076558]' {(i1,i,i3,j) in EDART : (i,j) in FLAT}:
+  azim[i1,j] - 1.083 + 0.6365*(y1[i,j]-2) - 0.198*(y3[i,j]-2)
+  +0.352*(y2[i,j]-2) + 0.416*(y4[i,j]-2.52)
+  -0.66*(y6[i,j]-2) + 0.071*(y5[i,j]-2) >= 0;
+
 flatrhazim 'ID[9251360200]' {(i,j) in FLAT}:
   rhazim[i,j]
   -1.629 - 0.866*(y1[i,j]-2) + 0.3805*(y2[i,j]+y3[i,j]-4)
@@ -262,6 +277,11 @@ flatrhazim2 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
   rhazim[i3,j] -1.08
   +0.6362*(y1[i,j]-2) -0.565*(y2[i,j]-2)+0.359*(y3[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y5[i,j]-2) +0.061*(y6[i,j]-2) >=0;
+
+flatrhazim3 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
+  rhazim[i3,j] -1.08
+  +0.6362*(y1[i,j]-2) -0.565*(y3[i,j]-2)+0.359*(y2[i,j]-2)
+  +0.416*(y4[i,j]-2.52) -0.666*(y6[i,j]-2) +0.061*(y5[i,j]-2) >=0;
 
 #branch azim APIECE-BIGPIECE inequality
 #We get six inequalities from a single non-linear inequality,
@@ -321,6 +341,13 @@ apiecetau 'ID[7931207804]' {(i,j) in APIECE}:
   +0.0295*(y1[i,j]-2) - 0.0778*(y2[i,j]-2) - 0.0778*(y3[i,j]-2) 
   -0.37*(y4[i,j]-2) - 0.27*(y5[i,j]-2.52) - 0.27*(y6[i,j]-2.52) >= 0;
 
+
+#branch SUPER8 quad
+
+tauSUPER8 'ID[4840774900]' {j in IQUAD inter SUPER8}:
+  tau[j] >= 2.0*0.1054
+  +0.14132*(sum {(i,k) in DART : k=j } (yn[i] - 2.0))
+  +0.36499*(sum {(i,k) in DART : k=j } (ye[i,j] - 2.0));
 
 #branch SMALLTRI inequality
 

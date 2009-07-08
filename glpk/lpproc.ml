@@ -155,6 +155,7 @@ type branchnbound =
     (* should be in canonical order: *)
     std_faces_not_super: int list list;
     super8 : int list list;
+    superduperq : int list list;
     bigtri : int list list;
     smalltri : int list list;
     (* special dart appears first *)
@@ -176,6 +177,7 @@ lpvalue = None;
 string_rep = bb.string_rep;
 std_faces_not_super = if drop1std then tl std else std;
 super8 = add "s8" fields bb.super8;
+superduperq = add "sd" fields bb.superduperq;
 bigtri = add "bt" fields bb.bigtri;
 smalltri = add "st" fields bb.smalltri;
 flat_quarter = add "ff" fields bb.flat_quarter;
@@ -200,6 +202,7 @@ let mk_bb s =
   string_rep=s;
   std_faces_not_super = face1;
   super8=[];
+  superduperq=[];
   bigtri=[];
   smalltri=[];
   flat_quarter=[];
@@ -215,7 +218,7 @@ let tame_bb = map mk_bb tame;;
 
 (* functions on branch n bound *)
 
-let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.bigtri @ bb.smalltri;;;
+let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;;
 
 let faces bb = (std_faces bb) @ bb.flat_quarter @ 
   bb.a_face @ bb.big5_face @ bb.big4_face;;
@@ -268,6 +271,7 @@ let ampl_of_bb outs bb =
     p"set IHEX := %s;\n" (list_of (std_face_of_size bb 6));
     p"set EDART := \n%s;\n"  (edart);
     p"set SUPER8 := %s;" (mk_faces bb.super8);
+    p"set SUPERDUPERQ := %s;" (mk_faces bb.superduperq);
     p"set FLAT := %s;" (mk_darts bb.flat_quarter);
     p"set APIECE := %s;" (mk_darts bb.a_face);
     p"set BIG5APEX := %s;" (mk_darts bb.big5_face);
@@ -278,14 +282,17 @@ let ampl_of_bb outs bb =
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
 
-let testps () =
+let tampl bb =
   let file = tmpfile in 
   let outs = open_out file in
-  let bb = mk_bb pentstring in
-  let bb =  modify_bb bb false ["ff",[0;1;2];"s8",[8;1;6;9];"ff",[12;7;8]] ["hv",8] in
   let _ = ampl_of_bb outs bb in
   let _ = close_out outs in
     Sys.command(sprintf "cat %s" file);;
+
+let testps() = 
+  let bb = mk_bb pentstring in
+  let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[8;1;6;9];"ff",[12;7;8]] ["hv",8] in
+    tampl bb;;
  
 (* running of branch in glpsol *)
 
@@ -332,6 +339,15 @@ let is_none bb = match bb.lpvalue with
     None -> true
   | Some _ -> false;;
 
+let calc_max bbs = fold_right
+  (fun bb x -> match bb.lpvalue with
+     |None -> x
+     |Some y -> max x y) bbs 0.0;;
+
+let find_max bbs = 
+  let r = Some (calc_max bbs) in
+    find (fun bb -> r = bb.lpvalue) bbs;;
+
 (*
 let tame_hi = 
   let _ = Sys.command("date") in
@@ -365,7 +381,8 @@ let switch4 bb =
   let fc::_ = bb.std_faces_not_super in
   let mo (a,b) = modify_bb bb true ["ff",a;"ff",b] [] in
   let f i = mo (split_flatq fc i) in
-  [f 0;f 1; modify_bb bb true ["s8",fc] []];;
+  let g s = modify_bb bb true [s,fc] [] in
+  [f 0;f 1; g "s8" ;g "sd"];;
 
 let switch5 bb = 
   let fc::_ = bb.std_faces_not_super in
@@ -384,16 +401,21 @@ let switch6 bb =
    (modify_bb bb true ["s8",fc] []) :: (map f (range 0 6));;
 
 let switch_vertex bb i = 
+  if (i<0) then [bb] else
   [modify_bb bb false [] ["hv",i];modify_bb bb false [] ["lv",i]];;
 
 let get_vertex bb = 
    let x = range 0 (cvertex bb) in
    let y = bb.highvertex @ bb.lowvertex in
-   let z = try
-     find (fun t -> not(mem t y)) x 
-       with Not_ound -> (-1);;
+     try
+       find (fun t -> not(mem t y)) x 
+     with Not_found -> (-1);;
 
 let switch_v bb = switch_vertex bb (get_vertex bb);;
+
+let onevpass bbs = 
+ let branches = flatten (map switch_v bbs) in
+    filterout_infeas feasible branches;;
 
 (*
 let f i k = filterout_infeas feasible

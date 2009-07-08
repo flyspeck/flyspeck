@@ -739,6 +739,62 @@ trialdata d47(m47(),"ID[]:  taum-sol-tri");
 
 
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t48(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  -0.1054
+    -0.14132   *(y[0] + y[1]/2.0 + y[2]/2.0 - 4)
+    -0.36499   *(y[4]+y[5]-4);
+	}
+Minimizer m48() {
+  double xmin[6]= {2,2,2,s8,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t48;
+	return M;
+}
+trialdata d48(m48(),"ID[4840774900]:  taum-s8-quad, one diag <= 3");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t49(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y (y[0],y[1],y[2],y[3],y[4],y[5])  -2.09
+    -0.54   *(y[0] -2)
+    +0.578  *(y[1]+y[2]+y[4]+y[5]-8);
+	}
+Minimizer m49() {
+  double xmin[6]= {2,2,2,3,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t49;
+	return M;
+}
+trialdata d49(m49(),"ID[9995621667]:  azim-sd8-quad, two diag >= 3");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+/* sum over two adjacent elongated flats and combine with
+    ID[9995621667] to get taumQ = taum1 + taum2 >= 2*0.231.
+    on a quad with both diags >= 3.
+   (Need to make a deformation argument to reduce to the case of one diag at most 3.3) 
+ */
+void t50(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  -0.231
+    - 0.622*(dih_y(y[0],y[1],y[2],y[3],y[4],y[5])  -2.09/2
+	     -0.54/2 *(y[0]-2)
+	     +0.578*(y[1]+y[5]-4));
+	}
+Minimizer m50() {
+  double xmin[6]= {2,2,2,2,3,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,3.3,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t50;
+	return M;
+}
+trialdata d50(m50(),"ID[5769230427]:  taum-sd8-quad, two diag >= 3");
+
+
+
 
 int main() {
 

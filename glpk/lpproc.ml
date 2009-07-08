@@ -17,43 +17,31 @@ let sprintf = Printf.sprintf;;
 let archiveraw = "/tmp/tame_graph.txt";;
 let model = "/tmp/graph0.mod";;
 let archive_tame_hi = "/tmp/tamehi.txt";; 
-let tmpfile = "/tmp/lpproc_tmp.txt";;
+let tmpfile = "/tmp/graph.dat";;
 
 (* list operations *)
 let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
 
 let get_values key xs = 
-  map (fun (_,y) -> y) (find_all (fun (k,_) -> (k=key)) xs);;
+  map snd (find_all (function k,_ -> (k=key)) xs);;
 
-let range = 
+let upto = 
   let rec rangeA a i j  = if (i >= j) then a
    else rangeA ((j-1)::a) i (j-1)  in
-  rangeA [];;
+  rangeA [] 0;;
 
 let rec rotateL i xs = 
-  if (i=0) then xs 
+  if i=0 then xs 
   else match xs with
-    | x::xss -> rotateL ((i-1) mod (length xs)) (xss @ [x])
+    | x::xss -> rotateL ((i-1) mod length xs) (xss @ [x])
     | [] -> [];;
 
 let rotateR i = rotateL (-i);;
 
-let rec rotateTo xs i repmax = 
-  match xs with
-    | [] -> []
-    | x::xss -> if (x=i) then xs else
-	if(repmax<0) then raise (Failure "element not found") 
-	else rotateTo (rotateL 1 xs) i (repmax-1);;
-
-
-(* canonical order of cyclic list with distinct entries *)
-let canon xs =
-  let m = fold_right min xs (hd xs) in (rotateTo xs m (length xs));;
-
 (* 
    zip from Harrison's lib.ml. 
    List.combine causes a stack overflow :
-   let tt = range 0 30000 in combine tt tt;;
+   let tt = upto 30000 in combine tt tt;;
    Stack overflow during evaluation (looping recursion?).
 *)
 let rec zip l1 l2 =
@@ -62,11 +50,15 @@ let rec zip l1 l2 =
       | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
       | _ -> failwith "zip";;
 
-let enumerate xs = zip (range 0 (length xs)) xs;;
+let enumerate xs = zip (upto (length xs)) xs;;
 
 let whereis i xs = 
-  let (p,_) = find (fun (_,j) -> (j=i)) (enumerate xs) in
+  let (p,_) = find (function _,j -> j=i) (enumerate xs) in
     p;;
+
+let rec nub = function
+  | [] -> []
+  | x::xs -> x::filter ((!=) x) (nub xs);;
 
 
 (* read and write *)
@@ -74,10 +66,10 @@ let whereis i xs =
 let load_and_close_channel do_close ic = 
   let rec lf ichan a = 
     try
-      lf ic ((input_line ic)::a)
+      lf ic (input_line ic::a)
     with End_of_file -> a in
     let rs = lf ic [] in
-      if (do_close) then close_in ic else ();
+      if do_close then close_in ic else ();
       rev rs;;
 
 let load_file filename = 
@@ -85,9 +77,9 @@ let load_file filename =
 
 let save_stringarray filename xs = 
   let oc = open_out filename in
-    for i=0 to length(xs) -1
+    for i=0 to length xs -1
     do
-      output_string oc ((nth xs i)^"\n");
+      output_string oc (nth xs i ^ "\n");
       done;
     close_out oc;;
 
@@ -152,7 +144,6 @@ type branchnbound =
     hypermapid : string;
     mutable lpvalue : float option;
     string_rep : string;
-    (* should be in canonical order: *)
     std_faces_not_super: int list list;
     super8 : int list list;
     superduperq : int list list;
@@ -227,7 +218,7 @@ let triples w =
   let r j = nth w (j mod length w)  in
   let triple i = 
       [r i; r (i+1); r(i+2)] in
-    map triple (range 0 (length w));;
+    map triple (upto (length w));;
 
 let cvertex bb =
   1+ maxlist0 (flatten (faces bb));;
@@ -235,9 +226,9 @@ let cvertex bb =
 let cface bb = length(faces bb);;
 
 let std_face_of_size bb r= 
-  let f = (std_faces bb) in
+  let f = std_faces bb in
   let z = enumerate f in 
-    fst(split (filter (fun (_,y) -> (length(y)=r)) z));;
+    fst(split (filter (function _,y -> length y=r) z));;
 
 
 (* ampl data string of branch n bound *)
@@ -291,7 +282,7 @@ let tampl bb =
 
 let testps() = 
   let bb = mk_bb pentstring in
-  let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[8;1;6;9];"ff",[12;7;8]] ["hv",8] in
+  let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[5;3;7;11];"ff",[12;7;8]] ["hv",8] in
     tampl bb;;
  
 (* running of branch in glpsol *)
@@ -388,24 +379,24 @@ let switch5 bb =
   let fc::_ = bb.std_faces_not_super in
   let mo (a,b) = modify_bb bb true ["ff",a;"b4",b] [] in    
   let f i = mo (split_flatq fc i) in
-  let bbs = map f (range 0 5) in
+  let bbs = map f (upto 5) in
   let mo (a,b,c) = modify_bb bb true ["ff",a;"af",b;"ff",c] [] in
   let f i = mo (asplit_pent fc i) in
-  let ccs = map f (range 0 5) in
+  let ccs = map f (upto 5) in
    (modify_bb bb true ["s8",fc] []) :: bbs @ ccs ;;
 
 let switch6 bb = 
   let fc::_ = bb.std_faces_not_super in
   let mo (a,b) = modify_bb bb true ["ff",a;"b5",b] [] in
   let f i = mo (split_flatq fc i) in
-   (modify_bb bb true ["s8",fc] []) :: (map f (range 0 6));;
+   (modify_bb bb true ["s8",fc] []) :: (map f (upto 6));;
 
 let switch_vertex bb i = 
   if (i<0) then [bb] else
   [modify_bb bb false [] ["hv",i];modify_bb bb false [] ["lv",i]];;
 
 let get_vertex bb = 
-   let x = range 0 (cvertex bb) in
+   let x = upto (cvertex bb) in
    let y = bb.highvertex @ bb.lowvertex in
      try
        find (fun t -> not(mem t y)) x 
@@ -433,4 +424,38 @@ let onepass bbs =
     filterout_infeas feasible branches;;
 
 
+(* running various cases *)
+
 let hexes = filter (fun bb -> 6 = maxlist0 (map length (faces bb))) tame_bb;;
+
+let findid s = find (fun b -> b.hypermapid = s) tame_bb;;
+let hardcases = 
+[
+(* one pent, one quad *) "75641658977";  (* several passes does it *)
+(* one pent, one quad *) "34970074286";  (* several passes does it *)
+(* one pent, one quad *) "47948904911";  (* several passes does it *)
+(* one pent *) "215863975889";  (* several passes does it *)
+(* one quad *) "6179189825656";   (* run through all faces, leaves 49 cases;  highest 12.016.. *)
+(* two quad *) "9154005963125"; 
+"1074389574015";  (* a few passes does it *)
+"10176438347451"; (* a few passes does it *)
+ "1030389300048";  (* a few passes does it *)
+"11211931583471";  (* a few passes does it *)
+"1165974205892"; 
+"12223336279535";
+ "1286506100695"; 
+"12161847242261"; 
+"1450803004532"  (* a few passes does it *)
+];;
+
+let superhard = 
+[
+(* one quad {3,3,4} *) "6179189825656";  
+(* two quad {3,4,4} *) "9154005963125"; 
+(* {4,4,4} *) "1165974205892"; 
+(* {3,3,3,3,3,3} *) "12223336279535";
+(* {3,3,3,3,3,3} *) "1286506100695"; 
+(* {3,3,3,3,3,3} *) "12161847242261"
+];;
+
+

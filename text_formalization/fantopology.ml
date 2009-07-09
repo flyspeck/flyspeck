@@ -1422,7 +1422,7 @@ let CAUCHY_IMP_BOUNDED_FAN = prove
    [ASM_MESON_TAC[GE; dist; DIST_SYM; NORM_TRIANGLE_SUB;
                   REAL_ARITH `a <= b + c /\ c < &1 ==> a <= b + &1`];
     MP_TAC(ISPECL [`\n:num. norm(s n :real^N)`; `0..N`]
-                  BOUND_FINITE_SET_REAL) THEN
+                  UPPER_BOUND_FINITE_SET_REAL) THEN
     SIMP_TAC[FINITE_NUMSEG; IN_NUMSEG; LE_0; LEFT_IMP_EXISTS_THM] THEN
     ASM_MESON_TAC[LE_CASES;
                   REAL_ARITH `x <= a \/ x <= b ==> x <= abs a + abs b`]]);;

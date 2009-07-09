@@ -391,6 +391,11 @@ azimlowsmallmax 'ID[1550635295]' {(i,j) in LOWSMALLTRI}:
   +0.772*(y4[i,j]-2)
   -0.191*(y5[i,j]+y6[i,j]-4) >= 0;
 
+taulowsmall 'ID[4491491732]' {(i,j) in LOWSMALLTRI}:
+  tau[j]  + 0.0008
+  -0.1631*(y1[i,j]+y2[i,j]+y3[i,j]-6)
+  -0.2127*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
+
 
 solve;
 display hypermapID;

@@ -396,6 +396,15 @@ taulowsmall 'ID[4491491732]' {(i,j) in LOWSMALLTRI}:
   -0.1631*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.2127*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
 
+tauhighlow 'ID[8282573160]'  
+  {(i1,i,i3,j) in EDART : i1 in LOWVERTEX and i in HIGHVERTEX and 
+               i3 in LOWVERTEX and (i,j) in FLAT}:
+  tau[j] - 0.1413
+  -0.214*(y1[i,j]-2.18)
+  -0.1259*(y2[i,j]+y3[i,j]-4)
+  -0.067*(y4[i,j]-2.52)
+  -0.241*(y5[i,j]+y6[i,j]-4);
+
 
 solve;
 display hypermapID;

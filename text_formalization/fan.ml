@@ -756,7 +756,7 @@ let wedge_fane=new_definition`wedge_fane x v u i h= wedge_fan3 x v u i INTER rco
 
 let wedge_cap1=new_definition`wedge_cap1 x v u i h r= (normball x r) INTER (wedge_fane x v u i h)`;;
 
-let wedge_cap2=new_definition`wedge_cap2 x v u i r= (normball x r) INTER (wedge_fan5 x v u i)`;;
+
 
 let lemma_4dot31=prove(`(!x:real^3 v:real^3. aff {x , v} = {y:real^3| ?t1:real t2:real. (t1 + t2 = &1 )/\ (y = t1 % x + t2 % v )}) 
 /\ (!x:real^3 v:real^3 u:real^3 w:real^3. aff_gt {x , v} {w} = {y:real^3 | ?t1:real t2:real t3:real. (t3 > &0) /\ (t1 + t2 + t3 = &1) /\ (y = t1 % x + t2 % v + t3 % w)})

@@ -262,7 +262,7 @@ flatazim 'ID[3318775219]' {(i,j) in FLAT}:
 -0.763*(y4[i,j]-2.52) - 0.315*(y1[i,j]-2) >= 0;
 
 flatazimmax 'ID[9922699028]' {(i,j) in FLAT}:
-  -azim[i,j] + 1.6294 - 0.2213*(y2[i,j]+y3[i,j]+y5[i,j]-y6[i,j]-8)
+  -azim[i,j] + 1.6294 - 0.2213*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
   +0.913*(y4[i,j]-2.52) + 0.728*(y1[i,j]-2) >= 0;
 
 flatazim2 'ID[5000076558]' {(i1,i,i3,j) in EDART : (i,j) in FLAT}:
@@ -400,3 +400,7 @@ taulowsmall 'ID[4491491732]' {(i,j) in LOWSMALLTRI}:
 solve;
 display hypermapID;
 display lnsum;
+display yn;
+display ye;
+display azim;
+display tau;

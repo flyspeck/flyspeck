@@ -98,6 +98,13 @@ set DARTY := {(i,j) in DART: j in SUPER8} union BIG4APEX union
 # darts with opposite at least 3, others in [2,2.52].
 set DARTZ := {(i,j) in DART: j in SUPERDUPERQ};
 
+# all LOWVERTEX SMALLTRI darts
+set LOWSMALLTRI := setof{(i1,i2,i3,j) in EDART : 
+   j in SMALLTRI and
+   i1 in LOWVERTEX and
+   i2 in LOWVERTEX and
+   i3 in LOWVERTEX}(i2,j);
+
 
 # basic variables
 var azim{DART} >= 0, <= pi;
@@ -367,7 +374,22 @@ bigtritau 'ID[7761782916]' {(i,j) in DART: j in BIGTRI}:
   -0.17*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
 #branch HIGHVERTEX inequality
+
 #branch LOWVERTEX inequality
+
+azimlowsmall 'ID[9229542852]' {(i,j) in LOWSMALLTRI}:
+  azim[i,j] - 1.230
+  -0.2357*(y1[i,j]-2)
+  +0.2493*(y2[i,j]+y3[i,j]-4)
+  -0.682*(y4[i,j]-2)
+  +0.3035*(y5[i,j]+y6[i,j]-4) >= 0;
+
+azimlowsmallmax 'ID[1550635295]' {(i,j) in LOWSMALLTRI}:
+  -azim[i,j] + 1.232
+  +0.261*(y1[i,j]-2)
+  -0.203*(y2[i,j]+y3[i,j]-4)
+  +0.772*(y4[i,j]-2)
+  -0.191*(y5[i,j]+y6[i,j]-4) >= 0;
 
 
 solve;

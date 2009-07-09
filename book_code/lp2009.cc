@@ -794,6 +794,62 @@ Minimizer m50() {
 trialdata d50(m50(),"ID[5769230427]:  taum-sd8-quad, two diag >= 3");
 
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t51(int numargs,int whichFn,double* y, double* ret,void*) {
+  double t = 4.52 - y[4];
+  *ret = dih_y (y[0],y[1],y[2],y[3],t,y[5])  -1.083
+    -0.2   *(y[0] -2)
+    +0.3778*(y[1]-2) + 0.151*(y[2]-2)
+    -0.658*(y[3]-2)
+        -0.053  *(y[4]-2)  
+    + 0.1408*(y[5]-2);
+	}
+Minimizer m51() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.18,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t51;
+	return M;
+}
+trialdata  d51(m51(),"ID[]:  azim-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t52(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y (y[0],y[1],y[2],y[3],y[4],y[5])  -1.230
+    -0.2357   *(y[0] -2)
+    +0.2493*(y[1]+y[2]-4)
+    -0.682*(y[3]-2)
+    +0.3035  *(y[4]+y[5]-4)  ;
+	}
+Minimizer m52() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.18,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t52;
+	return M;
+}
+trialdata  d52(m52(),"ID[9229542852]:  azim-low-small");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t53(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -dih_y (y[0],y[1],y[2],y[3],y[4],y[5])  + 1.232
+    +0.261   *(y[0] -2)
+    -0.203*(y[1]+y[2]-4)
+    +0.772*(y[3]-2)
+    -0.191  *(y[4]+y[5]-4)  ;
+	}
+Minimizer m53() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.18,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t53;
+	return M;
+}
+trialdata  d53(m53(),"ID[1550635295]:  azim-low-small");
+
 
 
 int main() {

@@ -173,8 +173,8 @@ let euler_triangle_t = `!v0 v1 v2 v3:real^3.
     ((&0 < d) ==>
       (alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2(sqrt(d), (&2 * p))))`;;
 
-let polar_coords_t = `!x y. (x = (radius x y)*(cos(polar_angle x y))) /\
-     (y = (radius x y)*(sin(polar_angle x y)))`;;
+let polar_coords_t = `!x y. (x = (radius (x,y))*(cos(polar_angle x y))) /\
+     (y = (radius (x, y))*(sin(polar_angle x y)))`;;
 
 let polar_cycle_rotate_t = `!V psi u f.
        (!x y. f (x,y) = (x*cos psi + y*sin psi, -- x*sin psi + y*cos psi)) /\

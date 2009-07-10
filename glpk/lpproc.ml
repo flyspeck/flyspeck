@@ -209,7 +209,7 @@ let tame_bb = map mk_bb tame;;
 
 (* functions on branch n bound *)
 
-let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;;
+let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;
 
 let faces bb = (std_faces bb) @ bb.flat_quarter @ 
   bb.a_face @ bb.big5_face @ bb.big4_face;;
@@ -404,9 +404,22 @@ let get_vertex bb =
 
 let switch_v bb = switch_vertex bb (get_vertex bb);;
 
+let nextc = 
+  let counter = ref 0 in
+  fun () ->
+    counter:= !counter + 1;
+    !counter;;
+
 let onevpass bbs = 
  let branches = flatten (map switch_v bbs) in
+    Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
+   counter := !counter + 1;
+   filterout_infeas feasible branches;;
+
+let onevpassi bbs i =
+ let branches = flatten (map (fun bb -> switch_vertex bb i) bbs) in
     filterout_infeas feasible branches;;
+
 
 (*
 let f i k = filterout_infeas feasible
@@ -421,7 +434,18 @@ let switch_face bb = match bb.std_faces_not_super with
 
 let onepass bbs = 
   let branches = flatten (map switch_face bbs) in
+    Sys.command(sprintf "echo STACK %d %d" (length bbs) (nextc()));
     filterout_infeas feasible branches;;
+
+let rec allpass bbs = 
+   let t = maxlist0 (map (fun b -> length b.std_faces_not_super) bbs) in
+   if t = 0 then bbs else allpass (onepass bbs);;
+
+let rec allvpass bbs = 
+   if bbs = [] then [] 
+   else
+     let t = fold_right max (map get_vertex bbs) (-1) in
+       if t < 0 then bbs else allvpass (onevpass bbs);;
 
 
 (* running various cases *)
@@ -458,4 +482,28 @@ let superhard =
 (* {3,3,3,3,3,3} *) "12161847242261"
 ];;
 
+(*
+let h  = findid (nth superhard 4);;
+let h1 = allpass [h];;
+length h1;;  (* 143 *)
+let h2 = allvpass h1;;  (* ok *)
+
+(* this one is a dodecahedron modified with vertex 2 pressed
+    into an edge *)
+let h  = findid (nth superhard 3);;  (* 12223336279535  *)
+let h1 = allpass [h];;
+length h1;;   (* length 1885 *)
+let k1 = find_max h1;;  (* 12.0416 *)
+let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
+(* unfinished... *)
+
+(* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
+let r  = findid (nth superhard 5);;  (* 12161847242261  *)
+length r1;;   (* length  *)
+let r1 = allvpass [r];;
+let r2 = allpass r1;;
+
+
+
+*)
 

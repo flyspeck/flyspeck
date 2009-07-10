@@ -707,7 +707,7 @@ trialdata d45(m45(),"ID[9291937879]:  dihmin-smalltri");
 // this is minimized.  failure reported if min is negative.
 void t46(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  
-    -0.05 - 0.137*(y[0]+y[1]+y[2]-6)
+        -0.05 - 0.137*(y[0]+y[1]+y[2]-6)
    -0.17*(y[3]+y[4]+y[5]-6.25);
 	}
 Minimizer m46() {
@@ -848,7 +848,76 @@ Minimizer m53() {
 	M.func = t53;
 	return M;
 }
-trialdata  d53(m53(),"ID[1550635295]:  azim-low-small");
+trialdata  d53(m53(),"ID[1550635295]:  azimmax-low-small");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t54(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  + 0.0008
+    -0.1631*(y[0]+y[1]+y[2]-6)
+    -0.2127  *(y[3]+y[4]+y[5]-6)  ;
+	}
+Minimizer m54() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.18,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t54;
+	return M;
+}
+trialdata  d54(m54(),"ID[4491491732]:  tau-low-small");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t55(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) -0.1413
+    -0.214*(y[0]-2.18)
+    -0.1259*(y[1]+y[2]-4)
+    -0.067*(y[3]-2.52)
+    -0.241*(y[4]+y[5]-4)  ;
+	}
+Minimizer m55() {
+  double xmin[6]= {2.18,2,2,2.52,2,2};
+  double xmax[6]= {2.52,2.18,2.18,s8,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t55;
+	return M;
+}
+trialdata  d55(m55(),"ID[8282573160]:  tau-flat-high-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t56(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = sol_y (y[0],y[1],y[2],y[3],y[4],y[5]) -0.589   
+    +0.24*(y[0]+y[1]+y[2]-6)
+    -0.16*(y[3]+y[4]+y[5]-6.25);
+	}
+Minimizer m56() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.18,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,1,xmin,xmax);
+	M.func = t56;
+	M.cFunc = bigtri;
+	return M;
+}
+trialdata  d56(m56(),"ID[8611785756]:  big-sol-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t57(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = sol_y (y[0],y[1],y[2],y[3],y[4],y[5]) -0.589   
+    +0.39*(y[0]+y[1]+y[2]-6)
+    -0.235*(y[3]+y[4]+y[5]-6.25);
+	}
+Minimizer m57() {
+  double xmin[6]= {2,2,2,2,2,2};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,1,xmin,xmax);
+	M.func = t57;
+	M.cFunc = bigtri;
+	return M;
+}
+trialdata  d57(m57(),"ID[6224332984]:  big-sol");
 
 
 

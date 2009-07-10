@@ -98,13 +98,17 @@ set DARTY := {(i,j) in DART: j in SUPER8} union BIG4APEX union
 # darts with opposite at least 3, others in [2,2.52].
 set DARTZ := {(i,j) in DART: j in SUPERDUPERQ};
 
-# all LOWVERTEX SMALLTRI darts
-set LOWSMALLTRI := setof{(i1,i2,i3,j) in EDART : 
-   j in SMALLTRI and
+# all LOWVERTEX darts
+set LOWTRI := setof{(i1,i2,i3,j) in EDART : 
    i1 in LOWVERTEX and
    i2 in LOWVERTEX and
    i3 in LOWVERTEX}(i2,j);
 
+set LOWSMALLTRI := {(i,j) in LOWTRI : 
+   j in SMALLTRI};
+
+set LOWBIGTRI := {(i,j) in LOWTRI : 
+   j in BIGTRI};
 
 # basic variables
 var azim{DART} >= 0, <= pi;
@@ -126,7 +130,7 @@ var y6{DEDGE} >=0, <=sqrt8;
 #report variables
 var lnsum;
 var ynsum;
-
+var sqdeficit;
 
 ## objective
 maximize objective:  lnsum;
@@ -134,6 +138,7 @@ maximize objective:  lnsum;
 ## equality constraints
 lnsum_def: sum{i in IVERTEX} ln[i]  = lnsum;
 ynsum_def: sum{i in IVERTEX} yn[i] = ynsum;
+sqdeficit_def: tgt - sum{j in FACE} tau[j] = sqdeficit;
 azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
@@ -373,6 +378,11 @@ bigtritau 'ID[7761782916]' {(i,j) in DART: j in BIGTRI}:
   tau[j] - 0.05 -0.137*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.17*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
+bigtrisol 'ID[6224332984]'  {(i,j) in DART: j in BIGTRI}:
+  sol[j] - 0.589 +0.39*(y1[i,j]+y2[i,j]+y3[i,j]-6)
+  -0.235*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
+
+
 #branch HIGHVERTEX inequality
 
 #branch LOWVERTEX inequality
@@ -403,8 +413,11 @@ tauhighlow 'ID[8282573160]'
   -0.214*(y1[i,j]-2.18)
   -0.1259*(y2[i,j]+y3[i,j]-4)
   -0.067*(y4[i,j]-2.52)
-  -0.241*(y5[i,j]+y6[i,j]-4);
+  -0.241*(y5[i,j]+y6[i,j]-4) >=0;
 
+taulowbig 'ID[8611785756]'  {(i,j) in LOWBIGTRI}:
+  sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
+  -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
 solve;
 display hypermapID;
@@ -413,3 +426,4 @@ display yn;
 display ye;
 display azim;
 display tau;
+display sqdeficit;

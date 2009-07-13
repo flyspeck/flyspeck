@@ -426,4 +426,5 @@ display yn;
 display ye;
 display azim;
 display tau;
+display sol;
 display sqdeficit;

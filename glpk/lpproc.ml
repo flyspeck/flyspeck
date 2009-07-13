@@ -413,7 +413,6 @@ let nextc =
 let onevpass bbs = 
  let branches = flatten (map switch_v bbs) in
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
-   counter := !counter + 1;
    filterout_infeas feasible branches;;
 
 let onevpassi bbs i =
@@ -483,10 +482,20 @@ let superhard =
 ];;
 
 (*
-let h  = findid (nth superhard 4);;
-let h1 = allpass [h];;
-length h1;;  (* 143 *)
-let h2 = allvpass h1;;  (* ok *)
+let h  = findid (nth superhard 0);;
+let h1 = allpass [h];; (* length 41 *)
+let h2 = allvpass h1;;  (* length 10, max 12.00455... *)
+
+(* case (nth superhard 1) runs over 60,000 LPs
+    about 1700 in each pass,
+    highest about 12.072
+    It seems to be working, but lets kill it.
+   unfinished
+*)
+
+let t  = findid (nth superhard 2);;
+let t1 = allpass [t];;   (* stack grows large! > 2000 *)
+(* unfinished *)
 
 (* this one is a dodecahedron modified with vertex 2 pressed
     into an edge *)
@@ -497,13 +506,19 @@ let k1 = find_max h1;;  (* 12.0416 *)
 let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
 (* unfinished... *)
 
+let h  = findid (nth superhard 4);;
+let h1 = allpass [h];;
+length h1;;  (* 134, highest 12.01. *)
+let h2 = allvpass h1;;  (* ok *)
+
 (* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
 let r  = findid (nth superhard 5);;  (* 12161847242261  *)
 length r1;;   (* length  *)
 let r1 = allvpass [r];;
 let r2 = allpass r1;;
+(* unfinished *)
 
-
+let all = map (fun x -> allvpass (allpass [findid x])) superhard;;
 
 *)
 

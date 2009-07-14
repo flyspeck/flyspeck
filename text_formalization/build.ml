@@ -29,10 +29,10 @@ needs "collect_geom_spec.ml";;
 *)
 
 needs "volume.ml";;
-needs "hypermap.ml";;
-needs "fan.ml";;
-needs "toplevel.ml";;
-needs "geomdetail.ml";;
+needs "hypermap.ml";; (* loads with multivariate *)
+needs "fan.ml";; (* loads with multivariate *)
+needs "toplevel.ml";; (* loads with multivariate *)
+needs "geomdetail.ml";; (* loads with multivariate *)
 needs "assembly.ml";;
 
 

@@ -1,5 +1,6 @@
 (* The first change for toplevel.ml *)
 needs "Multivariate/vectors.ml";;
+needs "Examples/floor.ml";;
 
 prioritize_real();;
 
@@ -7,7 +8,7 @@ prioritize_real();;
 let open_ball = new_definition `open_ball (x:real^3) (r:real)= { y | norm(y-x)< r }`;;  
 
 (* Packing Lambda *)
-(* packing already defined in definitione_kepler.ml 
+(* packing already defined in sphere.hl 
 let packing = new_definition `packing (Lambda:real^3 -> bool) = (!x y. ( x IN Lambda) /\ ( y IN Lambda) /\ ~(x = y) ==> norm(x - y) >= &2 )`;;
 *)
 
@@ -26,7 +27,7 @@ let truncated_packing = new_definition ` truncated_packing x r Lambda = Lambda I
 (*
  g ` packing Lambda ==> FINITE (truncated_packing x r Lambda )`;;
 *)
-needs "Examples/floor.ml";;
+
 
 let FLOOR_EQ = prove
   (`!(x:real) y. floor x = floor y ==> abs(x - y) < &1`,

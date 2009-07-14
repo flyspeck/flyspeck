@@ -3,7 +3,10 @@
 
 (*Definition of null set*)
 
-needs "Multivariate/vectors.ml";;
+needs "Multivariate/vectors.ml";;     
+needs "Examples/analysis.ml";;       
+needs "Examples/transc.ml";;         
+
 needs "definitions_kepler.ml";;
 
 (* tchales, topology.ml is incompatible with previously loaded files *)
@@ -718,10 +721,36 @@ e (SIMP_TAC[]);;
 
 let lemma_r_r'=top_thm();; 
 
+(*------------------------   Definition of Solid angle  ---------------------------------------------------------*)
 
 
+let normball_subset= prove(`!x r r'. (r'> &0) /\ (r'<r)==> normball x r' SUBSET normball x r`, (REPEAT GEN_TAC THEN REPEAT STRIP_TAC) THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[normball] THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[dist] THEN UNDISCH_TAC `(r' < r):bool` THEN REWRITE_TAC[TAUT `a==>b ==> c <=> a /\ b ==> c`] THEN ARITH_TAC);;
+let subset_inter=prove(`! A B. A SUBSET B ==> A INTER B= A`,REPEAT GEN_TAC THEN SET_TAC[]);;
+let normball_eq=prove(`!(C:real^3->bool) x r r'. (r'> &0)/\ (r'< r)==> (C INTER normball x r) INTER normball x r' = C INTER normball x r'`,REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN (MP_TAC(SET_RULE `((C:real^3->bool) INTER normball x r) INTER normball x r'=(C INTER normball x r') INTER normball x r`)) THEN SIMP_TAC[] THEN DISCH_TAC THEN (SUBGOAL_THEN `(((C:real^3->bool) INTER normball x r') SUBSET normball x r)` MP_TAC) THENL[ASM_MESON_TAC[INTER_SUBSET;SUBSET_TRANS;normball_subset];MESON_TAC[subset_inter]]);;
 
 
+let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_props (vol) /\ measurable C /\ eventually_radial x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,(REPEAT GEN_TAC) THEN (REWRITE_TAC[eventually_radial]) THEN (REPEAT STRIP_TAC) 
+ THEN (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)  THEN (EXISTS_TAC `(r:real)`)
+ THEN (ASM_REWRITE_TAC[])
+ THEN (GEN_TAC)
+ THEN (REPEAT STRIP_TAC)
+ THEN (REWRITE_TAC[REAL_ARITH `&3 * vol (C INTER normball x r) / r pow 3 = &3 * vol (C INTER normball x r') / r' pow 3 <=> vol (C INTER normball x r) / r pow 3 = vol (C INTER normball x r') / r' pow 3`])
+ THEN (SUBGOAL_THEN `(C:real^3->bool) INTER normball x r'= (C INTER normball x r) INTER normball x r'` MP_TAC)
+ THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]] 
+ THEN DISCH_TAC
+ THEN (SUBGOAL_THEN `measurable (C INTER normball x r)` ASSUME_TAC)
+ THENL[ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball];(SUBGOAL_THEN `vol ((C INTER normball x r) INTER normball x r')= vol (C INTER normball x r) * (r'/r) pow 3` MP_TAC)]
+ THENL[ASM_MESON_TAC[lemma_r_r'];ABBREV_TAC `(a:real)=vol (C INTER normball x r)`]
+ THEN ABBREV_TAC `(b:real)=vol ((C INTER normball x r) INTER normball x r')`
+ THEN SIMP_TAC[] THEN DISCH_TAC THEN SIMP_TAC[REAL_POW_DIV] THEN MP_TAC(REAL_ARITH `r'> &0 ==> ~(r'= &0)`)
+ THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN MP_TAC(MESON[REAL_POW_NZ] `~(r'= &0)==> ~(r' pow 3= &0)`)
+ THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN REWRITE_TAC[REAL_ARITH `(a * r' pow 3 / r pow 3) / r' pow 3= (a * r' pow 3/ r' pow 3)/ r pow 3`]
+ THEN MP_TAC(MESON[REAL_DIV_REFL] `~(r' pow 3 = &0)==> r' pow 3 / r' pow 3= &1`) 
+ THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[] THEN DISCH_TAC THEN ARITH_TAC);;  
+
+let pre_def_4_3=prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_props vol /\ measurable C /\ eventually_radial x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]);;
+
+let sol= new_specification ["sol"] pre_def_4_3;;
 
 
 

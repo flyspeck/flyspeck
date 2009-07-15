@@ -2,11 +2,13 @@
 (* Author: PHAN HOANG CHON *)
 (*========================================================*)
 
+(*
 needs "database_more.ml";;
 needs "definitions_kepler.ml";;
 (* removed convex.ml by thales, not compatible with other loads *)
 (* needs "Multivariate/convex.ml";; *)
 needs "geomdetail.ml";;              (* Writen by Nguyen Quang TRuong   *)
+*)
 
 (*========================================================*)
 (* These definitions are defined by other authors*)
@@ -15,21 +17,24 @@ needs "geomdetail.ml";;              (* Writen by Nguyen Quang TRuong   *)
 
 (*arctan2 function is defined in definition_kepler.ml*)
 
-let delta_tet = kepler_def (`delta_tet = sqrt8 * atn2(&5, sqrt2)`);;
+let delta_tet = new_definition (`delta_tet = sqrt8 * atn2(&5, sqrt2)`);;
 
-let delta_oct = kepler_def (`delta_oct = (( &3* pi_rt18 - delta_tet)*( &1 / &2 ))`);;
-
-(*========================================================*)
-
-let lambda_v = kepler_def (`lambda_v = (-- &4)* delta_oct `);;
-
-let lambda_s = kepler_def (`lambda_s = (&1)/(&3) `);;
-
-let lambda_oct = kepler_def (`lambda_oct = (lambda_v , lambda_s) `);;
+let delta_oct = new_definition (`delta_oct = (( &3* pi_rt18 - delta_tet)*( &1 / &2 ))`);;
 
 (*========================================================*)
 
+let lambda_v = new_definition (`lambda_v = (-- &4)* delta_oct `);;
+
+let lambda_s = new_definition (`lambda_s = (&1)/(&3) `);;
+
+let lambda_oct = new_definition (`lambda_oct = (lambda_v , lambda_s) `);;
+
+(*========================================================*)
+
+(* benign redefinition *)
 let open_ball = new_definition `open_ball (x:real^3) (r:real)= { y | norm(y-x)< r }`;;
+
+
 
 (*========================================================*)
 
@@ -43,6 +48,7 @@ let diagonal = new_definition ` diagonal dgcheo d s = ( quarter d s /\
 
 (*========================================================*)
 
+(* benign redef *)
 let diag = new_definition ` diag d q s = ( quarter q s /\
                  ( ? x y. 
                       ! v1 v2.
@@ -51,6 +57,7 @@ let diag = new_definition ` diag d q s = ( quarter q s /\
                            { x, y } = d /\ d3 x y >= &2 * t0 /\
                             d3 x y >= d3 v1 v2 ))`;;
 
+(* benign *)
 let find_diagonal = new_definition ` find_diagonal q s:real^3->bool = @{x, y}. {x , y} SUBSET q /\ diag {x , y} q s `;;
 
 let find_dia = new_definition ` find_dia q (s:real^3->bool) = 
@@ -74,6 +81,7 @@ let cotext = new_definition ` cotext (v , w) (s:real^3->bool) = @( (p:num) , (r:
 (* Definition 7.21 =============================================*)
 
 let VC1 = new_definition ` VC1 v s d =  VC v d INTER conv s `;;
+
 let VCt = new_definition ` VCt x t s d 
                         = VC1 x s d INTER open_ball x t `;;
 

@@ -33,7 +33,7 @@ needs "hypermap.ml";; (* loads with multivariate *)
 needs "fan.ml";; (* loads with multivariate *)
 needs "toplevel.ml";; (* loads with multivariate *)
 needs "geomdetail.ml";; (* loads with multivariate *)
-needs "assembly.ml";;
+(* needs "assembly.ml";; *)
 
 
 *)

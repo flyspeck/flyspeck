@@ -1,17 +1,5 @@
-(*
 
-
-needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
-needs "collect_geom_a.ml";;
-needs "Examples/permutations.ml";;
-
-
-
-needs "Examples/analysis.ml";;       (* multivariate-complex theory.    *)
-
-needs "Examples/transc.ml";;         (* Then it won't need these three. *) 
-needs "convex_header.ml";;    (* replace with Multivariate/convex.ml after it is revised to be compatible with these files *)
-
+(* 
 (* 
 
 This build runs through the complete proof, except for the
@@ -24,23 +12,18 @@ in the proof.
 
 *)
 
-(* load all definitions *)
-needs "definitions_kepler.ml";;
-
-(* load inequalities used in text.  Skip interval arith verifications. *)
-needs "inequality_spec.ml";;
-
-(* load any custom tactics by various users.  *)
+needs "Multivariate/flyspeck.ml";;
+needs "sphere.hl";;
 needs "thales_tactic.ml";;
 
-(* trig *)
+
 needs "trig_spec.ml";;
-(* begin trig.ml *)
+needs "trig.ml";;
 
 
 
 (* ==================== *)
-(* to the file built.ml *)
+(* to the file build.ml *)
 (* ==================== *)
 (* ==================== *)
 *)
@@ -48,15 +31,11 @@ needs "trig_spec.ml";;
 
 
 
-
-(* needs "Multivariate/transc.ml";; *)
 (* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
-needs "Multivariate/vectors.ml";;    (* Eventually should load entire   *) 
-                                     (* multivariate-complex theory.    *)
-needs "Examples/transc.ml";;   
-needs "convex_header.ml";;      (* Then it won't need these. *) 
-needs "definitions_kepler.ml";;
+needs "Multivariate/flyspeck.ml";;
+needs "sphere.hl";;
+needs "thales_tactic.ml";;
 
 prioritize_real();;
 
@@ -65,8 +44,7 @@ prioritize_real();;
    Here are several relevant theorems from HOL Light.  *)
 sin;;
 cos;;
-DIFF_SIN;; (* derivative of sin is cos *)
-DIFF_COS;; (* derivative of cos is -sin *)
+
 SIN_0;; (* sin(0) = 0 *)
 COS_0;; (* cos(0) =1 *)
 SIN_CIRCLE;; (* blueprint/lemma:circle *)
@@ -99,7 +77,7 @@ let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
 
 (* lemma:sin-arccos *)
 
-let sin_acs_t = `!y. (-- &1 <= y /\ y <= &1) ==> (sin (acs(y)) = sqrt(&1 - y pow 2))`;;
+SIN_ACS;;
 
 (* lemma:arccos-arctan *)
 
@@ -119,11 +97,11 @@ let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b
 let law_of_sines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
    (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
 
-let cross_mag_t = `!u v. norm (cross u v) = (norm u) * (norm v) * sin(arcV (vec 0) u v)`;;
+let cross_mag_t = `!u v. norm (u cross v) = (norm u) * (norm v) * sin(arcV (vec 0) u v)`;;
 
-let cross_skew_t = `!u v. (cross u v) = -- (cross v u)`;;
+let cross_skew_t = `!u v. (u cross v) = -- (v cross u)`;;
 
-let cross_triple_t = `!u v w.  (cross u v) dot w =  (cross v w) dot u`;;
+let cross_triple_t = `!u v w.  (u cross v) dot w =  (v cross w) dot u`;;
 
 
 (* law of cosines *)
@@ -199,7 +177,7 @@ let thetapq_wind_t = `!W n thetapq kpq.
     ((!u i j. (W u /\ (0 <= i) /\ (i <= j) /\ (j < n)) ==>
         thetapq u (iter i (polar_cycle W) u) + thetapq (iter i (polar_cycle W) u) (iter j (polar_cycle W) u) = thetapq u (iter j (polar_cycle W) u)) /\
     ((!u v.  (W u /\ W v) ==> (polar_angle (FST u) (SND u) = polar_angle (FST v) (SND v))) \/
-     (!u. (W u)  ==> (sum(0,n) (\i. thetapq (iter i (polar_cycle W) u) (iter (SUC i) (polar_cycle W) u))  = &2 * pi)) ))`;;
+     (!u. (W u)  ==> (sum(0 .. n-1) (\i. thetapq (iter i (polar_cycle W) u) (iter (SUC i) (polar_cycle W) u))  = &2 * pi)) ))`;;
 
 let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
    (?u' r phi e3.
@@ -209,14 +187,14 @@ let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
 let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
         ~(collinear {v,w,u}) /\ ~(collinear {v,w,u'}) /\
        orthonormal e1 e2 e3 /\ ((dist( v, w)) % e3 = (v-w)) /\
-  (aff_gt {v,w} {u} e1) /\ (e2 = cross e3 e1) /\
+  (aff_gt {v,w} {u} e1) /\ (e2 = e3 cross e1) /\
   (r = dist( v, u')) /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
   (u' = u + (r*cos(theta)*sin(phi)) % e1 + (r*sin(theta)*sin(phi)) % e2 
       + (r * cos(phi)) % e3)`;;
 
 let polar_coord_zenith_t = `!u v w u' n.
   ~(collinear {u,v,w}) /\ (aff {u,v,w} u') /\ ~(u' = v) /\
-  (n = cross (w - v) (u - v)) ==>
+  (n = (w - v) cross (u - v)) ==>
    (arcV v (v + n) u' = pi/ (&2))`;;
 
 let azim_pair_t = `!v w w1 w2.
@@ -230,7 +208,7 @@ let azim_cycle_sum_t = `!W v w n.
    (W HAS_SIZE n) ==>
    (!p i j. (W p /\ (0 <= i) /\ (i <= j) /\ (j < n)) ==> 
        ((!q.  W q ==> (azim v w p q = &0) ) \/
-       (sum(0,n) (\i. azim v w (iter i (azim_cycle W v w) p) (iter (SUC i) (azim_cycle W v w) p)) = &2 * pi   )))`;;
+       (sum(0 .. n-1) (\i. azim v w (iter i (azim_cycle W v w) p) (iter (SUC i) (azim_cycle W v w) p)) = &2 * pi   )))`;;
 
 let dih_azim_t = `!v w v1 v2. 
    ~(collinear {v,w,v1}) /\ ~(collinear {v,w,v2}) ==>
@@ -243,7 +221,7 @@ let sph_triangle_ineq_t = `!p u v w:real^3.
 let sph_triangle_ineq_sum_t = `!p:real^3 u r.
    (!i. (i < r) ==> ~(collinear {p,u i, u (SUC i)})) /\
    ~(collinear {p,u 0, u r}) ==>
-   (arcV p (u 0) (u r) <= sum(0,r) (\i. arcV p (u i) (u (SUC i))))`;;
+   (arcV p (u 0) (u r) <= sum(0 .. r-1) (\i. arcV p (u i) (u (SUC i))))`;;
 
 (* obligations created by definition by specification, to make them useable. *)
 
@@ -460,6 +438,24 @@ module Trig : Trigsig = struct
       )
   
   (* ---------------------------------------------------------------------- *)
+  (* These are theorems proved in HOL Light, but not in the                 *)
+	(* Multivariate files.  Unless noted, all proofs by John Harrison.        *)
+  (* ---------------------------------------------------------------------- *)
+	
+	(* REAL_LE_POW_2 is in HOL-Light Examples/transc.ml.  *)
+	(* Also called REAL_LE_SQUARE_POW in Examples/analysis.ml. *)
+	
+  let REAL_LE_POW_2 = prove
+   (`!x. &0 <= x pow 2`,
+    REWRITE_TAC[REAL_POW_2; REAL_LE_SQUARE]);;
+
+  (* REAL_DIV_MUL2 is in HOL-Light Examples/analysis.ml.  *)
+  (* Proof in now trivial *)
+	
+	let REAL_DIV_MUL2 = REAL_FIELD
+    `!x z. ~(x = &0) /\ ~(z = &0) ==> !y. y / z = (x * y) / (x * z)`;;
+	
+  (* ---------------------------------------------------------------------- *)
   (* Useful theorems about real numbers.                                    *)
   (* ---------------------------------------------------------------------- *)
   
@@ -475,37 +471,15 @@ module Trig : Trigsig = struct
   let SQRT_MUL_R = prove
    (`!x y. &0 <= x /\ &0 <= y ==> sqrt x * y = sqrt(x * y pow 2)`,
     REPEAT STRIP_TAC THEN ASM_SIMP_TAC [REAL_LE_POW_2; SQRT_MUL; POW_2_SQRT]);;
-
-  (* ABS_SQUARE_LE_1 is in HOL-Light Multivariate/transc.ml.  *)
-  (* Proof by John Harrison. *)
-
-  let ABS_SQUARE_LE_1 = prove
-   (`!x. x pow 2 <= &1 <=> abs(x) <= &1`,
-    ONCE_REWRITE_TAC[GSYM REAL_ABS_NUM] THEN
-    REWRITE_TAC[REAL_LT_SQUARE_ABS; GSYM REAL_NOT_LT] THEN REAL_ARITH_TAC);;
-
   
   (* ---------------------------------------------------------------------- *)
   (* Basic trig results not included in Examples/transc.ml                  *)
   (* ---------------------------------------------------------------------- *)
-  
-  let arith_lemma = prove 
-   (`!a d x. &0 < d ==> 
-        ?y. (a <= y /\ y <= a + d) /\ ?n. y = x + &n * d \/ x = y + &n * d`,
-    REPEAT STRIP_TAC THEN DISJ_CASES_TAC (SPEC `(x - a):real` REAL_LE_NEGTOTAL) 
-    THEN IMP_RES_THEN (IMP_RES_THEN STRIP_ASSUME_TAC) REAL_ARCH_LEAST THENL
-    [ EXISTS_TAC `x - &n * d` THEN STRIP_TAC THENL
-      [ (POP_ASSUM MP_TAC) THEN (POP_ASSUM MP_TAC) THEN 
-        REWRITE_TAC [GSYM REAL_OF_NUM_SUC] THEN REAL_ARITH_TAC ;
-        EXISTS_TAC `n:num` THEN REAL_ARITH_TAC ] ;
-      EXISTS_TAC `x + &(SUC n) * d` THEN STRIP_TAC THENL
-      [ (POP_ASSUM MP_TAC) THEN (POP_ASSUM MP_TAC) THEN 
-        REWRITE_TAC [GSYM REAL_OF_NUM_SUC] THEN REAL_ARITH_TAC ;
-        EXISTS_TAC `(SUC n):num` THEN REAL_ARITH_TAC ]]);; 
-  
+
   (* Next two proofs similar to TAN_PERIODIC_NPI in *)
   (* Examples/transc.ml by John Harrison *)
-  
+  (* They are no longer needed, but may be useful later. *)
+	
   let SIN_PERIODIC_N2PI = prove
    (`!x n. sin(x + &n * (&2 * pi)) = sin(x)`,
     GEN_TAC THEN INDUCT_TAC THEN REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID] THEN
@@ -518,33 +492,11 @@ module Trig : Trigsig = struct
     REWRITE_TAC[GSYM REAL_OF_NUM_SUC; REAL_ADD_RDISTRIB; REAL_MUL_LID] THEN
     ASM_REWRITE_TAC[REAL_ADD_ASSOC; COS_PERIODIC]);;
 
-  let TWOPI_POS = prove (`&0 < &2 * pi`, MP_TAC PI_POS THEN REAL_ARITH_TAC);;
-  
-  let CIRCLE_SINCOS_PI_LEMMA = prove
-   (`!x y. (x pow 2 + y pow 2 = &1) ==> 
-       ?t. (--pi <= t /\ t <= pi) /\ ((x = cos(t)) /\ (y = sin(t)))`,
-    REPEAT STRIP_TAC THEN IMP_RES_THEN STRIP_ASSUME_TAC CIRCLE_SINCOS THEN
-    STRIP_ASSUME_TAC (REWRITE_RULE [TWOPI_POS] 
-    (SPECL [`--pi`;`&2 * pi`;`t:real`] arith_lemma)) THEN EXISTS_TAC `y':real` THEN 
-    STRIP_TAC THENL
-    [ POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-      REAL_ARITH_TAC ;
-      ASM_REWRITE_TAC [COS_PERIODIC_N2PI; SIN_PERIODIC_N2PI] ;
-      POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-      REAL_ARITH_TAC ;
-      ASM_REWRITE_TAC [COS_PERIODIC_N2PI; SIN_PERIODIC_N2PI] ]);;
-    
   let CIRCLE_SINCOS_PI = prove
    (`!x y. (x pow 2 + y pow 2 = &1) ==> 
        ?t. (--pi < t /\ t <= pi) /\ ((x = cos(t)) /\ (y = sin(t)))`,
-    REPEAT STRIP_TAC THEN IMP_RES_THEN STRIP_ASSUME_TAC CIRCLE_SINCOS_PI_LEMMA 
-    THEN FIND_ASSUM (DISJ_CASES_TAC o (REWRITE_RULE [REAL_LE_LT])) `--pi <= t`
-    THENL
-    [ EXISTS_TAC `t:real` THEN ASM_REWRITE_TAC [];
-      EXISTS_TAC `pi:real` THEN POP_ASSUM (ASSUME_TAC o GSYM) THEN
-      ASM_REWRITE_TAC [SIN_NEG; COS_NEG; SIN_PI] THEN MP_TAC PI_POS THEN
-      REAL_ARITH_TAC ]);; 
-  
+		ASM_MESON_TAC [CIRCLE_SINCOS; SINCOS_PRINCIPAL_VALUE]);;
+
   let SIN_NEGPOS_PI = prove 
    (`!x. (--pi < x /\ x <= pi) ==>
          (sin x < &0 <=> --pi < x /\ x < &0) /\
@@ -596,76 +548,10 @@ module Trig : Trigsig = struct
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
   
-  (* PI_POS_LE is in Multivariate/transc.ml. Proof by John Harrison *)
-  
-  let PI_POS_LE = prove
-   (`&0 <= pi`,
-    REWRITE_TAC[REAL_LE_LT; PI_POS]);;
-    
-  (* Note that if you ever switch to Multivariate/transc that ACS_COS is    *)
-  (* COS_ACS, but ACS_1 and ACS_NEG1 already exist in Multivariate/transc.  *)
-  (* Proofs same as or adapted from John Harision's.                        *)
-  
-  let ACS_1 = prove
-   (`acs(&1) = &0`,
-    REWRITE_TAC [GSYM COS_0] THEN 
-    ASM_SIMP_TAC [REAL_ARITH `&0 <= &0`; PI_POS_LE; COS_ACS]);;
-    
-  let ACS_NEG_1 = prove
-   (`acs(-- &1) = pi`,    
-    REWRITE_TAC [GSYM COS_PI] THEN 
-    ASM_SIMP_TAC [REAL_ARITH `pi <= pi`; PI_POS_LE; COS_ACS]);;
-
   (* lemma:sin_acs *)
   
-  (* SQRT_UNIQUE is in HOL-Light Multivariate/transc.ml.  *)
-  (* Proof adapted from John Harrison's. *)
-  
-  let SQRT_UNIQUE = prove
-   (`!x y. &0 <= y /\ (y pow 2 = x) ==> (sqrt(x) = y)`,
-    REPEAT STRIP_TAC THEN REWRITE_TAC[sqrt_def] THEN MATCH_MP_TAC SELECT_UNIQUE THEN
-    FIRST_X_ASSUM(SUBST1_TAC o SYM) THEN REWRITE_TAC[REAL_POW_2] THEN
-    REWRITE_TAC[REAL_ARITH `(x * x = y * y) <=> ((x + y) * (x - y) = &0)`] THEN
-    REWRITE_TAC[REAL_ENTIRE] THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
-  
-  (* Note that if you ever switch to Multivariate/transc that ACS_COS is     *)
-  (* COS_ACS...but then SIN_ASC already exists in Multivariate/transc!       *)
-    
-  let sin_acs = prove
-   (sin_acs_t,
-    REPEAT STRIP_TAC THEN MATCH_MP_TAC(GSYM SQRT_UNIQUE) THEN
-    ASM_SIMP_TAC[ACS_BOUNDS; SIN_POS_PI_LE; REAL_EQ_SUB_RADD] THEN
-    ASM_MESON_TAC[ACS_COS; SIN_CIRCLE]);;
-
-  (* ACS_ATN is in Multivariate/transc.ml *)
-  (* Proof by John Harrison. *)
-  
-  let ACS_ATN = prove
-   (`!x. -- &1 < x /\ x < &1 ==> 
-         acs(x) = pi / &2 - atn(x / sqrt(&1 - x pow 2))`,
-    STRIP_TAC THEN STRIP_TAC THEN ABBREV_TAC `y = acs(x)` THEN 
-    ABBREV_TAC `z = atn(x / sqrt(&1 - x pow 2))` THEN 
-    SUBGOAL_TAC "y_bounds" `--(pi / &2) < pi / &2 - y /\ pi / &2 - y < pi / &2`
-    [ EXPAND_TAC "y" THEN MP_TAC (SPEC `x:real` ACS_BOUNDS_LT) THEN 
-      ASM_REWRITE_TAC [] THEN REAL_ARITH_TAC ] THEN
-    SUBGOAL_TAC "z_bounds" `--(pi / &2) < z /\ z < pi / &2`
-    [ EXPAND_TAC "z" THEN REWRITE_TAC [ATN_BOUNDS] ] THEN
-    SUBGOAL_THEN `atn(tan(pi / &2 - y)) = atn(tan(z))` 
-                 (fun th -> MP_TAC th THEN ASM_SIMP_TAC [TAN_ATN] THEN
-                            REAL_ARITH_TAC) THEN
-    AP_TERM_TAC THEN SUBGOAL_TAC "tan" `inv (tan y) =(cos y) / (sin y)`
-    [ REWRITE_TAC [tan] THEN POP_ASSUM MP_TAC THEN 
-      CONV_TAC REAL_FIELD ] THEN
-    ASM_REWRITE_TAC [TAN_COT] THEN EXPAND_TAC "y" THEN EXPAND_TAC "z" THEN
-    REWRITE_TAC [ATN_TAN] THEN POP_ASSUM (K ALL_TAC) THEN
-    POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
-    POP_ASSUM (K ALL_TAC) THEN POP_ASSUM (K ALL_TAC) THEN
-    SUBGOAL_TAC "x_LE" `--(&1) <= x /\ x <= &1`
-    [ POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC ] THEN
-    ASM_SIMP_TAC [ACS_COS; sin_acs]);;
-  
   (* ----------------------------------------------------------------------- *)
-  (* Theory of atan_2 function. See definitions_kepler.ml for the definiton. *)
+  (* Theory of atan_2 function. See sphere.hl for the definiton. *)
   (* ----------------------------------------------------------------------- *)
   
   (* lemma:atn2_spec *)
@@ -707,7 +593,7 @@ module Trig : Trigsig = struct
       POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD ]);;
   
   (* The official Kepler definition (atn2) is different, but it was easier  *)
-  (* to start with this one an prove it is equivalent.                      *)
+  (* to start with this one and prove it is equivalent.                      *)
   
   let ATAN2_TEMP_DEF = new_definition
     `atan2_temp (x,y) = if (x = &0 /\ y = &0) 
@@ -759,7 +645,7 @@ module Trig : Trigsig = struct
       ASM_REWRITE_TAC [] THEN MATCH_MP_TAC (GSYM TAN_ATN) THEN 
       POP_ASSUM (K ALL_TAC) THEN 
       POP_ASSUM (fun th -> POP_ASSUM MP_TAC THEN ASSUME_TAC th) THEN
-      ASM_SIMP_TAC [GSYM COS_NEGPOS_PI; REAL_LT_LMUL_0] THEN REAL_ARITH_TAC ;
+      ASM_SIMP_TAC [GSYM COS_NEGPOS_PI; REAL_LT_MUL_EQ] THEN REAL_ARITH_TAC ;
 
       STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
       ABBREV_TAC `t = atan2_temp (x,y)` THEN 
@@ -778,7 +664,7 @@ module Trig : Trigsig = struct
                    (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
       POP_ASSUM (K ALL_TAC) THEN 
       POP_ASSUM (fun th -> POP_ASSUM MP_TAC THEN ASSUME_TAC th) THEN
-      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_LMUL_0] THEN REAL_ARITH_TAC ;
+      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_MUL_EQ] THEN REAL_ARITH_TAC ;
     
       STRIP_ASSUME_TAC (SPECL [`x:real`;`y:real`] ATAN2_TEMP) THEN
       ABBREV_TAC `t = atan2_temp (x,y)` THEN 
@@ -800,7 +686,7 @@ module Trig : Trigsig = struct
       POP_ASSUM (K ALL_TAC) THEN
       POP_ASSUM (fun th -> POP_ASSUM (MP_TAC o (REWRITE_RULE [GSYM REAL_NEG_GT0]))
                            THEN ASSUME_TAC th) THEN
-      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_LMUL_0; REAL_NEG_RMUL] THEN 
+      ASM_SIMP_TAC [GSYM SIN_NEGPOS_PI; REAL_LT_MUL_EQ; REAL_NEG_RMUL] THEN 
       REAL_ARITH_TAC ;
     
       ASM_CASES_TAC `x = &0` THENL
@@ -823,7 +709,7 @@ module Trig : Trigsig = struct
     POP_ASSUM MP_TAC THEN   
     POP_ASSUM (fun th -> POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN 
                          ASSUME_TAC th) THEN
-    ASM_SIMP_TAC [REAL_LT_LMUL_0; REAL_NEG_RMUL] THEN POP_ASSUM MP_TAC THEN
+    ASM_SIMP_TAC [REAL_LT_MUL_EQ; REAL_NEG_RMUL] THEN POP_ASSUM MP_TAC THEN
     CONV_TAC REAL_FIELD]);;
     
   let ATAN2_TEMP_ALT = prove
@@ -890,21 +776,21 @@ module Trig : Trigsig = struct
     ASSUME_TAC (REAL_ARITH `--(&1) < &0`) THEN 
     ASM_SIMP_TAC [ATN2_BREAKDOWN] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
     REWRITE_TAC [ATN_0] THEN REAL_ARITH_TAC);;
-  
+			  
   let ATN2_LMUL_EQ = prove
    (`!a x y. &0 < a ==> atn2(a * x, a * y) = atn2 (x, y)`,
     REPEAT STRIP_TAC THEN STRIP_ASSUME_TAC 
       (REAL_ARITH `&0 < x \/ &0 < y \/ y < &0 \/ (y = &0 /\ x <= &0)`) THENL
     [ SUBGOAL_TAC "pos_x" `&0 < a * x` 
-      [ let th = SPECL [`a:real`;`&0`;`x:real`] REAL_LT_LMUL_EQ in
+      [ let th = SPECL [`&0`;`x:real`;`a:real`] REAL_LT_LMUL_EQ in
         let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
         ASM_SIMP_TAC [th2] ] ;
       SUBGOAL_TAC "pos_y" `&0 < a * y` 
-      [ let th = SPECL [`a:real`;`&0`;`y:real`] REAL_LT_LMUL_EQ in
+      [ let th = SPECL [`&0`;`y:real`;`a:real`] REAL_LT_LMUL_EQ in
         let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
         ASM_SIMP_TAC [th2] ] ;
        SUBGOAL_TAC "neg_y" `a * y < &0` 
-      [ let th = SPECL [`a:real`;`y:real`;`&0`] REAL_LT_LMUL_EQ in
+      [ let th = SPECL [`y:real`;`&0`;`a:real`] REAL_LT_LMUL_EQ in
         let th2 = REWRITE_RULE [REAL_MUL_RZERO] th in
         ASM_SIMP_TAC [th2] ] ;
       SUBGOAL_TAC "other" `a * y = &0 /\ a * x <= &0`
@@ -915,7 +801,7 @@ module Trig : Trigsig = struct
     let th1 = SPECL [`x:real`;`y:real`] ATN2_BREAKDOWN in
     let th2 = SPECL [`a * x:real`;`a * y:real`] ATN2_BREAKDOWN in
     let th3 = REAL_ARITH `!x. (x < &0 \/ &0 < x) ==> ~(&0 = x)` in
-    ASM_SIMP_TAC [th1; th2; th3; GSYM (SPEC `a:real` REAL_DIV_MUL2)] );;
+    ASM_SIMP_TAC [th1; th2; th3; GSYM (SPEC `a:real` REAL_DIV_MUL2)] );;	
   
   let ATN2_RNEG = prove
    (`!x y. (~(y = &0) \/ &0 < x) ==> atn2(x,--y) = --(atn2(x,y))`,
@@ -948,7 +834,7 @@ module Trig : Trigsig = struct
       [ MATCH_MP_TAC SQRT_POS_LT THEN
         SUBGOAL_THEN `&0 <= y pow 2 /\ y pow 2 < &1`
                      (fun th -> MP_TAC th THEN REAL_ARITH_TAC) THEN
-        REWRITE_TAC [REAL_LE_SQUARE_POW; REAL_ARITH `a < &1 <=> a < &1 pow 2`;
+        REWRITE_TAC [REAL_LE_POW_2; REAL_ARITH `a < &1 <=> a < &1 pow 2`;
                      GSYM REAL_LT_SQUARE_ABS ] THEN 
         REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ] THEN
        ASM_SIMP_TAC [ATN2_BREAKDOWN] THEN MATCH_MP_TAC ACS_ATN THEN
@@ -1074,7 +960,7 @@ module Trig : Trigsig = struct
    (law_of_cosines_t,
     REPEAT STRIP_TAC THEN 
     REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`] THEN
-    ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; ACS_COS; TRI_LEMMA] THEN 
+    ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; COS_ACS; TRI_LEMMA] THEN 
     REAL_ARITH_TAC);;
 
   let law_of_sines =  prove
@@ -1082,26 +968,11 @@ module Trig : Trigsig = struct
     REPEAT STRIP_TAC THEN
     REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`;
                  REAL_ARITH `x pow 2 = x * x` ] THEN
-    ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; sin_acs; TRI_UPS_X_SQRT]);;
-
-  (* ----------------------------------------------------------------------- *)
-	(* Conversion tool for defintions of form:                                 *)
-	(*   `let (a,b,c) = triple_of_real3 v in P[a,b,c]`                         *)
-	(* Converts it to                                                          *)
-	(*   `P[v$1,v$2,v$3]                                                       *)
-	(* Also handles etc.                                      *)
-	(* ----------------------------------------------------------------------- *)
-	
-	let KEP_REAL3_CONV = REDEPTH_CONV (CHANGED_CONV 
-		(REWRITE_CONV [ mk_vec3; real3_of_triple; 
-		               triple_of_real3] THENC
-		 TRY_CONV (let_CONV)));;
+    ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; SIN_ACS; TRI_UPS_X_SQRT]);;
 
   (* ----------------------------------------------------------------------- *)
   (* Cross product properties.                                               *)
   (* ----------------------------------------------------------------------- *)
-
-(* work in progress *)
 
   let DIST_TRIANGLE_DETAILS = prove
 	 (`~(u = v) /\ ~(u = w) <=>
@@ -1122,7 +993,7 @@ module Trig : Trigsig = struct
 		let thc = NORM_ARITH `norm (v - u - (w - u)) = norm (v - w)` in
 		REWRITE_TAC [tha; thb; thc] THEN CONV_TAC REAL_FIELD);;
 
-let DIST_LAW_OF_COS = prove
+  let DIST_LAW_OF_COS = prove
 	 (`(dist(v:real^3,w)) pow 2 = (dist(u,v)) pow 2 + (dist(u,w)) pow 2 - 
 		                     &2 * (dist(u,v)) * (dist(u,w)) * cos (arcV u v w)`,
     ASM_CASES_TAC `~(u = v:real^3) /\ ~(u = w)` THEN POP_ASSUM MP_TAC THENL
@@ -1228,18 +1099,6 @@ let DIST_LAW_OF_COS = prove
 	  let th = REWRITE_RULE [VECTOR_3] 
 		                      (ISPEC `vector [a;b;c]:real^3` COMPONENTS_3) in
     REWRITE_TAC [th]);;
-	
-	let CROSS_COMPONENTS = prove
-	 (`!u v. (cross u v)$1 = u$2 * v$3 - v$2 * u$3 /\
-	         (cross u v)$2 = u$3 * v$1 - v$3 * u$1 /\
-					 (cross u v)$3 = u$1 * v$2 - v$1 * u$2`,
-		REWRITE_TAC [CONV_RULE KEP_REAL3_CONV cross; VECTOR_3]);;
-					
-	let cross_def = prove
-	 (`!u v. cross u v = vector [u$2 * v$3 - v$2 * u$3; 
-	                           u$3 * v$1 - v$3 * u$1; 
-														 u$1 * v$2 - v$1 * u$2]`,
-    REWRITE_TAC [CONV_RULE KEP_REAL3_CONV cross]);;
 
   let cross_skew = prove
 	 (cross_skew_t,
@@ -1263,17 +1122,17 @@ let DIST_LAW_OF_COS = prove
 		REAL_ARITH_TAC);;
 	
 	let CROSS_LZERO = prove
-	 (`!x. cross (vec 0) x = vec 0`,
+	 (`!x. (vec 0) cross x = vec 0`,
 	   REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VEC_COMPONENT_3] THEN 
 	   REAL_ARITH_TAC);;
 
 	let CROSS_RZERO = prove
-	 (`!x. cross x (vec 0) = vec 0`,
+	 (`!x. x cross (vec 0) = vec 0`,
 	   REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VEC_COMPONENT_3] THEN 
 	   REAL_ARITH_TAC);;
  
   let CROSS_SQUARED = prove
-	 (`!u v. (cross u v) dot (cross u v) = 
+	 (`!u v. (u cross v) dot (u cross v) = 
 		       (ups_x (u dot u) (v dot v) ((u - v) dot (u - v))) / &4`,
 	  REWRITE_TAC [DOT_3; CROSS_COMPONENTS; ups_x; VECTOR_SUB_COMPONENT_3] THEN
 	  REAL_ARITH_TAC);;
@@ -1289,7 +1148,7 @@ let DIST_LAW_OF_COS = prove
 	
   let NORM_CROSS = prove
 	 (`!u v. ~(vec 0 = u) /\ ~(vec 0 = v) ==>
-	           norm (cross u v) = 
+	           norm (u cross v) = 
 		         sqrt (ups_x ((norm u) pow 2) 
 					               ((norm v) pow 2) 
 								  			 ((dist(u,v)) pow 2)) / &2`,

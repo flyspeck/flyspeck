@@ -200,7 +200,8 @@ let line = new_definition `line x = (?v w. ~(v  =w) /\ (x = affine hull {v,w}))`
 let plane = new_definition `plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = affine hull {u,v,w}))`;;
 let closed_half_plane = new_definition `closed_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_ge {u,v} {w}))`;;
 let open_half_plane = new_definition `open_half_plane x = (?u v w. ~(collinear {u,v,w}) /\ (x = aff_gt {u,v} {w}))`;;
-let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;;
+
+
 let closed_half_space = new_definition `closed_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_ge {u,v,w} {w'}))`;;
 let open_half_space = new_definition `open_half_space x = (?u v w w'. ~(coplanar {u,v,w,w'}) /\ (x = aff_gt {u,v,w} {w'}))`;;
 
@@ -283,28 +284,6 @@ let orthonormal = new_definition `orthonormal e1 e2 e3 =
      ( e1 dot e2 = &0) /\ ( e1 dot e3 = &0) /\ ( e2 dot e3 = &0) /\
      (&0 <  (e1 cross e2) dot e3))`;;
 
-(* spherical coordinates *)
-let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
-   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
-   ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
-   (w2 - v = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
-
-let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
-   (azim_hyp) ==>
-   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
-   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
-   ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
-   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
-   (w2 - v = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
-   (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
-     (REWRITE_TAC[azim_hyp_def]) THEN
-     (REPEAT STRIP_TAC) THEN
-     (ASM_REWRITE_TAC[RIGHT_IMP_EXISTS_THM]));;
-
-let azim_def = new_specification ["azim"] azim_spec;;
-
 
 let cyclic_set = new_definition `cyclic_set W v w = 
      (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h % (v - w)) ==> (p=q)) /\
@@ -366,18 +345,6 @@ let cayleyR = new_definition `cayleyR x12 x13 x14 x15  x23 x24 x25  x34 x35 x45 
 
 let packing = new_definition `packing S = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;
 
-(* SIDEXYO *)
-
-let wedge = new_definition (`wedge v1 v2 w1 w2 = 
-   let z = v2 - v1 in
-   let u1 = w1 - v1 in
-   let u2 = w2 - v1 in
-   let n = z cross u1 in
-   let d =  n dot u2 in
-     if (aff_ge {v1,v2} {w1} w2) then {} else
-     if (aff_lt {v1,v2} {w1} w2) then aff_gt {v1,v2,w1} {n} else
-     if (d > &0) then aff_gt {v1,v2} {w1,w2} else
-     (:real^3) DIFF aff_ge {v1,v2} {w1,w2}`);;
 
 (* ------------------------------------------------------------------ *)
 (*   Measure and Volume, following Nguyen Tat Thang  *)
@@ -527,3 +494,51 @@ let abc_param = new_definition `abc_param v0 v1 v2 c =
     let a = (&1/(&2)) * dist(v0,v1) in
     let b = radV {v0,v1,v2} in
      (a,b,c)`;;
+
+
+(* deprecated. Replaced by Harrison's Multivariate def:
+
+let coplanar = new_definition `coplanar S = (?x. plane x /\ S SUBSET x)`;; 
+cross is now infix in Multivariate
+
+wedge is defined in Multivariate
+
+azim is defined in Multivariate
+
+let wedge = new_definition (`wedge v1 v2 w1 w2 = 
+   let z = v2 - v1 in
+   let u1 = w1 - v1 in
+   let u2 = w2 - v1 in
+   let n = z cross u1 in
+   let d =  n dot u2 in
+     if (aff_ge {v1,v2} {w1} w2) then {} else
+     if (aff_lt {v1,v2} {w1} w2) then aff_gt {v1,v2,w1} {v1 + n} else
+     if (d > &0) then aff_gt {v1,v2} {w1,w2} else
+     (:real^3) DIFF aff_ge {v1,v2} {w1,w2}`);;
+
+
+(* spherical coordinates *)
+let azim_hyp_def = new_definition `azim_hyp = (!v w w1 w2. ?theta. !e1 e2 e3. ?psi h1 h2 r1 r2.
+   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
+   ((&0 <= theta) /\ (theta < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
+   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 - v = (r2 * cos(psi + theta)) % e1 + (r2 * sin(psi + theta)) % e2 + h2 % (w-v))))`;;
+
+let azim_spec = prove(`?theta. !v w w1 w2 e1 e2 e3. ?psi h1 h2 r1 r2.
+   (azim_hyp) ==>
+   ~(collinear {v, w, w1}) /\ ~(collinear {v, w, w2}) /\
+   (orthonormal e1 e2 e3) /\ ((dist( w, v)) % e3 = (w - v)) ==>
+   ((&0 <= theta v w w1 w2) /\ (theta v w w1 w2 < &2 * pi) /\ (&0 < r1) /\ (&0 < r2) /\
+   (w1 - v = (r1 * cos(psi)) % e1 + (r1 * sin(psi)) % e2 + h1 % (w-v)) /\
+   (w2 - v = (r2 * cos(psi + theta v w w1 w2)) % e1 + (r2 * sin(psi + theta v w w1 w2)) % e2 + h2 % (w-v)))`,
+   (REWRITE_TAC[GSYM SKOLEM_THM;GSYM RIGHT_IMP_EXISTS_THM;GSYM RIGHT_IMP_FORALL_THM]) THEN
+     (REWRITE_TAC[azim_hyp_def]) THEN
+     (REPEAT STRIP_TAC) THEN
+     (ASM_REWRITE_TAC[RIGHT_IMP_EXISTS_THM]));;
+
+let azim_def = new_specification ["azim"] azim_spec;;
+
+
+*)
+

@@ -12,7 +12,7 @@ needs "sphere.hl";;
 needs "thales_tactic.ml";;
 
 
-needs "trig_spec.ml";;
+(* needs "trig_spec.ml";; *)
 needs "trig.ml";;
 
 (* tarski *)

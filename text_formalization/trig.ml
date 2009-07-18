@@ -322,7 +322,6 @@ let azim_cycle_t = `!W proj v w e1 e2 e3 p.
 
 module type Trigsig = sig
   val atn2_spec : thm (* atn2_spec_t  *)
-  val sin_acs : thm (* sin_acs_t *)
   val acs_atn2: thm  (* acs_atn2_t *)
   val arcVarc : thm (*  arcVarc_t *)
   val law_of_cosines : thm (*  law_of_cosines_t *)
@@ -375,9 +374,8 @@ end;;
 
 let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
    [
- atn2_spec_t  ;
- sin_acs_t ;
- acs_atn2_t ;
+  atn2_spec_t  ;
+  acs_atn2_t ;
   arcVarc_t ;
   law_of_cosines_t ;
   law_of_sines_t ;
@@ -547,8 +545,7 @@ module Trig : Trigsig = struct
       LABEL_TAC "e" (SPEC `x:real` COS_POS_PI) THEN
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
       REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC ]);;
-  
-  (* lemma:sin_acs *)
+
   
   (* ----------------------------------------------------------------------- *)
   (* Theory of atan_2 function. See sphere.hl for the definiton. *)

@@ -231,9 +231,9 @@ let aff_sgn_insert_sym_gt_t = `aff_sgn_insert_sym (\t. &0 < t)`;;
 let aff_sgn_insert_sym_ge_t = `aff_sgn_insert_sym (\t. &0 <= t)`;;
 let aff_sgn_insert_sym_lt_t = `aff_sgn_insert_sym (\t. t < &0)`;;
 let aff_sgn_insert_sym_le_t = `aff_sgn_insert_sym (\t. t <= &0)`;;
+let azim_hyp_t = `azim_hyp`;;
 *)
 
-let azim_hyp_t = `azim_hyp`;;
 let azim_cycle_hyp_t = `azim_cycle_hyp`;;
 
 (* definitions without obligations *)
@@ -353,8 +353,8 @@ module type Trigsig = sig
   val aff_sgn_insert_sym_ge : thm (*  aff_sgn_insert_sym_ge_t *)
   val aff_sgn_insert_sym_lt : thm (*  aff_sgn_insert_sym_lt_t *)
   val aff_sgn_insert_sym_le : thm (*  aff_sgn_insert_sym_le_t *)
-*)
   val azim_hyp : thm (*  azim_hyp_t *)
+*)
   val azim_cycle_hyp : thm (*  azim_cycle_hyp_t *)
 (* [deprecated]
   val aff : thm (* aff_t *)
@@ -406,8 +406,8 @@ let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
   aff_sgn_insert_sym_ge_t ;
   aff_sgn_insert_sym_lt_t ;
   aff_sgn_insert_sym_le_t ;
-*)
   azim_hyp_t ;
+*)
   azim_cycle_hyp_t ;
 (* [deprecated]
   aff_t;
@@ -1370,8 +1370,8 @@ module Trig : Trigsig = struct
   let  aff_sgn_insert_sym_ge = trigAxiomProofB   aff_sgn_insert_sym_ge_t 
   let  aff_sgn_insert_sym_lt = trigAxiomProofB   aff_sgn_insert_sym_lt_t 
   let  aff_sgn_insert_sym_le = trigAxiomProofB   aff_sgn_insert_sym_le_t 
-*)
   let  azim_hyp = trigAxiomProofB   azim_hyp_t 
+*)
   let  azim_cycle_hyp = trigAxiomProofB   azim_cycle_hyp_t 
 (* [deprecated]
   let  aff = trigAxiomProofA   aff_t

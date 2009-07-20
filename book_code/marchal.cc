@@ -17,15 +17,14 @@ public:
   };
 };
 
-int trialcount = 80;
+int trialcount = 300;
 double eps = 1.0e-6;
-//functions
-//double pi = 4.0*atan(1.0);
+double s2 = sqrt(2.0);
+double s8 = sqrt(8.0);
+
 double alphamar = acos(1.0/3.0);
 double Kmar = (3.0 * alphamar - pi()) * sqrt(2.0)/(12.0 * pi() - 30.0*alphamar);
 double Mmar = (18.0 * alphamar - 7.0*pi())*sqrt(2.0)/(144.0*pi() - 360.0*alphamar);
-double s2 = sqrt(2.0);
-double s8 = sqrt(8.0);
 
 //Marchal's constants:
 double Amar = 0.042692222872;

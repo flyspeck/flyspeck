@@ -619,8 +619,6 @@ module Trig : Trigsig = struct
     REWRITE_TAC [ATAN2_TEMP] THEN SUBGOAL_TAC "sum_pos" `&0 <= x pow 2 + y pow 2`
     [ MP_TAC (SPEC `x:real` REAL_LE_POW_2) THEN 
       MP_TAC (SPEC `y:real` REAL_LE_POW_2) THEN
-      IMP_RES_THEN MP_TAC (SPECL [`x:real`; `2`] REAL_POW_NZ) THEN 
-      IMP_RES_THEN MP_TAC (SPECL [`y:real`; `2`] REAL_POW_NZ) THEN 
       REAL_ARITH_TAC ] THEN
     MP_TAC (SPEC `x pow 2 + y pow 2` SQRT_POS_LE) THEN POP_ASSUM MP_TAC THEN
     REAL_ARITH_TAC);;

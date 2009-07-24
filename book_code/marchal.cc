@@ -31,9 +31,11 @@ double hmid = 1.26; // 2.52 truncation
 double h0 = 1.26;
 double hmax = 1.3254; // zero of Mfun
 
+
 int wtrange(double t) {
   return ((t >= 2.0*hmin) && (t <= 2.0*hmax));
 }
+
 int wtcount(double y1,double y2,double y3,double y4,double y5,double y6) {
   int count =0;
   if (wtrange(y1)) { count++; }
@@ -44,12 +46,25 @@ int wtcount(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (wtrange(y6)) { count++; }
   return count;
 }
+
 int wtcount3(double y1,double y2,double y3) {
   int count =0;
   if (wtrange(y1)) { count++; }
   if (wtrange(y2)) { count++; }
   if (wtrange(y3)) { count++; }
   return count;
+}
+
+// experimental bump function.
+double bump(double r) { 
+  double s = (r-h0)/(hmax-h0);
+  return 1.0 - s*s;
+}
+double bmp(double y1,double y2,double y3,double y4,double y5,double y6) {
+  if (2!=wtcount(y1,y2,y3,y4,y5,y6))  { return 0.0; }
+  if (!wtrange(y1))  { return 0.0; }
+  if (!wtrange(y4))  { return 0.0; }
+  return 0.001*(bump(y1/2.0) - bump(y4/2.0));
 }
 
 double interp(double x,double x1,double y1,double x2,double y2) {
@@ -59,9 +74,11 @@ double interp(double x,double x1,double y1,double x2,double y2) {
 double Mfun (double r) {
   return (s2 - r)*(r- 1.3254)*(9.0*r*r - 17.0*r + 3.0)/(1.627*(s2- 1.0));
 }
+
 double Lfun(double r) {
   return interp(r,  1.0,1.0,    hmid,0.0);
 }
+
 double Lmfun(double r) {
   return max(0,Lfun(r));
 }
@@ -98,8 +115,9 @@ double gamma4L (double y1,double y2,double y3,double y4,double y5,double y6) {
   return vol4(y1,y2,y3,y4,y5,y6) - vol4L(y1,y2,y3,y4,y5,y6);
 }
 
-double gamma4Lwt(double y1,double y2,double y3,double y4,double y5,double y6) {
-  gamma4L(y1,y2,y3,y4,y5,y6)/wtcount(y1,y2,y3,y4,y5,y6);
+double gamma4Lbwt(double y1,double y2,double y3,double y4,double y5,double y6) {
+  return gamma4L(y1,y2,y3,y4,y5,y6)/wtcount(y1,y2,y3,y4,y5,y6) 
+    + bmp(y1,y2,y3,y4,y5,y6);
 }
 
 
@@ -163,8 +181,8 @@ double gamma23Lwt(double y1,double y2,double y3,double y4,double y5,double y6) {
   return cell2 + gamma3Lterm;
 }
 
-double dihcc = dih_y(2*hmid,2,2,2,2,2);
-double ggcc = gamma4L(2*hmid,2,2,2,2,2);
+//double dihcc = dih_y(2*hmid,2,2,2,2,2); global min of gamma3L.
+//double ggcc = gamma4L(2*hmid,2,2,2,2,2);
 
 
 
@@ -193,11 +211,7 @@ void bigradysmallrafy(int numargs,int whichFn,double* y, double* ret,void*) {
   default: *ret = radf(y[0],y[2],y[4]) - (s2); break;
     
   }
-};
-//constraint gamma4L < 0:
-void gamma4L_neg(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]);
-};
+}
 
 
 
@@ -283,6 +297,23 @@ Minimizer m21a() {
 }
 trialdata d21a(m21a(),"ID[2477216213] GLFVCVK: d21: Marchal, gamma4L(non-quarter) >= 0");
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t21b(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+Minimizer m21b() {
+  double ep = 1.0e-5;
+  double t = 2*hmin-ep;
+  double xmin[6]= {2.0*hmin+ep,2,2,2*hmin+ep,2,2};
+  double xmax[6]= {2.0*hmax-ep,t,t,2*hmax-ep,t,t};
+	Minimizer M(trialcount,6,1,xmin,xmax);
+	M.func = t21b;
+	M.cFunc = smallrady;
+	return M;
+}
+trialdata d21b(m21b(),"ID[]  d21b: Marchal, gamma4Lbwt(4cell wt2 opp) >= 0");
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -302,8 +333,11 @@ trialdata d17(m17(),"ID[1118115412] FHBVYXZ: cc:2bl: d17: Marchal, 2-blade, gamm
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
+void c18(int numargs,int whichFn,double* y, double* ret,void*) {
+      *ret = 1.65 - dih_y(y[0],y[1],y[2],y[3],y[4],y[5]); 
+ 	}
 void t18(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = 1.65 - dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]);
 	}
 Minimizer m18() {
   double t = 2.0*hmin;
@@ -311,10 +345,10 @@ Minimizer m18() {
   double xmax[6]= {2.0*hmax,t,t,t,t,t};
 	Minimizer M(trialcount,6,1,xmin,xmax);
 	M.func = t18;
-	M.cFunc = gamma4L_neg;
+	M.cFunc = c18;
 	return M;
 }
-trialdata d18(m18(),"ID BIXPCGW: cc:3bl: d18: Marchal, dih(quarter) < 1.65, if gamma4L is neg");
+trialdata d18(m18(),"ID[2300537674] BIXPCGW: cc:3bl: d18: Marchal, dih(quarter) < 1.65, if gamma4L is neg");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -329,7 +363,7 @@ Minimizer m19() {
 	M.func = t19;
 	return M;
 }
-trialdata d19(m19(),"ID BIXPCGW: cc:3bl: d19: Marchal, dih(four-cell w. diag) < 2.8");
+trialdata d19(m19(),"ID[6652007036] BIXPCGW: cc:3bl: d19: Marchal, dih(four-cell w. diag) < 2.8");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -344,7 +378,7 @@ Minimizer m20a() {
 	M.func = t20a;
 	return M;
 }
-trialdata d20a(m20a(),"ID BIXPCGW: cc:3bl: d20a: Marchal, if wt<1, then angle < 2.3, adjacent");
+trialdata d20a(m20a(),"ID[7080972881] BIXPCGW: cc:3bl: d20a: Marchal, if wt<1, then angle < 2.3, adjacent");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -359,7 +393,7 @@ Minimizer m20b() {
 	M.func = t20b;
 	return M;
 }
-trialdata d20b(m20b(),"ID BIXPCGW cc:3bl: d20b: Marchal, if wt<1, then angle < 2.3, opposite");
+trialdata d20b(m20b(),"ID[1738910218] BIXPCGW cc:3bl: d20b: Marchal, if wt<1, then angle < 2.3, opposite");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -374,7 +408,7 @@ Minimizer m21() {
 	M.func = t21;
 	return M;
 }
-trialdata d21(m21(),"ID BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quarter) > -0.0057");
+trialdata d21(m21(),"ID[9455898160] BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quarter) > -0.0057");
 
 
 
@@ -397,7 +431,7 @@ Minimizer m22() {
 	M.cFunc = c22;
 	return M;
 }
-trialdata d22(m22(),"ID BIXPCGW: cc:3bl: d22: Marchal, dih > 2.3 ==> gamma4L() > 0.0057");
+trialdata d22(m22(),"ID[7274157868] BIXPCGW: cc:3bl: d22: Marchal, dih > 2.3 ==> gamma4L() > 0.0057");
 
 
 double xxmin(int i) {
@@ -416,11 +450,15 @@ double xxmax(int i) {
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t25(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0560305 + 0.0445813 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0560305 + 0.0445813 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
 	}
-Minimizer m25(int i2,int i3,int i4,int i5,int i6) {
-  double xmin[6]= {xxmin(1),xxmin(i2),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
-  double xmax[6]= {xxmax(1),xxmax(i2),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
+/* eta(2hmin,2hmin,2hmin) >sqrt2. so one of the edges adjacent
+    to the spine is in the range [2,2hmin].
+    WLOG it is the edge y[1].
+*/
+Minimizer m25(int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
 	Minimizer M(40,6,1,xmin,xmax);
 	M.func = t25;
 	M.cFunc = smallrady;
@@ -433,9 +471,10 @@ Minimizer m25(int i2,int i3,int i4,int i5,int i6) {
 void t25a(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0560305 + 0.0445813 * dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
 	}
-Minimizer m25a(int i2,int i3,int i4,int i5,int i6) {
-  double xmin[6]= {xxmin(1),xxmin(i2),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
-  double xmax[6]= {xxmax(1),xxmax(i2),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
+// See t25 for explanation of why we use xxmin(0) xxmax(0). for y[1].
+Minimizer m25a(int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
 	Minimizer M(40,6,3,xmin,xmax);
 	M.func = t25a;
 	M.cFunc = bigradysmallrafy;
@@ -443,40 +482,56 @@ Minimizer m25a(int i2,int i3,int i4,int i5,int i6) {
 }
 // d25a in main().
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t26(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.0659 - dih_y(y[0],y[1],y[2],y[3],y[4],y[5])*0.042;
+	}
+//
+Minimizer m26() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t26;
+	return M;
+}
+trialdata d26(m26(),"ID[] QITNPEA: cc:4bl: d26: Marchal, 4blades j=4 quarters");
+
 
 int main()
 {
 double xmin[6];
 
   // d25 has many cases:
-for (int i2=0;i2<3;i2++)
-for (int i3=i2;i3<3;i3++)
-for (int i4=0;i4<3;i4++)
-for (int i5=0;i5<3;i5++)
-for (int i6=0;i6<3;i6++)
-  {
-xmin[0]=xxmin(1); xmin[1]=xxmin(i2); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
-if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
-else 
-{
-trialdata d25(m25(i2,i3,i4,i5,i6),"ID ZTGIJCF: 5:bl: d25: Marchal, gamma4Lwt >=  0.0560305 - 0.0445813 dih, many cases ");
-}
-  }
-
-  // d25a has many cases:
-for (int i2=0;i2<3;i2++)
 for (int i3=0;i3<3;i3++)
 for (int i4=0;i4<3;i4++)
 for (int i5=0;i5<3;i5++)
 for (int i6=0;i6<3;i6++)
   {
-    xmin[0]=xxmin(1); xmin[1]=xxmin(i2); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else 
+{
+  //  trialdata d25(m25(i3,i4,i5,i6),"ID[1821661595] ZTGIJCF: 5:bl: d25: Marchal, gamma4Lbwt >=  0.0560305 - 0.0445813 dih, many cases ");
+}
+  }
+
+  // d25a has many cases:
+for (int i3=0;i3<3;i3++)
+for (int i4=0;i4<3;i4++)
+for (int i5=0;i5<3;i5++)
+for (int i6=0;i6<3;i6++)
+  {
+    xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
     if (radf(xmin[0],xmin[1],xmin[5])> s2) continue;
     else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
     else 
 {
-  //trialdata d25a(m25a(i2,i3,i4,i5,i6),"ID ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases ");
+  // trialdata d25a(m25a(i3,i4,i5,i6),"ID[7907792228] ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases ");
 }
   }
+
+ cout << "sample " << gamma4Lbwt(2.5,2.05,2.1,2.55,2.15,2.2) << endl;
 
 }

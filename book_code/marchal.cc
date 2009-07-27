@@ -9,6 +9,8 @@
 // $ make marchal.o
 // $ ./marchal.o
 
+// bump added 7/24/09
+
 // constructor calls optimizer.  No need to place in main loop.
 class trialdata {
 public:
@@ -60,11 +62,12 @@ double bump(double r) {
   double s = (r-h0)/(hmax-h0);
   return 1.0 - s*s;
 }
+double bmpfactor = 0.005;
 double bmp(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (2!=wtcount(y1,y2,y3,y4,y5,y6))  { return 0.0; }
   if (!wtrange(y1))  { return 0.0; }
   if (!wtrange(y4))  { return 0.0; }
-  return 0.001*(bump(y1/2.0) - bump(y4/2.0));
+  return bmpfactor*(bump(y1/2.0) - bump(y4/2.0));
 }
 
 double interp(double x,double x1,double y1,double x2,double y2) {
@@ -499,6 +502,164 @@ Minimizer m26() {
 trialdata d26(m26(),"ID[] QITNPEA: cc:4bl: d26: Marchal, 4blades j=4 quarters");
 
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t27(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = 
+    gamma4Lbwt(y[0],y[1],y[2],   y[3],y[4],y[5]) // #Ec(X) = 2.  wt=1/2.
+    +gamma4L(y[0],y[1],y[6],   y[8],y[7],y[5])
+   +gamma4L(y[0],y[10],y[6], y[9],y[7],y[11])
+    +gamma4L(y[0],y[10],y[2], y[12],y[4],y[11]);
+	}
+//constraint dih > 2pi  
+void c27(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = 2.0*pi() 
+    - dih_y(y[0],y[1],y[2],   y[3],y[4],y[5])
+    - dih_y(y[0],y[1],y[6],   y[8],y[7],y[5])
+    - dih_y(y[0],y[10],y[6], y[9],y[7],y[11])
+    - dih_y(y[0],y[10],y[2], y[12],y[4],y[11]);
+  }
+//
+Minimizer m27() {
+  double t = 2*hmin-eps;
+  double w1 = 2*hmin+eps;
+  double w2 = 2*hmax-eps;
+  double xmin[13]= {w1,2,2,    w1,2,2,  2,2,2,    2,2,2,    2};
+  double xmax[13]= {w2,t,t,      w2,t,t,   t,t,t,        t,t,t,       t};
+	Minimizer M(trialcount,13,1,xmin,xmax);
+	M.func = t27;
+	M.cFunc = c27;
+	return M;
+}
+trialdata d27(m27(),"ID[] d27: Marchal, 4blades j=3 quarters, full version");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t28(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+Minimizer m28() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2.0*hmax,2,2};
+  double xmax[6]= {2.0*hmax,t,t,s8,t,t};
+	Minimizer M(trialcount,6,1,xmin,xmax);
+	M.func = t28;
+	M.cFunc = smallrady;
+	return M;
+}
+trialdata d28(m28(),"ID[] QITNPEA: cc:4bl: d28: Marchal, 4blades j=3 quarters, wt1 complement");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t30(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+Minimizer m30() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2.0*hmax,2,2};
+  double xmax[6]= {2.0*hmax,t,t,s8,t,t};
+	Minimizer M(trialcount,6,3,xmin,xmax);
+	M.func = t30;
+	M.cFunc = bigradysmallrafy;
+	return M;
+}
+trialdata d30(m30(),"ID[] QITNPEA: cc:4bl: d30: Marchal, 4blades j=3 quarters, 2-cell,3-cell complement");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t29(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) +0.0142852 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+Minimizer m29() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t29;
+	M.cFunc = smallrady;
+	return M;
+}
+trialdata d29(m29(),"ID[] QITNPEA: cc:4bl: d29: Marchal, 4blades j=3 quarters, quarter ineq");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t31(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
+    -0.00127562 + 0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+Minimizer m31() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t31;
+	M.cFunc = smallrady;
+	return M;
+}
+trialdata d31(m31(),"ID[]: cc:4bl: d31: Marchal, 4blades j=1 quarters, quarter ineq");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t32(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
+    -0.0105256 +  0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+Minimizer m32(int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
+	Minimizer M(40,6,1,xmin,xmax);
+	M.func = t32;
+	M.cFunc = smallrady;
+	return M;
+}
+//see main()
+
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+/*
+// deprecated. gamam23Lwt not needed in j=2 quarter.
+void t33(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
+     -0.0105256 +  0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+// See t25 for explanation of why we use xxmin(0) xxmax(0). for y[1].
+Minimizer m33(int i3,int i4,int i5,int i6) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
+	Minimizer M(40,6,3,xmin,xmax);
+	M.func = t33;
+	M.cFunc = bigradysmallrafy;
+	return M;
+}
+*/
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t34(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) -0.0057;
+	}
+// in 2quarter case, one blade is shared with a quarter constraining sides.
+//In this case other blade is not along a quarter and has a long edge.
+Minimizer m34(int i3,int i4) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(0),xxmin(0)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(0),xxmax(0)}; 
+	Minimizer M(40,6,1,xmin,xmax);
+	M.func = t34;
+	M.cFunc = smallrady;
+	return M;
+}
+// see main
+
+
 int main()
 {
 double xmin[6];
@@ -532,6 +693,53 @@ for (int i6=0;i6<3;i6++)
 }
   }
 
- cout << "sample " << gamma4Lbwt(2.5,2.05,2.1,2.55,2.15,2.2) << endl;
 
+for (int i3=0;i3<3;i3++)
+for (int i4=0;i4<3;i4++)
+for (int i5=0;i5<3;i5++)
+for (int i6=0;i6<3;i6++)
+  {
+xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+ else if (!(i3+i4+i5+i6)) continue; // skip quarter case.
+else
+{
+  trialdata d32(m32(i3,i4,i5,i6),"ID[]: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt");
+}
+  }
+
+
+
+/*
+// deprecated. Not needed.
+  // d33 has many cases:
+for (int i3=0;i3<3;i3++)
+for (int i4=0;i4<3;i4++)
+for (int i5=0;i5<3;i5++)
+for (int i6=0;i6<3;i6++)
+  {
+    xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
+    if (radf(xmin[0],xmin[1],xmin[5])> s2) continue;
+    else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
+    else 
+{
+  trialdata d33(m33(i3,i4,i5,i6),"ID[]: cc:4bl: d33: Marchal, 4blades j=1 quarters,  gamma4Lbwt many cases");
+}
+  }
+*/
+
+
+for (int i3=1;i3<3;i3++)
+for (int i4=0;i4<3;i4++)
+  {
+xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(0); xmin[5]=xxmin(0);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else
+{
+  trialdata d34(m34(i3,i4),"ID[]: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine");
+}
+  }
+
+
+ cout << "bmpfactor " << bmpfactor << endl;
 }

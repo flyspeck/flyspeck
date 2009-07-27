@@ -659,6 +659,42 @@ Minimizer m34(int i3,int i4) {
 }
 // see main
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t35(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
+    -0.161517 + 0.119472*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+//
+Minimizer m35() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t35;
+	M.cFunc = smallrady;
+	return M;
+}
+trialdata d35(m35(),"ID[]: cc:4bl: d35: Marchal, 4blades j=2 quarters, quarter ineq, small blade case");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t36(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
+    -0.213849 + 0.119472*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+	}
+// in 2quarter case, one blade is shared with a quarter constraining sides.
+//In this case other blade is not along a quarter and has a long edge.
+Minimizer m36(int i4) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(0),xxmin(i4),xxmin(0),xxmin(0)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(0),xxmax(i4),xxmax(0),xxmax(0)}; 
+	Minimizer M(40,6,1,xmin,xmax);
+	M.func = t36;
+	M.cFunc = smallrady;
+	return M;
+}
+// see main
+
 
 int main()
 {
@@ -704,7 +740,7 @@ if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
  else if (!(i3+i4+i5+i6)) continue; // skip quarter case.
 else
 {
-  trialdata d32(m32(i3,i4,i5,i6),"ID[]: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt");
+  // trialdata d32(m32(i3,i4,i5,i6),"ID[]: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt");
 }
   }
 
@@ -736,7 +772,18 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
-  trialdata d34(m34(i3,i4),"ID[]: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine");
+  // trialdata d34(m34(i3,i4),"ID[]: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine");
+}
+  }
+
+
+for (int i4=1;i4<3;i4++)
+  {
+xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(0); xmin[3]=xxmin(i4); xmin[4]=xxmin(0); xmin[5]=xxmin(0);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else
+{
+  trialdata d36(m36(i4),"ID[]: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades");
 }
   }
 

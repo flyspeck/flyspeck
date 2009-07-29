@@ -315,7 +315,7 @@ Minimizer m21b() {
 	M.cFunc = smallrady;
 	return M;
 }
-trialdata d21b(m21b(),"ID[]  d21b: Marchal, gamma4Lbwt(4cell wt2 opp) >= 0");
+trialdata d21b(m21b(),"ID[8328676778] GLFVCVK d21b: Marchal, gamma4Lbwt(4cell wt2 opp) >= 0");
 
 
 ////////// NEW INEQ
@@ -326,7 +326,7 @@ void t17(int numargs,int whichFn,double* y, double* ret,void*) {
 Minimizer m17() {
   double t = 2.0*hmin-eps;
   double xmin[6]= {2.0*hmin+eps,2,2,2,2,2};
-  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+  double xmax[6]= {2.0*hmax-eps,t,t,t,t,t};
 	Minimizer M(trialcount,6,1,xmin,xmax);
 	M.func = t17;
 	M.cFunc = smallrady;
@@ -419,7 +419,7 @@ trialdata d21(m21(),"ID[9455898160] BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quart
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t22(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0057; //ggcc;
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.0057; 
 	}
 //
 void c22(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -499,7 +499,7 @@ Minimizer m26() {
 	M.func = t26;
 	return M;
 }
-trialdata d26(m26(),"ID[] QITNPEA: cc:4bl: d26: Marchal, 4blades j=4 quarters");
+trialdata d26(m26(),"ID[5653753305] QITNPEA: cc:4bl: d26: Marchal, 4blades j=4 quarters");
 
 
 ////////// NEW INEQ
@@ -526,18 +526,33 @@ Minimizer m27() {
   double w2 = 2*hmax-eps;
   double xmin[13]= {w1,2,2,    w1,2,2,  2,2,2,    2,2,2,    2};
   double xmax[13]= {w2,t,t,      w2,t,t,   t,t,t,        t,t,t,       t};
-	Minimizer M(trialcount,13,1,xmin,xmax);
+	Minimizer M(40*trialcount,13,1,xmin,xmax);
 	M.func = t27;
 	M.cFunc = c27;
 	return M;
 }
 trialdata d27(m27(),"ID[] d27: Marchal, 4blades j=3 quarters, full version");
 
+double ajp(double a,double b,double j) {
+  return (j*a+ 2.0*pi()*b)/(j-2.0);
+}
+double a1  = 0.00127562;
+double b1 = -0.00522841;
+double a1p = ajp(a1,b1,1.0);
+double a2 = 0.161517;
+double b2 = -0.119482;
+double a2p = ajp(a2,b2,2.0);
+double a3 = -0.0142852;
+double b3 = 0.00609451;
+double a3p = ajp(a3,b3,3.0);
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t28(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
+     - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - ajp(a3,b3,3) - b3*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
 	}
 //
 Minimizer m28() {
@@ -549,12 +564,14 @@ Minimizer m28() {
 	M.cFunc = smallrady;
 	return M;
 }
-trialdata d28(m28(),"ID[] QITNPEA: cc:4bl: d28: Marchal, 4blades j=3 quarters, wt1 complement");
+trialdata d28(m28(),"ID[9939613598] QITNPEA: cc:4bl: d28: Marchal, 4blades j=3 quarters, wt1 complement");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t30(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
+     - 0.00457511 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - ajp(a3,b3,3) - b3*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
 	}
 //
 Minimizer m30() {
@@ -566,12 +583,14 @@ Minimizer m30() {
 	M.cFunc = bigradysmallrafy;
 	return M;
 }
-trialdata d30(m30(),"ID[] QITNPEA: cc:4bl: d30: Marchal, 4blades j=3 quarters, 2-cell,3-cell complement");
+trialdata d30(m30(),"ID[4003532128] QITNPEA: cc:4bl: d30: Marchal, 4blades j=3 quarters, 2-cell,3-cell complement");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t29(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) +0.0142852 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
+   +0.0142852 - 0.00609451*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - a3 - b3*dih 
 	}
 //
 Minimizer m29() {
@@ -583,7 +602,7 @@ Minimizer m29() {
 	M.cFunc = smallrady;
 	return M;
 }
-trialdata d29(m29(),"ID[] QITNPEA: cc:4bl: d29: Marchal, 4blades j=3 quarters, quarter ineq");
+trialdata d29(m29(),"ID[6206775865] QITNPEA: cc:4bl: d29: Marchal, 4blades j=3 quarters, quarter ineq");
 
 
 ////////// NEW INEQ
@@ -591,6 +610,7 @@ trialdata d29(m29(),"ID[] QITNPEA: cc:4bl: d29: Marchal, 4blades j=3 quarters, q
 void t31(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
     -0.00127562 + 0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - a1 - b1*dih
 	}
 //
 Minimizer m31() {
@@ -602,13 +622,14 @@ Minimizer m31() {
 	M.cFunc = smallrady;
 	return M;
 }
-trialdata d31(m31(),"ID[]: cc:4bl: d31: Marchal, 4blades j=1 quarters, quarter ineq");
+trialdata d31(m31(),"ID[5814748276] QITNPEA: cc:4bl: d31: Marchal, 4blades j=1 quarters, quarter ineq");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t32(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
     -0.0105256 +  0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - ajp(a1,b1,1) - b1*dih
 	}
 Minimizer m32(int i3,int i4,int i5,int i6) {
   double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
@@ -621,26 +642,6 @@ Minimizer m32(int i3,int i4,int i5,int i6) {
 //see main()
 
 
-
-////////// NEW INEQ
-// this is minimized.  failure reported if min is negative.
-/*
-// deprecated. gamam23Lwt not needed in j=2 quarter.
-void t33(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma23Lwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
-     -0.0105256 +  0.00522841*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
-	}
-//
-// See t25 for explanation of why we use xxmin(0) xxmax(0). for y[1].
-Minimizer m33(int i3,int i4,int i5,int i6) {
-  double xmin[6]= {xxmin(1),xxmin(0),xxmin(i3),xxmin(i4),xxmin(i5),xxmin(i6)};
-  double xmax[6]= {xxmax(1),xxmax(0),xxmax(i3),xxmax(i4),xxmax(i5),xxmax(i6)}; 
-	Minimizer M(40,6,3,xmin,xmax);
-	M.func = t33;
-	M.cFunc = bigradysmallrafy;
-	return M;
-}
-*/
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -663,7 +664,8 @@ Minimizer m34(int i3,int i4) {
 // this is minimized.  failure reported if min is negative.
 void t35(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) 
-    -0.161517 + 0.119472*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+    -0.161517 + 0.119482*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // -a2 - b2*dih
 	}
 //
 Minimizer m35() {
@@ -675,13 +677,14 @@ Minimizer m35() {
 	M.cFunc = smallrady;
 	return M;
 }
-trialdata d35(m35(),"ID[]: cc:4bl: d35: Marchal, 4blades j=2 quarters, quarter ineq, small blade case");
+trialdata d35(m35(),"ID[3848804089] QITNPEA: cc:4bl: d35: Marchal, 4blades j=2 quarters, quarter ineq, small blade case");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t36(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) 
-    -0.213849 + 0.119472*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+    -0.213849 + 0.119482*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]);
+  // - ajp(b2,b2,2) - b2*dih.
 	}
 // in 2quarter case, one blade is shared with a quarter constraining sides.
 //In this case other blade is not along a quarter and has a long edge.
@@ -699,6 +702,7 @@ Minimizer m36(int i4) {
 int main()
 {
 double xmin[6];
+ double docases=0;
 
   // d25 has many cases:
 for (int i3=0;i3<3;i3++)
@@ -710,7 +714,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else 
 {
-  //  trialdata d25(m25(i3,i4,i5,i6),"ID[1821661595] ZTGIJCF: 5:bl: d25: Marchal, gamma4Lbwt >=  0.0560305 - 0.0445813 dih, many cases ");
+  if (docases) { trialdata d25(m25(i3,i4,i5,i6),"ID[1821661595] ZTGIJCF: 5:bl: d25: Marchal, gamma4Lbwt >=  0.0560305 - 0.0445813 dih, many cases ") };
 }
   }
 
@@ -725,7 +729,7 @@ for (int i6=0;i6<3;i6++)
     else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
     else 
 {
-  // trialdata d25a(m25a(i3,i4,i5,i6),"ID[7907792228] ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases ");
+  if (docases) { trialdata d25a(m25a(i3,i4,i5,i6),"ID[7907792228] ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases ") };
 }
   }
 
@@ -740,29 +744,12 @@ if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
  else if (!(i3+i4+i5+i6)) continue; // skip quarter case.
 else
 {
-  // trialdata d32(m32(i3,i4,i5,i6),"ID[]: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt");
+  if (docases) { trialdata d32(m32(i3,i4,i5,i6),"ID[3803737830] QITNPEA: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt") };
 }
   }
 
 
 
-/*
-// deprecated. Not needed.
-  // d33 has many cases:
-for (int i3=0;i3<3;i3++)
-for (int i4=0;i4<3;i4++)
-for (int i5=0;i5<3;i5++)
-for (int i6=0;i6<3;i6++)
-  {
-    xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4]=xxmin(i5); xmin[5]=xxmin(i6);
-    if (radf(xmin[0],xmin[1],xmin[5])> s2) continue;
-    else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
-    else 
-{
-  trialdata d33(m33(i3,i4,i5,i6),"ID[]: cc:4bl: d33: Marchal, 4blades j=1 quarters,  gamma4Lbwt many cases");
-}
-  }
-*/
 
 
 for (int i3=1;i3<3;i3++)
@@ -772,7 +759,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
-  // trialdata d34(m34(i3,i4),"ID[]: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine");
+  if (docases) { trialdata d34(m34(i3,i4),"ID[9063653052] QITNPEA: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine") };
 }
   }
 
@@ -783,7 +770,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(0); xmin[3]=xxmin(i4); xmin[4]
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
-  trialdata d36(m36(i4),"ID[]: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades");
+  if (docases) { trialdata d36(m36(i4),"ID[2134082733] QITNPEA: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades") };
 }
   }
 

@@ -1,11 +1,27 @@
 (*
 2009 definitions.
 
-
+7/29/2009: 
+  * normball deprecated. Replace normball x r with ball(x,r)
+  * iter deprecated. Replace iter with ITER (Examples/iter.ml).
+  * rect deprecated. Use interval instead.  
+  * wedge is now defined by Harrison using azim.  He has proved a lemma giving the equivalence with the previous definition.
+  * azim in defined by Harrison.
+  * polar_angle replaced with Arg, see below
+  * radius is replaced with norm, see below.
+  * directed_angle is now defined through complex Arg.  
+  * definition of polar cycle has been changed (again).  
+  * a lemma is needed relating atn2 to Arg.
 *)
 
 needs "Multivariate/transc.ml";;
 prioritize_real();;
+
+(* 
+With the following definition, we should have
+atn2(x,y) = pi - Arg(complex(-- x, y)),
+including in the degenerate cases.  In this sense, it is the "right" definition.
+*)
 
 let atn2 = new_definition(`atn2(x,y) =
     if ( abs y < x ) then atn(y / x) else
@@ -228,7 +244,7 @@ let orientation = new_definition `orientation S v sgn = affsign sgn (S DIFF {v})
 
 let arcV = new_definition `arcV u v w = acs (( (v - u) dot (w - u))/((norm (v-u)) * (norm (w-u))))`;;
 
-(* deprecated in favor of Multivariate/flyspeck.ml definition *)
+(* modified in favor of Multivariate/flyspeck.ml definition *)
 
 let dihV = new_definition  `dihV w0 w1 w2 w3 = 
      let va = w2 - w0 in
@@ -262,11 +278,17 @@ let beta = new_definition(`beta psi theta =
 
 (* polar coordinates *)
 
+(* deprecated:
+  radius (x,y) is the same as norm(vector[x;y])
+  polar_angle x y in non-degenerate cases is Arg(vector[x;y])
+
 let radius = new_definition `radius (x,y) = sqrt((x pow 2) + (y pow 2))`;;
 let polar_angle = new_definition `polar_angle x y = 
          let theta = atn2(x,y) in
 	 if (theta < &0) then (theta + (&2 * pi)) else theta`;;
 let polar_c = new_definition `polar_c x y = (radius (x,y),polar_angle x y)`;;
+*)
+
 
 (* deprecated *)
 (*
@@ -286,14 +308,21 @@ let cyclic_order = new_definition `cyclic_order v u w =
     ((directed_angle v u = directed_angle v w) /\ (radius u < radius w))`;;
 *)
 
+(*
 let directed_angle = new_definition `directed_angle (x,y) (x',y') = 
   polar_angle (x'*x+y'*y) (y'*x - x'*y)`;;
+*)
 
-let polar_cycle = new_definition `polar_cycle V v = (@ u. V u /\
+let directed_angle = new_definition `directed_angle (x,y) (x',y') = 
+  Arg (complex(x',y') / complex(x,y))`;;
+
+let polar_cycle = new_definition `polar_cycle V v = 
+   if (V = {v}) then v else (@ u. ~(u=v) /\ V u /\
   (!w. V w /\ ~(w = v)  ==> directed_angle v u <= directed_angle v w))`;;
 
 
-
+(* deprecated 7/29/2009 *)
+(*
 let iter_spec = prove(`?iter. !f u:A. (iter 0 f u = u) /\ (!n. (iter (SUC n) f u = f(iter n f u)))`,
     (SUBGOAL_THEN `?g. !f (u:A).  (g f u 0 = u) /\ (!n. (g f u (SUC n) = f (g f u n)))` CHOOSE_TAC) THENL
      ([REWRITE_TAC[GSYM SKOLEM_THM;num_RECURSION_STD];REWRITE_TAC[]]) THEN
@@ -302,6 +331,7 @@ let iter_spec = prove(`?iter. !f u:A. (iter 0 f u = u) /\ (!n. (iter (SUC n) f u
      (ASM_REWRITE_TAC[]));;
 
 let iter = new_specification ["iter"] iter_spec;;
+*)
 
 (* deprecate iter -> ITER *)
 
@@ -316,6 +346,9 @@ let cyclic_set = new_definition `cyclic_set W v w =
      (~(v=w) /\ (FINITE W) /\ (!p q h. W p /\ W q /\ (p = q + h % (v - w)) ==> (p=q)) /\
         (W INTER (affine hull {v,w}) = EMPTY))`;;
 
+(*
+This hypotheses should be proved as soon as possible.  It has stayed in the definitions file much too long!
+*)
 
 let azim_cycle_hyp_def = new_definition `azim_cycle_hyp = 
   (?sigma.  !W proj v w e1 e2 e3 p. 
@@ -381,25 +414,39 @@ let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3
 
 let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
 
-let circular_cone =new_definition `circular_cone (V:real^3-> bool)=
-(? (v,w:real^3)(r:real). V= c_cone (v,w,r))`;;
+(*
+definition corrected by JH: 
+*)
+
+let circular_cone =new_definition
+  `circular_cone (V:real^3-> bool)=
+   (? (v,w:real^3)(r:real). ~(w = vec 0) /\ V = c_cone (v,w,r))`;;
+
+(* NULLSET_RULES now defined in flyspeck.ml
 
 let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
   new_inductive_definition
     `(!P. ((plane P)\/ (sphere P) \/ (circular_cone P)) ==> NULLSET P) /\
      !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;
+*)
 
 let null_equiv = new_definition `null_equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B /\ 
 ((s DIFF t) UNION (t DIFF s)) SUBSET B)`;;
 
-
+(* deprecated normball x r becomes ball(x,r) *)
+(*
 let normball = new_definition `normball x r = { y:real^A | dist(y,x) < r}`;;
+*)
 
-let radial = new_definition `radial r x C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
+let radial = new_definition `radial r x C <=> (C SUBSET ball (x,r)) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
 
-let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER normball x r))`;;
+let eventually_radial = new_definition `eventually_radial x C <=> (?r. (r> &0) /\ radial r x (C INTER ball (x, r)))`;;
 
-let solid_triangle = new_definition `solid_triangle v0 S r = normball v0 r INTER cone v0 S`;;
+(* JH changed cone to cone0 *)
+
+let solid_triangle = new_definition
+  `solid_triangle v0 S r = normball v0 r INTER cone0 v0 S`;;
+
 
 let rconesgn = new_definition `rconesgn sgn v w h = {x:real^A | sgn ((x-v) dot (w-v)) (dist(x,v)*dist(w,v)*h)}`;;
 
@@ -412,18 +459,29 @@ let rcone_eq = new_definition `rcone_eq = rconesgn ( = )`;;
 
 let scale = new_definition `scale (t:real^3) (u:real^3) = vector[t$1 * u$1; t$2 * u$2; t$3 * u$3]`;;
 
-let ellipsoid = new_definition `ellipsoid t r = IMAGE (scale t) (normball(vec 0)r)`;;
+(* ellipsoid is now defined in Multivariate/flyspeck.ml *)
 
-let conic_cap = new_definition `conic_cap v0 v1 r a = normball v0 r INTER rcone_gt v0 v1 a`;;
+(*
+let ellipsoid = new_definition `ellipsoid t r = IMAGE (scale t) (ball( (vec 0),r))`;;
+*)
 
+(* conic cap is now defined in Multivariate/flyspeck.ml
+let conic_cap = new_definition `conic_cap v0 v1 r a = ball (v0 ,r) INTER rcone_gt v0 v1 a`;;
+*)
+
+(* frustum and frustt are now defined in Multivariate/flyspeck.ml
 let frustum = new_definition `frustum v0 v1 h1 h2 a = { y | rcone_gt v0 v1 a y /\
 		let d = (y - v0) dot (v1 - v0) in
 		let n = norm(v1 - v0) in
                   (h1*n < d /\ d < h2*n)}`;;
 
-let frustt = new_definition `frustt v0 v1 h a = frustum v0 v1 (&0) h a`;;
 
+let frustt = new_definition `frustt v0 v1 h a = frustum v0 v1 (&0) h a`;;
+*)
+
+(* deprecated rect. Replaced with HOL-Light "interval"
 let rect = new_definition `rect (a:real^3) (b:real^3) = {(v:real^3) | !i. ( a$i < v$i /\ v$i < b$i )}`;;
+*)
 
 (* deprecated
 let primitive = new_definition `primitive (C:real^3->bool) = 
@@ -433,7 +491,7 @@ let primitive = new_definition `primitive (C:real^3->bool) =
   (?v0 v1 v2 v3 r c. (C = conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3)) \/
   (?a b.  (C = rect a b)) \/
   (?t r. (C = ellipsoid t r)) \/
-  (?v0 v1 v2 v3 r. (C = normball v0 r INTER wedge v0 v1 v2 v3)))`;;
+  (?v0 v1 v2 v3 r. (C = ball (v0,r) INTER wedge v0 v1 v2 v3)))`;;
 
 
 let MEASURABLE_RULES,MEASURABLE_INDUCT,MEASURABLE_CASES =
@@ -464,6 +522,7 @@ let vol_frustt_wedge = new_definition `vol_frustt_wedge v0 v1 v2 v3 h a =
 let vol_conic_cap_wedge = new_definition `vol_conic_cap_wedge v0 v1 v2 v3 r c = 
        (azim v0 v1 v2 v3)*(&1 - c)*(r pow 3)/(&3)`;;
 
+(* JRH corrected definition *)
 
 let vol_conv = new_definition `vol_conv v1 v2 v3 v4 =
    let x12 = dist(v1,v2) pow 2 in
@@ -472,7 +531,7 @@ let vol_conv = new_definition `vol_conv v1 v2 v3 v4 =
    let x23 = dist(v2,v3) pow 2 in
    let x24 = dist(v2,v4) pow 2 in
    let x34 = dist(v3,v4) pow 2 in
-   sqrt(delta_x x12 x13 x14 x34 x24 x34)/(&12)`;;
+   sqrt(delta_x x12 x13 x14 x34 x24 x23)/(&12)`;;
 
 let vol_rect = new_definition `vol_rect a b = 
    if (a$1 < b$1) /\ (a$2 < b$2) /\ (a$3 < b$3) then (b$3-a$3)*(b$2-a$2)*(b$1-a$1) else &0`;;
@@ -492,12 +551,12 @@ let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) =
      (!v0 v1 v2 v3 h a. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (h >= &0) /\ (a > &0) /\ (a <= &1) ==> vol(frustt v0 v1 h a INTER wedge v0 v1 v2 v3) = vol_frustt_wedge v0 v1 v2 v3 h a) /\
      (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
      (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
-     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
+     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(ball (v0,r) INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
 
 let vol_def = new_definition `vol = ( @ ) volume_props`;;
 
 let solid = new_definition `solid x C = (@s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> 
-     (s = &3 * vol(C INTER normball x r)/(r pow 3))))  `;;
+     (s = &3 * vol(C INTER ball (x,r))/(r pow 3))))  `;;
 *)
 
 

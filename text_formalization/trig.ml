@@ -184,6 +184,9 @@ let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
         (phi = arcV v u w) /\ (r = dist( u, v)) /\ ((dist( w, v)) % e3 = (w-v)) /\
   ( u' dot e3 = &0) /\ (u = v + u' + (r*cos(phi)) % e3))`;;
 
+(* deprecated, replaced with Harrison's SPHERICAL_COORDINATES theorem,
+    which is worded slightly differently.
+
 let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
         ~(collinear {v,w,u}) /\ ~(collinear {v,w,u'}) /\
        orthonormal e1 e2 e3 /\ ((dist( v, w)) % e3 = (v-w)) /\
@@ -191,6 +194,7 @@ let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
   (r = dist( v, u')) /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
   (u' = u + (r*cos(theta)*sin(phi)) % e1 + (r*sin(theta)*sin(phi)) % e2 
       + (r * cos(phi)) % e3)`;;
+*)
 
 let polar_coord_zenith_t = `!u v w u' n.
   ~(collinear {u,v,w}) /\ (aff {u,v,w} u') /\ ~(u' = v) /\

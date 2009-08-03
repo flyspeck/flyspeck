@@ -169,17 +169,18 @@ let thetaij_t = `!theta1 theta2 k12 k21 theta12 theta21.
      (&0 <= theta21) /\ (theta21 < &2 * pi) ==>
      ((theta12+theta21) = (if (theta1=theta2) then (&0) else (&2 * pi)))`;;
 
+(* JMR: Changed `polar_angle (FST u) (SND u)` to `Arg(complex u)` *)
 
 let thetapq_wind_t = `!W n thetapq kpq. 
     (!x y. (W (x,y) ==> (~(x= &0) /\ ~(y = &0)))) /\
     (W HAS_SIZE n) /\
     (!u v. W u /\ W v ==> 
-       ((thetapq u v = polar_angle (FST v) (SND v) -  polar_angle (FST u) (SND u) + &2 * pi * kpq u v) /\  (&0 <= thetapq u v) /\ (thetapq u v < &2 * pi)))
+       ((thetapq u v = Arg(complex v) -  Arg(complex u) + &2 * pi * kpq u v) /\  (&0 <= thetapq u v) /\ (thetapq u v < &2 * pi)))
     ==>
     ((!u i j. (W u /\ (0 <= i) /\ (i <= j) /\ (j < n)) ==>
-        thetapq u (iter i (polar_cycle W) u) + thetapq (iter i (polar_cycle W) u) (iter j (polar_cycle W) u) = thetapq u (iter j (polar_cycle W) u)) /\
-    ((!u v.  (W u /\ W v) ==> (polar_angle (FST u) (SND u) = polar_angle (FST v) (SND v))) \/
-     (!u. (W u)  ==> (sum(0 .. n-1) (\i. thetapq (iter i (polar_cycle W) u) (iter (SUC i) (polar_cycle W) u))  = &2 * pi)) ))`;;
+        thetapq u (ITER i (polar_cycle W) u) + thetapq (ITER i (polar_cycle W) u) (ITER j (polar_cycle W) u) = thetapq u (ITER j (polar_cycle W) u)) /\
+    ((!u v.  (W u /\ W v) ==> (Arg(complex u) = Arg(complex v))) \/
+     (!u. (W u)  ==> (sum(0 .. n-1) (\i. thetapq (ITER i (polar_cycle W) u) (ITER (SUC i) (polar_cycle W) u))  = &2 * pi)) ))`;;
 
 let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
    (?u' r phi e3.
@@ -214,7 +215,7 @@ let azim_cycle_sum_t = `!W v w n.
    (W HAS_SIZE n) ==>
    (!p i j. (W p /\ (0 <= i) /\ (i <= j) /\ (j < n)) ==> 
        ((!q.  W q ==> (azim v w p q = &0) ) \/
-       (sum(0 .. n-1) (\i. azim v w (iter i (azim_cycle W v w) p) (iter (SUC i) (azim_cycle W v w) p)) = &2 * pi   )))`;;
+       (sum(0 .. n-1) (\i. azim v w (ITER i (azim_cycle W v w) p) (ITER (SUC i) (azim_cycle W v w) p)) = &2 * pi   )))`;;
 
 let dih_azim_t = `!v w v1 v2. 
    ~(collinear {v,w,v1}) /\ ~(collinear {v,w,v2}) ==>

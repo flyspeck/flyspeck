@@ -151,8 +151,10 @@ let euler_triangle_t = `!v0 v1 v2 v3:real^3.
     ((&0 < d) ==>
       (alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2(sqrt(d), (&2 * p))))`;;
 
+(* removed by TCH
 let polar_coords_t = `!x y. (x = (radius (x,y))*(cos(polar_angle x y))) /\
      (y = (radius (x, y))*(sin(polar_angle x y)))`;;
+*)
 
 let polar_cycle_rotate_t = `!V psi u f.
        (!x y. f (x,y) = (x*cos psi + y*sin psi, -- x*sin psi + y*cos psi)) /\
@@ -339,7 +341,7 @@ module type Trigsig = sig
   val dih_x_acs : thm (*  dih_x_acs_t *)
   val beta_cone : thm (*  beta_cone_t *)
   val euler_triangle : thm (*  euler_triangle_t *)
-  val polar_coords : thm (*  polar_coords_t *)
+(*   val polar_coords : thm (*  polar_coords_t *) *)
   val polar_cycle_rotate : thm (*  polar_cycle_rotate_t *)
   val thetaij : thm (*  thetaij_t *)
   val thetapq_wind : thm (*  thetapq_wind_t *)
@@ -392,7 +394,7 @@ let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
   dih_x_acs_t ;
   beta_cone_t ;
   euler_triangle_t ;
-  polar_coords_t ;
+(*   polar_coords_t ; *)
   polar_cycle_rotate_t ;
   thetaij_t ;
   thetapq_wind_t ;
@@ -1354,7 +1356,7 @@ module Trig : Trigsig = struct
   let  dih_x_acs = trigAxiomProofB   dih_x_acs_t 
   let  beta_cone = trigAxiomProofB   beta_cone_t 
   let  euler_triangle = trigAxiomProofB   euler_triangle_t 
-  let  polar_coords = trigAxiomProofB   polar_coords_t 
+(*  let  polar_coords = trigAxiomProofB   polar_coords_t  *)
   let  polar_cycle_rotate = trigAxiomProofB   polar_cycle_rotate_t 
   let  thetaij = trigAxiomProofB   thetaij_t 
   let  thetapq_wind = trigAxiomProofB   thetapq_wind_t 

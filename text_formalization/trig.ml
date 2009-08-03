@@ -346,7 +346,7 @@ module type Trigsig = sig
   val thetaij : thm (*  thetaij_t *)
   val thetapq_wind : thm (*  thetapq_wind_t *)
   val zenith : thm (*  zenith_t *)
-  val spherical_coord : thm (*  spherical_coord_t *)
+(*  val spherical_coord : thm (*  spherical_coord_t *) *)
   val polar_coord_zenith : thm (*  polar_coord_zenith_t *)
   val azim_pair : thm (*  azim_pair_t *)
   val azim_cycle_sum : thm (*  azim_cycle_sum_t *)
@@ -399,7 +399,7 @@ let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
   thetaij_t ;
   thetapq_wind_t ;
   zenith_t ;
-  spherical_coord_t ;
+(*  spherical_coord_t ; *)
   polar_coord_zenith_t ;
   azim_pair_t ;
   azim_cycle_sum_t ;
@@ -1361,7 +1361,7 @@ module Trig : Trigsig = struct
   let  thetaij = trigAxiomProofB   thetaij_t 
   let  thetapq_wind = trigAxiomProofB   thetapq_wind_t 
   let  zenith = trigAxiomProofB   zenith_t 
-  let  spherical_coord = trigAxiomProofB   spherical_coord_t 
+(*  let  spherical_coord = trigAxiomProofB   spherical_coord_t *) 
   let  polar_coord_zenith = trigAxiomProofB   polar_coord_zenith_t 
   let  azim_pair = trigAxiomProofB   azim_pair_t 
   let  azim_cycle_sum = trigAxiomProofB   azim_cycle_sum_t 

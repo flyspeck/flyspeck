@@ -947,11 +947,11 @@ GEN_TAC THEN REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN EXISTS_TAC `(lambda i. ((x:
   THEN GEN_TAC THEN DISCH_TAC THEN ASM_SIMP_TAC[VECTOR_ADD_COMPONENT;LAMBDA_BETA;DIMINDEX_3]
   THEN REAL_ARITH_TAC);;
 
- let t= CONJUNCT2 PRODUCT_CLAUSES;;
-let product_3=prove(`!(f:num -> real). product (1..3) f= f 1 * f 2 * f 3 `,
+
+let product_3=prove(`!(f:num -> real). product (1..3) f= f 1 * f 2 * f 3 `, let emoi= CONJUNCT2 PRODUCT_CLAUSES in 
 GEN_TAC THEN MP_TAC(GSYM (SPECL [`1:num`;`3:num`] NUMSEG_RREC)) 
   THEN SIMP_TAC[ARITH_RULE `1<= 3`;ARITH_RULE `3-1 = 2`] THEN REPEAT DISCH_TAC
-  THEN MP_TAC(ISPECL [`3:num`;`f:num -> real`;`((1..2)):num ->bool`] t)
+  THEN MP_TAC(ISPECL [`3:num`;`f:num -> real`;`((1..2)):num ->bool`] emoi)
 					     THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..2)`]
 					     THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (3<=2)`] ` ~( 3 IN (1..2))`] THEN DISCH_TAC THEN MP_TAC(GSYM (SPECL [`1:num`;`2:num`] NUMSEG_RREC)) THEN SIMP_TAC[ARITH_RULE `1<=2`;ARITH_RULE `2-1=1`] THEN MP_TAC(ISPECL [`2:num`;`f:num -> real`;`((1..1)):num ->bool`] t) THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..1)`] THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (2<=1)`] ` ~( 2 IN (1..1))`]
 					     THEN SIMP_TAC[SPECL [`f : num -> real`;`1:num`] PRODUCT_SING_NUMSEG] THEN REAL_ARITH_TAC);;

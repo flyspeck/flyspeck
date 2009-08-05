@@ -36,7 +36,7 @@ let set_of_edges=new_definition`set_of_edges v E={w|{v,w} IN E}`;;
 
 let azim_cycle_fan= new_definition`azim_cycle_fan   = 
 (  !x:real^3 V E. ?sigma. !proj e1 e2 e3 v w. 
-(fan(x, V, E) /\ (V v) /\ ({v,w} IN E) /\ ((dist(v,w)) % e3 = (x-v)) /\
+(fan(x, V, E) /\ (V v) /\ ({v,w} IN E) /\ ((dist(v,x)) % e3 = (x-v)) /\
 (orthonormal e1 e2 e3) /\
 (!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3)))) 
 ==> (  (proj (sigma  v w) = polar_cycle (IMAGE proj {y|{v,y} IN E}) (proj w)))) `;;
@@ -45,7 +45,7 @@ let azim_cycle_fan1 = REWRITE_RULE[SKOLEM_THM] azim_cycle_fan;;
 
 let azim_cycle_fan2=prove(`?sigma. !x:real^3 V E proj e1 e2 e3 v w. 
 (azim_cycle_fan)==>
-(fan(x, V, E) /\ (V v) /\ ({v,w} IN E) /\ ((dist(v,w)) % e3 = (x-v)) /\
+(fan(x, V, E) /\ (V v) /\ ({v,w} IN E) /\ ((dist(v,x)) % e3 = (x-v)) /\
 (orthonormal e1 e2 e3) /\
 (!u a b. (proj u = (a,b)) <=> (?h. (u = v + a % e1 + b % e2 + h % e3)))) 
 ==> (  (proj (sigma x V E v w) = polar_cycle (IMAGE proj {y|{v,y} IN E}) (proj w))) `,
@@ -363,6 +363,12 @@ THENL
 let wedge_fan3=new_definition`wedge_fan3 (x:real^3)  (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3) (i:num) =
 {y:real^3 | ( f_azim_fan x V E v u (i) < azim_fan x v u y)/\
 (azim_fan x v u y < f_azim_fan x V E v u (i+1))/\( y IN complement_set {x, v})}`;;
+
+
+
+
+
+
 
 let wedge_fan6=new_definition`wedge_fan6 (x:real^3)  (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3) (i:num) ={y:real^3 | (( f_azim_fan x V E v u (i) = azim_fan x v u y)\/(( f_azim_fan x V E v u (i) < azim_fan x v u y)/\(azim_fan x v u y < f_azim_fan x V E v u (i+1))))/\( y IN complement_set {x, v})}`;;
 
@@ -1226,12 +1232,6 @@ THENL
              [USE_THEN "d" MP_TAC  THEN SET_TAC[];              
               POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN MP_TAC( ISPECL [`aff_ge {(x:real^3)} {(v:real^3)} INTER ballnorm_fan x`;  `aff_ge {(x:real^3)} {(v1:real^3), (w1:real^3)} INTER ballnorm_fan x`] SEPARATE_CLOSED_COMPACT) THEN MESON_TAC[REAL_ARITH `(&0 < (d:real)) <=> (d > &0)`]]]]]);;
 
-(*-------------------------------------------------------------------------------------------*)    
-(*        there exists h small enough the set W_dart INTER ballnorm INTER aff_ge ={}         *)
-(*-------------------------------------------------------------------------------------------*)
-
-
-
 let ballsets_fan=new_definition`ballsets_fan (s:real^3->bool) (h:real)= {y:real^3| ?x:real^3. dist(x,y) < h /\ x IN s} `;;
 
 
@@ -1273,16 +1273,10 @@ SUBGOAL_THEN `?h:real.
               THEN REWRITE_TAC[INTER;IN_ELIM_THM;INSERT;IN_ELIM_THM] THEN SET_TAC[];
             USE_THEN "b" MP_TAC THEN REAL_ARITH_TAC]]]);;
 
-
-
-
-(*-------------------------------------------------------------------------------------------*)    
-(*        there exists h small enough the set W_dart INTER ballnorm INTER aff_ge ={}==>
-W_dart  INTER aff_ge  ={x}         *)
 (*-------------------------------------------------------------------------------------------*)
-
-let cone_ge_fan=new_definition`cone_ge_fan (x:real^3) (s:real^3->bool)= {y:real^3| ?a:real z:real^3. (&0 <= a)/\(z IN s) /\ (y =a % (z - x) + x)}`;;
-
+(*    the properties in normal vector                                                        *)
+(*-------------------------------------------------------------------------------------------*)
+ 
 let imp_norm_not_zero_fan=prove(`!v:real^3 x:real^3. ~(v = x) ==> ~(norm ( v - x) = &0)`,
 REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN SUBGOAL_THEN `(v:real^3)-(x:real^3)= vec 0` ASSUME_TAC THENL
                    [POP_ASSUM MP_TAC THEN MESON_TAC[NORM_EQ_0];
@@ -1296,6 +1290,11 @@ REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `~(norm ( (v:real^3) - (x:real^3
    SUBGOAL_THEN `norm((v:real^3)-(x:real^3))> &0` ASSUME_TAC THENL
      [POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
       MP_TAC (ISPEC `norm((v:real^3)-(x:real^3))` REAL_LT_INV_EQ) THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC]]);;
+let imp_inv_norm_not_zero_fan=prove(`!v:real^3 x:real^3. ~(v = x) ==> ~(inv(norm ( v - x)) = &0)`,
+REPEAT GEN_TAC THEN DISCH_TAC THEN SUBGOAL_THEN `inv(norm ((v:real^3) - (x:real^3))) > &0` ASSUME_TAC
+THENL
+  [ASM_MESON_TAC[imp_norm_gl_zero_fan]; 
+   POP_ASSUM MP_TAC THEN REAL_ARITH_TAC]);;
 
 
 let imp_norm_ge_zero_fan=prove(`!v:real^3 x:real^3. ~(v = x) ==> inv(norm ( v - x)) >= &0`,
@@ -1305,6 +1304,28 @@ REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `~(norm ( (v:real^3) - (x:real^3
    SUBGOAL_THEN `norm((v:real^3)-(x:real^3))> &0` ASSUME_TAC THENL
      [POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
       MP_TAC (ISPEC `norm((v:real^3)-(x:real^3))` REAL_LT_INV_EQ) THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC]]);;
+
+let norm_of_normal_vector_is_unit_fan=prove(`!v:real^3 x:real^3. ~(v = x) ==> norm(inv(norm ( v - x))% (v-x))= &1`,
+REPEAT GEN_TAC THEN DISCH_TAC THEN REWRITE_TAC[NORM_MUL] THEN SUBGOAL_THEN ` inv(norm ( (v:real^3) - (x:real^3))) >= &0` ASSUME_TAC THENL[ ASM_MESON_TAC[imp_norm_ge_zero_fan]; 
+                SUBGOAL_THEN ` ~(norm ( (v:real^3) - (x:real^3))= &0)` ASSUME_TAC THENL
+                   [ASM_MESON_TAC[imp_norm_not_zero_fan];
+                    SUBGOAL_THEN ` abs(inv(norm ( (v:real^3) - (x:real^3))))= inv(norm ( (v:real^3) - (x:real^3)))` ASSUME_TAC THENL
+                       [ASM_MESON_TAC[REAL_ABS_REFL;REAL_ARITH `(a:real)>= &0 <=> &0 <= a`; ];
+                        MP_TAC(ISPEC `norm ( (v:real^3) - (x:real^3))` REAL_MUL_LINV)THEN ASM_REWRITE_TAC[]]]]);;
+
+
+
+
+
+(*-------------------------------------------------------------------------------------------*)
+(* cone_ge_fan_inter_aff_ge_is_empty                                                         *)
+(*-------------------------------------------------------------------------------------------*)
+
+
+
+let cone_ge_fan=new_definition`cone_ge_fan (x:real^3) (s:real^3->bool)= {y:real^3| ?a:real z:real^3. (&0 <= a)/\(z IN s) /\ (y =a % (z - x) + x)}`;;
+
+
 
 let cone_ge_fan_inter_aff_ge_is_empty=prove(`
 (!x:real^3 v:real^3. aff_ge {x} {v} = {y:real^3 | ?t1:real t2:real. (t2 >= &0) /\ (t1 + t2 = &1) /\ (y = t1 % x + t2 % v )})
@@ -1502,7 +1523,6 @@ ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_ELIM_THM] THEN EXISTS_TAC `&1` THEN EXISTS
 
 
 
-
 let proj_fan=new_definition`proj_fan (x:real^3) = \y:real^3. inv(norm(y - x)) % (y - x )`;; 
 
 
@@ -1569,43 +1589,8 @@ SUBGOAL_THEN `(\y:real^3. y) continuous at (x':real^3)` ASSUME_TAC THENL
 
  
 
-
-
-
-
-  g`!x:real^3 y:real^3. ~(y = x) ==> (proj_fan x)(y) IN ballnorm_fan x`;;
-  
-
- 
-
-e(REPEAT GEN_TAC);;
-
-e(DISCH_TAC);; 
-
-e(SUBGOAL_THEN `~ ((y:real^3)-(x:real^3)= vec 0)` ASSUME_TAC);;
-
-e(STRIP_TAC);;
-
-e(SUBGOAL_THEN `(y:real^3)=(x:real^3)` ASSUME_TAC);;
-
-e(POP_ASSUM MP_TAC THEN VECTOR_ARITH_TAC);;
-
-e(SET_TAC[]);;
-e(POP_ASSUM MP_TAC);;
-e(REWRITE_TAC [proj_fan; ballnorm_fan]);;
-
-e( REWRITE_TAC[IN_ELIM_THM]);; 
-
-e(    SIMP_TAC[REAL_MUL_LINV; NORM_EQ_0]);;
-    
-
-
-
-
-
-
-
-
+(*------------------------------------------------------------------------*)
+(*------------------------------------------------------------------------*)
 
 
 let r_fan=new_definition`r_fan (a:real) (b:real) (c:real) = { y:real^3 | y$1 > &0  /\  y$2 > a  /\ y$2 < b /\ y$3 > &0 /\ y$3 < c}`;;
@@ -1669,4 +1654,178 @@ ASM_MESON_TAC[CONVEX_INTER])
 SUBGOAL_THEN `!a:real b:real c:real. convex (r_fan a b c)` ASSUME_TAC 
 THENL [MESON_TAC[lemma];
        ASM_MESON_TAC[CONVEX_CONNECTED]]));;
+
+
+
+(*---------------------------------------------------------------------------------------*)
+(* the function of change coordinateis(spherecial) continuous                     *)
+(*---------------------------------------------------------------------------------------*)
+ 
+
+let e3_fan=new_definition`e3_fan  (x:real^3) (v:real^3) (u:real^3) = inv(norm((v:real^3)-(x:real^3))) % ((v:real^3)-(x:real^3))`;;
+
+
+
+
+  let e2_fan=new_definition`e2_fan (x:real^3) (v:real^3) (u:real^3) = inv(norm((e3_fan (x:real^3) (v:real^3) (u:real^3)) cross ((u:real^3)-(x:real^3)))) % ((e3_fan (x:real^3) (v:real^3) (u:real^3)) cross ((u:real^3)-(x:real^3))) `;;
+  
+let e1_fan=new_definition`e1_fan (x:real^3) (v:real^3) (u:real^3)=(e2_fan (x:real^3) (v:real^3) (u:real^3)) cross (e3_fan (x:real^3) (v:real^3) (u:real^3))`;;
+
+
+  
+  let e3_mul_dist_fan=prove(`!x:real^3 v:real^3. ~(v=x) ==> dist (v,x) % e3_fan x v u = v - x`,
+REPEAT GEN_TAC THEN REWRITE_TAC[e3_fan; dist; VECTOR_ARITH `(a:real) % (b:real)% (v:real^3)=(a*b)%v`] THEN MESON_TAC[imp_norm_not_zero_fan; REAL_MUL_RINV; VECTOR_ARITH `&1 %(v:real^3)=v`]);;
+
+let norm_dot_fan=prove(`!x:real^3. norm x = &1 ==> x dot x = &1`,
+ ASM_MESON_TAC[NORM_POW_2; REAL_ARITH `&1 pow 2= &1`]);;
+
+
+  let e3_is_normal_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) ==> e3_fan x v u dot e3_fan x v u = &1`,
+REPEAT GEN_TAC THEN REWRITE_TAC[e3_fan]THEN DISCH_TAC THEN SUBGOAL_THEN `norm(inv(norm((v:real^3)-(x:real^3))) %(v-x)) pow 2= &1 pow 2` ASSUME_TAC THENL
+ [ASM_MESON_TAC[norm_of_normal_vector_is_unit_fan] ;
+ASM_MESON_TAC[NORM_POW_2; REAL_ARITH `&1 pow 2= &1`]]);;
+
+  let e2_is_normal_fan= prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==> e2_fan x v u dot e2_fan x v u = &1`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `~((e3_fan (x:real^3) (v:real^3) (u:real^3)) cross ((u:real^3)-(x:real^3))= vec 0)` ASSUME_TAC 
+THENL[
+POP_ASSUM MP_TAC THEN MATCH_MP_TAC MONO_NOT THEN REWRITE_TAC[e3_fan;CROSS_LMUL] THEN DISCH_TAC THEN MP_TAC(ISPECL [`v:real^3`; `x:real^3`] imp_inv_norm_not_zero_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN MP_TAC(ISPECL [`inv(norm((v:real^3)-(x:real^3)))`; `((v:real^3) -(x:real^3)) cross ((u:real^3)-(x:real^3))`; `(vec 0):real^3`] VECTOR_MUL_LCANCEL_IMP) THEN ASM_REWRITE_TAC[VECTOR_MUL_RZERO;CROSS_EQ_0 ];
+
+MP_TAC(ISPECL [`(e3_fan (x:real^3) (v:real^3) (u:real^3)) cross ((u:real^3)-(x:real^3))`; `((vec 0):real^3)`] norm_of_normal_vector_is_unit_fan) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[e2_fan; VECTOR_ARITH`(v:real^3)- vec 0 = v`] THEN MESON_TAC[norm_dot_fan]]);; 
+
+  let e2_orthogonal_e3_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==> (e2_fan x v u) dot (e3_fan x v u)= &0`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[e2_fan;e3_fan;CROSS_LMUL;DOT_RMUL;] THEN VEC3_TAC);;
+
+
+
+  let e1_is_normal_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==> e1_fan x v u dot e1_fan x v u = &1`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[e1_fan;DOT_CROSS] THEN MP_TAC (ISPECL [`x:real^3`; `v:real^3`; `u:real^3` ] e2_orthogonal_e3_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN MP_TAC (ISPECL [`x:real^3`; `v:real^3`; `u:real^3` ] e2_is_normal_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN  MP_TAC (ISPECL [`x:real^3`; `v:real^3`; `u:real^3` ] e3_is_normal_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);;
+
+  let e1_orthogonal_e3_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==> (e1_fan x v u) dot (e3_fan x v u)= &0`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[e1_fan;DOT_CROSS_SELF] );;
+
+
+  let e1_orthogonal_e2_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==> (e1_fan x v u) dot (e2_fan x v u)= &0`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[e1_fan;DOT_CROSS_SELF] );;
+
+
+  let e1_cross_e2_dot_e3_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==>
+&0 < (e1_fan x v u cross e2_fan x v u) dot e3_fan x v u`,
+
+REPEAT GEN_TAC THEN STRIP_TAC THEN REWRITE_TAC[e1_fan;CROSS_TRIPLE] THEN MP_TAC (ISPECL [`x:real^3`; `v:real^3`; `u:real^3` ] e1_is_normal_fan) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[e1_fan] THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);;
+
+
+  let orthonormal_e1_e2_e3_fan=prove(`!x:real^3 v:real^3 u:real^3. ~(v=x) /\ ~(u=x) /\ ~(collinear {vec 0, v-x, u-x}) ==>
+(orthonormal (e1_fan x v u) (e2_fan x v u) (e3_fan x v u))`,
+
+REPEAT GEN_TAC THEN REWRITE_TAC[orthonormal] THEN REPEAT STRIP_TAC
+
+ THENL [
+
+ASM_MESON_TAC[e1_is_normal_fan];
+
+ASM_MESON_TAC[e2_is_normal_fan];
+
+ASM_MESON_TAC[e3_is_normal_fan];
+
+ASM_MESON_TAC[e1_orthogonal_e2_fan];
+
+ASM_MESON_TAC[e1_orthogonal_e3_fan];
+
+ASM_MESON_TAC[e2_orthogonal_e3_fan];
+
+ASM_MESON_TAC[e1_cross_e2_dot_e3_fan]]);;
+
+
+
+let change_spherical_coordinate_fan= new_definition`change_spherical_coordinate_fan (x:real^3) (v:real^3) (u:real^3) = (\(y:real^3).  x + ((y$1) * (cos (y$2)) * (sin (y$3))) % (e1_fan x v u)+ ((y$1) * (sin (y$2)) *(sin (y$3))) % (e2_fan x v u)+ ((y$1) * (cos (y$3))) %(e3_fan x v u))` ;;
+
+
+
+
+
+
+let the_change_spherical_coordinate_is_continuous_fan=prove( `(\x:real^1. (lift o (cos o drop)) (x)) continuous_on (UNIV:real^1->bool) /\ (\x:real^1. (lift o (sin o drop))( x)) continuous_on (UNIV:real^1->bool)
+==>
+(!x:real^3 v:real^3 u:real^3. (change_spherical_coordinate_fan x v u) continuous_on  UNIV)`,
+
+ (    let lemma=prove(`!f s r. f continuous_on s /\ (r SUBSET s)==> f continuous_on r`, REWRITE_TAC[continuous_on; SUBSET] THEN MESON_TAC[]) in
+
+
+DISCH_TAC THEN REPEAT GEN_TAC THEN REWRITE_TAC[change_spherical_coordinate_fan] THEN MATCH_MP_TAC CONTINUOUS_ON_ADD THEN 
+STRIP_TAC THENL (*1*)[REWRITE_TAC[CONTINUOUS_ON_CONST];(*1*)
+                 MATCH_MP_TAC CONTINUOUS_ON_ADD
+		   THEN  STRIP_TAC THENL
+		     (*2*) [REPEAT(MATCH_MP_TAC CONTINUOUS_ON_MUL 
+			THEN  REWRITE_TAC[o_DEF;CONTINUOUS_ON_CONST; LIFT_CMUL ] ) 
+			 THEN STRIP_TAC THENL 
+                           (*3*) [MATCH_MP_TAC (ISPECL [`1`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 1 /\ 1 <= 3`];
+(*3*)
+			     MATCH_MP_TAC CONTINUOUS_ON_MUL 
+			       THEN REWRITE_TAC[o_DEF;CONTINUOUS_ON_CONST; LIFT_CMUL ] 
+			       THEN STRIP_TAC THENL
+                                  (*4*) [MP_TAC(ISPECL [ `(lift o (\x:real^3. x$2))`; `(lift o (cos o drop))`; `(UNIV:real^3->bool)` ] CONTINUOUS_ON_COMPOSE) THEN REWRITE_TAC[o_DEF; LIFT_DROP] THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC
+				    THEN STRIP_TAC THENL
+                                       (*5*)[MATCH_MP_TAC (ISPECL [`2`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 2 /\ 2 <= 3`];(*5*)
+					SUBGOAL_THEN ` (IMAGE (\x:real^3. lift (x$2)) (UNIV:real^3->bool)) SUBSET (UNIV:real^1->bool)` ASSUME_TAC
+
+					  THENL (*6*)[SET_TAC[];(*6*)
+						      MP_TAC(ISPECL[`(\x:real^1. lift(cos (drop x)))`; `UNIV:real^1->bool`; ` (IMAGE (\x:real^3. lift (x$2)) (UNIV:real^3->bool))`]lemma) THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC  THEN REPEAT(POP_ASSUM MP_TAC) THEN REWRITE_TAC[o_DEF] THEN MESON_TAC[]](*6*)](*5*);(*4*)
+
+					 MP_TAC(ISPECL [ `(lift o (\x:real^3. x$3))`; `(lift o (sin o drop))`; `(UNIV:real^3->bool)` ] CONTINUOUS_ON_COMPOSE) THEN REWRITE_TAC[o_DEF; LIFT_DROP] THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC
+				    THEN STRIP_TAC THENL
+                                       (*5*)[MATCH_MP_TAC (ISPECL [`3`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 3 /\ 3 <= 3`];
+(*5*)
+					SUBGOAL_THEN ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool)) SUBSET (UNIV:real^1->bool)` ASSUME_TAC
+
+					  THENL (*6*)[SET_TAC[];(*6*)
+						      MP_TAC(ISPECL[`(\x:real^1. lift(sin (drop x)))`; `UNIV:real^1->bool`; ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool))`]lemma) THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC  THEN REPEAT(POP_ASSUM MP_TAC) THEN REWRITE_TAC[o_DEF] THEN MESON_TAC[]](*6*)](*5*)](*4*)](*3*);(*2*)
+			
+			    MATCH_MP_TAC CONTINUOUS_ON_ADD
+		   THEN  STRIP_TAC THENL
+		     (*21*) [REPEAT(MATCH_MP_TAC CONTINUOUS_ON_MUL 
+			THEN  REWRITE_TAC[o_DEF;CONTINUOUS_ON_CONST; LIFT_CMUL ] ) 
+			 THEN STRIP_TAC THENL
+                           (*3*) [MATCH_MP_TAC (ISPECL [`1`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 1 /\ 1 <= 3`];
+(*3*)
+			     MATCH_MP_TAC CONTINUOUS_ON_MUL 
+			       THEN REWRITE_TAC[o_DEF;CONTINUOUS_ON_CONST; LIFT_CMUL ] 
+			       THEN STRIP_TAC THENL
+                                  (*4*) [MP_TAC(ISPECL [ `(lift o (\x:real^3. x$2))`; `(lift o (sin o drop))`; `(UNIV:real^3->bool)` ] CONTINUOUS_ON_COMPOSE) THEN REWRITE_TAC[o_DEF; LIFT_DROP] THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC
+				    THEN STRIP_TAC THENL
+                                       (*5*)[MATCH_MP_TAC (ISPECL [`2`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 2 /\ 2 <= 3`];(*5*)
+					SUBGOAL_THEN ` (IMAGE (\x:real^3. lift (x$2)) (UNIV:real^3->bool)) SUBSET (UNIV:real^1->bool)` ASSUME_TAC
+
+					  THENL (*6*)[SET_TAC[];(*6*)
+						      MP_TAC(ISPECL[`(\x:real^1. lift(sin (drop x)))`; `UNIV:real^1->bool`; ` (IMAGE (\x:real^3. lift (x$2)) (UNIV:real^3->bool))`]lemma) THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC  THEN REPEAT(POP_ASSUM MP_TAC) THEN REWRITE_TAC[o_DEF] THEN MESON_TAC[]](*6*)](*5*);(*4*)
+
+					 MP_TAC(ISPECL [ `(lift o (\x:real^3. x$3))`; `(lift o (sin o drop))`; `(UNIV:real^3->bool)` ] CONTINUOUS_ON_COMPOSE) THEN REWRITE_TAC[o_DEF; LIFT_DROP] THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC
+				    THEN STRIP_TAC THENL
+                                       (*5*)[MATCH_MP_TAC (ISPECL [`3`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 3 /\ 3 <= 3`];
+(*5*)
+					SUBGOAL_THEN ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool)) SUBSET (UNIV:real^1->bool)` ASSUME_TAC
+
+					  THENL (*6*)[SET_TAC[];(*6*)
+						      MP_TAC(ISPECL[`(\x:real^1. lift(sin (drop x)))`; `UNIV:real^1->bool`; ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool))`]lemma) THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC  THEN REPEAT(POP_ASSUM MP_TAC) THEN REWRITE_TAC[o_DEF] THEN MESON_TAC[]](*6*)](*5*)](*4*)](*3*);(*2*)
+					
+REPEAT (MATCH_MP_TAC CONTINUOUS_ON_MUL 
+			THEN  REWRITE_TAC[o_DEF;CONTINUOUS_ON_CONST; LIFT_CMUL ])
+			 THEN STRIP_TAC THENL
+                           (*3*) [MATCH_MP_TAC (ISPECL [`1`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 1 /\ 1 <= 3`];
+(*3*)
+			          MP_TAC(ISPECL [ `(lift o (\x:real^3. x$3))`; `(lift o (cos o drop))`; `(UNIV:real^3->bool)` ] CONTINUOUS_ON_COMPOSE) THEN REWRITE_TAC[o_DEF; LIFT_DROP] THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC
+				    THEN STRIP_TAC THENL
+                                       (*5*)[MATCH_MP_TAC (ISPECL [`3`; `(UNIV:real^3->bool)`] CONTINUOUS_ON_LIFT_COMPONENT) 
+			       THEN REWRITE_TAC[DIMINDEX_3] THEN REWRITE_TAC[ARITH_RULE `1 <= 3 /\ 3 <= 3`];(*5*)
+					SUBGOAL_THEN ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool)) SUBSET (UNIV:real^1->bool)` ASSUME_TAC
+
+					  THENL (*6*)[SET_TAC[];(*6*)
+						      MP_TAC(ISPECL[`(\x:real^1. lift(cos (drop x)))`; `UNIV:real^1->bool`; ` (IMAGE (\x:real^3. lift (x$3)) (UNIV:real^3->bool))`]lemma) THEN DISCH_TAC THEN POP_ASSUM MATCH_MP_TAC  THEN REPEAT(POP_ASSUM MP_TAC) THEN REWRITE_TAC[o_DEF] THEN MESON_TAC[]](*6*)](*5*)]]]]));;(*3*)
+				
 

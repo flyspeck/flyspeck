@@ -1,7 +1,6 @@
  (* Nguyen Tat Thang *)
 
 needs "volume.ml";;
-(* The finiteness section in chapter Volume *)
 
 
 let packing = new_definition `packing (S:real^3 -> bool) = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;

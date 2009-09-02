@@ -299,16 +299,9 @@ class ExceptionalParameter extends Parameter {
      */
     private int maxGon = -1;
 
-    /*
-    public  boolean priorCase(int[] type) {
-	return false;
-    }
-    */
-
     /**
      * implements abstract method.
      */
-
     int maxGon() {
         return maxGon;
     }
@@ -317,14 +310,15 @@ class ExceptionalParameter extends Parameter {
      * Exceptional region graph constructor.
      * The different cases are divided into series according to the maximum number
      * of vertices on a face in the graph.  This is the constructor that is called
-     * when there is a face with at least 5 sides.
+     * when there is a face with at least 5 sides.  // QL: 3 sides.
      * @param ngon Constructs parameters for graphs containing a face with this many
      *  vertices, but no more.
-     * precondition: ngon>=5.
+     * precondition: ngon>=5.  // QL: 3 sides.
      */
 
     ExceptionalParameter(int maxGon) {
-        util.Eiffel.precondition(maxGon >= 5);
+	boolean QL = false;
+        util.Eiffel.precondition(maxGon >= (QL ? 5 : 3));
         util.Eiffel.precondition(maxGon < Constants.getFixedSquanderFaceLength());
         this.maxGon = maxGon;
         initForecastD();

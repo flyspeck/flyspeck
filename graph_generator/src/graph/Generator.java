@@ -8,7 +8,7 @@ public class Generator {
     private static stringArchive series = new archive();
     private static GraphStack stack;
     private Parameter param;
-    private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
+    //private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
     /**
      * Push onto the stack all possible ngons constructed in face F
      * using the edge terminating at vertex V.
@@ -276,6 +276,7 @@ public class Generator {
      */
 
     void loop(Graph G) {
+	boolean QL = false; // ignore lemma: no two enclosed vertices in quad.
 	//0. vertex max
 	//if(G.vertexSize()> Constants.getVertexCountMax()) return;
         //1. triangles first
@@ -286,13 +287,13 @@ public class Generator {
         //3. pick best vertex.
         Vertex V = Structure.selectMinimalVertex(F);
         //4. handle quads.
-        if((F.size() == 4) && (isQuadFriendly(G, param))) {
+        if(QL && (F.size() == 4) && (isQuadFriendly(G, param))) {
             handleQuad(F, G);
             return ;
         }
         //5. handle general face.
         int polylimit = Score.polyLimit(G, param);
-        if((F.size() == 4) && (G.vertexSize() > 5))
+        if(QL && (F.size() == 4) && (G.vertexSize() > 5))
             polylimit = Math.min(polylimit, 5);
         for(int i = 3;i <= polylimit;i++)
             generatePolygon(i, V, F, G);
@@ -306,9 +307,7 @@ public class Generator {
     public static void generateExceptionalSeries(int NGON) {
         Parameter param = Parameter.getExceptionalCase(NGON);
         Graph Seed = Graph.getInstance(NGON);
-        String outfile = path + "newExcept"+NGON+".java";
-
-        Generator gen = new Generator(param, Seed, new GraphStack(series, param), outfile);
+        Generator gen = new Generator(param, Seed, new GraphStack(series, param));
     }
     /**
      * This takes the Quad case number and generates a list of all the graphs
@@ -326,8 +325,7 @@ public class Generator {
         Parameter param = Parameter.getQuadCase(casenum);
         GraphStack stack = new GraphStack(series, casenum, param);
         Graph Seed = Graph.getInstance(Constants.getQuadCases(casenum));
-        String outfile = path + "newQuad"+casenum+".java";
-        Generator gen = new Generator(param, Seed, stack, outfile);
+        Generator gen = new Generator(param, Seed, stack);
     }
 
     /**
@@ -337,7 +335,7 @@ public class Generator {
      * @param series archiveString
      */
 
-    Generator(Parameter param, Graph Seed, GraphStack stack, String outfile) {
+    Generator(Parameter param, Graph Seed, GraphStack stack) {
         //1. initialize
         //this.track = track;
         this.param = param;
@@ -372,28 +370,15 @@ public class Generator {
 	System.out.println("// -- (Those not in the archive are dumped below)");
         System.out.println("// number of graphs in selected archive, reported above as archive series/size");
         System.out.println("// --number of graphs in selected archive, not meeting criteria (with thorough archive filtering, this should be 0) = "+over);
-        //4. Write out the new cases:
-        if (list.length>0) try {
-            System.out.println("//********************");
-            java.io.FileWriter F = new java.io.FileWriter(outfile,false/*dont append*/);
 
-            for (int i=0;i<list.length;i++) {
-                F.write("\""+Formatter.toArchiveString(list[i])+"\",\n");
-            }
-            F.close();
-        }
-        catch (Exception e) {
-            System.out.println("//save failed");
-        }
     }
 
     public static void main(String[] args) {
 
         /**
         **/        
-
-
-        for (int i=5;i<= Constants.getMaxFaceSize();i++) {
+	boolean QL = false; // Sep 2 2009
+        for (int i=(QL ? 5 : 3);i<= Constants.getMaxFaceSize();i++) {
 	    System.out.println("//***** generating exceptional series "+i);
             Generator.generateExceptionalSeries(i);
             Graph[] glist = stack.getTerminalList();
@@ -402,7 +387,7 @@ public class Generator {
 	    }
 	}
 
-	for (int i=0;i<Constants.getQuadCasesLength();i++) {
+	for (int i=0;i< (QL ? Constants.getQuadCasesLength() : 0);i++) {
             Generator.generateQuadSeries(i);
 	    Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {

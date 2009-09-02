@@ -235,6 +235,7 @@ public class Score {
      *
      */
     public static boolean neglectable(Graph G, Parameter param) {
+	boolean QL = false;
         if(Score.neglectableByBasePointSymmetry(G))
             return true;
         /*
@@ -249,7 +250,7 @@ public class Score {
             return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))
             return true;
-        if (Structure.isFinal(G) && Structure.hasAdjacent40(G))
+        if (QL && Structure.isFinal(G) && Structure.hasAdjacent40(G))
             return true;
         return false;
     }

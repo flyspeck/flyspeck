@@ -346,7 +346,7 @@ public class Generator {
         //2. main loop
         while(stack.size() > 0) {
             loop(stack.pop());
-            if(0 == Misc.mod(++counter, 50000)) /* adapt as needed */ {
+            if(0 == Misc.mod(++counter, 200000)) /* adapt as needed */ {
                 System.out.print("// stack sizes = " + stack.size());
                 System.out.print("// cases found= " +stack.getHashFound().length);
                 System.out.println("// cases considered= " + counter);

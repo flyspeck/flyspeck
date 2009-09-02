@@ -235,7 +235,7 @@ public class Score {
      *
      */
     public static boolean neglectable(Graph G, Parameter param) {
-	boolean QL = false;
+	boolean QL = Constants.getExclude2inQuad();
         if(Score.neglectableByBasePointSymmetry(G))
             return true;
         /*

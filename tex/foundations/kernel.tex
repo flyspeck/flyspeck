@@ -1245,12 +1245,12 @@ where \verb!alpha_env env t1 t2! is defined by the following conditions (complet
 
 Variable capture is a particular kind of transformation that is known to produce inconsistencies in a formal system.  We illustrate with the following example.\footnote{This example uses some elementary arithmetic and existential quantifiers.  These notions will not be introduced into the HOL system until much later.  This is meant as an illustrative example only and may be skipped without affecting the development of the HOL system.}  Consider the following mathematical statement: There exists $f:A\to\ring{N}$ and $x:A$ such that
 $$
-(f:B->\ring{N})~x < (f:A\to\ring{N})~x.
+(f:B\to\ring{N})~x < (f:A\to\ring{N})~x.
 $$
 This statement contains two entirely different variables $x$.  One has type \verb!`:A`! and the other has type \verb!`:B`!.  The statement also contains two entirely different functions with the same name $f$.  One has type \verb!`:A->nat`! and the other has type \verb!`:B->nat`!.  We know that the two $x$s are different and the two $f$s are different because each term has a uniquely determined type.  The statement expresses an arithmetic truth.  It is $\alpha$-equivalent to the statement: 
 There exists $g:A\to\ring{N}$ and $y:A$ such that
 $$
-(f:B->\ring{N})~x < (g:A\to\ring{N})~y.
+(f:B\to\ring{N})~x < (g:A\to\ring{N})~y.
 $$
 no matter the value of the function on the left, we could take $g$ to be defined by $g = \lambda y.~f~x + 1$, and then
 $$
@@ -1271,9 +1271,23 @@ In this statement the variables $x$ all have the same type and are equal to one 
 
 We have thus transformed an arithmetic truth into an arithmetic falsehood by making an unrestricted substitution of type variables.  The problem is precisely that the variable $f:B\to \ring{N}$ is free before the type substitution; it lies within the body of an abstraction; and becomes identical to the binding variable $f:A\to\ring{N}$ of the abstraction.  It is captured.
 
+
+Here is another example of capture.  The following statement expresses an arithmetic truth:
+There exists \verb!y:nat! such that
+$$
+\verb!x < y!
+$$
+If we were to be allowed to instantiate the \verb!x:nat! to \verb!y:nat!, we obtain an arithmetic falsehood:
+There exists
+\verb!y:nat! such that
+$$
+\verb!y < y!
+$$
+
+
 \subsection{term substitution}
 
-Let $\theta=\verb![<y1,t1>;<y2,t2>...]!$ be a list with elements of the form \verb!<y,t>!, where $y$ is a term variable and $t$ is a term.  We assume that the pairs preserve types:
+Let $\theta=\verb![<y1,t1>;<y2,t2>...]!$ be a list with elements of the form \verb!<y,t>!, where $y$ is a term variable (the input) and $t$ is a term (the output).  We assume that the pairs preserve types:
 $$
 \verb!type_of y = type_of t!
 $$
@@ -1281,7 +1295,7 @@ for all \verb!<y,t>! in $\theta$.
 
 Define a recursive function that makes substitutions of terms for variables, using $\theta$.  It is a curried function:
 $$
-\verb!term_subst:(var -> term) -> term UNION {error} -> term UNION {error}!.
+\verb!term_subst:list -> term UNION {error} -> term UNION {error}!.
 $$
 The value \verb!term_subst theta t = t'! is computed as follows
 \begin{itemize}
@@ -1299,7 +1313,7 @@ if \verb!t=<comb,f,x>! is a combination.
 Let \verb!theta' = <cons,<x,x>,theta>! be the augmented list (bound variables are to be left alone).
 The result is an error if
  $\theta$ contains an entry of the form \verb!<y,t>!, where
- $y\ne x$, $y$ is occurs freely in $f$, and $x$ occurs freely in $t$ (because of potential variable capture).  Otherwise, define the result to
+ $y\ne x$, $y$ occurs freely in $f$, and $x$ occurs freely in $t$ (because of potential variable capture).  Otherwise, define the result to
 be
 $$
 \verb!<abs,x,term_subst theta' f>!.
@@ -1318,7 +1332,7 @@ A theorem in the HOL system is a sequent obtained from the axioms by repeated ap
 
 The axioms will be introduced much later.  It is possible to go quite far in the HOL system without the axioms.  The axioms will mark the transition from HOL as a system of logic to HOL as a system of mathematics.  For now, we focus on the rules of inference.
 
-A sequent is also written \verb!A |- t!.  If the list of assumptionsis empty, we write it as \verb!|- t!.  The turnstyle symbol \verb!|-! is a keyboard representation of the logical turnstile symbol: $\vdash$.
+A sequent is also written \verb!A |- t!.  If the list of assumptionsis empty, we write it as \verb!|- t!.  The turnstile symbol \verb!|-! is a keyboard representation of the logical turnstile symbol: $\vdash$.
 
 
 
@@ -1453,7 +1467,7 @@ then we get $q$.  This rule will later be obtained as a consequence of the other
 
 \section{make combination}
 
-We have said that a combination \verb!f x = <comb,f,x>! is intended to represent the application of a function \verb!f! to its argument \verb!x!.  The usage of combinations is fixed by the rules of inference.
+We have said that a combination \verb!`f x` = <comb,f,x>! is intended to represent the application of a function \verb!f! to its argument \verb!x!.  The usage of combinations is fixed by the rules of inference.
 
 The next rule of inference declares that equal functions applied to equal inputs produce equal outputs.  This rule fixes the interaction between combinations and equality.  It is called \verb!MK_COMB!  
 $$
@@ -1565,7 +1579,7 @@ The previous rule \verb!ASSUME!  is the only rule to create an assumption.  This
 This rule governs the interaction between the assumption list and bi-implication (equality of boolean terms).
 {\it We should be able to conclude $p \Leftrightarrow q$, when we can conclude $q$ assuming $p$ and can also conclude $p$ assume $q$.}
 
-To describe the antisymmetric deduction rule, we need to rely on a function that removes an entry from the assumption list.  
+To describe the antisymmetric deduction rule, we need to rely on the function that removes an entry from the assumption list.  
 
 
 If the assumption $q$ gives conclusion $p$ and the assumption $p$ gives $q$, then they have the same truth value:
@@ -1608,15 +1622,11 @@ The final two rules of inference treat variables.  The HOL sytem contains two ki
 We consider type variables first.
 When we have a sequent that contains a type variable, this rule of inference allows us to specialize that type variable to any type to obtain a new sequent.  If the sequent contains several type variables, they may all be specialized to any type.
 
-This rule has its restrictions, because of the danger of variable capture.  
-
-
-
-Type variable substitution holds provided no variable capture occurs.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.  Type instantiation for sequents is defined through a type instantiation function for terms:
+This rule has its restrictions, because of the danger of variable capture.  Type variable substitution holds provided no variable capture occurs.  If arbitrary types are substituted in parallel for type variables in a sequent, a theorem results.  Type instantiation for sequents is defined through a type instantiation function for terms:
 $$
-\verb!inst: list -> (tyvar -> typ) -> term UNION {error} -> term UNION {error}!
+\verb!inst: list -> list -> term UNION {error} -> term UNION {error}!
 $$
-The first argument \verb!e:list = [<y1,y1'>;<y2,y2'>...]! keeps tabs on the bound variables $y$ in the current scope and what they become $y'$ after variable substitution.  This first argument is needed in order to watch for variable capture.  The second argument $\theta:\verb!tyvar->typ!$ is the function describing the substitutions to be performed on type variables.  The next argument is the term $t$ on which the substitution is to be performed.
+The first argument \verb!e:list = [<y1,y1'>;<y2,y2'>...]! tabulates the bound variables $y$ in the current scope and what they become $y'$ after variable substitution.  This first argument is needed in order to watch for variable capture.  The second argument $\theta:\verb!list!$ is the list giving the substitutions to be performed on type variables.  The next argument is the term $t$ on which the substitution is to be performed.
 
 Here is a description of how \verb!inst! works.  
 \begin{itemize}
@@ -1659,8 +1669,7 @@ $$
 A rule of inference for type substitution is essential to the useability of the HOL system.  Otherwise, by proving a theorem for example about \verb!`(=):A->A->bool`! would tell us nothing about \verb!(=):B->B->bool`!  Without type substitution, we would have an unbounded number of variants of each theorem to prove, depending on the variable names.  With a type substitution rule, we can prove one generic theorem with whatever names we please for the type variables, and then instantiate it as needed to any other type variables.
 
 \begin{example}
-Let $\theta(\verb!`:A`!) = \verb!`:B`!$ and $\theta(v) = v$,
-for $v\ne \verb!`:A`!$.
+Let $\theta=\verb![(`:A`,`:B`)]!$.  Then
 \begin{verbatim}
 INST_TYPE theta <[],`x:A = x:A`>
  = <[],`x:B = x:B`>
@@ -1668,8 +1677,7 @@ INST_TYPE theta <[],`x:A = x:A`>
 \end{example}
 
 \begin{example}
-Let $\theta(\verb!`:A`!) = \verb!`:bool`!$ and $\theta(v) = v$,
-for $v\ne \verb!`:A`!$.
+Let $\theta=\verb![(`:A`,`:bool`)]!$.  Then
 \begin{verbatim}
 INST_TYPE theta <[],`x:A = x:A`>
  = <[],`x:bool = x:bool`>
@@ -1682,18 +1690,6 @@ INST_TYPE theta <[],`x:A = x:A`>
 \section{term instantiation}
 
 The second type of variable is a term variable such as \verb!`x:bool`!.  The rule of inference \verb!INST! replaces each free variable in a term with another given term.  As with type instantiation care must be taken to avoid free variable capture.
-
-Here is an example of capture.  The following statement expresses an arithmetic truth:
-There exists \verb!y:nat! such that
-$$
-\verb!x < y!
-$$
-If we were to be allowed to instantiate the \verb!x:nat! to \verb!y:nat!, we obtain an arithmetic falsehood:
-There exists
-\verb!y:nat! such that
-$$
-\verb!y < y!
-$$
 
 
 \verb!INST!  Term variable substitution holds.  If arbitrary terms are substituted in parallel for term variables in a sequent, a sequent results, provided variable capture is avoided.  The function is
@@ -1728,7 +1724,7 @@ that constructs the types from the list of type constants.
 The set of types for the primitive HOL system is
 \begin{verbatim}
 type = type_from [primtycon;[];[];[]]
-primtycon = [<"bool",0>;<"ind",0>]
+primtycon = [<"bool",0>;<"fun",2>;<"ind",0>]
 \end{verbatim}
 \end{example}
 
@@ -1854,7 +1850,7 @@ $$
 The two sequents are given in the following stylized form:
 $$
 \verb!abs_rep, rep_abs!\quad \frac{\vdash P~t}
-{\begin{array}{rll}\vdash& abs(rep~a) = a\\ \vdash& P~r = (rep(abs~r) = r)\end{array}}
+{\begin{array}{rll}\vdash& \verb!abs(rep a) = a!\\ \vdash& \verb!P r = (rep(abs r) = r)!\end{array}}
 $$
 Here \verb!abs! and \verb!rep! are the new term constants given above, and $a$ and $r$ are type variables whose types are determined by the those of the constants.
 

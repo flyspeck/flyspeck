@@ -276,7 +276,7 @@ public class Generator {
      */
 
     void loop(Graph G) {
-	boolean QL = false; // ignore lemma: no two enclosed vertices in quad.
+	boolean QL = Constants.getExclude2inQuad(); // 
 	//0. vertex max
 	//if(G.vertexSize()> Constants.getVertexCountMax()) return;
         //1. triangles first
@@ -377,7 +377,7 @@ public class Generator {
 
         /**
         **/        
-	boolean QL = false; // Sep 2 2009
+	boolean QL = Constants.getExclude2inQuad();
         for (int i=(QL ? 5 : 3);i<= Constants.getMaxFaceSize();i++) {
 	    System.out.println("//***** generating exceptional series "+i);
             Generator.generateExceptionalSeries(i);

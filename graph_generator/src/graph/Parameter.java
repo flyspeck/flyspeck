@@ -317,7 +317,7 @@ class ExceptionalParameter extends Parameter {
      */
 
     ExceptionalParameter(int maxGon) {
-	boolean QL = false;
+	boolean QL = Constants.getExclude2inQuad();
         util.Eiffel.precondition(maxGon >= (QL ? 5 : 3));
         util.Eiffel.precondition(maxGon < Constants.getFixedSquanderFaceLength());
         this.maxGon = maxGon;

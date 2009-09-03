@@ -207,12 +207,10 @@ public class Score {
         //0. test precondition.
         util.Eiffel.precondition(Structure.isFinal(G));
         //1. count number of vertices.
-        /*
         if(G.vertexSize() > Constants.getVertexCountMax())
             return true;
         if(G.vertexSize() < Constants.getVertexCountMin())
             return true;
-        */ // Jan 2002.
         //2. look for overcrowded vertices.
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
             Vertex V = (Vertex)E.nextElement();
@@ -238,14 +236,12 @@ public class Score {
 	boolean QL = Constants.getExclude2inQuad();
         if(Score.neglectableByBasePointSymmetry(G))
             return true;
-        /*
         if (Structure.isFinal(G)) {
           if (G.vertexSize() > Constants.getVertexCountMax())
             return true;
           if (G.vertexSize() < Constants.getVertexCountMin())
             return true;
         }
-        */
         if(Constants.getExcludePentQRTet() && Structure.has11Type(G))
             return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))

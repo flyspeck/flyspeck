@@ -278,7 +278,7 @@ public class Generator {
     void loop(Graph G) {
 	boolean QL = Constants.getExclude2inQuad(); // 
 	//0. vertex max
-	//if(G.vertexSize()> Constants.getVertexCountMax()) return;
+	if(G.vertexSize()> Constants.getVertexCountMax()) return;
         //1. triangles first
         if(handleForcedTriangle(G))
             return ;

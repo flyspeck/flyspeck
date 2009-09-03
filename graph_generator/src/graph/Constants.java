@@ -24,7 +24,6 @@ public class Constants {
      * static initialization
      */
     private static Config config;
-    //private static String propertiesFile = "/Users/thomashales/Desktop/flyspeck_google/source/graph_generator/fejesToth.properties";
     private static String propertiesFile = "/tmp/graph.properties";
     static {
       try {
@@ -47,6 +46,14 @@ public class Constants {
       return excludePentQRTet;
     }
     private final static boolean excludePentQRTet = config.getBooleanProperty("excludePentQRTet",false);
+
+    /**
+     * true means that we are excluding the configuration of two enclosed vertices in a quad cluster.
+     */
+    public static boolean getExclude2inQuad() {
+      return exclude2inQuad;
+    }
+    private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",false);
 
 
     /**

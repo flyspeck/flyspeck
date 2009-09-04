@@ -7,8 +7,10 @@ load_path :=
       "/Users/thomashales/Desktop/flyspeck_google/source/text_formalization/"]
         @ (!load_path);;
 
-(* I cannot find an order in which to load the files that allows me
-to load vectors, analysis, transc, and convex. *)
+load_path :=
+     ["/Users/thomashales/Desktop/flyspeck_google/flyspeck/inequalities/";
+      "/Users/thomashales/Desktop/flyspeck_google/flyspeck/text_formalization/"]
+        @ (!load_path);;
 
 
 needs "build.ml";;

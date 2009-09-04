@@ -1,5 +1,14 @@
 Notes on the graph08 version of the graph generator.
 
+*********
+
+properties: /tmp/graph.properties
+graph08/src$ javac -d ../classes graph/Generator.java 
+cd ../classes
+java -Xms300m -Xmx1g graph/Generator  
+
+**********
+
 Started with graph00 from Kepler diskimage 05 on April 25, 2008.
 Edited to update assert to jassert (which is now a keyword in java).
 
@@ -35,3 +44,7 @@ To get the number of distinct hash codes:
 grep "\"" kepler2009.out2 | cut -f1 -d" " | sort -u | wc   
 grep "\"" kepler2009.out2 | cut -f1 -d" " | sort | uniq -c | grep -v " 1 "
 Isomorphic graphs appear between the 2 cases 33344 and 33434, because the second case does not disallow the first.  An underscore is added to give them different names.
+
+Sept 2, 2009
+Added "QL" boolean that causes generator to ignore lemma about no 2 enclosed in a quad.
+default properties file "/tmp/graph.properties"

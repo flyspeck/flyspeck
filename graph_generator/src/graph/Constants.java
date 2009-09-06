@@ -48,12 +48,20 @@ public class Constants {
     private final static boolean excludePentQRTet = config.getBooleanProperty("excludePentQRTet",false);
 
     /**
-     * true means that we are excluding the configuration of two enclosed vertices in a quad cluster.
+     * true means that we exclude the configuration of two enclosed vertices in a quad cluster.
      */
     public static boolean getExclude2inQuad() {
       return exclude2inQuad;
     }
-    private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",false);
+    private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",true);
+
+/**
+     * true means that we exclude the configuration of an enclosed vertices in a triangle cluster.
+     */
+    public static boolean getExclude1inTri() {
+      return exclude1inTri;
+    }
+    private final static boolean exclude1inTri = config.getBooleanProperty("exclude1inTri",true);
 
 
     /**

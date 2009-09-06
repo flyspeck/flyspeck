@@ -38,8 +38,6 @@ public class GraphStack {
             String S = series.getArchiveString(i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
-	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
-	    if (G.vertexSize() > Constants.getVertexCountMax()) continue;
             if (Score.neglectable(G,P))
                 continue;
             Invariant inv = new Invariant(G);
@@ -73,8 +71,6 @@ public class GraphStack {
             String S = series.getArchiveString( i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
-	    if (G.vertexSize() < Constants.getVertexCountMin()) continue;
-	    if (G.vertexSize() > Constants.getVertexCountMax()) continue;
             if (!Structure.hasType(G, Constants.getQuadCases(casenum)))
                 continue;
             if (Score.neglectable(G,P))
@@ -102,16 +98,14 @@ public class GraphStack {
         Invariant inv = new Invariant(G);
         if(terminal.contains(inv))
             return ;
-        if (G.vertexSize() < Constants.getVertexCountMin()) return;
-	if (G.vertexSize() > Constants.getVertexCountMax()) return;
+	//VertexCount checked already by Xpush, which calls push:
+        //if (G.vertexSize() < Constants.getVertexCountMin()) return;
+	//if (G.vertexSize() > Constants.getVertexCountMax()) return;
         if(archive.contains(inv)) {
             hashFound.add(new Long(inv.getHash()));
             return ;
         }
         hashFound.add(new Long(inv.getHash()));
-        //System.out.println("new graph found!!!! "+inv.getHash());
-        //if(bugCounter++ < 0)
-        //    new CoordinatesDemo(G, " " + inv.getHash());
         terminal.add(inv);
     }
     private int bugCounter = 0;

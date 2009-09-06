@@ -204,6 +204,7 @@ public class Score {
      */
 
     final private static boolean neglectableFinal(Graph G, Parameter p) {
+	boolean QL = Constants.getExclude2inQuad();
         //0. test precondition.
         util.Eiffel.precondition(Structure.isFinal(G));
         //1. count number of vertices.
@@ -225,7 +226,12 @@ public class Score {
             return true;
         if(scoreUpperBound(G, p) < Constants.getScoreTarget())
             return true;
-        //4. tests are inconclusive.
+	//4. look for special structures:
+       if(Constants.getExcludePentQRTet() && Structure.has11Type(G))
+            return true;
+        if (QL && Structure.hasAdjacent40(G))
+            return true;
+        //5. tests are inconclusive.
         return false;
     }
 
@@ -233,20 +239,9 @@ public class Score {
      *
      */
     public static boolean neglectable(Graph G, Parameter param) {
-	boolean QL = Constants.getExclude2inQuad();
         if(Score.neglectableByBasePointSymmetry(G))
             return true;
-        if (Structure.isFinal(G)) {
-          if (G.vertexSize() > Constants.getVertexCountMax())
-            return true;
-          if (G.vertexSize() < Constants.getVertexCountMin())
-            return true;
-        }
-        if(Constants.getExcludePentQRTet() && Structure.has11Type(G))
-            return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))
-            return true;
-        if (QL && Structure.isFinal(G) && Structure.hasAdjacent40(G))
             return true;
         return false;
     }
@@ -269,6 +264,7 @@ public class Score {
      */
 
     final static boolean neglectable(Vertex[] poly, Face F, Graph G, Parameter p) {
+	boolean TL = Constants.getExclude1inTri();
         int ngon = poly.length;
         for(int i = 0;i < poly.length;i++) {
             if(poly[i] == null)
@@ -283,19 +279,25 @@ public class Score {
             while(poly[index] == null)
                 index = Misc.mod(index + 1, ngon);
             int forwardNgon = F.directedLength(poly[i], poly[index]) + Misc.mod(index - i, ngon);
-            if(forwardNgon == 3)
-                tri += 1;
-            if(forwardNgon > 3)
-                temp += 1;
+	    if (TL) {
+		if(forwardNgon == 3)
+		    tri += 1;
+		if(forwardNgon > 3)
+		    temp += 1;
+	    }
+	    else if (forwardNgon > 2) temp += 1;
             //3. get size of backward looking ngon.
             index = Misc.mod(i - 1, ngon);
             while(poly[index] == null)
                 index = Misc.mod(index - 1, ngon);
             int backwardNgon = F.directedLength(poly[index], poly[i]) + Misc.mod(i - index, ngon);
-            if(backwardNgon == 3)
-                tri += 1;
-            if(backwardNgon > 3)
-                temp += 1;
+	    if (TL) {
+		if(backwardNgon == 3)
+		    tri += 1;
+		if(backwardNgon > 3)
+		    temp += 1;
+	    }
+	    else if (backwardNgon > 2) temp += 1;
             if(Score.neglectableModification(G, tri, quad, excep, temp, poly[i], p))
                 return true;
         }
@@ -407,7 +409,7 @@ public class Score {
             if(A.next(F, i).next(A, 1) == B)
                 return true; // adjacent condition fulfilled
         }
-        //2. Is a trianlge with an enclosed vertex created?
+        //2. Is a triangle with an enclosed vertex created?
         if(Math.min(AtoB, BtoA) < 3)
             return false; // can return false whenever we please.
         Vertex[] vA = new Vertex[A.size()];

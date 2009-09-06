@@ -257,10 +257,8 @@ public class Generator {
      */
 
     private void Xpush(Graph G) {
-        Structure.makeTrianglesFinal(G);
-        //if(track
-        //    track.matchAndShow(G, param);
-	
+	boolean TL  = Constants.getExclude1inTri(); // ;
+        if (TL) Structure.makeTrianglesFinal(G);
         if (!Score.neglectable(G, param))
             stack.push(G);
 	

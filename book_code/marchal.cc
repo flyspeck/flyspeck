@@ -3,7 +3,7 @@
 #include <math.h>
 #include "Minimizer.h"
 #include "numerical.h"
-
+#include "lpnum.o"
 
 // marchal.cc
 // $ make marchal.o
@@ -697,6 +697,37 @@ Minimizer m36(int i4) {
 	return M;
 }
 // see main
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t37(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    taum(y[0],y[2],y[6],y[7],y[8],y[4]) +
+    taum(y[0],y[6],y[9],y[10],y[11],y[8]) +
+    taum(y[0],y[9],y[12],y[13],y[14],y[11]) +
+    taum(y[0],y[12],y[15],y[16],y[17],y[14]) +
+    taum(y[0],y[15],y[1],y[18],y[5],y[17]);
+	}
+//constraint rady > s2 
+void c37(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = 
+ dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    dih_y(y[0],y[2],y[6],y[7],y[8],y[4]) +
+    dih_y(y[0],y[6],y[9],y[10],y[11],y[8]) +
+    dih_y(y[0],y[9],y[12],y[13],y[14],y[11]) +
+    dih_y(y[0],y[12],y[15],y[16],y[17],y[14]) +
+   dih_y(y[0],y[15],y[1],y[18],y[5],y[17]) - 2.0*pi();
+};
+Minimizer m37() {
+  double s = 2.52;
+  double xmin[19]= {2,2,2,2,2,2,  2,2,2,2,2,2,  2,2,2,2,2,2,  2};
+  double xmax[19]= {s,s,s,s,s,s,  s,s,s,s,s,s,  s,s,s,s,s,s,  s  };
+	Minimizer M(trialcount,19,1,xmin,xmax);
+	M.func = t37;
+	M.cFunc = c37;
+	return M;
+}
+trialdata d37(m37(),"test of squander on vertex of type 600");
 
 
 int main()

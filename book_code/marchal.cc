@@ -3,7 +3,7 @@
 #include <math.h>
 #include "Minimizer.h"
 #include "numerical.h"
-#include "lpnum.o"
+
 
 // marchal.cc
 // $ make marchal.o
@@ -70,9 +70,11 @@ double bmp(double y1,double y2,double y3,double y4,double y5,double y6) {
   return bmpfactor*(bump(y1/2.0) - bump(y4/2.0));
 }
 
+/* moved to numerical.cc
 double interp(double x,double x1,double y1,double x2,double y2) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
+*/
 
 double Mfun (double r) {
   return (s2 - r)*(r- 1.3254)*(9.0*r*r - 17.0*r + 3.0)/(1.627*(s2- 1.0));
@@ -526,7 +528,7 @@ Minimizer m27() {
   double w2 = 2*hmax-eps;
   double xmin[13]= {w1,2,2,    w1,2,2,  2,2,2,    2,2,2,    2};
   double xmax[13]= {w2,t,t,      w2,t,t,   t,t,t,        t,t,t,       t};
-	Minimizer M(40*trialcount,13,1,xmin,xmax);
+  Minimizer M(trialcount /* * 40 */,13,1,xmin,xmax);
 	M.func = t27;
 	M.cFunc = c27;
 	return M;
@@ -727,7 +729,7 @@ Minimizer m37() {
 	M.cFunc = c37;
 	return M;
 }
-trialdata d37(m37(),"test of squander on vertex of type 600");
+//trialdata d37(m37(),"test of squander on vertex of type 600");
 
 
 int main()
@@ -745,7 +747,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else 
 {
-  if (docases) { trialdata d25(m25(i3,i4,i5,i6),"ID[1821661595] ZTGIJCF: 5:bl: d25: Marchal, gamma4Lbwt >=  0.0560305 - 0.0445813 dih, many cases ") };
+  if (docases) { trialdata d25(m25(i3,i4,i5,i6),"ID[1821661595] ZTGIJCF: 5:bl: d25: Marchal, gamma4Lbwt >=  0.0560305 - 0.0445813 dih, many cases "); }
 }
   }
 
@@ -760,7 +762,7 @@ for (int i6=0;i6<3;i6++)
     else if (radf(xmin[0],xmin[2],xmin[4])> s2) continue;
     else 
 {
-  if (docases) { trialdata d25a(m25a(i3,i4,i5,i6),"ID[7907792228] ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases ") };
+  if (docases) { trialdata d25a(m25a(i3,i4,i5,i6),"ID[7907792228] ZTGIJCF: 5:bl: d25a: Marchal, gamma23Lwt >=  0.0560305 - 0.0445813 dih, many cases "); }
 }
   }
 
@@ -775,7 +777,7 @@ if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
  else if (!(i3+i4+i5+i6)) continue; // skip quarter case.
 else
 {
-  if (docases) { trialdata d32(m32(i3,i4,i5,i6),"ID[3803737830] QITNPEA: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt") };
+  if (docases) { trialdata d32(m32(i3,i4,i5,i6),"ID[3803737830] QITNPEA: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt"); }
 }
   }
 
@@ -790,7 +792,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(i3); xmin[3]=xxmin(i4); xmin[4
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
-  if (docases) { trialdata d34(m34(i3,i4),"ID[9063653052] QITNPEA: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine") };
+  if (docases) { trialdata d34(m34(i3,i4),"ID[9063653052] QITNPEA: cc:4bl: d34: Marchal, 4blades j=2 quarters, 4-cell bwt, long edge adjacent to spine"); }
 }
   }
 
@@ -801,7 +803,7 @@ xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(0); xmin[3]=xxmin(i4); xmin[4]
 if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
-  if (docases) { trialdata d36(m36(i4),"ID[2134082733] QITNPEA: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades") };
+  if (docases) { trialdata d36(m36(i4),"ID[2134082733] QITNPEA: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades"); }
 }
   }
 

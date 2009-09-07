@@ -30,9 +30,15 @@ int trialcount = 300;
 double eps = 1.0e-6;
 double s8 = sqrt(8.0);
 
+/*
+
+// functions moved to numerical.c
+
 double interp(double x,double x1,double y1,double x2,double y2) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
+
+
 double maxx(double a,double b) {
   return (a>b?a:b);
 }
@@ -46,7 +52,7 @@ double ly(double y) {
   return interp(y,  2.0,1.0,    2.52,0.0);
 }
 double rho(double y) {
-  return (1+c1) - c1*ly(y);
+  return (1+c1()) - c1()*ly(y);
 }
 
 double rhazim(double y1,double y2,double y3,double y4,double y5,double y6) {
@@ -60,18 +66,21 @@ double lnazim(double y1,double y2,double y3,double y4,double y5,double y6) {
 double azim(double y1,double y2,double y3,double y4,double y5,double y6) {
   return dih_y(y1,y2,y3,y4,y5,y6);
 }
+*/
 
+/*
 double sol(double y1,double y2,double y3,double y4,double y5,double y6) {
   return sol_y(y1,y2,y3,y4,y5,y6);
 }
+*/
 
 
-
-
+/*
 double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
-  return sol_y(y1,y2,y3,y4,y5,y6)*(1.0 + c1) - 
+  return sol_y(y1,y2,y3,y4,y5,y6)*(1.0 + c1()) - 
     c1*(lnazim(y1,y2,y3,y4,y5,y6)+lnazim(y2,y3,y1,y5,y6,y4)+lnazim(y3,y1,y2,y6,y4,y5));
 }
+*/
 
 double tauq(double y1,double y2,double y3,double y4,double y5,double y6,double y7,double y8,double y9) {
   return taum(y1,y2,y3,y4,y5,y6)+taum(y7,y2,y3,y4,y8,y9);

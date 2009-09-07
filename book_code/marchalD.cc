@@ -28,10 +28,11 @@ double hmid = 1.26; // 2.52 truncation
 double ac = - 0.5811692062216102;
 double bc = 0.023248513304698123;
 
-
+/* moved to numerical.cc
 double interp(double x,double x1,double y1,double x2,double y2) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
+*/
 
 double Lfun(double r) {
   return interp(r,  1.0,1.0,    hmid,0.0);

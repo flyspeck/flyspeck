@@ -163,33 +163,42 @@ public class Score {
 
     final static boolean neglectableModification(Graph G, int tri, int quad, int excep, int temp, Vertex V, Parameter p) {
         //1. set constants.
+	int trgt = Constants.getSquanderTarget();
         int t = tri + V.faceCount(3, 3);
         int q = quad + V.faceCount(4, 4);
         int tempX = temp + V.nonFinalCount();
+        util.Eiffel.precondition(tempX >= 0);
+        util.Eiffel.precondition(V.nonFinalCount() > 0);
         int e = V.faceCount(5, Integer.MAX_VALUE);
         if(excep > 0)
             e++;
         //2. if vertex is too crowded, it is neglectable.
         if((e > 0) && (t + q + tempX + e > Constants.getFaceCountMaxAtExceptionalVertex()))
             return true;
-        if((e == 0) && (t + q + tempX + e > Constants.getFaceCountMax()))
+        if((e == 0) && (t + q + tempX > Constants.getFaceCountMax()))
             return true;
         //3. if squanders more than the target, it is neglectable.
         int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.squanderFace(excep) : 0) + tri * p.squanderFace(3) + quad * p.squanderFace(4);
-        if(sq >= Constants.getSquanderTarget())
+	//redundant:
+        if(sq >= trgt)
             return true;
-        if(sq + ExcessNotAt(null, G, p) >= Constants.getSquanderTarget())
+	//strengthening of previous:
+	int ena = ExcessNotAt(null, G, p);
+        if(sq + ena >= trgt)
             return true;
-        int excessAtV = p.squanderForecast(t, q, tempX) - t * p.squanderFace(3) - q * p.squanderFace(4);
-        /** change 11/30/05 **/
-        int extraExceptSq = p.squanderFaceStartingAt(5);
-        boolean noExceptAtV = ((e==0) && (tempX ==0)) || (t + q + tempX + e > Constants.getFaceCountMaxAtExceptionalVertex()) ||
-          (sq + ExcessNotAt(null,G,p) + extraExceptSq >= Constants.getSquanderTarget());
-
-        if((noExceptAtV) && ((sq + ExcessNotAt(V, G, p) + excessAtV >= Constants.getSquanderTarget())))
+	/** change 11/30/05, 9/6/09 **/
+	//4. if no exceptionals at V, and over target, it is neglectable.
+	int extraExceptSq = p.squanderFaceStartingAt(5);
+	boolean noExceptAtV = (e==0) && 
+	     ((tempX ==0) || 
+	      (t + q + tempX > Constants.getFaceCountMaxAtExceptionalVertex()) ||
+	      (sq + ena + extraExceptSq >= trgt));
+	int pqSquAtV = p.squanderForecast(t, q, tempX) ;
+	int fSquNotAtV = sq -t * p.squanderFace(3) - q * p.squanderFace(4);
+        if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= trgt)))
             return true;
         /** end change 11/30/05 **/
-        //4. tests were inconclusive.
+        //5. tests were inconclusive.
         return false;
     }
     /**

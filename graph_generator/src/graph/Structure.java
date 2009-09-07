@@ -51,6 +51,19 @@ public class Structure {
         return true;
     }
 
+
+    /**
+     * Returns true if some vertex has degee 2.
+     */
+    final static boolean hasDegree2(Graph G) {
+        for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
+	    Vertex V = (Vertex)E.nextElement();
+	    if (V.size() == 2)
+                return true;
+        }
+        return false;
+    }
+
     /**
      * Returns true if some vertex has11Type
      */

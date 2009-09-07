@@ -240,6 +240,8 @@ public class Score {
             return true;
         if (QL && Structure.hasAdjacent40(G))
             return true;
+	if (Constants.getExcludeDegree2() && Structure.hasDegree2(G))
+	    return true;
         //5. tests are inconclusive.
         return false;
     }

@@ -38,6 +38,13 @@ public class Constants {
     }
 
 
+    /**
+     * true means that we are excluding the configuration any final graph with a deg 2 vertex.
+     */
+    public static boolean getExcludeDegree2() {
+      return excludeDegree2;
+    }
+    private final static boolean excludeDegree2 = config.getBooleanProperty("excludeDegree2",false);
 
     /**
      * true means that we are excluding the configuration of a qrtet and a

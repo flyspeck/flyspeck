@@ -374,7 +374,12 @@ public class Generator {
     public static void main(String[] args) {
 
         /**
-        **/        
+        **/ 
+	//120635117931 test:
+	String case11 = "0 21 5 0 1 2 3 4 3 0 4 2 3 4 3 2 3 0 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 10 3 10 0 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 13 3 13 8 9 3 13 9 10 4 10 11 12 13 ";
+	Graph G = Graph.getInstance(new Formatter(case11));
+	System.out.println( (Constants.getExcludePentQRTet()  ? "exclude" : "no exclude" ));;
+
 	boolean QL = Constants.getExclude2inQuad();
         for (int i=(QL ? 5 : 3);i<= Constants.getMaxFaceSize();i++) {
 	    System.out.println("//***** generating exceptional series "+i);

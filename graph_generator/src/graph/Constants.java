@@ -30,6 +30,7 @@ public class Constants {
         config = new Config(propertiesFile);
         String prop = config.get("testvalue");
         //System.out.println(prop);
+	config.getProperties().list(System.out);
       }
       catch (Exception e) {
         System.out.println(propertiesFile + "not found");

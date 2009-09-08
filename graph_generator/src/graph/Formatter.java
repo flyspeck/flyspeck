@@ -83,15 +83,15 @@ public class Formatter {
         return tempList.length;
     }
 
-    final int[] tempList() {
+    public final int[] tempList() {
         return tempList;
     }
 
-    final int[] vertexAtFace(int faceIndex) {
+    public final int[] vertexAtFace(int faceIndex) {
         return vertexAtFace[faceIndex];
     }
 
-    final int[] faceAtVertex(int vertexIndex) {
+    public final int[] faceAtVertex(int vertexIndex) {
         return faceAtVertex[vertexIndex];
     }
 
@@ -139,7 +139,10 @@ public class Formatter {
         int L = Token.countTokens();
         int tokarray[] = new int[L];
         int i, j;
-        for(i = 0;i < L;i++)
+	//1bis. skip over first token.
+	tokarray[0]=0; 
+	Token.nextToken();
+        for(i = 1;i < L;i++)
             tokarray[i] = Integer.valueOf(Token.nextToken()).intValue();
         //2. Set temp list;
         int offset = 0;

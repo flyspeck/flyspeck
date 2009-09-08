@@ -1,6 +1,6 @@
 package render;
 
-import java.graph.*;
+import graph.*;
 
 /**
  * Generate sample coordinates for a graph.

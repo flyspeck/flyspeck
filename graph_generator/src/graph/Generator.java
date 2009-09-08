@@ -1,6 +1,7 @@
 package graph;
 import java.util.*;
 
+
 /**
  * Generate all graphs with a given set of properties.
  */
@@ -371,6 +372,7 @@ public class Generator {
 
     }
 
+
     public static void main(String[] args) {
 
         /**
@@ -378,7 +380,11 @@ public class Generator {
 	//120635117931 test:
 	String case11 = "0 21 5 0 1 2 3 4 3 0 4 2 3 4 3 2 3 0 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 10 3 10 0 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 13 3 13 8 9 3 13 9 10 4 10 11 12 13 ";
 	Graph G = Graph.getInstance(new Formatter(case11));
-	System.out.println( (Constants.getExcludePentQRTet()  ? "exclude" : "no exclude" ));;
+	//System.out.println( (Constants.getExcludePentQRTet()  ? "exclude" : "no exclude" ));;
+
+
+	//new render.Gencord("179189825656 21 4 0 1 2 3 3 0 3 4 3 4 3 2 3 4 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ");
+
 
 	boolean QL = Constants.getExclude2inQuad();
         for (int i=(QL ? 5 : 3);i<= Constants.getMaxFaceSize();i++) {
@@ -400,16 +406,6 @@ public class Generator {
         //System.out.println(archive.graphPE);
 	//Invariant.testArchive(series);
 
-        /**
-        String[] hex = new String[] {
-        "0 14 6 0 1 2 3 4 5 3 0 5 4 3 0 4 6 3 6 4 7 3 7 4 3 3 7 3 8 3 8 3 2 3 8 2 9 3 9 2 1 3 9 1 0 4 9 0 6 10 3 10 6 7 3 8 9 10 3 10 7 8 ",
-        "0 16 6 0 1 2 3 4 5 3 0 5 4 3 0 4 6 3 6 4 7 3 7 4 3 3 7 3 8 3 8 3 2 3 8 2 9 3 9 2 1 3 9 1 10 3 10 1 0 4 10 0 6 11 3 11 6 7 3 11 7 8 3 9 10 11 3 11 8 9 ",
-        "0 16 6 0 1 2 3 4 5 3 0 5 4 3 0 4 6 3 6 4 3 3 6 3 7 3 7 3 8 3 8 3 2 3 8 2 1 3 8 1 9 3 9 1 10 3 10 1 0 4 10 0 6 11 3 11 6 7 3 11 7 9 3 7 8 9 3 9 10 11 ",
-        };
-        for (int i=0;i<hex.length;i++) {
-          new CoordinatesDemo(Graph.getInstance(new Formatter(hex[i])),"hex "+i);
-        }
-        **/
     }
 }
 

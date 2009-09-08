@@ -229,7 +229,7 @@ tau_azim4C 'ID[4240815464]' {(i,j) in DART4}:
   tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
 
 tau_azim4D 'ID[3862621143]' {(i,j) in DART4}:
-  tau[j] + 0.453*azim[i,j] + 0.777 >= 0;
+  tau[j] - 0.453*azim[i,j] + 0.777 >= 0;  # typo corrected Sep 8 2009 (Thanks to Erin Susick!)
 
 ## MAIN ESTIMATE SUPER8 BIG4 BIG5 ##
 

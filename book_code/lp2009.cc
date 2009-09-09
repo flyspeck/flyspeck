@@ -34,7 +34,7 @@ double s8 = sqrt(8.0);
 
 // functions moved to numerical.c
 
-double interp(double x,double x1,double y1,double x2,double y2) {
+double interp(double x1,double y1,double x2,double y2, double x) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
 

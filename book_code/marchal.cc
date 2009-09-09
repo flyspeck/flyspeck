@@ -71,7 +71,7 @@ double bmp(double y1,double y2,double y3,double y4,double y5,double y6) {
 }
 
 /* moved to numerical.cc
-double interp(double x,double x1,double y1,double x2,double y2) {
+double interp(double x1,double y1,double x2,double y2,double x) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
 */
@@ -81,7 +81,7 @@ double Mfun (double r) {
 }
 
 double Lfun(double r) {
-  return interp(r,  1.0,1.0,    hmid,0.0);
+  return interp(  1.0,1.0,    hmid,0.0,  r);
 }
 
 double Lmfun(double r) {

@@ -133,7 +133,8 @@ void bigcrossdelta(int numargs,int whichFn,double* y, double* ret,void*) {
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t44(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) +1.0e-8 ;
+  double ee= 1.0e-8; // ee is not part of the inequality, for testing purposes only.
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) +ee ;
 	}
 Minimizer m44() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -170,7 +171,7 @@ Minimizer m3() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t3;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d3(m3(),"ID[5735387903] dihmin");
@@ -185,7 +186,7 @@ Minimizer m3a() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t3a;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d3a(m3a(),"ID[5490182221] dihmax");
@@ -201,7 +202,7 @@ Minimizer m0() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t0;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d0(m0(),"ID[3296257235] taum0: 0th taum-tri-ineq");
@@ -217,7 +218,7 @@ Minimizer m1() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t1;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d1(m1(),"ID[8519146937] taum1: 1st taum-tri-ineq");
@@ -232,7 +233,7 @@ Minimizer m2() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t2;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d2(m2(),"ID[4667071578] taum2: 2nd taum-tri-ineq");
@@ -248,7 +249,7 @@ Minimizer m10() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t10;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d10(m10(),"ID[1395142356] taum:  taum-y-ineq");
@@ -266,7 +267,7 @@ Minimizer m11() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t11;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_544014470 from 1998
@@ -285,7 +286,7 @@ Minimizer m13() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t13;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_38243071
@@ -304,7 +305,7 @@ Minimizer m12() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t12;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_568731327 from 1998
@@ -324,7 +325,7 @@ Minimizer m14() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t14;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_507227930
@@ -342,7 +343,7 @@ Minimizer m15() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t15;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_507227930
@@ -471,7 +472,7 @@ Minimizer m16() {
   double xmax[6]= {2.52,2.52,2.52,2.52,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t16;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_568731327 from 1998
@@ -491,7 +492,7 @@ Minimizer m17() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t17;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 //compare J_568731327 from 1998
@@ -524,7 +525,7 @@ Minimizer m33() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t33;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d33(m33(),"ID[3318775219]:  dih-flat-min-ineq");
@@ -541,7 +542,7 @@ Minimizer m34() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t34;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d34(m34(),"ID[9922699028]:  dih-flat-max-ineq");
@@ -559,7 +560,7 @@ Minimizer m35() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t35;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d35(m35(),"ID[5000076558]:  dih2-flat-min-ineq");
@@ -578,7 +579,7 @@ Minimizer m36() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t36;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d36(m36(),"ID[9251360200]:  flat-rhazim-min-ineq");
@@ -597,7 +598,7 @@ Minimizer m37() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,2.52};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t37;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d37(m37(),"ID[9756015945]:  flat-rhazim2-min-ineq");
@@ -615,7 +616,7 @@ Minimizer m38() {
   double xmax[6]= {2.52,2.52,2.52,s8,2.52,s8};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t38;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d38(m38(),"ID[1812128999]:  APIECE-dih-non-apex");
@@ -634,7 +635,7 @@ Minimizer m39() {
   double xmax[6]= {2.52,2.52,2.52,2.52,s8,s8};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t39;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d39(m39(),"ID[5760733457]:  APIECE-dih-apex");
@@ -652,7 +653,7 @@ Minimizer m40() {
   double xmax[6]= {2.52,2.52,2.52,2.52,s8,s8};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t40;
-	//M.cFunc = smallrad;
+	//.
 	return M;
 }
 trialdata d40(m40(),"ID[2563100177]:  APIECE-rhazim-apex");

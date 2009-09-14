@@ -12,14 +12,6 @@ in the proof.
 
 *)
 
-needs "Multivariate/flyspeck.ml";;
-needs "sphere.hl";;
-needs "thales_tactic.ml";;
-
-
-needs "trig_spec.ml";;
-needs "trig.ml";;
-
 
 
 (* ==================== *)
@@ -33,9 +25,11 @@ needs "trig.ml";;
 
 (* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
+
 needs "Multivariate/flyspeck.ml";;
 needs "sphere.hl";;
 needs "thales_tactic.ml";;
+
 
 prioritize_real();;
 
@@ -1419,7 +1413,7 @@ open Trig;;
 
 (* ========== QUANG TRUONG ========== *)
 
-needs "definitions_kepler.ml";;
+(* needs "definitions_kepler.ml";; *)
 
 let cosV = new_definition` cosV u v = (u dot v) / (norm u * norm v) `;;
 let sinV = new_definition` sinV u v = sqrt ( &1 - cosV u v pow 2 ) `;;

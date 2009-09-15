@@ -390,8 +390,9 @@ void t6(int numargs,int whichFn,double* y, double* ret,void*) {
    - 1.433;
 	}
 Minimizer m6() {
+  double maxv = 3.5; // should really go to 2*2.52
   double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, 3.5,2.52,2.52, 2.52,2.52,2.52};
+  double xmax[9]= {2.52,2.52,2.52, maxv,2.52,2.52, 2.52,2.52,2.52};
 	Minimizer M(trialcount,9,3,xmin,xmax);
 	M.func = t6;
 	M.cFunc = bigcrossdelta;
@@ -407,8 +408,9 @@ void t9(int numargs,int whichFn,double* y, double* ret,void*) {
    + 0.777;
 	}
 Minimizer m9() {
+  double maxv = 3.3; // should really go to 2*2.52
   double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, 3.3,2.52,2.52, 2.52,2.52,2.52};
+  double xmax[9]= {2.52,2.52,2.52, maxv,2.52,2.52, 2.52,2.52,2.52};
 	Minimizer M(trialcount,9,3,xmin,xmax);
 	M.func = t9;
 	M.cFunc = bigcrossdelta;
@@ -441,8 +443,9 @@ void t8(int numargs,int whichFn,double* y, double* ret,void*) {
    - 0.206;
 	}
 Minimizer m8() {
+  double maxv = 3.3; // should really go to 2*2.52
   double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, 3.3,2.52,2.52, 2.52,2.52,2.52};
+  double xmax[9]= {2.52,2.52,2.52, maxv ,2.52,2.52, 2.52,2.52,2.52};
 	Minimizer M(trialcount,9,3,xmin,xmax);
 	M.func = t8;
 	M.cFunc = bigcrossdelta;

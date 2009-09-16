@@ -3074,8 +3074,6 @@ MESON_TAC[]; REWRITE_TAC[AFF2_VEC0; IN_ELIM_THM; COLLINEAR_LEMMA] THEN
 STRIP_TAC THENL [ASM_MESON_TAC[]; EXISTS_TAC `&0 ` THEN ASM_SIMP_TAC[VECTOR_MUL_LZERO];
 ASM_MESON_TAC[]]]);;
 
-(* lemma 1.35. 26 Aug, 2009 *)
-
 
 let QQZKTXU = prove(`! v w v1 (v2:real^3). let gammma = dihV v w v1 v2 in  {v1,v2} INTER aff {v,w} = {} /\
 ~( v = w ) ==> cos ( azim v w v1 v2 ) = cos gammma `,
@@ -3138,12 +3136,10 @@ ONCE_REWRITE_TAC[MESON[]` ~( a = b ) <=> ~( a = b ) /\ ~( a = b )`] THEN
 PHA THEN 
 ONCE_REWRITE_TAC[TAUT` a /\ b/\ c/\ d <=> b /\ ( b /\ a ) /\c /\ d `] THEN 
 REWRITE_TAC[PROJECTOR_NOT_EQ_VEC0 ] THEN 
-SIMP_TAC[NOT_EQ_IMPCOS_ARC; VECTOR_SUB_RZERO] THEN 
-DOWN_TAC THEN 
-
+REWRITE_TAC[VECTOR_ADD_RID; VECTOR_ARITH` ( a + b ) - a = (b:real^N)`] THEN 
+SIMP_TAC[NOT_EQ_IMPCOS_ARC; VECTOR_SUB_RZERO] THEN DOWN_TAC THEN 
 REWRITE_TAC[NOT_EQ_IMPCOS_ARC; VECTOR_SUB_RZERO] THEN 
-ABBREV_TAC ` azz = azim (vec 0) w v1 v2 ` THEN 
-STRIP_TAC THEN 
+ABBREV_TAC ` azz = azim (vec 0) w v1 v2 ` THEN STRIP_TAC THEN 
 USE_FIRST `v2 =
       (r2 * cos (psi + azz)) % e11 + (r2 * sin (psi + azz)) % e2 + h2 % (w:real^3)` SUBST1_TAC THEN 
 USE_FIRST `v1 = (r1 * cos psi) % e11 + (r1 * sin psi) % e2 + h1 % (w:real^3)` SUBST1_TAC THEN 
@@ -3151,38 +3147,26 @@ UNDISCH_TAC ` orthonormal e11 e2 e33 ` THEN
 SIMP_TAC[DOT_LADD; DOT_LMUL; orthonormal] THEN 
 ABBREV_TAC ` ww = w dot (w:real^3)` THEN 
 EXPAND_TAC "w" THEN 
-
-
 SIMP_TAC[DOT_SYM; DOT_RMUL; REAL_MUL_RZERO; REAL_ADD_LID; VECTOR_ADD_LDISTRIB] THEN 
 SIMP_TAC[VECTOR_MUL_ASSOC; REAL_MUL_SYM; VECTOR_ARITH`(a + c + b ) - b = (a:real^N) + c`] THEN 
 SIMP_TAC[vector_norm; DOT_LADD; DOT_RADD; DOT_LMUL; DOT_RMUL; REAL_MUL_RZERO; DOT_SYM;
   REAL_ADD_RID; REAL_MUL_RID; REAL_ADD_LID; GSYM POW_2; REAL_ARITH`( a * b * c ) pow 2 + ( a * b 
   * d ) pow 2 = ( a * b ) pow 2 * ( d pow 2 + c pow 2 ) `; SIN_CIRCLE] THEN 
-STRIP_TAC THEN 
-UNDISCH_TAC `~(ww % (v2: real^3) - (v2 dot w) % w = vec 0)` THEN 
+STRIP_TAC THEN UNDISCH_TAC `~(ww % (v2: real^3) - (v2 dot w) % w = vec 0)` THEN 
 UNDISCH_TAC `~(ww % (v1: real^3) - (v1 dot w) % w = vec 0)` THEN 
-EXPAND_TAC "ww" THEN 
-REWRITE_TAC[GSYM PROJECTOR_NOT_EQ_VEC0] THEN 
+EXPAND_TAC "ww" THEN REWRITE_TAC[GSYM PROJECTOR_NOT_EQ_VEC0] THEN 
 NHANH (MATCH_MP (MESON[]` (a ==> ( b <=> c )) ==> (a /\ ~ b ==> ~ c) `) (SPEC_ALL NOT_EQ_VEC0_IMP_EQU_AFF_COLL)) THEN 
-FIRST_X_ASSUM NHANH THEN 
-FIRST_X_ASSUM NHANH THEN 
-REWRITE_TAC[GSYM DOT_POS_LT] THEN 
-STRIP_TAC THEN 
-STRIP_TAC THEN 
+FIRST_X_ASSUM NHANH THEN FIRST_X_ASSUM NHANH THEN 
+REWRITE_TAC[GSYM DOT_POS_LT] THEN STRIP_TAC THEN STRIP_TAC THEN 
 ASSUME_TAC2 (SPECL [`(w:real^3) dot w `;` r1: real `] REAL_LT_MUL) THEN 
 ASSUME_TAC2 (SPECL [`(w:real^3) dot w `;` r2: real `] REAL_LT_MUL) THEN 
 REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN 
-NHANH REAL_LT_IMP_LE THEN 
-PHA THEN 
-SIMP_TAC[POW_2_SQRT] THEN 
+NHANH REAL_LT_IMP_LE THEN PHA THEN SIMP_TAC[POW_2_SQRT] THEN 
 REWRITE_TAC[REAL_ARITH` ((w dot w) * r1 * a) * (w dot w) * r2 * b +
      ((w dot w) * r1 * c) * (w dot w) * r2 * d =
      (((w dot w) * r1) * (w dot w) * r2) * (b * a + d * c) `] THEN 
 SIMP_TAC[REAL_FIELD` &0 < a /\ &0 < b ==> (( a * b ) * c ) / ( a * b ) = c `] THEN 
 REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
-
-
-
 
 
 (* 
@@ -3194,6 +3178,5 @@ REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
            (w - p) dot (v1 - v0) = &0
            ==> cos (arcV v0 v1 w) = k * norm (v1 - v0) / norm (w - v0))]
 *)
-
 
 

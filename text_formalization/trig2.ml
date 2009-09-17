@@ -1136,11 +1136,11 @@ NHANH (NOT_IDEN_IMP_ABS_LE) THEN REWRITE_TAC[arcV; REAL_ABS_BOUNDS]
 THEN SIMP_TAC[ACS_BOUNDS]);;
 
 
-(* This lemma in Multivariate/transc.ml *)
+(* This lemma in Multivariate/transc.ml 
 let COS_MONO_LT_EQ = new_axiom
 `!x y. &0 <= x /\ x <= pi /\ &0 <= y /\ y <= pi
          ==> (cos(x) < cos(y) <=> y < x)`;;
-
+*)
 
 
 let COS_MONOPOLY = prove(

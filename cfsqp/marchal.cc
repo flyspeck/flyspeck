@@ -702,6 +702,24 @@ Minimizer m36(int i4) {
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
+void t36a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma23L(y[0],y[1],y[2],y[3],y[4],y[5]) - 2.0*0.0057;
+	}
+// in 2quarter case, one blade is shared with a quarter constraining sides.
+//In this case other blade is not along a quarter and has a long edge.
+Minimizer m36a() {
+  double t = 2*hmin;
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,s8,t,t};
+	Minimizer M(trialcount*40,6,3,xmin,xmax);
+	M.func = t36a;
+	M.cFunc = bigradysmallrafy; 
+	return M;
+}
+trialdata d36a(m36a(),"ID[5400790175] QITNPEA: cc:4bl: d36a: Marchal, 4blades j=1 or 2 quarters, 23cell ineq, small blade case");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
 void t37(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
     taum(y[0],y[2],y[6],y[7],y[8],y[4]) +

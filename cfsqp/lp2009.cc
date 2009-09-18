@@ -82,6 +82,26 @@ double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
 }
 */
 
+void assert_(int j,char* u) {
+  if (!j) { 
+    cout << "!!FAILURE: " << u << "\n";
+  }
+}
+
+int value(double t1,double x1) {
+  return (abs(t1 - x1) < 1.0e-8);
+}
+
+double test_function() {
+  assert_(value(0.0,1.0),"entering test");
+  assert_(value(interp(2.0,3.0,3.0,4.0,1.0),2.0),"interp");
+  assert_(value(c1(),0.1754796560918218),"c1");
+  assert_(value(ly(3.0),-0.9230769230769229),"ly");
+  assert_(value(rho(3.0),1.3374608770996574),"rho");
+  assert_(value(rhazim(2.05,2.1,2.15,2.2,2.25,2.3),1.2238197064544751),"rhazim");
+  assert_(value(taum(2.05,2.1,2.15,2.2,2.25,2.3),0.23816478183286893),"taum");
+}
+
 double tauq(double y1,double y2,double y3,double y4,double y5,double y6,double y7,double y8,double y9) {
   return taum(y1,y2,y3,y4,y5,y6)+taum(y7,y2,y3,y4,y8,y9);
 }
@@ -748,7 +768,7 @@ Minimizer m47() {
 	M.func = t47;
 	return M;
 }
-trialdata d47(m47(),"ID[]:  taum-sol-tri");
+//trialdata d47(m47(),"ID[]:  taum-sol-tri");
 
 
 
@@ -935,5 +955,5 @@ trialdata  d57(m57(),"ID[6224332984]:  big-sol");
 
 
 int main() {
-
+  test_function();
 }

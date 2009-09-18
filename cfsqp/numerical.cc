@@ -581,8 +581,9 @@ double interp(double x1,double y1,double x2,double y2,double x) {
 
 double c1() { return sol_y(2,2,2,2,2,2)/pi(); } // delta0/Pi
 
+// Lfun[y/2]
 double ly(double y) {
-  return interp(y,  2.0,1.0,    2.52,0.0);
+  return interp(2.0,1.0,    2.52,0.0, y);
 }
 
 double rho(double y) {

@@ -702,11 +702,25 @@ Minimizer m36(int i4) {
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
+void t36b(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    gamma3L(y[0],y[1],y[5]) - 0.0057;
+	}
+Minimizer m36b(int i4) {
+  double xmin[6]= {xxmin(1),xxmin(0),xxmin(0),xxmin(i4),xxmin(0),xxmin(0)};
+  double xmax[6]= {xxmax(1),xxmax(0),xxmax(0),xxmax(i4),xxmax(0),xxmax(0)}; 
+	Minimizer M(trialcount,6,1,xmin,xmax);
+	M.func = t36b;
+	M.cFunc = smallrady;
+	return M;
+}
+// see main
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
 void t36a(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = gamma23L(y[0],y[1],y[2],y[3],y[4],y[5]) - 2.0*0.0057;
 	}
-// in 2quarter case, one blade is shared with a quarter constraining sides.
-//In this case other blade is not along a quarter and has a long edge.
 Minimizer m36a() {
   double t = 2*hmin;
   double xmin[6]= {2.0*hmin,2,2,2,2,2};
@@ -716,7 +730,7 @@ Minimizer m36a() {
 	M.cFunc = bigradysmallrafy; 
 	return M;
 }
-trialdata d36a(m36a(),"ID[5400790175] QITNPEA: cc:4bl: d36a: Marchal, 4blades j=1 or 2 quarters, 23cell ineq, small blade case");
+//false:  trialdata d36a(m36a(),"ID[] QITNPEA: cc:4bl: d36a: Marchal, 4blades j=1 or 2 quarters, 23cell ineq, small blade case");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -822,6 +836,16 @@ if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
 else
 {
   if (docases) { trialdata d36(m36(i4),"ID[2134082733] QITNPEA: cc:4bl: d36: Marchal, 4blades j=2 quarters, 4-cell bwt, small blades"); }
+}
+  }
+
+for (int i4=1;i4<3;i4++)
+  {
+xmin[0]=xxmin(1); xmin[1]=xxmin(0); xmin[2]=xxmin(0); xmin[3]=xxmin(i4); xmin[4]=xxmin(0); xmin[5]=xxmin(0);
+if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> s2) continue;
+else
+{
+  if (docases) { trialdata d36b(m36b(i4),"ID[5400790175] QITNPEA: cc:4bl: d36b: Marchal, 4blades j=2 quarters, 4-cell bwt, + adjacent 3-cell, small blades"); }
 }
   }
 

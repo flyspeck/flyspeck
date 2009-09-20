@@ -3194,6 +3194,7 @@ REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
 
 
 (*
+
 ("SIMPLIZE_COS_IF_OTHOR ",
 |- !v0 v1 w p.
 ~(v0 = w) /\
@@ -3201,5 +3202,6 @@ REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
 p - v0 = k % (v1 - v0) /\
 (w - p) dot (v1 - v0) = &0
 ==> cos (arcV v0 v1 w) = k * norm (v1 - v0) / norm (w - v0))]
-*)
 
+*)
+(* Nguyen Quang Truong *)

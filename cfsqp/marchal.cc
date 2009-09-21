@@ -403,7 +403,7 @@ trialdata d20b(m20b(),"ID[1738910218] BIXPCGW cc:3bl: d20b: Marchal, if wt<1, th
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t21(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) +0.0057;//-ggcc ;
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) +0.00569;//-ggcc ;
 	}
 Minimizer m21() {
   double t = 2*hmin;
@@ -413,7 +413,7 @@ Minimizer m21() {
 	M.func = t21;
 	return M;
 }
-trialdata d21(m21(),"ID[9455898160] BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quarter) > -0.0057");
+trialdata d21(m21(),"ID[9455898160] BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quarter) > -0.00569");
 
 
 

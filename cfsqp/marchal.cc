@@ -368,7 +368,7 @@ Minimizer m19() {
 	M.func = t19;
 	return M;
 }
-trialdata d19(m19(),"ID[6652007036] BIXPCGW: cc:3bl: d19: Marchal, dih(four-cell w. diag) < 2.8");
+trialdata d19(m19(),"ID[6652007036] BIXPCGW: cc:3bl: d19: Marchal, dih(four-cell along spine) < 2.8");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -378,7 +378,8 @@ void t20a(int numargs,int whichFn,double* y, double* ret,void*) {
 Minimizer m20a() {
   double s8 = sqrt(8.0);
   double xmin[6]= {2.0*hmin,2.0*hmin,2,2,2,2};
-  double xmax[6]= {2.0*hmax,2.0*hmax,s8,s8,s8,s8};
+  //  double xmax[6]= {2.0*hmax,2.0*hmax,s8,s8,s8,s8};
+  double xmax[6]= {2.0*hmax,s8,s8,s8,s8,s8};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t20a;
 	return M;
@@ -392,7 +393,8 @@ void t20b(int numargs,int whichFn,double* y, double* ret,void*) {
 	}
 Minimizer m20b() {
   double s8 = sqrt(8.0);
-  double xmin[6]= {2.0*hmin,2,2,2*hmin,2,2};
+  //  double xmin[6]= {2.0*hmin,2,2,2*hmin,2,2};
+  double xmin[6]= {2.0*hmin,2,2,2,2,2};
   double xmax[6]= {2.0*hmax,s8,s8,2*hmax,s8,s8};
 	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t20b;

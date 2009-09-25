@@ -250,6 +250,9 @@ let branchsblade br ss i rest =
     else flatten (map (fun s -> m( if snd s then 
       ["sblade",i;"sblade",j; fst s,i] else [fst s,i])) ss);;
 
+
+(* particular branching *)
+
 let branch_sblade i br  =
   if (mem i br.sblade or mem i br.nonsblade) then failwith "sblade"
     else branch br ["sblade"; "nonsblade"] i [];;
@@ -275,9 +278,11 @@ let branch_wt i br  =
       else if (not(mem i br.sblade && mem (next br i) br.sblade)) then failwith "wt3"
       else branch br ["halfwt";"fullwt"] i [];;
 
-
 let ex0 ch i brs = (flatten (map (ch i) brs));;
 let ex ch i brs = select_notdone notdone (map solve (ex0 ch i brs));;
+
+let top ch i (br::rest) = (ex ch i [br]) @ rest;;
+let delay (x::xs) = xs @ [x];;
 
 (* case of 3 blades: *)
 let br = mk_br 3;;
@@ -290,4 +295,15 @@ let br4 = ex branch_qxd 1 br3;;
 (* case of 4 blades *)
 let cr = mk_br 4;;
 let cr1 = ex branch_qu 3 (ex0 branch_qu 2 (branch_qu 1 cr));;
-length cr1;;
+let cr2 = delay (top branch_wt 3 cr1);;
+let cr3 = delay (top branch_wt 2 cr2);;
+let cr4 = top branch_sblade 3 cr3;;
+let cr5 = top branch_sblade 3 cr4;;
+let cr6 = top branch_sblade 3 cr5;;
+let cr7 = delay(top branch_wt 1 cr6);;
+let cr8 = top branch_sblade 2 cr7;;
+let cr9 = top branch_sblade 2 cr8;;
+let cr10 = top branch_sblade 2 cr9;;
+let cr11 = top branch_sblade 2 cr10;;
+(* three cases remain, all related by symmetry *)
+let cr12 = nth cr11 0;;  (* one of them *)

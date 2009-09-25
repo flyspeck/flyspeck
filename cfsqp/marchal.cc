@@ -417,6 +417,37 @@ Minimizer m21() {
 }
 trialdata d21(m21(),"ID[9455898160] BIXPCGW: cc:3bl: d21: Marchal, gamma4L(quarter) > -0.00569");
 
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t41a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.00259 ;
+	}
+Minimizer m41a() {
+  double t = 2*hmin;
+  double xmin[6]= {2.58,2,2,2,2,2};
+  double xmax[6]= {2.0*hmax,t,t,t,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t41a;
+	return M;
+}
+trialdata d41a(m41a(),"ID[] : cc:4bl: d41a: Marchal, gamma4L(quarter with y1>2.58) > -0.00259");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t41b(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbwt(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.007771 ;
+	}
+Minimizer m41b() {
+  double t = 2*hmin;
+  double e=1.0e-8;
+  double xmin[6]= {2.57,2,2,2*hmin+e,2,2};
+  double xmax[6]= {2.0*hmax-e,t,t,2*hmax-e,t,t};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t41b;
+	return M;
+}
+trialdata d41b(m41b(),"ID[] : cc:4bl: d41b: Marchal, gamma4Lbwt(halfwt with y1>2.58) > 0.007771");
+
 
 
 

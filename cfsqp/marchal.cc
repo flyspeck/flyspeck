@@ -63,11 +63,14 @@ double bump(double r) {
   return 1.0 - s*s;
 }
 double bmpfactor = 0.005;
+double bmp2(double y1,double y4) {
+  return bmpfactor*(bump(y1/2.0) - bump(y4/2.0));
+}
 double bmp(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (2!=wtcount(y1,y2,y3,y4,y5,y6))  { return 0.0; }
   if (!wtrange(y1))  { return 0.0; }
   if (!wtrange(y4))  { return 0.0; }
-  return bmpfactor*(bump(y1/2.0) - bump(y4/2.0));
+  return bmp2(y1,y4);
 }
 
 /* moved to numerical.cc
@@ -124,6 +127,12 @@ double gamma4Lbwt(double y1,double y2,double y3,double y4,double y5,double y6) {
   return gamma4L(y1,y2,y3,y4,y5,y6)/wtcount(y1,y2,y3,y4,y5,y6) 
     + bmp(y1,y2,y3,y4,y5,y6);
 }
+double gamma4Lbump(double y1,double y2,double y3,double y4,double y5,double y6) {
+  return gamma4L(y1,y2,y3,y4,y5,y6)/2.0
+    + bmp(y1,y2,y3,y4,y5,y6);
+}
+
+
 
 
 // Now for the 3 variable inequality:
@@ -795,6 +804,71 @@ Minimizer m37() {
 	return M;
 }
 //trialdata d37(m37(),"test of squander on vertex of type 600");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+double e38=0;
+double a38=0;
+double bq38=0;
+double bh38=0;
+double dq38=0;
+double dh38=0;
+void t38q(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4L(y[0],y[1],y[2],y[3],y[4],y[5]) +
+     a38*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    bq38*y[0] + dq38;
+
+	}
+void t38h(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = gamma4Lbump(y[0],y[1],y[2],y[3],y[4],y[5]) +
+     a38*dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    bh38*y[0] + dh38;
+	}
+double conv(double r,double s,double a,double b) {
+  return r*a + s*b;
+}
+Minimizer m38q(double* mdata) {
+  double r,s,a,b;
+  e38 = mdata[0];
+  a38 = mdata[1];
+  bq38=mdata[2];
+  bh38=mdata[3];
+  dq38=mdata[4];
+  dh38=mdata[5];
+  double y1min = conv(mdata[6],mdata[9],mdata[7],mdata[8]);
+  double y1max = conv(mdata[6],mdata[9],mdata[10],mdata[11]);
+  double y4qmin=conv(mdata[12],mdata[15],mdata[13],mdata[14]);
+  double y4qmax=conv(mdata[12],mdata[15],mdata[16],mdata[17]);
+  double xmin[6]= {y1min,2,2,y4qmin,2,2};
+  double xmax[6]={y1max,2*hmin,2*hmin,y4qmax,2*hmin,2*hmin};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t38q;
+	return M;
+}
+Minimizer m38h(double* mdata) {
+  double r,s,a,b;
+  e38 = mdata[0];
+  a38 = mdata[1];
+  bq38=mdata[2];
+  bh38=mdata[3];
+  dq38=mdata[4];
+  dh38=mdata[5];
+  double y1min = conv(mdata[6],mdata[9],mdata[7],mdata[8]);
+  double y1max = conv(mdata[6],mdata[9],mdata[10],mdata[11]);
+  double y4hmin=conv(mdata[18],mdata[21],mdata[19],mdata[20]);
+  double y4hmax=conv(mdata[18],mdata[21],mdata[22],mdata[23]);
+  double xmin[6]= {y1min,2,2,y4hmin,2,2};
+  double xmax[6]={y1max,2*hmin,2*hmin,y4hmax,2*hmin,2*hmin};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t38h;
+	return M;
+}
+double md1[38]={-0.028864, 0.202002, -0.183386, 0.550157,
+   0.149274, -1.71704, 2.52, 1., 0., 2.6508, 0., 1., 2., 0.5, 0.5,
+		2.46351, 0., 1., 2.46351, 1., 0., 2.52, 0., 1.};
+trialdata d38_md1q(m38q(md1),"md1 experimental test of gamma4L(quarter)+... 4blade, 3 quarter.");
+trialdata d38_md1h(m38h(md1),"md1 experimental test of gamma4Lbump(halfwt)+... 4blade, 3 quarter.");
 
 
 int main()

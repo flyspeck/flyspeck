@@ -1,12 +1,12 @@
 (*Nguyen Tat Thang*)
+ 
 
-
-needs "Multivariate\flyspeck.ml";;
+needs "Multivariate/flyspeck.ml";;
 needs "Multivariate/vectors.ml";;     
-needs "definitions_kepler.ml";;
+(*needs "definitions_kepler.ml";;*)
 
 (*needs "sphere.hl";;*)
-needs "Examples\card.ml";;
+needs "Examples/card.ml";;
 needs "Multivariate/topology.ml";;
 needs "Examples/floor.ml";;
 needs "Multivariate/measure.ml";;
@@ -23,12 +23,12 @@ let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | (x=v) \/ ((
 *)
 let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
 
-let circular_cone =new_definition `circular_cone (V:real^3-> bool)=
+let circular_cone2 =new_definition `circular_cone2 (V:real^3-> bool)=
 (? (v,w:real^3)(r:real). V= c_cone (v,w,r))`;;
 
 let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
   new_inductive_definition
-    `(!P. ((plane P)\/ (sphere P) \/ (circular_cone P)) ==> NULLSET P) /\
+    `(!P. ((plane P)\/ (sphere P) \/ (circular_cone2 P)) ==> NULLSET P) /\
      !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;
 
 

@@ -25,11 +25,11 @@ in the proof.
 
 (* Formal Spec of Blueprint Chapter  on Trigonometry *)
 
-
+(*
 needs "Multivariate/flyspeck.ml";;
 needs "sphere.hl";;
 needs "thales_tactic.ml";;
-
+*)
 
 prioritize_real();;
 

@@ -119,6 +119,11 @@ void bigcross(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = -crossdiag(y) +2.52;
 };
 
+//constraint: crossdiag > y[3]
+void cross3(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -crossdiag(y) +y[3];
+};
+
 
 //constraint: y3+y4+y5 > 6.25
 void bigtri(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -386,6 +391,57 @@ Minimizer m4() {
 	return M;
 }
 trialdata d4(m4(),"ID[7043724150] tauq: 0 tauq-quad-ineq");
+
+
+// this is minimized.  failure reported if min is negative.
+void t4a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8])  - 0.256;
+	}
+Minimizer m4a() {
+  double xmin[9]= {2,2,2, s8,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 3,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t4a;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d4a(m4a(),"ID[4930647408] m4a: tauq: 0 tauq-quad-ineq > 0.256");
+
+// this is minimized.  failure reported if min is negative.
+void t4b(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = (y[1]+y[2]+y[4]+y[5]-8) - 2.75*(y[0]-s8);
+	}
+void c4b(int numargs,int whichFn,double* y, double* ret,void*) {
+  switch(whichFn) {
+  case 1: *ret = -y[3] + y[0]; break;
+  case 2: *ret = -delta_y(y[0],y[1],y[2],y[3],y[4],y[5]);break;
+  }
+};
+Minimizer m4b() {
+  double xmin[6]= {s8,2,2, s8,2,2};
+  double xmax[6]= {3,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,2,xmin,xmax);
+	M.func = t4b;
+	M.cFunc = c4b;
+	return M;
+}
+trialdata d4b(m4b(),"ID[] m4b: super8 edge lengths");
+
+// this is minimized.  failure reported if min is negative.
+void t4c(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.128 -
+    0.053*((y[4]+y[5]-4) - (2.75/2.0)*(y[3]-s8));
+	}
+Minimizer m4c() {
+  double xmin[6]= {2,2,2, s8,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t4c;
+	return M;
+}
+trialdata d4c(m4c(),"ID[] m4c: superflat tau");
+
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -788,6 +844,27 @@ Minimizer m48() {
 }
 trialdata d48(m48(),"ID[4840774900]:  taum-s8-quad, one diag <= 3");
 
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t48a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) 
+    +taum(y[6],y[1],y[2],y[3],y[7],y[8])  - 0.24
+    -0.14132   *(y[0] + y[1] + y[2] + y[6] - 8)
+    //    -0.36499   *(y[4]+y[5] + y[7]+y[8] -8);
+    -0.38  *(y[4]+y[5] + y[7]+y[8] -8);
+	}
+Minimizer m48a() {
+  double xmin[9]= {2,2,2,s8,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52,3,2.52,2.52,2.52,2.52,2.52};
+	Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t48a;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d48a(m48a(),"ID[]: m48a: taum-s8-quad, one diag <= 3");
+
+
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t49(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -803,6 +880,61 @@ Minimizer m49() {
 	return M;
 }
 trialdata d49(m49(),"ID[9995621667]:  azim-sd8-quad, two diag >= 3");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t49a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    taum(y[6],y[1],y[2],y[3],y[7],y[8]);
+	}
+Minimizer m49a() {
+  double fake = 3.8;  // (should really be 2*2.52)
+  double xmin[9]= {2,2,2,3,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52,fake,2.52,2.52,2.52,2.52,2.52};
+  Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t49a;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d49a(m49a(),"ID[]:  taumQ-sd8-quad, two diag >= 3");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t49c(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    taum(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.46 - (y[4]+y[5]+y[7]+y[8]-8.472)*0.45;
+  // holds with -0.46 -> -0.49, but the weaker ineq is sufficient.
+	}
+Minimizer m49c() {
+  double fake = 3.8;  // (should really be 2*2.52)
+  double xmin[9]= {2,2,2,3,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52,fake,2.52,2.52,2.52,2.52,2.52};
+  Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t49c;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d49c(m49c(),"49c: ID[]:  taumQ-sd8-quad, two diag >= 3");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t49b(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = y[4]+y[5]+y[7]+y[8]-8.0;
+	}
+Minimizer m49b() {
+  double fake = 3.8;  // (should really be 2*2.52)
+  double xmin[9]= {2,2,2,3,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52,fake,2.52,2.52,2.52,2.52,2.52};
+  Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t49b;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d49b(m49b(),"ID[]:  m49b: perimeter-sd8-quad, two diag >= 3");
+
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.

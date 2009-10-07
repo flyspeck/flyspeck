@@ -481,16 +481,72 @@ let hardid =
 *)
 
 
+
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
 let alleasypass_bb = allpass 20 easy_bb;;  (* 4K longish hcalculation *)
+let test1 = (alleasypass_bb = []);;
+
+
+(* experimental section *)
+
+let allhardpass_bb = allpass 8 hard_bb;; (*   *)
+length allhardpass_bb;;  (* 686 *)
+let h8s =  (filter (fun t -> length t.superduperq > 0)  allhardpass_bb);; (* 129 *)
+find_max h8s;;
+
+(* new ineqs added 0.496, 8.472, 8.472, 0.46  *)
+(* 0.46 tauZ : superduperq disappears: *)
+let allhardpass5a_bb = allpass 3 hard_bb;; (*   *)
+let allhardpass5_bb = allpass 7 (filter (fun t -> length t.superduperq >0) allhardpass5a_bb);;
+length allhardpass5_bb;;  (* 0 *)
+
+(* super8 cases *)
+let allhardpass1_bb = allpass 3 hard_bb;; (*   *)
+length allhardpass1_bb;;  (*  *)
+let allhardpass1_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.super8 > 0))  allhardpass1_bb;;  (* 21 *)
+let ss = allpass 8 allhardpass1_bb;;
+
+
+let f i = nth s8s i;;
+map (fun t -> t.lpvalue) s8s;;
+let hi = find_max s8s;;
+hi;;
+display_lp hi;;
+
+
+
+
+
+
+
+
+
 
 (* running various cases *)
 
-let findid s = find (fun b -> b.hypermapid = s) feasible_bb;;
+let findid s = filter (fun b -> b.hypermapid = s) allhardpass_bb;;
+
+
 
 (* 6 final hard cases : *)
+(* scratch space *)
 
+find_max allhardpass_bb;;
+let h0 = findid (nth hardid 1);;
+map (fun b -> (length b.superduperq)) h0;;
+length h0;;
+nth h0 0;;
+
+
+
+
+
+
+
+
+
+;;
 (*
 let h  = findid (nth hardid 0);;
 let h1 = allpass [h];; (* length 41 *)

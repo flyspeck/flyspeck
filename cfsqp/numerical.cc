@@ -39,6 +39,12 @@ double delta_x(double x1,double x2,double x3,double x4,double x5,double x6)
                 (x2*x3*x4 +x1*x3*x5+x1*x2*x6+x4*x5*x6);
         }
 
+double delta_y(double y1,double y2,double y3,double y4,double y5,double y6)
+        {
+	  double x[6]={y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6};
+	  return delta_x(x[0],x[1],x[2],x[3],x[4],x[5]);
+        }
+
 
 double U(double a,double b,double c)
        {

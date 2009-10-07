@@ -19,6 +19,7 @@ double max(double a,double b);
 double min(double a,double b);
 // simplex:
 double delta_x(double x1,double x2,double x3,double x4,double x5,double x6);
+double delta_y(double y1,double y2,double y3,double y4,double y5,double y6);
 double sol_y(double y1,double y2,double y3,double y4,double y5,double y6);
 double dih_y(double y1,double y2,double y3,double y4,
                         double y5, double y6);

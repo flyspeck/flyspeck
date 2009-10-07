@@ -382,6 +382,16 @@ tausf5 'ID[7863247282]' {(i,j) in SUPERFLAT}:
 ysuperflat 'ID[8673686234]' {(i1,j1,i2,j2) in SUPERFLATPAIR}:
    (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
 
+azimsf1 'ID[1085358243]' {(i,j) in SUPERFLAT}:
+  azim[i,j] - 1.903 - 0.4*(y1[i,j] - 2)
+  +0.49688*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
+   -(y[4]-sqrt8) >= 0;
+
+azimsf2 'ID[3566713650]' {(i,j) in SUPERFLAT}:
+  -azim[i,j] + 1.911 +1.01 *(y1[i,j] - 2)
+  -0.284*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
+   +1.07*(y[4]-sqrt8) >= 0;
+
 
 
 #branch APIECE inequality.
@@ -471,4 +481,4 @@ display ye;
 display azim;
 display tau;
 display sol;
-display lnsum;
+

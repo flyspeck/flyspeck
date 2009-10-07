@@ -458,6 +458,41 @@ Minimizer m4d() {
 }
 trialdata d4d(m4d(),"ID[7863247282] m4d: superflat tau");
 
+
+// this is minimized.  failure reported if min is negative.
+void t4e(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y (y[0],y[1],y[2],y[3],y[4],y[5]) -1.903
+    -0.4*(y[0]-2)
+    +0.49688*(y[1]+y[2]+y[4]+y[5]-8)
+    - 1.0*(y[3]-s8);
+	}
+Minimizer m4e() {
+  double xmin[6]= {2,2,2, s8,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t4e;
+	return M;
+}
+trialdata d4e(m4e(),"ID[1085358243] m4e: superflat azim dart");
+
+// this is minimized.  failure reported if min is negative.
+void t4f(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = -dih_y (y[0],y[1],y[2],y[3],y[4],y[5]) + 1.911
+    +1.01*(y[0]-2)
+    -0.284*(y[1]+y[2]+y[4]+y[5]-8)
+    + 1.07*(y[3]-s8);
+	}
+Minimizer m4f() {
+  double xmin[6]= {2,2,2, s8,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t4f;
+	return M;
+}
+trialdata d4f(m4f(),"ID[3566713650] m4f: superflat azim dart");
+
+
+
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t5(int numargs,int whichFn,double* y, double* ret,void*) {

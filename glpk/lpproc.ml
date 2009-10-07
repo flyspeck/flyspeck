@@ -154,7 +154,8 @@ type branchnbound =
     superduperq : int list list;
     bigtri : int list list;
     smalltri : int list list;
-    (* special dart appears first *)
+    (* special dart appears first in next ones *)
+    superflat : int list list;
     flat_quarter : int list list;
     a_face : int list list;
     big5_face : int list list;
@@ -172,6 +173,7 @@ hypermapid = bb.hypermapid;
 lpvalue = None;
 string_rep = bb.string_rep;
 std_faces_not_super = if drop1std then tl std else std;
+superflat = add "sf" fields bb.superflat;
 super8 = add "s8" fields bb.super8;
 superduperq = add "sd" fields bb.superduperq;
 bigtri = add "bt" fields bb.bigtri;
@@ -198,6 +200,7 @@ let mk_bb s =
   string_rep=s;
   std_faces_not_super = face1;
   super8=[];
+  superflat=[];
   superduperq=[];
   bigtri=[];
   smalltri=[];
@@ -216,7 +219,7 @@ let tame_bb = map mk_bb tame;;
 
 let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;
 
-let faces bb = (std_faces bb) @ bb.flat_quarter @ 
+let faces bb = (std_faces bb) @ bb.superflat @ bb.flat_quarter @ 
   bb.a_face @ bb.big5_face @ bb.big4_face;;
 
 let triples w = 
@@ -268,6 +271,7 @@ let ampl_of_bb outs bb =
     p"set EDART := \n%s;\n"  (edart);
     p"set SUPER8 := %s;" (mk_faces bb.super8);
     p"set SUPERDUPERQ := %s;" (mk_faces bb.superduperq);
+    p"set SUPERFLAT := %s;" (mk_darts bb.superflat);
     p"set FLAT := %s;" (mk_darts bb.flat_quarter);
     p"set APIECE := %s;" (mk_darts bb.a_face);
     p"set BIG5APEX := %s;" (mk_darts bb.big5_face);
@@ -382,12 +386,14 @@ let switch3 bb =
   let fc::_ = bb.std_faces_not_super in
   [modify_bb bb true ["bt",fc] [];modify_bb bb true ["st",fc] []];;
 
+
 let switch4 bb = 
   let fc::_ = bb.std_faces_not_super in
-  let mo (a,b) = modify_bb bb true ["ff",a;"ff",b] [] in
-  let f i = mo (split_flatq fc i) in
+  let mo s (a,b) = modify_bb bb true [s,a;s,b] [] in
+  let f s i = mo s (split_flatq fc i) in
   let g s = modify_bb bb true [s,fc] [] in
-  [f 0;f 1; g "s8" ;g "sd"];;
+  [f "ff" 0;f "ff" 1; f "sf" 0; f "sf" 1;g "sd"];;
+
 
 let switch5 bb = 
   let fc::_ = bb.std_faces_not_super in
@@ -503,15 +509,12 @@ length allhardpass5_bb;;  (* 0 *)
 
 (* super8 cases *)
 let allhardpass1_bb = allpass 3 hard_bb;; (*   *)
-length allhardpass1_bb;;  (*  *)
-let allhardpass1_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.super8 > 0))  allhardpass1_bb;;  (* 21 *)
-let ss = allpass 8 allhardpass1_bb;;
-
-
-let f i = nth s8s i;;
-map (fun t -> t.lpvalue) s8s;;
-let hi = find_max s8s;;
-hi;;
+length allhardpass1_bb;;  (* 34  *)
+let allhardpass1_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.super8 > 0))  allhardpass1_bb;;
+length allhardpass1_bb;; (* 15 *)
+let ss = allpass 5 allhardpass1_bb;;
+length ss;; (* 147 *)
+let hi = find_max ss;; 
 display_lp hi;;
 
 

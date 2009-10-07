@@ -13,7 +13,7 @@ The sets ITRIANGLE, IQUAD, IPENT, IHEX index the remaining standard regions.  Th
 The branching has have following types.
 * 2-way split on a triangular standard region according to y4+y5+y6 <= 6.25.
 * 2-way  split on a node according to yn <= 2.18
-* 4-way split on a standard quad, according to SUPERDUPERQ, SUPER8, flats one way, flats the other way.  The SUPERDUPERQ has both diags at least 3, the SUPER8 has both diags at least sqrt(8), but is not SUPERDUPERQ.  A flat has a diagonal at most sqrt(8).
+* 5-way split on a standard quad, according to SUPERDUPERQ, SUPERFLAT one way, SUPERFLATS other way, flats one way, flats the other way.  The SUPERDUPERQ has both diags at least 3, the SUPERFLAT has both diags at least sqrt(8), and the shorter diagonal at most 3.  The SUPERFLAT always splits along the shorter diagonal.   A flat has a diagonal at most sqrt(8).
 * 11-way split on std. pent, SUPER8, 5 (flat+big4face), 5 (flat+flat+Apiece).
 * 6-way split on std. hex, SUPER8, 6 (flat+big5face).
 Note that a big5face may have other flats within it, that are not used in branching.  This is done to keep the branching on hexagons to a minimum.
@@ -26,10 +26,10 @@ CVERTEX: the number of vertices.
 CFACE: the number of faces.  Standard regions that have been subdivided are not counted.
 EDART: quadruples (i1,i2,i3,j) where (i1,j) is a dart such that f(i1,j) = (i2,j), f(i2,j)=(i3,j).
 ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.
-SUPERDUPERQ: quads with both diags at least 3.
-SUPER8: quads, pents, and hexes that are known not to have any flat quarters.  (SUPERDUPERQ excluded from SUPER8 quad case)
+SUPERDUPERQ: quads with both diags at least 3. It is the dart opposite the long edge.
+SUPERFLAT: apex of superflat triangulating a quad with shorter diagonal at least sqrt8-3.
+SUPER8: pents, and hexes that are known not to have any flat quarters.  
 FLAT: the apex darts of flat quarters.  It is the dart opposite the long edge.
-SUPERFLAT: the apex of triangle of triangulated SUPER8 quads.  It is the dart opposite the long edge.
 APIECE: the apex darts of type A triangle in triangulation of pentagon
 BIG5APEX: apex dart of complement of flat in hex, where the apex dart is defined as 
   in the BIG4APEX.  It is *not* the dart opposite the long edge.
@@ -69,7 +69,7 @@ set DART3:= {(i,j) in DART: j in ITRIANGLE};
 set DART4:= {(i,j) in DART: j in IQUAD};
 
 # branch sets
-set SUPER8 within IQUAD union IPENT union IHEX;
+set SUPER8 within  IPENT union IHEX;
 set SUPERDUPERQ within (IQUAD diff SUPER8);
 set SUBREGION := FACE diff STANDARDR;
 set FLAT within {(i,j) in DART : j in SUBREGION};
@@ -87,6 +87,9 @@ set LOWVERTEX within IVERTEX;
 
 ## SPECIAL SETS OF DARTS ##
 
+# parts of darts of opposite vertices of SUPERFLATS:
+set SUPERFLATPAIR := setof {(i1,i2,i3,j1,i4,k3,k2,j2) in EDART cross EDART: (i1,j1) in SUPERFLAT and (i4,j2) in SUPERFLAT and (i2=k2) and (i3=k3)} (i1,j1,i4,j2);
+
 # darts with opposite at least 2.52 others in [2,2.52].
 set DARTX :=  BIG5APEX union
    setof{(i1,i2,i3,j) in EDART: (i3,j) in BIG5APEX}(i1,j) union
@@ -94,7 +97,7 @@ set DARTX :=  BIG5APEX union
    {(i,j) in DART: j in IQUAD union IPENT union IHEX};
 
 # darts with opposite at least s8, others in [2,2.52].
-set DARTY := {(i,j) in DART: j in SUPER8} union BIG4APEX union
+set DARTY := SUPERFLAT union BIG4APEX union
     setof{(i1,i2,i3,j) in EDART : (i2,j) in BIG4APEX}(i1,j);
 
 # darts with opposite at least 3, others in [2,2.52].
@@ -145,6 +148,8 @@ azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
 tau_sum{j in FACE}: sum{(i,j) in DART} (rhazim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
+
+
 ln_def{i in IVERTEX}: ln[i] = (2.52 - yn[i])/0.52;
 rho_def{i in IVERTEX}: rho[i] = (1 + delta0/pi) - ln[i] * delta0/pi;
 edge{(i1,j1,i2,j2) in EDGE}: ye[i1,j1] = ye[i2,j2];
@@ -242,9 +247,7 @@ tau3h {(i,j) in FLAT}: tau[j] >= 0.103;
 tauAh {(i,j) in APIECE}: tau[j] >= 0.2759;
 tauB4h {(i,j) in BIG4APEX}: tau[j] >= 0.492;
 tauB5h {(i,j) in BIG5APEX}: tau[j] >= 0.657;
-tau4h 'ID[4930647408]' {j in IQUAD inter SUPER8}: tau[j] >= 0.256;
-#tau4s 'ID[5769230427]' {j in SUPERDUPERQ}: tau[j] >= 2.0*0.231;
-tau4sXX 'ID[]' {j in SUPERDUPERQ}: tau[j] >= 0.496;
+tau4s 'ID[9563139965]' {j in SUPERDUPERQ}: tau[j] >= 0.496;
 tau5h{j in IPENT inter SUPER8}: tau[j] >= 0.751;
 tau6h{j in IHEX inter SUPER8}: tau[j] >= 0.91;
 
@@ -353,6 +356,34 @@ apieceazim2 'ID[1812128999]' {(i1,i,i3,j) in EDART: (i,j) in APIECE}:
   -0.266*(y2[i,j]-2) + 0.295*(y1[i,j]-2) + 0.57*(y3[i,j]-2)
   -0.745*(y5[i,j]-2.52)  +0.268*(y4[i,j]-2) + 0.385*(y6[i,j]-2.52) >= 0;
 
+#branch SUPERFLAT inequality
+
+
+tausf2 'ID[4840774900]'  {(i,j) in SUPERFLAT}:
+ tau[j]     -0.1054 
+    -0.14132*(y1[i,j]+ y2[i,j]/2 + y3[i,j]/2 - 4)
+    -0.36499*(y5[i,j]+y6[i,j]-4) >= 0;
+
+tausf3 'ID[5451229371]'  {(i1,j1,i2,j2) in SUPERFLATPAIR}:
+ tau[j1]+tau[j2]  - 0.24
+    -0.14132*(y1[i1,j1]+ y2[i1,j1] + y3[i1,j1] + y1[i2,j2] - 8)
+    -0.38*(y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2] -8) >= 0;
+
+tausf4 'ID[1642527039]'  {(i,j) in SUPERFLAT}:
+ tau[j]     -0.128 
+- 0.053*((y5[i,j]+y6[i,j]-4) - (2.75/2)*(y4[i,j]- sqrt8)) >= 0;
+
+tausf5 'ID[7863247282]' {(i,j) in SUPERFLAT}:
+ tau[j] - 0.053*((y5[i,j]+y6[i,j]-4) - (2.75/2)*(y4[i,j]- sqrt8))
+    -0.12 
+    -0.14132*(y1[i,j]+ y2[i,j]/2 + y3[i,j]/2 - 4)
+    -0.328*(y4[i,j]+y5[i,j]-4) >= 0;
+
+ysuperflat 'ID[8673686234]' {(i1,j1,i2,j2) in SUPERFLATPAIR}:
+   (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
+
+
+
 #branch APIECE inequality.
 
 apieceazim 'ID[5760733457]' {(i,j) in APIECE}:
@@ -371,17 +402,7 @@ apiecetau 'ID[7931207804]' {(i,j) in APIECE}:
   -0.37*(y4[i,j]-2) - 0.27*(y5[i,j]-2.52) - 0.27*(y6[i,j]-2.52) >= 0;
 
 
-#branch SUPER8 quad
 
-tauSUPER8 'ID[4840774900]' {j in IQUAD inter SUPER8}:
-  tau[j] >= 2.0*0.1054
-  +0.14132*(sum {(i,k) in DART : k=j } (yn[i] - 2.0))
-  +0.36499*(sum {(i,k) in DART : k=j } (ye[i,j] - 2.0));
-
-tauSUPER8a 'ID[] 48a' {j in IQUAD inter SUPER8}:
-  tau[j] >= 0.24
-  +0.14132*(sum {(i,k) in DART : k=j } (yn[i] - 2.0))
-  +0.38*(sum {(i,k) in DART : k=j } (ye[i,j] - 2.0));
 
 
 #branch SMALLTRI inequality
@@ -450,4 +471,4 @@ display ye;
 display azim;
 display tau;
 display sol;
-display sqdeficit;
+display lnsum;

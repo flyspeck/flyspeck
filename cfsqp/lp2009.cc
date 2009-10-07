@@ -425,7 +425,7 @@ Minimizer m4b() {
 	M.cFunc = c4b;
 	return M;
 }
-trialdata d4b(m4b(),"ID[] m4b: super8 edge lengths");
+trialdata d4b(m4b(),"ID[8673686234] m4b: super8 edge lengths");
 
 // this is minimized.  failure reported if min is negative.
 void t4c(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -439,9 +439,24 @@ Minimizer m4c() {
 	M.func = t4c;
 	return M;
 }
-trialdata d4c(m4c(),"ID[] m4c: superflat tau");
+trialdata d4c(m4c(),"ID[1642527039] m4c: superflat tau");
 
-
+// this is minimized.  failure reported if min is negative.
+void t4d(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) 
+     -     0.053*((y[4]+y[5]-4) - (2.75/2.0)*(y[3]-s8))
+     - 0.12
+    -0.14132   *(y[0]+ y[1]/2.0 + y[2]/2.0  - 4)
+    -0.328  *(y[4]+y[5] -4);
+	}
+Minimizer m4d() {
+  double xmin[6]= {2,2,2, s8,2,2};
+  double xmax[6]= {2.52,2.52,2.52,3,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t4d;
+	return M;
+}
+trialdata d4d(m4d(),"ID[7863247282] m4d: superflat tau");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -851,7 +866,6 @@ void t48a(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) 
     +taum(y[6],y[1],y[2],y[3],y[7],y[8])  - 0.24
     -0.14132   *(y[0] + y[1] + y[2] + y[6] - 8)
-    //    -0.36499   *(y[4]+y[5] + y[7]+y[8] -8);
     -0.38  *(y[4]+y[5] + y[7]+y[8] -8);
 	}
 Minimizer m48a() {
@@ -862,7 +876,7 @@ Minimizer m48a() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d48a(m48a(),"ID[]: m48a: taum-s8-quad, one diag <= 3");
+trialdata d48a(m48a(),"ID[5451229371]: m48a: taum-s8-quad, one diag <= 3");
 
 
 ////////// NEW INEQ
@@ -885,7 +899,7 @@ trialdata d49(m49(),"ID[9995621667]:  azim-sd8-quad, two diag >= 3");
 // this is minimized.  failure reported if min is negative.
 void t49a(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
-    taum(y[6],y[1],y[2],y[3],y[7],y[8]);
+    taum(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.496;
 	}
 Minimizer m49a() {
   double fake = 3.8;  // (should really be 2*2.52)
@@ -896,7 +910,7 @@ Minimizer m49a() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d49a(m49a(),"ID[]:  taumQ-sd8-quad, two diag >= 3");
+trialdata d49a(m49a(),"ID[9563139965]:  taumQ-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ
@@ -956,7 +970,7 @@ Minimizer m50() {
 	M.func = t50;
 	return M;
 }
-trialdata d50(m50(),"ID[5769230427]:  taum-sd8-quad, two diag >= 3");
+//{deprecated} trialdata d50(m50(),"ID[5769230427]:  taum-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ

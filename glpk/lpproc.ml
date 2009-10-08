@@ -10,7 +10,7 @@ ocamlmktop unix.cma str.cma -o ocampl
 
 *)
 type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
-let mode = NoLoad;;
+let mode = LoadAll;;
 
 open Str;;
 open List;;
@@ -99,6 +99,7 @@ let tame = if (mode=NoLoad) then [] else
                   if (mode = LoadAll) then (strip_archive archiveraw) 
 		  else  strip_archive archive_feasible;;
 
+length tame;;
 (* example of java style string from hypermap generator. *)
 let pentstring = "13_150834109178 18 3 0 1 2 3 3 2 7 3 3 0 2 4 5 4 0 3 4 6 1 0 4 3 7 2 8 3 8 2 1 4 8 1 6 9 3 9 6 10 3 10 6 4 3 10 4 5 4 5 3 7 11 3 10 5 11 3 11 7 12 3 12 7 8 3 12 8 9 3 9 10 11 3 11 12 9 ";;
 
@@ -293,7 +294,7 @@ let testps() =
   let bb = mk_bb pentstring in
   let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[5;3;7;11];"ff",[12;7;8]] ["hv",8] in
     tampl bb;;
-(* testps();;  *)
+(* testps();;   *)
 
 (* running of branch in glpsol *)
 
@@ -323,6 +324,11 @@ let display_lp bb = (* for debugging *)
   let _ = Sys.command(com) in 
     ();;
 
+display_lp (nth tame_bb  1);;
+length tame_bb;;
+(nth tame_bb 2);;
+solve (nth tame_bb 1);;
+
 let solve bb = match bb.lpvalue with
   | None -> solve_branch bb
   | Some _ -> bb;;
@@ -341,7 +347,7 @@ let feasible_bb =
    if (mode = NoLoad) then [] 
      else if (mode = LoadAll) then (filterout_infeas feasible (map solve tame_bb))
        else tame_bb;;
-(* length 462 *)
+length feasible_bb;; (* length 462 *)
 
 (*
 let tame_hi = 
@@ -352,8 +358,6 @@ let tame_hi =
 (* 20:46-22:13 *)
 save_stringarray archive_feasible (map (fun x -> x.string_rep) feasible_bb);;
 *)
-
-
 
 let is_none bb = match bb.lpvalue with
     None -> true
@@ -491,40 +495,26 @@ let hardid =
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
 let alleasypass_bb = allpass 20 easy_bb;;  (* 4K longish hcalculation *)
-let test1 = (alleasypass_bb = []);;
-
+let _ = (alleasypass_bb = []);;
+length hard_bb;;
 
 (* experimental section *)
 
-let allhardpass_bb = allpass 8 hard_bb;; (*   *)
-length allhardpass_bb;;  (* 686 *)
-let h8s =  (filter (fun t -> length t.superduperq > 0)  allhardpass_bb);; (* 129 *)
-find_max h8s;;
+let h1 = nth hard_bb 1;;
 
-(* new ineqs added 0.496, 8.472, 8.472, 0.46  *)
-(* 0.46 tauZ : superduperq disappears: *)
-let allhardpass5a_bb = allpass 3 hard_bb;; (*   *)
-let allhardpass5_bb = allpass 7 (filter (fun t -> length t.superduperq >0) allhardpass5a_bb);;
-length allhardpass5_bb;;  (* 0 *)
+(* superduperq disappears: *)
+let allhardpassA_bb = allpass 3 hard_bb;; (*   *)
+let allhardpassS_bb = allpass 7 (filter (fun t -> length t.superduperq >0) allhardpassA_bb);;
+length allhardpassS_bb;;  (* 0 *)
 
-(* super8 cases *)
-let allhardpass1_bb = allpass 3 hard_bb;; (*   *)
-length allhardpass1_bb;;  (* 34  *)
-let allhardpass1_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.super8 > 0))  allhardpass1_bb;;
-length allhardpass1_bb;; (* 15 *)
-let ss = allpass 5 allhardpass1_bb;;
-length ss;; (* 147 *)
-let hi = find_max ss;; 
-display_lp hi;;
+(* superflat cases *)
+let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb;;
+length allhardpass1_bb;; (* 0 *)
 
+let allhardpassB_bb = allpass 10 allhardpassA_bb;;
 
-
-
-
-
-
-
-
+(* to here *)
+length (allhardpassB_bb);;
 
 (* running various cases *)
 
@@ -550,45 +540,24 @@ nth h0 0;;
 
 
 ;;
+
+
 (*
-let h  = findid (nth hardid 0);;
-let h1 = allpass [h];; (* length 41 *)
-let h2 = allvpass h1;;  (* length 10, max 12.00455... *)
-
-(* case (nth hardid 1) runs over 60,000 LPs
-    about 1700 in each pass,
-    highest about 12.072
-    It seems to be working, but lets kill it.
-   unfinished
-*)
-
-let t  = findid (nth hardid 2);;
-let t1 = allpass [t];;   (* stack grows large! > 2000 *)
-(* unfinished *)
 
 (* this one is a dodecahedron modified with vertex 2 pressed
     into an edge *)
-let h  = findid (nth hardid 3);;  (* 12223336279535  *)
-let h1 = allpass [h];;
-length h1;;   (* length 1885 *)
-let k1 = find_max h1;;  (* 12.0416 *)
-let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
+  let h  = findid (nth hardid 3);;  (* 12223336279535  *)
+  let h1 = allpass [h];;
+  length h1;;   (* length 1885 *)
+  let k1 = find_max h1;;  (* 12.0416 *)
+  let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
 (* unfinished... *)
 
-let h  = findid (nth hardid 4);;
-let h1 = allpass [h];;
-length h1;;  (* 134, highest 12.01. *)
-let h2 = allvpass h1;;  (* ok *)
-
 (* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
-let r  = findid (nth hardid 5);;  (* 12161847242261  *)
-length r1;;   (* length  *)
-let r1 = allvpass [r];;
-let r2 = allpass r1;;
+  let r  = findid (nth hardid 5);;  (* 12161847242261  *)
+  length r1;;   (* length  *)
+  let r1 = allvpass [r];;
+  let r2 = allpass r1;;
 (* unfinished *)
 
-let all = map (fun x -> allvpass (allpass [findid x])) hardid;;
-
 *)
-
-

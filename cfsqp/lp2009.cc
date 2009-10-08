@@ -491,6 +491,24 @@ Minimizer m4f() {
 }
 trialdata d4f(m4f(),"ID[3566713650] m4f: superflat azim dart");
 
+// this is minimized.  failure reported if min is negative.
+void t4g(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = dih_y (y[0],y[1],y[2],y[3],y[4],y[5]) - 0.955
+    - 0.2356*(y[0]-2)
+    +0.32*(y[1]-2)
+    +0.792*(y[2]-2)
+    -0.707*(y[3]-2)
+    +0.0844*(y[4]-2)
+    +0.821*(y[5]-s8);
+	}
+Minimizer m4g() {
+  double xmin[6]= {2,2,2, 2,2,s8};
+  double xmax[6]= {2.52,2.52,2.52,2.52,2.52,3};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t4g;
+	return M;
+}
+trialdata d4g(m4g(),"ID[] m4g: superflat azim dart");
 
 
 ////////// NEW INEQ
@@ -626,6 +644,8 @@ Minimizer m17() {
 }
 //compare J_568731327 from 1998
 trialdata d17(m17(),"ID[9414951439]:  dih-super8-min-ineq");
+
+
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.

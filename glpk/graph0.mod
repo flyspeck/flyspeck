@@ -181,7 +181,7 @@ y4_boundF{(i,j) in FLAT}: y4[i,j] >= 2.52;
 y5_boundF{(i,j) in FLAT}: y5[i,j] <= 2.52;
 y6_boundF{(i,j) in FLAT}: y6[i,j] <= 2.52;
 y4_boundA{(i,j) in APEX3 diff SUPERFLAT}: y4[i,j] <= sqrt8;
-y4_boundS{(i,j) in SUPERFLAT}: y4[i,j] <= 3;
+# y4_boundS{(i,j) in SUPERFLAT}: y4[i,j] <= 3; # redundant.
 y4_boundL{(i,j) in SUPERFLAT}: y4[i,j] >= sqrt8;
 
 # tau inequality (Main Estimate)
@@ -382,15 +382,35 @@ tausf5 'ID[7863247282]' {(i,j) in SUPERFLAT}:
 ysuperflat 'ID[8673686234]' {(i1,j1,i2,j2) in SUPERFLATPAIR}:
    (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
 
-azimsf1 'ID[1085358243]' {(i,j) in SUPERFLAT}:
-  azim[i,j] - 1.903 - 0.4*(y1[i,j] - 2)
-  +0.49688*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
-   -(y[4]-sqrt8) >= 0;
+azimf3 'ID[7718591733]' {(i1,i,i3,j) in EDART : (i1,j) in SUPERFLAT}:
+  azim[i,j] - 0.955 
+   - 0.2356*(y1[i,j]-2)
+       +0.32*(y2[i,j]-2) + 0.792*(y3[i,j]-2)
+   -0.707*(y5[i1,j]-2)   #  N.B. = y4[i,j]
+        + 0.0844*(y5[i,j]-2) + 0.821*(y6[i,j]-sqrt8) >=0;
+
 
 azimsf2 'ID[3566713650]' {(i,j) in SUPERFLAT}:
   -azim[i,j] + 1.911 +1.01 *(y1[i,j] - 2)
   -0.284*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
-   +1.07*(y[4]-sqrt8) >= 0;
+   +1.07*(y4[i,j]-sqrt8) >= 0;
+
+
+azimsf1 'ID[1085358243]' {(i,j) in SUPERFLAT}:
+  azim[i,j] - 1.903 - 0.4*(y1[i,j] - 2)
+  +0.49688*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
+   -(y4[i,j]-sqrt8) >= 0;
+
+# this one based on fact that crossdiag of superflat is longer than diag.
+# y4[i1,j1] is the diag, which is shorter than the cross diag. 
+# By monotonicity of dih in opposite edge length, this may be substituted in.
+crossdiag 'ID[1085358243]+' 
+   {(i1,i,i3,j1,k1,k2,k3,j2) in EDART cross EDART :
+     i = k3 and i3 = k2 and (i1,j1,k1,j2) in SUPERFLATPAIR}:
+  (azim[i,j1]+azim[i,j2]) - 1.903 - 0.4*(y1[i,j1] - 2)
+  +0.49688*(y2[i,j2]+y3[i,j1]+y5[i,j1]+y6[i,j2]-8)
+   -(y4[i1,j1]-sqrt8) >= 0;
+
 
 
 

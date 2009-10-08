@@ -25,7 +25,7 @@ hypermapID: a numerical identifier of the case.
 CVERTEX: the number of vertices. 
 CFACE: the number of faces.  Standard regions that have been subdivided are not counted.
 EDART: quadruples (i1,i2,i3,j) where (i1,j) is a dart such that f(i1,j) = (i2,j), f(i2,j)=(i3,j).
-ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.
+ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.  Includes special cases such as SUPERDUPERQ, SUPER8, ..
 SUPERDUPERQ: quads with both diags at least 3. It is the dart opposite the long edge.
 SUPERFLAT: apex of superflat triangulating a quad with shorter diagonal at least sqrt8-3.
 SUPER8: pents, and hexes that are known not to have any flat quarters.  
@@ -64,20 +64,21 @@ set ITRIANGLE;
 set IQUAD;  
 set IPENT; 
 set IHEX; 
-set STANDARDR := ITRIANGLE union IQUAD union IPENT union IHEX; # standard regions.
-set DART3:= {(i,j) in DART: j in ITRIANGLE};
-set DART4:= {(i,j) in DART: j in IQUAD};
+set STANDARD := ITRIANGLE union IQUAD union IPENT union IHEX; # standard regions.
+set IDART3:= {(i,j) in DART: j in ITRIANGLE};
+set IDART4:= {(i,j) in DART: j in IQUAD};
+set ALLTRI:= setof {(i1,i2,i3,j1,k1,k2,k3,j2) in EDART cross EDART: (j1 = j2) and (i2=k1) and (i3=k2) and (i1=k3)} (i1,j1);
 
 # branch sets
 set SUPER8 within  IPENT union IHEX;
 set SUPERDUPERQ within (IQUAD diff SUPER8);
-set SUBREGION := FACE diff STANDARDR;
+set SUBREGION := FACE diff STANDARD;
 set FLAT within {(i,j) in DART : j in SUBREGION};
 set SUPERFLAT within {(i,j) in DART : j in SUBREGION};
 set APIECE within {(i,j) in DART : j in SUBREGION};
 
 # APEX3 does not include all darts of FLAT, SUPERFLAT, and APIECE, only the distinguished one.
-set APEX3 := FLAT union APIECE union SUPERFLAT union {(i,j) in DART: j in ITRIANGLE};
+set APEX3 := FLAT union APIECE union SUPERFLAT union IDART3;
 set BIG5APEX within {(i,j) in DART : j in SUBREGION};  
 set BIG4APEX within {(i,j) in DART: j in SUBREGION};  
 set BIGTRI within ITRIANGLE;
@@ -120,16 +121,16 @@ var azim{DART} >= 0, <= pi;
 var ln{IVERTEX} >= 0, <= 1;
 var rhazim{DART} >=0, <= pi + delta0;
 var yn{IVERTEX} >= 2, <= 2.52;
-var ye{DEDGE} >= 2, <= 2.52;
+var ye{DEDGE} >= 2, <= 3;
 var rho{IVERTEX} >= 1, <= 1 + delta0/pi;
 var sol{FACE} >= 0, <= 4.0*pi;
 var tau{FACE} >= 0, <= tgt;
-var y1{DART} >= 0, <=2.52;
-var y2{DART} >=0, <=2.52;
-var y3{DART} >=0, <=2.52;
-var y4{APEX3} >=0, <=3;
-var y5{DEDGE} >=0, <=sqrt8;
-var y6{DEDGE} >=0, <=sqrt8;
+var y1{DART} >= 2, <=2.52;
+var y2{DART} >=2, <=2.52;
+var y3{DART} >=2, <=2.52;
+var y4{ALLTRI} >=2, <=3;
+var y5{DEDGE} >=2, <=3;
+var y6{DEDGE} >=2, <=3;
 
 
 #report variables
@@ -156,7 +157,7 @@ edge{(i1,j1,i2,j2) in EDGE}: ye[i1,j1] = ye[i2,j2];
 y1_def{(i3,i1,i2,j) in EDART}: y1[i1,j] = yn[i1];
 y2_def{(i3,i1,i2,j) in EDART}: y2[i1,j] = yn[i2];
 y3_def{(i3,i1,i2,j) in EDART}: y3[i1,j] = yn[i3];
-y4_def{(i3,i1,i2,j) in EDART :  (i1,j) in APEX3}: y4[i1,j] = ye[i2,j];
+y4_def{(i3,i1,i2,j) in EDART :  (i1,j) in ALLTRI}: y4[i1,j] = ye[i2,j];
 y5_def{(i3,i1,i2,j) in EDART}: y5[i1,j] = ye[i3,j];
 y6_def{(i3,i1,i2,j) in EDART}: y6[i1,j] = ye[i1,j];
 
@@ -166,23 +167,24 @@ RHA{(i,j) in DART}: azim[i,j] <= rhazim[i,j];
 RHB{(i,j) in DART}: rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
 
 ## branch definitional inequalities
-ybig{(i,j) in DART3 : j in BIGTRI}: 
+ybig{(i,j) in IDART3 : j in BIGTRI}: 
   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
-ysmall{(i,j) in DART3 : j in SMALLTRI}: 
+ysmall{(i,j) in IDART3 : j in SMALLTRI}: 
   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
 yhigh{i in HIGHVERTEX}: yn[i] >= 2.18;
 ylow{i in LOWVERTEX}: yn[i] <= 2.18;
 
-# The corresponding bounds on APIECE, BIGAPEX4, BIGAPEX5 are redundant:
-y4_bound{(i,j) in DART3}: y4[i,j] <= 2.52;
-y5_bound{(i,j) in DART3}: y5[i,j] <= 2.52;
-y6_bound{(i,j) in DART3}: y6[i,j] <= 2.52;
+# y bounds.
+ye3_bound{(i,j) in DART : j in STANDARD}: ye[i,j] <= 2.52;
 y4_boundF{(i,j) in FLAT}: y4[i,j] >= 2.52;
-y5_boundF{(i,j) in FLAT}: y5[i,j] <= 2.52;
-y6_boundF{(i,j) in FLAT}: y6[i,j] <= 2.52;
-y4_boundA{(i,j) in APEX3 diff SUPERFLAT}: y4[i,j] <= sqrt8;
-# y4_boundS{(i,j) in SUPERFLAT}: y4[i,j] <= 3; # redundant.
 y4_boundL{(i,j) in SUPERFLAT}: y4[i,j] >= sqrt8;
+y5_boundF{(i,j) in FLAT union SUPERFLAT}: y5[i,j] <= 2.52;
+y6_boundF{(i,j) in FLAT union SUPERFLAT}: y6[i,j] <= 2.52;
+y4_boundA{(i,j) in ALLTRI diff SUPERFLAT}: y4[i,j] <= sqrt8;
+y4_boundAp{(i,j) in APIECE}: y4[i,j] <= 2.52; # others redun. via FLAT
+# y4_boundS{(i,j) in SUPERFLAT}: y4[i,j] <= 3; # redundant via ye.
+# BIGAPEX4 BIGAPEX5: covered by neighbors unless there are 2.
+
 
 # tau inequality (Main Estimate)
 
@@ -191,54 +193,54 @@ tau4{j in IQUAD}: tau[j] >= 0.206;
 tau5{j in IPENT}: tau[j] >= 0.4819;
 tau6{j in IHEX}: tau[j] >= 0.7578;
 
-## interval arithmetic bounds DART3 ##
+## interval arithmetic bounds IDART3 ##
 
-azmin 'ID[5735387903]' {(i,j) in DART3} : azim[i,j] >= 0.852;
+azmin 'ID[5735387903]' {(i,j) in IDART3} : azim[i,j] >= 0.852;
 
-azmax 'ID[5490182221]' {(i,j) in DART3}: azim[i,j] <= 1.893;
+azmax 'ID[5490182221]' {(i,j) in IDART3}: azim[i,j] <= 1.893;
 
-tau_azim3A 'ID[3296257235]' {(i,j) in DART3}: 
+tau_azim3A 'ID[3296257235]' {(i,j) in IDART3}: 
   tau[j]+0.626*azim[i,j] - 0.77 >= 0;
 
-tau_azim3B 'ID[8519146937]' {(i,j) in DART3}: 
+tau_azim3B 'ID[8519146937]' {(i,j) in IDART3}: 
   tau[j]-0.259*azim[i,j] + 0.32 >= 0;
 
-tau_azim3C 'ID[4667071578]' {(i,j) in DART3}: 
+tau_azim3C 'ID[4667071578]' {(i,j) in IDART3}: 
   tau[j]-0.507*azim[i,j] + 0.724 >= 0;
 
-tau_azim3D 'ID[1395142356]' {(i,j) in DART3}: 
+tau_azim3D 'ID[1395142356]' {(i,j) in IDART3}: 
   tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
 
-solyA 'ID[7394240696]' {(i,j) in DART3}: 
+solyA 'ID[7394240696]' {(i,j) in IDART3}: 
   sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
 
-solyB 'ID[7726998381]' {(i,j) in DART3}: 
+solyB 'ID[7726998381]' {(i,j) in IDART3}: 
   -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
 
-azminA 'ID[4047599236]'  {(i,j) in DART3}: azim[i,j] - 1.2308 
+azminA 'ID[4047599236]'  {(i,j) in IDART3}: azim[i,j] - 1.2308 
   + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
 
-azmaxA 'ID[3526497018]' {(i,j) in DART3}: -azim[i,j] + 1.231 
+azmaxA 'ID[3526497018]' {(i,j) in IDART3}: -azim[i,j] + 1.231 
   - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
 
 
-rhazminA 'ID[5957966880]' {(i,j) in DART3}: rhazim[i,j] - 1.2308 
+rhazminA 'ID[5957966880]' {(i,j) in IDART3}: rhazim[i,j] - 1.2308 
   + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
 
 
 
-## interval arithmetic bounds DART4 ##
+## interval arithmetic bounds IDART4 ##
 
-tau_azim4A 'ID[7043724150]' {(i,j) in DART4}:
+tau_azim4A 'ID[7043724150]' {(i,j) in IDART4}:
   tau[j] + 4.72*azim[i,j] - 6.248 >= 0;
 
-tau_azim4B 'ID[6944699408]' {(i,j) in DART4}:
+tau_azim4B 'ID[6944699408]' {(i,j) in IDART4}:
   tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
 
-tau_azim4C 'ID[4240815464]' {(i,j) in DART4}:
+tau_azim4C 'ID[4240815464]' {(i,j) in IDART4}:
   tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
 
-tau_azim4D 'ID[3862621143]' {(i,j) in DART4}:
+tau_azim4D 'ID[3862621143]' {(i,j) in IDART4}:
   tau[j] - 0.453*azim[i,j] + 0.777 >= 0;  # typo corrected Sep 8 2009 (Thanks to Erin Susick!)
 
 ## MAIN ESTIMATE SUPER8 BIG4 BIG5 ##
@@ -382,11 +384,11 @@ tausf5 'ID[7863247282]' {(i,j) in SUPERFLAT}:
 ysuperflat 'ID[8673686234]' {(i1,j1,i2,j2) in SUPERFLATPAIR}:
    (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
 
-azimf3 'ID[7718591733]' {(i1,i,i3,j) in EDART : (i1,j) in SUPERFLAT}:
+azimf3 'ID[7718591733]' {(i,j) in SUPERFLAT}:
   azim[i,j] - 0.955 
    - 0.2356*(y1[i,j]-2)
        +0.32*(y2[i,j]-2) + 0.792*(y3[i,j]-2)
-   -0.707*(y5[i1,j]-2)   #  N.B. = y4[i,j]
+   -0.707*(y4[i,j]-2) 
         + 0.0844*(y5[i,j]-2) + 0.821*(y6[i,j]-sqrt8) >=0;
 
 

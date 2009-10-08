@@ -8,7 +8,15 @@ needs new mktop on platforms that do not support dynamic loading of Str.
 ocamlmktop unix.cma str.cma -o ocampl
 ./ocampl
 
+glpk needs to be installed, and glpsol needs to be found in the path.
 *)
+
+(*
+LoadAll to run all linear programs.
+LoadFeasible skips tame_bb and loads feasible_bb.
+NoLoad : load file without running linear programs.
+*)
+
 type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
 let mode = LoadAll;;
 
@@ -17,10 +25,11 @@ open List;;
 let sprintf = Printf.sprintf;;
 
 (* external files *)
-let archiveraw = "/tmp/tame_graph.txt";;
-let model = "/tmp/graph0.mod";;
-let archive_feasible = "/tmp/feasible_graph.txt";; 
-let tmpfile = "/tmp/graph.dat";;
+let archiveraw = "/tmp/tame_graph.txt";; (*read only *)
+let model = "/tmp/graph0.mod";; (* read only *)
+let archive_feasible = "/tmp/feasible_graph.txt";; (* temporary out *)
+let cpxfile = "/tmp/cplex.cpx";; (* temporary output *)
+let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
 
 (* list operations *)
 let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
@@ -142,8 +151,8 @@ let convert_to_list =
     order_list (h,rev (map rev a));;
 
 
-(* conversion to branchnbound.  e.g. mk_bb pentstring  *)
 
+(* type for holding the parameters for a linear program *)
 
 type branchnbound = 
   { 
@@ -165,6 +174,8 @@ type branchnbound =
     highvertex : int list;
     lowvertex : int list;
   };;
+
+(* conversion to branchnbound.  e.g. mk_bb pentstring  *)
 
 let modify_bb bb drop1std fields vfields = 
   let add key xs = (@) (get_values key xs)  in
@@ -283,18 +294,18 @@ let ampl_of_bb outs bb =
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
 
-let tampl bb =
+
+let tampl bb = (* for debugging *)
   let file = tmpfile in 
   let outs = open_out file in
   let _ = ampl_of_bb outs bb in
   let _ = close_out outs in
     Sys.command(sprintf "cat %s" file);;
 
-let testps() = 
+let testps() =  (* for debugging *)
   let bb = mk_bb pentstring in
   let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[5;3;7;11];"ff",[12;7;8]] ["hv",8] in
     tampl bb;;
-(* testps();;   *)
 
 (* running of branch in glpsol *)
 
@@ -316,6 +327,16 @@ let solve_branch bb = (* side effects, lpvalue mutable *)
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
     bb;;
 
+
+let cpx_branch bb = (* debug *)
+  let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model cpxfile in 
+  let (ic,oc) = Unix.open_process(com) in 
+  let _ = ampl_of_bb oc bb in
+  let _ = close_out oc in
+  let _ = load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+  sprintf "cplex file created of lp: %s" cpxfile;;
+
 let display_lp bb = (* for debugging *)
   let oc = open_out tmpfile in
   let _ = ampl_of_bb oc bb in
@@ -324,10 +345,12 @@ let display_lp bb = (* for debugging *)
   let _ = Sys.command(com) in 
     ();;
 
+(* for debugging:
 display_lp (nth tame_bb  1);;
 length tame_bb;;
 (nth tame_bb 2);;
 solve (nth tame_bb 1);;
+*)
 
 let solve bb = match bb.lpvalue with
   | None -> solve_branch bb
@@ -349,31 +372,22 @@ let feasible_bb =
        else tame_bb;;
 length feasible_bb;; (* length 462 *)
 
-(*
-let tame_hi = 
-  let _ = Sys.command("date") in
-  let h =  filter_out_infeas feasible tame_bb
-  let _ =  Sys.command("date") in
-  h;;
-(* 20:46-22:13 *)
-save_stringarray archive_feasible (map (fun x -> x.string_rep) feasible_bb);;
-*)
 
-let is_none bb = match bb.lpvalue with
+let is_none bb = match bb.lpvalue with (* for debugging *)
     None -> true
   | Some _ -> false;;
 
-let calc_max bbs = fold_right
+let calc_max bbs = fold_right  (* for debugging *)
   (fun bb x -> match bb.lpvalue with
      |None -> x
      |Some y -> max x y) bbs 0.0;;
 
-let find_max bbs = 
+let find_max bbs = (* for debugging *)
   let r = Some (calc_max bbs) in
     find (fun bb -> r = bb.lpvalue) bbs;;
 
 (* 
-split faces.  
+branching on face data:
 switch_face does all the branching on the leading std face 
 *)
 
@@ -443,11 +457,6 @@ let onevpassi bbs i =
  let branches = flatten (map (fun bb -> switch_vertex bb i) bbs) in
     filterout_infeas feasible branches;;
 
-
-(*
-let f i k = filterout_infeas feasible
-*)
-
 let switch_face bb = match bb.std_faces_not_super with
   | [] -> [bb]
   | fc::_ ->
@@ -470,14 +479,16 @@ let rec allvpass bbs =
      let t = fold_right max (map get_vertex bbs) (-1) in
        if t < 0 then bbs else allvpass (onevpass bbs);;
 
+(* running the branching code on the feasible cases *)
+
 let hardid = 
 [
-(* one quad {3,3,4} *) "179189825656"; 
-(* two quad {3,4,4} *) "154005963125";
-(* {4,4,4} *) "65974205892";
+(* {3,3,3,3,3,3} *) "161847242261";
 (* {3,3,3,3,3,3} *) "223336279535";
 (* {3,3,3,3,3,3} *) "86506100695";
-(* {3,3,3,3,3,3} *) "161847242261";
+(* (* one quad {3,3,4} *) "179189825656"; 
+(* two quad {3,4,4} *) "154005963125";
+(* {4,4,4} *) "65974205892"; *)
 ];;
 
 
@@ -491,36 +502,55 @@ let hardid =
 *)
 
 
-
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
-let alleasypass_bb = allpass 20 easy_bb;;  (* 4K longish hcalculation *)
+let alleasypass_bb = allvpass (allpass 20 easy_bb);;
 let _ = (alleasypass_bb = []);;
-length hard_bb;;
 
-(* experimental section *)
 
-let h1 = nth hard_bb 1;;
+(* experimental section from here to the end of the file *)
+
 
 (* superduperq disappears: *)
+length hard_bb;;
 let allhardpassA_bb = allpass 3 hard_bb;; (*   *)
-let allhardpassS_bb = allpass 7 (filter (fun t -> length t.superduperq >0) allhardpassA_bb);;
+let allhardpassS_bb =  (filter (fun t -> length t.superduperq >0) allhardpassA_bb);;
 length allhardpassS_bb;;  (* 0 *)
 
-(* superflat cases *)
+(* superflat cases disappear: *)
 let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb;;
 length allhardpass1_bb;; (* 0 *)
 
-let allhardpassB_bb = allpass 10 allhardpassA_bb;;
+(* second case *)
+let h86 = [nth hard_bb 2];;
+let h86a = allpass 10 h86;;
+let h86b = allpass 10  h86a;;
+length h86b;; (* 134  *)
+find_max h86b;; (*  12.01 *)
+let h86c = allvpass h86b;;
+length h86c;;  (* 0 *)
 
+let hard2_bb = [nth  hard_bb 0;nth hard_bb 1];;
 (* to here *)
-length (allhardpassB_bb);;
+let allhardpassB_bb = allpass 8 hard2_bb;;
+length (allhardpassB_bb);;  (* 288 *)
+let h16 = find_max allhardpassB_bb;;
+(* unfinished *)
+
+
+let h0 = nth hard_bb 0;;
+let h1 = 
+  let s i l= flatten((map (fun t -> switch_vertex t i)) l) in
+  let branches =   s 4(  s 3(  s 2(  s 1 (s 0 [h0])) ) )  in
+   filterout_infeas feasible branches;;
+length h1;;
+find_max h1;;
+let all16_bb = allpass 6 h1;;
+(* unfinished *)
 
 (* running various cases *)
 
 let findid s = filter (fun b -> b.hypermapid = s) allhardpass_bb;;
-
-
 
 (* 6 final hard cases : *)
 (* scratch space *)
@@ -532,11 +562,9 @@ length h0;;
 nth h0 0;;
 
 
-
-
-
-
-
+let h1 = nth hard_bb 1;;
+let h2 = nth (switch4 h1) 2;;
+let s = cpx_branch h2;;
 
 
 ;;

@@ -339,32 +339,32 @@ THENL [ REPEAT GEN_TAC THEN STRIP_TAC THEN POP_ASSUM (MP_TAC o MATCH_MP LM_AUX)
 
 (* Two following therems in files: sets.ml *)
 
-let NEW_FINITE_SUBSET = prove(`!(s:(A->A)->bool) t. FINITE t /\ s SUBSET t ==> FINITE s`,
+let NEW_FINITE_SUBSET = prove(`!(s:A->bool) t. FINITE t /\ s SUBSET t ==> FINITE s`,
 ONCE_REWRITE_TAC[SWAP_FORALL_THM] THEN REWRITE_TAC[IMP_CONJ]
 THEN REWRITE_TAC[RIGHT_FORALL_IMP_THM] THEN MATCH_MP_TAC FINITE_INDUCT
 THEN CONJ_TAC THENL [MESON_TAC[SUBSET_EMPTY; FINITE_RULES]; ALL_TAC]
-THEN X_GEN_TAC `x:(A->A)` THEN X_GEN_TAC `u:(A->A)->bool` THEN DISCH_TAC
-THEN X_GEN_TAC `t:(A->A)->bool` THEN DISCH_TAC
-THEN SUBGOAL_THEN `FINITE((x:A->A) INSERT (t DELETE x))` ASSUME_TAC
+THEN X_GEN_TAC `x:A` THEN X_GEN_TAC `u:A->bool` THEN DISCH_TAC
+THEN X_GEN_TAC `t:A->bool` THEN DISCH_TAC
+THEN SUBGOAL_THEN `FINITE((x:A) INSERT (t DELETE x))` ASSUME_TAC
 THENL [MATCH_MP_TAC(CONJUNCT2 FINITE_RULES) THEN FIRST_ASSUM MATCH_MP_TAC
-THEN UNDISCH_TAC `t SUBSET (x:A->A INSERT u)` THEN SET_TAC[];
-ASM_CASES_TAC `x:A->A IN t`
-THENL [SUBGOAL_THEN `x:A->A INSERT (t DELETE x) = t` SUBST_ALL_TAC
-THENL [UNDISCH_TAC `x:A->A IN t` THEN SET_TAC[]; ASM_REWRITE_TAC[]];
-FIRST_ASSUM MATCH_MP_TAC THEN UNDISCH_TAC `t SUBSET x:A->A INSERT u`
-THEN UNDISCH_TAC `~(x:A->A IN t)` THEN SET_TAC[]]]);;
+THEN UNDISCH_TAC `t SUBSET (x:A INSERT u)` THEN SET_TAC[];
+ASM_CASES_TAC `x:A IN t`
+THENL [SUBGOAL_THEN `x:A INSERT (t DELETE x) = t` SUBST_ALL_TAC
+THENL [UNDISCH_TAC `x:A IN t` THEN SET_TAC[]; ASM_REWRITE_TAC[]];
+FIRST_ASSUM MATCH_MP_TAC THEN UNDISCH_TAC `t SUBSET x:A INSERT u`
+THEN UNDISCH_TAC `~(x:A IN t)` THEN SET_TAC[]]]);;
 
-let NEW_CARD_SUBSET = prove (`!(a:(A->A)->bool) b. a SUBSET b /\ FINITE(b) ==> CARD(a) <= CARD(b)`,
-REPEAT STRIP_TAC THEN SUBGOAL_THEN `b:(A->A)->bool = a UNION (b DIFF a)`
+let NEW_CARD_SUBSET = prove (`!(a:A->bool) b. a SUBSET b /\ FINITE(b) ==> CARD(a) <= CARD(b)`,
+REPEAT STRIP_TAC THEN SUBGOAL_THEN `b:A->bool = a UNION (b DIFF a)`
 SUBST1_TAC
-THENL [UNDISCH_TAC `a:(A->A)->bool SUBSET b` THEN SET_TAC[]; ALL_TAC]
-THEN SUBGOAL_THEN `CARD (a UNION b DIFF a) = CARD(a:(A->A)->bool) + CARD(b
+THENL [UNDISCH_TAC `a:A->bool SUBSET b` THEN SET_TAC[]; ALL_TAC]
+THEN SUBGOAL_THEN `CARD (a UNION b DIFF a) = CARD(a:A->bool) + CARD(b
 DIFF a)` SUBST1_TAC
 THENL [MATCH_MP_TAC CARD_UNION THEN REPEAT CONJ_TAC THENL [MATCH_MP_TAC
 NEW_FINITE_SUBSET
-THEN EXISTS_TAC `b:(A->A)->bool` THEN ASM_REWRITE_TAC[]; MATCH_MP_TAC
+THEN EXISTS_TAC `b:A->bool` THEN ASM_REWRITE_TAC[]; MATCH_MP_TAC
 NEW_FINITE_SUBSET
-THEN EXISTS_TAC `b:(A->A)->bool` THEN ASM_REWRITE_TAC[] THEN SET_TAC[];
+THEN EXISTS_TAC `b:A->bool` THEN ASM_REWRITE_TAC[] THEN SET_TAC[];
 SET_TAC[]]; ARITH_TAC]);;
 
 (* finite order theorem on every element in arbitrary finite group *)
@@ -401,12 +401,7 @@ REWRITE_TAC[I_O_ID]
 THEN DISCH_THEN (ASSUME_TAC o SYM) THEN EXISTS_TAC `PRE n` THEN
 ASM_SIMP_TAC[]);;
 
-let inverse_relation = prove(`!(s:A->bool) p:A->A x:A y:A. FINITE s /\ p permutes s /\ y = p x ==>(?k:num. x = (p POWER k) y)`, 
-REPEAT STRIP_TAC THEN MP_TAC(SPECL[`s:A->bool`; `p:A->A`] inverse_element_lemma) 
-THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `j:num` 
-THEN POP_ASSUM(fun th -> REWRITE_TAC[SYM th]) 
-THEN REWRITE_TAC[GSYM(ISPECL[`(inverse (p:A->A)):(A->A)`; `p:A->A`; `(x:A)`] o_THM)] 
-THEN UNDISCH_THEN `p:A->A permutes s`(fun th-> REWRITE_TAC[CONJUNCT2 (MATCH_MP PERMUTES_INVERSES_o th);I_THM]));;
+let inverse_relation = prove(`!(s:A->bool) p:A->A x:A y:A. FINITE s /\ p permutes s /\ y = p x ==>(?k:num. x = (p POWER k) y)`, REPEAT STRIP_TAC THEN MP_TAC(SPECL[`s:A->bool`; `p:A->A`] inverse_element_lemma) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN EXISTS_TAC `j:num` THEN POP_ASSUM(fun th -> REWRITE_TAC[SYM th]) THEN REWRITE_TAC[GSYM(ISPECL[`(inverse (p:A->A)):(A->A)`; `p:A->A`; `(x:A)`] o_THM)] THEN UNDISCH_THEN `(p:A->A) permutes s` (fun th-> REWRITE_TAC[CONJUNCT2 (MATCH_MP PERMUTES_INVERSES_o th);I_THM]));;
 
 (* some properties of orbits *)
 
@@ -785,7 +780,6 @@ REPEAT GEN_TAC THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2
   THEN USE_THEN "F11"(fun th1 -> USE_THEN "F12"(fun th2 -> MP_TAC(MATCH_MP lemma_card_atleast_2 (CONJ th1 th2))))
   THEN USE_THEN "F8"(MP_TAC) THEN ARITH_TAC);;
 
-
 let lemmaTGJISOK = prove(`!H:(A)hypermap. connected_hypermap H /\ plain_hypermap H /\ planar_hypermap H /\
    (!x:A. x IN (dart H) ==> ~(edge_map H x = x)/\ (CARD(node H x) >= 3)) 
    ==> (CARD (dart H) <= (6*(number_of_faces H)-12))`,
@@ -796,10 +790,7 @@ GEN_TAC THEN REWRITE_TAC[connected_hypermap; plain_hypermap; planar_hypermap;num
   THEN ABBREV_TAC `e = edge_map(H:(A)hypermap)`
   THEN ABBREV_TAC `n = node_map (H:(A)hypermap)`
   THEN ABBREV_TAC `f = face_map (H:(A)hypermap)`
-  THEN REWRITE_TAC[SPEC `H:(A)hypermap` node_set]
-  THEN  REWRITE_TAC[SPEC `H:(A)hypermap` edge_set]
-  THEN REWRITE_TAC[SPEC `H:(A)hypermap` face_set]
-  THEN ASM_REWRITE_TAC[(SPEC `H:(A)hypermap` node)]
+  THEN REWRITE_TAC[node_set;edge_set;face_set] THEN ASM_REWRITE_TAC[node]
   THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3")(LABEL_TAC "F4"))))
   THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7")))
   THEN SUBGOAL_THEN `!x:A. x IN (D:A->bool) ==> CARD (orbit_map e x) = 2` (LABEL_TAC "F8")
@@ -815,10 +806,8 @@ GEN_TAC THEN REWRITE_TAC[connected_hypermap; plain_hypermap; planar_hypermap;num
   THEN DISCH_THEN(LABEL_TAC "F16") THEN REMOVE_THEN "F6" (MP_TAC)
   THEN REMOVE_THEN "F16" (MP_TAC)
   THEN ASM_REWRITE_TAC[]
-  THEN REWRITE_TAC[ISPECL[`D:A->bool`;`e:A->A`] number_of_orbits]
-  THEN REWRITE_TAC[ISPECL[`D:A->bool`;`n:A->A`] number_of_orbits]
-  THEN REWRITE_TAC[ISPECL[`D:A->bool`;`f:A->A`] number_of_orbits]
-  THEN ARITH_TAC);;
+  THEN REWRITE_TAC[number_of_orbits] THEN ARITH_TAC);;
+
 
 (* We set up some lemmas on combinatorial commponents *)
 
@@ -2615,8 +2604,6 @@ REPEAT GEN_TAC
   THEN STRIP_TAC
   THEN ONCE_ASM_REWRITE_TAC[GSYM lemma_double_shift_non_degenerate]
   THEN ASM_REWRITE_TAC[]);;
-
-face_walkup;;
 
 let lemma_face_merge = prove(`!(H:(A)hypermap) (x:A). x IN dart H /\ is_face_merge H x 
    ==> {x} UNION (face (face_walkup H x) (edge_map H x)) = (face H x) UNION (face H (edge_map H x))`,

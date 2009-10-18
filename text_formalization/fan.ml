@@ -481,7 +481,7 @@ REPEAT GEN_TAC THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN P
      THEN EXISTS_TAC `e3_fan (x:real^3) (v:real^3) (u:real^3)`
      THEN MP_TAC(ISPECL [`(x:real^3)` ;`(v:real^3)`; `(u:real^3)`] orthonormal_e1_e2_e3_fan) THEN ASM_REWRITE_TAC[] 
      THEN DISCH_TAC
-     THEN MP_TAC(ISPECL [`(x:real^3)` ;`(v:real^3)`] e3_mul_dist_fan)THEN ASM_REWRITE_TAC[] 
+     THEN MP_TAC(ISPECL [`(x:real^3)` ;`(v:real^3)`;`(u:real^3)`] e3_mul_dist_fan)THEN ASM_REWRITE_TAC[] 
      THEN DISCH_THEN(LABEL_TAC "AB") THEN ASM_REWRITE_TAC[] THEN STRIP_TAC 
      THEN MP_TAC (ISPECL [`x:real^3`; `v:real^3`; `u:real^3`; `(u:real^3)- (x:real^3)`; `r1:real`; `psi:real`; `h1:real`] module_of_vector) 
      THEN ASM_REWRITE_TAC[] THEN DISCH_TAC

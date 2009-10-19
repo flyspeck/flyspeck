@@ -17,6 +17,7 @@ LoadFeasible skips tame_bb and loads feasible_bb.
 NoLoad : load file without running linear programs.
 *)
 
+
 type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
 let mode = LoadAll;;
 
@@ -251,7 +252,7 @@ let std_face_of_size bb r=
     fst(split (filter (function _,y -> length y=r) z));;
 
 
-(* ampl data string of branch n bound *)
+(* generate ampl data string of branch n bound *)
 
 let unsplit d f = function
   | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
@@ -294,6 +295,7 @@ let ampl_of_bb outs bb =
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
 
+(* display ampl file without solving *)
 
 let tampl bb = (* for debugging *)
   let file = tmpfile in 
@@ -307,13 +309,14 @@ let testps() =  (* for debugging *)
   let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[5;3;7;11];"ff",[12;7;8]] ["hv",8] in
     tampl bb;;
 
+
+
+
 (* running of branch in glpsol *)
 
-let set_some bb r = (* side effects *)
-   if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else ();;
-
-
 let solve_branch bb = (* side effects, lpvalue mutable *)
+  let set_some bb r = (* side effects *)
+    if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
   let com = sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
@@ -327,6 +330,21 @@ let solve_branch bb = (* side effects, lpvalue mutable *)
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
     bb;;
 
+let solve bb = match bb.lpvalue with
+  | None -> solve_branch bb
+  | Some _ -> bb;;
+
+(* display glpk messages *)
+
+let display_lp bb = (* for debugging *)
+  let oc = open_out tmpfile in
+  let _ = ampl_of_bb oc bb in
+  let _ = close_out oc in
+  let com = sprintf "glpsol -m %s -d %s" model tmpfile in
+  let _ = Sys.command(com) in 
+    ();;
+
+(* create cplex file without solving *)
 
 let cpx_branch bb = (* debug *)
   let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model cpxfile in 
@@ -337,24 +355,8 @@ let cpx_branch bb = (* debug *)
   let _ = Unix.close_process (ic,oc) in
   sprintf "cplex file created of lp: %s" cpxfile;;
 
-let display_lp bb = (* for debugging *)
-  let oc = open_out tmpfile in
-  let _ = ampl_of_bb oc bb in
-  let _ = close_out oc in
-  let com = sprintf "glpsol -m %s -d %s" model tmpfile in
-  let _ = Sys.command(com) in 
-    ();;
 
-(* for debugging:
-display_lp (nth tame_bb  1);;
-length tame_bb;;
-(nth tame_bb 2);;
-solve (nth tame_bb 1);;
-*)
-
-let solve bb = match bb.lpvalue with
-  | None -> solve_branch bb
-  | Some _ -> bb;;
+(* filtering output *)
 
 let filterout_infeas f bbs = 
   let sol = map solve bbs in
@@ -370,6 +372,7 @@ let feasible_bb =
    if (mode = NoLoad) then [] 
      else if (mode = LoadAll) then (filterout_infeas feasible (map solve tame_bb))
        else tame_bb;;
+
 length feasible_bb;; (* length 462 *)
 
 
@@ -501,6 +504,8 @@ let hardid =
 "161847242261 22 3 0 1 2 3 0 2 3 3 3 2 4 3 4 2 1 3 4 1 5 3 5 1 6 3 6 1 0 3 6 0 7 3 7 0 8 3 8 0 3 3 8 3 9 3 9 3 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ",
 *)
 
+let findid s  = find (fun t -> s = t.hypermapid);;
+let findall s = filter (fun t -> s = t.hypermapid);;
 
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
@@ -512,32 +517,41 @@ let _ = (alleasypass_bb = []);;
 
 
 (* superduperq disappears: *)
-length hard_bb;;
+length hard_bb;;  (* 3 *)
 let allhardpassA_bb = allpass 3 hard_bb;; (*   *)
 let allhardpassS_bb =  (filter (fun t -> length t.superduperq >0) allhardpassA_bb);;
 length allhardpassS_bb;;  (* 0 *)
 
 (* superflat cases disappear: *)
 let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb;;
-length allhardpass1_bb;; (* 0 *)
+length allhardpassF_bb;; (* 0 *)
 
-(* second case *)
-let h86 = [nth hard_bb 2];;
-let h86a = allpass 10 h86;;
-let h86b = allpass 10  h86a;;
-length h86b;; (* 134  *)
-find_max h86b;; (*  12.01 *)
-let h86c = allvpass h86b;;
-length h86c;;  (* 0 *)
+(* case 86506100695 *)
+let h86 _ =
+  let h86 = [findid "86506100695" hard_bb] in
+  let h86a = allpass 10 h86 in
+  let h86b = allpass 10  h86a in
+    allvpass h86b;;
+(* h86();;  long, but eliminates all. *)
 
+(* the 2 pressed icosahedra remain *)
+
+let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]) hard_bb;;
+
+length hard2_bb;;
+let allhardpassB_bb = allpass 8 hard2_bb;;
+;;
+
+(*
 let hard2_bb = [nth  hard_bb 0;nth hard_bb 1];;
 (* to here *)
-let allhardpassB_bb = allpass 8 hard2_bb;;
+
 length (allhardpassB_bb);;  (* 288 *)
 let h16 = find_max allhardpassB_bb;;
 (* unfinished *)
+*)
 
-
+(*
 let h0 = nth hard_bb 0;;
 let h1 = 
   let s i l= flatten((map (fun t -> switch_vertex t i)) l) in
@@ -547,27 +561,20 @@ length h1;;
 find_max h1;;
 let all16_bb = allpass 6 h1;;
 (* unfinished *)
+*)
 
 (* running various cases *)
 
-let findid s = filter (fun b -> b.hypermapid = s) allhardpass_bb;;
+
 
 (* 6 final hard cases : *)
 (* scratch space *)
 
-find_max allhardpass_bb;;
-let h0 = findid (nth hardid 1);;
-map (fun b -> (length b.superduperq)) h0;;
-length h0;;
-nth h0 0;;
-
-
+(*
 let h1 = nth hard_bb 1;;
 let h2 = nth (switch4 h1) 2;;
 let s = cpx_branch h2;;
-
-
-;;
+*)
 
 
 (*
@@ -581,11 +588,6 @@ let s = cpx_branch h2;;
   let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
 (* unfinished... *)
 
-(* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
-  let r  = findid (nth hardid 5);;  (* 12161847242261  *)
-  length r1;;   (* length  *)
-  let r1 = allvpass [r];;
-  let r2 = allpass r1;;
-(* unfinished *)
+
 
 *)

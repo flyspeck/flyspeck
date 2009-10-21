@@ -808,6 +808,40 @@ Minimizer m37() {
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
+void t37a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    taum(y[0],y[2],y[6],y[7],y[8],y[4]) +
+    taum(y[0],y[6],y[9],y[10],y[11],y[8]) +
+    taum(y[0],y[9],y[12],y[13],y[14],y[11]) +
+    taum(y[0],y[12],y[15],y[16],y[17],y[14]) +
+    taum(y[0],y[15],y[1],y[18],y[5],y[17]);
+	}
+//constraint rady > s2 
+void c37a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = 
+ dih_y(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    dih_y(y[0],y[2],y[6],y[7],y[8],y[4]) +
+    dih_y(y[0],y[6],y[9],y[10],y[11],y[8]) +
+    dih_y(y[0],y[9],y[12],y[13],y[14],y[11]) +
+    dih_y(y[0],y[12],y[15],y[16],y[17],y[14]) +
+   dih_y(y[0],y[15],y[1],y[18],y[5],y[17]) - 2.0*pi();
+};
+Minimizer m37a() {
+  double s = 2.52;
+  double t = 2.26;
+  double xmin[19]= {2,2,2,2,2,2,  2,2,2,2,2,2,  2,2,2,2,2,2,  2};
+  double xmax[19]= {s,t,t,s,s,s,  t,s,s,t,s,s,  t,s,s,t,s,s,  s  };
+	Minimizer M(trialcount,19,1,xmin,xmax);
+	M.func = t37a;
+	M.cFunc = c37a;
+	return M;
+}
+//trialdata d37a(m37a(),"test of squander on vertex of type 600");
+
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
 double e38=0;
 double a38=0;
 double bq38=0;

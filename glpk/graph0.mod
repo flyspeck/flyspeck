@@ -459,9 +459,8 @@ bigtrisol 'ID[6224332984]'  {(i,j) in DART: j in BIGTRI}:
   -0.235*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
 
-#branch HIGHVERTEX inequality
 
-#branch LOWVERTEX inequality
+#branch LOWSMALLVERTEX inequality
 
 azimlowsmall 'ID[9229542852]' {(i,j) in LOWSMALLTRI}:
   azim[i,j] - 1.230
@@ -482,6 +481,14 @@ taulowsmall 'ID[4491491732]' {(i,j) in LOWSMALLTRI}:
   -0.1631*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.2127*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
 
+taulowbig 'ID[8611785756]'  {(i,j) in LOWBIGTRI}:
+  sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
+  -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
+
+
+
+# branch FLAT:
+
 tauhighlow 'ID[8282573160]'  
   {(i1,i,i3,j) in EDART : i1 in LOWVERTEX and i in HIGHVERTEX and 
                i3 in LOWVERTEX and (i,j) in FLAT}:
@@ -491,9 +498,6 @@ tauhighlow 'ID[8282573160]'
   -0.067*(y4[i,j]-2.52)
   -0.241*(y5[i,j]+y6[i,j]-4) >=0;
 
-taulowbig 'ID[8611785756]'  {(i,j) in LOWBIGTRI}:
-  sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
-  -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
 solve;
 display hypermapID;
@@ -503,4 +507,4 @@ display ye;
 display azim;
 display tau;
 display sol;
-
+display sqdeficit;

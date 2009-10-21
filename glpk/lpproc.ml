@@ -506,41 +506,67 @@ let hardid =
 
 let findid s  = find (fun t -> s = t.hypermapid);;
 let findall s = filter (fun t -> s = t.hypermapid);;
+let tests = ref [];;
 
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
-let alleasypass_bb = allvpass (allpass 20 easy_bb);;
-let _ = (alleasypass_bb = []);;
-
+let alleasypass_bb _ = allvpass (allpass 20 easy_bb);;
+tests :=  (fun t -> alleasypass_bb t = [])::!tests;;
 
 (* experimental section from here to the end of the file *)
 
 
 (* superduperq disappears: *)
 length hard_bb;;  (* 3 *)
-let allhardpassA_bb = allpass 3 hard_bb;; (*   *)
-let allhardpassS_bb =  (filter (fun t -> length t.superduperq >0) allhardpassA_bb);;
-length allhardpassS_bb;;  (* 0 *)
-
-(* superflat cases disappear: *)
-let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb;;
-length allhardpassF_bb;; (* 0 *)
+let testsuper _ = 
+  let allhardpassA_bb = allpass 3 hard_bb in 
+  let allhardpassS_bb =  (filter (fun t -> length t.superduperq >0) allhardpassA_bb) in
+  let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb in 
+    allhardpassS_bb = [] && allhardpassF_bb = [];; 
+tests := testsuper :: !tests;;
 
 (* case 86506100695 *)
 let h86 _ =
   let h86 = [findid "86506100695" hard_bb] in
   let h86a = allpass 10 h86 in
   let h86b = allpass 10  h86a in
-    allvpass h86b;;
-(* h86();;  long, but eliminates all. *)
+    allvpass h86b = [];;
+tests := h86 :: !tests;;
+
 
 (* the 2 pressed icosahedra remain *)
 
 let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]) hard_bb;;
 
 length hard2_bb;;
+
+
+(*
+
+(* this one is a dodecahedron modified with vertex 2 pressed
+    into an edge *)
+  let h  = findid (nth hardid 3);;  (* 12223336279535  *)
+  let h1 = allpass [h];;
+  length h1;;   (* length 1885 *)
+  let k1 = find_max h1;;  (* 12.0416 *)
+  let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
+(* unfinished... *)
+
+(* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
+  let r  = findid (nth hardid 5);;  (* 12161847242261  *)
+  length r1;;   (* length  *)
+  let r1 = allvpass [r];;
+  let r2 = allpass r1;;
+(* unfinished *)
+
+*)
+
+
+
+
+(*
 let allhardpassB_bb = allpass 8 hard2_bb;;
-;;
+*)
 
 (*
 let hard2_bb = [nth  hard_bb 0;nth hard_bb 1];;
@@ -563,31 +589,3 @@ let all16_bb = allpass 6 h1;;
 (* unfinished *)
 *)
 
-(* running various cases *)
-
-
-
-(* 6 final hard cases : *)
-(* scratch space *)
-
-(*
-let h1 = nth hard_bb 1;;
-let h2 = nth (switch4 h1) 2;;
-let s = cpx_branch h2;;
-*)
-
-
-(*
-
-(* this one is a dodecahedron modified with vertex 2 pressed
-    into an edge *)
-  let h  = findid (nth hardid 3);;  (* 12223336279535  *)
-  let h1 = allpass [h];;
-  length h1;;   (* length 1885 *)
-  let k1 = find_max h1;;  (* 12.0416 *)
-  let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
-(* unfinished... *)
-
-
-
-*)

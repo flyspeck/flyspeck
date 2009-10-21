@@ -508,7 +508,7 @@ Minimizer m4g() {
 	M.func = t4g;
 	return M;
 }
-trialdata d4g(m4g(),"ID[] m4g: superflat azim dart");
+trialdata d4g(m4g(),"ID[7718591733] m4g: superflat azim dart");
 
 
 ////////// NEW INEQ
@@ -1099,6 +1099,30 @@ Minimizer m54() {
 	return M;
 }
 trialdata  d54(m54(),"ID[4491491732]:  tau-low-small");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t77(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.27779;  
+double c[6] = 
+ {0.287978, -0.273853, -0.273853, 0.719234, -0.346671, -0.346671};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m77() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t77;
+	return M;
+}
+trialdata  d77(m77(),"ID[]:  d77, dih >= high-low-low");
+
+
+
 
 
 ////////// NEW INEQ

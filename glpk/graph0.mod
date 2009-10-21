@@ -25,7 +25,7 @@ hypermapID: a numerical identifier of the case.
 CVERTEX: the number of vertices. 
 CFACE: the number of faces.  Standard regions that have been subdivided are not counted.
 EDART: quadruples (i1,i2,i3,j) where (i1,j) is a dart such that f(i1,j) = (i2,j), f(i2,j)=(i3,j).
-ITRIANGLE, IQUAD, IPENT, IHEX: remaining standard faces with 3,4,5,6 darts.  Includes special cases such as SUPERDUPERQ, SUPER8, ..
+ITRIANGLE, IQUAD, IPENT, IHEX:  standard faces with 3,4,5,6 darts.  Includes special cases such as SUPERDUPERQ, SUPER8, ..
 SUPERDUPERQ: quads with both diags at least 3. It is the dart opposite the long edge.
 SUPERFLAT: apex of superflat triangulating a quad with shorter diagonal at least sqrt8-3.
 SUPER8: pents, and hexes that are known not to have any flat quarters.  
@@ -47,7 +47,7 @@ param pi := 3.1415926535897932;
 param delta0 := 0.5512855984325308;
 param tgt := 1.54065864570856;
 param sqrt8 := 2.8284271247461900;
-
+param rho218 := 1.0607429578779386; # constant is rho(2.18).
 param CVERTEX 'number of vertices' >= 13, <= 14; 
 param CFACE 'number of faces' >= 0; 
 
@@ -108,16 +108,28 @@ set DARTZ := {(i,j) in DART: j in SUPERDUPERQ};
 set LOWTRI := setof{(i1,i2,i3,j) in EDART : 
    i1 in LOWVERTEX and
    i2 in LOWVERTEX and
-   i3 in LOWVERTEX}(i2,j);
+   i3 in LOWVERTEX and
+    j in ITRIANGLE}(i2,j);
 
-set LOWSMALLTRI := {(i,j) in LOWTRI : 
-   j in SMALLTRI};
+# high-low-low
 
-set LOWBIGTRI := {(i,j) in LOWTRI : 
-   j in BIGTRI};
+set HLLTRI := setof{(i1,i2,i3,j) in EDART : 
+   i1 in LOWVERTEX and
+   i2 in HIGHVERTEX and
+   i3 in LOWVERTEX and
+   j in ITRIANGLE}(i2,j);
+
+
+set LOWSMALLTRI := {(i,j) in LOWTRI :   j in SMALLTRI};
+
+set LOWBIGTRI := {(i,j) in LOWTRI :    j in BIGTRI};
+
+set HLLSMALLTRI := {(i,j) in HLLTRI : j in SMALLTRI};
 
 # basic variables
 var azim{DART} >= 0, <= pi;
+var azim2{HLLTRI} >=0, <= pi;
+var azim3{HLLTRI} >=0, <= pi;
 var ln{IVERTEX} >= 0, <= 1;
 var rhazim{DART} >=0, <= pi + delta0;
 var yn{IVERTEX} >= 2, <= 2.52;
@@ -151,6 +163,7 @@ sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
 tau_sum{j in FACE}: sum{(i,j) in DART} (rhazim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
 
 
+
 ln_def{i in IVERTEX}: ln[i] = (2.52 - yn[i])/0.52;
 rho_def{i in IVERTEX}: rho[i] = (1 + delta0/pi) - ln[i] * delta0/pi;
 edge{(i1,j1,i2,j2) in EDGE}: ye[i1,j1] = ye[i2,j2];
@@ -160,11 +173,15 @@ y3_def{(i3,i1,i2,j) in EDART}: y3[i1,j] = yn[i3];
 y4_def{(i3,i1,i2,j) in EDART :  (i1,j) in ALLTRI}: y4[i1,j] = ye[i2,j];
 y5_def{(i3,i1,i2,j) in EDART}: y5[i1,j] = ye[i3,j];
 y6_def{(i3,i1,i2,j) in EDART}: y6[i1,j] = ye[i1,j];
+azim2c{(i1,i2,i3,j) in EDART : (i2,j) in HLLTRI}: azim2[i2,j] = azim[i3,j];
+azim3c{(i1,i2,i3,j) in EDART : (i2,j) in HLLTRI}: azim3[i2,j] = azim[i1,j];
 
 ## inequality constraints
 main: sum{i in IVERTEX} ln[i] >= 12;
-RHA{(i,j) in DART}: azim[i,j] <= rhazim[i,j];
+RHA{(i,j) in DART}: rhazim[i,j] >= azim[i,j]*1.0;
 RHB{(i,j) in DART}: rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
+RHBLO{(i,j) in DART: i in LOWVERTEX}: rhazim[i,j] <= azim[i,j]*rho218;
+RHBHI{(i,j) in DART: i in HIGHVERTEX}: rhazim[i,j] >= azim[i,j]*rho218;
 
 ## branch definitional inequalities
 ybig{(i,j) in IDART3 : j in BIGTRI}: 
@@ -485,6 +502,139 @@ taulowbig 'ID[8611785756]'  {(i,j) in LOWBIGTRI}:
   sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
+#branch HIGH VERTEX inequality
+
+hiazimA 'ID[2151506422]' {(i,j) in HLLTRI} :
+   azim[i,j] >= 1.2777 
+     + 0.281*(y1[i,j]-2.18)
+     - 0.278364*(y2[i,j]-2)
+     -0.278364*(y3[i,j]-2)
+     + 0.7117*(y4[i,j]-2)
+      -0.34336*(y5[i,j]-2) 
+      -0.34336*(y6[i,j]-2);
+
+hiazimB 'ID[6836427086]' {(i,j) in HLLTRI} :
+   -azim[i,j] >= -1.27799
+     -0.356217*(y1[i,j]-2.18)
+     +0.229466*(y2[i,j]-2)
+     +0.229466*(y3[i,j]-2)
+     -0.949067*(y4[i,j]-2)
+     +0.172726*(y5[i,j]-2) 
+     +0.172726*(y6[i,j]-2);
+     #{-0.356217, 0.229466, 0.229466, -0.949067, 0.172726, 0.172726}
+
+hiazimC 'ID[3636849632]' {(i,j) in HLLTRI} :
+   tau[j] >=  0.0345
+     +0.185545*(y1[i,j]-2.18)
+     +0.193139*(y2[i,j]-2)
+     +0.193139*(y3[i,j]-2)
+     +0.170148*(y4[i,j]-2)
+     +0.13195*(y5[i,j]-2) 
+     +0.13195*(y6[i,j]-2);
+     #{0.185545, 0.193139, 0.193139, 0.170148, 0.13195, 0.13195}
+
+hiazimD 'ID[5298513205]' {(i,j) in HLLTRI} :
+   azim2[i,j] >= 1.185
+     -0.302913*(y1[i,j]-2.18)
+     +0.214849*(y2[i,j]-2)
+     -0.163775*(y3[i,j]-2)
+     -0.443449*(y4[i,j]-2)
+     +0.67364*(y5[i,j]-2) 
+     -0.314532*(y6[i,j]-2);
+     # {-0.302913, 0.214849, -0.163775, -0.443449, 0.67364, -0.314532}
+
+hiazimE 'ID[5298513205]' {(i,j) in HLLTRI} : # 2<->3, 5<->6 sym.
+   azim3[i,j] >= 1.185
+     -0.302913*(y1[i,j]-2.18)
+     +0.214849*(y3[i,j]-2)
+     -0.163775*(y2[i,j]-2)
+     -0.443449*(y4[i,j]-2)
+     +0.67364*(y6[i,j]-2) 
+     -0.314532*(y5[i,j]-2);
+     # {-0.302913, 0.214849, -0.163775, -0.443449, 0.67364, -0.314532}
+
+hiazimF 'ID[7743522046]' {(i,j) in HLLTRI} :
+   -azim2[i,j] >= -1.1865
+     +0.20758*(y1[i,j]-2.18)
+     -0.236153*(y2[i,j]-2)
+     +0.14172*(y3[i,j]-2)
+     +0.263834*(y4[i,j]-2)
+     -0.771203*(y5[i,j]-2) 
+     +0.0457292*(y6[i,j]-2);
+     #{0.20758, -0.236153, 0.14172, 0.263834, -0.771203, 0.0457292};
+
+hiazimG 'ID[7743522046]' {(i,j) in HLLTRI} : # 2<->3, 5<->6 sym.
+   -azim3[i,j] >= -1.1865
+     +0.20758*(y1[i,j]-2.18)
+     -0.236153*(y3[i,j]-2)
+     +0.14172*(y2[i,j]-2)
+     +0.263834*(y4[i,j]-2)
+     -0.771203*(y6[i,j]-2) 
+     +0.0457292*(y5[i,j]-2);
+     #{0.20758, -0.236153, 0.14172, 0.263834, -0.771203, 0.0457292};
+
+# branch HLL SMALL 
+
+hllsmallazimA 'ID[8657368829]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   azim[i,j] >= 1.277
+     +0.273298*(y1[i,j]-2.18)
+     -0.273853*(y2[i,j]-2)
+     -0.273853*(y3[i,j]-2)
+     +0.708818*(y4[i,j]-2)
+     -0.313988*(y5[i,j]-2) 
+     -0.313988*(y6[i,j]-2);
+     #{0.273298, -0.273853, -0.273853, 0.708818, -0.313988, -0.313988}
+
+
+hllsmallazimB 'ID[6619134733]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   -azim[i,j] >= -1.27799
+     -0.439002*(y1[i,j]-2.18)
+     +0.229466*(y2[i,j]-2)
+     +0.229466*(y3[i,j]-2)
+     -0.771733*(y4[i,j]-2)
+      +0.208429*(y5[i,j]-2) 
+     +0.208429*(y6[i,j]-2);
+     # {-0.439002, 0.229466, 0.229466, -0.771733, 0.208429, 0.208429}
+
+hllsmallazimC 'ID[1284543870]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   azim2[i,j] >= 1.185
+     -0.372262*(y1[i,j]-2.18)
+     +0.214849*(y2[i,j]-2)
+     -0.163775*(y3[i,j]-2)
+     -0.293508*(y4[i,j]-2)
+     +0.656172*(y5[i,j]-2) 
+     -0.267157*(y6[i,j]-2);
+   # {-0.372262, 0.214849, -0.163775, -0.293508, 0.656172, -0.267157};
+
+hllsmallazimD 'ID[1284543870]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   azim3[i,j] >= 1.185  
+     -0.372262*(y1[i,j]-2.18)
+     +0.214849*(y3[i,j]-2)
+     -0.163775*(y2[i,j]-2)
+     -0.293508*(y4[i,j]-2)
+     +0.656172*(y6[i,j]-2) 
+     -0.267157*(y5[i,j]-2);
+   # {-0.372262, 0.214849, -0.163775, -0.293508, 0.656172, -0.267157};
+
+hllsmallazimE 'ID[4041673283]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   -azim2[i,j] >= -1.1864
+     +0.20758*(y1[i,j]-2.18)
+     -0.236153*(y2[i,j]-2)
+     +0.14172*(y3[i,j]-2)
+     +0.263109*(y4[i,j]-2)
+     -0.737003*(y5[i,j]-2) 
+     +0.12047*(y6[i,j]-2);
+  #{0.20758, -0.236153, 0.14172, 0.263109, -0.737003, 0.12047};
+
+hllsmallazimF 'ID[4041673283]' {(i,j) in HLLTRI : j in SMALLTRI} :
+   -azim3[i,j] >= -1.1864  # symmetry 2<->3, 5<->6.
+     +0.20758*(y1[i,j]-2.18)
+     -0.236153*(y3[i,j]-2)
+     +0.14172*(y2[i,j]-2)
+     +0.263109*(y4[i,j]-2)
+     -0.737003*(y6[i,j]-2) 
+     +0.12047*(y5[i,j]-2);
+  #{0.20758, -0.236153, 0.14172, 0.263109, -0.737003, 0.12047};
 
 
 # branch FLAT:

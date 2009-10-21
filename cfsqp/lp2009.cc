@@ -1104,9 +1104,9 @@ trialdata  d54(m54(),"ID[4491491732]:  tau-low-small");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t77(int numargs,int whichFn,double* y, double* ret,void*) {
-  double f0 = 1.27779;  
+  double f0 = 1.2777;  
 double c[6] = 
- {0.287978, -0.273853, -0.273853, 0.719234, -0.346671, -0.346671};
+  {0.281, -0.278364, -0.278364, 0.7117, -0.34336, -0.34336};
  double ymin[6]= {2.18, 2, 2, 2, 2, 2};
  double r = f0;
  for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
@@ -1119,7 +1119,171 @@ Minimizer m77() {
 	M.func = t77;
 	return M;
 }
-trialdata  d77(m77(),"ID[]:  d77, dih >= high-low-low");
+trialdata  d77(m77(),"ID[2151506422]:  d77, dih >= high-low-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t78(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.27799;  
+double c[6] = 
+  {-0.356217, 0.229466, 0.229466, -0.949067, 0.172726, 0.172726};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = - dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m78() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t78;
+	return M;
+}
+trialdata  d78(m78(),"ID[6836427086]:  d78, dih <= high-low-low");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t79(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 0.0345;
+double c[6] = 
+  {0.185545, 0.193139, 0.193139, 0.170148, 0.13195, 0.13195};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = taum(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m79() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t79;
+	return M;
+}
+trialdata  d79(m79(),"ID[3636849632]:  d79, tau >= .. high-low-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t80(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.277;
+double c[6] = 
+  {0.273298, -0.273853, -0.273853, 0.708818, -0.313988, -0.313988};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m80() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t80;
+	return M;
+}
+trialdata  d80(m80(),"ID[8657368829]:  d80, dih >= .. high-low-low-small");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t81(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.27799;
+double c[6] = 
+  {-0.439002, 0.229466, 0.229466, -0.771733, 0.208429, 0.208429};
+  //  {0.273298, -0.273853, -0.273853, 0.708818, -0.313988, -0.313988};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m81() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t81;
+	return M;
+}
+trialdata  d81(m81(),"ID[6619134733]:  d81, dih <= .. high-low-low-small");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t82(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.185;
+double c[6] = 
+  {-0.372262, 0.214849, -0.163775, -0.293508, 0.656172, -0.267157};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m82() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t82;
+	return M;
+}
+trialdata  d82(m82(),"ID[1284543870]:  d82, dih2 => .. high-low-low-small");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t83(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.1864;
+double c[6] = 
+  {0.20758, -0.236153, 0.14172, 0.263109, -0.737003, 0.12047};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m83() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.25,2.25};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t83;
+	return M;
+}
+trialdata  d83(m83(),"ID[4041673283]:  d83, dih2 <= .. high-low-low-small");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.185;
+double c[6] = 
+  {-0.302913, 0.214849, -0.163775, -0.443449, 0.67364, -0.314532};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84;
+	return M;
+}
+trialdata  d84(m84(),"ID[5298513205]:  d84, dih2 => .. high-low-low");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t85(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.1865;
+double c[6] = 
+  {0.20758, -0.236153, 0.14172, 0.263834, -0.771203, 0.0457292};
+ double ymin[6]= {2.18, 2, 2, 2, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m85() {
+  double xmin[6]= {2.18,2,2,2,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t85;
+	return M;
+}
+trialdata  d85(m85(),"ID[7743522046]:  d85, dih2 <= .. high-low-low");
 
 
 

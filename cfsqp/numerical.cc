@@ -108,6 +108,13 @@ double dih_y(double y1,double y2,double y3,double y4,double y5,
         return dihedral(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6);
         }
 
+double dih2_y(double y1,double y2,double y3,double y4,double y5,
+        double y6)
+        {
+	  return dih_y(y2,y3,y1,y5,y6,y4);
+        }
+
+
 double dihR(double a,double b,double c)
 	{
 	static const double pi2 = 1.57079632679489661923132169164;

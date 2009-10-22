@@ -232,6 +232,8 @@ let tame_bb = map mk_bb tame;;
 
 let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;
 
+(* should sort faces, so that numbering doesn't change so much when branching *)
+
 let faces bb = (std_faces bb) @ bb.superflat @ bb.flat_quarter @ 
   bb.a_face @ bb.big5_face @ bb.big4_face;;
 
@@ -266,7 +268,7 @@ let ampl_of_bb outs bb =
   let list_of = unsplit " " string_of_int in
   let mk_faces xs = list_of (number xs) in
   let edart_raw  = 
-    map triples (faces bb) in
+    map triples fs in
   let edart =
     let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(unsplit ", " list_of x) in
       unsplit "\n" edata_row (enumerate edart_raw) in 
@@ -297,7 +299,7 @@ let ampl_of_bb outs bb =
 
 (* display ampl file without solving *)
 
-let tampl bb = (* for debugging *)
+let display_ampl bb = (* for debugging *)
   let file = tmpfile in 
   let outs = open_out file in
   let _ = ampl_of_bb outs bb in
@@ -307,7 +309,7 @@ let tampl bb = (* for debugging *)
 let testps() =  (* for debugging *)
   let bb = mk_bb pentstring in
   let bb =  modify_bb bb false ["ff",[0;1;2];"sd",[5;3;7;11];"ff",[12;7;8]] ["hv",8] in
-    tampl bb;;
+    display_ampl bb;;
 
 
 
@@ -540,14 +542,14 @@ let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]
 
 length hard2_bb;;
 let h16 = allvpass (findall "161847242261" hard_bb);;
-let h16max = find_max h16;;
+let h16max = find_max h16;;  (* 12.062 *)
 let h16a= allpass 10 h16;;
-
-
-(*
+let h16Amax = find_max h16a;;  (* 12.059 *)
 let h16b = allpass 15 h16a;;
-*)
+let h16Bmax = find_max h16b;;  (* 12.037 *)
+
 length h16a;; (* 466 *)
+length h16b;;  (* 636 *)
 
 
 

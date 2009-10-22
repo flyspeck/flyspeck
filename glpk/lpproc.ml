@@ -540,10 +540,13 @@ let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]
 
 length hard2_bb;;
 let h16 = allvpass (findall "161847242261" hard_bb);;
+let h16max = find_max h16;;
 let h16a= allpass 10 h16;;
-let h16Amax = find_max h16a;;
-let h16b = allpass 15 h16a;;
 
+
+(*
+let h16b = allpass 15 h16a;;
+*)
 length h16a;; (* 466 *)
 
 

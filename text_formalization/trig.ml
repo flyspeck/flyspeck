@@ -235,7 +235,7 @@ let aff_sgn_insert_sym_le_t = `aff_sgn_insert_sym (\t. t <= &0)`;;
 let azim_hyp_t = `azim_hyp`;;
 *)
 
-let azim_cycle_hyp_t = `azim_cycle_hyp`;;
+(* let azim_cycle_hyp_t = `azim_cycle_hyp`;; *)
 
 (* definitions without obligations *)
 
@@ -283,6 +283,7 @@ let aff_le_t = `!S1.
                        else aff_sgn_insert (\t. t <= &0) v (aff_le S1 S)))`;;
 *)
 
+
 let azim_t = `!v w w1 w2 e1 e2 e3.
          ?psi h1 h2 r1 r2.
                  ~collinear {v, w, w1} /\
@@ -300,6 +301,7 @@ let azim_t = `!v w w1 w2 e1 e2 e3.
                  (r2 * sin (psi + azim v w w1 w2)) % e2 +
                  h2 % (w - v))`;;
 
+(*
 let azim_cycle_t = `!W proj v w e1 e2 e3 p.
              W p /\
              cyclic_set W v w /\
@@ -308,7 +310,7 @@ let azim_cycle_t = `!W proj v w e1 e2 e3 p.
              (!u x y.
                   proj u = x,y <=> (?h. u = v + x % e1 + y % e2 + h % e3))
          ==> (proj (azim_cycle W v w p) = polar_cycle (IMAGE proj W) (proj p))`;;
-
+*)
 
 (* signature for trig theorems.
    This is the list of theorems that should be provided by
@@ -355,17 +357,15 @@ module type Trigsig = sig
   val aff_sgn_insert_sym_lt : thm (*  aff_sgn_insert_sym_lt_t *)
   val aff_sgn_insert_sym_le : thm (*  aff_sgn_insert_sym_le_t *)
   val azim_hyp : thm (*  azim_hyp_t *)
-*)
   val azim_cycle_hyp : thm (*  azim_cycle_hyp_t *)
-(* [deprecated]
   val aff : thm (* aff_t *)
   val aff_gt : thm (*  aff_gt_t   *)
   val aff_ge : thm (*  aff_ge_t   *)
   val aff_lt : thm (*  aff_lt_t   *)
   val aff_le : thm (*  aff_le_t   *)
+  val azim_cycle : thm (*  azim_cycle_t   *)
 *)
   val azim : thm (*  azim_t   *)
-  val azim_cycle : thm (*  azim_cycle_t   *)
 end;;
 
 (* Here is a single axiom that permits a quick implementation of the
@@ -408,17 +408,15 @@ let trig_axiom_list = new_definition (mk_eq (`trig_axiom:bool`, (list_mk_conj
   aff_sgn_insert_sym_lt_t ;
   aff_sgn_insert_sym_le_t ;
   azim_hyp_t ;
-*)
   azim_cycle_hyp_t ;
-(* [deprecated]
   aff_t;
   aff_gt_t;
   aff_ge_t;
   aff_lt_t;
   aff_le_t;
+  azim_cycle_t;
 *)
   azim_t;
-  azim_cycle_t;
    ])));;
 
 (* partial implementation of  Trigsig *)
@@ -1370,17 +1368,15 @@ module Trig : Trigsig = struct
   let  aff_sgn_insert_sym_lt = trigAxiomProofB   aff_sgn_insert_sym_lt_t 
   let  aff_sgn_insert_sym_le = trigAxiomProofB   aff_sgn_insert_sym_le_t 
   let  azim_hyp = trigAxiomProofB   azim_hyp_t 
-*)
   let  azim_cycle_hyp = trigAxiomProofB   azim_cycle_hyp_t 
-(* [deprecated]
   let  aff = trigAxiomProofA   aff_t
   let  aff_gt = trigAxiomProofB   aff_gt_t
   let  aff_ge = trigAxiomProofB   aff_ge_t
   let  aff_lt = trigAxiomProofB   aff_lt_t
   let  aff_le = trigAxiomProofB   aff_le_t
+  let  azim_cycle = trigAxiomProofB   azim_cycle_t
 *)
   let  azim = trigAxiomProofB   azim_t
-  let  azim_cycle = trigAxiomProofB   azim_cycle_t
 end;;
 
-open Trig;;
+

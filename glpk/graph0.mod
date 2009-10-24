@@ -35,9 +35,13 @@ BIG5APEX: apex dart of complement of flat in hex, where the apex dart is defined
   in the BIG4APEX.  It is *not* the dart opposite the long edge.
 BIG4APEX: apex dart in complement of flat in pent, where the apex dart is defined as
   the dart x s.t. f x and f^2 x are the two darts along the long edge.
+BIGEDGE: edge ye >= 2.25;
+SMALLEDGE: edge ye <= 2.25;
 BIGTRI: standard triangles with y4+y5+y6>=6.25;
 SMALLTRI: standard triangles with y4+y5+y6<=6.25;
 HIGHVERTEX: vertex with yn >= 2.18;
+EXTRAHIGHVERTEX: vertex with yn >= 2.36;
+MEDIUMHIGHVERTEX: vertex with yn >= 2.18 <= 2.36;
 LOWVERTEX: vertex with yn <= 2.18;
 
 */
@@ -83,7 +87,11 @@ set BIG5APEX within {(i,j) in DART : j in SUBREGION};
 set BIG4APEX within {(i,j) in DART: j in SUBREGION};  
 set BIGTRI within ITRIANGLE;
 set SMALLTRI within ITRIANGLE;
+set BIGEDGE within IDART3;
+set SMALLEDGE within IDART3;
 set HIGHVERTEX within IVERTEX;
+set EXTRAHIGHVERTEX within HIGHVERTEX;
+set MEDIUMHIGHVERTEX within HIGHVERTEX;
 set LOWVERTEX within IVERTEX;
 
 ## SPECIAL SETS OF DARTS ##
@@ -190,6 +198,10 @@ ysmall{(i,j) in IDART3 : j in SMALLTRI}:
   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
 yhigh{i in HIGHVERTEX}: yn[i] >= 2.18;
 ylow{i in LOWVERTEX}: yn[i] <= 2.18;
+yextrahigh{i in EXTRAHIGHVERTEX}: yn[i] >= 2.36;
+ymediumhigh{i in MEDIUMHIGHVERTEX}: yn[i] <= 2.36;
+yebig{(i,j) in BIGEDGE}: ye[i,j] >= 2.25;
+yesmall{(i,j) in SMALLEDGE}: ye[i,j] <= 2.25;
 
 # y bounds.
 ye3_bound{(i,j) in DART : j in STANDARD}: ye[i,j] <= 2.52;

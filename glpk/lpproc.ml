@@ -18,12 +18,18 @@ NoLoad : load file without running linear programs.
 *)
 
 
-type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
-let mode = LoadAll;;
-
 open Str;;
 open List;;
 let sprintf = Printf.sprintf;;
+
+type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
+let mode = LoadAll;;
+
+let nextc = 
+  let counter = ref 0 in
+  fun () ->
+    counter:= !counter + 1;
+    !counter;;
 
 (* external files *)
 let archiveraw = "/tmp/tame_graph.txt";; (*read only *)
@@ -171,8 +177,13 @@ type branchnbound =
     a_face : int list list;
     big5_face : int list list;
     big4_face : int list list;
+    (* edge lists *)
+    bigedge :  int list list;
+    smalledge :  int list list;
     (* vertex lists *)
     highvertex : int list;
+    extrahighvertex : int list;
+    mediumhighvertex : int list;
     lowvertex : int list;
   };;
 
@@ -195,7 +206,11 @@ flat_quarter = add "ff" fields bb.flat_quarter;
 a_face = add "af" fields bb.a_face;
 big5_face = add "b5" fields bb.big5_face;
 big4_face = add "b4" fields bb.big4_face;
+bigedge = add "be" fields bb.bigedge;
+smalledge = add "se" fields bb.smalledge;
 highvertex = add "hv" vfields bb.highvertex;
+extahighvertex = add "ehv" vfields bb.extrahighvertex;
+mediumhighvertex = add "mhv" vfields bb.mediumhighvertex;
 lowvertex = add "lv" vfields bb.lowvertex;
 }
 ;;
@@ -221,7 +236,9 @@ let mk_bb s =
   a_face=[];
   big5_face=[];
   big4_face=[];
+  bigedge=[];
   highvertex=[];
+  exttrahighvertex=[];
   lowvertex=[];
  };;
 
@@ -291,9 +308,13 @@ let ampl_of_bb outs bb =
     p"set APIECE := %s;" (mk_darts bb.a_face);
     p"set BIG5APEX := %s;" (mk_darts bb.big5_face);
     p"set BIG4APEX := %s;" (mk_darts bb.big4_face);
+    p"set BIGEDGE := %s;" (mk_darts bb.bigedge);
+    p"set SMALLEDGE := %s;" (mk_darts bb.smalledge);
     p"set BIGTRI := %s;" (mk_faces bb.bigtri);
     p"set SMALLTRI := %s;"  (mk_faces bb.smalltri);
     p"set HIGHVERTEX := %s;" (list_of bb.highvertex);
+    p"set EXTRAHIGHVERTEX := %s;" (list_of bb.extrahighvertex);
+    p"set MEDIUMHIGHVERTEX := %s;" (list_of bb.mediumhighvertex);
     p"set LOWVERTEX := %s;" (list_of bb.lowvertex)] in
     Printf.fprintf outs "%s" j;;  
 
@@ -445,18 +466,31 @@ let get_vertex bb =
        find (fun t -> not(mem t y)) x 
      with Not_found -> (-1);;
 
-let switch_v bb = switch_vertex bb (get_vertex bb);;
+let get_high_vertex bb = 
+   let x =bb.highvertex in
+   let y = bb.extrahighvertex @ bb.mediumhighvertex in
+     try
+       find (fun t -> not(mem t y)) x 
+     with Not_found -> (-1);;
 
-let nextc = 
-  let counter = ref 0 in
-  fun () ->
-    counter:= !counter + 1;
-    !counter;;
+let switch_high_vertex bb i = 
+  if (i<0) then [bb] else
+  [modify_bb bb false [] ["ehv",i];modify_bb bb false [] ["mhv",i]];;
+
+let one_highvpass bbs = 
+  let switch_v bb = switch_high_vertex bb (get_high_vertex bb) in
+  let branches = flatten (map switch_v bbs) in
+    Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
+    filterout_infeas feasible branches;;
+
+
+
 
 let onevpass bbs = 
- let branches = flatten (map switch_v bbs) in
+  let switch_v bb = switch_vertex bb (get_vertex bb) in
+  let branches = flatten (map switch_v bbs) in
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
-   filterout_infeas feasible branches;;
+    filterout_infeas feasible branches;;
 
 let onevpassi bbs i =
  let branches = flatten (map (fun bb -> switch_vertex bb i) bbs) in
@@ -483,6 +517,12 @@ let rec allvpass bbs =
    else
      let t = fold_right max (map get_vertex bbs) (-1) in
        if t < 0 then bbs else allvpass (onevpass bbs);;
+
+let rec all_highvpass bbs = 
+   if bbs = [] then [] 
+   else
+     let t = fold_right max (map get_high_vertex bbs) (-1) in
+       if t < 0 then bbs else all_highvpass (one_highvpass bbs);;
 
 (* running the branching code on the feasible cases *)
 
@@ -543,6 +583,8 @@ let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]
 length hard2_bb;;
 let h16 = allvpass (findall "161847242261" hard_bb);;
 let h16max = find_max h16;;  (* 12.062 *)
+
+(*
 let h16a= allpass 10 h16;;
 let h16Amax = find_max h16a;;  (* 12.059 *)
 let h16b = allpass 15 h16a;;
@@ -550,7 +592,7 @@ let h16Bmax = find_max h16b;;  (* 12.037 *)
 
 length h16a;; (* 466 *)
 length h16b;;  (* 636 *)
-
+*)
 
 
 1;;

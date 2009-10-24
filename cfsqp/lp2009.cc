@@ -1265,6 +1265,176 @@ Minimizer m84() {
 }
 trialdata  d84(m84(),"ID[5298513205]:  d84, dih2 => .. high-low-low");
 
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84a(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.542;
+double c[6] = 
+  {-0.362519, 0.298691, 0.287065, -0.920785, 0.190917, 0.219132};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84a() {
+  double xmin[6]= {2.18,2,2,2.25,2,2};
+  double xmax[6]= {2.36,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84a;
+	return M;
+}
+trialdata  d84a(m84a(),"ID[]:  1825a d84a,  dih<= .. high-low-low, 2.25 -+cutoffs");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84b(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.542;
+double c[6] = 
+  {-0.346773, 0.300751, 0.300751, -0.702567, 0.172726, 0.172727};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84b() {
+  double xmin[6]= {2.18,2,2,2.0,2,2};
+  double xmax[6]= {2.36,2.18,2.18,2.25,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84b;
+	return M;
+}
+trialdata  d84b(m84b(),"ID[]:  1800b d84b,  dih<= .. high-low-low, 2.25 --cutoffs");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84c(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.542;
+double c[6] = 
+  {-0.490439, 0.318125, 0.32468, -0.740079, 0.178868, 0.205819};
+  double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84c() {
+  double xmin[6]= {2.36,2,2,2.0,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84c;
+	return M;
+}
+trialdata  d84c(m84c(),"ID[]:  3600c d84c,  dih<= .. high-low-low, 2.25 +-cutoffs");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84d(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = -1.542;
+double c[6] = 
+  {-0.490439, 0.321849, 0.320956, -1.00902, 0.240709, 0.218081};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = -dih_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84d() {
+  double xmin[6]= {2.36,2,2,2.25,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84d;
+	return M;
+}
+trialdata  d84d(m84d(),"ID[]:  3625d d84d,  dih<= .. high-low-low, 2.25 ++cutoffs");
+
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84e(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.0494;
+double c[6] = 
+  {-0.297823, 0.215328, -0.0792439, -0.422674, 0.647416, -0.207561};
+//  {-0.310445, 0.214944, -0.0914828, -0.422674, 0.619404, -0.179549};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84e() {
+  double xmin[6]= {2.18,2,2,2.25,2,2};
+  double xmax[6]= {2.36,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84e;
+	return M;
+}
+trialdata  d84e(m84e(),"ID[]:  1825e d84e,  dih2>= .. high-low-low, 2.25 -+cutoffs");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84f(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.0494;
+double c[6] = 
+  {-0.29013, 0.215328, -0.0715511, -0.267157, 0.650269, -0.295198};
+//  {-0.293139, 0.214623, -0.0738556, -0.267157, 0.650269, -0.291848};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84f() {
+  double xmin[6]= {2.18,2,2,2.0,2,2};
+  double xmax[6]= {2.36,2.18,2.18,2.25,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84f;
+	return M;
+}
+trialdata  d84f(m84f(),"ID[]:  1800f d84f,  dih2>= .. high-low-low, 2.25 --cutoffs");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84g(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.0494;
+double c[6] = 
+  {-0.404131, 0.212119, -0.0402827, -0.299046, 0.643273, -0.266118};
+  double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84g() {
+  double xmin[6]= {2.36,2,2,2.0,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.25,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84g;
+	return M;
+}
+trialdata  d84g(m84g(),"ID[]:  3600g d84g,  dih2>= .. high-low-low, 2.25 +-cutoffs");
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t84h(int numargs,int whichFn,double* y, double* ret,void*) {
+  double f0 = 1.0494;
+double c[6] = 
+  {-0.401543, 0.207551, -0.0294227, -0.494954, 0.605453, -0.156385};
+ double ymin[6]= {2.36, 2, 2, 2.25, 2, 2};
+ double r = f0;
+ for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
+  *ret = dih2_y(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+	}
+Minimizer m84h() {
+  double xmin[6]= {2.36,2,2,2.25,2,2};
+  double xmax[6]= {2.52,2.18,2.18,2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t84h;
+	return M;
+}
+trialdata  d84h(m84h(),"ID[]:  3625h d84h,  dih2>= .. high-low-low, 2.25 ++cutoffs");
+
+
+
+
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t85(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -1284,6 +1454,7 @@ Minimizer m85() {
 	return M;
 }
 trialdata  d85(m85(),"ID[7743522046]:  d85, dih2 <= .. high-low-low");
+
 
 
 

@@ -604,22 +604,21 @@ let h16 = allvpass (findall "161847242261" hard_bb);;
 let h16max = find_max h16;;  (* 12.0627 *)
 let b16 = h16;;
 let b16a = all_highvpass b16;;
+length b16a;;
 let b16Amax = find_max b16a;; (* 12.0627 *)
 let b16b =   (one_epass b16a);;
 let b16c  = one_epass (one_epass b16b);;
 let b16d = one_epass b16c;;
 length b16d;;
-find_max b16d;;
+find_max b16d;;   (* 12.051 *)
+let c16a= allpass 10 b16d;;
+let c16Amax = find_max c16a;;  (* 12.059 *)
+let c16b = allpass 15 c16a;;
+let c16Bmax = find_max c16b;;  (* 12.037 *)
 
-(*
-let h16a= allpass 10 h16;;
-let h16Amax = find_max h16a;;  (* 12.059 *)
-let h16b = allpass 15 h16a;;
-let h16Bmax = find_max h16b;;  (* 12.037 *)
+length c16a;; (* 466 *)
+length c16b;;  (* 636 *)
 
-length h16a;; (* 466 *)
-length h16b;;  (* 636 *)
-*)
 
 
 (*

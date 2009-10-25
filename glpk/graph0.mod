@@ -139,7 +139,7 @@ var azim{DART} >= 0, <= pi;
 var azim2{HLLTRI} >=0, <= pi;
 var azim3{HLLTRI} >=0, <= pi;
 var ln{IVERTEX} >= 0, <= 1;
-var rhazim{DART} >=0, <= pi + delta0;
+var rhzim{DART} >=0, <= pi + delta0;
 var yn{IVERTEX} >= 2, <= 2.52;
 var ye{DEDGE} >= 2, <= 3;
 var rho{IVERTEX} >= 1, <= 1 + delta0/pi;
@@ -166,9 +166,9 @@ lnsum_def: sum{i in IVERTEX} ln[i]  = lnsum;
 ynsum_def: sum{i in IVERTEX} yn[i] = ynsum;
 sqdeficit_def: tgt - sum{j in FACE} tau[j] = sqdeficit;
 azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
-rhazim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhazim[i,j] = 2.0*pi*rho[i];
+rhzim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhzim[i,j] = 2.0*pi*rho[i];
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
-tau_sum{j in FACE}: sum{(i,j) in DART} (rhazim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
+tau_sum{j in FACE}: sum{(i,j) in DART} (rhzim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
 
 
 
@@ -186,10 +186,10 @@ azim3c{(i1,i2,i3,j) in EDART : (i2,j) in HLLTRI}: azim3[i2,j] = azim[i1,j];
 
 ## inequality constraints
 main: sum{i in IVERTEX} ln[i] >= 12;
-RHA{(i,j) in DART}: rhazim[i,j] >= azim[i,j]*1.0;
-RHB{(i,j) in DART}: rhazim[i,j] <= azim[i,j]*(1+delta0/pi);
-RHBLO{(i,j) in DART: i in LOWVERTEX}: rhazim[i,j] <= azim[i,j]*rho218;
-RHBHI{(i,j) in DART: i in HIGHVERTEX}: rhazim[i,j] >= azim[i,j]*rho218;
+RHA{(i,j) in DART}: rhzim[i,j] >= azim[i,j]*1.0;
+RHB{(i,j) in DART}: rhzim[i,j] <= azim[i,j]*(1+delta0/pi);
+RHBLO{(i,j) in DART: i in LOWVERTEX}: rhzim[i,j] <= azim[i,j]*rho218;
+RHBHI{(i,j) in DART: i in HIGHVERTEX}: rhzim[i,j] >= azim[i,j]*rho218;
 
 ## branch definitional inequalities
 ybig{(i,j) in IDART3 : j in BIGTRI}: 
@@ -253,7 +253,7 @@ azmaxA 'ID[3526497018]' {(i,j) in IDART3}: -azim[i,j] + 1.231
   - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
 
 
-rhazminA 'ID[5957966880]' {(i,j) in IDART3}: rhazim[i,j] - 1.2308 
+rhazminA 'ID[5957966880]' {(i,j) in IDART3}: rhzim[i,j] - 1.2308 
   + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
 
 
@@ -331,18 +331,18 @@ flatazim3 'ID[5000076558]' {(i1,i,i3,j) in EDART : (i,j) in FLAT}:
   +0.352*(y2[i,j]-2) + 0.416*(y4[i,j]-2.52)
   -0.66*(y6[i,j]-2) + 0.071*(y5[i,j]-2) >= 0;
 
-flatrhazim 'ID[9251360200]' {(i,j) in FLAT}:
-  rhazim[i,j]
+flatrhzim 'ID[9251360200]' {(i,j) in FLAT}:
+  rhzim[i,j]
   -1.629 - 0.866*(y1[i,j]-2) + 0.3805*(y2[i,j]+y3[i,j]-4)
   -0.841*(y4[i,j]-2.52) + 0.501*(y5[i,j]+y6[i,j]-4) >= 0;
 
-flatrhazim2 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
-  rhazim[i3,j] -1.08
+flatrhzim2 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
+  rhzim[i3,j] -1.08
   +0.6362*(y1[i,j]-2) -0.565*(y2[i,j]-2)+0.359*(y3[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y5[i,j]-2) +0.061*(y6[i,j]-2) >=0;
 
-flatrhazim3 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
-  rhazim[i3,j] -1.08
+flatrhzim3 'ID[9756015945]' {(i1,i,i3,j) in EDART: (i,j) in FLAT}:
+  rhzim[i3,j] -1.08
   +0.6362*(y1[i,j]-2) -0.565*(y3[i,j]-2)+0.359*(y2[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y6[i,j]-2) +0.061*(y5[i,j]-2) >=0;
 
@@ -452,8 +452,8 @@ apieceazim 'ID[5760733457]' {(i,j) in APIECE}:
   -0.1*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
   -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
 
-apiecerhazim 'ID[2563100177]' {(i,j) in APIECE}:
-  rhazim[i,j] - 1.0685 
+apiecerhzim 'ID[2563100177]' {(i,j) in APIECE}:
+  rhzim[i,j] - 1.0685 
   -0.4635*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
   -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
 
@@ -809,6 +809,7 @@ display lnsum;
 display yn;
 display ye;
 display azim;
+display rhzim;
 display tau;
 display sol;
 display sqdeficit;

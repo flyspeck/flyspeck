@@ -37,6 +37,7 @@ let model = "/tmp/graph0.mod";; (* read only *)
 let archive_feasible = "/tmp/feasible_graph.txt";; (* temporary out *)
 let cpxfile = "/tmp/cplex.cpx";; (* temporary output *)
 let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
+let dumpfile = "/tmp/graph.out";; (* temp output *)
 
 (* list operations *)
 let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
@@ -74,6 +75,14 @@ let enumerate xs = zip (upto (length xs)) xs;;
 let whereis i xs = 
   let (p,_) = find (function _,j -> j=i) (enumerate xs) in
     p;;
+
+let wheremod xs x = 
+  let maxsz = maxlist0 (map length xs) in
+  let ys = flatten (map (fun i -> map (rotateL i) xs) (upto maxsz)) in
+   (whereis x ys) mod (length xs);;
+
+(* example *)
+wheremod [[0;1;2];[3;4;5];[7;8;9]] [8;9;7];;  (* 2 *)
 
 let rec nub = function
   | [] -> []
@@ -282,11 +291,18 @@ let unsplit d f = function
 
 let join_lines  = unsplit "\n" (fun x-> x);;
 
+
+
 let ampl_of_bb outs bb = 
   let fs = faces bb in
-  let fs3 = fs @ map (rotateL 1) fs @ map (rotateL 2) fs @ map (rotateL 3) fs @ map (rotateL 4) fs in
+  let where3 = wheremod fs in
+(*
+  let maxsz = maxlist0 (map length fs) in
+  let fs3 = flatten (map (fun i -> map (rotateL i) fs) (upto maxsz)) in
+  let fs3 = fs @ map (rotateL 1) fs @ map (rotateL 2) fs @ map (rotateL 3) fs @ map (rotateL 4) fs in 
   let where3 i = (whereis i fs3) mod (length fs) in 
-  let number xs = map (fun i -> where3 i) xs in
+*)
+  let number = map where3 in
   let list_of = unsplit " " string_of_int in
   let mk_faces xs = list_of (number xs) in
   let edart_raw  = 
@@ -362,17 +378,17 @@ let solve bb = match bb.lpvalue with
   | None -> solve_branch bb
   | Some _ -> bb;;
 
-(* display glpk messages *)
+(* for debugging : display glpk output *)
 
-let display_lp bb = (* for debugging *)
+let display_lp bb = 
   let oc = open_out tmpfile in
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
-  let com = sprintf "glpsol -m %s -d %s" model tmpfile in
+  let com = sprintf "glpsol -m %s -d %s | tee %s" model tmpfile dumpfile in
   let _ = Sys.command(com) in 
     ();;
 
-(* create cplex file without solving *)
+(* for debugging: create cplex file without solving *)
 
 let cpx_branch bb = (* debug *)
   let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model cpxfile in 
@@ -382,6 +398,53 @@ let cpx_branch bb = (* debug *)
   let _ = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
   sprintf "cplex file created of lp: %s" cpxfile;;
+
+(* for debugging: reading optimal variables values from the dumpfile *)
+
+let get_dumpvar  s = (* read variables from dumpfile *)
+  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s dumpfile in
+  let (ic,oc) = Unix.open_process(com) in
+  let _ = close_out oc in
+  let inp = load_and_close_channel false ic in
+  let _ = Unix.close_process(ic,oc) in
+  inp;;
+
+let float_of_dump s = float_of_string (hd s);;
+(* get_dumpvar "yn.0.*=";; *)
+
+let get_float s = float_of_dump(get_dumpvar s);;
+
+let get_yn i = get_float (sprintf "yn.%d.*=" i);;
+(* get_yn 2;; *)
+
+let int_of_face xs bb = wheremod (faces bb) xs;;
+
+let get_ye i xs bb = get_float (sprintf "ye.%d,%d.*=" i (int_of_face xs bb));;
+(* get_ye 2 [2;4;3] bb;; *)
+
+let get_azim i xs bb = get_float (sprintf "azim.%d,%d.*=" i (int_of_face xs bb));;
+(* get_azim 2 [2;4;3] bb;; *)
+
+let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
+(* get_sol [12;7;8] bb;; *)
+
+let get_tau xs bb = get_float (sprintf "tau.%d.*=" (int_of_face xs bb));;
+(* get_tau [12;7;8] bb;; *)
+
+(* for debugging: look at edge lengths and azimuth angles of a triangle *)
+
+let get_azim_table f xs bb = 
+   let [y1;y2;y3] = map get_yn xs in
+   let [y6;y4;y5] = map (fun i -> get_ye i xs bb) xs in
+   let [a1;a2;a3] = map (fun i -> get_azim i xs bb) xs in
+   let b1 = f y1 y2 y3 y4 y5 y6 in
+   let b2 = f y2 y3 y1 y5 y6 y4 in
+   let b3 = f y3 y1 y2 y6 y4 y5 in
+   (y1,y2,y3,y4,y5,y6,(a1,b1),(a2,b2),(a3,b3));;
+(*
+get_azim_table dih_y [2;4;3] bb;;
+*)
+
 
 
 (* filtering output *)
@@ -612,13 +675,14 @@ let b16d = one_epass b16c;;
 length b16d;;
 find_max b16d;;   (* 12.051 *)
 let c16a= allpass 10 b16d;;
-let c16Amax = find_max c16a;;  (* 12.059 *)
+let c16Amax = find_max c16a;; (* 12.048 *)  (* was 12.059 *)
+length c16a;;  (* 997 *)
 let c16b = allpass 15 c16a;;
-let c16Bmax = find_max c16b;;  (* 12.037 *)
-
-length c16a;; (* 466 *)
-length c16b;;  (* 636 *)
-
+let c16Bmax = find_max c16b;;  (* 12.026 *) (* was 12.037 *)
+length c16b;;  (* 657 *) (* was 636 *)
+display_ampl c16Bmax;;
+display_lp c16Bmax;;
+enumerate (faces c16Bmax);;
 
 
 (*

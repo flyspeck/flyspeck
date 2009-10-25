@@ -661,6 +661,148 @@ tauhighlow 'ID[8282573160]'
   -0.241*(y5[i,j]+y6[i,j]-4) >=0;
 
 
+# branch BIG/SMALL/EDGE EXTRAHIGH/MEDIUMHIGH
+
+#a
+azim_med_big 'ID[3872614111]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  -azim[i,j] >= -1.542
+     -0.362519*(y1[i,j]-2.36)
+      +0.298691*(y2[i,j]-2)
+      +0.287065*(y3[i,j]-2)
+      -0.920785*(y4[i,j]-2.25)
+      +0.190917*(y5[i,j]-2)
+      +0.219132*(y6[i,j]-2) ;
+   #  {-0.362519, 0.298691, 0.287065, -0.920785, 0.190917, 0.219132};
+
+#b
+azim_med_small 'ID[3139693500]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  -azim[i,j] >= -1.542
+     -0.346773*(y1[i,j]-2.36)
+      +0.300751*(y2[i,j]-2)
+      +0.300751*(y3[i,j]-2)
+      -0.702567*(y4[i,j]-2.25)
+      +0.172726*(y5[i,j]-2)
+      +0.172727*(y6[i,j]-2) ;
+   # {-0.346773, 0.300751, 0.300751, -0.702567, 0.172726, 0.172727};
+
+
+#c
+azim2_extra_small 'ID[4841020453]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+  -azim[i,j] >= -1.542
+     -0.490439*(y1[i,j]-2.36)
+      +0.318125*(y2[i,j]-2)
+      +0.32468*(y3[i,j]-2)
+      -0.740079*(y4[i,j]-2.25)
+      +0.178868*(y5[i,j]-2)
+      +0.205819*(y6[i,j]-2) ;
+   #  {-0.490439, 0.318125, 0.32468, -0.740079, 0.178868, 0.205819};
+
+
+#d
+azim_extra_big 'ID[9925287433]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+   -azim[i,j] >= -1.542
+     -0.490439*(y1[i,j]-2.36)
+      +0.321849*(y2[i,j]-2)
+      +0.320956*(y3[i,j]-2)
+      -1.00902*(y4[i,j]-2.25)
+      +0.240709*(y5[i,j]-2)
+      +0.218081*(y6[i,j]-2) ;
+   # {-0.490439, 0.321849, 0.320956, -1.00902, 0.240709, 0.218081};
+
+
+#e
+azim2_med_big 'ID[7409690040]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  azim2[i,j] >= 1.0494
+     -0.297823*(y1[i,j]-2.36)
+      +0.215328*(y2[i,j]-2)
+      -0.0792439*(y3[i,j]-2)
+      -0.422674*(y4[i,j]-2.25)
+      +0.647416*(y5[i,j]-2)
+      -0.207561*(y6[i,j]-2) ;
+   #  {-0.297823, 0.215328, -0.0792439, -0.422674, 0.647416, -0.207561};
+
+#e sym
+azim3_med_big 'ID[7409690040]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  azim3[i,j] >= 1.0494
+     -0.297823*(y1[i,j]-2.36)
+      +0.215328*(y3[i,j]-2)
+      -0.0792439*(y2[i,j]-2)
+      -0.422674*(y4[i,j]-2.25)
+      +0.647416*(y6[i,j]-2)
+      -0.207561*(y5[i,j]-2) ;
+   #  {-0.297823, 0.215328, -0.0792439, -0.422674, 0.647416, -0.207561};
+
+
+#f
+azim2_med_small 'ID[4002562507]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  azim2[i,j] >= 1.0494
+     -0.29013*(y1[i,j]-2.36)
+      +0.215328*(y2[i,j]-2)
+      -0.0715511*(y3[i,j]-2)
+      -0.267157*(y4[i,j]-2.25)
+      +0.650269*(y5[i,j]-2)
+      -0.295198*(y6[i,j]-2) ;
+   #  {-0.29013, 0.215328, -0.0715511, -0.267157, 0.650269, -0.295198};
+
+#f sym
+azim3_med_small 'ID[4002562507]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in MEDIUMHIGHVERTEX}:
+  azim3[i,j] >= 1.0494
+     -0.29013*(y1[i,j]-2.36)
+      +0.215328*(y3[i,j]-2)
+      -0.0715511*(y2[i,j]-2)
+      -0.267157*(y4[i,j]-2.25)
+      +0.650269*(y6[i,j]-2)
+      -0.295198*(y5[i,j]-2) ;
+   #  {-0.29013, 0.215328, -0.0715511, -0.267157, 0.650269, -0.295198};
+
+
+#g
+azim_extra_small 'ID[5835568093]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+  azim2[i,j] >= 1.0494
+     -0.404131*(y1[i,j]-2.36)
+      +0.212119*(y2[i,j]-2)
+      -0.0402827*(y3[i,j]-2)
+      -0.299046*(y4[i,j]-2.25)
+      +0.643273*(y5[i,j]-2)
+      -0.266118*(y6[i,j]-2) ;
+   # {-0.404131, 0.212119, -0.0402827, -0.299046, 0.643273, -0.266118};
+
+#g sym
+azim3_extra_small 'ID[5835568093]' {(i,i2,i3,j) in EDART : (i2,j) in SMALLEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+  azim3[i,j] >= 1.0494
+     -0.404131*(y1[i,j]-2.36)
+      +0.212119*(y3[i,j]-2)
+      -0.0402827*(y2[i,j]-2)
+      -0.299046*(y4[i,j]-2.25)
+      +0.643273*(y6[i,j]-2)
+      -0.266118*(y5[i,j]-2) ;
+   # {-0.404131, 0.212119, -0.0402827, -0.299046, 0.643273, -0.266118};
+
+
+#h
+azim2_extra_big 'ID[1894886027]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+  azim2[i,j] >= 1.0494
+     -0.401543*(y1[i,j]-2.36)
+      +0.207551*(y2[i,j]-2)
+      -0.0294227*(y3[i,j]-2)
+      -0.494954*(y4[i,j]-2.25)
+      +0.605453*(y5[i,j]-2)
+      -0.156385*(y6[i,j]-2) ;
+   # {-0.401543, 0.207551, -0.0294227, -0.494954, 0.605453, -0.156385};
+
+#h sym
+azim3_extra_big 'ID[1894886027]' {(i,i2,i3,j) in EDART : (i2,j) in BIGEDGE and (i,j) in HLLTRI and i in EXTRAHIGHVERTEX}:
+  azim3[i,j] >= 1.0494
+     -0.401543*(y1[i,j]-2.36)
+      +0.207551*(y3[i,j]-2)
+      -0.0294227*(y2[i,j]-2)
+      -0.494954*(y4[i,j]-2.25)
+      +0.605453*(y6[i,j]-2)
+      -0.156385*(y5[i,j]-2) ;
+   # {-0.401543, 0.207551, -0.0294227, -0.494954, 0.605453, -0.156385};
+
+ 
+
 solve;
 display hypermapID;
 display lnsum;

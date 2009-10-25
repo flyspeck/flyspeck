@@ -1284,7 +1284,7 @@ Minimizer m84a() {
 	M.func = t84a;
 	return M;
 }
-trialdata  d84a(m84a(),"ID[]:  1825a d84a,  dih<= .. high-low-low, 2.25 -+cutoffs");
+trialdata  d84a(m84a(),"ID[3872614111]:  1825a d84a,  dih<= .. high-low-low, 2.25 -+cutoffs");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -1304,7 +1304,7 @@ Minimizer m84b() {
 	M.func = t84b;
 	return M;
 }
-trialdata  d84b(m84b(),"ID[]:  1800b d84b,  dih<= .. high-low-low, 2.25 --cutoffs");
+trialdata  d84b(m84b(),"ID[3139693500]:  1800b d84b,  dih<= .. high-low-low, 2.25 --cutoffs");
 
 
 ////////// NEW INEQ
@@ -1325,7 +1325,7 @@ Minimizer m84c() {
 	M.func = t84c;
 	return M;
 }
-trialdata  d84c(m84c(),"ID[]:  3600c d84c,  dih<= .. high-low-low, 2.25 +-cutoffs");
+trialdata  d84c(m84c(),"ID[4841020453]:  3600c d84c,  dih<= .. high-low-low, 2.25 +-cutoffs");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -1345,7 +1345,7 @@ Minimizer m84d() {
 	M.func = t84d;
 	return M;
 }
-trialdata  d84d(m84d(),"ID[]:  3625d d84d,  dih<= .. high-low-low, 2.25 ++cutoffs");
+trialdata  d84d(m84d(),"ID[9925287433]:  3625d d84d,  dih<= .. high-low-low, 2.25 ++cutoffs");
 
 
 
@@ -1368,7 +1368,7 @@ Minimizer m84e() {
 	M.func = t84e;
 	return M;
 }
-trialdata  d84e(m84e(),"ID[]:  1825e d84e,  dih2>= .. high-low-low, 2.25 -+cutoffs");
+trialdata  d84e(m84e(),"ID[7409690040]:  1825e d84e,  dih2>= .. high-low-low, 2.25 -+cutoffs");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -1389,7 +1389,7 @@ Minimizer m84f() {
 	M.func = t84f;
 	return M;
 }
-trialdata  d84f(m84f(),"ID[]:  1800f d84f,  dih2>= .. high-low-low, 2.25 --cutoffs");
+trialdata  d84f(m84f(),"ID[4002562507]:  1800f d84f,  dih2>= .. high-low-low, 2.25 --cutoffs");
 
 
 ////////// NEW INEQ
@@ -1410,7 +1410,7 @@ Minimizer m84g() {
 	M.func = t84g;
 	return M;
 }
-trialdata  d84g(m84g(),"ID[]:  3600g d84g,  dih2>= .. high-low-low, 2.25 +-cutoffs");
+trialdata  d84g(m84g(),"ID[5835568093]:  3600g d84g,  dih2>= .. high-low-low, 2.25 +-cutoffs");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -1430,7 +1430,7 @@ Minimizer m84h() {
 	M.func = t84h;
 	return M;
 }
-trialdata  d84h(m84h(),"ID[]:  3625h d84h,  dih2>= .. high-low-low, 2.25 ++cutoffs");
+trialdata  d84h(m84h(),"ID[1894886027]:  3625h d84h,  dih2>= .. high-low-low, 2.25 ++cutoffs");
 
 
 

@@ -209,17 +209,12 @@ big4_face = add "b4" fields bb.big4_face;
 bigedge = add "be" fields bb.bigedge;
 smalledge = add "se" fields bb.smalledge;
 highvertex = add "hv" vfields bb.highvertex;
-extahighvertex = add "ehv" vfields bb.extrahighvertex;
+extrahighvertex = add "ehv" vfields bb.extrahighvertex;
 mediumhighvertex = add "mhv" vfields bb.mediumhighvertex;
 lowvertex = add "lv" vfields bb.lowvertex;
 }
 ;;
 
-(*
-Example: move [8;1;6;9] from std to super8.
- let pbb = mk_bb pentstring;;
- modify_bb pbb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
-*)
 
 let mk_bb s = 
   let (h,face1) = convert_to_list s in
@@ -237,12 +232,20 @@ let mk_bb s =
   big5_face=[];
   big4_face=[];
   bigedge=[];
+  smalledge=[];
   highvertex=[];
-  exttrahighvertex=[];
+  extrahighvertex=[];
+  mediumhighvertex=[];
   lowvertex=[];
  };;
 
 let tame_bb = map mk_bb tame;; 
+
+(*
+Example: move [8;1;6;9] from std to super8.
+*)
+let pent_bb = mk_bb pentstring;;
+modify_bb pent_bb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
 
 
 (* functions on branch n bound *)
@@ -281,7 +284,9 @@ let join_lines  = unsplit "\n" (fun x-> x);;
 
 let ampl_of_bb outs bb = 
   let fs = faces bb in
-  let number xs = map (fun i -> whereis i fs) xs in
+  let fs3 = fs @ map (rotateL 1) fs @ map (rotateL 2) fs @ map (rotateL 3) fs @ map (rotateL 4) fs in
+  let where3 i = (whereis i fs3) mod (length fs) in 
+  let number xs = map (fun i -> where3 i) xs in
   let list_of = unsplit " " string_of_int in
   let mk_faces xs = list_of (number xs) in
   let edart_raw  = 
@@ -289,7 +294,7 @@ let ampl_of_bb outs bb =
   let edart =
     let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(unsplit ", " list_of x) in
       unsplit "\n" edata_row (enumerate edart_raw) in 
-  let mk_dart xs = sprintf "%d %d" (hd xs) (whereis xs fs) in
+  let mk_dart xs = sprintf "%d %d" (hd xs) (where3 xs) in
   let mk_darts xs = (unsplit ", " mk_dart xs) in
   let p = sprintf in
   let j = join_lines [
@@ -426,6 +431,18 @@ let asplit_pent xs i =
   let y1::y2::y3::y4::[y5] = rotateL i xs in
   ([y2;y3;y1],[y3;y5;y1],[y4;y5;y3]);;
 
+let switch_edge bb =
+  let l = bb.lowvertex in
+  let h = bb.highvertex in
+  let m t i r = mem (nth (fst t) i) r in
+  let faces = filter (fun t ->  length t = 3) (std_faces bb) in
+  let face2 = flatten (map (fun t -> [(t,t); (rotateL 1 t,t); (rotateL 2 t,t)]) faces) in
+  let face3 = filter (fun t -> m t 0 l && m t 1 l && m t 2 h) face2 in 
+  let face4 = filter (fun t -> not (mem (fst t) (bb.bigedge @ bb.smalledge))) face3 in
+  if (face4=[]) then [bb] else 
+    let (f,_)::_ = face4 in
+      [modify_bb bb false ["be",f] [];modify_bb bb false ["se",f] []];; 
+
 let switch3 bb =
   let fc::_ = bb.std_faces_not_super in
   [modify_bb bb true ["bt",fc] [];modify_bb bb true ["st",fc] []];;
@@ -483,8 +500,10 @@ let one_highvpass bbs =
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
     filterout_infeas feasible branches;;
 
-
-
+let one_epass bbs = 
+  let branches = flatten (map switch_edge bbs) in
+    Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
+    filterout_infeas feasible branches;;
 
 let onevpass bbs = 
   let switch_v bb = switch_vertex bb (get_vertex bb) in
@@ -582,7 +601,15 @@ let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]
 
 length hard2_bb;;
 let h16 = allvpass (findall "161847242261" hard_bb);;
-let h16max = find_max h16;;  (* 12.062 *)
+let h16max = find_max h16;;  (* 12.0627 *)
+let b16 = h16;;
+let b16a = all_highvpass b16;;
+let b16Amax = find_max b16a;; (* 12.0627 *)
+let b16b =   (one_epass b16a);;
+let b16c  = one_epass (one_epass b16b);;
+let b16d = one_epass b16c;;
+length b16d;;
+find_max b16d;;
 
 (*
 let h16a= allpass 10 h16;;
@@ -595,7 +622,6 @@ length h16b;;  (* 636 *)
 *)
 
 
-1;;
 (*
 
 (* this one is a dodecahedron modified with vertex 2 pressed

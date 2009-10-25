@@ -361,7 +361,7 @@ let testps() =  (* for debugging *)
 let solve_branch bb = (* side effects, lpvalue mutable *)
   let set_some bb r = (* side effects *)
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
-  let com = sprintf "glpsol -m %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model in 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/lnsum = //' "  model dumpfile in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
@@ -425,6 +425,9 @@ let get_ye i xs bb = get_float (sprintf "ye.%d,%d.*=" i (int_of_face xs bb));;
 let get_azim i xs bb = get_float (sprintf "azim.%d,%d.*=" i (int_of_face xs bb));;
 (* get_azim 2 [2;4;3] bb;; *)
 
+let get_rhzim i xs bb = get_float (sprintf "rhzim.%d,%d.*=" i (int_of_face xs bb));;
+(* get_rhzim 3 [2;4;3] bb;;  *)
+
 let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
 (* get_sol [12;7;8] bb;; *)
 
@@ -440,10 +443,28 @@ let get_azim_table f xs bb =
    let b1 = f y1 y2 y3 y4 y5 y6 in
    let b2 = f y2 y3 y1 y5 y6 y4 in
    let b3 = f y3 y1 y2 y6 y4 y5 in
-   (y1,y2,y3,y4,y5,y6,(a1,b1),(a2,b2),(a3,b3));;
+   (y1,y2,y3,y4,y5,y6,(a1,b1,a1-. b1),(a2,b2,a2-. b2),(a3,b3,a3 -. b3),a1+. a2 +. a3 -.( b1 +. b2 +. b3));;
 (*
 get_azim_table dih_y [2;4;3] bb;;
 *)
+
+(* experimental *)
+let get_azim_diff f xs bb = 
+   let [y1;y2;y3] = map get_yn xs in
+   let [y6;y4;y5] = map (fun i -> get_ye i xs bb) xs in
+   let a1 = get_azim (hd xs) xs bb in
+   let b1 = f y1 y2 y3 y4 y5 y6 in
+   abs_float (a1 -. b1);;
+(* get_azim_diff dih_y [2;4;3] bb;; *)
+
+(* experimental *)
+let biggest_azim_diff f bb = 
+  let xs = filter (fun t -> length t = 3) bb.std_faces_not_super @ bb.bigtri @ bb.smalltri in
+  let ys = flatten (map (fun i -> map (rotateL i) xs) [0;1;2]) in
+  let u = map (fun t->  (get_azim_diff f t bb  ,t))  ys in
+  let v = sort (fun a b -> - compare (fst a) (fst b)) u in
+   v;;
+(* biggest_azim_diff dih_y bb;; *)
 
 
 
@@ -618,15 +639,14 @@ let hardid =
 (* {4,4,4} *) "65974205892"; *)
 ];;
 
-
-(* hard cases
-"179189825656 21 4 0 1 2 3 3 0 3 4 3 4 3 2 3 4 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ",
-"154005963125 20 4 0 1 2 3 4 0 3 4 5 3 4 3 2 3 4 2 6 3 6 2 7 3 7 2 1 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 5 3 9 5 10 3 10 5 11 3 11 5 4 3 11 4 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 10 3 8 9 10 3 10 11 12 ",
-"65974205892 19 4 0 1 2 3 4 0 3 4 5 3 4 3 6 3 6 3 2 3 6 2 7 3 7 2 8 3 8 2 1 3 8 1 9 4 9 1 0 5 3 9 5 10 3 10 5 4 3 10 4 11 3 11 4 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ",
-"223336279535 21 4 0 1 2 3 3 0 3 4 3 4 3 5 3 5 3 2 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ",
-"86506100695 20 4 0 1 2 3 4 0 3 4 5 3 4 3 6 3 6 3 2 3 6 2 7 3 7 2 1 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 5 3 9 5 10 3 10 5 11 3 11 5 4 3 11 4 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 10 3 8 9 10 3 10 11 12 ",
-"161847242261 22 3 0 1 2 3 0 2 3 3 3 2 4 3 4 2 1 3 4 1 5 3 5 1 6 3 6 1 0 3 6 0 7 3 7 0 8 3 8 0 3 3 8 3 9 3 9 3 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ",
-*)
+let hard_string = [
+"179189825656 21 4 0 1 2 3 3 0 3 4 3 4 3 2 3 4 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ";
+"154005963125 20 4 0 1 2 3 4 0 3 4 5 3 4 3 2 3 4 2 6 3 6 2 7 3 7 2 1 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 5 3 9 5 10 3 10 5 11 3 11 5 4 3 11 4 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 10 3 8 9 10 3 10 11 12 ";
+"65974205892 19 4 0 1 2 3 4 0 3 4 5 3 4 3 6 3 6 3 2 3 6 2 7 3 7 2 8 3 8 2 1 3 8 1 9 4 9 1 0 5 3 9 5 10 3 10 5 4 3 10 4 11 3 11 4 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ";
+"223336279535 21 4 0 1 2 3 3 0 3 4 3 4 3 5 3 5 3 2 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ";
+"86506100695 20 4 0 1 2 3 4 0 3 4 5 3 4 3 6 3 6 3 2 3 6 2 7 3 7 2 1 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 5 3 9 5 10 3 10 5 11 3 11 5 4 3 11 4 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 10 3 8 9 10 3 10 11 12 ";
+"161847242261 22 3 0 1 2 3 0 2 3 3 3 2 4 3 4 2 1 3 4 1 5 3 5 1 6 3 6 1 0 3 6 0 7 3 7 0 8 3 8 0 3 3 8 3 9 3 9 3 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 "
+];;
 
 let findid s  = find (fun t -> s = t.hypermapid);;
 let findall s = filter (fun t -> s = t.hypermapid);;
@@ -680,9 +700,7 @@ length c16a;;  (* 997 *)
 let c16b = allpass 15 c16a;;
 let c16Bmax = find_max c16b;;  (* 12.026 *) (* was 12.037 *)
 length c16b;;  (* 657 *) (* was 636 *)
-display_ampl c16Bmax;;
-display_lp c16Bmax;;
-enumerate (faces c16Bmax);;
+
 
 
 (*

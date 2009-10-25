@@ -514,6 +514,9 @@ taulowbig 'ID[8611785756]'  {(i,j) in LOWBIGTRI}:
   sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
+
+# branch LOWVERTEX LLL.
+
 #branch HIGH VERTEX inequality
 
 hiazimA 'ID[2151506422]' {(i,j) in HLLTRI} :

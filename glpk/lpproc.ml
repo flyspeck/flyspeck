@@ -408,9 +408,40 @@ let get_dumpvar  s = (* read variables from dumpfile *)
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process(ic,oc) in
   inp;;
+(* get_dumpvar "yn.0.*=";; *)
+
+(* build up hashtables of all the variables assignments from the dumpfile *)
+
+let ynhash = Hashtbl.create 13;;
+let yehash = Hashtbl.create 70;;
+let azimhash = Hashtbl.create 70;;
+let yn i = Hashtbl.find ynhash i;;
+let ye (i,j) = Hashtbl.find yehash (i,j);;
+let azim(i,j) = Hashtbl.find azimhash (i,j);;
+
+let init_hash () = 
+  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" dumpfile in
+  let (ic,oc) = Unix.open_process(com) in
+  let _  = close_out oc in
+  let inp = load_and_close_channel false ic in
+  let split_sp=  Str.split (regexp " +") in
+  let inpa = map split_sp inp in
+  let _ = Hashtbl.clear ynhash in
+  let _ = Hashtbl.clear yehash in
+  let _ = Hashtbl.clear azimhash in
+  let ynproc [a;b;c] = Hashtbl.add ynhash (int_of_string b) (float_of_string c) in
+  let yeproc [a;b;c;d] = Hashtbl.add yehash ( (int_of_string b), (int_of_string c)) (float_of_string d) in
+  let azimproc [a;b;c;d] = Hashtbl.add azimhash ( (int_of_string b), (int_of_string c)) (float_of_string d) in
+  let proc1 xs = 
+    let a = hd xs in
+      if (a = "yn") then ynproc xs
+      else if (a = "ye") then yeproc xs
+      else if (a = "azim") then azimproc xs in
+  let _ = map proc1 inpa in ();;
+init_hash ();;
 
 let float_of_dump s = float_of_string (hd s);;
-(* get_dumpvar "yn.0.*=";; *)
+
 
 let get_float s = float_of_dump(get_dumpvar s);;
 
@@ -457,7 +488,7 @@ let get_azim_diff f xs bb =
    abs_float (a1 -. b1);;
 (* get_azim_diff dih_y [2;4;3] bb;; *)
 
-(* experimental *)
+(* experimental: too slow *)
 let biggest_azim_diff f bb = 
   let xs = filter (fun t -> length t = 3) bb.std_faces_not_super @ bb.bigtri @ bb.smalltri in
   let ys = flatten (map (fun i -> map (rotateL i) xs) [0;1;2]) in

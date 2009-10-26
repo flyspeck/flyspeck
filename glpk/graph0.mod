@@ -812,7 +812,4 @@ display lnsum;
 display yn;
 display ye;
 display azim;
-display rhzim;
-display tau;
-display sol;
 display sqdeficit;

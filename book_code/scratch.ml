@@ -19,6 +19,18 @@ tt;;
 bb.bigtri;;
 map (fun t -> (nth tt t)) [12;13;14;15;16;17;18;19;20;21];;
 
+
+map yn (upto 13);;
+
+ynproc (hd inpa);;
+Scanf.fscanf ic "%s %f" (fun ye r -> (ye,r));;
+Scanf.fscanf ic "%s %i %f" (fun ye i r -> (ye,i,r));;
+Scanf.fscanf ic "%s %i %i %f" (fun ye i j r -> (ye,i,j,r));;
+let first = Scanf.fscanf ic "%s" (fun s -> s);;
+let second = Scanf.fscanf ic "%f" (fun s -> s);;
+cat /tmp/graph.out | grep -v ':'  | grep '=' | sed 's/[,=]/ /g'
+
+
 let get_dumpvar  s = (* read variables from dumpfile *)
   let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s dumpfile in
   let (ic,oc) = Unix.open_process(com) in

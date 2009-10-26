@@ -438,26 +438,11 @@ let init_hash () =
       else if (a = "ye") then yeproc xs
       else if (a = "azim") then azimproc xs in
   let _ = map proc1 inpa in ();;
-init_hash ();;
+(* init_hash ();; *)
 
 let float_of_dump s = float_of_string (hd s);;
-
-
 let get_float s = float_of_dump(get_dumpvar s);;
-
-let get_yn i = get_float (sprintf "yn.%d.*=" i);;
-(* get_yn 2;; *)
-
 let int_of_face xs bb = wheremod (faces bb) xs;;
-
-let get_ye i xs bb = get_float (sprintf "ye.%d,%d.*=" i (int_of_face xs bb));;
-(* get_ye 2 [2;4;3] bb;; *)
-
-let get_azim i xs bb = get_float (sprintf "azim.%d,%d.*=" i (int_of_face xs bb));;
-(* get_azim 2 [2;4;3] bb;; *)
-
-let get_rhzim i xs bb = get_float (sprintf "rhzim.%d,%d.*=" i (int_of_face xs bb));;
-(* get_rhzim 3 [2;4;3] bb;;  *)
 
 let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
 (* get_sol [12;7;8] bb;; *)
@@ -468,34 +453,33 @@ let get_tau xs bb = get_float (sprintf "tau.%d.*=" (int_of_face xs bb));;
 (* for debugging: look at edge lengths and azimuth angles of a triangle *)
 
 let get_azim_table f xs bb = 
-   let [y1;y2;y3] = map get_yn xs in
-   let [y6;y4;y5] = map (fun i -> get_ye i xs bb) xs in
-   let [a1;a2;a3] = map (fun i -> get_azim i xs bb) xs in
+   let [y1;y2;y3] = map yn xs in
+   let [y6;y4;y5] = map (fun i -> ye ( i, int_of_face xs bb)) xs in
+   let [a1;a2;a3] = map (fun i -> azim (i, int_of_face xs bb)) xs in
    let b1 = f y1 y2 y3 y4 y5 y6 in
    let b2 = f y2 y3 y1 y5 y6 y4 in
    let b3 = f y3 y1 y2 y6 y4 y5 in
    (y1,y2,y3,y4,y5,y6,(a1,b1,a1-. b1),(a2,b2,a2-. b2),(a3,b3,a3 -. b3),a1+. a2 +. a3 -.( b1 +. b2 +. b3));;
-(*
-get_azim_table dih_y [2;4;3] bb;;
-*)
+
+(* get_azim_table dih_y [2;4;3] bb;; *)
 
 (* experimental *)
 let get_azim_diff f xs bb = 
-   let [y1;y2;y3] = map get_yn xs in
-   let [y6;y4;y5] = map (fun i -> get_ye i xs bb) xs in
-   let a1 = get_azim (hd xs) xs bb in
+   let [y1;y2;y3] = map yn xs in
+   let [y6;y4;y5] = map (fun i -> ye (i,int_of_face xs bb)) xs in
+   let a1 = azim (hd xs, int_of_face xs bb) in
    let b1 = f y1 y2 y3 y4 y5 y6 in
    abs_float (a1 -. b1);;
-(* get_azim_diff dih_y [2;4;3] bb;; *)
+(* get_azim_diff dih_y [2;4;3] bb;;  *)
 
-(* experimental: too slow *)
+(* experimental: first entry is the triangle with the biggest azim error. *)
 let biggest_azim_diff f bb = 
   let xs = filter (fun t -> length t = 3) bb.std_faces_not_super @ bb.bigtri @ bb.smalltri in
   let ys = flatten (map (fun i -> map (rotateL i) xs) [0;1;2]) in
   let u = map (fun t->  (get_azim_diff f t bb  ,t))  ys in
   let v = sort (fun a b -> - compare (fst a) (fst b)) u in
    v;;
-(* biggest_azim_diff dih_y bb;; *)
+(* biggest_azim_diff dih_y bb;;  *)
 
 
 

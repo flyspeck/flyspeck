@@ -11,18 +11,12 @@ ocamlmktop unix.cma str.cma -o ocampl
 glpk needs to be installed, and glpsol needs to be found in the path.
 *)
 
-(*
-LoadAll to run all linear programs.
-LoadFeasible skips tame_bb and loads feasible_bb.
-NoLoad : load file without running linear programs.
-*)
-
 
 open Str;;
 open List;;
 let sprintf = Printf.sprintf;;
 
-type mode = LoadFeasible | LoadAll | NoLoad;;  (* load mode *)
+type mode =  LoadAll | NoLoad;;  (* load mode *)
 let mode = LoadAll;;
 
 let nextc = 
@@ -58,6 +52,11 @@ let rec rotateL i xs =
 
 let rotateR i = rotateL (-i);;
 
+let rotation xs = 
+  let maxsz = maxlist0 (map length xs) in
+  flatten (map (fun i -> map (rotateL i) xs) (upto maxsz));;
+
+
 (* 
    zip from Harrison's lib.ml. 
    List.combine causes a stack overflow :
@@ -77,8 +76,7 @@ let whereis i xs =
     p;;
 
 let wheremod xs x = 
-  let maxsz = maxlist0 (map length xs) in
-  let ys = flatten (map (fun i -> map (rotateL i) xs) (upto maxsz)) in
+  let ys = rotation xs in 
    (whereis x ys) mod (length xs);;
 
 (* example *)
@@ -112,7 +110,7 @@ let save_stringarray filename xs =
     close_out oc;;
 
 let strip_archive filename =  (* strip // comments, blank lines, quotes etc. *)
-  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '//' | grep -v '^$' | sed 's/\"[,]*//g' | sed 's/_//g' " filename) in
+  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '//' | grep -v '^$' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
   let s = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
     s;;
@@ -120,9 +118,7 @@ let strip_archive filename =  (* strip // comments, blank lines, quotes etc. *)
 (* read in the tame hypermap archive as java style strings *)
 
 (* let tame = strip_archive archiveraw;;  *)
-let tame = if (mode=NoLoad) then [] else 
-                  if (mode = LoadAll) then (strip_archive archiveraw) 
-		  else  strip_archive archive_feasible;;
+let tame = if (mode=NoLoad) then [] else strip_archive archiveraw;;
 
 length tame;;
 (* example of java style string from hypermap generator. *)
@@ -196,35 +192,6 @@ type branchnbound =
     lowvertex : int list;
   };;
 
-(* conversion to branchnbound.  e.g. mk_bb pentstring  *)
-
-let modify_bb bb drop1std fields vfields = 
-  let add key xs = (@) (get_values key xs)  in
-  let std = bb.std_faces_not_super in
-{
-hypermapid = bb.hypermapid;
-lpvalue = None;
-string_rep = bb.string_rep;
-std_faces_not_super = if drop1std then tl std else std;
-superflat = add "sf" fields bb.superflat;
-super8 = add "s8" fields bb.super8;
-superduperq = add "sd" fields bb.superduperq;
-bigtri = add "bt" fields bb.bigtri;
-smalltri = add "st" fields bb.smalltri;
-flat_quarter = add "ff" fields bb.flat_quarter;
-a_face = add "af" fields bb.a_face;
-big5_face = add "b5" fields bb.big5_face;
-big4_face = add "b4" fields bb.big4_face;
-bigedge = add "be" fields bb.bigedge;
-smalledge = add "se" fields bb.smalledge;
-highvertex = add "hv" vfields bb.highvertex;
-extrahighvertex = add "ehv" vfields bb.extrahighvertex;
-mediumhighvertex = add "mhv" vfields bb.mediumhighvertex;
-lowvertex = add "lv" vfields bb.lowvertex;
-}
-;;
-
-
 let mk_bb s = 
   let (h,face1) = convert_to_list s in
  {hypermapid= h;
@@ -248,18 +215,64 @@ let mk_bb s =
   lowvertex=[];
  };;
 
+let pent_bb = mk_bb pentstring;;
 let tame_bb = map mk_bb tame;; 
+
+
+(* conversion to branchnbound.  e.g. mk_bb pentstring  *)
+
+
+
+
+let modify_bb bb drop1std fields vfields = 
+  let add key xs t = nub ((get_values key xs) @ t)  in
+  let shuffle key xs vs = 
+    let ys = get_values key xs in 
+    let e = rotation ys in
+      nub(ys @ (filter (fun t -> not(mem t e)) vs)) in 
+  let std = bb.std_faces_not_super in
+  let shuffle_std = shuffle "sh" fields std in 
+{
+hypermapid = bb.hypermapid;
+lpvalue = None;
+string_rep = bb.string_rep;
+std_faces_not_super = if drop1std then tl std else shuffle_std;
+superflat = add "sf" fields bb.superflat;
+super8 = add "s8" fields bb.super8;
+superduperq = add "sd" fields bb.superduperq;
+bigtri = add "bt" fields bb.bigtri;
+smalltri = add "st" fields bb.smalltri;
+flat_quarter = add "ff" fields bb.flat_quarter;
+a_face = add "af" fields bb.a_face;
+big5_face = add "b5" fields bb.big5_face;
+big4_face = add "b4" fields bb.big4_face;
+bigedge = add "be" fields bb.bigedge;
+smalledge = add "se" fields bb.smalledge;
+highvertex = add "hv" vfields bb.highvertex;
+extrahighvertex = add "ehv" vfields bb.extrahighvertex;
+mediumhighvertex = add "mhv" vfields bb.mediumhighvertex;
+lowvertex = add "lv" vfields bb.lowvertex;
+}
+;;
+
+
 
 (*
 Example: move [8;1;6;9] from std to super8.
-*)
-let pent_bb = mk_bb pentstring;;
-modify_bb pent_bb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
 
+modify_bb pent_bb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
+pent_bb;;
+modify_bb pent_bb false ["sh",[0;3;5;4];"sh",[10;6;4]] [];;
+*)
 
 (* functions on branch n bound *)
 
-let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq @ bb.bigtri @ bb.smalltri;;
+let std_faces bb = bb.std_faces_not_super @ bb.super8 @ bb.superduperq;;
+(*  @ bb.bigtri @ bb.smalltri;; *)
+
+let std_tri_prebranch bb = filter 
+   (let r = rotation (bb.bigtri @ bb.smalltri) in
+       fun t -> not(mem t r)  && (length t = 3)) bb.std_faces_not_super;;
 
 (* should sort faces, so that numbering doesn't change so much when branching *)
 
@@ -358,7 +371,7 @@ let testps() =  (* for debugging *)
 
 (* running of branch in glpsol *)
 
-let solve_branch bb = (* side effects, lpvalue mutable *)
+let solve_branch_f f bb = (* side effects, lpvalue mutable *)
   let set_some bb r = (* side effects *)
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
   let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/lnsum = //' "  model dumpfile in 
@@ -367,16 +380,34 @@ let solve_branch bb = (* side effects, lpvalue mutable *)
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-  let _ = set_some bb inp in
-  let r = match bb.lpvalue with
+  let fb = f bb in (* reorder std faces for control flow *)
+  let _ = set_some fb inp in
+  let r = match fb.lpvalue with
     | None -> -1.0
     | Some r -> r in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
-    bb;;
+  let _ = Sys.command(sprintf "echo %s: %3.3f\n" fb.hypermapid r) in 
+    fb;;
 
-let solve bb = match bb.lpvalue with
-  | None -> solve_branch bb
+let solve_f f bb = match bb.lpvalue with
+  | None -> solve_branch_f f bb
   | Some _ -> bb;;
+
+let solve bb = solve_f (fun t -> t) bb;;
+
+(* filtering output *)
+
+let filter_feas_f f bbs = 
+  let feasible r = (r > 11.999) in (* relax a bit from 12.0 *)
+  let sol = map (fun t -> solve_f f t) bbs in
+    let fil ro = match ro.lpvalue with
+	None -> true
+      | Some r -> feasible r in 
+      filter fil sol;;
+
+let filter_feas bbs = filter_feas_f (fun t->t) bbs;;
+
+
+
 
 (* for debugging : display glpk output *)
 
@@ -424,6 +455,7 @@ let init_hash () =
   let (ic,oc) = Unix.open_process(com) in
   let _  = close_out oc in
   let inp = load_and_close_channel false ic in
+  let _ = Unix.close_process(ic,oc) in
   let split_sp=  Str.split (regexp " +") in
   let inpa = map split_sp inp in
   let _ = Hashtbl.clear ynhash in
@@ -472,54 +504,51 @@ let get_azim_diff f xs bb =
    abs_float (a1 -. b1);;
 (* get_azim_diff dih_y [2;4;3] bb;;  *)
 
+(* std triangles, heights set, and not already small/big edge split *)
+
+let get_tri bb =
+  let xs = filter (fun t -> length t = 3) bb.std_faces_not_super in
+  let m i t = mem (nth t i) (bb.lowvertex @ bb.highvertex) in
+  let ys = rotation(filter (fun t -> m 0 t && m 1 t && m 2 t) xs) in
+  let zs = filter (fun t -> not(mem t (bb.smalledge @ bb.bigedge))) ys in
+   zs;;
+
 (* experimental: first entry is the triangle with the biggest azim error. *)
 let biggest_azim_diff f bb = 
-  let xs = filter (fun t -> length t = 3) bb.std_faces_not_super @ bb.bigtri @ bb.smalltri in
-  let ys = flatten (map (fun i -> map (rotateL i) xs) [0;1;2]) in
+  let _ = init_hash() in
+  let ys = get_tri bb in 
   let u = map (fun t->  (get_azim_diff f t bb  ,t))  ys in
   let v = sort (fun a b -> - compare (fst a) (fst b)) u in
    v;;
-(* biggest_azim_diff dih_y bb;;  *)
+(* biggest_azim_diff dih_y bb;;   *)
 
+let shuffle_face f bb = 
+  let v = biggest_azim_diff f bb in
+   if (v = []) then bb else
+     let xs = snd(hd v) in
+       modify_bb bb false ["sh",xs] [];;
 
+let shuffle t = shuffle_face dih_y t;;
 
-(* filtering output *)
-
-let filterout_infeas f bbs = 
-  let sol = map solve bbs in
-    let fil ro = match ro.lpvalue with
-	None -> true
-      | Some r -> f r in 
-      filter fil sol;;
-
-let feasible r = (r > 11.999);; (* relax a bit from 12.0 *)
-
-
-let feasible_bb = 
-   if (mode = NoLoad) then [] 
-     else if (mode = LoadAll) then (filterout_infeas feasible (map solve tame_bb))
-       else tame_bb;;
-
-length feasible_bb;; (* length 462 *)
+(* 
+branching on face data:
+switch_face does all the branching on the leading std face 
+*)
 
 
 let is_none bb = match bb.lpvalue with (* for debugging *)
     None -> true
   | Some _ -> false;;
 
-let calc_max bbs = fold_right  (* for debugging *)
+let calc_max bbs = fold_right 
   (fun bb x -> match bb.lpvalue with
      |None -> x
      |Some y -> max x y) bbs 0.0;;
 
-let find_max bbs = (* for debugging *)
+let find_max bbs = 
   let r = Some (calc_max bbs) in
     find (fun bb -> r = bb.lpvalue) bbs;;
 
-(* 
-branching on face data:
-switch_face does all the branching on the leading std face 
-*)
 
 let split_flatq xs i =  (* {y1,y3} is the new diagonal *)
   let y1::y2::y3::ys = rotateL i xs in
@@ -530,6 +559,7 @@ let asplit_pent xs i =
   let y1::y2::y3::y4::[y5] = rotateL i xs in
   ([y2;y3;y1],[y3;y5;y1],[y4;y5;y3]);;
 
+(*
 let switch_edge bb =
   let l = bb.lowvertex in
   let h = bb.highvertex in
@@ -541,11 +571,24 @@ let switch_edge bb =
   if (face4=[]) then [bb] else 
     let (f,_)::_ = face4 in
       [modify_bb bb false ["be",f] [];modify_bb bb false ["se",f] []];; 
+*)
 
-let switch3 bb =
-  let fc::_ = bb.std_faces_not_super in
-  [modify_bb bb true ["bt",fc] [];modify_bb bb true ["st",fc] []];;
+let switch_edge bb = 
+  let face  = get_tri bb in
+    if (face = []) then [bb] 
+    else  let f::_ = face in
+      [modify_bb bb false ["be",f] [];modify_bb bb false ["se",f] []];; 
 
+let switch3 bb = 
+  let fc::_ = std_tri_prebranch bb  in
+  [modify_bb bb false ["bt",fc] [];modify_bb bb false ["st",fc] []];;
+
+let switch3_edge bb =
+  let fc::_ =  bb.std_faces_not_super  in
+  let fc' = rotateL 1 fc in 
+  if not(mem fc (rotation (bb.bigtri @ bb.smalltri))) then
+    [modify_bb bb true ["bt",fc] [];modify_bb bb true ["st",fc] []]
+  else [modify_bb bb false ["be",fc';"bt",fc] [];modify_bb bb false ["se",fc'] []];;
 
 let switch4 bb = 
   let fc::_ = bb.std_faces_not_super in
@@ -597,22 +640,22 @@ let one_highvpass bbs =
   let switch_v bb = switch_high_vertex bb (get_high_vertex bb) in
   let branches = flatten (map switch_v bbs) in
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
-    filterout_infeas feasible branches;;
+    filter_feas branches;;
 
 let one_epass bbs = 
   let branches = flatten (map switch_edge bbs) in
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
-    filterout_infeas feasible branches;;
+    filter_feas_f shuffle branches;;
 
 let onevpass bbs = 
   let switch_v bb = switch_vertex bb (get_vertex bb) in
   let branches = flatten (map switch_v bbs) in
     Sys.command (sprintf "echo V STACK %d %d" (length bbs) (nextc()));
-    filterout_infeas feasible branches;;
+    filter_feas branches;;
 
 let onevpassi bbs i =
  let branches = flatten (map (fun bb -> switch_vertex bb i) bbs) in
-    filterout_infeas feasible branches;;
+    filter_feas branches;;
 
 let switch_face bb = match bb.std_faces_not_super with
   | [] -> [bb]
@@ -623,12 +666,17 @@ let switch_face bb = match bb.std_faces_not_super with
 
 let onepass bbs = 
   let branches = flatten (map switch_face bbs) in
-    Sys.command(sprintf "echo STACK %d %d" (length bbs) (nextc()));
-    filterout_infeas feasible branches;;
+    Sys.command(sprintf "echo STACKSIZE=%d COUNT=%d" (length bbs) (nextc()));
+    filter_feas branches;;
 
 let rec allpass count bbs = 
-   let t = maxlist0 (map (fun b -> length b.std_faces_not_super) bbs) in
+   let t = maxlist0 (map (fun b -> length (std_tri_prebranch b)) bbs) in
    if t = 0 or count <= 0 then bbs else allpass (count - 1) (onepass bbs);;
+
+let rec allpassdepth count bbs = 
+   let bb = find_max bbs in
+   let bbss = filter (fun t-> not(t = bb)) bbs in
+      allpassdepth (count - 1) (onepass [bb]  @ bbss);;
 
 let rec allvpass bbs = 
    if bbs = [] then [] 
@@ -667,10 +715,16 @@ let findid s  = find (fun t -> s = t.hypermapid);;
 let findall s = filter (fun t -> s = t.hypermapid);;
 let tests = ref [];;
 
+let feasible_bb =  filter_feas (map solve tame_bb);;
+
+
+length feasible_bb;; (* length 462 *)
+
 let (hard_bb,easy_bb) = partition (fun t -> (mem t.hypermapid hardid)) feasible_bb;;
 
 let alleasypass_bb _ = allvpass (allpass 20 easy_bb);;
 tests :=  (fun t -> alleasypass_bb t = [])::!tests;;
+
 
 (* experimental section from here to the end of the file *)
 
@@ -683,6 +737,7 @@ let testsuper _ =
   let allhardpassF_bb =  filter (fun t -> ( length t.superduperq = 0) && (length t.superflat > 0))  allhardpassA_bb in 
     allhardpassS_bb = [] && allhardpassF_bb = [];; 
 tests := testsuper :: !tests;;
+
 
 (* case 86506100695 *)
 let h86 _ =
@@ -697,6 +752,7 @@ tests := h86 :: !tests;;
 
 let hard2_bb = filter (fun t -> mem t.hypermapid ["161847242261";"223336279535"]) hard_bb;;
 
+
 length hard2_bb;;
 let h16 = allvpass (findall "161847242261" hard_bb);;
 let h16max = find_max h16;;  (* 12.0627 *)
@@ -709,6 +765,7 @@ let b16c  = one_epass (one_epass b16b);;
 let b16d = one_epass b16c;;
 length b16d;;
 find_max b16d;;   (* 12.051 *)
+0;; (* -- *)
 let c16a= allpass 10 b16d;;
 let c16Amax = find_max c16a;; (* 12.048 *)  (* was 12.059 *)
 length c16a;;  (* 997 *)
@@ -759,7 +816,7 @@ let h0 = nth hard_bb 0;;
 let h1 = 
   let s i l= flatten((map (fun t -> switch_vertex t i)) l) in
   let branches =   s 4(  s 3(  s 2(  s 1 (s 0 [h0])) ) )  in
-   filterout_infeas feasible branches;;
+   filter_feas branches;;
 length h1;;
 find_max h1;;
 let all16_bb = allpass 6 h1;;

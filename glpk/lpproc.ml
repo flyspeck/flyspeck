@@ -147,7 +147,7 @@ let test = [[1;99;77];[2;3;7];[9;10;11;12];[1;2;3;7];[1;2;3;4];[11;3;13;14;15];[
 *)
 
 let convert_to_list = 
-  let split_sp=  Str.split (regexp " ") in
+  let split_sp=  Str.split (regexp " +") in
   let strip_ = global_replace (regexp "_") "" in
   let rec movelist n (x,a) = 
     if n=0 then (x,a) else match x with y::ys -> movelist (n-1) (ys, y::a) in
@@ -170,6 +170,7 @@ type branchnbound =
   { 
     hypermapid : string;
     mutable lpvalue : float option;
+    mutable hints : int list list;  (* hints about branching *) 
     string_rep : string;
     std_faces_not_super: int list list;
     super8 : int list list;
@@ -196,6 +197,7 @@ let mk_bb s =
   let (h,face1) = convert_to_list s in
  {hypermapid= h;
   lpvalue = None;
+  hints = [];;
   string_rep=s;
   std_faces_not_super = face1;
   super8=[];
@@ -235,6 +237,7 @@ let modify_bb bb drop1std fields vfields =
 {
 hypermapid = bb.hypermapid;
 lpvalue = None;
+hints = bb.hints;
 string_rep = bb.string_rep;
 std_faces_not_super = if drop1std then tl std else shuffle_std;
 superflat = add "sf" fields bb.superflat;
@@ -371,7 +374,7 @@ let testps() =  (* for debugging *)
 
 (* running of branch in glpsol *)
 
-let solve_branch_f f bb = (* side effects, lpvalue mutable *)
+let solve_branch_f addhints bb = (* side effects, lpvalue & hints mutable *)
   let set_some bb r = (* side effects *)
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
   let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/lnsum = //' "  model dumpfile in 
@@ -380,13 +383,13 @@ let solve_branch_f f bb = (* side effects, lpvalue mutable *)
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-  let fb = f bb in (* reorder std faces for control flow *)
-  let _ = set_some fb inp in
-  let r = match fb.lpvalue with
+  let _ = addhints bb in (* hints for control flow *)
+  let _ = set_some bb inp in
+  let r = match bb.lpvalue with
     | None -> -1.0
     | Some r -> r in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" fb.hypermapid r) in 
-    fb;;
+  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermapid r) in 
+    bb;;
 
 let solve_f f bb = match bb.lpvalue with
   | None -> solve_branch_f f bb
@@ -522,11 +525,14 @@ let biggest_azim_diff f bb =
    v;;
 (* biggest_azim_diff dih_y bb;;   *)
 
+(*
 let shuffle_face f bb = 
   let v = biggest_azim_diff f bb in
    if (v = []) then bb else
      let xs = snd(hd v) in
        modify_bb bb false ["sh",xs] [];;
+*)
+let shuffle_face f bb = bb;;  (* add details later *)
 
 let shuffle t = shuffle_face dih_y t;;
 

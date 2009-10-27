@@ -573,7 +573,7 @@ let switch_edge bb =
       [modify_bb bb false ["be",f] [];modify_bb bb false ["se",f] []];; 
 *)
 
-let switch_edge bb = 
+let switch_edge bb = (* old *)
   let face  = get_tri bb in
     if (face = []) then [bb] 
     else  let f::_ = face in
@@ -764,7 +764,7 @@ let b16b =   (one_epass b16a);;
 let b16c  = one_epass (one_epass b16b);;
 let b16d = one_epass b16c;;
 length b16d;;
-find_max b16d;;   (* 12.051 *)
+let b16e = find_max b16d;;   (* 12.051 *)
 0;; (* -- *)
 let c16a= allpass 10 b16d;;
 let c16Amax = find_max c16a;; (* 12.048 *)  (* was 12.059 *)

@@ -1,8 +1,11 @@
 exit 0;;
 1;;
 
-#use "lpproc.ml";;
-#use "../book_code/sphere.ml";;
+
+let b16e = find_max b16d;;   (* 12.051 *)
+
+1;;
+#use "sphere.ml";;
 
 let bb = find_max b16d;;
 display_lp bb;;

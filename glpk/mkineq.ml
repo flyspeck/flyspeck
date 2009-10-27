@@ -61,11 +61,6 @@ let holtext_of_dec:decimal -> string = function
       if (y.[0]= '-') then " -- #"^(String.sub y 1 (String.length y - 1)) 
       else "#"^y;;
 
-let ampl_of_dec:decimal -> string = function
-  | Sqrt2 -> "+1.4142135623730951"
-  | Sqrt8 -> "+2.8284271247461903"
-  | Dec x ->  
-      if (x.[0]= '-') then x else "+"^x;;
 
 holtext_of_dec (Dec "2.0");;
 
@@ -95,18 +90,18 @@ c0 + c dot (y-p).
 *)
 
 type ineq = {
-  id : string;
-  constrain: constrain;
-  sgn : sgn;
-  xmin : decimal list;
-  xmax : decimal list;
-  c0 : decimal;
-  c : decimal list;
-  p : decimal list;
-  azim : decimal list;
-  rhzim : decimal list;
-  tau0 : decimal;
-  sol0 : decimal;
+  mutable id : string;
+  mutable constrain: constrain;
+  mutable sgn : sgn;
+  mutable xmin : decimal list;
+  mutable xmax : decimal list;
+  mutable c0 : decimal;
+  mutable c : decimal list;
+  mutable p : decimal list;
+  mutable azim : decimal list;
+  mutable rhzim : decimal list;
+  mutable tau0 : decimal;
+  mutable sol0 : decimal;
 };;
 
 let hh =  {
@@ -146,12 +141,17 @@ holtext_of_ineq hh;;
    ocaml numbering 012345
    ampl numbering 123456 *)
 
+
 let aug i = i+1;;
 let nz s = (float_of_dec s <> 0.0);;
 let hasnz s = exists nz s;;
 let unempty   = filter (fun t -> t <> "");;
 
-(* let addsign s = if (s.[0] = '-') then s else "+"^s;; *)
+let ampl_of_dec:decimal -> string = function
+  | Sqrt2 -> "+1.4142135623730951"
+  | Sqrt8 -> "+2.8284271247461903"
+  | Dec x ->  
+      if (x.[0]= '-') then x else "+"^x;;
 
 let comp:decimal->decimal->int = 
   fun a b ->

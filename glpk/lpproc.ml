@@ -5,7 +5,7 @@ Process linear programs for the proof of the Kepler conjecture.
 
 needs new mktop on platforms that do not support dynamic loading of Str.
 
-ocamlmktop unix.cma str.cma -o ocampl
+ocamlmktop unix.cma nums.cma str.cma -o ocampl
 ./ocampl
 
 glpk needs to be installed, and glpsol needs to be found in the path.

@@ -1,65 +1,35 @@
+// inequalities
 
-let z6=ds"0 0 0 0 0 0";;
-let z3=ds"0 0 0";;
-let z=d"0";;
-let twos=ds"2 2 2 2 2 2";;
-let r6=ds"2.52 2.52 2.52 2.52 2.52 2.52";;
-let amin=ds"2 2 2 2 2.52 2.52";
-let amax=ds"2 2 2 2.52 s8 s8";
-let azim1=d"1 0 0";
-let azim2=d"0 1 0";
-let azim3=d"0 0 1";
-let rhzim1=azim1;
-let rhzim2=azim2;
-let rhzim3=azim3;
 
-let a = blank;
+let  twos=2 2 2 2 2 2
+let  r6=2.52 2.52 2.52 2.52 2.52 2.52
 
-let ineqlist:ineq list = [
-  {
-  id="3336871894";
-    constrain=NONE;
-    sgn=GE;
+let  amin=2 2 2 2 2.52 2.52
+let  amax=2.52 2.52 2.52 2.52 s8 s8
+
+let  azim1=1 0 0
+let  azim2=0 1 0
+let  azim3=0 0 1
+
+ineq {
+  id=3336871894
+  xmin=2 2 2 2 2 2
+  xmax=r6
+  tau0=1
+  c0=0
+  sgn=GE }
+
+ineq {
+   id=8880534953
+   sgn=GT
+    xmin=amin
+    xmax=amax
+    c0=0.2759
+    tau0=1 }
+
+ineq {
+    id=5735387903
+    sgn=GT
     xmin=twos
-    xmax=r6;
-    c0=z;
-    c=z6;
-    p=z6;
-    azim=z3;
-    rhzim=z3;
-    sol0=z;
-    tau0=d"1";
-  };
-
-  {
-    id="8880534953";
-    constrain=NONE;
-    sgn=GT;
-    xmin=amin;
-    xmax=amax;
-    c0=d"0.2759";
-    c=z6;
-    p=z6;
-    azim=z3;
-    rhzim=z3;
-    sol0=z;
-    tau0=d"1";
-  };
-
-  {
-    id="5735387903";
-    constrain=NONE;
-    sgn=GT;
-    xmin=twos;
-    xmax=r6;
-    c0=d"1.";
-    c=z6;
-    p=z6;
-    azim=z3;
-    rhzim=z3;
-    sol0=z;
-    tau0=z;
-  };
-];;
-
-1;;
+    xmax=r6
+    c0=1 }

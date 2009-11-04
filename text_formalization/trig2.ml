@@ -3194,7 +3194,6 @@ REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
 
 
 (*
-
 ("SIMPLIZE_COS_IF_OTHOR ",
 |- !v0 v1 w p.
 ~(v0 = w) /\
@@ -3202,6 +3201,1500 @@ REWRITE_TAC[GSYM COS_SUB; REAL_ARITH` (a + b ) - a = b`]);;
 p - v0 = k % (v1 - v0) /\
 (w - p) dot (v1 - v0) = &0
 ==> cos (arcV v0 v1 w) = k * norm (v1 - v0) / norm (w - v0))]
+*)
+(* Lemma $100 promised with John *)
+(* ============================= *)
+(* ============================= *)
+
+let real_itv = new_definition ` real_itv a b  = { x | a <= x /\ x < b } `;;
+let tri_itv = new_definition ` tri_itv x <=> ( x IN real_itv ( &0 ) ( &2 * pi )) `;;
+
+(*
+parse_as_infix("regular_lt",(12,"right"));;
+
+let regular_lt = new_definition
+` (a:real) regular_lt (b:real) <=> a < b /\ a = &0 `;;
 
 *)
-(* Nguyen Quang Truong *)
+
+parse_as_infix("polar_lt",(12,"right"));;
+
+
+let polar_lt = new_definition 
+`(a: real^2) polar_lt (b: real^2) <=>  
+          (!ra aa rb ab.
+              &0 < ra /\
+              &0 < rb /\
+              a = vector [ra * cos aa; ra * sin aa] /\
+              b = vector [rb * cos ab; rb * sin ab] /\
+              tri_itv aa /\
+              tri_itv ab
+              ==> aa < ab \/ aa = ab /\ ra < rb) `;;
+
+
+parse_as_infix("polar_le",(12,"right"));;
+
+let polar_le = new_definition 
+` a polar_le b <=> a polar_lt b \/ a = b `;;
+
+
+parse_as_infix("polar_cycle_on",(12,"right"));;
+
+let polar_cycle_on = new_definition
+` f polar_cycle_on (W: real^2 -> bool ) <=>
+         (!x. x IN W ==> f x IN W) /\
+         (!x. x IN W
+             ==> x polar_lt f x /\
+            (!y. y IN W ==> ~(x polar_lt y /\ y polar_lt f x)) \/
+            (!y. y IN W ==> f x polar_le y /\ y polar_le x)) `;;
+
+let pl_angle = new_definition` pl_angle (x: real^2) = 
+ (@ u. tri_itv u /\ ( ?t. &0 < t /\ x = 
+       vector [ t * cos u; t * sin u ])) `;;
+
+let arg_diff = new_definition ` arg_diff a b = 
+ let dd =  pl_angle b - pl_angle a in
+ if a polar_le b then dd else dd + &2 * pi `;;
+
+let VEC2_PRE_TRIG_FORM = prove(` ! (x:real^2). ~( x = vec 0) ==> ( x$1 / ( sqrt (x$1 * x$1 + x$2 * x$2))) pow 2 + 
+  ( x$2 / ( sqrt (x$1 * x$1 + x$2 * x$2))) pow 2 = &1 `,
+REWRITE_TAC[DIV_POW2; GSYM POW_2] THEN 
+SIMP_TAC[GSYM NORM_EQ_0; vector_norm; DOT_2;GSYM POW_2; SUM_TWO_POW2S; SQRT_EQ_0; SQRT_POW_2]
+THEN GEN_TAC THEN CONV_TAC REAL_FIELD);;
+
+
+let PRE_TRIG_FORM_VEC2 = prove(`!(x: real^2). ~(x = vec 0)
+     ==> (?u. tri_itv u /\  x = vector [( norm x ) * cos u ; ( norm x ) * sin u])`,
+NHANH VEC2_PRE_TRIG_FORM  THEN 
+REWRITE_TAC[GSYM NORM_POS_LT; vector_norm; DOT_2] THEN 
+NHANH SUM_POW2_EQ1_UNIQUE_TRIG THEN 
+REWRITE_TAC[EXISTS_UNIQUE] THEN 
+GEN_TAC THEN STRIP_TAC THEN 
+EXISTS_TAC `x': real` THEN 
+SIMP_TAC[vector_norm; DOT_2;GSYM POW_2] THEN 
+ASM_REWRITE_TAC[] THEN 
+UNDISCH_TAC ` &0 < sqrt ((x:real^2)$1 * x$1 + x$2 * x$2)` THEN 
+NHANH REAL_LT_IMP_NZ THEN 
+SIMP_TAC[REAL_DIV_LMUL; POW_2] THEN 
+REWRITE_TAC[CART_EQ; DIMINDEX_2; FORALL_2; VECTOR_2; tri_itv; real_itv; IN_ELIM_THM] THEN 
+ASM_REWRITE_TAC[]);;
+
+
+let PL_ANGLE_PROPERTY = prove(`!(x: real^2). ~(x = vec 0)
+     ==> tri_itv (pl_angle x) /\
+  (? t. &0 < t /\ x = vector [ t * cos (pl_angle x); t * sin ( pl_angle x )])`,
+NHANH PRE_TRIG_FORM_VEC2 THEN 
+PAT_REWRITE_TAC `\x. !y. x ==> _ ` [GSYM NORM_POS_LT; RIGHT_AND_EXISTS_THM] THEN
+NHANH (MESON[]`(?u. &0 < norm x /\ L u /\ P u ( norm x )) ==> (?u. 
+  L u /\ (?t. &0 < t /\ P u t ))`) THEN 
+REWRITE_TAC[pl_angle] THEN MESON_TAC[EXISTS_THM]);;
+
+let POLAR_LT_IMP_NOT_EQ = 
+prove(` ~( x = vec 0 ) /\ ~((y:real^2) = vec 0 ) ==>
+ x polar_lt y ==> ~( x = y ) `,
+STRIP_TAC THEN REWRITE_TAC[polar_lt] THEN
+ONCE_REWRITE_TAC[TAUT` a ==> ~ b <=> b ==> ~ a `] THEN 
+SIMP_TAC[ NOT_FORALL_THM] THEN 
+ASSUME_TAC2 (SPEC `y: real^2 ` PRE_TRIG_FORM_VEC2) THEN 
+FIRST_X_ASSUM CHOOSE_TAC THEN STRIP_TAC THEN 
+REWRITE_TAC[TAUT` ~ ( a ==> b ) <=> a /\ ~ b `] THEN 
+EXISTS_TAC `norm (y:real^2)` THEN EXISTS_TAC `u: real` THEN 
+EXISTS_TAC `norm (y:real^2)` THEN EXISTS_TAC `u:real` THEN 
+ASM_SIMP_TAC[NORM_POS_LT] THEN DOWN_TAC THEN STRIP_TAC THEN 
+ASM_REWRITE_TAC[] THEN CONJ_TAC THENL [FIRST_X_ASSUM ACCEPT_TAC; 
+REWRITE_TAC[REAL_LT_REFL]]);;
+
+let CART2_EQ = prove(` vector [a1; a2] = (vector [b1; b2]): real^2 
+<=> a1 = b1 /\ a2 = b2 `,
+REWRITE_TAC[CART_EQ; DIMINDEX_2; ARITH_RULE` 1 <= x /\ x <= 2 <=>
+x = 1 \/ x = 2 `; MESON[]`(! x. x = a \/ x = b ==> P x ) <=>
+ P a /\ P b `; VECTOR_2]);;
+
+
+let SE_ASM_TAC = FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC);;
+let SE_ALL_TAC = REPEAT SE_ASM_TAC;;
+
+
+let POLAR_LT_TRANS = prove(`~( x = vec 0 ) /\ 
+ ~ ((y:real^2) = vec 0 ) /\ ~ ( z = vec 0 ) /\
+ x polar_lt y /\ y polar_lt z ==> x polar_lt z `,
+REWRITE_TAC[polar_lt] THEN NHANH PL_ANGLE_PROPERTY THEN 
+STRIP_TAC THEN DOWN_TAC THEN REWRITE_TAC[polar_lt] THEN 
+REPEAT STRIP_TAC THEN UNDISCH_TAC` tri_itv ab ` THEN 
+UNDISCH_TAC` tri_itv ( pl_angle y ) ` THEN 
+UNDISCH_TAC`(z:real^2) = vector [rb * cos ab; rb * sin ab]` THEN 
+UNDISCH_TAC`(y:real^2) = vector [t' * cos (pl_angle y); t' * sin (pl_angle y)]` THEN 
+UNDISCH_TAC` &0 < rb ` THEN UNDISCH_TAC` &0 < t' ` THEN 
+PHA THEN FIRST_X_ASSUM NHANH THEN DISCH_TAC THEN 
+REPEAT (FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC)) THEN
+UNDISCH_TAC` tri_itv ( pl_angle y ) ` THEN 
+UNDISCH_TAC `tri_itv aa ` THEN 
+UNDISCH_TAC`(y:real^2) = vector [t' * cos (pl_angle y); t' * sin (pl_angle y)]` THEN 
+UNDISCH_TAC`(x:real^2) = vector [ra * cos aa; ra * sin aa]` THEN 
+UNDISCH_TAC` &0 < t' ` THEN UNDISCH_TAC` &0 < ra ` THEN 
+PHA THEN FIRST_X_ASSUM NHANH THEN DISCH_TAC THEN SE_ALL_TAC
+THEN ASSUME_TAC2 (
+REAL_ARITH `(pl_angle y < ab \/ pl_angle y = ab /\ t' < rb ) /\
+( aa < pl_angle y \/ aa = pl_angle y /\ ra < t' ) ==>
+ aa < ab \/ aa = ab /\ ra < rb `) THEN FIRST_ASSUM ACCEPT_TAC);;
+
+
+
+let EXISTS_MAX_ELEMENT = prove
+ (`!S (lt:A->A->bool).
+       FINITE S /\ ~(S = {}) /\
+       (!x y z. lt x y /\ lt y z ==> lt x z) /\
+       (!x. ~(lt x x)) /\
+       (!x y. S x /\ S y /\ ~( x = y ) ==> lt x y \/ lt y x )
+       ==> ?m:A. S m /\ ( ! x. S x ==> lt x m \/ x = m )`,
+ REPEAT STRIP_TAC THEN
+ MP_TAC(ISPEC `\x:A y:A. x IN S /\ y IN S /\ lt y x` WF_FINITE) THEN
+ ASM_SIMP_TAC[FINITE_RESTRICT] THEN
+ ANTS_TAC THENL [ASM_MESON_TAC[]; ALL_TAC] THEN
+ REWRITE_TAC[WF] THEN DISCH_THEN(MP_TAC o SPEC `S:A->bool`) THEN
+ ASM SET_TAC[]);;
+
+
+let NO_V0_IMP_NOT_SELF_POLLAR = MESON[POLAR_LT_IMP_NOT_EQ]
+` ~ ( x = vec 0 ) ==> ~ ( x polar_lt  x ) `;;
+
+let SET_TAC = let basicthms =
+[NOT_IN_EMPTY; IN_UNIV; IN_UNION; IN_INTER; IN_DIFF; IN_INSERT;
+IN_DELETE; IN_REST; IN_INTERS; IN_UNIONS; IN_IMAGE] in
+let allthms = basicthms @ map (REWRITE_RULE[IN]) basicthms @
+[IN_ELIM_THM; IN] in
+let PRESET_TAC =
+TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ)) THEN
+REPEAT COND_CASES_TAC THEN
+REWRITE_TAC[EXTENSION; SUBSET; PSUBSET; DISJOINT; SING] THEN
+REWRITE_TAC allthms in
+fun ths ->
+PRESET_TAC THEN
+(if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
+MESON_TAC ths ;;
+
+(* =========== improved SET_RULE ============= *)
+let SET_RULE a = fun x -> prove(x, SET_TAC a );;
+
+let POLAR_CYCLIC_FUN_IMP_ALL_BELONG = 
+prove(` W p /\ f polar_cycle_on W ==> ! n. ITER n f p IN W `,
+REWRITE_TAC[polar_cycle_on] THEN STRIP_TAC THEN INDUCT_TAC THENL [REWRITE_TAC[ITER] THEN 
+ASM SET_TAC[]; REWRITE_TAC[ITER] THEN ASM SET_TAC[]]);;
+
+let EXISTS_MIN_IN_ORDERED_FINITE_SET = 
+prove(`!(S: A -> bool) lt.
+         FINITE S /\
+         ~(S = {}) /\ (! x. lt x x ) /\
+         (!x y z. lt x y /\ lt y z ==> lt x z) /\
+         (! x y. lt x y /\ lt y x ==> x = y ) /\
+         (!x y. lt x y \/ lt y x)
+         ==> (?m. S m /\ (!x. S x ==> lt m x ))`,
+REPEAT STRIP_TAC THEN MP_TAC (ISPEC`\(x : A ) ( y: A).
+ S x /\ S y /\ lt x y /\ ~ ( x = y )` WF_FINITE) THEN 
+ASM_SIMP_TAC[REWRITE_RULE[IN] FINITE_RESTRICT] THEN 
+ANTS_TAC THENL [ASM_MESON_TAC[]; REWRITE_TAC[WF]] THEN 
+DISCH_THEN (MP_TAC o SPEC `S: A -> bool `) THEN 
+ANTS_TAC THENL [ASM SET_TAC[]; STRIP_TAC] THEN 
+EXISTS_TAC `x: A` THEN ASM REWRITE_TAC[] THEN ASM_MESON_TAC[]);;
+
+
+let EXISTS_MA_OR_FI_SET = BETA_RULE (SPECL[` S : A -> bool `;
+`(\x y. (lt: A -> A ->  bool) y x ) `] EXISTS_MIN_IN_ORDERED_FINITE_SET);;
+(* EXISTS_MA_OR_FI_SET
+  |- FINITE S /\
+     ~(S = {}) /\
+     (!x. lt x x) /\
+     (!x y z. lt y x /\ lt z y ==> lt z x) /\
+     (!x y. lt y x /\ lt x y ==> x = y) /\
+     (!x y. lt y x \/ lt x y)
+     ==> (?m. S m /\ (!x. S x ==> lt x m)) *)
+
+
+let tri_itv = let t1 = CONJ tri_itv real_itv in CONJ t1 IN_ELIM_THM;;
+
+let DOWN = FIRST_X_ASSUM MP_TAC;;
+
+let WHILE_POLAR_LT_IMP_ST = prove(` p0 polar_lt p  ==>
+~ ( {y | ?N. y = ITER N f p0 /\
+          (!n. 0 <= n /\ n < N ==> ITER n f p0 polar_lt y) /\
+          y polar_lt p } = {} )`,
+REWRITE_TAC[SET_RULE[]`~( x = {} ) <=> ? y. y IN x `; IN_ELIM_THM] THEN 
+STRIP_TAC THEN EXISTS_TAC` p0: real^2` THEN EXISTS_TAC `0 ` THEN 
+ASM_SIMP_TAC[ITER; ARITH_RULE`~( 0 <= a /\ a < 0 )`]);;
+
+
+let DOT_ITSELF_2 = prove( ` (x:real^2) = vector[ a; b ]
+ ==> x dot x = a pow 2 + b pow 2 `,
+SIMP_TAC[dot; DIMINDEX_2; SUM_2; VECTOR_2] THEN 
+DISCH_TAC THEN REAL_ARITH_TAC);;
+
+
+let NORM_VECTOR2_TRIG = 
+prove(` (x:real^2) = vector [a * cos t ; a * sin t ]
+/\ &0 <= a ==> norm x = a `, STRIP_TAC THEN UNDISCH_TAC ` &0 <= a `
+THEN SIMP_TAC[NORM_POS_LE; EQ_POW2_COND; NORM_POW_2] THEN 
+DOWN_TAC THEN NHANH DOT_ITSELF_2 THEN STRIP_TAC THEN 
+DOWN THEN DOWN THEN PHA THEN SIMP_TAC[] THEN 
+DISCH_TAC THEN REWRITE_TAC[R_SIN_CIRCLE]);;
+
+
+let NOT_EQ_IMP_TOTAL_ORDER = prove(
+` ! x y. ~( x = y ) ==> x polar_lt y \/ y polar_lt
+x `, REWRITE_TAC[polar_lt] THEN REPEAT STRIP_TAC THEN 
+ASM_CASES_TAC `(x:real^2) = vec 0 \/ (y:real^2)
+= vec 0 ` THENL [ DISJ1_TAC THEN REPEAT GEN_TAC THEN 
+NHANH REAL_LT_IMP_LE THEN NHANH (
+MESON[NORM_VECTOR2_TRIG]`(aaa /\ &0 <= ra) /\
+ (ac/\ &0 <= rb) /\
+ (x:real^2) = vector [ra * cos aa; ra * sin aa] /\
+ (y:real^2) = vector [rb * cos ab; rb * sin ab]/\ gg
+==> norm x = ra /\ norm y = rb `) THEN DOWN THEN 
+REWRITE_TAC[GSYM NORM_EQ_0] THEN SIMP_TAC[] THEN 
+MESON_TAC[REAL_ARITH`~( a = &0 /\ &0 < a ) `]; ALL_TAC]
+THEN DOWN THEN REWRITE_TAC[DE_MORGAN_THM] THEN 
+NHANH PRE_TRIG_FORM_VEC2 THEN STRIP_TAC THEN 
+DOWN_TAC THEN REWRITE_TAC[GSYM polar_lt] THEN 
+MP_TAC (REAL_ARITH` u < u' \/ u = u' \/ u' < u `) THEN 
+SPEC_TAC (`u:real`,`u:real`) THEN
+SPEC_TAC (`u':real`,`u':real`) THEN 
+SPEC_TAC (`x:real^2`,`x:real^2`) THEN 
+SPEC_TAC (`y:real^2`,`y:real^2`) THEN 
+MATCH_MP_TAC (
+MESON[]`(! y x u' u. P1 u u' /\ M x y u u' ==>
+Q x y ) /\ ((! y x u' u. P1 u u' /\ M x y u u' ==>
+Q x y ) ==> (! y x u' u. P1 u' u /\ M x y u u' ==>
+Q y x )) /\ (! y x u' u. u = u' /\ M x y u u' ==>
+Q x y \/ Q y x) ==> (! y x u' u.
+P1 u u' \/ u = u' \/ P1 u' u ==>
+M x y u u' ==> Q x y \/ Q y x ) `) THEN CONJ_TAC
+THENL [REPEAT STRIP_TAC THEN UNDISCH_TAC ` u < (u':real)`
+THEN DISCH_TAC THEN REWRITE_TAC[polar_lt] THEN REPEAT STRIP_TAC THEN DISJ1_TAC THEN 
+UNDISCH_TAC`(x:real^2) = vector [norm x * cos u; norm x * sin u]` THEN 
+UNDISCH_TAC` (y:real^2) = vector [norm y * cos u'
+; norm y * sin u' ]` THEN 
+EVERY_ASSUM (fun x -> PAT_REWRITE_TAC `\v. v = h ==> v = h ==> gg `
+[x ]) THEN REWRITE_TAC[CART2_EQ] THEN 
+REPEAT DISCH_TAC THEN 
+ASSUME_TAC2 (REAL_ARITH` &0 < ra /\ &0 < rb ==>
+&0 <= ra /\ &0 <= rb `) THEN SE_ALL_TAC THEN 
+UNDISCH_TAC ` &0 <= ra ` THEN UNDISCH_TAC `(x:real^2) = vector 
+[ra * cos aa; ra * sin aa]` THEN 
+PHA THEN NHANH NORM_VECTOR2_TRIG THEN STRIP_TAC THEN 
+FIRST_X_ASSUM SUBST_ALL_TAC THEN UNDISCH_TAC ` &0 <= rb `
+THEN UNDISCH_TAC `(y:real^2) = vector 
+[rb * cos ab; rb * sin ab]` THEN PHA THEN 
+NHANH NORM_VECTOR2_TRIG THEN STRIP_TAC THEN 
+FIRST_X_ASSUM SUBST_ALL_TAC THEN 
+REPLICATE_TAC 8 DOWN THEN PHA THEN 
+ASM_SIMP_TAC[MESON[REAL_ARITH` &0 < a ==> ~( a = &0 )`; REAL_EQ_MUL_LCANCEL]`
+&0 < a ==> ( a * x = a * y <=> x = y ) `] THEN 
+UNDISCH_TAC` tri_itv aa ` THEN UNDISCH_TAC ` tri_itv u ` THEN 
+UNDISCH_TAC`tri_itv u'` THEN UNDISCH_TAC` tri_itv ab` THEN 
+REWRITE_TAC[tri_itv; real_itv; IN_ELIM_THM] THEN 
+REPEAT STRIP_TAC THEN SUBGOAL_THEN` aa = (u: real) /\ ab = (u': real)` ASSUME_TAC
+THENL [ASM_MESON_TAC[IDENT_WHEN_IDENT_SIN_COS];
+ASM_REWRITE_TAC[]]; 
+CONJ_TAC THENL [MESON_TAC[]; REPEAT GEN_TAC]] THEN 
+IMP_TAC THEN DISCH_THEN ( fun x -> REWRITE_TAC[ SYM x ]) THEN 
+ASM_CASES_TAC ` norm (x:real^2) = norm (y:real^2)` 
+THENL [ASM_REWRITE_TAC[] THEN MESON_TAC[]; DOWN] THEN 
+REWRITE_TAC[REAL_ARITH` ~( a = b ) <=> a < b \/ 
+b < a `] THEN SPEC_TAC (`x:real^2`,`x:real^2`) THEN 
+SPEC_TAC (`y:real^2`,`y:real^2`) THEN 
+MATCH_MP_TAC (MESON[]`(! x y. P x y /\ R x y ==> Q x y ) /\
+((! x y. P x y /\ R x y ==> Q x y ) ==>
+(! x y. P y x /\ R x y ==> Q y x ) ) ==>
+(! x y. P x y \/ P y x ==> R x y ==> Q x y \/ Q y x)`) THEN 
+CONJ_TAC THENL [
+REPEAT STRIP_TAC THEN REWRITE_TAC[polar_lt] THEN 
+REPEAT GEN_TAC THEN NHANH_PAT `\x. x ==> h ` REAL_LT_IMP_LE THEN 
+DISCH_TAC THEN SUBGOAL_THEN `norm (y':real^2) = ra /\ 
+norm (y:real^2) = rb ` ASSUME_TAC THENL [
+FIRST_X_ASSUM ( fun x -> MESON_TAC[x; NORM_VECTOR2_TRIG])
+; REPEAT STRIP_TAC] THEN DISJ2_TAC THEN 
+UNDISCH_TAC `(y': real^2) = 
+vector [norm y' * cos u; norm y' * sin u]` THEN 
+UNDISCH_TAC `(y: real^2) = 
+vector [norm y * cos u; norm y * sin u]` THEN 
+EVERY_ASSUM (fun x -> PAT_REWRITE_TAC `\x.
+x = y ==> x = z ==> l ` [x]) THEN 
+REWRITE_TAC[CART2_EQ] THEN DOWN_TAC THEN 
+SIMP_TAC[GSYM NORM_POS_LT] THEN STRIP_TAC THEN 
+SUBGOAL_THEN ` ab = (u:real) /\ aa = u ` ASSUME_TAC
+THENL [REPLICATE_TAC  4 DOWN THEN PHA THEN ASM_REWRITE_TAC[] THEN 
+ASM_SIMP_TAC[MESON[REAL_EQ_MUL_LCANCEL; REAL_ARITH` &0 < a ==>
+~ ( a = &0 )`]` &0 < a ==> ( a * x = a * y <=> x = y ) `] THEN 
+UNDISCH_TAC` tri_itv aa ` THEN UNDISCH_TAC ` tri_itv ab ` THEN 
+UNDISCH_TAC `tri_itv u ` THEN PHA THEN REWRITE_TAC[tri_itv] THEN 
+MESON_TAC[IDENT_WHEN_IDENT_SIN_COS];
+ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[]];
+MESON_TAC[]]);;
+
+
+
+
+let PROVE_XISTS_MAX_ELEMENT_LT_P = prove(
+` ! W:real^2 -> bool. (! x. W x ==> ~ ( x = vec 0 )) /\
+   FINITE W /\
+   W p0 /\ 
+   f polar_cycle_on W /\ 
+   p0 polar_lt p /\
+   SS = { y | ? N. y = ITER N f p0 /\
+                ( ! n . 0 <= n /\ n <  N ==> ITER n f p0 polar_lt y ) /\
+                y polar_lt p }
+==> (? mx. mx IN SS /\ ( ! x. SS x ==> x polar_lt mx \/ x = mx)) `,
+ONCE_REWRITE_TAC[TAUT`aa /\ a /\ b /\ c /\ d <=> aa /\ 
+a /\ (b /\ c ) /\ d `] THEN 
+NHANH POLAR_CYCLIC_FUN_IMP_ALL_BELONG THEN REPEAT STRIP_TAC THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+SUBGOAL_THEN `(! y n. y = ITER n f p0 ==> W (y:real^2))` ASSUME_TAC
+THENL [ASM SET_TAC[]; FIRST_ASSUM NHANH] THEN 
+REWRITE_TAC[TAUT`( a /\ b) /\ c <=> b /\ a /\ c`; RIGHT_EXISTS_AND_THM] THEN 
+DOWN_TAC THEN NHANH (REWRITE_RULE[IN; RIGHT_FORALL_IMP_THM] FINITE_RESTRICT) THEN 
+STRIP_TAC THEN SUBGOAL_THEN ` FINITE (SS: real^2 -> bool) ` ASSUME_TAC THENL 
+[ASM_MESON_TAC[]; ALL_TAC] THEN 
+DOWN_TAC THEN REWRITE_TAC[GSYM RIGHT_EXISTS_AND_THM] THEN
+PAT_REWRITE_TAC `\x. y /\ x ==> h ` [TAUT` a ==> b <=> a <=> 
+b /\ a `] THEN 
+NHANH (SET_RULE[]` S = {y | ? N. P y /\ Q N y } ==> S SUBSET P `) THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+REPLICATE_TAC 8 (IMP_TAC THEN STRIP_TAC) THEN NGOAC THEN 
+ASM_REWRITE_TAC[] THEN PHA THEN 
+DOWN THEN REWRITE_TAC[TAUT`(b /\ a <=> a) <=> a ==> b `] THEN 
+ASSUME_TAC2 WHILE_POLAR_LT_IMP_ST THEN 
+ABBREV_TAC ` lt x y = ( ( W x /\ W y ) /\ x polar_lt (y:real^2)) `
+THEN SUBGOAL_THEN `(! x. ~ lt x (x:real^2) )` ASSUME_TAC THENL 
+[FIRST_X_ASSUM ( fun x -> REWRITE_TAC [ GSYM x; 
+NO_V0_IMP_NOT_SELF_POLLAR]) THEN REWRITE_TAC[DE_MORGAN_THM]
+THEN GEN_TAC THEN ASM_CASES_TAC` (W: real^2 -> bool ) x ` THENL
+[DISJ2_TAC THEN ASM MESON_TAC[NO_V0_IMP_NOT_SELF_POLLAR];
+ASM_REWRITE_TAC[]];
+SUBGOAL_THEN `(!x y z. lt (x:real^2) (y: real^2) /\ lt y z ==> lt x z)` ASSUME_TAC
+THEN DOWN] THENL [
+FIRST_X_ASSUM (fun x -> REWRITE_TAC[GSYM x ]) THEN 
+REPLICATE_TAC 5 STRIP_TAC THEN ASM_REWRITE_TAC[POLAR_LT_TRANS]
+THEN DOWN_TAC THEN MESON_TAC[POLAR_LT_TRANS];
+REWRITE_TAC[TAUT`(a <=> b /\ a ) <=> a ==> b`] THEN 
+REPEAT STRIP_TAC THEN 
+UNDISCH_TAC ` ~({y | ?N. y = ITER N f p0 /\
+                 (!n. 0 <= n ==> n < N ==> ITER n f p0 polar_lt y) /\
+                 y polar_lt p} =
+        {})`] THEN REWRITE_TAC[IMP_IMP] THEN DOWN THEN DOWN THEN
+FIRST_ASSUM SUBST1_TAC THEN REPEAT STRIP_TAC THEN 
+SUBGOAL_THEN `(!x y. (SS:real ^2 -> bool) x /\ SS y /\ ~(x = y) ==> 
+lt x y \/ lt y x)` ASSUME_TAC THENL [
+USE_FIRST `!x y. ((W:real^2 -> bool) x /\ W y) 
+/\ x polar_lt y <=> lt x y` (fun x -> REWRITE_TAC[
+GSYM x ]) THEN UNDISCH_TAC` SS SUBSET (W: real^2 -> bool)` THEN 
+SET_TAC[NOT_EQ_IMP_TOTAL_ORDER];
+SUBGOAL_THEN `(?m. (SS:real^2 -> bool) m /\ 
+(!x. SS x ==> lt x m \/ x = m)) ` ASSUME_TAC THENL
+[FIRST_X_ASSUM MP_TAC THEN 
+UNDISCH_TAC` ! (x:real^2). ~ lt x x ` THEN 
+UNDISCH_TAC ` (!(x:real^2) y z. lt x y /\ 
+lt y z ==> lt x z) ` THEN 
+UNDISCH_TAC `~ ( (SS: real^2 -> bool ) = {})` THEN 
+UNDISCH_TAC `FINITE (SS: real^2 -> bool)` THEN 
+PHA THEN REWRITE_TAC[EXISTS_MAX_ELEMENT];
+REWRITE_TAC[IN] THEN FIRST_X_ASSUM CHOOSE_TAC THEN 
+EXISTS_TAC `m: real^2` THEN ASM SET_TAC[]]]);;
+
+
+
+let VEC0_BOTH_LT_GT = prove(`
+ y = vec 0 ==>  x polar_lt y /\ y polar_lt z `,
+REWRITE_TAC[polar_lt] THEN DISCH_TAC THEN 
+SUBGOAL_THEN `(! ry ay. ~ (&0 < ry /\ (y:real^2) =
+ vector[ ry * cos ay ; ry * sin ay ]))` ( fun x ->
+ASM_MESON_TAC[x]) THEN NHANH REAL_LT_IMP_LE THEN 
+REPEAT STRIP_TAC THEN ASSUME_TAC2 (SPECL [` ay: real `
+;` y: real^2`;` ry: real`] (GEN_ALL NORM_VECTOR2_TRIG))
+  THEN DOWN_TAC THEN REWRITE_TAC[GSYM NORM_EQ_0] THEN 
+MESON_TAC[REAL_ARITH` ~( &0 < y /\ y = &0 )`]);;
+
+
+
+let POLAR_LT_TRANS = prove(` ~( y = vec 0 ) ==>
+ x polar_lt y /\ y polar_lt z ==> x polar_lt z `,
+MESON_TAC[POLAR_LT_TRANS; VEC0_BOTH_LT_GT]);;
+
+
+
+let PROVE_EXISTING_MAX_IN_CYCLIC_FINITE_SET =
+prove(` ! (W: real^2 -> bool). FINITE W /\ ~( W = {} ) /\ 
+(! x. W x ==> ~( x = vec 0 )) ==>
+? m. W m /\ (! x. W x ==> x polar_lt m \/ x = m ) `,
+REPEAT STRIP_TAC THEN 
+ABBREV_TAC ` lt x y = ( W x /\ W y /\ x polar_lt y ) ` THEN 
+SUBGOAL_THEN `! x. ~ lt x (x:real^2) ` ASSUME_TAC THENL [
+FIRST_X_ASSUM (fun s -> REWRITE_TAC[GSYM s]) THEN 
+GEN_TAC THEN REWRITE_TAC[DE_MORGAN_THM] THEN 
+ASM_CASES_TAC ` (W: real^2 -> bool) (x:real^2)` THENL [
+DISJ2_TAC THEN DISJ2_TAC THEN 
+ASM_MESON_TAC[NO_V0_IMP_NOT_SELF_POLLAR]; ASM_SIMP_TAC[]];
+SUBGOAL_THEN `(! x y z. ( lt: real^2 -> real^2 -> bool) x y
+/\ lt y z ==> lt x z) /\ (! x y. W x /\ W y /\ ~ ( x = y )
+==> lt x y \/ lt y x ) ` ASSUME_TAC] THENL [
+DOWN THEN FIRST_X_ASSUM ( fun x -> REWRITE_TAC[GSYM x])
+THEN SIMP_TAC[] THEN 
+DISCH_TAC THEN CONJ_TAC THENL [FIRST_X_ASSUM NHANH THEN 
+REPEAT STRIP_TAC THEN ASM_MESON_TAC[POLAR_LT_TRANS];
+SIMP_TAC[NOT_EQ_IMP_TOTAL_ORDER]];
+MP_TAC (ISPECL[`W:real^2 -> bool `;` lt: real^2 -> 
+real^2 -> bool `] EXISTS_MAX_ELEMENT) THEN ANTS_TAC THENL
+[ASM_REWRITE_TAC[]; USE_FIRST `!x y. (W:real^2 -> bool) x /\ W y /\ 
+x polar_lt y <=> lt x y` (fun x -> REWRITE_TAC[ GSYM x]) THEN
+MESON_TAC[]]]);;
+
+
+
+let PROVE_MIN_ELEMENT_IN_FINITE_CYCLIC_SET =
+prove(` ! (W: real^2 -> bool). FINITE W /\ ~( W = {}) /\ 
+(! x. W x ==> ~ ( x = vec 0)) ==>
+ ? n. W n /\ (! x. W x ==> n polar_lt x \/ n = x ) `,
+REPEAT STRIP_TAC THEN 
+MP_TAC (BETA_RULE (ISPECL [`W:real^2 -> bool `;` (\x y. W x /\ 
+W y /\ y polar_lt x ) `]  EXISTS_MAX_ELEMENT)) THEN ANTS_TAC
+THENL [ASM_MESON_TAC[POLAR_LT_TRANS; NO_V0_IMP_NOT_SELF_POLLAR
+; NOT_EQ_IMP_TOTAL_ORDER]; MESON_TAC[]]);;
+
+
+
+
+
+
+
+let TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT = 
+prove(` ~((x:real^2) = vec 0 ) /\ ~( y = vec 0 ) ==> 
+~( x polar_lt y /\ y polar_lt x ) `,
+MESON_TAC[NO_V0_IMP_NOT_SELF_POLLAR; POLAR_LT_TRANS]);;
+
+
+
+
+let EXISTS_STEPS_FOR_FOLLOWING_POINTS = prove(
+ ` ! W:real^2 -> bool. (! x. W x ==> ~ ( x = vec 0 )) /\
+   FINITE W /\
+   W p0 /\ 
+   f polar_cycle_on W /\ 
+   p0 polar_lt p /\ W p 
+==> ? n. ITER n f p0 = p /\ (! nn. nn < n ==> ITER nn f p0
+polar_lt p ) `, REPEAT STRIP_TAC THEN 
+ABBREV_TAC ` SS = { y| ?N. (y:real^2) = ITER N f p0 /\
+       (! n. 0 <= n /\ n < N ==> ITER n f p0 polar_lt y ) /\
+      y polar_lt p} ` THEN MP_TAC (SPEC_ALL PROVE_XISTS_MAX_ELEMENT_LT_P)
+THEN ANTS_TAC THENL [ASM_REWRITE_TAC[]; STRIP_TAC] THEN 
+UNDISCH_TAC `mx IN (SS: real^2 -> bool)` THEN 
+EXPAND_TAC "SS" THEN REWRITE_TAC[IN_ELIM_THM] THEN 
+STRIP_TAC THEN EXISTS_TAC ` N + 1` THEN 
+REWRITE_TAC[ARITH_RULE` n < b + 1 <=> n < b \/ n = b `;
+MESON[]`(! x. P x \/ x = a ==> Q x ) <=> Q a /\ (! x. 
+P x ==> Q x )`] THEN REPLICATE_TAC 3 DOWN THEN PHA THEN 
+SIMP_TAC[ARITH_RULE` 0 <= n`] THEN 
+ASSUME_TAC2 ( SPEC `p0: real^2 ` ( GEN `p: real ^2 ` 
+POLAR_CYCLIC_FUN_IMP_ALL_BELONG)) THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN SIMP_TAC[] THEN DISCH_TAC
+ THEN SUBGOAL_THEN `~ (mx:real^2 = vec 0) ` ASSUME_TAC
+THENL [ASM SET_TAC[]; CONJ_TAC] THENL [ALL_TAC ;
+ASM_MESON_TAC[POLAR_LT_TRANS]] THEN 
+ASM_CASES_TAC ` p polar_lt ( ITER ( N + 1) f p0 ) \/
+p = ITER (N + 1) (f:real^2 -> real^2) p0` THEN 
+UNDISCH_TAC `f polar_cycle_on W ` THEN REWRITE_TAC[polar_cycle_on]
+THEN STRIP_TAC THEN FIRST_X_ASSUM (MP_TAC o SPEC ` mx:real^2`)
+THEN SUBGOAL_THEN ` mx IN (W: real^2 -> bool)` ASSUME_TAC
+THENL [ASM_MESON_TAC[];
+ANTS_TAC THENL [FIRST_X_ASSUM ACCEPT_TAC; STRIP_TAC] THENL
+[FIRST_X_ASSUM DISJ_CASES_TAC THEN DOWN_TAC THEN 
+REWRITE_TAC[GSYM ADD1; ITER] THEN SET_TAC[];
+DOWN_TAC THEN REWRITE_TAC[GSYM ADD1; ITER] THEN 
+STRIP_TAC THEN FIRST_X_ASSUM SUBST_ALL_TAC THEN 
+SUBGOAL_THEN ` ~((p:real^2) = vec 0 ) ` ASSUME_TAC THENL
+[ASM_MESON_TAC[]; SUBGOAL_THEN ` mx polar_lt f mx ` ASSUME_TAC]
+THENL [ASM_MESON_TAC[POLAR_LT_TRANS]; 
+DOWN_TAC THEN REWRITE_TAC[polar_le] THEN 
+SET_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT; 
+POLAR_LT_TRANS]]]; ASM_MESON_TAC[];
+ANTS_TAC] THENL [FIRST_X_ASSUM ACCEPT_TAC;
+DISCH_TAC THEN SE_ALL_TAC THEN 
+SUBGOAL_THEN ` ITER (N + 1) (f:real^2 -> real^2) p0 
+polar_lt p ` ASSUME_TAC THENL [
+SET_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT; 
+NOT_EQ_IMP_TOTAL_ORDER; IN]; 
+SUBGOAL_THEN ` ITER (N + 1) (f:real^2 -> real^2) p0
+IN SS` ASSUME_TAC]] THENL [
+SUBGOAL_THEN ` mx polar_lt (f:real^2 -> real^2) mx `
+ASSUME_TAC THENL [
+FIRST_X_ASSUM DISJ_CASES_TAC THENL [ASM_SIMP_TAC[];
+DOWN_TAC] THEN REWRITE_TAC[GSYM ADD1; ITER; polar_le] THEN 
+SET_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT];
+EXPAND_TAC "SS" THEN REWRITE_TAC[IN_ELIM_THM] THEN 
+EXISTS_TAC `N + 1 ` THEN DOWN_TAC THEN REWRITE_TAC[GSYM ADD1; ITER]
+THEN STRIP_TAC THEN ASM_REWRITE_TAC[LE_0; LT]] THENL [
+REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+ASM SET_TAC[POLAR_LT_TRANS]; ASM SET_TAC[POLAR_LT_TRANS]];
+SUBGOAL_THEN ` mx polar_lt (f:real^2 -> real^2) mx `
+ASSUME_TAC THENL [FIRST_X_ASSUM DISJ_CASES_TAC THENL [ASM_SIMP_TAC[];
+DOWN_TAC] THEN REWRITE_TAC[GSYM ADD1; ITER; polar_le] THEN 
+SET_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT];
+DOWN_TAC THEN REWRITE_TAC[GSYM ADD1; ITER] THEN 
+SET_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT]]]);;
+
+
+
+let CARD_SING = prove(`! (x:A). CARD {x} = 1 `,
+MP_TAC CARD_CLAUSES THEN STRIP_TAC THEN 
+GEN_TAC THEN FIRST_X_ASSUM (ASSUME_TAC o SPECL [` x: A `; ` {} : A -> bool `])
+THEN SUBGOAL_THEN `FINITE ({} : A -> bool ) ` MP_TAC THENL
+[ REWRITE_TAC[FINITE_EMPTY]; FIRST_X_ASSUM NHANH] THEN 
+ASM_SIMP_TAC[NOT_IN_EMPTY; ADD1; ADD_CLAUSES]);;
+
+
+
+
+
+let POLAR_LE_REFL_EQ = prove(` a polar_le b /\ b polar_le a 
+<=> a = b \/ a = vec 0 \/ b = vec 0 `, 
+REWRITE_TAC[polar_le] THEN 
+MESON_TAC[VEC0_BOTH_LT_GT; POLAR_LT_TRANS;
+TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT]);;
+
+
+let CHANGE ne ol = fun x ->  SPEC ne ( GEN ol x);;
+
+
+let POLAR_MONOPOLY_IN_FIRST_ITERVAL =
+prove(` (!x. W x ==> ~(x = vec 0)) /\
+         FINITE W /\
+         W p0 /\
+         f polar_cycle_on W /\
+    (!x. W x ==> p0 polar_le x ) /\
+ i < CARD W - 1 ==>
+ITER i f p0 polar_lt f (ITER i f p0) `,
+ABBREV_TAC ` xx = ITER i f (p0: real^2) ` THEN STRIP_TAC
+THEN SUBGOAL_THEN ` (xx: real^2) IN W ` ASSUME_TAC THENL [
+ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG]; 
+DOWN THEN USE_FIRST ` f polar_cycle_on W ` MP_TAC] THEN 
+REWRITE_TAC[polar_cycle_on] THEN STRIP_TAC THEN 
+FIRST_X_ASSUM NHANH THEN STRIP_TAC THEN 
+SUBGOAL_THEN ` FINITE {y | ? ii. ii <= i /\ y = ITER ii
+f (p0: real^2)} ` ASSUME_TAC THENL [
+SPEC_TAC (`i: num`,`i: num `) THEN INDUCT_TAC THENL [
+REWRITE_TAC[LE; MESON[]`(?a. a = b /\ P a) <=> P b`; ITER
+; SET_RULE[]` {x| x = a} = {a} `] THEN SIMP_TAC[FINITE_RULES];
+REWRITE_TAC[ADD1; ARITH_RULE` a <= c + 1 <=> a <= c \/
+a = c + 1 `; SET_RULE[]` {y| ? x. ( P x \/ x = a ) /\ y =  Q x } =
+Q a INSERT {y | ? x. P x /\ y = Q x } `] THEN 
+ASM_SIMP_TAC[FINITE_RULES]];
+ABBREV_TAC ` SS = {y | ?ii. ii <= i /\ y = ITER ii f (p0:real^2)}
+`] THEN SUBGOAL_THEN ` W SUBSET (SS:real^2 -> bool)` ASSUME_TAC
+THENL [REWRITE_TAC[SUBSET] THEN REPEAT STRIP_TAC THEN 
+ASM_CASES_TAC ` p0 = (x:real^2)` THENL [
+EXPAND_TAC "x" THEN EXPAND_TAC "SS" THEN REWRITE_TAC[IN_ELIM_THM]
+THEN EXISTS_TAC `0` THEN REWRITE_TAC[LE_0; ITER];
+ALL_TAC] THEN 
+SUBGOAL_THEN`p0 polar_lt x ` ASSUME_TAC THENL [DOWN_TAC
+THEN REWRITE_TAC[polar_le] THEN SET_TAC[]; ALL_TAC] THEN 
+MP_TAC (SPEC_ALL (CHANGE `x: real^2 ` `p:real^2 ` 
+EXISTS_STEPS_FOR_FOLLOWING_POINTS)) THEN ANTS_TAC THENL [
+ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[GSYM IN] THEN 
+ASM_SIMP_TAC[]; STRIP_TAC] THEN
+ASM_CASES_TAC ` n <= (i:num) ` THENL [EXPAND_TAC "SS"
+THEN EXPAND_TAC "x" THEN REWRITE_TAC[IN_ELIM_THM] THEN 
+EXISTS_TAC `n:num` THEN ASM_REWRITE_TAC[]; DOWN] THEN 
+REWRITE_TAC[ARITH_RULE` ~( s <= h ) <=> (h:num) < s `] THEN 
+FIRST_ASSUM NHANH THEN 
+SUBGOAL_THEN ` x polar_le xx ` ASSUME_TAC THENL [
+ASM SET_TAC[]; ASM_REWRITE_TAC[]] THEN DOWN THEN
+REWRITE_TAC[polar_le] THEN  
+ASM SET_TAC[NO_V0_IMP_NOT_SELF_POLLAR;
+TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT]; SUBGOAL_THEN ` CARD (W:real^2 -> bool) <= CARD (SS: real^2
+-> bool)` ASSUME_TAC THENL [ASM_MESON_TAC[CARD_SUBSET];
+SUBGOAL_THEN ` CARD (SS: real^2 -> bool) <= i + 1 `
+ASSUME_TAC]] THENL [UNDISCH_TAC `FINITE (SS:real^2 -> bool)` THEN 
+EXPAND_TAC "SS" THEN SPEC_TAC (`i:num`,`i:num`) THEN 
+INDUCT_TAC THENL [REWRITE_TAC[LE; SET_RULE[]` {y| ?x. x = 0 /\ y = P x }
+= {P 0}`; ITER; CARD_SING; ADD; LE_REFL];
+PAT_REWRITE_TAC `\a. b ==> a <= c ` [ADD1; ARITH_RULE ` a <= b + 1
+ <=> a <= b \/ a = b + 1 `] THEN PAT_REWRITE_TAC `\x. x ==> h ` [ADD1;
+ARITH_RULE ` a <= b + 1 <=> a <= b \/ a = b + 1 `] THEN 
+REWRITE_TAC[ADD1; SET_RULE[]` {y| ? x. (P x \/ x = a ) /\ y = Q x } =
+Q a INSERT {y| ?x. P x /\ y = Q x } `; FINITE_INSERT] THEN 
+FIRST_X_ASSUM NHANH THEN 
+NHANH (let [a;b] = CONJUNCTS CARD_CLAUSES in 
+ISPEC ` ITER (i' + 1) f (p0: real^2) ` b) THEN 
+COND_CASES_TAC THENL [STRIP_TAC THEN ASM_REWRITE_TAC[]
+THEN DOWN THEN CONV_TAC ARITH_RULE; STRIP_TAC THEN 
+ASM_REWRITE_TAC[] THEN DOWN THEN ARITH_TAC THEN ASM_MESON_TAC[
+ARITH_RULE` i < CW - 1 /\ CW <= CS ==> ~( CS <= i + 1) `
+]]]; ASM_MESON_TAC[
+ARITH_RULE` i < CW - 1 /\ CW <= CS ==> ~( CS <= i + 1) `]]);;
+
+
+
+
+let TRANS_SUC_IMP_INCREASE = prove(`! f. (! x y z. f x y /\ f y z ==> f x z ) /\
+(! i. f i ( i + 1 )) ==>
+(! i j. i < j ==> f i j ) `,
+GEN_TAC THEN STRIP_TAC THEN GEN_TAC THEN INDUCT_TAC
+THENL [REWRITE_TAC[LT; ARITH_RULE` i < SUC j <=> i < j \/ j = i `];
+REWRITE_TAC[ARITH_RULE` i < SUC j <=> i < j \/ i = j `] THEN
+ASM_MESON_TAC[ADD1]]);;
+
+
+
+
+let MONOPOLY_IN_FIRST_PERIOD = prove(
+` (!x. W x ==> ~(x = vec 0)) /\
+         FINITE W /\
+         W p0 /\
+         f polar_cycle_on W /\
+    (!x. W x ==> p0 polar_le x ) 
+==> (! i j. i < j /\ j < CARD W ==> 
+ITER i f p0 polar_lt ITER j f p0 ) `,
+STRIP_TAC THEN GEN_TAC THEN INDUCT_TAC THENL [
+REWRITE_TAC[LT]; REWRITE_TAC[LT]] THEN STRIP_TAC THENL
+[ASM_REWRITE_TAC[ITER] THEN 
+MATCH_MP_TAC POLAR_MONOPOLY_IN_FIRST_ITERVAL THEN 
+ASM_REWRITE_TAC[ARITH_RULE` a < b - 1 <=> a + 1 < b `;
+GSYM ADD1]; 
+UNDISCH_TAC `i < j /\ j < CARD (W:real^2 -> bool) ==> 
+ITER i f p0 polar_lt ITER j f p0` THEN ANTS_TAC THENL [
+ASM_ARITH_TAC; DISCH_TAC]] THEN MP_TAC (
+CHANGE `j:num ` `i:num` POLAR_MONOPOLY_IN_FIRST_ITERVAL)
+THEN ANTS_TAC THENL [
+ASM_REWRITE_TAC[ARITH_RULE` a < b - 1 <=> SUC a < b`]; 
+REWRITE_TAC[GSYM ITER]] THEN 
+SUBGOAL_THEN ` ~(ITER j f (p0: real^2) = vec 0 )` ASSUME_TAC
+THENL [ASM SET_TAC[IN; POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+ASM_MESON_TAC[POLAR_LT_TRANS]]);;
+
+
+
+let FINITE_SEUBSET_OF_NATURAL = prove(`! n. FINITE { f i | i < (n:num) } `,
+INDUCT_TAC THENL [REWRITE_TAC[LT; SET_RULE[]` { f i | i | F } = {} `;
+FINITE_RULES];
+ASM_REWRITE_TAC[ARITH_RULE` i < SUC j <=> i < j \/ i = j `;
+SET_RULE[]` {f i| P i \/ i = a } = f a INSERT {f i| P i }`;
+FINITE_INSERT]]);;
+
+
+let STRICTLY_INCREASE_PRESERVING_CARD = 
+prove(` ! lt f. (! (x:A) y. lt x y ==> ~( x = y )) /\
+(! i (j: num). i < j ==> lt (f i ) ( f j )) ==>
+(! n. CARD ({ f i | i < n }) = n ) `,
+REPEAT GEN_TAC THEN STRIP_TAC THEN INDUCT_TAC THENL [
+REWRITE_TAC[LT; SET_RULE[]` { f i | i | F } = {} `;
+CARD_CLAUSES];
+ASM_SIMP_TAC[ARITH_RULE` i < SUC j <=> i < j \/ i = j `;
+SET_RULE[]` {f i| P i \/ i = a } = f a INSERT {f i| P i }`;
+CARD_CLAUSES; FINITE_SEUBSET_OF_NATURAL] THEN 
+SUBGOAL_THEN `~ ((f: num -> A) n IN {f i| i < n }) `
+( fun x -> SIMP_TAC[x]) THEN REWRITE_TAC[IN_ELIM_THM] THEN 
+ASM_MESON_TAC[]]);;
+
+
+
+
+
+
+
+
+
+let XXXXX = prove(`!lt (f: num -> A).
+         (!x y. lt x y ==> ~(x = y)) /\
+         (!i j. i < j /\ j < N  ==> lt (f i) (f  j))
+         ==> (!n. n < N ==> CARD {f i | i < n} = n)`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN INDUCT_TAC THENL [
+REWRITE_TAC[LT; EMPTY_GSPEC; SET_RULE[]` { f i| i | F } 
+= {} `; CARD_CLAUSES]; REWRITE_TAC[ARITH_RULE` i < SUC v <=> i < v \/ i = v `]]
+THEN DISCH_TAC THEN REWRITE_TAC[
+SET_RULE[]`{(f:num -> A) i| i < n \/ i = n } = 
+f n INSERT {f i | i < n } `] THEN 
+SIMP_TAC[FINITE_SEUBSET_OF_NATURAL; CARD_CLAUSES] THEN 
+SUBGOAL_THEN ` ~((f:num -> A) n IN { f i | i < n }) `
+ASSUME_TAC THENL [REWRITE_TAC[IN_ELIM_THM] THEN
+ASM_MESON_TAC[ARITH_RULE` SUC v < g ==> v < g `];
+ASM_REWRITE_TAC[] THEN 
+ASM_MESON_TAC[ARITH_RULE` SUC x < y ==> x < y `]]);;
+
+
+
+
+let TDHUFHCYVHYBCC = prove(`  (!x. W x ==> ~(x = vec 0)) /\
+     FINITE W /\
+     W p0 /\
+     f polar_cycle_on W /\
+     (!x. W x ==> p0 polar_le x)
+==> (! n. n < CARD W ==>
+CARD { y | ? i. i < n /\ y = ITER i f p0 } = n ) `,
+STRIP_TAC THEN 
+REWRITE_TAC[SET_RULE[]` {y | ? i. i < n /\ y = ITER i f p0 
+} = {ITER i f p0 | i < n } `] THEN 
+MATCH_MP_TAC (BETA_RULE (ISPECL [`CARD (W: real^2 -> bool) `
+;`\x y. W x /\ W y /\ x polar_lt y `; `\i. ITER i f (p0:real^2) `] 
+(GEN_ALL XXXXX))) THEN 
+CONJ_TAC THENL [
+ASM_MESON_TAC[POLAR_LT_IMP_NOT_EQ]; REPEAT STRIP_TAC]
+THENL [
+
+ASM_REWRITE_TAC[SET_RULE[]` A ( p x ) <=> p x IN A `] THEN 
+ASM_MESON_TAC [POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+
+ASM_REWRITE_TAC[SET_RULE[]` A ( p x ) <=> p x IN A `] THEN 
+ASM_MESON_TAC [POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+
+MP_TAC MONOPOLY_IN_FIRST_PERIOD THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; ASM_MESON_TAC[]]]);;
+
+
+
+let POLAR_CYCLIC_FUN_IMP_ALL_BELONG = 
+REWRITE_RULE[IN] POLAR_CYCLIC_FUN_IMP_ALL_BELONG;;
+    
+let CARD_W_AS_ALL_LESS_THAN_PERIODIC = prove(
+` (!x. W x ==> ~(x = vec 0)) /\
+     FINITE W /\
+     W p0 /\
+     f polar_cycle_on W /\
+     (!x. W x ==> p0 polar_le x)
+==> (! n. n = CARD W ==> CARD { y | ? i. i < n /\ y = ITER i f p0 } = n ) `,
+SIMP_TAC[] THEN ASM_CASES_TAC ` CARD (W:real^2 -> bool) = 0 `
+THENL [ASM_REWRITE_TAC[LT; EMPTY_GSPEC; CARD_CLAUSES];
+ASM_SIMP_TAC[ARITH_RULE` ~( a = 0 ) ==> ( b < a <=> b <
+a - 1 \/ b = a - 1 )`] THEN REPEAT STRIP_TAC THEN 
+REWRITE_TAC[SET_RULE[]` {y | ?i. (P i \/ i = a ) /\ y = Q i}
+= Q a INSERT {y | ? i. P i /\ y = Q i }`]] THEN 
+SUBGOAL_THEN `FINITE {y | ?i. i < CARD (W:real^2 -> bool)
+ - 1 /\ y = ITER i f (p0:real^2)} ` ASSUME_TAC THENL [
+REWRITE_TAC[SET_RULE[]` {y | ?i . P i /\ y = Q i } = 
+{ Q i | P i } `] THEN 
+REWRITE_TAC[FINITE_SEUBSET_OF_NATURAL];
+ASM_SIMP_TAC[CARD_CLAUSES] THEN COND_CASES_TAC THENL [
+DOWN THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN 
+DOWN_TAC THEN 
+NHANH (ARITH_RULE `~( CARD W = 0 ) ==>  CARD (W:real^2 -> bool) - 1
+< CARD W `) THEN STRIP_TAC THEN 
+SUBGOAL_THEN` ITER i f (p0:real^2) polar_lt ITER (CARD (W:
+real^2 -> bool) - 1 ) f p0 ` ASSUME_TAC THENL [
+ASM_MESON_TAC [MONOPOLY_IN_FIRST_PERIOD]; 
+ASM_MESON_TAC[POLAR_LT_IMP_NOT_EQ;
+ MONOPOLY_IN_FIRST_PERIOD;
+POLAR_CYCLIC_FUN_IMP_ALL_BELONG]]; DOWN_TAC] THEN 
+NHANH (ARITH_RULE` ~(x = 0 ) ==> x - 1 < x `) THEN 
+STRIP_TAC THEN MP_TAC TDHUFHCYVHYBCC THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; 
+DISCH_THEN (MP_TAC o (SPEC ` CARD (W:real^2 -> bool)
+- 1 `)) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; SIMP_TAC[] THEN 
+DISCH_TAC THEN UNDISCH_TAC `~( CARD (W:real^2 -> bool ) = 0)`
+THEN ARITH_TAC]]]);;
+
+
+
+let AUTOMAP_IMP_ALL_ITER_IN = 
+prove(`W (p: A) /\ (! x. W x ==> f x IN W ) 
+==> (! N. ITER N f p IN W ) `,
+STRIP_TAC THEN INDUCT_TAC THENL [
+ASM_REWRITE_TAC[ITER; IN];
+REWRITE_TAC[ITER] THEN ASM SET_TAC[]]);;
+
+
+
+let AUTOMAP_IMP_ITER_SET_IS_A_SUBSET = 
+prove(`W p /\ (! x. W x ==> f x IN W ) ==>
+{y | ?n. y = ITER n f p } SUBSET W `,
+STRIP_TAC THEN REWRITE_TAC[SUBSET; IN_ELIM_THM] THEN 
+ASM_MESON_TAC[AUTOMAP_IMP_ALL_ITER_IN]);;
+
+
+
+
+
+let TOW_NON_VEC0_POLAR_LE_IMP_NOT_LT = 
+prove(`~( x = vec 0 ) /\ ~( y = vec 0 ) /\ x polar_le y ==>
+~( y polar_lt x ) `, REWRITE_TAC[polar_le] THEN 
+MESON_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT;
+NOT_EQ_IMP_TOTAL_ORDER;
+NO_V0_IMP_NOT_SELF_POLLAR]);;
+
+
+let CARD_W_IS_THE_PERIODIC = prove(` (!x. W x ==> ~(x = vec 0)) /\
+     FINITE W /\
+     W p0 /\
+     f polar_cycle_on W /\
+     (!x. W x ==> p0 polar_le x)
+==> ITER (CARD W) f p0 = p0 `,
+STRIP_TAC THEN MP_TAC CARD_W_AS_ALL_LESS_THAN_PERIODIC
+THEN ANTS_TAC THENL [ASM_SIMP_TAC[]; 
+DISCH_THEN (MP_TAC o SPEC `CARD (W:real^2 -> bool)`)] THEN 
+REWRITE_TAC[] THEN 
+
+
+REWRITE_TAC[SET_RULE[]`{y | ?i. i < CARD W /\ y = ITER i f p0} =
+{ITER i f p0 | i < CARD W }`] THEN SUBGOAL_THEN ` FINITE {ITER i f (p0:real^2) | 
+i < CARD (W:real^2 -> bool)}` ASSUME_TAC THENL [
+REWRITE_TAC[FINITE_SEUBSET_OF_NATURAL]; 
+ABBREV_TAC ` WW =  {ITER i f (p0:real^2) | i < 
+CARD (W:real^2 -> bool ) }`] THEN 
+SUBGOAL_THEN ` WW SUBSET (W:real^2 -> bool) ` ASSUME_TAC
+THENL [EXPAND_TAC "WW" THEN REWRITE_TAC[SUBSET; IN_ELIM_THM; IN]
+THEN ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+DISCH_TAC] THEN SUBGOAL_THEN `WW = (W:real^2 -> bool) ` ASSUME_TAC THENL
+[ASM_MESON_TAC[CARD_SUBSET_EQ]; ALL_TAC] THEN 
+SUBGOAL_THEN `! (x:real^2). W x ==> x polar_le ITER (CARD
+W - 1 ) f p0 ` ASSUME_TAC THENL [
+
+
+EXPAND_TAC "W" THEN EXPAND_TAC "WW" THEN 
+REWRITE_TAC[IN_ELIM_THM] THEN 
+ASSUME_TAC2 (ISPEC` W: real^2 -> bool` CARD_EQ_0) THEN 
+ASM_CASES_TAC ` ~((W:real^2 -> bool) = {})` THENL [
+
+
+
+FIRST_X_ASSUM (SUBST_ALL_TAC o SYM) THEN GEN_TAC THEN 
+ASM_REWRITE_TAC[] THEN DOWN THEN 
+SIMP_TAC[ARITH_RULE` ~( x = 0 ) ==> ( c < x <=> c < x - 1 
+\/ c = x - 1) `] THEN PHA THEN STRIP_TAC THENL [
+
+
+ASM_REWRITE_TAC[] THEN 
+ASSUME_TAC2 (ARITH_RULE` ~(CARD W = 0) ==> 
+CARD (W:real^2 -> bool) - 1 < CARD W `) THEN 
+ASSUME_TAC2 MONOPOLY_IN_FIRST_PERIOD THEN 
+ASM_MESON_TAC[polar_le]; 
+
+
+
+ASM_REWRITE_TAC[polar_le]]; 
+
+
+
+DOWN THEN DOWN THEN MESON_TAC[LT]];
+
+
+
+
+
+
+ASSUME_TAC2 (ISPEC` W: real^2 -> bool` CARD_EQ_0) THEN 
+ASSUME_TAC2 (SET_RULE[]`W p0 ==>
+ ~((W:real^2 -> bool) = {})`) THEN 
+FIRST_X_ASSUM (SUBST_ALL_TAC o SYM) THEN DOWN THEN 
+SUBGOAL_THEN `W (ITER (CARD W - 1) f (p0:real^2))` ASSUME_TAC
+THENL [ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+NHANH (ARITH_RULE` ~( a = 0 ) ==> a = a - 1 + 1 `)] THEN 
+STRIP_TAC THEN SUBGOAL_THEN `ITER (CARD (W:real^2 -> bool)) f (p0:real^2)
+= f (ITER ( CARD W - 1 ) f p0 )` ASSUME_TAC THENL [
+REWRITE_TAC[GSYM ITER; ADD1] THEN DOWN THEN MESON_TAC[];
+ALL_TAC]] THEN DOWN_TAC THEN REWRITE_TAC[polar_cycle_on]
+THEN STRIP_TAC THEN 
+ABBREV_TAC ` AD = ITER (CARD (W:real^2 -> bool ) - 1)
+ f (p0:real^2)` THEN 
+
+
+SUBGOAL_THEN ` f (AD: real^2) polar_le AD ` ASSUME_TAC
+THENL [FIRST_X_ASSUM MATCH_MP_TAC THEN ASM SET_TAC[];
+
+SUBGOAL_THEN `~( AD polar_lt f AD ) ` ASSUME_TAC THENL [
+ASM SET_TAC[TOW_NON_VEC0_POLAR_LE_IMP_NOT_LT];
+DOWN_TAC THEN REWRITE_TAC[IN] THEN STRIP_TAC]] THEN 
+UNDISCH_TAC `(W:real^2 -> bool) (AD:real^2 )` THEN 
+USE_FIRST ` !x. W (x:real^2 )
+          ==> x polar_lt f x /\
+              (!y. W y ==> ~(x polar_lt y /\ y polar_lt f x)) \/
+              (!y. W y ==> f x polar_le y /\ y polar_le x)`
+NHANH THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN 
+UNDISCH_TAC `(W:real^2 -> bool) p0 ` THEN 
+FIRST_X_ASSUM NHANH THEN ASM_MESON_TAC[POLAR_LE_REFL_EQ]);;
+
+
+
+
+
+
+let ITER_CARD_W_IDENTIFICATION = prove(`
+(!x. W x ==> ~(x = vec 0)) /\
+     FINITE W /\
+     W p0 /\
+     f polar_cycle_on W /\
+     (!x. W x ==> p0 polar_le x) 
+==> (! x. W x ==> ITER (CARD W) f x = x) `,
+STRIP_TAC THEN STRIP_TAC THEN FIRST_ASSUM NHANH THEN 
+REWRITE_TAC[polar_le] THEN STRIP_TAC THENL [
+MP_TAC (CHANGE `x:real^2 ` `p:real^2 ` (SPEC_ALL 
+EXISTS_STEPS_FOR_FOLLOWING_POINTS)) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; STRIP_TAC] THEN
+EXPAND_TAC "x" THEN REWRITE_TAC[ITER_ADD] THEN 
+ONCE_REWRITE_TAC[ADD_SYM] THEN REWRITE_TAC[GSYM ITER_ADD]
+THEN MATCH_MP_TAC (MESON[]` a = b ==> P a = P b `) THEN
+MATCH_MP_TAC CARD_W_IS_THE_PERIODIC THEN ASM_REWRITE_TAC[];
+EXPAND_TAC "x" THEN MATCH_MP_TAC 
+CARD_W_IS_THE_PERIODIC THEN ASM_REWRITE_TAC[]]);;
+
+
+
+
+let EXISTS_STEPS_FOR_FOLLOWING_POINTS = 
+prove(` (!x. W x ==> ~(x = vec 0)) /\
+         FINITE W /\
+         W p0 /\
+         f polar_cycle_on W /\
+         p0 polar_le p /\
+         W p
+         ==> (?n. ITER n f p0 = p /\
+                  (!nn. nn < n ==> ITER nn f p0 polar_lt p))`,
+REWRITE_TAC[polar_le] THEN STRIP_TAC THENL [
+MP_TAC (SPEC_ALL EXISTS_STEPS_FOR_FOLLOWING_POINTS) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; REWRITE_TAC[]]; 
+EXISTS_TAC `0` THEN EXPAND_TAC "p" THEN REWRITE_TAC[ITER; LT]]);;
+
+
+
+
+
+
+let EXISTS_STEPS_FOR_FOLLOWING_POINTS =
+prove(` (!x. W x ==> ~(x = vec 0)) /\
+     FINITE W /\
+     W p0 /\
+     f polar_cycle_on W /\
+     p0 polar_le p /\
+     W p
+     ==> (?n. n < CARD W /\ 
+              ITER n f p0 = p /\ 
+              (!nn. nn < n ==> ITER nn f p0 polar_lt p))`,
+NHANH EXISTS_STEPS_FOR_FOLLOWING_POINTS THEN 
+STRIP_TAC THEN ASM_CASES_TAC ` n < CARD (W:real^2 -> bool) ` THENL
+[EXISTS_TAC `n: num ` THEN ASM_REWRITE_TAC[];
+UNDISCH_TAC `(W:real^2 -> bool) p ` THEN 
+NHANH_PAT `\x. x ==> s ` (SET_RULE[]` S c ==> ~( S = {})`) THEN 
+ASSUME_TAC2 (ISPEC `W:real^2 -> bool ` CARD_EQ_0) THEN 
+FIRST_X_ASSUM (SUBST1_TAC o SYM) THEN DOWN THEN 
+NHANH (ARITH_RULE` ~( a < (b:num)) ==> a = a - b + b `) THEN 
+STRIP_TAC THEN STRIP_TAC THEN 
+ASSUME_TAC2 (ARITH_RULE` ~( n < CARD (W:real^2 -> bool))
+ ==> ~( CARD W = 0 ) ==> n - CARD W < n `) THEN  
+DOWN THEN FIRST_X_ASSUM NHANH THEN 
+SUBGOAL_THEN `ITER (n - CARD (W: real^2 -> bool)) f p0
+= ITER ( n - CARD W + CARD W ) f (p0:real^2) ` ASSUME_TAC]
+THENL [ REWRITE_TAC[GSYM ITER_ADD] THEN MP_TAC 
+(SPEC_ALL PROVE_MIN_ELEMENT_IN_FINITE_CYCLIC_SET) THEN 
+ANTS_TAC THENL [
+ASSUME_TAC2 (SET_RULE[]` (W:real^2 -> bool) p ==>
+~( W = {} ) `) THEN ASM_REWRITE_TAC[];
+STRIP_TAC] THEN MP_TAC (CHANGE `n': real^2 ` `p0:real^2 ` 
+ITER_CARD_W_IDENTIFICATION) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[polar_le]; DISCH_TAC] THEN 
+UNDISCH_TAC ` (W:real^2 -> bool) p0 ` THEN 
+FIRST_X_ASSUM NHANH THEN SIMP_TAC[]; 
+DOWN THEN FIRST_X_ASSUM (SUBST1_TAC o SYM) THEN 
+ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG;
+NO_V0_IMP_NOT_SELF_POLLAR]]);;
+
+
+
+
+let MONO_LE_IN_FIRST_PERIOD = prove(
+`(!x. W x ==> ~(x = vec 0)) /\
+       FINITE W /\
+       W p0 /\
+       f polar_cycle_on W /\
+       (!x. W x ==> p0 polar_le x)
+       ==> (!i j. i <= j /\ j < CARD W 
+==> ITER i f p0 polar_le ITER j f p0) `,
+REWRITE_TAC[LE_LT; polar_le] THEN REPEAT STRIP_TAC THENL
+[DISJ1_TAC THEN DOWN_TAC THEN REWRITE_TAC[GSYM polar_le]
+THEN MESON_TAC[MONOPOLY_IN_FIRST_PERIOD; polar_le]; 
+DISJ2_TAC THEN ASM_REWRITE_TAC[]]);;
+
+
+
+
+
+
+let POLAR_LE_NOT_VEC0_IMP_PL_ANG_LE = 
+prove(` x polar_le y /\ ~( x = vec 0 ) /\
+~( y = vec 0 ) ==> pl_angle x <= pl_angle y `,
+NHANH PL_ANGLE_PROPERTY THEN REWRITE_TAC[polar_le] THEN 
+STRIP_TAC THENL [UNDISCH_TAC ` x polar_lt y ` THEN 
+REWRITE_TAC[polar_lt; REAL_LE_LT] THEN 
+ASM_MESON_TAC[]; ASM_REWRITE_TAC[REAL_LE_REFL]]);;
+
+
+
+
+let TWO_NOT_EQ_VECS_SUM_ARG_DIFF_TWO_PI = prove(
+ ` ~( x = vec 0 ) /\ ~ (y = vec 0 ) /\ ~( x = y )==>
+arg_diff x y + arg_diff y x = &2 * pi `, 
+NHANH_PAT `\x. a /\ b /\ x ==> kk ` NOT_EQ_IMP_TOTAL_ORDER THEN
+NGOAC THEN REWRITE_TAC[arg_diff; polar_le] 
+THEN (let ttc = ASM_REWRITE_TAC[] THEN 
+ASSUME_TAC2 TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT THEN DOWN
+THEN ASM_SIMP_TAC[DE_MORGAN_THM] THEN DISCH_TAC THEN 
+CONV_TAC (DEPTH_CONV let_CONV) THEN REAL_ARITH_TAC in 
+STRIP_TAC THENL [ttc ;ttc]));;
+
+
+
+let ARG_DIFF_SUCCESSIBLE_IN_FIRST_PERIOD = 
+prove(`!(W: real^2 -> bool ) xicm. FINITE W /\
+     CARD W = n /\
+     (!x. W x ==> ~(x = vec 0)) /\
+     xicm polar_cycle_on W
+     ==> (!p i j.
+              W p /\ 0 <= i /\ i <= j /\ j < n
+              ==> arg_diff p (ITER i xicm p) +
+                  arg_diff (ITER i xicm p) (ITER j xicm p) =
+                  arg_diff p (ITER j xicm p))`,
+REPEAT STRIP_TAC THEN  
+MP_TAC (SPEC_ALL PROVE_MIN_ELEMENT_IN_FINITE_CYCLIC_SET) THEN 
+ANTS_TAC THENL [
+ASM_MESON_TAC[SET_RULE[]` A x ==> ~( A = {} ) `];
+STRIP_TAC] THEN UNDISCH_TAC ` (W:real^2 -> bool) p ` THEN 
+FIRST_ASSUM NHANH THEN REWRITE_TAC[GSYM polar_le] THEN STRIP_TAC
+THEN MP_TAC (CHANGE `n': real^2 ` `p0: real^2 ` 
+(CHANGE `xicm: real^2 -> real^2 ` `f:real^2 -> real^2 `
+(SPEC_ALL EXISTS_STEPS_FOR_FOLLOWING_POINTS))) THEN ANTS_TAC
+THENL [ASM_REWRITE_TAC[]; STRIP_TAC] THEN 
+ASM_CASES_TAC ` j + n'' < CARD (W:real^2 -> bool) `
+THENL [
+
+UNDISCH_TAC ` i <= (j:num) ` THEN 
+NHANH (ARITH_RULE` (i:num) <= j ==> i + n'' <= j + n'' `) THEN 
+MP_TAC (CHANGE `xicm: real^2 -> real^2 ` `f:real^2 -> real^2 `
+(CHANGE `n': real^2 ` `p0: real^2 ` MONO_LE_IN_FIRST_PERIOD)) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[polar_le]; 
+STRIP_TAC THEN STRIP_TAC] THEN 
+UNDISCH_TAC` j + n'' < CARD (W:real^2 -> bool) ` THEN 
+DOWN THEN 
+PHA THEN 
+FIRST_ASSUM NHANH THEN 
+NHANH (ARITH_RULE` a <= b /\ b < c ==> a < (c:num) `)  THEN 
+STRIP_TAC THEN 
+UNDISCH_TAC ` j + n'' < CARD (W:real^2 -> bool) ` THEN 
+MP_TAC (ARITH_RULE` n'' <= j + (n'':num) `) THEN 
+PHA THEN FIRST_ASSUM NHANH THEN 
+STRIP_TAC THEN 
+UNDISCH_TAC ` i + n'' < CARD (W:real^2 -> bool) ` THEN 
+MP_TAC (ARITH_RULE` n'' <= i + (n'':num) `) THEN 
+PHA THEN FIRST_ASSUM NHANH THEN 
+DOWN_TAC THEN 
+REWRITE_TAC[GSYM ITER_ADD] THEN 
+STRIP_TAC THEN 
+FIRST_X_ASSUM SUBST_ALL_TAC THEN 
+SUBGOAL_THEN ` pl_angle p <= pl_angle (ITER i xicm p) /\
+pl_angle p <= pl_angle (ITER j xicm p ) /\
+pl_angle (ITER i xicm p) <= pl_angle (ITER j xicm p) ` 
+ASSUME_TAC THENL [ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG;
+POLAR_LE_NOT_VEC0_IMP_PL_ANG_LE]; REWRITE_TAC[arg_diff] THEN
+ASM_SIMP_TAC[] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN 
+ARITH_TAC];
+
+
+
+
+
+ASM_CASES_TAC` i + n'' < CARD (W:real^2 ->  bool) `] THENL [
+ASSUME_TAC2 (ARITH_RULE` ~( j + n'' < CARD (W: real^2 -> bool))
+/\ j < n ==> CARD W = n ==> (j + n'') - CARD W < n''`) THEN 
+EXPAND_TAC "p" THEN 
+REWRITE_TAC[ITER_ADD] THEN 
+DOWN_TAC THEN 
+NHANH (ARITH_RULE` ~ (a < b )  ==> a - b + b = (a:num)`) THEN 
+ABBREV_TAC ` aa = j + (n'': num) ` THEN 
+STRIP_TAC THEN 
+EXPAND_TAC "aa" THEN 
+REWRITE_TAC[GSYM ITER_ADD] THEN 
+SUBGOAL_THEN `! x. W x ==> ITER (CARD (W:real^2 -> bool)) xicm x = x ` ASSUME_TAC
+THENL [
+MATCH_MP_TAC (CHANGE `n':real^2` `p0:real^2 ` ITER_CARD_W_IDENTIFICATION) THEN 
+ASM_REWRITE_TAC[polar_le]; 
+
+
+UNDISCH_TAC ` (W:real^2 -> bool) n' `] THEN 
+FIRST_ASSUM NHANH THEN 
+SIMP_TAC[] THEN 
+REWRITE_TAC[ITER_ADD] THEN 
+STRIP_TAC THEN 
+ASSUME_TAC2 (ARITH_RULE` i <= j /\ j < n /\ CARD (W:real^2 
+-> bool) = n ==> i < CARD W `) THEN 
+ASSUME_TAC (ARITH_RULE` n'' <= i + (n'':num) `) THEN 
+ASSUME_TAC2 (ARITH_RULE` aa - CARD (W:real^2 -> bool) <
+n'' ==> aa - CARD W < i + n'' `) THEN 
+
+(*
+POLAR_LE_NOT_VEC0_IMP_PL_ANG_LE;;
+ 
+  |- x polar_le y /\ ~(x = vec 0) /\ ~(y = vec 0)
+     ==> pl_angle x <= pl_angle y
+
+
+POLAR_CYCLIC_FUN_IMP_ALL_BELONG;;
+
+ it : thm = |- W p /\ f polar_cycle_on W ==> (!n. W (ITER n f p))
+
+
+MONO_LE_IN_FIRST_PERIOD;;
+
+*)
+SUBGOAL_THEN` (ITER ( aa - CARD (W:real^2 -> bool)) xicm
+(n':real^2) ) polar_lt (ITER n'' xicm n')/\
+ITER ( aa - CARD W ) xicm n' polar_lt ITER (i + n'') xicm n'
+ ` ASSUME_TAC THENL [
+DOWN_TAC THEN REWRITE_TAC[IN; GSYM polar_le] THEN 
+ASM_MESON_TAC[MONOPOLY_IN_FIRST_PERIOD]; ALL_TAC] THEN 
+
+
+
+
+
+SUBGOAL_THEN ` ITER n'' xicm n' polar_le ITER (i + n'')
+xicm n'` ASSUME_TAC THENL 
+[DOWN_TAC THEN REWRITE_TAC[GSYM polar_le] THEN 
+ASM_MESON_TAC[MONO_LE_IN_FIRST_PERIOD]; ALL_TAC] THEN 
+
+
+
+
+
+SUBGOAL_THEN ` ~(ITER (aa - CARD (W:real^2 -> bool)) xicm
+(n':real^2) = vec 0 ) /\
+~( ITER n'' xicm n' = vec 0 ) /\
+~( ITER (i + n'') xicm n' = vec 0 )` ASSUME_TAC THENL [
+ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG]; ALL_TAC] THEN 
+
+SUBGOAL_THEN ` ~(ITER n'' xicm n' polar_le ITER (aa - CARD (W:real^2 -> bool)) xicm n') /\
+~( ITER (i + n'') xicm n' polar_le ITER ( aa - CARD W) xicm n')`
+ASSUME_TAC THENL [ASM_MESON_TAC[
+TOW_NON_VEC0_POLAR_LE_IMP_NOT_LT]; ALL_TAC] THEN 
+
+ASM_REWRITE_TAC[arg_diff] THEN CONV_TAC (DEPTH_CONV let_CONV)
+THEN REAL_ARITH_TAC; ALL_TAC] THEN DOWN THEN DOWN THEN
+NHANH (ARITH_RULE` ~( a < (b:num)) ==> a = a - b + b `) THEN 
+
+
+SUBGOAL_THEN `(! (x:real^2). W x ==> ITER (CARD W) xicm x
+= x) ` ASSUME_TAC THENL [
+
+MATCH_MP_TAC (CHANGE `n':real^2 ` `p0: real^2 ` (REWRITE_RULE[polar_le] 
+ITER_CARD_W_IDENTIFICATION)) THEN ASM_REWRITE_TAC[];
+
+ABBREV_TAC ` wi = (i + n'') - CARD (W:real^2 -> bool) `] THEN 
+ABBREV_TAC ` wj = (j + n'') - CARD (W:real^2 -> bool) ` THEN 
+EXPAND_TAC "p" THEN SIMP_TAC[ITER_ADD] THEN 
+REWRITE_TAC[GSYM ITER_ADD] THEN ASM_SIMP_TAC[] THEN 
+STRIP_TAC THEN STRIP_TAC THEN 
+SUBGOAL_THEN ` wi < (n'': num) /\ wj < n'' /\ wi <= wj
+/\ wj < CARD (W:real^2 -> bool)` ASSUME_TAC THENL [
+ASM_ARITH_TAC; ALL_TAC] THEN 
+
+
+SUBGOAL_THEN ` (ITER wi xicm n') polar_le (ITER wj xicm n')
+/\ ITER wi xicm n' polar_lt ITER n'' xicm n' /\
+ITER wj xicm n' polar_lt ITER n'' xicm n' ` ASSUME_TAC THENL [
+DOWN_TAC THEN REWRITE_TAC[GSYM polar_le] THEN 
+MESON_TAC [MONOPOLY_IN_FIRST_PERIOD;
+MONO_LE_IN_FIRST_PERIOD]; ALL_TAC] THEN 
+
+SUBGOAL_THEN ` ~( ITER wi xicm (n':real^2) = vec 0 ) /\
+~( ITER wj xicm n' = vec 0 ) /\ ~( ITER n'' xicm n' = vec 0) `
+ASSUME_TAC THENL [
+ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG]; ALL_TAC] THEN 
+
+SUBGOAL_THEN ` ~(ITER n'' xicm n' polar_le ITER wi xicm n') /\
+     ~( ITER n'' xicm n' polar_le ITER wj xicm n')` ASSUME_TAC
+THENL [DOWN THEN DOWN THEN MESON_TAC [
+TOW_NON_VEC0_POLAR_LE_IMP_NOT_LT]; ALL_TAC] THEN 
+
+
+EXPAND_TAC "p" THEN REWRITE_TAC[arg_diff] THEN 
+ASM_REWRITE_TAC[] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN 
+REAL_ARITH_TAC);;
+
+
+
+let TWO_NON_ZERO_VECS_NOT_EQ_EQ_PLT = 
+prove(` ~(x = vec 0) /\ ~(y = vec 0) ==> 
+(  ~(x = y) <=> x polar_lt y \/ y polar_lt x ) `,
+MESON_TAC[POLAR_LT_IMP_NOT_EQ;NOT_EQ_IMP_TOTAL_ORDER]);;
+
+
+
+let SUM_OVER_W_EQUAL_AT_ANY_POINT = 
+prove(` FINITE W /\
+     CARD W = n /\
+     (!x. W x ==> ~(x = vec 0)) /\
+     xicm polar_cycle_on W /\ W p0 /\
+(! x. W x ==> p0 polar_le x )
+==> (! p. W p ==>
+sum (0.. n - 1 ) (\i. arg_diff ( ITER i xicm p ) (ITER ( i + 1 )
+xicm p)) = 
+sum (0.. n - 1 ) (\i. arg_diff ( ITER i xicm p0 ) (ITER ( i + 1 )
+xicm p0))) `,
+REPEAT STRIP_TAC THEN DOWN THEN FIRST_ASSUM NHANH THEN 
+STRIP_TAC THEN ASSUME_TAC2 (
+CHANGE `xicm: real^2 -> real^2 ` `f:real^2 -> real^2 `
+EXISTS_STEPS_FOR_FOLLOWING_POINTS) THEN DOWN THEN STRIP_TAC
+THEN ASM_CASES_TAC ` n' = 0 ` THENL [
+FIRST_X_ASSUM SUBST_ALL_TAC THEN EXPAND_TAC "p" THEN 
+REWRITE_TAC[ITER_ADD; ADD_CLAUSES]; EXPAND_TAC "p"] THEN 
+REWRITE_TAC[ITER_ADD; ARITH_RULE` (i + 1) + n' =
+(i + n' ) + 1 `] THEN ABBREV_TAC ` ff i = 
+arg_diff (ITER i xicm (p0:real^2)) (ITER (i + 1) xicm p0) `
+  THEN REWRITE_TAC[GSYM SUM_OFFSET] THEN 
+ASSUME_TAC2 (ARITH_RULE` CARD (W:real^2 -> bool) = n /\
+n' < CARD W ==> n' <= n - 1 + 1 `) THEN 
+ASM_SIMP_TAC[ADD; SUM_ADD_SPLIT] THEN 
+ASSUME_TAC2 (ISPEC `W:real^2 -> bool ` CARD_EQ_0) THEN (* 000 *)
+ASSUME_TAC2 (SET_RULE[]` (W:real^2 -> bool) p ==>
+~( W = {} ) `) THEN FIRST_X_ASSUM (SUBST_ALL_TAC o SYM) THEN 
+EXPAND_TAC "n" THEN DOWN THEN UNDISCH_TAC ` ~( n' = 0)` THEN 
+PHA THEN NHANH (ARITH_RULE` ~(a = 0) /\ ~( b = 0 ) ==>
+b - 1 + 1 = 0 + b /\ b - 1 + a = a - 1 + b `) THEN 
+SIMP_TAC[] THEN STRIP_TAC THEN 
+REWRITE_TAC[SUM_OFFSET] THEN 
+SUBGOAL_THEN `! i. (ff: num -> real) (i + CARD (W:real^2 
+-> bool)) = ff i ` ASSUME_TAC THENL [
+DOWN_TAC THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[] THEN STRIP_TAC THEN 
+REWRITE_TAC[ARITH_RULE` (a + b ) + 1 = (a + 1 ) + b `] THEN 
+REWRITE_TAC[GSYM ITER_ADD] THEN 
+MP_TAC (CHANGE ` xicm: real^2 -> real^2 ` `f: real^2 -> real^2 `
+ITER_CARD_W_IDENTIFICATION) THEN 
+ANTS_TAC THENL [ASM_SIMP_TAC[]; DISCH_TAC] THEN 
+UNDISCH_TAC `(W:real^2 -> bool) p0 ` THEN 
+FIRST_X_ASSUM NHANH THEN SIMP_TAC[];
+ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[REAL_ADD_SYM] THEN 
+MP_TAC (ISPECL[`ff: num -> real `;`0`;`n': num`;` n - 1 `]
+SUM_COMBINE_L) THEN 
+ANTS_TAC THENL [ASM_ARITH_TAC; SIMP_TAC[ETA_AX]]]);;
+
+
+let SUM_INCREASE_ARG_DIFF = prove(
+ ` !(W: real^2 -> bool ) xicm. FINITE W /\
+     CARD W = n /\
+     (!x. W x ==> ~(x = vec 0)) /\
+     xicm polar_cycle_on W
+     ==> (!p i j.
+              W p /\ 0 <= i /\ i < j /\ j < n
+              ==> sum (i .. (j - 1 )) (\i. arg_diff (ITER i xicm p) (ITER (i + 1) xicm p) )
+            = arg_diff (ITER i xicm p) (ITER j xicm p)) `,
+REPEAT GEN_TAC THEN STRIP_TAC THEN GEN_TAC THEN GEN_TAC THEN 
+INDUCT_TAC THENL [REWRITE_TAC[LT]; REWRITE_TAC[LT]] THEN STRIP_TAC
+THENL [ASM_REWRITE_TAC[SUC_SUB1; SUM_SING_NUMSEG; ADD1]; 
+DOWN THEN NHANH (ARITH_RULE` SUC c < k ==> c < k `)] THEN 
+STRIP_TAC THEN UNDISCH_TAC` j < (n:num) ` THEN 
+UNDISCH_TAC` i < (j:num)` THEN 
+UNDISCH_TAC` 0 <= i ` THEN 
+UNDISCH_TAC`(W:real^2 -> bool) p ` THEN 
+PHA THEN 
+FIRST_ASSUM NHANH THEN 
+NHANH (ARITH_RULE`0 <= i /\ i < j /\ j < n ==>
+SUC j - 1 = (j - 1) + 1 `) THEN 
+SIMP_TAC[] THEN 
+NHANH (ARITH_RULE` i < j ==> i <= j - 1 + 1`) THEN
+SIMP_TAC[SUM_ADD_SPLIT] THEN 
+NHANH (ARITH_RULE` i < j ==> j - 1 + 1 = j `) THEN 
+STRIP_TAC THEN 
+ASM_REWRITE_TAC[SUM_SING_NUMSEG; ADD1] THEN 
+MP_TAC (SPEC_ALL ARG_DIFF_SUCCESSIBLE_IN_FIRST_PERIOD) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; ALL_TAC] THEN 
+DISCH_THEN (MP_TAC o (SPECL [`ITER i xicm (p:real^2)`; ` j - (i: num) `;
+` j - i + 1 `])) THEN ANTS_TAC THENL [
+CONJ_TAC THENL [ASM_MESON_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+ASM_ARITH_TAC]; REWRITE_TAC[ITER_ADD]] THEN 
+ASSUME_TAC2 (ARITH_RULE` (i:num) < j ==> j - i + i = j `) THEN 
+ASSUME_TAC2 (ARITH_RULE` i < j ==> (j - i + 1) + i = j + 1 `) THEN 
+DOWN THEN DOWN THEN SIMP_TAC[]);;
+
+
+
+
+let LEMMA_SUM_ALL_OVER_CYCLIC_SET = prove(`!(W: real^2 -> bool ) xicm. FINITE W /\
+     CARD W = n /\
+     (!x. W x ==> ~(x = vec 0)) /\
+     xicm polar_cycle_on W /\ W p
+     ==> ((?p q. W p /\ W q /\ ~(p = q))
+     ==> sum (0..n - 1)
+         (\i. arg_diff (ITER i xicm p) (ITER (i + 1) xicm p)) =
+         &2 * pi)`,
+REPEAT GEN_TAC THEN STRIP_TAC THEN 
+FIRST_ASSUM NHANH THEN 
+STRIP_TAC THEN 
+DOWN THEN 
+ASM_SIMP_TAC[TWO_NON_ZERO_VECS_NOT_EQ_EQ_PLT] THEN 
+REPLICATE_TAC 4 DOWN THEN 
+PHA THEN 
+
+
+
+
+SPEC_TAC (`q:real^2`, `q:real^2 `) THEN 
+SPEC_TAC (`p':real^2`, `p':real^2 `) THEN 
+REWRITE_TAC[MESON[]`(!x. P x ==> Q ) <=> (?x. P x ) ==> Q `;
+MESON[]` (? x y. W x /\ ~( x = i ) /\ W y /\
+~( y = i ) /\ (x polar_lt y \/ y polar_lt x) ) <=>
+(? x y. W x /\ ~( x = i )/\ W y /\ ~( y = i ) /\ x polar_lt y ) `] THEN 
+STRIP_TAC THEN 
+MP_TAC (SPEC_ALL PROVE_MIN_ELEMENT_IN_FINITE_CYCLIC_SET) THEN 
+ANTS_TAC THENL [
+ASM_MESON_TAC[SET_RULE[]` A s ==> ~(A = {})`];
+
+STRIP_TAC] THEN 
+
+
+
+MP_TAC (CHANGE `n':real^2 ` `p0:real^2 ` 
+SUM_OVER_W_EQUAL_AT_ANY_POINT) THEN ANTS_TAC THENL [
+ASM_REWRITE_TAC[polar_le]; DISCH_TAC] THEN 
+
+
+UNDISCH_TAC ` (W:real^2 -> bool) p ` THEN 
+FIRST_ASSUM NHANH THEN 
+SIMP_TAC[] THEN 
+STRIP_TAC THEN 
+ASM_CASES_TAC ` n' = (q:real^2) ` THENL [
+
+
+ASM_MESON_TAC[TOW_NON_VEC0_IMP_NOT_REFL_POLAR_LT;
+POLAR_LT_IMP_NOT_EQ]; 
+
+MP_TAC (
+CHANGE `q: real^2 ` `p:real^2 ` (
+CHANGE `xicm: real^2 -> real^2 ` `f: real^2 -> real^ 2 ` (
+CHANGE `n': real^2 ` `p0:real^2 ` EXISTS_STEPS_FOR_FOLLOWING_POINTS)))
+   ] THEN 
+
+ANTS_TAC THENL [
+REWRITE_TAC[polar_le] THEN 
+ASM_MESON_TAC[]; STRIP_TAC] THEN 
+
+
+ASM_CASES_TAC `n'' = 0 ` THENL [
+REPLICATE_TAC 5 DOWN THEN PHA THEN 
+MESON_TAC[ITER];
+
+ASSUME_TAC2 (ARITH_RULE`~( n'' = 0) ==> 0 <= n'' - 1 + 1 `)]
+    THEN 
+
+
+
+
+ASSUME_TAC2 (ARITH_RULE` CARD (W:real^2 -> bool) = n /\
+n'' < CARD W /\ ~(n'' = 0 ) ==> n'' - 1 <= n - 1 `) THEN 
+DOWN THEN DOWN THEN PHA THEN 
+NHANH (
+
+SPEC `(\i. arg_diff (ITER i xicm n') 
+(ITER (i + 1) xicm n'))` (GSYM SUM_COMBINE_R)) THEN 
+SIMP_TAC[] THEN 
+STRIP_TAC THEN 
+MP_TAC (SPEC_ALL SUM_INCREASE_ARG_DIFF) THEN 
+ANTS_TAC THENL [
+ASM_REWRITE_TAC[];
+STRIP_TAC] THEN 
+
+
+UNDISCH_TAC `n'' < CARD (W:real^2 -> bool) ` THEN 
+UNDISCH_TAC `~( n'' = 0 ) ` THEN 
+REWRITE_TAC[ ARITH_RULE`~(a = 0) <=> 0 < a `] THEN 
+MP_TAC (ARITH_RULE` 0 <= 0 `) THEN 
+UNDISCH_TAC `(W:real^2 -> bool) n'` THEN 
+PHA THEN 
+ASM_REWRITE_TAC[] THEN 
+FIRST_ASSUM NHANH THEN 
+SIMP_TAC[] THEN 
+STRIP_TAC THEN 
+ASSUME_TAC2 (
+ARITH_RULE`0 < n'' /\ n'' < n ==> n - 1 = n - 1 - 1 + 1 `) THEN 
+FIRST_X_ASSUM (fun x -> ONCE_REWRITE_TAC[x]) THEN 
+ONCE_REWRITE_TAC[SUM_OFFSET] THEN 
+
+REWRITE_TAC[BETA_THM; GSYM ITER_ADD] THEN 
+SUBGOAL_THEN ` (W:real^2 -> bool) (ITER 1 xicm (n':real^2)) ` MP_TAC
+THENL [
+ASM_SIMP_TAC[POLAR_CYCLIC_FUN_IMP_ALL_BELONG];
+DISCH_TAC] THEN 
+ASSUME_TAC2 (ARITH_RULE` n'' < n ==> n - 1 < n `) THEN  
+DOWN THEN 
+ASSUME_TAC2 (ARITH_RULE`0 < n'' /\ n'' < n ==>
+n'' - 1 < n - 1 `) THEN 
+
+
+
+
+UNDISCH_TAC `n'' - 1 < n - 1 ` THEN 
+ASSUME_TAC2 (ARITH_RULE` 0 < n'' ==> 0 <= n'' - 1 `) THEN 
+DOWN THEN 
+DOWN THEN 
+PHA THEN 
+FIRST_ASSUM NHANH THEN 
+SIMP_TAC[ITER_ADD] THEN 
+STRIP_TAC THEN 
+ASSUME_TAC2 (ARITH_RULE` 0 < n'' ==> n'' - 1 + 1 = n''`) THEN 
+ASSUME_TAC2 (ARITH_RULE` n'' < n ==> n - 1 + 1 = n `) THEN 
+ASM_REWRITE_TAC[ITER] THEN 
+UNDISCH_TAC` CARD (W:real^2 -> bool) = n `  THEN 
+DISCH_TAC THEN EXPAND_TAC "n" THEN 
+MP_TAC (
+CHANGE `xicm: real^2 -> real^2 ` `f:real^2 -> real^2 ` (
+CHANGE `n': real^2 ` `p0:real^2 `ITER_CARD_W_IDENTIFICATION)
+   ) THEN 
+
+
+
+ANTS_TAC THENL [
+ASM_REWRITE_TAC[polar_le];
+DISCH_TAC] THEN 
+
+UNDISCH_TAC` (W:real^2 -> bool) n' ` THEN 
+FIRST_ASSUM NHANH THEN 
+EXPAND_TAC "n" THEN 
+SIMP_TAC[] THEN 
+ASM_MESON_TAC[TWO_NOT_EQ_VECS_SUM_ARG_DIFF_TWO_PI]);;
+
+
+
+
+let ISRTTNZ = prove(` FINITE W /\
+         CARD W = n /\
+         (!x. W x ==> ~(x = vec 0)) /\
+         xicm polar_cycle_on W /\
+         W p /\ (?p q. W p /\ W q /\ ~(p = q))
+         ==> sum (0..n - 1)
+             (\i. arg_diff (ITER i xicm p) (ITER (i + 1) xicm p)) =
+             &2 * pi /\
+(!p i j.
+              W p /\ 0 <= i /\ i <= j /\ j < n
+              ==> arg_diff p (ITER i xicm p) +
+                  arg_diff (ITER i xicm p) (ITER j xicm p) =
+                  arg_diff p (ITER j xicm p))  `, STRIP_TAC THEN 
+MP_TAC (SPEC_ALL ARG_DIFF_SUCCESSIBLE_IN_FIRST_PERIOD) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; SIMP_TAC[]] THEN DISCH_TAC
+THEN MP_TAC (SPEC_ALL LEMMA_SUM_ALL_OVER_CYCLIC_SET) THEN PHA THEN 
+ANTS_TAC THENL [ ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[];
+SIMP_TAC[]]);;
+
+
+
+needs "update_database_310.ml";;
+
+
+let SET_TAC =
+let basicthms =
+[NOT_IN_EMPTY; IN_UNIV; IN_UNION; IN_INTER; IN_DIFF; IN_INSERT;
+IN_DELETE; IN_REST; IN_INTERS; IN_UNIONS; IN_IMAGE] in
+let allthms = basicthms @ map (REWRITE_RULE[IN]) basicthms @
+[IN_ELIM_THM; IN] in
+let PRESET_TAC =
+TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ)) THEN
+REPEAT COND_CASES_TAC THEN
+REWRITE_TAC[EXTENSION; SUBSET; PSUBSET; DISJOINT; SING] THEN
+REWRITE_TAC allthms in
+fun ths ->
+PRESET_TAC THEN
+(if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
+MESON_TAC[];;
+
+let SET_RULE tm = prove(tm,SET_TAC[]);;

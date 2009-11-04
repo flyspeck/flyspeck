@@ -4657,28 +4657,6 @@ ASM_MESON_TAC[TWO_NOT_EQ_VECS_SUM_ARG_DIFF_TWO_PI]);;
 
 
 
-let ISRTTNZ = prove(` FINITE W /\
-         CARD W = n /\
-         (!x. W x ==> ~(x = vec 0)) /\
-         xicm polar_cycle_on W /\
-         W p /\ (?p q. W p /\ W q /\ ~(p = q))
-         ==> sum (0..n - 1)
-             (\i. arg_diff (ITER i xicm p) (ITER (i + 1) xicm p)) =
-             &2 * pi /\
-(!p i j.
-              W p /\ 0 <= i /\ i <= j /\ j < n
-              ==> arg_diff p (ITER i xicm p) +
-                  arg_diff (ITER i xicm p) (ITER j xicm p) =
-                  arg_diff p (ITER j xicm p))  `, STRIP_TAC THEN 
-MP_TAC (SPEC_ALL ARG_DIFF_SUCCESSIBLE_IN_FIRST_PERIOD) THEN 
-ANTS_TAC THENL [ASM_REWRITE_TAC[]; SIMP_TAC[]] THEN DISCH_TAC
-THEN MP_TAC (SPEC_ALL LEMMA_SUM_ALL_OVER_CYCLIC_SET) THEN PHA THEN 
-ANTS_TAC THENL [ ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[];
-SIMP_TAC[]]);;
-
-
-
-needs "update_database_310.ml";;
 
 
 let SET_TAC =
@@ -4698,3 +4676,26 @@ PRESET_TAC THEN
 MESON_TAC[];;
 
 let SET_RULE tm = prove(tm,SET_TAC[]);;
+
+
+
+
+
+let ISRTTNZ = prove(` FINITE W /\
+         CARD W = n /\
+         (!x. W x ==> ~(x = vec 0)) /\
+         xicm polar_cycle_on W /\
+         W p /\ (?p q. W p /\ W q /\ ~(p = q))
+         ==> sum (0..n - 1)
+             (\i. arg_diff (ITER i xicm p) (ITER (i + 1) xicm p)) =
+             &2 * pi /\
+(!p i j.
+              W p /\ 0 <= i /\ i <= j /\ j < n
+              ==> arg_diff p (ITER i xicm p) +
+                  arg_diff (ITER i xicm p) (ITER j xicm p) =
+                  arg_diff p (ITER j xicm p))  `, STRIP_TAC THEN 
+MP_TAC (SPEC_ALL ARG_DIFF_SUCCESSIBLE_IN_FIRST_PERIOD) THEN 
+ANTS_TAC THENL [ASM_REWRITE_TAC[]; SIMP_TAC[]] THEN DISCH_TAC
+THEN MP_TAC (SPEC_ALL LEMMA_SUM_ALL_OVER_CYCLIC_SET) THEN PHA THEN 
+ANTS_TAC THENL [ ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[];
+SIMP_TAC[]]);;

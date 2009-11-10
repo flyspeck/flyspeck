@@ -23,13 +23,13 @@ let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | (x=v) \/ ((
 *)
 let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
 
-let circular_cone2 =new_definition `circular_cone2 (V:real^3-> bool)=
+(* let circular_cone2 =new_definition `circular_cone2 (V:real^3-> bool)=
 (? (v,w:real^3)(r:real). V= c_cone (v,w,r))`;;
 
 let NULLSET_RULES,NULLSET_INDUCT,NULLSET_CASES =
   new_inductive_definition
     `(!P. ((plane P)\/ (sphere P) \/ (circular_cone2 P)) ==> NULLSET P) /\
-     !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;
+     !(s:real^3->bool) t. (NULLSET s /\ NULLSET t) ==> NULLSET (s UNION t)`;;*)
 
 
 let null_equiv = new_definition `null_equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B  /\
@@ -465,6 +465,18 @@ let trans_strech_trans_radial=top_thm();;
 
 (* Lemma 4.2*)
 
+let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) = 
+    ( (!C. vol C >= &0) /\
+     (!Z. NULLSET Z ==> (vol Z = &0)) /\
+     (!X Y. measurable X /\ measurable Y /\ NULLSET (SDIFF X Y) ==> (vol X = vol Y)) /\
+     (!X t. (measurable X) /\ (measurable (IMAGE (scale t) X)) ==> (vol (IMAGE (scale t) X) = abs(t$1 * t$2 * t$3)*vol(X))) /\
+     (!X v. measurable X ==> (vol (IMAGE ((+) v) X) = vol X)) /\
+     (!v0 v1 v2 v3 r. (r > &0) /\ (~(collinear {v0,v1,v2})) /\ ~(collinear {v0,v1,v3}) ==> vol (solid_triangle v0 {v1,v2,v3} r) = vol_solid_triangle v0 v1 v2 v3 r) /\
+     (!v0 v1 v2 v3. vol(conv0 {v0,v1,v2,v3}) = vol_conv v0 v1 v2 v3) /\
+     (!v0 v1 v2 v3 h a. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (h >= &0) /\ (a > &0) /\ (a <= &1) ==> vol(frustt v0 v1 h a INTER wedge v0 v1 v2 v3) = vol_frustt_wedge v0 v1 v2 v3 h a) /\
+     (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
+     (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
+     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(ball (v0,r) INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
 
 
 g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_props (vol) /\ radial r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
@@ -479,11 +491,11 @@ e (ASM_SIMP_TAC[trans_strech_trans_radial]);;
 
 e (ASM_REWRITE_TAC[]);;
 
-e (SUBGOAL_THEN `measurable (C INTER normball x r)` ASSUME_TAC);;
+e (SUBGOAL_THEN `measurable ((C:real^3->bool) INTER normball x r)` ASSUME_TAC);;
 
 e (ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball]);;
 
-e (SUBGOAL_THEN `measurable (IMAGE ((+) (--x)) (C INTER normball x r))` ASSUME_TAC);;
+e (SUBGOAL_THEN `measurable (IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r))` ASSUME_TAC);;
 
 e (ASM_MESON_TAC[MEASURABLE_RULES]);;
 
@@ -503,7 +515,7 @@ e (SUBGOAL_THEN `vol (IMAGE ((+) x) A2)=vol (A2)` MP_TAC);;
 
 e (UNDISCH_TAC `(volume_props vol):bool`);;
 
-e (UNDISCH_TAC `(measurable A2):bool`);;
+e (UNDISCH_TAC `(measurable (A2:real^3->bool)):bool`);;
 
 e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
 
@@ -543,7 +555,7 @@ e (ASM_MESON_TAC[]);;
 
 e (UNDISCH_TAC `(volume_props vol):bool`);;
 
-e (UNDISCH_TAC `(measurable M1):bool`);;
+e (UNDISCH_TAC `(measurable (M1:real^3->bool)):bool`);;
 
 e (REWRITE_TAC[TAUT `P1 ==> P2 ==> P3 ==> P4 <=> P1 /\ P2 /\ P3 ==> P4`]);;
 
@@ -673,9 +685,9 @@ e (REWRITE_TAC[ARITH_RULE `(s / r) pow 3 * vol M1= vol M1 * (s / r) pow 3`]);;
 
 e (SUBGOAL_THEN `vol M1= vol C` MP_TAC);;
 
-e (UNDISCH_TAC `(IMAGE ((+) (--x:real^3)) (C INTER normball x r) = M1):bool`);;
+e (UNDISCH_TAC `(IMAGE ((+) (--x:real^3)) ((C:real^3->bool) INTER normball x r) = (M1:real^3->bool)):bool`);;
 
-e (REWRITE_TAC[SET_RULE `IMAGE ((+) (--x)) (C INTER normball x r) = M1 <=> M1= IMAGE ((+) (--x)) (C INTER normball x r)`]);;
+e (REWRITE_TAC[SET_RULE `IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r) = M1 <=> M1= IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r)`]);;
 
 e (SIMP_TAC[]);;
 
@@ -685,7 +697,7 @@ e (SUBGOAL_THEN `vol (IMAGE ((+) (--x)) (C INTER normball x r))= vol (C INTER no
 
 e (UNDISCH_TAC `(volume_props vol):bool`);;
 
-e (UNDISCH_TAC `(measurable (C INTER normball x r)):bool`);;
+e (UNDISCH_TAC `(measurable ((C:real^3->bool) INTER normball x r)):bool`);;
 
 e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
 
@@ -703,7 +715,7 @@ e (REWRITE_TAC[radial]);;
 
 e (REPEAT STRIP_TAC);;
 
-e (UNDISCH_TAC `(C SUBSET normball (x:real^3) r):bool`);;
+e (UNDISCH_TAC `((C:real^3->bool) SUBSET normball (x:real^3) r):bool`);;
 
 e (SIMP_TAC[SUBSET_INTER_ABSORPTION]);;
 

@@ -11,7 +11,7 @@ lemmas;;
 *)
 
 needs "Multivariate/flyspeck.ml";;
-eeds"hypermap.ml";;
+needs"hypermap.ml";;
 needs "sphere.hl";;
 
 let graph = new_definition `graph E <=> (!e. E e ==> (e HAS_SIZE 2))`;;

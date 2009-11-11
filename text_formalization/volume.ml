@@ -15,6 +15,13 @@ needs "Multivariate/measure.ml";;
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
 
+
+(* old definitions add by thales Nov 11, 2009 *)
+let radial_norm = new_definition `radial_norm r x C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
+
+let eventually_radial_norm = new_definition `eventually_radial_norm x C <=> (?r. (r> &0) /\ radial_norm r x (C INTER normball x r))`;;
+
+
 (* It is enough to work with one branch of the cone.  This
 simplifies the definition a bit *)
 (*
@@ -107,7 +114,7 @@ THENL [UNDISCH_TAC `(a>= &0):bool`;MESON_TAC[]]
 THEN REWRITE_TAC[ARITH_RULE `s>= &0 <=> &0<= s`]
 THEN SIMP_TAC[SQRT_MUL] THEN SIMP_TAC[SQRT_POW_2] THEN MESON_TAC[REAL_POW_2;SQRT_POW_2]);;
 
-g `!r s (x:real^3) C. radial r x C /\ (s > &0) /\ (s < r) ==> (C INTER normball x s = IMAGE ((+) x) (IMAGE (scale (s/r % (vec 1)))(IMAGE ((+) (--x)) (C INTER normball x r))))`;;
+g `!r s (x:real^3) C. radial_norm r x C /\ (s > &0) /\ (s < r) ==> (C INTER normball x s = IMAGE ((+) x) (IMAGE (scale (s/r % (vec 1)))(IMAGE ((+) (--x)) (C INTER normball x r))))`;;
 
 e (REPEAT GEN_TAC THEN STRIP_TAC);;
 
@@ -203,7 +210,7 @@ e (SIMP_TAC[]);;
 
 e (MESON_TAC[REAL_DIV_RMUL]);;
 
-e (ASM_MESON_TAC[radial]);;
+e (ASM_MESON_TAC[radial_norm]);;
 
 e (REWRITE_TAC[normball;IN_ELIM_THM;dist]);;
 
@@ -388,7 +395,7 @@ e (MESON_TAC[ARITH_RULE `&1*r= r`]);;
 
 e (REWRITE_TAC[TAUT `A/\B==>C==>D <=> A/\B/\C==>D`]);;
 
-e (ASM_MESON_TAC[radial]);;
+e (ASM_MESON_TAC[radial_norm]);;
 
 e (ASM_REWRITE_TAC[]);;
 
@@ -465,7 +472,10 @@ let trans_strech_trans_radial=top_thm();;
 
 (* Lemma 4.2*)
 
-let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) = 
+(* changed volume_props to volume_prop in the rest of this file. volume_props uses ball in the definition and volume_prop 
+   uses normball in the definition*)
+
+let volume_prop = new_definition `volume_prop  (vol:(real^3->bool)->real) = 
     ( (!C. vol C >= &0) /\
      (!Z. NULLSET Z ==> (vol Z = &0)) /\
      (!X Y. measurable X /\ measurable Y /\ NULLSET (SDIFF X Y) ==> (vol X = vol Y)) /\
@@ -476,10 +486,10 @@ let volume_props = new_definition `volume_props  (vol:(real^3->bool)->real) =
      (!v0 v1 v2 v3 h a. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (h >= &0) /\ (a > &0) /\ (a <= &1) ==> vol(frustt v0 v1 h a INTER wedge v0 v1 v2 v3) = vol_frustt_wedge v0 v1 v2 v3 h a) /\
      (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
      (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
-     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(ball (v0,r) INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
+     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
 
 
-g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_props (vol) /\ radial r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
+g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_prop (vol) /\ radial_norm r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
 
 e (REPEAT GEN_TAC THEN STRIP_TAC THEN CONJ_TAC);;
 
@@ -513,13 +523,13 @@ e (ABBREV_TAC `A2:real^3->bool= (IMAGE (scale (s / r % vec 1))
 
 e (SUBGOAL_THEN `vol (IMAGE ((+) x) A2)=vol (A2)` MP_TAC);;
 
-e (UNDISCH_TAC `(volume_props vol):bool`);;
+e (UNDISCH_TAC `(volume_prop vol):bool`);;
 
 e (UNDISCH_TAC `(measurable (A2:real^3->bool)):bool`);;
 
 e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
 
-e (SIMP_TAC[volume_props]);;
+e (SIMP_TAC[volume_prop]);;
 
 e (SIMP_TAC[]);;
 
@@ -553,13 +563,13 @@ e (SIMP_TAC[]);;
 
 e (ASM_MESON_TAC[]);;
 
-e (UNDISCH_TAC `(volume_props vol):bool`);;
+e (UNDISCH_TAC `(volume_prop vol):bool`);;
 
 e (UNDISCH_TAC `(measurable (M1:real^3->bool)):bool`);;
 
 e (REWRITE_TAC[TAUT `P1 ==> P2 ==> P3 ==> P4 <=> P1 /\ P2 /\ P3 ==> P4`]);;
 
-e (SIMP_TAC[volume_props]);;
+e (SIMP_TAC[volume_prop]);;
 
 e (SIMP_TAC[]);;
 
@@ -695,13 +705,13 @@ e (DISCH_TAC);;
 
 e (SUBGOAL_THEN `vol (IMAGE ((+) (--x)) (C INTER normball x r))= vol (C INTER normball (x:real^3) r)` MP_TAC);;
 
-e (UNDISCH_TAC `(volume_props vol):bool`);;
+e (UNDISCH_TAC `(volume_prop vol):bool`);;
 
 e (UNDISCH_TAC `(measurable ((C:real^3->bool) INTER normball x r)):bool`);;
 
 e (REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`]);;
 
-e (SIMP_TAC[volume_props]);;
+e (SIMP_TAC[volume_prop]);;
 
 e (SIMP_TAC[]);;
 
@@ -709,9 +719,9 @@ e (DISCH_TAC);;
 
 e (SUBGOAL_THEN `C INTER normball (x:real^3) r= C` MP_TAC);;
 
-e (UNDISCH_TAC `(radial r (x:real^3) C):bool`);;
+e (UNDISCH_TAC `(radial_norm r (x:real^3) C):bool`);;
 
-e (REWRITE_TAC[radial]);;
+e (REWRITE_TAC[radial_norm]);;
 
 e (REPEAT STRIP_TAC);;
 
@@ -736,12 +746,12 @@ let lemma_r_r'=top_thm();;
 (*------------------------   Definition of Solid angle  ---------------------------------------------------------*)
 
 
-let normball_subset= prove(`!x r r'. (r'> &0) /\ (r'<r)==> normball x r' SUBSET normball x r`, (REPEAT GEN_TAC THEN REPEAT STRIP_TAC) THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[normball] THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[dist] THEN UNDISCH_TAC `(r' < r):bool` THEN REWRITE_TAC[TAUT `a==>b ==> c <=> a /\ b ==> c`] THEN ARITH_TAC);;
-let subset_inter=prove(`! A B. A SUBSET B ==> A INTER B= A`,REPEAT GEN_TAC THEN SET_TAC[]);;
+let normball_subset= prove(`!(x:real^3) r r'. (r'> &0) /\ (r'<r)==> normball x r' SUBSET normball x r`, (REPEAT GEN_TAC THEN REPEAT STRIP_TAC) THEN REWRITE_TAC[SUBSET] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[normball] THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[dist] THEN UNDISCH_TAC `(r' < r):bool` THEN REWRITE_TAC[TAUT `a==>b ==> c <=> a /\ b ==> c`] THEN ARITH_TAC);;
+let subset_inter=prove(`! (A:real^3->bool) (B:real^3->bool). A SUBSET B ==> A INTER B= A`,REPEAT GEN_TAC THEN SET_TAC[]);;
 let normball_eq=prove(`!(C:real^3->bool) x r r'. (r'> &0)/\ (r'< r)==> (C INTER normball x r) INTER normball x r' = C INTER normball x r'`,REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN (MP_TAC(SET_RULE `((C:real^3->bool) INTER normball x r) INTER normball x r'=(C INTER normball x r') INTER normball x r`)) THEN SIMP_TAC[] THEN DISCH_TAC THEN (SUBGOAL_THEN `(((C:real^3->bool) INTER normball x r') SUBSET normball x r)` MP_TAC) THENL[ASM_MESON_TAC[INTER_SUBSET;SUBSET_TRANS;normball_subset];MESON_TAC[subset_inter]]);;
 
 
-let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_props (vol) /\ measurable C /\ eventually_radial x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,(REPEAT GEN_TAC) THEN (REWRITE_TAC[eventually_radial]) THEN (REPEAT STRIP_TAC) 
+let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,(REPEAT GEN_TAC) THEN (REWRITE_TAC[eventually_radial_norm]) THEN (REPEAT STRIP_TAC) 
  THEN (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)  THEN (EXISTS_TAC `(r:real)`)
  THEN (ASM_REWRITE_TAC[])
  THEN (GEN_TAC)
@@ -760,7 +770,7 @@ let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_props (vol) /\ measu
  THEN MP_TAC(MESON[REAL_DIV_REFL] `~(r' pow 3 = &0)==> r' pow 3 / r' pow 3= &1`) 
  THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[] THEN DISCH_TAC THEN ARITH_TAC);;  
 
-let pre_def_4_3=prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_props vol /\ measurable C /\ eventually_radial x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]);;
+let pre_def_4_3=prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_prop vol /\ measurable C /\ eventually_radial_norm x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]);;
 
 let sol= new_specification ["sol"] pre_def_4_3;;
 
@@ -773,10 +783,10 @@ let sol= new_specification ["sol"] pre_def_4_3;;
 (*Lemma 4.3*)
 
 
-let tr5=prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C' ==> (!u. ((v0+u) IN (C INTER C')) ==> (!t.(t > &0) /\ (t * norm u < r)==> (v0+t % u IN (C INTER C')))))`, REPEAT GEN_TAC THEN REWRITE_TAC[IN_INTER] THEN MESON_TAC[radial;IN_INTER]);;
-let tr6=prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C' ==> C INTER C' SUBSET normball v0 r)`, REPEAT GEN_TAC THEN MESON_TAC[radial;INTER_SUBSET;SUBSET_TRANS]);;
+let tr5=prove(`!r v0 C C'.(radial_norm r v0 C /\ radial_norm r v0 C' ==> (!u. ((v0+u) IN (C INTER C')) ==> (!t.(t > &0) /\ (t * norm u < r)==> (v0+t % u IN (C INTER C')))))`, REPEAT GEN_TAC THEN REWRITE_TAC[IN_INTER] THEN MESON_TAC[radial_norm;IN_INTER]);;
+let tr6=prove(`!r v0 C C'.(radial_norm r v0 C /\ radial_norm r v0 C' ==> C INTER C' SUBSET normball v0 r)`, REPEAT GEN_TAC THEN MESON_TAC[radial_norm;INTER_SUBSET;SUBSET_TRANS]);;
 
-let inter_radial =prove(`!r v0 C C'.(radial r v0 C /\ radial r v0 C') ==> radial r v0 (C INTER C')`, REPEAT GEN_TAC THEN MESON_TAC[radial;tr5;tr6]);; 
+let inter_radial =prove(`!r v0 C C'.(radial_norm r v0 C /\ radial_norm r v0 C') ==> radial_norm r v0 (C INTER C')`, REPEAT GEN_TAC THEN MESON_TAC[radial_norm;tr5;tr6]);; 
 
 
 (*4.2.11 combining solid angle and volume*)

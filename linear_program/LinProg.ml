@@ -1,15 +1,16 @@
 #use "hol.ml";;
 
-`[ (#1, 1); (#3, 4) ] , #10`;; (* This represents 1 * x1 + 3 * x4 = 10 *)
+(*Define the type of linea equation*)
+let has_nonzero_DEF = define `has_nonzero vs = (?x. (MEM x vs) /\ ~(x = #0))`;;
+let lineq_THM = prove(`?(eq: real list # real). has_nonzero (FST eq)`,
+ EXISTS_TAC `[#1], #0` THEN
+ REWRITE_TAC [FST_DEF; has_nonzero_DEF; MEM] THEN
+ EXISTS_TAC `#1` THEN
+ ARITH_TAC);;
 
-`:(real#num) list # real`;; (* Each equation is a list of pairs of real and num and a real *)
+let lineq_BIJ = new_type_definition "lineq" ("mk_lineq", "dest_lineq") lineq_THM;
 
-(* To give a precise definition of a linear equation, we have to specify that it has no duplicate ":num".
-This means each equation contains each variable at most once.
+(*Define the notion of solution*)
+let is_solution_DEF = define `is_solution (x:real list) (eq:lineq) = F`;;
 
-Here I still accept the existence of a weird linear equation: 0 * x0 = 1
-*)
-
-let th1 = prove (`?x. x = [#0, 0], #1`, EXISTS_TAC `[#0, 0], #1` THEN MESON_TAC[] );;
-
-new_type_definition "lineq" ("mk_lineq", "dest_lineq") th1;
+(*Prove the most basic theorem of multiplying both side with the same non-zero integer*)

@@ -1,16 +1,18 @@
 (*Nguyen Tat Thang*)
  
+(* edited by esusick to be compatible with new definitions on 11/12/2009 svn 1296 *)
 
+(*
 needs "Multivariate/flyspeck.ml";;
 needs "Multivariate/vectors.ml";;     
-(*needs "definitions_kepler.ml";;*)
+(*needs "definitions_kepler.ml";;*)*)
 
-(*needs "sphere.hl";;*)
+(*(*needs "sphere.hl";;*)
 needs "Examples/card.ml";;
 needs "Multivariate/topology.ml";;
 needs "Examples/floor.ml";;
 needs "Multivariate/measure.ml";;
-
+*)
 
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
@@ -751,8 +753,12 @@ let subset_inter=prove(`! (A:real^3->bool) (B:real^3->bool). A SUBSET B ==> A IN
 let normball_eq=prove(`!(C:real^3->bool) x r r'. (r'> &0)/\ (r'< r)==> (C INTER normball x r) INTER normball x r' = C INTER normball x r'`,REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN (MP_TAC(SET_RULE `((C:real^3->bool) INTER normball x r) INTER normball x r'=(C INTER normball x r') INTER normball x r`)) THEN SIMP_TAC[] THEN DISCH_TAC THEN (SUBGOAL_THEN `(((C:real^3->bool) INTER normball x r') SUBSET normball x r)` MP_TAC) THENL[ASM_MESON_TAC[INTER_SUBSET;SUBSET_TRANS;normball_subset];MESON_TAC[subset_inter]]);;
 
 
-let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,(REPEAT GEN_TAC) THEN (REWRITE_TAC[eventually_radial_norm]) THEN (REPEAT STRIP_TAC) 
- THEN (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)  THEN (EXISTS_TAC `(r:real)`)
+let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,
+ (REPEAT GEN_TAC) 
+ THEN (REWRITE_TAC[eventually_radial_norm]) 
+ THEN (REPEAT STRIP_TAC) 
+ THEN (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)  
+ THEN (EXISTS_TAC `(r:real)`)
  THEN (ASM_REWRITE_TAC[])
  THEN (GEN_TAC)
  THEN (REPEAT STRIP_TAC)
@@ -760,15 +766,25 @@ let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measur
  THEN (SUBGOAL_THEN `(C:real^3->bool) INTER normball x r'= (C INTER normball x r) INTER normball x r'` MP_TAC)
  THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]] 
  THEN DISCH_TAC
- THEN (SUBGOAL_THEN `measurable (C INTER normball x r)` ASSUME_TAC)
+ THEN (SUBGOAL_THEN `measurable ((C:real^3->bool) INTER normball x r)` ASSUME_TAC)
  THENL[ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball];(SUBGOAL_THEN `vol ((C INTER normball x r) INTER normball x r')= vol (C INTER normball x r) * (r'/r) pow 3` MP_TAC)]
  THENL[ASM_MESON_TAC[lemma_r_r'];ABBREV_TAC `(a:real)=vol (C INTER normball x r)`]
  THEN ABBREV_TAC `(b:real)=vol ((C INTER normball x r) INTER normball x r')`
- THEN SIMP_TAC[] THEN DISCH_TAC THEN SIMP_TAC[REAL_POW_DIV] THEN MP_TAC(REAL_ARITH `r'> &0 ==> ~(r'= &0)`)
- THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN MP_TAC(MESON[REAL_POW_NZ] `~(r'= &0)==> ~(r' pow 3= &0)`)
- THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN REWRITE_TAC[REAL_ARITH `(a * r' pow 3 / r pow 3) / r' pow 3= (a * r' pow 3/ r' pow 3)/ r pow 3`]
+ THEN SIMP_TAC[] 
+ THEN DISCH_TAC 
+ THEN SIMP_TAC[REAL_POW_DIV] 
+ THEN MP_TAC(REAL_ARITH `r'> &0 ==> ~(r'= &0)`)
+ THEN ASM_REWRITE_TAC[] 
+ THEN DISCH_TAC 
+ THEN MP_TAC(MESON[REAL_POW_NZ] `~(r'= &0)==> ~(r' pow 3= &0)`)
+ THEN ASM_REWRITE_TAC[] 
+ THEN DISCH_TAC 
+ THEN REWRITE_TAC[REAL_ARITH `(a * r' pow 3 / r pow 3) / r' pow 3= (a * r' pow 3/ r' pow 3)/ r pow 3`]
  THEN MP_TAC(MESON[REAL_DIV_REFL] `~(r' pow 3 = &0)==> r' pow 3 / r' pow 3= &1`) 
- THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[] THEN DISCH_TAC THEN ARITH_TAC);;  
+ THEN ASM_REWRITE_TAC[] 
+ THEN SIMP_TAC[] 
+ THEN DISCH_TAC 
+ THEN ARITH_TAC);;  
 
 let pre_def_4_3=prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_prop vol /\ measurable C /\ eventually_radial_norm x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]);;
 
@@ -969,14 +985,21 @@ GEN_TAC THEN REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN EXISTS_TAC `(lambda i. ((x:
   THEN GEN_TAC THEN DISCH_TAC THEN ASM_SIMP_TAC[VECTOR_ADD_COMPONENT;LAMBDA_BETA;DIMINDEX_3]
   THEN REAL_ARITH_TAC);;
 
-
+(* in line 997 changed t to emoi, esusick 11/12 *)
 let product_3=prove(`!(f:num -> real). product (1..3) f= f 1 * f 2 * f 3 `, let emoi= CONJUNCT2 PRODUCT_CLAUSES in 
 GEN_TAC THEN MP_TAC(GSYM (SPECL [`1:num`;`3:num`] NUMSEG_RREC)) 
-  THEN SIMP_TAC[ARITH_RULE `1<= 3`;ARITH_RULE `3-1 = 2`] THEN REPEAT DISCH_TAC
+  THEN SIMP_TAC[ARITH_RULE `1<= 3`;ARITH_RULE `3-1 = 2`] 
+  THEN REPEAT DISCH_TAC
   THEN MP_TAC(ISPECL [`3:num`;`f:num -> real`;`((1..2)):num ->bool`] emoi)
-					     THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..2)`]
-					     THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (3<=2)`] ` ~( 3 IN (1..2))`] THEN DISCH_TAC THEN MP_TAC(GSYM (SPECL [`1:num`;`2:num`] NUMSEG_RREC)) THEN SIMP_TAC[ARITH_RULE `1<=2`;ARITH_RULE `2-1=1`] THEN MP_TAC(ISPECL [`2:num`;`f:num -> real`;`((1..1)):num ->bool`] t) THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..1)`] THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (2<=1)`] ` ~( 2 IN (1..1))`]
-					     THEN SIMP_TAC[SPECL [`f : num -> real`;`1:num`] PRODUCT_SING_NUMSEG] THEN REAL_ARITH_TAC);;
+  THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..2)`]
+  THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (3<=2)`] ` ~( 3 IN (1..2))`] 
+  THEN DISCH_TAC 
+  THEN MP_TAC(GSYM (SPECL [`1:num`;`2:num`] NUMSEG_RREC)) 
+  THEN SIMP_TAC[ARITH_RULE `1<=2`;ARITH_RULE `2-1=1`] 
+  THEN MP_TAC(ISPECL [`2:num`;`f:num -> real`;`((1..1)):num ->bool`] emoi) 
+  THEN SIMP_TAC[MESON[NUMSEG_RREC;FINITE_NUMSEG] `FINITE (1..1)`] 
+  THEN SIMP_TAC[MESON[IN_NUMSEG;ARITH_RULE `~ (2<=1)`] ` ~( 2 IN (1..1))`]
+  THEN SIMP_TAC[SPECL [`f : num -> real`;`1:num`] PRODUCT_SING_NUMSEG] THEN REAL_ARITH_TAC);;
 
 
 (*------------------------------------------------------------------*)
@@ -985,22 +1008,30 @@ GEN_TAC THEN MP_TAC(GSYM (SPECL [`1:num`;`3:num`] NUMSEG_RREC))
 
 
 let interval_upper_lowerbound=prove(`!(x:real^3). (interval_upperbound (interval [x,x + (lambda i. &1)])= x + (lambda i. &1)) /\ ( interval_lowerbound (interval [x,x + (lambda i. &1)])= x)`,
-GEN_TAC THEN MP_TAC(ISPECL [`x:real^3`;`x + (lambda i. &1):real^3`] INTERVAL_UPPERBOUND) THEN MP_TAC(ISPECL [`x:real^3`;`x + (lambda i. &1):real^3`] INTERVAL_LOWERBOUND) THEN REWRITE_TAC[VECTOR_ADD_COMPONENT;DIMINDEX_3]
-  THEN SIMP_TAC[LAMBDA_BETA;DIMINDEX_3] THEN SIMP_TAC[REAL_ARITH `a:real <= a+ &1`]);;
+GEN_TAC 
+THEN MP_TAC(ISPECL [`x:real^3`;`x + (lambda i. &1):real^3`] INTERVAL_UPPERBOUND) 
+THEN MP_TAC(ISPECL [`x:real^3`;`x + (lambda i. &1):real^3`] INTERVAL_LOWERBOUND) 
+THEN REWRITE_TAC[VECTOR_ADD_COMPONENT;DIMINDEX_3]
+THEN SIMP_TAC[LAMBDA_BETA;DIMINDEX_3] 
+THEN SIMP_TAC[REAL_ARITH `a:real <= a+ &1`]);;
 
 
-let measure_cube=prove(`!(x:real^3). measure (cube x)= &1`,REWRITE_TAC[cube_eq_interval]
- THEN GEN_TAC THEN SIMP_TAC[MEASURE_INTERVAL] THEN REWRITE_TAC[content]
-			 THEN SIMP_TAC[MESON[] `(if P then a else b) = &1 <=> if P then a= &1 else b= &1`]
- THEN SIMP_TAC[COND_EXPAND] THEN SIMP_TAC[non_empty_cinterval;DIMINDEX_3]
-			 THEN REWRITE_TAC[GSYM VECTOR_SUB_COMPONENT;PRODUCT_CLAUSES;LAMBDA_BETA;DIMINDEX_3]
- THEN SIMP_TAC[ISPEC `(\i. (interval_upperbound (interval [x,x + (lambda i. &1)]) - 
+let measure_cube=prove(`!(x:real^3). measure (cube x)= &1`,
+REWRITE_TAC[cube_eq_interval]
+THEN GEN_TAC 
+THEN SIMP_TAC[MEASURE_INTERVAL] 
+THEN REWRITE_TAC[content]
+THEN SIMP_TAC[MESON[] `(if P then a else b) = &1 <=> if P then a= &1 else b= &1`]
+THEN SIMP_TAC[COND_EXPAND] 
+THEN SIMP_TAC[non_empty_cinterval;DIMINDEX_3]
+THEN REWRITE_TAC[GSYM VECTOR_SUB_COMPONENT;PRODUCT_CLAUSES;LAMBDA_BETA;DIMINDEX_3]
+THEN SIMP_TAC[ISPEC `(\i. (interval_upperbound (interval [x,x + (lambda i. &1)]) - 
 interval_lowerbound (interval [x,x + (lambda i. &1)]))$i):num -> real` product_3]
- THEN SIMP_TAC[SPEC `x:real^3` interval_upper_lowerbound]
-					 THEN SIMP_TAC[VECTOR_ARITH `((a:real^3) + b )- a = b`]
-					 THEN SIMP_TAC[product_3]
- THEN SIMP_TAC[LAMBDA_BETA;DIMINDEX_3;ARITH_RULE `1<= 1 /\ 1<= 3/\ 1<= 2 /\ 2<= 3 /\ 1<= 3 /\ 3<=3`]
-					 THEN REAL_ARITH_TAC);;
+THEN SIMP_TAC[SPEC `x:real^3` interval_upper_lowerbound]
+THEN SIMP_TAC[VECTOR_ARITH `((a:real^3) + b )- a = b`]
+THEN SIMP_TAC[product_3]
+THEN SIMP_TAC[LAMBDA_BETA;DIMINDEX_3;ARITH_RULE `1<= 1 /\ 1<= 3/\ 1<= 2 /\ 2<= 3 /\ 1<= 3 /\ 3<=3`]
+THEN REAL_ARITH_TAC);;
 
 
 let has_measure_cube=prove(`!(x:real^3)(r:real) (s:real^3 -> bool). s IN set_of_cube (int_ball x r) ==> s has_measure &1`,

@@ -52,6 +52,7 @@ e (LIST_INDUCT_TAC);;
 	e (REWRITE_TAC[ITLIST2]);;
 	e (REWRITE_TAC[MAP]);;
 	e (UNDISCH_TAC `~ (a = &0)`);;
+	e (REWRITE_TAC[ITLIST2]);;
 	e (MESON_TAC[REAL_FIELD `~(a = &0) ==> (&0 = b <=> &0 = a * b)`]);;
 	
 	e (REWRITE_TAC[is_solution]);;
@@ -70,7 +71,42 @@ e (LIST_INDUCT_TAC);;
 		e (REWRITE_TAC[MAP]);;
 		e (REWRITE_TAC[ITLIST2]);;
 
-g `(LENGTH t = LENGTH t') ==> ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = a * ITLIST2 (\c x s. c * x + s) t' t (&0)`;;
-e DISCH_TAC;;
-e ( SPEC_TAC(`t:real list` , `t:real list`) );;
-e (REWRITE_TAC [ITLIST2]);;
+g `!t t'.(LENGTH t = LENGTH t') ==> ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = a * ITLIST2 (\c x s. c * x + s) t' t (&0)`;;
+e LIST_INDUCT_TAC;;
+	e (REWRITE_TAC[prove(`LENGTH [] = 0`, REWRITE_TAC [LENGTH])]);;
+	e (REWRITE_TAC[prove(`0=a <=> a=0`, ARITH_TAC)]);;
+	e (REWRITE_TAC[LIST_LENGTH_ZERO]);;
+	e (GEN_TAC);;
+	e (DISCH_TAC);;
+	e (ASM_REWRITE_TAC[]);;
+	e (REWRITE_TAC[MAP]);;
+	e (REWRITE_TAC[ITLIST2]);;
+	e (MESON_TAC[REAL_FIELD `&0 = a * &0`]);;
+	
+	e (REWRITE_TAC[LENGTH]);;
+	e LIST_INDUCT_TAC;;
+		e (REWRITE_TAC[LENGTH]);;
+		e (MESON_TAC[NOT_SUC]);;
+		
+		e (REWRITE_TAC[LENGTH]);;
+		e (REWRITE_TAC[SUC_INJ]);;
+		e (REWRITE_TAC[MAP; ITLIST2]);;
+		e (REWRITE_TAC[prove(`a * (h' * h + ITLIST2 (\c x s. c * x + s) t' t (&0)) = a * h' * h + a * ITLIST2 (\c x s. c * x + s) t' t (&0)`, ARITH_TAC)]);;
+		e (REWRITE_TAC[prove(`(a * h') * h + ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = a * h' * h + ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0)`, ARITH_TAC)]);;
+		
+		prove(` ( a * h' * h + ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = a * h' * h + a * ITLIST2 (\c x s. c * x + s) t' t (&0) ) <=> 
+		( ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = ITLIST2 (\c x s. c * x + s) t' t (&0) )`, ARITH_TAC);;
+		
+		e DISCH_TAC;;
+		e (REWRITE_TAC[prove(`a * h' * h + xx = a * h' * h + a * yy <=> xx = a * yy`, ARITH_TAC)]);;
+		e (ASM_REWRITE_TAC[]);;
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		

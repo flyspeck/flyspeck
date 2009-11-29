@@ -3,17 +3,7 @@ let is_solution = define `is_solution xs (cs,b) <=>
          LENGTH xs = LENGTH cs /\
          ITLIST2 (\c x s. c * x + s) cs xs (&0) = b`;;
 
-(*Example*)
-(*g `~ (is_solution [ #3 ] ( [ #2 ], #5 ))`;;
-e (REWRITE_TAC [is_solution]);;
-e (DISJ_TAC);;
-e (REWRITE_TAC [prove(`~(A /\ B) <=> (~A) \/ (~B)`, MESON_TAC[])]);;
-e (DISJ2_TAC);;
-e (REWRITE_TAC[ITLIST2]);;
-e (ARITH_TAC);;
-*)
-
-(*Useful tactic supporting double list induction- written by John Harrison*)
+(*Useful tactic supporting double list induction -- written by John Harrison*)
 let LIST2_INDUCT_TAC =
   let list2_INDUCT = prove
    (`!P:(A)list->(B)list->bool.
@@ -27,32 +17,26 @@ let LIST2_INDUCT_TAC =
   CONJ_TAC THENL [ALL_TAC; REPLICATE_TAC 4 GEN_TAC THEN DISCH_TAC];;
 
 (*Prove the most basic theorem of multiplying both sides with the same non-zero integer (homogeneity)*)
-let homogeneity_thm = prove();;
-
-g `( ~(a = &0) ) ==> !xs cs.( is_solution xs (cs,b) <=> is_solution xs ( MAP (\c. a*c) cs, a*b ) )`;;
-e DISCH_TAC;;
-e (REWRITE_TAC[is_solution; LENGTH_MAP]);;
-e (REWRITE_TAC[TAUT` (a/\b<=>a/\c) = (a ==> (b<=>c))`]);;
-
-e LIST2_INDUCT_TAC;;
-	e (REWRITE_TAC[MAP; ITLIST2]);;
-	e (UNDISCH_TAC `~(a = &0)`);;
-	e (REWRITE_TAC[REAL_FIELD `~(a = &0) ==> (&0 = b <=> &0 = a * b)`]);;
+let homogeneity_thm = prove(`!a b xs cs. ( ~(a = &0) ) ==> ( is_solution xs (cs,b) <=> is_solution xs ( MAP (\c. a*c) cs, a*b ) )`,
+REPEAT GEN_TAC THEN
+REWRITE_TAC[is_solution; LENGTH_MAP] THEN
+REWRITE_TAC[TAUT` (a/\b<=>a/\c) = (a ==> (b<=>c))`] THEN
+REPEAT DISCH_TAC THEN
+UNDISCH_TAC `~(a = &0)` THEN
+SPEC_TAC (`b:real`, `b:real`) THEN
+SPEC_TAC (`a:real`, `a:real`) THEN
+UNDISCH_TAC `LENGTH (xs:real list) = LENGTH (cs:real list)` THEN
+SPEC_TAC (`cs: real list`,`cs: real list`) THEN
+SPEC_TAC (`xs: real list`,`xs: real list`) THEN
+LIST2_INDUCT_TAC THENL [
+	REPEAT GEN_TAC THEN
+	REWRITE_TAC[MAP; ITLIST2] THEN
+	REWRITE_TAC[REAL_FIELD `~(a = &0) ==> (&0 = b <=> &0 = a * b)`];
 	
-	e (REWRITE_TAC[MAP; ITLIST2]);;
-	e (REWRITE_TAC[ARITH_RULE `(a:real)+b=c <=> b=c-a`]);;
-	e (REWRITE_TAC[ARITH_RULE `((a:real)* b) * c = a * (b * c)`]);;
-	e (REWRITE_TAC[ARITH_RULE `(a:real) * b - a * c = a * (b - c)`]);;
-	e (ONCE_ASM_REWRITE_TAC[]);;
-
-let mylemm = prove(`!t t'.(LENGTH t = LENGTH t') ==> ITLIST2 (\c x s. c * x + s) (MAP (\c. a * c) t') t (&0) = a * ITLIST2 (\c x s. c * x + s) t' t (&0)`,
-(*SPEC_TAC (`t':real list`, `t':real list`) THEN
-SPEC_TAC (`t:real list`, `t: real list`) THEN*)
-LIST2_INDUCT_TAC THEN
-REWRITE_TAC[MAP; ITLIST2] THENL [
-	ARITH_TAC;
-
-	REWRITE_TAC[ARITH_RULE`((a:real) * b) * c = a * (b * c)`] THEN
-	ASM_REWRITE_TAC[] THEN
-	REWRITE_TAC[ARITH_RULE`(a:real) * b + a * c = a * (b + c)`] ]);;
+	REWRITE_TAC[MAP; ITLIST2] THEN
+	REWRITE_TAC[ARITH_RULE `(a:real)+b=c <=> b=c-a`] THEN
+	REWRITE_TAC[ARITH_RULE `((a:real)* b) * c = a * (b * c)`] THEN
+	REWRITE_TAC[ARITH_RULE `(a:real) * b - a * c = a * (b - c)`] THEN
+	ASM_SIMP_TAC[]
+] );;
 

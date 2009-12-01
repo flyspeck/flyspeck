@@ -10,6 +10,7 @@ parse_as_infix("POWER",(24,"right"));;
 
 parse_as_infix("inside",(11,"right"));;
 
+parse_as_infix("iso",(24,"right"));;
  
 (* The definition of the nth exponent of a map *)
 
@@ -987,10 +988,18 @@ let lemma_component_subset = prove(`!H:(A)hypermap x:A. x IN dart H ==> comb_com
    THEN REWRITE_TAC[SUBSET;IN_ELIM_THM;comb_component] 
    THEN GEN_TAC THEN REWRITE_TAC[is_in_component] THEN ASM_MESON_TAC[lemm_path_subset]);;
 
+let lemma_edge_subset = prove(`!(H:(A)hypermap) x:A. x IN dart H ==> edge H x SUBSET dart H`, 
+   REWRITE_TAC[edge] THEN MESON_TAC[edge_map_and_darts; orbit_subset]);;
+
+let lemma_node_subset = prove(`!(H:(A)hypermap) x:A. x IN dart H ==> node H x SUBSET dart H`, 
+   REWRITE_TAC[node] THEN MESON_TAC[ node_map_and_darts; orbit_subset]);;
+
+let lemma_face_subset = prove(`!(H:(A)hypermap) x:A. x IN dart H ==> face H x SUBSET dart H`, 
+   REWRITE_TAC[face] THEN MESON_TAC[face_map_and_darts; orbit_subset]);;
+
 let lemma_component_reflect = prove(`!H:(A)hypermap x:A. x IN comb_component H x`, 
    REPEAT STRIP_TAC THEN REWRITE_TAC[IN_ELIM_THM; comb_component;is_in_component] 
    THEN EXISTS_TAC `(\k:num. x:A)` THEN EXISTS_TAC `0` THEN MESON_TAC[is_path]);;
-
 
 (* The definition of path is exactly here *)
 
@@ -1119,7 +1128,6 @@ let concatenate_paths = prove(`!H:(A)hypermap p:num->A q:num->A n:num m:num. is_
    REPEAT GEN_TAC
    THEN DISCH_THEN (MP_TAC o MATCH_MP concatenate_two_paths)
    THEN MESON_TAC[]);;
-
 
 let lemma_component_trans = prove(`!H:(A)hypermap x:A y:A z:A. y IN comb_component H x /\ z IN comb_component H y 
    ==> z IN comb_component H x`, 
@@ -2084,6 +2092,12 @@ let iterate_map_valuation = prove(`!(p:A->A) (n:num) (x:A). p ((p POWER n) x) = 
    REPEAT STRIP_TAC THEN ASSUME_TAC (SPECL[`n:num`; `p:A->A`] (GSYM COM_POWER))
    THEN POP_ASSUM (fun th -> (MP_TAC (AP_THM th `x:A`)))
    THEN REWRITE_TAC[o_THM]);;
+
+let iterate_map_valuation2 = prove(`!(p:A->A) (n:num) (x:A). (p POWER n) (p x) = (p POWER (SUC n)) x`,
+   REPEAT STRIP_TAC THEN ASSUME_TAC (SPECL[`p:A->A`; `n:num`] (CONJUNCT2 POWER))
+   THEN POP_ASSUM (fun th -> (MP_TAC (AP_THM th `x:A`)))
+   THEN REWRITE_TAC[o_THM; EQ_SYM]);;
+
 
 let lemma_identity_segment = prove(`!(p:A->A) (q:A->A) (x:A) (n:num). 
    (!i:num. i <= n ==> (q POWER i) x = (p POWER i) x) /\  inj_orbit p x n  ==> inj_orbit q x n`,
@@ -3484,6 +3498,8 @@ let lemma_edge_subset_component = prove(`!(H:(A)hypermap) (x:A). edge H x SUBSET
     THEN POP_ASSUM SUBST1_TAC
     THEN REWRITE_TAC[lemma_powers_in_component]);;
 
+
+
 let lemma_node_subset_component = prove(`!(H:(A)hypermap) (x:A). node H x SUBSET comb_component H x`,
     REPEAT GEN_TAC
     THEN REWRITE_TAC[SUBSET; node; orbit_map; IN_ELIM_THM]
@@ -3516,6 +3532,7 @@ let lemma_component_identity = prove(`!(H:(A)hypermap) x:A y:A. y IN comb_compon
 	     THEN  ASM_REWRITE_TAC[IN_INTER]; ALL_TAC]
      THEN  REWRITE_TAC[MEMBER_NOT_EMPTY]
      THEN DISCH_THEN (fun th -> REWRITE_TAC[th]));;
+
 
 let lemma_walkup_first_component_eq = prove(`!(H:(A)hypermap) (x:A) (y:A).x IN dart H /\ ~(x IN comb_component H y)  ==> comb_component H y = comb_component (edge_walkup H x) y /\ ~(node_map H x IN comb_component H y) /\ ~((inverse (edge_map H)) x IN comb_component H y)`,
    REPEAT GEN_TAC
@@ -5636,6 +5653,16 @@ let lemma_edge_complement = prove(`!(H:(A)hypermap) x:A. x IN dart H ==> edge H 
 
 let map_permutes_outside_domain = prove(`!s:A->bool p:A->A. p permutes s ==> (!x:A. ~(x IN s) ==> p x = x)`,
      MESON_TAC[permutes]);;
+
+let power_permutation_outside_domain = prove(`!s:A->bool p:A->A x:A n:num. p permutes s /\ ~(x IN s) ==> (p POWER n) x = x`, 
+    REPEAT STRIP_TAC
+    THEN SPEC_TAC(`n:num`, `n:num`)
+    THEN INDUCT_TAC
+    THENL[REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
+    THEN REWRITE_TAC[COM_POWER; o_THM]
+    THEN POP_ASSUM SUBST1_TAC
+    THEN POP_ASSUM MP_TAC
+    THEN POP_ASSUM (fun th-> REWRITE_TAC[MATCH_MP map_permutes_outside_domain th]));;
 
 let lemma_edge_exception = prove(`!(H:(A)hypermap) (x:A). ~(x IN dart H) ==> edge H x = {x}`,
      REPEAT STRIP_TAC
@@ -7870,276 +7897,244 @@ let lemmaLIPYTUI = prove(`!(H:(A)hypermap). planar_hypermap H ==> ~(?(p:num->A) 
    THEN EXISTS_TAC `2`
    THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th]));;
 
+(* HERE I DEFINITE THE NOTION OF THE LOOP. THIS DEFINITION DOES NOT DEPEND ON THE ORDER OF ITS VERTICES *)
 
-(* For short, we define a type for paths *)
+let exist_loop = prove(`?L:(A->bool)#(A->A). FINITE (FST L) /\ SND L permutes FST L /\ ?x:A. x IN FST L /\ orbit_map (SND L) x = FST L`,
+   MP_TAC(SPEC `UNIV:A->bool` MEMBER_NOT_EMPTY)
+   THEN REWRITE_TAC[UNIV_NOT_EMPTY]
+   THEN DISCH_THEN (X_CHOOSE_THEN `x:A` (ASSUME_TAC))
+   THEN EXISTS_TAC `({x:A}, I:A->A)`
+   THEN REWRITE_TAC[FST; SND]
+   THEN REWRITE_TAC[FINITE_SINGLETON; PERMUTES_I; I_O_ID]
+   THEN EXISTS_TAC `x:A`
+   THEN REWRITE_TAC[IN_SING; GSYM orbit_one_point; I_THM]);;
 
-let exist_path = prove(`?p:((num->A)# num). T`, MESON_TAC[]);;
+let loop_tybij = new_type_definition "loop"("loop", "tuple_loop") exist_loop;;
 
-let path_tybij = (new_type_definition "path" ("path", "tuple_path") exist_path);;
+let dart_of = new_definition `!L:(A)loop. dart_of L = FST (tuple_loop L)`;;
 
-let pointer = new_definition `pointer (p:(A)path) = FST (tuple_path p)`;;
+let next = new_definition `!L:(A)loop. next L = SND (tuple_loop L)`;;
 
-let top = new_definition `top (p:(A)path) = SND(tuple_path p)`;;
+let back = new_definition `!L:(A)loop. back L = inverse (SND (tuple_loop L))`;;
 
-let lemma_path_pair_representation = prove(`!(p:((num->A)#num)). p = (FST p, SND p)`, MESON_TAC[GSYM PAIR]);;
+let inside = new_definition `!(L:(A)loop) x:A. x inside L <=> x IN (dart_of L)`;;
 
-let lemma_path_pair_eq = prove(`!(p:((num->A)#num)) (q:((num->A)#num)). (FST p = FST q) /\ (SND p = SND q) <=>(p = q)`,
-   REPEAT GEN_TAC
-   THEN GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV) [lemma_path_pair_representation]
-   THEN MESON_TAC[PAIR_EQ]);;
+let size = new_definition `size (L:(A)loop) = CARD (dart_of L)`;;
 
-let lemma_path_identity = prove(`!(p:(A)path) (q:(A)path). p = q <=> pointer p = pointer q /\ top p = top q`,
-   REPEAT GEN_TAC
-   THEN EQ_TAC
-   THENL[MESON_TAC[]; ALL_TAC]
-   THEN REWRITE_TAC[pointer; top]
-   THEN STRIP_TAC
-   THEN SUBGOAL_THEN `tuple_path (p:(A)path) = tuple_path (q:(A)path)` ASSUME_TAC
-   THENL[ASM_MESON_TAC[lemma_path_pair_eq; path_tybij]; ALL_TAC]
-   THEN POP_ASSUM (fun th -> MESON_TAC[th; CONJUNCT1 path_tybij]));;
+let top = new_definition `top (L:(A)loop) = PRE (CARD (dart_of L))`;;
 
-let lemma_path_representation = prove(`!g:num->A n:num. ?p:(A)path. p = path(g,n) /\ pointer p = g /\ top p = n`,
-   REPEAT GEN_TAC
-   THEN EXISTS_TAC `path(g:num->A,n:num)`
-   THEN REWRITE_TAC[pointer; top]
-   THEN MP_TAC(SPEC `(g:num->A, n:num)` (CONJUNCT2 path_tybij))
-   THEN REWRITE_TAC[]
+let is_loop = new_definition `!(H:(A)hypermap) (L:(A)loop). is_loop H L <=> (!x:A. x inside L ==> one_step_contour H x (next L x))`;;
+
+let contour_of = new_definition `!(L:(A)loop) x:A k:num. contour_of L x k = ((next L) POWER k) x`;;
+
+let loop_lemma = prove(`!L:(A)loop. FINITE (dart_of L) /\(next L) permutes (dart_of L) /\ (?x:A. x inside L /\ orbit_map (next L) x = dart_of L)`,
+   GEN_TAC THEN REWRITE_TAC[inside; loop_tybij; dart_of; next] THEN MESON_TAC[loop_tybij]);;
+
+let lemma_loop_representation = prove(`!s:A->bool p:A->A x:A. FINITE s /\ p permutes s /\ orbit_map p x = s ==> dart_of (loop (s, p)) = s /\ next (loop (s,p)) = p`,
+ REPEAT GEN_TAC  THEN STRIP_TAC
+   THEN MP_TAC (SPECL[`p:A->A`; `x:A`] orbit_reflect)
+   THEN ASM_REWRITE_TAC[]
+   THEN POP_ASSUM MP_TAC
+   THEN REWRITE_TAC[IMP_IMP]
+   THEN ONCE_REWRITE_TAC[CONJ_SYM]
+   THEN DISCH_THEN (ASSUME_TAC o SIMPLE_EXISTS `x:A`)
+   THEN MP_TAC (SPEC `(s:A->bool, p:A->A)` (CONJUNCT2 loop_tybij))
+   THEN REWRITE_TAC[FST; SND; next; dart_of]
+   THEN ASM_REWRITE_TAC[]
    THEN DISCH_THEN SUBST1_TAC
    THEN REWRITE_TAC[FST; SND]);;
 
+let lemma_loop_identity = prove(`!(L:(A)loop) (L':(A)loop). L = L' <=> (dart_of L = dart_of L' /\ next L = next L')`,
+ REPEAT GEN_TAC
+   THEN EQ_TAC
+   THENL[MESON_TAC[]; ALL_TAC]
+   THEN REWRITE_TAC[dart_of; next]
+   THEN STRIP_TAC
+   THEN SUBGOAL_THEN `tuple_loop (L:(A)loop) = tuple_loop (L':(A)loop)` ASSUME_TAC
+   THENL[SUBGOAL_THEN `tuple_loop (L:(A)loop) = FST (tuple_loop (L:(A)loop)), SND (tuple_loop (L:(A)loop))` ASSUME_TAC
+       THENL[MESON_TAC[PAIR]; ALL_TAC]
+       THEN SUBGOAL_THEN `tuple_loop (L':(A)loop) = FST (tuple_loop (L':(A)loop)), SND (tuple_loop (L':(A)loop))` ASSUME_TAC
+       THENL[MESON_TAC[PAIR]; ALL_TAC]
+       THEN REPLICATE_TAC 2 (POP_ASSUM SUBST1_TAC); ALL_TAC]
+   THEN ASM_REWRITE_TAC[PAIR_EQ]
+   THEN POP_ASSUM (fun th -> MESON_TAC[CONJUNCT1 loop_tybij; th]));;
 
-(* We use the notion of the contour loop  and some basic properties. For short: a loop is a contour loop*)
+let lemma_permute_loop = prove(`!L:(A)loop. next L permutes dart_of L /\ back L permutes dart_of L`,
+   GEN_TAC
+   THEN REWRITE_TAC[loop_lemma]
+   THEN REWRITE_TAC[back; GSYM next]
+   THEN MATCH_MP_TAC PERMUTES_INVERSE
+   THEN REWRITE_TAC[loop_lemma]);;
 
-let is_contour_loop = new_definition `is_contour_loop (H:(A)hypermap) (p:num->A) (n:num) <=> is_inj_contour H p n /\ one_step_contour H (p n) (p 0)`;;
+let lemma_transitive_permutation = prove(`!(L:(A)loop) x:A. x inside L ==> dart_of L = orbit_map (next L) x`,
+ REPEAT GEN_TAC
+   THEN MP_TAC (SPEC `L:(A)loop` loop_lemma)
+   THEN REWRITE_TAC[inside]
+   THEN DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC(CONJUNCTS_THEN2 ASSUME_TAC (X_CHOOSE_THEN `y:A`(CONJUNCTS_THEN2 ASSUME_TAC(SUBST1_TAC o SYM)))))
+   THEN REPEAT STRIP_TAC   
+   THEN MATCH_MP_TAC lemma_orbit_identity
+   THEN EXISTS_TAC `dart_of (L:(A)loop)`
+   THEN ASM_REWRITE_TAC[]);;
 
-let is_loop = new_definition `!(H:(A)hypermap) (L:(A)path). is_loop H L 
-                    <=> is_inj_contour H (pointer L) (top L) /\ one_step_contour H (pointer L (top L)) (pointer L 0)`;;
-let lemma_is_loop = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L <=> is_contour_loop H (pointer L) (top L)`, MESON_TAC[is_loop; is_contour_loop]);;
-
-let increasing_loop_index = prove(`!n:num i:num. i MOD SUC n  < n ==> SUC i MOD SUC n = SUC (i MOD SUC (n:num))`,
-     REPEAT GEN_TAC
-     THEN DISCH_TAC
-     THEN MP_TAC (ARITH_RULE `~(SUC (n:num) = 0)`)
-     THEN DISCH_THEN (MP_TAC o SPEC `i:num` o MATCH_MP DIVMOD_EXIST)
-     THEN DISCH_THEN (X_CHOOSE_THEN `q:num` (X_CHOOSE_THEN `r:num` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))))
-     THEN USE_THEN "F1" (MP_TAC o AP_TERM `SUC`)
-     THEN GEN_REWRITE_TAC (LAND_CONV  o RAND_CONV o ONCE_DEPTH_CONV) [GSYM ADD_CLAUSES]
-     THEN REMOVE_THEN "F1" (fun th1 -> (REMOVE_THEN "F2" (fun th2 -> MP_TAC(MATCH_MP MOD_UNIQ (CONJ th1 th2)))))
-     THEN DISCH_THEN SUBST_ALL_TAC
-     THEN POP_ASSUM MP_TAC
-     THEN ONCE_REWRITE_TAC[GSYM LT_SUC]
-     THEN DISCH_THEN (fun th1 -> (DISCH_THEN (fun th2 -> MP_TAC(MATCH_MP MOD_UNIQ (CONJ th2 th1)))))
-     THEN SIMP_TAC[]);;
-
-let decreasing_loop_index = prove(`!n:num i:num. 0 < i MOD SUC n ==> (n + i) MOD SUC n = PRE (i MOD SUC (n:num))`,
+let lemma_size = prove(`!(L:(A)loop). ~(dart_of L = {}) /\ 0 < size L /\ size L = SUC(top L)`,
     REPEAT GEN_TAC
-    THEN DISCH_TAC
-    THEN MP_TAC (ARITH_RULE `~(SUC (n:num) = 0)`)
-    THEN DISCH_THEN (MP_TAC o SPEC `i:num` o MATCH_MP DIVMOD_EXIST)
-    THEN DISCH_THEN (X_CHOOSE_THEN `q:num` (X_CHOOSE_THEN `r:num` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))))
-    THEN USE_THEN "F1" (MP_TAC o AP_TERM `(+) (n:num)`)
-    THEN REMOVE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2 -> MP_TAC(MATCH_MP MOD_UNIQ (CONJ th1 th2)))))
-    THEN DISCH_THEN SUBST_ALL_TAC
-    THEN FIRST_ASSUM (fun th -> REWRITE_TAC[MATCH_MP (ARITH_RULE `0 < r:num ==>  (n:num) + (q:num) * (SUC (n:num)) + (r:num) = (PRE r) + (1 * (SUC n) + q * (SUC n))`) th])
-    THEN REWRITE_TAC[GSYM RIGHT_ADD_DISTRIB]
-    THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP MOD_EQ th])
-    THEN POP_ASSUM  (ASSUME_TAC o MATCH_MP (ARITH_RULE `r:num < SUC (n:num) ==> PRE r < SUC n`))
-    THEN POP_ASSUM MP_TAC
-    THEN REWRITE_TAC[MOD_LT]);;
+    THEN MP_TAC (SPEC `L:(A)loop` loop_lemma)
+    THEN DISCH_THEN(CONJUNCTS_THEN2(LABEL_TAC "F1")(CONJUNCTS_THEN2 (LABEL_TAC "F2")(X_CHOOSE_THEN `y:A`(ASSUME_TAC o REWRITE_RULE[inside] o CONJUNCT1))))
+    THEN SUBGOAL_THEN `~(dart_of (L:(A)loop) = {})` (fun th-> REWRITE_TAC[th])
+    THENL[REWRITE_TAC[GSYM MEMBER_NOT_EMPTY]
+       THEN EXISTS_TAC `y:A` THEN ASM_REWRITE_TAC[]; ALL_TAC]
+    THEN SUBGOAL_THEN `0 < size (L:(A)loop)` ASSUME_TAC
+    THENL[ REWRITE_TAC[size]
+       THEN USE_THEN "F1"(fun th -> (POP_ASSUM(fun th1-> (MP_TAC (MATCH_MP CARD_ATLEAST_1 (CONJ th th1))))))
+       THEN DISCH_THEN (fun th -> REWRITE_TAC[REWRITE_RULE[LT1_NZ] th])
+       THEN REWRITE_TAC[FUN_EQ_THM; I_THM]; ALL_TAC]   
+    THEN ASM_REWRITE_TAC[]
+    THEN REWRITE_TAC[top; GSYM size]
+    THEN MATCH_MP_TAC LT_SUC_PRE
+    THEN ASM_REWRITE_TAC[]);;
 
-let start_loop_index = prove(`!n:num i:num. i MOD SUC n  = n ==> SUC i MOD SUC n = 0`,
+let lemma_order_next = prove(`!L:(A)loop. (next L) POWER (size L) = I`,
+ REPEAT GEN_TAC
+   THEN MP_TAC (SPEC `L:(A)loop` loop_lemma)
+   THEN DISCH_THEN(CONJUNCTS_THEN2(LABEL_TAC "F1")(LABEL_TAC "F2" o CONJUNCT1))
+   THEN REWRITE_TAC[FUN_EQ_THM; I_THM; size]
+   THEN GEN_TAC
+   THEN ASM_CASES_TAC `~((x:A) IN dart_of (L:(A)loop))`
+   THENL[USE_THEN "F2" (fun th->(POP_ASSUM(fun th1->REWRITE_TAC[MATCH_MP power_permutation_outside_domain (CONJ th th1)]))); ALL_TAC]
+   THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM inside])
+   THEN MP_TAC (SPECL[`L:(A)loop`; `x:A`] lemma_transitive_permutation)
+   THEN POP_ASSUM(fun th -> REWRITE_TAC[th])
+   THEN DISCH_THEN SUBST1_TAC 
+   THEN REMOVE_THEN "F1"(fun th -> (POP_ASSUM(fun th1-> (MESON_TAC[MATCH_MP lemma_cycle_orbit (CONJ th th1)])))));;
+
+let lemma_back_and_next_outside_loop = prove(`!L:(A)loop  x:A. ~(x inside L) ==> back L x = x /\ next L x = x`,
     REPEAT GEN_TAC
-    THEN DISCH_TAC
-    THEN MP_TAC (ARITH_RULE `~(SUC (n:num) = 0)`)
-    THEN DISCH_THEN (MP_TAC o SPEC `i:num` o MATCH_MP DIVMOD_EXIST)
-    THEN DISCH_THEN (X_CHOOSE_THEN `q:num` (X_CHOOSE_THEN `r:num` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))))
-    THEN USE_THEN "F1" (MP_TAC o AP_TERM `SUC`)
-    THEN GEN_REWRITE_TAC (LAND_CONV  o RAND_CONV o ONCE_DEPTH_CONV) [GSYM ADD_CLAUSES]
-    THEN REMOVE_THEN "F1" (fun th1 -> (REMOVE_THEN "F2" (fun th2 -> MP_TAC(MATCH_MP MOD_UNIQ (CONJ th1 th2)))))
-    THEN DISCH_THEN SUBST_ALL_TAC
-    THEN POP_ASSUM SUBST1_TAC
-    THEN REWRITE_TAC [ARITH_RULE `(a:num) * (b:num) + b = b * a + b * 1`]
-    THEN REWRITE_TAC[GSYM LEFT_ADD_DISTRIB]
-    THEN DISCH_THEN ASSUME_TAC
-    THEN MP_TAC (ARITH_RULE `~(SUC (n:num) = 0)`)
-    THEN DISCH_THEN (MP_TAC o SPEC `((q:num) + 1)` o MATCH_MP MOD_MULT)
-    THEN POP_ASSUM (SUBST1_TAC o SYM)
+    THEN REWRITE_TAC[inside]
+    THEN DISCH_THEN (LABEL_TAC "F1")
+    THEN ASSUME_TAC ((CONJUNCT1(CONJUNCT2(SPEC `L:(A)loop` loop_lemma))))
+    THEN USE_THEN "F1"(fun th->(POP_ASSUM (MP_TAC o REWRITE_RULE[th] o SPEC `x:A` o MATCH_MP map_permutes_outside_domain)))
+    THEN DISCH_THEN (fun th-> REWRITE_TAC[th])
+    THEN ASSUME_TAC ((CONJUNCT2(SPEC `L:(A)loop` lemma_permute_loop)))
+    THEN REMOVE_THEN "F1"(fun th->(POP_ASSUM (MP_TAC o REWRITE_RULE[th] o SPEC `x:A` o MATCH_MP map_permutes_outside_domain)))
+    THEN DISCH_THEN (fun th-> REWRITE_TAC[th])
     THEN SIMP_TAC[]);;
 
-let shift_loop_diff_index = prove(`!i:num j:num d:num n:num. i <= n /\ j <= n /\ ~(i = j) ==> ~((i+d) MOD (SUC n) = (j+d) MOD (SUC n))`,
-   REPEAT STRIP_TAC
-   THEN FIRST_X_ASSUM (MP_TAC o check (is_neg o concl))
-   THEN REWRITE_TAC[]
-   THEN LABEL_TAC "F1"  (ARITH_RULE `~(SUC (n:num) = 0)`)
-   THEN USE_THEN "F1" (MP_TAC o SPEC `(i:num) + (d:num)` o MATCH_MP DIVMOD_EXIST)
-   THEN DISCH_THEN (X_CHOOSE_THEN `q1:num` (X_CHOOSE_THEN `r1:num` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3"))))
-   THEN USE_THEN "F1" (MP_TAC o SPEC `(j:num) + (d:num)` o MATCH_MP DIVMOD_EXIST)
-   THEN DISCH_THEN (X_CHOOSE_THEN `q2:num` (X_CHOOSE_THEN `r2:num` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (LABEL_TAC "F5"))))
-   THEN USE_THEN "F2" (fun th1 -> (USE_THEN "F3" (fun th2 -> MP_TAC (MATCH_MP MOD_UNIQ (CONJ th1 th2)))))
-   THEN DISCH_THEN (SUBST_ALL_TAC)
-   THEN USE_THEN "F4" (fun th1 -> (USE_THEN "F5" (fun th2 -> MP_TAC (MATCH_MP MOD_UNIQ (CONJ th1 th2)))))
-   THEN DISCH_THEN (SUBST_ALL_TAC)
-   THEN UNDISCH_TAC `r1:num = r2:num`
-   THEN DISCH_THEN SUBST_ALL_TAC
-   THEN ASM_CASES_TAC `q2:num < q1:num`
-   THENL[MP_TAC (SPECL[`(i:num)`; `j:num`; `d:num`] SUB_ADD_RCANCEL)
-       THEN USE_THEN "F2" SUBST1_TAC
-       THEN USE_THEN "F4" SUBST1_TAC
-       THEN REWRITE_TAC[SUB_ADD_RCANCEL]
-       THEN REWRITE_TAC[GSYM RIGHT_SUB_DISTRIB]
-       THEN MP_TAC (ARITH_RULE `q2:num < q1:num ==> 1 <= q1 - q2`)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-       THEN DISCH_TAC
-       THEN DISCH_TAC
-       THEN MP_TAC (SPECL[`1`; `(q1:num) - (q2:num)`; `SUC (n:num)`; `SUC (n:num)`] LE_MULT2)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th; LE_REFL; ARITH_RULE `1 * (a:num) = a`])
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-       THEN DISCH_THEN (fun th -> (MP_TAC (MATCH_MP (ARITH_RULE `(SUC n:num <= (i:num) - (j:num)) ==> SUC n <= i`) th)))
-       THEN FIND_ASSUM (fun th -> (DISCH_THEN (fun th1 -> MP_TAC (MATCH_MP LE_TRANS (CONJ th1 th))))) `i:num <= n:num`
-       THEN ARITH_TAC; ALL_TAC]
-   THEN ASM_CASES_TAC `q1:num < q2:num`
-   THENL[MP_TAC (SPECL[`(j:num)`; `i:num`; `d:num`] SUB_ADD_RCANCEL)
-       THEN USE_THEN "F2" SUBST1_TAC
-       THEN USE_THEN "F4" SUBST1_TAC
-       THEN REWRITE_TAC[SUB_ADD_RCANCEL]
-       THEN REWRITE_TAC[GSYM RIGHT_SUB_DISTRIB]
-       THEN DISCH_TAC
-       THEN MP_TAC (ARITH_RULE `q1:num < q2:num ==> 1 <= q2 - q1`)
-       THEN ASM_REWRITE_TAC[]
-       THEN DISCH_TAC
-       THEN MP_TAC (SPECL[`1`; `(q2:num) - (q1:num)`; `SUC (n:num)`; `SUC (n:num)`] LE_MULT2)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th; LE_REFL; ARITH_RULE `1 * (a:num) = a`])
-       THEN POP_ASSUM SUBST1_TAC
-       THEN DISCH_THEN (fun th -> (MP_TAC (MATCH_MP (ARITH_RULE `(SUC n:num <= (i:num) - (j:num)) ==> SUC n <= i`) th)))
-       THEN FIND_ASSUM (fun th -> (DISCH_THEN (fun th1 -> MP_TAC (MATCH_MP LE_TRANS (CONJ th1 th))))) `j:num <= n:num`
-       THEN ARITH_TAC; ALL_TAC]
-   THEN POP_ASSUM MP_TAC
-   THEN POP_ASSUM MP_TAC
-   THEN REWRITE_TAC[NOT_LT; IMP_IMP; LE_ANTISYM]
-   THEN DISCH_THEN SUBST_ALL_TAC
-   THEN USE_THEN "F2" MP_TAC
-   THEN USE_THEN "F4" (SUBST1_TAC o SYM)
-   THEN ARITH_TAC);;
+let lemma_power_back_and_next_outside_loop = prove(`!L:(A)loop x:A m:num. ~(x inside L) ==> ((back L) POWER m) x = x /\ ((next L) POWER m) x = x`,
+ REPEAT GEN_TAC
+   THEN REWRITE_TAC[inside]
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN ASSUME_TAC ((CONJUNCT1(CONJUNCT2(SPEC `L:(A)loop` loop_lemma))))
+   THEN USE_THEN "F1"(fun th1->(POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP power_permutation_outside_domain (CONJ th th1)])))
+   THEN ASSUME_TAC ((CONJUNCT2(SPEC `L:(A)loop` lemma_permute_loop)))
+   THEN REMOVE_THEN "F1"(fun th1->(POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP power_permutation_outside_domain (CONJ th th1)]))));;
 
-let lemma_shift_loop_epi_index = prove(`!n:num d:num i:num. i <= n ==> ?j:num. j <= n /\ i = (j + d) MOD (SUC n)`,
+let lemma_inverse_on_loop = prove(`!L:(A)loop. next L = inverse (back L) /\ back L = inverse (next L)`,
+    STRIP_TAC
+    THEN REWRITE_TAC[ back; GSYM next]
+    THEN CONV_TAC SYM_CONV
+    THEN ASSUME_TAC ((CONJUNCT1(CONJUNCT2(SPEC `L:(A)loop` loop_lemma))))
+    THEN POP_ASSUM(fun th-> REWRITE_TAC[MATCH_MP PERMUTES_INVERSE_INVERSE th]));;
+ 
+let lemma_inverse_evaluation = prove(`!L:(A)loop x:A. back L (next L x) = x /\ next L (back L x) = x`,
+   REPEAT GEN_TAC
+   THEN REWRITE_TAC[CONJUNCT2(SPEC `L:(A)loop` lemma_inverse_on_loop)]
+   THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES (CONJUNCT1(SPEC `L:(A)loop` lemma_permute_loop))]);;
+
+let lemma_second_inverse_on_loop = prove(`!L:(A)loop m:num. next L POWER m = inverse ((back L) POWER m) /\ back L POWER m = inverse ((next L) POWER m)`,
+   REPEAT GEN_TAC
+   THEN (MP_TAC(CONJUNCT1(SPEC `L:(A)loop`lemma_permute_loop)))
+   THEN DISCH_THEN (MP_TAC o SPEC `m:num` o MATCH_MP lemma_power_inverse)
+   THEN REWRITE_TAC[GSYM lemma_inverse_on_loop]
+    THEN MESON_TAC[]);;
+
+let lemma_second_inverse_evaluation = prove(`
+  !L:(A)loop (x:A) (m:num).(next L POWER m) ((back L POWER m) x) = x /\ (back L POWER m) ((next L POWER m) x) = x`, 
+ REPEAT GEN_TAC
+   THEN LABEL_TAC "F1" (CONJUNCT1(SPEC `L:(A)loop` lemma_permute_loop))
+   THEN REWRITE_TAC[CONJUNCT2(SPECL[`L:(A)loop`; `m:num`] lemma_second_inverse_on_loop)]
+   THEN POP_ASSUM (MP_TAC o  SPEC `m:num` o MATCH_MP power_permutation)
+   THEN DISCH_THEN (fun th-> REWRITE_TAC[MATCH_MP PERMUTES_INVERSES th]));;
+
+let lemma_next_power_representation = prove(`!L:(A)loop (x:A) (y:A). x inside L /\ y inside L ==> ?k:num. k <= top L /\ y = ((next L) POWER k) x`,
   REPEAT GEN_TAC
-  THEN ABBREV_TAC `f = (\j:num. (j + (d:num)) MOD (SUC (n:num)))`
-  THEN SUBGOAL_THEN `{(f:num->num) (u:num) | u <= n} = 0..n` (LABEL_TAC "F1")
-  THENL[SUBGOAL_THEN `(!u:num v:num. u < SUC (n:num)  /\  v < u ==> ~((f:num->num)(u) = f(v)))` ASSUME_TAC
-	THENL[REPEAT GEN_TAC
-            THEN STRIP_TAC
-	    THEN EXPAND_TAC "f"
-	    THEN MATCH_MP_TAC shift_loop_diff_index
-	    THEN REPLICATE_TAC 2 (POP_ASSUM MP_TAC)
-	    THEN REWRITE_TAC[LT_SUC_LE]
-	    THEN SIMP_TAC[]
-	    THEN ARITH_TAC; ALL_TAC]
-	THEN POP_ASSUM (MP_TAC o MATCH_MP CARD_FINITE_SERIES_EQ)
-	THEN REWRITE_TAC[LT_SUC_LE]
-	THEN MP_TAC (SPECL[`0`;`n:num`] CARD_NUMSEG)
-	THEN REWRITE_TAC[SUB; GSYM ADD1]
-	THEN DISCH_THEN (SUBST1_TAC o SYM)
-	THEN DISCH_TAC
-	THEN SUBGOAL_THEN `{(f:num->num) (u:num) | u <= n:num} SUBSET 0..n` ASSUME_TAC
-	THENL[REWRITE_TAC[SUBSET; IN_ELIM_THM]
-            THEN STRIP_TAC
-	    THEN EXPAND_TAC "f"
-	    THEN STRIP_TAC
-	    THEN MP_TAC (CONJUNCT2(SPEC `((u:num) + (d:num))` (MATCH_MP DIVISION (SPEC `n:num` NON_ZERO))))
-	    THEN POP_ASSUM (SUBST1_TAC o SYM)
-	    THEN REWRITE_TAC[IN_NUMSEG]
-	    THEN REWRITE_TAC[LT_SUC_LE; LE_0]; ALL_TAC]
-	THEN MATCH_MP_TAC CARD_SUBSET_EQ
-	THEN REWRITE_TAC[FINITE_NUMSEG]
-	THEN ASM_REWRITE_TAC[]; ALL_TAC]
-  THEN DISCH_TAC
-  THEN MP_TAC (SPECL[`0`; `n:num`; `i:num`] IN_NUMSEG)
-  THEN POP_ASSUM (fun th -> REWRITE_TAC[th; LE_0])
-  THEN REMOVE_THEN "F1" (SUBST1_TAC o SYM)
-  THEN REWRITE_TAC[IN_ELIM_THM]
-  THEN EXPAND_TAC "f"
-  THEN SIMP_TAC[]);;
+   THEN DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC (MP_TAC o REWRITE_RULE[inside]))
+   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_transitive_permutation th])
+    THEN REWRITE_TAC[GSYM LT_SUC_LE]
+    THEN STRIP_ASSUME_TAC(CONJUNCT2(SPEC `L:(A)loop` lemma_size))
+    THEN POP_ASSUM (SUBST1_TAC o SYM)
+    THEN ASSUME_TAC (SPEC `L:(A)loop` lemma_order_next)
+    THEN  POP_ASSUM (fun th-> MP_TAC (REWRITE_RULE[I_THM](AP_THM th `x:A`)))
+    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[LT_NZ])
+    THEN DISCH_THEN(fun th-> DISCH_THEN(fun th1-> REWRITE_TAC[MATCH_MP orbit_cyclic (CONJ th th1)]))
+    THEN REWRITE_TAC[IN_ELIM_THM]);;
 
-let lemma_def2_inj_contour = prove(`!(H:(A)hypermap) p:num->A n:num. is_inj_contour H p n <=> is_contour H p n /\ (!i:num j:num. i <= n /\ j <= n /\ ~(i=j) ==> ~(p j = p i))`,
+let lemma_power_next_in_loop = prove(`!L:(A)loop x:A k:num. x inside L ==> ((next L POWER k) x) inside L`,
    REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_def_inj_contour]
-   THEN EQ_TAC
-   THENL[DISCH_THEN (CONJUNCTS_THEN2 (fun th -> REWRITE_TAC[th]) (ASSUME_TAC))
-      THEN MATCH_MP_TAC (WLOG_LT)
-      THEN SIMP_TAC[]
-      THEN STRIP_TAC
-      THENL[MESON_TAC[]; ASM_MESON_TAC[]]; ALL_TAC]
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (fun th -> REWRITE_TAC[th]) (ASSUME_TAC))
-   THEN REPEAT STRIP_TAC
-   THEN FIRST_X_ASSUM (MP_TAC o SPECL[`i:num`; `j:num`] o check (is_forall o concl))
-   THEN ASM_REWRITE_TAC[]
-   THEN MP_TAC(ARITH_RULE `j:num <i:num /\ i <= n ==> j <= n /\ ~(i = j)`)
-   THEN ASM_REWRITE_TAC[]
-  );;
-
-let shift_loop = new_definition `shift_loop (p:num->A) (n:num) (d:num) = (\i:num. p ((i+d) MOD (SUC n)))`;;
-
-let shift_loop_evaluation = prove(`!(p:num->A) (n:num) (d:num) (i:num). (shift_loop p n d) i = p ((i+d) MOD (SUC n))`, REWRITE_TAC[shift_loop]);;
-
-let lemma_contour_loop = prove(`!(H:(A)hypermap) (p:num->A) (n:num) (d:num). is_contour_loop H p n ==> is_contour_loop H (shift_loop p n d) n`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[is_contour_loop]
-   THEN REWRITE_TAC[lemma_def2_inj_contour]
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) (LABEL_TAC "F5" ))
+   THEN REWRITE_TAC[inside]
    THEN STRIP_TAC
-   THENL[STRIP_TAC
-       THENL[REWRITE_TAC[lemma_def_contour]
-           THEN GEN_TAC
-           THEN DISCH_THEN (LABEL_TAC "F6")
-	   THEN REWRITE_TAC[shift_loop_evaluation]
-	   THEN REWRITE_TAC[ADD]
-	   THEN ABBREV_TAC `id = (i:num) + (d:num)`
-	   THEN ASM_CASES_TAC `id:num MOD (SUC (n:num)) < n`
-	   THENL[ POP_ASSUM (fun th -> (ASSUME_TAC th THEN REWRITE_TAC[MATCH_MP increasing_loop_index th]))
-	      THEN USE_THEN "F3" MP_TAC
-	      THEN REWRITE_TAC[lemma_def_contour]
-	      THEN DISCH_THEN (MP_TAC o SPEC `(id:num) MOD (SUC (n:num))`)
-	      THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
-	   THEN  MP_TAC (CONJUNCT2(SPEC `id:num` (MATCH_MP DIVISION (SPEC `n:num` NON_ZERO))))
-           THEN POP_ASSUM (fun th-> (DISCH_THEN (fun th1 -> (MP_TAC(MATCH_MP (ARITH_RULE `~(a:num < b:num) /\ (a < SUC b) ==> a = b`) (CONJ th th1))))))
-           THEN DISCH_THEN (fun th-> (SUBST1_TAC th THEN REWRITE_TAC[MATCH_MP start_loop_index th]))
-           THEN USE_THEN "F5" (fun th -> REWRITE_TAC[th]); ALL_TAC]
-       THEN  REPEAT GEN_TAC
-       THEN DISCH_THEN (LABEL_TAC "G1" o SPEC `d:num` o  MATCH_MP shift_loop_diff_index)
-       THEN USE_THEN "F4" (MP_TAC o SPECL[`((i:num) + (d:num)) MOD (SUC (n:num))`; `((j:num) + (d:num)) MOD (SUC (n:num))`])
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-       THEN REWRITE_TAC[GSYM LT_SUC_LE]
-       THEN REWRITE_TAC[MATCH_MP DIVISION (SPEC `n:num` NON_ZERO)]
-       THEN REWRITE_TAC[shift_loop_evaluation]
-       THEN SIMP_TAC[]; ALL_TAC]
-   THEN REWRITE_TAC[shift_loop_evaluation]
-   THEN REWRITE_TAC[ADD]
-   THEN ASM_CASES_TAC `d:num MOD (SUC (n:num)) = 0`
-   THENL[MP_TAC (SPECL[`n:num`; `d:num`] (MATCH_MP MOD_ADD_MOD (SPEC `n:num` NON_ZERO)))
+   THEN MP_TAC(SPECL[`k:num`; `x:A`] (MATCH_MP iterate_orbit (CONJUNCT1(SPEC `L:(A)loop` lemma_permute_loop))))
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_power_back_in_loop = prove(`!L:(A)loop x:A k:num. x inside L ==> ((back L POWER k) x) inside L`,
+   REPEAT GEN_TAC
+   THEN REWRITE_TAC[inside]
+   THEN STRIP_TAC
+   THEN MP_TAC(SPECL[`k:num`; `x:A`] (MATCH_MP iterate_orbit (CONJUNCT2(SPEC `L:(A)loop` lemma_permute_loop))))
+   THEN ASM_REWRITE_TAC[]);;
+
+let support_loop_sub_dart = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). is_loop H L /\ x IN dart H /\ x inside L ==> dart_of L SUBSET dart H`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_transitive_permutation th])
+   THEN SUBGOAL_THEN `!j:num. ((next (L:(A)loop)) POWER j) (x:A) IN dart (H:(A)hypermap)` ASSUME_TAC
+   THENL[INDUCT_TAC THENL[ASM_REWRITE_TAC[POWER_0; I_THM] THEN REWRITE_TAC[COM_POWER; o_THM]; ALL_TAC]
+      THEN REWRITE_TAC[COM_POWER; o_THM]
+      THEN REMOVE_THEN "F3" (fun th -> ASSUME_TAC(SPEC `j:num` (MATCH_MP lemma_power_next_in_loop th)))
+      THEN ABBREV_TAC `y = (next (L:(A)loop) POWER (j:num)) (x:A)`
+      THEN REMOVE_THEN "F1" (MP_TAC o SPEC `y:A` o REWRITE_RULE[is_loop])
+      THEN ASM_REWRITE_TAC[]
+      THEN REWRITE_TAC[one_step_contour]
+      THEN STRIP_TAC
+      THENL[POP_ASSUM SUBST1_TAC
+	 THEN UNDISCH_THEN `y:A IN dart (H:(A)hypermap)` (fun th -> REWRITE_TAC[MATCH_MP lemma_dart_invariant th]); ALL_TAC]
       THEN POP_ASSUM SUBST1_TAC
-      THEN REWRITE_TAC[ADD_0]
-      THEN REWRITE_TAC[MATCH_MP MOD_LT (SPEC `n:num` LT_PLUS)]
-      THEN DISCH_THEN (SUBST1_TAC o SYM)
-      THEN USE_THEN "F5" (fun th -> REWRITE_TAC[th]); ALL_TAC]
-   THEN POP_ASSUM MP_TAC
-   THEN REWRITE_TAC[GSYM LT_NZ]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP decreasing_loop_index th] THEN REWRITE_TAC[MATCH_MP LT_PRE th] THEN ASSUME_TAC th)
-   THEN USE_THEN "F3" MP_TAC
-   THEN REWRITE_TAC[lemma_def_contour]
-   THEN DISCH_THEN (MP_TAC o SPEC `PRE (d:num MOD (SUC (n:num)))`)
-   THEN MP_TAC (CONJUNCT2(SPEC `d:num` (MATCH_MP DIVISION (SPEC `n:num` NON_ZERO))))
-   THEN POP_ASSUM (fun th -> GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [MATCH_MP LT_SUC_PRE th] THEN ASSUME_TAC th)
-   THEN REWRITE_TAC[LT_SUC]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[th])
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM(MATCH_MP LT_SUC_PRE th)]));;
+      THEN UNDISCH_THEN `y:A IN dart (H:(A)hypermap)` (fun th -> REWRITE_TAC[MATCH_MP lemma_dart_inveriant_under_inverse_maps th]); ALL_TAC]
+   THEN REWRITE_TAC[orbit_map; SUBSET; IN_ELIM_THM]
+   THEN GEN_TAC
+   THEN DISCH_THEN (X_CHOOSE_THEN `m:num` (SUBST1_TAC o CONJUNCT2))
+   THEN POP_ASSUM (fun th -> REWRITE_TAC[th]));;
+
+let let_order_for_loop = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). is_loop H L /\ x inside L 
+   ==> is_inj_contour H (contour_of L x) (top L) /\ one_step_contour H (contour_of L x (top L)) (contour_of L x 0)`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN STRIP_TAC
+   THENL[REWRITE_TAC[lemma_def_inj_contour]
+      THEN STRIP_TAC
+      THENL[REWRITE_TAC[lemma_def_contour]
+	 THEN REPEAT STRIP_TAC
+	 THEN REWRITE_TAC[contour_of]
+	 THEN REWRITE_TAC[COM_POWER; o_THM]
+	 THEN USE_THEN "F1"(MP_TAC o REWRITE_RULE[is_loop])
+	 THEN USE_THEN "F2" (MP_TAC o SPEC `i:num` o MATCH_MP lemma_power_next_in_loop)
+	 THEN MESON_TAC[]; ALL_TAC]
+      THEN REWRITE_TAC[contour_of]
+      THEN ONCE_REWRITE_TAC[MESON[] `~(A=B) <=> ~(B=A)`]
+      THEN REWRITE_TAC[GSYM lemma_def_inj_orbit]
+      THEN MP_TAC (SPEC `L:(A)loop` loop_lemma)
+      THEN REWRITE_TAC[CONJ_ASSOC]
+      THEN DISCH_THEN (MP_TAC o SPECL[`x:A`; `top (L:(A)loop)`] o MATCH_MP lemma_segment_orbit o CONJUNCT1)
+      THEN USE_THEN "F2"(fun th->REWRITE_TAC[SYM(MATCH_MP lemma_transitive_permutation th)])
+      THEN REWRITE_TAC[GSYM size; lemma_size; LT_PLUS]; ALL_TAC]
+   THEN REWRITE_TAC[contour_of; POWER_0; I_THM]
+   THEN USE_THEN "F1"(MP_TAC o SPEC `(next (L:(A)loop) POWER  top L) x` o  REWRITE_RULE[is_loop])
+   THEN REWRITE_TAC[iterate_map_valuation; GSYM lemma_size; lemma_order_next; I_THM]
+   THEN USE_THEN "F2" (MP_TAC o SPEC `top (L:(A)loop)` o MATCH_MP lemma_power_next_in_loop)
+   THEN MESON_TAC[]);;
+
+(*********************************************************************************************************************)
 
 let set_dart_of = new_definition `set_dart_of (p:num->A) (n:num) = {p (i:num) | i <= n}`;;
-
-let dart_of = new_definition `dart_of (L:(A)path) = {pointer L i |i:num| i <= top L}`;;
-
-let lemma_set_dart_eq = prove(`!L:(A)path. dart_of L = set_dart_of (pointer L) (top L)`, REWRITE_TAC[dart_of; set_dart_of]);;
-
-let length_of = new_definition `length_of (L:(A)path) = SUC (top L)`;;
 
 let lemma_number_darts_of_inj_contour = prove(`!(H:(A)hypermap) (p:num->A) (n:num). is_inj_contour H p n ==> CARD (set_dart_of p n) = SUC n`,
    REPEAT GEN_TAC
@@ -8155,7 +8150,7 @@ let lemma_inj_contour_inside_darts = prove(`!(H:(A)hypermap) (p:num->A) (n:num).
      THEN REWRITE_TAC[IMP_IMP; CONJ_SYM]
      THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP lemma_darts_in_contour th; set_dart_of]));;
 
-let lemma_loop_finite = prove(`!(p:num->A) (n:num). FINITE (set_dart_of p n)`,
+let lemma_path_finite = prove(`!(p:num->A) (n:num). FINITE (set_dart_of p n)`,
    REWRITE_TAC[set_dart_of; GSYM LT_SUC_LE; FINITE_SERIES]);;
 
 let in_path = new_definition `in_path (p:num->A) (n:num) (x:A) <=>  x IN set_dart_of p n`;;
@@ -8168,71 +8163,25 @@ let lemma_in_path2 = prove(`!p:num->A n:num x:A j:num. j <= n /\ x = p j ==> in_
 let lemma_not_in_path = prove(`!p:num->A n:num x:A. ~(in_path p n x) <=> !j:num. j <= n ==> ~(x = p j)`,
    REPEAT GEN_TAC THEN REWRITE_TAC[lemma_in_path] THEN MESON_TAC[]);;
 
-let lemma_dart_in_shift_loop = prove(`!d:num (p:num->A) n:num x:A. (in_path p n x) <=> (in_path (shift_loop p n d) n x)`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_in_path]
-   THEN EQ_TAC
-   THENL[STRIP_TAC
-       THEN REWRITE_TAC[shift_loop_evaluation]
-       THEN FIRST_ASSUM (MP_TAC o SPEC `d:num` o MATCH_MP lemma_shift_loop_epi_index)
-       THEN DISCH_THEN (X_CHOOSE_THEN `t:num` (CONJUNCTS_THEN2 ASSUME_TAC ASSUME_TAC))
-       THEN EXISTS_TAC `t:num`
-       THEN POP_ASSUM SUBST_ALL_TAC
-       THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN REWRITE_TAC[shift_loop]
-   THEN STRIP_TAC   
-   THEN EXISTS_TAC `((j:num) + (d:num)) MOD (SUC (n:num))`
-   THEN ASM_REWRITE_TAC[LE_MOD_SUC]);;
+let lemma_dart_loop_via_path = prove(`!L:(A)loop x:A. x inside L ==> dart_of L = set_dart_of (contour_of L x) (top L)`,
+ REPEAT STRIP_TAC
+   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_transitive_permutation th])
+   THEN MP_TAC (AP_THM (SPEC `L:(A)loop` lemma_order_next) `x:A`)
+   THEN REWRITE_TAC[I_THM]
+   THEN MP_TAC(CONJUNCT1(CONJUNCT2(SPEC `L:(A)loop` lemma_size)))
+   THEN REWRITE_TAC[LT_NZ; IMP_IMP; set_dart_of; contour_of]
+   THEN DISCH_THEN (MP_TAC o MATCH_MP orbit_cyclic)
+   THEN REWRITE_TAC[lemma_size; GSYM LT_SUC_LE]);;
 
-let lemma_invariant_loop_darts = prove(`!p:num->A n:num d:num. set_dart_of p n = set_dart_of (shift_loop p n d) n`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[EXTENSION; GSYM in_path]
-   THEN MESON_TAC[lemma_dart_in_shift_loop]);;
+let lemma_inside = prove(`!L:(A)loop x:A. x inside L ==> (!y:A. y inside L <=> in_path (contour_of L x) (top L) y)`,
+   REPEAT STRIP_TAC
+   THEN REWRITE_TAC[inside]
+   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_dart_loop_via_path th])
+   THEN REWRITE_TAC[in_path]);;
 
-let lemma_dart_not_in_shift_loop = prove(`!d:num (p:num->A) n:num x:A. ~(in_path p n x) <=> ~(in_path (shift_loop p n d) n x)`,
-   MESON_TAC[lemma_dart_in_shift_loop]);;
-
-let dart_in_shift_loop = prove(`!(p:num->A) n:num x:A d:num. (in_path p n x) ==> (in_path (shift_loop p n d) n x)`,
-   MESON_TAC[lemma_dart_in_shift_loop]);;
-
-let dart_not_in_shift_loop = prove(`!(p:num->A) n:num x:A. ~(in_path p n x) ==> ~(in_path (shift_loop p n d) n x)`,
-  MESON_TAC[lemma_dart_in_shift_loop]);;
-
-
-(************* The definition of a dart which is lying in a path, mainly for loops ***************)
-
-let inside = new_definition `!(L:(A)path) x:A. x inside L <=> x IN (dart_of L)`;;
-
-let lemma_inside = prove(`!L:(A)path x:A. x inside L <=> in_path (pointer L) (top L) x`, 
-    REWRITE_TAC[inside; dart_of; lemma_set_dart_eq; GSYM in_path]);;
-
-let lemma_dart_loop_finite = prove(`!(L:(A)path). FINITE (dart_of L)`,
-   REWRITE_TAC[dart_of; GSYM LT_SUC_LE; FINITE_SERIES]);;
-
-let in_path = new_definition `in_path (p:num->A) (n:num) (x:A) <=>  x IN set_dart_of p n`;;
-
-let lemma_inside_loop = prove(`!(L:(A)path) x:A. x inside L <=> ?j:num. j <= top L /\ x = pointer L j`,
-    REWRITE_TAC[inside; dart_of;  GSYM in_path; lemma_in_path; IN_ELIM_THM]);;
-
-let lemma_inside_loop2 = prove(`!L:(A)path x:A j:num. j <= top L /\ x = pointer L j ==> x inside L`, MESON_TAC[lemma_inside_loop]);;
-
-let lemma_not_inside_loop = prove(`!(L:(A)path) x:A. ~(x inside L) <=> !j:num. j <= top L ==> ~(x = pointer L j)`,
-   REPEAT GEN_TAC THEN REWRITE_TAC[lemma_inside_loop] THEN MESON_TAC[]);;
-
-let lemma_card_of_loop = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L ==> CARD(dart_of L) = SUC (top L)`,
-   REPEAT GEN_TAC
-   THEN ONCE_REWRITE_TAC[lemma_set_dart_eq]
-   THEN DISCH_THEN (MP_TAC o CONJUNCT1 o REWRITE_RULE[is_loop])
-   THEN MESON_TAC[lemma_number_darts_of_inj_contour]);;
-
-(*******************************************************************************)
-
-let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_loop H L) /\ (is_inj_contour H p k) /\ (2 <= k) /\ ((p 0) inside L) /\ (p k) inside L /\ (!i:num. 0 < i /\ i < k ==> ~((p i) inside L)) /\ (!q:num->A m:num. ~(is_Moebius_contour H q m))) ==>
+let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)loop) (p:num->A) (k:num).((is_loop H L) /\ (is_inj_contour H p k) /\ (2 <= k) /\ ((p 0) inside L) /\ (p k) inside L /\ (!i:num. 0 < i /\ i < k ==> ~((p i) inside L)) /\ (!q:num->A m:num. ~(is_Moebius_contour H q m))) ==>
 (p 1 = inverse (node_map H) (p 0) ==> ~(p k = face_map H (p (PRE k)))) /\ (p 1 = face_map H (p 0) ==>  ~(p k = inverse (node_map H) (p (PRE k))))`,
    REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_inside; lemma_is_loop]
-   THEN ABBREV_TAC `pLoop = pointer (L:(A)path)`
-   THEN ABBREV_TAC `n = top (L:(A)path)`
    THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7")))))))
    THEN USE_THEN "F2" MP_TAC
    THEN REWRITE_TAC[lemma_def_inj_contour]
@@ -8240,19 +8189,15 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
    THEN USE_THEN "F8" (MP_TAC o SPECL[`k:num`; `0`])
    THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP (ARITH_RULE `2 <= k:num ==> 0 < k`) th; LE_REFL])
    THEN DISCH_THEN (LABEL_TAC "F9")
-   THEN SUBGOAL_THEN `1 <= n:num` (LABEL_TAC "F10")
-   THENL[ONCE_REWRITE_TAC[GSYM LE_SUC]
+   THEN SUBGOAL_THEN `1 <= top (L:(A)loop)` (LABEL_TAC "F10")
+   THENL[ ONCE_REWRITE_TAC[GSYM LE_SUC]
       THEN REWRITE_TAC[GSYM TWO]
-      THEN USE_THEN "F1" MP_TAC
-      THEN REWRITE_TAC[is_contour_loop]
-      THEN DISCH_THEN (fun th-> (MP_TAC (MATCH_MP lemma_number_darts_of_inj_contour (CONJUNCT1 th))))
-      THEN DISCH_THEN (SUBST1_TAC o SYM)
+      THEN REWRITE_TAC[GSYM lemma_size; size]
       THEN MATCH_MP_TAC CARD_ATLEAST_2
       THEN EXISTS_TAC `(p:num->A) 0`
       THEN EXISTS_TAC `(p:num->A) (k:num)`
-      THEN REWRITE_TAC[lemma_loop_finite]
-      THEN REWRITE_TAC[GSYM in_path]
-      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN REWRITE_TAC[GSYM inside]
+      THEN ASM_REWRITE_TAC[loop_lemma]; ALL_TAC]
    THEN USE_THEN "F3" (MP_TAC o MATCH_MP (ARITH_RULE `2 <= k:num ==> 0 < PRE k /\ 0 < k /\ PRE k < k`))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "K1") (CONJUNCTS_THEN2 (LABEL_TAC "K2") (LABEL_TAC "K3")))
    THEN STRIP_TAC
@@ -8261,25 +8206,18 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
        THEN DISCH_THEN (LABEL_TAC "G12")
        THEN REMOVE_THEN "F7" MP_TAC
        THEN REWRITE_TAC[NOT_FORALL_THM]
-       THEN REMOVE_THEN "F5" MP_TAC
-       THEN REWRITE_TAC[lemma_in_path]
-       THEN DISCH_THEN (X_CHOOSE_THEN `d:num` (CONJUNCTS_THEN2 (LABEL_TAC "F14") (LABEL_TAC "F15")))
-       THEN REMOVE_THEN "F1" (LABEL_TAC "F1" o SPEC `d:num` o MATCH_MP lemma_contour_loop)
-       THEN MP_TAC (SPECL[`pLoop:num->A`; `n:num`; `d:num`; `0`] shift_loop_evaluation)
-       THEN REWRITE_TAC[ADD]
-       THEN REMOVE_THEN "F14" (fun th -> (MP_TAC(MATCH_MP LET_TRANS (CONJ th (SPEC `n:num` LT_PLUS)))))
-       THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP MOD_LT th])
-       THEN REMOVE_THEN "F15" (SUBST1_TAC o SYM)
-       THEN DISCH_THEN (LABEL_TAC "G15")
        THEN REMOVE_THEN "F4" MP_TAC
-       THEN ONCE_REWRITE_TAC[SPEC `d:num` lemma_dart_in_shift_loop]
+       THEN USE_THEN "F5" (fun th-> REWRITE_TAC[MATCH_MP lemma_inside th])
        THEN DISCH_THEN (LABEL_TAC "G4")
        THEN REMOVE_THEN "F6" MP_TAC
-       THEN ONCE_REWRITE_TAC[SPEC `d:num` lemma_dart_not_in_shift_loop]
+       THEN USE_THEN "F5" (fun th-> REWRITE_TAC[MATCH_MP lemma_inside th])
        THEN DISCH_THEN (LABEL_TAC "G6")
-       THEN ABBREV_TAC `loop = shift_loop (pLoop:num->A) (n:num) (d:num)`
-       THEN USE_THEN "F1" MP_TAC
-       THEN REWRITE_TAC[is_contour_loop]
+       THEN MP_TAC (SPECL[`L:(A)loop`; `(p:num->A) (k:num)`; `0`] contour_of)
+       THEN REWRITE_TAC[POWER_0; I_THM]
+       THEN DISCH_THEN (LABEL_TAC "G15")
+       THEN USE_THEN "F1" (fun th-> (REMOVE_THEN "F5" (fun th1-> (MP_TAC (MATCH_MP let_order_for_loop (CONJ th th1))))))
+       THEN ABBREV_TAC `ploop = contour_of (L:(A)loop) ((p:num->A) (k:num))`
+       THEN ABBREV_TAC `n = top (L:(A)loop)`
        THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G16") (MP_TAC))
        THEN REWRITE_TAC[one_step_contour]
        THEN USE_THEN "G15" SUBST1_TAC
@@ -8307,7 +8245,7 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
       THEN DISCH_THEN (fun th -> LABEL_TAC "G19" th THEN MP_TAC th)
       THEN USE_THEN "G15" (SUBST1_TAC o SYM)
       THEN DISCH_THEN (LABEL_TAC "G20")
-      THEN SUBGOAL_THEN `!j:num. 0 < j /\ j <= n:num ==> (!i:num. i <= PRE k ==> ~((loop:num->A) j = shift_path (p:num->A) 1 i))` ASSUME_TAC
+      THEN SUBGOAL_THEN `!j:num. 0 < j /\ j <= n:num ==> (!i:num. i <= PRE k ==> ~((ploop:num->A) j = shift_path (p:num->A) 1 i))` ASSUME_TAC
       THENL[REWRITE_TAC[shift_path]
 	  THEN ONCE_REWRITE_TAC[ADD_SYM]
 	  THEN GEN_TAC
@@ -8330,7 +8268,7 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
 	  THEN USE_THEN "K2" (fun th -> REWRITE_TAC[SYM(MATCH_MP LT_SUC_PRE th)])
 	  THEN DISCH_TAC
 	  THEN DISCH_THEN (ASSUME_TAC o SYM)
-	  THEN MP_TAC (SPECL[`loop:num->A`; `n:num`; `(p:num->A) (SUC i)`; `j:num`] lemma_in_path2)
+	  THEN MP_TAC (SPECL[`ploop:num->A`; `n:num`; `(p:num->A) (SUC i)`; `j:num`] lemma_in_path2)
 	  THEN POP_ASSUM (fun th -> GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o DEPTH_CONV) [th])
 	  THEN USE_THEN "G6" (MP_TAC o SPEC `SUC i`)
 	  THEN REPLICATE_TAC 2 (POP_ASSUM (fun th -> REWRITE_TAC[th]))
@@ -8382,51 +8320,25 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
       THEN USE_THEN "G26" SUBST1_TAC
       THEN USE_THEN "G22" SUBST1_TAC
       THEN USE_THEN "G17" (fun th -> REWRITE_TAC[th]); ALL_TAC]
-   THEN REMOVE_THEN "F4" MP_TAC
-   THEN REWRITE_TAC[lemma_in_path]
-   THEN DISCH_THEN (X_CHOOSE_THEN `d:num` (CONJUNCTS_THEN2 (LABEL_TAC "F11") (LABEL_TAC "F12")))
-   THEN ABBREV_TAC `pos = if d = n then 0 else SUC d`
-   THEN SUBGOAL_THEN `pos:num <= n:num` ASSUME_TAC
-   THENL[ASM_CASES_TAC `d:num = n:num`
-      THENL[EXPAND_TAC "pos"
-	 THEN POP_ASSUM (fun th -> REWRITE_TAC[th; COND_ELIM_THM; LE_0]); ALL_TAC]
-      THEN EXPAND_TAC "pos"
-      THEN POP_ASSUM (fun th -> REWRITE_TAC[th; COND_ELIM_THM] THEN ASSUME_TAC th)
-      THEN REWRITE_TAC[LE_SUC_LT; LT_LE]
-      THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN REMOVE_THEN "F1" (LABEL_TAC "F1" o SPEC `pos:num` o MATCH_MP lemma_contour_loop)
-   THEN SUBGOAL_THEN `(pLoop:num->A) (d:num) = (shift_loop (pLoop:num->A) (n:num) (pos:num)) n` MP_TAC
-   THENL[EXPAND_TAC "pos"
-       THEN ASM_CASES_TAC `d:num = n:num`
-       THENL[POP_ASSUM (fun th -> REWRITE_TAC[COND_ELIM_THM; th; shift_loop; ADD_0])
-	   THEN REWRITE_TAC[MATCH_MP MOD_LT (SPEC `n:num` LT_PLUS)]; ALL_TAC]
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[COND_ELIM_THM; th; shift_loop; ADD_0] THEN ASSUME_TAC th)
-       THEN REMOVE_THEN "F11" (fun th -> (POP_ASSUM (fun th2 -> (MP_TAC (CONJ th th2)))))
-       THEN REWRITE_TAC[GSYM LT_LE]
-       THEN ONCE_REWRITE_TAC[GSYM LT_SUC]
-       THEN DISCH_THEN (MP_TAC o MATCH_MP MOD_LT)
-       THEN DISCH_TAC
-       THEN MP_TAC (SPEC `d:num` LT_0)
-       THEN POP_ASSUM (fun th -> (SUBST1_TAC (SYM th) THEN ASSUME_TAC th))
-       THEN DISCH_THEN (MP_TAC o MATCH_MP decreasing_loop_index)
-       THEN POP_ASSUM SUBST1_TAC
-       THEN DISCH_THEN SUBST1_TAC
-       THEN REWRITE_TAC[PRE]; ALL_TAC]
-    THEN REMOVE_THEN "F12" (SUBST1_TAC o SYM)
-    THEN DISCH_THEN (LABEL_TAC "F4")
-    THEN USE_THEN "F2" (fun th -> (REMOVE_THEN "F5" (LABEL_TAC "F5" o SPEC `pos:num` o MATCH_MP dart_in_shift_loop)))
-    THEN REMOVE_THEN "F6" MP_TAC
-    THEN ONCE_REWRITE_TAC[SPEC `pos:num` lemma_dart_not_in_shift_loop]
-    THEN DISCH_THEN (LABEL_TAC "F6")
-    THEN ABBREV_TAC `loop = shift_loop (pLoop:num->A) (n:num) (pos:num)`
+   THEN REMOVE_THEN "F4" (LABEL_TAC "TP" o REWRITE_RULE[POWER_1] o SPEC `1` o  MATCH_MP lemma_power_next_in_loop)
+   THEN REMOVE_THEN "F1" (fun th->(USE_THEN "TP"(fun th1-> (LABEL_TAC "F1" (MATCH_MP let_order_for_loop (CONJ th th1))))))
+   THEN MP_TAC (SPECL[`L:(A)loop`; `next (L:(A)loop) ((p:num->A) 0)`; `top (L:(A)loop)`] contour_of)
+   THEN REWRITE_TAC[iterate_map_valuation2; GSYM lemma_size; lemma_order_next; I_THM]
+   THEN DISCH_THEN (LABEL_TAC "F4" o SYM)
+   THEN REMOVE_THEN "F5" MP_TAC
+   THEN USE_THEN "TP" (fun th -> REWRITE_TAC[MATCH_MP lemma_inside th])
+   THEN DISCH_THEN (LABEL_TAC "F5")
+   THEN REMOVE_THEN "F6" MP_TAC
+   THEN REMOVE_THEN "TP" (fun th -> REWRITE_TAC[MATCH_MP lemma_inside th])
+   THEN DISCH_THEN (LABEL_TAC "F6")
+   THEN ABBREV_TAC `ploop = contour_of (L:(A)loop) (next L ((p:num->A) 0))`
+   THEN ABBREV_TAC `n = top (L:(A)loop)`
    THEN REWRITE_TAC[GSYM node_map_inverse_representation]
    THEN DISCH_THEN (LABEL_TAC "G10")
    THEN DISCH_THEN (LABEL_TAC "G12")
    THEN REMOVE_THEN "F7" MP_TAC
    THEN REWRITE_TAC[NOT_FORALL_THM]
-   THEN USE_THEN "F1" MP_TAC
-   THEN REWRITE_TAC[is_contour_loop]
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G16") (MP_TAC))
+   THEN USE_THEN "F1" (CONJUNCTS_THEN2 (LABEL_TAC "G16") (MP_TAC))
    THEN REWRITE_TAC[one_step_contour]
    THEN USE_THEN "F4" (SUBST1_TAC o SYM)
    THEN STRIP_TAC
@@ -8443,9 +8355,9 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
    THEN REMOVE_THEN "F2" (MP_TAC o SPEC `PRE k` o  MATCH_MP lemma_sub_inj_contour)
    THEN USE_THEN "K3" (fun th -> REWRITE_TAC[MATCH_MP LT_IMP_LE th])
    THEN DISCH_THEN (LABEL_TAC "G18")
-   THEN SUBGOAL_THEN `!j:num. 0 < j /\ j <= PRE k ==> (!i:num. i <= (n:num) ==> ~((p:num->A) j = (loop:num->A) i))` ASSUME_TAC
+   THEN SUBGOAL_THEN `!j:num. 0 < j /\ j <= PRE k ==> (!i:num. i <= (n:num) ==> ~((p:num->A) j = (ploop:num->A) i))` ASSUME_TAC
    THENL[REPEAT STRIP_TAC
-       THEN MP_TAC (SPECL[`loop:num->A`; `n:num`; `(p:num->A) (j:num)`; `i:num`] lemma_in_path2)
+       THEN MP_TAC (SPECL[`ploop:num->A`; `n:num`; `(p:num->A) (j:num)`; `i:num`] lemma_in_path2)
        THEN REPLICATE_TAC 2 (POP_ASSUM (fun th -> GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o DEPTH_CONV) [th]))
        THEN REWRITE_TAC[]
        THEN USE_THEN "F6" (MP_TAC o SPEC `j:num`)
@@ -8493,8 +8405,7 @@ let lemmaILTXRQD =prove(`!(H:(A)hypermap) (L:(A)path) (p:num->A) (k:num).((is_lo
    THEN USE_THEN "G28" (SUBST1_TAC o SYM)
    THEN USE_THEN "F4" (SUBST1_TAC o SYM)
    THEN USE_THEN "G12" (fun th -> REWRITE_TAC[th])
-   THEN USE_THEN "G17" (fun th -> REWRITE_TAC[th])
-  );;
+   THEN USE_THEN "G17" (fun th -> REWRITE_TAC[th]));;
 
 
 (* Some facts about face_loop, node_loop and their injective contours *)
@@ -8515,20 +8426,6 @@ let lemma_inj_face_contour = prove(`!(H:(A)hypermap) x:A k:num. k < CARD(face H 
 let lemma_face_cycle = prove(`!(H:(A)hypermap) (x:A). ((face_map H) POWER (CARD (face H x))) x = x`, 
    REWRITE_TAC[face] THEN MESON_TAC[face_map_and_darts; lemma_cycle_orbit]);;
 
-let lemma_face_loop = prove(`!(H:(A)hypermap) (x:A). is_contour_loop H (face_contour H x) (PRE (CARD(face H x)))`,
-   REPEAT GEN_TAC
-   THEN LABEL_TAC "F1" (SPECL[`H:(A)hypermap`; `x:A`] FACE_NOT_EMPTY)
-   THEN USE_THEN "F1" (ASSUME_TAC o MATCH_MP (ARITH_RULE `1 <= k:num ==> PRE k < k`))
-   THEN REWRITE_TAC[is_contour_loop]
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_inj_face_contour th])
-   THEN REWRITE_TAC[one_step_contour]
-   THEN DISJ1_TAC
-   THEN REWRITE_TAC[face_contour; POWER_0; I_THM]
-   THEN GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV)[GSYM o_THM]
-   THEN REWRITE_TAC[GSYM COM_POWER]
-   THEN POP_ASSUM (fun th -> (MP_TAC(MATCH_MP (ARITH_RULE `1 <= m:num ==> 0 < m`) th)))
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM(MATCH_MP LT_SUC_PRE th)])
-   THEN MESON_TAC[lemma_face_cycle]);;
 
 let lemma_card_inverse_map_eq = prove(`!s:A->bool p:A->A x:A. FINITE s /\ p permutes s ==> orbit_map (inverse p) x = orbit_map p x`,
  REPEAT GEN_TAC
@@ -8579,21 +8476,6 @@ let lemma_node_inverse_cycle = prove(`!(H:(A)hypermap) (x:A). ((inverse (node_ma
    THEN CONV_TAC SYM_CONV
    THEN REWRITE_TAC[lemma_node_cycle]);;
  
-let lemma_node_loop = prove(`!(H:(A)hypermap) (x:A). is_contour_loop H (node_contour H x) (PRE (CARD(node H x)))`,
-   REPEAT GEN_TAC
-   THEN LABEL_TAC "F1" (SPECL[`H:(A)hypermap`; `x:A`] NODE_NOT_EMPTY)
-   THEN USE_THEN "F1" (ASSUME_TAC o MATCH_MP (ARITH_RULE `1 <= k:num ==> PRE k < k`))
-   THEN REWRITE_TAC[is_contour_loop]
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_inj_node_contour th])
-   THEN REWRITE_TAC[one_step_contour]
-   THEN DISJ2_TAC
-   THEN REWRITE_TAC[node_contour; POWER_0; I_THM]
-   THEN GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV)[GSYM o_THM]
-   THEN REWRITE_TAC[GSYM COM_POWER]
-   THEN POP_ASSUM (fun th -> (MP_TAC(MATCH_MP (ARITH_RULE `1 <= m:num ==> 0 < m`) th)))
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM(MATCH_MP LT_SUC_PRE th)])
-   THEN MESON_TAC[lemma_node_inverse_cycle]);;
-
 (* Two darts lie in the same node can connect by an injective contour node - a trivial fact - a technical lemma *)
 
 let lemma_node_contour_connection = prove(`!(H:(A)hypermap) (x:A) (y:A). y IN node H x 
@@ -8619,14 +8501,9 @@ let lemma_node_contour_connection = prove(`!(H:(A)hypermap) (x:A) (y:A). y IN no
    THEN FIRST_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_inj_node_contour th])
    THEN REWRITE_TAC[node_contour; POWER_0; I_THM]);;
 
-
-
-let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A m:num. ~(is_Moebius_contour H g m)) 
+let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)loop. is_loop H L /\ (!g:num->A m:num. ~(is_Moebius_contour H g m)) 
 ==> ~(?p:num->A k:num. 1 <= k /\ is_contour H p k /\ (p 0) inside L /\ (!i:num. 0 < i /\ i <= k ==> ~((p i) inside L)) /\ p 1 = face_map H (p 0) /\ ~(node H (p 0) = node H (p k)) /\ (?y:A. y IN node H (p k) /\ y inside L))`,
-  REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_is_loop; lemma_inside]
-   THEN ABBREV_TAC `pLoop = pointer (L:(A)path)`
-   THEN ABBREV_TAC `n = top (L:(A)path)`
+  REPEAT GEN_TAC   
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") MP_TAC)
    THEN ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM]
    THEN REWRITE_TAC[NOT_FORALL_THM]
@@ -8645,8 +8522,8 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
        THENL[USE_THEN "F12" MP_TAC
 	   THEN POP_ASSUM SUBST1_TAC
 	   THEN MESON_TAC[]; ALL_TAC]
-   THEN REWRITE_TAC[LT_NZ]
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
+       THEN REWRITE_TAC[LT_NZ]
+       THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN REMOVE_THEN "F3" (MP_TAC o SPEC `s:num` o MATCH_MP lemma_subcontour)
    THEN USE_THEN "F9" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN (LABEL_TAC "F16")
@@ -8654,7 +8531,7 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
    THEN USE_THEN "F14" (fun th -> REWRITE_TAC[th])
    THEN USE_THEN "F9" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN (LABEL_TAC "F17")
-   THEN SUBGOAL_THEN `?u:num. u < CARD(node (H:(A)hypermap) ((p:num->A) (s:num))) /\ in_path (pLoop:num->A) (n:num)  (node_contour H (p s) u)` MP_TAC
+   THEN SUBGOAL_THEN `?u:num. u < CARD(node (H:(A)hypermap) ((p:num->A) (s:num))) /\ (node_contour H (p s) u) inside (L:(A)loop)` MP_TAC
    THENL[USE_THEN "F8" (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (MP_TAC o MATCH_MP lemma_node_contour_connection) ASSUME_TAC))
        THEN DISCH_THEN (X_CHOOSE_THEN `u:num` (CONJUNCTS_THEN2 (ASSUME_TAC) (ASSUME_TAC o CONJUNCT1 o CONJUNCT2)))
        THEN EXISTS_TAC `u:num`
@@ -8682,7 +8559,7 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
        THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN REMOVE_THEN "F22" (SUBST_ALL_TAC o SYM)
    THEN REMOVE_THEN "F23" (SUBST_ALL_TAC o SYM)
-   THEN SUBGOAL_THEN `!i:num. 0 < i /\ i <= d:num ==> ~(in_path (pLoop:num->A) (n:num) ((w:num->A) i))` (LABEL_TAC "F27")
+   THEN SUBGOAL_THEN `!i:num. 0 < i /\ i <= d:num ==> ~(((w:num->A) i) inside (L:(A)loop) )` (LABEL_TAC "F27")
    THENL[REPEAT GEN_TAC
        THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G4") MP_TAC)
        THEN REWRITE_TAC[LE_LT]
@@ -8699,79 +8576,29 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
        THEN POP_ASSUM SUBST1_TAC
        THEN USE_THEN "F17" (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN SUBGOAL_THEN `(w:num->A) 1 = face_map (H:(A)hypermap) (w 0)` (LABEL_TAC "F28")
-   THENL[USE_THEN "F4" MP_TAC
-      THEN REWRITE_TAC[lemma_in_path]
-      THEN DISCH_THEN (X_CHOOSE_THEN `j:num` (CONJUNCTS_THEN2 (LABEL_TAC "G7") (LABEL_TAC "G8")))
-      THEN USE_THEN "F1" MP_TAC
-      THEN REWRITE_TAC[is_contour_loop; lemma_def_inj_contour]
-      THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G9" o CONJUNCT1) (LABEL_TAC "G10"))
-      THEN ASM_CASES_TAC `j:num < n:num`
-      THENL[REMOVE_THEN "G9" MP_TAC
-         THEN REWRITE_TAC[lemma_def_contour]
-	 THEN DISCH_THEN (MP_TAC o SPEC `j:num`)
-	 THEN POP_ASSUM (fun th -> REWRITE_TAC[th] THEN (LABEL_TAC "G11" th))
-	 THEN REWRITE_TAC[one_step_contour]
-	 THEN STRIP_TAC
-	 THENL[POP_ASSUM MP_TAC
-            THEN USE_THEN "G8" (SUBST1_TAC o SYM)
-	    THEN USE_THEN "F6" (SUBST1_TAC o SYM)
-	    THEN DISCH_THEN (MP_TAC o SYM)
-	    THEN REWRITE_TAC[GSYM LE_SUC_LT]
-	    THEN USE_THEN "G11" (MP_TAC o REWRITE_RULE[GSYM LE_SUC_LT])
-	    THEN REWRITE_TAC[IMP_IMP]
-	    THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_path2)
-	    THEN USE_THEN "F5" (MP_TAC o SPEC `1`)
-	    THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th; ZR_LT_1])
-	    THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
-	 THEN USE_THEN "F24" MP_TAC
-	 THEN REWRITE_TAC[lemma_def_inj_contour; lemma_def_contour]
-	 THEN DISCH_THEN (MP_TAC o SPEC `0` o CONJUNCT1)
-	 THEN USE_THEN "F26" (fun th -> REWRITE_TAC[th; GSYM ONE; one_step_contour])
-	 THEN STRIP_TAC
-	 THEN POP_ASSUM MP_TAC
-	 THEN POP_ASSUM MP_TAC
-	 THEN USE_THEN "G8" (SUBST1_TAC o SYM)
-	 THEN DISCH_THEN (SUBST1_TAC o SYM)
-	 THEN USE_THEN "G11" (MP_TAC o REWRITE_RULE[GSYM LE_SUC_LT])
-	 THEN REWRITE_TAC[IMP_IMP]
-	 THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_path2)
-	 THEN USE_THEN "F27" (MP_TAC o SPEC `1`)
-	 THEN USE_THEN "F26" (fun th -> REWRITE_TAC[LT1_NZ; th; ZR_LT_1])
-	 THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
-      THEN POP_ASSUM (MP_TAC o REWRITE_RULE[NOT_LT])
-      THEN USE_THEN "G7" MP_TAC
-      THEN REWRITE_TAC[IMP_IMP; LE_ANTISYM]
-      THEN DISCH_THEN (LABEL_TAC "G14")
-      THEN USE_THEN "G10" (MP_TAC o REWRITE_RULE[one_step_contour])
-      THEN STRIP_TAC
-      THENL[POP_ASSUM MP_TAC
-	 THEN REMOVE_THEN "G8" MP_TAC
-	 THEN POP_ASSUM SUBST1_TAC
-	 THEN DISCH_THEN (fun th -> (SUBST1_TAC (SYM th) THEN LABEL_TAC "G15" th))
-	 THEN USE_THEN "F6" (SUBST1_TAC o SYM)
-	 THEN DISCH_THEN (MP_TAC o SYM)
-	 THEN MP_TAC (SPEC `n:num` LE_0)
-	 THEN REWRITE_TAC[IMP_IMP]
-	 THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_path2)
-	 THEN USE_THEN "F5" (MP_TAC o SPEC `1`)
-	 THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th; ZR_LT_1])
-	 THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
-      THEN USE_THEN "F24" MP_TAC
-      THEN REWRITE_TAC[lemma_def_inj_contour; lemma_def_contour]
-      THEN DISCH_THEN (MP_TAC o SPEC `0` o CONJUNCT1)
-      THEN USE_THEN "F26" (fun th -> REWRITE_TAC[th; GSYM ONE; one_step_contour])
-      THEN STRIP_TAC
-      THEN POP_ASSUM MP_TAC
-      THEN USE_THEN "G8" (MP_TAC o SYM)
-      THEN USE_THEN "G14" (fun th -> REWRITE_TAC[th])
-      THEN DISCH_THEN (SUBST1_TAC o SYM)
-      THEN POP_ASSUM (SUBST1_TAC o SYM)
-      THEN MP_TAC (SPEC `n:num` LE_0)
-      THEN REWRITE_TAC[IMP_IMP]
-      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_path2)
-      THEN USE_THEN "F27" (MP_TAC o SPEC `1`)
-      THEN USE_THEN "F26" (fun th -> REWRITE_TAC[LT1_NZ; th; ZR_LT_1])
-      THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
+   THENL[USE_THEN "F4" (LABEL_TAC "G7" o REWRITE_RULE[POWER_1] o SPEC `1` o  MATCH_MP lemma_power_next_in_loop)
+       THEN USE_THEN "F1"(MP_TAC o SPEC `(w:num->A) 0` o REWRITE_RULE[is_loop])
+       THEN USE_THEN "F4" (fun th-> REWRITE_TAC[th])
+       THEN REWRITE_TAC[one_step_contour]
+       THEN STRIP_TAC
+       THENL[REMOVE_THEN "G7" MP_TAC
+	   THEN POP_ASSUM SUBST1_TAC
+	   THEN USE_THEN "F6" (fun th -> GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [GSYM th])
+	   THEN USE_THEN "F5" (MP_TAC o SPEC `1`)
+	   THEN USE_THEN "F2" (fun th-> REWRITE_TAC[th; ARITH_RULE `0 < 1`])
+	   THEN MESON_TAC[]; ALL_TAC]
+       THEN USE_THEN "F24" (MP_TAC o SPEC `0` o  REWRITE_RULE[lemma_def_contour] o CONJUNCT1 o REWRITE_RULE[lemma_def_inj_contour])
+       THEN USE_THEN "F26" (fun th-> REWRITE_TAC[th; one_step_contour; GSYM ONE])
+       THEN STRIP_TAC
+       THEN POP_ASSUM MP_TAC
+       THEN POP_ASSUM (SUBST1_TAC o SYM)
+       THEN DISCH_TAC
+       THEN REMOVE_THEN "G7" MP_TAC
+       THEN POP_ASSUM (SUBST1_TAC o SYM)
+       THEN POP_ASSUM (MP_TAC o SPEC `1`)
+       THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM LT1_NZ])
+       THEN POP_ASSUM (fun th-> REWRITE_TAC[ th; ARITH_RULE `0 < 1`])
+       THEN MESON_TAC[]; ALL_TAC]
    THEN USE_THEN "F18" (LABEL_TAC "F29" o MATCH_MP lemma_inj_node_contour)
    THEN MP_TAC(SPECL[`H:(A)hypermap`; `(w:num->A) (d:num)`; `0`] node_contour)
    THEN REWRITE_TAC[POWER_0; I_THM]
@@ -8809,7 +8636,7 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
       THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN USE_THEN "F24" (fun th1 -> (USE_THEN "F29" (fun th2 -> (USE_THEN "F30" (fun th3 -> (POP_ASSUM (fun th4 ->MP_TAC (MATCH_MP concatenate_two_contours (CONJ th1 (CONJ th2 (CONJ (SYM th3) th4)))))))))))
    THEN DISCH_THEN (X_CHOOSE_THEN `g:num->A` (CONJUNCTS_THEN2 (LABEL_TAC "M1") (CONJUNCTS_THEN2 (LABEL_TAC "M2") (CONJUNCTS_THEN2 (LABEL_TAC "M3") (CONJUNCTS_THEN2 (LABEL_TAC "M4") (LABEL_TAC "M5"))))))
-   THEN SUBGOAL_THEN `!i:num. 0 < i /\ i < (d:num) + (t:num) ==> ~(in_path (pLoop:num->A) (n:num) ((g:num->A) i))` (LABEL_TAC "M6")
+   THEN SUBGOAL_THEN `!i:num. 0 < i /\ i < (d:num) + (t:num) ==> ~((g:num->A) i inside (L:(A)loop))` (LABEL_TAC "M6")
    THENL[GEN_TAC
        THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G30") (LABEL_TAC "G31"))
        THEN ASM_CASES_TAC `i:num <= d:num`
@@ -8860,41 +8687,40 @@ let lemmaICJHAOQ = prove(`!(H:(A)hypermap) L:(A)path. is_loop H L /\ (!g:num->A 
    THEN ABBREV_TAC `m = (d:num) + (t:num)`
    THEN ONCE_REWRITE_TAC[TAUT `p <=> (~p ==> F)`]
    THEN DISCH_THEN ASSUME_TAC
-   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `g:num->A`;`m:num`] lemmaILTXRQD)
-   THEN REWRITE_TAC[lemma_is_loop; lemma_inside]
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `g:num->A`;`m:num`] lemmaILTXRQD)
    THEN ASM_REWRITE_TAC[]
    THEN USE_THEN "M2" (fun th -> REWRITE_TAC[SYM th])
    THEN USE_THEN "F19" (fun th -> REWRITE_TAC[th])
    THEN REWRITE_TAC[GSYM NOT_EXISTS_THM]
    THEN POP_ASSUM(fun th -> MESON_TAC[th]));;
 
-let lemma4dot17 = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L /\ (!x:A. x IN dart H ==> 3 <= CARD (face H x)) /\ (?x:A y:A. ~(node H x = node H y) /\ x inside L /\ y inside L) ==> 3 <= length_of L`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_is_loop; lemma_inside; length_of; THREE; LE_SUC]
-   THEN ABBREV_TAC `pLoop= pointer (L:(A)path)`
-   THEN ABBREV_TAC `n = top (L:(A)path)`
+
+let lemma4dot17 = prove(`!(H:(A)hypermap) (L:(A)loop). is_loop H L /\ (!x:A. x IN dart H ==> 3 <= CARD (face H x)) /\ (?x:A y:A. ~(node H x = node H y) /\ x inside L /\ y inside L) ==> 3 <= size L`,
+ REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (X_CHOOSE_THEN `x:A` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4") (LABEL_TAC "F5")))))))
    THEN USE_THEN "F4" (MP_TAC o REWRITE_RULE[lemma_in_path])
    THEN STRIP_TAC
-   THEN MP_TAC (SPECL[`pLoop:num->A`; `j:num`; `n:num`] shift_loop)
-   THEN DISCH_THEN (fun th -> (MP_TAC (AP_THM th `0`)))
-   THEN REWRITE_TAC[ADD]
-   THEN UNDISCH_TAC `j:num <= n:num`
-   THEN REWRITE_TAC[GSYM LT_SUC_LE]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP MOD_LT th])
-   THEN POP_ASSUM (SUBST1_TAC o SYM)
-   THEN DISCH_THEN (LABEL_TAC "F6")
-   THEN REMOVE_THEN "F4" (LABEL_TAC "F4" o ONCE_REWRITE_RULE[SPEC `j:num` lemma_dart_in_shift_loop])
-   THEN REMOVE_THEN "F5" (LABEL_TAC "F5" o ONCE_REWRITE_RULE[SPEC `j:num` lemma_dart_in_shift_loop])
-   THEN REMOVE_THEN "F1" (LABEL_TAC "F1" o SPEC `j:num` o  MATCH_MP (lemma_contour_loop))
-   THEN ABBREV_TAC `loop = shift_loop (pLoop:num->A) (n:num) (j:num)`
+   THEN REWRITE_TAC[THREE; lemma_size; LE_SUC]
+   THEN USE_THEN "F1" (fun th-> (USE_THEN "F4" (fun th1 -> MP_TAC (MATCH_MP let_order_for_loop (CONJ th th1)))))
+   THEN REWRITE_TAC[POWER_0; I_THM]
+   THEN MP_TAC (SPECL[`L:(A)loop`; `x:A`; `0`]  contour_of)
+   THEN REWRITE_TAC[POWER_0; I_THM]
+   THEN DISCH_THEN (fun th -> (LABEL_TAC "F6" th THEN SUBST1_TAC th))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "H1") (LABEL_TAC "H2"))
+   THEN REMOVE_THEN "F5" MP_TAC
+   THEN USE_THEN "F4"(fun th -> REWRITE_TAC[MATCH_MP lemma_inside th])
+   THEN DISCH_THEN (LABEL_TAC "F5")
+   THEN USE_THEN "F4" MP_TAC
+   THEN REMOVE_THEN "F4"(fun th -> REWRITE_TAC[MATCH_MP lemma_inside th])
+   THEN DISCH_THEN (LABEL_TAC "F4")
+   THEN ABBREV_TAC `ploop = contour_of (L:(A)loop) (x:A)`
+   THEN ABBREV_TAC `n = top (L:(A)loop)`
    THEN SUBGOAL_THEN `~(x:A = y:A)` (LABEL_TAC "F7") 
    THENL[FIRST_X_ASSUM (MP_TAC o check (is_neg o concl)) THEN MESON_TAC[]; ALL_TAC]
-   THEN MP_TAC(SPECL[`set_dart_of (loop:num->A) (n:num)`; `x:A`; `y:A`] CARD_ATLEAST_2)
+   THEN MP_TAC(SPECL[`set_dart_of (ploop:num->A) (n:num)`; `x:A`; `y:A`] CARD_ATLEAST_2)
    THEN REWRITE_TAC[GSYM in_path]
-   THEN ASM_REWRITE_TAC[lemma_loop_finite]
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[is_contour_loop])
-   THEN DISCH_THEN (fun th -> (MP_TAC (MATCH_MP lemma_number_darts_of_inj_contour th) THEN ASSUME_TAC th))
+   THEN ASM_REWRITE_TAC[lemma_path_finite]
+   THEN USE_THEN "H1" (fun th -> (MP_TAC (MATCH_MP lemma_number_darts_of_inj_contour th) THEN ASSUME_TAC th))
    THEN DISCH_THEN SUBST1_TAC
    THEN GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [TWO; LE_SUC; LE_LT]
    THEN STRIP_TAC THENL[POP_ASSUM MP_TAC THEN ARITH_TAC; ALL_TAC]
@@ -8909,370 +8735,52 @@ let lemma4dot17 = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L /\ (!x:A. x I
    THEN POP_ASSUM SUBST_ALL_TAC
    THEN POP_ASSUM SUBST_ALL_TAC
    THEN REMOVE_THEN "F6" (SUBST_ALL_TAC o SYM)
-   THEN USE_THEN "F1" (MP_TAC o  CONJUNCT2 o  REWRITE_RULE[is_contour_loop; lemma_def_inj_contour; lemma_def_contour])
-   THEN REWRITE_TAC[ZR_LT_1;one_step_contour]
+   THEN USE_THEN "H2" (MP_TAC o REWRITE_RULE[one_step_contour])
    THEN ONCE_REWRITE_TAC[DISJ_SYM]
    THEN STRIP_TAC
    THENL[POP_ASSUM (MP_TAC o ONCE_REWRITE_RULE[GSYM node_map_inverse_representation])
       THEN DISCH_TAC
-      THEN MP_TAC (SPECL[`node_map (H:(A)hypermap)`; `(loop:num->A) 0`] in_orbit_map1)
+      THEN MP_TAC (SPECL[`node_map (H:(A)hypermap)`; `(ploop:num->A) 0`] in_orbit_map1)
       THEN POP_ASSUM (fun th -> REWRITE_TAC[GSYM node; SYM th])
       THEN DISCH_THEN (MP_TAC o MATCH_MP lemma_node_identity)
       THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th]); ALL_TAC]
-   THEN POP_ASSUM (LABEL_TAC "F8")  
-   THEN USE_THEN "F1" (MP_TAC o SPEC `0` o  CONJUNCT1 o CONJUNCT1 o  REWRITE_RULE[is_contour_loop; lemma_def_inj_contour; lemma_def_contour])
+  THEN POP_ASSUM (LABEL_TAC "F8")  
+   THEN USE_THEN "H1" (MP_TAC o SPEC `0` o  CONJUNCT1 o  REWRITE_RULE[lemma_def_inj_contour; lemma_def_contour])
    THEN REWRITE_TAC[ZR_LT_1; GSYM ONE; one_step_contour]
    THEN ONCE_REWRITE_TAC[DISJ_SYM]
    THEN STRIP_TAC
    THENL[POP_ASSUM (MP_TAC o ONCE_REWRITE_RULE[GSYM node_map_inverse_representation])
       THEN DISCH_TAC
-      THEN  MP_TAC (SPECL[`node_map (H:(A)hypermap)`; `(loop:num->A) 1`] in_orbit_map1)
+      THEN  MP_TAC (SPECL[`node_map (H:(A)hypermap)`; `(ploop:num->A) 1`] in_orbit_map1)
       THEN POP_ASSUM (fun th -> REWRITE_TAC[GSYM node; SYM th])
       THEN DISCH_THEN (MP_TAC o SYM o MATCH_MP lemma_node_identity)
       THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th]); ALL_TAC]
-   THEN USE_THEN "F8" MP_TAC
-   THEN POP_ASSUM SUBST1_TAC
-   THEN DISCH_THEN (MP_TAC o SYM)
-   THEN GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV) [GSYM o_THM]
+   THEN REMOVE_THEN  "F8" (MP_TAC o SYM)
+   THEN POP_ASSUM SUBST1_TAC 
+    THEN GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV) [GSYM o_THM]
    THEN REWRITE_TAC[GSYM POWER_2]
    THEN MP_TAC (ARITH_RULE `~(2 = 0)`)
    THEN REWRITE_TAC[IMP_IMP]
    THEN DISCH_THEN (ASSUME_TAC o REWRITE_RULE[GSYM face] o  MATCH_MP card_orbit_le)
-   THEN UNDISCH_TAC `is_inj_contour (H:(A)hypermap) (loop:num->A) 1`
+   THEN UNDISCH_TAC `is_inj_contour (H:(A)hypermap) (ploop:num->A) 1`
    THEN DISCH_THEN ( fun th -> (ASSUME_TAC (MATCH_MP lemma_first_dart_on_inj_contour (CONJ ZR_LT_1 th))))
-   THEN USE_THEN "F2" (MP_TAC o SPEC `(loop:num->A) 0`)
+   THEN USE_THEN "F2" (MP_TAC o SPEC `(ploop:num->A) 0`)
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
    THEN POP_ASSUM MP_TAC
    THEN ARITH_TAC);;
 
-(* ON QUOTIENTS OF HYPERMAPS - THE FOLLOWING DEFINITIONS ALMOST FOR LOOPS *)
 
-let lemma_first_concatenate_condition =  prove(`!p:num->A n:num q:num->A m:num.  (!j:num. 0 < j /\ j <= m ==> (!i:num. i <= n ==> ~(q j = p i))) 
-                                          <=> !j:num. 0 < j /\ j <= m ==> ~(in_path p n (q j))`,
-    REWRITE_TAC[lemma_not_in_path]);;
-
-let lemma_second_concatenate_condition =  prove(`!(H:(A)hypermap) p:num->A n:num q:num->A m:num.  (is_inj_contour H p n /\ is_inj_contour H q m /\ p n = q 0) ==> ((!j:num. 0 < j /\ j <= m ==> (!i:num. i <= n ==> ~(q j = p i)))  <=> !i:num. i < n ==> ~(in_path q m (p i)))`, 
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1" o CONJUNCT2 o REWRITE_RULE[lemma_def_inj_contour]) (CONJUNCTS_THEN2 (LABEL_TAC "F2" o CONJUNCT2 o REWRITE_RULE[lemma_def_inj_contour]) (LABEL_TAC "F3")))
-   THEN REWRITE_TAC[lemma_not_in_path]
-   THEN EQ_TAC
-   THENL[DISCH_THEN (LABEL_TAC "F4")
-       THEN REPLICATE_TAC 4 STRIP_TAC
-       THEN ASM_CASES_TAC `j:num = 0`
-       THENL[POP_ASSUM SUBST1_TAC
-	   THEN REMOVE_THEN "F3" (SUBST1_TAC o SYM)
-	   THEN USE_THEN "F1" (MP_TAC o SPECL[`n:num`; `i:num`])
-	   THEN UNDISCH_THEN `i:num < n:num` (fun th -> REWRITE_TAC[th; LE_REFL]); ALL_TAC]
-       THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM LT_NZ])
-       THEN REMOVE_THEN "F4" (MP_TAC o SPECL[`j:num`])
-       THEN REPLICATE_TAC 2 (POP_ASSUM (fun th -> REWRITE_TAC[th]))
-       THEN DISCH_THEN (MP_TAC o SPEC `i:num`)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP LT_IMP_LE th])
-       THEN MESON_TAC[]; ALL_TAC]
-   THEN DISCH_THEN (LABEL_TAC "F4")
-   THEN REPLICATE_TAC 4 STRIP_TAC
-   THEN ASM_CASES_TAC `i:num = n:num`
-   THENL[POP_ASSUM SUBST1_TAC
-      THEN REMOVE_THEN "F3" SUBST1_TAC
-      THEN USE_THEN "F2" (MP_TAC o SPECL[`j:num`; `0`])
-      THEN UNDISCH_THEN `0 < j:num` (fun th -> REWRITE_TAC[th])
-      THEN UNDISCH_THEN `j:num <= m:num` (fun th -> REWRITE_TAC[th])
-      THEN MESON_TAC[]; ALL_TAC]
-   THEN REPLICATE_TAC 2 (POP_ASSUM MP_TAC)
-   THEN REWRITE_TAC [IMP_IMP]
-   THEN REWRITE_TAC[GSYM LT_LE]
-   THEN DISCH_TAC
-   THEN REMOVE_THEN "F4" (MP_TAC o SPEC `i:num`)
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-   THEN DISCH_THEN (MP_TAC o SPEC `j:num`)
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-   THEN MESON_TAC[]);;
-(*
-let MAP_BIJECTION = new_definition `!(s:A->bool) (t:B->bool) (f:A->B). MAP_BIJECTION f s t <=>
-    (!x:A. x IN s ==> f(x) IN t) /\ (!y:B. y IN t ==> ?x:A. x IN s /\ f x = y) /\ !x:A y:A. x IN s /\ y IN s /\ (f x = f y) ==> (x = y)`;;
-
-let iso = new_definition `!(H:(A)hypermap) (H':(B)hypermap) . iso H H'  <=> ?f:A->B. MAP_BIJECTION f (dart H) (dart H')  /\
-!x:A. x IN dart H ==> (edge_map H')  (f x) = f (edge_map H x) /\ (node_map H') (f x) = f (node_map H x) /\ (face_map H') (f x) = f (face_map H x)`;;
-
-*)
+(************ GENERATION PART *****************)
 
 
-let determine_position = prove(`!(L:num->A) (n:num). ?pos:A->num. (!x:A. (in_path L n x ==> x = L (pos x) /\ pos x <= n))`,
-     REPEAT GEN_TAC
-     THEN REWRITE_TAC[GSYM SKOLEM_THM]
-     THEN GEN_TAC
-     THEN REWRITE_TAC[lemma_in_path]
-     THEN MESON_TAC[]);;
-
-let lemma_position = new_specification["position"] (REWRITE_RULE[SKOLEM_THM] determine_position);; 
-
-let lemma_unique_position = prove(`!(H:(A)hypermap) (L:num->A) (x:A) j:num. (is_contour_loop H L n /\  j <= n /\ x = L j) ==> j = position L n x`, 
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (fun th -> (LABEL_TAC "F2" (CONJUNCT1 th) THEN LABEL_TAC "F3" (CONJUNCT2 th) THEN MP_TAC th )))
-   THEN DISCH_THEN (LABEL_TAC "F4" o MATCH_MP lemma_in_path2)
-   THEN USE_THEN "F4" (MP_TAC o MATCH_MP lemma_position)
-   THEN ABBREV_TAC `i = position (L:num->A) (n:num) (x:A)`
-   THEN STRIP_TAC
-   THEN REMOVE_THEN "F1" (MP_TAC o CONJUNCT2 o CONJUNCT1 o REWRITE_RULE[is_contour_loop; lemma_def2_inj_contour])
-   THEN ASM_MESON_TAC[]);;
-
-let lemma_identify_position = prove(`!(H:(A)hypermap) (L:num->A) (n:num) j:num. is_contour_loop H L n /\ j <= n ==> position L n (L j) = j`,
-   MESON_TAC[lemma_unique_position]);;
-
-let back = new_definition `!L:(A)path x:A. back L x = if x inside L then if  0 < position (pointer L) (top L) x then (pointer L) (PRE (position (pointer L) (top L) x)) else pointer L (top L) else x`;;
-
-let next = new_definition `!L:(A)path x:A. next L x = if x inside L then if  position (pointer L) (top L) x < (top L) then (pointer L) (SUC (position (pointer L) (top L) x)) else (pointer L) 0 else x`;;
-
-let lemma_first_on_back = prove(`!(H:(A)hypermap) (L:(A)path) j:num. is_loop H L /\ 0 < j /\ j <= top L ==> back L (pointer L j) = pointer L (PRE j)`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[lemma_is_loop]
-   THEN ABBREV_TAC `pLoop = pointer (L:(A)path)`
-   THEN ABBREV_TAC `n = top (L:(A)path)`
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN ASM_REWRITE_TAC[back; lemma_inside]
-   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_in_path2 (CONJ th (MESON[] `(pLoop:num->A) (j:num) = pLoop j`))])
-   THEN USE_THEN "F1" (fun th -> (USE_THEN "F3" (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identify_position (CONJ th th1)])))
-   THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th]));;
-
-let lemma_second_on_back = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L  ==> back L(pointer L 0) = pointer L (top L)`,
- REPEAT GEN_TAC
-   THEN REWRITE_TAC[back; lemma_is_loop]
-   THEN REWRITE_TAC[MATCH_MP lemma_inside_loop2 (CONJ (SPEC `top (L:(A)path)` LE_0)  (MESON[] `pointer (L:(A)path) 0 = pointer L 0`))]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP lemma_identify_position (CONJ th (SPEC `top (L:(A)path)` LE_0))])
-   THEN REWRITE_TAC[LT_REFL]);;
-
-let lemma_on_back = prove(`!(H:(A)hypermap) (L:(A)path) (j:num). is_loop H L ==>  back L (pointer L (j MOD (SUC (top L)))) = pointer L ((j + (top L)) MOD (SUC (top L)))`,
-    REPEAT GEN_TAC
-    THEN DISCH_THEN (LABEL_TAC "F1")
-    THEN ASM_CASES_TAC `j:num MOD (SUC (top (L:(A)path))) = 0`   
-    THENL[ ONCE_REWRITE_TAC[GSYM(MATCH_MP MOD_ADD_MOD (SPEC `top (L:(A)path)` NON_ZERO))]
-        THEN POP_ASSUM SUBST1_TAC
-        THEN ONCE_REWRITE_TAC[CONJUNCT1 ADD]
-        THEN MP_TAC(MATCH_MP MOD_LT (SPEC `top (L:(A)path)` LT_PLUS))
-        THEN DISCH_THEN (fun th -> REWRITE_TAC[th])
-        THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_second_on_back th]); ALL_TAC]
-    THEN POP_ASSUM MP_TAC
-    THEN REWRITE_TAC[GSYM LT_NZ]
-    THEN ONCE_REWRITE_TAC[ADD_SYM]
-    THEN DISCH_THEN (fun th -> (ASSUME_TAC th THEN REWRITE_TAC[MATCH_MP decreasing_loop_index th]))
-    THEN MP_TAC (SPECL[`top (L:(A)path)`; `j:num`] LE_MOD_SUC)
-    THEN POP_ASSUM (fun th -> (POP_ASSUM (fun th1 -> (DISCH_THEN (fun th2-> REWRITE_TAC[MATCH_MP lemma_first_on_back (CONJ th1 (CONJ th th2))]))))));;
-
-
-let lemma_first_on_next = prove(`!(H:(A)hypermap) (L:(A)path) j:num. is_loop H L /\ j < top L ==> next L (pointer L j) = pointer L (SUC j)`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[next; lemma_is_loop]   
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
-   THEN USE_THEN "F2" (fun th -> REWRITE_TAC[MATCH_MP lemma_inside_loop2 (CONJ (MATCH_MP LT_IMP_LE th) (MESON[] `pointer (L:(A)path) (j:num) = pointer L j`))])
-   THEN USE_THEN "F2" (MP_TAC o MATCH_MP LT_IMP_LE)
-   THEN USE_THEN "F1" (fun th -> (DISCH_THEN (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identify_position (CONJ th th1)])))
-   THEN ASM_REWRITE_TAC[]);; 
-
-let lemma_second_on_next = prove(`!(H:(A)hypermap) (L:(A)path) (n:num). is_loop H L  ==> next L (pointer L (top L)) = pointer L 0`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[next; lemma_is_loop]
-   THEN STRIP_TAC
-   THEN REWRITE_TAC[MATCH_MP lemma_inside_loop2 (CONJ (SPEC `top (L:(A)path)` LE_REFL) (MESON[] `pointer (L:(A)path) (top L) =pointer  L (top L)`))]
-   THEN POP_ASSUM(fun th -> REWRITE_TAC[MATCH_MP lemma_identify_position (CONJ th (SPEC `top (L:(A)path)` LE_REFL))])
-   THEN REWRITE_TAC[LT_REFL]);;
-
-let lemma_on_next = prove(`!(H:(A)hypermap) (L:(A)path) (j:num). is_loop H L 
-    ==>  next L(pointer L (j MOD (SUC (top L)))) = pointer L ((SUC j) MOD (SUC (top L)))`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN ASM_CASES_TAC `j:num MOD (SUC (top (L:(A)path))) = top L`
-   THENL[POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP start_loop_index th; th])
-      THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_second_on_next th]); ALL_TAC]
-   THEN POP_ASSUM MP_TAC
-   THEN MP_TAC (SPECL[`top (L:(A)path)`; `j:num`] LE_MOD_SUC)
-   THEN REWRITE_TAC[IMP_IMP]
-   THEN REWRITE_TAC[GSYM LT_LE]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP increasing_loop_index th] THEN ASSUME_TAC th)
-   THEN POP_ASSUM (fun th2 -> (POP_ASSUM (fun th1 -> REWRITE_TAC[MATCH_MP lemma_first_on_next (CONJ th1 th2)]))));;
-
-let lemma_back_and_next_outside_loop = prove(`!L:(A)path  x:A. ~(x inside L) ==> back L x = x /\ next L x = x`,
-   REPEAT GEN_TAC
-   THEN REWRITE_TAC[back; next]
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[th]));;
-
-let lemma_power_back_and_next_outside_loop = prove(`!L:(A)path x:A m:num. 
-   ~(x inside L) ==> ((back L) POWER m) x = x /\ ((next L) POWER m) x = x`,
-   REPLICATE_TAC 2 GEN_TAC
-   THEN INDUCT_TAC
-   THENL[REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
-   THEN DISCH_THEN (fun th -> (POP_ASSUM (fun thm -> (LABEL_TAC "F1" (MATCH_MP thm th) THEN LABEL_TAC "F2" th))))
-   THEN REWRITE_TAC[POWER; o_THM]
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_back_and_next_outside_loop th])
-   THEN ASM_REWRITE_TAC[]);;
-
-let lemma_inverse_evaluation = prove(`!H:(A) hypermap L:(A)path x:A. is_loop H L ==>  back L (next L x) = x /\ next L (back L x) = x`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN ASM_CASES_TAC `~(x:A inside (L:(A)path))`
-   THENL[POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_back_and_next_outside_loop th]); ALL_TAC]
-   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[lemma_inside_loop])
-   THEN DISCH_THEN (X_CHOOSE_THEN `j:num` (CONJUNCTS_THEN2 (ASSUME_TAC) (SUBST_ALL_TAC)))
-   THEN POP_ASSUM (fun th -> MP_TAC (MATCH_MP LET_TRANS (CONJ th (SPEC `top (L:(A)path)` LT_PLUS))))
-   THEN DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM(MATCH_MP MOD_LT th)])
-   THEN STRIP_TAC
-   THENL[USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_on_next th])
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_on_back th])
-       THEN REWRITE_TAC[CONJUNCT2 ADD]
-       THEN AP_TERM_TAC
-       THEN ONCE_REWRITE_TAC[ADD_SYM]
-       THEN REWRITE_TAC[GSYM ADD]
-       THEN ONCE_REWRITE_TAC[ADD_SYM]
-       THEN GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV) [ARITH_RULE `SUC n = 1 * (SUC n)`]
-       THEN MP_TAC(SPECL[`(j:num) +  1* (SUC (top (L:(A)path)))`; `j:num`; `SUC (top (L:(A)path))`; `1`] MOD_EQ)
-       THEN ARITH_TAC; ALL_TAC]
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_on_back th])
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_on_next th])
-   THEN AP_TERM_TAC
-   THEN ONCE_REWRITE_TAC[ADD_SYM]
-   THEN REWRITE_TAC[GSYM ADD]
-   THEN ONCE_REWRITE_TAC[ADD_SYM]
-   THEN GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV) [ARITH_RULE `SUC n = 1 * (SUC n)`]
-   THEN MP_TAC(SPECL[`(j:num) +  1* (SUC (top (L:(A)path)))`; `j:num`; `SUC (top (L:(A)path))`; `1`] MOD_EQ)
-   THEN ARITH_TAC);;
-
-let lemma_permute_loop = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L ==> (next L) permutes dart_of L /\ (back L) permutes dart_of L`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN REWRITE_TAC[permutes]
-   THEN REWRITE_TAC[GSYM inside]
-   THEN SIMP_TAC[lemma_back_and_next_outside_loop]
-   THEN REWRITE_TAC[EXISTS_UNIQUE]
-   THEN STRIP_TAC
-   THENL[GEN_TAC
-      THEN EXISTS_TAC `back (L:(A)path) (y:A)`
-      THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
-      THEN GEN_TAC
-      THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `back (L:(A)path)`)
-      THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP  lemma_inverse_evaluation th]); ALL_TAC]
-   THEN GEN_TAC
-   THEN EXISTS_TAC `next (L:(A)path) (y:A)`
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP  lemma_inverse_evaluation th])
-   THEN GEN_TAC
-   THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `next (L:(A)path)`)
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP  lemma_inverse_evaluation th]));;
-
-let lemma_inverse_on_loop = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L  
-   ==> (next L) = inverse (back L) /\ (back L) = inverse (next L)`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN SUBGOAL_THEN `(next (L:(A)path)) o (back L) = I` (LABEL_TAC "F2")
-   THENL[REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM]
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th]); ALL_TAC]
-   THEN SUBGOAL_THEN `(back (L:(A)path)) o (next L) = I` (LABEL_TAC "F3")
-   THENL[REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM]
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th]); ALL_TAC]
-   THEN USE_THEN "F2" (fun th1-> (USE_THEN "F3" (fun th2 -> REWRITE_TAC[MATCH_MP INVERSE_UNIQUE_o (CONJ th1 th2)])))
-   THEN USE_THEN "F3" (fun th1-> (USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP INVERSE_UNIQUE_o (CONJ th1 th2)]))));;
-
-let lemma_second_inverse_on_loop = prove(`!(H:(A)hypermap) (L:(A)path) (m:num). is_loop H L  
-   ==> (next L) POWER m = inverse ((back L) POWER m) /\ (back L) POWER m = inverse ((next L) POWER m)`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o MATCH_MP lemma_permute_loop)
-   THEN DISCH_THEN (MP_TAC o SPEC `m:num` o MATCH_MP lemma_power_inverse)
-   THEN REMOVE_THEN "F1" ((CONJUNCTS_THEN2 (SUBST1_TAC o SYM) (SUBST1_TAC o SYM)) o MATCH_MP lemma_inverse_on_loop)
-   THEN MESON_TAC[]);;
-
-let lemma_second_inverse_evaluation = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (m:num). is_loop H L  
-   ==> ((next L) POWER m) (((back L) POWER m) x) = x /\ ((back L) POWER m) (((next L) POWER m) x) = x`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o MATCH_MP lemma_permute_loop)   
-   THEN DISCH_THEN (MP_TAC o SPEC `m:num` o MATCH_MP lemma_power_inverse_map)
-   THEN REMOVE_THEN "F1" ((CONJUNCTS_THEN2 (SUBST1_TAC o SYM) (SUBST1_TAC o SYM)) o MATCH_MP lemma_inverse_on_loop)
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3"))
-   THEN REMOVE_THEN "F2" (fun th -> (MP_TAC (AP_THM th `x:A`)))
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[REWRITE_RULE[o_THM; I_THM] th])
-   THEN REMOVE_THEN "F3" (fun th -> (MP_TAC (AP_THM th `x:A`)))
-   THEN DISCH_THEN (fun th -> REWRITE_TAC[REWRITE_RULE[o_THM; I_THM] th]));;
-
-let lemma_compose_next = prove(`!(H:(A)hypermap) (L:(A)path) (i:num) (k:num). is_loop H L
-   ==> ((next L) POWER k) (pointer L (i MOD SUC (top L))) = pointer L ((i+k) MOD SUC (top L))`,
-   REPLICATE_TAC 3 GEN_TAC
-   THEN INDUCT_TAC
-   THENL[REWRITE_TAC[POWER_0; I_THM; ADD_0]; ALL_TAC]
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN FIRST_X_ASSUM (MP_TAC o check (is_imp o concl))
-   THEN ASM_REWRITE_TAC[]
-   THEN DISCH_TAC
-   THEN REWRITE_TAC[COM_POWER; o_THM]
-   THEN POP_ASSUM SUBST1_TAC
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_on_next th])
-   THEN AP_TERM_TAC
-   THEN REWRITE_TAC[ARITH_RULE `(i:num) + SUC k = SUC (i + k)`]);;
-
-let lemma_compose_next_origin = prove(`!(H:(A)hypermap) (L:(A)path) (k:num). is_loop H L /\ k <= top L ==> ((next L) POWER k) (pointer L 0) = pointer L k`,
-   REPEAT GEN_TAC     
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
-   THEN ONCE_REWRITE_TAC[SYM(MATCH_MP MOD_LT (SPEC `top (L:(A)path)` LT_0))]
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_compose_next th])
-   THEN REWRITE_TAC[ADD]
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP MOD_LT (REWRITE_RULE[GSYM LT_SUC_LE] th)]));;
-
-let lemma_transitive_permutation = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). (is_loop H L /\ x inside L)
-   ==> dart_of L = orbit_map (next L) x`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
-   THEN LABEL_TAC "F3" (REWRITE_RULE[inside] (MATCH_MP lemma_inside_loop2 (CONJ(SPEC `top (L:(A)path)` LE_0) (MESON[] `pointer (L:(A)path) 0 = pointer L 0`))))
-   THEN USE_THEN "F1" (LABEL_TAC "F4" o CONJUNCT1 o  MATCH_MP lemma_permute_loop) 
-   THEN SUBGOAL_THEN `dart_of (L:(A)path) = orbit_map (next L) (pointer L 0)` (LABEL_TAC "F5")
-   THENL[MATCH_MP_TAC SUBSET_ANTISYM
-      THEN STRIP_TAC
-      THENL[REWRITE_TAC[dart_of; orbit_map; SUBSET; IN_ELIM_THM]
-	   THEN REPEAT STRIP_TAC
-	   THEN EXISTS_TAC `i:num`
-	   THEN POP_ASSUM SUBST1_TAC
-	   THEN REWRITE_TAC[GE; LE_0]
-	   THEN USE_THEN "F1" (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[SYM(MATCH_MP lemma_compose_next_origin (CONJ th1 th2))]))); ALL_TAC]
-      THEN REWRITE_TAC[SUBSET; orbit_map; IN_ELIM_THM; GE; LE_0]
-      THEN GEN_TAC
-      THEN DISCH_THEN (X_CHOOSE_THEN `m:num` SUBST1_TAC)
-      THEN USE_THEN "F4" (fun th -> (MP_TAC(SPECL[`m:num`; `pointer (L:(A)path) 0`] (MATCH_MP iterate_orbit th))))
-      THEN USE_THEN "F3" (fun th ->REWRITE_TAC[th]); ALL_TAC]
-   THEN ABBREV_TAC `y:A = pointer (L:(A)path) 0`
-   THEN REMOVE_THEN "F2" (MP_TAC o REWRITE_RULE[inside])
-   THEN REMOVE_THEN "F5" SUBST1_TAC
-   THEN REMOVE_THEN "F4" MP_TAC
-   THEN MP_TAC(SPEC`L:(A)path` lemma_dart_loop_finite)
-   THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-   THEN DISCH_THEN (MP_TAC o MATCH_MP lemma_orbit_identity)
-   THEN SIMP_TAC[]);;
-
-let lemma_next_power_representation = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_loop H L /\ x inside L /\ y inside L 
-   ==> ?k:num. k <= top L /\ y = ((next L) POWER k) x`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F1" (fun th1 -> (REMOVE_THEN "F2" (fun th2 -> (LABEL_TAC "F4" (MATCH_MP lemma_transitive_permutation (CONJ th1 th2))))))
-   THEN USE_THEN "F1" (LABEL_TAC "F5" o CONJUNCT1 o  MATCH_MP lemma_permute_loop)
-   THEN REMOVE_THEN "F5" MP_TAC
-   THEN MP_TAC(SPEC `L:(A)path` lemma_dart_loop_finite)
-   THEN REWRITE_TAC[IMP_IMP]			   
-   THEN DISCH_THEN (MP_TAC o SPEC `x:A` o MATCH_MP lemma_cycle_orbit)  
-   THEN USE_THEN "F4" (SUBST1_TAC o SYM)
-   THEN USE_THEN "F1"(fun th -> REWRITE_TAC[MATCH_MP lemma_card_of_loop th])
-   THEN MP_TAC (SPEC `top (L:(A)path)` NON_ZERO)
-   THEN REWRITE_TAC[IMP_IMP]
-   THEN DISCH_THEN (MP_TAC o MATCH_MP orbit_cyclic)
-   THEN REWRITE_TAC[LT_SUC_LE]
-   THEN DISCH_THEN ASSUME_TAC
-   THEN REMOVE_THEN "F3" (MP_TAC o REWRITE_RULE[inside])
-   THEN REMOVE_THEN "F4" SUBST1_TAC
-   THEN POP_ASSUM SUBST1_TAC
-   THEN REWRITE_TAC[IN_ELIM_THM]);;
-
-let is_node_going = new_definition `!(H:(A)hypermap) (L:(A)path) x:A y:A. is_node_going H L x y 
+let is_node_going = new_definition `!(H:(A)hypermap) (L:(A)loop) x:A y:A. is_node_going H L x y 
     <=> ?k:num. y = ((next L) POWER k) x /\ (!i:num. i <= k ==> ((next L) POWER i) x = ((inverse (node_map H)) POWER i) x)`;;
 
-let atom = new_definition `!(H:(A)hypermap) (L:(A)path) x:A. atom H L x = {y:A | is_node_going H L x y \/ is_node_going H L y x}`;;
+let atom = new_definition `!(H:(A)hypermap) (L:(A)loop) x:A. atom H L x = {y:A | is_node_going H L x y \/ is_node_going H L y x}`;;
 
-(* Intuitively, a loop is partitioned by atoms. I prove this fact here *)
+(* Intuitively, a loop is partitioned by atoms *)
 
-let atom_reflect = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). x IN atom H L x`,
+let atom_reflect = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). x IN atom H L x`,
   REPEAT GEN_TAC
   THEN REWRITE_TAC[atom; IN_ELIM_THM; is_node_going]
   THEN EXISTS_TAC `0`
@@ -9281,11 +8789,11 @@ let atom_reflect = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). x IN atom H L x`,
   THEN DISCH_THEN SUBST1_TAC
   THEN REWRITE_TAC[POWER_0; I_THM]);;
 
-let atom_sym = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). y IN atom H L x ==> x IN atom H L y`,
+let atom_sym = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A). y IN atom H L x ==> x IN atom H L y`,
    REWRITE_TAC[atom; IN_ELIM_THM]
    THEN MESON_TAC[]);;
 
-let lemma_transitive_going = prove(`!(H:(A)hypermap) (L: (A)path) (x:A) (y:A) (z:A). is_node_going H L x y /\ is_node_going H L y z ==> is_node_going H L x z`,  
+let lemma_transitive_going = prove(`!(H:(A)hypermap) (L: (A)loop) (x:A) (y:A) (z:A). is_node_going H L x y /\ is_node_going H L y z ==> is_node_going H L x z`,  
    REPEAT GEN_TAC
    THEN REWRITE_TAC[is_node_going]
    THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `m:num` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2")))
@@ -9312,10 +8820,7 @@ let lemma_transitive_going = prove(`!(H:(A)hypermap) (L: (A)path) (x:A) (y:A) (z
    THEN REWRITE_TAC[LE_ADD_LCANCEL]
    THEN DISCH_THEN (fun th -> (REMOVE_THEN "F4" (fun thm -> REWRITE_TAC[MATCH_MP (SPEC `j:num` thm) th]))));;
 
-
-
-
-let lemma_on_way_going = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) (z:A). is_node_going H L x y /\ is_node_going H L x z ==> is_node_going H L y z \/ is_node_going H L z y `,
+let lemma_on_way_going = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A) (z:A). is_node_going H L x y /\ is_node_going H L x z ==> is_node_going H L y z \/ is_node_going H L z y `,
    REPEAT GEN_TAC
    THEN REWRITE_TAC[is_node_going]
    THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `m:num` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))) (X_CHOOSE_THEN `k:num` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
@@ -9360,9 +8865,9 @@ let lemma_on_way_going = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) (z:A). 
    THEN DISCH_THEN (SUBST1_TAC o SYM)
    THEN SIMP_TAC[]);;
 
-let lemma_second_on_way_going = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) (z:A). is_loop H L /\ is_node_going H L x z  /\ is_node_going H L y z ==> is_node_going H L x y \/ is_node_going H L y x`,
+let lemma_second_on_way_going = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A) (z:A). is_node_going H L x z  /\ is_node_going H L y z ==> is_node_going H L x y \/ is_node_going H L y x`,
    REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (MP_TAC o REWRITE_RULE[is_node_going]))
+   THEN DISCH_THEN (MP_TAC o REWRITE_RULE[is_node_going])
    THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `m:num` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))) (X_CHOOSE_THEN `k:num`(CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6"))))
    THEN ASM_CASES_TAC `m:num <= k:num`
    THENL[DISJ2_TAC
@@ -9373,8 +8878,8 @@ let lemma_second_on_way_going = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) 
       THEN USE_THEN "F3" (MP_TAC o SYM)
       THEN USE_THEN "F5" (SUBST1_TAC)
       THEN REWRITE_TAC[addition_exponents; o_THM]
-      THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM; I_THM] o AP_TERM `(back (L:(A)path)) POWER (m:num)`)
-      THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_second_inverse_evaluation th])
+      THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM; I_THM] o AP_TERM `(back (L:(A)loop)) POWER (m:num)`)
+      THEN REWRITE_TAC[lemma_second_inverse_evaluation]
       THEN DISCH_THEN (fun th -> REWRITE_TAC[th])
       THEN GEN_TAC
       THEN DISCH_THEN (LABEL_TAC "F9")
@@ -9389,100 +8894,37 @@ let lemma_second_on_way_going = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) 
    THEN USE_THEN "F3" (MP_TAC o SYM)
    THEN USE_THEN "F5" (SUBST1_TAC)
    THEN REWRITE_TAC[addition_exponents; o_THM]
-   THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM; I_THM] o AP_TERM `(back (L:(A)path)) POWER (k:num)`)
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_second_inverse_evaluation th])
+   THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM; I_THM] o AP_TERM `(back (L:(A)loop)) POWER (k:num)`)
+   THEN REWRITE_TAC[lemma_second_inverse_evaluation]
    THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th])
    THEN GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "F9")
    THEN USE_THEN "F4" (MP_TAC o SPEC `i:num`)
    THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP (ARITH_RULE `i:num <= d:num ==> i <= (k:num) + d`) th]));;
 
-let atom_trans = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A) (z:A). is_loop H L /\  x IN atom H L y /\ y IN atom H L z ==> x IN atom H L z`,
+let atom_trans = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A) (z:A). x IN atom H L y /\ y IN atom H L z ==> x IN atom H L z`,
    REPEAT GEN_TAC
    THEN REWRITE_TAC[atom; IN_ELIM_THM]
    THEN STRIP_TAC
    THENL[POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_transitive_going (CONJ th1 th2)])));
       POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_on_way_going (CONJ th1 th2)])));
-      POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> (POP_ASSUM(fun th3 -> REWRITE_TAC[MATCH_MP lemma_second_on_way_going (CONJ th3 (CONJ th1 th2))])))));
-      POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_transitive_going (CONJ th2 th1)])))] );;
+      POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_second_on_way_going (CONJ th1 th2)])));
+      POP_ASSUM (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_transitive_going (CONJ th2 th1)])))]);;
 
-let lemma_one_contour_step_next = prove(`!(H:(A)hypermap) (L:(A)path). is_loop H L
-   ==> (!x:A.  x inside L ==> one_step_contour H x (next L x))`,
-    REPEAT GEN_TAC
-    THEN DISCH_THEN (LABEL_TAC "F1")
-    THEN GEN_TAC
-    THEN REWRITE_TAC[lemma_inside_loop]
-    THEN DISCH_THEN (X_CHOOSE_THEN `j:num` (CONJUNCTS_THEN2 ASSUME_TAC SUBST1_TAC))
-    THEN ASM_CASES_TAC `j:num = top(L:(A)path)`
-    THENL[POP_ASSUM SUBST1_TAC
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_second_on_next th])
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[REWRITE_RULE[is_loop] th]); ALL_TAC]
-    THEN REPLICATE_TAC 2 (POP_ASSUM MP_TAC)
-    THEN REWRITE_TAC[IMP_IMP; GSYM LT_LE]
-    THEN USE_THEN "F1" (fun th1 -> DISCH_THEN (fun th2 -> REWRITE_TAC[MATCH_MP lemma_first_on_next (CONJ  th1 th2)] THEN ASSUME_TAC th2))
-    THEN REMOVE_THEN "F1" (MP_TAC o CONJUNCT1 o CONJUNCT1 o REWRITE_RULE[is_loop; lemma_def_inj_contour])
-    THEN DISCH_THEN (MP_TAC o SPEC `j:num` o REWRITE_RULE[lemma_def_contour])
-    THEN ASM_REWRITE_TAC[]);;
-
-let lemma_power_next_in_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (k:num). is_loop H L /\ x inside L ==> (((next L) POWER k) x) inside L`,
-    REPEAT GEN_TAC
-    THEN REWRITE_TAC[inside]
-    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") ASSUME_TAC)
-    THEN REMOVE_THEN "F1" (MP_TAC o CONJUNCT1 o MATCH_MP lemma_permute_loop)
-    THEN DISCH_THEN (MP_TAC o SPECL[`k:num`; `x:A`] o MATCH_MP iterate_orbit)
-    THEN ASM_REWRITE_TAC[]);;
-
-let lemma_power_back_in_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (k:num). is_loop H L /\ x inside L ==> (((back L) POWER k) x) inside L`,
-    REPEAT GEN_TAC
-    THEN REWRITE_TAC[inside]
-    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") ASSUME_TAC)
-    THEN REMOVE_THEN "F1" (MP_TAC o CONJUNCT2 o MATCH_MP lemma_permute_loop)
-    THEN DISCH_THEN (MP_TAC o SPECL[`k:num`; `x:A`] o MATCH_MP iterate_orbit)
-    THEN ASM_REWRITE_TAC[]);;
-
-let lemma_loop_inside_dart_set = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). is_loop H L /\ x IN dart H /\ x inside L
-   ==> dart_of L SUBSET dart H`,
- REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F3" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_transitive_permutation (CONJ th1 th2)])))
-   THEN SUBGOAL_THEN `!j:num. ((next (L:(A)path)) POWER j) (x:A) IN dart (H:(A)hypermap)` ASSUME_TAC
-   THENL[INDUCT_TAC THENL[ASM_REWRITE_TAC[POWER_0; I_THM] THEN REWRITE_TAC[COM_POWER; o_THM]; ALL_TAC]
-       THEN REMOVE_THEN "F3" (ASSUME_TAC o REWRITE_RULE[inside])
-       THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o MATCH_MP lemma_permute_loop)
-       THEN DISCH_THEN (MP_TAC o SPECL[`j:num`; `x:A`] o MATCH_MP iterate_orbit)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-       THEN REWRITE_TAC[COM_POWER; o_THM]
-       THEN ABBREV_TAC `y = ((next (L:(A)path)) POWER (j:num)) (x:A)`
-       THEN REWRITE_TAC[GSYM inside]
-       THEN DISCH_TAC
-       THEN USE_THEN "F1" (MP_TAC o SPEC `y:A` o MATCH_MP lemma_one_contour_step_next)
-       THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-       THEN REWRITE_TAC[one_step_contour]
-       THEN STRIP_TAC
-       THENL[POP_ASSUM SUBST1_TAC
-          THEN UNDISCH_THEN `y:A IN dart (H:(A)hypermap)` (fun th -> REWRITE_TAC[MATCH_MP lemma_dart_invariant th]); ALL_TAC]
-       THEN POP_ASSUM SUBST1_TAC
-       THEN UNDISCH_THEN `y:A IN dart (H:(A)hypermap)` (fun th -> REWRITE_TAC[MATCH_MP lemma_dart_inveriant_under_inverse_maps th]); ALL_TAC]
-   THEN REWRITE_TAC[orbit_map; SUBSET; IN_ELIM_THM]
-   THEN GEN_TAC
-   THEN DISCH_THEN (X_CHOOSE_THEN `m:num` (SUBST1_TAC o CONJUNCT2))
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[th]));;
-
-let lemma_atom_sub_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). is_loop H L /\ x inside L ==> atom H L x SUBSET dart_of L`,
- REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+let lemma_atom_sub_loop = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). x inside L ==> atom H L x SUBSET dart_of L`,
+   REPEAT STRIP_TAC
    THEN REWRITE_TAC[atom; SUBSET; IN_ELIM_THM; GSYM inside]
    THEN REPEAT STRIP_TAC
    THENL[POP_ASSUM ((X_CHOOSE_THEN `k:num` (SUBST1_TAC o CONJUNCT1)) o REWRITE_RULE[is_node_going])
-       THEN POP_ASSUM (fun th2 -> (POP_ASSUM (fun th1 -> REWRITE_TAC[MATCH_MP lemma_power_next_in_loop (CONJ th1 th2)]))); ALL_TAC]
+       THEN POP_ASSUM(fun th -> REWRITE_TAC[MATCH_MP lemma_power_next_in_loop th]); ALL_TAC]
    THEN POP_ASSUM ((X_CHOOSE_THEN `k:num` (MP_TAC o CONJUNCT1)) o REWRITE_RULE[is_node_going])
-   THEN ASM_CASES_TAC `~((x':A) inside (L:(A)path))`
-   THENL[POP_ASSUM (fun th -> (REWRITE_TAC[MATCH_MP lemma_power_back_and_next_outside_loop th] THEN ASSUME_TAC th))
-       THEN DISCH_THEN SUBST_ALL_TAC
+   THEN ASM_CASES_TAC `~((x':A) inside (L:(A)loop))`
+   THENL[POP_ASSUM(fun th -> (REWRITE_TAC[MATCH_MP lemma_power_back_and_next_outside_loop th]))
+       THEN DISCH_THEN (SUBST1_TAC o SYM)
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM (fun th -> MESON_TAC[th]));;
 
-let lemma_atom_out_side_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). is_loop H L /\ ~(x inside L) ==> atom H L x = {x}`,
+let lemma_atom_out_side_loop = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). ~(x inside L) ==> atom H L x = {x}`,
    REPEAT STRIP_TAC
    THEN MATCH_MP_TAC SUBSET_ANTISYM
    THEN STRIP_TAC
@@ -9492,8 +8934,8 @@ let lemma_atom_out_side_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). is_loo
       THENL[POP_ASSUM ((X_CHOOSE_THEN `k:num` (SUBST1_TAC o CONJUNCT1)) o REWRITE_RULE[is_node_going])
 	  THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_power_back_and_next_outside_loop th]); ALL_TAC]
       THEN POP_ASSUM ((X_CHOOSE_THEN `k:num` (MP_TAC o CONJUNCT1)) o REWRITE_RULE[is_node_going])
-      THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `(back (L:(A)path)) POWER (k:num)`)
-      THEN UNDISCH_THEN `is_loop (H:(A)hypermap) (L:(A)path)` (fun th -> REWRITE_TAC[MATCH_MP lemma_second_inverse_evaluation th])
+      THEN DISCH_THEN (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `(back (L:(A)loop)) POWER (k:num)`)
+      THEN REWRITE_TAC[lemma_second_inverse_evaluation]
       THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_power_back_and_next_outside_loop th])
       THEN REWRITE_TAC[EQ_SYM]; ALL_TAC]
    THEN REWRITE_TAC[SUBSET; IN_SING]
@@ -9501,7 +8943,7 @@ let lemma_atom_out_side_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). is_loo
    THEN DISCH_THEN SUBST1_TAC
    THEN REWRITE_TAC[atom_reflect]);;
 
-let lemma_atom_sub_node = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). (atom H L x) SUBSET  (node H x)`,
+let lemma_atom_sub_node = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). (atom H L x) SUBSET  (node H x)`,
  REPEAT GEN_TAC
    THEN REWRITE_TAC[atom; SUBSET; IN_ELIM_THM]
    THEN GEN_TAC
@@ -9519,7 +8961,7 @@ let lemma_atom_sub_node = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). (atom H L x
    THEN DISCH_THEN SUBST1_TAC
    THEN REWRITE_TAC[node; lemma_in_orbit]);;
 
-let lemma_atom_sub_dart_set = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). x IN dart H ==> atom H L x SUBSET dart H`,
+let lemma_atom_sub_dart_set = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). x IN dart H ==> atom H L x SUBSET dart H`,
   REPEAT STRIP_TAC
     THEN MATCH_MP_TAC SUBSET_TRANS
     THEN EXISTS_TAC `node (H:(A)hypermap) (x:A)`
@@ -9527,9 +8969,9 @@ let lemma_atom_sub_dart_set = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). x IN da
     THEN MP_TAC (SPEC `x:A` (MATCH_MP orbit_subset (CONJUNCT2(SPEC `H:(A)hypermap` node_map_and_darts))))
     THEN ASM_REWRITE_TAC[]);;
 
-let lemma_atom_finite = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). FINITE (atom H L x) /\ 1 <= CARD (atom H L x)`,
+let lemma_atom_finite = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). FINITE (atom H L x) /\ 1 <= CARD (atom H L x)`,
    REPEAT GEN_TAC
-   THEN SUBGOAL_THEN `FINITE (atom (H:(A)hypermap) (L:(A)path) (x:A))` ASSUME_TAC
+   THEN SUBGOAL_THEN `FINITE (atom (H:(A)hypermap) (L:(A)loop) (x:A))` ASSUME_TAC
    THENL[MATCH_MP_TAC FINITE_SUBSET
       THEN EXISTS_TAC `node (H:(A)hypermap) (x:A)`
       THEN REWRITE_TAC[NODE_FINITE; lemma_atom_sub_node]; ALL_TAC]
@@ -9538,9 +8980,8 @@ let lemma_atom_finite = prove(`!(H:(A)hypermap) (L:(A)path) (x:A). FINITE (atom 
    THEN EXISTS_TAC `x:A`
    THEN ASM_REWRITE_TAC[atom_reflect]);;
 
-let lemma_identity_atom = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_loop H L  /\ y IN (atom H L x) ==> atom H L x = atom H L y`,
- REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+let lemma_identity_atom = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A). y IN (atom H L x) ==> atom H L x = atom H L y`,
+ REPEAT STRIP_TAC
    THEN MATCH_MP_TAC SUBSET_ANTISYM
    THEN STRIP_TAC
    THENL[REWRITE_TAC[SUBSET; IN_ELIM_THM]
@@ -9548,19 +8989,19 @@ let lemma_identity_atom = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_lo
       THEN POP_ASSUM (MP_TAC o MATCH_MP atom_sym)
       THEN REWRITE_TAC[IMP_IMP]
       THEN ONCE_REWRITE_TAC[CONJ_SYM]
-      THEN POP_ASSUM (fun th1 -> (DISCH_THEN (fun th2 -> REWRITE_TAC[MATCH_MP atom_trans (CONJ th1 th2)]))); ALL_TAC]
+      THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP atom_trans  th]); ALL_TAC]
    THEN REWRITE_TAC[SUBSET; IN_ELIM_THM]
    THEN GEN_TAC
    THEN POP_ASSUM MP_TAC
    THEN REWRITE_TAC[IMP_IMP]
    THEN ONCE_REWRITE_TAC[CONJ_SYM]
-   THEN POP_ASSUM (fun th1 -> (DISCH_THEN (fun th2 -> REWRITE_TAC[MATCH_MP atom_trans (CONJ th1 th2)]))));;
+   THEN DISCH_THEN (fun th2 -> REWRITE_TAC[MATCH_MP atom_trans th2]));;
 
-let lemma_atom_get_a_quark = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_loop H L /\ y IN (atom H L x) /\ next L y = inverse (node_map H) y 
+let lemma_atom_absorb_quark = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A). y IN (atom H L x) /\ next L y = inverse (node_map H) y 
     ==> (next L y)  IN (atom H L x)`,
    REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "F2")))
-   THEN DISCH_THEN (fun th2 -> (USE_THEN "F1" (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identity_atom (CONJ th1 th2)])))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
+   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP lemma_identity_atom th])
    THEN REWRITE_TAC[atom; IN_ELIM_THM]
    THEN DISJ1_TAC
    THEN REWRITE_TAC[is_node_going]
@@ -9575,63 +9016,67 @@ let lemma_atom_get_a_quark = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is
    THEN REWRITE_TAC[ARITH_RULE `!i:num. i < 1 <=> i = 0`]
    THEN DISCH_THEN SUBST1_TAC
    THEN REWRITE_TAC[POWER_0]);;
-
-let lemma_second_atom_get_a_quark = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_loop H L  /\ y IN (atom H L x) /\ y = inverse (node_map H) (back L y)  ==> (back L y)  IN (atom H L x)`,
+ 
+let lemma_second_absorb_quark = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A). y IN (atom H L x) /\ y = inverse (node_map H) (back L y)  ==> (back L y)  IN (atom H L x)`,
    REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "F2")))
-   THEN DISCH_THEN (fun th2 -> (USE_THEN "F1" (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identity_atom (CONJ th1 th2)])))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
+   THEN DISCH_THEN (fun th -> REWRITE_TAC[MATCH_MP lemma_identity_atom th])
    THEN REWRITE_TAC[atom; IN_ELIM_THM]
    THEN DISJ2_TAC
    THEN REWRITE_TAC[is_node_going]
    THEN EXISTS_TAC `1`
    THEN REWRITE_TAC[POWER_1]
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN REWRITE_TAC[lemma_inverse_evaluation]
    THEN REPEAT STRIP_TAC
    THEN ASM_CASES_TAC `i:num = 1`
    THENL[POP_ASSUM SUBST1_TAC
        THEN REWRITE_TAC[POWER_1]
-       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th]) 
-       THEN USE_THEN "F2" (fun th -> MESON_TAC[th]); ALL_TAC]
+       THEN REWRITE_TAC[lemma_inverse_evaluation] 
+       THEN ASM_MESON_TAC[]; ALL_TAC]
    THEN REPLICATE_TAC 2 (POP_ASSUM MP_TAC)
    THEN REWRITE_TAC[IMP_IMP; GSYM LT_LE]
    THEN REWRITE_TAC[ARITH_RULE `!i:num. i < 1 <=> i = 0`]
    THEN DISCH_THEN SUBST1_TAC
-   THEN REWRITE_TAC[POWER_0]);;
+   THEN REWRITE_TAC[POWER_0] );;
 
 let lemma_in_subset = prove(`!s t x. s SUBSET t /\ x IN s ==> x IN t`, SET_TAC[]);;
 
-let lemma_head_and_tail_of_atom = prove(`!(H:(A)hypermap) (L:(A)path).(?h:A->A t:A->A.(!x:A. (is_loop H L /\ x inside L /\ (?y:A z:A. y inside L /\ z inside L /\ ~(node H y = node H z))) ==> (h x) IN (atom H L x) /\ (t x) IN (atom H L x) /\ ~((next L (h x)) = (inverse (node_map H)) (h x)) /\ ~(t x = (inverse (node_map H)) (back L (t x)))))`,   
-  REPEAT GEN_TAC
+let next_and_loop_darts = prove(`!L:(A)loop. FINITE(dart_of L) /\ (next L permutes dart_of L)`, MESON_TAC[loop_lemma]);;
+
+let back_and_loop_darts = prove(`!L:(A)loop. FINITE(dart_of L) /\ (back L permutes dart_of L)`, MESON_TAC[loop_lemma; lemma_permute_loop]);;
+
+let lemma_border_of_atom = prove(`!(H:(A)hypermap) (L:(A)loop).(?h:A->A t:A->A.(!x:A. (x inside L /\ (?y:A z:A. y inside L /\ z inside L /\ ~(node H y = node H z))) ==> (h x) IN (atom H L x) /\ (t x) IN (atom H L x) /\ ~((next L (h x)) = (inverse (node_map H)) (h x)) /\ ~(t x = (inverse (node_map H)) (back L (t x)))))`,
+   REPEAT GEN_TAC
    THEN REWRITE_TAC [GSYM SKOLEM_THM]
    THEN GEN_TAC
    THEN REWRITE_TAC[RIGHT_EXISTS_IMP_THM]
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (X_CHOOSE_THEN `y:A` (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2(LABEL_TAC "F4") (LABEL_TAC "F5")))))))
-   THEN SUBGOAL_THEN `?a:A. a IN (atom (H:(A)hypermap) (L:(A)path) (x:A)) /\ ~(next L a = (inverse (node_map H)) a)` (LABEL_TAC "F4")
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (X_CHOOSE_THEN `y:A` (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2(LABEL_TAC "F4") (LABEL_TAC "F5"))))))
+   THEN SUBGOAL_THEN `?a:A. a IN (atom (H:(A)hypermap) (L:(A)loop) (x:A)) /\ ~(next L a = (inverse (node_map H)) a)` (LABEL_TAC "F4")
    THENL[ONCE_REWRITE_TAC[TAUT `A <=> (~A ==> F)`]
        THEN GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [NOT_EXISTS_THM]
        THEN GEN_REWRITE_TAC (LAND_CONV o TOP_DEPTH_CONV) [DE_MORGAN_THM; TAUT `~ ~A = A`; TAUT `(~A \/ B) <=> (A==>B)`]
        THEN DISCH_THEN (LABEL_TAC "G1")
        THEN REMOVE_THEN "F5" MP_TAC
        THEN REWRITE_TAC[]
-       THEN SUBGOAL_THEN `dart_of (L:(A)path) = atom (H:(A)hypermap) L (x:A)` (LABEL_TAC "G2")
-       THENL[SUBGOAL_THEN `!k:num. ((next (L:(A)path)) POWER k) (x:A) IN (atom (H:(A)hypermap) L x)` ASSUME_TAC
+       THEN SUBGOAL_THEN `dart_of (L:(A)loop) = atom (H:(A)hypermap) L (x:A)` (LABEL_TAC "G2")
+       THENL[SUBGOAL_THEN `!k:num. ((next (L:(A)loop)) POWER k) (x:A) IN (atom (H:(A)hypermap) L x)` ASSUME_TAC
 	  THENL[INDUCT_TAC
 	      THENL[REWRITE_TAC[POWER_0; I_THM; node; atom_reflect]; ALL_TAC]
-	      THEN POP_ASSUM (LABEL_TAC "G2")
+  	      THEN POP_ASSUM (LABEL_TAC "G2")
 	      THEN REWRITE_TAC[COM_POWER; o_THM]
 	      THEN USE_THEN "G2" (fun th1 -> (USE_THEN "G1" (fun th2 -> (MP_TAC(MATCH_MP th2 th1)))))
-	      THEN USE_THEN "F1" (fun th1 -> (USE_THEN "G2" (fun th2-> (DISCH_THEN (fun th3 -> (REWRITE_TAC[MATCH_MP lemma_atom_get_a_quark (CONJ th1 (CONJ th2 th3))])))))); ALL_TAC]
+	      THEN (USE_THEN "G2" (fun th2-> (DISCH_THEN (fun th3 -> (REWRITE_TAC[MATCH_MP lemma_atom_absorb_quark (CONJ th2 th3)]))))); ALL_TAC]
 	  THEN MATCH_MP_TAC SUBSET_ANTISYM
-	  THEN USE_THEN "F1" (fun th -> (USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_atom_sub_loop (CONJ th th2)])))
+	  THEN USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_atom_sub_loop th2])
 	  THEN REWRITE_TAC[SUBSET; GSYM inside]
 	  THEN GEN_TAC
-	  THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2-> (DISCH_THEN (fun th3-> (MP_TAC (MATCH_MP lemma_next_power_representation (CONJ th1 (CONJ th2 th3)))))))))
+	  THEN USE_THEN "F2" (fun th2-> (DISCH_THEN (fun th3-> (MP_TAC (MATCH_MP lemma_next_power_representation (CONJ th2 th3))))))
 	  THEN DISCH_THEN (X_CHOOSE_THEN `k:num` (SUBST1_TAC o CONJUNCT2))
 	  THEN POP_ASSUM (fun th -> REWRITE_TAC[SPEC `k:num` th]); ALL_TAC]
        THEN REMOVE_THEN "F3" (LABEL_TAC "F3" o REWRITE_RULE[inside])
        THEN REMOVE_THEN "F4" (LABEL_TAC "F4" o REWRITE_RULE[inside])
        THEN REMOVE_THEN "G2" SUBST_ALL_TAC
-       THEN LABEL_TAC "G3" (SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] lemma_atom_sub_node)
+       THEN LABEL_TAC "G3" (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] lemma_atom_sub_node)
        THEN USE_THEN "F3" (fun th1 -> (USE_THEN "G3" (fun th2 -> (MP_TAC(MATCH_MP lemma_in_subset (CONJ th2 th1))))))
        THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM(MATCH_MP lemma_node_identity th)])
        THEN USE_THEN "F4" (fun th1 -> (USE_THEN "G3" (fun th2 -> (MP_TAC(MATCH_MP lemma_in_subset (CONJ th2 th1))))))
@@ -9645,30 +9090,29 @@ let lemma_head_and_tail_of_atom = prove(`!(H:(A)hypermap) (L:(A)path).(?h:A->A t
    THEN DISCH_THEN (LABEL_TAC "G1")
    THEN REMOVE_THEN "F5" MP_TAC
    THEN REWRITE_TAC[]
-   THEN SUBGOAL_THEN `dart_of (L:(A)path) = atom (H:(A)hypermap) L (x:A)` (LABEL_TAC "G2")
-   THENL[SUBGOAL_THEN `!k:num. ((back (L:(A)path)) POWER k) (x:A) IN (atom (H:(A)hypermap) L x)` ASSUME_TAC
+   THEN SUBGOAL_THEN `dart_of (L:(A)loop) = atom (H:(A)hypermap) L (x:A)` (LABEL_TAC "G2")
+   THENL[SUBGOAL_THEN `!k:num. ((back (L:(A)loop)) POWER k) (x:A) IN (atom (H:(A)hypermap) L x)` ASSUME_TAC
       THENL[INDUCT_TAC
 	  THENL[REWRITE_TAC[POWER_0; I_THM; node; atom_reflect]; ALL_TAC]
 	  THEN POP_ASSUM (LABEL_TAC "G2")
 	  THEN REWRITE_TAC[COM_POWER; o_THM]
 	  THEN USE_THEN "G2" (fun th1 -> (USE_THEN "G1" (fun th2 -> (MP_TAC(MATCH_MP th2 th1)))))
-	  THEN USE_THEN "F1" (fun th1 -> (USE_THEN "G2" (fun th2-> (DISCH_THEN (fun th3 -> (REWRITE_TAC[MATCH_MP lemma_second_atom_get_a_quark (CONJ th1 (CONJ th2 th3))])))))); ALL_TAC]
+	  THEN (USE_THEN "G2" (fun th2-> (DISCH_THEN (fun th3 -> (REWRITE_TAC[MATCH_MP lemma_second_absorb_quark (CONJ th2 th3)]))))); ALL_TAC]
       THEN MATCH_MP_TAC SUBSET_ANTISYM
-      THEN USE_THEN "F1" (fun th -> (USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_atom_sub_loop (CONJ th th2)])))
+      THEN USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_atom_sub_loop th2])
       THEN REWRITE_TAC[SUBSET; GSYM inside]
       THEN GEN_TAC
-      THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2-> (DISCH_THEN (fun th3-> (MP_TAC (MATCH_MP lemma_next_power_representation (CONJ th1 (CONJ th2 th3)))))))))
+      THEN USE_THEN "F2" (fun th2-> (DISCH_THEN (fun th3-> (MP_TAC (MATCH_MP lemma_next_power_representation (CONJ th2 th3) )))))
       THEN DISCH_THEN (X_CHOOSE_THEN `k:num` (MP_TAC o CONJUNCT2))
-      THEN USE_THEN "F1" (fun th -> ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_on_loop th])
-      THEN USE_THEN "F1" (fun th -> MP_TAC(CONJUNCT2(MATCH_MP lemma_permute_loop th)))
-      THEN DISCH_THEN (fun th1 -> (MP_TAC (SPEC `k:num` (MATCH_MP power_inverse_element_lemma (CONJ (SPEC `L:(A)path` lemma_dart_loop_finite) th1)))))
+      THEN ONCE_REWRITE_TAC[lemma_inverse_on_loop]
+      THEN MP_TAC (SPEC `k:num` (MATCH_MP power_inverse_element_lemma (SPEC `L:(A)loop` back_and_loop_darts)))
       THEN DISCH_THEN (X_CHOOSE_THEN `j:num` SUBST1_TAC)
       THEN DISCH_THEN SUBST1_TAC
       THEN POP_ASSUM (fun th -> REWRITE_TAC[SPEC `j:num` th]); ALL_TAC]
    THEN REMOVE_THEN "F3" (LABEL_TAC "F3" o REWRITE_RULE[inside])
    THEN REMOVE_THEN "F4" (LABEL_TAC "F4" o REWRITE_RULE[inside])
    THEN REMOVE_THEN "G2" SUBST_ALL_TAC
-   THEN LABEL_TAC "G3" (SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] lemma_atom_sub_node)
+   THEN LABEL_TAC "G3" (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] lemma_atom_sub_node)
    THEN USE_THEN "F3" (fun th1 -> (USE_THEN "G3" (fun th2 -> (MP_TAC(MATCH_MP lemma_in_subset (CONJ th2 th1))))))
    THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM(MATCH_MP lemma_node_identity th)])
    THEN USE_THEN "F4" (fun th1 -> (USE_THEN "G3" (fun th2 -> (MP_TAC(MATCH_MP lemma_in_subset (CONJ th2 th1))))))
@@ -9676,26 +9120,41 @@ let lemma_head_and_tail_of_atom = prove(`!(H:(A)hypermap) (L:(A)path).(?h:A->A t
 
 (* The definition of quotient hypermaps *)
 
-let molecule = new_definition `!(H:(A)hypermap) (L:(A)path). molecule H L = {atom H L x |x:A | x inside L}`;;
+let is_normal = new_definition `!(H:(A)hypermap) (NF:(A)loop -> bool). is_normal H NF 
+<=> (!(L:(A)loop). L IN NF ==> ((is_loop H L) /\ (?x:A. x IN dart H /\ x inside L))) /\
+    (!(L:(A)loop). L IN NF ==> (?y:A z:A. y inside L /\ z inside L /\ ~(node H y = node H z ))) /\
+    (!(L:(A)loop) (L':(A)loop) (x:A). L IN NF /\ L' IN NF /\ x inside L /\ x inside L' ==> L = L') /\
+    (!(L:(A)loop) x:A y:A. L IN NF /\ x inside L /\ y IN node H x ==> ?L':(A)loop. L' IN NF /\ y inside L') `;;
 
-let is_normal = new_definition `!(H:(A)hypermap) (NF:(A)path -> bool). is_normal H NF 
-<=> (!(L:(A)path). L IN NF ==> ((is_loop H L) /\ (?x:A. x IN dart H /\ x inside L))) /\
-    (!(L:(A)path). L IN NF ==> (?y:A z:A. y inside L /\ z inside L /\ ~(node H y = node H z ))) /\
-    (!(L:(A)path) (L':(A)path) (x:A). L IN NF /\ L' IN NF /\ x inside L /\ x inside L' ==> L = L') /\
-    (!(L:(A)path) x:A y:A. L IN NF /\ x inside L /\ y IN node H x ==> ?L':(A)path. L' IN NF /\ y inside L') `;;
-
-let lemm_nornal_loop_sub_dart = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path). is_normal H NF /\ L IN NF ==> (dart_of L) SUBSET dart H`,
+let lemm_nornal_loop_sub_dart = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop). is_normal H NF /\ L IN NF ==> (dart_of L) SUBSET dart H`,
    REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (MP_TAC o SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal]) ASSUME_TAC)
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (MP_TAC o SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal]) ASSUME_TAC)
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC (X_CHOOSE_THEN `x:A` MP_TAC))
-   THEN POP_ASSUM (fun th1 -> (DISCH_THEN (fun th2-> REWRITE_TAC[MATCH_MP lemma_loop_inside_dart_set (CONJ th1 th2)]))));;
+   THEN POP_ASSUM (fun th1 -> (DISCH_THEN (fun th2-> REWRITE_TAC[MATCH_MP support_loop_sub_dart (CONJ th1 th2)]))));;
 
-let quotient_darts = new_definition `!(H:(A)hypermap) (NF:(A)path->bool). quotient_darts H NF = {atom H L x | (L:(A)path) (x:A) | L IN NF /\ x inside L}`;;
 
-let support_darts = new_definition `!(NF:(A)path->bool). support_darts NF  = UNIONS {dart_of (L:(A)path) | L IN NF}`;;
+let quotient_darts = new_definition `!(H:(A)hypermap) (NF:(A)loop->bool). quotient_darts H NF = {atom H L x | (L:(A)loop) (x:A) | L IN NF /\ x inside L}`;;
 
-let lemma_support_and_atoms = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==>  support_darts NF = UNIONS (quotient_darts H NF)`,
+let support_darts = new_definition `!(NF:(A)loop->bool). support_darts NF  = UNIONS {dart_of (L:(A)loop) | L IN NF}`;;
+
+let lemma_in_loop = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (y:A). x inside L /\ y IN atom H L x ==> y inside L`,
+   REPEAT STRIP_TAC
+   THEN REWRITE_TAC[inside]
+   THEN MATCH_MP_TAC lemma_in_subset
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) (x:A)`
+   THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
+   THEN MATCH_MP_TAC lemma_atom_sub_loop
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_in_dart = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> x IN dart H`,
+ REPEAT STRIP_TAC
+   THEN MATCH_MP_TAC lemma_in_subset
+   THEN EXISTS_TAC `dart_of (L:(A)loop)`
+   THEN POP_ASSUM (fun th-> REWRITE_TAC[GSYM inside; th])
+   THEN POP_ASSUM(fun th1->(POP_ASSUM(fun th -> REWRITE_TAC[MATCH_MP lemm_nornal_loop_sub_dart (CONJ th th1)]))));;
+
+let lemma_support_and_atoms = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==>  support_darts NF = UNIONS (quotient_darts H NF)`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "F1")
    THEN CONV_TAC SYM_CONV
@@ -9704,30 +9163,29 @@ let lemma_support_and_atoms = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_nor
    THEN STRIP_TAC
    THENL[REWRITE_TAC[SUBSET; IN_UNIONS; IN_ELIM_THM]
        THEN REPEAT STRIP_TAC
-       THEN EXISTS_TAC `dart_of (L:(A)path)`
+       THEN EXISTS_TAC `dart_of (L:(A)loop)`
        THEN STRIP_TAC
-       THENL[EXISTS_TAC `L:(A)path` THEN ASM_REWRITE_TAC[]; ALL_TAC]
-       THEN UNDISCH_THEN `t:A->bool = atom (H:(A)hypermap) (L:(A)path) (x':A)` SUBST_ALL_TAC
-       THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o REWRITE_RULE[is_normal])
-       THEN ASM_REWRITE_TAC[]
-       THEN DISCH_THEN (ASSUME_TAC o CONJUNCT1)
-       THEN POP_ASSUM (fun th1 -> (UNDISCH_THEN `x':A inside (L:(A)path)` (fun th2 -> (MP_TAC (MATCH_MP lemma_atom_sub_loop (CONJ th1 th2))))))
-       THEN DISCH_THEN (fun th1 -> (POP_ASSUM (fun th2 -> REWRITE_TAC[MATCH_MP lemma_in_subset (CONJ th1 th2)]))); ALL_TAC]
+       THENL[EXISTS_TAC `L:(A)loop` THEN ASM_REWRITE_TAC[]; ALL_TAC]
+       THEN UNDISCH_THEN `t:A->bool = atom (H:(A)hypermap) (L:(A)loop) (x':A)` SUBST_ALL_TAC
+       THEN MATCH_MP_TAC lemma_in_subset
+       THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) (x':A)`
+       THEN POP_ASSUM (fun th-> REWRITE_TAC[th])
+       THEN POP_ASSUM (fun th -> (REWRITE_TAC[MATCH_MP lemma_atom_sub_loop th])); ALL_TAC]
    THEN REWRITE_TAC[SUBSET; IN_UNIONS; IN_ELIM_THM]
    THEN REPEAT STRIP_TAC
-   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)path) (x:A)`
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) (x:A)`
    THEN STRIP_TAC
-   THENL[EXISTS_TAC `L:(A)path`
+   THENL[EXISTS_TAC `L:(A)loop`
       THEN EXISTS_TAC `x:A`
       THEN POP_ASSUM MP_TAC
       THEN POP_ASSUM SUBST1_TAC
       THEN ASM_REWRITE_TAC[GSYM inside]; ALL_TAC]
    THEN REWRITE_TAC[atom_reflect]);;
 
-let lemma_finite_support = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==>  support_darts NF SUBSET dart H /\ FINITE (support_darts NF)`,
+let lemma_finite_support = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==>  support_darts NF SUBSET dart H /\ FINITE (support_darts NF)`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN SUBGOAL_THEN `support_darts (NF:(A)path->bool) SUBSET dart H` ASSUME_TAC
+   THEN SUBGOAL_THEN `support_darts (NF:(A)loop->bool) SUBSET dart H` ASSUME_TAC
    THENL[REWRITE_TAC[support_darts; SUBSET; IN_UNIONS; IN_ELIM_THM]
        THEN REPEAT STRIP_TAC
        THEN POP_ASSUM MP_TAC
@@ -9740,90 +9198,22 @@ let lemma_finite_support = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal
    THEN EXISTS_TAC `dart (H:(A)hypermap)`
    THEN ASM_REWRITE_TAC[hypermap_lemma]);;
 
-let lemma_choice_function = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==> ?choice_function: A->(A->bool). !x:A. (~(x IN support_darts NF) ==> choice_function x = {x}) /\ (x IN support_darts NF ==> (?L:(A)path. L IN NF /\ x inside L /\ choice_function x = atom H L x))`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")   
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_support_and_atoms th])
-   THEN REWRITE_TAC[GSYM SKOLEM_THM]
-   THEN GEN_TAC
-   THEN ASM_CASES_TAC `~(x:A IN UNIONS (quotient_darts (H:(A)hypermap) (NF:(A)path->bool)))`
-   THENL[EXISTS_TAC `{x:A}`
-       THEN POP_ASSUM(fun th -> SIMP_TAC[th]); ALL_TAC]
-   THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
-   THEN ASM_REWRITE_TAC[]
-   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_UNIONS; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `t:A->bool` (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "F2" )))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) (LABEL_TAC "F5"))))
-   THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
-   THEN EXISTS_TAC `L:(A)path`
-   THEN EXISTS_TAC `t:A->bool`
-   THEN POP_ASSUM SUBST_ALL_TAC
-   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th])
-   THEN USE_THEN "F1" (fun th -> (MP_TAC (SPEC `L:(A)path`(CONJUNCT1 (REWRITE_RULE[is_normal] th)))))
-   THEN ASM_REWRITE_TAC[]
-   THEN DISCH_THEN (LABEL_TAC "F5" o CONJUNCT1)
-   THEN USE_THEN "F5" (fun th1 -> (USE_THEN "F4" (fun th2 -> (ASSUME_TAC (MATCH_MP lemma_atom_sub_loop (CONJ th1 th2))))))
-   THEN USE_THEN "F5" (fun th1 -> (USE_THEN "F2" (fun th -> (MP_TAC (MATCH_MP lemma_identity_atom (CONJ th1 th))))))
-   THEN DISCH_THEN (SUBST_ALL_TAC)
-   THEN REMOVE_THEN "F2"(fun th -> (POP_ASSUM (fun th1 -> (REWRITE_TAC[REWRITE_RULE[GSYM inside] ((MATCH_MP lemma_in_subset) (CONJ th1 th))]))))
-  );;
+let lemma_in_support2 = prove(`!(NF:(A)loop->bool) L:(A)loop (x:A). x inside L /\ L IN NF ==> x IN support_darts NF`,
+   REWRITE_TAC[inside; support_darts] THEN SET_TAC[]);;
 
-
-
-let lemma_finite_quotient_darts = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==> FINITE (quotient_darts H NF)`,
-   REPEAT GEN_TAC
-   THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN USE_THEN "F1" (MP_TAC o MATCH_MP lemma_choice_function)
-   THEN DISCH_THEN (X_CHOOSE_THEN `pchoice:A->(A->bool)` (LABEL_TAC "F2"))
-   THEN SUBGOAL_THEN `IMAGE (pchoice:(A->(A->bool))) (support_darts (NF:(A)path->bool)) = quotient_darts H NF` ASSUME_TAC
-   THENL[REWRITE_TAC[IMAGE; EXTENSION; IN_ELIM_THM]
-      THEN GEN_TAC
-      THEN REWRITE_TAC[GSYM EXTENSION]
-      THEN EQ_TAC
-      THENL[DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")))
-	  THEN REMOVE_THEN "F2" (MP_TAC o SPEC `y:A`)
-	  THEN ASM_REWRITE_TAC[]
-	  THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
-	  THEN DISCH_TAC
-	  THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
-	  THEN EXISTS_TAC `y:A`
-	  THEN POP_ASSUM (fun th -> MESON_TAC[th]); ALL_TAC]
-      THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
-      THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G1") (LABEL_TAC "G2")) (LABEL_TAC "G3"))))
-      THEN SUBGOAL_THEN `y:A IN support_darts (NF:(A)path->bool)` ASSUME_TAC
-      THENL[REWRITE_TAC[support_darts; IN_UNIONS; IN_ELIM_THM]
-	  THEN EXISTS_TAC `dart_of (L:(A)path)`
-	  THEN ASM_REWRITE_TAC[GSYM inside]
-	  THEN EXISTS_TAC `L:(A)path`
-	  THEN ASM_REWRITE_TAC[]; ALL_TAC]
-      THEN REMOVE_THEN "F2" (MP_TAC o SPEC `y:A`)
-      THEN ASM_REWRITE_TAC[]
-      THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` STRIP_ASSUME_TAC)
-      THEN USE_THEN "F1" (MP_TAC o SPECL[`L:(A)path`; `L':(A)path`; `y:A`] o CONJUNCT1 o CONJUNCT2 o CONJUNCT2 o REWRITE_RULE[is_normal])
-      THEN ASM_REWRITE_TAC[]
-      THEN DISCH_THEN (SUBST_ALL_TAC o SYM)
-      THEN EXISTS_TAC `y:A`
-      THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN POP_ASSUM (SUBST1_TAC o SYM)
-   THEN MATCH_MP_TAC FINITE_IMAGE
-   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_finite_support th]));;
-
-let lemma_in_support2 = prove(`!(NF:(A)path->bool) L:(A)path (x:A). x inside L /\ L IN NF ==> x IN support_darts NF`,
-  REWRITE_TAC[inside; support_darts] THEN SET_TAC[]);;
-
-let lemma_in_support = prove(`!(NF:(A)path->bool) (x:A). x IN support_darts NF <=> ?L:(A)path. L IN NF /\ x inside L`,
+let lemma_in_support = prove(`!(NF:(A)loop->bool) (x:A). x IN support_darts NF <=> ?L:(A)loop. L IN NF /\ x inside L`,
    REPEAT GEN_TAC
    THEN EQ_TAC
    THENL[REWRITE_TAC[support_darts; IN_UNIONS; IN_ELIM_THM]
       THEN REPEAT STRIP_TAC
-      THEN EXISTS_TAC `L:(A)path`
+      THEN EXISTS_TAC `L:(A)loop`
       THEN POP_ASSUM MP_TAC
       THEN POP_ASSUM SUBST1_TAC
       THEN REWRITE_TAC[GSYM inside]
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN MESON_TAC[lemma_in_support2]);;
 
-let lemma_node_in_support2 = prove(`!(H:(A)hypermap) (NF:(A)path->bool) x:A n:num. is_normal H NF /\ x IN support_darts NF ==> ((node_map H) POWER n) x IN support_darts NF`,
+let lemma_node_in_support2 = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) x:A n:num. is_normal H NF /\ x IN support_darts NF ==> ((node_map H) POWER n) x IN support_darts NF`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") MP_TAC)
    THEN SPEC_TAC (`n:num`, `n:num`)
@@ -9836,20 +9226,19 @@ let lemma_node_in_support2 = prove(`!(H:(A)hypermap) (NF:(A)path->bool) x:A n:nu
    THEN REWRITE_TAC[COM_POWER; o_THM]
    THEN ABBREV_TAC `y = ((node_map (H:(A)hypermap)) POWER (n:num)) (x:A)`
    THEN REMOVE_THEN "F2" (MP_TAC o REWRITE_RULE[lemma_in_support])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
    THEN MP_TAC (SPECL[`node_map (H:(A)hypermap)`; `1`; `y:A`] lemma_in_orbit)
    THEN REWRITE_TAC[POWER_1; GSYM node]
    THEN DISCH_TAC
-   THEN USE_THEN "F1" (MP_TAC o SPECL[`L:(A)path`; `y:A`; `node_map (H:(A)hypermap) (y:A)`] o CONJUNCT2 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPECL[`L:(A)loop`; `y:A`; `node_map (H:(A)hypermap) (y:A)`] o CONJUNCT2 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
    THEN ASM_REWRITE_TAC[]
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (MP_TAC o ONCE_REWRITE_RULE[CONJ_SYM]))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (MP_TAC o ONCE_REWRITE_RULE[CONJ_SYM]))
    THEN REWRITE_TAC[lemma_in_support2]);;
 
-
-let lemma_loop_outside_node = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). 
+let lemma_loop_outside_node = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). 
     is_normal H NF /\ L IN NF ==> ~(dart_of L SUBSET  node H x)`,
-REPEAT GEN_TAC
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[is_normal]) (ASSUME_TAC))
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[is_normal]) (ASSUME_TAC))
    THEN ASM_REWRITE_TAC[]
    THEN ONCE_REWRITE_TAC[TAUT `(A ==> ~B) <=> (B ==> ~A)`]
    THEN REWRITE_TAC[NOT_EXISTS_THM; TAUT `~(A /\ B /\ ~C) <=> (A /\ B ==> C)`]
@@ -9860,83 +9249,203 @@ REPEAT GEN_TAC
    THEN REPLICATE_TAC 2 (POP_ASSUM (SUBST1_TAC o SYM o MATCH_MP lemma_node_identity))
    THEN SIMP_TAC[]);;
 
-let lemma_length_of_normal_loop = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path). is_normal H NF /\ L IN NF ==> 2 <= CARD(dart_of L)`,
+let lemma_size_of_normal_loop = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop). is_normal H NF /\ L IN NF ==> 2 <= size L`,
  REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F3" o CONJUNCT1)
-   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[is_normal])
    THEN ASM_REWRITE_TAC[inside]
    THEN DISCH_THEN (X_CHOOSE_THEN `x:A` (X_CHOOSE_THEN `y:A` STRIP_ASSUME_TAC))
    THEN SUBGOAL_THEN `~(x:A = y:A)` ASSUME_TAC
    THENL[POP_ASSUM MP_TAC
        THEN REWRITE_TAC[CONTRAPOS_THM]
        THEN MESON_TAC[]; ALL_TAC]
+   THEN REWRITE_TAC[size]
    THEN MATCH_MP_TAC CARD_ATLEAST_2
    THEN EXISTS_TAC `x:A` THEN EXISTS_TAC `y:A`
-   THEN ASM_REWRITE_TAC[lemma_dart_loop_finite]);;
+   THEN ASM_REWRITE_TAC[loop_lemma]);;
 
-let disjoint_loops = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (L':(A)path) (x:A). 
+let disjoint_loops = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (L':(A)loop) (x:A). 
     is_normal H NF /\ L IN NF /\ L' IN NF /\ x inside L /\ x inside L' ==> L = L'`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (ASSUME_TAC) MP_TAC)
    THEN POP_ASSUM (fun th-> MESON_TAC[CONJUNCT1(CONJUNCT2(CONJUNCT2(REWRITE_RULE[is_normal] th)))]));;
 
-let lemma_extened_head_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool). ?(h:A->A) (t:A->A).(!x:A. is_normal H NF ==> (~(x IN support_darts NF) ==> h x = x /\ t x = x) /\ (x IN support_darts NF ==> (?L:(A)path. L IN NF /\ x inside L /\ (h x) IN (atom H L x) /\ ~(next L (h x) = inverse (node_map H) (h x)) /\ (t x) IN (atom H L x) /\ ~(t x = inverse (node_map H) (back L (t x))))))`,
-  REPEAT GEN_TAC
+let lemma_choice_function = prove(`!(H:(A)hypermap) (NF:(A)loop->bool).  ?choice_function: A->(A->bool). !x:A. is_normal H NF ==> ((~(x IN support_darts NF) ==> choice_function x = {x}) /\ (x IN support_darts NF ==> (?L:(A)loop. L IN NF /\ x inside L /\ choice_function x = atom H L x)))`,
+ REPEAT GEN_TAC
+   THEN REWRITE_TAC[GSYM SKOLEM_THM]
+   THEN GEN_TAC
+   THEN REWRITE_TAC[RIGHT_EXISTS_IMP_THM]
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_support_and_atoms th])
+   THEN ASM_CASES_TAC `~(x:A IN UNIONS (quotient_darts (H:(A)hypermap) (NF:(A)loop->bool)))`
+   THENL[EXISTS_TAC `{x:A}`
+       THEN POP_ASSUM(fun th -> SIMP_TAC[th]); ALL_TAC]
+   THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])  
+   THEN ASM_REWRITE_TAC[]
+   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_UNIONS; IN_ELIM_THM])
+   THEN DISCH_THEN (X_CHOOSE_THEN `t:A->bool` (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "F2" )))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) (LABEL_TAC "F5"))))
+   THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
+   THEN EXISTS_TAC `L:(A)loop`
+   THEN EXISTS_TAC `t:A->bool`
+   THEN POP_ASSUM SUBST_ALL_TAC
+   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th])
+   THEN USE_THEN "F1" (fun th -> (MP_TAC (SPEC `L:(A)loop`(CONJUNCT1 (REWRITE_RULE[is_normal] th)))))
+   THEN ASM_REWRITE_TAC[]
+   THEN DISCH_THEN (LABEL_TAC "F5" o CONJUNCT1)
+   THEN USE_THEN "F2" (fun th -> REWRITE_TAC[MATCH_MP lemma_identity_atom th])
+   THEN MATCH_MP_TAC lemma_in_loop
+   THEN ASM_MESON_TAC[]);;
+
+let lemma_choice = new_specification ["choice"] (REWRITE_RULE[SKOLEM_THM] lemma_choice_function);;
+
+let first_unique_choice = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> (!x:A. ~(x IN support_darts NF) ==> choice H NF x = {x}) 
+/\ (!L:(A)loop x:A. L IN NF /\ x inside L ==> choice H NF x = atom H L x)`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN STRIP_TAC
+   THENL[POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_choice th]); ALL_TAC]
+   THEN REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3"))
+   THEN USE_THEN "F2"(fun th ->(USE_THEN "F3" (fun th1-> (ASSUME_TAC(MATCH_MP lemma_in_support2 (CONJ th1 th))))))
+   THEN USE_THEN "F1" (fun th-> MP_TAC(CONJUNCT2(SPEC `x:A` (MATCH_MP lemma_choice th))))
+   THEN POP_ASSUM (fun th-> REWRITE_TAC[th])
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (ASSUME_TAC) (CONJUNCTS_THEN2 (LABEL_TAC "F4") SUBST1_TAC)))
+   THEN SUBGOAL_THEN `L' = L:(A)loop` SUBST_ALL_TAC
+   THENL[MATCH_MP_TAC disjoint_loops THEN ASM_MESON_TAC[]; ALL_TAC]
+   THEN SIMP_TAC[]);;
+
+let unique_choice = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> choice H NF x = atom H L x`,
+   REPEAT STRIP_TAC
+   THEN UNDISCH_THEN `is_normal (H:(A)hypermap) (NF:(A)loop->bool)` (MP_TAC o SPECL[`L:(A)loop`; `x:A`] o CONJUNCT2 o MATCH_MP first_unique_choice)
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_in_quotient = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). L IN NF /\ x inside L ==> (atom H L x) IN (quotient_darts H NF)`,
+ REPEAT STRIP_TAC
+   THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+   THEN EXISTS_TAC `L:(A)loop`
+   THEN EXISTS_TAC `x:A`
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_finite_quotient_darts = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> FINITE (quotient_darts H NF)`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN SUBGOAL_THEN `IMAGE (choice (H:(A)hypermap) (NF:(A)loop->bool)) (support_darts NF) = quotient_darts H NF` ASSUME_TAC
+   THENL[REWRITE_TAC[IMAGE; EXTENSION; IN_ELIM_THM]
+      THEN GEN_TAC
+      THEN REWRITE_TAC[GSYM EXTENSION]
+      THEN EQ_TAC
+      THENL[DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (MP_TAC o REWRITE_RULE[lemma_in_support]) (SUBST1_TAC)))
+          THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (LABEL_TAC "F2"))
+          THEN USE_THEN "F1" (ASSUME_TAC o CONJUNCT2 o MATCH_MP first_unique_choice)
+          THEN POP_ASSUM (fun th-> (USE_THEN "F2" (fun th1-> REWRITE_TAC[MATCH_MP th th1])))
+          THEN POP_ASSUM (fun th-> REWRITE_TAC[MATCH_MP lemma_in_quotient th]); ALL_TAC]
+      THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+      THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G1") (LABEL_TAC "G2")) (SUBST1_TAC))))
+      THEN USE_THEN "G1" (fun th-> (USE_THEN "G2" (fun th1-> (MP_TAC (MATCH_MP lemma_in_support2 (CONJ th1 th))))))
+      THEN DISCH_TAC
+      THEN EXISTS_TAC `y:A`
+      THEN POP_ASSUM (fun th-> REWRITE_TAC[th])
+      THEN USE_THEN "F1" (MP_TAC o SPECL[`L:(A)loop`; `y:A`] o CONJUNCT2 o MATCH_MP first_unique_choice)
+      THEN ASM_REWRITE_TAC[EQ_SYM]; ALL_TAC]
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN MATCH_MP_TAC FINITE_IMAGE
+   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_finite_support th]));;
+
+let lemma_finite_normal_loops = prove(`!H:(A)hypermap NF:(A)loop->bool. is_normal H NF ==> FINITE NF`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN SUBGOAL_THEN `?f:A->(A)loop. !x:A. (x IN support_darts NF ==> ?L:(A)loop. L IN NF /\ x inside L /\ f x = L)` MP_TAC
+   THENL[REWRITE_TAC[GSYM SKOLEM_THM]
+      THEN GEN_TAC
+      THEN REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]
+      THEN REWRITE_TAC[lemma_in_support]
+      THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G1") (LABEL_TAC "G2")))
+      THEN REWRITE_TAC[SWAP_EXISTS_THM]
+      THEN EXISTS_TAC `L:(A)loop`
+      THEN EXISTS_TAC `L:(A)loop`
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN DISCH_THEN (X_CHOOSE_THEN `f:A->(A)loop` (LABEL_TAC "F2"))
+   THEN SUBGOAL_THEN `IMAGE (f:A->(A)loop) (support_darts (NF:(A)loop->bool)) = NF` (SUBST1_TAC o SYM)
+   THENL[REWRITE_TAC[IMAGE; EXTENSION; IN_ELIM_THM]
+     THEN GEN_TAC
+     THEN EQ_TAC
+     THENL[ DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 MP_TAC SUBST1_TAC))
+        THEN DISCH_THEN (fun th-> (USE_THEN "F2" (fun thm -> MP_TAC(MATCH_MP thm th))))
+        THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC o CONJUNCT2)))
+        THEN ASM_REWRITE_TAC[]; ALL_TAC]
+     THEN DISCH_THEN (LABEL_TAC "F3")
+     THEN USE_THEN "F3" (fun th -> USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `x:(A)loop` o CONJUNCT1 o  REWRITE_RULE[is_normal]))
+     THEN DISCH_THEN (MP_TAC o CONJUNCT2)
+     THEN DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (LABEL_TAC "F5")))
+     THEN EXISTS_TAC `y:A`
+     THEN USE_THEN "F3" (fun th-> (USE_THEN "F5" (fun th1-> (ASSUME_TAC (MATCH_MP lemma_in_support2 (CONJ th1 th))))))
+     THEN ASM_REWRITE_TAC[]
+     THEN POP_ASSUM (fun th-> (USE_THEN "F2" (fun thm -> MP_TAC(MATCH_MP thm th))))
+     THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 ASSUME_TAC (CONJUNCTS_THEN2 ASSUME_TAC SUBST1_TAC)))
+     THEN MATCH_MP_TAC disjoint_loops
+     THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
+     THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN MATCH_MP_TAC FINITE_IMAGE
+   THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP  lemma_finite_support th]));;
+
+let lemma_border_of_atom2 = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). ?(h:A->A) (t:A->A).(!x:A. is_normal H NF ==> (~(x IN support_darts NF) ==> h x = x /\ t x = x) /\ (x IN support_darts NF ==> (?L:(A)loop. L IN NF /\ x inside L /\ (h x) IN (atom H L x) /\ ~(next L (h x) = inverse (node_map H) (h x)) /\ (t x) IN (atom H L x) /\ ~(t x = inverse (node_map H) (back L (t x))))))`,
+    REPEAT GEN_TAC
     THEN ONCE_REWRITE_TAC[RIGHT_FORALL_IMP_THM]
     THEN REPLICATE_TAC 2 (ONCE_REWRITE_TAC[RIGHT_EXISTS_IMP_THM])
     THEN DISCH_THEN (LABEL_TAC "F1")
     THEN REWRITE_TAC[GSYM SKOLEM_THM]
     THEN GEN_TAC
-    THEN ASM_CASES_TAC `~(x:A IN support_darts (NF:(A)path->bool))`
+    THEN ASM_CASES_TAC `~(x:A IN support_darts (NF:(A)loop->bool))`
     THENL[EXISTS_TAC `x:A`
         THEN EXISTS_TAC `x:A`
 	THEN ASM_REWRITE_TAC[]; ALL_TAC]
     THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
     THEN POP_ASSUM (fun th -> (REWRITE_TAC[th] THEN MP_TAC (REWRITE_RULE[lemma_in_support] th)))
-    THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-    THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`] lemma_head_and_tail_of_atom)
+    THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+    THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`] lemma_border_of_atom)
     THEN DISCH_THEN (X_CHOOSE_THEN `h1:A->A` (X_CHOOSE_THEN `t1:A->A` (MP_TAC o SPEC `x:A`)))
     THEN ASM_REWRITE_TAC[]
-    THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o  CONJUNCT1 o CONJUNCT2 o  REWRITE_RULE[is_normal])
+    THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o  CONJUNCT1 o CONJUNCT2 o  REWRITE_RULE[is_normal])
     THEN ASM_REWRITE_TAC[]
     THEN DISCH_THEN (fun th -> SIMP_TAC[th])
-    THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o  CONJUNCT1  o  REWRITE_RULE[is_normal])
+    THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o  CONJUNCT1  o  REWRITE_RULE[is_normal])
     THEN ASM_REWRITE_TAC[]
     THEN DISCH_THEN (fun th -> SIMP_TAC[th])
     THEN REPEAT STRIP_TAC
     THEN EXISTS_TAC `(h1:A->A) (x:A)`
     THEN EXISTS_TAC `(t1:A->A) (x:A)`
-    THEN EXISTS_TAC `L:(A)path`
+    THEN EXISTS_TAC `L:(A)loop`
     THEN ASM_REWRITE_TAC[]);;
 
-let lemma_head_tail = new_specification ["head"; "tail"] (REWRITE_RULE[SKOLEM_THM] lemma_extened_head_tail);;
+let lemma_head_tail = new_specification ["head"; "tail"] (REWRITE_RULE[SKOLEM_THM] lemma_border_of_atom2);;
 
-let lemma_unique_head = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x /\ ~(next L y = inverse (node_map H) y) ==> head H NF x = y`,
-     REPEAT GEN_TAC
+let lemma_unique_head = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x /\ ~(next L y = inverse (node_map H) y) ==> head H NF x = y`,
+   REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4")
 (LABEL_TAC "F5")))))
-   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o REWRITE_RULE[is_normal])
    THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN (LABEL_TAC "F6" o CONJUNCT1)
    THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `x:A` o MATCH_MP lemma_head_tail)
    THEN USE_THEN "F3" (fun th1 -> (USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_in_support2 (CONJ th1 th2)])))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F7") (CONJUNCTS_THEN2 (LABEL_TAC "F8") (CONJUNCTS_THEN2 (LABEL_TAC "F9")
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F7") (CONJUNCTS_THEN2 (LABEL_TAC "F8") (CONJUNCTS_THEN2 (LABEL_TAC "F9")
 (LABEL_TAC "F10" o CONJUNCT1)))))
-   THEN USE_THEN "F1" (MP_TAC o SPECL[`L':(A)path`; `L:(A)path`; `x:A`] o CONJUNCT1 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPECL[`L':(A)loop`; `L:(A)loop`; `x:A`] o CONJUNCT1 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
    THEN REMOVE_THEN "F8" (fun th -> REWRITE_TAC[th])
    THEN REMOVE_THEN "F7" (fun th -> REWRITE_TAC[th])
    THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th])
    THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN SUBST_ALL_TAC
-   THEN ABBREV_TAC `z = head (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F6" (fun th1 -> (REMOVE_THEN "F4" (fun th2 -> (MP_TAC (MATCH_MP lemma_identity_atom (CONJ th1 th2))))))
+   THEN ABBREV_TAC `z = head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN REMOVE_THEN "F4" (fun th2 -> (MP_TAC (MATCH_MP lemma_identity_atom th2)))
    THEN DISCH_THEN SUBST_ALL_TAC
    THEN REMOVE_THEN "F9" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM; is_node_going])
    THEN STRIP_TAC
    THENL[ASM_CASES_TAC `k:num = 0`
-       THENL[UNDISCH_TAC `z:A = ((next (L:(A)path)) POWER (k:num)) (y:A)`
+       THENL[UNDISCH_TAC `z:A = ((next (L:(A)loop)) POWER (k:num)) (y:A)`
 	   THEN POP_ASSUM SUBST1_TAC
 	   THEN REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
        THEN FIRST_X_ASSUM (MP_TAC o SPEC `1` o check (is_forall o concl))
@@ -9944,7 +9453,7 @@ let lemma_unique_head = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (
        THEN POP_ASSUM (fun th -> REWRITE_TAC[th; POWER_1])
        THEN USE_THEN "F5" (fun th -> SIMP_TAC[th]); ALL_TAC]  
    THEN ASM_CASES_TAC `k:num = 0`
-   THENL[UNDISCH_TAC `y:A = ((next (L:(A)path)) POWER (k:num)) (z:A)`
+   THENL[UNDISCH_TAC `y:A = ((next (L:(A)loop)) POWER (k:num)) (z:A)`
        THEN POP_ASSUM SUBST1_TAC
        THEN REWRITE_TAC[POWER_0; I_THM; EQ_SYM]; ALL_TAC]
    THEN FIRST_X_ASSUM (MP_TAC o SPEC `1` o check (is_forall o concl))
@@ -9952,37 +9461,37 @@ let lemma_unique_head = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th; POWER_1])
    THEN USE_THEN "F10" (fun th -> SIMP_TAC[th]));;
 
-let lemma_unique_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x /\ ~(y = inverse (node_map H) (back L y)) ==> tail H NF x = y`,
+let lemma_unique_tail = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x /\ ~(y = inverse (node_map H) (back L y)) ==> tail H NF x = y`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4")
 (LABEL_TAC "F5")))))
-   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o REWRITE_RULE[is_normal])
    THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN (LABEL_TAC "F6" o CONJUNCT1)
    THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `x:A` o MATCH_MP lemma_head_tail)
    THEN USE_THEN "F3" (fun th1 -> (USE_THEN "F2" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_in_support2 (CONJ th1 th2)])))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F7") (CONJUNCTS_THEN2 (LABEL_TAC "F8") (MP_TAC o CONJUNCT2 o CONJUNCT2))))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F7") (CONJUNCTS_THEN2 (LABEL_TAC "F8") (MP_TAC o CONJUNCT2 o CONJUNCT2))))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F9") (LABEL_TAC "F10"))
-   THEN USE_THEN "F1" (MP_TAC o SPECL[`L':(A)path`; `L:(A)path`; `x:A`] o CONJUNCT1 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
+   THEN USE_THEN "F1" (MP_TAC o SPECL[`L':(A)loop`; `L:(A)loop`; `x:A`] o CONJUNCT1 o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[is_normal])
    THEN REMOVE_THEN "F8" (fun th -> REWRITE_TAC[th])
    THEN REMOVE_THEN "F7" (fun th -> REWRITE_TAC[th])
    THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th])
    THEN USE_THEN "F2" (fun th -> REWRITE_TAC[th])
    THEN DISCH_THEN SUBST_ALL_TAC
-   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F6" (fun th1 -> (REMOVE_THEN "F4" (fun th2 -> (MP_TAC (MATCH_MP lemma_identity_atom (CONJ th1 th2))))))
+   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN REMOVE_THEN "F4" (fun th2 -> (MP_TAC (MATCH_MP lemma_identity_atom th2)))
    THEN DISCH_THEN SUBST_ALL_TAC
    THEN REMOVE_THEN "F9" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM; is_node_going])
    THEN STRIP_TAC
    THENL[ASM_CASES_TAC `k:num = 0`
-       THENL[UNDISCH_TAC `z:A = ((next (L:(A)path)) POWER (k:num)) (y:A)`
+       THENL[UNDISCH_TAC `z:A = ((next (L:(A)loop)) POWER (k:num)) (y:A)`
 	   THEN POP_ASSUM SUBST1_TAC
 	   THEN REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
-       THEN FIND_ASSUM (MP_TAC o AP_TERM `back (L:(A)path)`) `z:A = ((next (L:(A)path)) POWER (k:num)) (y:A)`
+       THEN FIND_ASSUM (MP_TAC o AP_TERM `back (L:(A)loop)`) `z:A = ((next (L:(A)loop)) POWER (k:num)) (y:A)`
        THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM LT_NZ])
        THEN POP_ASSUM (fun th -> ONCE_REWRITE_TAC[MATCH_MP LT_SUC_PRE th] THEN ASSUME_TAC th)
        THEN REWRITE_TAC[COM_POWER; o_THM]
-       THEN USE_THEN "F6" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+       THEN REWRITE_TAC[lemma_inverse_evaluation]
        THEN FIRST_ASSUM (MP_TAC o REWRITE_RULE[ARITH_RULE `PRE k <= k`] o SPEC `PRE k` o check (is_forall o concl))
        THEN DISCH_THEN (SUBST1_TAC)
        THEN DISCH_THEN (MP_TAC o AP_TERM `inverse (node_map (H:(A)hypermap))`)
@@ -9993,14 +9502,14 @@ let lemma_unique_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (
        THEN POP_ASSUM (SUBST1_TAC o SYM)
        THEN USE_THEN "F10" (fun th -> REWRITE_TAC[GSYM th]); ALL_TAC]
    THEN ASM_CASES_TAC `k:num = 0`
-   THENL[UNDISCH_TAC `y:A = ((next (L:(A)path)) POWER (k:num)) (z:A)`
+   THENL[UNDISCH_TAC `y:A = ((next (L:(A)loop)) POWER (k:num)) (z:A)`
        THEN POP_ASSUM SUBST1_TAC
        THEN REWRITE_TAC[POWER_0; I_THM; EQ_SYM]; ALL_TAC]
-   THEN FIND_ASSUM (MP_TAC o AP_TERM `back (L:(A)path)`) `y:A = ((next (L:(A)path)) POWER (k:num)) (z:A)`
+   THEN FIND_ASSUM (MP_TAC o AP_TERM `back (L:(A)loop)`) `y:A = ((next (L:(A)loop)) POWER (k:num)) (z:A)`
    THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM LT_NZ])
    THEN POP_ASSUM (fun th -> ONCE_REWRITE_TAC[MATCH_MP LT_SUC_PRE th] THEN ASSUME_TAC th)
    THEN REWRITE_TAC[COM_POWER; o_THM]
-   THEN USE_THEN "F6" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN REWRITE_TAC[lemma_inverse_evaluation]
    THEN FIRST_ASSUM (MP_TAC o REWRITE_RULE[ARITH_RULE `PRE k <= k`] o SPEC `PRE k` o check (is_forall o concl))
    THEN DISCH_THEN (SUBST1_TAC)
    THEN DISCH_THEN (MP_TAC o AP_TERM `inverse (node_map (H:(A)hypermap))`)
@@ -10011,7 +9520,7 @@ let lemma_unique_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN USE_THEN "F5" (fun th -> REWRITE_TAC[GSYM th]));;
 
-let head_on_loop = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L 
+let head_on_loop = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L 
    ==> head H NF x IN atom H L x /\ ~(next L (head H NF x) = inverse (node_map H) (head H NF x))`,
  REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
@@ -10019,14 +9528,14 @@ let head_on_loop = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A).
    THEN USE_THEN "F2"(fun th -> (USE_THEN "F3"(fun th1-> ASSUME_TAC (MATCH_MP lemma_in_support2  (CONJ th1 th)))))
    THEN USE_THEN "F1"(fun th-> MP_TAC (CONJUNCT2(SPEC `x:A`(MATCH_MP lemma_head_tail th))))
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7" o CONJUNCT1)))))
-   THEN SUBGOAL_THEN `L':(A)path = L:(A)path` (SUBST_ALL_TAC)
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7" o CONJUNCT1)))))
+   THEN SUBGOAL_THEN `L':(A)loop = L:(A)loop` (SUBST_ALL_TAC)
    THENL[MATCH_MP_TAC disjoint_loops 
-       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `x:A`
+       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `x:A`
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN ASM_REWRITE_TAC[]);;
 
-let tail_on_loop = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L 
+let tail_on_loop = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L 
    ==> tail H NF x IN atom H L x /\ ~(tail H NF x = inverse (node_map H) (back L (tail H NF x)))`,
   REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
@@ -10034,19 +9543,19 @@ let tail_on_loop = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A).
    THEN USE_THEN "F2"(fun th -> (USE_THEN "F3"(fun th1-> ASSUME_TAC (MATCH_MP lemma_in_support2  (CONJ th1 th)))))
    THEN USE_THEN "F1"(fun th-> MP_TAC (CONJUNCT2(SPEC `x:A`(MATCH_MP lemma_head_tail th))))
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (MP_TAC o CONJUNCT2 o CONJUNCT2))))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (MP_TAC o CONJUNCT2 o CONJUNCT2))))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F6") (LABEL_TAC "F7"))
-   THEN SUBGOAL_THEN `L':(A)path = L:(A)path` (SUBST_ALL_TAC)
+   THEN SUBGOAL_THEN `L':(A)loop = L:(A)loop` (SUBST_ALL_TAC)
    THENL[MATCH_MP_TAC disjoint_loops 
-       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `x:A`
+       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `x:A`
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN ASM_REWRITE_TAC[]);;
 
-let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L /\ next L x IN atom H L x 
-   ==> next L x = inverse (node_map H) x`,
+let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L /\ next L x IN atom H L x 
+   ==> next L x = inverse (node_map H) x`,			    
    REPEAT GEN_TAC
    THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "FC"))))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "FC" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM])
    THEN STRIP_TAC
@@ -10055,11 +9564,11 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
        THEN ASM_CASES_TAC `k:num = 0`
        THENL[POP_ASSUM SUBST_ALL_TAC
 	   THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[POWER_0; I_THM])
-	   THEN DISCH_THEN (ASSUME_TAC o ONCE_REWRITE_RULE[SPEC `next (L:(A)path)` orbit_one_point])
-	   THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation (CONJ th1 th2)))))
+	   THEN DISCH_THEN (ASSUME_TAC o ONCE_REWRITE_RULE[SPEC `next (L:(A)loop)` orbit_one_point])
+	   THEN USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation th2))
 	   THEN POP_ASSUM SUBST1_TAC
 	   THEN DISCH_TAC
-	   THEN SUBGOAL_THEN `dart_of (L:(A)path) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
+	   THEN SUBGOAL_THEN `dart_of (L:(A)loop) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
 	   THENL[POP_ASSUM SUBST1_TAC
 	      THEN REWRITE_TAC[SUBSET; IN_SING; node]
 	      THEN GEN_TAC
@@ -10069,15 +9578,15 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
        THEN POP_ASSUM (fun th-> REWRITE_TAC[th]); ALL_TAC]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[is_node_going])
    THEN DISCH_THEN  (X_CHOOSE_THEN `k:num` (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")))
-   THEN SUBGOAL_THEN `dart_of (L:(A)path) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
-   THENL[MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`]  lemma_atom_sub_node)
+   THEN SUBGOAL_THEN `dart_of (L:(A)loop) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
+   THENL[MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`]  lemma_atom_sub_node)
       THEN USE_THEN "FC"(fun th->(DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_in_subset (CONJ th1 th)))))
       THEN DISCH_THEN(fun th->REWRITE_TAC[MATCH_MP lemma_node_identity th])
-      THEN USE_THEN "F4" (fun th-> (USE_THEN "F3" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop (CONJ th th1)))))))
+      THEN USE_THEN "F3" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop th1))))
       THEN REWRITE_TAC[POWER_1]
-      THEN USE_THEN "F4"(fun th1->(DISCH_THEN(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation (CONJ th1 th2)))))
+      THEN DISCH_THEN(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation th2))
       THEN DISCH_THEN SUBST1_TAC
-      THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[iterate_map_valuation] o SYM o AP_TERM `next (L:(A)path)`)
+      THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[iterate_map_valuation] o SYM o AP_TERM `next (L:(A)loop)`)
       THEN DISCH_THEN (fun th-> MP_TAC (REWRITE_RULE[LT_SUC_LE] (MATCH_MP orbit_cyclic (CONJ (SPEC `k:num` NON_ZERO) th))))
       THEN POP_ASSUM (MP_TAC o MATCH_MP lemma_two_series_eq)
       THEN DISCH_THEN SUBST1_TAC
@@ -10090,93 +9599,92 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
       THEN REWRITE_TAC[node; lemma_in_orbit]; ALL_TAC]
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->REWRITE_TAC[MATCH_MP lemma_loop_outside_node (CONJ th th1)]))));;
 
-let lemma_in_loop = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (y:A). is_loop H L /\ x inside L /\ y IN atom H L x ==> y inside L`,
-   REPEAT STRIP_TAC
-   THEN REWRITE_TAC[inside]
-   THEN MATCH_MP_TAC lemma_in_subset
-   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)path) (x:A)`
-   THEN POP_ASSUM (fun th -> REWRITE_TAC[th])
-   THEN MATCH_MP_TAC lemma_atom_sub_loop
-   THEN ASM_REWRITE_TAC[]);;
-
-let next_head_outside_atom =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L
+let next_head_outside_atom =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L
    ==> ~((next L (head H NF x)) IN (atom H L x))`,
 REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
    THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F5") (MP_TAC)) o MATCH_MP head_on_loop)
    THEN REWRITE_TAC[CONTRAPOS_THM]
    THEN DISCH_TAC
    THEN MATCH_MP_TAC lemma_map_next
-   THEN EXISTS_TAC `NF:(A)path->bool`
+   THEN EXISTS_TAC `NF:(A)loop->bool`
    THEN ASM_REWRITE_TAC[]
    THEN STRIP_TAC
    THENL[MATCH_MP_TAC lemma_in_loop
         THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `x:A`
 	THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN USE_THEN "F4" (fun th1 -> (USE_THEN "F5" (fun th2 -> (ONCE_REWRITE_TAC[GSYM (MATCH_MP lemma_identity_atom (CONJ th1 th2))]))))
-   THEN USE_THEN "F4" (fun th1 -> (POP_ASSUM (fun th2 -> (ONCE_REWRITE_TAC[(MATCH_MP lemma_identity_atom (CONJ th1 th2))]))))
+   THEN USE_THEN "F5" (fun th2 -> (ONCE_REWRITE_TAC[GSYM (MATCH_MP lemma_identity_atom th2)]))
+   THEN POP_ASSUM (fun th2 -> (ONCE_REWRITE_TAC[MATCH_MP lemma_identity_atom th2]))
    THEN REWRITE_TAC[atom_reflect]);;
 
-let back_tail_outside_atom = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> ~((back L (tail H NF x)) IN (atom H L x))`,
+let value_next_of_head =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L  ==> next L (head H NF x) = face_map H (head H NF x)`,
+   REPEAT GEN_TAC THEN DISCH_THEN (LABEL_TAC "FC")
+   THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN REMOVE_THEN "FC"(fun th-> (MP_TAC (MATCH_MP head_on_loop th )))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
+   THEN REMOVE_THEN "F3"(fun th->(DISCH_THEN(fun th1->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th th1)))))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN DISCH_THEN (MP_TAC o SPEC `head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)` o REWRITE_RULE[is_loop] o CONJUNCT1)
+   THEN REWRITE_TAC[one_step_contour]
+   THEN ASM_REWRITE_TAC[]);;
+
+let back_tail_outside_atom = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> ~((back L (tail H NF x)) IN (atom H L x))`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
    THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F5") (MP_TAC)) o MATCH_MP tail_on_loop)
    THEN REWRITE_TAC[CONTRAPOS_THM]
    THEN DISCH_TAC
-   THEN ABBREV_TAC `y = back (L:(A)path) (tail (H:(A)hypermap) (NF:(A)path->bool) (x:A))`
-   THEN POP_ASSUM (MP_TAC o AP_TERM `next (L:(A)path)`)
-   THEN USE_THEN "F4" (fun th-> ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN ABBREV_TAC `y = back (L:(A)loop) (tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A))`
+   THEN POP_ASSUM (MP_TAC o AP_TERM `next (L:(A)loop)`)
+   THEN ONCE_REWRITE_TAC[lemma_inverse_evaluation]
    THEN DISCH_THEN SUBST_ALL_TAC
    THEN MATCH_MP_TAC lemma_map_next
-   THEN EXISTS_TAC `NF:(A)path->bool`
+   THEN EXISTS_TAC `NF:(A)loop->bool`
    THEN POP_ASSUM (LABEL_TAC "F6")
-   THEN USE_THEN "F4" (fun th1 -> (USE_THEN "F6" (fun th2 -> (SUBST_ALL_TAC (SYM(MATCH_MP lemma_identity_atom (CONJ th1 th2)))))))
+   THEN USE_THEN "F6" (fun th2 -> (SUBST_ALL_TAC (SYM(MATCH_MP lemma_identity_atom th2))))
    THEN ASM_REWRITE_TAC[]
    THEN MATCH_MP_TAC lemma_in_loop
    THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `x:A` THEN ASM_REWRITE_TAC[]);; 
 
-let face_map_on_margin =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==>
+let face_map_on_margin =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==>
 face_map H (head H NF x) inside L /\ inverse (face_map H) (tail H NF x) inside L /\ face_map H (head H NF x) = tail H NF (face_map H (head H NF x))
 /\ inverse (face_map H) (tail H NF x) = head H NF (inverse (face_map H) (tail H NF x))`,
-REPEAT GEN_TAC
+   REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
    THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")) o MATCH_MP head_on_loop)
-   THEN ABBREV_TAC `y = head (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->(REMOVE_THEN "F5"(fun th3->LABEL_TAC "F8" (MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
-   THEN USE_THEN "F4" (MP_TAC o SPEC `y:A` o MATCH_MP lemma_one_contour_step_next)
-   THEN USE_THEN "F8" (fun th -> REWRITE_TAC[th])
-   THEN REWRITE_TAC[one_step_contour]
+   THEN ABBREV_TAC `y = head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN USE_THEN "F3"(fun th2->(REMOVE_THEN "F5"(fun th3->LABEL_TAC "F8" (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
+   THEN USE_THEN "F8"(fun th-> (USE_THEN "F4"(MP_TAC o REWRITE_RULE[th; one_step_contour] o SPEC `y:A` o  REWRITE_RULE[is_loop])))
    THEN USE_THEN "F6" (fun th -> SIMP_TAC[th])
    THEN DISCH_THEN (SUBST1_TAC o SYM)
-   THEN USE_THEN "F4" (fun th-> (USE_THEN "F8" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop (CONJ th th1)))))))
+   THEN USE_THEN "F8" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop th1))))
    THEN REWRITE_TAC[POWER_1]
    THEN DISCH_THEN (fun th -> (REWRITE_TAC[th] THEN LABEL_TAC "F9" th))
-   THEN SUBGOAL_THEN `next (L:(A)path) (y:A) = tail (H:(A)hypermap) (NF:(A)path->bool) (next L y)` (LABEL_TAC "F10")
+   THEN SUBGOAL_THEN `next (L:(A)loop) (y:A) = tail (H:(A)hypermap) (NF:(A)loop->bool) (next L y)` (LABEL_TAC "F10")
    THENL[CONV_TAC SYM_CONV
        THEN MATCH_MP_TAC lemma_unique_tail
-       THEN EXISTS_TAC `L:(A)path`
-       THEN USE_THEN "F4" (fun th->ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+       THEN EXISTS_TAC `L:(A)loop`
+       THEN ONCE_REWRITE_TAC[lemma_inverse_evaluation]
        THEN ASM_REWRITE_TAC[atom_reflect]; ALL_TAC]
    THEN REMOVE_THEN "F10" (SUBST1_TAC o SYM)
    THEN SIMP_TAC[]
    THEN USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F11") (LABEL_TAC "F12")) o MATCH_MP tail_on_loop)
-   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->(REMOVE_THEN "F11"(fun th3->LABEL_TAC "F14" (MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
-   THEN USE_THEN "F4" (fun th-> (USE_THEN "F14" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_back_in_loop (CONJ th th1)))))))
+   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN USE_THEN "F3"(fun th2->(REMOVE_THEN "F11"(fun th3->LABEL_TAC "F14" (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
+   THEN USE_THEN "F14" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_back_in_loop th1))))
    THEN REWRITE_TAC[POWER_1]
    THEN DISCH_THEN (LABEL_TAC "F15")
-   THEN USE_THEN "F4" (MP_TAC o SPEC `back (L:(A)path) (z:A)` o MATCH_MP lemma_one_contour_step_next)
-   THEN USE_THEN "F15" (fun th -> REWRITE_TAC[th])
-   THEN USE_THEN "F4" (fun th->ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN USE_THEN "F15"(fun th-> (USE_THEN "F4"(MP_TAC o REWRITE_RULE[th; one_step_contour] o SPEC `back (L:(A)loop) (z:A)` o  REWRITE_RULE[is_loop])))
+   THEN ONCE_REWRITE_TAC[lemma_inverse_evaluation]
    THEN REWRITE_TAC[one_step_contour]
    THEN USE_THEN "F12" (fun th -> SIMP_TAC[th])
    THEN REWRITE_TAC[face_map_inverse_representation]
@@ -10184,100 +9692,96 @@ REPEAT GEN_TAC
    THEN USE_THEN "F15" (fun th->REWRITE_TAC[th])
    THEN CONV_TAC SYM_CONV
    THEN MATCH_MP_TAC lemma_unique_head
-   THEN EXISTS_TAC `L:(A)path`
-   THEN USE_THEN "F4" (fun th->ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN EXISTS_TAC `L:(A)loop`
+   THEN ONCE_REWRITE_TAC[lemma_inverse_evaluation]
    THEN ASM_REWRITE_TAC[atom_reflect]
   );;
 
-let node_map_on_margin =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> (?L':(A)path. L' IN NF /\ node_map H (tail H NF x) inside L' /\ node_map H (tail H NF x) = head H NF (node_map H (tail H NF x)))
-/\ (?P:(A)path. P IN NF /\ inverse (node_map H) (head H NF x) inside P /\ inverse (node_map H) (head H NF x) = tail H NF (inverse (node_map H) (head H NF x)))`,
+let node_map_on_margin =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> (?L':(A)loop. L' IN NF /\ node_map H (tail H NF x) inside L' /\ node_map H (tail H NF x) = head H NF (node_map H (tail H NF x)))
+/\ (?P:(A)loop. P IN NF /\ inverse (node_map H) (head H NF x) inside P /\ inverse (node_map H) (head H NF x) = tail H NF (inverse (node_map H) (head H NF x)))`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
    THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN STRIP_TAC
-   THENL[
-      USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")) o MATCH_MP tail_on_loop)
-      THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-      THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->(REMOVE_THEN "F5"(fun th3->LABEL_TAC "F8" (MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
+   THENL[USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")) o MATCH_MP tail_on_loop)
+      THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+      THEN USE_THEN "F3"(fun th2->(REMOVE_THEN "F5"(fun th3->LABEL_TAC "F8" (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
       THEN USE_THEN "F8"(fun th1->(USE_THEN "F2"(fun th2->(MP_TAC (MATCH_MP lemma_in_support2 (CONJ th1 th2))))))
       THEN USE_THEN "F1"(fun th1->(DISCH_THEN(fun th2->(MP_TAC (SPEC `1` (MATCH_MP lemma_node_in_support2 (CONJ th1 th2)))))))
       THEN REWRITE_TAC[POWER_1; lemma_in_support]
-      THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F9") (LABEL_TAC "F10")))
-      THEN EXISTS_TAC `L':(A)path`
+      THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F9") (LABEL_TAC "F10")))
+      THEN EXISTS_TAC `L':(A)loop`
       THEN ASM_REWRITE_TAC[]
       THEN CONV_TAC SYM_CONV
       THEN MATCH_MP_TAC lemma_unique_head
-      THEN EXISTS_TAC `L':(A)path`
+      THEN EXISTS_TAC `L':(A)loop`
       THEN ASM_REWRITE_TAC[atom_reflect]
       THEN REMOVE_THEN "F6" MP_TAC
       THEN REWRITE_TAC[CONTRAPOS_THM]
       THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES (CONJUNCT2(SPEC `H:(A)hypermap` node_map_and_darts))]
       THEN DISCH_TAC
-      THEN USE_THEN "F9" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L':(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-      THEN DISCH_THEN (ASSUME_TAC o CONJUNCT1)
-      THEN POP_ASSUM (fun th-> (USE_THEN "F10" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop (CONJ th th1)))))))
+      THEN USE_THEN "F10" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop th1))))
       THEN REWRITE_TAC[POWER_1]
       THEN POP_ASSUM (fun th ->  SUBST1_TAC th THEN LABEL_TAC "F11" th)
       THEN DISCH_TAC
-      THEN SUBGOAL_THEN `L':(A)path = L:(A)path` SUBST_ALL_TAC
+      THEN SUBGOAL_THEN `L':(A)loop = L:(A)loop` SUBST_ALL_TAC
       THENL[MATCH_MP_TAC disjoint_loops
-         THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `y:A`
+         THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
          THEN ASM_REWRITE_TAC[]; ALL_TAC]
-      THEN REMOVE_THEN "F11" (MP_TAC o AP_TERM `back (L:(A)path)`)
-      THEN USE_THEN "F4" (fun th->ONCE_REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+      THEN REMOVE_THEN "F11" (MP_TAC o AP_TERM `back (L:(A)loop)`)
+      THEN ONCE_REWRITE_TAC[lemma_inverse_evaluation]
       THEN REWRITE_TAC[GSYM node_map_inverse_representation]
       THEN MESON_TAC[EQ_SYM]; ALL_TAC]
    THEN USE_THEN "FC" ((CONJUNCTS_THEN2 (LABEL_TAC "F15") (LABEL_TAC "F16")) o MATCH_MP head_on_loop)
-   THEN ABBREV_TAC `y = head (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->(REMOVE_THEN "F15"(fun th3->LABEL_TAC "F17" (MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
+   THEN ABBREV_TAC `y = head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN USE_THEN "F3"(fun th2->(REMOVE_THEN "F15"(fun th3->LABEL_TAC "F17" (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
    THEN USE_THEN "F17"(fun th1->(USE_THEN "F2"(fun th2->(MP_TAC (MATCH_MP lemma_in_support2 (CONJ th1 th2))))))
    THEN MP_TAC (MATCH_MP inverse_element_lemma (SPEC `H:(A)hypermap` node_map_and_darts))
    THEN DISCH_THEN (X_CHOOSE_THEN `j:num` ASSUME_TAC)
    THEN USE_THEN "F1"(fun th1->(DISCH_THEN(fun th2->(MP_TAC (SPEC `j:num` (MATCH_MP lemma_node_in_support2 (CONJ th1 th2)))))))
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN REWRITE_TAC[lemma_in_support]
-   THEN DISCH_THEN (X_CHOOSE_THEN `P:(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F18") (LABEL_TAC "F19")))
-   THEN EXISTS_TAC `P:(A)path`
+   THEN DISCH_THEN (X_CHOOSE_THEN `P:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F18") (LABEL_TAC "F19")))
+   THEN EXISTS_TAC `P:(A)loop`
    THEN ASM_REWRITE_TAC[]
    THEN CONV_TAC SYM_CONV
    THEN MATCH_MP_TAC lemma_unique_tail
-   THEN EXISTS_TAC `P:(A)path`
+   THEN EXISTS_TAC `P:(A)loop`
    THEN ASM_REWRITE_TAC[atom_reflect]
    THEN REMOVE_THEN "F16" MP_TAC
    THEN REWRITE_TAC[CONTRAPOS_THM]
    THEN DISCH_THEN (MP_TAC o AP_TERM `node_map (H:(A)hypermap)`)
    THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES (CONJUNCT2(SPEC `H:(A)hypermap` node_map_and_darts))]
-   THEN DISCH_THEN (MP_TAC o AP_TERM `next (P:(A)path)`)
-   THEN USE_THEN "F18" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `P:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-   THEN DISCH_THEN (LABEL_TAC "F20" o CONJUNCT1)
-   THEN USE_THEN "F20" (fun th->REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN DISCH_THEN (MP_TAC o AP_TERM `next (P:(A)loop)`)
+   THEN REWRITE_TAC[lemma_inverse_evaluation]
    THEN DISCH_THEN (SUBST_ALL_TAC o SYM)
-   THEN USE_THEN "F20" (fun th-> (REMOVE_THEN "F19" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_back_in_loop (CONJ th th1)))))))
+   THEN REMOVE_THEN "F19" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_back_in_loop th1))))
    THEN REWRITE_TAC[POWER_1]
-   THEN USE_THEN "F20" (fun th->REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN REWRITE_TAC[lemma_inverse_evaluation]
    THEN DISCH_TAC
-   THEN SUBGOAL_THEN `L:(A)path = P:(A)path` SUBST1_TAC
+   THEN SUBGOAL_THEN `L:(A)loop = P:(A)loop` SUBST1_TAC
    THENL[MATCH_MP_TAC disjoint_loops
-       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `y:A`
+       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN SIMP_TAC[]);;
 
-let node_map_free_loop =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> node_map H (tail H NF x) = head H NF (node_map H (tail H NF x)) /\ inverse (node_map H) (head H NF x) = tail H NF (inverse (node_map H) (head H NF x))`,
+let node_map_free_loop =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L ==> node_map H (tail H NF x) = head H NF (node_map H (tail H NF x)) /\ inverse (node_map H) (head H NF x) = tail H NF (inverse (node_map H) (head H NF x))`,
    MESON_TAC[node_map_on_margin]);;
 
-let from_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x 
+
+let from_tail = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x 
    ==> is_node_going H L (tail H NF x) y`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th2->(USE_THEN "F3"(fun th3-> MP_TAC (MATCH_MP tail_on_loop (CONJ th (CONJ th2 th3))))))))
    THEN DISCH_THEN (LABEL_TAC "F5" o CONJUNCT1)
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th2->(USE_THEN "F3"(fun th3-> LABEL_TAC "F6" (MATCH_MP back_tail_outside_atom (CONJ th (CONJ th2 th3))))))))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th2->(USE_THEN "F3"(fun th3->LABEL_TAC "F6"(MATCH_MP back_tail_outside_atom(CONJ th (CONJ th2 th3))))))))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F7" o CONJUNCT1)
-   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F7" (fun th -> (REMOVE_THEN "F5" (fun th1-> (MP_TAC (MATCH_MP lemma_identity_atom (CONJ th th1))))))
+   THEN ABBREV_TAC `z = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN REMOVE_THEN "F5" (fun th1-> (MP_TAC (MATCH_MP lemma_identity_atom th1)))
    THEN DISCH_THEN SUBST_ALL_TAC
    THEN USE_THEN "F4" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM])
    THEN STRIP_TAC
@@ -10295,11 +9799,11 @@ let from_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:
    THEN POP_ASSUM (MP_TAC o MATCH_MP LT_SUC_PRE)
    THEN ABBREV_TAC `m = PRE k`
    THEN DISCH_THEN (SUBST_ALL_TAC)
-   THEN REMOVE_THEN "G1" (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `back (L:(A)path)` o  REWRITE_RULE[COM_POWER])
-   THEN USE_THEN "F7" (fun th -> REWRITE_TAC[MATCH_MP lemma_inverse_evaluation th])
+   THEN REMOVE_THEN "G1" (MP_TAC o REWRITE_RULE[o_THM] o AP_TERM `back (L:(A)loop)` o  REWRITE_RULE[COM_POWER])
+   THEN REWRITE_TAC[lemma_inverse_evaluation]
    THEN DISCH_TAC
-   THEN SUBGOAL_THEN `back (L:(A)path) (z:A) IN atom (H:(A)hypermap) L z` MP_TAC
-   THENL[ USE_THEN "F7" (fun th-> (USE_THEN "F4" (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identity_atom (CONJ th th1)])))
+   THEN SUBGOAL_THEN `back (L:(A)loop) (z:A) IN atom (H:(A)hypermap) L z` MP_TAC
+   THENL[ USE_THEN "F4" (fun th1 -> REWRITE_TAC[MATCH_MP lemma_identity_atom th1])
        THEN REWRITE_TAC[atom; IN_ELIM_THM]
        THEN DISJ1_TAC
        THEN REWRITE_TAC[is_node_going]
@@ -10309,16 +9813,16 @@ let from_tail = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:
    THEN USE_THEN "F6" (fun th -> REWRITE_TAC[th])
   );;
 
-let to_head = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x 
+let to_head = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x 
    ==> is_node_going H L y (head H NF x)`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th2->(USE_THEN "F3"(fun th3-> MP_TAC (MATCH_MP head_on_loop (CONJ th (CONJ th2 th3))))))))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "FF"))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F6" o CONJUNCT1)
-   THEN ABBREV_TAC `z = head (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN USE_THEN "F6" (fun th -> (REMOVE_THEN "F5" (fun th1-> (MP_TAC (MATCH_MP lemma_identity_atom (CONJ th th1))))))
+   THEN ABBREV_TAC `z = head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN REMOVE_THEN "F5" (fun th1-> (MP_TAC (MATCH_MP lemma_identity_atom th1)))
    THEN DISCH_THEN SUBST_ALL_TAC
    THEN USE_THEN "F4" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM])
    THEN STRIP_TAC
@@ -10338,21 +9842,21 @@ let to_head = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A)
    THEN REWRITE_TAC[POWER_1]
    THEN USE_THEN "FF" (fun th -> REWRITE_TAC[th]));;
 
-let lemma_in_atom = prove(`!(H:(A)hypermap) (L:(A)path) (x:A) (m:num). is_loop H L /\ (!i:num .i <= m ==> ((next L) POWER i) x = ((inverse (node_map H)) POWER i) x)  ==> ((next L) POWER m) x IN atom H L x`,
+let lemma_in_atom = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A) (m:num). is_loop H L /\ (!i:num .i <= m ==> ((next L) POWER i) x = ((inverse (node_map H)) POWER i) x)  ==> ((next L) POWER m) x IN atom H L x`,
     REPEAT GEN_TAC
     THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F3"))
-    THEN ASM_CASES_TAC `~(x:A inside L:(A)path)`
+    THEN ASM_CASES_TAC `~(x:A inside L:(A)loop)`
     THENL[POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_power_back_and_next_outside_loop th])
         THEN REWRITE_TAC[atom_reflect]; ALL_TAC]
     THEN POP_ASSUM (LABEL_TAC "F2" o REWRITE_RULE[])
-    THEN ABBREV_TAC `y = ((next (L:(A)path)) POWER (m:num)) (x:A)`
+    THEN ABBREV_TAC `y = ((next (L:(A)loop)) POWER (m:num)) (x:A)`
     THEN REWRITE_TAC[atom; IN_ELIM_THM]
     THEN DISJ1_TAC
     THEN REWRITE_TAC[is_node_going]
     THEN EXISTS_TAC `m:num`
     THEN ASM_SIMP_TAC[]);;
 
-let atom_subset = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A) (m:num). is_normal H NF /\ L IN NF /\ x inside L /\ 
+let atom_subset = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (m:num). is_normal H NF /\ L IN NF /\ x inside L /\ 
 head H NF x = ((next L ) POWER m) (tail H NF x) ==> (atom H L x) SUBSET {((next L) POWER (i:num)) (tail H NF x) | i <= m}`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
@@ -10365,19 +9869,19 @@ head H NF x = ((next L ) POWER m) (tail H NF x) ==> (atom H L x) SUBSET {((next 
    THEN DISCH_THEN (MP_TAC o MATCH_MP from_tail)
    THEN REWRITE_TAC[is_node_going]
    THEN DISCH_THEN (X_CHOOSE_THEN `k:num` (CONJUNCTS_THEN2 SUBST1_TAC (LABEL_TAC "F5")))
-   THEN ABBREV_TAC `h = head (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN ABBREV_TAC `t = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
+   THEN ABBREV_TAC `h = head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN ABBREV_TAC `t = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
    THEN ASM_CASES_TAC `k:num <= m:num`
    THENL[REWRITE_TAC[IN_ELIM_THM]
       THEN EXISTS_TAC `k:num`
       THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[NOT_LE; GSYM LE_SUC_LT])
-   THEN SUBGOAL_THEN `next (L:(A)path) (h:A)  IN atom (H:(A)hypermap) L (x:A)` MP_TAC
-   THENL[USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN SUBGOAL_THEN `next (L:(A)loop) (h:A)  IN atom (H:(A)hypermap) L (x:A)` MP_TAC
+   THENL[USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
       THEN DISCH_THEN (LABEL_TAC "F6" o CONJUNCT1)
       THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->USE_THEN "F3"(fun th2->(MP_TAC (MATCH_MP tail_on_loop (CONJ th (CONJ th1 th2))))))))
-      THEN FIND_ASSUM (fun th -> REWRITE_TAC[th])  `tail (H:(A)hypermap) (NF:(A)path->bool) (x:A) = t:A`
-      THEN USE_THEN "F6"(fun th->(DISCH_THEN(fun th1 -> MP_TAC (MATCH_MP lemma_identity_atom (CONJ th (CONJUNCT1 th1))))))
+      THEN FIND_ASSUM (fun th -> REWRITE_TAC[th])  `tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A) = t:A`
+      THEN DISCH_THEN(fun th1 -> MP_TAC (MATCH_MP lemma_identity_atom (CONJUNCT1 th1)))
       THEN DISCH_THEN SUBST1_TAC
       THEN USE_THEN "F4" SUBST1_TAC
       THEN REWRITE_TAC[iterate_map_valuation]
@@ -10388,10 +9892,25 @@ head H NF x = ((next L ) POWER m) (tail H NF x) ==> (atom H L x) SUBSET {((next 
       THEN USE_THEN "F5" (MP_TAC o SPEC `i:num`)
       THEN POP_ASSUM (fun th -> REWRITE_TAC[th]); ALL_TAC]
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->USE_THEN "F3"(fun th2->(MP_TAC (MATCH_MP next_head_outside_atom (CONJ th (CONJ th1 th2))))))))
-   THEN FIND_ASSUM (fun th -> REWRITE_TAC[th])  `head (H:(A)hypermap) (NF:(A)path->bool) (x:A) = h:A`
+   THEN FIND_ASSUM (fun th -> REWRITE_TAC[th])  `head (H:(A)hypermap) (NF:(A)loop->bool) (x:A) = h:A`
    THEN SIMP_TAC[]);;
 
-let atom_eq =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (m:num). is_normal H NF /\ L IN NF /\ x inside L /\ 
+let atom_one_point = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L /\ head H NF x = tail H NF x ==> atom H L x = {x}`,
+  REPEAT GEN_TAC
+   THEN SUBGOAL_THEN `tail (H:(A)hypermap) (NF:(A)loop->bool) x = (next L POWER 0) (tail (H:(A)hypermap) (NF:(A)loop->bool) x)` SUBST1_TAC
+   THENL[REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
+   THEN DISCH_THEN (MP_TAC o MATCH_MP atom_subset)
+   THEN SUBGOAL_THEN `!p:A->A y:A. {(p POWER i) y | i = 0} = {y}` ASSUME_TAC
+   THENL[SET_TAC[POWER_0; I_THM]; ALL_TAC]
+   THEN POP_ASSUM (fun th-> REWRITE_TAC[LE; th])
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN LABEL_TAC "F2" (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] atom_reflect)
+   THEN USE_THEN "F1" (fun th-> (USE_THEN "F2" (fun th1->MP_TAC(MATCH_MP lemma_in_subset (CONJ th th1)))))
+   THEN REWRITE_TAC[IN_SING]
+   THEN DISCH_THEN (SUBST_ALL_TAC o SYM)
+   THEN SET_TAC[]);;
+
+let atom_eq =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (m:num). is_normal H NF /\ L IN NF /\ x inside L /\ 
 head H NF x = ((next L ) POWER m) (tail H NF x) /\ (!i:num. i <= m ==> ((next L ) POWER i) (tail H NF x) = (inverse (node_map H)  POWER i) (tail H NF x)) ==> (atom H L x) = {((next L) POWER (i:num)) (tail H NF x) | i <= m}`,
     REPEAT GEN_TAC
     THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") STRIP_ASSUME_TAC)))
@@ -10402,11 +9921,11 @@ head H NF x = ((next L ) POWER m) (tail H NF x) /\ (!i:num. i <= m ==> ((next L 
     THEN GEN_TAC
     THEN DISCH_THEN (X_CHOOSE_THEN `i:num` (CONJUNCTS_THEN2 (ASSUME_TAC) (SUBST1_TAC)))
     THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->USE_THEN "F3"(fun th2->(MP_TAC (CONJUNCT1 (MATCH_MP tail_on_loop (CONJ th (CONJ th1 th2)))))))))
-    THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+    THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
     THEN DISCH_THEN (MP_TAC o CONJUNCT1)
     THEN REWRITE_TAC[IMP_IMP]
-    THEN DISCH_THEN (fun th -> MP_TAC (MATCH_MP lemma_identity_atom th) THEN ASSUME_TAC (CONJUNCT1 th))
-    THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
+    THEN DISCH_THEN (fun th -> MP_TAC (MATCH_MP lemma_identity_atom (CONJUNCT2 th)) THEN ASSUME_TAC (CONJUNCT1 th))
+    THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
     THEN DISCH_THEN SUBST1_TAC
     THEN MATCH_MP_TAC lemma_in_atom
     THEN ASM_REWRITE_TAC[]
@@ -10418,46 +9937,41 @@ head H NF x = ((next L ) POWER m) (tail H NF x) /\ (!i:num. i <= m ==> ((next L 
     THEN FIRST_X_ASSUM (MP_TAC o SPEC `i':num`)
     THEN POP_ASSUM (fun th -> REWRITE_TAC[th]));;
 
-let change_to_margin = prove( `!(H:(A)hypermap) (NF:(A)path->bool) (x:A) (L:(A)path). is_normal H NF /\ L IN NF /\ x inside L
+let change_to_margin = prove( `!(H:(A)hypermap) (NF:(A)loop->bool) (x:A) (L:(A)loop). is_normal H NF /\ L IN NF /\ x inside L
                                ==> atom H L x = atom H L (tail H NF x) /\ atom H L x = atom H L (head H NF x)`,
  REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])
-   THEN ASM_REWRITE_TAC[]
-   THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP head_on_loop (CONJ th (CONJ th1 th2)))))))))
-   THEN USE_THEN "F4"(fun th->DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_identity_atom (CONJ th th1))))
+   THEN DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_identity_atom th1))
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP tail_on_loop (CONJ th (CONJ th1 th2)))))))))
-   THEN USE_THEN "F4"(fun th->DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_identity_atom (CONJ th th1))))
+   THEN DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_identity_atom th1))
    THEN MESON_TAC[]);;
 
-let change_parameters = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x
+let change_parameters = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A) (y:A). is_normal H NF /\ L IN NF /\ x inside L /\ y IN atom H L x
     ==> head H NF y = head H NF x /\ tail H NF y = tail H NF x`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "FC")
    THEN USE_THEN "FC" (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2")(CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-   THEN DISCH_THEN (LABEL_TAC "F5" o CONJUNCT1)
-   THEN USE_THEN "F5"(fun th1->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->LABEL_TAC "F6"(MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
-   THEN USE_THEN "F5"(fun th->(USE_THEN "F4"(fun th1->(LABEL_TAC "F7"(MATCH_MP lemma_identity_atom (CONJ th th1))))))
+   THEN USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->LABEL_TAC "F6"(MATCH_MP lemma_in_loop (CONJ th2 th3)))))
+   THEN USE_THEN "F4"(fun th1->(LABEL_TAC "F7"(MATCH_MP lemma_identity_atom th1)))
    THEN STRIP_TAC
    THENL[MATCH_MP_TAC lemma_unique_head
-      THEN EXISTS_TAC `L:(A)path`
+      THEN EXISTS_TAC `L:(A)loop`
       THEN ASM_REWRITE_TAC[]
       THEN POP_ASSUM (SUBST1_TAC o SYM)
       THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2-> REWRITE_TAC[MATCH_MP head_on_loop (CONJ th(CONJ th1 th2))])))))
       ; ALL_TAC]
    THEN MATCH_MP_TAC lemma_unique_tail
-   THEN EXISTS_TAC `L:(A)path`
+   THEN EXISTS_TAC `L:(A)loop`
    THEN ASM_REWRITE_TAC[]
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2-> REWRITE_TAC[MATCH_MP tail_on_loop (CONJ th(CONJ th1 th2))]))))));;
 
-let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). is_normal H NF /\ L IN NF /\ x inside L /\ next L x IN atom H L x 
+let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (L:(A)loop) (x:A). is_normal H NF /\ L IN NF /\ x inside L /\ next L x IN atom H L x 
    ==> next L x = inverse (node_map H) x`,
    REPEAT GEN_TAC
    THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "FC"))))
-   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN DISCH_THEN (LABEL_TAC "F4" o CONJUNCT1)
    THEN USE_THEN "FC" (MP_TAC o REWRITE_RULE[atom; IN_ELIM_THM])
    THEN STRIP_TAC
@@ -10466,11 +9980,11 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
        THEN ASM_CASES_TAC `k:num = 0`
        THENL[POP_ASSUM SUBST_ALL_TAC
 	   THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[POWER_0; I_THM])
-	   THEN DISCH_THEN (ASSUME_TAC o ONCE_REWRITE_RULE[SPEC `next (L:(A)path)` orbit_one_point])
-	   THEN USE_THEN "F4"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation (CONJ th1 th2)))))
+	   THEN DISCH_THEN (ASSUME_TAC o ONCE_REWRITE_RULE[SPEC `next (L:(A)loop)` orbit_one_point])
+	   THEN USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation th2))
 	   THEN POP_ASSUM SUBST1_TAC
 	   THEN DISCH_TAC
-	   THEN SUBGOAL_THEN `dart_of (L:(A)path) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
+	   THEN SUBGOAL_THEN `dart_of (L:(A)loop) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
 	   THENL[POP_ASSUM SUBST1_TAC
 	      THEN REWRITE_TAC[SUBSET; IN_SING; node]
 	      THEN GEN_TAC
@@ -10480,15 +9994,15 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
        THEN POP_ASSUM (fun th-> REWRITE_TAC[th]); ALL_TAC]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[is_node_going])
    THEN DISCH_THEN  (X_CHOOSE_THEN `k:num` (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")))
-   THEN SUBGOAL_THEN `dart_of (L:(A)path) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
-   THENL[MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`]  lemma_atom_sub_node)
+   THEN SUBGOAL_THEN `dart_of (L:(A)loop) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
+   THENL[MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`]  lemma_atom_sub_node)
       THEN USE_THEN "FC"(fun th->(DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_in_subset (CONJ th1 th)))))
       THEN DISCH_THEN(fun th->REWRITE_TAC[MATCH_MP lemma_node_identity th])
-      THEN USE_THEN "F4" (fun th-> (USE_THEN "F3" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop (CONJ th th1)))))))
+      THEN USE_THEN "F3" (fun th1-> (MP_TAC (SPEC `1` (MATCH_MP lemma_power_next_in_loop th1))))
       THEN REWRITE_TAC[POWER_1]
-      THEN USE_THEN "F4"(fun th1->(DISCH_THEN(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation (CONJ th1 th2)))))
+      THEN DISCH_THEN(fun th2->MP_TAC(MATCH_MP lemma_transitive_permutation th2))
       THEN DISCH_THEN SUBST1_TAC
-      THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[iterate_map_valuation] o SYM o AP_TERM `next (L:(A)path)`)
+      THEN REMOVE_THEN "F5" (MP_TAC o REWRITE_RULE[iterate_map_valuation] o SYM o AP_TERM `next (L:(A)loop)`)
       THEN DISCH_THEN (fun th-> MP_TAC (REWRITE_RULE[LT_SUC_LE] (MATCH_MP orbit_cyclic (CONJ (SPEC `k:num` NON_ZERO) th))))
       THEN POP_ASSUM (MP_TAC o MATCH_MP lemma_two_series_eq)
       THEN DISCH_THEN SUBST1_TAC
@@ -10501,14 +10015,14 @@ let lemma_map_next = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A
       THEN REWRITE_TAC[node; lemma_in_orbit]; ALL_TAC]
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->REWRITE_TAC[MATCH_MP lemma_loop_outside_node (CONJ th th1)]))));;
 
-let lemma_atom_node_eq =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (x:A) (L:(A)path). is_normal H NF /\ L IN NF /\ x inside L /\ node_map H (tail H NF x) IN (atom H L x) ==> atom H L x = node H x`,
+let lemma_atom_node_eq =  prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A) (L:(A)loop). is_normal H NF /\ L IN NF /\ x inside L /\ node_map H (tail H NF x) IN (atom H L x) ==> atom H L x = node H x`,
   REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2-> LABEL_TAC "FC"(CONJUNCT1(MATCH_MP tail_on_loop (CONJ th(CONJ th1 th2)))))))))
-   THEN  USE_THEN "F1" (MP_TAC o SPEC `L:(A)path` o CONJUNCT1 o REWRITE_RULE[is_normal])
+   THEN  USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o REWRITE_RULE[is_normal])
    THEN ASM_REWRITE_TAC[]
    THEN DISCH_THEN (LABEL_TAC "FA" o CONJUNCT1)
-   THEN USE_THEN "FA"(fun th->(USE_THEN "FC"(fun th1->(LABEL_TAC "sa"(MATCH_MP lemma_identity_atom (CONJ th th1))))))
+   THEN USE_THEN "FC"(fun th1->(LABEL_TAC "sa"(MATCH_MP lemma_identity_atom th1)))
    THEN MATCH_MP_TAC SUBSET_ANTISYM
    THEN REWRITE_TAC[lemma_atom_sub_node]
    THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2-> MP_TAC(CONJUNCT1(MATCH_MP head_on_loop (CONJ th(CONJ th1 th2)))))))))
@@ -10531,8 +10045,8 @@ let lemma_atom_node_eq =  prove(`!(H:(A)hypermap) (NF:(A)path->bool) (x:A) (L:(A
    THEN REWRITE_TAC[LT_SUC_LE]
    THEN REWRITE_TAC[MATCH_MP lemma_card_inverse_map_eq (SPEC `H:(A)hypermap` node_map_and_darts); GSYM node]
    THEN DISCH_TAC
-   THEN SUBGOAL_THEN `{((inverse (node_map (H:(A)hypermap))) POWER (k':num)) (tail H (NF:(A)path->bool) (x:A)) | k' <= k:num}
-SUBSET {((inverse (node_map H)) POWER (i:num)) (tail H (NF:(A)path->bool) (x:A)) | i <= m:num}` MP_TAC
+   THEN SUBGOAL_THEN `{((inverse (node_map (H:(A)hypermap))) POWER (k':num)) (tail H (NF:(A)loop->bool) (x:A)) | k' <= k:num}
+SUBSET {((inverse (node_map H)) POWER (i:num)) (tail H (NF:(A)loop->bool) (x:A)) | i <= m:num}` MP_TAC
    THENL[REWRITE_TAC[SUBSET; IN_ELIM_THM]
       THEN GEN_TAC
       THEN DISCH_THEN (X_CHOOSE_THEN `l:num` (CONJUNCTS_THEN2 (ASSUME_TAC) (SUBST1_TAC)))
@@ -10540,123 +10054,112 @@ SUBSET {((inverse (node_map H)) POWER (i:num)) (tail H (NF:(A)path->bool) (x:A))
       THEN POP_ASSUM(fun th->(USE_THEN "F8"(fun th1->REWRITE_TAC[MATCH_MP LE_TRANS (CONJ th th1)]))); ALL_TAC]
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN REMOVE_THEN "F7" (SUBST1_TAC o SYM)
-   THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)path->bool) (x:A)`
-   THEN MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)path`; `y:A`] atom_reflect)
+   THEN ABBREV_TAC `y = tail (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`
+   THEN MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)loop`; `y:A`] atom_reflect)
    THEN REMOVE_THEN "sa" (SUBST1_TAC o SYM)
-   THEN DISCH_THEN (fun th-> (MP_TAC (MATCH_MP lemma_in_subset (CONJ (SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] lemma_atom_sub_node) th))))
+   THEN DISCH_THEN (fun th-> (MP_TAC (MATCH_MP lemma_in_subset (CONJ (SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] lemma_atom_sub_node) th))))
    THEN DISCH_THEN(fun th -> REWRITE_TAC[MATCH_MP lemma_node_identity th]));;
 
-let lemma_in_quotient = prove(`!(H:(A)hypermap) (NF:(A)path->bool) (L:(A)path) (x:A). L IN NF /\ x inside L ==> (atom H L x) IN (quotient_darts H NF)`,
- REPEAT STRIP_TAC
-   THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
-   THEN EXISTS_TAC `L:(A)path`
-   THEN EXISTS_TAC `x:A`
-   THEN ASM_REWRITE_TAC[]);;
-
-let lemma_fmap = prove(`!(H:(A)hypermap) (NF:(A)path->bool). ?f:(A->bool)->(A->bool). (!s:A->bool. is_normal H NF ==> 
+let lemma_fmap = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). ?f:(A->bool)->(A->bool). (!s:A->bool. is_normal H NF ==> 
 (~(s IN quotient_darts H NF) ==> f s = s) /\ 
-  (s IN quotient_darts H NF ==> (?L:(A)path x:A. L IN NF /\ x inside L /\ s = atom H L x /\ f s = atom H L ((face_map H) (head H NF x)))))`,
+  (s IN quotient_darts H NF ==> (?L:(A)loop x:A. L IN NF /\ x inside L /\ s = atom H L x /\ f s = atom H L ((face_map H) (head H NF x)))))`,
    REPEAT GEN_TAC
    THEN REWRITE_TAC[GSYM SKOLEM_THM]
    THEN GEN_TAC
    THEN REWRITE_TAC[RIGHT_EXISTS_IMP_THM]
    THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN ASM_CASES_TAC `~((s:A->bool) IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+   THEN ASM_CASES_TAC `~((s:A->bool) IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
    THENL[EXISTS_TAC `s:A->bool`  THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
    THEN ASM_REWRITE_TAC[]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` MP_TAC))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` MP_TAC))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) (LABEL_TAC "F4"))
    THEN ASM_REWRITE_TAC[SWAP_EXISTS_THM]
    THEN EXISTS_TAC `x:A`
    THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
-   THEN EXISTS_TAC `L:(A)path`
-   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)path) (face_map H (head H NF (x:A)))`
+   THEN EXISTS_TAC `L:(A)loop`
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) (face_map H (head H NF (x:A)))`
    THEN ASM_REWRITE_TAC[]);;
 
-let lemma_nmap = prove(`!(H:(A)hypermap) (NF:(A)path->bool). ?f:(A->bool)->(A->bool). (!s:A->bool. is_normal H NF ==> 
+let lemma_nmap = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). ?f:(A->bool)->(A->bool). (!s:A->bool. is_normal H NF ==> 
 (~(s IN quotient_darts H NF) ==> f s = s) /\ 
-  (s IN quotient_darts H NF ==> (?L:(A)path L':(A)path x:A. L IN NF /\ L' IN NF /\ x inside L /\ node_map H (tail H NF x) inside L' /\ s = atom H L x /\
+  (s IN quotient_darts H NF ==> (?L:(A)loop L':(A)loop x:A. L IN NF /\ L' IN NF /\ x inside L /\ node_map H (tail H NF x) inside L' /\ s = atom H L x /\
   f s = atom H L' ((node_map H) (tail H NF x)))))`,
  REPEAT GEN_TAC
    THEN REWRITE_TAC[GSYM SKOLEM_THM]
    THEN GEN_TAC
    THEN REWRITE_TAC[RIGHT_EXISTS_IMP_THM]
    THEN DISCH_THEN (LABEL_TAC "F1")
-   THEN ASM_CASES_TAC `~((s:A->bool) IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+   THEN ASM_CASES_TAC `~((s:A->bool) IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
    THENL[EXISTS_TAC `s:A->bool`  THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
    THEN ASM_REWRITE_TAC[]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` MP_TAC))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` MP_TAC))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) (LABEL_TAC "F4"))
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F2"(fun th2->USE_THEN "F3"(fun th3->MP_TAC (CONJUNCT1(MATCH_MP node_map_on_margin (CONJ th1 (CONJ th2 th3))))))))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3" o CONJUNCT1)))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3" o CONJUNCT1)))
    THEN ASM_REWRITE_TAC[SWAP_EXISTS_THM]
    THEN EXISTS_TAC `x:A`
    THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
-   THEN EXISTS_TAC `L:(A)path`
+   THEN EXISTS_TAC `L:(A)loop`
    THEN ONCE_REWRITE_TAC[SWAP_EXISTS_THM]
-   THEN EXISTS_TAC `L':(A)path`
-   THEN EXISTS_TAC `atom (H:(A)hypermap) (L':(A)path) (node_map H (tail H NF (x:A)))`
+   THEN EXISTS_TAC `L':(A)loop`
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L':(A)loop) (node_map H (tail H NF (x:A)))`
    THEN ASM_REWRITE_TAC[]);;
 		     
 let lemma_face_map = new_specification ["fmap"] (REWRITE_RULE[SKOLEM_THM] lemma_fmap);;
 
 let lemma_node_map = new_specification ["nmap"] (REWRITE_RULE[SKOLEM_THM] lemma_nmap);;
 
-let unique_fmap = prove(`!(H:(A)hypermap) (NF:(A)path->bool) L:(A)path x:A. is_normal H NF /\ L IN NF /\ x inside L ==> fmap H NF (atom H L x) =  atom H L ((face_map H) (head H NF x))`,
+let unique_fmap = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) L:(A)loop x:A. is_normal H NF /\ L IN NF /\ x inside L ==> fmap H NF (atom H L x) =  atom H L ((face_map H) (head H NF x))`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (L:(A)path) (x:A)` o MATCH_MP lemma_face_map)
+   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (L:(A)loop) (x:A)` o MATCH_MP lemma_face_map)
    THEN USE_THEN "F2" (fun th-> (USE_THEN "F3" (fun th1-> REWRITE_TAC[MATCH_MP lemma_in_quotient (CONJ th th1)])))
    THEN STRIP_TAC
-   THEN SUBGOAL_THEN `L':(A)path = L:(A)path` SUBST_ALL_TAC
-   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L':(A)path`; `x':A`] atom_reflect)
-       THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)path) (x:A) = atom (H:(A)hypermap) (L':(A)path) (x':A)` (SUBST1_TAC o SYM)
-       THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-       THEN DISCH_THEN (MP_TAC o CONJUNCT1)
-       THEN DISCH_THEN(fun th1->(USE_THEN "F3"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
+   THEN SUBGOAL_THEN `L':(A)loop = L:(A)loop` SUBST_ALL_TAC
+   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L':(A)loop`; `x':A`] atom_reflect)
+       THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)loop) (x:A) = atom (H:(A)hypermap) (L':(A)loop) (x':A)` (SUBST1_TAC o SYM)
+       THEN USE_THEN "F3"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th2 th3)))))
        THEN MATCH_MP_TAC disjoint_loops
-       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `x':A`
+       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `x':A`
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM MP_TAC
-   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `x':A`] atom_reflect)
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `x':A`] atom_reflect)
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F2"(fun th2->(USE_THEN "F3"(fun th3->(DISCH_THEN(fun th4->MP_TAC(MATCH_MP change_parameters (CONJ th1 (CONJ th2 (CONJ th3 th4)))))))))))
    THEN DISCH_THEN (SUBST1_TAC o CONJUNCT1)
    THEN SIMP_TAC[]);;
 
-let unique_nmap = prove(`!(H:(A)hypermap) (NF:(A)path->bool) L:(A)path L':(A)path x:A. is_normal H NF /\ L IN NF /\ L' IN NF /\ x inside L /\ node_map H (tail H NF x) inside L' ==> nmap H NF (atom H L x) = atom H L' ((node_map H) (tail H NF x))`,
+
+let unique_nmap = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) L:(A)loop L':(A)loop x:A. is_normal H NF /\ L IN NF /\ L' IN NF /\ x inside L /\ node_map H (tail H NF x) inside L' ==> nmap H NF (atom H L x) = atom H L' ((node_map H) (tail H NF x))`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 (LABEL_TAC "F4") (LABEL_TAC "F5")))))
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (L:(A)path) (x:A)` o MATCH_MP lemma_node_map)
+   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (L:(A)loop) (x:A)` o MATCH_MP lemma_node_map)
    THEN USE_THEN "F2" (fun th-> (USE_THEN "F4" (fun th1-> REWRITE_TAC[MATCH_MP lemma_in_quotient (CONJ th th1)])))
    THEN STRIP_TAC
-   THEN SUBGOAL_THEN `L'':(A)path = L:(A)path` SUBST_ALL_TAC
-   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L'':(A)path`; `x':A`] atom_reflect)
-      THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)path) (x:A) = atom (H:(A)hypermap) (L'':(A)path) (x':A)` (SUBST1_TAC o SYM)
-      THEN USE_THEN "F2" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-      THEN DISCH_THEN (MP_TAC o CONJUNCT1)
-      THEN DISCH_THEN(fun th1->(USE_THEN "F4"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
+   THEN SUBGOAL_THEN `L'':(A)loop = L:(A)loop` SUBST_ALL_TAC
+   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L'':(A)loop`; `x':A`] atom_reflect)
+      THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)loop) (x:A) = atom (H:(A)hypermap) (L'':(A)loop) (x':A)` (SUBST1_TAC o SYM)
+      THEN USE_THEN "F4"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th2 th3)))))
       THEN MATCH_MP_TAC disjoint_loops
-      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `x':A`
+      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `x':A`
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `x':A`] atom_reflect)
-   THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)path) (x:A) = atom (H:(A)hypermap) (L:(A)path) (x':A)` (SUBST1_TAC o SYM)
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `x':A`] atom_reflect)
+   THEN UNDISCH_THEN `atom (H:(A)hypermap) (L:(A)loop) (x:A) = atom (H:(A)hypermap) (L:(A)loop) (x':A)` (SUBST1_TAC o SYM)
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F2"(fun th2->(USE_THEN "F4"(fun th3->(DISCH_THEN(fun th4->MP_TAC(MATCH_MP change_parameters (CONJ th1 (CONJ th2 (CONJ th3 th4)))))))))))
    THEN DISCH_THEN (ASSUME_TAC o CONJUNCT2)
-   THEN SUBGOAL_THEN `L''':(A)path = L':(A)path` SUBST_ALL_TAC
+   THEN SUBGOAL_THEN `L''':(A)loop = L':(A)loop` SUBST_ALL_TAC
    THENL[MATCH_MP_TAC disjoint_loops
-      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` 
-      THEN EXISTS_TAC `node_map (H:(A)hypermap) (tail H (NF:(A)path->bool) (x':A))`
+      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` 
+      THEN EXISTS_TAC `node_map (H:(A)hypermap) (tail H (NF:(A)loop->bool) (x':A))`
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM (SUBST1_TAC o SYM)
    THEN POP_ASSUM (fun th -> REWRITE_TAC[th]));;
 
-
-let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==> (fmap H NF) permutes (quotient_darts H NF)`,
+let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> (fmap H NF) permutes (quotient_darts H NF)`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "F1")
    THEN REWRITE_TAC[permutes]
@@ -10664,22 +10167,22 @@ let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
    THENL[USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_face_map th]); ALL_TAC]
    THEN REWRITE_TAC[EXISTS_UNIQUE]
    THEN GEN_TAC
-   THEN ASM_CASES_TAC `~(y:A->bool IN (quotient_darts (H:(A)hypermap) (NF:(A)path->bool)))`
+   THEN ASM_CASES_TAC `~(y:A->bool IN (quotient_darts (H:(A)hypermap) (NF:(A)loop->bool)))`
    THENL[EXISTS_TAC `y:A->bool`
        THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y:A->bool` o MATCH_MP lemma_face_map)
        THEN ASM_REWRITE_TAC[]
        THEN DISCH_THEN (fun th-> REWRITE_TAC[th] THEN (LABEL_TAC "G1" th))
        THEN GEN_TAC
-       THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+       THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
        THENL[USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y':A->bool` o MATCH_MP lemma_face_map)
 	  THEN ASM_REWRITE_TAC[]
 	  THEN DISCH_THEN(fun th-> REWRITE_TAC[th]); ALL_TAC]	  
        THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G2") (LABEL_TAC "G3")) SUBST1_TAC)))
+       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G2") (LABEL_TAC "G3")) SUBST1_TAC)))
        THEN USE_THEN "F1"(fun th1->(USE_THEN "G2"(fun th2->(USE_THEN "G3"(fun th3->(MP_TAC(MATCH_MP unique_fmap(CONJ th1 (CONJ th2 th3)))))))))
        THEN DISCH_THEN (SUBST1_TAC)
        THEN DISCH_TAC
-       THEN SUBGOAL_THEN `y:A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool)` MP_TAC
+       THEN SUBGOAL_THEN `y:A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool)` MP_TAC
        THENL[ POP_ASSUM (SUBST1_TAC o SYM)
            THEN  MATCH_MP_TAC lemma_in_quotient
            THEN USE_THEN "F1"(fun th1->(USE_THEN "G2"(fun th2->(USE_THEN "G3"(fun th3->REWRITE_TAC[MATCH_MP face_map_on_margin (CONJ th1 (CONJ th2 th3))])))))
@@ -10687,9 +10190,9 @@ let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN POP_ASSUM (LABEL_TAC "F2" o REWRITE_RULE[])
     THEN USE_THEN "F2" (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-    THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) SUBST1_TAC)))
-    THEN USE_THEN "F3" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-    THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)path) ((inverse (face_map (H:(A)hypermap))) (tail H (NF:(A)path->bool) (x:A)))`
+    THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) SUBST1_TAC)))
+    THEN USE_THEN "F3" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+    THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) ((inverse (face_map (H:(A)hypermap))) (tail H (NF:(A)loop->bool) (x:A)))`
     THEN STRIP_TAC
     THENL[USE_THEN "F1"(fun th1->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->MP_TAC(MATCH_MP face_map_on_margin (CONJ th1 (CONJ th2 th3))))))))
         THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6") (CONJUNCTS_THEN2 (LABEL_TAC "F7") (LABEL_TAC "F8"))))
@@ -10702,7 +10205,7 @@ let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
 	THEN USE_THEN "F1"(fun th1->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->(REWRITE_TAC[CONJUNCT1(MATCH_MP tail_on_loop (CONJ th1 (CONJ th2 th3)))]))))))
 	THEN USE_THEN "FC" (fun th -> REWRITE_TAC[th]); ALL_TAC]
     THEN GEN_TAC
-    THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+    THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
     THENL[USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y':A->bool` o MATCH_MP lemma_face_map)
        THEN ASM_REWRITE_TAC[]
        THEN DISCH_THEN SUBST1_TAC
@@ -10711,21 +10214,20 @@ let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
        THEN POP_ASSUM SUBST1_TAC
        THEN USE_THEN "F3" (fun th-> (USE_THEN "F4" (fun th1 -> (REWRITE_TAC[MATCH_MP lemma_in_quotient (CONJ th th1)])))); ALL_TAC]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")) SUBST1_TAC)))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")) SUBST1_TAC)))
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F5"(fun th2->(USE_THEN "F6"(fun th3->(MP_TAC(MATCH_MP unique_fmap(CONJ th1 (CONJ th2 th3)))))))))
    THEN DISCH_THEN SUBST1_TAC
    THEN DISCH_THEN (LABEL_TAC "F7")
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F5"(fun th2->(USE_THEN "F6"(fun th3->MP_TAC(CONJUNCT1(MATCH_MP face_map_on_margin (CONJ th1 (CONJ th2 th3)))))))))
    THEN DISCH_THEN (LABEL_TAC "F8")
-   THEN SUBGOAL_THEN `L':(A)path = L:(A)path` SUBST_ALL_TAC
-   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] atom_reflect)
+   THEN SUBGOAL_THEN `L':(A)loop = L:(A)loop` SUBST_ALL_TAC
+   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] atom_reflect)
        THEN REMOVE_THEN "F7" (SUBST1_TAC o SYM)
-       THEN USE_THEN "F5" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L':(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-       THEN DISCH_THEN(fun th1->(USE_THEN "F8"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th1 (CONJ th2 th3))))))))
+       THEN USE_THEN "F8"(fun th2->(DISCH_THEN(fun th3->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th2 th3)))))
        THEN MATCH_MP_TAC disjoint_loops
-       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `x:A`
+       THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `x:A`
        THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] atom_reflect)
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] atom_reflect)
    THEN USE_THEN "F7" (SUBST1_TAC o SYM)
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F3"(fun th2->(USE_THEN "F8"(fun th3->(DISCH_THEN(fun th4->MP_TAC(MATCH_MP change_parameters (CONJ th1 (CONJ th2 (CONJ th3 th4)))))))))))
    THEN DISCH_THEN (SUBST1_TAC o CONJUNCT2)
@@ -10734,8 +10236,7 @@ let fmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
    THEN REWRITE_TAC [MATCH_MP PERMUTES_INVERSES (CONJUNCT2 (SPEC `H:(A)hypermap` face_map_and_darts))]
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F5"(fun th2->(USE_THEN "F6"(fun th3->REWRITE_TAC[MATCH_MP change_to_margin (CONJ th1 (CONJ th2 th3))]))))));;
 
-
-let nmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==> (nmap H NF) permutes (quotient_darts H NF)`,
+let nmap_permute = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> (nmap H NF) permutes (quotient_darts H NF)`,
    REPEAT GEN_TAC
    THEN DISCH_THEN (LABEL_TAC "F1")
    THEN REWRITE_TAC[permutes]
@@ -10743,21 +10244,21 @@ let nmap_permute = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==
    THENL[USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_node_map th]); ALL_TAC]
    THEN REWRITE_TAC[EXISTS_UNIQUE] 
    THEN GEN_TAC
-   THEN ASM_CASES_TAC `~(y:A->bool IN (quotient_darts (H:(A)hypermap) (NF:(A)path->bool)))`
+   THEN ASM_CASES_TAC `~(y:A->bool IN (quotient_darts (H:(A)hypermap) (NF:(A)loop->bool)))`
 THENL[EXISTS_TAC `y:A->bool`
        THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y:A->bool` o MATCH_MP lemma_node_map)
        THEN ASM_REWRITE_TAC[]
        THEN DISCH_THEN (fun th-> REWRITE_TAC[th] THEN (LABEL_TAC "G1" th))
        THEN GEN_TAC
-       THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+       THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
        THENL[USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y':A->bool` o MATCH_MP lemma_node_map)
 	  THEN ASM_REWRITE_TAC[]
 	  THEN DISCH_THEN(fun th-> REWRITE_TAC[th]); ALL_TAC]
        THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G2") (LABEL_TAC "G3")) SUBST1_TAC)))
-       THEN USE_THEN "G2" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G2") (LABEL_TAC "G3")) SUBST1_TAC)))
+       THEN USE_THEN "G2" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
        THEN USE_THEN "F1"(fun th->(USE_THEN "G2"(fun th2->(USE_THEN "G3"(fun th3-> MP_TAC (CONJUNCT1 (MATCH_MP node_map_on_margin (CONJ th (CONJ th2 th3)))))))))
-       THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (CONJUNCTS_THEN2 (LABEL_TAC "G5") (LABEL_TAC "G6"))))
+       THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (CONJUNCTS_THEN2 (LABEL_TAC "G5") (LABEL_TAC "G6"))))
        THEN DISCH_THEN (LABEL_TAC "G7")
        THEN USE_THEN "G5" MP_TAC THEN USE_THEN "G3" MP_TAC THEN USE_THEN "G4" MP_TAC THEN USE_THEN "G2" MP_TAC THEN USE_THEN "F1" MP_TAC
        THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
@@ -10768,11 +10269,11 @@ THENL[EXISTS_TAC `y:A->bool`
        THEN POP_ASSUM (fun th -> GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [th])
        THEN USE_THEN "G4" (fun th1 -> (USE_THEN "G5" (fun th2 -> REWRITE_TAC[MATCH_MP lemma_in_quotient (CONJ th1 th2)]))); ALL_TAC]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) SUBST1_TAC)))
-   THEN USE_THEN "F3" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) SUBST1_TAC)))
+   THEN USE_THEN "F3" (fun th -> (USE_THEN "F1" (LABEL_TAC "FC" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
    THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3-> MP_TAC (CONJUNCT2 (MATCH_MP node_map_on_margin (CONJ th (CONJ th2 th3)))))))))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (CONJUNCTS_THEN2 (LABEL_TAC "G5") (LABEL_TAC "G6"))))
-   THEN EXISTS_TAC `atom (H:(A)hypermap) (L':(A)path) ((inverse (node_map (H:(A)hypermap))) (head H (NF:(A)path->bool) (x:A)))`
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (CONJUNCTS_THEN2 (LABEL_TAC "G5") (LABEL_TAC "G6"))))
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L':(A)loop) ((inverse (node_map (H:(A)hypermap))) (head H (NF:(A)loop->bool) (x:A)))`
   THEN ABBREV_TAC `y = inverse (node_map H) (head H NF (x:A))`
    THEN POP_ASSUM (MP_TAC o AP_TERM `node_map (H:(A)hypermap)`)
    THEN GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV)  [MATCH_MP PERMUTES_INVERSES (CONJUNCT2(SPEC `H:(A)hypermap` node_map_and_darts))]
@@ -10780,7 +10281,7 @@ THENL[EXISTS_TAC `y:A->bool`
    THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3-> MP_TAC (CONJUNCT1 (MATCH_MP head_on_loop (CONJ th (CONJ th2 th3)))))))))
    THEN USE_THEN "G7" (SUBST1_TAC o SYM)
    THEN DISCH_THEN (LABEL_TAC "F8")
-   THEN USE_THEN "FC"(fun th->(USE_THEN "F4"(fun th2->(USE_THEN "F8"(fun th3-> MP_TAC (MATCH_MP lemma_in_loop (CONJ th (CONJ th2 th3))))))))
+   THEN USE_THEN "F4"(fun th2->(USE_THEN "F8"(fun th3-> MP_TAC (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
    THEN USE_THEN "G6" (fun th -> GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [th])
    THEN USE_THEN "G5" MP_TAC THEN USE_THEN "F3" MP_TAC THEN USE_THEN "G4" MP_TAC THEN USE_THEN "F1" MP_TAC
    THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
@@ -10790,7 +10291,7 @@ THENL[EXISTS_TAC `y:A->bool`
    THEN DISCH_THEN SUBST1_TAC
    THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3-> REWRITE_TAC[MATCH_MP change_to_margin (CONJ th (CONJ th2 th3))])))))
    THEN GEN_TAC
-   THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)path->bool))`
+   THEN ASM_CASES_TAC `~(y':A->bool IN quotient_darts (H:(A)hypermap) (NF:(A)loop->bool))`
    THENL[USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_node_map th])
        THEN USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `y':A->bool` o MATCH_MP lemma_node_map)
        THEN ASM_REWRITE_TAC[]
@@ -10799,41 +10300,41 @@ THENL[EXISTS_TAC `y:A->bool`
        THEN FIRST_X_ASSUM (MP_TAC o check (is_neg o concl))
        THEN POP_ASSUM SUBST1_TAC
        THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3-> MP_TAC (CONJUNCT1 (MATCH_MP head_on_loop (CONJ th (CONJ th2 th3)))))))))
-       THEN USE_THEN "FC"(fun th->(USE_THEN "F4"(fun th2->(DISCH_THEN(fun th3-> MP_TAC (MATCH_MP lemma_in_loop (CONJ th (CONJ th2 th3))))))))
+       THEN USE_THEN "F4"(fun th2->(DISCH_THEN(fun th3-> MP_TAC (MATCH_MP lemma_in_loop (CONJ th2 th3)))))
        THEN USE_THEN "F3" (fun th1 -> (DISCH_THEN (fun th2 -> REWRITE_TAC[MATCH_MP lemma_in_quotient (CONJ th1 th2)]))); ALL_TAC]
    THEN POP_ASSUM (MP_TAC o REWRITE_RULE[quotient_darts; IN_ELIM_THM])
-   THEN DISCH_THEN (X_CHOOSE_THEN `P:(A)path`(X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F9") (LABEL_TAC "F10")) SUBST1_TAC)))
+   THEN DISCH_THEN (X_CHOOSE_THEN `P:(A)loop`(X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F9") (LABEL_TAC "F10")) SUBST1_TAC)))
    THEN USE_THEN "F9" (fun th1 -> (USE_THEN "F10" (fun th2 -> ASSUME_TAC(SPEC `H:(A)hypermap`(MATCH_MP lemma_in_quotient (CONJ th1 th2))))))
-   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (P:(A)path) (z:A)` o MATCH_MP lemma_node_map)
+   THEN USE_THEN "F1" (MP_TAC o CONJUNCT2 o SPEC `atom (H:(A)hypermap) (P:(A)loop) (z:A)` o MATCH_MP lemma_node_map)
    THEN POP_ASSUM (fun th-> REWRITE_TAC[th])
-   THEN DISCH_THEN (X_CHOOSE_THEN `Q:(A)path` (X_CHOOSE_THEN `Q':(A)path` (X_CHOOSE_THEN `t:A` (CONJUNCTS_THEN2 (LABEL_TAC "F11") MP_TAC))))
+   THEN DISCH_THEN (X_CHOOSE_THEN `Q:(A)loop` (X_CHOOSE_THEN `Q':(A)loop` (X_CHOOSE_THEN `t:A` (CONJUNCTS_THEN2 (LABEL_TAC "F11") MP_TAC))))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F12") (CONJUNCTS_THEN2 (LABEL_TAC "F14") (CONJUNCTS_THEN2 (LABEL_TAC "F15") MP_TAC)))
    THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F17") SUBST1_TAC)
    THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3-> REWRITE_TAC[GSYM(MATCH_MP change_to_margin (CONJ th (CONJ th2 th3)))])))))
    THEN DISCH_THEN (LABEL_TAC "F18")
-   THEN SUBGOAL_THEN `Q:(A)path = P:(A)path` SUBST_ALL_TAC
-   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `P:(A)path`; `z:A`] atom_reflect)
+   THEN SUBGOAL_THEN `Q:(A)loop = P:(A)loop` SUBST_ALL_TAC
+   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `P:(A)loop`; `z:A`] atom_reflect)
       THEN USE_THEN "F17" SUBST1_TAC
       THEN USE_THEN "F14" MP_TAC
-      THEN USE_THEN "F11" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `Q:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+      THEN USE_THEN "F11" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `Q:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
       THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop)
+      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop o CONJUNCT2)
       THEN MATCH_MP_TAC disjoint_loops
-      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN  EXISTS_TAC `z:A`
+      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN  EXISTS_TAC `z:A`
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
-   THEN SUBGOAL_THEN `Q':(A)path = L:(A)path` SUBST_ALL_TAC
-   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `x:A`] atom_reflect)
+   THEN SUBGOAL_THEN `Q':(A)loop = L:(A)loop` SUBST_ALL_TAC
+   THENL[MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `x:A`] atom_reflect)
       THEN USE_THEN "F18" (SUBST1_TAC o  SYM)
       THEN USE_THEN "F15" MP_TAC
-      THEN USE_THEN "F12" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `Q':(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+      THEN USE_THEN "F12" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `Q':(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
       THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop)
+      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop o (CONJUNCT2))
       THEN MATCH_MP_TAC disjoint_loops
-      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN  EXISTS_TAC `x:A`
+      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN  EXISTS_TAC `x:A`
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN REMOVE_THEN "F17" (SUBST1_TAC)
    THEN USE_THEN "F1"(fun th->(USE_THEN "F11"(fun th2->(USE_THEN "F14"(fun th3->MP_TAC(CONJUNCT1(MATCH_MP node_map_free_loop (CONJ th (CONJ th2 th3)))))))))
-   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)path`; `node_map (H:(A)hypermap) (tail H (NF:(A)path->bool) (t:A))`] atom_reflect)
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `node_map (H:(A)hypermap) (tail H (NF:(A)loop->bool) (t:A))`] atom_reflect)
    THEN USE_THEN "F18" SUBST1_TAC
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->(DISCH_THEN(fun th4->MP_TAC(CONJUNCT1(MATCH_MP change_parameters (CONJ th1 (CONJ th2 (CONJ th3 th4))))))))))))
    THEN DISCH_THEN SUBST1_TAC
@@ -10841,16 +10342,16 @@ THENL[EXISTS_TAC `y:A->bool`
    THEN REWRITE_TAC[node_map_injective]
    THEN DISCH_THEN (LABEL_TAC "F19")
    THEN USE_THEN "F1"(fun th1->(USE_THEN "F11"(fun th2->(USE_THEN "F14"(fun th3->LABEL_TAC "F20"(CONJUNCT1(MATCH_MP change_to_margin (CONJ th1 (CONJ th2 th3)))))))))
-  THEN SUBGOAL_THEN `P:(A)path = L':(A)path` SUBST_ALL_TAC
-  THENL[ MP_TAC(SPECL[`H:(A)hypermap`; `P:(A)path`; `(tail H (NF:(A)path->bool) (t:A))`] atom_reflect)
+  THEN SUBGOAL_THEN `P:(A)loop = L':(A)loop` SUBST_ALL_TAC
+  THENL[ MP_TAC(SPECL[`H:(A)hypermap`; `P:(A)loop`; `(tail H (NF:(A)loop->bool) (t:A))`] atom_reflect)
       THEN USE_THEN "F20" (SUBST1_TAC o SYM)
       THEN USE_THEN "F19" SUBST1_TAC
       THEN USE_THEN "F14" MP_TAC
-      THEN USE_THEN "F11" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `P:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+      THEN USE_THEN "F11" (fun th -> (USE_THEN "F1" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `P:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
       THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop)
+      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_in_loop o CONJUNCT2)
       THEN MATCH_MP_TAC disjoint_loops
-      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)path->bool` THEN EXISTS_TAC `y:A`
+      THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
       THEN ASM_REWRITE_TAC[]; ALL_TAC]
   THEN REPLICATE_TAC 2 (POP_ASSUM SUBST1_TAC)
   THEN POP_ASSUM SUBST1_TAC
@@ -10858,21 +10359,21 @@ THENL[EXISTS_TAC `y:A->bool`
 
 (* THE DEFINITION OF THE QUOTION HYPERMAP *)
 
-let quotient = new_definition `!(H:(A)hypermap) (NF:(A)path->bool). 
+let quotient = new_definition `!(H:(A)hypermap) (NF:(A)loop->bool). 
     quotient H NF = hypermap (quotient_darts H NF, inverse (fmap H NF) o inverse (nmap H NF), nmap H NF, fmap H NF)`;;
 
 
-let lemma_quotient = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF ==> dart (quotient H NF) = quotient_darts H NF /\ edge_map (quotient H NF) = inverse (fmap H NF) o inverse (nmap H NF) /\ node_map (quotient H NF) = nmap H NF /\ face_map (quotient H NF) = fmap H NF`,
+let lemma_quotient = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> dart (quotient H NF) = quotient_darts H NF /\ edge_map (quotient H NF) = inverse (fmap H NF) o inverse (nmap H NF) /\ node_map (quotient H NF) = nmap H NF /\ face_map (quotient H NF) = fmap H NF`,
     REPEAT GEN_TAC
     THEN REWRITE_TAC[quotient]
     THEN DISCH_THEN (LABEL_TAC "F1")
     THEN USE_THEN "F1" (ASSUME_TAC o MATCH_MP lemma_finite_quotient_darts)
     THEN USE_THEN "F1" (LABEL_TAC "F2" o MATCH_MP nmap_permute)
     THEN USE_THEN "F1" (LABEL_TAC "F3" o MATCH_MP fmap_permute)
-    THEN ABBREV_TAC `D = quotient_darts (H:(A)hypermap) (NF:(A)path->bool)`
-    THEN ABBREV_TAC `e = inverse (fmap (H:(A)hypermap) (NF:(A)path->bool)) o inverse (nmap H NF)`
-    THEN ABBREV_TAC `n = nmap (H:(A)hypermap) (NF:(A)path->bool)`
-    THEN ABBREV_TAC `f = fmap (H:(A)hypermap) (NF:(A)path->bool)`
+    THEN ABBREV_TAC `D = quotient_darts (H:(A)hypermap) (NF:(A)loop->bool)`
+    THEN ABBREV_TAC `e = inverse (fmap (H:(A)hypermap) (NF:(A)loop->bool)) o inverse (nmap H NF)`
+    THEN ABBREV_TAC `n = nmap (H:(A)hypermap) (NF:(A)loop->bool)`
+    THEN ABBREV_TAC `f = fmap (H:(A)hypermap) (NF:(A)loop->bool)`
     THEN SUBGOAL_THEN `e:(A->bool) -> (A->bool) permutes (D:(A->bool)->bool)` ASSUME_TAC
     THENL[EXPAND_TAC "e"
 	THEN ASM_MESON_TAC[PERMUTES_INVERSE; PERMUTES_COMPOSE]; ALL_TAC]
@@ -10888,51 +10389,1049 @@ let lemma_quotient = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF 
     THEN UNDISCH_THEN `H':(A->bool)hypermap = G:(A->bool)hypermap` SUBST_ALL_TAC
     THEN ASM_SIMP_TAC[]);;
 
-let lemmaJMKRXLA = prove(`!(H:(A)hypermap) (NF:(A)path->bool). is_normal H NF /\ plain_hypermap H ==> plain_hypermap (quotient H NF)`,
+let choice_reflect = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A). is_normal H NF ==> x IN choice H NF x`,
+ REPEAT GEN_TAC THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN ASM_CASES_TAC `~(x:A IN support_darts NF)`
+   THENL[USE_THEN "F1" (MP_TAC o SPEC `x:A` o CONJUNCT1 o MATCH_MP first_unique_choice)
+      THEN ASM_REWRITE_TAC[]
+      THEN DISCH_THEN SUBST1_TAC THEN REWRITE_TAC[IN_SING]; ALL_TAC]
+   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[support_darts; lemma_in_support])
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` MP_TAC)
+   THEN POP_ASSUM (fun th -> (DISCH_THEN (fun th1-> MP_TAC (MATCH_MP unique_choice (CONJ th th1)))))
+   THEN DISCH_THEN SUBST1_TAC
+   THEN REWRITE_TAC[atom_reflect]);;
+
+let lemma_choice_in_quotient = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> (!x:A. choice H NF x IN quotient_darts H NF <=> x IN support_darts NF)`, 
+  REPEAT GEN_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN GEN_TAC
+    THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+    THEN EQ_TAC
+    THENL[DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) (ASSUME_TAC))))
+	THEN MP_TAC (SPECL[`H:(A)hypermap`; `NF:(A)loop->bool`; `x:A`] choice_reflect)
+	THEN ASM_REWRITE_TAC[]
+	THEN POP_ASSUM SUBST1_TAC
+	THEN POP_ASSUM (fun th->(DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_in_loop (CONJ th th1)))))
+	THEN POP_ASSUM (fun th->(DISCH_THEN(fun th1->MP_TAC(MATCH_MP lemma_in_support2 (CONJ th1 th)))))
+	THEN SIMP_TAC[]; ALL_TAC]
+    THEN REWRITE_TAC[lemma_in_support]
+    THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G1") (LABEL_TAC "G2")))
+    THEN EXISTS_TAC `L':(A)loop`
+    THEN EXISTS_TAC `x:A`
+    THEN ASM_REWRITE_TAC[]
+    THEN MATCH_MP_TAC unique_choice
+    THEN ASM_REWRITE_TAC[]);;
+
+let atom_via_choice = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> !atm:A->bool. atm IN quotient_darts H NF <=> ?x:A. x IN support_darts NF /\ atm = choice H NF x`,
+  REPEAT GEN_TAC
+    THEN DISCH_THEN (LABEL_TAC "F1")
+    THEN GEN_TAC
+    THEN EQ_TAC
+    THENL[REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+	THEN DISCH_THEN(X_CHOOSE_THEN `L:(A)loop`(X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) (SUBST1_TAC))))
+	THEN EXISTS_TAC `x:A`
+	THEN USE_THEN "F3"(fun th->(USE_THEN "F2"(fun th1-> REWRITE_TAC[MATCH_MP lemma_in_support2 (CONJ th th1)])))
+	THEN CONV_TAC SYM_CONV
+	THEN MATCH_MP_TAC unique_choice
+	THEN ASM_REWRITE_TAC[]; ALL_TAC]
+    THEN ASM_MESON_TAC[lemma_choice_in_quotient]);;
+
+let choice_identity = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A) (y:A). is_normal H NF /\ y IN choice H NF x  ==> choice H NF y = choice H NF x`,
    REPEAT GEN_TAC
+   THEN REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN ASM_CASES_TAC `~(x:A IN support_darts (NF:(A)loop->bool))`
+   THENL[USE_THEN "F1" (MP_TAC o SPEC `x:A` o CONJUNCT1 o MATCH_MP first_unique_choice)
+      THEN ASM_REWRITE_TAC[]
+      THEN DISCH_THEN (LABEL_TAC "F3")
+      THEN REMOVE_THEN "F2" MP_TAC   
+      THEN USE_THEN "F3" (fun th -> REWRITE_TAC[th])
+      THEN REWRITE_TAC[IN_SING]
+      THEN DISCH_THEN SUBST1_TAC
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[lemma_in_support])
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F4"(fun th3->MP_TAC (MATCH_MP unique_choice (CONJ th(CONJ th2 th3))))))))
+   THEN DISCH_THEN SUBST_ALL_TAC
+   THEN USE_THEN "F2" (fun th->REWRITE_TAC[MATCH_MP lemma_identity_atom th])
+   THEN MATCH_MP_TAC unique_choice
+   THEN ASM_REWRITE_TAC[]  
+   THEN USE_THEN "F4"(fun th->(USE_THEN "F2"(fun th1->REWRITE_TAC[MATCH_MP lemma_in_loop (CONJ th th1)]))));;
+
+let choice_at_margin = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A). is_normal H NF ==> choice H NF x = choice H NF (tail H NF x) /\ choice H NF x = choice H NF (head H NF x)`,
+  REPEAT GEN_TAC
+  THEN DISCH_THEN (LABEL_TAC "F1")
+  THEN ASM_CASES_TAC `~(x:A IN support_darts (NF:(A)loop->bool))`
+  THENL[USE_THEN "F1" (MP_TAC o CONJUNCT1 o SPEC `x:A` o MATCH_MP lemma_head_tail)
+       THEN ASM_REWRITE_TAC[]
+       THEN MESON_TAC[]; ALL_TAC]
+  THEN POP_ASSUM (MP_TAC o REWRITE_RULE[lemma_in_support])
+  THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+  THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->LABEL_TAC "F4"(CONJUNCT1(MATCH_MP head_on_loop (CONJ th (CONJ th1 th2)))))))))
+  THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->LABEL_TAC "F5"(CONJUNCT1(MATCH_MP tail_on_loop (CONJ th (CONJ th1 th2)))))))))
+  THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP unique_choice (CONJ th (CONJ th1 th2))))))))
+  THEN DISCH_THEN (SUBST_ALL_TAC o SYM)
+  THEN USE_THEN "F1" (fun th-> (USE_THEN "F4"(fun th1->REWRITE_TAC[MATCH_MP choice_identity (CONJ th th1)])))
+  THEN USE_THEN "F1" (fun th-> (USE_THEN "F5"(fun th1->REWRITE_TAC[MATCH_MP choice_identity (CONJ th th1)]))));;
+
+let fmap_via_choice = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A). is_normal H NF /\ x IN support_darts NF ==>  face_map H (head H NF x) IN support_darts NF /\ face_map H (head H NF x) = tail H NF (face_map H (head H NF x)) /\ fmap H NF (choice H NF x) = choice H NF (face_map H (head H NF x))`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (MP_TAC o REWRITE_RULE[lemma_in_support]))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP face_map_on_margin (CONJ th (CONJ th1 th2))))))))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F4") (SUBST1_TAC o SYM o CONJUNCT1 o CONJUNCT2))
+   THEN REWRITE_TAC[]
+   THEN USE_THEN "F4"(fun th->(USE_THEN "F2"(fun th1->(REWRITE_TAC[MATCH_MP lemma_in_support2 (CONJ th th1)]))))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP unique_fmap (CONJ th (CONJ th1 th2))))))))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(MATCH_MP unique_choice (CONJ th (CONJ th1 th2))))))))
+   THEN DISCH_THEN SUBST1_TAC
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F4"(fun th2->MP_TAC(MATCH_MP unique_choice (CONJ th (CONJ th1 th2))))))))
+   THEN DISCH_THEN SUBST1_TAC
+   THEN SIMP_TAC[]);;
+
+let nmap_via_choice = prove(`!(H:(A)hypermap) (NF:(A)loop->bool) (x:A). is_normal H NF /\ x IN support_darts NF ==> node_map H (tail H NF x) IN support_darts NF /\ node_map H (tail H NF x) = head H NF (node_map H (tail H NF x)) /\ nmap H NF (choice H NF x) = choice H NF (node_map H (tail H NF x))`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (MP_TAC o REWRITE_RULE[lemma_in_support]))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP node_map_on_margin (CONJ th (CONJ th1 th2)))))))))
+   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (SUBST1_TAC o SYM))))
+   THEN REWRITE_TAC[]
+   THEN USE_THEN "F5"(fun th->(USE_THEN "F4"(fun th1->(REWRITE_TAC[MATCH_MP lemma_in_support2 (CONJ th th1)]))))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "F3"(fun th2->REWRITE_TAC[MATCH_MP unique_choice (CONJ th (CONJ th1 th2))])))))
+   THEN USE_THEN "F1"(fun th->(USE_THEN "F4"(fun th1->(USE_THEN "F5"(fun th2->REWRITE_TAC[MATCH_MP unique_choice (CONJ th (CONJ th1 th2))])))))
+   THEN USE_THEN "F5" MP_TAC THEN USE_THEN "F3" MP_TAC THEN  USE_THEN "F4" MP_TAC THEN USE_THEN "F2" MP_TAC THEN USE_THEN "F1" MP_TAC
+   THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+   THEN DISCH_THEN (SUBST1_TAC o MATCH_MP unique_nmap)
+   THEN SIMP_TAC[]);;
+
+let lemmaJMKRXLA = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF /\ plain_hypermap H ==> plain_hypermap (quotient H NF)`,
+ REPEAT GEN_TAC
    THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
    THEN REWRITE_TAC[edge_convolution]
    THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_quotient th])
    THEN GEN_TAC
-   THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
-   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)path` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4")) SUBST1_TAC)))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th1->(USE_THEN "F4"(fun th2->REWRITE_TAC[MATCH_MP unique_fmap (CONJ th (CONJ th1 th2))])))))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th1->(USE_THEN "F4"(fun th2->MP_TAC(MATCH_MP face_map_on_margin (CONJ th (CONJ th1 th2))))))))
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6" o CONJUNCT1 o CONJUNCT2))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th1->(USE_THEN "F5"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP node_map_on_margin (CONJ th (CONJ th1 th2)))))))))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F7") (CONJUNCTS_THEN2 (LABEL_TAC "F8") (LABEL_TAC "F9"))))
-   THEN USE_THEN "F8" (MP_TAC) THEN USE_THEN "F5" MP_TAC THEN  USE_THEN "F7" MP_TAC THEN USE_THEN "F3" MP_TAC THEN USE_THEN "F1" MP_TAC
-   THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-   THEN DISCH_THEN (MP_TAC o MATCH_MP unique_nmap)
-   THEN DISCH_THEN SUBST1_TAC
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F7"(fun th1->(USE_THEN "F8"(fun th2->REWRITE_TAC[MATCH_MP unique_fmap (CONJ th (CONJ th1 th2))])))))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F7"(fun th1->(USE_THEN "F8"(fun th2->MP_TAC(MATCH_MP face_map_on_margin (CONJ th (CONJ th1 th2))))))))
-   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F10") (LABEL_TAC "F11A" o CONJUNCT1 o CONJUNCT2))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F7"(fun th1->(USE_THEN "F10"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP node_map_on_margin (CONJ th (CONJ th1 th2)))))))))
-   THEN DISCH_THEN (X_CHOOSE_THEN `L'':(A)path` (CONJUNCTS_THEN2 (LABEL_TAC "F11") (CONJUNCTS_THEN2 (LABEL_TAC "F12") (LABEL_TAC "F14"))))
-   THEN USE_THEN "F12" (MP_TAC) THEN USE_THEN "F10" MP_TAC THEN  USE_THEN "F11" MP_TAC THEN USE_THEN "F7" MP_TAC THEN USE_THEN "F1" MP_TAC
-   THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-   THEN DISCH_THEN (MP_TAC o MATCH_MP unique_nmap)
-   THEN DISCH_THEN SUBST1_TAC
-   THEN REMOVE_THEN "F12" MP_TAC
-   THEN USE_THEN "F11A" (SUBST1_TAC o SYM)
-   THEN USE_THEN "F9" (SUBST1_TAC o SYM)
-   THEN USE_THEN "F6" (SUBST1_TAC o SYM)
-   THEN USE_THEN "F2" (MP_TAC o REWRITE_RULE[plain_hypermap])
+   THEN USE_THEN "F1"(fun th-> REWRITE_TAC[MATCH_MP atom_via_choice th])
+   THEN DISCH_THEN (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 ASSUME_TAC SUBST1_TAC))
+   THEN USE_THEN "F1"(fun th -> (POP_ASSUM (fun th1 -> MP_TAC (MATCH_MP fmap_via_choice (CONJ th th1)))))
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC)))
+   THEN USE_THEN "F1"(fun th -> (REMOVE_THEN "F3" (fun th1 -> MP_TAC (MATCH_MP nmap_via_choice (CONJ th th1)))))
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC)))
+   THEN USE_THEN "F1"(fun th -> (REMOVE_THEN "F4" (fun th1 -> MP_TAC (MATCH_MP fmap_via_choice (CONJ th th1)))))
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC)))
+   THEN USE_THEN "F1"(fun th -> (REMOVE_THEN "F5" (fun th1 -> MP_TAC (MATCH_MP nmap_via_choice (CONJ th th1)))))
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN DISCH_THEN (SUBST1_TAC o CONJUNCT2 o CONJUNCT2)
+   THEN POP_ASSUM (MP_TAC o REWRITE_RULE[plain_hypermap])
    THEN REWRITE_TAC[MATCH_MP convolution_inv (CONJUNCT2 (SPEC `H:(A)hypermap` edge_map_and_darts))]
    THEN REWRITE_TAC[inverse_hypermap_maps]
-   THEN DISCH_THEN (fun th -> (MP_TAC(AP_THM th `head (H:(A)hypermap) (NF:(A)path->bool) (y:A)`)))
+   THEN DISCH_THEN (fun th -> (MP_TAC(AP_THM th `head (H:(A)hypermap) (NF:(A)loop->bool) (x:A)`)))
    THEN REWRITE_TAC[o_THM; I_THM]
    THEN DISCH_THEN SUBST1_TAC
-   THEN USE_THEN "F3"(fun th->(USE_THEN "F1"(LABEL_TAC "G1" o CONJUNCT1 o REWRITE_RULE[th] o  SPEC `L:(A)path` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th1->(USE_THEN "F4"(fun th2->MP_TAC(CONJUNCT1(MATCH_MP head_on_loop (CONJ th (CONJ th1 th2)))))))))
-   THEN USE_THEN "G1"(fun th->(USE_THEN "F4"(fun th1->(DISCH_THEN(fun th2->MP_TAC(MATCH_MP lemma_in_loop (CONJ th (CONJ th1 th2))))))))
-   THEN USE_THEN "F11" MP_TAC THEN USE_THEN "F3" MP_TAC THEN USE_THEN "F1" MP_TAC
-   THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
-   THEN DISCH_THEN (MP_TAC o MATCH_MP disjoint_loops)
+   THEN POP_ASSUM (fun th-> MESON_TAC[MATCH_MP choice_at_margin th]));;
+
+(* SOME LEMMAS ON INJECTIVE, SURJECTIVE AND BIJECTIVE MAPS *)
+
+let COMPOSE_INJ = prove(`!f:A->B  g:B->C s t w. INJ f s t /\ INJ g t w ==> INJ (g o f) s w`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN SUBGOAL_THEN `!x:A. x IN s ==> (f:A->B) x IN t /\ ((g:B->C) (f x)) IN w` (LABEL_TAC "F3")
+   THENL[GEN_TAC THEN DISCH_TAC
+       THEN POP_ASSUM(fun th-> USE_THEN "F1" (ASSUME_TAC o REWRITE_RULE[th] o  SPEC `x:A` o CONJUNCT1 o REWRITE_RULE[INJ]))
+       THEN ASM_REWRITE_TAC[]
+       THEN POP_ASSUM(fun th-> USE_THEN "F2" (ASSUME_TAC o REWRITE_RULE[th] o  SPEC `(f:A->B) (x:A)` o CONJUNCT1 o REWRITE_RULE[INJ]))
+       THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN REWRITE_TAC[INJ; o_THM]
+   THEN STRIP_TAC
+   THENL[GEN_TAC
+       THEN DISCH_THEN(fun th->(POP_ASSUM (MP_TAC o CONJUNCT2 o REWRITE_RULE[th] o SPEC `x:A`)))
+       THEN SIMP_TAC[]; ALL_TAC]
+   THEN REPEAT STRIP_TAC
+   THEN USE_THEN "F3" (MP_TAC o SPEC `x:A`)
+   THEN REMOVE_THEN "F3" (MP_TAC o SPEC `y:A`)
+   THEN ASM_REWRITE_TAC[]
+   THEN REPEAT STRIP_TAC
+   THEN REMOVE_THEN "F2" (MP_TAC o SPECL[`(f:A->B) (x:A)`; `(f:A->B) (y:A)`] o CONJUNCT2 o REWRITE_RULE[INJ])
+   THEN ASM_REWRITE_TAC[]
+   THEN DISCH_TAC
+   THEN REMOVE_THEN "F1" (MP_TAC o SPECL[`x:A`; `y:A`] o CONJUNCT2 o REWRITE_RULE[INJ] )
+   THEN ASM_REWRITE_TAC[]);;
+
+let COMPOSE_SURJ = prove(`!f:A->B  g:B->C s t w. SURJ f s t /\ SURJ g t w ==> SURJ (g o f) s w`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN REWRITE_TAC[SURJ; o_THM]
+   THEN STRIP_TAC
+   THENL[REPEAT STRIP_TAC
+      THEN POP_ASSUM(fun th-> USE_THEN "F1" (ASSUME_TAC o REWRITE_RULE[th] o  SPEC `x:A` o CONJUNCT1 o REWRITE_RULE[SURJ]))
+      THEN POP_ASSUM(fun th-> USE_THEN "F2" (ASSUME_TAC o REWRITE_RULE[th] o  SPEC `(f:A->B) (x:A)` o CONJUNCT1 o REWRITE_RULE[SURJ]))
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN REPEAT STRIP_TAC
+   THEN POP_ASSUM(fun th->(REMOVE_THEN "F2" (MP_TAC o REWRITE_RULE[th] o  SPEC `x:C` o CONJUNCT2 o REWRITE_RULE[SURJ])))
+   THEN DISCH_THEN (X_CHOOSE_THEN `y:B` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC o SYM)))
+   THEN POP_ASSUM(fun th->(REMOVE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `y:B` o CONJUNCT2 o REWRITE_RULE[SURJ])))
+   THEN DISCH_THEN (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC o SYM)))
+   THEN EXISTS_TAC `z:A`
+   THEN ASM_REWRITE_TAC[]);;
+
+let COMPOSE_BIJ = prove(`!f:A->B  g:B->C s t w. BIJ f s t /\ BIJ g t w ==> BIJ (g o f) s w`,
+   MESON_TAC[BIJ; COMPOSE_INJ; COMPOSE_SURJ]);;
+
+let BIJ_INVERSE = prove(`!f:A->B s t. BIJ f s t ==> ?g:B->A. (!x:A. x IN s ==> g (f x) = x) /\ (!x:B. x IN t ==> f (g x) = x) /\ BIJ g t s`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F1" o REWRITE_RULE[BIJ])
+   THEN USE_THEN "F1" (MP_TAC o REWRITE_RULE[INJ] o CONJUNCT1)
+   THEN REWRITE_TAC[ISPECL[`f:A->B`; `s:A->bool`] INJECTIVE_ON_LEFT_INVERSE]
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F2") (X_CHOOSE_THEN `g:B->A` (LABEL_TAC "F3")))
+   THEN EXISTS_TAC `g:B->A`
+   THEN ASM_REWRITE_TAC[]
+   THEN SUBGOAL_THEN `SURJ (g:B->A) t s` (LABEL_TAC "F4")
+   THENL[REWRITE_TAC[SURJ]
+       THEN STRIP_TAC
+       THENL[REPEAT STRIP_TAC
+          THEN USE_THEN "F1" (MP_TAC o SPEC `x:B` o CONJUNCT2 o  REWRITE_RULE[SURJ] o CONJUNCT2)
+          THEN ASM_REWRITE_TAC[]
+          THEN DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST1_TAC o SYM)))
+          THEN REMOVE_THEN "F3" (MP_TAC o SPEC `y:A`)
+          THEN ASM_REWRITE_TAC[]
+          THEN POP_ASSUM (fun th -> MESON_TAC[th]); ALL_TAC]
+       THEN REPEAT GEN_TAC
+       THEN DISCH_THEN (LABEL_TAC "F4")
+       THEN USE_THEN "F4" (fun th -> (USE_THEN "F2" (ASSUME_TAC o REWRITE_RULE[th] o SPEC `x:A`)))
+       THEN EXISTS_TAC `(f:A->B) x`
+       THEN USE_THEN "F4" (fun th -> (USE_THEN "F3" (MP_TAC o REWRITE_RULE[th] o SPEC `x:A`)))
+       THEN POP_ASSUM (fun th-> SIMP_TAC[th]); ALL_TAC]
+    THEN SUBGOAL_THEN `BIJ (g:B->A) t s` (LABEL_TAC "F5")
+    THENL[REWRITE_TAC[BIJ]
+       THEN ASM_REWRITE_TAC[INJ]
+       THEN STRIP_TAC
+       THENL[POP_ASSUM (fun th-> MESON_TAC[REWRITE_RULE[SURJ] th]); ALL_TAC]
+       THEN REPEAT GEN_TAC
+       THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F5") (CONJUNCTS_THEN2 (LABEL_TAC "F6")  (LABEL_TAC "F7")))
+       THEN REMOVE_THEN "F5"(fun th->(USE_THEN "F1"(MP_TAC o REWRITE_RULE[th] o SPEC `x:B` o CONJUNCT2 o REWRITE_RULE[SURJ] o CONJUNCT2)))
+       THEN DISCH_THEN (X_CHOOSE_THEN `a:A` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST_ALL_TAC o SYM)))
+       THEN REMOVE_THEN "F6"(fun th->(USE_THEN "F1"(MP_TAC o REWRITE_RULE[th] o SPEC `y:B` o CONJUNCT2 o REWRITE_RULE[SURJ] o CONJUNCT2)))
+       THEN DISCH_THEN (X_CHOOSE_THEN `b:A` (CONJUNCTS_THEN2 ASSUME_TAC (SUBST_ALL_TAC o SYM)))
+       THEN AP_TERM_TAC
+       THEN POP_ASSUM(fun th->(USE_THEN "F3"(MP_TAC o REWRITE_RULE[th] o SPEC `b:A`)))
+       THEN REMOVE_THEN "F7" (SUBST1_TAC o SYM)
+       THEN POP_ASSUM(fun th->(REMOVE_THEN "F3"(MP_TAC o REWRITE_RULE[th] o SPEC `a:A`)))
+       THEN MESON_TAC[]; ALL_TAC]
+    THEN USE_THEN "F5" (fun th-> REWRITE_TAC[th])
+    THEN GEN_TAC THEN (DISCH_THEN (LABEL_TAC "G1"))
+    THEN USE_THEN "G1" (fun th-> (USE_THEN "F4" (LABEL_TAC "G2" o REWRITE_RULE[th] o SPEC `x:B` o CONJUNCT1 o REWRITE_RULE[SURJ])))
+    THEN USE_THEN "G2" (fun th-> (USE_THEN "F3" (fun thm -> (ASSUME_TAC (MATCH_MP thm th)))))
+    THEN USE_THEN "G2" (fun th-> (USE_THEN "F2" (fun thm -> (ASSUME_TAC (MATCH_MP thm th)))))
+    THEN USE_THEN "F5" (MP_TAC o CONJUNCT1 o REWRITE_RULE[BIJ])
+    THEN USE_THEN "G1" (fun th-> (DISCH_THEN (MP_TAC o REWRITE_RULE[th] o SPECL[`(f:A->B) ((g:B->A) x)`; `x:B`] o CONJUNCT2 o REWRITE_RULE[INJ])))
+    THEN ASM_REWRITE_TAC[]);;
+
+let I_BIJ = prove(`!s:A->bool. BIJ I s s`, REWRITE_TAC[BIJ; INJ; SURJ] THEN REWRITE_TAC[I_THM] THEN MESON_TAC[]);;
+
+(* the definition of isomorphism between two hypermaps and some obvious properties *)
+
+let iso = new_definition `!(H:(A)hypermap) (H':(B)hypermap) . H iso H'  <=> (?f:A->B. BIJ f (dart H) (dart H')  /\
+!x:A. x IN dart H ==> (edge_map H')  (f x) = f (edge_map H x) /\ (node_map H') (f x) = f (node_map H x) /\ (face_map H') (f x) = f (face_map H x))`;;
+
+let iso_reflect = prove(`!(H:(A)hypermap). H iso H`,
+ GEN_TAC THEN REWRITE_TAC[iso] THEN EXISTS_TAC `I:A->A` THEN REWRITE_TAC[I_THM; I_BIJ]);;
+
+let iso_sym = prove(`!(H:(A)hypermap) (G:(B)hypermap). H iso G ==> G iso H`,
+  REPEAT GEN_TAC
+   THEN REWRITE_TAC[iso]
+   THEN DISCH_THEN (X_CHOOSE_THEN `f:A->B` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2")))
+   THEN USE_THEN "F1" (MP_TAC o MATCH_MP BIJ_INVERSE)
+   THEN DISCH_THEN(X_CHOOSE_THEN `g:B->A` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (CONJUNCTS_THEN2(LABEL_TAC "FC") (LABEL_TAC "F4"))))
+   THEN EXISTS_TAC `g:B->A`
+   THEN ASM_REWRITE_TAC[]
+   THEN GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F5")
+   THEN STRIP_TAC
+   THENL[USE_THEN "F5" (LABEL_TAC "F6" o CONJUNCT1 o  MATCH_MP lemma_dart_invariant)
+      THEN USE_THEN "F4" (MP_TAC o SPEC `x:B` o CONJUNCT1 o  REWRITE_RULE[INJ] o CONJUNCT1 o REWRITE_RULE[BIJ])
+      THEN USE_THEN "F5" (fun th-> REWRITE_TAC[th])
+      THEN DISCH_THEN (LABEL_TAC "F7")
+      THEN USE_THEN "F7" (LABEL_TAC "F8" o CONJUNCT1 o  MATCH_MP lemma_dart_invariant)
+      THEN USE_THEN "F7" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o SPEC `(g:B->A) x`)))
+      THEN USE_THEN "F5" (fun th-> USE_THEN "FC" (MP_TAC o REWRITE_RULE[th] o SPEC `x:B`))
+      THEN DISCH_THEN SUBST1_TAC
+      THEN DISCH_THEN (MP_TAC o SYM o AP_TERM `g:B->A`)
+      THEN USE_THEN "F3" (fun thm-> (USE_THEN "F8" (fun th -> REWRITE_TAC[MATCH_MP thm th]))); ALL_TAC]
+    THEN STRIP_TAC
+    THENL[USE_THEN "F5" (LABEL_TAC "F6" o CONJUNCT1 o CONJUNCT2 o MATCH_MP lemma_dart_invariant)
+      THEN USE_THEN "F4" (MP_TAC o SPEC `x:B` o CONJUNCT1 o  REWRITE_RULE[INJ] o CONJUNCT1 o REWRITE_RULE[BIJ])
+      THEN USE_THEN "F5" (fun th-> REWRITE_TAC[th])
+      THEN DISCH_THEN (LABEL_TAC "F7")
+      THEN USE_THEN "F7" (LABEL_TAC "F8" o CONJUNCT1 o CONJUNCT2 o  MATCH_MP lemma_dart_invariant)
+      THEN USE_THEN "F7" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[th] o SPEC `(g:B->A) x`)))
+      THEN USE_THEN "F5" (fun th-> USE_THEN "FC" (MP_TAC o REWRITE_RULE[th] o SPEC `x:B`))
+      THEN DISCH_THEN SUBST1_TAC
+      THEN DISCH_THEN (MP_TAC o SYM o AP_TERM `g:B->A`)
+      THEN USE_THEN "F3" (fun thm-> (USE_THEN "F8" (fun th -> REWRITE_TAC[MATCH_MP thm th]))); ALL_TAC]
+    THEN USE_THEN "F5" (LABEL_TAC "F6" o CONJUNCT2 o CONJUNCT2 o MATCH_MP lemma_dart_invariant)
+    THEN USE_THEN "F4" (MP_TAC o SPEC `x:B` o CONJUNCT1 o  REWRITE_RULE[INJ] o CONJUNCT1 o REWRITE_RULE[BIJ])
+    THEN USE_THEN "F5" (fun th-> REWRITE_TAC[th])
+    THEN DISCH_THEN (LABEL_TAC "F7")
+    THEN USE_THEN "F7" (LABEL_TAC "F8" o CONJUNCT2 o CONJUNCT2 o  MATCH_MP lemma_dart_invariant)
+    THEN USE_THEN "F7" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT2 o CONJUNCT2 o REWRITE_RULE[th] o SPEC `(g:B->A) x`)))
+    THEN USE_THEN "F5" (fun th-> USE_THEN "FC" (MP_TAC o REWRITE_RULE[th] o SPEC `x:B`))
+    THEN DISCH_THEN SUBST1_TAC
+    THEN DISCH_THEN (MP_TAC o SYM o AP_TERM `g:B->A`)
+    THEN USE_THEN "F3" (fun thm-> (USE_THEN "F8" (fun th -> REWRITE_TAC[MATCH_MP thm th]))));;
+
+let iso_trans = prove(`!(H:(A)hypermap) (G:(B)hypermap) (W:(C)hypermap). H iso G /\ G iso W ==> H iso W`,
+ REPEAT GEN_TAC
+   THEN REWRITE_TAC[iso]
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `f:A->B` (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))) (X_CHOOSE_THEN `g:B->C` (CONJUNCTS_THEN2 (LABEL_TAC "F3") (LABEL_TAC "F4"))))
+   THEN EXISTS_TAC `(g:B->C) o (f:A->B)`
+   THEN USE_THEN "F1" (fun th-> (USE_THEN "F3" (fun th1-> REWRITE_TAC[MATCH_MP COMPOSE_BIJ (CONJ th th1)])))
+   THEN GEN_TAC THEN DISCH_THEN (LABEL_TAC "F5")
+   THEN USE_THEN "F1" (MP_TAC o SPEC `x:A` o CONJUNCT1 o REWRITE_RULE[INJ] o CONJUNCT1 o REWRITE_RULE[BIJ])
+   THEN USE_THEN "F5" (fun th-> (DISCH_THEN(fun thm-> (LABEL_TAC "F6" (MATCH_MP thm th)))))
+   THEN REWRITE_TAC[o_THM]
+   THEN STRIP_TAC
+   THENL[USE_THEN "F5" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o SPEC `x:A`)))
+       THEN DISCH_THEN (SUBST1_TAC o SYM)
+       THEN USE_THEN "F6" (fun th-> (USE_THEN "F4" (MP_TAC o CONJUNCT1 o REWRITE_RULE[th] o SPEC `(f:A->B) x`)))
+       THEN SIMP_TAC[]; ALL_TAC]
+   THEN STRIP_TAC
+   THENL[USE_THEN "F5" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT1 o CONJUNCT2 o REWRITE_RULE[th] o SPEC `x:A`)))
+       THEN DISCH_THEN (SUBST1_TAC o SYM)
+       THEN USE_THEN "F6" (fun th-> (USE_THEN "F4" (MP_TAC o CONJUNCT1 o CONJUNCT2 o  REWRITE_RULE[th] o SPEC `(f:A->B) x`)))
+       THEN SIMP_TAC[]; ALL_TAC]
+   THEN USE_THEN "F5" (fun th-> (USE_THEN "F2" (MP_TAC o CONJUNCT2 o CONJUNCT2 o REWRITE_RULE[th] o SPEC `x:A`)))
    THEN DISCH_THEN (SUBST1_TAC o SYM)
+   THEN USE_THEN "F6" (fun th-> (USE_THEN "F4" (MP_TAC o CONJUNCT2 o CONJUNCT2 o  REWRITE_RULE[th] o SPEC `(f:A->B) x`)))
+   THEN SIMP_TAC[]);;
+
+(* the detail on faces of quotients *)
+
+let team = new_definition `!(H:(A)hypermap) (L:(A)loop). team H L = {atom H L x |x:A | x inside L}`;;
+
+let lemma_team_eq = prove(`!H:(A)hypermap NF:(A)loop->bool L:(A)loop L':(A)loop. is_normal H NF /\ L IN NF /\ L' IN NF /\ team H L = team H L' ==> L = L'`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN USE_THEN "F1" (MP_TAC o SPEC `L:(A)loop` o CONJUNCT1 o  REWRITE_RULE[is_normal])
+   THEN ASM_REWRITE_TAC[]
+   THEN DISCH_THEN (MP_TAC o CONJUNCT2)
+   THEN DISCH_THEN (X_CHOOSE_THEN `x:A` (LABEL_TAC "F3" o CONJUNCT2))
+   THEN SUBGOAL_THEN `atom (H:(A)hypermap) (L:(A)loop) (x:A) IN team H L` MP_TAC
+   THENL[REWRITE_TAC[team; IN_ELIM_THM]
+      THEN EXISTS_TAC `x:A`
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN USE_THEN "F2" (SUBST1_TAC o CONJUNCT2 o CONJUNCT2)
+   THEN REWRITE_TAC[team; IN_ELIM_THM]
+   THEN DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "F4") (LABEL_TAC "F5")))
+   THEN MP_TAC(SPECL[`H:(A)hypermap`; `L':(A)loop`; `y:A`] atom_reflect)
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN USE_THEN "F3"(fun th->(DISCH_THEN(fun th1->ASSUME_TAC(MATCH_MP lemma_in_loop (CONJ th th1)))))
+   THEN MATCH_MP_TAC disjoint_loops
+   THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_team_is_face = prove(`!H:(A)hypermap NF:(A)loop->bool L:(A)loop x:A. is_normal H NF /\ L IN NF /\ x inside L ==> team H L = orbit_map (fmap H NF) (atom  H L x)`, 
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN SUBGOAL_THEN `(!m:num u:A v:A. u inside (L:(A)loop) /\ v inside L /\ v = ((next L) POWER m) u ==> (?j:num. atom (H:(A)hypermap) L v = ((fmap H (NF:(A)loop->bool)) POWER j) (atom H L u)))` (LABEL_TAC "F4")
+   THENL[INDUCT_TAC
+      THENL[REWRITE_TAC[POWER_0; I_THM]
+	 THEN REPEAT STRIP_TAC
+	 THEN EXISTS_TAC `0`
+	 THEN POP_ASSUM SUBST1_TAC
+	 THEN REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
+      THEN POP_ASSUM (LABEL_TAC "G1")
+      THEN REPEAT GEN_TAC
+      THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G2") (CONJUNCTS_THEN2 (LABEL_TAC "G3") (LABEL_TAC "G4")))
+      THEN ASM_CASES_TAC `next (L:(A)loop) (u:A) = inverse (node_map (H:(A)hypermap)) u`
+      THENL[MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)loop`; `u:A`] atom_reflect)
+	 THEN DISCH_THEN(fun th->POP_ASSUM(fun th1->MP_TAC(MATCH_MP lemma_atom_absorb_quark (CONJ th th1))))
+	 THEN DISCH_THEN (SUBST1_TAC o MATCH_MP lemma_identity_atom)
+	 THEN USE_THEN "G2" (ASSUME_TAC o REWRITE_RULE[POWER_1] o  SPEC `1` o MATCH_MP lemma_power_next_in_loop)
+	 THEN REMOVE_THEN "G4" (ASSUME_TAC o REWRITE_RULE[POWER; o_THM])
+	 THEN ABBREV_TAC `z = (next (L:(A)loop) (u:A))`
+	 THEN REMOVE_THEN "G1" (MP_TAC o SPECL[`z:A`; `v:A`])
+	 THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN POP_ASSUM MP_TAC THEN MP_TAC (SPECL[`H:(A)hypermap`; `L:(A)loop`; `u:A`] atom_reflect)
+      THEN USE_THEN "G2" MP_TAC THEN USE_THEN "F2" MP_TAC THEN USE_THEN "F1" MP_TAC
+      THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+      THEN DISCH_THEN (ASSUME_TAC o MATCH_MP lemma_unique_head)
+      THEN USE_THEN "F1"(fun th->USE_THEN "F2"(fun th1->(USE_THEN "G2" (fun th2 -> MP_TAC(MATCH_MP unique_fmap (CONJ th (CONJ th1 th2)))))))
+      THEN USE_THEN "F1"(fun th->USE_THEN "F2"(fun th1->(USE_THEN "G2" (fun th2 -> MP_TAC(MATCH_MP value_next_of_head (CONJ th (CONJ th1 th2)))))))
+      THEN POP_ASSUM SUBST1_TAC
+      THEN DISCH_THEN (SUBST1_TAC o SYM)
+      THEN USE_THEN "G2" (ASSUME_TAC o REWRITE_RULE[POWER_1] o  SPEC `1` o MATCH_MP lemma_power_next_in_loop)
+      THEN DISCH_THEN (LABEL_TAC "G5")
+      THEN REMOVE_THEN "G4" (ASSUME_TAC o REWRITE_RULE[POWER; o_THM])
+      THEN ABBREV_TAC `z = (next (L:(A)loop) (u:A))`
+      THEN REMOVE_THEN "G1" (MP_TAC o SPECL[`z:A`; `v:A`])
+      THEN ASM_REWRITE_TAC[]
+      THEN DISCH_THEN (X_CHOOSE_THEN `k:num` MP_TAC)
+      THEN REMOVE_THEN "G5" (SUBST1_TAC o SYM)
+      THEN REWRITE_TAC[iterate_map_valuation2]
+      THEN MESON_TAC[]; ALL_TAC]
+   THEN SUBGOAL_THEN `!m:num x:A. x inside (L:(A)loop) ==> ?y:A. y inside L /\ ((fmap (H:(A)hypermap) (NF:(A)loop->bool)) POWER m) (atom H L x) = atom H L y` (LABEL_TAC "F5")
+   THENL[INDUCT_TAC
+       THENL[REPEAT STRIP_TAC THEN EXISTS_TAC `x':A` THEN ASM_REWRITE_TAC[POWER_0; I_THM]; ALL_TAC]
+       THEN GEN_TAC
+       THEN POP_ASSUM (LABEL_TAC "G4")
+       THEN DISCH_THEN (LABEL_TAC "G5")
+       THEN REWRITE_TAC[COM_POWER; o_THM]
+       THEN REMOVE_THEN "G5" (fun th-> (REMOVE_THEN "G4" (MP_TAC o REWRITE_RULE[th] o  SPEC `x':A`)))
+       THEN DISCH_THEN (X_CHOOSE_THEN `a:A` (CONJUNCTS_THEN2 (LABEL_TAC "G6") (SUBST1_TAC)))
+       THEN EXISTS_TAC `(face_map (H:(A)hypermap)) (head H (NF:(A)loop->bool) (a:A))`
+       THEN USE_THEN "F1"(fun th->(USE_THEN "F2"(fun th1->(USE_THEN "G6"(fun th2->REWRITE_TAC[MATCH_MP face_map_on_margin (CONJ th (CONJ th1 th2))])))))
+       THEN MATCH_MP_TAC unique_fmap
+       THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN REWRITE_TAC[EXTENSION]
+   THEN GEN_TAC
+   THEN REWRITE_TAC[team; orbit_map; IN_ELIM_THM; GE; LE_0]
+   THEN EQ_TAC
+   THENL[DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "F6") (SUBST1_TAC)))
+       THEN USE_THEN "F3"(fun th->(USE_THEN "F6"(fun th1->(MP_TAC (MATCH_MP lemma_next_power_representation (CONJ th th1))))))
+       THEN DISCH_THEN (X_CHOOSE_THEN `n:num` (ASSUME_TAC o CONJUNCT2))
+       THEN REMOVE_THEN "F4" (MP_TAC o SPECL[`n:num`; `x:A`; `y:A`])
+       THEN ASM_MESON_TAC[]; ALL_TAC]
+   THEN STRIP_TAC
+   THEN POP_ASSUM SUBST1_TAC
+   THEN POP_ASSUM (MP_TAC o SPECL[`n:num`; `x:A`])
+   THEN USE_THEN "F3" (fun th-> REWRITE_TAC[th]));;
+
+let lemma_face_set_via_teams = prove(`!H:(A)hypermap NF:(A)loop->bool L:(A)loop. is_normal H NF ==> face_set (quotient H NF) = {team H L | L IN NF}`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F1")
+   THEN REWRITE_TAC[EXTENSION; face_set; set_of_orbits; IN_ELIM_THM]
+   THEN GEN_TAC
+   THEN REWRITE_TAC[GSYM EXTENSION]
+   THEN USE_THEN "F1"(fun th-> REWRITE_TAC[MATCH_MP lemma_quotient th])
+   THEN EQ_TAC
+   THENL[REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+      THEN DISCH_THEN (X_CHOOSE_THEN `atm:A->bool` (CONJUNCTS_THEN2 MP_TAC (SUBST1_TAC)))
+      THEN DISCH_THEN(X_CHOOSE_THEN `L:(A)loop`(X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")) SUBST1_TAC)))
+      THEN EXISTS_TAC `L:(A)loop`
+      THEN ASM_REWRITE_TAC[]
+      THEN CONV_TAC SYM_CONV
+      THEN MATCH_MP_TAC lemma_team_is_face
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN DISCH_THEN(X_CHOOSE_THEN `L:(A)loop`(CONJUNCTS_THEN2 (LABEL_TAC "F2") SUBST1_TAC))
+   THEN USE_THEN "F2" (fun th-> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o SPEC `L:(A)loop` o  CONJUNCT1  o REWRITE_RULE[is_normal])))
+   THEN DISCH_THEN ((X_CHOOSE_THEN `x:A` (LABEL_TAC "F3" o CONJUNCT2)) o CONJUNCT2)
+   THEN EXISTS_TAC `atom (H:(A)hypermap) (L:(A)loop) (x:A)`
+   THEN STRIP_TAC
+   THENL[MATCH_MP_TAC lemma_in_quotient THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN MATCH_MP_TAC lemma_team_is_face THEN ASM_REWRITE_TAC[]);;
+
+
+let res = new_definition `!f:A->A s:A->bool x:A. res f s x = if x IN s then f x else x`;;
+
+let lemma_in_face = prove(`!(H:(A)hypermap) x:A n:num. ((face_map H) POWER n) x IN face H x`, REWRITE_TAC[face; lemma_in_orbit]);;
+
+let face_map_restrict = prove(`!(H:(A)hypermap) x:A.  res (face_map H) (face H x) permutes face H x`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[permutes] THEN SIMP_TAC[res]
+   THEN GEN_TAC THEN REWRITE_TAC[EXISTS_UNIQUE]
+   THEN ASM_CASES_TAC `~((y:A) IN face (H:(A)hypermap) x)`
+   THENL[EXISTS_TAC `y:A` 
+      THEN ASM_REWRITE_TAC[]
+      THEN GEN_TAC
+      THEN ASM_CASES_TAC `~(y':A IN face (H:(A)hypermap) x)`
+      THENL[ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
+      THEN ASM_REWRITE_TAC[]
+      THEN POP_ASSUM (SUBST_ALL_TAC o MATCH_MP lemma_face_identity)
+      THEN DISCH_TAC
+      THEN MP_TAC(REWRITE_RULE[POWER_1] (SPECL[`H:(A)hypermap`; `y':A`; `1`] lemma_in_face))
+      THEN POP_ASSUM SUBST1_TAC
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN POP_ASSUM (LABEL_TAC "F1" o REWRITE_RULE[])
+   THEN POP_ASSUM (SUBST1_TAC o MATCH_MP lemma_face_identity)
+   THEN MP_TAC (MATCH_MP inverse_element_lemma (SPEC `H:(A)hypermap` face_map_and_darts))
+   THEN DISCH_THEN (X_CHOOSE_THEN `j:num` (fun th -> (ASSUME_TAC (AP_THM th `y:A`))))
+   THEN MP_TAC (SPECL[`H:(A)hypermap`; `y:A`; `j:num`] lemma_in_face)
+   THEN POP_ASSUM (SUBST1_TAC o SYM)
+   THEN DISCH_TAC
+   THEN EXISTS_TAC `inverse (face_map (H:(A)hypermap)) y`
+   THEN ASM_REWRITE_TAC[]
+   THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES (CONJUNCT2 (SPEC `H:(A)hypermap` face_map_and_darts))]
+   THEN GEN_TAC
+   THEN ASM_CASES_TAC `~(y':A IN face (H:(A)hypermap) y)`
+   THENL[ASM_REWRITE_TAC[]
+       THEN DISCH_THEN (SUBST_ALL_TAC)
+       THEN POP_ASSUM (MP_TAC o REWRITE_RULE[face; orbit_reflect])
+       THEN MESON_TAC[]; ALL_TAC]
+   THEN POP_ASSUM (ASSUME_TAC o REWRITE_RULE[])
+   THEN ASM_REWRITE_TAC[]
+   THEN MESON_TAC[face_map_inverse_representation]);;
+
+let power_res_face_map = prove(`!(H:(A)hypermap) x:A n:num. ((res (face_map H) (face H x)) POWER n) x = ((face_map H) POWER n) x`,
+  REPLICATE_TAC 2 GEN_TAC
+    THEN INDUCT_TAC
+    THENL[REWRITE_TAC[POWER_0; orbit_reflect]; ALL_TAC]
+    THEN MP_TAC(SPECL[`H:(A)hypermap`; `x:A`; `n:num`] lemma_in_face)
+    THEN ABBREV_TAC `y = (face_map (H:(A)hypermap) POWER n) x`
+    THEN DISCH_TAC
+    THEN REWRITE_TAC[COM_POWER; o_THM]
+    THEN ASM_REWRITE_TAC[res]);;
+
+let face_loop = new_definition `!H:(A)hypermap x:A. face_loop H x = loop(face H x, res (face_map H) (face H x))`;;
+
+let face_collection = new_definition `!H:(A)hypermap. face_collection H = {face_loop H x |x:A| x IN dart H}`;;
+
+let face_loop_rep = prove(`!(H:(A)hypermap) x:A. dart_of (face_loop H x) = face H x /\ next (face_loop H x) = res (face_map H) (face H x)`,
+  REPEAT GEN_TAC
+    THEN REWRITE_TAC[face_loop]
+    THEN MATCH_MP_TAC lemma_loop_representation
+    THEN EXISTS_TAC `x:A`
+    THEN REWRITE_TAC[FACE_FINITE; face_map_restrict]
+    THEN REWRITE_TAC[orbit_map; power_res_face_map; face]);;
+
+let lemma_inverse_res = prove(`!(H:(A)hypermap) x:A y:A. y IN face H x ==> inverse (res (face_map H) (face H x))  y = inverse(face_map H) y`,
+    REPEAT STRIP_TAC
+    THEN REWRITE_TAC[face_loop]
+    THEN POP_ASSUM (SUBST1_TAC o MATCH_MP lemma_face_identity)
+    THEN REWRITE_TAC[GSYM face_loop]
+    THEN MP_TAC (MATCH_MP inverse_element_lemma (SPEC `H:(A)hypermap` face_map_and_darts)) 
+    THEN DISCH_THEN (X_CHOOSE_THEN `j:num` (LABEL_TAC "F0"))
+    THEN USE_THEN "F0" (MP_TAC o SPEC `face_map (H:(A)hypermap)` o  MATCH_MP RIGHT_MULT_MAP)
+    THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES_o (CONJUNCT2(SPEC `H:(A)hypermap` face_map_and_darts))]
+    THEN REWRITE_TAC[GSYM (CONJUNCT2 POWER)]
+    THEN DISCH_THEN (LABEL_TAC "F1" o SYM)
+    THEN SUBGOAL_THEN `(res (face_map (H:(A)hypermap)) (face H y)) POWER (SUC j) = I` ASSUME_TAC
+    THENL[REWRITE_TAC[FUN_EQ_THM;I_THM]
+       THEN GEN_TAC
+       THEN ASM_CASES_TAC `~(x:A IN face (H:(A)hypermap) (y:A))`
+       THENL[MATCH_MP_TAC power_permutation_outside_domain
+	 THEN EXISTS_TAC `face (H:(A)hypermap) y`
+	 THEN ASM_REWRITE_TAC[face_map_restrict; FACE_FINITE]; ALL_TAC] 
+       THEN POP_ASSUM (MP_TAC o REWRITE_RULE[])
+       THEN DISCH_THEN (SUBST1_TAC o MATCH_MP lemma_face_identity)
+       THEN REWRITE_TAC[power_res_face_map]
+       THEN POP_ASSUM (fun th-> MP_TAC (AP_THM th `x:A`))
+       THEN REWRITE_TAC[I_THM]; ALL_TAC]   
+    THEN POP_ASSUM (MP_TAC o SPEC `inverse(res (face_map (H:(A)hypermap)) (face H y))` o  MATCH_MP RIGHT_MULT_MAP)
+    THEN REWRITE_TAC[POWER; I_O_ID; GSYM o_ASSOC]
+    THEN REWRITE_TAC[MATCH_MP PERMUTES_INVERSES_o (SPECL[`H:(A)hypermap`; `y:A`] face_map_restrict); I_O_ID]
+    THEN DISCH_THEN (LABEL_TAC "F3")
+    THEN POP_ASSUM (SUBST1_TAC o SYM)
+    THEN REMOVE_THEN "F0" (SUBST1_TAC)
+    THEN REWRITE_TAC[power_res_face_map]);;
+
+let face_loop_lemma = prove(`!(H:(A)hypermap) x:A. is_loop H (face_loop H x)`,
+  REPEAT STRIP_TAC
+    THEN REWRITE_TAC[is_loop; inside; face_loop_rep]
+    THEN REPEAT STRIP_TAC
+    THEN ASM_REWRITE_TAC[res]
+    THEN REWRITE_TAC[one_step_contour]);;
+
+let edge_nondegenerate = new_definition `!(H:(A)hypermap). edge_nondegenerate H <=> (!x:A. x IN dart H  ==> ~(edge_map H x = x))`;;
+
+let lemma_edge_nondegenerate = prove(`!(H:(A)hypermap). edge_nondegenerate H <=> (!x:A. x IN dart H ==> ~(face_map H x = (inverse (node_map H)) x))`,
+   REWRITE_TAC[edge_nondegenerate] THEN  MESON_TAC[edge_nondegenerate; lemma_edge_degenarate]);;
+
+let normal_face_collection = prove(`!(H:(A)hypermap). (!x:A. x IN dart H ==> (?y:A.y IN dart H /\ y IN face H x /\ ~(node H x = node H y))) ==> is_normal H (face_collection H)`,
+   REPEAT GEN_TAC
+   THEN REWRITE_TAC[is_normal]
+   THEN DISCH_THEN (LABEL_TAC "F2")
+   THEN STRIP_TAC
+   THENL[GEN_TAC
+      THEN REWRITE_TAC [face_collection; IN_ELIM_THM; inside]
+      THEN STRIP_TAC
+      THEN POP_ASSUM SUBST1_TAC
+      THEN REWRITE_TAC[face_loop_lemma]
+      THEN EXISTS_TAC `x:A`
+      THEN ASM_REWRITE_TAC[face; orbit_reflect; face_loop_rep]; ALL_TAC]
+   THEN STRIP_TAC
+   THENL[GEN_TAC
+     THEN REWRITE_TAC [face_collection; IN_ELIM_THM; inside]
+     THEN STRIP_TAC
+     THEN POP_ASSUM SUBST1_TAC
+     THEN REWRITE_TAC[face_loop_rep]
+     THEN EXISTS_TAC `x:A`
+     THEN REWRITE_TAC[face; orbit_reflect]
+     THEN REWRITE_TAC[GSYM face]
+     THEN USE_THEN "F2" (fun thm->(POP_ASSUM (fun th-> MESON_TAC[MATCH_MP thm th]))); ALL_TAC]
+   THEN STRIP_TAC
+   THENL[REPEAT GEN_TAC
+     THEN REWRITE_TAC [face_collection; IN_ELIM_THM; inside]
+     THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 ASSUME_TAC (LABEL_TAC "G1"))) (CONJUNCTS_THEN2 (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 ASSUME_TAC (LABEL_TAC "G2"))) MP_TAC))
+     THEN REMOVE_THEN "G1" SUBST_ALL_TAC
+     THEN REMOVE_THEN "G2" SUBST_ALL_TAC
+     THEN REWRITE_TAC[face_loop_rep]
+     THEN STRIP_TAC
+     THEN REWRITE_TAC[face_loop]
+     THEN POP_ASSUM (SUBST1_TAC o MATCH_MP lemma_face_identity)
+     THEN POP_ASSUM (SUBST1_TAC o MATCH_MP lemma_face_identity)
+     THEN SIMP_TAC[]; ALL_TAC]
+   THEN REPEAT GEN_TAC
+   THEN REWRITE_TAC [face_collection;IN_ELIM_THM; inside]
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 ASSUME_TAC ASSUME_TAC)) MP_TAC)
+   THEN POP_ASSUM SUBST1_TAC
+   THEN REWRITE_TAC[face_loop_rep]
+   THEN POP_ASSUM (LABEL_TAC "H1")
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "H2") (LABEL_TAC "H3"))
+   THEN EXISTS_TAC `face_loop (H:(A)hypermap) y`
+   THEN REWRITE_TAC[face_loop_rep; face; orbit_reflect]
+   THEN EXISTS_TAC `y:A`
+   THEN SIMP_TAC[]
+   THEN USE_THEN "H1" (MP_TAC o MATCH_MP lemma_face_subset)
+   THEN USE_THEN "H2" (SUBST1_TAC o MATCH_MP lemma_face_identity)
+   THEN REWRITE_TAC[face]
+   THEN DISCH_THEN (fun th-> MP_TAC (MATCH_MP lemma_in_subset (CONJ th (SPECL[`face_map (H:(A)hypermap)`; `x:A`] orbit_reflect))))
+   THEN DISCH_THEN (MP_TAC o MATCH_MP lemma_node_subset)
+   THEN USE_THEN "H3" (SUBST_ALL_TAC o MATCH_MP lemma_node_identity)
+   THEN DISCH_THEN (fun th-> (POP_ASSUM(fun th1 -> REWRITE_TAC[MATCH_MP lemma_in_subset (CONJ th th1)]))));;
+
+let lemma_support_face_collection = prove(`!(H:(A)hypermap). support_darts (face_collection H) = dart H`,
+ GEN_TAC
+   THEN REWRITE_TAC[EXTENSION]
+   THEN GEN_TAC
+   THEN REWRITE_TAC[lemma_in_support]
+   THEN REWRITE_TAC[face_collection; IN_ELIM_THM]
+   THEN EQ_TAC
+   THENL[STRIP_TAC
+      THEN POP_ASSUM MP_TAC
+      THEN POP_ASSUM SUBST1_TAC
+      THEN REWRITE_TAC[inside; face_loop_rep]
+      THEN POP_ASSUM (MP_TAC o MATCH_MP lemma_face_subset)
+      THEN REWRITE_TAC[IMP_IMP; lemma_in_subset]; ALL_TAC]
+   THEN STRIP_TAC
+   THEN EXISTS_TAC `face_loop (H:(A)hypermap) x`
+   THEN REWRITE_TAC[inside; face; face_loop_rep; orbit_reflect]
+   THEN EXISTS_TAC `x:A`
+   THEN ASM_REWRITE_TAC[]);;
+
+let lemma_card_face_collection = prove(`!(H:(A)hypermap). FINITE (face_collection H) /\ CARD (face_collection H) = number_of_faces H`,
+  GEN_TAC
+  THEN SUBGOAL_THEN `?t:(A->bool)->(A)loop.(!s:(A->bool).s IN face_set H ==> ?x:A.x IN dart H /\ s = face (H:(A)hypermap) x /\ t s = face_loop H x)` MP_TAC
+  THENL[REWRITE_TAC[GSYM SKOLEM_THM]
+      THEN GEN_TAC
+      THEN REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]
+      THEN DISCH_THEN (MP_TAC o MATCH_MP lemma_face_representation)
+      THEN STRIP_TAC
+      THEN REWRITE_TAC[SWAP_EXISTS_THM]
+      THEN EXISTS_TAC `x:A`
+      THEN EXISTS_TAC `face_loop (H:(A)hypermap) (x:A)`
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN DISCH_THEN (X_CHOOSE_THEN `t:(A->bool)->(A)loop` (LABEL_TAC "F1"))
+   THEN SUBGOAL_THEN `IMAGE (t:(A->bool)->(A)loop) (face_set (H:(A)hypermap)) = (face_collection H)` (LABEL_TAC "F2")
+   THENL[REWRITE_TAC[IMAGE; face_collection; face_set; EXTENSION; IN_ELIM_THM]
+      THEN GEN_TAC
+      THEN EQ_TAC
+      THENL[REWRITE_TAC[set_of_orbits; IN_ELIM_THM]
+	  THEN REWRITE_TAC[GSYM face]
+	  THEN STRIP_TAC
+	  THEN EXISTS_TAC `x'':A`
+	  THEN POP_ASSUM SUBST1_TAC
+	  THEN POP_ASSUM SUBST1_TAC
+	  THEN ASM_REWRITE_TAC[]
+	  THEN USE_THEN "F1" (MP_TAC o SPEC `face (H:(A)hypermap) x''`)
+	  THEN POP_ASSUM (fun th -> ASSUME_TAC th THEN REWRITE_TAC[REWRITE_RULE[lemma_in_face_set] th])
+	  THEN STRIP_TAC
+	  THEN ASM_REWRITE_TAC[]
+	  THEN REWRITE_TAC[face_loop]
+	  THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "G1") SUBST1_TAC))
+      THEN REWRITE_TAC[set_of_orbits; IN_ELIM_THM; GSYM face]
+      THEN EXISTS_TAC `face (H:(A)hypermap) (y:A)`
+      THEN STRIP_TAC THENL[EXISTS_TAC `y:A` THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN USE_THEN "F1" (MP_TAC o SPEC `face (H:(A)hypermap) (y:A)`)
+      THEN USE_THEN "G1" (fun th -> REWRITE_TAC[REWRITE_RULE[lemma_in_face_set] th])
+      THEN STRIP_TAC
+      THEN POP_ASSUM SUBST1_TAC
+      THEN REWRITE_TAC[face_loop]
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN SUBGOAL_THEN `FINITE (face_collection (H:(A)hypermap))` (LABEL_TAC "F3")
+   THENL[ POP_ASSUM (SUBST1_TAC o SYM)
+      THEN MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_HYPERMAP_ORBITS]; ALL_TAC]
+   THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[number_of_faces] THEN REMOVE_THEN "F2" (SUBST1_TAC o SYM)
+   THEN MATCH_MP_TAC CARD_IMAGE_INJ THEN REWRITE_TAC[FINITE_HYPERMAP_ORBITS]
+   THEN REPEAT GEN_TAC THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F4") (CONJUNCTS_THEN2 (LABEL_TAC "F5") (LABEL_TAC "F6")))
+   THEN REMOVE_THEN "F4" (fun th -> USE_THEN "F1" (fun thm -> MP_TAC (MATCH_MP thm th))) THEN STRIP_TAC
+   THEN REMOVE_THEN "F5" (fun th -> USE_THEN "F1" (fun thm -> MP_TAC (MATCH_MP thm th)))
+   THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN REMOVE_THEN "F6" MP_TAC
+   THEN POP_ASSUM SUBST1_TAC
+   THEN UNDISCH_THEN `(t:(A->bool)->(A)loop) x = face_loop (H:(A)hypermap) (x')` SUBST1_TAC
+   THEN DISCH_THEN (MP_TAC o AP_TERM `dart_of:(A)loop->(A->bool)`)
+   THEN REWRITE_TAC[face_loop_rep]);;
+
+let face_refl = prove(`!(H:(A)hypermap) x:A. x IN face H x`, REWRITE_TAC[face; orbit_reflect]);;
+
+let lemma_inverse_in_face = prove(`!(H:(A)hypermap) (x:A) (y:A). y IN face H x ==> inverse (face_map H) y IN face H x`,
+    REPEAT STRIP_TAC
+    THEN POP_ASSUM (SUBST1_TAC o MATCH_MP lemma_face_identity)
+    THEN REPEAT GEN_TAC
+    THEN MP_TAC (MATCH_MP inverse_element_lemma (SPEC `H:(A)hypermap` face_map_and_darts))
+    THEN DISCH_THEN(X_CHOOSE_THEN `j:num` SUBST1_TAC)
+    THEN REWRITE_TAC[lemma_in_face]);;
+
+let SING_EQ = prove(`!x:A y:A. {x} = {y} <=> x = y`, SET_TAC[IN_SING]);;
+
+let face_quotient_lemma = prove(`!(H:(A)hypermap). edge_nondegenerate H /\ (!x:A. x IN dart H ==> (?y:A. y IN dart H /\ y IN face H x /\ ~(node H x = node H y))) ==> (!x:A. choice H (face_collection H) x = {x}) /\ H iso (quotient H (face_collection H))`,
+  GEN_TAC
+   THEN REWRITE_TAC[lemma_edge_nondegenerate]
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN USE_THEN "F2"(LABEL_TAC "F3" o MATCH_MP normal_face_collection)
+   THEN SUBGOAL_THEN `!x:A. choice (H:(A)hypermap) (face_collection H) x = {x}` (LABEL_TAC "F4")
+   THENL[GEN_TAC
+      THEN ASM_CASES_TAC `~(x:A IN dart (H:(A)hypermap))`
+      THENL[POP_ASSUM (ASSUME_TAC o REWRITE_RULE[GSYM lemma_support_face_collection])
+	 THEN USE_THEN "F3" (MP_TAC o SPEC `x:A` o  CONJUNCT1 o MATCH_MP first_unique_choice)
+	 THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN POP_ASSUM (LABEL_TAC "G4" o REWRITE_RULE[])
+      THEN USE_THEN "G4" (MP_TAC o REWRITE_RULE[GSYM lemma_support_face_collection])
+      THEN USE_THEN "F3" (fun th -> REWRITE_TAC[GSYM(MATCH_MP lemma_choice_in_quotient th)])
+      THEN REWRITE_TAC[quotient_darts; IN_ELIM_THM]
+      THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (CONJUNCTS_THEN2 (LABEL_TAC "G5") (LABEL_TAC "G6")) (LABEL_TAC "G7"))))
+      THEN USE_THEN "G5" (MP_TAC o REWRITE_RULE[face_collection; IN_ELIM_THM])
+      THEN DISCH_THEN (X_CHOOSE_THEN `z:A` (CONJUNCTS_THEN2 (LABEL_TAC "G8") (LABEL_TAC "G9")))
+      THEN USE_THEN "F3" (MP_TAC o SPEC `x:A` o MATCH_MP  choice_reflect)
+      THEN REMOVE_THEN "G7" SUBST1_TAC
+      THEN USE_THEN "G6" (MP_TAC o REWRITE_RULE[inside])
+      THEN USE_THEN "G9" SUBST1_TAC
+      THEN REWRITE_TAC[face_loop_rep]
+      THEN DISCH_THEN (LABEL_TAC "G10")
+      THEN DISCH_THEN (LABEL_TAC "G11")
+      THEN SUBGOAL_THEN `~(next (L:(A)loop) y = inverse (node_map (H:(A)hypermap)) y)` MP_TAC
+      THENL[USE_THEN "G9" (fun th-> REWRITE_TAC[th])
+	 THEN REWRITE_TAC[face_loop_rep]
+	 THEN USE_THEN "G10" (fun th-> REWRITE_TAC[res; th])
+	 THEN USE_THEN "F1" (MP_TAC o SPEC `y:A`)
+	 THEN USE_THEN "G8" (MP_TAC o MATCH_MP lemma_face_subset)
+	 THEN DISCH_THEN (fun th -> (USE_THEN "G10" (fun th1-> (LABEL_TAC "G12" (MATCH_MP lemma_in_subset (CONJ th th1))))))
+	 THEN USE_THEN "G12" (fun th-> REWRITE_TAC[th]); ALL_TAC]
+      THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `y:A`] atom_reflect)
+      THEN USE_THEN "G6" MP_TAC THEN USE_THEN "G5" MP_TAC THEN USE_THEN "F3" MP_TAC
+      THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+      THEN DISCH_THEN (LABEL_TAC "G14" o MATCH_MP lemma_unique_head)
+      THEN SUBGOAL_THEN `~(y = inverse (node_map (H:(A)hypermap)) (back (L:(A)loop) y))` MP_TAC
+      THENL[ONCE_REWRITE_TAC[lemma_inverse_on_loop]
+	 THEN REWRITE_TAC[face_loop_rep]
+	 THEN USE_THEN "G9" SUBST1_TAC
+	 THEN REWRITE_TAC[face_loop_rep]
+	 THEN USE_THEN "G10" (fun th-> REWRITE_TAC[MATCH_MP lemma_inverse_res th])
+	 THEN USE_THEN "G10" (ASSUME_TAC o MATCH_MP lemma_inverse_in_face)
+	 THEN ABBREV_TAC `t = inverse (face_map (H:(A)hypermap)) y`
+	 THEN POP_ASSUM (SUBST1_TAC o REWRITE_RULE[GSYM face_map_inverse_representation] o SYM)
+	 THEN USE_THEN "F1" (MP_TAC o SPEC `t:A`)
+	 THEN USE_THEN "G8" (MP_TAC o MATCH_MP lemma_face_subset)
+	 THEN DISCH_THEN (fun th -> (POP_ASSUM (fun th1-> (ASSUME_TAC (MATCH_MP lemma_in_subset (CONJ th th1))))))
+	 THEN POP_ASSUM (fun th-> REWRITE_TAC[th]); ALL_TAC]
+      THEN MP_TAC(SPECL[`H:(A)hypermap`; `L:(A)loop`; `y:A`] atom_reflect)
+      THEN USE_THEN "G6" MP_TAC THEN USE_THEN "G5" MP_TAC THEN USE_THEN "F3" MP_TAC
+      THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+      THEN DISCH_THEN (MP_TAC o SYM o MATCH_MP lemma_unique_tail)
+      THEN POP_ASSUM(fun th-> (DISCH_THEN (fun th1 -> (ASSUME_TAC (MATCH_MP EQ_TRANS (CONJ th th1))))))
+      THEN POP_ASSUM MP_TAC THEN USE_THEN "G6" MP_TAC THEN USE_THEN "G5" MP_TAC THEN USE_THEN "F3" MP_TAC
+      THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+      THEN DISCH_THEN (MP_TAC o SYM o MATCH_MP atom_one_point)
+      THEN DISCH_TAC
+      THEN REMOVE_THEN "G11" MP_TAC
+      THEN USE_THEN "G9" (SUBST1_TAC o SYM)
+      THEN POP_ASSUM (SUBST1_TAC o SYM)
+      THEN REWRITE_TAC[IN_SING]
+      THEN DISCH_THEN SUBST1_TAC THEN SIMP_TAC[]; ALL_TAC]
+   THEN ASM_REWRITE_TAC[]
+   THEN REWRITE_TAC[iso]
+   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_quotient th])
+   THEN EXISTS_TAC `(\x:A. {x})`
+   THEN STRIP_TAC
+   THENL[REWRITE_TAC[BIJ]
+      THEN STRIP_TAC
+      THENL[REWRITE_TAC[INJ]
+	  THEN STRIP_TAC
+	  THENL[GEN_TAC
+	      THEN REWRITE_TAC[GSYM lemma_support_face_collection]
+	      THEN USE_THEN "F3" (fun th-> REWRITE_TAC[GSYM(MATCH_MP lemma_choice_in_quotient th)])
+	      THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_quotient th])
+	      THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th]); ALL_TAC]
+	      THEN MESON_TAC[SING_EQ]; ALL_TAC]
+          THEN REWRITE_TAC[SURJ]
+          THEN STRIP_TAC      
+          THENL[GEN_TAC
+	     THEN REWRITE_TAC[GSYM lemma_support_face_collection]
+	     THEN USE_THEN "F3" (fun th-> REWRITE_TAC[GSYM(MATCH_MP lemma_choice_in_quotient th)])
+	     THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_quotient th])
+	     THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th]); ALL_TAC]
+          THEN GEN_TAC
+          THEN USE_THEN "F3" (fun th-> REWRITE_TAC[MATCH_MP atom_via_choice th])
+          THEN REWRITE_TAC[lemma_support_face_collection]
+          THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th])
+          THEN MESON_TAC[]; ALL_TAC]
+   THEN REWRITE_TAC[]
+   THEN SUBGOAL_THEN `!x:A. x IN dart (H:(A)hypermap) ==>  nmap H (face_collection H) {x} = {node_map H x}` (LABEL_TAC "F5")
+   THENL[REWRITE_TAC[GSYM lemma_support_face_collection] 
+       THEN GEN_TAC
+       THEN DISCH_THEN (LABEL_TAC "G1")
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[GSYM th])
+       THEN USE_THEN "F3"(fun th-> (USE_THEN "G1" (fun th1-> REWRITE_TAC[MATCH_MP nmap_via_choice (CONJ th th1)])))
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th])
+       THEN USE_THEN "F3" (fun th-> MP_TAC(CONJUNCT1(SPEC `x:A` (GSYM(MATCH_MP choice_at_margin th)))))
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th; SING_EQ])
+       THEN DISCH_THEN (fun th-> REWRITE_TAC[th]); ALL_TAC]
+   THEN SUBGOAL_THEN `!x:A. x IN dart (H:(A)hypermap) ==>  fmap H (face_collection H) {x} = {face_map H x}` (LABEL_TAC "F6")
+   THENL[REWRITE_TAC[GSYM lemma_support_face_collection]
+       THEN GEN_TAC
+       THEN DISCH_THEN (LABEL_TAC "G1")
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[GSYM th])
+       THEN USE_THEN "F3"(fun th-> (USE_THEN "G1" (fun th1-> REWRITE_TAC[MATCH_MP fmap_via_choice (CONJ th th1)])))
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th])
+       THEN USE_THEN "F3" (fun th-> MP_TAC(CONJUNCT2(SPEC `x:A` (GSYM(MATCH_MP choice_at_margin th)))))
+       THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th; SING_EQ])
+       THEN DISCH_THEN (fun th-> REWRITE_TAC[th]); ALL_TAC]
+   THEN ASM_REWRITE_TAC[]
+   THEN GEN_TAC
+   THEN DISCH_THEN (LABEL_TAC "F7")
+   THEN USE_THEN "F7"(fun th-> (USE_THEN "F5"(fun thm -> REWRITE_TAC[MATCH_MP thm th])))
+   THEN USE_THEN "F7"(fun th-> (USE_THEN "F6"(fun thm -> REWRITE_TAC[MATCH_MP thm th])))
+   THEN REWRITE_TAC [o_THM]
+   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[GSYM(MATCH_MP lemma_quotient th)])
    THEN CONV_TAC SYM_CONV
-   THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th1->(USE_THEN "F4"(fun th2->REWRITE_TAC[CONJUNCT2(MATCH_MP change_to_margin (CONJ th (CONJ th1 th2)))]))))));;
+   THEN REWRITE_TAC[GSYM face_map_inverse_representation]
+   THEN CONV_TAC SYM_CONV
+   THEN REWRITE_TAC[GSYM node_map_inverse_representation]
+   THEN USE_THEN "F3" (fun th -> REWRITE_TAC[MATCH_MP lemma_quotient th])
+   THEN USE_THEN "F7" (LABEL_TAC "F8" o CONJUNCT1 o MATCH_MP lemma_dart_invariant)
+   THEN USE_THEN "F8" (fun th-> (USE_THEN "F6" (fun thm -> REWRITE_TAC[MATCH_MP thm th])))
+   THEN USE_THEN "F8" (LABEL_TAC "F9" o CONJUNCT2 o CONJUNCT2 o  MATCH_MP lemma_dart_invariant)
+   THEN USE_THEN "F9" (fun th-> (USE_THEN "F5" (fun thm -> REWRITE_TAC[MATCH_MP thm th])))
+   THEN MP_TAC (AP_THM (CONJUNCT1 (SPEC `H:(A)hypermap` hypermap_cyclic)) `x:A`)
+   THEN DISCH_THEN (MP_TAC o SYM o REWRITE_RULE[o_THM; I_THM])
+   THEN REWRITE_TAC[SING_EQ]);;
+
+let is_gen_flag = new_definition `!(H:(A)hypermap) (S:A->bool) (flag:(A->bool)->bool). is_gen_flag H S flag <=> (flag SUBSET face_set H) /\ (S SUBSET dart H) /\ (!x:A y:A. x IN UNIONS flag /\ y IN UNIONS flag ==> (?p:num->A n:num. p 0 = x /\ p n = y /\ (!i:num. 0 < i /\ i < n ==> (p i) IN UNIONS flag))) /\ (!x:A. x IN dart H ==> (?y:A. y IN edge H x /\ (y IN UNIONS flag \/ y IN S)))`;;
+
+let is_flag = new_definition `!(H:(A)hypermap) (flag:(A->bool)->bool). is_flag H flag <=> (flag SUBSET face_set H) /\ (!x:A y:A. x IN UNIONS flag /\ y IN UNIONS flag ==> (?p:num->A n:num. p 0 = x /\ p n = y /\ (!i:num. 0 < i /\ i < n ==> (p i) IN UNIONS flag))) /\ (!x:A. x IN dart H ==> (?y:A. y IN edge H x /\ y IN UNIONS flag ))`;;
+
+let canon = new_definition `!(H:(A)hypermap) (NF:(A)loop->bool). canon H NF = {qf:(A->bool)->bool | qf IN face_set (quotient H NF) /\ (!s:A->bool. s IN qf ==> CARD s = 1)}`;;
+
+let set_one_point = prove(`!s:A->bool x:A. FINITE s /\ CARD s = 1 /\ x IN s ==> s = {x}`,
+ REPEAT GEN_TAC
+   THEN DISCH_THEN(CONJUNCTS_THEN2 (LABEL_TAC "F1") (CONJUNCTS_THEN2 (LABEL_TAC "F2") (LABEL_TAC "F3")))
+   THEN USE_THEN "F1" (MP_TAC o SPEC `x:A` o MATCH_MP CARD_DELETE)
+   THEN ASM_REWRITE_TAC[SUB_REFL]
+   THEN USE_THEN "F1" (MP_TAC o SPEC `x:A` o MATCH_MP FINITE_DELETE_IMP)
+   THEN REWRITE_TAC[IMP_IMP; GSYM HAS_SIZE; HAS_SIZE_0]
+   THEN DISCH_TAC
+   THEN USE_THEN "F3" (fun th-> MP_TAC th THEN MP_TAC (MATCH_MP INSERT_DELETE th))
+   THEN POP_ASSUM SUBST1_TAC
+   THEN ASM_REWRITE_TAC[EQ_SYM]);;
+
+let lemma_in_team2 = prove(`!(H:(A)hypermap) (L:(A)loop) (x:A). x inside L ==> atom H L x IN team H L`, REWRITE_TAC[team; IN_ELIM_THM] THEN MESON_TAC[]);;
+
+
+let lemma_canonical_function = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF ==> (!t:(A->bool)->bool. t IN canon H NF  <=> (?L:(A)loop. L IN NF /\ t = team H L /\ (!x:A. x inside L ==> L = face_loop H x /\ atom H L x = {x})))`,
+   REPEAT GEN_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN GEN_TAC
+   THEN EQ_TAC
+   THENL[REWRITE_TAC[canon; IN_ELIM_THM; IN_ELIM_THM]
+       THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "F2"))
+       THEN USE_THEN "F1"(fun th -> REWRITE_TAC[MATCH_MP lemma_face_set_via_teams th; IN_ELIM_THM])
+       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F3") SUBST_ALL_TAC))
+       THEN EXISTS_TAC `L:(A)loop`
+       THEN ASM_REWRITE_TAC[]
+       THEN SUBGOAL_THEN `!y:A. atom (H:(A)hypermap) (L:(A)loop) (y:A) = {y}` (LABEL_TAC "F4")
+       THENL[GEN_TAC
+	  THEN ASM_CASES_TAC `y:A inside L`
+	  THENL[MATCH_MP_TAC set_one_point
+             THEN USE_THEN "F2" (MP_TAC o SPEC `atom (H:(A)hypermap) (L:(A)loop) (y:A)`)
+	     THEN POP_ASSUM (fun th -> REWRITE_TAC[MATCH_MP lemma_in_team2 th])
+	     THEN DISCH_THEN (fun th-> REWRITE_TAC[th])
+	     THEN REWRITE_TAC[lemma_atom_finite; atom_reflect]; ALL_TAC]
+	  THEN POP_ASSUM (fun th-> REWRITE_TAC[MATCH_MP lemma_atom_out_side_loop th]); ALL_TAC]
+      THEN SUBGOAL_THEN `!z:A. z inside L ==> (!n:num. ((next (L:(A)loop)) POWER n) z = ((face_map (H:(A)hypermap)) POWER n) z)` (LABEL_TAC "F5")
+      THENL[REWRITE_TAC[RIGHT_IMP_FORALL_THM]
+	 THEN ONCE_REWRITE_TAC[SWAP_FORALL_THM]
+	 THEN INDUCT_TAC THENL[REWRITE_TAC[POWER_0]; ALL_TAC]
+         THEN GEN_TAC
+	 THEN POP_ASSUM (LABEL_TAC "F5")
+	 THEN DISCH_THEN (LABEL_TAC "F6")
+	 THEN REWRITE_TAC[COM_POWER; o_THM]
+	 THEN USE_THEN "F6"(fun th-> (USE_THEN "F5"(fun thm->REWRITE_TAC[SYM(MATCH_MP thm th)])))
+	 THEN USE_THEN "F6" (LABEL_TAC "F7" o SPEC `n:num` o MATCH_MP lemma_power_next_in_loop)
+	 THEN ABBREV_TAC `a = (next (L:(A)loop) POWER n) z`
+	 THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F7"(fun th3-> MP_TAC (MATCH_MP value_next_of_head (CONJ th (CONJ th2 th3))))))))
+	 THEN USE_THEN "F1"(fun th->(USE_THEN "F3"(fun th2->(USE_THEN "F7"(fun th3-> MP_TAC(CONJUNCT1(MATCH_MP head_on_loop (CONJ th (CONJ th2 th3)))))))))
+	 THEN USE_THEN "F4" (fun th -> REWRITE_TAC[th; IN_SING])
+	 THEN DISCH_THEN SUBST1_TAC
+	 THEN SIMP_TAC[]; ALL_TAC]
+      THEN SUBGOAL_THEN `!z:A. z inside L ==>dart_of L = face H z` (LABEL_TAC "F6")
+      THENL[GEN_TAC THEN DISCH_THEN (LABEL_TAC "F7")
+	 THEN USE_THEN "F7" (fun th-> REWRITE_TAC[MATCH_MP lemma_transitive_permutation th])
+	 THEN USE_THEN "F7" (fun th-> USE_THEN "F5"(fun thm-> (MP_TAC ( MATCH_MP thm th))))
+	 THEN REWRITE_TAC[face; orbit_map; GE; LE_0]
+	 THEN SET_TAC[]; ALL_TAC]
+      THEN ASM_REWRITE_TAC[]
+      THEN REWRITE_TAC[lemma_loop_identity; face_loop_rep]
+      THEN GEN_TAC THEN DISCH_THEN (LABEL_TAC "F7")
+      THEN USE_THEN "F7" (fun th-> (USE_THEN "F6"(fun thm-> (LABEL_TAC "F8" (MATCH_MP thm th)))))
+      THEN USE_THEN "F8" (fun th-> REWRITE_TAC[th])
+      THEN REWRITE_TAC[FUN_EQ_THM]
+      THEN GEN_TAC
+      THEN ASM_CASES_TAC `~(x':A inside L)`
+      THENL[POP_ASSUM (LABEL_TAC "F9")
+	 THEN USE_THEN "F9" (fun th-> REWRITE_TAC[MATCH_MP lemma_back_and_next_outside_loop th])
+	 THEN POP_ASSUM (MP_TAC o REWRITE_RULE[inside])
+	 THEN POP_ASSUM SUBST1_TAC
+	 THEN MESON_TAC[res]; ALL_TAC]
+      THEN POP_ASSUM (LABEL_TAC "F9" o REWRITE_RULE[])
+      THEN USE_THEN "F5"(fun thm -> USE_THEN "F9" (fun th-> REWRITE_TAC[REWRITE_RULE[POWER_1] (SPEC `1` (MATCH_MP thm th))]))
+      THEN POP_ASSUM (MP_TAC o REWRITE_RULE[inside])
+      THEN POP_ASSUM SUBST1_TAC
+      THEN MESON_TAC[res]; ALL_TAC]
+   THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "F2") (CONJUNCTS_THEN2 SUBST1_TAC (LABEL_TAC "F3"))))
+   THEN REWRITE_TAC[canon; IN_ELIM_THM]
+   THEN USE_THEN "F1" (fun th-> REWRITE_TAC[MATCH_MP lemma_face_set_via_teams th])
+   THEN STRIP_TAC THENL[SET_TAC[]; ALL_TAC]
+   THEN GEN_TAC
+   THEN REWRITE_TAC[team; IN_ELIM_THM]
+   THEN STRIP_TAC
+   THEN POP_ASSUM SUBST1_TAC
+   THEN USE_THEN "F3" (MP_TAC o SPEC `x:A`)
+   THEN POP_ASSUM (fun th-> REWRITE_TAC[th])
+   THEN DISCH_THEN (SUBST1_TAC o CONJUNCT2)
+   THEN REWRITE_TAC[CARD_SINGLETON]);;
+
+
+let lemmaSTKBEPH = prove(`!(H:(A)hypermap) (NF:(A)loop->bool). is_normal H NF /\ number_of_faces H <= CARD (canon H NF) ==> NF = face_collection H /\ H iso quotient H NF`,
+   REPEAT GEN_TAC
+   THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "F1") (LABEL_TAC "F2"))
+   THEN SUBGOAL_THEN `?t:(A)loop->((A->bool)->bool).(!L:(A)loop.L IN (NF:(A)loop->bool) /\ team (H:(A)hypermap) L IN canon H NF ==> t L = team H L)` MP_TAC
+   THENL[REWRITE_TAC[GSYM SKOLEM_THM] THEN GEN_TAC 
+       THEN REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM]
+       THEN STRIP_TAC THEN EXISTS_TAC `team (H:(A)hypermap) (L:(A)loop)` THEN SIMP_TAC[]; ALL_TAC]
+   THEN DISCH_THEN(X_CHOOSE_THEN `t:(A)loop->((A->bool)->bool)` (LABEL_TAC "F3"))
+   THEN ABBREV_TAC `S = {L:(A)loop | L IN (NF:(A)loop->bool) /\ team (H:(A)hypermap) L IN canon H NF}`
+   THEN SUBGOAL_THEN `IMAGE (t:(A)loop->((A->bool)->bool)) (S:(A)loop->bool) = canon (H:(A)hypermap) (NF:(A)loop->bool)` (LABEL_TAC "F4")
+   THENL[REWRITE_TAC[EXTENSION] THEN GEN_TAC
+       THEN REWRITE_TAC[IMAGE; IN_ELIM_THM]
+       THEN EQ_TAC
+       THENL[DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 MP_TAC SUBST1_TAC))
+	  THEN EXPAND_TAC "S"
+	  THEN REWRITE_TAC[IN_ELIM_THM]
+	  THEN DISCH_THEN (fun th-> (USE_THEN "F3"(fun thm-> REWRITE_TAC[MATCH_MP thm th])) THEN REWRITE_TAC[th]); ALL_TAC]
+       THEN DISCH_THEN (fun th -> (LABEL_TAC "F4" th THEN MP_TAC th))
+       THEN USE_THEN "F1" (fun th -> REWRITE_TAC[MATCH_MP lemma_canonical_function th])
+       THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (ASSUME_TAC) (SUBST_ALL_TAC o CONJUNCT1)))
+       THEN EXISTS_TAC `L:(A)loop`
+       THEN EXPAND_TAC "S"
+       THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+       THEN REMOVE_THEN "F3" (MP_TAC o SPEC `L:(A)loop`)
+       THEN ASM_REWRITE_TAC[]
+       THEN MESON_TAC[]; ALL_TAC]
+   THEN SUBGOAL_THEN `(S:(A)loop->bool) = face_collection (H:(A)hypermap)` (LABEL_TAC "F5")
+   THENL[SUBGOAL_THEN `(S:(A)loop->bool) SUBSET face_collection (H:(A)hypermap)` (LABEL_TAC "GG")
+      THENL[EXPAND_TAC "S"
+         THEN REWRITE_TAC[SUBSET; IN_ELIM_THM]
+         THEN GEN_TAC
+         THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G1") (MP_TAC))
+         THEN USE_THEN "F1" (fun th-> REWRITE_TAC[MATCH_MP lemma_canonical_function th])
+         THEN DISCH_THEN (X_CHOOSE_THEN `L:(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G2") (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "G3"))))
+         THEN USE_THEN "G2" MP_TAC THEN USE_THEN "G1" MP_TAC THEN USE_THEN "F1" MP_TAC
+         THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+         THEN DISCH_THEN (SUBST_ALL_TAC o MATCH_MP lemma_team_eq)
+         THEN USE_THEN "G1" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `L:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+         THEN DISCH_THEN (MP_TAC o CONJUNCT2)
+         THEN DISCH_THEN (X_CHOOSE_THEN `x:A` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (LABEL_TAC "G5")))
+         THEN REWRITE_TAC[face_collection; IN_ELIM_THM]
+         THEN EXISTS_TAC `x:A`
+         THEN USE_THEN "G3" (MP_TAC o SPEC `x:A`)
+         THEN ASM_MESON_TAC[]; ALL_TAC]
+      THEN MP_TAC (SPEC `H:(A)hypermap` lemma_card_face_collection)
+      THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G1") (LABEL_TAC "G2"))
+      THEN USE_THEN "G1"(fun th->(USE_THEN "GG"(fun th1->(MP_TAC(MATCH_MP FINITE_SUBSET (CONJ th th1))))))
+      THEN DISCH_THEN (MP_TAC o ISPEC `t:(A)loop->((A->bool)->bool)` o  MATCH_MP CARD_IMAGE_LE)
+      THEN REMOVE_THEN "F4" SUBST1_TAC
+      THEN REMOVE_THEN "F2" (fun th-> (DISCH_THEN (fun th1 -> MP_TAC (MATCH_MP LE_TRANS (CONJ th  th1)))))
+      THEN POP_ASSUM (SUBST1_TAC o SYM)
+      THEN USE_THEN "GG"(fun th->(USE_THEN "G1"(fun th1->(MP_TAC(MATCH_MP CARD_SUBSET (CONJ th th1))))))
+      THEN REWRITE_TAC[IMP_IMP]
+      THEN DISCH_THEN (LABEL_TAC "G3" o REWRITE_RULE[LE_ANTISYM])
+      THEN MATCH_MP_TAC CARD_SUBSET_EQ
+      THEN ASM_REWRITE_TAC[]; ALL_TAC]
+   THEN SUBGOAL_THEN `S:(A)loop->bool SUBSET NF:(A)loop->bool` (LABEL_TAC "F6")
+   THENL[EXPAND_TAC "S" THEN SET_TAC[]; ALL_TAC]
+   THEN SUBGOAL_THEN `S:(A)loop->bool = NF:(A)loop->bool` (LABEL_TAC "F7")
+   THENL[MATCH_MP_TAC SUBSET_ANTISYM
+     THEN USE_THEN "F6" (fun th-> REWRITE_TAC[th])
+     THEN REWRITE_TAC[SUBSET]
+     THEN GEN_TAC THEN DISCH_THEN (LABEL_TAC "G7")
+     THEN USE_THEN "G7" (fun th -> (USE_THEN "F1" (MP_TAC o REWRITE_RULE[th] o  SPEC `x:(A)loop` o  CONJUNCT1 o REWRITE_RULE[is_normal])))
+     THEN DISCH_THEN (MP_TAC o CONJUNCT2)
+     THEN DISCH_THEN (X_CHOOSE_THEN `y:A` (CONJUNCTS_THEN2 (LABEL_TAC "G9") (LABEL_TAC "G10"))) 
+     THEN SUBGOAL_THEN `face_loop (H:(A)hypermap) (y:A) IN face_collection H` MP_TAC
+     THENL[REWRITE_TAC[face_collection;IN_ELIM_THM]
+	 THEN EXISTS_TAC `y:A` THEN USE_THEN "G9" (fun th-> REWRITE_TAC[th]); ALL_TAC]
+     THEN REMOVE_THEN "F5" (SUBST1_TAC o SYM)
+     THEN DISCH_THEN (LABEL_TAC "G11")
+     THEN SUBGOAL_THEN `y:A inside face_loop (H:(A)hypermap) y` (LABEL_TAC "G12")
+     THENL[REWRITE_TAC[inside; face_loop_rep; face; orbit_reflect]; ALL_TAC]
+     THEN ABBREV_TAC `L' = face_loop (H:(A)hypermap) y`
+     THEN SUBGOAL_THEN `x:(A)loop = L'` SUBST1_TAC
+     THENL[MATCH_MP_TAC disjoint_loops
+        THEN EXISTS_TAC `H:(A)hypermap` THEN EXISTS_TAC `NF:(A)loop->bool` THEN EXISTS_TAC `y:A`
+        THEN ASM_REWRITE_TAC[]
+        THEN USE_THEN "F6"(fun th-> (USE_THEN "G11" (fun th1-> REWRITE_TAC[MATCH_MP lemma_in_subset (CONJ th th1)]))); ALL_TAC]
+     THEN USE_THEN "G11" (fun th -> REWRITE_TAC[th]); ALL_TAC]
+    THEN STRIP_TAC
+    THEN USE_THEN "F7" (SUBST1_TAC o SYM)
+    THENL[USE_THEN "F5" (fun th-> REWRITE_TAC[th]); ALL_TAC]
+    THEN SUBGOAL_THEN `edge_nondegenerate (H:(A)hypermap)` (LABEL_TAC "F8")
+   THENL[REWRITE_TAC[lemma_edge_nondegenerate]
+      THEN GEN_TAC
+      THEN DISCH_THEN (LABEL_TAC "G1")
+      THEN SUBGOAL_THEN `x:A inside  face_loop (H:(A)hypermap) x`  (LABEL_TAC "G2")
+      THENL[REWRITE_TAC[inside; face_loop_rep; face; orbit_reflect]; ALL_TAC]
+      THEN SUBGOAL_THEN `face_loop (H:(A)hypermap) x IN face_collection H`  MP_TAC
+      THENL[REWRITE_TAC[face_collection; IN_ELIM_THM] THEN EXISTS_TAC `x:A` THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN ABBREV_TAC `L = face_loop (H:(A)hypermap) x`
+      THEN USE_THEN "F5" (SUBST1_TAC o SYM)
+      THEN EXPAND_TAC "S"
+      THEN REWRITE_TAC[IN_ELIM_THM]
+      THEN DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "G3") MP_TAC)
+      THEN USE_THEN "F1"(fun th ->REWRITE_TAC[MATCH_MP lemma_canonical_function th])
+      THEN DISCH_THEN (X_CHOOSE_THEN `L':(A)loop` (CONJUNCTS_THEN2 (LABEL_TAC "G4") (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "G5"))))
+      THEN REMOVE_THEN "G4" MP_TAC THEN USE_THEN "G3" MP_TAC THEN USE_THEN "F1" MP_TAC
+      THEN REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC]
+      THEN DISCH_THEN (SUBST_ALL_TAC o SYM o MATCH_MP lemma_team_eq)
+      THEN POP_ASSUM (MP_TAC o SPEC `x:A`)
+      THEN USE_THEN "G2" (fun th -> REWRITE_TAC[th])
+      THEN DISCH_THEN (ASSUME_TAC o CONJUNCT2)
+      THEN USE_THEN "F1"(fun th->USE_THEN "G3"(fun th1->(USE_THEN "G2" (fun th2 -> MP_TAC(MATCH_MP value_next_of_head (CONJ th (CONJ th1 th2)))))))
+      THEN USE_THEN "F1"(fun th->USE_THEN "G3"(fun th1->(USE_THEN "G2" (fun th2 -> MP_TAC(MATCH_MP head_on_loop (CONJ th (CONJ th1 th2)))))))
+      THEN POP_ASSUM SUBST1_TAC
+      THEN REWRITE_TAC[IN_SING]
+      THEN DISCH_THEN (CONJUNCTS_THEN2 (ASSUME_TAC) (MP_TAC))
+      THEN POP_ASSUM SUBST1_TAC
+      THEN DISCH_TAC
+      THEN DISCH_THEN (SUBST1_TAC o SYM)
+      THEN POP_ASSUM (fun th-> REWRITE_TAC[th]); ALL_TAC]
+    THEN SUBGOAL_THEN `!x:A. x IN dart H ==> (?y:A. y IN dart H /\ y IN face H x /\ ~(node H x = node H y))` MP_TAC
+    THENL[ GEN_TAC
+      THEN DISCH_THEN (LABEL_TAC "G1")
+      THEN SUBGOAL_THEN `x:A inside face_loop (H:(A)hypermap) x` (LABEL_TAC "G2")
+      THENL[REWRITE_TAC[inside; face_loop_rep; face; orbit_reflect]; ALL_TAC]
+      THEN SUBGOAL_THEN `face_loop (H:(A)hypermap) x IN face_collection (H:(A)hypermap)` MP_TAC
+      THENL[REWRITE_TAC[face_collection; IN_ELIM_THM] THEN EXISTS_TAC `x:A` THEN ASM_REWRITE_TAC[]; ALL_TAC]
+      THEN USE_THEN "F5" (SUBST1_TAC o SYM)
+      THEN USE_THEN "F7" SUBST1_TAC
+      THEN DISCH_THEN (LABEL_TAC "G3")
+      THEN REWRITE_TAC[GSYM face_loop_rep; GSYM inside]
+      THEN ABBREV_TAC `L = face_loop (H:(A)hypermap) x`
+      THEN ONCE_REWRITE_TAC[TAUT `A <=> (~A ==> F)`]
+      THEN GEN_REWRITE_TAC (LAND_CONV o TOP_DEPTH_CONV) [NOT_EXISTS_THM; DE_MORGAN_THM; TAUT `~ ~A <=> A`]
+      THEN STRIP_TAC
+      THEN SUBGOAL_THEN `dart_of (L:(A)loop) SUBSET node (H:(A)hypermap) (x:A)` MP_TAC
+      THENL[REWRITE_TAC[SUBSET; GSYM inside]
+         THEN GEN_TAC
+         THEN POP_ASSUM (LABEL_TAC "G20")
+         THEN DISCH_THEN (LABEL_TAC "G21")
+         THEN REMOVE_THEN "G20" (MP_TAC o SPEC `x':A`)
+         THEN USE_THEN "F1"(fun th->(USE_THEN "G3"(fun th2->(USE_THEN "G21"(fun th3-> ASSUME_TAC (MATCH_MP lemma_in_dart (CONJ th (CONJ th2 th3))))))))
+         THEN REPLICATE_TAC 2 (POP_ASSUM (fun th -> REWRITE_TAC[th]))
+         THEN DISCH_THEN SUBST1_TAC
+         THEN REWRITE_TAC[node; orbit_reflect]; ALL_TAC]
+      THEN USE_THEN "F1" (fun th -> (USE_THEN "G3" (fun th1-> REWRITE_TAC[MATCH_MP lemma_loop_outside_node (CONJ th th1)]))); ALL_TAC]
+    THEN USE_THEN "F5" SUBST1_TAC
+    THEN POP_ASSUM MP_TAC
+    THEN REWRITE_TAC[IMP_IMP]
+    THEN DISCH_THEN (fun th-> REWRITE_TAC[MATCH_MP face_quotient_lemma th]));;
+
 
 
 prioritize_real();;

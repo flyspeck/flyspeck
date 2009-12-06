@@ -53,13 +53,24 @@ let vertex_of_int i = if (i=0) then V2 else if (i=1) then V2h0 else Vfree;;
 let edge_of_int i = if (i=0) then E2 else if (i=1) then E2h0 else Gset;;
 let bool_of_int i = if (i=0) then false else true;;
 
-let rec baselist modulus len k acc = 
-  if (k=0) then (if len = 0 then acc else baselist modulus (len-1) 0 (0::acc))
+let base modulus len k =
+  let rec baselist modulus len k acc = 
+    if len <= 0 then acc else
+    if (k=0) then baselist modulus (len-1) 0 (0::acc)
     else 
-    baselist modulus (len - 1) (k/modulus) ((k mod modulus) :: acc);;
+      baselist modulus (len - 1) (k/modulus) ((k mod modulus) :: acc) in
+  baselist modulus len k [];;
 
 let rec pow base exp =
    if exp = 0 then 1 else base*(pow base (exp-1));;
+
+let mk_x len (a,b,c) (r,s,t) =
+  let (v,vf,e) = (base a len r, base b len s, base c len t) in
+  mk_minimal_fan 
+     (map vertex_of_int v)
+     (map bool_of_int vf)
+     (map edge_of_int e);;
+
 
 let nary_list base k = map (fun t -> baselist base k t []) (upto (pow base k));;
 
@@ -95,11 +106,14 @@ let card mf = (sv mf <= 3) && (3 <= sv mf + rv mf) && (rv mf + 2 * sv mf <= 6);;
 
 let extreme_edge mf = true;;
 
-let flat_exists mf = (kv mf > 4) or (exists ((=) Gset) mf.edge);;
+let flat_exists mf = 
+  let has i = (kv mf <= 4) or
+       flat mf i or flat mf (i+1) or flat mf (i+2) or flat mf (i+3) in
+  for_all has (number mf);;
+
 
 let no_triple_flat mf = 
-   let vs = mf.vertexflats in
-   let triple_flat i = not(part vs i) && not (part vs (i+1)) && not(part vs (i+2)) in
+   let triple_flat i = flat mf i && flat mf (i+1) && flat mf (i+2) in
    not (exists triple_flat (number mf));;
 
 let balance mf = 
@@ -131,7 +145,7 @@ let flat_extremal mf =
   for_all has (number mf);;
 
 let extremal_vertex mf = 
-  let has i = nonflat mf i or nonflat mf (i+1) or nonflat mf (i+2) or vextremal mf (i+1) in
+  let has i = flat mf i or flat mf (i+1) or flat mf (i+2) or vextremal mf (i+1) in
   for_all has (number mf);; 
 
 let flat_extremal_vertex mf = 
@@ -153,7 +167,78 @@ let irreducible =
   flat_count] 
 (fun t->true);;
 
-let irreds = filter irreducible;;
+
+(* symmetry reductions, add to the list of solutions only if it is shift-distinct from other solutions *)
+
+let shift_one (x::xs) = xs @ [x];;
+
+let shift a = { vertex = shift_one a.vertex; vertexflats = shift_one a.vertexflats; edge = shift_one a.edge };;
+
+let rec shiftk k a =  if (k<=0) then a else shift (shiftk (k-1) a);;
+
+let add_if_new a aas = 
+   if (exists (fun i -> mem (shiftk i a) aas) (upto (kv a))) then aas else a::aas;;
+let add_if_i a aas = if (irreducible a ) then add_if_new a aas else aas;;
+
+let f3 i j = mk_x 3 (3,1,3) (i,0,j);;
+let rec mk3_all i j acc = 
+   let acc' =  add_if_i (f3 i j) acc in
+   if (j +1 < pow 3 3) then mk3_all i (j+1) acc'
+     else if (i +1 < pow 3 3) then mk3_all (i+1) 0 acc' else acc';;
+let a3 = mk3_all 0 0 [];;
+length a3;;
+
+let f4no_flat i j = mk_x 4 (3,1,3) (i,0,j);;
+let rec mk4x i j acc = 
+   let acc' =  add_if_i (f4no_flat i j) acc in
+   if (j +1 < pow 3 4) then mk4x i (j+1) acc'
+     else if (i +1 < pow 3 4) then mk4x (i+1) 0 acc' else acc';;
+let a4x = mk4x 0 0 [];;
+length a4x;;
+
+(* BUG: This should give the same result, but doesn't *)
+let f4no_flat i j = mk_x 4 (4,1,4) (i,0,j);;
+let rec mk4x i j acc = 
+   let acc' =  add_if_i (f4no_flat i j) acc in
+   if (j +1 < pow 4 4) then mk4x i (j+1) acc'
+     else if (i +1 < pow 4 4) then mk4x (i+1) 0 acc' else acc';;
+let a4x = mk4x 0 0 [];;
+length a4x;;
 
 
-(* symmetry reductions *)
+let f4one_flat i j = mk_x 4 (4,2,4) (i,1,j);;
+let rec mk41 i j acc = 
+   let acc' =  add_if_i (f4one_flat i j) acc in
+   if (j +1 < pow 4 4) then mk41 i (j+1) acc'
+     else if (i +1 < pow 4 4) then mk41 (i+1) 0 acc' else acc';;
+let a41 = mk41 0 0 [];;
+length a41;;
+
+let f5no_g i j = mk_x 5 (3,2,1) (i,j,0);;
+let rec mk5x i j acc = 
+   let acc' =  add_if_i (f5no_g i j) acc in
+   if (j +1 < pow 3 5) then mk5x i (j+1) acc'
+     else if (i +1 < pow 2 5) then mk5x (i+1) 0 acc' else acc';;
+let a5x = mk5x 0 0 [];;
+length a5x;;
+
+let f5g i j = mk_x 5 (3,2,2) (i,j,1);;
+let rec mk5g i j acc = 
+   let acc' =  add_if_i (f5g i j) acc in
+   if (j +1 < pow 3 5) then mk5g i (j+1) acc'
+     else if (i +1 < pow 2 5) then mk5g (i+1) 0 acc' else acc';;
+let a5g = mk5g 0 0 [];;
+length a5g;;
+
+let f6 i j = mk_x 6 (3,2,1) (i,j,0);;
+let rec mk6 i j acc = 
+   let acc' =  add_if_i (f6 i j) acc in
+   if (j +1 < pow 3 6) then mk6 i (j+1) acc'
+     else if (i +1 < pow 2 6) then mk6 (i+1) 0 acc' else acc';;
+let a6 = mk6 0 0 [];;
+length a6;;
+
+(* degrees of freedom *)
+
+let freedom a = (kv a) - 3 + length (filter ((=) Vfree) a.vertex);;
+map freedom a5x;;

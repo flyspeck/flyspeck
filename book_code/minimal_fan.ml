@@ -26,12 +26,12 @@ let upto =
    else rangeA ((j-1)::a) i (j-1)  in
   rangeA [] 0;;
 
+
+(* minimal fan definition *)
+
 type vertex_t = V2 | V2h0 | Vfree;;
 type edge_t = E2 | E2h0 | Gset;;
 
-let vertex_of_int i = if (i=0) then V2 else if (i=1) then V2h0 else Vfree;;
-let edge_of_int i = if (i=0) then E2 else if (i=1) then E2h0 else Gset;;
-let bool_of_int i = if (i=0) then false else true;;
 
 type minimal_fan =  {
   vertex : vertex_t list;
@@ -46,9 +46,12 @@ let mk_minimal_fan vhts vflts e =
    edge = e;
    };;
 
-let kv mf = length (mf.vertex);;
-let sv mf = List.length (filter ((=) Gset) mf.edge);;
-let rv mf = kv mf - sv mf;;
+
+(* generating minimal_fan *)
+
+let vertex_of_int i = if (i=0) then V2 else if (i=1) then V2h0 else Vfree;;
+let edge_of_int i = if (i=0) then E2 else if (i=1) then E2h0 else Gset;;
+let bool_of_int i = if (i=0) then false else true;;
 
 let rec baselist modulus len k acc = 
   if (k=0) then (if len = 0 then acc else baselist modulus (len-1) 0 (0::acc))
@@ -63,6 +66,12 @@ let nary_list base k = map (fun t -> baselist base k t []) (upto (pow base k));;
 let rec cross a = function 
    [] -> []
   | b::bs -> (map (fun t -> (t,b)) a) @ cross a bs;;
+
+(* reading data from a record *)
+
+let kv mf = length (mf.vertex);;
+let sv mf = List.length (filter ((=) Gset) mf.edge);;
+let rv mf = kv mf - sv mf;;
 
 let posmod i m = 
   let j = i mod m in
@@ -82,7 +91,7 @@ let vextremal mf i = not(part mf.vertex i = Vfree);;
 
 (* extreme_edge is built into construction of edge types *)
 
-
+let card mf = (sv mf <= 3) && (3 <= sv mf + rv mf) && (rv mf + 2 * sv mf <= 6);;
 
 let extreme_edge mf = true;;
 
@@ -133,11 +142,18 @@ let flat_extremal_vertex_sym mf =
    let has i = flat mf i or flat mf (i+1) or nonflat mf (i+2) or flat mf (i+3) or vextremal mf (i+1) or vextremal mf (i+2) in
   for_all has (number mf);;
 
-let card mf = (sv mf <= 3) && (3 <= sv mf + rv mf) && (rv mf + 2 * sv mf <= 6);;
+let flat_count mf = 
+   length (filter not mf.vertexflats) > 2;;
 
 let irreducible = 
   fold_right (fun r s m -> r m && s m) 
  [card;extreme_edge;flat_exists;no_triple_flat;balance;g_flat;
   flat_middle;minimal_vertex;minimal_vertex_flat;flat_extremal;
-  extremal_vertex;flat_extremal_vertex;flat_extremal_vertex_sym] 
+  extremal_vertex;flat_extremal_vertex;flat_extremal_vertex_sym;
+  flat_count] 
 (fun t->true);;
+
+let irreds = filter irreducible;;
+
+
+(* symmetry reductions *)

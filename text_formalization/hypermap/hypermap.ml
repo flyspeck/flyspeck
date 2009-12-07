@@ -1,8 +1,12 @@
 (* Tran Nam Trung *)
 
-needs "Examples/permutations.ml";;
 
-needs "Examples/analysis.ml";;
+(* Changes to make compatible with Multivariate/flyspeck.ml *)
+needs "Multivariate/flyspeck.ml";;
+
+let REAL_INJ = REAL_OF_NUM_EQ;;
+let REAL_ADD' = REAL_OF_NUM_ADD;;  (* prime added to REAL_ADD throughout file *)
+let REAL_MUL' = REAL_OF_NUM_MUL;;  (* prime added to REAL_MUL throughout file *)
 
 prioritize_num();;
 
@@ -2925,7 +2929,7 @@ let planar_ind = new_definition `planar_ind (H:(A)hypermap) = &(number_of_edges 
 (* some trivial lemmas *)
 
 let lemma_planar_hypermap = prove(`!(H:(A)hypermap). planar_hypermap H <=> planar_ind H = &0`,
-  REWRITE_TAC[planar_hypermap; planar_ind;GSYM REAL_INJ; GSYM REAL_ADD; GSYM REAL_MUL]
+  REWRITE_TAC[planar_hypermap; planar_ind;GSYM REAL_INJ; GSYM REAL_ADD'; GSYM REAL_MUL']
   THEN REAL_ARITH_TAC);;
 
 let lemma_null_hypermap_planar_index = prove(`!(H:(A)hypermap). CARD (dart H) = 0 ==> planar_ind H = &0`,
@@ -4743,7 +4747,7 @@ let lemma_planar_index_on_walkup_at_isolated_dart = prove(`!(H:(A)hypermap) x:A.
      THEN MATCH_MP_TAC CARD_MINUS_ONE
      THEN ASM_REWRITE_TAC[]; ALL_TAC]
    THEN REWRITE_TAC[planar_ind]
-   THEN ASM_REWRITE_TAC[GSYM REAL_ADD]
+   THEN ASM_REWRITE_TAC[GSYM REAL_ADD']
    THEN REAL_ARITH_TAC);;
 
 
@@ -4916,7 +4920,7 @@ let lemma_planar_index_on_walkup_at_edge_degenerate_dart = prove(`!(H:(A)hyperma
         THEN MATCH_MP_TAC CARD_MINUS_ONE
         THEN ASM_REWRITE_TAC[]; ALL_TAC]
     THEN REWRITE_TAC[planar_ind]
-    THEN ASM_REWRITE_TAC[GSYM REAL_ADD]
+    THEN ASM_REWRITE_TAC[GSYM REAL_ADD']
     THEN REAL_ARITH_TAC);;
 
 let lemma_planar_index_on_walkup_at_degenerate_dart = prove(`!(H:(A)hypermap) (x:A). x IN dart H /\ dart_degenerate H x ==> planar_ind H = planar_ind (edge_walkup H x)`,
@@ -5175,7 +5179,7 @@ let lemma_planar_index_on_nondegenerate = prove(`!(H:(A)hypermap) (x:A). x IN da
 	     THEN USE_THEN "F1" (fun th1 -> (USE_THEN "G1" (fun th2 -> (SUBST1_TAC (SYM(MATCH_MP lemma_splitting_case_count_edges (CONJ th1 th2)))))))
 	     THEN USE_THEN "F1" (fun th1 -> (SUBST1_TAC (MATCH_MP lemma_card_walkup_dart th1)))
 	     THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2 -> (USE_THEN "G2" (fun th3 -> SUBST1_TAC (SYM(MATCH_MP lemma_walkup_count_not_splitting_components (CONJ th1 (CONJ th2 th3)))))))))
-	     THEN REWRITE_TAC[GSYM REAL_ADD]
+	     THEN REWRITE_TAC[GSYM REAL_ADD']
 	     THEN REAL_ARITH_TAC; ALL_TAC]
      THEN REWRITE_TAC[DE_MORGAN_THM]
      THEN ASM_CASES_TAC `~(is_edge_split (H:(A)hypermap) (x:A))`
@@ -5210,7 +5214,7 @@ let lemma_planar_index_on_nondegenerate = prove(`!(H:(A)hypermap) (x:A). x IN da
 	     THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F4" (fun th2 -> (SUBST1_TAC (MATCH_MP lemma_merge_case_count_edges (CONJ th1 th2))))))
 	     THEN USE_THEN "F1" (fun th1 -> (SUBST1_TAC (MATCH_MP lemma_card_walkup_dart th1)))
 	     THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2 -> (USE_THEN "J1" (fun th3 -> SUBST1_TAC (SYM(MATCH_MP lemma_walkup_count_not_splitting_components (CONJ th1 (CONJ th2 th3)))))))))
-	     THEN REWRITE_TAC[GSYM REAL_ADD]
+	     THEN REWRITE_TAC[GSYM REAL_ADD']
 	     THEN REAL_ARITH_TAC; ALL_TAC]
      THEN POP_ASSUM MP_TAC
      THEN REWRITE_TAC[TAUT `~ ~P = P`]
@@ -5223,7 +5227,7 @@ let lemma_planar_index_on_nondegenerate = prove(`!(H:(A)hypermap) (x:A). x IN da
      THEN USE_THEN "F1" (fun th1 -> (USE_THEN "K1" (fun th2 -> (SUBST1_TAC (SYM(MATCH_MP lemma_splitting_case_count_edges (CONJ th1 th2)))))))
      THEN USE_THEN "F1" (fun th1 -> (SUBST1_TAC (MATCH_MP lemma_card_walkup_dart th1)))
      THEN USE_THEN "F1" (fun th1 -> (USE_THEN "F2" (fun th2 -> (USE_THEN "K2" (fun th3 -> SUBST1_TAC (SYM(MATCH_MP lemma_walkup_count_splitting_components (CONJ th1 (CONJ th2 th3)))))))))
-     THEN REWRITE_TAC[GSYM REAL_ADD]
+     THEN REWRITE_TAC[GSYM REAL_ADD']
      THEN REAL_ARITH_TAC);;
 
 (* LEMMA IUCLZYI *)

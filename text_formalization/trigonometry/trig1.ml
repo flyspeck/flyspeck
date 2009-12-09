@@ -2,8 +2,8 @@
 
 
 needs "Multivariate/flyspeck.ml";;
-needs "sphere.hl";;
-needs "thales_tactic.ml";;
+needs "general/sphere.hl";;
+needs "general/thales_tactic.ml";;
 
 
 prioritize_real();;

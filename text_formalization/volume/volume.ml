@@ -5,20 +5,20 @@
 (*
 needs "Multivariate/flyspeck.ml";;
 needs "Multivariate/vectors.ml";;     
-(*needs "definitions_kepler.ml";;*)*)
 
-(*(*needs "sphere.hl";;*)
 needs "Examples/card.ml";;
 needs "Multivariate/topology.ml";;
 needs "Examples/floor.ml";;
 needs "Multivariate/measure.ml";;
+needs "general/sphere.hl";;
+
 *)
 
 
 let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3 | norm (w-v)= r}))`;;
 
 
-(* old definitions add by thales Nov 11, 2009 *)
+(* old definitions added by thales Nov 11, 2009 *)
 let radial_norm = new_definition `radial_norm r x C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
 
 let eventually_radial_norm = new_definition `eventually_radial_norm x C <=> (?r. (r> &0) /\ radial_norm r x (C INTER normball x r))`;;

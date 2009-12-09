@@ -11,8 +11,8 @@ lemmas;;
 *)
 
 needs "Multivariate/flyspeck.ml";;
-needs"hypermap.ml";;
-needs "sphere.hl";;
+needs"hypermap/hypermap.ml";;
+needs "general/sphere.hl";;
 
 
 let RED_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC;;

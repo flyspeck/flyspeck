@@ -1,7 +1,7 @@
  (* Vu Quang Thanh *)
 
 prioritize_num();; 
-needs "pishort.ml";;
+needs "tame/pishort.ml";;
 
 (* Definition of the tameness, actually I do not need this formally in  my proof      *) 
 

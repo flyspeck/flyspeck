@@ -1,19 +1,15 @@
 (*Trieu Thi Diep*)
-#use "hol.ml";;
+
+(*
 needs "Multivariate/flyspeck.ml";;
-needs "update_database_310.ml";;
-needs "sphere.ml";;
+needs "general/sphere.ml";;
 #use "thales_tactic.ml";;
-
-
 (* needs "trig_spec.ml";; *)
 #use "trig.ml";;
-
 (* tarski *)
 #use "hull.ml";;
 #use "collect_geom_a.ml";;
 #use  "collect_geom.ml";;
-
 (*
 collect_geom_spec.ml is incompatible with collect_geom.ml,
 because of incompatible new_specifications, starting with
@@ -21,11 +17,15 @@ point_eq.
 
 needs "collect_geom_spec.ml";; 
 *)
-
+(*
 #use "volume.ml";;
 #use "hypermap.ml";; (* loads with multivariate *)
+*)
+*)
 
-  
+
+
+
 let opposite_hypermap = new_definition `opposite_hypermap (H:(A)hypermap) = hypermap ((dart H),face_map H o node_map H , inverse(node_map H),inverse(face_map H))`;;
 
 let edge_nondegenerate = new_definition `edge_nondegenerate (H:(A)hypermap)  

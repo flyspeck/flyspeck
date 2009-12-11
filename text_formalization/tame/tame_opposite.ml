@@ -1,5 +1,7 @@
 (*Trieu Thi Diep*)
 
+needs "hypermap.ml";;
+
 (*
 needs "Multivariate/flyspeck.ml";;
 needs "general/sphere.ml";;
@@ -22,6 +24,7 @@ needs "collect_geom_spec.ml";;
 #use "hypermap.ml";; (* loads with multivariate *)
 *)
 *)
+
 
 
 

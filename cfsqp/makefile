@@ -76,15 +76,9 @@ lp2009.o : lp2009.cc  $(DEPS)
 nonlin.o : nonlin.cc  $(DEPS)
 	$(CC) $(CCOPTS1) nonlin.cc $(DOTS)  -o nonlin.o
 
+cyclic_fan_irreducible.o : cyclic_fan_irreducible.cc  $(DEPS)
+	$(CC) $(CCOPTS1) cyclic_fan_irreducible.cc $(DOTS)  -o cyclic_fan_irreducible.o
 
-#blueprint
-#blueprint.o : blueprint.cc $(DEPS)
-#	$(CC) $(CCOPTS1) blueprint.cc $(DOTS) -o blueprint.o
-
-
-#lemma:104
-#blueprint104.o : blueprint104.cc $(DEPS)
-#	$(CC) $(CCOPTS1) blueprint104.cc $(DOTS) -o blueprint104.o
 
 
 #reinhardt

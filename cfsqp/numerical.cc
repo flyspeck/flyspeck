@@ -114,6 +114,12 @@ double dih2_y(double y1,double y2,double y3,double y4,double y5,
 	  return dih_y(y2,y3,y1,y5,y6,y4);
         }
 
+double dih3_y(double y1,double y2,double y3,double y4,double y5,
+        double y6)
+        {
+	  return dih_y(y3,y1,y2,y6,y4,y5);
+        }
+
 
 double dihR(double a,double b,double c)
 	{
@@ -615,7 +621,12 @@ double azim(double y1,double y2,double y3,double y4,double y5,double y6) {
   return dih_y(y1,y2,y3,y4,y5,y6);
 }
 
-double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
+double taumalt(double y1,double y2,double y3,double y4,double y5,double y6) {
   return sol_y(y1,y2,y3,y4,y5,y6)*(1.0 + c1()) - 
     c1()*(lnazim(y1,y2,y3,y4,y5,y6)+lnazim(y2,y3,y1,y5,y6,y4)+lnazim(y3,y1,y2,y6,y4,y5));
+}
+
+double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
+  return rho(y1)*dih_y(y1,y2,y3,y4,y5,y6)+rho(y2)*dih_y(y2,y3,y1,y5,y6,y4)+
+    rho(y3)*dih_y(y3,y1,y2,y6,y4,y5) - (pi() + sol_y(2,2,2,2,2,2));
 }

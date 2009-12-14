@@ -25,6 +25,8 @@ double dih_y(double y1,double y2,double y3,double y4,
                         double y5, double y6);
 double dih2_y(double y1,double y2,double y3,double y4,
                         double y5, double y6);
+double dih3_y(double y1,double y2,double y3,double y4,
+                        double y5, double y6);
 
 // circumradius: 
 double eta2(double x1,double x2,double x3);
@@ -150,6 +152,7 @@ double rhazim(double y1,double y2,double y3,double y4,double y5,double y6);
 double lnazim(double y1,double y2,double y3,double y4,double y5,double y6);
 double azim(double y1,double y2,double y3,double y4,double y5,double y6);
 double taum(double y1,double y2,double y3,double y4,double y5,double y6);
+double taumalt(double y1,double y2,double y3,double y4,double y5,double y6);
 
 
 #endif

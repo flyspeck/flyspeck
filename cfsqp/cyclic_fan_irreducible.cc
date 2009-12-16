@@ -29,6 +29,30 @@ double h0 = 1.26;
 double sol0 = 0.5512855984325309;
 
 
+////////// NEW INEQ
+double taum_d1(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double h = 1.0e-8;
+  return (taum(y1+h,y2,y3,y4,y5,y6)-taum(y1,y2,y3,y4,y5,y6))/h;
+}
+double taum_d2(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double h = 1.0e-8;
+  return (taum(y1+h,y2,y3,y4,y5,y6)-2*taum(y1,y2,y3,y4,y5,y6) + taum(y1-h,y2,y3,y4,y5,y6))/(h*h);
+}
+// this is minimized.  failure reported if min is negative.
+void t1(int numargs,int whichFn,double* y, double* ret,void*) {
+  double r= taum_d1(y[0],y[1],y[2],y[3],y[4],y[5]) ;
+  *ret = r*r ;
+	}
+Minimizer m1() {
+   double xmin[6]= {2,2,2,2.52,2.52,2};
+   double xmax[6]= {2.52,2.52,2.52,3.0,2.52,2.52};   
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = t1;
+	return M;
+}
+//trialdata d1(m1(),"ID[DWXPIHA] ID[] d1: extreme-- FALSE!!. Gives C/E to y1-deformaton");
+
+////////// NEW INEQ
 
 
 
@@ -36,12 +60,12 @@ double sol0 = 0.5512855984325309;
 
 
 ////////// NEW INEQ
+// d0
 double gt0(double a,double b,double c,double e1,double e2,double e3) {
   return( dih_y(2,2,2,a,b,c)*e1
      + dih2_y(2,2,2,a,b,c)*e2
 	  + dih3_y(2,2,2,a,b,c)*e3);
 }
-
 double gt1(double a,double b,double c,double e1,double e2,double e3) {
   return( (-4*(Power(a,4)*e1 + 8*(Power(b,2) - Power(c,2))*(e2 - e3) - 
      Power(a,2)*(16*e1 + (-8 + Power(b,2))*e2 + 
@@ -73,7 +97,6 @@ double gt2(double a,double b,double c,double e1,double e2,double e3) {
   double den = Power(a* (16 - a*a),2);
   return( num/den);
 }
-
 //constraint delta>0, deriv2>0.
 void deltaposlast(int numargs,int whichFn,double* y, double* ret,void*) {
   double a = y[3]; double b = y[4]; double c= y[5];
@@ -84,7 +107,6 @@ void deltaposlast(int numargs,int whichFn,double* y, double* ret,void*) {
   if (whichFn==1) { r =  -delta_y(2,2,2,y[3],y[4],y[5]); }
   *ret = r;
 }
-
 // this is minimized.  failure reported if min is negative.
 void t0(int numargs,int whichFn,double* y, double* ret,void*) {
   double a = y[3]; double b = y[4]; double c= y[5];
@@ -108,29 +130,6 @@ Minimizer m0() {
 	return M;
 }
 trialdata d0(m0(),"ID[2065952723] d0: Lexell variant.");
-
-double taum_d1(double y1,double y2,double y3,double y4,double y5,double y6) {
-  double h = 1.0e-8;
-  return (taum(y1+h,y2,y3,y4,y5,y6)-taum(y1,y2,y3,y4,y5,y6))/h;
-}
-double taum_d2(double y1,double y2,double y3,double y4,double y5,double y6) {
-  double h = 1.0e-8;
-  return (taum(y1+h,y2,y3,y4,y5,y6)-2*taum(y1,y2,y3,y4,y5,y6) + taum(y1-h,y2,y3,y4,y5,y6))/(h*h);
-}
-// this is minimized.  failure reported if min is negative.
-void t1(int numargs,int whichFn,double* y, double* ret,void*) {
-  double r= taum_d1(y[0],y[1],y[2],y[3],y[4],y[5]) ;
-  *ret = r*r ;
-	}
-Minimizer m1() {
-   double xmin[6]= {2,2,2,2.52,2.52,2};
-   double xmax[6]= {2.52,2.52,2.52,3.0,2.52,2.52};
-   
-	Minimizer M(trialcount,6,0,xmin,xmax);
-	M.func = t1;
-	return M;
-}
-trialdata d1(m1(),"ID[DWXPIHA] ID[] d1: extreme-- FALSE!!. Gives C/E to y1-deformaton");
 
 double cc(double y1,double y2,double y,double a,double b) {
   // Delta_y(y1,y2,y,a,b,cc)=0.
@@ -180,6 +179,9 @@ Minimizer m2() {
 }
 //trialdata d2(m2(),"experiment ID[] ID[] d2:  gives C/E to a particular deformation. Adjusting the height at a flat vertex.");
 
+
+
+////////// NEW INEQ
 double taum4_d1(double y1,double y2,double y3,double y4,double y5,double y6) {
   double h = 1.0e-8;
   return (taum(y1,y2,y3,y4+h,y5,y6)-taum(y1,y2,y3,y4,y5,y6))/h;
@@ -213,14 +215,21 @@ void c11(int numargs,int whichFn,double* y, double* ret,void*) {
 Minimizer m11() {
   double xmin[9]= {2,2,2,                     2.52,2,2.52,                   2,2,2};
   double xmax[9]= {2.52,2.52,2.52,     3.9,2.52,3.9,                  2.52,2.52,2.52};//ok to 4.0
-	Minimizer M(trialcount*300,9,4,xmin,xmax);
+	Minimizer M(trialcount,9,4,xmin,xmax);
 	M.func = t11;
 	M.cFunc = c11;
 	return M;
 }
-trialdata d11(m11(),"m11: ID[] two simplices common diagonal (not full domain)");
+trialdata d11(m11(),"m11: ID[2986512815] cc:qua: two simplices common diagonal, no local minimum, (not full domain)");
+/*
+  Minimizer M(trialcount*300,9,4,xmin,xmax);
+constrained min: 0.0049666912319060166
+variables: {2.02287626223235639, 2.52000000000000002, 2.5199999999994307, 2.86885817213602401, 2.00649572338011328, 2.58689726914902973, 2.00000000000637002, 2.00000000000699529, 2.00000000000699529}
+ */
 
 
+
+////////// NEW INEQ
 void t12(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5]) + 1.0e-8;
   *ret = r;
@@ -232,9 +241,9 @@ Minimizer m12() {
 	M.func = t12;
 	return M;
 }
-trialdata d12(m12(),"d12: ID[] Main Inequality Triangles [3,0]");
+trialdata d12(m12(),"d12: ID[6147439478] Main Inequality Triangles [3,0]");
 
-
+////////// NEW INEQ
 void t13(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])-0.103;
   *ret = r;
@@ -246,8 +255,10 @@ Minimizer m13() {
 	M.func = t13;
 	return M;
 }
-trialdata d13(m13(),"d13: ID[] Main Inequality Triangles [2,1]");
+trialdata d13(m13(),"d13: ID[4760233334] Main Inequality Triangles [2,1]");
 
+
+////////// NEW INEQ
 void t14(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])-0.2759;
    *ret = r;
@@ -259,8 +270,10 @@ Minimizer m14() {
 	M.func = t14;
 	return M;
 }
-trialdata d14(m14(),"d14: ID[] Main Inequality Triangles [1,2]");
+trialdata d14(m14(),"d14: ID[4663664691] Main Inequality Triangles [1,2]");
 
+
+////////// NEW INEQ
 void t15(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])-0.4488;
     *ret = r;
@@ -272,9 +285,9 @@ Minimizer m15() {
 	M.func = t15;
 	return M;
 }
-trialdata d15(m15(),"d15: ID[] Main Inequality Triangles [0,3]");
+trialdata d15(m15(),"d15: ID[9098044151] Main Inequality Triangles [0,3]");
 
-
+////////// NEW INEQ
 void t16(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.206;
     *ret = r;
@@ -288,7 +301,7 @@ Minimizer m16() {
 }
 trialdata d16(m16(),"d16: ID[] Main Inequality Quad [4,0]");
 
-
+////////// NEW INEQ
 void t17(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.3789;
     *ret = r;
@@ -302,7 +315,7 @@ Minimizer m17() {
 }
 trialdata d17(m17(),"d17: ID[] Main Inequality Quad [3,1]");
 
-
+////////// NEW INEQ
 void t18(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.5518;
     *ret = r;
@@ -316,6 +329,8 @@ Minimizer m18() {
 }
 trialdata d18(m18(),"d18: ID[] Main Inequality Quad [2,2]a");
 
+
+////////// NEW INEQ
 void t19(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.5518;
     *ret = r;
@@ -330,6 +345,7 @@ Minimizer m19() {
 trialdata d19(m19(),"d19: ID[] Main Inequality Quad [2,2]b");
 
 
+////////// NEW INEQ
 void t20(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.5518;
     *ret = r;
@@ -344,6 +360,7 @@ Minimizer m20() {
 trialdata d20(m20(),"d20: ID[] Main Inequality Quad [2,2]c");
 
 
+////////// NEW INEQ
 void t21(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])+taum(y[6],y[1],y[2],y[3],y[7],y[8])-0.5518;
     *ret = r;
@@ -362,7 +379,7 @@ Minimizer m21() {
 }
 trialdata d21(m21(),"d21: ID[] Main Inequality Quad [2,2]d");
 
-
+////////// NEW INEQ
 void t22(int numargs,int whichFn,double* y, double* ret,void*) {
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])
     +taum(y[0],y[2],y[6],y[7],y[8],y[4])
@@ -404,7 +421,7 @@ Minimizer m22() {
 }
 trialdata d22(m22(),"d22: ID[] Main Inequality Pent [5,0] (not full domain)");
 
-
+////////// NEW INEQ
 void t23(int numargs,int whichFn,double* y, double* ret,void*) {
   // these label vertices of triangulation of a pentagon.
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])
@@ -447,6 +464,7 @@ Minimizer m23() {
 }
 trialdata d23(m23(),"d23: ID[] Main Inequality Pent [4,1] (not full domain)");
 
+////////// NEW INEQ
 void t24(int numargs,int whichFn,double* y, double* ret,void*) {
   // these label vertices of triangulation of a hexagon.
   double r= taum(y[0],y[1],y[2],y[3],y[4],y[5])

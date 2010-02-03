@@ -1439,9 +1439,12 @@ THEN ASM_MESON_TAC[REAL_LE_LMUL;REAL_ARITH ` a* &1= a`]);;
 (*--------------------------------------------------------------------*)
 
 
-let TXIWYHI=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0< k2 /\ k2 <= r) ==> ?(C:real). &(CARD (integer_point (ball(x,r+ k1) DIFF ball(x,r- k2))))<= C* r pow 2`, REPEAT GEN_TAC THEN SIMP_TAC[eq_def_intball]
-		     THEN STRIP_TAC THEN DISJ_CASES_TAC(REAL_ARITH `(r:real)< k2+ sqrt(&3) \/ (k2+ sqrt(&3)<= r)`)
-THENL [ASM_MESON_TAC[bdt7_finiteness];ASM_MESON_TAC[bdt5_finiteness]]);;
+let TXIWYHI=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). 
+    (&0< k1 /\ &0< k2 /\ k2 <= r) ==> ?(C:real).
+     &(CARD (integer_point (ball(x,r+ k1) DIFF ball(x,r- k2))))<= C* r pow 2`, 
+  REPEAT GEN_TAC THEN SIMP_TAC[eq_def_intball]
+  THEN STRIP_TAC THEN DISJ_CASES_TAC(REAL_ARITH `(r:real)< k2+ sqrt(&3) \/ (k2+ sqrt(&3)<= r)`)
+  THENL [ASM_MESON_TAC[bdt7_finiteness];ASM_MESON_TAC[bdt5_finiteness]]);;
 
 
 (*--------------------------------------------------------------------*)

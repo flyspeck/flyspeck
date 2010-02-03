@@ -449,7 +449,10 @@ REAL_ARITH_TAC);;
 let DIHV_SYM = prove(`dihV a b x y = dihV a b y x `,
 REWRITE_TAC[dihV] THEN LET_TR THEN SIMP_TAC[DOT_SYM; ARC_SYM]);;
 
+
 (* lemma 17 *)
+
+(*
 let NLVWBBW = prove(` !(v0:real^N) va vb vc.
 let al = dihV v0 va vb vc in
 let ga = dihV v0 vc va vb in
@@ -460,6 +463,41 @@ let c = arcV v0 va vb in
 let p =
 &1 - cos a pow 2 - cos b pow 2 - cos c pow 2 +
 &2 * cos a * cos b * cos c in
+~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} /\
+~ collinear {v0,va,vb} ==>
+cos c * sin al * sin be = cos ga + cos al * cos be `,
+REPEAT GEN_TAC THEN MP_TAC RLXWSTK THEN REPEAT LET_TAC THEN
+EXPAND_TAC "al" THEN EXPAND_TAC "be" THEN EXPAND_TAC "ga" THEN
+EXPAND_TAC "gam" THEN SIMP_TAC[INSERT_AC] THEN STRIP_TAC THEN
+MP_TAC SIN_MUL_EXPAND THEN REPEAT LET_TAC THEN EXPAND_TAC "bet" THEN
+SIMP_TAC[INSERT_AC; DIHV_SYM; ARC_SYM] THEN
+ONCE_REWRITE_TAC[MESON[DIHV_SYM]` aa * sin (dihV v0 va vb vc) * sin (dihV v0 vb va vc) =
+aa * sin (dihV v0 va vc vb) * sin (dihV v0 vb vc va)`] THEN
+DISCH_TAC THEN ONCE_REWRITE_TAC[MESON[INSERT_AC]`~collinear {v0, va, vc} /\
+~collinear {v0, vb, vc} /\ ~collinear {v0, va, vb} <=>
+~collinear {v0, vc, va} /\ ~collinear {v0, vb, va} /\
+~collinear {v0, vc, vb} `] THEN FIRST_X_ASSUM MP_TAC THEN
+SIMP_TAC[] THEN DOWN_TAC THEN SIMP_TAC[ARC_SYM; DIHV_SYM] THEN
+STRIP_TAC THEN REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN
+NHANH (NOT_COLLINEAR_IMP_NOT_SIN0) THEN ASM_SIMP_TAC[ARC_SYM] THEN
+REPEAT STRIP_TAC THEN UNDISCH_TAC `~( sin a = &0 )` THEN
+UNDISCH_TAC `~( sin b = &0 )` THEN UNDISCH_TAC `~( sin c = &0 )` THEN
+PHA THEN SIMP_TAC[REAL_FIELD `~(c = &0) /\ ~(b = &0) /\ ~(a = &0)
+==> x / (a * b) + y / (b * c) * z / (c * a) = ( x * c pow 2 + y * z ) / ( b * a * c pow 2 ) `] THEN
+STRIP_TAC THEN REWRITE_TAC[REAL_ARITH` a * ( x / y ) = ( a * x ) / y `] THEN
+MATCH_MP_TAC (MESON[]` a = b ==> a / x = b / x `) THEN
+SIMP_TAC[SIN_POW2_EQ_1_SUB_COS_POW2] THEN REAL_ARITH_TAC);;
+*)
+
+(* tchales removed extraneous p from statement *)
+
+let NLVWBBW = prove(` !(v0:real^N) va vb vc.
+let al = dihV v0 va vb vc in
+let ga = dihV v0 vc va vb in
+let be = dihV v0 vb vc va in
+let a = arcV v0 vc vb in
+let b = arcV v0 vc va in
+let c = arcV v0 va vb in
 ~collinear {v0, vc, va} /\ ~collinear {v0, vc, vb} /\
 ~ collinear {v0,va,vb} ==>
 cos c * sin al * sin be = cos ga + cos al * cos be `,

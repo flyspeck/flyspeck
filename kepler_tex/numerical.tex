@@ -2,13 +2,370 @@
 %
 \chapter{Numerical Methods}
 
+Computers have been used at several significant places in the book.     The calculations
+can be sorted into three general categories: linear programming, nonlinear
+optimization, and the combinatorics of graphs. This
+appendix goes into further detail about these general categories.  
+
+
 \section{Linear Programming}
+
+The solution of the packing problem is based on the {\it vanishing
+box trick.}  At the outset, the set of 
+counterexamples to the problem has an unknown size and structure.
+These counterexamples are all placed in a large box.   
+The width of the box is measured and is found to be negative.
+Therefore the box is empty, it contains no counterexamples, and
+the problem is solved.
+
+It may seem that such a strategy is too hopelessly naive to work.
+In fact, precisely this strategy is pursued, and it works beautifully.
+The act of placing a counterexample in a box is called linear 
+relaxation.  The counterexamples form an unknown nonlinear set.
+The box that contains them is defined by linear constraints.  
+Relaxation refers to a relaxation of constraints, so that the
+box contains the counterexamples -- it is not merely a linear
+approximation to the set of counterexamples.  The box needn't be
+rectangular.  Any polyhedron will do.  To determine that a box
+has negative width is to say that it gives an {\it infeasible} linear
+program.  With the strategy, there is no need to limit ourselves
+to a single box, we can use a finite collection of boxes that
+contain the set of counterexamples.  This leads to branch and bound
+methods.
+
+
+In this appendix, we will discuss these methods in further detail,
+including linear programming, linear relaxation,  infeasibility,
+and branch and bound methods.
+
+The introduction of linear programming methods to the packing
+problem was gradual and tranquil.  
+Many of the
+inequalities in the packing problem have an obvious linear form.
+As an engineering student
+at Stanford, I had studied
+linear and nonlinear optimization.
+Given my background, 
+it was natural for me to express them as a linear program.  
+Once linear programming had made an appearance, the 
+repeated successes of the method led me to rely on it more and more.
+In the end, approximately $10^5$ linear programs appear in the solution,
+each involving some $200$ variables and around $2000$ constraints.
+This is a inconsequential task for modern algorithms.  
+
+The consequential part is to organize the output of this many linear
+programs into a comprehensible proof narrative.  How do I convince you
+the reader that this vast collection of linear programs constitutes
+the proof of a theorem?  What is the precise statement of that
+theorem, expressed in a way that does not refer to $10^5$ separate
+problems? There is an entire chapter of this book devoted to these
+questions.  This introductory essay gives enough background to carry
+us through to that chapter.
+
+
+\subsection{preliminaries}
+
+There is a vast mathematical literature describing algorithms to
+solve the constrained optimization problem of finding a column vector
+$x\in\ring{R}^n$ that maximizes the objective function $ x$
+\begin{equation}\label{eqn:lp1}
+\max_{x}  c x
+\end{equation}
+where $c\in\ring{R}^n$ is a fixed row vector, subject to a system of
+linear inequalities,
+\begin{equation}\label{eqn:lp2}
+A x\le b
+\end{equation} 
+for some matrix $A$ and vector $b\in \ring{R}^m$.  (An inequality $A
+x\le b$ of vectors means that each component of vectors satisfy the
+inequality.)  Such a maximization problem is called a {\it linear
+  program}, an unusual name for what it is, not a program in the sense
+of computer code, rather a program in the sense of military logistics,
+growing out of G. Dantzig's war experience at the Pentagon
+\cite{Dan91}.  G. Dantzig proposed the simplex method to solve such
+problems in 1947.  The system of constraints $A x \le b$ defines a
+polyhedron, the vector $c$ gives a preferred direction in space, and
+the simplex method walks along edges of the polyhedron, from extreme points to
+extreme point, until reaching a extreme point where no further progress can be made.
+The simplex method has been named one of the top ten algorithms of the
+twentieth century \cite{Cip00}.
+
+Later in 1947, within minutes of first hearing about
+linear programming, von Neumann introduced linear programming
+duality, as an outgrowth of his theory of games.
+In 1979, L. Khachiyan found a way to solve linear programs in
+polynomial time \cite{Kha79}.  Still later, 
+N. Karmarkar found a polynomial
+time algorithm of practical value \cite{Kar84}.  
+M. Wright gives a recent survey
+of interior-point algorithms (algorithms that search for the 
+optimal solution by moving through the interior of the polyhedron
+rather than following the simplex method's strategy of searching
+along the boundary of the polyhedron) in \cite{Wri05}. 
+M. Todd also gives an excellent survey of algorithms \cite{Tod02}.
+These algorithms have been implemented in various
+software packages.
+Because of this extensive and well-developed literature on the
+subject of linear programming, we will take it as given that we
+can solve large-scale linear programs.
+
+
+The basic linear program admits many variations.  We can minimize
+the objective function
+\[x \mapsto c x\] 
+rather than maximize it.
+Any linear equation
+$a x = b$ can be written as a system of inequalities
+\[a  x \le b \text{ and } -a x \le -b.\]
+This allows us to reduce constrained linear optimization with
+equality constraints to a constrained linear optimization with
+inequality constraints.
+
+\subsection{duality}
+
+A linear program is feasible if there exists an $x$ satisfying
+all the constraints $A x \le b$.  A linear program is bounded
+if the set $c x$ is bounded from above for all $x$ satisfying the
+constraints.  
+
+Given the linear program of Equations~\ref{eqn:lp1},\ref{eqn:lp2}
+defined from $A,b,c$, there is another linear program defined by
+the same data, but in dual form
+\begin{equation}
+\min_y {y b}
+\end{equation}
+such that
+\begin{equation}
+y A = c \text{ and } y \ge 0,
+\end{equation}
+where $y\in\ring{R}^m$ is a row vector.
+To distinguish the two linear programs, the one given by
+Equations~\ref{eqn:lp1} and \ref{eqn:lp2} is called the primal.
+If $x$ is any feasible solution to the primal and  if
+$y$ is any feasible solution to the dual (meaning that they satisfies
+the constraints but are not necessarily optimal), then by
+the inequality constraints, we have trivially that
+$$y b \ge y A x = c x.$$
+That is, any feasible solution $y$ to the dual linear program gives an
+upper bound to the primal.  If the left-hand side is minimized
+for $y=y^*$ and the right-hand side is maximized when $x=x^*$, then
+$$y^* b \ge c x^*.$$
+The linear programming duality theorem asserts that if the primal
+is feasible and bounded, then the dual is also feasible and bounded,
+and moreover $y^* b = c x^*$.  In summary, we can bound
+the primal with any feasible solution to the dual, and find
+the optimal bound on the primal by minimizing the dual.
+
+Linear programming duality produces certificates of a bound
+on the primal.  Suppose we treat a linear programming package as
+an untrusted 
+black box without any knowledge of its internal algorithms.
+To handle round-off errors, we now also assume that we have
+a priori bounds $|x_i| \le m$ on the variables $x_i$.
+The untrusted package produces a vector $y$, which it claims
+is (approximately) a feasible solution to the dual problem.  
+First, replacing
+any negative coefficients in $y$ with $0$, we may assume that
+it satisfies the constraint $y\ge 0$.  The quantity $\delta = c - y A$
+should be exactly zero for a feasible solution to the dual program, but
+because of round-off errors, it may be  off.  
+Then for any feasible $x$ to the primal problem
+$$
+c x = (\delta + y A)  x \le \delta  x + y b.
+$$
+Using the a priori bounds on $x$, we get $\delta x\le \sum 
+m|\delta_i|=D$.  An upper bound on the primal is the value
+$D + y b$, which is computed without any knowledge of the
+algorithms used by the software package.  By the duality theorem
+for linear programming, there exists a certificate for which this
+computed value is exactly the maximum of the primal.
+
+In the packing problem, in practice we have a priori bounds
+on the variables $x$, and this method works extremely well.  Note
+that the a priori bound $m$ is allowed to be an extremely crude estimate,
+because in producing the estimate $D$, it is multiplied by $\delta$,
+which typically has the magnitude of a machine epsilon.
+
+\subsection{infeasibility}
+
+
+In practice, many of the primal linear programs that appear
+in the packing problem are infeasible.  This requires
+some small adjustments to the previous discussion.   In the
+linear programs that we encounter in this book, it is not
+necessary to determine the exact upper bound of a the linear program.
+We have an explicit constant $K$, and we wish to prove that
+the maximum of the objective function is less than $K$.
+Rather
+than consider two separate
+types of problems, feasible and infeasible, we recast all the linear
+programs in this book in terms of infeasibility.
+When the maximum of $c x$ is less than $K$, by
+adding the constraint $c x\ge K$ to the system of constraints
+$A x\le b$,  we get an infeasible linear program.
+This is the vanishing box trick:  the counterexamples to a nonlinear
+problem are constrained to lie inside an infeasible system of linear
+inequalities.
+
+
+We now drop the objective function, and work
+with a system of inequalities  of the form
+\begin{eqnarray}
+\label{eqn:lpsys}
+A x &\le& c\\
+a \le x    &\le& b,
+\end{eqnarray}
+with explicitly given lower and upper bounds $(a\le x\le b)$ on
+the variables $x$.  The problem
+is to verify that the system is infeasible; that is, there does
+not exist an $x$ satisfying the system of inequalities.  By
+translating dual linear program certificates into this new context
+we are led to the following definition.
+
+\begin{definition}[certificate~of~infeasibility]
+A certificate of infeasibility for the system \ref{eqn:lpsys},
+is a pair $(u,v)$ satisfying
+\begin{eqnarray*}
+0&\le& u\\
+0&\le& v\\
+0&\le& u A + v\\
+0& >& u(c-Aa) + v(b-a).
+\end{eqnarray*}
+\end{definition}
+
+\begin{example}
+If there is an index $i$ for which $b_i < a_i$, then the system is
+clearly infeasible.  In this case, we have an obvious certificate
+of infeasibility given by $(u,v)=(0,e_i)$, where $e_i$ is the
+standard basis vector at index $i$.
+\end{example}
+
+\begin{lemma}
+If a certificate of infeasibility $(u,v)$ exists for the system
+\ref{eqn:lpsys}, then the system is infeasible.
+\end{lemma}
+
+\begin{proof}
+Suppose for a contradiction that $x$ is a feasible solution.
+Then
+\begin{eqnarray*}
+0 &\le& (u A + v)(x-a) \\
+&=& [u (c- A a) + v (b- a)] - [u (c - A x)] - [v (b - x)]\\
+&<& 0.\qedhere
+\end{eqnarray*}
+\end{proof}
+
+
+As in the case of dual linear program certificates, 
+to prove a system infeasible, it is not necessary to know how a
+certificate of infeasibility is produced.  It can be produced 
+by an untrusted computer algorithm.  All that is needed
+to be known is that it is a certificate.
+
+If an approximation $(u',v')$ to a certificate of infeasibility is
+produced (say by computer), it can often be adjusted to give a
+true certificate.  Given an approximation $(u',v')$, define
+$(u,v)$ by
+\begin{eqnarray*}
+u &=& \max(0,u')\\
+v &=& \max(0,v',-u A).
+\end{eqnarray*}
+If $(u,v)$ satisfies
+$$u( c-A a) + v(b-a) <0,$$
+then it is a certificate of infeasibility.
+
+The theory of duality for linear programming insures that if a
+system is infeasible, then a certificate of infeasibility exists.
+Since the equations defining a certificate of infeasibility are
+linear in $u$ and $v$, linear programming algorithms may be used
+to produce certificates:
+\[
+\min_{u,v} u (c-A a) + v(b-a)
+\]
+such that 
+\begin{eqnarray*}
+0 &\le& u\\
+0 &\le& v \\
+0& \le& u A + v\\
+\end{eqnarray*}
+This has a feasible solution $u=v=0$.  If we add the constraint
+that the objective function is at least $-1$, then there exists a
+bounded feasible solution.
+
+
+\subsection{linear relaxation}
+
+Suppose that we have a continuous
+nonlinear function $f$ that we wish to maximize
+over a compact domain $X\subset \ring{R}^n$.    A linear relaxation
+of the domain is a polyhedron defined by constraints $A x \le b$
+such that the polyhedron contains the domain $X$.  That is,
+$x\in X$ implies $A x \le b$.    A linear relaxation of the objective
+function $f$ is a linear function $x\mapsto c x$ such that
+$f(x) \le c x$ for all $x\in X$.  It then follows trivially
+that the maximum of $f$ over $X$ is at most the value of 
+the linear program that maximizes $c x$ such that $A x \le b$.
+
+(A popular article about the proof of the packing problem
+illustrated the method by depicting the nonlinear function $f$
+as the rolling hills in the countryside, cows grazing in the background.  
+A helicopter,
+carrying a large roof, was slowing
+descending over the hilltops, bounding the height of a hilltop
+with the piecewise linear roof.)
+
+Relaxation discards information about the nonlinear behavior of the
+optimization problem.  It should be expected that the bounds
+obtained by this method will often be crude.  However, it has the
+definite advantage that linear programs can be solved efficiently,
+while general nonlinear programming problems cannot.
+
+For the problem to be a true linear relaxation, there must be rigorous
+proofs that each $x\in X$ satisfies each linear constraint $A_i x\le
+b_i$.  This means that the maximum of $A_i x$ over $X$ must be at most
+$b_i$.  This again, is a nonlinear optimization problem on the domain
+$X$ with objective function $A_i x$.  For an arbitrary constraint $A_i
+x\le b$, and complicated domain $X$, there is no reason to suspect
+that this is any easier to solve than the original optimization
+problem.  Thus, we are in danger of replacing one intractible problem
+with another.
+
+The packing problem has a special structure that avoids this
+problem.  Even though the nonlinear optimization problem involves
+around 150 variables, 
+this special structure allows all the nonlinearities to 
+be confined to small dimensions (around 6 variables).  In other words,
+the packing problem can be
+described as a coupled system of small nonlinear subsystems,
+and all the coupling comes through linear systems of equations. 
+We give a toy model of this in a moment to describe how this works.
+
+This special structure is one of the key points of the entire proof.
+If you want to know why this hard nonlinear optimization problem has
+been solved, but others have not, you now know the fundamental reason.
+By partitioning the linear relaxation of the domain $X$ according
+to the small nonlinear subsystems, we can arrange for each inequality
+$A_i x\le b_i$ to be sparsely populated, and for each relaxation
+constraint to be a statement about a nonlinear inequality on a domain
+of low dimension.  This is a tractible problem:
+we  summon interval arithmetic to prove these
+low dimensional inequalities by computer.  In this way we are able
+to give a rigorous proof that we have a true linear relaxation of a
+difficult nonlinear optimization problem.  In practice, the linear
+relaxation  bounds  are good enough to solve the packing
+problem.
+
+
+
+
+
+
 
 \section{Nonlinear Optimization}
 
 \section{Graph Generation}
 
-\section{Summary of Computer Calculations}
+\section{List of Computer Calculations}
 
 The following table gives a summary of the proofs in the book where
 computer calculations have been used.  The table lists the lemma
@@ -97,305 +454,3 @@ $k=2,3,4$.}
 %\end{tabular}
 
 
-\section{inequalities listings}
-
-
-
-\subsection{packings, general inequalities}
-
-This appendix gives a summary of the nonlinear inequalities that have
-been cited in the chapter on packings.  Information about the computer
-verifications can be found at \cite{hales:2009:nonlinear}.
-
-
-\begin{note}%XX
-This book contains a number of nonlinear inequalities that have been
-established by interval-arithmetic calculations by computer.  Some
-of these interval arithmetic calculations are still in the process
-of being verified.  The approach to the proof of the Kepler
-conjecture described here is still work in progress.  A description
-of the inequalities and their current status can be found
-at~\cite{hales:2009:nonlinear}.
-\end{note}
-
-
-(Note that the following is an inequality in at most six variables; the most
-difficult case to prove is that of a $4$-cell.)  Formulas for the
-volumes and solid angles appear in Chapter~\ref{chapter:volume}.  An
-explicit formula for the dihedral angle appears in
-Chapter~\ref{part:trig}.
-
-
-\begin{calculation}\label{calc:marchal}\guid{WJDLOCM}\guid{1025009205}\guid{3564312720}\rating{ZZ}
-%% cc:mar are the k-cell estimates for non-cell clusters.
-Define the function $M$ by equations (\ref{eqn:M}) and
-(\ref{eqn:m-def}).  Define the function $\gamma(X,M)$ by equation
-(\ref{eqn:gamma-def}).  If $X$ is a $0$, $1$, $2$, $3$, or $4$-cell,
-then
-\begin{displaymath}
-\gamma(X,M)\ge 0.
-\end{displaymath}
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:qtr}\guid{GLFVCVK}\guid{4869905472}\guid{2477216213}\guid{8328676778}\rating{ZZ}
-Let $\gamma_L$ be given by Definition~\ref{def:gammaL}, $\op{wt}$ by
-Definition~\ref{def:wt}, and $\beta$ by Definition~\ref{def:beta}.
-If $X$ is any $k$-cell that is not a quater with $k\in\{2,3,4\}$,
-then % gammaL is nonneg on quarters. cc:qtr
-\begin{displaymath}
-\gamma_L(X) \op{wt}(X) + \beta(e,X)\ge 0.
-\end{displaymath} 
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:2bl}\guid{FHBVYXZ}\guid{1118115412}\rating{ZZ}
-Let $\gamma_L$ be given by Definition~\ref{def:gammaL}.  Let $X$ be
-any quarter.  Let $Y$ be a $3$-cell that flanks it.  Then
-\begin{displaymath}
-\gamma_L(X)+\gamma_L(Y)\ge 0,
-\end{displaymath}
-% 2-leaf calculation, gammaL(fourcell)+gammaL(threecell) >=0. % cc:2bl:
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:5bl}\guid{ZTGIJCF}\rating{ZZ}
-Let
-\begin{displaymath}
-a= 0.0560305, \quad\text{and}\quad  b= -0.0445813.
-\end{displaymath}
-\begin{itemize}
-\item \case{1821661595} A $4$-cell $X$ along a spine $e$ satisfies
-\begin{displaymath}
-\gamma_L(X)\op{wt}(X) + \beta(e,X) \ge a + b\,\op{azim}(X),
-\end{displaymath}
-\item \case{7907792228} The $2$-cell $X_2$ and two $3$-cells $X_1,X_3$
-that flank it along a spine $e$ satisfy
-\begin{displaymath}
-\sum_{i=1}^3 \left(\gamma_L(X_i)\op{wt}(X_i) + \beta(e,X_i)\right)\ge a + b\,\sum_{i=1}^3\op{azim}(X_i).
-\end{displaymath}
-\end{itemize}
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:disks}\guid{8550443271}\rating{ZZ}
-Let
-\begin{displaymath}
-g(h) = \arccos(h/2) - \pi/6.
-\end{displaymath}
-If $h_1,h_2\in [1,\hm]$, then
-\begin{displaymath}
-\op{arc}(2h_1,2h_2,2) - g(h_1) - g(h_2)\ge 0.
-\end{displaymath}
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:alin}\guid{7991525482}\rating{ZZ}
-Let $L$ be given by Definition~\ref{def:L}.
-Let
-\begin{displaymath}
-g(h) = \arccos(h/2) - \pi/6.
-\end{displaymath}
-Let
-\begin{displaymath}
-\op{reg}(a,k) = 2\pi - 2 k (\arcsin(\cos(a)\sin(\pi/k))).
-\end{displaymath}
-Then
-\begin{displaymath}
-\op{reg}(g(h),k) \ge c_0 + c_1 k + c_2 L(h),\quad
-k = 3,4,\ldots,\quad 1\le h\le \hm,
-\end{displaymath}
-where
-\begin{displaymath}c_0 = 0.6327,\quad c_1 = -0.0333,\quad c_2 =
-0.4754.\end{displaymath}
-\end{calculation}
-
-\begin{calculation}\label{calc:cc:alin2}\guid{8540377696}\rating{ZZ}
-Let $L$ be given by Definition~\ref{def:L}.
-Let
-\begin{displaymath}
-g(h) = \arccos(h/2) - \pi/6.
-\end{displaymath}
-Let
-\begin{displaymath}
-\op{reg}(a,k) = 2\pi - 2 k (\arcsin(\cos(a)\sin(\pi/k))).
-\end{displaymath}
-Let
-\begin{displaymath}a'=\arc(2,2,2\hm)-g(\hm) \approx
-0.797.\end{displaymath} Then for $k=3,4,\ldots$,
-\begin{displaymath}\op{reg}(a',k) \ge c_0 + c_1 k + c_2 L(1) +
-c_3\end{displaymath}
-where 
-\begin{displaymath}c_0 = 0.6327,\quad c_1 = -0.0333,\quad c_2 =
-0.4754,\quad c_3 = 0.85.\end{displaymath}
-\end{calculation}
-
-\begin{calculation}\label{calc:shorts}\rating{ZZ}
-The following calculations involve many cases that are enumerated by
-computer code.
-\begin{itemize}
-\item \case{BIXPCGW} Let $Z$ be any cell-cluster along a spine $e$
-with three leaves.  Then
-\begin{displaymath}
-\Gamma(Z)> 0.
-\end{displaymath}
-\item \case{QITNPEA} Let $Z$ be any cell-cluster along a spine $e$
-with four leaves.  Then
-\begin{displaymath}
-\Gamma(Z)> 0.
-\end{displaymath}
-\end{itemize}
-\end{calculation}
-
-
-
-
-\section{Local Fan: listing}
-
-\begin{calculation}\guid{2065952723}\rating{ZZ}\label{calc:Lexell}
-%See Mathematica numerical calculation.
-Let
-\begin{displaymath}
-g(s;a,b,c,e_1,e_2,e_3) = \sum_{i=1}^3 \dih_i(2,2,2,a+s,b,c) e_i,
-\end{displaymath}
-where $\dih_i$ is given by Definition~\ref{def:tau}.
-Let $\Delta = \Delta(4,4,4,a^2,b^2,c^2)$.
-Let primes denote derivatives with respect to the variable $s$.
-Assume that
-$e_i\in\leftclosed1,1+\sol_0/\pi\rightclosed$,  that
-$a,b,c\in\leftclosed2/\hm,4\rightclosed$.
-Then
-\begin{equation}\label{eqn:calc:Lexell}
-  \Delta (g'(0;a,b,c,e_1,e_2,e_3))^2 
-- 0.01\Delta^{3/2}g''(0;a,b,c,e_1,e_2,e_3) > 0.
-\end{equation}
-(The factors of $\Delta$ clear the denominator in
-(\ref{eqn:calc:Lexell}) to simplify the inequality to be proved.)
-\end{calculation}
-
-\begin{calculation}\guid{2158872499}\rating{ZZ}\label{calc:2der}
-%% checked in Mathematica NMaximize
-Let $y_1,y_2\in \leftclosed 2,2\hm\rightclosed$.  
-\begin{itemize}
-\item 
-Let $g(t) = \arc(y_1,y_2+t,2)$.  Then $g''(0) < 0$.
-Explicitly,
-\begin{displaymath}
-  g''(0) = \dfrac{
-    -64 + 48y_1^2 - 12 y_1^4 + y_1^6 
-  + 80 y_2^2 - 8 y_1^2 y_2^2 - 3 y_1^4 y_2^2
-    - 12 y_2 ^4 + 3 y_1^2 y_2^4 - y_2^6
-  }{y_2^2 \sqrt{\ups(y_1^2,y_2^2,4)}^3}
-\end{displaymath}
-and the polynomial in the numerator takes negative values on the given
-domain.
-\item
-Let $g(t) = \arc(y_1+t,y_2-t,2)$.  Then $g''(0) < 0$.
-Explicitly,
-\begin{displaymath}
-  g''(0) = \dfrac{\sqrt{\ups(y_1^2,y_2^2,4)} \left(
-      -4 y_1^2 + y_1^4 - 4y_1^3 y_2 - 4y_2^2 
-   + 6 y_1^2 y_2^2 - 4 y_1 y_2^3 +y_2^4
-    \right)}{y_1^2 y_2^2 (2+y_1-y_2)^2 (2+y_2-y_1)^2}
-\end{displaymath}
-and the polynomial in the numerator takes negative values on the given
-domain.
-\end{itemize}
-\end{calculation}
-
-\begin{calculation}\guid{2986512815}\rating{ZZ}\label{calc:cc:qua}  %m11
-Let $y_1y_2,y_3,y_7\in \leftclosed 2,2\hm\rightclosed$,
-$y_5,y_8,y_9\in \{2,2\hm\}$, $y_4,y_6\ge 2\hm$.
-Let $x_i = y_i^2$.
-Assume that
-\begin{displaymath}
-\Delta(x_1,x_2,x_3,x_4,x_5,x_6)>0,\quad{ and }
-\Delta(x_3,x_2,x_7,x_9,x_8,x_4)>0.
-\end{displaymath}
-Assume that
-\begin{displaymath}
-\dih(y_3,y_1,y_2,y_6,y_4,y_5)+\dih(y_3,y_2,y_7,y_9,y_8,y_4) < \pi
-\end{displaymath}
-and\footnote{If $\{\v_1,\ldots,\v_4\}$ is a set of vectors such that
-$y_i = \normo{\v_i}$ and $y_{ij} = \norm{\v_i}{\v_j}$, then
-$\op{cross}(y_4,\ldots,y_{12}) = \norm{\v_2}{\v_4}$.}
-\begin{displaymath}
-\op{cross}(y_1,y_2,y_3,y_4,\ldots,y_9) \ge y_4.
-\end{displaymath}
-Let 
-\begin{displaymath}g(t;y_1,\ldots,y_9) =
-  \tau_{tri}(y_1,y_2,y_3,y_4+t,y_5,y_6)+\tau_{tri}(y_3,y_2,y_7,y_9,y_8,y_4+t).
-\end{displaymath}
-Then \begin{displaymath}g'(0)^2 - 0.01 g''(0) > 0.\end{displaymath}
-\end{calculation}
-
-
-\begin{calculation}\guid{EFJSUSK}\rating{ZZ}\label{calc:irred} %cc:tau
-%%cc:par
-Let $(V,E,F,G)$ be an irreducible minimal fan with parameters
-$(r,s)$.  Then $\tau(V,E,F) \ge d(r,s)$.  (A separate calculation
-has been made for each of the cases in the list given above.)
-% Interval arithmetic
-% calculations~ %% cc:par partition cases for tau[r,s].
-\end{calculation}
-
-
-
-
-
-
-
-
-
-
-%\begin{calculation}\guid{5779862781}\rating{ZZ}\label{calc:cc:d2a}
-%  Let $y_5,y_6\in \{ 2,2\hm\}$, $y_1,y_2,y_3\in \leftclosed
-%  2,2\hm\rightclosed$, and $y_4\in \leftclosed 2,4\hm\rightclosed$.
-%  Let $g(t) = \tau_{tri}(y_1+t,y_2,y_3,y_4,y_5,y_6)$.  If
-%  $\Delta(y_1^2,y_2^2,\ldots,y_6^2)> 0$ and if $ g'(0)=0, $ then
-%  $g''(0)<0$.\footnote{The function $g(t)$ may fail to be
-%    differentiable at $t=0$ for parameters $y_1,\ldots,y_6$ for which
-%    $\Delta(y_1^2,\ldots,y_6^2)=0$.  Thus, it is necessary to work on
-%    the noncompact domain $\Delta>0$ for this inequality.}
-%%  (The proof is an interval arithmetic calculation over a
-%%  four-dimensional space~cc:d2a.  %%cc:d2a
-%%  The calculation verifies that the second derivative is negative
-%%  whenever the derivative is zero.)
-%\end{calculation} 
-%
-
-%\begin{calculation}\guid{6645853705}\rating{ZZ}\label{calc:cc:d2b}
-%  Let $y_5\in \{2,2\hm\}$, $y_1,y_2,y_3\in \leftclosed
-%  2,2\hm\rightclosed$, and $y_4\in \leftclosed 2,4\hm\rightclosed$.
-%  Let $g(t) = \tau_{tri}(y_1+t,y_2,y_3,y_4,y_5,y_6)$.  If
-%  $\Delta(y_1^2,y_2^2,\ldots,y_6^2)> 0$, if
-%\begin{displaymath}
-%\arc(y_1,2\hm,2) + \arc(y_2,2\hm,2) 
-%\le y_6 \le \arc(y_1,2,2\hm)+\arc(y_2,2,2\hm)
-%\end{displaymath} 
-%and if
-%$
-%g'(0)=0,
-%$
-%then $g''(0)<0$.
-%\end{calculation}
-%
-%\begin{calculation}\guid{5606476569}\rating{ZZ}\label{calc:cc:qua}
-%Let $y_{12},y_{23},y_{34},y_2,y_3\in\{2,2\hm\}$.
-%Let $y_1,y_4\in \leftclosed 2,2\hm\rightclosed$.
-%Let $y_{14}\in\leftclosed 2\hm,y_1+y_4\rightclosed$.
-%Let $y_{13}\in\leftclosed 2\hm,y_1+y_3\rightclosed$.
-%Let $g(t) = \tau_{tri}(y_1+t,y_2,y_3,y_4,y_5,y_6)$.
-%If 
-%\begin{displaymath}
-%\Delta(y_1^2,y_2^2,y_3^2,y_{23}^2,y_{13}^2,y_{12}^2)> 0 \text{ and }
-%\Delta(y_1^2,y_4^2,y_3^2,y_{43}^2,y_{13}^2,y_{14}^2)> 0,
-%\end{displaymath} 
-%if\footnote{If $\{\v_1,\ldots,\v_4\}$ is a set of vectors such that
-%  $y_i = \normo{\v_i}$ and $y_{ij} = \norm{\v_i}{\v_j}$, then
-%  $\op{cross}(y_4,\ldots,y_{12}) = \norm{\v_2}{\v_4}$.}
-%\begin{displaymath}
-%\op{cross}(y_4,y_1,y_3,y_{13},y_{34},y_{14},y_2,y_{23},y_{12})\ge y_{13},
-%\end{displaymath}
-%and if
-%$
-%g'(0)=0,
-%$
-%then $g''(0)<0$.
-%\end{calculation}
-%

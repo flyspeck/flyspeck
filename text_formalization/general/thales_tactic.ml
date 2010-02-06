@@ -22,11 +22,14 @@ let LABEL_ALL_TAC:tactic =
     (for i=0 to ((length asl)-1) do (aslp := update_label i !aslp) done;
     (ALL_TAC (!aslp,w)));;
 
-(* global_var *)
+(* new reference *)
 let EVERY_STEP_TAC = ref ALL_TAC;;
+
+(*
 let e tac = refine(by(VALID 
    (if !labels_flag then (tac THEN (!EVERY_STEP_TAC)) THEN LABEL_ALL_TAC
    else tac)));;
+*)
 
 let prove_by_refinement(t,(tacl:tactic list)) = 
   let gstate = mk_goalstate ([],t) in

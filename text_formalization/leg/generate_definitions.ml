@@ -74,5 +74,5 @@ mkd "enclosed"
  "new_definition `enclosed y1 y2 y3 y4 y5 y6 y7 y8 y9 = sqrt 
   (quadratic_root_plus (abc_of_quadratic (muR y1 y2 y3 y4 y5 y6 y7 y8 y9)))`;;"
   ["The function of 9 variables defined on page 37 of the Kepler Conjecture, DCG vol 36(1), July 2006";
-   "It is generally typeset as a calligraphic E"] ["leg/abc_of_quadratic_def.hl";"leg/quadratic_root_plus.hl"];;
+   "It is generally typeset as a calligraphic E"] ["leg/muR_def.hl";"leg/abc_of_quadratic_def.hl";"leg/quadratic_root_plus.hl"];;
 

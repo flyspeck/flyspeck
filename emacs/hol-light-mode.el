@@ -3,14 +3,6 @@
 ;; URL: http://seanmcl-ocaml-lib.googlecode.com/svn/trunk/workshop/software/emacs 
 ;; author Sean McLaughlin
 
-;; TODO
-
-;; Eval buffer centering
-;; Folding
-;; Subterm typing
-;; Push/pop proofs?
-;; backup n steps
-
 (require 'folding)
 (require 'hol-light)
 

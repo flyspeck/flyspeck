@@ -5,7 +5,7 @@ needs "hypermap.ml";;
 (*
 needs "Multivariate/flyspeck.ml";;
 needs "general/sphere.ml";;
-#use "thales_tactic.ml";;
+#use "prove_by_refinement.hl";;
 (* needs "trig_spec.ml";; *)
 #use "trig.ml";;
 (* tarski *)

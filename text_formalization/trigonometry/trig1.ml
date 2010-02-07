@@ -3,7 +3,7 @@
 
 needs "Multivariate/flyspeck.ml";;
 needs "general/sphere.hl";;
-needs "general/thales_tactic.ml";;
+needs "general/prove_by_refinement.hl";;
 
 
 prioritize_real();;

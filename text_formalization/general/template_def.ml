@@ -27,6 +27,7 @@ module type Template_def_type = sig
 	date:string;
 	data:string;
 	comments:string list;
+        needlist:string list;
       }
 
   val output_template : userdefinition -> unit 
@@ -52,6 +53,7 @@ let example1() =
      date="Feb 7, 2010";
      data="<Insert HOL-Light code for theorem here>";
      comments=["This is just a test!"];
+     needlist=["Multivariate/flyspeck.ml"];
     } in
  let _ = set_root_dir "/tmp" in
    output_template def1;;
@@ -70,6 +72,7 @@ struct
 	date:string;
 	data:string;
 	comments: string list;
+	needlist:string list;
       };;
 
   (* Comments and Line Formatting *)
@@ -109,11 +112,16 @@ struct
    if (ud.comments =[]) then emptystring else
    "(*\n"^(join_lines ud.comments)^"\n*)\n\n\n";;
 
+  let neededfiles ud = 
+       if (ud.needlist =[]) then emptystring else
+      "\n\n"^(unsplit "\n" (fun s -> "needs \""^s^"\";;") ud.needlist)^"\n\n\n";;
+
   let body ud = 
     let p = Printf.sprintf in
     let uc = String.capitalize ud.definition in
       join_lines [
 	p"module type %s_def_type = sig" uc;
+        neededfiles ud;
 	p"  val %s : thm" ud.definition;
 	"end;;\n\n";
 	p"module %s : %s_def_type = struct\n" uc uc;
@@ -146,3 +154,17 @@ end;;
 
 
 
+open Template_def;;
+let example1() = 
+  let def1 = 
+    {definition="azim";
+     chapter="Trigonometry";
+     author="Thomas C. Hales";
+     date="Feb 7, 2010";
+     data="<Insert HOL-Light code for theorem here>";
+     comments=["This is just a test!"];
+     needlist=["Multivariate/flyspeck.ml"];
+    } in
+ let _ = set_root_dir "/tmp" in
+   output_template def1;;
+example1();;

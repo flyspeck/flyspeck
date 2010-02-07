@@ -114,7 +114,7 @@ struct
 
   let neededfiles ud = 
        if (ud.needlist =[]) then emptystring else
-      "\n\n"^(unsplit "\n" (fun s -> "needs \""^s^"\";;") ud.needlist)^"\n\n\n";;
+      "\n\n"^(unsplit "\n" (fun s -> "needs (flyspeck ^ \""^s^"\");;") ud.needlist)^"\n\n\n";;
 
   let body ud = 
     let p = Printf.sprintf in
@@ -153,18 +153,3 @@ struct
 end;;
 
 
-
-open Template_def;;
-let example1() = 
-  let def1 = 
-    {definition="azim";
-     chapter="Trigonometry";
-     author="Thomas C. Hales";
-     date="Feb 7, 2010";
-     data="<Insert HOL-Light code for theorem here>";
-     comments=["This is just a test!"];
-     needlist=["Multivariate/flyspeck.ml"];
-    } in
- let _ = set_root_dir "/tmp" in
-   output_template def1;;
-example1();;

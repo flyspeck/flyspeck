@@ -572,8 +572,11 @@ prove(` v2 - v0 = va /\
 v3 - v0 = vb ==> dist (va,vb) = dist ( v2,v3) `,
 ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN
 SIMP_TAC[DIST_TRANSABLE; VECTOR_ARITH` a - b + b = ( a:real^N)`]);;
+
 let REAL_LE_SQUARE_POW =
 MESON[REAL_POW_2; REAL_LE_SQUARE]`! x. &0 <= x pow 2 `;;
+
+
 g ` dist ((v0:real^N),v1) pow 2 = v01 /\
 dist (v0,v2) pow 2 = v02 /\
 dist (v0,v3) pow 2 = v03 /\
@@ -752,13 +755,61 @@ let NOT_ZERO_EQ_POW2_LT = prove(` ~( a = &0 ) <=> &0 < a pow 2 `,
 SIMP_TAC[GSYM LE_AND_NOT_0_EQ_LT; POW_2;
 REAL_ENTIRE; REAL_LE_SQUARE]);;
 
+(* lemma 18 *)
+let OJEKOJF = prove(`!(v0:real^3) v1 v2 v3.
+		    let ga = dihV v0 v1 v2 v3 in
+		    let v01 = dist (v0,v1) pow 2 in
+		    let v02 = dist (v0,v2) pow 2 in
+		    let v03 = dist (v0,v3) pow 2 in
+		    let v12 = dist (v1,v2) pow 2 in
+		    let v13 = dist (v1,v3) pow 2 in
+		    let v23 = dist (v2,v3) pow 2 in
+		      ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
+		      ==> ga = acs (delta_x4 v01 v02 v03 v23 v13 v12 /
+				      sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)) /\
+			  ga = pi / &2 - atn2( sqrt ( &4 * v01 * delta_x v01 v02 v03 v23 v13 v12 ),
+					       delta_x4 v01 v02 v03 v23 v13 v12 ) `, 
+REPEAT STRIP_TAC THEN
+MP_TAC (SPEC_ALL (INST_TYPE [`:3`,`:N`] FOR_LEMMA19) ) THEN REPEAT LET_TAC THEN
+SIMP_TAC[] THEN DOWN_TAC THEN NGOAC THEN 
+REWRITE_TAC[MESON[]`l/\ ( a ==> b ) <=>( a ==> b ) /\ l `] THEN PHA THEN 
+NHANH (COMPUTE_DELTA_OVER ) THEN
+NHANH (ONCE_REWRITE_RULE[GSYM CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN
+ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN
+ABBREV_TAC ` (w1:real^3) = ((v1 - v0) dot (v1 - v0)) % (v2 - v0) -((v2 - v0) dot (v1 - v0)) % (v1 - v0)` THEN
+ABBREV_TAC ` (w2:real^3) = ((v1 - v0) dot (v1 - v0)) % (v3 - v0) -((v3 - v0) dot (v1 - v0)) % (v1 - v0) ` THEN
+ONCE_REWRITE_TAC[MESON[]`( a/\ b ) /\ c /\ d <=>a /\ c /\ b /\ d `] THEN 
+NHANH (NOT_VEC0_IMP_LE1) THEN PHA THEN
+REWRITE_TAC[MESON[]` P a /\ a = b <=> a = b /\ P b `] THEN
+SIMP_TAC[REAL_ABS_BOUNDS; acs_atn2; REAL_ARITH ` a - x =a - y <=> x = y `] THEN 
+NHANH (NOT_COLLINEAR_IMP_UPS_LT ) THEN
+LET_TR THEN 
+PHA THEN 
+NHANH (MESON[REAL_LT_MUL]` &0 < x /\ a1 /\ &0 < y /\ a2 ==> &0 < x * y `) THEN 
+STRIP_TAC THEN FIRST_X_ASSUM MP_TAC THEN
+ASM_SIMP_TAC[] THEN NHANH SQRT_POS_LT THEN
+SIMP_TAC[MESON[POS_COMPATIBLE_WITH_ATN2]` &0 < a ==>atn2 ( x, y / a ) = atn2 ( a * x , a * ( y / a ) ) `] THEN
+SIMP_TAC[REAL_FIELD` &0 < a ==> a * ( y / a ) = y `] THEN
+REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN
+PHA THEN NGOAC THEN REWRITE_TAC[GSYM REAL_ABS_BOUNDS] THEN
+ONCE_REWRITE_TAC[GSYM ABS_1] THEN
+SIMP_TAC[REAL_LE_SQUARE_ABS; REAL_ARITH` a <= &1 <=> &0 <= &1 - a `; REAL_ARITH` ( &1 ) pow 2 = &1 `; ABS_1] THEN
+DAO THEN ONCE_REWRITE_TAC[GSYM IMP_IMP] THEN
+SIMP_TAC[REAL_FIELD` &0 < a ==> &1 - ( b / a ) pow 2= ( a pow 2 - b pow 2 ) / ( a pow 2 ) `] THEN
+NHANH (REAL_LT_IMP_NZ) THEN NHANH (REAL_LT_IMP_LE) THEN
+SIMP_TAC[NOT_ZERO_EQ_POW2_LT; REAL_LE_RDIV_0 ; SQRT_DIV] THEN
+NHANH (REAL_LT_IMP_LE) THEN SIMP_TAC[SQRT_DIV; REAL_LE_POW2] THEN
+SIMP_TAC[SQRT_DIV; REAL_LE_POW2; POW_2_SQRT; REAL_FIELD` &0 < a ==>a * b / a = b `] THEN 
+REPEAT STRIP_TAC THEN 
+MATCH_MP_TAC(MESON[]` a = b ==> atn2 ( sqrt a, c ) = atn2 ( sqrt b, c ) `) THEN 
+ASM_SIMP_TAC[SQRT_WORKS; ups_x; delta_x4; delta_x] THEN
+REAL_ARITH_TAC
+);;
 
-
-(* Thales note: 2010-2-7,  When I replaced the axiom version of NOT_COLLINEAR_IMP_UPS_LET_TAC
-with the proved version, (which required changing :real^N to :real^3), this theorem broke *)
+(* Thales note: 2010-2-7,  Here is N.Q. Truong's version that relied on an axiom. *)
 
 (*
-(* lemma 18 *)
+
 let OJEKOJF = prove(`!(v0:real^3) v1 v2 v3.
 let ga = dihV v0 v1 v2 v3 in
 let v01 = dist (v0,v1) pow 2 in

@@ -118,7 +118,7 @@ struct
 
   let body ud = 
     let p = Printf.sprintf in
-    let uc = String.capitalize ud.definition in
+    let uc = String.capitalize (String.lowercase ud.definition) in (* HOL Light parsing: cap first char only *)
       join_lines [
 	p"module type %s_def_type = sig" uc;
 	p"  val %s : thm" ud.definition;

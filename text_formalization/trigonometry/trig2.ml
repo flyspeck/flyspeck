@@ -708,12 +708,24 @@ SIMP_TAC[ABS_MUL; LT_IMP_ABS_REFL; REAL_LT_LMUL_EQ; REAL_LT_MUL_EQ]);;
 
 
 
-let NOT_COLLINEAR_IMP_UPS_LT = new_axiom `
+let NOT_COLLINEAR_IMP_UPS_LT = prove( `
+~( collinear {(v0:real^3),v1,v2} ) ==>
+let v01 = dist (v0,v1) pow 2 in
+let v02 = dist (v0,v2) pow 2 in
+let v12 = dist (v1,v2) pow 2 in
+&0 < ups_x v01 v02 v12 `,
+REPEAT (LET_TAC THEN (REPEAT STRIP_TAC)) THEN
+REWRITE_TAC[REAL_ARITH `&0 < x <=> (&0 <= x /\ ~(x = &0))`] THEN
+ASM_MESON_TAC[COL_EQ_UPS_0;UPS_X_POS]);;
+
+(*
+let NOT_COLLINEAR_IMP_UPS_LT = New_axiom `
 ~( collinear {(v0:real^N),v1,v2} ) ==>
 let v01 = dist (v0,v1) pow 2 in
 let v02 = dist (v0,v2) pow 2 in
 let v12 = dist (v1,v2) pow 2 in
 &0 < ups_x v01 v02 v12 `;;
+*)
 
 (* Jason have proved the following lemma in the first half
 of this file *)
@@ -742,9 +754,12 @@ REAL_ENTIRE; REAL_LE_SQUARE]);;
 
 
 
+(* Thales note: 2010-2-7,  When I replaced the axiom version of NOT_COLLINEAR_IMP_UPS_LET_TAC
+with the proved version, (which required changing :real^N to :real^3), this theorem broke *)
 
+(*
 (* lemma 18 *)
-let OJEKOJF = prove(`!(v0:real^N) v1 v2 v3.
+let OJEKOJF = prove(`!(v0:real^3) v1 v2 v3.
 let ga = dihV v0 v1 v2 v3 in
 let v01 = dist (v0,v1) pow 2 in
 let v02 = dist (v0,v2) pow 2 in
@@ -753,20 +768,20 @@ let v12 = dist (v1,v2) pow 2 in
 let v13 = dist (v1,v3) pow 2 in
 let v23 = dist (v2,v3) pow 2 in
 ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
-==> ga =
-acs
-(delta_x4 v01 v02 v03 v23 v13 v12 /
+==> ga = acs (delta_x4 v01 v02 v03 v23 v13 v12 /
 sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)) /\
 ga = pi / &2 - atn2( sqrt ( &4 * v01 * delta_x v01 v02 v03 v23 v13 v12 ),
-delta_x4 v01 v02 v03 v23 v13 v12 ) `, REPEAT STRIP_TAC THEN
+delta_x4 v01 v02 v03 v23 v13 v12 ) `, 
+REPEAT STRIP_TAC THEN
 MP_TAC (SPEC_ALL FOR_LEMMA19 ) THEN REPEAT LET_TAC THEN
-SIMP_TAC[] THEN DOWN_TAC THEN NGOAC THEN REWRITE_TAC[MESON[]`l/\ ( a ==> b ) <=>
-( a ==> b ) /\ l `] THEN PHA THEN NHANH (COMPUTE_DELTA_OVER ) THEN
+SIMP_TAC[] THEN DOWN_TAC THEN NGOAC THEN 
+REWRITE_TAC[MESON[]`l/\ ( a ==> b ) <=>( a ==> b ) /\ l `] THEN PHA THEN 
+NHANH (COMPUTE_DELTA_OVER ) THEN
 NHANH (ONCE_REWRITE_RULE[GSYM CONTRAPOS_THM] ALLEMI_COLLINEAR) THEN
 ONCE_REWRITE_TAC[GSYM VECTOR_SUB_EQ] THEN
-ABBREV_TAC ` (w1:real^N) = ((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
+ABBREV_TAC ` (w1:real^3) = ((v1 - v0) dot (v1 - v0)) % (v2 - v0) -
 ((v2 - v0) dot (v1 - v0)) % (v1 - v0)` THEN
-ABBREV_TAC ` (w2:real^N) = ((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
+ABBREV_TAC ` (w2:real^3) = ((v1 - v0) dot (v1 - v0)) % (v3 - v0) -
 ((v3 - v0) dot (v1 - v0)) % (v1 - v0) ` THEN
 ONCE_REWRITE_TAC[MESON[]`( a/\ b ) /\ c /\ d <=>
 a /\ c /\ b /\ d `] THEN NHANH (NOT_VEC0_IMP_LE1) THEN PHA THEN
@@ -795,7 +810,7 @@ a * b / a = b `] THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC
 (MESON[]` a = b ==> atn2 ( sqrt a, c ) = atn2 ( sqrt b, c ) `) THEN
 ASM_SIMP_TAC[SQRT_WORKS; ups_x; delta_x4; delta_x] THEN
 REAL_ARITH_TAC);;
-
+*)
 
 
 

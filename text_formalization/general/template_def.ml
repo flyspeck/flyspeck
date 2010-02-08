@@ -114,17 +114,17 @@ struct
 
   let neededfiles ud = 
        if (ud.needlist =[]) then emptystring else
-      "\n\n"^(unsplit "\n" (fun s -> "needs (flyspeck ^ \""^s^"\");;") ud.needlist)^"\n\n\n";;
+      "\n\n"^(unsplit "\n" (fun s -> "needs (flyspeck_dir ^ \""^s^"\");;") ud.needlist)^"\n\n\n";;
 
   let body ud = 
     let p = Printf.sprintf in
     let uc = String.capitalize ud.definition in
       join_lines [
 	p"module type %s_def_type = sig" uc;
-        neededfiles ud;
 	p"  val %s : thm" ud.definition;
 	"end;;\n\n";
 	p"module %s : %s_def_type = struct\n" uc uc;
+        neededfiles ud;
 	p" let %s = " ud.definition;
 	ud.data;
 	"\nend;;\n";

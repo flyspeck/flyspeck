@@ -1,3 +1,4 @@
+flyspeck_needs "trigonometry/trig1.ml";;
 
 (* ========== QUANG TRUONG ========== *)
 let cosV = new_definition` cosV u v = (u dot v) / (norm u * norm v) `;;
@@ -716,8 +717,11 @@ let v12 = dist (v1,v2) pow 2 in
 
 (* Jason have proved the following lemma in the first half
 of this file *)
+
+(*
 let acs_atn2_t = `!y. (-- &1 <= y /\ y <= &1) ==> (acs y = pi/(&2) - atn2(sqrt(&1 - y pow 2),y))`;;
 let acs_atn2 = new_axiom acs_atn2_t;;
+*)
 
 let REAL_LT_DIV_0 = prove(` ! a b. &0 < b ==> ( &0 < a / b <=> &0 < a ) `,
 REPEAT STRIP_TAC THEN EQ_TAC THENL

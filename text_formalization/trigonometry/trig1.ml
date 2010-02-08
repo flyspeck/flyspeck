@@ -1,4 +1,8 @@
-(* Formal Proofs Blueprint Chapter  on Trigonometry *)
+(* Formal Proofs Blueprint Chapter  on Trigonometry 
+
+Authors: Thomas Hales and Jason Rute, with some proofs copied from John Harrison.
+
+*)
 
 
 needs "Multivariate/flyspeck.ml";;
@@ -9,54 +13,13 @@ needs "general/prove_by_refinement.hl";;
 prioritize_real();;
 
 
-(* sin and cos have already been defined in HOL Light.
-   Here are several relevant theorems from HOL Light.  *)
-sin;;
-cos;;
-
-SIN_0;; (* sin(0) = 0 *)
-COS_0;; (* cos(0) =1 *)
-SIN_CIRCLE;; (* blueprint/lemma:circle *)
-
-SIN_ADD;; (* blueprint/lemma:sin-add *)
-COS_ADD;; (* blueprint/lemma:sin-add *)
-
-COS_NEG;; (* blueprint/lemma:cos-neg *)
-SIN_NEG;; (* blueprint/lemma:cos-neg *)
-
-SIN_PI2;; (* blueprint/lemma:sin-pi2 *)
-COS_SIN;; (* blueprint/lemma:cos-sin *)
-
-tan;; (* blueprint/def:tan *)
-TAN_ADD;; (* blueprint/lemma:tan-add *)
-TAN_PI4;; (* blueprint/tan-pi4 *)
-
-atn;; (* blueprint/def:arctan *)
-acs;; (* blueprint/def:acs *)
-asn;; (* blueprint/def:arcsin *)
-
-(* arctan2 function *)
-atn2;;  (* already defined *)
-
 (* This is close to CIRCLE_SINCOS *)
 
 let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
      (x = r* (cos(atn2(x,y)))) /\ (y = r* (sin (atn2( x, y)))) /\ 
      (&0 <= r))`;;
 
-(* lemma:sin-arccos *)
-
-SIN_ACS;;
-
-(* lemma:arccos-arctan *)
-
 let acs_atn2_t = `!y. (-- &1 <= y /\ y <=  &1) ==> (acs y = pi/(&2) - atn2(sqrt(&1 - y pow 2),y))`;;
-
-
-(* Jordan/metric_spaces.ml:cauchy_schwartz  cauchy_schwartz *)
-(* Jordan/metric_spaces.ml:norm_triangle    triangle inequality *)
-
-(* affine geometry definitions are in definitions_kepler.ml *)
 
 let arcVarc_t = `!u v w:real^3. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (dist( u, v)) (dist( u, w)) (dist( v, w))`;;
 
@@ -120,11 +83,6 @@ let euler_triangle_t = `!v0 v1 v2 v3:real^3.
     ((&0 < d) ==>
       (alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2(sqrt(d), (&2 * p))))`;;
 
-(* removed by TCH
-let polar_coords_t = `!x y. (x = (radius (x,y))*(cos(polar_angle x y))) /\
-     (y = (radius (x, y))*(sin(polar_angle x y)))`;;
-*)
-
 let polar_cycle_rotate_t = `!V psi u f.
        (!x y. f (x,y) = (x*cos psi + y*sin psi, -- x*sin psi + y*cos psi)) /\
        FINITE V  /\ V u ==>
@@ -156,16 +114,8 @@ let zenith_t = `!u v w:real^3.  ~(u=v) /\ ~(w = v)  ==>
         (phi = arcV v u w) /\ (r = dist( u, v)) /\ ((dist( w, v)) % e3 = (w-v)) /\
   ( u' dot e3 = &0) /\ (u = v + u' + (r*cos(phi)) % e3))`;;
 
-(* deprecated, replaced with Harrison's SPHERICAL_COORDINATES theorem,
+(* spherical_coord_t deprecated, replaced with Harrison's SPHERICAL_COORDINATES theorem,
     which is worded slightly differently.
-
-let spherical_coord_t = `!u v w u' e1 e2 e3 r phi theta.
-        ~(collinear {v,w,u}) /\ ~(collinear {v,w,u'}) /\
-       orthonormal e1 e2 e3 /\ ((dist( v, w)) % e3 = (v-w)) /\
-  (aff_gt {v,w} {u} e1) /\ (e2 = e3 cross e1) /\
-  (r = dist( v, u')) /\ (phi = arcV v u' w) /\ (theta = azim v w u u') ==>
-  (u' = u + (r*cos(theta)*sin(phi)) % e1 + (r*sin(theta)*sin(phi)) % e2 
-      + (r * cos(phi)) % e3)`;;
 *)
 
 let polar_coord_zenith_t = `!u v w u' n.
@@ -199,66 +149,6 @@ let sph_triangle_ineq_sum_t = `!p:real^3 u r.
    ~(collinear {p,u 0, u r}) ==>
    (arcV p (u 0) (u r) <= sum(0 .. r-1) (\i. arcV p (u i) (u (SUC i))))`;;
 
-(* obligations created by definition by specification, to make them useable. *)
-
-(* [deprecated]
-let aff_insert_sym_t = `aff_insert_sym`;;
-let aff_sgn_insert_sym_gt_t = `aff_sgn_insert_sym (\t. &0 < t)`;;
-let aff_sgn_insert_sym_ge_t = `aff_sgn_insert_sym (\t. &0 <= t)`;;
-let aff_sgn_insert_sym_lt_t = `aff_sgn_insert_sym (\t. t < &0)`;;
-let aff_sgn_insert_sym_le_t = `aff_sgn_insert_sym (\t. t <= &0)`;;
-let azim_hyp_t = `azim_hyp`;;
-*)
-
-(* let azim_cycle_hyp_t = `azim_cycle_hyp`;; *)
-
-(* definitions without obligations *)
-
-(* [deprecated]
-let aff_t = `(aff {} = {}) /\
-         (!v S.
-              FINITE S
-              ==> aff (v INSERT S) =
-                  (if v IN S then aff S else aff_insert v (aff S)))`;;
-
-let aff_gt_t = `!S1.
-          (aff_gt S1 {} = aff S1) /\
-             (!v S.
-                  FINITE S
-                  ==> aff_gt S1 (v INSERT S) =
-                      (if v IN S
-                       then aff_gt S1 S
-                       else aff_sgn_insert (\t. &0 < t) v (aff_gt S1 S)))`;;
-
-let aff_ge_t = `!S1.
-          (aff_ge S1 {} = aff S1) /\
-             (!v S.
-                  FINITE S
-                  ==> aff_ge S1 (v INSERT S) =
-                      (if v IN S
-                       then aff_ge S1 S
-                       else aff_sgn_insert (\t. &0 <= t) v (aff_ge S1 S)))`;;
-
-let aff_lt_t = `!S1.
-          (aff_lt S1 {} = aff S1) /\
-             (!v S.
-                  FINITE S
-                  ==> aff_lt S1 (v INSERT S) =
-                      (if v IN S
-                       then aff_lt S1 S
-                       else aff_sgn_insert (\t. t < &0) v (aff_lt S1 S)))`;;
-
-let aff_le_t = `!S1.
-          (aff_le S1 {} = aff S1) /\
-             (!v S.
-                  FINITE S
-                  ==> aff_le S1 (v INSERT S) =
-                      (if v IN S
-                       then aff_le S1 S
-                       else aff_sgn_insert (\t. t <= &0) v (aff_le S1 S)))`;;
-*)
-
-
 let azim_t = `!v w w1 w2 e1 e2 e3.
          ?psi h1 h2 r1 r2.
                  ~collinear {v, w, w1} /\
@@ -275,17 +165,6 @@ let azim_t = `!v w w1 w2 e1 e2 e3.
                  (r2 * cos (psi + azim v w w1 w2)) % e1 +
                  (r2 * sin (psi + azim v w w1 w2)) % e2 +
                  h2 % (w - v))`;;
-
-(*
-let azim_cycle_t = `!W proj v w e1 e2 e3 p.
-             W p /\
-             cyclic_set W v w /\
-             (dist( v, w) % e3 = w - v) /\
-             orthonormal e1 e2 e3 /\
-             (!u x y.
-                  proj u = x,y <=> (?h. u = v + x % e1 + y % e2 + h % e3))
-         ==> (proj (azim_cycle W v w p) = polar_cycle (IMAGE proj W) (proj p))`;;
-*)
 
 (* signature for trig theorems.
    This is the list of theorems that should be provided by
@@ -325,21 +204,6 @@ module type Trigsig = sig
   val dih_azim : thm (*  dih_azim_t *)
   val sph_triangle_ineq : thm (*  sph_triangle_ineq_t *)
   val sph_triangle_ineq_sum : thm (*  sph_triangle_ineq_sum_t *)
-(* [deprecated]
-  val aff_insert_sym : thm (*  aff_insert_sym_t *)  
-  val aff_sgn_insert_sym_gt : thm (*  aff_sgn_insert_sym_gt_t *)
-  val aff_sgn_insert_sym_ge : thm (*  aff_sgn_insert_sym_ge_t *)
-  val aff_sgn_insert_sym_lt : thm (*  aff_sgn_insert_sym_lt_t *)
-  val aff_sgn_insert_sym_le : thm (*  aff_sgn_insert_sym_le_t *)
-  val azim_hyp : thm (*  azim_hyp_t *)
-  val azim_cycle_hyp : thm (*  azim_cycle_hyp_t *)
-  val aff : thm (* aff_t *)
-  val aff_gt : thm (*  aff_gt_t   *)
-  val aff_ge : thm (*  aff_ge_t   *)
-  val aff_lt : thm (*  aff_lt_t   *)
-  val aff_le : thm (*  aff_le_t   *)
-  val azim_cycle : thm (*  azim_cycle_t   *)
-*)
   val azim : thm (*  azim_t   *)
 end;;
 
@@ -348,6 +212,7 @@ end;;
    The axiom can be used so that the proofs in different chapters can
    proceed independently.  *)
 
+(*
 let trig_term_list = new_definition (mk_eq (`trig_term:bool`, (list_mk_conj
    [
   atn2_spec_t  ;
@@ -364,39 +229,20 @@ let trig_term_list = new_definition (mk_eq (`trig_term:bool`, (list_mk_conj
   dih_x_acs_t ;
   beta_cone_t ;
   euler_triangle_t ;
-(*   polar_coords_t ; *)
   polar_cycle_rotate_t ;
   thetaij_t ;
   thetapq_wind_t ;
   zenith_t ;
-(*  spherical_coord_t ; *)
   polar_coord_zenith_t ;
   azim_pair_t ;
   azim_cycle_sum_t ;
   dih_azim_t ;
   sph_triangle_ineq_t ;
   sph_triangle_ineq_sum_t ;
-(* [deprecated]
-  aff_insert_sym_t ;
-  aff_sgn_insert_sym_gt_t ;
-  aff_sgn_insert_sym_ge_t ;
-  aff_sgn_insert_sym_lt_t ;
-  aff_sgn_insert_sym_le_t ;
-  azim_hyp_t ;
-  azim_cycle_hyp_t ;
-  aff_t;
-  aff_gt_t;
-  aff_ge_t;
-  aff_lt_t;
-  aff_le_t;
-  azim_cycle_t;
-*)
   azim_t;
    ])));;
+*)
 
-(* partial implementation of  Trigsig *)
-
-(* let trig_term = new_axiom `trig_term`;; *)
   
   (* ---------------------------------------------------------------------- *)
   (* These are theorems proved in HOL Light, but not in the                 *)

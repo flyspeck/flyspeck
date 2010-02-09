@@ -477,6 +477,7 @@ let trans_strech_trans_radial=top_thm();;
 (* changed volume_props to volume_prop in the rest of this file. volume_props uses ball in the definition and volume_prop 
    uses normball in the definition*)
 
+(*
 let volume_prop = new_definition `volume_prop  (vol:(real^3->bool)->real) = 
     ( (!C. vol C >= &0) /\
      (!Z. NULLSET Z ==> (vol Z = &0)) /\
@@ -489,7 +490,157 @@ let volume_prop = new_definition `volume_prop  (vol:(real^3->bool)->real) =
      (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
      (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
      (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
+*)
 
+let volume_prop_fix = new_definition `volume_prop_fix  (vol:(real^3->bool)->real) = 
+    ( (!C. measurable C ==> vol C >= &0) /\
+     (!Z. NULLSET Z ==> (vol Z = &0)) /\
+     (!X Y. measurable X /\ measurable Y /\ NULLSET (SDIFF X Y) ==> (vol X = vol Y)) /\
+     (!X t. (measurable X) /\ (measurable (IMAGE (scale t) X)) ==> (vol (IMAGE (scale t) X) = abs(t$1 * t$2 * t$3)*vol(X))) /\
+     (!X v. measurable X ==> (vol (IMAGE ((+) v) X) = vol X)) /\
+     (!v0 v1 v2 v3 r. (r > &0) /\ ~coplanar {v0, v1, v2, v3}  ==> vol (solid_triangle v0 {v1,v2,v3} r) = vol_solid_triangle v0 v1 v2 v3 r) /\
+     (!v0 v1 v2 v3. vol(conv0 {v0,v1,v2,v3}) = vol_conv v0 v1 v2 v3) /\
+     (!v0 v1 v2 v3 h a. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (h >= &0) /\ (a > &0) /\ (a <= &1) ==> vol(frustt v0 v1 h a INTER wedge v0 v1 v2 v3) = vol_frustt_wedge v0 v1 v2 v3 h a) /\
+     (!v0 v1 v2 v3 r c.  ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0) /\ (c >= -- (&1)) /\ (c <= &1) ==> (vol(conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) = vol_conic_cap_wedge v0 v1 v2 v3 r c)) /\ 
+     (!(a:real^3) (b:real^3). vol(rect a b) = vol_rect a b) /\
+     (!v0 v1 v2 v3 r. ~(collinear {v0,v1,v2}) /\ ~(collinear {v0,v1,v3}) /\ (r >= &0)  ==> (vol(normball v0 r INTER wedge v0 v1 v2 v3) = vol_ball_wedge v0 v1 v2 v3 r)))`;;
+
+let VOLUME_FIX = prove(`volume_prop_fix vol`,
+  REWRITE_TAC[volume_prop_fix;volume_props];
+     );;
+
+
+let lemma_r_r' = prove_by_refinement(`! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_prop_fix (vol) /\ radial_norm r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`,
+[
+REPEAT GEN_TAC THEN STRIP_TAC THEN CONJ_TAC;
+ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball];
+SUBGOAL_THEN `C INTER normball x s = IMAGE ((+) x) (IMAGE (scale (s/r % (vec 1)))(IMAGE ((+) (--x)) (C INTER normball x r)))` ASSUME_TAC;
+ASM_SIMP_TAC[trans_strech_trans_radial];
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN `measurable ((C:real^3->bool) INTER normball x r)` ASSUME_TAC;
+ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball];
+SUBGOAL_THEN `measurable (IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r))` ASSUME_TAC;
+ASM_MESON_TAC[MEASURABLE_RULES];
+SUBGOAL_THEN `measurable (IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r)))` ASSUME_TAC;
+ASM_MESON_TAC[MEASURABLE_RULES];
+SUBGOAL_THEN `measurable (IMAGE ((+) x)  (IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r))))` ASSUME_TAC;
+ASM_MESON_TAC[MEASURABLE_RULES];
+ABBREV_TAC `A2:real^3->bool= (IMAGE (scale (s / r % vec 1))       (IMAGE ((+) (--x)) (C INTER normball x r)))`;
+SUBGOAL_THEN `vol (IMAGE ((+) x) A2)=vol (A2)` MP_TAC;
+UNDISCH_TAC `(volume_prop_fix vol):bool`;
+UNDISCH_TAC `(measurable (A2:real^3->bool)):bool`;
+REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`];
+SIMP_TAC[volume_prop_fix];
+SIMP_TAC[];
+DISCH_TAC;
+UNDISCH_TAC `(IMAGE (scale (s / r % vec 1))      (IMAGE ((+) (--x)) (C INTER normball x r)):real^3->bool =      A2):bool`;
+REWRITE_TAC[SET_RULE `IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r)) = A2:real^3->bool <=> A2= IMAGE (scale (s / r % vec 1)) (IMAGE ((+) (--x)) (C INTER normball x r))`];
+SIMP_TAC[];
+DISCH_TAC;
+ABBREV_TAC `M1:real^3->bool= (IMAGE ((+) (--x)) (C INTER normball x r))`;
+ABBREV_TAC `w:real^3= s / r % vec 1`;
+SUBGOAL_THEN `vol (IMAGE (scale (w:real^3)) M1)= abs (w$1*w$2*w$3)*vol (M1)` MP_TAC;
+SUBGOAL_THEN `measurable (IMAGE (scale w) M1)` MP_TAC;
+UNDISCH_TAC `(A2 = IMAGE (scale w) M1:real^3->bool):bool`;
+REWRITE_TAC[SET_RULE `A2 = IMAGE (scale w) M1 <=> IMAGE (scale w) M1= A2`];
+SIMP_TAC[];
+ASM_MESON_TAC[];
+UNDISCH_TAC `(volume_prop_fix vol):bool`;
+UNDISCH_TAC `(measurable (M1:real^3->bool)):bool`;
+REWRITE_TAC[TAUT `P1 ==> P2 ==> P3 ==> P4 <=> P1 /\ P2 /\ P3 ==> P4`];
+SIMP_TAC[volume_prop_fix];
+SIMP_TAC[];
+DISCH_TAC;
+SUBGOAL_THEN `((w:real^3)$1 = s/r)/\ (w$2 = s/r) /\ (w$3 = s/r)` MP_TAC;
+REPEAT STRIP_TAC;
+UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`;
+REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`];
+SIMP_TAC[];
+DISCH_TAC;
+SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=1 /\ 1<=3`];
+SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=1 /\ 1<= 3`];
+ARITH_TAC;
+UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`;
+REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`];
+SIMP_TAC[];
+DISCH_TAC;
+SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=2 /\ 2<=3`];
+SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=2 /\ 2<= 3`];
+ARITH_TAC;
+UNDISCH_TAC `(s / r % vec 1 = w:real^3):bool`;
+REWRITE_TAC[VECTOR_ARITH `s / r % vec 1 = w:real^3 <=> w= s / r % vec 1`];
+SIMP_TAC[];
+DISCH_TAC;
+SIMP_TAC[VECTOR_MUL_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=3 /\ 3<=3`];
+SIMP_TAC[VEC_COMPONENT;DIMINDEX_3;ARITH_RULE `1<=3 /\ 3<= 3`];
+ARITH_TAC;
+SIMP_TAC[];
+REWRITE_TAC[ARITH_RULE `s / r * s / r * s / r= (s/r) pow 3`];
+DISCH_TAC;
+SUBGOAL_THEN `s/r > &0` MP_TAC;
+SUBGOAL_THEN `r> &0` MP_TAC;
+UNDISCH_TAC `(s < r):bool` THEN UNDISCH_TAC `(s > &0):bool`;
+REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`];
+MESON_TAC[rduong];
+REWRITE_TAC[ARITH_RULE `(r> &0 <=> &0< r) /\ (s / r > &0 <=> &0 < s/r)`];
+SIMP_TAC[REAL_LT_RDIV_EQ];
+DISCH_TAC;
+REWRITE_TAC[ARITH_RULE `&0*r= &0`];
+ASM_REWRITE_TAC[ARITH_RULE `&0< s<=> s> &0`];
+DISCH_TAC;
+SUBGOAL_THEN `&0<= s/r` MP_TAC;
+REWRITE_TAC[ARITH_RULE `&0 <= s / r <=> s/r >= &0`];
+UNDISCH_TAC `(s / r > &0):bool`;
+ARITH_TAC;
+DISCH_TAC;
+SUBGOAL_THEN `&0<= (s / r) pow 3` MP_TAC;
+UNDISCH_TAC `(&0<=s / r):bool`;
+MP_TAC(ARITH_RULE `&0 <= &0`);
+REWRITE_TAC[TAUT `a==>b==>c <=> a/\b==>c`];
+DISCH_TAC;
+REWRITE_TAC[ARITH_RULE `&0<= (s/r) pow 3 <=> &0 pow 3<= (s/r) pow 3`];
+UNDISCH_TAC `(&0 <= &0 /\ &0 <= s / r):bool`;
+MP_TAC(ARITH_RULE `~(3= 0)`);
+REWRITE_TAC[TAUT `a==>b==>c <=> a/\b==>c`];
+SIMP_TAC[REAL_POW_LE2];
+DISCH_TAC;
+SUBGOAL_THEN `abs ((s / r) pow 3)=(s / r) pow 3` MP_TAC;
+SIMP_TAC[REAL_ABS_REFL];
+ASM_MESON_TAC[];
+SIMP_TAC[];
+DISCH_TAC;
+REWRITE_TAC[ARITH_RULE `(s / r) pow 3 * vol M1= vol M1 * (s / r) pow 3`];
+SUBGOAL_THEN `vol M1= vol C` MP_TAC;
+UNDISCH_TAC `(IMAGE ((+) (--x:real^3)) ((C:real^3->bool) INTER normball x r) = (M1:real^3->bool)):bool`;
+REWRITE_TAC[SET_RULE `IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r) = M1 <=> M1= IMAGE ((+) (--x)) ((C:real^3->bool) INTER normball x r)`];
+SIMP_TAC[];
+DISCH_TAC;
+SUBGOAL_THEN `vol (IMAGE ((+) (--x)) (C INTER normball x r))= vol (C INTER normball (x:real^3) r)` MP_TAC;
+UNDISCH_TAC `(volume_prop_fix vol):bool`;
+UNDISCH_TAC `(measurable ((C:real^3->bool) INTER normball x r)):bool`;
+REWRITE_TAC[TAUT `A==>B==>C <=> A/\B==>C`];
+SIMP_TAC[volume_prop_fix];
+SIMP_TAC[];
+DISCH_TAC;
+SUBGOAL_THEN `C INTER normball (x:real^3) r= C` MP_TAC;
+UNDISCH_TAC `(radial_norm r (x:real^3) C):bool`;
+REWRITE_TAC[radial_norm];
+REPEAT STRIP_TAC;
+UNDISCH_TAC `((C:real^3->bool) SUBSET normball (x:real^3) r):bool`;
+SIMP_TAC[SUBSET_INTER_ABSORPTION];
+DISCH_TAC;
+ABBREV_TAC `(E:real^3->bool)= C INTER normball x r`;
+ASM_MESON_TAC[];
+ABBREV_TAC `a:real= (s / r) pow 3`;
+ABBREV_TAC `a1:real= vol M1` THEN ABBREV_TAC `a2:real= vol C`;
+SIMP_TAC[]
+]);;
+
+let lemma_r_r'_fix = REWRITE_RULE[VOLUME_FIX] lemma_r_r';;
+
+
+(*
+(* start old lemma_r_r' here *)
 
 g `! (C:real^3->bool) (x:real^3) r s. measurable C /\ volume_prop (vol) /\ radial_norm r x C /\ (s > &0) /\ (s < r) ==> measurable (C INTER normball x s) /\ vol (C INTER normball x s)= vol (C) *(s/r) pow 3`;;
 
@@ -745,6 +896,8 @@ e (SIMP_TAC[]);;
 
 let lemma_r_r'=top_thm();; 
 
+*)
+
 (*------------------------   Definition of Solid angle  ---------------------------------------------------------*)
 
 
@@ -753,7 +906,7 @@ let subset_inter=prove(`! (A:real^3->bool) (B:real^3->bool). A SUBSET B ==> A IN
 let normball_eq=prove(`!(C:real^3->bool) x r r'. (r'> &0)/\ (r'< r)==> (C INTER normball x r) INTER normball x r' = C INTER normball x r'`,REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN (MP_TAC(SET_RULE `((C:real^3->bool) INTER normball x r) INTER normball x r'=(C INTER normball x r') INTER normball x r`)) THEN SIMP_TAC[] THEN DISCH_TAC THEN (SUBGOAL_THEN `(((C:real^3->bool) INTER normball x r') SUBSET normball x r)` MP_TAC) THENL[ASM_MESON_TAC[INTER_SUBSET;SUBSET_TRANS;normball_subset];MESON_TAC[subset_inter]]);;
 
 
-let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,
+let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop_fix (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,
  (REPEAT GEN_TAC) 
  THEN (REWRITE_TAC[eventually_radial_norm]) 
  THEN (REPEAT STRIP_TAC) 
@@ -786,7 +939,7 @@ let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop (vol) /\ measur
  THEN DISCH_TAC 
  THEN ARITH_TAC);;  
 
-let pre_def_4_3=prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_prop vol /\ measurable C /\ eventually_radial_norm x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]);;
+let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> real). !C x. volume_prop_fix vol /\ measurable C /\ eventually_radial_norm x C ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[SKOLEM_THM;pre_def1_4_3]));;
 
 let sol= new_specification ["sol"] pre_def_4_3;;
 
@@ -1394,8 +1547,15 @@ let bdt4_finiteness = prove(`!(k1:real)(k2:real) (r:real). (&0< k1 /\ &0< k2 /\ 
      THEN DISCH_TAC THEN MP_TAC(SPECL [`r:real`;`k2+ sqrt(&3):real`;`2:num`] bdt2_finiteness) THEN ASM_REWRITE_TAC[]
      THEN REPEAT DISCH_TAC THEN MP_TAC(SPECL [`r:real`;`k1:real`;`k2:real`;`((k1 + sqrt (&3)) pow 2 - (k2 + sqrt (&3)) pow 2):real`] bdt3_finiteness) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_MESON_TAC[REAL_LE_LMUL;REAL_ARITH ` a* &1= a`]);;
 
+(* TO HERE XX *)
 
 
+let card_diff_ineq=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))) <= CARD (int_ball x (r+ k1))`,REPEAT GEN_TAC THEN ASSUME_TAC(SPECL [`x:real^3`;`r+ k1:real`] finite_int_ball) THEN ASM_MESON_TAC[CARD_SUBSET;SUBSET_DIFF]);;
+
+let bdt6_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0<r) ==> &(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2)))) <= &4/ &3*pi*(r+k1+ sqrt(&3))pow 3`,REPEAT STRIP_TAC THEN MP_TAC(GSYM (SPECL [`CARD (int_ball x (r + k1) DIFF int_ball x (r - k2)):num`;`CARD (int_ball x (r+ k1)):num`] REAL_OF_NUM_LE)) THEN SIMP_TAC[card_diff_ineq]
+	    THEN MP_TAC(SPECL [`x:real^3`;`k1:real`;`r:real`] card_int_ball_le2) THEN ASM_SIMP_TAC[REAL_ARITH `&0< k1 /\ &0< r ==> &0<= k1 /\ &0<= r`] THEN ASM_SIMP_TAC[REAL_ARITH `&0< a ==> &0<= a`] THEN MESON_TAC[REAL_ARITH `a<= b /\ c<=a ==> c<= b`; REAL_ARITH `r + k1 + sqrt (&3)= (r + k1) + sqrt (&3)`]);;
+
+(*  Quantifiers corrected by thales below.
 let bdt5_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0< k2 /\ k2 + sqrt (&3) <= r) ==> ?(C:real). &(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))))<= C* r pow 2`,REPEAT STRIP_TAC THEN EXISTS_TAC `(&4 / &3 *
   pi *
   (&3 * (k1 + k2 + &2 * sqrt (&3)) +
@@ -1410,12 +1570,27 @@ let bdt5_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0
   THEN MP_TAC(SPECL [`x:real^3`;`k1:real`;`k2:real`;`r:real`] card_int_ball_le) THEN ASM_REWRITE_TAC[]
   THEN MP_TAC(SPECL [`x:real^3`;`k1:real`;`k2:real`;`r:real`] card_int_ball_pos) THEN ASM_REWRITE_TAC[]
   THEN MP_TAC(SPECL [`k1:real`;`k2:real`;`r:real`] bdt4_finiteness) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);;
+*)
 
-let card_diff_ineq=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))) <= CARD (int_ball x (r+ k1))`,REPEAT GEN_TAC THEN ASSUME_TAC(SPECL [`x:real^3`;`r+ k1:real`] finite_int_ball) THEN ASM_MESON_TAC[CARD_SUBSET;SUBSET_DIFF]);;
+let bdt5_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) . 
+     (&0< k1 /\ &0< k2) ==> ( ?(C:real).  !r.   ( k2 + sqrt (&3) <= r) ==> (&(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))))<= C* r pow 2))`,
+  REPEAT STRIP_TAC THEN 
+ EXISTS_TAC `(&4 / &3 *  pi *  (&3 * (k1 + k2 + &2 * sqrt (&3)) +   ((k1 + sqrt (&3)) pow 3 + (k2 + sqrt (&3)) pow 3) / (k2 + sqrt (&3)) pow 2 +   &3 *   abs ((k1 + sqrt (&3)) pow 2 - (k2 + sqrt (&3)) pow 2) / (k2 + sqrt (&3)))):real`			    THEN 
+  STRIP_TAC THEN
+ MP_TAC(ISPECL [`int_ball x (r + k1):real^3 -> bool`;`int_ball x (r - k2):real^3 -> bool`] CARD_DIFF)  THEN
+ REWRITE_TAC[finite_int_ball] THEN MP_TAC(REAL_ARITH `&0<k1 /\ &0< k2 ==> r:real -k2 < r + k1`)  THEN
+ ASM_REWRITE_TAC[] THEN SIMP_TAC[int_ball_subset]  THEN
+ DISCH_TAC THEN MP_TAC(SPECL [`x:real^3`;`r-k2:real`;`r+k1:real`] card_int_ball_ineq)  THEN
+ ASM_SIMP_TAC[GSYM REAL_OF_NUM_SUB] THEN REPEAT DISCH_TAC   THEN
+ MP_TAC(SPECL [`x:real^3`;`k1:real`;`k2:real`;`r:real`] card_int_ball_le) THEN 
+ASM_REWRITE_TAC[]  THEN
+ MP_TAC(SPECL [`x:real^3`;`k1:real`;`k2:real`;`r:real`] card_int_ball_pos) THEN 
+ASM_REWRITE_TAC[]  THEN
+ MP_TAC(SPECL [`k1:real`;`k2:real`;`r:real`] bdt4_finiteness) THEN 
+ASM_REWRITE_TAC[] THEN
+ REAL_ARITH_TAC);;
 
-let bdt6_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0<r) ==> &(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2)))) <= &4/ &3*pi*(r+k1+ sqrt(&3))pow 3`,REPEAT STRIP_TAC THEN MP_TAC(GSYM (SPECL [`CARD (int_ball x (r + k1) DIFF int_ball x (r - k2)):num`;`CARD (int_ball x (r+ k1)):num`] REAL_OF_NUM_LE)) THEN SIMP_TAC[card_diff_ineq]
-	    THEN MP_TAC(SPECL [`x:real^3`;`k1:real`;`r:real`] card_int_ball_le2) THEN ASM_SIMP_TAC[REAL_ARITH `&0< k1 /\ &0< r ==> &0<= k1 /\ &0<= r`] THEN ASM_SIMP_TAC[REAL_ARITH `&0< a ==> &0<= a`] THEN MESON_TAC[REAL_ARITH `a<= b /\ c<=a ==> c<= b`; REAL_ARITH `r + k1 + sqrt (&3)= (r + k1) + sqrt (&3)`]);;
-
+(* fixed quantifier order -thales 
 let bdt7_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). (&0< k1 /\ &0< k2 /\ r< k2 + sqrt (&3) /\ k2 <= r) ==> ?(C:real). &(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))))<= C* r pow 2`,
 		  REPEAT STRIP_TAC THEN EXISTS_TAC `(&4/ &3*pi*(k2+k1+ &2*sqrt(&3)) pow 3/ (k2 pow 2)):real`
 	    THEN MATCH_MP_TAC(REAL_ARITH `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2)))
@@ -1433,19 +1608,76 @@ REAL_ARITH `&0<= &3`;REAL_ARITH `a<=b /\ b<= c ==> a<= c`]  `&0<k1 /\ &0< r ==> 
     THEN MP_TAC(MESON[MESON[REAL_POW_LE] `&0 <= r + k1 + sqrt (&3) ==> &0 <= (r + k1 + sqrt (&3)) pow 3`;REAL_ARITH `a<= b /\ b<= c ==> a<= c`] `&0 <= r + k1 + sqrt (&3) /\ (r + k1 + sqrt (&3)) pow 3 <= (k2 + k1 + &2 * sqrt (&3)) pow 3 ==> &0<= (k2 + k1 + &2 * sqrt (&3)) pow 3`) THEN ASM_REWRITE_TAC[]   THEN MP_TAC(SPECL [`r:real`;`k2:real`;`2:num`] bdt2_finiteness) THEN ASM_REWRITE_TAC[]
 	  THEN REPEAT DISCH_TAC THEN MP_TAC(MESON[REAL_LE_MUL] `&0 <= &4 / &3 * pi /\ &0 <= (k2 + k1 + &2 * sqrt (&3)) pow 3 ==> &0<= (&4 / &3 * pi) * (k2 + k1 + &2 * sqrt (&3)) pow 3`) THEN ASM_REWRITE_TAC[] 
 THEN ASM_MESON_TAC[REAL_LE_LMUL;REAL_ARITH ` a* &1= a`]);;
+*)
+
+
+let bdt7_finiteness=prove(`!(x:real^3)(k1:real)(k2:real) (r:real). 
+   (&0< k1 /\ &0< k2)  ==>
+   ?(C:real). !r. ( r< k2 + sqrt (&3) /\ k2 <= r) ==> &(CARD ((int_ball x (r+ k1)) DIFF (int_ball x (r- k2))))<= C* r pow 2`,
+		  REPEAT STRIP_TAC THEN 
+EXISTS_TAC `(&4/ &3*pi*(k2+k1+ &2*sqrt(&3)) pow 3/ (k2 pow 2)):real` 	    THEN 
+REPEAT STRIP_TAC THEN
+MATCH_MP_TAC(REAL_ARITH `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= &4/ &3*pi*(r+k1+ sqrt(&3))pow 3 /\ &4/ &3*pi*(r+k1+ sqrt(&3))pow 3 <= (&4 / &3 * pi * (k2 + k1 + &2 * sqrt (&3)) pow 3 / k2 pow 2) * r pow 2 ==> &(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= ( &4 / &3 * pi * (k2 + k1 + &2 * sqrt (&3)) pow 3 / k2 pow 2) * r pow 2`)		    THEN 
+MP_TAC(REAL_ARITH `&0< k2 /\ k2<= r ==> &0< r`) THEN 
+ASM_REWRITE_TAC[] THEN 
+DISCH_TAC 	    THEN 
+ASM_SIMP_TAC[SPECL [`x:real^3`;`k1:real`;`k2:real`; `r:real`] bdt6_finiteness] 	    THEN 
+MATCH_MP_TAC(REAL_ARITH `&4 / &3 * pi * (r + k1 + sqrt (&3)) pow 3  <= &4 / &3 * pi * (k2 + k1 + &2*sqrt (&3)) pow 3 /\ &4 / &3 * pi * (k2 + k1 + &2*sqrt (&3)) pow 3  <= (&4 / &3 * pi * (k2 + k1 + &2 * sqrt (&3)) pow 3 / k2 pow 2) * r pow 2 ==> &4 / &3 * pi * (r + k1 + sqrt (&3)) pow 3 <=  (&4 / &3 * pi * (k2 + k1 + &2 * sqrt (&3)) pow 3 / k2 pow 2) * r pow 2`) 	    THEN 
+MP_TAC(MESON[REAL_ARITH `&0<k1 /\ &0< r ==> sqrt(&3)<= r+k1+ sqrt(&3)`;SPEC `&3:real` SQRT_POS_LE; REAL_ARITH `&0<= &3`;REAL_ARITH `a<=b /\ b<= c ==> a<= c`]  `&0<k1 /\ &0< r ==> &0<= r+k1+ sqrt(&3)`) 	    THEN 
+ASM_REWRITE_TAC[] THEN 
+MP_TAC(REAL_ARITH `r < k2 + sqrt (&3) ==> r+ k1+ sqrt(&3) <= k2+ k1+ &2* sqrt(&3)`) THEN 
+ASM_REWRITE_TAC[] THEN 
+MP_TAC(MESON[PI_POS_LE;REAL_ARITH `&0<= &4/ &3`;REAL_LE_MUL] `&0<= &4/ &3*pi`) 	    THEN 
+REPEAT DISCH_TAC THEN 
+MP_TAC(ISPECL [`3:num`;`r + k1 + sqrt (&3):real`;`k2 + k1 + &2 * sqrt (&3):real`] REAL_POW_LE2) THEN 
+ASM_REWRITE_TAC[] THEN 
+ASM_SIMP_TAC[REAL_ARITH `(a:real)*b*c = (a*b)*c`;REAL_LE_LMUL]     THEN 
+DISCH_TAC THEN 
+REWRITE_TAC[REAL_FIELD `((&4 / &3 * pi) * (k2 + k1 + &2 * sqrt (&3)) pow 3 / k2 pow 2) * r pow 2= ((&4 / &3 * pi)*((k2 + k1 + &2 * sqrt (&3)) pow 3))*(r pow 2/ k2 pow 2)`]     THEN 
+MP_TAC(MESON[MESON[REAL_POW_LE] `&0 <= r + k1 + sqrt (&3) ==> &0 <= (r + k1 + sqrt (&3)) pow 3`;REAL_ARITH `a<= b /\ b<= c ==> a<= c`] `&0 <= r + k1 + sqrt (&3) /\ (r + k1 + sqrt (&3)) pow 3 <= (k2 + k1 + &2 * sqrt (&3)) pow 3 ==> &0<= (k2 + k1 + &2 * sqrt (&3)) pow 3`) THEN 
+ASM_REWRITE_TAC[]   THEN 
+MP_TAC(SPECL [`r:real`;`k2:real`;`2:num`] bdt2_finiteness) THEN 
+ASM_REWRITE_TAC[] 	  THEN 
+REPEAT DISCH_TAC THEN 
+MP_TAC(MESON[REAL_LE_MUL] `&0 <= &4 / &3 * pi /\ &0 <= (k2 + k1 + &2 * sqrt (&3)) pow 3 ==> &0<= (&4 / &3 * pi) * (k2 + k1 + &2 * sqrt (&3)) pow 3`) THEN 
+ASM_REWRITE_TAC[]  THEN 
+ASM_MESON_TAC[REAL_LE_LMUL;REAL_ARITH ` a* &1= a`]);;  
+
 
 (*--------------------------------------------------------------------*)
 (*Lemma 2.16 [TXIWYHI] Bound of number of int points between two balls*)
 (*--------------------------------------------------------------------*)
 
+let TXIWYHI=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). 
+    (&0< k1 /\ &0< k2) ==> ?(C:real). !r. (k2 <= r)  ==>
+     &(CARD (integer_point (ball(x,r+ k1) DIFF ball(x,r- k2))))<= C* r pow 2`, 
+  REPEAT GEN_TAC THEN SIMP_TAC[eq_def_intball]  THEN 
+REPEAT STRIP_TAC THEN 
+SUBGOAL_THEN `?C. !r. k2+sqrt(&3) <= r ==> &(CARD   (int_ball x (r + k1) DIFF int_ball x (r - k2))) <=                  C * r pow 2` ASSUME_TAC THENL
+ [ASM_MESON_TAC[bdt5_finiteness];ALL_TAC] THEN
+SUBGOAL_THEN `(?C. !r. r < k2 + sqrt (&3) /\ k2 <= r                      ==> &(CARD                           (int_ball x (r + k1) DIFF int_ball x (r - k2))) <=                          C * r pow 2)` ASSUME_TAC THENL
+ [ASM_MESON_TAC[bdt7_finiteness];ALL_TAC] THEN
+ FIRST_X_ASSUM CHOOSE_TAC THEN
+ FIRST_X_ASSUM CHOOSE_TAC THEN
+ EXISTS_TAC `(abs(C:real)+abs(C':real))` THEN
+  GEN_TAC THEN
+  STRIP_TAC THEN
+  MATCH_MP_TAC (REAL_ARITH `(?b. (a<=b /\ b<=c) ) ==> (a <= c)`) THEN
+SUBGOAL_THEN `(C*r pow 2 <= (abs(C)+abs(C'))* r pow 2) /\ (C'*r pow 2 <= (abs(C)+abs(C')) * r pow 2)` MP_TAC  THENL
+ [CONJ_TAC THEN MATCH_MP_TAC REAL_LE_RMUL THEN REWRITE_TAC[REAL_LE_SQUARE_POW] THEN REAL_ARITH_TAC;ALL_TAC] THEN
+ REPEAT STRIP_TAC THEN
+DISJ_CASES_TAC(REAL_ARITH `(r:real)< k2+ sqrt(&3) \/ (k2+ sqrt(&3)<= r)`)  THEN
+ASM_MESON_TAC[]
+);;
 
+(* old version with reversed quantifiers -thales
 let TXIWYHI=prove( `!(x:real^3)(k1:real)(k2:real) (r:real). 
     (&0< k1 /\ &0< k2 /\ k2 <= r) ==> ?(C:real).
      &(CARD (integer_point (ball(x,r+ k1) DIFF ball(x,r- k2))))<= C* r pow 2`, 
   REPEAT GEN_TAC THEN SIMP_TAC[eq_def_intball]
   THEN STRIP_TAC THEN DISJ_CASES_TAC(REAL_ARITH `(r:real)< k2+ sqrt(&3) \/ (k2+ sqrt(&3)<= r)`)
   THENL [ASM_MESON_TAC[bdt7_finiteness];ASM_MESON_TAC[bdt5_finiteness]]);;
-
+*)
 
 (*--------------------------------------------------------------------*)
 

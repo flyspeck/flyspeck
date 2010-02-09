@@ -30,7 +30,9 @@ module type Template_def_type = sig
         needlist:string list;
       }
 
-  val output_template : userdefinition -> unit 
+  val output_template_def : userdefinition -> unit 
+
+  val output_template_lemma : userdefinition -> unit
 
   val set_root_dir : string-> unit  (* default is "/tmp" *)
 
@@ -56,7 +58,7 @@ let example1() =
      needlist=["Multivariate/flyspeck.ml"];
     } in
  let _ = set_root_dir "/tmp" in
-   output_template def1;;
+   output_template_def def1;;
 example1();;
 
 *)
@@ -136,6 +138,7 @@ struct
   let set_root_dir s = (rootdir := s);;
 
   let def_file  ud = (!rootdir)^sep^(String.lowercase ud.chapter)^sep^ud.definition^"_def.hl";;
+  let lemma_file  ud = (!rootdir)^sep^(String.lowercase ud.chapter)^sep^ud.definition^".hl";;
 
   let save_stringarray filename xs = 
     let oc = open_out filename in
@@ -145,7 +148,7 @@ struct
       done;
       close_out oc;;
 
-  let output_template ud = save_stringarray (def_file ud) 
+  let output_template_def ud = save_stringarray (def_file ud) 
       [header ud;"\n\n\n";more_comments ud;body ud];;
 
 

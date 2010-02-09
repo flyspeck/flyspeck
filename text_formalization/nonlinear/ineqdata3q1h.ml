@@ -1,3 +1,25 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: xx                                                                  *)
+(* Chapter: leg                                                               *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
+
+
+
+
+
+module type Ineqdata3q1h_type = sig
+
+end;;
+
+
+module Ineqdata3q1h (* : Ineqdata3q1h_type *)= struct
+
+
+
 (* 
 
 FOUR BLADE INEQUALITIES (FROM packing.tex)
@@ -629,3 +651,7 @@ let nonlindata = [ [ [ 4.0 ] ; [ -0.00289 ; 0.129913 ; -0.060416 ; 0.002372 ; -0
   {0.001328, 2.5854, 2., 2., 2., 2., 2.}}}
 
 *)
+
+
+
+end;;

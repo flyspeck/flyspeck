@@ -2,9 +2,9 @@
 (*   Generate Definition files from the Collection in Elementary Geometry           *)
 (* ------------------------------------------------------------------ *)
 
-open Template_def;;
+open Template_hol;;
 
-let _ = set_root_dir "/Users/thomashales/Desktop/flyspeck_google/source/text_formalization";;
+(* let _ = set_root_dir "/flyspeck_google/source/text_formalization";; *)
 
 let cayleyRstr="new_definition `cayleyR x12 x13 x14 x15  x23 x24 x25  x34 x35 x45 = 
   -- (x14*x14*x23*x23) + &2 *x14*x15*x23*x23 - x15*x15*x23*x23 + &2 *x13*x14*x23*x24 - &2 *x13*x15*x23*x24 - &2 *x14*x15*x23*x24 + 
@@ -30,17 +30,17 @@ let cayleyRstr="new_definition `cayleyR x12 x13 x14 x15  x23 x24 x25  x34 x35 x4
    &2 *x12*x24*x35*x45 - &2 *x13*x24*x35*x45 + &2 *x23*x24*x35*x45 + &4 *x12*x34*x35*x45 - x12*x12*x45*x45 + &2 *x12*x13*x45*x45 - 
    x13*x13*x45*x45 + &2 *x12*x23*x45*x45 + &2 *x13*x23*x45*x45 - x23*x23*x45*x45` ";;
 
-let mkd def data comments needlist = 
+let mkd def code comments needlist = 
   let ud = 
-    {definition=def;
+    {identifier=def;
      chapter="LEG";
      author="Thomas C. Hales";
      date="2010-02-07";
-     data=data;
+     code=code;
      comments=comments;
      needlist=needlist;
     } in
-     output_template ud;;
+     output_template_def ud;;
 
 mkd "cayleyR" cayleyRstr ["This is the 5 vertex Cayley-Menger determinant";"EDSFZOT";"NUHSVLM";
        "See http://www.math.pitt.edu/~thales/papers/Lemmas_Elementary_Geometry.pdf";

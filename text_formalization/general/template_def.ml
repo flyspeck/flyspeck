@@ -8,52 +8,52 @@
 
 (*
 Outputs to a file 
-a formatted HOL Light definition, as a module with signature.
+a formatted HOL Light identifier, as a module with signature.
 The author and date information are added as comments.
 
 The file pathname is derived from the root directory, which can be set by the user,
 the lowercase of chapter string must match a subdirectory name precisely,
-and the definition is used to create the file name.
+and the identifier is used to create the file name.
 *)
 
 
-module type Template_def_type = sig
+module type Template_hol_type = sig
 
-  type userdefinition =
+  type data =
       {
-	definition : string;
+	identifier : string;
 	chapter : string;
 	author: string;
 	date:string;
-	data:string;
+	code:string;
 	comments:string list;
         needlist:string list;
       }
 
-  val output_template_def : userdefinition -> unit 
+  val output_template_def : data -> unit 
 
-  val output_template_lemma : userdefinition -> unit
+  val output_template_lemma : data -> unit
 
   val set_root_dir : string-> unit  (* default is "/tmp" *)
 
 end;;
 
 (* 
-Example:  The following code creates a template definition file 
+Example:  The following code creates a template identifier file 
    "/tmp/Trigonometry/azim_def.hl",
-populated with the data from def1
+populated with the code from def1
 *)
 
 (*
 
-open Template_def;;
+open Template_hol;;
 let example1() = 
   let def1 = 
-    {definition="azim";
+    {identifier="azim";
      chapter="Trigonometry";
      author="Thomas C. Hales";
      date="Feb 7, 2010";
-     data="<Insert HOL-Light code for theorem here>";
+     code="<Insert HOL-Light code for theorem here>";
      comments=["This is just a test!"];
      needlist=["Multivariate/flyspeck.ml"];
     } in
@@ -63,16 +63,16 @@ example1();;
 
 *)
 
-module Template_def : Template_def_type = 
+module Template_hol : Template_hol_type = 
 struct
 
-  type userdefinition =
+  type data =
       {
-	definition : string;
+	identifier : string;
 	chapter : string;
 	author: string;
 	date:string;
-	data:string;
+	code:string;
 	comments: string list;
 	needlist:string list;
       };;
@@ -95,40 +95,44 @@ struct
   let pad_line = (String.make width pad);;
   let space_line = String.make width space;;
 
+  type opt = DEF | LEMMA;;
+  let label t = if t=DEF then "Definition" else "Lemma";;
+  let ext t = if t=DEF then "_def" else "";;
+
   (* Content *)
 
-  let header ud = 
+  let header t dat = 
     let p = Printf.sprintf in
       unsplit "\n" c_enclose [
 	pad_line;
 	p"FLYSPECK - BOOK FORMALIZATION";
 	space_line;
-	p"Definition: %s" ud.definition;
-	p"Chapter: %s" ud.chapter;
-	p"Author: %s" ud.author;
-	p"Date: %s" ud.date;
+	p"%s: %s" (label t) dat.identifier;
+	p"Chapter: %s" dat.chapter;
+	p"Author: %s" dat.author;
+	p"Date: %s" dat.date;
 	pad_line;
       ];;
 
-  let more_comments ud = 
-   if (ud.comments =[]) then emptystring else
-   "(*\n"^(join_lines ud.comments)^"\n*)\n\n\n";;
+  let more_comments dat = 
+   if (dat.comments =[]) then emptystring else
+   "(*\n"^(join_lines dat.comments)^"\n*)\n\n\n";;
 
-  let neededfiles ud = 
-       if (ud.needlist =[]) then emptystring else
-      "\n\n"^(unsplit "\n" (fun s -> "needs (flyspeck_dir ^ \""^s^"\");;") ud.needlist)^"\n\n\n";;
+  let neededfiles dat = 
+       if (dat.needlist =[]) then emptystring else
+      (unsplit "\n" (fun s -> "flyspeck_needs \""^s^"\";;") dat.needlist)^"\n\n\n";;
 
-  let body ud = 
+  let body dat = 
     let p = Printf.sprintf in
-    let uc = String.capitalize (String.lowercase ud.definition) in (* HOL Light parsing: cap first char only *)
+    let uc = String.capitalize (String.lowercase dat.identifier) in (* HOL Light parsing: cap first char only *)
       join_lines [
 	p"module type %s_def_type = sig" uc;
-	p"  val %s : thm" ud.definition;
+	p"  val %s : thm" dat.identifier;
 	"end;;\n\n";
+	neededfiles dat;
 	p"module %s : %s_def_type = struct\n" uc uc;
-        neededfiles ud;
-	p" let %s = " ud.definition;
-	ud.data;
+ 	p" let %s = " dat.identifier;
+	dat.code;
 	"\nend;;\n";
       ];;
 
@@ -137,8 +141,7 @@ struct
   let rootdir =ref "/tmp";;
   let set_root_dir s = (rootdir := s);;
 
-  let def_file  ud = (!rootdir)^sep^(String.lowercase ud.chapter)^sep^ud.definition^"_def.hl";;
-  let lemma_file  ud = (!rootdir)^sep^(String.lowercase ud.chapter)^sep^ud.definition^".hl";;
+  let filename  t dat = (!rootdir)^sep^(String.lowercase dat.chapter)^sep^dat.identifier^(ext t)^".hl";;
 
   let save_stringarray filename xs = 
     let oc = open_out filename in
@@ -148,10 +151,12 @@ struct
       done;
       close_out oc;;
 
-  let output_template_def ud = save_stringarray (def_file ud) 
-      [header ud;"\n\n\n";more_comments ud;body ud];;
+  let output_template t dat = save_stringarray (filename t dat) 
+      [header t dat;"\n\n\n";more_comments dat;
+       body dat];;
 
-
+  let output_template_def dat = output_template DEF dat;;
+  let output_template_lemma dat = output_template LEMMA dat;;
 
 end;;
 

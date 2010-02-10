@@ -1,14 +1,32 @@
-(* Formal Proofs Blueprint Chapter  on Trigonometry 
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Trigonometry                                                             *)
+(* Author: Jason Rute, Thomas C. Hales                                                    *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
 
-Authors: Thomas Hales and Jason Rute, with some proofs copied from John Harrison.
 
+
+
+
+module type Trigonometry1_type = sig
+  (* ADD *)
+
+end;;
+
+(* 
+Formal Proofs Blueprint Chapter  on Trigonometry 
+some proofs copied from John Harrison.
 *)
 
+flyspeck_needs "general/sphere.hl";;
 
-needs "Multivariate/flyspeck.ml";;
-needs "general/sphere.hl";;
-needs "general/prove_by_refinement.hl";;
 
+module  Trigonometry1 (* :  Trigonometry1_type *) = struct
+
+  let atn2 = Sphere.atn2;; 
+  let arclength = Sphere.arclength;; 
 
 prioritize_real();;
 
@@ -979,3 +997,7 @@ let trig_term_list = new_definition (mk_eq (`trig_term:bool`, (list_mk_conj
 			REWRITE_TAC [DE_MORGAN_THM; MESON [] `a = vec 0 <=> vec 0 = a`] THEN 
 			SIMP_TAC [NORM_CROSS; GSYM VECTOR_LAW_OF_SINES] THEN REAL_ARITH_TAC ]);;
 
+
+
+end;;
+ 

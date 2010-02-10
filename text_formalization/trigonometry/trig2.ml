@@ -1,4 +1,38 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Trigonometry                                                *)
+(* Author: Nguyen Quang Truong                                          *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
+
+
+
+
+
+module type Trigonometry2_type = sig
+  (* add *)
+end;;
+
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "leg/collect_geom.hl";;
 flyspeck_needs "trigonometry/trig1.ml";;
+
+module Trigonometry2 (* : Trigonometry2_type *) = struct
+
+(* imports *)
+
+  let delta_x4 = Sphere.delta_x4;;
+  let atn2 = Sphere.atn2;;
+  let beta = Sphere.beta;;
+  let aff = Sphere.aff;;
+  let cyclic_set = Sphere.cyclic_set;;
+
+  let COL_EQ_UPS_0 =   Collect_geom.COL_EQ_UPS_0;;
+
+  let acs_atn2 = Trigonometry1.acs_atn2;;
+
+
 
 (* ========== QUANG TRUONG ========== *)
 let cosV = new_definition` cosV u v = (u dot v) / (norm u * norm v) `;;
@@ -453,7 +487,7 @@ REWRITE_TAC[dihV] THEN LET_TR THEN SIMP_TAC[DOT_SYM; ARC_SYM]);;
 
 (* lemma 17 *)
 
-(*
+(*  (* redone below *)
 let NLVWBBW = prove(` !(v0:real^N) va vb vc.
 let al = dihV v0 va vb vc in
 let ga = dihV v0 vc va vb in
@@ -4807,3 +4841,6 @@ ANTS_TAC THENL [ASM_REWRITE_TAC[]; SIMP_TAC[]] THEN DISCH_TAC
 THEN MP_TAC (SPEC_ALL LEMMA_SUM_ALL_OVER_CYCLIC_SET) THEN PHA THEN 
 ANTS_TAC THENL [ ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[];
 SIMP_TAC[]]);;
+
+
+end;;

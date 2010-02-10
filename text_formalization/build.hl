@@ -10,16 +10,44 @@
 let flyspeck_dir = 
   (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
 
-let flyspeck_needs s = 
-     (
-       needs (Filename.concat flyspeck_dir s);
-       prioritize_real();
-       if not(List.length(axioms()) =3) then failwith ("Axioms disabled in "^s);
-     );;
+let fullpath s = Filename.concat flyspeck_dir s;;
 
-(* disable cheating *)
+(* limit changes in the state of the proof assistant  *)
+
 let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
-let new_axiom _ = failwith "new axiom has been disabled";; 
+let new_axiom _ = failwith "new_axiom has been disabled";; 
+
+let (partially_restore_state:string->unit) =
+  let (rewrites,conversions) = (basic_rewrites(),basic_convs()) in
+  fun s ->
+   (
+       current_goalstack := ([]:goalstack);
+       if not(List.length(axioms()) =3) then failwith ("Illegal axioms added by "^s); 
+       prioritize_real();
+       if not(basic_rewrites()=rewrites) then set_basic_rewrites rewrites;
+       if not(basic_convs()==conversions) then set_basic_convs conversions  
+   );;
+
+partially_restore_state "build";;
+
+let fileid s = 
+  let s' = file_on_path (!load_path) (fullpath s) in
+    (Filename.basename s',Digest.file s');;
+
+let host = ref (fileid "build.hl");;
+let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list);; (* needs dependency table *)
+
+let flyspeck_needs s = 
+  let id = fileid s in 
+    if (List.mem id (!loaded_files)) then ()
+    else
+      (
+        if List.mem (!host,id) (!depend) then failwith "There may be circular needs.";
+	depend := (!host,id)::(!depend);
+	(let h = (!host) in host := id; needs (fullpath s); host := h);
+	partially_restore_state s;
+      );;
+
 
 (* HOL LIGHT *)
 hol_version;;
@@ -47,15 +75,13 @@ flyspeck_needs  "leg/collect_geom.hl";;
 flyspeck_needs  "nonlinear/ineq.hl";;
 flyspeck_needs  "nonlinear/ineqdata3q1h.hl";;
 
-(* to here *)
-
-
 (* trigonometry *)
 flyspeck_needs  "trigonometry/trig1.ml";;
 flyspeck_needs  "trigonometry/trig2.ml";;
 flyspeck_needs  "trigonometry/trig_summary.hl";;
 
 (* volume *)
+(* to here *)
 flyspeck_needs  "volume/volume.ml";;
 flyspeck_needs  "volume/volume_summary.hl";;
 

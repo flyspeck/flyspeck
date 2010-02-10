@@ -1,6 +1,6 @@
  (* Nguyen Tat Thang *)
 
-needs "volume/volume.ml";;
+flyspeck_needs "volume/vol1.hl";;
 
 
 let packing = new_definition `packing (S:real^3 -> bool) = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;

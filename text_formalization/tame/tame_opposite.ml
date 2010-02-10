@@ -20,7 +20,6 @@ point_eq.
 needs "collect_geom_spec.ml";; 
 *)
 (*
-#use "volume.ml";;
 #use "hypermap.ml";; (* loads with multivariate *)
 *)
 *)

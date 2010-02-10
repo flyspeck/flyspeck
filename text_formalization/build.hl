@@ -12,6 +12,44 @@ let flyspeck_dir =
 
 let fullpath s = Filename.concat flyspeck_dir s;;
 
+
+(* track constants by file *)
+
+let findpos = 
+  let rec findpos' c l a = match l with
+      [] -> failwith "find"
+    | b::bs -> if Pervasives.compare a b = 0 then c else findpos' (c+1) bs a
+  in findpos' 0;;
+
+let rec sublist t a b = match t with
+   [] -> []
+  | t0::ts -> if (a>0) then sublist ts (a-1) (b-1) else if (b<=0) then [] else t0::sublist ts 0 (b-1);;
+
+let range_by_table c m s = 
+  try(
+    let r = assoc s m in
+    let i = findpos m (s,r) in
+    let start = if (i<=0) then 0 else (let (_,j) = List.nth m (i-1) in j) in
+      sublist c start r)
+  with Failure "find" -> [];;
+
+let rec rev_assoc_sorted t i = match t with
+   [] -> failwith "find"
+  | (x,j)::ts -> if (i>=j) then rev_assoc_sorted ts i else x;;
+
+(* new reference to track constants by included file *)
+let ftable = ref [("pervasives",List.length (constants()))];;
+
+(* Example: constants_by_file "trigonometry/trig1.hl" *)
+let constants_by_file   = fun s -> range_by_table (constants()) (!ftable) s;;
+
+(* Example: file_of_constant "packing" *)
+let file_of_constant s = 
+   let cs = map fst (constants()) in
+   try (let i = findpos cs s in rev_assoc_sorted (List.rev (!ftable)) i)
+   with Failure "find" -> "Constant not located";;
+
+
 (* limit changes in the state of the proof assistant  *)
 
 let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
@@ -35,16 +73,18 @@ let fileid s =
     (Filename.basename s',Digest.file s');;
 
 let host = ref (fileid "build.hl");;
-let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list);; (* needs dependency table *)
+let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list);; (* dependency table *)
 
 let flyspeck_needs s = 
   let id = fileid s in 
-    if (List.mem id (!loaded_files)) then ()
+    if (List.mem id (!loaded_files))
+    then Format.print_string("File \""^s^"\" already loaded\n")
     else
       (
         if List.mem (!host,id) (!depend) then failwith "There may be circular needs.";
 	depend := (!host,id)::(!depend);
 	(let h = (!host) in host := id; needs (fullpath s); host := h);
+        ftable:= (s,List.length(constants()))::(!ftable);
 	partially_restore_state s;
       );;
 
@@ -76,14 +116,16 @@ flyspeck_needs  "nonlinear/ineq.hl";;
 flyspeck_needs  "nonlinear/ineqdata3q1h.hl";;
 
 (* trigonometry *)
-flyspeck_needs  "trigonometry/trig1.ml";;
-flyspeck_needs  "trigonometry/trig2.ml";;
-flyspeck_needs  "trigonometry/trig_summary.hl";;
+flyspeck_needs  "trigonometry/trig1.hl";;
+flyspeck_needs  "trigonometry/trig2.hl";;
+flyspeck_needs  "trigonometry/trigonometry.hl";;
 
 (* volume *)
-(* to here *)
-flyspeck_needs  "volume/volume.ml";;
-flyspeck_needs  "volume/volume_summary.hl";;
+flyspeck_needs  "volume/vol1.hl";;
+
+(* build to here *)
+(* flyspeck_needs  "volume/vol2.hl";; *)
+flyspeck_needs  "volume/volume.hl";;
 
 (* hypermap *)
 flyspeck_needs  "hypermap/hypermap.ml";;

@@ -1,0 +1,73 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: leg                                                               *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-02-10                                                           *)
+(* ========================================================================== *)
+
+(* 
+General utilities.
+
+*)
+
+
+
+module type Flyspeck_utility_type = sig
+
+(* looks up all constants first defined in a given file.
+    The file should be specified in the same way as the "flyspeck_needs" statement *)
+
+val constants_by_file : (string * int) list -> string -> (string * hol_type) list
+
+val file_of_constant : (string * int) list -> string -> string
+
+end;;
+
+
+module Flyspeck_utility:Flyspeck_utility_type = struct
+
+
+
+(* track constants by file *)
+
+let findpos = 
+  let rec findpos' c l a = match l with
+      [] -> failwith "find"
+    | b::bs -> if Pervasives.compare a b = 0 then c else findpos' (c+1) bs a
+  in findpos' 0;;
+
+let rec sublist t a b = match t with
+   [] -> []
+  | t0::ts -> if (a>0) then sublist ts (a-1) (b-1) else if (b<=0) then [] else t0::sublist ts 0 (b-1);;
+
+let range_by_table c m s = 
+  try(
+    let r = assoc s m in
+    let i = findpos m (s,r) in
+    let start = if (i<=0) then 0 else (let (_,j) = List.nth m (i-1) in j) in
+      sublist c start r)
+  with Failure "find" -> [];;
+
+let rec rev_assoc_sorted t i = match t with
+   [] -> failwith "find"
+  | (x,j)::ts -> if (i>=j) then rev_assoc_sorted ts i else x;;
+
+
+let constants_by_file   = fun ftable s -> range_by_table (constants()) ftable s;;
+
+(* Example: constants_by_file "trigonometry/trig1.hl" *)
+
+let file_of_constant ftable s = 
+   let cs = map fst (constants()) in
+   try (let i = findpos cs s in rev_assoc_sorted (List.rev ftable) i)
+   with Failure "find" -> "Constant not located";;
+
+(* Example: file_of_constant ftable "packing" *)
+
+end;;
+
+!ftable;;
+
+constants_by_file;;
+file_of_constant;;

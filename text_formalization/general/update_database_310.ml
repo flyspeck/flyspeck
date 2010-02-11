@@ -91,6 +91,23 @@ type value_description =
   { val_type: type_expr;
     val_kind: dummy };;
 
+type module_type =
+    Tmty_ident of path_t
+  | Tmty_signature of signature
+  | Tmty_functor of ident_t * module_type * module_type
+
+and signature = signature_item list
+
+and signature_item =
+    Tsig_value of ident_t * value_description
+  | Tsig_type of ident_t * dummy * dummy
+  | Tsig_exception of ident_t * dummy
+  | Tsig_module of ident_t * module_type * dummy
+  | Tsig_modtype of ident_t * dummy
+  | Tsig_class of ident_t * dummy * dummy
+  | Tsig_cltype of ident_t * dummy * dummy
+
+
 (*** from ./typing/env.ml: ***)
 
 type env_t = {
@@ -99,7 +116,7 @@ type env_t = {
   constrs: dummy;
   labels: dummy;
   types: dummy;
-  modules: dummy;
+  modules: (path_t * module_type) tbl;
   modtypes: dummy;
   components: dummy;
   classes: dummy;
@@ -107,49 +124,6 @@ type env_t = {
   summary: dummy
 };;
 
-(* ------------------------------------------------------------------------- *)
-(* Find difference between environments.                                     *)
-(* ------------------------------------------------------------------------- *)
-
-(*** From ./typing/env.ml ***)
-
-let rec find_stamp s = function
-    None ->
-      raise Not_found
-  | Some k ->
-      if k.ident.stamp = s then k.data else find_stamp s k.previous;;
-
-let rec find_same id = function
-    Empty ->
-      raise Not_found
-  | Node(l, k, r, _) ->
-      let c = compare id.name k.ident.name in
-      if c = 0 then
-        if id.stamp = k.ident.stamp
-        then k.data
-        else find_stamp id.stamp k.previous
-      else
-        find_same id (if c < 0 then l else r);;
-
-let rec keys_aux stack accu = function
-    Empty ->
-      begin match stack with
-        [] -> accu
-      | a :: l -> keys_aux l accu a
-      end
-  | Node(l, k, r, _) ->
-      keys_aux (l :: stack) (k.ident :: accu) r;;
-
-let keys tbl = keys_aux [] [] tbl;;
-
-let diff_keys tbl1 tbl2 =
-  let keys2 = keys tbl2 in
-  List.filter
-    (fun id ->
-      match find_same id tbl2 with Pident _, _ ->
-        (try ignore (find_same id tbl1); false with Not_found -> true)
-      | _ -> false)
-    keys2;;
 
 (* ------------------------------------------------------------------------- *)
 (* Get the current environment and theorem names in an environment.          *)
@@ -164,21 +138,28 @@ let rec get_simple_type = function
   | Tlink { desc = d } -> get_simple_type d
   | _ -> None;;
 
-let rec filter_nones = function
-  | []         -> []
-  | Some x::xs -> x :: filter_nones xs
-  | None::xs   ->      filter_nones xs;;
+let rec mapSome f = function
+  | []    -> []
+  | x::xs -> match f x with
+      | None   ->      mapSome f xs
+      | Some y -> y :: mapSome f xs;;
 
-let get_raw_environment() = (Obj.magic (!Toploop.toplevel_env) :env_t);;
 
-let get_thm_names (ents:(path_t * value_description) data list) =
-  itlist (fun d ns ->
-            match get_simple_type (snd d.data).val_type.desc with
-           | Some "thm" -> d.ident.name::ns
-           | _ -> ns)
-         ents [];;
 
-let get_thm_names' env = get_thm_names(list_of_tbl env.values);;
+let get_thm_names () =
+  let getThmName (n,vd) =
+    match get_simple_type vd.val_type.desc with
+      | Some "thm" -> Some n
+      | _ -> None
+  and env = Obj.magic !Toploop.toplevel_env in
+    List.append
+      (mapSome (getThmName o (fun d -> (d.ident.name,snd d.data))) (list_of_tbl env.values))
+      (List.flatten (mapSome (fun m -> match snd m.data with
+           | Tmty_signature sg -> Some (mapSome (function
+               | Tsig_value (i,v) -> getThmName (m.ident.name ^ "." ^ i.name, v)
+               | _ -> None) sg)
+            | _ -> None
+         ) (list_of_tbl env.modules)));;
 
 (* ------------------------------------------------------------------------- *)
 (* Get the latest theorem names in an incremental fashion.                   *)
@@ -186,23 +167,12 @@ let get_thm_names' env = get_thm_names(list_of_tbl env.values);;
 (* ------------------------------------------------------------------------- *)
 
 let toplevel_theorem_names =
-  let latest_raw_environment = ref(get_raw_environment()) in
-  let latest_thm_list = 
-    (ref(uniq(mergesort(<) (get_thm_names'(!latest_raw_environment))))) in
+  let names = ref (get_thm_names ()) in
   fun () ->
-    let env = !latest_raw_environment
-    and env' = get_raw_environment() in
-    let thms = !latest_thm_list in
-    if env' == env then thms,false else
-    let newids = diff_keys env.values env'.values in
-    let newenv = 
-      map (fun i -> {ident=i; data=find_same i env'.values; previous=None})
-          newids in
-    let newthms = uniq(sort (<) (get_thm_names newenv)) in
-    let allthms = uniq(merge (<) thms newthms) in
-    (latest_raw_environment := env';
-     latest_thm_list := allthms;
-     allthms,(newthms <> []));;
+    let currentNames = sort (<) (get_thm_names ()) in
+    let delta = subtract currentNames !names in
+    names := currentNames;
+    (currentNames, delta<>[]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Put an assignment of a theorem database in the named file.                *)

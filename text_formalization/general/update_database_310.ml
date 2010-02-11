@@ -190,18 +190,10 @@ let make_database_assignment filename =
 (* Update the database (regardless of whether anything has changed lately).  *)
 (* ------------------------------------------------------------------------- *)
 
-let update_database () =
+let update_database names =
   Format.print_string("Updating search database...\n");
   Format.print_flush();
-  let allnames,_ = toplevel_theorem_names() in
-  let names = subtract allnames ["it"] in                                      
-  let entries = map (fun n -> "\""^n^"\","^n) names in             
-  let text = "theorems :=\n[\n"^
-             end_itlist (fun a b -> a^";\n"^b) entries^"\n];;\n" in
-  let filename = Filename.temp_file "database" ".ml" in
-  (file_of_string filename text;
-   loadt filename;                                                          
-   Sys.remove filename);;
+  theorems := map (fun n -> n, Obj.magic (Toploop.getvalue n)) names;;
 
 (* ------------------------------------------------------------------------- *)
 (* Search, with update call only if something has changed since last time.   *)
@@ -227,9 +219,7 @@ let search =
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
     | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
   fun pats -> let allnames,changed = toplevel_theorem_names() in
-              (if changed then 
-                (update_database())
-               else ());
+              (if changed then update_database allnames);
               itlist (filter o filterpred) pats (!theorems);;
 
 (* ------------------------------------------------------------------------- *)
@@ -238,4 +228,4 @@ let search =
 
 theorems := [];;
 
-update_database();;
+update_database (fst (toplevel_theorem_names()));;

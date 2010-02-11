@@ -1,0 +1,67 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* General Utility                                                            *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-02-11                                                           *)
+(* ========================================================================== *)
+
+
+(* ------------------------------------------------------------------ *)
+(* LOCAL DEFINITIONS , from Jordan curve lib_ext.ml *)
+(* ------------------------------------------------------------------ *)
+
+
+
+module type Local_definition_type = sig
+
+
+end;;
+
+
+module Local_definition  : Local_definition_type = struct
+
+let local_defs = ref ([]:(string * (string * term)) list);;
+
+let add_interface (sym,tm) =
+  if (can (assoc sym) (!the_overload_skeletons)) then
+    (overload_interface (sym,tm))
+  else (override_interface(sym,tm));;
+
+let local_definition package_name tm =
+  let list_mk_forall(vars,bod) = itlist (curry mk_forall) vars bod in
+  let avs,bod = strip_forall tm in
+  let l,r = try dest_eq bod
+    with Failure _ -> failwith "new_local_definition: Not an equation" in
+  let lv,largs = strip_comb l in
+  let cname,ty = dest_var lv in
+  let cname' = package_name^"'"^cname in
+  let lv' = mk_var(cname',ty) in
+  let l' = list_mk_comb(lv',largs) in
+  let bod' = mk_eq(l',r) in
+  let tm'= list_mk_forall(avs,bod') in
+  let thm = new_definition tm' in
+  let _ = (local_defs := (package_name,(cname,lv'))::(!local_defs)) in
+  let _ = add_interface(cname,lv') in
+  thm;;
+
+let reduce_local_interface(package_name) =
+  map (reduce_interface o snd)
+    (filter (fun x -> ((fst x) = package_name)) !local_defs);;
+
+let mk_local_interface(package_name) =
+  map (add_interface o snd)
+    (filter (fun x -> ((fst x) = package_name)) !local_defs);;
+
+
+(* adapted from HOL Light code, true if it is a local def. *)
+
+let is_benign =
+  fun tm ->
+    let tm' = snd(strip_forall tm) in
+    try let th,th' = tryfind (fun th -> th,PART_MATCH I th tm')
+                             (!the_definitions) in
+        (can (PART_MATCH I th') (concl th))
+    with Failure _ -> false;;
+
+end;;

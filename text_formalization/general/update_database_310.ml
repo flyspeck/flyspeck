@@ -149,17 +149,31 @@ let rec mapSome f = function
 let get_thm_names () =
   let getThmName (n,vd) =
     match get_simple_type vd.val_type.desc with
-      | Some "thm" -> Some n
+      | Some "thm" when n <> "buf__" -> Some n
       | _ -> None
   and env = Obj.magic !Toploop.toplevel_env in
     List.append
-      (mapSome (getThmName o (fun d -> (d.ident.name,snd d.data))) (list_of_tbl env.values))
+      (mapSome (fun d -> getThmName (d.ident.name,snd d.data)) (list_of_tbl env.values))
       (List.flatten (mapSome (fun m -> match snd m.data with
            | Tmty_signature sg -> Some (mapSome (function
                | Tsig_value (i,v) -> getThmName (m.ident.name ^ "." ^ i.name, v)
                | _ -> None) sg)
             | _ -> None
          ) (list_of_tbl env.modules)));;
+
+(* ------------------------------------------------------------------------- *)
+(* Hacked variant of Toploop.getvalue to access values inside modules.       *)
+(* ------------------------------------------------------------------------- *)
+
+let eval =
+  ignore o Toploop.execute_phrase false Format.std_formatter
+  o !Toploop.parse_toplevel_phrase o Lexing.from_string;;
+
+let eval x =
+  ignore (Toploop.execute_phrase false Format.std_formatter
+  (!Toploop.parse_toplevel_phrase (Lexing.from_string x)));;
+
+let getvalue' n = eval ("let buf__ = " ^ n ^ ";;"); Toploop.getvalue "buf__";;
 
 (* ------------------------------------------------------------------------- *)
 (* Get the latest theorem names in an incremental fashion.                   *)
@@ -193,7 +207,7 @@ let make_database_assignment filename =
 let update_database names =
   Format.print_string("Updating search database...\n");
   Format.print_flush();
-  theorems := map (fun n -> n, Obj.magic (Toploop.getvalue n)) names;;
+  theorems := map (fun n -> n, Obj.magic (getvalue' n)) names;;
 
 (* ------------------------------------------------------------------------- *)
 (* Search, with update call only if something has changed since last time.   *)

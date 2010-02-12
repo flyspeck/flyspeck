@@ -1,7 +1,27 @@
- (* Nguyen Tat Thang *)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Packing                                                               *)
+(* Author: Nguyen Tat Thang                                       *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
+
+
+
+
+
+module type Packing_type = sig
+end;;
+
+
+module Packing  (* : Packing_type *) = struct
+
+
+
+
+ (*  *)
 
 flyspeck_needs "volume/vol1.hl";;
-
 
 let packing = new_definition `packing (S:real^3 -> bool) = (!u v. S u /\ S v /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;
 
@@ -485,3 +505,4 @@ THENL [(*2a*)REWRITE_TAC[REAL_FIELD `((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32
 
 (*-------------------------------------------------------------------*)
 
+end;;

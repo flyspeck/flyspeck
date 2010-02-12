@@ -20,7 +20,7 @@ conv -> (hull) convex
 aff -> (hull) affine
 d3 -> dist
 convex_trg -> (hull) convex 
-
+simplex -> geomdetail'simplex renamed.
 deprecated: t0, voronoi2, voro2, center_pac, centered_pac, quasi_tri, quasi_reg_tet, 
 quarter, diagonal, strict_qua, strict_qua2, quartered_oct, ... (many others.)
 
@@ -98,19 +98,19 @@ let quasi_tri = new_definition ` quasi_tri tri s = ( packing s /\
   (! x y.  ( x IN tri /\ y IN tri /\ (~(x=y)) ) ==> ( d3 x y <= &2 * t0 )))`;;
 
 
-let simplex = new_definition ` simplex (d:real^3 -> bool) s = ( packing s /\
+let simplex = new_definition ` geomdetail'simplex (d:real^3 -> bool) s = ( packing s /\
   d SUBSET s /\ 
 ( ? v1 v2 v3 v4. ~( v1 = v2 \/ v3 = v4 ) /\ {v1, v2 } INTER {v3, v4 } = {}/\ {v1,v2,v3,v4} = d )
  )`;;
 
-let quasi_reg_tet = new_definition ` quasi_reg_tet x s = ( simplex x s /\
+let quasi_reg_tet = new_definition ` quasi_reg_tet x s = ( geomdetail'simplex x s /\
    (! v w. ( v IN x /\ w IN x /\ 
     ( ~ ( v = w))) 
   ==> ( d3 v w <= &2 * t0 )) )`;;
 
 let quarter = new_definition ` quarter (q:real^3 -> bool) s =
   ( packing s /\
-         simplex q s /\
+         geomdetail'simplex q s /\
          (?v w.
               v IN q /\
               w IN q /\
@@ -1056,7 +1056,7 @@ automatically:
    REWRITE_TAC[HAS_SIZE_SET_OF_LIST_4; PAIRWISE; ALL; DE_MORGAN_THM; CONJ_ACI]);;
 
 
-let def_simplex = prove(`! s a b c d. simplex {a, b, c, d} s <=>
+let def_simplex = prove(`! s a b c d. geomdetail'simplex {a, b, c, d} s <=>
   packing s /\
          {a, b, c, d} SUBSET s /\
   ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d ) `, REWRITE_TAC[ simplex]
@@ -1543,10 +1543,10 @@ REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[]` ( c ==> b) ==>  aa /\ ( a \/ b\/ c )
 
 let simplex_interior_pos = prove(`!s v v1 v2 v3 v4.
      interior_pos v v1 v3 v2 v4 s
-     ==> simplex {v, v1, v3, v2} s /\
-         simplex {v, v1, v3, v4} s /\
-         simplex {v, v2, v4, v1} s /\
-         simplex {v, v2, v4, v3} s`,
+     ==> geomdetail'simplex {v, v1, v3, v2} s /\
+         geomdetail'simplex {v, v1, v3, v4} s /\
+         geomdetail'simplex {v, v2, v4, v1} s /\
+         geomdetail'simplex {v, v2, v4, v3} s`,
 ONCE_REWRITE_TAC[ MESON[strict_qua2_interior_pos]` 
 interior_pos v v1 v3 v2 v4 s <=>
   interior_pos v v1 v3 v2 v4 s /\ strict_qua2 {v, v1, v3, v2} {v1, v3} s /\
@@ -1559,7 +1559,7 @@ NGOAC THEN REWRITE_TAC[ MESON[]` a /\  quarter {v, v1, v2, v3} s <=>
 REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[] ` (a /\ b/\c /\ d ==> las )
   ==> ( a/\ b/\ c/\ d /\ dd ==> las ) `) THEN 
 NGOAC THEN REWRITE_TAC[ MESON[] `(( a /\ packing s ) /\
-    simplex {v, v1, v2, v3} s) <=> simplex {v, v1, v2, v3} s /\ packing s /\ a`] THEN 
+    geomdetail'simplex {v, v1, v2, v3} s) <=> geomdetail'simplex {v, v1, v2, v3} s /\ packing s /\ a`] THEN 
 REWRITE_TAC[MESON[]`  packing s /\ a <=> a /\ packing s`] THEN PHA THEN 
 MESON_TAC[quarter]);;
 
@@ -2193,11 +2193,11 @@ REWRITE_TAC[ quasi_reg_tet; strict_qua ] THEN
  PHA THEN KHANANG  THEN 
 REWRITE_TAC[ quarter] THEN 
 PHA THEN 
-REWRITE_TAC[ MESON[]` packing s /\simplex ({v1, v2, v3} UNION {v4}) s /\ last <=> 
-   simplex ({v1, v2, v3} UNION {v4}) s /\ packing s /\ last`] THEN 
+REWRITE_TAC[ MESON[]` packing s /\geomdetail'simplex ({v1, v2, v3} UNION {v4}) s /\ last <=> 
+   geomdetail'simplex ({v1, v2, v3} UNION {v4}) s /\ packing s /\ last`] THEN 
 REWRITE_TAC[ SET_RULE ` {v1, v2, v3} UNION {v4} = { v1, v2, v3, v4} `] THEN 
 MP_TAC (MESON[ def_simplex; SET_RULE ` {a, b, c, d} SUBSET s ==> {a, b, c} SUBSET s `] `
-  simplex {v1, v2, v3, v4} s ==> packing s /\ ~(v1 = v2 \/ v2 = v3 \/ v3 = v1) /\ {v1, v2, v3} SUBSET s `) THEN 
+  geomdetail'simplex {v1, v2, v3, v4} s ==> packing s /\ ~(v1 = v2 \/ v2 = v3 \/ v3 = v1) /\ {v1, v2, v3} SUBSET s `) THEN 
 MATCH_MP_TAC (MESON[]` (cc ==> last)
      ==> (aa ==> last)
      ==> aa /\ la1 \/ aa /\ la2 \/ cc
@@ -2205,16 +2205,16 @@ MATCH_MP_TAC (MESON[]` (cc ==> last)
 REWRITE_TAC[ MESON[]` a = b /\ (aa /\ bb b s) /\ last <=> bb a s /\ aa /\ a = b /\ last`] THEN 
 REWRITE_TAC[def_simplex] THEN 
 ONCE_REWRITE_TAC[ MESON[simplex_interior_pos]` interior_pos v v1 v3 v2 v4 s <=> interior_pos v v1 v3 v2 v4 s
-              /\ simplex {v, v1, v3, v2} s /\
-               simplex {v, v1, v3, v4} s /\
-               simplex {v, v2, v4, v1} s /\
-               simplex {v, v2, v4, v3} s `] THEN PHA THEN 
+              /\ geomdetail'simplex {v, v1, v3, v2} s /\
+               geomdetail'simplex {v, v1, v3, v4} s /\
+               geomdetail'simplex {v, v2, v4, v1} s /\
+               geomdetail'simplex {v, v2, v4, v3} s `] THEN PHA THEN 
 REWRITE_TAC[ MESON[]` {v1, v2, v3, v4} = {v, v1', v2', v3'} /\
-      aa /\  simplex {v, v1', v3', v2'} s /\ ss
-  <=> ( simplex {v, v1', v3', v2'} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'}) /\ aa /\ ss `] THEN 
+      aa /\  geomdetail'simplex {v, v1', v3', v2'} s /\ ss
+  <=> ( geomdetail'simplex {v, v1', v3', v2'} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'}) /\ aa /\ ss `] THEN 
 REWRITE_TAC[ MESON[SET_RULE ` {v, v1, v2 , v3} = {v, v1, v3, v2} ` ] ` 
-  (simplex {v, v1', v3', v2'} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'}) /\ ff <=>
-  simplex {v1, v2, v3, v4} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'} /\ ff`] THEN 
+  (geomdetail'simplex {v, v1', v3', v2'} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'}) /\ ff <=>
+  geomdetail'simplex {v1, v2, v3, v4} s /\ {v1, v2, v3, v4} = {v, v1', v2', v3'} /\ ff`] THEN 
 MESON_TAC[ def_simplex; SET_RULE ` {v1, v2, v3, v4} SUBSET s ==> {v1, v2, v3} SUBSET s`]);;
 
 

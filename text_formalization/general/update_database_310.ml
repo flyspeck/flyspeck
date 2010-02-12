@@ -124,93 +124,74 @@ type env_t = {
   summary: dummy
 };;
 
-
 (* ------------------------------------------------------------------------- *)
-(* Get the current environment and theorem names in an environment.          *)
+(* End of basic data structures copied from OCaml.                           *)
 (* ------------------------------------------------------------------------- *)
 
-let rec list_of_tbl = function
-  | Empty -> []
-  | Node (t1, d, t2, _) -> list_of_tbl t1 @ d :: list_of_tbl t2;;
+
+(* Iterate over the entries of a table. *)
+
+let rec iterTbl (f : ident_t -> 'a -> unit) = function
+  | Empty -> ()
+  | Node (t1,d,t2,_) ->
+      f d.ident d.data;
+      iterTbl f t1;
+      iterTbl f t2;;
+
+(* If the given type is simple return its name, otherwise None. *)
 
 let rec get_simple_type = function
   | Tlink { desc = Tconstr (Pident p,[],_) } -> Some p.name
   | Tlink { desc = d } -> get_simple_type d
   | _ -> None;;
 
-let rec mapSome f = function
-  | []    -> []
-  | x::xs -> match f x with
-      | None   ->      mapSome f xs
-      | Some y -> y :: mapSome f xs;;
+(* Execute any OCaml expression given as a string. *)
 
-
-
-let get_thm_names () =
-  let getThmName (n,vd) =
-    match get_simple_type vd.val_type.desc with
-      | Some "thm" when n <> "buf__" -> Some n
-      | _ -> None
-  and env = Obj.magic !Toploop.toplevel_env in
-    List.append
-      (mapSome (fun d -> getThmName (d.ident.name,snd d.data)) (list_of_tbl env.values))
-      (List.flatten (mapSome (fun m -> match snd m.data with
-           | Tmty_signature sg -> Some (mapSome (function
-               | Tsig_value (i,v) -> getThmName (m.ident.name ^ "." ^ i.name, v)
-               | _ -> None) sg)
-            | _ -> None
-         ) (list_of_tbl env.modules)));;
-
-(* ------------------------------------------------------------------------- *)
-(* Hacked variant of Toploop.getvalue to access values inside modules.       *)
-(* ------------------------------------------------------------------------- *)
-
-let eval =
-  ignore o Toploop.execute_phrase false Format.std_formatter
+let exec = ignore o Toploop.execute_phrase false Format.std_formatter
   o !Toploop.parse_toplevel_phrase o Lexing.from_string;;
 
-let eval x =
-  ignore (Toploop.execute_phrase false Format.std_formatter
-  (!Toploop.parse_toplevel_phrase (Lexing.from_string x)));;
+(* Evaluate any OCaml expression given as a string. *)
 
-let getvalue' n = eval ("let buf__ = " ^ n ^ ";;"); Toploop.getvalue "buf__";;
+let eval n =
+  exec ("let buf__ = ( " ^ n ^ " );;");
+  Obj.magic (Toploop.getvalue "buf__");;
+
+(* Register all theorems added since the last update. *)
+
+let update_database =
+  let lastStamp = ref 0
+  and currentStamp = ref 0
+  and thms = Hashtbl.create 5000 in
+
+  let ifNew f i x =
+    if i.stamp > !lastStamp then
+      ((if i.stamp > !currentStamp then currentStamp := i.stamp);
+       f i x) in
+
+  let rec regVal pfx = ifNew (fun i vd ->
+    let n = pfx ^ i.name in
+    if get_simple_type vd.val_type.desc = Some "thm" && n <> "buf__" then
+       Hashtbl.replace thms n (eval n))
+
+  and regMod pfx = ifNew (fun i mt ->
+       match mt with
+         | Tmty_signature sg ->
+             let pfx' = pfx ^ i.name ^ "." in
+             List.iter (function
+               | Tsig_value (i',vd) -> regVal pfx' i' vd
+               | Tsig_module (i',mt',_) -> regMod pfx' i' mt'
+               | _ -> ()) sg
+         | _ -> ())
+
+  in fun () ->
+    let env = Obj.magic !Toploop.toplevel_env in
+    iterTbl (fun i (_,vd) -> regVal "" i vd) env.values;
+    iterTbl (fun i (_,mt) -> regMod "" i mt) env.modules;
+    lastStamp := !currentStamp;
+    theorems := Hashtbl.fold (fun s t l -> (s,t)::l) thms [];;
 
 (* ------------------------------------------------------------------------- *)
-(* Get the latest theorem names in an incremental fashion.                   *)
-(* Return a list as well as "true" iff it's not the same as last time.       *)
-(* ------------------------------------------------------------------------- *)
-
-let toplevel_theorem_names =
-  let names = ref (get_thm_names ()) in
-  fun () ->
-    let currentNames = sort (<) (get_thm_names ()) in
-    let delta = subtract currentNames !names in
-    names := currentNames;
-    (currentNames, delta<>[]);;
-
-(* ------------------------------------------------------------------------- *)
-(* Put an assignment of a theorem database in the named file.                *)
-(* ------------------------------------------------------------------------- *)
-
-let make_database_assignment filename =
-  let allnames,_ = toplevel_theorem_names() in
-  let names = subtract allnames ["it"] in
-  let entries = map (fun n -> "\""^n^"\","^n) names in
-  let text = "theorems :=\n[\n"^
-             end_itlist (fun a b -> a^";\n"^b) entries^"\n];;\n" in
-  file_of_string filename text;;
-
-(* ------------------------------------------------------------------------- *)
-(* Update the database (regardless of whether anything has changed lately).  *)
-(* ------------------------------------------------------------------------- *)
-
-let update_database names =
-  Format.print_string("Updating search database...\n");
-  Format.print_flush();
-  theorems := map (fun n -> n, Obj.magic (getvalue' n)) names;;
-
-(* ------------------------------------------------------------------------- *)
-(* Search, with update call only if something has changed since last time.   *)
+(* Search (automatically updates)                                            *)
 (* ------------------------------------------------------------------------- *)
 
 let search =
@@ -232,14 +213,11 @@ let search =
     | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
     | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
-  fun pats -> let allnames,changed = toplevel_theorem_names() in
-              (if changed then update_database allnames);
+  fun pats -> update_database ();
               itlist (filter o filterpred) pats (!theorems);;
 
 (* ------------------------------------------------------------------------- *)
 (* Update to bring things back to current state.                             *)
 (* ------------------------------------------------------------------------- *)
 
-theorems := [];;
-
-update_database (fst (toplevel_theorem_names()));;
+update_database ();;

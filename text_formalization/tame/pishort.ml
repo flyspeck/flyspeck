@@ -1,6 +1,21 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* A bound for the number pi *)
+(* Chapter: Tame                                                           *)
+(* Author:  Vu Quang Thanh                                                  *)
+(* Date: 2010-02-13                                                          *)
+(* ========================================================================== *)
+
+
+
 (* ========================================================================= *)
 (* Quick derivation of a pi approximation (could do this more nicely).       *)
 (* ========================================================================= *)
+
+
+module Pishort  = struct
+
 
 let TAYLOR_SIN = prove
  (`!n x. abs(sin x - 
@@ -106,3 +121,7 @@ let PI_APPROX = prove
   REAL_ARITH_TAC);;
 
 let bound_for_pi = prove (`!n. &n * (&852 / &1000) <= &2 * pi ==> n <= 7`, REPEAT STRIP_TAC THEN ASSUME_TAC (PI_APPROX) THEN SUBGOAL_THEN `abs (pi - &13493037705 / &4294967296) < &1 / &128` ASSUME_TAC THENL[ASM_REAL_ARITH_TAC; MP_TAC (SPECL [`pi`; `&13493037705 / &4294967296`; `&1 / &128`] REAL_ABS_BOUND) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN SUBGOAL_THEN `&n < &8` ASSUME_TAC THENL[ASM_REAL_ARITH_TAC ; MP_TAC (SPECL [`n:num`; `8`] REAL_OF_NUM_LT) THEN ASM_REWRITE_TAC[] THEN ARITH_TAC]]);;
+
+
+
+end;;

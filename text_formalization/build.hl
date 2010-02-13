@@ -53,6 +53,13 @@ let fileid s =
   let s' = file_on_path (!load_path) (fullpath s) in
     (Filename.basename s',Digest.file s');;
 
+(*
+The dependency calculation in flyspeck_needs still has a bug if the file does not
+load correctly, but it calls another file that does load correctly.  It seems that the
+correctly loaded modules disappear from the scope when the error is encountered.
+Thus, they should be filtered out as well from the depend statement.
+*)
+
 let (flyspeck_needs,filetable,depend)  =
   let ftable = ref [("pervasives",List.length (constants()))] in (* associate constants with files *) 
   let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in (* dependency table *)
@@ -75,7 +82,7 @@ let (flyspeck_needs,filetable,depend)  =
 	  if b then (
             (ftable:= (s,List.length(constants()))::(!ftable));
 	    Format.print_string("File \""^s^"\" successfully loaded\n"))
-	  else (depend := tl (!depend); failwith "Aborting Flyspeck Needs")
+	  else (depend := filter ((<>) (h,id)) (!depend); failwith ("Aborting Flyspeck Needs "^s))
       ) in
     (fn,(fun () -> !ftable),(fun() -> !depend));;
 
@@ -89,7 +96,7 @@ flyspeck_needs "general/print-types.ml";;
 flyspeck_needs  "general/update_database_310.ml";;
 flyspeck_needs "general/prove_by_refinement.hl";;
 flyspeck_needs "general/flyspeck_utility.hl";;
-let prove_by_refinement = Debug.proofstyle_verbose prove_by_refinement;;
+let prove_by_refinement = Debug.proofstyle_verbose Prove_by_refinement.prove_by_refinement;;
 let prove = Debug.proofstyle_verbose prove;;
 let new_definition = Debug.new_definition_verbose;;
 
@@ -125,7 +132,7 @@ flyspeck_needs  "volume/vol1.hl";;
    fails  2.20++ 100110. 
 *)
 
-(* flyspeck_needs  "hypermap/hypermap.hl";; *)
+(* flyspeck_needs  "hypermap/hypermap.hl";;  *)
 
 
 
@@ -135,7 +142,10 @@ only in later snapshots of HOL-light *)
 (*  flyspeck_needs  "fan/fan.hl";; *)
 
 (* packing *)
-(* flyspeck_needs  "packing/pack1.hl";; *)
+(* pack1 and TARJJUW work on 100110 snapshot, check feb 13, 2010. *)
+
+flyspeck_needs  "packing/pack1.hl";; 
+flyspeck_needs "packing/TARJJUW.ml";;
 
 (* local fan -- no files *)
 

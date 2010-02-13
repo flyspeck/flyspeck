@@ -1,7 +1,31 @@
- (* Vu Quang Thanh *)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: SZIPOAS                                                           *)
+(* Chapter: Tame                                                           *)
+(* Author:  Vu Quang Thanh                                                  *)
+(* Date: 2010-02-13                                                          *)
+(* ========================================================================== *)
+
+
+
+
+
+module type Szipoas_type = sig
+
+end;;
+
+flyspeck_needs "tame/pishort.ml";;
+
+
+module Szipoas= struct
+
+
+
+
+ (*  *)
 
 prioritize_num();; 
-needs "tame/pishort.ml";;
 
 (* Definition of the tameness, actually I do not need this formally in  my proof      *) 
 
@@ -378,3 +402,5 @@ let lemmaSZIPOAS = prove (`!x V E v w w1. fan (x, V, E) /\ (x, v, w, w1) IN D1 (
  
 
 
+
+end;;

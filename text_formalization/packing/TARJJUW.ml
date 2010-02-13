@@ -1,17 +1,38 @@
-(*DANG TAT DAT*)
-(*TARJJUW*)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: TARJJUW                                                           *)
+(* Chapter: packing                                                               *)
+(* Author: Dang Tat Dat                                                    *)
+(* Date: 2010-02-13                                                           *)
+(* ========================================================================== *)
+
+
+
+
+
+module type Tarjjuw_type = sig
+
+end;;
+
+
+module Tarjjuw  = struct
+
+(*
+conflicting definitions packing and polyhedron renamed with prefix tarjjuw' by thales on Feb 13, 2010
+*)
 
 (*-----------Definition------------------------------------------------------*)
 let packing = 
    new_definition 
-     `packing (V:real^3 -> bool) = 
+     `tarjjuw'packing (V:real^3 -> bool) = 
       (!u:real^3 v:real^3. (u IN V) /\ (v IN V) /\ (dist( u, v) < &2) ==>
       (u = v))`;;
 
 let saturated_packing = 
    new_definition 
     `saturated_packing (V:real^3 -> bool) <=>
-      (packing V) /\ (!(p:real^3).(?(u:real^3).(u IN V) /\ (dist(u,p) < &2)))`;;
+      (tarjjuw'packing V) /\ (!(p:real^3).(?(u:real^3).(u IN V) /\ (dist(u,p) < &2)))`;;
 
 let weakly_saturated = 
     new_definition 
@@ -32,15 +53,15 @@ let half_spaces =
 
 let polyhedron =
     new_definition
-    `polyhedron (V:real^3 -> bool) (g:(real^3 ->real)) =
+    `tarjjuw'polyhedron (V:real^3 -> bool) (g:(real^3 ->real)) =
      INTERS {half_spaces g u| (u IN V) /\ (~(vec 0 = u))}`;;
 
 (*--------proff---------------------------------------------------------------*)
 
 (*-----------------------------------------------------------------------*)
-let th1 = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real) (u:real^3)(a:real). (&2 <= r) /\ (r <= r') /\ (~(bounded (polyhedron V g))) /\ (u IN V) /\ (~(vec 0 = u )) /\ (a = ((g u) * r')/ &2) ==> (?p:real^3. (p IN (polyhedron V g)) /\ (a < norm p))`,REPEAT GEN_TAC THEN REWRITE_TAC [bounded;NOT_EXISTS_THM;NOT_FORALL_THM;NOT_IMP;REAL_NOT_LE;polyhedron] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN REPEAT STRIP_TAC THEN USE_THEN "F1" (MP_TAC o SPEC `a:real`) THEN DISCH_THEN (X_CHOOSE_TAC `p:real^3`) THEN EXISTS_TAC `p:real^3` THEN ASM_ARITH_TAC);;
+let th1 = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real) (u:real^3)(a:real). (&2 <= r) /\ (r <= r') /\ (~(bounded (tarjjuw'polyhedron V g))) /\ (u IN V) /\ (~(vec 0 = u )) /\ (a = ((g u) * r')/ &2) ==> (?p:real^3. (p IN (tarjjuw'polyhedron V g)) /\ (a < norm p))`,REPEAT GEN_TAC THEN REWRITE_TAC [bounded;NOT_EXISTS_THM;NOT_FORALL_THM;NOT_IMP;REAL_NOT_LE;polyhedron] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN REPEAT STRIP_TAC THEN USE_THEN "F1" (MP_TAC o SPEC `a:real`) THEN DISCH_THEN (X_CHOOSE_TAC `p:real^3`) THEN EXISTS_TAC `p:real^3` THEN ASM_ARITH_TAC);;
 
-let th11 = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real) (u:real^3). (&2 <= r) /\ (r <= r') /\ (~(bounded (polyhedron V g))) /\ (u IN V) /\ (~(vec 0 = u )) ==> (?p:real^3. (p IN (polyhedron V g)) /\ ((((g u) * r')/ &2) < norm p))`,
+let th11 = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real) (u:real^3). (&2 <= r) /\ (r <= r') /\ (~(bounded (tarjjuw'polyhedron V g))) /\ (u IN V) /\ (~(vec 0 = u )) ==> (?p:real^3. (p IN (tarjjuw'polyhedron V g)) /\ ((((g u) * r')/ &2) < norm p))`,
 REPEAT GEN_TAC THEN REWRITE_TAC [bounded;NOT_EXISTS_THM;NOT_FORALL_THM;NOT_IMP;REAL_NOT_LE;polyhedron] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN
 POP_ASSUM MP_TAC THEN
 POP_ASSUM MP_TAC THEN
@@ -91,14 +112,14 @@ let th2 = prove (`!(v:real^3) (r':real) (p:real^3).(~(p = vec 0)) /\ (v = (r'/(n
 (r'% p = (norm p)%v)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `(norm (p:real^3)) % (v:real^3) =(norm (p:real^3)) % ((r'/(norm p))% p) ` ASSUME_TAC THENL [REWRITE_TAC [] THEN ASM_MESON_TAC [VECTOR_MUL_LCANCEL];SUBGOAL_THEN `(norm (p:real^3)) % (((r':real)/(norm p))% p) = ((norm p) * (r'/norm p))%p` ASSUME_TAC THENL [REWRITE_TAC[] THEN MESON_TAC[VECTOR_MUL_ASSOC];SUBGOAL_THEN `~(norm (p:real^3) = &0)` ASSUME_TAC THENL [REWRITE_TAC[] THEN REWRITE_TAC[NORM_EQ_0] THEN ASM_MESON_TAC[];SUBGOAL_THEN `(norm (p:real^3)) * ((r':real)/norm p) = r'` ASSUME_TAC THENL [REWRITE_TAC[] THEN ASM_MESON_TAC [REAL_DIV_LMUL];SUBGOAL_THEN `((norm (p:real^3)) * ((r':real)/norm p))%p = r' % p` ASSUME_TAC THENL [REWRITE_TAC[] THEN ASM_MESON_TAC[];ASM_MESON_TAC[]]]]]]);;
 
 (*-------------------------------------------------------------------*)
-let th3 = prove (`!(V:real^3 -> bool)(u:real^3)(v:real^3).(packing V) /\ (vec 0 IN V) /\ (u IN V) /\ (~(vec 0 = u)) ==> norm u >= &2`,REPEAT GEN_TAC THEN REWRITE_TAC [packing] THEN STRIP_TAC THEN REPEAT (POP_ASSUM MP_TAC) THEN DISCH_THEN (LABEL_TAC "F1") THEN REPEAT STRIP_TAC THEN ASM_CASES_TAC `&2 <= norm (u:real^3)` THENL [ASM_ARITH_TAC;POP_ASSUM MP_TAC THEN REWRITE_TAC [GSYM DIST_0] THEN STRIP_TAC THEN USE_THEN "F1" (MP_TAC o SPECL [`v:real^3`;`u:real^3`]) THEN DISCH_TAC THEN SUBGOAL_THEN `dist (vec 0,(u:real^3)) < &2 ==> vec 0 = u` ASSUME_TAC THENL [REWRITE_TAC[] THEN STRIP_TAC THEN ASM_MESON_TAC[];SUBGOAL_THEN `dist (vec 0,(u:real^3)) < &2` ASSUME_TAC THENL [ASM_MESON_TAC [REAL_NOT_LE];SUBGOAL_THEN `vec 0 = u:real^3` ASSUME_TAC THENL [ASM_MESON_TAC[];ASM_MESON_TAC[]]]]]);;
+let th3 = prove (`!(V:real^3 -> bool)(u:real^3)(v:real^3).(tarjjuw'packing V) /\ (vec 0 IN V) /\ (u IN V) /\ (~(vec 0 = u)) ==> norm u >= &2`,REPEAT GEN_TAC THEN REWRITE_TAC [packing] THEN STRIP_TAC THEN REPEAT (POP_ASSUM MP_TAC) THEN DISCH_THEN (LABEL_TAC "F1") THEN REPEAT STRIP_TAC THEN ASM_CASES_TAC `&2 <= norm (u:real^3)` THENL [ASM_ARITH_TAC;POP_ASSUM MP_TAC THEN REWRITE_TAC [GSYM DIST_0] THEN STRIP_TAC THEN USE_THEN "F1" (MP_TAC o SPECL [`v:real^3`;`u:real^3`]) THEN DISCH_TAC THEN SUBGOAL_THEN `dist (vec 0,(u:real^3)) < &2 ==> vec 0 = u` ASSUME_TAC THENL [REWRITE_TAC[] THEN STRIP_TAC THEN ASM_MESON_TAC[];SUBGOAL_THEN `dist (vec 0,(u:real^3)) < &2` ASSUME_TAC THENL [ASM_MESON_TAC [REAL_NOT_LE];SUBGOAL_THEN `vec 0 = u:real^3` ASSUME_TAC THENL [ASM_MESON_TAC[];ASM_MESON_TAC[]]]]]);;
 
 (*------------------------------------------------------------------------*)
 let th4 =prove (`!(u:real^3) (v:real^3) (r:real).dist (u,v) < r ==> (dist (u,v)) pow 2 < r pow 2`,REPEAT GEN_TAC THEN REWRITE_TAC [dist] THEN STRIP_TAC THEN SUBGOAL_THEN `&0 <= norm ((u:real^3) - (v:real^3))` ASSUME_TAC THENL [REWRITE_TAC [NORM_POS_LE];SUBGOAL_THEN `&0 <= r` ASSUME_TAC THENL [ASM_ARITH_TAC;SUBGOAL_THEN `abs (norm ((u:real^3) - (v:real^3))) = norm (u - v)` ASSUME_TAC THENL [REWRITE_TAC [REAL_ABS_NORM];SUBGOAL_THEN `abs (r:real) = r` ASSUME_TAC THENL [ASM_ARITH_TAC;SUBGOAL_THEN `abs (norm ((u:real^3) - (v:real^3))) < abs(r:real)` ASSUME_TAC THENL [ASM_ARITH_TAC;ASM_MESON_TAC [REAL_LT_SQUARE_ABS]]]]]]);;
 
 (*-------------------------------------------------------------------------*)
 let th5 = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real) (u:real^3)(a:real)
-(v:real^3) (p:real^3).(packing V) /\ (&2 <= r) /\ (r <= r') /\  (~(p = vec 0)) /\ (a = ((g u) * r')/ &2) /\ (a < norm p) /\ (v = (r'/(norm p))% p) /\ ((u dot p) <= (g u)) /\ (~(vec 0 = u)) /\ (dist (u,v) < r) /\ (vec 0 IN V) /\ (u IN V)  ==> (norm p < norm p)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `(&0 < r':real)` ASSUME_TAC THENL 
+(v:real^3) (p:real^3).(tarjjuw'packing V) /\ (&2 <= r) /\ (r <= r') /\  (~(p = vec 0)) /\ (a = ((g u) * r')/ &2) /\ (a < norm p) /\ (v = (r'/(norm p))% p) /\ ((u dot p) <= (g u)) /\ (~(vec 0 = u)) /\ (dist (u,v) < r) /\ (vec 0 IN V) /\ (u IN V)  ==> (norm p < norm p)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `(&0 < r':real)` ASSUME_TAC THENL 
 [ASM_ARITH_TAC;SUBGOAL_THEN ` (norm (v:real^3)= (r':real))` ASSUME_TAC THENL 
 
 [ASM_MESON_TAC [norm_equa];
@@ -280,9 +301,9 @@ THENL
 [ARITH_TAC;ASM_ARITH_TAC]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]);;
 
 (*----------------------------------------------------------------*)
-let th6 = prove (`!(V:real^3 -> bool) (g:real^3->real) (p:real^3) (u:real^3). (u IN V) /\ (~(vec 0 = u)) /\ (p IN (polyhedron V g)) ==> p IN half_spaces g u`,REPEAT GEN_TAC THEN REWRITE_TAC [polyhedron;INTERS;IN_ELIM_THM] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN USE_THEN "F1" (MP_TAC o SPEC `half_spaces (g:real^3 -> real) (u:real^3)`) THEN STRIP_TAC THEN ASM_MESON_TAC[]);;
+let th6 = prove (`!(V:real^3 -> bool) (g:real^3->real) (p:real^3) (u:real^3). (u IN V) /\ (~(vec 0 = u)) /\ (p IN (tarjjuw'polyhedron V g)) ==> p IN half_spaces g u`,REPEAT GEN_TAC THEN REWRITE_TAC [polyhedron;INTERS;IN_ELIM_THM] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN USE_THEN "F1" (MP_TAC o SPEC `half_spaces (g:real^3 -> real) (u:real^3)`) THEN STRIP_TAC THEN ASM_MESON_TAC[]);;
 
-let th7 = prove (`!(V:real^3 -> bool) (g:real^3->real) (p:real^3) (u:real^3). (u IN V) /\ (~(vec 0 = u)) /\ (p IN (polyhedron V g)) ==>  (u dot p) <= (g u)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `(p:real^3) IN half_spaces (g:real^3 -> real) (u:real^3)` ASSUME_TAC THENL [ASM_MESON_TAC [th6];POP_ASSUM MP_TAC THEN REWRITE_TAC [half_spaces]] THEN REWRITE_TAC [IN_ELIM_THM]);;
+let th7 = prove (`!(V:real^3 -> bool) (g:real^3->real) (p:real^3) (u:real^3). (u IN V) /\ (~(vec 0 = u)) /\ (p IN (tarjjuw'polyhedron V g)) ==>  (u dot p) <= (g u)`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `(p:real^3) IN half_spaces (g:real^3 -> real) (u:real^3)` ASSUME_TAC THENL [ASM_MESON_TAC [th6];POP_ASSUM MP_TAC THEN REWRITE_TAC [half_spaces]] THEN REWRITE_TAC [IN_ELIM_THM]);;
 
 let th8 = prove(`!(g:real^3->real)(r':real)(a:real)(u:real^3).(&2 <= r) /\ (r <= r') /\
  (a = ((g u) * r')/ &2) /\ (&0 <= g u) ==> &0 <= a`,REPEAT GEN_TAC THEN STRIP_TAC THEN SUBGOAL_THEN `&2 <= (r':real)` ASSUME_TAC THENL
@@ -299,7 +320,7 @@ SUBGOAL_THEN `&0 <= (((g:real^3->real) (u:real^3)) * (r':real))/(&2)` ASSUME_TAC
 
 (*---------------------------------------------------------------*)
 let TARJJUW = prove (`!(V:real^3 -> bool)(g:real^3->real) (r:real) (r':real)(a:real).(&2 <= r) /\ (r <= r') /\ (!(u:real^3).(u IN V) /\ (~(vec 0 = u )) ==> (a = ((g u) * r')/ &2)) /\ (!(v:real^3) (p:real^3). (~(p = vec 0)) ==> (v = (r'/(norm p))% p)) /\ (weakly_saturated_finite_packing V r r') ==>
-(bounded (polyhedron V g))`,
+(bounded (tarjjuw'polyhedron V g))`,
 REPEAT GEN_TAC THEN REWRITE_TAC [weakly_saturated_finite_packing;saturated_packing;weakly_saturated] THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC "A1") THEN DISCH_THEN (LABEL_TAC "A2") THEN DISCH_TAC THEN DISCH_TAC THEN DISCH_THEN (LABEL_TAC "F1") THEN DISCH_THEN (LABEL_TAC "F2") THEN STRIP_TAC THEN SUBGOAL_THEN `&2 <= (r':real)` ASSUME_TAC THENL
 [ASM_ARITH_TAC;
 SUBGOAL_THEN `&0 < &2` ASSUME_TAC THENL
@@ -308,7 +329,7 @@ SUBGOAL_THEN `&0 < &2` ASSUME_TAC THENL
 SUBGOAL_THEN `&0 < (r':real)` ASSUME_TAC THENL
 [ASM_ARITH_TAC;
 
-ASM_CASES_TAC `bounded (polyhedron (V:real^3 -> bool) (g:real^3 -> real))` THENL
+ASM_CASES_TAC `bounded (tarjjuw'polyhedron (V:real^3 -> bool) (g:real^3 -> real))` THENL
 [ASM_ARITH_TAC;
 ASM_REWRITE_TAC[]]]]] THEN POP_ASSUM MP_TAC THEN
 DISCH_THEN (LABEL_TAC "A3") THEN
@@ -335,7 +356,7 @@ SUBGOAL_THEN `norm (((r':real)/(norm (p:real^3)))%p) = r'` ASSUME_TAC THENL
 SUBGOAL_THEN `r':real > r'` ASSUME_TAC THENL
 [ASM_ARITH_TAC;ASM_ARITH_TAC]]];
 
-SUBGOAL_THEN `?(p:real^3). (p IN (polyhedron (V:real^3->bool) (g:real^3->real))) /\ ((a:real) < (norm p))` ASSUME_TAC THENL
+SUBGOAL_THEN `?(p:real^3). (p IN (tarjjuw'polyhedron (V:real^3->bool) (g:real^3->real))) /\ ((a:real) < (norm p))` ASSUME_TAC THENL
 [ASM_MESON_TAC[th1];
 POP_ASSUM MP_TAC THEN
 REWRITE_TAC[] THEN STRIP_TAC]] THEN
@@ -363,3 +384,5 @@ SUBGOAL_THEN `(a:real) < &0` ASSUME_TAC THENL
 SUBGOAL_THEN `norm (p:real^3) < norm p` ASSUME_TAC THENL
 [ASM_MESON_TAC [th5];ASM_ARITH_TAC]]]);;
 (**)
+
+end;;

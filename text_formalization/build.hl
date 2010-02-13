@@ -34,27 +34,20 @@ let needb s =
   if List.mem fileid (!loaded_files)
   then (Format.print_string("File \""^s^"\" already loaded\n");true) else loadb s;;
 
+(* debugging *)
+loadt (fullpath "general/debug.hl");;
+Debug.set_verbose_parsing();;
+
 
 (* limit changes in the state of the proof assistant  *)
 
 let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
 let new_axiom _ = failwith "new_axiom has been disabled in the Flyspeck build";; 
 
-loadt (fullpath "general/snapshot.hl" );;
+loadt (fullpath "general/state_manager.hl");;
 
-let (partially_restore_state:string->unit) =
-  let (rewrites,conversions) = (basic_rewrites(),basic_convs()) in
-  fun s ->
-   (
-       current_goalstack := ([]:goalstack);
-       if not(List.length(axioms()) =3) then failwith ("Illegal axioms added by "^s); 
-       if not(basic_rewrites()=rewrites) then set_basic_rewrites rewrites;
-       if not(basic_convs()==conversions) then set_basic_convs conversions;
-       the_overload_skeletons:= Snapshot_flyspeck_init_2010_02_11.the_overload_skeletons;
-       the_interface:= Snapshot_flyspeck_init_2010_02_11.the_interface
-   );;
+State_manager.neutralize_state();;
 
-partially_restore_state "build";;
 
 let fileid s = 
   let s' = file_on_path (!load_path) (fullpath s) in
@@ -76,12 +69,15 @@ let (flyspeck_needs,filetable,depend)  =
         let _ = (host := id) in
         let b= needb (fullpath s) in
         let _ = (host := h) in
-        let _ = partially_restore_state s in
-	  if b then (ftable:= (s,List.length(constants()))::(!ftable)) 
+	let _ = try State_manager.neutralize_state () with
+	    Failure msg -> Format.print_string("File \""^s^
+						 "\"corrupted neutral state.\n"^msg^"\n") in
+	  if b then (
+            (ftable:= (s,List.length(constants()))::(!ftable));
+	    Format.print_string("File \""^s^"\" successfully loaded\n"))
 	  else (depend := tl (!depend); failwith "Aborting Flyspeck Needs")
       ) in
     (fn,(fun () -> !ftable),(fun() -> !depend));;
-
 
 
 (* HOL LIGHT *)
@@ -93,6 +89,10 @@ flyspeck_needs "general/print-types.ml";;
 flyspeck_needs  "general/update_database_310.ml";;
 flyspeck_needs "general/prove_by_refinement.hl";;
 flyspeck_needs "general/flyspeck_utility.hl";;
+let prove_by_refinement = Debug.proofstyle_verbose prove_by_refinement;;
+let prove = Debug.proofstyle_verbose prove;;
+let new_definition = Debug.new_definition_verbose;;
+
 
 (* general *)
 flyspeck_needs  "general/sphere.hl";;
@@ -119,9 +119,15 @@ flyspeck_needs  "trigonometry/trigonometry.hl";;
 (* volume *)
 flyspeck_needs  "volume/vol1.hl";;
 
-(* hypermap *)
-(* passes July 31. fails "2.20++ Dec 21 2009 snapshot on SUN Virtual box" *)
+(* 
+   Works with July 31, 2009.
+   fails "2.20++ Dec 21 2009 snapshot on SUN Virtual box" 
+   fails  2.20++ 100110. 
+*)
+
 (* flyspeck_needs  "hypermap/hypermap.hl";; *)
+
+
 
 (* fan *)
 (* does not work with the 090731 HOL-light build, needs AZIM_UNIQUE which appears 

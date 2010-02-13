@@ -1,0 +1,70 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: General                                                      *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-02-13                                                           *)
+(* ========================================================================== *)
+
+(* verbose error messages on definitions and theorems and parsing. *)
+
+
+module Debug = struct
+
+  let proofstyle_verbose p (s,t) =
+    try p (s,t) with Failure msg -> 
+     print_string "\nError while proving goal\n";  print_term s; print_string "\n"; failwith msg;;
+
+(*
+ let prove_verbose(s,t) = 
+   try prove(s,t) with Failure msg -> 
+     print_string "\nError while proving goal\n";  print_term s; print_string "\n"; failwith msg;;
+
+ let prove_by_refinement_verbose(s,t) = 
+   try Prove_by_refinement.prove_by_refinement(s,t) with Failure msg -> 
+     print_string "\nError while proving goal by refinement\n";  
+     print_term s; print_string "\n"; failwith msg;;
+*)
+
+ let new_definition_verbose s = 
+   try new_definition s with Failure msg ->
+     print_string "\nErrror while defining term\b"; print_term s; print_string "\n"; failwith msg;;
+
+ let err_msg msg r s = (print_string ("Error while parsing "^r^" \""^s^"\"\n"); failwith msg);;
+
+ let string_of_lexcode = function
+   Ident s -> s
+   |Resword s -> s;;
+
+ let string_of_lexcodel r = itlist (fun a b -> string_of_lexcode a^b) r "";;
+ 
+let parse_type_verbose s =
+  let (pty,l) = try ((parse_pretype o lex o explode) s) with 
+      Failure msg -> err_msg msg "pretype" s in 
+  if l = [] then try (type_of_pretype pty) with
+      Failure msg -> err_msg msg "type" s
+  else failwith ("Unparsed input "^(string_of_lexcodel l)^" following type in string "^s);;
+
+let parse_term_verbose s =
+  let ptm,l = try ((parse_preterm o lex o explode) s) with
+     Failure msg -> err_msg msg "preterm" s in 
+  if l = [] then
+   try ((term_of_preterm o (retypecheck [])) ptm) with
+       Failure msg -> err_msg msg "term" s 
+  else failwith ("Unparsed input "^(string_of_lexcodel l)^" following term in string "^s);;
+
+ let quotexpander_verbose s =
+   if String.sub s 0 1 = ":" then
+    "Debug.parse_type_verbose \""^
+    (String.escaped (String.sub s 1 (String.length s - 1)))^"\""
+  else "Debug.parse_term_verbose \""^(String.escaped s)^"\"";;
+
+  unset_jrh_lexer;;
+ let set_verbose_parsing() =
+   Quotation.add "tot" (Quotation.ExStr (fun x -> quotexpander_verbose));;
+
+ let restore_parsing() =
+      Quotation.add "tot" (Quotation.ExStr (fun x -> quotexpander));;
+ set_jrh_lexer;;
+
+end;;

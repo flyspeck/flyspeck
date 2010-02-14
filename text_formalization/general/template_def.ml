@@ -95,9 +95,9 @@ struct
   let pad_line = (String.make width pad);;
   let space_line = String.make width space;;
 
-  type opt = DEF | LEMMA;;
-  let label t = if t=DEF then "Definition" else "Lemma";;
-  let ext t = if t=DEF then "_def" else "";;
+  type opt = Def | Lemma;;
+  let label t = if t=Def then "Definition" else "Lemma";;
+  let ext t = if t=Def then "_def" else "";;
 
   (* Content *)
 
@@ -155,8 +155,8 @@ struct
       [header t dat;"\n\n\n";more_comments dat;
        body dat];;
 
-  let output_template_def dat = output_template DEF dat;;
-  let output_template_lemma dat = output_template LEMMA dat;;
+  let output_template_def dat = output_template Def dat;;
+  let output_template_lemma dat = output_template Lemma dat;;
 
 end;;
 

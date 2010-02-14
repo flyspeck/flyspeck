@@ -9,23 +9,21 @@
 
 
 
-
-
 module type Szipoas_type = sig
 
 end;;
 
-flyspeck_needs "tame/pishort.ml";;
+flyspeck_needs "hypermap/hypermap.hl";;
+flyspeck_needs "tame/pishort.hl";;
 
 
 module Szipoas= struct
 
 
-
-
- (*  *)
-
 prioritize_num();; 
+
+let LEFT_MULT_MAP = Hypermap.LEFT_MULT_MAP;;
+
 
 (* Definition of the tameness, actually I do not need this formally in  my proof      *) 
 

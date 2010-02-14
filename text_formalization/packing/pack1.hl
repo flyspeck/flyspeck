@@ -151,21 +151,21 @@ let KIUMVTC=prove(`!(p:real^3)(r:real) (S:real^3 -> bool).(&0 <= r) /\ (packing 
 		    THEN REPEAT STRIP_TAC THEN ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_3] THEN MESON_TAC[FLOOR;GSYM INTEGER_IS_INT]);;
 
 (*-----------------------------------------------------------------*)
-(*                      About voronoi cell                         *)
+(*                      About voronoi_open cell                         *)
 (*-----------------------------------------------------------------*)
 
 
 
-let voronoi = new_definition `voronoi v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) < dist( x, w)) }`;;
+let voronoi_open = new_definition `voronoi_open v S = { x | !w. ((S w) /\ ~(w=v)) ==> (dist( x, v) < dist( x, w)) }`;;
 
 let bis = new_definition `bis u v = {x | dist(x,u) = dist(x,v)}`;;
 
 let nua_kg=new_definition `nua_kg (u:real^3) (v:real^3) = {x:real^3 | dist(x,u) <  dist(x,v)}`;;
 
-let saturate=new_definition `saturate S= (!x. ?y. y IN S /\ dist (x,y)< &2)`;;
+let saturated=new_definition `saturated S= (!x. ?(y:real^N). y IN S /\ dist (x,y)< &2)`;;
 
-let voronoi_version2=prove( `!(v:real^3) (S:real^3-> bool). voronoi v S = INTERS {nua_kg x y | y IN (S DELETE v)/\ x= v}`,
-REPEAT GEN_TAC THEN REWRITE_TAC[EXTENSION;GSYM SUBSET_ANTISYM_EQ;voronoi;INTERS]
+let voronoi_version2=prove( `!(v:real^3) (S:real^3-> bool). voronoi_open v S = INTERS {nua_kg x y | y IN (S DELETE v)/\ x= v}`,
+REPEAT GEN_TAC THEN REWRITE_TAC[EXTENSION;GSYM SUBSET_ANTISYM_EQ;voronoi_open;INTERS]
   THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC
 THENL [REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
 	 THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_ASSUM (MP_TAC o ISPEC `y:real^3`) THEN UNDISCH_TAC `(((y:real^3) IN S DELETE (v:real^3) /\ x' = v) /\ u = nua_kg x' y):bool` THEN REWRITE_TAC[DELETE;IN_ELIM_THM] THEN SIMP_TAC[SET_RULE `y:real^3 IN S <=> S y`] 
@@ -204,29 +204,29 @@ let convex_nua_kg=prove(`!(v:real^3)(y:real^3).  convex (nua_kg v y)`,REPEAT GEN
 
 
 
-let convex_voronoi=prove( `!(v:real^3) (S:real^3-> bool). convex (voronoi v S)`,REPEAT GEN_TAC THEN MP_TAC(ISPECL [`v:real^3`;`S:real^3 -> bool`] voronoi_version2) THEN SIMP_TAC[] THEN DISCH_TAC THEN SUBGOAL_THEN `! s. s IN {nua_kg (x:real^3) (y:real^3) | y IN S DELETE (v:real^3) /\ x = v} ==> convex s` MP_TAC THENL [GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[convex_nua_kg];MESON_TAC[CONVEX_INTERS]]);;
+let convex_voronoi=prove( `!(v:real^3) (S:real^3-> bool). convex (voronoi_open v S)`,REPEAT GEN_TAC THEN MP_TAC(ISPECL [`v:real^3`;`S:real^3 -> bool`] voronoi_version2) THEN SIMP_TAC[] THEN DISCH_TAC THEN SUBGOAL_THEN `! s. s IN {nua_kg (x:real^3) (y:real^3) | y IN S DELETE (v:real^3) /\ x = v} ==> convex s` MP_TAC THENL [GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN MESON_TAC[convex_nua_kg];MESON_TAC[CONVEX_INTERS]]);;
 
 
 (*------------------------------------------------------------*)
-(*                      Boundness of voronoi                  *)
+(*                      Boundness of voronoi_open                  *)
 (*------------------------------------------------------------*)
 
 
-let bound_voronoi=prove( `!(v:real^3) (S:real^3-> bool). saturate S ==>  bounded(voronoi v S)`,
-REPEAT GEN_TAC THEN DISJ_CASES_TAC (MESON[] `bounded (voronoi (v:real^3) (S:real^3 ->bool)) \/ ~(bounded (voronoi v S))`)
-  THENL [ASM_MESON_TAC[];UNDISCH_TAC `(~ bounded (voronoi (v:real^3) (S:real^3 ->bool))):bool`
-  THEN REWRITE_TAC[bounded] THEN REWRITE_TAC[MESON[] `~(?(a:real). !(x:real^3). x IN voronoi (v:real^3) (S:real^3->bool) 
+let bound_voronoi=prove( `!(v:real^3) (S:real^3-> bool). saturated S ==>  bounded(voronoi_open v S)`,
+REPEAT GEN_TAC THEN DISJ_CASES_TAC (MESON[] `bounded (voronoi_open (v:real^3) (S:real^3 ->bool)) \/ ~(bounded (voronoi_open v S))`)
+  THENL [ASM_MESON_TAC[];UNDISCH_TAC `(~ bounded (voronoi_open (v:real^3) (S:real^3 ->bool))):bool`
+  THEN REWRITE_TAC[bounded] THEN REWRITE_TAC[MESON[] `~(?(a:real). !(x:real^3). x IN voronoi_open (v:real^3) (S:real^3->bool) 
 ==> norm x <= a) <=> !(a:real). 
-~ (!(x:real^3). x IN voronoi (v:real^3) (S:real^3->bool) ==> norm x <= a)`]
-  THEN REWRITE_TAC[MESON[] `~(!x. x IN voronoi (v:real^3) (S:real^3->bool) ==> norm x <= a) 
-<=> ? (x:real^3). ~ ( x IN voronoi v S ==> norm x <= a)`] 
-THEN REWRITE_TAC[MESON[NOT_IMP] `~((x:real^3) IN voronoi (v:real^3) (S:real^3->bool) ==> norm x <= a) 
-<=> x IN voronoi v S /\ ~ (norm x <= a)`]
+~ (!(x:real^3). x IN voronoi_open (v:real^3) (S:real^3->bool) ==> norm x <= a)`]
+  THEN REWRITE_TAC[MESON[] `~(!x. x IN voronoi_open (v:real^3) (S:real^3->bool) ==> norm x <= a) 
+<=> ? (x:real^3). ~ ( x IN voronoi_open v S ==> norm x <= a)`] 
+THEN REWRITE_TAC[MESON[NOT_IMP] `~((x:real^3) IN voronoi_open (v:real^3) (S:real^3->bool) ==> norm x <= a) 
+<=> x IN voronoi_open v S /\ ~ (norm x <= a)`]
   THEN REWRITE_TAC[REAL_ARITH ` ~ (norm (x:real^3)<= a:real) <=> a< norm x`]
   THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `norm (v:real^3) + &2:real`)
   THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `(x:real^3 
-IN voronoi (v:real^3) (S:real^3->bool) /\ norm (v:real^3)+ &2 < norm x):bool` 
-THEN REWRITE_TAC[voronoi;saturate;IN_ELIM_THM]
+IN voronoi_open (v:real^3) (S:real^3->bool) /\ norm (v:real^3)+ &2 < norm x):bool` 
+THEN REWRITE_TAC[voronoi_open;saturated;IN_ELIM_THM]
   THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `(x):real^3`)
   THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
   THEN UNDISCH_TAC `(!(w:real^3). S w /\ ~(w = v:real^3) ==> dist (x,v) < dist (x,w)):bool`
@@ -285,15 +285,15 @@ let not_open_voronoi1 = prove (`!x y v (w:real^N) (A:real^N -> bool). FINITE A /
 let not_open_voronoi2 = prove (`!x v w:real^N.(x --> w) sequentially /\(?N. !n. N < n ==> &2 <= dist(x n, v))==> &2 <= dist(w,v)`,  REWRITE_TAC[dist] THEN REPEAT STRIP_TAC THEN  MP_TAC(ISPECL [`sequentially`; `\n. (x:num->real^N) n - v`; `w - v:real^N`; `&2`] LIM_NORM_LBOUND) THEN  ASM_SIMP_TAC[LIM_SUB; LIM_CONST; TRIVIAL_LIMIT_SEQUENTIALLY] THEN  DISCH_THEN MATCH_MP_TAC THEN REWRITE_TAC[EVENTUALLY_SEQUENTIALLY] THEN  EXISTS_TAC `N + 1` THEN  ASM_REWRITE_TAC[ARITH_RULE `N + 1 <= n <=> N < n`]);;
 
 
-let not_in_voronoi=prove( `!(x:real^3)(v:real^3)(S:real^3 -> bool). ~ (x IN voronoi v S) <=> ?y. y IN S /\ ~ (y = v) /\ dist (x,y)<= dist (x,v)`,
-REWRITE_TAC[voronoi;IN_ELIM_THM] THEN REWRITE_TAC[NOT_FORALL_THM] THEN REWRITE_TAC[NOT_IMP] THEN MESON_TAC[SET_RULE ` y IN S <=> S y`;REAL_ARITH `~ (a< b) <=> b<= a`]);;
+let not_in_voronoi=prove( `!(x:real^3)(v:real^3)(S:real^3 -> bool). ~ (x IN voronoi_open v S) <=> ?y. y IN S /\ ~ (y = v) /\ dist (x,y)<= dist (x,v)`,
+REWRITE_TAC[voronoi_open;IN_ELIM_THM] THEN REWRITE_TAC[NOT_FORALL_THM] THEN REWRITE_TAC[NOT_IMP] THEN MESON_TAC[SET_RULE ` y IN S <=> S y`;REAL_ARITH `~ (a< b) <=> b<= a`]);;
 
-let not_open_voronoi3=prove( `!(v:real^3)(S:real^3 -> bool). ~ (open (voronoi v S)) ==> ?x a y. a IN (voronoi v S) /\ (!n. ~ (x n IN (voronoi v S))) /\ (x --> a) sequentially /\ (!n. (y n IN S) /\ ~ (y n = v) /\ dist (x n, y n)<= dist (x n, v))`,
+let not_open_voronoi3=prove( `!(v:real^3)(S:real^3 -> bool). ~ (open (voronoi_open v S)) ==> ?x a y. a IN (voronoi_open v S) /\ (!n. ~ (x n IN (voronoi_open v S))) /\ (x --> a) sequentially /\ (!n. (y n IN S) /\ ~ (y n = v) /\ dist (x n, y n)<= dist (x n, v))`,
 REWRITE_TAC[not_open] THEN REPEAT GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
-THEN EXISTS_TAC `x:num -> real^3` THEN EXISTS_TAC `a:real^3` THEN ASM_SIMP_TAC[] THEN DISJ_CASES_TAC (MESON[] `( ?y. (!n. (y:num->real^3) n IN (S:real^3 ->bool) /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v))) \/ ~ (?y. !n. (y n IN S /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v)))`) THENL [(*1*)ASM_MESON_TAC[];(*2*)UNDISCH_TAC `~(?y. (!n. (y:num->real^3) n IN (S:real^3 ->bool) /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v))):bool` THEN REWRITE_TAC[NOT_EXISTS_THM;NOT_FORALL_THM] THEN UNDISCH_TAC `((a:real^3) IN voronoi (v:real^3) (S:real^3->bool) /\ (!n. ~((x:num ->real^3) n IN voronoi v S)) /\ (x --> a) sequentially):bool` THEN REWRITE_TAC[not_in_voronoi] THEN MESON_TAC[]]);;
+THEN EXISTS_TAC `x:num -> real^3` THEN EXISTS_TAC `a:real^3` THEN ASM_SIMP_TAC[] THEN DISJ_CASES_TAC (MESON[] `( ?y. (!n. (y:num->real^3) n IN (S:real^3 ->bool) /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v))) \/ ~ (?y. !n. (y n IN S /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v)))`) THENL [(*1*)ASM_MESON_TAC[];(*2*)UNDISCH_TAC `~(?y. (!n. (y:num->real^3) n IN (S:real^3 ->bool) /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v))):bool` THEN REWRITE_TAC[NOT_EXISTS_THM;NOT_FORALL_THM] THEN UNDISCH_TAC `((a:real^3) IN voronoi_open (v:real^3) (S:real^3->bool) /\ (!n. ~((x:num ->real^3) n IN voronoi_open v S)) /\ (x --> a) sequentially):bool` THEN REWRITE_TAC[not_in_voronoi] THEN MESON_TAC[]]);;
 
 
-let voronoi_in_ball=prove(`!(x:real^3)(v:real^3)(S:real^3 -> bool).packing S /\ saturate S /\( x IN voronoi v S) ==> dist(x,v)< &2`,REWRITE_TAC[saturate;packing;voronoi;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(!(x:real^3). ?(y:real^3). y IN (S:real^3 ->bool) /\ dist (x,y) < &2):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `x:real^3`) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN SUBGOAL_THEN `(S:real^3->bool) (y:real^3)` MP_TAC
+let voronoi_in_ball=prove(`!(x:real^3)(v:real^3)(S:real^3 -> bool).packing S /\ saturated S /\( x IN voronoi_open v S) ==> dist(x,v)< &2`,REWRITE_TAC[saturated;packing;voronoi_open;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(!(x:real^3). ?(y:real^3). y IN (S:real^3 ->bool) /\ dist (x,y) < &2):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `x:real^3`) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN SUBGOAL_THEN `(S:real^3->bool) (y:real^3)` MP_TAC
 THENL [(*1*)ASM_MESON_TAC[SET_RULE `(y:real^3) IN (S:real^3 -> bool) ==> S y`];(*2*)DISCH_TAC THEN UNDISCH_TAC `(!(w:real^3). (S:real^3->bool) w /\ ~(w = v) ==> dist (x:real^3,v) < dist (x,w)):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `y:real^3`) THEN DISJ_CASES_TAC (MESON[] ` (y:real^3 = v) \/ ~ (y = v)`) THENL [(*2a*)ASM_MESON_TAC[];(*2b*)ASM_SIMP_TAC[]
 	 THEN UNDISCH_TAC `((y:real^3) IN (S:real^3->bool) /\ dist (x:real^3,y) < &2):bool` THEN STRIP_TAC THEN ASM_MESON_TAC[REAL_ARITH `a<b /\ b< c ==> a< c`]]]);;
 
@@ -305,9 +305,9 @@ THENL [(*1*)ASM_MESON_TAC[SET_RULE `(y:real^3) IN (S:real^3 -> bool) ==> S y`];(
 (*----------------------------------------------------------------*)
 
 
-let open_voronoi=prove( `!(v:real^3)(S:real^3 -> bool).packing S /\ saturate S ==> open (voronoi v S)`,REPEAT STRIP_TAC THEN DISJ_CASES_TAC (MESON[] ` open (voronoi (v:real^3) (S:real^3 ->bool)) \/ ~ (open (voronoi v S))`) THENL [(*1*)ASM_MESON_TAC[];(*2*)MP_TAC(ISPECL [`v:real^3`;`S:real^3 -> bool`] not_open_voronoi3) THEN ASM_SIMP_TAC[] THEN ONCE_REWRITE_TAC[MESON[] `~ p <=> p ==> F`] THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
-			  THEN UNDISCH_TAC `((a:real^3) IN voronoi (v:real^3) (S:real^3->bool) /\
-      (!n. ~((x:num ->real^3) n IN voronoi v S)) /\
+let open_voronoi=prove( `!(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> open (voronoi_open v S)`,REPEAT STRIP_TAC THEN DISJ_CASES_TAC (MESON[] ` open (voronoi_open (v:real^3) (S:real^3 ->bool)) \/ ~ (open (voronoi_open v S))`) THENL [(*1*)ASM_MESON_TAC[];(*2*)MP_TAC(ISPECL [`v:real^3`;`S:real^3 -> bool`] not_open_voronoi3) THEN ASM_SIMP_TAC[] THEN ONCE_REWRITE_TAC[MESON[] `~ p <=> p ==> F`] THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
+			  THEN UNDISCH_TAC `((a:real^3) IN voronoi_open (v:real^3) (S:real^3->bool) /\
+      (!n. ~((x:num ->real^3) n IN voronoi_open v S)) /\
       (x --> a) sequentially /\
       (!n. (y:num -> real^3) n IN S /\ ~(y n = v) /\ dist (x n,y n) <= dist (x n,v))):bool` THEN REPEAT STRIP_TAC
 			    THEN DISJ_CASES_TAC(MESON[] `(?(N:num). !n. N< n ==> ~((y:num -> real^3) n IN ball(v, &4))) \/ ~ (?N. !n. N< n ==> ~(y n IN ball(v, &4)))`) THENL [(*2a*)UNDISCH_TAC `( (?(N:num). !n. N< n ==> ~((y:num -> real^3) n IN ball(v, &4)))):bool` THEN REWRITE_TAC[ball;IN_ELIM_THM] THEN REWRITE_TAC[REAL_ARITH ` ~ (a:real< b) <=> b<= a`] THEN STRIP_TAC
@@ -315,26 +315,26 @@ let open_voronoi=prove( `!(v:real^3)(S:real^3 -> bool).packing S /\ saturate S =
 THENL [(*2a1*)REPEAT STRIP_TAC THEN MP_TAC(MESON[DIST_SYM] `dist ((x:num->real^3) n,(y:num -> real^3) n) <= dist (x n,v:real^3) ==> dist(x n, y n) <= dist (v, x n)`) THEN ASM_REWRITE_TAC[] THEN UNDISCH_TAC `(!(n:num). N < n ==> &4 <= dist (v:real^3,(y:num -> real^3) n)):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `n:num`) THEN ASM_REWRITE_TAC[]
   THEN MESON_TAC[REAL_ARITH `a:real <= b ==>  (a+ b) <= &2* b`; DIST_TRIANGLE;REAL_ARITH `a<= b /\ b<= c ==> a<= c`;DIST_SYM;REAL_ARITH `&4<= &2* a <=> &2<= a`];(*2a2*)DISCH_TAC THEN MP_TAC(MESON[] `(!(n:num). (N:num) < n ==> &2 <= dist ((x:num -> real^3) n,v:real^3)) ==> (? (M:num). (!(n:num). M < n ==> &2 <= dist (x n,v)))`) THEN ASM_SIMP_TAC[] THEN ONCE_REWRITE_TAC[MESON[] `~ p <=> p ==> F`] THEN DISCH_TAC THEN MP_TAC(ISPECL [`x:num ->real^3`;`v:real^3`;`a:real^3`] not_open_voronoi2) 
   THEN ASM_SIMP_TAC[] THEN REWRITE_TAC[REAL_ARITH `~ (a<= b ) <=> b< a`] THEN ASM_MESON_TAC[voronoi_in_ball]];(*2b*)MP_TAC(ISPECL [`x:num ->real^3`;`y:num -> real^3`;`v:real^3`;`a:real^3`;`(((S:real^3 ->bool) INTER ball(v:real^3, &4)) DELETE v):real^3 -> bool`] not_open_voronoi1) THEN ASM_REWRITE_TAC[IN_INTER;REAL_ARITH `a:real >= b <=> b<= a`] THEN REWRITE_TAC[IN_DELETE] THEN ASM_SIMP_TAC[IN_INTER] THEN MP_TAC(ISPECL [`v:real^3`;` &4:real`;`S:real^3 ->bool`] KIUMVTC ) THEN ASM_REWRITE_TAC[REAL_ARITH `&0<= &4`;DELETE_SUBSET;FINITE_SUBSET]  THEN DISCH_TAC THEN MP_TAC (MESON[DELETE_SUBSET;FINITE_SUBSET] ` (FINITE ((S:real^3->bool) INTER ball (v:real^3,&4))) ==> (FINITE ((S INTER ball (v,&4)) DELETE v))`) THEN ASM_REWRITE_TAC[]
-			      THEN UNDISCH_TAC `((a:real^3) IN voronoi (v:real^3) (S:real^3 -> bool)):bool` THEN REWRITE_TAC[voronoi;IN_ELIM_THM] THEN REWRITE_TAC[NOT_IMP] THEN SIMP_TAC[NOT_EXISTS_THM] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC ` (!(w:real^3). (S:real^3 ->bool) w /\ ~(w = v) ==> dist (a:real^3,v) < dist (a,w)):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `a':real^3`) THEN ASM_MESON_TAC[SET_RULE `(a':real^3) IN (S:real^3 -> bool) <=> S a'`;REAL_ARITH ` a:real <= b <=> ~ (b< a)`]]]);;
+			      THEN UNDISCH_TAC `((a:real^3) IN voronoi_open (v:real^3) (S:real^3 -> bool)):bool` THEN REWRITE_TAC[voronoi_open;IN_ELIM_THM] THEN REWRITE_TAC[NOT_IMP] THEN SIMP_TAC[NOT_EXISTS_THM] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC ` (!(w:real^3). (S:real^3 ->bool) w /\ ~(w = v) ==> dist (a:real^3,v) < dist (a,w)):bool` THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `a':real^3`) THEN ASM_MESON_TAC[SET_RULE `(a':real^3) IN (S:real^3 -> bool) <=> S a'`;REAL_ARITH ` a:real <= b <=> ~ (b< a)`]]]);;
 
 
 (*----------------------------------------------------------------*)
-(*     Lemma 5.2 [DRUQUFE]About voronoi, this is not element      *)
+(*     Lemma 5.2 [DRUQUFE]About voronoi_open, this is not element      *)
 (*----------------------------------------------------------------*)
 
 
-let DRUQUFE=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturate S ==> convex (voronoi v S) /\ bounded (voronoi v S) /\ open (voronoi v S) /\ measurable ( voronoi v S)`,MESON_TAC[convex_voronoi;bound_voronoi;open_voronoi;MEASURABLE_OPEN]);;
+let DRUQUFE=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> convex (voronoi_open v S) /\ bounded (voronoi_open v S) /\ open (voronoi_open v S) /\ measurable ( voronoi_open v S)`,MESON_TAC[convex_voronoi;bound_voronoi;open_voronoi;MEASURABLE_OPEN]);;
 
 (*----------------------------------------------------------------*)
 (*             The following is to prove Lemma 5.3                *)
 (*----------------------------------------------------------------*)
 
 
-let measurable_voronoi=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturate S ==> measurable ( voronoi v S)`, MESON_TAC[DRUQUFE]);;
+let measurable_voronoi=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> measurable ( voronoi_open v S)`, MESON_TAC[DRUQUFE]);;
 
    let negligible_fun = new_definition `negligible_fun f S = (? (C:real). (&0<= C)/\ ! (r:real) (p:real^3). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
 
-   let fcc_compatible= new_definition `fcc_compatible f S = (!v. v IN S ==> sqrt( &32) <= measure(voronoi v S) + f v)`;;
+   let fcc_compatible= new_definition `fcc_compatible f S = (!v. v IN S ==> sqrt( &32) <= measure(voronoi_open v S) + f v)`;;
 
 
    let packing_subset_unions_ball=prove( `! (S:real^3 ->bool) (p:real^3) (r:real). ((UNIONS {ball(v:real^3, &1) | v IN S}) INTER ball(p,r)) SUBSET UNIONS {ball(v:real^3, &1) | v IN (S INTER ball (p,r+ &1))}`,REPEAT GEN_TAC THEN REWRITE_TAC[SUBSET;IN_INTER;UNIONS] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `ball(v:real^3, &1):real^3 ->bool` THEN STRIP_TAC THENL [(*1*)EXISTS_TAC `(v):real^3` THEN ASM_SIMP_TAC[] THEN UNDISCH_TAC `(x:real^3 IN u):bool`
@@ -378,57 +378,57 @@ let card_eq_ball_point=prove( `! (S:real^3 ->bool) (p:real^3) (r:real). &0<= r /
 
 
 (*------------------------------------------------------------------------------------------------------*)
-(*Some results involving in set of balls or set of voronoi cells (finiteness,being image of another set)*)
+(*Some results involving in set of balls or set of voronoi_open cells (finiteness,being image of another set)*)
 (*------------------------------------------------------------------------------------------------------*)
 
 
-let voronoi_subset_ball=prove( `!(x:real^3)(v:real^3)(S:real^3 -> bool).packing S /\ saturate S ==> (voronoi v S) SUBSET ball(v, &2)`, REWRITE_TAC[SUBSET;ball] THEN REWRITE_TAC[voronoi_in_ball;IN_ELIM_THM] THEN MESON_TAC[voronoi_in_ball;DIST_SYM]);;
+let voronoi_subset_ball=prove( `!(x:real^3)(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> (voronoi_open v S) SUBSET ball(v, &2)`, REWRITE_TAC[SUBSET;ball] THEN REWRITE_TAC[voronoi_in_ball;IN_ELIM_THM] THEN MESON_TAC[voronoi_in_ball;DIST_SYM]);;
 
 
-let all_voronoi_subset_ball=prove(`!(v:real^3)(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturate S /\ v IN ball(p, r+ &1) ==> (voronoi v S) SUBSET ball(p, r+ &3) `, REPEAT STRIP_TAC THEN MATCH_MP_TAC(SET_RULE `voronoi (v:real^3)(S:real^3 -> bool) SUBSET ball(v:real^3, &2) /\ ball(v:real^3, &2 ) SUBSET ball(p:real^3, r+ &3) ==> voronoi v S SUBSET ball (p,r + &3)`) THEN ASM_SIMP_TAC[ voronoi_subset_ball] THEN UNDISCH_TAC `((v:real^3) IN ball (p:real^3,r + &1)):bool` THEN REWRITE_TAC[ball;SUBSET;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN MP_TAC(ISPECL [`p:real^3`;`v:real^3`;`x:real^3`] DIST_TRIANGLE) THEN ASM_MESON_TAC[REAL_ARITH ` a< (r:real) + &1 /\ b< &2 /\ c <= a + b ==> c< r + &3`]);;
+let all_voronoi_subset_ball=prove(`!(v:real^3)(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturated S /\ v IN ball(p, r+ &1) ==> (voronoi_open v S) SUBSET ball(p, r+ &3) `, REPEAT STRIP_TAC THEN MATCH_MP_TAC(SET_RULE `voronoi_open (v:real^3)(S:real^3 -> bool) SUBSET ball(v:real^3, &2) /\ ball(v:real^3, &2 ) SUBSET ball(p:real^3, r+ &3) ==> voronoi_open v S SUBSET ball (p,r + &3)`) THEN ASM_SIMP_TAC[ voronoi_subset_ball] THEN UNDISCH_TAC `((v:real^3) IN ball (p:real^3,r + &1)):bool` THEN REWRITE_TAC[ball;SUBSET;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN MP_TAC(ISPECL [`p:real^3`;`v:real^3`;`x:real^3`] DIST_TRIANGLE) THEN ASM_MESON_TAC[REAL_ARITH ` a< (r:real) + &1 /\ b< &2 /\ c <= a + b ==> c< r + &3`]);;
 
 
-let unions_voronoi_subset_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturate S ==> UNIONS {voronoi v S | v IN ball(p, r+ &1)} SUBSET ball(p, r+ &3)`, REPEAT STRIP_TAC THEN REWRITE_TAC[SUBSET;UNIONS;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `((?(v:real^3). v IN ball (p:real^3,r + &1) /\ u = voronoi v (S:real^3 ->bool)) /\ (x:real^3) IN u):bool`
+let unions_voronoi_subset_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturated S ==> UNIONS {voronoi_open v S | v IN ball(p, r+ &1)} SUBSET ball(p, r+ &3)`, REPEAT STRIP_TAC THEN REWRITE_TAC[SUBSET;UNIONS;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `((?(v:real^3). v IN ball (p:real^3,r + &1) /\ u = voronoi_open v (S:real^3 ->bool)) /\ (x:real^3) IN u):bool`
 					THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(x:real^3 IN u:real^3 ->bool):bool` THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL [`v:real^3`;`S:real^3 ->bool`;`p:real^3`;`r:real`] all_voronoi_subset_ball) THEN ASM_SIMP_TAC[] THEN SET_TAC[]);;
 
-let unions_voronoi_center_in_ball_subset_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturate S ==> UNIONS {voronoi v w | v IN (S INTER ball(p, r+ &1)) /\ w = S} SUBSET ball(p, r+ &3)`,REPEAT STRIP_TAC THEN REWRITE_TAC[SUBSET;UNIONS;IN_ELIM_THM] THEN GEN_TAC THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(x:real^3 IN u:real^3 ->bool):bool` THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL [`v:real^3`;`S:real^3 ->bool`;`p:real^3`;`r:real`] all_voronoi_subset_ball) THEN ASM_SIMP_TAC[] THEN ASM_SET_TAC[]);;
+let unions_voronoi_center_in_ball_subset_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). packing S /\ saturated S ==> UNIONS {voronoi_open v w | v IN (S INTER ball(p, r+ &1)) /\ w = S} SUBSET ball(p, r+ &3)`,REPEAT STRIP_TAC THEN REWRITE_TAC[SUBSET;UNIONS;IN_ELIM_THM] THEN GEN_TAC THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(x:real^3 IN u:real^3 ->bool):bool` THEN ASM_REWRITE_TAC[] THEN MP_TAC(ISPECL [`v:real^3`;`S:real^3 ->bool`;`p:real^3`;`r:real`] all_voronoi_subset_ball) THEN ASM_SIMP_TAC[] THEN ASM_SET_TAC[]);;
 
 
-let map_to_voronoi=new_definition`map_to_voronoi ((x:real^3), (S:real^3 -> bool))= voronoi x S`;;
+let map_to_voronoi=new_definition`map_to_voronoi ((x:real^3), (S:real^3 -> bool))= voronoi_open x S`;;
 
 
-let surj_map_to_voronoi=prove(`!(M:real^3 ->bool)(S:real^3 ->bool). IMAGE (map_to_voronoi) (M CROSS {S}) = {voronoi v S | v IN M}`,REWRITE_TAC[IMAGE] THEN REWRITE_TAC[map_to_voronoi] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_CROSS;map_to_voronoi;IN_ELIM_THM] THEN ONCE_REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ] THEN STRIP_TAC THENL [(*1*) REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN MP_TAC(ISPEC `x':real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `(x':real^3 # (real^3 -> bool) IN ((M:real^3 ->bool) CROSS {S:real^3 -> bool}) /\ x = map_to_voronoi x'):bool` THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN REWRITE_TAC[map_to_voronoi;IN_INTER] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `x'':real^3` THEN ASM_SIMP_TAC[];(*2*)REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN EXISTS_TAC `(v:real^3, S:real^3->bool):real^3 # (real^3 ->bool)` THEN ASM_REWRITE_TAC[IN_SING;IN_CROSS;map_to_voronoi;IN_INTER]]);;
+let surj_map_to_voronoi=prove(`!(M:real^3 ->bool)(S:real^3 ->bool). IMAGE (map_to_voronoi) (M CROSS {S}) = {voronoi_open v S | v IN M}`,REWRITE_TAC[IMAGE] THEN REWRITE_TAC[map_to_voronoi] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_CROSS;map_to_voronoi;IN_ELIM_THM] THEN ONCE_REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ] THEN STRIP_TAC THENL [(*1*) REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN MP_TAC(ISPEC `x':real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `(x':real^3 # (real^3 -> bool) IN ((M:real^3 ->bool) CROSS {S:real^3 -> bool}) /\ x = map_to_voronoi x'):bool` THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN REWRITE_TAC[map_to_voronoi;IN_INTER] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `x'':real^3` THEN ASM_SIMP_TAC[];(*2*)REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN EXISTS_TAC `(v:real^3, S:real^3->bool):real^3 # (real^3 ->bool)` THEN ASM_REWRITE_TAC[IN_SING;IN_CROSS;map_to_voronoi;IN_INTER]]);;
 
-let surj_map_to_voronoi_db=prove( `! (S:real^3 ->bool) (p:real^3) (r:real). IMAGE (map_to_voronoi) ((S INTER ball (p,r + &1)) CROSS {S})= {voronoi v w | v IN (S INTER ball (p,r+ &1)) /\ w = S}`, REWRITE_TAC[IMAGE] THEN REWRITE_TAC[map_to_voronoi] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_CROSS;map_to_voronoi;IN_ELIM_THM] THEN ONCE_REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ] THEN STRIP_TAC THENL [(*1*)REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN MP_TAC(ISPEC `x':real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN STRIP_TAC THEN UNDISCH_TAC `(x':real^3 # (real^3 -> bool) IN ((S:real^3 ->bool INTER ball (p:real^3,r + &1)) CROSS {S:real^3 -> bool}) /\ x = map_to_voronoi x'):bool` THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN REWRITE_TAC[map_to_voronoi;IN_INTER] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `x'':real^3` THEN EXISTS_TAC `y:real^3 ->bool` THEN ASM_SIMP_TAC[];(*2*) REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN REPEAT STRIP_TAC THEN EXISTS_TAC `(v, w):real^3 # (real^3 ->bool)` THEN ASM_REWRITE_TAC[IN_SING;IN_CROSS;map_to_voronoi;IN_INTER]]);;
-
-
-
-let finite_set_voronoi_center_in_ball=prove(`! (S:real^3 ->bool) (p:real^3) (r:real). &0<= r /\ packing S ==>  FINITE ({voronoi v w | v IN (S INTER ball (p,r+ &1)) /\ w= S})`, REPEAT STRIP_TAC THEN REWRITE_TAC[GSYM surj_map_to_voronoi_db] THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_MESON_TAC[KIUMVTC;FINITE_CROSS;FINITE_SING;REAL_ARITH `&0<= r ==> &0<= r+ &1`]);;
+let surj_map_to_voronoi_db=prove( `! (S:real^3 ->bool) (p:real^3) (r:real). IMAGE (map_to_voronoi) ((S INTER ball (p,r + &1)) CROSS {S})= {voronoi_open v w | v IN (S INTER ball (p,r+ &1)) /\ w = S}`, REWRITE_TAC[IMAGE] THEN REWRITE_TAC[map_to_voronoi] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_CROSS;map_to_voronoi;IN_ELIM_THM] THEN ONCE_REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ] THEN STRIP_TAC THENL [(*1*)REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN MP_TAC(ISPEC `x':real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN STRIP_TAC THEN UNDISCH_TAC `(x':real^3 # (real^3 -> bool) IN ((S:real^3 ->bool INTER ball (p:real^3,r + &1)) CROSS {S:real^3 -> bool}) /\ x = map_to_voronoi x'):bool` THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN REWRITE_TAC[map_to_voronoi;IN_INTER] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `x'':real^3` THEN EXISTS_TAC `y:real^3 ->bool` THEN ASM_SIMP_TAC[];(*2*) REWRITE_TAC[SUBSET;IN_ELIM_THM] THEN GEN_TAC THEN REPEAT STRIP_TAC THEN EXISTS_TAC `(v, w):real^3 # (real^3 ->bool)` THEN ASM_REWRITE_TAC[IN_SING;IN_CROSS;map_to_voronoi;IN_INTER]]);;
 
 
 
-let measurable_unions_voronoi=prove(`! (S:real^3 ->bool) (p:real^3) (r:real). &0<= r /\packing S /\ saturate S==> measurable (UNIONS {voronoi v w | v IN (S INTER ball (p,r+ &1)) /\ w = S})`, REPEAT STRIP_TAC THEN MATCH_MP_TAC MEASURABLE_UNIONS THEN ASM_SIMP_TAC[finite_set_voronoi_center_in_ball] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN ASM_MESON_TAC[measurable_voronoi]);;
+let finite_set_voronoi_center_in_ball=prove(`! (S:real^3 ->bool) (p:real^3) (r:real). &0<= r /\ packing S ==>  FINITE ({voronoi_open v w | v IN (S INTER ball (p,r+ &1)) /\ w= S})`, REPEAT STRIP_TAC THEN REWRITE_TAC[GSYM surj_map_to_voronoi_db] THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_MESON_TAC[KIUMVTC;FINITE_CROSS;FINITE_SING;REAL_ARITH `&0<= r ==> &0<= r+ &1`]);;
+
+
+
+let measurable_unions_voronoi=prove(`! (S:real^3 ->bool) (p:real^3) (r:real). &0<= r /\packing S /\ saturated S==> measurable (UNIONS {voronoi_open v w | v IN (S INTER ball (p,r+ &1)) /\ w = S})`, REPEAT STRIP_TAC THEN MATCH_MP_TAC MEASURABLE_UNIONS THEN ASM_SIMP_TAC[finite_set_voronoi_center_in_ball] THEN GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN ASM_MESON_TAC[measurable_voronoi]);;
 
 let negligible_voronoi=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). (!s t.
-       s IN {voronoi v w | v IN S INTER ball (p,r + &1) /\ w = S} /\
-       t IN {voronoi v w | v IN S INTER ball (p,r + &1) /\ w = S} /\
+       s IN {voronoi_open v w | v IN S INTER ball (p,r + &1) /\ w = S} /\
+       t IN {voronoi_open v w | v IN S INTER ball (p,r + &1) /\ w = S} /\
        ~(s = t)
        ==> negligible (s INTER t))`,REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC (MESON[NEGLIGIBLE_EMPTY] `(s:real^3->bool) INTER (t:real^3 ->bool) = {} ==> negligible (s INTER t)`) THEN ASM_REWRITE_TAC[] THEN SUBGOAL_THEN ` ~ (v:real^3 = v')` MP_TAC 
-THENL [(*1*)UNDISCH_TAC `( ~(s:real^3 ->bool = t)):bool` THEN REWRITE_TAC[MESON[] ` ~ p ==> ~q <=> q ==> p`] THEN ASM_MESON_TAC[];(*2*)DISCH_TAC THEN ASM_CASES_TAC `?(x:real^3). x IN (voronoi (v:real^3) (S:real^3 ->bool) INTER voronoi (v':real^3) S)` THEN ASM_REWRITE_TAC[SET_RULE `(B:real^3 -> bool)= {} <=> ~ (?(x:real^3). x IN B)`] THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `((x:real^3) IN (voronoi (v:real^3) (S:real^3 ->bool) INTER voronoi (v':real^3) S)):bool` THEN REWRITE_TAC[voronoi] THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `v:real^3`) THEN FIRST_X_ASSUM(MP_TAC o SPEC `v':real^3`) THEN ASM_SIMP_TAC[MESON[] `e=f <=> f=e`;SET_RULE `(v':real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v'`] THEN MP_TAC(SET_RULE `(v':real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v'`) THEN ASM_SIMP_TAC[] THEN MP_TAC(SET_RULE `(v:real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v`) THEN ASM_SIMP_TAC[] THEN REAL_ARITH_TAC]);;
+THENL [(*1*)UNDISCH_TAC `( ~(s:real^3 ->bool = t)):bool` THEN REWRITE_TAC[MESON[] ` ~ p ==> ~q <=> q ==> p`] THEN ASM_MESON_TAC[];(*2*)DISCH_TAC THEN ASM_CASES_TAC `?(x:real^3). x IN (voronoi_open (v:real^3) (S:real^3 ->bool) INTER voronoi_open (v':real^3) S)` THEN ASM_REWRITE_TAC[SET_RULE `(B:real^3 -> bool)= {} <=> ~ (?(x:real^3). x IN B)`] THEN FIRST_X_ASSUM CHOOSE_TAC THEN UNDISCH_TAC `((x:real^3) IN (voronoi_open (v:real^3) (S:real^3 ->bool) INTER voronoi_open (v':real^3) S)):bool` THEN REWRITE_TAC[voronoi_open] THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `v:real^3`) THEN FIRST_X_ASSUM(MP_TAC o SPEC `v':real^3`) THEN ASM_SIMP_TAC[MESON[] `e=f <=> f=e`;SET_RULE `(v':real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v'`] THEN MP_TAC(SET_RULE `(v':real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v'`) THEN ASM_SIMP_TAC[] THEN MP_TAC(SET_RULE `(v:real^3) IN (S:real^3 ->bool) INTER  ball (p:real^3,r + &1) ==> S v`) THEN ASM_SIMP_TAC[] THEN REAL_ARITH_TAC]);;
 
 let inj_map_to_voronoi=prove( `!(S:real^3 ->bool)(p:real^3)(r:real) (x:real^3 # (real^3 -> bool)) (y:real^3 # (real^3 -> bool)).
        x IN ((S INTER ball (p,r + &1)) CROSS {S}) /\
        y IN (S INTER ball (p,r + &1)) CROSS {S} /\
        map_to_voronoi x = map_to_voronoi y
        ==> x = y`,REPEAT GEN_TAC THEN MP_TAC(ISPEC `x:real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN ASM_SIMP_TAC[] THEN MP_TAC(ISPEC `y:real^3 # (real^3->bool)`  PAIR_SURJECTIVE) THEN  DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN SIMP_TAC[map_to_voronoi]
- THEN REWRITE_TAC[PAIR_EQ] THEN REWRITE_TAC[IN_INTER] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(voronoi (x':real^3) (y':real^3->bool) = voronoi (x'':real^3) (y'':real^3->bool)):bool` THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN 
-SUBGOAL_THEN `x':real^3 IN voronoi x' (S:real^3 ->bool)` MP_TAC THENL [(*1*)REWRITE_TAC[voronoi;IN_ELIM_THM] 
+ THEN REWRITE_TAC[PAIR_EQ] THEN REWRITE_TAC[IN_INTER] THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(voronoi_open (x':real^3) (y':real^3->bool) = voronoi_open (x'':real^3) (y'':real^3->bool)):bool` THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN 
+SUBGOAL_THEN `x':real^3 IN voronoi_open x' (S:real^3 ->bool)` MP_TAC THENL [(*1*)REWRITE_TAC[voronoi_open;IN_ELIM_THM] 
 THEN REWRITE_TAC[DIST_REFL] THEN REWRITE_TAC[GSYM DIST_NZ] THEN MESON_TAC[];(*2*)ASM_REWRITE_TAC[] THEN  
-REWRITE_TAC[voronoi;IN_ELIM_THM] THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `x':real^3`) THEN ASM_SIMP_TAC[DIST_REFL;SET_RULE `(x':real^3) IN (S:real^3 ->bool) ==> S x'`] THEN REWRITE_TAC[REAL_ARITH `dist(x':real^3,x'':real^3) < &0 <=> ~ (&0<= dist (x',x''))`] THEN MESON_TAC[DIST_POS_LE]]);;
+REWRITE_TAC[voronoi_open;IN_ELIM_THM] THEN DISCH_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `x':real^3`) THEN ASM_SIMP_TAC[DIST_REFL;SET_RULE `(x':real^3) IN (S:real^3 ->bool) ==> S x'`] THEN REWRITE_TAC[REAL_ARITH `dist(x':real^3,x'':real^3) < &0 <=> ~ (&0<= dist (x',x''))`] THEN MESON_TAC[DIST_POS_LE]]);;
 
 
-let measure_unions_sum_voronoi=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). &0<= r/\ packing S /\ saturate S ==> measure(UNIONS {voronoi v w | v IN (S INTER ball(p, r+ &1)) /\ w = S})= sum (S INTER ball(p, r+ &1)) (\v. measure (voronoi v S))`,
-REPEAT STRIP_TAC THEN MP_TAC(ISPECL [`\s:real^3->bool. measure s`;`{voronoi v w | v IN (S:real^3 ->bool INTER ball(p:real^3, r+ &1)) /\ w = S}`] MEASURE_NEGLIGIBLE_UNIONS) THEN REWRITE_TAC[negligible_voronoi] THEN ASM_SIMP_TAC[finite_set_voronoi_center_in_ball;IN_ELIM_THM;measurable_voronoi;HAS_MEASURE_MEASURE] THEN MP_TAC(MESON[HAS_MEASURE_MEASURE;measurable_voronoi] `&0<= r/\ packing (S:real^3 ->bool) /\ saturate S ==> (!(s:real^3 ->bool). (?(v:real^3) (w:real^3->bool). (v IN S INTER ball (p:real^3,r + &1) /\ w = S) /\ s = voronoi v w) ==> s has_measure (measure s))`) THEN ASM_SIMP_TAC[] THEN REPEAT DISCH_TAC
+let measure_unions_sum_voronoi=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). &0<= r/\ packing S /\ saturated S ==> measure(UNIONS {voronoi_open v w | v IN (S INTER ball(p, r+ &1)) /\ w = S})= sum (S INTER ball(p, r+ &1)) (\v. measure (voronoi_open v S))`,
+REPEAT STRIP_TAC THEN MP_TAC(ISPECL [`\s:real^3->bool. measure s`;`{voronoi_open v w | v IN (S:real^3 ->bool INTER ball(p:real^3, r+ &1)) /\ w = S}`] MEASURE_NEGLIGIBLE_UNIONS) THEN REWRITE_TAC[negligible_voronoi] THEN ASM_SIMP_TAC[finite_set_voronoi_center_in_ball;IN_ELIM_THM;measurable_voronoi;HAS_MEASURE_MEASURE] THEN MP_TAC(MESON[HAS_MEASURE_MEASURE;measurable_voronoi] `&0<= r/\ packing (S:real^3 ->bool) /\ saturated S ==> (!(s:real^3 ->bool). (?(v:real^3) (w:real^3->bool). (v IN S INTER ball (p:real^3,r + &1) /\ w = S) /\ s = voronoi_open v w) ==> s has_measure (measure s))`) THEN ASM_SIMP_TAC[] THEN REPEAT DISCH_TAC
   THEN REWRITE_TAC[GSYM surj_map_to_voronoi_db] THEN MP_TAC(ISPECL [`map_to_voronoi:real^3#(real^3->bool)->real^3->bool`;`(\s:real^3->bool. measure s):(real^3-> bool) -> real`;`(((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) CROSS {S}):real^3#(real^3->bool)->bool`] SUM_IMAGE) THEN REWRITE_TAC[inj_map_to_voronoi] THEN SIMP_TAC[] THEN DISCH_TAC THEN MATCH_MP_TAC SUM_EQ_GENERAL THEN EXISTS_TAC `FST:real^3# (real^3 ->bool) -> real^3` THEN REPEAT STRIP_TAC THENL [(*1*)REWRITE_TAC[EXISTS_UNIQUE] THEN EXISTS_TAC `(y:real^3,S:real^3->bool):real^3 # (real^3 ->bool)` THEN ASM_REWRITE_TAC[IN_CROSS;IN_SING;FST] THEN GEN_TAC THEN MP_TAC(ISPEC `y':real^3 # (real^3 ->bool)` PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[IN_CROSS;IN_SING] THEN MESON_TAC[];(*2*)UNDISCH_TAC `(x:real^3 # (real^3 ->bool) IN (S:real^3 ->bool INTER ball (p:real^3,r + &1)) CROSS {S}):bool` THEN MP_TAC(ISPEC `x:real^3 # (real^3 ->bool)` PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN ASM_REWRITE_TAC[]
     THEN REWRITE_TAC[IN_CROSS] THEN MESON_TAC[];(*3*)MP_TAC(ISPEC `x:real^3 # (real^3 ->bool)` PAIR_SURJECTIVE) THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN FIRST_X_ASSUM CHOOSE_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[o_THM] THEN ASM_MESON_TAC[map_to_voronoi;IN_CROSS;IN_SING]]);;
 
@@ -438,13 +438,13 @@ REPEAT STRIP_TAC THEN MP_TAC(ISPECL [`\s:real^3->bool. measure s`;`{voronoi v w 
 (*      Step 2            *)
 (*------------------------*)
 
-let sum_measure_voronoi_le_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). &0<= r/\ packing S /\ saturate S ==> sum (S INTER ball (p,r + &1)) (\v. measure (voronoi v S)) <= measure (ball(p,r+ &3))`, REPEAT STRIP_TAC THEN ASM_SIMP_TAC[GSYM measure_unions_sum_voronoi] THEN ASM_MESON_TAC[MEASURE_SUBSET;measurable_unions_voronoi; unions_voronoi_center_in_ball_subset_ball;MEASURABLE_BALL;REAL_ARITH `&0<= r ==> &0<= r+ &3`]);;
+let sum_measure_voronoi_le_ball=prove( `!(S:real^3 ->bool)(p:real^3)(r:real). &0<= r/\ packing S /\ saturated S ==> sum (S INTER ball (p,r + &1)) (\v. measure (voronoi_open v S)) <= measure (ball(p,r+ &3))`, REPEAT STRIP_TAC THEN ASM_SIMP_TAC[GSYM measure_unions_sum_voronoi] THEN ASM_MESON_TAC[MEASURE_SUBSET;measurable_unions_voronoi; unions_voronoi_center_in_ball_subset_ball;MEASURABLE_BALL;REAL_ARITH `&0<= r ==> &0<= r+ &3`]);;
 
 (*------------------------*)
 (*        Step 3          *)
 (*------------------------*)
 
-let ineq_lm5_3_step3=prove(`!(S:real^3 ->bool)(p:real^3)(r:real)(A:real^3 ->real). &0<= r/\ packing S /\ saturate S /\ (fcc_compatible A S)==> sqrt( &32) * &(CARD(S INTER ball (p,r + &1))) <= sum (S INTER ball (p,r + &1)) (\v. (A v + measure (voronoi v S)))`,REWRITE_TAC[fcc_compatible] THEN REPEAT STRIP_TAC THEN SUBGOAL_THEN ` sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v. sqrt( &32))<= sum (S INTER ball (p,r + &1)) (\v. A v + measure (voronoi v S)) ` MP_TAC 
+let ineq_lm5_3_step3=prove(`!(S:real^3 ->bool)(p:real^3)(r:real)(A:real^3 ->real). &0<= r/\ packing S /\ saturated S /\ (fcc_compatible A S)==> sqrt( &32) * &(CARD(S INTER ball (p,r + &1))) <= sum (S INTER ball (p,r + &1)) (\v. (A v + measure (voronoi_open v S)))`,REWRITE_TAC[fcc_compatible] THEN REPEAT STRIP_TAC THEN SUBGOAL_THEN ` sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v. sqrt( &32))<= sum (S INTER ball (p,r + &1)) (\v. A v + measure (voronoi_open v S)) ` MP_TAC 
 THENL [(*1*)MATCH_MP_TAC SUM_LE THEN ASM_SIMP_TAC[KIUMVTC;REAL_ARITH `&0<= r ==> &0<= r + &1`] THEN ASM_MESON_TAC[fcc_compatible;REAL_ARITH `a+b= b+a`;SET_RULE `x IN A INTER B ==> x IN A`];(*2*)ASM_SIMP_TAC[SUM_CONST;KIUMVTC;REAL_ARITH `&0<= r ==> &0<= r + &1`] THEN REAL_ARITH_TAC]);;
 
 
@@ -479,16 +479,16 @@ let ineq_lm5_3_step4=prove(`!(c:real). (&0<= c) ==> ? (c':real). !(r:real). (&1 
 (*-----------------------------------------------------------------*)
 
 
-let JGXZYGW=prove(`!(S:real^3 ->bool).packing S /\ saturate S /\ (? (A:real^3 ->real).(fcc_compatible A S)/\ (negligible_fun A S)) ==> ? (c:real). (!(r:real)(p:real^3). &1<= r ==> measure ((UNIONS {ball(v:real^3, &1) | v IN S}) INTER ball(p,r))/ measure (ball(p, r))<= pi/ sqrt( &18) + c/ r)`,REPEAT GEN_TAC THEN REWRITE_TAC[negligible_fun;fcc_compatible] THEN REPEAT STRIP_TAC THEN MP_TAC(SPEC `C:real` ineq_lm5_3_step4) THEN ASM_SIMP_TAC[] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `c':real`
+let JGXZYGW=prove(`!(S:real^3 ->bool).packing S /\ saturated S /\ (? (A:real^3 ->real).(fcc_compatible A S)/\ (negligible_fun A S)) ==> ? (c:real). (!(r:real)(p:real^3). &1<= r ==> measure ((UNIONS {ball(v:real^3, &1) | v IN S}) INTER ball(p,r))/ measure (ball(p, r))<= pi/ sqrt( &18) + c/ r)`,REPEAT GEN_TAC THEN REWRITE_TAC[negligible_fun;fcc_compatible] THEN REPEAT STRIP_TAC THEN MP_TAC(SPEC `C:real` ineq_lm5_3_step4) THEN ASM_SIMP_TAC[] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `c':real`
 		    THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `r:real`) THEN ASM_SIMP_TAC[] THEN SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3 ->bool)} INTER ball (p:real^3,r:real)) /
      measure (ball (p,r))<= pi / sqrt (&18) * (&1 + &3 / r) pow 3 +
  (C:real) * (r + &1) pow 2 / (r pow 3 * sqrt (&32))` (fun th -> ASM_MESON_TAC[th;REAL_ARITH `a<=b/\ b<= c ==> a<= c`])
  THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] measure_ineq_lm53_2) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN DISCH_TAC THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`;`A:real^3 ->real`] ineq_lm5_3_step3) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`;fcc_compatible] THEN ASM_SIMP_TAC[SUM_ADD;KIUMVTC;REAL_ARITH `&1<=r ==> &0<= r + &1`;] THEN FIRST_X_ASSUM(MP_TAC o SPECL [`r+ &1:real`;`p:real^3`]) THEN ASM_SIMP_TAC[REAL_ARITH `&1<=r ==> &1<= r+ &1`]
- THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] sum_measure_voronoi_le_ball) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN REPEAT DISCH_TAC THEN MP_TAC(REAL_ARITH  `sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v:real^3. measure (voronoi v S)) <=
+ THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] sum_measure_voronoi_le_ball) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN REPEAT DISCH_TAC THEN MP_TAC(REAL_ARITH  `sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v:real^3. measure (voronoi_open v S)) <=
  measure (ball (p,r + &3))
  /\ sum (S INTER ball (p,r + &1)) (A:real^3 ->real) <= (C:real) * (r + &1) pow 2 /\ sqrt (&32) * &(CARD (S INTER ball (p,r + &1))) <=
      sum (S INTER ball (p,r + &1)) A +
-     sum (S INTER ball (p,r + &1)) (\v:real^3. measure (voronoi v S))
+     sum (S INTER ball (p,r + &1)) (\v:real^3. measure (voronoi_open v S))
  ==> sqrt (&32) * &(CARD (S INTER ball (p,r + &1))) <= C * (r + &1) pow 2 + measure (ball (p,r + &3))`) THEN ASM_SIMP_TAC[]
  THEN ASM_SIMP_TAC[VOLUME_BALL;REAL_ARITH `&1<= r ==> &0<= r+ &3`] THEN ASM_SIMP_TAC[REAL_FIELD `&1<= r ==> &4 / &3 * pi * (r + &3) pow 3 = ( &1 + &3/ r) pow 3 * (&4 / &3 * pi * r pow 3)`] THEN ASM_SIMP_TAC[GSYM (ISPECL [`p:real^3`;`r:real`] VOLUME_BALL);REAL_ARITH `&1<= r ==> &0<= r`] THEN ONCE_REWRITE_TAC[REAL_ARITH `sqrt (&32) * &(CARD ((S:real^3 -> bool) INTER ball (p:real^3,r + &1))) = &(CARD (S INTER ball (p,r + &1))) * sqrt (&32)`] THEN SIMP_TAC[GSYM REAL_LE_RDIV_EQ;MESON[SQRT_POS_LT;REAL_ARITH `&0< &32`] `&0< sqrt( &32)`] THEN DISCH_TAC THEN SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3->bool)} INTER ball (p:real^3,r:real))<= ((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * measure (ball (p,r))) /
  sqrt (&32) * &4 * pi / &3` MP_TAC THENL [(*1*)UNDISCH_TAC `(measure (UNIONS {ball (v,&1) | v IN (S:real^3 ->bool)} INTER ball (p:real^3,r:real)) <=

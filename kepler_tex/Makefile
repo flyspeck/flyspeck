@@ -13,7 +13,7 @@ clean:
 	dvips $< -o
 
 %.pdf : %.tex
-	pdflatex $<
+	pdflatex --src-specials "\scrollmode\input" $<
 
 %.ind : %.idx
 	makeindex $<

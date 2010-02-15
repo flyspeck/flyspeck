@@ -10,6 +10,12 @@
 (* copy using Obj.magic.                                                     *)
 (* ========================================================================= *)
 
+
+(* Execute any OCaml expression given as a string. *)
+
+let exec = ignore o Toploop.execute_phrase false Format.std_formatter
+  o !Toploop.parse_toplevel_phrase o Lexing.from_string;;
+
 type dummy;;
 
 (* ------------------------------------------------------------------------- *)
@@ -105,15 +111,18 @@ and signature_item =
   | Tsig_module of ident_t * module_type * dummy
   | Tsig_modtype of ident_t * dummy
   | Tsig_class of ident_t * dummy * dummy
-  | Tsig_cltype of ident_t * dummy * dummy
+  | Tsig_cltype of ident_t * dummy * dummy;;
 
 
 (*** from ./typing/env.ml: ***)
 
-type env_t = {
+exec (
+"type env_t = {
   values: (path_t * value_description) tbl;
-  annotations: dummy;
-  constrs: dummy;
+" ^ (if (let v = String.sub Sys.ocaml_version 0 4 in v = "3.09" or v = "3.10") then "" else
+"  annotations: dummy;
+") ^
+"  constrs: dummy;
   labels: dummy;
   types: dummy;
   modules: (path_t * module_type) tbl;
@@ -122,7 +131,7 @@ type env_t = {
   classes: dummy;
   cltypes: dummy;
   summary: dummy
-};;
+};;");;
 
 (* ------------------------------------------------------------------------- *)
 (* End of basic data structures copied from OCaml.                           *)
@@ -144,11 +153,6 @@ let rec get_simple_type = function
   | Tlink { desc = Tconstr (Pident p,[],_) } -> Some p.name
   | Tlink { desc = d } -> get_simple_type d
   | _ -> None;;
-
-(* Execute any OCaml expression given as a string. *)
-
-let exec = ignore o Toploop.execute_phrase false Format.std_formatter
-  o !Toploop.parse_toplevel_phrase o Lexing.from_string;;
 
 (* Evaluate any OCaml expression given as a string. *)
 

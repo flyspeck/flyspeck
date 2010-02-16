@@ -1,0 +1,47 @@
+June 23.
+
+cd feasible
+for i in *.dat ; do 
+  echo ${i}
+  glpsol -m ../graph0.mod -d $i > ../solutions/${i}.sol 
+done
+
+# feasible.txt created by Tinh and sent by email.
+F=`cat feasible.txt | sed s/solutions.// | sed s/.sol//`
+for i in $F; do
+  cp "GraphDat/${i}" feasible/  
+  done
+
+# count number of quads in various counterexamples:
+grep "IQUAD" *.dat | sed "s/graph.*=//" | sed "s/[0-9]//g" | sed "s/ /_/g" | sort | uniq -c
+
+grep "CVERTEX" *.dat | sed "s/graph.*=//"  | sort | uniq -c
+
+list14=`grep "CVERTEX := 14" *.dat -l`
+for i in ${list14}
+do
+echo $i$
+glpsol -m ../graph0.mod -d ${i} | grep "lnsum ="
+done
+
+# quad distribution of ones with pentagons.
+F=`grep "PENT :=[^;]" *.dat -l`;
+grep "IQUAD" ${F} | sed "s/set.*=//" | sed "s/[0-9]//g" | sed "s/ /_/g" | sort | uniq -c
+
+# run hexagon programs with tau6h constraint:
+for i in ${F}
+do
+echo $i
+cat ../graph0.mod | sed "s/^#tau6h/tau6h/" > /tmp/graph0.mod
+glpsol -m /tmp/graph0.mod -d ${i} | grep "lnsum ="
+done
+
+# run pentagon programs with tau5h constraint:
+F=`grep "PENT :=[^;]" *.dat -l`;
+cat ../graph0.mod | sed "s/^#tau5h/tau5h/" | sed "s/^#tau4B/tau4B/"  > /tmp/graph0.mod;
+for i in ${F}
+do
+echo $i
+glpsol -m /tmp/graph0.mod -d ${i} | grep "lnsum ="
+done
+

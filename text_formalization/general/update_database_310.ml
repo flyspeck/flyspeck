@@ -174,8 +174,10 @@ let update_database =
 
   let rec regVal pfx = ifNew (fun i vd ->
     let n = pfx ^ i.name in
-    if get_simple_type vd.val_type.desc = Some "thm" && n <> "buf__" then
-       Hashtbl.replace thms n (eval n))
+      if n <> "buf__" then
+        (if get_simple_type vd.val_type.desc = Some "thm"
+         then Hashtbl.replace thms n (eval n)
+         else Hashtbl.remove thms n))
 
   and regMod pfx = ifNew (fun i mt ->
        match mt with

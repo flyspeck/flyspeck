@@ -332,7 +332,13 @@ let DRUQUFE=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> co
 
 let measurable_voronoi=prove(`!(v:real^3)(S:real^3 -> bool).packing S /\ saturated S ==> measurable ( voronoi_open v S)`, MESON_TAC[DRUQUFE]);;
 
+(*
    let negligible_fun = new_definition `negligible_fun f S = (? (C:real). (&0<= C)/\ ! (r:real) (p:real^3). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
+*)
+
+
+   let negligible_fun_p = new_definition `negligible_fun_p f S p = (? (C:real). (&0<= C)/\ ! (r:real). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
+
 
    let fcc_compatible= new_definition `fcc_compatible f S = (!v. v IN S ==> sqrt( &32) <= measure(voronoi_open v S) + f v)`;;
 
@@ -478,39 +484,85 @@ let ineq_lm5_3_step4=prove(`!(c:real). (&0<= c) ==> ? (c':real). !(r:real). (&1 
 (*      Lemma 5.3 If exist fcc_compatible,negligible fun then OK   *)
 (*-----------------------------------------------------------------*)
 
+(* thales modified below to make the dependence on p explicit. *)
 
-let JGXZYGW=prove(`!(S:real^3 ->bool).packing S /\ saturated S /\ (? (A:real^3 ->real).(fcc_compatible A S)/\ (negligible_fun A S)) ==> ? (c:real). (!(r:real)(p:real^3). &1<= r ==> measure ((UNIONS {ball(v:real^3, &1) | v IN S}) INTER ball(p,r))/ measure (ball(p, r))<= pi/ sqrt( &18) + c/ r)`,REPEAT GEN_TAC THEN REWRITE_TAC[negligible_fun;fcc_compatible] THEN REPEAT STRIP_TAC THEN MP_TAC(SPEC `C:real` ineq_lm5_3_step4) THEN ASM_SIMP_TAC[] THEN REPEAT STRIP_TAC THEN EXISTS_TAC `c':real`
-		    THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM(MP_TAC o SPEC `r:real`) THEN ASM_SIMP_TAC[] THEN SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3 ->bool)} INTER ball (p:real^3,r:real)) /
+let JGXZYGW=prove(`!(S:real^3 ->bool) (p:real^3). packing S /\ saturated S /\ (? (A:real^3 ->real).(fcc_compatible A S)/\ (negligible_fun_p A S p)) ==> ? (c:real). (!(r:real). &1<= r ==> measure ((UNIONS {ball(v:real^3, &1) | v IN S}) INTER ball(p,r))/ measure (ball(p, r))<= pi/ sqrt( &18) + c/ r)`,
+REPEAT GEN_TAC THEN 
+REWRITE_TAC[negligible_fun_p;fcc_compatible] THEN 
+REPEAT STRIP_TAC THEN 
+MP_TAC(SPEC `C:real` ineq_lm5_3_step4) THEN 
+ASM_SIMP_TAC[] THEN 
+REPEAT STRIP_TAC THEN 
+EXISTS_TAC `c':real`		    THEN 
+REPEAT STRIP_TAC THEN 
+FIRST_X_ASSUM(MP_TAC o SPEC `r:real`) THEN 
+ASM_SIMP_TAC[] THEN 
+SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3 ->bool)} INTER ball (p:real^3,r:real)) /
      measure (ball (p,r))<= pi / sqrt (&18) * (&1 + &3 / r) pow 3 +
- (C:real) * (r + &1) pow 2 / (r pow 3 * sqrt (&32))` (fun th -> ASM_MESON_TAC[th;REAL_ARITH `a<=b/\ b<= c ==> a<= c`])
- THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] measure_ineq_lm53_2) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN DISCH_TAC THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`;`A:real^3 ->real`] ineq_lm5_3_step3) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`;fcc_compatible] THEN ASM_SIMP_TAC[SUM_ADD;KIUMVTC;REAL_ARITH `&1<=r ==> &0<= r + &1`;] THEN FIRST_X_ASSUM(MP_TAC o SPECL [`r+ &1:real`;`p:real^3`]) THEN ASM_SIMP_TAC[REAL_ARITH `&1<=r ==> &1<= r+ &1`]
- THEN MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] sum_measure_voronoi_le_ball) THEN ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN REPEAT DISCH_TAC THEN MP_TAC(REAL_ARITH  `sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v:real^3. measure (voronoi_open v S)) <=
+ (C:real) * (r + &1) pow 2 / (r pow 3 * sqrt (&32))` (fun th -> ASM_MESON_TAC[th;REAL_ARITH `a<=b/\ b<= c ==> a<= c`])  THEN 
+MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] measure_ineq_lm53_2) THEN 
+ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN 
+DISCH_TAC THEN 
+MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`;`A:real^3 ->real`] ineq_lm5_3_step3) THEN 
+ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`;fcc_compatible] THEN 
+ASM_SIMP_TAC[SUM_ADD;KIUMVTC;REAL_ARITH `&1<=r ==> &0<= r + &1`;] THEN 
+FIRST_X_ASSUM(MP_TAC o SPECL [`r+ &1:real`]) THEN 
+ASM_SIMP_TAC[REAL_ARITH `&1<=r ==> &1<= r+ &1`] THEN 
+MP_TAC(SPECL [`S:real^3 ->bool`;`p:real^3`;`r:real`] sum_measure_voronoi_le_ball) THEN 
+ASM_SIMP_TAC[REAL_ARITH `&1<= r ==> &0<= r`] THEN 
+REPEAT DISCH_TAC THEN 
+MP_TAC(REAL_ARITH  `sum ((S:real^3 ->bool) INTER ball (p:real^3,r + &1)) (\v:real^3. measure (voronoi_open v S)) <=
  measure (ball (p,r + &3))
  /\ sum (S INTER ball (p,r + &1)) (A:real^3 ->real) <= (C:real) * (r + &1) pow 2 /\ sqrt (&32) * &(CARD (S INTER ball (p,r + &1))) <=
      sum (S INTER ball (p,r + &1)) A +
      sum (S INTER ball (p,r + &1)) (\v:real^3. measure (voronoi_open v S))
- ==> sqrt (&32) * &(CARD (S INTER ball (p,r + &1))) <= C * (r + &1) pow 2 + measure (ball (p,r + &3))`) THEN ASM_SIMP_TAC[]
- THEN ASM_SIMP_TAC[VOLUME_BALL;REAL_ARITH `&1<= r ==> &0<= r+ &3`] THEN ASM_SIMP_TAC[REAL_FIELD `&1<= r ==> &4 / &3 * pi * (r + &3) pow 3 = ( &1 + &3/ r) pow 3 * (&4 / &3 * pi * r pow 3)`] THEN ASM_SIMP_TAC[GSYM (ISPECL [`p:real^3`;`r:real`] VOLUME_BALL);REAL_ARITH `&1<= r ==> &0<= r`] THEN ONCE_REWRITE_TAC[REAL_ARITH `sqrt (&32) * &(CARD ((S:real^3 -> bool) INTER ball (p:real^3,r + &1))) = &(CARD (S INTER ball (p,r + &1))) * sqrt (&32)`] THEN SIMP_TAC[GSYM REAL_LE_RDIV_EQ;MESON[SQRT_POS_LT;REAL_ARITH `&0< &32`] `&0< sqrt( &32)`] THEN DISCH_TAC THEN SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3->bool)} INTER ball (p:real^3,r:real))<= ((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * measure (ball (p,r))) /
+ ==> sqrt (&32) * &(CARD (S INTER ball (p,r + &1))) <= C * (r + &1) pow 2 + measure (ball (p,r + &3))`) THEN 
+ASM_SIMP_TAC[]
+ THEN 
+ASM_SIMP_TAC[VOLUME_BALL;REAL_ARITH `&1<= r ==> &0<= r+ &3`] THEN 
+ASM_SIMP_TAC[REAL_FIELD `&1<= r ==> &4 / &3 * pi * (r + &3) pow 3 = ( &1 + &3/ r) pow 3 * (&4 / &3 * pi * r pow 3)`] THEN 
+ASM_SIMP_TAC[GSYM (ISPECL [`p:real^3`;`r:real`] VOLUME_BALL);REAL_ARITH `&1<= r ==> &0<= r`] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH `sqrt (&32) * &(CARD ((S:real^3 -> bool) INTER ball (p:real^3,r + &1))) = &(CARD (S INTER ball (p,r + &1))) * sqrt (&32)`] THEN 
+SIMP_TAC[GSYM REAL_LE_RDIV_EQ;MESON[SQRT_POS_LT;REAL_ARITH `&0< &32`] `&0< sqrt( &32)`] THEN 
+DISCH_TAC THEN 
+SUBGOAL_THEN `measure (UNIONS {ball (v,&1) | v IN (S:real^3->bool)} INTER ball (p:real^3,r:real))<= ((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * measure (ball (p,r))) /
  sqrt (&32) * &4 * pi / &3` MP_TAC THENL [(*1*)UNDISCH_TAC `(measure (UNIONS {ball (v,&1) | v IN (S:real^3 ->bool)} INTER ball (p:real^3,r:real)) <=
-      &(CARD {ball (v,&1) | v IN S INTER ball (p,r + &1)}) * &4 * pi / &3):bool` THEN SUBGOAL_THEN `&(CARD {ball (v,&1) | v IN (S:real^3 ->bool) INTER ball (p:real^3,r + &1)}) * &4 * pi / &3 <= ((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * measure (ball (p,r))) /
+      &(CARD {ball (v,&1) | v IN S INTER ball (p,r + &1)}) * &4 * pi / &3):bool` THEN 
+SUBGOAL_THEN `&(CARD {ball (v,&1) | v IN (S:real^3 ->bool) INTER ball (p:real^3,r + &1)}) * &4 * pi / &3 <= ((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * measure (ball (p,r))) /
      sqrt (&32) *
      &4 *
-     pi / &3` (fun th -> MESON_TAC[th;REAL_ARITH `a<= b /\ b<= c ==> a<= c`]) THEN ASM_MESON_TAC[card_eq_ball_point;REAL_ARITH `&1<= r ==> &0<= r`;REAL_OF_NUM_EQ;MESON[PI_POS;REAL_ARITH `&0< &4 /\ &0< &3`;REAL_LT_MUL;REAL_LT_DIV] `&0< &4 * pi/ &3`;REAL_ARITH `a<= b /\ b<= c ==> a<= c`;REAL_LE_RMUL_EQ];(*2*)ASM_SIMP_TAC[VOLUME_BALL;REAL_ARITH `&1<= r ==> &0<= r`]
-   THEN MP_TAC(MESON[REAL_ARITH `&1<= r ==> &0< r`;PI_POS;REAL_ARITH `&0< &4 /\ &0< &3`;REAL_LT_MUL;REAL_LT_DIV;REAL_POW_LT] `&1<= r ==> &0< &4/ &3 *pi * r pow 3`) THEN ASM_SIMP_TAC[] THEN SIMP_TAC[REAL_LE_LDIV_EQ] THEN SUBGOAL_THEN `((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * &4 / &3 * pi * r pow 3) /
+     pi / &3` (fun th -> MESON_TAC[th;REAL_ARITH `a<= b /\ b<= c ==> a<= c`]) THEN 
+ASM_MESON_TAC[card_eq_ball_point;REAL_ARITH `&1<= r ==> &0<= r`;REAL_OF_NUM_EQ;MESON[PI_POS;REAL_ARITH `&0< &4 /\ &0< &3`;REAL_LT_MUL;REAL_LT_DIV] `&0< &4 * pi/ &3`;REAL_ARITH `a<= b /\ b<= c ==> a<= c`;REAL_LE_RMUL_EQ];(*2*)ASM_SIMP_TAC[VOLUME_BALL;REAL_ARITH `&1<= r ==> &0<= r`]
+   THEN 
+MP_TAC(MESON[REAL_ARITH `&1<= r ==> &0< r`;PI_POS;REAL_ARITH `&0< &4 /\ &0< &3`;REAL_LT_MUL;REAL_LT_DIV;REAL_POW_LT] `&1<= r ==> &0< &4/ &3 *pi * r pow 3`) THEN 
+ASM_SIMP_TAC[] THEN 
+SIMP_TAC[REAL_LE_LDIV_EQ] THEN 
+SUBGOAL_THEN `((C:real) * (r + &1) pow 2 + (&1 + &3 / r) pow 3 * &4 / &3 * pi * r pow 3) /
      sqrt (&32) *
      &4 *
      pi / &3= (pi / sqrt (&18) * (&1 + &3 / r) pow 3 +
       C * (r + &1) pow 2 / (r pow 3 * sqrt (&32))) *
      &4 / &3 *
      pi *
-     r pow 3` (fun th -> MESON_TAC[th]) THEN REWRITE_TAC[REAL_FIELD `((a:real) + b)/ c * d= ((a + b)*d )/c /\ ((x:real) + y ) * z = x *z + y* z`] THEN ASM_SIMP_TAC[REAL_EQ_LDIV_EQ;MESON[SQRT_POS_LT;REAL_ARITH `&0< &32`] `&0< sqrt( &32)`;REAL_FIELD `((x:real) + y ) * z = x *z + y* z`] THEN SUBGOAL_THEN `(C * (r + &1) pow 2) * &4 * pi / &3 = ((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32))) * &4 / &3 * pi * r pow 3) *
+     r pow 3` (fun th -> MESON_TAC[th]) THEN 
+REWRITE_TAC[REAL_FIELD `((a:real) + b)/ c * d= ((a + b)*d )/c /\ ((x:real) + y ) * z = x *z + y* z`] THEN 
+ASM_SIMP_TAC[REAL_EQ_LDIV_EQ;MESON[SQRT_POS_LT;REAL_ARITH `&0< &32`] `&0< sqrt( &32)`;REAL_FIELD `((x:real) + y ) * z = x *z + y* z`] THEN 
+SUBGOAL_THEN `(C * (r + &1) pow 2) * &4 * pi / &3 = ((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32))) * &4 / &3 * pi * r pow 3) *
  sqrt (&32) /\ ((&1 + &3 / r) pow 3 * &4 / &3 * pi * r pow 3) * &4 * pi / &3 = ((pi / sqrt (&18) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3) *
- sqrt (&32)` (fun th -> MESON_TAC[th;REAL_ARITH ` a= b /\ d= c ==> a+ d= c+ b`]) THEN STRIP_TAC
+ sqrt (&32)` (fun th -> MESON_TAC[th;REAL_ARITH ` a= b /\ d= c ==> a+ d= c+ b`]) THEN 
+STRIP_TAC
 THENL [(*2a*)REWRITE_TAC[REAL_FIELD `((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32))) * &4 / &3 * pi * r pow 3) *
  sqrt (&32)= ((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32)))*(r pow 3 * sqrt (&32)))* (&4 / &3 * pi)`]
-  THEN MATCH_MP_TAC (REAL_FIELD `~ (r pow 3 * sqrt (&32) = &0)==>(C * (r + &1) pow 2) * &4 * pi / &3=  ((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32)))*(r pow 3 * sqrt (&32)))* (&4 / &3 * pi)`) THEN ASM_MESON_TAC[REAL_DIV_RMUL;REAL_MUL_ASSOC;REAL_MUL_SYM;REAL_ENTIRE;MESON[REAL_POW_NZ;REAL_ARITH `&1<= r ==> ~ (r= &0)`] `&1<=r ==> ~ (r pow 3 = &0)`;MESON[REAL_ARITH `&0< x ==> ~ (x= &0)`;SQRT_POS_LT;REAL_ARITH `&0< &32`] ` ~ (sqrt( &32) = &0)`];(*2b*)REWRITE_TAC[REAL_FIELD `((pi / sqrt (&18) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3) *
+  THEN 
+MATCH_MP_TAC (REAL_FIELD `~ (r pow 3 * sqrt (&32) = &0)==>(C * (r + &1) pow 2) * &4 * pi / &3=  ((C * (r + &1) pow 2 / (r pow 3 * sqrt (&32)))*(r pow 3 * sqrt (&32)))* (&4 / &3 * pi)`) THEN 
+ASM_MESON_TAC[REAL_DIV_RMUL;REAL_MUL_ASSOC;REAL_MUL_SYM;REAL_ENTIRE;MESON[REAL_POW_NZ;REAL_ARITH `&1<= r ==> ~ (r= &0)`] `&1<=r ==> ~ (r pow 3 = &0)`;MESON[REAL_ARITH `&0< x ==> ~ (x= &0)`;SQRT_POS_LT;REAL_ARITH `&0< &32`] ` ~ (sqrt( &32) = &0)`];(*2b*)REWRITE_TAC[REAL_FIELD `((pi / sqrt (&18) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3) *
 		 sqrt (&32)= ((pi* sqrt( &32) / sqrt (&18)) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3`]
-  THEN SUBGOAL_THEN `sqrt (&32) / sqrt (&18)= &4/ &3`  (fun th -> REWRITE_TAC[th;REAL_FIELD `((&1 + &3 / r) pow 3 * &4 / &3 * pi * r pow 3) * &4 * pi / &3 = ((pi * &4/ &3) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3`]) THEN ONCE_REWRITE_TAC[REAL_ARITH ` &32= &4 pow 2  * &2 /\ &18= &3 pow 2 * &2`] THEN SIMP_TAC[SQRT_MUL;REAL_ARITH ` &0<= &2 /\ &0<= &3 pow 2 /\ &0<= &4 pow 2`;POW_2_SQRT;REAL_ARITH `&0<= &3 /\ &0<= &4`] THEN MATCH_MP_TAC(REAL_FIELD `~ (sqrt( &2) = &0) ==> (&4 * sqrt (&2)) / (&3 * sqrt (&2)) = &4 / &3`) THEN MESON_TAC[REAL_ARITH `&0< x ==> ~ (x= &0)`;MESON[SQRT_POS_LT;REAL_ARITH `&0< &2`] ` &0< sqrt ( &2)`]]]);;
+  THEN 
+SUBGOAL_THEN `sqrt (&32) / sqrt (&18)= &4/ &3`  (fun th -> REWRITE_TAC[th;REAL_FIELD `((&1 + &3 / r) pow 3 * &4 / &3 * pi * r pow 3) * &4 * pi / &3 = ((pi * &4/ &3) * (&1 + &3 / r) pow 3) * &4 / &3 * pi * r pow 3`]) THEN 
+ONCE_REWRITE_TAC[REAL_ARITH ` &32= &4 pow 2  * &2 /\ &18= &3 pow 2 * &2`] THEN 
+SIMP_TAC[SQRT_MUL;REAL_ARITH ` &0<= &2 /\ &0<= &3 pow 2 /\ &0<= &4 pow 2`;POW_2_SQRT;REAL_ARITH `&0<= &3 /\ &0<= &4`] THEN 
+MATCH_MP_TAC(REAL_FIELD `~ (sqrt( &2) = &0) ==> (&4 * sqrt (&2)) / (&3 * sqrt (&2)) = &4 / &3`) THEN 
+MESON_TAC[REAL_ARITH `&0< x ==> ~ (x= &0)`;MESON[SQRT_POS_LT;REAL_ARITH `&0< &2`] ` &0< sqrt ( &2)`]]]);;
 
 
 (*-------------------------------------------------------------------*)

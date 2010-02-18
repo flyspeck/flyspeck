@@ -1,0 +1,133 @@
+(* 
+   Build file for Flyspeck project.
+
+   the system dependent string flyspeck should be set to the "text_formalization" path.
+   For example, on my system, I have added a line to my .bashrc file
+   export FLYSPECK_DIR="$HOME/Desktop/flyspeck_google/source/text_formalization"
+
+   hol-light should already be loaded
+   #use "hol.ml";;
+
+ *)
+
+(* HOL LIGHT *)
+hol_version;;
+needs "Multivariate/flyspeck.ml";;
+
+
+(*
+
+*)
+let flyspeck_dir = 
+  (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
+
+(*
+Sys.command("svn info "^flyspeck_dir^" | grep Revison");;
+*)
+
+
+let fullpath s = Filename.concat flyspeck_dir s;;
+
+(* boolean valued versions of Harrison's load files that return false if load was not a success *)
+
+let use_file_b s =
+  (Toploop.use_file Format.std_formatter s) or 
+  (Format.print_string("Error in included file "^s);Format.print_newline(); false);;
+
+let load_on_path_b p s =
+  let s' = file_on_path p s in
+  let fileid = (Filename.basename s',Digest.file s') in
+   (use_file_b s' && (loaded_files := fileid::(!loaded_files);true));;
+
+let loadb s = load_on_path_b (!load_path) s;;
+
+let needb s =
+  let s' = file_on_path (!load_path) s in
+  let fileid = (Filename.basename s',Digest.file s') in
+  if List.mem fileid (!loaded_files)
+  then (Format.print_string("File \""^s^"\" already loaded\n");true) else loadb s;;
+
+(* debugging *)
+loadt (fullpath "general/debug.hl");;
+Debug.set_verbose_parsing();;
+
+
+(* limit changes in the state of the proof assistant  *)
+
+let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
+let new_axiom _ = failwith "new_axiom has been disabled in the Flyspeck build";; 
+
+loadt (fullpath "general/state_manager.hl");;
+
+State_manager.neutralize_state();;
+
+
+let fileid s = 
+  let s' = file_on_path (!load_path) (fullpath s) in
+    (Filename.basename s',Digest.file s');;
+
+(*
+The dependency calculation in flyspeck_needs still has a bug if the file does not
+load correctly, but it calls another file that does load correctly.  It seems that the
+correctly loaded modules disappear from the scope when the error is encountered.
+Thus, they should be filtered out as well from the depend statement.
+*)
+
+let (flyspeck_needs,filetable,depend)  =
+  let ftable = ref [("pervasives",List.length (constants()))] in (* associate constants with files *) 
+  let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in (* dependency table *)
+  let host = ref (fileid "build.hl") in
+  let fn = fun s->
+  let id = fileid s in 
+    if (List.mem id (!loaded_files))
+    then Format.print_string("File \""^s^"\" already loaded\n")
+    else
+      (
+        if List.mem (!host,id) (!depend) then failwith "There may be circular needs.";
+	depend := (!host,id)::(!depend);	       
+	let h = !host in 
+        let _ = (host := id) in
+        let b= needb (fullpath s) in
+        let _ = (host := h) in
+	let _ = try State_manager.neutralize_state () with
+	    Failure msg -> Format.print_string("File \""^s^
+						 "\"corrupted neutral state.\n"^msg^"\n") in
+	  if b then (
+            (ftable:= (s,List.length(constants()))::(!ftable));
+	    Format.print_string("File \""^s^"\" successfully loaded\n"))
+	  else (depend := filter ((<>) (h,id)) (!depend); failwith ("Aborting Flyspeck Needs "^s))
+      ) in
+    (fn,(fun () -> !ftable),(fun() -> !depend));;
+
+
+
+(* disable "needs" for now *)
+(*
+let needs' = needs;;
+let needs _ = failwith "Use flyspeck_needs rather than needs";;
+*)
+
+(* utilities *)
+flyspeck_needs "general/print-types.ml";;
+flyspeck_needs  "general/update_database_310.ml";;
+flyspeck_needs "general/prove_by_refinement.hl";;
+flyspeck_needs "general/flyspeck_utility.hl";;
+let prove_by_refinement = Debug.proofstyle_verbose Prove_by_refinement.prove_by_refinement;;
+let prove = Debug.proofstyle_verbose prove;;
+let new_definition = Debug.new_definition_verbose;;
+
+flyspeck_needs "build.hl";;
+
+map flyspeck_needs Build.build_sequence;;
+
+
+(* Build Notes *)
+(* fan does not work with the 090731 HOL-light build, needs
+   AZIM_UNIQUE which appears only in later snapshots of HOL-light *)
+(*  flyspeck_needs  "fan/fan.hl";; *)
+
+(* packing *)
+(* pack1 and TARJJUW work on 100110 snapshot, check feb 13, 2010. *)
+
+(* local fan -- no files *)
+

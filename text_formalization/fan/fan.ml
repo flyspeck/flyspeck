@@ -1,19 +1,25 @@
-
-(* Hoang Le Truong *)
-
-(* since you define C0,C1 independently, you need lemmas to relate this to other chapters.
-
-lemmas;; 
-`aff_gt {v} {v1,v2}={t1 % v+t2 % v1+t3 % v2 | ?t1 t2 t3. (t2 > &0)/\(t3 > &0)/\(t1+t2+t3= &1)}`;;
-
-`aff_ge {v} {v1,v2}={t1 % v+t2 % v1+t3 % v2 | ?t1 t2 t3. (t2 >= &0)/\(t3 >= &0)/\(t1+t2+t3= &1)}`;;
-
-*)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
 
 
+
+flyspeck_needs "general/sphere.hl";;
+
+
+module Fan  = struct
+
+
+(*
 # use "/home/truong/Desktop/googlecode/hol_light/hol.ml";;
 needs "/home/truong/Desktop/googlecode/hol_light/Multivariate/flyspeck.ml";;
 needs "/home/truong/Desktop/googlecode/flyspeck/text_formalization/general/sphere.hl";;
+*)
+
 open Sphere;;
 
 let ASM_TAC=REPEAT(POP_ASSUM MP_TAC);;
@@ -6948,3 +6954,4 @@ AFF_TAC);;
 
 
 
+end;;

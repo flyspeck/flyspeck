@@ -1,5 +1,15 @@
 (* More definitions and conclusions *)
 
+
+   let negligible_fun_p = new_definition `negligible_fun_p f S p = (? (C:real). (&0<= C)/\ ! (r:real). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
+
+   let negligible_fun_0 = new_definition `negligible_fun_0 f S  = negligible_fun_p f S ((vec:num->real^3) 0)`;;
+
+   let fcc_compatible= new_definition `fcc_compatible f S = (!v. v IN S ==> sqrt( &32) <= measure(voronoi_open v S) + f v)`;;
+
+   let kepler_conjecture = `kepler_conjecture = (!V. packing V /\ saturated V ==> (?(c:real). !(r:real). (&1<= r ==> vol ((UNIONS {ball(v:real^3, &1) | v IN V}) INTER ball(vec 0 ,r))/ vol (ball(vec 0, r))<= pi/ sqrt( &18) + c/ r)))`;;
+
+
 let GLTVHUM_concl = `!V (u0:real^3) p.  packing V /\ saturated V /\ (u0 IN V) ==>
    (p IN voronoi_closed V u0 <=>
   (?vl. vl IN barV V 3 /\ p IN rogers V vl /\ (truncate_simplex 0 vl = [u0])))`;;
@@ -43,7 +53,8 @@ let MHFTTZN4_concl = `!V ul k u v.  (k <= 3) /\ saturated V /\ packing V /\ barV
 
 let HL = new_definition `hl (ul:(real^N)list) = radV (set_of_list ul)`;;
 
-let XYOFCGX =  `!V S (p:real^3).  S SUBSET V /\ ~affine_dependent S /\
+let XYOFCGX_concl =  
+  `!V S (p:real^3).  S SUBSET V /\ ~affine_dependent S /\
    (p = circumcenter S) /\ (radV S < sqrt(&2)) ==>
    (!u v.  u IN S /\ v IN (V DIFF S) ==>dist(v,p) > dist(u,p))`;;
 
@@ -65,7 +76,6 @@ let XNHPWAB3_concl =
 `!V ul k.  saturated V /\ packing V /\ (k <= 3) /\ (ul IN barV V k) /\ (hl ul < sqrt(&2)) ==>
   (aff_dim { omega_list_n V ul j | j IN  (0..k)} = &k)`;;
 
-pterm XNHPWAB3_concl;;
 let XNHPWAB4_concl = 
 `!V ul k.  saturated V /\ packing V /\ (k <= 3) /\ (ul IN barV V k) /\ (hl ul < sqrt(&2)) ==>
   (! i j.  (i < j) /\ (j <= k)  ==>  hl(truncate_simplex i ul) < hl(truncate_simplex j ul))`;;
@@ -112,37 +122,49 @@ let WQPRRDY_concl =
   `!V ul k.  saturated V /\ packing V /\ ul IN barV V k /\ hl ul < sqrt(&2) ==>
     (convex hull (set_of_list ul) = UNIONS { rogers V (left_action_list p ul) |   p permutes (0..k) })`;;
 
-(* TO HERE *)
-
-let mxi = `!V ul. mxi V ul = @p. ((p IN convex hull { omega_list_n V ul 2  , omega_list V ul }) /\
-    (dist(p, HD ul) = sqrt(&2)))`;;
+let mxi = `!V ul. mxi V ul = 
+  if (hl (truncate_simplex 2 ul) >= sqrt(&2)) 
+  then omega_list_n V ul 2 
+  else (@p. ((p IN convex hull 
+    { omega_list_n V ul 2  , omega_list_n V ul 3}) /\
+    (dist(p, HD ul) = sqrt(&2))))`;;
 
 let MXI_EXISTS_concl = `!V ul.  saturated V /\ packing V /\ barV V 3 ul /\
-   hl (truncate_simplex 2 ul) < sqrt(&2) /\ sqrt(&2) <= hl ul ==>
-    (mxi V ul IN convex hull { omega_list_n V ul 2  , omega_list V ul }) /\
+    sqrt(&2) <= hl ul ==>
+    (mxi V ul IN convex hull { omega_list_n V ul 2  , omega_list_n V ul 3 }) /\
     (dist(mxi V ul, HD ul) = sqrt(&2))`;;
 
+let mcell0 = 
+  `!V ul. mcell0 V ul = rogers V ul DIFF ball(HD ul,sqrt(&2))`;;
 
-let mcell0 = `!V ul. mcell0 V ul = { p | dist(p, omega_list_n V ul 0) > sqrt(&2)}`;;
+let mcell1 = `!V ul. mcell1 V ul = 
+   rogers V ul INTER cball(HD ul, (sqrt (&2))) DIFF 
+    rcone_gt (HD ul) (HD (TL ul))
+        (hl (truncate_simplex 1 ul ) / (sqrt(&2))) `;;
 
-let mcell1 = `!V ul. mcell1 V ul = convex hull 
-  ({omega_list_n V ul 0} UNION {p | p IN rogers V ul /\ dist(p,omega_list_n V ul 0) = sqrt(&2)})`;;
+let mcell2 = `!V ul. mcell2 V ul = rogers V ul INTER
+  rcone_ge (HD ul) (HD (TL ul)) 
+    (hl (truncate_simplex 1 ul ) / (sqrt(&2))) INTER
+  aff_ge { HD ul, (HD (TL ul)) } { mxi V ul, omega_list_n V ul 3 }
+`;;
 
-let mcell2 = `!V ul. mcell2 V ul = convex hull
-  ((set_of_list (truncate_simplex 1 ul )) UNION 
-   { p | p IN rogers V ul /\ (p IN voronoi_list V (truncate_simplex 1 ul))
-    /\ (dist(p, HD ul) = sqrt(&2)) })`;;
 
 let mcell3 = `!V (ul:(real^3)list). mcell3 V ul = 
     if (hl (truncate_simplex 2 ul) < sqrt(&2)) /\ (sqrt(&2) <= hl ul) then
         convex hull (set_of_list (truncate_simplex 2 ul) UNION { xmi V ul })
     else {}`;;
 
-let mcell4 = `!V ul. mcell4 V ul = convex hull (set_of_list ul)`;;
+let mcell4 = `!V ul. mcell4 (V:real^3->bool) (ul:(real^3)list) = 
+ if (hl ul < sqrt(&2)) 
+ then convex hull (set_of_list ul) 
+ else {}`;;
 
 let mcell = `!(V:real^3->bool) ul.  (mcell i V ul) = 
    if (i=0) then mcell0 V ul else if (i=1) then mcell1 V ul else if (i=2) then mcell2 V ul 
    else if (i=3) then mcell3 V ul else mcell4 V ul`;;
+
+
+(* BGXEVQU , skip. Expand out using permutes *)
 
 let EMNWUUS1_concl = `!V ul. saturated V /\ packing V /\ barV V 3 ul ==>
    (hl ul < sqrt(&2) <=> ~(mcell4 V ul = {}))`;;
@@ -162,17 +184,30 @@ let RVFXZBU2_concl = `!V ul vl i.   saturated V /\ packing V /\ barV V 3 ul /\ b
 let RVFXZBU3_concl = `!V ul i p.   saturated V /\ packing V /\ barV V 3 ul /\
    (p permutes 0..(i-1)) ==> (mcell i V (left_action_list p ul) = mcell i V ul)`;;
 
+let LEPJBDJ_concl = `!V ul k.  
+  saturated V /\ packing V /\ barV V 3 ul ==>
+  (V INTER mcell k V ul = set_of_list (truncate_simplex (k-1) ul))`;;
+
+let URRPHBZ1_concl = `!V ul k.
+  saturated V /\ packing V /\ varV v 3 ul ==> 
+  measurable (mcell k V ul)`;;
+
+let URRPHBZ2_concl = `!V ul k v.
+  saturated V /\ packing V /\ varV v 3 ul /\ (v IN V)==> 
+  eventually_radial v (mcell k V ul)`;;
+
+let URRPHBZ3_concl = `!V ul k v.
+  saturated V /\ packing V /\ varV v 3 ul /\ 
+   (v IN V DIFF mcell k V ul)==> 
+  (?t. t > &0 /\ (!p. p IN mcell k V ul ==> t < dist(p,v)))`;;
+
+
+
+
+
 (*
 let IJEKNGA_concl = 
 *)
-
-   let negligible_fun_p = new_definition `negligible_fun_p f S p = (? (C:real). (&0<= C)/\ ! (r:real). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
-
-   let negligible_fun_0 = new_definition `negligible_fun_0 f S  = negligible_fun_p f S ((vec:num->real^3) 0)`;;
-
-   let fcc_compatible= new_definition `fcc_compatible f S = (!v. v IN S ==> sqrt( &32) <= measure(voronoi_open v S) + f v)`;;
-
-   let kepler_conjecture = `kepler_conjecture = (!V. packing V /\ saturated V ==> (?(c:real). !(r:real). (&1<= r ==> vol ((UNIONS {ball(v:real^3, &1) | v IN V}) INTER ball(vec 0 ,r))/ vol (ball(vec 0, r))<= pi/ sqrt( &18) + c/ r)))`;;
 
 (*
 JGXZYGW already done by Nguyen Tat Thang
@@ -192,16 +227,3 @@ JGXZYGW already done by Nguyen Tat Thang
 
 
 
-type_of `acs`;;
-pterm  kepler_conjecture;;
-gtype_of `truncate_simplex`;;
-`rogers (left_action_list p ul)`;;
-type_of `rogers`;;
-`{ rogers (left_action_list p ul) |   p permutes (0..k) }`;;
-`(convex hull (set_of_list ul) = UNIONS { rogers (left_action_list p ul) |   p permutes (0..k) })`;;
-search [`(0..i)`;omit `x:real`;omit `x:real^N`];;
-
-	    type_of `EL`;;
-pterm YIFVQDV_concl;;
-type_of `omega_list`;;
-type_of `PRODUCT`;;

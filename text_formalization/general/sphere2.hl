@@ -1,6 +1,10 @@
 (* More definitions and conclusions *)
 
 
+flyspeck_needs "volume/vol1.hl";;
+
+let sol = Vol1.sol;;
+
    let negligible_fun_p = new_definition `negligible_fun_p f S p = (? (C:real). (&0<= C)/\ ! (r:real). ( &1 <= r) ==> (sum (S INTER ball(p,r)) f) <= C * (r pow 2))`;;
 
    let negligible_fun_0 = new_definition `negligible_fun_0 f S  = negligible_fun_p f S ((vec:num->real^3) 0)`;;
@@ -142,12 +146,12 @@ let mcell1 = `!V ul. mcell1 V ul =
     rcone_gt (HD ul) (HD (TL ul))
         (hl (truncate_simplex 1 ul ) / (sqrt(&2))) `;;
 
-let mcell2 = `!V ul. mcell2 V ul = rogers V ul INTER
-  rcone_ge (HD ul) (HD (TL ul)) 
-    (hl (truncate_simplex 1 ul ) / (sqrt(&2))) INTER
-  aff_ge { HD ul, (HD (TL ul)) } { mxi V ul, omega_list_n V ul 3 }
+let mcell2 = `!V ul. mcell2 V ul = 
+  (let a =  hl (truncate_simplex 1 ul ) / (sqrt(&2)) in
+  rcone_ge (HD ul) (HD (TL ul)) a INTER
+  rcone_ge  (HD (TL ul)) (HD ul) a INTER
+  aff_ge { HD ul, (HD (TL ul)) } { mxi V ul, omega_list_n V ul 3 })
 `;;
-
 
 let mcell3 = `!V (ul:(real^3)list). mcell3 V ul = 
     if (hl (truncate_simplex 2 ul) < sqrt(&2)) /\ (sqrt(&2) <= hl ul) then
@@ -163,6 +167,9 @@ let mcell = `!(V:real^3->bool) ul.  (mcell i V ul) =
    if (i=0) then mcell0 V ul else if (i=1) then mcell1 V ul else if (i=2) then mcell2 V ul 
    else if (i=3) then mcell3 V ul else mcell4 V ul`;;
 
+let mcell_set = `mcell_set V =
+{ X |  ?i ul.  (X = mcell i V ul) /\ ul IN barV V 3 }`;;
+
 
 (* BGXEVQU , skip. Expand out using permutes *)
 
@@ -172,8 +179,11 @@ let EMNWUUS1_concl = `!V ul. saturated V /\ packing V /\ barV V 3 ul ==>
 let EMNWUUS2_concl = `!V ul. saturated V /\ packing V /\ barV V 3 ul ==>
    (hl ul < sqrt(&2) <=> (mcell0 V ul = {}) /\ (mcell1 V ul = {}) /\ (mcell2 V ul = {}) /\ (mcell3 V ul = {}))`;;
 
-let SLTSTLO_concl = `!V ul p.  saturated V /\ packing V /\ barV V 3 ul /\ (p IN rogers V ul) ==>
+let SLTSTLO1_concl = `!V ul p.  saturated V /\ packing V /\ barV V 3 ul /\ (p IN rogers V ul) ==>
    (?i.  (i <= 4) /\ (p IN mcell i V ul))`;;
+
+let SLTSTLO2_concl = `!V ul. ?Z. !p.  saturated V /\ packing V /\ barV V 3 ul ==>
+    (NULLSET Z) /\ (p IN rogers V ul DIFF Z ==>  (?!i.  (i <= 4) /\ (p IN mcell i V ul)))`;;
 
 let RVFXZBU1_concl = `!V ul vl i j.   saturated V /\ packing V /\ barV V 3 ul /\ barV V 3 vl /\ ~(i=j) ==>
   NULLSET (mcell i V ul INTER mcell j V vl)`;;
@@ -184,9 +194,20 @@ let RVFXZBU2_concl = `!V ul vl i.   saturated V /\ packing V /\ barV V 3 ul /\ b
 let RVFXZBU3_concl = `!V ul i p.   saturated V /\ packing V /\ barV V 3 ul /\
    (p permutes 0..(i-1)) ==> (mcell i V (left_action_list p ul) = mcell i V ul)`;;
 
+(*
 let LEPJBDJ_concl = `!V ul k.  
   saturated V /\ packing V /\ barV V 3 ul ==>
   (V INTER mcell k V ul = set_of_list (truncate_simplex (k-1) ul))`;;
+*)
+
+let cell_params = `!V X. cell_params V X = @(k,ul).
+    (k <= 4) /\ (ul IN barV V 3) /\ (X = mcell k V ul)`;;
+
+let VX = `!V X.   VX V X = 
+    if (NULLSET X) then {} else
+        (let (k,ul) = cell_params V X in set_of_list (truncate_simplex (k-1) ul))`;;
+
+let edgeX = `!V X. edgeX V X =  { ({u,v}) | VX V X u /\ VX V X v /\ ~(u=v) }`;;
 
 let URRPHBZ1_concl = `!V ul k.
   saturated V /\ packing V /\ varV v 3 ul ==> 
@@ -201,9 +222,45 @@ let URRPHBZ3_concl = `!V ul k v.
    (v IN V DIFF mcell k V ul)==> 
   (?t. t > &0 /\ (!p. p IN mcell k V ul ==> t < dist(p,v)))`;;
 
+let QZYZMJC_concl = `!V v X. 
+    saturated V /\ packing V /\ (v IN V) ==>
+    (sum { X | mcell_set V X } (\t. sol X v) = &4 * pi)`;;
 
+let total_solid = `!V X. total_solid V X =  sum  ( VX V X  )     (sol X)`;;
 
+(* The definition of dihX is rather awkward, because a cell is essentially a quotient
+    type, so it is not natural to make definitions with cells as a parameter.  
+    Several lemmas will have to be proved to make these definitions useable, such as
+   dihX V (mcell 4 V ul) ((EL 0 ul),(EL 1 ul)) = dihV (EL 0 ul) (EL 1 ul) (EL 2 ul) (EL 3 ul).
+*)
 
+let dihX2 = `!V X u v. dihX2 V X (v0,v1) = 
+  (let (k,ul) = cell_params V X in
+     dihV v0 v1 (mxi V ul) (omega_list_n V ul 3))`;;
+
+(* The sum has a single term *)
+
+let dihX3 = `!V X u v. dihX3 V X (v0,v1) =
+  (let (k,ul) = cell_params V X in
+     sum { (vl,p) | p permutes {0,1,2} /\ 
+         (vl = left_action_list p ul) /\ (v0 = EL 0 vl) /\ (v1 = EL 1 vl) }
+         ( \ (vl,p) . dihV v0 v1 (EL 2 vl) (mxi V ul) ))`;;
+
+(* The sum has two terms. Take the average *)
+
+let dihX4 = `!V X u v. dihX4 V X (v0,v1) =
+  (let (k,ul) = cell_params V X in
+     (&1 / &2) * sum { (vl,p) | p permutes {0,1,2,3} /\ 
+         (vl = left_action_list p ul) /\ (v0 = EL 0 vl) /\ (v1 = EL 1 vl) }
+         ( \ (vl,p). dihV v0 v1 (EL 2 vl) (EL 3 ul) ))`;;
+
+let dihX = `!V X u v. dihX V X (v0,v1) = 
+   if (NULLSET X) then &0 else
+     (let (k,ul) = cell_params V X in
+	if (k=2) then dihX2 V X (v0,v1)
+	else if (k=3) then dihX3 V X (v0,v1)
+	else if  (k=4) then dihX4 V X (v0,v1)
+	else &0)`;;
 
 (*
 let IJEKNGA_concl = 
@@ -225,5 +282,79 @@ JGXZYGW already done by Nguyen Tat Thang
    let marchal =  `marchal h =
     (if (h <= &2) then marchal_linear h else &0)`;;
 
+   let gammaX = `!V X f.
+    gammaX V X f = vol(X) - (&2*mm1 / pi)*total_solid V X +
+     (&8*mm2/ pi) * sum (edgeX V X) (\{u,v}. (dihX V X u v)* f(hl [u;v]))`;;
 
+let marchal_inequality = `marchal_inequality =
+    (!V X.  saturated V /\ packing V /\ mcell_set V X ==>
+       gammaX V X marchal >= &0)`;;
+
+(* These individual statements rather than the entire lemma are what we need. *)
+
+let KIZHLTL1_concl = `!V. ?c. !r. saturated V  /\ packing V /\ (&1 <= r) ==>
+   (sum (mcell_set V)   vol  + c*r pow 2 
+   <= sum (V INTER  B(&0,r)) (\u. vol(Omega_open u V)))`;;
+      
+let KIZHLTL2_concl = `!V. ?c. !r. saturated V /\ packing V /\ (&1 <= r) ==>
+  ( &(CARD(V INTER B(&0,r)))* &8*mm1    + c*r pow 2
+  <=  (&2*mm1/pi)* sum (mcell_set V) total_solid )`;;
+
+let KIZHLTL3_concl = `!V f. ?c. !r. saturated V /\ packing V /\ (&1 <= r) /\
+  (?c1. !x.  &2 <= x /\ x < sqrt(&8) ==> abs( f x) <= c1)
+   ==>
+   (( &8 * mm2 /pi)* 
+         sum (mcell_set V) ( \ X.   sum (edgeX V X) ( \ {u,v}. (dihX V X u v)*f (hl[u;v])))
+					  +c*r pow 2 <=
+	&8*mm2 * 
+         sum (V INTER B(&0,r)) 
+           ( \u.  sum { v | v IN V /\ ~(u=v) /\ dist(u,v) < sqrt(&8)}  ( \v.  f(hl [u;v]))))`;;
+
+let h0 = `h0 = #1.26`;;
+
+let lmfun = `lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0`;;
+
+let hminus = `hminus = @x. #1.2 <= x /\ x < #1.3 /\ marchal x = lmfun x`;;
+
+let critical_edgeX =`critical_edgeX V X = { {u,v} | {u,v} IN edgeX V X /\ hminus <= hl [u;v] /\
+					    hl[u;v] <= hplus}`;;
+
+let critical_weight = `! V X. critical_weight V X = &1/ &(CARD (critical_edgeX V X))`;;
+
+let bump = `!h. bump h = #0.005*(&1 - ((h- h0) pow 2)/((hplus - h0) pow 2))`;;
+
+  (* average over all 4 = 2! x 2! possible representations *)
+
+let beta_bump = `!V e X. beta_bump V e X = 
+  (let (k,ul) = cell_params V X in  
+    sum { (e',e'',p,vl) | (k=4) /\ (critical_edgeX V X = {e',e''}) /\ (e =e') /\ p permutes 0..3 
+               /\ (vl = left_action_list p ul) /\ (e' = {EL 0 vl, EL 1 vl}) /\ (e'' = {EL 2 vl, EL 3 vl} ) }
+    ( \ (e',e'',p,vl). (bump(hl [EL 0 vl; EL 1 vl]) - bump(hl [EL 2 vl; EL 3 vl]) )/ &4 ))`;;
+
+let cell_cluster = `!V e. cell_cluster V e = { X |  e IN critical_edgeX V X /\ mcell_set V X }`;;
+
+let cluster_gammaX = `!V e Z. cluster_gammaX V e Z= 
+   sum Z ( \ X.  gammaX V X lmfun  * critical_weight V X  + beta_bump V e X )`;;
+
+let cell_cluster_estimate = `!V. cell_cluster_estimate V = (!e.  
+  (cluster_gammaX V e (cell_cluster V e) >= &0))`;;
+
+let OXLZLEZ_concl = `!V.  (saturated V /\ packing V ) ==> cell_cluster_estimate V`;;
+
+let lmfun_inequality = `!V. lmfun_inequality V = (!u.  u IN V ==>
+     sum { v | v IN V /\ ~(u=v) /\ dist(u,v) <= &2*h0 } ( \v. lmfun (hl [u;v]) ) <= &12)`;;
+
+let UPFZBZM_concl = `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+   lmfun_inequality V ==> (?G. negligible_fun_0 G V /\ fcc_compatible G V)`;;
+
+let ball_annulus = `ball_annulus = cball((vec 0:real^3) , &2 * h0) DIFF ball(vec 0, &2)`;;
+
+let lmfun_ineq_center = `!V. lmfun_ineq_center V = 
+     sum V ( \v. lmfun (hl [vec 0;v]) ) <= &12`;;
+
+let RDWKARC_concl = `~kepler_conjecture /\ (!V. cell_cluster_estimate V) 
+   ==> (?V.  packing V /\ V SUBSET ball_annulus /\ ~(lmfn_ineq_center V))`;;
+  
+
+(* counting spheres *)
 

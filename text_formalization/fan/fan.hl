@@ -65,7 +65,9 @@ let fan = new_definition`fan(x,V,E)<=>  ((UNIONS E) SUBSET V) /\ graph(E)/\ fan1
 
 let base_point_fan=new_definition`base_point_fan (x,V,E)=x`;;
 
+(*
 let set_of_edges=new_definition`set_of_edges v E={w|{v,w} IN E}`;;
+*)
 
 let set_of_edge=new_definition`set_of_edge v V E={w|{v,w} IN E /\ w IN V}`;;
 
@@ -257,7 +259,10 @@ let sigma_fan=new_definition`sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->b
 (!(w1:real^3). (w1 IN (set_of_edge v V E))/\ ~(w1=u) ==> azim x v u w <= azim x v u w1)))`;;
 
 
-
+(* This extends sigma to have a larger domain
+   of R^3 rather than just V.  It is the
+   identity outside V (compare the definition
+   of `permutes` ).   *)
 
 
 
@@ -310,6 +315,7 @@ REMOVE_THEN "a" (fun th ->MP_TAC(ISPEC `(IMAGE (azim x v u) ((set_of_edge (v:rea
   THEN ASM_REWRITE_TAC[IMAGE;DELETE;IN_ELIM_THM] THEN STRIP_TAC THEN EXISTS_TAC`x':real^3`
   THEN ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[]
 ](*5*)](*4*)](*3*)](*2*)(*1*)));;
+
 
 
 let azim1=new_definition`azim1 (x:real^3) (v:real^3) (u:real^3) (w:real^3)= &2 * pi- azim x v u w`;;
@@ -764,6 +770,7 @@ MESON_TAC[CYCLIC_SET_EDGE_FAN]);;
 let d1_fan =new_definition`
 d1_fan (x,V,E) ={(x':real^3,v:real^3,w:real^3,w1:real^3)| (x'=x) /\ ({v,w} IN  E)/\ (w1 = sigma_fan x V E v w)}`;;
 
+(* d2_fan not yet used *)
 
 let d2_fan=new_definition`d2_fan (x,V,E)={ (x',v)| (x'=x) /\ (V v) /\ ((set_of_edge v V E) ={})}`;;
 
@@ -779,6 +786,9 @@ let f_fan=new_definition`f_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real
 
 let n_fan=new_definition`n_fan (x:real^3) V E =(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,v,(sigma_fan x V E v w),(sigma_fan x V E v (sigma_fan x V E v w))))`;;
 
+(* i_fan corrects the 4th coordinate to be
+   the dart *)
+
 let i_fan=new_definition`i_fan (x:real^3) V E=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,v,w,(sigma_fan x V E v w)))`;;
 
 let pr1=new_definition`pr1=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). x)`;;
@@ -789,22 +799,28 @@ let pr3=new_definition`pr3=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). w)`
 
 let pr4=new_definition`pr4=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). w1)`;;
 
+(* if f = sigma, the power_map_points gives
+   iterates of sigma (for fixed x v) *)
 
 let power_map_points= new_recursive_definition num_RECURSION `(power_map_points f x V E v w 0 = w)/\(power_map_points f x V E v w  (SUC n)= f x V E v (power_map_points f x V E v w n))`;;
 
+(* This is the composition operator (o),
+   specialized to functions on 4-tuples *)
 
 let o_funs=new_definition`!(f:real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3) (g:real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3). o_funs f g =(\(x:real^3,y:real^3,z:real^3,t:real^3).  f (pr1 (g(x,y,z,t)),pr2(g(x,y,z,t)),pr3(g(x,y,z,t)),pr4(g(x,y,z,t))))`;;
 
+(* powers of permutations *)
 
 let power_maps= new_recursive_definition num_RECURSION `(power_maps  (f:real^3->(real^3->bool)->((real^3->bool)->bool)->real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3) (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) 0 = i_fan (x:real^3) V E) /\ (power_maps f x V E (SUC n)= o_funs (f x V E)  (power_maps f x V E n))`;;
 
-
+(* powers of node map *)
 
 
  
 let power_n_fan= new_definition`power_n_fan x V E n=( \(x,v,w,w1). (x,v,(power_map_points sigma_fan x V E v w n),(power_map_points sigma_fan x V E v w (SUC n))))`;; 
 
-
+(* the node of a dart, in a special form
+   for fans *)
 
 let a_node_fan=new_definition`a_node_fan x V E (x,v,w,w1)={a | ?n. a=(power_maps  n_fan x V E n) (x,v,w,sigma_fan x V E v w)}`;;
 
@@ -815,7 +831,7 @@ let a_node_fan=new_definition`a_node_fan x V E (x,v,w,w1)={a | ?n. a=(power_maps
 
 
 
-
+(* The set X(V,E) *)
 
 
 
@@ -824,11 +840,17 @@ let xfan= new_definition`xfan (x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
 let yfan= new_definition`yfan (x,V,E)={v:real^3 | ?e. ( E e )/\(~(v IN aff_ge {x} e))}`;;
 
 
+(*
 
 let x_fan= new_definition`x_fan (x,V,E)={v | ?e. (e IN E)/\(v IN aff_ge {x} e)}`;;
 
 let y_fan= new_definition`y_fan (x,V,E)={v:real^3 | ?e. (e IN E )/\(~(v IN aff_ge {x} e))}`;;
 
+*)
+
+(*
+W^0_{dart}(x,v,w...)
+*)
 
 let w_dart_fan=new_definition`w_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3))=  
 if (CARD (set_of_edge v V E) > 1) then wedge x v w (sigma_fan x V E v w)
@@ -1887,6 +1909,10 @@ MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:
 
 
 
+(*
+This is the same as inverse_sigma_fan,
+but easier to use.
+*)
 
 let inverse1_sigma_fan=new_definition`inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3)= @g. (!w:real^3. {v,w} IN E==> {v, g w} IN E)
 /\ (!w:real^3. {v,w} IN E==> (sigma_fan x V E v)( g w) =w)
@@ -1901,6 +1927,9 @@ FAN(x,V,E) ==>
 /\ (!w:real^3. {v,w} IN E==> inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (sigma_fan x V E v w) =w))`,
 REPEAT GEN_TAC THEN STRIP_TAC THEN ONCE_REWRITE_TAC[inverse1_sigma_fan] THEN MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3) `]exists_function_inverse_sigma_fan)
   THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN SELECT_ELIM_TAC  THEN EXISTS_TAC`g:real^3->real^3` THEN ASM_REWRITE_TAC[]);;
+
+(* This is the same as f_fan, 
+   but easier to use *)
 
 let f1_fan=new_definition`f1_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,(inverse1_sigma_fan x V E w v),v) )`;;
 
@@ -2070,7 +2099,7 @@ THEN STRIP_TAC THEN MP_TAC(ISPECL[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)-
   THEN ASM_MESON_TAC[]);;
 
 
-
+(* from hypermap.hl *)
 
 (******************************)
 parse_as_infix("POWER",(24,"right"));;
@@ -2378,6 +2407,7 @@ MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:
 a IN a_node_fan x V E (x,v,w,w1)==>(?n. a=(x,v,(power_map_points sigma_fan x V E v w n),(power_map_points sigma_fan x V E v w (SUC n))))`,
 REWRITE_TAC[a_node_fan; IN_ELIM_THM; ] THEN REWRITE_TAC[node_fan] THEN REWRITE_TAC[power_n_fan]);;*)
 
+(* local definitions *)
 
 let complement_set= new_definition`complement_set {x:real^3, v:real^3} = {y:real^3| ~(y IN aff {x,v})} `;;
 
@@ -2392,7 +2422,7 @@ REPEAT GEN_TAC  THEN REWRITE_TAC[complement_set] THEN SET_TAC[]);;
 (*---------------------------------------------------------------*)
 
 
-
+(* local def *)
 
 
 let if_azims_fan= new_definition`
@@ -4417,6 +4447,8 @@ MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (v
 
 (*************JGIYDLE*******************)
 
+(* rcone^0(x,v,h) *)
+
 let rcone_fan = new_definition `rcone_fan  (x:real^3) (v:real^3) (h:real) = {y:real^3 | (y-x) dot (v-x) >(dist(y,x)*dist(v,x)*h)}`;;
 
 
@@ -5485,6 +5517,10 @@ THENL[ASM_SET_TAC[];
 ASM_SET_TAC[]];
 ASM_SET_TAC[]]]);;
 
+(*
+W^0_{dart}(x,epsilon)
+*)
+
 let rw_dart_fan= new_definition`rw_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3)) (h:real)= w_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3)) INTER rcone_fan x v h`;;
 
 
@@ -6039,6 +6075,10 @@ THEN MP_TAC(ARITH_RULE`~(CARD (set_of_edge (v:real^3) (V:real^3->bool) (E:(real^
 THEN RESA_TAC
 THEN MP_TAC(ISPECL[`{u:real^3}`;`set_of_edge (v:real^3) (V:real^3->bool) (E:(real^3->bool)->bool)`]CARD_SUBSET_LE)
 THEN ASM_SET_TAC[]);;
+
+(*
+azim(x), x dart.
+*)
 
 let azim_fan=new_definition`azim_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (w:real^3)
 = if (CARD (set_of_edge v V E) > 1) then azim x v w (sigma_fan x V E v w) else &2* pi`;;

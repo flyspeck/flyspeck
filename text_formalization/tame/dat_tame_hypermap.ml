@@ -1,12 +1,56 @@
-(*DANG TAT DAT*)
-(* # use "hol.ml";;  *)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: UBHDEUU                                                        *)
+(* Chapter: Tame Hypermap                                                  *)
+(* Author: DANG TAT DAT                                                    *)
+(* Date: 2010-02-26                                                           *)
+(* ========================================================================== *)
 
-needs "Multivariate/flyspeck.ml";;
+(*
+
+(V,E_{std}) is a fan
+
+*)
+
+(* 
+This file is in desperate need of revision.
+
+Uses CHEAT_TAC  throughout the file.
+    Doesn't load with the current build.
+    V is used first as a variable (as in the definition of fan11), then as a defined constant 
+      let V = new_definition `V = ....`.  
+    This prevents it from being loaded again after the first attempt, and makes it incompatible
+        with most other files.
+    It defines other single character constants r,p,q,... that are liable to cause problems.
+    Incompatible with flyspeck-svn-1581 hol_light-svn-14 as of Feb 26, 2010.
+
+The definitions do not appear to be the standard ones.
+
+-THales
+
+*)
+
+
+module  Ubhdeuu = struct
+
+
+
+(* # use "hol.ml";;  *)
+(* needs "Multivariate/flyspeck.ml";; *)
 (* needs "update_database_310.ml";; *)
+(*  needs "hypermap.ml";; *)
+
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "fan/fan.hl";;
+
 prioritize_real();;
 
 (* Fan definition*)
-let graph = new_definition `graph (E:(real^3 ->bool)->bool)  <=>  (!e. E e ==> (e HAS_SIZE 2))`;;
+let graph = Fan.graph;;
+
+
+(* new_definition `graph (E:(real^3 ->bool)->bool)  <=>  (!e. E e ==> (e HAS_SIZE 2))`;; *)
 
 let fan11 = new_definition `fan11 (V:real^3 -> bool)  <=>  FINITE V`;;
 
@@ -23,7 +67,11 @@ let new_fan = new_definition `new_fan(x:real^3,V,E) <=> ((UNIONS E) SUBSET V) /\
 
 (*Contravening Hypermap*)
 
-let packing = new_definition `packing (S:real^3 -> bool) = (!u v. (u IN S) /\ (v IN S) /\ ~(u = v) ==> (&2 <= dist( u, v)))`;;
+(* Changed packing to a thm rather than a definition to make it compatible 
+   with definition in Sphere.packing -Feb 2010, thales *)
+
+let packing = prove( `packing (S:real^3 -> bool) = (!u v. (u IN S) /\ (v IN S) /\ ~(u = v) ==> (&2 <= dist( u, v)))`,REWRITE_TAC[IN;Sphere.packing]);;
+
 
 let h0 = new_definition `h0 = #1.26`;;  (*Definition Const real number*)
 
@@ -198,7 +246,7 @@ let  UBHDEUU  =prove(`!(x:real^3) (S:real^3 -> bool).(packing S) /\ (x IN S) ==>
 
 (*=-=================================================================================================*)
 
-needs "hypermap.ml";;
+
 (* triangle, quadrilateral, exceptional *)
 let triangles = new_definition `triangles (H:(A)hypermap) (x:A)  
  <=> (CARD (face H x)) = 3`;;
@@ -285,12 +333,4 @@ let thm_arc1 = `!u w.(u IN (V x S)) /\ (w IN (edge H u)) ==>
 
 
 
-
-
-
-
-
-
-
-
-
+end;;

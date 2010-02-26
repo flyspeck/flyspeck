@@ -1,6 +1,27 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: PPHEUFG                                                     *)
+(* Chapter: Tame Hypermap                                                   *)
+(* Author: Trieu Thi Diep                                                   *)
+(* Date: 2010-02-26                                                           *)
+(* ========================================================================== *)
+
+
+
+module type Tame_opposite_type = sig
+
+end;;
+
+flyspeck_needs "hypermap/hypermap.hl";;
+
+module Tame_opposite  = struct
+
+
+
 (*Trieu Thi Diep*)
 
-needs "hypermap.ml";;
+(* needs "hypermap.ml";; *)
 
 (*
 needs "Multivariate/flyspeck.ml";;
@@ -24,9 +45,27 @@ needs "collect_geom_spec.ml";;
 *)
 *)
 
+open Hypermap;;
 
-
-
+(*
+let hypermap_lemma = Hypermap.hypermap_lemma;;
+let hypermap_tybij = Hypermap.hypermap_tybij;;
+let POWER_0 = Hypermap.POWER_0;;
+let POWER_1 = Hypermap.POWER_1;;
+let COM_POWER = Hypermap.COM_POWER;;
+let addition_exponents = Hypermap.addition_exponents;;
+let plain_hypermap = Hypermap.plain_hypermap;;
+let edge_map = Hypermap.edge_map;;
+let LEFT_MULT_MAP = Hypermap.LEFT_MULT_MAP;;
+let RIGHT_INVERSE_EQUATION = Hypermap.RIGHT_INVERSE_EQUATION;;
+let simple_hypermap = Hypermap.simple_hypermap;;
+let face = Hypermap.face;;
+let face_map = Hypermap.face_map;;
+let node = Hypermap.node;;
+let node_map = Hypermap.node_map;;
+let dart = Hypermap.dart;;
+let orbit_map = Hypermap.orbit_map;;
+*)
 
 let opposite_hypermap = new_definition `opposite_hypermap (H:(A)hypermap) = hypermap ((dart H),face_map H o node_map H , inverse(node_map H),inverse(face_map H))`;;
 
@@ -634,3 +673,5 @@ MESON_TAC[tame_opposite_hypermap;INVERSE_tame_opposite_hypermap]);;
 
 
 
+
+end;;

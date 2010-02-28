@@ -1,0 +1,273 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Definitions                                                                  *)
+(* Chapter: Tame Hypermap                                                               *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-02-27                                                           *)
+(* ========================================================================== *)
+
+(*
+Definitions file for Tame Hypermap 
+*)
+
+flyspeck_needs "hypermap/hypermap.hl";;
+flyspeck_needs "fan/fan.hl";;
+flyspeck_needs "packing/pack_defs.hl";;
+
+module Tame_hypermap_defs  = struct
+
+(*
+let edge_nondegenerate = new_definition `edge_nondegenerate (H:(A)hypermap)  
+   <=> !(x:A).(x IN dart H) ==> ~ (edge_map H x = x)`;;
+*)
+
+let is_edge_nondegenerate = new_definition `is_edge_nondegenerate (H:(A)hypermap) <=> 
+  (!x:A. x IN dart H ==> ~(edge_map H x = x))`;;
+
+let is_node_nondegenerate = new_definition `is_node_nondegenerate (H:(A)hypermap) <=> 
+   (!x:A. x IN dart H ==> ~(node_map H x = x))`;;
+
+
+
+(* no_loops does not restrict x,y to be darts.  But edge H is the identitiy outside darts, so this is OK. *)
+
+let no_loops = new_definition `no_loops (H:(A) hypermap) <=> ! (x:A) (y:A). x IN edge H y /\ x IN node H y ==> x = y`;;  
+
+(* this definition is more complicated than it needs to be.  It is better to use hypermap.hl is_no_double_joints *)
+
+(*
+let hypermap_no_double_joins = new_definition 
+    `hypermap_no_double_joins (H:(A) hypermap) <=> 
+    ! (x:A) (y:A) (z:A) (t:A) (u:A) (v:A). x IN node H z /\ y IN (edge H x INTER node H t) /\ ~ (x = y) 
+    /\ ~(z IN node H t) /\ u IN node H z /\ v IN (edge H u INTER node H t) 
+     /\ ~(u = v) ==>  x IN edge H u`;; 
+*)
+
+let is_no_double_joints = new_definition `is_no_double_joints (H:(A)hypermap) 
+   <=> (!x y. x IN dart H /\ y IN node H x /\ edge_map H y IN node H (edge_map H x) ==> x = y)`;;
+
+let exceptional_face = new_definition `exceptional_face (H:(A)hypermap) (x:A) <=> CARD (face H x) >= 5`;;
+
+let set_of_triangles_meeting_node = new_definition 
+   `set_of_triangles_meeting_node (H:(A)hypermap) (x:A) = 
+         {face H (y:A) |y | y IN dart H /\ CARD (face H y) = 3 /\  y IN node H x }`;;
+
+let set_of_quadrilaterals_meeting_node = new_definition 
+    `set_of_quadrilaterals_meeting_node (H:(A)hypermap) (x:A) = 
+     {face (H:(A)hypermap) (y:A)|y | y IN dart H /\ CARD (face H y) = 4 /\ y IN node H x}`;;
+
+let set_of_exceptional_meeting_node = new_definition 
+  `set_of_exceptional_meeting_node (H:(A)hypermap) (x:A) =
+  {face H (y:A) | y | (y IN (dart H)) /\ (CARD (face H y) >= 5) /\ (y IN node H x)}`;;
+
+let set_of_face_meeting_node = new_definition 
+  `set_of_face_meeting_node (H:(A)hypermap) (x:A) = 
+   {face H (y:A)|y| y IN dart H /\ y IN node H x}`;;
+
+let type_of_node = new_definition 
+  `type_of_node (H:(A)hypermap) (x:A) = 
+   (CARD (set_of_triangles_meeting_node H x), 
+    CARD (set_of_quadrilaterals_meeting_node H x), 
+    CARD (set_of_exceptional_meeting_node H x ))`;;
+
+let node_type_exceptional_face = new_definition 
+  `node_type_exceptional_face (H:(A)hypermap) (x:A) <=> 
+   exceptional_face H x /\ (CARD (node H x) = 6) ==> type_of_node H x = (5,0,1)`;;
+
+let node_exceptional_face = new_definition 
+  `node_exceptional_face (H:(A)hypermap) (x:A) <=> 
+    exceptional_face H x ==> CARD (node H x) <= 6`;;
+
+
+let tgt = new_definition `#1.541`;;
+
+
+    let b_tame = new_definition 
+  `b_tame p q= 
+           if p,q =0,3 then #0.618
+    else if p,q=0,4 then #1.0
+    else if p,q=1,2 then #0.66
+    else if p,q=1,3 then #0.618
+    else if p,q=2,1 then #0.8
+    else if p,q=2,2 then #0.412
+    else if p,q=2,3 then #1.2851
+    else if p,q=3,1 then #0.315
+    else if p,q=3,2 then #0.83
+    else if p,q=4,0 then #0.35
+    else if p,q=4,1 then #0.374
+    else if p,q=5,0 then #0.04
+    else if p,q=5,1 then #1.144
+    else if p,q=6,0 then #0.689
+    else if p,q=7,0 then #1.450
+    else tgt`;;
+
+
+
+(*
+let d_tame = new_definition `d_tame n = if n = 3 then &0 else 
+                      if n = 4 then &206 / &1000 else
+                      if n = 5 then &483 / &1000 else 
+                      if n = 6 then &760 / &1000 else tgt`;;
+*)
+
+let d_tame = new_definition `d_tame n = 
+     if n = 3 then &0 else 
+     if n = 4 then #0.206 else
+     if n = 5 then #0.4819 else 
+     if n = 6 then #0.7578 else tgt`;;
+
+let a_tame = new_definition `a_tame = #0.63`;;
+
+let total_weight = new_definition `total_weight (H:(A)hypermap) (w:(A->bool)->real) = sum (face_set H) w`;;
+
+let adm_1 = new_definition `adm_1 (H:(A)hypermap) (w:(A->bool)->real) <=> (!x:A. w (face H x)  >= d_tame (CARD (face H x)))`;;
+
+let adm_2 = new_definition `adm_2 (H:(A)hypermap) (w:(A->bool)->real) <=> (!x:A. (CARD (set_of_exceptional_meeting_node H x) = 0) ==> ((sum (set_of_face_meeting_node H x) w) >= (b_tame (CARD (set_of_triangles_meeting_node H x)) (CARD (set_of_quadrilaterals_meeting_node H x)))))`;;
+
+let adm_3 = new_definition `adm_3 (H:(A)hypermap) (w:(A->bool)->real) <=> (!x:A. type_of_node H x = 5, 0, 1 ==> (sum (set_of_triangles_meeting_node H x) w)  >= a_tame)`;;
+
+let admissible_weight = new_definition `admissible_weight (H:(A)hypermap) (w:(A->bool)->real) <=> adm_1 H w /\ adm_2 H w /\ adm_3 H w`;;
+
+
+(* def of tame *)
+
+let tame_1 = new_definition `tame_1 (H:(A)hypermap) <=> plain_hypermap (H:(A)hypermap) /\ planar_hypermap (H:(A)hypermap)`;;
+
+let tame_2 = new_definition `tame_2 (H:(A)hypermap) <=> connected_hypermap H /\ simple_hypermap H`;;
+
+let tame_3 = new_definition `tame_3 (H:(A)hypermap)  <=>  is_edge_nondegenerate H `;;
+
+let tame_4 = new_definition `tame_4 (H:(A)hypermap)  <=> no_loops H`;;
+
+let tame_5a = new_definition `tame_5a (H:(A)hypermap)  <=> is_no_double_joints H`;;
+
+let tame_8 = new_definition `tame_8 (H:(A)hypermap)  <=> number_of_faces H >= 3`;;
+
+let tame_9a = new_definition 
+  `tame_9a (H:(A)hypermap)  <=> 
+  (!(x:A). x IN dart H ==> CARD (face H x) >= 3 `;;
+
+let tame_9b = new_definition 
+  `tame_9b (H:(A)hypermap)  <=> 
+  (!(x:A). x IN dart H ==>  CARD (face H x) <= 6)`;;
+
+
+let tame_10 = new_definition 
+  `tame_10 (H:(A)hypermap) <=> 
+   number_of_nodes H = 13 \/ number_of_nodes H = 14`;;
+
+let tame_11a = new_definition 
+  `tame_11a (H:(A)hypermap) <=>
+   (!(x:A). x IN dart H ==>  CARD (node H x) >= 3 /\ CARD (node H x) <= 7)`;;
+
+
+let tame_12o = new_definition 
+ `tame_12o (H:(A)hypermap)  <=> 
+  (! (x:A). node_type_exceptional_face H x /\ node_exceptional_face H x)`;;
+
+let tame_13a = new_definition 
+  `tame_13a (H:(A)hypermap) <=>
+   (?(w:(A->bool)->real). admissible_weight H w /\ total_weight H w < tgt)`;;
+
+let tame_hypermap = new_definition 
+  `tame_hypermap (H:(A)hypermap) <=> 
+   tame_1 H /\ tame_2 H /\ tame_3 H /\ tame_4 H /\ 
+  tame_5 H /\ tame_8 H /\ tame_9a H /\ tame_9b H /\ 
+  tame_10 H /\ tame_11a H /\ tame_12o H /\ tame_13a H`;;
+
+
+let opposite_hypermap = new_definition 
+   `opposite_hypermap (H:(A)hypermap) = 
+   hypermap ((dart H),face_map H o node_map H , inverse(node_map H),inverse(face_map H))`;;
+
+
+let ESTD = new_definition 
+  `ESTD (V:real^3->bool) = {{v,w}| v IN V /\ w IN V /\ ~(v = w) /\ dist(v,w) <= (&2)*h0}`;;
+
+let ECTC = new_definition 
+  `ECTC (V:real^3 -> bool) = {{v,w}| v IN V /\ w IN V /\ ~(v = w) /\ dist(v,w) = &2 }`;;
+
+(*  
+let isolated_node = new_definition
+  `isolated_node v V E = (set_of_edge v V E = {})`;;
+*)
+
+let azim_dart = new_definition 
+  `azim_dart (V,E) (v,w) = if (v=w) then &2 * pi else azim_fan (vec 0) V E v w`;;
+
+let dart1_of_fan = new_definition
+  `dart1_of_fan ((V:A->bool),(E:(A->bool)->bool)) =  { (v,w) | {v,w} IN E }`;;
+
+let dart_of_fan = new_definition
+  `dart_of_fan (V,E) = { (v,v) | v IN V /\ set_of_edge (v:real^3) V E = {} } UNION { (v,w) | {v,w} IN E }`;;
+
+ (* in fan.hl a dart is a 4-tuple.  Here it is a pair.  Here is the correspondence *)
+
+let extended_dart = new_definition
+  `extended_dart (V,E) (v,w) = i_fan (vec 0) V E (vec 0, v, w, w)`;;
+
+let contracted_dart = new_definition
+  `contracted_dart (x:A,v:B,w:C,w1:D) = (v,w)`;;
+
+(* e_fan, n_fan, f_fan of fan.hl, restricted to pairs *)
+
+let e_fan_pair = new_definition `e_fan_pair (V,E) (v,w) = (w,v)`;;
+
+let n_fan_pair = new_definition `n_fan_pair (V,E) (v,w) = v,sigma_fan (vec 0) V E v w`;;
+
+let f_fan_pair = new_definition `f_fan_pair (V,E) (v,w) = w,(inverse_sigma_fan (vec 0) V E w v)`;;
+
+let hypermap_of_fan  = new_definition
+  `hypermap_of_fan (V,E) = 
+    (let p = ( \ t. res (t (V,E) ) (dart1_of_fan (V,E)) ) in 
+          hypermap( dart_of_fan (V,E) , p e_fan_pair, p n_fan_pair, p f_fan_pair))`;;
+
+let face_set_of_fan = new_definition
+  `face_set_of_fan (V,E) = face_set (hypermap_of_fan (V,E))`;;
+
+let surrounded_node = new_definition
+  `surrounded_node (V,E) v = !x. (x IN dart_of_fan (V,E)) /\ (FST x = v) ==> azim_dart (V,E) x < pi`;;
+
+let scriptL = new_definition `scriptL V = sum V ( \ (v:real^3) . lmfun (norm v  /  &2)) `;;
+
+  let contravening = new_definition
+     `contravening V <=> packing V /\ V SUBSET ball_annulus /\  scriptL V > &12 /\ 
+      (!W. packing W /\ W SUBSET ball_annulus ==> scriptL W <= scriptL V) /\
+      (CARD V = 13 \/ CARD V = 14) /\
+      (!v. v IN V ==> surrounded_node (V, ESTD V) v) /\
+      (!v. v IN V ==> (surrounded_node (V, ECTC V) v \/ (norm v = &2) ))`;;
+
+let topological_component_yfan = new_definition 
+  `topological_component_yfan ((x:real^3),(V:real^3->bool),E) =
+      {  connected_component (yfan (x,V,E)) y  | y | y IN yfan (x,V,E) }`;;
+
+let topological_component_of_dart = new_definition 
+    `topological_component_of_dart (x,V,E) (v,u) = @s.  s IN topological_component_yfan (x,V,E) /\
+	(?eps. (eps > &0) /\ 
+	   rw_dart_fan x V E (x,v,u,sigma_fan x V E v u) eps  SUBSET s)`;;
+
+let topological_component_dartset = new_definition
+  `topological_component_dartset (x,V,E) ds = 
+    @s. (!y. (y IN ds) ==> (s=topological_component_of_dart (x,V,E) y))`;;
+
+(* node(x) not needed, use FST x *)
+
+let h_dart = new_definition `h_dart (x:real^3#B) = norm (FST x)  / &2`;;
+
+let tauVEF = new_definition `tauVEF (V,E,Fa) = 
+  sum Fa ( \ x. azim_dart (V,E) x * (&1 + (sol0/pi) * (&1 - lmfun (h_dart x))))   + (pi + sol0)*(&2 - &(CARD(Fa)))`;;
+
+
+let restricted_hypermap = new_definition `restricted_hypermap (H:(A)hypermap) <=> 
+   is_no_double_joints H /\  ~(dart H = {}) /\ planar_hypermap H /\ connected_hypermap H /\ 
+   plain_hypermap H /\ simple_hypermap H /\ is_edge_nondegenerate H /\ is_node_nondegenerate H /\ 
+   (!f.  f IN face_set H ==> CARD(f) >= 3)`;;
+
+let CDTETAT_calc = new_definition 
+   mk_eq `CDTETAT_calc':bool` (list_mk_conj 
+       [Ineq.I_5735387903;
+        Ineq.I_5490182221;]);;
+
+end;;
+

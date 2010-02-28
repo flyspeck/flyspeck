@@ -17,7 +17,11 @@ flyspeck_needs "hypermap/hypermap.hl";;
 
 module Tame_opposite  = struct
 
+(* BUG.  These two identifiers are used, 
+    but not defined *)
 
+let component_set = TRUTH;;
+let lemma_orbits_eq = TRUTH;;
 
 (*Trieu Thi Diep*)
 
@@ -144,6 +148,7 @@ let tame_5 = new_definition `tame_5 (H:(A)hypermap)  <=> hypermap_no_double_join
 
 let tame_8 = new_definition `tame_8 (H:(A)hypermap)  <=> number_of_faces H >= 3`;;
 
+(* tame_9o should be a restriction on x beging a dart *)
 let tame_9o = new_definition `tame_9o (H:(A)hypermap)  <=> (!(x:A). CARD (face H x) >= 3 /\ CARD (face H x) <= 6)`;;
 
 let tame_10 = new_definition `tame_10 (H:(A)hypermap) <=> number_of_nodes H = 13 \/ number_of_nodes H = 14`;;

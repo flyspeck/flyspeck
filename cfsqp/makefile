@@ -73,6 +73,10 @@ marchalD.o : marchalD.cc  $(DEPS)
 lp2009.o : lp2009.cc  $(DEPS)
 	$(CC) $(CCOPTS1) lp2009.cc $(DOTS)  -o lp2009.o
 
+tame_hypermap.o : tame_hypermap.cc  $(DEPS)
+	$(CC) $(CCOPTS1) tame_hypermap.cc $(DOTS)  -o tame_hypermap.o
+
+
 nonlin.o : nonlin.cc  $(DEPS)
 	$(CC) $(CCOPTS1) nonlin.cc $(DOTS)  -o nonlin.o
 

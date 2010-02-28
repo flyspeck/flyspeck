@@ -1,6 +1,14 @@
+(* ========================================================================== *)
+(* FLYSPECK - GLPK                                              *)
+(*                                                                            *)
+(* Linear Programming, AMPL format (non-formal)    *)
+(* Chapter: Packing                                                     *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2009-09-22                                                           *)
+(* ========================================================================== *)
+
 (*
-Thomas C. Hales
-Sept 22, 2009
+
 Process short linear programs for the proof of the Kepler conjecture.
 modified from lpproc.ml, much of the code is repeated or slightly modified.
 

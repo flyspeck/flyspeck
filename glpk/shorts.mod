@@ -1,6 +1,14 @@
-/* AMPL model for the Kepler conjecture
-File created Sep 19 2009
-Thomas C. Hales
+/* ========================================================================== */
+/* FLYSPECK - GLPK                                              */
+/*                                                                            */
+/* Linear Programming, AMPL format (non-formal)    */
+/* Chapter: Packing                                                     */
+/* Author: Thomas C. Hales                                                    */
+/* Date: 2009-09-19                                                           */
+/* ========================================================================== */
+
+
+/* 
 
 The model considers the set of blades around a spine.
 

@@ -1,3 +1,15 @@
+/* ========================================================================== */
+/* FLYSPECK - CFSQP                                              */
+/*                                                                            */
+/* Nonlinear Inequalities, C++ Nonrigorous Numerical Optimization   */
+/* Chapter: Packing                                                     */
+/* Author: Thomas C. Hales                                                    */
+/* Date: 2009-07-24                                                           */
+/* ========================================================================== */
+
+
+
+
 #include <iomanip.h>
 #include <iostream.h>
 #include <math.h>
@@ -5,9 +17,9 @@
 #include "numerical.h"
 
 
-// marchal.cc
-// $ make marchal.o
-// $ ./marchal.o
+// packing.cc
+// $ make packing.o
+// $ ./packing.o
 
 // bump added 7/24/09
 

@@ -255,6 +255,21 @@ trialdata d15(m15(),"ID[5957966880] taum:  rhazim-ineq");
 ////////// QUAD CASES:
 
 // this is minimized.  failure reported if min is negative.
+void t4a(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8])  - 0.256;
+	}
+Minimizer m4a() {
+  double xmin[9]= {2,2,2, s8,2,2,2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, 3,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,1,xmin,xmax);
+	M.func = t4a;
+	M.cFunc = cross3;
+	return M;
+}
+trialdata d4a(m4a(),"ID[4930647408] m4a: tauq: 0 tauq-quad-ineq > 0.256");
+
+
+// this is minimized.  failure reported if min is negative.
 void t4b(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = (y[1]+y[2]+y[4]+y[5]-8) - 2.75*(y[0]-s8);
 	}
@@ -374,20 +389,6 @@ Minimizer m4() {
 }
 trialdata d4(m4(),"ID[7043724150] tauq: 0 tauq-quad-ineq");
 
-
-// this is minimized.  failure reported if min is negative.
-void t4a(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8])  - 0.256;
-	}
-Minimizer m4a() {
-  double xmin[9]= {2,2,2, s8,2,2,2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, 3,2.52,2.52, 2.52,2.52,2.52};
-	Minimizer M(trialcount,9,1,xmin,xmax);
-	M.func = t4a;
-	M.cFunc = cross3;
-	return M;
-}
-trialdata d4a(m4a(),"ID[4930647408] m4a: tauq: 0 tauq-quad-ineq > 0.256");
 */
 
 ////////// NEW INEQ

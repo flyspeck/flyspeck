@@ -108,7 +108,7 @@ trialdata d3(m3(),"ID[5735387903] dihmin");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t3a(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = -azim(y[0],y[1],y[2],y[3],y[4],y[5]) + 1.893;
+  *ret = -azim(y[0],y[1],y[2],y[3],y[4],y[5]) + 1.9; // changed from 1.893, thales, 2010-02-28.
 	}
 Minimizer m3a() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -134,7 +134,7 @@ Minimizer m0() {
 	//.
 	return M;
 }
-trialdata d0(m0(),"ID[3296257235] taum0: 0th taum-tri-ineq");
+trialdata d0(m0(),"ID[3296257235] taum0: 0th taum-tri-ineq; interp(hullp1,hullp2)");
 
 
 ////////// NEW INEQ
@@ -150,7 +150,7 @@ Minimizer m1() {
 	//.
 	return M;
 }
-trialdata d1(m1(),"ID[8519146937] taum1: 1st taum-tri-ineq");
+trialdata d1(m1(),"ID[8519146937] taum1: 1st taum-tri-ineq; interp(hullp2,hullp3)");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -165,10 +165,25 @@ Minimizer m2() {
 	//.
 	return M;
 }
-trialdata d2(m2(),"ID[4667071578] taum2: 2nd taum-tri-ineq");
+trialdata d2(m2(),"ID[4667071578] taum2: 2nd taum-tri-ineq ; interp(hullp3,hullp4)");
 
 
 ////////// QUAD CASES:
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void td(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = azim(y[0],y[1],y[2],y[3],y[4],y[5]) - 1.15;
+	}
+Minimizer md() {
+  double xmin[6]= {2,2,2, 2.52,2,2};
+  double xmax[6]= {2.52,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,6,0,xmin,xmax);
+	M.func = td;
+	return M;
+}
+trialdata dd(md(),"ID[2570626711]  dihq-ineq");
+
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t4(int numargs,int whichFn,double* y, double* ret,void*) {
@@ -182,22 +197,9 @@ Minimizer m4() {
 	M.cFunc = bigcross;
 	return M;
 }
-trialdata d4(m4(),"ID[7043724150] tauq: 0 tauq-quad-ineq");
+trialdata d4(m4(),"ID[7043724150] tauq: 0 tauq-quad-ineq; interp[t,hullq[[1]],hullq[[2]]] ");
 
 
-// this is minimized.  failure reported if min is negative.
-void t4a(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8])  - 0.256;
-	}
-Minimizer m4a() {
-  double xmin[9]= {2,2,2, s8,2,2,2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, 3,2.52,2.52, 2.52,2.52,2.52};
-	Minimizer M(trialcount,9,1,xmin,xmax);
-	M.func = t4a;
-	M.cFunc = cross3;
-	return M;
-}
-trialdata d4a(m4a(),"ID[4930647408] m4a: tauq: 0 tauq-quad-ineq > 0.256");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -212,7 +214,7 @@ Minimizer m5() {
 	M.cFunc = bigcross;
 	return M;
 }
-trialdata d5(m5(),"ID[6944699408] tauq: 1 tauq-quad-ineq");
+trialdata d5(m5(),"ID[6944699408] tauq: 1 tauq-quad-ineq; interp[t,hullq[[2]],hullq[[3]]] ");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -230,25 +232,7 @@ Minimizer m6() {
 	M.cFunc = bigcrossdelta;
 	return M;
 }
-trialdata d6(m6(),"ID[4240815464] tauq: 2 tauq-quad-ineq");
-
-////////// NEW INEQ
-// this is minimized.  failure reported if min is negative.
-void t9(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) 
-    -0.453*azim(y[0],y[1],y[2],y[3],y[4],y[5])
-   + 0.777;
-	}
-Minimizer m9() {
-  double maxv = 3.3; // should really go to 2*2.52
-  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
-  double xmax[9]= {2.52,2.52,2.52, maxv,2.52,2.52, 2.52,2.52,2.52};
-	Minimizer M(trialcount,9,3,xmin,xmax);
-	M.func = t9;
-	M.cFunc = bigcrossdelta;
-	return M;
-}
-trialdata d9(m9(),"ID[3862621143] tauq: 5 tauq-quad-ineq");
+trialdata d6(m6(),"ID[4240815464] tauq: 2 tauq-quad-ineq; interp[t,hullq[[3]],hullq[[4]]]");
 
 
 ////////// NEW INEQ
@@ -268,7 +252,27 @@ Minimizer m8() {
 	M.cFunc = bigcrossdelta;
 	return M;
 }
-trialdata d8(m8(),"ID[5464178191] tauq: 4 tauq-quad-ineq");
+trialdata d8(m8(),"ID[5464178191] tauq: 4 tauq-quad-ineq;  interp[t,hullq[[4]],hullq[[5]]]");
+
+
+////////// NEW INEQ
+// this is minimized.  failure reported if min is negative.
+void t9(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = tauq(y[0],y[1],y[2],y[3],y[4],y[5],y[6],y[7],y[8]) 
+    -0.453*azim(y[0],y[1],y[2],y[3],y[4],y[5])
+   + 0.777;
+	}
+Minimizer m9() {
+  double maxv = 3.3; // should really go to 2*2.52
+  double xmin[9]= {2,2,2, 2.52,2,2, 2,2,2};
+  double xmax[9]= {2.52,2.52,2.52, maxv,2.52,2.52, 2.52,2.52,2.52};
+	Minimizer M(trialcount,9,3,xmin,xmax);
+	M.func = t9;
+	M.cFunc = bigcrossdelta;
+	return M;
+}
+trialdata d9(m9(),"ID[3862621143] tauq: 5 tauq-quad-ineq;  interp[t,hullq[[5]],hullq[[6]]]");
+
 
 
 

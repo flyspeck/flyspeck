@@ -66,22 +66,22 @@ test.o : test.cc numerical.cc numerical.h
 marchal.o : marchal.cc  $(DEPS)
 	$(CC) $(CCOPTS1) marchal.cc $(DOTS)  -o marchal.o
 
-marchalD.o : marchalD.cc  $(DEPS)
-	$(CC) $(CCOPTS1) marchalD.cc $(DOTS)  -o marchalD.o
 
-
-lp2009.o : lp2009.cc  $(DEPS)
-	$(CC) $(CCOPTS1) lp2009.cc $(DOTS)  -o lp2009.o
+local_fan.o : local_fan.cc  $(DEPS)
+	$(CC) $(CCOPTS1) local_fan.cc $(DOTS)  -o local_fan.o
 
 tame_hypermap.o : tame_hypermap.cc  $(DEPS)
 	$(CC) $(CCOPTS1) tame_hypermap.cc $(DOTS)  -o tame_hypermap.o
 
+glpk_ineq.o : glpk_ineq.cc  $(DEPS)
+	$(CC) $(CCOPTS1) glpk_ineq.cc $(DOTS)  -o glpk_ineq.o
+
+further_results.o : further_results.cc  $(DEPS)
+	$(CC) $(CCOPTS1) further_results.cc $(DOTS)  -o further_results.o
 
 nonlin.o : nonlin.cc  $(DEPS)
 	$(CC) $(CCOPTS1) nonlin.cc $(DOTS)  -o nonlin.o
 
-cyclic_fan_irreducible.o : cyclic_fan_irreducible.cc  $(DEPS)
-	$(CC) $(CCOPTS1) cyclic_fan_irreducible.cc $(DOTS)  -o cyclic_fan_irreducible.o
 
 
 

@@ -1,3 +1,12 @@
+/* ========================================================================== */
+/* FLYSPECK - CFSQP                                              */
+/*                                                                            */
+/* Nonlinear Inequalities, C++ Nonrigorous Numerical Optimization   */
+/* Chapter: Local Fan                                                     */
+/* Author: Thomas C. Hales                                                    */
+/* Date: 2010-03-01                                                           */
+/* ========================================================================== */
+
 #include <iomanip.h>
 #include <iostream.h>
 #include <math.h>
@@ -5,9 +14,9 @@
 #include "numerical.h"
 
 
-// cyclic_fan_irreducible.cc
-// $ make cyclic_fan_irreducible.o
-// $ ./cyclic_fan_irreducible.o
+// local_fan.cc
+// $ make local_fan.o
+// $ ./local_fan.o
 
 // constructor calls optimizer.  No need to place in main loop.
 class trialdata {

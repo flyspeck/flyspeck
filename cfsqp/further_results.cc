@@ -1,15 +1,24 @@
+/* ========================================================================== */
+/* FLYSPECK - CFSQP                                              */
+/*                                                                            */
+/* Nonlinear Inequalities, C++ Nonrigorous Numerical Optimization   */
+/* Chapter: Further Results                                                     */
+/* Author: Thomas C. Hales                                                    */
+/* Date: 2010-03-01                                                           */
+/* ========================================================================== */
+
 #include <iomanip.h>
 #include <iostream.h>
 #include <math.h>
 #include "Minimizer.h"
 #include "numerical.h"
 
-// Marchal adapted to the strong dodecahedral conjecture.
+// strong dodecahedral conjecture and Fejes Toth's conj.
 // Numerical testing of the local inequality on Dk-cells.
 
-// marchalD.cc
-// $ make marchalD.o
-// $ ./marchalD.o
+// further_results.cc
+// $ make further_results.o
+// $ ./further_results.o
 
 // constructor calls optimizer.  No need to place in main loop.
 class trialdata {

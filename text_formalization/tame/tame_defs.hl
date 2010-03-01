@@ -15,7 +15,7 @@ flyspeck_needs "hypermap/hypermap.hl";;
 flyspeck_needs "fan/fan.hl";;
 flyspeck_needs "packing/pack_defs.hl";;
 
-module Tame_hypermap_defs  = struct
+module Tame_defs  = struct
 
 (*
 let edge_nondegenerate = new_definition `edge_nondegenerate (H:(A)hypermap)  
@@ -80,7 +80,7 @@ let node_exceptional_face = new_definition
     exceptional_face H x ==> CARD (node H x) <= 6`;;
 
 
-let tgt = new_definition `#1.541`;;
+let tgt = new_definition `tgt = #1.541`;;
 
 
     let b_tame = new_definition 
@@ -146,7 +146,7 @@ let tame_8 = new_definition `tame_8 (H:(A)hypermap)  <=> number_of_faces H >= 3`
 
 let tame_9a = new_definition 
   `tame_9a (H:(A)hypermap)  <=> 
-  (!(x:A). x IN dart H ==> CARD (face H x) >= 3 `;;
+  (!(x:A). x IN dart H ==> CARD (face H x) >= 3 )`;;
 
 let tame_9b = new_definition 
   `tame_9b (H:(A)hypermap)  <=> 
@@ -173,7 +173,7 @@ let tame_13a = new_definition
 let tame_hypermap = new_definition 
   `tame_hypermap (H:(A)hypermap) <=> 
    tame_1 H /\ tame_2 H /\ tame_3 H /\ tame_4 H /\ 
-  tame_5 H /\ tame_8 H /\ tame_9a H /\ tame_9b H /\ 
+  tame_5a H /\ tame_8 H /\ tame_9a H /\ tame_9b H /\ 
   tame_10 H /\ tame_11a H /\ tame_12o H /\ tame_13a H`;;
 
 
@@ -226,6 +226,9 @@ let hypermap_of_fan  = new_definition
 let face_set_of_fan = new_definition
   `face_set_of_fan (V,E) = face_set (hypermap_of_fan (V,E))`;;
 
+
+(* compare fan80 and fan81, which define fully_surrounded *)
+
 let surrounded_node = new_definition
   `surrounded_node (V,E) v = !x. (x IN dart_of_fan (V,E)) /\ (FST x = v) ==> azim_dart (V,E) x < pi`;;
 
@@ -242,21 +245,23 @@ let topological_component_yfan = new_definition
   `topological_component_yfan ((x:real^3),(V:real^3->bool),E) =
       {  connected_component (yfan (x,V,E)) y  | y | y IN yfan (x,V,E) }`;;
 
-let topological_component_of_dart = new_definition 
-    `topological_component_of_dart (x,V,E) (v,u) = @s.  s IN topological_component_yfan (x,V,E) /\
-	(?eps. (eps > &0) /\ 
+(* there is a function dart_leads_into in fan.hl.  This is a bit simpler. *)
+
+let dart_leads_into1 = new_definition 
+    `dart_leads_into1 (x,V,E) (v,u) = @s.  s IN topological_component_yfan (x,V,E) /\
+	(?eps. (eps < &1) /\ 
 	   rw_dart_fan x V E (x,v,u,sigma_fan x V E v u) eps  SUBSET s)`;;
 
-let topological_component_dartset = new_definition
-  `topological_component_dartset (x,V,E) ds = 
-    @s. (!y. (y IN ds) ==> (s=topological_component_of_dart (x,V,E) y))`;;
+let dartset_leads_into = new_definition
+  `dartset_leads_into (x,V,E) ds = 
+    @s. (!y. (y IN ds) ==> (s=dart_leads_into1 (x,V,E) y))`;;
 
 (* node(x) not needed, use FST x *)
 
 let h_dart = new_definition `h_dart (x:real^3#B) = norm (FST x)  / &2`;;
 
-let tauVEF = new_definition `tauVEF (V,E,Fa) = 
-  sum Fa ( \ x. azim_dart (V,E) x * (&1 + (sol0/pi) * (&1 - lmfun (h_dart x))))   + (pi + sol0)*(&2 - &(CARD(Fa)))`;;
+let tauVEF = new_definition `tauVEF (V,E,f) = 
+  sum f ( \ x. azim_dart (V,E) x * (&1 + (sol0/pi) * (&1 - lmfun (h_dart x))))   + (pi + sol0)*(&2 - &(CARD(f)))`;;
 
 
 let restricted_hypermap = new_definition `restricted_hypermap (H:(A)hypermap) <=> 
@@ -264,10 +269,85 @@ let restricted_hypermap = new_definition `restricted_hypermap (H:(A)hypermap) <=
    plain_hypermap H /\ simple_hypermap H /\ is_edge_nondegenerate H /\ is_node_nondegenerate H /\ 
    (!f.  f IN face_set H ==> CARD(f) >= 3)`;;
 
-let CDTETAT_calc = new_definition 
-   mk_eq `CDTETAT_calc':bool` (list_mk_conj 
-       [Ineq.I_5735387903;
-        Ineq.I_5490182221;]);;
+(* definitions for chapter Local Fan *)
+
+let cwedge = new_definition `cwedge v0 v1 w1 w2 =
+         {y |  &0 <= azim v0 v1 w1 y /\
+              azim v0 v1 w1 y <= azim v0 v1 w1 w2}`;;
+
+let cw_dart_fan=new_definition
+`cw_dart_fan (V:real^3->bool) (E:(real^3->bool)->bool) ((v:real^3),(w:real^3))=  
+if (CARD (set_of_edge v V E) > 1) 
+then cwedge (vec 0) v w (sigma_fan (vec 0) V E v w)
+else (:real^3)`;;
+
+let local_fan = new_definition `local_fan (V,E,f) <=>
+   FAN (vec 0,V,E) /\ 
+   f IN face_set_of_fan (V,E) /\
+   (hypermap_of_fan (V,E)) iso (cyclic_hypermap I I (CARD f))`;;
+
+let convex_local_fan = new_definition `convex_local_fan (V,E,f) <=>
+    local_fan (V,E,f) /\
+    (!x. (x IN f) ==> azim_dart (V,E) x <= pi) /\
+    (!x. (x IN f) ==> V SUBSET cw_dart_fan V E x)`;;
+
+let rho_node = new_definition 
+  `rho_node (V:A1,E:A2,f:A3#A4->bool) v = @w. (v,w) IN f`;;
+
+let order_permutation = new_definition
+  `order_permutation (p:A->A) = (minimal) { m | (p POWER m = I) /\ (m > 0) }`;;
+
+let is_cyclic_permutation = new_definition
+  `is_cyclic_permutation rho s <=> 
+   rho permutes s /\ s HAS_SIZE (order_permutation rho)`;;
+
+let interior_angle = new_definition 
+  `interior_angle (V,E,f) v = azim_dart (V,E) (v,(rho_node (V,E,f) v))`;;
+
+let cw_node_fan = new_definition
+  `cw_node_fan (V,E,f) v = cw_dart_fan V E (v,rho_node(V,E,f) v)`;;
+
+let w_node_fan = new_definition (* 4th component is ignored *)
+  `w_node_fan (V,E,f) v = w_dart_fan V E (vec 0,v,rho_node(V,E,f) v,v)`;;
+
+let localization = new_definition `localization (V,E,f) = 
+  {v | v IN V /\ (?w. w IN V /\ (v,w) IN f)},
+   { {v,w} | {v,w} IN E /\  (v,w) IN f},
+   f`;;
+
+let is_generic_clf = new_definition `is_generic_clf (V,E,f:A) <=> 
+  (! v w (u:real^3).  (u IN V) /\ {v,w} IN E ==>   
+    aff_ge { vec 0 } { v , w} INTER aff_lt { vec 0 } {u } = {})`;;
+
+let is_circular_clf = new_definition `is_circular_clf (V,E,f:A) <=> 
+  (? v w (u:real^3). (u IN V) /\ {v,w} IN E /\
+     ~( aff_gt { vec 0 } { v , w} INTER aff_lt { vec 0 } {u } = {}))`;;
+
+let is_lunar_clf = new_definition `is_lunar_clf (V,E,f:A) (v,w) <=> 
+  v IN V /\ w IN V /\ ~(is_circular_clf (V,E,f)) /\
+    collinear {(vec 0) , v, w}`;;
+
+let is_flat = new_definition `is_flat (V,E,f) v <=>
+  interior_angle (V,E,f) v = pi`;;
+
+(*
+let is_deformation_clf
+*)
+
+(* sort the inequalities according to the chapter where they are used *)
+
+open Ineq;;
+
+let tame_hypermap_list = 
+  let CDTETAT_list = [I_5735387903;I_5490182221;I_2570626711] in
+  let KCBLRQC_triangle_list = [I_3296257235;I_8519146937;I_4667071578;] in
+  let KCBLRQC_quad_list = [I_7043724150;I_6944699408;
+   I_4240815464;I_3862621143;I_5464178191;] in
+  CDTETAT_list @ KCBLRQC_triangle_list @ KCBLRQC_quad_list;;
+
+let tame_hypermap_calcs = 
+  (mk_eq (`tame_hypermap_calcs:bool`,list_mk_conj tame_hypermap_list));;
+
 
 end;;
 

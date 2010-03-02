@@ -19,17 +19,6 @@ module Tame_defs  = struct
 
 
 
-(* sort the inequalities according to the chapter where they are used *)
-
-let tame_hypermap_list = 
-  let CDTETAT_list = [I_5735387903;I_5490182221;I_2570626711] in
-  let KCBLRQC_triangle_list = [I_3296257235;I_8519146937;I_4667071578;] in
-  let KCBLRQC_quad_list = [I_7043724150;I_6944699408;
-   I_4240815464;I_3862621143;I_5464178191;] in
-  CDTETAT_list @ KCBLRQC_triangle_list @ KCBLRQC_quad_list;;
-
-let tame_hypermap_calcs = new_definition
-  (mk_eq (`tame_hypermap_calcs:bool`,list_mk_conj tame_hypermaplist));;
 
 (*
 let edge_nondegenerate = new_definition `edge_nondegenerate (H:(A)hypermap)  
@@ -206,7 +195,7 @@ let tame_13a = new_definition
 let tame_hypermap = new_definition 
   `tame_hypermap (H:(A)hypermap) <=> 
    tame_1 H /\ tame_2 H /\ tame_3 H /\ tame_4 H /\ 
-  tame_5 H /\ tame_8 H /\ tame_9a H  /\ 
+  tame_5a H /\ tame_8 H /\ tame_9a H  /\ 
   tame_10 H /\ tame_11a H /\ tame_11b H /\ tame_12o H /\ tame_13a H`;;
 
 let opposite_hypermap = new_definition 
@@ -349,7 +338,7 @@ let cw_node_fan = new_definition
   `cw_node_fan (V,E,f) v = cw_dart_fan V E (v,rho_node(V,E,f) v)`;;
 
 let w_node_fan = new_definition (* 4th component is ignored *)
-  `w_node_fan (V,E,f) v = w_dart_fan V E (vec 0,v,rho_node(V,E,f) v,v)`;;
+  `w_node_fan (V,E,f) v = w_dart_fan (vec 0) V E (vec 0,v,rho_node(V,E,f) v,v)`;;
 
 let localization = new_definition `localization (V,E,f) = 
   {v | v IN V /\ (?w. w IN V /\ (v,w) IN f)},
@@ -371,8 +360,84 @@ let is_lunar_clf = new_definition `is_lunar_clf (V,E,f:A) (v,w) <=>
 let is_flat = new_definition `is_flat (V,E,f) v <=>
   interior_angle (V,E,f) v = pi`;;
 
+
+let is_deformation_clf  = new_definition 
+  `is_deformation_clf  phi V s = (!v x. v IN V ==> (phi v) continuous at x within s)`;;
+
+let node_deform = new_definition
+  `node_deform phi V t = { phi v t | v IN V}`;;
+
+let edge_deform = new_definition
+  `edge_deform phi V E t = { {phi v t, phi w t} | {v,w} IN E}`;;
+
+let face_deform = new_definition
+  `face_deform phi V f t = { (phi v t, phi w t) | (v,w) IN f}`;;
+
+let per = new_definition
+`per(V,E,f) v k = sum (0..k-1) 
+   ( \ i. arcV (vec 0) ((rho_node (V,E,f) POWER i) v) ((rho_node (V,E,f) POWER (i+1)) v))`;;
+
+let perimeter = new_definition
+`perimeter(V,E,f)  = per(V,E,f) (CHOICE V)  (CARD(f))`;;
+
+let special_fan = new_definition
+`special_fan (V,E,f,S) <=> packing V /\ V SUBSET ball_annulus /\ convex_local_fan (V,E,f) /\
+    S SUBSET E /\ 
+   (! v w.  {v,w} IN S ==>( dist(v,w) = &2 * h0)) /\
+   (! v w.  {v,w} IN E ==> (dist(v,w) <= &2 * h0)) /\
+   (! v w.  v IN V /\ w IN V /\ ~(v=w) /\ ~({v,w} IN E) ==> &2 * h0 <= dist(v,w))`;;
+
+let d2_tame = new_definition
+  `d2_tame r s = if (r + 2*s > 3) 
+  then #0.103 * (&2 - &s) + #0.2759 * (&r + &2* &s - &4)
+  else #0.0`;;
+
+let vertex_datum = new_definition
+  `vertex_datum p k = IMAGE p (0..(k-1))`;;
+
+let edge_datum = new_definition
+  `edge_datum p k  = { { p i, p ((i+1) MOD k) }  |i| i IN (0..(k-1)) }`;;
+
+let face_datum = new_definition
+  `face_datum p k = { (p i, p ((i+1) MOD k)) |i|  i IN (0..(k-1)) }`;; 
+
+let special_datum = new_definition
+  `special_datum p k J = { (p i, (p((i+1) MOD k))) | i | i IN J }`;;
+
+let fan_datum = new_definition
+  `fan_datum p k J <=> 
+      IMAGE p (0..(k-1)) SUBSET ball_annulus /\
+      (!i j. (i < k) /\ (j < k) /\ dist(p i,p j) < &2 ==> (i=j)) /\
+      (!i. (i<k) /\ (i IN J) ==> dist(p i, p ((i+1) MOD k)) = &2 * h0) /\
+      (!i. (i<k) ==> dist(p i, p ((i+1) MOD k)) <= &2 * h0) /\
+      (!i j. (i+1<j) /\ (j<k) /\ (j +1 < i+k) ==> &2 * h0 <= dist(p i, p j)) /\
+      (CARD(J) <= 3) /\  (3 <= k) /\ (k + CARD(J) <= 6) /\
+    (!i. (i<k) ==> azim (vec 0) (p i) (p ((i+1) MOD k)) (p ((i + k - 1) MOD k)) <= pi) /\
+     (!i j. (i<k) /\ (j<k) ==> p j IN cwedge (vec 0)  (p i) (p ((i+1) MOD k)) (p ((i + k - 1) MOD k)) )`;;
+
+let vertex_slice = new_definition
+  `vertex_slice (V,E,f) v j = { (rho_node (V,E,f) POWER i) v | i IN (1..j)  }`;;
+
+let edge_slice = new_definition
+   `edge_slice (V,E,f) v j = { rho_node (V,E,f) POWER j) v,  v } INSERT 
+  { {(rho_node (V,E,f) POWER i) v  ,  (rho_node (V,E,f) POWER (i+1)) v } | i IN (1..(j-1)) }`;;
+  
+let face_slice = new_definition
+   `face_slice (V,E,f) v j = ( (rho_node (V,E,f) POWER j) v,  v ) INSERT 
+  { ((rho_node (V,E,f) POWER i) v  ,  (rho_node (V,E,f) POWER (i+1)) v ) | i IN (1..(j-1)) }`;;
+  
 (*
-let is_deformation_clf
+kmin, taumin, minimal_fan 
+*)
+
+(*
+tterm is_deformation_clf;;
+type_of `lift`;;
+type_of `continuous`;;
+search[`sin`;`continuous`];;
+search[`continuous`;`at`];;
+type_of `at`;;
+type_of `within`;;
 *)
 
 (* sort the inequalities according to the chapter where they are used *)
@@ -388,6 +453,7 @@ let tame_hypermap_list =
 
 let tame_hypermap_calcs = 
   (mk_eq (`tame_hypermap_calcs:bool`,list_mk_conj tame_hypermap_list));;
+
 
 
 

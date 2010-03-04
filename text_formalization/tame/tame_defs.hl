@@ -387,10 +387,19 @@ let special_fan = new_definition
    (! v w.  {v,w} IN E ==> (dist(v,w) <= &2 * h0)) /\
    (! v w.  v IN V /\ w IN V /\ ~(v=w) /\ ~({v,w} IN E) ==> &2 * h0 <= dist(v,w))`;;
 
+let r_specail = new_definition
+  `r_special (V,E,f,S) = CARD(E) - CARD(S)`;;
+
+let s_special = new_definition
+  `s_special (V,E,f,S) = CARD(S)`;;
+
 let d2_tame = new_definition
   `d2_tame r s = if (r + 2*s > 3) 
   then #0.103 * (&2 - &s) + #0.2759 * (&r + &2* &s - &4)
   else #0.0`;;
+
+let d2_special = new_definition
+   `d2_special (V,E,f,S) = d2_tame (r_special (V,E,f,S)) (s_special (V,E,f,S))`;;
 
 let vertex_datum = new_definition
   `vertex_datum p k = IMAGE p (0..(k-1))`;;
@@ -419,17 +428,40 @@ let vertex_slice = new_definition
   `vertex_slice (V,E,f) v j = { (rho_node (V,E,f) POWER i) v | i IN (1..j)  }`;;
 
 let edge_slice = new_definition
-   `edge_slice (V,E,f) v j = { rho_node (V,E,f) POWER j) v,  v } INSERT 
+   `edge_slice (V,E,f) v j = { (rho_node (V,E,f) POWER j) v,  v } INSERT 
   { {(rho_node (V,E,f) POWER i) v  ,  (rho_node (V,E,f) POWER (i+1)) v } | i IN (1..(j-1)) }`;;
   
 let face_slice = new_definition
    `face_slice (V,E,f) v j = ( (rho_node (V,E,f) POWER j) v,  v ) INSERT 
   { ((rho_node (V,E,f) POWER i) v  ,  (rho_node (V,E,f) POWER (i+1)) v ) | i IN (1..(j-1)) }`;;
-  
-(*
-kmin, taumin, minimal_fan 
-*)
 
+let kmin = new_definition
+  `kmin = (minimal) 
+   ({ k | (k=0) /\ (! V E f S. special_fan (V,E,f,S) ==>
+       tauVEF (V,E,f) >= d2_special (V,E,f,S) ) } UNION 
+    { k | ? V E f S. (k= CARD(E)) /\ special_fan (V,E,f,S) /\ tauVEF(V,E,f) < d2_special (V,E,f,S) } )`;;
+
+let taumin = new_definition
+  `taumin = inf (
+     { tauVEF (V,E,f) - d2_special (V,E,f,S) | special_fan (V,E,f,S) /\ (kmin = CARD E) } UNION 
+     { t | (t= &0) /\ (kmin = 0) })`;;
+
+let minimal_fan = new_definition
+  `minimal_fan (V,E,f,S) <=> special_fan (V,E,f,S) /\ (kmin = CARD E) /\ 
+    (taumin =  tauVEF (V,E,f) - d2_special (V,E,f,S))`;;
+
+let s_extremal_edge = new_definition
+  `s_extremal_edge (V,E,f,S) (v,w) <=> (v,w ) IN S \/ (dist(v,w) IN {&2, &2 * h0 }) `;;
+
+let s_minimal_edge = new_definition
+   `s_minimal_edge (V,E,f,S) (v,w) <=> (v,w) IN S \/ (dist(v,w) = &2) `;;
+
+let special_feature_extreme_edge = new_definition
+   `special_feature_extreme_edge (V,E,f,S) = (!v w. {v,w} IN E ==> s_extremal_edge (V,E,f,S) (v,w))`;;
+
+
+
+1;;
 (*
 tterm is_deformation_clf;;
 type_of `lift`;;
@@ -453,8 +485,6 @@ let tame_hypermap_list =
 
 let tame_hypermap_calcs = 
   (mk_eq (`tame_hypermap_calcs:bool`,list_mk_conj tame_hypermap_list));;
-
-
 
 
 end;;

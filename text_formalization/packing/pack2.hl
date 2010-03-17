@@ -1,0 +1,561 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Packing                                                           *)
+(* Author: John Harrison                                                      *)
+(* Date: 2010-03-16                                                           *)
+(*                                                                            *)
+(* This proves theorems about closed Voronoi cells and transfers the main     *)
+(* results proved in Pack1 by Nguyen Tat Thang from open to closed cells.     *)
+(* ========================================================================== *)
+
+module type Pack2_type = sig
+end;;
+
+flyspeck_needs "packing/pack1.hl";;
+
+module Pack2  (* : Pack1_type *) = struct
+
+(* ------------------------------------------------------------------------- *)
+(* Slight variants of definitions, mainly to use IN.                         *)
+(* ------------------------------------------------------------------------- *)
+
+let PACKING = prove
+ (`!s. packing s <=> !u v. u IN s /\ v IN s /\ dist(u,v) < &2 ==> u = v`,
+  REWRITE_TAC[IN; GSYM REAL_NOT_LE] THEN MESON_TAC[Pack1.packing]);;
+
+let VORONOI_OPEN = prove
+ (`!s v. voronoi_open v s =
+          {x | !w. w IN s /\ ~(w = v) ==> dist(x,v) < dist(x,w)}`,
+  REWRITE_TAC[Sphere.voronoi_open; IN]);;
+
+let VORONOI_CLOSED = prove
+ (`!s v. voronoi_closed s v = {x | !w. w IN s ==> dist(x,v) <= dist(x,w)}`,
+  REWRITE_TAC[Sphere.voronoi_closed; IN]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Minor variant of KIUMVTC without 0 <= r condition.                        *)
+(* ------------------------------------------------------------------------- *)
+
+let KIUMVTC = prove
+ (`!p r S. packing S ==> FINITE(S INTER ball(p,r))`,
+  REPEAT STRIP_TAC THEN ASM_CASES_TAC `&0 <= r` THENL
+   [ASM_SIMP_TAC[Pack1.KIUMVTC];
+    FIRST_ASSUM(MP_TAC o MATCH_MP (REAL_ARITH `~(&0 <= v) ==> v <= &0`)) THEN
+    SIMP_TAC[INTER_EMPTY; BALL_EMPTY; FINITE_EMPTY]]);;
+
+(* ------------------------------------------------------------------------- *)
+(* The basic lemmas about closed Voronoi cells.                              *)
+(* ------------------------------------------------------------------------- *)
+
+let BIS_LE = prove
+ (`!u v. bis_le u v =
+           {x | (&2 % (v - u)) dot x <= norm(v) pow 2 - norm(u) pow 2}`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[Sphere.bis_le; dist; NORM_LE] THEN
+  REWRITE_TAC[EXTENSION; IN_ELIM_THM; DOT_LMUL; DOT_LSUB; DOT_RSUB] THEN
+  REWRITE_TAC[NORM_POW_2; DOT_SYM] THEN REAL_ARITH_TAC);;
+
+let BIS_LT = prove
+ (`!u v. bis_lt u v =
+           {x | (&2 % (v - u)) dot x < norm(v) pow 2 - norm(u) pow 2}`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[Sphere.bis_lt; dist; NORM_LT] THEN
+  REWRITE_TAC[EXTENSION; IN_ELIM_THM; DOT_LMUL; DOT_LSUB; DOT_RSUB] THEN
+  REWRITE_TAC[NORM_POW_2; DOT_SYM] THEN REAL_ARITH_TAC);;
+
+let VORONOI_CLOSED_ALT = prove
+ (`!s v. voronoi_closed s v =
+             {x | !w. w IN s /\ ~(w = v) ==> dist(x,v) <= dist(x,w)}`,
+  REWRITE_TAC[VORONOI_CLOSED; EXTENSION; IN_ELIM_THM] THEN
+  MESON_TAC[REAL_LE_REFL]);;
+
+let VORONOI_CLOSED_AS_INTERSECTION = prove
+ (`!s v. voronoi_closed s v = INTERS (IMAGE (bis_le v) (s DELETE v))`,
+  REWRITE_TAC[Sphere.bis_le; VORONOI_CLOSED_ALT; INTERS_IMAGE] THEN
+  REWRITE_TAC[IN_DELETE; IN_ELIM_THM]);;
+
+let VORONOI_OPEN_AS_INTERSECTION = prove
+ (`!s v. voronoi_open v s = INTERS (IMAGE (bis_lt v) (s DELETE v))`,
+  REWRITE_TAC[Sphere.bis_lt; VORONOI_OPEN; INTERS_IMAGE] THEN
+  REWRITE_TAC[IN_DELETE; IN_ELIM_THM]);;
+
+let CLOSED_VORONOI_CLOSED = prove
+ (`!s v. closed(voronoi_closed s v)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION] THEN
+  MATCH_MP_TAC CLOSED_INTERS THEN
+  REWRITE_TAC[FORALL_IN_IMAGE; BIS_LE; CLOSED_HALFSPACE_LE]);;
+
+let VORONOI_CLOSED_SUBSET_BALL = prove
+ (`!s v:real^N. saturated s ==> voronoi_closed s v SUBSET ball(v,&2)`,
+  REPEAT STRIP_TAC THEN REWRITE_TAC[VORONOI_CLOSED; SUBSET] THEN
+  REWRITE_TAC[IN_ELIM_THM; IN_BALL] THEN
+  X_GEN_TAC `x:real^N` THEN DISCH_TAC THEN
+  FIRST_X_ASSUM(MP_TAC o SPEC `x:real^N` o GEN_REWRITE_RULE I
+   [Pack1.saturated]) THEN
+  DISCH_THEN(X_CHOOSE_THEN `y:real^N` (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)) THEN
+  FIRST_X_ASSUM(MP_TAC o SPEC `y:real^N`) THEN
+  ASM_REWRITE_TAC[] THEN NORM_ARITH_TAC);;
+
+let BOUNDED_VORONOI_CLOSED = prove
+ (`!s v. saturated s ==> bounded(voronoi_closed s v)`,
+  MESON_TAC[VORONOI_CLOSED_SUBSET_BALL; BOUNDED_SUBSET; BOUNDED_BALL]);;
+
+let COMPACT_VORONOI_CLOSED = prove
+ (`!s v. saturated s ==> compact(voronoi_closed s v)`,
+  MESON_TAC[COMPACT_EQ_BOUNDED_CLOSED; CLOSED_VORONOI_CLOSED;
+            BOUNDED_VORONOI_CLOSED]);;
+
+let CONVEX_VORONOI_CLOSED = prove
+ (`!s v. convex(voronoi_closed s v)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION] THEN
+  MATCH_MP_TAC CONVEX_INTERS THEN
+  REWRITE_TAC[FORALL_IN_IMAGE; BIS_LE; CONVEX_HALFSPACE_LE]);;
+
+let BASE_IN_VORONOI_CLOSED = prove
+ (`!s v. v IN voronoi_closed s v`,
+  REWRITE_TAC[Sphere.voronoi_closed; DIST_REFL; DIST_POS_LE; IN_ELIM_THM]);;
+
+let CBALL_SUBSET_VORONOI_CLOSED = prove
+ (`!s v:real^3. packing s /\ v IN s ==> cball(v,&1) SUBSET voronoi_closed s v`,
+  REWRITE_TAC[PACKING; SUBSET; VORONOI_CLOSED_ALT; IN_CBALL; IN_ELIM_THM] THEN
+  REPEAT GEN_TAC THEN STRIP_TAC THEN X_GEN_TAC `x:real^3` THEN
+  DISCH_TAC THEN X_GEN_TAC `w:real^3` THEN STRIP_TAC THEN
+  FIRST_X_ASSUM(MP_TAC o SPECL [`v:real^3`; `w:real^3`]) THEN
+  ASM_REWRITE_TAC[] THEN REPEAT(POP_ASSUM MP_TAC) THEN NORM_ARITH_TAC);;
+
+let VORONOI_CLOSED_PARTITION_STRONG = prove
+ (`!s. closed s /\ ~(s = {})
+       ==> UNIONS { voronoi_closed s v |v| v IN s} = (:real^3)`,
+  GEN_TAC THEN STRIP_TAC THEN ONCE_REWRITE_TAC[SIMPLE_IMAGE] THEN
+  REWRITE_TAC[UNIONS_IMAGE; EXTENSION; IN_UNIV; IN_ELIM_THM] THEN
+  REWRITE_TAC[VORONOI_CLOSED; IN_ELIM_THM] THEN
+  X_GEN_TAC `x:real^3` THEN EXISTS_TAC `closest_point s (x:real^3)` THEN
+  MATCH_MP_TAC CLOSEST_POINT_EXISTS THEN ASM_REWRITE_TAC[]);;
+
+let PACKING_IMP_CLOSED = prove
+ (`!s. packing s ==> closed s`,
+  REWRITE_TAC[PACKING; dist] THEN REPEAT STRIP_TAC THEN
+  MATCH_MP_TAC DISCRETE_IMP_CLOSED THEN EXISTS_TAC `&2` THEN
+  CONV_TAC REAL_RAT_REDUCE_CONV THEN ASM_MESON_TAC[NORM_SUB]);;
+
+let SATURATED_IMP_NONEMPTY = prove
+ (`!s. saturated s ==> ~(s = {})`,
+  REWRITE_TAC[Pack1.saturated] THEN SET_TAC[]);;
+
+let VORONOI_CLOSED_PARTITION = prove
+ (`!s. packing s /\ saturated s
+       ==> UNIONS { voronoi_closed s v |v| v IN s} = (:real^3)`,
+  SIMP_TAC[VORONOI_CLOSED_PARTITION_STRONG; PACKING_IMP_CLOSED;
+           SATURATED_IMP_NONEMPTY]);;
+
+let VORONOI_CLOSED_AS_FINITE_INTERSECTION = prove
+ (`!s v. packing s /\ saturated s /\ v IN s
+         ==> voronoi_closed s v =
+                INTERS (IMAGE (bis_le v) ((s INTER ball(v,&4)) DELETE v))`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC SUBSET_ANTISYM THEN CONJ_TAC THENL
+   [REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION] THEN SET_TAC[]; ALL_TAC] THEN
+  REWRITE_TAC[SUBSET] THEN X_GEN_TAC `p:real^3` THEN
+  DISCH_TAC THEN
+  SUBGOAL_THEN
+   `?p':real^3. aff_ge {v} {p} INTER voronoi_closed s v = segment[v,p']`
+  STRIP_ASSUME_TAC THENL
+   [MATCH_MP_TAC HALFLINE_INTER_COMPACT_SEGMENT THEN
+    ASM_SIMP_TAC[COMPACT_VORONOI_CLOSED; CONVEX_VORONOI_CLOSED;
+                 BASE_IN_VORONOI_CLOSED];
+    ALL_TAC] THEN
+  MATCH_MP_TAC(TAUT `(~p ==> F) ==> p`) THEN DISCH_TAC THEN
+  SUBGOAL_THEN
+   `(v:real^3) IN voronoi_closed s v /\ p' IN voronoi_closed s v /\
+    p' IN aff_ge {v} {p}`
+  STRIP_ASSUME_TAC THENL
+   [ASM_MESON_TAC[ENDS_IN_SEGMENT; IN_INTER]; ALL_TAC] THEN
+  SUBGOAL_THEN `p' IN ball(v:real^3,&2)` ASSUME_TAC THENL
+   [ASM_MESON_TAC[VORONOI_CLOSED_SUBSET_BALL; SUBSET]; ALL_TAC] THEN
+  SUBGOAL_THEN
+   `?q:real^3.
+       q IN ball(v,&2) /\
+       q IN INTERS(IMAGE (bis_le v) ((s INTER ball (v,&4)) DELETE v)) /\
+       ~(q IN voronoi_closed s v)`
+  STRIP_ASSUME_TAC THENL
+   [ASM_CASES_TAC `p IN ball(v:real^3,&2)` THENL
+     [ASM_MESON_TAC[]; ALL_TAC] THEN
+    ASM_CASES_TAC `p:real^3 = v` THENL [ASM_MESON_TAC[]; ALL_TAC] THEN
+    SUBGOAL_THEN
+     `?t. &0 <= t /\ t < &1 /\ p':real^3 = (&1 - t) % v + t % p`
+    STRIP_ASSUME_TAC THENL
+     [UNDISCH_TAC `(p':real^3) IN aff_ge {v} {p}` THEN
+      ASM_REWRITE_TAC[HALFLINE; IN_SEGMENT; IN_ELIM_THM] THEN
+      MATCH_MP_TAC MONO_EXISTS THEN X_GEN_TAC `t:real` THEN STRIP_TAC THEN
+      SUBGOAL_THEN `dist(v:real^3,p') < dist(v,p)` MP_TAC THENL
+       [ASM_MESON_TAC[IN_BALL; REAL_ARITH `x < &2 /\ ~(y < &2) ==> x < y`];
+        ASM_REWRITE_TAC[]] THEN
+      REWRITE_TAC[VECTOR_ARITH
+       `(&1 - t) % x + t % y:real^N = x + t % (y - x)`] THEN
+      REWRITE_TAC[NORM_ARITH `dist(v:real^N,v + x) = norm x`; NORM_MUL] THEN
+      REWRITE_TAC[dist; NORM_SUB] THEN
+      ONCE_REWRITE_TAC[REAL_ARITH `x * y < y <=> x * y < &1 * y`] THEN
+      ASM_SIMP_TAC[REAL_LT_RMUL_EQ; NORM_POS_LT; VECTOR_SUB_EQ] THEN
+      ASM_REAL_ARITH_TAC;
+      ALL_TAC] THEN
+    MP_TAC(ISPECL [`v:real^3`; `&2`] OPEN_BALL) THEN
+    REWRITE_TAC[open_def] THEN DISCH_THEN(MP_TAC o SPEC `p':real^3`) THEN
+    ASM_REWRITE_TAC[LEFT_IMP_EXISTS_THM; dist] THEN
+    X_GEN_TAC `e:real` THEN STRIP_TAC THEN
+    ABBREV_TAC `u = t + min (e / &2 / norm(p - v:real^3)) ((&1 - t) / &2)` THEN
+    SUBGOAL_THEN `&0 < u /\ t < u /\ u < &1` STRIP_ASSUME_TAC THENL
+     [EXPAND_TAC "u" THEN MATCH_MP_TAC(REAL_ARITH
+       `&0 < x /\ &0 <= t /\ t < &1
+        ==> &0 < t + min x ((&1 - t) / &2) /\ t < t + min x ((&1 - t) / &2) /\
+            t + min x ((&1 - t) / &2) < &1`) THEN
+      ASM_SIMP_TAC[REAL_HALF; REAL_LT_DIV; NORM_POS_LT; VECTOR_SUB_EQ];
+      ALL_TAC] THEN
+    EXISTS_TAC `(&1 - u) % v + u % p:real^3` THEN REPEAT CONJ_TAC THENL
+     [FIRST_X_ASSUM MATCH_MP_TAC THEN
+      ASM_SIMP_TAC[NORM_MUL; GSYM REAL_LT_RDIV_EQ; NORM_POS_LT; VECTOR_SUB_EQ;
+        VECTOR_ARITH
+       `((&1 - u) % v + u % p) - ((&1 - t) % v + t % p):real^N =
+        (u - t) % (p - v)`] THEN
+      EXPAND_TAC "u" THEN REWRITE_TAC[REAL_ADD_SUB] THEN
+      MATCH_MP_TAC(REAL_ARITH
+       `&0 < z /\ &0 < y /\ x = z / &2 ==> abs(min x y) < z`) THEN
+      ASM_SIMP_TAC[REAL_HALF; REAL_LT_DIV; NORM_POS_LT; VECTOR_SUB_EQ] THEN
+      REWRITE_TAC[real_div; REAL_MUL_AC] THEN ASM_REAL_ARITH_TAC;
+      MATCH_MP_TAC IN_CONVEX_SET THEN ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+      CONJ_TAC THENL
+       [MATCH_MP_TAC CONVEX_INTERS THEN
+        REWRITE_TAC[FORALL_IN_IMAGE; BIS_LE; CONVEX_HALFSPACE_LE];
+        UNDISCH_TAC `(v:real^3) IN voronoi_closed s v` THEN
+        REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION] THEN SET_TAC[]];
+      DISCH_TAC THEN
+      SUBGOAL_THEN `((&1 - u) % v + u % p:real^3) IN
+                    (aff_ge {v} {p} INTER voronoi_closed s v)`
+      MP_TAC THENL
+       [ASM_REWRITE_TAC[IN_INTER; HALFLINE; IN_ELIM_THM] THEN
+        ASM_MESON_TAC[REAL_LT_IMP_LE];
+        ASM_REWRITE_TAC[GSYM BETWEEN_IN_SEGMENT] THEN
+        REWRITE_TAC[between; VECTOR_ARITH
+         `(&1 - u) % x + u % y:real^N = x + u % (y - x)`] THEN
+        REWRITE_TAC[NORM_ARITH `dist(v:real^N,v + x) = norm x`;
+                    NORM_ARITH `dist(v + x:real^N,v + y) = norm(x - y)`] THEN
+        REWRITE_TAC[GSYM VECTOR_SUB_RDISTRIB; NORM_MUL] THEN
+        ASM_REWRITE_TAC[REAL_ENTIRE; NORM_EQ_0; VECTOR_SUB_EQ; REAL_ARITH
+         `x * a:real = y * a + z * a <=> a * (x - y - z) = &0`] THEN
+        ASM_REAL_ARITH_TAC]];
+    MP_TAC(ISPEC `s:real^3->bool` VORONOI_CLOSED_PARTITION) THEN
+    ASM_REWRITE_TAC[EXTENSION; IN_UNIV] THEN
+    DISCH_THEN(MP_TAC o SPEC `q:real^3`) THEN REWRITE_TAC[] THEN
+    ONCE_REWRITE_TAC[SIMPLE_IMAGE] THEN
+    REWRITE_TAC[UNIONS_IMAGE; IN_ELIM_THM] THEN
+    DISCH_THEN(X_CHOOSE_THEN `w:real^3` STRIP_ASSUME_TAC) THEN
+    UNDISCH_TAC
+     `(q:real^3) IN INTERS(IMAGE (bis_le v)
+                                 ((s INTER ball(v,&4)) DELETE v))` THEN
+    REWRITE_TAC[IN_INTERS; FORALL_IN_IMAGE] THEN
+    DISCH_THEN(MP_TAC o SPEC `w:real^3`) THEN
+    ASM_REWRITE_TAC[NOT_IMP; IN_DELETE; IN_INTER; IN_BALL] THEN
+    ASM_CASES_TAC `w:real^3 = v` THENL [ASM_MESON_TAC[]; ALL_TAC] THEN
+    ASM_REWRITE_TAC[] THEN CONJ_TAC THENL
+     [MATCH_MP_TAC(NORM_ARITH
+       `!q. dist(q,w) <= dist(q,v) /\ dist(v,q) < &2 ==> dist(v,w) < &4`) THEN
+      EXISTS_TAC `q:real^3` THEN
+      RULE_ASSUM_TAC(REWRITE_RULE[VORONOI_CLOSED; IN_ELIM_THM; IN_BALL]) THEN
+      ASM_SIMP_TAC[];
+      REWRITE_TAC[Sphere.bis_le; IN_ELIM_THM] THEN
+      RULE_ASSUM_TAC(REWRITE_RULE[VORONOI_CLOSED; IN_ELIM_THM]) THEN
+      ASM_MESON_TAC[REAL_LE_TRANS]]]);;
+
+let POLYHEDRON_VORONOI_CLOSED = prove
+ (`!s v. packing s /\ saturated s /\ v IN s
+         ==> polyhedron(voronoi_closed s v)`,
+  REPEAT STRIP_TAC THEN
+  ASM_SIMP_TAC[VORONOI_CLOSED_AS_FINITE_INTERSECTION] THEN
+  MATCH_MP_TAC POLYHEDRON_INTERS THEN
+  ASM_SIMP_TAC[FINITE_IMAGE; FINITE_DELETE; FINITE_INTER;
+               KIUMVTC; FORALL_IN_IMAGE] THEN
+  REWRITE_TAC[BIS_LE; POLYHEDRON_HALFSPACE_LE]);;
+
+let POLYTOPE_VORONOI_CLOSED = prove
+ (`!s v. packing s /\ saturated s /\ v IN s
+         ==> polytope(voronoi_closed s v)`,
+  SIMP_TAC[POLYTOPE_EQ_BOUNDED_POLYHEDRON; POLYHEDRON_VORONOI_CLOSED;
+           BOUNDED_VORONOI_CLOSED]);;
+
+let MEASURABLE_VORONOI_CLOSED = prove
+ (`!s v. saturated s ==> measurable(voronoi_closed s v)`,
+  SIMP_TAC[MEASURABLE_COMPACT; COMPACT_VORONOI_CLOSED]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Relate closed and open Voronoi cells.                                     *)
+(* ------------------------------------------------------------------------- *)
+
+let CLOSED_BIS_LE = prove
+ (`!u v. closed(bis_le u v)`,
+  REWRITE_TAC[BIS_LE; CLOSED_HALFSPACE_LE]);;
+
+let OPEN_BIS_LT = prove
+ (`!u v. open(bis_lt u v)`,
+  REWRITE_TAC[BIS_LT; OPEN_HALFSPACE_LT]);;
+
+let INTERIOR_BIS_LE = prove
+ (`!u v. ~(v = u) ==> interior(bis_le u v) = bis_lt u v`,
+  SIMP_TAC[BIS_LE; BIS_LT; INTERIOR_HALFSPACE_LE;
+           VECTOR_ARITH `&2 % (v - w):real^N = vec 0 <=> v = w`]);;
+
+let CLOSURE_BIS_LT = prove
+ (`!u v. ~(v = u) ==> closure(bis_lt u v) = bis_le u v`,
+  SIMP_TAC[BIS_LE; BIS_LT; CLOSURE_HALFSPACE_LT;
+           VECTOR_ARITH `&2 % (v - w):real^N = vec 0 <=> v = w`]);;
+
+let CLOSURE_VORONOI_OPEN = prove
+ (`!S v:real^N. closure(voronoi_open v S) = voronoi_closed S v`,
+  SIMP_TAC[VORONOI_CLOSED_AS_INTERSECTION; VORONOI_OPEN_AS_INTERSECTION] THEN
+  SIMP_TAC[CLOSURE_INTERS_CONVEX_OPEN; FORALL_IN_IMAGE; BIS_LT;
+           OPEN_HALFSPACE_LT; CONVEX_HALFSPACE_LT] THEN
+  REPEAT GEN_TAC THEN COND_CASES_TAC THENL
+   [POP_ASSUM MP_TAC THEN MATCH_MP_TAC(TAUT `~p ==> p ==> q`) THEN
+    REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN
+    EXISTS_TAC `v:real^N` THEN REWRITE_TAC[INTERS_IMAGE; IN_ELIM_THM] THEN
+    SIMP_TAC[Sphere.bis_lt; IN_DELETE; IN_ELIM_THM; DIST_REFL; DIST_POS_LT];
+    AP_TERM_TAC THEN REWRITE_TAC[GSYM IMAGE_o] THEN MATCH_MP_TAC(SET_RULE
+     `(!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`) THEN
+    SIMP_TAC[IN_DELETE; o_THM; CLOSURE_BIS_LT]]);;
+
+let INTERIOR_VORONOI_CLOSED_INTERIOR = prove
+ (`!S v. interior(voronoi_closed S v) = interior(voronoi_open v S)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GSYM CLOSURE_VORONOI_OPEN] THEN
+  MATCH_MP_TAC CONVEX_INTERIOR_CLOSURE THEN
+  REWRITE_TAC[VORONOI_OPEN_AS_INTERSECTION] THEN
+  MATCH_MP_TAC CONVEX_INTERS THEN
+  REWRITE_TAC[FORALL_IN_IMAGE; BIS_LT; CONVEX_HALFSPACE_LT]);;
+
+let INTERIOR_VORONOI_CLOSED = prove
+ (`!S v. packing S /\ saturated S
+         ==> interior(voronoi_closed S v) = voronoi_open v S`,
+  SIMP_TAC[INTERIOR_VORONOI_CLOSED_INTERIOR; Pack1.open_voronoi;
+           INTERIOR_OPEN]);;
+
+let VORONOI_OPEN_AS_FINITE_INTERSECTION = prove
+ (`!s v. packing s /\ saturated s /\ v IN s
+         ==> voronoi_open v s =
+                INTERS(IMAGE (bis_lt v) ((s INTER ball(v,&4)) DELETE v))`,
+  REPEAT STRIP_TAC THEN ASM_SIMP_TAC[GSYM INTERIOR_VORONOI_CLOSED] THEN
+  ASM_SIMP_TAC[VORONOI_CLOSED_AS_FINITE_INTERSECTION] THEN
+  ASM_SIMP_TAC[INTERIOR_FINITE_INTERS; FINITE_IMAGE; KIUMVTC;
+               FORALL_IN_IMAGE; FINITE_DELETE] THEN
+  AP_TERM_TAC THEN REWRITE_TAC[GSYM IMAGE_o] THEN MATCH_MP_TAC(SET_RULE
+   `(!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`) THEN
+  SIMP_TAC[IN_DELETE; o_THM; INTERIOR_BIS_LE]);;
+
+let VORONOI_OPEN_SUBSET_CLOSED = prove
+ (`!S v:real^N. (voronoi_open v S) SUBSET (voronoi_closed S v)`,
+  REWRITE_TAC[GSYM CLOSURE_VORONOI_OPEN; CLOSURE_SUBSET]);;
+
+(* ------------------------------------------------------------------------- *)
+(* And so.                                                                   *)
+(* ------------------------------------------------------------------------- *)
+
+let MEASURE_VORONOI_CLOSED_OPEN = prove
+ (`!s v:real^N. measure(voronoi_closed s v) = measure(voronoi_open v s)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[GSYM CLOSURE_VORONOI_OPEN] THEN
+  MATCH_MP_TAC MEASURE_NEGLIGIBLE_SYMDIFF THEN
+  MATCH_MP_TAC NEGLIGIBLE_SUBSET THEN
+  EXISTS_TAC `frontier(voronoi_open (v:real^N) s)` THEN
+  SIMP_TAC[NEGLIGIBLE_CONVEX_FRONTIER; Geomdetail.VORONOI_CONV] THEN
+  REWRITE_TAC[frontier] THEN MATCH_MP_TAC(SET_RULE
+   `i SUBSET s /\ s SUBSET c
+    ==> (c DIFF s UNION s DIFF c) SUBSET (c DIFF i)`) THEN
+  REWRITE_TAC[INTERIOR_SUBSET; CLOSURE_SUBSET]);;
+
+let INTER_VORONOI_SUBSET_BISECTOR = prove
+ (`!s u v:real^N.
+        u IN s /\ v IN s
+        ==> (voronoi_closed s u) INTER (voronoi_closed s v)
+            SUBSET {x | (&2 % (u - v)) dot x = norm(u) pow 2 - norm(v) pow 2}`,
+  REPEAT STRIP_TAC THEN ASM_CASES_TAC `u:real^N = v` THENL
+   [ASM_REWRITE_TAC[VECTOR_SUB_REFL; REAL_SUB_REFL; DOT_LZERO; DOT_LMUL;
+                    REAL_MUL_RZERO] THEN
+    SET_TAC[];
+    REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION; INTERS_IMAGE] THEN
+    REWRITE_TAC[IN_INTER; SUBSET; BIS_LE; IN_ELIM_THM] THEN
+    X_GEN_TAC `w:real^N` THEN DISCH_THEN(CONJUNCTS_THEN2
+     (MP_TAC o SPEC `v:real^N`) (MP_TAC o SPEC `u:real^N`)) THEN
+    ASM_REWRITE_TAC[IN_DELETE] THEN
+    REWRITE_TAC[DOT_LMUL; DOT_LSUB] THEN REWRITE_TAC[DOT_SYM] THEN
+    REAL_ARITH_TAC]);;
+
+let NEGLIGIBLE_INTER_VORONOI_CLOSED = prove
+ (`!s u v:real^N.
+        u IN s /\ v IN s /\ ~(u = v)
+        ==> negligible((voronoi_closed s u) INTER (voronoi_closed s v))`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC NEGLIGIBLE_SUBSET THEN EXISTS_TAC
+   `{x:real^N | (&2 % (u - v)) dot x = norm(u) pow 2 - norm(v) pow 2}` THEN
+  ASM_SIMP_TAC[INTER_VORONOI_SUBSET_BISECTOR] THEN
+  MATCH_MP_TAC NEGLIGIBLE_HYPERPLANE THEN
+  ASM_SIMP_TAC[VECTOR_MUL_EQ_0; VECTOR_SUB_EQ] THEN REAL_ARITH_TAC);;
+
+(* ------------------------------------------------------------------------- *)
+(* Transfer theorems from Pack1 to closed cells where applicable.            *)
+(* ------------------------------------------------------------------------- *)
+
+let voronoi_version2 = prove
+ (`!(v:real^3) (S:real^3-> bool).
+      voronoi_closed S v = INTERS {bis_le x y | y IN (S DELETE v) /\ x = v}`,
+  REWRITE_TAC[VORONOI_CLOSED_AS_INTERSECTION; GSYM SIMPLE_IMAGE] THEN
+  REPEAT GEN_TAC THEN AP_TERM_TAC THEN SET_TAC[]);;
+
+let convex_voronoi = prove
+ (`!(v:real^3) (S:real^3-> bool). convex(voronoi_closed S v)`,
+  REWRITE_TAC[CONVEX_VORONOI_CLOSED]);;
+
+let bound_voronoi = prove
+ (`!(v:real^3) (S:real^3-> bool).
+      saturated S ==>  bounded(voronoi_closed S v)`,
+  SIMP_TAC[BOUNDED_VORONOI_CLOSED]);;
+
+let finite_voronoi2 = prove
+ (`!(v:real^3)(S:real^3 ->bool).
+      packing S
+      ==> FINITE {bis_le (x:real^3) (y:real^3) |
+                  y IN (S DELETE v) /\ x = v /\ y IN ball(v, &4)}`,
+  REWRITE_TAC[PACKING] THEN REPEAT STRIP_TAC THEN
+  REWRITE_TAC[SET_RULE `{f x y | P y /\ x = v /\ Q y} =
+                        IMAGE (f v) {y | P y /\ Q y}`] THEN
+  MATCH_MP_TAC FINITE_IMAGE THEN MATCH_MP_TAC DISCRETE_BOUNDED_IMP_FINITE THEN
+  EXISTS_TAC `&2` THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN CONJ_TAC THENL
+   [REWRITE_TAC[IN_ELIM_THM; IN_DELETE; GSYM dist] THEN ASM_MESON_TAC[];
+    MATCH_MP_TAC BOUNDED_SUBSET THEN EXISTS_TAC `ball(v:real^3,&4)` THEN
+    REWRITE_TAC[BOUNDED_BALL] THEN SET_TAC[]]);;
+
+let not_in_voronoi = prove
+ (`!(x:real^3)(v:real^3)(S:real^3 -> bool).
+          ~(x IN voronoi_closed S v) <=>
+          ?y. y IN S /\ ~ (y = v) /\ dist (x,y) < dist (x,v)`,
+  REWRITE_TAC[VORONOI_CLOSED_ALT; IN_ELIM_THM] THEN MESON_TAC[REAL_NOT_LE]);;
+
+let voronoi_in_ball = prove
+ (`!(x:real^3)(v:real^3)(S:real^3 -> bool).
+        packing S /\ saturated S /\ (x IN voronoi_closed S v)
+        ==> dist(x,v) < &2`,
+  REPEAT STRIP_TAC THEN
+  MP_TAC(ISPECL [`S:real^3->bool`; `v:real^3`] VORONOI_CLOSED_SUBSET_BALL) THEN
+  ASM_SIMP_TAC[SUBSET; IN_BALL; REAL_LT_IMP_LE; DIST_SYM]);;
+
+let DRUQUFE = prove
+ (`!(v:real^3)(S:real^3 -> bool).
+       packing S /\ saturated S
+       ==> convex (voronoi_closed S v) /\
+           bounded (voronoi_closed S v) /\
+           closed (voronoi_closed S v) /\
+           measurable ( voronoi_closed S v)`,
+  SIMP_TAC[CONVEX_VORONOI_CLOSED; BOUNDED_VORONOI_CLOSED;
+           CLOSED_VORONOI_CLOSED; MEASURABLE_VORONOI_CLOSED]);;
+
+let measurable_voronoi = prove
+ (`!(v:real^3)(S:real^3 -> bool).
+      packing S /\ saturated S ==> measurable ( voronoi_closed S v)`,
+  SIMP_TAC[MEASURABLE_VORONOI_CLOSED]);;
+
+let fcc_compatible = prove
+ (`fcc_compatible f S <=>
+     (!v. v IN S ==> sqrt(&32) <= measure(voronoi_closed S v) + f v)`,
+  REWRITE_TAC[Pack1.fcc_compatible; MEASURE_VORONOI_CLOSED_OPEN]);;
+
+let voronoi_subset_ball = prove
+ (`!(x:real^3)(v:real^3)(S:real^3 -> bool).
+      packing S /\ saturated S ==> (voronoi_closed S v) SUBSET ball(v, &2)`,
+  SIMP_TAC[VORONOI_CLOSED_SUBSET_BALL]);;
+
+let all_voronoi_subset_ball = prove
+ (`!(v:real^3)(S:real^3 ->bool)(p:real^3)(r:real).
+        packing S /\ saturated S /\ v IN ball(p, r + &1)
+        ==> (voronoi_closed S v) SUBSET ball(p, r + &3)`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC(SET_RULE
+   `voronoi_closed (S:real^3 -> bool) (v:real^3) SUBSET ball(v:real^3, &2) /\
+    ball(v:real^3, &2 ) SUBSET ball(p:real^3, r+ &3)
+    ==> voronoi_closed S v SUBSET ball (p,r + &3)`) THEN
+  ASM_SIMP_TAC[voronoi_subset_ball] THEN
+  UNDISCH_TAC `((v:real^3) IN ball (p:real^3,r + &1)):bool` THEN
+  REWRITE_TAC[ball;SUBSET;IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+  MP_TAC(ISPECL [`p:real^3`;`v:real^3`;`x:real^3`] DIST_TRIANGLE) THEN
+  ASM_MESON_TAC[REAL_ARITH
+   ` a< (r:real) + &1 /\ b< &2 /\ c <= a + b ==> c < r + &3`]);;
+
+let unions_voronoi_subset_ball = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real).
+      packing S /\ saturated S
+      ==> UNIONS {voronoi_closed S v | v IN ball(p, r+ &1)}
+          SUBSET ball(p, r+ &3)`,
+  REWRITE_TAC[UNIONS_SUBSET; FORALL_IN_GSPEC] THEN
+  SIMP_TAC[all_voronoi_subset_ball]);;
+
+let unions_voronoi_center_in_ball_subset_ball = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real).
+        packing S /\ saturated S
+        ==> UNIONS {voronoi_closed w v | v IN (S INTER ball(p, r+ &1)) /\
+                                         w = S} SUBSET ball(p, r+ &3)`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC SUBSET_TRANS THEN
+  EXISTS_TAC `UNIONS {voronoi_closed S (v:real^3) | v IN ball(p, r+ &1)}` THEN
+  ASM_SIMP_TAC[unions_voronoi_subset_ball] THEN
+  MATCH_MP_TAC SUBSET_UNIONS THEN
+  REWRITE_TAC[SUBSET; FORALL_IN_GSPEC] THEN
+  REWRITE_TAC[IN_ELIM_THM; IN_INTER] THEN MESON_TAC[]);;
+
+let finite_set_voronoi_center_in_ball = prove
+ (`!(S:real^3 ->bool) (p:real^3) (r:real).
+        &0 <= r /\ packing S
+        ==>  FINITE({voronoi_closed w v | v IN (S INTER ball (p,r+ &1)) /\
+                                          w = S})`,
+  REPEAT STRIP_TAC THEN
+  REWRITE_TAC[SET_RULE `{f x y | y IN t /\ x = s} = IMAGE (f s) t`] THEN
+  MATCH_MP_TAC FINITE_IMAGE THEN ASM_SIMP_TAC[KIUMVTC]);;
+
+let measurable_unions_voronoi = prove
+ (`!(S:real^3 ->bool) (p:real^3) (r:real).
+        &0 <= r /\ packing S /\ saturated S
+        ==> measurable(UNIONS {voronoi_closed w v |
+                               v IN (S INTER ball (p,r+ &1)) /\ w = S})`,
+  REPEAT STRIP_TAC THEN
+  MATCH_MP_TAC MEASURABLE_UNIONS THEN
+  ASM_SIMP_TAC[finite_set_voronoi_center_in_ball] THEN
+  GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+  ASM_MESON_TAC[measurable_voronoi]);;
+
+let negligible_voronoi = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real). (!s t.
+       s IN {voronoi_closed w v | v IN S INTER ball (p,r + &1) /\ w = S} /\
+       t IN {voronoi_closed w v | v IN S INTER ball (p,r + &1) /\ w = S} /\
+       ~(s = t)
+       ==> negligible (s INTER t))`,
+  REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+  MATCH_MP_TAC NEGLIGIBLE_INTER_VORONOI_CLOSED THEN ASM_MESON_TAC[IN_INTER]);;
+
+let measure_unions_sum_voronoi = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real).
+        &0 <= r /\ packing S /\ saturated S
+        ==> measure(UNIONS {voronoi_closed w v |
+                            v IN (S INTER ball(p, r + &1)) /\ w = S}) =
+            sum (S INTER ball(p, r + &1)) (\v. measure (voronoi_closed S v))`,
+  REPEAT STRIP_TAC THEN
+  REWRITE_TAC[SET_RULE `{f x y | y IN t /\ x = s} = IMAGE (f s) t`] THEN
+  MATCH_MP_TAC MEASURE_NEGLIGIBLE_UNIONS_IMAGE THEN
+  ASM_SIMP_TAC[MEASURABLE_VORONOI_CLOSED; KIUMVTC; IN_INTER] THEN
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC NEGLIGIBLE_INTER_VORONOI_CLOSED THEN
+  ASM_REWRITE_TAC[]);;
+
+let sum_measure_voronoi_le_ball = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real).
+        &0<= r /\ packing S /\ saturated S
+        ==> sum (S INTER ball (p,r + &1)) (\v. measure (voronoi_closed S v))
+            <= measure (ball(p,r+ &3))`,
+  REWRITE_TAC[MEASURE_VORONOI_CLOSED_OPEN;
+              Pack1.sum_measure_voronoi_le_ball]);;
+
+let ineq_lm5_3_step3 = prove
+ (`!(S:real^3 ->bool)(p:real^3)(r:real)(A:real^3 ->real).
+        &0 <= r /\ packing S /\ saturated S /\ (fcc_compatible A S)
+        ==> sqrt(&32) * &(CARD(S INTER ball(p,r + &1)))
+            <= sum (S INTER ball (p,r + &1))
+                   (\v. (A v + measure (voronoi_closed S v)))`,
+  REWRITE_TAC[MEASURE_VORONOI_CLOSED_OPEN;
+              Pack1.ineq_lm5_3_step3]);;
+
+end;;

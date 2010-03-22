@@ -21,12 +21,36 @@ needs "Multivariate/flyspeck.ml";;
 let flyspeck_dir = 
   (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
 
+let hollight_dir = 
+  (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
+
+let process_to_string unixstring = 
+  let p = Unix.open_process_in unixstring
+  and b = Buffer.create 64 in
+  let rec read () = Buffer.add_channel b p 1; read () in
+    try read () with End_of_file -> Buffer.contents b;;
+
+let flyspeck_version = "Flyspeck "^process_to_string ("svn info "^flyspeck_dir^ " | grep Revision");;
+
+let hollight_version = "HOL Light "^process_to_string ("svn info "^hollight_dir^ " | grep Revision");;
+
+let build_date = "Build: " ^ process_to_string "date";;
+let build_user = "User: " ^ process_to_string "whoami";;
+let indent = "   ";;
+
+let build_report =  build_date ^ 
+  indent ^ build_user ^ 
+  indent ^ hollight_version ^ 
+  indent ^ flyspeck_version ^ "\n";;
+
+let fullpath s = Filename.concat flyspeck_dir s;;
+
+
 (*
 Sys.command("svn info "^flyspeck_dir^" | grep Revison");;
 *)
 
 
-let fullpath s = Filename.concat flyspeck_dir s;;
 
 (* boolean valued versions of Harrison's load files that return false if load was not a success *)
 
@@ -118,7 +142,12 @@ let new_definition = Debug.new_definition_verbose;;
 
 flyspeck_needs "build.hl";;
 
-map flyspeck_needs Build.build_sequence;;
+
+let _ = map flyspeck_needs Build.build_sequence in
+  (* write report *)
+  let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "log.txt") in
+  (output_string oc build_report; close_out oc);;
+
 
 let rec cut_after f a acc = function
   | [] -> acc

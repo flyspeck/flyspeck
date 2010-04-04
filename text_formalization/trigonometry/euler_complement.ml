@@ -1,0 +1,862 @@
+
+(* ========================================================================= *)
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*          COMPLEMENT LEMMAS FOR EULER TRIANGLE LEMMA                       *)
+(*                                                                           *)
+(*                  LEMMA ABOUT RESCALING                                    *)
+(*                                                                           *)
+(*      Authour : VU KHAC KY                                                 *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+
+(* ========================================================================= *)
+(*                     SOME USEFUL TACTICS                                   *)
+(* ========================================================================= *)
+
+let UP_ASM_TAC = FIRST_X_ASSUM MP_TAC;;
+
+let DEL_TAC = FIRST_X_ASSUM MP_TAC THEN MATCH_MP_TAC (MESON[] `a ==> b ==> a`);;
+
+let SWITCH_TAC = 
+   FIRST_X_ASSUM MP_TAC THEN 
+   FIRST_X_ASSUM MP_TAC THEN 
+   MATCH_MP_TAC (MESON[] `(a ==> b ==> c) ==> (b ==> a ==> c)`) THEN 
+   DISCH_TAC THEN 
+   DISCH_TAC;;
+
+(* ========================================================================= *)
+(*                  THE FIRST LEMMA                                          *)
+(* ========================================================================= *)
+
+let euler_after_rescale_t =   
+   `!v0:real^3 v1 v2 v3.
+       norm (v1 - v0) = &1
+       ==> norm (v2 - v0) = &1
+       ==> norm (v3 - v0) = &1
+       ==> &2 *
+             (&1 +
+             (v2 - v0) dot (v3 - v0) +
+             (v3 - v0) dot (v1 - v0) +
+             (v1 - v0) dot (v2 - v0)) =
+            &8 -
+            (v2 - v3) dot (v2 - v3) -
+            (v1 - v3) dot (v1 - v3) -
+            (v1 - v2) dot (v1 - v2)`;;
+ 
+let LEMMA_FOR_EULER_AFTER_RESCALE = prove_by_refinement (euler_after_rescale_t,
+
+[(REPEAT GEN_TAC THEN REPEAT DISCH_TAC);
+(ABBREV_TAC `a = v1:real^3 - v0`);
+(ABBREV_TAC `b = v2:real^3 - v0`);
+(ABBREV_TAC `c = v3:real^3 - v0`);
+
+  (ONCE_REWRITE_TAC[VECTOR_ARITH `x:real^3 - y = (x - v0) - (y - v0)`]);
+  (PURE_ONCE_ASM_REWRITE_TAC[]);
+  (DEL_TAC THEN DEL_TAC THEN DEL_TAC);
+  (REWRITE_TAC[VECTOR_ARITH 
+    `(x:real^3 - y) dot (x - y) = x dot x + y dot y - &2 * x dot y`]) ; 
+
+  (PURE_ONCE_REWRITE_TAC[GSYM NORM_POW_2]);
+  (PURE_ONCE_ASM_REWRITE_TAC[]);
+  (PURE_ONCE_REWRITE_TAC[REAL_ARITH `&1 pow 2 = &1`]);
+  (PURE_REWRITE_TAC[DOT_SYM]);
+  REAL_ARITH_TAC]);;
+
+(*========================================================================= *)
+(*                                                                          *)
+(*             THE SECOND LEMMA : DIHV UNCHANGED                            *)
+(*                                                                          *)
+(* =========================================================================*)
+
+let dihv_rescale_unchanged_t =
+
+`!v0 v1 v2 v3 w0 w1:real^3 w2 w3 m n p.
+     v1 - v0 = m % (w1 - w0) /\
+     v2 - v0 = n % (w2 - w0) /\
+     v3 - v0 = p % (w3 - w0) /\
+     &0 < m /\
+     &0 < n /\
+     &0 < p
+     ==> dihV v0 v1 v2 v3 = dihV w0 w1 w2 w3`;;
+
+let DIHV_RESCALE_UNCHANGED = prove_by_refinement (dihv_rescale_unchanged_t ,
+
+[(REPEAT GEN_TAC THEN REPEAT STRIP_TAC);
+(REWRITE_TAC[dihV] THEN REPEAT LET_TAC);
+(REWRITE_TAC[arcV]);
+(AP_TERM_TAC);
+(REWRITE_TAC[VECTOR_SUB_RZERO]);
+
+  (* Begin subgoal 1 *)
+
+  (SUBGOAL_THEN `vap':real^3 = (m * m * n) % vap` ASSUME_TAC);
+  (EXPAND_TAC "vap'" THEN EXPAND_TAC "vap");
+  (PURE_ONCE_REWRITE_TAC[ASSUME `(vc':real^3) = m % vc`]);
+  (PURE_ONCE_REWRITE_TAC[ASSUME `(va':real^3) = n % va`]);
+  (PURE_REWRITE_TAC[DOT_LMUL;DOT_RMUL]);
+  (REWRITE_TAC[VECTOR_SUB_LDISTRIB;VECTOR_MUL_ASSOC]);
+  (REWRITE_TAC[REAL_ARITH `(a * b * c) * d = (a * b * d) * c`]);
+  (AP_TERM_TAC);
+  (AP_THM_TAC THEN AP_TERM_TAC THEN AP_THM_TAC THEN AP_TERM_TAC);
+  REAL_ARITH_TAC;
+  (* End subgoal 1 *)
+  
+  (* Begin subgoal 2 *)
+
+  (SUBGOAL_THEN `vbp':real^3 = (m * m * p)  % vbp` ASSUME_TAC);
+  (EXPAND_TAC "vbp'" THEN EXPAND_TAC "vbp");
+  (PURE_ONCE_REWRITE_TAC[ASSUME `(vc':real^3) = m % vc`]);
+  (PURE_ONCE_REWRITE_TAC[ASSUME `(vb':real^3) = p % vb`]);
+  (PURE_REWRITE_TAC[DOT_LMUL;DOT_RMUL]);
+  (REWRITE_TAC[VECTOR_SUB_LDISTRIB;VECTOR_MUL_ASSOC]);
+  (REWRITE_TAC[REAL_ARITH `(a * b * c) * d = (a * b * d) * c`]);
+  (AP_TERM_TAC);
+  (AP_THM_TAC THEN AP_TERM_TAC THEN AP_THM_TAC THEN AP_TERM_TAC);
+  REAL_ARITH_TAC;
+  (* End subgoal 2 *)  
+
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(PURE_REWRITE_TAC[DOT_LMUL;DOT_RMUL]);
+(PURE_REWRITE_TAC[NORM_MUL]);
+(PURE_ONCE_REWRITE_TAC[REAL_ARITH `(a * b) * c * d = (a * c) * b * d`]);
+(PURE_REWRITE_TAC[REAL_ABS_MUL]);
+
+
+  (SUBGOAL_THEN `&0 <= m /\ &0 <= n /\ &0 <= p` ASSUME_TAC);
+  ASM_REAL_ARITH_TAC;
+
+  (SUBGOAL_THEN `abs m = m /\ abs n = n /\ abs p = p` ASSUME_TAC);
+  (UP_ASM_TAC THEN MESON_TAC[GSYM REAL_ABS_REFL]);
+
+(UP_ASM_TAC THEN STRIP_TAC);
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(PURE_ONCE_REWRITE_TAC[REAL_MUL_ASSOC]);
+(PURE_ONCE_REWRITE_TAC[REAL_ARITH 
+   `(m * m * m * p) * m * n = (m * m * n) * m * m * p`]);
+(ABBREV_TAC `s = (m * m * n) * m * m * p`);
+(PURE_ONCE_REWRITE_TAC[GSYM REAL_MUL_ASSOC]);
+(PURE_REWRITE_TAC[real_div;REAL_INV_MUL]);
+(PURE_ONCE_REWRITE_TAC[REAL_ARITH `(a * b * c) = (c * b) * a`]);
+(REWRITE_TAC[REAL_ARITH `((a * b) * c) * d * e = (((c * d) * b) * a) * e`]);
+(AP_THM_TAC THEN AP_TERM_TAC);
+(AP_THM_TAC THEN AP_TERM_TAC);
+
+(PURE_ONCE_REWRITE_TAC[GSYM REAL_MUL_LID]);
+(ONCE_REWRITE_TAC[REAL_ARITH `&1 * x * y = x * y`]);
+(AP_THM_TAC THEN AP_TERM_TAC);
+(MATCH_MP_TAC REAL_MUL_LINV);
+(EXPAND_TAC "s");
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+(ASM_MESON_TAC[REAL_LT_MUL])]);;
+
+(*===========================================================================*)
+(*    THE THIRD LEMMA :                                                      *)
+(*               The lemmas help to compute p after rescaling                *)
+(*                          (in general)                                     *)
+(*                                                                           *)
+(*===========================================================================*)
+
+let compute_euler_p_after_rescale_t =
+`!v0:real^3 v1 v2 v3 v0' v1' v2' v3' m n p.
+     v1 - v0 = m % (v1' - v0') /\
+     v2 - v0 = n % (v2' - v0') /\
+     v3 - v0 = p % (v3' - v0') /\
+     &0 < m /\
+     &0 < n /\
+     &0 < p
+     ==> euler_p v0 v1 v2 v3 = (m * n * p) * euler_p v0' v1' v2' v3'`;;
+
+
+let COMPUTE_EULER_P_AFTER_RESCALE = 
+ prove_by_refinement (compute_euler_p_after_rescale_t,
+
+[(REPEAT GEN_TAC THEN STRIP_TAC);
+(REWRITE_TAC[euler_p]);
+(PURE_ONCE_REWRITE_TAC[ylist]);
+(REPEAT LET_TAC);
+(REPLICATE_TAC 8 UP_ASM_TAC);
+(PURE_REWRITE_TAC[PAIR_EQ]);
+(PURE_ONCE_REWRITE_TAC[DIST_SYM]);
+(PURE_REWRITE_TAC[dist]);
+(REPEAT STRIP_TAC);
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "y1'" THEN EXPAND_TAC "y2'" THEN EXPAND_TAC "y3'");
+(EXPAND_TAC "y1" THEN EXPAND_TAC "y2" THEN EXPAND_TAC "y3");
+(REPLICATE_TAC 3 UP_ASM_TAC);
+(REPLICATE_TAC 6 DEL_TAC);
+(REPLICATE_TAC 3 UP_ASM_TAC);
+(REPLICATE_TAC 6 DEL_TAC);
+(REPEAT STRIP_TAC);
+
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(REPLICATE_TAC 6 DEL_TAC);
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(PURE_ONCE_REWRITE_TAC[NORM_MUL]);
+
+
+  (SUBGOAL_THEN `&0 <= m /\ &0 <= n /\ &0 <= p` ASSUME_TAC);
+  (ASM_MESON_TAC[REAL_ARITH `&0 < a ==> &0 <= a`]);
+  (SUBGOAL_THEN `abs m = m /\ abs n = n /\ abs p = p` ASSUME_TAC);
+  (UP_ASM_TAC THEN MESON_TAC[REAL_ABS_REFL]);
+
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(PURE_REWRITE_TAC[DOT_RMUL;DOT_LMUL]);
+REAL_ARITH_TAC]);;
+
+(* ========================================================================= *)
+(*       THE 4-TH LEMMA                                                      *)
+(*                  This lemma is for computing delta_x                      *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+let VECTOR_EQ_COMPONENT = prove
+ (`!x:real^N y i. x = y ==> x$i = y$i`,
+  REPEAT GEN_TAC THEN
+  SUBGOAL_THEN `?k. 1 <= k /\ k <= dimindex(:N) /\ !z:real^N. z$i = z$k`
+  CHOOSE_TAC THENL
+   [REWRITE_TAC[FINITE_INDEX_INRANGE];
+    ASM_SIMP_TAC[vector_sub; CART_EQ; LAMBDA_BETA]]);;
+
+let compute_delta_x_after_rescale_t =
+ `!v0 v1 v2 v3 v0' v1' v2' v3' m n p x1 x2 x3 x4 x5 x6 x1' x2' x3' x4' x5' x6'.
+     v1:real^3 - v0 = m % (v1' - v0') /\
+      v2 - v0 = n % (v2' - v0') /\
+      v3 - v0 = p % (v3' - v0') /\
+      &0 <= m /\
+      &0 <= n /\
+      &0 <= p /\
+      x1',x2',x3',x4',x5',x6' = xlist v0' v1' v2' v3' /\
+      x1,x2,x3,x4,x5,x6 = xlist v0 v1 v2 v3 /\
+      &0 <= delta_x x1' x2' x3' x4' x5' x6' 
+      ==> delta_x x1 x2 x3 x4 x5 x6 =
+         (m * n * p) * (m * n * p) * delta_x x1' x2' x3' x4' x5' x6'`;;
+
+
+let COMPUTE_DELTA_X_AFTER_RESCALE = 
+
+prove_by_refinement (compute_delta_x_after_rescale_t ,
+
+[(REPEAT GEN_TAC THEN REPEAT STRIP_TAC);
+
+  (SUBGOAL_THEN `delta_x x1 x2 x3 x4 x5 x6 = 
+             (let a = v1:real^3 - v0 in
+              let b = v2 - v0 in
+              let c = v3 - v0 in
+              &4 * (a$1 * b$2 * c$3 - a$1 * b$3 * c$2 - a$2 * b$1 * c$3 +
+               a$2 * b$3 * c$1 + a$3 * b$1 * c$2 - a$3 * b$2 * c$1) pow 2)` 
+    ASSUME_TAC);
+  (ASM_MESON_TAC[COMPUTE_DELTA_X]);
+
+  (SUBGOAL_THEN `delta_x x1' x2' x3' x4' x5' x6' = 
+             (let a' = v1':real^3 - v0' in
+              let b' = v2' - v0' in
+              let c' = v3' - v0' in
+          &4 * (a'$1 * b'$2 * c'$3 - a'$1 * b'$3 * c'$2 - a'$2 * b'$1 * c'$3 +
+          a'$2 * b'$3 * c'$1 + a'$3 * b'$1 * c'$2 - a'$3 * b'$2 * c'$1) pow 2)`
+     ASSUME_TAC);
+  (ASM_MESON_TAC[COMPUTE_DELTA_X]);
+
+(ASM_REWRITE_TAC[]); 
+(REPEAT LET_TAC);
+
+  (SUBGOAL_THEN `(a:real^3)$1 = m * (a':real^3)$1 /\
+                   (b:real^3)$1 = n * (b':real^3)$1 /\
+                   (c:real^3)$1 = p * (c':real^3)$1 /\
+                   a$2 = m * a'$2 /\ 
+                   a$3 = m * a'$3 /\
+                   b$2 = n * b'$2 /\
+                   b$3 = n * b'$3 /\
+                   c$2 = p * c'$2 /\
+                   c$3 = p * c'$3` ASSUME_TAC);
+
+  (ASM_MESON_TAC[VECTOR_EQ_COMPONENT;VECTOR_MUL_COMPONENT]);
+(ONCE_ASM_REWRITE_TAC[]);
+(REWRITE_TAC[POW_2]);
+REAL_ARITH_TAC]);;
+
+(* =========================================================================*)
+(*     THE 5-TH LEMMA :                                                     *)
+(*             Similar lemma for computing Sqrt(delta_x)                    *)
+(*==========================================================================*)
+
+let sqrt_delta_x_after_rescale =
+`!v0 v1 v2 v3 v0' v1' v2' v3' m n p x1 x2 x3 x4 x5 x6 x1' x2' x3' x4' x5' x6'.
+     v1:real^3 - v0 = m % (v1' - v0') /\
+      v2 - v0 = n % (v2' - v0') /\
+      v3 - v0 = p % (v3' - v0') /\
+      &0 <= m /\
+      &0 <= n /\
+      &0 <= p /\
+      x1',x2',x3',x4',x5',x6' = xlist v0' v1' v2' v3' /\
+      x1,x2,x3,x4,x5,x6 = xlist v0 v1 v2 v3 /\
+      &0 <= delta_x x1' x2' x3' x4' x5' x6'
+     ==> sqrt (delta_x x1 x2 x3 x4 x5 x6) =
+         (m * n * p) * sqrt (delta_x x1' x2' x3' x4' x5' x6')`;;
+
+let SQRT_DELTA_X_AFTER_RESCALE  = 
+prove_by_refinement (sqrt_delta_x_after_rescale, 
+
+[(REPEAT GEN_TAC THEN REPEAT STRIP_TAC);
+
+  (SUBGOAL_THEN 
+     `delta_x x1 x2 x3 x4 x5 x6 =
+         (m * n * p) * (m * n * p) * delta_x x1' x2' x3' x4' x5' x6'`
+     ASSUME_TAC);
+  (ASM_MESON_TAC[COMPUTE_DELTA_X_AFTER_RESCALE]);
+
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(ABBREV_TAC `S = m * n * p`);
+(PURE_REWRITE_TAC[REAL_MUL_ASSOC]);
+
+  (SUBGOAL_THEN 
+    `sqrt ((S * S) * delta_x x1' x2' x3' x4' x5' x6') =
+     sqrt (S * S) * sqrt (delta_x x1' x2' x3' x4' x5' x6')`
+     ASSUME_TAC);
+  (MATCH_MP_TAC SQRT_MUL);
+  (EXPAND_TAC "S");
+  (ASM_MESON_TAC[REAL_LE_MUL]);  
+  
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(AP_THM_TAC THEN AP_TERM_TAC);
+
+  (SUBGOAL_THEN `sqrt (S * S) = sqrt S pow 2` ASSUME_TAC); 
+  (REWRITE_TAC[REAL_POW_2]);
+  (MATCH_MP_TAC SQRT_MUL);  
+  (EXPAND_TAC "S");
+  (ASM_MESON_TAC[REAL_LE_MUL]);
+
+(PURE_ONCE_ASM_REWRITE_TAC[]);
+(MATCH_MP_TAC SQRT_POW_2);  
+(EXPAND_TAC "S");
+(ASM_MESON_TAC[REAL_LE_MUL])]);;
+
+
+(* ===========================================================================*)
+(*    THE SIXTH LEMMA :                                                       *)
+(*                                                                            *)
+(*    This following sub-lemma is necessary for proving the 6-th Lemma        *)
+(*                                                                            *)
+(* ===========================================================================*)
+
+let SQRT_OF_POW_2_LE = prove_by_refinement (
+ `!x. (&0 <= x) ==> sqrt (x pow 2) = x`,
+
+[(GEN_TAC THEN DISCH_TAC);
+ (REWRITE_TAC[REAL_POW_2]);
+   (SUBGOAL_THEN `sqrt (x * x) = (sqrt x) pow 2` ASSUME_TAC);   (PURE_REWRITE_TAC[REAL_POW_2]);
+   (MATCH_MP_TAC SQRT_MUL);
+   (ASM_REWRITE_TAC[]);
+ (PURE_ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[SQRT_POW_2])]);;
+
+(* ===========================================================================*)
+(*    THE SIXTH LEMMA :                                                       *)
+(*         This lemma says that if the Euler formulation holds                *)
+(*         for the case where x1 = x2 = x3 = 1 then it holds for all cases    *)
+(*                                                                            *)
+(* ===========================================================================*)
+
+let EULER_FORMULA_RESCALE = prove_by_refinement (
+ `(!v0 v1:real^3 v2 v3 p x1 x2 x3 x4 x5 x6 alpha1 alpha2 alpha3 d w1 w2 w3.
+      p = euler_p v0 v1 v2 v3 /\
+      x1,x2,x3,x4,x5,x6 = xlist v0 v1 v2 v3 /\
+      alpha1 = dihV v0 v1 v2 v3 /\
+      alpha2 = dihV v0 v2 v3 v1 /\
+      alpha3 = dihV v0 v3 v1 v2 /\
+      d = delta_x x1 x2 x3 x4 x5 x6 /\
+      w1 = v1 - v0 /\
+      w2 = v2 - v0 /\
+      w3 = v3 - v0 /\
+      &0 < d /\
+      norm w1 = &1 /\
+      norm w2 = &1 /\
+      norm w3 = &1
+      ==> alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2 (sqrt d,&2 * p))
+ ==> (!v0 v1:real^3 v2 v3.
+        let p = euler_p v0 v1 v2 v3 in
+        let x1,x2,x3,x4,x5,x6 = xlist v0 v1 v2 v3 in
+        let alpha1 = dihV v0 v1 v2 v3 in
+        let alpha2 = dihV v0 v2 v3 v1 in
+        let alpha3 = dihV v0 v3 v1 v2 in
+        let d = delta_x x1 x2 x3 x4 x5 x6 in
+        &0 < d
+        ==> alpha1 + alpha2 + alpha3 - pi = pi - &2 * atn2 (sqrt d,&2 * p))`,
+
+(* -------------------------------------------------------------------------*)
+(*             Rescale by considering new points v1',v2',v3'                *)
+(* -------------------------------------------------------------------------*)
+
+[(DISCH_TAC THEN REPEAT GEN_TAC THEN REPEAT LET_TAC THEN DISCH_TAC);
+
+(ABBREV_TAC `v1' = v0 + inv (norm(v1:real^3 - v0)) % (v1 - v0)`);
+(ABBREV_TAC `v2' = v0 + inv (norm(v2:real^3 - v0)) % (v2 - v0)`);
+(ABBREV_TAC `v3' = v0 + inv (norm(v3:real^3 - v0)) % (v3 - v0)`);
+(ABBREV_TAC `w1' = (v1':real^3) - v0`);
+(ABBREV_TAC `w2' = (v2':real^3) - v0`);
+(ABBREV_TAC `w3' = (v3':real^3)- v0`);
+
+(* -------------------------------------------------------------------------*)
+(*   Subgoal 1:   &0 < norm (v1 - v0)                                       *) 
+(*                &0 < norm (v2 - v0)                                       *)
+(*                &0 < norm (v3 - v0)                                       *)
+(* -------------------------------------------------------------------------*)
+
+  (SUBGOAL_THEN 
+     `&0 < norm (v1:real^3 - v0)  /\
+      &0 < norm (v2:real^3 - v0)  /\
+      &0 < norm (v3:real^3 - v0)`
+     ASSUME_TAC); 
+
+  (PURE_ONCE_REWRITE_TAC[NORM_POS_LT]);
+  (PURE_REWRITE_TAC[VECTOR_ARITH `(a - b = vec 0) <=> (a = b)`; 
+                      MESON[] `(a <=> b) <=> ~ a <=> ~ b`]);
+  (REPEAT CONJ_TAC);  (* Break into 3 subgoal *)
+
+    STRIP_TAC;
+    (SUBGOAL_THEN `collinear {v0:real^3 , v1,  v2}` ASSUME_TAC); 
+    (PURE_ONCE_ASM_REWRITE_TAC[]); 
+    (PURE_REWRITE_TAC[collinear; SET_RULE `{a, a, b} = {a , b}`]);
+    (EXISTS_TAC `v2:real^3 - v0`);
+    (REPEAT GEN_TAC);   
+    (REWRITE_TAC[SET_RULE ` x IN {a, b} <=> (x = a \/ x = b)`]);
+    STRIP_TAC;   (* Break into 4 subgoals *)
+ 
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `-- &1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+   (ASM_MESON_TAC[DELTA_X_LT_0_COLLINEAR]);
+
+    STRIP_TAC;
+    (SUBGOAL_THEN `collinear {v0:real^3 , v1,  v2}` ASSUME_TAC); 
+    (PURE_ONCE_ASM_REWRITE_TAC[]); 
+    (PURE_REWRITE_TAC[collinear; SET_RULE `{a, b, a} = {a , b}`]);
+    (EXISTS_TAC `v1:real^3 - v0`);
+    (REPEAT GEN_TAC);   
+    (REWRITE_TAC[SET_RULE ` x IN {a, b} <=> (x = a \/ x = b)`]);
+    STRIP_TAC;   (* Break into 4 subgoals *)
+ 
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `-- &1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+   (ASM_MESON_TAC[DELTA_X_LT_0_COLLINEAR]);
+
+    STRIP_TAC;
+    (SUBGOAL_THEN `collinear {v0:real^3 , v1,  v3}` ASSUME_TAC); 
+    (PURE_ONCE_ASM_REWRITE_TAC[]); 
+    (PURE_REWRITE_TAC[collinear; SET_RULE `{a, b, a} = {a , b}`]);
+    (EXISTS_TAC `v1:real^3 - v0`);
+    (REPEAT GEN_TAC);   
+    (REWRITE_TAC[SET_RULE ` x IN {a, b} <=> (x = a \/ x = b)`]);
+    STRIP_TAC;   (* Break into 4 subgoals *)
+ 
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `-- &1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&1` THEN VECTOR_ARITH_TAC);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (EXISTS_TAC `&0` THEN VECTOR_ARITH_TAC);
+   (ASM_MESON_TAC[DELTA_X_LT_0_COLLINEAR]);
+
+
+(* -------------------------------------------------------------------------*)
+(*   Subgoal 2:   w1', w2', w3' havnorms equal 1                          *)
+(* -------------------------------------------------------------------------*)
+  
+  (SUBGOAL_THEN 
+     `norm (w1':real^3) = &1 /\
+      norm (w2':real^3) = &1 /\
+      norm (w3':real^3) = &1`
+     ASSUME_TAC); 
+
+  (EXPAND_TAC "w1'" THEN EXPAND_TAC "w2'" THEN EXPAND_TAC "w3'");  
+  (UP_ASM_TAC THEN REPLICATE_TAC 3 DEL_TAC THEN DISCH_TAC);
+  (EXPAND_TAC "v1'" THEN EXPAND_TAC "v2'" THEN EXPAND_TAC "v3'");  
+  (ONCE_REWRITE_TAC[VECTOR_ARITH `((a:real^3) + b) - a = b`]);  
+  (REWRITE_TAC[NORM_MUL;REAL_ABS_INV]);
+
+      (SUBGOAL_THEN 
+         `abs (norm (v1 - v0)) = norm (v1:real^3 - v0) /\
+          abs (norm (v2 - v0)) = norm (v2:real^3 - v0) /\
+          abs (norm (v3 - v0)) = norm (v3:real^3 - v0)`
+          ASSUME_TAC);   
+      (SIMP_TAC[NORM_POS_LE;REAL_ABS_REFL]);
+
+  (ONCE_ASM_REWRITE_TAC[]);
+  (ASM_SIMP_TAC[REAL_ARITH `&0 < a ==> ~(a = &0)`;REAL_MUL_LINV]);
+
+(* ------------------------------------------------------------------------- *)
+(*  SUBGOAL 3 :                                                              *)
+(*                  alpha1, alpha2, alpha3 arunchanged                     *)
+(* ------------------------------------------------------------------------- *)
+
+(ABBREV_TAC `alpha1' = dihV (v0:real^3) v1' v2' v3'`);
+(ABBREV_TAC `alpha2' = dihV (v0:real^3) v2' v3' v1'`);
+(ABBREV_TAC `alpha3' = dihV (v0:real^3) v3' v1' v2'`);
+
+  (SUBGOAL_THEN 
+    `alpha1:real = alpha1' /\ alpha2:real = alpha2' /\ alpha3:real = alpha3'`
+    ASSUME_TAC);
+  (EXPAND_TAC "alpha1" THEN EXPAND_TAC "alpha2" THEN EXPAND_TAC "alpha3");
+  (EXPAND_TAC "alpha1'" THEN EXPAND_TAC "alpha2'" THEN EXPAND_TAC "alpha3'");
+  (ABBREV_TAC `m = inv (norm (v1:real^3 - v0))`);
+  (ABBREV_TAC `n = inv (norm (v2:real^3 - v0))`);
+  (ABBREV_TAC `q = inv (norm (v3:real^3 - v0))`);
+
+     (SUBGOAL_THEN 
+        ` v1' - v0 = m % (v1:real^3 - v0) /\ 
+          v2' - v0 = n % (v2:real^3 - v0) /\ 
+          v3' - v0 = q % (v3:real^3 - v0)`
+         ASSUME_TAC);  
+     (EXPAND_TAC "v1'" THEN EXPAND_TAC "v2'" THEN EXPAND_TAC "v3'");  
+     (VECTOR_ARITH_TAC);
+
+     (SUBGOAL_THEN `&0 < m /\ &0 < n /\ &0 < q ` ASSUME_TAC);
+     (EXPAND_TAC "m" THEN EXPAND_TAC "n" THEN EXPAND_TAC "q");  
+     (REPLICATE_TAC 8 DEL_TAC THEN UP_ASM_TAC THEN STRIP_TAC);
+     (ASM_MESON_TAC[REAL_LT_INV]);
+
+  (ASM_MESON_TAC[DIHV_RESCALE_UNCHANGED]);
+
+
+(* ========================================================================== *)
+(*  Subgoal 4:                                                                *)    
+(*       (x1',x2',x3,'x4',x5',x6') = xlist (v0:real^3) v1' v2' v3'            *)
+(* ========================================================================== *)
+
+(ABBREV_TAC `p' = euler_p (v0:real^3) v1' v2' v3'`);	
+(ABBREV_TAC `x1' = dist (v0:real^3,v1') pow 2`);
+(ABBREV_TAC `x2' = dist (v0:real^3,v2') pow 2`);
+(ABBREV_TAC `x3' = dist (v0:real^3,v3') pow 2`);
+(ABBREV_TAC `x4' = dist (v2':real^3,v3') pow 2`);
+(ABBREV_TAC `x5' = dist (v1':real^3,v3') pow 2`);
+(ABBREV_TAC `x6' = dist (v1':real^3,v2') pow 2`);
+(ABBREV_TAC `d' = delta_x (x1':real) x2' x3' x4' x5' x6' `);
+
+  (SUBGOAL_THEN 
+    `x1':real,x2',x3',x4',x5',x6' = 
+     xlist (v0:real^3) v1' v2' v3'`
+    ASSUME_TAC);
+
+  (REWRITE_TAC[xlist;ylist]);
+  (REPEAT LET_TAC);
+  (UP_ASM_TAC THEN PURE_REWRITE_TAC[PAIR_EQ] THEN STRIP_TAC);
+  (ASM_MESON_TAC[PAIR_EQ]);
+
+(* --------------------------------------------------------------------------*)
+(*  Subgoal 5:                                                               *) 
+(*                          p' = k * p with somk                           *)
+(*---------------------------------------------------------------------------*) 
+
+(ABBREV_TAC `t1 = inv (norm ((v1:real^3) - v0)) `);
+(ABBREV_TAC `t2 = inv (norm ((v2:real^3) - v0)) `);
+(ABBREV_TAC `t3 = inv (norm ((v3:real^3) - v0)) `); 
+
+  (SUBGOAL_THEN `p' = (t1 * t2 * t3) * p` ASSUME_TAC);
+  (EXPAND_TAC "p" THEN EXPAND_TAC "p'");
+  (MATCH_MP_TAC COMPUTE_EULER_P_AFTER_RESCALE);
+  (EXPAND_TAC "v1'" THEN EXPAND_TAC "v2'" THEN EXPAND_TAC "v3'");  
+  (REWRITE_TAC[VECTOR_ARITH `((a:real^3) + b) - a = b`]);
+  (EXPAND_TAC "t1" THEN EXPAND_TAC "t2" THEN EXPAND_TAC "t3");  
+  (ASM_MESON_TAC[REAL_LT_INV]);
+
+(* --------------------------------------------------------------------------*)
+(*  Subgoal 6:                                                               *) 
+(*                          d' = k * d with somk                           *)
+(*---------------------------------------------------------------------------*) 
+ 
+  (SUBGOAL_THEN `d' = (t1 * t2 * t3) * (t1 * t2 * t3) * d` ASSUME_TAC);
+  (EXPAND_TAC "d" THEN EXPAND_TAC "d'");
+  (MATCH_MP_TAC COMPUTE_DELTA_X_AFTER_RESCALE);
+  (EXISTS_TAC `v0:real^3`);
+  (EXISTS_TAC `v1':real^3`);
+  (EXISTS_TAC `v2':real^3`);
+  (EXISTS_TAC `v3':real^3`);
+  (EXISTS_TAC `v0:real^3`);
+  (EXISTS_TAC `v1:real^3`);
+  (EXISTS_TAC `v2:real^3`);
+  (EXISTS_TAC `v3:real^3`);
+  (EXPAND_TAC "v1'" THEN EXPAND_TAC "v2'" THEN EXPAND_TAC "v3'");  
+  (REWRITE_TAC[VECTOR_ARITH `((a:real^3) + b) - a = b`]);
+  (ASM_REWRITE_TAC[]);
+
+    (SUBGOAL_THEN `&0 < t1 /\ &0 < t2 /\ &0 < t3 /\ &0 <  d` ASSUME_TAC);
+    (EXPAND_TAC "t1" THEN EXPAND_TAC "t2" THEN EXPAND_TAC "t3");  
+    (REPLICATE_TAC 18 DEL_TAC);
+    (UP_ASM_TAC THEN REPLICATE_TAC 6 DEL_TAC THEN UP_ASM_TAC);
+    (MESON_TAC[REAL_LT_INV]);
+
+  (UP_ASM_TAC THEN MESON_TAC[REAL_ARITH `&0 < a ==> &0 <= a`]);  
+
+
+(* -------------------------------------------------------------------------- *)
+(*  Subgoal 7:                                                                *) 
+(*     	          This part is thproof of  d' > 0                           *)
+(* -------------------------------------------------------------------------- *)
+
+
+  (SUBGOAL_THEN `&0 < d'` ASSUME_TAC);
+  (PURE_ONCE_ASM_REWRITE_TAC[]);
+
+    (SUBGOAL_THEN `&0 < t1 /\ &0 < t2 /\ &0 < t3 /\ &0 <  d` ASSUME_TAC);
+    (EXPAND_TAC "t1" THEN EXPAND_TAC "t2" THEN EXPAND_TAC "t3");  
+    (REPLICATE_TAC 19 DEL_TAC);
+    (UP_ASM_TAC THEN REPLICATE_TAC 6 DEL_TAC THEN UP_ASM_TAC);
+    (MESON_TAC[REAL_LT_INV]);
+
+  (UP_ASM_TAC THEN MESON_TAC[REAL_LT_MUL]);
+
+(*---------------------------------------------------------------------------*)
+(*  Subgoal 8:                                                               *) 
+(*                    atn2 (sqrt d,&2 * p) is unchanged                      *)
+(*---------------------------------------------------------------------------*)
+
+  (SUBGOAL_THEN `&2 * atn2 (sqrt (d':real), &2 * (p':real)) = 
+                   &2 * atn2 (sqrt (d:real), &2 * (p:real))` ASSUME_TAC);
+  AP_TERM_TAC;
+    (* Sugoal 8.1 *)
+
+    (SUBGOAL_THEN `&0 < sqrt d /\ &0 < sqrt d'` ASSUME_TAC);
+    (MESON_TAC[ASSUME `&0 < d`; ASSUME `&0 < d'`; SQRT_POS_LT]);
+    (* Sugoal 8.2 *)
+    (SUBGOAL_THEN `atn2 (sqrt d,&2 * p) = atn ((&2 * p) / sqrt d)` 
+       ASSUME_TAC);
+    (FIRST_ASSUM MP_TAC THEN MESON_TAC[ATN2_BREAKDOWN]); 
+    (* Sugoal 8.3 *)
+
+    (SUBGOAL_THEN `atn2 (sqrt d',&2 * p') = atn ((&2 * p') / sqrt d')` 
+       ASSUME_TAC);
+    (MESON_TAC[ASSUME `&0 < sqrt d /\ &0 < sqrt d'`; ATN2_BREAKDOWN]); 
+
+  (ONCE_ASM_REWRITE_TAC[]);
+  AP_TERM_TAC;
+  (DEL_TAC THEN DEL_TAC THEN UP_ASM_TAC THEN STRIP_TAC);
+
+     (* Sugoal 8.4 *)  
+     (SUBGOAL_THEN `((&2 * p') / sqrt d' = (&2 * p) / sqrt d) <=>
+                      &2 * p' = ((&2 * p) / sqrt d) * sqrt d'`
+        ASSUME_TAC); 
+     (UP_ASM_TAC THEN MESON_TAC[REAL_EQ_LDIV_EQ]);
+
+  (ONCE_ASM_REWRITE_TAC[]);
+  (REWRITE_TAC[REAL_ARITH `((x * y) / b) * c = x * (c * y) / b`]);
+  AP_TERM_TAC;
+  DEL_TAC;
+  (PURE_ASM_REWRITE_TAC[REAL_EQ_LDIV_EQ]);
+  (PURE_ONCE_REWRITE_TAC[REAL_ARITH `(x * y) / b = (x / b) * y`]);
+  (AP_THM_TAC THEN AP_TERM_TAC);
+  (ABBREV_TAC `S = t1 * t2 * t3`);
+  (REWRITE_TAC[REAL_MUL_ASSOC;GSYM REAL_POW_2]);
+    
+    (* Subgoal 8.5 *) 
+    (SUBGOAL_THEN `sqrt (S pow 2 * d) = sqrt (S pow 2) * sqrt d` ASSUME_TAC);
+    (MATCH_MP_TAC SQRT_MUL);
+    (ASM_SIMP_TAC[REAL_ARITH `&0 < a ==> &0 <= a`]);    
+    (MESON_TAC[REAL_LE_POW_2]);
+
+  (ONCE_ASM_REWRITE_TAC[]);
+  (ONCE_REWRITE_TAC[REAL_ARITH `(a * b) / c = a * (b / c)`]);
+    
+    (* Subgoal 8.6 *)
+    (SUBGOAL_THEN `sqrt d / sqrt d = &1` ASSUME_TAC);
+    (MATCH_MP_TAC REAL_DIV_REFL);
+    (ASM_SIMP_TAC[REAL_ARITH `&0 < a ==> ~ (a = &0)`]);    
+
+  (ONCE_ASM_REWRITE_TAC[]);  
+  (REWRITE_TAC[REAL_MUL_RID]);
+  (MATCH_MP_TAC (GSYM SQRT_OF_POW_2_LE)); 
+  (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+  (EXPAND_TAC "S");
+    
+    (* Subgoal 8.7 *)
+    (SUBGOAL_THEN `&0 < t1 /\ &0 < t2 /\ &0 < t3 /\ &0 <  d` ASSUME_TAC);
+    (EXPAND_TAC "t1" THEN EXPAND_TAC "t2" THEN EXPAND_TAC "t3");  
+    (REPLICATE_TAC 19 DEL_TAC);
+    (ASM_MESON_TAC[REAL_LT_INV]);
+  (UP_ASM_TAC THEN MESON_TAC[REAL_LT_MUL]);
+
+(*---------------------------------------------------------------------------*)
+(*   SUBGOAL 9 :                                                             *)
+(*                         Finish the lemma about rescaling                  *)
+(*---------------------------------------------------------------------------*)
+
+  (SUBGOAL_THEN 
+     `alpha1' + alpha2' + alpha3' - pi = pi - &2 * atn2 (sqrt d',&2 * p')`
+     ASSUME_TAC); 
+  (ASM_MESON_TAC[]);
+
+(ASM_MESON_TAC[])]);;
+
+(* ==========================================================================*)
+(*       LEMMA 7 :                                                           *)
+(*       ~ collinear {a, b, c} ==> norm(a - b) > &0                          *)
+(* ==========================================================================*)
+
+let COLLINEAR_NORM_LT_0 = prove_by_refinement (
+ `!(a:real^3) b c. ~collinear {a, b, c} ==> &0 < norm (a - b)`,
+
+[(REPEAT GEN_TAC THEN REPEAT STRIP_TAC);
+(REWRITE_TAC[NORM_POS_LT]);
+STRIP_TAC;
+(UP_ASM_TAC THEN PURE_ONCE_REWRITE_TAC[
+   VECTOR_ARITH `(a:real^3) - b = vec 0 <=> b - a = vec 0`]);
+STRIP_TAC;
+
+  (SUBGOAL_THEN `collinear {(a:real^3), b, c}` ASSUME_TAC);
+  (MATCH_MP_TAC (GEN_ALL ALLEMI_COLLINEAR));
+  (ASM_REWRITE_TAC[]);
+  (MESON_TAC [VECTOR_ARITH `a dot vec 0 = &0`;
+                VECTOR_ARITH `a % vec 0 = vec 0`;
+                VECTOR_ARITH `(&0) % c = vec 0`]);
+(ASM_MESON_TAC[])]);;
+
+(* ========================================================================= *)
+(*       LEMMA 8:                                                            *) 
+(* ========================================================================= *)
+
+let REAL_LT_RSQRT2 = prove
+ (`!x y. x pow 2 < y ==> -- sqrt y < x`,
+  REPEAT STRIP_TAC THEN 
+  MATCH_MP_TAC(REAL_ARITH `abs x < a ==> -- a < x`) THEN
+  REWRITE_TAC[GSYM POW_2_SQRT_ABS] THEN 
+  MATCH_MP_TAC SQRT_MONO_LT THEN
+  ASM_REWRITE_TAC[REAL_POW_2; REAL_LE_SQUARE]);;
+
+let EULER_TRIANGLE_REAL_INTERVAL = prove_by_refinement (
+ `!s a b c. 
+       s = {x | &0 < ups_x x b c - x * b * c} /\ &0 < ups_x a b c - a * b * c  
+       ==> is_realinterval s`,
+
+[(REPEAT GEN_TAC THEN STRIP_TAC);
+(ABBREV_TAC `d = b * c * b * c / &4 - b * c * (b + c) + &4 * b * c `);
+(ABBREV_TAC `f = (\a. a - b - c + b * c / &2)`);
+
+(* ------------------------------------------------------------------------- *)
+(*             SUBGOAL 1                                                     *)
+(* ------------------------------------------------------------------------- *)
+
+
+  (SUBGOAL_THEN `&0 < d` ASSUME_TAC);
+  (EXPAND_TAC "d" THEN DEL_TAC THEN DEL_TAC);
+  (UP_ASM_TAC THEN REWRITE_TAC[ups_x] THEN DISCH_TAC);
+  (MATCH_MP_TAC (REAL_ARITH 
+     `&0 <= (a - b - c + b * c / &2) pow 2 /\ 
+      &0 < S - (a - b - c + b * c / &2) pow 2 ==> &0 < S`));
+  (REWRITE_TAC[REAL_LE_POW_2]);
+  ASM_REAL_ARITH_TAC;
+
+(* ------------------------------------------------------------------------- *)
+(*           SUBGOAL 2                                                       *)
+(* ------------------------------------------------------------------------- *)
+
+  (SUBGOAL_THEN 
+    `!(z:real). z IN s <=> f z < sqrt d /\ --sqrt d < f z`
+    ASSUME_TAC);
+  GEN_TAC;
+  (ONCE_ASM_REWRITE_TAC[] THEN ONCE_ASM_REWRITE_TAC[IN_ELIM_THM]);
+  (EQ_TAC);  (* Break into 2 subgoal 2.1 and 2.2  *)
+       
+      (REWRITE_TAC[ups_x] THEN DISCH_TAC);   
+      (SUBGOAL_THEN `(f (z:real)) pow 2 < d /\ (f z) pow 2 < d` ASSUME_TAC);
+      (EXPAND_TAC "d" THEN EXPAND_TAC "f");
+      (PURE_REWRITE_TAC[REAL_POW_2]);
+      (ASM_REAL_ARITH_TAC);
+      (ASM_MESON_TAC[REAL_LT_RSQRT;REAL_LT_RSQRT2]);
+ 
+      (REWRITE_TAC[ups_x] THEN EXPAND_TAC "f");   
+      STRIP_TAC; 
+      (REWRITE_TAC[REAL_ARITH 
+         `(--z * z - b * b - c * c + &2 * z * c + &2 * z * b + &2 * b * c) -
+          z * b * c =
+          (b * c * b * c / &4 - b * c * (b + c) + &4 * b * c) -
+          (z - b - c + b * c / &2) pow 2`]);
+      (REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`]);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (REPLICATE_TAC 2 UP_ASM_TAC THEN PURE_REWRITE_TAC[MESON[REAL_BOUNDS_LT]
+         `(a < x ==> -- x < a ==> y) <=> abs a < x ==> y` ]);
+      DISCH_TAC;       
+
+        (SUBGOAL_THEN `d = sqrt d pow 2` ASSUME_TAC);
+        (ASM_MESON_TAC[REAL_ARITH `&0 < a ==> &0 <= a`; SQRT_POW_2]);
+      (PURE_ONCE_ASM_REWRITE_TAC[]);
+      (ASM_REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS]); 
+      (MATCH_MP_TAC (REAL_ARITH `x = sqrt d /\ y < sqrt d  ==> y < x`));
+      (ASM_REWRITE_TAC[]);
+      (PURE_REWRITE_TAC[REAL_ABS_REFL]);
+      (MATCH_MP_TAC (REAL_ARITH `&0 < x ==> &0 <= x`));
+      (ASM_MESON_TAC[SQRT_POS_LT]);
+
+(* ------------------------------------------------------------------------- *)
+(*           LAST SUBGOALS                                                   *)
+(* ------------------------------------------------------------------------- *)
+
+(REWRITE_TAC[is_realinterval]);
+(REPEAT GEN_TAC THEN STRIP_TAC);
+(ONCE_ASM_REWRITE_TAC[]);
+CONJ_TAC;
+
+  (SUBGOAL_THEN `f (c':real) <= f b'` ASSUME_TAC);
+  (EXPAND_TAC "f" THEN ASM_REAL_ARITH_TAC);
+  (SUBGOAL_THEN `f (b':real) < sqrt d` ASSUME_TAC);
+  (EXPAND_TAC "f" THEN ASM_MESON_TAC[]);
+  (ASM_REAL_ARITH_TAC);
+
+  (SUBGOAL_THEN `f (a':real) <= f c'` ASSUME_TAC);
+  (EXPAND_TAC "f" THEN ASM_REAL_ARITH_TAC);
+  (SUBGOAL_THEN `-- sqrt d < f (a':real)` ASSUME_TAC);
+  (EXPAND_TAC "f" THEN ASM_MESON_TAC[]);
+  (ASM_REAL_ARITH_TAC)]);;
+
+(* ==========================================================================*)
+(*       LEMMA 10:                                                           *)
+(*                                                                           *)
+(* ==========================================================================*)
+
+let OJEKOJF2 = 
+ prove (`!v0:real^3 v1 v2 v3.
+         let ga = dihV v0 v1 v2 v3 in
+         let v01 = dist (v0,v1) pow 2 in
+         let v02 = dist (v0,v2) pow 2 in
+         let v03 = dist (v0,v3) pow 2 in
+         let v12 = dist (v1,v2) pow 2 in
+         let v13 = dist (v1,v3) pow 2 in
+         let v23 = dist (v2,v3) pow 2 in
+         ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
+         ==> ga =
+             pi / &2 -
+             atn2
+             (sqrt (&4 * v01 * delta_x v01 v02 v03 v23 v13 v12),
+              delta_x4 v01 v02 v03 v23 v13 v12)`,
+    MP_TAC OJEKOJF THEN REPEAT LET_TAC THEN MESON_TAC[]);;
+
+let COMPUTE_DIHV_ATN2 = prove 
+(`!(v0:real^3) v1 v2 v3 gamma x1 x2 x3 x4 x5 x6.
+                    gamma = dihV v0 v1 v2 v3 /\
+                     x1 = dist (v0,v1) pow 2 /\
+                     x2 = dist (v0,v2) pow 2 /\
+                     x3 = dist (v0,v3) pow 2 /\
+                     x6 = dist (v1,v2) pow 2 /\
+                     x5 = dist (v1,v3) pow 2 /\
+                     x4 = dist (v2,v3) pow 2 /\
+                     ~collinear {v0, v1, v2} /\ 
+                     ~collinear {v0, v1, v3}
+ ==>  gamma = pi / &2 - atn2( sqrt ( &4 * x1 * delta_x x1 x2 x3 x4 x5 x6),
+                                     delta_x4 x1 x2 x3 x4 x5 x6)`,
+REPEAT STRIP_TAC THEN MP_TAC OJEKOJF2 THEN REPEAT LET_TAC THEN 
+ASM_REWRITE_TAC[] THEN EXPAND_TAC "ga" THEN 
+EXPAND_TAC "v01" THEN EXPAND_TAC "v02" THEN EXPAND_TAC "v03" THEN 
+EXPAND_TAC "v13" THEN EXPAND_TAC "v23" THEN EXPAND_TAC "v12" THEN 
+DISCH_TAC THEN FIRST_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+

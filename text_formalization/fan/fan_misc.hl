@@ -1,0 +1,156 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Fan                                                               *)
+(* Author: Alexey Solovyev                                                    *)
+(* Date: 2010-04-06                                                           *)
+(*                                                                            *)
+(* Equivalence of inverse_sigma_fan and inverse1_sigma_fan                    *)
+(* ========================================================================== *)
+
+module type Fan2_type = sig
+end;;
+
+flyspeck_needs "fan/fan.hl";;
+
+module Fan2  (* : Fan2_type *) = struct
+
+
+let inverse_sigma_fan = new_definition `inverse_sigma_fan x V E v = inverse(res (sigma_fan x V E v) (set_of_edge v V E))`;;
+
+let inverse1_sigma_fan=new_definition`inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3)= @g. (!w:real^3. {v,w} IN E==> {v, g w} IN E)
+/\ (!w:real^3. {v,w} IN E==> (sigma_fan x V E v)( g w) =w)
+/\ (!w:real^3. {v,w} IN E==> g (sigma_fan x V E v w) =w)`;;
+
+(* We are using this definition from tame_defs.hl *)
+let dart1_of_fan = new_definition
+  `dart1_of_fan ((V:A->bool),(E:(A->bool)->bool)) =  { (v,w) | {v,w} IN E }`;;
+
+
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
+
+
+let EXTENSION_SIGMA_FAN_EQ_RES = prove(`!x V E v. extension_sigma_fan x V E v = res (sigma_fan x V E v) (set_of_edge v V E)`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[FUN_EQ_THM; Fan.extension_sigma_fan; Sphere.res] THEN
+     MESON_TAC[]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* inverse_sigma_fan is the inverse of extension_sigma_fan                   *)
+(* ------------------------------------------------------------------------- *)
+
+let INVERSE_SIGMA_FAN = prove(`!x V E v. FAN (x,V,E) 
+			      ==> (extension_sigma_fan x V E v) o (inverse_sigma_fan x V E v) = I
+                                  /\ (inverse_sigma_fan x V E v) o (extension_sigma_fan x V E v) = I`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[GSYM EXTENSION_SIGMA_FAN_EQ_RES; inverse_sigma_fan] THEN
+     DISCH_TAC THEN
+     MATCH_MP_TAC PERMUTES_INVERSES_o THEN
+     DISJ_CASES_TAC (MESON[] `(?u:real^3. {v, u} IN E) \/ (!u. ~({v,u} IN E))`) THENL
+     [
+       ASM_MESON_TAC[Fan.permutes_sigma_fan];
+       ALL_TAC
+     ] THEN
+
+     EXISTS_TAC `{}:real^3->bool` THEN
+     REWRITE_TAC[PERMUTES_EMPTY; FUN_EQ_THM] THEN
+     X_GEN_TAC `w:real^3` THEN
+     REWRITE_TAC[I_THM; Fan.extension_sigma_fan] THEN
+     REWRITE_TAC[Fan.set_of_edge; IN_ELIM_THM] THEN
+     ASM_MESON_TAC[]);;
+			       
+
+
+let EXTENSION_SIGMA_FAN_INJECTIVE = prove(`!x V E v. FAN (x,V,E) ==> (!u w. extension_sigma_fan x V E v u = extension_sigma_fan x V E v w ==> u = w)`,
+    REPEAT GEN_TAC THEN
+      DISCH_THEN (MP_TAC o (fun th -> CONJUNCT2 (SPEC `v:real^3` (MATCH_MP INVERSE_SIGMA_FAN th)))) THEN
+      ABBREV_TAC `f = extension_sigma_fan (x:real^3) V E v` THEN
+      ABBREV_TAC `g = inverse_sigma_fan (x:real^3) V E v` THEN
+      REPEAT STRIP_TAC THEN
+      POP_ASSUM (MP_TAC o (fun th -> AP_TERM `g:real^3->real^3` th)) THEN
+      POP_ASSUM MP_TAC THEN
+      REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM] THEN
+      MESON_TAC[]);;
+     
+
+
+(* ------------------------------------------------------------------------- *)
+(* Connection between dart1_of_fan and set_of_edge                           *)
+(* ------------------------------------------------------------------------- *)
+	 
+let IN_SET_OF_EDGE = prove(`!V E (v:A) w. UNIONS E SUBSET V /\ (v, w) IN dart1_of_fan (V,E) ==> v IN V /\ w IN V /\ w IN set_of_edge v V E /\ v IN set_of_edge w V E`,
+   REPEAT GEN_TAC THEN STRIP_TAC THEN
+     SUBGOAL_THEN `v:A IN V /\ w IN V` STRIP_ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[SUBSET; IN_UNIONS; dart1_of_fan; IN_ELIM_THM; PAIR_EQ] THEN
+	 STRIP_TAC THEN STRIP_TAC THEN
+	 FIRST_ASSUM (MP_TAC o SPEC `v:A`) THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `w:A`) THEN
+	 ANTS_TAC THENL [EXISTS_TAC `{v':A,w'}` THEN ASM SET_TAC[]; ALL_TAC] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 ANTS_TAC THENL [EXISTS_TAC `{v':A,w'}` THEN ASM SET_TAC[]; ALL_TAC] THEN
+	 REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[dart1_of_fan; Fan.set_of_edge; IN_ELIM_THM; PAIR_EQ] THEN
+     MESON_TAC[SET_RULE `{w, v} = {v, w}`]);;
+
+
+let FAN_IN_SET_OF_EDGE = prove(`!x V E v w. FAN (x,V,E) /\ {v,w} IN E ==> v IN V /\ w IN V /\ w IN set_of_edge v V E /\ v IN set_of_edge w V E`,
+   REPEAT GEN_TAC THEN STRIP_TAC THEN
+     MATCH_MP_TAC IN_SET_OF_EDGE THEN
+     REWRITE_TAC[dart1_of_fan; IN_ELIM_THM; PAIR_EQ] THEN
+     CONJ_TAC THENL
+     [
+       REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 SIMP_TAC[Fan.FAN];
+       ASM_MESON_TAC[]
+     ] );;
+	 
+	 
+(* ------------------------------------------------------------------------- *)
+(* For fans, inverse1_sigma_fan and inverse_sigma_fan are equivalent         *)
+(* ------------------------------------------------------------------------- *)
+
+let INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN = prove(`!x V E v w. FAN (x,V,E) /\ {v, w} IN E ==> 
+						      inverse1_sigma_fan x V E v w = inverse_sigma_fan x V E v w`,
+    REPEAT GEN_TAC THEN
+      DISCH_TAC THEN
+      FIRST_ASSUM (STRIP_ASSUME_TAC o fun th -> (MATCH_MP FAN_IN_SET_OF_EDGE th)) THEN
+      MP_TAC (SPECL [`x:real^3`; `V:real^3->bool`; `E:(real^3->bool)->bool`; `v:real^3`] EXTENSION_SIGMA_FAN_INJECTIVE) THEN
+      ASM_REWRITE_TAC[] THEN
+      ABBREV_TAC `f = extension_sigma_fan (x:real^3) V E v` THEN
+      ABBREV_TAC `g = inverse1_sigma_fan (x:real^3) V E v` THEN
+      ABBREV_TAC `h = inverse_sigma_fan (x:real^3) V E v` THEN
+      DISCH_TAC THEN
+      FIRST_X_ASSUM (MP_TAC o SPECL [`(g:real^3->real^3) w`; `(h:real^3->real^3) w`]) THEN
+      ANTS_TAC THEN REWRITE_TAC[] THEN
+
+      SUBGOAL_THEN `(f:real^3->real^3) ((g:real^3->real^3) w) = w` ASSUME_TAC THENL
+      [
+	REMOVE_ASSUM THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	  POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	  REWRITE_TAC[Fan.extension_sigma_fan] THEN
+	  MP_TAC (SPECL [`x:real^3`; `V:real^3->bool`; `E:(real^3->bool)->bool`; `v:real^3`] Fan.INVERSE1_SIGMA_FAN) THEN
+	  ASM_REWRITE_TAC[] THEN
+	  STRIP_TAC THEN
+	  REMOVE_ASSUM THEN
+	  REPLICATE_TAC 2 (FIRST_X_ASSUM (MP_TAC o SPEC `w:real^3`)) THEN
+	  ASM_REWRITE_TAC[Fan.set_of_edge; IN_ELIM_THM] THEN
+	  SIMP_TAC[] THEN
+	  ABBREV_TAC `u:real^3 = inverse1_sigma_fan x V E v w` THEN
+          DISCH_TAC THEN
+          SUBGOAL_THEN `u:real^3 IN V` (fun th -> SIMP_TAC[th]) THEN
+	  ASM_MESON_TAC[FAN_IN_SET_OF_EDGE];
+	ALL_TAC
+      ] THEN
+
+      POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+      REPLICATE_TAC 3 (POP_ASSUM (fun th -> REWRITE_TAC[SYM th])) THEN
+      ASM_MESON_TAC[INVERSE_SIGMA_FAN; FUN_EQ_THM; I_THM; o_THM]);;
+
+
+end;;

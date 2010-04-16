@@ -2,15 +2,16 @@
 %
 \chapter{Numerical Methods}
 
-Computers have been used at several significant places in the book.     The calculations
-can be sorted into three general categories:  nonlinear
-optimization, linear programming, and the combinatorics of hypermaps. This
-appendix goes into further detail about these general categories.  
+Computers have been used at several significant places in the book.
+The calculations can be sorted into three general categories:
+nonlinear optimization, linear programming, and the combinatorics of
+hypermaps. This appendix goes into further detail about these general
+categories.
 
 
 \section{Nonlinear Optimization}
 
-\subsection{Interval Analysis}%DCG 8.3, p75
+\subsection{interval analysis}%DCG 8.3, p75
 \label{sec:bounds-simplex}
 
 Interval analysis is a method to obtain trustworthy computations over
@@ -55,33 +56,37 @@ imperfections.  It aims to reliably contain the error.
 % imperfect technolo
 
 
-Let $F$ be the linearly ordered set of machine-representable floating point numbers.
-Assume that $F$ contains two special symbols $\pm\infty$, representing a floating-point
-number larger than all real numbers and another that is smaller than all real numbers.   
- Because of these
-two special symbols, the floating point floor function $x\to\floor{x}_F\in F$
-and ceiling function $x\mapsto\ceil{x}_F\in F$, with domain
-$\ring{R}$ can be defined.  In interval arithmetic, each real number $x$
-is represented by a pair of floating-point numbers:
-$a=\floor{x}_F$ and $b=\ceil{x}_F$. The real number $x$ lies in the closed interval 
-$\leftclosed a,b\rightclosed$.
+Let $F$ be the linearly ordered set of machine-representable floating
+point numbers.  Our presentation will be general enough to allow
+various implementations of the set $F$.  For example, $F$ may be a set of
+ double precision floating
+point numbers, exact rational numbers, or constructible real numbers.
+Assume that $F$ contains two special symbols $\pm\infty$,
+representing a floating-point number larger than all real numbers and
+another that is smaller than all real numbers.  
+
+The floating point floor function $x\to\floor{x}_F\in
+F$ and ceiling function $x\mapsto\ceil{x}_F\in F$, with domain
+$\ring{R}$ can be defined.  In interval arithmetic, each real number
+$x$ is represented by a pair of floating-point numbers:
+$a=\floor{x}_F$ and $b=\ceil{x}_F$. The real number $x$ lies in the
+closed interval $\leftclosed a,b\rightclosed$.
 
 On most modern processors, the rounding mode can be set to directed
-rounding.  For example, when the rounding mode is set
-upward, the computer approximation of any basic arithmetic operation $\diamond$
-(addition, subtraction, multiplication, or division)
-on two floating
-point numbers $x$ and $y$ is 
- $\ceil{x\diamond y}_F$.  That is, the floating-point operation
-is the smallest element of $F$ that is no greater than the actual value $x\diamond y$.
+rounding.  For example, when the rounding mode is set upward, the
+computer approximation of any basic arithmetic operation $\diamond$
+(addition, subtraction, multiplication, or division) on two floating
+point numbers $x$ and $y$ is $\ceil{x\diamond y}_F$.  That is, the
+floating-point operation is the smallest element of $F$ that is no
+greater than the actual value $x\diamond y$.
 
-As exact arithmetic operations are performed on real numbers, 
-the computer follows along with corresponding intervals $\leftclosed a,b\rightclosed$ 
-that contain the result.  As the computation progresses, 
-intervals increase in width as needed so that
-the real number remains sandwiched between two floating point numbers in $F$.
-The net result is an interval that reliably contains the result of a real-number
-calculation.
+As exact arithmetic operations are performed on real numbers, the
+computer follows along with corresponding intervals $\leftclosed
+a,b\rightclosed$ that contain the result.  As the computation
+progresses, intervals increase in width as needed so that the real
+number remains sandwiched between two floating point numbers in $F$.
+The net result is an interval that reliably contains the result of a
+real-number calculation.
 
 Interval arithmetic, like the method of deliberate error, does not
 seek to eliminate the sources of floating point round off error.
@@ -112,9 +117,123 @@ an area of active research. See, for example, \cite{Sza07} and
 
 \subsection{Bernstein polynomials}
 
-One method of proving polynomial inequalities is based on Bernstein polynomials.
+The \newterm{Bernstein polynomials} $B_{i,n}\in\ring{Z}[x]$ are defined as
+\begin{equation}
+B_{i,n}(x) = {n\choose i} x^i (1-x)^{n-i},\quad i=0,\ldots,n.
+\end{equation}
+The set $\{B_{i,n}\mid i=0,\ldots,n\}$ is a basis of the vector space
+of polynomials $\ring{R}[x]_n$ of degree at most $n$.
+
+The polynomials are manifestly nonnegative on the unit interval:
+$B_{i,n}(x)\ge 0$, when $0\le x\le 1$.  The polynomials form a
+partition of unity:
+\[
+\sum_{i=0}^n B_{i,n}(x) = \sum_{i=0}^n {n\choose i} x^i (1-x)^{n-i} = 
+(x + (1-x))^n = 1.
+\]
+
+Any polynomial $p$ of degree at most $n$, 
+when expressed in terms of the Bernstein basis:
+\[
+p(x) =  \sum_{i=0}^n a_i B_{i,n}(x),
+\]
+can be easily bounded from below and above:
+\[
+\min_i a_i \le p(x) \le \max_i a_i,\quad\text{ when } 0 \le x \le 1.
+\]
+Indeed, if $a = \min_i a_i$, then by nonnegativity and the partition
+of unity properties
+\[
+a  =  \sum_{i=1}^n a B_{i,n}(x) \le \sum_{i=1}^n a_i B_{i,n}(x) = p(x).
+\]
+The upper bound is similar.
+
+These bounds lead to a simple algorithm to prove a polynomial bound
+$p(x) < M$ for $a\le x\le b$.  First, rescale the polynomial $p$ so
+that the domain is $\leftclosed 0,1\rightclosed$:
+\[
+p_1(x) = p(a (1-x) + b x), \quad 0\le x \le 1.
+\]
+Next, express $p_1(x)$ as a linear combination $\sum a_i B_{i,n}(x)$.
+If $\max_i a_i < M$, then the desired bound is proved and the algorithm
+terminates.  Otherwise,
+ partition the domain
+\[
+\leftclosed 0,1\rightclosed = \leftclosed  0,\frac{1}{2}\rightclosed
+\cup \leftclosed  \frac{1}{2},1\rightclosed,
+\]
+and then recursively apply the algorithm to prove $p_1(x)<M$ on each
+subinterval.   (If ever $\min_i a_i > M$, then the desired inequality is false.)
+
+
+\subsection{multivariate polynomials}
+
+A multivariate polynomial $p(x_1,\ldots,x_n)\in \ring{R}[x_1,\ldots,x_k]$ that
+has degree at most $n$ in each variable $x_i$ can be written as a linear
+combination of the polynomials
+\[
+B_{\alpha,n}(x_1,\ldots,x_n)=B_{i_1,n}(x_1)\cdots B_{i_k,n}(x_k),\qquad
+ i_1,\ldots,i_k\in \{0,\ldots,n\},
+\]
+In multi-index notation $\alpha=(i_1,\ldots,i_k)$, 
+\[
+p = \sum_{\alpha\mid \max{\alpha}\,\le\, n} a_\alpha B_{\alpha,n}.
+\]
+On the unit cube $[0,1]^k$, we have
+\[
+\min a_\alpha \le p(x_1,\ldots,x_k) \le \max a_\alpha.
+\]
+As with univariate polynomials, this gives an algorithm to prove
+polynomial bounds $p(x_1,\ldots,x_k)<M$ on rectangular domains:
+rescale so that the domain is the unit cube; check whether
+\[
+\max a_\alpha < M;
+\]
+if not, subdivide the rectangle and repeat recursively.
+
+
 
 \subsection{nonpolynomial optimization}
+
+The nonlinear inequalities that are required in this book are close to
+being polynomial.  In fact, many  of the inequalities can be put into a
+general form:
+\begin{equation}\label{eqn:ABCD}
+\sum_{i=0}^k A_i \atn(\sqrt{B_i},C_i) < D
+\end{equation}
+for some multivariate polynomials $A_i,B_i,C_i,D$.  There are a few
+variations on this general form, but generally speaking, the only
+nonpolynomial functions that are needed in this book are the square
+root, division $(/)$, and the arctangent.  These
+are functions of one or two variables.  Polynomial upper and lower
+approximations are readily obtained.
+
+For example, if $A_i\ge 0$, the inequality \eqn{eqn:ABCD} is a
+consequence of two simpler inequalities: a polynomial inequality
+\[
+\sum_{i=0}^k A_i L_i(B_i,C_i) < D.
+\]
+and linear upper bounds to nonpolynomial functions in two variables:
+\begin{equation}\label{eqn:sL}
+\atn(\sqrt{x},y) < L_i(x,y),
+\end{equation}
+for all $(x,y)$ in the range of the polynomials $B_i,C_i$, for some
+affine functions $L_i(x,y) = r_i x + s_i y + t_i$.  The polynomial
+inequality can be proved by Bernstein polynomial methods.  The
+inequality \eqn{eqn:sL} can be proved by various methods.  After all,
+the analytic properties of $\atn(\sqrt{x},y)$ are thoroughly
+understood.
+
+If two simpler inequalities of the given form cannot be produced over
+the entire rectangular domain, one can recursively cover the domain by
+smaller rectangles until two such inequalities can be found on each
+smaller rectangle.
+
+The material in this section is based
+on the work of R. Zumkeller, who has 
+developed Bernstein polynomial methods
+in the context of the Flyspeck project~\cite{unknown}, \cite{unknown}.
+
 
 \section{Linear Programming}
 
@@ -133,21 +252,21 @@ linear inequalities,
 A x\le b
 \end{equation} 
 for some matrix $A$ and vector $b\in \ring{R}^m$.  (An inequality $A
-x\le b$ of vectors means that each component of the vectors satisfies the
-inequality.)  Such a maximization problem is called a \newterm{linear
-  program}.  Surveys of algorithms appear in \cite{Wri05} and
-\cite{Tod02}.
+x\le b$ of vectors means that each component of the vectors satisfies
+the inequality.)  Such a maximization problem is called a
+\newterm{linear program}.  Surveys of algorithms appear in
+\cite{Wri05} and \cite{Tod02}.
 
-%, an unusual name for what it is, not a program in the sense
-%of computer code, rather a program in the sense of military logistics,
-%growing out of G. Dantzig's war experience at the Pentagon
-%\cite{Dan91}.  G. Dantzig proposed the simplex method to solve such
-%problems in 1947.  The system of constraints $A x \le b$ defines a
-%polyhedron, the vector $c$ gives a preferred direction in space, and
-%the simplex method walks along edges of the polyhedron, from extreme points to
-%extreme point, until reaching a extreme point where no further progress can be made.
-%The simplex method has been named one of the top ten algorithms of the
-%twentieth century \cite{Cip00}.
+% , an unusual name for what it is, not a program in the sense of
+% computer code, rather a program in the sense of military logistics,
+% growing out of G. Dantzig's war experience at the Pentagon
+% \cite{Dan91}.  G. Dantzig proposed the simplex method to solve such
+% problems in 1947.  The system of constraints $A x \le b$ defines a
+% polyhedron, the vector $c$ gives a preferred direction in space, and
+% the simplex method walks along edges of the polyhedron, from extreme
+% points to extreme point, until reaching a extreme point where no
+% further progress can be made.  The simplex method has been named one
+% of the top ten algorithms of the twentieth century \cite{Cip00}.
 %
 
 A linear program is \newterm{feasible} if there exists an $x$ satisfying
@@ -171,24 +290,24 @@ such that
 \begin{equation}
 y A = c \text{ and } y \ge 0,
 \end{equation}
-where $y\in\ring{R}^m$ is a row vector.
-To distinguish the two linear programs, the one given by
-Equations~\ref{eqn:lp1} and \ref{eqn:lp2} is called the \newterm{primal}.
-If $x$ is any \newterm{feasible solution} to the primal and  if
-$y$ is any feasible solution to the dual (meaning that they satisfies
-the constraints but are not necessarily optimal), then by
-the inequality constraints, we have trivially that
+where $y\in\ring{R}^m$ is a row vector.  To distinguish the two linear
+programs, the one given by Equations~\ref{eqn:lp1} and \ref{eqn:lp2}
+is called the \newterm{primal}.  If $x$ is any \newterm{feasible
+  solution} to the primal and if $y$ is any feasible solution to the
+dual (meaning that they satisfies the constraints but are not
+necessarily optimal), then by the inequality constraints, we have
+trivially that
 $$y b \ge y A x = c x.$$
 That is, any feasible solution $y$ to the dual linear program gives an
-upper bound to the primal, and a feasible solution $x$ to the primal linear program
-gives a lower bound to the dual.  If the optimal dual solution is
- $y=y^*$ and the optimal primal solution is $x=x^*$, then 
+upper bound to the primal, and a feasible solution $x$ to the primal
+linear program gives a lower bound to the dual.  If the optimal dual
+solution is $y=y^*$ and the optimal primal solution is $x=x^*$, then
 $$y^* b \ge c x^*.$$
-The \newterm{linear programming duality theorem} asserts that if the primal
-is feasible and bounded, then the dual is also feasible and bounded,
-and moreover $y^* b = c x^*$.  In summary, we can bound
-the primal with any feasible solution to the dual, and find
-the maximum of the primal by minimizing the dual.
+The \newterm{linear programming duality theorem} asserts that if the
+primal is feasible and bounded, then the dual is also feasible and
+bounded, and moreover $y^* b = c x^*$.  In summary, we can bound the
+primal with any feasible solution to the dual, and find the maximum of
+the primal by minimizing the dual.
 
 %Linear programming duality produces certificates of a bound
 %on the primal.  Suppose we treat a linear programming package as
@@ -265,7 +384,7 @@ entries of $u$ with $0$, and let $u^-$ be the vector obtained by
 replacing the positive entries of $u$ with $0$.  In the
 following lemma, $\epsilon_1$ and $\epsilon_2$ are small error terms
 that result from machine approximation. By including them in the
-bounds on $c x$, a rigorous bound can be recovered.
+bounds on $c x$, a rigorous bound can be recovered.  
 
 
 \begin{lemma}  Suppose that the real-valued vectors and matrices
@@ -288,10 +407,17 @@ then $c x < M$.
 \end{lemma}
 
 \begin{proof} S. Obua has given a formal proof of this lemma in the
-Isabelle/HOL system \cite[3.7.2]{Obua:2008:Thesis}. In fact, the proof
-follows from a simple embellishment of Inequality~\ref{eqn:cxM}:
-$$c x -y b\le c_2 x^+ + c_1 x^- -y A x\le (\epsilon_2 x^+ + \epsilon_1 x^-)
-  + y (A_1-A) x^+ + y (A_2 - A) x^- \le \cdots.$$
+Isabelle/HOL system \cite[3.7.2]{Obua:2008:Thesis}.  The proof
+is a simple embellishment of Inequality~\ref{eqn:cxM}:
+\begin{eqnarray*}
+c x -y b &\le& c_2 x^+ + c_1 x^- -y A x\\
+              &=& (\epsilon_2 x^+ + \epsilon_1 x^-)
+  + y (A_1-A) x^+ + y (A_2 - A) x^- \\
+              &\le& (\epsilon_2^+ +\epsilon_2^-) x^+ 
+       + (\epsilon_1^++\epsilon_1^-) x^-\\
+              &\le& \epsilon_2^+ u^+ +  \epsilon_2^- l^+ 
+           + \epsilon_1^+ u^- + \epsilon_1^- l^-.
+\end{eqnarray*}
 \end{proof}
 
 The numerical data $A_1,A_2,c_1,c_2,\ell,u,y,b$ are all explicitly given,
@@ -346,38 +472,39 @@ box trick.}  Consider the set of counterexamples
 \[
 \{x\in X\mid f(x)\ge c x\}
 \]
-to a desired nonlinear inequality ($f(x)< c x$ on $X$).  At the outset, the set
-of counterexamples to the problem has an unknown size and structure.
-These counterexamples are all placed in a large box.  The width of the
-box is measured and is found to be negative.  Therefore the box is
-empty, it contains no counterexamples, and the nonlinear inequality is
-proved.   It is remarkable that a method based
-on such a simple idea is sufficiently powerful to prove many difficult nonlinear
-inequalities.  In this intuitive picture, the box represents the polyhedron obtained
-by linear relaxation.  The negative width represents the inequality
-produced by the dual certificate $y$. 
+to a desired nonlinear inequality ($f(x)< c x$ on $X$).  At the
+outset, the set of counterexamples to the problem has an unknown size
+and structure.  These counterexamples are all placed in a large box.
+The width of the box is measured and is found to be negative.
+Therefore the box is empty, it contains no counterexamples, and the
+nonlinear inequality is proved.  It is remarkable that a method based
+on such a simple idea is sufficiently powerful to prove many difficult
+nonlinear inequalities.  In this intuitive picture, the box represents
+the polyhedron obtained by linear relaxation.  The negative width
+represents the inequality produced by the dual certificate $y$.
 \end{remark}
 
 \subsection{linear assembly}
 
-The nonlinear optimization problems that we solve in this book have the
-structure of \newterm{linear assembly problems}.  These are problems whose
-nonlinearities can confined to small dimensions.
+The nonlinear optimization problems that we solve in this book have
+the structure of \newterm{linear assembly problems}.  These are
+problems whose nonlinearities can confined to small dimensions.
 
 The linear assembly problem asks for a proof of an upper bound
 \begin{equation}\label{eqn:cxM}
 c x < M
 \end{equation}
-for all $x=(x_1,\ldots,x_s)\in \ring{R}^{m_1}\times\cdots\times\ring{R}^{m_s}=\ring{R}^n$
+for all $x=(x_1,\ldots,x_s)\in \ring{R}^{m_1}\times\cdots
+\times\ring{R}^{m_s}=\ring{R}^n$
 subject to constraints
 \begin{eqnarray}
 A x &\le& b,\notag\\
 %x &=& (x_1,x_2,\ldots,x_s),\\
 x_i &\in& D_i\notag
 \end{eqnarray}
-for some matrices $A,b$, natural numbers $m_i$, and sets $D_i\subset \ring{R}^{m_i}$,
-where $m_1+\cdots+m_s = n$.
-The only nonlinearities are those appearing in the constraints $x_i\in D_i$.
+for some matrices $A,b$, natural numbers $m_i$, and sets $D_i\subset
+\ring{R}^{m_i}$, where $m_1+\cdots+m_s = n$.  The only nonlinearities
+are those appearing in the constraints $x_i\in D_i$.
 
 An \newterm{assembly certificate} of the upper bound \eqn{eqn:cxM}
 consists of the following data
@@ -394,11 +521,11 @@ dual certificates of the infeasibility of the linear programs
 c x \ge M,\quad A x \le b,\quad x_i\in P_{i,j_i}.
 \]
 
-An assembly certificate provides an immediate proof of the upper bound of the
-linear assembly problem.  Indeed,  If $x$ satisfies the constraints of the linear
-assembly problem, then $x_i\in D_i$ for all $i$.  Hence $x_i\in P_{i,j_i}$ for some
-indices $j_i$.  The dual certificate $y_k$, $k=(j_1,\ldots)$, then certifies that
-$c x < M$.
+An assembly certificate provides an immediate proof of the upper bound
+of the linear assembly problem.  Indeed, If $x$ satisfies the
+constraints of the linear assembly problem, then $x_i\in D_i$ for all
+$i$.  Hence $x_i\in P_{i,j_i}$ for some indices $j_i$.  The dual
+certificate $y_k$, $k=(j_1,\ldots)$, then certifies that $c x < M$.
 
 The nonlinear part of the certificate consists in the verification
 of \eqn{eqn:DP}.  In practice, the dimensions $m_i$
@@ -637,3 +764,37 @@ and $n > 100$.)
 
 
 \section{Hypermap Generation}
+
+Recall that a restricted hypermap  $H = (D,e,n,f)$ is one with the following
+properties.
+\begin{enumerate}
+\item The hypermap $H$ has no double joins, and is nonempty, planar,
+  connected, plain and simple.
+\item The edge map $e$ has no fixed points.  % Needed in Lemma:[flag quotient]
+\item The node map $n$ has no fixed points.
+\item The size of every face is at least $3$.
+%%  (All hypoth. Needed?)
+\end{enumerate}
+
+Section~\ref{sec:generation} develops an algorithm to generate all
+restricted hypermap up to isomorphism (or rather all that satisfy
+prescribed bounds on number of nodes and faces).
+
+The set of tame hypermaps is a subset of the a finite set of
+restricted hypermaps (satisfying prescribed bounds).  We can generate
+all tame hypermaps up to isomorphism: generate all the restricted
+hypermaps and filter out those that are not tame.
+
+These algorithms have been implemented in software.  The computer code
+has been executed to obtain an explicit list of all tame hypermaps, up
+to isomorphism.  By setting different initial parameters, the program
+can also generate various other classes such as hypermaps with tame
+contact, Tammes-tame hypermaps, and the class of hypermaps needed for
+the proof of the dodecahedral conjecture
+~\cite{unknown}. % McLaughlin.
+G. Bauer's thesis makes an exhaustive analysis of the computer
+program, and reimplements the code~\cite{unknown}.  T. Nipkow and G.
+Bauer subject the computer code to formal proof~\cite{unknown}.
+
+
+

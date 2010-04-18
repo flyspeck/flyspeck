@@ -1,7 +1,66 @@
 \chapter{Hypermap}\label{chap:hypermap}
 \indy{Index}{hypermap}%
 
+\begin{summary}
+  By definition, a \newterm{planar graph} is a graph that admits a
+  planar embedding.  The graph, endowed with a fixed embedding, is a
+  \newterm{plane graph}.  A planar graph has too little structure for
+  our purposes, because it does not specify a particular embedding.
+  On the other hand, the plane graph has too much structure.  It is a
+  topological structure where combinatorics alone should suffice.  A
+  hypermap gives just the right amount of structure.  It is a purely
+  combinatorial, but carries information that the planar graph lacks,
+  by encoding the relations among nodes, edges, and faces.  This
+  chapter is about hypermaps.
+
+In the original proof of the Kepler conjecture, the basic
+combinatorial structure was that of a \newterm{planar map}, as defined
+by Tutte~\cite{unknown}.  Although planar maps appear throughout that
+proof, they are lightweight object, in the sense that no significant
+structural results are needed about them.
+
+G. Gonthier makes hypermaps the fundamental combinatorial structure in
+his formal proof of the four-color theorem~\cite{unknown}.  His formal
+proof eliminates topological arguments about planarity in favor of
+purely combinatorial arguments.  For example, the traditional proof of
+the four-color theorem relies on the Jordan curve theorem, but
+Gonthier's formal proof does not.  When I learned of Gonthier's work,
+I significantly reorganized the proof.  I replaced planar maps with
+hypermaps.  I also made hypermaps into a heavyweight object, in the
+sense that significant structural results about them are needed.
+
+As a result of these changes, many parts of the proof that were
+originally done topologically can now be done combinatorially.  This
+significantly reduces the effort required to formalize the proof.
+These changes also make it possible to treat rigorously what was
+earlier done by geometric intuition.  For example, the original proof
+made implicit use of the equivalence of two different notions of a
+planar map: a combinatorial notion that was used in the computer
+algorithms and a topological notion of an equivalence class of
+embeddings of a graph into a sphere.  Hypermaps make this equivalence
+explicit and rigorous.
+
+The quick definition of hypermap is that it is a finite set together
+with two permutations on that set.  It is therefore useful to start
+the chapter with a brief review of permutations.  The second section
+develops the basic terminology of hypermaps.  The next section
+describes various transformations of hypermaps called walkup
+transformations.  These transformations can be viewed as corresponding
+to the operations such as contracting and edge in a graph or deleting
+a node of a graph.  Next, properties of planar hypermaps are
+developed.  The final sections prove the correctness of an algorithm
+to generate all planar hypermaps with given properties.  The algorithm
+will be described heuristically in terms of drawing graphs in pencil
+and pen on a sheet of paper.  This algorithm has been implemented as a
+computer program.  The output from this program is an essential part
+of the proof of the Kepler conjecture.
+\end{summary}
+
+
 \section{Background on Permutations}
+
+This section reviews the theory of permutations, as presented in
+standard textbooks~\cite{unknown}.
 
 \begin{definition}[permutation]\guid{IFPQAWD}
 \formaldef{permutation}{permutes}
@@ -45,7 +104,7 @@ f^{a+b} = f^a f^b.
 
 If $f:D\to D$ is a permutation on a finite set $D$, then there is a smallest
 positive integer $k$ such that $f^k=I_D$.  The integer $k$ is the \newterm{order}
-of the permutation $f$.  If $f^m=I_D$ for any some $m$, then $m = k i$ for some
+of the permutation $f$.  If $f^m=I_D$ for some $m$, then $m = k i$ for some
 integer $i$, where $k$ is the order of $f$. The inverse $f^{-1} = f^k f^{-1} = f^{k-1}$ can be written as a
 non-negative power of $f$.
 
@@ -60,7 +119,7 @@ The set $\op{Sym}(k)$ is finite and has cardinality $k!$.
 
 \section{Definitions}
 
-
+A hypermap, presented in the next definition, is the main subject of this chapter.
 
 \begin{definition}[hypermap,~dart]\guid{ZIHYYRA}\label{def:hypermap}  
 \formaldef{hypermap}{(:(A)hypermap)}
@@ -97,24 +156,28 @@ the \newterm{face map}, respectively.  \indy{Index}{hypermap}%
 \label{fig:dart}
 \end{figure}
 
-\begin{remark}[planar graphs as hypermaps]\guid{IVPJYAG}\label{rem:hypermap} A hypermap is an abstraction of
+\begin{remark}[plane graphs as hypermaps]\guid{IVPJYAG}\label{rem:hypermap} A hypermap is an abstraction of
 the concept of 
-planar graph.  Place a dart at each angle of a planar graph.
+plane graph.  Place a dart at each angle of a plane graph.
 One function, $f$, 
 cycles counterclockwise around the angles of each face.  
 Another function, $n$, 
 rotates counterclockwise around the angles at each
 node.  A third function, $e$, pairs angles at opposite ends of
 each edge  (Figure~\ref{fig:hypermap_ex}).   The hypermap extracts
-the data $(D,e,n,f)$ from the planar graph and discards the rest.
-\indy{Index}{planar graph}%
+the data $(D,e,n,f)$ from the plane graph and discards the rest.
+
+This construction of hypermaps from plane graphs is our primary 
+reason to study hypermaps.  Many of the lemmas and proofs in this chapter have
+are standard results about plane graphs, translated into the language of hypermaps.
+\indy{Index}{plane graph}%
 \end{remark}
 
 \begin{figure}[htb]
 \centering
 \szincludegraphics[width=80mm]{\pdfp/hypermap-ex.eps}
-\caption{Darts mark the angles of a planar graph.  Darts may
-be permuted about faces, nodes, and edges.}
+\caption{Darts mark the angles of a plane graph.  Darts may be
+  permuted about faces, nodes, and edges.}
 \label{fig:hypermap_ex}
 \end{figure}
 
@@ -123,14 +186,21 @@ A hypermap satisfies
 \begin{equation}\label{eqn:triality}
 e \ocirc n\ocirc f = n\ocirc f\ocirc e = f\ocirc e\ocirc n = I_D.
 \end{equation}
+This \newterm{triality relation} shows that if $(e,n,f)$ give a hypermap, then so do
+$(n,f,e)$ and $(f,e,n)$. 
+ Because of these symmetries in the
+defining relation, there will be multiple versions of theorems about
+hypermaps, all obtained from one proof by symmetry.
+Alternatively,  it is possible to define a hypermap as a finite set with
+two permutations $e,n$, leaving $f$ to be derived from $e n f = I_D$, but the
+triality symmetry would be lost in such a definition.
+
 Inverted, this triality becomes
 \begin{displaymath}
 n^{-1} \ocirc e^{-1} \ocirc f^{-1} = (f \ocirc e \ocirc n)^{-1} = I_D.
 \end{displaymath}
 This inversion is the abstract form of the the duality between nodes
-and faces in a planar graph.  Because of these symmetries in the
-defining relation, there will be multiple versions of theorems about
-hypermaps, all obtained from one proof by symmetry.
+and faces in a plane graph. 
 
 
 \begin{definition}[path,~list,~sublist,~visit,~dart~set]\guid{RRQWGAY} 
@@ -177,6 +247,12 @@ Define a relation on the set of darts by $x\sim_S y$ when there is a
 path from $x$ to $y$ with steps in $S$.
 \end{definition}
 
+This book intentionally avoids group theory to keep the theoretical
+background to a minimum.  The relation could be expressed group
+theoretically by saying $x\sim_S y$ means that $x$ and $y$ lie in the
+same orbit of the group generated by $S$.  Rather than rely on group theory,
+we use the following two simple lemmas.
+
 \begin{lemma}[equal equivalences]\guid{YBGABWW}\rating{50}\label{lemma:er} %\guid{QLPBIKV}
 % wording changed by thales Jan 7, 2010.
 Let $(D,e,n,f)$ be a hypermap and let $S$ be a  set of permutations.
@@ -194,27 +270,37 @@ Also,  the relation $\sim_S$ (that is, $\sim_T$) is an equivalence relation.
 \indy{Index}{equivalence relation}%
 \end{lemma}
 
-\begin{proof} If $x\sim_S y$ then clearly $x\sim_T y$.  Conversely,
-if $x\sim_T y$, where $T = S\cup\{h_1,h_2\}$, pick a path $P$ from $x$ to $y$ with steps
-in $T$ that contains the fewest $h_1h_2$-steps.  
+\begin{proof} If $x\sim_S y$ then clearly $x\sim_T y$.  Conversely, if
+  $x\sim_T y$, where $T = S\cup\{h_1,h_2\}$, pick a path $P$ from $x$
+  to $y$ with steps in $T$ that contains the fewest $h_1h_2$-steps.
 
-\claim{$P$ does not contain any $h_1h_2$-steps}.  Otherwise, a sublist $[\ldots;u;h_1h_2u;\ldots]$
-of $P$ can be expanded to a path $[\ldots;u;h_2u;h_1u;\ldots]$ that contradicts the minimal
-property of $P$.
+\claim{$P$ does not contain any $h_1h_2$-steps}.  Otherwise, a sublist
+$[\ldots;u;h_1h_2u;\ldots]$ of $P$ can be expanded to a path
+$[\ldots;u;h_2u;h_1u;\ldots]$ that contradicts the minimal property of
+$P$.
 
-This proves the first conclusion of the lemma.  Fix $h$ in a set of permutations $R$.
-By an induction that uses the first conclusion,  for all $i$, $\sim_R$ equals the relation $\sim_{R(h,i)}$,
-where $R(h,i) = R \cup \{h,h^2,\ldots,h^i\}$.  If $h\in S$ is an element of order $k$, 
-and $T = S\cup\{h^{-1}\}$, then
-the second conclusion follows because the following sets give the same relation:
+This proves the first conclusion of the lemma.  Fix $h$ in a set of
+permutations $R$.  By an induction that uses the first conclusion, for
+all $i$, $\sim_R$ equals the relation $\sim_{R(h,i)}$, where $R(h,i) =
+R \cup \{h,h^2,\ldots,h^i\}$.  If $h\in S$ is an element of order $k$,
+and $T = S\cup\{h^{-1}\}$, then the second conclusion follows because
+the following sets give the same relation:
 \begin{displaymath}
 S,\quad S(h,k-1) = T(h,k-2),\quad T.
 \end{displaymath}
 
-By repeated action of the previous conclusion, $\sim_S=\sim_T$, where 
-$T = S\cup S^{-1}\cup \{I_D\}$, and where $S^{-1} = \{h^{-1}\mid h\in S\}$.
-The unit path $[x]$ yields reflexivity of $\sim_T$.  Also, $T^{-1} = T$ gives the symmetry.  Finally, concatenation of paths gives transitivity.  Thus, $\sim_T$ (i.e., $\sim_S$) is an equivalence relation.
+By repeated action of the previous conclusion, $\sim_S=\sim_T$, where
+$T = S\cup S^{-1}\cup \{I_D\}$, and where $S^{-1} = \{h^{-1}\mid h\in
+S\}$.  The unit path $[x]$ yields reflexivity of $\sim_T$.  Also,
+$T^{-1} = T$ gives the symmetry.  Finally, concatenation of paths
+gives transitivity.  Thus, $\sim_T$ (i.e., $\sim_S$) is an equivalence
+relation.
 \end{proof}
+
+Several of the following definitions (components, connected, node,
+edge, face) have been appropriated from planar graph theory.  These
+definitions are intended to capture the intuitive notions of the nodes
+and edges of graph, faces of a plane graph, and connectivity.
 
 \begin{definition}[combinatorial~component,~connected]\guid{JVTRXQR}
 \formaldef{combinatorial component}{comb\_component}
@@ -252,6 +338,15 @@ orbit under $e$.  \indy{Index}{node}%
 \indy{Index}{edge}%
 \end{definition}
 
+Plane graphs are conventionally illustrated in such a way that nodes,
+edges, and faces have an entirely different appearance: nodes as
+point, edges as curves, and faces as polygons.  In an abstract
+hypermap, the triality symmetry shows that the nodes, edges, and faces
+have equal footing.  Nevertheless, to retain the intuition of plane
+graphs, we will often depict hypermaps with the darts in a node
+arranged in a small cluster around a point, the darts in a edge along
+a curve, and the darts in a face around a polygon.
+
 Write $\#h$ for the
 number of orbits of a permutation $h$ on $D$.  
 \indy{Notation}{h@$h$ (permutation)}%
@@ -259,19 +354,18 @@ number of orbits of a permutation $h$ on $D$.
 \formaldef{$\#h$}{number\_of\_edges, number\_of\_nodes, number\_of\_faces}
 
 
-\begin{lemma}[orbit relation]\guid{PKRQTKP}
+\begin{lemma}[orbit]\guid{PKRQTKP}
 Let $D$ be a finite set.  The orbit of $x\in D$ of a permutation $h:D\to D$
 is the equivalence class of $x$ under the relation $\sim_S$, when $S=\{h\}$.
 \end{lemma}
 
 \begin{definition}[plain]\guid{HFRNMIU}
-\formaldef{plain}{plain\_hypermap}
-A hypermap $(D,e,n,f)$ is \newterm{plain}
-  (carefully note\footnote{This deliberate play on the homophonous
-    {\it plane} privileges writing over speech.  Every plane (hyper)graph may
-be planar, but not all plain hypermaps are planar.}
-  the  spelling!) when $e$ is an involution on $D$ (that is, $e^2 = I_D$).
-  \indy{Index}{plain}%
+  \formaldef{plain}{plain\_hypermap} A hypermap $(D,e,n,f)$ is
+  \newterm{plain} (carefully note\footnote{This is a deliberate and
+    dangerous play on the homophonous {\it plane} that makes this
+    topic unspeakable.  Although plane graphs are planar, not all
+    plain hypermaps are planar.}  the spelling!) when $e$ is an
+  involution on $D$ (that is, $e^2 = I_D$).  \indy{Index}{plain}%
 \end{definition}
 
 
@@ -297,23 +391,22 @@ each node contains at most one dart.  \indy{Index}{simple}%
 
 % Moved from cup05_tame.tex section on tame plane graphs. 9/5/07:
 \begin{lemma}[nodal fixed point]\guid{ZHQCZLX}\rating{50}\label{lemma:nondegen} 
-Let $(D,e,n,f)$ be a simple plain hypermap such that every face has
-at least three darts.
-Then $n$ has no fixed point.
-\indy{Index}{fixed point}%
+  Let $(D,e,n,f)$ be a simple plain hypermap such that every face has
+  at least three darts.  Then $n$ has no fixed point.
+  \indy{Index}{fixed point}%
 \end{lemma}
 
 \begin{proof} For a contradiction, let $x$ be a fixed point of
 $n$. 
 
 \claim{The darts $e x$ and $f x$ lie in the same node and face, so are
-equal in the simple hypermap.}  Indeed, they lie in the same node
+  equal in the simple hypermap.}  Indeed, they lie in the same node
 because $n(f x) = e^{-1} x = e x$. They lie in the same face because
-\begin{displaymath}f^2 (e x) = f (f e n x) = f x.\end{displaymath}
-So $e x = f x$.
+\begin{displaymath}f^2 (e x) = f (f e n x) = f x.\end{displaymath} So
+$e x = f x$.
 
-Thus, $f^2 (e x) = f x = e x$, and $e x$ lies on a
-face with at most two darts.  This contradicts what is given.
+Thus, $f^2 (e x) = f x = e x$, and $e x$ lies on a face with at most
+two darts.  This contradicts what is given.
 \end{proof}
 
 
@@ -321,12 +414,20 @@ face with at most two darts.  This contradicts what is given.
 
 \section{Walkup}
 
-To focus on a dart $x$ in a
-hypermap, it can be useful to draw a hexagon around $x$ and place
-the six darts $e x$,
-$f x$, $e^{-1} x$, $n x$,  $f^{-1} x$, $e x$, $n^{-1} x$  at its corners
-in Figure~\ref{fig:dart+}.  Some of these seven darts may be
-equal to one another, even if the figure draws them apart.
+This section describes various operations to transform one hypermap to
+another.  The simplest of these operations is the \newterm{walkup}
+transformation that deletes one dart from a hypermap and constructs
+permutations that skip past the deleted dart.  More complex
+transformations of hypermaps can be constructed as a series of walkup
+transformations.  Standard operations on graphs such as the
+contraction or deletion of an edge can be interpreted as series of
+walkup transformations.
+
+To focus on a dart $x$ in a hypermap, it can be useful to draw a
+hexagon around $x$ and place the six darts $e x$, $f x$, $e^{-1} x$,
+$n x$, $f^{-1} x$, $e x$, $n^{-1} x$ at its corners in
+Figure~\ref{fig:dart+}.  Some of these seven darts may be equal to one
+another, even if the figure draws them apart.
 Figure~\ref{fig:dart-fix} shows the layout of a degenerate dart.
 \indy{Notation}{x@$x$ (dart)}%
 
@@ -346,11 +447,10 @@ Figure~\ref{fig:dart-fix} shows the layout of a degenerate dart.
 
 \subsection{single}
 
-A \newterm{walkup} deletes
-a dart from a hypermap and reforms the edge, node, and face
-maps to produce a hypermap on the reduced set of darts.  Walkups
-come in three flavors: edge walkups, face walkups,
-and node walkups.
+A \newterm{walkup} deletes a dart from a hypermap and reforms the
+edge, node, and face maps to produce a hypermap on the reduced set of
+darts.  Walkups come in three flavors: edge walkups, face walkups, and
+node walkups.
 
 \begin{definition}[walkup,~degenerate]\guid{DAIZNHD}
 \formaldef{edge walkup}{edge\_walkup}
@@ -361,7 +461,7 @@ $W_e$ at  a dart $x\in D$ of a hypermap $(D,e,n,f)$ is the hypermap
 $(D',e',n',f')$, where $D' = D\setminus\{x\}$ and the
 the maps skip over $x$:
 \begin{displaymath}
-\begin{array}{lll}
+  \begin{array}{lll}
 f' y &= \text{ if } (f y =  x) \text{ then } f x \text{ else
 } f y\\
 n' y &= \text{ if } (n y = x) \text{ then } n x \text{ else
@@ -386,9 +486,8 @@ face walkup $W_f$ and node walkup $W_n$.
 % Figure~\ref{fig:walkfn} shows the result of the face and node
 % walkups on the hexagon around a dart $x$.
 
-At a degenerate dart $x$, all three walkups are equal:
-$W=W_e=W_n=W_f$ (Figure~\ref{fig:walkdegen}).
-\indy{Index}{walkup!degenerate}%
+At a degenerate dart $x$, all three walkups are equal: $W=W_e=W_n=W_f$
+(Figure~\ref{fig:walkdegen}).  \indy{Index}{walkup!degenerate}%
 \indy{Notation}{x@$x$ (dart)}%
 
 \begin{figure}[htb]
@@ -422,14 +521,13 @@ The walkup $W_h$ at $x$ \newterm{merges} when the walkup joins the
 orbit of $h$ through $x$ with another orbit.  That is, there is an orbit $O$ of some
 $y\in D'$ under $h':D'\to D'$ of the form
 \begin{displaymath}
-O \cup\{x\} = \op{orbit}(h,x) \cup \op{orbit}(h,y),
+  O \cup\{x\} = \op{orbit}(h,x) \cup \op{orbit}(h,y),
 \end{displaymath}
-where $y\not\in \op{orbit}(h,x)$.
-It \newterm{splits}
-when the walkup splits the orbit at $x$ into two orbits.  That is, there are 
-distinct orbits $O_1,O_2$ under $h'$ in the hypermap $(D',e',n',f')$ such that
+where $y\not\in \op{orbit}(h,x)$.  It \newterm{splits} when the walkup
+splits the orbit at $x$ into two orbits.  That is, there are distinct
+orbits $O_1,O_2$ under $h'$ in the hypermap $(D',e',n',f')$ such that
 \begin{displaymath}
-\{x\}\cup O_1\cup O_2 = \op{orbit}(h,x).
+  \{x\}\cup O_1\cup O_2 = \op{orbit}(h,x).
 \end{displaymath}
 \indy{Index}{split}%
 \indy{Index}{merge}%
@@ -455,8 +553,8 @@ The other cases $h=e,n$ hold by triality.
 \centering
 \szincludegraphics[height=90mm]{\pdfp/split.eps}
 \caption{The face walkup at $x$ mixes $f$-orbits.  If it mixes a
-single orbit, the orbit splits. If it mixes two separate orbits, the
-orbits merge. }
+  single orbit, the orbit splits. If it mixes two separate orbits, the
+  orbits merge. }
 \label{fig:split}
 \end{figure}
 
@@ -471,15 +569,14 @@ at $x$ merges.
 \end{lemma}
 \indy{Index}{merge}%
 
-\begin{proof} 
+\begin{proof}
 The darts $f x$ and $e x$ lie in the same node: $n (f x) = e^{-1} x
 = e x$. If they are also in the same face of a simple hypermap, then
 $f x = e x = y$. So
-\begin{displaymath}n y  = n f x = n f e y = y,\end{displaymath}
-and $y$ is a fixed
-point of $n$, hence degenerate, contrary to assumption.  
-Thus, $f x$ and $e x$ are in different faces, and the walkup merges
-by Lemma~\ref{lemma:merge-split}.  
+\begin{displaymath}n y = n f x = n f e y = y,\end{displaymath} and $y$
+is a fixed point of $n$, hence degenerate, contrary to assumption.
+Thus, $f x$ and $e x$ are in different faces, and the walkup merges by
+Lemma~\ref{lemma:merge-split}.
 \end{proof}
 
 
@@ -497,15 +594,13 @@ the second walkup to be degenerate.
 
 Here are some examples.
 \begin{itemize}
-\item A double $W_n$ along an edge deletes the edge and 
-merges the two endpoints into
-a single node (Figure~\ref{fig:doublenode}). 
-\item A double $W_f$ along an edge 
-deletes the edge and merges the two faces along the edge into
-one (Figure~\ref{fig:doubleface}).
-\item A double $W_e$ at a node of degree two
-deletes the node and merges the two edges at the node into
-one (Figure~\ref{fig:doubleedge}).
+\item A double $W_n$ along an edge deletes the edge and merges the two
+  endpoints into a single node (Figure~\ref{fig:doublenode}).
+\item A double $W_f$ along an edge deletes the edge and merges the two
+  faces along the edge into one (Figure~\ref{fig:doubleface}).
+\item A double $W_e$ at a node of degree two deletes the node and
+  merges the two edges at the node into one
+  (Figure~\ref{fig:doubleedge}).
 \end{itemize}
 
 
@@ -547,14 +642,14 @@ hypermaps into plain hypermaps.
 \indy{Index}{hypermap!plain}%
 
 \begin{proof} The walkups $W_n$ and $W_f$ preserve the orbit structure
-of edges, except for dropping one dart.  By dropping both darts from
-the same edge, one edge is lost and all others edges remain
-unchanged.
+  of edges, except for dropping one dart.  By dropping both darts from
+  the same edge, one edge is lost and all others edges remain
+  unchanged.
 
-Figure~\ref{fig:doubleplain} illustrates the double $W_e$.  The two
-edges $\{x,e x\}$, $\{y, e y\}$ meeting the node are fused by the
-double walkup into $\{e x, e y\}$, which is still an edge of size
-two.
+  Figure~\ref{fig:doubleplain} illustrates the double $W_e$.  The two
+  edges $\{x,e x\}$, $\{y, e y\}$ meeting the node are fused by the
+  double walkup into $\{e x, e y\}$, which is still an edge of size
+  two.
 \end{proof}
 
 \begin{remark}[reverse double walkup]\guid{KPRURND}\label{rem:reverse-double-walkup}
@@ -563,27 +658,29 @@ Let $H'=(D',e',n',f')$ be
 a hypermap and let $D\supset D'$ be a set that contains two additional elements
 $x,y$.  Fix distinct elements $x',y'\in D'$.  Define $n,e:D\to D$ as follows.
 \begin{displaymath}
-\begin{cases} 
+  \begin{cases} 
 e x = y, &\\
 e y = x,&\\
 e z = e' z,&\text{otherwise.}\\
 \end{cases}
 \qquad\qquad
 \begin{cases} 
-n x' = x, &\\
-n x =  n' x',&\\
-n y' = y,&\\
-n y =  n' y',&\\
-n z = n' z, &\text{otherwise.}\\
+  n x' = x, &\\
+  n x =  n' x',&\\
+  n y' = y,&\\
+  n y =  n' y',&\\
+  n z = n' z, &\text{otherwise.}\\
 \end{cases}
 \end{displaymath}
-Define $f$ by forcing the hypermap identity $e n f = I_D$.  
-The edge $\{x,y\}$ has been inserted by a reverse double walkup.  The insertion points of the edge
-into the hypermap
-depend on the data $\{(x',x),(y',y)\}$.   
+Define $f$ by forcing the hypermap identity $e n f = I_D$.  The edge
+$\{x,y\}$ has been inserted by a reverse double walkup.  The insertion
+points of the edge into the hypermap depend on the data
+$\{(x',x),(y',y)\}$.
 
-Reverse double walkup transformations that
-insert a node $\{x,y\}$ or a face $\{x,y\}$ into a hypermap are obtained similarly  by triality symmetry.  For example, to insert a node onto an edge $\{x',y'\}$ of cardinality $2$, use
+Reverse double walkup transformations that insert a node $\{x,y\}$ or
+a face $\{x,y\}$ into a hypermap are obtained similarly by triality
+symmetry.  For example, to insert a node onto an edge $\{x',y'\}$ of
+cardinality $2$, use
 \begin{displaymath}
 \begin{cases} 
 n x = y, &\\
@@ -609,18 +706,27 @@ We will use a well-ordered set $\Omega$ from which we draw, as needed,
 the minimal element of the complement in $\Omega$ of the set of darts
 already in play.  We assume that darts can be supplied from $\Omega$,
 without mentioning it explicitly.  
+\indy{Notation}{ZZOmega@$\Omega$ (dart universe)}
 
-For example, if we insert an edge into $(D',e',n',f')$
-using the
-ordered pair $(x',y')$, we use the data $\{(x',x),(y',y)\}$, where $x$ is the
-least element of $\Omega\setminus D'$, and $y$ is the least element of
-$\Omega\setminus (D'\cup \{x\})$.  To insert a node into an edge of cardinality
-two, it is enough to specify one dart $x'$ in the edge.  Then let $y'$ be the other
-dart in the edge, and choose $x,y\in \Omega$ as above.
-\indy{Notation}{zzZ@$\Omega$ (well-ordered universe of darts)}
+For example, if we insert an edge into $(D',e',n',f')$ using the
+ordered pair $(x',y')$, we use the data $\{(x',x),(y',y)\}$, where $x$
+is the least element of $\Omega\setminus D'$, and $y$ is the least
+element of $\Omega\setminus (D'\cup \{x\})$.  To insert a node into an
+edge of cardinality two, it is enough to specify one dart $x'$ in the
+edge.  Then let $y'$ be the other dart in the edge, and choose $x,y\in
+\Omega$ as above.  \indy{Notation}{zzZ@$\Omega$ (well-ordered universe
+  of darts)}
 \end{remark}
 
-\begin{definition}[RDW]\guid{TPEZAAM}\label{def:R}  
+Later in the chapter, we give an algorithm that generates various
+classes of planar hypermaps.  The algorithm uses a particular sequence
+of double walkup transformations, as captured in the following
+definition.  Intuitively, it corresponds to joining two vertices of a
+graph by a polygonal segment, with a new node at each vertex of the
+joining segment.
+
+\begin{definition}[RDW, or reverse double
+  walkup]\guid{TPEZAAM}\label{def:R}
   Let $H'=(D',e',n',f')$ be a hypermap and let $x'\in D'$.  
 %  Let $r$ be the
 %  cardinality of the face of $x$, and let $m,p,q$ be integers that
@@ -644,6 +750,14 @@ This is $RDW(H,x',m,p,q)$.
 \indy{Index}{walkup}%
 \indy{Index}{planarity}%
 
+Just as a graph can be planar or nonplanar, so a hypermap can be
+planar or nonplanar.  A plane graph satisfies Euler's formula, which
+relates the number of vertices, edges, and faces of the graph.
+Euler's formula can be expressed in purely combinatorial terms, then
+generalized to hypermaps.  A hypermap for which Euler's formula holds
+is defined to be planar.  This definition is one of the most important
+concepts in this chapter.
+
 \begin{definition}[planar]\guid{QVATKMJ}
 \formaldef{planar}{planar\_hypermap}
 A hypermap is \newterm{planar} (note the
@@ -653,7 +767,7 @@ spelling!) when the Euler relation holds:
 \end{definition}
 
 
-\begin{remark}[Eulerian relation]\guid{YPVCMHI}\label{rem:Euler}   
+\begin{remark}[Eulerian relation]\guid{YPVCMHI}\label{rem:Euler}
 The Euler relation for planar graphs can be translated into the
 language of hypermaps.  Consider a connected planar graph that
 satisfies the Euler relation for the alternating sum of Betti
@@ -678,6 +792,12 @@ Thus, the hypermap is also planar.
 \end{remark}
 
 
+The Euler relation for graphs has many consequences.  One simple
+consequence is that in a triangulation of the sphere, the number of
+edges is equal to $3/2$ times the number of faces (because each face
+has three edges, each edge borders two faces).  Here is another simple
+consequence, expressed in the language of hypermaps.
+
 \begin{lemma}[dart bound]\guid{TGJISOK}\rating{80}\label{lemma:dart-upper} 
 Let $H$ be a connected plain planar hypermap such that every edge
 has cardinality two.  Assume that there are at least three darts in
@@ -688,7 +808,7 @@ every node.  Then
 \end{lemma}
 \indy{Notation}{H@$H$ (hypermap)}%
 
-\begin{proof}  In a plain planar hypermap, the Euler relation becomes
+\begin{proof}  In a connected plain planar hypermap, the Euler relation becomes
 \begin{displaymath}6\, \#f - 12 = 3\,\#D - 6\,\#n,\end{displaymath}
 so it is enough to show that
 \begin{displaymath}
@@ -759,6 +879,8 @@ Hence  $\op{split}_f = 1$.  The result
 follows by Lemma~\ref{lemma:index}.
 \end{proof}
 
+The following lemma is a hypermap analogue of the fact that the Euler characteristic
+of a surface graph is never greater than the Euler characteristic of a plane graph.
 
 \begin{lemma}[non-positive index]\guid{FOAGLPA}\rating{50}
 \label{lemma:planar-nonpos}  
@@ -790,16 +912,27 @@ Thus, the index remains at its maximum value.
 
 \section{Path}
 
+This section develops the basic properties of paths in hypermaps.
+
+
 \subsection{contour}
 
+We make a distinction between injective paths, which are paths that never
+repeat a dart, and loops, which return to the initial dart in the trajectory.
+In the definition of loop, we wish to remove any dependence on an initial dart:
+A loop can start in at an arbitrary dart in the trajectory.  If a path is a certain
+kind of list, then a loop is a certain kind of cyclic list, as given in the following
+definition.
+
 \begin{definition}[cyclic~list]\guid{MYJNYCZ}
-\formaldef{cyclic list}{samsara}
-\formaldef{cyclic list}{(:(A)loop)}
-A \newterm{cyclic list} $\lp{x_0;\ldots;x_{k-1}}$ is an equivalence class of lists under the transitive closure of the relation:
+  \formaldef{cyclic list}{samsara} \formaldef{cyclic list}{(:(A)loop)}
+  A \newterm{cyclic list} $\lp{x_0;\ldots;x_{k-1}}$ is an equivalence
+  class of lists under the transitive closure of the relation:
 \begin{displaymath}
 [x_0;x_1;x_2\ldots;x_{k-1}] \sim [x_1;x_2;\ldots;x_{k-1};x_0].
 \end{displaymath}
-A sublist of a cyclic list is a sublist of some representative of the equivalence class.
+A sublist of a cyclic list is a sublist of some representative of the
+equivalence class.
 \end{definition}
 
 \begin{definition}[contour~path,~contour~loop]\guid{AUIDQRN}
@@ -823,6 +956,12 @@ read modulo $k$.
 \indy{Index}{contour!loop}%
 \indy{Index}{loop}%
 \end{definition}
+
+
+If we consider steps $x\mapsto n^{-1} x$ and $x\mapsto f x $ as
+positive and other steps as negative, then a contour path can be
+intuitively imagined as a path that carries an intrinsic positive
+orientation.  That is, a contour path is an oriented path of sorts.
 
 
 
@@ -903,6 +1042,12 @@ at the same nodes as the original contour loop. }
 
 
 \subsection{M\"obius}
+
+The rest of this section develops the basic properties of M\"obius contours.
+A M\"obius contour should be thought of as the simplest kind of nonplanar
+contour path.  M\"obius contours turn out to be extremely useful,
+because in practice, the best way to certify that a given hypermap is nonplanar
+is produce a M\"obius contour in the hypermap  (Lemma~\ref{lemma:no-mobius}).
 
 \begin{definition}[M\"obius~contour]\guid{MBYIEQP}
 \formaldef{M\"obius contour}{is\_Moebius\_contour}
@@ -1015,6 +1160,9 @@ $e=n=f$, all permutations of order three.  This hypermap is not planar:
 %\end{definition}
 %
 
+The final results in this section are somewhat  technical lemmas that will
+needed later in the correctness proof of an algorithm that generates planar hypermaps.
+
 \begin{lemma}[step coherence]\guid{ILTXRQD}\rating{100}\label{lemma:contour-path-type}
 Suppose that a hypermap has no M\"obius contours. Let $L$ be a
 contour loop.  Let $P$ be any injective contour path with at least
@@ -1113,10 +1261,27 @@ $y = f x$ and $x = f y$, so that the face has size two.
 \end{proof}
 
 
-\section{Quotient}
-\indy{Index}{quotient}%
+\section{Subquotient}
+\indy{Index}{subquotient}%
+
+This section develops the properties of \newterm{subquotient
+  hypermaps}.  Each dart in a subquotient hypermap is an equivalence
+class of darts in the originating hypermap.  We call the new hypermap a subquotient
+rather than a quotient, because the equivalence relation
+is defined on a {\it subset} of the darts of the originating
+hypermap.  A subquotient hypermap is vaguely analogous to a subquotient in
+group theory or a quotient space in topology.
+
+Subquotients are used in the algorithm to generate planar hypermaps, described
+later in the chapter.  The
+originating hypermap is the hypermap we wish to construct and the subquotient
+is the partially constructed hypermap of the unfinished algorithm.  The material
+in this section has the narrow purpose  of providing a descriptive language for the
+algorithm.  This material  will not be used outside this chapter.
 
 \subsection{definition}
+
+An isomorphism is a structure preserving map.
 
 \begin{definition}[isomorphism]\guid{GUDUERI}
 \formaldef{isomorphic}{iso}
@@ -1129,6 +1294,9 @@ for $(h,h')=(e,e'), (f,f'), (n,n')$.
 \indy{Notation}{G@$G$ (morphism of hypermaps)}%
 \end{definition}
 
+The faces of a subquotient are to be traced out by a collection of contour loops
+in the originating hypermap.  To get a well-defined subquotient, the collection
+of contour loops must be normal in the following sense.
 
 \begin{definition}[normal family]\guid{RQSVFLE}
 \formaldef{normal}{is\_normal}
@@ -1137,7 +1305,7 @@ Let $(D,e,n,f)$ be a hypermap.
 %there are no darts fixed by $e$ 
 %(so that $f x \ne n^{-1} x$ at each dart). 
 Let $\cal L$ be a family of contour
-loops.  The family $\cal L$ is  normal if the following
+loops.  The family $\cal L$ is  \newterm{normal} if the following
 conditions hold of its loops. \begin{enumerate}
 \item  No dart is visited by two different loops.
 \item  Every loop visits at least two nodes.
@@ -1146,6 +1314,7 @@ by some loop.
 \end{enumerate}
 \indy{Index}{normal family}%
 \end{definition}
+
 
 A normal family determines a new hypermap.  A dart in the new set $D'$
 of darts is a maximal sublist $[x;n^{-1} x; n^{-2} x;\ldots;n^{-k}
@@ -1159,27 +1328,27 @@ x]$. The map $e'$ is defined by $e'\ocirc n'\ocirc f' = I_{D'}$.
 \indy{Index}{path!maximal} %
 \indy{Notation}{D@$D$ (dart)}%
 
-\begin{definition}[quotient]\guid{AJENHSB}
+\begin{definition}[subquotient]\guid{AJENHSB}
 \formaldef{quotient dart}{atom}
-\formaldef{quotient}{quotient}
+\formaldef{subquotient}{subquotient}
 \formaldef{$D'$}{quotient\_darts}
 \formaldef{$e'$}{emap}
  The hypermap $(D',e',n',f')$
 constructed from the normal
 family $\cal L$ of $H=(D,e,n,f)$ 
-is called the \newterm{quotient} of $H$ by $\cal L$, and is denoted
+is called the \newterm{subquotient} of $H$ by $\cal L$, and is denoted
 $H/{\cal L}$.  If $x$ is a dart visited by some loop in $\cal L$, then
 the maximal path $[\ldots;x;\ldots]$ is called the \newterm{quotient dart} of $x$.
 %The hypermap $H$ is said to be a \newterm{cover} of $H/{\cal L}$.  
-\indy{Index}{quotient}%
+\indy{Index}{subquotient}%
 \end{definition}
 \indy{Notation}{L@$\cal L$}%
 \indy{Notation}{H@$H/{\cal L}$}%
 %\indy{Index}{cover}%
-\indy{Index}{hypermap!quotient}%
+\indy{Index}{hypermap!subquotient}%
 \indy{Index}{normal family}%
 
-Intuitively, the quotient hypermap is represented as a graph whose
+Intuitively, the subquotient hypermap is represented as a graph whose
 cycles under $f'$ are precisely the contour loops in the normal family
 (Figure~\ref{fig:quot}).
 
@@ -1188,32 +1357,32 @@ cycles under $f'$ are precisely the contour loops in the normal family
 \centering
 \szincludegraphics[width=70mm]{\pdfp/quot.eps}
 \caption{The contour loops in a normal family become faces in the
-quotient}
+subquotient}
 \label{fig:quot}
 \end{figure}
 
 \subsection{properties}
 
-This subsection explores some of the properties of a quotient hypermap.
-The first two lemmas describe the faces and the nodes of the quotient
+This subsection explores some of the properties of a subquotient hypermap.
+The first two lemmas describe the faces and the nodes of the subquotient
 in terms of the combinatorics of the normal family.
 
-\begin{lemma}[quotient face,~$\F$]\guid{WIRLCNL}\label{lemma:quotient-bijection}
+\begin{lemma}[subquotient face,~$\F$]\guid{WIRLCNL}\label{lemma:subquotient-bijection}
 \formaldef{$F(L)$}{cycle}
   Let ${\cal L}$ be a normal family of the hypermap $H$.  Then ${\cal
-    L}$ is in natural bijection with the set of faces of the quotient
+    L}$ is in natural bijection with the set of faces of the subquotient
   $H/{\cal L}$.  If $x'=[x;\ldots;n^{-k}x]$ is a maximal path of
   $n^{-1}$ steps in the contour loop $L\in{\cal L}$, then the
   corresponding face $\F(L)$ of $H/{\cal L}$ is the
   one containing the quotient dart $x'$.
 \end{lemma}
-\indy{Notation}{F@$\F$ (quotient bijection)}
+\indy{Notation}{F@$\F$ (subquotient bijection)}
 
 \begin{proof}  This is left as an exercise to the reader.
 \end{proof}
 
 
-\begin{lemma}[quotient node]\guid{UDJNSHH}\label{lemma:quotient-node}
+\begin{lemma}[subquotient node]\guid{UDJNSHH}\label{lemma:subquotient-node}
 Let $H$ be a hypermap and let ${\cal L}$ be a normal family of $H$.
 Then there is a natural bijection between  the set of nodes of
 $H/{\cal L}$ and the set of nodes of $H$ that
@@ -1237,29 +1406,29 @@ Then the node of $x'$ clearly maps to the node of $x$.
 \claim{Finally, the function is one-to-one.}  Indeed, if the nodes of
 two quotient darts $x'$, $y'$ map to the same node of $H$, then
 $x'=[x;\ldots]$ and $y'=[y;\ldots]$, where $n^j x = y$ for some $j$.
-It follows by the definition of the node map on the quotient, that
+It follows by the definition of the node map on the subquotient, that
 $x'$ and $y'$ belong to the same node.
 \end{proof}
 
-The next two lemmas look at properties of the quotient that are
+The next two lemmas look at properties of the subquotient that are
 inherited from the orignal hypermap.
 
-\begin{lemma}[plain quotient]\guid{JMKRXLA}\rating{280}\label{lemma:quotient-plain}
+\begin{lemma}[plain subquotient]\guid{JMKRXLA}\rating{280}\label{lemma:subquotient-plain}
 Let $H$ be a plain hypermap, and let $\cal L$ be a
 normal family.  Then $H/{\cal L}$ is a plain hypermap.
 \end{lemma}
 
 \begin{proof}  Write $H=(D,e,n,f)$ and $H/{\cal L} = (D',e',n',f')$.  
 Write $[\ldots; x]$ for the node in
-the quotient ending in dart $x\in D$ and $[x;\ldots]$ for the node
-in the quotient starting with dart $x\in D$.  Plainness gives $e^2 x
-= x$, so that for any dart $[\ldots x]$ in the quotient:
+the subquotient ending in dart $x\in D$ and $[x;\ldots]$ for the node
+in the subquotient starting with dart $x\in D$.  Plainness gives $e^2 x
+= x$, so that for any dart $[\ldots x]$ in the subquotient:
 \begin{displaymath}\begin{array}{lll}
 {e'}^{-2} [\ldots; x] &= n' f' n' f' [\ldots; x] = n' f' n' [f x; \ldots] \\&=
 n' f' [\ldots; n f x] = n' [f n f; \ldots] = [\ldots; n f n f x]\\ &=
 [\ldots; e^{-2} x] = [\ldots; x].
 \end{array}\end{displaymath}
-Thus, $e'$ has order $2$ on the quotient.
+Thus, $e'$ has order $2$ on the subquotient.
 \end{proof}
 
 
@@ -1273,18 +1442,18 @@ there is at most one edge of $H$ that meets both of them.
 \end{definition}
 
 
-\begin{lemma}[quotient-no-double-joins]\guid{KSRDPTZ}
+\begin{lemma}[subquotient-no-double-joins]\guid{KSRDPTZ}
 Let $H$ be a plain hypermap with no double joins and let ${\cal L}$ be a normal
 family of $H$.  Then $H/{\cal L}$ has no double joins.
 \end{lemma}
 
-\begin{proof} By Lemma~\ref{lemma:quotient-plain}, the quotient
+\begin{proof} By Lemma~\ref{lemma:subquotient-plain}, the subquotient
   $H/{\cal L}$ is plain.  Let $\{x',e'x'\}$ and $\{y',e'y'\}$ be edges
   with the property that $x'$ and $y'$ lie at one node of $H/{\cal L}$
   and $e'x'$ and $e'y'$ lie at a second (different) node.  Write $x' =
   [\ldots;x]$ and $y' = [\ldots;y]$.  Then $e'x' = [\ldots;e x]$ and
   $e'y' = [\ldots;e y]$.  According to
-  Lemma~\ref{lemma:quotient-node}, there is an injective map from
+  Lemma~\ref{lemma:subquotient-node}, there is an injective map from
   nodes of $H/{\cal L}$ to nodes of $H$.  It follows that $x$ and $y$
   belong to the same node and that $e x$ and $e y$ belong to the same
   (different) node.  By the assumption that $H$ has no double joins,
@@ -1295,7 +1464,7 @@ family of $H$.  Then $H/{\cal L}$ has no double joins.
 
 \begin{lemma}[nodal fixed point]\guid{PYOVATA}\label{lemma:nfp}
 Let $H=(D,e,n,f)$ be a hypermap in which the edge map has no fixed points.
-Let ${\cal  L}$ be a normal family of $H$, with quotient $H/{\cal L} = (D',e',n',f')$.  
+Let ${\cal  L}$ be a normal family of $H$, with subquotient $H/{\cal L} = (D',e',n',f')$.  
 Then the following are equivalent conditions:
 \begin{itemize}
 \item $n'$ has a fixed point in $D'$.
@@ -1317,8 +1486,8 @@ $x = n^{-(k+1)} x$.  This holds if and only if the dart set of $x'$ is an entire
   Assume that every face meets at least two nodes. Then the set of all
   faces defines a normal family of contour loops: follow $f$ around
   each face $[x;f x;\ldots]$.  If $e$ acts without fixed points, then
-  each dart of the quotient is just a unit path consisting of a single
-  dart of $H$, and the quotient is isomorphic to $H$ itself.
+  each dart of the subquotient is just a unit path consisting of a single
+  dart of $H$, and the subquotient is isomorphic to $H$ itself.
 \end{example}
 
 \begin{example}[minimal normal family]\label{ex:H2} 
@@ -1329,7 +1498,7 @@ and its complement $L^c = \lp{n^{-1} x;\ldots}$.
 %\begin{displaymath}
 %  [n^{-1} x;n^{-2} x;\ldots;n x;f n x = y;n^{-1} y; n^{-2} y;\ldots; n y; f ny;\ldots]
 %\end{displaymath}
-The family $\cal L$ is normal. The quotient hypermap $H/{\cal L}$ has
+The family $\cal L$ is normal. The subquotient hypermap $H/{\cal L}$ has
 two faces: $F$ and a back side $F'$ of the same cardinality $k$.
 \indy{Notation}{F@$F$ (hypermap face)}%
 \end{example}
@@ -1393,7 +1562,7 @@ the bijection $f^i x \mapsto f^i y$, $n f^i x \mapsto n f^i y$ is an isomorphism
 %\end{proof}
 %
 
-%\begin{lemma}[]\guid{ZOKKAOI}\label{lemma:quotient-planar}
+%\begin{lemma}[]\guid{ZOKKAOI}\label{lemma:subquotient-planar}
 %Let $H$ be a plain planar hypermap, and let $\cal L$
 %be a normal family.  Then $H/{\cal L}$ is a plain planar hypermap.
 %\end{lemma}
@@ -1401,7 +1570,7 @@ the bijection $f^i x \mapsto f^i y$, $n f^i x \mapsto n f^i y$ is an isomorphism
 %\begin{proof} Suppose $H/{\cal L}$ is not planar.
 %Let $P$ be a M\"obius contour on $H/{\cal L}$.  It lifts uniquely to
 %a contour on $H$ with the property that the darts visited on $H$ are
-%precisely the darts that belong to a dart in the quotient.  This is
+%precisely the darts that belong to a dart in the subquotient.  This is
 %compatible with the node map $n$.  So the contour path lifts to a
 %M\"obius contour on $H$.  Thus, $H$ is not planar.
 %\end{proof}
@@ -1409,22 +1578,59 @@ the bijection $f^i x \mapsto f^i y$, $n f^i x \mapsto n f^i y$ is an isomorphism
 \section{Generation}\label{sec:generation}
 \indy{Index}{generation}%
 
+This final section of the chapter is more technical than other sections and
+may be skipped without disrupting the flow of the book.
 
-The final section of this chapter presents an algorithm that generates all
-simple, plain, planar hypermaps satisfying certain general conditions
-(Definition~\ref{def:restricted}).  The algorithm proceeds by adding more and
-more
-edges and nodes to a dihedral hypermap by a sequence of reverse double walkup
-transformations.
+This section presents an algorithm that generates
+all simple, plain, planar hypermaps satisfying certain general
+conditions (Definition~\ref{def:restricted}).  The algorithm proceeds
+by adding more and more edges and nodes to a dihedral hypermap by a
+sequence of reverse double walkup transformations.
+
+The algorithm itself is extremely elementary to describe in intuitive
+terms.  Imagine that a biconnected plane graph $G$ has been drawn on a
+sheet of paper in pencil and that the purpose of the algorithm is to
+retrace the edges of graph in pen.\footnote{Historically, this
+  algorithm was developed in precisely this way.  After drawing many
+  plane graphs by hand while working on the Kepler conjecture, I
+  started to generate the graphs by computer by automating the manual
+  process in 1994.  The code was first implemented in Mathematica,
+  then later in Java, and more recently by others in ML and
+  Isabelle/HOL.}  We start the algorithm by picking any face $F_0$ of
+the graph and tracing the edges in pen that form the simple closed
+curve that surrounds it.  Next, we pick any node $v$ on that simple
+closed curve that has at least one edge that is still in pencil.  We
+can find a face $F_1$ of $G$ that shares an edge with $F_0$ with
+endpoint $v$, and that has an edge in pencil at $v$.  The second step
+of the algorithm pens the edges of the simple arc to complete the
+simple closed curve around $F_1$.  Continue in this manner, adding a
+simple arc in pen to the penciled lines to add a face of $G$, until
+all the edges of $G$ have been traced in pen.  
+\indy{Index}{pencil and pen heuristic}% 
+\indy{Index}{pen}%
+
+It is remarkable (and rather unfortunate) that it  requires a
+technical section  to put these simple pencil and pen
+drawings into a rigorous form that function as a blueprint for a
+formal proof.  A hypermap gives rigorous form to the pencil graph, and various
+subquotients are the inked drawings at various stages of the algorithm.
+
+We do not attempt to work in the greatest possible generality.  As a
+matter of convenience, we impose a large number of conditions on the
+class of hypermaps that the algorithm generates.  In particular, we
+assume that the hypermaps are restricted, as defined below.  This
+definition is idiosyncratic, taylored to our needs, and matched to our
+particular proof methods.
+
 
 \begin{definition}[restricted]\guid{INCRVQC}\label{def:restricted}
 \formaldef{restricted}{is\_restricted}
 A restricted hypermap $H = (D,e,n,f)$ is one with the following
 properties.
 \begin{enumerate}
-\item The hypermap $H$ has no double joins, and is nonempty, planar,
-  connected, plain and simple.
-\item The edge map $e$ has no fixed points.  % Needed in Lemma:[flag quotient]
+\item The hypermap $H$ has no double joins, and is nonempty,
+  connected, planar, plain and simple.
+\item The edge map $e$ has no fixed points.  % Needed in Lemma:[flag subquotient]
 \item The node map $n$ has no fixed points.
 \item The size of every face is at least $3$.
 %%  (All hypoth. Needed?)
@@ -1442,22 +1648,24 @@ path can be distinguished from $n^{-1}$-steps.
 \subsection{boolean value}
 \indy{Index}{flag}%
 
-The algorithm  marks certain faces as `true.'
-Roughly, this  means that the the face cannot be modified
-at any later stage of the algorithm.   When all of its faces
-are true, the hypermap stands in final form.
-The function that marks each face as true or false is a
-\newterm{flag}.  For the algorithm to work properly, it is necessary
-to impose some constraints, as captured in Definition~\ref{def:flag}.
-\indy{Index}{hypermap!algorithm}%
+The algorithm marks certain faces as `true.'  Roughly, this means that
+the the face cannot be modified at any later stage of the algorithm.
+That is, the edges of the faces are in ink and no pencil lines lie
+within its interior.  When all of its faces are true, the hypermap
+stands in final form.  The function that marks each face as true or
+false is a \newterm{flag}.  For the algorithm to work properly, it is
+necessary to impose some constraints, as captured in
+Definition~\ref{def:flag}.  \indy{Index}{hypermap!algorithm}%
 
 %% XX \hat doesn't get used.
 
-Under the bijection $\F$ between a normal family ${\cal L}$ and the set of
-faces of a quotient $H/{\cal L}$, any function $\hat\varphi$ on ${\cal L}$
-can be identified with a function $\check\varphi$ on the set of faces of $H/{\cal L}$.
-(The {\it hat} points up to $H$, and the {\it check} points down to the quotient.)
-This identification of functions will be used frequently in this section.
+Under the bijection $\F$ between a normal family ${\cal L}$ and the
+set of faces of a subquotient $H/{\cal L}$, any function $\hat\varphi$
+on ${\cal L}$ can be identified with a function $\check\varphi$ on the
+set of faces of $H/{\cal L}$.  (The {\it hat} points up to $H$, and
+the {\it check} points down to the subquotient.)  The identification
+$\hat\varphi\leftrightarrow\check\varphi$ will be used frequently in
+this section.
 
 \begin{definition}[canonical function]\guid{CRUDEHU}
 \formaldef{canonical function}{canon\_loop}
@@ -1476,7 +1684,7 @@ This identification of functions will be used frequently in this section.
 \indy{Notation}{zzP@$\hat\varphi_{can}$}
 \end{definition}
 
-In other words, the face in the quotient is canonically true, exactly
+In other words, the face in the subquotient is canonically true, exactly
 when the corresponding contour loop $L\in {\cal L}$ has no $n^{-1}$
 steps.  The dart set of such a contour loop $L$ is a face of $H$.  
 %Based on this observation, we make the following definition.
@@ -1508,7 +1716,7 @@ The dihedral hypermap of Example~\ref{ex:D2k}, carries a
 flag that marks one face true and the other false.
 \end{example}
 
-\begin{example}[maximal quotient flag]\label{ex:Hall-flag} 
+\begin{example}[maximal subquotient flag]\label{ex:Hall-flag} 
 Let $H$ be a connected hypermap, and let $\cal L$ be the example of
 Example~\ref{ex:Hall}, then the canonical map takes value
 $\op{true}$ on every face.  This is a flag. In fact,
@@ -1524,7 +1732,7 @@ are required in the definition of flag.
 %\end{definition}
 
 
-%\begin{lemma}[quotient isomorphism criterion]\guid{STKBEPH}\rating{100}
+%\begin{lemma}[subquotient isomorphism criterion]\guid{STKBEPH}\rating{100}
 %\label{lemma:all-dart}  
 %  Let $H$ be a hypermap in which $e$ acts without fixed points, and
 %  let ${\cal L}$ be a normal family of $H$. If the canonical boolean
@@ -1540,7 +1748,7 @@ are required in the definition of flag.
 %set of true faces of $H/{\cal L}$ to the set of faces of $H$.  The
 %hypothesis of the lemma implies that this injective map is
 %bijective. All of the darts of $H$ are accounted for under this
-%bijection. Thus, the quotient has no false faces.  The result
+%bijection. Thus, the subquotient has no false faces.  The result
 %follows.
 %\end{proof}
 %
@@ -1566,14 +1774,14 @@ set $S(H,L,x) = \{f^i x \mid 1 \le i\le m\}$.
 \end{definition}
 \indy{Notation}{S@$S(H,L,x)$ (flag set)}
 
-\begin{lemma}[flag quotient]\guid{KHGAQRG}\label{lemma:flag-set-quotient}
+\begin{lemma}[flag subquotient]\guid{KHGAQRG}\label{lemma:flag-set-subquotient}
 Let $H$ be a hypermap in which $e$ acts without fixed points, 
 $L$ a contour loop, and $x$ and element of the dart set of $L$.
 Let ${\cal L}$ be a normal family of $H$ that contains $L$.
-Then $S(H,L,x)$ maps bijectively to a set $S'$ of darts in the quotient $H/{\cal L}$.
+Then $S(H,L,x)$ maps bijectively to a set $S'$ of darts in the subquotient $H/{\cal L}$.
 \end{lemma}
 
-\begin{proof} The darts of the quotient are maximal sublists
+\begin{proof} The darts of the subquotient are maximal sublists
   $[y;n^{-1} y;\ldots;n^{-k} y]$ of contour loops $L'\in {\cal L}$
   made entirely of $n^{-1}$ steps.  Each $y\in S(H,L,x)$ is preceded
   by an $f$-step and is followed by an $f$-step in $L$.  Hence the
@@ -1597,6 +1805,11 @@ Then $S(H,L,x)$ maps bijectively to a set $S'$ of darts in the quotient $H/{\cal
 %\end{definition}
 
 
+In the heuristics at the beginning of this section, a graph is drawn in pencil
+on a sheet of paper and various edges are retraced in pen.  In the following
+definition, $H$ represents the pencil drawing, $H/{\cal L}$ represents the ink
+drawing,  $L$ and $x$ guide the tip of the pen to the next edge to be retraced in pen.
+
 
 \begin{definition}[marked hypermap]\guid{TUFOKWK}\label{def:marked}
 Let $(H,{\cal L},L,x)$ be a tuple, consisting of 
@@ -1609,12 +1822,12 @@ Let $(H,{\cal L},L,x)$ be a tuple, consisting of
 %and 
 %\item the canonical boolean-valued function $\varphi'$ on $H/{\cal L}$
 %  (identified with a function $\varphi$ on ${\cal L}$ by
-%  Lemma~\ref{lemma:quotient-bijection}).
+%  Lemma~\ref{lemma:subquotient-bijection}).
 \end{itemize}
 Such a tuple is a \newterm{marked hypermap} if
 the following conditions hold.
 \begin{enumerate}
-\item The quotient $H'=H/{\cal L} = (D',e',n',f')$ is simple.  
+\item The subquotient $H'=H/{\cal L} = (D',e',n',f')$ is simple.  
 \item $n'$ has no fixed points on $D'$.
 \item $x$ is followed by an $f$-step in the loop: $L = \lp{x;fx;\ldots}$.
 %\item $\varphi$ coincides with the natural boolean function on ${\cal L}\setminus \{L\}$.
@@ -1625,7 +1838,7 @@ ${\cal L}$ visits the dart $n f x$ at the same node.}
 $n f x$ is canonically true.
 \item 
   $\check\varphi_{can}$ is an $S'$-flag on $H'$, where $S'$ is the image of 
-  $S(H,L,x)$ in $D'$.  %Lemma~\ref{lemma:flag-set-quotient}.
+  $S(H,L,x)$ in $D'$.  %Lemma~\ref{lemma:flag-set-subquotient}.
   %under the identification of $\varphi$ with a boolean-valued
   %function on $H'$ ().
 \end{enumerate}
@@ -1637,11 +1850,7 @@ $n f x$ is canonically true.
 %\item $x$ belongs to the dart set of $L$.
 %\item $\varphi$ is a boolean function on the faces of $H'$.
 %\item The set $S(H,L,x)$ maps bijectively to a set $S'$
-%of darts in the quotient.
-
-
-
-
+%of darts in the subquotient.
 
 
 \begin{example}[illustration]\label{ex:graph-gen}  
@@ -1649,12 +1858,12 @@ $n f x$ is canonically true.
   In the figure, the hypermap $H$ is represented as a planar graph.
   The contour loops are represented by left-side shadings of the edges
   of the planar graph.  The shaded edges give the edges of a planar
-  graph representing the quotient.  The polygons that are fully shaded
-  are true.  Two polygons in the quotient are false.  A dart of $H$ in
+  graph representing the subquotient.  The polygons that are fully shaded
+  are true.  Two polygons in the subquotient are false.  A dart of $H$ in
   a false contour loop $L$ in $H'$ is marked $x$.  By inspection,
   $S(H,L,x)=\{f x,f^2 x,f^3 x\}$.  By inspection,
   $\check\varphi_{can}$ is an $S'$-flag.  (In fact, the darts in true
-  faces form a connected region.  Every edge in the quotient except
+  faces form a connected region.  Every edge in the subquotient except
   $\{f' x', e' f' x'\}$ meets a true face, and this one edge meets
   $S'$.)
 %% XX recheck
@@ -1667,9 +1876,10 @@ $n f x$ is canonically true.
 \label{fig:graph-gen}
 \end{figure}
 
+
+
 \begin{definition}[$m$,$p$,$q$,$y$,$z$]\guid{BVUFRRE}\label{def:yz}
 Let $(H,{\cal L},L,x)$ be a marked hypermap.
-Several lemmas use the following natural numbers $m,p,q$ and darts $y,z$.
 Set  $y = f^{m+1} x$, where $m = \card(S(H,L,x))$.
   Set
 $z=f^{p+1} y$, where $p$ is the smallest natural number 
@@ -1682,6 +1892,13 @@ Let $q$ be the smallest natural number such that $z' = (f')^{q+1} x'$.
 \indy{Notation}{p@$p$ (face map exponent)}
 \indy{Notation}{y@$y$ (dart)}
 \indy{Notation}{z@$z$ (dart)}
+
+Several lemmas use the following natural numbers $m,p,q$ and darts $y,z$ described
+in the following definition.  In the pencil-pen analogy, the dart $y$ marks the tip of
+the pen as it is about to draw a simple arc. The dart $z$ marks the endpoint of that
+arc.  The integers $m,p,q$ track how far the pen has progressed in tracing the edges of
+a  face, how many nodes appear on the arc about to be drawn,  and how $z$ sits
+in relation to $y$ in the current pen sketch.
 
 The existence of $q$ follows from the following lemma showing that $x'$ and $z'$
 lie in the same face $\F(L)$ of $H/{\cal L}$.  (The existence of $q$ is trivial
@@ -1746,7 +1963,7 @@ and the third segment exists within true contour loops of ${\cal L}$
 by the connectedness of true faces (by properties of flags).  This
 path satisfies all the assumptions of Lemma~\ref{lemma:contour-f}.  (In particular,
 the node of $n f x$ (or of $f x$)  is distinct from the node of $x$ by the
-assumed simplicity of the quotient $H/{\cal L}$.)
+assumed simplicity of the subquotient $H/{\cal L}$.)
 The lemma asserts that the path does not exist.
 \item 
 \claim {[$e'z'\in S$.]}  In this case,  
@@ -1757,7 +1974,7 @@ Consider the following path of $f$-steps in $H$:
 \end{displaymath}
 This path satisfies all the enumerated conditions of
 Lemma~\ref{lemma:contour-f}.  (In particular, $y$ and $z$ are at
-different nodes by the assumed simplicity of the quotient $H/{\cal
+different nodes by the assumed simplicity of the subquotient $H/{\cal
   L}$.)  The lemma asserts that the path does not exist.
 \end{enumerate}
 \end{proof}
@@ -1799,7 +2016,7 @@ If $q\ge r$, then $(f')^{q+1} = (f')^{q-r+1}$, which contradicts the minimality 
 \begin{displaymath}
 (f')^{k+1} x' = [f^{k+1} x]\in S', \quad z' \not\in S',
 \end{displaymath}
-by Lemma~\ref{lemma:flag-set-quotient} and Lemma~\ref{lemma:yz}.
+by Lemma~\ref{lemma:flag-set-subquotient} and Lemma~\ref{lemma:yz}.
 Thus, $0\le q< m$.  Also, $q\ne m$, for otherwise $z' = (f')^{m+1} x'
 = y'$.  This implies that $z$ and $y$ lie in the same node, which has
 been proved impossible.  This completes the proof that $m<q$.
@@ -1829,6 +2046,10 @@ As the notation indicates, the hypermap $H$ and the dart $x$ are the same for bo
 tuples.  The data ${\cal M}$ and $L_1$ are specified in
 the following paragraphs.
 \end{definition}
+
+In the pencil-pen heuristic, the transform is the act of drawing a single simple arc in
+pen.
+
 
 Let $m$, $p$, $y$, and $z$ be  given by
 Definition~\ref{def:yz}.
@@ -1860,9 +2081,9 @@ ${\cal L}\cup {\cal M}$.  There is no ambiguity.
 \end{remark}
 \indy{Index}{function!boolean}%
 
-%  Under the bijection between the set of faces of a quotient $H/{\cal
+%  Under the bijection between the set of faces of a subquotient $H/{\cal
 %    L}$ and the family ${\cal L}$ (of
-%  Lemma~\ref{lemma:quotient-bijection}), an $S$-flag on a quotient
+%  Lemma~\ref{lemma:subquotient-bijection}), an $S$-flag on a subquotient
 %  $H/{\cal L}$ can be identified with a boolean function on ${\cal L}$
 %  satisfying appropriate properties.  With this in mind, 
 %\begin{displaymath}
@@ -1900,6 +2121,11 @@ $(H,{\cal M},L_1,x)$
 is also a marked hypermap.
 \end{lemma}
 
+In the pencil-pen heuristic, the marking of the hypermap records the
+state of the pen.  The transform draws a single simple arc on paper in
+pen.  The lemma asserts that in the act of drawing a simple arc, we
+retain a record of the state of the pen.
+
 \begin{proof} Let 
 \begin{displaymath}
 H=(D,e,n,f),\   H' =(D',e',n',f') = H/{\cal
@@ -1910,15 +2136,16 @@ constructed in Definition~\ref{def:yz} from the marked hypermap $(H,{\cal
   L},L,x)$.  The dart $z$ is not at the same node as $y$ (by
 the simplicity of $H$).
 
-  The proof can be organized into independent parts, according to the separate
-  properties of a marked hypermap.  The first part of the proof
-  establishes that ${\cal M}$ is a normal family.
+The proof can be organized into independent parts, according to the
+separate properties of a marked hypermap.  The first part of the proof
+establishes that ${\cal M}$ is a normal family.
 
 
 \case{normal-1} \claim{No dart is visited by two different loops.}
-Indeed by construction, the sets of darts of $L_1$ and $L_2$
-are disjoint from each other and disjont from the sets of darts of $L'\in
-{\cal L}\setminus \{L\}$.  The result now follows from the normality of  ${\cal L}$.
+Indeed by construction, the sets of darts of $L_1$ and $L_2$ are
+disjoint from each other and disjont from the sets of darts of $L'\in
+{\cal L}\setminus \{L\}$.  The result now follows from the normality
+of ${\cal L}$.
 
 \case{normal-2} \claim{Every loop visits at least two nodes.}  Indeed, this
 is true for $L_1$ and $L_2$ because they visit the nodes of $y$ and
@@ -1944,13 +2171,13 @@ new nodes.  As each new nodes has only two darts, and as ${\cal L}$ itself
 it normal, the result follows. It follows that ${\cal M}$ is normal.  
 
 
-\case{simple} To prove the simplicity of the quotient, it is enough to show that
-none of the contour
-loops in ${\cal M}$  ever return to a node after leaving it.
- (More precisely, the dart set of any $L'\in{\cal M}$ intersected with a node
-is the dart set of a maximal sublist $[z;n^{-1}z;\ldots;n^{-k}z]$ of $n^{-1}$ steps.)
-This is true of $L'\in{\cal L}\setminus\{L\}$ by assumption and true of
-$L_1$ and $L_2$ by construction.  Simplicity follows.
+\case{simple} To prove the simplicity of the subquotient, it is enough
+to show that none of the contour loops in ${\cal M}$ ever return to a
+node after leaving it.  (More precisely, the dart set of any
+$L'\in{\cal M}$ intersected with a node is the dart set of a maximal
+sublist $[z;n^{-1}z;\ldots;n^{-k}z]$ of $n^{-1}$ steps.)  This is true
+of $L'\in{\cal L}\setminus\{L\}$ by assumption and true of $L_1$ and
+$L_2$ by construction.  Simplicity follows.
 
 \case{fixed-point free} By Lemma~\ref{lemma:nfp}, to prove that $n''$
 does not have a fixed-point, it is enought to show that no loop in
@@ -1976,26 +2203,23 @@ face $\F(L)$.  By the simplicity of $H'$, it follows that $y' =
 assumption. The claim follows.
 
 
-\claim{$e'y'$ lies in a true face of $H'$.}  Indeed,
- since $\check\varphi_{can}$ is
-an $S'$-flag on $H'$, the edge $\{y',e'y'\}$ meets a true face or
-$S'$.  However, $y'\not\in S'\subset \F(L)$, by the simplicity of $H$.  Also,
-$e'y'\not\in S'$, by the previous paragraph.
-The dart $y'$ lies in the false face $\F(L)$.  The only
-remaining possibility is that $e'y'$ lies in a true face.  
+\claim{$e'y'$ lies in a true face of $H'$.}  Indeed, since
+$\check\varphi_{can}$ is an $S'$-flag on $H'$, the edge $\{y',e'y'\}$
+meets a true face or $S'$.  However, $y'\not\in S'\subset \F(L)$, by
+the simplicity of $H$.  Also, $e'y'\not\in S'$, by the previous
+paragraph.  The dart $y'$ lies in the false face $\F(L)$.  The only
+remaining possibility is that $e'y'$ lies in a true face.
 
 
 
-\case{flag-1} \claim{The true faces of $H''$ are
-  connected.}  Indeed,  $L_1$ is connected to a true face
-by the contour path $[x;n^{-1} x]$, because $n^{-1} x$ lies
-in the same face as $n f x$, which is a true face by assumption.
-If $L'\in{\cal M}\setminus\{L_1,L_2\}$ is a true, then $L'\in  {\cal L}$, and
-it connects with the true faces of ${\cal L}$ as before.
-If $L_2$ is true, then the proof requires more
-argument.   Write $y'=[y;\ldots;u]$ as above.
-The dart $u''=[n^{-1}y;\ldots;u]$ of $H''$ lies in the face $\F(L_2)$.
-Also, 
+\case{flag-1} \claim{The true faces of $H''$ are connected.}  Indeed,
+$L_1$ is connected to a true face by the contour path $[x;n^{-1} x]$,
+because $n^{-1} x$ lies in the same face as $n f x$, which is a true
+face by assumption.  If $L'\in{\cal M}\setminus\{L_1,L_2\}$ is a true,
+then $L'\in {\cal L}$, and it connects with the true faces of ${\cal
+  L}$ as before.  If $L_2$ is true, then the proof requires more
+argument.  Write $y'=[y;\ldots;u]$ as above.  The dart
+$u''=[n^{-1}y;\ldots;u]$ of $H''$ lies in the face $\F(L_2)$.  Also,
 \begin{displaymath}
 (n'')^{-1} u''= [n^{-1} u;\ldots] = [f e u;\ldots] = f'' [\ldots; e u]
   = f'' e' y'
@@ -2006,16 +2230,16 @@ identified with the dart $e'' y'$ on in $H''$, because the faces are
 true.)  Hence a path exists from the true face $\F(L_2)$ into another
 true face, and from there any true face may be reached.
 
-\case{flag-2} \claim{Each edge of $H''$ meets a true face or $S''$, where $S''$ is
-the image of $S(H,L_1,x)$ in $D''$.}
-Indeed, the function $\check\varphi_{can}$ is an $S'$-flag on $H'$.  The edges of
+\case{flag-2} \claim{Each edge of $H''$ meets a true face or $S''$,
+  where $S''$ is the image of $S(H,L_1,x)$ in $D''$.}  Indeed, the
+function $\check\varphi_{can}$ is an $S'$-flag on $H'$.  The edges of
 $H'$ can be identified with a subset of the edges of $H''$.  For this
-subset, the flag condition on edges is immediate.  Consider the
-new  edges  (that is, edges of $H''$ that are not in $H'$).
-They all meet $\{y,f y,\ldots,f^p y\}$.  This set is either contained
-ini $S(H,L_1,x)$ (when $F_1$ is false), or is contained in the true face
-$F_1$ (when $F_1$ is true).  Hence each new  edge meets
-a true face or $S''$.
+subset, the flag condition on edges is immediate.  Consider the new
+edges (that is, edges of $H''$ that are not in $H'$).  They all meet
+$\{y,f y,\ldots,f^p y\}$.  This set is either contained ini
+$S(H,L_1,x)$ (when $F_1$ is false), or is contained in the true face
+$F_1$ (when $F_1$ is true).  Hence each new edge meets a true face or
+$S''$.
 
 
 The other verifications are routine.
@@ -2032,9 +2256,16 @@ fully constructed hypermap.  The hypermap $H$ represents the fully
 constructed hypermap and two quotients $H/{\cal L}$ and $H/{\cal M}$
 represent the partially constructed hypermaps.  The algorithm involves
 the transition from the hypermap $H/{\cal L}$ to $H/{\cal M}$.  The
-transition from one quotient to another is given by the transform of
+transition from one subquotient to another is given by the transform of
 marked hypermaps.  The transform thus represents one step of the
 algorithm.  \indy{Notation}{M@$\cal M$ (normal family)}%
+
+According to the pencil-pen heuristic, we wish to describe in rigorous
+terms the process of retracing a pencil drawing in pen.  At we
+complete some of the strokes in pen, there is a choice about where to
+move the pen to begin the next stroke.  A choice is a branch point.
+The branching behavior can be rigorously described as a directed
+graph, as presented in the following definition.
 
 
 \begin{definition}[digraph,~vertex,~edge,~head,~tail,~sink,~path]\guid{AVXKIRW}
@@ -2047,6 +2278,12 @@ algorithm.  \indy{Notation}{M@$\cal M$ (normal family)}%
   directed edge.  A path $P=[v_0;v_1;\ldots;v_{k-1}]$ in a digraph is
   a list of vertices, such that $(v_i,v_{i+1})\in E$ for all $i<k-1$.
 \end{definition}
+
+With digraphs defined, we can encode the possible sequences of pen strokes over
+a pencil template as a diagraph.  Each directed edge encodes a
+possible pen stroke.  A completed pen drawing corresponds to a sink in the digraph.
+A path through the digraph to a sink is a sequence of pen strokes that retrace 
+the entire pencil drawing.
 
 \begin{definition}[digraph of a hypermap]\guid{QQHIKFL}
 Let $H$ be a restricted hypermap.  Form a directed graph as follows.
@@ -2072,6 +2309,9 @@ a sink, and if $T{\cal H} =(H,{\cal M},L_1,x)$ is its transform, then
 $H$ is naturally isomorphic to $H/{\cal M}$, under the map that sends
 a dart $y$ of $H$ to the unit path $[y]$.
 \end{lemma}
+
+In heuristic terms, it only takes a finite number of pen strokes to retrace the pencil
+drawing.  The completed pen drawing agrees with the initial pencil drawing.
 
 \begin{proof} Each step in the path makes one transform.  Each
   transform increases the number of darts visited by the normal
@@ -2108,10 +2348,10 @@ This bijection induces an isomorphism of hypermaps.
 %
 %
 %\begin{lemma}[sequence]\guid{YCFWVQJ}\label{lemma:sequence}  
-%  Let $H$ be a restricted hypermap.  Fix a choice function $\op{ch}$ as
-%  above, and let $F$ be any face of $H$. Then associated with $(\op{ch},F)$, there is a sequence of
-%  marked hypermaps ${\cal H}_i = (H,{\cal L}_i,L_i,x_i)$ for
-%  $i=0,\ldots,k-1$ such that
+%  Let $H$ be a restricted hypermap.  Fix a choice function $\op{ch}$
+%  as above, and let $F$ be any face of $H$. Then associated with
+%  $(\op{ch},F)$, there is a sequence of marked hypermaps ${\cal H}_i
+%  = (H,{\cal L}_i,L_i,x_i)$ for $i=0,\ldots,k-1$ such that
 %\begin{itemize}
 %\item $\varphi'_i$ is the canonical boolean function on $H/{\cal L}_i$, and
 %$\varphi_i$ is its lift to ${\cal L}_i$.
@@ -2124,7 +2364,7 @@ This bijection induces an isomorphism of hypermaps.
 %  contour loop of ${\cal M}$ that is canonically false, then ${\cal
 %    H}_{i+1}=(H,{\cal M},M,y,\varphi_{i+1})$, where ${\cal M}\rightsquigarrow (M,y)$. 
 %\item The transform $(H,{\cal L}_k,\ldots)$ of $\,{\cal H}_{k-1}$ has
-%  quotient $H/{\cal L}_k$ that is naturally isomorphic to $H$.
+%  subquotient $H/{\cal L}_k$ that is naturally isomorphic to $H$.
 %\end{itemize}
 %\end{lemma}
 %
@@ -2139,7 +2379,7 @@ This bijection induces an isomorphism of hypermaps.
 %\begin{nomerate}
 %\item 
 %\claim{[Every contour loop of ${\cal M}$ is canonically true.]}   In this case,  by
-%Lemma~\ref{lemma:all-dart}, the quotient map $H\to H/{\cal M}$ is an
+%Lemma~\ref{lemma:all-dart}, the subquotient map $H\to H/{\cal M}$ is an
 %isomorphism.  Set $k= i+1$. The sequence terminates.
 %\item \claim{[The contour loop $L$ is canonically false.]}  In this
 %  case, from the inductive hypothesis that $\varphi'_i$ is the
@@ -2156,7 +2396,7 @@ This bijection induces an isomorphism of hypermaps.
 %\end{nomerate}
 %
 %The sequence must terminate eventually, because each step
-%constructs a quotient of $H$ with more darts than the previous one and
+%constructs a subquotient of $H$ with more darts than the previous one and
 %the number of steps is bounded by the size of the dart set of
 %$H$.
 %\end{proof}
@@ -2166,7 +2406,7 @@ lesser degree on the structural details of the marked hypermaps.
 (These details will not be available to us in the algorithm of the
 next subsection.)  The next lemma uses reverse doble walkup
 transformations to construct a new hypermap from a given hypermap $H'$
-that does not require us to represent it first as a quotient $H' =
+that does not require us to represent it first as a subquotient $H' =
 H/{\cal L}$ for some normal family.
 We can immediately relate the to the digraph we
 have constructed.   
@@ -2218,10 +2458,23 @@ transformations.}
 
 \subsection{algorithm}
 
-This final section puts the algorithm a precise form, based on
-the Knaster-Tarski fixed point theorem.  The Knaster-Tarski fixed
-point theorem is a common way to give precise mathematical form to
-an algorithm.
+In the pencil and pen heuristic, the algorithm to generate hypermaps
+is compared to the process of retracing a pencil drawing in pen.  The
+previous subsection has constructed a directed graph that encodes all
+of the different sequences of pen strokes that can be made to retrace
+the pencil drawing.  In this section, we imagine that we are no longer
+allowed to refer to the original pencil drawing on a sheet of paper.
+The pencil diagram is hidden from view and the strokes of the pen must
+be made blindly.  If we are to guarantee the production of a the pen
+drawing that is isomorphic to the original pencil drawing, we must
+generate all possible drawings by inserting arcs in all possible ways.
+
+This final section puts the algorithm a precise form, based on the
+Knaster-Tarski fixed point theorem.  The Knaster-Tarski fixed point
+theorem is a common way to give precise mathematical form to an
+algorithm.  In heuristic terms, the fixed point set contains all
+possible completed pen drawings.  One of them will be the hidden
+pencil drawing.
 
 \begin{lemma}[Knaster-Tarski]\guid{EAOGWLE}\rating{ZZ}   
 Let $X$ be a set.  Let $f:\powerset(X)\to \powerset(X)$ be a
@@ -2290,13 +2543,14 @@ and
 \end{definition}
 
 
-The set $A$ in the following definition gives the initialization of the algorithm.
+The set $A$ in the following definition gives the initialization of
+the algorithm.
 
 \begin{definition}[A]\guid{JBUOJMF}
-Let $H$ be a fixed hypermap isomorphic to $\op{Dih}_{2d}$, with darts in $\Omega$.
-Let $\check\varphi$ be the flag on $H$ (with one true face and one
-false face).  Let $x$ be the value of the choice function on the false
-face.  Set
+  Let $H$ be a fixed hypermap isomorphic to $\op{Dih}_{2d}$, with
+  darts in $\Omega$.  Let $\check\varphi$ be the flag on $H$ (with one
+  true face and one false face).  Let $x$ be the value of the choice
+  function on the false face.  Set
 \begin{displaymath}
 A = \{(H,m,\check\varphi,x) \mid 0\le m \le d-1\} \subset X_2.
 \end{displaymath}
@@ -2317,14 +2571,14 @@ constraints:
 \end{definition}
 
 \begin{definition}[extension]\guid{ZMVBANY}  
-  Let $(H,m,\check\varphi,x)\in X_2$.  Choose $p,q$ such that $(m,p,q,r)\in
-  C$, where $r$ is the cardinality of the face of $x$.  Let $F$ be the
-  face of $x$ in $H$.  It follows by construction, that every face
-  $F'\ne F$ of $H$ is naturally identified with a face of
-  $RDW(H,x,m,p,q)$.  Say that a boolean-valued function $\check\psi$ on the
-  set of faces of $RDW(H,x,m,p,q)$ is an \newterm{extension} of
-  $\check\varphi$ on $H$ if $\check\psi(F') =\check\varphi(F')$, when $F'\ne F$.
-  \indy{Index}{extension}%
+  Let $(H,m,\check\varphi,x)\in X_2$.  Choose $p,q$ such that
+  $(m,p,q,r)\in C$, where $r$ is the cardinality of the face of $x$.
+  Let $F$ be the face of $x$ in $H$.  It follows by construction, that
+  every face $F'\ne F$ of $H$ is naturally identified with a face of
+  $RDW(H,x,m,p,q)$.  Say that a boolean-valued function $\check\psi$
+  on the set of faces of $RDW(H,x,m,p,q)$ is an \newterm{extension} of
+  $\check\varphi$ on $H$ if $\check\psi(F') =\check\varphi(F')$, when
+  $F'\ne F$.  \indy{Index}{extension}%
 \end{definition}
 
 
@@ -2383,22 +2637,36 @@ point construction generates all restricted hypermaps:
 \begin{theorem}[hypermap algorithm]\guid{BRGEFNH}\rating{2000}  
 \label{lemma:algorithm}
 Define $f $ and $X$ as above (depending on $d\ge 3$ and $\Omega\ne
-\emptyset$) .    Then every restricted hypermap with at
-most $\card(\Omega)$ darts and such that the largest face has size  $d$
-is isomorphic to a hypermap in $\op{fix}(f,X)\cap X_1$.
+\emptyset$) .  Then every restricted hypermap with at most
+$\card(\Omega)$ darts and such that the largest face has size $d$ is
+isomorphic to a hypermap in $\op{fix}(f,X)\cap X_1$.
 \end{theorem}
 
 
-In informal terms, by starting with the \newterm{seed} hypermaps in $A$
-one may find all restricted hypermaps (for given $\Omega$ and $d$) by
-applying the function $f$ repeatedly:
+In informal terms, by starting with the \newterm{seed} hypermaps in
+$A$ one may find all restricted hypermaps (for given $\Omega$ and $d$)
+by applying the function $f$ repeatedly:
 \begin{displaymath}
 A_0 = A = f(\emptyset),\quad A_1 = f(A_0),\quad A_2 = f(A_1),\ldots
 \end{displaymath}
 and by looking at the output $A_i \cap X_1$.
 \indy{Index}{seed}%
 
-The proof will be presented below.  The proof is a matter of correlating the Knaster-Tarski fixed point set with the digraph of a restricted hypermap $H$.
+The proof will be presented below.  The proof is a matter of
+correlating the Knaster-Tarski fixed point set with the digraph of a
+restricted hypermap $H$.  In the pencil and pen heuristic, we have a
+digraph that encodes possible ways to retrace a pencil drawing with a
+sequence of pen strokes.  This subsection describes a collection of
+pen drawings (the Knaster-Tarski fixed point set of drawings) that
+have been generated by a second (Knaster-Tarski) set of rules.
+Correlation consists in showing that for every pencil diagram we can
+find a sequence of pen strokes obeying the Knaster-Tarski rules that
+coincides with a sequence of pen strokes in the digraph. When we
+correlate the strokes in this manner, it will follow that each pencil
+diagram is isomorphic to a pen diagram in the Knaster-Tarski fixed
+point set.  The final passage of this chapter makes this rigorous.
+
+
 Write $\op{fix}_i$ for $\op{fix}(f,X)\cap X_i$.
 
 
@@ -2417,18 +2685,24 @@ $\check\varphi_{can}$ on $H/{\cal L}$.
 
 \begin{lemma}[correlated seed]\guid{NRDWGYQ}\label{lemma:correlated-seed}
   Let $H$ be a restricted $(\card(\Omega),d)$-hypermap with digraph
-  $(V,E)$.  There exist a marked hypermap in
-  $V$ and an element in $\op{fix}_2$ that are
-  correlated.
+  $(V,E)$.  There exist a marked hypermap in $V$ and an element in
+  $\op{fix}_2$ that are correlated.
 \end{lemma}
+
+That is, we can correlate the first pen stroke on a pencil drawing
+with Knaster-Tarski data.
 
 \begin{proof}  From the definition of $f$, it follows
 that $A\subset \op{fix}_2$.  Thus, it suffices to correlate a marked
 hypermap with an element of $A$.  Let $(H',\cdot,\check\varphi,x')\in A$.
 
-Let $F$ be a face of $H$ of cardinality $d$.  Form the normal family ${\cal L}$ of example~\ref{ex:H2}.  The quotient $H/{\cal L}$ is isomorphic to $\op{Dih}_{2d}$, hence also isomorphic to $H'$.  The isomorphism can be chosen so that
-$\check\varphi$ pulls back to $\check\varphi_{can}$ on the faces of $H/{\cal L}$, and so that $x'$ is the image of a dart $x$ in the canonically false 
-face of $H/{\cal L}$.  
+Let $F$ be a face of $H$ of cardinality $d$.  Form the normal family
+${\cal L}$ of example~\ref{ex:H2}.  The subquotient $H/{\cal L}$ is
+isomorphic to $\op{Dih}_{2d}$, hence also isomorphic to $H'$.  The
+isomorphism can be chosen so that $\check\varphi$ pulls back to
+$\check\varphi_{can}$ on the faces of $H/{\cal L}$, and so that $x'$
+is the image of a dart $x$ in the canonically false face of $H/{\cal
+  L}$.
 
 Let $m = \card(S(H,L,x))$.  Then $(H,{\cal L},L,x)$ is a marked hypermap that
 is correlated with $(H',m,\check\varphi,x')\in A$.
@@ -2442,6 +2716,10 @@ is correlated with $(H',m,\check\varphi,x')\in A$.
  $\cal H'$ is correlated with an element of  $\op{fix}_2$.
 \end{lemma}
 
+That is, if we can inductively correlate a partial pen on pencil drawing with
+Knaster-Tarski data, then we can extend the correlation to an additional stroke
+of the pen.
+
 \begin{proof}  Assume that the marked hypermap ${\cal H}=(H,{\cal L},L,x)$
 is correlated with the tuple $(H',m,\check\varphi,x')\in \op{fix}_2$,
 by means of an isomorphism
@@ -2453,17 +2731,24 @@ be the parameters of Definition~\ref{def:yz}.  Let $r$ be the cardinality
 of $\F(L)$, which is equal to the cardinality of the face of $x'$ in $H'$.  
 Then $(m,p,q,r)\in C$ by Lemma~\ref{lemma:yz}.
 
-Let $H'' = RDW(H',x',m,p,q)$.  The isomorphism $G$ and Lemma~\ref{lemma:RDW} combine to give an isomorphism $G':H/{\cal M} \mapsto H''$.
-Push the canonical function on the faces of $H/{\cal M}$ to a function
-$\check\psi$ on the faces of $H''$.
+Let $H'' = RDW(H',x',m,p,q)$.  The isomorphism $G$ and
+Lemma~\ref{lemma:RDW} combine to give an isomorphism $G':H/{\cal M}
+\mapsto H''$.  Push the canonical function on the faces of $H/{\cal
+  M}$ to a function $\check\psi$ on the faces of $H''$.
 
-If $L_1$ is false, then $({\cal H},T{\cal H})$ is a directed edge of the digraph, and
-$T{\cal H}$ is correlated with $(H'',m',\check\psi,x')\in g(H',m,\check\varphi,x')\subset \op{fix}_2$, where $m'=\card(S(L_1,x))$.  
+If $L_1$ is false, then $({\cal H},T{\cal H})$ is a directed edge of
+the digraph, and $T{\cal H}$ is correlated with
+$(H'',m',\check\psi,x')\in g(H',m,\check\varphi,x')\subset
+\op{fix}_2$, where $m'=\card(S(L_1,x))$.
 
-If $L_1$ is true, then $H''$ has a false face, and the choice function $\op{ch}$ picks a dart $x''$ in the union of the false faces of $H''$.  Transport this by $G$ to a dart $y'\in H/{\cal M}$ in a false face.  Write $y'=[\ldots;y]$
-with $y$ a dart visited by a false contour loop $M$ of ${\cal M}$.  Then
-$(H,{\cal L},L,x),(H,{\cal M},M,y))$ is a directed edge of the digraph,
-whose tail is correlated with $(H'',m',\check\psi,x'')\in g(H',m,\check\varphi,x')\subset \op{fix}_2$, where $m'=\card(S(M,y))$.
+If $L_1$ is true, then $H''$ has a false face, and the choice function
+$\op{ch}$ picks a dart $x''$ in the union of the false faces of $H''$.
+Transport this by $G$ to a dart $y'\in H/{\cal M}$ in a false face.
+Write $y'=[\ldots;y]$ with $y$ a dart visited by a false contour loop
+$M$ of ${\cal M}$.  Then $(H,{\cal L},L,x),(H,{\cal M},M,y))$ is a
+directed edge of the digraph, whose tail is correlated with
+$(H'',m',\check\psi,x'')\in g(H',m,\check\varphi,x')\subset
+\op{fix}_2$, where $m'=\card(S(M,y))$.
 \end{proof}
 
 \begin{lemma}[correlated sink]\guid{RIZGJVS}\label{lemma:correlated-sink}
@@ -2472,24 +2757,29 @@ Then some sink in the digraph is correlated with some element of
 $\op{fix}_2$.
 \end{lemma}
 
-\begin{proof} Start with any  correlated pair $({\cal
-    H}_0,{\cal K}_0)$ with ${\cal H}_0\in V$ and ${\cal K}_0\in \op{fix}_2$ 
+Heuristically, if we complete a pen on pencil drawing, then the
+drawing appears in the Knaster-Tarski fixed point set.  In rigorous
+terms, this lemma competes the proof that the Knaster-Tarski fixed
+point set contains all restricted hypermaps.
+
+\begin{proof} Start with any correlated pair $({\cal H}_0,{\cal K}_0)$
+  with ${\cal H}_0\in V$ and ${\cal K}_0\in \op{fix}_2$
   (Lemma~\ref{lemma:correlated-seed}).  Use
   Lemma~\ref{lemma:correlated-edge}, to produce a sequence $({\cal
     H}_i,{\cal K}_i)$ of correlated pairs, where $[{\cal H}_0;{\cal
-    H}_1;\ldots]$ is a path in the vertex set $V$.  By Lemma~\ref{lemma:digraph-sink},
-  the path reaches a sink within $\#D$ steps.  The final marked
-  hypermap ${\cal H}_k$ in the path is a sink that is correlated with
-  ${\cal K}_k\in X_2$.
+    H}_1;\ldots]$ is a path in the vertex set $V$.  By
+  Lemma~\ref{lemma:digraph-sink}, the path reaches a sink within $\#D$
+  steps.  The final marked hypermap ${\cal H}_k$ in the path is a sink
+  that is correlated with ${\cal K}_k\in X_2$.
 \end{proof}
 
 \begin{proof} Turn to the proof of Theorem~\ref{lemma:algorithm}.  Let
   $(H,{\cal L},L,x)$ be a sink that is correlated with some tuple
   $(H',m,\check\varphi',y')\in \op{fix}_2$
   (Lemma~\ref{lemma:correlated-sink}).  By
-  Lemma~\ref{lemma:digraph-sink}, $H$ is isomorphic to the quotient
+  Lemma~\ref{lemma:digraph-sink}, $H$ is isomorphic to the subquotient
   $H/{\cal M}$, where $(H,{\cal M},\ldots)$ is the transform of the
-  sink.  This quotient is isomorphic to $\op{RDW}(H/{\cal
+  sink.  This subquotient is isomorphic to $\op{RDW}(H/{\cal
     L},x',m,p,q)$, where $x'$, $m$, $p$, $q$ are given by
   Definition~\ref{def:yz}.  By the correlatedness of the sink, $H$ is
   isomorphic to $H''=\op{RDW}(H',x',m,p,q)$.  By
@@ -2506,14 +2796,14 @@ $\op{fix}_2$.
 %
 %
 %\begin{proof} Let $H$ be a restricted hypermap whose dart set belongs
-%  to $D$ and whose greatest face size is $d$.  It has a quotient
+%  to $D$ and whose greatest face size is $d$.  It has a subquotient
 %  $H/{\cal L}_0$ isomorphic to $\op{Dih}_{2d}$.  Let ${\cal L}_i = (H,{\cal
 %    L}_i,L_i,x_i,\check\varphi_i)$ be the sequence of marked hypermaps
 %  constructed in Lemma~\ref{lemma:sequence}.  XX.
 %\end{proof}
 %
 %\begin{proof} Let $H$ be a restricted hypermap whose dart set belongs
-%to $D$ and whose greatest face size is $d$.  It has a quotient
+%to $D$ and whose greatest face size is $d$.  It has a subquotient
 %$H/{\cal L}_0$ isomorphic to $\op{Dih}_{2d}$.  By repeating the
 %construction of Section~\ref{sec:face-insert}, one obtains a
 %sequence of hypermaps $\op{Dih}_i = H/{\cal L}_i$, $i=0,\ldots,N$,
@@ -2537,7 +2827,7 @@ $\op{fix}_2$.
 % lie on different faces.  In particular, a restricted hypermap has at
 % least two faces.  To begin the process, take ${\cal L}$ to be the
 % normal family of Example~\ref{ex:H2} with two contour loops, whose
-% quotient hypermap is a polygon $\op{Dih}_{2d}$.  When the the initial
+% subquotient hypermap is a polygon $\op{Dih}_{2d}$.  When the the initial
 % contour loop is chosen on a face of maximal size, the natural number
 % $d$ is an upper bound on size of a face.
 %

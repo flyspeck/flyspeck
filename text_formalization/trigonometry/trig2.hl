@@ -8,8 +8,6 @@
 
 
 
-
-
 module type Trigonometry2_type = sig
   (* add *)
 end;;
@@ -4798,8 +4796,279 @@ SIMP_TAC[] THEN
 ASM_MESON_TAC[TWO_NOT_EQ_VECS_SUM_ARG_DIFF_TWO_PI]);;
 
 
+parse_as_infix("re_eqvl",(12,"right"));;
+
+let re_eqvl = new_definition ` a re_eqvl (b:real)
+ <=> (? t. &0 < t /\ a = t * b )`;;
 
 
+let VEC_DIV_MOV = prove(
+` ~( a = &0 ) ==> (( b / a ) % x = y <=>
+b % x = a % y ) `,
+SIMP_TAC[MESON[VECTOR_MUL_LCANCEL]` ~( a = &0 ) ==>
+(( b / a ) % x = y <=> a % ( b / a) % x = a % y ) `;
+VECTOR_MUL_ASSOC; REAL_DIV_LMUL]);;
+
+
+
+(* ======================================================== *)
+(*          -----------------------------                   *)
+let JBDNJJB = prove(
+`! u v w. sin ( azim ( vec 0 ) u v w ) re_eqvl (u cross v ) dot w `,
+
+REPEAT GEN_TAC THEN ASM_CASES_TAC `(u:real^3) = vec 0 ` THENL [
+ASM_SIMP_TAC[AZIM_DEGENERATE; CROSS_0; DOT_LZERO; 
+SIN_0; re_eqvl] THEN EXISTS_TAC `&1` THEN REAL_ARITH_TAC;
+
+
+ASM_CASES_TAC` collinear {vec 0, u, (v:real^3)}`]
+
+THENL [
+
+
+FIRST_X_ASSUM MP_TAC THEN ASM_SIMP_TAC[GSYM CROSS_EQ_0] THEN 
+REWRITE_TAC[CROSS_EQ_0] THEN 
+ASM_SIMP_TAC[AZIM_DEGENERATE; CROSS_0; DOT_LZERO;
+SIN_0; re_eqvl] THEN 
+DISCH_TAC THEN 
+EXISTS_TAC `&1 ` THEN 
+REAL_ARITH_TAC;
+
+ASM_CASES_TAC` collinear {vec 0, u, (w:real^3)}`] THENL [
+
+FIRST_X_ASSUM MP_TAC THEN ASM_SIMP_TAC[GSYM CROSS_EQ_0] THEN 
+REWRITE_TAC[CROSS_EQ_0] THEN 
+ONCE_REWRITE_TAC[GSYM CROSS_TRIPLE] THEN 
+ONCE_REWRITE_TAC[SET_RULE[]` {a,b} = {b,a}`] THEN 
+ASM_SIMP_TAC[AZIM_DEGENERATE;GSYM CROSS_EQ_0] THEN 
+ASM_SIMP_TAC[CROSS_EQ_0] THEN 
+ASM_SIMP_TAC[AZIM_DEGENERATE; CROSS_0; DOT_LZERO; 
+SIN_0; re_eqvl; SET_RULE[]` {a,b} = {b,a}`] THEN 
+DISCH_TAC THEN 
+EXISTS_TAC `&1 ` THEN 
+REAL_ARITH_TAC;
+ABBREV_TAC ` e3 = &1 / norm (u:real^3) % u ` THEN 
+ABBREV_TAC `v' = v - (e3 dot v) % (e3:real^3) ` THEN 
+ABBREV_TAC `(e1:real^3) = &1 / norm (v') % v' ` THEN 
+ABBREV_TAC ` e2 = e3 cross e1 ` THEN 
+SUBGOAL_THEN `orthonormal e1 e2 e3 ` ASSUME_TAC]
+
+THENL [
+REWRITE_TAC[orthonormal] THEN 
+EXPAND_TAC "e2" THEN 
+REWRITE_TAC[DOT_CROSS_SELF; DOT_CROSS] THEN 
+SUBGOAL_THEN `~((v':real^3) = vec 0)` ASSUME_TAC THENL [
+
+
+EXPAND_TAC "v'" THEN 
+EXPAND_TAC "e3" THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+ASSUME_TAC2 (ISPECL [`u:real^3 `;` v:real^3 `] 
+ NOT_EQ_VEC0_IMP_EQU_AFF_COLL) THEN 
+UNDISCH_TAC `~ collinear {vec 0, u, (v:real^3)}` THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+SIMP_TAC[] THEN 
+DISCH_TAC THEN 
+REWRITE_TAC[AFF2_VEC0; IN_ELIM_THM; VECTOR_ARITH` vec 0 =
+x - y <=> x = y `] THEN 
+MESON_TAC[];
+
+
+SUBGOAL_THEN `e3 dot (e3:real^3) = &1 /\ e1 dot (e1:real^3)
+= &1 ` ASSUME_TAC] THENL [
+
+EXPAND_TAC "e3" THEN 
+EXPAND_TAC "e1" THEN 
+REWRITE_TAC[DOT_LMUL; DOT_RMUL; GSYM NORM_POW_2] THEN 
+UNDISCH_TAC `~((u:real^3) = vec 0 ) ` THEN 
+UNDISCH_TAC `~((v':real^3) = vec 0) ` THEN 
+REWRITE_TAC[GSYM NORM_EQ_0] THEN 
+PHA THEN CONV_TAC REAL_FIELD;
+
+
+
+SUBGOAL_THEN `e1 dot (e3: real^3) = &0 ` ASSUME_TAC] THENL [
+
+
+EXPAND_TAC "e1" THEN 
+EXPAND_TAC "v'" THEN 
+REWRITE_TAC[DOT_LSUB; DOT_LMUL; REAL_MUL_RID] THEN 
+ASM_SIMP_TAC[REAL_MUL_RID; DOT_SYM; REAL_SUB_REFL;
+REAL_MUL_RZERO];
+
+
+
+ASM_SIMP_TAC[DOT_SYM] THEN
+ONCE_REWRITE_TAC[DOT_SYM] THEN 
+ONCE_REWRITE_TAC[GSYM CROSS_TRIPLE] THEN 
+EXPAND_TAC "e2" THEN 
+REWRITE_TAC[DOT_CROSS] THEN 
+ASM_SIMP_TAC[DOT_SYM] THEN 
+REAL_ARITH_TAC];
+
+MP_TAC (let ddd = (let dd = SPEC_ALL (SPECL [`v: real^3 `;` vec 0 : real^3 `;`u:real^3 `;
+`w:real^3 `] SPHERICAL_COORDINATES) in SPEC `dist(vec 0, w:real^3 )`
+(GEN `r:real` dd)) in
+SPEC ` azim ( vec 0 ) u v w ` (GEN `theta: real` 
+(SPEC `arcV ( vec 0) w (u:real^3) ` (GEN `phi: real` ddd)))) THEN 
+ANTS_TAC] THENL [
+
+(* one new goal *)
+(* ============ *)
+
+
+ASM_REWRITE_TAC[dist; VECTOR_SUB_RZERO] THEN 
+EXPAND_TAC "e3" THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+UNDISCH_TAC `~((u:real^3) = vec 0 ) ` THEN 
+SIMP_TAC[GSYM NORM_EQ_0; REAL_FIELD` ~( x = &0) ==>
+x * &1 / x = &1 `; VECTOR_MUL_LID] THEN 
+SUBGOAL_THEN `DISJOINT {vec 0, u} {v:real^3 }` ASSUME_TAC
+
+
+THENL [
+
+
+
+REWRITE_TAC[DISJOINT; SET_RULE[]` {a,b} INTER {c} = {}
+<=> ~( c = a ) /\ ~( c = b ) `] THEN 
+(let drt = STRIP_TAC THEN 
+UNDISCH_TAC `~ collinear { vec 0, u, (v:real^3)} ` THEN 
+ASM_SIMP_TAC[INSERT_AC; COLLINEAR_2] in CONJ_TAC THENL [drt;
+drt]);
+
+
+FIRST_X_ASSUM MP_TAC THEN 
+NHANH AFF_GT_2_1 THEN 
+PHA THEN SIMP_TAC[] THEN 
+STRIP_TAC THEN 
+REWRITE_TAC[IN_ELIM_THM] THEN 
+EXPAND_TAC "e1" THEN 
+EXPAND_TAC "v'" THEN 
+SIMP_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID;
+VECTOR_SUB_LDISTRIB] THEN 
+SUBGOAL_THEN `~( v - (e3 dot v) % (e3:real^3)
+= vec 0) ` ASSUME_TAC] THENL [
+
+
+
+EXPAND_TAC "e3" THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+UNDISCH_TAC `~ collinear {vec 0, u, (v:real^3)}` THEN 
+FIRST_X_ASSUM MP_TAC THEN 
+REWRITE_TAC[NORM_EQ_0] THEN 
+PAT_ONCE_REWRITE_TAC `\x. x ==> _ ` [EQ_SYM_EQ] THEN 
+NHANH (GSYM (ISPECL [`u:real^3 `;` v:real^3 `] NOT_EQ_VEC0_IMP_EQU_AFF_COLL)) THEN 
+SIMP_TAC[] THEN DISCH_TAC THEN 
+REWRITE_TAC[AFF2_VEC0; IN_ELIM_THM; VECTOR_SUB_EQ] THEN 
+MESON_TAC[];
+
+
+ABBREV_TAC `r3 = e3 dot (v:real^3 ) ` THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+ABBREV_TAC `e33 = r3 % (e3: real^3) ` THEN 
+EXPAND_TAC "e3" THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+EXISTS_TAC ` &1 - &1 / norm ((v:real^3 ) -
+e33) + (&1 / norm ((v:real^3) - e33) * r3) * &1 / norm (u:real^3) ` THEN 
+EXISTS_TAC `-- (&1 / norm ((v:real^3) - e33) * r3) * &1 / norm (u:real^3)` THEN 
+EXISTS_TAC `&1 / norm ((v:real^3) - e33)` THEN 
+CONJ_TAC THENL [
+
+
+MATCH_MP_TAC REAL_LT_DIV THEN 
+UNDISCH_TAC `~((v:real^3) - e33 = vec 0) ` THEN 
+REWRITE_TAC[GSYM NORM_POS_LT] THEN 
+SIMP_TAC[] THEN REAL_ARITH_TAC;
+CONJ_TAC THENL [REAL_ARITH_TAC;
+CONV_TAC VECTOR_ARITH]]];
+
+
+SUBGOAL_THEN `~( v - (e3 dot v) % (e3:real^3)
+= vec 0) ` ASSUME_TAC THENL [
+
+
+EXPAND_TAC "e3" THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+UNDISCH_TAC `~ collinear {vec 0, u, (v:real^3)}` THEN 
+UNDISCH_TAC ` ~( (u:real^3) = vec 0) ` THEN 
+REWRITE_TAC[NORM_EQ_0] THEN 
+PAT_ONCE_REWRITE_TAC `\x. x ==> _ ` [EQ_SYM_EQ] THEN 
+NHANH (GSYM (ISPECL [`u:real^3 `;` v:real^3 `] NOT_EQ_VEC0_IMP_EQU_AFF_COLL)) THEN 
+SIMP_TAC[] THEN DISCH_TAC THEN 
+REWRITE_TAC[AFF2_VEC0; IN_ELIM_THM; VECTOR_SUB_EQ] THEN 
+MESON_TAC[];
+
+
+
+SUBST_ALL_TAC (SYM (ISPEC `u:real^3 ` NORM_EQ_0))]] THEN 
+
+
+
+ASSUME_TAC2 (ISPECL [`&1 `;` u: real^3 `; ` norm (u:real^3)`
+; `e3: real^3`] (GEN_ALL VEC_DIV_MOV)) THEN 
+SUBST_ALL_TAC (ISPEC `u:real^3 ` VECTOR_MUL_LID) THEN 
+FIRST_X_ASSUM SUBST_ALL_TAC THEN 
+ABBREV_TAC ` azzz = azim (vec 0) u v w ` THEN 
+ABBREV_TAC `arrr = arcV (vec 0) w (u:real^3)` THEN 
+ABBREV_TAC ` diii = dist( vec 0, (w:real^3))` THEN 
+
+SIMP_TAC[VECTOR_ADD_LID] THEN 
+DISCH_TAC THEN 
+ABBREV_TAC `no_u = norm (u:real^3)` THEN 
+ASM_REWRITE_TAC[] THEN 
+UNDISCH_TAC ` (v:real^3) - (e3 dot v ) %e3 
+= v' ` THEN 
+ABBREV_TAC ` era = e3 dot (v:real^3) ` THEN 
+REWRITE_TAC[VECTOR_ARITH` a - b = (x:real^N) <=>
+a = x + b `] THEN 
+SIMP_TAC[CROSS_RADD; CROSS_RMUL; CROSS_LMUL;
+CROSS_REFL; VECTOR_MUL_RZERO; VECTOR_ADD_RID] THEN 
+REWRITE_TAC[VECTOR_ARITH` a = b + (c:real^N) <=>
+a - c = b `] THEN 
+DISCH_THEN SUBST_ALL_TAC THEN 
+UNDISCH_TAC ` &1 / norm v' % (v':real^3) = e1 ` THEN 
+UNDISCH_TAC `~((v':real^3) = vec 0 ) ` THEN 
+SIMP_TAC[GSYM NORM_EQ_0; VEC_DIV_MOV; VECTOR_MUL_LID] THEN 
+ABBREV_TAC `nov' = norm (v':real^3) ` THEN 
+SIMP_TAC[CROSS_RMUL] THEN 
+STRIP_TAC THEN 
+STRIP_TAC THEN 
+ASM_REWRITE_TAC[VECTOR_MUL_ASSOC; DOT_RADD; DOT_RMUL;
+DOT_LMUL] THEN 
+UNDISCH_TAC `orthonormal e1 e2 e3 ` THEN 
+REWRITE_TAC[orthonormal] THEN 
+SIMP_TAC[DOT_SYM; REAL_MUL_RZERO; REAL_ADD_LID; REAL_ADD_RID] THEN 
+DISCH_TAC THEN 
+REWRITE_TAC[REAL_ARITH`(a * b * c ) * (d * e ) * &1
+= (a * c * d * e ) * b `; re_eqvl] THEN 
+EXISTS_TAC ` &1 / ( diii * sin arrr * no_u * nov') ` THEN 
+
+SUBGOAL_THEN ` &0 < diii * sin arrr * no_u * nov' `
+ASSUME_TAC THENL [
+
+
+MATCH_MP_TAC (
+MESON[REAL_LT_MUL]` &0 < a /\ &0 < b /\ &0 < c /\ &0 < d 
+==> &0 < b * a * c * d `) THEN 
+CONJ_TAC THENL [EXPAND_TAC "arrr" THEN 
+UNDISCH_TAC `~ collinear {vec 0, u, (w:real^3)}` THEN 
+SIMP_TAC[ARC_SYM; NOT_COLL_IM_SIN_LT]; 
+UNDISCH_TAC `~(no_u = &0) `] THEN 
+UNDISCH_TAC ` ~(nov' = &0)` THEN 
+UNDISCH_TAC `~ collinear {vec 0, u, (w:real^3)}` THEN 
+NHANH NOT_COLLINEAR_IMP_2_UNEQUAL THEN STRIP_TAC THEN 
+FIRST_X_ASSUM MP_TAC THEN SIMP_TAC[DIST_NZ] THEN 
+EXPAND_TAC "diii" THEN EXPAND_TAC "no_u" THEN EXPAND_TAC "nov'" THEN 
+PHA THEN CONV_TAC NORM_ARITH; CONJ_TAC] THENL [
+
+MATCH_MP_TAC REAL_LT_DIV THEN 
+FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+
+FIRST_X_ASSUM MP_TAC THEN NHANH REAL_POS_NZ THEN SIMP_TAC[REAL_MUL_RID] THEN 
+ONCE_REWRITE_TAC[REAL_RING`a * no * nv * di * az * z = az * a * (di * z * no * nv) `] THEN 
+SIMP_TAC[NOT_0_INVERTABLE; REAL_MUL_RID]]);;
 
 
 let SET_TAC =
@@ -4817,9 +5086,7 @@ fun ths ->
 PRESET_TAC THEN
 (if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
 MESON_TAC[];;
-
 let SET_RULE tm = prove(tm,SET_TAC[]);;
-
 
 
 

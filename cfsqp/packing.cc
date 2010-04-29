@@ -253,12 +253,12 @@ void t0(int numargs,int whichFn,double* y, double* ret,void*) {
 Minimizer m0() {
   double xmin[6]= {2,2,2,2,2,2};
   double xmax[6]= {sqrt(8.0),sqrt(8.0),sqrt(8.0),sqrt(8.0),sqrt(8.0),sqrt(8.0)};
-	Minimizer M(trialcount,6,1,xmin,xmax);
+	Minimizer M(trialcount,6,0,xmin,xmax);
 	M.func = t0;
-	M.cFunc = smallrad;
+	//M.cFunc = smallrad;
 	return M;
 }
-trialdata d0(m0(),"ID[1025009205] d0: Marchal main 4-cell inequality");
+trialdata d0(m0(),"ID[1025009205] d0: Marchal main 4-cell inequality, no rad constraint");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.

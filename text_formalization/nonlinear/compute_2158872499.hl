@@ -1,0 +1,1422 @@
+(* ========================================================================= *)
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*                                                                           *)
+(*                                                                           *)
+(*      Authour : TRIEU THI DIEP                                             *)
+(*      Number  : 2158872499                                                 *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+(*
+This contains the second derivative calculation of  g(t) in calculation 2158872499.
+*)
+
+(*
+changes: extension changed from .ml to .hl,
+wrapped all files in a module.
+needs -> flyspeck_needs.
+merged two compute files,
+open Sphere,
+open Vukhacky_tactics,
+*)
+
+flyspeck_needs "nonlinear/vukhacky_tactics.hl";;
+
+module Compute_2158872499 = struct
+
+
+
+
+  open Sphere;;
+  open Vukhacky_tactics;;
+  open Trigonometry1;;
+  open Trigonometry2;;
+
+(* ========================================================================== *)
+
+let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
+ `!a b c.
+     &0 < (a + b + c) * (a + b - c) * (b + c - a) * (c + a - b)
+     ==> arclength a b c =
+         pi / &2 +
+         atn
+         ((c * c - a * a - b * b) /
+          sqrt ((a + b + c) * (a + b - c) * (b + c - a) * (c + a - b)))`,
+
+[(REPEAT STRIP_TAC);
+ (SUBGOAL_THEN `ups_x (a * a) (b * b) (c * c) = (a + b + c) * (a + b - c) * 
+  (b + c - a) * (c + a - b)` ASSUME_TAC);
+ (REWRITE_TAC[ups_x]);
+ (REAL_ARITH_TAC);
+ (REWRITE_TAC[arclength]);
+ AP_TERM_TAC;
+ (ASM_REWRITE_TAC[]);
+ (ABBREV_TAC `S = (a + b + c) * (a + b - c) * (b + c - a) * (c + a - b)`);
+ (SUBGOAL_THEN `&0 < sqrt S` ASSUME_TAC);
+ (MATCH_MP_TAC SQRT_POS_LT);
+ (ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[ATN2_BREAKDOWN])]);;
+ 
+(* ========================================================================== *)
+
+let compute_one_first = prove_by_refinement (
+ `!y1 y2 s h0 g x.
+     &1 <= h0 /\ h0 < &2 /\ &2 <= y1 /\ y1 <= &2 * h0 /\
+     &2 <= y2 /\ y2 <= &2 * h0 /\
+     s = {t | y1 - &4 < t /\ t < &4 - y2} /\
+     g = (\t. arclength y1 (y2 + t) (&2)) /\ x IN s /\
+     g' = (\x. --((y2 + x) pow 2 - y1 pow 2 + &4) /
+       ((y2 + x) *
+        sqrt
+        ((y1 + (y2 + x) + &2) *
+         (y1 + (y2 + x) - &2) *
+         ((y2 + x) + &2 - y1) *
+         (&2 + y1 - (y2 + x)))))
+     ==> (g has_real_derivative g' x) (atreal x within s)`,
+
+[(REPEAT STRIP_TAC);
+ REWRITE_TAC[ASSUME `g' = (\x. --((y2 + x) pow 2 - y1 pow 2 + &4) /
+       ((y2 + x) *
+        sqrt
+        ((y1 + (y2 + x) + &2) *
+         (y1 + (y2 + x) - &2) *
+         ((y2 + x) + &2 - y1) *
+         (&2 + y1 - (y2 + x)))))`];
+  (SUBGOAL_THEN `!t. t IN s ==> 
+     &0 < (y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+          ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t))` ASSUME_TAC);
+
+  (GEN_TAC THEN ASM_REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC);
+
+   (SUBGOAL_THEN 
+      `&0 < y1 + (y2 + t) - &2 /\ &0 < y1 + (y2 + t) + &2 /\
+       &0 < (y2 + t) + &2 - y1 /\ &0 < &2 + y1 - (y2 + t)` ASSUME_TAC);
+    ASM_REAL_ARITH_TAC;
+  (ASM_MESON_TAC[REAL_LT_MUL]);
+
+(* ========================================================================== *)
+(*         SUBGOAL 3                                                          *)
+(* ========================================================================== *)
+
+ (ABBREV_TAC `f1 = (\t. (y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+                         ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t)))`);
+ (ABBREV_TAC `f1' = &4 * (y2 + x) * (y1 pow 2 - (y2 + x) pow 2 + &4)`);
+ (ABBREV_TAC `P ={x| &0 < x}`);
+ (ABBREV_TAC `f2 = (\t. sqrt ((y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+                              ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t))))`);
+
+  (SUBGOAL_THEN `f2 = (\t:real. sqrt (f1 t))` ASSUME_TAC);
+  (EXPAND_TAC "f1" THEN EXPAND_TAC "f2" THEN MESON_TAC[]); 
+
+ (ABBREV_TAC `g2' = (\x. inv (&2 * sqrt x))`);
+ (ABBREV_TAC `f2' = f1' * g2' ((f1:real->real) x)`);
+
+ (SUBGOAL_THEN `(f2 has_real_derivative f2') (atreal x within s)`ASSUME_TAC);  
+ (EXPAND_TAC "f2'" THEN PURE_REWRITE_TAC[ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+
+  (SUBGOAL_THEN `(f1 has_real_derivative f1') (atreal x within s) /\ P (f1 x)` 
+   ASSUME_TAC);
+   STRIP_TAC;
+  (EXPAND_TAC "f1" THEN EXPAND_TAC "f1'");
+  (REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+  (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM] THEN EXPAND_TAC "f1");
+  (MP_TAC (ASSUME `(x:real) IN s`) THEN ASM_REWRITE_TAC[]);
+  (FIRST_X_ASSUM MP_TAC);
+
+  (SUBGOAL_THEN `!x. P x ==> 
+    (sqrt has_real_derivative (g2':real->real) x) (atreal x)` ASSUME_TAC);
+  (EXPAND_TAC "g2'" THEN REWRITE_TAC[BETA_THM]);
+  (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);  
+  (REWRITE_TAC[HAS_REAL_DERIVATIVE_SQRT]);
+  (FIRST_X_ASSUM MP_TAC);
+
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+(* ------------------------------------------------------------------------- *)
+
+ (ABBREV_TAC `f3 = (\t. (&2 * &2 - y1 * y1 - (y2 + t) * (y2 + t)) / 
+                      sqrt ((y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+                            ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t))))`);
+ (ABBREV_TAC `h = (\t. (&2 * &2 - y1 * y1 - (y2 + t) * (y2 + t)))`);
+
+ (SUBGOAL_THEN `f3 = (\t:real. h t / f2 t)` ASSUME_TAC);
+ (EXPAND_TAC "f2" THEN EXPAND_TAC "h" THEN EXPAND_TAC "f3");
+ (REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `(h has_real_derivative -- &2 * (y2 + x)) (atreal x within s) /\
+                (f2 has_real_derivative f2') (atreal x within s) /\
+               ~(f2 x = &0)` ASSUME_TAC);
+ (REPEAT CONJ_TAC);
+
+  (EXPAND_TAC "h" THEN REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+  (ASM_REWRITE_TAC[]);
+  (ASM_REWRITE_TAC[]);
+  (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+  (MATCH_MP_TAC SQRT_POS_LT);
+  (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `(f3 has_real_derivative 
+                 ((-- &2 * (y2 + x)) * f2 x - h x * f2') / f2 x pow 2)
+                 (atreal x within s)` ASSUME_TAC);
+ (PURE_REWRITE_TAC[ASSUME `f3 = (\t:real. h t / f2 t)`]);
+ (FIRST_X_ASSUM MP_TAC);
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_DIV_WITHIN]);
+
+(* --------------------------------------------------------------------------*)
+
+ (ABBREV_TAC `F1 = (\t. atn ((&2 * &2 - y1 * y1 - (y2 + t) * (y2 + t)) / 
+                           sqrt ((y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+                            ((y2 + t) + &2 - y1)  * (&2 + y1 - (y2 + t)))))`);
+ (ABBREV_TAC `f3' = ((-- &2 * (y2 + x)) * f2 x - h x * f2') / f2 x pow 2`);
+ (ABBREV_TAC `h' = (\x. inv (&1 + x pow 2))`);
+
+ (SUBGOAL_THEN `F1 = (\t:real. atn (f3 t))` ASSUME_TAC);
+ (EXPAND_TAC "f3" THEN EXPAND_TAC "F1" THEN ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `(F1 has_real_derivative f3' * inv (&1 + f3 x pow 2)) 
+                 (atreal x within s)` ASSUME_TAC);
+ (REWRITE_TAC[ASSUME `F1 = (\t:real. atn (f3 t))`]);
+
+  (SUBGOAL_THEN `(f3 has_real_derivative f3') (atreal x within s) /\ 
+                   (:real) (f3 x)` ASSUME_TAC);
+  (ASM_REWRITE_TAC[]);
+  (MESON_TAC[EQ_UNIV;IN_UNIV; IN]);
+  (FIRST_X_ASSUM MP_TAC);
+
+  (SUBGOAL_THEN `!x. (:real) x ==> (atn has_real_derivative (h':real->real) x)
+                                     (atreal x)` ASSUME_TAC);
+  (EXPAND_TAC "h'" THEN REWRITE_TAC[BETA_THM]);
+  (REWRITE_TAC[EQ_UNIV; HAS_REAL_DERIVATIVE_ATN]);
+  (FIRST_X_ASSUM MP_TAC);
+
+  (SUBGOAL_THEN `inv (&1 + f3 (x:real) pow 2) = h' (f3 x)` ASSUME_TAC);
+  (EXPAND_TAC "h'" THEN REWRITE_TAC[]);
+ 
+ (REWRITE_TAC[ASSUME `inv (&1 + f3 (x:real) pow 2) = h'( f3 x)`]);
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+(* --------------------------------------------------------------------------*)
+
+ (SUBGOAL_THEN `f1 x = &4 * (y1 * (y2 + x)) pow 2 - 
+                 (&2 * &2 - y1 * y1 - (y2 + x) * (y2 + x)) pow 2` ASSUME_TAC);
+ (EXPAND_TAC "f1" THEN REAL_ARITH_TAC);
+
+ (SUBGOAL_THEN `inv (&1 + f3 x pow 2) = 
+                (f1 x) / (&4 * (y1 * (y2 + x)) pow 2)` ASSUME_TAC);
+ (EXPAND_TAC "f3");
+ (REWRITE_TAC[REAL_POW_DIV]);
+
+ (SUBGOAL_THEN `&0 <= (y1 + (y2 + x) + &2) * (y1 + (y2 + x) - &2) *
+                      ((y2 + x) + &2 - y1) * (&2 + y1 - (y2 + x))` ASSUME_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `sqrt ((y1 + (y2 + x) + &2) * (y1 + (y2 + x) - &2) *
+        ((y2 + x) + &2 - y1) * (&2 + y1 - (y2 + x))) pow 2 = f1 x` ASSUME_TAC);
+ (EXPAND_TAC "f1" THEN ASM_SIMP_TAC [SQRT_POW_2]);
+
+ (PURE_ONCE_ASM_REWRITE_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[GSYM REAL_INV_DIV]);
+ (AP_TERM_TAC);
+ (ONCE_ASM_REWRITE_TAC[REAL_INV_DIV] THEN PURE_ONCE_ASM_REWRITE_TAC[]);
+
+ (MATCH_MP_TAC (REAL_ARITH `&1 = x - y ==> &1 + y = x `));
+ (REWRITE_TAC [REAL_ARITH `x / y - z / y = (x - z) / y`]);
+ (MATCH_MP_TAC (GSYM REAL_DIV_REFL));
+ (REWRITE_TAC[GSYM (ASSUME `f1 x = &4 * (y1 * (y2 + x)) pow 2 -
+   (&2 * &2 - y1 * y1 - (y2 + x) * (y2 + x)) pow 2`)]);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(&0 = a)`));
+ (MP_TAC (ASSUME `x:real IN s`));
+ (EXPAND_TAC "f1" THEN ASM_REWRITE_TAC[]);
+
+(* ========================================================================== *)
+
+ (SUBGOAL_THEN ` ((-- &2 * (y2 + x)) * f2 x - h x * f2') = 
+   -- &4 * y1 * y1 * (y2 + x) * ((y2 + x) pow 2 - y1 pow 2 + &4) / f2 x`
+ ASSUME_TAC);
+
+ (ABBREV_TAC `X = ((-- &2 * (y2 + x)) * f2 x - h x * f2')`);
+ (REWRITE_TAC[REAL_ARITH `x * y / z = (x * y) / z`]);
+ (ABBREV_TAC 
+   `Y = (-- &4 * y1 * y1 * (y2 + x) * ((y2 + x) pow 2 - y1 pow 2 + &4))`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+
+ (SUBGOAL_THEN `Y / f2 (x:real) = X <=> Y = X * f2 x` ASSUME_TAC);
+ (MATCH_MP_TAC REAL_EQ_LDIV_EQ);
+ (REPLICATE_TAC 2 (ONCE_ASM_REWRITE_TAC[]) THEN MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[]);
+
+ (EXPAND_TAC "X" THEN EXPAND_TAC "Y");
+ (EXPAND_TAC "f2'" THEN EXPAND_TAC "h" THEN EXPAND_TAC "g2'");
+ (ONCE_REWRITE_TAC[REAL_ARITH `(a - b) * c = a * c - b * c`]);
+
+ (SUBGOAL_THEN `inv (&2 * sqrt (f1 x)) * f2 (x:real) = &1 / &2` ASSUME_TAC);
+ (REWRITE_TAC[ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (ONCE_REWRITE_TAC[REAL_ARITH `a * sqrt b = (a * (&2 * sqrt b)) / &2`]);
+ (AP_THM_TAC THEN AP_TERM_TAC);
+ (MATCH_MP_TAC REAL_MUL_LINV);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+ (MATCH_MP_TAC REAL_LT_MUL);
+ (REWRITE_TAC[REAL_ARITH `&0 < &2`]);
+ (MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (REWRITE_TAC[REAL_ARITH `(a * b * c) * d = (a * b) * c * d`]);
+ (PURE_REWRITE_TAC[ASSUME `inv (&2 * sqrt (f1 x)) * f2 (x:real) = &1 / &2`]);
+ (REWRITE_TAC[REAL_ARITH `(a * f2 x) * f2 x = a * (f2 (x:real) pow 2)`]);
+
+ (SUBGOAL_THEN `f2 (x:real) pow 2 = f1 x` ASSUME_TAC);
+ (REWRITE_TAC [ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (REWRITE_TAC[ASSUME `f2 (x:real) pow 2 = f1 x`]);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "Y" THEN EXPAND_TAC "f1'");
+ REAL_ARITH_TAC;
+
+(* ========================================================================= *)
+
+ (SUBGOAL_THEN 
+  `f3' * inv (&1 + f3 x pow 2) = 
+   -- ((y2 + x) pow 2 - y1 pow 2 + &4) / ((y2 + x) * f2 x)` ASSUME_TAC);
+ (EXPAND_TAC "f3'");
+ (REWRITE_TAC[ASSUME 
+  `inv (&1 + f3 x pow 2) = f1 x / (&4 * (y1 * (y2 + x)) pow 2)`]);
+ (REWRITE_TAC[ASSUME `(-- &2 * (y2 + x)) * f2 x - h x * f2' =
+      -- &4 * y1 * y1 * (y2 + x) * ((y2 + x) pow 2 - y1 pow 2 + &4) / f2 x`]);
+
+ (SUBGOAL_THEN `f2 (x:real) pow 2 = f1 x` ASSUME_TAC);
+ (REWRITE_TAC [ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[ASSUME `f2 (x:real) pow 2 = f1 x`]);
+
+ (ONCE_REWRITE_TAC [REAL_ARITH `a / b * c / d = (a / d) * c / b`]);
+ (MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 /\ x = y ==> x * a = y`));
+ STRIP_TAC;
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (ABBREV_TAC `X = 
+  (-- &4 * y1 * y1 * (y2 + x) * ((y2 + x) pow 2 - y1 pow 2 + &4) / f2 x)`);
+ (ABBREV_TAC 
+   `Y = --((y2 + x) pow 2 - y1 pow 2 + &4) / ((y2 + x) * f2 x)`);
+ (ABBREV_TAC `Z = (&4 * (y1 * (y2 + x)) pow 2)`);
+
+ (SUBGOAL_THEN `X / Z = Y <=> X = Y * Z` ASSUME_TAC);
+ (MATCH_MP_TAC REAL_EQ_LDIV_EQ);
+ (EXPAND_TAC "Z");
+ (MATCH_MP_TAC REAL_LT_MUL);
+ (REWRITE_TAC[REAL_ARITH `&0 < &4`]);
+ (MATCH_MP_TAC REAL_POW_LT);
+ (MATCH_MP_TAC REAL_LT_MUL);
+ STRIP_TAC;
+ (ASM_REAL_ARITH_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&0 <= y1 + y2 - &4 /\ y1 + y2 - &4 < s ==> &0 < s`));
+ (STRIP_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&2 <= y1 /\ &2 <= y2 ==> &0 <= y1 + y2 - &4`));
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC (REAL_ARITH `y1 - &4 < x ==> y1 + y2 - &4 < y2 + x`));
+ (MP_TAC (ASSUME `x:real IN s`));
+ (REWRITE_TAC[ASSUME `s = {t | y1 - &4 < t /\ t < &4 - y2}`]);
+ (PURE_REWRITE_TAC[IN_ELIM_THM]);
+ (STRIP_TAC THEN ASM_REWRITE_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[]);
+
+ (EXPAND_TAC "X" THEN EXPAND_TAC "Y" THEN EXPAND_TAC "Z");
+ (REWRITE_TAC [REAL_ARITH `a * b / c = (a * b) / c`]); 
+ (REWRITE_TAC[REAL_ARITH 
+  `--((y2 + x) pow 2 - y1 pow 2 + &4) / ((y2 + x) * f2 x) *
+   &4 *  (y1 * (y2 + x)) pow 2 =
+   (-- &4 * y1 * y1 * (y2 + x) * ((y2 + x) pow 2 - y1 pow 2 + &4)) * (y2 + x)
+   / (f2 x * (y2 + x))`]);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC REDUCE_WITH_DIV_Euler_lemma);
+ CONJ_TAC;
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+ (MATCH_MP_TAC (REAL_ARITH `&0 <= y1 + y2 - &4 /\ y1 + y2 - &4 < s ==> &0 < s`));
+ (STRIP_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&2 <= y1 /\ &2 <= y2 ==> &0 <= y1 + y2 - &4`));
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC (REAL_ARITH `y1 - &4 < x ==> y1 + y2 - &4 < y2 + x`));
+ (MP_TAC (ASSUME `x:real IN s`));
+ (REWRITE_TAC[ASSUME `s = {t | y1 - &4 < t /\ t < &4 - y2}`]);
+ (PURE_REWRITE_TAC[IN_ELIM_THM]);
+ (STRIP_TAC THEN ASM_REWRITE_TAC[]);
+
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+ (ONCE_ASM_REWRITE_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+(* ========================================================================== *)
+
+ (SUBGOAL_THEN 
+  `(F1 has_real_derivative --((y2 + x) pow 2 - y1 pow 2 + &4) / 
+   ((y2 + x) * f2 x)) (atreal x within s)` ASSUME_TAC);
+ (ASM_MESON_TAC[]);
+
+ (SUBGOAL_THEN `
+  (F1 has_real_derivative --((y2 + x) pow 2 - y1 pow 2 + &4) /   
+  ((y2 + x) * sqrt
+           ((y1 + (y2 + x) + &2) *
+            (y1 + (y2 + x) - &2) *
+            ((y2 + x) + &2 - y1) *
+            (&2 + y1 - (y2 + x)))))
+      (atreal x within s)` ASSUME_TAC);
+ (FIRST_X_ASSUM MP_TAC THEN EXPAND_TAC "f2");
+ (REWRITE_TAC[]);
+
+ (ABBREV_TAC `F2 = (\x:real. pi / &2 + F1 x)`);
+ (ABBREV_TAC `pi_2 = (\x:real. pi / &2 )`);
+
+ (SUBGOAL_THEN `(F2 has_real_derivative --((y2 + x) pow 2 - y1 pow 2 + &4) /
+  ((y2 + x) *
+   sqrt
+   ((y1 + (y2 + x) + &2) *
+    (y1 + (y2 + x) - &2) *
+    ((y2 + x) + &2 - y1) *
+    (&2 + y1 - (y2 + x)))))
+ (atreal x within s)` ASSUME_TAC);
+
+ (SUBGOAL_THEN `F2 = (\x:real. pi_2 x + F1 x)` ASSUME_TAC);
+ (EXPAND_TAC "F2" THEN EXPAND_TAC "F1" THEN EXPAND_TAC "pi_2");
+ (REWRITE_TAC[]);
+
+ (REWRITE_TAC[ASSUME `F2 = (\x:real. pi_2 x + F1 x)`]);
+ (ABBREV_TAC `F1' = (--((y2 + x) pow 2 - y1 pow 2 + &4) /
+  ((y2 + x) *
+   sqrt
+   ((y1 + (y2 + x) + &2) *
+    (y1 + (y2 + x) - &2) *
+    ((y2 + x) + &2 - y1) *
+    (&2 + y1 - (y2 + x)))))`);
+
+ (SUBGOAL_THEN `((\x. pi_2 x + F1 x) has_real_derivative &0 + F1')
+ (atreal x within s)` ASSUME_TAC);
+
+ (SUBGOAL_THEN `(pi_2 has_real_derivative (&0)) (atreal x within s)`
+   ASSUME_TAC);
+ (EXPAND_TAC "pi_2");
+ (REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+
+ (FIRST_X_ASSUM MP_TAC);
+ (MP_TAC (ASSUME `(F1 has_real_derivative F1') (atreal x within s)`));
+ (REWRITE_TAC[MESON[] `(a ==> b ==> c) <=> (b /\ a ==> c)`]);
+ (MESON_TAC[HAS_REAL_DERIVATIVE_ADD]);
+ (ASM_MESON_TAC[REAL_ARITH `&0 + a = a`]);
+
+
+ (ABBREV_TAC `F1' = (--((y2 + x) pow 2 - y1 pow 2 + &4) /
+  ((y2 + x) *
+   sqrt
+   ((y1 + (y2 + x) + &2) *
+    (y1 + (y2 + x) - &2) *
+    ((y2 + x) + &2 - y1) *
+    (&2 + y1 - (y2 + x)))))`);
+
+ (SUBGOAL_THEN 
+  `(!x':real. (x':real) IN s /\ abs (x' - x) < &1 ==> 
+   (F2:real -> real) x' = g x')` ASSUME_TAC);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]); 
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]); 
+ (EXPAND_TAC "F2"); 
+ (EXPAND_TAC "F1");
+ (MATCH_MP_TAC ATN_UPS_X_BREAKDOWN1);
+ (MP_TAC (ASSUME `x':real IN s`));
+ (ASM_REWRITE_TAC[]);
+ (MP_TAC (ASSUME `(F2 has_real_derivative F1') (atreal x within s)`));
+ (MP_TAC (ASSUME `!x'. x' IN s /\ abs (x' - x) < &1 ==> (F2:real->real) x' = g x'`));
+ (MP_TAC (ASSUME `x:real IN s`));
+ (MP_TAC (REAL_ARITH `&0 < &1`));
+ (MESON_TAC[HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN])]);;
+
+(* ========================================================================= *)
+
+
+let compute_one_second = prove_by_refinement (
+ `!y1 y2 s h0 g x.
+     &1 <= h0 /\ h0 < &2 /\ &2 <= y1 /\ y1 <= &2 * h0 /\
+     &2 <= y2 /\ y2 <= &2 * h0 /\
+     s = {t | y1 - &4 < t /\ t < &4 - y2} /\
+     g = (\t. --((y2 + t) pow 2 - y1 pow 2 + &4) /
+           ((y2 + t) *
+            sqrt ((y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+            ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t)))))
+     ==> (g has_real_derivative
+          (-- &64 + &48 * y1 pow 2 - &12 * y1 pow 4 + y1 pow 6 +
+          &80 * y2 pow 2 - &8 * y1 pow 2 * y2 pow 2 - &3 * y1 pow 4 * y2 pow 2 -
+          &12 * y2 pow 4 + &3 * y1 pow 2 * y2 pow 4 - y2 pow 6) /
+          (y2 pow 2 *  sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+          ups_x (y1 pow 2) (y2 pow 2) (&4)))
+         (atreal (&0) within s)`,
+[ REPEAT STRIP_TAC;
+
+   (SUBGOAL_THEN `&0 IN s` ASSUME_TAC);
+   (PURE_ASM_REWRITE_TAC[IN_ELIM_THM]);
+   CONJ_TAC; 
+     (REWRITE_TAC[REAL_ARITH `a - b < &0 <=> a < b`]);
+     (MATCH_MP_TAC (REAL_ARITH `y1 <= &2 * h0' /\ &2 * h0' < &4 ==> y1 < &4`));
+     (ASM_REWRITE_TAC[] THEN ASM_REAL_ARITH_TAC);
+     ASM_REAL_ARITH_TAC;
+
+(* ========================================================================== *)
+
+  (SUBGOAL_THEN  
+    `!t. t IN s ==>  &0 < (y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+         ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t))` ASSUME_TAC);
+  (GEN_TAC THEN ASM_REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC);
+
+    (SUBGOAL_THEN `&0 < y1 + (y2 + t) - &2 /\ &0 < y1 + (y2 + t) + &2 /\ 
+          &0 < (y2 + t) + &2 - y1 /\ &0 < &2 + y1 - (y2 + t)` ASSUME_TAC);
+    (ASM_REAL_ARITH_TAC);
+    (ASM_MESON_TAC[REAL_LT_MUL]);
+
+ (ABBREV_TAC `f1 = (\t. --((y2 + t) pow 2 - y1 pow 2 + &4))`);
+ (ABBREV_TAC `f2 = (\t. (y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+             ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t)))`);
+ (ABBREV_TAC `f3 = (\t:real. sqrt (f2 t))`);
+ (ABBREV_TAC `f4 = (\t:real. y2 + t)`);
+ (ABBREV_TAC `f5 = (\t:real. f4 t * f3 t )`);
+
+(SUBGOAL_THEN `&0 < f2 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f2" THEN MP_TAC (ASSUME`((&0):real) IN s`) THEN ASM_REWRITE_TAC[]);
+
+(SUBGOAL_THEN `(f1 has_real_derivative -- &2 * y2) (atreal (&0) within s)`
+  ASSUME_TAC);
+(EXPAND_TAC "f1" THEN REAL_DIFF_TAC);
+(REWRITE_TAC[ARITH_RULE `2 - 1 = 1`] THEN REAL_ARITH_TAC);
+
+(ABBREV_TAC `f2' = &4 * y2 * (y1 pow 2 - y2 pow 2 + &4)`);
+(ABBREV_TAC `P ={x| &0 < x}`);
+(ABBREV_TAC `g3' = (\x. inv (&2 * sqrt x))`);
+(ABBREV_TAC `f3' = f2' * g3' ((f2:real->real) (&0))`);
+
+ (SUBGOAL_THEN 
+    `(f3 has_real_derivative f3') (atreal (&0) within s)` ASSUME_TAC);
+ (EXPAND_TAC "f3'" THEN EXPAND_TAC "f3");
+
+(SUBGOAL_THEN `(f2 has_real_derivative f2') (atreal (&0) within s) /\ 
+               P (f2 (&0))` MP_TAC);
+  STRIP_TAC;
+
+  (EXPAND_TAC "f2" THEN EXPAND_TAC "f2'");
+  (REAL_DIFF_TAC THEN REWRITE_TAC[POW_2] THEN REAL_ARITH_TAC);
+  (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);
+  (ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN 
+    `!x. P x ==> (sqrt has_real_derivative (g3':real->real) x) (atreal x)`
+     MP_TAC);
+ (EXPAND_TAC "g3'" THEN REWRITE_TAC[BETA_THM]);
+ (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);  
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_SQRT]);
+
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+(* ========================================================================== *)
+
+(SUBGOAL_THEN `(f5 has_real_derivative f4 (&0) * f3' + &1 * f3 (&0)) 
+  (atreal (&0) within s)` ASSUME_TAC);
+
+(SUBGOAL_THEN 
+  `(f4 has_real_derivative &1) (atreal (&0) within s) /\
+   (f3 has_real_derivative f3') (atreal (&0) within s)` MP_TAC);
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "f4" THEN REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+
+(EXPAND_TAC "f5");
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_MUL_WITHIN]);
+
+(* ========================================================================= *)
+(*          Derivative of f1 / f5                                            *) 
+(* ========================================================================= *)
+
+(SUBGOAL_THEN `g = (\t:real. f1 t / f5 t)` ASSUME_TAC);
+(ASM_REWRITE_TAC[] THEN EXPAND_TAC "f5" THEN EXPAND_TAC "f1");
+(EXPAND_TAC "f4" THEN EXPAND_TAC "f3" THEN EXPAND_TAC "f2" THEN REWRITE_TAC[]);
+
+(REWRITE_TAC[ASSUME `g = (\t:real. f1 t / f5 t)`] THEN DEL_TAC);
+
+(SUBGOAL_THEN `((\t. f1 t / f5 t) has_real_derivative
+  ((-- &2 * y2) * f5 (&0) - f1 (&0) * (f4 (&0) * f3' + &1 * f3 (&0))) / 
+  f5 (&0) pow 2) (atreal (&0) within s)` ASSUME_TAC);
+
+(SUBGOAL_THEN 
+  `(f1 has_real_derivative -- &2 * y2) (atreal (&0) within s) /\
+   (f5 has_real_derivative f4 (&0) * f3' + &1 * f3 (&0))
+    (atreal (&0) within s) /\ ~(f5 (&0) = &0)` MP_TAC);
+(ASM_REWRITE_TAC[]);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+(EXPAND_TAC "f5" THEN MATCH_MP_TAC REAL_LT_MUL);
+STRIP_TAC;
+
+(EXPAND_TAC "f4" THEN ASM_REAL_ARITH_TAC);
+(EXPAND_TAC "f3" THEN MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_DIV_WITHIN]);
+
+(* ========================================================================= *)
+
+(SUBGOAL_THEN 
+`((-- &2 * y2) * f5 (&0) - f1 (&0) * (f4 (&0) * f3' + &1 * f3 (&0))) /
+ f5 (&0) pow 2 =
+(-- &64 + &48 * y1 pow 2 - &12 * y1 pow 4 + y1 pow 6 +
+    &80 * y2 pow 2 - &8 * y1 pow 2 * y2 pow 2 - &3 * y1 pow 4 * y2 pow 2 -
+    &12 * y2 pow 4 + &3 * y1 pow 2 * y2 pow 4 - y2 pow 6) /
+    (y2 pow 2 *  sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+    ups_x (y1 pow 2) (y2 pow 2) (&4))` ASSUME_TAC);
+
+(EXPAND_TAC "f5");
+
+(SUBGOAL_THEN `f4 (&0) = (y2:real)` ASSUME_TAC);
+(EXPAND_TAC "f4" THEN REAL_ARITH_TAC);
+(ASM_REWRITE_TAC[]);
+(REWRITE_TAC[REAL_ARITH `a pow 4 = a pow 2 * a pow 2`]);
+(REWRITE_TAC[REAL_ARITH `a pow 6 = a pow 2 * a pow 2 * a pow 2`]);
+(REWRITE_TAC[REAL_MUL_LID]);
+(REWRITE_TAC[REAL_ARITH `a - b * (c + d) = a - b * c - b * d`]);
+(REWRITE_TAC[REAL_ARITH `(-- &2 * y2) * y2 * x = ((-- &2 * y2) * y2) * x`]);
+(REWRITE_TAC[REAL_ARITH `a * f3 (&0) - b - c * f3 (&0) = (a - c) * f3 (&0) - b`]);
+
+(SUBGOAL_THEN `(-- &2 * y2) * y2 - f1 (&0) = (&4 - y1 pow 2 - y2 pow 2)` ASSUME_TAC);
+(EXPAND_TAC "f1" THEN REAL_ARITH_TAC);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "f3'" THEN EXPAND_TAC "g3'");
+
+(SUBGOAL_THEN `sqrt (f2 (&0)) = f3 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f3" THEN REWRITE_TAC[]);
+(REWRITE_TAC[ASSUME `sqrt (f2 (&0)) = f3 (&0)`]);
+
+(SUBGOAL_THEN 
+`(&4 - y1 pow 2 - y2 pow 2) * f3 (&0) -
+ f1 (&0) * y2 * f2' * inv (&2 * f3 (&0)) =
+ ((&4 - y1 pow 2 - y2 pow 2) * f3 (&0) pow 2 -
+  f1 (&0) * &2 * y2 pow 2 * (y1 pow 2 - y2 pow 2 + &4)) /
+ f3 (&0)` ASSUME_TAC);
+
+(PURE_ONCE_REWRITE_TAC[REAL_ARITH `(a - b) / c = a / c - b / c`]);
+(MATCH_MP_TAC (REAL_ARITH `a = b /\ c = d ==> a - c = b - d`));
+STRIP_TAC;
+
+(REWRITE_TAC[REAL_POW_2; REAL_ARITH `(a * b * c) / d = (a * b) * c / d`]);
+(MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 ==> b = b * a`));
+(MATCH_MP_TAC REAL_DIV_REFL);
+(EXPAND_TAC "f3");
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+(MATCH_MP_TAC SQRT_POS_LT);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "f2'" THEN REWRITE_TAC[REAL_POW_2]);
+(REWRITE_TAC[REAL_ARITH 
+ `f1 (&0) * y2 * (&4 * y2 * (y1 * y1 - y2 * y2 + &4)) * inv (&2 * f3 (&0)) = 
+  (f1 (&0) * &2 * (y2 * y2) * (y1 * y1 - y2 * y2 + &4)) * &2 * 
+ inv (&2 * f3 (&0))`]) ;
+
+(ABBREV_TAC `X = (f1 (&0) * &2 * (y2 * y2) * (y1 * y1 - y2 * y2 + &4)) *
+ &2 * inv (&2 * f3 (&0))`);
+(ABBREV_TAC `Y = (f1 (&0) * &2 * (y2 * y2) * (y1 * y1 - y2 * y2 + &4))`);
+(ABBREV_TAC `Z = (f3:real->real) (&0)`);
+
+(SUBGOAL_THEN `X = Y / Z <=> X * Z = Y` ASSUME_TAC);
+(MATCH_MP_TAC REAL_EQ_RDIV_EQ THEN EXPAND_TAC "Z" THEN EXPAND_TAC "f3");
+(MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "X" THEN EXPAND_TAC "Y" THEN EXPAND_TAC "Z");
+(REWRITE_TAC[REAL_ARITH 
+  `((f1 (&0) * &2 * (y2 * y2) * (y1 * y1 - y2 * y2 + &4)) * &2 *
+    inv (&2 * f3 (&0))) * f3 (&0) =
+    (f1 (&0) * &2 * (y2 * y2) * (y1 * y1 - y2 * y2 + &4)) * 
+    (&2 * f3 (&0)) * inv (&2 * f3 (&0))`]);
+
+(MATCH_MP_TAC( MESON[REAL_MUL_RID] `a = &1 ==> b * a = b`));
+(MATCH_MP_TAC REAL_MUL_RINV);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+(MATCH_MP_TAC REAL_LT_MUL);
+(REWRITE_TAC[REAL_ARITH `&0 < &2`]);
+(EXPAND_TAC "f3" THEN MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+(ASM_REWRITE_TAC[]);
+
+(ABBREV_TAC `a = y1 pow 2`);
+(ABBREV_TAC `b = y2 pow 2`);
+
+(SUBGOAL_THEN 
+ `((&4 - a - b) * f3 (&0) pow 2 - f1 (&0) * &2 * b * (a - b + &4)) = 
+  -- &64 + &48 * a - &12 * a * a + a * a * a + &80 * b - &8 * a * b - 
+  &3 * (a * a) * b - &12 * b * b + &3 * a * b * b - b * b * b` ASSUME_TAC);
+
+(EXPAND_TAC "f3");
+(SUBGOAL_THEN `sqrt (f2 (&0)) pow 2 = f2 (&0)` ASSUME_TAC);
+(MATCH_MP_TAC SQRT_POW_2);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`) THEN ASM_REWRITE_TAC[]);
+(ASM_REWRITE_TAC[]);
+
+(SUBGOAL_THEN `f2 (&0) = &4 * a * b - (&4 - a - b) pow 2` ASSUME_TAC);
+(EXPAND_TAC "f2" THEN EXPAND_TAC "a" THEN EXPAND_TAC "b");
+REAL_ARITH_TAC;
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "f1");
+(REWRITE_TAC[REAL_ARITH `y + &0 = y`; ASSUME `y2 pow 2 = b`]);
+REAL_ARITH_TAC;
+
+(ASM_REWRITE_TAC[]);
+
+(ABBREV_TAC `X' = (-- &64 + &48 * a - &12 * a * a +  a * a * a +  &80 * b - 
+  &8 * a * b - &3 * (a * a) * b - &12 * b * b + &3 * a * b * b - b * b * b)`);
+
+(SUBGOAL_THEN `ups_x a b (&4) = f2 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f2" THEN REWRITE_TAC[ups_x]);
+(EXPAND_TAC "a" THEN EXPAND_TAC "b" THEN REAL_ARITH_TAC);
+(ASM_REWRITE_TAC[]);
+
+(ABBREV_TAC `Z' = X' / f3 (&0) / (y2 * f3 (&0)) pow 2`);
+(ABBREV_TAC `Y' = (b * f3 (&0) * f2 (&0))`);
+
+(SUBGOAL_THEN `Z' = X' / Y' <=> Z' * Y' = X'` ASSUME_TAC);
+(MATCH_MP_TAC REAL_EQ_RDIV_EQ THEN EXPAND_TAC "Y'");
+(MATCH_MP_TAC REAL_LT_MUL);
+STRIP_TAC;
+(EXPAND_TAC "b" THEN MATCH_MP_TAC REAL_POW_LT THEN ASM_REAL_ARITH_TAC);
+(MATCH_MP_TAC REAL_LT_MUL THEN EXPAND_TAC "f3");
+(ASM_SIMP_TAC [SQRT_POS_LT]);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "Z'" THEN EXPAND_TAC "Y'");
+(REWRITE_TAC[REAL_ARITH `a / b * c = (a * c) / b`]);
+
+(SUBGOAL_THEN `(X' * b * f3 (&0) * f2 (&0)) / f3 (&0) = X' * b * f2 (&0)` ASSUME_TAC);
+(REWRITE_TAC[REAL_ARITH `(a * b * c * d) / f = (a * b * d) * (c / f)`] );
+(MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 ==> b * a = b`));
+(MATCH_MP_TAC REAL_DIV_REFL);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+(EXPAND_TAC "f3");
+(MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+
+(ASM_REWRITE_TAC[]);
+(REWRITE_TAC[REAL_POW_2]);
+(REWRITE_TAC[REAL_ARITH `(a * b) * a * b = a pow 2 * b pow 2`]);
+(SUBGOAL_THEN `f3 (&0) pow 2 = f2 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f3" THEN MATCH_MP_TAC SQRT_POW_2);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`) THEN ASM_REWRITE_TAC[]);
+
+(ASM_REWRITE_TAC[]);
+(REWRITE_TAC[REAL_ARITH `(a * b) / c = a * (b / c)`]);
+(MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 ==> b * a = b`));
+(REWRITE_TAC[REAL_ARITH `a * b / c = (a * b) / c`]);
+(MATCH_MP_TAC REAL_DIV_REFL);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+(MATCH_MP_TAC REAL_LT_MUL);
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "b" THEN MATCH_MP_TAC REAL_POW_LT THEN ASM_REAL_ARITH_TAC);
+
+(ASM_MESON_TAC[])]);;
+
+(* ========================================================================= *)
+
+let COMPUTE_DERIVATIVE_ONE = prove_by_refinement (
+ `!y1 y2 s h0 g x f.
+     &1 <= h0 /\ h0 < &2 /\ &2 <= y1 /\ y1 <= &2 * h0 /\
+     &2 <= y2 /\ y2 <= &2 * h0 /\
+     s = {t | y1 - &4 < t /\ t < &4 - y2} /\
+     g = (\t. arclength y1 (y2 + t) (&2)) /\
+     g' = (\t. --((y2 + t) pow 2 - y1 pow 2 + &4) /
+                ((y2 + t) *
+                sqrt ((y1 + (y2 + t) + &2) * (y1 + (y2 + t) - &2) *
+               ((y2 + t) + &2 - y1) * (&2 + y1 - (y2 + t)))))
+==>  (!x. x IN s ==> (g has_real_derivative g' x) (atreal x within s)) /\
+     (g' has_real_derivative
+          (-- &64 + &48 * y1 pow 2 - &12 * y1 pow 4 + y1 pow 6 +
+          &80 * y2 pow 2 - &8 * y1 pow 2 * y2 pow 2 - &3 * y1 pow 4 * y2 pow 2 -
+          &12 * y2 pow 4 + &3 * y1 pow 2 * y2 pow 4 - y2 pow 6) /
+          (y2 pow 2 *  sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+          ups_x (y1 pow 2) (y2 pow 2) (&4)))
+         (atreal (&0) within s)`,
+
+[(REPEAT STRIP_TAC);
+ (ASM_MESON_TAC[compute_one_first]);
+ (ASM_MESON_TAC[compute_one_second])]);;
+
+
+let compute_two_first = prove_by_refinement (
+ `!y1 y2 s h0 g x.
+   &1 <= h0 /\ h0 < &2 /\ &2 <= y1 /\ y1 <= &2 * h0 /\ 
+   &2 <= y2 /\ y2 <= &2 * h0 /\
+   s = {t |  y2 - &2 - y1 < &2 * t /\ &2 * t < y2 + &2 - y1} /\
+   g = (\t. arclength (y1 + t) (y2 - t) (&2)) /\ x IN s /\
+   g' = (\x. ((y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4)) / 
+             ((y1 + x) * (y2 - x) * sqrt ((y1 + y2 + &2) * (y1 + y2 - &2) * 
+             (y2 - &2 * x + &2 - y1) * (&2 + y1 + &2 * x - y2))))
+     ==> (g has_real_derivative g' x) (atreal x within s)`,
+
+[(REPEAT STRIP_TAC);
+ (SUBGOAL_THEN `!t. t IN s ==> 
+       &0 < ((y1 + t)+ (y2 - t) + &2) * ((y1 + t)+ (y2 - t) - &2) *
+       ((y2 - t) + &2 - (y1 + t)) * (&2 + (y1 + t) - (y2 - t))`   ASSUME_TAC);
+ (GEN_TAC THEN ASM_REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC);
+ (SUBGOAL_THEN 
+     `&0 < (y1 + t) + y2 - t + &2 /\ &0 < (y1 + t) + y2 - t - &2 /\
+      &0 < y2 - t + &2 - (y1 + t) /\ &0 < &2 + (y1 + t) - (y2 - t)`ASSUME_TAC);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_MESON_TAC[REAL_LT_MUL]);
+ (ABBREV_TAC 
+  `f1 = (\t. ((y1 + t) + y2 - t + &2) * ((y1 + t) + y2 - t - &2) *
+              (y2 - t + &2 - (y1 + t)) * (&2 + (y1 + t) - (y2 - t)))`);
+ (ABBREV_TAC 
+  `f1' = &4 * (y1 + y2 + &2) * (y1 + y2 - &2) * (y2 - y1 - &2 * x)`);
+ (ABBREV_TAC `P ={x| &0 < x}`);
+ (ABBREV_TAC 
+  `f2 = (\t. sqrt (((y1 + t) + y2 - t + &2) * ((y1 + t) + y2 - t - &2) *
+                   (y2 - t + &2 - (y1 + t)) * (&2 + (y1 + t) - (y2 - t))))`);
+ (SUBGOAL_THEN `f2 = (\t:real. sqrt (f1 t))` ASSUME_TAC);
+ (EXPAND_TAC "f1"  THEN EXPAND_TAC "f2" THEN MESON_TAC[]);
+ (ABBREV_TAC `g2' = (\x. inv (&2 * sqrt x))`);
+ (ABBREV_TAC `f2' = f1' * g2' ((f1:real->real) x)`);
+ (SUBGOAL_THEN`(f2 has_real_derivative f2') (atreal x within s)` ASSUME_TAC);
+ (EXPAND_TAC "f2'" THEN REWRITE_TAC[ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (SUBGOAL_THEN `(f1 has_real_derivative f1')(atreal x within s) /\ P (f1 x)` 
+  MP_TAC);
+  STRIP_TAC;
+ (EXPAND_TAC "f1'" THEN EXPAND_TAC "f1");
+ (REAL_DIFF_TAC THEN REAL_ARITH_TAC); 
+ (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM] THEN EXPAND_TAC "f1");
+ (MP_TAC (ASSUME `(x:real) IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `!x. P x ==> (sqrt has_real_derivative g2' x) (atreal x)`MP_TAC);
+ (EXPAND_TAC "g2'" THEN REWRITE_TAC[BETA_THM]);
+ (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);  
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_SQRT]);
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+ (ABBREV_TAC `f3 = (\t. (&2 * &2 - (y1 + t) * (y1 + t) - (y2 - t) * (y2 - t)) / 
+    sqrt (((y1 + t) + (y2 - t) + &2) * ((y1 + t) + (y2 - t) - &2) *
+           ((y2 - t) + &2 - (y1 + t)) * (&2 + (y1 + t) - (y2 - t))))`);
+ (ABBREV_TAC 
+   `h = (\t. (&2 * &2 - (y1 + t) * (y1 + t) - (y2 - t) * (y2 - t)))`);
+
+ (SUBGOAL_THEN `(f3 has_real_derivative 
+                 ((&2 * (y2 - y1 - &2 * x)) * f2 x - h x * f2') / f2 x pow 2)
+                 (atreal x within s)` ASSUME_TAC);
+
+ (SUBGOAL_THEN `f3 = (\t:real. h t / f2 t)` ASSUME_TAC);
+ (EXPAND_TAC "f2" THEN EXPAND_TAC "h" THEN EXPAND_TAC "f3");
+ (ASM_REWRITE_TAC[]);
+  
+ (SUBGOAL_THEN 
+ `(h has_real_derivative &2 * (y2 - y1 - &2 * x)) (atreal x within s) /\
+  (f2 has_real_derivative f2') (atreal x within s) /\ ~(f2 x = &0)` MP_TAC);
+ (ASM_REWRITE_TAC[] THEN REPEAT CONJ_TAC);
+ (EXPAND_TAC "h" THEN REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+ (ASM_REWRITE_TAC[] THEN MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC(ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (PURE_REWRITE_TAC[ASSUME `f3 = (\t:real. h t / f2 t)`]);
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_DIV_WITHIN]);
+
+ (ABBREV_TAC `F1 = (\t. atn
+                       ((&2 * &2 - (y1 + t) * (y1 + t) - (y2 - t) * (y2 - t)) / 
+                      sqrt
+                        (((y1 + t) + (y2 - t) + &2) *
+                        ((y1 + t) + (y2 - t) - &2) *
+                        ((y2 - t) + &2 - (y1 + t)) *
+                        (&2 + (y1 + t) - (y2 - t)))))`);
+ (SUBGOAL_THEN `F1 = (\t:real. atn (f3 t))` ASSUME_TAC);
+ (EXPAND_TAC "f3" THEN EXPAND_TAC "F1" THEN ASM_REWRITE_TAC[]);
+
+ (ABBREV_TAC 
+  `f3' = ((&2 * (y2 - y1 - &2 * x)) * f2 x - h x * f2') / f2 x pow 2`);
+ (SUBGOAL_THEN 
+ `(F1 has_real_derivative f3' * inv (&1 + f3 x pow 2)) (atreal x within s)`
+ ASSUME_TAC);
+ (REWRITE_TAC[ASSUME `F1 = (\t:real. atn (f3 t))`]);
+ (SUBGOAL_THEN `(f3 has_real_derivative f3') (atreal x within s) /\ 
+                 (:real) (f3 x)` MP_TAC);
+ (ASM_REWRITE_TAC[] THEN MESON_TAC[EQ_UNIV;IN_UNIV; IN]);
+ (ABBREV_TAC `h' = (\x. inv (&1 + x pow 2))`);
+
+ (SUBGOAL_THEN `!x. (:real) x ==> (atn has_real_derivative (h':real->real) x)
+  (atreal x)` MP_TAC);
+ (EXPAND_TAC "h'" THEN REWRITE_TAC[BETA_THM]);
+ (REWRITE_TAC[EQ_UNIV; HAS_REAL_DERIVATIVE_ATN]);
+
+ (SUBGOAL_THEN `inv (&1 + f3 (x:real) pow 2) = h' (f3 x)` ASSUME_TAC);
+ (EXPAND_TAC "h'" THEN REWRITE_TAC[]);
+ (REWRITE_TAC[ASSUME `inv (&1 + f3 (x:real) pow 2) = h'( f3 x)`]);
+
+ (REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+(* --------------------------------------------------------------------------*)
+(*                  REDUCE derivative of F1                                  *)  
+(* --------------------------------------------------------------------------*)
+
+ (SUBGOAL_THEN `f1 x = (y1 + y2 + &2) *
+                        (y1 + y2 - &2) *
+                        (y2 - &2 * x + &2 - y1) *
+                        (&2 + y1 + &2 * x - y2)`ASSUME_TAC);
+ (EXPAND_TAC "f1" THEN REAL_ARITH_TAC);
+ (SUBGOAL_THEN `inv (&1 + f3 x pow 2) = 
+                (f1 x) / (&4 * ((y1 + x) * (y2 - x)) pow 2)` ASSUME_TAC);
+ (EXPAND_TAC "f3" THEN REWRITE_TAC[REAL_POW_DIV]);
+
+ (SUBGOAL_THEN `&0 <= ((y1 + x) + y2 - x + &2) * ((y1 + x) + y2 - x - &2) *
+  (y2 - x + &2 - (y1 + x)) * (&2 + (y1 + x) - (y2 - x))` ASSUME_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (SUBGOAL_THEN `sqrt (((y1 + x) + y2 - x + &2) * ((y1 + x) + y2 - x - &2) *
+   (y2 - x + &2 - (y1 + x)) * (&2 + (y1 + x) - (y2 - x))) pow 2 = f1 x`
+ ASSUME_TAC);
+ (EXPAND_TAC "f1" THEN ASM_SIMP_TAC [SQRT_POW_2]);
+
+ (PURE_ONCE_ASM_REWRITE_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[GSYM REAL_INV_DIV]);
+ (AP_TERM_TAC);
+ (ONCE_ASM_REWRITE_TAC[REAL_INV_DIV] THEN PURE_ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC (REAL_ARITH `&1 = x - y ==> &1 + y = x `));
+ (REWRITE_TAC [REAL_ARITH `x / y - z / y = (x - z) / y`]);
+ (REWRITE_TAC[REAL_ARITH `&4 * ((y1 + x) * (y2 - x)) pow 2 -
+  (&2 * &2 - (y1 + x) * (y1 + x) - (y2 - x) * (y2 - x)) pow 2 = 
+  (y1 + y2 + &2) * (y1 + y2 - &2) * (y2 - &2 * x + &2 - y1) *
+  (&2 + y1 + &2 * x - y2)`]);
+ (MATCH_MP_TAC (GSYM REAL_DIV_REFL));
+ (REWRITE_TAC[GSYM (ASSUME `f1 x = (y1 + y2 + &2) * (y1 + y2 - &2) *
+      (y2 - &2 * x + &2 - y1) * (&2 + y1 + &2 * x - y2)`)]);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(&0 = a)`));
+ (MP_TAC (ASSUME `x:real IN s`) THEN EXPAND_TAC "f1" THEN ASM_REWRITE_TAC[]);
+
+(* ========================================================================== *)
+
+ (SUBGOAL_THEN `(&2 * (y2 - y1 - &2 * x)) * f2 x - h x * f2' = 
+  &4 * (y1 + x) * (y2 - x) * (y2 - y1 - &2 * x) * 
+  ((y2 + y1) pow 2 - &4) / f2 x` ASSUME_TAC);
+ (ABBREV_TAC `X = (&2 * (y2 - y1 - &2 * x)) * f2 x - h x * f2'`);
+ (REWRITE_TAC[REAL_ARITH `x * y / z = (x * y) / z`]);
+ (ABBREV_TAC `Y = &4 * (y1 + x) * (y2 - x) * (y2 - y1 - &2 * x) * 
+                   ((y2 + y1) pow 2 - &4)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+
+ (SUBGOAL_THEN `Y / f2 (x:real) = X <=> Y = X * f2 x` ASSUME_TAC);
+ (MATCH_MP_TAC REAL_EQ_LDIV_EQ);
+ (REPLICATE_TAC 2 (ONCE_ASM_REWRITE_TAC[]) THEN MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (ONCE_ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "X" THEN EXPAND_TAC "Y");
+ (EXPAND_TAC "f2'" THEN EXPAND_TAC "h" THEN EXPAND_TAC "g2'");
+ (ONCE_REWRITE_TAC[REAL_ARITH `(a - b) * c = a * c - b * c`]);
+
+ (SUBGOAL_THEN `inv (&2 * sqrt (f1 x)) * f2 (x:real) = &1 / &2` ASSUME_TAC);
+ (REWRITE_TAC[ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (ONCE_REWRITE_TAC[REAL_ARITH `a * sqrt b = (a * (&2 * sqrt b)) / &2`]);
+ (AP_THM_TAC THEN AP_TERM_TAC);
+ (MATCH_MP_TAC REAL_MUL_LINV);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+ (MATCH_MP_TAC REAL_LT_MUL);
+ (REWRITE_TAC[REAL_ARITH `&0 < &2`]);
+ (MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (REWRITE_TAC[REAL_ARITH `(a * b * c) * d = (a * b) * c * d`]);
+ (PURE_REWRITE_TAC[ASSUME `inv (&2 * sqrt (f1 x)) * f2 (x:real) = &1 / &2`]);
+ (REWRITE_TAC[REAL_ARITH `(a * f2 x) * f2 x = a * (f2 (x:real) pow 2)`]);
+
+ (SUBGOAL_THEN `f2 (x:real) pow 2 = f1 x` ASSUME_TAC);
+ (REWRITE_TAC [ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (REWRITE_TAC[ASSUME `f2 (x:real) pow 2 = f1 x`]);
+ (ASM_REWRITE_TAC[] THEN EXPAND_TAC "f1'" THEN REAL_ARITH_TAC);
+
+ (SUBGOAL_THEN 
+  `f3' * inv (&1 + f3 x pow 2) = 
+   (y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4) / ((y1 + x) * (y2 - x) * f2 x)` ASSUME_TAC);
+ (EXPAND_TAC "f3'");
+ (REWRITE_TAC[ASSUME `inv (&1 + f3 x pow 2) = 
+                       f1 x / (&4 * ((y1 + x) * (y2 - x)) pow 2)`]);
+ (REWRITE_TAC[ASSUME 
+ `(&2 * (y2 - y1 - &2 * x)) * f2 x - h x * f2' = &4 * (y1 + x) * (y2 - x) * 
+  (y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4) / f2 x`]);
+
+ (SUBGOAL_THEN `f2 (x:real) pow 2 = f1 x` ASSUME_TAC);
+ (REWRITE_TAC [ASSUME `f2 = (\t:real. sqrt (f1 t))`]);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[ASSUME `f2 (x:real) pow 2 = f1 x`]);
+
+ (ONCE_REWRITE_TAC [REAL_ARITH `a / b * c / d = (a / d) * c / b`]);
+ (MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 /\ x = y ==> x * a = y`));
+  STRIP_TAC;
+
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (ABBREV_TAC `X = (&4 * (y1 + x) * (y2 - x) * (y2 - y1 - &2 * x) * 
+                   ((y2 + y1) pow 2 - &4) / f2 x)`);
+ (ABBREV_TAC `Y = (y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4) / 
+                   ((y1 + x) * (y2 - x) * f2 x)`);
+ (ABBREV_TAC `Z = (&4 * ((y1 + x) * (y2 - x)) pow 2)`);
+
+ (SUBGOAL_THEN `X / Z = Y <=> X = Y * Z` ASSUME_TAC);
+ (MATCH_MP_TAC REAL_EQ_LDIV_EQ);
+ (EXPAND_TAC "Z" THEN MATCH_MP_TAC REAL_LT_MUL);
+ (REWRITE_TAC[REAL_ARITH `&0 < &4`] THEN MATCH_MP_TAC REAL_POW_LT);
+ (MATCH_MP_TAC REAL_LT_MUL);
+ (MP_TAC (ASSUME `x:real IN s`));
+ (PURE_REWRITE_TAC[ASSUME 
+  `s = {t |  y2 - &2 - y1 < &2 * t /\ &2 * t < y2 + &2 - y1}`]);
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+
+ (MATCH_MP_TAC (REAL_ARITH `&0 <= y1 + &2 * x /\ &2 <= y1 ==> &0 < y1 + x`));
+ (ASM_REWRITE_TAC[] THEN ASM_REAL_ARITH_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&2 * x < &2 * y ==> &0 < y - x`));
+ (MATCH_MP_TAC (REAL_ARITH 
+   `a < y2 + &2 - y1 /\ y2 + &2 - y1 <= b ==> a < b`));
+ (ASM_REWRITE_TAC[] THEN ASM_REAL_ARITH_TAC);
+
+ (ONCE_ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "X" THEN EXPAND_TAC "Y" THEN EXPAND_TAC "Z");
+ (REWRITE_TAC [REAL_ARITH `a * b / c = (a * b) / c`]); 
+ (REWRITE_TAC[REAL_ARITH `((y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4)) / 
+  ((y1 + x) * (y2 - x) * f2 x) * &4 * ((y1 + x) * (y2 - x)) pow 2 =
+  (&4 * (y1 + x) * (y2 - x) * (y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4)) *
+  ((y1 + x) * (y2 - x)) / (f2 x * (y1 + x) * (y2 - x))`]);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC REDUCE_WITH_DIV_Euler_lemma);
+ CONJ_TAC;
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+ (MATCH_MP_TAC REAL_LT_MUL THEN MP_TAC (ASSUME `x:real IN s`));
+ (PURE_REWRITE_TAC[ASSUME 
+  `s = {t |  y2 - &2 - y1 < &2 * t /\ &2 * t < y2 + &2 - y1}`]);
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+
+ (MATCH_MP_TAC (REAL_ARITH `&0 <= y1 + &2 * x /\ &2 <= y1 ==> &0 < y1 + x`));
+ (ASM_REWRITE_TAC[] THEN ASM_REAL_ARITH_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `&2 * x < &2 * y ==> &0 < y - x`));
+ (MATCH_MP_TAC (REAL_ARITH 
+   `a < y2 + &2 - y1 /\ y2 + &2 - y1 <= b ==> a < b`));
+ (ASM_REWRITE_TAC[] THEN ASM_REAL_ARITH_TAC);
+
+ (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+ (ONCE_ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[]);
+ (MATCH_MP_TAC SQRT_POS_LT);
+ (EXPAND_TAC "f1" THEN MP_TAC (ASSUME `x:real IN s`) THEN ASM_REWRITE_TAC[]);
+
+(* ========================================================================== *)
+
+ (SUBGOAL_THEN 
+  `(F1 has_real_derivative ((y2 - y1 - &2 * x) *
+      ((y2 + y1) pow 2 - &4)) / ((y1 + x) * (y2 - x) * f2 x))
+      (atreal x within s)` ASSUME_TAC);
+ (ONCE_REWRITE_TAC[REAL_ARITH `(a * b) / c = a * b / c`]);
+ (ASM_MESON_TAC[]);
+
+ (SUBGOAL_THEN 
+  `(F1 has_real_derivative g' x) (atreal x within s)` ASSUME_TAC);
+ (REWRITE_TAC[ASSUME 
+  `g' = (\x. ((y2 - y1 - &2 * x) * ((y2 + y1) pow 2 - &4)) /
+           ((y1 + x) * (y2 - x) *
+            sqrt
+            ((y1 + y2 + &2) *
+             (y1 + y2 - &2) *
+             (y2 - &2 * x + &2 - y1) *
+             (&2 + y1 + &2 * x - y2))))`]);
+ (FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[]);
+
+ (ABBREV_TAC `F2 = (\x:real. pi / &2 + F1 x)`);
+ (ABBREV_TAC `pi_2 = (\x:real. pi / &2 )`);
+
+ (SUBGOAL_THEN `(F2 has_real_derivative g' x)(atreal x within s)` MP_TAC);
+ (SUBGOAL_THEN `F2 = (\x:real. pi_2 x + F1 x)` ASSUME_TAC);
+ (EXPAND_TAC "F2" THEN EXPAND_TAC "F1" THEN EXPAND_TAC "pi_2");
+ (REWRITE_TAC[]);
+ (REWRITE_TAC[ASSUME `F2 = (\x:real. pi_2 x + F1 x)`]);
+ (SUBGOAL_THEN `((\x. pi_2 x + F1 x) has_real_derivative &0 + g' x)
+ (atreal x within s)` ASSUME_TAC);
+
+ (SUBGOAL_THEN `(pi_2 has_real_derivative (&0)) (atreal x within s)` MP_TAC);
+ (EXPAND_TAC "pi_2" THEN REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+
+ (MP_TAC (ASSUME `(F1 has_real_derivative g' x) (atreal x within s)`));
+ (REWRITE_TAC[MESON[] `(a ==> b ==> c) <=> (b /\ a ==> c)`]);
+ (MESON_TAC[HAS_REAL_DERIVATIVE_ADD]);
+ (ASM_MESON_TAC[REAL_ARITH `&0 + a = a`]);
+
+ (SUBGOAL_THEN `(!x':real. (x':real) IN s /\ abs (x' - x) < &1 ==> 
+                            (F2:real -> real) x' = g x')` MP_TAC);
+ (REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[]); 
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN EXPAND_TAC "F2" THEN EXPAND_TAC "F1");
+ (MATCH_MP_TAC ATN_UPS_X_BREAKDOWN1);
+ (MP_TAC (ASSUME `x':real IN s`) THEN ASM_REWRITE_TAC[]);
+
+ (MP_TAC (ASSUME `x:real IN s`));
+ (MP_TAC (REAL_ARITH `&0 < &1`));
+ (MESON_TAC[HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN])]);;
+
+(* ========================================================================== *)
+(*        SECOND LEMMA                                                        *)
+(* ========================================================================== *)
+
+let compute_two_second = prove_by_refinement (
+ `!y1 y2 s h0 g x.
+     &1 <= h0 /\ h0 < &2 /\
+     &2 <= y1 /\ y1 <= &2 * h0 /\
+     &2 <= y2 /\ y2 <= &2 * h0 /\
+     s = {t | y2 - &2 - y1 < &2 * t /\ &2 * t < y2 + &2 - y1} /\
+     g =
+     (\t. ((y2 - y1 - &2 * t) * ((y2 + y1) pow 2 - &4)) /
+          ((y1 + t) *
+           (y2 - t) *
+           sqrt
+           ((y1 + y2 + &2) *
+            (y1 + y2 - &2) *
+            (y2 - &2 * t + &2 - y1) *
+            (&2 + y1 + &2 * t - y2))))
+     ==> (g has_real_derivative
+          (sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+           (-- &4 * y1 pow 2 +
+            y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+            &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+            y2 pow 4)) /
+          (y1 pow 2 * y2 pow 2 * (&4 - (y1 - y2) pow 2) pow 2))
+         (atreal (&0) within s)`,
+
+[(REWRITE_TAC[REAL_ARITH `a * b * sqrt c = (a * b) * sqrt c`]);
+ (REPEAT STRIP_TAC);
+
+  (SUBGOAL_THEN `&0 IN s` ASSUME_TAC);
+  (PURE_ASM_REWRITE_TAC[IN_ELIM_THM; REAL_MUL_RZERO]);
+   ASM_REAL_ARITH_TAC;
+
+(* ========================================================================== *)
+
+  (SUBGOAL_THEN  `!t. t IN s ==>  &0 < (y1 + y2 + &2) * (y1 + y2 - &2) * 
+                          (y2 - &2 * t + &2 - y1) * (&2 + y1 + &2 * t - y2)`
+     ASSUME_TAC);
+
+  (GEN_TAC THEN ASM_REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC);
+
+    (SUBGOAL_THEN `&0 < y1 + y2 - &2 /\ &0 < y1 + y2 + &2 /\ 
+       &0 < y2 - &2 * t + &2 - y1 /\ &0 < &2 + y1 + &2 * t - y2` ASSUME_TAC);
+     ASM_REAL_ARITH_TAC;
+    (ASM_MESON_TAC[REAL_LT_MUL]);
+
+(* -------------------------------------------------------------------------- *)
+
+(ABBREV_TAC `f1 = (\t. (y2 - y1 - &2 * t) * ((y2 + y1) pow 2 - &4))`);
+(ABBREV_TAC `f2 = (\t. (y1 + y2 + &2) * (y1 + y2 - &2) *
+             (y2 - &2 * t + &2 - y1) * (&2 + y1 + &2 * t - y2))`);
+(ABBREV_TAC `f3 = (\t:real. sqrt (f2 t))`);
+(ABBREV_TAC `f4 = (\t:real. (y1 + t) * (y2 - t))`);
+(ABBREV_TAC `f5 = (\t:real. f4 t * f3 t )`);
+
+(SUBGOAL_THEN `&0 < f2 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f2" THEN MP_TAC (ASSUME `((&0):real) IN s`));
+(ASM_REWRITE_TAC[]);
+
+(SUBGOAL_THEN `(f1 has_real_derivative -- &2 * ((y2 + y1) pow 2 - &4))
+                 (atreal (&0) within s)` ASSUME_TAC);
+(EXPAND_TAC "f1" THEN REAL_DIFF_TAC);
+ REAL_ARITH_TAC;
+
+(ABBREV_TAC `f2' = &4 * (y2 - y1) * ((y2 + y1) pow 2 - &4)`);
+(ABBREV_TAC `P ={x| &0 < x}`);
+(ABBREV_TAC `g3' = (\x. inv (&2 * sqrt x))`);
+(ABBREV_TAC `f3' = f2' * g3' ((f2:real->real) (&0))`);
+
+  (SUBGOAL_THEN 
+    `(f3 has_real_derivative f3') (atreal (&0) within s)` ASSUME_TAC);
+  (EXPAND_TAC "f3'" THEN EXPAND_TAC "f3");
+
+  (SUBGOAL_THEN 
+     `(f2 has_real_derivative f2') (atreal (&0) within s) /\ P (f2 (&0))` 
+   MP_TAC);
+   STRIP_TAC;
+
+  (EXPAND_TAC "f2" THEN EXPAND_TAC "f2'");
+  (REAL_DIFF_TAC THEN REWRITE_TAC[POW_2] THEN REAL_ARITH_TAC);
+  (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);
+  (ASM_REWRITE_TAC[]);
+
+  (SUBGOAL_THEN 
+    `!x. P x ==> (sqrt has_real_derivative (g3':real->real) x) (atreal x)`
+     MP_TAC);
+  (EXPAND_TAC "g3'" THEN REWRITE_TAC[BETA_THM]);
+  (EXPAND_TAC "P" THEN REWRITE_TAC[IN_ELIM_THM]);  
+  (REWRITE_TAC[HAS_REAL_DERIVATIVE_SQRT]);
+
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_CHAIN2]);
+
+(* ========================================================================== *)
+
+(SUBGOAL_THEN `(f5 has_real_derivative f4 (&0) * f3' + (y2 - y1) * f3 (&0)) 
+  (atreal (&0) within s)` ASSUME_TAC);
+(EXPAND_TAC "f5");
+
+(SUBGOAL_THEN 
+  `(f4 has_real_derivative y2 - y1) (atreal (&0) within s) /\
+   (f3 has_real_derivative f3') (atreal (&0) within s)` MP_TAC);
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "f4" THEN REAL_DIFF_TAC THEN REAL_ARITH_TAC);
+
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_MUL_WITHIN]);
+
+(* ========================================================================= *)
+(*          Derivative of f1 / f5                                            *) 
+(* ========================================================================= *)
+
+(SUBGOAL_THEN `g = (\t:real. f1 t / f5 t)` ASSUME_TAC);
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "f5" THEN EXPAND_TAC "f1");
+(EXPAND_TAC "f4" THEN EXPAND_TAC "f3" THEN EXPAND_TAC "f2");
+(REWRITE_TAC[]);
+
+(REWRITE_TAC[ASSUME `g = (\t:real. f1 t / f5 t)`] THEN DEL_TAC);
+
+(SUBGOAL_THEN `((\t. f1 t / f5 t) has_real_derivative
+  ((-- &2 * ((y2 + y1) pow 2 - &4)) * f5 (&0) - f1 (&0) * 
+  (f4 (&0) * f3' + (y2 - y1) * f3 (&0))) / 
+  f5 (&0) pow 2) (atreal (&0) within s)` ASSUME_TAC);
+
+(SUBGOAL_THEN 
+  `(f1 has_real_derivative -- &2 * ((y2 + y1) pow 2 - &4)) 
+   (atreal (&0) within s) /\
+   (f5 has_real_derivative f4 (&0) * f3' + (y2 - y1) * f3 (&0))
+    (atreal (&0) within s) /\ ~(f5 (&0) = &0)` MP_TAC);
+
+(ASM_REWRITE_TAC[]);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`));
+(EXPAND_TAC "f5" THEN MATCH_MP_TAC REAL_LT_MUL);
+ STRIP_TAC;
+
+(EXPAND_TAC "f4" THEN MATCH_MP_TAC REAL_LT_MUL THEN ASM_REAL_ARITH_TAC);
+(EXPAND_TAC "f3" THEN MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+
+(REWRITE_TAC[HAS_REAL_DERIVATIVE_DIV_WITHIN]);
+
+(* ========================================================================= *)
+
+(SUBGOAL_THEN 
+`((-- &2 * ((y2 + y1) pow 2 - &4)) * f5 (&0) -
+  f1 (&0) * (f4 (&0) * f3' + (y2 - y1) * f3 (&0))) /
+ f5 (&0) pow 2 =
+ (sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+  (-- &4 * y1 pow 2 +
+   y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+   &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+   y2 pow 4)) /
+ (y1 pow 2 * y2 pow 2 * (&4 - (y1 - y2) pow 2) pow 2)` ASSUME_TAC);
+
+(REWRITE_WITH `ups_x (y1 pow 2) (y2 pow 2) (&4) = f2 (&0)`);
+(REWRITE_TAC[ups_x] THEN EXPAND_TAC "f2");
+ REAL_ARITH_TAC;
+
+(EXPAND_TAC "f5");
+
+(SUBGOAL_THEN `f4 (&0) = y1 * y2` ASSUME_TAC);
+(EXPAND_TAC "f4" THEN REAL_ARITH_TAC);
+(ASM_REWRITE_TAC[]);
+
+
+(REWRITE_TAC[REAL_ARITH `a - b * (c + d) = a - b * c - b * d`]);
+(REWRITE_TAC[REAL_ARITH `(-- &2 * m) * n * x = ((-- &2 * m) * n) * x`]);
+(REWRITE_TAC[REAL_ARITH `f1 (&0) * (y2 - y1) * f3 (&0) = 
+                          (f1 (&0) * (y2 - y1)) * f3 (&0)`]);
+(REWRITE_TAC[REAL_ARITH `a * f3 (&0) - b - c * f3 (&0) = (a - c) * f3 (&0) - b`]);
+(SUBGOAL_THEN 
+  `((-- &2 * ((y2 + y1) pow 2 - &4)) * y1) * y2 - f1 (&0) * (y2 - y1) = 
+    -- (y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)` ASSUME_TAC);   
+(EXPAND_TAC "f1" THEN REAL_ARITH_TAC);
+
+(ASM_REWRITE_TAC[]);
+(EXPAND_TAC "f3'" THEN EXPAND_TAC "g3'");
+
+(SUBGOAL_THEN `sqrt (f2 (&0)) = f3 (&0)` ASSUME_TAC);
+(EXPAND_TAC "f3" THEN REWRITE_TAC[]);
+(REWRITE_TAC[ASSUME `sqrt (f2 (&0)) = f3 (&0)`]);
+
+(SUBGOAL_THEN 
+`(--(y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)) * f3 (&0) -
+  f1 (&0) * (y1 * y2) * f2' * inv (&2 * f3 (&0)) =
+ ((--(y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)) * f3 (&0) pow 2 -
+  f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4)) /
+ f3 (&0)` ASSUME_TAC);
+
+(PURE_ONCE_REWRITE_TAC[REAL_ARITH `(a - b) / c = a / c - b / c`]);
+(MATCH_MP_TAC (REAL_ARITH `a = b /\ c = d ==> a - c = b - d`));
+ STRIP_TAC;
+
+(REWRITE_TAC[REAL_POW_2; REAL_ARITH `(a * b * c) / d = (a * b) * c / d`]);
+(MATCH_MP_TAC (MESON[REAL_MUL_RID] `a = &1 ==> b = b * a`));
+(MATCH_MP_TAC REAL_DIV_REFL);
+(EXPAND_TAC "f3");
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+(MATCH_MP_TAC SQRT_POS_LT);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "f2'");
+(REWRITE_TAC[REAL_ARITH 
+ `f1 (&0) * (y1 * y2) * (&4 * (y2 - y1) * ((y2 + y1) pow 2 - &4)) *
+  inv (&2 * f3 (&0)) = 
+  f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4) * &2 * 
+  inv (&2 * f3 (&0))`]) ;
+(ABBREV_TAC 
+  `X =  f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4) * &2 * 
+  inv (&2 * f3 (&0))`);
+(ABBREV_TAC 
+ `Y = f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4)`);
+(ABBREV_TAC `Z = (f3:real->real) (&0)`);
+
+(SUBGOAL_THEN `X = Y / Z <=> X * Z = Y` ASSUME_TAC);
+(MATCH_MP_TAC REAL_EQ_RDIV_EQ THEN EXPAND_TAC "Z" THEN EXPAND_TAC "f3");
+(MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+(ASM_REWRITE_TAC[]);
+
+(EXPAND_TAC "X" THEN EXPAND_TAC "Y" THEN EXPAND_TAC "Z");
+(REWRITE_TAC[REAL_ARITH `(x1 * x2 * x3 * x4 * x5 * &2 * b) * c  =
+                           (x1 * x2 * x3 * x4 * x5) * (&2 * c) * b`]);
+(MATCH_MP_TAC( MESON[REAL_MUL_RID] `a = &1 ==> b * a = b`));
+(MATCH_MP_TAC REAL_MUL_RINV);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a = &0)`));
+(MATCH_MP_TAC REAL_LT_MUL);
+(REWRITE_TAC[REAL_ARITH `&0 < &2`]);
+(EXPAND_TAC "f3" THEN MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+
+(ASM_REWRITE_TAC[]);
+(REWRITE_TAC[REAL_POW_MUL]);
+(EXPAND_TAC "f3");
+(REWRITE_WITH `sqrt (f2 (&0)) pow 2 = f2 (&0)`);
+(MATCH_MP_TAC SQRT_POW_2);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`) THEN ASM_REWRITE_TAC[]);
+
+(REWRITE_TAC[REAL_ARITH `a / b / c = a / c / b`]);
+(ABBREV_TAC `A = ((--(y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)) * 
+   f2 (&0) - f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4)) /
+  ((y1 pow 2 * y2 pow 2) * f2 (&0))`);
+(ABBREV_TAC `B = (sqrt (f2 (&0)) * (-- &4 * y1 pow 2 +
+   y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+   &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+   y2 pow 4)) /
+   (y1 pow 2 * y2 pow 2 * (&4 - (y1 - y2) pow 2) pow 2)`);
+
+(SUBGOAL_THEN `A/ sqrt (f2 (&0)) = B <=> A = B * sqrt (f2 (&0))` ASSUME_TAC);
+(MATCH_MP_TAC REAL_EQ_LDIV_EQ);
+(MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);
+(ONCE_ASM_REWRITE_TAC[]);
+(EXPAND_TAC "A" THEN EXPAND_TAC "B");
+(REWRITE_TAC[REAL_ARITH `(a * b) / c * d = (b * a * d) / c`]);
+(ONCE_REWRITE_TAC[GSYM REAL_POW_2]);
+(REWRITE_WITH `sqrt (f2 (&0)) pow 2 = f2 (&0)`);
+(MATCH_MP_TAC SQRT_POW_2);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`) THEN ASM_REWRITE_TAC[]);
+
+
+(ABBREV_TAC `C = ((--(y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)) * 
+   f2 (&0) - f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4)) /
+  ((y1 pow 2 * y2 pow 2) * f2 (&0))`);
+(ABBREV_TAC `D = ((-- &4 * y1 pow 2 +
+   y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+   &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+   y2 pow 4) *
+  f2 (&0))`);
+(ABBREV_TAC `E = (y1 pow 2 * y2 pow 2 * (&4 - (y1 - y2) pow 2) pow 2)`);
+
+
+(SUBGOAL_THEN `C = D / E <=> C * E = D` ASSUME_TAC);
+(MATCH_MP_TAC REAL_EQ_RDIV_EQ);
+(EXPAND_TAC "E");
+(MATCH_MP_TAC REAL_LT_MUL THEN STRIP_TAC);
+(MATCH_MP_TAC REAL_POW_LT);
+(ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 < a`]);
+(MATCH_MP_TAC REAL_LT_MUL THEN STRIP_TAC);
+(MATCH_MP_TAC REAL_POW_LT);
+(ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 < a`]);
+(MATCH_MP_TAC REAL_POW_LT);
+(MATCH_MP_TAC (REAL_ARITH `b < a ==> &0 < a - b`));
+(SUBGOAL_THEN ` -- &2 < y1 - y2 /\ y1 - y2 < &2` ASSUME_TAC);
+(ASM_REAL_ARITH_TAC);
+(REWRITE_TAC[REAL_ARITH `&4 = (&2) pow 2`]);
+(REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS]);
+(ASM_REAL_ARITH_TAC);
+
+(ONCE_ASM_REWRITE_TAC[]); 
+(EXPAND_TAC "C" THEN EXPAND_TAC "D" THEN EXPAND_TAC "E");
+(REWRITE_TAC[REAL_ARITH `a / b * c = (a * c) / b`]);
+
+(REWRITE_WITH `(((--(y1 pow 2 + y2 pow 2) * ((y2 + y1) pow 2 - &4)) * f2 (&0) -
+   f1 (&0) * (y1 * y2) * &2 * (y2 - y1) * ((y2 + y1) pow 2 - &4)) *
+  y1 pow 2 *
+  y2 pow 2 *
+  (&4 - (y1 - y2) pow 2) pow 2) = ((-- &4 * y1 pow 2 +
+  y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+  &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+  y2 pow 4) *
+ f2 (&0)) * ((y1 pow 2 * y2 pow 2) * f2 (&0))`);
+
+(EXPAND_TAC "f2" THEN EXPAND_TAC "f1");
+(REAL_ARITH_TAC);
+
+(ONCE_REWRITE_TAC[REAL_ARITH `(a * b) / c = a * b / c`]);
+(MATCH_MP_TAC (MESON [REAL_MUL_RID] `a = &1 ==> b * a = b`));
+(MATCH_MP_TAC REAL_DIV_REFL);
+(MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~ (a =  &0)`));
+
+
+(MATCH_MP_TAC REAL_LT_MUL THEN STRIP_TAC);
+(MATCH_MP_TAC REAL_LT_MUL THEN STRIP_TAC);
+(MATCH_MP_TAC REAL_POW_LT);
+(ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 < a`]);
+(MATCH_MP_TAC REAL_POW_LT);
+(ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 < a`]);
+(ASM_REWRITE_TAC[]);
+
+(ASM_MESON_TAC[])]);;
+
+(* ========================================================================= *)
+
+let COMPUTE_DERIVATIVE_TWO = prove_by_refinement (
+ `!y1 y2 s h0 g x f.
+     &1 <= h0 /\ h0 < &2 /\ &2 <= y1 /\ y1 <= &2 * h0 /\
+     &2 <= y2 /\ y2 <= &2 * h0 /\
+   s = {t |  y2 - &2 - y1 < &2 * t /\ &2 * t < y2 + &2 - y1} /\
+   g = (\t. arclength (y1 + t) (y2 - t) (&2)) /\ x IN s /\
+   g' =
+     (\t. ((y2 - y1 - &2 * t) * ((y2 + y1) pow 2 - &4)) /
+          ((y1 + t) *
+           (y2 - t) *
+           sqrt
+           ((y1 + y2 + &2) *
+            (y1 + y2 - &2) *
+            (y2 - &2 * t + &2 - y1) *
+            (&2 + y1 + &2 * t - y2))))
+==>  (!x. x IN s ==> (g has_real_derivative g' x) (atreal x within s)) /\
+     (g' has_real_derivative
+          (sqrt (ups_x (y1 pow 2) (y2 pow 2) (&4)) *
+           (-- &4 * y1 pow 2 +
+            y1 pow 4 - &4 * y1 pow 3 * y2 - &4 * y2 pow 2 +
+            &6 * y1 pow 2 * y2 pow 2 - &4 * y1 * y2 pow 3 +
+            y2 pow 4)) /
+          (y1 pow 2 * y2 pow 2 * (&4 - (y1 - y2) pow 2) pow 2))
+         (atreal (&0) within s)`,
+
+[(REPEAT STRIP_TAC);
+ (ASM_MESON_TAC[compute_two_first]);
+ (ASM_MESON_TAC[compute_two_second])]);;
+
+
+end;;

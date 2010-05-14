@@ -23,6 +23,8 @@ needs "/home/truong/Desktop/googlecode/flyspeck/text_formalization/general/spher
 		
 		
 open Sphere;;
+open Fan_defs;;
+
 
 let ASM_TAC=REPEAT(POP_ASSUM MP_TAC);;
 let RED_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC;;
@@ -508,7 +510,7 @@ REMOVE_THEN "a" (fun th ->MP_TAC(ISPEC `(IMAGE (azim x v u) ((set_of_edge (v:rea
 let azim1=new_definition`azim1 (x:real^3) (v:real^3) (u:real^3) (w:real^3)= &2 * pi- azim x v u w`;;
 
 
-let exists_inverse_sigma_fan=prove(`
+let exists_inverse_sigma_fan_alt=prove(`
 (!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3).
 ~ (set_of_edge v V E= {u} ) 
 /\ FAN(x,V,E) /\ (u IN (set_of_edge v V E))
@@ -962,12 +964,12 @@ d1_fan (x,V,E) ={(x':real^3,v:real^3,w:real^3,w1:real^3)| (x'=x) /\ ({v,w} IN  E
 let d2_fan=new_definition`d2_fan (x,V,E)={ (x',v)| (x'=x) /\ (V v) /\ ((set_of_edge v V E) ={})}`;;
 
 
-let inverse_sigma_fan=new_definition`inverse_sigma_fan x V E v w = @a. sigma_fan x V E v a=w`;;
+let inverse_sigma_fan_alt=new_definition`inverse_sigma_fan_alt x V E v w = @a. sigma_fan x V E v a=w`;;
 
 let e_fan=new_definition` e_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,v,(sigma_fan x V E w v)))`;;
 
 
-let f_fan=new_definition`f_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,(inverse_sigma_fan x V E w v),v) )`;;
+let f_fan=new_definition`f_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,(inverse_sigma_fan_alt x V E w v),v) )`;;
 
 
 
@@ -1021,7 +1023,8 @@ let a_node_fan=new_definition`a_node_fan x V E (x,v,w,w1)={a | ?n. a=(power_maps
 
 let xfan= new_definition`xfan (x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
 
-let yfan= new_definition`yfan (x,V,E)={v:real^3 | ?e. ( E e )/\(~(v IN aff_ge {x} e))}`;;
+(* See comment by AS in fan_defs.hl.  The correct definition is there. *)
+let yfan_deprecated= new_definition`yfan_deprecated (x,V,E)={v:real^3 | ?e. ( E e )/\(~(v IN aff_ge {x} e))}`;;
 
 
 (*
@@ -1891,7 +1894,7 @@ THENL(*1*)[
 EXISTS_TAC`u:real^3` THEN ASM_REWRITE_TAC[sigma_fan];(*1*)
 
 MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3)`;` (u:real^3)`]properties_of_set_of_edge_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3)`;` (u:real^3)`]exists_inverse_sigma_fan) THEN ASM_REWRITE_TAC[azim1;] THEN STRIP_TAC THEN
+MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3)`;` (u:real^3)`]exists_inverse_sigma_fan_alt) THEN ASM_REWRITE_TAC[azim1;] THEN STRIP_TAC THEN
 MP_TAC(ISPECL[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3)`;` (w:real^3)`]properties_of_set_of_edge_fan) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN EXISTS_TAC `w:real^3` THEN ASM_REWRITE_TAC[] 
   THEN MATCH_MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3)`;` (w:real^3)`;` (u:real^3)`] UNIQUE_SIGMA_FAN)
   THEN ASM_REWRITE_TAC[] 
@@ -2098,7 +2101,7 @@ ASM_MESON_TAC[MONO_SIGMA_FAN]]]);;
 
 
 
-let exists_function_inverse_sigma_fan=prove(`!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3).
+let exists_function_inverse_sigma_fan_alt=prove(`!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3).
 FAN(x,V,E) ==> 
 (?g. (!w:real^3. {v,w} IN E==> {v, g w} IN E)
 /\ (!w:real^3. {v,w} IN E==> (sigma_fan x V E v)( g w) =w)
@@ -2119,7 +2122,7 @@ MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:
  ASM_REWRITE_TAC[] THEN DISCH_TAC THEN ASM_REWRITE_TAC[]);;
 
 (*
-This is the same as inverse_sigma_fan,
+This is the same as inverse_sigma_fan_alt,
 but easier to use.
 *)
 
@@ -2136,7 +2139,7 @@ FAN(x,V,E) ==>
 ( (!w:real^3. {v,w} IN E==> {v, inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) w} IN E)
 /\ (!w:real^3. {v,w} IN E==> (sigma_fan x V E v)( inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) w) =w)
 /\ (!w:real^3. {v,w} IN E==> inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (sigma_fan x V E v w) =w))`,
-REPEAT GEN_TAC THEN STRIP_TAC THEN ONCE_REWRITE_TAC[inverse1_sigma_fan] THEN MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3) `]exists_function_inverse_sigma_fan)
+REPEAT GEN_TAC THEN STRIP_TAC THEN ONCE_REWRITE_TAC[inverse1_sigma_fan] THEN MP_TAC(ISPECL[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;` (v:real^3) `]exists_function_inverse_sigma_fan_alt)
   THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN SELECT_ELIM_TAC  THEN EXISTS_TAC`g:real^3->real^3` THEN ASM_REWRITE_TAC[]);;
 
 (* This is the same as f_fan, 
@@ -2193,9 +2196,9 @@ REWRITE_TAC[d1_fan;IN_ELIM_THM] THEN REPEAT STRIP_TAC
 
 
 
-let simp_inverse_sigma_fan=prove(`!x V E v w.
-inverse_sigma_fan x V E v w= inverse (sigma_fan x V E v) w`,
-REWRITE_TAC[inverse] THEN MESON_TAC[inverse_sigma_fan]);;
+let simp_inverse_sigma_fan_alt=prove(`!x V E v w.
+inverse_sigma_fan_alt x V E v w= inverse (sigma_fan x V E v) w`,
+REWRITE_TAC[inverse] THEN MESON_TAC[inverse_sigma_fan_alt]);;
 
 
 

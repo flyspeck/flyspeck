@@ -1,0 +1,133 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Local Fan                                                   *)
+(* Author: Nguyen Quang Truong                                          *)
+(* Date: 2010-05-09                                                           *)
+(* ========================================================================== *)
+
+(* ========== snapshot 1631 ============= *)
+flyspeck_needs "local/LVDUCXU.hl";;
+
+
+module type Ldurdpn_type = sig
+
+end;;
+
+
+module Ldurdpn = struct
+
+open Lvducxu;;
+open Sphere;;
+open Trigonometry1;;
+open Trigonometry2;;
+open Hypermap;;
+open Fan;;
+open Prove_by_refinement;;
+open Wrgcvdr_cizmrrh;;
+
+
+let SUBSET_P_HULL = prove(` (S:A -> bool) SUBSET P hull S`,
+REWRITE_TAC[HULL_SUBSET]);;
+
+let IN_HULL_INSERT = prove(`!x:A. x IN P hull ( x INSERT S ) `,
+GEN_TAC THEN 
+MATCH_MP_TAC (SET_RULE` x IN S /\ S SUBSET P hull S ==> x IN P hull S `) THEN 
+REWRITE_TAC[IN_INSERT; SUBSET_P_HULL]);;
+
+
+
+let VECTOR_SCALE_CHANGE = prove(` ~( a = &0 ) ==> 
+( a % x = y <=> x = &1 / a % y ) `,
+DISCH_TAC THEN EQ_TAC THENL [
+DISCH_THEN (SUBST1_TAC o SYM) THEN 
+REWRITE_TAC[VECTOR_MUL_ASSOC] THEN 
+ASM_SIMP_TAC[REAL_FIELD` ~( a = &0) ==> &1 / a * a = &1 `; VECTOR_MUL_LID];
+SIMP_TAC[VECTOR_MUL_ASSOC] THEN 
+ASM_SIMP_TAC[REAL_FIELD` ~( a = &0) ==> a * &1 / a = &1 `; VECTOR_MUL_LID]]);;
+
+
+
+let AFF_CONV0_IN_AFF_LT = prove_by_refinement(
+` ~collinear {vec 0, u, v} ==>
+~(aff {vec 0, u} INTER conv0 {v, w} = {})
+ ==> w IN aff_lt {vec 0, u} {v} `,
+[NHANH th3a;
+SIMP_TAC[AFF_LT_2_1; Geomdetail.CONV0_SET2; AFF2];
+REWRITE_TAC[SET_RULE` ~( a INTER b = {}) <=> ? x. x IN a /\ x IN b`;
+IN_ELIM_THM];
+REPEAT STRIP_TAC;
+DOWN;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+PAT_ONCE_REWRITE_TAC `\x. x ==> y` 
+[VECTOR_ARITH` x = a + (b:real^N) <=> b = x + -- a `];
+ASSUME_TAC2 (REAL_ARITH` &0 < b ==> ~( b = &0 ) `);
+DOWN;
+SIMP_TAC[VECTOR_SCALE_CHANGE];
+REPEAT STRIP_TAC;
+REWRITE_TAC[VECTOR_MUL_ASSOC; VECTOR_ADD_LDISTRIB; GSYM VECTOR_MUL_LNEG];
+SUBGOAL_THEN ` (&1 / b * --a) < &0 ` MP_TAC;
+REWRITE_TAC[REAL_ARITH` &1 / b * --a < &0 <=> &0 < a / b `];
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REWRITE_TAC[];
+MESON_TAC[REAL_ARITH` (&1 - a - b ) + a + b = &1 `]]);;
+
+
+let LDURDPN = prove_by_refinement
+(` ~ collinear {vec 0, (u:real^3), v} /\ ~ collinear {vec 0, u, w}
+==> ( azim (vec 0) u v w = pi <=> (? A. plane A /\
+{vec 0, u, v, w} SUBSET A) /\ ~( aff {vec 0, u} INTER conv0 {v, w} = {}) )`,
+[SIMP_TAC[AZIM_EQ_PI_ALT];
+STRIP_TAC;
+EQ_TAC;
+UNDISCH_TAC ` ~collinear {vec 0, (u:real^3), v}`;
+NHANH th3;
+SIMP_TAC[AFF_LT_2_1; plane];
+STRIP_TAC THEN STRIP_TAC;
+DOWN;
+REWRITE_TAC[IN_ELIM_THM];
+STRIP_TAC;
+CONJ_TAC;
+EXISTS_TAC ` affine hull {vec 0, (u:real^3), v}`;
+REWRITE_TAC[AFFINE_HULL_3; INSERT_SUBSET; EMPTY_SUBSET];
+CONJ_TAC;
+EXISTS_TAC `(vec 0):real^3 `;
+EXISTS_TAC ` u:real^3 `;
+EXISTS_TAC `v:real^3 `;
+ASM_REWRITE_TAC[];
+REWRITE_TAC[GSYM AFFINE_HULL_3];
+NGOAC;
+CONJ_TAC;
+MESON_TAC[INSERT_COMM; IN_HULL_INSERT];
+REWRITE_TAC[AFFINE_HULL_3; IN_ELIM_THM];
+DOWN THEN DOWN THEN PHA;
+MESON_TAC[];
+REWRITE_TAC[SET_RULE` ~( x INTER y = {}) <=> ?a. a IN x /\ a IN y`];
+EXISTS_TAC ` ( &1 / (&1 - t3)) % ((w:real^3) - t3 % v ) `;
+REWRITE_TAC[AFF2; Geomdetail.CONV0_SET2; IN_ELIM_THM];
+CONJ_TAC;
+EXISTS_TAC ` ( &1 / (&1 - t3)) * t1 `;
+REWRITE_TAC[GSYM VECTOR_MUL_ASSOC];
+ASM_SIMP_TAC[
+REAL_FIELD` t3 < &0 ==> &1 - &1 / (&1 - t3) * t1 = 
+&1 / (&1 - t3) * (&1 - t3 - t1 ) `];
+REWRITE_TAC[GSYM VECTOR_ADD_LDISTRIB; GSYM VECTOR_MUL_ASSOC];
+MATCH_MP_TAC (MESON[]` x = y ==> f x = f y`);
+ASM_SIMP_TAC[REAL_RING` t1 + t2 + t3 = &1 ==> &1 - t3 - t1 = t2 `];
+VECTOR_ARITH_TAC;
+EXISTS_TAC ` ( &1 / (&1 - t3)) * ( -- t3) `;
+EXISTS_TAC ` ( &1 / (&1 - t3))  `;
+CONJ_TAC;
+MATCH_MP_TAC REAL_LT_MUL;
+ASM_REWRITE_TAC[GSYM (REAL_FIELD` t3 < &0 <=> &0 < -- t3 `)];
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REAL_ARITH_TAC;
+CONJ_TAC;
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REAL_ARITH_TAC;
+ASM_SIMP_TAC[
+REAL_FIELD` t3 < &0 ==> &1 / (&1 - t3) * --t3 + &1 / (&1 - t3) = &1 `];
+VECTOR_ARITH_TAC;
+ASM_SIMP_TAC[AFF_CONV0_IN_AFF_LT]]);;
+
+end;;

@@ -101,11 +101,24 @@ double rhazim3(double y1,double y2,double y6,double c) {
 }
 
 //no truncation.
+double cell3trunc= sqrt(2.0); //1.3;  // sqrt(2.0);
 double cell3(double y1,double y2,double y6) {
-  double c = sqrt(2.0);  //1.26; // pos: 1.267;
+  double c = cell3trunc;  //1.26; // pos: 1.267;
   return (surfRy(y1,y2,y6,c)+surfRy(y2,y1,y6,c))
     + 3.0*aD*(solRy(y1,y2,y6,c)+solRy(y2,y1,y6,c))
     + 3.0*bD*rhazim3(y1,y2,y6,c);
+}
+//constraint eta_y < cell3trunc:
+void smallradfcell3trunc(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = radf(y[0],y[1],y[2]) - cell3trunc;
+}
+
+
+double cell3half(double y1,double y2,double y6) {
+  double c = sqrt(2.0);  //1.26; // pos: 1.267;
+  return (surfRy(y1,y2,y6,c))
+    + 3.0*aD*(solRy(y1,y2,y6,c))
+    + 3.0*bD*Lfun(y1/2)*dihRy(y1,y2,y6,c);
 }
 
 
@@ -197,10 +210,7 @@ void smallradfh(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = radf(y[0],y[1],y[2]) - 1.26;
 }
 
-//constraint eta_y < sqrt2:
-void smallradfh2(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = radf(y[0],y[1],y[2]) - s2;
-}
+
 
 
 ////////// NEW INEQ
@@ -217,7 +227,7 @@ Minimizer m0() {
 	M.cFunc = smallrad; // was smallradh.
 	return M;
 }
-//trialdata d0(m0(),"ID d0: Marchal (Strong Dodec) main 4-cell inequality");
+trialdata d0(m0(),"ID[9627800748] d0: Marchal (Strong Dodec) main 4-cell inequality. Constraint is not necessary.");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -232,7 +242,7 @@ Minimizer m2() {
 	M.cFunc = midradh;
 	return M;
 }
-//trialdata d2(m2(),"ID d2: Marchal (Strong Dodec) main 4-cell inequality-trunc");
+//trialdata d2(m2(),"ID[] d2: Marchal (Strong Dodec) main 4-cell inequality-trunc");
 
 
 ////////// NEW INEQ
@@ -241,15 +251,15 @@ void t1(int numargs,int whichFn,double* y, double* ret,void*) {
   *ret = cell3(y[0],y[1],y[2]);
 	}
 Minimizer m1() {
-  double yM = sqrt(8.0);
+  double yM = 2.0*cell3trunc;
   double xmin[3]= {2,2,2};
   double xmax[3]= {yM,yM,yM}; //{2.52,2.52,2.52};
 	Minimizer M(trialcount,3,1,xmin,xmax);
 	M.func = t1;
-	M.cFunc = smallradfh2; // smallradfh;
+	M.cFunc = smallradfcell3trunc; // smallradfh;
 	return M;
 }
-trialdata d1(m1(),"ID d1: Marchal (Strong Dodec) main 3-cell inequality");
+trialdata d1(m1(),"ID[6938212390] d1: Marchal (Strong Dodec) main 3-cell inequality");
 
 
 ////////// NEW INEQ

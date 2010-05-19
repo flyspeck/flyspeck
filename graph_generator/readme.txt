@@ -3,7 +3,8 @@ Notes on the graph08 version of the graph generator.
 *********
 
 properties: /tmp/graph.properties
-graph08/src$ javac -d ../classes graph/Generator.java 
+cd src
+javac -d ../classes graph/Generator.java 
 cd ../classes
 java -Xms300m -Xmx1g graph/Generator  
 

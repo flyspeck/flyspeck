@@ -12,6 +12,7 @@ Definitions file for Fan
 *)
 
 flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "volume/vol1.hl";;
 flyspeck_needs "hypermap/hypermap.hl";;
 
 module Fan_defs  = struct
@@ -223,6 +224,49 @@ let surrounded_node = new_definition
   `surrounded_node (V,E) v = 
   !x. (x IN dart_of_fan (V,E)) /\ (FST x = v) ==> azim_dart (V,E) x < pi`;;
 
+  
+let fully_surrounded = new_definition
+	`fully_surrounded (V,E) = (!x. x IN dart_of_fan (V,E) ==> azim_dart (V,E) x < pi)`;;
+
+(* AS: the definitions from fan.hl are below:
+let fan81=new_definition`fan81 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> azim_fan x V E v u <pi)`;;
+
+let fan80=new_definition`fan80 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> &0< azim x v u (sigma_fan x V E v u) /\ azim x v u (sigma_fan x V E v u) <pi)`;;
+*)
+
+(* Conformance *)
+let conforming_bijection = new_definition `conforming_bijection (V,E) <=>
+  !s. s IN topological_component_yfan (vec 0,V,E) ==> (?!f. f IN face_set (hypermap_of_fan (V,E)) /\ 
+							 s = dartset_leads_into (vec 0,V,E) f)`;;
+
+							 
+let conforming_half_space = new_definition `conforming_half_space (V,E) <=>
+	!f. f IN face_set (hypermap_of_fan (V,E)) ==> 
+		dartset_leads_into (vec 0,V,E) f = 
+			INTERS {aff_gt {vec 0, FST x, FST (f_fan_pair (V,E) x)} {FST (inverse (f_fan_pair (V,E)) x)} | x IN f}`;;
+
+			
+let conforming_solid_angle = new_definition `conforming_solid_angle (V,E) <=>
+  !f. f IN face_set (hypermap_of_fan (V,E)) ==>
+  (let U = dartset_leads_into (vec 0,V,E) f in
+     (!r. measurable (ball (vec 0,r) INTER U)) /\
+       eventually_radial (vec 0) U /\
+       sol U (vec 0) = &2 * pi + sum (f) (\x. azim_dart (V,E) x - pi))`;;
+
+	   
+let conforming_diagonal = new_definition `conforming_diagonal (V,E) <=>
+	(!f x y. f IN face_set (hypermap_of_fan (V,E)) /\ x IN f /\ y IN f /\ ~(x = y) ==> 
+		~collinear {vec 0, FST x, FST y} /\
+		(y = f_fan_pair (V,E) x \/ x = f_fan_pair (V,E) y \/ 
+			aff_gt {vec 0} {FST x, FST y} SUBSET dartset_leads_into (vec 0,V,E) f))`;;
+		
+			
+let conforming = new_definition `conforming (V,E) <=>
+	fully_surrounded (V,E) /\
+	conforming_bijection (V,E) /\
+	conforming_half_space (V,E) /\
+	conforming_solid_angle (V,E) /\
+	conforming_diagonal (V,E)`;;
 
 end;;
 

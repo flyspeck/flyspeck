@@ -1,11 +1,11 @@
 package graph;
 import util.Config;
 
+
 /**
- * This class contains all the constants that are needed for the graph generator
- * as used in the proof of the Kepler conjecture.  All constants have been
- * converted to exact integer values by multiplying by 1000 and rouding in the
- * correct direction.
+ * This class reads all the input parameters that are needed for the graph generator.
+ * Unspecified parameters are given default values.
+ * Edit the propertiesFile string to use a different properties file.
  * <p>
  * class Constants : constants but no methods.
  * class Parameter : use constants for things that don't require a graph.
@@ -47,8 +47,10 @@ public class Constants {
     private final static boolean excludeDegree2 = config.getBooleanProperty("excludeDegree2",false);
 
     /**
-     * true means that we are excluding the configuration of a qrtet and a
+     * true means that the program excludes final graphs with  a qrtet and a
      * pentagon that share two edges, with a quadrilateral hull.
+     * That is, it excludes final graphs with a vertex of type (1,0,1), where the exceptional
+     * face at the vertex is a pentagon.
      */
     public static boolean getExcludePentQRTet() {
       return excludePentQRTet;
@@ -61,7 +63,7 @@ public class Constants {
     public static boolean getExclude2inQuad() {
       return exclude2inQuad;
     }
-    private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",true);
+    private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",true); 
 
 /**
      * true means that we exclude the configuration of an enclosed vertices in a triangle cluster.
@@ -115,10 +117,15 @@ public class Constants {
     private final static int faceCountMax = config.getIntProperty("faceCountMax",6);
 
     /**
+     * Maximum cardinality of a face.  If this constant changes, so must the array sizes
+     * below.
+     */
+    private final static int faceCardMax = 8; 
+
+    /**
      * Entry[i] contains a lower bound on what is squandered by a polygon with
      * i edges.
-     * Values have been multiplied by 1000 and rounded down.
-     * Indices out of range correspond to faces that have too many faces to be allowed.
+      * Indices out of range correspond to faces that have too many faces to be allowed.
      */
     public static int getFixedSquanderFace(int size) {
       return fixedSquanderFace[size];
@@ -126,14 +133,13 @@ public class Constants {
     public static int getFixedSquanderFaceLength() {
       return fixedSquanderFace.length;
     }
-    private final static int fixedSquanderFace[] =  new int[9];
+    private final static int fixedSquanderFace[] =  new int[9]; // must equal 1+faceCardMax.
 
 
 
     /**
      * Entry[i] contains an upper bound on what is scored by a polygon with
      * i edges.
-     * Values have been multiplied by 1000 and rounded up.
      * Indices out of range correspond to faces that have too many faces to be allowed.
      */
     public static int getFixedScoreFace(int size) {
@@ -143,12 +149,14 @@ public class Constants {
 
     static {
       for (int i=0;i<fixedScoreFace.length;i++) {
-        fixedScoreFace[i]= config.getIntProperty("scoreFace"+i,0);
+	  fixedScoreFace[i]= 0; //config.getIntProperty("scoreFace"+i,0);
       }
+      util.Eiffel.jassert(fixedScoreFace.length== 1+faceCardMax,
+	      "fixedScoreFace initialization error.");
     }
 
     public static int getMaxFaceSize() {
-	 int i=8;
+	int i=fixedSquanderFace.length-1; // was 8.
 	 while ((getFixedSquanderFace(i) >= squanderTarget) && (i > 0)) 
 	     {  i--; }
 	 return i;
@@ -160,7 +168,8 @@ public class Constants {
     public static int getSquanderTarget() {
       return squanderTarget;
     }
-    final private static int squanderTarget = config.getIntProperty("squanderTarget",14800);
+    final private static int squanderTarget = config.getIntProperty("squanderTarget",1);
+    // default was 14800 in svn 1076.  Changed  May 2010.
 
     /**
      * This is a constant that is used to help initialize the arrays.
@@ -170,11 +179,12 @@ public class Constants {
 
     /**
      * Any graph scoring less than this amount is tossed out.
+     * It is time to eliminate this code.  Nothing related to the score is used any more.
      */
     public static int getScoreTarget() {
       return scoreTarget;
     }
-    final private static int scoreTarget = config.getIntProperty("scoreTarget",8000);
+    final private static int scoreTarget = -1; // config.getIntProperty("scoreTarget",-1);
 
     /** excessTCount[count] is the excess around a vertex at an exceptional cluster
      * having count triangles, and faceCountMaxAtExceptionalVertex-count
@@ -184,8 +194,7 @@ public class Constants {
      * at a vertex with p=3 triangles, a quad, and a pentagon, the faces around that
      * vertex squander at least excessTCount[3]+fixedSquander[4]+fixedSquander[5];
      * <p>
-     * Excesses are described at greater length in Kepler98.PartIV.
-     */
+       */
     public static int getExcessTCount(int size) {
       return excessTCount[size];
     }
@@ -198,20 +207,17 @@ public class Constants {
     }
     static {
       for (int i=0;i<fixedSquanderFace.length;i++) {
-        fixedSquanderFace[i]= config.getIntProperty("squanderFace"+i,x);
+	  fixedSquanderFace[i]= (i>faceCardMax? x:config.getIntProperty("squanderFace"+i,x));
       }
     }
 
     /**
-     * This table appears in Kepler98.PartIII.Table 5.1.
-     * The entry[i][j] is a lower bound on what is squandered by
-     * the sum of all the faces around a vertex of type (i,j), where
+     * Table of "b" values.
+     * The entry[i][j] is a lower bound on
+     * the sum of the weights of the faces around a vertex of type (i,j,0), where
      * i is the number of triangles and
      * j is the number of quadrilaterals.
      * <p>
-     * For example, if there are p=0 triangles and q=3 quadrilaterals,
-     * then the 3 quadrilaterals squander at least 7.135 pt, corresponding
-     * to the entry 7135 in the table.
      */
     public static int getFixedSquanderVertex(int triCount, int quadCount) {
       return fixedSquanderVertex[triCount][quadCount];
@@ -219,17 +225,29 @@ public class Constants {
     public static int getFixedSquanderVertexLength() {
       return fixedSquanderVertex.length;
     }
-    private final static int fixedSquanderVertex[][] = new int[7][7];
-    /* type (i,j).*/   /* PartIII. table 5.1:*/ /* This must be a square array .*/
+    private final static int fixedSquanderVertex[][] = new int[10][10]; // was 7.
+    /* type (i,j).*/   
     static {
+	util.Eiffel.jassert(fixedSquanderVertex.length == fixedSquanderVertex[0].length,
+                "square b matrix required");
+	util.Eiffel.jassert(fixedSquanderVertex.length > max(faceCountMax),
+		"b matrix out of bounds");
       for (int i=0;i<fixedSquanderVertex.length;i++)
       for (int j=0;j<fixedSquanderVertex[i].length;j++) {
+	  fixedSquanderVertex[i][j]= x;
+      }
+      for (int i=0;i<=faceCountMax;i++)
+      for (int j=0;j<=faceCountMax;j++) {
         fixedSquanderVertex[i][j]= config.getIntProperty("squanderVertex"+i+""+j,x);
       }
     }
 
 
     /**
+     *  This section is deprecated.
+     *  It was generated using the properties of graphs for the 1998 proof of Kepler.
+     *  It is not sufficiently general for our purposes now.
+
      * Each row corresponds to a different seed used to initialize graphs.
      * The 3s correspond to triangles, and the 4s correspond to quads.
      * {3,3,4,4,4}, for example, is an arrangement of 5 faces around a vertex,
@@ -251,50 +269,59 @@ public class Constants {
     public static int getQuadCasesLength() {
       return quadCases.length;
     }
-    private final static int quadCases[][] =  {
-	{3,3,3,3,3,3,3}, /* added 2009 */
-	{ 4, 4 }, /* added 2009 */
-         { 3, 3, 4, 4, 4 }, /*0*/  // (p,q)=(2,3)
-         { 3, 4, 3, 4, 4 }, /*1*/  
-         { 3, 3, 3, 3, 3, 4}, /*2   (5,1)*/ 
-         { 4, 4, 4, 4 }, /*3       (0,4)*/  
-	 { 3, 3, 4 }, /*4         (2,1)*/  
-	 { 3, 3, 3, 4, 4  }, /*      (3,2)*/  
-         { 3, 3, 4, 3, 4 }, 
-	 { 3, 4, 4  }, /* (1,2) */
-         { 3, 4, 4, 4 }, /*8     (1,3) */ 
-         { 4, 4, 4 },  
-	 { 3, 3, 3, 3, 3, 3},  
-	 { 3, 3, 4, 4 }, /*11*/ 
-	 { 4, 3, 4, 3},  
-	 { 3, 3, 3, 4 },  
-	 { 3, 3, 3, 3}, 
-	 { 3, 3, 3, 3, 4 },  
-	 { 3, 3, 3, 3, 3 }
-    };
+
+    private final static int quadCases[][] = {};
+
+    //    private final static int quadCases[][] =  {
+    //	{3,3,3,3,3,3,3}, /* added 2009 */
+    //	{ 4, 4 }, /* added 2009 */
+    // { 3, 3, 4, 4, 4 }, /*0*/  // (p,q)=(2,3)
+    //         { 3, 4, 3, 4, 4 }, /*1*/  
+    //         { 3, 3, 3, 3, 3, 4}, /*2   (5,1)*/ 
+    //         { 4, 4, 4, 4 }, /*3       (0,4)*/  
+    //	 { 3, 3, 4 }, /*4         (2,1)*/  
+    //	 { 3, 3, 3, 4, 4  }, /*      (3,2)*/  
+    //         { 3, 3, 4, 3, 4 }, 
+    //	 { 3, 4, 4  }, /* (1,2) */
+    //         { 3, 4, 4, 4 }, /*8     (1,3) */ 
+    //         { 4, 4, 4 },  
+    //	 { 3, 3, 3, 3, 3, 3},  
+    //	 { 3, 3, 4, 4 }, /*11*/ 
+    //	 { 4, 3, 4, 3},  
+    //	 { 3, 3, 3, 4 },  
+    //	 { 3, 3, 3, 3}, 
+    //	 { 3, 3, 3, 3, 4 },  
+    //    { 3, 3, 3, 3, 3 }
+    //    };
+
+  static  {
+           int r = fixedSquanderVertex.length;
+            //"There are at most r faces around each Vertex"
+            util.Eiffel.jassert(r == faceCountMax + 1, "faceCountMax");
+		util.Eiffel.jassert(fixedSquanderFace.length== 1+faceCardMax,
+                    "faceSquanderFace initialization error.");
+            for(int i = 0;i < r;i++)
+                util.Eiffel.jassert(r == fixedSquanderVertex[i].length);
+            util.Eiffel.jassert(vertexCountMin <= vertexCountMax);
+            util.Eiffel.jassert(vertexCountMin >= 0);
+            util.Eiffel.jassert(fixedSquanderFace.length <= 9);
+            for(int i = 0;i < fixedSquanderFace.length - 1;i++)
+                util.Eiffel.jassert(fixedSquanderFace[i] <= fixedSquanderFace[i + 1], "need monotonicity"+i+" "
+                  + fixedSquanderFace[i]+ " "+fixedSquanderFace[i+1]);
+            util.Eiffel.jassert(fixedSquanderFace.length > 5, "need pentagons");
+	    //Score is deprecated:
+            //util.Eiffel.jassert(fixedSquanderFace.length == fixedScoreFace.length);
+            //for(int i = 0;i < fixedScoreFace.length - 1;i++)
+            //    util.Eiffel.jassert(fixedScoreFace[i] >= fixedScoreFace[i + 1], "monotonicity");
+}
+
     public static class Test extends util.UnitTest {
 
         public void test_compatibility() {
-            int r = fixedSquanderVertex.length;
-            //"There are at most 6 faces around each Vertex"
-            jassert(r == faceCountMax + 1, "faceCountMax");
-            for(int i = 0;i < r;i++)
-                jassert(r == fixedSquanderVertex[i].length);
-            jassert(vertexCountMin <= vertexCountMax);
-            jassert(vertexCountMin >= 0);
-            jassert(fixedSquanderFace.length == fixedScoreFace.length);
-            jassert(fixedSquanderFace.length <= 9);
-            for(int i = 0;i < fixedSquanderFace.length - 1;i++)
-                jassert(fixedSquanderFace[i] <= fixedSquanderFace[i + 1], "need monotonicity"+i+" "
-                  + fixedSquanderFace[i]+ " "+fixedSquanderFace[i+1]);
-            for(int i = 0;i < fixedScoreFace.length - 1;i++)
-                jassert(fixedScoreFace[i] >= fixedScoreFace[i + 1], "monotonicity");
-            jassert(fixedSquanderFace.length > 5, "need pentagons");
+ 
         }
     }
 
     public static void main(String[] args) {
-      System.out.println("vertexCountMin = "+vertexCountMin);
-      System.out.println("exclude = "+excludePentQRTet);
     }
 }

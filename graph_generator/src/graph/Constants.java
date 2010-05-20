@@ -120,7 +120,7 @@ public class Constants {
      * Maximum cardinality of a face.  If this constant changes, so must the array sizes
      * below.
      */
-    private final static int faceCardMax = 8; 
+    private final static int faceCardMax = config.getIntProperty("faceCardMax",8); // 8; 
 
     /**
      * Entry[i] contains a lower bound on what is squandered by a polygon with
@@ -133,30 +133,11 @@ public class Constants {
     public static int getFixedTableWeightDLength() {
       return fixedTableWeightD.length;
     }
-    private final static int fixedTableWeightD[] =  new int[9]; // must equal 1+faceCardMax.
+     private final static int fixedTableWeightD[] =  new int[1+faceCardMax]; 
 
-
-
-    /**
-     * Entry[i] contains an upper bound on what is scored by a polygon with
-     * i edges.
-     * Indices out of range correspond to faces that have too many faces to be allowed.
-     */
-    public static int getFixedScoreFace(int size) {
-      return fixedScoreFace[size];
-    }
-    private final static int fixedScoreFace[] = new int[9];
-
-    static {
-      for (int i=0;i<fixedScoreFace.length;i++) {
-	  fixedScoreFace[i]= 0; //config.getIntProperty("scoreFace"+i,0);
-      }
-      util.Eiffel.jassert(fixedScoreFace.length== 1+faceCardMax,
-	      "fixedScoreFace initialization error.");
-    }
 
     public static int getMaxFaceSize() {
-	int i=fixedTableWeightD.length-1; // was 8.
+	int i=faceCardMax; // was 8.
 	 while ((getFixedTableWeightD(i) >= squanderTarget) && (i > 0)) 
 	     {  i--; }
 	 return i;
@@ -177,15 +158,7 @@ public class Constants {
      */
     private final static int x = squanderTarget;
 
-    /**
-     * Any graph scoring less than this amount is tossed out.
-     * It is time to eliminate this code.  Nothing related to the score is used any more.
-     */
-    public static int getScoreTarget() {
-      return scoreTarget;
-    }
-    final private static int scoreTarget = -1; // config.getIntProperty("scoreTarget",-1);
-
+ 
     /** tableWeightA[count] is the excess around a vertex at an exceptional cluster
      * having count triangles, and nodeCardMaxAtExceptionalVertex-count
      * nontriangles. The length of the array must be fCMAEVertex.
@@ -198,7 +171,7 @@ public class Constants {
     public static int getTableWeightA(int size) {
       return tableWeightA[size];
     }
-    private final static int tableWeightA[] =  new int[Constants.nodeCardMaxAtExceptionalVertex];
+    private final static int tableWeightA[] =  new int[nodeCardMaxAtExceptionalVertex];
 
     static {
       for (int i=0;i<tableWeightA.length;i++) {
@@ -206,7 +179,7 @@ public class Constants {
       }
     }
     static {
-      for (int i=0;i<fixedTableWeightD.length;i++) {
+	for (int i=3;i<fixedTableWeightD.length;i++) {  // N.B. start at 3.
 	  fixedTableWeightD[i]= (i>faceCardMax? x:config.getIntProperty("tableWeightD"+i,x));
       }
     }
@@ -225,23 +198,49 @@ public class Constants {
     public static int getFixedTableWeightBLength() {
       return fixedTableWeightB.length;
     }
-    private final static int fixedTableWeightB[][] = new int[10][10]; // was 7.
+    private final static int fixedTableWeightB[][] = new int[1+nodeCardMax][1+nodeCardMax]; // was 7.
     /* type (i,j).*/   
     static {
 	util.Eiffel.jassert(fixedTableWeightB.length == fixedTableWeightB[0].length,
                 "square b matrix required");
-	util.Eiffel.jassert(fixedTableWeightB.length > max(nodeCardMax),
+	util.Eiffel.jassert(fixedTableWeightB.length == 1+ nodeCardMax,
 		"b matrix out of bounds");
-      for (int i=0;i<fixedTableWeightB.length;i++)
-      for (int j=0;j<fixedTableWeightB[i].length;j++) {
-	  fixedTableWeightB[i][j]= x;
-      }
+	//for (int i=0;i<fixedTableWeightB.length;i++)
+	//for (int j=0;j<fixedTableWeightB[i].length;j++) {
+	// fixedTableWeightB[i][j]= x;
+	//}
       for (int i=0;i<=nodeCardMax;i++)
       for (int j=0;j<=nodeCardMax;j++) {
         fixedTableWeightB[i][j]= config.getIntProperty("tableWeightB"+i+""+j,x);
       }
     }
 
+   /**
+     * Any graph scoring less than this amount is tossed out.
+     * It is time to eliminate this code.  Nothing related to the score is used any more.
+     */
+    public static int getScoreTarget() {
+      return scoreTarget;
+    }
+    final private static int scoreTarget = -1; // config.getIntProperty("scoreTarget",-1);
+
+  /**
+     * Entry[i] contains an upper bound on what is scored by a polygon with
+     * i edges.
+     * Indices out of range correspond to faces that have too many faces to be allowed.
+     */
+    public static int getFixedScoreFace(int size) {
+      return fixedScoreFace[size];
+    }
+    private final static int fixedScoreFace[] = new int[1+faceCardMax]; // was 9
+
+    static {
+      for (int i=0;i<fixedScoreFace.length;i++) {
+	  fixedScoreFace[i]= 0; //config.getIntProperty("scoreFace"+i,0);
+      }
+      util.Eiffel.jassert(fixedScoreFace.length== 1+faceCardMax,
+	      "fixedScoreFace initialization error.");
+    }
 
     /**
      *  This section is deprecated.
@@ -297,18 +296,18 @@ public class Constants {
   static  {
            int r = fixedTableWeightB.length;
             //"There are at most r faces around each Vertex"
-            util.Eiffel.jassert(r == nodeCardMax + 1, "nodeCardMax");
 		util.Eiffel.jassert(fixedTableWeightD.length== 1+faceCardMax,
                     "faceTableWeightD initialization error.");
             for(int i = 0;i < r;i++)
-                util.Eiffel.jassert(r == fixedTableWeightB[i].length);
+                util.Eiffel.jassert(r == fixedTableWeightB[i].length,
+				    "tableWeightB should be square");
             util.Eiffel.jassert(vertexCountMin <= vertexCountMax);
             util.Eiffel.jassert(vertexCountMin >= 0);
-            util.Eiffel.jassert(fixedTableWeightD.length <= 9);
-            for(int i = 0;i < fixedTableWeightD.length - 1;i++)
-                util.Eiffel.jassert(fixedTableWeightD[i] <= fixedTableWeightD[i + 1], "need monotonicity"+i+" "
-                  + fixedTableWeightD[i]+ " "+fixedTableWeightD[i+1]);
-            util.Eiffel.jassert(fixedTableWeightD.length > 5, "need pentagons");
+            //util.Eiffel.jassert(fixedTableWeightD.length <= 9);
+            for(int i = 3;i < fixedTableWeightD.length - 1;i++) // NB start at triangles.
+                util.Eiffel.jassert(fixedTableWeightD[i] <= fixedTableWeightD[i + 1], 
+				    "tableWeightD constants should be monotonic d(3) <= d(4) <= ...");
+            //util.Eiffel.jassert(fixedTableWeightD.length > 5, "need pentagons");
 	    //Score is deprecated:
             //util.Eiffel.jassert(fixedTableWeightD.length == fixedScoreFace.length);
             //for(int i = 0;i < fixedScoreFace.length - 1;i++)

@@ -83,11 +83,11 @@ public class Generator {
         if (G.vertexSize()<6)
             return false;
         int s = Score.faceSquanderLowerBound(G, param) + Score.ExcessNotAt(null, G, param);
-        if (s + param.squanderFaceStartingAt(5) < Constants.getSquanderTarget())
+        if (s + param.tableWeightDStartingAt(5) < Constants.getSquanderTarget())
             return false;
-        if (s + param.squanderVertex(2, 1) < Constants.getSquanderTarget())
+        if (s + param.tableWeightB(2, 1) < Constants.getSquanderTarget())
             return false;
-        if (s + param.squanderVertex(0, 2) < Constants.getSquanderTarget())
+        if (s + param.tableWeightB(0, 2) < Constants.getSquanderTarget())
             return false;
         return true;
     }

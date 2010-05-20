@@ -31,7 +31,7 @@ public class Score {
         for(Enumeration E = G.faceEnumeration();E.hasMoreElements(); /*--*/) {
             Face F = (Face)E.nextElement();
             if(F.isFinal())
-                total += p.squanderFace(F.size());
+                total += p.tableWeightD(F.size());
         }
         return total;
     }
@@ -173,12 +173,12 @@ public class Score {
         if(excep > 0)
             e++;
         //2. if vertex is too crowded, it is neglectable.
-        if((e > 0) && (t + q + tempX + e > Constants.getFaceCountMaxAtExceptionalVertex()))
+        if((e > 0) && (t + q + tempX + e > Constants.getNodeCardMaxAtExceptionalVertex()))
             return true;
-        if((e == 0) && (t + q + tempX > Constants.getFaceCountMax()))
+        if((e == 0) && (t + q + tempX > Constants.getNodeCardMax()))
             return true;
         //3. if squanders more than the target, it is neglectable.
-        int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.squanderFace(excep) : 0) + tri * p.squanderFace(3) + quad * p.squanderFace(4);
+        int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.tableWeightD(excep) : 0) + tri * p.tableWeightD(3) + quad * p.tableWeightD(4);
 	//redundant:
         if(sq >= trgt)
             return true;
@@ -188,13 +188,13 @@ public class Score {
             return true;
 	/** change 11/30/05, 9/6/09 **/
 	//4. if no exceptionals at V, and over target, it is neglectable.
-	int extraExceptSq = p.squanderFaceStartingAt(5);
+	int extraExceptSq = p.tableWeightDStartingAt(5);
 	boolean noExceptAtV = (e==0) && 
 	     ((tempX ==0) || 
-	      (t + q + tempX > Constants.getFaceCountMaxAtExceptionalVertex()) ||
+	      (t + q + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
 	      (sq + ena + extraExceptSq >= trgt));
 	int pqSquAtV = p.squanderForecast(t, q, tempX) ;
-	int fSquNotAtV = sq -t * p.squanderFace(3) - q * p.squanderFace(4);
+	int fSquNotAtV = sq -t * p.tableWeightD(3) - q * p.tableWeightD(4);
         if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= trgt)))
             return true;
         /** end change 11/30/05 **/
@@ -225,9 +225,9 @@ public class Score {
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
             Vertex V = (Vertex)E.nextElement();
             int ex = V.faceCount(5, Integer.MAX_VALUE);
-            if((ex > 0) && (V.size() > Constants.getFaceCountMaxAtExceptionalVertex()))
+            if((ex > 0) && (V.size() > Constants.getNodeCardMaxAtExceptionalVertex()))
                 return true;
-            if((ex == 0) && (V.size() > Constants.getFaceCountMax()))
+            if((ex == 0) && (V.size() > Constants.getNodeCardMax()))
                 return true;
         }
         //3. look for squander or score beyond target.
@@ -263,7 +263,7 @@ public class Score {
     final static int polyLimit(Graph G, Parameter p) {
         int polylimit = p.maxGon();
         int lb = faceSquanderLowerBound(G, p) + ExcessNotAt(null, G, p);
-        while((lb + p.squanderFace(polylimit) >= Constants.getSquanderTarget()) && (polylimit > 0))
+        while((lb + p.tableWeightD(polylimit) >= Constants.getSquanderTarget()) && (polylimit > 0))
             polylimit--;
         return polylimit;
     }
@@ -331,12 +331,12 @@ public class Score {
         int tempX = V.nonFinalCount();
         int e = V.faceCount(5, Integer.MAX_VALUE);
         int fsq = faceSquanderLowerBound(G, p);
-        int fsqred = fsq - q * p.squanderFace(4) - t * p.squanderFace(3);
+        int fsqred = fsq - q * p.tableWeightD(4) - t * p.tableWeightD(3);
         int target = Constants.getSquanderTarget();
         int excessNot = ExcessNotAt(V, G, p);
         //2. case of no exceptionals at V.
         if(e == 0) {
-            if(fsq + p.squanderFaceStartingAt(5) <= target)
+            if(fsq + p.tableWeightDStartingAt(5) <= target)
                 return false;
             if(p.squanderForecast(t, q + 1, tempX - 1) + fsqred + excessNot <= target)
                 return false;
@@ -345,10 +345,10 @@ public class Score {
             return true;
         }
         //3. case of exceptionals at V.
-        int nextface = p.squanderFaceStartingAt(4);
+        int nextface = p.tableWeightDStartingAt(4);
         if(fsq + excessNot + nextface <= target)
             return false;
-        if(t + tempX + q + e + 1 <= Constants.getFaceCountMaxAtExceptionalVertex())
+        if(t + tempX + q + e + 1 <= Constants.getNodeCardMaxAtExceptionalVertex())
             return false;
         return true;
     }
@@ -377,7 +377,7 @@ public class Score {
             hash += pow(V.next(F, i).size());
         return hash;
     }
-    final private static long base = Constants.getFaceCountMax() * 2;
+    final private static long base = Constants.getNodeCardMax() * 2;
 
 
     /**

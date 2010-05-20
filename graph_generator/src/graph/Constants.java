@@ -102,19 +102,19 @@ public class Constants {
     /**
      * Maximum number of faces at a vertex containing an exceptional face.
      */
-    public static int getFaceCountMaxAtExceptionalVertex() {
-      return faceCountMaxAtExceptionalVertex;
+    public static int getNodeCardMaxAtExceptionalVertex() {
+      return nodeCardMaxAtExceptionalVertex;
     }
-    private final static int faceCountMaxAtExceptionalVertex =
-      config.getIntProperty("faceCountMaxAtExceptionalVertex",5);
+    private final static int nodeCardMaxAtExceptionalVertex =
+      config.getIntProperty("nodeCardMaxAtExceptionalVertex",5);
 
     /**
      * Maximum number of faces at any vertex.
      */
-    public static int getFaceCountMax() {
-      return faceCountMax;
+    public static int getNodeCardMax() {
+      return nodeCardMax;
     }
-    private final static int faceCountMax = config.getIntProperty("faceCountMax",6);
+    private final static int nodeCardMax = config.getIntProperty("nodeCardMax",6);
 
     /**
      * Maximum cardinality of a face.  If this constant changes, so must the array sizes
@@ -127,13 +127,13 @@ public class Constants {
      * i edges.
       * Indices out of range correspond to faces that have too many faces to be allowed.
      */
-    public static int getFixedSquanderFace(int size) {
-      return fixedSquanderFace[size];
+    public static int getFixedTableWeightD(int size) {
+      return fixedTableWeightD[size];
     }
-    public static int getFixedSquanderFaceLength() {
-      return fixedSquanderFace.length;
+    public static int getFixedTableWeightDLength() {
+      return fixedTableWeightD.length;
     }
-    private final static int fixedSquanderFace[] =  new int[9]; // must equal 1+faceCardMax.
+    private final static int fixedTableWeightD[] =  new int[9]; // must equal 1+faceCardMax.
 
 
 
@@ -156,8 +156,8 @@ public class Constants {
     }
 
     public static int getMaxFaceSize() {
-	int i=fixedSquanderFace.length-1; // was 8.
-	 while ((getFixedSquanderFace(i) >= squanderTarget) && (i > 0)) 
+	int i=fixedTableWeightD.length-1; // was 8.
+	 while ((getFixedTableWeightD(i) >= squanderTarget) && (i > 0)) 
 	     {  i--; }
 	 return i;
     }
@@ -186,28 +186,28 @@ public class Constants {
     }
     final private static int scoreTarget = -1; // config.getIntProperty("scoreTarget",-1);
 
-    /** excessTCount[count] is the excess around a vertex at an exceptional cluster
-     * having count triangles, and faceCountMaxAtExceptionalVertex-count
+    /** tableWeightA[count] is the excess around a vertex at an exceptional cluster
+     * having count triangles, and nodeCardMaxAtExceptionalVertex-count
      * nontriangles. The length of the array must be fCMAEVertex.
      * <p>
-     * For example, assuming faceCountMaxAtExceptionVertex==5,
+     * For example, assuming nodeCardMaxAtExceptionVertex==5,
      * at a vertex with p=3 triangles, a quad, and a pentagon, the faces around that
-     * vertex squander at least excessTCount[3]+fixedSquander[4]+fixedSquander[5];
+     * vertex squander at least tableWeightA[3]+fixedSquander[4]+fixedSquander[5];
      * <p>
        */
-    public static int getExcessTCount(int size) {
-      return excessTCount[size];
+    public static int getTableWeightA(int size) {
+      return tableWeightA[size];
     }
-    private final static int excessTCount[] =  new int[Constants.faceCountMaxAtExceptionalVertex];
+    private final static int tableWeightA[] =  new int[Constants.nodeCardMaxAtExceptionalVertex];
 
     static {
-      for (int i=0;i<excessTCount.length;i++) {
-        excessTCount[i]= config.getIntProperty("excessTCount"+i,x);
+      for (int i=0;i<tableWeightA.length;i++) {
+        tableWeightA[i]= config.getIntProperty("tableWeightA"+i,x);
       }
     }
     static {
-      for (int i=0;i<fixedSquanderFace.length;i++) {
-	  fixedSquanderFace[i]= (i>faceCardMax? x:config.getIntProperty("squanderFace"+i,x));
+      for (int i=0;i<fixedTableWeightD.length;i++) {
+	  fixedTableWeightD[i]= (i>faceCardMax? x:config.getIntProperty("tableWeightD"+i,x));
       }
     }
 
@@ -219,26 +219,26 @@ public class Constants {
      * j is the number of quadrilaterals.
      * <p>
      */
-    public static int getFixedSquanderVertex(int triCount, int quadCount) {
-      return fixedSquanderVertex[triCount][quadCount];
+    public static int getFixedTableWeightB(int triCount, int quadCount) {
+      return fixedTableWeightB[triCount][quadCount];
     }
-    public static int getFixedSquanderVertexLength() {
-      return fixedSquanderVertex.length;
+    public static int getFixedTableWeightBLength() {
+      return fixedTableWeightB.length;
     }
-    private final static int fixedSquanderVertex[][] = new int[10][10]; // was 7.
+    private final static int fixedTableWeightB[][] = new int[10][10]; // was 7.
     /* type (i,j).*/   
     static {
-	util.Eiffel.jassert(fixedSquanderVertex.length == fixedSquanderVertex[0].length,
+	util.Eiffel.jassert(fixedTableWeightB.length == fixedTableWeightB[0].length,
                 "square b matrix required");
-	util.Eiffel.jassert(fixedSquanderVertex.length > max(faceCountMax),
+	util.Eiffel.jassert(fixedTableWeightB.length > max(nodeCardMax),
 		"b matrix out of bounds");
-      for (int i=0;i<fixedSquanderVertex.length;i++)
-      for (int j=0;j<fixedSquanderVertex[i].length;j++) {
-	  fixedSquanderVertex[i][j]= x;
+      for (int i=0;i<fixedTableWeightB.length;i++)
+      for (int j=0;j<fixedTableWeightB[i].length;j++) {
+	  fixedTableWeightB[i][j]= x;
       }
-      for (int i=0;i<=faceCountMax;i++)
-      for (int j=0;j<=faceCountMax;j++) {
-        fixedSquanderVertex[i][j]= config.getIntProperty("squanderVertex"+i+""+j,x);
+      for (int i=0;i<=nodeCardMax;i++)
+      for (int j=0;j<=nodeCardMax;j++) {
+        fixedTableWeightB[i][j]= config.getIntProperty("tableWeightB"+i+""+j,x);
       }
     }
 
@@ -254,7 +254,7 @@ public class Constants {
      * with two consecutive triangles, and three consecutive faces.
      * <p>
      * What is listed here are all the possibilities (up to dihedral symmetry),
-     * with p triangles and q quads, such that fixedSquanderVertex[p][q] is
+     * with p triangles and q quads, such that fixedTableWeightB[p][q] is
      * not over the target.
      * <p>
      * The order matters, because we may assume in case N that all figures
@@ -295,22 +295,22 @@ public class Constants {
     //    };
 
   static  {
-           int r = fixedSquanderVertex.length;
+           int r = fixedTableWeightB.length;
             //"There are at most r faces around each Vertex"
-            util.Eiffel.jassert(r == faceCountMax + 1, "faceCountMax");
-		util.Eiffel.jassert(fixedSquanderFace.length== 1+faceCardMax,
-                    "faceSquanderFace initialization error.");
+            util.Eiffel.jassert(r == nodeCardMax + 1, "nodeCardMax");
+		util.Eiffel.jassert(fixedTableWeightD.length== 1+faceCardMax,
+                    "faceTableWeightD initialization error.");
             for(int i = 0;i < r;i++)
-                util.Eiffel.jassert(r == fixedSquanderVertex[i].length);
+                util.Eiffel.jassert(r == fixedTableWeightB[i].length);
             util.Eiffel.jassert(vertexCountMin <= vertexCountMax);
             util.Eiffel.jassert(vertexCountMin >= 0);
-            util.Eiffel.jassert(fixedSquanderFace.length <= 9);
-            for(int i = 0;i < fixedSquanderFace.length - 1;i++)
-                util.Eiffel.jassert(fixedSquanderFace[i] <= fixedSquanderFace[i + 1], "need monotonicity"+i+" "
-                  + fixedSquanderFace[i]+ " "+fixedSquanderFace[i+1]);
-            util.Eiffel.jassert(fixedSquanderFace.length > 5, "need pentagons");
+            util.Eiffel.jassert(fixedTableWeightD.length <= 9);
+            for(int i = 0;i < fixedTableWeightD.length - 1;i++)
+                util.Eiffel.jassert(fixedTableWeightD[i] <= fixedTableWeightD[i + 1], "need monotonicity"+i+" "
+                  + fixedTableWeightD[i]+ " "+fixedTableWeightD[i+1]);
+            util.Eiffel.jassert(fixedTableWeightD.length > 5, "need pentagons");
 	    //Score is deprecated:
-            //util.Eiffel.jassert(fixedSquanderFace.length == fixedScoreFace.length);
+            //util.Eiffel.jassert(fixedTableWeightD.length == fixedScoreFace.length);
             //for(int i = 0;i < fixedScoreFace.length - 1;i++)
             //    util.Eiffel.jassert(fixedScoreFace[i] >= fixedScoreFace[i + 1], "monotonicity");
 }

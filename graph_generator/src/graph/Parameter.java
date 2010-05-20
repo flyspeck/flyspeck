@@ -29,12 +29,12 @@ abstract public class Parameter {
 
     /**
      * In general, this is just the value of the
-     * array Constants.fixedSquanderVertex.
+     * array Constants.fixedTableWeightB.
      * In this method it is assumed that previous cases have been handled so
      * that squanderTarget is returned for parameters in the seed of a previous case.
      */
 
-    abstract int squanderVertex(int triangleCount, int quadCount);
+    abstract int tableWeightB(int triangleCount, int quadCount);
 
     /**
        returns true if it is a previously considered case.
@@ -50,18 +50,18 @@ abstract public class Parameter {
      * @param ngon number of faces; precondition(ngon>=0)
      */
 
-    abstract int squanderFace(int ngon);
+    abstract int tableWeightD(int ngon);
 
     /**
      * A lower bound on what is squandered by a face with at least
      * ngon vertices.
      * @param ngon lower bound on the number of sides of a face.
      * returns squander lower bound.
-     * invariant: squanderFaceStartingAt >= squanderFace.
+     * invariant: tableWeightDStartingAt >= tableWeightD.
      * NOTE: In Graph98, this method has a bug, so it always returned squanderTarget.
      */
 
-    abstract int squanderFaceStartingAt(int ngon);
+    abstract int tableWeightDStartingAt(int ngon);
 
     /** forecast is accurate only at vertices that will eventually be
      * completed without any exceptionals.  It gives the minimum squander
@@ -95,7 +95,7 @@ abstract public class Parameter {
 
     protected void initForecastD() {
         //1. create array;
-        int Q = Constants.getFixedSquanderVertexLength();
+        int Q = Constants.getFixedTableWeightBLength();
         int target = Constants.getSquanderTarget();
         forecastD = new int[Q][Q][Q];
         for(int i = 0;i < Q;i++)
@@ -106,9 +106,9 @@ abstract public class Parameter {
         ArrayList triple = new ArrayList();
         for(int p = 0;p < Q;p++)
             for(int q = 0;q < Q;q++) {
-                if(squanderVertex(p, q) < target) {
+                if(tableWeightB(p, q) < target) {
                     triple.add(new int[] {
-                        p, q, squanderVertex(p, q)
+                        p, q, tableWeightB(p, q)
                     });
                 }
             }
@@ -152,7 +152,7 @@ class QuadParameter extends Parameter {
 
 
     /**
-     * Helper to squanderVertex. Counts triangles in a given seed.
+     * Helper to tableWeightB. Counts triangles in a given seed.
      */
 
     private static int tCount(int quadCaseNumber) {
@@ -165,7 +165,7 @@ class QuadParameter extends Parameter {
     }
 
     /**
-     * Helper to squanderVertex. Counts quads in a given seed.
+     * Helper to tableWeightB. Counts quads in a given seed.
      */
 
     private static int qCount(int quadCaseNumber) {
@@ -189,16 +189,16 @@ class QuadParameter extends Parameter {
      * implements abstract method.
      */
 
-    int squanderVertex(int triangleCount, int quadCount) {
+    int tableWeightB(int triangleCount, int quadCount) {
         int target = Constants.getSquanderTarget();
-        int len = Constants.getFixedSquanderVertexLength();
+        int len = Constants.getFixedTableWeightBLength();
         //1. return target if out of range.
         if(triangleCount < 0 || triangleCount >= len)
             return target;
         if(quadCount < 0 || quadCount >= len)
             return target;
         //2. return value if parameters match seed.
-        int value = Constants.getFixedSquanderVertex(triangleCount,quadCount);
+        int value = Constants.getFixedTableWeightB(triangleCount,quadCount);
         if(triangleCount == tCount(quadCaseNumber) && quadCount == qCount(quadCaseNumber))
             return value;
         //3. return target if parameters match an earlier seed.
@@ -213,21 +213,21 @@ class QuadParameter extends Parameter {
      * implements abstract method.
      */
 
-    int squanderFace(int ngon) {
+    int tableWeightD(int ngon) {
         int target = Constants.getSquanderTarget();
         if(ngon < 0)
             return target;
         if(ngon > 4)
             return target;
-        return Constants.getFixedSquanderFace(ngon);
+        return Constants.getFixedTableWeightD(ngon);
     }
 
     /**
      * implements abstract method.
      */
 
-    int squanderFaceStartingAt(int ngon) {
-        return squanderFace(ngon);
+    int tableWeightDStartingAt(int ngon) {
+        return tableWeightD(ngon);
     }
 
     /**
@@ -236,9 +236,9 @@ class QuadParameter extends Parameter {
      */
 
     int pqrExcess(int tCount, int qCount, int exCount) {
-        if(tCount + qCount > Constants.getFaceCountMax())
+        if(tCount + qCount > Constants.getNodeCardMax())
             return Constants.getSquanderTarget();
-        int u = squanderVertex(tCount, qCount) - qCount * squanderFace(4) - tCount * squanderFace(3);
+        int u = tableWeightB(tCount, qCount) - qCount * tableWeightD(4) - tCount * tableWeightD(3);
         return Math.max(0, u);
     }
 
@@ -278,7 +278,7 @@ class ExceptionalParameter extends Parameter {
     ExceptionalParameter(int maxGon) {
 	boolean QL = Constants.getExclude2inQuad();
         util.Eiffel.precondition(maxGon >= (QL ? 5 : 3));
-        util.Eiffel.precondition(maxGon < Constants.getFixedSquanderFaceLength());
+        util.Eiffel.precondition(maxGon < Constants.getFixedTableWeightDLength());
         this.maxGon = maxGon;
         initForecastD();
     }
@@ -287,28 +287,28 @@ class ExceptionalParameter extends Parameter {
      * implements abstract method.
      */
 
-    int squanderVertex(int triangleCount, int quadCount) {
+    int tableWeightB(int triangleCount, int quadCount) {
         int target = Constants.getSquanderTarget();
-        int len = Constants.getFixedSquanderVertexLength();
+        int len = Constants.getFixedTableWeightBLength();
         if(triangleCount < 0 || triangleCount >= len)
             return target;
         if(quadCount < 0 || quadCount >= len)
             return target;
-        return Constants.getFixedSquanderVertex(triangleCount,quadCount);
+        return Constants.getFixedTableWeightB(triangleCount,quadCount);
     }
 
     /**
      * implements abstract method.
      */
 
-    int squanderFace(int ngon) {
+    int tableWeightD(int ngon) {
         int target = Constants.getSquanderTarget();
         if(ngon > maxGon)
             return target;
-        int sqMax = Constants.getFixedSquanderFace(maxGon);
+        int sqMax = Constants.getFixedTableWeightD(maxGon);
         if(ngon == maxGon)
             return sqMax;
-        int value = Constants.getFixedSquanderFace(ngon);
+        int value = Constants.getFixedTableWeightD(ngon);
         if(ngon < maxGon && (value + sqMax > target))
             return target;
         return value;
@@ -318,11 +318,11 @@ class ExceptionalParameter extends Parameter {
      * implements abstract method.
      */
 
-    int squanderFaceStartingAt(int ngon) {
+    int tableWeightDStartingAt(int ngon) {
         int current = Constants.getSquanderTarget();
         for(int i = ngon;i <= maxGon;i++) {
-            if(squanderFace(i) < current)
-                current = squanderFace(i);
+            if(tableWeightD(i) < current)
+                current = tableWeightD(i);
         }
         return current;
     }
@@ -333,13 +333,13 @@ class ExceptionalParameter extends Parameter {
 
     int pqrExcess(int tCount, int qCount, int exCount) {
         if(exCount == 0) {
-            if(tCount + qCount > Constants.getFaceCountMax())
+            if(tCount + qCount > Constants.getNodeCardMax())
                 return Constants.getSquanderTarget();
-            int u = squanderVertex(tCount, qCount) - qCount * squanderFace(4) - tCount * squanderFace(3);
+            int u = tableWeightB(tCount, qCount) - qCount * tableWeightD(4) - tCount * tableWeightD(3);
             return Math.max(0, u);
         }
-        if(tCount + qCount + exCount != Constants.getFaceCountMaxAtExceptionalVertex())
+        if(tCount + qCount + exCount != Constants.getNodeCardMaxAtExceptionalVertex())
             return 0;
-        return Constants.getExcessTCount(tCount);
+        return Constants.getTableWeightA(tCount);
     }
 }

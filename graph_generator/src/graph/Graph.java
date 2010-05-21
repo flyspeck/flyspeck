@@ -21,7 +21,7 @@ import java.util.HashSet;
  * implement things roughly on a Model-Controller-Viewer design pattern.
  * The Graph Class is the Model for the data, and constructors contain the controller code.
  * The various viewers take different structural views of this class
- *  (View scores, view structures, format conversions, etc).
+ *  (View  structures, format conversions, etc).
  * All controller code lies in the constructors, because the Graph Class is immutable.
  * <p>
  * The purpose of this code is to prove part of the Kepler conjecture.  Specifically:

@@ -29,12 +29,14 @@ public class Constants {
       try {
         config = new Config(propertiesFile);
         String prop = config.get("testvalue");
-        //System.out.println(prop);
-	config.getProperties().list(System.out);
       }
       catch (Exception e) {
-        System.out.println(propertiesFile + "not found");
+	  util.Eiffel.error(propertiesFile + ": file not found");
       }
+    }
+
+    public static java.util.Properties getProperties() {
+	return config.getProperties();
     }
 
 
@@ -303,11 +305,20 @@ public class Constants {
 				    "tableWeightB should be square");
             util.Eiffel.jassert(vertexCountMin <= vertexCountMax);
             util.Eiffel.jassert(vertexCountMin >= 0);
-            //util.Eiffel.jassert(fixedTableWeightD.length <= 9);
+
+	    util.Eiffel.jassert(squanderTarget >= 0,"squanderTarget must be nonnegative");
+	    for (int a:tableWeightA)
+		util.Eiffel.jassert(a >=0,"tableWeightA must be nonnegative");
+	    for(int i = 3;i < fixedTableWeightD.length;i++) 
+		util.Eiffel.jassert(fixedTableWeightD[i] >=0,"tableWeightD must be nonnegative");
+
+	    // Do we really need monotonicity?  -thales 5/2010.
             for(int i = 3;i < fixedTableWeightD.length - 1;i++) // NB start at triangles.
                 util.Eiffel.jassert(fixedTableWeightD[i] <= fixedTableWeightD[i + 1], 
 				    "tableWeightD constants should be monotonic d(3) <= d(4) <= ...");
-            //util.Eiffel.jassert(fixedTableWeightD.length > 5, "need pentagons");
+
+              //util.Eiffel.jassert(fixedTableWeightD.length <= 9);
+          //util.Eiffel.jassert(fixedTableWeightD.length > 5, "need pentagons");
 	    //Score is deprecated:
             //util.Eiffel.jassert(fixedTableWeightD.length == fixedScoreFace.length);
             //for(int i = 0;i < fixedScoreFace.length - 1;i++)

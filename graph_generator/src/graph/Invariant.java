@@ -337,13 +337,11 @@ public class Invariant {
         return G;
     }
 
- public static void testArchive(stringArchive series) { 
+ public static void printCollisions() { 
             // slow test.. make it public to run.
             Hashtable H = new Hashtable(); // { hash -> graph }
-            for(int i = 0;i < series.size();i++) {
-                if(0 == (i % 5000))
-                    System.out.println("//***  " + i);
-                String S = series.getArchiveString(i);
+            for(int i = 0;i < archive.size();i++) {
+                String S = archive.getArchiveString(i);
                 Graph G = Graph.getInstance(new Formatter(S));
                 Invariant inv = new Invariant(G);
                 Long hash = new Long(inv.getHash());
@@ -363,7 +361,7 @@ public class Invariant {
         public void test_invariant() {
             for(int i = 2;i < 3;i++) {
                 //(PENT,2) happens to be assymetric, these tests rely on this fact.
-                String S = graphDispatch.getArchiveString(graphDispatch.ALL, i);
+                String S = archive.getArchiveString( i);
                 Graph G = Graph.getInstance(new Formatter(S));
                 Formatter f = new Formatter(S);
                 Invariant X = new Invariant(G);

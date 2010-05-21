@@ -133,22 +133,6 @@ public class Score {
     }
 
     /**
-     * An upper bound on the score of the Graph.
-     * @param p scoring parameter.
-     * precondition: all faces have isFinal attribute true.
-     */
-
-    final public static int scoreUpperBound(Graph G, Parameter p) {
-        util.Eiffel.precondition(Structure.nonFinalCount(G) == 0);
-        int temp = 0;
-        for(Enumeration E = G.faceEnumeration();E.hasMoreElements(); /*--*/) {
-            Face F = (Face)E.nextElement();
-            if(F.isFinal())
-                temp += Constants.getFixedScoreFace(F.size());
-        }
-        return temp;
-    }
-    /**
      * Unusual parameter passing.
      * @param V Vertex under consideration
      * @param p scoring parameter.
@@ -156,14 +140,15 @@ public class Score {
      * @param quad = number of additional quads,
      * @param excep=0 means no exceptionals added.
      * @param excep=n>0 means one exceptional, an n-gon added at v.
-     * @param temp = number of additional temps.
+     * @param temp = number of additional temps (can be negative to take away from V).
      * return false inconclusive
      * return true : this parameter set is neglectable
+     * NB: 5/2010. It appears that this is never called in practice with excep>0.
      */
 
     final static boolean neglectableModification(Graph G, int tri, int quad, int excep, int temp, Vertex V, Parameter p) {
         //1. set constants.
-	int trgt = Constants.getSquanderTarget();
+	int tgt = Constants.getSquanderTarget();
         int t = tri + V.faceCount(3, 3);
         int q = quad + V.faceCount(4, 4);
         int tempX = temp + V.nonFinalCount();
@@ -180,11 +165,11 @@ public class Score {
         //3. if squanders more than the target, it is neglectable.
         int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.tableWeightD(excep) : 0) + tri * p.tableWeightD(3) + quad * p.tableWeightD(4);
 	//redundant:
-        if(sq >= trgt)
+        if(sq >= tgt)
             return true;
 	//strengthening of previous:
 	int ena = ExcessNotAt(null, G, p);
-        if(sq + ena >= trgt)
+        if(sq + ena >= tgt)
             return true;
 	/** change 11/30/05, 9/6/09 **/
 	//4. if no exceptionals at V, and over target, it is neglectable.
@@ -192,10 +177,10 @@ public class Score {
 	boolean noExceptAtV = (e==0) && 
 	     ((tempX ==0) || 
 	      (t + q + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
-	      (sq + ena + extraExceptSq >= trgt));
+	      (sq + ena + extraExceptSq >= tgt));
 	int pqSquAtV = p.squanderForecast(t, q, tempX) ;
 	int fSquNotAtV = sq -t * p.tableWeightD(3) - q * p.tableWeightD(4);
-        if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= trgt)))
+        if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= tgt)))
             return true;
         /** end change 11/30/05 **/
         //5. tests were inconclusive.
@@ -233,8 +218,8 @@ public class Score {
         //3. look for squander or score beyond target.
         if(ExcessNotAt(null, G, p) + faceSquanderLowerBound(G, p) > Constants.getSquanderTarget())
             return true;
-        if(scoreUpperBound(G, p) < Constants.getScoreTarget())
-            return true;
+        //if(scoreUpperBound(G, p) < Constants.getScoreTarget())
+        //    return true;
 	//4. look for special structures:
        if(Constants.getExcludePentQRTet() && Structure.has11Type(G))
             return true;
@@ -257,7 +242,7 @@ public class Score {
         return false;
     }
     /**
-     * Gives an upper bound on the number of sides a face can have.
+     * Gives an upper bound on the number of sides a new face can have.
      */
 
     final static int polyLimit(Graph G, Parameter p) {
@@ -336,11 +321,13 @@ public class Score {
         int excessNot = ExcessNotAt(V, G, p);
         //2. case of no exceptionals at V.
         if(e == 0) {
-            if(fsq + p.tableWeightDStartingAt(5) <= target)
+           if(p.squanderForecast(t, q + 1, tempX - 1) + fsqred + excessNot < target)
                 return false;
-            if(p.squanderForecast(t, q + 1, tempX - 1) + fsqred + excessNot <= target)
+            if(p.squanderForecast(t + tempX + 1, q, 0) + fsqred + excessNot < target)
                 return false;
-            if(p.squanderForecast(t + tempX + 1, q, 0) + fsqred + excessNot <= target)
+	    if (p.maxGon() < 5) // 5/2010.
+		return true;
+            if(fsq + p.tableWeightDStartingAt(5) < target)
                 return false;
             return true;
         }
@@ -439,14 +426,11 @@ public class Score {
     public static class Test extends util.UnitTest {
 
         public void testAgainstOct() {
-            int series = graphDispatch.ALL;
-            Parameter p = Parameter.getExceptionalCase(8);
-            for(int i = 0;i < graphDispatch.size(series);i++) {
-                String S = graphDispatch.getArchiveString(series, i);
+            int series = 0;
+            Parameter p = Parameter.getGeneralCase(8);
+            for(int i = 0;i < archive.size();i++) {
+                String S = archive.getArchiveString( i);
                 Graph G = Graph.getInstance(new Formatter(S));
-                // these should never have made it onto the list.
-                if(i != 17 && i != 19 && i != 20 && i != 22 && i != 23 && i != 24 && i != 27 && i != 31)
-                    jassert(Score.scoreUpperBound(G, p) >= Constants.getScoreTarget(), " " + i);
                 int fsq = Score.faceSquanderLowerBound(G, p);
                 int ena = Score.ExcessNotAt(null, G, p);
                 Invariant inv = new Invariant(G);

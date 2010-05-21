@@ -216,8 +216,6 @@ public class Tracker {
         System.out.println("----analyze " + iter);
         if(Structure.nonFinalCount(G) == 0) {
             System.out.println("finished");
-            int sc = Score.scoreUpperBound(G, p);
-            System.out.println("score upper bound =" + sc);
         }
         else {
             HashMap Gto = GtoInt(G, vertexDict);
@@ -252,7 +250,6 @@ public class Tracker {
      */
     private String getDiagnosticString(Graph G,Parameter param) {
             int sq = Score.squanderLowerBound(G, param);
-            int sc = (Structure.isFinal(G) ? Score.scoreUpperBound(G, param) : 0);
             String sym = (Score.neglectableByBasePointSymmetry(G) ? "symkill" : "symOK");
             String exc = (Constants.getExcludePentQRTet() && Structure.has11Type(G) ? "11kill" : "11OK");
             String has40=(Structure.isFinal(G) && Structure.hasAdjacent40(G) ? "40kill" : "4OK");
@@ -261,7 +258,7 @@ public class Tracker {
                 Invariant inv = new Invariant(G);
                 neg = neg + " " + inv.getHash();
             }
-            return ""+iter+" "+sq+" "+sc+" "+sym+" "+exc+ " "+has40+" "+neg;
+            return ""+iter+" "+sq+" "+sym+" "+exc+ " "+has40+" "+neg;
     }
 
 }

@@ -30,7 +30,7 @@ public class Eiffel {
     }
 
     /**
-     * Prints the StackTrace with message S and continues execution of the program.
+     * Prints the StackTrace with message S and exits.
      */
     public static void error(String S) {
         try {

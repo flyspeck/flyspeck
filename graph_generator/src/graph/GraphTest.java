@@ -68,7 +68,7 @@ public class GraphTest {
         private static void print(Graph G) {
             String S = Formatter.toArchiveString(G);
             Formatter f = new Formatter(S);
-            f.printGraph();
+            //f.printGraph();
         }
 
         public void testGraphConstructor() {

@@ -6,9 +6,10 @@ import java.util.*;
  * Generate all graphs with a given set of properties.
  */
 public class Generator {
-    private static stringArchive series = new archive();
+    //    private static stringArchive series = new archive();
     private static GraphStack stack;
     private Parameter param;
+
     //private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
     /**
      * Push onto the stack all possible ngons constructed in face F
@@ -270,6 +271,7 @@ public class Generator {
 
     /**
      * This is the main loop used in generating the series of graphs.
+     * It takes partial graph G and pushes all direct children onto the stack.
      * returns false when the stack of unprocessed partial graphs goes to zero.
      * returns true while there is more to be done.
      */
@@ -298,22 +300,23 @@ public class Generator {
             generatePolygon(i, V, F, G);
     }
     /**
-     * This generates all the graphs in the exceptional series.
+     * This generates all the graphs in the general series.
      * @param NGON each graph must have a face with NGON vertices, and no faces
      * with more.
      */
 
-    public static void generateExceptionalSeries(int NGON) {
-        Parameter param = Parameter.getExceptionalCase(NGON);
+    public static void generateSeries(int NGON) {
+        Parameter param = Parameter.getGeneralCase(NGON);
         Graph Seed = Graph.getInstance(NGON);
-        Generator gen = new Generator(param, Seed, new GraphStack(series, param));
+        Generator gen = new Generator(param, Seed, new GraphStack( param));
     }
     /**
+     * deprecated
      * This takes the Quad case number and generates a list of all the graphs
      * satisfying the list of properties growing out of the Constants file.
      */
 
-    public static void generateQuadSeries(int casenum) {
+    public static void generateQuadSeriesDeprecated(int casenum) {
         //1. print banner.
         int[] type = Constants.getQuadCases(casenum);
         String S = "***** ";
@@ -322,7 +325,7 @@ public class Generator {
         System.out.println("//********  "+casenum+"/"+Constants.getQuadCasesLength()+":  "+S);
         //2. initialize.
         Parameter param = Parameter.getQuadCase(casenum);
-        GraphStack stack = new GraphStack(series, casenum, param);
+        GraphStack stack = new GraphStack(param);
         Graph Seed = Graph.getInstance(Constants.getQuadCases(casenum));
         Generator gen = new Generator(param, Seed, stack);
     }
@@ -331,7 +334,6 @@ public class Generator {
      * Constructor, generates all possible Graphs.
      * @param param Scoring parameters
      * @param Seed Graph
-     * @param series archiveString
      */
 
     Generator(Parameter param, Graph Seed, GraphStack stack) {
@@ -383,29 +385,19 @@ public class Generator {
 	//System.out.println( (Constants.getExcludePentQRTet()  ? "exclude" : "no exclude" ));;
 
 
-	//new render.Gencord("179189825656 21 4 0 1 2 3 3 0 3 4 3 4 3 2 3 4 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 0 3 8 0 9 3 9 0 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 9 3 12 9 10 3 10 11 12 ");
+	Constants.getProperties().list(System.out);
 
+	System.out.println("//archive series/size = "+archive.name()+"/"+archive.size());
 
-	boolean QL = Constants.getExclude2inQuad();
-        for (int i=(QL ? 5 : 3);i<= Constants.getMaxFaceSize();i++) {
-	    System.out.println("//***** generating exceptional series "+i);
-            Generator.generateExceptionalSeries(i);
+	//boolean QL = Constants.getExclude2inQuad();
+        for (int i=3;i<= Constants.getMaxFaceSize();i++) {
+	    System.out.println("//***** generating general series "+i);
+            Generator.generateSeries(i);
             Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {
 		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
 	    }
 	}
-
-	for (int i=0;i< (QL ? Constants.getQuadCasesLength() : 0);i++) {
-            Generator.generateQuadSeries(i);
-	    Graph[] glist = stack.getTerminalList();
-	    for (int j=0;j<glist.length;j++) {
-		System.out.println("\""+i+"_"+Formatter.toArchiveString(glist[j])+"\",");
-	    }
-        }
-        //System.out.println(archive.graphPE);
-	//Invariant.testArchive(series);
-
     }
 }
 

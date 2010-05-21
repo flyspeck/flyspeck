@@ -26,12 +26,12 @@ public class Test1 {
     public static void proc() {
         Parameter P = Parameter.getQuadCase(4);
         int count = 0;
-        int top = graph.graphDispatch.size(graph.graphDispatch.ALL);
+        int top = graph.archive.size();
         for(int i = 0;i < top;i++) {
-            String archive = graph.graphDispatch.getArchiveString(graph.graphDispatch.ALL, i);
+            String archive = graph.archive.getArchiveString( i);
             Graph G = Graph.getInstance(new Formatter(archive));
             int sq = Score.squanderLowerBound(G, P);
-            int sc = Score.scoreUpperBound(G, P);
+            int sc = 0;; //  Score.scoreUpperBound(G, P);
             if(sq < Constants.getSquanderTarget() && sc >= Constants.getScoreTarget()) {
                 count++;
                 if(count < 5)
@@ -55,7 +55,7 @@ public class Test1 {
       int[] v = {27,39,27,39,29,40,41};
       for (int i=0;i<4;i++) {
         int num = v[i];
-        String archive = graph.graphDispatch.getArchiveString(graph.graphDispatch.ALL,num);
+        String archive = graph.archive.getArchiveString(num);
         Graph G = Graph.getInstance(new Formatter(archive));
         new CoordinatesDemo(G,"new dodec "+num);
       }

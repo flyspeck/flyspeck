@@ -79,7 +79,7 @@ public class Structure {
     /**
      * helper for hasAdjacent40.
      * Returns true if the vertex is surrounded by final faces, of which there
-     * are 4, all triangles.
+     * are 4, all triangles, that is, type (4,0,0).
      */
 
     private final static boolean has40(Vertex V) {

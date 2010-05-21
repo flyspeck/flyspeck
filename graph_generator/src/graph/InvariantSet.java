@@ -94,8 +94,8 @@ public class InvariantSet {
     public static class Test extends util.UnitTest {
 
         public void testAdd() {
-            String Astring = graphDispatch.getArchiveString(0, 5);
-            String Bstring = graphDispatch.getArchiveString(0, 6);
+            String Astring = archive.getArchiveString(5);
+            String Bstring = archive.getArchiveString(6);
             Invariant A = new Invariant(Graph.getInstance(new Formatter(Astring)));
             Invariant B = new Invariant(Graph.getInstance(new Formatter(Bstring)));
             InvariantSet IS = new InvariantSet();

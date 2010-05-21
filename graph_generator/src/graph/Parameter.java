@@ -13,16 +13,18 @@ import java.math.BigInteger;
  */
 abstract public class Parameter {
 
+    // deprecated:
     public static Parameter getQuadCase(int quadCaseNumber) {
         return new QuadParameter(quadCaseNumber);
     }
 
-    public static Parameter getExceptionalCase(int maxGon) {
-        return new ExceptionalParameter(maxGon);
+    // use this one:
+    public static Parameter getGeneralCase(int maxGon) {
+        return new GeneralParameter(maxGon);
     }
 
     /**
-     * Get the maximum number of vertices on a face in the graph.
+     * Get the maximum cardinality of a face in the graph.
      */
 
     abstract int maxGon();
@@ -131,16 +133,115 @@ abstract public class Parameter {
      * @param tCount number of triangles at the vertex
      * @param qCount number of quads at the vertex
      * @param exCount number of exceptional faces at the vertex.
-     * returns excess squander at the vertex.  This value is such that the
-     * faces around the given vertex squander at least
-     *  pqrExcess+ sum_i fixedSquanderMin[number_of_sides_on_face#i]
-     * There must be at least one exceptional at the vertex to get a positive return.
+     * The parameters tCount,qCount,exCount are counts for a final vertex.
+     * Let A be the set of tCount + qCount vertices at the vertex.
+     * return value is such that
+     * sum_{F\in A} \tau(F) >= pqrExcess + tCount d(3) + qCount d(4).
      * postcondition: return>=0.
      * precondition: tCount>=0, qCount>=0, exCount>=0.
      */
 
     abstract int pqrExcess(int tCount, int qCount, int exCount);
 }
+class GeneralParameter extends Parameter {
+
+    /**
+     * This keeps track of the case in the Exceptional Series.
+     */
+    private int maxGon = -1;
+
+    /**
+     * implements abstract method.
+     */
+    int maxGon() {
+        return maxGon;
+    }
+
+    /**
+     * General region graph constructor.
+     * @param ngon Constructs parameters for graphs containing a face with this many
+     *  vertices, but no more.
+     * precondition: ngon>=3. 
+     */
+
+    GeneralParameter(int maxGon) {
+	//	boolean QL = Constants.getExclude2inQuad();
+        util.Eiffel.precondition(maxGon >= 3);
+        util.Eiffel.precondition(maxGon < Constants.getFixedTableWeightDLength());
+        this.maxGon = maxGon;
+        initForecastD();
+    }
+
+    /**
+     * implements abstract method.
+     */
+
+    int tableWeightB(int triangleCount, int quadCount) {
+        int target = Constants.getSquanderTarget();
+        int len = Constants.getFixedTableWeightBLength();
+        if(triangleCount < 0 || triangleCount >= len)
+            return target;
+        if(quadCount < 0 || quadCount >= len)
+            return target;
+        return Constants.getFixedTableWeightB(triangleCount,quadCount);
+    }
+
+    /**
+     * implements abstract method.
+     */
+
+    int tableWeightD(int ngon) {
+        int target = Constants.getSquanderTarget();
+        if(ngon > maxGon)
+            return target;
+        int sqMax = Constants.getFixedTableWeightD(maxGon);
+        if(ngon == maxGon)
+            return sqMax;
+        int value = Constants.getFixedTableWeightD(ngon);
+        if(ngon < maxGon && (value + sqMax > target))
+            return target;
+        return value;
+    }
+
+    /**
+     * implements abstract method.
+     */
+
+    int tableWeightDStartingAt(int ngon) {
+        int current = Constants.getSquanderTarget();
+        for(int i = ngon;i <= maxGon;i++) {
+            if(tableWeightD(i) < current)
+                current = tableWeightD(i);
+        }
+        return current;
+    }
+
+    /**
+     * implements abstract method.
+     */
+
+    int pqrExcess(int tCount, int qCount, int exCount) {
+	util.Eiffel.jassert(Constants.getSquanderTarget()>=0,"param:pqrExcess post");
+        if(exCount == 0) {
+            if(tCount + qCount > Constants.getNodeCardMax())
+                return Constants.getSquanderTarget();
+            int u = tableWeightB(tCount, qCount) 
+		- qCount * tableWeightD(4) - tCount * tableWeightD(3);
+            return Math.max(0, u);
+        }
+        if(tCount + qCount + exCount != Constants.getNodeCardMaxAtExceptionalVertex())
+            return 0;
+	int u = Constants.getTableWeightA(tCount);
+	util.Eiffel.jassert(u>=0,"param:pqrExcess post");
+	    return u;
+    }
+}
+
+
+
+
+
+// deprecated.
 class QuadParameter extends Parameter {
 
     /**
@@ -249,97 +350,5 @@ class QuadParameter extends Parameter {
     QuadParameter(int quadCaseNumber) {
         this.quadCaseNumber = quadCaseNumber;
         initForecastD();
-    }
-}
-class ExceptionalParameter extends Parameter {
-
-    /**
-     * This keeps track of the case in the Exceptional Series.
-     */
-    private int maxGon = -1;
-
-    /**
-     * implements abstract method.
-     */
-    int maxGon() {
-        return maxGon;
-    }
-
-    /**
-     * Exceptional region graph constructor.
-     * The different cases are divided into series according to the maximum number
-     * of vertices on a face in the graph.  This is the constructor that is called
-     * when there is a face with at least 5 sides.  // QL: 3 sides.
-     * @param ngon Constructs parameters for graphs containing a face with this many
-     *  vertices, but no more.
-     * precondition: ngon>=5.  // QL: 3 sides.
-     */
-
-    ExceptionalParameter(int maxGon) {
-	boolean QL = Constants.getExclude2inQuad();
-        util.Eiffel.precondition(maxGon >= (QL ? 5 : 3));
-        util.Eiffel.precondition(maxGon < Constants.getFixedTableWeightDLength());
-        this.maxGon = maxGon;
-        initForecastD();
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightB(int triangleCount, int quadCount) {
-        int target = Constants.getSquanderTarget();
-        int len = Constants.getFixedTableWeightBLength();
-        if(triangleCount < 0 || triangleCount >= len)
-            return target;
-        if(quadCount < 0 || quadCount >= len)
-            return target;
-        return Constants.getFixedTableWeightB(triangleCount,quadCount);
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightD(int ngon) {
-        int target = Constants.getSquanderTarget();
-        if(ngon > maxGon)
-            return target;
-        int sqMax = Constants.getFixedTableWeightD(maxGon);
-        if(ngon == maxGon)
-            return sqMax;
-        int value = Constants.getFixedTableWeightD(ngon);
-        if(ngon < maxGon && (value + sqMax > target))
-            return target;
-        return value;
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightDStartingAt(int ngon) {
-        int current = Constants.getSquanderTarget();
-        for(int i = ngon;i <= maxGon;i++) {
-            if(tableWeightD(i) < current)
-                current = tableWeightD(i);
-        }
-        return current;
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int pqrExcess(int tCount, int qCount, int exCount) {
-        if(exCount == 0) {
-            if(tCount + qCount > Constants.getNodeCardMax())
-                return Constants.getSquanderTarget();
-            int u = tableWeightB(tCount, qCount) - qCount * tableWeightD(4) - tCount * tableWeightD(3);
-            return Math.max(0, u);
-        }
-        if(tCount + qCount + exCount != Constants.getNodeCardMaxAtExceptionalVertex())
-            return 0;
-        return Constants.getTableWeightA(tCount);
     }
 }

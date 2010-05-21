@@ -350,25 +350,8 @@ public class Formatter {
      * This method is really for test purposes only.  It prints data about this object.
      */
 
-    public void printGraph() {
-        System.out.print("Boundary faces: ");
-        for(int i = 0;i < tempList.length;i++)
-            System.out.print(" " + tempList[i]);
-        if(tempList.length == 0)
-            System.out.print("(none)");
-        for(int i = 0;i < vertexAtFace.length;i++) {
-            System.out.print("\nFace " + i + ": ");
-            for(int j = 0;j < vertexAtFace[i].length;j++)
-                System.out.print(" " + vertexAtFace[i][j]);
-        }
-        System.out.println();
-        // now print adjacents
-        for(int i = 0;i < adjacent.length;i++) {
-            System.out.print("\nVertex " + i + ": ");
-            for(int j = 0;j < adjacent[i].length;j++)
-                System.out.print(" " + adjacent[i][j]);
-        }
-        System.out.println();
+    public void printGraphDeprecated() {
+	// deleted May 2010.  Appears in SVN 1740.
     }
     public static class Test extends util.UnitTest {
 
@@ -384,9 +367,6 @@ public class Formatter {
 
     public static void main(String[] args) {
         Formatter form = new Formatter(testString);
-        form.printGraph();
-        System.out.println(form.toMathematicaString());
-        System.out.println(testString);
-        System.out.println(new Formatter(testString).toArchiveString());
+        //form.printGraphDeprecated();
     }
 }

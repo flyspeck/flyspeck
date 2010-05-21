@@ -39,10 +39,10 @@ public class CoordinatesDemo extends JApplet {
 
     public static void main(String[] args) {
         Parameter P = Parameter.getExceptionalCase(7);
-        String archive = graphDispatch.getArchiveString(graphDispatch.ALL, 0);
+        String archive = graph.archive.getArchiveString(0, 0);
         Graph G = Graph.getInstance(new Formatter(archive));
         new CoordinatesDemo(G, "HEPT 0 " + Score.squanderLowerBound(G, P));
-        String archive2 = graphDispatch.getArchiveString(graphDispatch.ALL, 77);
+        String archive2 = graph.archive.getArchiveString( 77);
         G = Graph.getInstance(new Formatter(archive2));
         new CoordinatesDemo(G, "HEPT 77 " + Score.squanderLowerBound(G, P));
     }

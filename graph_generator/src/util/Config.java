@@ -119,6 +119,10 @@ public class Config
       return (ret==null ? "" : ret.trim() );
    }
 
+    final public void set(String key,String value) {
+	myProps.setProperty(key,value);
+    }
+
    final public boolean getBooleanProperty(String name,boolean defaultValue) {
       String prop = this.get(name);
       if (prop==null) return defaultValue;

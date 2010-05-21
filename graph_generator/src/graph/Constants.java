@@ -47,6 +47,9 @@ public class Constants {
       return excludeDegree2;
     }
     private final static boolean excludeDegree2 = config.getBooleanProperty("excludeDegree2",false);
+    static {
+	config.set("excludeDegree2",(getExcludeDegree2())?"true":"false");
+    }
 
     /**
      * true means that the program excludes final graphs with  a qrtet and a
@@ -58,6 +61,9 @@ public class Constants {
       return excludePentQRTet;
     }
     private final static boolean excludePentQRTet = config.getBooleanProperty("excludePentQRTet",false);
+    static {
+	config.set("excludePentQRTet",(getExcludePentQRTet()?"true":"false"));
+    }
 
     /**
      * true means that we exclude the configuration of two enclosed vertices in a quad cluster.
@@ -66,6 +72,9 @@ public class Constants {
       return exclude2inQuad;
     }
     private final static boolean exclude2inQuad = config.getBooleanProperty("exclude2inQuad",true); 
+    static {
+	config.set("exclude2inQuad",(getExclude2inQuad()?"true":"false"));
+    }
 
 /**
      * true means that we exclude the configuration of an enclosed vertices in a triangle cluster.
@@ -74,6 +83,9 @@ public class Constants {
       return exclude1inTri;
     }
     private final static boolean exclude1inTri = config.getBooleanProperty("exclude1inTri",true);
+    static {
+	config.set("exclude1inTri",(getExclude1inTri()?"true":"false"));
+    }
 
 
     /**
@@ -83,6 +95,9 @@ public class Constants {
       return ignoreArchive;
     }
     private final static boolean ignoreArchive = config.getBooleanProperty("ignoreArchive",false);
+   static {
+	config.set("ignoreArchive",(ignoreArchive()?"true":"false"));
+    }
 
 
     /**
@@ -92,6 +107,9 @@ public class Constants {
       return vertexCountMin;
     }
     private final static int vertexCountMin = config.getIntProperty("vertexCountMin",1);
+   static {
+       config.set("vertexCountMin"," "+getVertexCountMin());
+    }
 
     /**
      * Maximum number of vertices in a graph.

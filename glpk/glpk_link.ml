@@ -119,7 +119,7 @@ let save_stringarray filename xs =
     close_out oc;;
 
 let strip_archive filename =  (* strip // comments, blank lines, quotation marks etc. *)
-  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '//' | grep -v '^$' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
+  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '^//' | grep -v '^$' | grep '^[^a-z/-]' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
   let s = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
     s;;
@@ -154,8 +154,10 @@ let display_ampl tmpfile ampl_of_bb bb = (* for debugging *)
   let _ = close_out outs in
     Sys.command(sprintf "cat %s" tmpfile);;
 
+(* model should name the optimal value "optival" *)
+
 let solve_branch_f model dumpfile ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/lnsum = //' "  model dumpfile in 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/optival = //' "  model dumpfile in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
@@ -172,7 +174,7 @@ let display_lp model tmpfile dumpfile ampl_of_bb bb =
     ();;
 
 let cpx_branch model cpxfile ampl_of_bb bb = (* debug *)
-  let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/lnsum = //' "  model cpxfile in 
+  let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/optival = //' "  model cpxfile in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in

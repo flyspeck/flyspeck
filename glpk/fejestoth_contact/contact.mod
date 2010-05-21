@@ -43,14 +43,14 @@ var sol{STANDARD} >= 0, <= 4*pi;
 minimize objective:  optival;
 
 ## equality constraints
-optsum: - optival + sum {j in FACE} sol[j] = 4*pi;
+optsum: - optival + sum {j in FACE} sol[j] = 4*pi + 10;
 azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) <= sol[j] - 2.0*pi;
 
 
 # sol inequality (Main Estimate)
 # tau = sol + (2-j) sol0 >= d(j) = 0.206 + 0.2759 (j-4); for j>=4 gives:
-sol3{j in ITRIANGLE}: sol[j] = delta0;
+sol3{j in ITRIANGLE}: sol[j] >= delta0;
 sol4{j in IQUAD}: sol[j] >= 1.3085;
 sol5{j in IPENT}: sol[j] >= 2.1357;
 sol6{j in IHEX}: sol[j] >= 2.9629; 
@@ -64,6 +64,10 @@ azimlb {(i,j) in DART :  j in STANDARD diff ITRIANGLE} : azim[i,j] >= 1.629;
 # 2 Dihedral[2,2,2,2,2.52,2];
 azim4ub {(i,j) in IDART4}: azim[i,j] <= 2.167;
 azim4op {(i1,i2,i3,j) in EDART : (i2,j) in IDART4} : azim[i1,j]= azim[i3,j];
+
+# adjacent angles in a quad
+#azim4pairub {(i1,i2,i3,j) in EDART : (i2,j) in IDART4} : azim[i1,j]+azim[i2,j]<= 3.83;
+#azim4pairlb {(i1,i2,i3,j) in EDART : (i2,j) in IDART4} : azim[i1,j]+azim[i2,j]>= 3.795;
 
 solve;
 display hypermapID;

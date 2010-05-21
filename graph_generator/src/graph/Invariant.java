@@ -382,4 +382,17 @@ public class Invariant {
 
        
     }
+
+    public static void main(String[] args) {
+
+       for (String s: args) {  
+         Formatter f = new Formatter(s);
+	Graph G = Graph.getInstance(f);
+	Invariant inv = new Invariant(G);
+	Long hash = new Long(inv.getHash());
+	System.out.println("hash : "+hash);
+       }
+    }
+
+
 }

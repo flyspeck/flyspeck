@@ -157,7 +157,7 @@ let display_ampl tmpfile ampl_of_bb bb = (* for debugging *)
 (* model should name the optimal value "optival" *)
 
 let solve_branch_f model dumpfile ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/optival = //' "  model dumpfile in 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^opti' | sed 's/optival = //' "  model dumpfile in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
@@ -174,7 +174,7 @@ let display_lp model tmpfile dumpfile ampl_of_bb bb =
     ();;
 
 let cpx_branch model cpxfile ampl_of_bb bb = (* debug *)
-  let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^ln' | sed 's/optival = //' "  model cpxfile in 
+  let com = sprintf "glpsol -m %s --wcpxlp %s -d /dev/stdin | grep '^opti' | sed 's/optival = //' "  model cpxfile in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in

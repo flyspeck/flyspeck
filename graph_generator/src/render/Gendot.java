@@ -10,7 +10,7 @@ import graph.*;
 public class Gendot {
     private double x[]; // x coordinates.
     private double y[]; // y coordinates.
-    private String archive;
+    private String dataString;
     private Graph G;
     private Coordinate C;
     private Formatter F;
@@ -19,9 +19,9 @@ public class Gendot {
 	return (new Long(Math.round(400.0*x))).intValue();
     }
 
-    public Gendot(String archive) {
-	this.archive = archive;
-        F = new Formatter(archive);
+    public Gendot(String dataString) {
+	this.dataString = dataString;
+        F = new Formatter(dataString);
 	G = Graph.getInstance(F);
         C = new Coordinate(F);
         C.setRandomCoords();

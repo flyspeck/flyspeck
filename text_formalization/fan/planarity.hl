@@ -16,18 +16,13 @@ flyspeck_needs "fan/topology.hl";;
 module Planarity  = struct
 
 
-(*
-# use "/home/truong/Desktop/googlecode/hol_light/hol.ml";;
-needs "/home/truong/Desktop/googlecode/hol_light/Multivariate/flyspeck.ml";;
-needs "/home/truong/Desktop/googlecode/flyspeck/text_formalization/general/sphere.hl";;
-*)
 
 open Sphere;;
 open Fan_defs;;
 open Fan;;
 open Topology;;		
-
-
+open Hypermap;;
+open Fan_misc;;
 (***************************************************************************)
 (**********************DHVFGBC                      ************************)
 (***************************************************************************)
@@ -9646,19 +9641,586 @@ ASM_REWRITE_TAC[]]]]);;
 
 
 
-let RWXUYZZ=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) v:real^3 u:real^3 w:real^3.
-FAN(x,V,E)/\ {v,u} IN E /\ {u,w} IN E 
-/\ sigma_fan x V E u w = v
+
+(************************)
+
+
+let d20_fan=new_definition`d20_fan (x,V,E)={ (x',v,v,v)| (x'=x) /\ (V v) /\ ((set_of_edge v V E) ={})}`;;
+
+let d_fan=new_definition`d_fan (x,V,E)= d1_fan (x,V,E) UNION d20_fan (x,V,E)`;;
+
+let hypermap_of_fanx = new_definition
+  `hypermap_of_fanx (x:real^3,V:real^3->bool,E:(real^3->bool)->bool) = 
+    (let p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) ) in 
+          hypermap( d_fan (x,V,E) , p e_fan, p n_fan, p f_fan))`;;
+
+
+let hypermap1_of_fanx = new_definition
+  `hypermap1_of_fanx (x:real^3,V:real^3->bool,E:(real^3->bool)->bool) = 
+    (let p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) ) in 
+          hypermap( d_fan (x,V,E) , p e_fan, p n_fan, p f1_fan))`;;
+
+
+
+
+let finite_d1_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) ==> FINITE (d1_fan (x,V,E))`,
+REPEAT GEN_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN USE_THEN "EM" MP_TAC
+THEN REWRITE_TAC[FAN;fan1]
+THEN STRIP_TAC
+THEN MRESA_TAC set_edges_is_finite_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC FINITE_PRODUCT[`V:real^3->bool`;`V:real^3->bool`]
+THEN MRESA_TAC FINITE_IMAGE[`(\(a,b:real^3). (x,a,b,sigma_fan x V E a b))`;`{x,y | x IN (V:real^3->bool) /\ y IN V}`]
+THEN MATCH_MP_TAC FINITE_SUBSET
+THEN EXISTS_TAC`(IMAGE (\(a,b). x,a,b,sigma_fan x V E a b) {x,y | x IN V /\ y IN (V:real^3->bool)})`
+THEN ASM_REWRITE_TAC[IMAGE;IN_ELIM_THM;d1_fan;SUBSET]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`(v:real^3,w:real^3)`
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` w:real^3`;`v:real^3`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` v:real^3`;`w:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC THEN ASM_REWRITE_TAC[]);;
+
+
+
+let finite_d20_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) ==> FINITE (d20_fan (x,V,E))`,
+
+REPEAT GEN_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN USE_THEN "EM" MP_TAC
+THEN REWRITE_TAC[FAN;fan1]
+THEN STRIP_TAC
+THEN MRESA_TAC FINITE_IMAGE[`(\b:real^3. (x:real^3,b,b,b))`;`V:real^3->bool`]
+THEN MATCH_MP_TAC FINITE_SUBSET
+THEN EXISTS_TAC`(IMAGE (\b:real^3. (x:real^3,b,b,b))  (V:real^3->bool))`
+THEN ASM_REWRITE_TAC[d20_fan;SUBSET;IMAGE;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`v:real^3`
+THEN ASM_REWRITE_TAC[IN]);;
+
+
+
+let finite_d_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) 
+==> FINITE (d_fan (x,V,E))`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[d_fan;FINITE_UNION]
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[finite_d1_fan;finite_d20_fan]);;
+
+let subset_d_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+d1_fan (x,V,E) SUBSET d_fan (x,V,E) /\ d20_fan (x,V,E) SUBSET d_fan(x,V,E)`,
+REWRITE_TAC[d_fan] THEN SET_TAC[]);;
+
+
+let into_domain_e_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (!y. y IN d_fan (x,V,E)==> ((p e_fan ) y) IN (d_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[res;]
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[
+ASM_REWRITE_TAC[];
+
+ASM_REWRITE_TAC[]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[e_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MATCH_MP_TAC(SET_RULE`x,w,v,sigma_fan x V E w v IN d1_fan (x,V,E) /\ d1_fan (x,V,E)  SUBSET d_fan (x,V,E)
+==>x,w,v,sigma_fan x V E w v IN  d_fan (x:real^3,V,E)`)
+THEN ASM_REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`sigma_fan x V E w (v:real^3)`
+THEN ASM_REWRITE_TAC[]
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]]);;
+
+
+
+
+let into_domain1_e_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) ==> (!y. y IN d1_fan (x,V,E)==> (e_fan x V E y IN d1_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[e_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`sigma_fan x V E w (v:real^3)`
+THEN ASM_REWRITE_TAC[]
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+
+
+let e_fan_permutes=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (p e_fan) permutes (d_fan (x,V,E))`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC finite_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC PERMUTES_FINITE_SURJECTIVE[`d_fan (x:real^3,V,E)`;`res (e_fan x V E) (d1_fan (x:real^3,V,E))`]
+THEN STRIP_TAC
+THENL[
+REWRITE_TAC[res;d_fan;UNION;IN_ELIM_THM;DE_MORGAN_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[];
+
+MRESA_TAC into_domain_e_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[EXISTS_TAC`y:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[res];
+MRESA_TAC permuters_of_enf_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN POP_ASSUM  (fun th-> MRESA1_TAC th `y:real^3#real^3#real^3#real^3`)
+THEN REWRITE_TAC[res]
+THEN EXISTS_TAC`b:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN ASM_TAC THEN SET_TAC[]]]);;
+
+let into_domain_f1_fan= prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (!y. y IN d_fan (x,V,E)==> ((p f1_fan ) y) IN (d_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[res;]
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[f1_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MATCH_MP_TAC(SET_RULE`x,w,inverse1_sigma_fan x V E w v,v IN d1_fan (x,V,E) /\ d1_fan (x,V,E)  SUBSET d_fan (x,V,E)
+==>x,w,inverse1_sigma_fan x V E w v,v IN  d_fan (x:real^3,V,E)`)
+THEN ASM_REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN EXISTS_TAC`inverse1_sigma_fan x V E w v:real^3`
+THEN EXISTS_TAC`(v:real^3)`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`w:real^3`]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)])
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]]);;
+
+
+
+
+let into_domain1_f1_fan= prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E)==> (!y. y IN d1_fan (x,V,E)==> (f1_fan x V E y IN d1_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[f1_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN EXISTS_TAC`inverse1_sigma_fan x V E w v:real^3`
+THEN EXISTS_TAC`(v:real^3)`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`w:real^3`]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)])
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+
+
+let f1_fan_permutes=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (p f1_fan) permutes (d_fan (x,V,E))`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC finite_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC PERMUTES_FINITE_SURJECTIVE[`d_fan (x:real^3,V,E)`;`res (f1_fan x V E) (d1_fan (x:real^3,V,E))`]
+THEN STRIP_TAC
+THENL[
+REWRITE_TAC[res;d_fan;UNION;IN_ELIM_THM;DE_MORGAN_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[];
+MRESA_TAC into_domain_f1_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[
+EXISTS_TAC`y:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[res];
+MRESA_TAC permuters_of_enf_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM  (fun th-> MRESA1_TAC th `y:real^3#real^3#real^3#real^3`)
+THEN REWRITE_TAC[res]
+THEN EXISTS_TAC`b:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN ASM_TAC THEN SET_TAC[]]]);;
+
+
+
+
+
+let into_domain_n_fan= prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (!y. y IN d_fan (x,V,E)==> ((p n_fan ) y) IN (d_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[res;]
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[n_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MATCH_MP_TAC(SET_RULE`x,v,sigma_fan x V E v w,sigma_fan x V E v (sigma_fan x V E v w) IN d1_fan (x,V,E) /\ d1_fan (x,V,E)  SUBSET d_fan (x,V,E)
+==>x,v,sigma_fan x V E v w,sigma_fan x V E v (sigma_fan x V E v w) IN  d_fan (x:real^3,V,E)`)
+THEN ASM_REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`sigma_fan x V E v w:real^3`
+THEN EXISTS_TAC`sigma_fan x V E v (sigma_fan x V E v (w:real^3))`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC sigma_fan_in_set_of_edge[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`w:real^3`]
+THEN POP_ASSUM MP_TAC 
+THEN MRESA_TAC properties_of_set_of_edge_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`w:real^3`]
+THEN MRESA_TAC properties_of_set_of_edge_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`(sigma_fan x V E v (w:real^3)):real^3`]]);;
+
+
+
+let into_domain1_n_fan= prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) ==> (!y. y IN d1_fan (x,V,E)==> (n_fan x V E y IN d1_fan (x,V,E)))`,
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[n_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`sigma_fan x V E v w:real^3`
+THEN EXISTS_TAC`sigma_fan x V E v (sigma_fan x V E v (w:real^3))`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC sigma_fan_in_set_of_edge[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`w:real^3`]
+THEN POP_ASSUM MP_TAC 
+THEN MRESA_TAC properties_of_set_of_edge_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`w:real^3`]
+THEN MRESA_TAC properties_of_set_of_edge_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`(sigma_fan x V E v (w:real^3)):real^3`]);;
+
+
+
+let n_fan_permutes=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)))
+==> (p n_fan) permutes (d_fan (x,V,E))`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC finite_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC PERMUTES_FINITE_SURJECTIVE[`d_fan (x:real^3,V,E)`;`res (n_fan x V E) (d1_fan (x:real^3,V,E))`]
+THEN STRIP_TAC
+THENL[
+REWRITE_TAC[res;d_fan;UNION;IN_ELIM_THM;DE_MORGAN_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[];
+MRESA_TAC into_domain_n_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(y IN d1_fan (x,V,E) )\/ (y IN d1_fan (x:real^3,V,E))`)
+THENL[
+EXISTS_TAC`y:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[res];
+MRESA_TAC permuters_of_enf_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM  (fun th-> MRESA1_TAC th `y:real^3#real^3#real^3#real^3`)
+THEN REWRITE_TAC[res]
+THEN EXISTS_TAC`b:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC subset_d_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN ASM_TAC THEN SET_TAC[]]]);;
+
+
+let id_enf_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) y:real^3#real^3#real^3#real^3.
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E))) /\ ~(y IN d1_fan (x,V,E))
+==> (p e_fan) y=y /\ (p n_fan) y=y/\ (p f1_fan) y=y`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[res;d_fan;UNION;IN_ELIM_THM;DE_MORGAN_THM]);;
+
+let id_power_enf_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) y:real^3#real^3#real^3#real^3 n:num p.
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E))) /\ ~(y IN d1_fan (x,V,E))
+==> ((p e_fan) POWER n) y=y /\ ((p n_fan) POWER n)y=y/\ ((p f1_fan) POWER n) y=y`,
+(let lem=prove(`!f:A->A x:A. f x = x ==> !m. (f POWER m) x = x`,
+MRESA_TAC power_map_fix_point[`1:num`]
+THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[POWER_1;ARITH_RULE`m*1=m:num`]) in
+REPEAT STRIP_TAC
+THEN MRESA_TAC id_enf_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`y:real^3#real^3#real^3#real^3`]
+THEN MRESA_TAC lem[`(p e_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`y:real^3#real^3#real^3#real^3`]
+THEN MRESA_TAC lem[`(p n_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`y:real^3#real^3#real^3#real^3`]
+THEN MRESA_TAC lem[`(p f1_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`y:real^3#real^3#real^3#real^3`]));;
+
+
+
+
+let into_domain_efn_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E))) 
+==> (!y. y IN d1_fan (x,V,E)==> (p e_fan ) y = e_fan x V E y)
+/\ (!y. y IN d1_fan (x,V,E)==> (p n_fan ) y = n_fan x V E y)
+/\(!y. y IN d1_fan (x,V,E)==> (p f1_fan ) y = f1_fan x V E y)
+`,
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[res;]);;
+
+
+
+
+let power_map_fix_set = prove(`!n f:A->A g:A->A s:A->bool. (!x:A. x IN s ==>  f x= g x) /\ (!x:A. x IN s ==> g x IN s) ==> (!x. x IN s==>(f POWER n) x = (g POWER n) x)`,
+ INDUCT_TAC THENL[REWRITE_TAC[MULT; POWER; I_THM];
+    REWRITE_TAC[POWER; o_DEF] THEN POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC"YEU")
+THEN REPEAT STRIP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC"EM") THEN DISCH_THEN(LABEL_TAC"NHO")  THEN DISCH_TAC
+THEN REMOVE_THEN "YEU" (fun th -> MRESA_TAC th[`f:A->A`;`g:A->A`;`s:A->bool`])
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `g (x:A):A`)
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_THEN "EM"  (fun th -> MRESA1_TAC th `x:A`)
+THEN REMOVE_THEN "NHO"  (fun th -> MRESA1_TAC th `x:A`)]);;
+
+
+
+
+
+
+let into_domain_power_efn_fan=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) n:num p.
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E))) 
+==> (!y. y IN d1_fan (x,V,E)==> ((p e_fan ) POWER n)y = ((e_fan x V E) POWER n) y)
+/\ (!y. y IN d1_fan (x,V,E)==> ((p n_fan ) POWER n) y = ((n_fan x V E) POWER n) y)
+/\(!y. y IN d1_fan (x,V,E)==> ((p f1_fan ) POWER n) y = ((f1_fan x V E) POWER n) y)`,
+REPEAT GEN_TAC THEN REPEAT DISCH_TAC
+THEN MRESA_TAC into_domain_efn_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC into_domain1_n_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC into_domain1_f1_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC into_domain1_e_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN MRESA_TAC power_map_fix_set[`n:num`;
+`(p e_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;
+`(e_fan x V E):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`d1_fan (x:real^3,V,E)`;]
+THEN MRESA_TAC power_map_fix_set[`n:num`;
+`(p n_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;
+`(n_fan x V E):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`d1_fan (x:real^3,V,E)`;]
+THEN MRESA_TAC power_map_fix_set[`n:num`;
+`(p f1_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;
+`(f1_fan x V E):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;`d1_fan (x:real^3,V,E)`;]);;
+
+
+
+
+let power_fun_in_domain=prove(`!n f:A->A s:A->bool.(!y. y IN s==> f y IN s)==> (!y. y IN s==> (f POWER n) y IN s)`,
+ INDUCT_TAC THENL[REWRITE_TAC[POWER_0; I_THM];
+POP_ASSUM MP_TAC THEN DISCH_THEN (LABEL_TAC"YEU")
+THEN REPEAT STRIP_TAC THEN REMOVE_THEN "YEU" (fun th-> MRESA_TAC th[`f:A->A`;`s:A->bool`])
+THEN REWRITE_TAC[COM_POWER;o_DEF]
+THEN POP_ASSUM  (fun th-> MRESA1_TAC th`y:A`)]);;
+
+
+
+let into_domain1_power_efn_fan= prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) n:num.
+FAN(x,V,E) ==> (!y. y IN d1_fan (x,V,E)==> (((e_fan x V E) POWER n) y IN d1_fan (x,V,E)))
+/\ (!y. y IN d1_fan (x,V,E)==> (((n_fan x V E) POWER n) y IN d1_fan (x,V,E)))
+/\(!y. y IN d1_fan (x,V,E)==> (((f1_fan x V E) POWER n) y IN d1_fan (x,V,E)))`,
+REPEAT GEN_TAC THEN DISCH_TAC
+THEN MRESA_TAC into_domain1_e_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;]
+THEN MRESA_TAC into_domain1_f1_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;]
+THEN MRESA_TAC into_domain1_n_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;]
+THEN MRESA_TAC power_fun_in_domain[`n:num`;`e_fan x V (E:(real^3->bool)->bool)`;`d1_fan (x:real^3,V,E)`;]
+THEN MRESA_TAC power_fun_in_domain[`n:num`;`f1_fan x V (E:(real^3->bool)->bool)`;`d1_fan (x:real^3,V,E)`;]
+THEN MRESA_TAC power_fun_in_domain[`n:num`;`n_fan x V (E:(real^3->bool)->bool)`;`d1_fan (x:real^3,V,E)`;]);;
+
+
+
+
+
+
+let lemma_hypermap1_of_fanx=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) )  ==>
+(p e_fan) o (p n_fan) o (p f1_fan)= I`,
+REPEAT STRIP_TAC
+THEN MATCH_MP_TAC EQ_EXT
+THEN ASM_REWRITE_TAC[I_THM;o_DEF]
+THEN GEN_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(x' IN d1_fan (x,V,E) )\/ (x' IN d1_fan (x:real^3,V,E))`)
+THENL[
+MRESA_TAC id_enf_fan [`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`x':real^3#real^3#real^3#real^3`];
+MRESA_TAC into_domain_efn_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `x':real^3#real^3#real^3#real^3` )
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `f1_fan x V E x':real^3#real^3#real^3#real^3` )
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN (LABEL_TAC"YEU")
+THEN MRESA_TAC into_domain1_f1_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `x':real^3#real^3#real^3#real^3` )
+THEN RESA_TAC
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_THEN "YEU" (fun th-> MRESA1_TAC th `(n_fan x V E (f1_fan x V E x')):real^3#real^3#real^3#real^3` )
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC into_domain1_n_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `f1_fan x V E x':real^3#real^3#real^3#real^3` )
+THEN RESA_TAC
+THEN MRESA_TAC condition_hypermap_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `x':real^3#real^3#real^3#real^3` )]);;
+
+
+
+
+
+
+
+
+
+let hypermap_of_fan_rep=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) p.
+FAN(x,V,E) /\ p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) )  ==>
+dart ( hypermap1_of_fanx (x,V,E)) =d_fan (x,V,E)  /\ edge_map (hypermap1_of_fanx (x,V,E)) = p e_fan  /\ node_map (hypermap1_of_fanx (x,V,E)) = p n_fan /\ face_map (hypermap1_of_fanx (x,V,E)) = p f1_fan `,
+REPEAT GEN_TAC THEN DISCH_TAC
+THEN REWRITE_TAC[hypermap1_of_fanx]
+THEN CONV_TAC(TOP_DEPTH_CONV let_CONV)
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC finite_d_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC e_fan_permutes[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC n_fan_permutes[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC f1_fan_permutes[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC lemma_hypermap1_of_fanx[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC lemma_hypermap_rep[`d_fan (x:real^3,V,E):real^3#real^3#real^3#real^3->bool`;
+`(p e_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;
+`(p n_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`;
+`(p f1_fan):real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3`]);;
+
+
+
+
+
+
+let dart_leads_into1 = new_definition 
+    `dart_leads_into1 (x,V,E) (v,u) = @s.  s IN topological_component_yfan (x,V,E) /\
+	(?eps. (eps < &1) /\ 
+	   rw_dart_fan x V E (x,v,u,sigma_fan x V E v u) eps  SUBSET s)`;;
+
+
+let dartset_leads_into = new_definition
+  `dartset_leads_into (x,V,E) ds = 
+    @s. (!y. (y IN ds) ==> (s = dart_leads_into1 (x,V,E) y))`;;
+
+let properties_of_f1_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) y y1.
+FAN(x,V,E) /\ y = f1_fan x V E y1 /\ y1 IN d1_fan (x,V,E)
+==> pr3 y1 =pr2 y /\ {pr2 y1, pr3 y1} IN E /\ {pr2 y, pr3 y} IN E /\
+pr2 y1= sigma_fan x V E (pr2 y) (pr3 y)`,
+REPEAT GEN_TAC 
+THEN STRIP_TAC 
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[d1_fan; IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[pr2;pr3;f1_fan]
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`w:real^3`]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN RESA_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+
+
+
+let RWXUYZZ=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds.
+FAN(x,V,E)
 /\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
 /\ fan80(x,V,E)
+/\ ds IN face_set(hypermap1_of_fanx (x,V,E))
 ==>
-dart_leads_into x V E v u = dart_leads_into x V E u w`,
-MESON_TAC[connected_component_of_faces_fan]);;
+?s:real^3->bool. !y. y IN ds==> s= dart_leads_into x V E (pr2 y) (pr3 y)`,
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC hypermap_of_fan_rep[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN ASM_REWRITE_TAC[face_set;set_of_orbits;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN EXISTS_TAC`dart_leads_into x V E (pr2 x') (pr3 x'):real^3->bool`
+THEN ASM_REWRITE_TAC[orbit_map;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(x' IN d1_fan (x,V,E) )\/ (x' IN d1_fan (x:real^3,V,E))`)
+THENL[MRESA_TAC id_power_enf_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`x':real^3#real^3#real^3#real^3` ;`n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[];
+SPEC_TAC (`y:real^3#real^3#real^3#real^3`,`y:real^3#real^3#real^3#real^3`)
+THEN SPEC_TAC (`n:num`,`n:num`)
+THEN INDUCT_TAC
+THENL[
+REWRITE_TAC[POWER_0;I_THM]
+THEN SET_TAC[];
+
+POP_ASSUM MP_TAC
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3` )
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`SUC n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3` )
+THEN ABBREV_TAC`y1=(f1_fan x V E POWER n) (x':real^3#real^3#real^3#real^3)`
+THEN DISCH_THEN(LABEL_TAC "EM")
+THEN ASM_REWRITE_TAC[COM_POWER;o_DEF]
+THEN POP_ASSUM (fun th-> MRESAL1_TAC th`y1:real^3#real^3#real^3#real^3`[ARITH_RULE`(n:num)>= 0`])
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC into_domain1_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`n:num`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3`)
+THEN MRESA_TAC properties_of_f1_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`y:real^3#real^3#real^3#real^3`; `y1:real^3#real^3#real^3#real^3`]
+THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC"EM") THEN REPEAT STRIP_TAC
+THEN ABBREV_TAC`u=pr2 (f1_fan x V E y1):real^3`
+THEN ABBREV_TAC`w=pr3 (f1_fan x V E y1):real^3`
+THEN ABBREV_TAC`v=sigma_fan x V E u w:real^3`
+THEN REMOVE_THEN "EM" MP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC
+THEN MRESA_TAC connected_component_of_faces_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`;`u:real^3`; `w:real^3`]]]);;
 
 
 
 
 
 
+
+(*open Planarity;;
+*)
 
 end;;

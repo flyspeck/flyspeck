@@ -1,11 +1,36 @@
+BeginPackage["Numerical`",{"Sphere`"}]
+
+LP::usage = "LP[c,con] gives the minimum solution to a linear program with objective
+  c and constraints con";;
+
+SearchLB::usage="SearchLB[f, lb, up, t, extrapoints] gives a numerically determined
+  linear lower bound to the function f on the rectangle lb -- up.
+  There is a gap of t between f and the computed lower bound.
+  extrapoints gives additional points to include in the search for a lower bound";
+
+FormLowerHull::usage = "FormLowerHull[x] generates the lower envelope of the
+  set of points x";
+
+computeTableBpq::usage = "computeTableBpq[p,q,{pIneq,qIneq,dihpmin,dihpmax,dihqmin,dihqmax}] gives the (p,q,0) entry of the b table for given inequalities for
+triangles (pIneq) and quadrilaterals (qIneq), with given lower and upper bounds
+on the dihedral angles for triangles and quadrilaterals.\n\n
+pIneq and qIneq should be lists of pairs {m,b} such that tau >= m dih + b";
+
+computeTableAp::usage = "computeAp[p, q, r,{pIneq,qIneq,dihpmin,dihqmin,dihrmin,d}]
+gives the (p,q,r) entry for the a table for data pIneq,qIneq,dihpmin,dihqmin as
+in computeTableBpq, and dihrmin a lower bound on dihedral angle of an exceptional
+face, and d the d-table for what a face squanders";
+
+Begin["`Private`"];
+
 (* Minimizes c.x such that  con[[i, 1]].x ≥ con[[i, 2]] *)
 
 
-LP[c_, con_] := Module[{i,},
+LP[c_, con_] := Module[{i},
       LinearProgramming[c, Map[First, con], 
       Map[Last, con], Table[-Infinity, {i, Length[c]}]]];
 
-flatTable[x_, {y___}] := Flatten[Table[x, y], Length[{y}] - 1];
+
 
 (* searching for new inequalities *)
 
@@ -131,10 +156,45 @@ InterpolateAlongHull[t_, x_List] := Module[{low, hi, i, s, sp, sel},
       sel = Select[x, (First[#] < t) &];
       low = If[Length[sel] > 0, sel // Last, x // First];
       i = Position[x, low] // Flatten // First;
-      hi = If[i < Length[x], x[[i + 1]], x[[i - 1]]];
-      sp = (s /. Solve[t == s (low[[
-      1]]) + (1 - s) (hi[[1]]), s]) // Flatten // First;
+      hi = If[i < Length[x], x[[i + 1]], x[[i - 1]] ];
+      sp = (s /. Solve[t == s (low[[1]]) + (1 - s) (hi[[1]]), s])// Flatten // First;
       sp (low[[2]]) + (1 - sp)(hi[[2]])
       ];
 (* InterpolateAlongHull[1, {{2, 4}, {4, 7}, {5, 22}}] *)
 
+
+(* compute B(p, q) table *)
+
+computeTableBpq[p_, q_,{pIneq_,qIneq_,dihpmin_,dihpmax_,dihqmin_,dihqmax_}] := 
+  Module[{c, y,pfat,qfat},
+      pfat = Map[{{1,-First[#],0,0},{Last[#],1}}&,pIneq];
+      qfat = Map[{{0,0,1,-First[#]},{Last[#],1}}&,qIneq];
+      c = {p, 0, q, 0};
+      If[p dihpmin + q dihqmin > 2.0 Pi,Return[Infinity]];
+      If[p dihpmax + q dihqmax < 2.0 Pi,Return[Infinity]];
+      y = LP[c, Join[pfat, qfat, {{{0, p, 0, q}, {2Pi, 0}},
+              {{0, 1, 0, 0}, {dihpmin, 1}},
+              {{0, 0, 0, 1}, {dihqmin, 1}},
+              {{0, 1, 0, 0}, {dihpmax, -1}},
+              {{0, 0, 0, 1}, {dihqmax, -1}}}]];
+      c.y
+      ];
+
+(* move to numerical.m, nextto computeTableBpq *)
+computeTableAp[p_, q_, r_,{pIneq_,qIneq_,dihpmin_,dihqmin_,dihrmin_,d_}] := 
+  Module[{c, y},
+      pfat = Map[{{1,-First[#],0,0},{Last[#],1}}&,pIneq];
+      qfat = Map[{{0,0,1,-First[#]},{Last[#],1}}&,qIneq];
+      c = {p, 0, q, 0};
+      If[p dihpmin + q dihqmin + r dihrmin > 2.0 Pi,Return[Infinity]];
+      y = LP[c, Join[pfat, qfat, {{{0, p, 0, q}, {2Pi - r  dihrmin, -1}},
+              {{0, 1, 0, 0}, {dihpmin, 1}},
+              {{0, 0, 0, 1}, {dihqmin, 1}}
+              }]];
+      c.y - p d[3] - q d[4]
+      ];
+
+
+
+End[];
+EndPackage[];

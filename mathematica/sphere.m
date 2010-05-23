@@ -13,6 +13,9 @@ guid::usage = "guid generates a random uppercase  alphabetical  string";
 
 randomint::usage = "randomint generates a random 9 digit integer";
 
+flatTable::usage = "flatTable[f, {range1,range2,...}] gives a flattened table of
+  the function f over the given multivariate ranges";
+
 arc::usage = "arc[x,y,z] is the angle opposite z in a triangle with edges x y z.";
 
 $SpherePrecision::usage= "specifies the working precision in the Sphere` package";
@@ -107,6 +110,8 @@ Install = {};
 
 (Unprotect[In, Out]; Format[In] = SphereIn;
   Format[Out] = SphereOut; Protect[In, Out];)
+
+flatTable[x_, {y___}] := Flatten[Table[x, y], Length[{y}] - 1];
 
 $SpherePrecision := 16;
 Ns[x_] := N[x, $SpherePrecision];

@@ -258,7 +258,7 @@ Minimizer m0() {
 	//M.cFunc = smallrad;
 	return M;
 }
-trialdata d0(m0(),"ID[1025009205] d0: Marchal main 4-cell inequality, no rad constraint");
+trialdata d0(m0(),"ID[HJKDESR4] d0: Marchal main 4-cell inequality, no rad constraint");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -273,7 +273,7 @@ Minimizer m1() {
 	M.cFunc = smallradf;
 	return M;
 }
-trialdata d1(m1(),"ID[3564312720] d1: Marchal main 3-cell inequality");
+trialdata d1(m1(),"ID[HJKDESR3] d1: Marchal main 3-cell inequality");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -1003,5 +1003,5 @@ else
   }
 
 
- cout << "bmpfactor " << bmpfactor << endl;
+
 }

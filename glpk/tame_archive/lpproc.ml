@@ -84,7 +84,7 @@ wheremod [[0;1;2];[3;4;5];[7;8;9]] [8;9;7];;  (* 2 *)
 
 let rec nub = function
   | [] -> []
-  | x::xs -> x::filter ((!=) x) (nub xs);;
+  | x::xs -> x::filter ((<>) x) (nub xs);;  (* was physical != *)
 
 
 (* read and write *)

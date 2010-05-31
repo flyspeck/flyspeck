@@ -13,6 +13,7 @@ double pt() { return 0.0553736456684637; }
 double mabs(double a) { return (a>0? a : -a); }
 double max(double a,double b) { return (a>b? a : b); }
 double min(double a,double b) { return (a<b? a : b); }
+double real_pow(double a,double b) { return  pow(a,b);}
 
 double safesqrt(double t)
 	{

@@ -1,0 +1,158 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Nonlinear                                                  *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-05-30                                                           *)
+(* ========================================================================== *)
+
+
+
+(* 
+File of the nonlinear inequalities to be verified by interval arithmetic.
+*)
+
+
+
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "leg/enclosed_def.hl";;
+
+(*
+The nonlinear inequality data has become too widely dispersed over the project directories.
+This file is meant to be the authoritative central repository for inequalities.
+
+Old sources of information (svn 1678 2010-04-26 of NonlinearInequalities.wiki)
+software_guide.tex (svn 1760)
+*)
+
+(* module Main_ineq (* : Ineq_type *) = struct *)
+
+  (* Lp means the inequality enters the main GLPK inequality list to eliminate tame hypermaps.
+      Text means an inequality cited directly in the flypaper text.
+      Cfsqp means that there is cfsqp nonlinear optimization code to test it by gradient descent.
+     Eps is a small epsilon that is added to numerical testing to avoid answers neg. by machine eps.
+      Further means that it is not part of the Flyspeck project, but part of one of the extension
+        theorems: StrongDodec, Fejes Toth's contact conjecture, or Musin-Tarasov.
+      The Tex flag means that the doc field is Tex'able code (with software_guide.tex context). 
+     Derived means that it is not a primitive inequality, but rather a logical consequence of others.
+*)
+
+
+  type tag = Lp | Text | Cfsqp | Eps of float | Further | Tex | Derived;;
+
+type ineq_datum = 
+  { 
+    ineq : term;
+    id : string;
+    doc : string;
+    tags : tag list;
+  };;
+
+let mk_datum (id,doc, tags, ineq ) = 
+  {
+    ineq = ineq;
+    id = id;
+    doc = doc;
+    tags = tags;
+  };;
+
+let ineqs = ref ([]:ineq_datum list);;
+
+let add i  = (ineqs:= i :: !ineqs);;
+
+let getexact id = filter (fun t -> (t.id = id)) (!ineqs);;
+
+let getprefix id = filter (fun t -> (String.sub t.id 0 (String.length id) = id)) (!ineqs);;
+
+let unsplit d f = function
+  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
+  | [] -> "";;
+
+let join_lines  = unsplit "\n" (fun x-> x);;
+
+  let all_forall = Sphere.all_forall;;
+  let ineq = Sphere.ineq;;
+
+  let h0 = new_definition `h0 = #1.26`;;
+  let sol0 = new_definition `sol0 = &3 * acs (&1 / &3)  - pi`;;
+  let tau0 = new_definition `tau0 = &4 * pi - &20 * sol0`;;
+  let mm1 = new_definition `mm1 = sol0 * sqrt(&8)/tau0`;;
+  let mm2 = new_definition `mm2 = (&6 * sol0 - pi) * sqrt(&2) /(&6 * tau0)`;;
+
+  let hplus = new_definition `hplus = #1.3254`;;
+
+  let marchal_quartic = new_definition `marchal_quartic h = 
+    (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
+      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;;
+
+(*
+   let marchal =  new_definition `marchal h =
+    (if (h <= sqrt(&2)) then marchal_quartic h else &0)`;; (* from Pack_defs *)
+*)
+
+  let lmfun = new_definition `lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0`;;
+
+(* --- *)
+
+add
+  {
+    id= "HJKDESR4"; 
+    ineq = (all_forall `ineq
+	      [ 
+		(#2.0,y1,sqrt8);
+		(#2.0,y2,sqrt8);
+		(#2.0,y3,sqrt8);
+		(#2.0,y4,sqrt8);
+		(#2.0,y5,sqrt8);
+		(#2.0,y6,sqrt8)
+	      ]
+	      ((vol_x (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)
+	       - (&2 * mm1 / pi) * 
+               (sol_y y1 y2 y3 y4 y5 y6 +
+		  sol_y y1 y5 y6 y4 y2 y3 +
+		  sol_y y4 y5 y3 y1 y2 y6 +
+		  sol_y y4 y2 y6 y1 y5 y3)
+	       + (&8 * mm2/pi) *
+	       (marchal_quartic(y1/ &2)* dih_y y1 y2 y3 y4 y5 y6 +
+		  marchal_quartic(y2/ &2)* dih_y y2 y3 y1 y5 y6 y4 +
+		  marchal_quartic(y3/ &2)* dih_y y3 y1 y2 y6 y4 y5 +
+		  marchal_quartic(y4/ &2)* dih_y y4 y3 y5 y1 y6 y2 +
+		  marchal_quartic(y5/ &2)* dih_y y5 y1 y6 y2 y4 y3 +
+		  marchal_quartic(y6/ &2)* dih_y y6 y1 y5 y3 y4 y2) >= &0) \/
+                (rad2_x (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y1) >= &2))`);
+    doc=
+      (join_lines [
+	 "% Main Marchal Inequality (4 cells). Packing Chapter.";
+	 "% old: \guid{WJDLOCM} \guid{XHVKJFS} \guid{1025009205} \guid{3564312720}";
+	 "% old: 9373340897; cc:mar; calc:marchal";
+       ]);
+    tags = [Text;Cfsqp;Eps 1.0e-12]
+};;
+
+add
+  {
+    id= "HJKDESR3";
+  ineq = (all_forall `ineq
+  [ 
+    (#2.0,y1,sqrt8);
+    (#2.0,y2,sqrt8);
+    (#2.0,y3,sqrt8)
+  ]
+(
+  (vol_x (y1*y1) (y2*y2) (&2) (&2) (&2) (y3*y3)
+   - (&2 * mm1 / pi) * 
+        (sol_y y1 y2 sqrt2 sqrt2 sqrt2 y3 +
+	   sol_y y2 y3 sqrt2 sqrt2 sqrt2 y1 +
+	   sol_y y3 y1 sqrt2 sqrt2 sqrt2 y2)
+    + (&8 * mm2/pi) *
+       (marchal_quartic(y1/ &2)* dih_y y1 y2 sqrt2 sqrt2 sqrt2 y3 +
+	  marchal_quartic(y2/ &2)* dih_y y2 y3 sqrt2 sqrt2 sqrt2 y1 +
+	  marchal_quartic(y3/ &2)* dih_y y3 y1 sqrt2 sqrt2 sqrt2 y2)
+         >= &0) \/ (eta_y y1 y2 y3 >= sqrt2))`);
+    doc = "%old I_1305126631 (* Flypaper, Packing, Marchal 3cell *)";
+    tags = [Text;Cfsqp];
+  };;
+
+ 
+    
+(* end;; *)

@@ -2,17 +2,13 @@
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
 (* Chapter: nonlinear inequalities                                                             *)
-(* Author: Roland Zumkeller                                                    *)
+(* Author: Roland Zumkeller and Thomas Hales           *)
 (* Date: 2010-05-09                                                    *)
 (* ========================================================================== *)
 
 (*
-code to parse inequalities.
+code to parse inequalities and generate a cfsqp file to test nonlinear inequality.
 *)
-
-(* #load "unix.cma";; *)
-
-(* let sergei_path = "sergei/bin/sergei";; *)
 
 let dest_decimal x = match strip_comb x with
   | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
@@ -81,7 +77,9 @@ let builtin = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs"
     ];;
 
 let notbuiltin =map (function b -> snd(strip_forall (concl b)))
-  [sol0;tau0;hplus;mm1;mm2;(* marchal_quartic; *)Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2]
+  [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
+   Sphere.rad2_x]
+(*   @ [marchal_quartic];; *)
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
       ((sqrt(&2) - &1)* &5 *(hplus - &1))`];;
@@ -107,8 +105,6 @@ ccfunction `f x y = x +y + #1.0`;;
 *)
 
 
-(* "HJKDESR4" *)
-
 let cc_of_tm iqd = 
   let t = snd(strip_forall iqd) in
   let (vs,i) = dest_comb t in
@@ -127,7 +123,7 @@ string_of_tm ( (List.nth (getprefix "HJKDESR4") 0).ineq );;
 
 (* generate cfsqp code of ineq *)
 
-let case i j = Printf.sprintf "case %d: *ret = -(%s); break;" j (List.nth i j);;
+let case i j = Printf.sprintf "case %d: *ret = (%s); break;" j (List.nth i j);;
 
 let vardecl vs = 
   let varname = map (fun (a,b,c) -> b) vs in
@@ -141,14 +137,22 @@ let bounds f vs =
 
 let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);;
 
+let rec geteps = 
+  let getepsf = function
+    Eps t -> t
+    | _ -> 0.0
+  in function
+      [] -> 0.0
+  | b::bs -> max(getepsf b) (geteps bs);;
 
 let cfsqp_code outs trialcount iqd = 
   let (b,vs,i) = cc_of_tm iqd.ineq in
+  let eps = geteps (iqd.tags) in 
   let nvs = List.length vs in
   let ni = List.length i in
   let p = Printf.sprintf in
   let s = join_lines ([
-    p"// This program is machine generated ";
+    p"// This code is machine generated ";
     p"#include <iomanip.h>\n#include <iostream.h>\n#include <math.h>";
     p"#include \"../Minimizer.h\"\n#include \"../numerical.h\"";
    p"class trialdata { public:   trialdata(Minimizer M,char* s) {     M.coutReport(s);  };};";
@@ -161,7 +165,7 @@ let cfsqp_code outs trialcount iqd =
   p"default: *ret = 0; break; }}\n\n";
   p"void t0(int numargs,int whichFn,double* y, double* ret,void*) {";
   vardecl vs ;
-  p"*ret = %s;" (List.nth i 0);
+  p"*ret = (%e) + (%s);" eps (List.nth i 0);
 	p"}";
 p"Minimizer m0() {";
 p"  double xmin[%d]= {" nvs;
@@ -187,6 +191,7 @@ p"assert(near(mm1(),1.012080868420655));";
 p"assert(near(mm2(),0.0254145072695089));";
 p"assert(near(real_pow(1.18,2.),1.3924));";
 p"assert(near(marchal_quartic(1.18),0.228828103048681825));";
+p"assert(near(rad2_x(4.1,4.2,4.3,4.4,4.5,4.6),1.6333363881302794));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  
@@ -196,21 +201,19 @@ p"}\n\n";
 *)
 
     
-let display_cfsqp tmpfile iqd = 
+let mk_cfsqp tmpfile iqd = 
   let outs = open_out tmpfile in
   let _ = cfsqp_code outs 500 iqd in
-  let _ = close_out outs in
-    Sys.command(sprintf "cat %s" tmpfile);;
+   close_out outs ;;
+  (*    Sys.command(sprintf "cat %s" tmpfile);;  *)
 
 let cfsqp_dir = flyspeck_dir^"/../cfsqp";;
 
-display_cfsqp (cfsqp_dir ^ "/tmp/t.cc") test;;
+let test_ineq idq = 
+  let _ =  mk_cfsqp (cfsqp_dir ^ "/tmp/t.cc") idq in
+  let _ = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o") in
+    Sys.command(cfsqp_dir^"/tmp/t.o");;
 
-(*
-let strip_archive filename = 
-  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '//' | grep -v '^$' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
-  let s = load_and_close_channel false ic in
-  let _ = Unix.close_process (ic,oc) in
-    s;;
-*)
+
+
 

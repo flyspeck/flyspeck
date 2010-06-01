@@ -48,6 +48,7 @@ type ineq_datum =
     tags : tag list;
   };;
 
+(*
 let mk_datum (id,doc, tags, ineq ) = 
   {
     ineq = ineq;
@@ -55,6 +56,7 @@ let mk_datum (id,doc, tags, ineq ) =
     doc = doc;
     tags = tags;
   };;
+*)
 
 let ineqs = ref ([]:ineq_datum list);;
 
@@ -64,11 +66,7 @@ let getexact id = filter (fun t -> (t.id = id)) (!ineqs);;
 
 let getprefix id = filter (fun t -> (String.sub t.id 0 (String.length id) = id)) (!ineqs);;
 
-let unsplit d f = function
-  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
 
-let join_lines  = unsplit "\n" (fun x-> x);;
 
   let all_forall = Sphere.all_forall;;
   let ineq = Sphere.ineq;;
@@ -94,63 +92,96 @@ let join_lines  = unsplit "\n" (fun x-> x);;
 
 (* --- *)
 
-add
-  {
-    id= "HJKDESR4"; 
-    ineq = (all_forall `ineq
-	      [ 
-		(#2.0,y1,sqrt8);
-		(#2.0,y2,sqrt8);
-		(#2.0,y3,sqrt8);
-		(#2.0,y4,sqrt8);
-		(#2.0,y5,sqrt8);
-		(#2.0,y6,sqrt8)
-	      ]
-	      ((vol_x (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)
-	       - (&2 * mm1 / pi) * 
+  let y_of_x = new_definition `y_of_x fx y1 y2 y3 y4 y5 y6 = 
+    fx (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)`;;
+
+  let vol_y = new_definition `vol_y = y_of_x vol_x`;;
+
+  let vol4f = new_definition `vol4f y1 y2 y3 y4 y5 y6 f = 
+   (&2 * mm1 / pi) * 
                (sol_y y1 y2 y3 y4 y5 y6 +
 		  sol_y y1 y5 y6 y4 y2 y3 +
 		  sol_y y4 y5 y3 y1 y2 y6 +
 		  sol_y y4 y2 y6 y1 y5 y3)
-	       + (&8 * mm2/pi) *
-	       (marchal_quartic(y1/ &2)* dih_y y1 y2 y3 y4 y5 y6 +
-		  marchal_quartic(y2/ &2)* dih_y y2 y3 y1 y5 y6 y4 +
-		  marchal_quartic(y3/ &2)* dih_y y3 y1 y2 y6 y4 y5 +
-		  marchal_quartic(y4/ &2)* dih_y y4 y3 y5 y1 y6 y2 +
-		  marchal_quartic(y5/ &2)* dih_y y5 y1 y6 y2 y4 y3 +
-		  marchal_quartic(y6/ &2)* dih_y y6 y1 y5 y3 y4 y2) >= &0) \/
-                (rad2_x (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y1) >= &2))`);
-    doc=
-      (join_lines [
-	 "% Main Marchal Inequality (4 cells). Packing Chapter.";
-	 "% old: \guid{WJDLOCM} \guid{XHVKJFS} \guid{1025009205} \guid{3564312720}";
-	 "% old: 9373340897; cc:mar; calc:marchal";
-       ]);
-    tags = [Text;Cfsqp;Eps 1.0e-12]
-};;
+	       - (&8 * mm2/pi) *
+	       (f(y1/ &2)* dih_y y1 y2 y3 y4 y5 y6 +
+		  f(y2/ &2)* dih_y y2 y3 y1 y5 y6 y4 +
+		  f(y3/ &2)* dih_y y3 y1 y2 y6 y4 y5 +
+		  f(y4/ &2)* dih_y y4 y3 y5 y1 y6 y2 +
+		  f(y5/ &2)* dih_y y5 y1 y6 y2 y4 y3 +
+		  f(y6/ &2)* dih_y y6 y1 y5 y3 y4 y2)`;;
+
+  let gamma4f = new_definition `gamma4f y1 y2 y3 y4 y5 y6 f =
+    vol_y y1 y2 y3 y4 y5 y6 - vol4f  y1 y2 y3 y4 y5 y6 f`;;
+
+(* real and fake 3-cell volumes *)
+
+  let vol3r = new_definition `vol3r y1 y2 y3 r = vol_y r r r y1 y2 y3`;;
+
+  let vol3f = new_definition `vol3f y1 y2 y3 r f = (&2 * mm1 / pi) * 
+        (sol_y y1 y2 r r r y3 +
+	   sol_y y2 y3 r r r y1 +
+	   sol_y y3 y1 r r r y2)
+    - (&8 * mm2/pi) *
+       (f(y1/ &2)* dih_y y1 y2 r r r y3 +
+	  f(y2/ &2)* dih_y y2 y3 r r r y1 +
+	  f(y3/ &2)* dih_y y3 y1 r r r y2)`;;
+
+
+  (* real and fake volume of two cones 2Pi *)
+
+  let vol2r = new_definition `vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`;;
+
+  let vol2f = new_definition  `vol2f y r f =  (&2 * mm1 / pi) *  &2 *pi* (&1- y/ (r * &2))
+    - (&8 * mm2/pi) * &2 * pi * f (y/ (&2)) `;;
+    
+  add
+    {
+      id= "HJKDESR4"; 
+      ineq = (all_forall `ineq
+		[ 
+		  (#2.0,y1,sqrt8);
+		  (#2.0,y2,sqrt8);
+		  (#2.0,y3,sqrt8);
+		  (#2.0,y4,sqrt8);
+		  (#2.0,y5,sqrt8);
+		  (#2.0,y6,sqrt8)
+		]
+		((gamma4f y1 y2 y3 y4 y5 y6 marchal_quartic >= &0) \/
+                   (y_of_x rad2_x y1 y2 y3 y4 y5 y6 >= &2))`);
+      doc=
+	(join_lines [
+	   "% Main Marchal Inequality (4 cells). Packing Chapter.";
+	   "% old: \guid{WJDLOCM} \guid{XHVKJFS} \guid{1025009205} \guid{3564312720}";
+	   "% old: 9373340897; cc:mar; calc:marchal";
+	 ]);
+      tags = [Text;Cfsqp;Eps 1.0e-12]
+    };;
+
+add
+    {
+      id= "HJKDESR3";
+      ineq = (all_forall `ineq
+		[ 
+		  (#2.0,y1,sqrt8);
+		  (#2.0,y2,sqrt8);
+		  (#2.0,y3,sqrt8)
+		]
+		(
+  (vol3r   y1 y2 y3 sqrt2 -  vol3f y1 y2 y3 sqrt2 marchal_quartic  >= &0) \/ 
+  (eta_y y1 y2 y3 >= sqrt2))`);
+    doc = "%old I_1305126631 (* Flypaper, Packing, Marchal 3cell *)";
+    tags = [Text;Cfsqp;Eps 1.0e-7];
+  };;
 
 add
   {
-    id= "HJKDESR3";
-  ineq = (all_forall `ineq
-  [ 
-    (#2.0,y1,sqrt8);
-    (#2.0,y2,sqrt8);
-    (#2.0,y3,sqrt8)
-  ]
-(
-  (vol_x (y1*y1) (y2*y2) (&2) (&2) (&2) (y3*y3)
-   - (&2 * mm1 / pi) * 
-        (sol_y y1 y2 sqrt2 sqrt2 sqrt2 y3 +
-	   sol_y y2 y3 sqrt2 sqrt2 sqrt2 y1 +
-	   sol_y y3 y1 sqrt2 sqrt2 sqrt2 y2)
-    + (&8 * mm2/pi) *
-       (marchal_quartic(y1/ &2)* dih_y y1 y2 sqrt2 sqrt2 sqrt2 y3 +
-	  marchal_quartic(y2/ &2)* dih_y y2 y3 sqrt2 sqrt2 sqrt2 y1 +
-	  marchal_quartic(y3/ &2)* dih_y y3 y1 sqrt2 sqrt2 sqrt2 y2)
-         >= &0) \/ (eta_y y1 y2 y3 >= sqrt2))`);
-    doc = "%old I_1305126631 (* Flypaper, Packing, Marchal 3cell *)";
-    tags = [Text;Cfsqp];
+  id = "HJKDESR2";
+ ineq = all_forall `ineq
+  [     (#2.0,y,sqrt8) ]
+   (vol2r y sqrt2 - vol2f y sqrt2 marchal_quartic >= &0)`;
+  doc = "%old: I_3148025108 (* Flypaper, Packing Marchal 2cell *)";
+    tags = [Text;Cfsqp;Eps 1.0e-7];  
   };;
 
  

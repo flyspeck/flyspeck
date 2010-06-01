@@ -59,7 +59,7 @@ soh a ^ " ATN2 " ^ soh b ^ ")"
   | s -> "(" ^ s ^ "(" ^ join_comma(map soh xs) ^ "))";;
 
 let ccform1 t = 
-   try (ccform t) with Failure s -> failwith (s^" "^string_of_term t);;
+   try (ccform t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 
 
@@ -83,7 +83,7 @@ let notbuiltin = ref[];;
 
 notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
-   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;vol2f]
+   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r]
 (*   @ [marchal_quartic;vol2r];; *)
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
@@ -227,7 +227,3 @@ let test_ineq idq =
   let _ =  mk_cfsqp (cfsqp_dir ^ "/tmp/t.cc") idq in
   let _ = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o") in
     Sys.command(cfsqp_dir^"/tmp/t.o");;
-
-
-
-

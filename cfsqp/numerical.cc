@@ -8,6 +8,7 @@
 double pi() { return  4.0*atan(1.0); }
 double pt() { return 0.0553736456684637; }
 
+
 /******************* DELAUNAY STUFF ***********************/
 
 double mabs(double a) { return (a>0? a : -a); }
@@ -599,9 +600,21 @@ double interp(double x1,double y1,double x2,double y2,double x) {
   return y1 + (x - x1) *(y2-y1)/(x2-x1);
 }
 
+double hminus() { return 1.2317544220903216;  }
+
+double h0() { return 1.26; }
+
+double lfun(double h) {
+  return interp(  1.0,1.0,    h0(),0.0,  h);
+}
+
+double lmfun(double h) {
+  return max(0,lfun(h));
+}
+
 double c1() { return sol_y(2,2,2,2,2,2)/pi(); } // delta0/Pi
 
-// Lfun[y/2]
+// lfun[y/2]
 double ly(double y) {
   return interp(2.0,1.0,    2.52,0.0, y);
 }

@@ -146,6 +146,8 @@ double crossdiag(double y[9]);
 // Kepler 2009 functions:
 
 double interp(double x1,double y1,double x2,double y2,double x);
+double hminus();
+double h0();
 double c1(); // delta0/Pi
 double ly(double y) ;
 double rho(double y);
@@ -154,6 +156,8 @@ double lnazim(double y1,double y2,double y3,double y4,double y5,double y6);
 double azim(double y1,double y2,double y3,double y4,double y5,double y6);
 double taum(double y1,double y2,double y3,double y4,double y5,double y6);
 double taumalt(double y1,double y2,double y3,double y4,double y5,double y6);
+double lfun(double h);
+double lmfun(double h);
 
 
 #endif

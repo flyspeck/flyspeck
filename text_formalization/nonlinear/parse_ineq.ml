@@ -74,7 +74,7 @@ let cs i =
 
 let builtin = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
     "ineq";  "pi"; "real_add"; "real_div";"real_pow";
-    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";
+    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";"lmfun"
     ];;
 
 let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
@@ -83,7 +83,7 @@ let notbuiltin = ref[];;
 
 notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
-   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r]
+   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;norm2hh]
 (*   @ [marchal_quartic;vol2r];; *)
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
@@ -141,10 +141,10 @@ string_of_tm ( (List.nth (getprefix "HJKDESR4") 0).ineq );;
 
 let case i j = Printf.sprintf "case %d: *ret = (%s); break;" j (List.nth i j);;
 
-let vardecl vs = 
+let vardecl y vs = 
   let varname = map (fun (a,b,c) -> b) vs in
   let nvs = List.length vs in
-  let  v j = Printf.sprintf "double %s = y[%d];"  (List.nth varname j) j in
+  let  v j = Printf.sprintf "double %s = %s[%d];"   (List.nth varname j) y j in
     join_lines (map v (0-- (nvs-1)));;
 
 let bounds f vs = 
@@ -164,6 +164,7 @@ let cfsqp_code outs trialcount iqd =
   let eps = geteps (iqd.tags) in 
   let nvs = List.length vs in
   let ni = List.length i in
+  let y = "y____0" in 
   let p = Printf.sprintf in
   let s = join_lines ([
     p"// This code is machine generated ";
@@ -172,13 +173,13 @@ let cfsqp_code outs trialcount iqd =
    p"class trialdata { public:   trialdata(Minimizer M,char* s) {     M.coutReport(s);  };};";
   p"int trialcount = %d;\n"  trialcount;
   join_lines(map ccfunction (!notbuiltin));
-   p"void c0(int numargs,int whichFn,double* y, double* ret,void*) {";
-  vardecl vs ;
+   p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y;
+  vardecl y vs ;
   p"switch(whichFn) {";
   ] @ map (case i) (1-- (-1 + List.length i)) @ [
   p"default: *ret = 0; break; }}\n\n";
-  p"void t0(int numargs,int whichFn,double* y, double* ret,void*) {";
-  vardecl vs ;
+  p"void t0(int numargs,int whichFn,double* %s, double* ret,void*) { " y;
+  vardecl y vs ;
   p"*ret = (%e) + (%s);" eps (List.nth i 0);
 	p"}";
 p"Minimizer m0() {";

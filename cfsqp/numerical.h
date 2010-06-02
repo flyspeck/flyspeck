@@ -159,5 +159,13 @@ double taumalt(double y1,double y2,double y3,double y4,double y5,double y6);
 double lfun(double h);
 double lmfun(double h);
 
+// cluster functions
+int critical_edge_y(double h) ;
+int wtcount6_y(double y1,double y2,double y3,double y4,double y5,double y6);
+int wtcount3_y(double y1,double y2,double y3) ;
+double bump(double r);
+double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6);
+double machine_eps();
+
 
 #endif

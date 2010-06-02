@@ -644,3 +644,48 @@ double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
   return rho(y1)*dih_y(y1,y2,y3,y4,y5,y6)+rho(y2)*dih_y(y2,y3,y1,y5,y6,y4)+
     rho(y3)*dih_y(y3,y1,y2,y6,y4,y5) - (pi() + sol_y(2,2,2,2,2,2));
 }
+
+double hplus =  1.3254; 
+
+
+int critical_edge_y(double t) {
+  return ((t >= 2.0*hminus()) && (t <= 2.0*hplus));
+}
+
+int wtcount6_y(double y1,double y2,double y3,double y4,double y5,double y6) {
+  int count =0;
+  if (critical_edge_y(y1)) { count++; }
+  if (critical_edge_y(y2)) { count++; }
+  if (critical_edge_y(y3)) { count++; }
+  if (critical_edge_y(y4)) { count++; }
+  if (critical_edge_y(y5)) { count++; }
+  if (critical_edge_y(y6)) { count++; }
+  return count;
+}
+
+int wtcount3_y(double y1,double y2,double y3) {
+  int count =0;
+  if (critical_edge_y(y1)) { count++; }
+  if (critical_edge_y(y2)) { count++; }
+  if (critical_edge_y(y3)) { count++; }
+  return count;
+}
+
+double bump(double r) { 
+  double bmpfactor = 0.005;
+  double s = (r-h0())/(hplus-h0());
+  return bmpfactor *(1.0 - s*s);
+}
+
+double bmp2(double y1,double y4) {
+  return (bump(y1/2.0) - bump(y4/2.0));
+} 
+
+double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6) {
+  if (2!=wtcount6_y(y1,y2,y3,y4,y5,y6))  { return 0.0; }
+  if (!critical_edge_y(y1))  { return 0.0; }
+  if (!critical_edge_y(y4))  { return 0.0; }
+  return bmp2(y1,y4);
+}
+
+double machine_eps() { return 2.0e-8; } // is 0 in formal text.

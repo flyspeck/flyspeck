@@ -74,7 +74,8 @@ let cs i =
 
 let builtin = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
     "ineq";  "pi"; "real_add"; "real_div";"real_pow";
-    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";"lmfun"
+    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";"lmfun";"wtcount3_y";
+    "wtcount6_y";"beta_bump_y";"machine_eps"
     ];;
 
 let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
@@ -83,7 +84,8 @@ let notbuiltin = ref[];;
 
 notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
-   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;norm2hh]
+   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;norm2hh;
+ beta_bump_force_y;  a_spine5;b_spine5]
 (*   @ [marchal_quartic;vol2r];; *)
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
@@ -92,7 +94,8 @@ notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
 (* remove these entirely before converting to C *)
 
 let elim_list = ref [];;
-elim_list := [gamma4f;vol4f;y_of_x;vol_y;vol3f;vol2f];;
+elim_list := [gamma4f;vol4f;y_of_x;vol_y;vol3f;vol2f;gamma3f;REAL_MUL_LZERO;
+   REAL_MUL_RZERO];;
 !elim_list;;
 
 let prep_term t = 
@@ -164,7 +167,7 @@ let cfsqp_code outs trialcount iqd =
   let eps = geteps (iqd.tags) in 
   let nvs = List.length vs in
   let ni = List.length i in
-  let y = "y____0" in 
+  let y = "y_mangle__" in 
   let p = Printf.sprintf in
   let s = join_lines ([
     p"// This code is machine generated ";
@@ -195,18 +198,27 @@ p"}";
 p "trialdata d0(m0(),\"%s\");\n\n"  iqd.id;
 p"int near(double x,double y) {   double eps = 1.0e-8; return (mabs(x-y)<eps); }";
 p"int main(){";
+    p"//Mathematica generated test data";
     p" assert(near (pi(),4.0*atan(1.0)));";
     p" assert(near (sqrt2(),1.41421356237309));";
     p" assert(near (sqrt8(),2.828427124746190));";
 p" assert(near (sol0(),0.5512855984325308));";
 p" assert(near (tau0(),1.54065864570856));";
 p" assert(near (acos(0.3),1.26610367277949));";
+p"assert(near(hminus(),1.2317544220903216));";
 p"assert(near(hplus(),1.3254));";
 p"assert(near(mm1(),1.012080868420655));";
 p"assert(near(mm2(),0.0254145072695089));";
 p"assert(near(real_pow(1.18,2.),1.3924));";
 p"assert(near(marchal_quartic(1.18),0.228828103048681825));";
+p"assert(near(lmfun(1.18),0.30769230769230793));";
 p"assert(near(rad2_x(4.1,4.2,4.3,4.4,4.5,4.6),1.6333363881302794));";
+p"assert(near(dih_y(2.1,2.2,2.3,2.4,2.5,2.6),1.1884801338917963));";
+p"assert(near(sol_y(2.1,2.2,2.3,2.4,2.5,2.6), 0.7703577405137815));";
+p"assert(near(ups_x(4.1,4.2,4.3), 52.88));";
+p"assert(near(eta_y(2.1,2.2,2.3), 1.272816758217772));";
+p"assert(near(beta_bump_force_y(2.1,2.2,2.3,2.4,2.5,2.6), -0.04734449962124398));";
+p"assert(near(beta_bump_force_y(2.5,2.05,2.1,2.6,2.15,2.2), beta_bump_y(2.5,2.05,2.1,2.6,2.15,2.2)));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  

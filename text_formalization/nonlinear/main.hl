@@ -17,6 +17,8 @@ File of the nonlinear inequalities to be verified by interval arithmetic.
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "leg/enclosed_def.hl";;
 
+open Sphere;;
+
 (*
 The nonlinear inequality data has become too widely dispersed over the project directories.
 This file is meant to be the authoritative central repository for inequalities.
@@ -28,17 +30,19 @@ software_guide.tex (svn 1760)
 (* module Main_ineq (* : Ineq_type *) = struct *)
 
   (* Lp means the inequality enters the main GLPK inequality list to eliminate tame hypermaps.
-      Text means an inequality cited directly in the flypaper text.
+      Clusterlp means they enter the GLPK calcs for the cluster inequality.
+      Tablelp means they enter the LP calcs for the A and B tables in the definition of Tame h.
+      Flypaper means an inequality cited directly in the flypaper text.
       Cfsqp means that there is cfsqp nonlinear optimization code to test it by gradient descent.
      Eps is a small epsilon that is added to numerical testing to avoid answers neg. by machine eps.
       Further means that it is not part of the Flyspeck project, but part of one of the extension
         theorems: StrongDodec, Fejes Toth's contact conjecture, or Musin-Tarasov.
-      The Tex flag means that the doc field is Tex'able code (with software_guide.tex context). 
+      The TeX flag means that the doc field is Tex'able code (with software_guide.tex context). 
      Derived means that it is not a primitive inequality, but rather a logical consequence of others.
 *)
 
 
-  type tag = Lp | Text | Cfsqp | Eps of float | Further | Tex | Derived;;
+  type tag = Lp | Clusterlp | Tablelp | Flypaper | Cfsqp | Eps of float | Further | Tex | Derived;;
 
 type ineq_datum = 
   { 
@@ -69,79 +73,6 @@ let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
 
 
 
-  let all_forall = Sphere.all_forall;;
-  let ineq = Sphere.ineq;;
-
-  let h0 = new_definition `h0 = #1.26`;;
-  let sol0 = new_definition `sol0 = &3 * acs (&1 / &3)  - pi`;;
-  let tau0 = new_definition `tau0 = &4 * pi - &20 * sol0`;;
-  let mm1 = new_definition `mm1 = sol0 * sqrt(&8)/tau0`;;
-  let mm2 = new_definition `mm2 = (&6 * sol0 - pi) * sqrt(&2) /(&6 * tau0)`;;
-
-  let hplus = new_definition `hplus = #1.3254`;;
-
-  let marchal_quartic = new_definition `marchal_quartic h = 
-    (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
-      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;;
-
-(*
-   let marchal =  new_definition `marchal h =
-    (if (h <= sqrt(&2)) then marchal_quartic h else &0)`;; (* from Pack_defs *)
-*)
-
-  let lmfun = new_definition `lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0`;;
-
-  let lfun = new_definition `lfun h =  (h0 - h)/(h0 - &1)`;;
-
-  let hminus = new_definition `hminus = @x. #1.2 <= x /\ x < #1.3 /\ marchal_quartic x = lmfun x`;;
-
-
-(* --- *)
-
-  let y_of_x = new_definition `y_of_x fx y1 y2 y3 y4 y5 y6 = 
-    fx (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)`;;
-
-  let vol_y = new_definition `vol_y = y_of_x vol_x`;;
-
-  let vol4f = new_definition `vol4f y1 y2 y3 y4 y5 y6 f = 
-   (&2 * mm1 / pi) * 
-               (sol_y y1 y2 y3 y4 y5 y6 +
-		  sol_y y1 y5 y6 y4 y2 y3 +
-		  sol_y y4 y5 y3 y1 y2 y6 +
-		  sol_y y4 y2 y6 y1 y5 y3)
-	       - (&8 * mm2/pi) *
-	       (f(y1/ &2)* dih_y y1 y2 y3 y4 y5 y6 +
-		  f(y2/ &2)* dih_y y2 y3 y1 y5 y6 y4 +
-		  f(y3/ &2)* dih_y y3 y1 y2 y6 y4 y5 +
-		  f(y4/ &2)* dih_y y4 y3 y5 y1 y6 y2 +
-		  f(y5/ &2)* dih_y y5 y1 y6 y2 y4 y3 +
-		  f(y6/ &2)* dih_y y6 y1 y5 y3 y4 y2)`;;
-
-  let gamma4f = new_definition `gamma4f y1 y2 y3 y4 y5 y6 f =
-    vol_y y1 y2 y3 y4 y5 y6 - vol4f  y1 y2 y3 y4 y5 y6 f`;;
-
-(* real and fake 3-cell volumes *)
-
-  let vol3r = new_definition `vol3r y1 y2 y3 r = vol_y r r r y1 y2 y3`;;
-
-  let vol3f = new_definition `vol3f y1 y2 y3 r f = (&2 * mm1 / pi) * 
-        (sol_y y1 y2 r r r y3 +
-	   sol_y y2 y3 r r r y1 +
-	   sol_y y3 y1 r r r y2)
-    - (&8 * mm2/pi) *
-       (f(y1/ &2)* dih_y y1 y2 r r r y3 +
-	  f(y2/ &2)* dih_y y2 y3 r r r y1 +
-	  f(y3/ &2)* dih_y y3 y1 r r r y2)`;;
-
-  let gamma3f = new_definition `gamma3f y1 y2 y3 r f = vol3r y1 y2 y3 r - vol3f y1 y2 y3 r f`;;
-
-
-  (* real and fake volume of two cones 2Pi *)
-
-  let vol2r = new_definition `vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`;;
-
-  let vol2f = new_definition  `vol2f y r f =  (&2 * mm1 / pi) *  &2 *pi* (&1- y/ (r * &2))
-    - (&8 * mm2/pi) * &2 * pi * f (y/ (&2)) `;;
     
   add
     {
@@ -163,7 +94,7 @@ let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
 	   % old: 9373340897; cc:mar; calc:marchal
     If $X$ is a $4$-cell, then $\\gamma(X,M)\\ge 0$. ";
 	 ]);
-      tags = [Text;Tex;Cfsqp;Eps 1.0e-12]
+      tags = [Flypaper;Tex;Cfsqp;Eps 1.0e-12]
     };;
 
 add
@@ -180,7 +111,7 @@ add
   (eta_y y1 y2 y3 >= sqrt2) )`);
     doc = "%old tags 1305126631, 3564312720 Packing, Marchal 3cell 
    If $X$ is a $3$-cell, then $\\gamma(X,M)\\ge 0$. ";
-    tags = [Text;Tex;Cfsqp;Eps 1.0e-7];
+    tags = [Flypaper;Tex;Cfsqp;Eps 1.0e-7];
   };;
 
 
@@ -194,7 +125,7 @@ add
   doc = "%old: I_3148025108 (* Flypaper, Packing Marchal 2cell *)
    If $X$ is a $2$-cell, then $\\gamma(X,M)\\ge 0$. 
    ";
-    tags = [Text;Cfsqp;Eps 1.0e-7];  
+    tags = [Flypaper;Cfsqp;Eps 1.0e-7];  
   };;
 
 add
@@ -207,7 +138,7 @@ add
    "%old: I_3148025108 Flypaper, Packing Marchal 1-cell 
    If $X$ is a $1$-cell, then $\\gamma(X,M)\\ge 0$.  (The desired inequality is the
    special case $r=\\sqrt2$ of the formal specification.)";
-    tags = [Text;Tex;Cfsqp;Eps 1.0e-7];  
+    tags = [Flypaper;Tex;Cfsqp;Eps 1.0e-7];  
 };;
 
 
@@ -217,7 +148,7 @@ add
 
 add 
 {
-  id = "GLFVCVK4";
+  id = "GLFVCVK4 2477216213";
   ineq = all_forall `ineq
    [(&2 * hminus, y1, &2 * hplus);
     (&2,y2,sqrt8);
@@ -230,7 +161,6 @@ add
     (norm2hh y1 y2 y3 y4 y5 y6 <=  (hplus- hminus) pow 2) \/
     (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
   doc = "
-  %2477216213
   \\claim{If $X$ is a $4$-cell that is not a quarter, then $\\gamma(X,L)\\ge0$.}
   Indeed, if no edge of $X$ is critical, then $\\gamma(X,L)\\ge \\gamma(X,M)\\ge 0$.
   If some edge of $X$ is critical, then we may label the edges so that it is the first, and
@@ -239,7 +169,7 @@ add
   If the norm condition holds, then it is a quarter.  This norm condition seems easier to
   check in practice than the conditions defining a quarter.
   ";
-  tags = [Text];
+  tags = [Flypaper];
 };;
 
 add 
@@ -255,7 +185,7 @@ add
   doc =   "
      %4869905472
      If $X$ is a $3$-cell, then $\\gamma(X,L)\\ge0$.";
-  tags = [Text;Cfsqp;Eps 1.0e-7];
+  tags = [Flypaper;Cfsqp;Eps 1.0e-7];
 };;
 
 add
@@ -265,7 +195,7 @@ add
   [     (#2.0,y,sqrt8) ]
    (vol2r y sqrt2 - vol2f y sqrt2 lmfun > &0)`;
   doc =   "If $X$ is a $3$-cell, then $\\gamma(X,L)\\ge0$.";
-    tags = [Text;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp];  
   };;
 
 let bump = new_definition `!h. bump h = #0.005*(&1 - ((h- h0) pow 2)/((hplus - h0) pow 2))`;;
@@ -297,7 +227,7 @@ let machine_eps = new_definition `machine_eps = &0`;;
 
 add
 {
-  id = "GLFVCVK4a";
+  id = "GLFVCVK4a 8328676778";
   ineq = all_forall `ineq
    [(&2 * hminus, y1, &2 * hplus );
     (&2 ,y2,&2 * hminus );
@@ -310,7 +240,6 @@ add
     beta_bump_force_y y1 y2 y3 y4 y5 y6 > &0)\/ 
     (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
   doc = "
-%old tag 8328676778
 Let $\\gamma$ be given by Definition~\\ref{def:gammaL}, $\\op{wt}$ by
 Definition~\\ref{def:wt}, and $\\beta$ by Definition~\\ref{def:beta}.
 If $X$ is any $k$-cell with $k\\in\\{2,3,4\\}$, and if $X$ is not a quarter, then
@@ -328,7 +257,7 @@ then % gammaL is nonneg on quarters. cc:qtr
   \\]
   and the simplex is not a $4$-cell.
  ";
-    tags = [Text;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp];  
   };;
 
 
@@ -362,7 +291,7 @@ because the dihedral angle of a $4$-cell is less than $\\pi$.
  The result follows from the
 given inequality.
  ";
-    tags = [Text;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp];  
   };;
 
 let a_spine5 = new_definition `a_spine5 = #0.0560305`;;
@@ -375,6 +304,13 @@ add
   [(&1,dummy,&1)]
    ( &5 * a_spine5 + b_spine5 * &2 * pi  > &0)`;
   doc =   "
+% cc:5bl
+Let $B$ be the set of cells in the cluster that lie between any two
+consecutive leaves.  $B$ is either a singleton set containing a
+$4$-cell, or a set of three cells: a $2$-cell and two adjacent
+$3$-cells.  Write $\\op{azim}(B)$ for the azimuth angle formed by the
+two leaves.  
+
  Let
  \\[ 
  a= 0.0560305, \\textand   b= -0.0445813.
@@ -414,7 +350,7 @@ It follows that
 \\] 
 
     ";
-    tags = [Text;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp];  
   };;
 
 let beta_bump_lb = new_definition `beta_bump_lb = -- #0.005`;;
@@ -442,10 +378,10 @@ let mk_ineq i3 i4 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm i3 i4 
 
 let add0 i3 i4 i5 i6 = 
   add {
-    id = Printf.sprintf "ZTGIJCF4 %d %d %d %d" i3 i4 i5 i6;
+    id = Printf.sprintf "ZTGIJCF4 %d %d %d %d 1821661595" i3 i4 i5 i6;
     ineq = mk_ineq i3 i4 i5 i6;
     doc = "This is the 4-cell inequality for five or more leaves.";
-    tags = [Cfsqp;Text];
+    tags = [Cfsqp;Flypaper];
   };;
 
  for i3=0 to 2 do 
@@ -483,10 +419,10 @@ let mk_ineq23 i3 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm23 i3 i5
 
 let add23 i3 i5 i6 = 
   add {
-    id = Printf.sprintf "ZTGIJCF23 %d %d %d" i3 i5 i6;
+    id = Printf.sprintf "ZTGIJCF23 %d %d %d 7907792228" i3 i5 i6;
     ineq = mk_ineq23 i3 i5 i6;
     doc = "This is the 2&3-cell inequality for five or more leaves.";
-    tags = [Cfsqp;Text];
+    tags = [Cfsqp;Flypaper];
   };;
 
  for i3=0 to 2 do 
@@ -494,5 +430,108 @@ let add23 i3 i5 i6 =
  for i6 = 0 to 2 do
    add23 i3 i5 i6 done done done;;
 
+add 
+{
+  id = "BIXPCGW 9455898160";
+  ineq = all_forall `ineq
+   [(&2 * hminus, y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (&2,y4, &2 * hminus);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    (gamma4f y1 y2 y3 y4 y5 y6 lmfun > -- #0.00569) `;
+  doc =   "
+     If $X$ is a quarter, then $\\gamma(X,L)\\ge -0.00569$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
 
+
+add 
+{
+  id = "BIXPCGW 2300537674";
+  ineq = all_forall `ineq
+   [(&2 * hminus, y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (&2,y4, &2 * hminus);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    ((gamma4f y1 y2 y3 y4 y5 y6 lmfun > &0) \/ (dih_y y1 y2 y3 y4 y5 y6 < #1.65))`;
+  doc =   "
+     If $X$ is a quarter such that $\\gamma(X,L)\\le 0$, then $\dih(X) < 1.65$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
+
+add 
+{
+  id = "BIXPCGW 6652007036";
+  ineq = all_forall `ineq
+   [(&2 * hminus, y1, &2 * hplus);
+    (&2,y2, sqrt8);
+    (&2,y3, sqrt8);
+    (&2,y4, sqrt8);
+    (&2,y5, sqrt8);
+    (&2,y6, sqrt8)
+   ]
+    (dih_y y1 y2 y3 y4 y5 y6 < #2.8)`;
+  doc =   "
+     If $X$ is a $4$-cell then  $\\dih(X) < 2.8$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
+
+add 
+{
+  id = "BIXPCGW 7080972881";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2 * hminus,y2, sqrt8);
+    (&2,y3, sqrt8);
+    (&2,y4, sqrt8);
+    (&2,y5, sqrt8);
+    (&2,y6, sqrt8)
+   ]
+    (dih_y y1 y2 y3 y4 y5 y6 < #2.3)`;
+  doc =   "
+     If $X$ is a $4$-cell with a critical edge next to the spine, then  $\\dih(X) < 2.3$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
+
+add 
+{
+  id = "BIXPCGW 1738910218";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, sqrt8);
+    (&2,y3, sqrt8);
+    (&2,y4, &2 * hplus);
+    (&2,y5, sqrt8);
+    (&2,y6, sqrt8)
+   ]
+    (dih_y y1 y2 y3 y4 y5 y6 < #2.3)`;
+  doc =   "
+     If $X$ is a $4$-cell with a critical edge opposite spine, then  $\\dih(X) < 2.3$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
+
+add 
+{
+  id = "BIXPCGW 7274157868";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, sqrt8);
+    (&2,y3, sqrt8);
+    (&2,y4, &2 * hplus);
+    (&2,y5, sqrt8);
+    (&2,y6, sqrt8)
+   ]
+    ((gamma4f y1 y2 y3 y4 y5 y6 lmfun > #0.0057) \/
+    (dih_y y1 y2 y3 y4 y5 y6 < #2.3))`;
+  doc =   "
+     If $X$ is a $4$-cell with a single critical edge (the spine), and if $\\dih(X)\\ge 2.3$,
+      then  $\\gamma(X,L) > 0.0057$.";
+  tags = [Flypaper;Cfsqp;Clusterlp];
+};;
 

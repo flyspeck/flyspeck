@@ -43,10 +43,10 @@ let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
 let get_values key xs = 
   map snd (find_all (function k,_ -> (k=key)) xs);;
 
-let upto = 
-  let rec rangeA a i j  = if (i >= j) then a
-   else rangeA ((j-1)::a) i (j-1)  in
-  rangeA [] 0;;
+
+let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; (* from HOL Light lib.ml *)
+
+let up i = 0 -- (i-1);;
 
 let rec rotateL i xs = 
   if i=0 then xs 
@@ -58,13 +58,13 @@ let rotateR i = rotateL (-i);;
 
 let rotation xs = 
   let maxsz = maxlist0 (map length xs) in
-  flatten (map (fun i -> map (rotateL i) xs) (upto maxsz));;
+  flatten (map (fun i -> map (rotateL i) xs) (up maxsz));;
 
 
 (* 
    zip from Harrison's lib.ml. 
    List.combine causes a stack overflow :
-   let tt = upto 30000 in combine tt tt;;
+   let tt = up 30000 in combine tt tt;;
    Stack overflow during evaluation (looping recursion?).
 *)
 let rec zip l1 l2 =
@@ -73,7 +73,7 @@ let rec zip l1 l2 =
       | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
       | _ -> failwith "zip";;
 
-let enumerate xs = zip (upto (length xs)) xs;;
+let enumerate xs = zip (up (length xs)) xs;;
 
 let whereis i xs = 
   let (p,_) = find (function _,j -> j=i) (enumerate xs) in
@@ -108,7 +108,7 @@ let load_and_close_channel do_close ic =
       rev rs;;
 
 let load_file filename = 
-  let ic = open_in filename in load_and_close_channel true ic;;
+  let ic = Pervasives.open_in filename in load_and_close_channel true ic;;
 
 let save_stringarray filename xs = 
   let oc = open_out filename in

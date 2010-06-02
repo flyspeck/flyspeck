@@ -10,6 +10,7 @@
 (*
 
 Process short linear programs for the proof of the Kepler conjecture.
+This file is part of the proof of the cluster inequality (OXLZLEZ)
 modified from lpproc.ml, much of the code is repeated or slightly modified.
 
 needs new mktop on platforms that do not support dynamic loading of Str.
@@ -24,53 +25,13 @@ open List;;
 let sprintf = Printf.sprintf;;
 
 (* external files *)
-let model = "shorts.mod";;
+let model = "OXLZLEZ.mod";;
 let tmpfile = "/tmp/shorts.dat";;
 
-(* list operations *)
-let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
+let glpk_path = "/Users/thomashales/Desktop/googlecode/flyspeck/glpk";;
+#use "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/glpk_link.ml";;
 
-let get_values key xs = 
-  map snd (find_all (function k,_ -> (k=key)) xs);;
-
-let upto = 
-  let rec rangeA a i j  = if (i >= j) then a
-   else rangeA ((j-1)::a) i (j-1)  in
-  rangeA [] 0;;
-
-let rec zip l1 l2 =
-  match (l1,l2) with
-        ([],[]) -> []
-      | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
-      | _ -> failwith "zip";;
-
-let rec nub = function
-  | [] -> []
-  | x::xs -> x::filter ((!=) x) (nub xs);;
-
-
-(* read and write *)
-
-let load_and_close_channel do_close ic = 
-  let rec lf ichan a = 
-    try
-      lf ic (input_line ic::a)
-    with End_of_file -> a in
-    let rs = lf ic [] in
-      if do_close then close_in ic else ();
-      rev rs;;
-
-let load_file filename = 
-  let ic = open_in filename in load_and_close_channel true ic;;
-
-let save_stringarray filename xs = 
-  let oc = open_out filename in
-    for i=0 to length xs -1
-    do
-      output_string oc (nth xs i ^ "\n");
-      done;
-    close_out oc;;
-
+open Glpk_link;;
 
 type bladerunner = 
   { 
@@ -127,21 +88,10 @@ lpvalue = None;
 }
 ;;
 
-
-
-
 (*
 Example: move 1 into halfwt
 let brx = modify_br (mk_br 4)   ["halfwt",1];;
 *) 
-
-(* ampl data string of branch n bound *)
-
-let unsplit d f = function
-  | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
-
-let join_lines  = unsplit "\n" (fun x-> x);;
 
 let ampl_of_br outs br = 
   let list_of = unsplit " " string_of_int in
@@ -162,54 +112,17 @@ let ampl_of_br outs br =
     mk "FULLWT" br.fullwt] in
     Printf.fprintf outs "%s" j;;  
 
-(* 
-Example:
-   ampl_of_br stdout brx;;
-*)
-
-let tampl br =
-  let file = tmpfile in 
-  let outs = open_out file in
-  let _ = ampl_of_br outs br in
-  let _ = close_out outs in
-    Sys.command(sprintf "cat %s" file);;
-
-(* Example:
-tampl brx;;
-*)
-
 let test() = 
   let br = mk_br 4 in
   let br =  modify_br br  ["qu",1;"qu",2;"negqu",3] in
-    tampl br;;
+    display_ampl tmpfile ampl_of_br br;;
 
 (* running of branch in glpsol *)
 
 let set_some br r = (* side effects *)
    if (length r = 1) then br.lpvalue <- Some (float_of_string(hd r)) else ();;
 
-
-let solve_branch br = (* side effects, lpvalue mutable *)
-  let com = sprintf "glpsol -m %s -d /dev/stdin | grep '^gamma' | sed 's/gammasum = //' "  model in 
-  let (ic,oc) = Unix.open_process(com) in 
-  let _ = ampl_of_br oc br in
-  let _ = close_out oc in
-  let inp = load_and_close_channel false ic in
-  let _ = Unix.close_process (ic,oc) in
-  let _ = set_some br inp in
-  let r = match br.lpvalue with
-    | None -> -1.0
-    | Some r -> r in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" "case_undisclosed" r) in 
-    br;;
-
-let display_lp br = (* for debugging *)
-  let oc = open_out tmpfile in
-  let _ = ampl_of_br oc br in
-  let _ = close_out oc in
-  let com = sprintf "glpsol -m %s -d %s" model tmpfile in
-  let _ = Sys.command(com) in 
-    ();;
+(* TO HERE *)
 
 let solve br = match br.lpvalue with
   | None -> solve_branch br

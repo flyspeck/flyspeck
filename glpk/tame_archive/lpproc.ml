@@ -39,7 +39,7 @@ let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
 let get_values key xs = 
   map snd (find_all (function k,_ -> (k=key)) xs);;
 
-let upto = 
+let up = 
   let rec rangeA a i j  = if (i >= j) then a
    else rangeA ((j-1)::a) i (j-1)  in
   rangeA [] 0;;
@@ -54,13 +54,13 @@ let rotateR i = rotateL (-i);;
 
 let rotation xs = 
   let maxsz = maxlist0 (map length xs) in
-  flatten (map (fun i -> map (rotateL i) xs) (upto maxsz));;
+  flatten (map (fun i -> map (rotateL i) xs) (up maxsz));;
 
 
 (* 
    zip from Harrison's lib.ml. 
    List.combine causes a stack overflow :
-   let tt = upto 30000 in combine tt tt;;
+   let tt = up 30000 in combine tt tt;;
    Stack overflow during evaluation (looping recursion?).
 *)
 let rec zip l1 l2 =
@@ -69,7 +69,7 @@ let rec zip l1 l2 =
       | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
       | _ -> failwith "zip";;
 
-let enumerate xs = zip (upto (length xs)) xs;;
+let enumerate xs = zip (up (length xs)) xs;;
 
 let whereis i xs = 
   let (p,_) = find (function _,j -> j=i) (enumerate xs) in
@@ -286,7 +286,7 @@ let triples w =
   let r j = nth w (j mod length w)  in
   let triple i = 
       [r i; r (i+1); r(i+2)] in
-    map triple (upto (length w));;
+    map triple (up (length w));;
 
 let cvertex bb =
   1+ maxlist0 (flatten (faces bb));;
@@ -314,7 +314,7 @@ let ampl_of_bb outs bb =
   let where3 = wheremod fs in
 (*
   let maxsz = maxlist0 (map length fs) in
-  let fs3 = flatten (map (fun i -> map (rotateL i) fs) (upto maxsz)) in
+  let fs3 = flatten (map (fun i -> map (rotateL i) fs) (up maxsz)) in
   let fs3 = fs @ map (rotateL 1) fs @ map (rotateL 2) fs @ map (rotateL 3) fs @ map (rotateL 4) fs in 
   let where3 i = (whereis i fs3) mod (length fs) in 
 *)
@@ -608,24 +608,24 @@ let switch5 bb =
   let fc::_ = bb.std_faces_not_super in
   let mo (a,b) = modify_bb bb true ["ff",a;"b4",b] [] in    
   let f i = mo (split_flatq fc i) in
-  let bbs = map f (upto 5) in
+  let bbs = map f (up 5) in
   let mo (a,b,c) = modify_bb bb true ["ff",a;"af",b;"ff",c] [] in
   let f i = mo (asplit_pent fc i) in
-  let ccs = map f (upto 5) in
+  let ccs = map f (up 5) in
    (modify_bb bb true ["s8",fc] []) :: bbs @ ccs ;;
 
 let switch6 bb = 
   let fc::_ = bb.std_faces_not_super in
   let mo (a,b) = modify_bb bb true ["ff",a;"b5",b] [] in
   let f i = mo (split_flatq fc i) in
-   (modify_bb bb true ["s8",fc] []) :: (map f (upto 6));;
+   (modify_bb bb true ["s8",fc] []) :: (map f (up 6));;
 
 let switch_vertex bb i = 
   if (i<0) then [bb] else
   [modify_bb bb false [] ["hv",i];modify_bb bb false [] ["lv",i]];;
 
 let get_vertex bb = 
-   let x = upto (cvertex bb) in
+   let x = up (cvertex bb) in
    let y = bb.highvertex @ bb.lowvertex in
      try
        find (fun t -> not(mem t y)) x 

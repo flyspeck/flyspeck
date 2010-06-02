@@ -29,17 +29,16 @@ param hmax:= 1.3254;
 param sqrt2:= 1.4142135623730951;
 param lb := -0.00569;  # quarter lower bound.
 
-# data supplied indexing sets
+# sets.
 set FACE := 0..(CBLADE -1);
-#set BLADE within FACE cross FACE; # adjacent ordered pairs of faces, cyclic order.
+#set BLADE within FACE cross FACE; # adjacent (increasingly) ordered pairs of faces, cyclic order.
 set BLADE := {(i,j) in  FACE cross FACE : 0 = (i + 1 +CBLADE -j) mod CBLADE  }; # adjacent  pairs
 set EFACE := {(i1,i2,i3) in FACE cross FACE cross FACE : 
    (i1,i2) in BLADE and
    (i2,i3) in BLADE};
 
-
 # data supplied branching sets.  
-#There is the "unbranched" state, branching in direction "X", branching in direction "not-X"
+# There is the "unbranched" state, branching in direction "Z", branching in direction "not-Z"
 # SBLADE/NONSBLADE, branch on blades.
 # QU/QX/QY : QUARTER,NONQUARTER-4CELL,23-CELL. 
 # QXD,NONQXD: branch on QX.
@@ -48,7 +47,7 @@ set EFACE := {(i1,i2,i3) in FACE cross FACE cross FACE :
 
 set SBLADERAW within FACE;  #non-spine edges are between 2 and 2*hmin.
 set NONSBLADERAW within  FACE diff SBLADERAW;
-set SBLADE := {(i,j) in BLADE : j in SBLADERAW};
+set SBLADE := {(i,j) in BLADE : j in SBLADERAW};  # SBLADERAW j <-> SBLADE (j-1,j)
 set NONSBLADE := {(i,j) in BLADE : j in NONSBLADERAW};
 set HASSMALL := setof {(i1,i2,i3) in EFACE : (i1,i2) in SBLADE and (i2,i3) in SBLADE} i2;
 set QU within HASSMALL;
@@ -69,10 +68,12 @@ set I11 := {(i,j) in BLADE : j in (QX inter HASSMALL) and i in QY};
 
 
 # basic variables
-# gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell.
+# (blades and weights included in gamma variable)
+# gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell. 
+# if gamma > 0.1, then gammasum > 0.1 + 4 *lb > 0.	
 var azim{FACE} >= 0, <= 2*pi;
-var gamma{FACE} >= lb, <= 0.1;
-var gamma3a{QY} >= 0, <= 0.1;  #lower bound in ID[4869905472]
+var gamma{FACE} >= lb, <= 0.1; #lower 9455898160;  
+var gamma3a{QY} >= 0, <= 0.1;  #lower bound in GLFVCVK.
 var gamma3b{QY} >= 0, <= 0.1;
 var gamma2{QY} >= 0, <= 0.1;
 
@@ -113,13 +114,14 @@ fullwt{i in FULLWT}: y4[i] >= 2*hmax;
 
 ## computer generated inequality constraints
 #1,2,3 blades
+gammaquarter 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
 gammapos{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
-quarter3a{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[118115412]
-quarter3b{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[118115412]
+quarter3a{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[FHBVYXZ]
+quarter3b{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[FHBVYXZ]
 quarternegdih{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
 fourcellazim{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
 wtunder1{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
-gammaquarter 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569; 
+
 
 #4blades
 azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 

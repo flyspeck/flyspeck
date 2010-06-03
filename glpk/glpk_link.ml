@@ -43,6 +43,12 @@ let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
 let get_values key xs = 
   map snd (find_all (function k,_ -> (k=key)) xs);;
 
+let rec sort cmp lis =  (* from HOL Light lib.ml *)
+  match lis with
+    [] -> []
+  | piv::rest ->
+      let r,l = partition (cmp piv) rest in
+      (sort cmp l) @ (piv::(sort cmp r));;
 
 let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; (* from HOL Light lib.ml *)
 
@@ -156,8 +162,8 @@ let display_ampl tmpfile ampl_of_bb bb = (* for debugging *)
 
 (* model should name the optimal value "optival" *)
 
-let solve_branch_f model dumpfile ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^opti' | sed 's/optival = //' "  model dumpfile in 
+let solve_branch_f model dumpfile varname ampl_of_bb bb = 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/%s = //' "  model dumpfile varname varname in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in

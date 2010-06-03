@@ -3,6 +3,7 @@
 /*                                                                            */
 /* Linear Programming, AMPL format (non-formal)    */
 /* Chapter: Packing                                                     */
+/* Lemma: OXLZLEZ  */
 /* Author: Thomas C. Hales                                                    */
 /* Date: 2009-09-19                                                           */
 /* ========================================================================== */
@@ -45,6 +46,7 @@ set EFACE := {(i1,i2,i3) in FACE cross FACE cross FACE :
 # NEGQU/POSQU branch on QU
 # HALFWT/FULLWT branch on QX inter HASSMALL.
 
+# FACE 0 goes with raw blades 0 and 1, with blades (3,0) and (0,1).
 set SBLADERAW within FACE;  #non-spine edges are between 2 and 2*hmin.
 set NONSBLADERAW within  FACE diff SBLADERAW;
 set SBLADE := {(i,j) in BLADE : j in SBLADERAW};  # SBLADERAW j <-> SBLADE (j-1,j)
@@ -122,7 +124,7 @@ quarternegdih{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
 fourcellazim{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
 wtunder1{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
 
-
+#TO HERE XXD
 #4blades
 azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
 azim2 '9939613598' {i in FULLWT}: gamma[i] - 0.00457511 - 0.00609451*azim[i] >= 0;
@@ -130,7 +132,6 @@ azim3 '4003532128' {i in QY} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0
 azim4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
 azim5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
 azim6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;
-##skip ID[1821661595], ID[7907792228],  for 5 blades, done in text.
 azim7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
 azim8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 
 azim9 'ID[2134082733]' {i in HASSMALL inter QX}: gamma[i] - 0.213849 + 0.119482*azim[i] >= 0;

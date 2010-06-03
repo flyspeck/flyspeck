@@ -85,16 +85,16 @@ let notbuiltin = ref[];;
 notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
    Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;norm2hh;
- beta_bump_force_y;  a_spine5;b_spine5]
+ beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb]
 (*   @ [marchal_quartic;vol2r];; *)
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
       ((sqrt(&2) - &1)* &5 *(hplus - &1))`;`vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`];;
-
+!notbuiltin;;
 (* remove these entirely before converting to C *)
 
 let elim_list = ref [];;
-elim_list := [gamma4f;vol4f;y_of_x;vol_y;vol3f;vol2f;gamma3f;REAL_MUL_LZERO;
+elim_list := [gamma4f;vol4f;y_of_x;vol_y;vol3f;vol2f;gamma3f;gamma23f;REAL_MUL_LZERO;
    REAL_MUL_RZERO];;
 !elim_list;;
 

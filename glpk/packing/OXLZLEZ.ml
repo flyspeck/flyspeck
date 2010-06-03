@@ -63,6 +63,8 @@ type bladerunner =
     posqu : int list;
     halfwt : int list;
     fullwt : int list;
+    shorty4: int list;
+    longy4:int list;
   };;
 
 let next br i = (i+1) mod br.cblade;;
@@ -81,6 +83,8 @@ let mk_br n =
   posqu = [];
   halfwt = [];
   fullwt = [];
+  shorty4=[];
+  longy4=[];
   lpvalue = None;
  };;
 
@@ -99,6 +103,8 @@ negqu = add "negqu" br.negqu;
 posqu = add "posqu" br.posqu;
 halfwt = add "halfwt" br. halfwt;
 fullwt = add "fullwt" br.fullwt;
+shorty4 = add "shorty4" br.shorty4;  (* y4 <= 2.1 *)
+longy4 = add "longy4" br.longy4;   (* y4 >= 2.1 *)
 lpvalue = None;
 }
 ;;
@@ -124,7 +130,9 @@ let ampl_of_br outs br =
     mk "NEGQU" br.negqu;
     mk "POSQU" br.posqu;
     mk "HALFWT" br. halfwt;
-    mk "FULLWT" br.fullwt] in
+    mk "FULLWT" br.fullwt;
+    mk "LONGY4" br.longy4;
+    mk "SHORTY4" br.shorty4] in
     Printf.fprintf outs "%s" j;;  
 
 let test() = 
@@ -194,6 +202,11 @@ let branch_wt i br  =
   let _ = not(mem i br.halfwt or mem i br.fullwt) or failwith "wt-set" in
       branch br ["halfwt";"fullwt"] i;;
 
+let branch_y4 i br = 
+  let _ = mem i br.qy or failwith "y4-qy" in
+  let _ = (mem i br.sblade && mem (next br i) br.sblade) or failwith "y4-blade" in
+    branch br ["shorty4";"longy4"] i;;
+
 let branch_qu i br  = 
   let j = next br i in
   let _ = not(mem i br.qu or mem i br.qx or mem i br.qy) or failwith "qu-set" in
@@ -230,18 +243,21 @@ let blade3 =
 
 (* case of 4 blades *)
 let blade4 = 
-  let cr = mk_br 4 in
-  let cr1 = ex branch_qu 3 (ex0 branch_qu 2 (branch_qu 1 cr)) in
-  let cr2 = delay (top branch_wt 3 cr1) in
-  let cr3 = delay (top branch_wt 2 cr2) in
-  let cr4 = top branch_sblade 3 cr3 in
-  let cr5 = top branch_sblade 3 cr4 in
-  let cr6 = top branch_sblade 3 cr5 in
-  let cr7 = delay(top branch_wt 1 cr6) in
-  let cr8 = top branch_sblade 2 cr7 in
-  let cr9 = top branch_sblade 2 cr8 in
-  let cr10 = top branch_sblade 2 cr9 in
-  let cr11 = top branch_sblade 2 cr10 in
+  let cr = mk_br 4 in 
+  let cr1 = ex branch_qu 3 (ex0 branch_qu 2 (branch_qu 1 cr)) in 
+  let cr2 = delay (top branch_wt 3 cr1) in 
+  let cr2' = top branch_y4 3 cr2 in 
+  let cr3 = delay (top branch_wt 2 cr2') in 
+  let cr4 = top branch_sblade 3 cr3 in 
+  let cr5' = top branch_sblade 3 cr4 in 
+  let cr5 = top branch_y4 2 cr5' in
+  let cr6 = top branch_sblade 3 cr5 in 
+  let cr7 = delay(top branch_wt 1 cr6) in 
+  let cr8 = top branch_sblade 2 cr7 in 
+  let cr9 = top branch_sblade 2 cr8 in 
+  let cr10' = top branch_sblade 2 cr9 in 
+  let cr10 = top branch_y4 1 cr10' in 
+  let cr11 = top branch_sblade 2 cr10 in 
    cr11;;
 (* three cases remain, all related by symmetry. 4 blades, 3 quarters, 1 4-cell with weight 0.5 *)
 

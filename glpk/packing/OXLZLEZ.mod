@@ -5,13 +5,14 @@
 /* Chapter: Packing                                                     */
 /* Lemma: OXLZLEZ  */
 /* Author: Thomas C. Hales                                                    */
-/* Date: 2009-09-19                                                           */
+/* Date: 2009-09-19, checked 2010-06-03                    */
 /* ========================================================================== */
 
 
 /* 
 
 The model considers the set of blades around a spine.
+Nonlinear inequalities have all been entered into the formal list.
 
 QU index set for quarters.
 QX non quarter 4-cells.
@@ -45,6 +46,7 @@ set EFACE := {(i1,i2,i3) in FACE cross FACE cross FACE :
 # QXD,NONQXD: branch on QX.
 # NEGQU/POSQU branch on QU
 # HALFWT/FULLWT branch on QX inter HASSMALL.
+# SHORTY4/LONGY4 branch on QY inter HASSMALL. SHORTY4 means y4<=2.1.
 
 # FACE 0 goes with raw blades 0 and 1, with blades (3,0) and (0,1).
 set SBLADERAW within FACE;  #non-spine edges are between 2 and 2*hmin.
@@ -61,6 +63,8 @@ set QXD within QX;  # those with dih > 2.3.
 set NONQXD within QX diff QXD;
 set HALFWT within HASSMALL inter QX; # those QX with y1,y4 critical and HASSMALL blades
 set FULLWT within (HASSMALL inter QX) diff HALFWT;  #those QX with y4>= 2*hmax and HASSMALL blades.
+set SHORTY4 within (HASSMALL inter QY);
+set LONGY4 within (HASSMALL inter QY) diff SHORTY4;
 
 #
 set ONESMALLa := setof {(i1,i2,i3) in EFACE : (i1,i2) in SBLADE and (i2,i3) in NONSBLADE} i2;
@@ -124,11 +128,14 @@ quarternegdih{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
 fourcellazim{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
 wtunder1{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
 
-#TO HERE XXD
 #4blades
 azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
 azim2 '9939613598' {i in FULLWT}: gamma[i] - 0.00457511 - 0.00609451*azim[i] >= 0;
-azim3 '4003532128' {i in QY} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
+
+# corrected June 3, 2010. svn 1761 has the old version.  
+azim3a '4003532128' {i in QY inter HASSMALL inter LONGY4} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
+azim3b '3725403817'  {i in QY inter HASSMALL inter SHORTY4}: azim[i] <= 1.56;
+
 azim4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
 azim5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
 azim6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;

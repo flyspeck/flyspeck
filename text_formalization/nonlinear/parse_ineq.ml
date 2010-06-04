@@ -236,7 +236,13 @@ let mk_cfsqp tmpfile iqd =
 
 let cfsqp_dir = flyspeck_dir^"/../cfsqp";;
 
-let test_ineq idq = 
+let compile () = 
+  let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o") in
+  let _ =   (e=0) or failwith "compiler error" in
+    ();;
+
+let execute_cfsqp idq = 
   let _ =  mk_cfsqp (cfsqp_dir ^ "/tmp/t.cc") idq in
-  let _ = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o") in
-    Sys.command(cfsqp_dir^"/tmp/t.o");;
+  let _ = compile() in 
+  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in
+    ();;

@@ -12,8 +12,6 @@
 File of the nonlinear inequalities to be verified by interval arithmetic.
 *)
 
-
-
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "leg/enclosed_def.hl";;
 
@@ -41,7 +39,6 @@ software_guide.tex (svn 1760)
      Derived means that it is not a primitive inequality, but rather a logical consequence of others.
 *)
 
-
   type tag = Lp | Clusterlp | Tablelp | Flypaper | Cfsqp | Eps of float | Further | Tex | Derived;;
 
 type ineq_datum = 
@@ -52,15 +49,6 @@ type ineq_datum =
     tags : tag list;
   };;
 
-(*
-let mk_datum (id,doc, tags, ineq ) = 
-  {
-    ineq = ineq;
-    id = id;
-    doc = doc;
-    tags = tags;
-  };;
-*)
 
 let ineqs = ref ([]:ineq_datum list);;
 
@@ -71,8 +59,7 @@ let getexact id = filter (fun t -> (t.id = id)) (!ineqs);;
 let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
    (String.sub t.id 0 (String.length id) = id)) (!ineqs);;
 
-
-
+let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
     
   add
     {
@@ -142,9 +129,6 @@ add
 };;
 
 
-  let norm2hh = new_definition `norm2hh y1 y2 y3 y4 y5 y6 = 
-    (y1- hminus - hplus) pow 2 + (y2 - &2) pow 2 + (y3 - &2) pow 2 + (y4 - &2) pow 2 
-     + (y5 - &2) pow 2 + (y6 - &2) pow 2`;;
 
 add 
 {
@@ -198,32 +182,6 @@ add
     tags = [Flypaper;Tex;Cfsqp];  
   };;
 
-let bump = new_definition `!h. bump h = #0.005*(&1 - ((h- h0) pow 2)/((hplus - h0) pow 2))`;;
-
-let critical_edge_y = new_definition `critical_edge_y y = ((&2*hminus <= y) /\ (y <= &2 *hplus))`;;
-
-let beta_bump_y = new_definition `beta_bump_y y1 y2 y3 y4 y5 y6 =
-  (if critical_edge_y y1 then &1 else &0) *
-  (if critical_edge_y y2 then &0 else &1) *
-  (if critical_edge_y y3 then &0 else &1) *
-  (if critical_edge_y y4 then &1 else &0) *
-  (if critical_edge_y y5 then &0 else &1) *
-  (if critical_edge_y y6 then &0 else &1) * 
-    (bump (y1/ &2) - bump (y4 / &2))`;;
-
-let beta_bump_force_y = new_definition `beta_bump_force_y y1 y2 y3 y4 y5 y6 =
-    (bump (y1/ &2) - bump (y4 / &2))`;;
-
-let wtcount3_y = new_definition `wtcount3_y y1 y2 y3  = 
-  (if critical_edge_y y1 then 1 else 0) +
-  (if critical_edge_y y2 then 1 else 0) +
-  (if critical_edge_y y3 then 1 else 0) `;;
-
-let wtcount6_y = new_definition 
- `wtcount6_y y1 y2 y3 y4 y5 y6 = wtcount3_y y1 y2 y3 + wtcount3_y y4 y5 y6`;;
-
-(* hack for numerical procedures.  It is irrelevant for formal proofs. *)
-let machine_eps = new_definition `machine_eps = &0`;; 
 
 add
 {
@@ -294,8 +252,6 @@ given inequality.
     tags = [Flypaper;Tex;Cfsqp];  
   };;
 
-let a_spine5 = new_definition `a_spine5 = #0.0560305`;;
-let b_spine5 = new_definition `b_spine5 = -- #0.0445813`;;
 
 add
   {
@@ -353,7 +309,7 @@ It follows that
     tags = [Flypaper;Tex;Cfsqp];  
   };;
 
-let beta_bump_lb = new_definition `beta_bump_lb = -- #0.005`;;
+
 
 let template = `\ y3m y3M y4m y4M y5m y5M y6m y6M w m. ineq
    [(&2 * hminus, y1, &2 * hplus);
@@ -366,19 +322,16 @@ let template = `\ y3m y3M y4m y4M y5m y5M y6m y6M w m. ineq
        a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6) \/ 
     (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;;
 
-
-let mk_tm0 i3 i4 i5 i6  = 
+let mk_ineq0 i3 i4 i5 i6  = 
   let x i = List.nth [`&2`; `&2 * hminus`;  `sqrt8`] i in
   let X i = x (i+1) in
   let mid i = if (i=1) then 1 else 0 in
   let w = 1 + mid i3 + mid i4 + mid i5 + mid i6 in
   let m = if (w =2) && (i4 = 1) then `1` else `0` in
-     list_mk_comb (template, [x i3;X i3; x i4;X i4; x i5;X i5; x i6 ;X i6; mk_small_numeral w; m]);;
+ do_betas(list_mk_comb (template, [x i3;X i3; x i4;X i4; x i5;X i5; x i6 ;X i6; mk_small_numeral w; m]));;
 
-let mk_ineq0 i3 i4 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm0 i3 i4 i5 i6)))));;
-
-let add0 i3 i4 i5 i6 = 
-  add {
+let make_F4 i3 i4 i5 i6 = 
+   {
     id = Printf.sprintf "ZTGIJCF4 %d %d %d %d 1821661595" i3 i4 i5 i6;
     ineq = mk_ineq0 i3 i4 i5 i6;
     doc = "This is the 4-cell inequality for five or more leaves.";
@@ -389,11 +342,8 @@ let add0 i3 i4 i5 i6 =
 for i4 = 0 to 1 do
  for i5 = 0 to 1 do
  for i6 = 0 to 1 do
-   add0 i3 i4 i5 i6 done done done done;;
+   add(make_F4 i3 i4 i5 i6) done done done done;;
 
-let gamma23f = new_definition `gamma23f y1 y2 y3 y4 y5 y6 w1 w2 r f =
-      (gamma3f y1 y2 y6 r f / &w1 + gamma3f y1 y3 y5 r f / &w2
-      + (dih_y y1 y2 y3 y4 y5 y6 - dih_y y1 y2 r r r y6 - dih_y y1 y3 r r r y5) * (vol2r y1 r - vol2f y1 r f)/(&2 * pi)) `;;
 
 let template23 = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
    [(&2 * hminus, y1, &2 * hplus);
@@ -408,46 +358,17 @@ let template23 = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
     (eta_y y1 y2 y6 > sqrt2 ) \/
     (eta_y y1 y3 y5 > sqrt2))`;;
 
-(*
-let mk_tm23 i3 i5 i6 = 
-  let x i = List.nth [`&2`; `&2 * hminus`; `&2 * hplus` ; `sqrt8`] i in
-  let X i = x (i+1) in
-  let mid i = if (i=1) then 1 else 0 in
-  let m = mk_small_numeral in
-  let w1 = 1 +  mid i6 in
-  let w2 = 1 + mid i3 + mid i5 in
-    list_mk_comb (template23, [x i3;X i3; x i5;X i5; x i6 ;X i6; m w1; m w2]);; 
-
-let mk_ineq23 i3 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm23 i3 i5 i6)))));;
-
-let add23 i3 i5 i6 = 
-  add {
-    id = Printf.sprintf "ZTGIJCF23 %d %d %d 7907792228" i3 i5 i6;
-    ineq = mk_ineq23 i3 i5 i6;
-    doc = "This is the 2&3-cell inequality for five or more leaves.";
-    tags = [Cfsqp;Flypaper];
-  };;
-
- for i3=0 to 2 do 
- for i5 = 0 to 2 do
- for i6 = 0 to 2 do
-   add23 i3 i5 i6 done done done;;
-*)
-
-
-let mk_tm23 i3 i5 i6 = 
+let mk_ineq23 i3 i5 i6 = 
   let x i = List.nth [`&2`; `&2 * hminus` ; `sqrt8`] i in
   let X i = x (i+1) in
   let mid i = if (i=1) then 1 else 0 in
   let m = mk_small_numeral in
   let w1 = 1 +  mid i6 in
   let w2 = 1 + mid i3 + mid i5 in
-    list_mk_comb (template23, [x i3;X i3; x i5;X i5; x i6 ;X i6; m w1; m w2]);; 
+    do_betas(list_mk_comb (template23, [x i3;X i3; x i5;X i5; x i6 ;X i6; m w1; m w2]));; 
 
-let mk_ineq23 i3 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm23 i3 i5 i6)))));;
-
-let add23 i3 i5 i6 = 
-  add {
+let make_F23 i3 i5 i6 = 
+   {
     id = Printf.sprintf "ZTGIJCF23 %d %d %d 7907792228" i3 i5 i6;
     ineq = mk_ineq23 i3 i5 i6;
     doc = "This is the 2&3-cell inequality for five or more leaves.";
@@ -457,8 +378,7 @@ let add23 i3 i5 i6 =
  for i3=0 to 1 do 
  for i5 = 0 to 1 do
  for i6 = 0 to 1 do
-   add23 i3 i5 i6 done done done;;
-
+   add(make_F23 i3 i5 i6) done done done;;
 
 add 
 {
@@ -695,7 +615,7 @@ add
   tags = [Cfsqp;Clusterlp];
 };;
 
-let mk_tm0 i3 i4 i5 i6  = 
+let mk_ineq0 i3 i4 i5 i6  = 
   let template = `\ y3m y3M y4m y4M y5m y5M y6m y6M w m. ineq
    [(&2 * hminus, y1, &2 * hplus);
     (&2 ,y2, &2 *hminus);
@@ -711,9 +631,7 @@ let mk_tm0 i3 i4 i5 i6  =
   let mid i = if (i=1) then 1 else 0 in
   let w = 1 + mid i3 + mid i4 + mid i5 + mid i6 in
   let m = if (w =2) && (i4 = 1) then `1` else `0` in
-     list_mk_comb (template, [x i3;X i3; x i4;X i4; x i5;X i5; x i6 ;X i6; mk_small_numeral w; m]);;
-
-let mk_ineq0 i3 i4 i5 i6 = all_forall (snd(dest_eq(concl(BETAS_CONV (mk_tm0 i3 i4 i5 i6)))));;
+ do_betas(list_mk_comb (template, [x i3;X i3; x i4;X i4; x i5;X i5; x i6 ;X i6; mk_small_numeral w; m]));;
 
 let add0 i3 i4 i5 i6 = if (i3+i4+i5+i6 = 0) then () else
   add {
@@ -729,7 +647,6 @@ for i4 = 0 to 1 do
  for i6 = 0 to 1 do
    add0 i3 i4 i5 i6;   done done done done;;
 
-let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
 
 let mk_tm0 i3 i4  = 
   let template = `\ y3m y3M y4m y4M w m. ineq
@@ -793,3 +710,4 @@ add {
      The edges along the   spine are small.";
     tags = [Cfsqp;Flypaper;Clusterlp];
 };;
+

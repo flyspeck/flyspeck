@@ -10,6 +10,12 @@
 code to parse inequalities and generate a cfsqp file to test nonlinear inequality.
 *)
 
+module Parse_ineq = struct 
+
+flyspeck_needs "general/sphere.hl";;
+
+  open Sphere;;
+
 let dest_decimal x = match strip_comb x with
   | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
   | _ -> failwith ("dest_decimal: '" ^ string_of_term x ^ "'") ;;
@@ -61,9 +67,6 @@ soh a ^ " ATN2 " ^ soh b ^ ")"
 let ccform1 t = 
    try (ccform t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
-
-
-
 let cs i =
   let rec cs0 b =function
     | Const (s,_) -> s::b
@@ -72,34 +75,53 @@ let cs i =
     | _ -> b in
   nub (sort (<) (cs0 [] i ));;
 
-let builtin = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
+(* function calls are dealt with three different ways:
+      - native_c: use the native C code definition of the function. 
+      - autogen: automatically generate a C style function from the formal definition.
+      - macro_expand: macro expansion; use rewrites to eliminate the function call entirely.
+*)
+
+let native_c = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
     "ineq";  "pi"; "real_add"; "real_div";"real_pow";
-    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";"lmfun";"wtcount3_y";
+    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";
+    "lmfun";"wtcount3_y";
     "wtcount6_y";"beta_bump_y";"machine_eps"
     ];;
 
 let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
 
-let notbuiltin = ref[];;
+(* Auto generate these function definitions in C *)
 
-notbuiltin :=map (function b -> snd(strip_forall (concl (strip_let b))))
-  [sol0;tau0;hplus;mm1;mm2;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2;Sphere.rho_x;
-   Sphere.rad2_x;Sphere.ups_x;Sphere.eta_x;Sphere.eta_y;vol_y;vol3r;norm2hh;
- beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb]
-(*   @ [marchal_quartic;vol2r];; *)
+let autogen = ref[];;
+
+autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
+  [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
+   rad2_x;ups_x;eta_x;eta_y;norm2hh;
+ beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r];;
+
+(*  
   @ [`marchal_quartic h = 
     (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
-      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;`vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`];;
-!notbuiltin;;
+      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;`vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`];; *)
+
+!autogen;;
 (* remove these entirely before converting to C *)
 
-let elim_list = ref [];;
-elim_list := [gamma4f;vol4f;y_of_x;vol_y;vol3f;vol2f;gamma3f;gamma23f;REAL_MUL_LZERO;
-   REAL_MUL_RZERO];;
-!elim_list;;
+let y_of_x_e = prove(`!y1 y2 y3 y4 y5 y6. y_of_x f y1 y2 y3 y4 y5 y6 =
+     f (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)`,
+     REWRITE_TAC[y_of_x]);;
+
+let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 = 
+    y_of_x vol_x y1 y2 y3 y4 y5 y6`,
+    REWRITE_TAC[vol_y]);;
+
+let macro_expand = ref [];; 
+macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;gamma3f;gamma23f;REAL_MUL_LZERO;
+   REAL_MUL_RZERO;FST;SND;pathL;pathR];;
+!macro_expand;;
 
 let prep_term t = 
-  let t' = REWRITE_CONV (!elim_list) t in
+  let t' = REWRITE_CONV (!macro_expand) t in
   let (a,b)=  dest_eq (concl t') in
     b;;
 
@@ -136,10 +158,6 @@ let cc_of_tm tm =
   let vs = map (function (a,(b,c)) -> (ccform1 a, ccform1 b, ccform1 c)) vs in
     (b,vs,i);;
 
-(*
-string_of_tm ( (List.nth (getprefix "HJKDESR4") 0).ineq );;
-*)
-
 (* generate cfsqp code of ineq *)
 
 let case i j = Printf.sprintf "case %d: *ret = (%s); break;" j (List.nth i j);;
@@ -175,7 +193,7 @@ let cfsqp_code outs trialcount iqd =
     p"#include \"../Minimizer.h\"\n#include \"../numerical.h\"";
    p"class trialdata { public:   trialdata(Minimizer M,char* s) {     M.coutReport(s);  };};";
   p"int trialcount = %d;\n"  trialcount;
-  join_lines(map ccfunction (!notbuiltin));
+  join_lines(map ccfunction (!autogen));
    p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y;
   vardecl y vs ;
   p"switch(whichFn) {";
@@ -223,22 +241,18 @@ p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  
 
-(*
-  [sol0;tau0;hplus;mm1;mm2;marchal_quartic;Sphere.vol_x;Sphere.sqrt8;Sphere.sqrt2];;
-*)
-
     
 let mk_cfsqp tmpfile iqd = 
   let outs = open_out tmpfile in
   let _ = cfsqp_code outs 500 iqd in
    close_out outs ;;
-  (*    Sys.command(sprintf "cat %s" tmpfile);;  *)
 
 let cfsqp_dir = flyspeck_dir^"/../cfsqp";;
+let err = "/tmp/erroruiopiu.txt";;
 
 let compile () = 
-  let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o") in
-  let _ =   (e=0) or failwith "compiler error" in
+  let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o >& "^err) in
+  let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error") in
     ();;
 
 let execute_cfsqp idq = 
@@ -246,3 +260,5 @@ let execute_cfsqp idq =
   let _ = compile() in 
   let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in
     ();;
+
+end;;

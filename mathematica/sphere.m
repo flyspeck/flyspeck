@@ -243,13 +243,14 @@ CrossDiag[y1_, y2_, y3_, y4_, y5_, y6_, y7_, y8_, y9_] := Enclosed[y1, y5, y6,
 NullVector = {0, 0, 0};
 
 
-bisect[{f_, x_, y_, eps_}] := Module[{u = (x + y)/2., v = f[
-    x], fu}, fu = N[f[u]];
-      Which[Abs[v] < eps, {f, x, y, eps}, v*fu ≤ 0, 
-      bisect[{f, x, u, eps}], fu*f[y] ≤ 0, bisect[{f, u, y, eps}]]];
+bisect[{f_, x_, y_, eps_}] := Module[{u = (x + y)/2., fx = f[x], fu}, fu = N[f[u]];
+      Which[Abs[fu] < eps, {f, x, y, eps}, 
+           fx*fu <  0, bisect[{f, x, u, eps}], 
+           fu*f[y] < 0, bisect[{f, u, y, eps}]]];
+
 bisection[f_, x_, y_, eps_] := Which[x > y, "FAIL (inverted interval)", 
         N[f[x] f[y]] > 0, "FAIL (f has fixed sign)", 
-        True, bisect[{f, x, y, eps}][[2]]];
+        True, bisect[{f, x, y, eps}]];
 
 interp[x_, {x1_, y1_}, {x2_, y2_}] := y1 + (x - x1) (y2 - y1)/(x2 - x1);
 

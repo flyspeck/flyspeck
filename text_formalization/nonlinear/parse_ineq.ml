@@ -13,8 +13,9 @@ code to parse inequalities and generate a cfsqp file to test nonlinear inequalit
 module Parse_ineq = struct 
 
 flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "nonlinear/main.hl";;
 
-  open Sphere;;
+  open Sphere;; 
 
 let dest_decimal x = match strip_comb x with
   | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
@@ -230,6 +231,7 @@ p"assert(near(mm2(),0.0254145072695089));";
 p"assert(near(real_pow(1.18,2.),1.3924));";
 p"assert(near(marchal_quartic(1.18),0.228828103048681825));";
 p"assert(near(lmfun(1.18),0.30769230769230793));";
+p"assert(near(lmfun(1.27),0.0));";
 p"assert(near(rad2_x(4.1,4.2,4.3,4.4,4.5,4.6),1.6333363881302794));";
 p"assert(near(dih_y(2.1,2.2,2.3,2.4,2.5,2.6),1.1884801338917963));";
 p"assert(near(sol_y(2.1,2.2,2.3,2.4,2.5,2.6), 0.7703577405137815));";

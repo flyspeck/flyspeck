@@ -255,7 +255,7 @@ let compile () =
   let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error") in
     ();;
 
-let execute_cfsqp idq = 
+ let execute_cfsqp idq = 
   let _ =  mk_cfsqp (cfsqp_dir ^ "/tmp/t.cc") idq in
   let _ = compile() in 
   let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in

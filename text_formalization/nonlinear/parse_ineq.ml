@@ -100,7 +100,8 @@ let autogen = ref[];;
 autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
- beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r];;
+ beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
+ Cayleyr.cayleyR];;
 
 
 (* remove these entirely before converting to C *)

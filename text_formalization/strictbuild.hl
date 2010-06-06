@@ -12,6 +12,7 @@ ocamlmktop unix.cma str.cma nums.cma -o ocampl
 
  *)
 
+
 (* HOL LIGHT *)
 hol_version;;
 needs "Multivariate/flyspeck.ml";;
@@ -32,21 +33,21 @@ let process_to_string unixstring =
   let rec read () = Buffer.add_channel b p 1; read () in
     try read () with End_of_file -> Buffer.contents b;;
 
-let flyspeck_version = "Flyspeck "^process_to_string ("svn info "^flyspeck_dir^ " | grep Revision");;
+let flyspeck_version() = "Flyspeck "^process_to_string ("svn info "^flyspeck_dir^ " | grep Revision");;
 
-let hollight_version = "HOL Light "^process_to_string ("svn info "^hollight_dir^ " | grep Revision");;
+let hollight_version() = "HOL Light "^process_to_string ("svn info "^hollight_dir^ " | grep Revision");;
 
-let ocaml_version = "Ocaml "^Sys.ocaml_version;;
+let ocaml_version() = "Ocaml "^Sys.ocaml_version;;
 
-let build_date = "Build: " ^ process_to_string "date";;
-let build_user = "User: " ^ process_to_string "whoami";;
+let build_date() = "Build: " ^ process_to_string "date";;
+let build_user() = "User: " ^ process_to_string "whoami";;
 let indent = "   ";;
 
-let build_report =  build_date ^ 
-  indent ^ build_user ^ 
-  indent ^ hollight_version ^ 
-  indent ^ flyspeck_version ^ 
-  indent ^ ocaml_version ^ "\n";;
+let build_report s =  build_date() ^ 
+  indent ^ build_user() ^ 
+  indent ^ hollight_version() ^ 
+  indent ^ flyspeck_version() ^ 
+  indent ^ ocaml_version() ^ "\n" ^ indent^ s^ "\n";;
 
 let fullpath s = Filename.concat flyspeck_dir s;;
 
@@ -147,10 +148,12 @@ let new_definition = Debug.new_definition_verbose;;
 
 flyspeck_needs "build.hl";;
 
-let _ = map flyspeck_needs Build.build_sequence in
-  (* write report *)
+let load_and_report() = 
+  let s = try
+    (map flyspeck_needs Build.build_sequence; "full load completed")
+  with Failure t -> t  in
   let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "log.txt") in
-  (output_string oc build_report; close_out oc);;
+  (output_string oc (build_report s); close_out oc);;
 
 
 let rec cut_after f a acc = function
@@ -164,4 +167,5 @@ let reset() = reset_after "flyspeck.ml";;
 
 
 (* Build Notes *)
+
 

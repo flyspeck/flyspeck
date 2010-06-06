@@ -13,11 +13,15 @@
 pi,pt,delta_x,sol_y,dih_y
  */
 
+// math.
 double pi();
 double pt();
 double max(double a,double b);
 double min(double a,double b);
 double real_pow(double a,double b);
+double atn2(double x,double y);  // = atan(y/x) in first quadrant.
+double asn(double x);
+
 // simplex:
 double delta_x(double x1,double x2,double x3,double x4,double x5,double x6);
 double delta_y(double y1,double y2,double y3,double y4,double y5,double y6);

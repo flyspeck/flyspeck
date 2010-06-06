@@ -58,11 +58,10 @@ soh b ^ ")" in
   | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
   | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
   | "real_of_num" -> let [a] = xs in string_of_num' (dest_numeral a)
-(* is this line redundant? *)
   | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
   | "DECIMAL" ->  string_of_num' (dest_decimal t)
-  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  "(" ^
-soh a ^ " ATN2 " ^ soh b ^ ")"
+  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
+         "(atn2( " ^ soh a ^ "," ^ soh b ^ "))" 
   | s -> "(" ^ s ^ "(" ^ join_comma(map soh xs) ^ "))";;
 
 let ccform1 t = 
@@ -82,13 +81,16 @@ let cs i =
       - macro_expand: macro expansion; use rewrites to eliminate the function call entirely.
 *)
 
+(* Native is  the default case.  There is no need to list them, except as documentation. *)
+
 let native_c = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
     "ineq";  "pi"; "real_add"; "real_div";"real_pow";
     "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";
     "lmfun";"wtcount3_y";
-    "wtcount6_y";"beta_bump_y";"machine_eps"
+    "wtcount6_y";"beta_bump_y";"machine_eps";"cos"
     ];;
 
+let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
 let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
 
 (* Auto generate these function definitions in C *)
@@ -97,15 +99,10 @@ let autogen = ref[];;
 
 autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
-   rad2_x;ups_x;eta_x;eta_y;norm2hh;
+   rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r];;
 
-(*  
-  @ [`marchal_quartic h = 
-    (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
-      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;`vol2r y r = &2 * pi * (r*r - (y / (&2)) pow 2)/(&3)`];; *)
 
-!autogen;;
 (* remove these entirely before converting to C *)
 
 let y_of_x_e = prove(`!y1 y2 y3 y4 y5 y6. y_of_x f y1 y2 y3 y4 y5 y6 =
@@ -122,7 +119,7 @@ macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;gamma3f;gamma2
 !macro_expand;;
 
 let prep_term t = 
-  let t' = REWRITE_CONV (!macro_expand) t in
+  let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in
   let (a,b)=  dest_eq (concl t') in
     b;;
 
@@ -239,6 +236,7 @@ p"assert(near(ups_x(4.1,4.2,4.3), 52.88));";
 p"assert(near(eta_y(2.1,2.2,2.3), 1.272816758217772));";
 p"assert(near(beta_bump_force_y(2.1,2.2,2.3,2.4,2.5,2.6), -0.04734449962124398));";
 p"assert(near(beta_bump_force_y(2.5,2.05,2.1,2.6,2.15,2.2), beta_bump_y(2.5,2.05,2.1,2.6,2.15,2.2)));";
+p"assert(near(atn2(1.2,1.3),atan(1.3/1.2)));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  

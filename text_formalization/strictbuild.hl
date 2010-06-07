@@ -100,10 +100,11 @@ let fileid s =
 The dependency calculation in flyspeck_needs still has a bug if the file does not
 load correctly, but it calls another file that does load correctly.  It seems that the
  correctly loaded modules disappear from the scope when the error is encountered.
-Thus, they should be filtered out as well from the depend statement.
+Thus, they should be filtered out as well from the depend statement.  For now,
+we offer depend_reset to clear the error.x
 *)
 
-let (flyspeck_needs,filetable,depend)  =
+let (flyspeck_needs,filetable,depend,depend_reset)  =
   let ftable = ref [("pervasives",List.length (constants()))] in (* associate constants with files *) 
   let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in (* dependency table *)
   let host = ref (fileid "build.hl") in
@@ -127,7 +128,7 @@ let (flyspeck_needs,filetable,depend)  =
 	    Format.print_string("File \""^s^"\" successfully loaded\n"))
 	  else (depend := filter ((<>) (h,id)) (!depend); failwith ("Aborting Flyspeck Needs "^s))
       ) in
-    (fn,(fun () -> !ftable),(fun() -> !depend));;
+    (fn,(fun () -> !ftable),(fun() -> !depend),(fun() -> (depend:=[])));;
 
 
 
@@ -144,17 +145,24 @@ flyspeck_needs "general/prove_by_refinement.hl";;
 flyspeck_needs "general/flyspeck_utility.hl";;
 let prove_by_refinement = Debug.proofstyle_verbose Prove_by_refinement.prove_by_refinement;;
 let prove = Debug.proofstyle_verbose prove;;
-let new_definition = Debug.new_definition_verbose;;
+let new_definition = Debug.proofstyle_verbose_1 new_definition;;
+let ABBREV_TAC = Debug.proofstyle_verbose_1 ABBREV_TAC;;
+let EXISTS_TAC = Debug.proofstyle_verbose_1 EXISTS_TAC;;
 
 flyspeck_needs "build.hl";;
 
-let load_and_report() = 
+let build_and_report() = 
   let s = try
     (map flyspeck_needs Build.build_sequence; "full load completed")
   with Failure t -> t  in
   let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "log.txt") in
   (output_string oc (build_report s); close_out oc);;
 
+let build_silent() = 
+  let s = try
+    (map flyspeck_needs Build.build_sequence; "full load completed")
+  with Failure t -> t  in
+     build_report s;;
 
 let rec cut_after f a acc = function
   | [] -> acc
@@ -163,7 +171,9 @@ let rec cut_after f a acc = function
 let reset_after s = 
   (loaded_files := cut_after fst s [] (List.rev (!loaded_files)));;
 
+(*
 let reset() = reset_after "flyspeck.ml";;
+*)
 
 
 (* Build Notes *)

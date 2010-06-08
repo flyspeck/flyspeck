@@ -9,11 +9,13 @@
 (*
 code to parse inequalities and generate a cfsqp file to test nonlinear inequality.
 *)
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "nonlinear/main.hl";;
+
 
 module Parse_ineq = struct 
 
-flyspeck_needs "general/sphere.hl";;
-flyspeck_needs "nonlinear/main.hl";;
+
 
   open Sphere;; 
 
@@ -57,9 +59,14 @@ soh b ^ ")" in
   | "\\/" -> ifix "\\/"
   | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
   | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
-  | "real_of_num" -> let [a] = xs in string_of_num' (dest_numeral a)
+  | "real_of_num" -> let [a] = xs in soh a  (* string_of_num' (dest_numeral a) *)
   | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+  | "<" -> let [a;b] = xs in "(" ^ soh a ^ " < " ^ soh b ^ ")"
+  | ">" -> let [a;b] = xs in "(" ^ soh a ^ " > " ^ soh b ^ ")"
+  | "+" -> let [a;b] = xs in "(" ^ soh a ^ " + " ^ soh b ^ ")"
+  | "*" -> let [a;b] = xs in "(" ^ soh a ^ " * " ^ soh b ^ ")"
   | "DECIMAL" ->  string_of_num' (dest_decimal t)
+  | "COND" -> let [a;b;c] = xs in "( "^ soh a ^ " ? " ^ soh b ^ " : " ^ soh c ^ ")" 
   | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
          "(atn2( " ^ soh a ^ "," ^ soh b ^ "))" 
   | s -> "(" ^ s ^ "(" ^ join_comma(map soh xs) ^ "))";;
@@ -101,7 +108,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
- Cayleyr.cayleyR];;
+ Cayleyr.cayleyR;tame_table_d];;
 
 
 (* remove these entirely before converting to C *)

@@ -19,6 +19,8 @@ module Parse_ineq = struct
 
   open Sphere;; 
 
+let trialcount = ref 500;;
+
 let dest_decimal x = match strip_comb x with
   | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
   | _ -> failwith ("dest_decimal: '" ^ string_of_term x ^ "'") ;;
@@ -186,7 +188,7 @@ let rec geteps =
       [] -> 0.0
   | b::bs -> max(getepsf b) (geteps bs);;
 
-let cfsqp_code outs trialcount iqd = 
+let cfsqp_code outs iqd = 
   let (b,vs,i) = cc_of_tm iqd.ineq in
   let eps = geteps (iqd.tags) in 
   let nvs = List.length vs in
@@ -198,7 +200,7 @@ let cfsqp_code outs trialcount iqd =
     p"#include <iomanip.h>\n#include <iostream.h>\n#include <math.h>";
     p"#include \"../Minimizer.h\"\n#include \"../numerical.h\"";
    p"class trialdata { public:   trialdata(Minimizer M,char* s) {     M.coutReport(s);  };};";
-  p"int trialcount = %d;\n"  trialcount;
+  p"int trialcount = %d;\n"  (!trialcount);
   join_lines(map ccfunction (!autogen));
    p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y;
   vardecl y vs ;
@@ -252,7 +254,7 @@ p"}\n\n";
     
 let mk_cfsqp tmpfile iqd = 
   let outs = open_out tmpfile in
-  let _ = cfsqp_code outs 500 iqd in
+  let _ = cfsqp_code outs iqd in
    close_out outs ;;
 
 let cfsqp_dir = flyspeck_dir^"/../cfsqp";;

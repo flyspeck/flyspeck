@@ -84,6 +84,29 @@ let cs i =
     | _ -> b in
   nub (sort (<) (cs0 [] i ));;
 
+(* solve delta_y y1 y2 y3 y4 y5 y6 = 0 for y4, The negative sign in edge_flat makes the 
+   leading coefficient positive *)
+
+let edge_flat =  new_definition`edge_flat y1 y2 y3 y5 y6 = 
+ sqrt(quadratic_root_plus (abc_of_quadratic (
+   \x4.  -- delta_x (y1*y1) (y2*y2)  (y3*y3)  x4 (y5*y5)  (y6*y6))))`;;
+
+let abc_quadratic = prove (`abc_of_quadratic (\x. a * (x pow 2) + b * x + c) = (a,b,c)`,
+ REWRITE_TAC[abc_of_quadratic] THEN
+ (REPEAT LET_TAC) THEN
+ REWRITE_TAC[PAIR_EQ] THEN
+ REPEAT(FIRST_X_ASSUM MP_TAC)THEN
+ ARITH_TAC);;
+
+let delta_quadratic = prove( `-- delta_x x1 x2 x3 x4 x5 x6 = 
+  (x1) * (x4 pow 2) + (x1*x1 + (x3 - x5)*(x2 - x6) - x1*(x2 + x3 + x5 + x6)) * x4 
+   + ( x1*x3*x5 + x1*x2*x6 - x3*(x1 + x2 - x3 + x5 - x6)*x6 - x2*x5*(x1 - x2 + x3 - x5 + x6) ) `,
+REWRITE_TAC[delta_x] THEN
+ARITH_TAC);;
+
+let edge_flat_rewrite = 
+ REWRITE_RULE[abc_quadratic;quadratic_root_plus;delta_quadratic] edge_flat;;
+
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
       - autogen: automatically generate a C style function from the formal definition.
@@ -110,7 +133,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
- Cayleyr.cayleyR;tame_table_d];;
+ Cayleyr.cayleyR;tame_table_d;delta_x4;edge_flat_rewrite];;
 
 
 (* remove these entirely before converting to C *)
@@ -122,6 +145,8 @@ let y_of_x_e = prove(`!y1 y2 y3 y4 y5 y6. y_of_x f y1 y2 y3 y4 y5 y6 =
 let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 = 
     y_of_x vol_x y1 y2 y3 y4 y5 y6`,
     REWRITE_TAC[vol_y]);;
+
+
 
 let macro_expand = ref [];; 
 macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;gamma3f;gamma23f;REAL_MUL_LZERO;
@@ -247,6 +272,7 @@ p"assert(near(eta_y(2.1,2.2,2.3), 1.272816758217772));";
 p"assert(near(beta_bump_force_y(2.1,2.2,2.3,2.4,2.5,2.6), -0.04734449962124398));";
 p"assert(near(beta_bump_force_y(2.5,2.05,2.1,2.6,2.15,2.2), beta_bump_y(2.5,2.05,2.1,2.6,2.15,2.2)));";
 p"assert(near(atn2(1.2,1.3),atan(1.3/1.2)));";
+p"assert(near(edge_flat(2.1,2.2,2.3,2.5,2.6),4.273045018670291));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  

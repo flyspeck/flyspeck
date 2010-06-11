@@ -27,6 +27,8 @@ type ineq_datum =
     tags : tag list;
   };;
 
+type texmarker = Section | Ineqdoc | Comment;;
+
 
 module Main_ineq = struct
 
@@ -40,7 +42,10 @@ Old sources of information (svn 1678 2010-04-26 of NonlinearInequalities.wiki)
 software_guide.tex (svn 1760)
 *)
 
-(* module Main_ineq (* : Ineq_type *) = struct *)
+
+let ineqdoc = ref [];;
+
+let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
 
   (* Lp means the inequality enters the main GLPK inequality list to eliminate tame hypermaps.
       Clusterlp means they enter the GLPK calcs for the cluster inequality.
@@ -59,7 +64,7 @@ software_guide.tex (svn 1760)
 
 let ineqs = ref ([]:ineq_datum list);;
 
-let add i  = (ineqs:= i :: !ineqs);;
+let add i  = (ineqs:= i :: !ineqs; addtex (Ineqdoc,i.id,i.doc));;
 
 let getexact id = filter (fun t -> (t.id = id)) (!ineqs);;
 
@@ -68,6 +73,9 @@ let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
 
 let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
     
+
+addtex (Section,"Packing","Marchal Inequality");;
+
 add
   {
     id= "HJKDESR4"; 
@@ -135,6 +143,7 @@ add
 };;
 
 
+addtex (Section,"Packing","Cluster Inequality");;
 
 add 
 {
@@ -733,6 +742,10 @@ let add3q1h  =
   let mk_3q1h_all = List.flatten(map (mk_3q1hc) (0--((List.length records)-1))) in
     map add mk_3q1h_all;;
 
+
+addtex (Section,"Packing","Polyhedra");;
+
+
 add  {
 id = "4198769118";
 tags = [Tex;Flypaper;Eps 1.0e-8];
@@ -855,6 +868,8 @@ ineq = all_forall `ineq
           #0.591 - #0.0331 * k + #0.506 * lfun (&1) + #1.0))`
 };;
 
+addtex(Section,"Local Fan","Standard Fan");;
+
 add {
 id = "4717061266";
 ineq = all_forall `ineq
@@ -870,6 +885,8 @@ ineq = all_forall `ineq
 tags = [Flypaper;Tex];
 doc = "A certain configuration of four points cannot be coplanar.";
 };;
+
+addtex(Section,"Local Fan","Minimal Fan");;
 
 
 add  {
@@ -1010,7 +1027,7 @@ ineq = all_forall `ineq
 add {
 id = "OMKYNLT 3336871894";
 tags = [Cfsqp;Eps 1.0e-8;Flypaper];
-doc = "This is the nonnegativity of $\\tau$ on triangles";
+doc = "This is the nonnegativity of $\\tau$ on triangles.  It is a sharp inequality.";
 ineq =  all_forall `ineq
     [
       (#2.0,y1,#2.52);
@@ -1028,7 +1045,7 @@ ineq =  all_forall `ineq
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
       (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2) (&2) (&2 * h0) >= tame_table_d 2 1)`;
+( taum y1 y2 y3 (&2) (&2) (&2 * h0) > tame_table_d 2 1)`;
 };;
 
 add {
@@ -1043,7 +1060,7 @@ ineq =  all_forall `ineq
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
       (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2) (&2 * h0) (&2 * h0) >= tame_table_d 1 2)`;
+( taum y1 y2 y3 (&2) (&2 * h0) (&2 * h0) > tame_table_d 1 2)`;
 };;
 
 {
@@ -1055,7 +1072,7 @@ ineq =  all_forall `ineq
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
       (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2 * h0) (&2 * h0) (&2 * h0) >= tame_table_d 0 3)`;
+( taum y1 y2 y3 (&2 * h0) (&2 * h0) (&2 * h0) > tame_table_d 0 3)`;
 };;
 
 add {
@@ -1101,6 +1118,7 @@ Assume that
 \\[ 
 \\Delta(4,4,4,a^2,b^2,y^2),~\\Delta(4,4,4,c^2,d^2,y^2)
 %,~\\Delta((2h_0)^2,a^2,b^2,y^2,c^2,d^2)  %% dropped constraint for now.
+% I can't quite justify this condition (* (delta_y (&2 * h0) a b y c d < &0)  \/ *)
 > 0.
 \\] 
 Assume that
@@ -1198,7 +1216,62 @@ pow 2)) + (&3 * (y pow 4)))))) + (e3 * ((-- &768) + ((&208 * (y pow
   (dih_y (&2) (&2) (&2) a b y + dih_y (&2) (&2) (&2) d c y > pi) )`;
 };;
 
-(* (delta_y (&2 * h0) a b y c d < &0)  \/ *)
+add {
+id = "JNTEFVP 1";
+doc = "A nonconvex quad has a diagonal less than $\\sqrt8$.  This allows us
+to split a quad into two simplices.  By extreme edge we can assume the diagonal
+is $2h_0$ or $\\sqrt8$.  The case $2h_0$ is already done with the triangles.";
+tags=[Cfsqp;Flypaper];
+ineq = all_forall `ineq
+ [
+   (&4,x1,(&2 * h0) pow 2);
+   (&4,x2,(&2 * h0) pow 2);
+   (&4,x3,(&2 * h0) pow 2);
+   (&4,x4,(&2 * h0) pow 2);
+   (&4,x5,(&2 * h0) pow 2);
+   (&8 ,x6, (&4 * h0) pow 2)
+ ]
+  (delta_x4 x1 x2 x3 x4 x5 x6 > &0)`;
+};;
+
+add {
+id = "JNTEFVP 2 1";
+doc = "This is the d[2,1] constant calculation for quads.";
+tags=[Cfsqp;Flypaper];
+ineq = all_forall `ineq
+ [
+   (&2,y1, &2 * h0);
+   (&2,y2, &2 * h0);
+   (&2,y3, &2 * h0)
+ ]
+  (taum y1 y2 y3 (&2) (&2) sqrt8 > tame_table_d 2 1)`;
+};;
+
+add {
+id = "JNTEFVP 1 2";
+doc = "This is the d[1,2] constant calculation for quads.";
+tags=[Cfsqp;Flypaper];
+ineq = all_forall `ineq
+ [
+   (&2,y1, &2 * h0);
+   (&2,y2, &2 * h0);
+   (&2,y3, &2 * h0)
+ ]
+  (taum y1 y2 y3 (&2) (&2 * h0) sqrt8 > tame_table_d 1 2)`;
+};;
+
+add {
+id = "JNTEFVP 0 3";
+doc = "This is the d[0,3] constant calculation for quads.";
+tags=[Cfsqp;Flypaper];
+ineq = all_forall `ineq
+ [
+   (&2,y1, &2 * h0);
+   (&2,y2, &2 * h0);
+   (&2,y3, &2 * h0)
+ ]
+  (taum y1 y2 y3 (&2 * h0) (&2 * h0) sqrt8 > tame_table_d 0 3)`;
+};;
 
 
 

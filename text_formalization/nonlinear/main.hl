@@ -16,8 +16,9 @@ flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineqdata3q1h.hl" ;;
 
 
-type tag = Lp | Clusterlp | Tablelp | Flypaper | Cfsqp | Eps of float | 
-       Further | Tex | Derived;;
+type tag = Lp | Clusterlp | Tablelp | Flypaper 
+  | Cfsqp | Eps of float | Penalty of float*float
+  | Further | Tex | Derived ;;
 
 type ineq_datum = 
   { 
@@ -53,6 +54,8 @@ let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
       Flypaper means an inequality cited directly in the flypaper text.
       Cfsqp means that there is cfsqp nonlinear optimization code to test it by gradient descent.
      Eps is a small epsilon that is added to numerical testing to avoid answers neg. by machine eps.
+  Penalty implements a penalty method in cfsqp.
+     The floats (ub,wt) give the upper bound on the penalty term and its weight.
       Further means that it is not part of the Flyspeck project, but part of one of the extension
         theorems: StrongDodec, Fejes Toth's contact conjecture, or Musin-Tarasov.
       The TeX flag means that the doc field is Tex'able code (with software_guide.tex context). 
@@ -72,6 +75,9 @@ let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
    (String.sub t.id 0 (String.length id) = id)) (!ineqs);;
 
 let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
+
+let mk_tplate template r = 
+ do_betas(list_mk_comb (template, r));;
     
 
 addtex (Section,"Packing","Marchal Inequality");;
@@ -1272,6 +1278,179 @@ ineq = all_forall `ineq
  ]
   (taum y1 y2 y3 (&2 * h0) (&2 * h0) sqrt8 > tame_table_d 0 3)`;
 };;
+
+
+
+addtex(Comment,"PQFYWHW",
+ "
+ We start the analysis of pentagons with the case of two adjacent flats. 
+ By the established properties, the three edges next to a flat all have the same length,
+ $2$ or $2h_0$.  The length $2h_0$ is impossible:
+ \\[
+  \\arc(2h_0,2,2h_0)2 + \\arc(2,2,2h_0) > \\pi,
+ \\]
+  contrary to genericity.
+ Hence the three edges next to a flat have length $2$.
+ ");;
+
+add    
+{
+id = "PQFYWHW 1";
+doc = "In a pentagon with adjacent flats, there is at most one long edge.
+ Recall that $s\le 1$.
+ % The two edges next to the non-flat.
+ % deriv1 still have (16-a^2)a in the denominator. num1 is the polynomial numerator.
+ % $a$ is the edge being deformed, $c$ is the diagonal.
+ % $b$ is the adjacent edge, assumed also to have length $2h_0$, but not in $S$.
+ ";
+tags = [Flypaper;Tex;Eps 1.0e-8];
+ineq = all_forall `ineq
+  [
+  (&1 , e1, &1 + sol0/ pi);
+  (&1 , e2, &1 + sol0/ pi);
+  (&1 , e3, &1 + sol0/ pi);
+  (&2 / h0, a, &2 * h0);
+  (&2 , b, &2 * h0);
+  (&2, c, &4)
+  ]
+   (
+   let deriv1 = (((&4 * (((a pow 4) * e1) + ((&8 * (((b pow 2) + ((-- &1) * (c pow 2))) * (e2 
++ ((-- &1) * e3)))) + ((-- &1) * ((a pow 2) * ((&16 * e1) + ((((-- &8) + (b 
+pow 2)) * e2) + (((-- &8) + (c pow 2)) * e3))))))))/((-- &16) + (a pow 2)))/a) in
+let num1 = -- (&4 * (((a pow 4) * e1) + ((&8 * (((b pow 2) + ((-- &1) * (c pow 2))) * (e2 
++ ((-- &1) * e3)))) + ((-- &1) * ((a pow 2) * ((&16 * e1) + ((((-- &8) + (b 
+pow 2)) * e2) + (((-- &8) + (c pow 2)) * e3)))))))) in
+     num1 > &0)`;
+};;
+
+add    
+{
+id = "PQFYWHW 2";
+doc = "A pentagon with two adjacent flats does not exist.  By the preceding
+  calculations, we have reduced to the case where the edges next to the flats have
+  length $2$ and at most one edge has length $2h_0$.  This calculation shows
+  that the triangle inequality is violated, so that the pentagon does not exist.
+   ";
+tags = [Flypaper;Tex;Eps 1.0e-8];
+ineq = all_forall `ineq
+  [
+  (&2, y1, &2 * h0);
+    (&2, y2, &2 * h0)
+  ]
+   (arclength y1 (&2 * h0) (&2) + arclength (&2 * h0) (&2 * h0) (&2) + arclength (&2 * h0) y2 (&2) > arclength y1 (&2) (&2) + arclength (&2) y2 (&2 *h0)  )`;
+};;
+
+
+add    
+{
+id = "PQFYWHW 3";
+doc = "Now we start the analysis of a pentagon with nonadjacent flats.
+ We show that there is at most one long edge.
+ The combined edge length at the two flats is between $2.9$ and $3.93$.
+  \\[
+  \\arc(2,2,2h_0) 2 < 2.73 < \\arc(2,2,3.93).
+ \\]
+ \\[
+   \\arc(2,2,2.9) < 1.625 < \\arc(2h_0,2h_0,2) 2.
+  \\]
+  % num1 is the polynomial numerator.
+ ";
+tags = [Flypaper;Tex;Eps 1.0e-8];
+ineq = all_forall `ineq
+  [
+  (&1 , e1, &1 + sol0/ pi);
+  (&1 , e2, &1 + sol0/ pi);
+  (&1 , e3, &1 + sol0/ pi);
+  (&2 / h0, a, &2 * h0);
+  (#2.9 , b, #3.93);
+  (#2.9, c, #3.93)
+  ]
+   (
+let num1 = -- (&4 * (((a pow 4) * e1) + ((&8 * (((b pow 2) + ((-- &1) * (c pow 2))) * (e2 
++ ((-- &1) * e3)))) + ((-- &1) * ((a pow 2) * ((&16 * e1) + ((((-- &8) + (b 
+pow 2)) * e2) + (((-- &8) + (c pow 2)) * e3)))))))) in
+     num1 > &0)`;
+};;
+
+add    
+{
+id = "PQFYWHW 4";
+doc = "In a pentagon with two nonadjacent flats. there is at most one long edge.
+This calculation shows that we can shorten an edge that is at a flat node.
+We shorten the two edges at $a$ (assuming $a <= c + #0.25$), until their lengths are
+$(2,2)$ or $(2,2h_0)$ (if one of them belongs to $S$).
+If both are $(2,2)$ then the all four edges at the flat have length $2$, because
+otherwise 
+\\[
+ \\arc(2h_0,2h_0,2h_0) + \\arc(2h_0,2h_0,2) \\le \\arc_c \\le \\arc_a \\le
+ \\arc(2,2,2)2 < 2.095.
+\\]
+ % deriv1 still has (16-a^2)a in the denominator. num1 is the polynomial numerator.
+% This is linear in e1, e2, e3.
+ ";
+tags = [Flypaper;Tex;Eps 1.0e-8];
+ineq = all_forall `ineq
+  [
+  (&1 , e1, &1 + sol0/ pi);
+  (&1 , e2, &1 + sol0/ pi);
+  (&1 , e3, &1 + sol0/ pi);
+  (#2.9, a, #3.93);
+  (&2/h0 , b, &2 * h0);
+  (#2.9, c, #3.93)
+  ]
+  ( (
+let num1 = -- (&4 * (((a pow 4) * e1) + ((&8 * (((b pow 2) + ((-- &1) * (c pow 2))) * (e2 
++ ((-- &1) * e3)))) + ((-- &1) * ((a pow 2) * ((&16 * e1) + ((((-- &8) + (b 
+pow 2)) * e2) + (((-- &8) + (c pow 2)) * e3)))))))) in
+     num1 > &0) \/ (a > c))`;
+};;
+
+let templateB = `\y15 y45 y34 y12 y2max. (ineq
+  [
+(&2,y1,&2 *h0);
+(&2,y2,y2max);
+(&2,y3,&2 *h0);
+(&2,y4,&2 *h0);
+(&2,y5,&2 *h0)
+  ]
+  (
+    let y23 = y12 in
+    let y13 = edge_flat y2 y1 y3       y23 y12 in
+    let y14 = edge_flat y5 y1 y4       y45 y15 in 
+      (dih_y y1 y2 y5 (&2 * h0) y15 y12 > dih_y y1 y3 y4 y34 y14 y13) \/
+        (taum y1 y3 y4 y34 y14 y13 + flat_term y2 + flat_term y5 > tame_table_d 4 1) ))`;;
+
+let mk_tplate template r = 
+ do_betas(list_mk_comb (template, r));;
+
+
+let make0 i j = 
+  let r = match  i with
+   0 -> [`&2`;`&2`;`&2`]
+    |1 -> [`&2 * h0`;`&2`;`&2`]
+    |2 -> [`&2`;`&2 * h0`;`&2`]
+    |3 -> [`&2`;`&2`;`&2 * h0`]
+    | _ ->  failwith "make0" in
+  let s = match j with
+    0 -> [`&2`;`&2 * h0`]
+    | 1 -> [`&2 * h0`;`&2`]
+    | _ -> failwith "make0 j" in
+  let t = r @ s in
+{
+id = Printf.sprintf "test B %d %d" i j;
+doc = "Pentagons with two flats do not exist.  When $y_{15}=y_{45}=2$ and
+  y_{34} = 2h_0, then the lines $\\{\\v_2,\\v_3\\}$ and $\\{\\v_4,\\v_5\\}$
+are parallel and the dihedral inequality is sharp.
+  % The sharp case is i=3, j=0.
+The constants $d(5,0)<d(4,1)$.  We prove the stronger inequality with $d(4,1)$.
+    ";
+tags = [Flypaper;Tex;Eps 1.0e-8;Penalty(1.0,50.0)];
+ineq = mk_tplate templateB t;
+};;
+
+
+map (fun (i,j) -> add  (make0 i j)) [(0,0);(1,0);(2,0);(3,0);(0,1);(1,1);(2,1);(3,1)];;
+
 
 
 

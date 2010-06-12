@@ -115,11 +115,13 @@ let edge_flat_rewrite =
 
 (* Native is  the default case.  There is no need to list them, except as documentation. *)
 
-let native_c = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";"dih_y";
-    "ineq";  "pi"; "real_add"; "real_div";"real_pow";
-    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "sol_y";"hminus";
-    "lmfun";"wtcount3_y";
-    "wtcount6_y";"beta_bump_y";"machine_eps";"cos"
+let native_c = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";
+    "ineq";  "pi"; "real_add"; "real_div";"real_pow";"cos";
+    "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "machine_eps";
+     (* -- *)
+    "sol_y";"dih_y";
+    "lmfun";"lnazim";"hminus";
+    "wtcount3_y";"wtcount6_y";"beta_bump_y";
     ];;
 
 let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
@@ -133,7 +135,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
- Cayleyr.cayleyR;tame_table_d;delta_x4;edge_flat_rewrite];;
+ Cayleyr.cayleyR;tame_table_d;delta_x4;edge_flat_rewrite;const1;taum;flat_term];;
 
 
 (* remove these entirely before converting to C *)
@@ -193,7 +195,7 @@ let cc_of_tm tm =
 
 (* generate cfsqp code of ineq *)
 
-let case i j = Printf.sprintf "case %d: *ret = (%s); break;" j (List.nth i j);;
+let case p i j = Printf.sprintf "case %d: *ret = (%s) - (%s); break;" j (List.nth i j) p;;
 
 let vardecl y vs = 
   let varname = map (fun (a,b,c) -> b) vs in
@@ -213,9 +215,22 @@ let rec geteps =
       [] -> 0.0
   | b::bs -> max(getepsf b) (geteps bs);;
 
+let penalties iqd =  (filter (function Penalty _ -> true | _ -> false) iqd.tags);;
+let hasp iqd = (List.length (penalties iqd) >0);;
+let onep iqd = if (hasp iqd) then hd(penalties iqd) else Penalty (0.0,0.0);;
+let penalty_ub = function Penalty(a,_) -> string_of_float a;;
+let penalty_var iqd = ["0.0","penalty",penalty_ub (onep iqd)];;
+let penalty_wt iqd = if hasp iqd 
+then
+  match (onep iqd) with
+      Penalty(_,b) -> (string_of_float b)^" * penalty" 
+else "0.0";;
+
 let cfsqp_code outs iqd = 
   let (b,vs,i) = cc_of_tm iqd.ineq in
+  let vs = vs @ if (hasp iqd) then penalty_var iqd else [] in
   let eps = geteps (iqd.tags) in 
+  let casep = if hasp iqd then "max(0.0,penalty)" else "0.0" in
   let nvs = List.length vs in
   let ni = List.length i in
   let y = "y_mangle__" in 
@@ -230,11 +245,11 @@ let cfsqp_code outs iqd =
    p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y;
   vardecl y vs ;
   p"switch(whichFn) {";
-  ] @ map (case i) (1-- (-1 + List.length i)) @ [
+  ] @ map (case casep i) (1-- (-1 + List.length i)) @ [
   p"default: *ret = 0; break; }}\n\n";
   p"void t0(int numargs,int whichFn,double* %s, double* ret,void*) { " y;
   vardecl y vs ;
-  p"*ret = (%e) + (%s);" eps (List.nth i 0);
+  p"*ret = (%e) + (%s) + (%s);" eps (List.nth i 0) (penalty_wt iqd);
 	p"}";
 p"Minimizer m0() {";
 p"  double xmin[%d]= {" nvs;
@@ -267,12 +282,18 @@ p"assert(near(lmfun(1.27),0.0));";
 p"assert(near(rad2_x(4.1,4.2,4.3,4.4,4.5,4.6),1.6333363881302794));";
 p"assert(near(dih_y(2.1,2.2,2.3,2.4,2.5,2.6),1.1884801338917963));";
 p"assert(near(sol_y(2.1,2.2,2.3,2.4,2.5,2.6), 0.7703577405137815));";
+p"assert(near(sol_y(2, 2, 2, 2.52, 3.91404, 3.464),4.560740765722419));";
+p"assert(near(taum(2.1,2.2,2.3,2.4,2.5,2.6),tau_m(2.1,2.2,2.3,2.4,2.5,2.6) ));";
+p"assert(near(taum(2.1,2.2,2.3,2.4,2.5,2.6),tau_m_alt(2.1,2.2,2.3,2.4,2.5,2.6) ));";
+p"assert(near(taum(2.1,2.2,2.3,2.4,2.5,2.6),0.4913685097602183));";
+p"assert(near(taum(2, 2, 2, 2.52, 3.91404, 3.464),4.009455167289888));";
 p"assert(near(ups_x(4.1,4.2,4.3), 52.88));";
 p"assert(near(eta_y(2.1,2.2,2.3), 1.272816758217772));";
 p"assert(near(beta_bump_force_y(2.1,2.2,2.3,2.4,2.5,2.6), -0.04734449962124398));";
 p"assert(near(beta_bump_force_y(2.5,2.05,2.1,2.6,2.15,2.2), beta_bump_y(2.5,2.05,2.1,2.6,2.15,2.2)));";
 p"assert(near(atn2(1.2,1.3),atan(1.3/1.2)));";
 p"assert(near(edge_flat(2.1,2.2,2.3,2.5,2.6),4.273045018670291));";
+p"assert(near(flat_term(2.1),-0.4452691371955056));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  

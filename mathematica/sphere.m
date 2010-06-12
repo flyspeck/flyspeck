@@ -131,12 +131,6 @@ solR[x_, y_, z_] := 2*ArcTan[Sqrt[((z - y)*(y - x))/((
 
 dihR[x_, y_, z_] := ArcTan[Sqrt[(z^2 - y^2)/(y^2 - x^2)]] // Ns;
 
-Dihedral2[y1_, y2_, y3_, y4_, y5_, y6_] :=(*Dihedral along edge 2*)
-      Dihedral[y2, y1, y3, y5, y4, y6];
-
-
-Dihedral3[y1_, y2_, y3_, y4_, y5_, y6_] :=(*Dihedral along edge 
-      3*)Dihedral[y3, y1, y2, y6, y4, y5];
 
 
 Chi[x__] := Module[{x1, x2, x3, x4, x5, x6}, {x1, x2, x3, 
@@ -165,26 +159,6 @@ Rho[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{x1, x2, x3, x4, x5, x6}, x1 =
 Rad[y1_, y2_, y3_, y4_, y5_, y6_] := Sqrt[Rho[y1, y2, y3, y4, y5, y6]/Delta[
       y1, y2, y3, y4, y5, y6]]/2;
 
-aSolid[y1_, y2_, y3_, y4_, y5_, y6_] := y1*y2*y3 + y1*(y2*y2 + y3*y3 - y4*y4)/
-    2 + y2*(y1*y1 + y3*y3 - y5*y5)/2 + y3*(y1*y1 + y2*y2 - y6*y6)/2;
-
-Solid[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{u, t, a1}, u = Delta[y1, y2, 
-    y3, y4, y5, y6];
-        If[N[u] ≤ 0, Return[0]];
-        t = Sqrt[u]/2;
-        a1 = aSolid[y1, y2, y3, y4, y5, y6];
-        2*ArcTan[t/a1]] // Ns;
-
-solRAlt[a_, b_, c_] := Module[{y1 = a, y2 = b,
-     y3 = c, y4, 
-      y5, y6}, y4 = Sqrt[c^2 - b^2]; y5 = Sqrt[c^2 - a^2]; y6 = 
-        Sqrt[b^2 - a^2];
-      DihedralAlt[y1, y2, y3, y4, y5, y6] + 
-      Dihedral2Alt[y1, y2, y3, y4, y5, y6] + Dihedral3Alt[y1, 
-        y2, y3, y4, y5, y6] - Pi];
-
-
-
 Dihedral[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{ux, x1, x2, x3, x4, x5, x6, 
         t}, x1 = y1*y1; x2 = y2*y2; x3 = y3*y3;
       x4 = y4*y4; x5 = y5*y5; x6 = y6*y6;
@@ -199,6 +173,40 @@ DihedralAlt[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{t, del, d4, x1 = y1*y1,
     x5 = y5*y5, x6 = y6*y6}, del = Delta @@ Sqrt[{x1, x2, x3, t, x5, x6}];
       d4 = D[del, t];
       Pi/2 - ArcTan[d4/Sqrt[4 x1 del]] /. {t -> x4}];
+
+Dihedral2[y1_, y2_, y3_, y4_, y5_, y6_] :=(*Dihedral along edge 2*)
+      Dihedral[y2, y1, y3, y5, y4, y6];
+
+
+Dihedral3[y1_, y2_, y3_, y4_, y5_, y6_] :=(*Dihedral along edge 
+      3*)Dihedral[y3, y1, y2, y6, y4, y5];
+
+
+aSolid[y1_, y2_, y3_, y4_, y5_, y6_] := y1*y2*y3 + y1*(y2*y2 + y3*y3 - y4*y4)/
+    2 + y2*(y1*y1 + y3*y3 - y5*y5)/2 + y3*(y1*y1 + y2*y2 - y6*y6)/2;
+
+SolidAlt[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{u, t, a1}, u = Delta[y1, y2, 
+    y3, y4, y5, y6];
+        If[N[u] ≤ 0, Return[0]];
+        t = Sqrt[u]/2;
+        a1 = aSolid[y1, y2, y3, y4, y5, y6];
+        2*ArcTan[t/a1]] // Ns;
+
+Solid[y1_, y2_, y3_, y4_, y5_, y6_]:=
+  (Dihedral[y1,y2,y3,y4,y5,y6]+Dihedral2[y1,y2,y3,y4,y5,y6]+
+   Dihedral3[y1,y2,y3,y4,y5,y6]-Pi);
+
+solRAlt[a_, b_, c_] := Module[{y1 = a, y2 = b,
+     y3 = c, y4, 
+      y5, y6}, y4 = Sqrt[c^2 - b^2]; y5 = Sqrt[c^2 - a^2]; y6 = 
+        Sqrt[b^2 - a^2];
+      DihedralAlt[y1, y2, y3, y4, y5, y6] + 
+      Dihedral2Alt[y1, y2, y3, y4, y5, y6] + Dihedral3Alt[y1, 
+        y2, y3, y4, y5, y6] - Pi];
+
+
+
+
 
 
 arc[a_, b_, c_] := ArcCos[(a^2 + b^2 - c^2)/(2 a b)];

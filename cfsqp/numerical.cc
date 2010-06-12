@@ -56,49 +56,6 @@ double U(double a,double b,double c)
         return -a*a-b*b-c*c+2.0*(a*b+b*c+c*a);
        }
 
-
-double AA(double y1,double y2,double y3,double y4,double y5,double y6)
-        {
-        return y1*y2*y3 + (y1*(y2*y2+y3*y3-y4*y4)+
-                          y2*(y1*y1+y3*y3-y5*y5)+
-                          y3*(y1*y1+y2*y2-y6*y6))/2.0;
-        }
-
-double presolid(      double y1,double y2,double y3,
-                        double y4,double y5,double y6)
-        {
-        double a = AA(y1,y2,y3,y4,y5,y6);
-        return delta_x(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6)/(a*a);
-        }
-
-double sol_y(double y1,double y2,double y3,double y4,double y5,double y6)
-        {
-        return 2.0*atan(safesqrt(presolid(y1,y2,y3,y4,y5,y6))/2.0);
-        }
-
-double solR(double a,double b,double c)
-	{
-	if (a>=b) return 0.0;
-	if (b>=c) return 0.0;
-	return sol_y(a,b,c,safesqrt(c*c-b*b),safesqrt(c*c-a*a),
-		safesqrt(b*b-a*a));
-	}
-
-const double doct = 0.72090294951746509284124483502;
-double gamma(double y1,double y2,double y3,double y4,
-                        double y5, double y6)
-        {
-        double x1=y1*y1, x2 = y2*y2, x3=y3*y3, x4=y4*y4, x5=y5*y5, x6=y6*y6;
-        double t = safesqrt(delta_x(x1,x2,x3,x4,x5,x6))/2.0;
-        double a1,a2,a3,a4;
-        a1 = AA(y1,y2,y3,y4,y5,y6);
-        a2 = AA(y1,y5,y6,y4,y2,y3);
-        a3 = AA(y4,y5,y3,y1,y2,y6);
-        a4 = AA(y4,y2,y6,y1,y5,y3);
-        return -doct*t/6.0 + (2.0/3.0)*(atan(t/a1)+atan(t/a2)+
-                                          atan(t/a3)+atan(t/a4));
-        };
-
 double dihedral(double x1,double x2,double x3,double x4,
                 double x5, double x6)
         {
@@ -134,6 +91,54 @@ double dihR(double a,double b,double c)
 	return dihedral(a*a,b*b,c*c,c*c-b*b,c*c-a*a,
 			b*b-a*a);
 	}
+
+
+double AA(double y1,double y2,double y3,double y4,double y5,double y6)
+        {
+        return y1*y2*y3 + (y1*(y2*y2+y3*y3-y4*y4)+
+                          y2*(y1*y1+y3*y3-y5*y5)+
+                          y3*(y1*y1+y2*y2-y6*y6))/2.0;
+        }
+
+double presolid(      double y1,double y2,double y3,
+                        double y4,double y5,double y6)
+        {
+        double a = AA(y1,y2,y3,y4,y5,y6);
+        return delta_x(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6)/(a*a);
+        }
+
+double sol_y(double y1,double y2,double y3,double y4,double y5,double y6)
+        {
+	  return dih_y(y1,y2,y3,y4,y5,y6) + dih2_y(y1,y2,y3,y4,y5,y6)
+	    +dih3_y(y1,y2,y3,y4,y5,y6) - pi(); 
+           // corrected 2010-6-12.
+	  //  old formula: 2.0*atan(safesqrt(presolid(y1,y2,y3,y4,y5,y6))/2.0);
+          // old formula incorrect for sol_y(2, 2, 2, 2.52, 3.91404, 3.464);
+        }
+
+double solR(double a,double b,double c)
+	{
+	if (a>=b) return 0.0;
+	if (b>=c) return 0.0;
+	return sol_y(a,b,c,safesqrt(c*c-b*b),safesqrt(c*c-a*a),
+		safesqrt(b*b-a*a));
+	}
+
+const double doct = 0.72090294951746509284124483502;
+double gamma(double y1,double y2,double y3,double y4,
+                        double y5, double y6)
+        {
+        double x1=y1*y1, x2 = y2*y2, x3=y3*y3, x4=y4*y4, x5=y5*y5, x6=y6*y6;
+        double t = safesqrt(delta_x(x1,x2,x3,x4,x5,x6))/2.0;
+        double a1,a2,a3,a4;
+        a1 = AA(y1,y2,y3,y4,y5,y6);
+        a2 = AA(y1,y5,y6,y4,y2,y3);
+        a3 = AA(y4,y5,y3,y1,y2,y6);
+        a4 = AA(y4,y2,y6,y1,y5,y3);
+        return -doct*t/6.0 + (2.0/3.0)*(atan(t/a1)+atan(t/a2)+
+                                          atan(t/a3)+atan(t/a4));
+        };
+
 
 double eta2(double x1,double x2,double x3)
         {
@@ -638,12 +643,12 @@ double azim(double y1,double y2,double y3,double y4,double y5,double y6) {
   return dih_y(y1,y2,y3,y4,y5,y6);
 }
 
-double taumalt(double y1,double y2,double y3,double y4,double y5,double y6) {
+double tau_m_alt(double y1,double y2,double y3,double y4,double y5,double y6) {
   return sol_y(y1,y2,y3,y4,y5,y6)*(1.0 + c1()) - 
     c1()*(lnazim(y1,y2,y3,y4,y5,y6)+lnazim(y2,y3,y1,y5,y6,y4)+lnazim(y3,y1,y2,y6,y4,y5));
 }
 
-double taum(double y1,double y2,double y3,double y4,double y5,double y6) {
+double tau_m(double y1,double y2,double y3,double y4,double y5,double y6) {
   return rho(y1)*dih_y(y1,y2,y3,y4,y5,y6)+rho(y2)*dih_y(y2,y3,y1,y5,y6,y4)+
     rho(y3)*dih_y(y3,y1,y2,y6,y4,y5) - (pi() + sol_y(2,2,2,2,2,2));
 }

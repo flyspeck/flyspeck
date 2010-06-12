@@ -158,8 +158,8 @@ double rho(double y);
 double rhazim(double y1,double y2,double y3,double y4,double y5,double y6);
 double lnazim(double y1,double y2,double y3,double y4,double y5,double y6);
 double azim(double y1,double y2,double y3,double y4,double y5,double y6);
-double taum(double y1,double y2,double y3,double y4,double y5,double y6);
-double taumalt(double y1,double y2,double y3,double y4,double y5,double y6);
+double tau_m(double y1,double y2,double y3,double y4,double y5,double y6);
+double tau_m_alt(double y1,double y2,double y3,double y4,double y5,double y6);
 double lfun(double h);
 double lmfun(double h);
 

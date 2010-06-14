@@ -1,0 +1,102 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
+
+
+
+
+module  Sin_azim_cross_dot= struct
+
+
+
+open Sphere;;
+open Tactic_fan;;
+open Lemma_fan;;		
+
+
+
+let JBDNJJB=prove(`!u:real^3 v:real^3 w:real^3.
+~collinear {vec 0, u, v} /\ ~collinear {vec 0, u, w}
+==>
+?t:real. &0< t /\ sin(azim (vec 0) u v w)=t *(u cross v) dot w`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC th3[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`]
+THEN MRESA_TAC properties_coordinate[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`]
+THEN MRESA_TAC azim[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`;`(w:real^3)`]
+THEN POP_ASSUM (fun th->MRESA_TAC th [`e1_fan ((vec 0):real^3) (u:real^3) (v:real^3)`;`e2_fan ((vec 0):real^3) (u:real^3) (v:real^3)`;`e3_fan ((vec 0):real^3) (u:real^3) (v:real^3)`])
+THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN (LABEL_TAC"YEU EM")
+THEN DISCH_TAC THEN DISCH_TAC
+THEN MRESA_TAC sincos1_of_u_fan[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`;`r1:real`; `psi:real`; `h1:real`]
+THEN REMOVE_THEN "YEU EM" MP_TAC
+THEN ASM_REWRITE_TAC[COS_ADD;SIN_ADD;]
+THEN REDUCE_ARITH_TAC
+THEN REDUCE_VECTOR_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`w =
+      (r2 * cos (azim (vec 0) u v w)) % e1_fan (vec 0) u v +
+      (r2 * sin (azim (vec 0) u v w)) % e2_fan (vec 0) u v +
+      h2 % u ==>
+(u cross v) dot w =
+(u cross v) dot ((r2 * cos (azim (vec 0) u v w)) % e1_fan (vec 0) u v +
+      (r2 * sin (azim (vec 0) u v w)) % e2_fan (vec 0) u v +
+      h2 % u)`)
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN REWRITE_TAC[DOT_LADD; DOT_RADD; DOT_LMUL; DOT_RMUL;DOT_CROSS_SELF; e2_fan;e1_fan;e3_fan;
+VECTOR_ARITH`A- vec 0= A`;CROSS_LADD; CROSS_RADD; CROSS_LMUL; CROSS_RMUL;CROSS_REFL;CROSS_RNEG;CROSS_LNEG;]
+THEN REDUCE_ARITH_TAC
+THEN REWRITE_TAC[NORM_MUL;REAL_INV_MUL; REAL_ABS_INV;REAL_INV_INV;REAL_ABS_NORM;DOT_SQUARE_NORM
+;REAL_ARITH`(r2 * sin (azim (vec 0) u v w)) *
+ (norm u * inv (norm (u cross v))) *
+ inv (norm u) *
+ norm (u cross v) pow 2 =(r2* norm(u cross v)) * sin (azim (vec 0) u v w) *
+ ( inv (norm u) * norm u)*
+( inv (norm (u cross v))* norm (u cross (v:real^3)))`
+]
+THEN MP_TAC(ISPECL[`u:real^3`;`(vec 0) :real^3`]imp_norm_not_zero_fan)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(norm(u:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN ASSUME_TAC(ISPEC`u:real^3`NORM_POS_LE)
+THEN MP_TAC(REAL_ARITH`~(&0 =norm(u:real^3)) /\ &0 <= norm(u:real^3)==> &0 <norm(u:real^3)`)
+THEN RESA_TAC
+THEN SUBGOAL_THEN`~(u cross v = vec 0)` ASSUME_TAC
+THENL[ASM_REWRITE_TAC[CROSS_EQ_0];
+
+MP_TAC(ISPECL[`u cross v :real^3`;`(vec 0) :real^3`]imp_norm_not_zero_fan)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(norm(u cross v:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN ASSUME_TAC(ISPEC`u cross v:real^3`NORM_POS_LE)
+THEN MP_TAC(REAL_ARITH`~(&0 =norm(u cross v:real^3)) /\ &0 <= norm(u cross v:real^3)==> &0 <norm(u cross v:real^3)`)
+THEN RESA_TAC
+THEN MRESA_TAC REAL_LT_MUL[`r2:real`;`norm(u cross v:real^3)`]
+THEN MP_TAC(REAL_ARITH`&0<(r2:real)*norm(u cross v:real^3)==> ~((r2:real)*norm(u cross v:real^3)= &0)`)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(r2 * norm(u cross v:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(r2 * norm(u cross v:real^3))`REAL_LT_INV)
+THEN RESA_TAC
+THEN REDUCE_ARITH_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`(u cross v) dot w = (r2 * norm (u cross v)) * sin (azim (vec 0) u v w) ==>
+inv (r2 * norm (u cross v))*(r2 * norm (u cross v)) * sin (azim (vec 0) u v w)= inv (r2 * norm (u cross v)) *((u cross v) dot w)`)
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN ASM_REWRITE_TAC[REAL_ARITH`inv (r2 * norm (u cross v)) * (r2 * norm (u cross v)) *
+ sin (azim (vec 0) u v w)=(inv (r2 * norm (u cross v)) * (r2 * norm (u cross v)))*
+ sin (azim (vec 0) u v w)`]
+THEN REDUCE_ARITH_TAC
+THEN STRIP_TAC
+THEN EXISTS_TAC`inv (r2 * norm (u cross v)):real`
+THEN ASM_REWRITE_TAC[]]);;
+
+
+end;;

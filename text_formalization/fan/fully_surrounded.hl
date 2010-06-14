@@ -1,0 +1,139 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================== *)
+
+
+
+
+module  Fully_surrounded = struct
+
+
+
+open Sphere;;
+open Fan_defs;;
+open Hypermap_of_fan;;
+open Tactic_fan;;
+open Lemma_fan;;		
+open Fan;;
+open Hypermap_of_fan;;
+open Node_fan;;
+open Azim_node;;
+open Sum_azim_node;;
+open Disjoint_fan;;
+open Lead_fan;;
+open Fan_misc;;
+open Leads_into_fan;;
+
+
+(* ========================================================================== *)
+(*   FAN  AND CONVEX              *)
+(* ========================================================================== *)
+
+
+let fan81=new_definition`fan81 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> azim_fan x V E v u <pi)`;;
+
+let fan80=new_definition`fan80 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> &0< azim x v u (sigma_fan x V E v u) /\ azim x v u (sigma_fan x V E v u) <pi)`;;
+
+
+
+
+let dartset_fully_surrounded_is_non_isolated_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool).
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+==> d_fan(x,V,E)=d1_fan(x,V,E)`,
+REPEAT STRIP_TAC 
+THEN MRESA_TAC fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`]
+THEN ASM_REWRITE_TAC[d_fan;]
+THEN SET_TAC[]);;
+
+
+let properties_of_elements_in_face_fully_surroundedfan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds y.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ ds IN face_set(hypermap1_of_fanx (x,V,E))
+/\ y IN ds
+==> {pr2 y, pr3 y} IN E`,
+REPEAT GEN_TAC THEN STRIP_TAC
+THEN MRESA_TAC face_subset_dart_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN MP_TAC(SET_RULE`y IN ds /\ ds SUBSET d_fan (x,V,E)==> y IN d_fan (x,V,E)`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC 
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`]
+THEN REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[pr2;pr3]);;
+
+
+
+
+
+let properties_fully_surrounded=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) v:real^3 u:real^3 w:real^3.
+FAN(x,V,E)/\ {v,u} IN E /\ {u,w} IN E
+/\ (&0< azim x u w v ) /\ (azim x u w v <pi)
+==> ~coplanar {x,v,u,w}`,
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[SET_RULE`{x,v,u,w}={x,u,w,v}`]
+THEN STRIP_TAC
+THEN FIND_ASSUM MP_TAC`{v,u} IN (E:(real^3->bool)->bool)`
+THEN REWRITE_TAC[SET_RULE`{v,u}={u,v}`]
+THEN STRIP_TAC
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (v:real^3)`;
+` (u:real^3)`]
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (w:real^3)`;
+` (u:real^3)`]  
+THEN MRESA_TAC AZIM_EQ_0_PI_EQ_COPLANAR[`x:real^3`;`u:real^3`;`w:real^3`;`v:real^3`]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC);;
+
+
+
+
+
+
+let exists_edge_fully_surround_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) w:real^3.
+FAN(x,V,E) /\ w IN V
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+==> ?v. {w,v} IN E /\ v IN V`,
+REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`w:real^3`)
+THEN SUBGOAL_THEN`~(set_of_edge (w:real^3) V E={})`ASSUME_TAC
+THENL[ POP_ASSUM MP_TAC THEN DISCH_THEN(LABEL_TAC "YEU") THEN STRIP_TAC THEN REMOVE_THEN "YEU" MP_TAC
+THEN ASM_REWRITE_TAC[CARD_CLAUSES] THEN ARITH_TAC;
+POP_ASSUM MP_TAC 
+THEN REWRITE_TAC[SET_RULE`~(A={})<=> ?v. v IN A`; set_of_edge;IN_ELIM_THM]]);;
+
+
+
+
+let nonsetedge_fully_surround_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool).
+(!v. v IN V==>CARD (set_of_edge v V E) >1)/\ FAN(x,V,E)
+==> ~(E={})`,
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[]
+THEN POP_ASSUM (fun th-> MP_TAC th THEN REWRITE_TAC[FAN;fan1]  THEN STRIP_TAC THEN ASSUME_TAC(th))
+THEN FIND_ASSUM MP_TAC(`~((V:real^3->bool) SUBSET {})`)
+THEN REWRITE_TAC[SET_RULE`~(V SUBSET {})<=> ?w. w IN V`]
+THEN STRIP_TAC
+THEN MRESA_TAC exists_edge_fully_surround_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`w:real^3`]
+THEN ASM_TAC THEN SET_TAC[]);;
+
+let v_subset_xfan=prove(`!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool).
+FAN(x,V,E) /\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+==> V SUBSET xfan(x,V,E)`,
+REWRITE_TAC[xfan;SUBSET;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC exists_edge_fully_surround_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;` x':real^3`]
+THEN EXISTS_TAC`{x',v:real^3}`
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` v:real^3`;`x':real^3`]
+THEN MRESA_TAC point_in_aff_ge[`(x:real^3)`;`(x':real^3)`;`(v:real^3)`]
+THEN ASM_TAC THEN SET_TAC[IN]);;
+
+
+
+
+end;;

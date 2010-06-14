@@ -1,0 +1,231 @@
+module Definition_fan  = struct
+
+
+open Sphere;;
+open Fan_defs;;
+
+
+(* ========================================================================== *)
+(*                                FAN                       *)
+(* ========================================================================== *)
+
+
+
+let graph = new_definition `graph E <=> (!e. E e ==> (e HAS_SIZE 2))`;;
+
+let fan1 = new_definition`fan1(x,V,E):bool <=>  FINITE V /\ ~(V SUBSET {}) `;;
+
+let fan2 = new_definition`fan2(x,V,E):bool <=>   ~(x IN V)`;;
+
+let fan3=new_definition`fan3(x,V,E):bool <=> (!v. (v IN V) ==> cyclic_set {w | {v,w} IN E } x v)`;;
+
+let fan4 = new_definition`fan4(x,V,E):bool<=>  (!e. (e IN E) ==> (aff_gt {x} e  INTER V={}))`;;
+
+let fan5 = new_definition`fan5(x,V,E):bool<=> (!e f. (e IN E)/\ (f IN E) /\ ~(e=f) ==> (aff_gt {x} e INTER aff_gt {x} f ={}))`;;
+
+let fan = new_definition`fan(x,V,E)<=>  ((UNIONS E) SUBSET V) /\ graph(E)/\ fan1(x,V,E)/\ fan2(x,V,E)/\ fan3(x,V,E)/\ fan4 (x,V,E) /\ fan5(x,V,E)`;;
+
+let base_point_fan=new_definition`base_point_fan (x,V,E)=x`;;
+
+let set_of_edge=new_definition`set_of_edge v V E={w|{v,w} IN E /\ w IN V}`;;
+
+
+let fan6= new_definition`fan6(x,V,E):bool<=>(!e. (e IN E) ==> ~(collinear ({x} UNION e)))`;;
+
+let fan7= new_definition`fan7(x,V,E):bool<=> (!e1 e2. (e1 IN E UNION {{v}| v IN V}) /\ (e2 IN E UNION {{v}| v IN V})
+==> ((aff_ge {x} e1) INTER (aff_ge {x} e2) = aff_ge {x} (e1 INTER e2)))`;;
+
+
+
+let FAN=new_definition`FAN(x,V,E) <=> ((UNIONS E) SUBSET V) /\ graph(E) /\ fan1(x,V,E) /\ fan2(x,V,E)/\
+fan6(x,V,E)/\ fan7(x,V,E)`;;
+
+(* ========================================================================== *)
+(*                   DEFINITION OF SIGMA_FAN AND INVERSE1_SIGMA_FAN (^_^)                    *)
+(* ========================================================================== *)
+
+
+let sigma_fan=new_definition`sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3)=  
+(if (set_of_edge v V E = {u} ) then u 
+    else (@(w:real^3).  (w IN (set_of_edge v V E)) /\ ~(w=u) /\
+(!(w1:real^3). (w1 IN (set_of_edge v V E))/\ ~(w1=u) ==> azim x v u w <= azim x v u w1)))`;;
+
+
+(* This extends sigma to have a larger domain
+   of R^3 rather than just V.  It is the
+   identity outside V (compare the definition
+   of `permutes` ).   *)
+
+
+
+
+let extension_sigma_fan=new_definition`extension_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3)=  
+(if ~(u IN set_of_edge v V E ) then u 
+    else (sigma_fan x V E v u))`;;
+
+
+
+let azim1=new_definition`azim1 (x:real^3) (v:real^3) (u:real^3) (w:real^3)= &2 * pi- azim x v u w`;;
+
+
+
+let inverse1_sigma_fan=new_definition`inverse1_sigma_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3)= @g. (!w:real^3. {v,w} IN E==> {v, g w} IN E)
+/\ (!w:real^3. {v,w} IN E==> (sigma_fan x V E v)( g w) =w)
+/\ (!w:real^3. {v,w} IN E==> g (sigma_fan x V E v w) =w)`;;
+
+
+
+(* ========================================================================== *)
+(*                   DEFINITION OF HYPERMAP OF FAN                    *)
+(* ========================================================================== *)
+
+
+
+let d1_fan =new_definition`
+d1_fan (x,V,E) ={(x':real^3,v:real^3,w:real^3,w1:real^3)| (x'=x) /\ ({v,w} IN  E)/\ (w1 = sigma_fan x V E v w)}`;;
+
+
+let d20_fan=new_definition`d20_fan (x,V,E)={ (x',v,v,v)| (x'=x) /\ (V v) /\ ((set_of_edge v V E) ={})}`;;
+
+let d_fan=new_definition`d_fan (x,V,E)= d1_fan (x,V,E) UNION d20_fan (x,V,E)`;;
+
+
+let inverse_sigma_fan_alt=new_definition`inverse_sigma_fan_alt x V E v w = @a. sigma_fan x V E v a=w`;;
+
+let e_fan=new_definition` e_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,v,(sigma_fan x V E w v)))`;;
+
+
+let f_fan=new_definition`f_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,(inverse_sigma_fan_alt x V E w v),v) )`;;
+
+(* This is the same as f_fan, 
+   but easier to use *)
+
+let f1_fan=new_definition`f1_fan (x:real^3) V E = (\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,w,(inverse1_sigma_fan x V E w v),v) )`;;
+
+
+
+let n_fan=new_definition`n_fan (x:real^3) V E =(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,v,(sigma_fan x V E v w),(sigma_fan x V E v (sigma_fan x V E v w))))`;;
+
+(* i_fan corrects the 4th coordinate to be
+   the dart *)
+
+let i_fan=new_definition`i_fan (x:real^3) V E=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). (x,v,w,(sigma_fan x V E v w)))`;;
+
+let pr1=new_definition`pr1=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). x)`;;
+
+let pr2=new_definition`pr2=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). v)`;;
+
+let pr3=new_definition`pr3=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). w)`;;
+
+let pr4=new_definition`pr4=(\((x:real^3),(v:real^3),(w:real^3),(w1:real^3)). w1)`;;
+
+(* if f = sigma, the power_map_points gives
+   iterates of sigma (for fixed x v) *)
+
+
+let power_map_points= new_recursive_definition num_RECURSION `(power_map_points f x V E v w 0 = w)/\(power_map_points f x V E v w  (SUC n)= f x V E v (power_map_points f x V E v w n))`;;
+
+(* This is the composition operator (o),
+   specialized to functions on 4-tuples *)
+
+let o_funs=new_definition`!(f:real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3) (g:real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3). o_funs f g =(\(x:real^3,y:real^3,z:real^3,t:real^3).  f (pr1 (g(x,y,z,t)),pr2(g(x,y,z,t)),pr3(g(x,y,z,t)),pr4(g(x,y,z,t))))`;;
+
+(* powers of permutations *)
+
+let power_maps= new_recursive_definition num_RECURSION `(power_maps  (f:real^3->(real^3->bool)->((real^3->bool)->bool)->real^3#real^3#real^3#real^3->real^3#real^3#real^3#real^3) (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) 0 = i_fan (x:real^3) V E) /\ (power_maps f x V E (SUC n)= o_funs (f x V E)  (power_maps f x V E n))`;;
+
+
+(* powers of node map *)
+
+
+
+ 
+let power_n_fan= new_definition`power_n_fan x V E n=( \(x,v,w,w1). (x,v,(power_map_points sigma_fan x V E v w n),(power_map_points sigma_fan x V E v w (SUC n))))`;; 
+
+
+(* the node of a dart, in a special form
+   for fans *)
+
+
+let a_node_fan=new_definition`a_node_fan x V E (x,v,w,w1)={a | ?n. a=(power_maps  n_fan x V E n) (x,v,w,sigma_fan x V E v w)}`;;
+
+
+(* The set X(V,E) *)
+
+let xfan= new_definition`xfan (x,V,E)={v | ?e. (E e)/\(v IN aff_ge {x} e)}`;;
+
+(* See comment by AS in fan_defs.hl.  The correct definition is there. *)
+let yfan_deprecated= new_definition`yfan_deprecated (x,V,E)={v:real^3 | ?e. ( E e )/\(~(v IN aff_ge {x} e))}`;;
+
+
+
+
+
+
+
+let hypermap_of_fanx = new_definition
+  `hypermap_of_fanx (x:real^3,V:real^3->bool,E:(real^3->bool)->bool) = 
+    (let p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) ) in 
+          hypermap( d_fan (x,V,E) , p e_fan, p n_fan, p f_fan))`;;
+
+
+let hypermap1_of_fanx = new_definition
+  `hypermap1_of_fanx (x:real^3,V:real^3->bool,E:(real^3->bool)->bool) = 
+    (let p = ( \ t. res (t x V E ) (d1_fan (x,V,E)) ) in 
+          hypermap( d_fan (x,V,E) , p e_fan, p n_fan, p f1_fan))`;;
+
+
+
+
+
+(*
+W^0_{dart}(x,v,w...)
+*)
+
+let w_dart_fan=new_definition`w_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3))=  
+if (CARD (set_of_edge v V E) > 1) then wedge x v w (sigma_fan x V E v w)
+else  
+(if set_of_edge v  V E ={w} then (UNIV:real^3->bool) DIFF aff_ge {x,v} {w}
+else (if set_of_edge v  V E ={} then (UNIV:real^3->bool) DIFF aff {x,v} else {}))`;;
+
+
+
+
+let if_azims_fan= new_definition`
+if_azims_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (u:real^3) (i:num)
+    = if i = CARD(set_of_edge v V E) 
+        then &2 * pi 
+         else azim x v u (power_map_points sigma_fan x V E v u i)`;;
+
+
+
+(* rcone^0(x,v,h) *)
+
+let rcone_fan = new_definition `rcone_fan  (x:real^3) (v:real^3) (h:real) = {y:real^3 | (y-x) dot (v-x) >(dist(y,x)*dist(v,x)*h)}`;;
+
+
+(*
+W^0_{dart}(x,epsilon)
+*)
+
+let rw_dart_fan= new_definition`rw_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3)) (h:real)= w_dart_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) ((y:real^3),(v:real^3),(w:real^3),(w1:real^3)) INTER rcone_fan x v h`;;
+
+
+(*
+azim(x), x dart.
+*)
+
+
+let azim_fan=new_definition`azim_fan (x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) (v:real^3) (w:real^3)
+= if (CARD (set_of_edge v V E) > 1) then azim x v w (sigma_fan x V E v w) else &2* pi`;;
+
+
+
+
+let fan81=new_definition`fan81 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> azim_fan x V E v u <pi)`;;
+
+let fan80=new_definition`fan80 (x:real^3,(V:real^3->bool),(E:(real^3->bool)->bool)):bool<=>(!v:real^3 u:real^3. {v,u} IN E ==> &0< azim x v u (sigma_fan x V E v u) /\ azim x v u (sigma_fan x V E v u) <pi)`;;
+
+
+
+end;;

@@ -18,8 +18,6 @@ module Parse_ineq = struct
 
 
   open Sphere;; 
-  open Enclosed;;
-  open Mur;;
 
 let trialcount = ref 500;;
 
@@ -86,6 +84,10 @@ let cs i =
     | _ -> b in
   nub (sort (<) (cs0 [] i ));;
 
+let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
+
+let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
+
 (* solve delta_y y1 y2 y3 y4 y5 y6 = 0 for y4, The negative sign in edge_flat makes the 
    leading coefficient positive *)
 
@@ -109,6 +111,18 @@ ARITH_TAC);;
 let edge_flat_rewrite = 
  REWRITE_RULE[abc_quadratic;delta_quadratic] edge_flat;;
 
+let enclosed_rewrite = 
+  REWRITE_RULE[abc_quadratic] 
+  (strip_let(REWRITE_RULE[Mur.muRa;Cayleyr.cayleyR_quadratic] Enclosed.enclosed));;
+
+
+let quadratic_root_plus_curry = 
+  new_definition `quadratic_root_plus_curry a b c = quadratic_root_plus (a,b,c)`;;
+
+let quad_root_plus_curry = 
+  REWRITE_RULE[quadratic_root_plus] quadratic_root_plus_curry;;
+
+
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
       - autogen: automatically generate a C style function from the formal definition.
@@ -126,8 +140,6 @@ let native_c = [",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs
     "wtcount3_y";"wtcount6_y";"beta_bump_y";
     ];;
 
-let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
-let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
 
 (* Auto generate these function definitions in C *)
 
@@ -137,8 +149,9 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
- quadratic_root_plus_curry;
- Cayleyr.cayleyR;tame_table_d;delta_x4;edge_flat_rewrite;const1;taum;flat_term];;
+  tame_table_d;delta_x4;quad_root_plus_curry;
+  edge_flat_rewrite;const1;taum;flat_term;
+  tauq;enclosed_rewrite];;
 
 
 (* remove these entirely before converting to C *)
@@ -151,25 +164,24 @@ let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 =
     y_of_x vol_x y1 y2 y3 y4 y5 y6`,
     REWRITE_TAC[vol_y]);;
 
-
-
 let macro_expand = ref [];; 
-macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;gamma3f;gamma23f;REAL_MUL_LZERO;
+
+macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
+   gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR];;
-!macro_expand;;
+
 
 let prep_term t = 
   let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in
   let (a,b)=  dest_eq (concl t') in
     b;;
 
-
 let args xs = 
   let ls = map (fun s -> "double "^s) xs in
   join_comma ls;;
 
 let ccfunction t = 
-  let (lhs,rhs) = dest_eq t in
+  let (lhs,rhs) = dest_eq (prep_term t) in
   let (f,xs) = strip_comb lhs in
   let ss = map ccform1 xs in
   let p = Printf.sprintf in
@@ -179,10 +191,6 @@ let ccfunction t =
     p") { \nreturn ( %s ); \n}\n\n"  (ccform1 rhs);
 		       ]
   in s;;
-(*
-ccfunction `f x y = x +y + #1.0`;;
-*)
-
 
 let cc_of_tm tm = 
   let t = snd(strip_forall (prep_term (tm))) in
@@ -297,6 +305,7 @@ p"assert(near(beta_bump_force_y(2.5,2.05,2.1,2.6,2.15,2.2), beta_bump_y(2.5,2.05
 p"assert(near(atn2(1.2,1.3),atan(1.3/1.2)));";
 p"assert(near(edge_flat(2.1,2.2,2.3,2.5,2.6),4.273045018670291));";
 p"assert(near(flat_term(2.1),-0.4452691371955056));";
+p"assert(near(enclosed(2.02,2.04,2.06,2.08,2.1,2.12,2.14,2.16,2.18), 3.426676872737882));";
 p"}\n\n";
     ]) in
     Printf.fprintf outs "%s" s;;  

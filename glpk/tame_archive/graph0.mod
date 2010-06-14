@@ -267,7 +267,7 @@ tau_azim4B 'ID[6944699408]' {(i,j) in IDART4}:
   tau[j] + 0.972*azim[i,j] - 1.707 >= 0;
 
 tau_azim4C 'ID[4240815464]' {(i,j) in IDART4}:
-  tau[j] + 0.7573*azim[i,j] - 1.4333 >= 0;
+  tau[j] + 0.7573*azim[i,j] - 1.433 >= 0;
 
 tau_azim4D 'ID[3862621143]' {(i,j) in IDART4}:
   tau[j] - 0.453*azim[i,j] + 0.777 >= 0;  # typo corrected Sep 8 2009 (Thanks to Erin Susick!)

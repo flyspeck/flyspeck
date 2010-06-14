@@ -18,6 +18,8 @@ module Parse_ineq = struct
 
 
   open Sphere;; 
+  open Enclosed;;
+  open Mur;;
 
 let trialcount = ref 500;;
 
@@ -105,7 +107,7 @@ REWRITE_TAC[delta_x] THEN
 ARITH_TAC);;
 
 let edge_flat_rewrite = 
- REWRITE_RULE[abc_quadratic;quadratic_root_plus;delta_quadratic] edge_flat;;
+ REWRITE_RULE[abc_quadratic;delta_quadratic] edge_flat;;
 
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
@@ -135,6 +137,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
  beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
+ quadratic_root_plus_curry;
  Cayleyr.cayleyR;tame_table_d;delta_x4;edge_flat_rewrite;const1;taum;flat_term];;
 
 

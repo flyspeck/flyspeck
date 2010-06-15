@@ -67,10 +67,11 @@ apex_sup_flat: apex of super flat triangulating a quad
    with shorter diagonal at least sqrt8-3.
 apex_flat: the apex darts of flat quarters.  It is the dart opposite the long edge.
 apex_A: the apex darts of type A triangle in triangulation of pentagon
-apex5: apex dart of complement of flat in hex, where the apex dart is defined as 
-  in the apex4.  It is *not* the dart opposite the long edge.
 apex4: apex dart in complement of flat in pent, where the apex dart is defined as
   the dart x s.t. f x and f^2 x are the two darts along the long edge.
+apex5: apex dart of complement of flat in hex, where the apex dart is defined as 
+  in the apex4.  It is *not* the dart opposite the long edge.
+
 d_edge_225_252: edge ye >= 2.25;
 d_edge_200_225: edge ye <= 2.25;
 std3_big: standard triangles with y4+y5+y6>=6.25;
@@ -110,8 +111,7 @@ set std5 within face diff (std3 union std4);
 set std6 within face diff (std3 union std4 union std5); 
 set std56_flat_free within  std5 union std6;
 set std4_diag3 within std4;
-set std := std3 union std4 union 
-  std5 union std6; # standard regions.
+set std := std3 union std4 union std5 union std6; # all standard regions.
 set non_std := face diff std;
 set std3_big within std3;
 set std3_small within std3;
@@ -175,9 +175,9 @@ set apex_std3_hll := setof{(i1,i2,i3,j) in e_dart :
    j in std3}(i2,j);
 
 
-set std3_small_200_218 := {(i,j) in dart_std3_200_218 :   j in std3_small};
+set dart_std3_small_200_218 := {(i,j) in dart_std3_200_218 :   j in std3_small};
 
-set std3_big_200_218 := {(i,j) in dart_std3_200_218 :    j in std3_big};
+set dart_std3_big_200_218 := {(i,j) in dart_std3_200_218 :    j in std3_big};
 
 set apex_std3_small_hll := {(i,j) in apex_std3_hll : j in std3_small};
 
@@ -221,7 +221,7 @@ tau_sum{j in face}: sum{(i,j) in dart} (rhzim[i,j] - pi -sol0) = tau[j] - 2.0*(p
 
 ln_def{i in node}: ln[i] = (2.52 - yn[i])/0.52;
 rho_def{i in node}: rho[i] = (1 + sol0/pi) - ln[i] * sol0/pi;
-edge{(i1,j1,i2,j2) in edge}: ye[i1,j1] = ye[i2,j2];
+edge_sym{(i1,j1,i2,j2) in edge}: ye[i1,j1] = ye[i2,j2];
 y1_def{(i3,i1,i2,j) in e_dart}: y1[i1,j] = yn[i1];
 y2_def{(i3,i1,i2,j) in e_dart}: y2[i1,j] = yn[i2];
 y3_def{(i3,i1,i2,j) in e_dart}: y3[i1,j] = yn[i3];
@@ -239,14 +239,13 @@ RHBLO{(i,j) in dart: i in node_200_218}: rhzim[i,j] <= azim[i,j]*rho218;
 RHBHI{(i,j) in dart: i in node_218_252}: rhzim[i,j] >= azim[i,j]*rho218;
 
 ## branch definitional inequalities
-ybig{(i,j) in dart_std3 : j in std3_big}: 
-  y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
-ysmall{(i,j) in dart_std3 : j in std3_small}: 
-  y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
+ybig{(i,j) in dart_std3 : j in std3_big}:   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
+ysmall{(i,j) in dart_std3 : j in std3_small}:   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
 yhigh{i in node_218_252}: yn[i] >= 2.18;
 ylow{i in node_200_218}: yn[i] <= 2.18;
 yextrahigh{i in node_236_252}: yn[i] >= 2.36;
 ymediumhigh{i in node_218_236}: yn[i] <= 2.36;
+ymediumhigh218 {i in node_218_236}: yn[i] >= 2.18;
 yebig{(i,j) in d_edge_225_252}: ye[i,j] >= 2.25;
 yesmall{(i,j) in d_edge_200_225}: ye[i,j] <= 2.25;
 
@@ -262,7 +261,7 @@ y4_boundAp{(i,j) in apex_A}: y4[i,j] <= 2.52; # others redun. via apex_flat
 # apex4 apex5: covered by neighbors unless there are 2.
 
 
-# tau inequality (Main Estimate)
+# tau tame table D inequality (Main Estimate)
 
 tau3{j in std3}: tau[j] >= 0;
 tau4{j in std4}: tau[j] >= 0.206;
@@ -319,9 +318,11 @@ tau_azim4C 'ID[4240815464]' {(i,j) in dart_std4}:
 tau_azim4D 'ID[3862621143]' {(i,j) in dart_std4}:
   tau[j] - 0.453*azim[i,j] + 0.777 >= 0;  # typo corrected Sep 8 2009 (Thanks to Erin Susick!)
 
+## XXD to HERE.
+
 ## MAIN ESTIMATE std56_flat_free BIG4 BIG5 ##
 
-tau3h {(i,j) in apex_flat}: tau[j] >= 0.103;
+tau3h {(i,j) in apex_flat}: tau[j] >= 0.103;  # tame table d[2,1], need greater generality.
 tauAh {(i,j) in apex_A}: tau[j] >= 0.2759;
 tauB4h {(i,j) in apex4}: tau[j] >= 0.492;
 tauB5h {(i,j) in apex5}: tau[j] >= 0.657;
@@ -534,26 +535,26 @@ std3_bigsol 'ID[6224332984]'  {(i,j) in dart: j in std3_big}:
 
 #branch LOWSMALLnode inequality
 
-azimlowsmall 'ID[9229542852]' {(i,j) in std3_small_200_218}:
+azimlowsmall 'ID[9229542852]' {(i,j) in dart_std3_small_200_218}:
   azim[i,j] - 1.230
   -0.2357*(y1[i,j]-2)
   +0.2493*(y2[i,j]+y3[i,j]-4)
   -0.682*(y4[i,j]-2)
   +0.3035*(y5[i,j]+y6[i,j]-4) >= 0;
 
-azimlowsmallmax 'ID[1550635295]' {(i,j) in std3_small_200_218}:
+azimlowsmallmax 'ID[1550635295]' {(i,j) in dart_std3_small_200_218}:
   -azim[i,j] + 1.232
   +0.261*(y1[i,j]-2)
   -0.203*(y2[i,j]+y3[i,j]-4)
   +0.772*(y4[i,j]-2)
   -0.191*(y5[i,j]+y6[i,j]-4) >= 0;
 
-taulowsmall 'ID[4491491732]' {(i,j) in std3_small_200_218}:
+taulowsmall 'ID[4491491732]' {(i,j) in dart_std3_small_200_218}:
   tau[j]  + 0.0008
   -0.1631*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.2127*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
 
-taulowbig 'ID[8611785756]'  {(i,j) in std3_big_200_218}:
+taulowbig 'ID[8611785756]'  {(i,j) in dart_std3_big_200_218}:
   sol[j] - 0.589 +0.24*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.16*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 

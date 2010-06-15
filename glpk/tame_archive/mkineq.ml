@@ -26,7 +26,7 @@ type sgn = GT | GE;;
 
 type constrain = NONE | SMALLTRI | BIGTRI ;;
 
-type vertex = LOW | MEDIUM | HIGH | EXTRA ;;
+type node = LOW | MEDIUM | HIGH | EXTRA ;;
 
 type edge = SMALL | BIG;;
 
@@ -73,8 +73,8 @@ let holtext_of_sgn:sgn -> string = function
 
 let holtext_of_constrain:constrain -> string = function
   | NONE -> "Cnone"
-  | BIGTRI -> "Cbigtri"
-  | SMALLTRI -> "Csmalltri";;
+  | BIGTRI -> "Cstd3_big"
+  | SMALLTRI -> "Cstd3_small";;
 
 let split_sp=  Str.split (regexp " +");;
 
@@ -172,28 +172,28 @@ let domain_covers_apiece =
 let domain_covers_flat =
   domain_covers (ds "2 2 2 2.52 2 2",ds "2.52 2.52 2.52 s8 2.52 2.52");;
 
-let domain_covers_superflat =
+let domain_covers_apex_sup_flat =
   domain_covers (ds "2 2 2 s8 2 2",ds "2.52 2.52 2.52 3.0 2.52 2.52");;
 
-let domain_covers_bigtri h = 
+let domain_covers_std3_big h = 
   domain_covers_itriangle h && (h.constrain = BIGTRI);;
 
-let domain_covers_smalltri h = 
+let domain_covers_std3_small h = 
   domain_covers_itriangle h && (h.constrain = SMALLTRI);;
 
-let vertex_range = function
+let node_range = function
   | LOW -> ds "2 2.18"
   | MEDIUM -> ds "2.18 2.36"
   | HIGH -> ds "2.18 2.52"
   | EXTRA -> ds "2.36 2.52";;
 
-let domain_covers_f f vertex h i = 
+let domain_covers_f f node h i = 
   let ymin = nth h.xmin i in
   let ymax = nth h.xmax i in
-  let [mm;mx] = f vertex in
+  let [mm;mx] = f node in
     less_equal [ymin] [mm] && less_equal [mx] [ymax];;
 
-let domain_covers_vertex = domain_covers_f vertex_range;;
+let domain_covers_node = domain_covers_f node_range;;
 
 let edge_range = function
   | SMALL -> ds "2 2.25"
@@ -211,7 +211,7 @@ let ampltext_of_ineq:ineq->string = fun h ->
     (a (nth h.c j)) (j+1) (a (nth h.p j)) in  
     join_lines (unempty[
       "# ";
-      p"ineq%s 'ID[%s]' {(i1,i2,i3,j) in EDART : " h.id h.id;
+      p"ineq%s 'ID[%s]' {(i1,i2,i3,j) in e_dart : " h.id h.id;
       string_of_domain h;
       "}:";
       mkone h.tau0 "tau[j]";

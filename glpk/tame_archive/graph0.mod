@@ -48,11 +48,11 @@ LOWVERTEX: vertex with yn <= 2.18;
 
 param hypermapID;
 param pi := 3.1415926535897932;
-param delta0 := 0.5512855984325308;
-param tgt := 1.54065864570856;
+param sol0 := 0.5512855984325308;
+param tgt := 1.541;  # 1.54065864570856;
 param sqrt8 := 2.8284271247461900;
 param rho218 := 1.0607429578779386; # constant is rho(2.18).
-param CVERTEX 'number of vertices' >= 13, <= 14; 
+param CVERTEX 'number of vertices' >= 13, <= 15; 
 param CFACE 'number of faces' >= 0; 
 
 
@@ -64,10 +64,10 @@ set DART := setof {(i1,i2,i3,j) in EDART} (i1,j);
 set DEDGE := DART;
 set EDGE within DART cross DART := setof{(i1,i2,i3,j1) in EDART,(i0,i3,i2,j2) in EDART}(i2,j1,i3,j2);
 
-set ITRIANGLE; 
-set IQUAD;  
-set IPENT; 
-set IHEX; 
+set ITRIANGLE within FACE; 
+set IQUAD within FACE diff ITRIANGLE;  
+set IPENT within FACE diff (ITRIANGLE union IQUAD); 
+set IHEX within FACE diff (ITRIANGLE union IQUAD union IPENT); 
 set STANDARD := ITRIANGLE union IQUAD union IPENT union IHEX; # standard regions.
 set IDART3:= {(i,j) in DART: j in ITRIANGLE};
 set IDART4:= {(i,j) in DART: j in IQUAD};
@@ -139,10 +139,10 @@ var azim{DART} >= 0, <= pi;
 var azim2{HLLTRI} >=0, <= pi;
 var azim3{HLLTRI} >=0, <= pi;
 var ln{IVERTEX} >= 0, <= 1;
-var rhzim{DART} >=0, <= pi + delta0;
+var rhzim{DART} >=0, <= pi + sol0;
 var yn{IVERTEX} >= 2, <= 2.52;
 var ye{DEDGE} >= 2, <= 3;
-var rho{IVERTEX} >= 1, <= 1 + delta0/pi;
+var rho{IVERTEX} >= 1, <= 1 + sol0/pi;
 var sol{FACE} >= 0, <= 4.0*pi;
 var tau{FACE} >= 0, <= tgt;
 var y1{DART} >= 2, <=2.52;
@@ -168,12 +168,12 @@ sqdeficit_def: tgt - sum{j in FACE} tau[j] = sqdeficit;
 azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 rhzim_sum{i in IVERTEX}:  sum {(i,j) in DART} rhzim[i,j] = 2.0*pi*rho[i];
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) = sol[j] - 2.0*pi;
-tau_sum{j in FACE}: sum{(i,j) in DART} (rhzim[i,j] - pi -delta0) = tau[j] - 2.0*(pi+delta0);
+tau_sum{j in FACE}: sum{(i,j) in DART} (rhzim[i,j] - pi -sol0) = tau[j] - 2.0*(pi+sol0);
 
 
 
 ln_def{i in IVERTEX}: ln[i] = (2.52 - yn[i])/0.52;
-rho_def{i in IVERTEX}: rho[i] = (1 + delta0/pi) - ln[i] * delta0/pi;
+rho_def{i in IVERTEX}: rho[i] = (1 + sol0/pi) - ln[i] * sol0/pi;
 edge{(i1,j1,i2,j2) in EDGE}: ye[i1,j1] = ye[i2,j2];
 y1_def{(i3,i1,i2,j) in EDART}: y1[i1,j] = yn[i1];
 y2_def{(i3,i1,i2,j) in EDART}: y2[i1,j] = yn[i2];
@@ -187,7 +187,7 @@ azim3c{(i1,i2,i3,j) in EDART : (i2,j) in HLLTRI}: azim3[i2,j] = azim[i1,j];
 ## inequality constraints
 main: sum{i in IVERTEX} ln[i] >= 12;
 RHA{(i,j) in DART}: rhzim[i,j] >= azim[i,j]*1.0;
-RHB{(i,j) in DART}: rhzim[i,j] <= azim[i,j]*(1+delta0/pi);
+RHB{(i,j) in DART}: rhzim[i,j] <= azim[i,j]*(1+sol0/pi);
 RHBLO{(i,j) in DART: i in LOWVERTEX}: rhzim[i,j] <= azim[i,j]*rho218;
 RHBHI{(i,j) in DART: i in HIGHVERTEX}: rhzim[i,j] >= azim[i,j]*rho218;
 

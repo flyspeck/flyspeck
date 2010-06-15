@@ -713,9 +713,165 @@ The HOL Light identifier is translated by eliminating underscores and converting
 \chapter{Illustrations of Dense Sphere Packings}
 
 
+\chapter{Verification of Linear Programs}
+
+\section{Model}
+
+\id{MathProg} is a linear programming modeling language that builds linear
+programs from collections of parameters, sets, variables, and inequalities.
+This section defines a large number of parameters and sets that have been
+implemented in code as a \id{MathProg} model.
 
 
-\chapter{Verification of the Nonlinear Cluster Inequality}
+\begin{definition}[extended]
+Let $V\subset\BB$ be a contravening packing.
+An extended fan $(V,E)$ is a fan such that 
+$V\subset\BB$ is contravening 
+and $E_{std}\subset E$.  
+\end{definition}
+
+The eventual aim is to show that the set of contravening packings is empty.  The proof
+is by contradiction.
+We fix one contravening packing $V$ and make a detailed investigation.  
+The eventual aim is to show that it cannot exist.
+There will be various extended fans $(V,E)$ that will be associated with
+the contravening packing $V$.  
+
+
+
+
+\subsection{parameters}
+
+
+
+
+
+
+
+
+\begin{definition}[$\sol_0$, $\op{tgt}$, $\op{tgt}_e$ $\rho_L$]
+Define
+\begin{align*}
+\sol_0 &= \sol(2,2,2,2,2,2) \approx 0.551\\
+\op{tgt} &= 1.541\\
+\rho_L(y) &= 1 + \left(\frac{\sol_0}{\pi}\right) (1-L(y/2))\quad for 2\le y\le 2.52.\\
+\op{rhazim}(\v_1,\v_2,\v_3) &= \rho_L(\normo{\v_1})\azim(\orz,\v_1,\v_2,\v_3)\\
+\end{align*}
+\end{definition}
+
+
+
+
+
+
+If $V$ is contravening then the hypermap of $(V,E_{std})$ is tame.  We can
+identify the set of nodes of $\op{hyp}(V,E)$ with $V$.  
+The following sets are associated with an extended fan $(V,E)$ and its hypermap.  
+We do not
+show the dependence on $(V,E)$ explicitly in the notation.
+
+\begin{definition}[\id{CVERTEX},~\id{IVERTEX},~\id{CFACE},~\id{FACE}]
+We define the following numbers and sets:
+\begin{enumerate}
+\item $\id{CVERTEX} = \card(V).$
+\item \id{CFACE} is the number of faces in the hypermap.
+\item $\id{IVERTEX} = \{ 0,\ldots, \id{CVERTEX}-1\}$.  We fix a bijection
+between $\id{IVERTEX}\to V$ ($i\mapsto \v_i$) 
+and often identify the two.  Of course, any metric
+properties of the contravening packing must be obtained from $V$ and not
+from the set of natural numbers \id{IVERTEX}.
+\item $\id{FACE}  = \{0,\ldots,\id{CFACE}-1\}$.  We identify \id{FACE} with
+the set of faces by fixing an order on the faces.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[model and data]
+The language \id{MathProg}  is designed to separate the linear program into
+two files: a model and a
+data file.  The model can be viewed as the part of the problem that does not depend
+on the contravening packing $V$ and the data as the part of the problem that
+does.  For example, the model declares that there is a parameter
+\id{CVERTEX}  that takes some value in $\{13,14,15\}$, because this much
+holds for all contravening packings.  For any given contravening
+packing $V$, its data file provides the exact value of \id{CVERTEX}.
+For example, a few lines from the model file are as follows
+\begin{verbatim}
+param CVERTEX 'number of vertices' >= 13, <= 15; 
+param CFACE 'number of faces' >= 0; 
+set IVERTEX := 0..(CVERTEX-1);
+set FACE := 0..(CFACE-1);
+\end{verbatim}
+\end{remark}
+
+\begin{remark}[finiteness]
+We may combine different contravening packings into a single data file if they
+have the same parameters and sets.  In this way, there are only finitely many different
+data files that need to be processed to prove the nonexistence of contravening
+packings.
+\end{remark}
+
+\begin{definition}[\id{DART},~\id{EDART}]
+Every face
+of $(V,E_{std})$ is simple.  The same is true of every face of an extended fan $(V,E)$.
+This means that 
+in $\op{hyp}(V,E)$, each dart is uniquely determined by the node and face to
+which it belongs.  This allows us to define the set of darts \id{DART} as a subset of
+$\id{IVERTEX}\times\id{DART}$.
+Under this identification, the face map $f$ of the hypermap becomes a permutation
+on \id{DART}.  We have $f(i,j) = (f_j i,j)$ for some permutation $f_j$ of the nodes
+that meet the face $j$.  Let 
+\[
+\id{EDART} = \{(i_1,i_2,i_3,j) \mid (i_1,j)\in\id{DART},~~ i_2 = f_j i_1,~~ i_3 = f_j i_2\}
+\]
+We call it the set of extended darts.  The indices $i_1,i_2,i_3$ are three consecutive
+nodes following $f$ around the face $j$.
+\end{definition}
+
+\begin{definition}[\id{DEDGE},~\id{EDGE}]
+The set of directed edges of the hypermap can be identified with the set of darts
+\[
+\id{DEDGE} = \id{DART}.
+\]
+If the directed edge is represented as an arrow from one node to another within a face $j$, then the arrow from $(i,j)$ to $(f_ji,j)$ is identified with the dart $(i,j)$
+at its tail.
+The set of  edges \id{EDGE} is given as pairs of darts:
+\[
+\id{EDGE} = \{(i_2,j_1,i_3,j_2) \mid \exists i_0,i_1.~
+     (i_1,i_2,i_3,j_1)\in \id{EDART},~~ (i_0,i_3,i_2,j_2)\in \id{EDART} \}.
+\]
+\end{definition}
+
+\begin{definition}[standard~face,~\id{STANDARD},~\id{ITRIANGLE},~\id{IQUAD},
+~\id{IPENT},~\id{IHEX}]
+Recall that a dart of a fan $(V,E)$ is a pair of nodes $(\u,\v)$ such that $\{\u,\v\}\in E$.
+A face is a set of nodes. Thus, if $E_{std}\subset E$, it may happen that some
+face of $\op{hyp}(V,E_{std})$ is equal\footnote{Precise equality is meant here. No
+identifications are made.} to some face of $\op{hyp}(V,E)$.  The set of
+{\it standard faces}  is the set of  faces of $\op{hyp}(V,E)$ that equal a face
+of $\op{hyp}(V,E_{std})$.  It is identified with $\id{STANDARD}\subset\id{FACE}$.
+The set \id{STANDARD} is the disjoint union of
+\id{ITRIANGLE}, \id{IQUAD}, \id{IPENT}, \id{IHEX} according to the number of
+darts in the face $3,4,5,6$. (Recall that a face of a tame hypermap has between
+three and six darts.)
+\end{definition}
+
+
+\begin{verbatim}
+IDART3, IDART4, ALLTRI,
+SUPER8, SUPERDUPER8, SUBREGION, FLAT, SUPERFLAT, APIECE,
+APEX, BIG5APEX, BIG4APEX, BIGTRI, SMALLTRI, BIGEDGE, SMALLEDGE,
+HIGHVERTEX, EXTRAHIGHVERTEX, MEDIUMHIGHVERTEX, LOWVERTEX, 
+SUPERFLATPAIR, DARTX, DARTY, DARTZ, LOWVERTEX, HLLTRI, 
+LOWSMALLTRI, LOWBIGTRI, HLLSMALLTRI
+\end{verbatim}
+
+
+We define a map from extended fans to decorated
+hypermaps.
+
+
+
+\chapter{Verification of the Nonlinear  Inequalities}
 
 Turn to the proof of Lemma~\ref{lemma:cluster}.  Let $Z$ be a cell
 cluster and let $\ee$ be the critical edge shared by the cells in the
@@ -737,7 +893,7 @@ Call a $4$-cell a \newterm{quarter}, when it has exactly one critical
 edge and all other edges of the simplex have length at most $2 h_-$.
 The weight of any quarter is $1$.
 
-\section{General}
+\section{Cluster Inequality}
 
 %\begin{calculation}\label{calc:cc:qtr}\guid{GLFVCVK}\guid{4869905472}\guid{2477216213}\guid{8328676778}\cutrate{}
 %Let $\gamma_L$ be given by Definition~\ref{def:gammaL}, $\op{wt}$ by
@@ -950,7 +1106,10 @@ coefficients were found.
 
 
 
-\chapter{Verification of the Nonlinear Local Fan Inequality}
+
+
+
+\section{Verification of the Nonlinear Local Fan Inequality}
 
 
 
@@ -1081,11 +1240,6 @@ has been made for each of the cases in the list given above.)
 
 
 
-
-\chapter{Verification of the Nonlinear Tame Hypermap Inequalities}
-
-\chapter{Verification of Further Nonlinear Inequalities}
-
 \section{Strong Dodecahedral Conjecture}
 
 
@@ -1138,12 +1292,6 @@ The circumradius constraint in the $D_4$-cell inequality is not necessary.
 \calcentry{Lemma~\ref{lemma:D-local}}{XRULQNO}{NL}{This is the main cell inequality that arises in the
 proof of the strong dodecahedral conjecture.  It breaks into cases according to the type of cell
 $k=2,3,4$.}
-
-
-
-\section{Fejes T\'oth's Contact}
-
-
 
 
 

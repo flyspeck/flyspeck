@@ -325,10 +325,11 @@ tau3h 'ID[6988401556]' {(i,j) in apex_flat}: tau[j] >= 0.103;  # cf. tame table 
 tauAh 'ID[8082208587]' {(i,j) in apex_A}: tau[j] >= 0.2759; # cf. tame table d[1,2].
 tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.492;
 tau4s 'ID[9563139965]' {j in std4_diag3}: tau[j] >= 0.496;
+tauB5h {(i,j) in apex5}: tau[j] >= 0.6548; # = tame table D[4,1]
 
 ## XXD to HERE.
-xs
-tauB5h {(i,j) in apex5}: tau[j] >= 0.657;
+
+
 tau5h{j in std5 inter std56_flat_free}: tau[j] >= 0.751;
 tau6h{j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 

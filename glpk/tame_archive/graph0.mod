@@ -318,25 +318,26 @@ tau_azim4C 'ID[4240815464]' {(i,j) in dart_std4}:
 tau_azim4D 'ID[3862621143]' {(i,j) in dart_std4}:
   tau[j] - 0.453*azim[i,j] + 0.777 >= 0;  # typo corrected Sep 8 2009 (Thanks to Erin Susick!)
 
-## XXD to HERE.
 
-## MAIN ESTIMATE std56_flat_free BIG4 BIG5 ##
+## MAIN ESTIMATE on big faces ##
 
-tau3h {(i,j) in apex_flat}: tau[j] >= 0.103;  # tame table d[2,1], need greater generality.
-tauAh {(i,j) in apex_A}: tau[j] >= 0.2759;
-tauB4h {(i,j) in apex4}: tau[j] >= 0.492;
-tauB5h {(i,j) in apex5}: tau[j] >= 0.657;
+tau3h 'ID[6988401556]' {(i,j) in apex_flat}: tau[j] >= 0.103;  # cf. tame table d[2,1], 
+tauAh 'ID[8082208587]' {(i,j) in apex_A}: tau[j] >= 0.2759; # cf. tame table d[1,2].
+tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.492;
 tau4s 'ID[9563139965]' {j in std4_diag3}: tau[j] >= 0.496;
+
+## XXD to HERE.
+xs
+tauB5h {(i,j) in apex5}: tau[j] >= 0.657;
 tau5h{j in std5 inter std56_flat_free}: tau[j] >= 0.751;
 tau6h{j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
-perimZ 'ID[]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
+perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
   y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j] >= 8.472;
 
-#this kills all std4_diag3
-tauZ 'ID[] 49c' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
-#  tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.49;
-tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46;
+#this kills all std4_diag3.  It holds more strongly with the constant 0.49.
+tauZ 'ID[7676202716] 49c' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
+tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46; 
 
 
 

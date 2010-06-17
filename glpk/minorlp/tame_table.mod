@@ -19,7 +19,7 @@ the tame table constants b(p,q) and a(5,0,1).
 # data provides the following.
 param p 'number of triangles' >= 0, <= 10; 
 param q 'number of quads' >= 0, <= 10; 
-param r 'number of exceptional' >= 0, <= 1;
+param r 'number of exceptional' >= 0, <= 4;
 
 # constants.
 param pi := 3.1415926535897932;

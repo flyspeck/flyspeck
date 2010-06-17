@@ -947,7 +947,7 @@ Minimizer m49c() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d49c(m49c(),"49c: ID[]:  taumQ-sd8-quad, two diag >= 3");
+trialdata d49c(m49c(),"49c: ID[7676202716]:  taumQ-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ

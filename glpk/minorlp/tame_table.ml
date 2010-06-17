@@ -94,14 +94,33 @@ let f (p,q) =
   (let nt = mk_node p q 0 in 
     set_lpvalue (nt); nt);;
 
-let tame_table_b = 
-  let target_ub = 1.542 in
-  filter (fun t -> match t.lpvalue with
-     None -> false
-	  | Some r -> (r>0.0) & (r < target_ub)) (map f (cart  (0--10) (0--10)));;
+(* The case (p,q,r) = (0,2,0) is rejected by the convexity hypothesis. *)
+(* The case (p,q,r) = (5,0,0) is done with calculation 4652969746 *)
+(* Each exception region contributes at least tame_table_d_5 *)
 
+let select = 
+  let target_ub = 1.542 in
+  let tame_table_d_5 = 0.4819 in
+  filter (fun t -> match t.lpvalue with
+	      None -> false
+	    | Some s ->
+   (s>0.0) & (s +. float_of_int t.r *. tame_table_d_5 < target_ub));;
+
+let tame_table_b = 
+  select  (map f (cart  (0--10) (0--10)));;
+
+let fpqr ((p,q),r) = 
+  (let nt = mk_node p q r in 
+    set_lpvalue (nt); nt);;
+
+(* If r >= 4, then the dihedral sum is greater than 2 Pi *)
+
+let pqrvalues  =
+  let a =  (cart (cart  (0--6)  (0--6)) (1--3)) in
+  filter (fun ((p,q),r) -> (p+q+r=6)) a;;
+     
 let tame_table_a = 
-   (let nt = mk_node 5 0 1 in
-    set_lpvalue nt; nt);;
+  select  (map fpqr pqrvalues );;
+
 
 end;;

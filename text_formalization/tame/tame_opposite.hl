@@ -1,0 +1,616 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: PPHEUFG                                                             *)
+(* Chapter: Tame Hypermap                                                     *)
+(* Authors: Trieu Thi Diep, Alexey Solovyev                                   *)
+(* Date: 2010-02-26                                                           *)
+(* ========================================================================== *)
+
+
+
+module type Tame_opposite_type = sig
+
+end;;
+
+flyspeck_needs "hypermap/hypermap.hl";;
+flyspeck_needs "tame/tame_defs.hl";;
+
+module Tame_opposite  = struct
+
+
+open Hypermap;;
+open Tame_defs;;
+
+
+(* LEMMA: general *)
+let tuple_opposite_hypermap = prove
+(`!(H:(A)hypermap). tuple_hypermap (opposite_hypermap H) = ((dart H),face_map H o node_map H , inverse(node_map H),inverse(face_map H))`,
+  GEN_TAC THEN REWRITE_TAC[opposite_hypermap] THEN
+    REWRITE_TAC[GSYM hypermap_tybij] THEN
+    MP_TAC (SPEC `H:(A)hypermap` hypermap_lemma) THEN
+    STRIP_TAC THEN
+    ASM_SIMP_TAC[PERMUTES_INVERSE; PERMUTES_COMPOSE] THEN
+    REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM] THEN
+    MP_TAC (ISPECL [`(node_map H):A->A`; `(dart H):A->bool`] PERMUTES_INVERSES_o) THEN
+    MP_TAC (ISPECL [`(face_map H):A->A`; `(dart H):A->bool`] PERMUTES_INVERSES_o) THEN
+    ASM_SIMP_TAC[FUN_EQ_THM; o_THM; I_THM]);;
+
+
+
+
+(* LEMMA: plain (tame_1a) *)
+let opposite_hypermap_plain = prove ( `!(H:(A)hypermap).
+       plain_hypermap H ==> plain_hypermap (opposite_hypermap H)`,
+   GEN_TAC THEN
+     REWRITE_TAC[plain_hypermap] THEN
+     DISCH_TAC THEN
+     REWRITE_TAC[edge_map; tuple_opposite_hypermap] THEN
+     SUBGOAL_THEN `(face_map (H:(A)hypermap) o node_map H) o face_map H o node_map H = (face_map H) o ((node_map H) o (face_map H) o (edge_map H)) o (edge_map H) o (node_map H)` MP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+         SIMP_TAC[FUN_EQ_THM; o_THM; I_THM];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[hypermap_cyclic; I_O_ID]);;
+
+
+
+(* LEMMA: general *)
+let opposite_components = prove(`!(H:(A)hypermap) x.
+        dart (opposite_hypermap H) = dart H /\
+        node (opposite_hypermap H) x = node H x /\
+        face (opposite_hypermap H) x = face H x`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[dart; tuple_opposite_hypermap] THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[node; node_map; tuple_opposite_hypermap] THEN
+         REWRITE_TAC[GSYM node_map];
+       REWRITE_TAC[face; face_map; tuple_opposite_hypermap] THEN
+         REWRITE_TAC[GSYM face_map]
+     ] THEN
+     MATCH_MP_TAC lemma_card_inverse_map_eq THEN
+     EXISTS_TAC `(dart H):A->bool` THEN
+     REWRITE_TAC[hypermap_lemma]);;
+
+
+
+
+(* LEMMA: simple (tame_2b) *)
+let opposite_hypermap_simple = prove ( `!(H:(A)hypermap).
+                simple_hypermap H ==> simple_hypermap (opposite_hypermap H)`,
+   GEN_TAC THEN
+     REWRITE_TAC[simple_hypermap; opposite_components] THEN
+     REWRITE_TAC[dart; tuple_opposite_hypermap]);;
+
+
+
+(* LEMMA: general *)
+let hypermap_eq_lemma = prove(`!(H:(A)hypermap). tuple_hypermap H = dart H,edge_map H,node_map H,face_map H`,
+    GEN_TAC THEN
+      MP_TAC (ISPEC `tuple_hypermap (H:(A)hypermap)` PAIR_SURJECTIVE) THEN
+      STRIP_TAC THEN
+      MP_TAC (ISPEC `y:(A->A)#(A->A)#(A->A)` PAIR_SURJECTIVE) THEN
+      STRIP_TAC THEN
+      MP_TAC (ISPEC `y':(A->A)#(A->A)` PAIR_SURJECTIVE) THEN
+      STRIP_TAC THEN
+      ASM_REWRITE_TAC[PAIR_EQ] THEN
+      ASM_REWRITE_TAC[dart; edge_map; node_map; face_map]);;
+
+
+
+(* LEMMA: general *)
+let opposite_opposite_hypermap_eq_hypermap = prove(`!(H:(A)hypermap). opposite_hypermap (opposite_hypermap H) = H`,
+   ONCE_REWRITE_TAC[GSYM hypermap_tybij] THEN
+     GEN_TAC THEN
+     AP_TERM_TAC THEN
+     REWRITE_TAC[tuple_opposite_hypermap; hypermap_eq_lemma; PAIR_EQ] THEN
+     REWRITE_TAC[dart; face_map; node_map; tuple_opposite_hypermap] THEN
+     REWRITE_TAC[GSYM dart; GSYM face_map; GSYM node_map] THEN
+     REWRITE_TAC[GSYM inverse2_hypermap_maps] THEN
+     CONJ_TAC THEN MATCH_MP_TAC (GEN_ALL PERMUTES_INVERSE_INVERSE) THEN
+     EXISTS_TAC `dart (H:(A)hypermap)` THEN
+     REWRITE_TAC[hypermap_lemma]);;
+
+
+
+
+
+(* LEMMA: aux *)
+let truncated_path_lemma = prove(`!(H:(A)hypermap) p q n. is_path H p n /\
+                                   (!i. i <= n ==> q i = p i)
+                                 ==> is_path H q n`,
+   REPLICATE_TAC 3 GEN_TAC THEN
+     INDUCT_TAC THEN REWRITE_TAC[is_path] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN
+     ANTS_TAC THENL
+     [
+       GEN_TAC THEN
+         ASM_SIMP_TAC[ARITH_RULE `i <= n ==> i <= SUC n`];
+       ALL_TAC
+     ] THEN
+     FIRST_ASSUM (MP_TAC o SPEC `n:num`) THEN
+     FIRST_ASSUM (MP_TAC o SPEC `SUC n`) THEN
+     REWRITE_TAC[LE_REFL; ARITH_RULE `n <= SUC n`] THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+(* LEMMA: general *)
+let opposite_path = prove(`!(H:(A)hypermap) p n. is_path H p n ==>
+                            ?q m. is_path (opposite_hypermap H) q m /\
+                            q 0 = p 0 /\ q m = p n`,
+   GEN_TAC THEN GEN_TAC THEN
+     INDUCT_TAC THEN REWRITE_TAC[is_path] THENL
+     [
+       MAP_EVERY EXISTS_TAC [`p:num->A`; `0`] THEN
+         REWRITE_TAC[is_path];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rator (rator (concl th)) = `go_one_step (H:(A)hypermap)`)) THEN
+     REWRITE_TAC[go_one_step] THEN
+     STRIP_TAC THENL
+     [
+       EXISTS_TAC `(\i:num. if i <= m then (q:num->A) i else (if i = m + 1 then inverse (node_map H) (q m) else edge_map H ((p:num->A) n)))` THEN
+         EXISTS_TAC `SUC(SUC m)` THEN
+         BETA_TAC THEN
+         ASM_SIMP_TAC[LE_0; ARITH_RULE `~(SUC (SUC m) <= m)`; ARITH_RULE `~(SUC(SUC m) = m + 1)`] THEN
+         REWRITE_TAC[is_path] THEN
+         REPEAT STRIP_TAC THENL
+         [
+           MATCH_MP_TAC truncated_path_lemma THEN
+             EXISTS_TAC `q:num->A` THEN
+             ASM_SIMP_TAC[];
+
+           ASM_REWRITE_TAC[LE_REFL; ARITH_RULE `~(m = m + 1)`; ARITH_RULE `~(SUC m <= m)`; ARITH_RULE `SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ2_TAC THEN DISJ1_TAC THEN
+             GEN_REWRITE_TAC (RAND_CONV o DEPTH_CONV) [node_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap];
+
+           ASM_REWRITE_TAC[ARITH_RULE `~(SUC m <= m) /\ ~(SUC (SUC m) <= m) /\ ~(SUC (SUC m) = m + 1) /\ SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ2_TAC THEN DISJ2_TAC THEN
+             REWRITE_TAC[face_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap] THEN
+             MP_TAC (SPEC `H:(A)hypermap` inverse2_hypermap_maps) THEN
+             SIMP_TAC[o_THM; FUN_EQ_THM];
+         ];
+
+      EXISTS_TAC `(\i:num. if i <= m then (q:num->A) i else (if i = m + 1 then ((face_map H) o (node_map H)) (q m) else node_map H ((p:num->A) n)))` THEN
+         EXISTS_TAC `SUC(SUC m)` THEN
+         BETA_TAC THEN
+         ASM_SIMP_TAC[LE_0; ARITH_RULE `~(SUC (SUC m) <= m)`; ARITH_RULE `~(SUC(SUC m) = m + 1)`] THEN
+         REWRITE_TAC[is_path] THEN
+         REPEAT STRIP_TAC THENL
+         [
+           MATCH_MP_TAC truncated_path_lemma THEN
+             EXISTS_TAC `q:num->A` THEN
+             ASM_SIMP_TAC[];
+
+           ASM_REWRITE_TAC[LE_REFL; ARITH_RULE `~(m = m + 1)`; ARITH_RULE `~(SUC m <= m)`; ARITH_RULE `SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ1_TAC THEN
+             GEN_REWRITE_TAC (RAND_CONV o DEPTH_CONV) [edge_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap];
+
+           ASM_REWRITE_TAC[ARITH_RULE `~(SUC m <= m) /\ ~(SUC (SUC m) <= m) /\ ~(SUC (SUC m) = m + 1) /\ SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ2_TAC THEN DISJ2_TAC THEN
+             REWRITE_TAC[face_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap] THEN
+             REWRITE_TAC[GSYM face_map] THEN
+             REWRITE_TAC[o_THM] THEN
+             MP_TAC (ISPECL [`face_map (H:(A)hypermap)`; `dart (H:(A)hypermap)`] PERMUTES_INVERSES_o) THEN
+             REWRITE_TAC[hypermap_lemma; FUN_EQ_THM; o_THM; I_THM] THEN
+             SIMP_TAC[];
+         ];
+
+      EXISTS_TAC `(\i:num. if i <= m then (q:num->A) i else (if i = m + 1 then inverse (node_map H) (q m) else face_map H ((p:num->A) n)))` THEN
+         EXISTS_TAC `SUC(SUC m)` THEN
+         BETA_TAC THEN
+         ASM_SIMP_TAC[LE_0; ARITH_RULE `~(SUC (SUC m) <= m)`; ARITH_RULE `~(SUC(SUC m) = m + 1)`] THEN
+         REWRITE_TAC[is_path] THEN
+         REPEAT STRIP_TAC THENL
+         [
+           MATCH_MP_TAC truncated_path_lemma THEN
+             EXISTS_TAC `q:num->A` THEN
+             ASM_SIMP_TAC[];
+
+           ASM_REWRITE_TAC[LE_REFL; ARITH_RULE `~(m = m + 1)`; ARITH_RULE `~(SUC m <= m)`; ARITH_RULE `SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ2_TAC THEN DISJ1_TAC THEN
+             GEN_REWRITE_TAC (RAND_CONV o DEPTH_CONV) [node_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap];
+
+           ASM_REWRITE_TAC[ARITH_RULE `~(SUC m <= m) /\ ~(SUC (SUC m) <= m) /\ ~(SUC (SUC m) = m + 1) /\ SUC m = m + 1`] THEN
+             REWRITE_TAC[go_one_step] THEN
+             DISJ1_TAC THEN
+             REWRITE_TAC[edge_map] THEN
+             REWRITE_TAC[tuple_opposite_hypermap] THEN
+             MP_TAC (ISPECL [`node_map (H:(A)hypermap)`; `dart (H:(A)hypermap)`] PERMUTES_INVERSES_o) THEN
+             REWRITE_TAC[hypermap_lemma; FUN_EQ_THM; o_THM; I_THM] THEN
+             SIMP_TAC[]
+         ]
+     ]);;
+
+
+
+(* LEMMA: general *)
+let opposite_path_alt = prove(`!(H:(A)hypermap) q m. is_path (opposite_hypermap H) q m
+                              ==> (?p n. is_path H p n /\
+                                     p 0 = q 0 /\ p n = q m)`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[GSYM opposite_opposite_hypermap_eq_hypermap] THEN
+     MATCH_MP_TAC opposite_path THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+(* LEMMA: general *)
+let opposite_sets_of_components = prove(`!H:(A)hypermap.
+     node_set (opposite_hypermap H) = node_set H /\
+     face_set (opposite_hypermap H) = face_set H /\
+     set_of_components (opposite_hypermap H) = set_of_components H`,
+  REPEAT GEN_TAC THEN
+    REWRITE_TAC[node_set; face_set; set_of_orbits] THEN
+    REWRITE_TAC[GSYM node; GSYM face; opposite_components] THEN
+    REWRITE_TAC[dart; tuple_opposite_hypermap] THEN
+    SUBGOAL_THEN `!x y:A. (?(p:num->A) n. p 0 = x /\ p n = y /\ is_path H p n) <=> (?(q:num->A) m. q 0 = x /\ q m = y /\ is_path (opposite_hypermap H) q m)` ASSUME_TAC THENL
+    [
+      REPEAT GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL
+        [
+          ONCE_REWRITE_TAC[TAUT `A /\ B /\ C <=> C /\ A /\ B`] THEN
+            REPLICATE_TAC 2 (FIRST_X_ASSUM ((fun th -> REWRITE_TAC[SYM th]) o check (is_eq o concl))) THEN
+            MATCH_MP_TAC opposite_path THEN
+            ASM_REWRITE_TAC[];
+          ONCE_REWRITE_TAC[TAUT `A /\ B /\ C <=> C /\ A /\ B`] THEN
+            REPLICATE_TAC 2 (FIRST_X_ASSUM ((fun th -> REWRITE_TAC[SYM th]) o check (is_eq o concl))) THEN
+            MATCH_MP_TAC opposite_path_alt THEN
+            ASM_REWRITE_TAC[]
+        ];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[set_of_components; set_part_components; dart; tuple_opposite_hypermap] THEN
+    ASM_REWRITE_TAC[GSYM dart; comb_component; is_in_component]);;
+
+
+
+
+(* LEMMA: connected (tame_2a) *)
+let opposite_hypermap_connected = prove (
+`!(H:(A)hypermap).connected_hypermap H ==> connected_hypermap (opposite_hypermap H)`,
+     REWRITE_TAC[connected_hypermap;number_of_components; opposite_sets_of_components]);;
+
+
+
+(* LEMMA: is_edge_nondegenerate (tame_3) *)
+let opposite_nondegenerate = prove (`!(H:(A)hypermap).
+        plain_hypermap H /\ is_edge_nondegenerate H ==> is_edge_nondegenerate (opposite_hypermap H)`,
+   GEN_TAC THEN
+     REWRITE_TAC[plain_hypermap; is_edge_nondegenerate] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[dart; edge_map; tuple_opposite_hypermap] THEN
+     REWRITE_TAC[GSYM dart] THEN
+     DISCH_TAC THEN FIRST_X_ASSUM (MP_TAC o check (is_forall o concl)) THEN
+     ONCE_REWRITE_TAC[TAUT `(A ==> ~B) <=> (B ==> ~A)`] THEN
+     REWRITE_TAC[NOT_FORALL_THM; TAUT `~(A ==> ~B) <=> A /\ B`] THEN
+     REWRITE_TAC[o_THM] THEN DISCH_TAC THEN
+     EXISTS_TAC `node_map H (x:A)` THEN
+     ASM_SIMP_TAC[lemma_dart_invariant] THEN
+     POP_ASSUM (fun th -> GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [SYM th]) THEN
+     MP_TAC (REWRITE_RULE[FUN_EQ_THM; o_THM; I_THM] hypermap_lemma) THEN
+     SIMP_TAC[]);;
+
+
+
+
+(* LEMMA: is_no_double_joints (tame_5a) *)
+let opposite_no_double_joints = prove(`!H:(A)hypermap.
+                is_no_double_joints H /\ plain_hypermap H
+                                      ==> is_no_double_joints (opposite_hypermap H)`,
+   GEN_TAC THEN REWRITE_TAC[is_no_double_joints; edge_map_convolution] THEN
+     STRIP_TAC THEN
+     REWRITE_TAC[tuple_opposite_hypermap; opposite_components; edge_map] THEN
+     REPEAT STRIP_TAC THEN
+     ABBREV_TAC `z:A = node_map H y` THEN
+     ABBREV_TAC `u:A = node_map H x` THEN
+     SUBGOAL_THEN `z:A = u:A ==> x:A = y` MATCH_MP_TAC THENL
+     [
+       EXPAND_TAC "z" THEN EXPAND_TAC "u" THEN
+         SIMP_TAC[node_map_injective; EQ_SYM];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC EQ_SYM THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     SUBGOAL_THEN `node H (y:A) = node H x` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC EQ_SYM THEN
+         MATCH_MP_TAC lemma_node_identity THEN
+         ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REPEAT CONJ_TAC THENL
+     [
+       EXPAND_TAC "u" THEN
+         ASM_SIMP_TAC[lemma_dart_invariant];
+
+       SUBGOAL_THEN `node H (u:A) = node H y` ASSUME_TAC THENL
+         [
+           MATCH_MP_TAC EQ_SYM THEN
+             MATCH_MP_TAC lemma_node_identity THEN
+             ASM_REWRITE_TAC[] THEN
+             EXPAND_TAC "u" THEN
+             MATCH_MP_TAC lemma_in_node1 THEN
+             REWRITE_TAC[node_refl];
+           ALL_TAC
+         ] THEN
+         POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+         EXPAND_TAC "z" THEN
+         MATCH_MP_TAC lemma_in_node1 THEN
+         REWRITE_TAC[node_refl];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[o_THM] THEN
+     SUBGOAL_THEN `!v w:A. v IN node H w ==> node_map H v IN node H (node_map H w)` MATCH_MP_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+         MATCH_MP_TAC lemma_in_node1 THEN
+         SUBGOAL_THEN `node H (node_map H (w:A)) = node H w` (fun th -> REWRITE_TAC[th]) THENL
+         [
+           MATCH_MP_TAC EQ_SYM THEN
+             MATCH_MP_TAC lemma_node_identity THEN
+             MATCH_MP_TAC lemma_in_node1 THEN
+             REWRITE_TAC[node_refl];
+           ALL_TAC
+         ] THEN
+         ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+     REWRITE_TAC[o_THM] THEN
+     EXPAND_TAC "z" THEN EXPAND_TAC "u" THEN
+     SIMP_TAC[]);;
+
+
+
+(* LEMMA: general *)
+let plain_hypermap_edge = prove(`!(H:(A)hypermap) x.
+                                  plain_hypermap H ==> edge H x = {x, edge_map H x}`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[plain_hypermap] THEN
+     DISCH_TAC THEN
+     REWRITE_TAC[edge] THEN
+     SPEC_TAC (`x:A`, `x:A`) THEN
+     MATCH_MP_TAC lemma_orbit_convolution_map THEN
+     ASM_REWRITE_TAC[]);;
+
+
+(* LEMMA: no_loops (tame_4) *)
+let opposite_no_loops = prove(`!H:(A)hypermap.
+                                no_loops H /\ plain_hypermap H
+                                ==> no_loops (opposite_hypermap H)`,
+   GEN_TAC THEN REWRITE_TAC[no_loops] THEN
+     STRIP_TAC THEN
+     FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP plain_hypermap_edge th)) THEN
+     FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP opposite_hypermap_plain th)) THEN
+     DISCH_THEN (MP_TAC o (fun th -> MATCH_MP plain_hypermap_edge th)) THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[edge_map_convolution] THEN
+     DISCH_TAC THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     DISCH_TAC THEN
+     REWRITE_TAC[opposite_components; edge_map; tuple_opposite_hypermap; o_THM] THEN
+     REWRITE_TAC[Collect_geom.IN_SET2] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `node_map H (x:A) = node_map H y ==> x = y` MATCH_MP_TAC THENL
+     [
+       REWRITE_TAC[node_map_injective];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     CONJ_TAC THENL
+     [
+       ASM_REWRITE_TAC[o_THM; Collect_geom.IN_SET2];
+       MATCH_MP_TAC lemma_in_node1 THEN
+         SUBGOAL_THEN `node H (node_map H (y:A)) = node H y` (fun th -> REWRITE_TAC[th]) THENL
+         [
+           MATCH_MP_TAC EQ_SYM THEN
+             MATCH_MP_TAC lemma_node_identity THEN
+             MATCH_MP_TAC lemma_in_node1 THEN
+             REWRITE_TAC[node_refl];
+           ALL_TAC
+         ] THEN
+         ASM_REWRITE_TAC[]
+     ]);;
+
+
+
+(* LEMMA: aux *)
+let edge_CARD_dart = prove(`!H:(A)hypermap.
+                             plain_hypermap H /\ is_edge_nondegenerate H ==>
+                             CARD (dart H) = 2 * number_of_edges H`,
+   GEN_TAC THEN
+     REWRITE_TAC[plain_hypermap; is_edge_nondegenerate] THEN
+     STRIP_TAC THEN
+     REWRITE_TAC[number_of_edges; edge_set] THEN
+     MATCH_MP_TAC (REWRITE_RULE[number_of_orbits] lemma_card_eq) THEN
+     REWRITE_TAC[hypermap_lemma] THEN
+     REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`(dart H):A->bool`; `(edge_map H):A->A`] lemma_orbit_of_size_2) THEN
+     REWRITE_TAC[hypermap_lemma] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `x:A`) THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_eq o concl)) THEN
+     ASM_SIMP_TAC[FUN_EQ_THM; o_THM; I_THM]);;
+
+
+(* LEMMA: aux *)
+let edge_CARD = prove(`!H:(A)hypermap.
+                        plain_hypermap H /\ is_edge_nondegenerate H ==>
+                        number_of_edges H = CARD (dart H) DIV 2`,
+   GEN_TAC THEN
+     DISCH_THEN (ASSUME_TAC o (fun th -> MATCH_MP edge_CARD_dart th)) THEN
+     MATCH_MP_TAC EQ_SYM THEN MATCH_MP_TAC DIV_UNIQ THEN
+     EXISTS_TAC `0` THEN ASM_REWRITE_TAC[] THEN
+     ARITH_TAC);;
+
+
+
+
+(* LEMMA: planar (tame_1b) *)
+let opposite_planar = prove ( `!(H:(A)hypermap).
+                planar_hypermap H /\ is_edge_nondegenerate H /\ plain_hypermap H
+                              ==> planar_hypermap (opposite_hypermap H)`,
+   GEN_TAC THEN REWRITE_TAC[planar_hypermap] THEN
+     REWRITE_TAC[number_of_nodes; number_of_faces; number_of_components] THEN
+     REWRITE_TAC[opposite_sets_of_components] THEN
+     DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
+     MP_TAC (SPEC `opposite_hypermap (H:(A)hypermap)` edge_CARD) THEN
+     ASM_SIMP_TAC[opposite_hypermap_plain; opposite_nondegenerate] THEN
+     MP_TAC (SPEC `H:(A)hypermap` edge_CARD) THEN
+     ASM_SIMP_TAC[dart; tuple_opposite_hypermap]);;
+
+
+
+
+(* LEMMA: tame_8 *)
+let CARD_faces1 = prove (`! (H:(A)hypermap).
+        tame_8 H  ==> tame_8 (opposite_hypermap H) `,
+   REWRITE_TAC[tame_8; number_of_faces; opposite_sets_of_components]);;
+
+
+
+(* LEMMA: tame_9a *)
+let CARD_in_face = prove ( `!(H:(A)hypermap).
+        tame_9a H   ==> tame_9a (opposite_hypermap H) `,
+   REWRITE_TAC[tame_9a; opposite_components] THEN
+     SIMP_TAC[dart; tuple_opposite_hypermap]);;
+
+
+(* LEMMA: tame_10 *)
+let CARD_nodes = prove (`!H:(A)hypermap.
+        tame_10 H ==> tame_10 (opposite_hypermap H)`,
+   REWRITE_TAC[tame_10; opposite_sets_of_components; number_of_nodes]);;
+
+
+(* LEMMA: tame_11a /\ tame_11b *)
+let CARD_in_node = prove ( `!(H:(A)hypermap).
+        tame_11a H  /\ tame_11b H ==>
+        tame_11a (opposite_hypermap H) /\ tame_11b (opposite_hypermap H)`,
+   REWRITE_TAC[tame_11a; tame_11b; opposite_components] THEN
+     SIMP_TAC[dart; tuple_opposite_hypermap]);;
+
+
+
+(* LEMMA: general *)
+let the_SAME_orbit_triangles = prove (`!(H:(A)hypermap) x.
+        set_of_triangles_meeting_node H x =
+               set_of_triangles_meeting_node (opposite_hypermap H) x`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[set_of_triangles_meeting_node] THEN
+     REWRITE_TAC[opposite_components] THEN
+     REWRITE_TAC[dart; tuple_opposite_hypermap]);;
+
+
+(* LEMMA: general *)
+let the_SAME_orbit_quadrilaterals = prove (`!(H:(A)hypermap) x.
+        set_of_quadrilaterals_meeting_node H x =
+               set_of_quadrilaterals_meeting_node (opposite_hypermap H) x`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[set_of_quadrilaterals_meeting_node] THEN
+     REWRITE_TAC[opposite_components; dart; tuple_opposite_hypermap]);;
+
+
+(* LEMMA: general *)
+let the_SAME_orbit_exceptional = prove (`!(H:(A)hypermap) x.
+        set_of_exceptional_meeting_node H x =
+               set_of_exceptional_meeting_node (opposite_hypermap H) x`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[set_of_exceptional_meeting_node] THEN
+     REWRITE_TAC[opposite_components; dart; tuple_opposite_hypermap]);;
+
+
+
+(* LEMMA: general *)
+let the_SAME_orbit_face = prove (`!(H:(A)hypermap) x.
+        set_of_face_meeting_node H x = set_of_face_meeting_node (opposite_hypermap H) x`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[set_of_face_meeting_node] THEN
+     REWRITE_TAC[opposite_components; dart; tuple_opposite_hypermap]);;
+
+
+(* LEMMA: general *)
+let the_SAME_type = prove(`!H (x:A). type_of_node H x = type_of_node (opposite_hypermap H) x`,
+   REWRITE_TAC[type_of_node; PAIR_EQ] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_triangles] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_quadrilaterals] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_exceptional]);;
+
+
+
+(* LEMMA: tame_12o *)
+let opposite_tame_12o = prove(`!H:(A)hypermap. tame_12o H ==> tame_12o (opposite_hypermap H)`,
+    REWRITE_TAC[tame_12o] THEN
+      REWRITE_TAC[node_type_exceptional_face; exceptional_face] THEN
+      REWRITE_TAC[node_exceptional_face] THEN
+      SIMP_TAC[opposite_components; GSYM the_SAME_type] THEN
+      SIMP_TAC[exceptional_face; opposite_components]);;
+
+
+(* LEMMA: tame_13a *)
+let opposite_tame_13a = prove(`!H:(A)hypermap.
+        tame_13a H ==> tame_13a (opposite_hypermap H)`,
+   GEN_TAC THEN REWRITE_TAC[tame_13a] THEN
+     REWRITE_TAC[admissible_weight; adm_1; adm_2; adm_3] THEN
+     REWRITE_TAC[GSYM the_SAME_type] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_exceptional] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_quadrilaterals] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_triangles] THEN
+     REWRITE_TAC[GSYM the_SAME_orbit_face] THEN
+     REWRITE_TAC[opposite_components] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `w:(A->bool)->real` THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[total_weight] THEN
+     REWRITE_TAC[opposite_sets_of_components]);;
+
+
+
+
+(* LEMMA: tame H ==> tame (opposite H) *)
+let tame_opposite_hypermap = prove ( `!(H:(A)hypermap). tame_hypermap H ==> tame_hypermap (opposite_hypermap H)`,
+    GEN_TAC THEN REWRITE_TAC[tame_hypermap; tame_1; tame_2; tame_3; tame_4; tame_5a] THEN
+      SIMP_TAC[opposite_hypermap_plain; opposite_planar; opposite_hypermap_connected; opposite_hypermap_simple] THEN
+      SIMP_TAC[opposite_nondegenerate; opposite_no_loops; opposite_no_double_joints] THEN
+      SIMP_TAC[CARD_faces1; CARD_in_face; CARD_nodes; CARD_in_node] THEN
+      SIMP_TAC[opposite_tame_12o; opposite_tame_13a]);;
+
+
+
+
+(* LEMMA: the main result *)
+let PPHEUFG = prove (`!(H:(A)hypermap). tame_hypermap H <=> tame_hypermap (opposite_hypermap H)`,
+   GEN_TAC THEN EQ_TAC THENL
+     [
+       REWRITE_TAC[tame_opposite_hypermap];
+       DISCH_TAC THEN
+         ONCE_REWRITE_TAC[GSYM opposite_opposite_hypermap_eq_hypermap] THEN
+         MATCH_MP_TAC tame_opposite_hypermap THEN
+         ASM_REWRITE_TAC[]
+     ]);;
+
+
+
+
+
+end;;

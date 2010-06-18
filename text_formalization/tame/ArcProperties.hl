@@ -1,0 +1,1091 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Author: Alexey Solovyev                                                    *)
+(* Date: 2010-06-17                                                           *)
+(* ===========================================================================*)
+
+
+(**********************************************)
+(* Properties of the function arc (arclegnth) *)
+(**********************************************)
+
+
+(* Some auxiliary results *)
+flyspeck_needs "trigonometry/trigonometry.hl";;
+(* lmfun, h0 definitions *)
+flyspeck_needs "packing/Pack_defs.hl";;
+
+
+module Arc_properties = struct
+
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
+
+
+(* Some general results *)
+
+(* Limit is a local notion *)
+let REALLIM_ATREAL_LOCAL = prove(`!f g x y. (g ---> y) (atreal x) /\
+			       (?s. real_open s /\ x IN s /\ (!y. y IN s ==> f y = g y))
+			       ==> (f ---> y) (atreal x)`,
+   REWRITE_TAC[REALLIM_ATREAL; real_open] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `x:real`) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `e:real`) THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `min e' d` THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[real_min] THEN
+	 COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     GEN_TAC THEN
+     STRIP_TAC THEN
+     SUBGOAL_THEN `(f:real->real) x' = (g:real->real) x'` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC REAL_LTE_TRANS THEN
+	 EXISTS_TAC `min e' d` THEN
+	 ASM_REWRITE_TAC[REAL_MIN_MIN];
+       ALL_TAC;
+     ] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC REAL_LTE_TRANS THEN
+     EXISTS_TAC `min e' d` THEN
+     ASM_REWRITE_TAC[REAL_MIN_MIN]);;
+     
+
+
+
+(* Derivative is a local notion *)
+let HAS_REAL_DERIVATIVE_LOCAL = prove(`!f g x g'x. (g has_real_derivative g'x) (atreal x) 
+				 /\ (?s. real_open s /\ x IN s /\ (!y. y IN s ==> f y = g y))  
+				 ==> (f has_real_derivative g'x) (atreal x)`,
+   REWRITE_TAC[HAS_REAL_DERIVATIVE_ATREAL] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REALLIM_ATREAL_LOCAL THEN
+     EXISTS_TAC `\y. (g y - (g:real->real) x) / (y - x)` THEN
+     ASM_REWRITE_TAC[] THEN
+     EXISTS_TAC `s:real->bool` THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_ASSUM (MP_TAC o SPEC `x:real`) THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `y:real`) THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+
+let REAL_LT_ONE_LDIV = prove(`!a b. &0 < b /\ a < b ==> a / b < &1`,
+	REPEAT STRIP_TAC THEN
+	  ASM_SIMP_TAC[REAL_FIELD `&0 < b ==> (a / b < &1 <=> &0 < (b - a) / b)`] THEN
+	  ASM_SIMP_TAC[Trigonometry2.REAL_LT_DIV_0] THEN
+	  POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+
+(****************************************************************)
+
+
+(* The derivative of arc (x, b, 2) *)
+let arc_derivative = 
+  let der0 = REAL_DIFF_CONV `((\x. acs ((x * x + b * b - &2 * &2) / (&2 * x * b))) has_real_derivative f) (atreal x)` in
+  let der1 = REWRITE_RULE [REAL_ADD_RID; REAL_SUB_RZERO; REAL_MUL_RID; REAL_MUL_LID] der0 in
+  let der2 = REWRITE_RULE [IMP_IMP] (DISCH_ALL der1) in
+  let der_tm = (rand o rator) (concl der1) in
+  let concl0 = list_mk_comb (`(has_real_derivative)`, [`\x. arclength x b (&2)`; der_tm; `atreal x within real_interval [&2,#2.52]`]) in
+  let goal0 = list_mk_forall ([`x:real`; `b:real`], (mk_imp (`(&2 <= x /\ x <= #2.52) /\ (&2 <= b /\ b <= #2.52)`, concl0))) in
+  prove(goal0,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN THEN
+     MATCH_MP_TAC HAS_REAL_DERIVATIVE_LOCAL THEN
+     EXISTS_TAC `(\x. acs ((x * x + b * b - &2 * &2) / (&2 * x * b)))` THEN
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC der2 THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC (REAL_ARITH `&0 <= a /\ a < &1 ==> abs a < &1`) THEN
+	     CONJ_TAC THENL
+	     [
+	       MATCH_MP_TAC REAL_LE_DIV THEN
+		 SUBGOAL_THEN `&2 * &2 <= x * x /\ &2 * &2 <= b * b` ASSUME_TAC THENL
+		 [
+		   REWRITE_TAC[GSYM REAL_POW_2] THEN
+		     CONJ_TAC THEN MATCH_MP_TAC REAL_POW_LE2 THEN ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`];
+		   ALL_TAC
+		 ] THEN
+		 CONJ_TAC THENL
+		 [
+		   POP_ASSUM MP_TAC THEN
+		     REAL_ARITH_TAC;
+		   MATCH_MP_TAC REAL_LE_MUL THEN
+		     REWRITE_TAC[REAL_ARITH `&0 <= &2`] THEN
+		     MATCH_MP_TAC REAL_LE_MUL THEN
+		     ASM_SIMP_TAC[REAL_ARITH `&2 <= x ==> &0 <= x`]
+		 ];
+	       ALL_TAC
+	     ] THEN
+	     
+	     MATCH_MP_TAC REAL_LT_ONE_LDIV THEN
+	     CONJ_TAC THENL
+	     [
+	       MATCH_MP_TAC REAL_LT_MUL THEN
+		 REWRITE_TAC[REAL_ARITH `&0 < &2`] THEN
+		 MATCH_MP_TAC REAL_LT_MUL THEN
+		 ASM_SIMP_TAC[REAL_ARITH `&2 <= x ==> &0 < x`];
+	       ALL_TAC
+	     ] THEN
+	     
+	     REWRITE_TAC[REAL_ARITH `x * x + b * b - &2 * &2 < &2 * x * b <=> (x - b) * (x - b) < &2 * &2`] THEN
+	     REWRITE_TAC[GSYM REAL_POW_2] THEN
+	     REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS] THEN
+	     REPEAT (POP_ASSUM MP_TAC) THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[Trigonometry2.NOT_MUL_EQ0_EQ] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     EXISTS_TAC `real_interval (#1.9,#2.6)` THEN
+     REWRITE_TAC[REAL_OPEN_REAL_INTERVAL; IN_REAL_INTERVAL] THEN
+     CONJ_TAC THENL
+     [
+       REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REAL_ARITH_TAC);;
+
+
+
+(**************************************************************)
+
+
+
+(* Numerical approximations for cos and acos *)
+
+
+let COS_EQ_NEG_SIN = prove(`!x. cos (x + pi / &2) = --sin x`,
+     REWRITE_TAC[COS_SIN; REAL_ARITH `a - (b + a) = --b`; SIN_NEG]);;
+
+   
+
+
+let COS_DERIVATIVES = prove(`!x n. ((\x. cos (x + &n * pi / &2)) has_real_derivative cos (x + &(n + 1) * pi / &2)) (atreal x)`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[] THEN
+     MP_TAC (REAL_DIFF_CONV `((\x. cos (x + &n * pi / &2)) has_real_derivative f) (atreal x)`) THEN
+     SUBGOAL_THEN `(&1 + &0) * --sin (x + &n * pi / &2) = cos (x + &(n + 1) * pi / &2)` (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[REAL_ARITH `(&1 + &0) * --a = --a`] THEN
+     REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN
+     REWRITE_TAC[REAL_ARITH `x + (a + &1) * t = (x + a * t) + t`] THEN
+     REWRITE_TAC[COS_EQ_NEG_SIN]);;
+
+
+
+
+let REAL_TAYLOR_COS_RAW = prove(`!x n. abs (cos x - sum (0..n) (\k. if (EVEN k) then ((-- &1) pow (k DIV 2) * x pow k) / &(FACT k) else &0)) <= 
+				  abs x pow (n + 1) / &(FACT (n + 1))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`(\i x. cos (x + &i * pi / &2))`; `n:num`; `UNIV:real->bool`; `&1`] REAL_TAYLOR) THEN
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[is_realinterval; IN_UNIV; WITHINREAL_UNIV; COS_DERIVATIVES; COS_BOUND];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[IN_UNIV] THEN
+     DISCH_THEN (MP_TAC o SPECL [`&0`; `x:real`]) THEN
+     REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID; REAL_ADD_LID; REAL_SUB_RZERO; REAL_MUL_LID] THEN
+     SUBGOAL_THEN `!i. cos (&i * pi / &2) * x pow i / &(FACT i) = if EVEN i then (-- &1 pow (i DIV 2) * x pow i) / &(FACT i) else &0` (fun th -> SIMP_TAC[th]) THEN
+     GEN_TAC THEN
+     ASM_CASES_TAC `EVEN i` THEN ASM_REWRITE_TAC[] THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[EVEN_EXISTS] THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `(2 * m) DIV 2 = m` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   MATCH_MP_TAC DIV_MULT THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[GSYM REAL_OF_NUM_MUL] THEN
+	 REWRITE_TAC[REAL_ARITH `(&2 * a) * b / &2 = a * b`] THEN
+	 REWRITE_TAC[COS_NPI] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `cos (&i * pi / &2) = &0` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[COS_ZERO] THEN
+	 DISJ1_TAC THEN EXISTS_TAC `i:num` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_MUL_LZERO]);;
+
+
+let SUM_PAIR_0 = prove(`!f n. sum (0..2 * n + 1) f = sum(0..n) (\i. f (2 * i) + f (2 * i + 1))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`f:num->real`; `0`; `n:num`] SUM_PAIR) THEN
+     REWRITE_TAC[ARITH_RULE `2 * 0 = 0`]);;
+
+
+let REAL_TAYLOR_COS = prove(`!x n. abs (cos x - sum (0..n) (\i. (-- &1) pow i * x pow (2 * i) / &(FACT (2 * i)))) <= abs x pow (2*n + 2) / &(FACT (2*n + 2))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`x:real`; `2 * n + 1`] REAL_TAYLOR_COS_RAW) THEN
+     REWRITE_TAC[SUM_PAIR_0; EVEN_DOUBLE; ARITH_RULE `(2 * n + 1) + 1 = 2 *n + 2`] THEN
+     SUBGOAL_THEN `!i. ~(EVEN (2 * i + 1))` MP_TAC THENL
+     [
+       GEN_TAC THEN REWRITE_TAC[NOT_EVEN] THEN
+	 REWRITE_TAC[ARITH_ODD; ODD_ADD; ODD_MULT];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> SIMP_TAC[th]) THEN
+     SUBGOAL_THEN `!i. (2 * i) DIV 2 = i` MP_TAC THENL
+     [
+       GEN_TAC THEN
+	 MATCH_MP_TAC DIV_MULT THEN
+	 REWRITE_TAC[ARITH];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th; REAL_ADD_RID]) THEN
+     REWRITE_TAC[REAL_ARITH `(a * b) / c = a * b / c`]);;
+     
+
+
+
+
+let gen_sum_thm n =
+  let SUM_lemma n =
+    let tm = list_mk_comb (`sum:(num->bool)->(num->real)->real`, [mk_comb (`(..) 0`, mk_small_numeral n); `f:num->real`]) in
+    let suc_th = REWRITE_RULE[EQ_CLAUSES] (REWRITE_CONV[ARITH] (mk_eq (mk_small_numeral n, mk_comb (`SUC`, mk_small_numeral (n - 1))))) in
+    let th1 = REWRITE_CONV[suc_th] tm in
+      REWRITE_RULE[SUM_CLAUSES_NUMSEG; ARITH] th1 in
+  let rec rewriter th n =
+    if n > 0 then
+      rewriter (REWRITE_RULE[SUM_lemma n; GSYM REAL_ADD_ASSOC] th) (n - 1)
+    else
+      th in
+    GEN_ALL (rewriter (SUM_lemma n) (n - 1));;
+
+
+
+(* Evaluates cos at a given point using n terms from the cosine Taylor series *)
+let cos_eval x n =
+  let th1 = (SPECL [x; mk_small_numeral n] REAL_TAYLOR_COS) in
+  let th2 = REWRITE_RULE[gen_sum_thm n] th1 in
+  let th4 = CONV_RULE (NUM_REDUCE_CONV) th2 in
+  let th5 = CONV_RULE (DEPTH_CONV REAL_INT_POW_CONV) th4 in
+    CONV_RULE (REAL_RAT_REDUCE_CONV) th5;;
+
+
+
+
+(************************************************************************)
+
+
+
+(***************************)
+(* Properties of arc a b c *)
+(***************************)
+
+
+(* arc a b 2 <= arc a b c *)
+let arc_lemma1 = prove(`!a b c. &2 <= a /\ a <= #2.52 /\ 
+		       &2 <= b /\ b <= #2.52 /\
+		       &2 <= c /\ c <= #2.52
+		       ==> arclength a b (&2) <= arclength a b c`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `arclength a b (&2) = acs ((a * a + b * b - &2 * &2) / (&2 * a * b))` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `arclength a b c = acs ((a * a + b * b - c * c) / (&2 * a * b))` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC ACS_MONO_LE THEN
+
+     ABBREV_TAC `a2:real = a * a` THEN
+     ABBREV_TAC `b2:real = b * b` THEN
+     ABBREV_TAC `c2:real = c * c` THEN
+     ABBREV_TAC `ab2:real = &2 * a * b` THEN
+
+     SUBGOAL_THEN `&4 <= a2 /\ a2 <= #6.3504 /\ &4 <= b2 /\ b2 <= #6.3504 /\ &4 <= c2 /\ c2 <= #6.3504` ASSUME_TAC THENL
+     [
+       REMOVE_ASSUM THEN
+	 REPLICATE_TAC 3 (POP_ASSUM (fun th -> REWRITE_TAC[SYM th])) THEN
+	 REWRITE_TAC[REAL_ARITH `&4 = &2 * &2`; REAL_ARITH `#6.3504 = #2.52 * #2.52`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_2; GSYM REAL_LE_SQUARE_ABS] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&8 <= ab2 /\ ab2 <= #12.7008` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "ab2" THEN
+	 REWRITE_TAC[REAL_ARITH `&8 = &2 * &2 * &2`; REAL_ARITH `#12.7008 = &2 * #2.52 * #2.52`] THEN
+	 CONJ_TAC THEN MATCH_MP_TAC REAL_LE_LMUL THEN REWRITE_TAC[REAL_ARITH `&0 <= &2`] THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL2 THEN
+	     ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`];
+	   MATCH_MP_TAC REAL_LE_MUL2 THEN
+	     ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 <= a`]
+	 ];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&0 < ab2` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LTE_TRANS THEN
+	 EXISTS_TAC `&8` THEN ASM_REWRITE_TAC[REAL_ARITH `&0 < &8`];
+       ALL_TAC
+     ] THEN
+
+     REPEAT CONJ_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `&0` THEN
+	 REWRITE_TAC[REAL_ARITH `-- &1 <= &0`] THEN
+	 MATCH_MP_TAC REAL_LE_DIV THEN
+	 REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+
+       ASM_SIMP_TAC[REAL_LE_DIV2_EQ] THEN
+	 REMOVE_ASSUM THEN REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+
+       MATCH_MP_TAC Trigonometry2.REAL_LE_LDIV THEN
+	 ASM_REWRITE_TAC[] THEN
+
+	 MAP_EVERY EXPAND_TAC ["a2"; "b2"; "ab2"] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `a + b - c <= d <=> a + b - d <= c`] THEN
+	 REWRITE_TAC[REAL_RING `a * a + b * b - &2 * a * b = (a - b) * (a - b)`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_2; GSYM REAL_LE_SQUARE_ABS] THEN
+	 REPLICATE_TAC 9 REMOVE_ASSUM THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC
+     ]);;
+
+
+(*************************************************************)
+     
+
+(* arc a b c = arc b a c *)
+let ups_x_sym = prove(`!a b c. ups_x a b c = ups_x b a c`,
+   REWRITE_TAC[Sphere.ups_x] THEN REAL_ARITH_TAC);;
+
+
+let arc_sym = prove(`!a b c. arclength a b c = arclength b a c`,
+   REWRITE_TAC[Sphere.arclength; ups_x_sym] THEN
+     REWRITE_TAC[REAL_ARITH `c - a - b = c - b - a`]);;
+     
+
+
+(*************************************************************)
+
+(* arc x b 2 is concave *)
+
+
+(* A corrected version of the theorem from realanalysis.ml *)
+let REAL_CONVEX_ON_SECOND_DERIVATIVE = prove
+ (`!f f' f'' s.
+        is_realinterval s /\ ~(?a. s = {a}) /\
+        (!x. x IN s ==> (f has_real_derivative f'(x)) (atreal x within s)) /\
+        (!x. x IN s ==> (f' has_real_derivative f''(x)) (atreal x within s))
+        ==> (f real_convex_on s <=> !x. x IN s ==> &0 <= f''(x))`,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC EQ_TRANS THEN EXISTS_TAC
+   `!x y. x IN s /\ y IN s /\ x <= y ==> (f':real->real)(x) <= f'(y)` THEN
+  CONJ_TAC THENL
+   [MATCH_MP_TAC REAL_CONVEX_ON_DERIVATIVE_INCREASING;
+    CONV_TAC SYM_CONV THEN MATCH_MP_TAC HAS_REAL_DERIVATIVE_INCREASING] THEN
+  ASM_REWRITE_TAC[]);;
+
+
+
+(* arc is concave (-arc is convex) *)
+
+let arc_concave = prove(`!b. &2 <= b /\ b <= #2.52 ==> (\x. -- arclength x b (&2)) real_convex_on (real_interval [&2, #2.52])`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`\x. --arclength x b (&2)`; 
+		    `\x. (x * x - (b * b - &4)) / x * inv (sqrt (&4 * (x * x) * (b * b) - (x * x + b * b - &4) pow 2))`;
+		    `\x. inv (sqrt (&4 * (x * x) * (b * b) - (x * x + b * b - &4) pow 2)) * ((x * x + (b * b - &4)) / (x * x) - ((&2 * b * b - &2 * x * x + &8) * (x * x - (b * b - &4))) / (&4 * (x * x) * (b * b) - (x * x + b * b - &4) pow 2))`;
+		    `real_interval [&2,#2.52]`
+		   ] REAL_CONVEX_ON_SECOND_DERIVATIVE) THEN
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[IS_REALINTERVAL_INTERVAL] THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[NOT_EXISTS_THM] THEN GEN_TAC THEN
+	     DISCH_TAC THEN
+	     SUBGOAL_THEN `&2 = a /\ #2.52 = a` MP_TAC THENL
+	     [
+	       REWRITE_TAC[GSYM IN_SING] THEN
+		 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		 REWRITE_TAC[IN_REAL_INTERVAL] THEN
+		 REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[IN_REAL_INTERVAL] THEN
+	     GEN_TAC THEN DISCH_TAC THEN
+	     REWRITE_TAC[REAL_ARITH `a * inv(b) = --(a * --inv(b))`] THEN
+	     MATCH_MP_TAC HAS_REAL_DERIVATIVE_NEG THEN
+	     MP_TAC (SPEC_ALL arc_derivative) THEN
+	     ASM_REWRITE_TAC[] THEN
+	     REWRITE_TAC[REAL_ARITH `(x + x) * &2 * x * b - (x * x + b * b - &2 * &2) * &2 * b = &2 * b * (x * x - (b * b - &4))`] THEN
+	     SUBGOAL_THEN `&0 < &2 * x * b` ASSUME_TAC THENL
+	     [
+	       MATCH_MP_TAC REAL_LT_MUL THEN
+		 REWRITE_TAC[REAL_ARITH `&0 < &2`] THEN
+		 MATCH_MP_TAC REAL_LT_MUL THEN
+		 ASM_SIMP_TAC[REAL_ARITH `&2 <= x ==> &0 < x`];
+	       ALL_TAC
+	     ] THEN
+
+	     SUBGOAL_THEN `(&2 * b * (x * x - (b * b - &4))) / (&2 * x * b) pow 2 = (x * x - (b * b - &4)) / x * inv(&2 * x * b)` (fun th -> REWRITE_TAC[th]) THENL
+	     [
+	       POP_ASSUM MP_TAC THEN
+		 CONV_TAC REAL_FIELD;
+	       ALL_TAC
+	     ] THEN
+
+	     SUBGOAL_THEN `!a b c. (c * inv(a)) * --inv(b) = c * --inv(a * b)` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+	     [
+	       REWRITE_TAC[REAL_INV_MUL] THEN
+		 REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+
+	     SUBGOAL_THEN `&0 <= &1 - ((x * x + b * b - &2 * &2) / (&2 * x * b)) pow 2` ASSUME_TAC THENL
+	     [
+	       REWRITE_TAC[REAL_POW_DIV] THEN
+		 REWRITE_TAC[REAL_ARITH `&0 <= a - b <=> b <= a`] THEN
+		 MATCH_MP_TAC Trigonometry2.REAL_LE_LDIV THEN
+		 CONJ_TAC THENL
+		 [
+		   REWRITE_TAC[REAL_POW_2] THEN
+		     MATCH_MP_TAC REAL_LT_MUL THEN
+		     ASM_REWRITE_TAC[];
+		   ALL_TAC
+		 ] THEN
+		 MATCH_MP_TAC REAL_POW_LE2 THEN
+		 CONJ_TAC THENL
+		 [
+		   SUBGOAL_THEN `&2 * &2 <= x * x /\ &2 * &2 <= b * b` MP_TAC THENL
+		     [
+		       REWRITE_TAC[GSYM REAL_POW_2] THEN
+			 REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN
+			 REPEAT (POP_ASSUM MP_TAC) THEN
+			 REAL_ARITH_TAC;
+		       ALL_TAC
+		     ] THEN
+		     REAL_ARITH_TAC;
+		   ALL_TAC
+		 ] THEN
+		 REWRITE_TAC[REAL_ARITH `x * x + b * b - &2 * &2 <= &2 * x * b <=> (x - b) pow 2 <= &2 pow 2`] THEN
+		 REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN
+		 REPEAT (POP_ASSUM MP_TAC) THEN
+		 REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+
+	     FIRST_ASSUM (ASSUME_TAC o MATCH_MP REAL_LT_IMP_LE) THEN
+	     ASM_SIMP_TAC[Trigonometry1.SQRT_MUL_L] THEN
+	     SUBGOAL_THEN `(&2 * x * b) pow 2 * (&1 - ((x * x + b * b - &2 * &2) / (&2 * x * b)) pow 2) = &4 * (x * x) * b * b - (x * x + b * b - &4) pow 2` MP_TAC THENL
+	     [
+	       REWRITE_TAC[REAL_POW_DIV; REAL_ARITH `a * (&1 - c) = a - a * c`] THEN
+		 FIRST_ASSUM (ASSUME_TAC o MATCH_MP REAL_POW_LT) THEN
+		 ASM_SIMP_TAC[REAL_FIELD `&0 < a ==> a * c / a = c`] THEN
+		 REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[th]);
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[IN_REAL_INTERVAL] THEN
+	 GEN_TAC THEN DISCH_TAC THEN
+	 REAL_DIFF_TAC THEN
+
+	 SUBGOAL_THEN `&0 < &4 * (x * x) * b * b - (x * x + b * b - &4) pow 2` ASSUME_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_RING `&4 * (x * x) * b * b - (x * x + b * b - &4) pow 2 = (&2 pow 2 - (x - b) pow 2) * ((x + b) pow 2 - &2 pow 2)`] THEN
+	     MATCH_MP_TAC REAL_LT_MUL THEN
+	     ONCE_REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`] THEN
+	     REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS] THEN
+	     REPEAT (POP_ASSUM MP_TAC) THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 CONJ_TAC THENL
+	 [
+	   ASM_SIMP_TAC[] THEN
+	     FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP SQRT_POS_LT) THEN
+	     ASM_SIMP_TAC[REAL_POS_NZ; REAL_ARITH `&2 <= x ==> ~(x = &0)`];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[REAL_MUL_LID; REAL_MUL_RID; REAL_ADD_RID; ARITH_RULE `2 - 1 = 1`; REAL_POW_1; REAL_SUB_RZERO] THEN
+	 REWRITE_TAC[REAL_INV_MUL] THEN
+	 FIRST_ASSUM (ASSUME_TAC o MATCH_MP REAL_LT_IMP_LE) THEN
+	 ASM_SIMP_TAC[SQRT_POW_2] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[IN_REAL_INTERVAL] THEN
+     GEN_TAC THEN DISCH_TAC THEN
+     MATCH_MP_TAC REAL_LE_MUL THEN
+
+     SUBGOAL_THEN `&0 < &4 * (x * x) * b * b - (x * x + b * b - &4) pow 2` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[REAL_RING `&4 * (x * x) * b * b - (x * x + b * b - &4) pow 2 = (&2 pow 2 - (x - b) pow 2) * ((x + b) pow 2 - &2 pow 2)`] THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`] THEN
+	 REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_INV THEN
+	 MATCH_MP_TAC SQRT_POS_LE THEN
+	 MATCH_MP_TAC REAL_LT_IMP_LE THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     ABBREV_TAC `t:real = x * x` THEN
+     ABBREV_TAC `u:real = b * b` THEN
+
+     REWRITE_TAC[REAL_ARITH `&0 <= a - b <=> b <= a`] THEN
+     SUBGOAL_THEN `&0 < t` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "t" THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN
+	 ASM_SIMP_TAC[REAL_ARITH `&2 <= x ==> &0 < x`];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[RAT_LEMMA4] THEN
+     ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> &0 <= b - a`] THEN
+
+     ABBREV_TAC `f = \t. (t + u - &4) * (&4 * t * u - (t + u - &4) pow 2) - ((&2 * u - &2 * t + &8) * (t - (u - &4))) * t` THEN
+     FIRST_ASSUM (MP_TAC o (fun th -> AP_THM th `t:real`)) THEN
+     BETA_TAC THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ABBREV_TAC `f' = \t. &3 * (-- &2 * t * u + t * (t + &8) + u pow 2) + &8 * u - &80` THEN
+     ABBREV_TAC `f'' = \t. &6 * (t - u + &4)` THEN
+
+     SUBGOAL_THEN `&4 <= t /\ &4 <= u /\ t <= #6.3504 /\ u <= #6.3504` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `&4 = &2 * &2`; REAL_ARITH `#6.3504 = #2.52 * #2.52`] THEN
+	 EXPAND_TAC "t" THEN EXPAND_TAC "u" THEN
+	 REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN
+	 FIRST_X_ASSUM (MP_TAC o check (is_conj o concl)) THEN
+	 REPEAT (FIRST_X_ASSUM (MP_TAC o check (is_binop `(<=):real->real->bool` o concl))) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `&0 <= t /\ &0 <= u` ASSUME_TAC THENL
+     [
+       ASM_SIMP_TAC[REAL_ARITH `&4 <= t ==> &0 <= t`];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `(f:real->real) (&4)` THEN
+     CONJ_TAC THENL
+     [
+       EXPAND_TAC "f" THEN
+	 REWRITE_TAC[REAL_ARITH `&4 + u - &4 = u`] THEN
+	 REWRITE_TAC[REAL_ARITH `a - &2 * &4 + &8 = a`] THEN
+	 REWRITE_TAC[REAL_ARITH `u * (&4 * &4 * u - u pow 2) - ((&2 * u) * (&4 - (u - &4))) * &4 = u * (&24 * u - u * u - &64)`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ABBREV_TAC `g = \u. &24 * u - u * u - &64` THEN
+         FIRST_ASSUM (MP_TAC o (fun th -> AP_THM th `u:real`)) THEN
+	 BETA_TAC THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `(g:real->real) (&4)` THEN
+	 CONJ_TAC THENL
+	 [
+	   EXPAND_TAC "g" THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC HAS_REAL_DERIVATIVE_INCREASING_IMP THEN
+	 EXISTS_TAC `\u. &24 - &2 * u` THEN
+	 EXISTS_TAC `real_interval [&4,#6.3504]` THEN
+	 REWRITE_TAC[IS_REALINTERVAL_INTERVAL] THEN
+	 CONJ_TAC THENL
+	 [
+	   REPEAT STRIP_TAC THEN
+	     EXPAND_TAC "g" THEN
+	     REAL_DIFF_TAC THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[IN_REAL_INTERVAL; REAL_ARITH `&4 <= &4 /\ &4 <= #6.3504`] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC HAS_REAL_DERIVATIVE_INCREASING_IMP THEN
+     MAP_EVERY EXISTS_TAC [`f':real->real`; `real_interval [&4,#6.3504]`] THEN
+     ASM_REWRITE_TAC[IN_REAL_INTERVAL; REAL_ARITH `&4 <= &4 /\ &4 <= #6.3504`] THEN
+     REWRITE_TAC[IS_REALINTERVAL_INTERVAL] THEN
+     CONJ_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+	 EXPAND_TAC "f" THEN EXPAND_TAC "f'" THEN
+	 REAL_DIFF_TAC THEN
+	 REWRITE_TAC[ARITH_RULE `2 - 1 = 1`] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     X_GEN_TAC `y:real` THEN DISCH_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `(f':real->real) (&4)` THEN
+     CONJ_TAC THENL
+     [
+       EXPAND_TAC "f'" THEN
+	 REWRITE_TAC[REAL_ARITH `&3 * (-- &2 * &4 * u + &4 * (&4 + &8) + u pow 2) + &8 * u - &80 = &3 * (u - &8 / &3) pow 2 + &128 / &3`] THEN
+	 MATCH_MP_TAC REAL_LE_ADD THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     REWRITE_TAC[REAL_POW_2; REAL_LE_SQUARE] THEN
+	     REAL_ARITH_TAC;
+	   REAL_ARITH_TAC
+	 ];
+       ALL_TAC
+     ] THEN
+     
+     MATCH_MP_TAC HAS_REAL_DERIVATIVE_INCREASING_IMP THEN
+     MAP_EVERY EXISTS_TAC [`f'':real->real`; `real_interval [&4,#6.3504]`] THEN
+     ASM_REWRITE_TAC[IN_REAL_INTERVAL; REAL_ARITH `&4 <= &4 /\ &4 <= #6.3504`] THEN
+     REWRITE_TAC[IS_REALINTERVAL_INTERVAL] THEN
+     CONJ_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+	 EXPAND_TAC "f'" THEN EXPAND_TAC "f''" THEN
+	 REAL_DIFF_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     EXPAND_TAC "f''" THEN
+     REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+     REAL_ARITH_TAC);;
+
+
+
+(* arc x b 2 >= arc (2 h0) b 2 + lmfun(x / 2) * (arc 2 b 2 - arc (2 h0) b 2) *)
+
+let arc_lemma3 = prove(`!x b. (&2 <= x /\ x <= #2.52) /\ (&2 <= b /\ b <= #2.52) 
+		       ==> arclength x b (&2) >= 
+ 		              arclength (#2.52) b (&2) + 
+				lmfun(x / &2) * (arclength (&2) b (&2) - arclength (#2.52) b (&2))`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL arc_concave) THEN
+     ASM_REWRITE_TAC[real_convex_on] THEN
+     DISCH_THEN (MP_TAC o SPECL [`&2`; `#2.52`; `lmfun (x / &2)`; `&1 - lmfun (x / &2)`]) THEN
+     REWRITE_TAC[IN_REAL_INTERVAL; REAL_LE_REFL; REAL_ARITH `&2 <= #2.52`; REAL_ARITH `a + &1 - a = &1`] THEN
+     SUBGOAL_THEN `&0 <= lmfun (x / &2) /\ &0 <= &1 - lmfun (x / &2)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[Pack_defs.lmfun; Pack_defs.h0] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `lmfun (x / &2) * &2 + (&1 - lmfun (x / &2)) * #2.52 = x` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[Pack_defs.lmfun; Pack_defs.h0] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REAL_ARITH_TAC);;
+
+
+
+
+(********************************************************)
+
+
+
+
+let ABS_LE_BOUNDS = prove(`!x a e. abs (x - a) <= e <=> a - e <= x /\ x <= a + e`,
+			  REAL_ARITH_TAC);;
+     
+
+
+
+(* Estimates for the proof of arc_lemma4 *)
+
+let estimate0 = prove(`arclength (&2) #2.52 (&2) - arclength #2.52 #2.52 (&2) >= #0.073`,
+   SUBGOAL_THEN `arclength #2.52 #2.52 (&2) = acs ((#2.52 * #2.52 + #2.52 * #2.52 - (&2) * (&2)) / (&2 * #2.52 * #2.52))` (fun th -> REWRITE_TAC[th]) THENL
+   [
+     MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+   SUBGOAL_THEN `arclength (&2) #2.52 (&2) = acs (((&2) * (&2) + #2.52 * #2.52 - (&2) * (&2)) / (&2 * (&2) * #2.52))` (fun th -> REWRITE_TAC[th]) THENL
+   [
+     MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+   CONV_TAC REAL_RAT_REDUCE_CONV THEN
+   REWRITE_TAC[REAL_ARITH `#0.073 = #0.8892 - #0.8162`] THEN
+   MATCH_MP_TAC (REAL_ARITH `a >= b /\ c <= d ==> a - c >= b - d`) THEN
+   CONJ_TAC THENL
+   [
+     SUBGOAL_THEN `#0.8892 = acs (cos #0.8892)` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+       [
+	 MATCH_MP_TAC (GSYM ACS_COS) THEN
+	   MP_TAC PI_APPROX_32 THEN
+	   REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+       REWRITE_TAC[real_ge] THEN
+       MATCH_MP_TAC ACS_MONO_LE THEN
+       REWRITE_TAC[COS_BOUNDS] THEN
+       CONJ_TAC THENL
+       [
+	 CONV_TAC REAL_RAT_LE_CONV;
+	 MP_TAC (CONJUNCT1 (REWRITE_RULE[ABS_LE_BOUNDS] (cos_eval `#0.8892` 2))) THEN
+	   REAL_ARITH_TAC
+       ];
+
+     SUBGOAL_THEN `#0.8162 = acs (cos #0.8162)` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+       [
+	 MATCH_MP_TAC (GSYM ACS_COS) THEN
+	   MP_TAC PI_APPROX_32 THEN
+	   REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+       MATCH_MP_TAC ACS_MONO_LE THEN
+       REWRITE_TAC[COS_BOUNDS] THEN
+       CONJ_TAC THENL
+       [
+	 MP_TAC ((CONJUNCT2 o REWRITE_RULE[ABS_LE_BOUNDS]) (cos_eval `#0.8162` 3)) THEN
+	   REAL_ARITH_TAC;
+	 CONV_TAC REAL_RAT_LE_CONV
+       ]
+   ]);;
+   
+
+let estimate1 = prove(`!x. &2 <= x /\ x <= #2.52  ==> &1 / &4 * --inv (sqrt (&1 - (x / &4) pow 2)) <= -- #0.28`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[REAL_ARITH `&1 / &4 * --a <= --b <=> &4 * b <= a`] THEN
+     ONCE_REWRITE_TAC[REAL_ARITH `&4 * #0.28 = inv (inv (&4 * #0.28))`] THEN
+     MATCH_MP_TAC REAL_LE_INV2 THEN
+     SUBGOAL_THEN `&0 < &1 - (x / &4) pow 2` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `&0 < &1 - a <=> a < &1`] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `&1 = &1 pow 2`] THEN
+	 MATCH_MP_TAC REAL_POW_LT2 THEN
+	 REWRITE_TAC[ARITH_RULE `~(2 = 0)`] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;     
+       ALL_TAC
+     ] THEN
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC SQRT_POS_LT THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC REAL_LE_LSQRT THEN
+     ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+     CONJ_TAC THENL
+     [
+       REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ONCE_REWRITE_TAC[REAL_ARITH `&1 - a <= b <=> &1 - b <= a`] THEN
+     REWRITE_TAC[REAL_POW_2] THEN
+     REWRITE_TAC[REAL_ARITH `a <= x / &4 * x / &4 <=> &16 * a <= x * x`] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `&2 * &2` THEN
+     CONJ_TAC THENL
+     [
+       CONV_TAC REAL_RAT_REDUCE_CONV;
+       REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_POW_LE2 THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`]
+     ]);;
+
+
+
+
+let estimate2 = prove(`!x. &2 <= x /\ x <= #2.52 
+	==> (&2 * &2 * #2.52 * x * x - (&3969 / &625 + x * x - &4) * &126 / &25) / (&2 * #2.52 * x) pow 2 <= #0.13 /\
+	    &0 <= (&2 * &2 * #2.52 * x * x - (&3969 / &625 + x * x - &4) * &126 / &25) / (&2 * #2.52 * x) pow 2`,
+   GEN_TAC THEN DISCH_TAC THEN
+     SUBGOAL_THEN `&0 < (&2 * #2.52 * x) pow 2` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_POW_LT THEN
+	 POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[REAL_LE_LDIV_EQ; REAL_LE_RDIV_EQ; REAL_MUL_LZERO] THEN
+     ABBREV_TAC `t:real = x * x` THEN
+     SUBGOAL_THEN `&2 * &2 <= t /\ t <= #2.52 * #2.52` MP_TAC THENL
+     [
+       EXPAND_TAC "t" THEN
+	 REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 CONJ_TAC THEN MATCH_MP_TAC REAL_POW_LE2 THEN ASM_REWRITE_TAC[] THENL
+	 [
+	   REAL_ARITH_TAC;
+	   MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `&2` THEN
+	     ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`]
+	 ];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[REAL_POW_2] THEN
+     ASM_REWRITE_TAC[REAL_ARITH `(a * b * x) * a * b * x = (a * b) * (a * b) * (x * x)`] THEN
+     REAL_ARITH_TAC);;
+     
+
+
+let estimate3 = prove(`!x. &2 <= x /\ x <= #2.52 ==>
+	inv (sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2)) <= &2 /\
+	&0 <= inv (sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2))`,
+   GEN_TAC THEN DISCH_TAC THEN
+     SUBGOAL_THEN `inv (&2) <= sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_RSQRT THEN
+	 REWRITE_TAC[REAL_ARITH `a <= &1 - c <=> c <= &1 - a`; REAL_INV_INV] THEN
+	 REWRITE_TAC[REAL_POW_DIV; REAL_POW_2] THEN
+	 REWRITE_TAC[REAL_ARITH `(a * b * x) * a * b * x = (a * b * a * b) * x * x`] THEN
+	 ABBREV_TAC `t:real = x * x` THEN
+	 SUBGOAL_THEN `&4 <= t /\ t <= #6.3504` ASSUME_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_ARITH `&4 = &2 * &2`; REAL_ARITH `#6.3504 = #2.52 * #2.52`] THEN
+	     EXPAND_TAC "t" THEN
+	     REWRITE_TAC[GSYM REAL_POW_2] THEN
+	     CONJ_TAC THEN MATCH_MP_TAC REAL_POW_LE2 THEN ASM_REWRITE_TAC[] THENL
+	     [
+	       REAL_ARITH_TAC;
+	       REPEAT (POP_ASSUM MP_TAC) THEN
+		 REAL_ARITH_TAC
+	     ];
+	   ALL_TAC
+	 ] THEN
+
+	 CONV_TAC (DEPTH_CONV REAL_RAT_MUL_CONV) THEN
+	 SUBGOAL_THEN `&0 < &15876 / &625 * t` ASSUME_TAC THENL
+	 [
+	   POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[REAL_LE_LDIV_EQ] THEN
+	 REWRITE_TAC[REAL_ARITH `a + t - b = (a - b) + t`; REAL_ARITH `a * b * t = (a * b) * t`] THEN
+	 CONV_TAC REAL_RAT_REDUCE_CONV THEN
+	 REWRITE_TAC[REAL_ARITH `(a + t) * (a + t) <= b * t <=> (b / &2 - a - t) * (b / &2 - a - t) <= b * b / &4 - a * b`] THEN
+	 CONV_TAC REAL_RAT_REDUCE_CONV THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `&4 * &4` THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[GSYM REAL_POW_2] THEN
+	     MATCH_MP_TAC REAL_POW_LE2 THEN
+	     FIRST_X_ASSUM (MP_TAC o check (is_conj o concl)) THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       ONCE_REWRITE_TAC[REAL_ARITH `&2 = inv (inv (&2))`] THEN
+	 MATCH_MP_TAC REAL_LE_INV2 THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 < inv (&2)`; REAL_INV_INV];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_INV THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `inv (&2)` THEN
+     ASM_REWRITE_TAC[REAL_ARITH `&0 <= inv (&2)`]);;
+
+
+
+(* arc 2 x 2 - arc (2 h0) x 2 >= 0.073 *)
+
+let arc_lemma4 = prove(`!x. &2 <= x /\ x <= #2.52 
+  ==> arclength (&2) x (&2) - arclength (#2.52) x (&2) >= #0.073`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[REAL_ARITH `a - b >= c <=> b - a <= --c`] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `arclength #2.52 #2.52 (&2) - arclength (&2) #2.52 (&2)` THEN
+     REWRITE_TAC[REWRITE_RULE [REAL_ARITH `a - b >= c <=> b - a <= --c`] estimate0] THEN
+     ONCE_REWRITE_TAC[arc_sym] THEN
+     MP_TAC (SPECL [`\x. arclength x #2.52 (&2) - arclength x (&2) (&2)`; 
+		    `\x. (&2 * &2 * #2.52 * x * x - (&3969 / &625 + x * x - &4) * &126 / &25) / (&2 * #2.52 * x) pow 2 *
+		      --inv (sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2)) -
+		      &1 / &4 * --inv (sqrt (&1 - (x / &4) pow 2))`;
+		    `real_interval [&2, #2.52]`]
+	       HAS_REAL_DERIVATIVE_INCREASING) THEN
+
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[IS_REALINTERVAL_INTERVAL] THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[NOT_EXISTS_THM] THEN GEN_TAC THEN
+	     DISCH_TAC THEN
+	     SUBGOAL_THEN `&2 = a /\ #2.52 = a` MP_TAC THENL
+	     [
+	       REWRITE_TAC[GSYM IN_SING] THEN
+		 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		 REWRITE_TAC[IN_REAL_INTERVAL] THEN
+		 REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[IN_REAL_INTERVAL] THEN
+	 X_GEN_TAC `y:real` THEN DISCH_TAC THEN
+	 MATCH_MP_TAC HAS_REAL_DERIVATIVE_SUB THEN
+	 CONJ_TAC THENL
+	 [
+	   MP_TAC (SPECL [`y:real`; `#2.52`] arc_derivative) THEN
+	     ANTS_TAC THENL
+	     [
+	       ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     REWRITE_TAC[REAL_ARITH `(y + y) * a * y * b = &2 * a * b * y * y`] THEN
+	     ONCE_REWRITE_TAC[REAL_ARITH `a + b - &4 = b + (a - &4)`] THEN
+	     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+	     REWRITE_TAC[REAL_ARITH `&2 * y * #2.52 = &2 * #2.52 * y`];
+	   ALL_TAC
+	 ] THEN
+	 MP_TAC (SPECL [`y:real`; `&2`] arc_derivative) THEN
+	 ANTS_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 CONV_TAC REAL_RAT_REDUCE_CONV THEN
+	 REWRITE_TAC[REAL_ARITH `(y + y) * &2 * y * &2 - (y * y + &0) * &4 = &4 * (y pow 2)`] THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&2 <= y ==> ((y * y + &0) / (&2 * y * &2)) pow 2 = (y / &4) pow 2`] THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&2 <= y ==> (&4 * y pow 2) / (&2 * y * &2) pow 2 = &1 / &4`];
+       ALL_TAC
+     ] THEN
+
+     BETA_TAC THEN
+     DISCH_TAC THEN
+
+     FIRST_ASSUM (fun th -> SUBGOAL_THEN ((fst o dest_eq o concl) th) MP_TAC) THENL
+     [
+       REPEAT (POP_ASSUM (fun th -> ALL_TAC)) THEN
+	 REWRITE_TAC[IN_REAL_INTERVAL] THEN
+	 REPEAT STRIP_TAC THEN
+	 MATCH_MP_TAC (REAL_ARITH `(?c d. c <= a /\ b <= d /\ &0 <= c - d) ==> &0 <= a - b`) THEN
+	 MAP_EVERY EXISTS_TAC [`#0.13 * (-- &2)`; `-- #0.28`] THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_ARITH `a * --b <= c * --d <=> c * d <= a * b`] THEN
+	     MATCH_MP_TAC REAL_LE_MUL2 THEN
+	     ASM_SIMP_TAC[estimate2; estimate3];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_SIMP_TAC[estimate1] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+     DISCH_THEN (MP_TAC o SPECL [`x:real`; `#2.52`]) THEN
+     ASM_REWRITE_TAC[IN_REAL_INTERVAL; REAL_ARITH `&2 <= #2.52 /\ #2.52 <= #2.52`]
+		      );;
+
+
+
+
+
+(* arclength (2 h0) (2 h0) 2 >= 0.816 *)
+
+let arc_lemma5 = prove(`arclength #2.52 #2.52 (&2) >= #0.816`,
+   SUBGOAL_THEN `arclength #2.52 #2.52 (&2) = acs ((#2.52 * #2.52 + #2.52 * #2.52 - (&2) * (&2)) / (&2 * #2.52 * #2.52))` (fun th -> REWRITE_TAC[th]) THENL
+   [
+     MATCH_MP_TAC Trigonometry1.ACS_ARCLENGTH THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+
+   CONV_TAC (REAL_RAT_REDUCE_CONV) THEN
+   SUBGOAL_THEN `#0.816 = acs (cos (#0.816))` MP_TAC THENL
+   [
+     MATCH_MP_TAC (GSYM ACS_COS) THEN
+       MP_TAC PI_APPROX_32 THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+   DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
+   REWRITE_TAC[real_ge] THEN
+   MATCH_MP_TAC ACS_MONO_LE THEN
+   REWRITE_TAC[COS_BOUNDS] THEN
+   CONJ_TAC THENL
+   [
+     CONV_TAC REAL_RAT_LE_CONV;
+     MP_TAC (CONJUNCT1 (REWRITE_RULE [ABS_LE_BOUNDS] (cos_eval `#0.816` 2))) THEN
+       REAL_ARITH_TAC
+   ]);;
+
+
+
+
+
+     
+end;;
+     

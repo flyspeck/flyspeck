@@ -1,0 +1,281 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Tame Hypermap                                                     *)
+(* Author: Alexey Solovyev                                                    *)
+(* Date: 2010-06-17                                                           *)
+(* ========================================================================== *)
+
+(* Proof of HRXEFDM *)
+
+flyspeck_needs "tame/TameGeneral.hl";;
+
+
+open Hypermap;;
+open Fan_defs;;
+open Tame_defs;;
+open Tame_general;;
+open Hypermap_and_fan;;
+
+
+module Hrxefdm_tame = struct
+
+
+let tauVEF_alt1 = prove(`!V E f. conforming (V,E) /\ f IN face_set_of_fan (V,E) ==>
+                          tauVEF (V,E,f) = sol (dartset_leads_into (vec 0,V,E) f) (vec 0) + (&2 - &(CARD f)) * sol0 - sol0 / pi * sum f (\x. azim_dart (V,E) x * (lmfun (h_dart x) - &1))`,
+   REWRITE_TAC[face_set_of_fan; conforming; conforming_solid_angle] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `f:real^3#real^3->bool`) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (MP_TAC o let_RULE) THEN
+     DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) MP_TAC) THEN
+     DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) MP_TAC) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+
+     REWRITE_TAC[tauVEF] THEN
+     REWRITE_TAC[REAL_ARITH `a * (&1 + b * (&1 - c)) = a - b * (a * (c - &1))`] THEN
+     SUBGOAL_THEN `FINITE (f:real^3#real^3->bool)` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+         REWRITE_TAC[face_set; set_of_orbits; GSYM face] THEN
+         REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+         ASM_REWRITE_TAC[FACE_FINITE];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[SUM_SUB; SUM_LMUL; SUM_CONST] THEN
+     REAL_ARITH_TAC);;
+
+
+
+let tauVEF_alt2 = prove(`!V E f. conforming (V,E) /\ f IN face_set_of_fan (V,E)
+                          ==> tauVEF (V,E,f) = sol (dartset_leads_into (vec 0,V,E) f) (vec 0) * (&1 + sol0 / pi) - sol0 / pi * sum f (\x. azim_dart (V,E) x * lmfun (h_dart x))`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[tauVEF_alt1] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REWRITE_TAC[conforming; conforming_solid_angle; face_set_of_fan] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `f:real^3#real^3->bool`) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[let_RULE th]) THEN
+
+     SUBGOAL_THEN `FINITE (f:real^3#real^3->bool)` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+         REWRITE_TAC[face_set; set_of_orbits; GSYM face] THEN
+         REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+         ASM_REWRITE_TAC[FACE_FINITE];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[REAL_ARITH `a * (b - &1) = a * b - a`] THEN
+     ASM_SIMP_TAC[SUM_SUB; SUM_CONST] THEN
+
+     MP_TAC PI_POS THEN
+     CONV_TAC REAL_FIELD);;
+
+
+
+
+let CHOICE_CONST_LEMMA = prove(`!f s. (!x y. x IN s /\ y IN s ==> f x = f y) ==> (!x. x IN s ==> f x = f (CHOICE s))`,
+ MESON_TAC[CHOICE]);;
+
+
+let scriptL_lemma = prove(`!V E. FAN (vec 0,V,E)
+                            ==> scriptL V = sum (node_set (hypermap_of_fan (V,E))) (\n. lmfun (h_dart (CHOICE n)))`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[scriptL] THEN
+     MP_TAC (SPEC_ALL NODE_SET_AS_IMAGE) THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+
+     SUBGOAL_THEN `(\v:real^3. lmfun (norm v / &2)) = (\n. lmfun (h_dart (CHOICE n))) o (f:real^3->(real^3#real^3->bool))` MP_TAC THENL
+     [
+       ASM_REWRITE_TAC[FUN_EQ_THM; o_THM; h_dart];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC (GSYM SUM_IMAGE) THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`x:real^3`; `y:real^3`]) THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+let HRXEFDM_lemma1 = prove(`!V E. FAN (vec 0,V,E) ==>
+                             sum (face_set_of_fan (V,E)) (\f. sum f (\x. azim_dart (V,E) x * lmfun (h_dart x)))
+                             = &2 * pi * scriptL V`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `!n. n IN node_set (hypermap_of_fan (V,E)) ==> sum n (azim_dart (V,E)) = &2 * pi` ASSUME_TAC THENL
+     [
+       GEN_TAC THEN
+         REWRITE_TAC[node_set; set_of_orbits; GSYM node] THEN
+         REWRITE_TAC[IN_ELIM_THM] THEN
+         ASM_SIMP_TAC[dart; HYPERMAP_OF_FAN] THEN
+         STRIP_TAC THEN
+         MP_TAC (SPEC_ALL SUM_AZIM_DART) THEN
+         ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[face_set_of_fan; DART_SUM_lemma] THEN
+     REWRITE_TAC[GSYM (SPEC_ALL DART_SUM_lemma)] THEN
+     ABBREV_TAC `g = (\n. sum n (\x. azim_dart (V,E) x * lmfun (h_dart x)))` THEN
+     MP_TAC (ISPECL [`g:(real^3#real^3->bool)->real`; `node_set (hypermap_of_fan (V,E))`] SUM_RESTRICT) THEN
+     REWRITE_TAC[FINITE_HYPERMAP_ORBITS] THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `!n. n IN node_set (hypermap_of_fan (V,E)) ==> g n = &2 * pi * lmfun (h_dart (CHOICE n))` MP_TAC THENL
+     [
+       REMOVE_ASSUM THEN GEN_TAC THEN
+         POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+         DISCH_TAC THEN
+         FIRST_ASSUM (fun th -> FIRST_X_ASSUM (ASSUME_TAC o (fun th2 -> MATCH_MP th2 th))) THEN
+         MP_TAC (ISPECL [`(\x. azim_dart (V,E) x * lmfun (h_dart x))`; `n:real^3#real^3->bool`] SUM_RESTRICT) THEN
+         SUBGOAL_THEN `FINITE (n:real^3#real^3->bool)` ASSUME_TAC THENL
+         [
+           REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+             REWRITE_TAC[node_set; set_of_orbits; GSYM node] THEN
+             REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+             ASM_REWRITE_TAC[NODE_FINITE];
+           ALL_TAC
+         ] THEN
+         ASM_REWRITE_TAC[] THEN
+         DISCH_TAC THEN
+
+         ABBREV_TAC `c = lmfun (h_dart (CHOICE (n:real^3#real^3->bool)))` THEN
+         SUBGOAL_THEN `!x. (if x IN n then azim_dart (V,E) x * lmfun (h_dart x) else &0) = (if x IN n then azim_dart (V,E) x * c else &0)` MP_TAC THENL
+         [
+           GEN_TAC THEN
+             ASM_CASES_TAC `x:real^3#real^3 IN n` THEN ASM_REWRITE_TAC[] THEN
+             SUBGOAL_THEN `h_dart (x:real^3#real^3) = h_dart (CHOICE (n:real^3#real^3->bool))` (fun th -> ASM_REWRITE_TAC[th]) THEN
+             MP_TAC (ISPECL [`h_dart:real^3#real^3->real`; `n:real^3#real^3->bool`] CHOICE_CONST_LEMMA) THEN
+             ANTS_TAC THENL
+             [
+               REPEAT STRIP_TAC THEN
+                 REWRITE_TAC[h_dart] THEN
+                 AP_THM_TAC THEN AP_TERM_TAC THEN
+                 AP_TERM_TAC THEN
+                 MP_TAC (SPEC_ALL FST_NODE_lemma) THEN
+                 ASM_REWRITE_TAC[] THEN
+                 DISCH_THEN MATCH_MP_TAC THEN
+                 ASM_REWRITE_TAC[];
+               ALL_TAC
+             ] THEN
+             DISCH_THEN MATCH_MP_TAC THEN
+             ASM_REWRITE_TAC[];
+           ALL_TAC
+         ] THEN
+         REMOVE_ASSUM THEN
+         DISCH_TAC THEN
+         FIRST_X_ASSUM (MP_TAC o check (is_eq o concl)) THEN
+         ASM_REWRITE_TAC[] THEN
+         DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+         MP_TAC (ISPECL [`(\x. azim_dart (V,E) x * c)`; `n:real^3#real^3->bool`] SUM_RESTRICT) THEN
+         ASM_SIMP_TAC[SUM_RMUL; ETA_AX] THEN
+         REWRITE_TAC[REAL_MUL_ASSOC];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     DISCH_TAC THEN
+     SUBGOAL_THEN `!x. (if x IN node_set (hypermap_of_fan (V,E)) then g x else &0) = (if x IN node_set (hypermap_of_fan (V,E)) then &2 * pi * lmfun (h_dart (CHOICE x)) else &0)` MP_TAC THENL
+     [
+       GEN_TAC THEN
+         ASM_CASES_TAC `x IN node_set (hypermap_of_fan (V,E))` THEN ASM_REWRITE_TAC[] THEN
+         ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MP_TAC (ISPECL [`(\x:real^3#real^3->bool. &2 * pi * lmfun (h_dart (CHOICE x)))`; `node_set (hypermap_of_fan (V,E))`] SUM_RESTRICT) THEN
+     REWRITE_TAC[FINITE_HYPERMAP_ORBITS] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[SUM_LMUL] THEN
+     ASM_SIMP_TAC[scriptL_lemma]);;
+
+
+
+
+
+let solid_angle_sum_assumption = `!V E. sum (face_set_of_fan (V,E)) (\f. sol (dartset_leads_into (vec 0,V,E) f) (vec 0)) = &4 * pi`;;
+
+
+
+let HRXEFDM_concl = `!V.  contravening V  ==>
+     (  sum (face_set_of_fan (V,ESTD V)) (\ f.  tauVEF (V,ESTD V,f) ) < &4 * pi - &20 * sol0 )`;;
+
+
+let HRXEFDM_concl2 = mk_imp (list_mk_conj [`!V. contravening V ==> FAN (vec 0,V,ESTD V) /\ conforming (V,ESTD V)`;
+                                           solid_angle_sum_assumption], HRXEFDM_concl);;
+
+
+
+
+(* g (HRXEFDM_concl2);; *)
+let HRXEFDM = prove(HRXEFDM_concl2,
+  REPEAT STRIP_TAC THEN
+    REPEAT (FIRST_X_ASSUM (ASSUME_TAC o SPEC `V:real^3->bool`)) THEN
+    POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+    FIRST_X_ASSUM (ASSUME_TAC o SPEC `ESTD V`) THEN
+
+    SUBGOAL_THEN `FINITE (face_set_of_fan (V,ESTD V))` ASSUME_TAC THENL
+    [
+      REWRITE_TAC[face_set_of_fan; FINITE_HYPERMAP_ORBITS];
+      ALL_TAC
+    ] THEN
+
+    SUBGOAL_THEN `sum (face_set_of_fan (V,ESTD V)) (\f. tauVEF (V,ESTD V,f)) = &4 * pi * (&1 + sol0 / pi) - sol0 / pi * &2 * pi * scriptL V` ASSUME_TAC THENL
+    [
+      MP_TAC (ISPECL [`\f. tauVEF (V,ESTD V,f)`; `face_set_of_fan (V,ESTD V)`] SUM_RESTRICT) THEN
+        ASM_REWRITE_TAC[] THEN
+        DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+        ABBREV_TAC `g = (\f. sol (dartset_leads_into (vec 0,V,ESTD V) f) (vec 0) * (&1 + sol0 / pi) - sol0 / pi * sum f (\x. azim_dart (V,ESTD V) x * lmfun (h_dart x)))` THEN
+
+        SUBGOAL_THEN `!x. (if x IN face_set_of_fan (V,ESTD V) then tauVEF (V,ESTD V,x) else &0) = (if x IN face_set_of_fan (V,ESTD V) then g x else &0)` (fun th -> REWRITE_TAC[th]) THENL
+        [
+          X_GEN_TAC `f:real^3#real^3->bool` THEN
+            ASM_CASES_TAC `f IN face_set_of_fan (V,ESTD V)` THEN ASM_REWRITE_TAC[] THEN
+            EXPAND_TAC "g" THEN
+              MATCH_MP_TAC tauVEF_alt2 THEN
+            ASM_REWRITE_TAC[];
+          ALL_TAC
+        ] THEN
+
+        MP_TAC (ISPECL [`(\x. g x):(real^3#real^3->bool)->real`; `face_set_of_fan (V,ESTD V)`] SUM_RESTRICT) THEN
+        ASM_REWRITE_TAC[] THEN
+        DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+        POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+
+        ASM_SIMP_TAC[SUM_SUB; SUM_RMUL; SUM_LMUL] THEN
+        ASM_SIMP_TAC[HRXEFDM_lemma1] THEN
+        REAL_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+
+    POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+    ASSUME_TAC PI_POS THEN
+
+    ASM_SIMP_TAC[REAL_FIELD `&0 < pi ==> &4 * pi * (&1 + sol0 / pi) = &4 * pi + &4 * sol0`] THEN
+    ASM_SIMP_TAC[REAL_FIELD `&0 < pi ==> sol0 / pi * &2 * pi * a = &2 * a * sol0`] THEN
+    REWRITE_TAC[REAL_ARITH `(&4 * pi + &4 * a) - (&2 * b * a) = (&4 * pi - &20 * a) + &2 * a * (&12 - b)`] THEN
+    REWRITE_TAC[REAL_ARITH `a + b < a <=> b < &0`] THEN
+    ONCE_REWRITE_TAC[REAL_ARITH `&0 = (&2 * sol0) * &0`] THEN
+    REWRITE_TAC[REAL_MUL_ASSOC] THEN
+    MATCH_MP_TAC REAL_LT_LMUL THEN
+    CONJ_TAC THENL
+    [
+      MATCH_MP_TAC REAL_LT_MUL THEN
+        REWRITE_TAC[REAL_ARITH `&0 < &2`; sol0_POS];
+      ALL_TAC
+    ] THEN
+
+    REWRITE_TAC[REAL_ARITH `a - b < &0 <=> b > a`] THEN
+    FIRST_X_ASSUM (MP_TAC o check (fun th -> rator (concl th) = `contravening`)) THEN
+    SIMP_TAC[contravening]);;
+
+
+
+end;;

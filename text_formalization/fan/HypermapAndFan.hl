@@ -1219,59 +1219,65 @@ let LINEAR_FACE_2 = prove(`!V E v w. FAN (vec 0,V,E) /\ CARD (face (hypermap_of_
 
 
 
-let TRIANGULAR_FACE = prove(`!V E v w. FAN (vec 0,V,E) /\ (v,w) IN dart1_of_fan (V,E) 
-			              /\ CARD (face (hypermap_of_fan (V,E)) (v,w)) = 3
-    ==> (let w' = sigma_fan (vec 0) V E v w in
-	   face (hypermap_of_fan (V,E)) (v,w) = {(v,w), (w,w'), (w',v)})`,
-  REPEAT GEN_TAC THEN
-    DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
-    REWRITE_TAC[Hypermap.face; Hypermap.face_map] THEN
-    ASM_SIMP_TAC[HYPERMAP_OF_FAN] THEN
-    STRIP_TAC THEN
-    CONV_TAC let_CONV THEN ABBREV_TAC `w':real^3 = sigma_fan (vec 0) V E v w` THEN
-    MP_TAC (ISPECL [`dart_of_fan (V:real^3->bool,E)`; `f_fan_pair_ext (V:real^3->bool,E)`; `(v:real^3,w:real^3)`] ORBIT_MAP_INV_3_SET) THEN
-    ASM_SIMP_TAC[F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN; SPEC `vec 0:real^3` FINITE_DART_OF_FAN] THEN
-    DISCH_THEN (fun th -> ALL_TAC) THEN
-    MATCH_MP_TAC (gen_ELEMENTS_EQ_IMP_SET_EQ 3) THEN
-    ASM_REWRITE_TAC[] THEN
-    SUBGOAL_THEN `inverse (f_fan_pair_ext (V:real^3->bool,E)) (v,w) = w',v` ASSUME_TAC THENL
-    [
-      ASM_SIMP_TAC[INVERSE_F_FAN_PAIR_EXT_EXPLICIT; Sphere.res];
-      ALL_TAC
-    ] THEN
-
-    ABBREV_TAC `t = inverse (f_fan_pair_ext (V:real^3->bool,E)) (inverse (f_fan_pair_ext (V,E)) (v,w))` THEN
-    ASM_REWRITE_TAC[] THEN
-    
-    SUBGOAL_THEN `t:real^3#real^3 = (w, inverse_sigma_fan (vec 0) V E w v)` MP_TAC THENL
-    [
-      MP_TAC (ISPECL [`f_fan_pair_ext (V:real^3->bool,E)`; `dart_of_fan (V:real^3->bool,E)`; `v:real^3,w:real^3`; `3`; `2`] FINITE_ORBIT_MAP_INVERSE) THEN
-	ASM_SIMP_TAC[SPEC `vec 0:real^3` FINITE_DART_OF_FAN; F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN] THEN
-	REWRITE_TAC[ARITH_RULE `2 <= 3`; ARITH_RULE `3 - 2 = 1`] THEN
-	POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-	REWRITE_TAC[Hypermap.POWER_2; Hypermap.POWER_1; o_THM] THEN
-	DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-	ASM_REWRITE_TAC[f_fan_pair_ext; f_fan_pair];
-      ALL_TAC
-    ] THEN
-
-    SUBGOAL_THEN `t:real^3#real^3 = sigma_fan (vec 0) V E w' v, w'` MP_TAC THENL
-    [
-      POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-	ASM_REWRITE_TAC[] THEN
-	MP_TAC (SPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`] INVERSE_F_FAN_PAIR_EXT_EXPLICIT) THEN
-	ASM_REWRITE_TAC[] THEN
-	DISCH_THEN (fun th -> REWRITE_TAC[th; Sphere.res]) THEN
-	SUBGOAL_THEN `w',v IN dart1_of_fan (V:real^3->bool,E)` ASSUME_TAC THENL
-	  [
-	    ASM_MESON_TAC[INVERSE_F_IN_DART1_OF_FAN];
-	    ALL_TAC
-	  ] THEN
-	  ASM_REWRITE_TAC[];
-      ALL_TAC
-    ] THEN
-    
-    SIMP_TAC[PAIR_EQ]);;
+let TRIANGULAR_FACE = prove(`!V E v w. FAN (vec 0,V,E) /\ (v,w) IN dart1_of_fan (V,E) /\
+			      CARD (face (hypermap_of_fan (V,E)) (v,w)) = 3
+    ==> let w' = sigma_fan (vec 0) V E v w in
+         face (hypermap_of_fan (V,E)) (v,w) = {(v,w), (w,w'), (w',v)} /\
+	 sigma_fan (vec 0) V E w w' = v /\
+	 sigma_fan (vec 0) V E w' v = w`,
+   REPEAT GEN_TAC THEN
+     REPLICATE_TAC 2 (DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)) THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`; `v:real^3,w:real^3`] FACE_SUBSET_DART1_OF_FAN) THEN
+     ASM_SIMP_TAC[Hypermap.face; Hypermap.face_map; HYPERMAP_OF_FAN] THEN
+     ASM_REWRITE_TAC[SUBSET] THEN REPEAT STRIP_TAC THEN
+     CONV_TAC let_CONV THEN
+     ABBREV_TAC `w' = sigma_fan (vec 0) V E v w` THEN
+     ABBREV_TAC `f = f_fan_pair_ext (V,E)` THEN
+     MP_TAC (ISPECL [`dart_of_fan (V:real^3->bool,E)`; `f_fan_pair_ext (V,E)`; `v:real^3,w:real^3`] ORBIT_MAP_3) THEN
+     ASM_SIMP_TAC[F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN; SPEC `vec 0:real^3` FINITE_DART_OF_FAN] THEN
+     DISCH_TAC THEN
+     SUBGOAL_THEN `f (v:real^3,w:real^3) IN dart1_of_fan (V:real^3->bool,E) /\ f (f (v,w)) IN dart1_of_fan (V,E)` ASSUME_TAC THENL
+     [
+       CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[IN_INSERT];
+       ALL_TAC
+     ] THEN
+     
+     MP_TAC (ISPECL [`dart_of_fan (V:real^3->bool,E)`; `f_fan_pair_ext (V,E)`; `v:real^3,w:real^3`] ORBIT_MAP_INV_3) THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rand (concl th) = `3`)) THEN
+     ASM_SIMP_TAC[F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN; SPEC `vec 0:real^3` FINITE_DART_OF_FAN] THEN
+     DISCH_THEN (fun th -> ALL_TAC) THEN STRIP_TAC THEN REMOVE_ASSUM THEN
+     SUBGOAL_THEN `inverse f (v:real^3,w:real^3) = (w':real^3,v:real^3)` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "f" THEN
+	 ASM_SIMP_TAC[INVERSE_F_FAN_PAIR_EXT_EXPLICIT] THEN
+	 ASM_REWRITE_TAC[Sphere.res];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `w',v IN dart1_of_fan (V:real^3->bool,E)` MP_TAC THENL
+     [
+       REPLICATE_TAC 2 (POP_ASSUM (fun th -> REWRITE_TAC[SYM th])) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o CONJUNCT1 o check (is_conj o concl)) THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> concl th = `f (v:real^3,w:real^3) = inverse f (inverse f (v,w))`)) THEN
+     FIRST_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[IMP_IMP] THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
+     EXPAND_TAC "f" THEN
+     ASM_SIMP_TAC[f_fan_pair_ext; INVERSE_F_FAN_PAIR_EXT_EXPLICIT; Sphere.res] THEN
+     REWRITE_TAC[f_fan_pair; PAIR_EQ] THEN
+     DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
+     FIRST_X_ASSUM (CONJUNCTS_THEN2 (ASSUME_TAC o SYM) ASSUME_TAC) THEN
+     ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o AP_TERM `extension_sigma_fan (vec 0) V E w`) THEN
+     MP_TAC (SPECL [`vec 0:real^3`; `V:real^3->bool`; `E:(real^3->bool)->bool`; `w:real^3`] INVERSE_SIGMA_FAN) THEN
+     ASM_REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[extension_sigma_fan; IMP_IMP] THEN
+     DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`; `w:real^3`; `w':real^3`] PAIR_IN_DART1_OF_FAN) THEN
+     ASM_SIMP_TAC[]);;
+     
 
 
 
@@ -2617,7 +2623,94 @@ let HYPERMAP_OF_FAN_NO_DOUBLE_JOINTS = prove(`!V E. FAN (vec 0,V,E) ==>
 
 
 
-	 
+(* azim_dart x is always positive *)
+let AZIM_DART_POS = prove(`!V E x. FAN (vec 0,V,E) /\ x IN dart_of_fan (V,E)
+			    ==> &0 < azim_dart (V,E) x`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL IN_DART_OF_FAN) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     ASM_CASES_TAC `v,w IN dart1_of_fan (V:real^3->bool,E)` THENL
+     [
+       MP_TAC (SPEC_ALL (ISPEC `V:real^3->bool` PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ)) THEN
+	 ASM_SIMP_TAC[azim_dart; azim_fan] THEN DISCH_TAC THEN
+	 ASM_CASES_TAC `CARD (set_of_edge (v:real^3) V E) > 1` THEN ASM_REWRITE_TAC[] THENL
+	 [
+	   MATCH_MP_TAC (REAL_ARITH `&0 <= a /\ ~(a = &0) ==> &0 < a`) THEN
+	     REWRITE_TAC[azim] THEN
+	     ABBREV_TAC `w' = sigma_fan (vec 0) V E v w` THEN
+	     MP_TAC (SPEC_ALL PAIR_IN_DART1_OF_FAN) THEN
+	     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	     SUBGOAL_THEN `w' IN (set_of_edge v V E) /\ ~(w' = w:real^3)` STRIP_ASSUME_TAC THENL
+	     [
+	       MP_TAC (SPECL [`vec 0:real^3`; `V:real^3->bool`; `E:(real^3->bool)->bool`; `v:real^3`; `w:real^3`] Fan.SIGMA_FAN) THEN
+		 ASM_REWRITE_TAC[] THEN
+		 ANTS_TAC THEN SIMP_TAC[] THEN
+		 FIRST_ASSUM (MP_TAC o check (is_binary ">" o concl)) THEN
+		 MATCH_MP_TAC (TAUT `(A ==> ~B) ==> (B ==> ~A)`) THEN
+		 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+		 REWRITE_TAC[Hypermap.CARD_SINGLETON] THEN
+		 REWRITE_TAC[GT; LT_REFL];
+	       ALL_TAC
+	     ] THEN
+	     POP_ASSUM MP_TAC THEN
+	     REWRITE_TAC[CONTRAPOS_THM] THEN
+	     DISCH_TAC THEN 
+	     MATCH_MP_TAC (GSYM Fan.UNIQUE_AZIM_0_POINT_FAN) THEN
+	     MAP_EVERY EXISTS_TAC [`vec 0:real^3`; `V:real^3->bool`; `E:(real^3->bool)->bool`; `v:real^3`] THEN
+	     ASM_REWRITE_TAC[] THEN
+	     REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	     SIMP_TAC[set_of_edge; IN_ELIM_THM];
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN
+	 REWRITE_TAC[PI_POS] THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rand (concl th) = `dart_of_fan (V:real^3->bool,E)`)) THEN
+     ASM_REWRITE_TAC[dart_of_fan; GSYM dart1_of_fan; IN_UNION] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN REWRITE_TAC[azim_dart] THEN
+     MATCH_MP_TAC REAL_LT_MUL THEN
+     REWRITE_TAC[PI_POS] THEN REAL_ARITH_TAC);;
+
+
+
+(* 0,v,w are not collinear *)
+let DART1_NOT_COLLINEAR = prove(`!V E v (w:real^3). FAN (vec 0,V,E) /\ (v,w) IN dart1_of_fan (V,E)
+				  ==> ~collinear {vec 0,v,w}`,
+   REPEAT GEN_TAC THEN DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN DISCH_TAC THEN
+     FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[FAN; fan6] THEN STRIP_TAC THEN
+     MP_TAC (SPEC_ALL (SPEC `V:real^3->bool` PAIR_IN_DART1_OF_FAN)) THEN
+     ASM_REWRITE_TAC[set_of_edge; IN_ELIM_THM] THEN
+     STRIP_TAC THEN
+     FIRST_ASSUM (MP_TAC o SPEC `{v:real^3,w}`) THEN
+     REWRITE_TAC[SET_RULE `{a:real^3} UNION {v,w} = {a,v,w}`] THEN
+     ASM_SIMP_TAC[]);;
+
+
+(* {0,v,w} and {0,v,sigma(v)(w)} are not collinear *)
+let DART1_NOT_COLLINEAR_2 = prove(`!V E v (w:real^3). FAN (vec 0,V,E) /\ (v,w) IN dart1_of_fan (V,E)
+				    ==> ~collinear {vec 0,v,w} /\ ~collinear {vec 0,v,sigma_fan (vec 0) V E v w}`,
+   REPEAT GEN_TAC THEN DISCH_TAC THEN
+     MP_TAC (SPEC_ALL DART1_NOT_COLLINEAR) THEN
+     ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `(v,sigma_fan (vec 0) V E v w) IN dart1_of_fan (V:real^3->bool,E)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	 EXISTS_TAC `node (hypermap_of_fan (V,E)) (v,w)` THEN CONJ_TAC THENL
+	 [
+	   ASM_SIMP_TAC[NODE_SUBSET_DART1_OF_FAN];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[NODE_HYPERMAP_OF_FAN; IN_ELIM_THM] THEN
+	 EXISTS_TAC `1` THEN
+	 REWRITE_TAC[ARITH_RULE `1 >= 0`; Hypermap.POWER_1];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC DART1_NOT_COLLINEAR THEN
+     MAP_EVERY EXISTS_TAC [`V:real^3->bool`; `E:(real^3->bool)->bool`] THEN
+     ASM_REWRITE_TAC[]);;	 
 	 
 
 

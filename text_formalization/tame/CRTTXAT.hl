@@ -1,0 +1,581 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Tame Hypermap                                                     *)
+(* Author: Alexey Solovyev                                                    *)
+(* Date: 2010-06-17                                                           *)
+(* ========================================================================== *)
+
+(******************************)
+(* Proof of CRTTXAT (tame_9a) *)
+(******************************)
+
+
+flyspeck_needs "tame/TameGeneral.hl";;
+flyspeck_needs "tame/ArcProperties.hl";;
+
+
+module Crttxat_tame = struct
+
+
+open Fan_defs;;
+open Tame_defs;;
+open Tame_general;;
+open Hypermap_and_fan;;
+open Arc_properties;;
+
+
+
+(* An auxiliary result about sums over a face *)
+let ORBIT_MAP_PAIR_SUM_lemma = prove(`!P s f g (x:A#A). FINITE s /\ f permutes s /\
+						(!y. y IN orbit_map f x ==> f y = (SND y, g y))
+						==> sum (orbit_map f x) (\x. P (FST x)) = sum (orbit_map f x) (\x. P (SND x))`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `k = CARD (orbit_map f (x:A#A))` THEN
+     MP_TAC (ISPECL [`(\x:A#A. (P:A->real) (FST x))`; `s:A#A->bool`; `f:A#A->A#A`; `x:A#A`; `k:num`; `1`] SUM_ORBIT) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MP_TAC (ISPECL [`(\x:A#A. (P:A->real) (SND x))`; `s:A#A->bool`; `f:A#A->A#A`; `x:A#A`; `k:num`; `0`] SUM_ORBIT) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[ARITH_RULE `1 + k - 1 = (k - 1) + 1`] THEN
+     GEN_REWRITE_TAC (DEPTH_CONV o (PAT_CONV `\x. sum (x..m) f`)) [ARITH_RULE `1 = 0 + 1`] THEN
+     REWRITE_TAC[SUM_OFFSET; ARITH_RULE `0 + a = a`] THEN
+     MATCH_MP_TAC SUM_EQ THEN
+     X_GEN_TAC `i:num` THEN BETA_TAC THEN
+     REWRITE_TAC[ARITH_RULE `i + 1 = 1 + i`] THEN
+     REWRITE_TAC[Hypermap.addition_exponents; Hypermap.POWER_1; o_THM] THEN
+     ABBREV_TAC `y:A#A = (f POWER i) x` THEN
+     SUBGOAL_THEN `y:A#A IN orbit_map f x` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "y" THEN
+	 REWRITE_TAC[Hypermap.lemma_in_orbit];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `y:A#A`) THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+
+let FACE_SUM_lemma = prove(`!V E x P. FAN (vec 0,V,E) /\ x IN dart1_of_fan (V,E)
+			     ==> sum (face (hypermap_of_fan (V,E)) x) (\x. P (FST x)) = 
+				 sum (face (hypermap_of_fan (V,E)) x) (\x. P (SND x))`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[Hypermap.face] THEN
+     MATCH_MP_TAC ORBIT_MAP_PAIR_SUM_lemma THEN
+     EXISTS_TAC `dart (hypermap_of_fan (V,E))` THEN
+     EXISTS_TAC `(\x. SND (face_map (hypermap_of_fan (V,E)) x))` THEN
+     REWRITE_TAC[Hypermap.hypermap_lemma; GSYM Hypermap.face] THEN
+     ASM_SIMP_TAC[Hypermap.face_map; HYPERMAP_OF_FAN] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `y IN dart1_of_fan (V:real^3->bool,E)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	 EXISTS_TAC `face (hypermap_of_fan (V,E)) x` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC FACE_SUBSET_DART1_OF_FAN THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[f_fan_pair_ext] THEN
+     MP_TAC (ISPEC `y:real^3#real^3` PAIR_SURJECTIVE) THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[f_fan_pair]);;
+   
+
+
+
+
+let CRTTXAT_lemma1 = prove(`!V f. FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
+			     contravening V /\ f IN face_set (hypermap_of_fan (V,ESTD V)) ==>
+			     sum f (\x. lmfun (h_dart x)) >= &12 + &(CARD f) - &(CARD V)`,
+   REPEAT GEN_TAC THEN DISCH_TAC THEN
+     DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
+     FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[contravening] THEN
+     REPLICATE_TAC 2 (DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) MP_TAC)) THEN
+     DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (fun th -> ALL_TAC)) THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `sum f (\x:real^3#real^3. lmfun (h_dart x)) = sum {FST x | x IN f} (\v. lmfun ((norm v) / &2))` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[IMAGE_LEMMA; h_dart] THEN
+	 SUBGOAL_THEN `(\x:real^3#real^3. lmfun (norm (FST x) / &2)) = (\v. lmfun (norm v / &2)) o FST` ASSUME_TAC THENL
+	 [
+	   REWRITE_TAC[FUN_EQ_THM; o_THM];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC EQ_SYM THEN
+	 MATCH_MP_TAC SUM_IMAGE THEN
+	 REPEAT STRIP_TAC THEN
+	 MP_TAC (SPEC_ALL (SPECL [`V:real^3->bool`; `ESTD V`] HYPERMAP_OF_FAN_FACE_NODE_INJ)) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+     ABBREV_TAC `A = {FST (x:real^3#real^3) | x IN f}` THEN
+
+     SUBGOAL_THEN `A:real^3->bool SUBSET V` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "A" THEN REWRITE_TAC[SUBSET; IN_ELIM_THM] THEN
+	 X_GEN_TAC `v:real^3` THEN DISCH_THEN (CHOOSE_THEN MP_TAC) THEN
+	 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face; IN_ELIM_THM] THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	 SUBGOAL_THEN `x:real^3#real^3 IN dart (hypermap_of_fan (V,ESTD V))` MP_TAC THENL
+	 [
+	   MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	     EXISTS_TAC `f:real^3#real^3->bool` THEN
+	     ASM_SIMP_TAC[Hypermap.lemma_face_subset];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+	 MP_TAC (ISPEC `x:real^3#real^3` PAIR_SURJECTIVE) THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `x'':real^3`; `y:real^3`] PAIR_IN_DART_OF_FAN) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `A:real^3->bool = V DIFF (V DIFF A)` MP_TAC THENL
+     [
+       MATCH_MP_TAC DIFF_LEMMA THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `FINITE (V:real^3->bool)` ASSUME_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o check (is_conj o concl)) THEN
+	 SIMP_TAC[Fan_defs.FAN; Fan_defs.fan1];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `sum (V DIFF (V DIFF A)) (\v:real^3. lmfun (norm v / &2)) = scriptL V - sum (V DIFF A) (\v. lmfun (norm v / &2))` MP_TAC THENL
+     [
+       REWRITE_TAC[scriptL] THEN
+	 MATCH_MP_TAC SUM_DIFF THEN
+	 ASM_REWRITE_TAC[SUBSET_DIFF];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC (REAL_ARITH `a >= c /\ b <= --d ==> a - b >= c + d`) THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rand (concl th) = `&12`)) THEN
+     SIMP_TAC[real_ge; real_gt; REAL_LT_IMP_LE] THEN DISCH_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `&(CARD (V:real^3->bool DIFF A)) * &1` THEN
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC SUM_BOUND THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC FINITE_DIFF THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 X_GEN_TAC `v:real^3` THEN REWRITE_TAC[IN_DIFF] THEN
+	 STRIP_TAC THEN
+	 MP_TAC (SPEC_ALL CONTRAVENING_LMFUN_BOUND) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `CARD (V:real^3->bool DIFF A) = CARD V - CARD A /\ CARD A <= CARD V` MP_TAC THENL
+     [
+       CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC CARD_DIFF THEN
+	     ASM_REWRITE_TAC[];
+	   MATCH_MP_TAC CARD_SUBSET THEN
+	     ASM_REWRITE_TAC[]
+	 ];
+       ALL_TAC
+     ] THEN
+  
+     STRIP_TAC THEN
+     MP_TAC (SPECL [`CARD (A:real^3->bool)`; `CARD (V:real^3->bool)`] REAL_OF_NUM_SUB) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th; REAL_MUL_RID; REAL_NEG_SUB]) THEN
+     SUBGOAL_THEN `CARD (A:real^3->bool) = CARD (f:real^3#real^3->bool)` MP_TAC THENL
+     [
+       EXPAND_TAC "A" THEN
+	 REWRITE_TAC[IMAGE_LEMMA] THEN
+	 MATCH_MP_TAC CARD_IMAGE_INJ THEN
+	 CONJ_TAC THENL
+	 [
+	   REPEAT GEN_TAC THEN
+	     MP_TAC (SPEC_ALL (SPECL [`V:real^3->bool`; `ESTD V`] HYPERMAP_OF_FAN_FACE_NODE_INJ)) THEN
+	     ASM_SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+	 REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[Hypermap.FACE_FINITE];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[REAL_LE_REFL]);;
+
+
+
+
+
+
+
+(* Another expression for the perimeter of f *)
+let CRTTXAT_lemma2 = prove(`!V f. FAN (vec 0,V,ESTD V) /\ f IN face_set (hypermap_of_fan (V,ESTD V))
+			     ==> sum f (\(v,w). arcV (vec 0) v w) = sum f (\(v,w). arclength (norm v) (norm w) (dist (v,w)))`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SUM_EQ THEN
+     GEN_TAC THEN
+     MP_TAC (ISPEC `x:real^3#real^3` PAIR_SURJECTIVE) THEN
+     DISCH_THEN (X_CHOOSE_THEN `v:real^3` MP_TAC) THEN
+     DISCH_THEN (X_CHOOSE_THEN `w:real^3` ASSUME_TAC) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     REWRITE_TAC[GSYM DIST_0] THEN
+     MATCH_MP_TAC Trigonometry1.arcVarc THEN
+
+     SUBGOAL_THEN `(v,w) IN dart_of_fan (V,ESTD V)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	 EXISTS_TAC `f:real^3#real^3->bool` THEN
+         POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+         FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+         REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face; IN_ELIM_THM] THEN
+         ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+         STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+         MATCH_MP_TAC FACE_SUBSET_DART_OF_FAN THEN
+         ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] PAIR_IN_DART_OF_FAN) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rand (concl th) = `(vec 0:real^3,V,ESTD V)`)) THEN
+     REWRITE_TAC[Fan_defs.FAN; Fan_defs.fan2] THEN
+     POP_ASSUM MP_TAC THEN
+     SET_TAC[]);;
+
+
+
+(* A variation of the first lemma *)
+let CRTTXAT_lemma1' = prove(`!V f. FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
+			     contravening V /\ f IN face_set (hypermap_of_fan (V,ESTD V)) ==>
+			     sum f (\x. lmfun (norm (SND x) / &2)) >= &12 + &(CARD f) - &(CARD V)`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `sum f (\x:real^3#real^3. lmfun (norm (SND x) / &2)) = sum f (\x. lmfun (h_dart x))` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       FIRST_X_ASSUM MP_TAC THEN
+	 REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+	 ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+	 ASM_REWRITE_TAC[h_dart] THEN
+	 MATCH_MP_TAC (GSYM FACE_SUM_lemma) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC CONTRAVENING_IMP_IN_DART1_OF_FAN THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPEC_ALL CRTTXAT_lemma1) THEN
+     ASM_SIMP_TAC[]);;
+     
+
+
+
+
+(* LEMMA: aux *)
+let SUM_RMUL_BOUND = prove(`!(s:A->bool) f g c. FINITE s /\ 
+				(!x. x IN s ==> c <= g x /\ &0 <= f x)
+			      ==> sum s (\x. f x) * c <= sum s (\x. f x * g x)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[GSYM SUM_RMUL] THEN
+     MATCH_MP_TAC SUM_LE THEN
+     ASM_REWRITE_TAC[] THEN GEN_TAC THEN
+     DISCH_TAC THEN
+     MATCH_MP_TAC REAL_LE_LMUL THEN
+     ASM_SIMP_TAC[]);;
+     
+
+
+
+(* Main theorem *)
+let CRTTXAT_concl = `!V. contravening V /\ tame_hypermap_calcs /\ (perimeterbound (V, ESTD V))==> 
+       tame_9a  (hypermap_of_fan (V, ESTD V))`;;
+
+
+
+let CRTTXAT_assum = mk_imp (list_mk_conj [`!V. contravening V ==> FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V))`], CRTTXAT_concl);;
+
+
+(* g(CRTTXAT_assum);; *)
+let CRTTXAT = prove(CRTTXAT_assum,
+   REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `V:real^3->bool`) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+
+     REWRITE_TAC[tame_9a] THEN
+     ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+     REPEAT STRIP_TAC THENL
+     [
+       MP_TAC (SPEC_ALL CONTRAVENING_IMP_CARD_FACE_GE_3) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (MP_TAC o SPEC `x:real^3#real^3`) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `f = face (hypermap_of_fan (V,ESTD V)) x` THEN
+     ABBREV_TAC `k = CARD (f:real^3#real^3->bool)` THEN
+     
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> rator (concl th) = `perimeterbound`)) THEN
+     REWRITE_TAC[perimeterbound] THEN
+     DISCH_THEN (MP_TAC o SPEC `f:(real^3#real^3->bool)`) THEN
+
+     SUBGOAL_THEN `f IN face_set_of_fan (V,ESTD V) /\ FINITE f` MP_TAC THENL
+     [
+       EXPAND_TAC "f" THEN REWRITE_TAC[Hypermap.FACE_FINITE] THEN
+	 REWRITE_TAC[face_set_of_fan; Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+	 ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN
+	 EXISTS_TAC `x:real^3#real^3` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SIMP_TAC[face_set_of_fan] THEN DISCH_TAC THEN
+     MP_TAC (SPEC_ALL CRTTXAT_lemma2) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `!v w. (v:real^3,w:real^3) IN f ==> &2 <= norm v /\ norm v <= #2.52 /\ &2 <= norm w /\ norm w <= #2.52 /\ &2 <= dist (v,w) /\ dist (v,w) <= #2.52` ASSUME_TAC THENL
+     [
+       REPEAT GEN_TAC THEN DISCH_TAC THEN
+	 SUBGOAL_THEN `v,w IN dart_of_fan (V,ESTD V)` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	     EXISTS_TAC `f:real^3#real^3->bool` THEN
+ 	     ASM_REWRITE_TAC[] THEN
+	     EXPAND_TAC "f" THEN
+             MATCH_MP_TAC FACE_SUBSET_DART_OF_FAN THEN
+             ASM_REWRITE_TAC[];	   
+	   ALL_TAC
+	 ] THEN
+	 SUBGOAL_THEN `v:real^3 IN V /\ w IN V` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC PAIR_IN_DART_OF_FAN THEN
+	     EXISTS_TAC `ESTD V` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 MP_TAC (SPEC_ALL CONTRAVENING_DIST) THEN
+	 MP_TAC (SPECL [`V:real^3->bool`; `w:real^3`] CONTRAVENING_DIST) THEN
+	 MP_TAC (SPECL [`V:real^3->bool`; `v:real^3,w:real^3`] CONTRAVENING_DART_DIST) THEN
+	 ASM_REWRITE_TAC[DIST_0; REAL_ARITH `&2 = #2.0`] THEN
+	 SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `sum f (\x:real^3#real^3. arclength (#2.52) (norm (SND x)) (&2) + lmfun (h_dart x) * (arclength (&2) (norm (SND x)) (&2) - arclength (#2.52) (norm (SND x)) (&2))) <= &2 * pi` MP_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `sum f (\(v:real^3,w:real^3). arclength (norm v) (norm w) (&2))` THEN
+         CONJ_TAC THENL
+         [
+	   MATCH_MP_TAC SUM_LE THEN
+	     ASM_REWRITE_TAC[] THEN
+	     GEN_TAC THEN
+	     MP_TAC (ISPEC `x':real^3#real^3` PAIR_SURJECTIVE) THEN
+	     DISCH_THEN (X_CHOOSE_THEN `v:real^3` MP_TAC) THEN
+	     DISCH_THEN (X_CHOOSE_THEN `w:real^3` ASSUME_TAC) THEN
+	     ASM_REWRITE_TAC[GSYM real_ge] THEN DISCH_TAC THEN
+	     REWRITE_TAC[h_dart] THEN
+	     MATCH_MP_TAC arc_lemma3 THEN
+	     FIRST_X_ASSUM (MP_TAC o SPECL [`v:real^3`; `w:real^3`]) THEN
+	     ASM_SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+         MATCH_MP_TAC REAL_LE_TRANS THEN
+         EXISTS_TAC `sum f (\(v:real^3,w:real^3). arclength (norm v) (norm w) (dist (v,w)))` THEN
+         ASM_REWRITE_TAC[] THEN
+         MATCH_MP_TAC SUM_LE THEN
+         ASM_REWRITE_TAC[] THEN GEN_TAC THEN
+         MP_TAC (ISPEC `x':real^3#real^3` PAIR_SURJECTIVE) THEN
+         STRIP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+         MATCH_MP_TAC arc_lemma1 THEN
+         FIRST_X_ASSUM (MP_TAC o SPECL [`x'':real^3`; `y:real^3`]) THEN
+         ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[SUM_ADD] THEN
+     ABBREV_TAC `s1 = sum f (\x:real^3#real^3. arclength #2.52 #2.52 (&2) + lmfun (norm (SND x) / &2) * (arclength #2.52 (&2) (&2) - arclength #2.52 #2.52 (&2)))` THEN
+     ABBREV_TAC `s2 = sum f (\x:real^3#real^3. arclength #2.52 (norm (SND x)) (&2))` THEN
+     ABBREV_TAC `s3 = sum f (\x:real^3#real^3. lmfun (h_dart x) * (arclength (&2) (norm (SND x)) (&2) - arclength #2.52 (norm (SND x)) (&2)))` THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `s1:real <= s2` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "s1" THEN EXPAND_TAC "s2" THEN
+	 MATCH_MP_TAC SUM_LE THEN
+	 ASM_REWRITE_TAC[] THEN GEN_TAC THEN
+	 MP_TAC (ISPEC `x':real^3#real^3` PAIR_SURJECTIVE) THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 REWRITE_TAC[GSYM real_ge] THEN
+	 MP_TAC (SPECL [`norm (y:real^3)`; `#2.52`] arc_lemma3) THEN
+	 REWRITE_TAC[arc_sym] THEN
+	 DISCH_THEN MATCH_MP_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPECL [`x'':real^3`; `y:real^3`]) THEN
+	 ASM_SIMP_TAC[] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `(&12 + &k - &(CARD (V:real^3->bool))) * #0.073 <= s3` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `sum f (\x:real^3#real^3. lmfun (h_dart x)) * #0.073` THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_RMUL THEN
+	     MP_TAC (SPEC_ALL CRTTXAT_lemma1) THEN
+	     ASM_SIMP_TAC[REAL_ARITH `&0 <= #0.073`; real_ge];
+	   ALL_TAC
+	 ] THEN
+
+	 EXPAND_TAC "s3" THEN
+	 MATCH_MP_TAC SUM_RMUL_BOUND THEN
+	 ASM_REWRITE_TAC[] THEN
+	 GEN_TAC THEN MP_TAC (ISPEC `x':real^3#real^3` PAIR_SURJECTIVE) THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[GSYM real_ge] THEN
+	     MATCH_MP_TAC arc_lemma4 THEN
+	     FIRST_X_ASSUM (MP_TAC o SPECL [`x'':real^3`; `y:real^3`]) THEN
+	     ASM_SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[h_dart; Pack_defs.lmfun; Pack_defs.h0] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `(&k) * (arclength #2.52 #2.52 (&2)) + (&12 + &k - &(CARD (V:real^3->bool))) * #0.073 <= s1` ASSUME_TAC THENL
+     [
+       REPLICATE_TAC 5 REMOVE_ASSUM THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_SIMP_TAC[SUM_ADD] THEN
+	 ASM_SIMP_TAC[SUM_CONST] THEN
+	 REWRITE_TAC[REAL_ARITH `a + b <= a + c <=> b <= c`] THEN
+	 REWRITE_TAC[SUM_RMUL] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `sum f (\x:real^3#real^3. lmfun (norm (SND x) / &2)) * #0.073` THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_RMUL THEN
+	     REWRITE_TAC[REAL_ARITH `&0 <= #0.073`; GSYM real_ge] THEN
+	     MP_TAC (SPEC_ALL CRTTXAT_lemma1') THEN
+	     ASM_SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LE_LMUL THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC SUM_POS_LE THEN
+	     ASM_REWRITE_TAC[Pack_defs.lmfun; Pack_defs.h0] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[GSYM real_ge] THEN
+	 MP_TAC (SPEC `#2.52` arc_lemma4) THEN
+	 REWRITE_TAC[arc_sym] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&k * arclength #2.52 #2.52 (&2) + (&2) * (&12 + &k - &(CARD (V:real^3->bool))) * #0.073 <= &2 * pi` MP_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `(s1:real) + s3` THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_ARITH `c + &2 * a * b = (c + a * b) + a * b`] THEN
+	     MATCH_MP_TAC REAL_LE_ADD2 THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `(s2:real) + s3` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_ADD2 THEN
+	 ASM_REWRITE_TAC[REAL_LE_REFL];
+       ALL_TAC
+     ] THEN
+
+     DISCH_TAC THEN
+     SUBGOAL_THEN `&k * (arclength #2.52 #2.52 (&2) + #0.146) <= &2 * pi + (&(CARD (V:real^3->bool)) - &12) * #0.146` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&k * (#0.816 + #0.146) <= &2 * #3.1416 + &3 * #0.146` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `&k * (arclength #2.52 #2.52 (&2) + #0.146)` THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_LMUL THEN
+	     REWRITE_TAC[REAL_ARITH `&0 <= &k`; REAL_ARITH `a + b <= c + b <=> a <= c`] THEN
+	     ASM_REWRITE_TAC[GSYM real_ge; arc_lemma5];
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `&2 * pi + (&(CARD (V:real^3->bool)) - &12) * #0.146` THEN
+	 CONJ_TAC THEN ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_ADD2 THEN
+	 CONJ_TAC THENL
+	 [
+	   MP_TAC PI_APPROX_32 THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LE_RMUL THEN
+	 REWRITE_TAC[REAL_ARITH `&0 <= #0.146`; REAL_ARITH `a - &12 <= &3 <=> a <= &15`] THEN
+	 REWRITE_TAC[REAL_OF_NUM_LE] THEN
+	 FIRST_X_ASSUM (MP_TAC o check (fun th -> rator (concl th) = `contravening`)) THEN
+	 REWRITE_TAC[contravening] THEN
+	 SIMP_TAC[ARITH_RULE `a = 13 \/ a = 14 \/ a = 15 ==> a <= 15`];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&k <= #6.99` MP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     DISJ_CASES_TAC (ARITH_RULE `k <= 6 \/ 7 <= k`) THEN ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM REAL_OF_NUM_LE] THEN
+     REAL_ARITH_TAC);;
+     
+     
+     
+
+
+end;;

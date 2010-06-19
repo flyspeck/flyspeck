@@ -161,7 +161,9 @@ let macro_expand = ref [];;
 
 macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
-   REAL_MUL_RZERO;FST;SND;pathL;pathR];;
+   REAL_MUL_RZERO;FST;SND;pathL;pathR;
+   (* dart categories *)
+   Ineq.dart_std3];;
 
 let prep_term t = 
   let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in
@@ -314,12 +316,12 @@ let mk_cc tmpfile iqd =
 
 let compile () = 
   let err = "/tmp/cfsqp_err.txt" in
-  let e = Sys.command("cd "^flyspeck_dir^"/../cc; make tmp/t.o >& "^err) in
+  let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o >& "^err) in
   let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error") in
     ();;
 
  let execute_cfsqp idq = 
-  let cfsqp_dir = flyspeck_dir^"/..cfsqp" in
+  let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
   let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
   let _ = compile() in 
   let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in

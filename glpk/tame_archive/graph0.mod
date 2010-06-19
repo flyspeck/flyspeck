@@ -63,6 +63,9 @@ std3, std4, std5, std6:  standard faces with 3,4,5,6 darts.  Includes special ca
 std4_diag3: quads with both diags at least 3. It is the dart opposite the long edge.
 std56_flat_free: pents, and hexes with no flat quarters.  
 
+std3_big: standard triangles with y4+y5+y6>=6.25;
+std3_small: standard triangles with y4+y5+y6<=6.25;
+
 apex_sup_flat: apex of super flat triangulating a quad 
    with shorter diagonal at least sqrt8-3.
 apex_flat: the apex darts of flat quarters.  It is the dart opposite the long edge.
@@ -74,8 +77,6 @@ apex5: apex dart of complement of flat in hex, where the apex dart is defined as
 
 d_edge_225_252: edge ye >= 2.25;
 d_edge_200_225: edge ye <= 2.25;
-std3_big: standard triangles with y4+y5+y6>=6.25;
-std3_small: standard triangles with y4+y5+y6<=6.25;
 
 
 node_218_252: node with yn >= 2.18;
@@ -116,7 +117,12 @@ set non_std := face diff std;
 set std3_big within std3;
 set std3_small within std3;
 
+# dart sets
+
 set dart_std3:= {(i,j) in dart: j in std3};
+set dart_std3_big := {(i,j) in dart: j in std3_big};
+set dart_std3_small := {(i,j) in dart: j in std3_small};
+
 set dart_std4:= {(i,j) in dart: j in std4};
 set dart3:= setof {(i1,i2,i3,j1,k1,k2,k3,j2) in e_dart cross e_dart: 
    (j1 = j2) and (i2=k1) and (i3=k2) and (i1=k3)} (i1,j1);
@@ -175,11 +181,11 @@ set apex_std3_hll := setof{(i1,i2,i3,j) in e_dart :
    j in std3}(i2,j);
 
 
-set dart_std3_small_200_218 := {(i,j) in dart_std3_200_218 :   j in std3_small};
+set dart_std3_small_200_218 := dart_std3_200_218 inter dart_std3_small;
 
-set dart_std3_big_200_218 := {(i,j) in dart_std3_200_218 :    j in std3_big};
+set dart_std3_big_200_218 := dart_std3_200_218 inter dart_std3_big;
 
-set apex_std3_small_hll := {(i,j) in apex_std3_hll : j in std3_small};
+set apex_std3_small_hll := apex_std3_hll inter dart_std3_small;
 
 # basic variables
 var azim{dart} >= 0, <= pi;
@@ -243,8 +249,8 @@ RHBLO{(i,j) in dart: i in node_200_218}: rhzim[i,j] <= azim[i,j]*rho218;
 RHBHI{(i,j) in dart: i in node_218_252}: rhzim[i,j] >= azim[i,j]*rho218;
 
 ## branch definitional inequalities
-ybig{(i,j) in dart_std3 : j in std3_big}:   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
-ysmall{(i,j) in dart_std3 : j in std3_small}:   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
+ybig{(i,j) in dart_std3_big}:   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
+ysmall{(i,j) in dart_std3_small}:   y4[i,j]+y5[i,j]+y6[i,j] <= 6.25;
 yhigh{i in node_218_252}: yn[i] >= 2.18;
 ylow{i in node_200_218}: yn[i] <= 2.18;
 yextrahigh{i in node_236_252}: yn[i] >= 2.36;
@@ -271,42 +277,6 @@ tau3{j in std3}: tau[j] >= 0;
 tau4{j in std4}: tau[j] >= 0.206;
 tau5{j in std5}: tau[j] >= 0.4819;
 tau6{j in std6}: tau[j] >= 0.7578;
-
-## interval arithmetic bounds dart_std3 ##
-
-azmin 'ID[5735387903]' {(i,j) in dart_std3} : azim[i,j] >= 0.852;
-
-azmax 'ID[5490182221]' {(i,j) in dart_std3}: azim[i,j] <= 1.893;
-
-tau_azim3A 'ID[3296257235]' {(i,j) in dart_std3}: 
-  tau[j]+0.626*azim[i,j] - 0.77 >= 0;
-
-tau_azim3B 'ID[8519146937]' {(i,j) in dart_std3}: 
-  tau[j]-0.259*azim[i,j] + 0.32 >= 0;
-
-tau_azim3C 'ID[4667071578]' {(i,j) in dart_std3}: 
-  tau[j]-0.507*azim[i,j] + 0.724 >= 0;
-
-tau_azim3D 'ID[1395142356]' {(i,j) in dart_std3}: 
-  tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
-
-solyA 'ID[7394240696]' {(i,j) in dart_std3}: 
-  sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-
-solyB 'ID[7726998381]' {(i,j) in dart_std3}: 
-  -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-
-azminA 'ID[4047599236]'  {(i,j) in dart_std3}: azim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-
-azmaxA 'ID[3526497018]' {(i,j) in dart_std3}: -azim[i,j] + 1.231 
-  - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
-
-
-rhazminA 'ID[5957966880]' {(i,j) in dart_std3}: rhzim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-
-
 
 ## interval arithmetic bounds dart_std4 ##
 
@@ -345,7 +315,40 @@ perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
 tauZ 'ID[7676202716] 49c' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
      tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46; 
 
+## Tame Table B inequality bounds 
 
+azmin 'ID[5735387903]' {(i,j) in dart_std3} : azim[i,j] >= 0.852;
+
+azmax 'ID[5490182221]' {(i,j) in dart_std3}: azim[i,j] <= 1.893;
+
+tau_azim3A 'ID[3296257235]' {(i,j) in dart_std3}: 
+  tau[j]+0.626*azim[i,j] - 0.77 >= 0;
+
+tau_azim3B 'ID[8519146937]' {(i,j) in dart_std3}: 
+  tau[j]-0.259*azim[i,j] + 0.32 >= 0;
+
+tau_azim3C 'ID[4667071578]' {(i,j) in dart_std3}: 
+  tau[j]-0.507*azim[i,j] + 0.724 >= 0;
+
+# more dart_std3.
+
+tau_azim3D 'ID[1395142356]' {(i,j) in dart_std3}: 
+  tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
+
+solyA 'ID[7394240696]' {(i,j) in dart_std3}: 
+  sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
+
+solyB 'ID[7726998381]' {(i,j) in dart_std3}: 
+  -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
+
+azminA 'ID[4047599236]'  {(i,j) in dart_std3}: azim[i,j] - 1.2308 
+  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
+
+azmaxA 'ID[3526497018]' {(i,j) in dart_std3}: -azim[i,j] + 1.231 
+  - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
+
+rhazminA 'ID[5957966880]' {(i,j) in dart_std3}: rhzim[i,j] - 1.2308 
+  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
 
 ## more interval arithmetic on nonstandard triangles  ##
 
@@ -513,28 +516,24 @@ apiecetau 'ID[7931207804]' {(i,j) in apex_A}:
   +0.0295*(y1[i,j]-2) - 0.0778*(y2[i,j]-2) - 0.0778*(y3[i,j]-2) 
   -0.37*(y4[i,j]-2) - 0.27*(y5[i,j]-2.52) - 0.27*(y6[i,j]-2.52) >= 0;
 
-
-
-
-
 #branch std3_small inequality
 
-std3_smalltau 'ID[9225295803]' {(i,j) in dart: j in std3_small}:
+std3_smalltau 'ID[9225295803]' {(i,j) in dart_std3_small}:
   tau[j] +0.0034
   -0.166*(y1[i,j]+y2[i,j]+y3[i,j]-6) -0.22*(y4[i,j]+y5[i,j]+y6[i,j]-6) >=0;
 
-std3_smalldih 'ID[9291937879]' {(i,j) in dart: j in std3_small}:
+std3_smalldih 'ID[9291937879]' {(i,j) in dart_std3_small}:
   azim[i,j] - 1.23
   -0.235*(y1[i,j]-2) + 0.362*(y2[i,j]+y3[i,j]-4)
   -0.694*(y4[i,j]-2) + 0.26*(y5[i,j]+y6[i,j]-4) >=0;
 
 #branch std3_big inequality
 
-std3_bigtau 'ID[7761782916]' {(i,j) in dart: j in std3_big}:
+std3_bigtau 'ID[7761782916]' {(i,j) in dart_std3_big}:
   tau[j] - 0.05 -0.137*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.17*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
-std3_bigsol 'ID[6224332984]'  {(i,j) in dart: j in std3_big}:
+std3_bigsol 'ID[6224332984]'  {(i,j) in dart_std3_big}:
   sol[j] - 0.589 +0.39*(y1[i,j]+y2[i,j]+y3[i,j]-6)
   -0.235*(y4[i,j]+y5[i,j]+y6[i,j]-6.25) >= 0;
 
@@ -641,7 +640,7 @@ hiazimG 'ID[7743522046]' {(i,j) in apex_std3_hll} : # 2<->3, 5<->6 sym.
 
 # branch HLL SMALL 
 
-hllsmallazimA 'ID[8657368829]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimA 'ID[8657368829]' {(i,j) in apex_std3_hll inter dart_std3_small} :
    azim[i,j] >= 1.277
      +0.273298*(y1[i,j]-2.18)
      -0.273853*(y2[i,j]-2)
@@ -652,7 +651,7 @@ hllsmallazimA 'ID[8657368829]' {(i,j) in apex_std3_hll : j in std3_small} :
      #{0.273298, -0.273853, -0.273853, 0.708818, -0.313988, -0.313988}
 
 
-hllsmallazimB 'ID[6619134733]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimB 'ID[6619134733]' {(i,j) in apex_std3_hll inter dart_std3_small} :
    -azim[i,j] >= -1.27799
      -0.439002*(y1[i,j]-2.18)
      +0.229466*(y2[i,j]-2)
@@ -662,7 +661,7 @@ hllsmallazimB 'ID[6619134733]' {(i,j) in apex_std3_hll : j in std3_small} :
      +0.208429*(y6[i,j]-2);
      # {-0.439002, 0.229466, 0.229466, -0.771733, 0.208429, 0.208429}
 
-hllsmallazimC 'ID[1284543870]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimC 'ID[1284543870]' {(i,j) in apex_std3_hll inter dart_std3_small} :
    azim2[i,j] >= 1.185
      -0.372262*(y1[i,j]-2.18)
      +0.214849*(y2[i,j]-2)
@@ -672,7 +671,7 @@ hllsmallazimC 'ID[1284543870]' {(i,j) in apex_std3_hll : j in std3_small} :
      -0.267157*(y6[i,j]-2);
    # {-0.372262, 0.214849, -0.163775, -0.293508, 0.656172, -0.267157};
 
-hllsmallazimD 'ID[1284543870]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimD 'ID[1284543870]' {(i,j) in apex_std3_hll  inter dart_std3_small} :
    azim3[i,j] >= 1.185  
      -0.372262*(y1[i,j]-2.18)
      +0.214849*(y3[i,j]-2)
@@ -682,7 +681,7 @@ hllsmallazimD 'ID[1284543870]' {(i,j) in apex_std3_hll : j in std3_small} :
      -0.267157*(y5[i,j]-2);
    # {-0.372262, 0.214849, -0.163775, -0.293508, 0.656172, -0.267157};
 
-hllsmallazimE 'ID[4041673283]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimE 'ID[4041673283]' {(i,j) in apex_std3_hll inter dart_std3_small} :
    -azim2[i,j] >= -1.1864
      +0.20758*(y1[i,j]-2.18)
      -0.236153*(y2[i,j]-2)
@@ -692,7 +691,7 @@ hllsmallazimE 'ID[4041673283]' {(i,j) in apex_std3_hll : j in std3_small} :
      +0.12047*(y6[i,j]-2);
   #{0.20758, -0.236153, 0.14172, 0.263109, -0.737003, 0.12047};
 
-hllsmallazimF 'ID[4041673283]' {(i,j) in apex_std3_hll : j in std3_small} :
+hllsmallazimF 'ID[4041673283]' {(i,j) in apex_std3_hll  inter dart_std3_small} :
    -azim3[i,j] >= -1.1864  # symmetry 2<->3, 5<->6.
      +0.20758*(y1[i,j]-2.18)
      -0.236153*(y3[i,j]-2)

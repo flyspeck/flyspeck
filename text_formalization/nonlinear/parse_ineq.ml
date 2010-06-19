@@ -185,16 +185,17 @@ let cc_function t =
 
 let dest_ineq ineq = 
   let t = snd(strip_forall (prep_term (ineq))) in
-  let cs = c_string_of_term in
   let (vs,i) = dest_comb t in
   let (_,vs) = dest_comb vs in
   let vs = dest_list vs in
-  let b = cs t in
-  let i = disjuncts i in
-  let i = map cs i in
   let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
-  let vs = map (function (a,(b,c)) -> (cs a, cs b, cs c)) vs in
-    (b,vs,i);;
+  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
+    (t,vs,disjuncts i);;
+
+let c_dest_ineq ineq = 
+  let cs = c_string_of_term in
+  let (b,vs,i) = dest_ineq ineq in
+    (cs b, map (fun (a,b,c) -> (cs a, cs b,cs c)) vs,map cs i);;
 
 (* generate c++ code of ineq *)
 
@@ -272,7 +273,7 @@ let cc_main =
 }\n\n";;
 
 let cc_code outs iqd = 
-  let (b,vs,i) = dest_ineq iqd.ineq in
+  let (b,vs,i) = c_dest_ineq iqd.ineq in
   let vs = vs @ if (has_penalty iqd) then penalty_var iqd else [] in
   let eps = geteps (iqd.tags) in 
   let casep = if has_penalty iqd then "max(0.0,penalty)" else "0.0" in
@@ -326,5 +327,59 @@ let compile () =
   let _ = compile() in 
   let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in
     ();;
+
+(* new section glpk code generation *)
+
+  let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
+
+  let  translate6 =ref 
+     [("dih_y","azim[i,j]");("sol","sol[j]");("taum","tau[j]")];;
+
+  let glpk_lookup s xs = if (xs = yy6) then
+    assoc s (!translate6)
+  else if xs = [] then (s^"[i,j]")
+  else  failwith s;;
+
+ let rec glpk_form t =
+  let soh = glpk_form in
+  if is_var t then glpk_lookup (fst (dest_var t)) [] else
+  let (f,xs) = strip_comb t in
+  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  (if not (is_const f) then failwith ("Oracle error: " ^ string_of_term f));
+  match fst (dest_const f) with
+  | "real_gt" | "real_ge" | "real_sub" -> ifix "-"
+  | "real_lt" | "real_le" -> ifix_swapped "-"
+  | "real_add" -> ifix "+"
+  | "real_mul" -> ifix "*"
+  | "real_div" -> ifix "/"
+  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
+  | "real_of_num" -> let [a] = xs in soh a  
+  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+  | "DECIMAL" ->  string_of_num' (dest_decimal t)
+  | s -> "(" ^ glpk_lookup s xs^ ")" ;;
+
+let counter = 
+      let ineqcounter = ref 0 in
+      fun t -> (let u = !ineqcounter in let _ =  ineqcounter := u+1 in u);;
+
+let mk_glpk_ineq iqd = 
+    let ineq = iqd.ineq in
+  let t = snd(strip_forall (prep_term (ineq))) in
+  let (vs,i) = dest_comb t  in
+  let (_,vs) = dest_comb vs in
+  let (f,xs) = strip_comb vs in
+  let (dart,_) = dest_const f in
+  let i' = hd(disjuncts i) in
+  let _ = (xs = yy6) or failwith "vars y1...y6 expected" in
+  let p = Printf.sprintf in
+  let s =   p"ineq%d 'ID[%s]' \n  { (i,j) in %s } : \n  %s >= 0.0 \n\n" 
+    (counter()) iqd.id dart (glpk_form i') in
+    s;;
+
+
+
+
+
 
 end;;

@@ -14,12 +14,12 @@ Revised June 15, 2010. Many sets and parameters renamed for consistency.
 The model starts with a tame hypermap, then breaks certain
 quadrilaterals into two flats, certain pentagons into a flat+big4face
 or into 2 flats+apiece, certain hexagons into flat+big5face.  The new
-internal edges have length 2.52--sqrt8.
+internal edges of pentagons and hexagons have length 2.52--sqrt8.
 
 
   The sets std3, std4, std5, std6 index the
 standard regions.  The other faces are faces of (V,E) obtained by
-adding diagonals to ESTD.  If a standard region with 5 or 6 darts is
+adding diagonals to E_std.  If a standard region with 5 or 6 darts is
 has no flat quarters, then it belongs to std56_flat_free.
 
 The term apex refers to a distinguished dart on a face.
@@ -183,8 +183,8 @@ set apex_std3_small_hll := {(i,j) in apex_std3_hll : j in std3_small};
 
 # basic variables
 var azim{dart} >= 0, <= pi;
-var azim2{apex_std3_hll} >=0, <= pi;
-var azim3{apex_std3_hll} >=0, <= pi;
+var azim2{dart3} >=0, <= pi;
+var azim3{dart3} >=0, <= pi;
 var ln{node} >= 0, <= 1;
 var rhzim{dart} >=0, <= pi + sol0;
 var yn{node} >= 2, <= 2.52;
@@ -196,8 +196,10 @@ var y1{dart} >= 2, <=2.52;
 var y2{dart} >=2, <=2.52;
 var y3{dart} >=2, <=2.52;
 var y4{dart3} >=2, <=3;
-var y5{d_edge} >=2, <=3;
-var y6{d_edge} >=2, <=3;
+var y5{dart} >=2, <=3;
+var y6{dart} >=2, <=3;
+var y8{dart_std4} >= 2, <= 2.52;
+var y9{dart_std4} >= 2, <= 2.52;
 
 
 #report variables
@@ -228,8 +230,10 @@ y3_def{(i3,i1,i2,j) in e_dart}: y3[i1,j] = yn[i3];
 y4_def{(i3,i1,i2,j) in e_dart :  (i1,j) in dart3}: y4[i1,j] = ye[i2,j];
 y5_def{(i3,i1,i2,j) in e_dart}: y5[i1,j] = ye[i3,j];
 y6_def{(i3,i1,i2,j) in e_dart}: y6[i1,j] = ye[i1,j];
-azim2c{(i1,i2,i3,j) in e_dart : (i2,j) in apex_std3_hll}: azim2[i2,j] = azim[i3,j];
-azim3c{(i1,i2,i3,j) in e_dart : (i2,j) in apex_std3_hll}: azim3[i2,j] = azim[i1,j];
+y9_def{(i3,i1,i2,j) in e_dart : (i1,j) in dart_std4 }: y9[i1,j] = ye[i2,j];
+y8_def{(i3,i1,i2,j) in e_dart: (i1,j) in dart_std4}: y8[i1,j] = y5[i3,j];
+azim2c{(i1,i2,i3,j) in e_dart : (i2,j) in dart3}: azim2[i2,j] = azim[i3,j];
+azim3c{(i1,i2,i3,j) in e_dart : (i2,j) in dart3}: azim3[i2,j] = azim[i1,j];
 
 ## inequality constraints
 main: sum{i in node} ln[i] >= 12;
@@ -323,22 +327,23 @@ tau_azim4D 'ID[3862621143]' {(i,j) in dart_std4}:
 
 tau3h 'ID[6988401556]' {(i,j) in apex_flat}: tau[j] >= 0.103;  # cf. tame table d[2,1], 
 tauAh 'ID[8082208587]' {(i,j) in apex_A}: tau[j] >= 0.2759; # cf. tame table d[1,2].
-tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.492;
 tau4s 'ID[9563139965]' {j in std4_diag3}: tau[j] >= 0.496;
-tauB5h {(i,j) in apex5}: tau[j] >= 0.6548; # = tame table D[4,1]
+
 
 ## XXD to HERE.
 
-
-tau5h{j in std5 inter std56_flat_free}: tau[j] >= 0.751;
-tau6h{j in std6 inter std56_flat_free}: tau[j] >= 0.91;
+# secondary estimates:
+tauB5h 'ID[]' {(i,j) in apex5}: tau[j] >= 0.6548; # = tame table D[4,1]
+tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.492;
+tau5h 'ID[]' {j in std5 inter std56_flat_free}: tau[j] >= 0.751;
+tau6h 'ID[]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
 perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
   y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j] >= 8.472;
 
 #this kills all std4_diag3.  It holds more strongly with the constant 0.49.
 tauZ 'ID[7676202716] 49c' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
-tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46; 
+     tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46; 
 
 
 
@@ -851,7 +856,7 @@ azim3_extra_big 'ID[1894886027]' {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_2
    # {-0.401543, 0.207551, -0.0294227, -0.494954, 0.605453, -0.156385};
 
  
-
+#tail
 solve;
 display hypermap_id;
 display lnsum;

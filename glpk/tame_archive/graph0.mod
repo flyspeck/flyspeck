@@ -192,7 +192,7 @@ var azim{dart} >= 0, <= pi;
 var azim2{dart3} >=0, <= pi;
 var azim3{dart3} >=0, <= pi;
 var ln{node} >= 0, <= 1;
-var rhzim{dart} >=0, <= pi + sol0;
+var rhazim{dart} >=0, <= pi + sol0;
 var yn{node} >= 2, <= 2.52;
 var ye{d_edge} >= 2, <= 3;
 var rho{node} >= 1, <= 1 + sol0/pi;
@@ -221,9 +221,9 @@ lnsum_def: sum{i in node} ln[i]  = lnsum;
 ynsum_def: sum{i in node} yn[i] = ynsum;
 sqdeficit_def: tgt - sum{j in face} tau[j] = sqdeficit;
 azim_sum{i in node}:  sum {(i,j) in dart} azim[i,j] = 2.0*pi;
-rhzim_sum{i in node}:  sum {(i,j) in dart} rhzim[i,j] = 2.0*pi*rho[i];
+rhazim_sum{i in node}:  sum {(i,j) in dart} rhazim[i,j] = 2.0*pi*rho[i];
 sol_sum{j in face}: sum{(i,j) in dart} (azim[i,j] - pi) = sol[j] - 2.0*pi;
-tau_sum{j in face}: sum{(i,j) in dart} (rhzim[i,j] - pi -sol0) = tau[j] - 2.0*(pi+sol0);
+tau_sum{j in face}: sum{(i,j) in dart} (rhazim[i,j] - pi -sol0) = tau[j] - 2.0*(pi+sol0);
 
 
 
@@ -243,10 +243,10 @@ azim3c{(i1,i2,i3,j) in e_dart : (i2,j) in dart3}: azim3[i2,j] = azim[i1,j];
 
 ## inequality constraints
 main: sum{i in node} ln[i] >= 12;
-RHA{(i,j) in dart}: rhzim[i,j] >= azim[i,j]*1.0;
-RHB{(i,j) in dart}: rhzim[i,j] <= azim[i,j]*(1+sol0/pi);
-RHBLO{(i,j) in dart: i in node_200_218}: rhzim[i,j] <= azim[i,j]*rho218;
-RHBHI{(i,j) in dart: i in node_218_252}: rhzim[i,j] >= azim[i,j]*rho218;
+RHA{(i,j) in dart}: rhazim[i,j] >= azim[i,j]*1.0;
+RHB{(i,j) in dart}: rhazim[i,j] <= azim[i,j]*(1+sol0/pi);
+RHBLO{(i,j) in dart: i in node_200_218}: rhazim[i,j] <= azim[i,j]*rho218;
+RHBHI{(i,j) in dart: i in node_218_252}: rhazim[i,j] >= azim[i,j]*rho218;
 
 ## branch definitional inequalities
 ybig{(i,j) in dart_std3_big}:   y4[i,j]+y5[i,j]+y6[i,j] >= 6.25;
@@ -315,65 +315,6 @@ perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
 tauZ 'ID[7676202716] 49c' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
      tau[j] - 0.45 *(y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j]-8.472) >= 0.46; 
 
-## Tame Table B inequality bounds 
-
-azmin 'ID[5735387903]' {(i,j) in dart_std3} : azim[i,j] >= 0.852;
-
-azmax 'ID[5490182221]' {(i,j) in dart_std3}: azim[i,j] <= 1.893;
-
-tau_azim3A 'ID[3296257235]' {(i,j) in dart_std3}: 
-  tau[j]+0.626*azim[i,j] - 0.77 >= 0;
-
-tau_azim3B 'ID[8519146937]' {(i,j) in dart_std3}: 
-  tau[j]-0.259*azim[i,j] + 0.32 >= 0;
-
-tau_azim3C 'ID[4667071578]' {(i,j) in dart_std3}: 
-  tau[j]-0.507*azim[i,j] + 0.724 >= 0;
-
-# more dart_std3.
-
-tau_azim3D 'ID[1395142356]' {(i,j) in dart_std3}: 
-  tau[j] + 0.001 -0.18*(y1[i,j]+y2[i,j]+y3[i,j]-6) - 0.125*(y4[i,j]+y5[i,j]+y6[i,j]-6) >= 0;
-
-solyA 'ID[7394240696]' {(i,j) in dart_std3}: 
-  sol[j] - 0.55125 - 0.196*(y4[i,j]+y5[i,j]+y6[i,j]-6) + 0.38*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-
-solyB 'ID[7726998381]' {(i,j) in dart_std3}: 
-  -sol[j] + 0.5513 + 0.3232*(y4[i,j]+y5[i,j]+y6[i,j]-6) - 0.151*(y1[i,j]+y2[i,j]+y3[i,j]-6) >= 0;
-
-azminA 'ID[4047599236]'  {(i,j) in dart_std3}: azim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.235*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-
-azmaxA 'ID[3526497018]' {(i,j) in dart_std3}: -azim[i,j] + 1.231 
-  - 0.152*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) + 0.5*(y1[i,j]-2) + 0.773*(y4[i,j]-2) >= 0;
-
-rhazminA 'ID[5957966880]' {(i,j) in dart_std3}: rhzim[i,j] - 1.2308 
-  + 0.3639*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.6*(y1[i,j]-2) - 0.685*(y4[i,j]-2) >= 0;
-
-## more interval arithmetic on nonstandard triangles  ##
-
-azminX 'ID[3020140039]' {(i,j) in dartX}: 
-  azim[i,j] - 1.629  + 0.402*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.315*(y1[i,j]-2)  >= 0;
-
-azminY 'ID[9414951439]' {(i,j) in dartY}:
-  azim[i,j] - 1.91 + 0.458 * (y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.342*(y1[i,j]-2) >= 0;
-
-azminZ 'ID[9995621667]' {(i,j) in dartZ}:
-  azim[i,j] - 2.09 + 0.578 * (y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8) - 0.54*(y1[i,j]-2) >= 0;
-
-#branch apex_flat inequality
-
-flattau 'ID[8248508703]' {(i,j) in apex_flat}:
-  tau[j] - 0.1 - 0.265*(y5[i,j]+y6[i,j]-4) - 0.06*(y4[i,j]-2.52) 
-   - 0.16*(y1[i,j]-2) -  0.115*(y2[i,j]+y3[i,j]-4) >=0;
-
-flatazim 'ID[3318775219]' {(i,j) in apex_flat}:
-  azim[i,j] - 1.629 + 0.414*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
--0.763*(y4[i,j]-2.52) - 0.315*(y1[i,j]-2) >= 0;
-
-flatazimmax 'ID[9922699028]' {(i,j) in apex_flat}:
-  -azim[i,j] + 1.6294 - 0.2213*(y2[i,j]+y3[i,j]+y5[i,j]+y6[i,j]-8)
-  +0.913*(y4[i,j]-2.52) + 0.728*(y1[i,j]-2) >= 0;
 
 flatazim2 'ID[5000076558]' {(i1,i,i3,j) in e_dart : (i,j) in apex_flat}:
   azim[i3,j] - 1.083 + 0.6365*(y1[i,j]-2) - 0.198*(y2[i,j]-2)
@@ -385,18 +326,18 @@ flatazim3 'ID[5000076558]' {(i1,i,i3,j) in e_dart : (i,j) in apex_flat}:
   +0.352*(y2[i,j]-2) + 0.416*(y4[i,j]-2.52)
   -0.66*(y6[i,j]-2) + 0.071*(y5[i,j]-2) >= 0;
 
-flatrhzim 'ID[9251360200]' {(i,j) in apex_flat}:
-  rhzim[i,j]
+flatrhazim 'ID[9251360200]' {(i,j) in apex_flat}:
+  rhazim[i,j]
   -1.629 - 0.866*(y1[i,j]-2) + 0.3805*(y2[i,j]+y3[i,j]-4)
   -0.841*(y4[i,j]-2.52) + 0.501*(y5[i,j]+y6[i,j]-4) >= 0;
 
-flatrhzim2 'ID[9756015945]' {(i1,i,i3,j) in e_dart: (i,j) in apex_flat}:
-  rhzim[i3,j] -1.08
+flatrhazim2 'ID[9756015945]' {(i1,i,i3,j) in e_dart: (i,j) in apex_flat}:
+  rhazim[i3,j] -1.08
   +0.6362*(y1[i,j]-2) -0.565*(y2[i,j]-2)+0.359*(y3[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y5[i,j]-2) +0.061*(y6[i,j]-2) >=0;
 
-flatrhzim3 'ID[9756015945]' {(i1,i,i3,j) in e_dart: (i,j) in apex_flat}:
-  rhzim[i3,j] -1.08
+flatrhazim3 'ID[9756015945]' {(i1,i,i3,j) in e_dart: (i,j) in apex_flat}:
+  rhazim[i3,j] -1.08
   +0.6362*(y1[i,j]-2) -0.565*(y3[i,j]-2)+0.359*(y2[i,j]-2)
   +0.416*(y4[i,j]-2.52) -0.666*(y6[i,j]-2) +0.061*(y5[i,j]-2) >=0;
 
@@ -506,8 +447,8 @@ apieceazim 'ID[5760733457]' {(i,j) in apex_A}:
   -0.1*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
   -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
 
-apiecerhzim 'ID[2563100177]' {(i,j) in apex_A}:
-  rhzim[i,j] - 1.0685 
+apiecerhazim 'ID[2563100177]' {(i,j) in apex_A}:
+  rhazim[i,j] - 1.0685 
   -0.4635*(y1[i,j]-2) + 0.424*(y2[i,j]-2) + 0.424*(y3[i,j]-2) 
   -0.594*(y4[i,j]-2) + 0.124*(y5[i,j]-2.52) + 0.124*(y6[i,j]-2.52) >= 0;
 
@@ -853,6 +794,7 @@ azim3_extra_big 'ID[1894886027]' {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_2
       +0.605453*(y6[i,j]-2)
       -0.156385*(y5[i,j]-2) ;
    # {-0.401543, 0.207551, -0.0294227, -0.494954, 0.605453, -0.156385};
+
 
  
 #tail

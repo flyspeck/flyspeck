@@ -333,10 +333,10 @@ let compile () =
   let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
 
   let  translate6 =ref 
-     [("dih_y","azim[i,j]");("sol","sol[j]");("taum","tau[j]")];;
+     [("dih_y","azim[i,j]");("sol_y","sol[j]");("taum","tau[j]");("rhazim","rhazim[i,j]")];;
 
   let glpk_lookup s xs = if (xs = yy6) then
-    assoc s (!translate6)
+    try (assoc s (!translate6)) with Failure _ -> failwith s 
   else if xs = [] then (s^"[i,j]")
   else  failwith s;;
 
@@ -365,19 +365,20 @@ let counter =
 
 let mk_glpk_ineq iqd = 
     let ineq = iqd.ineq in
-  let t = snd(strip_forall (prep_term (ineq))) in
+  let t = snd(strip_forall  (ineq)) in
   let (vs,i) = dest_comb t  in
   let (_,vs) = dest_comb vs in
   let (f,xs) = strip_comb vs in
   let (dart,_) = dest_const f in
   let i' = hd(disjuncts i) in
-  let _ = (xs = yy6) or failwith "vars y1...y6 expected" in
+  let _ = (xs = yy6) or (print_qterm vs; failwith "vars y1...y6 expected") in
   let p = Printf.sprintf in
-  let s =   p"ineq%d 'ID[%s]' \n  { (i,j) in %s } : \n  %s >= 0.0 \n\n" 
+  let s =   p"ineq%d 'ID[%s]' \n  { (i,j) in %s } : \n  %s >= 0.0;\n\n" 
     (counter()) iqd.id dart (glpk_form i') in
     s;;
 
-
+let mk_glpk_ineq_id s = 
+  let iqd = Ineq.getexact s in mk_glpk_ineq (hd iqd);;
 
 
 

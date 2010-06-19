@@ -163,7 +163,7 @@ macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;
    (* dart categories *)
-   Ineq.dart_std3];;
+   Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dartZ;Ineq.apex_flat];;
 
 let prep_term t = 
   let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in

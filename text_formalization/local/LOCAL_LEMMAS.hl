@@ -1625,7 +1625,86 @@ ASM_MESON_TAC[IN]]);;
 
 
 
-let KOMWBWC = prove_by_refinement(` local_fan (V,E,FF) /\
+let LOOP_MAP_IMP_DIFF_FIRST_ELMS = prove_by_refinement
+(` (! v:A. v IN V ==> orbit_map f v = V) /\ v IN V /\ k < CARD V /\
+l < k ==> ~( ITER k f v = ITER l f v ) `,
+[REPEAT STRIP_TAC;
+UNDISCH_TAC ` v:A IN V `;
+REWRITE_TAC[];
+FIRST_ASSUM NHANH;
+STRIP_TAC;
+SUBGOAL_THEN ` ITER l f (v:A) IN V ` ASSUME_TAC;
+EXPAND_TAC "V";
+REWRITE_TAC[orbit_map; IN_ELIM_THM; POWER_TO_ITER];
+EXISTS_TAC `l:num`;
+REWRITE_TAC[ARITH_RULE` x >= 0 `];
+DOWN;
+PHA;
+FIRST_ASSUM NHANH;
+SUBGOAL_THEN ` ITER ( k - l ) f ( ITER l f v ) = ITER l f (v:A) ` ASSUME_TAC;
+ASM_SIMP_TAC[ITER_ADD; ARITH_RULE`l < k ==> ( k - l ) + l:num = k `];
+DOWN;
+UNDISCH_TAC ` l < k:num`;
+PHA;
+ONCE_REWRITE_TAC[ARITH_RULE` a < b <=> 0 < b - a `];
+NHANH Lvducxu.ITER_CYCLIC_ORBIT;
+SIMP_TAC[];
+ASM_MESON_TAC[
+ARITH_RULE` a < b:num /\ aa <= a - i ==> ~( aa = b ) `;
+ISPECL [`f:A -> A `;` ITER l f (v:A) `; ` k - l:num` ] (GEN_ALL Wrgcvdr_cizmrrh.CARD_LE_K_OF_SET_K_FIRST_ELMS)]]);;
+
+
+
+
+let CARD_IMAGE_INJ2 = prove(
+` INJ f A B /\ FINITE A ==> CARD (IMAGE f A ) = CARD A `,
+REWRITE_TAC[INJ] THEN STRIP_TAC THEN 
+MATCH_MP_TAC CARD_IMAGE_INJ THEN ASM_REWRITE_TAC[]);;
+
+
+
+let BIJ_IMP_CARD_EQ = prove(` BIJ f A B /\ FINITE A ==> CARD A = CARD B `,
+REWRITE_TAC[BIJ] THEN 
+NHANH Wrgcvdr_cizmrrh.SURJ_IMP_S2_EQ_IMAGE_S1 THEN MESON_TAC[CARD_IMAGE_INJ2]);;
+
+
+
+let LOFA_IMP_DIS_ELMS = prove(
+` local_fan (V,E,FF) /\ v IN V /\ l < CARD FF
+==> (!i. i < l ==> ~(ITER l (rho_node FF) v = ITER i (rho_node FF) v))`,
+STRIP_TAC THEN GEN_TAC THEN STRIP_TAC THEN MATCH_MP_TAC LOOP_MAP_IMP_DIFF_FIRST_ELMS THEN 
+MP_TAC2 LOCAL_FAN_ORBIT_MAP_V THEN ASM_REWRITE_TAC[] THEN 
+ABBREV_TAC ` k = (\x. FST (x:real^3 # real^3 )) ` THEN STRIP_TAC THEN 
+MP_TAC2 Wrgcvdr_cizmrrh.BIJ_BETWEEN_FF_AND_V THEN 
+ASSUME_TAC2 Wrgcvdr_cizmrrh.LOCAL_FAN_FINITE_FF THEN 
+DOWN THEN REWRITE_TAC[TAUT` a ==> b ==> c <=> b /\ a ==> c `] THEN 
+NHANH BIJ_IMP_CARD_EQ THEN PURE_ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN 
+ASM_SIMP_TAC[]);;
+
+
+
+
+let AZIM_LAST_POINT_IN_RHO_SET2 = prove(
+`    local_fan (V,E,FF) /\
+       v IN V /\
+       {ITER n (rho_node FF) v | n <= l} = U /\
+       plane P /\
+       vec 0 IN P /\
+       U SUBSET P /\
+       v cross rho_node FF v = e
+       ==> ITER l (rho_node FF) v = ls /\
+           l < CARD FF
+       ==> azim_cycle U (vec 0) e ls = v `,
+NHANH AZIM_LAST_POINT_IN_RHO_SET THEN STRIP_TAC THEN STRIP_TAC THEN 
+FIRST_X_ASSUM MATCH_MP_TAC THEN EXPAND_TAC "ls" THEN 
+REWRITE_TAC[] THEN MATCH_MP_TAC LOFA_IMP_DIS_ELMS THEN 
+ASM_REWRITE_TAC[]);;
+
+
+
+
+let KOMWBWC = prove_by_refinement(`!E V P l FF U e ls v.
+ local_fan (V,E,FF) /\
        v IN V /\
        {ITER n (rho_node FF) v | n <= l} = U /\
  plane P /\
@@ -1641,12 +1720,14 @@ let KOMWBWC = prove_by_refinement(` local_fan (V,E,FF) /\
           x = ITER n (rho_node FF) v /\ n < l
           ==> azim_cycle U (vec 0) e x = rho_node FF x) /\
      (ITER l (rho_node FF) v = ls /\
-      (!i. i < l ==> ~(ls = ITER i (rho_node FF) v))
+l < CARD FF
       ==> azim_cycle U (vec 0) e ls = v)`,
-[STRIP_TAC; MP_TAC2 LOCAL_FAN_IMP_CYCLIC_SET;
+[REPEAT GEN_TAC THEN STRIP_TAC; MP_TAC2 LOCAL_FAN_IMP_CYCLIC_SET;
 STRIP_TAC; MP_TAC2 RHO_NODE_SET_IN_A_PLANE_IMP_POS_DIRECT;
-REMOVE_TAC; MP_TAC2 AZIM_LAST_POINT_IN_RHO_SET;
+REMOVE_TAC; MP_TAC2 AZIM_LAST_POINT_IN_RHO_SET2;
 REMOVE_TAC; MP_TAC2 FIRST_AZIM_CYCLE_EQ_RHO_NODE]);;
+
+
 
 
 (* -------------------------------- *)
@@ -2146,7 +2227,15 @@ REWRITE_TAC[INSERT_UNION;AFF_GT_SUBSET_AFFINE_HULL; UNION_EMPTY]]);;
 (* ============================================= *)
 (* ============================================= *)
 (* ============================================= *)
+(*              lemma KCHMAMG                    *)
 
+
+let REAL_LT_DIV_NEG = prove(` a < &0 /\ b < &0 ==> &0 < a /b `,
+SIMP_TAC [REAL_FIELD` b < &0 ==> a / b = ( -- a) / ( -- b ) `; REAL_ARITH ` 
+b < &0 <=> &0 < -- b `; REAL_LT_DIV]);;
+
+
+(* ================= BG =================== *)
 
 
 end;;

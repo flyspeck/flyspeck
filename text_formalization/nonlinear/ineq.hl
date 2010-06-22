@@ -16,7 +16,7 @@ flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineqdata3q1h.hl" ;;
 
 
-type tag = Lp | Clusterlp | Tablelp | Flypaper 
+type tag = Lp | Lpsymmetry | Clusterlp | Tablelp | Flypaper 
   | Cfsqp | Eps of float | Penalty of float*float
   | Further | Tex | Derived ;;
 
@@ -48,8 +48,12 @@ let ineqdoc = ref [];;
 
 let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
 
-(* Lp means the inequality enters the main GLPK inequality list to
-   eliminate tame hypermaps.
+(* Lp gives an instruction to generate a MathProg inequality for the
+   GLPK program to eliminate tame hypermaps.
+
+   Lpsymmetry gives an instruction to generate a second MathProg
+   inequality by symmetry.  y2 <-> y3, y5 <-> y6.  The domain must
+   already be symmetrical, otherwise an error results.
 
    Clusterlp means they enter the GLPK calcs for the cluster
    inequality.
@@ -68,8 +72,8 @@ let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
 
    Penalty implements a penalty method in cfsqp.
 
-   The floats (ub,wt) give the upper bound on the penalty term and
-   its weight.
+   The floats (ub,wt) give the upper bound on the penalty term and its
+   weight.
 
    Further means that it is not part of the Flyspeck project, but
    part of one of the extension theorems: StrongDodec, Fejes
@@ -81,8 +85,6 @@ let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
    Derived means that it is not a primitive inequality, but rather a
    logical consequence of others.
 
-   Dart string indicates the MathProg dart class to which the inequality belongs
-   for MathProg program generation.
 *)
 
 
@@ -100,7 +102,7 @@ let getexact id = filter (fun t -> (t.id = id)) (!ineqs);;
 let getprefix id = filter (fun t -> (String.length id <= String.length t.id) &&
 			     (String.sub t.id 0 (String.length id) = id)) (!ineqs);;
 
-let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
+  let do_betas x = all_forall (snd(dest_eq(concl(BETAS_CONV x))));;
 
 let mk_tplate template r = 
   do_betas(list_mk_comb (template, r));;
@@ -1368,7 +1370,8 @@ ineq = all_forall `ineq
   (&2, y1, &2 * h0);
     (&2, y2, &2 * h0)
   ]
-   (arclength y1 (&2 * h0) (&2) + arclength (&2 * h0) (&2 * h0) (&2) + arclength (&2 * h0) y2 (&2) > arclength y1 (&2) (&2) + arclength (&2) y2 (&2 *h0)  )`;
+   (arclength y1 (&2 * h0) (&2) + arclength (&2 * h0) (&2 * h0) (&2) + 
+   arclength (&2 * h0) y2 (&2) > arclength y1 (&2) (&2) + arclength (&2) y2 (&2 *h0)  )`;
 };;
 
 
@@ -1875,8 +1878,11 @@ add {
 
 (* interval arithmetic bounds DART4 *)
 
-let I_2570626711=
- all_forall `ineq
+add {
+  id = "2570626711";
+  doc="";
+  tags = [Cfsqp;Tablelp;Tex];
+  ineq = all_forall `ineq
     [ 
       (#2.0,y1,&2 * h0);
       (#2.0,y2,&2 * h0);
@@ -1884,18 +1890,20 @@ let I_2570626711=
       (&2 * h0,y4,&2 * h0);
       (#2.0,y5,&2 * h0);
       (#2.0,y6,&2 * h0)]
-   (dih_y y1 y2 y3 y4 y5 y6 > #1.15)`;;
-
-add {
-  id = "2570626711";
-  doc="";
-  tags = [Cfsqp;Tablelp;Tex];
-  ineq = I_2570626711;
+   (dih_y y1 y2 y3 y4 y5 y6 > #1.15)`;
 };;
 
-let I_7043724150=
- all_forall `ineq
-    [
+addtex(Section,"Linear Programs","");;
+
+let dart_classes = ref [];;
+
+let define_dart t = 
+  let th = new_definition t in
+  let _ = (dart_classes := th :: (!dart_classes)) in
+     th;;
+
+let dart_std4 = define_dart `dart_std4 y1 y2 y3 y4 y5 y6 y7 y8 y9 = 
+      [
       (#2.0,y1,&2 * h0);
       (#2.0,y2,&2 * h0);
       (#2.0,y3,&2 * h0);
@@ -1904,9 +1912,7 @@ let I_7043724150=
       (#2.0,y6,&2 * h0);
       (#2.0,y7,&2 * h0);
       (#2.0,y8,&2 * h0);
-      (#2.0,y9,&2 * h0)]
-(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + #4.72 * dih_y y1 y2 y3 y4 y5 y6 - #6.248 > #0.0) \/
-  (delta_y y4 y9 y6 (&2 * h0)    y5 y8 < &0))`;;
+      (#2.0,y9,&2 * h0)]`;;
 
 add {
   id = "7043724150";
@@ -1918,82 +1924,45 @@ add {
    y_4 \\le \\op{edge\\_flat}(2h_0,2h_0,2h_0,2h_0,2h_0) < 4.37
    \\
 *)
-  tags = [Cfsqp;Tablelp;Tex];
-  ineq = I_7043724150;
+  tags = [Cfsqp;Tablelp;Lp;Tex];
+  ineq =all_forall `ineq (dart_std4 y1 y2 y3 y4 y5 y6 y7 y8 y9)
+(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + #4.72 * dih_y y1 y2 y3 y4 y5 y6 - #6.248 > #0.0) \/
+  (delta_y y4 y9 y6 (&2 * h0)    y5 y8 < &0))`;
 };;
-
-let I_6944699408=
- all_forall `ineq
-    [
-      (#2.0,y1,&2 * h0);
-      (#2.0,y2,&2 * h0);
-      (#2.0,y3,&2 * h0);
-      (&2 * h0,y4,#4.37);
-      (#2.0,y5,&2 * h0);
-      (#2.0,y6,&2 * h0);
-      (#2.0,y7,&2 * h0);
-      (#2.0,y8,&2 * h0);
-      (#2.0,y9,&2 * h0)]
-(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + #0.972 * dih_y y1 y2 y3 y4 y5 y6 -  #1.707 > #0.0) \/  (delta_y y4 y9 y6 (&2 * h0)    y5 y8 < &0))`;;
 
 add {
   id = "6944699408";
   doc=" ";
-  tags = [Cfsqp;Tablelp;Tex];
-  ineq = I_6944699408;
+  tags = [Cfsqp;Tablelp;Lp;Tex];
+  ineq =  all_forall `ineq (dart_std4 y1 y2 y3 y4 y5 y6 y7 y8 y9)
+(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + #0.972 * dih_y y1 y2 y3 y4 y5 y6 -  #1.707 > #0.0) \/
+  (delta_y y4 y9 y6 (&2 * h0)    y5 y8 < &0))`;
 };;
-
-let I_4240815464=
- all_forall `ineq
-    [
-      (#2.0,y1,&2 * h0);
-      (#2.0,y2,&2 * h0);
-      (#2.0,y3,&2 * h0);
-      (&2 * h0,y4,#4.37);
-      (#2.0,y5,&2 * h0);
-      (#2.0,y6,&2 * h0);
-      (#2.0,y7,&2 * h0);
-      (#2.0,y8,&2 * h0);
-      (#2.0,y9,&2 * h0)]
-(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + 
-   #0.7573 *dih_y y1 y2 y3 y4 y5 y6 - #1.433 > #0.0) \/
-  ( enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < &2 * h0 ) \/
-( delta_y y1 y2 y3 y4 y5 y6 < &0) \/
-( delta_y y7 y2 y3 y4 y8 y9 < &0)) `;; (* constant 1.433 corrected 2010-06-14 *)
+ 
+(* constant 1.433 corrected 2010-06-14 *)
 
 add {
   id = "4240815464";
   doc="";
-  tags = [Cfsqp;Tablelp;Tex;Penalty(50.0,500.0)];
-  ineq = I_4240815464;
-};;
-
-let I_3862621143=
- all_forall `ineq
-    [
-      (#2.0,y1,&2 * h0);
-      (#2.0,y2,&2 * h0);
-      (#2.0,y3,&2 * h0);
-      (&2 * h0,y4,#4.37);
-      (#2.0,y5,&2 * h0);
-      (#2.0,y6,&2 * h0);
-      (#2.0,y7,&2 * h0);
-      (#2.0,y8,&2 * h0);
-      (#2.0,y9,&2 * h0)]
-(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 - #0.453 * dih_y y1 y2 y3 y4 y5 y6 +  #0.777 > #0.0) \/
- ( enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < &2 * h0 )  \/
+  tags = [Cfsqp;Tablelp;Tex;Lp;Penalty(50.0,500.0)];
+  ineq = all_forall `ineq (dart_std4 y1 y2 y3 y4 y5 y6 y7 y8 y9)
+(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 + 
+   #0.7573 *dih_y y1 y2 y3 y4 y5 y6 - #1.433 > #0.0) \/
+  ( enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < &2 * h0 ) \/
 ( delta_y y1 y2 y3 y4 y5 y6 < &0) \/
-( delta_y y7 y2 y3 y4 y8 y9 < &0)) `;;
+( delta_y y7 y2 y3 y4 y8 y9 < &0)) `;
+};;
 
 add {
   id = "3862621143";
   doc="";
-  tags = [Cfsqp;Tablelp;Tex;Penalty(500.0,500.0)];
-  ineq = I_3862621143;
+  tags = [Cfsqp;Tablelp;Tex;Lp;Penalty(500.0,500.0)];
+  ineq = all_forall `ineq (dart_std4 y1 y2 y3 y4 y5 y6 y7 y8 y9)
+(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 - #0.453 * dih_y y1 y2 y3 y4 y5 y6 +  #0.777 > #0.0) \/
+ ( enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < &2 * h0 )  \/
+( delta_y y1 y2 y3 y4 y5 y6 < &0) \/
+( delta_y y7 y2 y3 y4 y8 y9 < &0)) `;
 };;
-
-addtex(Section,"Linear Programs","");;
-
 
 add {
   id = "5691615370";
@@ -2004,7 +1973,7 @@ add {
   show the result holds for $\\v_1,\\ldots,\\v_4$.  We may increase a diagonal,
   with fixed perimeter, until the four points are coplanar.  We may contract the
   diagonals until both equal $3$.  This calculation provides the desired inequality.";
-  tags = [Cfsqp;Lp;Tex];
+  tags = [Cfsqp;Tex];
   ineq = all_forall `ineq
   [
   (&2,y2,#2.52);
@@ -2015,12 +1984,8 @@ add {
   ((delta_y (&3) y2 y3 (&3) y5 y6 < &0) \/ (y2 + y3 + y5 + y6 > #8.472))`;
 };;
 
-add {
-  id = "7676202716";
-  doc="";
-  tags = [Cfsqp;Lp;Tex;Penalty(5.0,500.0)];
-  ineq = all_forall `ineq
-  [
+let dart4_diag3_a = define_dart `dart4_diag3_a y1 y2 y3 y4 y5 y6 y7 y8 y9 =
+    [
   (&2,y1,#2.52);
   (&2,y2,#2.52);
   (&2,y3,#2.52);
@@ -2030,42 +1995,16 @@ add {
   (&2,y7,#2.52);
   (&2,y8,#2.52);
   (&2,y9,#2.52)
-  ]
+  ]`;;
+
+add {
+  id = "7676202716";
+  doc="";
+  tags = [Cfsqp;Lp;Tex;Penalty(5.0,500.0)];
+  ineq = all_forall `ineq (dart4_diag3_a y1 y2 y3 y4 y5 y6 y7 y8 y9)
 ((tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 - #0.46 
     - (y5 + y6 + y8 + y9 - #8.472)* #0.45 > &0) \/ 
   (enclosed  y1 y5 y6 y4 y2 y3 y7 y8 y9 < &3 ))`;
-};;
-
-add {
-  id = "6988401556";
-  doc="We can use extremal edge properties and the tame table D calculations
-    to reduce to the case where $y_4=\\sqrt8$ and $y_5,y_6$ are extremal.";
-  tags = [Cfsqp;Lp;Tex];
-  ineq = all_forall `ineq
-  [
-  (&2,y1,#2.52);
-  (&2,y2,#2.52);
-  (&2,y3,#2.52);
-  (&2,y5,#2.52);
-  (&2,y6,#2.52)
-  ]
-(taum y1 y2 y3 sqrt8 y5 y6 > #0.103)`;
-};;
-
-add {
-  id = "8082208587";
-  doc="We can use extremal edge properties and the tame table D (1,2) calculations
-    to reduce to the case where $y_4=\\sqrt8$ and $y_5,y_6$ are extremal.";
-  tags = [Cfsqp;Lp;Tex];
-  ineq = all_forall `ineq
-  [
-  (&2,y1,#2.52);
-  (&2,y2,#2.52);
-  (&2,y3,#2.52);
-  (#2.52,y5,sqrt8);
-  (&2,y6,#2.52)
-  ]
-(taum y1 y2 y3 sqrt8 y5 y6 > #0.2759)`;
 };;
 
 add {
@@ -2073,31 +2012,26 @@ add {
   doc = "This is the secondary estimate for quadrilaterals with both diagonals greater
    than 3.0.  Dimension reduction can be used to simplify.";
   tags = [Cfsqp;Lp;Tex;Penalty(5.0,500.0)];
-  ineq = all_forall `ineq
-  [
-  (&2,y1,#2.52);
-  (&2,y2,#2.52);
-  (&2,y3,#2.52);
-  (&3,y4,&2 * #2.52);
-  (&2,y5,#2.52);
-  (&2,y6,#2.52);
-  (&2,y7,#2.52);
-  (&2,y8,#2.52);
-  (&2,y9,#2.52)
-  ]
+  ineq = all_forall `ineq (dart4_diag3_a y1 y2 y3 y4 y5 y6 y7 y8 y9)
 ((tauq y1 y2 y3 y4 y5 y6 y7 y8 y9  > #0.496) \/ 
   (enclosed  y1 y5 y6 y4 y2 y3 y7 y8 y9 < &3 ))`;
 };;
 
 addtex(Section,"Linear Programs","dart\_ std3");;
 
-let dart_std3 = new_definition `dart_std3 y1 y2 y3 y4 y5 y6 =  [ 
+let dart_std3 = define_dart `dart_std3 y1 y2 y3 y4 y5 y6 =  [ 
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
       (#2.0,y3,#2.52);
       (#2.0,y4,#2.52);
       (#2.0,y5,#2.52);
       (#2.0,y6,#2.52)]`;;
+
+let node2_of_y = new_definition `node2_of_y f y1 y2 y3 y4 y5 y6 = f y2 y3 y1 y5 y6 y2`;;
+let node3_of_y = new_definition `node3_of_y f y1 y2 y3 y4 y5 y6 = f y3 y1 y2 y6 y4 y5`;;
+let rhazim2 = new_definition `rhazim2 = node2_of_y rhazim`;;
+let rhazim3 = new_definition `rhazim3 = node3_of_y rhazim`;;
+
 
 (* Tame table B inequalities *)
 
@@ -2220,7 +2154,7 @@ addtex(Section,"Linear Programs","dartXYZ");;
 
 (*more interval arithmetic on nonstandard triangles*)
 
-let dartX = new_definition `dartX y1 y2 y3 y4 y5 y6 = 
+let dartX = define_dart `dartX y1 y2 y3 y4 y5 y6 = 
    [ 
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
@@ -2239,7 +2173,7 @@ add {
   (#0.315 * (y1 - #2.0))  > #0.0)`;
 };;
 
-let dartY  = new_definition `dartY y1 y2 y3 y4 y5 y6 = 
+let dartY  = define_dart `dartY y1 y2 y3 y4 y5 y6 = 
   [ 
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
@@ -2258,7 +2192,7 @@ add {
   (#0.342 * (y1 - #2.0))  > #0.0)` ;
 };;
 
-let dartZ  = new_definition `dartZ y1 y2 y3 y4 y5 y6 = 
+let dart4_diag3  = define_dart `dart4_diag3 y1 y2 y3 y4 y5 y6 = 
    [ 
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
@@ -2272,7 +2206,7 @@ add {
   doc="";
   tags = [Cfsqp;Lp;Tex];
   ineq = 
- all_forall `ineq (dartZ y1 y2 y3 y4 y5 y6)
+ all_forall `ineq (dart4_diag3 y1 y2 y3 y4 y5 y6)
 ( (dih_y y1 y2 y3 y4 y5 y6) - #2.09 +  
   (#0.578 * (y2 + y3 + y5 + y6 - #8.0)) -
   (#0.54 * (y1 - #2.0))  > #0.0)`;
@@ -2280,7 +2214,7 @@ add {
 
 (*branch flat inequality*)
 
-let apex_flat  = new_definition `apex_flat y1 y2 y3 y4 y5 y6 = 
+let apex_flat  = define_dart `apex_flat y1 y2 y3 y4 y5 y6 = 
    [ 
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
@@ -2288,6 +2222,15 @@ let apex_flat  = new_definition `apex_flat y1 y2 y3 y4 y5 y6 =
       (#2.52,y4,sqrt8);
       (#2.0,y5,#2.52);
       (#2.0,y6,#2.52)]`;;
+
+add {
+  id = "6988401556";
+  doc="We can use extremal edge properties and the tame table D calculations
+    to reduce to the case where $y_4=\\sqrt8$ and $y_5,y_6$ are extremal.";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (apex_flat y1 y2 y3 y4 y5 y6) 
+(taum y1 y2 y3 y4 y5 y6 > #0.103)`;
+};;
 
 add {
   id = "8248508703";
@@ -2328,10 +2271,10 @@ add {
 add {
   id = "5000076558";
   doc="";
-  tags = [Cfsqp;Lp;Tex];
+  tags = [Cfsqp;Lp;Lpsymmetry;Tex];
   ineq = 
  all_forall `ineq (apex_flat y1 y2 y3 y4 y5 y6)
-( (dih_y y2 y3 y1 y5 y6 y4) - #1.083 +  
+( (dih2_y y1 y2 y3 y4 y5 y6) - #1.083 +  
   (#0.6365 * (y1 - #2.0)) -
   (#0.198 * (y2 - #2.0)) + 
   (#0.352 * (y3 - #2.0)) + 
@@ -2356,10 +2299,10 @@ add {
 add {
   id = "9756015945";
   doc="";
-  tags = [Cfsqp;Lp;Tex];
+  tags = [Cfsqp;Lp;Lpsymmetry;Tex];
   ineq = 
  all_forall `ineq (apex_flat y1 y2 y3 y4 y5 y6)
-( (rhazim y2 y3 y1 y5 y6 y4) - #1.08 +  
+( (rhazim2 y1 y2 y3 y4 y5 y6) - #1.08 +  
   (#0.6362 * (y1 - #2.0)) -
   (#0.565 * (y2 - #2.0)) + 
   (#0.359 * (y3 - #2.0)) + 
@@ -2368,7 +2311,7 @@ add {
   (#0.061 * (y6 - #2.0)) > #0.0)`;
 };;
 
-let apex_A = new_definition `apex_A y1 y2 y3 y4 y5 y6 = 
+let apex_A = define_dart `apex_A y1 y2 y3 y4 y5 y6 = 
   [(#2.0, y1, #2.52);
 (#2.0, y2, #2.52);
 (#2.0, y3, #2.52);
@@ -2376,6 +2319,14 @@ let apex_A = new_definition `apex_A y1 y2 y3 y4 y5 y6 =
 (#2.52, y5, sqrt8);
 (#2.52, y6, sqrt8)]`;;
 
+add {
+  id = "8082208587";
+  doc="We can use extremal edge properties and the tame table D (1,2) calculations
+    to reduce to the case where $y_4=\\sqrt8$ and $y_5,y_6$ are extremal.";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (apex_A y1 y2 y3 y4 y5 y6)
+(taum y1 y2 y3 y4 y5 y6 > #0.2759)`;
+};;
 
 add {
   id = "5760733457";
@@ -2420,7 +2371,7 @@ all_forall `ineq (apex_A y1 y2 y3 y4 y5 y6)
 (#0.27 * (y6 - #2.52)) > #0.0)`;
 };;
 
-let dart_std3_small = new_definition `dart_std3_small y1 y2 y3 y4 y5 y6 = 
+let dart_std3_small = define_dart `dart_std3_small y1 y2 y3 y4 y5 y6 = 
  [(#2.0, y1, #2.52);
 (#2.0, y2, #2.52);
 (#2.0, y3, #2.52);
@@ -2453,7 +2404,7 @@ all_forall `ineq  (dart_std3_small y1 y2 y3 y4 y5 y6)
 };;
 
 (* same domain but extra disjunct *)
-let dart_std3_big = new_definition `dart_std3_big = dart_std3`;;
+let dart_std3_big = define_dart `dart_std3_big = dart_std3`;;
 
 add {
   id = "7761782916";
@@ -2461,201 +2412,450 @@ add {
   tags = [Cfsqp;Lp;Tex];
   ineq =  
 all_forall `ineq  (dart_std3_big y1 y2 y3 y4 y5 y6)
-(taum y1 y2 y3 y4 y5 y6 - #0.05 - (#0.137 * (y1 + y2 + y3 - #6.0)) 
+((taum y1 y2 y3 y4 y5 y6 - #0.05 - (#0.137 * (y1 + y2 + y3 - #6.0)) 
   - (#0.17 * (y4 + y5 + y6 - #6.25)) > #0.0)\/
-(y4 + y5 + y6 < #6.25)`; 
+(y4 + y5 + y6 < #6.25))`; 
 };;
 
 add {
-  id = "4840774900";
+  id = "6224332984";
   doc="";
   tags = [Cfsqp;Lp;Tex];
-  ineq = 
-all_forall `ineq
-[(#2.0, y1, #2.52);
+  ineq = all_forall `ineq (dart_std3_big y1 y2 y3 y4 y5 y6)
+((sol_y y1 y2 y3 y4 y5 y6 - #0.589 + 
+(#0.39 * (y1 + y2 + y3 - #6.0)) - 
+(#0.235 * (y4 + y5 + y6 - #6.25)) > #0.0) \/
+(y4 + y5 + y6 < #6.25))`;
+};;
+
+let apex_sup_flat = define_dart `apex_sup_flat y1 y2 y3 y4 y5 y6 =
+ [(#2.0, y1, #2.52);
 (#2.0, y2, #2.52);
 (#2.0, y3, #2.52);
 (sqrt8, y4, #3.0);
 (#2.0, y5, #2.52);
 (#2.0, y6, #2.52)]
-(taum y1 y2 y3 y4 y5 y6 - #0.1054 - 
-(#0.14132 * (y1 + (y2 / #2.0) + (y3 / #2.0) - #4.0)) - 
-(#0.36499 * (y5 + y6 - #4.0)) > #0.0)`; 
+ `;;
+
+add {
+  id = "4840774900";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (
+ taum y1 y2 y3 y4 y5 y6      - #0.1054 
+    - #0.14132*(y1 + y2 / &2 + y3 / &2 - &4)
+    - #0.36499*(y5 +y6 - &4) >= &0)`;
+};;
+
+add {
+  id = "1642527039";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (
+ taum y1 y2 y3 y4 y5 y6      - #0.128 
+  - #0.053*((y5 +y6 - &4) - (#2.75/ &2)*(y4 - sqrt8)) >= &0)`;
+};;
+
+add {
+  id = "7863247282";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (taum y1 y2 y3 y4 y5 y6  - #0.053*((y5 +y6 - &4) - (#2.75/ &2)*(y4 - sqrt8))
+    - #0.12 
+    - #0.14132*(y1 + y2 / &2 + y3 / &2 - &4)
+    - #0.328*(y5 +y6 - &4) >= &0)`;  (* corrected 2010-06-22, thales, was y4 + y5 *)
+};;
+
+add {
+  id = "7718591733";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (dih2_y y1 y2 y3 y4 y5 y6  - #0.955 
+   - #0.2356*(y2 - &2)
+       + #0.32*(y3 - &2) + #0.792*(y1 - &2)
+   - #0.707*(y5 - &2) 
+        + #0.0844*(y6 - &2) + #0.821*(y4 - sqrt8) >= &0)`;  (* corrected 2010-06-22 *)
+};;
+
+add {
+  id = "3566713650";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (
+  -- dih_y y1 y2 y3 y4 y5 y6  + #1.911 + #1.01 *(y1  - &2)
+  - #0.284*(y2 +y3 +y5 +y6 - &8)
+   + #1.07*(y4 - sqrt8) >= &0)`;
+};;
+
+add {
+  id = "1085358243";
+  doc="";
+  tags = [Cfsqp;Tex;Lp];
+  ineq =  all_forall `ineq (apex_sup_flat y1 y2 y3 y4 y5 y6)
+  (
+  dih_y y1 y2 y3 y4 y5 y6  - #1.903 - #0.4*(y1  - &2)
+  + #0.49688*(y2 +y3 +y5 +y6 - &8)
+   -(y4 -sqrt8) >= &0)`;
 };;
 
 
-
-(* These are inequalities found in the lp2009.cc file 
-   that were not found in the graph0.mod file *)
-
-
-let I_5769230427=
- all_forall `ineq
-    [
-      (#2.0,y1,#2.52);
-      (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52);
-      (#2.0,y4,#2.52);
-      (#3.0,y5,#3.3);
-      (#2.0,y6,#2.52)]
-( (taum y1 y2 y3 y4 y5 y6) - 
-  #0.231 - (#0.622 * (dih_y y1 y2 y3 y4 y5 y6))
-  - (#2.09 / #2.0) - ((#0.54 / #2.0) * (y1 - #2.0))
-  + (#0.578 * (y2 + y6 - #4.0))  > #0.0)`;;
-
-
-let I_9229542852 = 
-all_forall `ineq
-[(#2.0, y1, #2.18);
+let dart_std3_small_200_218 = define_dart 
+ `dart_std3_small_200_218 y1 y2 y3 y4 y5 y6 = [(#2.0, y1, #2.18);
 (#2.0, y2, #2.18);
 (#2.0, y3, #2.18);
 (#2.0, y4, #2.25);
 (#2.0, y5, #2.25);
-(#2.0, y6, #2.25)]
+(#2.0, y6, #2.25)]`;;
+
+add {
+  id = "9229542852";
+  doc="";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (dart_std3_small_200_218 y1 y2 y3 y4 y5 y6)
 (dih_y y1 y2 y3 y4 y5 y6 - #1.230 - 
 (#0.2357 * (y1 - #2.0)) + 
 (#0.2493 * (y2 + y3 - #4.0)) - 
 (#0.682 * (y4 - #2.0)) + 
-(#0.3035 * (y5 + y6 - #4.0)) > #0.0)`;;
+(#0.3035 * (y5 + y6 - #4.0)) > #0.0)`;
+};;
 
-let I_1550635295= 
-all_forall `ineq
-[(#2.0, y1, #2.18);
-(#2.0, y2, #2.18);
-(#2.0, y3, #2.18);
-(#2.0, y4, #2.25);
-(#2.0, y5, #2.25);
-(#2.0, y6, #2.25)]
+add {
+  id = "1550635295";
+  doc="";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (dart_std3_small_200_218 y1 y2 y3 y4 y5 y6)
 (--(dih_y y1 y2 y3 y4 y5 y6) + #1.232 + 
 (#0.261 * (y1 - #2.0)) - 
 (#0.203 * (y2 + y3 - #4.0)) + 
 (#0.772 * (y4 - #2.0)) - 
-(#0.191 * (y5 + y6 - #4.0)) > #0.0)`;;
+(#0.191 * (y5 + y6 - #4.0)) > #0.0)`;
+};;
 
-
-let I_4491491732= 
-all_forall `ineq
-[(#2.0, y1, #2.18);
-(#2.0, y2, #2.18);
-(#2.0, y3, #2.18);
-(#2.0, y4, #2.25);
-(#2.0, y5, #2.25);
-(#2.0, y6, #2.25)]
+add {
+  id = "4491491732";
+  doc="";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (dart_std3_small_200_218 y1 y2 y3 y4 y5 y6)
 (taum y1 y2 y3 y4 y5 y6 + #0.0008 - 
 (#0.1631 * (y1 + y2 + y3 - #6.0)) - 
-(#0.2127 * (y4 + y5 + y6 - #6.0)) > #0.0)`;;
+(#0.2127 * (y4 + y5 + y6 - #6.0)) > #0.0)`;
+};;
 
-let I_8282573160= 
-all_forall `ineq
-[(#2.18, y1, #2.52);
+let  dart_8282573160  = define_dart 
+ `dart_8282573160  y1 y2 y3 y4 y5 y6 = [(#2.18, y1, #2.52);
 (#2.0, y2, #2.18);
 (#2.0, y3, #2.18);
 (#2.52, y4, sqrt8);
 (#2.0, y5, #2.52);
-(#2.0, y6, #2.52)]
+(#2.0, y6, #2.52)]`;;
+
+add {
+  id = "8282573160";
+  doc="";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (dart_8282573160  y1 y2 y3 y4 y5 y6)
 (taum y1 y2 y3 y4 y5 y6 - #0.1413 - 
 (#0.214 * (y1 - #2.18)) - 
 (#0.1259 * (y2 + y3 - #4.0)) - 
 (#0.067 * (y4 - #2.52)) - 
-(#0.241 * (y5 + y6 - #4.0)) > #0.0)`;;
+(#0.241 * (y5 + y6 - #4.0)) > #0.0)`;
+};;
 
-let I_8611785756= 
-all_forall `ineq
-[(#2.0, y1, #2.52);
+let dart_std3_big_200_218   = define_dart 
+ `dart_std3_big_200_218  y1 y2 y3 y4 y5 y6 = [(#2.0, y1, #2.18);
 (#2.0, y2, #2.18);
 (#2.0, y3, #2.18);
 (#2.0, y4, #2.52);
 (#2.0, y5, #2.52);
-(#2.0, y6, #2.52)]
-(sol_y y1 y2 y3 y4 y5 y6 - #0.589 + 
+(#2.0, y6, #2.52)]`;;
+
+add {
+  id = "8611785756";
+  doc="";
+  tags = [Cfsqp;Lp;Tex];
+  ineq = all_forall `ineq (dart_std3_big_200_218  y1 y2 y3 y4 y5 y6)
+((sol_y y1 y2 y3 y4 y5 y6 - #0.589 + 
 (#0.24 * (y1 + y2 + y3 - #6.0)) - 
 (#0.16 * (y4 + y5 + y6 - #6.25)) > #0.0) \/
-(y4 + y5 + y6 < #6.25)`;;
+(y4 + y5 + y6 < #6.25))`;
+};;
 
-
-let I_6224332984= 
-all_forall `ineq
-[(#2.0, y1, #2.52);
-(#2.0, y2, #2.52);
-(#2.0, y3, #2.52);
-(#2.0, y4,#2.52);
-(#2.0, y5, #2.52);
-(#2.0, y6, #2.52)]
-(sol_y y1 y2 y3 y4 y5 y6 - #0.589 + 
-(#0.39 * (y1 + y2 + y3 - #6.0)) - 
-(#0.235 * (y4 + y5 + y6 - #6.25)) > #0.0) \/
-(y4 + y5 + y6 < #6.25)`;;
-
-(* In lp2009 but not graph0 *)
-
-(* 
-let I_3336871894=
- all_forall `ineq
-    [
-      (#2.0,y1,#2.52);
-      (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52);
-      (#2.0,y4,#2.52);
-      (#2.0,y5,#2.52);
-      (#2.0,y6,#2.52)]
-( taum y1 y2 y3 y4 y5 y6 >= #0.0)`;;
-
-let I_8880534953=
- all_forall `ineq
-    [
-      (#2.0,y1,#2.52);
-      (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52);
-      (#2.0,y4,#2.52);
-      (#2.52,y5,sqrt8);
-      (#2.52,y6,sqrt8)]
-( taum y1 y2 y3 y4 y5 y6 -  #0.2759 > #0.0)`;;
-
-
-*)
-
-
-
-(*found in lp2009 but not graph0 *)
-
-let I_5464178191=
- all_forall `ineq
-    [
-      (#2.0,y1,#2.52);
-      (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52);
-      (#2.52,y4,#5.04);
-      (#2.0,y5,#2.52);
-      (#2.0,y6,#2.52);
-      (#2.0,y7,#2.52);
-      (#2.0,y8,#2.52);
-      (#2.0,y9,#2.52)]
-(( tauq y1 y2 y3 y4 y5 y6 y7 y8 y9 - #0.206 > #0.0) \/
-( enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < #2.52 ) \/
-( delta_y y1 y2 y3 y4 y5 y6 < &0) \/
-( delta_y y7 y2 y3 y4 y8 y9 < &0))`;;
-
-(*permute the y coordinates so that [i,j] is the apiece dart
-y5 is opposite, y6 is other long*)
-
-(* coefficients corrected, April 28, 2010-thales *)
-
-let I_181212899=
- all_forall `ineq
-[
+(* 181212899 is applied in six different ways, each with a different dart class. *)
+let dart_template = `\dart_class y4min y4max. dart_class 
+  (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) = 
+ [
       (#2.0, y1, #2.52);
       (#2.0, y2, #2.52);
       (#2.0, y3, #2.52);
-      (#2.52, y4, sqrt8);
-      (#2.52, y5, #2.52);
-      (#2.52, y6, sqrt8)]
+      (y4min, y4, y4max);
+      (#2.0, y5, #2.52);
+      (#2.52, y6, sqrt8)]`;;
+
+let dart_template_reverse = `\dart_class y4min y4max. dart_class 
+  (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) = 
+ [
+      (#2.0, y1, #2.52);
+      (#2.0, y2, #2.52);
+      (#2.0, y3, #2.52);
+      (y4min, y4, y4max);
+      (#2.52, y5, sqrt8);
+      (#2.0, y6, #2.52)]`;;
+
+let tyR = `:real->real->real->real->real->real-> (real#real#real)list`;;
+
+let mk_dart rev (x,y,z) = 
+  let x' = if (is_var x) then mk_var(fst(dest_var x),tyR) else x in
+  let plate = if (rev) then dart_template_reverse else dart_template in
+    snd(strip_forall (Ineq.mk_tplate plate [x';y;z]));;
+
+let newdef rev t = define_dart (mk_dart rev t);;
+
+let apexffA = newdef false (`apexffA`,`#2.52`,`sqrt8`);;  (* NB ff comes before f on this *)
+let apexfA = newdef true (`apexfA`,`#2.52`,`sqrt8`);;
+let apexf4 = newdef false (`apexf4`,`sqrt8`,`sqrt8`);;
+let apexff4 = newdef true (`apexff4`,`sqrt8`,`sqrt8`);;
+let apexf5 = newdef false (`apexf5`,`#2.52`,`#2.52`);;
+let apexff5 = newdef true (`apexff5`,`#2.52`,`#2.52`);;
+
+let template = `\dart_class y4e y2' y3' y5' y6'. ineq (dart_class y1 y2 y3 y4 y5 y6) 
 (dih_y y1 y2 y3 y4 y5 y6 - #1.448 - 
 (#0.266 * (y1 - #2.0)) + 
-(#0.295 * (y2 - #2.0)) + 
-(#0.57 * (y3 - #2.0)) - 
-(#0.745 * (y4 - #2.52)) + 
-(#0.268 * (y5 - #2.0)) + 
-(#0.385 * (y6 - #2.52)) > #0.0)`;;
+(#0.295 * (y2' - #2.0)) + 
+(#0.57 * (y3' - #2.0)) - 
+(#0.745 * (y4e - #2.52)) + 
+(#0.268 * (y5' - #2.0)) + 
+(#0.385 * (y6' - #2.52)) > #0.0)`;;
+(* coefficients corrected, April 28, 2010, June 20, 2010-thales *)
+
+let mk_iqd rev (d,dart,y4e) = 
+  let yy = if rev then [`y3:real`;`y2:real`;`y6:real`;`y5:real`] else
+    [`y2:real`;`y3:real`;`y5:real`;`y6:real`] in
+  let ineq = Ineq.mk_tplate template ([dart;y4e] @ yy) in 
+   {
+   id = Printf.sprintf "181212899 %d" d;
+   doc = if (d=0) then 
+    "This original version of the inequality. There are five other derived versions." else "";
+   tags = [Cfsqp;Lp] @ (if (d>0) then [Derived] else [Tex]);
+   ineq = all_forall ineq;
+   };;
+
+add (mk_iqd false (0,`apexffA`,`y4:real`));;
+add (mk_iqd true (1,`apexfA`,`y4:real`));;
+add (mk_iqd false (2,`apexf4`,`sqrt8`));;
+add (mk_iqd true (3,`apexff4`,`sqrt8`));;
+add (mk_iqd false (4,`apexf5`,`#2.52`));;
+add (mk_iqd true (5,`apexff5`,`#2.52`));;
+
+addtex(Section,"Linear Programs","apex std3 hll");;
+
+let apex_std3_hll = define_dart `apex_std3_hll y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (&2,y4,#2.52);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]`;;
+
+let apex_std3_small_hll = define_dart `apex_std3_small_hll y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (&2,y4,#2.25);
+  (&2,y5,#2.25);
+  (&2,y6,#2.25)
+  ]`;;
+
+let dart_3872614111 = define_dart `dart_3872614111 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.36);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2.25,y4,#2.52);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_3139693500 = define_dart `dart_3139693500 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.36);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (&2,y4,#2.25);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_4841020453 = define_dart `dart_4841020453 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.36,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (&2,y4,#2.25);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_9925287433 = define_dart `dart_9925287433 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.36,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2.25,y4,#2.52);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_7409690040 = define_dart `dart_7409690040 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.36);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2.25,y4,#2.52);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_4002562507 = define_dart `dart_4002562507 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.18,y1,#2.36);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2,y4,#2.25);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_5835568093 = define_dart `dart_5835568093 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.36,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2,y4,#2.25);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let dart_1894886027 = define_dart `dart_1894886027 y1 y2 y3 y4 y5 y6 =
+  [
+  (#2.36,y1,#2.52);
+  (&2,y2,#2.18);
+  (&2,y3,#2.18);
+  (#2.25,y4,#2.52);
+  (&2,y5,#2.52);
+  (&2,y6,#2.52)
+  ]` ;;
+
+let templateC = `\ dart_class 
+   f fc f0 c1 c2 c3 c4 c5 c6 y1min y2min y3min y4min y5min y6min .
+   ineq (dart_class y1 y2 y3 y4 y5 y6) 
+     ( fc * f y1 y2 y3 y4 y5 y6 > f0
+      + c1 * (y1 - y1min) + c2 *(y2- y2min) + c3 * (y3 - y3min) +
+          c4 * (y4 - y4min) + c5 *(y5- y5min) + c6 * (y6 - y6min))`;;
+  
+let yymin = dest_list `[#2.18;&2;&2;&2;&2;&2]`;;
+
+let iqd s dart sym t = 
+  let c = mk_mconst (dart,tyR) in {
+  id = s;
+  doc = "";
+  tags = [Cfsqp;Lp;] @ (if sym then [Lpsymmetry] else []);
+  ineq = Ineq.mk_tplate templateC (c:: t);
+};;
+
+add (iqd "2151506422" "apex_std3_hll" false 
+ ([`dih_y`;`&1`;`#1.2777`] @ dest_list
+  `[#0.281; -- #0.278364; -- #0.278364; #0.7117; -- #0.34336; -- #0.34336]` @
+  yymin));;
+
+add (iqd "6836427086" "apex_std3_hll" false 
+ ([`dih_y`;`-- &1`;`-- #1.27799`] @ dest_list
+  `[-- #0.356217; #0.229466; #0.229466; -- #0.949067; #0.172726; #0.172726]` @
+  yymin));;
+
+add (iqd "3636849632" "apex_std3_hll" false 
+ ([`taum`;`&1`;`#0.0345`] @ dest_list
+  `[#0.185545; #0.193139; #0.193139; #0.170148; #0.13195; #0.13195]` @
+  yymin));;
+
+add (iqd "5298513205" "apex_std3_hll" true 
+ ([`dih2_y`;`&1`;`#1.185`] @ dest_list
+  `[-- #0.302913; #0.214849; -- #0.163775; -- #0.443449; #0.67364; -- #0.314532]` @
+  yymin));;
+
+add (iqd "7743522046" "apex_std3_hll" true
+ ([`dih2_y`;`-- &1`;`-- #1.1865`] @ dest_list
+  `[#0.20758; -- #0.236153; #0.14172; #0.263834; -- #0.771203; #0.0457292]` @
+  yymin));;
+
+let yymin_plus = dest_list `[#2.36;&2;&2;#2.25;&2;&2]`;;
+
+add (iqd "8657368829" "apex_std3_small_hll" false 
+ ([`dih_y`;`&1`;`#1.277`] @ dest_list
+  `[#0.273298; -- #0.273853; -- #0.273853; #0.708818; -- #0.313988; -- #0.313988]` @
+  yymin));;
+
+add (iqd "6619134733" "apex_std3_small_hll" false 
+ ([`dih_y`;`-- &1`;`-- #1.27799`] @ dest_list
+  `[-- #0.439002; #0.229466; #0.229466; -- #0.771733; #0.208429; #0.208429]` @
+  yymin));;
+
+add (iqd "1284543870" "apex_std3_small_hll" true
+ ([`dih2_y`;`&1`;`#1.185`] @ dest_list
+  `[-- #0.372262; #0.214849; -- #0.163775; -- #0.293508; #0.656172; -- #0.267157]` @
+  yymin));;
+
+add (iqd "4041673283" "apex_std3_small_hll" true
+ ([`dih2_y`;`-- &1`;`-- #1.1864`] @ dest_list
+  `[#0.20758; -- #0.236153; #0.14172; #0.263109; -- #0.737003; #0.12047]` @
+  yymin));;
+
+add (iqd "3872614111" "dart_3872614111" false
+ ([`dih_y`;`-- &1`;`-- #1.542`] @ dest_list
+  `[-- #0.362519; #0.298691; #0.287065; -- #0.920785; #0.190917; #0.219132]` @
+  yymin_plus));;
+
+add (iqd "3139693500" "dart_3139693500" false
+ ([`dih_y`;`-- &1`;`-- #1.542`] @ dest_list
+  `[-- #0.346773; #0.300751; #0.300751; -- #0.702567; #0.172726; #0.172727]` @
+  yymin_plus));;
+
+add (iqd "4841020453" "dart_4841020453" false
+ ([`dih_y`;`-- &1`;`-- #1.542`] @ dest_list
+  `[-- #0.490439; #0.318125; #0.32468; -- #0.740079; #0.178868; #0.205819]` @
+  yymin_plus));;
+
+add (iqd "9925287433" "dart_9925287433" false
+ ([`dih_y`;`-- &1`;`-- #1.542`] @ dest_list
+  `[-- #0.490439; #0.321849; #0.320956; -- #1.00902; #0.240709; #0.218081]` @
+  yymin_plus));;
+
+add (iqd "7409690040" "dart_7409690040" true
+ ([`dih2_y`;`&1`;`#1.0494`] @ dest_list
+  `[-- #0.297823; #0.215328; -- #0.0792439; -- #0.422674; #0.647416; -- #0.207561]` @
+  yymin_plus));;
+
+add (iqd "4002562507" "dart_4002562507" true
+ ([`dih2_y`;`&1`;`#1.0494`] @ dest_list
+  `[-- #0.29013; #0.215328; -- #0.0715511; -- #0.267157; #0.650269; -- #0.295198]` @
+  yymin_plus));;
+
+add (iqd "5835568093" "dart_5835568093" true
+ ([`dih2_y`;`&1`;`#1.0494`] @ dest_list
+  `[-- #0.404131; #0.212119; -- #0.0402827; -- #0.299046; #0.643273; -- #0.266118]` @
+  yymin_plus));;
+
+ add (iqd "1894886027" "dart_1894886027" true
+ ([`dih2_y`;`&1`;`#1.0494`] @ dest_list
+  `[-- #0.401543; #0.207551; -- #0.0294227; -- #0.494954; #0.605453; -- #0.156385]` @
+  yymin_plus));;
 
 
 end;;

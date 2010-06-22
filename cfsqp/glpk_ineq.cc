@@ -9,7 +9,7 @@
 
 
 // nonlinear inequalities for linear programming relaxation.
-// basic functions to be studied: azim, rhazim, sol (3), taum (3).
+// basic functions to be studied: azim, rhazim, sol (3), tau_m (3).
 
 #include <iomanip.h>
 #include <iostream.h>
@@ -51,11 +51,11 @@ double test_function() {
   assert_(value(ly(3.0),-0.9230769230769229),"ly");
   assert_(value(rho(3.0),1.3374608770996574),"rho");
   assert_(value(rhazim(2.05,2.1,2.15,2.2,2.25,2.3),1.2238197064544751),"rhazim");
-  assert_(value(taum(2.05,2.1,2.15,2.2,2.25,2.3),0.23816478183286893),"taum");
+  assert_(value(tau_m(2.05,2.1,2.15,2.2,2.25,2.3),0.23816478183286893),"tau_m");
 }
 
 double tauq(double y1,double y2,double y3,double y4,double y5,double y6,double y7,double y8,double y9) {
-  return taum(y1,y2,y3,y4,y5,y6)+taum(y7,y2,y3,y4,y8,y9);
+  return tau_m(y1,y2,y3,y4,y5,y6)+tau_m(y7,y2,y3,y4,y8,y9);
 }
 
 double deltay(double y1,double y2,double y3,double y4,double y5,double y6) {
@@ -111,7 +111,7 @@ void bigcrossdelta(int numargs,int whichFn,double* y, double* ret,void*) {
 // this is minimized.  failure reported if min is negative.
 void t44(int numargs,int whichFn,double* y, double* ret,void*) {
   double ee= 1.0e-8; // ee is not part of the inequality, for testing purposes only.
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) +ee ;
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5]) +ee ;
 	}
 Minimizer m44() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -120,13 +120,13 @@ Minimizer m44() {
 	M.func = t44;
 	return M;
 }
-trialdata d44(m44(),"ID[3336871894]:  taumar-triangle >=0");
+trialdata d44(m44(),"ID[3336871894]:  tau_mar-triangle >=0");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t41(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  -0.2759;
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  -0.2759;
 	}
 Minimizer m41() {
   double xmin[6]= {2,2,2,2,2.52,2.52};
@@ -135,14 +135,14 @@ Minimizer m41() {
 	M.func = t41;
 	return M;
 }
-trialdata d41(m41(),"ID[8880534953]:  APIECE-taumar");
+trialdata d41(m41(),"ID[8880534953]:  APIECE-tau_mar");
 
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t10(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.001
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.001
     - 0.18 * (y[0]+y[1]+y[2] - 6) - 0.125* (y[3]+y[4]+y[5]-6) ;
 	}
 Minimizer m10() {
@@ -153,7 +153,7 @@ Minimizer m10() {
 	//.
 	return M;
 }
-trialdata d10(m10(),"ID[1395142356] taum:  taum-y-ineq");
+trialdata d10(m10(),"ID[1395142356] tau_m:  tau_m-y-ineq");
 
 
 ////////// NEW INEQ
@@ -191,7 +191,7 @@ Minimizer m13() {
 	return M;
 }
 //compare J_38243071
-trialdata d13(m13(),"ID[7726998381] taum:  sol-ineq");
+trialdata d13(m13(),"ID[7726998381] tau_m:  sol-ineq");
 
 
 ////////// NEW INEQ
@@ -210,7 +210,7 @@ Minimizer m12() {
 	return M;
 }
 //compare J_568731327 from 1998
-trialdata d12(m12(),"model(azminA):ID[4047599236] taum:  dih-ineq");
+trialdata d12(m12(),"model(azminA):ID[4047599236] tau_m:  dih-ineq");
 
 
 ////////// NEW INEQ
@@ -230,7 +230,7 @@ Minimizer m14() {
 	return M;
 }
 //compare J_507227930
-trialdata d14(m14(),"ID[3526497018] taum:  dih-ineq");
+trialdata d14(m14(),"ID[3526497018] tau_m:  dih-ineq");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -248,7 +248,7 @@ Minimizer m15() {
 	return M;
 }
 //compare J_507227930
-trialdata d15(m15(),"ID[5957966880] taum:  rhazim-ineq");
+trialdata d15(m15(),"ID[5957966880] tau_m:  rhazim-ineq");
 
 
 
@@ -291,7 +291,7 @@ trialdata d4b(m4b(),"ID[8673686234] m4b: super8 edge lengths");
 
 // this is minimized.  failure reported if min is negative.
 void t4c(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.128 -
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) - 0.128 -
     0.053*((y[4]+y[5]-4) - (2.75/2.0)*(y[3]-s8));
 	}
 Minimizer m4c() {
@@ -305,7 +305,7 @@ trialdata d4c(m4c(),"ID[1642527039] m4c: superflat tau");
 
 // this is minimized.  failure reported if min is negative.
 void t4d(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) 
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5]) 
      -     0.053*((y[4]+y[5]-4) - (2.75/2.0)*(y[3]-s8))
      - 0.12
     -0.14132   *(y[0]+ y[1]/2.0 + y[2]/2.0  - 4)
@@ -428,7 +428,7 @@ trialdata d3a(m3a(),"ID[5490182221] dihmax");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t0(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.626*azim(y[0],y[1],y[2],y[3],y[4],y[5]) -0.77;
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) + 0.626*azim(y[0],y[1],y[2],y[3],y[4],y[5]) -0.77;
 	}
 Minimizer m0() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -438,13 +438,13 @@ Minimizer m0() {
 	//.
 	return M;
 }
-trialdata d0(m0(),"ID[3296257235] taum0: 0th taum-tri-ineq");
+trialdata d0(m0(),"ID[3296257235] tau_m0: 0th tau_m-tri-ineq");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t1(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) -0.259*azim(y[0],y[1],y[2],y[3],y[4],y[5]) +0.32;
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) -0.259*azim(y[0],y[1],y[2],y[3],y[4],y[5]) +0.32;
 	}
 Minimizer m1() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -454,12 +454,12 @@ Minimizer m1() {
 	//.
 	return M;
 }
-trialdata d1(m1(),"ID[8519146937] taum1: 1st taum-tri-ineq");
+trialdata d1(m1(),"ID[8519146937] tau_m1: 1st tau_m-tri-ineq");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t2(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) -0.507*azim(y[0],y[1],y[2],y[3],y[4],y[5]) +0.724;
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) -0.507*azim(y[0],y[1],y[2],y[3],y[4],y[5]) +0.724;
 	}
 Minimizer m2() {
   double xmin[6]= {2,2,2,2,2,2};
@@ -469,7 +469,7 @@ Minimizer m2() {
 	//.
 	return M;
 }
-trialdata d2(m2(),"ID[4667071578] taum2: 2nd taum-tri-ineq");
+trialdata d2(m2(),"ID[4667071578] tau_m2: 2nd tau_m-tri-ineq");
 */
 
 
@@ -613,7 +613,7 @@ trialdata d17(m17(),"ID[9414951439]:  dih-super8-min-ineq");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t30(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5])  
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5])  
     -0.1  - 0.265*(y[4]+y[5]-4) -0.06 *(y[3]-2.52) -0.16*(y[0]-2) - 0.115*(y[1]+y[2]-4);
     	}
 Minimizer m30() {
@@ -623,7 +623,7 @@ Minimizer m30() {
 	M.func = t30;
 	return M;
 }
-trialdata d30(m30(),"ID[8248508703] taum: flat quarter");
+trialdata d30(m30(),"ID[8248508703] tau_m: flat quarter");
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
@@ -774,7 +774,7 @@ trialdata d40(m40(),"ID[2563100177]:  APIECE-rhazim-apex");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t42(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  
   -0.27
     +0.0295*(y[0]-2) -0.0778*(y[1]-2) -0.0778*(y[2]-2) -0.37*(y[3]-2)
     -0.27*(y[4]-2.52) -0.27*(y[5]-2.52);
@@ -786,13 +786,13 @@ Minimizer m42() {
 	M.func = t42;
 	return M;
 }
-trialdata d42(m42(),"ID[7931207804]:  APIECE-taumar-y");
+trialdata d42(m42(),"ID[7931207804]:  APIECE-tau_mar-y");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t43(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  
   +0.0034
     -0.166*(y[0]+y[1]+y[2]-6)
     -0.22*(y[3]+y[4]+y[5]-6);
@@ -804,7 +804,7 @@ Minimizer m43() {
 	M.func = t43;
 	return M;
 }
-trialdata d43(m43(),"ID[9225295803]:  taumar-smalltri");
+trialdata d43(m43(),"ID[9225295803]:  tau_mar-smalltri");
 
 
 
@@ -828,7 +828,7 @@ trialdata d45(m45(),"ID[9291937879]:  dihmin-smalltri");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t46(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  
         -0.05 - 0.137*(y[0]+y[1]+y[2]-6)
    -0.17*(y[3]+y[4]+y[5]-6.25);
 	}
@@ -840,13 +840,13 @@ Minimizer m46() {
 	M.cFunc = bigtri;
 	return M;
 }
-trialdata d46(m46(),"ID[7761782916]:  taum-bigtri");
+trialdata d46(m46(),"ID[7761782916]:  tau_m-bigtri");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t47(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  - sol_y(y[0],y[1],y[2],y[3],y[4],y[5])
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  - sol_y(y[0],y[1],y[2],y[3],y[4],y[5])
    +0.27564
     +2.43334*(pi()/2.0 - dih_y(y[0],y[1],y[2],y[3],y[4],y[5]));
 	}
@@ -857,14 +857,14 @@ Minimizer m47() {
 	M.func = t47;
 	return M;
 }
-//trialdata d47(m47(),"ID[]:  taum-sol-tri");
+//trialdata d47(m47(),"ID[]:  tau_m-sol-tri");
 
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t48(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  -0.1054
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  -0.1054
     -0.14132   *(y[0] + y[1]/2.0 + y[2]/2.0 - 4)
     -0.36499   *(y[4]+y[5]-4);
 	}
@@ -875,14 +875,14 @@ Minimizer m48() {
 	M.func = t48;
 	return M;
 }
-trialdata d48(m48(),"ID[4840774900]:  taum-s8-quad, one diag <= 3");
+trialdata d48(m48(),"ID[4840774900]:  tau_m-s8-quad, one diag <= 3");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t48a(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) 
-    +taum(y[6],y[1],y[2],y[3],y[7],y[8])  - 0.24
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5]) 
+    +tau_m(y[6],y[1],y[2],y[3],y[7],y[8])  - 0.24
     -0.14132   *(y[0] + y[1] + y[2] + y[6] - 8)
     -0.38  *(y[4]+y[5] + y[7]+y[8] -8);
 	}
@@ -894,7 +894,7 @@ Minimizer m48a() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d48a(m48a(),"ID[5451229371]: m48a: taum-s8-quad, one diag <= 3");
+trialdata d48a(m48a(),"ID[5451229371]: m48a: tau_m-s8-quad, one diag <= 3");
 
 
 ////////// NEW INEQ
@@ -916,8 +916,8 @@ trialdata d49(m49(),"ID[9995621667]:  azim-sd8-quad, two diag >= 3");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t49a(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
-    taum(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.496;
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    tau_m(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.496;
 	}
 Minimizer m49a() {
   double fake = 3.8;  // (should really be 2*2.52)
@@ -928,14 +928,14 @@ Minimizer m49a() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d49a(m49a(),"ID[9563139965]:  taumQ-sd8-quad, two diag >= 3");
+trialdata d49a(m49a(),"ID[9563139965]:  tau_mQ-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t49c(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum(y[0],y[1],y[2],y[3],y[4],y[5]) +
-    taum(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.46 - (y[4]+y[5]+y[7]+y[8]-8.472)*0.45;
+  *ret = tau_m(y[0],y[1],y[2],y[3],y[4],y[5]) +
+    tau_m(y[6],y[1],y[2],y[3],y[7],y[8]) - 0.46 - (y[4]+y[5]+y[7]+y[8]-8.472)*0.45;
   // holds with -0.46 -> -0.49, but the weaker ineq is sufficient.
 	}
 Minimizer m49c() {
@@ -947,7 +947,7 @@ Minimizer m49c() {
 	M.cFunc = cross3;
 	return M;
 }
-trialdata d49c(m49c(),"49c: ID[7676202716]:  taumQ-sd8-quad, two diag >= 3");
+trialdata d49c(m49c(),"49c: ID[7676202716]:  tau_mQ-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ
@@ -969,12 +969,12 @@ trialdata d49b(m49b(),"ID[]:  m49b: perimeter-sd8-quad, two diag >= 3");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 /* sum over two adjacent elongated flats and combine with
-    ID[9995621667] to get taumQ = taum1 + taum2 >= 2*0.231.
+    ID[9995621667] to get tau_mQ = tau_m1 + tau_m2 >= 2*0.231.
     on a quad with both diags >= 3.
    (Need to make a deformation argument to reduce to the case of one diag at most 3.3) 
  */
 void t50(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  -0.231
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  -0.231
     - 0.622*(dih_y(y[0],y[1],y[2],y[3],y[4],y[5])  -2.09/2
 	     -0.54/2 *(y[0]-2)
 	     +0.578*(y[1]+y[5]-4));
@@ -986,7 +986,7 @@ Minimizer m50() {
 	M.func = t50;
 	return M;
 }
-//{deprecated} trialdata d50(m50(),"ID[5769230427]:  taum-sd8-quad, two diag >= 3");
+//{deprecated} trialdata d50(m50(),"ID[5769230427]:  tau_m-sd8-quad, two diag >= 3");
 
 
 ////////// NEW INEQ
@@ -1048,7 +1048,7 @@ trialdata  d53(m53(),"ID[1550635295]:  azimmax-low-small");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t54(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5])  + 0.0008
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5])  + 0.0008
     -0.1631*(y[0]+y[1]+y[2]-6)
     -0.2127  *(y[3]+y[4]+y[5]-6)  ;
 	}
@@ -1112,7 +1112,7 @@ double c[6] =
  double ymin[6]= {2.18, 2, 2, 2, 2, 2};
  double r = f0;
  for (int i=0;i<6;i++) r += c[i]*(y[i]-ymin[i]);
-  *ret = taum(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
+  *ret = tau_m(y[0], y[1],y[2],y[3],y[4],y[5]) -    r;
 	}
 Minimizer m79() {
   double xmin[6]= {2.18,2,2,2,2,2};
@@ -1424,7 +1424,7 @@ trialdata  d85(m85(),"ID[7743522046]:  d85, dih2 <= .. high-low-low");
 ////////// NEW INEQ
 // this is minimized.  failure reported if min is negative.
 void t55(int numargs,int whichFn,double* y, double* ret,void*) {
-  *ret = taum (y[0],y[1],y[2],y[3],y[4],y[5]) -0.1413
+  *ret = tau_m (y[0],y[1],y[2],y[3],y[4],y[5]) -0.1413
     -0.214*(y[0]-2.18)
     -0.1259*(y[1]+y[2]-4)
     -0.067*(y[3]-2.52)

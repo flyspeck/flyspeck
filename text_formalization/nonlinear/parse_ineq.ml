@@ -161,9 +161,12 @@ let macro_expand = ref [];;
 
 macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
-   REAL_MUL_RZERO;FST;SND;pathL;pathR;
-   (* dart categories *)
-   Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dartZ;Ineq.apex_flat];;
+   REAL_MUL_RZERO;FST;SND;pathL;pathR;Ineq.node2_of_y;Ineq.node3_of_y;
+   Ineq.rhazim2;Ineq.rhazim3] @ (!Ineq.dart_classes);;
+   (* dart categories 
+   Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
+   Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5];;
+   *)
 
 let prep_term t = 
   let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in
@@ -331,22 +334,35 @@ let compile () =
 (* new section glpk code generation *)
 
   let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
+  let yy9 = yy6 @ [`y7:real`;`y8:real`;`y9:real`];;
 
-  let  translate6 =ref 
-     [("dih_y","azim[i,j]");("sol_y","sol[j]");("taum","tau[j]");("rhazim","rhazim[i,j]")];;
+  let  translate =ref 
+     [("dih_y","azim[i,j]");("dih2_y","azim2[i,j]");("dih3_y","azim3[i,j]");("sol_y","sol[j]");
+    ("taum","tau[j]");("tauq","tau[j]");("rhazim","rhazim[i,j]");
+    ("rhazim2","rhazim2[i,j]");("rhazim3","rhazim3[i,j]");("sqrt8","sqrt8")];;
 
-  let glpk_lookup s xs = if (xs = yy6) then
-    try (assoc s (!translate6)) with Failure _ -> failwith s 
-  else if xs = [] then (s^"[i,j]")
-  else  failwith s;;
+  let reverse = 
+     let xs =     [("y2","y3");("y5","y6");("rhazim2","rhazim3");
+      ("dih2_y","dih3_y");] in
+     let f (a,b) = (b,a) in
+     let ys =     xs @ map f xs in
+       fun s -> try (assoc s ys) with Failure _ -> s;;
 
- let rec glpk_form t =
-  let soh = glpk_form in
-  if is_var t then glpk_lookup (fst (dest_var t)) [] else
+  let glpk_lookup rev s xs =
+    let s' = if rev then reverse s else s in
+    if (xs = yy6) or (xs = yy9) then
+      try (assoc s' (!translate)) with Failure _ -> failwith ("glpk_lookup translate" ^ s)
+    else if xs = [] then 
+      try (assoc s' (!translate)) with Failure _ -> (s'^"[i,j]")
+    else  failwith ("glpk_lookup unknown arg list:" ^ s);;
+
+ let rec glpk_form rev t =
+  let soh = glpk_form rev in
+  if is_var t then glpk_lookup rev (fst (dest_var t)) [] else
   let (f,xs) = strip_comb t in
   let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
   let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  (if not (is_const f) then failwith ("Oracle error: " ^ string_of_term f));
+  (if not (is_const f) then failwith ("glpk constant expected: " ^ string_of_term f));
   match fst (dest_const f) with
   | "real_gt" | "real_ge" | "real_sub" -> ifix "-"
   | "real_lt" | "real_le" -> ifix_swapped "-"
@@ -357,13 +373,13 @@ let compile () =
   | "real_of_num" -> let [a] = xs in soh a  
   | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
   | "DECIMAL" ->  string_of_num' (dest_decimal t)
-  | s -> "(" ^ glpk_lookup s xs^ ")" ;;
+  | s -> "(" ^ glpk_lookup rev s xs^ ")" ;;
 
 let counter = 
       let ineqcounter = ref 0 in
       fun t -> (let u = !ineqcounter in let _ =  ineqcounter := u+1 in u);;
 
-let mk_glpk_ineq iqd = 
+let mk_glpk_ineq rev iqd = 
     let ineq = iqd.ineq in
   let t = snd(strip_forall  (ineq)) in
   let (vs,i) = dest_comb t  in
@@ -371,16 +387,43 @@ let mk_glpk_ineq iqd =
   let (f,xs) = strip_comb vs in
   let (dart,_) = dest_const f in
   let i' = hd(disjuncts i) in
-  let _ = (xs = yy6) or (print_qterm vs; failwith "vars y1...y6 expected") in
+  let _ = (xs = yy6) or (xs = yy9) or (print_qterm vs; failwith "dart_class y1 ... y6 expected") in
   let p = Printf.sprintf in
   let s =   p"ineq%d 'ID[%s]' \n  { (i,j) in %s } : \n  %s >= 0.0;\n\n" 
-    (counter()) iqd.id dart (glpk_form i') in
+    (counter()) iqd.id dart (glpk_form rev i') in
     s;;
 
-let mk_glpk_ineq_id s = 
-  let iqd = Ineq.getexact s in mk_glpk_ineq (hd iqd);;
+let mk_glpk_ineq_id rev s = 
+  let iqd = Ineq.getexact s in mk_glpk_ineq rev (hd iqd);;
 
 
+(* 
+let lpstring() = 
+  let lp_ineqs = filter (fun t -> try (let _ = find ((=) Lp) t.tags in true) 
+    with Failure _ -> false)  (!Ineq.ineqs) in
+  let lp_ids = map (fun t -> t.id) lp_ineqs in
+  let f i = try (mk_glpk_ineq_id false   (List.nth lp_ids i)) 
+    with Failure s -> failwith (s ^ " ineq:" ^ string_of_int i) in
+  join_lines ("# File automatically generated from nonlinear inequality list.\n\n" ::
+   (map f (0-- (List.length lp_ids - 1))));; 
+*)
 
+let test_domain_symmetry idq = 
+  let ineq = idq.ineq in
+  let dart = List.nth (snd(strip_comb (snd(strip_forall ineq)))) 0 in
+  let dom = map(fun (a,(b,c)) -> (a,c)) (map (fun (a,b) -> (a,dest_pair b)) 
+     (map dest_pair 
+     (dest_list(snd(dest_eq(concl(REWRITE_CONV(!Ineq.dart_classes) dart))))))) in
+  let nth = List.nth in
+    ((nth dom 1 = nth dom 2) & (nth dom 4 = nth dom 5)) or failwith "domain asym";;
+
+let lpstring() = 
+  let fil r = filter (can (fun t ->  (find ((=) r) t.tags))) (!Ineq.ineqs) in
+  let _ = map test_domain_symmetry (fil Lpsymmetry) in
+  join_lines 
+    ("# File automatically generated from nonlinear inequality list.\n\n" ::
+    (map (mk_glpk_ineq false) (fil Lp)) @
+    ["# Symmetry section\n\n"] @ 
+    (map (mk_glpk_ineq true) (fil Lpsymmetry)));;
 
 end;;

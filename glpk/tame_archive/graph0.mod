@@ -298,6 +298,7 @@ yapex_sup_flat 'ID[8673686234]' {(i1,j1,i2,j2) in apex_sup_flat_pair}:
 # this one based on fact that crossdiag of apex_sup_flat is longer than diag.
 # y4[i1,j1] is the diag, which is shorter than the cross diag. 
 # By monotonicity of dih in opposite edge length, this may be substituted in.
+# checked 2010-06-23.
 crossdiag 'ID[1085358243]+' 
    {(i1,i,i3,j1,k1,k2,k3,j2) in e_dart cross e_dart :
      i = k3 and i3 = k2 and (i1,j1,k1,j2) in apex_sup_flat_pair}:

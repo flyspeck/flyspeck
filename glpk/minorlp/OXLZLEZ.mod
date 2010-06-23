@@ -11,7 +11,7 @@
 
 /* 
 
-The model considers the set of blades around a spine.
+The model considers the set of leaves around a spine.
 Nonlinear inequalities have all been entered into the formal list.
 
 QU index set for quarters.
@@ -21,7 +21,7 @@ QY 2&3 cell combinations.
 */
 
 # data provides the following.
-param CBLADE 'number of blades' >= 2, <= 4; 
+param CBLADE 'number of leaves' >= 2, <= 4; 
 
 # constants.
 param pi := 3.1415926535897932;
@@ -41,14 +41,14 @@ set EFACE := {(i1,i2,i3) in FACE cross FACE cross FACE :
 
 # data supplied branching sets.  
 # There is the "unbranched" state, branching in direction "Z", branching in direction "not-Z"
-# SBLADE/NONSBLADE, branch on blades.
+# SBLADE/NONSBLADE, branch on leaves.
 # QU/QX/QY : QUARTER,NONQUARTER-4CELL,23-CELL. 
 # QXD,NONQXD: branch on QX.
 # NEGQU/POSQU branch on QU
 # HALFWT/FULLWT branch on QX inter HASSMALL.
 # SHORTY4/LONGY4 branch on QY inter HASSMALL. SHORTY4 means y4<=2.1.
 
-# FACE 0 goes with raw blades 0 and 1, with blades (3,0) and (0,1).
+# FACE 0 goes with raw leaves 0 and 1, with leaves (3,0) and (0,1).
 set SBLADERAW within FACE;  #non-spine edges are between 2 and 2*hmin.
 set NONSBLADERAW within  FACE diff SBLADERAW;
 set SBLADE := {(i,j) in BLADE : j in SBLADERAW};  # SBLADERAW j <-> SBLADE (j-1,j)
@@ -61,8 +61,8 @@ set NEGQU within QU; #precisely the set of quarters where gamma<0.
 set POSQU within QU; 
 set QXD within QX;  # those with dih > 2.3.
 set NONQXD within QX diff QXD;
-set HALFWT within HASSMALL inter QX; # those QX with y1,y4 critical and HASSMALL blades
-set FULLWT within (HASSMALL inter QX) diff HALFWT;  #those QX with y4>= 2*hmax and HASSMALL blades.
+set HALFWT within HASSMALL inter QX; # those QX with y1,y4 critical and HASSMALL leaves
+set FULLWT within (HASSMALL inter QX) diff HALFWT;  #those QX with y4>= 2*hmax and HASSMALL leaves.
 set SHORTY4 within (HASSMALL inter QY);
 set LONGY4 within (HASSMALL inter QY) diff SHORTY4;
 
@@ -74,7 +74,7 @@ set I11 := {(i,j) in BLADE : j in (QX inter HASSMALL) and i in QY};
 
 
 # basic variables
-# (blades and weights included in gamma variable)
+# (leaves and weights included in gamma variable)
 # gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell. 
 # if gamma > 0.1, then gammasum > 0.1 + 4 *lb > 0.	
 var azim{FACE} >= 0, <= 2*pi;
@@ -119,7 +119,7 @@ fullwt{i in FULLWT}: y4[i] >= 2*hmax;
 
 
 ## computer generated inequality constraints
-#1,2,3 blades
+#1,2,3 leaves
 gammaquarter 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
 gammapos{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
 quarter3a{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[FHBVYXZ]
@@ -128,7 +128,7 @@ quarternegdih{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
 fourcellazim{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
 wtunder1{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
 
-#4blades
+#4leaves
 azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
 azim2 '9939613598' {i in FULLWT}: gamma[i] - 0.00457511 - 0.00609451*azim[i] >= 0;
 

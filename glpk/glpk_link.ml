@@ -125,7 +125,7 @@ let save_stringarray filename xs =
     close_out oc;;
 
 let strip_archive filename =  (* strip // comments, blank lines, quotation marks etc. *)
-  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '^//' | grep -v '^$' | grep '^[^a-z/-]' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
+  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '=' | grep -v 'list' | grep -v '^//' | grep -v '^$' | grep '^[^a-z/-]' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
   let s = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
     s;;

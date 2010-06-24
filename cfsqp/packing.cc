@@ -871,6 +871,7 @@ int main()
 {
 double xmin[6];
  double docases=0;
+ double docases32=1;
 
   // d25 has many cases:
 for (int i3=0;i3<3;i3++)
@@ -912,7 +913,7 @@ if (rady(xmin[0],xmin[1],xmin[2],xmin[3],xmin[4],xmin[5])> sqrt2()) continue;
  else if (!(i3+i4+i5+i6)) continue; // skip quarter case.
 else
 {
-  if (docases) { trialdata d32(m32(i3,i4,i5,i6),"ID[3803737830] QITNPEA: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt"); }
+  if (docases32) { trialdata d32(m32(i3,i4,i5,i6),"ID[3803737830] QITNPEA: cc:4bl: d32: Marchal, 4blades j=1 quarters, 4-cell bwt"); }
 }
   }
 

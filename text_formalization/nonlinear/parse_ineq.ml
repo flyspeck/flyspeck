@@ -331,6 +331,10 @@ let compile () =
   let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in
     ();;
 
+ let execute_cfsqp_list xs = 
+      for i=0 to (List.length xs - 1) 
+      do  execute_cfsqp (List.nth xs i); Sys.command("date") done;;
+
 (* new section glpk code generation *)
 
   let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
@@ -425,5 +429,69 @@ let lpstring() =
     (map (mk_glpk_ineq false) (fil Lp)) @
     ["# Symmetry section\n\n"] @ 
     (map (mk_glpk_ineq true) (fil Lpsymmetry)));;
+
+(* Tex Processing of Inequalities *)
+
+let mk_texstring (tm,id,s) = match tm with
+  | Section -> "\\section{"^id^" "^s^"}\n" 
+  | Comment -> "\\begin{remark}["^id^"]\n"^s^"\n\\end{remark}\n"
+  | Ineqdoc -> "\\begin{calculation}["^id^"]\n"^s^"\n\\end{calculation}\n";;
+
+let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
+
+let output_string tmpfile a = 
+  let outs = open_out tmpfile in
+  let _ = (Printf.fprintf outs "%s" a) in
+   close_out outs ;;
+
+(*
+output_string "/tmp/ineqdoc.tex" (texstring());;
+*)
+
+(* Objective caml processing from ineq *)
+
+let join_space  = unsplit " " (fun x-> x);;
+
+let ocaml_string_of_term t = 
+ let rec ocaml_form t =
+  let soh = ocaml_form in
+  let paren s = "("^ s ^")" in
+  if is_var t then fst (dest_var t) else
+  let (f,xs) = strip_comb t in
+  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  (if not (is_const f) then failwith ("Oracle error: " ^ string_of_term f));
+  match fst (dest_const f) with
+  | "real_sub" -> ifix "-. "
+  | "real_add" -> ifix "+."
+  | "real_mul" -> ifix "*."
+  | "real_div" -> ifix "/."
+  | "real_neg" -> let [a] = xs in "(-. " ^ soh a ^ ")"
+  | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
+  | "real_of_num" -> let [a] = xs in soh a  
+  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+  | "=" -> let [a;b] = xs in soh a ^ " = " ^ soh b
+   | "DECIMAL" ->  string_of_num' (dest_decimal t)
+  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
+         "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  (* note reverse order in ocaml *) 
+  | s -> " " ^ s ^ " " ^ join_space(map soh xs) ^ " " in
+   try (ocaml_form t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
+
+let ocaml_function t = 
+  "let " ^ ocaml_string_of_term t ^ ";;\n\n";;
+
+let ocaml_autogen = map (function b -> snd(strip_forall (concl (strip_let b))))
+   [sqrt2;sqrt8;delta_x;delta_y;delta_x4;delta_x6;ups_x;eta_x;
+    eta_y;dih_x;dih_y;dih2_y;sol_x;sol_y;interp;ly;const1;rho;rhazim;lnazim;taum];;
+
+
+let ocaml_code = 
+  "(* code automatically generated from formal specification *)\n\n"^
+   "let pi = 4.0 *. atan(1.0);;\n" ^
+   (join_lines (map ocaml_function ocaml_autogen));;
+
+output_string "/tmp/sphere.ml" ocaml_code;;
+
+
 
 end;;

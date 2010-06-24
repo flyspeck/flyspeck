@@ -11,6 +11,7 @@
 
 flyspeck_needs "leg/collect_geom.hl";;
 flyspeck_needs "trigonometry/trigonometry.hl";;
+flyspeck_needs "nonlinear/ineq.hl";;
 
 flyspeck_needs "fan/HypermapAndFan.hl";;
 flyspeck_needs "tame/tame_defs.hl";;
@@ -393,9 +394,10 @@ let CONTRAVENING_IMP_NOT_COPLANAR = prove(`!V v w. FAN (vec 0,V,ESTD V) /\ contr
 	 DISCH_THEN (MP_TAC o SPEC `v:real^3,w:real^3`) THEN
 	 ASM_SIMP_TAC[]
      ]);;
-
-
 	 
+	 
+
+ 
 
 (* azim_dart = dih_y *)	 
 let CONTRAVENING_AZIM_DART_EQ_DIH_Y = prove(`!V v w. FAN (vec 0,V,ESTD V) /\ contravening V
@@ -496,9 +498,246 @@ let FULLY_SURROUNDED_IMP_CARD_NODE_EQ_SUM_NODE_TYPE =
 	 
 	 
 (******************************************************************************)
+
+
+(* tauVEF = taum for a triangular face *)
+let tauVEF_EQ_taum = prove(`!V f. FAN (vec 0,V,ESTD V) /\
+			     contravening V /\
+			     f IN face_set_of_fan (V,ESTD V) /\
+			     CARD (f) = 3 
+        ==> (!v w. (v,w) IN f ==>
+	     let w' = sigma_fan (vec 0) V (ESTD V) v w in
+	     let y1 = norm v in
+	     let y2 = norm w in
+	     let y3 = norm w' in
+	     let y4 = dist(w,w') in
+	     let y5 = dist(v,w') in
+	     let y6 = dist(v,w) in
+	       tauVEF (V,ESTD V,f) = taum y1 y2 y3 y4 y5 y6)`,
+   REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (fun th -> concl th = `f IN face_set_of_fan (V,ESTD V)`)) THEN
+     REWRITE_TAC[face_set_of_fan; Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face; IN_ELIM_THM] THEN
+     ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+     STRIP_TAC THEN
+     SUBGOAL_THEN `face (hypermap_of_fan (V,ESTD V)) (v,w) = f` MP_TAC THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC (GSYM Hypermap.lemma_face_identity) THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `(v,w) IN dart1_of_fan (V,ESTD V)` MP_TAC THENL
+     [
+       MATCH_MP_TAC Hypermap.lemma_in_subset THEN
+	 EXISTS_TAC `f:real^3#real^3->bool` THEN
+         ASM_REWRITE_TAC[] THEN
+         MATCH_MP_TAC FACE_SUBSET_DART1_OF_FAN THEN
+         ASM_SIMP_TAC[CONTRAVENING_IMP_IN_DART1_OF_FAN];
+       ALL_TAC
+     ] THEN
+     REMOVE_ASSUM THEN REMOVE_ASSUM THEN
+     REPEAT DISCH_TAC THEN
+     REPEAT (CONV_TAC let_CONV) THEN
+     ABBREV_TAC `w' = sigma_fan (vec 0) V (ESTD V) v w` THEN
+     REWRITE_TAC[tauVEF] THEN
+     MP_TAC (let_RULE (SPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] TRIANGULAR_FACE)) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     SUBGOAL_THEN `(w,w') IN dart1_of_fan (V,ESTD V) /\ w',v IN dart1_of_fan (V,ESTD V)` ASSUME_TAC THENL
+     [
+       CONJ_TAC THEN MATCH_MP_TAC IN_FACE_IMP_IN_DART1_OF_FAN THEN EXISTS_TAC `v:real^3,w:real^3` THEN ASM_REWRITE_TAC[IN_INSERT];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     ASM_SIMP_TAC[Hypermap.FINITE_TWO_ELEMENTS; Hypermap.FINITE_SINGLETON; SUM_CLAUSES; SUM_SING] THEN
+     SUBGOAL_THEN `~(v,w IN {(w,w'), (w':real^3,v:real^3)})` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[IN_INSERT; PAIR_EQ; NOT_IN_EMPTY; DE_MORGAN_THM] THEN
+	 MP_TAC (ISPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `~(w,w' IN {(w':real^3,v:real^3)})` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[IN_SING; PAIR_EQ] THEN
+	 MP_TAC (ISPECL [`V:real^3->bool`; `ESTD V`; `w:real^3`; `w':real^3`] PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[sol0_over_pi_EQ_const1] THEN
+     ABBREV_TAC `a1 = azim_dart (V,ESTD V) (v,w)` THEN
+     ABBREV_TAC `a2 = azim_dart (V,ESTD V) (w,w')` THEN
+     ABBREV_TAC `a3 = azim_dart (V,ESTD V) (w',v)` THEN
+     ABBREV_TAC `l1 = lmfun (h_dart (v:real^3,w:real^3))` THEN
+     ABBREV_TAC `l2 = lmfun (h_dart (w:real^3,w':real^3))` THEN
+     ABBREV_TAC `l3 = lmfun (h_dart (w':real^3,v:real^3))` THEN
+     SUBGOAL_THEN `(pi + sol0) = pi * (&1 + const1)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MP_TAC sol0_over_pi_EQ_const1 THEN
+	 MP_TAC PI_POS THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+     
+     REWRITE_TAC[Sphere.taum; Sphere.sol_y; Sphere.lnazim] THEN
+     SUBGOAL_THEN `v,w IN dart_of_fan (V,ESTD V) /\ w,w' IN dart_of_fan (V,ESTD V) /\ w',v IN dart_of_fan (V,ESTD V)` ASSUME_TAC THENL
+     [
+       REPEAT CONJ_TAC THEN MATCH_MP_TAC Hypermap.lemma_in_subset THEN EXISTS_TAC `dart1_of_fan (V,ESTD V)` THEN ASM_REWRITE_TAC[DART1_OF_FAN_SUBSET_DART_OF_FAN];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (let_RULE (SPECL [`V:real^3->bool`; `v:real^3`; `w:real^3`] CONTRAVENING_AZIM_DART_EQ_DIH_Y)) THEN
+     MP_TAC (let_RULE (SPECL [`V:real^3->bool`; `w:real^3`; `w':real^3`] CONTRAVENING_AZIM_DART_EQ_DIH_Y)) THEN
+     MP_TAC (let_RULE (SPECL [`V:real^3->bool`; `w':real^3`; `v:real^3`] CONTRAVENING_AZIM_DART_EQ_DIH_Y)) THEN
+     ASM_REWRITE_TAC[DIST_SYM] THEN
+     REPEAT (DISCH_THEN (fun th -> REWRITE_TAC[SYM th])) THEN
+     
+     MP_TAC (SPEC `v:real^3,w:real^3` ly_EQ_lmfun) THEN
+     MP_TAC (SPEC `w:real^3,w':real^3` ly_EQ_lmfun) THEN
+     MP_TAC (SPEC `w':real^3,v:real^3` ly_EQ_lmfun) THEN
+
+     MP_TAC (SPECL [`V:real^3->bool`; `v:real^3`] CONTRAVENING_DIST) THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `w:real^3`] CONTRAVENING_DIST) THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `w':real^3`] CONTRAVENING_DIST) THEN
+     
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `w' IN V /\ w IN V /\ v IN (V:real^3->bool)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] PAIR_IN_DART_OF_FAN) THEN
+	 MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `w:real^3`; `w':real^3`] PAIR_IN_DART_OF_FAN) THEN
+	 MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `w':real^3`; `v:real^3`] PAIR_IN_DART_OF_FAN) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     SIMP_TAC[DIST_0; Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REPEAT (DISCH_THEN (fun th -> ALL_TAC)) THEN
+     REAL_ARITH_TAC);;
+
+
+let CONTRAVENING_TAUVEF_EQ_TAUM = prove(`!V v w. FAN (vec 0,V,ESTD V) /\ contravening V /\ 
+					       (v,w) IN dart_of_fan (V,ESTD V) /\
+					       CARD (face (hypermap_of_fan (V,ESTD V)) (v,w)) = 3
+                                         ==> let w' = sigma_fan (vec 0) V (ESTD V) v w in
+					     let y1 = norm v in
+					     let y2 = norm w in
+					     let y3 = norm w' in
+					     let y4 = dist(w,w') in
+					     let y5 = dist(v,w') in
+					     let y6 = dist(v,w) in
+					       tauVEF (V,ESTD V,face (hypermap_of_fan (V,ESTD V)) (v,w)) = taum y1 y2 y3 y4 y5 y6`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `face (hypermap_of_fan (V,ESTD V)) (v,w)`] tauVEF_EQ_taum) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[face_set_of_fan; Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN
+	 EXISTS_TAC `v:real^3,w:real^3` THEN
+	 ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN MATCH_MP_TAC THEN
+     REWRITE_TAC[Hypermap.face_refl]);;
+
+
+(* Bounds for distances in a triangular face *)
 	 
+let CONTRAVENING_TRIANGULAR_FACE_DIST = prove(`!V v w. FAN (vec 0,V,ESTD V) /\ 
+						contravening V /\ (v,w) IN dart_of_fan (V,ESTD V) /\
+						CARD (face (hypermap_of_fan (V,ESTD V)) (v,w)) = 3
+    ==> let w' = sigma_fan (vec 0) V (ESTD V) v w in
+        let y1 = norm v in
+	let y2 = norm w in
+	let y3 = norm w' in
+	let y4 = dist(w,w') in
+	let y5 = dist(v,w') in
+	let y6 = dist(v,w) in
+	  (&2 <= y1 /\ y1 <= #2.52) /\
+	  (&2 <= y2 /\ y2 <= #2.52) /\
+	  (&2 <= y3 /\ y3 <= #2.52) /\
+	  (&2 <= y4 /\ y4 <= #2.52) /\
+	  (&2 <= y5 /\ y5 <= #2.52) /\
+	  (&2 <= y6 /\ y6 <= #2.52)`,
+    REPEAT STRIP_TAC THEN CONV_TAC (DEPTH_CONV let_CONV) THEN
+      ABBREV_TAC `w' = sigma_fan (vec 0) V (ESTD V) v w` THEN
+      MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] TRIANGULAR_FACE) THEN
+      ASM_REWRITE_TAC[] THEN
+      ANTS_TAC THENL
+      [
+	MATCH_MP_TAC CONTRAVENING_IMP_IN_DART1_OF_FAN THEN
+	  ASM_REWRITE_TAC[];
+	ALL_TAC
+      ] THEN
+      CONV_TAC (DEPTH_CONV let_CONV) THEN
+      DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC (fun th -> ALL_TAC)) THEN
+      SUBGOAL_THEN `w,w' IN dart_of_fan (V,ESTD V) /\ w',v IN dart_of_fan (V,ESTD V)` ASSUME_TAC THENL
+      [
+	CONJ_TAC THEN MATCH_MP_TAC Hypermap.lemma_in_subset THEN 
+	  EXISTS_TAC `face (hypermap_of_fan (V,ESTD V)) (v,w)` THEN
+	  ASM_SIMP_TAC[FACE_SUBSET_DART_OF_FAN; IN_INSERT];
+	ALL_TAC
+      ] THEN
+      SUBGOAL_THEN `v IN V /\ w IN V /\ w' IN (V:real^3->bool)` ASSUME_TAC THENL
+      [
+	MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `v:real^3`; `w:real^3`] PAIR_IN_DART_OF_FAN) THEN
+	  MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `w:real^3`; `w':real^3`] PAIR_IN_DART_OF_FAN) THEN
+	  ASM_SIMP_TAC[];
+	ALL_TAC
+      ] THEN
+      REWRITE_TAC[REAL_ARITH `&2 = #2.0`] THEN
+      MP_TAC (SPECL [`V:real^3->bool`; `v:real^3`] CONTRAVENING_DIST) THEN
+      MP_TAC (SPECL [`V:real^3->bool`; `w:real^3`] CONTRAVENING_DIST) THEN
+      MP_TAC (SPECL [`V:real^3->bool`; `w':real^3`] CONTRAVENING_DIST) THEN
+      ASM_REWRITE_TAC[DIST_0] THEN
+      REPEAT (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
+      MAP_EVERY (fun tm -> MP_TAC (SPECL [`V:real^3->bool`; tm] CONTRAVENING_DART_DIST)) [`v:real^3,w:real^3`; `w:real^3,w':real^3`; `w':real^3,v:real^3`] THEN
+      ASM_SIMP_TAC[DIST_SYM]);;
 	 
-	 
+
+(* Bounds for azim_dart in a triangular face *)
+
+let azim_dart_bounds_3_list = map (fun id -> (hd (Ineq.getexact id)).ineq) ["5735387903"; "5490182221"];;
+
+let azim_dart_bounds_3 = list_mk_conj azim_dart_bounds_3_list;;
+
+let TRIANGULAR_FACE_AZIM_DART_BOUNDS_concl = mk_imp (azim_dart_bounds_3,
+						     `!V x. FAN (vec 0,V,ESTD V) /\ contravening V /\
+						       x IN dart_of_fan (V,ESTD V) /\
+						       CARD (face (hypermap_of_fan (V,ESTD V)) x) = 3
+                                                         ==> #0.852 < azim_dart (V,ESTD V) x /\ azim_dart (V,ESTD V) x < #1.893`);;
+
+(* g(TRIANGULAR_FACE_AZIM_DART_BOUNDS_concl);; *)
+let TRIANGULAR_FACE_AZIM_DART_BOUNDS = prove(TRIANGULAR_FACE_AZIM_DART_BOUNDS_concl,
+   REWRITE_TAC[Ineq.dart_std3; INEQ_ALT; ALL; Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     STRIP_TAC THEN
+
+     REPEAT GEN_TAC THEN STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `ESTD V`; `x:real^3#real^3`] IN_DART_OF_FAN) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (SPEC_ALL CONTRAVENING_AZIM_DART_EQ_DIH_Y) THEN
+     ASM_REWRITE_TAC[] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN
+     ABBREV_TAC `w' = sigma_fan (vec 0) V (ESTD V) v w` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+
+     MP_TAC (SPEC_ALL CONTRAVENING_TRIANGULAR_FACE_DIST) THEN
+     ASM_REWRITE_TAC[] THEN
+     CONV_TAC (DEPTH_CONV let_CONV) THEN
+     REWRITE_TAC[REAL_ARITH `&2 = #2.0`] THEN
+     DISCH_TAC THEN
+
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[GSYM real_gt] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 ASM_REWRITE_TAC[];
+       FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 ASM_REWRITE_TAC[]
+     ]);;
+
+
+
+(******************************************************************************)	 
 	 
 (* Properties of rho_node (might be useful) *)
 	 

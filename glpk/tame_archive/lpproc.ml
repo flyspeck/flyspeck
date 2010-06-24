@@ -25,7 +25,7 @@ open Glpk_link;;
 open List;;
 
 
-(* external files *)
+(* external files. graph0.mod is the concatenation of graph0.mod, body.mod, tail.mod. *)
 let archiveraw = "/tmp/tame_graph.txt";; (*read only *)
 let model = "/tmp/graph0.mod";; (* read only *)
 let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
@@ -129,28 +129,28 @@ string_rep = bb.string_rep;
 std_faces_not_super = if drop1std then tl std else shuffle_std;
 std3_big = add "bt" fields bb.std3_big;
 std3_small = add "st" fields bb.std3_small;
-std56_flat_free = add "s8" fields bb.std56_flat_free;
-std4_diag3 = add "sd" fields bb.std4_diag3;
+std56_flat_free = add "flat_free" fields bb.std56_flat_free;
+std4_diag3 = add "diag3" fields bb.std4_diag3;
 
 apex_flat = add "ff" fields bb.apex_flat;
 apex_sup_flat = add "sf" fields bb.apex_sup_flat;
 apex_A = add "af" fields bb.apex_A;
-apex4 = add "b4" fields bb.apex4;
-apex5 = add "b5" fields bb.apex5;
+apex4 = add "apex4" fields bb.apex4;
+apex5 = add "apex5" fields bb.apex5;
 
-d_edge_225_252 = add "be" fields bb.d_edge_225_252;
-d_edge_200_225 = add "se" fields bb.d_edge_200_225;
+d_edge_225_252 = add "e_225_252" fields bb.d_edge_225_252;
+d_edge_200_225 = add "e_200_225" fields bb.d_edge_200_225;
 
-node_218_252 = add "hv" vfields bb.node_218_252;
-node_236_252 = add "ehv" vfields bb.node_236_252;
-node_218_236 = add "mhv" vfields bb.node_218_236;
-node_200_218 = add "lv" vfields bb.node_200_218;
+node_218_252 = add "218_252" vfields bb.node_218_252;
+node_236_252 = add "236_252" vfields bb.node_236_252;
+node_218_236 = add "218_236" vfields bb.node_218_236;
+node_200_218 = add "200_218" vfields bb.node_200_218;
 };;
 
 (*
 Example: move [8;1;6;9] from std to std56_flat_free.
 
-modify_bb pent_bb true  ["s8",[8;1;6;9];"ff",[9;10;11]] ["lv",8;"hv",3;"lv",7];;
+modify_bb pent_bb true  ["flat_free",[8;1;6;9];"ff",[9;10;11]] ["200_218",8;"218_252",3;"200_218",7];;
 pent_bb;;
 modify_bb pent_bb false ["sh",[0;3;5;4];"sh",[10;6;4]] [];;
 *)
@@ -241,26 +241,6 @@ let solve_branch_verbose addhints bb =
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermap_id r) in 
     bb;;
 
-(*
-let solve_branch_f addhints bb = (* side effects, lpvalue & hints mutable *)
-  let set_some bb r = (* side effects *)
-    if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^ln' | sed 's/lnsum = //' "  
-     model dumpfile in 
-  let (ic,oc) = Unix.open_process(com) in 
-  let _ = ampl_of_bb oc bb in
-  let _ = close_out oc in
-  let inp = load_and_close_channel false ic in
-  let _ = Unix.close_process (ic,oc) in
-  let _ = addhints bb in (* hints for control flow *)
-  let _ = set_some bb inp in
-  let r = match bb.lpvalue with
-    | None -> -1.0
-    | Some r -> r in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermap_id r) in 
-    bb;;
-*)
-
 let solve_f f bb = match bb.lpvalue with
   | None -> solve_branch_verbose f bb
   | Some _ -> bb;;
@@ -304,25 +284,25 @@ let switch4 bb = match bb.std_faces_not_super with
   let mo s (a,b) = modify_bb bb true [s,a;s,b] [] in
   let f s i = mo s (split_flatq fc i) in
   let g s = modify_bb bb true [s,fc] [] in
-  [f "ff" 0;f "ff" 1; f "sf" 0; f "sf" 1;g "sd"];;
+  [f "ff" 0;f "ff" 1; f "sf" 0; f "sf" 1;g "diag3"];;
 
 let switch5 bb = match  bb.std_faces_not_super with
   | [] -> failwith ("switch5 empty" ^ bb.hypermap_id)
   | fc::_ -> 
-  let mo (a,b) = modify_bb bb true ["ff",a;"b4",b] [] in    
+  let mo (a,b) = modify_bb bb true ["ff",a;"apex4",b] [] in    
   let f i = mo (split_flatq fc i) in
   let bbs = map f (up 5) in
   let mo (a,b,c) = modify_bb bb true ["ff",a;"af",b;"ff",c] [] in
   let f i = mo (asplit_pent fc i) in
   let ccs = map f (up 5) in
-   (modify_bb bb true ["s8",fc] []) :: bbs @ ccs ;;
+   (modify_bb bb true ["flat_free",fc] []) :: bbs @ ccs ;;
 
 let switch6 bb = match bb.std_faces_not_super with
   | [] -> failwith ("switch6 empty" ^ bb.hypermap_id)
   | fc::_ ->
-  let mo (a,b) = modify_bb bb true ["ff",a;"b5",b] [] in
+  let mo (a,b) = modify_bb bb true ["ff",a;"apex5",b] [] in
   let f i = mo (split_flatq fc i) in
-   (modify_bb bb true ["s8",fc] []) :: (map f (up 6));;
+   (modify_bb bb true ["flat_free",fc] []) :: (map f (up 6));;
 
 let switch_face bb = match bb.std_faces_not_super with
   | [] -> [bb]
@@ -362,7 +342,7 @@ hard_bb are those known to be difficult, and easy_bb is the complement.
 remaining_easy_bb should be empty; the easy ones should be entirely treated.
 *)
 
-let execute() = 
+let execute() = (* takes about 2.5 hours to run *)
   let tame = strip_archive archiveraw in
   let tame_bb = map mk_bb tame in
   let feasible_bb =  filter_feas (map solve tame_bb) in

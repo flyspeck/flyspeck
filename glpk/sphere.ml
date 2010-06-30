@@ -1,5 +1,7 @@
 (* code automatically generated from formal specification *)
 
+module Sphere_math = struct 
+
 let pi = 4.0 *. atan(1.0);;
 let  sqrt2   =  sqrt 2. ;;
 
@@ -63,3 +65,4 @@ let  lnazim y1 y2 y3 y4 y5 y6  = ( ly y1  *.  dih_y y1 y2 y3 y4 y5 y6 );;
 
 let  taum y1 y2 y3 y4 y5 y6  = (( sol_y y1 y2 y3 y4 y5 y6  *. (1. +.  const1  )) -.  ( const1   *. ( lnazim y1 y2 y3 y4 y5 y6  +. ( lnazim y2 y3 y1 y5 y6 y4  +.  lnazim y3 y1 y2 y6 y4 y5 ))));;
 
+end;;

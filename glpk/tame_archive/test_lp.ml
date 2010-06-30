@@ -2,24 +2,37 @@
 
 Sys.command("pwd");;
 
+#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+#use "glpk_link.ml";;
+#use "tame_archive/lpproc.ml";;
+#use "sphere.ml";;
+
+open Str;;
+open List;;
+open Glpk_link;;
+open Lpproc;;
+
+
 (*
 18839 cases in tame_bb
 470 in feasible_bb
 12 in hard_bb, so 99.936 % complete.
 
-#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
-#use "glpk_link.ml";;
-#use "tame_archive/lpproc.ml";;
 let (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();;
 *)
 
+let dih_y = Sphere_math.dih_y;;
+let dumpfile = "/tmp/graph.out";; (* temp output *)
 (* build up hashtables of all the variables assignments from the dumpfile *)
+
 let ynhash = Hashtbl.create 13;;
 let yehash = Hashtbl.create 70;;
 let azimhash = Hashtbl.create 70;;
 let yn i = Hashtbl.find ynhash i;;
 let ye (i,j) = Hashtbl.find yehash (i,j);;
 let azim(i,j) = Hashtbl.find azimhash (i,j);;
+
+let init_dumpfile bb = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb;;
 
 let init_hash () = 
   let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" dumpfile in
@@ -80,7 +93,6 @@ let get_azim_table f xs bb =
 
 (* get_azim_table dih_y [2;4;3] bb;; *)
 
-(* experimental *)
 let get_azim_diff f xs bb = 
    let [y1;y2;y3] = map yn xs in
    let [y6;y4;y5] = map (fun i -> ye (i,int_of_face xs bb)) xs in

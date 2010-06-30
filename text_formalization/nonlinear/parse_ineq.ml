@@ -400,18 +400,6 @@ let mk_glpk_ineq rev iqd =
 let mk_glpk_ineq_id rev s = 
   let iqd = Ineq.getexact s in mk_glpk_ineq rev (hd iqd);;
 
-
-(* 
-let lpstring() = 
-  let lp_ineqs = filter (fun t -> try (let _ = find ((=) Lp) t.tags in true) 
-    with Failure _ -> false)  (!Ineq.ineqs) in
-  let lp_ids = map (fun t -> t.id) lp_ineqs in
-  let f i = try (mk_glpk_ineq_id false   (List.nth lp_ids i)) 
-    with Failure s -> failwith (s ^ " ineq:" ^ string_of_int i) in
-  join_lines ("# File automatically generated from nonlinear inequality list.\n\n" ::
-   (map f (0-- (List.length lp_ids - 1))));; 
-*)
-
 let test_domain_symmetry idq = 
   let ineq = idq.ineq in
   let dart = List.nth (snd(strip_comb (snd(strip_forall ineq)))) 0 in
@@ -486,9 +474,11 @@ let ocaml_autogen = map (function b -> snd(strip_forall (concl (strip_let b))))
 
 
 let ocaml_code = 
-  "(* code automatically generated from formal specification *)\n\n"^
+  "(* code automatically generated from Parse_ineq.ocaml_code *)\n\n"^
+   "module Sphere_math = struct\n\n"^
    "let pi = 4.0 *. atan(1.0);;\n" ^
-   (join_lines (map ocaml_function ocaml_autogen));;
+   (join_lines (map ocaml_function ocaml_autogen)) ^
+   "end;;\n";;
 
 output_string "/tmp/sphere.ml" ocaml_code;;
 

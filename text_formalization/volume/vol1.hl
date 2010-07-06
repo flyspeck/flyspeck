@@ -922,6 +922,7 @@ let normball_subset= prove(`!(x:real^3) r r'. (r'> &0) /\ (r'<r)==> normball x r
 let subset_inter=prove(`! (A:real^3->bool) (B:real^3->bool). A SUBSET B ==> A INTER B= A`,REPEAT GEN_TAC THEN SET_TAC[]);;
 let normball_eq=prove(`!(C:real^3->bool) x r r'. (r'> &0)/\ (r'< r)==> (C INTER normball x r) INTER normball x r' = C INTER normball x r'`,REPEAT GEN_TAC THEN REPEAT STRIP_TAC THEN (MP_TAC(SET_RULE `((C:real^3->bool) INTER normball x r) INTER normball x r'=(C INTER normball x r') INTER normball x r`)) THEN SIMP_TAC[] THEN DISCH_TAC THEN (SUBGOAL_THEN `(((C:real^3->bool) INTER normball x r') SUBSET normball x r)` MP_TAC) THENL[ASM_MESON_TAC[INTER_SUBSET;SUBSET_TRANS;normball_subset];MESON_TAC[subset_inter]]);;
 
+(* redone by thales below on 2010-06-06 :
 
 let pre_def1_4_3=prove(`!(C:real^3->bool)(x:real^3). volume_prop_fix (vol) /\ measurable C /\ eventually_radial_norm x C ==> (?s. ?c. (c > &0) /\ (!r. (r > &0) /\ (r < c) ==> (s= &3 * vol(C INTER normball x r)/(r pow 3)))) `,
  (REPEAT GEN_TAC) 
@@ -960,6 +961,82 @@ let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> r
 
 let sol= new_specification ["sol"] pre_def_4_3;;
 
+*)
+
+
+let radial_normball = prove_by_refinement( `!r x C. 
+  radial_norm r (x:real^A) C ==> radial_norm r x (C INTER normball x r)`,
+[
+  REWRITE_TAC[radial_norm];
+   STRIP_TAC THEN STRIP_TAC THEN STRIP_TAC;
+
+  SUBGOAL_THEN `C SUBSET normball (x:real^A) r ==> (C INTER normball x r =C)` MP_TAC;
+  SET_TAC[];
+  MESON_TAC[];
+]);;
+
+
+(* 
+A big part of the proof is devoted to this identity 
+ `(b = a * (r'/r) pow 3 ) /\ (r > &0) /\ (r' > &0) ==> a / r pow 3 = b / r' pow 3`;; *)
+
+let pre_def1_4_3=prove_by_refinement(
+` !(C:real^3->bool) x.
+         volume_prop_fix vol /\
+         (?r. r > &0 /\
+              measurable (C INTER normball x r) /\
+              radial_norm r x (C INTER normball x r))
+         ==> (?s c.
+                  c > &0 /\
+                  (!r. r > &0 /\ r < c
+                       ==> s = &3 * vol (C INTER normball x r) / r pow 3))`,
+[
+ (REPEAT STRIP_TAC)  ;
+ (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)   ;
+ (EXISTS_TAC `(r:real)`) ;
+ (ASM_REWRITE_TAC[]) ;
+ (REPEAT STRIP_TAC) ;
+ (REWRITE_TAC[REAL_ARITH `(&3 * x = &3 *y) = (x = y)`]) ;
+ (SUBGOAL_THEN `(C:real^3->bool) INTER normball x r'= (C INTER normball x r) INTER normball x r'` MP_TAC) THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]]  ;
+ DISCH_TAC ;
+(*  (SUBGOAL_THEN `measurable ((C:real^3->bool) INTER normball x r)` ASSUME_TAC) THENL[ASM_MESON_TAC[MEASURABLE_RULES;measurable_normball]; *)
+(SUBGOAL_THEN `vol ((C INTER normball x r) INTER normball x r')= vol (C INTER normball x r) * (r'/r) pow 3` MP_TAC);
+ ASM_MESON_TAC[lemma_r_r';radial_normball];
+ ABBREV_TAC `(a:real)=vol (C INTER normball x r)`;
+ ABBREV_TAC `(b:real)=vol ((C INTER normball x r) INTER normball x r')` ;
+ SIMP_TAC[]  ;
+ DISCH_TAC  ;
+ SIMP_TAC[REAL_POW_DIV]  ;
+ MP_TAC(REAL_ARITH `r'> &0 ==> ~(r'= &0)`) ;
+ ASM_REWRITE_TAC[]  ;
+ DISCH_TAC  ;
+ MP_TAC(MESON[REAL_POW_NZ] `~(r'= &0)==> ~(r' pow 3= &0)`) ;
+ ASM_REWRITE_TAC[]  ;
+ DISCH_TAC  ;
+ REWRITE_TAC[REAL_ARITH `(a * r' pow 3 / r pow 3) / r' pow 3= (a * r' pow 3/ r' pow 3)/ r pow 3`] ;
+ MP_TAC(MESON[REAL_DIV_REFL] `~(r' pow 3 = &0)==> r' pow 3 / r' pow 3= &1`)  ;
+ ASM_REWRITE_TAC[]  ;
+ SIMP_TAC[]  ;
+ DISCH_TAC  ;
+ ARITH_TAC;
+]);;  
+
+
+let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> real). !C x. (?r. (r > &0) /\  measurable (C INTER normball x r)  /\ radial_norm r x (C INTER normball x r)) ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[VOLUME_FIX;SKOLEM_THM;pre_def1_4_3]));;
+
+let sol= new_specification ["sol"] pre_def_4_3;;
+
+
+let AFF_GT_1_3=prove(`!x u v w.
+         DISJOINT {x} {u, v, w}
+         ==> aff_gt {x} {u, v, w} =
+             {y | ?t1 t2 t3 t4.
+                      &0 < t2 /\ 
+                      &0 < t3 /\
+                      &0 < t4 /\
+                      t1 + t2 + t3 +t4= &1 /\
+                      y = t1 % x + t2 %u + t3 % v + t4 % w}`,
+AFF_TAC);;
 
 
 (*---------------------------------------------------------------------------------------------------------------*)

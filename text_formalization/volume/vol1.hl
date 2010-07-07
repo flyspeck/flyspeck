@@ -1118,6 +1118,48 @@ let AFF_GT_1_3=prove(`!x u v w.
 AFF_TAC);;
 
 
+
+let aff_normball =prove_by_refinement
+(`!t (x:real^B) u r.  (r > &0) /\ (t > &0) /\ (t  * norm u < r) /\ (x + u IN normball x r) ==> (x + t % u IN normball x r)`,
+[
+REWRITE_TAC[normball;IN_ELIM_THM;dist;
+  VECTOR_ARITH `((x:real^B) + u ) - x = u`;NORM_MUL];
+REAL_ARITH_TAC;
+]);;
+
+
+(* insert in vol1.hl after solid angle *)
+
+let aff_gt_radial = prove_by_refinement(`!x u v w r.
+     (DISJOINT {(x:real^B)} {u,v,w} /\ (r > &0) ) ==>
+     radial_norm r x (aff_gt {x} {u,v,w} INTER normball x r)`,
+[
+REWRITE_TAC[radial_norm];
+REPEAT STRIP_TAC;
+SET_TAC[];
+UNDISCH_TAC `(x:real^B) + u' IN aff_gt {x} {u, v, w} INTER normball x r`;
+ASM_SIMP_TAC[AFF_GT_1_3];
+REWRITE_TAC[IN_ELIM_THM;IN_INTER];
+REPEAT STRIP_TAC;
+EXISTS_TAC `&1 + (t:real) * t1 - t`;
+EXISTS_TAC `(t:real) * t2`;
+EXISTS_TAC `(t:real) * t3`;
+EXISTS_TAC `(t:real) * t4`;
+SUBGOAL_THEN `&0 < t * t2 /\ &0 < t * t3 /\ &0 < t * t4` (fun t -> REWRITE_TAC[t]);
+ASM_MESON_TAC[REAL_MUL_POS_LT;REAL_ARITH `r > &0 <=> &0 < r`];
+CONJ_TAC;
+SUBGOAL_THEN `(&1 + t * t1 - t) + t * t2 + t * t3 + t * t4 = &1 - t + t * (t1 + t2 + t3 + t4)` (fun t-> ASM_REWRITE_TAC[t]);
+REAL_ARITH_TAC;
+REAL_ARITH_TAC;
+ONCE_REWRITE_TAC[ VECTOR_ARITH `( &1 + t * t1 - t) % (x:real^B) + (t * t2) % u + (t * t3) % v + (t * t4) % w  = x - t % x + t % (t1 % x + t2 % u + t3 % v + t4 % w)`];
+UNDISCH_TAC `(x:real^B) + u' = t1 % x + t2 % u + t3 % v + t4 % w`;
+DISCH_THEN(fun thm -> ONCE_REWRITE_TAC[GSYM thm]);
+VECTOR_ARITH_TAC;
+MATCH_MP_TAC aff_normball;
+ASM_REWRITE_TAC[];
+]);;
+
+
 (*---------------------------------------------------------------------------------------------------------------*)
 
 

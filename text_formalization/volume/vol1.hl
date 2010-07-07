@@ -1037,7 +1037,7 @@ let pow3_identity = prove_by_refinement(
  SIMP_TAC[]  ;
  ARITH_TAC;
   ]);;
-
+(*
 let pre_def1_4_3=prove_by_refinement(
 ` !(C:real^3->bool) x.
          volume_prop_fix vol /\
@@ -1062,12 +1062,49 @@ let pre_def1_4_3=prove_by_refinement(
   DISCH_TAC THEN ASM_REWRITE_TAC[];
 ASM_MESON_TAC[pow3_identity];
 ]);;
+*)
 
+let pre_def1_4_3b=prove_by_refinement(
+` !x (C:real^3->bool). volume_prop_fix vol ==> ?s. !r. 
+         (( r > &0 /\
+              measurable (C INTER normball x r) /\
+              radial_norm r x (C INTER normball x r))
+         ==> (s = &3 * vol (C INTER normball x r) / r pow 3))`,
+[
+ (REPEAT STRIP_TAC)  ;
+ (DISJ_CASES_TAC (ISPEC `?t. (t > &0) /\ measurable (C INTER normball (x:real^3) t) /\ (radial_norm t x (C INTER normball x t))`   (TAUT `!x. ~x \/ x`))); 
+  ASM_MESON_TAC[];
+ (FIRST_X_ASSUM MP_TAC);
+ STRIP_TAC;
+ (EXISTS_TAC `(&3* vol (C INTER normball x t) / t pow 3):real`)   ;
+ (REPEAT STRIP_TAC) ;
+ (REWRITE_TAC[REAL_ARITH `(&3 * x = &3 *y) = (x = y)`]) ;
+(* to here *)
+  DISJ_CASES_TAC (ARITH_RULE `(t < r) \/ (r < t) \/ (r = t)`);
+ (SUBGOAL_THEN `(C:real^3->bool) INTER normball x t= (C INTER normball x r) INTER normball x t` MP_TAC) THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]]  ;
+ DISCH_TAC ;
+ (SUBGOAL_THEN `vol ((C INTER normball x r) INTER normball x t)= vol (C INTER normball x r) * (t/r) pow 3` MP_TAC);
+ ASM_MESON_TAC[lemma_r_r';radial_normball];
+  DISCH_TAC THEN ASM_REWRITE_TAC[];
+ASM_MESON_TAC[pow3_identity];
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+ (SUBGOAL_THEN `(C:real^3->bool) INTER normball x r= (C INTER normball x t) INTER normball x r` MP_TAC) THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]]  ;
+ DISCH_TAC ;
+ (SUBGOAL_THEN `vol ((C INTER normball x t) INTER normball x r)= vol (C INTER normball x t) * (r/t) pow 3` MP_TAC);
+ ASM_MESON_TAC[lemma_r_r';radial_normball];
+  DISCH_TAC THEN ASM_REWRITE_TAC[];
+ASM_MESON_TAC[pow3_identity];
+ ASM_REWRITE_TAC[];
+]);;
 
+(*
 let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> real). !C x. (?r. (r > &0) /\  measurable (C INTER normball x r)  /\ radial_norm r x (C INTER normball x r)) ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[VOLUME_FIX;SKOLEM_THM;pre_def1_4_3]));;
+*)
 
-let sol= new_specification ["sol"] pre_def_4_3;;
+let pre_def_4_3b=REWRITE_RULE[VOLUME_FIX;SKOLEM_THM]
+ pre_def1_4_3b;;
 
+let sol= new_specification ["sol"] pre_def_4_3b;;
 
 let AFF_GT_1_3=prove(`!x u v w.
          DISJOINT {x} {u, v, w}

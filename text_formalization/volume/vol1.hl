@@ -980,6 +980,7 @@ let radial_normball = prove_by_refinement( `!r x C.
 A big part of the proof is devoted to this identity 
  `(b = a * (r'/r) pow 3 ) /\ (r > &0) /\ (r' > &0) ==> a / r pow 3 = b / r' pow 3`;; *)
 
+(*
 let pre_def1_4_3=prove_by_refinement(
 ` !(C:real^3->bool) x.
          volume_prop_fix vol /\
@@ -1020,6 +1021,47 @@ let pre_def1_4_3=prove_by_refinement(
  DISCH_TAC  ;
  ARITH_TAC;
 ]);;  
+*)
+
+(* 
+A big part of the proof of pre_def1_4_3 is devoted to this identity 
+*)
+
+let pow3_identity = prove_by_refinement(
+  `(b = a * (r'/r) pow 3 ) /\ (r > &0) /\ (r' > &0) ==> a / r pow 3 = b / r' pow 3`,
+  [
+ SIMP_TAC[REAL_POW_DIV]  ;
+ MP_TAC(REAL_ARITH `r'> &0 ==> ~(r'= &0)`) ;
+ MP_TAC(MESON[REAL_POW_NZ;REAL_DIV_REFL] `~(r'= &0)==> r' pow 3 / r' pow 3= &1`) ;
+ REWRITE_TAC[REAL_ARITH `(a * b / c) / b= (a * b/ b)/ c`] ;
+ SIMP_TAC[]  ;
+ ARITH_TAC;
+  ]);;
+
+let pre_def1_4_3=prove_by_refinement(
+` !(C:real^3->bool) x.
+         volume_prop_fix vol /\
+         (?r. r > &0 /\
+              measurable (C INTER normball x r) /\
+              radial_norm r x (C INTER normball x r))
+         ==> (?s c.
+                  c > &0 /\
+                  (!r. r > &0 /\ r < c
+                       ==> s = &3 * vol (C INTER normball x r) / r pow 3))`,
+[
+ (REPEAT STRIP_TAC)  ;
+ (EXISTS_TAC `(&3* vol (C INTER normball x r) / r pow 3):real`)   ;
+ (EXISTS_TAC `(r:real)`) ;
+ (ASM_REWRITE_TAC[]) ;
+ (REPEAT STRIP_TAC) ;
+ (REWRITE_TAC[REAL_ARITH `(&3 * x = &3 *y) = (x = y)`]) ;
+ (SUBGOAL_THEN `(C:real^3->bool) INTER normball x r'= (C INTER normball x r) INTER normball x r'` MP_TAC) THENL[ASM_MESON_TAC[normball_eq];SIMP_TAC[]]  ;
+ DISCH_TAC ;
+ (SUBGOAL_THEN `vol ((C INTER normball x r) INTER normball x r')= vol (C INTER normball x r) * (r'/r) pow 3` MP_TAC);
+ ASM_MESON_TAC[lemma_r_r';radial_normball];
+  DISCH_TAC THEN ASM_REWRITE_TAC[];
+ASM_MESON_TAC[pow3_identity];
+]);;
 
 
 let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> real). !C x. (?r. (r > &0) /\  measurable (C INTER normball x r)  /\ radial_norm r x (C INTER normball x r)) ==> (?r'.r' > &0 /\(!r. r > &0 /\ r < r' ==> s C x = &3 * vol (C INTER normball x r) / r pow 3))`,MESON_TAC[VOLUME_FIX;SKOLEM_THM;pre_def1_4_3]));;

@@ -1,0 +1,1446 @@
+flyspeck_needs "fan/fan_defs.hl";;
+flyspeck_needs "packing/pack_defs.hl";;
+
+flyspeck_needs "Inequalities.hl";;
+
+
+module Ckqowsa_3_points = struct
+
+
+open Fan_defs;;
+
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
+
+
+
+let coplanar_eq_coplanar_alt = prove(`!s:real^N->bool. 2 <= dimindex(:N) ==> (coplanar s <=> coplanar_alt s)`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[COPLANAR; Collect_geom.coplanar_alt]);;
+
+
+
+
+let in_ball_annulus = prove(`!v. v IN ball_annulus <=> &2 <= norm v /\ norm v <= &2 * h0 /\ ~(v = vec 0)`,
+   REWRITE_TAC[Pack_defs.ball_annulus] THEN
+     REWRITE_TAC[IN_DIFF; cball; ball; IN_ELIM_THM; DIST_0] THEN
+     REWRITE_TAC[GSYM NORM_EQ_0] THEN
+     REAL_ARITH_TAC);;
+     
+
+
+
+let projection_lemma = prove(`!v n:real^N. ~(n = vec 0) ==> 
+			       ?a x. (v dot n) / (n dot n) = a /\ x dot n = &0 /\ v = x + a % n`,
+   REWRITE_TAC[GSYM NORM_EQ_0] THEN
+     REPEAT STRIP_TAC THEN
+     EXISTS_TAC `(v dot n:real^N) / (n dot n)` THEN
+     EXISTS_TAC `v - (v dot n:real^N) / (n dot n) % n` THEN
+     REWRITE_TAC[] THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[DOT_LSUB; DOT_LMUL; DOT_SQUARE_NORM] THEN
+	 POP_ASSUM MP_TAC THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+     VECTOR_ARITH_TAC);;
+
+
+
+
+let dist_lower_bound = prove(`!v1 v2 n:real^N. ~(n = vec 0) ==>
+			       dist (v1, v2) pow 2 >= ((v1 - v2) dot n) pow 2 / (n dot n)`,
+   REPEAT STRIP_TAC THEN
+     FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[dist; GSYM DOT_SQUARE_NORM; GSYM NORM_EQ_0] THEN
+     MP_TAC (SPECL [`v1:real^N`; `n:real^N`] projection_lemma) THEN
+     MP_TAC (SPECL [`v2:real^N`; `n:real^N`] projection_lemma) THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[VECTOR_ARITH `((x' + a' % n) - (x + a % n)) dot ((x' + a' % n) - (x + a % n:real^N)) = (x' - x) dot (x' - x) + (a' - a) pow 2 * (n dot n) + &2 * (a' - a) * (x' dot n - x dot n)`] THEN
+     ASM_REWRITE_TAC[VECTOR_ARITH `((x' + a' % n:real^N) - (x + a % n)) dot n = (a' - a) * (n dot n) + x' dot n - x dot n`] THEN
+     REWRITE_TAC[REAL_MUL_RZERO; REAL_SUB_RZERO; REAL_ADD_RID] THEN
+     REWRITE_TAC[REAL_POW_MUL; DOT_SQUARE_NORM] THEN
+     ASM_SIMP_TAC[REAL_FIELD `~(n = &0) ==> (a pow 2 * n pow 2 pow 2) / n pow 2 = a pow 2 * n pow 2`] THEN
+     REWRITE_TAC[REAL_ARITH `a + b >= b <=> &0 <= a`] THEN
+     REWRITE_TAC[GSYM DOT_SQUARE_NORM] THEN
+     REWRITE_TAC[DOT_POS_LE]);;
+     
+     
+
+
+
+let non_collinear_lemma = prove(`!v w. v IN ball_annulus /\ w IN ball_annulus /\ &2 <= dist (v,w) /\ &0 < v dot w
+				  ==> ~(collinear {vec 0, v, w})`,
+   REWRITE_TAC[COLLINEAR_BETWEEN_CASES; DE_MORGAN_THM] THEN
+     REWRITE_TAC[in_ball_annulus; Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REPEAT GEN_TAC THEN DISCH_THEN STRIP_ASSUME_TAC THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[BETWEEN_DOT] THEN
+	 REWRITE_TAC[VECTOR_SUB_LZERO; VECTOR_SUB_RZERO; NORM_NEG; DOT_LNEG] THEN
+	 MATCH_MP_TAC (REAL_ARITH `&0 < a /\ &0 <= b ==> ~(--a = b)`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REWRITE_TAC[NORM_POS_LE];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[between; DIST_0] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REWRITE_TAC[DIST_SYM] THEN
+     REAL_ARITH_TAC);;
+
+
+
+
+
+
+
+
+
+
+
+let aff_ge_0_2 = prove(`!u v:real^N. ~(u = vec 0) /\ ~(v = vec 0) ==> aff_ge {vec 0} {u,v} = {y | ?t1 t2. &0 <= t1 /\ &0 <= t2 /\ y = t1 % u + t2 % v}`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `DISJOINT {vec 0} {u:real^N, v}` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[DISJOINT; EXTENSION; IN_INTER; IN_INSERT; NOT_IN_EMPTY; DE_MORGAN_THM] THEN
+	 ASM_MESON_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[Fan.AFF_GE_1_2] THEN
+     REWRITE_TAC[EXTENSION] THEN GEN_TAC THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     EQ_TAC THEN STRIP_TAC THENL
+     [
+       MAP_EVERY EXISTS_TAC [`t2:real`; `t3:real`] THEN
+	 POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN
+	 VECTOR_ARITH_TAC;
+       MAP_EVERY EXISTS_TAC [`&1 - t1 - t2`; `t1:real`; `t2:real`] THEN
+	 ASM_REWRITE_TAC[] THEN CONJ_TAC THENL
+	 [
+	   REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 POP_ASSUM MP_TAC THEN
+	 VECTOR_ARITH_TAC
+     ]);;
+
+
+
+let in_aff_ge_0_2 = prove(`!v1 v2 w. v1 IN ball_annulus /\ v2 IN ball_annulus /\ w IN ball_annulus /\
+			    &2 <= dist (v1,w) /\ &2 <= dist (v2,w) /\
+			    w IN aff_ge {vec 0} {v1,v2}
+			    ==> ?t1 t2. &0 < t1 /\ &0 < t2 /\ w = t1 % v1 + t2 % v2`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(w = vec 0:real^3) /\ ~(v1 = vec 0:real^3) /\ ~(v2 = vec 0:real^3)` ASSUME_TAC THENL
+     [
+       REPEAT (POP_ASSUM MP_TAC) THEN
+	 REWRITE_TAC[in_ball_annulus; GSYM NORM_EQ_0] THEN
+	 SIMP_TAC[REAL_ARITH `&2 <= a ==> ~(a = &0)`];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`t1:real`; `t2:real`] THEN
+     ASM_REWRITE_TAC[REAL_ARITH `&0 < t <=> &0 <= t /\ ~(t = &0)`] THEN
+     CONJ_TAC THEN DISCH_TAC THENL
+     [
+       SUBGOAL_THEN `collinear {vec 0:real^3,v2,w}` MP_TAC THENL
+	 [
+	   ONCE_REWRITE_TAC[COLLINEAR_LEMMA_ALT] THEN
+	     ASM_REWRITE_TAC[] THEN
+	     EXISTS_TAC `t2:real` THEN
+	     VECTOR_ARITH_TAC;
+	   ALL_TAC
+	 ];
+
+       SUBGOAL_THEN `collinear {vec 0:real^3,v1,w}` MP_TAC THENL
+	 [
+	   ONCE_REWRITE_TAC[COLLINEAR_LEMMA_ALT] THEN
+	     ASM_REWRITE_TAC[] THEN
+	     EXISTS_TAC `t1:real` THEN
+	     VECTOR_ARITH_TAC;
+	   ALL_TAC
+	 ]
+     ] THEN
+
+     REWRITE_TAC[] THEN
+     MATCH_MP_TAC non_collinear_lemma THEN
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID; DOT_RMUL; VECTOR_ADD_RID] THEN
+     MATCH_MP_TAC REAL_LT_MUL THEN
+     REWRITE_TAC[REAL_ARITH `&0 < t <=> &0 <= t /\ ~(t = &0)`] THEN
+     ASM_REWRITE_TAC[DOT_POS_LE; DOT_EQ_0] THEN
+     DISCH_TAC THEN UNDISCH_TAC `w = t1 % v1 + t2 % v2:real^3` THEN
+     ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID]);;
+
+
+
+let in_aff_ge_0_2_imp_dot_pos = prove(`!v1 v2 w:real^N. &0 < v1 dot v2 /\ w IN aff_ge {vec 0} {v1,v2} /\ ~(w = vec 0)
+					==> &0 < v1 dot w /\ &0 < v2 dot w`,
+   REPEAT GEN_TAC THEN DISCH_THEN STRIP_ASSUME_TAC THEN
+     SUBGOAL_THEN `~(v1 = vec 0:real^N) /\ ~(v2 = vec 0:real^N)` ASSUME_TAC THENL
+     [
+       CONJ_TAC THEN DISCH_TAC THEN UNDISCH_TAC `&0 < v1:real^N dot v2` THEN
+	 ASM_REWRITE_TAC[DOT_LZERO; DOT_RZERO; REAL_LT_REFL];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+     ASM_REWRITE_TAC[DOT_RADD; DOT_RMUL] THEN
+     ASM_CASES_TAC `t1 = &0` THENL
+     [
+       ASM_REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_LID] THEN
+	 ASM_CASES_TAC `t2 = &0` THENL
+	 [
+	   UNDISCH_TAC `w = t1 % v1 + t2 % v2:real^N` THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID];
+	   ALL_TAC
+	 ] THEN
+	 CONJ_TAC THEN MATCH_MP_TAC REAL_LT_MUL THEN
+	 ASM_REWRITE_TAC[DOT_POS_LT; REAL_ARITH `&0 < t <=> &0 <= t /\ ~(t = &0)`];
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THEN MATCH_MP_TAC REAL_LTE_ADD THENL
+     [
+       CONJ_TAC THENL 
+	 [ 
+	   MATCH_MP_TAC REAL_LT_MUL THEN
+	     ASM_REWRITE_TAC[DOT_POS_LT] THEN
+	     ASM_REWRITE_TAC[REAL_ARITH `&0 < t <=> &0 <= t /\ ~(t = &0)`];
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     ASM_SIMP_TAC[REAL_LT_IMP_LE]
+	 ];
+       
+       CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LT_MUL THEN
+	     ASM_REWRITE_TAC[DOT_SYM] THEN
+	     ASM_REWRITE_TAC[REAL_ARITH `&0 < t <=> &0 <= t /\ ~(t = &0)`];
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     ASM_REWRITE_TAC[DOT_POS_LE]
+	 ]
+     ]);;
+
+
+
+let aff_ge_eq_lemma = prove(`!a v1 v2 u:real^N. &0 < a /\ u = a % v2 /\ ~(v1 = vec 0) /\ ~(v2 = vec 0)
+                             ==> aff_ge {vec 0} {v1,v2} = aff_ge {vec 0} {v1,u}`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(u:real^N = vec 0)` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[VECTOR_MUL_EQ_0] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
+     GEN_TAC THEN EQ_TAC THENL
+     [
+       STRIP_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`t1:real`; `t2 * inv(a)`] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MATCH_MP_TAC REAL_LE_INV THEN
+	     ASM_SIMP_TAC[REAL_LT_IMP_LE];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[VECTOR_ARITH `(t2 * inva ) % a % v2 = (t2 * (inva * a)) % v2:real^N`] THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&0 < a ==> inv a * a = &1`] THEN
+	 VECTOR_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`t1:real`; `t2 * a`] THEN
+     ASM_REWRITE_TAC[VECTOR_ARITH `(t2 * a) % v2 = t2 % a % v2:real^N`] THEN
+     MATCH_MP_TAC REAL_LE_MUL THEN
+     ASM_SIMP_TAC[REAL_LT_IMP_LE]);;
+
+
+
+
+let triangle_height_lemma = prove(`!v w:real^3. ~(w = vec 0) 
+				  ==> ?a n. v = a % w + n /\ n dot w = &0 /\ norm n = norm (v cross w) / norm w`,
+   REPEAT STRIP_TAC THEN FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM NORM_EQ_0] THEN
+     DISCH_TAC THEN
+     EXISTS_TAC `(v:real^3 dot w) / (w dot w)` THEN
+     EXISTS_TAC `v - (v:real^3 dot w) / (w dot w) % w` THEN
+     REPEAT CONJ_TAC THENL
+     [
+       VECTOR_ARITH_TAC;
+       REWRITE_TAC[DOT_LSUB; DOT_LMUL; DOT_SQUARE_NORM] THEN
+	 POP_ASSUM MP_TAC THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `!x:real^3. norm x = abs (norm x)` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       GEN_TAC THEN MP_TAC (ISPEC `x:real^3` NORM_POS_LE) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GSYM REAL_ABS_DIV] THEN
+     REWRITE_TAC[REAL_EQ_SQUARE_ABS] THEN
+     REWRITE_TAC[NORM_POW_2; NORM_CROSS] THEN
+     REWRITE_TAC[REAL_POW_DIV; REAL_POW_MUL] THEN
+     REWRITE_TAC[SIN_SQUARED_VECTOR_ANGLE] THEN
+     ASM_CASES_TAC `v:real^3 = vec 0` THEN ASM_REWRITE_TAC[] THENL
+     [
+       REWRITE_TAC[NORM_0; DOT_LZERO; REAL_POW_ZERO; Collect_geom.REAL_DIV_LZERO; VECTOR_MUL_LZERO; VECTOR_SUB_RZERO] THEN
+	 REWRITE_TAC[ARITH_RULE `~(2 = 0)`] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     
+     REWRITE_TAC[DOT_LSUB; DOT_RSUB; DOT_LMUL; DOT_RMUL] THEN
+     REWRITE_TAC[DOT_SQUARE_NORM] THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM NORM_EQ_0] THEN
+     REWRITE_TAC[DOT_SYM] THEN
+     CONV_TAC REAL_FIELD);;
+
+
+
+let in_aff_ge_dist_lemma = prove(`!v1 v2 n1 n2 a b w:real^N. ~(w = vec 0) /\ ~(v1 = vec 0) /\ ~(v2 = vec 0) /\
+				   w IN aff_ge {vec 0} {v1, v2} /\
+				   v1 = a % w + n1 /\ v2 = b % w + n2 /\ 
+                                   n1 dot w = &0 /\ n2 dot w = &0
+                                   ==> norm (n1 - n2) = norm n1 + norm n2`,
+   REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `n1:real^N = vec 0` THENL
+     [
+       ASM_REWRITE_TAC[NORM_0; VECTOR_SUB_LZERO; NORM_NEG; REAL_ADD_LID];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+     SUBGOAL_THEN `n1:real^N dot w = t1 * (n1 dot n1) + t2 * (n1 dot n2)` MP_TAC THENL
+     [
+       POP_ASSUM (fun th -> ONCE_REWRITE_TAC[th]) THEN
+	 ASM_REWRITE_TAC[DOT_RADD; DOT_RMUL] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `n2:real^N dot w = t1 * (n1 dot n2) + t2 * (n2 dot n2)` MP_TAC THENL
+     [
+       POP_ASSUM (fun th -> ONCE_REWRITE_TAC[th]) THEN
+	 ASM_REWRITE_TAC[DOT_RADD; DOT_RMUL; DOT_SYM] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (LABEL_TAC "A") THEN
+     ASM_REWRITE_TAC[] THEN
+     
+     ASM_CASES_TAC `t2 = &0` THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+	 DISCH_TAC THEN
+	 ASM_CASES_TAC `t1 = &0` THENL
+	 [
+	   REMOVE_THEN "A" MP_TAC THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_RID];
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID] THEN
+	 ASM_REWRITE_TAC[REAL_ENTIRE; EQ_SYM_EQ] THEN
+	 ASM_REWRITE_TAC[DOT_EQ_0];
+       ALL_TAC
+     ] THEN
+
+     REPEAT (DISCH_THEN (ASSUME_TAC o SYM)) THEN
+     SUBGOAL_THEN `n1:real^N dot n2 = --(t1 / t2) * (n1 dot n1)` ASSUME_TAC THENL
+     [
+       REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `n1 dot n2:real^N <= &0` MP_TAC THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+	 REWRITE_TAC[REAL_ARITH `--a * b <= &0 <=> &0 <= a * b`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REWRITE_TAC[DOT_POS_LE] THEN
+	 MATCH_MP_TAC REAL_LE_DIV THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REMOVE_ASSUM THEN DISCH_TAC THEN
+
+     UNDISCH_TAC `~(n1 = vec 0:real^N)` THEN
+     REWRITE_TAC[GSYM NORM_EQ_0] THEN
+     DISCH_TAC THEN
+     SUBGOAL_THEN `(n1:real^N dot n2) pow 2 = (norm n1 pow 2) * (norm n2 pow 2)` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REMOVE_ASSUM THEN
+	 REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+	 REWRITE_TAC[DOT_SQUARE_NORM] THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM REAL_POW_MUL] THEN
+     REWRITE_TAC[GSYM REAL_EQ_SQUARE_ABS; REAL_ABS_MUL; REAL_ABS_NORM] THEN
+     SUBGOAL_THEN `abs (n1:real^N dot n2) = --(n1 dot n2)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     DISCH_TAC THEN
+     SUBGOAL_THEN `norm (n1:real^N) + norm (n2:real^N) = abs (norm n1 + norm n2) /\ norm (n1 - n2) = abs (norm (n1 - n2))` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[REAL_ABS_NORM] THEN
+	 MP_TAC (ISPEC `n1:real^N` NORM_POS_LE) THEN
+	 MP_TAC (ISPEC `n2:real^N` NORM_POS_LE) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[REAL_EQ_SQUARE_ABS] THEN
+     REWRITE_TAC[GSYM DOT_SQUARE_NORM] THEN
+     REWRITE_TAC[DOT_LSUB; DOT_RSUB; DOT_SYM; REAL_POW_2; REAL_ADD_LDISTRIB; REAL_ADD_RDISTRIB] THEN
+     ASM_REWRITE_TAC[DOT_SQUARE_NORM] THEN
+     POP_ASSUM MP_TAC THEN
+     REAL_ARITH_TAC);;
+     
+
+
+let in_aff_ge_dist_lower_bound = prove(`!v1 v2 w. ~(v1 = vec 0) /\ ~(v2 = vec 0) /\ ~(w = vec 0) /\
+					 w IN aff_ge {vec 0} {v1, v2}
+					 ==> dist (v1,v2) >= (norm (v1 cross w) + norm (v2 cross w)) / norm w`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`v1:real^3`; `w:real^3`] triangle_height_lemma) THEN
+     MP_TAC (SPECL [`v2:real^3`; `w:real^3`] triangle_height_lemma) THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+
+     MP_TAC (ISPECL [`v1:real^3`; `v2:real^3`; `n':real^3`; `n:real^3`; `a':real`; `a:real`; `w:real^3`] in_aff_ge_dist_lemma) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `dist (v1,v2:real^3) = sqrt ((a - a') pow 2* norm (w:real^3) pow 2 + (n - n':real^3) dot (n - n'))` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       ASM_REWRITE_TAC[dist; vector_norm] THEN
+	 ASM_REWRITE_TAC[DOT_LSUB; DOT_RSUB; DOT_LMUL; DOT_RMUL; DOT_RADD; DOT_LADD; DOT_SYM] THEN
+	 AP_TERM_TAC THEN
+	 REWRITE_TAC[GSYM vector_norm; DOT_SQUARE_NORM] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[real_ge] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `sqrt ((n:real^3 - n') dot (n - n'))` THEN
+     CONJ_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[GSYM vector_norm; NORM_SUB] THEN
+	 ASM_SIMP_TAC[] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC SQRT_MONO_LE THEN
+     REWRITE_TAC[DOT_POS_LE] THEN
+     REWRITE_TAC[REAL_ARITH `a <= b + a <=> &0 <= b`] THEN
+     MATCH_MP_TAC REAL_LE_MUL THEN
+     REWRITE_TAC[Trigonometry1.REAL_LE_POW_2]);;
+
+
+
+let triangle_area_lower_bound = prove(`!v w. v IN ball_annulus /\ w IN ball_annulus /\ dist (v,w) = &2
+					==> #1.48 * sqrt(&3) <= norm (v cross w)`,
+   REWRITE_TAC[in_ball_annulus; Sphere.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(v = vec 0:real^3) /\ ~(w = vec 0:real^3)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[GSYM NORM_EQ_0] THEN
+	 ASM_SIMP_TAC[REAL_ARITH `&2 <= n ==> ~(n = &0)`];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[Trigonometry1.NORM_CROSS] THEN
+     REWRITE_TAC[Trigonometry2.UPS_X_AND_HERON] THEN
+     REWRITE_TAC[REAL_ARITH `a <= b / &2 <=> &2 * a <= b`] THEN
+     SUBGOAL_THEN `&2 * #1.48 * sqrt (&3) = sqrt(&6 * &2 * (&4 - #2.52) * (&4 - #2.52))` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[REAL_ARITH `&6 * &2 * (&4 - #2.52) * (&4 - #2.52) = &2 pow 2 * (#1.48) pow 2 * &3`] THEN
+	 ASSUME_TAC (REAL_ARITH `&0 <= &2 pow 2 /\ &0 <= #1.48 pow 2 * &3 /\ &0 <= &3 /\ &0 <= #1.48 pow 2`) THEN
+	 ASM_SIMP_TAC[SQRT_MUL] THEN
+	 REWRITE_TAC[POW_2_SQRT_ABS] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     
+     MATCH_MP_TAC SQRT_MONO_LE THEN
+     CONJ_TAC THENL
+     [
+       CONV_TAC REAL_RAT_REDUCE_CONV;
+       ALL_TAC
+     ] THEN
+     
+     MATCH_MP_TAC REAL_LE_MUL2 THEN
+     CONJ_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+     CONJ_TAC THENL
+     [
+       REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     CONJ_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+
+     MATCH_MP_TAC REAL_LE_MUL2 THEN
+     CONJ_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+     CONJ_TAC THENL
+     [
+       REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     CONJ_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+
+     MATCH_MP_TAC REAL_LE_MUL2 THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REAL_ARITH_TAC);;
+
+
+
+
+let DIST_LOWER_BOUND_lemma = prove(`!v1 v2 w. v1 IN ball_annulus /\ v2 IN ball_annulus /\ w IN ball_annulus /\
+				     w IN aff_ge {vec 0} {v1, v2} /\
+				     dist (v1, w) = &2 /\
+				     dist (v2, w) = &2
+				     ==> &1 <= dist (v1,v2)`,
+   REWRITE_TAC[in_ball_annulus] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(v1 = vec 0:real^3) /\ ~(v2 = vec 0:real^3) /\ ~(w = vec 0:real^3)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[GSYM NORM_EQ_0] THEN
+	 ASM_SIMP_TAC[REAL_ARITH `&2 <= n ==> ~(n = &0)`];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPEC_ALL in_aff_ge_dist_lower_bound) THEN
+     ASM_REWRITE_TAC[real_ge] THEN
+     MP_TAC (SPECL [`v1:real^3`; `w:real^3`] triangle_area_lower_bound) THEN
+     MP_TAC (SPECL [`v2:real^3`; `w:real^3`] triangle_area_lower_bound) THEN
+     ASM_REWRITE_TAC[in_ball_annulus] THEN
+     REPEAT DISCH_TAC THEN
+
+     SUBGOAL_THEN `&1 <= sqrt (&3)` ASSUME_TAC THENL
+     [
+       ONCE_REWRITE_TAC[GSYM SQRT_1] THEN
+	 MATCH_MP_TAC SQRT_MONO_LE THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `#1.48 * sqrt(&3) / #1.26` THEN
+     CONJ_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `(#1.48 * sqrt (&3) + #1.48 * sqrt (&3)) / (&2 * h0)` THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[Sphere.h0] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `(norm (v1 cross w) + norm (v2 cross w)) / norm w` THEN
+     CONJ_TAC THENL
+     [
+       SUBGOAL_THEN `&0 < &2 * h0 /\ &0 < norm (w:real^3)` ASSUME_TAC THENL
+	 [
+	   ASM_SIMP_TAC[Sphere.h0; REAL_ARITH `&2 <= n ==> &0 < n`] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[RAT_LEMMA4] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 REPEAT CONJ_TAC THENL
+	 [
+	   REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	     REAL_ARITH_TAC;
+	   MATCH_MP_TAC REAL_LE_ADD2 THEN
+	     ASM_REWRITE_TAC[];
+	   REWRITE_TAC[NORM_POS_LE];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+
+
+let aff_ge_trans = prove(`!v1 v2 v3 v:real^N. v3 IN aff_ge {vec 0} {v1,v2} /\ 
+		    v IN aff_ge {vec 0} {v1,v3} /\ ~(v = vec 0) /\ ~(v1 = vec 0) /\ ~(v2 = vec 0) /\ ~(v3 = vec 0) 
+		  ==> v3 IN aff_ge {vec 0} {v,v2}`,
+   REPEAT STRIP_TAC THEN
+     REPEAT (FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl))) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     ASM_CASES_TAC `t1' = &0` THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID] THEN
+	 DISCH_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`inv (t2')`; `&0`] THEN
+	 POP_ASSUM MP_TAC THEN
+	 POP_ASSUM (fun th -> SIMP_TAC[th; REAL_LE_INV]) THEN
+	 REWRITE_TAC[REAL_LE_REFL] THEN
+	 DISCH_TAC THEN
+	 REWRITE_TAC[VECTOR_ARITH `a % b % v = (a * b) % (v:real^N)`] THEN
+	 SUBGOAL_THEN `inv t2' * t2' = &1` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   MATCH_MP_TAC REAL_MUL_LINV THEN
+	     DISCH_TAC THEN UNDISCH_TAC `v:real^N = t2' % v3` THEN
+	     POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LZERO];
+	   ALL_TAC
+	 ] THEN
+	 VECTOR_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     DISCH_TAC THEN
+     MAP_EVERY EXISTS_TAC [`t1 / (t1' + t2' * t1)`; `t2 * t1' / (t1' + t2' * t1)`] THEN
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `&0 < t1' + t2' * t1` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC (REAL_ARITH `&0 < a /\ &0 <= b ==> &0 < a + b`) THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 < a <=> &0 <= a /\ ~(a = &0)`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REPEAT CONJ_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_DIV THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE];
+       MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_DIV THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[VECTOR_ARITH `t1 / a % (t1' % (v1:real^N) + t2' % (t1 % v1 + t2 % v2)) + (t2 * t1' / a) % v2 = (t1 * (t1' + t2' * t1) / a) % v1 + (t2 * (t1' + t2' * t1) / a) % v2`] THEN
+     SIMP_TAC[REAL_FIELD `&0 < a ==> b * a / a = b`]);;
+
+
+
+let rotation_dist_decrease = prove(`!v w u:real^N. norm u = norm v /\ &0 <= v dot w /\ ~(w = vec 0) /\
+                                    u IN aff_ge {vec 0} {v,w}
+				    ==> dist (u,w) <= dist (v,w)`,
+   REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `v:real^N = vec 0` THENL
+     [
+       UNDISCH_TAC `norm (u:real^N) = norm (v:real^N)` THEN
+	 ASM_REWRITE_TAC[NORM_0; NORM_EQ_0] THEN
+	 DISCH_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL];
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
+     REWRITE_TAC[dist] THEN
+     ONCE_REWRITE_TAC[GSYM REAL_ABS_NORM] THEN
+     REWRITE_TAC[REAL_LE_SQUARE_ABS] THEN
+     REWRITE_TAC[NORM_POW_2] THEN
+     REWRITE_TAC[VECTOR_ARITH `(u:real^N - w) dot (u - w) = u dot u + w dot w - &2 * u dot w`] THEN
+     ASM_REWRITE_TAC[DOT_SQUARE_NORM] THEN
+     REWRITE_TAC[REAL_ARITH `a + b - &2*c <= a + b - &2*d <=> &0 <= c - d`] THEN
+     REWRITE_TAC[VECTOR_ARITH `(t1 % v + t2 % w:real^N) dot w - v dot w = t1 * (v dot w) + t2 * (w dot w) - v dot w`] THEN
+     REWRITE_TAC[REAL_ARITH `&0 <= a + c - b <=> b <= a + c`] THEN
+     SUBGOAL_THEN `norm (u:real^N) pow 2 = t1 * t1 * (v dot v:real^N) + t2 * t2 * (w dot w:real^N) + &2 * t1 * t2 * (v dot w)` MP_TAC THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[NORM_POW_2] THEN
+	 VECTOR_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[NORM_POW_2] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `t1 <= &1` ASSUME_TAC THENL
+     [
+       MP_TAC (REAL_ARITH `&0 <= t1 ==> t1 = abs (t1)`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `&1 = abs (&1)`] THEN
+	 REWRITE_TAC[REAL_LE_SQUARE_ABS; REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LE_RCANCEL_IMP THEN
+	 EXISTS_TAC `v:real^N dot v` THEN
+	 CONJ_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[DOT_POS_LT];
+	   ALL_TAC
+	 ] THEN
+	 POP_ASSUM (fun th -> GEN_REWRITE_TAC (RAND_CONV o DEPTH_CONV) [th]) THEN
+	 REWRITE_TAC[REAL_MUL_LID; REAL_MUL_ASSOC] THEN
+	 REWRITE_TAC[REAL_ARITH `a <= a + c <=> &0 <= c`] THEN
+	 MATCH_MP_TAC REAL_LE_ADD THEN
+	 CONJ_TAC THEN MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[DOT_POS_LE] THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`];
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `x = t2 * (w:real^N dot w)` THEN
+     ABBREV_TAC `y = (v:real^N dot w)` THEN
+     SUBGOAL_THEN `&0 <= t1 * y + x` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_ADD THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 EXPAND_TAC "x" THEN MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[DOT_POS_LE];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (MP_TAC o REWRITE_RULE[GSYM REAL_ABS_REFL]) THEN
+     DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `&0 <= y` THEN
+     DISCH_TAC THEN FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM REAL_ABS_REFL] THEN
+     DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
+     REWRITE_TAC[REAL_LE_SQUARE_ABS] THEN
+     SUBGOAL_THEN `(v dot v:real^N) * (w dot w:real^N) = t1 * t1 * (v dot v:real^N) * (w dot w:real^N) + x pow 2 + &2 * t1 * y * x` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "x" THEN
+	 REWRITE_TAC[REAL_ARITH `t1 * t1 * v * w + (t2 * w) pow 2 + &2 * t1 * y * t2 * w = (t1 * t1 * v + t2 * (t2 * w) + &2 * t1 * t2 * y) * w`] THEN
+	 REWRITE_TAC[REAL_EQ_MUL_RCANCEL] THEN
+	 DISJ1_TAC THEN ASM_REWRITE_TAC[] THEN
+	 REPLICATE_TAC 4 REMOVE_ASSUM THEN
+	 POP_ASSUM ACCEPT_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `(t1 * abs y + x) pow 2 = x pow 2 + &2 * t1 * y * x + t1 * t1 * (y pow 2)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_ADD_ASSOC] THEN
+     SUBGOAL_THEN `x pow 2 + &2 * t1 * y * x = (v dot v) * (w dot w) - t1 pow 2 * (v dot v:real^N) * (w dot w:real^N)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_ARITH `a <= v * w - t pow 2 * v * w + t * t * a <=> &0 <= (&1 - t * t) * (v * w - a)`] THEN
+     MATCH_MP_TAC REAL_LE_MUL THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `&0 <= &1 - t1 * t1 <=> t1 * t1 <= &1 * &1`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     EXPAND_TAC "y" THEN
+     REWRITE_TAC[REAL_ARITH `&0 <= v * w - vw <=> vw <= v * w`] THEN
+     REWRITE_TAC[DOT_SQUARE_NORM; GSYM REAL_POW_MUL] THEN
+     REWRITE_TAC[Trigonometry2.SQUARE_NORM_CAUCHY_SCHWARZ_POW2]);;
+
+
+
+
+
+
+let pos_vector_angle_bounds = prove(`!v u:real^N. v dot u > &0 ==> &0 <= vector_angle v u /\ vector_angle v u <= pi / &2`,
+   REPEAT GEN_TAC THEN DISCH_TAC THEN
+     REWRITE_TAC[VECTOR_ANGLE_RANGE] THEN
+     REWRITE_TAC[vector_angle] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+     SUBGOAL_THEN `pi / &2 = acs (cos (pi / &2))` MP_TAC THENL
+     [
+       MATCH_MP_TAC (GSYM ACS_COS) THEN
+	 MP_TAC PI_POS THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC ACS_MONO_LE THEN
+     REWRITE_TAC[COS_PI2; REAL_ARITH `-- &1 <= &0`] THEN
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_DIV THEN
+	 ASM_SIMP_TAC[REAL_ARITH `a > &0 ==> &0 <= a`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REWRITE_TAC[NORM_POS_LE];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[DE_MORGAN_THM] THEN
+     SIMP_TAC[Trigonometry1.NORM_CAUCHY_SCHWARZ_FRAC]);;
+     
+     
+     
+
+
+
+let rotation_lemma = prove(`!v (u:real^N). ~collinear {vec 0, v, u} /\ norm v = norm u
+                          ==> ?f. f(lift (&0)) = v /\ f(lift (&1)) = u /\ 
+			      (!t. ?a b. f t = a % v + b % u) /\
+			      (!t. norm (f t) = norm v) /\ 
+			      (!t. t IN interval [lift (&0), lift (&1)] ==> f t IN aff_ge {vec 0} {v, u}) /\
+			      f continuous_on UNIV`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(v:real^N = vec 0) /\ ~(u:real^N = vec 0) /\ ~(v = u) /\ ~(u = --v)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `~collinear {vec 0:real^N,v,u}` THEN
+	 SIMP_TAC[COLLINEAR_LEMMA_ALT; DE_MORGAN_THM] THEN
+	 ASM_SIMP_TAC[GSYM NORM_EQ_0; NOT_EXISTS_THM] THEN
+	 STRIP_TAC THEN
+	 FIRST_ASSUM (MP_TAC o SPEC `&1`) THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `-- &1`) THEN
+	 SIMP_TAC[VECTOR_MUL_LID; VECTOR_MUL_LNEG];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `norm (u:real^N) > &0 /\ ~(norm u = &0)` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[real_gt; NORM_POS_LT; NORM_EQ_0];
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `phi = vector_angle (v:real^N) (u:real^N)` THEN
+     ABBREV_TAC `e:real^N = inv (sin phi) % u - cos phi % inv(sin phi) % v` THEN
+
+     SUBGOAL_THEN `&0 < sin phi` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `&0 < a <=> &0 <= a /\ ~(a = &0)`] THEN
+	 EXPAND_TAC "phi" THEN
+	 REWRITE_TAC[SIN_VECTOR_ANGLE_POS] THEN
+	 REWRITE_TAC[SIN_VECTOR_ANGLE_EQ_0] THEN
+	 ASM_REWRITE_TAC[VECTOR_ANGLE_EQ_0; VECTOR_ANGLE_EQ_PI; DE_MORGAN_THM] THEN
+	 REWRITE_TAC[VECTOR_ARITH `a % u + a % v = vec 0 <=> a % u = a % (--v:real^N)`] THEN
+	 ASM_REWRITE_TAC[VECTOR_MUL_LCANCEL];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `(u dot u) * (v dot v) - (u:real^N dot v) pow 2 > &0` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[DOT_SQUARE_NORM] THEN
+	 REWRITE_TAC[REAL_ARITH `a - b > &0 <=> b <= a /\ ~(b = a)`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_MUL] THEN
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[Trigonometry2.SQUARE_NORM_CAUCHY_SCHWARZ_POW2];
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[GSYM REAL_EQ_SQUARE_ABS] THEN
+	 REWRITE_TAC[REAL_ABS_MUL; REAL_ABS_NORM] THEN
+	 ASM_REWRITE_TAC[NORM_CAUCHY_SCHWARZ_ABS_EQ; DE_MORGAN_THM] THEN
+	 REWRITE_TAC[VECTOR_ARITH `--a % v = a % (--v:real^N)`] THEN
+	 ASM_REWRITE_TAC[VECTOR_MUL_LCANCEL; VECTOR_ARITH `v = --u <=> u = --v:real^N`];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `e:real^N dot v = &0` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "e" THEN
+	 REWRITE_TAC[DOT_LSUB; DOT_LMUL] THEN
+	 REWRITE_TAC[REAL_ARITH `a * b - c * a * d = a * (b - c * d)`] THEN
+	 REWRITE_TAC[REAL_ENTIRE] THEN
+	 DISJ2_TAC THEN
+	 EXPAND_TAC "phi" THEN ASM_REWRITE_TAC[COS_VECTOR_ANGLE] THEN
+	 ASM_REWRITE_TAC[DOT_SYM; DOT_SQUARE_NORM] THEN
+	 UNDISCH_TAC `norm (u:real^N) > &0 /\ ~(norm u = &0)` THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `d = norm (u:real^N) pow 4 - (u dot v) pow 2` THEN
+     SUBGOAL_THEN `&0 < d` ASSUME_TAC THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 ASM_REWRITE_TAC[DOT_SQUARE_NORM] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `inv (sin phi) pow 2 = norm (u:real^N) pow 4 / d /\ cos phi pow 2 = (u dot v) pow 2 / norm u pow 4` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[REAL_POW_INV] THEN
+	 EXPAND_TAC "phi" THEN
+	 ASM_REWRITE_TAC[SIN_SQUARED_VECTOR_ANGLE; COS_VECTOR_ANGLE; DOT_SYM] THEN
+	 UNDISCH_TAC `norm (u:real^N) > &0 /\ ~(norm u = &0)` THEN
+	 POP_ASSUM MP_TAC THEN EXPAND_TAC "d" THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `e:real^N dot e = v:real^N dot v` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "e" THEN
+	 REWRITE_TAC[VECTOR_ARITH `(a % u - b % a % v) dot (a % u - b % a % v) = (a pow 2) * ((u dot u) + (b pow 2) * v dot v - &2 * b * (u dot v:real^N))`] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 EXPAND_TAC "phi" THEN ASM_REWRITE_TAC[COS_VECTOR_ANGLE; DOT_SYM] THEN
+	 ASM_REWRITE_TAC[DOT_SQUARE_NORM] THEN
+	 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 UNDISCH_TAC `norm (u:real^N) > &0 /\ ~(norm u = &0)` THEN
+	 CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `f = (\t:real^1. cos (phi * drop t) % (v:real^N) + sin (phi * drop t) % e)` THEN
+     EXISTS_TAC `f:real^1->real^N` THEN
+     REPEAT CONJ_TAC THENL
+     [
+       (* f(0) = v *)
+       EXPAND_TAC "f" THEN BETA_TAC THEN
+	 REWRITE_TAC[LIFT_DROP; REAL_MUL_RZERO] THEN
+	 REWRITE_TAC[COS_0; SIN_0] THEN
+	 VECTOR_ARITH_TAC;
+
+       (* f(1) = u *)
+       EXPAND_TAC "f" THEN BETA_TAC THEN
+	 REWRITE_TAC[LIFT_DROP; REAL_MUL_RID] THEN
+	 EXPAND_TAC "e" THEN
+	 REWRITE_TAC[VECTOR_ARITH `s % (is % u - c % is % v) = (s * is) % (u - c % v)`] THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&0 < s ==> s * inv (s) = &1`] THEN
+	 VECTOR_ARITH_TAC;
+
+       (* f(t) = a v + b u *)
+       GEN_TAC THEN
+	 EXPAND_TAC "f" THEN EXPAND_TAC "e" THEN
+	 EXISTS_TAC `cos (phi * drop (t:real^1)) - sin(phi * drop t) * cos phi * inv(sin phi)` THEN
+	 EXISTS_TAC `sin (phi * drop (t:real^1)) * inv(sin phi)` THEN
+	 VECTOR_ARITH_TAC;
+
+       (* |f(t)| = |v| *)
+       GEN_TAC THEN
+	 REWRITE_TAC[NORM_EQ] THEN
+	 EXPAND_TAC "f" THEN BETA_TAC THEN
+	 REWRITE_TAC[VECTOR_ARITH `(c % v + s % e:real^N) dot (c % v + s % e) = (c pow 2) * (v dot v) + (s pow 2) * (e dot e) + &2 * c * s * (e dot v)`] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REWRITE_TAC[REAL_ARITH `c pow 2 * v + s pow 2 * v + &2 * c * s * &0 = (s pow 2 + c pow 2) * v`] THEN
+	 REWRITE_TAC[SIN_CIRCLE] THEN
+	 REAL_ARITH_TAC;
+
+       (* f(t) IN aff_ge 0 {v, u} *)
+       GEN_TAC THEN REWRITE_TAC[IN_INTERVAL] THEN
+	 DISCH_THEN (MP_TAC o SPEC `1`) THEN
+	 REWRITE_TAC[LE_REFL; DIMINDEX_1] THEN
+	 REWRITE_TAC[GSYM drop; LIFT_DROP] THEN
+	 DISCH_TAC THEN
+	 ASM_SIMP_TAC[aff_ge_0_2] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN
+	 EXPAND_TAC "f" THEN EXPAND_TAC "e" THEN
+
+	 MAP_EVERY EXISTS_TAC [`cos (phi * drop (t:real^1)) - sin (phi * drop t) * cos phi * inv(sin phi)`; `sin (phi * drop (t:real^1)) * inv(sin phi)`] THEN
+	 SUBGOAL_THEN `&0 < phi /\ phi < pi` ASSUME_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_ARITH `&0 < phi <=> ~(phi = &0) /\ &0 <= phi`; REAL_ARITH `phi < pi <=> phi <= pi /\ ~(phi = pi)`] THEN
+	     EXPAND_TAC "phi" THEN REWRITE_TAC[VECTOR_ANGLE_RANGE] THEN
+	     ASM_REWRITE_TAC[] THEN
+	     CONJ_TAC THEN DISCH_TAC THEN UNDISCH_TAC `&0 < sin phi` THEN ASM_REWRITE_TAC[SIN_0; SIN_PI; REAL_LT_REFL];
+	   ALL_TAC
+	 ] THEN
+
+	 CONJ_TAC THENL
+	 [
+	   REWRITE_TAC[GSYM real_div; REAL_ARITH `&0 <= a - b * c * d <=> (b * c) * d <= a / &1`] THEN
+	     MP_TAC (GEN_ALL RAT_LEMMA4) THEN
+	     DISCH_THEN (MP_TAC o SPECL [`sin (phi * drop (t:real^1)) * cos phi`; `&1`; `cos (phi * drop (t:real^1))`; `sin phi`]) THEN
+	     ASM_REWRITE_TAC[REAL_LT_01] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	     REWRITE_TAC[REAL_ARITH `(s1 * c) * &1 <= c1 * s <=> &0 <= s * c1 - c * s1`] THEN
+	     REWRITE_TAC[GSYM SIN_SUB] THEN
+	     MATCH_MP_TAC SIN_POS_PI_LE THEN
+	     REWRITE_TAC[REAL_ARITH `phi - phi * t = phi * (&1 - t)`] THEN
+	     CONJ_TAC THENL [ MATCH_MP_TAC REAL_LE_MUL THEN ASM_SIMP_TAC[REAL_LT_IMP_LE; REAL_ARITH `t <= &1 ==> &0 <= &1 - t`]; ALL_TAC ] THEN
+	     ONCE_REWRITE_TAC[REAL_ARITH `pi = pi * &1`] THEN
+	     MATCH_MP_TAC REAL_LE_MUL2 THEN
+	     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_MUL THEN
+	     CONJ_TAC THENL
+	     [
+	       MATCH_MP_TAC SIN_POS_PI_LE THEN
+		 CONJ_TAC THENL [ MATCH_MP_TAC REAL_LE_MUL THEN ASM_SIMP_TAC[REAL_LT_IMP_LE]; ALL_TAC ] THEN
+		 ONCE_REWRITE_TAC[REAL_ARITH `pi = pi * &1`] THEN
+		 MATCH_MP_TAC REAL_LE_MUL2 THEN
+		 ASM_REWRITE_TAC[] THEN
+		 POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     MATCH_MP_TAC REAL_LE_INV THEN
+	     ASM_SIMP_TAC[REAL_LT_IMP_LE];
+	   ALL_TAC
+	 ] THEN
+	 VECTOR_ARITH_TAC;
+
+       (* f is continuous *)
+       EXPAND_TAC "f" THEN
+	 MATCH_MP_TAC CONTINUOUS_ON_ADD THEN
+	 CONJ_TAC THEN MATCH_MP_TAC CONTINUOUS_ON_VMUL THENL
+	 [
+	   MATCH_MP_TAC CONTINUOUS_AT_IMP_CONTINUOUS_ON THEN
+	     REPEAT STRIP_TAC THEN
+	     REWRITE_TAC[GSYM REAL_CONTINUOUS_CONTINUOUS1] THEN
+	     SUBGOAL_THEN `(\t:real^1. cos (phi * drop t)) = cos o (\t. phi * drop t)` (fun th -> REWRITE_TAC[th]) THENL
+	     [
+	       REWRITE_TAC[FUN_EQ_THM; o_THM];
+	       ALL_TAC
+	     ] THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_AT_COMPOSE THEN
+	     REWRITE_TAC[REAL_CONTINUOUS_WITHIN_COS] THEN
+	     REWRITE_TAC[drop] THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_LMUL THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_AT_COMPONENT THEN
+	     REWRITE_TAC[DIMINDEX_1] THEN ARITH_TAC;
+	   
+	   MATCH_MP_TAC CONTINUOUS_AT_IMP_CONTINUOUS_ON THEN
+	     REPEAT STRIP_TAC THEN
+	     REWRITE_TAC[GSYM REAL_CONTINUOUS_CONTINUOUS1] THEN
+	     SUBGOAL_THEN `(\t:real^1. sin (phi * drop t)) = sin o (\t. phi * drop t)` (fun th -> REWRITE_TAC[th]) THENL
+	     [
+	       REWRITE_TAC[FUN_EQ_THM; o_THM];
+	       ALL_TAC
+	     ] THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_AT_COMPOSE THEN
+	     REWRITE_TAC[REAL_CONTINUOUS_WITHIN_SIN] THEN
+	     REWRITE_TAC[drop] THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_LMUL THEN
+	     MATCH_MP_TAC REAL_CONTINUOUS_AT_COMPONENT THEN
+	     REWRITE_TAC[DIMINDEX_1] THEN ARITH_TAC
+	 ]
+     ]);;
+
+
+
+
+     
+   
+
+let dot_pos_lemma = prove(`!v w. v IN ball_annulus /\ w IN ball_annulus /\ dist (v,w) <= &2 * h0 ==> v dot w > &0`,
+   REWRITE_TAC[in_ball_annulus] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[dist] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `(v - w) dot (v:real^3 - w) <= (&2 * h0) * (&2 * h0)` MP_TAC THENL
+     [
+       REWRITE_TAC[DOT_SQUARE_NORM; REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[NORM_POS_LE];
+       ALL_TAC
+     ] THEN
+     ASM_CASES_TAC `v:real^3 dot w > &0` THEN ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[REAL_NOT_LE] THEN
+     REWRITE_TAC[VECTOR_ARITH `(v - w:real^3) dot (v - w) = v dot v + w dot w - &2 * (v dot w)`] THEN
+     MATCH_MP_TAC REAL_LTE_TRANS THEN
+     EXISTS_TAC `(v dot v:real^3) + (w dot w:real^3)` THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[Pack_defs.h0; DOT_SQUARE_NORM] THEN
+	 SUBGOAL_THEN `&2 * &2 <= norm (v:real^3) pow 2 /\ &2 * &2 <= norm (w:real^3) pow 2` MP_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_POW_2] THEN
+	     CONJ_TAC THEN MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`];
+	   ALL_TAC
+	 ] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_ARITH `v + w <= v + w - &2 * vw <=> vw <= &0`] THEN
+     POP_ASSUM MP_TAC THEN
+     REAL_ARITH_TAC);;
+
+
+
+let dist_decreasing_ivt_lemma = prove(`!f (v:real^N) t1 d. &0 <= t1 /\
+					   f continuous_on UNIV /\
+					   dist (f(lift t1), v) <= d /\
+					   d <= dist (f(lift (&0)), v) 
+					   ==> ?t. t IN interval [lift (&0), lift t1] /\ dist (f t, v) = d`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPECL [`(lift o (\x. dist (x,v:real^N))) o (f:real^1->real^N)`; `lift (&0)`; `lift t1`; `d:real`; `1`] IVT_DECREASING_COMPONENT_1) THEN
+     ASM_REWRITE_TAC[LIFT_DROP; LE_REFL; DIMINDEX_1] THEN
+     ANTS_TAC THENL
+     [
+       REPEAT CONJ_TAC THENL
+	 [
+	   REPEAT STRIP_TAC THEN
+	     MATCH_MP_TAC CONTINUOUS_AT_COMPOSE THEN
+	     UNDISCH_TAC `(f:real^1->real^N) continuous_on UNIV` THEN
+	     REWRITE_TAC[CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN; WITHIN_UNIV; IN_UNIV] THEN
+	     DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
+	     SUBGOAL_THEN `lift o (\x. dist (x,v:real^N)) = (lift o norm) o (\x. x - v)` (fun th -> REWRITE_TAC[th]) THENL
+	     [
+	       REWRITE_TAC[FUN_EQ_THM; o_THM; dist];
+	       ALL_TAC
+	     ] THEN
+	     MATCH_MP_TAC CONTINUOUS_AT_COMPOSE THEN
+	     REWRITE_TAC[CONTINUOUS_AT_LIFT_NORM] THEN
+	     MATCH_MP_TAC CONTINUOUS_SUB THEN
+	     REWRITE_TAC[CONTINUOUS_AT_ID; CONTINUOUS_CONST];
+	   ASM_REWRITE_TAC[o_THM; GSYM drop; LIFT_DROP];
+	   ASM_REWRITE_TAC[o_THM; GSYM drop; LIFT_DROP]
+	 ];
+       ALL_TAC
+     ] THEN
+     
+     STRIP_TAC THEN
+     EXISTS_TAC `x:real^1` THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[o_THM; GSYM drop; LIFT_DROP]);;
+
+   
+
+
+let lemma_3_points = prove(`!v1 v2 v3. v3 IN aff_ge {vec 0} {v1,v2} /\ 
+			               v1 IN ball_annulus /\ v2 IN ball_annulus /\ v3 IN ball_annulus /\
+				       dist (v1,v2) <= &2 * h0 /\ &2 <= dist (v1,v3) /\ &2 <= dist (v2,v3)
+				       ==> ?v. v IN ball_annulus /\ 
+				               v3 IN aff_ge {vec 0} {v,v2} /\
+			                       dist (v,v2) <= &2 * h0 /\ dist (v,v3) = &2`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`v1:real^3`; `v2:real^3`] dot_pos_lemma) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     REPLICATE_TAC 3 (FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl))) THEN
+     REWRITE_TAC[IMP_IMP] THEN DISCH_TAC THEN FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[in_ball_annulus] THEN
+     DISCH_TAC THEN
+
+     MP_TAC (SPECL [`v1:real^3`; `v2:real^3`; `v3:real^3`] in_aff_ge_0_2) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     POP_ASSUM (LABEL_TAC "A" o SYM) THEN
+
+     ABBREV_TAC `u:real^3 = (norm (v1:real^3) / norm (v3:real^3)) % v3` THEN
+    
+     MP_TAC (ISPECL [`v1:real^3`; `u:real^3`] rotation_lemma) THEN
+     SUBGOAL_THEN `~collinear {vec 0, v1, v3:real^3}` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC non_collinear_lemma THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REMOVE_THEN "A" (fun th -> REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[DOT_RADD; DOT_RMUL] THEN
+	 MATCH_MP_TAC REAL_LT_ADD THEN
+	 CONJ_TAC THEN MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC[] THENL
+	 [
+	   ASM_REWRITE_TAC[DOT_POS_LT];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[GSYM real_gt];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `dist (u,v3:real^3) < &2` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[dist] THEN
+	 EXPAND_TAC "u" THEN
+	 REWRITE_TAC[VECTOR_ARITH `a % v3 - v3 = (a - &1) % v3:real^3`] THEN
+	 REWRITE_TAC[NORM_MUL] THEN
+	 SUBGOAL_THEN `norm (v3:real^3) = abs (norm v3)` MP_TAC THENL
+	 [
+	   ASM_SIMP_TAC[REAL_ARITH `&2 <= n3 ==> n3 = abs(n3)`];
+	   ALL_TAC
+	 ] THEN
+	 DISCH_TAC THEN
+	 FIRST_ASSUM (fun th -> ONCE_REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[GSYM REAL_ABS_MUL] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&2 <= n3 ==> (n1 / n3 - &1) * n3 = (n1 - n3)`] THEN
+	 REPEAT (FIRST_X_ASSUM (MP_TAC o check (is_conj o concl))) THEN
+	 REWRITE_TAC[Pack_defs.h0] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ANTS_TAC THENL
+     [
+       CONJ_TAC THENL
+	 [
+	   UNDISCH_TAC `~collinear {vec 0:real^3,v1,v3}` THEN
+	     MP_TAC (ISPECL [`&1`; `norm (v1:real^3) / norm (v3:real^3)`; `v1:real^3`; `v3:real^3`] COLLINEAR_SCALE_ALL) THEN
+	     ANTS_TAC THENL
+	     [
+	       REWRITE_TAC[REAL_ARITH `~(&1 = &0)`] THEN
+		 MATCH_MP_TAC (REAL_ARITH `&0 < a ==> ~(a = &0)`) THEN
+		 MATCH_MP_TAC REAL_LT_DIV THEN
+		 ASM_SIMP_TAC[REAL_ARITH `&2 <= n ==> &0 < n`];
+	       ALL_TAC
+	     ] THEN
+	     ASM_SIMP_TAC[VECTOR_MUL_LID];
+	   ALL_TAC
+	 ] THEN
+
+	 EXPAND_TAC "u" THEN
+	 REWRITE_TAC[NORM_MUL] THEN
+	 SUBGOAL_THEN `abs (norm (v1:real^3) / norm (v3:real^3)) = norm v1 / norm v3` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   REWRITE_TAC[REAL_ABS_REFL] THEN
+	     MATCH_MP_TAC REAL_LE_DIV THEN
+	     REWRITE_TAC[NORM_POS_LE];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&2 <= n3 ==> n1 / n3 * n3 = n1`];
+       ALL_TAC
+     ] THEN
+
+     STRIP_TAC THEN
+     MP_TAC (ISPECL [`f:real^1->real^3`; `v3:real^3`; `&1`; `&2`] dist_decreasing_ivt_lemma) THEN
+     ASM_SIMP_TAC[REAL_ARITH `dist (u:real^3,v3) < &2 ==> dist(u,v3) <= &2`; REAL_LE_01] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `(f:real^1->real^3) t` THEN
+     ASM_REWRITE_TAC[] THEN
+
+     SUBGOAL_THEN `aff_ge {vec 0} {v1:real^3,v3} = aff_ge {vec 0} {v1,u}` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC aff_ge_eq_lemma THEN
+	 EXISTS_TAC `norm (v1:real^3) / norm (v3:real^3)` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LT_DIV THEN
+	 ASM_SIMP_TAC[REAL_ARITH `&2 <= n ==> &0 < n`];
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       ASM_REWRITE_TAC[GSYM NORM_EQ_0] THEN
+	 ASM_REWRITE_TAC[NORM_EQ_0];
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC aff_ge_trans THEN
+	 EXISTS_TAC `v1:real^3` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `t:real^1`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 SIMP_TAC[] THEN
+	 DISCH_TAC THEN
+	 ASM_REWRITE_TAC[GSYM NORM_EQ_0] THEN
+	 ASM_REWRITE_TAC[NORM_EQ_0];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `dist (v1,v2:real^3)` THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC rotation_dist_decrease THEN
+     ASM_SIMP_TAC[REAL_ARITH `a > &0 ==> &0 <= a`] THEN
+     
+     FIRST_X_ASSUM (MP_TAC o SPEC `t:real^1`) THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REMOVE_THEN "A" (fun th -> REWRITE_TAC[SYM th]) THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`t1' + t2' * t1:real`; `t2' * t2:real`] THEN
+     REPEAT CONJ_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_ADD THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE];
+       MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN
+     VECTOR_ARITH_TAC);;
+     
+     
+     
+
+     
+let LEMMA_3_POINTS = prove(`!v1 v2 v3. v3 IN aff_ge {vec 0} {v1,v2} /\ 
+			     v1 IN ball_annulus /\ v2 IN ball_annulus /\ v3 IN ball_annulus /\
+			     dist (v1,v2) <= &2 * h0 /\
+			     &2 <= dist (v1,v3) /\
+			     &2 <= dist (v2,v3)
+			     ==> (?v1' v2'. v3 IN aff_ge {vec 0} {v1',v2'} /\
+				    v1' IN ball_annulus /\ v2' IN ball_annulus /\ v3 IN ball_annulus /\
+				    dist (v1',v2') <= &2 * h0 /\
+				    dist (v1',v3) = &2 /\
+				    dist (v2',v3) = &2)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL lemma_3_points) THEN
+     ASM_REWRITE_TAC[real_ge] THEN
+     DISCH_THEN (X_CHOOSE_THEN `v1':real^3` MP_TAC) THEN
+     STRIP_TAC THEN
+     
+     MP_TAC (SPECL [`v2:real^3`; `v1':real^3`; `v3:real^3`] lemma_3_points) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+       CONJ_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[SET_RULE `{v2,v1'} = {v1',v2}`];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[DIST_SYM; real_ge; REAL_LE_REFL];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (X_CHOOSE_THEN `v2':real^3` MP_TAC) THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`v1':real^3`; `v2':real^3`] THEN
+     ASM_REWRITE_TAC[] THEN
+     CONJ_TAC THENL
+     [
+       ASSUME_TAC (SET_RULE `{v1':real^3,v2'} = {v2',v1'}`) THEN
+	 POP_ASSUM (fun th -> ONCE_REWRITE_TAC [th]) THEN
+	 ASM_REWRITE_TAC[];
+       REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 SIMP_TAC[DIST_SYM]
+     ]);;
+
+
+
+let LEMMA_3_POINTS_FINAL = prove(`!v1 v2 v3. 
+				   v3 IN aff_ge {vec 0} {v1,v2} /\
+				   v1 IN ball_annulus /\ v2 IN ball_annulus /\ v3 IN ball_annulus /\
+				   dist (v1,v2) <= &2 * h0 /\
+				   &2 <= dist (v1,v3) /\
+				   &2 <= dist (v2,v3)
+				   ==> F`,
+   REPEAT GEN_TAC THEN DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o MATCH_MP LEMMA_3_POINTS) THEN
+     REPEAT STRIP_TAC THEN
+     REPLICATE_TAC 3 (FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl))) THEN
+     REWRITE_TAC[in_ball_annulus] THEN
+     REPEAT STRIP_TAC THEN
+     
+     MP_TAC (SPECL [`vec 0:real^3`; `v1':real^3`; `v2':real^3`; `v3:real^3`] Collect_geom.POLFLZY) THEN
+     REWRITE_TAC[Tame_inequalities.DELTA_EQ_DELTA_X] THEN
+
+     CONV_TAC (DEPTH_CONV let_CONV) THEN
+     SUBGOAL_THEN `coplanar_alt {vec 0, v1':real^3, v2', v3}` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MP_TAC (ISPEC `{vec 0,v1',v2',v3:real^3}` coplanar_eq_coplanar_alt) THEN
+	 REWRITE_TAC[DIMINDEX_3] THEN ANTS_TAC THENL [ ARITH_TAC; ALL_TAC ] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[coplanar] THEN
+
+	 MAP_EVERY EXISTS_TAC [`vec 0:real^3`; `v1':real^3`; `v2':real^3`] THEN
+	 REWRITE_TAC[AFFINE_HULL_3; VECTOR_MUL_RZERO; VECTOR_ADD_LID] THEN
+	 REWRITE_TAC[SUBSET; IN_INSERT; NOT_IN_EMPTY; IN_ELIM_THM] THEN
+	 REPEAT STRIP_TAC THENL
+	 [
+	   MAP_EVERY EXISTS_TAC [`&1`; `&0`; `&0`] THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID] THEN
+	     REAL_ARITH_TAC;
+	   MAP_EVERY EXISTS_TAC [`&0`; `&1`; `&0`] THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LID; VECTOR_MUL_LZERO; VECTOR_ADD_RID] THEN
+	     REAL_ARITH_TAC;
+	   MAP_EVERY EXISTS_TAC [`&0`; `&0`; `&1`] THEN
+	     ASM_REWRITE_TAC[VECTOR_MUL_LID; VECTOR_MUL_LZERO; VECTOR_ADD_LID] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 SUBGOAL_THEN `~(v1':real^3 = vec 0) /\ ~(v2':real^3 = vec 0)` ASSUME_TAC THENL
+	 [
+	   REWRITE_TAC[GSYM NORM_EQ_0] THEN
+	     ASM_SIMP_TAC[REAL_ARITH `&2 <= norm n ==> ~(norm n = &0)`];
+	   ALL_TAC
+	 ] THEN
+	 FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
+	 ASM_SIMP_TAC[aff_ge_0_2] THEN
+	 REWRITE_TAC[IN_ELIM_THM] THEN
+	 STRIP_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`&1 - t1 - t2`; `t1:real`; `t2:real`] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC (REAL_ARITH `a >= #13.0 ==> ~(a = &0)`) THEN
+     ASM_REWRITE_TAC[REAL_ARITH `&2 pow 2 = #4.0`] THEN
+     MATCH_MP_TAC (REWRITE_RULE [Tame_inequalities.INEQ_ALT; ALL] Tame_inequalities.delta_x_3_points) THEN
+     REWRITE_TAC[DIST_0] THEN
+
+     SUBGOAL_THEN `!a. &2 <= a ==> #4.0 <= a pow 2` (fun th -> ASM_SIMP_TAC[th]) THENL
+     [
+       REPEAT STRIP_TAC THEN REWRITE_TAC[REAL_ARITH `#4.0 = &2 * &2`; REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `!a. &2 <= a /\ a <= &2 * h0 ==> a pow 2 <= #6.3504` (fun th -> ASM_SIMP_TAC[th]) THENL
+     [
+       REWRITE_TAC[Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+	 REPEAT STRIP_TAC THEN REWRITE_TAC[REAL_ARITH `#6.3504 = #2.52 * #2.52`; REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_SIMP_TAC[REAL_ARITH `&2 <= a ==> &0 <= a`];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`v1':real^3`; `v2':real^3`; `v3:real^3`] DIST_LOWER_BOUND_lemma) THEN
+     ASM_REWRITE_TAC[in_ball_annulus] THEN
+     DISCH_TAC THEN
+     SUBGOAL_THEN `!a. &1 <= a /\ a <= &2 * h0 ==> #0.64 <= a pow 2 /\ a pow 2 <= #6.3504` (fun th -> ASM_SIMP_TAC[th]) THEN
+     REWRITE_TAC[Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REPEAT STRIP_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `#0.64 = #0.8 * #0.8`; REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_ARITH `#6.3504 = #2.52 * #2.52`; REAL_POW_2] THEN
+     MATCH_MP_TAC REAL_LE_MUL2 THEN
+     ASM_SIMP_TAC[REAL_ARITH `&1 <= a ==> &0 <= a`]);;
+
+
+     
+   
+
+end;;

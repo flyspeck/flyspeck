@@ -1,0 +1,731 @@
+flyspeck_needs "general/Sphere.hl";;
+flyspeck_needs "trigonometry/trigonometry.hl";;
+flyspeck_needs "nonlinear/ineq.hl";;
+
+
+module Tame_inequalities = struct
+
+
+let let_RULE = fun th -> REWRITE_RULE[DEPTH_CONV let_CONV (concl th)] th;;
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
+
+
+
+(* Alternative form for ineq *)
+let INEQ_ALT = prove(`!A bounds. ineq bounds A <=> (ALL (\(a,x,b). a <= x /\ x <= b) bounds ==> A)`,
+  GEN_TAC THEN
+    MATCH_MP_TAC list_INDUCT THEN REPEAT STRIP_TAC THENL
+    [
+      REWRITE_TAC[Sphere.ineq; ALL];
+      ALL_TAC
+    ] THEN
+    MP_TAC (ISPEC `a0:real#real#real` PAIR_SURJECTIVE) THEN
+    DISCH_THEN (X_CHOOSE_THEN `a:real` MP_TAC) THEN
+    DISCH_THEN (CHOOSE_THEN MP_TAC) THEN
+    MP_TAC (ISPEC `y:real#real` PAIR_SURJECTIVE) THEN
+    DISCH_THEN (X_CHOOSE_THEN `x:real` MP_TAC) THEN
+    DISCH_THEN (X_CHOOSE_THEN `b:real` MP_TAC) THEN
+    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+    ASM_SIMP_TAC[Sphere.ineq; ALL; IMP_IMP]);;
+
+
+
+(**************************************************)
+
+let lemma = prove(`!a b c x x0 x1. a < &0 /\ x0 <= x /\ x <= x1 ==> a*x*x + b*x + c >= a*x0*x0 + b*x0 + c \/ a*x*x + b*x + c >= a*x1*x1 + b*x1 + c`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[REAL_ARITH `a*x*x + b*x + c >= a*x0*x0 + b*x0 + c <=> &0 <= (x - x0) * (a * x0 + a * x + b)`] THEN
+     DISJ_CASES_TAC (REAL_ARITH `&0 <= a * x0 + a * x + b \/ a * x0 + a * x + b < &0`) THENL
+     [
+       DISJ1_TAC THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 <= x - x0 <=> x0 <= x`];
+       DISJ2_TAC THEN
+	 REWRITE_TAC[REAL_ARITH `(x - x1) * (a * x1 + a * x + b) = (x1 - x) * --(a * x1 + a * x + b)`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 <= x1 - x <=> x <= x1`; REAL_ARITH `&0 <= --a <=> a <= &0`] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `a * x0 + a * x + b:real` THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+	 REWRITE_TAC[REAL_ARITH `a + b <= c + b <=> a <= c`] THEN
+	 REWRITE_TAC[REAL_ARITH `a * x1 <= a * x0 <=> &0 <= --a * (x1 - x0)`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC
+     ]);;
+
+
+let lemma' = prove(`!f a b c x x0 x1. f = (\x. a*x*x + b*x + c) /\ x0 <= x /\ x <= x1 /\ a < &0 ==> f x >= f x0 \/ f x >= f x1`,
+   REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC lemma THEN
+     ASM_REWRITE_TAC[]);;
+
+
+let lemma1 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x1 /\ x1 <= #6.3504 /\ #4.0 <= x4 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x #4.0 x2 x3 x4 x5 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x #6.3504 x2 x3 x4 x5 x6`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `!x1. delta_x x1 x2 x3 x4 x5 x6 = (\x. delta_x x x2 x3 x4 x5 x6) x1` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x4`; `x4*(x2+x3-x4+x5+x6)+x2*x5+x3*x6-x3*x5-x2*x6`; `x2*x5*(x3-x2+x4-x5+x6) + x3*x6*(x2-x3+x4+x5-x6)-x2*x3*x4-x4*x5*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+let lemma2 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x2 /\ x2 <= #6.3504 /\ #4.0 <= x5 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 #4.0 x3 x4 x5 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 #6.3504 x3 x4 x5 x6`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `!x2. delta_x x1 x2 x3 x4 x5 x6 = (\x. delta_x x1 x x3 x4 x5 x6) x2` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x5`; `x5*(x1+x3+x4-x5+x6)+x1*x4+x3*x6-x3*x4-x1*x6`; `x1*x4*(--x1+x3-x4+x5+x6) + x3*x6*(x1-x3+x4+x5-x6)-x1*x3*x5-x4*x5*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+let lemma3 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x3 /\ x3 <= #6.3504 /\ #4.0 <= x6 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 #4.0 x4 x5 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 #6.3504 x4 x5 x6`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x x4 x5 x6) x3`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x6`; `x6*(x1+x2-x6+x4+x5)+x1*x4+x2*x5-x2*x4-x1*x5`; `x2*x5*(x1-x2+x4-x5+x6) + x1*x4*(--x1+x2-x4+x5+x6)-x1*x2*x6-x4*x5*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+let lemma4 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x4 /\ x4 <= #6.3504 /\ #4.0 <= x1 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 #4.0 x5 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 #6.3504 x5 x6`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x x5 x6) x4`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x1`; `x1*(--x1+x2+x3+x5+x6)+x2*x5+x3*x6-x2*x3-x5*x6`; `x2*x5*(x1-x2+x3-x5+x6) + x3*x6*(x1+x2-x3+x5-x6)-x1*x3*x5-x1*x2*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+let lemma5 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x5 /\ x5 <= #6.3504 /\ #4.0 <= x2 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 #4.0 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 #6.3504 x6`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x x6) x5`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x2`; `x2*(x1+x3-x2+x4+x6)+x1*x4+x3*x6-x1*x3-x4*x6`; `x1*x4*(--x1+x2+x3-x4+x6) + x3*x6*(x1+x2-x3+x4-x6)-x2*x3*x4-x1*x2*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+let lemma6 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x6 /\ x6 <= #6.3504 /\ #4.0 <= x3 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 x5 #4.0 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 x5 #6.3504`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x5 x) x6`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x3`; `x3*(x1+x2-x3+x4+x5)+x1*x4+x2*x5-x1*x2-x4*x5`; `x2*x5*(x1-x2+x3+x4-x5) + x1*x4*(--x1+x2+x3-x4+x5)-x2*x3*x4-x1*x3*x5`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+   
+
+
+
+let main_lemma = prove(`!(f:real->real) x x0 x1 m. (f x >= f x0 \/ f x >= f x1) /\ f x0 >= m /\ f x1 >= m ==> f x >= m`,
+   REWRITE_TAC[real_ge] THEN
+     REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THENL
+     [
+       EXISTS_TAC `(f:real->real) x0` THEN
+	 ASM_REWRITE_TAC[];
+       EXISTS_TAC `(f:real->real) x1` THEN
+	 ASM_REWRITE_TAC[]
+     ]);;
+
+
+(* delta_x > 0 for x IN [4,4 h0^2] *)
+
+let delta_x_pos = prove(`!x1 x2 x3 x4 x5 x6. ineq [#4.0,x1,#6.3504;
+						   #4.0,x2,#6.3504;
+						   #4.0,x3,#6.3504;
+						   #4.0,x4,#6.3504;
+						   #4.0,x5,#6.3504;
+						   #4.0,x6,#6.3504] (delta_x x1 x2 x3 x4 x5 x6 >= #128.0)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[INEQ_ALT; ALL] THEN
+     REPEAT STRIP_TAC THEN
+     ASSUME_TAC (REAL_ARITH `#4.0 <= #4.0 /\ #4.0 <= #6.3504`) THEN
+     
+     (* x1 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x x2 x3 x4 x5 x6) x1`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma1] THEN
+     CONJ_TAC THEN
+
+     (* x2 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x x3 x4 x5 x6) x2`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma2] THEN
+     CONJ_TAC THEN
+
+     (* x3 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x x4 x5 x6) x3`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma3] THEN
+     CONJ_TAC THEN
+
+     (* x4 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x x5 x6) x4`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma4] THEN
+     CONJ_TAC THEN
+
+     (* x5 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x x6) x5`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma5] THEN
+     CONJ_TAC THEN
+
+     (* x6 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x5 x) x6`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma6] THEN
+     CONJ_TAC THEN
+
+     (* Final stage *)
+     REWRITE_TAC[Sphere.delta_x] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV);;
+
+
+let lemma3 = prove(`!x1 x2 x3 x4 x5 x6. #4.0 <= x3 /\ x3 <= #6.3504 /\ #0.64 <= x6 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 #4.0 x4 x5 x6 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 #6.3504 x4 x5 x6`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x x4 x5 x6) x3`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x6`; `x6*(x1+x2-x6+x4+x5)+x1*x4+x2*x5-x2*x4-x1*x5`; `x2*x5*(x1-x2+x4-x5+x6) + x1*x4*(--x1+x2-x4+x5+x6)-x1*x2*x6-x4*x5*x6`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+
+let lemma6 = prove(`!x1 x2 x3 x4 x5 x6. #0.64 <= x6 /\ x6 <= #6.3504 /\ #4.0 <= x3 ==> delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 x5 #0.64 \/ delta_x x1 x2 x3 x4 x5 x6 >= delta_x x1 x2 x3 x4 x5 #6.3504`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x5 x) x6`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.delta_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`--x3`; `x3*(x1+x2-x3+x4+x5)+x1*x4+x2*x5-x1*x2-x4*x5`; `x2*x5*(x1-x2+x3+x4-x5) + x1*x4*(--x1+x2+x3-x4+x5)-x2*x3*x4-x1*x3*x5`] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+	 
+(* delta_x > 0 for a special configuration of three points *)
+	 
+let delta_x_3_points = prove(`!x1 x2 x3 x6. ineq [#4.0,x1,#6.3504;
+						  #4.0,x2,#6.3504;
+						  #4.0,x3,#6.3504;
+						  #0.64,x6,#6.3504] (delta_x x1 x2 x3 (#4.0) (#4.0) x6 >= #13.0)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[INEQ_ALT; ALL] THEN
+     REPEAT STRIP_TAC THEN
+     ASSUME_TAC (REAL_ARITH `#4.0 <= #4.0 /\ #4.0 <= #6.3504`) THEN
+     
+     (* x1 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x x2 x3 x4 x5 x6) x1`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma1] THEN
+     CONJ_TAC THEN
+
+     (* x2 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x x3 x4 x5 x6) x2`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma2] THEN
+     CONJ_TAC THEN
+
+     (* x3 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x x4 x5 x6) x3`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma3] THEN
+     CONJ_TAC THEN
+
+     (* x6 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. delta_x x1 x2 x3 x4 x5 x) x6`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#0.64`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma6] THEN
+     CONJ_TAC THEN
+
+     (* Final stage *)
+     REWRITE_TAC[Sphere.delta_x] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV);;
+
+
+
+(************************************************************)
+
+
+(* eta_y pow 2 <= #2.2 *)
+
+
+let lemma1 = prove(`!x1 x2 x3. #4.0 <= x1 /\ x1 <= #6.3504 ==> 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x #4.0 x2 x3 - #4.0 * x2 * x3 \/ 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x #6.3504 x2 x3 - #6.3504 * x2 * x3`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x x2 x3 - x * x2 * x3) x1`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.ups_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`-- #2.2`; `#2.2*(&2 * x3 + &2 * x2) - x2 * x3`; `#2.2 * (&2 * x2 * x3 - x2*x2 - x3*x3)`] THEN
+     REAL_ARITH_TAC);;
+
+
+let lemma2 = prove(`!x1 x2 x3. #4.0 <= x2 /\ x2 <= #6.3504 ==> 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x x1 #4.0 x3 - x1 * #4.0 * x3 \/ 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x x1 #6.3504 x3 - x1 * #6.3504 * x3`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x1 x x3 - x1 * x * x3) x2`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.ups_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`-- #2.2`; `#2.2*(&2 * x1 + &2 * x3) - x1 * x3`; `#2.2 * (&2 * x1 * x3 - x1*x1 - x3*x3)`] THEN
+     REAL_ARITH_TAC);;
+
+
+let lemma3 = prove(`!x1 x2 x3. #4.0 <= x3 /\ x3 <= #6.3504 ==> 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x x1 x2 #4.0 - x1 * x2 * #4.0 \/ 
+		     #2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= #2.2 * ups_x x1 x2 #6.3504 - x1 * x2 * #6.3504`,
+   REPEAT STRIP_TAC THEN
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x1 x2 x - x1 * x2 * x) x3`)] THEN
+     MATCH_MP_TAC lemma' THEN
+     ASM_REWRITE_TAC[Sphere.ups_x; FUN_EQ_THM] THEN
+     MAP_EVERY EXISTS_TAC [`-- #2.2`; `#2.2*(&2 * x1 + &2 * x2) - x2 * x1`; `#2.2 * (&2 * x2 * x1 - x2*x2 - x1*x1)`] THEN
+     REAL_ARITH_TAC);;
+
+
+
+let eta_x_ineq_lemma = prove(`!x1 x2 x3. ineq [#4.0,x1,#6.3504;
+						  #4.0,x2,#6.3504;
+						  #4.0,x3,#6.3504]
+						   (#2.2 * ups_x x1 x2 x3 - x1 * x2 * x3 >= &0)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[INEQ_ALT; ALL] THEN
+     REPEAT STRIP_TAC THEN
+     ASSUME_TAC (REAL_ARITH `#4.0 <= #4.0 /\ #4.0 <= #6.3504`) THEN
+     
+     (* x1 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x x2 x3 - x * x2 * x3) x1`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma1] THEN
+     CONJ_TAC THEN
+
+     (* x2 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x1 x x3 - x1 * x * x3) x2`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma2] THEN
+     CONJ_TAC THEN
+
+     (* x3 *)
+     ONCE_REWRITE_TAC[SYM (BETA_CONV `(\x. #2.2 * ups_x x1 x2 x - x1 * x2 * x) x3`)] THEN
+     MATCH_MP_TAC main_lemma THEN
+     MAP_EVERY EXISTS_TAC [`#4.0`; `#6.3504`] THEN
+     ASM_SIMP_TAC[lemma3] THEN
+     CONJ_TAC THEN
+
+     (* Final stage *)
+     REWRITE_TAC[Sphere.ups_x] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV);;
+
+
+
+let ETA_Y_4_POINTS_INEQ = prove(`!y1 y2 y3. ineq[(&2, y1, &2 * h0); (&2, y2, &2 * h0); (&2, y3, &2 * h0)]
+				           (eta_y y1 y2 y3 pow 2 <= #2.2)`,
+   REWRITE_TAC[INEQ_ALT; ALL; Sphere.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REPEAT GEN_TAC THEN DISCH_TAC THEN
+     REWRITE_TAC[Sphere.eta_y; Sphere.eta_x] THEN
+     CONV_TAC (DEPTH_CONV let_CONV) THEN
+     MAP_EVERY ABBREV_TAC [`x1 = y1 * y1:real`; `x2 = y2 * y2:real`; `x3 = y3 * y3:real`] THEN
+     SUBGOAL_THEN `!y. &2 <= y /\ y <= #2.52 ==> #4.0 <= y * y /\ y * y <= #6.3504` ASSUME_TAC THENL
+     [
+       GEN_TAC THEN
+	 REWRITE_TAC[REAL_ARITH `#4.0 = &2 * &2`; REAL_ARITH `#6.3504 = #2.52 * #2.52`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MAP_EVERY (fun tm -> FIRST_ASSUM (MP_TAC o SPEC tm)) [`y1:real`; `y2:real`; `y3:real`] THEN
+     REMOVE_ASSUM THEN ASM_REWRITE_TAC[] THEN
+     REPEAT DISCH_TAC THEN
+     MP_TAC (SPEC_ALL eta_x_ineq_lemma) THEN
+     ASM_REWRITE_TAC[INEQ_ALT; ALL] THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `&0 < x1 * x2 * x3` ASSUME_TAC THENL
+     [
+       ASSUME_TAC (REAL_ARITH `!x. #4.0 <= x ==> &0 < x`) THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN ASM_SIMP_TAC[] THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&0 < ups_x x1 x2 x3` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC (REAL_ARITH `#2.2 * u - x1 * x2 * x3 >= &0 /\ &0 < x1 * x2 * x3 ==> &0 < u`) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `&0 <= (x1 * x2 * x3) / ups_x x1 x2 x3` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_DIV THEN
+	 ASM_SIMP_TAC[REAL_LT_IMP_LE];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[SQRT_POW_2] THEN
+     ONCE_REWRITE_TAC[REAL_ARITH `#2.2 = #2.2 / &1`] THEN
+     ASSUME_TAC (REAL_ARITH `&0 < &1`) THEN
+     ASM_SIMP_TAC[RAT_LEMMA4] THEN
+     REPLICATE_TAC 4 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+     REAL_ARITH_TAC);;
+
+     
+     
+
+
+
+
+
+(*************************************************************)
+
+
+
+
+
+
+
+let DELTA_X4_MONO_LT_4 = prove(`!x1 x2 x3 a x5 x6 b. a < b /\ &0 < x1
+			      ==> delta_x4 x1 x2 x3 b x5 x6 <
+			             delta_x4 x1 x2 x3 a x5 x6`,
+  REPEAT STRIP_TAC THEN
+    REWRITE_TAC[Sphere.delta_x4] THEN
+    REWRITE_TAC[REAL_ARITH `a - b + c + d - e + f < a - g + c + d - e + h <=> f - b < h - g`] THEN
+    REWRITE_TAC[REAL_ARITH `x1*(--x1+x2+x3-b+x5+x6)-x1*b = --(&2*x1*b) + x1*(--x1+x2+x3+x5+x6)`] THEN
+    REWRITE_TAC[REAL_ARITH `--a + b < --c + b <=> c < a`] THEN
+    MATCH_MP_TAC REAL_LT_LMUL THEN
+    REWRITE_TAC[REAL_ARITH `&0 < &2`] THEN
+    MATCH_MP_TAC REAL_LT_LMUL THEN
+    ASM_REWRITE_TAC[]);;
+
+
+
+let DELTA_X4_MONO_LE_4 = prove(`!x1 x2 x3 a x5 x6 b. a < b /\ &0 <= x1
+				 ==> delta_x4 x1 x2 x3 b x5 x6 <=
+				        delta_x4 x1 x2 x3 a x5 x6`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (REAL_ARITH `&0 <= x1 ==> x1 = &0 \/ &0 < x1`) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THENL
+     [
+       ASM_REWRITE_TAC[Sphere.delta_x4] THEN
+	 REAL_ARITH_TAC;
+       MATCH_MP_TAC REAL_LT_IMP_LE THEN
+	 ASM_SIMP_TAC[DELTA_X4_MONO_LT_4]
+     ]);;
+    
+    
+
+let REAL_LT_SQUARE_POS = prove(`!x y. &0 < x /\ x < y ==> x pow 2 < y pow 2`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS] THEN
+     SUBGOAL_THEN `abs x = x` ASSUME_TAC THENL
+     [
+       ASM_SIMP_TAC[REAL_ABS_REFL; REAL_LT_IMP_LE];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `abs y = y` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[REAL_ABS_REFL] THEN
+	 MATCH_MP_TAC REAL_LT_IMP_LE THEN
+	 MATCH_MP_TAC REAL_LT_TRANS THEN
+	 EXISTS_TAC `x:real` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let ATN2_ACS_LEMMA = prove(`!a b. b * b < a ==>
+			     pi / &2 + atn2(sqrt(a - b*b), --b) = acs(b/sqrt(a))`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `&0 < a` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LET_TRANS THEN
+	 EXISTS_TAC `b*b:real` THEN
+	 ASM_REWRITE_TAC[REAL_LE_SQUARE];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+
+     SUBGOAL_THEN `sqrt a pow 2 = a` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[SQRT_POW2];
+       ALL_TAC
+     ]  THEN
+
+     SUBGOAL_THEN `atn2 (sqrt(a - b*b),--b) = --atn2(sqrt(a-b*b),b)` MP_TAC THENL
+     [
+       MATCH_MP_TAC Trigonometry1.ATN2_RNEG THEN
+	 DISJ2_TAC THEN
+	 MATCH_MP_TAC SQRT_POS_LT THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`];
+       ALL_TAC
+     ] THEN
+     
+     DISCH_THEN (fun th -> REWRITE_TAC[th; REAL_ARITH `a + --b = a - b`]) THEN
+     SUBGOAL_THEN `atn2(sqrt(a - b*b), b) = atn2(sqrt(&1 - (b/sqrt a) pow 2),b/sqrt a)` MP_TAC THENL
+     [
+       MP_TAC (SPECL [`sqrt(&1 - (b/sqrt a) pow 2)`; `sqrt a`; `b/sqrt a`] (GEN_ALL Trigonometry2.POS_COMPATIBLE_WITH_ATN2)) THEN
+	 SUBGOAL_THEN `&0 < sqrt a` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC SQRT_POS_LT THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 ASM_SIMP_TAC[REAL_FIELD `&0 < a ==> a * b / a = b`] THEN
+	 
+	 SUBGOAL_THEN `a - b*b = (sqrt a) pow 2 * (&1 - (b/sqrt a) pow 2)` MP_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[REAL_POW_DIV] THEN
+	     ASM_SIMP_TAC[REAL_FIELD `&0 < a ==> a * (&1 - b/a) = a - b`] THEN
+	     REWRITE_TAC[REAL_POW_2];
+	   ALL_TAC
+	 ] THEN
+
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 MP_TAC (SPECL [`sqrt a pow 2`; `&1 - (b/sqrt a) pow 2`] SQRT_MUL) THEN
+	 ANTS_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[REAL_POW_DIV] THEN
+	     REWRITE_TAC[REAL_ARITH `&0 <= &1 - b <=> b <= &1`] THEN
+	     MATCH_MP_TAC Trigonometry2.REAL_LE_LDIV THEN
+	     ASM_SIMP_TAC[REAL_POW_2; REAL_ARITH `b < a ==> b <= a`];
+	   ALL_TAC
+	 ] THEN
+	 
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC (GSYM Trigonometry2.acs_atn2) THEN
+     REWRITE_TAC[REAL_ARITH `-- &1 <= x /\ x <= &1 <=> abs x <= &1`] THEN
+     ONCE_REWRITE_TAC[REAL_ARITH `&1 = abs(&1)`] THEN
+     REWRITE_TAC[REAL_LE_SQUARE_ABS] THEN
+     REWRITE_TAC[REAL_POW_DIV] THEN
+     ASM_REWRITE_TAC[REAL_POW_2; REAL_ARITH `&1 * &1 = &1`] THEN
+     MATCH_MP_TAC Trigonometry2.REAL_LE_LDIV THEN
+     ASM_SIMP_TAC[REAL_ARITH `b < a ==> b <= a`]);;
+
+
+
+let DELTA_X_AND_DELTA_X4 = prove(`!x1 x2 x3 x4 x5 x6.
+				 (let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+				 let d = delta_x x1 x2 x3 x4 x5 x6 in
+				 let v1 = ups_x x1 x2 x6 in
+				 let v2 = ups_x x1 x3 x5 in
+				 &4 * x1 * d = v1 * v2 - d4 * d4)`,
+  REPEAT GEN_TAC THEN 
+    REPEAT (CONV_TAC let_CONV) THEN
+    REWRITE_TAC[Sphere.delta_x4; Sphere.delta_x; Sphere.ups_x] THEN
+    REAL_ARITH_TAC);;
+	
+	
+let DELTA_EQ_DELTA_X = prove(`!x1 x2 x3 x4 x5 x6. 
+			       delta x1 x2 x3 x6 x5 x4 = delta_x x1 x2 x3 x4 x5 x6`,
+  REPEAT GEN_TAC THEN
+    REWRITE_TAC[Sphere.delta_x; Collect_geom.delta] THEN
+    REAL_ARITH_TAC);;
+
+
+
+	 
+
+let DIH_X_MONO_LT_4 = prove(`!x1 x2 x3 a x5 x6 b. a < b /\
+			   &0 < x1 /\
+			   &0 < delta_x x1 x2 x3 a x5 x6 /\
+			   &0 < delta_x x1 x2 x3 b x5 x6
+			   ==> dih_x x1 x2 x3 a x5 x6 < dih_x x1 x2 x3 b x5 x6`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[let_RULE Sphere.dih_x] THEN
+     ABBREV_TAC `da = delta_x x1 x2 x3 a x5 x6` THEN
+     ABBREV_TAC `db = delta_x x1 x2 x3 b x5 x6` THEN
+     SUBGOAL_THEN `&0 < &4 * x1 * da /\ &0 < &4 * x1 * db` MP_TAC THENL
+     [
+       CONJ_TAC THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN
+	 REWRITE_TAC[REAL_ARITH `&0 < &4`] THEN
+	 MATCH_MP_TAC REAL_LT_MUL THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     EXPAND_TAC "da" THEN EXPAND_TAC "db" THEN
+     REWRITE_TAC[let_RULE DELTA_X_AND_DELTA_X4] THEN
+     REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`] THEN
+     ABBREV_TAC `d4a = delta_x4 x1 x2 x3 a x5 x6` THEN
+     ABBREV_TAC `d4b = delta_x4 x1 x2 x3 b x5 x6` THEN
+     ABBREV_TAC `v1 = ups_x x1 x2 x6` THEN
+     ABBREV_TAC `v2 = ups_x x1 x3 x5` THEN
+
+     STRIP_TAC THEN
+     FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP ATN2_ACS_LEMMA th)) THEN
+     POP_ASSUM MP_TAC THEN
+     FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP ATN2_ACS_LEMMA th)) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     DISCH_TAC THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     
+     MATCH_MP_TAC ACS_MONO_LT THEN
+     SUBGOAL_THEN `!a b. b * b < a ==> -- &1 <= b / sqrt(a) /\ b / sqrt a <= &1` ASSUME_TAC THENL
+     [
+       REPEAT GEN_TAC THEN DISCH_TAC THEN
+	 REWRITE_TAC[REAL_ARITH `-- &1 <= x /\ x <= &1 <=> abs x <= &1`] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `&1 = abs(&1)`] THEN
+	 REWRITE_TAC[REAL_LE_SQUARE_ABS] THEN
+	 REWRITE_TAC[REAL_POW_DIV] THEN
+
+	 SUBGOAL_THEN `&0 < a'` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LET_TRANS THEN
+	     EXISTS_TAC `b' * b':real` THEN
+	     ASM_SIMP_TAC[REAL_LE_SQUARE; REAL_ARITH `b < a ==> b <= a`];
+	   ALL_TAC
+	 ] THEN
+
+	 SUBGOAL_THEN `sqrt a' pow 2 = a'` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   REWRITE_TAC[SQRT_POW2] THEN
+	     ASM_SIMP_TAC[REAL_ARITH `&0 < a ==> &0 <= a`];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_REWRITE_TAC[REAL_POW_2; REAL_ARITH `&1 * &1 = &1`] THEN
+	 MATCH_MP_TAC Trigonometry2.REAL_LE_LDIV THEN
+	 ASM_SIMP_TAC[REAL_ARITH `b < a ==> b <= a`];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM (fun th -> ASM_SIMP_TAC[th]) THEN
+     REWRITE_TAC[real_div] THEN
+     MATCH_MP_TAC REAL_LT_RMUL THEN
+     REWRITE_TAC[REAL_LT_INV_EQ] THEN
+     CONJ_TAC THENL
+     [
+       MP_TAC (SPEC_ALL DELTA_X4_MONO_LT_4) THEN
+	 ASM_REWRITE_TAC[];
+       MATCH_MP_TAC SQRT_POS_LT THEN
+	 MATCH_MP_TAC REAL_LET_TRANS THEN
+	 EXISTS_TAC `d4a * d4a:real` THEN
+	 ASM_REWRITE_TAC[REAL_LE_SQUARE]
+     ]);;
+     
+
+
+
+
+
+let DIH_Y_INEQ_concl = mk_imp ((hd (Ineq.getexact "2570626711")).ineq,
+				 `ineq [(#2.0,y1,#2.52);
+					(#2.0,y2,#2.52);
+					(#2.0,y3,#2.52);
+					(#2.52,y4,#5.04);
+					(#2.0,y5,#2.52);
+					(#2.0,y6,#2.52)]
+				   (dih_y y1 y2 y3 y4 y5 y6 > #1.15 \/ delta_y y1 y2 y3 y4 y5 y6 <= &0)`);;
+
+
+g(DIH_Y_INEQ_concl);;
+let DIH_Y_INEQ = prove(DIH_Y_INEQ_concl,
+   REWRITE_TAC[Pack_defs.h0; REAL_ARITH `&2 * #1.26 = #2.52`] THEN
+     REWRITE_TAC[INEQ_ALT; ALL] THEN
+     REPEAT STRIP_TAC THEN
+     DISJ_CASES_TAC (REAL_ARITH `delta_y y1 y2 y3 y4 y5 y6 <= &0 \/ delta_y y1 y2 y3 y4 y5 y6 > &0`) THENL
+     [
+       ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     DISJ1_TAC THEN
+     REWRITE_TAC[real_gt] THEN
+     MATCH_MP_TAC REAL_LTE_TRANS THEN
+     EXISTS_TAC `dih_y y1 y2 y3 #2.52 y5 y6` THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`y1:real`; `y2:real`; `y3:real`; `#2.52`; `y5:real`; `y6:real`]) THEN
+     ASM_SIMP_TAC[REAL_LE_REFL; real_gt] THEN
+     DISCH_THEN (fun th -> ALL_TAC) THEN
+     POP_ASSUM MP_TAC THEN
+
+     REWRITE_TAC[let_RULE Sphere.dih_y; Sphere.delta_y] THEN
+     MAP_EVERY ABBREV_TAC [`x1 = y1 * y1`; `x2 = y2 * y2`; `x3 = y3 * y3`; `x4 = y4 * y4`; `x5 = y5 * y5`; `x6 = y6 * y6`] THEN
+     REWRITE_TAC[REAL_ARITH `a <= b <=> a < b \/ a = b`] THEN
+     ASM_CASES_TAC `dih_x x1 x2 x3 (#2.52 * #2.52) x5 x6 = dih_x x1 x2 x3 x4 x5 x6` THEN ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[real_gt] THEN
+     DISCH_TAC THEN
+     MATCH_MP_TAC DIH_X_MONO_LT_4 THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+
+     SUBGOAL_THEN `!y. #2.0 <= y /\ y <= #2.52 ==> #4.0 <= y * y /\ y * y <= #6.3504` ASSUME_TAC THENL
+     [
+       GEN_TAC THEN REWRITE_TAC[REAL_ARITH `#4.0 = #2.0 * #2.0`; REAL_ARITH `#6.3504 = #2.52 * #2.52`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 REWRITE_TAC[GSYM REAL_LE_SQUARE_ABS] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `#2.52 * #2.52 < x4` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       EXPAND_TAC "x4" THEN
+	 REWRITE_TAC[GSYM REAL_POW_2] THEN
+	 MATCH_MP_TAC REAL_LT_SQUARE_POS THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `&0 < #2.52`; REAL_ARITH `a < b <=> a <= b /\ ~(a = b)`] THEN
+	 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[CONTRAPOS_THM] THEN
+	 EXPAND_TAC "x4" THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]);
+       ALL_TAC
+     ] THEN
+
+     MAP_EVERY (fun tm -> FIRST_ASSUM (MP_TAC o SPEC tm)) [`y1:real`; `y2:real`; `y3:real`; `y5:real`; `y6:real`] THEN
+     REMOVE_ASSUM THEN REMOVE_ASSUM THEN
+     REPLICATE_TAC 6 (POP_ASSUM (fun th -> REWRITE_TAC[th])) THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT REMOVE_ASSUM THEN REPEAT DISCH_TAC THEN
+     ASM_SIMP_TAC[REAL_ARITH `#4.0 <= x1 ==> &0 < x1`] THEN
+     MATCH_MP_TAC REAL_LTE_TRANS THEN
+     EXISTS_TAC `#128.0` THEN
+     REWRITE_TAC[REAL_ARITH `&0 < #128.0`; GSYM real_ge] THEN
+
+     MP_TAC delta_x_pos THEN
+     REWRITE_TAC[INEQ_ALT; ALL] THEN
+     DISCH_THEN MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);;
+     
+     
+     
+     
+
+
+
+
+end;;

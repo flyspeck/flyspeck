@@ -1,0 +1,574 @@
+(****************************)
+(*         CKQOWSA          *)
+(****************************)
+
+flyspeck_needs "CKQOWSA_4.hl";;
+flyspeck_needs "packing/pack2.hl";;
+
+
+module Ckqowsa = struct
+
+
+open Fan_defs;;
+open Ckqowsa_3_points;;
+open Ckqowsa_4_points;;
+
+
+let packing = prove(`!V. packing V <=> (!v w. v IN V /\ w IN V /\ ~(v = w) ==> &2 <= dist (v,w))`,
+   REWRITE_TAC[Sphere.packing; IN]);;
+
+
+(* UNIONS (ESTD V) SUBSET V /\ graph (ESTD V) *)
+
+let ESTD_fan0 = prove(`!V. UNIONS (ESTD V) SUBSET V /\ graph (ESTD V)`,
+   REPEAT STRIP_TAC THENL
+     [
+       REWRITE_TAC[SUBSET; IN_UNIONS; Tame_defs.ESTD; IN_ELIM_THM] THEN
+	 REPEAT STRIP_TAC THEN
+	 POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[Collect_geom.IN_SET2] THEN
+	 DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[graph; Tame_defs.ESTD; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[HAS_SIZE_2_EXISTS] THEN
+     MAP_EVERY EXISTS_TAC [`v:real^3`; `w:real^3`] THEN
+     ASM_REWRITE_TAC[Collect_geom.IN_SET2]);;
+
+
+(* fan1 (V,ESTD V) <=> FINITE V /\ ~(V = {}) *)
+
+let ESTD_fan1 = prove(`!V. V SUBSET ball_annulus /\ packing V /\ ~(V = {}) ==> fan1 (vec 0:real^3, V, ESTD V)`,
+   SIMP_TAC[Pack_defs.ball_annulus; fan1; SUBSET_EMPTY] THEN
+     REWRITE_TAC[SUBSET; cball; IN_DIFF; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `V = V INTER ball(vec 0:real^3, &4)` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[EXTENSION; IN_INTER; ball; IN_ELIM_THM] THEN
+	 GEN_TAC THEN
+	 EQ_TAC THEN DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LET_TRANS THEN
+	 EXISTS_TAC `&2 * h0` THEN
+	 ASM_SIMP_TAC[Sphere.h0] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[Pack2.KIUMVTC]);;
+
+
+
+(* fan2 (V,ESTD V) <=> ~(vec 0 IN V) *)
+
+let ESTD_fan2 = prove(`!V. V SUBSET ball_annulus ==> fan2 (vec 0, V, ESTD V)`,
+   REWRITE_TAC[SUBSET] THEN
+     REPEAT STRIP_TAC THEN
+     REWRITE_TAC[fan2] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `vec 0:real^3`) THEN
+     ASM_REWRITE_TAC[in_ball_annulus]);;
+
+
+(* fan6 (V,ESTD V) <=> ~collinear {vec 0, e} *)
+	 
+let ESTD_fan6 = prove(`!V. V SUBSET ball_annulus /\ packing V ==> fan6 (vec 0, V, ESTD V)`,
+   REWRITE_TAC[SUBSET; Sphere.packing; fan6; Tame_defs.ESTD; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[] THEN
+     ASM_REWRITE_TAC[SET_RULE `{vec 0:real^3} UNION {v,w} = {vec 0,v,w}`] THEN
+     MATCH_MP_TAC estd_non_collinear_lemma THEN
+     ASM_SIMP_TAC[] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     REPEAT (FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl))) THEN
+     ASM_SIMP_TAC[IN]);;
+
+
+(* fan7 *)
+
+(* 2 points *)
+
+let fan7_2 = prove(`!V v w. V SUBSET ball_annulus /\ packing V /\ v IN V /\ w IN V
+		     ==> aff_ge {vec 0} {v} INTER aff_ge {vec 0} {w} = aff_ge {vec 0} ({v} INTER {w})`,
+   REWRITE_TAC[SUBSET; packing] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `v = w:real^3` THENL
+     [
+       ASM_REWRITE_TAC[INTER_ACI];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `{v} INTER {w:real^3} = {}` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[EXTENSION; NOT_IN_EMPTY; IN_SING; IN_INTER] THEN
+	 GEN_TAC THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[CONTRAPOS_THM] THEN
+	 STRIP_TAC THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL; AFFINE_HULL_SING] THEN
+     REWRITE_TAC[EXTENSION; IN_SING; HALFLINE; IN_INTER; IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID] THEN
+     GEN_TAC THEN
+     EQ_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+	 ASM_CASES_TAC `t = &0` THENL [ ASM_REWRITE_TAC[VECTOR_MUL_LZERO]; ALL_TAC ] THEN
+	 UNDISCH_TAC `x = t % v:real^3` THEN
+	 DISCH_THEN (MP_TAC o AP_TERM `\v:real^3. inv t % v`) THEN
+	 ASM_SIMP_TAC[VECTOR_MUL_ASSOC; REAL_MUL_LINV; VECTOR_MUL_LID] THEN
+	 ABBREV_TAC `c = inv t * t'` THEN
+	 SUBGOAL_THEN `&0 <= c` ASSUME_TAC THENL [ EXPAND_TAC "c" THEN MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[] THEN MATCH_MP_TAC REAL_LE_INV THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	 SUBGOAL_THEN `abs c = c` ASSUME_TAC THENL [ ASM_REWRITE_TAC[REAL_ABS_REFL]; ALL_TAC ] THEN
+	 DISCH_THEN (LABEL_TAC "v") THEN
+	 ASM_CASES_TAC `c <= &1` THENL
+	 [
+	   SUBGOAL_THEN `&2 + &2 <= norm (v:real^3) + dist (v,w)` MP_TAC THENL
+	     [
+	       MATCH_MP_TAC REAL_LE_ADD2 THEN
+		 ASM_SIMP_TAC[] THEN
+		 REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `v:real^3`)) THEN
+		 ASM_SIMP_TAC[in_ball_annulus];
+	       ALL_TAC
+	     ] THEN
+
+	     REMOVE_THEN "v" (fun th -> REWRITE_TAC[SYM th]) THEN
+	     ASM_REWRITE_TAC[dist; NORM_MUL; VECTOR_ARITH `c % w - w = --(&1 - c) % w:real^3`] THEN
+	     REWRITE_TAC[REAL_ABS_NEG] THEN
+	     SUBGOAL_THEN `abs (&1 - c) = &1 - c` (fun th -> REWRITE_TAC[th]) THENL [ ASM_REWRITE_TAC[REAL_ABS_REFL; REAL_ARITH `&0 <= &1 - c <=> c <= &1`]; ALL_TAC ] THEN
+	     REWRITE_TAC[REAL_ARITH `c * nw + (&1 - c) * nw = nw`] THEN
+	     REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `w:real^3`)) THEN
+	     ASM_REWRITE_TAC[in_ball_annulus; Sphere.h0] THEN
+	     REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 POP_ASSUM MP_TAC THEN REWRITE_TAC[REAL_NOT_LE] THEN DISCH_TAC THEN
+	 SUBGOAL_THEN `&2 + &2 <= norm (w:real^3) + dist (v,w)` MP_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_ADD2 THEN
+	     ASM_SIMP_TAC[] THEN
+	     REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `w:real^3`)) THEN
+	     ASM_SIMP_TAC[in_ball_annulus];
+	   ALL_TAC
+	 ] THEN
+
+	 USE_THEN "v" (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[dist; NORM_MUL; VECTOR_ARITH `c % w - w = (c - &1) % w:real^3`] THEN
+	 SUBGOAL_THEN `abs (c - &1) = c - &1` (fun th -> REWRITE_TAC[th]) THENL [ ASM_SIMP_TAC[REAL_ABS_REFL; REAL_ARITH `&1 < c ==> &0 <= c - &1`]; ALL_TAC ] THEN
+	 REWRITE_TAC[REAL_ARITH `nw + (c - &1) * nw = c * nw`] THEN
+	 UNDISCH_TAC `abs c = c` THEN DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[GSYM NORM_MUL] THEN
+	 REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `v:real^3`)) THEN
+	 ASM_REWRITE_TAC[in_ball_annulus; Sphere.h0] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     
+     REPEAT STRIP_TAC THEN EXISTS_TAC `&0` THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO; REAL_LE_REFL]);;
+
+
+(* 3 points *)
+
+let fan7_3 = prove(`!V e u. V SUBSET ball_annulus /\ packing V /\ u IN V /\ e IN ESTD V
+		       ==> aff_ge {vec 0} {u} INTER aff_ge {vec 0} e = aff_ge {vec 0} ({u} INTER e)`,
+   REWRITE_TAC[SUBSET; Tame_defs.ESTD; IN_ELIM_THM; packing] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `~(v = vec 0:real^3) /\ ~(w = vec 0:real^3)` ASSUME_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `v:real^3`) THEN
+	 MAP_EVERY (fun tm -> FIRST_ASSUM (MP_TAC o SPEC tm)) [`v:real^3`; `w:real^3`] THEN
+	 ASM_SIMP_TAC[in_ball_annulus];
+       ALL_TAC
+     ] THEN
+
+     ASM_CASES_TAC `u:real^3 IN e` THENL
+     [
+       SUBGOAL_THEN `{u:real^3} INTER e = {u}` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   REWRITE_TAC[EXTENSION; IN_INTER; IN_SING] THEN
+	     GEN_TAC THEN
+	     EQ_TAC THENL
+	     [
+	       SIMP_TAC[];
+	       DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+		 POP_ASSUM (fun th -> REWRITE_TAC[th])
+	     ];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[GSYM SUBSET_INTER_ABSORPTION] THEN
+	 ASM_SIMP_TAC[aff_ge_0_2; HALFLINE] THEN
+	 POP_ASSUM MP_TAC THEN
+	 ASM_REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; SUBSET; IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID] THEN
+	 REPEAT STRIP_TAC THENL
+	 [
+	   MAP_EVERY EXISTS_TAC [`t:real`; `&0`];
+	   MAP_EVERY EXISTS_TAC [`&0`; `t:real`]
+	 ] THEN
+	 ASM_REWRITE_TAC[REAL_LE_REFL; VECTOR_MUL_LZERO; VECTOR_ADD_LID; VECTOR_ADD_RID];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `{u:real^3} INTER e = {}` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[EXTENSION; NOT_IN_EMPTY; IN_INTER; IN_SING] THEN
+	 GEN_TAC THEN STRIP_TAC THEN
+	 POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[th]);
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL; AFFINE_HULL_SING] THEN
+     ASM_CASES_TAC `aff_ge {vec 0} {u:real^3} INTER aff_ge {vec 0} e = {vec 0}` THEN ASM_REWRITE_TAC[] THEN
+     
+     SUBGOAL_THEN `?p. ~(p = vec 0:real^3) /\ p IN aff_ge {vec 0} {u} INTER aff_ge {vec 0} e` MP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[EXTENSION; IN_SING; NOT_FORALL_THM] THEN
+	 DISCH_THEN (CHOOSE_THEN MP_TAC) THEN
+	 ASM_CASES_TAC `x = vec 0:real^3` THENL
+	 [
+	   ASM_REWRITE_TAC[IN_INTER; points_in_aff_ge_0_2; ENDS_IN_HALFLINE];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_TAC THEN
+	 EXISTS_TAC `x:real^3` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[IN_INTER] THEN STRIP_TAC THEN
+     UNDISCH_TAC `p IN aff_ge {vec 0} {u:real^3}` THEN
+     ASM_SIMP_TAC[HALFLINE; VECTOR_MUL_RZERO; VECTOR_ADD_LID; IN_ELIM_THM] THEN STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     ASM_CASES_TAC `t = &0` THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO] THEN
+     DISCH_THEN (MP_TAC o AP_TERM `\v:real^3. inv t % v`) THEN
+     ASM_SIMP_TAC[VECTOR_MUL_ASSOC; REAL_MUL_LINV; VECTOR_MUL_LID] THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `u:real^3 IN aff_ge {vec 0} {v,w}` ASSUME_TAC THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 UNDISCH_TAC `p IN aff_ge {vec 0:real^3} {v,w}` THEN
+	 ASM_SIMP_TAC[aff_ge_0_2; IN_ELIM_THM] THEN
+	 STRIP_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`inv t * t1`; `inv t * t2`] THEN
+	 SUBGOAL_THEN `&0 <= inv t` ASSUME_TAC THENL [ MATCH_MP_TAC REAL_LE_INV THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	 REWRITE_TAC[CONJ_ASSOC] THEN
+	 CONJ_TAC THENL [ CONJ_TAC THEN MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 VECTOR_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC LEMMA_3_POINTS_FINAL THEN
+     MAP_EVERY EXISTS_TAC [`v:real^3`; `w:real^3`; `u:real^3`] THEN
+     ASM_SIMP_TAC[] THEN
+     UNDISCH_TAC `~(u:real^3 IN e)` THEN
+     ASM_REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; DE_MORGAN_THM] THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+(* 4 points *)
+
+let fan7_4_0 = prove(`!V e1 e2. V SUBSET ball_annulus /\ packing V /\ e1 IN ESTD V /\ e2 IN ESTD V /\
+		       (e1 INTER e2) HAS_SIZE 0
+		       ==> aff_ge {vec 0} e1 INTER aff_ge {vec 0} e2 = aff_ge {vec 0} (e1 INTER e2)`,
+   REWRITE_TAC[SUBSET; packing; HAS_SIZE_0; Tame_defs.ESTD; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+     ASM_REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL; AFFINE_HULL_SING] THEN
+     MATCH_MP_TAC LEMMA_4_POINTS_FINAL THEN
+     ASM_SIMP_TAC[] THEN
+     REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN 
+     POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN 
+     SET_TAC[]);;
+
+
+
+let fan7_4_1_one_case = prove(`!V v1 v2 v3 v4. V SUBSET ball_annulus /\ packing V /\ v1 IN V /\ v2 IN V /\ v3 IN V /\ v4 IN V /\
+				~(v1 = v3) /\ ~(v2 = v4) /\ v1 = v2 /\ ~(v3 = v4) /\ 
+                                dist (v1,v3) <= &2 * h0 /\ dist (v2,v4) <= &2 * h0
+				==> aff_ge {vec 0} {v1,v3} INTER aff_ge {vec 0} {v2,v4} = aff_ge {vec 0} ({v1,v3} INTER {v2,v4})`,
+   REWRITE_TAC[SUBSET; packing] THEN REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `{v2,v3} INTER {v2,v4} = {v2:real^3}` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[EXTENSION; IN_INTER; IN_SING; IN_INSERT; NOT_IN_EMPTY] THEN
+	 GEN_TAC THEN
+	 ASM_CASES_TAC `x = v2:real^3` THEN ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[th]);
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `~(v2 = vec 0:real^3) /\ ~(v3 = vec 0:real^3) /\ ~(v4 = vec 0:real^3)` ASSUME_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `x:real^3`) THEN
+	 MAP_EVERY (fun tm -> FIRST_ASSUM (MP_TAC o SPEC tm)) [`v2:real^3`; `v3:real^3`; `v4:real^3`] THEN
+	 ASM_SIMP_TAC[in_ball_annulus];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[aff_ge_0_2] THEN
+     REWRITE_TAC[EXTENSION; IN_INTER; HALFLINE; VECTOR_MUL_RZERO; VECTOR_ADD_LID; IN_ELIM_THM] THEN
+     GEN_TAC THEN EQ_TAC THENL
+     [
+       STRIP_TAC THEN
+	 POP_ASSUM (LABEL_TAC "x2" o SYM) THEN
+	 UNDISCH_TAC `x = t1 % v2 + t2 % v3:real^3` THEN
+	 DISCH_THEN (LABEL_TAC "x1" o SYM) THEN
+
+	 ASM_CASES_TAC `t1 <= t1'` THENL
+	 [
+	   ASM_CASES_TAC `t2 = &0` THENL
+	     [
+	       EXISTS_TAC `t1:real` THEN
+		 REMOVE_THEN "x1" MP_TAC THEN
+		 ASM_SIMP_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_RID];
+	       ALL_TAC
+	     ] THEN
+
+	     REMOVE_THEN "x1" (MP_TAC o AP_TERM `\v:real^3. inv t2 % v`) THEN
+	     REMOVE_THEN "x2" (fun th -> REWRITE_TAC[SYM th]) THEN
+	     ASM_SIMP_TAC[VECTOR_MUL_ASSOC; VECTOR_ADD_LDISTRIB; REAL_MUL_LINV; VECTOR_MUL_LID] THEN
+	     REWRITE_TAC[VECTOR_ARITH `a % v2 + v3:real^3 = b % v2 + c % v4 <=> v3 = (b - a) % v2 + c % v4`] THEN
+	     REWRITE_TAC[GSYM REAL_SUB_LDISTRIB] THEN DISCH_TAC THEN
+	     SUBGOAL_THEN `v3:real^3 IN aff_ge {vec 0} {v2, v4}` ASSUME_TAC THENL
+	     [
+	       ASM_SIMP_TAC[aff_ge_0_2; IN_ELIM_THM] THEN
+		 MAP_EVERY EXISTS_TAC [`inv t2 * (t1' - t1)`; `inv t2 * t2'`] THEN
+		 SUBGOAL_THEN `&0 <= inv t2` ASSUME_TAC THENL [ MATCH_MP_TAC REAL_LE_INV THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+		 REWRITE_TAC[] THEN
+		 CONJ_TAC THEN MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[REAL_ARITH `&0 <= t1' - t1 <=> t1 <= t1'`];
+	       ALL_TAC
+	     ] THEN
+
+	     MATCH_MP_TAC (TAUT `F ==> A`) THEN
+	     MATCH_MP_TAC LEMMA_3_POINTS_FINAL THEN
+	     MAP_EVERY EXISTS_TAC [`v2:real^3`; `v4:real^3`; `v3:real^3`] THEN
+	     POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN REMOVE_ASSUM THEN
+	     ASM_SIMP_TAC[] THEN
+	     FIRST_X_ASSUM MATCH_MP_TAC THEN
+	     ASM_REWRITE_TAC[] THEN
+	     UNDISCH_TAC `v1 = v2:real^3` THEN DISCH_THEN (fun th -> ASM_REWRITE_TAC[SYM th]);
+	   ALL_TAC
+	 ] THEN
+
+	 POP_ASSUM MP_TAC THEN REWRITE_TAC[REAL_NOT_LE] THEN DISCH_TAC THEN
+	 ASM_CASES_TAC `t2' = &0` THENL
+	 [
+	   EXISTS_TAC `t1':real` THEN
+	     REMOVE_THEN "x2" MP_TAC THEN
+	     ASM_SIMP_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_RID];
+	   ALL_TAC
+	 ] THEN
+
+	 REMOVE_THEN "x2" (MP_TAC o AP_TERM `\v:real^3. inv t2' % v`) THEN
+	 REMOVE_THEN "x1" (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_SIMP_TAC[VECTOR_MUL_ASSOC; VECTOR_ADD_LDISTRIB; REAL_MUL_LINV; VECTOR_MUL_LID] THEN
+	 REWRITE_TAC[VECTOR_ARITH `a % v2 + v4:real^3 = b % v2 + c % v3 <=> v4 = (b - a) % v2 + c % v3`] THEN
+	 REWRITE_TAC[GSYM REAL_SUB_LDISTRIB] THEN DISCH_TAC THEN
+	 SUBGOAL_THEN `v4:real^3 IN aff_ge {vec 0} {v2, v3}` ASSUME_TAC THENL
+	 [
+	   ASM_SIMP_TAC[aff_ge_0_2; IN_ELIM_THM] THEN
+	     MAP_EVERY EXISTS_TAC [`inv t2' * (t1 - t1')`; `inv t2' * t2`] THEN
+	     SUBGOAL_THEN `&0 <= inv t2'` ASSUME_TAC THENL [ MATCH_MP_TAC REAL_LE_INV THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	     REWRITE_TAC[] THEN
+	     CONJ_TAC THEN MATCH_MP_TAC REAL_LE_MUL THEN ASM_SIMP_TAC[REAL_ARITH `t1' < t1 ==> &0 <= t1 - t1'`];
+	   ALL_TAC
+	 ] THEN
+
+	 MATCH_MP_TAC (TAUT `F ==> A`) THEN
+	 MATCH_MP_TAC LEMMA_3_POINTS_FINAL THEN
+	 MAP_EVERY EXISTS_TAC [`v2:real^3`; `v3:real^3`; `v4:real^3`] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN REMOVE_ASSUM THEN
+	 ASM_SIMP_TAC[] THEN
+	 UNDISCH_TAC `v1 = v2:real^3` THEN DISCH_THEN (fun th -> ASM_REWRITE_TAC[SYM th]); 
+       ALL_TAC
+     ] THEN
+
+     STRIP_TAC THEN
+     CONJ_TAC THEN MAP_EVERY EXISTS_TAC [`t:real`; `&0`] THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_RID; REAL_LE_REFL]);;
+
+
+
+let fan7_4_1_cases = prove(`!v w v' w':A. ~(v = w) /\ ~(v' = w') /\ ({v,w} INTER {v',w'}) HAS_SIZE 1
+			     ==> (v = v' /\ ~(w = w')) \/ (v = w' /\ ~(w = v')) \/
+			         (w = v' /\ ~(v = w')) \/ (w = w' /\ ~(v = v'))`,
+   REPEAT STRIP_TAC THEN
+     POP_ASSUM (LABEL_TAC "A") THEN
+     ASM_CASES_TAC `v = v':A` THEN ASM_REWRITE_TAC[] THENL
+     [
+       DISJ1_TAC THEN
+	 DISCH_TAC THEN
+	 REMOVE_THEN "A" MP_TAC THEN
+	 ASM_REWRITE_TAC[INTER_ACI] THEN
+	 REWRITE_TAC[HAS_SIZE_1_EXISTS; EXISTS_UNIQUE; NOT_EXISTS_THM; DE_MORGAN_THM; IN_INSERT; NOT_IN_EMPTY] THEN
+	 ASM_MESON_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     ASM_CASES_TAC `v = w':A` THEN ASM_REWRITE_TAC[] THENL
+     [
+       DISJ1_TAC THEN
+	 DISCH_TAC THEN
+	 REMOVE_THEN "A" MP_TAC THEN
+	 ASM_REWRITE_TAC[INTER_ACI; Collect_geom.PER_SET2] THEN
+	 REWRITE_TAC[HAS_SIZE_1_EXISTS; EXISTS_UNIQUE; NOT_EXISTS_THM; DE_MORGAN_THM; IN_INSERT; NOT_IN_EMPTY] THEN
+	 ASM_MESON_TAC[]; 
+       ALL_TAC
+     ] THEN
+     
+     ASM_CASES_TAC `w = v':A` THEN ASM_REWRITE_TAC[] THEN
+     REMOVE_THEN "A" MP_TAC THEN
+     REWRITE_TAC[HAS_SIZE_1_EXISTS; EXISTS_UNIQUE; IN_INTER; IN_INSERT; NOT_IN_EMPTY] THEN
+     ASM_MESON_TAC[]);;
+     
+
+
+
+let fan7_4_1 = prove(`!V e1 e2. V SUBSET ball_annulus /\ packing V /\ e1 IN ESTD V /\ e2 IN ESTD V /\
+		       (e1 INTER e2) HAS_SIZE 1
+		       ==> aff_ge {vec 0} e1 INTER aff_ge {vec 0} e2 = aff_ge {vec 0} (e1 INTER e2)`,
+   REWRITE_TAC[Tame_defs.ESTD; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+
+     MP_TAC (ISPECL [`v:real^3`; `w:real^3`; `v':real^3`; `w':real^3`] fan7_4_1_cases) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THENL
+     [
+       MATCH_MP_TAC fan7_4_1_one_case THEN
+	 EXISTS_TAC `V:real^3->bool` THEN
+         ASM_REWRITE_TAC[];
+
+       GEN_REWRITE_TAC (PAT_CONV `\x. s INTER aff_ge {vec 0:real^3} x = aff_ge {vec 0} (t INTER x)`) [Collect_geom.PER_SET2] THEN
+	 MATCH_MP_TAC fan7_4_1_one_case THEN
+	 EXISTS_TAC `V:real^3->bool` THEN
+	 ASM_REWRITE_TAC[DIST_SYM];
+
+       GEN_REWRITE_TAC (PAT_CONV `\x. aff_ge {vec 0:real^3} x INTER s = aff_ge {vec 0} (x INTER t)`) [Collect_geom.PER_SET2] THEN
+	 MATCH_MP_TAC fan7_4_1_one_case THEN
+	 EXISTS_TAC `V:real^3->bool` THEN
+	 ASM_REWRITE_TAC[DIST_SYM] THEN
+	 UNDISCH_TAC `dist (v,w:real^3) <= &2 * h0` THEN
+	 ASM_SIMP_TAC[];
+       
+       ONCE_REWRITE_TAC[Collect_geom.PER_SET2] THEN
+	 MATCH_MP_TAC fan7_4_1_one_case THEN
+	 EXISTS_TAC `V:real^3->bool` THEN
+         ASM_REWRITE_TAC[DIST_SYM] THEN
+	 UNDISCH_TAC `dist (v,w:real^3) <= &2 * h0` THEN
+	 ASM_SIMP_TAC[]
+     ]);;
+
+
+
+let fan7_4_2 = prove(`!V e1 e2. e1 IN ESTD V /\ e2 IN ESTD V /\ (e1 INTER e2) HAS_SIZE 2
+		       ==> aff_ge {vec 0} e1 INTER aff_ge {vec 0} e2 = aff_ge {vec 0} (e1 INTER e2)`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `(e1:real^3->bool) HAS_SIZE 2 /\ (e2:real^3->bool) HAS_SIZE 2` STRIP_ASSUME_TAC THENL
+     [
+       MP_TAC (SPEC_ALL ESTD_fan0) THEN REWRITE_TAC[graph] THEN
+	 STRIP_TAC THEN
+	 CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_SIMP_TAC[GSYM IN];
+       ALL_TAC
+     ] THEN
+     REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+     REWRITE_TAC[HAS_SIZE] THEN REPEAT DISCH_TAC THEN
+
+     SUBGOAL_THEN `e1:real^3->bool = e2` MP_TAC THENL
+     [
+       MATCH_MP_TAC EQ_TRANS THEN
+	 EXISTS_TAC `e1 INTER e2:real^3->bool` THEN
+         CONJ_TAC THENL
+         [
+	   MATCH_MP_TAC EQ_SYM THEN
+	     MATCH_MP_TAC CARD_SUBSET_EQ THEN
+	     ASM_REWRITE_TAC[INTER_SUBSET];
+	   MATCH_MP_TAC CARD_SUBSET_EQ THEN
+	     ASM_REWRITE_TAC[INTER_SUBSET]
+	 ];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[INTER_ACI]);;
+
+
+
+
+let ESTD_fan7 = prove(`!V. V SUBSET ball_annulus /\ packing V ==> fan7 (vec 0, V, ESTD V)`,
+   REWRITE_TAC[fan7; IN_UNION; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THENL
+     [
+       SUBGOAL_THEN `?n. n <= 2 /\ (e1:real^3->bool) INTER e2 HAS_SIZE n` MP_TAC THENL
+	 [
+	   SUBGOAL_THEN `e1:real^3->bool HAS_SIZE 2` MP_TAC THENL
+	   [
+	     MP_TAC (SPEC `V:real^3->bool` ESTD_fan0) THEN
+	       REWRITE_TAC[graph] THEN STRIP_TAC THEN
+	       FIRST_X_ASSUM MATCH_MP_TAC THEN
+	       UNDISCH_TAC `e1 IN ESTD V` THEN
+	       SIMP_TAC[IN];
+	     ALL_TAC
+	   ] THEN
+
+	   REWRITE_TAC[HAS_SIZE] THEN
+	   STRIP_TAC THEN
+	   EXISTS_TAC `CARD (e1 INTER e2:real^3->bool)` THEN
+	   REWRITE_TAC[] THEN
+	   SUBGOAL_THEN `FINITE (e1 INTER e2:real^3->bool)` ASSUME_TAC THENL
+	   [
+	     MATCH_MP_TAC FINITE_SUBSET THEN
+	       EXISTS_TAC `e1:real^3->bool` THEN
+               ASM_REWRITE_TAC[INTER_SUBSET];
+	     ALL_TAC
+	   ] THEN
+
+	   ASM_REWRITE_TAC[] THEN
+	   FIRST_X_ASSUM (fun th -> REWRITE_TAC [SYM th]) THEN
+	   MATCH_MP_TAC CARD_SUBSET THEN
+	   ASM_REWRITE_TAC[INTER_SUBSET];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[ARITH_RULE `n <= 2 <=> n = 0 \/ n = 1 \/ n = 2`] THEN
+	 REPEAT STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THENL
+	 [
+	   MATCH_MP_TAC fan7_4_0 THEN
+	     EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[];
+	   MATCH_MP_TAC fan7_4_1 THEN
+	     EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[];
+	   MATCH_MP_TAC fan7_4_2 THEN
+	     EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]
+	 ];
+
+       ASM_REWRITE_TAC[] THEN
+	 ONCE_REWRITE_TAC[INTER_ACI] THEN
+	 MATCH_MP_TAC fan7_3 THEN
+	 EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[];
+
+       ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC fan7_3 THEN
+	 EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[];
+
+       ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC fan7_2 THEN
+	 EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]
+     ]);;
+
+
+(* CKQOWSA *)
+
+let CKQOWSA = prove(`!V. V SUBSET ball_annulus /\ packing V /\ ~(V = {}) ==> FAN (vec 0,V,ESTD V)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[Fan_defs.FAN] THEN
+     ASM_SIMP_TAC[ESTD_fan0; ESTD_fan1; ESTD_fan2; ESTD_fan6; ESTD_fan7]);;
+
+	 
+end;;

@@ -87,12 +87,13 @@ let FACE_SUM_lemma = prove(`!V E x P. FAN (vec 0,V,E) /\ x IN dart1_of_fan (V,E)
 
 
 
-let CRTTXAT_lemma1 = prove(`!V f. FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
+let CRTTXAT_lemma1 = prove(`!V f. simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
 			     contravening V /\ f IN face_set (hypermap_of_fan (V,ESTD V)) ==>
 			     sum f (\x. lmfun (h_dart x)) >= &12 + &(CARD f) - &(CARD V)`,
    REPEAT GEN_TAC THEN DISCH_TAC THEN
-     DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
-     FIRST_ASSUM MP_TAC THEN
+     DISCH_THEN (CONJUNCTS_THEN2 (LABEL_TAC "A") MP_TAC) THEN
+     MP_TAC (SPEC_ALL CONTRAVENING_FAN) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     USE_THEN "A" MP_TAC THEN
      REWRITE_TAC[contravening] THEN
      REPLICATE_TAC 2 (DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) MP_TAC)) THEN
      DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (fun th -> ALL_TAC)) THEN
@@ -148,7 +149,7 @@ let CRTTXAT_lemma1 = prove(`!V f. FAN (vec 0,V,ESTD V) /\ simple_hypermap (hyper
      DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
      SUBGOAL_THEN `FINITE (V:real^3->bool)` ASSUME_TAC THENL
      [
-       FIRST_X_ASSUM (MP_TAC o check (is_conj o concl)) THEN
+       UNDISCH_TAC `FAN (vec 0, V, ESTD V)` THEN
 	 SIMP_TAC[Fan_defs.FAN; Fan_defs.fan1];
        ALL_TAC
      ] THEN
@@ -266,13 +267,14 @@ let CRTTXAT_lemma2 = prove(`!V f. FAN (vec 0,V,ESTD V) /\ f IN face_set (hyperma
 
 
 (* A variation of the first lemma *)
-let CRTTXAT_lemma1' = prove(`!V f. FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
+let CRTTXAT_lemma1' = prove(`!V f. simple_hypermap (hypermap_of_fan (V,ESTD V)) ==>
 			     contravening V /\ f IN face_set (hypermap_of_fan (V,ESTD V)) ==>
 			     sum f (\x. lmfun (norm (SND x) / &2)) >= &12 + &(CARD f) - &(CARD V)`,
    REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL CONTRAVENING_FAN) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
      SUBGOAL_THEN `sum f (\x:real^3#real^3. lmfun (norm (SND x) / &2)) = sum f (\x. lmfun (h_dart x))` (fun th -> REWRITE_TAC[th]) THENL
      [
-       FIRST_X_ASSUM MP_TAC THEN
+       FIRST_X_ASSUM (MP_TAC o check (is_binary "IN" o concl)) THEN
 	 REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
 	 ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
 	 REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC THEN
@@ -306,19 +308,20 @@ let SUM_RMUL_BOUND = prove(`!(s:A->bool) f g c. FINITE s /\
 
 
 (* Main theorem *)
-let CRTTXAT_concl = `!V. contravening V /\ tame_hypermap_calcs /\ (perimeterbound (V, ESTD V))==> 
+let CRTTXAT_concl = `!V. contravening V /\ (perimeterbound (V, ESTD V))==> 
        tame_9a  (hypermap_of_fan (V, ESTD V))`;;
 
 
 
-let CRTTXAT_assum = mk_imp (list_mk_conj [`!V. contravening V ==> FAN (vec 0,V,ESTD V) /\ simple_hypermap (hypermap_of_fan (V,ESTD V))`], CRTTXAT_concl);;
+let CRTTXAT_assum = mk_imp (list_mk_conj [`!V. contravening V ==> simple_hypermap (hypermap_of_fan (V,ESTD V))`], CRTTXAT_concl);;
 
 
 (* g(CRTTXAT_assum);; *)
 let CRTTXAT = prove(CRTTXAT_assum,
    REPEAT STRIP_TAC THEN
      FIRST_X_ASSUM (MP_TAC o SPEC `V:real^3->bool`) THEN
-     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     MP_TAC (SPEC_ALL CONTRAVENING_FAN) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN DISCH_TAC THEN
 
      REWRITE_TAC[tame_9a] THEN
      ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN

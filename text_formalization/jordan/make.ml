@@ -24,7 +24,6 @@ flyspeck_needs "jordan/real_ext.ml";;
 flyspeck_needs "jordan/float.ml";; 
 flyspeck_needs "jordan/tactics_ext2.ml";; 
 flyspeck_needs "jordan/misc_defs_and_lemmas.ml";; 
-flyspeck_needs "jordan/misc_defs_and_lemmas2.ml";; 
 
 (*  (* need to be reworked.  These don't currently load *)
 flyspeck_needs "Jordan/compute_pi.ml";;

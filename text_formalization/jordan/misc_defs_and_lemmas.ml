@@ -13,6 +13,8 @@ open Tactics_ext;;
 open Tactics_ext2;;
 open Parse_ext_override_interface;;
 open Tactics_refine;;
+open Real_ext;;
+open Float;;
 
 labels_flag:= true;;
 unambiguous_interface();;

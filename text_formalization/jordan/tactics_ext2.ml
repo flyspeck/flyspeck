@@ -11,6 +11,8 @@ module Tactics_ext2 = struct
 
 open Real_ext;;
 open Tactics_fix;;
+open Tactics_ext;;
+open Float;;
 
 (* ------------------------------------------------------------------ *)
 (* MORE RECENT ADDITIONS *)
@@ -19,6 +21,7 @@ open Tactics_fix;;
 Parse_ext_override_interface.unambiguous_interface();;
 
 (* abbrev_type copied from definitions_group.ml *)
+
 
 let pthm = prove_by_refinement(
   `(\ (x:A) .T) (@(x:A). T)`,

@@ -1424,7 +1424,6 @@ let ABS_NUM = prove_by_refinement (
   ASM_REWRITE_TAC[];
 ]);;
 
-(* to here XXD *)
 
 let INTERVAL_TO_LESS = prove(
   `!a f ex b g ey. ((interval_eps a f ex) /\ (interval_eps b g ey) /\

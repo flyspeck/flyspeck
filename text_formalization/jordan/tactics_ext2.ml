@@ -16,7 +16,7 @@ open Tactics_fix;;
 (* MORE RECENT ADDITIONS *)
 (* ------------------------------------------------------------------ *)
 
-
+Parse_ext_override_interface.unambiguous_interface();;
 
 (* abbrev_type copied from definitions_group.ml *)
 

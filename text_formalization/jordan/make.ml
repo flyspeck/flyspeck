@@ -8,25 +8,26 @@
 
 (*** Standard HOL Light library ***)
 
-loads "Library/analysis.ml";;
-loads "Library/transc.ml";;
-loads "Examples/polylog.ml";;
 
 (*** New stuff ***)
 
-loadt "Jordan/tactics_refine.ml";; (* OK *)
-loadt "Jordan/lib_ext.ml";; (* OK *)
-loadt "Jordan/tactics_fix.ml";; (* OK *)
-loadt "Jordan/parse_ext_override_interface.ml";; (* OK *)
-loadt "Jordan/tactics_ext.ml";; (* OK *)
-loadt "Jordan/num_ext_gcd.ml";;  (* OK *)
-loadt "Jordan/num_ext_nabs.ml";;   (* OK *)
-loadt "Jordan/real_ext_geom_series.ml";; (* OK *)
-loadt "Rqe/num_calc_simp.ml";;  (* OK *)
-loadt "Jordan/real_ext.ml";;  (* OK *)
-loadt "Jordan/float.ml";; (* OK *)
-loadt "Jordan/tactics_ext2.ml";; (* OK *)
-loadt "Jordan/misc_defs_and_lemmas.ml";; (*OK *)
-loadt "Jordan/compute_pi.ml";;
-loadt "Jordan/metric_spaces.ml";;
-loadt "Jordan/jordan_curve_theorem.ml";;
+flyspeck_needs "jordan/tactics_refine.ml";; 
+flyspeck_needs "jordan/lib_ext.ml";; 
+flyspeck_needs "jordan/tactics_fix.ml";; 
+flyspeck_needs "jordan/parse_ext_override_interface.ml";; 
+flyspeck_needs "jordan/tactics_ext.ml";; 
+flyspeck_needs "jordan/num_ext_gcd.ml";; 
+flyspeck_needs "jordan/num_ext_nabs.ml";;   
+flyspeck_needs "jordan/real_ext_geom_series.ml";; 
+needs "Rqe/num_calc_simp.ml";;  
+flyspeck_needs "jordan/real_ext.ml";;  
+flyspeck_needs "jordan/float.ml";; 
+flyspeck_needs "jordan/tactics_ext2.ml";; 
+flyspeck_needs "jordan/misc_defs_and_lemmas.ml";; 
+flyspeck_needs "jordan/misc_defs_and_lemmas2.ml";; 
+
+(*  (* need to be reworked.  These don't currently load *)
+flyspeck_needs "Jordan/compute_pi.ml";;
+flyspeck_needs "Jordan/metric_spaces.ml";;
+flyspeck_needs "Jordan/jordan_curve_theorem.ml";;
+*)

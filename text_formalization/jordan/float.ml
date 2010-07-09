@@ -18,6 +18,7 @@ open Real_ext;;
 open Tactics_refine;;
 open Tactics_ext;;
 
+Parse_ext_override_interface.unambiguous_interface();;
 prioritize_real();;
 
 

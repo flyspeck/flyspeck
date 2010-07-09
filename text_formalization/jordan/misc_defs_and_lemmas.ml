@@ -9,15 +9,33 @@
 
 module Misc_defs_and_lemmas = struct
 
-  open Tactics_ext;;
+open Tactics_ext;;
 open Tactics_ext2;;
 open Parse_ext_override_interface;;
 open Tactics_refine;;
 
 labels_flag:= true;;
+unambiguous_interface();;
 
-let dirac_delta = new_definition `dirac_delta (i:num) =
-     (\j. if (i=j) then (&.1) else (&.0))`;;
+
+let dirac_delta = new_definition `dirac_delta i = 
+   \j. if (i=j) then &1  else &0`;;
+
+(*
+let dirac_delta = new_definition `dirac_delta (i:num) j =
+      if (i=j) then &. 1  else &. 0`;;
+*)
+
+(*
+let dirac_delta = prove_by_refinement(`!i. dirac_delta i = 
+      (\j. if (i=j) then &. 1  else &. 0)`,
+   [
+     GEN_TAC;
+     ONCE_REWRITE_TAC[FUN_EQ_THM];
+     REWRITE_TAC[dirac_delta_thm];
+     BETA_TAC;
+   ]		       );;
+*)
 
 let min_num = new_definition
   `min_num (X:num->bool) = @m. (m IN X) /\ (!n. (n IN X) ==> (m <= n))`;;
@@ -1751,7 +1769,7 @@ let part7 = new_definition(`part7 (u:A#B#C#D#E#F#G#H#I) =
    FST (SND (SND (SND (SND (SND (SND (SND u)))))))`);;
 
 
-(* reduce_local_interface("trig");; *)
+
 pop_priority();;
 
 end;;

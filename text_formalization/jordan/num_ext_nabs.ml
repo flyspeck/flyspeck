@@ -7,13 +7,15 @@
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
-
+ 
 
 (* needs tactics_ext.ml *)
 
 module Num_ext_nabs = struct
 
 open Tactics_ext;;
+
+Parse_ext_override_interface.unambiguous_interface();;
 
 let INT_NUM = prove(`!u. (is_int (real_of_num u))`,
         (REWRITE_TAC[is_int]) THEN GEN_TAC THEN

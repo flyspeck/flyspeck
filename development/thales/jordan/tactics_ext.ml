@@ -90,7 +90,7 @@ let TAUT_TAC t = (MATCH_MP_TAC (TAUT t));;
 
 let REP_GEN_TAC = REPEAT GEN_TAC;;
 
-let SUBGOAL_TAC t = SUBGOAL_THEN t MP_TAC;;
+let SUBGOAL_MP_TAC t = SUBGOAL_THEN t MP_TAC;;
 
 let DISCH_ALL_TAC = REP_GEN_TAC THEN
   let tac = TAUT_TAC `(b ==> a==> c) ==> (a /\ b ==> c)` in
@@ -140,11 +140,14 @@ let (HYP_INT:int->goalthm) =
 let (HYP:string->goalthm) =
   fun s (asl,w) ->
     try assoc s asl
-      with Failure _ -> assoc ("Z-"^s) asl;;
+      with Failure _ -> try assoc ("Z-"^s) asl 
+     with Failure _ -> failwith ("HYP not found: "^ s);;
 
 let (THM:thm->goalthm) =
      fun thm ->
      fun (_:goal) -> thm;;
+
+(* We are constructing functors, so to speak *)
 
 let (H_RULER: (thm list->thm->thm)->(goalthm list)-> goalthm -> tactic) =
      fun rule gthl gthm ->

@@ -1,3 +1,16 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Jordan                                                               *)
+(* Copied from HOL Light jordan directory *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-07-08                                                           *)
+(* ========================================================================== *)
+
+module Tactics_ext2 = struct
+
+open Real_ext;;
+open Tactics_fix;;
 
 (* ------------------------------------------------------------------ *)
 (* MORE RECENT ADDITIONS *)
@@ -373,6 +386,11 @@ let rec new_distrib_order t1 t2 =
       new_distrib_order t1 t2'
     with Failure _ -> false ;;
 
+let REAL_RDISTRIB = REAL_ARITH 
+  `!x y z. (x + y) * z = (x * z) + (y * z)`;;  (* new *)
+
+let REAL_LDISTRIB = REAL_ADD_LDISTRIB;;
+
 let real_poly_conv =
   (* same side *)
   ONCE_REWRITE_CONV [GSYM REAL_SUB_0] THENC
@@ -462,18 +480,22 @@ let strip_lt_lemma = prove_by_refinement(
   `!B1 B2 C. ((&.0 <. (B1+B2)) ==> C) ==>
          ((&.0 <. B2) ==> ((&.0 <=. B1) ==> C))`,
   (* {{{ proof *)
+
   [
   ASM_MESON_TAC[REAL_LET_ADD];
   ]);;
+
   (* }}} *)
 
 let strip_le_lemma = prove_by_refinement(
   `!B1 B2 C. ((&.0 <=. (B1+B2)) ==> C) ==>
          ((&.0 <=. B2) ==> ((&.0 <=. B1) ==> C))`,
   (* {{{ proof *)
+
   [
   ASM_MESON_TAC[REAL_LE_ADD];
   ]);;
+
   (* }}} *)
 
 let is_x_prod_le tm =
@@ -540,11 +562,14 @@ let expand_prod_le = prove_by_refinement(
   `!B1 B2 C. (&.0 <= B1*B2 ==> C) ==>
               ((&.0 <=. B1) ==> (&.0 <=. B2) ==> C)`,
   (* {{{ proof *)
+
   [
   ASM_MESON_TAC[REAL_LE_MUL ];
   ]);;
+
   (* }}} *)
 
+let REAL_LE_POW_2 = Collect_geom.REAL_LE_POW_2;;
 
 let ineq_cert_gen_tac v cert =
   let DISCH_RULE f = DISCH_THEN (fun t-> MP_TAC (f t)) in
@@ -1048,6 +1073,11 @@ let CONTRAPOSITIVE_TAC = MATCH_MP_TAC (TAUT `(~q ==> ~p) ==> (p ==> q)`)
 
 let REWRT_TAC = (fun t-> REWRITE_TAC[t]);;
 
+let REAL_HALF_DOUBLE = REAL_ARITH `!x. (x / &2) + (x / &2) = x`;;
+let REAL_DOUBLE = REAL_ARITH  `!x. x + x = &2 * x`;;
+let ABS_ZERO = REAL_ABS_ZERO;; (* new *)
+let ABS_ABS = REAL_ABS_ABS;;
+
 let (REDUCE_CONV,REDUCE_TAC) =
  let list = [
    (* reals *)   REAL_NEG_GE0;
@@ -1087,7 +1117,7 @@ let (REDUCE_CONV,REDUCE_TAC) =
    REAL_ABS_1;
    REAL_ABS_NEG;
    REAL_ABS_POS;
-   ABS_ZERO;
+(*   ABS_ZERO; *)
    ABS_ABS;
    REAL_NEG_LT0;
    REAL_NEG_GT0;
@@ -1253,12 +1283,12 @@ let TAPP z i  = TYPE_THEN z (fun u -> (USE i(fun t -> AP_THM t u)));;
 
 (* ONE NEW TACTIC -- DOESN'T WORK!! DON'T USE....
 let CONCL_TAC t = let co = snd  (dest_imp (concl t)) in
-  SUBGOAL_TAC co THEN (TRY (IMATCH_MP_TAC  t));;
+  SUBGOAL_MP_TAC co THEN (TRY (IMATCH_MP_TAC  t));;
 *)
 
 (* subgoal the antecedent of a THM, in order to USE the conclusion *)
 let ANT_TAC t = let (ant,co) =   (dest_imp (concl t)) in
-  SUBGOAL_TAC ant
+  SUBGOAL_MP_TAC ant
   THENL [ALL_TAC;DISCH_THEN (fun u-> MP_TAC (MATCH_MP t u))];;
 
 
@@ -1460,7 +1490,7 @@ let drop_ant_tac_example = prove_by_refinement(
 let (BACK_TAC : term -> tactic) =
   fun tm (asl,w) ->
     let ng = mk_imp (tm,w) in
-    (SUBGOAL_TAC ng THENL [ALL_TAC;DISCH_THEN  IMATCH_MP_TAC ]) (asl,w);;
+    (SUBGOAL_MP_TAC ng THENL [ALL_TAC;DISCH_THEN  IMATCH_MP_TAC ]) (asl,w);;
 
 (* --- *)
 (* Using hash numbers for tactics *)
@@ -1484,3 +1514,5 @@ let USEH = HASHIFY1 USE;;
 let LEFTH = HASHIFY1 LEFT;;
 let RIGHTH = HASHIFY1 RIGHT;;
 let TSPECH tm h w = TSPEC tm (label_of_hash w h) w ;;
+
+end;;

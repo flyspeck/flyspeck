@@ -117,7 +117,7 @@ let gcd_certificate = prove(`!a b g. ((? r s r' s' a' b'.
         THEN CONJ_TAC) and
 
         ydivg_branch = (
-        (SUBGOAL_TAC (` (y || (r*a + s*b))/\ (y || (r'*a +s'*b))`))
+        (SUBGOAL_MP_TAC (` (y || (r*a + s*b))/\ (y || (r'*a +s'*b))`))
         THENL [((ASM MESON_TAC)[DIVIDE_SUM;DIVIDE_PROD]);
         ((ASM MESON_TAC)[DIVIDE_SUMMAND])]
         ) and
@@ -142,7 +142,7 @@ let gcd_certificate = prove(`!a b g. ((? r s r' s' a' b'.
         THENL [((ASM MESON_TAC)[DIVIDE]);ALL_TAC]
         THEN GEN_TAC
         THEN DISCH_TAC
-        THEN (SUBGOAL_TAC (` (h || (r*a + s*b))/\ (h || (r'*a+s'*b))`))
+        THEN (SUBGOAL_MP_TAC (` (h || (r*a + s*b))/\ (h || (r'*a+s'*b))`))
         THENL [((ASM MESON_TAC)[DIVIDE_SUM;DIVIDE_PROD]);
                 ((ASM MESON_TAC)[DIVIDE_SUMMAND])]
                 ) in

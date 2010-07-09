@@ -1,3 +1,18 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Jordan                                                               *)
+(* Copied from HOL Light jordan directory *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-07-08                                                           *)
+(* ========================================================================== *)
+
+module Misc_defs_and_lemmas = struct
+
+  open Tactics_ext;;
+open Tactics_ext2;;
+open Parse_ext_override_interface;;
+open Tactics_refine;;
 
 labels_flag:= true;;
 
@@ -32,8 +47,8 @@ let max_real = new_definition(`max_real x y =
 let min_real = new_definition(`min_real x y =
         if (x <. y) then x else y`);;
 
-let deriv = new_definition(`deriv f x = @d. (f diffl d)(x)`);;
-let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);;
+(* let deriv = new_definition(`deriv f x = @d. (f diffl d)(x)`);;
+let deriv2 = new_definition(`deriv2 f = (deriv (deriv f))`);; *)
 
 let square_le = prove_by_refinement(
   `!x y. (&.0 <=. x) /\ (&.0 <=. y) /\ (x*.x <=. y*.y) ==> (x <=. y)`,
@@ -73,7 +88,7 @@ let max_num_sequence = prove_by_refinement(
   DISCH_ALL_TAC;
   ABBREV_TAC `b = \m. (if (m=n) then 0 else (t (m:num)) )`;
   FIRST_ASSUM (fun t-> ASSUME_TAC (SPEC `b:num->num` t));
-  SUBGOAL_TAC `((b:num->num) (n) = 0) /\ (!m. ~(m=n) ==> (b m = t m))`;
+  SUBGOAL_MP_TAC `((b:num->num) (n) = 0) /\ (!m. ~(m=n) ==> (b m = t m))`;
   EXPAND_TAC "b";
   CONJ_TAC;
   COND_CASES_TAC;
@@ -85,11 +100,11 @@ let max_num_sequence = prove_by_refinement(
   REWRITE_TAC[];
   DISCH_ALL_TAC;
   FIRST_ASSUM (fun t-> MP_TAC(SPEC `b:num->num` t));
-  SUBGOAL_TAC `!m. (n<=|m) ==> (b m =0)`;
+  SUBGOAL_MP_TAC `!m. (n<=|m) ==> (b m =0)`;
   GEN_TAC;
   ASM_CASES_TAC `m = (n:num)`;
   ASM_REWRITE_TAC[];
-  SUBGOAL_TAC ( `(n <=| m) /\ (~(m = n)) ==> (SUC n <=| m)`);
+  SUBGOAL_MP_TAC ( `(n <=| m) /\ (~(m = n)) ==> (SUC n <=| m)`);
   ARITH_TAC;
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
@@ -125,7 +140,7 @@ let REAL_MUL_NN = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  SUBGOAL_TAC `! x y. ((&.0 < x) ==> ((&.0 <= x*y) <=> ((&.0 <= x /\ (&.0 <=. y)) \/ ((x <= &.0) /\ (y <= &.0) ))))`;
+  SUBGOAL_MP_TAC `! x y. ((&.0 < x) ==> ((&.0 <= x*y) <=> ((&.0 <= x /\ (&.0 <=. y)) \/ ((x <= &.0) /\ (y <= &.0) ))))`;
   DISCH_ALL_TAC;
   ASM_SIMP_TAC[REAL_ARITH `((&.0 <. x) ==> (&.0 <=. x))`;REAL_ARITH `(&.0 <. x) ==> ~(x <=. &.0)`];
   EQ_TAC;
@@ -181,6 +196,21 @@ let ABS_SQUARE_LE = prove_by_refinement(
   ]);;
 
   (* }}} *)
+
+let POW_2_LE1 = REAL_LE_POW2;;
+
+let REAL_ADD = REAL_OF_NUM_ADD;;
+
+let POW_2_LT = prove_by_refinement(
+  `!n. &n < &2 pow n`,
+  [
+  INDUCT_TAC;
+  REWRITE_TAC[pow; REAL_LT_01] ;
+  REWRITE_TAC[pow;ADD1; GSYM REAL_ADD; GSYM REAL_DOUBLE];
+  MATCH_MP_TAC REAL_LTE_ADD2;
+  ASM_REWRITE_TAC[POW_2_LE1];
+  ]);;
+
 
 let twopow_eps = prove_by_refinement(
   `!R e. ?n. (&.0 <. R)/\ (&.0 <. e) ==> R*(twopow(--: (&:n))) <. e`,
@@ -746,7 +776,7 @@ let NUM2_COUNTABLE = prove_by_refinement(
   REPEAT (DISCH_THEN (CHOOSE_THEN MP_TAC));
   DISCH_THEN (fun t->REWRITE_TAC[t]);
   REWRITE_TAC[IN_UNIV];
-  SUBGOAL_TAC `?t. t = x'+|y'`;
+  SUBGOAL_MP_TAC `?t. t = x'+|y'`;
   MESON_TAC[];
   SPEC_TAC (`x':num`,`a:num`);
   SPEC_TAC (`y':num`,`b:num`);
@@ -819,7 +849,7 @@ let COUNTABLE_UNIONS = prove_by_refinement(
   USE 1 (CONV_RULE (quant_left_CONV "f"));
   UND 1;
   DISCH_THEN (X_CHOOSE_TAC `g:(A->bool)->num->A`);
-  SUBGOAL_TAC `!a y. (a IN (A:(A->bool)->bool)) /\ (y IN a) ==> (? (u:num) (v:num). ( a = f u) /\ (y = g a v))`;
+  SUBGOAL_MP_TAC `!a y. (a IN (A:(A->bool)->bool)) /\ (y IN a) ==> (? (u:num) (v:num). ( a = f u) /\ (y = g a v))`;
   REP_GEN_TAC;
   DISCH_ALL_TAC;
   USE 1 (SPEC `a:A->bool`);
@@ -843,7 +873,7 @@ let COUNTABLE_UNIONS = prove_by_refinement(
   REPEAT (DISCH_THEN(CHOOSE_THEN (MP_TAC)));
   DISCH_ALL_TAC;
   USE 2 (SPEC `(u:num,v:num)`);
-  SUBGOAL_TAC `?x' y'. (u:num,v:num) = (x',y')`;
+  SUBGOAL_MP_TAC `?x' y'. (u:num,v:num) = (x',y')`;
   MESON_TAC[];
   DISCH_TAC;
   UND 2;
@@ -942,7 +972,7 @@ let num_SEG_UNION = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  SUBGOAL_TAC `({u | i <| u} UNION {m | m <=| i}) = UNIV`;
+  SUBGOAL_MP_TAC `({u | i <| u} UNION {m | m <=| i}) = UNIV`;
   MATCH_MP_TAC EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[UNIV;UNION;IN_ELIM_THM'];
@@ -961,7 +991,7 @@ let num_above_infinite = prove_by_refinement(
   ASSUME_TAC(SPEC `i:num` FINITE_NUMSEG_LE);
   JOIN 0 1;
   USE 0 (MATCH_MP FINITE_UNION_IMP);
-  SUBGOAL_TAC `({u | i <| u} UNION {m | m <=| i}) = UNIV`;
+  SUBGOAL_MP_TAC `({u | i <| u} UNION {m | m <=| i}) = UNIV`;
   REWRITE_TAC[num_SEG_UNION];
   DISCH_TAC;
   UND 0;
@@ -979,7 +1009,7 @@ let INTER_FINITE = prove_by_refinement(
   CONV_TAC (quant_right_CONV "s");
   SUBCONJ_TAC;
   DISCH_ALL_TAC;
-  SUBGOAL_TAC `s INTER t SUBSET (s:A->bool)`;
+  SUBGOAL_MP_TAC `s INTER t SUBSET (s:A->bool)`;
   SET_TAC[];
   ASM_MESON_TAC[FINITE_SUBSET];
   MESON_TAC[INTER_COMM];
@@ -992,7 +1022,7 @@ let num_above_finite = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  SUBGOAL_TAC `J = (J INTER {u | (i <| u)}) UNION (J INTER {m | m <=| i})`;
+  SUBGOAL_MP_TAC `J = (J INTER {u | (i <| u)}) UNION (J INTER {m | m <=| i})`;
   REWRITE_TAC[GSYM UNION_OVER_INTER;num_SEG_UNION;INTER_UNIV];
   DISCH_TAC;
   ASM (ONCE_REWRITE_TAC)[];
@@ -1023,7 +1053,7 @@ let SUBSET_SUC = prove_by_refinement(
   ASM_REWRITE_TAC[SUBSET];
   REP_GEN_TAC;
   DISCH_TAC;
-  SUBGOAL_TAC `?j'. j = SUC j'`;
+  SUBGOAL_MP_TAC `?j'. j = SUC j'`;
   DISJ_CASES_TAC (SPEC `j:num` num_CASES);
   UND 2;
   ASM_REWRITE_TAC[];
@@ -1034,12 +1064,12 @@ let SUBSET_SUC = prove_by_refinement(
   USE 0 (SPEC `j':num`);
   USE 1(SPECL [`j':num`;`i:num`]);
   DISCH_TAC;
-  SUBGOAL_TAC `(n = j'-|i)`;
+  SUBGOAL_MP_TAC `(n = j'-|i)`;
   UND 2;
   ASM_REWRITE_TAC[];
   ARITH_TAC;
   DISCH_TAC;
-  SUBGOAL_TAC `(i<=| j')`;
+  SUBGOAL_MP_TAC `(i<=| j')`;
   USE 2 (MATCH_MP(ARITH_RULE `(SUC n = j -| i) ==> (0 < j -| i)`));
   UND 2;
   ASM_REWRITE_TAC[];
@@ -1072,7 +1102,7 @@ let SUBSET_SUC2 = prove_by_refinement(
   ASM_REWRITE_TAC[SUBSET];
   REP_GEN_TAC;
   DISCH_TAC;
-  SUBGOAL_TAC `?j'. j = SUC j'`;
+  SUBGOAL_MP_TAC `?j'. j = SUC j'`;
   DISJ_CASES_TAC (SPEC `j:num` num_CASES);
   UND 2;
   ASM_REWRITE_TAC[];
@@ -1083,12 +1113,12 @@ let SUBSET_SUC2 = prove_by_refinement(
   USE 0 (SPEC `j':num`);
   USE 1(SPECL [`j':num`;`i:num`]);
   DISCH_TAC;
-  SUBGOAL_TAC `(n = j'-|i)`;
+  SUBGOAL_MP_TAC `(n = j'-|i)`;
   UND 2;
   ASM_REWRITE_TAC[];
   ARITH_TAC;
   DISCH_TAC;
-  SUBGOAL_TAC `(i<=| j')`;
+  SUBGOAL_MP_TAC `(i<=| j')`;
   USE 2 (MATCH_MP(ARITH_RULE `(SUC n = j -| i) ==> (0 < j -| i)`));
   UND 2;
   ASM_REWRITE_TAC[];
@@ -1112,7 +1142,7 @@ let INFINITE_PIGEONHOLE = prove_by_refinement(
   USE 3 (  CONV_RULE (quant_left_CONV "b"));
   UND 0;
   TAUT_TAC `P ==> (~P ==> F)`;
-  SUBGOAL_TAC `{i | I' i /\ (C ((f:A->B) i))} = UNIONS (IMAGE (\b. {i | I' i /\ ((C INTER b) (f i))}) B)`;
+  SUBGOAL_MP_TAC `{i | I' i /\ (C ((f:A->B) i))} = UNIONS (IMAGE (\b. {i | I' i /\ ((C INTER b) (f i))}) B)`;
   REWRITE_TAC[UNIONS;IN_IMAGE];
   MATCH_MP_TAC EQ_EXT;
   GEN_TAC;
@@ -1145,7 +1175,7 @@ let INFINITE_PIGEONHOLE = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
-  SUBGOAL_TAC `FINITE (IMAGE (\b. {i | I' i /\ (C INTER b) ((f:A->B) i)}) B)`;
+  SUBGOAL_MP_TAC `FINITE (IMAGE (\b. {i | I' i /\ (C INTER b) ((f:A->B) i)}) B)`;
   MATCH_MP_TAC FINITE_IMAGE;
   ASM_REWRITE_TAC[];
   SIMP_TAC[FINITE_UNIONS];
@@ -1171,7 +1201,7 @@ let real_FINITE = prove_by_refinement(
   ASSUME_TAC REAL_ARCH_SIMPLE;
   USE 1 (CONV_RULE (quant_left_CONV "n"));
   CHO 1;
-  SUBGOAL_TAC `FINITE (IMAGE (n:real->num) s)`;
+  SUBGOAL_MP_TAC `FINITE (IMAGE (n:real->num) s)`;
   ASM_MESON_TAC[FINITE_IMAGE];
 (*** JRH -- num_FINITE is now an equivalence not an implication
   ASSUME_TAC (SPEC `IMAGE (n:real->num) s` num_FINITE);
@@ -1290,7 +1320,7 @@ let INVERSE_FN = prove_by_refinement(
   MATCH_MP_TAC (prove_by_refinement( `!A B. (A ==> (?x. (B x))) ==> (?(x:B->A). (A ==> (B x)))`,[MESON_TAC[]])) ;
   REWRITE_TAC[SURJ;INJ];
   DISCH_ALL_TAC;
-  SUBGOAL_TAC `?u. !y. ((y IN b)==> ((u y IN a) /\ ((f:A->B) (u y) = y)))`;
+  SUBGOAL_MP_TAC `?u. !y. ((y IN b)==> ((u y IN a) /\ ((f:A->B) (u y) = y)))`;
   REWRITE_TAC[GSYM SKOLEM_THM];
   GEN_TAC;
   ASM_MESON_TAC[];
@@ -1721,565 +1751,7 @@ let part7 = new_definition(`part7 (u:A#B#C#D#E#F#G#H#I) =
    FST (SND (SND (SND (SND (SND (SND (SND u)))))))`);;
 
 
-(* ------------------------------------------------------------------ *)
-(* Basic Definitions of Euclidean Space, Metric Spaces, and Topology *)
-(* ------------------------------------------------------------------ *)
-
-(* ------------------------------------------------------------------ *)
-(* Interface *)
-(* ------------------------------------------------------------------ *)
-
-let euclid_def = local_definition "euclid";;
-mk_local_interface "euclid";;
-
-overload_interface
- ("+", `euclid'euclid_plus:(num->real)->(num->real)->(num->real)`);;
-
-make_overloadable "*#" `:A -> B -> B`;;
-
-let euclid_scale = euclid_def
-  `euclid_scale t f = \ (i:num). (t*. (f i))`;;
-
-overload_interface ("*#",`euclid'euclid_scale`);;
-
-parse_as_infix("*#",(20,"right"));;
-
-let euclid_neg = euclid_def `euclid_neg f = \ (i:num). (--. (f i))`;;
-
-(* This is highly ambiguous: -- f x can be read as
-   (-- f) x or as -- (f x).  *)
-overload_interface ("--",`euclid'euclid_neg`);;
-
-overload_interface
-  ("-", `euclid'euclid_minus:(num->real)->(num->real)->(num->real)`);;
-
-(* ------------------------------------------------------------------ *)
-(* Euclidean Space *)
-(* ------------------------------------------------------------------ *)
-
-let euclid_plus = euclid_def
-  `euclid_plus f g = \ (i:num). (f i) +. (g i)`;;
-
-let euclid = euclid_def `euclid n v <=> !m. (n <=| m) ==> (v m = &.0)`;;
-
-let euclidean = euclid_def `euclidean v <=> ?n. euclid n v`;;
-
-let euclid_minus = euclid_def
-  `euclid_minus f g = \(i:num). (f i) -. (g i)`;;
-
-let euclid0 = euclid_def `euclid0 = \(i:num). &.0`;;
-
-let coord = euclid_def `coord i (f:num->real) = f i`;;
-
-let dot = euclid_def `dot f g =
-  let (n = (min_num (\m. (euclid m f) /\ (euclid m g)))) in
-  sum (0,n) (\i. (f i)*(g i))`;;
-
-let norm = euclid_def `norm f = sqrt(dot f f)`;;
-
-let d_euclid = euclid_def `d_euclid f g = norm (f - g)`;;
-
-
-
-(* ------------------------------------------------------------------ *)
-(* Euclidean and Convex geometry *)
-(* ------------------------------------------------------------------ *)
-
-
-let sum_vector_EXISTS = prove_by_refinement(
-  `?sum_vector. (!f n. sum_vector(n,0) f = (\n. &.0)) /\
-    (!f m n. sum_vector(n,SUC m) f = sum_vector(n,m) f + f(n + m))`,
-  (* {{{ proof *)
-  [
-  (CHOOSE_TAC o prove_recursive_functions_exist num_RECURSION) `(!f n. sm n 0 f = (\n. &0)) /\ (!f m n. sm  n (SUC m) f = sm n m f + f(n + m))`;
-  EXISTS_TAC `\(n,m) f. (sm:num->num->(num->(num->real))->(num->real)) n m f`;
-  CONV_TAC(DEPTH_CONV GEN_BETA_CONV);
-  ASM_REWRITE_TAC[];
-  ]);;
-  (* }}} *)
-
-let sum_vector = new_specification ["sum_vector"] sum_vector_EXISTS;;
-
-let mk_segment = euclid_def
-  `mk_segment x y = { u | ?a. (&.0 <=. a) /\ (a <=. &.1) /\
-        (u = a *# x + (&.1 - a) *# y) }`;;
-
-let mk_open_segment = euclid_def
-  `mk_open_segment x y = { u | ?a. (&.0 <. a) /\ (a <. &.1) /\
-        (u = a *# x + (&.1 - a) *# y) }`;;
-
-let convex = euclid_def
-  `convex S <=> !x y. (S x) /\ (S y) ==> (mk_segment x y SUBSET S)`;;
-
-let convex_hull = euclid_def
-  `convex_hull S = { u | ?f alpha m. (!n. (n< m) ==> (S (f n))) /\
-    (sum(0,m) alpha = &.1) /\ (!n. (n< m) ==> (&.0 <=. (alpha n))) /\
-    (u = sum_vector(0,m) (\n. (alpha n) *# (f n)))}`;;
-
-let affine_hull = euclid_def
-  `affine_hull S = { u | ?f alpha m. (!n. (n< m) ==> (S (f n))) /\
-    (sum(0,m) alpha = &.1) /\
-    (u = sum_vector(0,m) (\n. (alpha n) *# (f n)))}`;;
-
-let mk_line = euclid_def `mk_line x y =
-   {z| ?t. (z = (t *# x) + ((&.1 - t) *# y)) }`;;
-
-let affine = euclid_def
-  `affine S <=> !x y. (S x ) /\ (S y) ==> (mk_line x y SUBSET S)`;;
-
-let affine_dim = euclid_def
-  `affine_dim n S <=>
-    (?T. (T HAS_SIZE (SUC n)) /\ (affine_hull T = affine_hull S)) /\
-    (!T m. (T HAS_SIZE (SUC m)) /\ (m < n) ==> ~(affine_hull T = affine_hull S))`;;
-
-let collinear = euclid_def
-  `collinear S <=> (?n. affine_dim n S /\ (n < 2))`;;
-
-let coplanar = euclid_def
-  `coplanar S <=> (?n. affine_dim n S /\ (n < 3))`;;
-
-let line = euclid_def
-  `line L <=> (affine L) /\ (affine_dim 1 L)`;;
-
-let plane = euclid_def
-  `plane P <=> (affine P) /\ (affine_dim 2 P)`;;
-
-let space = euclid_def
-  `space R <=> (affine R) /\ (affine_dim 3 R)`;;
-
-(*
-
-General constructor of conical objects, including
-  rays, cones, half-planes, etc.
-
-L is the edge.  C is the set of generators in the positive
-direction.
-
-If L is a line, and C = {c}, we get the half-plane bounded by
-L and containing c.
-
-If L is a point, and C is general, we get the cone at L generated
-by C.
-
-If L and C are both singletons, we get the ray ending at L.
-
-  *)
-
-let mk_open_half_set = euclid_def
-  `mk_open_half_set L S  =
-   { u | ?t v c. (L v) /\ (S c) /\ (&.0 < t) /\
-      (u = (t *# (c - v) + (&.1 - t) *# v)) }`;;
-
-let mk_half_set = euclid_def
-  `mk_half_set L S  =
-   { u | ?t v c. (L v) /\ (S c) /\ (&.0 <=. t) /\
-      (u = (t *# (c - v) + (&.1 - t) *# v)) }`;;
-
-
-let mk_angle = euclid_def `mk_angle x y z =
-   (mk_half_set {x} {y}) UNION (mk_half_set {x} {z})`;;
-
-let mk_signed_angle = euclid_def `mk_signed_angle x y z =
-   (mk_half_set {x} {y} , mk_half_set {x} {z})`;;
-
-let mk_convex_cone = euclid_def
-  `mk_convex_cone v (S:(num->real)->bool) =
-    mk_half_set {v} (convex_hull S)`;;
-
-(* we always normalize the radius of balls in a packing to 1 *)
-let packing = euclid_def(`packing (S:(num->real)->bool) <=>
-        !x y. ( ((S x) /\ (S y) /\ ((d_euclid x y) < (&.2))) ==>
-                (x = y))`);;
-
-let saturated_packing = euclid_def(`saturated_packing S <=>
-        (( packing S) /\
-        (!z. (affine_hull S z)  ==>
-               (?x. ((S x) /\ ((d_euclid x z) < (&.2))))))`);;
-
-
-(* 3 dimensions specific:  *)
-let cross_product3 = euclid_def(`cross_product3 v1 v2 =
-        let (x1 = v1 0) and (x2 = v1 1) and (x3 = v1 2) in
-        let (y1 = v2 0) and (y2 = v2 1) and (y3 = v2 2) in
-        (\k.
-                (if (k=0) then (x2*y3-x3*y2)
-                else if (k=1) then (x3*y1-x1*y3)
-                else if (k=2) then (x1*y2-x2*y1)
-                else (&0)))`);;
-
-let triple_product = euclid_def(`triple_product v1 v2 v3 =
-        dot v1 (cross_product3 v2 v3)`);;
-
-(* the bounding edge *)
-let mk_triangle = euclid_def `mk_triangle v1 v2 v3 =
-  (mk_segment v1 v2) UNION (mk_segment v2 v3) UNION (mk_segment v3 v1)`;;
-
-(* the interior *)
-let mk_interior_triangle = euclid_def
-  `mk_interior_triangle v1 v2 v3 =
-     mk_open_half_set (mk_line v1 v2) {v3} INTER
-       (mk_open_half_set (mk_line v2 v3) {v1}) INTER
-       (mk_open_half_set (mk_line v3 v1) {v2})`;;
-
-let mk_triangular_region = euclid_def
-  `mk_triangular_region v1 v2 v3 =
-    (mk_triangle v1 v2 v3) UNION (mk_interior_triangle v1 v2 v3)`;;
-
-
-(* ------------------------------------------------------------------ *)
-(* Statements of Theorems in Euclidean Geometry (no proofs *)
-(* ------------------------------------------------------------------ *)
-
-let half_set_convex = `!L S. convex (mk_half_set L S)`;;
-
-let open_half_set_convex = `!L S . convex (mk_open_half_set L S )`;;
-
-let affine_dim0 = `!S. (affine_dim 0 S) = (SING S)`;;
-
-let hull_convex = `!S. (convex (convex_hull S))`;;
-
-let hull_minimal = `!S T. (convex T) /\ (S SUBSET T) ==>
-     (convex_hull S) SUBSET T`;;
-
-let affine_hull_affine = `!S. (affine (affine_hull S))`;;
-
-let affine_hull_minimal = `!S T. (affine T) /\ (S SUBSET T) ==>
-     (affine_hull S) SUBSET T`;;
-
-let mk_line_dim = `!x y. ~(x = y) ==> affine_dim 1 (mk_line x y)`;;
-
-let affine_convex_hull = `!S. (affine_hull S) = (affine_hull (convex_hull S))`;;
-
-let convex_hull_hull = `!S. (convex_hull S) = (convex_hull (convex_hull S))`;;
-
-let euclid_affine_dim = `!n. affine_dim n (euclid n)`;;
-
-let affine_dim_subset = `!m n T S.
-  (affine_dim m T) /\ (affine_dim n S) /\ (T SUBSET S) ==> (m <= n)`;;
-
-(* A few of the Birkhoff postulates of Geometry (incomplete) *)
-
-let line_postulate = `!x y. ~(x = y) ==>
-   (?!L. (L x) /\ (L y) /\ (line L))`;;
-
-let ruler_postulate = `!L. (line L) ==>
-  (?f. (BIJ f L UNIV) /\
-  (!x y. (L x /\ L y ==> (d_euclid x y = abs(f x -. f y)))))`;;
-
-let affine_postulate = `!n. (affine_dim n P) ==> (?S.
-  (S SUBSET P) /\ (S HAS_SIZE n) /\ (affine_dim n S))`;;
-
-let line_plane = `!P x y. (plane P) /\ (P x) /\ (P y) ==>
-  (mk_line x y SUBSET P)`;;
-
-let plane_of_pt = `!S. (S HAS_SIZE 3) ==> (?P. (plane P) /\
-   (S SUBSET P))`;;
-
-let plane_of_pt_unique = `!S. (S HAS_SIZE 3) ==> (collinear S) \/
-  (?! P. (plane P) /\ (S SUBSET P))`;;
-
-let plane_inter = `!P Q. (plane P) /\ (plane Q) ==>
-  (P INTER Q = EMPTY) \/ (line (P INTER Q)) \/ (P = Q)`;;
-
-(* each line separates a plane into two half-planes *)
-let plane_separation =
-  `!P L. (plane P) /\ (line L) /\ (L SUBSET P) ==>
-  (?A B. (A INTER B = EMPTY) /\ (A INTER L = EMPTY) /\
-    (B INTER L = EMPTY) /\ (L UNION A UNION B = P) /\
-   (!c u. (P c) /\ (u = mk_open_half_set L {c}) ==>
-      (u = A) \/ (u = B) \/ (u = L)) /\
-   (!a b. (A a) /\ (B b) ==> ~(segment a b INTER L = EMPTY)))`;;
-
-let space_separation =
-  `!R P. (space R) /\ (plane P) /\ (P SUBSET R) ==>
-  (?A B. (A INTER B = EMRTY) /\ (A INTER P = EMRTY) /\
-    (B INTER P = EMRTY) /\ (P UNION A UNION B = R) /\
-   (!c u. (R c) /\ (u = mk_open_half_set P {c}) ==>
-      (u = A) \/ (u = B) \/ (u = P)) /\
-     (!a b. (A a) /\ (B b) ==> ~(segment a b INTER L = EMPTY)))`;;
-
-(* ------------------------------------------------------------------ *)
-(* Metric Space *)
-(* ------------------------------------------------------------------ *)
-
-let metric_space = euclid_def `metric_space (X:A->bool,d:A->A->real)
-   <=>
-   !x y z.
-      (X x) /\ (X y) /\ (X z) ==>
-         (((&.0) <=. (d x y)) /\
-          ((&.0 = d x y) = (x = y)) /\
-          (d x y = d y x) /\
-          (d x z <=. d x y + d y z))`;;
-
-(* ------------------------------------------------------------------ *)
-(* Measure *)
-(* ------------------------------------------------------------------ *)
-
-let set_translate = euclid_def
-  `set_translate v X = { z | ?x. (X x) /\ (z = v + x) }`;;
-
-let set_scale = euclid_def
-  `set_scale r X = { z | ?x. (X x) /\ (z = r *# x) }`;;
-
-let mk_rectangle = euclid_def
-  `mk_rectangle a b = { z | !(i:num). (a i <=. z i) /\ (z i <. b i) }`;;
-
-let one_vec = euclid_def
-  `one_vec n = (\i. if (i<| n) then (&.1) else (&.0))`;;
-
-let mk_cube = euclid_def
-  `mk_cube n k v =
-    let (r = twopow (--: (&: k))) in
-    let (vv = (\i. (real_of_int (v i)))) in
-     mk_rectangle (r *# vv) (r *# (vv + (one_vec n)))`;;
-
-let inner_cube = euclid_def
-  `inner_cube n k A =
-    { v | (mk_cube n k v SUBSET A) /\
-      (!i. (n <| i) ==> (&:0 = v i)) }`;;
-
-let outer_cube = euclid_def
-  `outer_cube n k A =
-    { v | ~((mk_cube n k v) INTER A = EMPTY) /\
-      (!i. (n <| i) ==> (&:0 = v i)) }`;;
-
-let inner_vol = euclid_def
-  `inner_vol n k A =
-    (&. (CARD (inner_cube n k A)))*(twopow (--: (&: (n*k))))`;;
-
-let outer_vol = euclid_def
-  `outer_vol n k A =
-    (&. (CARD (outer_cube n k A)))*(twopow (--: (&: (n*k))))`;;
-
-let euclid_bounded = euclid_def
-  `euclid_bounded A = (?R. !(x:num->real) i. (A x) ==> (x i <. R))`;;
-
-let vol = euclid_def
-  `vol n A = lim (\k. outer_vol n k A)`;;
-
-(* ------------------------------------------------------------------ *)
-(* COMPUTING PI *)
-(* ------------------------------------------------------------------ *)
-
-unambiguous_interface();;
-prioritize_real();;
-
-(* ------------------------------------------------------------------ *)
-(* general series approximations *)
-(* ------------------------------------------------------------------ *)
-
-let SER_APPROX1 = prove_by_refinement(
-  `!s f g.  (f sums s) /\ (summable g) ==>
-    (!k. ((!n. (||. (f (n+k)) <=. (g (n+k)))) ==>
-    ( (s - (sum(0,k) f)) <=. (suminf (\n. (g (n +| k)))))))`,
-  (* {{{ proof *)
-  [
-  REPEAT GEN_TAC;
-  DISCH_ALL_TAC;
-  GEN_TAC;
-  DISCH_TAC;
-  IMP_RES_THEN ASSUME_TAC SUM_SUMMABLE;
-  IMP_RES_THEN (fun th -> (ASSUME_TAC (SPEC `k:num` th))) SER_OFFSET;
-  IMP_RES_THEN ASSUME_TAC SUM_UNIQ;
-  SUBGOAL_THEN `(\n. (f (n+ k))) sums (s - (sum(0,k) f))` ASSUME_TAC;
-  ASM_MESON_TAC[];
-  SUBGOAL_THEN `summable (\n. (f (n+k))) /\ (suminf (\n. (f (n+k))) <=. (suminf (\n. (g (n+k)))))` ASSUME_TAC;
-  MATCH_MP_TAC SER_LE2;
-  BETA_TAC;
-  ASM_REWRITE_TAC[];
-  IMP_RES_THEN ASSUME_TAC SER_OFFSET;
-  FIRST_X_ASSUM (fun th -> ACCEPT_TAC (MATCH_MP SUM_SUMMABLE (((SPEC `k:num`) th))));
-  ASM_MESON_TAC[SUM_UNIQ]
-  ]);;
-  (* }}} *)
-
-let SER_APPROX = prove_by_refinement(
-  `!s f g.  (f sums s) /\ (!n. (||. (f n) <=. (g n))) /\
-       (summable g) ==>
-    (!k. (abs (s - (sum(0,k) f)) <=. (suminf (\n. (g (n +| k))))))`,
-  (* {{{ proof *)
-  [
-  REPEAT GEN_TAC;
-  DISCH_ALL_TAC;
-  GEN_TAC;
-  REWRITE_TAC[REAL_ABS_BOUNDS];
-  CONJ_TAC;
-  SUBGOAL_THEN `(!k. ((!n. (||. ((\p. (--. (f p))) (n+k))) <=. (g (n+k)))) ==> ((--.s) - (sum(0,k) (\p. (--. (f p)))) <=. (suminf (\n. (g (n +k))))))` ASSUME_TAC;
-  MATCH_MP_TAC SER_APPROX1;
-  ASM_REWRITE_TAC[];
-  MATCH_MP_TAC SER_NEG ;
-  ASM_REWRITE_TAC[];
-  MATCH_MP_TAC (REAL_ARITH (`(--. s -. (--. u) <=. x) ==> (--. x <=. (s -. u))`));
-  ONCE_REWRITE_TAC[GSYM SUM_NEG];
-  FIRST_X_ASSUM (fun th -> (MATCH_MP_TAC th));
-  BETA_TAC;
-  ASM_REWRITE_TAC[REAL_ABS_NEG];
-  H_VAL2 CONJ (HYP "0") (HYP "2");
-  IMP_RES_THEN MATCH_MP_TAC SER_APPROX1 ;
-  GEN_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-(* ------------------------------------------------------------------ *)
-(* now for pi calculation stuff *)
-(* ------------------------------------------------------------------ *)
-
-
-let local_def = local_definition "trig";;
-
-
-let PI_EST = prove_by_refinement(
-               `!n. (1 <=| n) ==> (abs(&4 / &(8 * n + 1) -
-            &2 / &(8 * n + 4) -
-            &1 / &(8 * n + 5) -
-            &1 / &(8 * n + 6)) <= &.622/(&.819))`,
-  (* {{{ proof *)
-   [
-   GEN_TAC THEN DISCH_ALL_TAC;
-   REWRITE_TAC[real_div];
-   MATCH_MP_TAC (REWRITE_RULE[real_div] (REWRITE_RULE[REAL_RAT_REDUCE_CONV `(&.4/(&.9) +(&.2/(&.12)) + (&.1/(&.13))+ (&.1/(&.14)))`] (REAL_ARITH `(abs((&.4)*.u)<=. (&.4)/(&.9)) /\ (abs((&.2)*.v)<=. (&.2)/(&.12)) /\ (abs((&.1)*w) <=. (&.1)/(&.13)) /\ (abs((&.1)*x) <=. (&.1)/(&.14)) ==> (abs((&.4)*u -(&.2)*v - (&.1)*w - (&.1)*x) <= (&.4/(&.9) +(&.2/(&.12)) + (&.1/(&.13))+ (&.1/(&.14))))`)));
-   IMP_RES_THEN ASSUME_TAC (ARITH_RULE `1 <=| n ==> (0 < n)`);
-   FIRST_X_ASSUM (fun th -> ASSUME_TAC (REWRITE_RULE[GSYM REAL_OF_NUM_LT] th));
-   ASSUME_TAC (prove(`(a<=.b) ==> (&.n*a <=. (&.n)*b)`,MESON_TAC[REAL_PROP_LE_LMUL;REAL_POS]));
-   REWRITE_TAC[REAL_ABS_MUL;REAL_ABS_INV;prove(`||.(&.n) = (&.n)`,MESON_TAC[REAL_POS;REAL_ABS_REFL])];
-   REPEAT CONJ_TAC THEN (POP_ASSUM (fun th -> MATCH_MP_TAC th)) THEN (MATCH_MP_TAC (prove(`((&.0 <. (&.n)) /\ (&.n <=. a)) ==> (inv(a)<=. (inv(&.n)))`,MESON_TAC[REAL_ABS_REFL;REAL_ABS_INV;REAL_LE_INV2]))) THEN
-   REWRITE_TAC[REAL_LT;REAL_LE] THEN (H_UNDISCH_TAC (HYP"0")) THEN
-   ARITH_TAC]);;
-  (* }}} *)
-
-let pi_fun = local_def `pi_fun n = inv (&.16 **. n) *.
-          (&.4 / &.(8 *| n +| 1) -.
-           &.2 / &.(8 *| n +| 4) -.
-           &.1 / &.(8 *| n +| 5) -.
-           &.1 / &.(8 *| n +| 6))`;;
-
-let pi_bound_fun = local_def `pi_bound_fun n = if (n=0) then (&.8) else
-    (((&.15)/(&.16))*(inv(&.16 **. n))) `;;
-
-let PI_EST2 = prove_by_refinement(
-    `!k. abs(pi_fun k) <=. (pi_bound_fun k)`,
-  (* {{{ proof *)
-   [
-   GEN_TAC;
-   REWRITE_TAC[pi_fun;pi_bound_fun];
-   COND_CASES_TAC;
-   ASM_REWRITE_TAC[];
-   CONV_TAC (NUM_REDUCE_CONV);
-   (CONV_TAC (REAL_RAT_REDUCE_CONV));
-   CONV_TAC (RAND_CONV (REWR_CONV (REAL_ARITH `a*b = b*.a`)));
-   REWRITE_TAC[REAL_ABS_MUL;REAL_ABS_INV;REAL_ABS_POW;prove(`||.(&.n) = (&.n)`,MESON_TAC[REAL_POS;REAL_ABS_REFL])];
-   MATCH_MP_TAC (prove(`!x y z. (&.0 <. z /\ (y <=. x) ==> (z*y <=. (z*x)))`,MESON_TAC[REAL_LE_LMUL_EQ]));
-   ASSUME_TAC (REWRITE_RULE[] (REAL_RAT_REDUCE_CONV `(&.622)/(&.819) <=. (&.15)/(&.16)`));
-   IMP_RES_THEN ASSUME_TAC (ARITH_RULE `~(k=0) ==> (1<=| k)`);
-   IMP_RES_THEN ASSUME_TAC (PI_EST);
-   CONJ_TAC;
-   SIMP_TAC[REAL_POW_LT;REAL_LT_INV;ARITH_RULE `&.0 < (&.16)`];
-   ASM_MESON_TAC[REAL_LE_TRANS];
-   ]);;
-  (* }}} *)
-
-let GP16 = prove_by_refinement(
-  `!k. (\n. inv (&16 pow k) * inv (&16 pow n)) sums
-         inv (&16 pow k) * &16 / &15`,
-  (* {{{ proof *)
-  [
-  GEN_TAC;
-  ASSUME_TAC (REWRITE_RULE[] (REAL_RAT_REDUCE_CONV `abs (&.1 / (&. 16)) <. (&.1)`));
-  IMP_RES_THEN (fun th -> ASSUME_TAC (CONV_RULE REAL_RAT_REDUCE_CONV th)) GP;
-  MATCH_MP_TAC SER_CMUL;
-  ASM_REWRITE_TAC[GSYM REAL_POW_INV;REAL_INV_1OVER];
-  ]);;
-  (* }}} *)
-
-let GP16a = prove_by_refinement(
-   `!k. (0<|k) ==> (\n. (pi_bound_fun (n+k))) sums (inv(&.16 **. k))`,
-  (* {{{ proof *)
-   [
-   GEN_TAC;
-   DISCH_TAC;
-   SUBGOAL_THEN `(\n. pi_bound_fun (n+k)) = (\n. ((&.15/(&.16))* (inv(&.16)**. k) *. inv(&.16 **. n)))` (fun th-> REWRITE_TAC[th]);
-   MATCH_MP_TAC EQ_EXT;
-   X_GEN_TAC `n:num` THEN BETA_TAC;
-   REWRITE_TAC[pi_bound_fun];
-   COND_CASES_TAC;
-   ASM_MESON_TAC[ARITH_RULE `0<| k ==> (~(n+k = 0))`];
-   REWRITE_TAC[GSYM REAL_MUL_ASSOC];
-   AP_TERM_TAC;
-   REWRITE_TAC[REAL_INV_MUL;REAL_POW_ADD;REAL_POW_INV;REAL_MUL_AC];
-   SUBGOAL_THEN `(\n. (&.15/(&.16)) *. ((inv(&.16)**. k)*. inv(&.16 **. n))) sums ((&.15/(&.16)) *.(inv(&.16**. k)*. ((&.16)/(&.15))))` ASSUME_TAC;
-   MATCH_MP_TAC SER_CMUL;
-   REWRITE_TAC[REAL_POW_INV];
-   ACCEPT_TAC (SPEC `k:num` GP16);
-   FIRST_X_ASSUM MP_TAC;
-   REWRITE_TAC[REAL_MUL_ASSOC];
-   MATCH_MP_TAC (prove (`(x=y) ==> ((a sums x) ==> (a sums y))`,MESON_TAC[]));
-   MATCH_MP_TAC (REAL_ARITH `(b*(a*c) = (b*(&.1))) ==> ((a*b)*c = b)`);
-   AP_TERM_TAC;
-   CONV_TAC (REAL_RAT_REDUCE_CONV);
-   ]);;
-  (* }}} *)
-
-let PI_SER = prove_by_refinement(
-  `!k. (0<|k) ==> (abs(pi - (sum(0,k) pi_fun)) <=. (inv(&.16 **. (k))))`,
-  (* {{{ proof *)
-   [
-   GEN_TAC THEN DISCH_TAC;
-   ASSUME_TAC (ONCE_REWRITE_RULE[ETA_AX] (REWRITE_RULE[GSYM pi_fun] POLYLOG_THM));
-   ASSUME_TAC PI_EST2;
-   IMP_RES_THEN (ASSUME_TAC) GP16a;
-   IMP_RES_THEN (ASSUME_TAC) SUM_SUMMABLE;
-   IMP_RES_THEN (ASSUME_TAC) SER_OFFSET_REV;
-   IMP_RES_THEN (ASSUME_TAC) SUM_SUMMABLE;
-   MP_TAC (SPECL [`pi`;`pi_fun`;`pi_bound_fun` ] SER_APPROX);
-   ASM_REWRITE_TAC[];
-   DISCH_THEN (fun th -> MP_TAC (SPEC `k:num` th));
-   SUBGOAL_THEN `suminf (\n. pi_bound_fun (n + k)) = inv (&.16 **. k)` (fun th -> (MESON_TAC[th]));
-   ASM_MESON_TAC[SUM_UNIQ];
-   ]);;
-  (* }}} *)
-
-(* replace 3 by SUC (SUC (SUC 0)) *)
-let SUC_EXPAND_CONV tm =
-   let count = dest_numeral tm in
-   let rec add_suc i r =
-     if (i <=/ (Int 0)) then r
-     else add_suc (i -/ (Int 1)) (mk_comb (`SUC`,r)) in
-   let tm' = add_suc count `0` in
-   REWRITE_RULE[] (ARITH_REWRITE_CONV[] (mk_eq (tm,tm')));;
-
-let inv_twopow = prove(
-  `!n. inv (&.16 **. n) = (twopow (--: (&:(4*n)))) `,
-    REWRITE_TAC[TWOPOW_NEG;GSYM (NUM_RED_CONV `2 EXP 4`);
-    REAL_OF_NUM_POW;EXP_MULT]);;
-
-let PI_SERn n =
-   let SUM_EXPAND_CONV =
-           (ARITH_REWRITE_CONV[]) THENC
-           (TOP_DEPTH_CONV SUC_EXPAND_CONV) THENC
-           (REWRITE_CONV[sum]) THENC
-           (ARITH_REWRITE_CONV[REAL_ADD_LID;GSYM REAL_ADD_ASSOC]) in
-   let sum_thm = SUM_EXPAND_CONV (vsubst [n,`i:num`] `sum(0,i) f`) in
-   let gt_thm = ARITH_RULE (vsubst [n,`i:num`] `0 <| i`) in
-   ((* CONV_RULE REAL_RAT_REDUCE_CONV *)(CONV_RULE (ARITH_REWRITE_CONV[]) (BETA_RULE (REWRITE_RULE[sum_thm;pi_fun;inv_twopow] (MATCH_MP PI_SER gt_thm)))));;
-
-(* abs(pi - u ) < e *)
-let recompute_pi bprec =
-   let n = (bprec /4) in
-   let pi_ser = PI_SERn (mk_numeral (Int n)) in
-   let _ = remove_real_constant `pi` in
-   (add_real_constant pi_ser; INTERVAL_OF_TERM bprec `pi`);;
-
-(* ------------------------------------------------------------------ *)
-(* restore defaults *)
-(* ------------------------------------------------------------------ *)
-
-reduce_local_interface("trig");;
+(* reduce_local_interface("trig");; *)
 pop_priority();;
 
-
-
-
-
-
-
+end;;

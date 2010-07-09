@@ -24,8 +24,9 @@ loadt "Jordan/num_ext_nabs.ml";;   (* OK *)
 loadt "Jordan/real_ext_geom_series.ml";; (* OK *)
 loadt "Rqe/num_calc_simp.ml";;  (* OK *)
 loadt "Jordan/real_ext.ml";;  (* OK *)
-loadt "Jordan/float.ml";;
-loadt "Jordan/tactics_ext2.ml";;
-loadt "Jordan/misc_defs_and_lemmas.ml";;
+loadt "Jordan/float.ml";; (* OK *)
+loadt "Jordan/tactics_ext2.ml";; (* OK *)
+loadt "Jordan/misc_defs_and_lemmas.ml";; (*OK *)
+loadt "Jordan/compute_pi.ml";;
 loadt "Jordan/metric_spaces.ml";;
 loadt "Jordan/jordan_curve_theorem.ml";;

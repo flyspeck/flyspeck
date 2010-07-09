@@ -41,10 +41,12 @@ let LABEL_ALL_TAC:tactic =
 (* global_var *)
 let (EVERY_STEP_TAC:tactic ref) = ref ALL_TAC;;
 
+let enhance tac =
+  if !labels_flag then (tac THEN (!EVERY_STEP_TAC)) THEN LABEL_ALL_TAC
+   else tac;;
+
 let (e:tactic ->goalstack) =  
-   fun tac -> refine(by(VALID 
-   (if !labels_flag then (tac THEN (!EVERY_STEP_TAC)) THEN LABEL_ALL_TAC
-   else tac)));;
+   fun tac -> refine(by(VALID (enhance tac)));;
 
 let has_stv t = 
   let typ = (type_vars_in_term t) in
@@ -57,9 +59,7 @@ let prove_by_refinement(t,(tacl:tactic list)) =
     then failwith "prove_by_refinement: has stv" else
   let gstate = mk_goalstate ([],t) in
   let _,sgs,just = rev_itlist 
-    (fun tac gs -> by 
-       (if !labels_flag then (tac THEN 
-         (!EVERY_STEP_TAC) THEN LABEL_ALL_TAC ) else tac) gs)
+    (fun tac gs -> by  (enhance tac) gs)
      tacl gstate in
   let th = if sgs = [] then just null_inst []
   else failwith "BY_REFINEMENT_PROOF: Unsolved goals" in
@@ -94,10 +94,6 @@ let load_thm file_name =
 (* PROOFS STORED.  *)
 (* ------------------------------------------------------------------ *)
 
-(*
-let old_prove = prove;;
-let old_prove_by_refinement = prove_by_refinement;;
-*)
 
 let fast_load  = ref true;;
 

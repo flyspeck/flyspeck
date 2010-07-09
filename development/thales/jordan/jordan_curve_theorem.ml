@@ -117,7 +117,7 @@ let inters_inter = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `{X,Y} Y` SUBGOAL_TAC;
+  TYPE_THEN `{X,Y} Y` SUBGOAL_MP_TAC;
   REWRITE_TAC[INSERT ];
   DISCH_TAC;
   USE 0 (MATCH_MP delete_inters);
@@ -139,7 +139,7 @@ let unions_delete_choice = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `A (CHOICE A)` SUBGOAL_TAC;
+  TYPE_THEN `A (CHOICE A)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (INR CHOICE_DEF  );
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
@@ -158,7 +158,7 @@ let image_delete_choice = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[INSERT ];
-  TYPE_THEN `A (CHOICE A)` SUBGOAL_TAC;
+  TYPE_THEN `A (CHOICE A)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (INR CHOICE_DEF  );
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
@@ -226,7 +226,7 @@ let closure_univ = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   REWRITE_TAC[closure;closed];
-  TYPE_THEN `{B | (B SUBSET UNIONS U /\ open_ U (UNIONS U DIFF B)) /\ X SUBSET B} = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `{B | (B SUBSET UNIONS U /\ open_ U (UNIONS U DIFF B)) /\ X SUBSET B} = EMPTY ` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 1 (REWRITE_RULE[EMPTY_EXISTS ]);
   CHO 1;
@@ -266,7 +266,7 @@ let closure_open_ball = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `topology_ (top_of_metric(X,d)) /\ (Z SUBSET (UNIONS (top_of_metric (X,d))))` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (top_of_metric(X,d)) /\ (Z SUBSET (UNIONS (top_of_metric (X,d))))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[top_of_metric_top;GSYM top_of_metric_unions];
   DISCH_TAC;
   USE 2 (MATCH_MP closure_open);
@@ -347,7 +347,7 @@ let closed_union = prove_by_refinement(
   REWRITE_TAC[closed;open_DEF;union_subset  ];
   DISCH_ALL_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `UNIONS U DIFF (A UNION B) = (UNIONS U DIFF A) INTER  (UNIONS U DIFF B)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U DIFF (A UNION B) = (UNIONS U DIFF A) INTER  (UNIONS U DIFF B)` SUBGOAL_MP_TAC;
   REWRITE_TAC[DIFF;UNION;IN;INTER;IN_ELIM_THM'];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM'];
@@ -562,7 +562,7 @@ let open_half_space_convex = prove_by_refinement(
   ASM_REWRITE_TAC[];
   KILL 7;
   ASM_SIMP_TAC[euclid_add_closure;euclid_scale_closure;];
-  TYPE_THEN `dot v (euclid_plus (a *# x) ((&1 - a) *# y)) = a * (dot v x) + (&1 - a)* (dot v y)` SUBGOAL_TAC;
+  TYPE_THEN `dot v (euclid_plus (a *# x) ((&1 - a) *# y)) = a * (dot v x) + (&1 - a)* (dot v y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[euclid_add_closure;euclid_scale_closure;dot_linear2;dot_scale2 ];
   DISCH_THEN (fun t -> REWRITE_TAC[t]);
   ASM_CASES_TAC `&.0 = a`;
@@ -597,7 +597,7 @@ let closed_half_space_convex = prove_by_refinement(
   ASM_REWRITE_TAC[];
   KILL 7;
   ASM_SIMP_TAC[euclid_add_closure;euclid_scale_closure;];
-  TYPE_THEN `dot v (euclid_plus (a *# x) ((&1 - a) *# y)) = a * (dot v x) + (&1 - a)* (dot v y)` SUBGOAL_TAC;
+  TYPE_THEN `dot v (euclid_plus (a *# x) ((&1 - a) *# y)) = a * (dot v x) + (&1 - a)* (dot v y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[euclid_add_closure;euclid_scale_closure;dot_linear2;dot_scale2 ];
   DISCH_THEN (fun t -> REWRITE_TAC[t]);
   GEN_REWRITE_TAC (RAND_CONV)[REAL_ARITH `b = a * b + ((&.1)* b - a* b)`];
@@ -638,7 +638,7 @@ let open_half_space_open = prove_by_refinement(
   ASM_REWRITE_TAC[dot_lzero];
   MESON_TAC[];
   TYPE_THEN `(b - (dot v a))/(norm v)` EXISTS_TAC;
-  TYPE_THEN `&.0 < (norm v)` SUBGOAL_TAC;
+  TYPE_THEN `&.0 < (norm v)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `&0 <= x /\ (~(x = &.0)) ==> (&.0 < x)`);
   ASM_MESON_TAC[norm;norm_nonneg;dot_nonneg;SQRT_EQ_0;dot_zero];
   DISCH_ALL_TAC;
@@ -649,13 +649,13 @@ let open_half_space_open = prove_by_refinement(
   DISCH_ALL_TAC;
   DISCH_ALL_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(x:num->real) = a + (x - a)` SUBGOAL_TAC;
+  TYPE_THEN `(x:num->real) = a + (x - a)` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_plus;euclid_minus];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC THEN BETA_TAC;
   REAL_ARITH_TAC;
   DISCH_THEN (fun t -> ONCE_REWRITE_TAC[t]);
-  TYPE_THEN `dot v (a + (x - a)) = (dot v a) + (dot v (x-a))` SUBGOAL_TAC;
+  TYPE_THEN `dot v (a + (x - a)) = (dot v a) + (dot v (x-a))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  dot_linear2;
   TYPE_THEN `n` EXISTS_TAC;
   ASM_SIMP_TAC[euclid_sub_closure];
@@ -730,12 +730,12 @@ let closure_half_space = prove_by_refinement(
   TYPE_THEN `t = ((r/(&.2))/(norm v ))` ABBREV_TAC;
   TYPE_THEN `u = x - (t)*# v` ABBREV_TAC;
   TYPE_THEN `u` EXISTS_TAC;
-  TYPE_THEN `&.0 < (dot v v)` SUBGOAL_TAC;
+  TYPE_THEN `&.0 < (dot v v)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~(x = &.0) /\ (&.0 <=. x) ==> (&.0 < x)`);
   REWRITE_TAC[dot_nonneg];
   ASM_MESON_TAC[euclidean;dot_zero_euclidean ];
   DISCH_TAC;
-  TYPE_THEN `&.0 < t` SUBGOAL_TAC;
+  TYPE_THEN `&.0 < t` SUBGOAL_MP_TAC;
   EXPAND_TAC "t";
   IMATCH_MP_TAC  REAL_LT_DIV;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
@@ -746,7 +746,7 @@ let closure_half_space = prove_by_refinement(
   SUBCONJ_TAC;
   CONJ_TAC;
   ASM_MESON_TAC[euclid_sub_closure ;euclid_scale_closure ];
-  TYPE_THEN `dot v u = (dot v x - t* (dot v v))` SUBGOAL_TAC;
+  TYPE_THEN `dot v u = (dot v x - t* (dot v v))` SUBGOAL_MP_TAC;
   EXPAND_TAC "u";
   ASM_MESON_TAC[dot_minus_linear2;dot_scale2;euclid_sub_closure;euclid_scale_closure];
   DISCH_THEN (fun t->REWRITE_TAC[t]);
@@ -758,17 +758,17 @@ let closure_half_space = prove_by_refinement(
   ASM_REWRITE_TAC[open_ball;IN_ELIM_THM' ];
   EXPAND_TAC "u";
   REWRITE_TAC[d_euclid];
-  TYPE_THEN `euclid_minus x (euclid_minus x (t *# v)) = ( t) *# v` SUBGOAL_TAC;
+  TYPE_THEN `euclid_minus x (euclid_minus x (t *# v)) = ( t) *# v` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_minus;euclid_scale];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC THEN BETA_TAC;
   REAL_ARITH_TAC ;
   DISCH_THEN (fun t-> REWRITE_TAC[t]);
-  TYPE_THEN `norm (t *# v) = t * norm v` SUBGOAL_TAC;
+  TYPE_THEN `norm (t *# v) = t * norm v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[euclidean;norm_scale2;ABS_REFL;REAL_ARITH `&.0 < t ==> &.0 <= t`];
   DISCH_THEN (fun t -> REWRITE_TAC[t]);
   EXPAND_TAC "t";
-  TYPE_THEN `((r / &2) / norm v) * norm v = r/(&.2)` SUBGOAL_TAC;
+  TYPE_THEN `((r / &2) / norm v) * norm v = r/(&.2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_DIV_RMUL;
   REWRITE_TAC[norm];
   ASM_MESON_TAC[SQRT_POS_LT;REAL_ARITH `&.0 < x ==> ~(x = &.0)`];
@@ -797,7 +797,7 @@ let subset_of_closure = prove_by_refinement(
   ASM_MESON_TAC [closure_closed;];
   USE 3 (MATCH_MP closure_univ);
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(B SUBSET UNIONS U)` SUBGOAL_TAC;
+  TYPE_THEN `~(B SUBSET UNIONS U)` SUBGOAL_MP_TAC;
   UND 2;
   UND 1;
   REWRITE_TAC[ISUBSET];
@@ -823,7 +823,7 @@ let closure_union = prove_by_refinement(
   CONJ_TAC;
   ASM_MESON_TAC[closed_union; closure_closed];
   REWRITE_TAC[union_subset];
-  TYPE_THEN `(A SUBSET closure U A) /\ (B SUBSET closure U B)` SUBGOAL_TAC;
+  TYPE_THEN `(A SUBSET closure U A) /\ (B SUBSET closure U B)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[subset_closure];
   REWRITE_TAC[UNION;ISUBSET ];
   ASM_MESON_TAC[];
@@ -860,13 +860,13 @@ let closure_unions = prove_by_refinement(
   TYPE_THEN `n` (fun t-> SPEC_TAC (t,t));
   INDUCT_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `A HAS_SIZE 0` SUBGOAL_TAC;
+  TYPE_THEN `A HAS_SIZE 0` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[HAS_SIZE];
   ASM_REWRITE_TAC[HAS_SIZE_0];
   DISCH_THEN_REWRITE;
   ASM_SIMP_TAC [closure_empty;IMAGE_CLAUSES];
   DISCH_ALL_TAC;
-  TYPE_THEN `~(A HAS_SIZE 0)` SUBGOAL_TAC;
+  TYPE_THEN `~(A HAS_SIZE 0)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[HAS_SIZE];
   ARITH_TAC;
   TYPE_THEN `A` (MP_TAC o ((C ISPEC)  CARD_DELETE_CHOICE));
@@ -877,15 +877,15 @@ let closure_unions = prove_by_refinement(
   TYPE_THEN `(A DELETE CHOICE A)` (USE 0 o ISPEC);
   USE 0 (REWRITE_RULE[FINITE_DELETE]);
   REWR 0;
-  TYPE_THEN `A (CHOICE A)` SUBGOAL_TAC;
+  TYPE_THEN `A (CHOICE A)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (INR CHOICE_DEF);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `UNIONS A = (UNIONS (A DELETE CHOICE A)) UNION (CHOICE A)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS A = (UNIONS (A DELETE CHOICE A)) UNION (CHOICE A)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  unions_delete_choice;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(IMAGE  (closure U) A) = (IMAGE (closure U) (A DELETE CHOICE A) UNION {(closure U (CHOICE A))})` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE  (closure U) A) = (IMAGE (closure U) (A DELETE CHOICE A) UNION {(closure U (CHOICE A))})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_delete_choice ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -937,7 +937,7 @@ let euclid_segment = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   TYPE_THEN `t = &.1/(&.2)` ABBREV_TAC;
-  TYPE_THEN `y = ((&.2) *# ((t *# x) + (&.1 - t)*# y)) - x` SUBGOAL_TAC;
+  TYPE_THEN `y = ((&.2) *# ((t *# x) + (&.1 - t)*# y)) - x` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_minus;euclid_scale;euclid_plus];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC THEN BETA_TAC ;
@@ -950,7 +950,7 @@ let euclid_segment = prove_by_refinement(
   TYPE_THEN `t` (USE 1 o SPEC);
   TYPE_THEN `v = (euclid_plus (t *# x) ((&1 - t) *# y))` ABBREV_TAC;
   KILL 3;
-  TYPE_THEN `&0 < t /\ t <= &1` SUBGOAL_TAC;
+  TYPE_THEN `&0 < t /\ t <= &1` SUBGOAL_MP_TAC;
   EXPAND_TAC "t";
   CONJ_TAC ;
   IMATCH_MP_TAC  REAL_LT_DIV;
@@ -972,19 +972,19 @@ let euclid_xy = prove_by_refinement(
   DISCH_ALL_TAC;
   TYPE_THEN `u = (&.1/(&.3))*# x + (&.1 - (&.1/(&.3))) *# y` ABBREV_TAC;
   TYPE_THEN `v = (&.2/(&.3))*# x + (&.1 - (&.2/(&.3))) *# y` ABBREV_TAC;
-  TYPE_THEN `euclid n u` SUBGOAL_TAC;
+  TYPE_THEN `euclid n u` SUBGOAL_MP_TAC;
   EXPAND_TAC "u";
   UND 0;
   DISCH_THEN IMATCH_MP_TAC ;
   CONV_TAC REAL_RAT_REDUCE_CONV;
   DISCH_TAC;
-  TYPE_THEN `euclid n v` SUBGOAL_TAC;
+  TYPE_THEN `euclid n v` SUBGOAL_MP_TAC;
   EXPAND_TAC "v";
   UND 0;
   DISCH_THEN IMATCH_MP_TAC ;
   CONV_TAC REAL_RAT_REDUCE_CONV;
   DISCH_TAC;
-  TYPE_THEN `x = (&.2)*# v - (&.1) *# u` SUBGOAL_TAC;
+  TYPE_THEN `x = (&.2)*# v - (&.1) *# u` SUBGOAL_MP_TAC;
   EXPAND_TAC "u";
   EXPAND_TAC "v";
   REWRITE_TAC[euclid_minus;euclid_plus;euclid_scale];
@@ -996,7 +996,7 @@ let euclid_xy = prove_by_refinement(
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ASM_SIMP_TAC[euclid_scale_closure;euclid_sub_closure];
-  TYPE_THEN `y = (&.2)*# u - (&.1) *# v` SUBGOAL_TAC;
+  TYPE_THEN `y = (&.2)*# u - (&.1) *# v` SUBGOAL_MP_TAC;
   EXPAND_TAC "u";
   EXPAND_TAC "v";
   REWRITE_TAC[euclid_minus;euclid_plus;euclid_scale];
@@ -1020,17 +1020,17 @@ let closure_segment = prove_by_refinement(
 
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `euclid n x /\ (euclid n y)` SUBGOAL_TAC;
+  TYPE_THEN `euclid n x /\ (euclid n y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  euclid_xy;
   ASM_MESON_TAC[ISUBSET];
   DISCH_ALL_TAC;
   (* case x=y *)
   TYPE_THEN `x = y` ASM_CASES_TAC ;
-  TYPE_THEN `C SUBSET (closure (top_of_metric (euclid n,d_euclid)) C)` SUBGOAL_TAC ;
+  TYPE_THEN `C SUBSET (closure (top_of_metric (euclid n,d_euclid)) C)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  subset_closure;
   ASM_SIMP_TAC [top_of_metric_top;metric_euclid];
   REWRITE_TAC[ISUBSET];
-  TYPE_THEN `C x` SUBGOAL_TAC;
+  TYPE_THEN `C x` SUBGOAL_MP_TAC;
   REWR 1;
   USE 1 (REWRITE_RULE[trivial_lin_combo]);
   TSPEC `&.1/(&.2)` 1;
@@ -1038,14 +1038,14 @@ let closure_segment = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
   (* now ~(x=y) *)
-  TYPE_THEN `&.0 < d_euclid x y` SUBGOAL_TAC;
+  TYPE_THEN `&.0 < d_euclid x y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[d_euclid_pos2];
   DISCH_TAC;
   ASM_SIMP_TAC[GSYM closure_open_ball;metric_euclid];
   DISCH_ALL_TAC;
   REWRITE_TAC[open_ball];
   (* ## *)
-  TYPE_THEN `?t. (&.0 <. t) /\ (t <. &.1) /\ (t *. (d_euclid x y) <. r)` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&.0 <. t) /\ (t <. &.1) /\ (t *. (d_euclid x y) <. r)` SUBGOAL_MP_TAC;
   TYPE_THEN  `(&.1/(&.2))*. d_euclid x y < r` ASM_CASES_TAC;
   TYPE_THEN `(&.1/(&.2))` EXISTS_TAC;
   CONV_TAC (REAL_RAT_REDUCE_CONV);
@@ -1069,17 +1069,17 @@ let closure_segment = prove_by_refinement(
   EXPAND_TAC "z";
   ASM_SIMP_TAC[euclid_add_closure;euclid_scale_closure];
   DISCH_TAC;
-  TYPE_THEN `y = (t *# y) + ((&.1 - t)*# y)` SUBGOAL_TAC;
+  TYPE_THEN `y = (t *# y) + ((&.1 - t)*# y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[trivial_lin_combo];
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC [t]);
   EXPAND_TAC "z";
-  TYPE_THEN `euclid n (t*# y) /\  (euclid n (t *# x)) /\ (euclid n ((&.1-t)*# y))` SUBGOAL_TAC;
+  TYPE_THEN `euclid n (t*# y) /\  (euclid n (t *# x)) /\ (euclid n ((&.1-t)*# y))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[euclid_add_closure;euclid_scale_closure];
   DISCH_TAC;
   USE 10 (MATCH_MP metric_translate);
   KILL 8;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d_euclid (t *# y) (t *# x) = d_euclid (t *# x) (t *# y)` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (t *# y) (t *# x) = d_euclid (t *# x) (t *# y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [ISPEC `euclid n` metric_space_symm; euclid_scale_closure;metric_euclid];
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC [t]);
   JOIN 2 3;
@@ -1253,7 +1253,7 @@ let point_closure = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `euclid 2 (a *# (point p) + (b *# (point q)))` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 (a *# (point p) + (b *# (point q)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC euclid_add_closure;
   CONJ_TAC THEN (IMATCH_MP_TAC  euclid_scale_closure) THEN REWRITE_TAC [euclid_point];
   MESON_TAC[point_onto];
@@ -1367,7 +1367,7 @@ let floor_int = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `floor (real_of_int m) <=: m /\ (m <: (floor (real_of_int m)) + (&:1))` SUBGOAL_TAC;
+  TYPE_THEN `floor (real_of_int m) <=: m /\ (m <: (floor (real_of_int m)) + (&:1))` SUBGOAL_MP_TAC;
   REWRITE_TAC[int_le;int_lt;int_add_th ;int_of_num_th;floor_ineq  ];
   REWRITE_TAC[int_arch ];
   ]);;
@@ -1440,7 +1440,7 @@ let floor_level = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  SUBGOAL_TAC  `!a b. (b <=: a /\ ~(b <: a)) ==> (a = b)`;
+  SUBGOAL_MP_TAC  `!a b. (b <=: a /\ ~(b <: a)) ==> (a = b)`;
   REWRITE_TAC[int_le;int_lt;int_eq];
   REAL_ARITH_TAC;
   DISCH_THEN IMATCH_MP_TAC ;
@@ -1583,7 +1583,7 @@ let h_edge_disj = prove_by_refinement(
   DISCH_THEN (fun t -> REWRITE_TAC[t;int_add_th ;int_of_num_th;]);
   NAME_CONFLICT_TAC;
   LEFT_TAC "u'";
-  TYPE_THEN `?x. (&.0 < x ) /\ (x < &.1)` SUBGOAL_TAC;
+  TYPE_THEN `?x. (&.0 < x ) /\ (x < &.1)` SUBGOAL_MP_TAC;
   TYPE_THEN `&.1/(&.2)` EXISTS_TAC;
   IMATCH_MP_TAC  half_pos;
   ARITH_TAC;
@@ -1695,7 +1695,7 @@ let v_edge_disj = prove_by_refinement(
   DISCH_THEN (fun t -> REWRITE_TAC[t;int_add_th ;int_of_num_th;]);
   NAME_CONFLICT_TAC;
   LEFT_TAC "u'";
-  TYPE_THEN `?x. (&.0 < x ) /\ (x < &.1)` SUBGOAL_TAC;
+  TYPE_THEN `?x. (&.0 < x ) /\ (x < &.1)` SUBGOAL_MP_TAC;
   TYPE_THEN `&.1/(&.2)` EXISTS_TAC;
   IMATCH_MP_TAC  half_pos;
   ARITH_TAC;
@@ -1753,7 +1753,7 @@ let hv_edge = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `h_edge p INTER v_edge q SUBSET (row (SND p)) INTER (col (FST q))` SUBGOAL_TAC;
+  TYPE_THEN `h_edge p INTER v_edge q SUBSET (row (SND p)) INTER (col (FST q))` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_INTER;];
   MESON_TAC[h_edge_row;v_edge_col;SUB_IMP_INTER ];
   REWRITE_TAC[row_col];
@@ -1853,7 +1853,7 @@ let square_v_edge = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_GEN_TAC;
-  TYPE_THEN `squ p INTER v_edge q SUBSET squ p INTER col (FST q)` SUBGOAL_TAC;
+  TYPE_THEN `squ p INTER v_edge q SUBSET squ p INTER col (FST q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_INTER];
   MESON_TAC[SUB_IMP_INTER;v_edge_col;SUBSET_REFL];
   REWRITE_TAC[square_col;SUBSET_EMPTY ];
@@ -1865,7 +1865,7 @@ let square_h_edge = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_GEN_TAC;
-  TYPE_THEN `squ p INTER h_edge q SUBSET squ p INTER row (SND  q)` SUBGOAL_TAC;
+  TYPE_THEN `squ p INTER h_edge q SUBSET squ p INTER row (SND  q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_INTER];
   MESON_TAC[SUB_IMP_INTER;h_edge_row;SUBSET_REFL];
   REWRITE_TAC[square_row;SUBSET_EMPTY ];
@@ -1936,7 +1936,7 @@ let square_square = prove_by_refinement(
   DISCH_ALL_TAC;
   REP_GEN_TAC;
   DISCH_THEN CHOOSE_TAC;
-  TYPE_THEN `p = q` SUBGOAL_TAC;
+  TYPE_THEN `p = q` SUBGOAL_MP_TAC;
   ONCE_REWRITE_TAC [GSYM PAIR];
   REWRITE_TAC[PAIR_EQ];
   ASM_MESON_TAC[];
@@ -2120,7 +2120,7 @@ let dot_point = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `dot (point p) (point q) = sum (0,2) (\i. (point p i)*(point q i))` SUBGOAL_TAC;
+  TYPE_THEN `dot (point p) (point q) = sum (0,2) (\i. (point p i)*(point q i))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC dot_euclid;
   ASM_SIMP_TAC[euclid_point];
   DISCH_THEN_REWRITE;
@@ -2595,7 +2595,7 @@ let closure_FLT = prove_by_refinement(
   [
   GEN_TAC;
   REWRITE_TAC[open_half_plane2D_FLT;closed_half_plane2D_FLE;top2];
-  TYPE_THEN `~(point(&.1,&.0) = euclid0)` SUBGOAL_TAC;
+  TYPE_THEN `~(point(&.1,&.0) = euclid0)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 0(REWRITE_RULE[]);
   USE 0  (fun t -> AP_THM t `0`);
@@ -2614,7 +2614,7 @@ let closure_LTF = prove_by_refinement(
   [
   GEN_TAC;
   REWRITE_TAC[open_half_plane2D_LTF;closed_half_plane2D_LEF;top2];
-  TYPE_THEN `~(point(--. (&.1),&.0) = euclid0)` SUBGOAL_TAC;
+  TYPE_THEN `~(point(--. (&.1),&.0) = euclid0)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 0(REWRITE_RULE[]);
   USE 0  (fun t -> AP_THM t `0`);
@@ -2633,7 +2633,7 @@ let closure_SLT = prove_by_refinement(
   [
   GEN_TAC;
   REWRITE_TAC[open_half_plane2D_SLT;closed_half_plane2D_SLE;top2];
-  TYPE_THEN `~(point(&.0,&.1) = euclid0)` SUBGOAL_TAC;
+  TYPE_THEN `~(point(&.0,&.1) = euclid0)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 0(REWRITE_RULE[]);
   USE 0  (fun t -> AP_THM t `1`);
@@ -2652,7 +2652,7 @@ let closure_LTS = prove_by_refinement(
   [
   GEN_TAC;
   REWRITE_TAC[open_half_plane2D_LTS;closed_half_plane2D_LES;top2];
-  TYPE_THEN `~(point(&.0, --. (&.1)) = euclid0)` SUBGOAL_TAC;
+  TYPE_THEN `~(point(&.0, --. (&.1)) = euclid0)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 0(REWRITE_RULE[]);
   USE 0  (fun t -> AP_THM t `1`);
@@ -2853,7 +2853,7 @@ let h_edge_closure = prove_by_refinement(
   IMATCH_MP_TAC  subset_closure;
   REWRITE_TAC[top2_top];
   REWRITE_TAC[top2];
-  SUBGOAL_TAC `!t u. t*u +. (&.1- t)*u = u` ;
+  SUBGOAL_MP_TAC `!t u. t*u +. (&.1- t)*u = u` ;
   REWRITE_TAC[GSYM REAL_RDISTRIB];
   REAL_ARITH_TAC;
   DISCH_TAC;
@@ -3049,7 +3049,7 @@ let v_edge_closure = prove_by_refinement(
   IMATCH_MP_TAC  subset_closure;
   REWRITE_TAC[top2_top];
   REWRITE_TAC[top2];
-  SUBGOAL_TAC `!t u. t*u +. (&.1- t)*u = u` ;
+  SUBGOAL_MP_TAC `!t u. t*u +. (&.1- t)*u = u` ;
   REWRITE_TAC[GSYM REAL_RDISTRIB];
   REAL_ARITH_TAC;
   DISCH_TAC;
@@ -3259,7 +3259,7 @@ let finite_set_lower = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `INJ h_edge (set_lower G n) G` SUBGOAL_TAC;
+  TYPE_THEN `INJ h_edge (set_lower G n) G` SUBGOAL_MP_TAC;
   REWRITE_TAC[INJ;set_lower;h_edge_inj];
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -3353,7 +3353,7 @@ let CARD_SUC_DELETE = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `s = (x INSERT (s DELETE x))` SUBGOAL_TAC;
+  TYPE_THEN `s = (x INSERT (s DELETE x))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[INR INSERT_DELETE];
   USE 0 (ONCE_REWRITE_RULE[GSYM FINITE_DELETE]);
   TYPE_THEN `b = s DELETE x`  ABBREV_TAC ;
@@ -3427,7 +3427,7 @@ let has_size2 = prove_by_refinement(
   EQ_TAC;
   REWRITE_TAC[HAS_SIZE];
   DISCH_ALL_TAC;
-  TYPE_THEN `~(u = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(u = EMPTY)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   REWR 2;
   REWR 1;
@@ -3439,12 +3439,12 @@ let has_size2 = prove_by_refinement(
   COPY 2;
   JOIN 0 2;
   USE 0 (MATCH_MP CARD_DELETE_CHOICE);
-  TYPE_THEN `CARD (u DELETE CHOICE u) = 1` SUBGOAL_TAC;
+  TYPE_THEN `CARD (u DELETE CHOICE u) = 1` SUBGOAL_MP_TAC;
   ONCE_REWRITE_TAC [GSYM SUC_INJ];
   ASM_REWRITE_TAC[];
   ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `u DELETE CHOICE u HAS_SIZE 1` SUBGOAL_TAC;
+  TYPE_THEN `u DELETE CHOICE u HAS_SIZE 1` SUBGOAL_MP_TAC;
   REWRITE_TAC[HAS_SIZE];
   ASM_REWRITE_TAC[FINITE_DELETE];
   DISCH_TAC;
@@ -3457,11 +3457,11 @@ let has_size2 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   USE 4 (MATCH_MP CHOICE_DEF);
   ASM_SIMP_TAC[INSERT_DELETE];
-  TYPE_THEN `(u DELETE (CHOICE u)) x` SUBGOAL_TAC;
+  TYPE_THEN `(u DELETE (CHOICE u)) x` SUBGOAL_MP_TAC;
   USE 5 (SYM);
   ASM_REWRITE_TAC[INR IN_SING ];
   DISCH_TAC;
-  TYPE_THEN `~((u DELETE CHOICE u) (CHOICE u))` SUBGOAL_TAC;
+  TYPE_THEN `~((u DELETE CHOICE u) (CHOICE u))` SUBGOAL_MP_TAC;
   REWRITE_TAC[INR IN_DELETE];
   ASM_MESON_TAC[];
   DISCH_ALL_TAC;
@@ -3652,7 +3652,7 @@ let endpoint_edge = prove_by_refinement(
   [
   REWRITE_TAC[endpoint;];
   DISCH_ALL_TAC;
-  TYPE_THEN `{C | G C /\ closure top2 C (pointI m)} HAS_SIZE 1` SUBGOAL_TAC;
+  TYPE_THEN `{C | G C /\ closure top2 C (pointI m)} HAS_SIZE 1` SUBGOAL_MP_TAC;
   UND 1;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   IMATCH_MP_TAC  num_closure_size;
@@ -3699,7 +3699,7 @@ let two_endpoint = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[INR IN_SING ;];
-  TYPE_THEN `euclid_plus (pointI m) e2 = pointI (FST m,SND m +: (&:1))` SUBGOAL_TAC ;
+  TYPE_THEN `euclid_plus (pointI m) e2 = pointI (FST m,SND m +: (&:1))` SUBGOAL_MP_TAC ;
   REWRITE_TAC[pointI;e2;point_add;int_suc ];
   REDUCE_TAC;
   DISCH_THEN_REWRITE;
@@ -3717,7 +3717,7 @@ let two_endpoint = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[INR IN_SING ;];
-  TYPE_THEN `euclid_plus (pointI m) e1 = pointI (FST m +: (&:1),SND m )` SUBGOAL_TAC ;
+  TYPE_THEN `euclid_plus (pointI m) e1 = pointI (FST m +: (&:1),SND m )` SUBGOAL_MP_TAC ;
   REWRITE_TAC[pointI;e1;point_add;int_suc ];
   REDUCE_TAC;
   DISCH_THEN_REWRITE;
@@ -3738,7 +3738,7 @@ let edge_midend = prove_by_refinement(
   DISCH_ALL_TAC;
   TSPEC `m` 3;
   USE 3 (REWRITE_RULE[INSERT]);
-  TYPE_THEN `~(num_closure G (pointI m) = 0)` SUBGOAL_TAC;
+  TYPE_THEN `~(num_closure G (pointI m) = 0)` SUBGOAL_MP_TAC;
   USE 0 (MATCH_MP num_closure_size);
   TSPEC `pointI m` 0;
   PROOF_BY_CONTR_TAC;
@@ -3783,7 +3783,7 @@ let inter_lattice = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `euclid 2 x` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x` SUBGOAL_MP_TAC;
   USE 3 (REWRITE_RULE[INTER]);
   AND 3;
   USE 0 (MATCH_MP c_edge_euclid);
@@ -3874,10 +3874,10 @@ let midpoint_unique = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `convex (closure top2 e INTER closure top2 e')` SUBGOAL_TAC;
+  TYPE_THEN `convex (closure top2 e INTER closure top2 e')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  convex_inter ;
   ASM_MESON_TAC[edgec_convex];
-  TYPE_THEN `(?m. x = pointI m) /\ (?n. y = pointI n)` SUBGOAL_TAC;
+  TYPE_THEN `(?m. x = pointI m) /\ (?n. y = pointI n)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inter_lattice];
   DISCH_ALL_TAC;
   CHO 6;
@@ -3887,7 +3887,7 @@ let midpoint_unique = prove_by_refinement(
   REWR 4;
   KILL 6;
   KILL 7;
-  TYPE_THEN `(closure top2 e (pointI n)) /\ closure top2 e (pointI m)` SUBGOAL_TAC;
+  TYPE_THEN `(closure top2 e (pointI n)) /\ closure top2 e (pointI m)` SUBGOAL_MP_TAC;
   UND 4;
   UND 3;
   REWRITE_TAC[INTER];
@@ -3901,7 +3901,7 @@ let midpoint_unique = prove_by_refinement(
   DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
   (* ml -- start of 1st main branch. *)
   DISCH_ALL_TAC;
-  TYPE_THEN `((n = m') \/ (n = (FST m',SND m' + &:1))) /\ ((m = m') \/ (m = (FST m',SND m' + &:1)))` SUBGOAL_TAC;
+  TYPE_THEN `((n = m') \/ (n = (FST m',SND m' + &:1))) /\ ((m = m') \/ (m = (FST m',SND m' + &:1)))` SUBGOAL_MP_TAC;
   UND 6;
   UND 7;
   ASM_REWRITE_TAC[h_edge_closure;hc_edge;v_edge_closure;UNION;vc_edge;INR IN_SING;plus_e12;pointI_inj;v_edge_pointI ;h_edge_pointI];
@@ -3909,7 +3909,7 @@ let midpoint_unique = prove_by_refinement(
   REWRITE_TAC[RIGHT_AND_OVER_OR;LEFT_AND_OVER_OR];
   TYPE_THEN  `X = (closure top2 e INTER closure top2 e')` ABBREV_TAC;
   (* start A*)
-  TYPE_THEN `X (pointI m') /\ X (pointI m' + e2) ==> ~(X INTER (v_edge m') = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `X (pointI m') /\ X (pointI m' + e2) ==> ~(X INTER (v_edge m') = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   USE 5 (REWRITE_RULE[convex;mk_segment]);
   DISCH_TAC ;
@@ -3929,11 +3929,11 @@ let midpoint_unique = prove_by_refinement(
   MATCH_ACCEPT_TAC midpoint_v_edge; (* end of goal A *)
   REWRITE_TAC[plus_e12];
   (* start  B*)
-  TYPE_THEN `X INTER (v_edge m') = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `X INTER (v_edge m') = EMPTY ` SUBGOAL_MP_TAC;
   REWRITE_TAC[EQ_EMPTY];
   DISCH_ALL_TAC;
   USE 10 (REWRITE_RULE[INTER]);
-  TYPE_THEN `?r. (x = pointI r)` SUBGOAL_TAC;
+  TYPE_THEN `?r. (x = pointI r)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inter_lattice;edge];
   DISCH_TAC;
   CHO 11;
@@ -3944,7 +3944,7 @@ let midpoint_unique = prove_by_refinement(
   REP_CASES_TAC THEN ASM_MESON_TAC[];
   (* end of FIRST main branch  -- snd main branch -- fully parallel *)
   DISCH_ALL_TAC;
-  TYPE_THEN `((n = m') \/ (n = (FST m' + &:1,SND m'))) /\ ((m = m') \/ (m = (FST m' + &:1,SND m' )))` SUBGOAL_TAC;
+  TYPE_THEN `((n = m') \/ (n = (FST m' + &:1,SND m'))) /\ ((m = m') \/ (m = (FST m' + &:1,SND m' )))` SUBGOAL_MP_TAC;
   UND 6;
   UND 7;
   ASM_REWRITE_TAC[h_edge_closure;hc_edge;v_edge_closure;UNION;vc_edge;INR IN_SING;plus_e12;pointI_inj;v_edge_pointI ;h_edge_pointI];
@@ -3952,7 +3952,7 @@ let midpoint_unique = prove_by_refinement(
   REWRITE_TAC[RIGHT_AND_OVER_OR;LEFT_AND_OVER_OR];
   TYPE_THEN  `X = (closure top2 e INTER closure top2 e')` ABBREV_TAC;
   (* start A'  *)
-  TYPE_THEN `X (pointI m') /\ X (pointI m' + e1) ==> ~(X INTER (h_edge m') = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `X (pointI m') /\ X (pointI m' + e1) ==> ~(X INTER (h_edge m') = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   USE 5 (REWRITE_RULE[convex;mk_segment]);
   DISCH_TAC ;
@@ -3972,11 +3972,11 @@ let midpoint_unique = prove_by_refinement(
   MATCH_ACCEPT_TAC midpoint_h_edge; (* end of goal A' *)
   REWRITE_TAC[plus_e12];
   (* start  B' *)
-  TYPE_THEN `X INTER (h_edge m') = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `X INTER (h_edge m') = EMPTY ` SUBGOAL_MP_TAC;
   REWRITE_TAC[EQ_EMPTY];
   DISCH_ALL_TAC;
   USE 10 (REWRITE_RULE[INTER]);
-  TYPE_THEN `?r. (x = pointI r)` SUBGOAL_TAC;
+  TYPE_THEN `?r. (x = pointI r)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inter_lattice;edge];
   DISCH_TAC;
   CHO 11;
@@ -3998,7 +3998,7 @@ let edge_inter = prove_by_refinement(
   DISCH_ALL_TAC;
   USE 3 (REWRITE_RULE[EMPTY_EXISTS]);
   CHO 3;
-  TYPE_THEN `(?m. u = pointI m)` SUBGOAL_TAC;
+  TYPE_THEN `(?m. u = pointI m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inter_lattice];
   DISCH_THEN (CHOOSE_TAC);
   REWR 3;
@@ -4023,13 +4023,13 @@ let inter_midpoint = prove_by_refinement(
   USE 0 (MATCH_MP num_closure_size);
   TSPEC `pointI m` 0;
   TYPE_THEN `X = {C | G C /\ closure top2 C (pointI m)}` ABBREV_TAC ;
-  TYPE_THEN `X C /\ X C'` SUBGOAL_TAC;
+  TYPE_THEN `X C /\ X C'` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   UND 8;
   REWRITE_TAC[INTER]; (* done WITH subgoal *)
   DISCH_TAC;
-  TYPE_THEN `~(C = C')` SUBGOAL_TAC;
+  TYPE_THEN `~(C = C')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[adj];
   DISCH_TAC;
   REP_CASES_TAC;
@@ -4077,7 +4077,7 @@ let midpoint_exists = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `!m. (closure top2 e (pointI m)) ==> (endpoint G m)` SUBGOAL_TAC;
+  TYPE_THEN `!m. (closure top2 e (pointI m)) ==> (endpoint G m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge_midend];
   DISCH_TAC;
   UND 2;
@@ -4094,12 +4094,12 @@ let midpoint_exists = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC [eq_sing];
   DISCH_ALL_TAC;
-  TYPE_THEN `(?m. (closure top2 e) INTER (closure top2 C') = {(pointI m)})` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (closure top2 e) INTER (closure top2 C') = {(pointI m)})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  edge_inter;
   ASM_MESON_TAC[ISUBSET];
   DISCH_THEN CHOOSE_TAC;
   TSPEC `m` 4;
-  TYPE_THEN `endpoint G m` SUBGOAL_TAC;
+  TYPE_THEN `endpoint G m` SUBGOAL_MP_TAC;
   UND 4;
   DISCH_THEN IMATCH_MP_TAC ;
   UND 10;
@@ -4146,7 +4146,7 @@ let pair_swap_adj = prove_by_refinement(
   REP_GEN_TAC;
   TYPE_THEN `X = {C | G C /\ closure top2 C (pointI m)}` ABBREV_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_MP_TAC;
   USE 3 (REWRITE_RULE[midpoint]);
   USE 1 (REWRITE_RULE[segment]);
   UND 1;
@@ -4157,12 +4157,12 @@ let pair_swap_adj = prove_by_refinement(
   DISCH_TAC;
   CONJ_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `X e` SUBGOAL_TAC;
+  TYPE_THEN `X e` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (*  SUBCONJ_TAC; *)
-  TYPE_THEN `X e'` SUBGOAL_TAC;
+  TYPE_THEN `X e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[pair_swap];
   DISCH_TAC;
   SUBCONJ_TAC;
@@ -4201,21 +4201,21 @@ let terminal_edge_adj = prove_by_refinement(
   REP_GEN_TAC;
   DISCH_ALL_TAC;
   REWRITE_TAC[EXISTS_UNIQUE_ALT ];
-  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  midpoint_exists;
   ASM_REWRITE_TAC[];
   DISCH_THEN CHOOSE_TAC;
   AND 5;
   COPY 5;
   USE 5 (REWRITE_RULE[midpoint]);
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
   USE 8 (MATCH_MP num_closure_size);
   TSPEC `pointI m'` 8;
   REWR 8;
   TYPE_THEN `X = {C | G C /\ closure top2 C (pointI m')}` ABBREV_TAC;
-  TYPE_THEN `X e` SUBGOAL_TAC;
+  TYPE_THEN `X e` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -4224,19 +4224,19 @@ let terminal_edge_adj = prove_by_refinement(
 
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `(?m. (closure top2 e) INTER (closure top2 y) = {(pointI m)}) ` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (closure top2 e) INTER (closure top2 y) = {(pointI m)}) ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  edge_inter;
   ASM_MESON_TAC[segment;ISUBSET;];
   DISCH_THEN CHOOSE_TAC;
   (* show m''=m', then X y, then y != e, then it is the PAIR swap *)
   TYPE_THEN `ec = (closure top2 e)` ABBREV_TAC;
-  TYPE_THEN `ec (pointI m'')` SUBGOAL_TAC;
+  TYPE_THEN `ec (pointI m'')` SUBGOAL_MP_TAC;
   UND 13;
   REWRITE_TAC[eq_sing];
   REWRITE_TAC[INTER];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `m'' = m'` SUBGOAL_TAC;
+  TYPE_THEN `m'' = m'` SUBGOAL_MP_TAC;
   TYPE_THEN `Z = {m | ec (pointI m)}` ABBREV_TAC;
   IMATCH_MP_TAC  two_exclusion;
   TYPE_THEN `Z` EXISTS_TAC;
@@ -4248,20 +4248,20 @@ let terminal_edge_adj = prove_by_refinement(
   ASM_MESON_TAC[segment;ISUBSET];
   EXPAND_TAC "Z";
   ASM_REWRITE_TAC[];
-  TYPE_THEN `midpoint G m''` SUBGOAL_TAC ;
+  TYPE_THEN `midpoint G m''` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  inter_midpoint;
   TYPE_THEN `e` EXISTS_TAC;
   TYPE_THEN `y` EXISTS_TAC;
   ASM_REWRITE_TAC[INR IN_SING ];
   ASM_MESON_TAC[mid_end_disj]; (* m'' = m' done *)
   DISCH_TAC;
-  TYPE_THEN `X y` SUBGOAL_TAC;
+  TYPE_THEN `X y` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   USE 13 (REWRITE_RULE[INTER;eq_sing]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(y = e)` SUBGOAL_TAC;
+  TYPE_THEN `~(y = e)` SUBGOAL_MP_TAC;
   UND 12;
   MESON_TAC[adj];
   DISCH_TAC;
@@ -4273,10 +4273,10 @@ let terminal_edge_adj = prove_by_refinement(
   TYPEL_THEN [`G`;`e`;`m'`;`pair_swap X e`] (USE 11 o ISPECL);
   UND 11;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `X (pair_swap X e)` SUBGOAL_TAC;
+  TYPE_THEN `X (pair_swap X e)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[pair_swap];
   DISCH_TAC;
-  TYPE_THEN `closure top2 (pair_swap X e) (pointI m')` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (pair_swap X e) (pointI m')` SUBGOAL_MP_TAC;
   UND 11;
   TYPE_THEN  `e'' = pair_swap X e` ABBREV_TAC ;
   EXPAND_TAC "X";
@@ -4326,7 +4326,7 @@ let psegment_edge = prove_by_refinement(
   REWRITE_TAC[SING ;eq_sing];
   ASM_MESON_TAC[];
   DISJ2_TAC ;
-  TYPE_THEN `{C | (C = e) /\ closure top2 C (pointI m)} = {}` SUBGOAL_TAC;
+  TYPE_THEN `{C | (C = e) /\ closure top2 C (pointI m)} = {}` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 2 (REWRITE_RULE[EMPTY_EXISTS]);
   CHO 2;
@@ -4358,7 +4358,7 @@ let segment_delete = prove_by_refinement(
   CONJ_TAC;
   GEN_TAC;
   REWRITE_TAC[INSERT];
-  TYPE_THEN `num_closure (G DELETE e) (pointI m')  <=| (num_closure G (pointI m'))` SUBGOAL_TAC;
+  TYPE_THEN `num_closure (G DELETE e) (pointI m')  <=| (num_closure G (pointI m'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  num_closure_mono;
   ASM_REWRITE_TAC[INR IN_DELETE;ISUBSET];
   MESON_TAC[];
@@ -4368,7 +4368,7 @@ let segment_delete = prove_by_refinement(
   ARITH_TAC;
   DISCH_ALL_TAC;
   (* tsh1 *)
-  TYPE_THEN `(?! e'. (G e') /\ (adj e e'))` SUBGOAL_TAC;
+  TYPE_THEN `(?! e'. (G e') /\ (adj e e'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  terminal_edge_adj;
   REWRITE_TAC[segment];
   TYPE_THEN `m` EXISTS_TAC;
@@ -4376,7 +4376,7 @@ let segment_delete = prove_by_refinement(
   REWRITE_TAC[EXISTS_UNIQUE_ALT];
   DISCH_THEN CHOOSE_TAC;
   (* tsh2 *)
-  TYPE_THEN `(e INSERT S = G) ==> (S = G DELETE e)` SUBGOAL_TAC;
+  TYPE_THEN `(e INSERT S = G) ==> (S = G DELETE e)` SUBGOAL_MP_TAC;
   UND 9;
   IMATCH_MP_TAC  (TAUT `(a ==> b ==> C) ==> (b ==> a ==> C)`);
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
@@ -4424,7 +4424,7 @@ let segment_delete = prove_by_refinement(
   ASM_MESON_TAC[];
   (* LAST case *)
   TSPEC `S` 5;
-  TYPE_THEN `S = G` SUBGOAL_TAC;
+  TYPE_THEN `S = G` SUBGOAL_MP_TAC;
   UND 5;
   DISCH_THEN IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -4442,7 +4442,7 @@ let segment_delete = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
   TSPEC `C` 12;
-  TYPE_THEN `G C /\ adj e C` SUBGOAL_TAC;
+  TYPE_THEN `G C /\ adj e C` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[adj_symm;ISUBSET];
   DISCH_TAC;
   REWR 12;
@@ -4466,12 +4466,12 @@ let other_end_prop = prove_by_refinement(
   DISCH_ALL_TAC;
   USE 0 (MATCH_MP two_endpoint);
   TYPE_THEN `X = {m | closure top2 e (pointI m)}` ABBREV_TAC;
-  TYPE_THEN `X m` SUBGOAL_TAC;
+  TYPE_THEN `X m` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC [];
   DISCH_TAC;
   ASM_SIMP_TAC[pair_swap_invol;pair_swap];
-  TYPE_THEN `X (pair_swap X m)` SUBGOAL_TAC ;
+  TYPE_THEN `X (pair_swap X m)` SUBGOAL_MP_TAC ;
   ASM_SIMP_TAC[pair_swap];
   EXPAND_TAC "X";
   REWRITE_TAC[];
@@ -4487,12 +4487,12 @@ let num_closure_delete = prove_by_refinement(
   DISCH_ALL_TAC;
   COND_CASES_TAC;
   REWRITE_TAC[num_closure];
-  TYPE_THEN `{C | (G DELETE e) C /\ closure top2 C p} = {C | G C /\ closure top2 C p} DELETE e` SUBGOAL_TAC;
+  TYPE_THEN `{C | (G DELETE e) C /\ closure top2 C p} = {C | G C /\ closure top2 C p} DELETE e` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[DELETE ];
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `FINITE {C | G C /\ closure top2 C p}` SUBGOAL_TAC;
+  TYPE_THEN `FINITE {C | G C /\ closure top2 C p}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
   TYPE_THEN `G` EXISTS_TAC;
   ASM_REWRITE_TAC[ISUBSET;];
@@ -4520,14 +4520,14 @@ let psegment_delete_end = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[psegment;segment];
   DISCH_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[psegment;segment;ISUBSET];
   DISCH_TAC;
   TYPE_THEN `X = {m | closure top2 e (pointI m)}` ABBREV_TAC;
-  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   IMATCH_MP_TAC  two_endpoint;
   ASM_REWRITE_TAC[];
@@ -4549,7 +4549,7 @@ let psegment_delete_end = prove_by_refinement(
   ASM_REWRITE_TAC[];
   COND_CASES_TAC;
   DISCH_TAC;
-  TYPE_THEN `X x /\ X m /\ X (other_end e m) /\ (~(m= other_end e m))` SUBGOAL_TAC ;
+  TYPE_THEN `X x /\ X m /\ X (other_end e m) /\ (~(m= other_end e m))` SUBGOAL_MP_TAC ;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[other_end_prop];
@@ -4562,13 +4562,13 @@ let psegment_delete_end = prove_by_refinement(
   ASM_SIMP_TAC[num_closure_delete];
   REWRITE_TAC[INSERT;DELETE ];
   GEN_TAC;
-  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[psegment;midpoint_exists];
   DISCH_THEN CHOOSE_TAC;
   DISCH_THEN DISJ_CASES_TAC;
   (* ---m *)
   COND_CASES_TAC;
-  TYPE_THEN `X m /\ X m' /\ X x /\ (~(x = m)) /\ (~(m' = m)) /\ (~(x = m'))` SUBGOAL_TAC;
+  TYPE_THEN `X m /\ X m' /\ X x /\ (~(x = m)) /\ (~(m' = m)) /\ (~(x = m'))` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[mid_end_disj];
@@ -4577,13 +4577,13 @@ let psegment_delete_end = prove_by_refinement(
   ASM_MESON_TAC[];
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[other_end_prop];
-  TYPE_THEN `X m /\ X m' /\ X x /\ (~(x = m)) /\ (~(m = m'))` SUBGOAL_TAC;
+  TYPE_THEN `X m /\ X m' /\ X x /\ (~(x = m)) /\ (~(m = m'))` SUBGOAL_MP_TAC;
    EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[other_end_prop];
   ASM_MESON_TAC[mid_end_disj];
   DISCH_TAC;
-  TYPE_THEN `x = m'` SUBGOAL_TAC;
+  TYPE_THEN `x = m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[two_exclusion];
   USE 9 (REWRITE_RULE[midpoint]);
   ASM_MESON_TAC[ARITH_RULE `(x = 2) ==> (x -| 1 = 1)`];
@@ -4594,10 +4594,10 @@ let endpoint_size2 = prove_by_refinement(
   `!G. (psegment G) ==> (endpoint G HAS_SIZE 2)`,
   (* {{{ proof *)
   [
-  TYPE_THEN `(!n G. (psegment G) /\ (G HAS_SIZE n) ==> (endpoint G HAS_SIZE 2)) ==> (!G. (psegment G) ==> endpoint G HAS_SIZE 2)` SUBGOAL_TAC;
+  TYPE_THEN `(!n G. (psegment G) /\ (G HAS_SIZE n) ==> (endpoint G HAS_SIZE 2)) ==> (!G. (psegment G) ==> endpoint G HAS_SIZE 2)` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `?n. G HAS_SIZE n` SUBGOAL_TAC;
+  TYPE_THEN `?n. G HAS_SIZE n` SUBGOAL_MP_TAC;
   REWRITE_TAC[HAS_SIZE];
   CONV_TAC (dropq_conv "n");
   ASM_MESON_TAC[psegment;segment];
@@ -4608,13 +4608,13 @@ let endpoint_size2 = prove_by_refinement(
   REWRITE_TAC[psegment;segment];
   ASM_MESON_TAC[HAS_SIZE_0];
   DISCH_ALL_TAC;
-  TYPE_THEN `(?m. (endpoint G m))` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (endpoint G m))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[psegment_endpoint];
   DISCH_THEN CHOOSE_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC ;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[psegment;segment];
   DISCH_TAC;
-  TYPE_THEN `?e. (G e /\ closure top2 e (pointI m))` SUBGOAL_TAC;
+  TYPE_THEN `?e. (G e /\ closure top2 e (pointI m))` SUBGOAL_MP_TAC;
   USE 3 (REWRITE_RULE[endpoint]);
   USE 4 (MATCH_MP num_closure_size);
   TSPEC `(pointI m)` 4;
@@ -4626,7 +4626,7 @@ let endpoint_size2 = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_THEN CHOOSE_TAC;
   TYPE_THEN `G = {e}` ASM_CASES_TAC;
-  TYPE_THEN `endpoint G = { m | closure top2 e (pointI m)}` SUBGOAL_TAC;
+  TYPE_THEN `endpoint G = { m | closure top2 e (pointI m)}` SUBGOAL_MP_TAC;
   MATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[endpoint];
   USE 4 (MATCH_MP num_closure_size );
@@ -4641,7 +4641,7 @@ let endpoint_size2 = prove_by_refinement(
   USE 4(REWRITE_RULE[SING;eq_sing]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `{C | (C = e) /\ closure top2 C (pointI x)} ={e}` SUBGOAL_TAC;
+  TYPE_THEN `{C | (C = e) /\ closure top2 C (pointI x)} ={e}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INR IN_SING ];
   ASM_MESON_TAC[];
@@ -4654,11 +4654,11 @@ let endpoint_size2 = prove_by_refinement(
   ASM_MESON_TAC[psegment;segment;ISUBSET];
   (*pm*)
   (* main case *)
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[psegment;segment;ISUBSET];
   DISCH_TAC;
   TSPEC `G DELETE e` 0;
-  TYPE_THEN `psegment (G DELETE e) /\ G DELETE e HAS_SIZE n` SUBGOAL_TAC;
+  TYPE_THEN `psegment (G DELETE e) /\ G DELETE e HAS_SIZE n` SUBGOAL_MP_TAC;
   CONJ_TAC;
   REWRITE_TAC[psegment];
   CONJ_TAC;
@@ -4667,7 +4667,7 @@ let endpoint_size2 = prove_by_refinement(
   ASM_REWRITE_TAC[psegment];
   ASM_MESON_TAC[psegment];
   (* it isn't a rectagon if it has an endpoint *)
-  TYPE_THEN `(endpoint (G DELETE e) (other_end e m)) ` SUBGOAL_TAC;
+  TYPE_THEN `(endpoint (G DELETE e) (other_end e m)) ` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[psegment_delete_end];
   REWRITE_TAC[DELETE_INSERT];
   COND_CASES_TAC;
@@ -4683,10 +4683,10 @@ let endpoint_size2 = prove_by_refinement(
   ASM_SIMP_TAC[psegment_delete_end];
   DISCH_TAC;
   TYPE_THEN `G' = (other_end e m INSERT endpoint G)` ABBREV_TAC;
-  TYPE_THEN `G' HAS_SIZE 3` SUBGOAL_TAC;
+  TYPE_THEN `G' HAS_SIZE 3` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[HAS_SIZE;ARITH_RULE `3 = SUC 2`;FINITE_DELETE];
-  TYPE_THEN `G' m` SUBGOAL_TAC;
+  TYPE_THEN `G' m` SUBGOAL_MP_TAC;
   EXPAND_TAC "G'";
   KILL 9;
   ASM_REWRITE_TAC [INSERT];
@@ -4698,17 +4698,17 @@ let endpoint_size2 = prove_by_refinement(
   UND 11;
   ASM_SIMP_TAC [CARD_CLAUSES];
   COND_CASES_TAC;
-  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_TAC;
+  TYPE_THEN `(?m. (closure top2 e (pointI m)) /\ (midpoint G m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  midpoint_exists;
   ASM_MESON_TAC[psegment];
   DISCH_THEN CHOOSE_TAC;
   TYPE_THEN `X = { m | closure top2 e (pointI m) }` ABBREV_TAC;
-  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `X HAS_SIZE 2` SUBGOAL_MP_TAC;
   USE 7 (MATCH_MP two_endpoint);
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `X m /\ X m' /\ X (other_end e m) /\ (~(m=m')) /\ (~(m= other_end e m)) /\ (~(m'=other_end e m))` SUBGOAL_TAC;
+  TYPE_THEN `X m /\ X m' /\ X (other_end e m) /\ (~(m=m')) /\ (~(m= other_end e m)) /\ (~(m'=other_end e m))` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[other_end_prop];
@@ -4751,7 +4751,7 @@ let num_closure1 = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   CHO 3;
-  TYPE_THEN `{C | G C /\ closure top2 C x} = {e}` SUBGOAL_TAC;
+  TYPE_THEN `{C | G C /\ closure top2 C x} = {e}` SUBGOAL_MP_TAC;
   REWRITE_TAC[eq_sing];
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -4860,7 +4860,7 @@ let segment_not_in = prove_by_refinement(
   [
   REWRITE_TAC[segment_of;];
   DISCH_ALL_TAC;
-  TYPE_THEN `{S | S e /\ inductive_set G S} = EMPTY ` SUBGOAL_TAC ;
+  TYPE_THEN `{S | S e /\ inductive_set G S} = EMPTY ` SUBGOAL_MP_TAC ;
   REWRITE_TAC[EQ_EMPTY];
   GEN_TAC;
   REWRITE_TAC[inductive_set];
@@ -4935,13 +4935,13 @@ let segment_of_eq = prove_by_refinement(
   CONJ_TAC;
   ASM_MESON_TAC[segment_of_subset];
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `G f` SUBGOAL_TAC;
+  TYPE_THEN `G f` SUBGOAL_MP_TAC;
   USE 0 (MATCH_MP segment_of_G);
   USE 0 (REWRITE_RULE[SUBSET]);
   ASM_MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `X = (segment_of G e DIFF segment_of G f)` ABBREV_TAC;
-  TYPE_THEN `X e` SUBGOAL_TAC;
+  TYPE_THEN `X e` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   REWRITE_TAC[DIFF];
   ASM_SIMP_TAC [segment_of_in];
@@ -4956,11 +4956,11 @@ let segment_of_eq = prove_by_refinement(
   USE 2 (MATCH_MP segment_of_subset);
   ASM_MESON_TAC[ISUBSET]; (* done WITH X e *)
   DISCH_TAC;
-  TYPE_THEN `inductive_set G (segment_of G e DIFF segment_of G f)` SUBGOAL_TAC ;
+  TYPE_THEN `inductive_set G (segment_of G e DIFF segment_of G f)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  inductive_diff;
   ASM_SIMP_TAC[inductive_segment];
   DISCH_TAC;
-  TYPE_THEN `segment_of G e SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `segment_of G e SUBSET X` SUBGOAL_MP_TAC;
   REWRITE_TAC[segment_of];
   IMATCH_MP_TAC  INTERS_SUBSET;
   REWRITE_TAC[];
@@ -4981,10 +4981,10 @@ let segment_of_segment = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
-  TYPE_THEN `FINITE P` SUBGOAL_TAC;
+  TYPE_THEN `FINITE P` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[FINITE_SUBSET];
   DISCH_TAC;
   REWRITE_TAC[segment];
@@ -4993,7 +4993,7 @@ let segment_of_segment = prove_by_refinement(
   ASM_MESON_TAC[segment_of_in];
   SUBCONJ_TAC;
   UND 1;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   MP_TAC  segment_of_G;
   REWRITE_TAC[SUBSET];
@@ -5030,25 +5030,25 @@ let segment_of_segment = prove_by_refinement(
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   ASM_REWRITE_TAC[];
   (*   PROOF_BY_CONTR_TAC; *)
-  TYPE_THEN `! C C'. S C /\ P C' /\ adj C C' ==> S C'` SUBGOAL_TAC;
+  TYPE_THEN `! C C'. S C /\ P C' /\ adj C C' ==> S C'` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `segment_of P C C'` SUBGOAL_TAC;
+  TYPE_THEN `segment_of P C C'` SUBGOAL_MP_TAC;
   REWRITE_TAC[segment_of;INTERS;];
   X_GEN_TAC `R:((num->real)->bool)->bool`;
   REWRITE_TAC[inductive_set];
   DISCH_ALL_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `segment_of P e = segment_of P C` SUBGOAL_TAC ;
+  TYPE_THEN `segment_of P e = segment_of P C` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  segment_of_eq;
   ASM_MESON_TAC[ISUBSET];
   DISCH_THEN (fun t-> REWRITE_TAC [GSYM t]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `inductive_set P S` SUBGOAL_TAC;
+  TYPE_THEN `inductive_set P S` SUBGOAL_MP_TAC;
   REWRITE_TAC[inductive_set];
   ASM_REWRITE_TAC[EMPTY_EXISTS];
   ASM_MESON_TAC[ISUBSET;segment_of_G];
-  TYPE_THEN `segment_of P e = segment_of P u` SUBGOAL_TAC;
+  TYPE_THEN `segment_of P e = segment_of P u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  segment_of_eq;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
@@ -5073,10 +5073,10 @@ let rectagon_subset = prove_by_refinement(
   DISCH_THEN IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
-  TYPE_THEN `edge C /\ edge C'` SUBGOAL_TAC;
+  TYPE_THEN `edge C /\ edge C'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `(?m. closure top2 C INTER closure top2 C' = {(pointI m)})` SUBGOAL_TAC;
+  TYPE_THEN `(?m. closure top2 C INTER closure top2 C' = {(pointI m)})` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge_inter];
   DISCH_TAC;
   CHO 14;
@@ -5086,7 +5086,7 @@ let rectagon_subset = prove_by_refinement(
   JOIN 5 10;
   USE 5 (MATCH_MP num_closure_mono);
   TSPEC `pointI m` 5;
-  TYPE_THEN `num_closure G (pointI m) = 2` SUBGOAL_TAC;
+  TYPE_THEN `num_closure G (pointI m) = 2` SUBGOAL_MP_TAC;
   TSPEC `m` 3;
   USE 3 (REWRITE_RULE[INSERT]);
   UND 3;
@@ -5105,7 +5105,7 @@ let rectagon_subset = prove_by_refinement(
   REWRITE_TAC[INTER;eq_sing; ];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `num_closure S (pointI m) = 2` SUBGOAL_TAC;
+  TYPE_THEN `num_closure S (pointI m) = 2` SUBGOAL_MP_TAC;
   TSPEC `m` 8;
   USE 8(REWRITE_RULE[INSERT]);
   UND 8;
@@ -5118,7 +5118,7 @@ let rectagon_subset = prove_by_refinement(
   DISCH_TAC;
   (* ok  *)
   (* num_closure G = num_closure S, C' in latter, so in former *)
-  TYPE_THEN `{C | G C /\ closure top2 C (pointI m)} = {C | S C /\ closure top2 C (pointI m)}`  SUBGOAL_TAC;
+  TYPE_THEN `{C | G C /\ closure top2 C (pointI m)} = {C | S C /\ closure top2 C (pointI m)}`  SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  CARD_SUBSET_LE;
   CONJ_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
@@ -5156,9 +5156,9 @@ let rectagon_h_edge = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `!e. G e ==> (?m. (e= (v_edge m))) ` SUBGOAL_TAC;
+  TYPE_THEN `!e. G e ==> (?m. (e= (v_edge m))) ` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
@@ -5167,9 +5167,9 @@ let rectagon_h_edge = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `X = {m | (G (v_edge m)) }` ABBREV_TAC;
-  TYPE_THEN `FINITE X /\ ~(X = {})` SUBGOAL_TAC;
+  TYPE_THEN `FINITE X /\ ~(X = {})` SUBGOAL_MP_TAC;
   CONJ_TAC;
-  TYPE_THEN `?C. C SUBSET X /\ FINITE C /\ (G = IMAGE (v_edge) C)` SUBGOAL_TAC ;
+  TYPE_THEN `?C. C SUBSET X /\ FINITE C /\ (G = IMAGE (v_edge) C)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  finite_subset;
   REWRITE_TAC[IMAGE;SUBSET];
   EXPAND_TAC "X";
@@ -5181,7 +5181,7 @@ let rectagon_h_edge = prove_by_refinement(
   ASM_MESON_TAC[rectagon];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
   DISCH_ALL_TAC;
-  TYPE_THEN `C = X` SUBGOAL_TAC;
+  TYPE_THEN `C = X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SUBSET];
@@ -5211,7 +5211,7 @@ let rectagon_h_edge = prove_by_refinement(
   DISCH_TAC;
   (* dwf done finite X ...  Messed up. X must have type real->bool. *)
   TYPE_THEN `Y = IMAGE (real_of_int o SND ) X` ABBREV_TAC;
-  TYPE_THEN ` FINITE Y /\ ~(Y = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN ` FINITE Y /\ ~(Y = EMPTY)` SUBGOAL_MP_TAC;
   CONJ_TAC;
   EXPAND_TAC "Y";
   IMATCH_MP_TAC  FINITE_IMAGE;
@@ -5226,7 +5226,7 @@ let rectagon_h_edge = prove_by_refinement(
   DISCH_TAC;
   USE 6 (MATCH_MP min_finite);
   CHO 6;
-  TYPE_THEN `?m. (G (v_edge m)) /\ (real_of_int (SND m) = delta)` SUBGOAL_TAC;
+  TYPE_THEN `?m. (G (v_edge m)) /\ (real_of_int (SND m) = delta)` SUBGOAL_MP_TAC;
   USE 5 (REWRITE_RULE[IMAGE;o_DEF]);
   TAPP `delta` 5;
   REWR 5;
@@ -5237,9 +5237,9 @@ let rectagon_h_edge = prove_by_refinement(
   DISCH_TAC;
   CHO 7;
   (* now show that m is an endpoint *)
-  TYPE_THEN `endpoint G m` SUBGOAL_TAC;
+  TYPE_THEN `endpoint G m` SUBGOAL_MP_TAC;
   REWRITE_TAC[endpoint];
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
   ASM_SIMP_TAC[num_closure1];
@@ -5247,7 +5247,7 @@ let rectagon_h_edge = prove_by_refinement(
   DISCH_ALL_TAC;
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e'` SUBGOAL_TAC;
+  TYPE_THEN `edge e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
@@ -5258,7 +5258,7 @@ let rectagon_h_edge = prove_by_refinement(
   UND 10;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `  Y (real_of_int (SND m'))` SUBGOAL_TAC;
+  TYPE_THEN `  Y (real_of_int (SND m'))` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE];
   TYPE_THEN `m'` EXISTS_TAC;
@@ -5291,9 +5291,9 @@ let rectagon_v_edge = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `!e. G e ==> (?m. (e= (h_edge m))) ` SUBGOAL_TAC;
+  TYPE_THEN `!e. G e ==> (?m. (e= (h_edge m))) ` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
@@ -5302,9 +5302,9 @@ let rectagon_v_edge = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `X = {m | (G (h_edge m)) }` ABBREV_TAC;
-  TYPE_THEN `FINITE X /\ ~(X = {})` SUBGOAL_TAC;
+  TYPE_THEN `FINITE X /\ ~(X = {})` SUBGOAL_MP_TAC;
   CONJ_TAC;
-  TYPE_THEN `?C. C SUBSET X /\ FINITE C /\ (G = IMAGE (h_edge) C)` SUBGOAL_TAC ;
+  TYPE_THEN `?C. C SUBSET X /\ FINITE C /\ (G = IMAGE (h_edge) C)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  finite_subset;
   REWRITE_TAC[IMAGE;SUBSET];
   EXPAND_TAC "X";
@@ -5316,7 +5316,7 @@ let rectagon_v_edge = prove_by_refinement(
   ASM_MESON_TAC[rectagon];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
   DISCH_ALL_TAC;
-  TYPE_THEN `C = X` SUBGOAL_TAC;
+  TYPE_THEN `C = X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SUBSET];
@@ -5346,7 +5346,7 @@ let rectagon_v_edge = prove_by_refinement(
   DISCH_TAC;
   (* dwfx done finite X ...  Messed up. X must have type real->bool. *)
   TYPE_THEN `Y = IMAGE (real_of_int o FST ) X` ABBREV_TAC;
-  TYPE_THEN ` FINITE Y /\ ~(Y = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN ` FINITE Y /\ ~(Y = EMPTY)` SUBGOAL_MP_TAC;
   CONJ_TAC;
   EXPAND_TAC "Y";
   IMATCH_MP_TAC  FINITE_IMAGE;
@@ -5361,7 +5361,7 @@ let rectagon_v_edge = prove_by_refinement(
   DISCH_TAC;
   USE 6 (MATCH_MP min_finite);
   CHO 6;
-  TYPE_THEN `?m. (G (h_edge m)) /\ (real_of_int (FST  m) = delta)` SUBGOAL_TAC;
+  TYPE_THEN `?m. (G (h_edge m)) /\ (real_of_int (FST  m) = delta)` SUBGOAL_MP_TAC;
   USE 5 (REWRITE_RULE[IMAGE;o_DEF]);
   TAPP `delta` 5;
   REWR 5;
@@ -5372,9 +5372,9 @@ let rectagon_v_edge = prove_by_refinement(
   DISCH_TAC;
   CHO 7;
   (* now show that m is an endpoint *)
-  TYPE_THEN `endpoint G m` SUBGOAL_TAC;
+  TYPE_THEN `endpoint G m` SUBGOAL_MP_TAC;
   REWRITE_TAC[endpoint];
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
   ASM_SIMP_TAC[num_closure1];
@@ -5382,7 +5382,7 @@ let rectagon_v_edge = prove_by_refinement(
   DISCH_ALL_TAC;
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e'` SUBGOAL_TAC;
+  TYPE_THEN `edge e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
@@ -5394,7 +5394,7 @@ let rectagon_v_edge = prove_by_refinement(
   UND 10;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `  Y (real_of_int (FST  m'))` SUBGOAL_TAC;
+  TYPE_THEN `  Y (real_of_int (FST  m'))` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE];
   TYPE_THEN `m'` EXISTS_TAC;
@@ -5516,7 +5516,7 @@ let fibre_card = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `!b. ?g. (B b) ==> (BIJ g {u | (A u) /\ (f u = b)} {j | j <| m})` SUBGOAL_TAC;
+  TYPE_THEN `!b. ?g. (B b) ==> (BIJ g {u | (A u) /\ (f u = b)} {j | j <| m})` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   RIGHT_TAC "g";
   DISCH_TAC;
@@ -5545,7 +5545,7 @@ let fibre_card = prove_by_refinement(
   REWR 2;
   USE 2 (REWRITE_RULE[EQ_EMPTY]);
   ASM_MESON_TAC[];
-  TYPE_THEN `BIJ (\x. (f x, g (f x) x)) A {(x,y) | B x /\ {j|j <|m} y}` SUBGOAL_TAC;
+  TYPE_THEN `BIJ (\x. (f x, g (f x) x)) A {(x,y) | B x /\ {j|j <|m} y}` SUBGOAL_MP_TAC;
   REWRITE_TAC[BIJ;INJ;SURJ];
   SUBCONJ_TAC;
   SUBCONJ_TAC;
@@ -5570,7 +5570,7 @@ let fibre_card = prove_by_refinement(
   AND 8;
   REWR 8;
   (* r8 *)
-  TYPE_THEN `B (f y)` SUBGOAL_TAC;
+  TYPE_THEN `B (f y)` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC [IMAGE;SUBSET];
   ASM_MESON_TAC[];
@@ -5606,7 +5606,7 @@ let fibre_card = prove_by_refinement(
   REWRITE_TAC[HAS_SIZE];
   DISCH_TAC;
   (* r9 *)
-  TYPE_THEN `FINITE B /\ FINITE {j | j <| m}` SUBGOAL_TAC;
+  TYPE_THEN `FINITE B /\ FINITE {j | j <| m}` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[FINITE_NUMSEG_LT];
   ASM_MESON_TAC[HAS_SIZE];
   DISCH_TAC;
@@ -5695,7 +5695,7 @@ let segment_of_endpoint = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE (segment_of P e)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (segment_of P e)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
   ASM_MESON_TAC[segment_of_G];
   DISCH_TAC;
@@ -5734,7 +5734,7 @@ let segment_of_endpoint = prove_by_refinement(
   TYPE_THEN `e'` EXISTS_TAC;
   DISCH_ALL_TAC;
   EQ_TAC;
-  TYPE_THEN `P e'' /\ closure top2 e'' (pointI m) ==> segment_of P e e''` SUBGOAL_TAC;
+  TYPE_THEN `P e'' /\ closure top2 e'' (pointI m) ==> segment_of P e e''` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   COPY 3;
   TSPEC `e'` 3;
@@ -5771,13 +5771,13 @@ let segment_of_endpoint = prove_by_refinement(
   (* *)
   COPY 3;
   TSPEC `e''` 3;
-  TYPE_THEN `e' = e''` SUBGOAL_TAC;
+  TYPE_THEN `e' = e''` SUBGOAL_MP_TAC;
   TSPEC `e''` 4;
   USE 4 (REWRITE_RULE[]);
   ASM_MESON_TAC[segment_of_G;ISUBSET ];
   DISCH_TAC;
   TSPEC `terminal_edge P m` 7;
-  TYPE_THEN `e' = terminal_edge P m` SUBGOAL_TAC;
+  TYPE_THEN `e' = terminal_edge P m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_endpoint];
   ASM_MESON_TAC[];
   ]);;
@@ -5796,12 +5796,12 @@ let fibre2 = prove_by_refinement(
   CHO 3;
   ASM_REWRITE_TAC[];
   USE 3 (CONJUNCT1 );
-  TYPE_THEN `psegment (segment_of P e)` SUBGOAL_TAC;
+  TYPE_THEN `psegment (segment_of P e)` SUBGOAL_MP_TAC;
   REWRITE_TAC[psegment];
   CONJ_TAC;
   ASM_MESON_TAC[rectagon_subset;segment_of_G;segment_of_segment];
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `segment_of P e = G` SUBGOAL_TAC;
+  TYPE_THEN `segment_of P e = G` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  rectagon_subset;
   REWR 4;
   ASM_REWRITE_TAC[];
@@ -5815,7 +5815,7 @@ let fibre2 = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   USE 4 (MATCH_MP endpoint_size2);
-  TYPE_THEN `{m | endpoint P m /\ (segment_of P (terminal_edge P m) = segment_of P e)} = endpoint (segment_of P e)` SUBGOAL_TAC;
+  TYPE_THEN `{m | endpoint P m /\ (segment_of P (terminal_edge P m) = segment_of P e)} = endpoint (segment_of P e)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC ;
   REWRITE_TAC[];
@@ -5845,7 +5845,7 @@ let endpoint_even = prove_by_refinement(
   EXPAND_TAC "f";
   REWRITE_TAC[o_DEF ];
   SUBCONJ_TAC;
-  TYPE_THEN `{S | ?e. P e /\ (S = segment_of P e)} = IMAGE (\x. (segment_of P x)) P` SUBGOAL_TAC;
+  TYPE_THEN `{S | ?e. P e /\ (S = segment_of P e)} = IMAGE (\x. (segment_of P x)) P` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  FINITE_IMAGE;
@@ -5859,7 +5859,7 @@ let endpoint_even = prove_by_refinement(
   ASM_REWRITE_TAC[];
   TYPE_THEN `terminal_edge P x'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `FINITE P` SUBGOAL_TAC;
+  TYPE_THEN `FINITE P` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;FINITE_SUBSET];
   ASM_MESON_TAC[terminal_endpoint];
   (* ee *)
@@ -5887,7 +5887,7 @@ let num_closure0 = prove_by_refinement(
   USE 0 (REWRITE_RULE[HAS_SIZE_0;EQ_EMPTY ]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `{C | G C /\ closure top2 C x} = {}` SUBGOAL_TAC;
+  TYPE_THEN `{C | G C /\ closure top2 C x} = {}` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   USE 2 (REWRITE_RULE[EMPTY_EXISTS]);
   CHO 2;
@@ -5928,7 +5928,7 @@ let num_closure2 = prove_by_refinement(
   CHO 1;
   CHO 1;
   TYPE_THEN `X = {C | G C /\ closure top2 C x} ` ABBREV_TAC;
-  TYPE_THEN `(?a b. (X = {a, b}) /\ ~(a = b))` SUBGOAL_TAC;
+  TYPE_THEN `(?a b. (X = {a, b}) /\ ~(a = b))` SUBGOAL_MP_TAC;
   TYPE_THEN `a` EXISTS_TAC;
   TYPE_THEN `b` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -5954,16 +5954,16 @@ let endpoint_subrectagon = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
-  TYPE_THEN `FINITE P` SUBGOAL_TAC;
+  TYPE_THEN `FINITE P` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
   ASM_MESON_TAC[];
   DISCH_TAC;
   EQ_TAC;
   DISCH_TAC;
-  TYPE_THEN `midpoint G m` SUBGOAL_TAC;
+  TYPE_THEN `midpoint G m` SUBGOAL_MP_TAC;
   REWRITE_TAC[midpoint];
   USE 0 (REWRITE_RULE[rectagon;INSERT]);
   UND 0;
@@ -5977,7 +5977,7 @@ let endpoint_subrectagon = prove_by_refinement(
   USE 0 (MATCH_MP num_closure_mono);
   ASM_MESON_TAC[ARITH_RULE `~(1 <=| 0)`];
   REWRITE_TAC[midpoint];
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_THEN (MP_TAC o (MATCH_MP num_closure_size));
   DISCH_ALL_TAC;
@@ -5993,7 +5993,7 @@ let endpoint_subrectagon = prove_by_refinement(
   REWRITE_TAC[has_size2];
   DISCH_THEN CHOOSE_TAC;
   CHO 8;
-  TYPE_THEN `X a /\ X b /\ X e` SUBGOAL_TAC;
+  TYPE_THEN `X a /\ X b /\ X e` SUBGOAL_MP_TAC;
   CONJ_TAC;
   ASM_REWRITE_TAC[INSERT ];
   CONJ_TAC;
@@ -6005,19 +6005,19 @@ let endpoint_subrectagon = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `P e /\ (closure top2 e (pointI m))` SUBGOAL_TAC;
+  TYPE_THEN `P e /\ (closure top2 e (pointI m))` SUBGOAL_MP_TAC;
   TSPEC `e` 4;
   ASM_MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `e` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `G a /\ closure top2 a (pointI m) /\ G b /\ closure top2 b (pointI m)` SUBGOAL_TAC;
+  TYPE_THEN `G a /\ closure top2 a (pointI m) /\ G b /\ closure top2 b (pointI m)` SUBGOAL_MP_TAC;
   UND 9;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   MESON_TAC[];
   DISCH_ALL_TAC;
-  TYPE_THEN `(e =a) \/ (e = b)` SUBGOAL_TAC;
+  TYPE_THEN `(e =a) \/ (e = b)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[two_exclusion];
   DISCH_THEN DISJ_CASES_TAC;
   TYPE_THEN `b` EXISTS_TAC;
@@ -6044,12 +6044,12 @@ let endpoint_subrectagon = prove_by_refinement(
   CHO 12;
   CHO 12;
   AND 12;
-  TYPE_THEN `(C = a) \/ (C = b)` SUBGOAL_TAC;
+  TYPE_THEN `(C = a) \/ (C = b)` SUBGOAL_MP_TAC;
   UND 12;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `(C' = a) \/ (C' = b)` SUBGOAL_TAC;
+  TYPE_THEN `(C' = a) \/ (C' = b)` SUBGOAL_MP_TAC;
   UND 12;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   ASM_MESON_TAC[ISUBSET];
@@ -6060,7 +6060,7 @@ let endpoint_subrectagon = prove_by_refinement(
   DISCH_ALL_TAC;
   TSPEC `e'` 12;
   REWR 12;
-  TYPE_THEN `G e'` SUBGOAL_TAC;
+  TYPE_THEN `G e'` SUBGOAL_MP_TAC;
   UND 17;
   UND 1;
   MESON_TAC[ISUBSET];
@@ -6147,7 +6147,7 @@ let endpoint_lemma = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `part_below G m SUBSET G` SUBGOAL_TAC;
+  TYPE_THEN `part_below G m SUBSET G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[part_below_subset];
   DISCH_TAC ;
   COPY 2;
@@ -6173,16 +6173,16 @@ let endpoint_lemma = prove_by_refinement(
   CHO 12;
   KILL 0;
   AND 12;
-  TYPE_THEN `(C = a) \/ (C = b)`  SUBGOAL_TAC;
+  TYPE_THEN `(C = a) \/ (C = b)`  SUBGOAL_MP_TAC;
  TSPEC `C` 0;
   UND 0;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   ASM_MESON_TAC[ISUBSET];
-  TYPE_THEN `(C' = a) \/ (C' = b)` SUBGOAL_TAC;
+  TYPE_THEN `(C' = a) \/ (C' = b)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   DISCH_TAC;
-  TYPE_THEN `!e. G e /\ closure top2 e (pointI x) <=> ((e = C) \/ (e = C'))` SUBGOAL_TAC;
+  TYPE_THEN `!e. G e /\ closure top2 e (pointI x) <=> ((e = C) \/ (e = C'))` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   TSPEC `e` 0;
   ASM_REWRITE_TAC[];
@@ -6197,7 +6197,7 @@ let endpoint_lemma = prove_by_refinement(
   KILL 0;
   KILL 12;
   KILL 13;
-  TYPE_THEN `edge C /\ edge C'` SUBGOAL_TAC;
+  TYPE_THEN `edge C /\ edge C'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;];
   DISCH_ALL_TAC;
   USE 0 (REWRITE_RULE[edge]);
@@ -6242,7 +6242,7 @@ let endpoint_lemma_small_fst = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST x = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 14;
@@ -6256,9 +6256,9 @@ let endpoint_lemma_small_fst = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(FST x = FST m') \/ (FST x = FST m' +: (&:1))` SUBGOAL_TAC;
+  TYPE_THEN `(FST x = FST m') \/ (FST x = FST m' +: (&:1))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `(FST m' = FST m) \/ (FST m' = FST m -: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `(FST m' = FST m) \/ (FST m' = FST m -: &:1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   UND 14;
   INT_ARITH_TAC;
@@ -6291,7 +6291,7 @@ let endpoint_lemma_big_fst = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST x = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 14;
@@ -6305,9 +6305,9 @@ let endpoint_lemma_big_fst = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(FST x = FST m') \/ (FST x = FST m' +: (&:1))` SUBGOAL_TAC;
+  TYPE_THEN `(FST x = FST m') \/ (FST x = FST m' +: (&:1))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `(FST m' = FST m) \/ (FST m' = FST m -: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `(FST m' = FST m) \/ (FST m' = FST m -: &:1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   UND 14;
   INT_ARITH_TAC;
@@ -6339,7 +6339,7 @@ let endpoint_lemma_big_snd = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(SND x = SND m') \/ (SND x = SND m' +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `(SND x = SND m') \/ (SND x = SND m' +: &:1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   UND 14;
   AND 6;
@@ -6351,9 +6351,9 @@ let endpoint_lemma_big_snd = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `SND x = SND m'` SUBGOAL_TAC;
+  TYPE_THEN `SND x = SND m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `(SND m' <=: SND m)` SUBGOAL_TAC;
+  TYPE_THEN `(SND m' <=: SND m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   UND 14;
   INT_ARITH_TAC;
@@ -6383,7 +6383,7 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
   USE 7 (REWRITE_RULE[part_below_v]);
   REWR 11;
   USE 11 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(SND x = SND m') \/ (SND x = SND m' +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `(SND x = SND m') \/ (SND x = SND m' +: &:1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   AND 7;
   AND 7;
@@ -6398,7 +6398,7 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
   REWR 7;
   REWR 12;
   USE 9 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(FST m'' = FST m) /\ (FST x = FST m'')` SUBGOAL_TAC;
+  TYPE_THEN `(FST m'' = FST m) /\ (FST x = FST m'')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 9;
@@ -6413,7 +6413,7 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
   REWR 9;
   USE 9 (REWRITE_RULE[left ;set_lower;part_below_h]);
   REWR 9;
-  TYPE_THEN `(FST x = FST m') ` SUBGOAL_TAC;
+  TYPE_THEN `(FST x = FST m') ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 7;
@@ -6450,19 +6450,19 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
   UND 0;
   INT_ARITH_TAC;
   (* LAST case ,3d *)
-  TYPE_THEN `G (h_edge m')` SUBGOAL_TAC;
+  TYPE_THEN `G (h_edge m')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   REWR 12;
   USE 12 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `SND x = SND m''` SUBGOAL_TAC;
+  TYPE_THEN `SND x = SND m''` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 12;
   REWR 7;
    USE 7(REWRITE_RULE[left ;set_lower;part_below_v;part_below_h]);
   REWR 7;
-  TYPE_THEN `SND m' <=: SND m` SUBGOAL_TAC;
+  TYPE_THEN `SND m' <=: SND m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   UND 7;
@@ -6474,7 +6474,7 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
    USE 9(REWRITE_RULE[left ;set_lower;part_below_v;part_below_h]);
   REWR 8;
   REWR 9;
-  TYPE_THEN `SND x = SND m'` SUBGOAL_TAC;
+  TYPE_THEN `SND x = SND m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   UND 11;
@@ -6482,13 +6482,13 @@ let endpoint_lemma_mid_fst = prove_by_refinement(
   UND 11;
   DISCH_THEN_REWRITE;
   DISCH_TAC;
-  TYPE_THEN `(FST m'' = FST m) \/ (FST m'' = FST m -: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `(FST m'' = FST m) \/ (FST m'' = FST m -: &:1)` SUBGOAL_MP_TAC;
   UND 11;
   UND 7;
   UND 12;
   INT_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(SND m'' <=: SND m)` SUBGOAL_TAC;
+  TYPE_THEN `~(SND m'' <=: SND m)` SUBGOAL_MP_TAC;
   UND 19;
   UND 9;
   INT_ARITH_TAC;
@@ -6508,7 +6508,7 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   [
   (* needs to be rewritten, template only *)
   REP_GEN_TAC;
-  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m -: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m -: &:1,SND m +: &:1)))` SUBGOAL_TAC;
+  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m -: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m -: &:1,SND m +: &:1)))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   GEN_TAC;
@@ -6525,9 +6525,9 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST m -: &:1 = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST m -: &:1 = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `FST m' = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST m' = FST m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   (* 2nd case *)
@@ -6535,7 +6535,7 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_TAC;
+  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   ]);;
@@ -6550,7 +6550,7 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   [
   (* needs to be rewritten, template only *)
   REP_GEN_TAC;
-  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m -: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m -: &:1,SND m +: &:1)))` SUBGOAL_TAC;
+  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m -: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m -: &:1,SND m +: &:1)))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   GEN_TAC;
@@ -6567,9 +6567,9 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST m -: &:1 = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST m -: &:1 = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `FST m' = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST m' = FST m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   (* 2nd case *)
@@ -6577,7 +6577,7 @@ let endpoint_lemma_upper_left = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_TAC;
+  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   ]);;
@@ -6592,7 +6592,7 @@ let endpoint_lemma_upper_right = prove_by_refinement(
   [
   (* needs to be rewritten, template only *)
   REP_GEN_TAC;
-  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m +: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m +: &:1,SND m +: &:1)))` SUBGOAL_TAC;
+  TYPE_THEN  `(! x. (rectagon G) /\ (endpoint (part_below G m) x) ==> ~(x = (FST m +: &:1, SND m +: &:1))) ==> (rectagon G ==> ~( endpoint (part_below G m) (FST m +: &:1,SND m +: &:1)))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   GEN_TAC;
@@ -6609,9 +6609,9 @@ let endpoint_lemma_upper_right = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_v]);
   REWR 10;
   USE 10 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST m +: &:1 = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST m +: &:1 = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `FST m' = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST m' = FST m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   (* 2nd case *)
@@ -6619,7 +6619,7 @@ let endpoint_lemma_upper_right = prove_by_refinement(
   USE 6 (REWRITE_RULE[part_below_h ;set_lower  ;left  ;]);
   REWR 10;
   USE 10 (REWRITE_RULE[h_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_TAC;
+  TYPE_THEN `(SND m +: &:1 = SND m') /\ (SND m' <=: SND m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   INT_ARITH_TAC;
   ]);;
@@ -6636,7 +6636,7 @@ let endpoint_lemma_summary = prove_by_refinement(
   (* USE int -arith to show cases of fst x, then for each give *)
   REP_GEN_TAC;
   DISCH_TAC;
-  TYPE_THEN `(FST x < FST m -: &:1) \/ (FST x = FST m -: &:1) \/ (FST x = FST m ) \/ (FST x = FST m +: &:1) \/ (FST m +: &:1 <: FST x  )` SUBGOAL_TAC;
+  TYPE_THEN `(FST x < FST m -: &:1) \/ (FST x = FST m -: &:1) \/ (FST x = FST m ) \/ (FST x = FST m +: &:1) \/ (FST m +: &:1 <: FST x  )` SUBGOAL_MP_TAC;
   INT_ARITH_TAC;
   REP_CASES_TAC ;
   USE 0 (MATCH_MP endpoint_lemma_small_fst);
@@ -6652,7 +6652,7 @@ let endpoint_lemma_summary = prove_by_refinement(
   ASM_REWRITE_TAC[];
   PROOF_BY_CONTR_TAC;
   REWR 3;
-  TYPE_THEN `x = (FST m -: &:1, SND m + &:1)` SUBGOAL_TAC;
+  TYPE_THEN `x = (FST m -: &:1, SND m + &:1)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[PAIR_SPLIT];
   DISCH_TAC;
   REWR 2;
@@ -6668,7 +6668,7 @@ let endpoint_lemma_summary = prove_by_refinement(
   ASM_REWRITE_TAC[];
   PROOF_BY_CONTR_TAC;
   REWR 3;
-  TYPE_THEN `x = (FST m +: &:1, SND m + &:1)` SUBGOAL_TAC;
+  TYPE_THEN `x = (FST m +: &:1, SND m + &:1)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[PAIR_SPLIT];
   DISCH_TAC;
   REWR 2;
@@ -6692,7 +6692,7 @@ let terminal_case1 = prove_by_refinement(
   USE 2 (REWRITE_RULE[PAIR_SPLIT]);
   UND 2;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `FST x = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   JOIN 0 1;
@@ -6702,7 +6702,7 @@ let terminal_case1 = prove_by_refinement(
   UND 2;
   UND 5;
   INT_ARITH_TAC;
-  TYPE_THEN `FST x = FST m +: &:1` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m +: &:1` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REWRITE_TAC[PAIR_SPLIT;right  ];
   ASM_MESON_TAC[];
@@ -6722,7 +6722,7 @@ let terminal_case2 = prove_by_refinement(
   UND 2;
   DISCH_THEN DISJ_CASES_TAC;
   ASM_REWRITE_TAC[PAIR_SPLIT];
-  TYPE_THEN `FST x = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m` SUBGOAL_MP_TAC;
   UND 2;
   UND 4;
   REWRITE_TAC[left ];
@@ -6753,7 +6753,7 @@ let terminal_case_v = prove_by_refinement(
   JOIN 0 1;
   USE 2 (REWRITE_RULE[PAIR_SPLIT]);
   REWR 1;
-  TYPE_THEN `FST x = FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 1;
@@ -6776,27 +6776,27 @@ let inj_terminal = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE (part_below G m)` SUBGOAL_TAC ;
+  TYPE_THEN `FINITE (part_below G m)` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[part_below_finite;rectagon];
   DISCH_TAC;
   REWRITE_TAC[INJ];
   DISCH_ALL_TAC;
   TYPE_THEN `e = terminal_edge (part_below G m) x` ABBREV_TAC;
-  TYPE_THEN `closure top2 e (pointI x) /\ closure top2 e (pointI y)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 e (pointI x) /\ closure top2 e (pointI y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_endpoint];
   DISCH_ALL_TAC;
-  TYPE_THEN `(part_below G m) e` SUBGOAL_TAC;
+  TYPE_THEN `(part_below G m) e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_endpoint];
   DISCH_TAC;
-  TYPE_THEN `part_below G m SUBSET G` SUBGOAL_TAC;
+  TYPE_THEN `part_below G m SUBSET G` SUBGOAL_MP_TAC;
   REWRITE_TAC[part_below;ISUBSET];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;rectagon];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
-  TYPE_THEN `(x = up m) /\ (y = up m)` SUBGOAL_TAC;
+  TYPE_THEN `(x = up m) /\ (y = up m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_case_v];
   MESON_TAC[];
   (* h-case *)
@@ -6806,10 +6806,10 @@ let inj_terminal = prove_by_refinement(
   DISCH_TAC;
   UND 4;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `(x = right  m') /\ (y = right m')` SUBGOAL_TAC  ;
+  TYPE_THEN `(x = right  m') /\ (y = right m')` SUBGOAL_MP_TAC  ;
   ASM_MESON_TAC[terminal_case1];
   MESON_TAC[];
-  TYPE_THEN `( x= m' ) /\ (y = m') ` SUBGOAL_TAC;
+  TYPE_THEN `( x= m' ) /\ (y = m') ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_case2];
   MESON_TAC[];
   ]);;
@@ -6903,7 +6903,7 @@ let terminal_edge_image = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
   COPY 2;
@@ -6911,10 +6911,10 @@ let terminal_edge_image = prove_by_refinement(
   TSPEC `m` 2;
   REWRITE_TAC[target_set];
   TYPE_THEN `e = terminal_edge (part_below G m) x` ABBREV_TAC;
-  TYPE_THEN `(part_below G m e) /\ (closure top2 e (pointI x))` SUBGOAL_TAC;
+  TYPE_THEN `(part_below G m e) /\ (closure top2 e (pointI x))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[terminal_endpoint];
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[part_below_subset;ISUBSET;rectagon];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -6924,11 +6924,11 @@ let terminal_edge_image = prove_by_refinement(
   ASM_REWRITE_TAC[PAIR_SPLIT ];
   REWR 6;
   USE 6 (REWRITE_RULE[v_edge_cpoint;PAIR_SPLIT]);
-  TYPE_THEN `FST x = FST m'` SUBGOAL_TAC;
+  TYPE_THEN `FST x = FST m'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 6;
-  TYPE_THEN `SND x = SND m +: &:1` SUBGOAL_TAC;
+  TYPE_THEN `SND x = SND m +: &:1` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[endpoint_lemma_mid_fst];
   UND 6;
   AND 5;
@@ -6950,16 +6950,16 @@ let terminal_edge_surj = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
-  TYPE_THEN `FINITE (part_below G m)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (part_below G m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[part_below_finite];
   DISCH_TAC;
-  TYPE_THEN `(part_below G m) SUBSET G` SUBGOAL_TAC;
+  TYPE_THEN `(part_below G m) SUBSET G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[part_below_subset];
   DISCH_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[target_edge;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -6975,7 +6975,7 @@ let terminal_edge_surj = prove_by_refinement(
   GEN_TAC;
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e'` SUBGOAL_TAC;
+  TYPE_THEN `edge e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;rectagon];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -6991,7 +6991,7 @@ let terminal_edge_surj = prove_by_refinement(
   INT_ARITH_TAC;
   REWR 6;
   USE 6 (REWRITE_RULE[part_below_h;set_lower;left  ;]);
-  TYPE_THEN `SND m' <=: SND m` SUBGOAL_TAC;
+  TYPE_THEN `SND m' <=: SND m` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 7;
@@ -7016,7 +7016,7 @@ let terminal_edge_surj = prove_by_refinement(
   GEN_TAC;
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e'` SUBGOAL_TAC;
+  TYPE_THEN `edge e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;rectagon];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC); (* snd H or v *)
@@ -7057,7 +7057,7 @@ let terminal_edge_surj = prove_by_refinement(
   GEN_TAC;
   EQ_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `edge e'` SUBGOAL_TAC;
+  TYPE_THEN `edge e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -7141,7 +7141,7 @@ let rectagon_endpoint0 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `endpoint G = {}` SUBGOAL_TAC;
+  TYPE_THEN `endpoint G = {}` SUBGOAL_MP_TAC;
   REWRITE_TAC[EQ_EMPTY];
   ASM_MESON_TAC[rectagon_endpoint];
   DISCH_THEN_REWRITE;
@@ -7154,7 +7154,7 @@ let target_set_even = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `CARD (endpoint(part_below G m)) = CARD (target_set G m)` SUBGOAL_TAC;
+  TYPE_THEN `CARD (endpoint(part_below G m)) = CARD (target_set G m)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  BIJ_CARD ;
   TYPE_THEN `terminal_edge (part_below G m)` EXISTS_TAC;
   ASM_SIMP_TAC[terminal_edge_bij];
@@ -7166,11 +7166,11 @@ let target_set_even = prove_by_refinement(
   ASM_MESON_TAC[FINITE_BIJ2;rectagon];
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   TYPE_THEN `rectagon (part_below G m)` ASM_CASES_TAC;
-  TYPE_THEN `CARD (endpoint (part_below G m)) =0` SUBGOAL_TAC;
+  TYPE_THEN `CARD (endpoint (part_below G m)) =0` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[HAS_SIZE;rectagon_endpoint0];
   MESON_TAC[EVEN];
   TYPE_THEN `P = part_below G m` ABBREV_TAC ;
-  TYPE_THEN `segment G /\ (P SUBSET G) /\ ~(rectagon P)` SUBGOAL_TAC;
+  TYPE_THEN `segment G /\ (P SUBSET G) /\ ~(rectagon P)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[rectagon_segment];
   ASM_MESON_TAC[part_below_subset];
   DISCH_TAC;
@@ -7253,13 +7253,13 @@ let target_set_odd = prove_by_refinement(
   [
   REWRITE_TAC[GSYM EVEN];
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE (target_set G m)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (target_set G m)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[target_set_finite;rectagon];
   DISCH_TAC;
-  TYPE_THEN `target_set G m (v_edge m)` SUBGOAL_TAC;
+  TYPE_THEN `target_set G m (v_edge m)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC [target_v];
   DISCH_TAC;
-  TYPE_THEN `SUC (CARD (target_set G m DELETE (v_edge m))) = CARD (target_set G m )` SUBGOAL_TAC;
+  TYPE_THEN `SUC (CARD (target_set G m DELETE (v_edge m))) = CARD (target_set G m )` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  CARD_SUC_DELETE;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -7273,20 +7273,20 @@ let squ_left_even = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
   REWRITE_TAC[even_cell_squ;num_lower_set];
-  TYPE_THEN `(EVEN (CARD (set_lower G (left m))) <=> EVEN (CARD (set_lower G m))) <=> (EVEN (CARD ((set_lower G (left m)) UNION (set_lower G m))))` SUBGOAL_TAC;
+  TYPE_THEN `(EVEN (CARD (set_lower G (left m))) <=> EVEN (CARD (set_lower G m))) <=> (EVEN (CARD ((set_lower G (left m)) UNION (set_lower G m))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  even_card_even;
   ASM_SIMP_TAC[finite_set_lower];
   REWRITE_TAC[set_lower;INTER ;left ;EQ_EMPTY ];
   MESON_TAC[INT_ARITH `~(z = z -: &:1)`];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `BIJ h_edge (set_lower G (left  m) UNION (set_lower G m)) (target_set G m) ` SUBGOAL_TAC;
+  TYPE_THEN `BIJ h_edge (set_lower G (left  m) UNION (set_lower G m)) (target_set G m) ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[bij_target_set];
   DISCH_TAC;
-  TYPE_THEN `CARD (set_lower G (left  m) UNION (set_lower G m)) = CARD (target_set G m)` SUBGOAL_TAC;
+  TYPE_THEN `CARD (set_lower G (left  m) UNION (set_lower G m)) = CARD (target_set G m)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  BIJ_CARD ;
   TYPE_THEN `h_edge` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -7303,21 +7303,21 @@ let squ_left_odd = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC;
   UND 0;
   REWRITE_TAC[even_cell_squ;num_lower_set];
-  TYPE_THEN `(EVEN (CARD (set_lower G (left m))) <=> EVEN (CARD (set_lower G m))) <=> (EVEN (CARD ((set_lower G (left m)) UNION (set_lower G m))))` SUBGOAL_TAC;
+  TYPE_THEN `(EVEN (CARD (set_lower G (left m))) <=> EVEN (CARD (set_lower G m))) <=> (EVEN (CARD ((set_lower G (left m)) UNION (set_lower G m))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  even_card_even;
   ASM_SIMP_TAC[finite_set_lower];
   REWRITE_TAC[set_lower;INTER ;left ;EQ_EMPTY ];
   MESON_TAC[INT_ARITH `~(z = z -: &:1)`];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `BIJ h_edge (set_lower G (left  m) UNION (set_lower G m)) (target_set G m DELETE (v_edge m)) ` SUBGOAL_TAC;
+  TYPE_THEN `BIJ h_edge (set_lower G (left  m) UNION (set_lower G m)) (target_set G m DELETE (v_edge m)) ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[bij_target_set_odd];
   DISCH_TAC;
-  TYPE_THEN `CARD (set_lower G (left  m) UNION (set_lower G m)) = CARD (target_set G m DELETE (v_edge m))` SUBGOAL_TAC;
+  TYPE_THEN `CARD (set_lower G (left  m) UNION (set_lower G m)) = CARD (target_set G m DELETE (v_edge m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  BIJ_CARD ;
   TYPE_THEN `h_edge` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -7507,7 +7507,7 @@ let rectangle_lemma3 = prove_by_refinement(
   TYPE_THEN `C = {z | ?r. (z = point r) /\ real_of_int (SND q -: &:1) < SND r}` ABBREV_TAC ;
   TYPE_THEN `D = {z | ?r. (z = point r) /\ SND r < real_of_int (SND q +: &:1)}` ABBREV_TAC ;
   REWRITE_TAC[INTER_ACI];
-  TYPE_THEN `!A. B INTER C INTER D INTER A = B INTER (C INTER D) INTER A` SUBGOAL_TAC;
+  TYPE_THEN `!A. B INTER C INTER D INTER A = B INTER (C INTER D) INTER A` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER_ACI];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   IMATCH_MP_TAC subset3_absorb;
@@ -7528,13 +7528,13 @@ let rectangle_h = prove_by_refinement(
   GEN_TAC;
   REWRITE_TAC[rectangle_lemma1;rectangle_lemma2;rectangle_lemma3];
   REWRITE_TAC[GSYM UNION_OVER_INTER];
-  TYPE_THEN `({z | ?r. (z = point r) /\ SND r < real_of_int (SND p)} UNION  {z | ?r. (z = point r) /\ (SND r = real_of_int (SND p))} UNION  {z | ?r. (z = point r) /\ real_of_int (SND p) < SND r}) = {z | ?r. (z = point r)}` SUBGOAL_TAC;
+  TYPE_THEN `({z | ?r. (z = point r) /\ SND r < real_of_int (SND p)} UNION  {z | ?r. (z = point r) /\ (SND r = real_of_int (SND p))} UNION  {z | ?r. (z = point r) /\ real_of_int (SND p) < SND r}) = {z | ?r. (z = point r)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[UNION];
   ASM_MESON_TAC[REAL_ARITH `!x y. (x <. y) \/ (x = y) \/ (y <. x)`];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `rectangle (FST p,SND p -: &:1) (FST p +: &:1,SND p +: &:1) SUBSET  {z | ?r. z = point r}` SUBGOAL_TAC;
+  TYPE_THEN `rectangle (FST p,SND p -: &:1) (FST p +: &:1,SND p +: &:1) SUBSET  {z | ?r. z = point r}` SUBGOAL_MP_TAC;
   REWRITE_TAC[rectangle;SUBSET ];
   ASM_MESON_TAC[];
   REWRITE_TAC [SUBSET_INTER_ABSORPTION;];
@@ -7597,7 +7597,7 @@ let rectangle_lemma6 = prove_by_refinement(
   TYPE_THEN `C = {z | ?r. (z = point r) /\ real_of_int (FST q -: &:1) < FST r}` ABBREV_TAC ;
   TYPE_THEN `D = {z | ?r. (z = point r) /\ FST r < real_of_int (FST q +: &:1)}` ABBREV_TAC ;
   REWRITE_TAC[INTER_ACI];
-  TYPE_THEN `!A. B INTER C INTER D INTER A = B INTER (C INTER D) INTER A` SUBGOAL_TAC;
+  TYPE_THEN `!A. B INTER C INTER D INTER A = B INTER (C INTER D) INTER A` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER_ACI];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   IMATCH_MP_TAC subset3_absorb;
@@ -7618,13 +7618,13 @@ let rectangle_v = prove_by_refinement(
   GEN_TAC;
   REWRITE_TAC[rectangle_lemma4;rectangle_lemma5;rectangle_lemma6];
   REWRITE_TAC[GSYM UNION_OVER_INTER];
-  TYPE_THEN `({z | ?r. (z = point r) /\ FST r < real_of_int (FST p)} UNION  {z | ?r. (z = point r) /\ (FST r = real_of_int (FST p))} UNION  {z | ?r. (z = point r) /\ real_of_int (FST p) < FST r}) = {z | ?r. (z = point r)}` SUBGOAL_TAC;
+  TYPE_THEN `({z | ?r. (z = point r) /\ FST r < real_of_int (FST p)} UNION  {z | ?r. (z = point r) /\ (FST r = real_of_int (FST p))} UNION  {z | ?r. (z = point r) /\ real_of_int (FST p) < FST r}) = {z | ?r. (z = point r)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[UNION];
   ASM_MESON_TAC[REAL_ARITH `!x y. (x <. y) \/ (x = y) \/ (y <. x)`];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `rectangle (FST p -: &:1 ,SND p) (FST p +: &:1,SND p +: &:1) SUBSET  {z | ?r. z = point r}` SUBGOAL_TAC;
+  TYPE_THEN `rectangle (FST p -: &:1 ,SND p) (FST p +: &:1,SND p +: &:1) SUBSET  {z | ?r. z = point r}` SUBGOAL_MP_TAC;
   REWRITE_TAC[rectangle;SUBSET ];
   ASM_MESON_TAC[];
   REWRITE_TAC [SUBSET_INTER_ABSORPTION;];
@@ -7761,7 +7761,7 @@ let long_v_union = prove_by_refinement(
   GEN_TAC;
   REWRITE_TAC[long_v_lemma1;long_v_lemma2;long_v_lemma3];
   REWRITE_TAC[GSYM UNION_OVER_INTER];
-  TYPE_THEN `({z | ?r. (z = point r) /\ SND r < real_of_int (SND p)} UNION  {z | ?r. (z = point r) /\ (real_of_int (SND p) = SND r)} UNION  {z | ?r. (z = point r) /\ real_of_int (SND p) < SND r}) = {z | ?r. (z = point r)}` SUBGOAL_TAC;
+  TYPE_THEN `({z | ?r. (z = point r) /\ SND r < real_of_int (SND p)} UNION  {z | ?r. (z = point r) /\ (real_of_int (SND p) = SND r)} UNION  {z | ?r. (z = point r) /\ real_of_int (SND p) < SND r}) = {z | ?r. (z = point r)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT  ;
   GEN_TAC;
   REWRITE_TAC[UNION;];
@@ -7835,7 +7835,7 @@ let two_two_lemma3 = prove_by_refinement(
   TYPE_THEN `C = {z | ?r. (z = point r) /\ real_of_int (FST p -: &:1) < FST r}` ABBREV_TAC ;
   TYPE_THEN `D = {z | ?r. (z = point r) /\ FST r < real_of_int (FST p +: &:1)} ` ABBREV_TAC ;
   REWRITE_TAC[INTER_ACI];
-  TYPE_THEN `!A. (B INTER C INTER D INTER A) = B INTER (C INTER D) INTER A` SUBGOAL_TAC;
+  TYPE_THEN `!A. (B INTER C INTER D INTER A) = B INTER (C INTER D) INTER A` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER_ACI];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC[t]);
   IMATCH_MP_TAC  subset3_absorb;
@@ -7860,7 +7860,7 @@ let two_two_union = prove_by_refinement(
   REWRITE_TAC[two_two_lemma1;two_two_lemma2;two_two_lemma3];
   REWRITE_TAC[GSYM UNION_OVER_INTER];
   GEN_TAC;
-  TYPE_THEN `{z | ?r. (z = point r)} = ({z | ?r. (z = point r) /\ FST r < real_of_int (FST p)} UNION {z | ?r. (z = point r) /\ (FST r = real_of_int (FST p))} UNION {z | ?r. (z = point r) /\ real_of_int (FST p) < FST r})` SUBGOAL_TAC;
+  TYPE_THEN `{z | ?r. (z = point r)} = ({z | ?r. (z = point r) /\ FST r < real_of_int (FST p)} UNION {z | ?r. (z = point r) /\ (FST r = real_of_int (FST p))} UNION {z | ?r. (z = point r) /\ real_of_int (FST p) < FST r})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[UNION];
@@ -7891,7 +7891,7 @@ let two_two_nine = prove_by_refinement(
   [
   GEN_TAC;
   REWRITE_TAC[two_two_union;rectangle_h;rectangle_v];
-  TYPE_THEN `rectangle (FST p -: &:1,SND p -: &:1) (FST p,SND p +: &:1) = rectangle (FST (left  p),SND (left  p) -: &:1) (FST (left  p) +: &:1,SND (left   p) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle (FST p -: &:1,SND p -: &:1) (FST p,SND p +: &:1) = rectangle (FST (left  p),SND (left  p) -: &:1) (FST (left  p) +: &:1,SND (left   p) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[left ;INT_ARITH `x -: &:1 +: &:1 = x`];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[rectangle_h];
@@ -7950,7 +7950,7 @@ let curve_cell_point = prove_by_refinement(
   DISJ2_TAC;
   REWRITE_TAC[eq_sing;INR IN_SING;pointI_inj;];
   CONV_TAC (dropq_conv "n'") ;
-  TYPE_THEN `closure top2 e SUBSET closure top2 (UNIONS G)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 e SUBSET closure top2 (UNIONS G)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  subset_of_closure;
   REWRITE_TAC[top2_top];
   IMATCH_MP_TAC  sub_union;
@@ -8007,12 +8007,12 @@ let curve_closure = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC ;
   ASSUME_TAC top2_top;
   (* ASM_SIMP_TAC[closure_unions]; *)
-  TYPE_THEN `G SUBSET edge ` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
@@ -8023,7 +8023,7 @@ let curve_closure = prove_by_refinement(
   CHO 4;
   AND 4;
   CHO 5;
-  TYPE_THEN `edge x'` SUBGOAL_TAC;
+  TYPE_THEN `edge x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -8115,7 +8115,7 @@ let cell_inter = prove_by_refinement(
   DISCH_THEN CHOOSE_TAC;
   AND 2;
   CHO 2;
-  TYPE_THEN `t = C` SUBGOAL_TAC;
+  TYPE_THEN `t = C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   ASM_MESON_TAC[];
@@ -8176,10 +8176,10 @@ let curve_cell_squ_inter = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `cell (squ m)` SUBGOAL_TAC;
+  TYPE_THEN `cell (squ m)` SUBGOAL_MP_TAC;
   REWRITE_TAC[cell_rules];
   DISCH_TAC;
-  TYPE_THEN `(curve_cell G SUBSET cell)` SUBGOAL_TAC;
+  TYPE_THEN `(curve_cell G SUBSET cell)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[curve_cell_cell;segment];
   DISCH_TAC;
   ASM_SIMP_TAC [cell_inter];
@@ -8193,12 +8193,12 @@ let curve_point_unions = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `UNIONS (curve_cell G) (pointI m) <=> ~({(pointI m)} INTER (UNIONS (curve_cell G)) = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (curve_cell G) (pointI m) <=> ~({(pointI m)} INTER (UNIONS (curve_cell G)) = EMPTY )` SUBGOAL_MP_TAC;
   REWRITE_TAC[REWRITE_RULE[not_eq] single_inter];
   DISCH_THEN_REWRITE;
   REWRITE_TAC [not_eq];
   IMATCH_MP_TAC  cell_inter;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
   ASM_MESON_TAC[cell_rules;curve_cell_cell];
@@ -8211,7 +8211,7 @@ let curve_cell_not_point = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G /\ (G SUBSET edge)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G /\ (G SUBSET edge)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
   ASM_SIMP_TAC[curve_cell_point;num_closure0];
@@ -8298,7 +8298,7 @@ let par_cell_point = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   REWRITE_TAC[par_cell;eq_sing;INR IN_SING;point_inj;];
-  SUBGOAL_TAC  `!u x. ({(pointI u)} = x) <=> (x = {(pointI u)})` ;
+  SUBGOAL_MP_TAC  `!u x. ({(pointI u)} = x) <=> (x = {(pointI u)})` ;
   ASM_MESON_TAC[];
   DISCH_THEN (fun t-> REWRITE_TAC[t]);
   REWRITE_TAC[eq_sing;INR IN_SING ;h_edge_pointI; v_edge_pointI; square_pointI;];
@@ -8347,7 +8347,7 @@ let par_cell_nonempty = prove_by_refinement(
   COPY 1;
   USE 1 (MATCH_MP rectagon_h_edge);
   CHO 1;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon];
   DISCH_TAC ;
   USE 3(MATCH_MP squ_down);
@@ -8358,7 +8358,7 @@ let par_cell_nonempty = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   UND 0;
   REWRITE_TAC[EMPTY_EXISTS];
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon_segment];
   DISCH_TAC ;
   TYPE_THEN `eps = EVEN (num_lower G m)` ASM_CASES_TAC;
@@ -8385,7 +8385,7 @@ let par_cell_unions_nonempty = prove_by_refinement(
  LEFT_TAC "u'";
   TYPE_THEN `u` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `cell u` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_cell;ISUBSET ];
   DISCH_THEN (fun t-> MP_TAC (MATCH_MP cell_nonempty t));
   REWRITE_TAC[EMPTY_EXISTS];
@@ -8413,7 +8413,7 @@ let curve_closed = prove_by_refinement(
   IMATCH_MP_TAC  closure_closed;
   REWRITE_TAC[top2_top];
   IMATCH_MP_TAC  UNIONS_SUBSET;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   REWRITE_TAC[SUBSET;top2_unions;edge;  ];
   DISCH_ALL_TAC;
@@ -8503,7 +8503,7 @@ let par_cell_partition = prove_by_refinement(
   REWR 3;
   ASM_REWRITE_TAC[];
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `(G (h_edge p'))` SUBGOAL_TAC;
+  TYPE_THEN `(G (h_edge p'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC ;
   TSPEC `h_edge p'` 2;
@@ -8516,7 +8516,7 @@ let par_cell_partition = prove_by_refinement(
   REWR 3;
   ASM_REWRITE_TAC[];
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `(G (v_edge p'))` SUBGOAL_TAC;
+  TYPE_THEN `(G (v_edge p'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC ;
   TSPEC `v_edge p'` 2;
@@ -8545,7 +8545,7 @@ let par_cell_h_squ = prove_by_refinement(
   UND 1;
   ASM_SIMP_TAC [par_cell_h;par_cell_squ];
   DISCH_ALL_TAC;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC ;
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
@@ -8562,7 +8562,7 @@ let par_cell_v_squ = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   UND 1;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon_segment];
   ASM_SIMP_TAC [par_cell_v;par_cell_squ];
   DISCH_ALL_TAC;
@@ -8622,14 +8622,14 @@ let par_cell_point_h = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   UND 1;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon_segment];
   ASM_SIMP_TAC [par_cell_h;par_cell_point];
   DISCH_ALL_TAC;
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
   ASM_SIMP_TAC[REWRITE_RULE[even_cell_squ] squ_left_par];
   UND 1;
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment_finite];
   ASM_MESON_TAC[num_closure0_edge];
   ]);;
@@ -8642,12 +8642,12 @@ let par_cell_point_v = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   UND 1;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon_segment];
   ASM_SIMP_TAC [par_cell_v;par_cell_point];
   DISCH_ALL_TAC;
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment_finite];
   ASM_SIMP_TAC[num_lower_down];
   REWRITE_TAC [set_lower_n];
@@ -8662,23 +8662,23 @@ let par_cell_point_rectangle = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[rectagon_segment];
   DISCH_TAC;
   REWRITE_TAC[two_two_union;union_subset];
   CONJ_TAC;
-  TYPE_THEN `rectangle (FST m -: &:1,SND m -: &:1) (FST m,SND m +: &:1) = rectangle (FST (left  m),SND (left  m) -: &:1) (FST (left  m) +: &:1,SND (left  m) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle (FST m -: &:1,SND m -: &:1) (FST m,SND m +: &:1) = rectangle (FST (left  m),SND (left  m) -: &:1) (FST (left  m) +: &:1,SND (left  m) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[left ;INT_ARITH ` x -: &:1 +: &:1 =x`];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[rectangle_h;union_subset ];
-  TYPE_THEN `par_cell eps G (h_edge (left  m))` SUBGOAL_TAC;
+  TYPE_THEN `par_cell eps G (h_edge (left  m))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_point_h];
   ASM_MESON_TAC[sub_union;par_cell_h_squ];
   CONJ_TAC;
   REWRITE_TAC[long_v_union;union_subset;];
   ASM_MESON_TAC[sub_union; par_cell_point_v;];
   REWRITE_TAC[rectangle_h;union_subset ];
-  TYPE_THEN `par_cell eps G (h_edge (  m))` SUBGOAL_TAC;
+  TYPE_THEN `par_cell eps G (h_edge (  m))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_point_h];
   ASM_MESON_TAC[sub_union;par_cell_h_squ];
   ]);;
@@ -8691,7 +8691,7 @@ let par_cell_h_rectangle = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[rectagon_segment];
   DISCH_TAC;
   REWRITE_TAC[rectangle_h;union_subset ];
@@ -8706,7 +8706,7 @@ let par_cell_v_rectangle = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[rectagon_segment];
   DISCH_TAC;
   REWRITE_TAC[rectangle_v;union_subset ];
@@ -8792,7 +8792,7 @@ let par_cell_open = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[rectagon_segment];
   DISCH_TAC;
   ASSUME_TAC ctop_top;
@@ -8805,7 +8805,7 @@ let par_cell_open = prove_by_refinement(
   DISCH_TAC;
   USE 2(REWRITE_RULE[UNIONS]);
   CHO 2;
-  TYPE_THEN `?p. (u = {(pointI p)}) \/ (u = h_edge p) \/ (u = v_edge p) \/ (u = squ p)` SUBGOAL_TAC;
+  TYPE_THEN `?p. (u = {(pointI p)}) \/ (u = h_edge p) \/ (u = v_edge p) \/ (u = squ p)` SUBGOAL_MP_TAC;
   AND 2;
   USE 3 (MATCH_MP (REWRITE_RULE[ISUBSET ]par_cell_cell));
   USE 3(REWRITE_RULE[cell]);
@@ -8874,10 +8874,10 @@ let par_cell_union_disjoint = prove_by_refinement(
   AND 0;
   CHO 0;
   CHO 1;
-  TYPE_THEN `cell u /\ cell u'` SUBGOAL_TAC;
+  TYPE_THEN `cell u /\ cell u'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_cell;ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `u = u'` SUBGOAL_TAC;
+  TYPE_THEN `u = u'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   ASM_MESON_TAC[];
@@ -8900,10 +8900,10 @@ let par_cell_comp = prove_by_refinement(
 
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `component  (ctop G) x SUBSET (UNIONS (ctop G))` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G) x SUBSET (UNIONS (ctop G))` SUBGOAL_MP_TAC;
   REWRITE_TAC[component_DEF ;SUBSET ;connected ];
   MESON_TAC[];
-  TYPE_THEN `segment G` SUBGOAL_TAC;
+  TYPE_THEN `segment G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [rectagon_segment];
   DISCH_TAC;
   ASM_SIMP_TAC[GSYM par_cell_partition];
@@ -8915,10 +8915,10 @@ let par_cell_comp = prove_by_refinement(
   CHO 3;
   LEFT 4 "x'";
   CHO 4;
-  TYPE_THEN `component  (ctop G) x x'' /\ component  (ctop G) x x' ` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G) x x'' /\ component  (ctop G) x x' ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `component  (ctop G) x' x'' ` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G) x' x'' ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_symm;component_trans];
   DISCH_TAC;
   USE 6(REWRITE_RULE[component_DEF]);
@@ -8932,13 +8932,13 @@ let par_cell_comp = prove_by_refinement(
   TYPEL_THEN [`A`;`B`] (USE 7 o ISPECL);
   UND 7;
   REWRITE_TAC[];
-  TYPE_THEN `ctop G A /\ ctop G B` SUBGOAL_TAC;
+  TYPE_THEN `ctop G A /\ ctop G B` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_open];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `Z SUBSET (A UNION B)` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET (A UNION B)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[par_cell_partition];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `A INTER B = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `A INTER B = EMPTY` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B";
   ASM_MESON_TAC[par_cell_union_disjoint;INTER_ACI;];
@@ -9058,7 +9058,7 @@ let mk_segment_image = prove_by_refinement(
   COND_CASES_TAC;
   REWRITE_TAC[REAL_ARITH `&1 - (&1 - a) = a`];
   ASM_MESON_TAC [euclid_add_comm];
-  TYPE_THEN `a = &.0` SUBGOAL_TAC;
+  TYPE_THEN `a = &.0` SUBGOAL_MP_TAC;
   UND 4;
   UND 3;
   AND 2;
@@ -9090,7 +9090,7 @@ let connected_mk_segment = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `?f. (continuous f    (top_of_metric(UNIV,d_real))  (top_of_metric (euclid n,d_euclid))) /\  (IMAGE f {t | &.0 <=. t /\ t <=. &.1}  = mk_segment x y)` SUBGOAL_TAC;
+  TYPE_THEN `?f. (continuous f    (top_of_metric(UNIV,d_real))  (top_of_metric (euclid n,d_euclid))) /\  (IMAGE f {t | &.0 <=. t /\ t <=. &.1}  = mk_segment x y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  mk_segment_image;
   ASM_REWRITE_TAC[];
   DISCH_THEN CHOOSE_TAC;
@@ -9102,7 +9102,7 @@ let connected_mk_segment = prove_by_refinement(
   CONJ_TAC;
   USE 2(GSYM);
   ASM_REWRITE_TAC[];
-  TYPE_THEN `UNIONS (top_of_metric (euclid n,d_euclid) ) = (euclid n)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (top_of_metric (euclid n,d_euclid) ) = (euclid n)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [top_of_metric_unions;metric_euclid];
   DISCH_THEN_REWRITE;
   ASM_MESON_TAC[convex;euclid_n_convex];
@@ -9132,7 +9132,7 @@ let ctop_top2 = prove_by_refinement(
   REWRITE_TAC[ctop;induced_top;IMAGE ;];
   DISCH_ALL_TAC;
   TYPE_THEN `U = top_of_metric(euclid 2,d_euclid)` ABBREV_TAC ;
-  TYPE_THEN `euclid 2 = UNIONS U` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 = UNIONS U` SUBGOAL_MP_TAC;
   EXPAND_TAC "U";
   ASM_MESON_TAC[top_of_metric_unions;metric_euclid];
   CHO 1;
@@ -9149,7 +9149,7 @@ let ctop_top2 = prove_by_refinement(
   USE 3(GSYM);
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  UNIONS_SUBSET;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   REWRITE_TAC[edge;ISUBSET;];
   DISCH_ALL_TAC;
@@ -9229,14 +9229,14 @@ let convex_connected = prove_by_refinement(
   CHO 7;
   LEFT 8 "x";
   CHO 8;
-  TYPE_THEN `Z x /\ Z x'` SUBGOAL_TAC;
+  TYPE_THEN `Z x /\ Z x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `mk_segment x x' SUBSET A UNION B` SUBGOAL_TAC;
+  TYPE_THEN `mk_segment x x' SUBSET A UNION B` SUBGOAL_MP_TAC;
   USE 1(REWRITE_RULE[convex]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) (mk_segment x x')` SUBGOAL_TAC;
+  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) (mk_segment x x')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  connected_mk_segment;
   USE 2(REWRITE_RULE[ctop_unions;SUBSET;DIFF;]);
   ASM_MESON_TAC[];
@@ -9245,7 +9245,7 @@ let convex_connected = prove_by_refinement(
   AND 11;
   TYPEL_THEN [`A`;`B`] (USE 11 o ISPECL);
   REWR 11;
-  TYPE_THEN `top_of_metric (euclid 2,d_euclid) A /\ top_of_metric (euclid 2,d_euclid) B` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric (euclid 2,d_euclid) A /\ top_of_metric (euclid 2,d_euclid) B` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM top2];
   ASM_MESON_TAC[ctop_top2;top2];
   DISCH_TAC;
@@ -9288,7 +9288,7 @@ let convex_component = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `connected (ctop G) Z` SUBGOAL_TAC;
+  TYPE_THEN `connected (ctop G) Z` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[convex_connected];
   DISCH_TAC;
   USE 3(REWRITE_RULE[EMPTY_EXISTS;INTER ]);
@@ -9331,7 +9331,7 @@ let unions_cell_of = prove_by_refinement(
   AND 1;
   ASM_MESON_TAC[];
   DISCH_ALL_TAC;
-  TYPE_THEN `(euclid 2 x')` SUBGOAL_TAC;
+  TYPE_THEN `(euclid 2 x')` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[component_DEF   ;connected;SUBSET ;ctop_unions;DIFF ];
   DISCH_THEN CHOOSE_TAC;
@@ -9346,7 +9346,7 @@ let unions_cell_of = prove_by_refinement(
   USE 3 (REWRITE_RULE[UNIONS]);
   CHO 3;
   TYPE_THEN `u` EXISTS_TAC;
-  TYPE_THEN `u SUBSET (component  (ctop G) x) ==> (!x'. u x' ==> component  (ctop G) x x')` SUBGOAL_TAC;
+  TYPE_THEN `u SUBSET (component  (ctop G) x) ==> (!x'. u x' ==> component  (ctop G) x x')` SUBGOAL_MP_TAC;
   REWRITE_TAC[ISUBSET];
   ASM_REWRITE_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -9367,20 +9367,20 @@ let unions_cell_of = prove_by_refinement(
   LEFT_TAC  "u";
   GEN_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
   USE 6 (MATCH_MP   curve_cell_cell);
   USE 6 (REWRITE_RULE[ISUBSET]);
   TSPEC `u'` 6;
   REWR 6;
-  TYPE_THEN `u = u'` SUBGOAL_TAC;
+  TYPE_THEN `u = u'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   REWRITE_TAC[EMPTY_EXISTS;INTER];
   ASM_MESON_TAC[];
   DISCH_TAC;
   USE 1 (REWRITE_RULE[component_DEF;connected;SUBSET ]);
-  TYPE_THEN `UNIONS (ctop G) (point p)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) (point p)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REWRITE_TAC[ctop_unions;DIFF ;UNIONS ;DE_MORGAN_THM ];
   DISJ2_TAC ;
@@ -9416,9 +9416,9 @@ let num_abs_of_int_exists = prove_by_refinement(
   DISCH_THEN DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
   WITH 0 (REWRITE_RULE[int_abs_th]);
-  TYPE_THEN `&0 <= abs  (real_of_int m)` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= abs  (real_of_int m)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ABS_POS];
-  TYPE_THEN `abs  (real_of_int m) <= &.0` SUBGOAL_TAC;
+  TYPE_THEN `abs  (real_of_int m) <= &.0` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   REDUCE_TAC ;
   ASM_REWRITE_TAC[];
@@ -9907,7 +9907,7 @@ let squc_union = prove_by_refinement(
   (* {{{ proof *)
   [
   GEN_TAC;
-  TYPE_THEN `squc p = squc p  INTER ({z | ?r. (z = point r) /\ (real_of_int(FST p) = FST r)} UNION   {z | ?r. (z = point r) /\ (real_of_int(FST p) + &1= FST r )} UNION   {z | ?r. (z = point r) /\ (FST r <. real_of_int(FST p) + &1 ) /\  (real_of_int(FST p) <. FST r) } )` SUBGOAL_TAC;
+  TYPE_THEN `squc p = squc p  INTER ({z | ?r. (z = point r) /\ (real_of_int(FST p) = FST r)} UNION   {z | ?r. (z = point r) /\ (real_of_int(FST p) + &1= FST r )} UNION   {z | ?r. (z = point r) /\ (FST r <. real_of_int(FST p) + &1 ) /\  (real_of_int(FST p) <. FST r) } )` SUBGOAL_MP_TAC;
   ONCE_REWRITE_TAC[EQ_SYM_EQ];
   REWRITE_TAC  [GSYM SUBSET_INTER_ABSORPTION];
   MATCH_ACCEPT_TAC squc_lemma4;
@@ -9927,7 +9927,7 @@ let squ_closure_h = prove_by_refinement(
   ASM_REWRITE_TAC[top2];
   IMATCH_MP_TAC  closure_segment;
   ASM_REWRITE_TAC[squ_euclid];
-  TYPE_THEN `?q. (x = point q)` SUBGOAL_TAC ;
+  TYPE_THEN `?q. (x = point q)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  point_onto;
   ASM_MESON_TAC[REWRITE_RULE[ISUBSET] h_edge_euclid];
   DISCH_TAC;
@@ -9937,7 +9937,7 @@ let squ_closure_h = prove_by_refinement(
   TYPE_THEN `point (FST q, SND q + &1)` EXISTS_TAC;
   REWRITE_TAC[point_scale;point_add;];
   UND 0;
-  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_TAC;
+  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   PURE_REWRITE_TAC[point_add;point_scale];
@@ -9972,7 +9972,7 @@ let squ_closure_up_h = prove_by_refinement(
   ASM_REWRITE_TAC[top2];
   IMATCH_MP_TAC  closure_segment;
   ASM_REWRITE_TAC[squ_euclid];
-  TYPE_THEN `?q. (x = point q)` SUBGOAL_TAC ;
+  TYPE_THEN `?q. (x = point q)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  point_onto;
   ASM_MESON_TAC[REWRITE_RULE[ISUBSET] h_edge_euclid];
   DISCH_TAC;
@@ -9982,7 +9982,7 @@ let squ_closure_up_h = prove_by_refinement(
   TYPE_THEN `point (FST q , SND q - &1)` EXISTS_TAC;
   REWRITE_TAC[point_scale;point_add;];
   UND 0;
-  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_TAC;
+  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   PURE_REWRITE_TAC[point_add;point_scale];
@@ -10031,7 +10031,7 @@ let squ_closure_v = prove_by_refinement(
   ASM_REWRITE_TAC[top2];
   IMATCH_MP_TAC  closure_segment;
   ASM_REWRITE_TAC[squ_euclid];
-  TYPE_THEN `?q. (x = point q)` SUBGOAL_TAC ;
+  TYPE_THEN `?q. (x = point q)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  point_onto;
   ASM_MESON_TAC[REWRITE_RULE[ISUBSET] v_edge_euclid];
   DISCH_TAC;
@@ -10041,7 +10041,7 @@ let squ_closure_v = prove_by_refinement(
   TYPE_THEN `point (FST q + &1, SND q )` EXISTS_TAC;
   REWRITE_TAC[point_scale;point_add;];
   UND 0;
-  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_TAC;
+  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   PURE_REWRITE_TAC[point_add;point_scale];
@@ -10076,7 +10076,7 @@ let squ_closure_right_v = prove_by_refinement(
   ASM_REWRITE_TAC[top2];
   IMATCH_MP_TAC  closure_segment;
   ASM_REWRITE_TAC[squ_euclid];
-  TYPE_THEN `?q. (x = point q)` SUBGOAL_TAC ;
+  TYPE_THEN `?q. (x = point q)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  point_onto;
   ASM_MESON_TAC[REWRITE_RULE[ISUBSET] v_edge_euclid];
   DISCH_TAC;
@@ -10086,7 +10086,7 @@ let squ_closure_right_v = prove_by_refinement(
   TYPE_THEN `point (FST q - &1 , SND q )` EXISTS_TAC;
   REWRITE_TAC[point_scale;point_add;];
   UND 0;
-  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_TAC;
+  TYPE_THEN `point q = point (FST q,SND q)` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_REWRITE_TAC [t]);
   PURE_REWRITE_TAC[point_add;point_scale];
@@ -10328,7 +10328,7 @@ let comp_h_rect = prove_by_refinement(
   REWRITE_TAC[rectangle_h; EQ_EMPTY ;UNION ; INTER;];
   DISCH_ALL_TAC;
   AND 2;
-  TYPE_THEN `~(squ (down m) x') /\ ~(squ m x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (down m) x') /\ ~(squ m x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10339,7 +10339,7 @@ let comp_h_rect = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_ALL_TAC;
   REWR 3;
-  TYPE_THEN `h_edge m SUBSET (UNIONS (ctop G))` SUBGOAL_TAC;
+  TYPE_THEN `h_edge m SUBSET (UNIONS (ctop G))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `component  (ctop G) x` EXISTS_TAC;
   ASM_REWRITE_TAC[component_unions];
@@ -10347,7 +10347,7 @@ let comp_h_rect = prove_by_refinement(
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_h; EMPTY_EXISTS; UNION ; INTER;];
   USE 1 (REWRITE_RULE[SUBSET]);
-  TYPE_THEN `~(h_edge m = EMPTY)` SUBGOAL_TAC ;
+  TYPE_THEN `~(h_edge m = EMPTY)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  cell_nonempty;
   REWRITE_TAC[cell_rules];
   REWRITE_TAC[EMPTY_EXISTS];
@@ -10373,7 +10373,7 @@ let comp_v_rect = prove_by_refinement(
   REWRITE_TAC[rectangle_v; EQ_EMPTY ;UNION ; INTER;];
   DISCH_ALL_TAC;
   AND 2;
-  TYPE_THEN `~(squ (left   m) x') /\ ~(squ m x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (left   m) x') /\ ~(squ m x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10384,7 +10384,7 @@ let comp_v_rect = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_ALL_TAC;
   REWR 3;
-  TYPE_THEN `v_edge m SUBSET (UNIONS (ctop G))` SUBGOAL_TAC;
+  TYPE_THEN `v_edge m SUBSET (UNIONS (ctop G))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `component  (ctop G) x` EXISTS_TAC;
   ASM_REWRITE_TAC[component_unions];
@@ -10392,7 +10392,7 @@ let comp_v_rect = prove_by_refinement(
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_v; EMPTY_EXISTS; UNION ; INTER;];
   USE 1 (REWRITE_RULE[SUBSET]);
-  TYPE_THEN `~(v_edge m = EMPTY)` SUBGOAL_TAC ;
+  TYPE_THEN `~(v_edge m = EMPTY)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  cell_nonempty;
   REWRITE_TAC[cell_rules];
   REWRITE_TAC[EMPTY_EXISTS];
@@ -10435,26 +10435,26 @@ let comp_pointI_long = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC[long_v_union;EQ_EMPTY;UNION;INTER];
   GEN_TAC;
-  TYPE_THEN `UNIONS (ctop G) (pointI m)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) (pointI m)` SUBGOAL_MP_TAC;
   ASSUME_TAC (ISPEC `(ctop G)` component_unions);
   ASM_MESON_TAC[ISUBSET];
   REWRITE_TAC[ctop_unions;DIFF ;];
   DISCH_ALL_TAC;
   AND 2;
-  TYPE_THEN `~(curve_cell G {(pointI m)})` SUBGOAL_TAC;
+  TYPE_THEN `~(curve_cell G {(pointI m)})` SUBGOAL_MP_TAC;
   USE 4(REWRITE_RULE[UNIONS]);
   LEFT 4 "u";
   TSPEC `{(pointI m)}` 4;
   USE 4(REWRITE_RULE [INR IN_SING;]);
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[curve_cell_not_point;];
-  TYPE_THEN `FINITE G` SUBGOAL_TAC;
+  TYPE_THEN `FINITE G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[segment_finite];
   ASM_SIMP_TAC[num_closure0];
   DISCH_TAC;
   UND 5;
   REP_CASES_TAC; (* cases *)
-  TYPE_THEN `~(v_edge (down m) INTER  UNIONS (curve_cell G) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(v_edge (down m) INTER  UNIONS (curve_cell G) = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   ASM_MESON_TAC[];
   ASM_SIMP_TAC[curve_cell_v_inter];
@@ -10465,7 +10465,7 @@ let comp_pointI_long = prove_by_refinement(
   (* next case *)
   USE 7 (REWRITE_RULE[INR IN_SING]);
   ASM_MESON_TAC[];
-  TYPE_THEN `~(v_edge (m) INTER  UNIONS (curve_cell G) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(v_edge (m) INTER  UNIONS (curve_cell G) = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   ASM_MESON_TAC[];
   ASM_SIMP_TAC[curve_cell_v_inter];
@@ -10486,7 +10486,7 @@ let comp_h_squ = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC comp_h_rect;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -10505,7 +10505,7 @@ let comp_v_squ = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `(rectangle (FST m -: &:1 , SND m ) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `(rectangle (FST m -: &:1 , SND m ) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC comp_v_rect;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -10524,7 +10524,7 @@ let comp_p_squ = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `long_v m SUBSET component  (ctop G) x` SUBGOAL_TAC;
+  TYPE_THEN `long_v m SUBSET component  (ctop G) x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC comp_pointI_long;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[long_v_union];
@@ -10585,7 +10585,7 @@ let comp_squ_left_rect_v = prove_by_refinement(
   REWRITE_TAC[rectangle_v; EQ_EMPTY ;UNION ; INTER;];
   DISCH_ALL_TAC;
   AND 3;
-  TYPE_THEN `~(squ (left   m) x') /\ ~(squ m x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (left   m) x') /\ ~(squ m x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10598,18 +10598,18 @@ let comp_squ_left_rect_v = prove_by_refinement(
   REWR 4;
   USE 3 (REWRITE_RULE[UNIONS;]);
   CHO 3;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   ASM_MESON_TAC[ISUBSET; curve_cell_cell];
   DISCH_TAC;
-  TYPE_THEN `u = v_edge m ` SUBGOAL_TAC;
+  TYPE_THEN `u = v_edge m ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   ASM_REWRITE_TAC[EMPTY_EXISTS;INTER;cell_rules];
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_v;EMPTY_EXISTS;];
-  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS;UNION;INTER;];
   USE 2(REWRITE_RULE[ISUBSET]);
@@ -10652,7 +10652,7 @@ let comp_squ_right_rect_v = prove_by_refinement(
   (*  *)
   IMATCH_MP_TAC   convex_component;
   ASM_REWRITE_TAC[rectangle_convex; ctop_unions;];
-  TYPE_THEN `rectangle m (FST m +: &:2,SND m +: &:1) = rectangle (FST (right  m) -: &:1, SND (right  m)) (FST (right  m) +: &:1, SND (right  m) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle m (FST m +: &:2,SND m +: &:1) = rectangle (FST (right  m) -: &:1, SND (right  m)) (FST (right  m) +: &:1, SND (right  m) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[right ;INT_ARITH `(x +: &:1)-: &:1 = x`;INT_ARITH `(x +: &:1) +: &:1 = x +: &:2` ];
   DISCH_THEN_REWRITE;
   CONJ_TAC;
@@ -10661,7 +10661,7 @@ let comp_squ_right_rect_v = prove_by_refinement(
   DISCH_ALL_TAC;
   AND 3;
   USE 4 (REWRITE_RULE[right_left]);
-  TYPE_THEN `~(squ  m x') /\ ~(squ (right  m) x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ  m x') /\ ~(squ (right  m) x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10674,19 +10674,19 @@ let comp_squ_right_rect_v = prove_by_refinement(
   REWR 4;
   USE 3 (REWRITE_RULE[UNIONS;]);
   CHO 3;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   ASM_MESON_TAC[ISUBSET; curve_cell_cell];
   DISCH_TAC;
-  TYPE_THEN `u = v_edge (right  m) ` SUBGOAL_TAC;
+  TYPE_THEN `u = v_edge (right  m) ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   ASM_REWRITE_TAC[EMPTY_EXISTS;INTER;cell_rules];
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_v;EMPTY_EXISTS;];
   REWRITE_TAC[right_left];
-  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS;UNION;INTER;];
   USE 2(REWRITE_RULE[ISUBSET]);
@@ -10734,7 +10734,7 @@ let comp_squ_down_rect_h = prove_by_refinement(
   REWRITE_TAC[rectangle_h; EQ_EMPTY ;UNION ; INTER;];
   DISCH_ALL_TAC;
   AND 3;
-  TYPE_THEN `~(squ (down   m) x') /\ ~(squ m x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (down   m) x') /\ ~(squ m x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10747,18 +10747,18 @@ let comp_squ_down_rect_h = prove_by_refinement(
   REWR 4;
   USE 3 (REWRITE_RULE[UNIONS;]);
   CHO 3;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   ASM_MESON_TAC[ISUBSET; curve_cell_cell];
   DISCH_TAC;
-  TYPE_THEN `u = h_edge m ` SUBGOAL_TAC;
+  TYPE_THEN `u = h_edge m ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   ASM_REWRITE_TAC[EMPTY_EXISTS;INTER;cell_rules];
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_h;EMPTY_EXISTS;];
-  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS;UNION;INTER;];
   USE 2(REWRITE_RULE[ISUBSET]);
@@ -10802,7 +10802,7 @@ let comp_squ_up_rect_h = prove_by_refinement(
   (*  *)
   IMATCH_MP_TAC   convex_component;
   ASM_REWRITE_TAC[rectangle_convex; ctop_unions;];
-  TYPE_THEN `rectangle m (FST m +: &:1,SND m +: &:2) = rectangle (FST (up  m) , SND (up  m) -: &:1) (FST (up  m) +: &:1, SND (up  m) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle m (FST m +: &:1,SND m +: &:2) = rectangle (FST (up  m) , SND (up  m) -: &:1) (FST (up  m) +: &:1, SND (up  m) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[up ;INT_ARITH `(x +: &:1)-: &:1 = x`;INT_ARITH `(x +: &:1) +: &:1 = x +: &:2` ];
   DISCH_THEN_REWRITE;
   CONJ_TAC;
@@ -10811,7 +10811,7 @@ let comp_squ_up_rect_h = prove_by_refinement(
   DISCH_ALL_TAC;
   AND 3;
   USE 4 (REWRITE_RULE[right_left]);
-  TYPE_THEN `~(squ  m x') /\ ~(squ (up  m) x')` SUBGOAL_TAC;
+  TYPE_THEN `~(squ  m x') /\ ~(squ (up  m) x')` SUBGOAL_MP_TAC;
   USE 0(MATCH_MP curve_cell_squ_inter);
   COPY 0;
   TSPEC `m` 0;
@@ -10824,19 +10824,19 @@ let comp_squ_up_rect_h = prove_by_refinement(
   REWR 4;
   USE 3 (REWRITE_RULE[UNIONS;]);
   CHO 3;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   ASM_MESON_TAC[ISUBSET; curve_cell_cell];
   DISCH_TAC;
-  TYPE_THEN `u = h_edge (up  m) ` SUBGOAL_TAC;
+  TYPE_THEN `u = h_edge (up  m) ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   ASM_REWRITE_TAC[EMPTY_EXISTS;INTER;cell_rules];
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
   REWRITE_TAC[rectangle_h;EMPTY_EXISTS;];
   REWRITE_TAC[right_left];
-  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `~(squ m = EMPTY )` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS;UNION;INTER;];
   USE 2(REWRITE_RULE[ISUBSET]);
@@ -10882,10 +10882,10 @@ let comp_squ_right_left = prove_by_refinement(
   WITH 0 (MATCH_MP comp_squ_down_rect);
   WITH 0 (MATCH_MP comp_squ_left_rect);
   WITH 0 (MATCH_MP comp_squ_right_rect);
-  TYPE_THEN `rectangle m (FST m +: &:1,SND m +: &:2) = rectangle (FST (up  m) , SND (up  m) -: &:1) (FST (up  m) +: &:1, SND (up  m) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle m (FST m +: &:1,SND m +: &:2) = rectangle (FST (up  m) , SND (up  m) -: &:1) (FST (up  m) +: &:1, SND (up  m) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[up ;INT_ARITH `(x +: &:1)-: &:1 = x`;INT_ARITH `(x +: &:1) +: &:1 = x +: &:2` ];
   DISCH_THEN (fun t-> USE 1 (REWRITE_RULE[t]));
-  TYPE_THEN `rectangle m (FST m +: &:2,SND m +: &:1) = rectangle (FST (right  m) -: &:1, SND (right  m)) (FST (right  m) +: &:1, SND (right  m) +: &:1)` SUBGOAL_TAC;
+  TYPE_THEN `rectangle m (FST m +: &:2,SND m +: &:1) = rectangle (FST (right  m) -: &:1, SND (right  m)) (FST (right  m) +: &:1, SND (right  m) +: &:1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[right ;INT_ARITH `(x +: &:1)-: &:1 = x`;INT_ARITH `(x +: &:1) +: &:1 = x +: &:2` ];
   DISCH_THEN (fun t-> USE 4 (REWRITE_RULE[t]));
   RULE_ASSUM_TAC (REWRITE_RULE[rectangle_h;rectangle_v;union_subset;right_left ]);
@@ -10902,10 +10902,10 @@ let suc_sum = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   LEFT 1 "k";
   USE 1(REWRITE_RULE[DE_MORGAN_THM]);
-  TYPE_THEN `a = 0 ` SUBGOAL_TAC;
+  TYPE_THEN `a = 0 ` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   ASM_MESON_TAC[num_CASES];
-  TYPE_THEN `b = 0` SUBGOAL_TAC;
+  TYPE_THEN `b = 0` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[num_CASES];
   UND 0;
   ARITH_TAC;
@@ -10928,12 +10928,12 @@ let squ_induct = prove_by_refinement(
   CHO 1;
   UND 1;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `~(num_abs_of_int (FST m -: FST n) = 0)` SUBGOAL_TAC;
+  TYPE_THEN `~(num_abs_of_int (FST m -: FST n) = 0)` SUBGOAL_MP_TAC;
   UND 1;
   ARITH_TAC;
   REWRITE_TAC[num_abs_of_int0];
   DISCH_TAC;
-  TYPE_THEN `FST m <: FST n \/ FST n <: FST m` SUBGOAL_TAC;
+  TYPE_THEN `FST m <: FST n \/ FST n <: FST m` SUBGOAL_MP_TAC;
   UND 2;
   INT_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -10942,11 +10942,11 @@ let squ_induct = prove_by_refinement(
   REWRITE_TAC[right ];
   ONCE_REWRITE_TAC[GSYM EQ_SUC];
   REWRITE_TAC[GSYM ADD];
-  TYPE_THEN `(FST m +: &:1) -: FST n <=: &:0` SUBGOAL_TAC;
+  TYPE_THEN `(FST m +: &:1) -: FST n <=: &:0` SUBGOAL_MP_TAC;
   UND 3;
   INT_ARITH_TAC;
   ASM_SIMP_TAC[num_abs_of_int_pre];
-  TYPE_THEN `(FST m +: &:1) -: FST n -: &:1 = FST m -: FST n` SUBGOAL_TAC;
+  TYPE_THEN `(FST m +: &:1) -: FST n -: &:1 = FST m -: FST n` SUBGOAL_MP_TAC;
   INT_ARITH_TAC;
   DISCH_THEN_REWRITE;
   (* next *)
@@ -10955,20 +10955,20 @@ let squ_induct = prove_by_refinement(
   REWRITE_TAC[left   ];
   ONCE_REWRITE_TAC[GSYM EQ_SUC];
   REWRITE_TAC[GSYM ADD];
-  TYPE_THEN `&:0 <=: (FST m -: &:1) -: FST n ` SUBGOAL_TAC;
+  TYPE_THEN `&:0 <=: (FST m -: &:1) -: FST n ` SUBGOAL_MP_TAC;
   UND 3;
   INT_ARITH_TAC;
   ASM_SIMP_TAC[num_abs_of_int_suc];
-  TYPE_THEN `(FST m -: &:1 -: FST n +: &:1) = FST m -: FST n` SUBGOAL_TAC;
+  TYPE_THEN `(FST m -: &:1 -: FST n +: &:1) = FST m -: FST n` SUBGOAL_MP_TAC;
   INT_ARITH_TAC;
   DISCH_THEN_REWRITE;
   (* next *)
-  TYPE_THEN `~(num_abs_of_int (SND  m -: SND  n) = 0)` SUBGOAL_TAC;
+  TYPE_THEN `~(num_abs_of_int (SND  m -: SND  n) = 0)` SUBGOAL_MP_TAC;
   UND 1;
   ARITH_TAC;
   REWRITE_TAC[num_abs_of_int0];
   DISCH_TAC;
-  TYPE_THEN `SND  m <: SND  n \/ SND  n <: SND  m` SUBGOAL_TAC;
+  TYPE_THEN `SND  m <: SND  n \/ SND  n <: SND  m` SUBGOAL_MP_TAC;
   UND 2;
   INT_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -10978,11 +10978,11 @@ let squ_induct = prove_by_refinement(
   REWRITE_TAC[up  ];
   ONCE_REWRITE_TAC[GSYM EQ_SUC];
   REWRITE_TAC[GSYM ADD_SUC];
-  TYPE_THEN `(SND  m +: &:1) -: SND  n <=: &:0` SUBGOAL_TAC;
+  TYPE_THEN `(SND  m +: &:1) -: SND  n <=: &:0` SUBGOAL_MP_TAC;
   UND 3;
   INT_ARITH_TAC;
   ASM_SIMP_TAC[num_abs_of_int_pre];
-  TYPE_THEN `((SND  m +: &:1) -: SND  n -: &:1) = SND  m -: SND  n` SUBGOAL_TAC;
+  TYPE_THEN `((SND  m +: &:1) -: SND  n -: &:1) = SND  m -: SND  n` SUBGOAL_MP_TAC;
   INT_ARITH_TAC;
   DISCH_THEN_REWRITE;
   (* final *)
@@ -10991,11 +10991,11 @@ let squ_induct = prove_by_refinement(
   REWRITE_TAC[down   ];
   ONCE_REWRITE_TAC[GSYM EQ_SUC];
   REWRITE_TAC[GSYM ADD_SUC];
-  TYPE_THEN `&:0 <=: (SND  m -: &:1) -: SND  n ` SUBGOAL_TAC;
+  TYPE_THEN `&:0 <=: (SND  m -: &:1) -: SND  n ` SUBGOAL_MP_TAC;
   UND 3;
   INT_ARITH_TAC;
   ASM_SIMP_TAC[num_abs_of_int_suc];
-  TYPE_THEN `(SND  m -: &:1 -: SND  n +: &:1) = SND  m -: SND  n` SUBGOAL_TAC;
+  TYPE_THEN `(SND  m -: &:1 -: SND  n +: &:1) = SND  m -: SND  n` SUBGOAL_MP_TAC;
   INT_ARITH_TAC;
   DISCH_THEN_REWRITE;
   ]);;
@@ -11011,7 +11011,7 @@ let comp_squ_fill = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   GEN_TAC;
-  TYPE_THEN `(!j n. (j = (num_abs_of_int (FST n -: FST m) + num_abs_of_int (SND  n -: SND  m))) ==> (squ n SUBSET component (ctop G) x)) ==> (squ n SUBSET component (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `(!j n. (j = (num_abs_of_int (FST n -: FST m) + num_abs_of_int (SND  n -: SND  m))) ==> (squ n SUBSET component (ctop G) x)) ==> (squ n SUBSET component (ctop G) x)` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -11020,7 +11020,7 @@ let comp_squ_fill = prove_by_refinement(
   REWRITE_TAC[ADD_EQ_0;num_abs_of_int0];
   GEN_TAC;
   DISCH_TAC;
-  TYPE_THEN `n = m` SUBGOAL_TAC;
+  TYPE_THEN `n = m` SUBGOAL_MP_TAC;
   UND 3;
   REWRITE_TAC[PAIR_SPLIT];
   INT_ARITH_TAC;
@@ -11031,7 +11031,7 @@ let comp_squ_fill = prove_by_refinement(
   TSPEC `p` 3;
   REWR 3;
   AND 4;
-  TYPE_THEN `(n = left p) \/ (n = right p) \/ (n = up p) \/ (n = down p)` SUBGOAL_TAC;
+  TYPE_THEN `(n = left p) \/ (n = right p) \/ (n = up p) \/ (n = down p)` SUBGOAL_MP_TAC;
   UND 4;
   REP_CASES_TAC THEN (ASM_REWRITE_TAC[right_left]);
   KILL 4;
@@ -11053,10 +11053,10 @@ let comp_squ_adj = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `(!n. (squ n SUBSET (component  (ctop G) x)))` SUBGOAL_TAC;
+  TYPE_THEN `(!n. (squ n SUBSET (component  (ctop G) x)))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[comp_squ_fill];
   DISCH_TAC;
-  TYPE_THEN `?e. (G e /\ (edge e))` SUBGOAL_TAC;
+  TYPE_THEN `?e. (G e /\ (edge e))` SUBGOAL_MP_TAC;
   USE 0 (REWRITE_RULE [segment;EMPTY_EXISTS;SUBSET;]);
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -11112,7 +11112,7 @@ let midpoint_exclusion = prove_by_refinement(
   USE 0 (REWRITE_RULE[segment;INSERT; ]);
   UND 0;
   DISCH_ALL_TAC;
-  TYPE_THEN `num_closure G (pointI m) = 2` SUBGOAL_TAC;
+  TYPE_THEN `num_closure G (pointI m) = 2` SUBGOAL_MP_TAC;
   TSPEC `m` 10;
   UND 10;
   REP_CASES_TAC;
@@ -11136,7 +11136,7 @@ let midpoint_exclusion = prove_by_refinement(
   TSPEC `pointI m` 0;
   REWR 0;
   TYPE_THEN `X = {C | G C /\ closure top2 C (pointI m)}` ABBREV_TAC ;
-  TYPE_THEN `X e /\ X e' /\ X e''` SUBGOAL_TAC;
+  TYPE_THEN `X e /\ X e' /\ X e''` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   UND 0;
@@ -11152,7 +11152,7 @@ let along_lemma2 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `(h_edge m = v_edge m) \/ (h_edge m = v_edge (down m))` SUBGOAL_TAC;
+  TYPE_THEN `(h_edge m = v_edge m) \/ (h_edge m = v_edge (down m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  midpoint_exclusion;
   TYPE_THEN `G` EXISTS_TAC;
   TYPE_THEN `m` EXISTS_TAC;
@@ -11171,7 +11171,7 @@ let along_lemma3 = prove_by_refinement(
   CONJ_TAC;
   PROOF_BY_CONTR_TAC;
   USE 3(REWRITE_RULE[]);
-  TYPE_THEN `(h_edge m = v_edge m) \/ (h_edge m = h_edge (left  m))` SUBGOAL_TAC;
+  TYPE_THEN `(h_edge m = v_edge m) \/ (h_edge m = h_edge (left  m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  midpoint_exclusion;
   TYPE_THEN `G` EXISTS_TAC;
   TYPE_THEN `m` EXISTS_TAC;
@@ -11181,7 +11181,7 @@ let along_lemma3 = prove_by_refinement(
   INT_ARITH_TAC;
   PROOF_BY_CONTR_TAC;
   USE 3(REWRITE_RULE[]);
-  TYPE_THEN `(h_edge (left  m) = v_edge m) \/ (h_edge (left  m) = v_edge (down m))` SUBGOAL_TAC;
+  TYPE_THEN `(h_edge (left  m) = v_edge m) \/ (h_edge (left  m) = v_edge (down m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  midpoint_exclusion;
   TYPE_THEN `G` EXISTS_TAC;
   TYPE_THEN `m` EXISTS_TAC;
@@ -11202,10 +11202,10 @@ let along_lemma4 = prove_by_refinement(
   TYPE_THEN `down m` EXISTS_TAC;
   CONJ_TAC;
   ASM_MESON_TAC[squ_closure_v];
-  TYPE_THEN `~(G (h_edge m))` SUBGOAL_TAC;
+  TYPE_THEN `~(G (h_edge m))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[along_lemma2];
   DISCH_TAC;
-  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_TAC ;
+  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  comp_squ_down_rect_h;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[rectangle_h; union_subset];
@@ -11225,16 +11225,16 @@ let along_lemma5 = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC[GSYM right_left];
   ASM_MESON_TAC[squ_closure_down_h];
-  TYPE_THEN ` ~(G (h_edge m)) /\ ~(G (v_edge (down m)))` SUBGOAL_TAC;
+  TYPE_THEN ` ~(G (h_edge m)) /\ ~(G (v_edge (down m)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  along_lemma3;
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
-  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_TAC ;
+  TYPE_THEN `(rectangle (FST m , SND m -: &:1) (FST m +: &:1,SND m +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_MP_TAC ;
   IMATCH_MP_TAC  comp_squ_down_rect_h;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[rectangle_h; union_subset];
   DISCH_ALL_TAC;
-  TYPE_THEN `(rectangle (FST (down m) -: &:1,SND (down m)) (FST (down m) +: &:1,SND (down m) +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `(rectangle (FST (down m) -: &:1,SND (down m)) (FST (down m) +: &:1,SND (down m) +: &:1) SUBSET component  (ctop G) x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  comp_squ_left_rect_v;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[rectangle_v;union_subset;];
@@ -11251,10 +11251,10 @@ let along_lemma6 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC ;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;];
   REWRITE_TAC[edge];
   DISCH_THEN (CHOOSE_THEN DISJ_CASES_TAC);
@@ -11262,7 +11262,7 @@ let along_lemma6 = prove_by_refinement(
   USE 4 (REWRITE_RULE[v_edge_cpoint]);
   UND 4;
   DISCH_TAC;
-  TYPE_THEN `(m' = m) \/ (m' = (down m))` SUBGOAL_TAC;
+  TYPE_THEN `(m' = m) \/ (m' = (down m))` SUBGOAL_MP_TAC;
   UND 4;
   REWRITE_TAC[down;PAIR_SPLIT];
   INT_ARITH_TAC ;
@@ -11277,7 +11277,7 @@ let along_lemma6 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWR 4;
   USE 4(REWRITE_RULE[h_edge_cpoint]);
-  TYPE_THEN `(m' = m) \/ (m' = (left  m))` SUBGOAL_TAC;
+  TYPE_THEN `(m' = m) \/ (m' = (left  m))` SUBGOAL_MP_TAC;
   UND 4;
   REWRITE_TAC[left;PAIR_SPLIT];
   INT_ARITH_TAC ;
@@ -11443,9 +11443,9 @@ let invo_homeo = prove_by_refinement(
   DISCH_ALL_TAC;
   IMATCH_MP_TAC  bicont_homeomorphism;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `!x. (UNIONS U x) ==> (INV f (UNIONS U) (UNIONS U) x = f x)` SUBGOAL_TAC;
+  TYPE_THEN `!x. (UNIONS U x) ==> (INV f (UNIONS U) (UNIONS U) x = f x)` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
-  TYPE_THEN `UNIONS U (f x)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U (f x)` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[BIJ;SURJ];
   ASM_MESON_TAC[];
@@ -11460,7 +11460,7 @@ let invo_homeo = prove_by_refinement(
   REWR 0;
   UND 0;
   REWRITE_TAC[preimage];
-  TYPE_THEN `{x | UNIONS U x /\ v (INV f (UNIONS U) (UNIONS U) x)} = {x | UNIONS U x /\ v (f x)}` SUBGOAL_TAC;
+  TYPE_THEN `{x | UNIONS U x /\ v (INV f (UNIONS U) (UNIONS U) x)} = {x | UNIONS U x /\ v (f x)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[];
@@ -11478,7 +11478,7 @@ let d_euclid_point = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `euclid 2 (point r) /\ euclid 2 (point s)` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 (point r) /\ euclid 2 (point s)` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_point];
   DISCH_TAC ;
   USE 0(MATCH_MP d_euclid_n);
@@ -11502,7 +11502,7 @@ let reflA_cont = prove_by_refinement(
   [
   REWRITE_TAC[top2];
   GEN_TAC;
-  TYPE_THEN `(IMAGE (reflAf r) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE (reflAf r) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_SIMP_TAC[metric_euclid];
   CONV_TAC (dropq_conv "x");
@@ -11520,7 +11520,7 @@ let reflA_cont = prove_by_refinement(
   CHO 3;
   UND 4;
   ASM_REWRITE_TAC[reflAf;d_euclid_point;coord01;];
-  TYPE_THEN `(&2 * real_of_int r - FST p - (&2 * real_of_int r - FST p'))  = --. (FST p - FST p') ` SUBGOAL_TAC;
+  TYPE_THEN `(&2 * real_of_int r - FST p - (&2 * real_of_int r - FST p'))  = --. (FST p - FST p') ` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC ;
   DISCH_THEN_REWRITE;
   ONCE_REWRITE_TAC[GSYM REAL_POW2_ABS];
@@ -11534,7 +11534,7 @@ let reflB_cont = prove_by_refinement(
   [
   REWRITE_TAC[top2];
   GEN_TAC;
-  TYPE_THEN `(IMAGE (reflBf r) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE (reflBf r) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_SIMP_TAC[metric_euclid];
   CONV_TAC (dropq_conv "x");
@@ -11552,7 +11552,7 @@ let reflB_cont = prove_by_refinement(
   CHO 3;
   UND 4;
   ASM_REWRITE_TAC[reflBf;d_euclid_point;coord01;];
-  TYPE_THEN `(&2 * real_of_int r - SND  p - (&2 * real_of_int r - SND  p'))  = --. (SND  p - SND  p') ` SUBGOAL_TAC;
+  TYPE_THEN `(&2 * real_of_int r - SND  p - (&2 * real_of_int r - SND  p'))  = --. (SND  p - SND  p') ` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC ;
   DISCH_THEN_REWRITE;
   ONCE_REWRITE_TAC[GSYM REAL_POW2_ABS];
@@ -11565,7 +11565,7 @@ let reflC_cont = prove_by_refinement(
   (* {{{ proof *)
   [
   REWRITE_TAC[top2];
-  TYPE_THEN `(IMAGE (reflCf) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE (reflCf) (euclid 2)) SUBSET (euclid 2) /\ (metric_space (euclid 2,d_euclid))` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_SIMP_TAC[metric_euclid];
   CONV_TAC (dropq_conv "x");
@@ -11844,7 +11844,7 @@ let homeo_bij = prove_by_refinement(
   EQ_TAC;
   DISCH_TAC;
   TSPEC `f x'` 7;
-  TYPE_THEN `(?x''. x x'' /\ (f x' = f x''))` SUBGOAL_TAC;
+  TYPE_THEN `(?x''. x x'' /\ (f x' = f x''))` SUBGOAL_MP_TAC;
   TYPE_THEN `x'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -11854,19 +11854,19 @@ let homeo_bij = prove_by_refinement(
   DISCH_TAC;
   CHO 6;
   CHO 9;
-  TYPE_THEN `(UNIONS U) x'' /\ (UNIONS U) x'''` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS U) x'' /\ (UNIONS U) x'''` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNIONS;];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(UNIONS U x')` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS U x')` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNIONS;];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `x' = x'''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x'''` SUBGOAL_MP_TAC;
   USE 0(REWRITE_RULE[INJ]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `x' = x''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x''` SUBGOAL_MP_TAC;
   USE 0(REWRITE_RULE[INJ]);
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -11874,7 +11874,7 @@ let homeo_bij = prove_by_refinement(
   (* mm *)
   DISCH_TAC;
   TSPEC `f x'` 7;
-  TYPE_THEN `(?x''. y x'' /\ (f x' = f x''))` SUBGOAL_TAC;
+  TYPE_THEN `(?x''. y x'' /\ (f x' = f x''))` SUBGOAL_MP_TAC;
   TYPE_THEN `x'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -11884,19 +11884,19 @@ let homeo_bij = prove_by_refinement(
   DISCH_TAC;
   CHO 6;
   CHO 9;
-  TYPE_THEN `(UNIONS U) x'' /\ (UNIONS U) x'''` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS U) x'' /\ (UNIONS U) x'''` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNIONS;];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(UNIONS U x')` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS U x')` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNIONS;];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `x' = x'''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x'''` SUBGOAL_MP_TAC;
   USE 0(REWRITE_RULE[INJ]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `x' = x''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x''` SUBGOAL_MP_TAC;
   USE 0(REWRITE_RULE[INJ]);
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -11923,7 +11923,7 @@ let homeo_bij = prove_by_refinement(
   REWRITE_TAC[SURJ];
   DISCH_ALL_TAC;
   TSPEC `x'` 8;
-  TYPE_THEN `UNIONS V x'` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS V x'` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNIONS;];
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -11960,7 +11960,7 @@ let homeo_closed = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-   TYPE_THEN `BIJ f (UNIONS U) (UNIONS V)` SUBGOAL_TAC;
+   TYPE_THEN `BIJ f (UNIONS U) (UNIONS V)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism];
   DISCH_TAC;
   USE 2(MATCH_MP DIFF_SURJ);
@@ -11976,7 +11976,7 @@ let homeo_closed = prove_by_refinement(
   REWR 4;
   TSPEC `IMAGE f (UNIONS U DIFF A)` 5;
   REWR 5;
-  TYPE_THEN `preimage (UNIONS U) f (IMAGE f (UNIONS U DIFF A)) = UNIONS U DIFF A` SUBGOAL_TAC;
+  TYPE_THEN `preimage (UNIONS U) f (IMAGE f (UNIONS U DIFF A)) = UNIONS U DIFF A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT ;
   GEN_TAC;
   REWRITE_TAC[INR in_preimage;IMAGE;DIFF;];
@@ -12065,12 +12065,12 @@ let homeo_closure = prove_by_refinement(
   [
   DISCH_ALL_TAC;
   REWRITE_TAC[closure];
-  TYPE_THEN `INJ f (UNIONS U) (UNIV)` SUBGOAL_TAC;
+  TYPE_THEN `INJ f (UNIONS U) (UNIV)` SUBGOAL_MP_TAC;
   USE 0(REWRITE_RULE[homeomorphism;BIJ;INJ;]);
   ASM_REWRITE_TAC[INJ];
   DISCH_TAC;
   TYPE_THEN `C = {B | closed_ U B /\ A SUBSET B}` ABBREV_TAC ;
-  TYPE_THEN `(UNIONS C SUBSET UNIONS U)` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS C SUBSET UNIONS U)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET;];
   EXPAND_TAC "C";
   REWRITE_TAC[closed];
@@ -12078,7 +12078,7 @@ let homeo_closure = prove_by_refinement(
   REWRITE_TAC[UNIONS];
   MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `~(C = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(C = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS];
   TYPE_THEN `UNIONS U` EXISTS_TAC;
   EXPAND_TAC "C";
@@ -12102,7 +12102,7 @@ let homeo_closure = prove_by_refinement(
   ASM_REWRITE_TAC[];
   EXPAND_TAC "g";
   KILL 5;
-  TYPE_THEN `x' SUBSET (UNIONS U)` SUBGOAL_TAC;
+  TYPE_THEN `x' SUBSET (UNIONS U)` SUBGOAL_MP_TAC;
   USE 6(REWRITE_RULE[closed]);
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[homeo_closed];
@@ -12112,7 +12112,7 @@ let homeo_closure = prove_by_refinement(
   ASM_MESON_TAC[ISUBSET];
   DISCH_ALL_TAC;
   TYPE_THEN `preimage (UNIONS U) f x` EXISTS_TAC;
-  TYPE_THEN `x = g (preimage (UNIONS U) f x)` SUBGOAL_TAC;
+  TYPE_THEN `x = g (preimage (UNIONS U) f x)` SUBGOAL_MP_TAC;
   REWRITE_TAC[preimage];
   EXPAND_TAC "g";
   IMATCH_MP_TAC  EQ_EXT;
@@ -12125,7 +12125,7 @@ let homeo_closure = prove_by_refinement(
   UND 0;
   DISCH_ALL_TAC;
   TSPEC `x'` 10;
-  TYPE_THEN `UNIONS V x'` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS V x'` SUBGOAL_MP_TAC;
   USE 6(REWRITE_RULE[closed]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
@@ -12139,7 +12139,7 @@ let homeo_closure = prove_by_refinement(
   ONCE_ASM_REWRITE_TAC[];
   REWRITE_TAC[];
   CONJ_TAC;
-  TYPE_THEN `preimage (UNIONS U) f x SUBSET (UNIONS U)` SUBGOAL_TAC;
+  TYPE_THEN `preimage (UNIONS U) f x SUBSET (UNIONS U)` SUBGOAL_MP_TAC;
   REWRITE_TAC[preimage;SUBSET;];
   MESON_TAC[];
   ASM_SIMP_TAC[GSYM homeo_closed];
@@ -12177,36 +12177,36 @@ let INJ_IMAGE = prove_by_refinement(
   LEFT  5 "x";
   REP_BASIC_TAC;
   TSPEC `f x ` 3;
-  TYPE_THEN `A x` SUBGOAL_TAC;
+  TYPE_THEN `A x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(?x'. A x' /\ (f x = f x'))` SUBGOAL_TAC;
+  TYPE_THEN `(?x'. A x' /\ (f x = f x'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(?x'. B x' /\ (f x = f x'))` SUBGOAL_TAC;
+  TYPE_THEN `(?x'. B x' /\ (f x = f x'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REP_BASIC_TAC;
   USE 0(REWRITE_RULE[BIJ;INJ]);
-  TYPE_THEN `x = x'` SUBGOAL_TAC;
+  TYPE_THEN `x = x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   ASM_MESON_TAC[];
 
   LEFT  5 "x";
   REP_BASIC_TAC;
   TSPEC `f x ` 3;
-  TYPE_THEN `B x` SUBGOAL_TAC;
+  TYPE_THEN `B x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(?x'. B x' /\ (f x = f x'))` SUBGOAL_TAC;
+  TYPE_THEN `(?x'. B x' /\ (f x = f x'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(?x'. A x' /\ (f x = f x'))` SUBGOAL_TAC;
+  TYPE_THEN `(?x'. A x' /\ (f x = f x'))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   REP_BASIC_TAC;
   USE 0(REWRITE_RULE[BIJ;INJ]);
-  TYPE_THEN `x = x'` SUBGOAL_TAC;
+  TYPE_THEN `x = x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
@@ -12233,12 +12233,12 @@ let homeo_adj = prove_by_refinement(
   REP_BASIC_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `X SUBSET (UNIONS top2) /\ Y SUBSET (UNIONS (top2))` SUBGOAL_TAC;
+  TYPE_THEN `X SUBSET (UNIONS top2) /\ Y SUBSET (UNIONS (top2))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `closure top2 (IMAGE f X) = IMAGE f (closure top2 X)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE f X) = IMAGE f (closure top2 X)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[GSYM homeo_closure];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `closure top2 (IMAGE f Y) = IMAGE f (closure top2 Y)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE f Y) = IMAGE f (closure top2 Y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[GSYM homeo_closure];
   DISCH_THEN_REWRITE;
   REP_BASIC_TAC;
@@ -12248,7 +12248,7 @@ let homeo_adj = prove_by_refinement(
   UND 2;
   REWRITE_TAC[];
   UND 10;
-  TYPE_THEN `INJ f (euclid 2) UNIV` SUBGOAL_TAC;
+  TYPE_THEN `INJ f (euclid 2) UNIV` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  INJ_UNIV;
   RULE_ASSUM_TAC  (REWRITE_RULE[homeomorphism;BIJ]);
   REP_BASIC_TAC;
@@ -12279,11 +12279,11 @@ let homeomorphism_inv = prove_by_refinement(
   TSPEC `A` 1;
   REWR 1;
   TYPE_THEN `g = INV f (UNIONS U) (UNIONS V)` ABBREV_TAC ;
-  TYPE_THEN `BIJ g (UNIONS V) (UNIONS U)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ g (UNIONS V) (UNIONS U)` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   IMATCH_MP_TAC  INVERSE_BIJ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `!x'. (A x' ==> (f (g x') = x'))` SUBGOAL_TAC;
+  TYPE_THEN `!x'. (A x' ==> (f (g x') = x'))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPEL_THEN  [`f`;`UNIONS U`;`UNIONS V`] (fun t->  ASSUME_TAC (ISPECL  t (INR INVERSE_DEF)));
   RULE_ASSUM_TAC  (REWRITE_RULE[BIJ]);
@@ -12295,7 +12295,7 @@ let homeomorphism_inv = prove_by_refinement(
   DISCH_TAC;
   DISCH_TAC;
   (* branch *)
-  TYPE_THEN `(IMAGE g A) = preimage (UNIONS U) f A` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE g A) = preimage (UNIONS U) f A` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;preimage];
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
@@ -12315,7 +12315,7 @@ let homeomorphism_inv = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `f x` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `f x = f (g (f x))` SUBGOAL_TAC;
+  TYPE_THEN `f x = f (g (f x))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[];
   DISCH_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[BIJ;INJ]);
@@ -12324,7 +12324,7 @@ let homeomorphism_inv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   USE 9 SYM;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `UNIONS V (f x)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS V (f x)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -12339,7 +12339,7 @@ let inv_comp_left = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `Y (f x)` SUBGOAL_TAC;
+  TYPE_THEN `Y (f x)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[BIJ;SURJ]);
   ASM_MESON_TAC[];
   ASM_MESON_TAC[INR INVERSE_XY];
@@ -12370,7 +12370,7 @@ let image_inv_image = prove_by_refinement(
   CONV_TAC (dropq_conv "x''");
   EQ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `x = x'` SUBGOAL_TAC;
+  TYPE_THEN `x = x'` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC [inv_comp_left;ISUBSET;];
   ASM_MESON_TAC[];
@@ -12394,15 +12394,15 @@ let homeo_adj_eq = prove_by_refinement(
   ASM_MESON_TAC[homeo_adj];
   TYPEL_THEN  [`INV f (euclid 2) (euclid 2)`;`IMAGE f X`;`IMAGE f Y`] (fun t-> MP_TAC (ISPECL t homeo_adj));
   ASSUME_TAC top2_unions;
-  TYPE_THEN `homeomorphism (INV f (euclid 2) (euclid 2)) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (INV f (euclid 2) (euclid 2)) top2 top2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism_inv];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `BIJ f (euclid 2) (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ f (euclid 2) (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism];
   DISCH_TAC;
   ASM_SIMP_TAC[image_inv_image];
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f X SUBSET euclid 2 /\ IMAGE f Y SUBSET euclid 2` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f X SUBSET euclid 2 /\ IMAGE f Y SUBSET euclid 2` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET];
   NAME_CONFLICT_TAC;
   CONJ_TAC THEN (CONV_TAC (dropq_conv "x''")) THEN (RULE_ASSUM_TAC  (REWRITE_RULE[BIJ;SURJ]));
@@ -12456,11 +12456,11 @@ let image_powerset = prove_by_refinement(
   REP_BASIC_TAC;
   UND 1;
   NAME_CONFLICT_TAC;
-  TYPE_THEN `(?x''. x x'' /\ (f x' = f x''))` SUBGOAL_TAC;
+  TYPE_THEN `(?x''. x x'' /\ (f x' = f x''))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   REP_BASIC_TAC;
-  TYPE_THEN `x' = x''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x''` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
@@ -12469,11 +12469,11 @@ let image_powerset = prove_by_refinement(
   REP_BASIC_TAC;
   UND 1;
   NAME_CONFLICT_TAC;
-  TYPE_THEN `(?x''. y x'' /\ (f x' = f x''))` SUBGOAL_TAC;
+  TYPE_THEN `(?x''. y x'' /\ (f x' = f x''))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   REP_BASIC_TAC;
-  TYPE_THEN `x' = x''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x''` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_MESON_TAC[];
   ASM_MESON_TAC[];
@@ -12576,7 +12576,7 @@ let homeo_num_closure = prove_by_refinement(
   REP_BASIC_TAC;
   ASSUME_TAC top2_unions;
   ASSUME_TAC top2_top;
-  TYPE_THEN `BIJ f (euclid 2) (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ f (euclid 2) (euclid 2)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism]);
   ASM_MESON_TAC [];
   DISCH_TAC;
@@ -12598,16 +12598,16 @@ let homeo_num_closure = prove_by_refinement(
   REWRITE_TAC[IMAGE];
   TYPE_THEN `x` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `x SUBSET (UNIONS top2)` SUBGOAL_TAC;
+  TYPE_THEN `x SUBSET (UNIONS top2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `IMAGE f (closure top2 x) = closure top2 (IMAGE f x)` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f (closure top2 x) = closure top2 (IMAGE f x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [homeo_closure];
   DISCH_THEN (fun t->REWRITE_TAC[GSYM t]);
   REWRITE_TAC[IMAGE];
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `x SUBSET (euclid 2) /\ y SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `x SUBSET (euclid 2) /\ y SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   ASM_MESON_TAC[image_power_inj];
@@ -12625,14 +12625,14 @@ let homeo_num_closure = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWR 8;
   UND 8;
-  TYPE_THEN `x' SUBSET (UNIONS top2)` SUBGOAL_TAC;
+  TYPE_THEN `x' SUBSET (UNIONS top2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `closure top2 (g x') = IMAGE f (closure top2 x')` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (g x') = IMAGE f (closure top2 x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [GSYM homeo_closure];
   DISCH_THEN_REWRITE;
   (* m3 *)
-  TYPE_THEN `INJ f (euclid 2) (euclid 2) /\ (closure top2 x' SUBSET (euclid 2)) /\ (euclid 2 (pointI m))` SUBGOAL_TAC;
+  TYPE_THEN `INJ f (euclid 2) (euclid 2) /\ (closure top2 x' SUBSET (euclid 2)) /\ (euclid 2 (pointI m))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[BIJ]);
    ASM_REWRITE_TAC[pointI;euclid_point];
   IMATCH_MP_TAC  c_edge_euclid;
@@ -12697,18 +12697,18 @@ let reflA_segment = prove_by_refinement(
   COPY 0;
   USE 0(REWRITE_RULE[segment]);
   REP_BASIC_TAC;
-  TYPE_THEN `homeomorphism (reflAf r) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflAf r) top2 top2` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflA_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `BIJ (reflAf r) (euclid 2) (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ (reflAf r) (euclid 2) (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism];
   DISCH_TAC;
-  TYPE_THEN `INJ (IMAGE (reflAf r)) edge edge` SUBGOAL_TAC;
+  TYPE_THEN `INJ (IMAGE (reflAf r)) edge edge` SUBGOAL_MP_TAC;
   REWRITE_TAC[INJ;reflA_edge;];
   REP_BASIC_TAC;
-  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge_euclid2];
   DISCH_TAC;
   ASM_MESON_TAC[image_power_inj];
@@ -12726,7 +12726,7 @@ let reflA_segment = prove_by_refinement(
   TSPEC `IMAGE (reflAf r) u` 4;
   UND 4;
   REWRITE_TAC[];
-  TYPE_THEN `IMAGE (IMAGE (reflAf r)) G (IMAGE (reflAf r) u) = G u` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflAf r)) G (IMAGE (reflAf r) u) = G u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   EXISTS_TAC `edge`;
   EXISTS_TAC `edge`;
@@ -12755,10 +12755,10 @@ let reflA_segment = prove_by_refinement(
   (* num closure clause *)
   CONJ_TAC;
   GEN_TAC;
-  TYPE_THEN `pointI m = reflAf r (pointI (reflAi r m))` SUBGOAL_TAC;
+  TYPE_THEN `pointI m = reflAf r (pointI (reflAi r m))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflA_pointI;reflAi_inv];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `num_closure (IMAGE2 (reflAf r) G) (reflAf r (pointI (reflAi r m))) = num_closure G (pointI (reflAi r m))` SUBGOAL_TAC;
+  TYPE_THEN `num_closure (IMAGE2 (reflAf r) G) (reflAf r (pointI (reflAi r m))) = num_closure G (pointI (reflAi r m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_num_closure);
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -12770,7 +12770,7 @@ let reflA_segment = prove_by_refinement(
   USE 16 (MATCH_MP SUBSET_PREIMAGE);
   REP_BASIC_TAC;
   TSPEC `Z` 0;
-  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   PROOF_BY_CONTR_TAC;
@@ -12783,11 +12783,11 @@ let reflA_segment = prove_by_refinement(
   TYPE_THEN `D' = IMAGE (reflAf r) C'` ABBREV_TAC ;
   TSPEC `D` 14; (* *)
   TSPEC `D'` 14;
-  TYPE_THEN `S D /\ IMAGE2 (reflAf r) G D' /\ adj D D'` SUBGOAL_TAC;
+  TYPE_THEN `S D /\ IMAGE2 (reflAf r) G D' /\ adj D D'` SUBGOAL_MP_TAC;
   SUBCONJ_TAC;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "D";
-  TYPE_THEN `IMAGE (IMAGE (reflAf r)) Z (IMAGE (reflAf r) C) = Z C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflAf r)) Z (IMAGE (reflAf r) C) = Z C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -12812,10 +12812,10 @@ let reflA_segment = prove_by_refinement(
   DISCH_TAC;
   EXPAND_TAC "D";
   EXPAND_TAC "D'";
-  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;edge_euclid2];
   DISCH_TAC;
-  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflAf r) C) (IMAGE (reflAf r) C'))` SUBGOAL_TAC;
+  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflAf r) C) (IMAGE (reflAf r) C'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeo_adj;
   ASM_REWRITE_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -12824,7 +12824,7 @@ let reflA_segment = prove_by_refinement(
   REWR 14;
   UND 14;
   EXPAND_TAC "D'";
-  TYPE_THEN `IMAGE (IMAGE (reflAf r)) Z (IMAGE (reflAf r) C') = Z C'` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflAf r)) Z (IMAGE (reflAf r) C') = Z C'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -12853,18 +12853,18 @@ let reflB_segment = prove_by_refinement(
   COPY 0;
   USE 0(REWRITE_RULE[segment]);
   REP_BASIC_TAC;
-  TYPE_THEN `homeomorphism (reflBf r) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflBf r) top2 top2` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflB_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `BIJ (reflBf r) (euclid 2) (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ (reflBf r) (euclid 2) (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism];
   DISCH_TAC;
-  TYPE_THEN `INJ (IMAGE (reflBf r)) edge edge` SUBGOAL_TAC;
+  TYPE_THEN `INJ (IMAGE (reflBf r)) edge edge` SUBGOAL_MP_TAC;
   REWRITE_TAC[INJ;reflB_edge;];
   REP_BASIC_TAC;
-  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge_euclid2];
   DISCH_TAC;
   ASM_MESON_TAC[image_power_inj];
@@ -12882,7 +12882,7 @@ let reflB_segment = prove_by_refinement(
   TSPEC `IMAGE (reflBf r) u` 4;
   UND 4;
   REWRITE_TAC[];
-  TYPE_THEN `IMAGE (IMAGE (reflBf r)) G (IMAGE (reflBf r) u) = G u` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflBf r)) G (IMAGE (reflBf r) u) = G u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   EXISTS_TAC `edge`;
   EXISTS_TAC `edge`;
@@ -12911,10 +12911,10 @@ let reflB_segment = prove_by_refinement(
   (* num closure clause *)
   CONJ_TAC;
   GEN_TAC;
-  TYPE_THEN `pointI m = reflBf r (pointI (reflBi r m))` SUBGOAL_TAC;
+  TYPE_THEN `pointI m = reflBf r (pointI (reflBi r m))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflB_pointI;reflBi_inv];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `num_closure (IMAGE2 (reflBf r) G) (reflBf r (pointI (reflBi r m))) = num_closure G (pointI (reflBi r m))` SUBGOAL_TAC;
+  TYPE_THEN `num_closure (IMAGE2 (reflBf r) G) (reflBf r (pointI (reflBi r m))) = num_closure G (pointI (reflBi r m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_num_closure);
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -12926,7 +12926,7 @@ let reflB_segment = prove_by_refinement(
   USE 16 (MATCH_MP SUBSET_PREIMAGE);
   REP_BASIC_TAC;
   TSPEC `Z` 0;
-  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   PROOF_BY_CONTR_TAC;
@@ -12939,11 +12939,11 @@ let reflB_segment = prove_by_refinement(
   TYPE_THEN `D' = IMAGE (reflBf r) C'` ABBREV_TAC ;
   TSPEC `D` 14; (* *)
   TSPEC `D'` 14;
-  TYPE_THEN `S D /\ IMAGE2 (reflBf r) G D' /\ adj D D'` SUBGOAL_TAC;
+  TYPE_THEN `S D /\ IMAGE2 (reflBf r) G D' /\ adj D D'` SUBGOAL_MP_TAC;
   SUBCONJ_TAC;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "D";
-  TYPE_THEN `IMAGE (IMAGE (reflBf r)) Z (IMAGE (reflBf r) C) = Z C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflBf r)) Z (IMAGE (reflBf r) C) = Z C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -12968,10 +12968,10 @@ let reflB_segment = prove_by_refinement(
   DISCH_TAC;
   EXPAND_TAC "D";
   EXPAND_TAC "D'";
-  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;edge_euclid2];
   DISCH_TAC;
-  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflBf r) C) (IMAGE (reflBf r) C'))` SUBGOAL_TAC;
+  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflBf r) C) (IMAGE (reflBf r) C'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeo_adj;
   ASM_REWRITE_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -12980,7 +12980,7 @@ let reflB_segment = prove_by_refinement(
   REWR 14;
   UND 14;
   EXPAND_TAC "D'";
-  TYPE_THEN `IMAGE (IMAGE (reflBf r)) Z (IMAGE (reflBf r) C') = Z C'` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflBf r)) Z (IMAGE (reflBf r) C') = Z C'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -13010,18 +13010,18 @@ let reflC_segment = prove_by_refinement(
   COPY 0;
   USE 0(REWRITE_RULE[segment]);
   REP_BASIC_TAC;
-  TYPE_THEN `homeomorphism (reflCf) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflCf) top2 top2` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflC_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `BIJ (reflCf) (euclid 2) (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ (reflCf) (euclid 2) (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[homeomorphism];
   DISCH_TAC;
-  TYPE_THEN `INJ (IMAGE (reflCf)) edge edge` SUBGOAL_TAC;
+  TYPE_THEN `INJ (IMAGE (reflCf)) edge edge` SUBGOAL_MP_TAC;
   REWRITE_TAC[INJ;reflC_edge;];
   REP_BASIC_TAC;
-  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `y SUBSET (euclid 2) /\ x SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge_euclid2];
   DISCH_TAC;
   ASM_MESON_TAC[image_power_inj];
@@ -13039,7 +13039,7 @@ let reflC_segment = prove_by_refinement(
   TSPEC `IMAGE (reflCf) u` 4;
   UND 4;
   REWRITE_TAC[];
-  TYPE_THEN `IMAGE (IMAGE (reflCf)) G (IMAGE (reflCf) u) = G u` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflCf)) G (IMAGE (reflCf) u) = G u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   EXISTS_TAC `edge`;
   EXISTS_TAC `edge`;
@@ -13068,10 +13068,10 @@ let reflC_segment = prove_by_refinement(
   (* num closure clause *)
   CONJ_TAC;
   GEN_TAC;
-  TYPE_THEN `pointI m = reflCf (pointI (reflCi m))` SUBGOAL_TAC;
+  TYPE_THEN `pointI m = reflCf (pointI (reflCi m))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflC_pointI;reflCi_inv];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `num_closure (IMAGE2 (reflCf) G) (reflCf (pointI (reflCi m))) = num_closure G (pointI (reflCi m))` SUBGOAL_TAC;
+  TYPE_THEN `num_closure (IMAGE2 (reflCf) G) (reflCf (pointI (reflCi m))) = num_closure G (pointI (reflCi m))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_num_closure);
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -13083,7 +13083,7 @@ let reflC_segment = prove_by_refinement(
   USE 16 (MATCH_MP SUBSET_PREIMAGE);
   REP_BASIC_TAC;
   TSPEC `Z` 0;
-  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET G /\ ~(Z = {}) /\ (!C C'. Z C /\ G C' /\ adj C C' ==> Z C')` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   PROOF_BY_CONTR_TAC;
@@ -13096,11 +13096,11 @@ let reflC_segment = prove_by_refinement(
   TYPE_THEN `D' = IMAGE (reflCf) C'` ABBREV_TAC ;
   TSPEC `D` 14; (* *)
   TSPEC `D'` 14;
-  TYPE_THEN `S D /\ IMAGE2 (reflCf) G D' /\ adj D D'` SUBGOAL_TAC;
+  TYPE_THEN `S D /\ IMAGE2 (reflCf) G D' /\ adj D D'` SUBGOAL_MP_TAC;
   SUBCONJ_TAC;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "D";
-  TYPE_THEN `IMAGE (IMAGE (reflCf)) Z (IMAGE (reflCf) C) = Z C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflCf)) Z (IMAGE (reflCf) C) = Z C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -13125,10 +13125,10 @@ let reflC_segment = prove_by_refinement(
   DISCH_TAC;
   EXPAND_TAC "D";
   EXPAND_TAC "D'";
-  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET (euclid 2) /\ (C' SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET;edge_euclid2];
   DISCH_TAC;
-  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflCf) C) (IMAGE (reflCf) C'))` SUBGOAL_TAC;
+  TYPE_THEN `(adj C C' ==> adj (IMAGE (reflCf) C) (IMAGE (reflCf) C'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeo_adj;
   ASM_REWRITE_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -13137,7 +13137,7 @@ let reflC_segment = prove_by_refinement(
   REWR 14;
   UND 14;
   EXPAND_TAC "D'";
-  TYPE_THEN `IMAGE (IMAGE (reflCf)) Z (IMAGE (reflCf) C') = Z C'` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (IMAGE (reflCf)) Z (IMAGE (reflCf) C') = Z C'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_app;
   TYPE_THEN `edge` EXISTS_TAC;
   TYPE_THEN `edge` EXISTS_TAC;
@@ -13312,7 +13312,7 @@ let segment_euclid = prove_by_refinement(
   REWRITE_TAC[top2_top];
   REWRITE_TAC[top2_unions;SUBSET;UNIONS;];
   REP_BASIC_TAC;
-  TYPE_THEN `edge u` SUBGOAL_TAC;
+  TYPE_THEN `edge u` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   ASM_MESON_TAC[edge_euclid2;ISUBSET];
   ]);;
@@ -13331,29 +13331,29 @@ let image_curve_cell_reflA  = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET;UNIONS;];
   REP_BASIC_TAC;
-  TYPE_THEN `edge u` SUBGOAL_TAC;
+  TYPE_THEN `edge u` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET;];
   ASM_MESON_TAC[edge_euclid2;ISUBSET];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
   (*  *)
-  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflAf r)) G) = IMAGE (reflAf r) (UNIONS G)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflAf r)) G) = IMAGE (reflAf r) (UNIONS G)` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM image_unions];
   DISCH_THEN_REWRITE ;
   (*  *)
-  TYPE_THEN `closure top2 (IMAGE (reflAf r) (UNIONS G)) = IMAGE (reflAf r) (closure top2 (UNIONS G))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflAf r) (UNIONS G)) = IMAGE (reflAf r) (closure top2 (UNIONS G))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflA_homeo;top2_unions;];
   DISCH_THEN_REWRITE;
   (*  *)
-  TYPE_THEN `!n. IMAGE (reflAf r) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflAi r n))` SUBGOAL_TAC;
+  TYPE_THEN `!n. IMAGE (reflAf r) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflAi r n))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPE_THEN  `n' = reflAi r n` ABBREV_TAC ;
-  TYPE_THEN `pointI n = reflAf r (pointI n')` SUBGOAL_TAC;
+  TYPE_THEN `pointI n = reflAf r (pointI n')` SUBGOAL_MP_TAC;
   EXPAND_TAC "n'";
   KILL 4;
   ASM_REWRITE_TAC[reflA_pointI;reflAi_inv];
@@ -13416,29 +13416,29 @@ let image_curve_cell_reflB  = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET;UNIONS;];
   REP_BASIC_TAC;
-  TYPE_THEN `edge u` SUBGOAL_TAC;
+  TYPE_THEN `edge u` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET;];
   ASM_MESON_TAC[edge_euclid2;ISUBSET];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
   (*  *)
-  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflBf r)) G) = IMAGE (reflBf r) (UNIONS G)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflBf r)) G) = IMAGE (reflBf r) (UNIONS G)` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM image_unions];
   DISCH_THEN_REWRITE ;
   (*  *)
-  TYPE_THEN `closure top2 (IMAGE (reflBf r) (UNIONS G)) = IMAGE (reflBf r) (closure top2 (UNIONS G))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflBf r) (UNIONS G)) = IMAGE (reflBf r) (closure top2 (UNIONS G))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflB_homeo;top2_unions;];
   DISCH_THEN_REWRITE;
   (*  *)
-  TYPE_THEN `!n. IMAGE (reflBf r) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflBi r n))` SUBGOAL_TAC;
+  TYPE_THEN `!n. IMAGE (reflBf r) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflBi r n))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPE_THEN  `n' = reflBi r n` ABBREV_TAC ;
-  TYPE_THEN `pointI n = reflBf r (pointI n')` SUBGOAL_TAC;
+  TYPE_THEN `pointI n = reflBf r (pointI n')` SUBGOAL_MP_TAC;
   EXPAND_TAC "n'";
   KILL 4;
   ASM_REWRITE_TAC[reflB_pointI;reflBi_inv];
@@ -13502,29 +13502,29 @@ let image_curve_cell_reflC  = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET;UNIONS;];
   REP_BASIC_TAC;
-  TYPE_THEN `edge u` SUBGOAL_TAC;
+  TYPE_THEN `edge u` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET;];
   ASM_MESON_TAC[edge_euclid2;ISUBSET];
   DISCH_TAC;
   ASSUME_TAC top2_top;
   ASSUME_TAC top2_unions;
   (*  *)
-  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflCf)) G) = IMAGE (reflCf) (UNIONS G)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (IMAGE (IMAGE (reflCf)) G) = IMAGE (reflCf) (UNIONS G)` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM image_unions];
   DISCH_THEN_REWRITE ;
   (*  *)
-  TYPE_THEN `closure top2 (IMAGE (reflCf) (UNIONS G)) = IMAGE (reflCf) (closure top2 (UNIONS G))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflCf) (UNIONS G)) = IMAGE (reflCf) (closure top2 (UNIONS G))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflC_homeo;top2_unions;];
   DISCH_THEN_REWRITE;
   (*  *)
-  TYPE_THEN `!n. IMAGE (reflCf) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflCi n))` SUBGOAL_TAC;
+  TYPE_THEN `!n. IMAGE (reflCf) (closure top2 (UNIONS G)) (pointI n) = closure top2 (UNIONS G) (pointI (reflCi n))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPE_THEN  `n' = reflCi n` ABBREV_TAC ;
-  TYPE_THEN `pointI n = reflCf (pointI n')` SUBGOAL_TAC;
+  TYPE_THEN `pointI n = reflCf (pointI n')` SUBGOAL_MP_TAC;
   EXPAND_TAC "n'";
   KILL 4;
   ASM_REWRITE_TAC[reflC_pointI;reflCi_inv];
@@ -13589,7 +13589,7 @@ let inj_inter = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_MESON_TAC[ISUBSET;];
   REP_BASIC_TAC;
-  TYPE_THEN `x' = x''` SUBGOAL_TAC;
+  TYPE_THEN `x' = x''` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -13617,7 +13617,7 @@ let homeomorphism_induced_top = prove_by_refinement(
   NAME_CONFLICT_TAC;
   CONV_TAC (dropq_conv "x''");
   (*  *)
-  TYPE_THEN `!t. U t ==> (g (t INTER A)  = g t INTER g A)` SUBGOAL_TAC;
+  TYPE_THEN `!t. U t ==> (g (t INTER A)  = g t INTER g A)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "g";
   IMATCH_MP_TAC  inj_inter;
@@ -13642,7 +13642,7 @@ let homeomorphism_induced_top = prove_by_refinement(
   ASM_MESON_TAC[];
   (*  *)
   REP_BASIC_TAC;
-  TYPE_THEN `?t. U t /\ (g t = x')` SUBGOAL_TAC;
+  TYPE_THEN `?t. U t /\ (g t = x')` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[BIJ;SURJ]);
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
@@ -13663,29 +13663,29 @@ let ctop_reflA = prove_by_refinement(
   REP_BASIC_TAC;
   REWRITE_TAC[ctop];
   ASSUME_TAC reflA_homeo;
-  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[top2_unions;DIFF;SUBSET;];
   MESON_TAC[];
   DISCH_TAC ;
   (*   *)
-  TYPE_THEN `IMAGE2 (reflAf r) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflAf r) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE2 (reflAf r) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflAf r) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeomorphism_induced_top;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   AP_TERM_TAC;
   TSPEC `r` 1;
   (*  *)
-  TYPE_THEN `IMAGE (reflAf r) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflAf r) (UNIONS (curve_cell G)))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (reflAf r) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflAf r) (UNIONS (curve_cell G)))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism;top2_unions;]);
   REP_BASIC_TAC;
   USE 4 (MATCH_MP DIFF_SURJ);
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[UNIONS;SUBSET;];
   REP_BASIC_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
   USE 7 (MATCH_MP curve_cell_cell);
   ASM_MESON_TAC[ISUBSET;];
   ASM_MESON_TAC[ISUBSET;cell_euclid];
@@ -13706,29 +13706,29 @@ let ctop_reflB = prove_by_refinement(
   REP_BASIC_TAC;
   REWRITE_TAC[ctop];
   ASSUME_TAC reflB_homeo;
-  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[top2_unions;DIFF;SUBSET;];
   MESON_TAC[];
   DISCH_TAC ;
   (*   *)
-  TYPE_THEN `IMAGE2 (reflBf r) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflBf r) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE2 (reflBf r) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflBf r) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeomorphism_induced_top;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   AP_TERM_TAC;
   TSPEC `r` 1;
   (*  *)
-  TYPE_THEN `IMAGE (reflBf r) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflBf r) (UNIONS (curve_cell G)))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (reflBf r) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflBf r) (UNIONS (curve_cell G)))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism;top2_unions;]);
   REP_BASIC_TAC;
   USE 4 (MATCH_MP DIFF_SURJ);
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[UNIONS;SUBSET;];
   REP_BASIC_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
   USE 7 (MATCH_MP curve_cell_cell);
   ASM_MESON_TAC[ISUBSET;];
   ASM_MESON_TAC[ISUBSET;cell_euclid];
@@ -13749,28 +13749,28 @@ let ctop_reflC = prove_by_refinement(
   REP_BASIC_TAC;
   REWRITE_TAC[ctop];
   ASSUME_TAC reflC_homeo;
-  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 DIFF UNIONS (curve_cell G) SUBSET (UNIONS top2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[top2_unions;DIFF;SUBSET;];
   MESON_TAC[];
   DISCH_TAC ;
   (*   *)
-  TYPE_THEN `IMAGE2 (reflCf) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflCf) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE2 (reflCf) (induced_top top2 (euclid 2 DIFF UNIONS (curve_cell G))) = induced_top top2 (IMAGE (reflCf) (euclid 2 DIFF  (UNIONS (curve_cell G))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeomorphism_induced_top;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   AP_TERM_TAC;
   (*  *)
-  TYPE_THEN `IMAGE (reflCf) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflCf) (UNIONS (curve_cell G)))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (reflCf) (euclid 2 DIFF UNIONS (curve_cell G)) = euclid 2 DIFF (IMAGE (reflCf) (UNIONS (curve_cell G)))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism;top2_unions;]);
   REP_BASIC_TAC;
   USE 4 (MATCH_MP DIFF_SURJ);
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[UNIONS;SUBSET;];
   REP_BASIC_TAC;
-  TYPE_THEN `G SUBSET edge` SUBGOAL_TAC;
+  TYPE_THEN `G SUBSET edge` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment];
   DISCH_TAC;
-  TYPE_THEN `cell u` SUBGOAL_TAC;
+  TYPE_THEN `cell u` SUBGOAL_MP_TAC;
   USE 7 (MATCH_MP curve_cell_cell);
   ASM_MESON_TAC[ISUBSET;];
   ASM_MESON_TAC[ISUBSET;cell_euclid];
@@ -13790,7 +13790,7 @@ let connected_homeo = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `g = INV f (UNIONS U) (UNIONS V)` ABBREV_TAC ;
-  TYPE_THEN `Z = IMAGE g (IMAGE f Z)` SUBGOAL_TAC;
+  TYPE_THEN `Z = IMAGE g (IMAGE f Z)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[IMAGE];
@@ -13799,7 +13799,7 @@ let connected_homeo = prove_by_refinement(
   CONV_TAC (dropq_conv "x''");
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism]);
   REP_BASIC_TAC;
-  TYPE_THEN `!x'. (UNIONS U x') ==> (INV f (UNIONS U) (UNIONS V) (f x') = x')` SUBGOAL_TAC;
+  TYPE_THEN `!x'. (UNIONS U x') ==> (INV f (UNIONS U) (UNIONS V) (f x') = x')` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  inv_comp_left;
   ASM_REWRITE_TAC[];
@@ -13813,7 +13813,7 @@ let connected_homeo = prove_by_refinement(
   ASM_MESON_TAC[ISUBSET;];
   REP_BASIC_TAC;
   TSPEC `x'` 5;
-  TYPE_THEN `UNIONS U x'` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   REWR 5;
@@ -13836,11 +13836,11 @@ let connected_homeo = prove_by_refinement(
   EXPAND_TAC "g";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `UNIONS U x''` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U x''` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism]);
-  TYPE_THEN `x = x''` SUBGOAL_TAC;
+  TYPE_THEN `x = x''` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inv_comp_left];
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
@@ -13883,7 +13883,7 @@ let component_homeo = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `IMAGE f Z` EXISTS_TAC;
   CONJ_TAC;
-  TYPE_THEN `Z SUBSET UNIONS U` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET UNIONS U` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[connected]);
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[connected_homeo];
@@ -13893,7 +13893,7 @@ let component_homeo = prove_by_refinement(
   (*  *)
   REP_BASIC_TAC;
   (* *)
-  TYPE_THEN `?A. A SUBSET (UNIONS U) /\ (IMAGE f A = Z)` SUBGOAL_TAC;
+  TYPE_THEN `?A. A SUBSET (UNIONS U) /\ (IMAGE f A = Z)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_power_surj;
   TYPE_THEN `UNIONS V` EXISTS_TAC;
   ASM_MESON_TAC[connected;homeomorphism];
@@ -13908,7 +13908,7 @@ let component_homeo = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWR 3;
   REP_BASIC_TAC;
-  TYPE_THEN ` x = x'''` SUBGOAL_TAC;
+  TYPE_THEN ` x = x'''` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE [homeomorphism;BIJ;INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC  ;
@@ -13939,13 +13939,13 @@ let bij_homeo = prove_by_refinement(
   REWR 1;
   REP_BASIC_TAC;
   EXPAND_TAC "v";
-  TYPE_THEN `{x | UNIONS U x /\ IMAGE f y (f x)} = y` SUBGOAL_TAC;
+  TYPE_THEN `{x | UNIONS U x /\ IMAGE f y (f x)} = y` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[];
   GEN_TAC;
   EQ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f y (f x) = y x` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f y (f x) = y x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC image_app ;
   TYPE_THEN `(UNIONS U)` EXISTS_TAC;
   TYPE_THEN `(UNIONS V)` EXISTS_TAC;
@@ -13977,7 +13977,7 @@ let homeomorphism_subset = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  bij_homeo;
   SUBCONJ_TAC;
-  TYPE_THEN `UNIONS C SUBSET UNIONS U` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS C SUBSET UNIONS U` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  UNIONS_UNIONS ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -13989,7 +13989,7 @@ let homeomorphism_subset = prove_by_refinement(
   REWRITE_TAC[INJ];
     SUBCONJ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f (UNIONS C) (f x) = (UNIONS C) x` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f (UNIONS C) (f x) = (UNIONS C) x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (image_app);
   TYPE_THEN `(UNIONS U)` EXISTS_TAC;
   TYPE_THEN `(UNIONS V)` EXISTS_TAC;
@@ -14049,7 +14049,7 @@ let component_reflA = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  component_homeo;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `ctop (IMAGE2 (reflAf r) G) = IMAGE2 (reflAf r) (ctop G)` SUBGOAL_TAC ;
+  TYPE_THEN `ctop (IMAGE2 (reflAf r) G) = IMAGE2 (reflAf r) (ctop G)` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[ctop_reflA];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  homeomorphism_subset;
@@ -14070,7 +14070,7 @@ let component_reflB = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  component_homeo;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `ctop (IMAGE2 (reflBf r) G) = IMAGE2 (reflBf r) (ctop G)` SUBGOAL_TAC ;
+  TYPE_THEN `ctop (IMAGE2 (reflBf r) G) = IMAGE2 (reflBf r) (ctop G)` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[ctop_reflB];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  homeomorphism_subset;
@@ -14091,7 +14091,7 @@ let component_reflC = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  component_homeo;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `ctop (IMAGE2 (reflCf) G) = IMAGE2 (reflCf) (ctop G)` SUBGOAL_TAC ;
+  TYPE_THEN `ctop (IMAGE2 (reflCf) G) = IMAGE2 (reflCf) (ctop G)` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[ctop_reflC];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  homeomorphism_subset;
@@ -14125,7 +14125,7 @@ let squ_disj = prove_by_refinement(
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   DISCH_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `squ m = squ n` SUBGOAL_TAC;
+  TYPE_THEN `squ m = squ n` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   ASM_MESON_TAC[cell_rules];
   ASM_REWRITE_TAC[squ_inj];
@@ -14325,25 +14325,25 @@ let along_lemma7 = prove_by_refinement(
   TYPE_THEN `e' = IMAGE (reflAf (&:0)) e ` ABBREV_TAC ;
   TYPE_THEN `G' = IMAGE2 (reflAf (&:0)) G` ABBREV_TAC ;
   TYPE_THEN `x' = reflAf (&:0) x` ABBREV_TAC ;
-  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_TAC;
-  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_MP_TAC;
+  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_MP_TAC;
   USE 4(REWRITE_RULE[SUBSET]);
-  TYPE_THEN `~(squ (left  m) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (left  m) = EMPTY)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
   TSPEC `u` 4;
   REWR 4;
   ASM_MESON_TAC[];
-  TYPE_THEN `topology_ (ctop G)` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (ctop G)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ctop_top];
   ASM_SIMP_TAC [component_empty];
   DISCH_TAC;
-  TYPE_THEN `component  (ctop G') x' = IMAGE (reflAf (&:0)) (component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G') x' = IMAGE (reflAf (&:0)) (component  (ctop G) x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_reflA;];
   DISCH_TAC;
   (*  *)
-  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_TAC;
+  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  along_lemma6;
   TYPE_THEN `reflAi (&:0) m` EXISTS_TAC;
   (SUBCONJ_TAC);
@@ -14357,7 +14357,7 @@ let along_lemma7 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* goal 2c *)
   USE 4(MATCH_MP (ISPEC `reflAf (&:0)` IMAGE_SUBSET ));
-  TYPE_THEN `squ(reflAi (&:0) m) = IMAGE (reflAf (&:0)) (squ (left  m))` SUBGOAL_TAC;
+  TYPE_THEN `squ(reflAi (&:0) m) = IMAGE (reflAf (&:0)) (squ (left  m))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflA_squ];
   AP_TERM_TAC;
   REWRITE_TAC[reflAi;left ;PAIR_SPLIT; ];
@@ -14378,10 +14378,10 @@ let along_lemma7 = prove_by_refinement(
   REWRITE_TAC[IMAGE2];
   ASM_MESON_TAC[image_imp];
   EXPAND_TAC "e'";
-  TYPE_THEN `closure top2 (IMAGE (reflAf (&:0)) e) = IMAGE (reflAf (&:0)) (closure top2 e)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflAf (&:0)) e) = IMAGE (reflAf (&:0)) (closure top2 e)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflA_homeo;top2_unions;];
-  TYPE_THEN `edge e ` SUBGOAL_TAC;
+  TYPE_THEN `edge e ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   MESON_TAC[ISUBSET;edge_euclid2;];
   DISCH_THEN_REWRITE;
@@ -14391,7 +14391,7 @@ let along_lemma7 = prove_by_refinement(
   REP_BASIC_TAC;
   (* <1> *)
   TYPE_THEN `p = left  (reflAi (&:0) p')` ABBREV_TAC ;
-  TYPE_THEN `squ p' = IMAGE (reflAf (&:0) ) (squ p)` SUBGOAL_TAC;
+  TYPE_THEN `squ p' = IMAGE (reflAf (&:0) ) (squ p)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[reflA_squ;];
   AP_TERM_TAC;
   EXPAND_TAC "p";
@@ -14401,18 +14401,18 @@ let along_lemma7 = prove_by_refinement(
   TYPE_THEN `p` EXISTS_TAC;
   (* LAST *)
   ASSUME_TAC top2_top;
-  TYPE_THEN `homeomorphism (reflAf (&:0)) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflAf (&:0)) top2 top2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[reflA_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_TAC;
+  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_MP_TAC;
   MESON_TAC[squ_euclid;top2_unions];
   DISCH_TAC;
   CONJ_TAC; (* split *)
   UND 12;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "e'";
-  TYPE_THEN `closure top2 (IMAGE (reflAf (&:0)) (squ p)) = IMAGE (reflAf (&:0)) (closure top2 (squ p))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflAf (&:0)) (squ p)) = IMAGE (reflAf (&:0)) (closure top2 (squ p))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -14426,7 +14426,7 @@ let along_lemma7 = prove_by_refinement(
   TYPE_THEN `(euclid 2)` EXISTS_TAC;
   REWRITE_TAC [REWRITE_RULE[homeomorphism;BIJ;top2_unions] reflA_homeo;];
   CONJ_TAC;
-    TYPE_THEN `edge e ` SUBGOAL_TAC;
+    TYPE_THEN `edge e ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   MESON_TAC[ISUBSET;edge_euclid2;];
   IMATCH_MP_TAC  closure_euclid;
@@ -14473,7 +14473,7 @@ let squ_squc = prove_by_refinement(
   [
   REP_BASIC_TAC;
   REWRITE_TAC[GSYM squ_closure];
-  TYPE_THEN `IMAGE (reflBf r) (closure top2 (squ n)) = closure top2 (IMAGE (reflBf r) (squ n))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (reflBf r) (closure top2 (squ n)) = closure top2 (IMAGE (reflBf r) (squ n))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeo_closure;
   ASM_REWRITE_TAC[top2_top;top2_unions;reflB_homeo;squ_euclid;];
   DISCH_THEN_REWRITE;
@@ -14488,7 +14488,7 @@ let squ_squc_C = prove_by_refinement(
   [
   REP_BASIC_TAC;
   REWRITE_TAC[GSYM squ_closure];
-  TYPE_THEN `IMAGE (reflCf) (closure top2 (squ n)) = closure top2 (IMAGE (reflCf) (squ n))` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (reflCf) (closure top2 (squ n)) = closure top2 (IMAGE (reflCf) (squ n))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  homeo_closure;
   ASM_REWRITE_TAC[top2_top;top2_unions;reflC_homeo;squ_euclid;];
   DISCH_THEN_REWRITE;
@@ -14517,23 +14517,23 @@ let along_lemma8 = prove_by_refinement(
   TYPE_THEN `e' = IMAGE (reflBf (&:0)) e ` ABBREV_TAC ;
   TYPE_THEN `G' = IMAGE2 (reflBf (&:0)) G` ABBREV_TAC ;
   TYPE_THEN `x' = reflBf (&:0) x` ABBREV_TAC ;
-  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_TAC;
-  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_MP_TAC;
+  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_MP_TAC;
   USE 5(REWRITE_RULE[SUBSET]);
-  TYPE_THEN `~(squ (n) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (n) = EMPTY)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `topology_ (ctop G)` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (ctop G)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ctop_top];
   ASM_SIMP_TAC [component_empty];
   DISCH_TAC;
-  TYPE_THEN `component  (ctop G') x' = IMAGE (reflBf (&:0)) (component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G') x' = IMAGE (reflBf (&:0)) (component  (ctop G) x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_reflB;];
   DISCH_TAC;
   (*  gok to here *)
-  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_TAC;
+  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  along_lemma7;
   TYPE_THEN `(reflBi (&:0))  m` EXISTS_TAC;
   TYPE_THEN `down (reflBi (&:0) n)` EXISTS_TAC;
@@ -14550,11 +14550,11 @@ let along_lemma8 = prove_by_refinement(
   IMATCH_MP_TAC   (ISPEC `reflBf (&:0)` IMAGE_SUBSET );
   ASM_REWRITE_TAC[];
   (* 3 *)
-  TYPE_THEN `squc (down (reflBi (&:0) n)) = IMAGE (reflBf (&:0)) (squc n)` SUBGOAL_TAC;
+  TYPE_THEN `squc (down (reflBi (&:0) n)) = IMAGE (reflBf (&:0)) (squc n)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM squ_squc);
   REWRITE_TAC[reflB_squ];
   DISCH_THEN_REWRITE;  (* end *)
-  TYPE_THEN `v_edge (reflBi (&:0) m) = IMAGE (reflBf (&:0)) (v_edge (down m))` SUBGOAL_TAC;
+  TYPE_THEN `v_edge (reflBi (&:0) m) = IMAGE (reflBf (&:0)) (v_edge (down m))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflB_v_edge];
   AP_TERM_TAC ;
   REWRITE_TAC[reflBi;down;PAIR_SPLIT ];
@@ -14578,10 +14578,10 @@ let along_lemma8 = prove_by_refinement(
   ASM_MESON_TAC[image_imp];
   EXPAND_TAC "e'";
   (* 2 total *)
-  TYPE_THEN `closure top2 (IMAGE (reflBf (&:0)) e) = IMAGE (reflBf (&:0)) (closure top2 e)` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflBf (&:0)) e) = IMAGE (reflBf (&:0)) (closure top2 e)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflB_homeo;top2_unions;];
-  TYPE_THEN `edge e ` SUBGOAL_TAC;
+  TYPE_THEN `edge e ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   MESON_TAC[ISUBSET;edge_euclid2;];
   DISCH_THEN_REWRITE;
@@ -14591,7 +14591,7 @@ let along_lemma8 = prove_by_refinement(
   REP_BASIC_TAC;
   (* <1> *)
   TYPE_THEN `p = down  (reflBi (&:0) p')` ABBREV_TAC ;
-  TYPE_THEN `squ p' = IMAGE (reflBf (&:0) ) (squ p)` SUBGOAL_TAC;
+  TYPE_THEN `squ p' = IMAGE (reflBf (&:0) ) (squ p)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[reflB_squ;];
   AP_TERM_TAC;
   EXPAND_TAC "p";
@@ -14601,18 +14601,18 @@ let along_lemma8 = prove_by_refinement(
   TYPE_THEN `p` EXISTS_TAC;
   (* LAST *)
   ASSUME_TAC top2_top;
-  TYPE_THEN `homeomorphism (reflBf (&:0)) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflBf (&:0)) top2 top2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[reflB_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_TAC;
+  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_MP_TAC;
   MESON_TAC[squ_euclid;top2_unions];
   DISCH_TAC;
   CONJ_TAC; (* split *)
   UND 12;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "e'";
-  TYPE_THEN `closure top2 (IMAGE (reflBf (&:0)) (squ p)) = IMAGE (reflBf (&:0)) (closure top2 (squ p))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflBf (&:0)) (squ p)) = IMAGE (reflBf (&:0)) (closure top2 (squ p))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -14626,7 +14626,7 @@ let along_lemma8 = prove_by_refinement(
   TYPE_THEN `(euclid 2)` EXISTS_TAC;
   REWRITE_TAC [REWRITE_RULE[homeomorphism;BIJ;top2_unions] reflB_homeo;];
   CONJ_TAC;
-    TYPE_THEN `edge e ` SUBGOAL_TAC;
+    TYPE_THEN `edge e ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   MESON_TAC[ISUBSET;edge_euclid2;];
   IMATCH_MP_TAC  closure_euclid;
@@ -14665,7 +14665,7 @@ let along_lemma9 = prove_by_refinement(
   FIRST_ASSUM (DISJ_CASES_TAC);
   IMATCH_MP_TAC  along_lemma8;
   ASM_MESON_TAC[];
-  TYPE_THEN `edge e` SUBGOAL_TAC;
+  TYPE_THEN `edge e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[segment;ISUBSET];
   ASM_SIMP_TAC[];
   DISCH_TAC;
@@ -14678,23 +14678,23 @@ let along_lemma9 = prove_by_refinement(
   TYPE_THEN `e' = IMAGE (reflCf) e ` ABBREV_TAC ;
   TYPE_THEN `G' = IMAGE2 (reflCf) G` ABBREV_TAC ;
   TYPE_THEN `x' = reflCf x` ABBREV_TAC ;
-  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_TAC;
-  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) x` SUBGOAL_MP_TAC;
+  TYPE_THEN `~(component  (ctop G) x = EMPTY)` SUBGOAL_MP_TAC;
   USE 6(REWRITE_RULE[SUBSET]);
-  TYPE_THEN `~(squ (n) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(squ (n) = EMPTY)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[cell_nonempty;cell_rules];
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `topology_ (ctop G)` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (ctop G)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ctop_top];
   ASM_SIMP_TAC [component_empty];
   DISCH_TAC;
-  TYPE_THEN `component  (ctop G') x' = IMAGE (reflCf) (component  (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `component  (ctop G') x' = IMAGE (reflCf) (component  (ctop G) x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_reflC;];
   DISCH_TAC;
   (*  gok to here *)
-  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_TAC;
+  TYPE_THEN `?p'. e' SUBSET closure top2 (squ p') /\ squ p' SUBSET component (ctop G') x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  along_lemma8;
   TYPE_THEN `(reflCi)  m` EXISTS_TAC;
   TYPE_THEN `(reflCi n)` EXISTS_TAC;
@@ -14712,11 +14712,11 @@ let along_lemma9 = prove_by_refinement(
   IMATCH_MP_TAC   (ISPEC `reflCf` IMAGE_SUBSET );
   ASM_REWRITE_TAC[];
   (* 3 *)
-  TYPE_THEN `squc ( (reflCi n)) = IMAGE (reflCf) (squc n)` SUBGOAL_TAC;
+  TYPE_THEN `squc ( (reflCi n)) = IMAGE (reflCf) (squc n)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM squ_squc_C);
   REWRITE_TAC[reflC_squ];
   DISCH_THEN_REWRITE;  (* end *)
-  TYPE_THEN `v_edge (reflCi  m') = IMAGE (reflCf ) (h_edge ( m'))` SUBGOAL_TAC;
+  TYPE_THEN `v_edge (reflCi  m') = IMAGE (reflCf ) (h_edge ( m'))` SUBGOAL_MP_TAC;
   REWRITE_TAC[reflC_hv_edge];
   DISCH_THEN_REWRITE;
   CONJ_TAC;
@@ -14724,14 +14724,14 @@ let along_lemma9 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* gok2 *)
   (* INSERT *)
-  TYPE_THEN `!e. (edge e) ==> (closure top2 (IMAGE (reflCf ) e) = IMAGE (reflCf) (closure top2 e))` SUBGOAL_TAC;
+  TYPE_THEN `!e. (edge e) ==> (closure top2 (IMAGE (reflCf ) e) = IMAGE (reflCf) (closure top2 e))` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[top2_top;reflC_homeo;top2_unions;];
   IMATCH_MP_TAC  edge_euclid2;
   ASM_REWRITE_TAC[];
   DISCH_TAC ;
-  TYPE_THEN `edge (h_edge m')` SUBGOAL_TAC;
+  TYPE_THEN `edge (h_edge m')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[edge];
   DISCH_TAC;
   ASM_SIMP_TAC[];
@@ -14759,7 +14759,7 @@ let along_lemma9 = prove_by_refinement(
   REP_BASIC_TAC;
   (* <1> *)
   TYPE_THEN `p = reflCi p'` ABBREV_TAC ;
-  TYPE_THEN `squ p' = IMAGE (reflCf ) (squ p)` SUBGOAL_TAC;
+  TYPE_THEN `squ p' = IMAGE (reflCf ) (squ p)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[reflC_squ;];
   AP_TERM_TAC;
   EXPAND_TAC "p";
@@ -14768,14 +14768,14 @@ let along_lemma9 = prove_by_refinement(
   TYPE_THEN `p` EXISTS_TAC;
   (* LAST *)
   ASSUME_TAC top2_top;
-  TYPE_THEN `homeomorphism (reflCf) top2 top2` SUBGOAL_TAC;
+  TYPE_THEN `homeomorphism (reflCf) top2 top2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[reflC_homeo];
   DISCH_TAC;
   ASSUME_TAC top2_unions;
-  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_TAC;
+  TYPE_THEN `squ p SUBSET (UNIONS (top2))` SUBGOAL_MP_TAC;
   MESON_TAC[squ_euclid;top2_unions];
   DISCH_TAC;
-  TYPE_THEN `closure top2 (IMAGE (reflCf) (squ p)) = IMAGE (reflCf) (closure top2 (squ p))` SUBGOAL_TAC;
+  TYPE_THEN `closure top2 (IMAGE (reflCf) (squ p)) = IMAGE (reflCf) (closure top2 (squ p))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM homeo_closure);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -14795,7 +14795,7 @@ let along_lemma9 = prove_by_refinement(
   UND 21;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   REWRITE_TAC[reflC_squ];
-  TYPE_THEN `reflCi p = p'` SUBGOAL_TAC;
+  TYPE_THEN `reflCi p = p'` SUBGOAL_MP_TAC;
   EXPAND_TAC "p";
   REWRITE_TAC[reflCi_inv];
   DISCH_THEN_REWRITE;
@@ -14836,11 +14836,11 @@ let along_lemma10 = prove_by_refinement(
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   CONJ_TAC;
-  TYPE_THEN `(?m. squ m SUBSET (component  (ctop G) x))` SUBGOAL_TAC;
+  TYPE_THEN `(?m. squ m SUBSET (component  (ctop G) x))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  comp_squ;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(?p e. G e /\ e SUBSET closure top2 (squ p) /\ squ p SUBSET component (ctop G) x)` SUBGOAL_TAC;
+  TYPE_THEN `(?p e. G e /\ e SUBSET closure top2 (squ p) /\ squ p SUBSET component (ctop G) x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  comp_squ_adj;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
@@ -14859,13 +14859,13 @@ let along_lemma10 = prove_by_refinement(
   REWRITE_TAC[];
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `edge C /\ edge C'` SUBGOAL_TAC;
+  TYPE_THEN `edge C /\ edge C'` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[segment]);
   REP_BASIC_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[SUBSET]);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(?m. closure top2 C INTER closure top2 C' = {(pointI m)})` SUBGOAL_TAC;
+  TYPE_THEN `(?m. closure top2 C INTER closure top2 C' = {(pointI m)})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  edge_inter;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -14887,13 +14887,13 @@ let along_lemma11 = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `S = {e | (G e /\ (?p. (e SUBSET squc p) /\ (squ p SUBSET component  (ctop G) x)) ) }` ABBREV_TAC ;
-  TYPE_THEN ` S = G` SUBGOAL_TAC;
+  TYPE_THEN ` S = G` SUBGOAL_MP_TAC;
   COPY  2;
   UND 4;
   RULE_ASSUM_TAC (REWRITE_RULE[segment]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
-  TYPE_THEN `inductive_set G S` SUBGOAL_TAC;
+  TYPE_THEN `inductive_set G S` SUBGOAL_MP_TAC;
   EXPAND_TAC "S";
   IMATCH_MP_TAC  along_lemma10;
   ASM_REWRITE_TAC[];
@@ -15057,7 +15057,7 @@ let subf_lemma = prove_by_refinement(
   UND 3;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   REP_BASIC_TAC;
-  TYPE_THEN `(X DIFF B) x` SUBGOAL_TAC;
+  TYPE_THEN `(X DIFF B) x` SUBGOAL_MP_TAC;
   REWRITE_TAC[DIFF];
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -15107,7 +15107,7 @@ let subf_cont = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `A y \/ (~(A y) /\ B y)` SUBGOAL_TAC;
+  TYPE_THEN `A y \/ (~(A y) /\ B y)` SUBGOAL_MP_TAC;
   UND 9;
   MESON_TAC[];
   DISCH_THEN DISJ_CASES_TAC;
@@ -15118,24 +15118,24 @@ let subf_cont = prove_by_refinement(
   ASM_REWRITE_TAC[];
   UND 8;
   (* save_goal "ss" *)
-  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC;
   (* 1b case *)
   REWRITE_TAC[subf];
   ASM_REWRITE_TAC[];
-  TYPE_THEN `f x = g x` SUBGOAL_TAC;
+  TYPE_THEN `f x = g x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   UND 10;
   DISCH_THEN IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   UND 8;
-  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC ;
   (* 2nd case *)
-  TYPE_THEN `X x` SUBGOAL_TAC;
+  TYPE_THEN `X x` SUBGOAL_MP_TAC;
   UND 2;
   REWRITE_TAC[closed;open_DEF;SUBSET ;];
   REP_BASIC_TAC;
@@ -15145,7 +15145,7 @@ let subf_cont = prove_by_refinement(
   UND 0;
   SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `(?delta. (&0 < delta) /\ (!y. (dX x y < delta) ==> (~(B y))))` SUBGOAL_TAC;
+  TYPE_THEN `(?delta. (&0 < delta) /\ (!y. (dX x y < delta) ==> (~(B y))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  subf_lemma;
   TYPE_THEN `X` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -15160,13 +15160,13 @@ let subf_cont = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `A y` SUBGOAL_TAC;
-  TYPE_THEN `~(B y) ==> A y` SUBGOAL_TAC;
+  TYPE_THEN `A y` SUBGOAL_MP_TAC;
+  TYPE_THEN `~(B y) ==> A y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   FIRST_ASSUM IMATCH_MP_TAC ;
   UND 4;
-  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC;
   REWRITE_TAC[subf];
@@ -15175,11 +15175,11 @@ let subf_cont = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   UND 4;
-  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC;
   (* 2 LEFT *)
-  TYPE_THEN `X x` SUBGOAL_TAC;
+  TYPE_THEN `X x` SUBGOAL_MP_TAC;
   UND 3;
   REWRITE_TAC[closed;open_DEF;SUBSET ;];
   REP_BASIC_TAC;
@@ -15189,7 +15189,7 @@ let subf_cont = prove_by_refinement(
   UND 0;
   SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `(?delta. (&0 < delta) /\ (!y. (dX x y < delta) ==> (~(A y))))` SUBGOAL_TAC;
+  TYPE_THEN `(?delta. (&0 < delta) /\ (!y. (dX x y < delta) ==> (~(A y))))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  subf_lemma;
   TYPE_THEN `X` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -15204,21 +15204,21 @@ let subf_cont = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `~(A y)` SUBGOAL_TAC;
+  TYPE_THEN `~(A y)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   UND 5;
-  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC;
   REWRITE_TAC[subf];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   FIRST_ASSUM IMATCH_MP_TAC ;
-  TYPE_THEN `B y` SUBGOAL_TAC;
+  TYPE_THEN `B y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   UND 5;
-  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_TAC;
+  TYPE_THEN `min_real delta delta' <= delta'` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real_le];
   REAL_ARITH_TAC;
   (* 1 LEFT *)
@@ -15272,7 +15272,7 @@ let mk_line_sub = prove_by_refinement(
   REWRITE_TAC[];
   EQ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `~(t = &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(t = &1)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWR 0;
   UND 0;
@@ -15283,17 +15283,17 @@ let mk_line_sub = prove_by_refinement(
   TYPE_THEN `s = (&1 /(&1 - t))` ABBREV_TAC;
   TYPE_THEN `(t' - t)*s` EXISTS_TAC;
   ASM_REWRITE_TAC[euclid_ldistrib;GSYM euclid_add_assoc;euclid_scale_act;GSYM euclid_rdistrib;];
-  TYPE_THEN `(&1 - t) * s = &1` SUBGOAL_TAC;
+  TYPE_THEN `(&1 - t) * s = &1` SUBGOAL_MP_TAC;
   EXPAND_TAC "s";
   IMATCH_MP_TAC  REAL_DIV_LMUL;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `(t' - t) * s + (&1 - (t' - t) * s) * t = (t' - t) *((&1- t)* s) + t ` SUBGOAL_TAC;
+  TYPE_THEN `(t' - t) * s + (&1 - (t' - t) * s) * t = (t' - t) *((&1- t)* s) + t ` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(&1 - (t' - t) * s)*(&1 - t) = (&1 - t) - (t' - t)*(&1-t)*s` SUBGOAL_TAC;
+  TYPE_THEN `(&1 - (t' - t) * s)*(&1 - t) = (&1 - t) - (t' - t)*(&1-t)*s` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
@@ -15304,7 +15304,7 @@ let mk_line_sub = prove_by_refinement(
   ASM_REWRITE_TAC[euclid_ldistrib;GSYM euclid_add_assoc;euclid_scale_act;GSYM euclid_rdistrib;];
   DISCH_THEN_REWRITE;
   TYPE_THEN `t' + (&1 - t')*t` EXISTS_TAC;
-  TYPE_THEN `(&1 - (t' + (&1 - t') * t)) = ((&1 - t') * (&1 - t))` SUBGOAL_TAC;
+  TYPE_THEN `(&1 - (t' + (&1 - t') * t)) = ((&1 - t') * (&1 - t))` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ]);;
@@ -15354,13 +15354,13 @@ let mk_line_fin_inter = prove_by_refinement(
   TYPE_THEN `E2 = { (e,f) | (E e) /\ (E f) /\ (~(e = f)) }` ABBREV_TAC;
   TYPE_THEN `EE = { (e,f) | (E e) /\ (E f) }` ABBREV_TAC;
   (*   *)
-  TYPE_THEN `FINITE EE` SUBGOAL_TAC;
+  TYPE_THEN `FINITE EE` SUBGOAL_MP_TAC;
   EXPAND_TAC "EE";
   IMATCH_MP_TAC  (INR FINITE_PRODUCT);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (*   *)
-  TYPE_THEN `FINITE E2` SUBGOAL_TAC;
+  TYPE_THEN `FINITE E2` SUBGOAL_MP_TAC;
   EXPAND_TAC "E2";
   IMATCH_MP_TAC  FINITE_SUBSET;
   TYPE_THEN `EE` EXISTS_TAC;
@@ -15372,7 +15372,7 @@ let mk_line_fin_inter = prove_by_refinement(
   DISCH_TAC;
   (*  *)
   TYPE_THEN `E3 = IMAGE (\u. (FST u INTER SND u)) E2` ABBREV_TAC;
-  TYPE_THEN `FINITE E3` SUBGOAL_TAC;
+  TYPE_THEN `FINITE E3` SUBGOAL_MP_TAC;
   EXPAND_TAC "E3";
   IMATCH_MP_TAC  FINITE_IMAGE;
   ASM_REWRITE_TAC[];
@@ -15396,7 +15396,7 @@ let mk_line_fin_inter = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   (*  *)
-  TYPE_THEN `(?z. (mk_line x y INTER mk_line x' y') SUBSET {z} )` SUBGOAL_TAC;
+  TYPE_THEN `(?z. (mk_line x y INTER mk_line x' y') SUBSET {z} )` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC mk_line_inter;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
@@ -15459,7 +15459,7 @@ let h_seg_openball = prove_by_refinement(
   TYPE_THEN  `x'' = (((&1 - a) * e') *# e1)` ABBREV_TAC ;
   DISCH_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `euclid 2 x''` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x''` SUBGOAL_MP_TAC;
   EXPAND_TAC "x''";
   IMATCH_MP_TAC  euclid_scale_closure;
   REWRITE_TAC[e1;euclid_point];
@@ -15469,13 +15469,13 @@ let h_seg_openball = prove_by_refinement(
   IMATCH_MP_TAC  euclid_add_closure;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `!x y.  d_euclid x y = d_euclid (x+euclid0) y ` SUBGOAL_TAC;
+  TYPE_THEN `!x y.  d_euclid x y = d_euclid (x+euclid0) y ` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_rzero];
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC[t]);
   EXPAND_TAC "x'";
   ASSUME_TAC euclid_euclid0;
   KILL 7;
-  TYPE_THEN `d_euclid (euclid_plus x euclid0) (euclid_plus x x'') = d_euclid euclid0 x''` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (euclid_plus x euclid0) (euclid_plus x x'') = d_euclid euclid0 x''` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_translate_LEFT];
   DISCH_THEN_REWRITE;
   EXPAND_TAC "x''";
@@ -15486,7 +15486,7 @@ let h_seg_openball = prove_by_refinement(
   REWRITE_TAC[EXP_2;ARITH_RULE `0 *| 0 = 0`];
   REDUCE_TAC;
   REWRITE_TAC[REAL_ARITH `&0 - x = --x`;REAL_POW_NEG;EVEN2];
-  TYPE_THEN `&0 <= (&1 - a) * e'` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= (&1 - a) * e'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_LE_MUL;
   ASM_REWRITE_TAC[];
   UND 5;
@@ -15497,7 +15497,7 @@ let h_seg_openball = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REDUCE_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(&1 - a) * e' < &1 * e ==> (&1 - a) * e' <  e` SUBGOAL_TAC;
+  TYPE_THEN `(&1 - a) * e' < &1 * e ==> (&1 - a) * e' <  e` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   DISCH_THEN IMATCH_MP_TAC ;
   IMATCH_MP_TAC  REAL_LT_MUL2;
@@ -15522,7 +15522,7 @@ let openball_convex = prove_by_refinement(
   IMATCH_MP_TAC  (euclid_add_closure);
   CONJ_TAC THEN (IMATCH_MP_TAC  euclid_scale_closure) THEN (ASM_REWRITE_TAC[]);
   DISCH_TAC;
-  TYPE_THEN `d_euclid x x'' = d_euclid (a *# x + (&1 - a) *# x) x''` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid x x'' = d_euclid (a *# x + (&1 - a) *# x) x''` SUBGOAL_MP_TAC;
   REWRITE_TAC[trivial_lin_combo];
   DISCH_THEN_REWRITE;
   EXPAND_TAC "x''";
@@ -15532,9 +15532,9 @@ let openball_convex = prove_by_refinement(
   DISCH_THEN_REWRITE;
   REDUCE_TAC;
   ASM_REWRITE_TAC [euclid_scale0;euclid_scale_one;euclid_lzero;];
-  TYPE_THEN `(!d. (?u v. (d <= u + v) /\ (u < a*e) /\ (v <= (&1- a)*e))  ==> (d < e))` SUBGOAL_TAC;
+  TYPE_THEN `(!d. (?u v. (d <= u + v) /\ (u < a*e) /\ (v <= (&1- a)*e))  ==> (d < e))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `u + v < (a*e) + (&1 - a)*e` SUBGOAL_TAC;
+  TYPE_THEN `u + v < (a*e) + (&1 - a)*e` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_LTE_ADD2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[GSYM REAL_RDISTRIB;REAL_ARITH `(a + &1 - a = &1) /\ (&1 * C = C )`];
@@ -15544,7 +15544,7 @@ let openball_convex = prove_by_refinement(
   TYPE_THEN `z = a *# x' + (&1 - a) *# x` ABBREV_TAC;
   TYPE_THEN `d_euclid (a *# x + (&1 - a)*# x) z` EXISTS_TAC;
   TYPE_THEN `d_euclid z x''` EXISTS_TAC;
-  TYPE_THEN `euclid n z` SUBGOAL_TAC;
+  TYPE_THEN `euclid n z` SUBGOAL_MP_TAC;
   EXPAND_TAC "z";
   IMATCH_MP_TAC  (euclid_add_closure);
   CONJ_TAC THEN (IMATCH_MP_TAC  euclid_scale_closure) THEN (ASM_REWRITE_TAC[]);
@@ -15557,16 +15557,16 @@ let openball_convex = prove_by_refinement(
   ASM_REWRITE_TAC[trivial_lin_combo];
   CONJ_TAC;
   EXPAND_TAC "z";
-  TYPE_THEN `(d_euclid (euclid_plus (a *# x) ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# x))) = d_euclid  (a *# x) (a *# x') ` SUBGOAL_TAC;
+  TYPE_THEN `(d_euclid (euclid_plus (a *# x) ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# x))) = d_euclid  (a *# x) (a *# x') ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_translate;
   TYPE_THEN `n` EXISTS_TAC;
   REPEAT (CONJ_TAC THEN TRY (IMATCH_MP_TAC  euclid_scale_closure) THEN ASM_REWRITE_TAC[]);
   DISCH_THEN_REWRITE;
-  TYPE_THEN `d_euclid (a *# x) (a *# x')  = abs  (a) * d_euclid x x'` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (a *# x) (a *# x')  = abs  (a) * d_euclid x x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  norm_scale_vec;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `abs  a = a` SUBGOAL_TAC;
+  TYPE_THEN `abs  a = a` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ABS_REFL];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  REAL_PROP_LT_LMUL;
@@ -15577,17 +15577,17 @@ let openball_convex = prove_by_refinement(
   (* LAST case *)
   EXPAND_TAC "z";
   EXPAND_TAC "x''";
-  TYPE_THEN `d_euclid (euclid_plus (a *# x') ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# y)) = d_euclid ((&1 - a) *# x) ((&1 - a) *# y)` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (euclid_plus (a *# x') ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# y)) = d_euclid ((&1 - a) *# x) ((&1 - a) *# y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_translate_LEFT;
   TYPE_THEN `n` EXISTS_TAC;
   REPEAT (CONJ_TAC THEN TRY (IMATCH_MP_TAC  euclid_scale_closure) THEN ASM_REWRITE_TAC[]);
   DISCH_THEN_REWRITE;
-  TYPE_THEN `!b. d_euclid (b *# x) (b *# y)  = abs  (b) * d_euclid x y` SUBGOAL_TAC;
+  TYPE_THEN `!b. d_euclid (b *# x) (b *# y)  = abs  (b) * d_euclid x y` SUBGOAL_MP_TAC;
   GEN_TAC;
   IMATCH_MP_TAC  norm_scale_vec;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_TAC;
+  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_MP_TAC;
   REWRITE_TAC [REAL_ABS_REFL];
   UND 1;
   REAL_ARITH_TAC;
@@ -15696,7 +15696,7 @@ let mk_segment_inj_image = prove_by_refinement(
   REWRITE_TAC[INJ];
   CONJ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `~(x' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &0)` SUBGOAL_MP_TAC;
   UND 4;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -15707,21 +15707,21 @@ let mk_segment_inj_image = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   UND 3;
-  TYPE_THEN `~(x' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &0)` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~(y' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(y' < &0)` SUBGOAL_MP_TAC;
   UND 5;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(if (x' < &1) then (euclid_plus (x' *# y) ((&1 - x') *# x)) else y) = ( euclid_plus (x' *# y) ((&1 - x') *# x))` SUBGOAL_TAC;
- TYPE_THEN `(x' < &1) \/ (x' = &1)` SUBGOAL_TAC;
+  TYPE_THEN `(if (x' < &1) then (euclid_plus (x' *# y) ((&1 - x') *# x)) else y) = ( euclid_plus (x' *# y) ((&1 - x') *# x))` SUBGOAL_MP_TAC;
+ TYPE_THEN `(x' < &1) \/ (x' = &1)` SUBGOAL_MP_TAC;
   UND 6;
   REAL_ARITH_TAC;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(x' < &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &1)` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -15730,13 +15730,13 @@ let mk_segment_inj_image = prove_by_refinement(
   REWRITE_TAC[euclid_scale_one;euclid_scale0;euclid_rzero];
   DISCH_THEN_REWRITE;
 
-  TYPE_THEN `(if (y' < &1) then (euclid_plus (y' *# y) ((&1 - y') *# x)) else y) = ( euclid_plus (y' *# y) ((&1 - y') *# x))` SUBGOAL_TAC;
- TYPE_THEN `(y' < &1) \/ (y' = &1)` SUBGOAL_TAC;
+  TYPE_THEN `(if (y' < &1) then (euclid_plus (y' *# y) ((&1 - y') *# x)) else y) = ( euclid_plus (y' *# y) ((&1 - y') *# x))` SUBGOAL_MP_TAC;
+ TYPE_THEN `(y' < &1) \/ (y' = &1)` SUBGOAL_MP_TAC;
   UND 4;
   REAL_ARITH_TAC;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(y' < &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(y' < &1)` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -15815,7 +15815,7 @@ let mk_segment_inj_image = prove_by_refinement(
   COND_CASES_TAC;
   REWRITE_TAC[REAL_ARITH `&1 - (&1 - a) = a`];
   ASM_MESON_TAC [euclid_add_comm];
-  TYPE_THEN `a = &.0` SUBGOAL_TAC;
+  TYPE_THEN `a = &.0` SUBGOAL_MP_TAC;
   UND 4;
   UND 3;
   AND 2;
@@ -15838,7 +15838,7 @@ let h_simple_polygonal = prove_by_refinement(
   CONJ_TAC;
   ASSUME_TAC mk_segment_inj_image;
   TYPEL_THEN [`x`;`x + (e *# e1)`;`2`] (USE 2 o ISPECL);
-  TYPE_THEN `euclid 2 x /\ euclid 2 (euclid_plus x (e *# e1)) /\ ~(x = euclid_plus x (e *# e1))` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x /\ euclid 2 (euclid_plus x (e *# e1)) /\ ~(x = euclid_plus x (e *# e1))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC  euclid_add_closure;
@@ -15877,7 +15877,7 @@ let h_simple_polygonal = prove_by_refinement(
   AP_TERM_TAC;
   REWRITE_TAC[e1;point_scale];
   REDUCE_TAC;
-  TYPE_THEN `euclid_plus (point p) (point (e,&0)) = euclid_plus (point (FST p,SND p)) (point (e,&0))` SUBGOAL_TAC;
+  TYPE_THEN `euclid_plus (point p) (point (e,&0)) = euclid_plus (point (FST p,SND p)) (point (e,&0))` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_ONCE_REWRITE_TAC[t]);
   REWRITE_TAC[point_add];
@@ -15891,16 +15891,16 @@ let pconn_refl = prove_by_refinement(
   [
   REWRITE_TAC[p_conn;top2];
   REP_BASIC_TAC;
-  TYPE_THEN `?e. (&0 < e) /\ (open_ball(euclid 2,d_euclid) x e SUBSET A)` SUBGOAL_TAC;
+  TYPE_THEN `?e. (&0 < e) /\ (open_ball(euclid 2,d_euclid) x e SUBSET A)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[open_ball_nbd;metric_euclid];
   REP_BASIC_TAC;
   TYPE_THEN `mk_segment x (x + (e/(&2))*# e1)` EXISTS_TAC;
-  TYPE_THEN `euclid 2 x` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x` SUBGOAL_MP_TAC;
   USE 1(MATCH_MP sub_union);
   UND 1;
   ASM_MESON_TAC [top_of_metric_unions;metric_euclid;ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `~(e/(&2) = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(e/(&2) = &0)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(&0 < x) ==> (~(x = &0))` );
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   DISCH_TAC;
@@ -16007,10 +16007,10 @@ let linear_cont = prove_by_refinement(
   DISCH_TAC;
   REWRITE_TAC[d_real];
   REP_BASIC_TAC;
-  TYPE_THEN `((x * a + (&1 - x) * b) - (y * a + (&1 - y) * b))  = (x - y)*(a - b)` SUBGOAL_TAC;
+  TYPE_THEN `((x * a + (&1 - x) * b) - (y * a + (&1 - y) * b))  = (x - y)*(a - b)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `epsilon = delta * (abs  (a - b))` SUBGOAL_TAC;
+  TYPE_THEN `epsilon = delta * (abs  (a - b))` SUBGOAL_MP_TAC;
   EXPAND_TAC "delta";
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
   IMATCH_MP_TAC  REAL_DIV_RMUL;
@@ -16037,22 +16037,22 @@ let linear_image_gen = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `&0 < (b - a)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (b - a)` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   REP_BASIC_TAC;
   ABBREV_TAC   `e = &1/(d-c)`;
-  TYPE_THEN `!u. u/(d - c) = u*e` SUBGOAL_TAC;
+  TYPE_THEN `!u. u/(d - c) = u*e` SUBGOAL_MP_TAC;
   GEN_TAC;
   EXPAND_TAC "e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
   DISCH_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(d - c)*e = &1` SUBGOAL_TAC;
+  TYPE_THEN `(d - c)*e = &1` SUBGOAL_MP_TAC;
   EXPAND_TAC "e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
@@ -16061,7 +16061,7 @@ let linear_image_gen = prove_by_refinement(
   UND 3;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `&0 < e` SUBGOAL_TAC;
+  TYPE_THEN `&0 < e` SUBGOAL_MP_TAC;
   EXPAND_TAC "e";
   IMATCH_MP_TAC  REAL_LT_DIV;
   ASM_REWRITE_TAC[];
@@ -16072,12 +16072,12 @@ let linear_image_gen = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
-  TYPE_THEN `((d-c)*e*a <= ((x' - c) * e) * a + ((d - x') * e) * b) ==> (a <= ((x' - c) * e) * a + ((d - x') * e) * b)` SUBGOAL_TAC;
+  TYPE_THEN `((d-c)*e*a <= ((x' - c) * e) * a + ((d - x') * e) * b) ==> (a <= ((x' - c) * e) * a + ((d - x') * e) * b)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_MUL_ASSOC];
   REDUCE_TAC;
   DISCH_THEN IMATCH_MP_TAC ;
   ineq_le_tac `(d-c)*e*a + (d - x')*(b - a)*e = ((x' - c) * e) * a + ((d - x') * e) * b`;
-  TYPE_THEN `(((x' - c) * e) * a + ((d - x') * e) * b <= b*((d- c)*e)) ==> (((x' - c) * e) * a + ((d - x') * e) * b <= b)` SUBGOAL_TAC;
+  TYPE_THEN `(((x' - c) * e) * a + ((d - x') * e) * b <= b*((d- c)*e)) ==> (((x' - c) * e) * a + ((d - x') * e) * b <= b)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_ARITH `x* &1 = x`];
   DISCH_THEN IMATCH_MP_TAC ;
   ineq_le_tac `(((x' - c) * e) * a + ((d - x') * e) * b) + (x'-c )*(b-a)*e = b * (d - c) * e`;
@@ -16085,14 +16085,14 @@ let linear_image_gen = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `x' = ((d*b - a*c) - (d -c)*x)/(b - a)` ABBREV_TAC ;
   TYPE_THEN `x'` EXISTS_TAC;
-  TYPE_THEN `x'*(b - a) = ((d*b - a*c) - (d -c)*x)` SUBGOAL_TAC;
+  TYPE_THEN `x'*(b - a) = ((d*b - a*c) - (d -c)*x)` SUBGOAL_MP_TAC;
   EXPAND_TAC "x'";
   IMATCH_MP_TAC  REAL_DIV_RMUL;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* sv *)
-  SUBGOAL_TAC `!x a b. (a * x <= b * x /\ &0 < x) ==> (a <= b)`;
+  SUBGOAL_MP_TAC `!x a b. (a * x <= b * x /\ &0 < x) ==> (a <= b)`;
   MESON_TAC[REAL_PROP_LE_RCANCEL];
   DISCH_TAC;
   CONJ_TAC;
@@ -16105,11 +16105,11 @@ let linear_image_gen = prove_by_refinement(
   TYPE_THEN `(b - a)` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   ineq_le_tac `(d * b - a * c - (d - c) * x) + (d-c)*(x-a) = d * (b - a)`;
-  TYPE_THEN `((x' - c) * e) * a + ((d - x') * e) * b = (d*b - c*a - x'*(b-a))*e` SUBGOAL_TAC;
+  TYPE_THEN `((x' - c) * e) * a + ((d - x') * e) * b = (d*b - c*a - x'*(b-a))*e` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(d * b - c * a - (d * b - a * c - (d - c) * x)) = x*(d-c)` SUBGOAL_TAC;
+  TYPE_THEN `(d * b - c * a - (d * b - a * c - (d - c) * x)) = x*(d-c)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[GSYM REAL_MUL_ASSOC];
@@ -16130,22 +16130,22 @@ let linear_image_rev = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   REP_BASIC_TAC;
   REWRITE_TAC[];
-  TYPE_THEN `&0 < (b - a)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (b - a)` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   REP_BASIC_TAC;
   ABBREV_TAC   `e = &1/(d-c)`;
-  TYPE_THEN `!u. u/(d - c) = u*e` SUBGOAL_TAC;
+  TYPE_THEN `!u. u/(d - c) = u*e` SUBGOAL_MP_TAC;
   GEN_TAC;
   EXPAND_TAC "e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
   DISCH_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(d - c)*e = &1` SUBGOAL_TAC;
+  TYPE_THEN `(d - c)*e = &1` SUBGOAL_MP_TAC;
   EXPAND_TAC "e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
@@ -16154,7 +16154,7 @@ let linear_image_rev = prove_by_refinement(
   UND 3;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `&0 < e` SUBGOAL_TAC;
+  TYPE_THEN `&0 < e` SUBGOAL_MP_TAC;
   EXPAND_TAC "e";
   IMATCH_MP_TAC  REAL_LT_DIV;
   ASM_REWRITE_TAC[];
@@ -16165,12 +16165,12 @@ let linear_image_rev = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
-  TYPE_THEN `((d-c)*e*a <= ((x' - c) * e) * b + ((d - x') * e) * a) ==> (a <= ((x' - c) * e) * b + ((d - x') * e) * a)` SUBGOAL_TAC;
+  TYPE_THEN `((d-c)*e*a <= ((x' - c) * e) * b + ((d - x') * e) * a) ==> (a <= ((x' - c) * e) * b + ((d - x') * e) * a)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_MUL_ASSOC];
   REDUCE_TAC;
   DISCH_THEN IMATCH_MP_TAC ;
   ineq_le_tac `(d-c)*e*a + (x' - c)*(b - a)*e = ((x' - c) * e) * b + ((d - x') * e) * a`;
-  TYPE_THEN `(((x' - c) * e) * b + ((d - x') * e) * a <= b*((d- c)*e)) ==> (((x' - c) * e) * b + ((d - x') * e) * a <= b)` SUBGOAL_TAC;
+  TYPE_THEN `(((x' - c) * e) * b + ((d - x') * e) * a <= b*((d- c)*e)) ==> (((x' - c) * e) * b + ((d - x') * e) * a <= b)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_ARITH `x* &1 = x`];
   DISCH_THEN IMATCH_MP_TAC ;
   ineq_le_tac `(((x' - c) * e) * b + ((d - x') * e) * a) + (d - x' )*(b-a)*e = b * (d - c) * e`;
@@ -16178,14 +16178,14 @@ let linear_image_rev = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `x' = ((b*c  - a*d) + (d -c)*x)/(b - a)` ABBREV_TAC ;
   TYPE_THEN `x'` EXISTS_TAC;
-  TYPE_THEN `x'*(b - a) = ((b*c - a*d ) + (d -c)*x)` SUBGOAL_TAC;
+  TYPE_THEN `x'*(b - a) = ((b*c - a*d ) + (d -c)*x)` SUBGOAL_MP_TAC;
   EXPAND_TAC "x'";
   IMATCH_MP_TAC  REAL_DIV_RMUL;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* sv *)
-  SUBGOAL_TAC `!x a b. (a * x <= b * x /\ &0 < x) ==> (a <= b)`;
+  SUBGOAL_MP_TAC `!x a b. (a * x <= b * x /\ &0 < x) ==> (a <= b)`;
   MESON_TAC[REAL_PROP_LE_RCANCEL];
   DISCH_TAC;
   CONJ_TAC;
@@ -16198,11 +16198,11 @@ let linear_image_rev = prove_by_refinement(
   TYPE_THEN `(b - a)` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   ineq_le_tac `(b*c - a*d + (d - c) * x) + (d-c)*(b - x) = d * (b - a)`;
-  TYPE_THEN `((x' - c) * e) * b + ((d - x') * e) * a = (d*a - c*b + x'*(b-a))*e` SUBGOAL_TAC;
+  TYPE_THEN `((x' - c) * e) * b + ((d - x') * e) * a = (d*a - c*b + x'*(b-a))*e` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(d * a - c * b + b * c - a * d + (d - c) * x) = x*(d-c)` SUBGOAL_TAC;
+  TYPE_THEN `(d * a - c * b + b * c - a * d + (d - c) * x) = x*(d-c)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[GSYM REAL_MUL_ASSOC];
@@ -16237,12 +16237,12 @@ let linear_inj = prove_by_refinement(
   (* INJ proper *)
   REP_BASIC_TAC;
   UND 2;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   DISCH_TAC;
   TYPE_THEN `e = &1/(d-c)` ABBREV_TAC ;
-  TYPE_THEN `!u. (u/(d-c) = u*e)` SUBGOAL_TAC;
+  TYPE_THEN `!u. (u/(d-c) = u*e)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC"e";
   REWRITE_TAC[real_div];
@@ -16251,15 +16251,15 @@ let linear_inj = prove_by_refinement(
   DISCH_TAC;
   USE 8(ONCE_REWRITE_RULE [REAL_ARITH `(x = y) <=> (x - y = &0)`]);
   UND 8;
-  TYPE_THEN `(((x - c) * e) * a + ((d - x) * e) * b) - (((y - c) * e) * a + ((d - y) * e) * b) = e*(b-a)*(y - x)` SUBGOAL_TAC;
+  TYPE_THEN `(((x - c) * e) * a + ((d - x) * e) * b) - (((y - c) * e) * a + ((d - y) * e) * b) = e*(b-a)*(y - x)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[REAL_ENTIRE];
-  TYPE_THEN `~(b - a = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(b - a = &0)` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~(e = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(e = &0)` SUBGOAL_MP_TAC;
   EXPAND_TAC"e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
@@ -16296,12 +16296,12 @@ let linear_inj_rev = prove_by_refinement(
   (* INJ proper *)
   REP_BASIC_TAC;
   UND 2;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   DISCH_TAC;
   TYPE_THEN `e = &1/(d-c)` ABBREV_TAC ;
-  TYPE_THEN `!u. (u/(d-c) = u*e)` SUBGOAL_TAC;
+  TYPE_THEN `!u. (u/(d-c) = u*e)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC"e";
   REWRITE_TAC[real_div];
@@ -16310,15 +16310,15 @@ let linear_inj_rev = prove_by_refinement(
   DISCH_TAC;
   USE 8(ONCE_REWRITE_RULE [REAL_ARITH `(x = y) <=> (x - y = &0)`]);
   UND 8;
-  TYPE_THEN `(((x - c) * e) * b + ((d - x) * e) * a) - (((y - c) * e) * b + ((d - y) * e) * a) = e*(a-b)*(y - x)` SUBGOAL_TAC;
+  TYPE_THEN `(((x - c) * e) * b + ((d - x) * e) * a) - (((y - c) * e) * b + ((d - y) * e) * a) = e*(a-b)*(y - x)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[REAL_ENTIRE];
-  TYPE_THEN `~(a-b = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(a-b = &0)` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~(e = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(e = &0)` SUBGOAL_MP_TAC;
   EXPAND_TAC"e";
   REWRITE_TAC[real_div];
   REDUCE_TAC;
@@ -16363,7 +16363,7 @@ let arc_reparameter_rev = prove_by_refinement(
   TYPE_THEN `g = (f o f2)` ABBREV_TAC ;
   TYPE_THEN `g` EXISTS_TAC;
   (* general facts *)
-  TYPE_THEN `UNIONS(top_of_metric(UNIV,d_real)) = UNIV` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS(top_of_metric(UNIV,d_real)) = UNIV` SUBGOAL_MP_TAC;
   MESON_TAC[metric_real;top_of_metric_unions];
   DISCH_TAC;
   (* continuity *)
@@ -16374,7 +16374,7 @@ let arc_reparameter_rev = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWRITE_TAC[top2];
   ASM_SIMP_TAC[metric_continuous_continuous;metric_real;SUBSET_UNIV];
-  TYPE_THEN `f2 = (\t. t* (c - d + d*b - c*a)/(b - a) + (&1 - t)*(d*b-c*a)/(b - a))` SUBGOAL_TAC;
+  TYPE_THEN `f2 = (\t. t* (c - d + d*b - c*a)/(b - a) + (&1 - t)*(d*b-c*a)/(b - a))` SUBGOAL_MP_TAC;
   EXPAND_TAC "f2";
   IMATCH_MP_TAC  EQ_EXT;
   BETA_TAC;
@@ -16386,12 +16386,12 @@ let arc_reparameter_rev = prove_by_refinement(
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[linear_cont];
   (* IMAGE *)
-  TYPE_THEN `{x | c <= x /\ x <= d} = IMAGE f2 {x | a <= x /\ x <= b}` SUBGOAL_TAC;
+  TYPE_THEN `{x | c <= x /\ x <= d} = IMAGE f2 {x | a <= x /\ x <= b}` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   EXPAND_TAC "f2";
   ASM_SIMP_TAC[linear_image_gen];
   DISCH_TAC;
-  TYPE_THEN `(IMAGE f {x | c <= x /\ x <= d} = IMAGE g {x | a <= x /\ x <= b})` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE f {x | c <= x /\ x <= d} = IMAGE g {x | a <= x /\ x <= b})` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   REWRITE_TAC[comp_comp;compose_image;];
   AP_TERM_TAC;
@@ -16420,7 +16420,7 @@ let arc_reparameter_rev = prove_by_refinement(
   REDUCE_TAC;
   REWRITE_TAC[real_div;REAL_MUL_ASSOC;];
   REDUCE_TAC;
-  TYPE_THEN `(b-a)*inv(b-a) = &1` SUBGOAL_TAC;
+  TYPE_THEN `(b-a)*inv(b-a) = &1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_MUL_RINV;
   UND 1;
   REAL_ARITH_TAC;
@@ -16429,7 +16429,7 @@ let arc_reparameter_rev = prove_by_refinement(
   (* monotone *)
   REWRITE_TAC[compose];
   REP_BASIC_TAC;
-  TYPE_THEN `c <= f2 y' /\ f2 y' <= d` SUBGOAL_TAC;
+  TYPE_THEN `c <= f2 y' /\ f2 y' <= d` SUBGOAL_MP_TAC;
   USE 7 (REWRITE_RULE[IMAGE]);
   TYPE_THEN `f2 y'` (fun s -> FIRST_ASSUM (fun t-> MP_TAC (AP_THM t s)));
   REWRITE_TAC[];
@@ -16437,7 +16437,7 @@ let arc_reparameter_rev = prove_by_refinement(
   TYPE_THEN `y'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `c <= f2 x' /\ f2 x' <= d` SUBGOAL_TAC;
+  TYPE_THEN `c <= f2 x' /\ f2 x' <= d` SUBGOAL_MP_TAC;
   USE 7 (REWRITE_RULE[IMAGE]);
   TYPE_THEN `f2 x'` (fun s -> FIRST_ASSUM (fun t-> MP_TAC (AP_THM t s)));
   REWRITE_TAC[];
@@ -16445,13 +16445,13 @@ let arc_reparameter_rev = prove_by_refinement(
   TYPE_THEN `x'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `x = f2 x'` SUBGOAL_TAC;
+  TYPE_THEN `x = f2 x'` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `y = f2 y'` SUBGOAL_TAC;
+  TYPE_THEN `y = f2 y'` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -16462,15 +16462,15 @@ let arc_reparameter_rev = prove_by_refinement(
   ONCE_REWRITE_TAC [REAL_ARITH `x < y <=> ( &0 < y - x)`];
   REWRITE_TAC[real_div];
   TYPE_THEN `e = inv(b-a)` ABBREV_TAC ;
-  TYPE_THEN `(((y' - a) * e) * c + ((b - y') * e) * d) - (((x' - a) * e) * c + ((b - x') * e) * d) = (x' - y')*e*(d-c)` SUBGOAL_TAC;
+  TYPE_THEN `(((y' - a) * e) * c + ((b - y') * e) * d) - (((x' - a) * e) * c + ((b - x') * e) * d) = (x' - y')*e*(d-c)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `&0 < e` SUBGOAL_TAC;
+  TYPE_THEN `&0 < e` SUBGOAL_MP_TAC;
   EXPAND_TAC"e";
   IMATCH_MP_TAC  REAL_PROP_POS_INV;
   UND 1;
   REAL_ARITH_TAC;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   REWRITE_TAC[REAL_MUL_ASSOC];
@@ -16498,7 +16498,7 @@ let arc_reparameter_gen = prove_by_refinement(
   TYPE_THEN `g = (f o f2)` ABBREV_TAC ;
   TYPE_THEN `g` EXISTS_TAC;
   (* general facts *)
-  TYPE_THEN `UNIONS(top_of_metric(UNIV,d_real)) = UNIV` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS(top_of_metric(UNIV,d_real)) = UNIV` SUBGOAL_MP_TAC;
   MESON_TAC[metric_real;top_of_metric_unions];
   DISCH_TAC;
   (* continuity *)
@@ -16509,7 +16509,7 @@ let arc_reparameter_gen = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWRITE_TAC[top2];
   ASM_SIMP_TAC[metric_continuous_continuous;metric_real;SUBSET_UNIV];
-  TYPE_THEN `f2 = (\t. t* (d - c + c*b - d*a)/(b - a) + (&1 - t)*(c*b-d*a)/(b - a))` SUBGOAL_TAC;
+  TYPE_THEN `f2 = (\t. t* (d - c + c*b - d*a)/(b - a) + (&1 - t)*(c*b-d*a)/(b - a))` SUBGOAL_MP_TAC;
   EXPAND_TAC "f2";
   IMATCH_MP_TAC  EQ_EXT;
   BETA_TAC;
@@ -16521,12 +16521,12 @@ let arc_reparameter_gen = prove_by_refinement(
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[linear_cont];
   (* IMAGE *)
-  TYPE_THEN `{x | c <= x /\ x <= d} = IMAGE f2 {x | a <= x /\ x <= b}` SUBGOAL_TAC;
+  TYPE_THEN `{x | c <= x /\ x <= d} = IMAGE f2 {x | a <= x /\ x <= b}` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   EXPAND_TAC "f2";
   ASM_SIMP_TAC[linear_image_rev];
   DISCH_TAC;
-  TYPE_THEN `(IMAGE f {x | c <= x /\ x <= d} = IMAGE g {x | a <= x /\ x <= b})` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE f {x | c <= x /\ x <= d} = IMAGE g {x | a <= x /\ x <= b})` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   REWRITE_TAC[comp_comp;compose_image;];
   AP_TERM_TAC;
@@ -16555,7 +16555,7 @@ let arc_reparameter_gen = prove_by_refinement(
   REDUCE_TAC;
   REWRITE_TAC[real_div;REAL_MUL_ASSOC;];
   REDUCE_TAC;
-  TYPE_THEN `(b-a)*inv(b-a) = &1` SUBGOAL_TAC;
+  TYPE_THEN `(b-a)*inv(b-a) = &1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_MUL_RINV;
   UND 1;
   REAL_ARITH_TAC;
@@ -16564,7 +16564,7 @@ let arc_reparameter_gen = prove_by_refinement(
   (* monotone *)
   REWRITE_TAC[compose];
   REP_BASIC_TAC;
-  TYPE_THEN `c <= f2 y' /\ f2 y' <= d` SUBGOAL_TAC;
+  TYPE_THEN `c <= f2 y' /\ f2 y' <= d` SUBGOAL_MP_TAC;
   USE 7 (REWRITE_RULE[IMAGE]);
   TYPE_THEN `f2 y'` (fun s -> FIRST_ASSUM (fun t-> MP_TAC (AP_THM t s)));
   REWRITE_TAC[];
@@ -16572,7 +16572,7 @@ let arc_reparameter_gen = prove_by_refinement(
   TYPE_THEN `y'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `c <= f2 x' /\ f2 x' <= d` SUBGOAL_TAC;
+  TYPE_THEN `c <= f2 x' /\ f2 x' <= d` SUBGOAL_MP_TAC;
   USE 7 (REWRITE_RULE[IMAGE]);
   TYPE_THEN `f2 x'` (fun s -> FIRST_ASSUM (fun t-> MP_TAC (AP_THM t s)));
   REWRITE_TAC[];
@@ -16580,13 +16580,13 @@ let arc_reparameter_gen = prove_by_refinement(
   TYPE_THEN `x'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `x = f2 x'` SUBGOAL_TAC;
+  TYPE_THEN `x = f2 x'` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `y = f2 y'` SUBGOAL_TAC;
+  TYPE_THEN `y = f2 y'` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -16597,15 +16597,15 @@ let arc_reparameter_gen = prove_by_refinement(
   ONCE_REWRITE_TAC [REAL_ARITH `x < y <=> ( &0 < y - x)`];
   REWRITE_TAC[real_div];
   TYPE_THEN `e = inv(b-a)` ABBREV_TAC ;
-  TYPE_THEN `(((y' - a) * e) * d + ((b - y') * e) * c) - (((x' - a) * e) * d + ((b - x') * e) * c) = (y' - x')*e*(d-c)` SUBGOAL_TAC;
+  TYPE_THEN `(((y' - a) * e) * d + ((b - y') * e) * c) - (((x' - a) * e) * d + ((b - x') * e) * c) = (y' - x')*e*(d-c)` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `&0 < e` SUBGOAL_TAC;
+  TYPE_THEN `&0 < e` SUBGOAL_MP_TAC;
   EXPAND_TAC"e";
   IMATCH_MP_TAC  REAL_PROP_POS_INV;
   UND 1;
   REAL_ARITH_TAC;
-  TYPE_THEN `&0 < (d - c)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (d - c)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   REWRITE_TAC[REAL_MUL_ASSOC];
@@ -16659,14 +16659,14 @@ let preimage_closed = prove_by_refinement(
   [
   REP_BASIC_TAC;
   REWRITE_TAC[closed;open_DEF;];
-  TYPE_THEN `(UNIONS U DIFF (preimage (UNIONS U) f C)) = preimage (UNIONS U) f (UNIONS V DIFF C)` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS U DIFF (preimage (UNIONS U) f C)) = preimage (UNIONS U) f (UNIONS V DIFF C)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  union_diff;
   REWRITE_TAC[GSYM preimage_union2];
   CONJ_TAC;
-  TYPE_THEN `UNIONS V DIFF C UNION C = UNIONS V` SUBGOAL_TAC;
-  TYPE_THEN `!P. C SUBSET P ==> (P DIFF C UNION C = P)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS V DIFF C UNION C = UNIONS V` SUBGOAL_MP_TAC;
+  TYPE_THEN `!P. C SUBSET P ==> (P DIFF C UNION C = P)` SUBGOAL_MP_TAC;
   SET_TAC[];
-  TYPE_THEN `C SUBSET UNIONS V` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET UNIONS V` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[closed;open_DEF;];
   DISCH_THEN_REWRITE;
@@ -16700,7 +16700,7 @@ let preimage_restrict = prove_by_refinement(
   [
   REP_BASIC_TAC;
   REWRITE_TAC[preimage;INTER;];
-  TYPE_THEN `!y. (A SUBSET B ==> (A y /\ B y <=> A y))` SUBGOAL_TAC;
+  TYPE_THEN `!y. (A SUBSET B ==> (A y /\ B y <=> A y))` SUBGOAL_MP_TAC;
   MESON_TAC[ISUBSET];
   ASM_SIMP_TAC[];
   DISCH_TAC;
@@ -16715,7 +16715,7 @@ let continuous_delta = prove_by_refinement(
      (top_of_metric(euclid 1,d_euclid)) `,
   (* {{{ proof *)
   [
-  TYPE_THEN `IMAGE (\x. (x *# dirac_delta 0)) (UNIV) SUBSET (euclid 1)` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (\x. (x *# dirac_delta 0)) (UNIV) SUBSET (euclid 1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET;];
   MESON_TAC[euclid_dirac];
   ASM_SIMP_TAC[metric_continuous_continuous;metric_euclid;metric_real];
@@ -16739,7 +16739,7 @@ let continuous_neg_delta = prove_by_refinement(
      (top_of_metric(euclid 1,d_euclid)) `,
   (* {{{ proof *)
   [
-  TYPE_THEN `IMAGE (\x. (-- x *# dirac_delta 0)) (UNIV) SUBSET (euclid 1)` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (\x. (-- x *# dirac_delta 0)) (UNIV) SUBSET (euclid 1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE;SUBSET;];
   MESON_TAC[euclid_dirac];
   ASM_SIMP_TAC[metric_continuous_continuous;metric_euclid;metric_real];
@@ -16768,7 +16768,7 @@ let compact_max_real = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `g = (\x. (x *# dirac_delta 0)) o f` ABBREV_TAC ;
-  TYPE_THEN `(?x. K x /\ (!y. K y ==> g y 0 <= g x 0 ))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. K x /\ (!y. K y ==> g y 0 <= g x 0 ))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_max;
   TYPE_THEN `U` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -16803,7 +16803,7 @@ let compact_min_real = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `g = (\x. (-- x *# dirac_delta 0)) o f` ABBREV_TAC ;
-  TYPE_THEN `(?x. K x /\ (!y. K y ==> g y 0 <= g x 0 ))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. K x /\ (!y. K y ==> g y 0 <= g x 0 ))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_max;
   TYPE_THEN `U` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -16838,7 +16838,7 @@ let continuous_I = prove_by_refinement(
   REWRITE_TAC[preimage];
   SIMP_TAC [GSYM top_of_metric_unions;metric_real];
   REWRITE_TAC[I_DEF];
-  TYPE_THEN `{x | v x} = v` SUBGOAL_TAC;
+  TYPE_THEN `{x | v x} = v` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -16851,10 +16851,10 @@ let compact_sup = prove_by_refinement(
     (?x. (X x) /\ (!y. (X y) ==> (y <= x)))`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!(u:real). I u = u` SUBGOAL_TAC;
+  TYPE_THEN `!(u:real). I u = u` SUBGOAL_MP_TAC;
   REWRITE_TAC[I_DEF];
   DISCH_TAC;
-  TYPE_THEN `!x y. y <= x <=> (I y <= I x)` SUBGOAL_TAC;
+  TYPE_THEN `!x y. y <= x <=> (I y <= I x)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   DISCH_THEN (fun t ->  ONCE_REWRITE_TAC [t]);
   REP_BASIC_TAC;
@@ -16869,10 +16869,10 @@ let compact_inf = prove_by_refinement(
     (?x. (X x) /\ (!y. (X y) ==> (x <= y)))`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!(u:real). I u = u` SUBGOAL_TAC;
+  TYPE_THEN `!(u:real). I u = u` SUBGOAL_MP_TAC;
   REWRITE_TAC[I_DEF];
   DISCH_TAC;
-  TYPE_THEN `!x y. y <= x <=> (I y <= I x)` SUBGOAL_TAC;
+  TYPE_THEN `!x y. y <= x <=> (I y <= I x)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   DISCH_THEN (fun t ->  ONCE_REWRITE_TAC [t]);
   REP_BASIC_TAC;
@@ -16896,21 +16896,21 @@ let preimage_compact = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `X = preimage Y0 f C` ABBREV_TAC ;
-  TYPE_THEN `(UNIONS (top_of_metric(Y,dY)) = Y) /\ (UNIONS(top_of_metric(Z,dZ)) = Z)` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS (top_of_metric(Y,dY)) = Y) /\ (UNIONS(top_of_metric(Z,dZ)) = Z)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   REP_BASIC_TAC;
-  TYPE_THEN `Y0 SUBSET Y` SUBGOAL_TAC;
+  TYPE_THEN `Y0 SUBSET Y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [compact;];
   DISCH_TAC;
   WITH 10 (MATCH_MP preimage_restrict);
   TYPEL_THEN [`f`;`C`] (USE 11 o ISPECL);
-  TYPE_THEN `metric_space (Y0,dY)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space (Y0,dY)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_subspace;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `closed_ (top_of_metric(Y0,dY)) X` SUBGOAL_TAC;
+  TYPE_THEN `closed_ (top_of_metric(Y0,dY)) X` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
-  TYPE_THEN `preimage Y0 f C = preimage (UNIONS (top_of_metric(Y0,dY))) f C` SUBGOAL_TAC;
+  TYPE_THEN `preimage Y0 f C = preimage (UNIONS (top_of_metric(Y0,dY))) f C` SUBGOAL_MP_TAC;
   AP_THM_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_THEN_REWRITE;
@@ -16919,7 +16919,7 @@ let preimage_compact = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `~(X = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(X = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS;];
   UND 0;
   REWRITE_TAC[EMPTY_EXISTS];
@@ -16936,30 +16936,30 @@ let preimage_compact = prove_by_refinement(
   TYPE_THEN `U = top_of_metric(Y,dY)` ABBREV_TAC ;
   TYPE_THEN `U0 = top_of_metric(Y0,dY)` ABBREV_TAC ;
   TYPE_THEN `U00 = top_of_metric (X,dY)` ABBREV_TAC ;
-  TYPE_THEN `X SUBSET Y0` SUBGOAL_TAC;
+  TYPE_THEN `X SUBSET Y0` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   KILL 7;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[INTER;SUBSET;];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `induced_top U Y0 = U0` SUBGOAL_TAC;
+  TYPE_THEN `induced_top U Y0 = U0` SUBGOAL_MP_TAC;
   EXPAND_TAC "U";
   EXPAND_TAC "U0";
   IMATCH_MP_TAC  top_of_metric_induced;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `UNIONS U = Y` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U = Y` SUBGOAL_MP_TAC;
   EXPAND_TAC "U";
   ASM_SIMP_TAC [GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `compact U0 Y0` SUBGOAL_TAC;
+  TYPE_THEN `compact U0 Y0` SUBGOAL_MP_TAC;
   KILL 16;
   EXPAND_TAC "U0";
   ASM_SIMP_TAC[GSYM induced_compact;];
   REP_BASIC_TAC;
   (* ok to here *)
-  TYPE_THEN `compact U0 X` SUBGOAL_TAC;
+  TYPE_THEN `compact U0 X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  closed_compact;
   TYPE_THEN `Y0` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -16969,22 +16969,22 @@ let preimage_compact = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* done WITH compac U0 X *)
-  TYPE_THEN `induced_top U0 X = U00` SUBGOAL_TAC;
+  TYPE_THEN `induced_top U0 X = U00` SUBGOAL_MP_TAC;
   KILL 19;
   EXPAND_TAC "U0";
   EXPAND_TAC "U00";
   IMATCH_MP_TAC  top_of_metric_induced;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `compact U00 X` SUBGOAL_TAC;
+  TYPE_THEN `compact U00 X` SUBGOAL_MP_TAC;
   EXPAND_TAC "U00";
-  TYPE_THEN `X SUBSET UNIONS U0` SUBGOAL_TAC;
+  TYPE_THEN `X SUBSET UNIONS U0` SUBGOAL_MP_TAC;
   KILL 19;
   EXPAND_TAC "U0";
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   ASM_SIMP_TAC[GSYM induced_compact];
   DISCH_TAC;
-  TYPE_THEN `induced_top U X = U00` SUBGOAL_TAC;
+  TYPE_THEN `induced_top U X = U00` SUBGOAL_MP_TAC;
   KILL 19;
   EXPAND_TAC "U";
   KILL 23;
@@ -16996,7 +16996,7 @@ let preimage_compact = prove_by_refinement(
   DISCH_TAC;
   UND 24;
   EXPAND_TAC "U00";
-  TYPE_THEN `compact (induced_top U X) X = compact U X` SUBGOAL_TAC;
+  TYPE_THEN `compact (induced_top U X) X = compact U X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM induced_compact);
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  SUBSET_TRANS;
@@ -17036,19 +17036,19 @@ let preimage_first = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(compact (top_of_metric(UNIV,d_real)) (preimage {x | a <= x /\ x <= b} f C))` SUBGOAL_TAC;
+  TYPE_THEN `(compact (top_of_metric(UNIV,d_real)) (preimage {x | a <= x /\ x <= b} f C))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC preimage_compact_interval;
   TYPE_THEN `n` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(preimage {x | a <= x /\ x <= b} f C = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(preimage {x | a <= x /\ x <= b} f C = EMPTY)` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[EMPTY_EXISTS];
   REWRITE_TAC[IMAGE ;INTER;preimage];
   MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `X = preimage {x | a <= x /\ x <= b } f C` ABBREV_TAC ;
-  TYPE_THEN `(?x. (X x) /\ (!y. (X y) ==> (x <= y)))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. (X x) /\ (!y. (X y) ==> (x <= y)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_inf;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -17094,7 +17094,7 @@ let arc_restrict = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN ` continuous f (top_of_metric (UNIV,d_real)) (top2) /\ INJ f {x | t <= x /\ x <= t'} (euclid 2) /\ (a < b) /\ (t < t')` SUBGOAL_TAC;
+  TYPE_THEN ` continuous f (top_of_metric (UNIV,d_real)) (top2) /\ INJ f {x | t <= x /\ x <= t'} (euclid 2) /\ (a < b) /\ (t < t')` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[top2];
   IMATCH_MP_TAC  inj_subset_domain;
   TYPE_THEN `{x | c <= x /\ x <= d}` EXISTS_TAC;
@@ -17174,7 +17174,7 @@ let joinf_inj_below = prove_by_refinement(
   IMATCH_MP_TAC EQ_EXT;
   REWRITE_TAC[INJ];
   REP_BASIC_TAC;
-  TYPE_THEN `!z. A z ==> (joinf f g a z = f z)` SUBGOAL_TAC;
+  TYPE_THEN `!z. A z ==> (joinf f g a z = f z)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[joinf];
   TSPEC `z` 0;
@@ -17195,7 +17195,7 @@ let joinf_inj_above = prove_by_refinement(
   IMATCH_MP_TAC EQ_EXT;
   REWRITE_TAC[INJ];
   REP_BASIC_TAC;
-  TYPE_THEN `!z. A z ==> (joinf f g a z = g z)` SUBGOAL_TAC;
+  TYPE_THEN `!z. A z ==> (joinf f g a z = g z)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[joinf];
   TSPEC `z` 0;
@@ -17216,7 +17216,7 @@ let joinf_image_below = prove_by_refinement(
   IMATCH_MP_TAC EQ_EXT;
   REWRITE_TAC[IMAGE];
   REP_BASIC_TAC;
-  TYPE_THEN `!z. A z ==> (joinf f g a z = f z)` SUBGOAL_TAC;
+  TYPE_THEN `!z. A z ==> (joinf f g a z = f z)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[joinf];
   TSPEC `z` 0;
@@ -17238,7 +17238,7 @@ let joinf_image_above = prove_by_refinement(
   IMATCH_MP_TAC EQ_EXT;
   REWRITE_TAC[IMAGE];
   REP_BASIC_TAC;
-  TYPE_THEN `!z. A z ==> (joinf f g a z = g z)` SUBGOAL_TAC;
+  TYPE_THEN `!z. A z ==> (joinf f g a z = g z)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[joinf];
   TSPEC `z` 0;
@@ -17263,7 +17263,7 @@ let pconn_trans = prove_by_refinement(
   TYPE_THEN `f'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
-  TYPE_THEN `~(x = y)` SUBGOAL_TAC;
+  TYPE_THEN `~(x = y)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -17275,32 +17275,32 @@ let pconn_trans = prove_by_refinement(
   TYPE_THEN `f` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
-  TYPE_THEN `~(z = y)` SUBGOAL_TAC;
+  TYPE_THEN `~(z = y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* now ~( z = y) *)
-  TYPE_THEN `?tx. (&0 <= tx) /\ (tx <= &1) /\ (f tx = x)` SUBGOAL_TAC;
+  TYPE_THEN `?tx. (&0 <= tx) /\ (tx <= &1) /\ (f tx = x)` SUBGOAL_MP_TAC;
   UND 10;
   ASM_REWRITE_TAC[IMAGE;];
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `?ty. (&0 <= ty) /\ (ty <= &1) /\ (f ty = y)` SUBGOAL_TAC;
+  TYPE_THEN `?ty. (&0 <= ty) /\ (ty <= &1) /\ (f ty = y)` SUBGOAL_MP_TAC;
   UND 9;
   ASM_REWRITE_TAC[IMAGE;];
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `~(tx = ty)` SUBGOAL_TAC;
+  TYPE_THEN `~(tx = ty)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* reparameter C *)
-  TYPE_THEN `?g. (g (&0) = x) /\ (g (&1) = y) /\ INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\ continuous g (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ IMAGE g { x | &0 <= x /\ x <= &1 } SUBSET C` SUBGOAL_TAC;
-  TYPE_THEN `(tx < ty) \/ (ty < tx)` SUBGOAL_TAC;
+  TYPE_THEN `?g. (g (&0) = x) /\ (g (&1) = y) /\ INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\ continuous g (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ IMAGE g { x | &0 <= x /\ x <= &1 } SUBSET C` SUBGOAL_MP_TAC;
+  TYPE_THEN `(tx < ty) \/ (ty < tx)` SUBGOAL_MP_TAC;
   UND 28;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `(?g.   (IMAGE g {x | &0 <= x /\ x <= &1} = IMAGE f {x | tx <= x /\ x <= ty})  /\     (g (&0) = f tx) /\ (g (&1) = f ty) /\       INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\       continuous g (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_TAC;
+  TYPE_THEN `(?g.   (IMAGE g {x | &0 <= x /\ x <= &1} = IMAGE f {x | tx <= x /\ x <= ty})  /\     (g (&0) = f tx) /\ (g (&1) = f ty) /\       INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\       continuous g (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_restrict;
   TYPE_THEN `&0` EXISTS_TAC;
   TYPE_THEN `&1` EXISTS_TAC;
@@ -17317,7 +17317,7 @@ let pconn_trans = prove_by_refinement(
   UND 24;
   UND 26;
   REAL_ARITH_TAC;
-  TYPE_THEN `(?g.   (IMAGE g {x | &0 <= x /\ x <= &1} = IMAGE f {x | ty <= x /\ x <= tx})  /\     (g (&0) = f ty) /\ (g (&1) = f tx) /\       INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\       continuous g (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_TAC;
+  TYPE_THEN `(?g.   (IMAGE g {x | &0 <= x /\ x <= &1} = IMAGE f {x | ty <= x /\ x <= tx})  /\     (g (&0) = f ty) /\ (g (&1) = f tx) /\       INJ g { x | &0 <= x /\ x <= &1 } (euclid 2) /\       continuous g (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_restrict;
   TYPE_THEN `&0` EXISTS_TAC;
   TYPE_THEN `&1` EXISTS_TAC;
@@ -17327,7 +17327,7 @@ let pconn_trans = prove_by_refinement(
   ASM_SIMP_TAC[GSYM top_of_metric_unions;metric_euclid];
   REP_BASIC_TAC;
   (* REVERSE reparameter on C XX0 *)
-  TYPE_THEN `(?g'. continuous g' (top_of_metric (UNIV,d_real)) (top2) /\           INJ g' {x | (&0) <= x /\ x <= (&1)} (euclid 2) /\         (g (&1)  = g' (&0)) /\ (g (&0) = g' (&1)) /\      (!x y x' y'. (g x = g' x') /\ (g y = g' y') /\         ((&0) <= x /\ x <= (&1)) /\ ((&0) <= y /\ y <= (&1)) /\         ((&0) <= x' /\ x' <= (&1)) /\ ((&0) <= y' /\ y' <= (&1)) ==>           ((x < y) <=> (y' < x'))) /\      (IMAGE g { x | (&0) <= x /\ x <= (&1) } =          IMAGE g' { x | (&0) <= x /\ x <= (&1) } ))` SUBGOAL_TAC;
+  TYPE_THEN `(?g'. continuous g' (top_of_metric (UNIV,d_real)) (top2) /\           INJ g' {x | (&0) <= x /\ x <= (&1)} (euclid 2) /\         (g (&1)  = g' (&0)) /\ (g (&0) = g' (&1)) /\      (!x y x' y'. (g x = g' x') /\ (g y = g' y') /\         ((&0) <= x /\ x <= (&1)) /\ ((&0) <= y /\ y <= (&1)) /\         ((&0) <= x' /\ x' <= (&1)) /\ ((&0) <= y' /\ y' <= (&1)) ==>           ((x < y) <=> (y' < x'))) /\      (IMAGE g { x | (&0) <= x /\ x <= (&1) } =          IMAGE g' { x | (&0) <= x /\ x <= (&1) } ))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_reparameter_rev;
   ASM_REWRITE_TAC[REAL_ARITH `&0 < &1`;top2;];
   REP_BASIC_TAC;
@@ -17339,7 +17339,7 @@ let pconn_trans = prove_by_refinement(
   ASM_MESON_TAC[];
   CONJ_TAC;
   ASM_MESON_TAC[top2];
-  TYPE_THEN `IMAGE g' {x | &0 <= x /\ x <= &1} = IMAGE f {x | ty <= x /\ x <= tx }` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g' {x | &0 <= x /\ x <= &1} = IMAGE f {x | ty <= x /\ x <= tx }` SUBGOAL_MP_TAC;
   UND 34;
   UND 35;
   alpha_tac;
@@ -17355,12 +17355,12 @@ let pconn_trans = prove_by_refinement(
   (* rC *)
   TYPE_THEN `Cg = IMAGE g {x | &0 <= x /\ x <= &1 }` ABBREV_TAC ;
   TYPE_THEN `Z = Cg INTER C'` ABBREV_TAC ;
-  TYPE_THEN `?t'. (&0 <= t' /\ t' <= &1) /\ (Z (g t')) /\ (!s. (&0 <=s /\ s < t') ==> ~(Z (g s)))` SUBGOAL_TAC;
+  TYPE_THEN `?t'. (&0 <= t' /\ t' <= &1) /\ (Z (g t')) /\ (!s. (&0 <=s /\ s < t') ==> ~(Z (g s)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  preimage_first;
   EXISTS_TAC `2`;
   (* restriction conditions *)
   CONJ_TAC;
-  TYPE_THEN `induced_top(top_of_metric(UNIV,d_real)) {x | &0 <= x /\ x <= &1 } = top_of_metric ({x | &0 <= x /\ x <= &1 },d_real)` SUBGOAL_TAC;
+  TYPE_THEN `induced_top(top_of_metric(UNIV,d_real)) {x | &0 <= x /\ x <= &1 } = top_of_metric ({x | &0 <= x /\ x <= &1 },d_real)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[SUBSET_UNIV;metric_real;top_of_metric_induced];
   DISCH_THEN (fun t -> REWRITE_TAC[GSYM t]);
   IMATCH_MP_TAC  continuous_induced_domain;
@@ -17373,7 +17373,7 @@ let pconn_trans = prove_by_refinement(
   DISCH_TAC;
   CONJ_TAC;
   (* rC2 *)
-  TYPE_THEN `!C. (?f a b. (continuous f (top_of_metric(UNIV,d_real)) (top2)) /\ (INJ f {x | a <= x /\ x <= b} (euclid 2)) /\ (IMAGE f {x | a <= x /\ x <= b} = C)) ==> (closed_ top2 C)` SUBGOAL_TAC;
+  TYPE_THEN `!C. (?f a b. (continuous f (top_of_metric(UNIV,d_real)) (top2)) /\ (INJ f {x | a <= x /\ x <= b} (euclid 2)) /\ (IMAGE f {x | a <= x /\ x <= b} = C)) ==> (closed_ top2 C)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  compact_closed;
   ASM_SIMP_TAC[top2;metric_hausdorff;metric_euclid];
@@ -17423,7 +17423,7 @@ let pconn_trans = prove_by_refinement(
   UND 1;
   ASM_REWRITE_TAC[IMAGE];
   REP_BASIC_TAC;
-  TYPE_THEN `(t' = &0) \/ (&0 < t')` SUBGOAL_TAC;
+  TYPE_THEN `(t' = &0) \/ (&0 < t')` SUBGOAL_MP_TAC;
   UND 39;
   REAL_ARITH_TAC;
   (* elim t' =0 *)
@@ -17434,7 +17434,7 @@ let pconn_trans = prove_by_refinement(
   ASM_MESON_TAC[];
   (*  **  START ON 2nd BRANCH  ** *** ** *)
   (* 2b*)
-  TYPE_THEN `?tz. (&0 <= tz) /\ (tz <= &1) /\ (f' tz = z)` SUBGOAL_TAC;
+  TYPE_THEN `?tz. (&0 <= tz) /\ (tz <= &1) /\ (f' tz = z)` SUBGOAL_MP_TAC;
   UND 0;
   ASM_REWRITE_TAC[IMAGE;];
   DISCH_THEN (CHOOSE_THEN MP_TAC);
@@ -17442,7 +17442,7 @@ let pconn_trans = prove_by_refinement(
   TYPE_THEN `x'` EXISTS_TAC;
   MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `?t''. (&0 <= t'') /\ (t'' <= &1) /\ (f' t'' = g t')` SUBGOAL_TAC;
+  TYPE_THEN `?t''. (&0 <= t'') /\ (t'' <= &1) /\ (f' t'' = g t')` SUBGOAL_MP_TAC;
   UND 37;
   EXPAND_TAC "Z";
   REWRITE_TAC[INTER];
@@ -17450,9 +17450,9 @@ let pconn_trans = prove_by_refinement(
   DISCH_THEN (fun t-> MP_TAC (CONJUNCT2 t));
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `~(tz = t'')` SUBGOAL_TAC;
+  TYPE_THEN `~(tz = t'')` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `C (g t')` SUBGOAL_TAC;
+  TYPE_THEN `C (g t')` SUBGOAL_MP_TAC;
   UND 37;
   EXPAND_TAC "Z";
   REWRITE_TAC[INTER];
@@ -17462,12 +17462,12 @@ let pconn_trans = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* reparam on C' *)
-  TYPE_THEN `?h. (h (&1/(&2)) = g t') /\ (h (&1) = z) /\ INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\ continuous h (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ IMAGE h { x | &1/(&2) <= x /\ x <= &1 } SUBSET C'` SUBGOAL_TAC;
-  TYPE_THEN `(t'' < tz) \/ (tz < t'')` SUBGOAL_TAC;
+  TYPE_THEN `?h. (h (&1/(&2)) = g t') /\ (h (&1) = z) /\ INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\ continuous h (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ IMAGE h { x | &1/(&2) <= x /\ x <= &1 } SUBSET C'` SUBGOAL_MP_TAC;
+  TYPE_THEN `(t'' < tz) \/ (tz < t'')` SUBGOAL_MP_TAC;
   UND 47;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `(?h.   (IMAGE h {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | t'' <= x /\ x <= tz})  /\     (h (&1/(&2)) = f' t'') /\ (h (&1) = f' tz) /\       INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\       continuous h (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_TAC;
+  TYPE_THEN `(?h.   (IMAGE h {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | t'' <= x /\ x <= tz})  /\     (h (&1/(&2)) = f' t'') /\ (h (&1) = f' tz) /\       INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\       continuous h (top_of_metric(UNIV,d_real))             (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_restrict;
   TYPE_THEN `&0` EXISTS_TAC;
   TYPE_THEN `&1` EXISTS_TAC;
@@ -17487,7 +17487,7 @@ let pconn_trans = prove_by_refinement(
   UND 42;
   UND 46;
   REAL_ARITH_TAC;
-  TYPE_THEN `(?h.   (IMAGE h {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | tz <= x /\ x <= t'' })  /\     (h (&1/(&2)) = f' tz) /\ (h (&1) = f' t'') /\       INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\       continuous h (top_of_metric(UNIV,d_real))  (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_TAC;
+  TYPE_THEN `(?h.   (IMAGE h {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | tz <= x /\ x <= t'' })  /\     (h (&1/(&2)) = f' tz) /\ (h (&1) = f' t'') /\       INJ h { x | &1/(&2) <= x /\ x <= &1 } (euclid 2) /\       continuous h (top_of_metric(UNIV,d_real))  (top_of_metric(euclid 2,d_euclid)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_restrict;
   TYPE_THEN `&0` EXISTS_TAC;
   TYPE_THEN `&1` EXISTS_TAC;
@@ -17498,7 +17498,7 @@ let pconn_trans = prove_by_refinement(
   REP_BASIC_TAC;  (* L240 *)
   (remark "LINE 240"; ALL_TAC);
   (* REVERSE reparameter on C *)
-  TYPE_THEN `(?h'. continuous h' (top_of_metric (UNIV,d_real)) (top2) /\           INJ h' {x | (&1/(&2)) <= x /\ x <= (&1)} (euclid 2) /\         (h (&1)  = h' (&1/(&2))) /\ (h (&1/(&2)) = h' (&1)) /\      (!x y x' y'. (h x = h' x') /\ (h y = h' y') /\         ((&1/(&2)) <= x /\ x <= (&1)) /\ ((&1/(&2)) <= y /\ y <= (&1)) /\         ((&1/(&2)) <= x' /\ x' <= (&1)) /\ ((&1/(&2)) <= y' /\ y' <= (&1)) ==>           ((x < y) <=> (y' < x'))) /\      (IMAGE h { x | (&1/(&2)) <= x /\ x <= (&1) } =          IMAGE h' { x | (&1/(&2)) <= x /\ x <= (&1) } ))` SUBGOAL_TAC;
+  TYPE_THEN `(?h'. continuous h' (top_of_metric (UNIV,d_real)) (top2) /\           INJ h' {x | (&1/(&2)) <= x /\ x <= (&1)} (euclid 2) /\         (h (&1)  = h' (&1/(&2))) /\ (h (&1/(&2)) = h' (&1)) /\      (!x y x' y'. (h x = h' x') /\ (h y = h' y') /\         ((&1/(&2)) <= x /\ x <= (&1)) /\ ((&1/(&2)) <= y /\ y <= (&1)) /\         ((&1/(&2)) <= x' /\ x' <= (&1)) /\ ((&1/(&2)) <= y' /\ y' <= (&1)) ==>           ((x < y) <=> (y' < x'))) /\      (IMAGE h { x | (&1/(&2)) <= x /\ x <= (&1) } =          IMAGE h' { x | (&1/(&2)) <= x /\ x <= (&1) } ))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  arc_reparameter_rev;
   ASM_REWRITE_TAC[REAL_LT_HALF2;REAL_ARITH `&0 < &1`;top2;];
   REP_BASIC_TAC;
@@ -17510,7 +17510,7 @@ let pconn_trans = prove_by_refinement(
   ASM_MESON_TAC[];
   CONJ_TAC;
   ASM_MESON_TAC[top2];
-  TYPE_THEN `IMAGE h' {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | tz <= x /\ x <= t'' }` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE h' {x | &1/(&2) <= x /\ x <= &1} = IMAGE f' {x | tz <= x /\ x <= t'' }` SUBGOAL_MP_TAC;
   UND 53;  (* ZZZ *)
   UND 54;
   alpha_tac;
@@ -17524,7 +17524,7 @@ let pconn_trans = prove_by_refinement(
   REP_BASIC_TAC;
   (* reparam g [0,1/2] *)
   (* rg *)
-  TYPE_THEN `?g'. ((g' (&0)) = x) /\ (g' (&1/(&2)) = g t') /\ INJ g' { x | &0 <= x /\ x <= &1/(&2) } (euclid 2) /\ continuous g' (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ (IMAGE g' { x | &0 <= x /\ x <= &1/(&2) } = IMAGE g {x | &0 <= x /\ x <= t'}) ` SUBGOAL_TAC; (* was SUBSET Cg *)
+  TYPE_THEN `?g'. ((g' (&0)) = x) /\ (g' (&1/(&2)) = g t') /\ INJ g' { x | &0 <= x /\ x <= &1/(&2) } (euclid 2) /\ continuous g' (top_of_metric(UNIV,d_real)) (top_of_metric(euclid 2,d_euclid)) /\ (IMAGE g' { x | &0 <= x /\ x <= &1/(&2) } = IMAGE g {x | &0 <= x /\ x <= t'}) ` SUBGOAL_MP_TAC; (* was SUBSET Cg *)
   ASSUME_TAC arc_reparameter_gen;
   TYPEL_THEN [`g`;`&0`;`&1/(&2)`;`&0`;`t'`] (fun t-> FIRST_ASSUM (fun s-> (MP_TAC (ISPECL t s))));
   KILL 53;   (* ZZZ *)
@@ -17532,7 +17532,7 @@ let pconn_trans = prove_by_refinement(
   UND 30;
   REWRITE_TAC[top2];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `INJ g {x | &0 <= x /\ x <= t'} (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `INJ g {x | &0 <= x /\ x <= t'} (euclid 2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inj_subset_domain;
   TYPE_THEN `{x | &0 <= x /\ x <= &1 }` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -17558,17 +17558,17 @@ let pconn_trans = prove_by_refinement(
   EXPAND_TAC "fm";
   IMATCH_MP_TAC  joinf_cont;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1 }` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1 }` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION];
   GEN_TAC;
-  TYPE_THEN `&0 < &1/(&2) /\ (&1/(&2) < &1)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < &1/(&2) /\ (&1/(&2) < &1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_LT_HALF1;REAL_LT_HALF2;REAL_ARITH `&0 < &1`];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  inj_split;
   EXPAND_TAC "fm";
-  TYPE_THEN `{x | &0 <= x /\ x < &1/(&2)} SUBSET {x | x < &1/(&2)} /\ {x | &1/(&2) <= x /\ x <= &1} SUBSET {x | &1/(&2) <= x}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x < &1/(&2)} SUBSET {x | x < &1/(&2)} /\ {x | &1/(&2) <= x /\ x <= &1} SUBSET {x | &1/(&2) <= x}` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   KILL 58;
@@ -17585,9 +17585,9 @@ let pconn_trans = prove_by_refinement(
   CONJ_TAC;
   ASM_SIMP_TAC[GSYM  top_of_metric_unions;metric_euclid];
   ASM_REWRITE_TAC[];
-  TYPE_THEN `IMAGE g' { x | &0 <= x /\ x <= &1/(&2)} INTER IMAGE h {x | &1/(&2) <= x /\ x <= &1} SUBSET {(g t')}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g' { x | &0 <= x /\ x <= &1/(&2)} INTER IMAGE h {x | &1/(&2) <= x /\ x <= &1} SUBSET {(g t')}` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `IMAGE g { x | &0 <= x /\ x <= t' } SUBSET Cg` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g { x | &0 <= x /\ x <= t' } SUBSET Cg` SUBGOAL_MP_TAC;
   EXPAND_TAC "Cg";
   IMATCH_MP_TAC  IMAGE_SUBSET;
   REWRITE_TAC[SUBSET];
@@ -17616,7 +17616,7 @@ let pconn_trans = prove_by_refinement(
   UND 0;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(x' = t') \/ (x' < t')` SUBGOAL_TAC;
+  TYPE_THEN `(x' = t') \/ (x' < t')` SUBGOAL_MP_TAC;
   UND 2;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -17626,10 +17626,10 @@ let pconn_trans = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   USE 61 (REWRITE_RULE[EMPTY_EXISTS ]);
   REP_BASIC_TAC;
-  TYPE_THEN `!B' B (u:num->real). (B' u /\ B' SUBSET B) ==> (B u)` SUBGOAL_TAC;
+  TYPE_THEN `!B' B (u:num->real). (B' u /\ B' SUBSET B) ==> (B u)` SUBGOAL_MP_TAC;
   MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `{(g t')} u` SUBGOAL_TAC;
+  TYPE_THEN `{(g t')} u` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `(IMAGE g' {x | &0 <= x /\ x < &1 / &2} INTER IMAGE h {x | &1 / &2 <= x /\ x <= &1})` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -17653,7 +17653,7 @@ let pconn_trans = prove_by_refinement(
   REP_BASIC_TAC;
   USE 1(REWRITE_RULE [REAL_ARITH `(x < &1/(&2)) <=> (x <= &1/(&2) /\ ~(x = &1/(&2)))`]);
   TYPEL_THEN [`x`;`&1/(&2)`] (USE 3 o ISPECL);
-  TYPE_THEN `&0 <= &1/ &2 /\ &1/ &2 <= &1/ (&2)` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= &1/ &2 /\ &1/ &2 <= &1/ (&2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ARITH `x <= x`];
   IMATCH_MP_TAC  REAL_LE_DIV;
   REAL_ARITH_TAC;
@@ -17661,24 +17661,24 @@ let pconn_trans = prove_by_refinement(
   (* Now E *)   (* L400 *)
   (remark "LINE 400"; ALL_TAC);
   (* ne *)
-  TYPE_THEN ` {x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1 }` SUBGOAL_TAC;
+  TYPE_THEN ` {x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1 }` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION];
   GEN_TAC;
-  TYPE_THEN `&0 < &1/(&2) /\ (&1/(&2) < &1)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < &1/(&2) /\ (&1/(&2) < &1)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_LT_HALF1;REAL_LT_HALF2;REAL_ARITH `&0 < &1`];
   REAL_ARITH_TAC;
   EXPAND_TAC "Cm";
   DISCH_THEN_REWRITE;
   REWRITE_TAC[IMAGE_UNION];
-  TYPE_THEN `{x | &0 <= x /\ x < &1/(&2)} SUBSET {x | x < &1/(&2)} /\ {x | &1/(&2) <= x /\ x <= &1} SUBSET {x | &1/(&2) <= x}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x < &1/(&2)} SUBSET {x | x < &1/(&2)} /\ {x | &1/(&2) <= x /\ x <= &1} SUBSET {x | &1/(&2) <= x}` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   EXPAND_TAC "fm";
   KILL 58;
   ASM_SIMP_TAC[joinf_image_above;joinf_image_below];
   DISCH_TAC;
-  TYPE_THEN `(IMAGE g' {x | &0 <= x /\ x < &1 / &2} UNION  IMAGE h {x | &1 / &2 <= x /\ x <= &1}) z` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE g' {x | &0 <= x /\ x < &1 / &2} UNION  IMAGE h {x | &1 / &2 <= x /\ x <= &1}) z` SUBGOAL_MP_TAC;
   UND 51;
   REWRITE_TAC[UNION;IMAGE];
   POP_ASSUM_LIST (fun t->ALL_TAC);
@@ -17690,7 +17690,7 @@ let pconn_trans = prove_by_refinement(
   IMATCH_MP_TAC  REAL_LE_LDIV;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(IMAGE g' {x | &0 <= x /\ x < &1 / &2} UNION  IMAGE h {x | &1 / &2 <= x /\ x <= &1}) x` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE g' {x | &0 <= x /\ x < &1 / &2} UNION  IMAGE h {x | &1 / &2 <= x /\ x <= &1}) x` SUBGOAL_MP_TAC;
   UND 57;
   REWRITE_TAC[UNION;IMAGE];
   POP_ASSUM_LIST (fun t->ALL_TAC);
@@ -17704,7 +17704,7 @@ let pconn_trans = prove_by_refinement(
   DISCH_THEN_REWRITE;
   (* gh *)
   UND 48;
-  TYPE_THEN `IMAGE g' {x | &0 <= x /\ x < &1/ &2} SUBSET C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g' {x | &0 <= x /\ x < &1/ &2} SUBSET C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `Cg ` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -17779,7 +17779,7 @@ let v_simple_polygonal = prove_by_refinement(
   CONJ_TAC;
   ASSUME_TAC mk_segment_inj_image;
   TYPEL_THEN [`x`;`x + (e *# e2)`;`2`] (USE 2 o ISPECL);
-  TYPE_THEN `euclid 2 x /\ euclid 2 (euclid_plus x (e *# e2)) /\ ~(x = euclid_plus x (e *# e2))` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x /\ euclid 2 (euclid_plus x (e *# e2)) /\ ~(x = euclid_plus x (e *# e2))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC  euclid_add_closure;
@@ -17818,7 +17818,7 @@ let v_simple_polygonal = prove_by_refinement(
   AP_TERM_TAC;
   REWRITE_TAC[e2;point_scale];
   REDUCE_TAC;
-  TYPE_THEN `euclid_plus (point p) (point (&0,e)) = euclid_plus (point (FST p,SND p)) (point (&0,e))` SUBGOAL_TAC;
+  TYPE_THEN `euclid_plus (point p) (point (&0,e)) = euclid_plus (point (FST p,SND p)) (point (&0,e))` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   DISCH_THEN (fun t-> PURE_ONCE_REWRITE_TAC[t]);
   REWRITE_TAC[point_add];
@@ -17834,13 +17834,13 @@ let p_conn_ball = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN `open_ball (euclid 2,d_euclid) x r x` SUBGOAL_TAC;
+  TYPE_THEN `open_ball (euclid 2,d_euclid) x r x` SUBGOAL_MP_TAC;
   SIMP_TAC [metric_euclid;INR open_ball_nonempty_center];
   REWRITE_TAC[EMPTY_EXISTS];
   ASM_MESON_TAC[];
   DISCH_TAC;
 
-  TYPE_THEN `euclid 2 x /\ euclid 2 y` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 x /\ euclid 2 y` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[open_ball]);
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
@@ -17850,7 +17850,7 @@ let p_conn_ball = prove_by_refinement(
   TYPE_THEN `y' = point(FST p,SND p')` ABBREV_TAC ;
   TYPE_THEN `A = open_ball(euclid 2,d_euclid) x r` ABBREV_TAC ;
 
-  TYPE_THEN `y' = euclid_plus x ((SND  p' - SND  p) *# e2)` SUBGOAL_TAC;
+  TYPE_THEN `y' = euclid_plus x ((SND  p' - SND  p) *# e2)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "y'";
   REWRITE_TAC[e2];
@@ -17865,7 +17865,7 @@ let p_conn_ball = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
 
-  TYPE_THEN `A y'` SUBGOAL_TAC;
+  TYPE_THEN `A y'` SUBGOAL_MP_TAC;
   UND 0;
   EXPAND_TAC "y'";
   KILL 4;
@@ -17880,7 +17880,7 @@ let p_conn_ball = prove_by_refinement(
   REWRITE_TAC[REAL_PROP_NN_SQUARE];
   DISCH_TAC;
 
-  TYPE_THEN `p_conn A x y'` SUBGOAL_TAC;
+  TYPE_THEN `p_conn A x y'` SUBGOAL_MP_TAC;
   TYPE_THEN `x = y'` ASM_CASES_TAC;
   EXPAND_TAC "y'";
   IMATCH_MP_TAC  pconn_refl;
@@ -17912,7 +17912,7 @@ let p_conn_ball = prove_by_refinement(
   REWRITE_TAC[mk_segment_end];
   DISCH_TAC;
 
-  TYPE_THEN `y' = euclid_plus y ((FST   p - FST   p') *# e1)` SUBGOAL_TAC;
+  TYPE_THEN `y' = euclid_plus y ((FST   p - FST   p') *# e1)` SUBGOAL_MP_TAC;
   KILL 6;
   ASM_REWRITE_TAC[];
   EXPAND_TAC "y'";
@@ -17928,7 +17928,7 @@ let p_conn_ball = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
 
-  TYPE_THEN `p_conn A y y'` SUBGOAL_TAC;
+  TYPE_THEN `p_conn A y y'` SUBGOAL_MP_TAC;
   TYPE_THEN `y = y'` ASM_CASES_TAC;
   EXPAND_TAC "y'";
   IMATCH_MP_TAC  pconn_refl;
@@ -18007,11 +18007,11 @@ let p_conn_open = prove_by_refinement(
   ASM_SIMP_TAC[top2;top_of_metric_nbd;metric_euclid;p_conn_euclid];
   REP_BASIC_TAC;
 
-  TYPE_THEN `A a` SUBGOAL_TAC;
+  TYPE_THEN `A a` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[p_connA;ISUBSET];
   DISCH_TAC;
 
-  TYPE_THEN `?r. (&0 < r) /\ open_ball (euclid 2,d_euclid) a r SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `?r. (&0 < r) /\ open_ball (euclid 2,d_euclid) a r SUBSET A` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_euclid;top2;open_ball_nbd;];
   REP_BASIC_TAC;
   TYPE_THEN `r` EXISTS_TAC;
@@ -18049,7 +18049,7 @@ let p_conn_diff = prove_by_refinement(
   RULE_ASSUM_TAC  (REWRITE_RULE[DIFF]);
   REP_BASIC_TAC;
 
-  TYPE_THEN `?r. (&0 < r) /\ open_ball (euclid 2,d_euclid) a r SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `?r. (&0 < r) /\ open_ball (euclid 2,d_euclid) a r SUBSET A` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_euclid;top2;open_ball_nbd;];
   REP_BASIC_TAC;
 
@@ -18059,7 +18059,7 @@ let p_conn_diff = prove_by_refinement(
   RULE_ASSUM_TAC  (REWRITE_RULE[EMPTY_EXISTS;INTER]);
   REP_BASIC_TAC;
   FIRST_ASSUM (fun t -> ASSUME_TAC (MATCH_MP  p_conn_ball t));
-  TYPE_THEN `p_conn A a u` SUBGOAL_TAC;
+  TYPE_THEN `p_conn A a u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  p_conn_subset;
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -18083,11 +18083,11 @@ let p_conn_conn = prove_by_refinement(
   UND 2;
   ASM_SIMP_TAC[p_conn_open;p_conn_diff];
 
-  TYPE_THEN `!(w:(num->real)->bool) z. (w INTER (z DIFF w) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `!(w:(num->real)->bool) z. (w INTER (z DIFF w) = EMPTY)` SUBGOAL_MP_TAC;
   SET_TAC[INTER;DIFF];
   DISCH_THEN_REWRITE;
 
-  TYPE_THEN `!(x:(num->real)->bool) y. (x SUBSET (y UNION (x DIFF y)))` SUBGOAL_TAC;
+  TYPE_THEN `!(x:(num->real)->bool) y. (x SUBSET (y UNION (x DIFF y)))` SUBGOAL_MP_TAC;
   SET_TAC[SUBSET;UNION;DIFF];
   DISCH_THEN_REWRITE;
 
@@ -18182,16 +18182,16 @@ let graph_isomorphic_symm = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `e' = v' e` ABBREV_TAC ;
 
-  TYPE_THEN `e = v e'` SUBGOAL_TAC;
+  TYPE_THEN `e = v e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [inv_comp_right];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
 
-  TYPE_THEN `BIJ v' (graph_edge H) (graph_edge G)` SUBGOAL_TAC;
+  TYPE_THEN `BIJ v' (graph_edge H) (graph_edge G)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[INVERSE_BIJ];
   DISCH_TAC;
 
-  TYPE_THEN `graph_edge G e'` SUBGOAL_TAC;
+  TYPE_THEN `graph_edge G e'` SUBGOAL_MP_TAC;
   EXPAND_TAC "e'";
   UND 10;
   REWRITE_TAC[BIJ;SURJ;];
@@ -18237,7 +18237,7 @@ let graph_isomorphic_trans = prove_by_refinement(
   REWRITE_TAC[IMAGE_o];
   REWRITE_TAC[o_DEF];
 
-  TYPE_THEN `graph_edge H (v e)` SUBGOAL_TAC;
+  TYPE_THEN `graph_edge H (v e)` SUBGOAL_MP_TAC;
   UND 5;
   REWRITE_TAC[BIJ;SURJ];
   UND 3;
@@ -18254,7 +18254,7 @@ let graph_isomorphic_graph = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN `!z. (graph_edge G z ==> graph_inc G z SUBSET graph_vertex G)` SUBGOAL_TAC;
+  TYPE_THEN `!z. (graph_edge G z ==> graph_inc G z SUBSET graph_vertex G)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[graph_inc_subset];
   DISCH_TAC;
   UND 0;
@@ -18265,18 +18265,18 @@ let graph_isomorphic_graph = prove_by_refinement(
   NAME_CONFLICT_TAC;
   CONV_TAC (dropq_conv "x''");
   REP_BASIC_TAC;
-  TYPE_THEN `?y'. (graph_edge G y' /\ (v y' = x'))` SUBGOAL_TAC;
+  TYPE_THEN `?y'. (graph_edge G y' /\ (v y' = x'))` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[BIJ;SURJ];
   UND 6;
   MESON_TAC[];
   REP_BASIC_TAC;
 
-  TYPE_THEN `graph_inc H x' = IMAGE u (graph_inc G y')` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc H x' = IMAGE u (graph_inc G y')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
 
-  TYPE_THEN `graph_inc G y' SUBSET graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G y' SUBSET graph_vertex G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[];
   DISCH_TAC;
   KILL 2;
@@ -18290,7 +18290,7 @@ let graph_isomorphic_graph = prove_by_refinement(
   DISCH_TAC;
 
   (* has size *)
-  TYPE_THEN `(graph_inc G y') HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `(graph_inc G y') HAS_SIZE 2` SUBGOAL_MP_TAC;
   UND 5;
   REWRITE_TAC[SUBSET;IMAGE];
   NAME_CONFLICT_TAC;
@@ -18376,7 +18376,7 @@ let select_num_max = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `f = \ (t:num). --. (&. t)` ABBREV_TAC ;
   TYPE_THEN `Z = IMAGE f Y` ABBREV_TAC ;
-  TYPE_THEN `FINITE Z /\ ~(Z = {})` SUBGOAL_TAC;
+  TYPE_THEN `FINITE Z /\ ~(Z = {})` SUBGOAL_MP_TAC;
   EXPAND_TAC "Z";
   CONJ_TAC;
   IMATCH_MP_TAC  FINITE_IMAGE;
@@ -18391,7 +18391,7 @@ let select_num_max = prove_by_refinement(
   DISCH_TAC;
   USE 4 (MATCH_MP   min_finite);
   REP_BASIC_TAC;
-  TYPE_THEN `?z. Y z /\ (f z = delta)` SUBGOAL_TAC;
+  TYPE_THEN `?z. Y z /\ (f z = delta)` SUBGOAL_MP_TAC;
   UND 5;
   EXPAND_TAC "Z";
   REWRITE_TAC[IMAGE;SUBSET];
@@ -18400,11 +18400,11 @@ let select_num_max = prove_by_refinement(
   TYPE_THEN `z` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(f z <= f y) ==> (y <=| z)` SUBGOAL_TAC;
+  TYPE_THEN `(f z <= f y) ==> (y <=| z)` SUBGOAL_MP_TAC;
   EXPAND_TAC "f";
   REDUCE_TAC;
   DISCH_THEN IMATCH_MP_TAC ;
-  TYPE_THEN `Z (f y)` SUBGOAL_TAC;
+  TYPE_THEN `Z (f y)` SUBGOAL_MP_TAC;
   EXPAND_TAC "Z";
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_MESON_TAC[];
@@ -18419,12 +18419,12 @@ let select_image_num_max = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `Y = IMAGE f X` ABBREV_TAC ;
-  TYPE_THEN `Y SUBSET {n | n <| N}` SUBGOAL_TAC;
+  TYPE_THEN `Y SUBSET {n | n <| N}` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE;SUBSET;];
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `FINITE Y /\ (~(Y= EMPTY))` SUBGOAL_TAC;
+  TYPE_THEN `FINITE Y /\ (~(Y= EMPTY))` SUBGOAL_MP_TAC;
   CONJ_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
   TYPE_THEN `{n | n <| N}` EXISTS_TAC;
@@ -18442,7 +18442,7 @@ let select_image_num_max = prove_by_refinement(
   DISCH_TAC;
   USE 4 (MATCH_MP   select_num_max);
   REP_BASIC_TAC;
-  TYPE_THEN `?r. X r /\ (f r = z)` SUBGOAL_TAC;
+  TYPE_THEN `?r. X r /\ (f r = z)` SUBGOAL_MP_TAC;
   UND 5;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE;SUBSET];
@@ -18452,7 +18452,7 @@ let select_image_num_max = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   TSPEC `f x` 4;
-  TYPE_THEN `Y (f x)` SUBGOAL_TAC;
+  TYPE_THEN `Y (f x)` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_MESON_TAC[];
@@ -18471,7 +18471,7 @@ let select_image_num_min = prove_by_refinement(
   TYPE_THEN `Y = IMAGE f X` ABBREV_TAC ;
   RULE_ASSUM_TAC  (REWRITE_RULE[EMPTY_EXISTS]);
   REP_BASIC_TAC;
-  TYPE_THEN `(?n. Y n)` SUBGOAL_TAC;
+  TYPE_THEN `(?n. Y n)` SUBGOAL_MP_TAC;
   TYPE_THEN `f u` EXISTS_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE;SUBSET];
@@ -18479,7 +18479,7 @@ let select_image_num_min = prove_by_refinement(
   DISCH_TAC;
   RULE_ASSUM_TAC (ONCE_REWRITE_RULE[num_WOP]);
   REP_BASIC_TAC;
-  TYPE_THEN `?z. (X z) /\ (f z = n)` SUBGOAL_TAC;
+  TYPE_THEN `?z. (X z) /\ (f z = n)` SUBGOAL_MP_TAC;
   UND 3;
   EXPAND_TAC "Y";
   REWRITE_TAC[IMAGE;SUBSET];
@@ -18512,7 +18512,7 @@ let select_card_max = prove_by_refinement(
   ASM_REWRITE_TAC[];
   TYPE_THEN `SUC (CARD (UNIONS X))` EXISTS_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `x SUBSET (UNIONS X)` SUBGOAL_TAC;
+  TYPE_THEN `x SUBSET (UNIONS X)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  sub_union;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -18603,7 +18603,7 @@ let curve_restriction = prove_by_refinement(
   REP_BASIC_TAC;
   ASSUME_TAC top2_unions;
   (* K parameter *)
-  TYPE_THEN `?t. (&0 <= t /\ t <= &1) /\ (K (f t)) /\ (!s. (&0 <=s /\ s < t) ==> ~(K (f s)))` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 <= t /\ t <= &1) /\ (K (f t)) /\ (!s. (&0 <=s /\ s < t) ==> ~(K (f s)))` SUBGOAL_MP_TAC;
   ASSUME_TAC preimage_first ;
   TYPEL_THEN [`K`;`2`] (USE 10 o ISPECL);
   FIRST_ASSUM (fun t -> IMATCH_MP_TAC  t);
@@ -18618,7 +18618,7 @@ let curve_restriction = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* K' parameter *)
-  TYPE_THEN `?t. (&0 <= t /\ t <= &1) /\ (K' (f t)) /\ (!s. (&0 <=s /\ s < t) ==> ~(K' (f s)))` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 <= t /\ t <= &1) /\ (K' (f t)) /\ (!s. (&0 <=s /\ s < t) ==> ~(K' (f s)))` SUBGOAL_MP_TAC;
   ASSUME_TAC preimage_first ;
   TYPEL_THEN [`K'`;`2`] (USE 14 o ISPECL);
   FIRST_ASSUM (fun t -> IMATCH_MP_TAC  t);
@@ -18632,7 +18632,7 @@ let curve_restriction = prove_by_refinement(
   IMATCH_MP_TAC  inj_image_subset;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(t < t' \/ t' < t)` SUBGOAL_TAC;
+  TYPE_THEN `(t < t' \/ t' < t)` SUBGOAL_MP_TAC;
   REWRITE_TAC[(REAL_ARITH `(t < t' \/ t' < t) <=> ~( t = t')`)];
   DISCH_ALL_TAC;
   UND 3;
@@ -18647,7 +18647,7 @@ let curve_restriction = prove_by_refinement(
   (* main cases split [main] *)
   ASSUME_TAC (REAL_ARITH `&0 < &1`);
   DISCH_THEN (DISJ_CASES_TAC);
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) (top2) /\  INJ f {x | t <= x /\ x <= t'} (euclid 2) /\ (&0 < &1) /\ (t < t')  ` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) (top2) /\  INJ f {x | t <= x /\ x <= t'} (euclid 2) /\ (&0 < &1) /\ (t < t')  ` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  inj_subset_domain;
   TYPE_THEN `{x | &0 <= x /\ x <= &1}` EXISTS_TAC;
@@ -18660,7 +18660,7 @@ let curve_restriction = prove_by_refinement(
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP arc_reparameter_rev t));
   REP_BASIC_TAC;
   TYPE_THEN `Ca = IMAGE g {x | &0 <= x /\ x <= &1}` ABBREV_TAC ;
-  TYPE_THEN `Ca INTER K' = {(g (&0))}` SUBGOAL_TAC;
+  TYPE_THEN `Ca INTER K' = {(g (&0))}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   CONJ_TAC;
   REWRITE_TAC[INTER;SUBSET;INR IN_SING;];
@@ -18668,7 +18668,7 @@ let curve_restriction = prove_by_refinement(
   EXPAND_TAC "Ca";
   REWRITE_TAC[IMAGE;SUBSET];
   REP_BASIC_TAC;
-  TYPE_THEN `x' < t' \/ (x' = t')` SUBGOAL_TAC;
+  TYPE_THEN `x' < t' \/ (x' = t')` SUBGOAL_MP_TAC;
   UND 28;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -18692,7 +18692,7 @@ let curve_restriction = prove_by_refinement(
   ASM_MESON_TAC[REAL_ARITH `(t < t' ==> t<= t') /\ (t' <= t')`];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(Ca INTER K = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(Ca INTER K = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER;EMPTY_EXISTS];
   TYPE_THEN `f t` EXISTS_TAC;
   KILL 26;
@@ -18705,7 +18705,7 @@ let curve_restriction = prove_by_refinement(
   DISCH_TAC;
   KILL 21;
   (* ADD Ca SUBSET C *)
-  TYPE_THEN `Ca SUBSET C` SUBGOAL_TAC;
+  TYPE_THEN `Ca SUBSET C` SUBGOAL_MP_TAC;
   KILL 26;
   EXPAND_TAC "Ca";
   KILL 20;
@@ -18723,7 +18723,7 @@ let curve_restriction = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* t'' parameter for g and K *)
-  TYPE_THEN `?t''. (&0 <= t'' /\ t'' <= &1) /\ (K (g t'')) /\ (!s. (&0 <=s /\ s < t'') ==> ~(K (g s)))` SUBGOAL_TAC;
+  TYPE_THEN `?t''. (&0 <= t'' /\ t'' <= &1) /\ (K (g t'')) /\ (!s. (&0 <=s /\ s < t'') ==> ~(K (g s)))` SUBGOAL_MP_TAC;
   ASSUME_TAC preimage_first ;
   TYPEL_THEN [`K`;`2`] (USE 29 o ISPECL);
   FIRST_ASSUM (fun t -> IMATCH_MP_TAC  t);
@@ -18735,9 +18735,9 @@ let curve_restriction = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* set up for arc_reparameter_rev *)
-  TYPE_THEN `continuous g (top_of_metric (UNIV,d_real)) (top2) /\  INJ g {x | &0 <= x /\ x <= t''} (euclid 2) /\ (a < b) /\ (&0 < t'')  ` SUBGOAL_TAC;
+  TYPE_THEN `continuous g (top_of_metric (UNIV,d_real)) (top2) /\  INJ g {x | &0 <= x /\ x <= t''} (euclid 2) /\ (a < b) /\ (&0 < t'')  ` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `&0 < t'' \/ (t'' = &0)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < t'' \/ (t'' = &0)` SUBGOAL_MP_TAC;
   UND 32;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -18751,8 +18751,8 @@ let curve_restriction = prove_by_refinement(
   UND 3;
   REWRITE_TAC[EMPTY_EXISTS;INTER;];
   TYPE_THEN `g (&0)` EXISTS_TAC;
-  TYPE_THEN `Ca (g (&0))` SUBGOAL_TAC;
-  TYPE_THEN `{(g (&0))} SUBSET Ca` SUBGOAL_TAC;
+  TYPE_THEN `Ca (g (&0))` SUBGOAL_MP_TAC;
+  TYPE_THEN `{(g (&0))} SUBSET Ca` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[INTER_SUBSET];
   REWRITE_TAC[SUBSET;INR IN_SING];
   MESON_TAC[];
@@ -18775,7 +18775,7 @@ let curve_restriction = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* now finish off the three conditions *)
   KILL 34;
-  TYPE_THEN `C' SUBSET Ca` SUBGOAL_TAC;
+  TYPE_THEN `C' SUBSET Ca` SUBGOAL_MP_TAC;
   KILL 43;
   EXPAND_TAC "C'";
   EXPAND_TAC "Ca";
@@ -18800,7 +18800,7 @@ let curve_restriction = prove_by_refinement(
   NAME_CONFLICT_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[INR IN_SING];
-  TYPE_THEN `(x' < t'') \/ (x' = t'')` SUBGOAL_TAC;
+  TYPE_THEN `(x' < t'') \/ (x' = t'')` SUBGOAL_MP_TAC;
   UND 45;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -18843,7 +18843,7 @@ let curve_restriction = prove_by_refinement(
   (* sh *)
   (*  *******************  START THE SECOND HALF ************  *)
 
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) (top2) /\  INJ f {x | t' <= x /\ x <= t} (euclid 2) /\ (&0 < &1) /\ (t' < t)  ` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) (top2) /\  INJ f {x | t' <= x /\ x <= t} (euclid 2) /\ (&0 < &1) /\ (t' < t)  ` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  inj_subset_domain;
   TYPE_THEN `{x | &0 <= x /\ x <= &1}` EXISTS_TAC;
@@ -18856,7 +18856,7 @@ let curve_restriction = prove_by_refinement(
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP arc_reparameter_rev t));
   REP_BASIC_TAC;
   TYPE_THEN `Ca = IMAGE g {x | &0 <= x /\ x <= &1}` ABBREV_TAC ;
-  TYPE_THEN `Ca INTER K = {(g (&0))}` SUBGOAL_TAC;
+  TYPE_THEN `Ca INTER K = {(g (&0))}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   CONJ_TAC;
   REWRITE_TAC[INTER;SUBSET;INR IN_SING;];
@@ -18864,7 +18864,7 @@ let curve_restriction = prove_by_refinement(
   EXPAND_TAC "Ca";
   REWRITE_TAC[IMAGE;SUBSET];
   REP_BASIC_TAC;
-  TYPE_THEN `x' < t \/ (x' = t)` SUBGOAL_TAC;
+  TYPE_THEN `x' < t \/ (x' = t)` SUBGOAL_MP_TAC;
   UND 28;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -18888,7 +18888,7 @@ let curve_restriction = prove_by_refinement(
   ASM_MESON_TAC[REAL_ARITH `(t' < t ==> t'<= t) /\ (t <= t)`];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(Ca INTER K' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(Ca INTER K' = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER;EMPTY_EXISTS];
   TYPE_THEN `f t'` EXISTS_TAC;
   KILL 26;
@@ -18901,7 +18901,7 @@ let curve_restriction = prove_by_refinement(
   DISCH_TAC;
   KILL 21;
   (* ADD Ca SUBSET C *)
-  TYPE_THEN `Ca SUBSET C` SUBGOAL_TAC;
+  TYPE_THEN `Ca SUBSET C` SUBGOAL_MP_TAC;
   KILL 26;
   EXPAND_TAC "Ca";
   KILL 20;
@@ -18920,7 +18920,7 @@ let curve_restriction = prove_by_refinement(
   DISCH_TAC;
   (* gK *)
   (* t'' parameter for g and K *)
-  TYPE_THEN `?t''. (&0 <= t'' /\ t'' <= &1) /\ (K' (g t'')) /\ (!s. (&0 <=s /\ s < t'') ==> ~(K' (g s)))` SUBGOAL_TAC;
+  TYPE_THEN `?t''. (&0 <= t'' /\ t'' <= &1) /\ (K' (g t'')) /\ (!s. (&0 <=s /\ s < t'') ==> ~(K' (g s)))` SUBGOAL_MP_TAC;
   ASSUME_TAC preimage_first ;
   TYPEL_THEN [`K'`;`2`] (USE 29 o ISPECL);
   FIRST_ASSUM (fun t -> IMATCH_MP_TAC  t);
@@ -18932,9 +18932,9 @@ let curve_restriction = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* set up for arc_reparameter_gen *)
-  TYPE_THEN `continuous g (top_of_metric (UNIV,d_real)) (top2) /\  INJ g {x | &0 <= x /\ x <= t''} (euclid 2) /\ (a < b) /\ (&0 < t'')  ` SUBGOAL_TAC;
+  TYPE_THEN `continuous g (top_of_metric (UNIV,d_real)) (top2) /\  INJ g {x | &0 <= x /\ x <= t''} (euclid 2) /\ (a < b) /\ (&0 < t'')  ` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `&0 < t'' \/ (t'' = &0)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < t'' \/ (t'' = &0)` SUBGOAL_MP_TAC;
   UND 32;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -18948,8 +18948,8 @@ let curve_restriction = prove_by_refinement(
   UND 3;
   REWRITE_TAC[EMPTY_EXISTS;INTER;];
   TYPE_THEN `g (&0)` EXISTS_TAC;
-  TYPE_THEN `Ca (g (&0))` SUBGOAL_TAC;
-  TYPE_THEN `{(g (&0))} SUBSET Ca` SUBGOAL_TAC;
+  TYPE_THEN `Ca (g (&0))` SUBGOAL_MP_TAC;
+  TYPE_THEN `{(g (&0))} SUBSET Ca` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[INTER_SUBSET];
   REWRITE_TAC[SUBSET;INR IN_SING];
   MESON_TAC[];
@@ -18973,7 +18973,7 @@ let curve_restriction = prove_by_refinement(
   (* nfo *)
   (* now finish off the three conditions *)
   KILL 34;
-  TYPE_THEN `C' SUBSET Ca` SUBGOAL_TAC;
+  TYPE_THEN `C' SUBSET Ca` SUBGOAL_MP_TAC;
   KILL 43;
   EXPAND_TAC "C'";
   EXPAND_TAC "Ca";
@@ -19000,7 +19000,7 @@ let curve_restriction = prove_by_refinement(
   NAME_CONFLICT_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[INR IN_SING];
-  TYPE_THEN `(x' < t'') \/ (x' = t'')` SUBGOAL_TAC;
+  TYPE_THEN `(x' < t'') \/ (x' = t'')` SUBGOAL_MP_TAC;
   UND 45;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -19132,7 +19132,7 @@ let graph_edge_iso = prove_by_refinement(
   REWRITE_TAC[graph_edge_mod_i;IMAGE_I;];
   EQ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `e'' = e'` SUBGOAL_TAC;
+  TYPE_THEN `e'' = e'` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC(REWRITE_RULE  [INJ]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -19186,7 +19186,7 @@ let plane_graph_mod = prove_by_refinement(
   REWRITE_TAC[graph_edge_mod_i];
   EQ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `e' = x` SUBGOAL_TAC;
+  TYPE_THEN `e' = x` SUBGOAL_MP_TAC;
    RULE_ASSUM_TAC  (REWRITE_RULE[INJ]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -19196,7 +19196,7 @@ let plane_graph_mod = prove_by_refinement(
   UND 5;
   ASM_REWRITE_TAC[];
   DISCH_ALL_TAC;
-  TYPE_THEN `(f x INTER graph_vertex G) x'` SUBGOAL_TAC;
+  TYPE_THEN `(f x INTER graph_vertex G) x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REWRITE_TAC[INTER;SUBSET];
   REP_BASIC_TAC;
@@ -19218,7 +19218,7 @@ let plane_graph_mod = prove_by_refinement(
   UND 11;
   REWRITE_TAC[IMAGE];
   REP_BASIC_TAC;
-  TYPE_THEN `~(x = x')` SUBGOAL_TAC;
+  TYPE_THEN `~(x = x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
@@ -19244,7 +19244,7 @@ let compact_point = prove_by_refinement(
   CONJ_TAC;
   ASM_REWRITE_TAC [single_subset];
   REP_BASIC_TAC;
-  TYPE_THEN `?u. V u /\ u x` SUBGOAL_TAC;
+  TYPE_THEN `?u. V u /\ u x` SUBGOAL_MP_TAC;
   UND 2;
   REWRITE_TAC[SUBSET;UNIONS;INR IN_SING];
   MESON_TAC[];
@@ -19264,7 +19264,7 @@ let simple_arc_end_select = prove_by_refinement(
   REWRITE_TAC[simple_arc_end];
   REP_BASIC_TAC;
   (* A *)
-  TYPE_THEN `!v. (C v) ==> (closed_ top2 {v})` SUBGOAL_TAC;
+  TYPE_THEN `!v. (C v) ==> (closed_ top2 {v})` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  compact_closed;
   ASM_SIMP_TAC[top2_top;metric_hausdorff;top2;metric_euclid;compact_point];
@@ -19273,7 +19273,7 @@ let simple_arc_end_select = prove_by_refinement(
   UND 3;
   REWRITE_TAC[simple_arc];
   REP_BASIC_TAC;
-  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  inj_image_subset;
   RULE_ASSUM_TAC (REWRITE_RULE [top2_unions]);
@@ -19281,7 +19281,7 @@ let simple_arc_end_select = prove_by_refinement(
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   (* B hypotheses of curve_restriction *)
-  TYPE_THEN `simple_arc top2 C /\ closed_ top2 {v} /\ closed_ top2 {v'} /\      (C INTER {v} INTER { v' } = EMPTY) /\ ~(C INTER {v} = EMPTY) /\       ~(C INTER {v'} = EMPTY) /\        (&0 < &1)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc top2 C /\ closed_ top2 {v} /\ closed_ top2 {v'} /\      (C INTER {v} INTER { v' } = EMPTY) /\ ~(C INTER {v} = EMPTY) /\       ~(C INTER {v'} = EMPTY) /\        (&0 < &1)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC ;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -19299,7 +19299,7 @@ let simple_arc_end_select = prove_by_refinement(
   ASM_REWRITE_TAC[];
   TYPE_THEN `f` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `!A u v. (A INTER {u} = {v}) ==> ( (v:num->real)=u)` SUBGOAL_TAC;
+  TYPE_THEN `!A u v. (A INTER {u} = {v}) ==> ( (v:num->real)=u)` SUBGOAL_MP_TAC;
   REWRITE_TAC[eq_sing;INTER;INR IN_SING;];
   MESON_TAC[];
   ASM_MESON_TAC[];
@@ -19323,7 +19323,7 @@ let simple_arc_end_symm = prove_by_refinement(
   [
   REWRITE_TAC[simple_arc_end];
   REP_BASIC_TAC;
-  TYPE_THEN `( continuous f (top_of_metric (UNIV,d_real)) (top2) /\ INJ f {x | &0 <= x /\ x <= &1} (euclid 2) /\ (&0 < &1) /\ (&0 < &1))` SUBGOAL_TAC;
+  TYPE_THEN `( continuous f (top_of_metric (UNIV,d_real)) (top2) /\ INJ f {x | &0 <= x /\ x <= &1} (euclid 2) /\ (&0 < &1) /\ (&0 < &1))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_ARITH `&0 < &1`];
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP arc_reparameter_rev t));
   REP_BASIC_TAC;
@@ -19342,13 +19342,13 @@ let simple_arc_end_plane_select = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE [plane_graph]);
   IMATCH_MP_TAC graph_edge2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[has_size2];
   REP_BASIC_TAC;
-  TYPE_THEN `(?e'. (e' SUBSET e) /\ (simple_arc_end e' a b))` SUBGOAL_TAC;
+  TYPE_THEN `(?e'. (e' SUBSET e) /\ (simple_arc_end e' a b))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_select;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC  (REWRITE_RULE[plane_graph]);
@@ -19356,7 +19356,7 @@ let simple_arc_end_plane_select = prove_by_refinement(
   CONJ_TAC;
   UND 5;
   ASM_MESON_TAC [ISUBSET];
-  TYPE_THEN `graph_inc G e a /\ graph_inc G e b` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e a /\ graph_inc G e b` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[in_pair];
   KILL 3;
@@ -19367,7 +19367,7 @@ let simple_arc_end_plane_select = prove_by_refinement(
   TYPE_THEN `e'` EXISTS_TAC;
   ASM_REWRITE_TAC[in_pair];
   REP_BASIC_TAC;
-  TYPE_THEN `((v = a) /\ (v' = b)) \/ ((v = b) /\ (v' =a ))` SUBGOAL_TAC;
+  TYPE_THEN `((v = a) /\ (v' = b)) \/ ((v = b) /\ (v' =a ))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
@@ -19390,31 +19390,31 @@ let plane_graph_contain = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `e INTER e' SUBSET graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `e INTER e' SUBSET graph_vertex G` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `e INTER e' SUBSET e' INTER graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `e INTER e' SUBSET e' INTER graph_vertex G` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_INTER];
   ASM_REWRITE_TAC[];
   REWRITE_TAC[INTER;SUBSET];
   MESON_TAC[];
-  TYPE_THEN `e' INTER graph_vertex G = graph_inc G e'` SUBGOAL_TAC;
+  TYPE_THEN `e' INTER graph_vertex G = graph_inc G e'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `graph_inc G e' HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e' HAS_SIZE 2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[graph_edge2];
-  TYPE_THEN `e INTER e' = e` SUBGOAL_TAC;
+  TYPE_THEN `e INTER e' = e` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[SUBSET_INTER_ABSORPTION];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[has_size2];
   REP_BASIC_TAC;
   REWR 10;
-  TYPE_THEN `simple_arc top2 e` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc top2 e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   REWRITE_TAC[simple_arc];
   REP_BASIC_TAC;
-  TYPE_THEN `!x. (&0 <= x /\ x <= &1) ==> {a,b} (f x)` SUBGOAL_TAC;
+  TYPE_THEN `!x. (&0 <= x /\ x <= &1) ==> {a,b} (f x)` SUBGOAL_MP_TAC;
   REWR 10;
   UND 10;
   REWRITE_TAC[IMAGE;SUBSET];
@@ -19422,10 +19422,10 @@ let plane_graph_contain = prove_by_refinement(
   REP_BASIC_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
-  TYPE_THEN `(f (&0) = f(&1))` SUBGOAL_TAC;
+  TYPE_THEN `(f (&0) = f(&1))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  two_exclusion;
   TYPE_THEN `{a,b}` EXISTS_TAC;
-  TYPE_THEN `?t. (&0 < t /\ t < &1)` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 < t /\ t < &1)` SUBGOAL_MP_TAC;
   TYPE_THEN `&1/ (&2)` EXISTS_TAC;
   IMATCH_MP_TAC  half_pos;
   REAL_ARITH_TAC;
@@ -19446,7 +19446,7 @@ let plane_graph_contain = prove_by_refinement(
   REAL_ARITH_TAC;
   CONJ_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `~(&0 = t)` SUBGOAL_TAC;
+  TYPE_THEN `~(&0 = t)` SUBGOAL_MP_TAC;
   UND 19;
   REAL_ARITH_TAC;
   REWRITE_TAC[];
@@ -19457,7 +19457,7 @@ let plane_graph_contain = prove_by_refinement(
   UND 19;
   REAL_ARITH_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `~(&1 = t)` SUBGOAL_TAC;
+  TYPE_THEN `~(&1 = t)` SUBGOAL_MP_TAC;
   UND 18;
   REAL_ARITH_TAC;
   REWRITE_TAC[];
@@ -19468,7 +19468,7 @@ let plane_graph_contain = prove_by_refinement(
   UND 19;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(&0 = &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(&0 = &1)` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   REWRITE_TAC[];
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -19485,7 +19485,7 @@ let graph_edge_end_select = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[has_size2];
@@ -19525,7 +19525,7 @@ let half_closed = prove_by_refinement(
   REWRITE_TAC[closed];
   REP_BASIC_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions;metric_real];
-  TYPE_THEN `UNIV DIFF {x | x <= a } = {x | a < x}` SUBGOAL_TAC;
+  TYPE_THEN `UNIV DIFF {x | x <= a } = {x | a < x}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[DIFF;UNIV];
   REAL_ARITH_TAC;
@@ -19541,7 +19541,7 @@ let half_closed_above = prove_by_refinement(
   REWRITE_TAC[closed];
   REP_BASIC_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions;metric_real];
-  TYPE_THEN `UNIV DIFF {x | a <= x } = {x | x < a}` SUBGOAL_TAC;
+  TYPE_THEN `UNIV DIFF {x | a <= x } = {x | x < a}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[DIFF;UNIV];
   REAL_ARITH_TAC;
@@ -19557,11 +19557,11 @@ let inf_LB = prove_by_refinement(
   (* {{{ proof *)
   [
   GEN_TAC;
-  TYPE_THEN `topology_ (top_of_metric(UNIV,d_real))` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (top_of_metric(UNIV,d_real))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[top_of_metric_top;metric_real];
   DISCH_TAC;
   (*  *)
-  TYPE_THEN `X SUBSET closure (top_of_metric(UNIV,d_real)) X` SUBGOAL_TAC;
+  TYPE_THEN `X SUBSET closure (top_of_metric(UNIV,d_real)) X` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[subset_closure];
   DISCH_TAC;
   (*  *)
@@ -19575,7 +19575,7 @@ let inf_LB = prove_by_refinement(
   KILL 5;
   REWRITE_TAC[];
   TYPE_THEN `XC = closure (top_of_metric(UNIV,d_real)) X INTER {x | t <= x /\ x <= u}` ABBREV_TAC ;
-  TYPE_THEN `compact (top_of_metric(UNIV,d_real)) XC` SUBGOAL_TAC;
+  TYPE_THEN `compact (top_of_metric(UNIV,d_real)) XC` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  closed_compact;
   TYPE_THEN `{x | t <= x /\ x <= u}` EXISTS_TAC;
   ASM_SIMP_TAC[interval_compact;top_of_metric_top;metric_real];
@@ -19588,7 +19588,7 @@ let inf_LB = prove_by_refinement(
   ASM_REWRITE_TAC[INTER_SUBSET];
   DISCH_TAC;
   (*   *)
-  TYPE_THEN `(?z. (XC z /\ (!y. XC y ==> z <= y)))` SUBGOAL_TAC;
+  TYPE_THEN `(?z. (XC z /\ (!y. XC y ==> z <= y)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_inf;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[EMPTY_EXISTS];
@@ -19604,10 +19604,10 @@ let inf_LB = prove_by_refinement(
   TYPE_THEN `z` EXISTS_TAC;
   CONJ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `(x <= u) \/ (u < x)` SUBGOAL_TAC;
+  TYPE_THEN `(x <= u) \/ (u < x)` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `XC x` SUBGOAL_TAC;
+  TYPE_THEN `XC x` SUBGOAL_MP_TAC;
   EXPAND_TAC "XC";
   REWRITE_TAC[INTER;SUBSET];
   CONJ_TAC;
@@ -19620,14 +19620,14 @@ let inf_LB = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_MESON_TAC[REAL_ARITH `z <= u /\ u < x ==> z <= x`];
   REP_BASIC_TAC;
-  TYPE_THEN `closed_ (top_of_metric (UNIV,d_real)) {x | y' <= x }` SUBGOAL_TAC;
+  TYPE_THEN `closed_ (top_of_metric (UNIV,d_real)) {x | y' <= x }` SUBGOAL_MP_TAC;
   REWRITE_TAC[half_closed_above];
   DISCH_TAC;
-  TYPE_THEN `closure (top_of_metric (UNIV,d_real)) X SUBSET {x | y' <= x }` SUBGOAL_TAC;
+  TYPE_THEN `closure (top_of_metric (UNIV,d_real)) X SUBSET {x | y' <= x }` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  closure_subset;
   ASM_REWRITE_TAC[SUBSET ];
   DISCH_TAC;
-  TYPE_THEN `XC SUBSET {x | y' <= x}` SUBGOAL_TAC;
+  TYPE_THEN `XC SUBSET {x | y' <= x}` SUBGOAL_MP_TAC;
   EXPAND_TAC "XC";
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `closure (top_of_metric (UNIV,d_real)) X ` EXISTS_TAC;
@@ -19647,12 +19647,12 @@ let inf_eps = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(!y. (!x. X x ==> y <= x) ==> (y <= inf X))` SUBGOAL_TAC;
+  TYPE_THEN `(!y. (!x. X x ==> y <= x) ==> (y <= inf X))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inf_LB];
   DISCH_TAC;
   TSPEC `inf X + epsilon` 3;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `(!x. X x ==> inf X + epsilon <= x)` SUBGOAL_TAC;
+  TYPE_THEN `(!x. X x ==> inf X + epsilon <= x)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~(v < u)  ==> u <= v`);
   ASM_MESON_TAC[];
@@ -19672,12 +19672,12 @@ let supm_UB = prove_by_refinement(
   REP_BASIC_TAC;
   REWRITE_TAC[supm];
   TYPE_THEN `Y = {x | ?z. X z /\ (x = --z)}` ABBREV_TAC ;
-  TYPE_THEN `!u. (Y u = X (-- u)) /\ (Y (--u ) = X u)` SUBGOAL_TAC;
+  TYPE_THEN `!u. (Y u = X (-- u)) /\ (Y (--u ) = X u)` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[];
   MESON_TAC[REAL_ARITH `(-- (-- u) = u)`];
   DISCH_TAC;
-  TYPE_THEN `(~(Y = EMPTY) /\ (?t. !x. (Y x ==> t <= x)))` SUBGOAL_TAC;
+  TYPE_THEN `(~(Y = EMPTY) /\ (?t. !x. (Y x ==> t <= x)))` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
@@ -19707,12 +19707,12 @@ let supm_eps = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(!y. (!x. X x ==> x <= y) ==> (supm X <= y))` SUBGOAL_TAC;
+  TYPE_THEN `(!y. (!x. X x ==> x <= y) ==> (supm X <= y))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[supm_UB];
   DISCH_TAC;
   TSPEC `supm X - epsilon` 3;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `(!x. X x ==> x <= supm X - epsilon)` SUBGOAL_TAC;
+  TYPE_THEN `(!x. X x ==> x <= supm X - epsilon)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~(v < u)  ==> u <= v`);
   ASM_MESON_TAC[];
@@ -19737,7 +19737,7 @@ let exp_gt1 = prove_by_refinement(
   `!n. (0 < n) ==> (1 < 2 **| n)`,
   (* {{{ proof *)
   [
-  TYPE_THEN `1 = 2 **| 0` SUBGOAL_TAC;
+  TYPE_THEN `1 = 2 **| 0` SUBGOAL_MP_TAC;
   REWRITE_TAC[EXP];
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC[t]);
   REP_BASIC_TAC;
@@ -19786,17 +19786,17 @@ let compact_distance = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `UNIONS (top_of_metric(X,d)) = X` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (top_of_metric(X,d)) = X` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `K SUBSET X /\ K' SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `K SUBSET X /\ K' SUBSET X` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[compact]);
   REWR 0;
   REWR 1;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   TYPE_THEN `Y = { z | ?q q'. (K q /\ K' q' /\ (z = d q q'))}` ABBREV_TAC ;
-  TYPE_THEN `!y. (Y y) ==> (&0 <= y)` SUBGOAL_TAC;
+  TYPE_THEN `!y. (Y y) ==> (&0 <= y)` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -19805,7 +19805,7 @@ let compact_distance = prove_by_refinement(
   ASM_MESON_TAC[metric_space;ISUBSET];
   REP_BASIC_TAC;
   (*  *)
-  TYPE_THEN `~(Y= EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(Y= EMPTY)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[EMPTY_EXISTS]);
   REP_BASIC_TAC;
   UND 2;
@@ -19816,14 +19816,14 @@ let compact_distance = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* inf Y *)
-  TYPE_THEN `(!epsilon. (&0 < epsilon) ==> (?x. Y x /\ (x < inf Y + epsilon)))` SUBGOAL_TAC;
+  TYPE_THEN `(!epsilon. (&0 < epsilon) ==> (?x. Y x /\ (x < inf Y + epsilon)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inf_eps;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
   ASSUME_TAC twopow_pos;
-  TYPE_THEN `(!n. ?p. ?p'. K p /\ K' p' /\ (d p p' < inf Y + twopow( -- (&:n))))` SUBGOAL_TAC;
+  TYPE_THEN `(!n. ?p. ?p'. K p /\ K' p' /\ (d p p' < inf Y + twopow( -- (&:n))))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `(?x. Y x /\ x < inf Y + twopow (--: (&:n)))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. Y x /\ x < inf Y + twopow (--: (&:n)))` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -19835,20 +19835,20 @@ let compact_distance = prove_by_refinement(
   RIGHT 13 "n";
   REP_BASIC_TAC;
   (* compact,complete,totally bounded *)
-  TYPE_THEN `metric_space (K,d) /\ metric_space(K',d)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space (K,d) /\ metric_space(K',d)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_subspace];
   REP_BASIC_TAC;
-  TYPE_THEN `compact (top_of_metric(K,d)) K /\ compact (top_of_metric(K',d)) K'` SUBGOAL_TAC;
+  TYPE_THEN `compact (top_of_metric(K,d)) K /\ compact (top_of_metric(K',d)) K'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[compact_subset];
   REP_BASIC_TAC;
-  TYPE_THEN `complete (K,d)  /\ complete (K',d) ` SUBGOAL_TAC;
+  TYPE_THEN `complete (K,d)  /\ complete (K',d) ` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[compact_complete];
   REP_BASIC_TAC;
-  TYPE_THEN `totally_bounded(K,d) /\ totally_bounded(K',d)` SUBGOAL_TAC;
+  TYPE_THEN `totally_bounded(K,d) /\ totally_bounded(K',d)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[compact_totally_bounded;];
   REP_BASIC_TAC;
   (* construct subseq of p *)
-  TYPE_THEN `(?ss. subseq ss /\ converge (K,d) (p o ss))` SUBGOAL_TAC;
+  TYPE_THEN `(?ss. subseq ss /\ converge (K,d) (p o ss))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  convergent_subseq;
   ASM_REWRITE_TAC[sequence;SUBSET;UNIV;IMAGE];
   NAME_CONFLICT_TAC;
@@ -19858,7 +19858,7 @@ let compact_distance = prove_by_refinement(
   REWRITE_TAC[converge];
   REP_BASIC_TAC;
   (* construct q *)
-  TYPE_THEN `!n. ?p'. K' p' /\ d x p' < inf Y + twopow(--: (&:n))` SUBGOAL_TAC;
+  TYPE_THEN `!n. ?p'. K' p' /\ d x p' < inf Y + twopow(--: (&:n))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TSPEC `twopow (--: (&:(SUC(n))))` 22;
   REP_BASIC_TAC;
@@ -19867,7 +19867,7 @@ let compact_distance = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[ARITH_RULE `x <=| SUC x +| y`]);
   TSPEC `ss (SUC n' +| SUC n)` 13;
   REP_BASIC_TAC;
-  TYPE_THEN `twopow (--: (&:(ss(SUC n'+SUC n)))) < twopow(--: (&:(SUC n)))` SUBGOAL_TAC;
+  TYPE_THEN `twopow (--: (&:(ss(SUC n'+SUC n)))) < twopow(--: (&:(SUC n)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  twopow_lt;
   REWRITE_TAC[INT_LT_NEG;INT_OF_NUM_LT;];
   IMATCH_MP_TAC (ARITH_RULE `(?t. (a <= t /\ t <| b)) ==> (a <| b)`);
@@ -19883,12 +19883,12 @@ let compact_distance = prove_by_refinement(
   REP_BASIC_TAC;
   TYPEL_THEN [`x`;`p (ss (SUC n' +| SUC n))`;`p'`] (USE 4 o ISPECL);
   REP_BASIC_TAC;
-  TYPE_THEN `X x /\ X (p (ss (SUC n' +| SUC n))) /\ X p'` SUBGOAL_TAC;
+  TYPE_THEN `X x /\ X (p (ss (SUC n' +| SUC n))) /\ X p'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   REWR 4;
   REP_BASIC_TAC;
-  TYPE_THEN `twopow( --: (&:(SUC n))) + twopow (--: (&:(SUC n))) = twopow (--: (&:n))` SUBGOAL_TAC;
+  TYPE_THEN `twopow( --: (&:(SUC n))) + twopow (--: (&:(SUC n))) = twopow (--: (&:n))` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM REAL_MUL_2;ADD1;twopow_double];
   UND 4;
   UND 13;
@@ -19900,7 +19900,7 @@ let compact_distance = prove_by_refinement(
   RIGHT 25 "n" ;
   REP_BASIC_TAC;
   (* take subseq of p' *)
-  TYPE_THEN `(?ss'. subseq ss' /\ converge (K',d) (p' o ss'))` SUBGOAL_TAC;
+  TYPE_THEN `(?ss'. subseq ss' /\ converge (K',d) (p' o ss'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  convergent_subseq;
   ASM_REWRITE_TAC[sequence;SUBSET;UNIV;IMAGE];
   NAME_CONFLICT_TAC;
@@ -19918,7 +19918,7 @@ let compact_distance = prove_by_refinement(
   IMATCH_MP_TAC  (REAL_ARITH `(?t. (t <= y) /\ (x <= t)) ==> (x <= y)`);
   TYPE_THEN `inf Y` EXISTS_TAC;
   CONJ_TAC;
-  TYPE_THEN `(!y. Y y ==> inf Y <= y)` SUBGOAL_TAC;
+  TYPE_THEN `(!y. Y y ==> inf Y <= y)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inf_LB];
   DISCH_THEN IMATCH_MP_TAC ;
   EXPAND_TAC "Y";
@@ -19926,7 +19926,7 @@ let compact_distance = prove_by_refinement(
   TYPE_THEN `q` EXISTS_TAC;
   TYPE_THEN `q'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  SUBGOAL_TAC  `!x y. (!e. (&0 <e) ==> (x < y + e)) ==> (x <= y)`;
+  SUBGOAL_MP_TAC  `!x y. (!e. (&0 <e) ==> (x < y + e)) ==> (x <= y)`;
   REP_GEN_TAC;
   DISCH_THEN (fun t -> MP_TAC (SPEC `x'' - y` t));
   REAL_ARITH_TAC;
@@ -19949,11 +19949,11 @@ let compact_distance = prove_by_refinement(
   KILL 30;
   (* GEN needed inequalities *)
   (* [L] *)
-  TYPE_THEN `?n. (&1)* twopow(--: (&:n)) < e` SUBGOAL_TAC;
+  TYPE_THEN `?n. (&1)* twopow(--: (&:n)) < e` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[twopow_eps;REAL_ARITH `&0 < &1`];
   REDUCE_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `twopow( --: (&:(SUC n))) + twopow (--: (&:(SUC n))) = twopow (--: (&:n))` SUBGOAL_TAC;
+  TYPE_THEN `twopow( --: (&:(SUC n))) + twopow (--: (&:(SUC n))) = twopow (--: (&:n))` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM REAL_MUL_2;ADD1;twopow_double];
   REP_BASIC_TAC;
   TSPEC `twopow(--: (&:(SUC n)))` 26;
@@ -19963,7 +19963,7 @@ let compact_distance = prove_by_refinement(
   TSPEC `SUC (n) + SUC n'` 2;
   USE 2(REWRITE_RULE[ARITH_RULE `a <=| b + SUC a`]);
   TSPEC `ss' (SUC n + SUC n')` 25;
-  TYPE_THEN `twopow (--: (&:(ss' (SUC  n +| SUC n')))) < twopow (--: (&:(SUC n)))` SUBGOAL_TAC;
+  TYPE_THEN `twopow (--: (&:(ss' (SUC  n +| SUC n')))) < twopow (--: (&:(SUC n)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  twopow_lt;
   REWRITE_TAC[INT_LT_NEG;INT_OF_NUM_LT ];
   IMATCH_MP_TAC  (ARITH_RULE  `(?t. (a <=| t /\ (t <| b)))    ==> (a <| b)`);
@@ -19975,15 +19975,15 @@ let compact_distance = prove_by_refinement(
   DISCH_TAC;
   REP_BASIC_TAC;
   (* metric space ineq *)
-  TYPE_THEN `X x /\ X x' /\ X (p' (ss' (SUC n +| SUC n')))` SUBGOAL_TAC;
+  TYPE_THEN `X x /\ X x' /\ X (p' (ss' (SUC n +| SUC n')))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   REP_BASIC_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[o_DEF]);
   TYPE_THEN `r = p' (ss' (SUC n +| SUC n'))` ABBREV_TAC ;
-  TYPE_THEN `d x' r = d r x'` SUBGOAL_TAC;
+  TYPE_THEN `d x' r = d r x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_symm;
   ASM_MESON_TAC[];
-  TYPE_THEN `d x x' <= d x r + d r x'` SUBGOAL_TAC;
+  TYPE_THEN `d x x' <= d x r + d r x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_triangle;
   ASM_MESON_TAC[];
   UND 0;
@@ -20028,7 +20028,7 @@ let finite_UB = prove_by_refinement(
   `!X. (FINITE X) ==> (?t. (!x. X x ==> x <=. t))`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!n X. (X HAS_SIZE n) ==> (?t. (!x. X x ==> x <= t))` SUBGOAL_TAC;
+  TYPE_THEN `!n X. (X HAS_SIZE n) ==> (?t. (!x. X x ==> x <= t))` SUBGOAL_MP_TAC;
   INDUCT_TAC ;
   REWRITE_TAC[HAS_SIZE_0;EQ_EMPTY;];
   MESON_TAC[];
@@ -20036,7 +20036,7 @@ let finite_UB = prove_by_refinement(
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
   TSPEC `X DELETE u` 0;
-  TYPE_THEN `(?t. !x. (X DELETE u) x ==> x <= t)` SUBGOAL_TAC;
+  TYPE_THEN `(?t. !x. (X DELETE u) x ==> x <= t)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
   TYPE_THEN `max_real t u` EXISTS_TAC;
@@ -20057,7 +20057,7 @@ let finite_LB = prove_by_refinement(
   `!X. (FINITE X) ==> (?t. (!x. X x ==> t <=. x))`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!n X. (X HAS_SIZE n) ==> (?t. (!x. X x ==> t <= x))` SUBGOAL_TAC;
+  TYPE_THEN `!n X. (X HAS_SIZE n) ==> (?t. (!x. X x ==> t <= x))` SUBGOAL_MP_TAC;
   INDUCT_TAC ;
   REWRITE_TAC[HAS_SIZE_0;EQ_EMPTY;];
   MESON_TAC[];
@@ -20065,7 +20065,7 @@ let finite_LB = prove_by_refinement(
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
   TSPEC `X DELETE u` 0;
-  TYPE_THEN `(?t. !x. (X DELETE u) x ==> t <= x)` SUBGOAL_TAC;
+  TYPE_THEN `(?t. !x. (X DELETE u) x ==> t <= x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
   TYPE_THEN `min_real t u` EXISTS_TAC;
@@ -20085,7 +20085,7 @@ let finite_compact = prove_by_refinement(
   `!(X:A->bool) U. (FINITE X) /\ (X SUBSET UNIONS U) ==> (compact U X)`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!n (X:A->bool) U. (X HAS_SIZE n) /\ (X SUBSET UNIONS U) ==> (compact U X)` SUBGOAL_TAC;
+  TYPE_THEN `!n (X:A->bool) U. (X HAS_SIZE n) /\ (X SUBSET UNIONS U) ==> (compact U X)` SUBGOAL_MP_TAC;
   INDUCT_TAC;
   REWRITE_TAC[HAS_SIZE_0];
   REP_BASIC_TAC;
@@ -20097,13 +20097,13 @@ let finite_compact = prove_by_refinement(
   REWRITE_TAC[HAS_SIZE_SUC;EMPTY_EXISTS;compact ;];
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `X DELETE u HAS_SIZE n` SUBGOAL_TAC;
+  TYPE_THEN `X DELETE u HAS_SIZE n` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   TYPEL_THEN [`X DELETE u`;`U`] (USE 0 o ISPECL);
   REP_BASIC_TAC;
   REWR 0;
-  TYPE_THEN `X DELETE u SUBSET UNIONS U` SUBGOAL_TAC;
+  TYPE_THEN `X DELETE u SUBSET UNIONS U` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[SUBSET;DELETE];
   MESON_TAC[];
@@ -20113,7 +20113,7 @@ let finite_compact = prove_by_refinement(
   REP_BASIC_TAC;
   TSPEC `V` 0;
   REWR 0;
-  TYPE_THEN `X DELETE u SUBSET UNIONS V` SUBGOAL_TAC;
+  TYPE_THEN `X DELETE u SUBSET UNIONS V` SUBGOAL_MP_TAC;
   UND 6;
   REWRITE_TAC[SUBSET;DELETE];
   MESON_TAC[];
@@ -20149,15 +20149,15 @@ let compact_supm = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?x. X x /\ (!y. X y ==> y <= x))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. X x /\ (!y. X y ==> y <= x))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_sup;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(!x. X x ==> x <= supm X ) /\ (!y. (!x. X x ==> x <= y) ==> (supm X <= y))` SUBGOAL_TAC;
+  TYPE_THEN `(!x. X x ==> x <= supm X ) /\ (!y. (!x. X x ==> x <= y) ==> (supm X <= y))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  supm_UB;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `x = supm X` SUBGOAL_TAC;
+  TYPE_THEN `x = supm X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `x <= supm X /\ supm X <= x ==> (x = supm X)`);
   TSPEC `x` 4;
   REWR 4;
@@ -20174,15 +20174,15 @@ let compact_infm = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?x. X x /\ (!y. X y ==> x <= y))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. X x /\ (!y. X y ==> x <= y))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_inf;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(!x. X x ==> inf X <= x ) /\ (!y. (!x. X x ==> y <= x) ==> ( y <= inf X))` SUBGOAL_TAC;
+  TYPE_THEN `(!x. X x ==> inf X <= x ) /\ (!y. (!x. X x ==> y <= x) ==> ( y <= inf X))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inf_LB;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `x = inf X` SUBGOAL_TAC;
+  TYPE_THEN `x = inf X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `x <= inf X /\ inf X <= x ==> (x = inf X)`);
   TSPEC `x` 4;
   REWR 4;
@@ -20224,7 +20224,7 @@ let finite_supm_max = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?t. !x. (X x ==> x <= t))` SUBGOAL_TAC;
+  TYPE_THEN `(?t. !x. (X x ==> x <= t))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[finite_UB];
   ASM_MESON_TAC[supm_UB];
   ]);;
@@ -20235,7 +20235,7 @@ let finite_inf_min = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?t. !x. (X x ==> t <= x))` SUBGOAL_TAC;
+  TYPE_THEN `(?t. !x. (X x ==> t <= x))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[finite_LB];
   ASM_MESON_TAC[inf_LB];
   ]);;
@@ -20291,7 +20291,7 @@ let real_finite_increase = prove_by_refinement(
          (u i <. u j)))))`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!n X. ( (X HAS_SIZE  n) ==> (? u. (BIJ u {x | x <| CARD X} X) /\  (!i j. (i <| CARD X /\ (j <| CARD X) /\ (i <| j) ==> (u i <. u j)))))` SUBGOAL_TAC;
+  TYPE_THEN `!n X. ( (X HAS_SIZE  n) ==> (? u. (BIJ u {x | x <| CARD X} X) /\  (!i j. (i <| CARD X /\ (j <| CARD X) /\ (i <| j) ==> (u i <. u j)))))` SUBGOAL_MP_TAC;
   INDUCT_TAC;
   REWRITE_TAC[HAS_SIZE_0];
   REP_BASIC_TAC;
@@ -20302,7 +20302,7 @@ let real_finite_increase = prove_by_refinement(
   UND 1;
   REWRITE_TAC[HAS_SIZE_SUC;];
   REP_BASIC_TAC;
-  TYPE_THEN `X (supm X)` SUBGOAL_TAC;
+  TYPE_THEN `X (supm X)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  finite_supm;
   ASM_REWRITE_TAC[];
   KILL 0;
@@ -20318,11 +20318,11 @@ let real_finite_increase = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `v = (\j. if (j = n) then supm X else u j)` ABBREV_TAC ;
   TYPE_THEN `v` EXISTS_TAC;
-  TYPE_THEN `CARD (X DELETE supm X) = n` SUBGOAL_TAC;
+  TYPE_THEN `CARD (X DELETE supm X) = n` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[HAS_SIZE];
   DISCH_TAC;
   (* [th] *)
-  TYPE_THEN `!x. ({x | x <| n} x ==> (v x = u x))` SUBGOAL_TAC;
+  TYPE_THEN `!x. ({x | x <| n} x ==> (v x = u x))` SUBGOAL_MP_TAC;
   REWRITE_TAC[];
   EXPAND_TAC "v";
   GEN_TAC;
@@ -20330,21 +20330,21 @@ let real_finite_increase = prove_by_refinement(
   ASM_REWRITE_TAC[ARITH_RULE `~(n <| n)`];
   REWRITE_TAC[];
   DISCH_TAC;
-    TYPE_THEN `INJ v {x | x <| n} X = INJ u {x | x <| n} X` SUBGOAL_TAC;
+    TYPE_THEN `INJ v {x | x <| n} X = INJ u {x | x <| n} X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inj_domain_sub;
   UND 8;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `v n = supm X` SUBGOAL_TAC;
+  TYPE_THEN `v n = supm X` SUBGOAL_MP_TAC;
   EXPAND_TAC "v";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-    TYPE_THEN `IMAGE v {x | x <| n} = IMAGE u {x | x <| n}` SUBGOAL_TAC;
+    TYPE_THEN `IMAGE v {x | x <| n} = IMAGE u {x | x <| n}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  image_domain_sub;
   UND 8;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `IMAGE v {x | x <| n} = X DELETE supm X` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE v {x | x <| n} = X DELETE supm X` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   UND 5;
   ASM_REWRITE_TAC[];
@@ -20356,7 +20356,7 @@ let real_finite_increase = prove_by_refinement(
   CONJ_TAC;
   IMATCH_MP_TAC  bij_inj_image;
   CONJ_TAC;
-  TYPE_THEN `{x | x <| CARD X} = {x | x <| n} UNION {n}` SUBGOAL_TAC;
+  TYPE_THEN `{x | x <| CARD X} = {x | x <| n} UNION {n}` SUBGOAL_MP_TAC;
   USE 2(REWRITE_RULE[HAS_SIZE]);
   ASM_REWRITE_TAC[];
   REWRITE_TAC[suc_interval];
@@ -20377,7 +20377,7 @@ let real_finite_increase = prove_by_refinement(
   KILL 11;
   ASM_REWRITE_TAC[DELETE;SUBSET;];
   MESON_TAC[];
-  TYPE_THEN `X = supm X INSERT (X DELETE supm X)` SUBGOAL_TAC;
+  TYPE_THEN `X = supm X INSERT (X DELETE supm X)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[INR INSERT_DELETE];
   USE 2 (REWRITE_RULE[HAS_SIZE]);
   ASM_REWRITE_TAC[];
@@ -20401,7 +20401,7 @@ let real_finite_increase = prove_by_refinement(
   (* monotonicity [m] *)
   USE 2 (REWRITE_RULE[HAS_SIZE]);
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(!x. X x ==> x <= supm X)` SUBGOAL_TAC;
+  TYPE_THEN `(!x. X x ==> x <= supm X)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[finite_supm_max];
   DISCH_TAC;
   TYPE_THEN `j = n` ASM_CASES_TAC;
@@ -20415,13 +20415,13 @@ let real_finite_increase = prove_by_refinement(
   KILL 4;
   KILL 5;
   REP_BASIC_TAC;
-  TYPE_THEN `~(i = n)` SUBGOAL_TAC;
+  TYPE_THEN `~(i = n)` SUBGOAL_MP_TAC;
   UND 2;
   UND 3;
   ARITH_TAC;
   REWR 0;
   DISCH_TAC;
-  TYPE_THEN `i <| n /\ j <| n` SUBGOAL_TAC;
+  TYPE_THEN `i <| n /\ j <| n` SUBGOAL_MP_TAC;
   UND 3;
   UND 4;
   UND 14;
@@ -20449,7 +20449,7 @@ let connected_nogap = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(a = b) \/ (b < a) \/ (a < b)` SUBGOAL_TAC;
+  TYPE_THEN `(a = b) \/ (b < a) \/ (a < b)` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   REP_CASES_TAC;
   ASM_REWRITE_TAC[SUBSET];
@@ -20459,11 +20459,11 @@ let connected_nogap = prove_by_refinement(
   REWRITE_TAC[SUBSET];
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `a < x` SUBGOAL_TAC;
+  TYPE_THEN `a < x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(a <= x /\ ~(a = x)) ==> a < x`);
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `x < b` SUBGOAL_TAC;
+  TYPE_THEN `x < b` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(x <= b /\ ~(b = x)) ==> x < b`);
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -20472,7 +20472,7 @@ let connected_nogap = prove_by_refinement(
   TYPEL_THEN [` {t | t < x}`;` {t | x < t}`] (USE 2 o SPECL);
   UND 2;
   REWRITE_TAC[half_open;half_open_above];
-  TYPE_THEN `({t | t < x} INTER {t | x < t} = {}) /\ A SUBSET {t | t < x} UNION {t | x < t}` SUBGOAL_TAC;
+  TYPE_THEN `({t | t < x} INTER {t | x < t} = {}) /\ A SUBSET {t | t < x} UNION {t | x < t}` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER;EQ_EMPTY;UNION;SUBSET;];
   REWRITE_TAC[REAL_ARITH `x' < x \/ x < x' <=> ~(x' = x)`];
   CONJ_TAC;
@@ -20496,29 +20496,29 @@ let connected_open = prove_by_refinement(
   [
   REWRITE_TAC[SUBSET];
   REP_BASIC_TAC;
-  TYPE_THEN `(!epsilon. &0 < epsilon ==> (?x. A x /\ supm A - epsilon < x))` SUBGOAL_TAC;
+  TYPE_THEN `(!epsilon. &0 < epsilon ==> (?x. A x /\ supm A - epsilon < x))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  supm_eps;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(!epsilon. &0 < epsilon ==> (?x. A x /\ x < inf A + epsilon))` SUBGOAL_TAC;
+  TYPE_THEN `(!epsilon. &0 < epsilon ==> (?x. A x /\ x < inf A + epsilon))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inf_eps;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(!x. A x ==> x <= supm A)` SUBGOAL_TAC;
+  TYPE_THEN `(!x. A x ==> x <= supm A)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[supm_UB];
   DISCH_TAC;
-  TYPE_THEN `(!x. A x ==> inf A <= x)` SUBGOAL_TAC;
+  TYPE_THEN `(!x. A x ==> inf A <= x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[inf_LB];
   DISCH_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
-  TYPE_THEN `!x. (A x  ==> ?e. &0 < e /\ open_ball(UNIV,d_real) x e SUBSET A)` SUBGOAL_TAC;
+  TYPE_THEN `!x. (A x  ==> ?e. &0 < e /\ open_ball(UNIV,d_real) x e SUBSET A)` SUBGOAL_MP_TAC;
   UND 2;
   MP_TAC metric_real;
   MESON_TAC[open_ball_nbd];
   REWRITE_TAC[open_ball;d_real];
   DISCH_TAC;
   (*  *)
-  TYPE_THEN `!x. A x ==> (?y. A y /\ ~(x <= y))` SUBGOAL_TAC;
+  TYPE_THEN `!x. A x ==> (?y. A y /\ ~(x <= y))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TSPEC  `x` 8;
   REWR 8;
@@ -20529,7 +20529,7 @@ let connected_open = prove_by_refinement(
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[REAL_ARITH `(x - (x - t)) = t`];
-  TYPE_THEN `abs  (e/(&2)) = (e/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `abs  (e/(&2)) = (e/(&2))` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ABS_REFL];
   IMATCH_MP_TAC  (REAL_ARITH `(a < b) ==> (a <= b)`);
   ASM_REWRITE_TAC[REAL_LT_HALF1];
@@ -20537,7 +20537,7 @@ let connected_open = prove_by_refinement(
   ASM_REWRITE_TAC[REAL_LT_HALF2];
   DISCH_TAC;
   (*  *)
-  TYPE_THEN `!x. A x ==> (?y. A y /\ ~(y <= x))` SUBGOAL_TAC;
+  TYPE_THEN `!x. A x ==> (?y. A y /\ ~(y <= x))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TSPEC  `x` 8;
   REWR 8;
@@ -20548,7 +20548,7 @@ let connected_open = prove_by_refinement(
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[REAL_ARITH `(x - (x + t)) = --. t`];
-  TYPE_THEN `abs (--. (e/(&2))) = (e/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `abs (--. (e/(&2))) = (e/(&2))` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ABS_REFL;ABS_NEG;];
   IMATCH_MP_TAC  (REAL_ARITH `(a < b) ==> (a <= b)`);
   ASM_REWRITE_TAC[REAL_LT_HALF1];
@@ -20570,7 +20570,7 @@ let connected_open = prove_by_refinement(
   (* 2 *)
   REWRITE_TAC[SUBSET];
   REP_BASIC_TAC;
-  TYPE_THEN `?a'. A a' /\ (a' < x)` SUBGOAL_TAC;
+  TYPE_THEN `?a'. A a' /\ (a' < x)` SUBGOAL_MP_TAC;
   TSPEC `x - inf A` 5;
   USE 5 (REWRITE_RULE[REAL_ARITH `&0 < x - y <=> (y < x)`;REAL_ARITH `t + x - t = x`]);
   REWR 5;
@@ -20579,7 +20579,7 @@ let connected_open = prove_by_refinement(
   USE 4(REWRITE_RULE[REAL_ARITH `&0 < y - x <=> (x < y)`;REAL_ARITH `t - (t -x) = x`]);
   REWR 4;
   REP_BASIC_TAC;
-  TYPE_THEN `{t | a' <= t /\ t <= x'} SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `{t | a' <= t /\ t <= x'} SUBSET A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  connected_nogap;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SUBSET];
@@ -20601,7 +20601,7 @@ let closure_real_set = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `metric_space (UNIV,d_real) /\ Z SUBSET UNIV` SUBGOAL_TAC;
+  TYPE_THEN `metric_space (UNIV,d_real) /\ Z SUBSET UNIV` SUBGOAL_MP_TAC;
   REWRITE_TAC[metric_real;SUBSET_UNIV];
   DISCH_THEN (fun t -> MP_TAC (MATCH_MP closure_open_ball t));
   DISCH_THEN (fun t -> MP_TAC (AP_THM t `a:real`));
@@ -20638,7 +20638,7 @@ let real_middle1_lt = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(&2*a)/(&2) < (a+b)/(&2)` SUBGOAL_TAC;
+  TYPE_THEN `(&2*a)/(&2) < (a+b)/(&2)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[REAL_LT_DIV2_EQ;REAL_ARITH `&0 < &2`];
   REWRITE_TAC[REAL_MUL_2];
   UND 0;
@@ -20653,7 +20653,7 @@ let real_middle2_lt = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN ` (a+b)/(&2) < (&2*b)/(&2)` SUBGOAL_TAC;
+  TYPE_THEN ` (a+b)/(&2) < (&2*b)/(&2)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[REAL_LT_DIV2_EQ;REAL_ARITH `&0 < &2`];
   REWRITE_TAC[REAL_MUL_2];
   UND 0;
@@ -20668,7 +20668,7 @@ let real_sub_half = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `((&2*a)/(&2) - (a+b)/(&2) = (a - b)/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `((&2*a)/(&2) - (a+b)/(&2) = (a - b)/(&2))` SUBGOAL_MP_TAC;
   REWRITE_TAC[real_div;GSYM REAL_SUB_RDISTRIB];
   REWRITE_TAC[REAL_EQ_RMUL_IMP];
   AP_THM_TAC;
@@ -20693,7 +20693,7 @@ let closure_open_interval = prove_by_refinement(
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   (* 2 *)
-  TYPE_THEN `{x | a <= x /\ x <= b} = a INSERT (b INSERT {x | a < x /\ x < b})` SUBGOAL_TAC;
+  TYPE_THEN `{x | a <= x /\ x <= b} = a INSERT (b INSERT {x | a < x /\ x < b})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INSERT];
   GEN_TAC;
@@ -20704,7 +20704,7 @@ let closure_open_interval = prove_by_refinement(
   ASM_SIMP_TAC[top_of_metric_top;metric_real;subset_closure;];
   (* USE closure_real_set *)
   REWRITE_TAC[closure_real_set];
-  TYPE_THEN `!e. (&0 < e) ==> (a + e < b) \/ ((b - a)/(&2) < e)` SUBGOAL_TAC;
+  TYPE_THEN `!e. (&0 < e) ==> (a + e < b) \/ ((b - a)/(&2) < e)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   ASM_CASES_TAC `(a + e < b)`;
   ASM_REWRITE_TAC[];
@@ -20736,7 +20736,7 @@ let closure_open_interval = prove_by_refinement(
   UND 0;
   REWRITE_TAC[real_div;ABS_MUL];
   ASM_SIMP_TAC[REAL_ARITH `(a < b) ==> (abs(a - b) = (b-a))`];
-  TYPE_THEN `abs (inv(&2)) = inv(&2)` SUBGOAL_TAC;
+  TYPE_THEN `abs (inv(&2)) = inv(&2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[ABS_REFL;REAL_LE_INV_EQ];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -20764,7 +20764,7 @@ let closure_open_interval = prove_by_refinement(
   UND 0;
   REWRITE_TAC[real_div;ABS_MUL];
   ASM_SIMP_TAC[REAL_ARITH `(a < b) ==> (abs(b - a) = (b-a))`];
-  TYPE_THEN `abs (inv(&2)) = inv(&2)` SUBGOAL_TAC;
+  TYPE_THEN `abs (inv(&2)) = inv(&2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[ABS_REFL;REAL_LE_INV_EQ];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -20842,14 +20842,14 @@ let connected_open_closure = prove_by_refinement(
   REWRITE_TAC[];
   REAL_ARITH_TAC;
   (* deal WITH containment *)
-  TYPE_THEN `A SUBSET {x | a <= x /\ x <= b}` SUBGOAL_TAC;
+  TYPE_THEN `A SUBSET {x | a <= x /\ x <= b}` SUBGOAL_MP_TAC;
   USE 0 SYM;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  subset_closure;
   ASM_SIMP_TAC[top_of_metric_top;metric_real];
   DISCH_TAC;
   (* quote previous result *)
-  TYPE_THEN `( A = {x | inf A < x /\ x < supm A})` SUBGOAL_TAC;
+  TYPE_THEN `( A = {x | inf A < x /\ x < supm A})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  connected_open;
   TYPE_THEN `a` EXISTS_TAC;
   TYPE_THEN `b` EXISTS_TAC;
@@ -20865,7 +20865,7 @@ let connected_open_closure = prove_by_refinement(
   ASM ONCE_REWRITE_TAC [];
   REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `inf A < supm A` SUBGOAL_TAC;
+  TYPE_THEN `inf A < supm A` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_TAC;
@@ -20929,11 +20929,11 @@ let closed_ball_compact = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `closed_ball(euclid n,d_euclid) a r SUBSET (euclid n)` SUBGOAL_TAC;
+  TYPE_THEN `closed_ball(euclid n,d_euclid) a r SUBSET (euclid n)` SUBGOAL_MP_TAC;
   REWRITE_TAC[closed_ball;SUBSET];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `open_ball(euclid n,d_euclid) a r SUBSET (euclid n)` SUBGOAL_TAC;
+  TYPE_THEN `open_ball(euclid n,d_euclid) a r SUBSET (euclid n)` SUBGOAL_MP_TAC;
   REWRITE_TAC[open_ball;SUBSET];
   MESON_TAC[];
   DISCH_TAC;
@@ -20947,7 +20947,7 @@ let closed_ball_compact = prove_by_refinement(
   UND 2;
   REWRITE_TAC[closed_ball];
   REP_BASIC_TAC;
-  TYPE_THEN `d_euclid a a = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid a a = &0` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[d_euclid_zero];
   DISCH_THEN_REWRITE;
   ASM_MESON_TAC[d_euclid_pos;REAL_ARITH `&0 <= d /\ d <= r ==> &0 <= r`;REAL_ARITH `u <= r ==> (u < r + &1)`];
@@ -20969,7 +20969,7 @@ let set_dist_inf = prove_by_refinement(
   REWRITE_TAC[set_dist];
   REP_BASIC_TAC;
   TYPE_THEN `Y = {z | ?p p'. K p /\ K' p' /\ (z = d p p')}` ABBREV_TAC ;
-  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_TAC;
+  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_MP_TAC;
   GEN_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[];
@@ -20978,14 +20978,14 @@ let set_dist_inf = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[metric_space]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `Y (d p p')` SUBGOAL_TAC;
+  TYPE_THEN `Y (d p p')` SUBGOAL_MP_TAC;
 
   EXPAND_TAC "Y";
   REWRITE_TAC[];
   ASM_MESON_TAC[];
   DISCH_TAC;
 
-  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_TAC;
+  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_MP_TAC;
   CONJ_TAC;
   REWRITE_TAC[EMPTY_EXISTS];
   TYPE_THEN `d p p'` EXISTS_TAC;
@@ -21005,7 +21005,7 @@ let set_dist_nn = prove_by_refinement(
   REWRITE_TAC[set_dist];
   REP_BASIC_TAC;
   TYPE_THEN `Y = {z | ?p p'. K p /\ K' p' /\ (z = d p p')}` ABBREV_TAC ;
-  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_TAC;
+  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   UND 6;
   EXPAND_TAC "Y";
@@ -21015,7 +21015,7 @@ let set_dist_nn = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[metric_space]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `~(Y = {})` SUBGOAL_TAC;
+  TYPE_THEN `~(Y = {})` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS];
   RULE_ASSUM_TAC (REWRITE_RULE[EMPTY_EXISTS]);
   REP_BASIC_TAC;
@@ -21024,7 +21024,7 @@ let set_dist_nn = prove_by_refinement(
   REWRITE_TAC[];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_TAC;
+  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN (ASSUME_TAC o (MATCH_MP   inf_LB));
   ASM_MESON_TAC[];
@@ -21043,7 +21043,7 @@ let set_dist_eq = prove_by_refinement(
   REWRITE_TAC[set_dist];
   REP_BASIC_TAC;
   TYPE_THEN `Y = {z | ?p p'. K p /\ K' p' /\ (z = d p p')}` ABBREV_TAC ;
-  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_TAC;
+  TYPE_THEN `!x. Y x ==> &0 <= x` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   UND 8;
   EXPAND_TAC "Y";
@@ -21053,7 +21053,7 @@ let set_dist_eq = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[metric_space]);
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
-  TYPE_THEN `~(Y = {})` SUBGOAL_TAC;
+  TYPE_THEN `~(Y = {})` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS];
   RULE_ASSUM_TAC (REWRITE_RULE[EMPTY_EXISTS]);
   REP_BASIC_TAC;
@@ -21062,10 +21062,10 @@ let set_dist_eq = prove_by_refinement(
   REWRITE_TAC[];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_TAC;
+  TYPE_THEN `~(Y = {}) /\ (?t. !x. Y x ==> t <= x)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN (ASSUME_TAC o (MATCH_MP   inf_LB));
-  TYPE_THEN `(?p p'. K p /\ K' p' /\ (!q q'. K q /\ K' q' ==> d p p' <= d q q'))` SUBGOAL_TAC;
+  TYPE_THEN `(?p p'. K p /\ K' p' /\ (!q q'. K q /\ K' q' ==> d p p' <= d q q'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  compact_distance;
   TYPE_THEN `X` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -21074,7 +21074,7 @@ let set_dist_eq = prove_by_refinement(
   TYPE_THEN `p'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   (* 1 *)
-  TYPE_THEN `Y (d p p')` SUBGOAL_TAC;
+  TYPE_THEN `Y (d p p')` SUBGOAL_MP_TAC;
   EXPAND_TAC "Y";
   REWRITE_TAC[];
   ASM_MESON_TAC[];
@@ -21152,10 +21152,10 @@ let graph_vertex_exist = prove_by_refinement(
   [
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G u SUBSET graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G u SUBSET graph_vertex G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[graph_inc_subset];
   DISCH_TAC;
-  TYPE_THEN `graph_inc G u HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G u HAS_SIZE 2` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[graph_edge2;];
   REWRITE_TAC[has_size2];
   REP_BASIC_TAC;
@@ -21174,10 +21174,10 @@ let graph_vertex_2 = prove_by_refinement(
   [
   REWRITE_TAC[EMPTY_EXISTS];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G u SUBSET graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G u SUBSET graph_vertex G` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[graph_inc_subset];
   DISCH_TAC;
-  TYPE_THEN `graph_inc G u HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G u HAS_SIZE 2` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[graph_edge2;];
   REWRITE_TAC[has_size2];
   REP_BASIC_TAC;
@@ -21250,14 +21250,14 @@ let set_dist_pos = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  (REAL_ARITH  `~(x = &0) /\ (&0 <= x) ==> (&0 < x)`);
   CONJ_TAC;
-  TYPE_THEN `(?p p'. K p /\ K' p' /\ (set_dist d K K' = d p p'))` SUBGOAL_TAC;
+  TYPE_THEN `(?p p'. K p /\ K' p' /\ (set_dist d K K' = d p p'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  set_dist_eq;
   TYPE_THEN `X` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `p = p'` SUBGOAL_TAC;
+  TYPE_THEN `p = p'` SUBGOAL_MP_TAC;
   REWR 9;
-  TYPE_THEN `X p /\ X p'` SUBGOAL_TAC;
+  TYPE_THEN `X p /\ X p'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   USE 9 SYM;
@@ -21284,10 +21284,10 @@ let closed_ball_inter = prove_by_refinement(
   [
   REWRITE_TAC[closed_ball;EMPTY_EXISTS;INTER];
   REP_BASIC_TAC;
-  TYPE_THEN `d x y <= d x u + d u y` SUBGOAL_TAC;
+  TYPE_THEN `d x y <= d x u + d u y` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_triangle;
   ASM_MESON_TAC[];
-  TYPE_THEN `d u y = d y u` SUBGOAL_TAC;
+  TYPE_THEN `d u y = d y u` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_symm;
   ASM_MESON_TAC[];
   UND 0;
@@ -21313,7 +21313,7 @@ let graph_disk = prove_by_refinement(
     REP_BASIC_TAC;
   (* A' *)
   TYPE_THEN `A = { (v,v') |  (graph_vertex G v) /\ graph_vertex G v' /\ ~(v = v') }` ABBREV_TAC ;
-  TYPE_THEN `FINITE A` SUBGOAL_TAC;
+  TYPE_THEN `FINITE A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  FINITE_SUBSET;
   TYPE_THEN `{ (v,v') | (graph_vertex G v) /\ graph_vertex G v'}` EXISTS_TAC;
   TYPEL_THEN  [`graph_vertex G`;`graph_vertex G`] (fun t-> ASSUME_TAC (ISPECL   t FINITE_PRODUCT));
@@ -21324,7 +21324,7 @@ let graph_disk = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   TYPE_THEN `A' = IMAGE  (\ (v,v'). (d_euclid v v')/(&2)) A` ABBREV_TAC ;
-  TYPE_THEN `FINITE A'` SUBGOAL_TAC;
+  TYPE_THEN `FINITE A'` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   IMATCH_MP_TAC  FINITE_IMAGE;
   ASM_REWRITE_TAC[];
@@ -21332,10 +21332,10 @@ let graph_disk = prove_by_refinement(
   (* [B] *)
   TYPE_THEN `B = { (e,v) | graph_edge G e /\ graph_vertex G v /\ ~(graph_inc G e v) }` ABBREV_TAC ;
   TYPE_THEN `B' = IMAGE (\ (e,v). (set_dist d_euclid {v} e)) B`  ABBREV_TAC ;
-  TYPE_THEN `FINITE B'` SUBGOAL_TAC;
+  TYPE_THEN `FINITE B'` SUBGOAL_MP_TAC;
   EXPAND_TAC "B'";
   IMATCH_MP_TAC  FINITE_IMAGE;
-  TYPE_THEN `B = {z | (?e v. graph_edge G e /\ graph_vertex G v /\ ~( graph_inc G e v) /\ (z = (e,v)))}` SUBGOAL_TAC;
+  TYPE_THEN `B = {z | (?e v. graph_edge G e /\ graph_vertex G v /\ ~( graph_inc G e v) /\ (z = (e,v)))}` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[];
@@ -21346,15 +21346,15 @@ let graph_disk = prove_by_refinement(
   DISCH_TAC;
   (* [C] : A' B' C nonempty *)
   TYPE_THEN `C' = A' UNION B'` ABBREV_TAC ;
-  TYPE_THEN `FINITE C' /\ ~(C' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE C' /\ ~(C' = EMPTY)` SUBGOAL_MP_TAC;
   EXPAND_TAC "C'";
   ASM_REWRITE_TAC[FINITE_UNION];
   EXPAND_TAC "C'";
   REWRITE_TAC[EMPTY_EXISTS;UNION;];
-  TYPE_THEN `~(A' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(A' = EMPTY)` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   REWRITE_TAC[image_empty; ];
-  TYPE_THEN `(?v v'. graph_vertex G v /\ graph_vertex G v' /\ ~(v = v'))` SUBGOAL_TAC;
+  TYPE_THEN `(?v v'. graph_vertex G v /\ graph_vertex G v' /\ ~(v = v'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC graph_vertex_2;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[plane_graph];
@@ -21371,23 +21371,23 @@ let graph_disk = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* [D]:  C(inf C) *)
-  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   UND 3;
   REWRITE_TAC[plane_graph];
   MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `C'(inf C')` SUBGOAL_TAC;
+  TYPE_THEN `C'(inf C')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  finite_inf;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!x. C' x ==> (inf C' <= x)` SUBGOAL_TAC;
+  TYPE_THEN `!x. C' x ==> (inf C' <= x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  finite_inf_min;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!v. (graph_vertex G v ==> compact top2 {v})` SUBGOAL_TAC;
+  TYPE_THEN `!v. (graph_vertex G v ==> compact top2 {v})` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  compact_point;
   UND 13;
@@ -21396,11 +21396,11 @@ let graph_disk = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!e. (graph_edge G e ==> compact top2 e)` SUBGOAL_TAC;
+  TYPE_THEN `!e. (graph_edge G e ==> compact top2 e)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[graph_edge_compact];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!x. A' x <=> (?v' v''. graph_vertex G v' /\ graph_vertex G v'' /\  ~(v' = v'') /\ (x = d_euclid v' v'' / &2))` SUBGOAL_TAC;
+  TYPE_THEN `!x. A' x <=> (?v' v''. graph_vertex G v' /\ graph_vertex G v'' /\  ~(v' = v'') /\ (x = d_euclid v' v'' / &2))` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   EXPAND_TAC "A";
   REWRITE_TAC[IMAGE];
@@ -21410,7 +21410,7 @@ let graph_disk = prove_by_refinement(
   DISCH_TAC;
   (* -- *)
   TYPE_THEN `!x. B' x <=> (?e' v'. graph_edge G e' /\ graph_vertex G v' /\  ~(graph_inc G e' v') /\ (x = set_dist d_euclid {  v' } e'))`
-  SUBGOAL_TAC;
+  SUBGOAL_MP_TAC;
   EXPAND_TAC "B'";
   EXPAND_TAC "B";
   REWRITE_TAC[IMAGE];
@@ -21419,7 +21419,7 @@ let graph_disk = prove_by_refinement(
 (*** Next steps removed by JRH: now paired beta-conversion automatic ***)
   DISCH_TAC;
   (* -- [temp] *)
-  TYPE_THEN `!x. C' x ==> (&0 < x)` SUBGOAL_TAC;
+  TYPE_THEN `!x. C' x ==> (&0 < x)` SUBGOAL_MP_TAC;
   EXPAND_TAC "C'";
   REWRITE_TAC[UNION];
   GEN_TAC;
@@ -21429,7 +21429,7 @@ let graph_disk = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   IMATCH_MP_TAC  (REAL_ARITH `(&0 <= y /\ ~(y = &0) ) ==> &0 < y `);
-  TYPE_THEN `euclid 2 v' /\ euclid 2 v''` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 v' /\ euclid 2 v''` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   UND 20;
   ASM_MESON_TAC [d_euclid_pos;d_euclid_zero;];
@@ -21473,7 +21473,7 @@ let graph_disk = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* [E] r good for A' *)
-  TYPE_THEN `?r. (&0 < r /\ r < inf C')` SUBGOAL_TAC;
+  TYPE_THEN `?r. (&0 < r /\ r < inf C')` SUBGOAL_MP_TAC;
   TYPE_THEN `inf C' /(&2)` EXISTS_TAC;
   IMATCH_MP_TAC  half_pos;
   UND 20;
@@ -21484,12 +21484,12 @@ let graph_disk = prove_by_refinement(
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `A' ((d_euclid v v')/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `A' ((d_euclid v v')/(&2))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -2- *)
-  TYPE_THEN `r < ((d_euclid v v')/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `r < ((d_euclid v v')/(&2))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(?t . (r < t /\ t <= u)) ==> (r < u)`);
   TYPE_THEN `inf C'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -21508,13 +21508,13 @@ let graph_disk = prove_by_refinement(
   POP_ASSUM_LIST (fun t-> ALL_TAC);
   REP_BASIC_TAC;
   (* [* temp] *)
-  TYPE_THEN `d_euclid v v' <= r + r` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v' <= r + r` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  closed_ball_inter;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   REWRITE_TAC[INTER;EMPTY_EXISTS ;metric_euclid;];
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `d_euclid v v' < d_euclid v v'/(&2) + d_euclid v v'/(&2)` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v' < d_euclid v v'/(&2) + d_euclid v v'/(&2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(?t. (d <= t + t /\ t < u)) ==> (d < u + u)`);
   TYPE_THEN `r` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -21526,14 +21526,14 @@ let graph_disk = prove_by_refinement(
   USE 27(REWRITE_RULE[EMPTY_EXISTS;INTER;]);
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `B' (set_dist d_euclid {v} e)` SUBGOAL_TAC;
+  TYPE_THEN `B' (set_dist d_euclid {v} e)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   TYPE_THEN `e` EXISTS_TAC;
   TYPE_THEN `v` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `r < set_dist d_euclid {v} e` SUBGOAL_TAC;
+  TYPE_THEN `r < set_dist d_euclid {v} e` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `(?t. (r < t /\ t <= q)) ==> (r < q)`);
   TYPE_THEN `inf C'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -21543,7 +21543,7 @@ let graph_disk = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `(!p p'. ({v} p /\ e p' ==> (set_dist d_euclid {v} e <= d_euclid p p')))` SUBGOAL_TAC;
+  TYPE_THEN `(!p p'. ({v} p /\ e p' ==> (set_dist d_euclid {v} e <= d_euclid p p')))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  set_dist_inf;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_euclid;single_subset;];
@@ -21556,10 +21556,10 @@ let graph_disk = prove_by_refinement(
   REWRITE_TAC[compact;top2_unions;];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `set_dist d_euclid {v} e <= d_euclid v u` SUBGOAL_TAC;
+  TYPE_THEN `set_dist d_euclid {v} e <= d_euclid v u` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[INR IN_SING];
-  TYPE_THEN `d_euclid v u <= r` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v u <= r` SUBGOAL_MP_TAC;
   UND 27;
   REWRITE_TAC[closed_ball];
   MESON_TAC[];
@@ -21627,7 +21627,7 @@ let cis_inj = prove_by_refinement(
   (* B  range of s *)
   REP_BASIC_TAC;
   TYPE_THEN `s = (\t. (if (t < pi) then t else ((&2)*pi - t)))` ABBREV_TAC ;
-  TYPE_THEN `!t. (&0 <= t /\ t < (&2 * pi)) ==> (&0 <= s t /\ s t <= pi)` SUBGOAL_TAC;
+  TYPE_THEN `!t. (&0 <= t /\ t < (&2 * pi)) ==> (&0 <= s t /\ s t <= pi)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "s";
   COND_CASES_TAC;
@@ -21642,7 +21642,7 @@ let cis_inj = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* [C] : cos (s t) *)
-  TYPE_THEN `!t. cos (s t) = cos t` SUBGOAL_TAC;
+  TYPE_THEN `!t. cos (s t) = cos t` SUBGOAL_MP_TAC;
   EXPAND_TAC "s";
   GEN_TAC;
   COND_CASES_TAC;
@@ -21650,7 +21650,7 @@ let cis_inj = prove_by_refinement(
   REWRITE_TAC  [REAL_ARITH `x - t = (--. t + x)`;COS_PERIODIC;COS_NEG];
   DISCH_TAC;
   (* D : (s t) = (s t') *)
-  TYPE_THEN `(s t= s t') ==> ((t = t') \/ (t' = (&2 * pi - t)))` SUBGOAL_TAC;
+  TYPE_THEN `(s t= s t') ==> ((t = t') \/ (t' = (&2 * pi - t)))` SUBGOAL_MP_TAC;
   EXPAND_TAC "s";
   COND_CASES_TAC;
   COND_CASES_TAC;
@@ -21666,12 +21666,12 @@ let cis_inj = prove_by_refinement(
   (ASM ONCE_REWRITE_TAC []);
   DISCH_THEN (fun t -> MP_TAC (AP_TERM `acs` t));
   DISCH_TAC;
-  TYPE_THEN `s t = s t'` SUBGOAL_TAC;
-  TYPE_THEN `acs (cos (s t)) = s t` SUBGOAL_TAC;
+  TYPE_THEN `s t = s t'` SUBGOAL_MP_TAC;
+  TYPE_THEN `acs (cos (s t)) = s t` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  COS_ACS;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `acs (cos (s t')) = s t'` SUBGOAL_TAC;
+  TYPE_THEN `acs (cos (s t')) = s t'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  COS_ACS;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -21745,7 +21745,7 @@ let norm2_scale = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `?u v. (x = point(u,v))` SUBGOAL_TAC;
+  TYPE_THEN `?u v. (x = point(u,v))` SUBGOAL_MP_TAC;
   USE 0 (MATCH_MP point_onto);
   REP_BASIC_TAC;
   TYPE_THEN `FST p` EXISTS_TAC;
@@ -21773,11 +21773,11 @@ let polar_inj = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN `abs  r = abs  r'` SUBGOAL_TAC;
+  TYPE_THEN `abs  r = abs  r'` SUBGOAL_MP_TAC;
   FIRST_ASSUM (fun t -> MP_TAC (AP_TERM `norm2` t));
   REWRITE_TAC[norm2_scale_cis];
   DISCH_TAC;
-  TYPE_THEN `r' = r` SUBGOAL_TAC;
+  TYPE_THEN `r' = r` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ABS_REFL];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
@@ -21785,7 +21785,7 @@ let polar_inj = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_REWRITE_TAC[];
   REWR 0;
-  TYPE_THEN `cis x = cis x'` SUBGOAL_TAC;
+  TYPE_THEN `cis x = cis x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  euclid_scale_cancel;
   ASM_MESON_TAC[];
   ASM_MESON_TAC[cis_inj];
@@ -21801,19 +21801,19 @@ let norm2_bounds = prove_by_refinement(
   [
   REP_BASIC_TAC;
   REWRITE_TAC[norm2_scale_cis];
-  TYPE_THEN `a <= a + t*(b - a)` SUBGOAL_TAC;
+  TYPE_THEN `a <= a + t*(b - a)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ARITH `x <= x + y <=> (&0 <= y)`];
   IMATCH_MP_TAC  REAL_LE_MUL;
   ASM_REWRITE_TAC[];
   UND 2;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `&0 <= a + t*(b-a)` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= a + t*(b-a)` SUBGOAL_MP_TAC;
   UND 4;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `abs  (a + t*(b-a)) = a + t*(b-a)` SUBGOAL_TAC;
+  TYPE_THEN `abs  (a + t*(b-a)) = a + t*(b-a)` SUBGOAL_MP_TAC;
   REWRITE_TAC[ABS_REFL];
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -21839,7 +21839,7 @@ let cis_exist_lemma = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `? u v. x = point (u,v)` SUBGOAL_TAC;
+  TYPE_THEN `? u v. x = point (u,v)` SUBGOAL_MP_TAC;
   USE 1 (MATCH_MP point_onto);
   REP_BASIC_TAC;
   TYPE_THEN `FST p` EXISTS_TAC;
@@ -21855,7 +21855,7 @@ let cis_exist_lemma = prove_by_refinement(
   UND 0;
   BETA_TAC;
   REDUCE_TAC;
-  TYPE_THEN `(sqrt (u pow 2 + v pow 2) pow 2 = u pow 2 + v pow 2)` SUBGOAL_TAC;
+  TYPE_THEN `(sqrt (u pow 2 + v pow 2) pow 2 = u pow 2 + v pow 2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SQRT_POW_2;
   IMATCH_MP_TAC  (REAL_ARITH `&0 <= x /\ &0 <= y ==> &0 <= x + y`);
   ASM_REWRITE_TAC[REAL_LE_POW_2];
@@ -21961,7 +21961,7 @@ let cos_sin_reduce = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `t' = t - real_of_int(f)*(&2)*pi` ABBREV_TAC  ;
   TYPE_THEN `t'` EXISTS_TAC;
-  TYPE_THEN `t' = t + real_of_int (--: f) *(&2)*pi` SUBGOAL_TAC;
+  TYPE_THEN `t' = t + real_of_int (--: f) *(&2)*pi` SUBGOAL_MP_TAC;
   EXPAND_TAC "t'";
   REWRITE_TAC[REAL_ARITH `x -y = x + (-- y)`;REAL_ARITH `-- (x * y) = (-- x)*y`;GSYM int_neg_th];
   DISCH_TAC;
@@ -21970,20 +21970,20 @@ let cos_sin_reduce = prove_by_refinement(
   CONJ_TAC;
   ASM_REWRITE_TAC[sin_period_int];
   EXPAND_TAC "t'";
-  TYPE_THEN `&0 < (&2 *pi)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < (&2 *pi)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_MUL_2];
   MP_TAC PI_POS;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(&0 = &2* pi)` SUBGOAL_TAC;
+  TYPE_THEN `~(&0 = &2* pi)` SUBGOAL_MP_TAC;
   UND 5;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `t = (t/(&2 *pi))*(&2 *pi)` SUBGOAL_TAC;
+  TYPE_THEN `t = (t/(&2 *pi))*(&2 *pi)` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[REAL_DIV_RMUL];
   DISCH_TAC;
   USE 7 SYM ;
-  TYPE_THEN `&0 <= (t/(&2*pi))*(&2*pi) - real_of_int f * (&2*pi)` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= (t/(&2*pi))*(&2*pi) - real_of_int f * (&2*pi)` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM REAL_SUB_RDISTRIB];
   IMATCH_MP_TAC  REAL_LE_MUL;
   UND 2;
@@ -21993,7 +21993,7 @@ let cos_sin_reduce = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
   EXPAND_TAC "t'";
-  TYPE_THEN ` (t/(&2*pi))*(&2*pi) - real_of_int f * (&2*pi) < &1* &2*pi` SUBGOAL_TAC;
+  TYPE_THEN ` (t/(&2*pi))*(&2*pi) - real_of_int f * (&2*pi) < &1* &2*pi` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM REAL_SUB_RDISTRIB];
   IMATCH_MP_TAC  REAL_LT_RMUL;
   UND 0;
@@ -22013,7 +22013,7 @@ let cis_lemma = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?t. x = cis t)` SUBGOAL_TAC;
+  TYPE_THEN `(?t. x = cis t)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cis_exist_lemma;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -22034,7 +22034,7 @@ let polar_exist = prove_by_refinement(
   (* A: trivial case of norm 0 *)
   REP_BASIC_TAC;
   ASM_CASES_TAC `norm2 x = &0` ;
-  TYPE_THEN `x = euclid0` SUBGOAL_TAC;
+  TYPE_THEN `x = euclid0` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[norm2_0];
   DISCH_THEN_REWRITE;
   TYPE_THEN `&0` EXISTS_TAC;
@@ -22043,7 +22043,7 @@ let polar_exist = prove_by_refinement(
   MP_TAC PI_POS;
   REAL_ARITH_TAC;
   (* B: rescale to 1 *)
-  TYPE_THEN `&0 < norm2 x` SUBGOAL_TAC;
+  TYPE_THEN `&0 < norm2 x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~(x = &0) /\ (&0 <= x) ==> (&0 < x)`);
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  norm2_nn;
@@ -22052,7 +22052,7 @@ let polar_exist = prove_by_refinement(
   DISCH_TAC;
   TYPE_THEN `r` EXISTS_TAC;
   TYPE_THEN `y = (&1/r)*# x` ABBREV_TAC ;
-  TYPE_THEN `x = r*# y` SUBGOAL_TAC;
+  TYPE_THEN `x = r*# y` SUBGOAL_MP_TAC;
   EXPAND_TAC "y";
   REWRITE_TAC[euclid_scale_act;GSYM real_div_assoc];
   REDUCE_TAC;
@@ -22060,27 +22060,27 @@ let polar_exist = prove_by_refinement(
   DISCH_TAC;
   REWR 2;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `euclid 2 y` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 y` SUBGOAL_MP_TAC;
   EXPAND_TAC "y";
   IMATCH_MP_TAC  euclid_scale_closure;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   UND 2;
   ASM_SIMP_TAC[norm2_scale];
-  TYPE_THEN `abs  r = r` SUBGOAL_TAC;
+  TYPE_THEN `abs  r = r` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_ABS_REFL];
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   DISCH_TAC;
-  TYPE_THEN `norm2 y = &1` SUBGOAL_TAC;
+  TYPE_THEN `norm2 y = &1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_EQ_LCANCEL_IMP;
   TYPE_THEN `r` EXISTS_TAC;
   REDUCE_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* C: invoke norm2=1 case *)
-  TYPE_THEN `(?t. &0 <= t /\ t < &2 * pi /\ (y = cis t))` SUBGOAL_TAC;
+  TYPE_THEN `(?t. &0 <= t /\ t < &2 * pi /\ (y = cis t))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cis_lemma;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
@@ -22141,7 +22141,7 @@ let simple_arc_end_restriction = prove_by_refinement(
 
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(?C' f. (C' = IMAGE f {x | &0 <= x /\ x <= &1 }) /\ C' SUBSET C /\  continuous f (top_of_metric (UNIV,d_real)) top2 /\  INJ f {x | &0 <= x /\ x <= (&1)} (euclid 2) /\  (C' INTER K = {(f (&0))}) /\  (C' INTER K' = {(f (&1))}))` SUBGOAL_TAC;
+  TYPE_THEN `(?C' f. (C' = IMAGE f {x | &0 <= x /\ x <= &1 }) /\ C' SUBSET C /\  continuous f (top_of_metric (UNIV,d_real)) top2 /\  INJ f {x | &0 <= x /\ x <= (&1)} (euclid 2) /\  (C' INTER K = {(f (&0))}) /\  (C' INTER K' = {(f (&1))}))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  curve_restriction;
   ASM_REWRITE_TAC[];
   REAL_ARITH_TAC;
@@ -22165,13 +22165,13 @@ let simple_arc_end_trans  = prove_by_refinement(
   [
   REWRITE_TAC[simple_arc_end];
   REP_BASIC_TAC;
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | &0 <= x /\ x <= &1} (euclid 2) /\  &0 < &1/(&2) /\  &0 < &1` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | &0 <= x /\ x <= &1} (euclid 2) /\  &0 < &1/(&2) /\  &0 < &1` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   REAL_ARITH_TAC;
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP arc_reparameter_gen t));
   REP_BASIC_TAC;
   KILL 12;
-  TYPE_THEN `continuous f' (top_of_metric (UNIV,d_real)) top2 /\ INJ f' {x | &0 <= x /\ x <= &1} (euclid 2) /\  &1/(&2) < &1 /\  &0 < &1` SUBGOAL_TAC;
+  TYPE_THEN `continuous f' (top_of_metric (UNIV,d_real)) top2 /\ INJ f' {x | &0 <= x /\ x <= &1} (euclid 2) /\  &1/(&2) < &1 /\  &0 < &1` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF2];
   REAL_ARITH_TAC;
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP arc_reparameter_gen t));
@@ -22179,32 +22179,32 @@ let simple_arc_end_trans  = prove_by_refinement(
   KILL 17;
   TYPE_THEN `joinf g g' (&1/(&2))` EXISTS_TAC;
   (* A: prelims *)
-  TYPE_THEN `&0 < &1/(&2) /\ &1/(&2) < &1` SUBGOAL_TAC;
+  TYPE_THEN `&0 < &1/(&2) /\ &1/(&2) < &1` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_LT_HALF1;REAL_LT_HALF2];
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM union_closed_interval);
   UND 17;
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x < &1} SUBSET {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x < &1} SUBSET {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x < &1 / &2} SUBSET {x | x < &1/(&2)}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x < &1 / &2} SUBSET {x | x < &1/(&2)}` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &1 / &2 <= x /\ x <= &1} SUBSET {x | &1/ (&2) <= x}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &1 / &2 <= x /\ x <= &1} SUBSET {x | &1/ (&2) <= x}` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `{x | &0 <= x /\ x <= &1/(&2)} = {x | &0 <= x /\ x < &1/(&2)} UNION {(&1 /(&2))}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1/(&2)} = {x | &0 <= x /\ x < &1/(&2)} UNION {(&1 /(&2))}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION;INR IN_SING ];
   GEN_TAC;
@@ -22212,7 +22212,7 @@ let simple_arc_end_trans  = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `g (&1/(&2)) = g' (&1/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `g (&1/(&2)) = g' (&1/(&2))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
@@ -22269,13 +22269,13 @@ let simple_arc_end_trans  = prove_by_refinement(
   TYPE_THEN `{x | &0 <= x /\ x <= &1/(&2)}` EXISTS_TAC;
   ASM_REWRITE_TAC[SUBSET_UNION];
   (* --2-- *)
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[joinf_image_below];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x <= &1} = IMAGE g' {x | &1 / &2 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x <= &1} = IMAGE g' {x | &1 / &2 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[joinf_image_above];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1 / &2} INTER IMAGE g' {x | &1 / &2 <= x /\ x <= &1} SUBSET {v'}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1 / &2} INTER IMAGE g' {x | &1 / &2 <= x /\ x <= &1} SUBSET {v'}` SUBGOAL_MP_TAC;
   UND 0;
   DISCH_THEN (fun t -> REWRITE_TAC[SYM t]);
   USE 26 GSYM;
@@ -22286,7 +22286,7 @@ let simple_arc_end_trans  = prove_by_refinement(
   ASM_REWRITE_TAC[SUBSET ];
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1 /(&2)} INTER {v'} = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1 /(&2)} INTER {v'} = EMPTY` SUBGOAL_MP_TAC;
   REWRITE_TAC[EQ_EMPTY];
   GEN_TAC;
   REWRITE_TAC[IMAGE;INTER;INR IN_SING;DE_MORGAN_THM;];
@@ -22296,14 +22296,14 @@ let simple_arc_end_trans  = prove_by_refinement(
   DISCH_THEN_REWRITE;
   GEN_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `x' = &1/(&2)` SUBGOAL_TAC;
+  TYPE_THEN `x' = &1/(&2)` SUBGOAL_MP_TAC;
   USE 15 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   USE 27 GSYM;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `g x' = g(&1/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `g x' = g(&1/(&2))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   UND 30;
@@ -22341,18 +22341,18 @@ let continuous_uninduced = prove_by_refinement(
   REWRITE_TAC[continuous;];
   REP_BASIC_TAC;
   TSPEC `v INTER Y` 2;
-  TYPE_THEN `induced_top V Y (v INTER Y)` SUBGOAL_TAC;
+  TYPE_THEN `induced_top V Y (v INTER Y)` SUBGOAL_MP_TAC;
   REWRITE_TAC[induced_top;IMAGE;];
   ASM_MESON_TAC[];
   DISCH_TAC;
   REWR 2;
   UND 2;
   REWRITE_TAC [preimage;INTER];
-  TYPE_THEN `{x | UNIONS U x /\ v (f x) /\ Y (f x)} = {x | UNIONS U x /\ v (f x)}` SUBGOAL_TAC;
+  TYPE_THEN `{x | UNIONS U x /\ v (f x) /\ Y (f x)} = {x | UNIONS U x /\ v (f x)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[];
   GEN_TAC;
-  TYPE_THEN `UNIONS U x ==> Y (f x)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS U x ==> Y (f x)` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[IMAGE;SUBSET];
   MESON_TAC[];
@@ -22374,27 +22374,27 @@ let simple_arc_homeo = prove_by_refinement(
   [
   REWRITE_TAC[simple_arc];
   REP_BASIC_TAC;
-  TYPE_THEN `(UNIONS (top_of_metric(X,d)) = X) ` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS (top_of_metric(X,d)) = X) ` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
   REWR 1;
   (* -- *)
-  TYPE_THEN `C SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET X` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  inj_image_subset;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN ` (UNIONS (top_of_metric(C,d)) = C)` SUBGOAL_TAC;
+  TYPE_THEN ` (UNIONS (top_of_metric(C,d)) = C)` SUBGOAL_MP_TAC;
   KILL 3;
   ASM_MESON_TAC [GSYM top_of_metric_unions;metric_subspace];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_UNIV];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_subspace;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_real];
@@ -22402,7 +22402,7 @@ let simple_arc_homeo = prove_by_refinement(
   (* -- *)
   ASSUME_TAC metric_real;
   (* -- *)
-  TYPE_THEN `compact (top_of_metric({x | &0 <= x /\ x <= &1},d_real)) {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `compact (top_of_metric({x | &0 <= x /\ x <= &1},d_real)) {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   TYPEL_THEN [`UNIV:real->bool`;`{x| &0 <= x /\ x <= &1}`;`d_real`] (fun t-> ASSUME_TAC (ISPECL t compact_subset));
   REWR 10;
   USE 10 SYM;
@@ -22417,13 +22417,13 @@ let simple_arc_homeo = prove_by_refinement(
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   ASM_SIMP_TAC[top_of_metric_top;metric_subspace];
   (* -- *)
-    TYPE_THEN `metric_space (C,d)` SUBGOAL_TAC;
+    TYPE_THEN `metric_space (C,d)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [metric_subspace];
   DISCH_TAC;
-  TYPE_THEN `IMAGE f {x| &0 <= x /\ x <= &1} SUBSET C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x| &0 <= x /\ x <= &1} SUBSET C` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[SUBSET_REFL ];
   DISCH_TAC;
-  TYPE_THEN `IMAGE f {x| &0 <= x /\ x <= &1} SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x| &0 <= x /\ x <= &1} SUBSET X` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -22436,14 +22436,14 @@ let simple_arc_homeo = prove_by_refinement(
   REWRITE_TAC[INJ];
   MESON_TAC[];
   (* -- *)
-  TYPE_THEN `induced_top (top_of_metric (UNIV,d_real)) {x| &0 <= x /\ x <= &1} {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `induced_top (top_of_metric (UNIV,d_real)) {x| &0 <= x /\ x <= &1} {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[top_of_metric_induced];
-  TYPE_THEN `topology_ (top_of_metric ({x | &0 <= x /\ x <= &1},d_real))` SUBGOAL_TAC;
+  TYPE_THEN `topology_ (top_of_metric ({x | &0 <= x /\ x <= &1},d_real))` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[top_of_metric_top];
   DISCH_THEN (fun t-> MP_TAC (MATCH_MP top_univ t));
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
-  TYPE_THEN `continuous f (induced_top (top_of_metric (UNIV,d_real)) {x | &0 <= x /\ x <= &1}) (top_of_metric(X,d))` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (induced_top (top_of_metric (UNIV,d_real)) {x | &0 <= x /\ x <= &1}) (top_of_metric(X,d))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  continuous_induced_domain;
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[GSYM top_of_metric_unions;metric_real];
@@ -22468,12 +22468,12 @@ let continuous_metric_extend = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `metric_space(C,d)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space(C,d)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC metric_subspace;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `top_of_metric(C,d) = induced_top(top_of_metric(X,d)) C` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric(C,d) = induced_top(top_of_metric(X,d)) C` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[top_of_metric_induced];
   DISCH_TAC;
   REWR 2;
@@ -22491,9 +22491,9 @@ let simple_arc_end_distinct = prove_by_refinement(
   [
   REWRITE_TAC[simple_arc_end;INJ];
   REP_BASIC_TAC;
-  TYPE_THEN `&0 = &1` SUBGOAL_TAC;
+  TYPE_THEN `&0 = &1` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
-  TYPE_THEN `f (&0)  = f(&1)` SUBGOAL_TAC;
+  TYPE_THEN `f (&0)  = f(&1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   REAL_ARITH_TAC;
@@ -22523,7 +22523,7 @@ let homeo_inj = prove_by_refinement(
   [
   REWRITE_TAC[homeomorphism];
   REP_BASIC_TAC;
-  TYPE_THEN`metric_space(C,d)` SUBGOAL_TAC;
+  TYPE_THEN`metric_space(C,d)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [metric_subspace];
   DISCH_TAC;
   (* -- *)
@@ -22531,7 +22531,7 @@ let homeo_inj = prove_by_refinement(
   ASM_SIMP_TAC[GSYM top_of_metric_unions;];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `IMAGE f (UNIONS U)= C` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f (UNIONS U)= C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  bij_imp_image ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -22558,11 +22558,11 @@ let simple_arc_coord = prove_by_refinement(
   [
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `(UNIONS (top_of_metric(X,d)) = X) ` SUBGOAL_TAC;
+  TYPE_THEN `(UNIONS (top_of_metric(X,d)) = X) ` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `C SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET X` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[simple_arc]);
   REP_BASIC_TAC;
@@ -22573,15 +22573,15 @@ let simple_arc_coord = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN ` (UNIONS (top_of_metric(C,d)) = C)` SUBGOAL_TAC;
+  TYPE_THEN ` (UNIONS (top_of_metric(C,d)) = C)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [GSYM top_of_metric_unions;metric_subspace];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_UNIV];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_subspace;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_real];
@@ -22589,14 +22589,14 @@ let simple_arc_coord = prove_by_refinement(
   (* -- *)
   ASSUME_TAC metric_real;
   (* -- *)
-  TYPE_THEN `(?f. homeomorphism f (top_of_metric({x | &0 <= x /\ x <= &1},d_real)) (top_of_metric(C,d)))` SUBGOAL_TAC;
+  TYPE_THEN `(?f. homeomorphism f (top_of_metric({x | &0 <= x /\ x <= &1},d_real)) (top_of_metric(C,d)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_homeo;
   TYPE_THEN `X` EXISTS_TAC; (* // *)
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* -- *)
   TYPE_THEN ` g = (INV f  ({x | &0 <= x /\ x <= &1}) (C:A->bool))` ABBREV_TAC ;
-  TYPE_THEN `g = INV f  (UNIONS((top_of_metric({x | &0 <= x /\ x <= &1},d_real)))) (UNIONS((top_of_metric(C,d))))` SUBGOAL_TAC;
+  TYPE_THEN `g = INV f  (UNIONS((top_of_metric({x | &0 <= x /\ x <= &1},d_real)))) (UNIONS((top_of_metric(C,d))))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[GSYM  top_of_metric_unions;metric_subspace;];
   DISCH_TAC;
@@ -22604,7 +22604,7 @@ let simple_arc_coord = prove_by_refinement(
   TYPE_THEN `g` EXISTS_TAC;
   (* -- *)
   (* TYPE_THEN `U = top_of_metric({x | &0 <= x /\ x <= &1},d_real)` ABBREV_TAC ; *)
-  TYPE_THEN `(homeomorphism g (top_of_metric(C,d)) (top_of_metric({x | &0 <= x /\ x <= &1},d_real))) /\ ({x | &0 <= x /\ x <= &1} SUBSET UNIV) /\ (metric_space (UNIV,d_real))` SUBGOAL_TAC;
+  TYPE_THEN `(homeomorphism g (top_of_metric(C,d)) (top_of_metric({x | &0 <= x /\ x <= &1},d_real))) /\ ({x | &0 <= x /\ x <= &1} SUBSET UNIV) /\ (metric_space (UNIV,d_real))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   TYPEL_THEN [`f`;`(top_of_metric({x | &0 <= x /\ x <= &1},d_real))`;`top_of_metric(C,d)`] (fun t-> ASSUME_TAC (ISPECL t homeomorphism_inv));
   REWR 11;
@@ -22642,7 +22642,7 @@ let image_interval = prove_by_refinement(
   REP_BASIC_TAC;
   (* -- *)
   ASSUME_TAC connect_real;
-  TYPE_THEN `!a b. connected (top_of_metric(UNIV,d_real)) (IMAGE f {x |  a<= x /\ x <= b})` SUBGOAL_TAC;
+  TYPE_THEN `!a b. connected (top_of_metric(UNIV,d_real)) (IMAGE f {x |  a<= x /\ x <= b})` SUBGOAL_MP_TAC;
   REP_GEN_TAC;
   IMATCH_MP_TAC  connect_image;
   TYPE_THEN `top_of_metric(UNIV,d_real)` EXISTS_TAC ;
@@ -22653,10 +22653,10 @@ let image_interval = prove_by_refinement(
   TYPE_THEN `d = max_real (f a) (f b)` ABBREV_TAC ;
   TYPE_THEN `c`EXISTS_TAC;
   TYPE_THEN `d` EXISTS_TAC;
-  TYPE_THEN `~(f a = f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f a = f b)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
-  TYPE_THEN `a = b` SUBGOAL_TAC;
+  TYPE_THEN `a = b` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   UND 2;
@@ -22669,16 +22669,16 @@ let image_interval = prove_by_refinement(
   EXPAND_TAC "d";
   EXPAND_TAC "c";
   REWRITE_TAC[min_real;max_real];
-  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_TAC;
+  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `~(f b < f a)` SUBGOAL_TAC;
+  TYPE_THEN `~(f b < f a)` SUBGOAL_MP_TAC;
   UND 8;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(f a < f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f a < f b)` SUBGOAL_MP_TAC;
   UND 8;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -22691,16 +22691,16 @@ let image_interval = prove_by_refinement(
   EXPAND_TAC "d";
   EXPAND_TAC "c";
   REWRITE_TAC[max_real;min_real];
-  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_TAC;
+  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `~(f b < f a)` SUBGOAL_TAC;
+  TYPE_THEN `~(f b < f a)` SUBGOAL_MP_TAC;
   UND 9;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(f a < f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f a < f b)` SUBGOAL_MP_TAC;
   UND 9;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -22716,18 +22716,18 @@ let image_interval = prove_by_refinement(
   EXPAND_TAC "c";
   EXPAND_TAC "d";
   REWRITE_TAC[max_real;min_real];
-  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_TAC;
+  TYPE_THEN `f a < f b \/ f b < f a` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
-  TYPE_THEN `~(f b < f a)` SUBGOAL_TAC;
+  TYPE_THEN `~(f b < f a)` SUBGOAL_MP_TAC;
   UND 10;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[IMAGE;SUBSET];
   ASM_MESON_TAC[REAL_ARITH `a<= a`;REAL_ARITH `a < b ==> a <= b`];
-  TYPE_THEN `~(f a < f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f a < f b)` SUBGOAL_MP_TAC;
   UND 10;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -22742,11 +22742,11 @@ let image_interval = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   USE 14 (REWRITE_RULE[DE_MORGAN_THM]);
   USE 9 (REWRITE_RULE[FUN_EQ_THM;in_pair ]);
-  TYPE_THEN `((c = f a) /\ (d = f b)) \/ ((c = f b) /\ (d = f a))` SUBGOAL_TAC;
+  TYPE_THEN `((c = f a) /\ (d = f b)) \/ ((c = f b) /\ (d = f a))` SUBGOAL_MP_TAC;
   UND 9;
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `f x' < c \/ d < f x'` SUBGOAL_TAC;
+  TYPE_THEN `f x' < c \/ d < f x'` SUBGOAL_MP_TAC;
   UND 14;
   ARITH_TAC;
   DISCH_TAC;
@@ -22754,13 +22754,13 @@ let image_interval = prove_by_refinement(
   KILL 14;
   KILL 11;
   (* D generic case *)
-  TYPE_THEN `!r s t. (a <= r /\ r <= b /\ a <= s /\ s <= b /\ a <= t /\ t <= b /\ (r < t) /\ (f r < f s) /\ (f s < f t) ==> (r < s /\ s < t))` SUBGOAL_TAC;
+  TYPE_THEN `!r s t. (a <= r /\ r <= b /\ a <= s /\ s <= b /\ a <= t /\ t <= b /\ (r < t) /\ (f r < f s) /\ (f s < f t) ==> (r < s /\ s < t))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
   TYPEL_THEN [`r`;`t`] (USE 4 o ISPECL);
   USE 4(REWRITE_RULE[connected]);
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f {x | r <= x /\ x <= t} SUBSET {x | x < f s} \/ IMAGE f {x | r <= x /\ x <= t} SUBSET {x | f s < x}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x | r <= x /\ x <= t} SUBSET {x | x < f s} \/ IMAGE f {x | r <= x /\ x <= t} SUBSET {x | f s < x}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[half_open;half_open_above;EQ_EMPTY;INTER;];
   CONJ_TAC;
@@ -22770,7 +22770,7 @@ let image_interval = prove_by_refinement(
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC (REAL_ARITH  `~(f x'' = f s) ==> (f x'' < f s \/ f s < f x'')` );
   DISCH_TAC;
-  TYPE_THEN `x'' = s` SUBGOAL_TAC;
+  TYPE_THEN `x'' = s` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -22787,9 +22787,9 @@ let image_interval = prove_by_refinement(
   UND 27;
   POP_ASSUM_LIST (fun t-> ALL_TAC);
   REP_BASIC_TAC;
-  TYPE_THEN `~(r = s)` SUBGOAL_TAC;
+  TYPE_THEN `~(r = s)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `a < b ==> ~(a=b)`];
-  TYPE_THEN `~(s = t)` SUBGOAL_TAC;
+  TYPE_THEN `~(s = t)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `a < b ==> ~(a=b)`];
   KILL 1;
   KILL 2;
@@ -22821,13 +22821,13 @@ let image_interval = prove_by_refinement(
   UND 11;
   REAL_ARITH_TAC;
   (* D' generic case *)
-  TYPE_THEN `!r s t. (a <= r /\ r <= b /\ a <= s /\ s <= b /\ a <= t /\ t <= b /\ (t < r) /\ (f r < f s) /\ (f s < f t) ==> (t < s /\ s < r))` SUBGOAL_TAC;
+  TYPE_THEN `!r s t. (a <= r /\ r <= b /\ a <= s /\ s <= b /\ a <= t /\ t <= b /\ (t < r) /\ (f r < f s) /\ (f s < f t) ==> (t < s /\ s < r))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
   TYPEL_THEN [`t`;`r`] (USE 4 o ISPECL);
   USE 4(REWRITE_RULE[connected]);
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f {x | t <= x /\ x <= r} SUBSET {x | x < f s} \/ IMAGE f {x | t <= x /\ x <= r} SUBSET {x | f s < x}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x | t <= x /\ x <= r} SUBSET {x | x < f s} \/ IMAGE f {x | t <= x /\ x <= r} SUBSET {x | f s < x}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[half_open;half_open_above;EQ_EMPTY;INTER;];
   CONJ_TAC;
@@ -22837,7 +22837,7 @@ let image_interval = prove_by_refinement(
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC (REAL_ARITH  `~(f x'' = f s) ==> (f x'' < f s \/ f s < f x'')` );
   DISCH_TAC;
-  TYPE_THEN `x'' = s` SUBGOAL_TAC;
+  TYPE_THEN `x'' = s` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -22854,9 +22854,9 @@ let image_interval = prove_by_refinement(
   UND 27;
   POP_ASSUM_LIST (fun t-> ALL_TAC);
   REP_BASIC_TAC;
-  TYPE_THEN `~(r = s)` SUBGOAL_TAC;
+  TYPE_THEN `~(r = s)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `a < b ==> ~(a=b)`];
-  TYPE_THEN `~(s = t)` SUBGOAL_TAC;
+  TYPE_THEN `~(s = t)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `a < b ==> ~(a=b)`];
   KILL 1;
   KILL 2;
@@ -22903,44 +22903,44 @@ let image_interval = prove_by_refinement(
   (* --2a-- *)
   KILL 11;
   TYPEL_THEN[`x'`;`a`;`b`] (USE 9 o ISPECL);
-  TYPE_THEN `~(f x' = f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f x' = f b)` SUBGOAL_MP_TAC;
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(x' = b)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' = b)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   (* --2b-- *)
   KILL 11;
   TYPEL_THEN [`a`;`b`;`x'`] (USE 9 o ISPECL);
-  TYPE_THEN `~(f a = f x')` SUBGOAL_TAC;
+  TYPE_THEN `~(f a = f x')` SUBGOAL_MP_TAC;
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(a = x')` SUBGOAL_TAC;
+  TYPE_THEN `~(a = x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   (* --2c-- *)
   KILL 9;
   TYPEL_THEN [`x'`;`b`;`a`] (USE 11 o ISPECL);
-  TYPE_THEN `~(f x' = f a)` SUBGOAL_TAC;
+  TYPE_THEN `~(f x' = f a)` SUBGOAL_MP_TAC;
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(a = x')` SUBGOAL_TAC;
+  TYPE_THEN `~(a = x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   (* --2d-- *)
   KILL 9;
   TYPEL_THEN [`b`;`a`;`x'`] (USE 11 o ISPECL);
-  TYPE_THEN `~(f x' = f b)` SUBGOAL_TAC;
+  TYPE_THEN `~(f x' = f b)` SUBGOAL_MP_TAC;
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `~(b = x')` SUBGOAL_TAC;
+  TYPE_THEN `~(b = x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REPEAT (POP_ASSUM MP_TAC);
   REAL_ARITH_TAC;
@@ -22967,11 +22967,11 @@ let continuous_range = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `continuous f (top_of_metric (X,dX)) (top_of_metric (Y',dY)) = metric_continuous f (X,dX) (Y',dY)`  SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (X,dX)) (top_of_metric (Y',dY)) = metric_continuous f (X,dX) (Y',dY)`  SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_continuous_continuous;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `continuous f (top_of_metric (X,dX)) (top_of_metric (Y,dY)) = metric_continuous f (X,dX) (Y,dY)`  SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (X,dX)) (top_of_metric (Y,dY)) = metric_continuous f (X,dX) (Y,dY)`  SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_continuous_continuous;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -22999,7 +22999,7 @@ let pair_order_endpoint = prove_by_refinement(
   [
   REP_BASIC_TAC;
   USE 0 (REWRITE_RULE[FUN_EQ_THM;in_pair]);
-  TYPE_THEN `((c = a) /\ (d = b)) \/ ((c = b) /\ (d = a))` SUBGOAL_TAC;
+  TYPE_THEN `((c = a) /\ (d = b)) \/ ((c = b) /\ (d = a))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
@@ -23025,21 +23025,21 @@ let cont_extend_real_lemma = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `?t. (a < t /\ t < b)` SUBGOAL_TAC;
+  TYPE_THEN `?t. (a < t /\ t < b)` SUBGOAL_MP_TAC;
   TYPE_THEN `(a+b)/(&2)` EXISTS_TAC;
   ASM_MESON_TAC[real_middle1_lt;real_middle2_lt];
   REP_BASIC_TAC;
   ASSUME_TAC metric_real;
-  TYPE_THEN `{x | a <= x /\ x <= b} SUBSET UNIV` SUBGOAL_TAC;
+  TYPE_THEN `{x | a <= x /\ x <= b} SUBSET UNIV` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[SUBSET_UNIV];
   DISCH_TAC;
-  TYPE_THEN `metric_space ({x | a <= x /\ x <= b},d_real)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space ({x | a <= x /\ x <= b},d_real)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_subspace;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_continuous f ({x | a <= x /\ x <= b},d_real) (Y,dY)` SUBGOAL_TAC;
+  TYPE_THEN `metric_continuous f ({x | a <= x /\ x <= b},d_real) (Y,dY)` SUBGOAL_MP_TAC;
   UND 2;
   ASM_SIMP_TAC [metric_continuous_continuous];
   DISCH_TAC;
@@ -23050,7 +23050,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   ASSUME_TAC half_closed;
   ASSUME_TAC half_closed_above;
   (* -- *)
-  TYPE_THEN `!r A. (Y r) ==> (metric_continuous (\t. r) (A,d_real) (Y,dY))` SUBGOAL_TAC;
+  TYPE_THEN `!r A. (Y r) ==> (metric_continuous (\t. r) (A,d_real) (Y,dY))` SUBGOAL_MP_TAC;
   REWRITE_TAC[metric_continuous;metric_continuous_pt];
   REP_BASIC_TAC;
   RIGHT_TAC "delta";
@@ -23061,7 +23061,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   ASM_MESON_TAC[metric_space_zero];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_continuous (subf A fA fB) (A UNION B,d_real) (Y,dY)` SUBGOAL_TAC;
+  TYPE_THEN `metric_continuous (subf A fA fB) (A UNION B,d_real) (Y,dY)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  subf_cont;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -23070,14 +23070,14 @@ let cont_extend_real_lemma = prove_by_refinement(
   ASM_REWRITE_TAC[];
   EXPAND_TAC "fA";
   EXPAND_TAC "fB";
-  TYPE_THEN `!x. x <= a /\ b <= x <=> F` SUBGOAL_TAC;
+  TYPE_THEN `!x. x <= a /\ b <= x <=> F` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC ;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `Y (f a) /\ Y(f b)` SUBGOAL_TAC;
+  TYPE_THEN `Y (f a) /\ Y(f b)` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[IMAGE;SUBSET];
-  TYPE_THEN `a <= a /\ a <= b /\ b <= b` SUBGOAL_TAC;
+  TYPE_THEN `a <= a /\ a <= b /\ b <= b` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   MESON_TAC[];
@@ -23092,7 +23092,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   TYPE_THEN `A' = A UNION B` ABBREV_TAC ;
   TYPE_THEN `B' = {x | a <= x /\ x <= b}` ABBREV_TAC ;
   TYPE_THEN `fA' = subf A fA fB` ABBREV_TAC ;
-  TYPE_THEN `metric_continuous (subf A' fA' f) (A' UNION B',d_real) (Y,dY)` SUBGOAL_TAC;
+  TYPE_THEN `metric_continuous (subf A' fA' f) (A' UNION B',d_real) (Y,dY)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  subf_cont;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -23111,7 +23111,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   REWRITE_TAC[UNION];
   GEN_TAC ;
   DISCH_TAC;
-  TYPE_THEN `(x = a) \/ (x = b)` SUBGOAL_TAC;
+  TYPE_THEN `(x = a) \/ (x = b)` SUBGOAL_MP_TAC;
   UND 21;
   REAL_ARITH_TAC;
   EXPAND_TAC "fA";
@@ -23123,13 +23123,13 @@ let cont_extend_real_lemma = prove_by_refinement(
   UND 22;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[subf];
-  TYPE_THEN `~(b <= a)` SUBGOAL_TAC;
+  TYPE_THEN `~(b <= a)` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `A' UNION B' = UNIV` SUBGOAL_TAC;
+  TYPE_THEN `A' UNION B' = UNIV` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   EXPAND_TAC "A";
   EXPAND_TAC "B";
@@ -23140,7 +23140,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   DISCH_TAC;
   (* -- *)
   TYPE_THEN `g = subf A' fA' f` ABBREV_TAC  ;
-  TYPE_THEN `!x. A x ==> (g x = f a)` SUBGOAL_TAC;
+  TYPE_THEN `!x. A x ==> (g x = f a)` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   REWRITE_TAC[subf];
   EXPAND_TAC "A'";
@@ -23155,7 +23155,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!x. B x ==> (g x = f b)` SUBGOAL_TAC;
+  TYPE_THEN `!x. B x ==> (g x = f b)` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   REWRITE_TAC[subf];
   EXPAND_TAC "A'";
@@ -23165,7 +23165,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   ASM_REWRITE_TAC[];
   EXPAND_TAC "fA'";
   REWRITE_TAC[subf];
-  TYPE_THEN `~(A x)` SUBGOAL_TAC;
+  TYPE_THEN `~(A x)` SUBGOAL_MP_TAC;
   UND 25;
   EXPAND_TAC "B";
   EXPAND_TAC "A";
@@ -23177,10 +23177,10 @@ let cont_extend_real_lemma = prove_by_refinement(
   REWRITE_TAC[];
   DISCH_TAC;
   (* A  *)
-  TYPE_THEN `!x. B' x ==> (g x = f x)` SUBGOAL_TAC;
+  TYPE_THEN `!x. B' x ==> (g x = f x)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPE_THEN `A x` ASM_CASES_TAC;
-  TYPE_THEN `A x /\ B' x ==> (x = a)` SUBGOAL_TAC;
+  TYPE_THEN `A x /\ B' x ==> (x = a)` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B'";
   REWRITE_TAC[];
@@ -23189,14 +23189,14 @@ let cont_extend_real_lemma = prove_by_refinement(
   ASM_MESON_TAC[];
   (* --2-- *)
   TYPE_THEN `B x` ASM_CASES_TAC;
-  TYPE_THEN `B x /\ B' x ==> (x = b)` SUBGOAL_TAC;
+  TYPE_THEN `B x /\ B' x ==> (x = b)` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   EXPAND_TAC "B'";
   REWRITE_TAC[];
   REAL_ARITH_TAC;
   DISCH_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `~(A' x)` SUBGOAL_TAC;
+  TYPE_THEN `~(A' x)` SUBGOAL_MP_TAC;
   UND 27;
   UND 28;
   EXPAND_TAC "A'";
@@ -23214,7 +23214,7 @@ let cont_extend_real_lemma = prove_by_refinement(
   EXPAND_TAC "B'";
   REWRITE_TAC[];
   MESON_TAC[];
-  TYPE_THEN `IMAGE g UNIV SUBSET Y /\ metric_space (UNIV,d_real) /\ metric_space (Y,dY)` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g UNIV SUBSET Y /\ metric_space (UNIV,d_real) /\ metric_space (Y,dY)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   UND 22;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
@@ -23225,11 +23225,11 @@ let cont_extend_real_lemma = prove_by_refinement(
   UND 24;
   UND 25;
   REWRITE_TAC[IMAGE;SUBSET];
-    TYPE_THEN `Y (f a) /\ Y(f b)` SUBGOAL_TAC;
+    TYPE_THEN `Y (f a) /\ Y(f b)` SUBGOAL_MP_TAC;
   UND 0;
   EXPAND_TAC "B'";
   REWRITE_TAC[IMAGE;SUBSET];
-  TYPE_THEN `a <= a /\ a <= b /\ b <= b` SUBGOAL_TAC;
+  TYPE_THEN `a <= a /\ a <= b /\ b <= b` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   MESON_TAC[];
@@ -23262,13 +23262,13 @@ let image_interval2 = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `?g. (continuous g (top_of_metric(UNIV,d_real))  (top_of_metric(UNIV,d_real))) /\ (!x. (a <= x /\ x <= b) ==> (f x = g x))` SUBGOAL_TAC;
+  TYPE_THEN `?g. (continuous g (top_of_metric(UNIV,d_real))  (top_of_metric(UNIV,d_real))) /\ (!x. (a <= x /\ x <= b) ==> (f x = g x))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cont_extend_real_lemma;
   ASM_REWRITE_TAC[metric_real];
   REP_BASIC_TAC;
-  TYPE_THEN `(a < b) /\ (continuous g (top_of_metric(UNIV,d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g {x | a <= x /\ x <= b} UNIV)` SUBGOAL_TAC;
+  TYPE_THEN `(a < b) /\ (continuous g (top_of_metric(UNIV,d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g {x | a <= x /\ x <= b} UNIV)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `INJ g {x | a <= x /\ x <= b} UNIV= INJ f {x | a <= x /\ x <= b} UNIV` SUBGOAL_TAC;
+  TYPE_THEN `INJ g {x | a <= x /\ x <= b} UNIV= INJ f {x | a <= x /\ x <= b} UNIV` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inj_domain_sub;
   REWRITE_TAC[];
   ASM_MESON_TAC[];
@@ -23281,7 +23281,7 @@ let image_interval2 = prove_by_refinement(
   TYPE_THEN `d` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
-  TYPE_THEN `(f a = g a) /\ (f b = g b)` SUBGOAL_TAC;
+  TYPE_THEN `(f a = g a) /\ (f b = g b)` SUBGOAL_MP_TAC;
   UND 3;
   UND 2;
   MESON_TAC[REAL_ARITH `(a < b) ==> (a<= a /\ a <= b /\ b <= b)`];
@@ -23315,31 +23315,31 @@ let simple_arc_end_inj = prove_by_refinement(
   (* A: *)
   REWRITE_TAC[simple_arc_end];
   REP_BASIC_TAC;
-  TYPE_THEN `simple_arc (top_of_metric(euclid 2,d_euclid)) C /\ (metric_space(euclid 2,d_euclid))` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc (top_of_metric(euclid 2,d_euclid)) C /\ (metric_space(euclid 2,d_euclid))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[GSYM top2;metric_euclid];
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP   simple_arc_coord t));
   REP_BASIC_TAC;
   (* push to reals *)
-  TYPE_THEN `(IMAGE f'' A = IMAGE f'' B) <=> (A = B)` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE f'' A = IMAGE f'' B) <=> (A = B)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  INJ_IMAGE ;
   TYPE_THEN `C` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   (* -- *)
-  TYPE_THEN `C SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC simple_arc_euclid;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_space (C,d_euclid )` SUBGOAL_TAC;
+  TYPE_THEN `metric_space (C,d_euclid )` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_subspace;metric_euclid];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET_UNIV];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space ({x | &0 <= x /\ x <= &1},d_real)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_subspace;
   TYPE_THEN `UNIV:real->bool` EXISTS_TAC ;
   ASM_REWRITE_TAC[metric_real];
@@ -23348,18 +23348,18 @@ let simple_arc_end_inj = prove_by_refinement(
   (* -- *)
   TYPE_THEN `g = f'' o f` ABBREV_TAC ;
   TYPE_THEN `g'= f'' o f'` ABBREV_TAC ;
-  TYPE_THEN `top_of_metric({x| &0 <= x /\ x <= &1},d_real) = induced_top(top_of_metric(UNIV,d_real)) {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric({x| &0 <= x /\ x <= &1},d_real) = induced_top(top_of_metric(UNIV,d_real)) {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (GSYM top_of_metric_induced);
   ASM_REWRITE_TAC[metric_real];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `continuous f (top_of_metric({x| &0 <= x /\ x<= &1},d_real)) top2` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric({x| &0 <= x /\ x<= &1},d_real)) top2` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[top2 ];
   IMATCH_MP_TAC  continuous_induced_domain;
   ASM_SIMP_TAC [GSYM top2; GSYM top_of_metric_unions; metric_real];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `continuous f' (top_of_metric({x| &0 <= x /\ x<= &1},d_real)) top2` SUBGOAL_TAC;
+  TYPE_THEN `continuous f' (top_of_metric({x| &0 <= x /\ x<= &1},d_real)) top2` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[top2 ];
   IMATCH_MP_TAC  continuous_induced_domain;
   ASM_SIMP_TAC [GSYM top2; GSYM top_of_metric_unions; metric_real];
@@ -23367,7 +23367,7 @@ let simple_arc_end_inj = prove_by_refinement(
   KILL 11;
   KILL 6;
   (* A *)
-  TYPE_THEN `(&0 < &1) /\ (continuous g (top_of_metric({x | &0 <= x /\ x <= &1},d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g {x | &0 <= x /\ x <= &1} UNIV)` SUBGOAL_TAC;
+  TYPE_THEN `(&0 < &1) /\ (continuous g (top_of_metric({x | &0 <= x /\ x <= &1},d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g {x | &0 <= x /\ x <= &1} UNIV)` SUBGOAL_MP_TAC;
   CONJ_TAC;
   REAL_ARITH_TAC;
   CONJ_TAC;
@@ -23410,7 +23410,7 @@ let simple_arc_end_inj = prove_by_refinement(
   REWRITE_TAC[GSYM IMAGE_o];
   ASM_REWRITE_TAC[];
   (* B *)
-    TYPE_THEN `(&0 < &1) /\ (continuous g' (top_of_metric({x | &0 <= x /\ x <= &1},d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g' {x | &0 <= x /\ x <= &1} UNIV)` SUBGOAL_TAC;
+    TYPE_THEN `(&0 < &1) /\ (continuous g' (top_of_metric({x | &0 <= x /\ x <= &1},d_real))  (top_of_metric( UNIV,d_real)))  /\ (INJ g' {x | &0 <= x /\ x <= &1} UNIV)` SUBGOAL_MP_TAC;
   CONJ_TAC;
   REAL_ARITH_TAC;
   CONJ_TAC;
@@ -23449,7 +23449,7 @@ let simple_arc_end_inj = prove_by_refinement(
   DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP image_interval2 t));
   REP_BASIC_TAC;
   (* C final steps *)
-  TYPE_THEN `(g (&0) = g'(&0)) /\ (g(&1) = g'(&1))` SUBGOAL_TAC;
+  TYPE_THEN `(g (&0) = g'(&0)) /\ (g(&1) = g'(&1))` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   EXPAND_TAC "g'";
   REWRITE_TAC[o_DEF ];
@@ -23459,11 +23459,11 @@ let simple_arc_end_inj = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* temp *)
   DISCH_TAC;
-  TYPE_THEN `(c = min_real (g'(&0)) (g'(&1))) /\ (d = max_real(g'(&0)) (g'(&1)))` SUBGOAL_TAC;
+  TYPE_THEN `(c = min_real (g'(&0)) (g'(&1))) /\ (d = max_real(g'(&0)) (g'(&1)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  pair_order_endpoint;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(c' = min_real (g'(&0)) (g'(&1))) /\ (d' = max_real(g'(&0)) (g'(&1)))` SUBGOAL_TAC;
+  TYPE_THEN `(c' = min_real (g'(&0)) (g'(&1))) /\ (d' = max_real(g'(&0)) (g'(&1)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  pair_order_endpoint;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -23482,7 +23482,7 @@ let simple_arc_end_cut = prove_by_refinement(
   REWRITE_TAC[simple_arc_end];
   REP_BASIC_TAC;
   (* -- INTER *)
-  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f t = v''))` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f t = v''))` SUBGOAL_MP_TAC;
   UND 2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[IMAGE];
@@ -23491,7 +23491,7 @@ let simple_arc_end_cut = prove_by_refinement(
   TYPE_THEN `IMAGE f {x | &0 <= x /\ x <= t}` EXISTS_TAC;
   TYPE_THEN `IMAGE f {x | t <= x /\ x <= &1}` EXISTS_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {x | t <= x /\ x <= &1} = IMAGE f ({x | &0 <= x /\ x <= t} INTER  {x | t <= x /\ x <= &1})` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {x | t <= x /\ x <= &1} = IMAGE f ({x | &0 <= x /\ x <= t} INTER  {x | t <= x /\ x <= &1})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC (GSYM inj_inter );
   TYPE_THEN `{x | &0 <= x /\ x <= &1}` EXISTS_TAC;
   TYPE_THEN `(euclid 2)` EXISTS_TAC;
@@ -23501,7 +23501,7 @@ let simple_arc_end_cut = prove_by_refinement(
   UND 10;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `{x | &0 <= x /\ x <= t} INTER {x | t <= x /\ x <= &1} = {t}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= t} INTER {x | t <= x /\ x <= &1} = {t}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER;INR IN_SING];
   UND 9;
@@ -23512,7 +23512,7 @@ let simple_arc_end_cut = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* A UNION *)
   REWRITE_TAC[GSYM IMAGE_UNION];
-  TYPE_THEN `{x | &0 <= x /\ x <= t} UNION {x | t <= x /\ x <= &1} = {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= t} UNION {x | t <= x /\ x <= &1} = {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION;];
   UND 9;
@@ -23521,7 +23521,7 @@ let simple_arc_end_cut = prove_by_refinement(
   DISCH_THEN_REWRITE;
   (* B FIRST piece *)
   CONJ_TAC;
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | &0 <= x /\ x <= t} (euclid 2) /\ &0 < &1 /\ &0 < t` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | &0 <= x /\ x <= t} (euclid 2) /\ &0 < &1 /\ &0 < t` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC inj_subset_domain;
@@ -23530,7 +23530,7 @@ let simple_arc_end_cut = prove_by_refinement(
   REWRITE_TAC[SUBSET];
   UND 9;
   REAL_ARITH_TAC;
-  TYPE_THEN `~(&0 = t)` SUBGOAL_TAC;
+  TYPE_THEN `~(&0 = t)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   REWR 11;
   REWR 4;
@@ -23542,7 +23542,7 @@ let simple_arc_end_cut = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
   (* C LAST piece  *)
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | t <= x /\ x <= &1} (euclid 2) /\ &0 < &1 /\ t < &1` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\ INJ f {x | t <= x /\ x <= &1} (euclid 2) /\ &0 < &1 /\ t < &1` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC inj_subset_domain;
@@ -23551,7 +23551,7 @@ let simple_arc_end_cut = prove_by_refinement(
   REWRITE_TAC[SUBSET];
   UND 10;
   REAL_ARITH_TAC;
-  TYPE_THEN `~( &1 = t)` SUBGOAL_TAC;
+  TYPE_THEN `~( &1 = t)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   REWR 11;
   REWR 3;
@@ -23583,31 +23583,31 @@ let simple_closed_curve_pt = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
   (* -- *)
-  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f t = v))` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f t = v))` SUBGOAL_MP_TAC;
   UND 0;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[IMAGE];
   MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `~(t = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(t = &0)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   REWR 9;
   REWR 6;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(t = &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(t = &1)` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `{x | t <= x /\ x <= &1} = {x | t <= x /\ x < &1} UNION {(&1)}` SUBGOAL_TAC;
+  TYPE_THEN `{x | t <= x /\ x <= &1} = {x | t <= x /\ x < &1} UNION {(&1)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION;INR IN_SING];
   UND 7;
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `INJ f {x | t <= x /\ x <= &1} (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `INJ f {x | t <= x /\ x <= &1} (euclid 2)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  inj_split;
   CONJ_TAC;
@@ -23620,7 +23620,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC[INJ;INR IN_SING;];
   USE 2 (REWRITE_RULE[top2_unions]);
-  TYPE_THEN `euclid 2 (f (&0))` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 (f (&0))` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23632,7 +23632,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   CONV_TAC (dropq_conv "x''");
   REP_GEN_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `x' = &0` SUBGOAL_TAC;
+  TYPE_THEN `x' = &0` SUBGOAL_MP_TAC;
   USE 2(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23646,7 +23646,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* [A] reparameter 1st part *)
-  TYPE_THEN `(continuous f (top_of_metric (UNIV,d_real)) top2) /\   (INJ f {x | t <= x /\ x <= &1} (euclid 2)) /\   (&0 < &1/(&2)) /\  (t < &1)` SUBGOAL_TAC;
+  TYPE_THEN `(continuous f (top_of_metric (UNIV,d_real)) top2) /\   (INJ f {x | t <= x /\ x <= &1} (euclid 2)) /\   (&0 < &1/(&2)) /\  (t < &1)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   UND 7;
   UND 10;
@@ -23655,7 +23655,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   REP_BASIC_TAC;
   KILL 14;
   (* B 2nd part *)
-  TYPE_THEN `(continuous f (top_of_metric (UNIV,d_real)) top2) /\   (INJ f {x | &0 <= x /\ x <= t} (euclid 2)) /\   (&1/(&2) < &1) /\  (&0 < t)` SUBGOAL_TAC;
+  TYPE_THEN `(continuous f (top_of_metric (UNIV,d_real)) top2) /\   (INJ f {x | &0 <= x /\ x <= t} (euclid 2)) /\   (&1/(&2) < &1) /\  (&0 < t)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF2];
   CONJ_TAC;
   USE 2(REWRITE_RULE[top2_unions]);
@@ -23673,35 +23673,35 @@ let simple_closed_curve_pt = prove_by_refinement(
   KILL 19;
   (* [C] JOIN functions *)
   TYPE_THEN `joinf g g' (&1/(&2))` EXISTS_TAC;
-  TYPE_THEN `&0 < &1/(&2)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < &1/(&2)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `&1/(&2) < &1` SUBGOAL_TAC;
+  TYPE_THEN `&1/(&2) < &1` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF2];
   REAL_ARITH_TAC ;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `joinf g g' (&1/(&2)) (&0) = v` SUBGOAL_TAC;
+  TYPE_THEN `joinf g g' (&1/(&2)) (&0) = v` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[joinf];
   ASM_MESON_TAC[];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `joinf g g' (&1/(&2)) (&1) = v` SUBGOAL_TAC;
+  TYPE_THEN `joinf g g' (&1/(&2)) (&1) = v` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[joinf];
   ASM_SIMP_TAC[REAL_ARITH `(&1/ &2 < &1) ==> ~(&1 < (&1/(&2)))`];
   ASM_MESON_TAC[];
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* -- *)
-  TYPE_THEN `continuous (joinf g g' (&1 / &2)) (top_of_metric (UNIV,d_real)) top2` SUBGOAL_TAC;
+  TYPE_THEN `continuous (joinf g g' (&1 / &2)) (top_of_metric (UNIV,d_real)) top2` SUBGOAL_MP_TAC;
   REWRITE_TAC[top2];
   IMATCH_MP_TAC  joinf_cont;
   ASM_REWRITE_TAC[GSYM top2];
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
   (* [D] INJ *)
-  TYPE_THEN `{x | &0 <= x /\ x < &1} = {x | &0 <= x /\ x < (&1/(&2))} UNION {x | (&1/(&2)) <= x /\ x < &1}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x < &1} = {x | &0 <= x /\ x < (&1/(&2))} UNION {x | (&1/(&2)) <= x /\ x < &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   ASM_REWRITE_TAC[UNION];
   UND 24;
@@ -23714,12 +23714,12 @@ let simple_closed_curve_pt = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[top2_unions]);
   CONJ_TAC;
   IMATCH_MP_TAC  inj_split;
-  TYPE_THEN `INJ (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = INJ g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_TAC;
+  TYPE_THEN `INJ (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = INJ g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_inj_below;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `INJ (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x < &1} = INJ g' {x | &1 / &2 <= x /\ x < &1}` SUBGOAL_TAC;
+  TYPE_THEN `INJ (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x < &1} = INJ g' {x | &1 / &2 <= x /\ x < &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_inj_above;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
@@ -23738,12 +23738,12 @@ let simple_closed_curve_pt = prove_by_refinement(
   REAL_ARITH_TAC;
   (* --2-- E IMAGE *)
   REWRITE_TAC[EQ_EMPTY];
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_image_below;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x < &1} = IMAGE g' {x | &1 / &2 <= x /\ x < &1}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x < &1} = IMAGE g' {x | &1 / &2 <= x /\ x < &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_image_above;
   REWRITE_TAC[SUBSET];
   REAL_ARITH_TAC;
@@ -23758,7 +23758,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   USE 13 (REWRITE_RULE[FUN_EQ_THM ]);
   TSPEC `g x'` 13;
   USE 13 (REWRITE_RULE[IMAGE]);
-  TYPE_THEN `(?x. (&0 <= x /\ x <= &1 / &2) /\ (g x' = g x))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. (&0 <= x /\ x <= &1 / &2) /\ (g x' = g x))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `x' < u ==> x' <= u`];
   DISCH_TAC;
   REWR 13;
@@ -23767,23 +23767,23 @@ let simple_closed_curve_pt = prove_by_refinement(
   USE 14 (REWRITE_RULE[FUN_EQ_THM;]);
   TSPEC `g' x''` 14;
   USE 14 (REWRITE_RULE[IMAGE]);
-  TYPE_THEN `(?x. (&1 / &2 <= x /\ x <= &1) /\ (g' x'' = g' x))` SUBGOAL_TAC;
+  TYPE_THEN `(?x. (&1 / &2 <= x /\ x <= &1) /\ (g' x'' = g' x))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ARITH `x' < u ==> x' <= u`];
   DISCH_TAC;
   REWR 14;
   KILL 34;
   REP_BASIC_TAC;
-  TYPE_THEN `(x = x''')` SUBGOAL_TAC;
+  TYPE_THEN `(x = x''')` SUBGOAL_MP_TAC;
   USE 2 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(x = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x = &0)` SUBGOAL_MP_TAC;
   DISCH_TAC;
-  TYPE_THEN `g (&1/(&2)) = g (x')` SUBGOAL_TAC;
+  TYPE_THEN `g (&1/(&2)) = g (x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `&1/(&2) = x'` SUBGOAL_TAC;
+  TYPE_THEN `&1/(&2) = x'` SUBGOAL_MP_TAC;
   USE 17(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23794,12 +23794,12 @@ let simple_closed_curve_pt = prove_by_refinement(
   REAL_ARITH_TAC;
   UND 31;
   REAL_ARITH_TAC;
-  TYPE_THEN `~(x = &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(x = &1)` SUBGOAL_MP_TAC;
   DISCH_TAC;
-  TYPE_THEN `g (&1/(&2)) = g (x')` SUBGOAL_TAC;
+  TYPE_THEN `g (&1/(&2)) = g (x')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `&1/(&2) = x'` SUBGOAL_TAC;
+  TYPE_THEN `&1/(&2) = x'` SUBGOAL_MP_TAC;
   USE 17(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23820,7 +23820,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* --2-- *)
-  TYPE_THEN `x = t` SUBGOAL_TAC;
+  TYPE_THEN `x = t` SUBGOAL_MP_TAC;
   UND 36;
   UND 35;
   UND 34;
@@ -23828,10 +23828,10 @@ let simple_closed_curve_pt = prove_by_refinement(
   UND 30;
   REAL_ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `g' (&1) = g'(x'')` SUBGOAL_TAC;
+  TYPE_THEN `g' (&1) = g'(x'')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `&1 = x''` SUBGOAL_TAC;
+  TYPE_THEN `&1 = x''` SUBGOAL_MP_TAC;
   USE 22(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23843,7 +23843,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   UND 28;
   REAL_ARITH_TAC;
   (* F IMAGE *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1/(&2)} UNION {x | &1/(&2) <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION ];
   UND  24;
@@ -23854,12 +23854,12 @@ let simple_closed_curve_pt = prove_by_refinement(
   ASM_REWRITE_TAC[];
   USE 27 SYM;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &0 <= x /\ x < &1 / &2} = IMAGE g {x | &0 <= x /\ x < &1 / &2}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_image_below;
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x <= &1} = IMAGE g' {x | &1 / &2 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (joinf g g' (&1 / &2)) {x | &1 / &2 <= x /\ x <= &1} = IMAGE g' {x | &1 / &2 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  joinf_image_above;
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
@@ -23867,13 +23867,13 @@ let simple_closed_curve_pt = prove_by_refinement(
   USE 14 GSYM ;
   ASM_REWRITE_TAC[];
   (* F final  *)
-  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1} UNION {(&1)}` SUBGOAL_TAC;
+  TYPE_THEN `{x | &0 <= x /\ x <= &1} = {x | &0 <= x /\ x < &1} UNION {(&1)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[UNION;INR IN_SING];
   REAL_ARITH_TAC;
   DISCH_TAC ;
   (* -- *)
-  TYPE_THEN `IMAGE f {x | &0 <= x /\ x <= &1} = IMAGE f {x | &0 <= x /\ x < &1}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE f {x | &0 <= x /\ x <= &1} = IMAGE f {x | &0 <= x /\ x < &1}` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[IMAGE_UNION;image_sing; ];
   IMATCH_MP_TAC  SUBSET_ANTISYM;
@@ -23892,7 +23892,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* -- *)
-  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1/(&2)} = IMAGE f {x | t <= x /\ x < &1}` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE g {x | &0 <= x /\ x < &1/(&2)} = IMAGE f {x | t <= x /\ x < &1}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   CONJ_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
@@ -23902,7 +23902,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC[IMAGE;];
   REP_BASIC_TAC;
-  TYPE_THEN `x = (&1/(&2))` SUBGOAL_TAC;
+  TYPE_THEN `x = (&1/(&2))` SUBGOAL_MP_TAC;
   USE 17(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23928,7 +23928,7 @@ let simple_closed_curve_pt = prove_by_refinement(
   CONJ_TAC;
   REWRITE_TAC[IMAGE;];
   REP_BASIC_TAC;
-  TYPE_THEN `&1 = x` SUBGOAL_TAC;
+  TYPE_THEN `&1 = x` SUBGOAL_MP_TAC;
   USE 12(REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -23979,7 +23979,7 @@ let shift_inj = prove_by_refinement(
   UND 5;
   UND 0;
   REAL_ARITH_TAC;
-  TYPE_THEN `x = &1` SUBGOAL_TAC;
+  TYPE_THEN `x = &1` SUBGOAL_MP_TAC;
   UND 4;
   UND 6;
   REAL_ARITH_TAC;
@@ -23990,7 +23990,7 @@ let shift_inj = prove_by_refinement(
   REAL_ARITH_TAC;
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `((x = &1) /\ (y = &1)) \/ ((x < &1) /\ (y = &1)) \/ ((x = &1) /\ (y < &1)) \/ ((x < &1) /\ (y < &1))` SUBGOAL_TAC;
+  TYPE_THEN `((x = &1) /\ (y = &1)) \/ ((x < &1) /\ (y = &1)) \/ ((x = &1) /\ (y < &1)) \/ ((x < &1) /\ (y < &1))` SUBGOAL_MP_TAC;
   UND 5;
   UND 7;
   REAL_ARITH_TAC;
@@ -23998,7 +23998,7 @@ let shift_inj = prove_by_refinement(
   ASM_REWRITE_TAC[];
   USE 1 SYM ;
   REWR 4;
-  TYPE_THEN `x = &0` SUBGOAL_TAC;
+  TYPE_THEN `x = &0` SUBGOAL_MP_TAC;
   FIRST_ASSUM  IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   UND 8;
@@ -24009,7 +24009,7 @@ let shift_inj = prove_by_refinement(
   REAL_ARITH_TAC;
   USE 1 SYM;
   REWR 4;
-  TYPE_THEN `y = &0` SUBGOAL_TAC;
+  TYPE_THEN `y = &0` SUBGOAL_MP_TAC;
   FIRST_ASSUM  IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   UND 6;
@@ -24041,13 +24041,13 @@ let simple_arc_segment = prove_by_refinement(
   REP_BASIC_TAC;
   REWRITE_TAC[simple_arc_end];
   (* -- *)
-  TYPE_THEN `(&0 < u) ==> INJ f { x | u <= x /\ x <= &1} (euclid 2)` SUBGOAL_TAC ;
+  TYPE_THEN `(&0 < u) ==> INJ f { x | u <= x /\ x <= &1} (euclid 2)` SUBGOAL_MP_TAC ;
   DISCH_TAC;
   IMATCH_MP_TAC  shift_inj;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `INJ f { x | u <= x /\ x <= v } (euclid 2)`  SUBGOAL_TAC;
+  TYPE_THEN `INJ f { x | u <= x /\ x <= v } (euclid 2)`  SUBGOAL_MP_TAC;
   UND 0;
   DISCH_THEN DISJ_CASES_TAC;
   IMATCH_MP_TAC  inj_subset_domain;
@@ -24065,7 +24065,7 @@ let simple_arc_segment = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\  INJ f {x | u <= x /\ x <= v} (euclid 2) /\  &0 < &1 /\  u < v` SUBGOAL_TAC;
+  TYPE_THEN `continuous f (top_of_metric (UNIV,d_real)) top2 /\  INJ f {x | u <= x /\ x <= v} (euclid 2) /\  &0 < &1 /\  u < v` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   REAL_ARITH_TAC;
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP arc_reparameter_gen t));
@@ -24084,17 +24084,17 @@ let simple_closed_cut = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `simple_closed_curve top2 C /\ C v` SUBGOAL_TAC;
+  TYPE_THEN `simple_closed_curve top2 C /\ C v` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP simple_closed_curve_pt t));
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f(t) = v'))` SUBGOAL_TAC;
+  TYPE_THEN `?t. (&0 <= t /\ t <= &1 /\ (f(t) = v'))` SUBGOAL_MP_TAC;
   UND 1;
   ASM_REWRITE_TAC[IMAGE];
   MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `t < &1` SUBGOAL_TAC;
+  TYPE_THEN `t < &1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~( t= &1) /\ (t <= &1) ==> (t  < &1)`);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -24102,7 +24102,7 @@ let simple_closed_cut = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `&0 < t` SUBGOAL_TAC;
+  TYPE_THEN `&0 < t` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  (REAL_ARITH `~(t = &0) /\ (&0 <= t) ==> (&0 < t)`);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -24145,7 +24145,7 @@ let simple_closed_cut = prove_by_refinement(
   UND 12;
   REAL_ARITH_TAC;
   (* -- *)
-  TYPE_THEN `C'' = IMAGE f {x | t <= x /\ x < &1} UNION IMAGE f {(&1)}` SUBGOAL_TAC;
+  TYPE_THEN `C'' = IMAGE f {x | t <= x /\ x < &1} UNION IMAGE f {(&1)}` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM IMAGE_UNION];
   EXPAND_TAC "C''";
   AP_TERM_TAC;
@@ -24157,7 +24157,7 @@ let simple_closed_cut = prove_by_refinement(
   (* -- *)
   REWRITE_TAC[UNION_OVER_INTER;image_sing];
   EXPAND_TAC "C'";
-  TYPE_THEN `(IMAGE f ({x | &0 <= x /\ x <= t} INTER  {x | t <= x /\ x < &1})) = (IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {x | t <= x /\ x < &1})` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE f ({x | &0 <= x /\ x <= t} INTER  {x | t <= x /\ x < &1})) = (IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {x | t <= x /\ x < &1})` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inj_inter;
   TYPE_THEN `{x | &0 <= x /\ x < &1}` EXISTS_TAC;
   TYPE_THEN `(UNIONS top2)` EXISTS_TAC;
@@ -24168,18 +24168,18 @@ let simple_closed_cut = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   (* -- *)
-  TYPE_THEN `({x | &0 <= x /\ x <= t} INTER {x | t <= x /\ x < &1}) = {t}` SUBGOAL_TAC;
+  TYPE_THEN `({x | &0 <= x /\ x <= t} INTER {x | t <= x /\ x < &1}) = {t}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER;INR IN_SING];
   UND 13;
   UND 12;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `{(f (&1))} = IMAGE f {(&0)}` SUBGOAL_TAC;
+  TYPE_THEN `{(f (&1))} = IMAGE f {(&0)}` SUBGOAL_MP_TAC;
   REWRITE_TAC[image_sing];
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(IMAGE f ({x | &0 <= x /\ x <= t} INTER  {(&0)})  ) = (IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {(&0)} )` SUBGOAL_TAC;
+  TYPE_THEN `(IMAGE f ({x | &0 <= x /\ x <= t} INTER  {(&0)})  ) = (IMAGE f {x | &0 <= x /\ x <= t} INTER IMAGE f {(&0)} )` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inj_inter;
   TYPE_THEN `{x | &0 <= x /\ x < &1}` EXISTS_TAC;
   TYPE_THEN `UNIONS top2` EXISTS_TAC;
@@ -24190,7 +24190,7 @@ let simple_closed_cut = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_THEN (fun t-> REWRITE_TAC[GSYM t]);
   (* -- *)
-  TYPE_THEN `({x | &0 <= x /\ x <= t} INTER {(&0)}) = {(&0)}` SUBGOAL_TAC;
+  TYPE_THEN `({x | &0 <= x /\ x <= t} INTER {(&0)}) = {(&0)}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER;INR IN_SING ];
   UND 11;
@@ -24282,11 +24282,11 @@ let simple_arc_end_end_closed = prove_by_refinement(
   [
   REP_BASIC_TAC;
   IMATCH_MP_TAC  closed_point;
-  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
-  TYPE_THEN `C v` SUBGOAL_TAC;
+  TYPE_THEN `C v` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_end;
   ASM_MESON_TAC[];
   MESON_TAC[ISUBSET];
@@ -24322,7 +24322,7 @@ let simple_arc_sep3 = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `K = C2 UNION C3` ABBREV_TAC ;
-  TYPE_THEN `~((C1 INTER K) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~((C1 INTER K) = EMPTY)` SUBGOAL_MP_TAC;
   EXPAND_TAC "K";
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   REWRITE_TAC[UNION];
@@ -24330,18 +24330,18 @@ let simple_arc_sep3 = prove_by_refinement(
   ASM_MESON_TAC[simple_arc_end_end;simple_arc_end_end2];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `closed_ top2 K` SUBGOAL_TAC;
+  TYPE_THEN `closed_ top2 K` SUBGOAL_MP_TAC;
   EXPAND_TAC "K";
   IMATCH_MP_TAC  closed_union;
   ASM_MESON_TAC[simple_arc_end_closed;top2_top];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `~((C1 INTER {p1}) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~((C1 INTER {p1}) = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER;EMPTY_EXISTS;INR IN_SING];
   ASM_MESON_TAC[simple_arc_end_end2];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `(?C1' x' v'. C1' SUBSET C1 /\ simple_arc_end C1' x' v' /\ (C1' INTER K = {x'}) /\ (C1' INTER {p1} = {v'}))` SUBGOAL_TAC;
+  TYPE_THEN `(?C1' x' v'. C1' SUBSET C1 /\ simple_arc_end C1' x' v' /\ (C1' INTER K = {x'}) /\ (C1' INTER {p1} = {v'}))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_restriction;
   ASM_REWRITE_TAC[EQ_EMPTY;INTER;INR IN_SING ];
   CONJ_TAC;
@@ -24357,7 +24357,7 @@ let simple_arc_sep3 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `v' = p1` SUBGOAL_TAC;
+  TYPE_THEN `v' = p1` SUBGOAL_MP_TAC;
   USE 14 (REWRITE_RULE[FUN_EQ_THM]);
   USE 14 (REWRITE_RULE[INTER;INR IN_SING]);
   ASM_MESON_TAC[];
@@ -24373,7 +24373,7 @@ let simple_arc_sep3 = prove_by_refinement(
   TYPE_THEN `C2` EXISTS_TAC;
   TYPE_THEN `C3` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `C1' = C1` SUBGOAL_TAC;
+  TYPE_THEN `C1' = C1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_inj;
   TYPE_THEN `C1` EXISTS_TAC;
   TYPE_THEN `x` EXISTS_TAC;
@@ -24410,16 +24410,16 @@ let simple_arc_sep3 = prove_by_refinement(
   DISCH_THEN_REWRITE;
   ASM_MESON_TAC[simple_arc_end_end];
   (* B cut C1 at- x'  *)
-  TYPE_THEN `~(x' = p1)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' = p1)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_distinct];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `C1' x'` SUBGOAL_TAC;
+  TYPE_THEN `C1' x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_end;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `simple_arc_end C1 x p1 /\ C1 x' /\ ~(x' = x) /\ ~(x' = p1)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end C1 x p1 /\ C1 x' /\ ~(x' = x) /\ ~(x' = p1)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   UND 17;
   UND 19;
@@ -24427,7 +24427,7 @@ let simple_arc_sep3 = prove_by_refinement(
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP simple_arc_end_cut t));
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `C'' = C1'` SUBGOAL_TAC;
+  TYPE_THEN `C'' = C1'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_inj;
   TYPE_THEN `C1` EXISTS_TAC;
   TYPE_THEN `x'` EXISTS_TAC;
@@ -24440,7 +24440,7 @@ let simple_arc_sep3 = prove_by_refinement(
   SET_TAC[UNION;SUBSET];
   DISCH_THEN (fun t -> RULE_ASSUM_TAC (REWRITE_RULE[t]));
   (* -- *)
-  TYPE_THEN `C1 x'` SUBGOAL_TAC;
+  TYPE_THEN `C1 x'` SUBGOAL_MP_TAC;
   UND 19;
   UND 17;
   MESON_TAC[ISUBSET];
@@ -24450,7 +24450,7 @@ let simple_arc_sep3 = prove_by_refinement(
   TYPE_THEN `C1'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   ONCE_REWRITE_TAC[union_subset];
-  TYPE_THEN `C1' SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `C1' SUBSET A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C1 UNION K ` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -24461,7 +24461,7 @@ let simple_arc_sep3 = prove_by_refinement(
   (* [C] C2 x'  *)
   (* ------- *)
   TYPE_THEN `C2 x'` ASM_CASES_TAC;
-  TYPE_THEN `simple_arc_end C2 x p2 /\ C2 x' /\ ~(x' = x) /\ ~(x' = p2)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end C2 x p2 /\ C2 x' /\ ~(x' = x) /\ ~(x' = p2)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
     ASM_MESON_TAC[];
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP simple_arc_end_cut t));
@@ -24471,20 +24471,20 @@ let simple_arc_sep3 = prove_by_refinement(
   (*---- *)
   TYPE_THEN `C2'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `C2' SUBSET C2` SUBGOAL_TAC;
+  TYPE_THEN `C2' SUBSET C2` SUBGOAL_MP_TAC;
   USE 26 ( (REWRITE_RULE[FUN_EQ_THM]));
   USE 26 (REWRITE_RULE[UNION]);
   UND 26;
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~C2' p3` SUBGOAL_TAC;
+  TYPE_THEN `~C2' p3` SUBGOAL_MP_TAC;
   UND 30;
   UND 3;
   MESON_TAC[ISUBSET];
   DISCH_THEN_REWRITE;
   ONCE_REWRITE_TAC [union_subset];
-  TYPE_THEN `C2' SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `C2' SUBSET A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C1 UNION K` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -24495,7 +24495,7 @@ let simple_arc_sep3 = prove_by_refinement(
   REWRITE_TAC[SUBSET;UNION];
   MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `C1' INTER C2' = {x'}` SUBGOAL_TAC;
+  TYPE_THEN `C1' INTER C2' = {x'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER;INR IN_SING];
   GEN_TAC;
@@ -24512,7 +24512,7 @@ let simple_arc_sep3 = prove_by_refinement(
   DISCH_THEN_REWRITE;
   (* --[C2]-- branch again for C3 x' -- *)
   TYPE_THEN `C3 x'` ASM_CASES_TAC;
-  TYPE_THEN `simple_arc_end C3 x p3 /\ C3 x' /\ ~(x' = x) /\ ~(x' = p3)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end C3 x p3 /\ C3 x' /\ ~(x' = x) /\ ~(x' = p3)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[];
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP simple_arc_end_cut t));
@@ -24521,7 +24521,7 @@ let simple_arc_sep3 = prove_by_refinement(
   KILL 36;
   TYPE_THEN `C3'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `C3' SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C3' SUBSET C3` SUBGOAL_MP_TAC;
   UND 32;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
@@ -24537,7 +24537,7 @@ let simple_arc_sep3 = prove_by_refinement(
   UND 36;
   UND 0;
   MESON_TAC[ISUBSET];
-  TYPE_THEN `C3' x'` SUBGOAL_TAC;
+  TYPE_THEN `C3' x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_end;
   ASM_MESON_TAC[];
   DISCH_TAC;
@@ -24589,21 +24589,21 @@ let simple_arc_sep3 = prove_by_refinement(
   (* ---[a] *)
   TYPE_THEN `C3a = C'''''` ABBREV_TAC ;
   KILL 36;
-  TYPE_THEN `v = x'` SUBGOAL_TAC;
+  TYPE_THEN `v = x'` SUBGOAL_MP_TAC;
   USE 33(REWRITE_RULE[FUN_EQ_THM]);
   USE 33(REWRITE_RULE[INTER;INR IN_SING]);
   UND 33;
   MESON_TAC[];
   DISCH_THEN (fun t -> (RULE_ASSUM_TAC  (REWRITE_RULE[t])));
   KILL 33;
-  TYPE_THEN `C3a SUBSET C1` SUBGOAL_TAC;
+  TYPE_THEN `C3a SUBSET C1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   UND 20;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
-  TYPE_THEN `C3a SUBSET A /\ simple_arc_end C3a x' v'' /\ ~(C3a p2) /\ (C1' INTER C3a = {(x')}) /\ (C3 INTER C3a = {(v'')}) /\ (~C3a p3)` SUBGOAL_TAC ;
+  TYPE_THEN `C3a SUBSET A /\ simple_arc_end C3a x' v'' /\ ~(C3a p2) /\ (C1' INTER C3a = {(x')}) /\ (C3 INTER C3a = {(v'')}) /\ (~C3a p3)` SUBGOAL_MP_TAC ;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
@@ -24733,7 +24733,7 @@ let simple_arc_sep3 = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `C3b = C'''''''` ABBREV_TAC ;
   KILL 43;
-  TYPE_THEN `C3b SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C3b SUBSET C3` SUBGOAL_MP_TAC;
   UND 39;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
@@ -24798,7 +24798,7 @@ let simple_arc_sep3 = prove_by_refinement(
   UND 36;
   MESON_TAC[simple_arc_end_end];
   (* D *)
-  TYPE_THEN `C3 x'` SUBGOAL_TAC;
+  TYPE_THEN `C3 x'` SUBGOAL_MP_TAC;
   UND 25;
   UND 15;
   REWRITE_TAC[eq_sing];
@@ -24808,7 +24808,7 @@ let simple_arc_sep3 = prove_by_refinement(
   DISCH_TAC;
   (* [E]  back to ONE goal *)
   (* TYPE_THEN `C3 x'` ASM_CASES_TAC; *)
-  TYPE_THEN `simple_arc_end C3 x p3 /\ C3 x' /\ ~(x' = x) /\ ~(x' = p3)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end C3 x p3 /\ C3 x' /\ ~(x' = x) /\ ~(x' = p3)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
     ASM_MESON_TAC[];
   DISCH_THEN (fun t-> ASSUME_TAC (MATCH_MP simple_arc_end_cut t));
@@ -24820,20 +24820,20 @@ let simple_arc_sep3 = prove_by_refinement(
   USE 10 (ONCE_REWRITE_RULE[UNION_COMM]);
   TYPE_THEN `C3'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `C3' SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C3' SUBSET C3` SUBGOAL_MP_TAC;
   USE 27 ( (REWRITE_RULE[FUN_EQ_THM]));
   USE 27 (REWRITE_RULE[UNION]);
   UND 27;
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~C3' p2` SUBGOAL_TAC;
+  TYPE_THEN `~C3' p2` SUBGOAL_MP_TAC;
   UND 31;
   UND 0;
   MESON_TAC[ISUBSET];
   DISCH_THEN_REWRITE;
   ONCE_REWRITE_TAC [union_subset];
-  TYPE_THEN `C3' SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `C3' SUBSET A` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C1 UNION K` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -24844,7 +24844,7 @@ let simple_arc_sep3 = prove_by_refinement(
   REWRITE_TAC[SUBSET;UNION];
   MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `C1' INTER C3' = {x'}` SUBGOAL_TAC;
+  TYPE_THEN `C1' INTER C3' = {x'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER;INR IN_SING];
   GEN_TAC;
@@ -24894,21 +24894,21 @@ let simple_arc_sep3 = prove_by_refinement(
   (* ---[Xa] *)
   TYPE_THEN `C2a = C'''''` ABBREV_TAC ;
   KILL 36;
-  TYPE_THEN `v = x'` SUBGOAL_TAC;
+  TYPE_THEN `v = x'` SUBGOAL_MP_TAC;
   USE 33(REWRITE_RULE[FUN_EQ_THM]);
   USE 33(REWRITE_RULE[INTER;INR IN_SING]);
   UND 33;
   MESON_TAC[];
   DISCH_THEN (fun t -> (RULE_ASSUM_TAC  (REWRITE_RULE[t])));
   KILL 33;
-  TYPE_THEN `C2a SUBSET C1` SUBGOAL_TAC;
+  TYPE_THEN `C2a SUBSET C1` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `C'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   UND 20;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
-  TYPE_THEN `C2a SUBSET A /\ simple_arc_end C2a x' v'' /\ ~(C2a p3) /\ (C1' INTER C2a = {(x')}) /\ (C2 INTER C2a = {(v'')}) /\ (~C2a p2)` SUBGOAL_TAC ;
+  TYPE_THEN `C2a SUBSET A /\ simple_arc_end C2a x' v'' /\ ~(C2a p3) /\ (C1' INTER C2a = {(x')}) /\ (C2 INTER C2a = {(v'')}) /\ (~C2a p2)` SUBGOAL_MP_TAC ;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
@@ -25038,7 +25038,7 @@ let simple_arc_sep3 = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN `C2b = C''''''` ABBREV_TAC ;
   KILL 43;
-  TYPE_THEN `C2b SUBSET C2` SUBGOAL_TAC;
+  TYPE_THEN `C2b SUBSET C2` SUBGOAL_MP_TAC;
   UND 39;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
@@ -25142,15 +25142,15 @@ let simple_arc_sep2 = prove_by_refinement(
   ASM_MESON_TAC[];
   REWRITE_TAC[EMPTY_EXISTS];
   REWRITE_TAC[EQ_EMPTY;INTER;INR IN_SING];
-  TYPE_THEN `C2 p2` SUBGOAL_TAC;
+  TYPE_THEN `C2 p2` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end2];
-  TYPE_THEN `C2 x` SUBGOAL_TAC;
+  TYPE_THEN `C2 x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
-  TYPE_THEN `C3 x` SUBGOAL_TAC;
+  TYPE_THEN `C3 x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `v' = p2` SUBGOAL_TAC;
+  TYPE_THEN `v' = p2` SUBGOAL_MP_TAC;
   UND 8;
   REWRITE_TAC[eq_sing; INR IN_SING;];
   REWRITE_TAC[INTER;INR IN_SING ];
@@ -25164,7 +25164,7 @@ let simple_arc_sep2 = prove_by_refinement(
   (* A easy case *)
   TYPE_THEN `v = x` ASM_CASES_TAC;
   FIRST_ASSUM (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]) THEN REWRITE_TAC[t]);
-  TYPE_THEN `C' = C2` SUBGOAL_TAC;
+  TYPE_THEN `C' = C2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_inj;
   TYPE_THEN `C2` EXISTS_TAC;
   TYPE_THEN `x` EXISTS_TAC;
@@ -25189,7 +25189,7 @@ let simple_arc_sep2 = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   FIRST_ASSUM (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
-  TYPE_THEN `C' p3` SUBGOAL_TAC;
+  TYPE_THEN `C' p3` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
   UND 1;
   UND 11;
@@ -25199,7 +25199,7 @@ let simple_arc_sep2 = prove_by_refinement(
   TYPE_THEN `C1 UNION C''` EXISTS_TAC;
   TYPE_THEN `C'''` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(C1 UNION C'') UNION C' UNION C''' = C1 UNION C' UNION (C'' UNION C''')` SUBGOAL_TAC;
+  TYPE_THEN `(C1 UNION C'') UNION C' UNION C''' = C1 UNION C' UNION (C'' UNION C''')` SUBGOAL_MP_TAC;
   SET_TAC[UNION];
   DISCH_THEN_REWRITE;
   CONJ_TAC;
@@ -25224,7 +25224,7 @@ let simple_arc_sep2 = prove_by_refinement(
   GEN_TAC;
   EQ_TAC ;
   UND 2;
-  TYPE_THEN `C'' SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C'' SUBSET C3` SUBGOAL_MP_TAC;
   UND 12;
   SET_TAC [SUBSET;UNION];
   REWRITE_TAC[eq_sing;INTER;SUBSET];
@@ -25233,7 +25233,7 @@ let simple_arc_sep2 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[simple_arc_end_end;simple_arc_end_end2];
   (* --[a] *)
-  TYPE_THEN `(C1 UNION C'') v /\ (C' v) /\ (C''' v)` SUBGOAL_TAC;
+  TYPE_THEN `(C1 UNION C'') v /\ (C' v) /\ (C''' v)` SUBGOAL_MP_TAC;
   REWRITE_TAC[UNION];
   ASM_REWRITE_TAC[];
   CONJ_TAC;
@@ -25242,11 +25242,11 @@ let simple_arc_sep2 = prove_by_refinement(
   ASM_MESON_TAC[simple_arc_end_end;];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `C''' SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C''' SUBSET C3` SUBGOAL_MP_TAC;
   UND 12;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
-  TYPE_THEN `C' INTER C''' = {v}` SUBGOAL_TAC;
+  TYPE_THEN `C' INTER C''' = {v}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INR IN_SING];
   GEN_TAC;
@@ -25275,7 +25275,7 @@ let simple_arc_sep2 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `C'''' = C'` SUBGOAL_TAC;
+  TYPE_THEN `C'''' = C'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_inj;
   TYPE_THEN `C2` EXISTS_TAC;
   TYPE_THEN `p2` EXISTS_TAC;
@@ -25291,10 +25291,10 @@ let simple_arc_sep2 = prove_by_refinement(
   SET_TAC[UNION;SUBSET];
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
   (* -- *)
-  TYPE_THEN `~C' x` SUBGOAL_TAC;
+  TYPE_THEN `~C' x` SUBGOAL_MP_TAC;
   PROOF_BY_CONTR_TAC;
   REWR 24;
-  TYPE_THEN `C''''' x` SUBGOAL_TAC;
+  TYPE_THEN `C''''' x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end2];
   UND 8;
   UND 18;
@@ -25307,7 +25307,7 @@ let simple_arc_sep2 = prove_by_refinement(
   KILL 6;
   KILL 5;
   KILL 4;
-  TYPE_THEN `C'' x` SUBGOAL_TAC;
+  TYPE_THEN `C'' x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
   DISCH_TAC;
   KILL 15;
@@ -25320,7 +25320,7 @@ let simple_arc_sep2 = prove_by_refinement(
   REWRITE_TAC[UNION;INTER;INR IN_SING];
   GEN_TAC;
   EQ_TAC;
-  TYPE_THEN `C'' SUBSET C3` SUBGOAL_TAC;
+  TYPE_THEN `C'' SUBSET C3` SUBGOAL_MP_TAC;
   UND 12;
   SET_TAC[UNION;SUBSET];
   UND 2;
@@ -25336,7 +25336,7 @@ let simple_arc_sep2 = prove_by_refinement(
   REWRITE_TAC[eq_sing;INTER];
   MESON_TAC[];
   (* -- *)
-  TYPE_THEN `~ (C''' x)` SUBGOAL_TAC;
+  TYPE_THEN `~ (C''' x)` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 13;
   UND 5;
@@ -25720,13 +25720,13 @@ let k33_iso = prove_by_refinement(
   REWRITE_TAC[IMAGE_CLAUSES];
   EXPAND_TAC "v";
   EXPAND_TAC "g";
-  TYPE_THEN `cartesian A B (f'' (FST e), f' (SND e))` SUBGOAL_TAC;
+  TYPE_THEN `cartesian A B (f'' (FST e), f' (SND e))` SUBGOAL_MP_TAC;
   REWRITE_TAC[cartesian_el];
   RULE_ASSUM_TAC (REWRITE_RULE[BIJ;SURJ]);
   ASM_MESON_TAC[];
   ASM_SIMP_TAC[inv_comp_right];
   (* C  BIJ v *)
-  TYPE_THEN `BIJ g (cartesian A B) E` SUBGOAL_TAC;
+  TYPE_THEN `BIJ g (cartesian A B) E` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   IMATCH_MP_TAC  INVERSE_BIJ;
   ASM_REWRITE_TAC[];
@@ -25745,7 +25745,7 @@ let k33_iso = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[BIJ;INJ]);
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(f'' (FST x),f' (SND x)) = (f''(FST y),f' (SND y))` SUBGOAL_TAC;
+  TYPE_THEN `(f'' (FST x),f' (SND x)) = (f''(FST y),f' (SND y))` SUBGOAL_MP_TAC;
   USE 7(REWRITE_RULE[BIJ;INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -25770,7 +25770,7 @@ let k33_iso = prove_by_refinement(
   EXPAND_TAC "v";
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `?u0. (f'' u0 = FST (f x))` SUBGOAL_TAC ;
+  TYPE_THEN `?u0. (f'' u0 = FST (f x))` SUBGOAL_MP_TAC ;
   USE 2 (REWRITE_RULE[BIJ;SURJ]);
   REP_BASIC_TAC ;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -25782,7 +25782,7 @@ let k33_iso = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `?u1. (f' u1 = SND (f x))` SUBGOAL_TAC ;
+  TYPE_THEN `?u1. (f' u1 = SND (f x))` SUBGOAL_MP_TAC ;
   USE 3 (REWRITE_RULE[BIJ;SURJ]);
   REP_BASIC_TAC ;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -25824,7 +25824,7 @@ let mk_segment_inj_image2 = prove_by_refinement(
   REWRITE_TAC[joinf;IMAGE ];
   REWRITE_TAC[mk_segment];
   (* new new *)
-  TYPE_THEN `((if &0 < &0   then x   else if &0 < &1 then euclid_plus (&0 *# y) ((&1 - &0) *# x) else y) =  x) /\ ((if &1 < &0   then x   else if &1 < &1 then euclid_plus (&1 *# y) ((&1 - &1) *# x) else y) =  y)` SUBGOAL_TAC;
+  TYPE_THEN `((if &0 < &0   then x   else if &0 < &1 then euclid_plus (&0 *# y) ((&1 - &0) *# x) else y) =  x) /\ ((if &1 < &0   then x   else if &1 < &1 then euclid_plus (&1 *# y) ((&1 - &1) *# x) else y) =  y)` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ARITH `~(&0 < &0) /\ ~(&1 < &0) /\ (&0 < &1) /\ ~(&1 < &1)`];
   REDUCE_TAC;
   REWRITE_TAC[euclid_scale0; euclid_scale_one ; euclid_lzero];
@@ -25835,7 +25835,7 @@ let mk_segment_inj_image2 = prove_by_refinement(
   REWRITE_TAC[INJ];
   CONJ_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `~(x' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &0)` SUBGOAL_MP_TAC;
   UND 4;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -25846,21 +25846,21 @@ let mk_segment_inj_image2 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   UND 3;
-  TYPE_THEN `~(x' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &0)` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~(y' < &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(y' < &0)` SUBGOAL_MP_TAC;
   UND 5;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
-  TYPE_THEN `(if (x' < &1) then (euclid_plus (x' *# y) ((&1 - x') *# x)) else y) = ( euclid_plus (x' *# y) ((&1 - x') *# x))` SUBGOAL_TAC;
- TYPE_THEN `(x' < &1) \/ (x' = &1)` SUBGOAL_TAC;
+  TYPE_THEN `(if (x' < &1) then (euclid_plus (x' *# y) ((&1 - x') *# x)) else y) = ( euclid_plus (x' *# y) ((&1 - x') *# x))` SUBGOAL_MP_TAC;
+ TYPE_THEN `(x' < &1) \/ (x' = &1)` SUBGOAL_MP_TAC;
   UND 6;
   REAL_ARITH_TAC;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(x' < &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(x' < &1)` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -25869,13 +25869,13 @@ let mk_segment_inj_image2 = prove_by_refinement(
   REWRITE_TAC[euclid_scale_one;euclid_scale0;euclid_rzero];
   DISCH_THEN_REWRITE;
 
-  TYPE_THEN `(if (y' < &1) then (euclid_plus (y' *# y) ((&1 - y') *# x)) else y) = ( euclid_plus (y' *# y) ((&1 - y') *# x))` SUBGOAL_TAC;
- TYPE_THEN `(y' < &1) \/ (y' = &1)` SUBGOAL_TAC;
+  TYPE_THEN `(if (y' < &1) then (euclid_plus (y' *# y) ((&1 - y') *# x)) else y) = ( euclid_plus (y' *# y) ((&1 - y') *# x))` SUBGOAL_MP_TAC;
+ TYPE_THEN `(y' < &1) \/ (y' = &1)` SUBGOAL_MP_TAC;
   UND 4;
   REAL_ARITH_TAC;
   DISCH_THEN   DISJ_CASES_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `~(y' < &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(y' < &1)` SUBGOAL_MP_TAC;
   UND 3;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -25954,7 +25954,7 @@ let mk_segment_inj_image2 = prove_by_refinement(
   COND_CASES_TAC;
   REWRITE_TAC[REAL_ARITH `&1 - (&1 - a) = a`];
   ASM_MESON_TAC [euclid_add_comm];
-  TYPE_THEN `a = &.0` SUBGOAL_TAC;
+  TYPE_THEN `a = &.0` SUBGOAL_MP_TAC;
   UND 4;
   UND 3;
   AND 2;
@@ -26016,7 +26016,7 @@ let neg_point = prove_by_refinement(
   REP_CASES_TAC ;
   ASM_REWRITE_TAC[coord01];
   ASM_REWRITE_TAC[coord01];
-  TYPE_THEN `euclid 2(point(x,y)) /\ euclid 2(point(--x,--y))` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2(point(x,y)) /\ euclid 2(point(--x,--y))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[euclid_point];
   REWRITE_TAC[euclid];
   REP_BASIC_TAC;
@@ -26046,7 +26046,7 @@ let cis3pi2 = prove_by_refinement(
   `cis(&3 *pi/(&2)) = -- e2`,
   (* {{{ proof *)
   [
-  TYPE_THEN `&3 *pi/(&2) = pi/(&2) + pi` SUBGOAL_TAC;
+  TYPE_THEN `&3 *pi/(&2) = pi/(&2) + pi` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_ARITH `&3 = &1 + &1 + &1`];
   REWRITE_TAC[REAL_ARITH `(x + y)*z = x*z + y*z`];
   REDUCE_TAC;
@@ -26072,7 +26072,7 @@ let closedball_convex = prove_by_refinement(
   IMATCH_MP_TAC  (euclid_add_closure);
   CONJ_TAC THEN (IMATCH_MP_TAC  euclid_scale_closure) THEN (ASM_REWRITE_TAC[]);
   DISCH_TAC;
-  TYPE_THEN `d_euclid x x'' = d_euclid (a *# x + (&1 - a) *# x) x''` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid x x'' = d_euclid (a *# x + (&1 - a) *# x) x''` SUBGOAL_MP_TAC;
   REWRITE_TAC[trivial_lin_combo];
   DISCH_THEN_REWRITE;
   EXPAND_TAC "x''";
@@ -26082,9 +26082,9 @@ let closedball_convex = prove_by_refinement(
   DISCH_THEN_REWRITE;
   REDUCE_TAC;
   ASM_REWRITE_TAC [euclid_scale0;euclid_scale_one;euclid_lzero;];
-  TYPE_THEN `(!d. (?u v. (d <= u + v) /\ (u <= a*e) /\ (v <= (&1- a)*e))  ==> (d <= e))` SUBGOAL_TAC;
+  TYPE_THEN `(!d. (?u v. (d <= u + v) /\ (u <= a*e) /\ (v <= (&1- a)*e))  ==> (d <= e))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `u + v <= (a*e) + (&1 - a)*e` SUBGOAL_TAC;
+  TYPE_THEN `u + v <= (a*e) + (&1 - a)*e` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_LE_ADD2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[GSYM REAL_RDISTRIB;REAL_ARITH `(a + &1 - a = &1) /\ (&1 * C = C )`];
@@ -26094,7 +26094,7 @@ let closedball_convex = prove_by_refinement(
   TYPE_THEN `z = a *# x' + (&1 - a) *# x` ABBREV_TAC;
   TYPE_THEN `d_euclid (a *# x + (&1 - a)*# x) z` EXISTS_TAC;
   TYPE_THEN `d_euclid z x''` EXISTS_TAC;
-  TYPE_THEN `euclid n z` SUBGOAL_TAC;
+  TYPE_THEN `euclid n z` SUBGOAL_MP_TAC;
   EXPAND_TAC "z";
   IMATCH_MP_TAC  (euclid_add_closure);
   CONJ_TAC THEN (IMATCH_MP_TAC  euclid_scale_closure) THEN (ASM_REWRITE_TAC[]);
@@ -26107,16 +26107,16 @@ let closedball_convex = prove_by_refinement(
   ASM_REWRITE_TAC[trivial_lin_combo];
   CONJ_TAC;
   EXPAND_TAC "z";
-  TYPE_THEN `(d_euclid (euclid_plus (a *# x) ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# x))) = d_euclid  (a *# x) (a *# x') ` SUBGOAL_TAC;
+  TYPE_THEN `(d_euclid (euclid_plus (a *# x) ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# x))) = d_euclid  (a *# x) (a *# x') ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_translate;
   TYPE_THEN `n` EXISTS_TAC;
   REPEAT (CONJ_TAC THEN TRY (IMATCH_MP_TAC  euclid_scale_closure) THEN ASM_REWRITE_TAC[]);
   DISCH_THEN_REWRITE;
-  TYPE_THEN `d_euclid (a *# x) (a *# x')  = abs  (a) * d_euclid x x'` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (a *# x) (a *# x')  = abs  (a) * d_euclid x x'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  norm_scale_vec;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `abs  a = a` SUBGOAL_TAC;
+  TYPE_THEN `abs  a = a` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[REAL_ABS_REFL];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  REAL_PROP_LE_LMUL;
@@ -26125,17 +26125,17 @@ let closedball_convex = prove_by_refinement(
   (* LAST case *)
   EXPAND_TAC "z";
   EXPAND_TAC "x''";
-  TYPE_THEN `d_euclid (euclid_plus (a *# x') ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# y)) = d_euclid ((&1 - a) *# x) ((&1 - a) *# y)` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (euclid_plus (a *# x') ((&1 - a) *# x)) (euclid_plus (a *# x') ((&1 - a) *# y)) = d_euclid ((&1 - a) *# x) ((&1 - a) *# y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_translate_LEFT;
   TYPE_THEN `n` EXISTS_TAC;
   REPEAT (CONJ_TAC THEN TRY (IMATCH_MP_TAC  euclid_scale_closure) THEN ASM_REWRITE_TAC[]);
   DISCH_THEN_REWRITE;
-  TYPE_THEN `!b. d_euclid (b *# x) (b *# y)  = abs  (b) * d_euclid x y` SUBGOAL_TAC;
+  TYPE_THEN `!b. d_euclid (b *# x) (b *# y)  = abs  (b) * d_euclid x y` SUBGOAL_MP_TAC;
   GEN_TAC;
   IMATCH_MP_TAC  norm_scale_vec;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_TAC;
+  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_MP_TAC;
   REWRITE_TAC [REAL_ABS_REFL];
   UND 1;
   REAL_ARITH_TAC;
@@ -26188,7 +26188,7 @@ let mk_segment_hyperplane = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `?x y. p = point (x,y)` SUBGOAL_TAC;
+  TYPE_THEN `?x y. p = point (x,y)` SUBGOAL_MP_TAC;
   USE 0 (MATCH_MP point_onto);
   REP_BASIC_TAC;
   TYPE_THEN `FST p'` EXISTS_TAC;
@@ -26199,15 +26199,15 @@ let mk_segment_hyperplane = prove_by_refinement(
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])));
   REWRITE_TAC[coord01];
   (* -- *)
-  TYPE_THEN `convex(hyperplane 2 e2 y)` SUBGOAL_TAC;
+  TYPE_THEN `convex(hyperplane 2 e2 y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  hyperplane_convex;
   REWRITE_TAC[euclid2_e12];
-  TYPE_THEN `convex(hyperplane 2 e1 x)` SUBGOAL_TAC;
+  TYPE_THEN `convex(hyperplane 2 e1 x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  hyperplane_convex;
   REWRITE_TAC[euclid2_e12];
   REWRITE_TAC[convex];
   REP_BASIC_TAC;
-  TYPE_THEN `hyperplane 2 e1 x (point(x,y)) /\ hyperplane 2 e2 y (point(x,y))` SUBGOAL_TAC;
+  TYPE_THEN `hyperplane 2 e1 x (point(x,y)) /\ hyperplane 2 e2 y (point(x,y))` SUBGOAL_MP_TAC;
   REWRITE_TAC[e1;e2;GSYM line2D_S;GSYM  line2D_F];
   CONJ_TAC;
   TYPE_THEN `(x,y)` EXISTS_TAC;
@@ -26219,11 +26219,11 @@ let mk_segment_hyperplane = prove_by_refinement(
   (* -- *)
   IMATCH_MP_TAC  in_union;
   TYPE_THEN `z = (euclid_plus (point (x,y)) (r *# cis (&i * pi / &2)))` ABBREV_TAC ;
-  TYPE_THEN `hyperplane 2 e2 y z \/ hyperplane 2 e1 x z ==> mk_segment (point (x,y)) z SUBSET hyperplane 2 e2 y \/  mk_segment (point (x,y)) z SUBSET hyperplane 2 e1 x` SUBGOAL_TAC;
+  TYPE_THEN `hyperplane 2 e2 y z \/ hyperplane 2 e1 x z ==> mk_segment (point (x,y)) z SUBSET hyperplane 2 e2 y \/  mk_segment (point (x,y)) z SUBSET hyperplane 2 e1 x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   (* -- *)
-  TYPE_THEN `( (cis (&i *pi/(&2))) 0 = &0) ==> (hyperplane 2 e1 x z)` SUBGOAL_TAC;
+  TYPE_THEN `( (cis (&i *pi/(&2))) 0 = &0) ==> (hyperplane 2 e1 x z)` SUBGOAL_MP_TAC;
   REWRITE_TAC[e1;GSYM line2D_F];
   EXPAND_TAC "z";
   REWRITE_TAC[cis;coord01];
@@ -26233,7 +26233,7 @@ let mk_segment_hyperplane = prove_by_refinement(
   TYPE_THEN `(x, y+ r*sin (&i *pi/(&2)))` EXISTS_TAC;
   REWRITE_TAC[];
   (* -- *)
-  TYPE_THEN `( (cis (&i *pi/(&2))) 1 = &0) ==> (hyperplane 2 e2 y z)` SUBGOAL_TAC;
+  TYPE_THEN `( (cis (&i *pi/(&2))) 1 = &0) ==> (hyperplane 2 e2 y z)` SUBGOAL_MP_TAC;
   REWRITE_TAC[e2;GSYM line2D_S];
   EXPAND_TAC "z";
   REWRITE_TAC[cis;coord01];
@@ -26243,7 +26243,7 @@ let mk_segment_hyperplane = prove_by_refinement(
   TYPE_THEN `(x + r*cos(&i *pi/(&2)) , y)` EXISTS_TAC;
   REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(cis (&i * pi / &2) 0 = &0) \/ (cis (&i * pi / &2) 1 = &0) ==> hyperplane 2 e2 y z \/ hyperplane 2 e1 x z` SUBGOAL_TAC;
+  TYPE_THEN `(cis (&i * pi / &2) 0 = &0) \/ (cis (&i * pi / &2) 1 = &0) ==> hyperplane 2 e2 y z \/ hyperplane 2 e1 x z` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN IMATCH_MP_TAC ;
   UND 2;
@@ -26274,16 +26274,16 @@ let d_euclid_mk_segment = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `!z. d_euclid (a*# p + (&1 - a)*# p) z = d_euclid p z` SUBGOAL_TAC;
+  TYPE_THEN `!z. d_euclid (a*# p + (&1 - a)*# p) z = d_euclid p z` SUBGOAL_MP_TAC;
   REWRITE_TAC[trivial_lin_combo];
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC[GSYM t]);
-  TYPE_THEN `d_euclid (euclid_plus (a *# p) ((&1 - a) *# p)) (euclid_plus (a *# p) ((&1 - a) *# q)) = d_euclid ( ((&1 - a) *# p)) ( ((&1 - a) *# q))` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (euclid_plus (a *# p) ((&1 - a) *# p)) (euclid_plus (a *# p) ((&1 - a) *# q)) = d_euclid ( ((&1 - a) *# p)) ( ((&1 - a) *# q))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [metric_translate_LEFT;euclid_scale_closure];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `d_euclid ((&1 - a) *# p) ((&1 - a) *# q) = abs  (&1- a) * d_euclid p q` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid ((&1 - a) *# p) ((&1 - a) *# q) = abs  (&1- a) * d_euclid p q` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[euclid_scale_closure;norm_scale_vec];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_TAC;
+  TYPE_THEN `abs  (&1 - a) = (&1 - a)` SUBGOAL_MP_TAC;
   UND 2;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -26334,7 +26334,7 @@ let mk_segment_endpoint = prove_by_refinement(
   UND 5;
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])));
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `~(a' = &1)` SUBGOAL_TAC;
+  TYPE_THEN `~(a' = &1)` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 11;
   DISCH_THEN (fun t -> RULE_ASSUM_TAC (REWRITE_RULE[t]));
@@ -26343,7 +26343,7 @@ let mk_segment_endpoint = prove_by_refinement(
   REWRITE_TAC[euclid_scale0;euclid_scale_one;euclid_rzero];
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `(&1- a')*d_euclid p y = (&1- a)*d_euclid p x` SUBGOAL_TAC;
+  TYPE_THEN `(&1- a')*d_euclid p y = (&1- a)*d_euclid p x` SUBGOAL_MP_TAC;
   KILL 4;
   ASM_MESON_TAC[d_euclid_mk_segment];
   ASM_REWRITE_TAC[];
@@ -26351,13 +26351,13 @@ let mk_segment_endpoint = prove_by_refinement(
   REWR 12;
   (* -- *)
   TYPE_THEN `d_euclid p y = &0` ASM_CASES_TAC;
-  TYPE_THEN `p = y` SUBGOAL_TAC;
+  TYPE_THEN `p = y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [d_euclid_zero];
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
   ASM_MESON_TAC[d_euclid_zero];
   USE 12 (REWRITE_RULE[REAL_EQ_MUL_RCANCEL]);
   REWR 12;
-  TYPE_THEN `a' = a` SUBGOAL_TAC;
+  TYPE_THEN `a' = a` SUBGOAL_MP_TAC;
   UND 12;
   REAL_ARITH_TAC;
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
@@ -26378,34 +26378,34 @@ let cases4 = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `!k. (k < 4) ==> (k = 0) \/ (k =1)\/ (k=2) \/ (k=3)` SUBGOAL_TAC;
+  TYPE_THEN `!k. (k < 4) ==> (k = 0) \/ (k =1)\/ (k=2) \/ (k=3)` SUBGOAL_MP_TAC;
   ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `(j = 0) \/ (j = 1) \/ (j = 2) \/ (j = 3)` SUBGOAL_TAC;
+  TYPE_THEN `(j = 0) \/ (j = 1) \/ (j = 2) \/ (j = 3)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(j=0)` SUBGOAL_TAC;
+  TYPE_THEN `~(j=0)` SUBGOAL_MP_TAC;
   UND 1;
   ARITH_TAC;
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
-  TYPE_THEN `(i < 3)` SUBGOAL_TAC;
+  TYPE_THEN `(i < 3)` SUBGOAL_MP_TAC;
   UND 0;
   UND 1;
   ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `(i=0) \/ (i = 1) \/ (i=2)` SUBGOAL_TAC;
+  TYPE_THEN `(i=0) \/ (i = 1) \/ (i=2)` SUBGOAL_MP_TAC;
   UND 4;
   ARITH_TAC;
   DISCH_TAC;
   JOIN 5 3;
   USE 3 (REWRITE_RULE [RIGHT_AND_OVER_OR;LEFT_AND_OVER_OR]);
-  TYPE_THEN `!k. ~((i = k) /\ (j = k))` SUBGOAL_TAC;
+  TYPE_THEN `!k. ~((i = k) /\ (j = k))` SUBGOAL_MP_TAC;
   GEN_TAC;
   UND 1;
   ARITH_TAC;
   DISCH_THEN (fun t-> USE 3 (REWRITE_RULE[t]));
-  TYPE_THEN `~((i=2) /\ (j = 1))` SUBGOAL_TAC;
+  TYPE_THEN `~((i=2) /\ (j = 1))` SUBGOAL_MP_TAC;
   UND 1;
   ARITH_TAC ;
   DISCH_THEN (fun t-> USE 3(REWRITE_RULE[t]));
@@ -26421,9 +26421,9 @@ let cis_distinct = prove_by_refinement(
   (* {{{ proof *)
 
   [
-  TYPE_THEN `!i j r p. (i < 4) /\ (j < 4) /\ ~(i = j) /\ (i < j) /\ (&0 < r) ==> ~((p + r*# (cis(&i * pi/(&2)))) = (p + r*# (cis(&j * pi/(&2)))))` SUBGOAL_TAC;
+  TYPE_THEN `!i j r p. (i < 4) /\ (j < 4) /\ ~(i = j) /\ (i < j) /\ (&0 < r) ==> ~((p + r*# (cis(&i * pi/(&2)))) = (p + r*# (cis(&j * pi/(&2)))))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `!p x y. (euclid_plus p x = euclid_plus p y) ==> (x = y)` SUBGOAL_TAC;
+  TYPE_THEN `!p x y. (euclid_plus p x = euclid_plus p y) ==> (x = y)` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_plus];
   REP_BASIC_TAC;
   USE 6 (REWRITE_RULE[FUN_EQ_THM]);
@@ -26435,17 +26435,17 @@ let cis_distinct = prove_by_refinement(
   DISCH_THEN (fun t-> USE 0 (MATCH_MP t));
   USE 0 (AP_TERM `( *# ) (&1/r)`);
   USE 0 (REWRITE_RULE [euclid_scale_act]);
-  TYPE_THEN `&1/r * r = &1` SUBGOAL_TAC;
+  TYPE_THEN `&1/r * r = &1` SUBGOAL_MP_TAC;
   ONCE_REWRITE_TAC [REAL_ARITH `x*y = y*x`];
   ASM_MESON_TAC[REAL_DIV_LMUL;REAL_ARITH `&0 < r ==> ~(r = &0)`];
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
   USE 0(REWRITE_RULE[euclid_scale_one]);
-  TYPE_THEN `((i=0) /\ (j=1))\/ ((i=0) /\ (j=2)) \/ ((i=0) /\ (j=3)) \/ ((i=1) /\ (j=2)) \/ ((i=1) /\ (j=3)) \/ ((i=2)/\ (j=3))` SUBGOAL_TAC;
+  TYPE_THEN `((i=0) /\ (j=1))\/ ((i=0) /\ (j=2)) \/ ((i=0) /\ (j=3)) \/ ((i=1) /\ (j=2)) \/ ((i=1) /\ (j=3)) \/ ((i=2)/\ (j=3))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cases4;
   ASM_REWRITE_TAC[];
   REP_CASES_TAC THEN (FIRST_ASSUM MP_TAC) THEN (DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t;REAL_ARITH `(&1*x=x) /\ (&0*x= &0)`;e1;e2;cis0;cispi;cispi2;cis3pi2;neg_point;point_inj; PAIR_SPLIT; REAL_ARITH `~(&1 = &0) /\ ~(&0 = &1) /\ (-- &0 = &0) /\ ~(&1 = -- &1) /\ ~(-- &1 = &0) /\ ~(&0 = -- &1)`;REAL_MUL_2; REAL_HALF_DOUBLE ]))) THEN (ASM_REWRITE_TAC[]);
   REP_BASIC_TAC;
-  TYPE_THEN `( i <| j) \/ (j <| i)` SUBGOAL_TAC;
+  TYPE_THEN `( i <| j) \/ (j <| i)` SUBGOAL_MP_TAC;
   UND 2;
   ARITH_TAC;
   REP_CASES_TAC;
@@ -26498,10 +26498,10 @@ let d_euclidpq = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `!z. d_euclid p z = d_euclid (p + euclid0) z` SUBGOAL_TAC;
+  TYPE_THEN `!z. d_euclid p z = d_euclid (p + euclid0) z` SUBGOAL_MP_TAC;
   REWRITE_TAC[euclid_rzero];
   DISCH_THEN (fun t->ONCE_REWRITE_TAC[t]);
-  TYPE_THEN `d_euclid (euclid_plus p euclid0) (euclid_plus p q) = d_euclid euclid0 q` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid (euclid_plus p euclid0) (euclid_plus p q) = d_euclid euclid0 q` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_translate_LEFT;
   TYPE_THEN `n` EXISTS_TAC;
   ASM_REWRITE_TAC[euclid_euclid0;polar_euclid;];
@@ -26536,12 +26536,12 @@ let degree4_vertex_hv = prove_by_refinement(
   BETA_TAC;
   ASM_REWRITE_TAC[];
   (* -- *)
-  TYPE_THEN `!i. ~(r *# cis (&i * pi/(&2)) = euclid0)` SUBGOAL_TAC;
+  TYPE_THEN `!i. ~(r *# cis (&i * pi/(&2)) = euclid0)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   ASM_MESON_TAC[polar_nz;REAL_ARITH `&0 < r ==> ~( r= &0)`];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!i . euclid 2 (r *# cis (&i * pi/(&2)))` SUBGOAL_TAC;
+  TYPE_THEN `!i . euclid 2 (r *# cis (&i * pi/(&2)))` SUBGOAL_MP_TAC;
   GEN_TAC;
   REWRITE_TAC[polar_euclid];
   DISCH_TAC;
@@ -26571,7 +26571,7 @@ let degree4_vertex_hv = prove_by_refinement(
   TYPE_THEN `2` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
-  TYPE_THEN `!i. d_euclid p (euclid_plus p (r *# cis (&i * pi / &2))) = d_euclid (r *# cis (&i * pi / &2)) euclid0` SUBGOAL_TAC;
+  TYPE_THEN `!i. d_euclid p (euclid_plus p (r *# cis (&i * pi / &2))) = d_euclid (r *# cis (&i * pi / &2)) euclid0` SUBGOAL_MP_TAC;
   GEN_TAC;
   IMATCH_MP_TAC  d_euclidpq;
   TYPE_THEN `2` EXISTS_TAC;
@@ -26584,7 +26584,7 @@ let degree4_vertex_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[polar_euclid;euclid_add_closure];
   (* [B] *)
-  TYPE_THEN `!a q. (euclid 2 q) /\ (&0 <= a) /\ (a <= &1) ==> (d_euclid p (a*#p + (&1 - a)*#(p + q)) = (&1 - a)*(d_euclid p (p + q)))` SUBGOAL_TAC;
+  TYPE_THEN `!a q. (euclid 2 q) /\ (&0 <= a) /\ (a <= &1) ==> (d_euclid p (a*#p + (&1 - a)*#(p + q)) = (&1 - a)*(d_euclid p (p + q)))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  d_euclid_mk_segment;
   TYPE_THEN `2` EXISTS_TAC;
@@ -26592,15 +26592,15 @@ let degree4_vertex_hv = prove_by_refinement(
   ASM_MESON_TAC[euclid_add_closure];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!a i. (&0 <= a) /\ (a <= &1) ==> (d_euclid p (a*#p + (&1 - a)*#(p + r *# (cis (&i * pi/(&2))))) = (&1 - a)*r)` SUBGOAL_TAC;
+  TYPE_THEN `!a i. (&0 <= a) /\ (a <= &1) ==> (d_euclid p (a*#p + (&1 - a)*#(p + r *# (cis (&i * pi/(&2))))) = (&1 - a)*r)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `d_euclid p (p + r *# (cis (&i * pi/(&2)))) = norm2 ( r *# (cis (&i * pi/(&2))))` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid p (p + r *# (cis (&i * pi/(&2)))) = norm2 ( r *# (cis (&i * pi/(&2))))` SUBGOAL_MP_TAC;
   REWRITE_TAC[norm2];
   IMATCH_MP_TAC  d_euclidpq;
   TYPE_THEN `2` EXISTS_TAC;
   ASM_REWRITE_TAC[polar_euclid];
   REWRITE_TAC[norm2_scale_cis];
-  TYPE_THEN `abs  r = r` SUBGOAL_TAC;
+  TYPE_THEN `abs  r = r` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -26624,12 +26624,12 @@ let degree4_vertex_hv = prove_by_refinement(
   REWR 5;
   ASM_REWRITE_TAC[];
   REWR 7;
-  TYPE_THEN `&1 * r <= (&1 - a) * r` SUBGOAL_TAC;
+  TYPE_THEN `&1 * r <= (&1 - a) * r` SUBGOAL_MP_TAC;
   REDUCE_TAC;
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[REAL_LE_RMUL_EQ];
   DISCH_TAC;
-  TYPE_THEN `a = &0` SUBGOAL_TAC;
+  TYPE_THEN `a = &0` SUBGOAL_MP_TAC;
   UND 10;
   UND 8;
   REAL_ARITH_TAC;
@@ -26642,7 +26642,7 @@ let degree4_vertex_hv = prove_by_refinement(
   REWRITE_TAC [REAL_ARITH `&0 <= &0 /\ &0 <= &1`];
   REDUCE_TAC;
   REWRITE_TAC[euclid_scale0;euclid_scale_one;euclid_lzero];
-  TYPE_THEN `d_euclid p (euclid_plus p (r *# cis (&i * pi / &2))) = d_euclid (r *# cis (&i * pi/(&2))) euclid0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid p (euclid_plus p (r *# cis (&i * pi / &2))) = d_euclid (r *# cis (&i * pi/(&2))) euclid0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  d_euclidpq;
   TYPE_THEN `2` EXISTS_TAC;
   ASM_REWRITE_TAC[polar_euclid];
@@ -26682,13 +26682,13 @@ let diff_pow1 = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(\ x. (t * x)) = (\x. (t * (\u. (u pow 1)) x))` SUBGOAL_TAC;
+  TYPE_THEN `(\ x. (t * x)) = (\x. (t * (\u. (u pow 1)) x))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   BETA_TAC;
   REWRITE_TAC[POW_1];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `((\x. (t * (\u. (u pow 1)) x)) diffl (t* &1)) x ` SUBGOAL_TAC;
+  TYPE_THEN `((\x. (t * (\u. (u pow 1)) x)) diffl (t* &1)) x ` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  DIFF_CMUL;
   TYPEL_THEN[`1`;`x`] (fun t-> ASSUME_TAC  (ISPECL t DIFF_POW));
   UND 0;
@@ -26725,7 +26725,7 @@ let sinx_le_x = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SIN_0;];
   REAL_ARITH_TAC;
-  TYPE_THEN `&0 < x` SUBGOAL_TAC;
+  TYPE_THEN `&0 < x` SUBGOAL_MP_TAC;
   UND 0;
   UND 1;
   REAL_ARITH_TAC;
@@ -26733,11 +26733,11 @@ let sinx_le_x = prove_by_refinement(
   DISCH_TAC;
   (* -- *)
   TYPE_THEN `f = ( \ t x. t * x - sin(x))` ABBREV_TAC ;
-  TYPE_THEN `!t. (&1 < t) ==> (!x. (&0 < x) ==> (&0 < f t x))` SUBGOAL_TAC;
+  TYPE_THEN `!t. (&1 < t) ==> (!x. (&0 < x) ==> (&0 < f t x))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
   (* --- *)
-  TYPE_THEN `!x. (f t diffl (t - cos x)) x` SUBGOAL_TAC;
+  TYPE_THEN `!x. (f t diffl (t - cos x)) x` SUBGOAL_MP_TAC;
   EXPAND_TAC "f";
   GEN_TAC;
   IMATCH_MP_TAC  DIFF_SUB;
@@ -26753,7 +26753,7 @@ let sinx_le_x = prove_by_refinement(
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
   UND 6;
-  TYPE_THEN `f t (&0) = &0` SUBGOAL_TAC;
+  TYPE_THEN `f t (&0) = &0` SUBGOAL_MP_TAC;
   EXPAND_TAC "f";
   REWRITE_TAC[SIN_0];
   REDUCE_TAC;
@@ -26766,7 +26766,7 @@ let sinx_le_x = prove_by_refinement(
   IMATCH_MP_TAC  REAL_LT_MUL;
   ASM_REWRITE_TAC[];
   TSPEC `z` 5;
-  TYPE_THEN `l = t - cos z` SUBGOAL_TAC;
+  TYPE_THEN `l = t - cos z` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  DIFF_UNIQ;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
@@ -26782,7 +26782,7 @@ let sinx_le_x = prove_by_refinement(
   DISCH_TAC;
   IMATCH_MP_TAC  (REAL_ARITH  `~(x < sin x) ==> (sin x <= x)`) ;
   DISCH_TAC;
-  TYPE_THEN `&1 < sin x/x` SUBGOAL_TAC;
+  TYPE_THEN `&1 < sin x/x` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[REAL_LT_RDIV_EQ];
   REDUCE_TAC;
   ASM_REWRITE_TAC[];
@@ -26807,16 +26807,16 @@ let abssinx_lemma = prove_by_refinement(
   [
   GEN_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `abs  x = x` SUBGOAL_TAC;
+  TYPE_THEN `abs  x = x` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   TYPE_THEN `x <= pi` ASM_CASES_TAC;
-  TYPE_THEN `&0 <= sin x` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= sin x` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SIN_POS_PI_LE;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `abs  (sin x) = sin x` SUBGOAL_TAC;
+  TYPE_THEN `abs  (sin x) = sin x` SUBGOAL_MP_TAC;
   UND 2;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -26829,7 +26829,7 @@ let abssinx_lemma = prove_by_refinement(
   UND 2;
   REAL_ARITH_TAC;
   UND 1;
-  TYPE_THEN `&3 < pi` SUBGOAL_TAC;
+  TYPE_THEN `&3 < pi` SUBGOAL_MP_TAC;
   REWRITE_TAC[pi_bounds];
   REAL_ARITH_TAC;
   (* Tue Aug 17 22:54:49 EDT 2004 *)
@@ -26842,12 +26842,12 @@ let abssinx_le = prove_by_refinement(
   (* {{{ proof *)
   [
   GEN_TAC;
-  TYPE_THEN `(&0 <= x) \/ (&0 <= -- x)` SUBGOAL_TAC;
+  TYPE_THEN `(&0 <= x) \/ (&0 <= -- x)` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
   ASM_MESON_TAC[abssinx_lemma];
   TYPE_THEN `y = --x` ABBREV_TAC ;
-  TYPE_THEN `x = --y` SUBGOAL_TAC;
+  TYPE_THEN `x = --y` SUBGOAL_MP_TAC;
   UND 1;
   REAL_ARITH_TAC;
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])));
@@ -26875,7 +26875,7 @@ let sin_half = prove_by_refinement(
   GEN_TAC;
   ASSUME_TAC cos_double2;
   TSPEC `x/ &2` 0;
-  TYPE_THEN `&2 *(x/(&2)) = x` SUBGOAL_TAC;
+  TYPE_THEN `&2 *(x/(&2)) = x` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_MUL_2;];
   REDUCE_TAC;
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]));
@@ -26900,13 +26900,13 @@ let cosdiff2 = prove_by_refinement(
   [
   REP_GEN_TAC;
   REWRITE_TAC[POW_MUL];
-  TYPE_THEN  `!z. &2 pow 2 * z = &2 *(&2 *z)` SUBGOAL_TAC ;
+  TYPE_THEN  `!z. &2 pow 2 * z = &2 *(&2 *z)` SUBGOAL_MP_TAC ;
   REWRITE_TAC[POW_2];
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
   REWRITE_TAC[sin_half];
 
-  TYPE_THEN `cos (x - y) = cos (x + (--y))` SUBGOAL_TAC;
+  TYPE_THEN `cos (x - y) = cos (x + (--y))` SUBGOAL_MP_TAC;
   AP_TERM_TAC;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -26919,7 +26919,7 @@ let cosdiff2 = prove_by_refinement(
   TYPE_THEN `a' = cos y` ABBREV_TAC ;
   TYPE_THEN `b' = sin y` ABBREV_TAC ;
   REWRITE_TAC[REAL_ARITH `x*(y-z) = x*y - x*z`];
-  TYPE_THEN `&2 * &1 = ((b pow 2) + (a pow 2)) + ((b' pow 2) + (a' pow 2))` SUBGOAL_TAC;
+  TYPE_THEN `&2 * &1 = ((b pow 2) + (a pow 2)) + ((b' pow 2) + (a' pow 2))` SUBGOAL_MP_TAC;
   EXPAND_TAC "a";
   EXPAND_TAC "b";
   EXPAND_TAC "a'";
@@ -26957,7 +26957,7 @@ let d_euclid_cis_ineq = prove_by_refinement(
   IMATCH_MP_TAC  REAL_PROP_LE_LMUL;
   ASM_REWRITE_TAC[REAL_ARITH `&0 <= &2`;abssinx_le];
   REWRITE_TAC[REAL_ARITH `!z. &2*(abs  z) = abs  (&2 *z)`];
-  TYPE_THEN `&2 * ((x - y)/(&2)) = (x - y)` SUBGOAL_TAC;
+  TYPE_THEN `&2 * ((x - y)/(&2)) = (x - y)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_DIV_LMUL;
   REAL_ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -26978,7 +26978,7 @@ let polar_fg_inj = prove_by_refinement(
   ASM_SIMP_TAC[euclid_add_closure;polar_euclid];
   REP_BASIC_TAC;
   (* INSERT *)
-  TYPE_THEN `(f x *# cis (g x)) = (f y *# cis (g y))` SUBGOAL_TAC;
+  TYPE_THEN `(f x *# cis (g x)) = (f y *# cis (g y))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   USE 3 (REWRITE_RULE[FUN_EQ_THM]);
@@ -26991,7 +26991,7 @@ let polar_fg_inj = prove_by_refinement(
   (* end ins *)
   USE 3 (AP_TERM `norm2`);
   USE 3 (REWRITE_RULE[norm2_scale_cis]);
-  TYPE_THEN `&0 <= f x /\ &0 <= f y` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= f x /\ &0 <= f y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
   RULE_ASSUM_TAC  (REWRITE_RULE[GSYM REAL_ABS_REFL]);
@@ -27018,10 +27018,10 @@ let polar_distinct = prove_by_refinement(
   COPY 0;
   USE 0 (AP_TERM `norm2`);
   USE 0 (REWRITE_RULE[norm2_scale_cis]);
-  TYPE_THEN `&0 < f x /\ &0 < f y` SUBGOAL_TAC;
+  TYPE_THEN `&0 < f x /\ &0 < f y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `f x = f y` SUBGOAL_TAC;
+  TYPE_THEN `f x = f y` SUBGOAL_MP_TAC;
   UND 0;
   UND 10;
   UND 11;
@@ -27089,7 +27089,7 @@ let polar_cont = prove_by_refinement(
   [
   REP_GEN_TAC;
   DISCH_TAC;
-  TYPE_THEN `IMAGE (\t. p + (f t) *# cis(g t)) UNIV SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `IMAGE (\t. p + (f t) *# cis(g t)) UNIV SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET;IMAGE ];
   ASM_MESON_TAC[euclid_add_closure;polar_euclid];
   REWRITE_TAC[top2];
@@ -27102,10 +27102,10 @@ let polar_cont = prove_by_refinement(
   TYPEL_THEN [`x`;`epsilon/(&2)`] (USE 3 o ISPECL);
   TYPEL_THEN [`x`;`(&1/(&1 + abs  (f x)))*(epsilon/(&2))`] (USE 2 o ISPECL);
   REP_BASIC_TAC;
-  TYPE_THEN `&0 < epsilon/(&2)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < epsilon/(&2)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   DISCH_TAC;
-  TYPE_THEN `&0 < &1 / (&1 + abs (f x)) * epsilon / &2` SUBGOAL_TAC;
+  TYPE_THEN `&0 < &1 / (&1 + abs (f x)) * epsilon / &2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_PROP_POS_MUL2;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  REAL_LT_DIV;
@@ -27123,7 +27123,7 @@ let polar_cont = prove_by_refinement(
   REAL_ARITH_TAC;
   REAL_ARITH_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `d_real x y < delta /\ d_real x y < delta'` SUBGOAL_TAC ;
+  TYPE_THEN `d_real x y < delta /\ d_real x y < delta'` SUBGOAL_MP_TAC ;
   UND 9;
   REWRITE_TAC[min_real];
   COND_CASES_TAC;
@@ -27139,7 +27139,7 @@ let polar_cont = prove_by_refinement(
   (* A-- *)
   IMATCH_MP_TAC  REAL_LET_TRANS;
   TYPE_THEN `d_euclid (p + f x *# cis(g x)) (p + f x *# cis(g y)) + d_euclid (p + f x *# cis(g y)) (p + f y *# cis(g y))` EXISTS_TAC;
-  TYPE_THEN `!z r x r' x'. d_euclid (p + r *# (cis x)) (p + r' *# (cis x')) = d_euclid (r*# (cis x)) (r' *# (cis x'))` SUBGOAL_TAC;
+  TYPE_THEN `!z r x r' x'. d_euclid (p + r *# (cis x)) (p + r' *# (cis x')) = d_euclid (r*# (cis x)) (r' *# (cis x'))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  metric_translate_LEFT;
   TYPE_THEN `2` EXISTS_TAC;
@@ -27154,7 +27154,7 @@ let polar_cont = prove_by_refinement(
   TYPEL_THEN[`2`;`f x`;`cis (g x)`;`cis (g y)`] (fun t-> ANT_TAC (ISPECL t norm_scale_vec));
   REWRITE_TAC[cis;euclid_point];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `!x y z. (x <= z/ &2 /\ y < z/ &2 ==> x + y < z/ &2 + z/ &2)` SUBGOAL_TAC;
+  TYPE_THEN `!x y z. (x <= z/ &2 /\ y < z/ &2 ==> x + y < z/ &2 + z/ &2)` SUBGOAL_MP_TAC;
   REAL_ARITH_TAC;
   REWRITE_TAC[REAL_HALF_DOUBLE];
   DISCH_THEN IMATCH_MP_TAC ;
@@ -27254,16 +27254,16 @@ let curve_annulus_lemma = prove_by_refinement(
   REP_BASIC_TAC;
   UND 2;
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC  (REWRITE_RULE[t])));
-  TYPE_THEN `d_euclid p (euclid_plus p ((x' * r + (&1 - x') * r / &2) *# cis (g x'))) = d_euclid ((x' * r + (&1 - x') * r / &2) *# cis (g x')) euclid0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid p (euclid_plus p ((x' * r + (&1 - x') * r / &2) *# cis (g x'))) = d_euclid ((x' * r + (&1 - x') * r / &2) *# cis (g x')) euclid0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  d_euclidpq;
   TYPE_THEN `2` EXISTS_TAC;
   ASM_REWRITE_TAC[polar_euclid];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[GSYM norm2;norm2_scale_cis];
-  TYPE_THEN `r/(&2) < r` SUBGOAL_TAC;
+  TYPE_THEN `r/(&2) < r` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[half_pos];
   DISCH_TAC;
-  TYPE_THEN `(min_real (r/(&2)) r = (r/(&2))) /\ (max_real (r/(&2)) r = r)` SUBGOAL_TAC;
+  TYPE_THEN `(min_real (r/(&2)) r = (r/(&2))) /\ (max_real (r/(&2)) r = r)` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real;max_real];
   ASM_REWRITE_TAC[];
   COND_CASES_TAC;
@@ -27272,7 +27272,7 @@ let curve_annulus_lemma = prove_by_refinement(
   REAL_ARITH_TAC;
   REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `&0 <= (x' *r + (&1 - x')*(r/(&2)))` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= (x' *r + (&1 - x')*(r/(&2)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_LE_TRANS;
   TYPE_THEN `min_real (r/ &2) r` EXISTS_TAC ;
   CONJ_TAC;
@@ -27326,16 +27326,16 @@ let curve_circle_lemma = prove_by_refinement(
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])));
   PROOF_BY_CONTR_TAC;
   UND 2;
-  TYPE_THEN `d_euclid p (euclid_plus p ((x' * r + (&1 - x') * r / &2) *# cis (g x'))) = d_euclid ((x' * r + (&1 - x') * r / &2) *# cis (g x')) euclid0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid p (euclid_plus p ((x' * r + (&1 - x') * r / &2) *# cis (g x'))) = d_euclid ((x' * r + (&1 - x') * r / &2) *# cis (g x')) euclid0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  d_euclidpq;
   TYPE_THEN `2` EXISTS_TAC;
   ASM_REWRITE_TAC[polar_euclid];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[GSYM norm2;norm2_scale_cis];
-  TYPE_THEN `r/(&2) < r` SUBGOAL_TAC;
+  TYPE_THEN `r/(&2) < r` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[half_pos];
   DISCH_TAC;
-  TYPE_THEN `(min_real (r/(&2)) r = (r/(&2))) /\ (max_real (r/(&2)) r = r)` SUBGOAL_TAC;
+  TYPE_THEN `(min_real (r/(&2)) r = (r/(&2))) /\ (max_real (r/(&2)) r = r)` SUBGOAL_MP_TAC;
   REWRITE_TAC[min_real;max_real];
   ASM_REWRITE_TAC[];
   COND_CASES_TAC;
@@ -27344,7 +27344,7 @@ let curve_circle_lemma = prove_by_refinement(
   REAL_ARITH_TAC;
   REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `&0 <= (x' *r + (&1 - x')*(r/(&2)))` SUBGOAL_TAC;
+  TYPE_THEN `&0 <= (x' *r + (&1 - x')*(r/(&2)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  REAL_LE_TRANS;
   TYPE_THEN `min_real (r/ &2) r` EXISTS_TAC ;
   CONJ_TAC;
@@ -27355,14 +27355,14 @@ let curve_circle_lemma = prove_by_refinement(
   ASM_MESON_TAC[lc_bounds];
   REWRITE_TAC[GSYM ABS_REFL];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~(x'  = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(x'  = &0)` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 7;
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])));
   UND 3;
   REDUCE_TAC;
   DISCH_TAC;
-  TYPE_THEN `&0 < x'` SUBGOAL_TAC;
+  TYPE_THEN `&0 < x'` SUBGOAL_MP_TAC;
   UND 7;
   UND 5;
   REAL_ARITH_TAC;
@@ -27400,7 +27400,7 @@ let curve_simple_lemma = prove_by_refinement(
   CONJ_TAC;
   REP_BASIC_TAC;
   USE 3 (ONCE_REWRITE_RULE[REAL_ARITH `( x = y) <=> (x - y = &0)`]);
-  TYPE_THEN `(x * r + (&1 - x) * r / &2) - (y * r + (&1 - y) * r / &2) = (x - y)*(r - r/(&2)) ` SUBGOAL_TAC;
+  TYPE_THEN `(x * r + (&1 - x) * r / &2) - (y * r + (&1 - y) * r / &2) = (x - y)*(r - r/(&2)) ` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_TAC;
   REWR 3;
@@ -27411,7 +27411,7 @@ let curve_simple_lemma = prove_by_refinement(
   REAL_ARITH_TAC;
   PROOF_BY_CONTR_TAC;
   UND 3;
-  TYPE_THEN `r - r/(&2) = (r/ &2 + r/ &2) - r/ &2` SUBGOAL_TAC;
+  TYPE_THEN `r - r/(&2) = (r/ &2 + r/ &2) - r/ &2` SUBGOAL_MP_TAC;
   REWRITE_TAC[REAL_HALF_DOUBLE];
   DISCH_THEN_REWRITE;
   REWRITE_TAC[REAL_ARITH `(x + x) - x = x`];
@@ -27427,10 +27427,10 @@ let curve_simple_lemma = prove_by_refinement(
   IMATCH_MP_TAC  REAL_LE_TRANS;
   TYPE_THEN `min_real r (r/ &2)` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `r / &2 < r` SUBGOAL_TAC;
+  TYPE_THEN `r / &2 < r` SUBGOAL_MP_TAC;
   UND 2;
   MESON_TAC [half_pos];
-  TYPE_THEN `&0 < r/ (&2)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < r/ (&2)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[half_pos];
   TYPE_THEN `a = r/ &2` ABBREV_TAC ;
   REWRITE_TAC[min_real];
@@ -27509,7 +27509,7 @@ let segpath_lemma = prove_by_refinement(
   UND 4;
   REAL_ARITH_TAC;
   (* -- *)
-  TYPE_THEN `&0 < t * (x' - x) + (&1 - t)*(y' - y)` SUBGOAL_TAC;
+  TYPE_THEN `&0 < t * (x' - x) + (&1 - t)*(y' - y)` SUBGOAL_MP_TAC;
   ineq_lt_tac `&0 + t * (x' - x) + (&1 - t)*(y' - y) = (t*(x' - x) + (&1- t)*(y' - y))` ;
   UND 5;
   UND 1;
@@ -27538,7 +27538,7 @@ let segpath_inj = prove_by_refinement(
   REWRITE_TAC[segpath;INJ;SUBSET_UNIV];
   REP_BASIC_TAC;
   USE 0 (ONCE_REWRITE_RULE[REAL_ARITH `( x = y) <=> (x - y = &0)`]);
-  TYPE_THEN `(x' * x + (&1 - x') * y) - (y' * x + (&1 - y') * y) = (x' - y')*(x - y) ` SUBGOAL_TAC;
+  TYPE_THEN `(x' * x + (&1 - x') * y) - (y' * x + (&1 - y') * y) = (x' - y')*(x - y) ` SUBGOAL_MP_TAC;
   real_poly_tac;
   DISCH_TAC;
   REWR 0;
@@ -27590,7 +27590,7 @@ let degree_vertex_annulus = prove_by_refinement(
   ASM_REWRITE_TAC[segpath_lemma];
   REWRITE_TAC[segpath_end];
   (* -- *)
-  TYPE_THEN `&0 < r/ &2 /\ r / &2 < r` SUBGOAL_TAC;
+  TYPE_THEN `&0 < r/ &2 /\ r / &2 < r` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  half_pos;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -27621,7 +27621,7 @@ let degree_vertex_annulus = prove_by_refinement(
   DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]) THEN (REWRITE_TAC [t]));
   TYPEL_THEN[`x'`;`x''`] (USE 12 o ISPECL);
   REWR 12;
-  TYPE_THEN `((x'' * r + (&1 - x'') * r / &2) *# cis (segpath (xx j) (zz j) x'')) = ((x' * r + (&1 - x') * r / &2) *# cis (segpath (xx i) (zz i) x'))` SUBGOAL_TAC;
+  TYPE_THEN `((x'' * r + (&1 - x'') * r / &2) *# cis (segpath (xx j) (zz j) x'')) = ((x' * r + (&1 - x') * r / &2) *# cis (segpath (xx i) (zz i) x'))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   USE 16 ( (REWRITE_RULE[FUN_EQ_THM]));
@@ -27637,7 +27637,7 @@ let degree_vertex_annulus = prove_by_refinement(
   USE 16 GSYM;
   UND 16;
     DISCH_THEN (fun t-> RULE_ASSUM_TAC (REWRITE_RULE[t]) THEN (REWRITE_TAC [t]));
-  TYPE_THEN `(i <| j) \/ (j < i)` SUBGOAL_TAC;
+  TYPE_THEN `(i <| j) \/ (j < i)` SUBGOAL_MP_TAC;
   UND 7;
   ARITH_TAC;
   (* ---- *)
@@ -27677,7 +27677,7 @@ let closed_ball2_center = prove_by_refinement(
   (* {{{ proof *)
   [
   REWRITE_TAC[closed_ball];
-  TYPE_THEN `!p. (euclid 2 p) ==> (d_euclid p p = &0)` SUBGOAL_TAC;
+  TYPE_THEN `!p. (euclid 2 p) ==> (d_euclid p p = &0)` SUBGOAL_MP_TAC;
   DISCH_ALL_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
@@ -27709,14 +27709,14 @@ let degree_vertex_disk = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `(&0 < (r /(&2))) /\ (euclid 2 p)` SUBGOAL_TAC;
+  TYPE_THEN `(&0 < (r /(&2))) /\ (euclid 2 p)` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[REAL_LT_HALF1];
   DISCH_THEN (fun t-> MP_TAC (MATCH_MP   degree4_vertex_hv t));
   REP_BASIC_TAC;
   TYPE_THEN `C' = C` ABBREV_TAC ;
   KILL 10;
   TYPE_THEN `zz = (\j. (&j) * pi/(&2))` ABBREV_TAC ;
-  TYPE_THEN `(&0 < r) /\ (euclid 2 p) /\  (!j. j < 4 ==> (&0 <= xx j /\ xx j < &2 * pi)) /\  (!j. j < 4 ==> (&0 <= zz j /\ zz j < &2 * pi)) /\  (!i j. (i < j) /\ (j < 4) ==> (xx i < xx j)) /\ (!i j. (i < j) /\ (j < 4) ==> (zz i < zz j))` SUBGOAL_TAC;
+  TYPE_THEN `(&0 < r) /\ (euclid 2 p) /\  (!j. j < 4 ==> (&0 <= xx j /\ xx j < &2 * pi)) /\  (!j. j < 4 ==> (&0 <= zz j /\ zz j < &2 * pi)) /\  (!i j. (i < j) /\ (j < 4) ==> (xx i < xx j)) /\ (!i j. (i < j) /\ (j < 4) ==> (zz i < zz j))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
   EXPAND_TAC "zz";
@@ -27752,7 +27752,7 @@ let degree_vertex_disk = prove_by_refinement(
   TYPE_THEN `(\j. C' j UNION C'' j)` EXISTS_TAC;
   BETA_TAC;
   (* B 1st conjunct *)
-  TYPE_THEN `!i. (i<| 4) ==> (simple_arc_end (C' i ) p (p + ((r/ &2) *# (cis (&i * pi/(&2))))) /\   simple_arc_end (C'' i) (p + ((r/ &2) *# (cis (&i * pi/(&2))))) (euclid_plus p (r *# cis (xx i))) /\ (C' i) SUBSET closed_ball (euclid 2,d_euclid) p (r / &2) /\  ((C' i) INTER (C'' i) = {(p + ((r/ &2) *# (cis (&i * pi/(&2)))))})) ` SUBGOAL_TAC;
+  TYPE_THEN `!i. (i<| 4) ==> (simple_arc_end (C' i ) p (p + ((r/ &2) *# (cis (&i * pi/(&2))))) /\   simple_arc_end (C'' i) (p + ((r/ &2) *# (cis (&i * pi/(&2))))) (euclid_plus p (r *# cis (xx i))) /\ (C' i) SUBSET closed_ball (euclid 2,d_euclid) p (r / &2) /\  ((C' i) INTER (C'' i) = {(p + ((r/ &2) *# (cis (&i * pi/(&2)))))})) ` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   SUBCONJ_TAC;
   ASM_MESON_TAC[];
@@ -27769,7 +27769,7 @@ let degree_vertex_disk = prove_by_refinement(
   REWRITE_TAC[INR IN_SING;INTER ];
   EQ_TAC;
   DISCH_TAC;
-  TYPE_THEN `closed_ball (euclid 2,d_euclid) p (r / &2) x` SUBGOAL_TAC;
+  TYPE_THEN `closed_ball (euclid 2,d_euclid) p (r / &2) x` SUBGOAL_MP_TAC;
   UND 18;
   REWRITE_TAC[SUBSET];
   UND 19;
@@ -27792,7 +27792,7 @@ let degree_vertex_disk = prove_by_refinement(
   ASM_REWRITE_TAC[];
   (* [C] 1nd conjunct. simple-arc-end; *)
   TYPE_THEN `D = closed_ball (euclid 2,d_euclid) p (r /(&2))` ABBREV_TAC ;
-  TYPE_THEN `!i x. (i <| 4) /\ (D x) ==> ((C' i UNION C'' i) x = C' i x)` SUBGOAL_TAC;
+  TYPE_THEN `!i x. (i <| 4) /\ (D x) ==> ((C' i UNION C'' i) x = C' i x)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[UNION];
   IMATCH_MP_TAC  (TAUT `(b ==> a) ==> (a \/ b <=> a)`);
@@ -27809,7 +27809,7 @@ let degree_vertex_disk = prove_by_refinement(
   ASM_MESON_TAC[simple_arc_end_end2];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!i x. (i <| 4) /\ ~(D x) ==> ((C' i UNION C'' i) x = C'' i x)` SUBGOAL_TAC;
+  TYPE_THEN `!i x. (i <| 4) /\ ~(D x) ==> ((C' i UNION C'' i) x = C'' i x)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[UNION];
   IMATCH_MP_TAC  (TAUT `(a ==> b) ==> (a \/ b <=> b)`);
@@ -27885,7 +27885,7 @@ let degree_vertex_disk = prove_by_refinement(
   ASM_REWRITE_TAC[];
   EXPAND_TAC "D";
   REWRITE_TAC[SUBSET;closed_ball;];
-  TYPE_THEN `r / &2 < r` SUBGOAL_TAC;
+  TYPE_THEN `r / &2 < r` SUBGOAL_MP_TAC;
   UND 3;
   MESON_TAC[half_pos];
   MESON_TAC[REAL_ARITH `(x <= y) /\ (y < z) ==> (x <= z)`];
@@ -27896,7 +27896,7 @@ let degree_vertex_disk = prove_by_refinement(
   ASM_REWRITE_TAC[];
   TSPEC `i` 14;
   REWR 12;
-  TYPE_THEN `C'' i SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `C'' i SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  simple_arc_end_simple;
   UND 12;
@@ -27909,7 +27909,7 @@ let degree_vertex_disk = prove_by_refinement(
   KILL 8;
   KILL 11;
   KILL 12;
-  TYPE_THEN `(C' i UNION C'' i) INTER D = (C' i INTER D)` SUBGOAL_TAC;
+  TYPE_THEN `(C' i UNION C'' i) INTER D = (C' i INTER D)` SUBGOAL_MP_TAC;
   REWRITE_TAC[INTER];
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[];
@@ -27960,13 +27960,13 @@ let EXPinj = prove_by_refinement(
   `!x y n. (1 < n) /\ (n **| x = n **| y) ==> (x = y)`,
   (* {{{ proof *)
   [
-  TYPE_THEN `! x y n. (x <| y) /\ (n **| x = n **| y) ==> ~(1 <| n)` SUBGOAL_TAC;
+  TYPE_THEN `! x y n. (x <| y) /\ (n **| x = n **| y) ==> ~(1 <| n)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `n **| y <= n **| x` SUBGOAL_TAC;
+  TYPE_THEN `n **| y <= n **| x` SUBGOAL_MP_TAC;
   UND 1;
   ARITH_TAC;
   REWRITE_TAC[LE_EXP];
-  TYPE_THEN `~(n = 0)` SUBGOAL_TAC;
+  TYPE_THEN `~(n = 0)` SUBGOAL_MP_TAC;
   UND 0;
   ARITH_TAC;
   DISCH_THEN_REWRITE;
@@ -27979,7 +27979,7 @@ let EXPinj = prove_by_refinement(
   DISCH_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `x < y \/ y <| x` SUBGOAL_TAC;
+  TYPE_THEN `x < y \/ y <| x` SUBGOAL_MP_TAC;
   UND 3;
   ARITH_TAC;
   DISCH_THEN DISJ_CASES_TAC;
@@ -27999,11 +27999,11 @@ let infinite_interval = prove_by_refinement(
   TYPE_THEN `f = (\ n. a + (b-a)/((&2) pow (SUC n)))` ABBREV_TAC ;
   TYPE_THEN `IMAGE f  UNIV` EXISTS_TAC ;
   CONJ_TAC;
-  TYPE_THEN `(! x y. (f x = f y) ==> (x = y))` SUBGOAL_TAC;
+  TYPE_THEN `(! x y. (f x = f y) ==> (x = y))` SUBGOAL_MP_TAC;
   EXPAND_TAC "f";
   REP_BASIC_TAC;
   USE 2 (REWRITE_RULE[REAL_ARITH `(a + d = a + d') <=> (d = d')`;real_div;REAL_PROP_EQ_RMUL_';]);
-  TYPE_THEN `~(b - a = &0)` SUBGOAL_TAC;
+  TYPE_THEN `~(b - a = &0)` SUBGOAL_MP_TAC;
   UND 0;
   REAL_ARITH_TAC;
   DISCH_TAC;
@@ -28018,7 +28018,7 @@ let infinite_interval = prove_by_refinement(
   ASM_REWRITE_TAC[];
   ARITH_TAC;
   DISCH_TAC;
-  TYPE_THEN `INFINITE (UNIV:num->bool) ==> INFINITE (IMAGE f UNIV)` SUBGOAL_TAC;
+  TYPE_THEN `INFINITE (UNIV:num->bool) ==> INFINITE (IMAGE f UNIV)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[INFINITE_IMAGE_INJ];
   REWRITE_TAC[num_INFINITE];
   (* -- *)
@@ -28065,7 +28065,7 @@ let finite_augment1 = prove_by_refinement(
   TSPEC `X` 0;
   REWR 0;
   REP_BASIC_TAC;
-  TYPE_THEN `INFINITE (X DIFF Z)` SUBGOAL_TAC;
+  TYPE_THEN `INFINITE (X DIFF Z)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  INFINITE_DIFF_FINITE;
   ASM_REWRITE_TAC[];
   ASM_MESON_TAC[HAS_SIZE];
@@ -28094,7 +28094,7 @@ let finite_augment = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `INFINITE (Y DIFF X)` SUBGOAL_TAC;
+  TYPE_THEN `INFINITE (Y DIFF X)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  INFINITE_DIFF_FINITE;
   ASM_MESON_TAC[HAS_SIZE];
   DISCH_TAC;
@@ -28161,7 +28161,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `!x. (X x) ==> (?r t. &0 <= t /\ t < &2 * pi /\ &0 <= r /\ (x = p + r *# cis t))` SUBGOAL_TAC;
+  TYPE_THEN `!x. (X x) ==> (?r t. &0 <= t /\ t < &2 * pi /\ &0 <= r /\ (x = p + r *# cis t))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[euclid_cancel1];
   IMATCH_MP_TAC  polar_exist;
@@ -28169,7 +28169,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   ASM_MESON_TAC[euclid_sub_closure];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!x. (X x) ==> (?t. &0 <= t /\ t < &2 * pi /\ &0 <= r /\ (x = p + r *# cis t))` SUBGOAL_TAC;
+  TYPE_THEN `!x. (X x) ==> (?t. &0 <= t /\ t < &2 * pi /\ &0 <= r /\ (x = p + r *# cis t))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TSPEC `x` 5;
   REWR 5;
@@ -28191,7 +28191,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   DISCH_THEN_REWRITE;
   REWRITE_TAC[GSYM norm2;norm2_scale_cis];
   DISCH_TAC;
-  TYPE_THEN `abs  r' = r'` SUBGOAL_TAC;
+  TYPE_THEN `abs  r' = r'` SUBGOAL_MP_TAC;
   UND 7;
   REAL_ARITH_TAC;
   DISCH_TAC;
@@ -28201,7 +28201,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   KILL 5;
   (* -- *)
   TYPE_THEN `TX = {t | (&0 <= t /\ t < &2 *pi /\ (X( p + (r *# (cis t))))) }` ABBREV_TAC ;
-  TYPE_THEN `BIJ ( \ t. p + r *# cis t) TX X` SUBGOAL_TAC;
+  TYPE_THEN `BIJ ( \ t. p + r *# cis t) TX X` SUBGOAL_MP_TAC;
   REWRITE_TAC[BIJ;INJ;SURJ];
   SUBCONJ_TAC;
   CONJ_TAC;
@@ -28227,7 +28227,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `INFINITE {x | &0 <= x /\ x < &2* pi}` SUBGOAL_TAC;
+  TYPE_THEN `INFINITE {x | &0 <= x /\ x < &2* pi}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  infinite_subset;
   TYPE_THEN `{x | &0 < x /\ x < &2 * pi}` EXISTS_TAC;
   CONJ_TAC;
@@ -28239,7 +28239,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   MESON_TAC[REAL_ARITH `&0 < x ==> &0 <= x`];
   DISCH_TAC;
   (* A -- *)
-  TYPE_THEN `TX HAS_SIZE CARD X` SUBGOAL_TAC;
+  TYPE_THEN `TX HAS_SIZE CARD X` SUBGOAL_MP_TAC;
   REWRITE_TAC[HAS_SIZE];
   SUBCONJ_TAC;
   COPY 7;
@@ -28252,7 +28252,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `(?Z. (TX SUBSET Z /\ Z SUBSET {x | &0 <= x /\ x < &2 *pi}  /\ Z HAS_SIZE 4))` SUBGOAL_TAC;
+  TYPE_THEN `(?Z. (TX SUBSET Z /\ Z SUBSET {x | &0 <= x /\ x < &2 *pi}  /\ Z HAS_SIZE 4))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  finite_augment;
   TYPE_THEN `CARD X` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -28261,7 +28261,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   REAL_ARITH_TAC;
   REP_BASIC_TAC;
   (* B -- order points *)
-  TYPE_THEN `FINITE Z` SUBGOAL_TAC;
+  TYPE_THEN `FINITE Z` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[HAS_SIZE];
   DISCH_TAC;
   USE 13 (MATCH_MP real_finite_increase);
@@ -28290,19 +28290,19 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   TYPE_THEN `f = (\t. euclid_plus p (r *# cis t))` ABBREV_TAC ;
   TYPE_THEN `g = INV f TX X` ABBREV_TAC ;
   TYPE_THEN `u' = INV u {x | x <| 4} Z` ABBREV_TAC ;
-  TYPE_THEN `BIJ g X TX` SUBGOAL_TAC;
+  TYPE_THEN `BIJ g X TX` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   IMATCH_MP_TAC  INVERSE_BIJ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `BIJ u' Z {x | x <| 4}` SUBGOAL_TAC;
+  TYPE_THEN `BIJ u' Z {x | x <| 4}` SUBGOAL_MP_TAC;
   EXPAND_TAC "u'";
   IMATCH_MP_TAC  INVERSE_BIJ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `INJ (compose u'  g) X { x | x <| 4}` SUBGOAL_TAC;
+  TYPE_THEN `INJ (compose u'  g) X { x | x <| 4}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  COMP_INJ;
   TYPE_THEN `TX` EXISTS_TAC;
   CONJ_TAC;
@@ -28323,7 +28323,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   REP_BASIC_TAC;
   TYPE_THEN   `j = compose u' g i` ABBREV_TAC ;
   TSPEC `j` 17;
-  TYPE_THEN `j <| 4` SUBGOAL_TAC;
+  TYPE_THEN `j <| 4` SUBGOAL_MP_TAC;
   USE 23 (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   EXPAND_TAC "j";
@@ -28333,13 +28333,13 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   REWR 17;
   ASM_REWRITE_TAC[];
   (* --2-- *)
-  TYPE_THEN `i = f (u j)` SUBGOAL_TAC;
+  TYPE_THEN `i = f (u j)` SUBGOAL_MP_TAC;
   EXPAND_TAC "j";
   EXPAND_TAC "f";
   EXPAND_TAC "u'";
   REWRITE_TAC[compose];
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
-  TYPE_THEN `u (INV u {x | x <| 4} Z (g i)) = (g i)` SUBGOAL_TAC;
+  TYPE_THEN `u (INV u {x | x <| 4} Z (g i)) = (g i)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  inv_comp_right;
   ASM_REWRITE_TAC[];
   UND 21;
@@ -28348,7 +28348,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   UND 24;
   MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `f (g i) = i` SUBGOAL_TAC;
+  TYPE_THEN `f (g i) = i` SUBGOAL_MP_TAC;
   EXPAND_TAC "g";
   IMATCH_MP_TAC  inv_comp_right;
   ASM_REWRITE_TAC[];
@@ -28362,7 +28362,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   TYPE_THEN `i' = compose u' g i` ABBREV_TAC ;
   TYPE_THEN `j' = compose u' g j` ABBREV_TAC ;
   KILL 17;
-  TYPE_THEN `~(i' = j')` SUBGOAL_TAC;
+  TYPE_THEN `~(i' = j')` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 24;
   REWRITE_TAC[];
@@ -28371,7 +28371,7 @@ let degree_vertex_disk_ver2 = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(i' <| 4) /\ (j' <| 4) ` SUBGOAL_TAC;
+  TYPE_THEN `(i' <| 4) /\ (j' <| 4) ` SUBGOAL_MP_TAC;
   EXPAND_TAC "i'";
   EXPAND_TAC "j'";
   USE 23 (REWRITE_RULE[INJ]);
@@ -28419,7 +28419,7 @@ let disk_endpoint = prove_by_refinement(
   [
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `connected top2 C` SUBGOAL_TAC;
+  TYPE_THEN `connected top2 C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_connected;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
@@ -28427,14 +28427,14 @@ let disk_endpoint = prove_by_refinement(
   (* - *)
   TYPE_THEN `A = euclid 2 DIFF (closed_ball (euclid 2, d_euclid) p r)` ABBREV_TAC ;
   TYPE_THEN `B = closed_ball(euclid 2, d_euclid) p r` ABBREV_TAC ;
-  TYPE_THEN `closed_ top2 B` SUBGOAL_TAC;
+  TYPE_THEN `closed_ top2 B` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   REWRITE_TAC[top2];
   IMATCH_MP_TAC  closed_ball_closed;
   REWRITE_TAC[metric_euclid];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `top2 A` SUBGOAL_TAC;
+  TYPE_THEN `top2 A` SUBGOAL_MP_TAC;
   UND 8;
   EXPAND_TAC "A";
   EXPAND_TAC "B";
@@ -28442,14 +28442,14 @@ let disk_endpoint = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* - *)
   TYPE_THEN `B' = open_ball(euclid 2,d_euclid) p r` ABBREV_TAC ;
-  TYPE_THEN `C SUBSET B' UNION A` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET B' UNION A` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B'";
   EXPAND_TAC "B";
@@ -28463,7 +28463,7 @@ let disk_endpoint = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   USE 13 (REWRITE_RULE[DE_MORGAN_THM]);
   REP_BASIC_TAC;
-  TYPE_THEN `B x` SUBGOAL_TAC;
+  TYPE_THEN `B x` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   REWRITE_TAC[closed_ball];
   ASM_REWRITE_TAC[];
@@ -28475,14 +28475,14 @@ let disk_endpoint = prove_by_refinement(
   REP_BASIC_TAC;
   TYPEL_THEN[`B'`;`A`] (USE 12 o ISPECL);
   REWR 12;
-  TYPE_THEN `top2 B'` SUBGOAL_TAC;
+  TYPE_THEN `top2 B'` SUBGOAL_MP_TAC;
   EXPAND_TAC "B'";
   REWRITE_TAC[top2];
   IMATCH_MP_TAC  open_ball_open;
   REWRITE_TAC[metric_euclid];
   DISCH_THEN_FULL_REWRITE;
   (* - *)
-  TYPE_THEN `B' INTER A = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `B' INTER A = EMPTY` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B'";
   EXPAND_TAC "B";
@@ -28495,7 +28495,7 @@ let disk_endpoint = prove_by_refinement(
   DISCH_THEN_FULL_REWRITE;
   (* - *)
   FIRST_ASSUM DISJ_CASES_TAC;
-  TYPE_THEN `C SUBSET B` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET B` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `B'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -28505,14 +28505,14 @@ let disk_endpoint = prove_by_refinement(
   MESON_TAC[REAL_ARITH `x < y ==> x <= y`];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `~(v = v')` SUBGOAL_TAC;
+  TYPE_THEN `~(v = v')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_distinct;
   ASM_MESON_TAC[];
   REWRITE_TAC[];
-  TYPE_THEN `C v'` SUBGOAL_TAC;
+  TYPE_THEN `C v'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end2];
   DISCH_TAC;
-  TYPE_THEN `B v'` SUBGOAL_TAC;
+  TYPE_THEN `B v'` SUBGOAL_MP_TAC;
   UND 15;
   UND 16;
   MESON_TAC[ISUBSET];
@@ -28521,12 +28521,12 @@ let disk_endpoint = prove_by_refinement(
   REWRITE_TAC[INTER;eq_sing];
   MESON_TAC[];
   (* - *)
-  TYPE_THEN `C v` SUBGOAL_TAC;
+  TYPE_THEN `C v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
   DISCH_TAC;
-  TYPE_THEN `A v` SUBGOAL_TAC;
+  TYPE_THEN `A v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
-  TYPE_THEN `B v` SUBGOAL_TAC;
+  TYPE_THEN `B v` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[INTER;eq_sing];
   DISCH_THEN_REWRITE;
@@ -28546,7 +28546,7 @@ let disk_endpoint_gen = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `connected top2 C` SUBGOAL_TAC;
+  TYPE_THEN `connected top2 C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_connected;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
@@ -28554,20 +28554,20 @@ let disk_endpoint_gen = prove_by_refinement(
   (* - *)
   TYPE_THEN `A = euclid 2 DIFF B` ABBREV_TAC ;
   (* - *)
-  TYPE_THEN `top2 A` SUBGOAL_TAC;
+  TYPE_THEN `top2 A` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   UND 3;
   REWRITE_TAC[closed;top2_unions;open_DEF ;];
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET euclid 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `C SUBSET B' UNION A` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET B' UNION A` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   REWRITE_TAC[open_ball;SUBSET;DIFF;closed_ball;UNION];
   USE 9 (REWRITE_RULE[SUBSET]);
@@ -28577,7 +28577,7 @@ let disk_endpoint_gen = prove_by_refinement(
   ASM_REWRITE_TAC[];
   USE 1(REWRITE_RULE[INTER;eq_sing]);
   REP_BASIC_TAC;
-  TYPE_THEN `(x = v)` SUBGOAL_TAC;
+  TYPE_THEN `(x = v)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
@@ -28593,7 +28593,7 @@ let disk_endpoint_gen = prove_by_refinement(
   TYPEL_THEN[`B'`;`A`] (USE 6 o ISPECL);
   REWR 6;
   (* - *)
-  TYPE_THEN `B' INTER A = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `B' INTER A = EMPTY` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   REWRITE_TAC[open_ball;closed_ball;DIFF;EQ_EMPTY;INTER;];
   REP_BASIC_TAC;
@@ -28602,20 +28602,20 @@ let disk_endpoint_gen = prove_by_refinement(
   DISCH_THEN_FULL_REWRITE;
   (* - *)
   FIRST_ASSUM DISJ_CASES_TAC;
-  TYPE_THEN `C SUBSET B` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET B` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `B'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `~(v = v')` SUBGOAL_TAC;
+  TYPE_THEN `~(v = v')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_distinct;
   ASM_MESON_TAC[];
   REWRITE_TAC[];
-  TYPE_THEN `C v'` SUBGOAL_TAC;
+  TYPE_THEN `C v'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end2];
   DISCH_TAC;
-  TYPE_THEN `B v'` SUBGOAL_TAC;
+  TYPE_THEN `B v'` SUBGOAL_MP_TAC;
   UND 13;
   UND 14;
   MESON_TAC[ISUBSET];
@@ -28624,12 +28624,12 @@ let disk_endpoint_gen = prove_by_refinement(
   REWRITE_TAC[INTER;eq_sing];
   MESON_TAC[];
   (* - *)
-  TYPE_THEN `C v` SUBGOAL_TAC;
+  TYPE_THEN `C v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[simple_arc_end_end];
   DISCH_TAC;
-  TYPE_THEN `A v` SUBGOAL_TAC;
+  TYPE_THEN `A v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
-  TYPE_THEN `B v` SUBGOAL_TAC;
+  TYPE_THEN `B v` SUBGOAL_MP_TAC;
   UND 1;
   REWRITE_TAC[INTER;eq_sing];
   DISCH_THEN_REWRITE;
@@ -28650,24 +28650,24 @@ let disk_endpoint_outer = prove_by_refinement(
   TYPE_THEN `B = (euclid 2 DIFF (open_ball(euclid 2,d_euclid) p r))` ABBREV_TAC ;
   TYPE_THEN `B' = (euclid 2 DIFF (closed_ball(euclid 2,d_euclid) p r))` ABBREV_TAC ;
   (* - *)
-  TYPE_THEN `B' SUBSET B` SUBGOAL_TAC;
+  TYPE_THEN `B' SUBSET B` SUBGOAL_MP_TAC;
   EXPAND_TAC "B'";
   EXPAND_TAC "B";
   REWRITE_TAC[closed_ball;open_ball;SUBSET;DIFF];
   MESON_TAC[REAL_ARITH `x < u ==> x <= u`];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `closed_ top2 B` SUBGOAL_TAC;
+  TYPE_THEN `closed_ top2 B` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   REWRITE_TAC[closed;top2_unions;open_DEF ;SUBSET_DIFF];
-  TYPE_THEN `open_ball (euclid 2,d_euclid) p r SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `open_ball (euclid 2,d_euclid) p r SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   REWRITE_TAC[open_ball;SUBSET];
   MESON_TAC[];
   ASM_SIMP_TAC[DIFF_DIFF2];
   ASM_SIMP_TAC [open_ball_open;top2;metric_euclid];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `top2 B'` SUBGOAL_TAC;
+  TYPE_THEN `top2 B'` SUBGOAL_MP_TAC;
   EXPAND_TAC "B'";
   TH_INTRO_TAC [`top2`;`closed_ball (euclid 2,d_euclid) p r`] closed_open;
   REWRITE_TAC[metric_euclid;top2];
@@ -28680,13 +28680,13 @@ let disk_endpoint_outer = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `B v` SUBGOAL_TAC;
+  TYPE_THEN `B v` SUBGOAL_MP_TAC;
   UND 0;
   REWRITE_TAC[INTER;eq_sing];
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `B v /\ ~B' v ==> (d_euclid p v = r)` SUBGOAL_TAC;
+  TYPE_THEN `B v /\ ~B' v ==> (d_euclid p v = r)` SUBGOAL_MP_TAC;
   EXPAND_TAC "B";
   EXPAND_TAC "B'";
   REWRITE_TAC[DIFF;open_ball;closed_ball;];
@@ -28786,7 +28786,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   (* TYPE_THEN `r /(&2)` EXISTS_TAC; *)
   (* - *)
   TYPE_THEN `D = (\u. (closed_ball (euclid 2,d_euclid ) u r))` ABBREV_TAC ;
-  TYPE_THEN `!u. closed_ top2 (D u)` SUBGOAL_TAC;
+  TYPE_THEN `!u. closed_ top2 (D u)` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   GEN_TAC;
   REWRITE_TAC[top2];
@@ -28794,7 +28794,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REWRITE_TAC[metric_euclid];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!v. (euclid 2 v) ==> D v v` SUBGOAL_TAC;
+  TYPE_THEN `!v. (euclid 2 v) ==> D v v` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   REWRITE_TAC[closed_ball2_center];
   GEN_TAC;
@@ -28806,7 +28806,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   (* [A]- Pick middle arcs *)
   (* {{{ *)
 
-  TYPE_THEN `!e. ?d. (graph_edge G e) ==> (?u u' v v'.  simple_arc_end d u u' /\ graph_inc G e v /\ graph_inc G e v' /\ ~(v = v') /\  (d INTER (D v) = {u}) /\ (d INTER (D v') = {u'}) /\ (d SUBSET e) /\ (d_euclid v u = r) /\ (d_euclid v' u' = r))` SUBGOAL_TAC ;
+  TYPE_THEN `!e. ?d. (graph_edge G e) ==> (?u u' v v'.  simple_arc_end d u u' /\ graph_inc G e v /\ graph_inc G e v' /\ ~(v = v') /\  (d INTER (D v) = {u}) /\ (d INTER (D v') = {u'}) /\ (d SUBSET e) /\ (d_euclid v u = r) /\ (d_euclid v' u' = r))` SUBGOAL_MP_TAC ;
   GEN_TAC;
   RIGHT_TAC "d";
   DISCH_TAC;
@@ -28888,22 +28888,22 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REP_BASIC_TAC;
   (* B-  short_end *)
   TYPE_THEN `short_end = ( \ e v. @s. (d e INTER (D v)) s)` ABBREV_TAC ;
-  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v) ==> (d e INTER (D v) = {(short_end e v)}) /\ (d_euclid v (short_end e v) = r) /\ (!v'. (graph_inc G e v' /\ ~(v = v') ==> (simple_arc_end (d e) (short_end e v) (short_end e v'))))` SUBGOAL_TAC;
+  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v) ==> (d e INTER (D v) = {(short_end e v)}) /\ (d_euclid v (short_end e v) = r) /\ (!v'. (graph_inc G e v' /\ ~(v = v') ==> (simple_arc_end (d e) (short_end e v) (short_end e v'))))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TSPEC `e` 11;
   REWR 11;
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC graph_edge2;
   UND 4;
   REWRITE_TAC[plane_graph];
   DISCH_THEN_REWRITE;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `!u. graph_inc G e u ==> (u = v') \/ (u = v'')` SUBGOAL_TAC;
+  TYPE_THEN `!u. graph_inc G e u ==> (u = v') \/ (u = v'')` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[two_exclusion];
   DISCH_TAC;
-  TYPE_THEN `?s. (d e INTER D v) s` SUBGOAL_TAC;
+  TYPE_THEN `?s. (d e INTER D v) s` SUBGOAL_MP_TAC;
   TSPEC `v` 24;
   REWR 24;
   FIRST_ASSUM DISJ_CASES_TAC;
@@ -28913,7 +28913,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `(d e INTER D v) (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `(d e INTER D v) (short_end e v)` SUBGOAL_MP_TAC;
   EXPAND_TAC "short_end";
   SELECT_TAC;
   DISCH_THEN_REWRITE ;
@@ -28922,10 +28922,10 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   LEFT_TAC "v'";
   LEFT_TAC "v'";
   GEN_TAC;
-  TYPE_THEN `(v = v') \/ (v = v'')` SUBGOAL_TAC;
+  TYPE_THEN `(v = v') \/ (v = v'')` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(graph_inc G e v''') ==> (v''' = v') \/ (v''' = v'')` SUBGOAL_TAC;
+  TYPE_THEN `(graph_inc G e v''') ==> (v''' = v') \/ (v''' = v'')` SUBGOAL_MP_TAC;
   DISCH_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -28935,7 +28935,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   FIRST_ASSUM MP_TAC;
   DISCH_THEN_FULL_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `short_end e v' = u` SUBGOAL_TAC;
+  TYPE_THEN `short_end e v' = u` SUBGOAL_MP_TAC;
   REWR 26;
   USE 26 (REWRITE_RULE[INR IN_SING]);
   ASM_REWRITE_TAC[];
@@ -28946,8 +28946,8 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REWR 27;
   UND 24;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `short_end e v'' = u'` SUBGOAL_TAC;
-  TYPE_THEN `?s. (d e INTER D v'') s` SUBGOAL_TAC;
+  TYPE_THEN `short_end e v'' = u'` SUBGOAL_MP_TAC;
+  TYPE_THEN `?s. (d e INTER D v'') s` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[INR IN_SING ];
   MESON_TAC[];
   EXPAND_TAC "short_end";
@@ -28962,7 +28962,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   FIRST_ASSUM MP_TAC;
   DISCH_THEN_FULL_REWRITE;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `short_end e v'' = u'` SUBGOAL_TAC;
+  TYPE_THEN `short_end e v'' = u'` SUBGOAL_MP_TAC;
   REWR 26;
   USE 26 (REWRITE_RULE[INR IN_SING]);
   ASM_REWRITE_TAC[];
@@ -28973,8 +28973,8 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REWR 27;
   UND 24;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `short_end e v' = u` SUBGOAL_TAC;
-  TYPE_THEN `?s. (d e INTER D v') s` SUBGOAL_TAC;
+  TYPE_THEN `short_end e v' = u` SUBGOAL_MP_TAC;
+  TYPE_THEN `?s. (d e INTER D v') s` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[INR IN_SING ];
   MESON_TAC[];
   EXPAND_TAC "short_end";
@@ -28991,7 +28991,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   (* }}} *)
   (* [C]- *)
   TYPE_THEN `X = (\ v. (IMAGE (\ e. short_end e v) (graph_edge_around G v)))` ABBREV_TAC ;
-  TYPE_THEN `!v. FINITE (graph_edge_around G v)` SUBGOAL_TAC;
+  TYPE_THEN `!v. FINITE (graph_edge_around G v)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[graph_edge_around];
   IMATCH_MP_TAC  FINITE_SUBSET;
@@ -29000,7 +29000,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!v. graph_vertex G v ==> (FINITE (X v) /\ (CARD (X v) <=| 4) /\ ((X v) SUBSET {x | euclid 2 x /\ (d_euclid v x = r)}))` SUBGOAL_TAC;
+  TYPE_THEN `!v. graph_vertex G v ==> (FINITE (X v) /\ (CARD (X v) <=| 4) /\ ((X v) SUBSET {x | euclid 2 x /\ (d_euclid v x = r)}))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "X";
   SUBCONJ_TAC;
@@ -29029,11 +29029,11 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* -D now generate curves C in disk.  *)
-  TYPE_THEN `!v. (graph_vertex G v) ==> (?C. (!i. X v i                       ==> (?C' C'' v'.                                simple_arc_end C' v v' /\                                simple_arc_end C'' v' i /\                                C' SUBSET                                closed_ball (euclid 2,d_euclid) v (r / &2) /\                                (C' INTER C'' = {v'}) /\                                (C' UNION C'' = C i)) /\                           simple_arc_end (C i) v i /\                           C i SUBSET closed_ball (euclid 2,d_euclid) v r /\                           C i INTER                           closed_ball (euclid 2,d_euclid) v (r / &2) SUBSET                           hyperplane 2 e2 (v 1) UNION hyperplane 2 e1 (v 0)) /\                  (!i j. X v i /\ X v j /\ ~(i = j) ==> (C i INTER C j = {v})))` SUBGOAL_TAC;
+  TYPE_THEN `!v. (graph_vertex G v) ==> (?C. (!i. X v i                       ==> (?C' C'' v'.                                simple_arc_end C' v v' /\                                simple_arc_end C'' v' i /\                                C' SUBSET                                closed_ball (euclid 2,d_euclid) v (r / &2) /\                                (C' INTER C'' = {v'}) /\                                (C' UNION C'' = C i)) /\                           simple_arc_end (C i) v i /\                           C i SUBSET closed_ball (euclid 2,d_euclid) v r /\                           C i INTER                           closed_ball (euclid 2,d_euclid) v (r / &2) SUBSET                           hyperplane 2 e2 (v 1) UNION hyperplane 2 e1 (v 0)) /\                  (!i j. X v i /\ X v j /\ ~(i = j) ==> (C i INTER C j = {v})))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  degree_vertex_disk_ver2;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `(\j. X v j) = X v` SUBGOAL_TAC;
+  TYPE_THEN `(\j. X v j) = X v` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   BETA_TAC;
   MESON_TAC[];
@@ -29059,11 +29059,11 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   KILL 3;
   KILL 0;
   (* rework 5 *)
-  TYPE_THEN `!e . graph_edge G e ==> (d e SUBSET e)` SUBGOAL_TAC;
+  TYPE_THEN `!e . graph_edge G e ==> (d e SUBSET e)` SUBGOAL_MP_TAC;
   UND 11;
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `!e v. graph_edge G e /\ graph_vertex G v /\ ~graph_inc G e v ==> (d e INTER (D v) = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge G e /\ graph_vertex G v /\ ~graph_inc G e v ==> (d e INTER (D v) = EMPTY)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPEL_THEN [`e`;`v`] (USE 5 o ISPECL);
   REWR 5;
@@ -29079,7 +29079,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   KILL 11;
   KILL 12;
   (* rework 16 *)
-  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> graph_vertex G v` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> graph_vertex G v` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   REP_BASIC_TAC;
   TH_INTRO_TAC  [`G`;`e`] graph_inc_subset;
@@ -29089,7 +29089,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v ==> X v (short_end e v))` SUBGOAL_TAC;
+  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v ==> X v (short_end e v))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "X";
   REWRITE_TAC[IMAGE];
@@ -29100,19 +29100,19 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   KILL 14;
   (* rework 17 *)
   TYPE_THEN `hyper = (\ B v. (B INTER closed_ball (euclid 2,d_euclid) v (r / &2) SUBSET hyperplane 2 e2 (v 1) UNION hyperplane 2 e1 (v 0)))` ABBREV_TAC ;
-  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> (simple_arc_end (NC e v) v (short_end e v)) /\ (NC e v SUBSET D v) /\ (hyper (NC e v) v)` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> (simple_arc_end (NC e v) v (short_end e v)) /\ (NC e v SUBSET D v) /\ (hyper (NC e v) v)` SUBGOAL_MP_TAC;
   EXPAND_TAC "hyper";
   EXPAND_TAC "NC";
   REP_BASIC_TAC;
   TSPEC `v` 17;
-  TYPE_THEN `graph_vertex G v` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G v` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `e` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
   REP_BASIC_TAC;
   TSPEC `short_end e v` 16;
-  TYPE_THEN `X v (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `X v (short_end e v)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
@@ -29121,20 +29121,20 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* F- continue simplification *)
-  TYPE_THEN `!v v'. graph_vertex G v /\ graph_vertex G v' /\ ~(v = v') ==> (D v INTER D v' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `!v v'. graph_vertex G v /\ graph_vertex G v' /\ ~(v = v') ==> (D v INTER D v' = EMPTY)` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   KILL 6;
   (* - *)
-  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v ==> ~(graph_vertex G (short_end e v)))` SUBGOAL_TAC;
+  TYPE_THEN `!e v. (graph_edge G e /\ graph_inc G e v ==> ~(graph_vertex G (short_end e v)))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPEL_THEN [`e`;`v`] (USE 13 o ISPECL);
   REWR 13;
   REP_BASIC_TAC;
   USE 21 (REWRITE_RULE[eq_sing;INTER]);
   REP_BASIC_TAC;
-  TYPE_THEN `D (short_end e v) (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `D (short_end e v) (short_end e v)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   RULE_ASSUM_TAC (REWRITE_RULE [plane_graph]);
   REP_BASIC_TAC;
@@ -29142,7 +29142,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~(D (short_end e v) INTER D v = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(D (short_end e v) INTER D v = EMPTY)` SUBGOAL_MP_TAC;
   REWRITE_TAC[EMPTY_EXISTS];
   TYPE_THEN `short_end e v` EXISTS_TAC;
   ASM_REWRITE_TAC[INTER];
@@ -29157,7 +29157,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   USE 25 (REWRITE_RULE[]);
   UND 25;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `d_euclid v v = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v = &0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_euclid];
@@ -29172,7 +29172,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!e e'. graph_edge G e /\ graph_edge G e' /\ ~(e = e') ==> (d e INTER d e' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `!e e'. graph_edge G e /\ graph_edge G e' /\ ~(e = e') ==> (d e INTER d e' = EMPTY)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
   USE 21 (REWRITE_RULE[EMPTY_EXISTS]);
@@ -29181,7 +29181,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   REP_BASIC_TAC;
   TYPEL_THEN [`e`;`e'`] (USE 4 o ISPECL);
   REWR 4;
-  TYPE_THEN `d e INTER d e' SUBSET graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER d e' SUBSET graph_vertex G` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `e INTER e'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -29191,7 +29191,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   UND 16;
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `graph_vertex G u` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G u` SUBGOAL_MP_TAC;
   USE 26 (REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -29199,7 +29199,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   TYPE_THEN `graph_inc G e u` ASM_CASES_TAC;
   TYPEL_THEN [`e`;`u`] (USE 13 o ISPECL);
   REWR 13;
-  TYPE_THEN `(d e INTER D u) u` SUBGOAL_TAC;
+  TYPE_THEN `(d e INTER D u) u` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   USE 28 GSYM;
   ASM_REWRITE_TAC[INTER];
@@ -29218,7 +29218,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   DISCH_THEN (fun t-> ONCE_REWRITE_TAC [t]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d e INTER D u = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER D u = EMPTY ` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC [];
   USE 26 (REWRITE_RULE[SUBSET]);
@@ -29237,7 +29237,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -G continue to simplify *)
-  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> d e (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge G e /\ graph_inc G e v ==> d e (short_end e v)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TYPEL_THEN [`e`;`v`] (USE 13 o ISPECL);
   REWR 13;
@@ -29246,11 +29246,11 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
  DISCH_TAC;
   (* - *)
-  TYPE_THEN `! v e e'. graph_edge G e /\ graph_edge G e' /\ graph_inc G e v /\ graph_inc G e' v /\ ~(e = e') ==> (NC e v INTER NC e' v = {v})` SUBGOAL_TAC;
+  TYPE_THEN `! v e e'. graph_edge G e /\ graph_edge G e' /\ graph_inc G e v /\ graph_inc G e' v /\ ~(e = e') ==> (NC e v INTER NC e' v = {v})` SUBGOAL_MP_TAC;
   EXPAND_TAC "NC";
   REP_BASIC_TAC;
   TSPEC `v` 17;
-  TYPE_THEN `graph_vertex G v` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G v` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `e` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -29267,13 +29267,13 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   KILL 17;
   DISCH_TAC;
-  TYPE_THEN `d e (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `d e (short_end e v)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d e' (short_end e' v)` SUBGOAL_TAC;
+  TYPE_THEN `d e' (short_end e' v)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d e INTER d e' = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER d e' = EMPTY ` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[EQ_EMPTY;INTER];
@@ -29284,7 +29284,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   KILL 3;
   KILL 15;
   (* H- *)
-  TYPE_THEN `!e. f e = {x | d e x \/ (?v. graph_inc G e v /\ NC e v x)}` SUBGOAL_TAC;
+  TYPE_THEN `!e. f e = {x | d e x \/ (?v. graph_inc G e v /\ NC e v x)}` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "f";
   EXPAND_TAC "NC";
@@ -29292,7 +29292,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   DISCH_TAC;
   KILL 18;
   KILL 19;
-  TYPE_THEN `!e v p. (graph_edge G e /\ graph_inc G e v) /\ (D v p) ==> (f e p = NC e v  p)` SUBGOAL_TAC  ;
+  TYPE_THEN `!e v p. (graph_edge G e /\ graph_inc G e v) /\ (D v p) ==> (f e p = NC e v  p)` SUBGOAL_MP_TAC  ;
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   ONCE_REWRITE_TAC [EQ_SYM_EQ];
@@ -29319,7 +29319,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   UND 19;
   ASM_REWRITE_TAC[];
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_TAC;
+  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
@@ -29341,12 +29341,12 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!e v p. (graph_edge G e /\ (graph_vertex G v) /\ ~(graph_inc G e v) /\ (D v p)  ==> ~(f e p))` SUBGOAL_TAC;
+  TYPE_THEN `!e v p. (graph_edge G e /\ (graph_vertex G v) /\ ~(graph_inc G e v) /\ (D v p)  ==> ~(f e p))` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[DE_MORGAN_THM ];
   REP_BASIC_TAC;
   CONJ_TAC;
   DISCH_TAC;
-  TYPE_THEN `d e INTER D v = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER D v = EMPTY` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[EMPTY_EXISTS;INTER  ];
@@ -29356,13 +29356,13 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   GEN_TAC;
   DISCH_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `~(v = v')` SUBGOAL_TAC;
+  TYPE_THEN `~(v = v')` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 23;
   UND 18;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_TAC;
+  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -29380,7 +29380,7 @@ let graph_disk_hv_preliminaries = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!e p.  graph_edge G e /\ (!v. ~(D v p)) ==> (f e p = d e p)` SUBGOAL_TAC ;
+  TYPE_THEN `!e p.  graph_edge G e /\ (!v. ~(D v p)) ==> (f e p = d e p)` SUBGOAL_MP_TAC ;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   IMATCH_MP_TAC  (TAUT `~B ==> (A \/ B <=> A)`);
@@ -29419,7 +29419,7 @@ let graph_vertex_exhaust = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[has_size2];
@@ -29466,7 +29466,7 @@ let graph_disk_hv = prove_by_refinement(
   POP_ASSUM_LIST (fun t-> ALL_TAC);
   REP_BASIC_TAC;
   (* - *) (* redo 19 *)
-  TYPE_THEN `!e p. graph_edge G e /\ (!v. graph_inc G e v ==> ~(D v p)) ==> (f e p = d e p)` SUBGOAL_TAC;
+  TYPE_THEN `!e p. graph_edge G e /\ (!v. graph_inc G e v ==> ~(D v p)) ==> (f e p = d e p)` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  (TAUT  `~B ==> (A \/ B <=> A)`);
@@ -29484,22 +29484,22 @@ let graph_disk_hv = prove_by_refinement(
   DISCH_TAC;
   KILL 19;
   (* - *)
-  TYPE_THEN `!e e'. graph_edge G e /\ graph_edge G e' /\ ~(e = e') ==> (f e INTER f e' SUBSET e INTER e')` SUBGOAL_TAC;
+  TYPE_THEN `!e e'. graph_edge G e /\ graph_edge G e' /\ ~(e = e') ==> (f e INTER f e' SUBSET e INTER e')` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[SUBSET;INTER ];
   REP_BASIC_TAC;
   TYPE_THEN `?v. (graph_inc G e v /\ D v x)` ASM_CASES_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `f e x = NC e v x` SUBGOAL_TAC;
+  TYPE_THEN `f e x = NC e v x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
   TYPE_THEN `graph_inc G e' v` ASM_CASES_TAC;
-  TYPE_THEN `f e' x = NC e' v x` SUBGOAL_TAC;
+  TYPE_THEN `f e' x = NC e' v x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `(NC e v INTER NC e' v = {v})` SUBGOAL_TAC;
+  TYPE_THEN `(NC e v INTER NC e' v = {v})` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[FUN_EQ_THM];
@@ -29532,7 +29532,7 @@ let graph_disk_hv = prove_by_refinement(
   TYPE_THEN `e` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   (* -- *)
-  TYPE_THEN `(f e x = d e x)` SUBGOAL_TAC;
+  TYPE_THEN `(f e x = d e x)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   GEN_TAC;
@@ -29542,7 +29542,7 @@ let graph_disk_hv = prove_by_refinement(
   TYPE_THEN `(?v. graph_inc G e' v /\ D v x)` ASM_CASES_TAC;
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `d e INTER D v = {}` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER D v = {}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   LEFT 25 "v";
@@ -29556,7 +29556,7 @@ let graph_disk_hv = prove_by_refinement(
   REWRITE_TAC[EMPTY_EXISTS;INTER ];
   TYPE_THEN `x` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `f e' x = d e' x` SUBGOAL_TAC;
+  TYPE_THEN `f e' x = d e' x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   GEN_TAC;
@@ -29564,7 +29564,7 @@ let graph_disk_hv = prove_by_refinement(
   MESON_TAC[];
   DISCH_THEN_FULL_REWRITE;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `d e INTER d e' = EMPTY` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER d e' = EMPTY` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[EMPTY_EXISTS ;INTER];
@@ -29572,52 +29572,52 @@ let graph_disk_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* A injective *)
-  TYPE_THEN `INJ f (graph_edge G) UNIV` SUBGOAL_TAC;
+  TYPE_THEN `INJ f (graph_edge G) UNIV` SUBGOAL_MP_TAC;
   REWRITE_TAC[INJ];
   REP_BASIC_TAC;
-  TYPE_THEN ` (graph_inc G x ) HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN ` (graph_inc G x ) HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge2;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   ASM_REWRITE_TAC[];
   REWRITE_TAC[has_size2];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G x a` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G x a` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[in_pair];
   DISCH_TAC;
-  TYPE_THEN `d x SUBSET f x` SUBGOAL_TAC;
+  TYPE_THEN `d x SUBSET f x` SUBGOAL_MP_TAC;
   KILL 21;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `d x (short_end x a)` SUBGOAL_TAC;
+  TYPE_THEN `d x (short_end x a)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `f x (short_end x a)` SUBGOAL_TAC;
+  TYPE_THEN `f x (short_end x a)` SUBGOAL_MP_TAC;
   UND 28;
   UND 27;
   REWRITE_TAC[SUBSET];
   MESON_TAC[];
   DISCH_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `f x INTER f y SUBSET  x INTER y` SUBGOAL_TAC;
+  TYPE_THEN `f x INTER f y SUBSET  x INTER y` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `(x INTER y) (short_end x a)` SUBGOAL_TAC;
+  TYPE_THEN `(x INTER y) (short_end x a)` SUBGOAL_MP_TAC;
   USE 31 (REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   USE 21 GSYM;
   KILL 16;
   ASM_REWRITE_TAC[INTER_IDEMPOT];
-  TYPE_THEN `(x INTER y) SUBSET (graph_vertex G)` SUBGOAL_TAC;
+  TYPE_THEN `(x INTER y) SUBSET (graph_vertex G)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `(graph_vertex G (short_end x a))` SUBGOAL_TAC;
+  TYPE_THEN `(graph_vertex G (short_end x a))` SUBGOAL_MP_TAC;
   USE 33(REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -29626,9 +29626,9 @@ let graph_disk_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* B now simple arc -- ugh *)
-  TYPE_THEN `(!e v v'. (graph_edge G e /\ graph_inc G e v /\ graph_inc G e v' /\ ~(v = v') ==> (simple_arc_end (f e) v v')))` SUBGOAL_TAC;
+  TYPE_THEN `(!e v v'. (graph_edge G e /\ graph_inc G e v /\ graph_inc G e v' /\ ~(v = v') ==> (simple_arc_end (f e) v v')))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `f e = (NC e v UNION d e) UNION NC e v'` SUBGOAL_TAC;
+  TYPE_THEN `f e = (NC e v UNION d e) UNION NC e v'` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
@@ -29647,7 +29647,7 @@ let graph_disk_hv = prove_by_refinement(
   REP_CASES_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e = {v , v'}` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e = {v , v'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_vertex_exhaust;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
@@ -29665,7 +29665,7 @@ let graph_disk_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_THEN (fun t-> REWRITE_TAC[t] THEN (RULE_ASSUM_TAC (REWRITE_RULE[t])) THEN ASSUME_TAC t);
   (* -- *)
-  TYPE_THEN `simple_arc_end (NC e v UNION d e) v (short_end e v')` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end (NC e v UNION d e) v (short_end e v')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_end_trans;
   TYPE_THEN `short_end e v` EXISTS_TAC;
   CONJ_TAC;
@@ -29687,7 +29687,7 @@ let graph_disk_hv = prove_by_refinement(
   EQ_TAC;
   DISCH_THEN_FULL_REWRITE;
   CONJ_TAC;
-  TYPE_THEN `simple_arc_end (NC e v) v (short_end e v)` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end (NC e v) v (short_end e v)` SUBGOAL_MP_TAC;
   TYPEL_THEN [`e`;`v`] (USE 10 o ISPECL);
   REWR 10;
   REP_BASIC_TAC;
@@ -29698,7 +29698,7 @@ let graph_disk_hv = prove_by_refinement(
   (* --- *)
   DISCH_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `D v x` SUBGOAL_TAC;
+  TYPE_THEN `D v x` SUBGOAL_MP_TAC;
   TYPEL_THEN [`e`;`v`] (USE 10 o ISPECL);
   REWR 10;
   REP_BASIC_TAC;
@@ -29706,7 +29706,7 @@ let graph_disk_hv = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `d e INTER D v = {(short_end e v)}` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER D v = {(short_end e v)}` SUBGOAL_MP_TAC;
   TYPEL_THEN [`e`;`v`] (USE 5 o ISPECL);
   REWR 5;
   REP_BASIC_TAC;
@@ -29747,7 +29747,7 @@ let graph_disk_hv = prove_by_refinement(
   REWRITE_TAC[UNION];
   REP_CASES_TAC ;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_TAC;
+  TYPE_THEN `D v INTER D v' = {}` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
@@ -29772,7 +29772,7 @@ let graph_disk_hv = prove_by_refinement(
   USE 31 (REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `D v' x` SUBGOAL_TAC;
+  TYPE_THEN `D v' x` SUBGOAL_MP_TAC;
   TYPEL_THEN [`e`;`v'`] (USE 10 o ISPECL);
   REWR 10;
   REP_BASIC_TAC;
@@ -29780,7 +29780,7 @@ let graph_disk_hv = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `d e INTER D v' = {(short_end e v')}` SUBGOAL_TAC;
+  TYPE_THEN `d e INTER D v' = {(short_end e v')}` SUBGOAL_MP_TAC;
   TYPEL_THEN [`e`;`v'`] (USE 5 o ISPECL);
   REWR 5;
   REP_BASIC_TAC;
@@ -29791,14 +29791,14 @@ let graph_disk_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* C - *)
-  TYPE_THEN `!e v. (graph_edge G e) ==> ( e INTER graph_vertex G = (f e) INTER (graph_vertex G))` SUBGOAL_TAC;
+  TYPE_THEN `!e v. (graph_edge G e) ==> ( e INTER graph_vertex G = (f e) INTER (graph_vertex G))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[INTER];
   GEN_TAC;
   IMATCH_MP_TAC  (TAUT `(A ==> (B <=> C)) ==> (B /\ A <=> C /\ A)`);
   DISCH_TAC;
-  TYPE_THEN `D x x` SUBGOAL_TAC;
+  TYPE_THEN `D x x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph;SUBSET ]);
   REP_BASIC_TAC;
@@ -29806,11 +29806,11 @@ let graph_disk_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   TYPE_THEN `graph_inc G e x` ASM_CASES_TAC;
-  TYPE_THEN `f e x = NC e x x` SUBGOAL_TAC;
+  TYPE_THEN `f e x = NC e x x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `NC e x x` SUBGOAL_TAC;
+  TYPE_THEN `NC e x x` SUBGOAL_MP_TAC;
   TYPEL_THEN[`e`;`x`] (USE 10 o ISPECL);
   REWR 10;
   REP_BASIC_TAC;
@@ -29825,7 +29825,7 @@ let graph_disk_hv = prove_by_refinement(
   UND 26;
   REWRITE_TAC[INTER];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `~f e x` SUBGOAL_TAC;
+  TYPE_THEN `~f e x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `x` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -29871,7 +29871,7 @@ let graph_disk_hv = prove_by_refinement(
   USE 29 GSYM;
   UND 29;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `e'' =e'` SUBGOAL_TAC;
+  TYPE_THEN `e'' =e'` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -29880,11 +29880,11 @@ let graph_disk_hv = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `!v. closed_ball (euclid 2, d_euclid) v (r/(&2)) SUBSET D v` SUBGOAL_TAC;
+  TYPE_THEN `!v. closed_ball (euclid 2, d_euclid) v (r/(&2)) SUBSET D v` SUBGOAL_MP_TAC;
   GEN_TAC;
   EXPAND_TAC "D";
   REWRITE_TAC[closed_ball;SUBSET];
-  TYPE_THEN `r /(&2) < r` SUBGOAL_TAC;
+  TYPE_THEN `r /(&2) < r` SUBGOAL_MP_TAC;
   UND 1;
   MESON_TAC[  half_pos];
   MESON_TAC[REAL_ARITH `x <= u /\ u < v ==> x <= v`];
@@ -29900,7 +29900,7 @@ let graph_disk_hv = prove_by_refinement(
   IMATCH_MP_TAC  subset_inter_pair;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[graph_edge_mod_v]);
-  TYPE_THEN `(D v INTER D v' = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `(D v INTER D v' = EMPTY)` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -29918,12 +29918,12 @@ let graph_disk_hv = prove_by_refinement(
   PROOF_BY_CONTR_TAC;
   USE 27(REWRITE_RULE[EMPTY_EXISTS;INTER]);
   REP_BASIC_TAC;
-  TYPE_THEN `D v u` SUBGOAL_TAC;
+  TYPE_THEN `D v u` SUBGOAL_MP_TAC;
   USE 24 (REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `~f x u` SUBGOAL_TAC;
+  TYPE_THEN `~f x u` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `v` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -29937,14 +29937,14 @@ let graph_disk_hv = prove_by_refinement(
   REP_BASIC_TAC;
   UND 28;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `e' = x` SUBGOAL_TAC;
+  TYPE_THEN `e' = x` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
   (* - *)
-  TYPE_THEN `f x INTER D v = NC x v INTER D v` SUBGOAL_TAC;
+  TYPE_THEN `f x INTER D v = NC x v INTER D v` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[INTER];
@@ -29953,7 +29953,7 @@ let graph_disk_hv = prove_by_refinement(
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `f x INTER (closed_ball (euclid 2,d_euclid) v (r/(&2))) = NC x v INTER (closed_ball(euclid 2, d_euclid) v (r/(&2)))` SUBGOAL_TAC;
+  TYPE_THEN `f x INTER (closed_ball (euclid 2,d_euclid) v (r/(&2))) = NC x v INTER (closed_ball(euclid 2, d_euclid) v (r/(&2)))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
   REWRITE_TAC[INTER];
@@ -30003,7 +30003,7 @@ let mk_line_hyper2_e1 = prove_by_refinement(
   REWRITE_TAC[point_scale;point_add];
   GEN_TAC;
   REDUCE_TAC;
-  TYPE_THEN `!t. t * z + (&1 - t) * z = z` SUBGOAL_TAC;
+  TYPE_THEN `!t. t * z + (&1 - t) * z = z` SUBGOAL_MP_TAC;
   GEN_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
@@ -30029,7 +30029,7 @@ let mk_line_hyper2_e2 = prove_by_refinement(
   REWRITE_TAC[point_scale;point_add];
   GEN_TAC;
   REDUCE_TAC;
-  TYPE_THEN `!t. t * z + (&1 - t) * z = z` SUBGOAL_TAC;
+  TYPE_THEN `!t. t * z + (&1 - t) * z = z` SUBGOAL_MP_TAC;
   GEN_TAC;
   real_poly_tac;
   DISCH_THEN_REWRITE;
@@ -30144,7 +30144,7 @@ let graph_iso_around = prove_by_refinement(
   REWRITE_TAC[];
   EQ_TAC ;
   REP_BASIC_TAC;
-  TYPE_THEN `(?y. graph_edge G y /\ (v' y = x))` SUBGOAL_TAC;
+  TYPE_THEN `(?y. graph_edge G y /\ (v' y = x))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[BIJ;SURJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -30161,7 +30161,7 @@ let graph_iso_around = prove_by_refinement(
   REWR 6;
   USE 6 (REWRITE_RULE[IMAGE]);
   REP_BASIC_TAC;
-  TYPE_THEN `v = x'` SUBGOAL_TAC;
+  TYPE_THEN `v = x'` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[BIJ;INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -30204,7 +30204,7 @@ let graph_radius_exists = prove_by_refinement(
   REP_BASIC_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[planar_graph]);
   REP_BASIC_TAC;
-  TYPE_THEN `FINITE (graph_edge H) /\ FINITE (graph_vertex H) /\ ~(graph_edge H = EMPTY) /\  (!v. (CARD (graph_edge_around H v) <=| 4))` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (graph_edge H) /\ FINITE (graph_vertex H) /\ ~(graph_edge H = EMPTY) /\  (!v. (CARD (graph_edge_around H v) <=| 4))` SUBGOAL_MP_TAC;
   WITH 4 (REWRITE_RULE[graph_isomorphic]);
   REP_BASIC_TAC;
   SUBCONJ_TAC;
@@ -30414,13 +30414,13 @@ let good_replace = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `e'''' = x` SUBGOAL_TAC;
+  TYPE_THEN `e'''' = x` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `e''' = x` SUBGOAL_TAC;
+  TYPE_THEN `e''' = x` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[INJ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -30435,7 +30435,7 @@ let good_replace = prove_by_refinement(
   DISCH_THEN_FULL_REWRITE;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e = e INTER graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e = e INTER graph_vertex G` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
@@ -30492,7 +30492,7 @@ let graph_replace_hv_finite_radius = prove_by_refinement(
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[good_plane_graph;plane_graph]);
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e = e INTER graph_vertex G` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e = e INTER graph_vertex G` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_FULL_REWRITE;
@@ -30509,7 +30509,7 @@ let graph_replace_hv_finite_radius = prove_by_refinement(
   REP_BASIC_TAC;
   UNDF `e''`;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `e''' = x` SUBGOAL_TAC;
+  TYPE_THEN `e''' = x` SUBGOAL_MP_TAC;
   TH_INTRO_TAC [`e`;`e'`;`graph_edge G`] replace_inj;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[INJ];
@@ -30555,14 +30555,14 @@ let graph_replace_card = prove_by_refinement(
   REP_BASIC_TAC;
   IMATCH_MP_TAC  (ARITH_RULE `(SUC x = y) ==> (x <| y)`);
   (* - *)
-  TYPE_THEN `FINITE (graph_edge (graph_replace G e e'))` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (graph_edge (graph_replace G e e'))` SUBGOAL_MP_TAC;
   REWRITE_TAC[graph_edge_mod_e;graph_replace];
   IMATCH_MP_TAC  FINITE_IMAGE;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
   TYPE_THEN `A = {x | graph_edge (graph_replace G e e') x /\ ~hv_finite x}` ABBREV_TAC ;
-  TYPE_THEN `FINITE A` SUBGOAL_TAC;
+  TYPE_THEN `FINITE A` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   IMATCH_MP_TAC  FINITE_SUBSET;
   TYPE_THEN `graph_edge (graph_replace G e e')` EXISTS_TAC;
@@ -30572,7 +30572,7 @@ let graph_replace_card = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~A e` SUBGOAL_TAC;
+  TYPE_THEN `~A e` SUBGOAL_MP_TAC;
   EXPAND_TAC"A";
   REWRITE_TAC[];
   ASM_REWRITE_TAC[graph_replace;graph_edge_mod_e;IMAGE];
@@ -30587,7 +30587,7 @@ let graph_replace_card = prove_by_refinement(
   MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `SUC (CARD A) = CARD(e INSERT A)` SUBGOAL_TAC;
+  TYPE_THEN `SUC (CARD A) = CARD(e INSERT A)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  card_suc_insert;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -30632,7 +30632,7 @@ let graph_edge_end_select_other = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge2;
   ASM_REWRITE_TAC[];
   REWRITE_TAC[has_size2];
@@ -30701,7 +30701,7 @@ let graph_rad_pt_select = prove_by_refinement(
   DISCH_THEN_FULL_REWRITE;
   UNDF `x < r`;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d_euclid v v = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v = &0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_euclid];
@@ -30749,14 +30749,14 @@ let graph_rad_pt_select = prove_by_refinement(
   DISJ2_TAC;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!v. graph_inc G e v ==> graph_vertex G v` SUBGOAL_TAC;
+  TYPE_THEN `!v. graph_inc G e v ==> graph_vertex G v` SUBGOAL_MP_TAC;
   TH_INTRO_TAC [`G`;`e`] graph_inc_subset;
   RULE_ASSUM_TAC (REWRITE_RULE[good_plane_graph;plane_graph;SUBSET]);
   ASM_REWRITE_TAC[];
   REWRITE_TAC[SUBSET];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `!v. graph_inc G e v ==> euclid 2 v` SUBGOAL_TAC;
+  TYPE_THEN `!v. graph_inc G e v ==> euclid 2 v` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[good_plane_graph;plane_graph;SUBSET]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
@@ -30770,20 +30770,20 @@ let graph_rad_pt_select = prove_by_refinement(
   REWRITE_TAC[INTER;EMPTY_EXISTS];
   TYPE_THEN `v` EXISTS_TAC;
   REWRITE_TAC[closed_ball];
-  TYPE_THEN `euclid 2 v` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 v` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `euclid 2 v'` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 v'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `d_euclid v v = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v = &0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_MESON_TAC[metric_euclid];
   DISCH_THEN_REWRITE;
   UND 5;
   UND 9;
-  TYPE_THEN `d_euclid v v' = d_euclid v' v` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v' = d_euclid v' v` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_symm;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_MESON_TAC[metric_euclid];
@@ -30794,21 +30794,21 @@ let graph_rad_pt_select = prove_by_refinement(
   TYPE_THEN `C'` EXISTS_TAC;
   TYPE_THEN `v''` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `v' = v` SUBGOAL_TAC;
+  TYPE_THEN `v' = v` SUBGOAL_MP_TAC;
   UND 8;
   REWRITE_TAC[INTER;eq_sing;INR IN_SING ];
   MESON_TAC[];
   DISCH_THEN_FULL_REWRITE;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `euclid 2 v''` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 v''` SUBGOAL_MP_TAC;
   FIRST_ASSUM MP_TAC;
   REWRITE_TAC[INTER;DIFF;eq_sing;];
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `d_euclid v v'' = r` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v v'' = r` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  disk_endpoint_outer;
   TYPE_THEN `C'` EXISTS_TAC;
   TYPE_THEN `v` EXISTS_TAC;
@@ -30826,11 +30826,11 @@ let graph_rad_pt_select = prove_by_refinement(
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* B- *)
-  TYPE_THEN `C' SUBSET closed_ball(euclid 2,d_euclid) v r` SUBGOAL_TAC;
+  TYPE_THEN `C' SUBSET closed_ball(euclid 2,d_euclid) v r` SUBGOAL_MP_TAC;
   UND 7;
   REWRITE_TAC[SUBSET;closed_ball;INTER;open_ball;DIFF;eq_sing;INR IN_SING];
   REP_BASIC_TAC;
-  TYPE_THEN `!x. C' x ==> euclid 2 x` SUBGOAL_TAC;
+  TYPE_THEN `!x. C' x ==> euclid 2 x` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TH_INTRO_TAC[`C'`] simple_arc_euclid;
   IMATCH_MP_TAC  simple_arc_end_simple;
@@ -30839,7 +30839,7 @@ let graph_rad_pt_select = prove_by_refinement(
   DISCH_THEN IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `C' v` SUBGOAL_TAC;
+  TYPE_THEN `C' v` SUBGOAL_MP_TAC;
   UND 8;
   REWRITE_TAC[INTER;INR IN_SING;eq_sing;];
   DISCH_THEN_REWRITE;
@@ -30903,10 +30903,10 @@ let top_closed_unions = prove_by_refinement(
             closed_ U(UNIONS B)`,
   (* {{{ proof *)
   [
-  TYPE_THEN `!n (B:(A->bool)->bool) U. (CARD B = n) /\  topology_ U /\ FINITE B /\ B SUBSET (closed_ U) ==> closed_ U(UNIONS B)` SUBGOAL_TAC;
+  TYPE_THEN `!n (B:(A->bool)->bool) U. (CARD B = n) /\  topology_ U /\ FINITE B /\ B SUBSET (closed_ U) ==> closed_ U(UNIONS B)` SUBGOAL_MP_TAC;
   INDUCT_TAC;
   REP_BASIC_TAC;
-  TYPE_THEN `B HAS_SIZE 0` SUBGOAL_TAC;
+  TYPE_THEN `B HAS_SIZE 0` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[HAS_SIZE];
   REWRITE_TAC[HAS_SIZE_0];
   DISCH_THEN_REWRITE;
@@ -30914,7 +30914,7 @@ let top_closed_unions = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
   (* -- *)
-  TYPE_THEN `~(B = EMPTY)` SUBGOAL_TAC;
+  TYPE_THEN `~(B = EMPTY)` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UNDF `EMPTY`;
   DISCH_THEN_FULL_REWRITE;
@@ -30938,7 +30938,7 @@ let top_closed_unions = prove_by_refinement(
   MESON_TAC[];
   (* -- *)
   DISCH_TAC;
-  TYPE_THEN `closed_ U( UNIONS (B DELETE CHOICE B) UNION (CHOICE B))` SUBGOAL_TAC;
+  TYPE_THEN `closed_ U( UNIONS (B DELETE CHOICE B) UNION (CHOICE B))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  closed_union;
   ASM_REWRITE_TAC[];
   UND 1;
@@ -31008,28 +31008,28 @@ let component_imp_connected = prove_by_refinement(
   REP_BASIC_TAC;
   ASM_MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `component U x x` SUBGOAL_TAC;
+  TYPE_THEN `component U x x` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_refl];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `A x \/ B x` SUBGOAL_TAC;
+  TYPE_THEN `A x \/ B x` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[SUBSET;UNION]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `!A B. component U x SUBSET A UNION B /\ (A INTER B = EMPTY) /\ U B /\ U A /\ A x ==> component U x SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `!A B. component U x SUBSET A UNION B /\ (A INTER B = EMPTY) /\ U B /\ U A /\ A x ==> component U x SUBSET A` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   REWRITE_TAC[SUBSET];
   REP_BASIC_TAC;
   PROOF_BY_CONTR_TAC;
-  TYPE_THEN `B' x'` SUBGOAL_TAC;
+  TYPE_THEN `B' x'` SUBGOAL_MP_TAC;
   USE 11 (REWRITE_RULE[SUBSET;UNION]);
   TSPEC `x'` 11;
   ASM_MESON_TAC[];
   DISCH_TAC;
   USE 12 (REWRITE_RULE[component]);
   REP_BASIC_TAC;
-  TYPE_THEN `Z SUBSET (component U x)` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET (component U x)` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  connected_component;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -31038,7 +31038,7 @@ let component_imp_connected = prove_by_refinement(
   TYPEL_THEN[`A'`;`B'`] (USE 16 o ISPECL);
   UND 16;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `Z SUBSET A' UNION B'` SUBGOAL_TAC;
+  TYPE_THEN `Z SUBSET A' UNION B'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `component U x` EXISTS_TAC ;
   ASM_REWRITE_TAC[];
@@ -31126,7 +31126,7 @@ let connected_induced = prove_by_refinement(
   REWR 2;
   UND 2;
   DISCH_THEN  (TH_INTRO_TAC []);
-  TYPE_THEN `!A'. (U A' ==> U (A' INTER C))` SUBGOAL_TAC;
+  TYPE_THEN `!A'. (U A' ==> U (A' INTER C))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC top_inter;
   ASM_REWRITE_TAC[];
@@ -31171,7 +31171,7 @@ let connected_induced2 = prove_by_refinement(
   REWR 3;
   UND 3;
   DISCH_THEN  (TH_INTRO_TAC []);
-  TYPE_THEN `!A'. (U A' ==> U (A' INTER C))` SUBGOAL_TAC;
+  TYPE_THEN `!A'. (U A' ==> U (A' INTER C))` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   IMATCH_MP_TAC top_inter;
   ASM_REWRITE_TAC[];
@@ -31220,7 +31220,7 @@ let connected_metric = prove_by_refinement(
   (* {{{ proof *)
   [
   REP_BASIC_TAC;
-  TYPE_THEN `top_of_metric(C,d) = induced_top(top_of_metric(X,d))C` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric(C,d) = induced_top(top_of_metric(X,d))C` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[top_of_metric_induced];
   DISCH_THEN_REWRITE;
   IMATCH_MP_TAC  connected_induced;
@@ -31237,25 +31237,25 @@ let connected_metric_pair = prove_by_refinement(
   [
   REP_BASIC_TAC;
   (* - *)
-  TYPE_THEN `Y SUBSET X` SUBGOAL_TAC;
+  TYPE_THEN `Y SUBSET X` SUBGOAL_MP_TAC;
   USE 2(MATCH_MP sub_union);
   UND 2;
   ASM_SIMP_TAC[GSYM top_of_metric_unions];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `Z SUBSET X` SUBGOAL_TAC ;
+  TYPE_THEN `Z SUBSET X` SUBGOAL_MP_TAC ;
   ASM_MESON_TAC[SUBSET_TRANS];
   DISCH_TAC;
   ASM_SIMP_TAC[connected_metric];
   (* - *)
-  TYPE_THEN `metric_space (Y,d)` SUBGOAL_TAC;
+  TYPE_THEN `metric_space (Y,d)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[metric_subspace];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `top_of_metric(Y,d)  = induced_top(top_of_metric(X,d)) Y` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric(Y,d)  = induced_top(top_of_metric(X,d)) Y` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[top_of_metric_induced];
   DISCH_TAC;
-  TYPE_THEN `top_of_metric(Y,d) Z` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric(Y,d) Z` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[open_induced;top_of_metric_top];
   DISCH_TAC;
@@ -31270,7 +31270,7 @@ let construct_hv_finite = prove_by_refinement(
   [
   REP_BASIC_TAC;
   TYPE_THEN `A' = path_component(top_of_metric(A,d_euclid)) v` ABBREV_TAC ;
-  TYPE_THEN `A' = component (top_of_metric(A,d_euclid)) v` SUBGOAL_TAC;
+  TYPE_THEN `A' = component (top_of_metric(A,d_euclid)) v` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   AP_THM_TAC;
   IMATCH_MP_TAC  loc_path_euclid_cor ;
@@ -31278,22 +31278,22 @@ let construct_hv_finite = prove_by_refinement(
   ASM_REWRITE_TAC[GSYM top2];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `A SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `A SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   USEF `top2`  (MATCH_MP sub_union );
   RULE_ASSUM_TAC (REWRITE_RULE[top2_unions]);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN`UNIONS (top_of_metric(A,d_euclid)) = A` SUBGOAL_TAC;
+  TYPE_THEN`UNIONS (top_of_metric(A,d_euclid)) = A` SUBGOAL_MP_TAC;
   ASM_MESON_TAC [GSYM top_of_metric_unions;metric_euclid;metric_subspace];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `A' SUBSET (UNIONS (top_of_metric(A,d_euclid)))` SUBGOAL_TAC;
+  TYPE_THEN `A' SUBSET (UNIONS (top_of_metric(A,d_euclid)))` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[component_unions];
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `A' SUBSET (euclid 2)`  SUBGOAL_TAC;
+  TYPE_THEN `A' SUBSET (euclid 2)`  SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `A` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -31301,7 +31301,7 @@ let construct_hv_finite = prove_by_refinement(
   (* - *)
   ASSUME_TAC  loc_path_conn_top2 ;
   (* - *)
-  TYPE_THEN `A v` SUBGOAL_TAC;
+  TYPE_THEN `A v` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[SUBSET]);
   UND 1;
   DISCH_THEN IMATCH_MP_TAC ;
@@ -31309,13 +31309,13 @@ let construct_hv_finite = prove_by_refinement(
   MESON_TAC[simple_arc_end_end];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `top_of_metric(A,d_euclid) = induced_top top2 A` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric(A,d_euclid) = induced_top top2 A` SUBGOAL_MP_TAC;
   REWRITE_TAC[top2];
   UND 5;
   SIMP_TAC [metric_euclid;top_of_metric_induced ];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `top2 A'` SUBGOAL_TAC;
+  TYPE_THEN `top2 A'` SUBGOAL_MP_TAC;
   EXPAND_TAC "A'";
   UND 11;
   DISCH_THEN_REWRITE;
@@ -31324,18 +31324,18 @@ let construct_hv_finite = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~(v  = v')` SUBGOAL_TAC;
+  TYPE_THEN `~(v  = v')` SUBGOAL_MP_TAC;
   UND 0;
   ASM_MESON_TAC[simple_arc_end_distinct];
   DISCH_TAC;
   (* A' - *)
-  TYPE_THEN `connected (top_of_metric(A,d_euclid)) A'` SUBGOAL_TAC;
+  TYPE_THEN `connected (top_of_metric(A,d_euclid)) A'` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  component_imp_connected;
   ASM_MESON_TAC[top_of_metric_top;metric_subspace;metric_euclid];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) A'` SUBGOAL_TAC;
+  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) A'` SUBGOAL_MP_TAC;
   TH_INTRO_TAC [`euclid 2`;`A`;`A'`;`d_euclid`] connected_metric_pair;
   ASM_MESON_TAC [metric_euclid;GSYM top2];
   DISCH_THEN_REWRITE;
@@ -31343,13 +31343,13 @@ let construct_hv_finite = prove_by_refinement(
   REWRITE_TAC[GSYM top2];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `connected top2 C` SUBGOAL_TAC;
+  TYPE_THEN `connected top2 C` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  simple_arc_connected;
   IMATCH_MP_TAC  simple_arc_end_simple;
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `C SUBSET A'` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET A'` SUBGOAL_MP_TAC;
   ASM_REWRITE_TAC[];
   IMATCH_MP_TAC  connected_component;
   IMATCH_MP_TAC  (TAUT `a /\ b ==> b /\a`);
@@ -31363,11 +31363,11 @@ let construct_hv_finite = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `C v /\ C v'` SUBGOAL_TAC;
+  TYPE_THEN `C v /\ C v'` SUBGOAL_MP_TAC;
   UND 0;
   MESON_TAC[simple_arc_end_end;simple_arc_end_end2];
   DISCH_TAC;
-  TYPE_THEN `A' v /\ A' v'` SUBGOAL_TAC;
+  TYPE_THEN `A' v /\ A' v'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   DISCH_TAC;
   (* - *)
@@ -31428,14 +31428,14 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   TYPE_THEN `u'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   (* A' *)
-  TYPE_THEN `!v''. graph_vertex G v'' ==> (euclid 2 v'')` SUBGOAL_TAC;
+  TYPE_THEN `!v''. graph_vertex G v'' ==> (euclid 2 v'')` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph;SUBSET ]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!v''. graph_inc G e v'' ==> graph_vertex G v''`  SUBGOAL_TAC;
+  TYPE_THEN `!v''. graph_inc G e v'' ==> graph_vertex G v''`  SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TH_INTRO_TAC [`G`;`e`] graph_inc_subset;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph;]);
@@ -31449,7 +31449,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   TYPE_THEN `B' = (UNIONS { DD | ?v''. (graph_vertex G v'' /\ (DD = D v'') /\ ~(graph_inc G e v''))})` ABBREV_TAC ;
   TYPE_THEN `B'' = {v, v'}` ABBREV_TAC ;
   TYPE_THEN `A = (euclid 2 DIFF (B UNION B' UNION B''))` ABBREV_TAC ;
-  TYPE_THEN `top2 A` SUBGOAL_TAC;
+  TYPE_THEN `top2 A` SUBGOAL_MP_TAC;
   TH_INTRO_TAC [`top2`;`B UNION B' UNION B''`] closed_open;
   IMATCH_MP_TAC  closed_union;
   REWRITE_TAC[top2_top];
@@ -31478,7 +31478,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   IMATCH_MP_TAC  top_closed_unions;
   REWRITE_TAC[top2_top];
   CONJ_TAC;
-  TYPE_THEN `{DD | ?v''. graph_vertex G v'' /\ (DD = D v'') /\ ~graph_inc G e v''} = IMAGE D { v'' | graph_vertex G v'' /\ ~graph_inc G e v''}` SUBGOAL_TAC;
+  TYPE_THEN `{DD | ?v''. graph_vertex G v'' /\ (DD = D v'') /\ ~graph_inc G e v''} = IMAGE D { v'' | graph_vertex G v'' /\ ~graph_inc G e v''}` SUBGOAL_MP_TAC;
   REWRITE_TAC[IMAGE];
   IMATCH_MP_TAC  EQ_EXT;
   GEN_TAC;
@@ -31499,7 +31499,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   IMATCH_MP_TAC  closed_ball_closed;
   REWRITE_TAC[metric_euclid];
   (* --- *)
-  TYPE_THEN `{v,v'} = {v} UNION {v'}` SUBGOAL_TAC;
+  TYPE_THEN `{v,v'} = {v} UNION {v'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  EQ_EXT;
   REWRITE_TAC[in_pair;UNION;INR IN_SING];
   MESON_TAC[];
@@ -31514,16 +31514,16 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* B' *)
-  TYPE_THEN `!u'' v''. graph_vertex G v'' /\ (d_euclid v'' u'' = r) ==> ~(graph_vertex G u'')` SUBGOAL_TAC;
+  TYPE_THEN `!u'' v''. graph_vertex G v'' /\ (d_euclid v'' u'' = r) ==> ~(graph_vertex G u'')` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius]);
   REP_BASIC_TAC;
   TYPEL_THEN [`u''`;`v''`] (USE 31 o ISPECL);
-  TYPE_THEN `~(u'' = v'')` SUBGOAL_TAC;
+  TYPE_THEN `~(u'' = v'')` SUBGOAL_MP_TAC;
   DISCH_TAC;
   POP_ASSUM MP_TAC;
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `d_euclid v'' v'' = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid v'' v'' = &0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_euclid];
@@ -31538,18 +31538,18 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   ASM_REWRITE_TAC[EMPTY_EXISTS ;INTER ;closed_ball ;];
   TYPE_THEN `u''` EXISTS_TAC;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `d_euclid u'' u'' = &0` SUBGOAL_TAC;
+  TYPE_THEN `d_euclid u'' u'' = &0` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  metric_space_zero;
   TYPE_THEN `euclid 2` EXISTS_TAC;
   ASM_REWRITE_TAC[metric_euclid];
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `euclid 2 u'' ` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 u'' ` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
-  TYPE_THEN `euclid 2 v'' ` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 v'' ` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
@@ -31557,7 +31557,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* B1'- *)
-  TYPE_THEN `~graph_vertex G u` SUBGOAL_TAC;
+  TYPE_THEN `~graph_vertex G u` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `v` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -31566,7 +31566,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `~graph_vertex G u'` SUBGOAL_TAC;
+  TYPE_THEN `~graph_vertex G u'` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `v'` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -31575,27 +31575,27 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_TAC;
   ASM_REWRITE_TAC[];
   (* C' *)
-  TYPE_THEN `!(X:A->bool) Y Z. (X UNION Y = Z) ==> (X SUBSET Z)` SUBGOAL_TAC;
+  TYPE_THEN `!(X:A->bool) Y Z. (X UNION Y = Z) ==> (X SUBSET Z)` SUBGOAL_MP_TAC;
   SET_TAC[UNION;SUBSET];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `simple_arc_end e v v'` SUBGOAL_TAC;
+  TYPE_THEN `simple_arc_end e v v'` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE [graph_hv_finite_radius;good_plane_graph]);
   REP_BASIC_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `graph_vertex G v` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G v` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `graph_vertex G v'` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G v'` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~D v u'` SUBGOAL_TAC;
+  TYPE_THEN `~D v u'` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   PROOF_BY_CONTR_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;]);
@@ -31612,7 +31612,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* C1'- *)
-  TYPE_THEN `~(v = u) /\ ~(v = u')` SUBGOAL_TAC;
+  TYPE_THEN `~(v = u) /\ ~(v = u')` SUBGOAL_MP_TAC;
   CONJ_TAC;
   DISCH_TAC;
   POP_ASSUM MP_TAC;
@@ -31641,7 +31641,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~(v' = u') ` SUBGOAL_TAC;
+  TYPE_THEN `~(v' = u') ` SUBGOAL_MP_TAC;
   DISCH_TAC;
   POP_ASSUM MP_TAC;
   DISCH_THEN_FULL_REWRITE;
@@ -31657,7 +31657,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   (* - *)
   TH_INTRO_TAC [`e`;`v`;`v'`;`u'`] simple_arc_end_cut;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `Cv' u'` SUBGOAL_TAC;
+  TYPE_THEN `Cv' u'` SUBGOAL_MP_TAC;
   TYPE_THEN `simple_arc_end Cv' v' u'` (FIND_ASSUM  MP_TAC );
   MESON_TAC[simple_arc_end_end2];
   RULE_ASSUM_TAC (REWRITE_RULE[SUBSET]);
@@ -31667,11 +31667,11 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   POP_ASSUM (fun t-> ALL_TAC);
   TYPE_THEN `Cu'v' = C'''` ABBREV_TAC ;
   POP_ASSUM (fun t -> ALL_TAC);
-  TYPE_THEN `Cu'v' v'` SUBGOAL_TAC;
+  TYPE_THEN `Cu'v' v'` SUBGOAL_MP_TAC;
   TYPE_THEN `simple_arc_end Cu'v' u' v'` (FIND_ASSUM  MP_TAC );
   MESON_TAC[simple_arc_end_end2];
   DISCH_TAC;
-  TYPE_THEN `~Cvu' v'` SUBGOAL_TAC;
+  TYPE_THEN `~Cvu' v'` SUBGOAL_MP_TAC;
   DISCH_TAC;
   USEF `(INTER)` (REWRITE_RULE[FUN_EQ_THM]);
   TSPEC `v'` 37;
@@ -31680,7 +31680,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~D v' u` SUBGOAL_TAC;
+  TYPE_THEN `~D v' u` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   DISCH_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;]);
@@ -31697,7 +31697,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REAL_ARITH_TAC;
   DISCH_TAC;
   (* D'- *)
-  TYPE_THEN `Cvu' u \/ Cu'v' u` SUBGOAL_TAC;
+  TYPE_THEN `Cvu' u \/ Cu'v' u` SUBGOAL_MP_TAC;
   USE 35 (REWRITE_RULE[FUN_EQ_THM;]);
   TSPEC  `u` 35 ;
   USE 35 (REWRITE_RULE[UNION]);
@@ -31709,7 +31709,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_TAC;
   (* - *)
   USE 35 (MATCH_MP   union_imp_subset);
-  TYPE_THEN `Cu'v' = Cv'` SUBGOAL_TAC;
+  TYPE_THEN `Cu'v' = Cv'` SUBGOAL_MP_TAC;
   TH_INTRO_TAC [`Cu'v'`;`Cv'`;`e`;`v'`;`u'`] simple_arc_end_inj;
   ASM_REWRITE_TAC[];
   CONJ_TAC;
@@ -31720,7 +31720,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_THEN_FULL_REWRITE;
   (* - *)
-  TYPE_THEN `~Cv' u` SUBGOAL_TAC;
+  TYPE_THEN `~Cv' u` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UNDF `~D v' u` ;
   REWRITE_TAC[];
@@ -31731,7 +31731,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   DISCH_TAC;
   REWR 45;
   (* - *)
-  TYPE_THEN `~(u = u')` SUBGOAL_TAC;
+  TYPE_THEN `~(u = u')` SUBGOAL_MP_TAC;
   DISCH_TAC;
   UND 47;
   DISCH_THEN_FULL_REWRITE;
@@ -31757,13 +31757,13 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   TYPE_THEN `CC = C'''''` ABBREV_TAC ;
   POP_ASSUM (fun t->ALL_TAC);
   (* E' *)
-  TYPE_THEN `~CC v` SUBGOAL_TAC;
+  TYPE_THEN `~CC v` SUBGOAL_MP_TAC;
   DISCH_TAC;
-  TYPE_THEN `C'''' v` SUBGOAL_TAC;
+  TYPE_THEN `C'''' v` SUBGOAL_MP_TAC;
   UND 50;
   MESON_TAC[simple_arc_end_end];
   DISCH_TAC;
-  TYPE_THEN `v = u` SUBGOAL_TAC;
+  TYPE_THEN `v = u` SUBGOAL_MP_TAC;
   UND 48;
    REWRITE_TAC[INTER;eq_sing;INR IN_SING];
   REP_BASIC_TAC;
@@ -31773,7 +31773,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~CC v'` SUBGOAL_TAC;
+  TYPE_THEN `~CC v'` SUBGOAL_MP_TAC;
   DISCH_TAC;
   USE 35 (MATCH_MP union_imp_subset);
   UND 43;
@@ -31784,7 +31784,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `CC SUBSET A` SUBGOAL_TAC;
+  TYPE_THEN `CC SUBSET A` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   REWRITE_TAC[DIFF_SUBSET];
   CONJ_TAC;
@@ -31797,7 +31797,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   FIRST_ASSUM MP_TAC;
   REWRITE_TAC[];
   REWRITE_TAC[DE_MORGAN_THM];
-  TYPE_THEN `CC SUBSET e` SUBGOAL_TAC;
+  TYPE_THEN `CC SUBSET e` SUBGOAL_MP_TAC;
   USE 35 (MATCH_MP union_imp_subset);
   IMATCH_MP_TAC  SUBSET_TRANS;
   TYPE_THEN `Cvu'` EXISTS_TAC;
@@ -31809,7 +31809,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   EXPAND_TAC"B";
   REWRITE_TAC[INTER;UNIONS;EQ_EMPTY ];
   REP_BASIC_TAC;
-  TYPE_THEN `e x` SUBGOAL_TAC;
+  TYPE_THEN `e x` SUBGOAL_MP_TAC;
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -31817,17 +31817,17 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REP_BASIC_TAC  ; (* we are up to 69 in the hypothesis stack *)
   TYPEL_THEN  [`e`;`u''`] (USE 66 o ISPECL);
   REWR 66;
-  TYPE_THEN `graph_vertex G x` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G x` SUBGOAL_MP_TAC;
   USE 66 (REWRITE_RULE[SUBSET]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   REWRITE_TAC[INTER];
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* --- *)
-  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e HAS_SIZE 2` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge2;
   ASM_REWRITE_TAC[];
-  TYPE_THEN `graph_inc G e x` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc G e x` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[];
   ASM_REWRITE_TAC[INTER];
   REP_BASIC_TAC;
@@ -31879,18 +31879,18 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   TYPE_THEN `Chv` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `~(A v) /\ ~(A v')` SUBGOAL_TAC;
+  TYPE_THEN `~(A v) /\ ~(A v')` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B''";
   REWRITE_TAC[DIFF;UNION;in_pair];
   DISCH_TAC;
-  TYPE_THEN `~(Chv v) /\ ~(Chv v')` SUBGOAL_TAC;
+  TYPE_THEN `~(Chv v) /\ ~(Chv v')` SUBGOAL_MP_TAC;
   UND 59;
   UND 58;
   MESON_TAC[ISUBSET];
   DISCH_THEN_REWRITE;
   (* - *)
-  TYPE_THEN `(!e'. ~(e = e') /\ (graph_edge G e') ==> (A INTER e' = {}))` SUBGOAL_TAC;
+  TYPE_THEN `(!e'. ~(e = e') /\ (graph_edge G e') ==> (A INTER e' = {}))` SUBGOAL_MP_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B";
   REP_BASIC_TAC;
@@ -31912,7 +31912,7 @@ let graph_rad_pt_center_piece = prove_by_refinement(
   REWRITE_TAC[EQ_EMPTY;INTER;SUBSET;];
   MESON_TAC[];
   (* - *)
-  TYPE_THEN `!v''. graph_vertex G v'' /\ ~graph_inc G e v'' ==> (A INTER closed_ball (euclid 2,d_euclid) v'' r = {})` SUBGOAL_TAC;
+  TYPE_THEN `!v''. graph_vertex G v'' /\ ~graph_inc G e v'' ==> (A INTER closed_ball (euclid 2,d_euclid) v'' r = {})` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   EXPAND_TAC "A";
   EXPAND_TAC "B'";
@@ -31975,7 +31975,7 @@ let planar_graph_hv = prove_by_refinement(
   REWRITE_TAC[];
   ASM_MESON_TAC[graph_isomorphic_trans];
   (* - *)
-  TYPE_THEN `graph_hv_finite_radius K r` SUBGOAL_TAC;
+  TYPE_THEN `graph_hv_finite_radius K r` SUBGOAL_MP_TAC;
   UND 11;
   EXPAND_TAC "X";
   REWRITE_TAC[];
@@ -31996,7 +31996,7 @@ let planar_graph_hv = prove_by_refinement(
   DISCH_THEN_REWRITE;
   REP_BASIC_TAC;
   (* A *)
-  TYPE_THEN `graph_isomorphic G K` SUBGOAL_TAC;
+  TYPE_THEN `graph_isomorphic G K` SUBGOAL_MP_TAC;
   TH_INTRO_TAC[`G`;`H`;`K`] graph_isomorphic_trans;
   ASM_REWRITE_TAC[];
   UND 11;
@@ -32006,7 +32006,7 @@ let planar_graph_hv = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `FINITE (graph_edge K)` SUBGOAL_TAC;
+  TYPE_THEN `FINITE (graph_edge K)` SUBGOAL_MP_TAC;
   USE 18(REWRITE_RULE[graph_isomorphic;graph_iso]);
   REP_BASIC_TAC;
   UND 19;
@@ -32014,7 +32014,7 @@ let planar_graph_hv = prove_by_refinement(
   MESON_TAC[FINITE_BIJ];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `~(? e' . (~graph_edge K e') /\ hv_finite e' /\ simple_arc_end e' v v' /\ (e INTER (graph_vertex K) = (e' INTER (graph_vertex K))) /\ (!v. graph_vertex K v /\ ~e' v  ==> (e' INTER closed_ball (euclid 2,d_euclid) v r = {})) /\ (!e''. graph_edge K e'' /\ ~(e'' = e)  ==> e' INTER e'' SUBSET e INTER e''))` SUBGOAL_TAC;
+  TYPE_THEN `~(? e' . (~graph_edge K e') /\ hv_finite e' /\ simple_arc_end e' v v' /\ (e INTER (graph_vertex K) = (e' INTER (graph_vertex K))) /\ (!v. graph_vertex K v /\ ~e' v  ==> (e' INTER closed_ball (euclid 2,d_euclid) v r = {})) /\ (!e''. graph_edge K e'' /\ ~(e'' = e)  ==> e' INTER e'' SUBSET e INTER e''))` SUBGOAL_MP_TAC;
   DISCH_TAC;
   REP_BASIC_TAC;
   (* -- *)
@@ -32022,7 +32022,7 @@ let planar_graph_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   TYPE_THEN `K' = graph_replace K e e'` ABBREV_TAC ;
   DISCH_TAC;
-  TYPE_THEN `graph_isomorphic H K'` SUBGOAL_TAC;
+  TYPE_THEN `graph_isomorphic H K'` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   EXPAND_TAC "K'";
   REWRITE_TAC[];
@@ -32039,7 +32039,7 @@ let planar_graph_hv = prove_by_refinement(
   DISCH_THEN_REWRITE;
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `plane_graph K'` SUBGOAL_TAC;
+  TYPE_THEN `plane_graph K'` SUBGOAL_MP_TAC;
   EXPAND_TAC "K'";
   IMATCH_MP_TAC  graph_replace_plane;
   ASM_REWRITE_TAC[];
@@ -32050,7 +32050,7 @@ let planar_graph_hv = prove_by_refinement(
   ASM_MESON_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `good_plane_graph K'` SUBGOAL_TAC;
+  TYPE_THEN `good_plane_graph K'` SUBGOAL_MP_TAC;
   EXPAND_TAC "K'";
   IMATCH_MP_TAC  good_replace;
   ASM_REWRITE_TAC[];
@@ -32058,7 +32058,7 @@ let planar_graph_hv = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius]);
   ASM_REWRITE_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `e v'' /\ e v'''` SUBGOAL_TAC;
+  TYPE_THEN `e v'' /\ e v'''` SUBGOAL_MP_TAC;
   USE 22 (REWRITE_RULE[FUN_EQ_THM]);
   TYPE_THEN  `v''` (WITH 22 o ISPEC);
   TYPE_THEN `v'''` (USE 22 o ISPEC);
@@ -32072,13 +32072,13 @@ let planar_graph_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   MESON_TAC[];
   REP_BASIC_TAC;
-  TYPE_THEN `graph_inc K e = {v,v'}` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc K e = {v,v'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_vertex_exhaust;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph]);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `graph_inc K e = {v'',v'''}` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc K e = {v'',v'''}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_vertex_exhaust;
   USE 37 (SYM);
   ASM_REWRITE_TAC[];
@@ -32089,7 +32089,7 @@ let planar_graph_hv = prove_by_refinement(
   REWR 46;
   ASM_REWRITE_TAC[INTER];
   DISCH_THEN_FULL_REWRITE;
-  TYPE_THEN `((v'' = v) /\ (v''' = v')) \/ ((v'' = v') /\ (v''' = v))` SUBGOAL_TAC;
+  TYPE_THEN `((v'' = v) /\ (v''' = v')) \/ ((v'' = v') /\ (v''' = v))` SUBGOAL_MP_TAC;
   USE 37 (REWRITE_RULE[FUN_EQ_THM]);
   TYPE_THEN `v''` (WITH 37 o ISPEC);
   TYPE_THEN `v'''` (USE 37 o ISPEC);
@@ -32107,12 +32107,12 @@ let planar_graph_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* -- *)
-  TYPE_THEN `graph_hv_finite_radius K' r` SUBGOAL_TAC;
+  TYPE_THEN `graph_hv_finite_radius K' r` SUBGOAL_MP_TAC;
   EXPAND_TAC "K'";
   IMATCH_MP_TAC  graph_replace_hv_finite_radius;
   ASM_REWRITE_TAC[];
   DISCH_TAC;
-  TYPE_THEN `X K'` SUBGOAL_TAC;
+  TYPE_THEN `X K'` SUBGOAL_MP_TAC;
   EXPAND_TAC "X";
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -32148,14 +32148,14 @@ let planar_graph_hv = prove_by_refinement(
   KILL 10;
   KILL 18;
   KILL 19;
-  TYPE_THEN `graph_inc K e  = {v,v'}` SUBGOAL_TAC;
+  TYPE_THEN `graph_inc K e  = {v,v'}` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_vertex_exhaust;
   ASM_REWRITE_TAC[];
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph]);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `e INTER graph_vertex K = {v,v'}` SUBGOAL_TAC;
+  TYPE_THEN `e INTER graph_vertex K = {v,v'}` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph]);
   REP_BASIC_TAC;
   TSPEC `e` 7;
@@ -32163,7 +32163,7 @@ let planar_graph_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_THEN_REWRITE;
   (* C- *)
-  TYPE_THEN `!e v. graph_edge K e /\ graph_inc K e v ==> graph_vertex K v` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge K e /\ graph_inc K e v ==> graph_vertex K v` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TH_INTRO_TAC[`K`;`e'`] graph_inc_subset;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph]);
@@ -32173,7 +32173,7 @@ let planar_graph_hv = prove_by_refinement(
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `p_conn (Cv UNION Cv' UNION C'') v v'` SUBGOAL_TAC;
+  TYPE_THEN `p_conn (Cv UNION Cv' UNION C'') v v'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  pconn_trans;
   TYPE_THEN `u` EXISTS_TAC;
   CONJ_TAC;
@@ -32215,12 +32215,12 @@ let planar_graph_hv = prove_by_refinement(
   TYPE_THEN `C` EXISTS_TAC;
   ASM_REWRITE_TAC[];
   (* D final constraints *)
-  TYPE_THEN`graph K` SUBGOAL_TAC;
+  TYPE_THEN`graph K` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius;good_plane_graph;plane_graph]);
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   (* - *)
-  TYPE_THEN `!e v. graph_edge K e /\ graph_inc K e v ==> graph_vertex K v` SUBGOAL_TAC;
+  TYPE_THEN `!e v. graph_edge K e /\ graph_inc K e v ==> graph_vertex K v` SUBGOAL_MP_TAC;
   REP_BASIC_TAC;
   TH_INTRO_TAC[`K`;`e'`]graph_inc_subset;
   ASM_REWRITE_TAC[];
@@ -32235,13 +32235,13 @@ let planar_graph_hv = prove_by_refinement(
   ASM_MESON_TAC[];
   TSPEC `C` 21;
   REWR 11;
-  TYPE_THEN `C SUBSET Cv UNION Cv'` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET Cv UNION Cv'` SUBGOAL_MP_TAC;
   UND 11;
   UND 4;
   REWRITE_TAC[SUBSET;UNION;EQ_EMPTY;INTER ];
   MESON_TAC[];
   DISCH_TAC;
-  TYPE_THEN `D v INTER D v' = EMPTY ` SUBGOAL_TAC;
+  TYPE_THEN `D v INTER D v' = EMPTY ` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   RULE_ASSUM_TAC (REWRITE_RULE[graph_hv_finite_radius]);
   REP_BASIC_TAC;
@@ -32434,7 +32434,7 @@ let planar_graph_hv = prove_by_refinement(
   UND 3;
   MESON_TAC[simple_arc_end_end];
   (* - *)
-  TYPE_THEN `C SUBSET D v UNION D v' UNION C''` SUBGOAL_TAC;
+  TYPE_THEN `C SUBSET D v UNION D v' UNION C''` SUBGOAL_MP_TAC;
   EXPAND_TAC "D";
   UND 4;
   UND 22;
@@ -32626,11 +32626,11 @@ let plane_graph_image_bij = prove_by_refinement(
   ALL_TAC ;
   (* - *)
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism;top2_unions]);
-  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   ASM_REWRITE_TAC[];
   (* - *)
-  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  subset_imp;
@@ -32668,10 +32668,10 @@ let plane_graph_image_iso = prove_by_refinement(
   REWRITE_TAC[plane_graph_image_e;plane_graph_image_v;plane_graph_image_i];
   (* - *)
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism;top2_unions]);
-  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   (* - *)
-  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph]);
   IMATCH_MP_TAC  simple_arc_euclid;
   IMATCH_MP_TAC  subset_imp;
@@ -32696,7 +32696,7 @@ let plane_graph_image_iso = prove_by_refinement(
   IMATCH_MP_TAC  EQ_EXT;
   EQ_TAC;
   TYPE_THEN `x` UNABBREV_TAC;
-  TYPE_THEN `e' = e` SUBGOAL_TAC;
+  TYPE_THEN `e' = e` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[IMAGE2;BIJ;INJ]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   ASM_REWRITE_TAC[];
@@ -32800,21 +32800,21 @@ let plane_graph_image_plane = prove_by_refinement(
   IMATCH_MP_TAC  plane_graph_image_iso;
   ASM_REWRITE_TAC[plane_graph];
   (* - *)
-  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_TAC;
+  TYPE_THEN `graph_vertex G SUBSET (euclid 2)` SUBGOAL_MP_TAC;
   (* - *)
-  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_TAC;
+  TYPE_THEN `!e. graph_edge G e ==> (e SUBSET (euclid 2))` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  graph_edge_euclid;
   UNIFY_EXISTS_TAC;
   (* - *)
   TH_INTRO_TAC[`f`;`G`] plane_graph_image_bij;
   (* A- *)
   ASM_REWRITE_TAC[plane_graph;GSYM CONJ_ASSOC;];
-  TYPE_THEN `(!e v v'.  graph_edge (plane_graph_image f G) e /\  ~(v = v') /\  graph_inc (plane_graph_image f G) e v /\  graph_inc (plane_graph_image f G) e v' ==> simple_arc_end e v v')` SUBGOAL_TAC;
+  TYPE_THEN `(!e v v'.  graph_edge (plane_graph_image f G) e /\  ~(v = v') /\  graph_inc (plane_graph_image f G) e v /\  graph_inc (plane_graph_image f G) e v' ==> simple_arc_end e v v')` SUBGOAL_MP_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[plane_graph_image_e;plane_graph_image_v;plane_graph_image_i]);
   TYPE_THEN `v` UNABBREV_TAC;
   TYPE_THEN `v'` UNABBREV_TAC;
   TYPE_THEN `e` UNABBREV_TAC;
-  TYPE_THEN `e' = e''` SUBGOAL_TAC ;
+  TYPE_THEN `e' = e''` SUBGOAL_MP_TAC ;
   USE 6 (REWRITE_RULE[BIJ;INJ;IMAGE2]);
   FIRST_ASSUM IMATCH_MP_TAC ;
   TYPE_THEN `e''` UNABBREV_TAC;
@@ -32831,7 +32831,7 @@ let plane_graph_image_plane = prove_by_refinement(
   TYPE_THEN `top2` EXISTS_TAC;
   RULE_ASSUM_TAC (REWRITE_RULE[homeomorphism]);
   ASM_REWRITE_TAC[top2_unions];
-  TYPE_THEN `UNIONS (top_of_metric ({x | &0 <= x /\ x <= &1},d_real)) = {x | &0 <= x /\ x <= &1}` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (top_of_metric ({x | &0 <= x /\ x <= &1},d_real)) = {x | &0 <= x /\ x <= &1}` SUBGOAL_MP_TAC;
   TH_INTRO_TAC[`{x | &0 <= x /\ x <= &1}`;`d_real`] top_of_metric_unions;
   TYPE_THEN `{x | &0 <= x /\ x <= &1} SUBSET UNIV ` SUBAGOAL_TAC;
   alpha_tac;
@@ -32852,7 +32852,7 @@ let plane_graph_image_plane = prove_by_refinement(
   REWRITE_TAC[o_DEF];
   (* B- *)
   ASM_REWRITE_TAC[];
-  TYPE_THEN `graph_edge (plane_graph_image f G) SUBSET simple_arc top2` SUBGOAL_TAC;
+  TYPE_THEN `graph_edge (plane_graph_image f G) SUBSET simple_arc top2` SUBGOAL_MP_TAC;
   REWRITE_TAC[SUBSET];
   TH_INTRO_TAC[`plane_graph_image f G`;`x`] graph_edge_end_select;
   UND 8 THEN DISCH_THEN (TH_INTRO_TAC[`x`;`v`;`v'`]);
@@ -39550,7 +39550,7 @@ let curve_closure_ver2 = prove_by_refinement(
   CONJ_TAC;
   ASM_SIMP_TAC[closure_unions];
   REWRITE_TAC[IMAGE;INR IN_UNIONS;SUBSET ];
-  TYPE_THEN `edge x'` SUBGOAL_TAC;
+  TYPE_THEN `edge x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[ISUBSET];
   FULL_REWRITE_TAC [edge];
   FIRST_ASSUM DISJ_CASES_TAC;
@@ -39651,9 +39651,9 @@ let curve_cell_squ_inter_ver2 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `cell (squ m)` SUBGOAL_TAC;
+  TYPE_THEN `cell (squ m)` SUBGOAL_MP_TAC;
   REWRITE_TAC[cell_rules];
-  TYPE_THEN `(curve_cell G SUBSET cell)` SUBGOAL_TAC;
+  TYPE_THEN `(curve_cell G SUBSET cell)` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[curve_cell_cell;segment];
   ASM_SIMP_TAC [cell_inter];
   ASM_MESON_TAC [curve_cell_squ_ver2];
@@ -39666,7 +39666,7 @@ let curve_point_unions_ver2 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `UNIONS (curve_cell G) (pointI m) <=> ~({(pointI m)} INTER (UNIONS (curve_cell G)) = EMPTY )` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (curve_cell G) (pointI m) <=> ~({(pointI m)} INTER (UNIONS (curve_cell G)) = EMPTY )` SUBGOAL_MP_TAC;
   REWRITE_TAC[REWRITE_RULE[not_eq] single_inter];
   REWRITE_TAC [not_eq];
   IMATCH_MP_TAC  cell_inter;
@@ -39706,7 +39706,7 @@ let ctop_top2_ver2 = prove_by_refinement(
   [
   REWRITE_TAC[ctop;induced_top;IMAGE ;];
   TYPE_THEN `U = top_of_metric(euclid 2,d_euclid)` ABBREV_TAC ;
-  TYPE_THEN `euclid 2 = UNIONS U` SUBGOAL_TAC;
+  TYPE_THEN `euclid 2 = UNIONS U` SUBGOAL_MP_TAC;
   TYPE_THEN `U` UNABBREV_TAC;
   ASM_MESON_TAC[top_of_metric_unions;metric_euclid];
   IMATCH_MP_TAC  top_inter;
@@ -39744,19 +39744,19 @@ let convex_connected_ver2 = prove_by_refinement(
   USE 8 (REWRITE_RULE[DE_MORGAN_THM;SUBSET ]);
   LEFT 8 "x";
   LEFT 9 "x";
-  TYPE_THEN `Z x /\ Z x'` SUBGOAL_TAC;
+  TYPE_THEN `Z x /\ Z x'` SUBGOAL_MP_TAC;
   ASM_MESON_TAC[];
-  TYPE_THEN `mk_segment x x' SUBSET A UNION B` SUBGOAL_TAC;
+  TYPE_THEN `mk_segment x x' SUBSET A UNION B` SUBGOAL_MP_TAC;
   FULL_REWRITE_TAC [convex];
   ASM_MESON_TAC[ISUBSET];
-  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) (mk_segment x x')` SUBGOAL_TAC;
+  TYPE_THEN `connected (top_of_metric(euclid 2,d_euclid)) (mk_segment x x')` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  connected_mk_segment;
   USE 3(REWRITE_RULE[ctop_unions;SUBSET;DIFF;]);
   (* - *)
   FULL_REWRITE_TAC [connected];
   TYPEL_THEN [`A`;`B`] (USE 13 o ISPECL);
   REWR 13;
-  TYPE_THEN `top_of_metric (euclid 2,d_euclid) A /\ top_of_metric (euclid 2,d_euclid) B` SUBGOAL_TAC;
+  TYPE_THEN `top_of_metric (euclid 2,d_euclid) A /\ top_of_metric (euclid 2,d_euclid) B` SUBGOAL_MP_TAC;
   REWRITE_TAC[GSYM top2];
   ASM_MESON_TAC[ctop_top2_ver2;top2];
   UND 13 THEN   ASM_REWRITE_TAC[];
@@ -39778,7 +39778,7 @@ let convex_component_ver2 = prove_by_refinement(
   (* {{{ proof *)
   [
   DISCH_ALL_TAC;
-  TYPE_THEN `connected (ctop G) Z` SUBGOAL_TAC;
+  TYPE_THEN `connected (ctop G) Z` SUBGOAL_MP_TAC;
   ASM_SIMP_TAC[convex_connected_ver2];
   USE 4(REWRITE_RULE[EMPTY_EXISTS;INTER ]);
   USE 4(MATCH_MP component_replace);
@@ -39796,7 +39796,7 @@ let unions_cell_of_ver2 = prove_by_refinement(
   IMATCH_MP_TAC  SUBSET_ANTISYM;
   REWRITE_TAC [UNIONS;SUBSET;cell_of];
   CONJ_TAC;
-  TYPE_THEN `(euclid 2 x')` SUBGOAL_TAC;
+  TYPE_THEN `(euclid 2 x')` SUBGOAL_MP_TAC;
   UND 2 THEN REWRITE_TAC[component_DEF   ;connected;SUBSET ;ctop_unions;DIFF ];
   USE 3 (MATCH_MP point_onto);
   TYPE_THEN `x'` UNABBREV_TAC;
@@ -39820,13 +39820,13 @@ let unions_cell_of_ver2 = prove_by_refinement(
   USE 1 (MATCH_MP   curve_cell_cell);
   USE 1 (REWRITE_RULE[ISUBSET]);
   TSPEC `u'` 1;
-  TYPE_THEN `u = u'` SUBGOAL_TAC;
+  TYPE_THEN `u = u'` SUBGOAL_MP_TAC;
   IMATCH_MP_TAC  cell_partition;
   REWRITE_TAC[EMPTY_EXISTS;INTER];
   ASM_MESON_TAC[];
   (* --- *)
   USE 2 (REWRITE_RULE[component_DEF;connected;SUBSET ]);
-  TYPE_THEN `UNIONS (ctop G) (point p)` SUBGOAL_TAC;
+  TYPE_THEN `UNIONS (ctop G) (point p)` SUBGOAL_MP_TAC;
   USE 12(REWRITE_RULE[ctop_unions;DIFF ;UNIONS ;DE_MORGAN_THM ]);
   ASM_MESON_TAC[];
   TYPE_THEN `point p` EXISTS_TAC;

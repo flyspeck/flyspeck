@@ -1,10 +1,12 @@
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
-(* Chapter: leg                                                               *)
+(* Chapter: Jordan                                                               *)
+(* Copied from HOL Light jordan directory *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
+
 
 (* based on float.ml in hol/jordan/float.ml *)
 
@@ -12,14 +14,14 @@ module Float = struct
 
 open Lib_ext;;
 open Num_ext_nabs;;
-open Tactics_ext;;
 open Real_ext;;
 open Tactics_refine;;
+open Tactics_ext;;
+
 prioritize_real();;
 
 
 let add_test,test = new_test_suite();;
-
 
 
 let twopow =
@@ -289,7 +291,7 @@ EVERY[
 
 let REAL_INV2 = prove(
   `(inv(&. 2)*(&. 2) = (&.1)) /\ ((&. 2)*inv(&. 2) = (&.1))`,
-  SUBGOAL_TAC `~((&.2) = (&.0))`
+  SUBGOAL_MP_TAC `~((&.2) = (&.0))`
 THENL[
   REAL_ARITH_TAC;
   SIMP_TAC[REAL_MUL_RINV;REAL_MUL_LINV]]);;
@@ -322,7 +324,7 @@ THEN ((POP_ASSUM CHOOSE_TAC))
 THEN ((ASSUME_TAC (SPEC `b:int` INT_REP)))
 THEN ((REPEAT (POP_ASSUM CHOOSE_TAC)))
 THEN ((ASM_REWRITE_TAC[]))
-THEN ((SUBGOAL_TAC `&: n -: &: m +: &: n' -: &: m' = (&: (n+n')) -: (&: (m+m'))`))
+THEN ((SUBGOAL_MP_TAC `&: n -: &: m +: &: n' -: &: m' = (&: (n+n')) -: (&: (m+m'))`))
 (* branch *)
 THENL[ ((REWRITE_TAC[GSYM INT_OF_NUM_ADD]))
 THEN ((INT_ARITH_TAC));ALL_TAC]
@@ -396,7 +398,7 @@ let FLOAT_ADD_NP = prove(
 let FLOAT_ADD_PN = prove(
   `!a b m n. (float a (&: m)) +. (float b (--(&: n))) = (float ( (&:(2 EXP (m+| n)))*a + b) (--:(&: n)))`,
 ((REPEAT GEN_TAC))
-THEN ((SUBGOAL_TAC `&: m = (--:(&: n)) + (&:(m+n))`))
+THEN ((SUBGOAL_MP_TAC `&: m = (--:(&: n)) + (&:(m+n))`))
 THENL[ ((REWRITE_TAC[GSYM INT_OF_NUM_ADD]))
 THEN ((INT_ARITH_TAC));
 (* branch *)
@@ -407,7 +409,7 @@ let FLOAT_ADD_PP = prove(
   `!a b m n. ((n <=| m) ==>( (float a (&: m)) +. (float b (&: n)) = (float  ((&:(2 EXP (m -| n))) *a + b) (&: n))))`,
 ((REPEAT GEN_TAC))
 THEN (DISCH_TAC)
-THEN ((SUBGOAL_TAC `&: m = (&: n) + (&: (m-n))`))
+THEN ((SUBGOAL_MP_TAC `&: m = (&: n) + (&: (m-n))`))
 THENL[ ((REWRITE_TAC[INT_OF_NUM_ADD]))
 THEN (AP_TERM_TAC)
 THEN ((REWRITE_TAC[prove (`!(m:num) n. (n+m-n) = (m-n)+n`,REWRITE_TAC[ADD_AC])]))
@@ -432,7 +434,7 @@ let FLOAT_ADD_NN = prove(
      = (float  ((&:(2 EXP (m -| n))) *b + a) (--:(&: m)))))`,
 ((REPEAT GEN_TAC))
 THEN (DISCH_TAC)
-THEN ((SUBGOAL_TAC `--: (&: n) = --: (&: m) + (&: (m-n))`))
+THEN ((SUBGOAL_MP_TAC `--: (&: n) = --: (&: m) + (&: (m-n))`))
 THENL [((UNDISCH_EL_TAC 0))
 THEN ((SIMP_TAC [INT_OF_REAL_THM (GSYM REAL_OF_NUM_SUB)]))
 THEN (DISCH_TAC)
@@ -549,8 +551,8 @@ let INT_ADD_NEG = prove(
  `!x y. (x < y ==> ((&: x) +: (--: (&: y)) = --: (&: (y - x))))`,
 ((REPEAT GEN_TAC))
 THEN ((DISCH_TAC))
-THEN ((SUBGOAL_TAC `&: (y-x ) = (&: y) - (&: x)`))
-THENL [((SUBGOAL_TAC `x <=| y`))
+THEN ((SUBGOAL_MP_TAC `&: (y-x ) = (&: y) - (&: x)`))
+THENL [((SUBGOAL_MP_TAC `x <=| y`))
          (* branch *)
          THENL [(((ASM MESON_TAC)[LE_LT]));((SIMP_TAC[GSYM (INT_OF_REAL_THM REAL_OF_NUM_SUB)]))]
 (* branch *)
@@ -562,7 +564,7 @@ let INT_ADD_NEGv2 = prove(
  `!x y. (y <= x ==> ((&: x) +: (--: (&: y)) = (&: (x - y))))`,
  ((REPEAT GEN_TAC))
  THEN ((DISCH_TAC))
- THEN ((SUBGOAL_TAC `&: (x - y) = (&: x) - (&: y)`))
+ THEN ((SUBGOAL_MP_TAC `&: (x - y) = (&: x) - (&: y)`))
  THENL[
   ((UNDISCH_EL_TAC 0)) THEN ((SIMP_TAC[GSYM (INT_OF_REAL_THM REAL_OF_NUM_SUB)]));
   ((DISCH_TAC)) THEN ((ASM_REWRITE_TAC[INT_SUB]))
@@ -941,7 +943,7 @@ let lemma1 = prove( `&.0 < u /\ ||. z <=. e*. u ==> (&.0) <=. e`,
   ]) in
 EVERY[
   DISCH_ALL_TAC;
-  SUBGOAL_TAC `~(y= (&.0))`
+  SUBGOAL_MP_TAC `~(y= (&.0))`
   THENL[
     EVERY[
       UNDISCH_LIST[1;2];
@@ -1393,42 +1395,35 @@ let RAT_LEMMA1_SUB = prove(`~(y1 = &0) /\ ~(y2 = &0) ==>
 let INTERVAL_0 = prove(`! a f ex. (interval_eps a f ex <=> (&.0 <= (ex - (abs (a -. f)))))`,
    MESON_TAC[interval_eps;REAL_SUB_LE]);;
 
-(* to here XXD *)
+let ABS_NUM_P = prove_by_refinement(
+  `!m n. (m <= n) ==> (abs (&. n -. (&. m)) = &.((m-|n) + (n-|m)))`,
+[
+ REPEAT STRIP_TAC;
+  ASM_SIMP_TAC[(ARITH_RULE `(m <= n ==> (m  - n = 0) )/\ ( 0 + x = x)`)];
+  ASM_SIMP_TAC[GSYM REAL_OF_NUM_SUB;REAL_ABS_REFL;];
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[GSYM REAL_OF_NUM_LE];
+  REAL_ARITH_TAC;
+])
+;;
 
-let ABS_NUM = prove (`!m n. abs (&. n -. (&. m)) = &.((m-|n) + (n-|m))`,
-  REPEAT GEN_TAC THEN
-  DISJ_CASES_TAC (SPECL [`m:num`;`n:num`] LTE_CASES) THENL[
+let ABS_NUM = prove_by_refinement (
+`!m n. abs (&. n -. (&. m)) = &.((m-|n) + (n-|m))`,
+[
+  REPEAT GEN_TAC ;
+  DISJ_CASES_TAC (SPECL [`m:num`;`n:num`] LTE_CASES) ; (* THENL[ *)
   (* first case *)
-  EVERY[ LABEL_ALL_TAC;
-  H_REWRITE_RULE [THM (GSYM REAL_OF_NUM_LT)] (HYP "0");
-  LABEL_ALL_TAC;
-  H_ONCE_REWRITE_RULE[THM (GSYM REAL_SUB_LT)] (HYP "1");
-  LABEL_ALL_TAC;
-  H_MATCH_MP (THM REAL_LT_IMP_LE) (HYP "2");
-  LABEL_ALL_TAC;
-  H_REWRITE_RULE [THM (GSYM REAL_ABS_REFL)] (HYP "3");
-  ASM_REWRITE_TAC[];
-  H_MATCH_MP (THM LT_IMP_LE) (HYP "0");
-  ASM_SIMP_TAC[REAL_OF_NUM_SUB];
-  REWRITE_TAC[REAL_OF_NUM_EQ];
-  ONCE_REWRITE_TAC[ARITH_RULE `!x:num y:num. (x = y) = (y  = x)`];
-  REWRITE_TAC[EQ_ADD_RCANCEL_0];
-  ASM_REWRITE_TAC[SUB_EQ_0]];
+  MATCH_MP_TAC ABS_NUM_P;
+  FIRST_X_ASSUM MP_TAC;
+  ARITH_TAC;
   (* second case *)
-  EVERY[LABEL_ALL_TAC;
-  H_REWRITE_RULE [THM (GSYM REAL_OF_NUM_LE)] (HYP "0");
-  LABEL_ALL_TAC;
-  H_ONCE_REWRITE_RULE[THM (GSYM REAL_SUB_LE)] (HYP "1");
-  LABEL_ALL_TAC;
-  H_REWRITE_RULE [THM (GSYM REAL_ABS_REFL)] (HYP "2");
-  ONCE_REWRITE_TAC[GSYM REAL_ABS_NEG];
-  REWRITE_TAC[REAL_ARITH `!x y. --.(x -. y) = (y-x)`];
+  ONCE_REWRITE_TAC[REAL_ARITH `abs(x - y) = abs(y - x)`];
+  ONCE_REWRITE_TAC[ARITH_RULE `(a:num) + b = b + a`];
+  MATCH_MP_TAC ABS_NUM_P;
   ASM_REWRITE_TAC[];
-  ASM_SIMP_TAC[REAL_OF_NUM_SUB];
-  REWRITE_TAC[REAL_OF_NUM_EQ];
-  ONCE_REWRITE_TAC[ARITH_RULE `!x:num y:num. (x = y) <=> (y  = x)`];
-  REWRITE_TAC[EQ_ADD_LCANCEL_0];
-  ASM_REWRITE_TAC[SUB_EQ_0]]]);;
+]);;
+
+(* to here XXD *)
 
 let INTERVAL_TO_LESS = prove(
   `!a f ex b g ey. ((interval_eps a f ex) /\ (interval_eps b g ey) /\

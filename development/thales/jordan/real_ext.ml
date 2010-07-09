@@ -105,7 +105,7 @@ let REAL_PROP_NN_LCANCEL= prove(`!x y. &.0 <. x /\ (&.0) <=. x*.y ==> ((&.0) <=.
   MESON_TAC[REAL_PROP_LE_LCANCEL;REAL_MUL_RZERO]);;
 let REAL_PROP_NN_MUL2 = REAL_LE_MUL (* |- !x y. &0 <= x /\ &0 <= y ==> &0 <= x * y *);;
 let REAL_PROP_NN_POW = REAL_POW_LE (* |- !x n. &0 <= x ==> &0 <= x pow n *);;
-let REAL_PROP_NN_SQUARE = REAL_LE_POW_2;; (* |- !x. &0 <= x pow 2 *)
+let REAL_PROP_NN_SQUARE = Collect_geom.REAL_LE_POW_2;; (* |- !x. &0 <= x pow 2 *)
 let REAL_PROP_NN_SQRT = SQRT_POS_LE;; (* |- !x. &0 <= x ==> &0 <= sqrt x *)
 let REAL_PROP_NN_INV = REAL_LE_INV_EQ (* |- !x. &0 <= inv x = &0 <= x *);;
 let REAL_PROP_NN_SIN = SIN_POS_PI_LE;; (* |- !x. &0 <= x /\ x <= pi ==> &0 <= sin x *)

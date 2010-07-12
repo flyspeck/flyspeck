@@ -7,6 +7,11 @@
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
 
+(* 
+The file in the HOL Light distribution is longer, with results about
+Euclidan space that are not relevant here.
+*)
+
 module Misc_defs_and_lemmas = struct
 
 open Tactics_ext;;

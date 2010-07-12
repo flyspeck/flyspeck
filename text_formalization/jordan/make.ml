@@ -11,6 +11,8 @@
 
 (*** New stuff ***)
 
+needs "Rqe/num_calc_simp.ml";;  
+
 flyspeck_needs "jordan/tactics_refine.ml";; 
 flyspeck_needs "jordan/lib_ext.ml";; 
 flyspeck_needs "jordan/tactics_fix.ml";; 
@@ -19,7 +21,6 @@ flyspeck_needs "jordan/tactics_ext.ml";;
 flyspeck_needs "jordan/num_ext_gcd.ml";; 
 flyspeck_needs "jordan/num_ext_nabs.ml";;   
 flyspeck_needs "jordan/real_ext_geom_series.ml";; 
-needs "Rqe/num_calc_simp.ml";;  
 flyspeck_needs "jordan/real_ext.ml";;  
 flyspeck_needs "jordan/float.ml";; 
 flyspeck_needs "jordan/tactics_ext2.ml";; 

@@ -1,0 +1,1006 @@
+
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2010-02-09                                                           *)
+(* ========================================================================= *)
+
+
+
+
+module  Conforming = struct
+
+
+
+
+
+
+
+
+
+open Sphere;;
+open Fan_defs;;
+open Hypermap;;
+open Vol1;;
+open Fan;;
+open Topology;;		
+open Fan_misc;;
+open Planarity;; 
+
+
+
+
+
+
+
+
+
+
+
+let conforming_bijection_fan = new_definition `conforming_bijection_fan (x,V,E) <=>
+  !s. s IN topological_component_yfan (x,V,E) ==> (?!f. f IN face_set (hypermap1_of_fanx (x,V,E)) /\ 
+							 s = dartset_leads_into_fan x V E f)`;;
+
+							 
+let conforming_half_space_fan = new_definition `conforming_half_space_fan (x,V,E) <=>
+	!f. f IN face_set (hypermap1_of_fanx (x,V,E)) ==> 
+		dartset_leads_into_fan x V E f = 
+			INTERS {aff_gt {x, pr2 y, pr3 y} {pr3 (f1_fan x V E y) } |  y IN f}`;;
+	
+			
+let conforming_solid_angle_fan = new_definition `conforming_solid_angle_fan (x,V,E) <=>
+  !f. f IN face_set (hypermap1_of_fanx (x,V,E)) ==>
+  (let U = dartset_leads_into_fan x V E f in
+     (!r. measurable (ball (x,r) INTER U)) /\
+       eventually_radial x U /\
+       sol x U = &2 * pi + sum (f) (\y. (azim_fan x V E (pr2 y) (pr3 y))  - pi))`;;
+
+	   
+let conforming_diagonal_fan = new_definition `conforming_diagonal_fan (x,V,E) <=>
+	(!f y z. f IN face_set (hypermap1_of_fanx (x,V,E)) /\ y IN f /\ z IN f /\ ~(y = z) ==> 
+		~collinear {x, pr2 y, pr2 z} /\
+		((y = f1_fan x V E z) \/ (z = f1_fan  x V E y) \/ 
+			aff_gt {x} {pr2 y, pr2 z} SUBSET (dartset_leads_into_fan  x V E f)))`;;
+
+
+
+		
+			
+let conforming_fan = new_definition `conforming_fan (x,V,E) <=>
+ (!v. v IN V==>CARD (set_of_edge v V E) >1)/\
+        fan80(x,V,E) /\
+	conforming_bijection_fan (x,V,E) /\
+	conforming_half_space_fan (x,V,E) /\
+	conforming_solid_angle_fan (x,V,E) /\
+	conforming_diagonal_fan (x,V,E)`;;
+
+
+
+
+let N_FAN = new_definition `N_FAN (x,V,E) = nsum (face_set (hypermap1_of_fanx (x,V,E))) (\f. CARD f -3)`;;
+
+
+
+
+let GINGUAP=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) v:real^3 u:real^3 w:real^3.
+FAN(x,V,E)
+/\ conforming_fan (x,V,E)
+/\ ds IN face_set(hypermap1_of_fanx (x,V,E))
+==>   convex(dartset_leads_into_fan x V E ds)`,
+
+REWRITE_TAC[conforming_fan;conforming_half_space_fan]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "EM"(fun th-> MRESA1_TAC th`ds:real^3#real^3#real^3#real^3->bool`)
+THEN MATCH_MP_TAC CONVEX_INTERS
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[CONVEX_AFF_GT]);;
+
+
+
+
+
+let fully_surrounded_imp_aff_gt_3_1_of_edge_eq_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) v w.
+FAN(x,V,E) /\ {v,w} IN E
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ fan80(x,V,E)
+==>  aff_gt {x, v,w} {sigma_fan x V E v w} =
+ aff_gt {x, v, w} {inverse1_sigma_fan x V E w v}`,
+
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th -> MP_TAC th
+THEN REWRITE_TAC[fan80] THEN ASSUME_TAC th)
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th -> MRESA_TAC th [`v:real^3`;`w:real^3`] THEN MRESA_TAC th [`w:real^3`;`inverse1_sigma_fan x V E w v:real^3`] )
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`w:real^3`]
+THEN REMOVE_THEN "EM" MP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN MRESA_TAC properties_fully_surrounded [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`;`w:real^3`;`inverse1_sigma_fan x V E w v:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,C,B,D}`] THEN DISCH_TAC THEN MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,B,D,C}`] THEN DISCH_TAC THEN ASSUME_TAC th)
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (w:real^3)`;
+`(v:real^3)`]
+THEN MRESA_TAC sigma_fan_in_set_of_edge[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;`v:real^3`;`w:real^3`]
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` sigma_fan x V E v w:real^3`;`(v:real^3)`]
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN MRESA_TAC properties_fully_surrounded [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`sigma_fan x V E v w:real^3`;`v:real^3`;`w:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,C,B,D}`] THEN DISCH_TAC THEN MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,C,D,B}`] THEN DISCH_TAC THEN ASSUME_TAC th)
+THEN MRESA_TAC cross_dot_fully_surrounded_fan[`x:real^3`;`v:real^3`;`sigma_fan x V E v w:real^3`; `w:real^3`]
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;`(w:real^3)`;`inverse1_sigma_fan x V E w v:real^3`]
+THEN MRESA_TAC cross_dot_fully_surrounded_fan[`x:real^3`;`w:real^3`;`v:real^3`;`inverse1_sigma_fan x V E w v:real^3`; ]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C}={A,C,B}`;CROSS_TRIPLE]
+THEN ONCE_REWRITE_TAC[CROSS_TRIPLE]
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C}={A,C,B}`]
+THEN MRESA_TAC aff_gt_3_1_rep_cross_dot[`x:real^3`;`v:real^3`;`w:real^3`;`sigma_fan x V E v w:real^3`;]
+THEN MRESA_TAC aff_gt_3_1_rep_cross_dot[`x:real^3`;`v:real^3`;`w:real^3`;`inverse1_sigma_fan x V E w v:real^3`]);;
+
+
+
+
+
+
+
+
+
+
+
+let IMAGE_F1_IN_FACE_IMP_IN_FACE=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds y y1.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ ds IN face_set (hypermap1_of_fanx (x,V,E)) 
+/\ y IN ds
+/\ y1 IN d_fan(x,V,E)
+/\ f1_fan x V E y1= y
+==>   y1 IN ds`,
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`]
+THEN MRESA_TAC hypermap_of_fan_rep[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN ASM_REWRITE_TAC[face_set;set_of_orbits;IN_ELIM_THM;orbit_map]
+THEN RESA_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3`)
+THEN STRIP_TAC
+THEN SUBGOAL_THEN`face (hypermap1_of_fanx (x,V,E)) y1 IN
+      face_set (hypermap1_of_fanx (x,V,E))`ASSUME_TAC
+THENL[
+REWRITE_TAC[face_set;IN_ELIM_THM;set_of_orbits;face]
+THEN EXISTS_TAC`y1:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[];
+MRESA_TAC CARD_FACE_SET_GE_3_FULLY_SURROUNDED_FAN[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`;`(face (hypermap1_of_fanx (x,V,E)) y1):real^3#real^3#real^3#real^3->bool`]
+THEN SUBGOAL_THEN`?N:num. CARD (face (hypermap1_of_fanx (x,V,E)) y1)= SUC N /\ N>0`ASSUME_TAC
+THENL[
+EXISTS_TAC`CARD (face (hypermap1_of_fanx (x:real^3,V,E)) y1)-1`
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC;
+POP_ASSUM MP_TAC
+THEN STRIP_TAC
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`CARD (face (hypermap1_of_fanx (x,V,E)) y1):num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`y1:real^3#real^3#real^3#real^3`)
+THEN STRIP_TAC
+THEN MRESA_TAC lemma_face_cycle[`hypermap1_of_fanx (x:real^3,V,E)`;`y1:real^3#real^3#real^3#real^3`]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[POWER;o_DEF;GSYM lemma_add_exponent_function]
+THEN STRIP_TAC
+THEN EXISTS_TAC`N+n:num`
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`N+n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3`)
+THEN MP_TAC(ARITH_RULE`n>=0/\ N>0==> N+n>=0`)
+THEN ASM_REWRITE_TAC[]]]);;
+
+
+
+
+
+
+let REP_OF_INVERSE1_SIGMA_FAN=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds y.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ ds IN face_set (hypermap1_of_fanx (x,V,E)) 
+/\ y IN ds
+==>  f1_fan x V E  (x,sigma_fan x V E (pr2 y) (pr3 y),(pr2 y),sigma_fan x V E (sigma_fan x V E (pr2 y) (pr3 y)) (pr2 y))=y `,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`]
+THEN  MRESA_TAC face_subset_dart_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN MP_TAC(SET_RULE`ds SUBSET d1_fan (x,V,E) /\ y IN ds ==> y IN d1_fan (x,V,E)`) 
+THEN ASM_REWRITE_TAC[f1_fan;d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[pr2;pr3]
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`w:real^3`));;
+
+
+
+
+let REP_OF_INVERSE1_SIGMA_FAN_IN_D_FAN=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds y.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ ds IN face_set (hypermap1_of_fanx (x,V,E)) 
+/\ y IN ds
+==> (x,sigma_fan x V E (pr2 y) (pr3 y),(pr2 y),sigma_fan x V E (sigma_fan x V E (pr2 y) (pr3 y)) (pr2 y)) IN
+      d_fan (x:real^3,V:real^3->bool,E)`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`]
+THEN  MRESA_TAC face_subset_dart_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN MP_TAC(SET_RULE`ds SUBSET d1_fan (x,V,E) /\ y IN ds ==> y IN d1_fan (x,V,E)`) 
+THEN ASM_REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[pr2;pr3]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`(sigma_fan x V E v w):real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`(sigma_fan x V E (sigma_fan x V E v w) v):real^3`
+THEN ASM_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (w:real^3)`;
+` (v:real^3)`]
+THEN MRESA_TAC sigma_fan_in_set_of_edge[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;` v:real^3`;`w:real^3`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;`(sigma_fan x V E v w):real^3`;`v:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC);;
+
+
+
+
+
+let DARTSET_LEADS_INTO_SUBSET_WDART_FAN=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds y.
+FAN(x,V,E)
+/\ ds IN face_set (hypermap1_of_fanx (x,V,E)) 
+/\ y IN ds
+/\ conforming_fan (x,V,E)
+==>   (dartset_leads_into_fan x V E ds) SUBSET (w_dart_fan x V E y)`,
+REWRITE_TAC[conforming_fan;conforming_half_space_fan]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "EM"(fun th-> MRESA1_TAC th`ds:real^3#real^3#real^3#real^3->bool`)
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`]
+THEN  MRESA_TAC face_subset_dart_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN MP_TAC(SET_RULE`y IN ds /\ ds SUBSET d1_fan (x,V,E)==> y IN d1_fan (x,V,E)`) THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (w:real^3)`;
+` (v:real^3)`]
+THEN FIND_ASSUM MP_TAC`(!v:real^3. v IN V==>CARD (set_of_edge v V E) >1)` 
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th-> MP_TAC(ISPEC `v:real^3` th) THEN FIND_ASSUM MP_TAC `(v:real^3) IN V` THEN DISCH_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th]) THEN STRIP_TAC)
+THEN ASM_REWRITE_TAC[w_dart_fan;]
+THEN FIND_ASSUM MP_TAC`fan80 (x:real^3,V,E)`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th -> MP_TAC th
+THEN REWRITE_TAC[fan80] THEN ASSUME_TAC th)
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th -> MRESA_TAC th [`v:real^3`;`w:real^3`] THEN MP_TAC th THEN DISCH_THEN(LABEL_TAC "YEU EM1"))
+THEN MRESA_TAC sigma_fan_in_set_of_edge[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`;` v:real^3`;`w:real^3`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;`(sigma_fan x V E v w):real^3`;`v:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN MRESA_TAC WEDGE_LUNE_GT[`x:real^3`;`v:real^3`;`w:real^3`;`(sigma_fan x V E v w):real^3`]
+THEN MRESA_TAC properties_fully_surrounded [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(sigma_fan x V E v w):real^3`;`v:real^3`;`w:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN ASM_REWRITE_TAC[]
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B}={B,A}`]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,C,D,B}`] THEN DISCH_TAC THEN MP_TAC th THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C,D}={A,D,C,B}`] THEN DISCH_TAC THEN ASSUME_TAC th)
+THEN MRESA_TAC inter_aff_gt_3_1_is_aff_gt_2_2[`x:real^3`;`w:real^3`;`v:real^3`;`(sigma_fan x V E v w):real^3`]
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th;])
+THEN SUBGOAL_THEN`x,sigma_fan x V E v w,v,sigma_fan x V E (sigma_fan x V E v w) v IN
+      d1_fan (x:real^3,V:real^3->bool,E)` ASSUME_TAC
+THENL[ASM_REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`(sigma_fan x V E v w):real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`(sigma_fan x V E (sigma_fan x V E v w) v):real^3`
+THEN ASM_REWRITE_TAC[SET_RULE`{A,B}={B,A}`];
+MRESA_TAC properties_of_f1_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`((f1_fan x V E (x,sigma_fan x V E v w, v, sigma_fan x V E (sigma_fan x V E v w) v)):real^3#real^3#real^3#real^3)` ;`((x,sigma_fan x V E v w,v,sigma_fan x V E (sigma_fan x V E v w) v):real^3#real^3#real^3#real^3)`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[pr2;pr3;f1_fan]
+THEN REWRITE_TAC[]
+THEN STRIP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[pr2;pr3;f1_fan]
+THEN REWRITE_TAC[INTERS;INTER;IN_ELIM_THM; SUBSET]
+THEN REPEAT STRIP_TAC
+THENL[POP_ASSUM(fun th-> MRESA1_TAC th `aff_gt {x, w, v} {sigma_fan x V E v w:real^3}` THEN POP_ASSUM MATCH_MP_TAC)
+THEN EXISTS_TAC`y:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[pr2;pr3;f1_fan]
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[SET_RULE`{A,B,C}={A,C,B}`]
+THEN MRESA_TAC fully_surrounded_imp_aff_gt_3_1_of_edge_eq_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`;`w:real^3`];
+POP_ASSUM(fun th-> MRESA1_TAC th `aff_gt {x, v, sigma_fan x V E v w} {w}` THEN POP_ASSUM MATCH_MP_TAC)
+THEN EXISTS_TAC`(x,sigma_fan x V E v w,v,sigma_fan x V E (sigma_fan x V E v w:real^3) v):real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[pr2;pr3;f1_fan]
+THEN MRESA_TAC INVERSE1_SIGMA_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`w:real^3`)
+THEN MRESAL_TAC REP_OF_INVERSE1_SIGMA_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`;`y:real^3#real^3#real^3#real^3`][pr2;pr3]
+THEN MRESA_TAC IMAGE_F1_IN_FACE_IMP_IN_FACE[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`;`y:real^3#real^3#real^3#real^3`;`(x,sigma_fan x V E v w,v,sigma_fan x V E (sigma_fan x V E v w:real^3) v):real^3#real^3#real^3#real^3`]
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[SET_RULE`{A,B,C}={A,C,B}`]
+THEN REWRITE_TAC[]]]);;
+
+
+
+
+
+
+
+
+let power_map_points_edge_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) v:real^3 w:real^3 n:num.
+FAN(x,V,E)
+/\ {v,w} IN E
+==> {v,power_map_points sigma_fan x V E v w n} IN E`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC i_IN_ORBITS_FAN[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (v:real^3)`;` (w:real^3)`;`n:num`] 
+THEN MRESA_TAC ORBITS_SUBSET_EDGE_FAN[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;`v:real^3`;` (w:real^3)`]
+THEN MP_TAC (SET_RULE`power_map_points sigma_fan x V E v w n IN
+      set_of_orbits_points_fan x V E v w /\
+set_of_orbits_points_fan x V E v w SUBSET set_of_edge v V E
+==> power_map_points sigma_fan x V E v w n IN set_of_edge v V E`)
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC properties_of_set_of_edge_fan[`(x:real^3)`;` (V:real^3->bool)`;` (E:(real^3->bool)->bool)`;`v:real^3`;` ((power_map_points sigma_fan x V E v w n):real^3)`]);;
+
+
+
+
+let     SRPRNPL=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool).
+FAN(x,V,E)
+/\ conforming_fan (x,V,E)
+==>   simple_hypermap(hypermap1_of_fanx (x,V,E))`,
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th-> MP_TAC th THEN REWRITE_TAC[conforming_fan] THEN ASSUME_TAC th)
+THEN MRESA_TAC hypermap_of_fan_rep[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN ASM_REWRITE_TAC[simple_hypermap;node;EXTENSION;INTER;IN_ELIM_THM;orbit_map]
+THEN REPEAT STRIP_TAC
+THEN EQ_TAC
+THEN STRIP_TAC
+THENL[POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN (LABEL_TAC "EM")
+THEN REPEAT STRIP_TAC
+THEN SUBGOAL_THEN`x' IN face (hypermap1_of_fanx (x:real^3,V,E)) x'`ASSUME_TAC
+THENL[
+REWRITE_TAC[face;IN_ELIM_THM;orbit_map]
+THEN EXISTS_TAC`0`
+THEN REWRITE_TAC[POWER;I_DEF;ARITH_RULE`0>=0`];
+ SUBGOAL_THEN `face (hypermap1_of_fanx (x,V,E)) x' IN
+      face_set (hypermap1_of_fanx (x:real^3,V,E))` ASSUME_TAC
+THENL[
+ASM_REWRITE_TAC[face_set;IN_ELIM_THM;set_of_orbits;orbit_map;face]
+THEN EXISTS_TAC`x':real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[];
+MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`]
+THEN REMOVE_THEN"EM"MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN MRESA_TAC into_domain_power_efn_fan[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool) `;`n:num`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x':real^3#real^3#real^3#real^3`)
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_THEN"EM"MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[d1_fan;]
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN STRIP_TAC
+THEN MRESA_TAC power_n_fan[`n:num`;`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`;`w:real^3`]
+THEN MRESAL_TAC DARTSET_LEADS_INTO_SUBSET_WDART_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(face (hypermap1_of_fanx (x,V,E)) x'):real^3#real^3#real^3#real^3->bool`;`x'':real^3#real^3#real^3#real^3`][pr2;pr3;]
+THEN MRESAL_TAC DARTSET_LEADS_INTO_SUBSET_WDART_FAN[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(face (hypermap1_of_fanx (x,V,E)) x'):real^3#real^3#real^3#real^3->bool`;`x':real^3#real^3#real^3#real^3`][pr2;pr3]
+THEN MRESA_TAC power_map_points_edge_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`; `w:real^3`; `n:num`]
+THEN MRESA_TAC dartset_leads_into_is_topological_component_yfan[`x:real^3`;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;`(face (hypermap1_of_fanx (x,V,E)) x'):real^3#real^3#real^3#real^3->bool`]
+THEN MRESA_TAC exists_point_in_component_yfan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)` ;`(dartset_leads_into_fan x V E
+      (face (hypermap1_of_fanx (x,V,E)) (x,v,w,sigma_fan x V E v w))):real^3->bool`]
+
+THEN MP_TAC(SET_RULE`dartset_leads_into_fan x V E
+      (face (hypermap1_of_fanx (x,V,E)) (x,v,w,sigma_fan x V E v w)) SUBSET
+      w_dart_fan x V E
+      (x,
+       v,
+       power_map_points sigma_fan x V E v w n,
+       power_map_points sigma_fan x V E v w (SUC n))/\
+ dartset_leads_into_fan x V E
+      (face (hypermap1_of_fanx (x,V,E)) (x,v,w,sigma_fan x V E v w)) SUBSET
+      w_dart_fan x V E (x,v,w,sigma_fan x V E v w)
+/\ z IN
+      dartset_leads_into_fan x V E
+      (face (hypermap1_of_fanx (x,V,E)) (x,v,w,sigma_fan x V E v w))
+==> ~(w_dart_fan x V E (x,v,w,sigma_fan x V E v w) INTER      w_dart_fan x V E
+      (x,
+       v,
+       power_map_points sigma_fan x V E v w n,
+       power_map_points sigma_fan x V E v w (SUC n)) 
+      ={})`)
+THEN ASM_REWRITE_TAC[]
+THEN REWRITE_TAC[power_map_points]
+THEN STRIP_TAC
+THEN MRESA_TAC disjoint_fan2[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`v:real^3`; `w:real^3`;`(power_map_points sigma_fan x V E v w n):real^3`]
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th;IN_SING])]];
+POP_ASSUM MP_TAC
+THEN REWRITE_TAC[IN_SING]
+THEN RESA_TAC
+THEN STRIP_TAC
+THENL[
+EXISTS_TAC `0`
+THEN REWRITE_TAC[ARITH_RULE`0>=0`; POWER;I_DEF];
+
+REWRITE_TAC[face;IN_ELIM_THM;orbit_map]
+THEN EXISTS_TAC `0`
+THEN REWRITE_TAC[ARITH_RULE`0>=0`; POWER;I_DEF]]]);;
+
+
+let N_FAN_GE_0=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool).
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+==> 0<= N_FAN(x,V,E) `,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC NSUM_EQ_0[`(\f:real^3#real^3#real^3#real^3->bool. 0)`;`face_set (hypermap1_of_fanx (x:real^3,V,E))`]
+THEN MRESA_TAC NSUM_LE[`(\f:real^3#real^3#real^3#real^3->bool. 0)`;`(\f:real^3#real^3#real^3#real^3->bool. CARD f - 3)`;`face_set (hypermap1_of_fanx (x:real^3,V,E))`]
+THEN REWRITE_TAC[N_FAN]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN REWRITE_TAC[FINITE_HYPERMAP_ORBITS]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC CARD_FACE_SET_GE_3_FULLY_SURROUNDED_FAN[`x:real^3`;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;`x':real^3#real^3#real^3#real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC);;
+
+let NSUM_EQ_0_IFF = prove
+ (`!s f. FINITE s ==> (nsum s f = 0 <=> !x. x IN s ==> f x = 0)`,
+  REPEAT STRIP_TAC THEN EQ_TAC THEN ASM_SIMP_TAC[NSUM_EQ_0] THEN
+  ASM_MESON_TAC[ARITH_RULE `n = 0 <=> n <= 0`; NSUM_POS_BOUND]);;
+
+
+
+let N_FAN_EQ_0_IMP_CARD_FACE_EQ_3=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ N_FAN(x,V,E)=0
+/\ ds IN face_set (hypermap1_of_fanx (x,V,E)) 
+==> CARD ds=3`,
+
+REWRITE_TAC[N_FAN]
+THEN REPEAT STRIP_TAC
+THEN MRESAL_TAC NSUM_EQ_0_IFF[`face_set (hypermap1_of_fanx (x:real^3,V,E))`;`(\f:real^3#real^3#real^3#real^3->bool. CARD f -3)`][FINITE_HYPERMAP_ORBITS]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`ds:real^3#real^3#real^3#real^3->bool`)
+THEN MRESA_TAC CARD_FACE_SET_GE_3_FULLY_SURROUNDED_FAN[`x:real^3`;`(V:real^3->bool)`;` (E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC);;
+
+
+
+
+let version_JUTSTKG=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) U:real^3->bool.
+FAN(x,V,E) 
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ fan80(x,V,E)
+/\ U IN topological_component_yfan (x,V,E)
+==> ?f. f IN face_set (hypermap1_of_fanx (x,V,E)) /\ dartset_leads_into_fan x V E f = U`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC JUTSTKG[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`U:real^3->bool`]
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th])
+THEN ABBREV_TAC`y=(x,v,u:real^3,sigma_fan x V E v u)`
+THEN ABBREV_TAC`ds=face (hypermap1_of_fanx (x:real^3,V,E)) y`
+THEN EXISTS_TAC`ds:real^3#real^3#real^3#real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN SUBGOAL_THEN`y IN dart (hypermap1_of_fanx (x:real^3,V,E))`ASSUME_TAC
+THENL[
+REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th;])
+THEN MRESA_TAC hypermap_of_fan_rep[`x:real^3`;`V:real^3->bool`;`(E:(real^3->bool)->bool)`;`(\t. res (t x V E) (d1_fan (x,V,E)))`]
+THEN MRESAL_TAC dartset_fully_surrounded_is_non_isolated_fan[`x:real^3`;`(V:real^3->bool)`; `(E:(real^3->bool)->bool)`][d1_fan;IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`u:real^3`
+THEN EXISTS_TAC`(sigma_fan x (V:real^3->bool) E v u):real^3`
+THEN ASM_REWRITE_TAC[];
+
+SUBGOAL_THEN `ds IN face_set (hypermap1_of_fanx (x:real^3,V,E))`ASSUME_TAC
+THENL[
+ POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th;face_set; IN_ELIM_THM;set_of_orbits;face])
+THEN STRIP_TAC
+THEN EXISTS_TAC`y:real^3#real^3#real^3#real^3`
+THEN ASM_REWRITE_TAC[];
+
+SUBGOAL_THEN`y IN ds:real^3#real^3#real^3#real^3->bool`ASSUME_TAC
+THENL[
+EXPAND_TAC"ds"
+THEN REWRITE_TAC[face;orbit_map;IN_ELIM_THM]
+THEN EXISTS_TAC`0`
+THEN REWRITE_TAC[ARITH_RULE`0>=0`;POWER;I_DEF];
+MRESA_TAC DARTSET_LEADS_INTO_FAN [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;
+`ds:real^3#real^3#real^3#real^3->bool`;]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `y:real^3#real^3#real^3#real^3`)
+THEN EXPAND_TAC"y"
+THEN REWRITE_TAC[pr2;pr3]]]]);;
+
+
+let measurable_dartset_leads_into30_fan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds e.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ fan80(x,V,E)
+/\ ds IN face_set(hypermap1_of_fanx (x,V,E))
+/\ CARD ds=3
+==>   measurable((dartset_leads_into_fan x V E ds) INTER ball (x,e))`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC KVQWYDL_lemma10[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`ds:real^3#real^3#real^3#real^3->bool`]
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)])
+THEN ONCE_REWRITE_TAC[SET_RULE`A INTER B=B INTER A`]
+THEN MESON_TAC[MEASURABLE_BALL_AFF_GT]);;
+
+
+
+
+
+
+
+let   DWFBRQY=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) ds.
+FAN(x,V,E)
+/\ (!v. v IN V==>CARD (set_of_edge v V E) >1)
+/\ fan80(x,V,E)
+/\ N_FAN(x,V,E)=0
+==> conforming_fan (x,V,E)`,
+
+
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[conforming_fan]
+THEN MRESA_TAC N_FAN_EQ_0_IMP_CARD_FACE_EQ_3[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"EM")
+THEN STRIP_TAC
+THENL[
+REWRITE_TAC[conforming_bijection_fan;EXISTS_UNIQUE]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC version_JUTSTKG[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`s:real^3->bool`]
+THEN EXISTS_TAC`f:real^3#real^3#real^3#real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th])
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC exists_point_dart_leads_into_fan [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;
+`y:real^3#real^3#real^3#real^3->bool`;]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"MA")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "EM" (fun th-> MRESA1_TAC th `f:real^3#real^3#real^3#real^3->bool`)
+THEN  MRESA_TAC face_subset_dart_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`y:real^3#real^3#real^3#real^3->bool`]
+THEN MP_TAC(SET_RULE`y' IN y /\ y SUBSET d_fan(x,V,E)==> y' IN d_fan(x,V,E)`)
+THEN RESA_TAC
+THEN MRESA_TAC KVQWYDL_lemma30[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `y':real^3#real^3#real^3#real^3`)
+THEN REMOVE_THEN "MA" MP_TAC
+THEN ASM_TAC
+THEN REWRITE_TAC[face_set;IN_ELIM_THM;set_of_orbits]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN MRESAL_TAC lemma_face_identity[`hypermap1_of_fanx (x:real^3,V,E)`;`x':real^3#real^3#real^3#real^3`;`y':real^3#real^3#real^3#real^3`][face]
+THEN MRESAL_TAC lemma_face_identity[`hypermap1_of_fanx (x:real^3,V,E)`;`x'':real^3#real^3#real^3#real^3`;`y':real^3#real^3#real^3#real^3`][face];
+
+STRIP_TAC
+THENL[
+REWRITE_TAC[conforming_half_space_fan]
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "EM" (fun th-> MRESA1_TAC th `f:real^3#real^3#real^3#real^3->bool`)
+THEN MRESA_TAC KVQWYDL_lemma10[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`]
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM(th);])
+THEN MRESA_TAC CARD_FACE_SET_EQ_3_FULLY_SURROUNDED_FAN1[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`]
+THEN ASM_REWRITE_TAC[SET_RULE`INTERS {aff_gt {x, pr2 y, pr3 y} {pr3 (f1_fan x V E y)} | y IN {f1, f2, f3}}
+= aff_gt {x, pr2 f1, pr3 f1} {pr3 (f1_fan x V E f1)} INTER aff_gt {x, pr2 f2, pr3 f2} {pr3 (f1_fan x V E f2)} INTER aff_gt {x, pr2 f3, pr3 f3} {pr3 (f1_fan x V E f3)}`;SET_RULE`{pr2 y | y IN {f1, f2, f3}}={pr2 f1, pr2 f2, pr2 f3}`]
+THEN FIND_ASSUM MP_TAC`fan80 (x:real^3,V,E)`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th -> MP_TAC th
+THEN REWRITE_TAC[fan80] THEN ASSUME_TAC th)
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th -> MRESA_TAC th [`pr2 f2:real^3`;`pr2 f3:real^3`])
+THEN MRESA_TAC properties_fully_surrounded [`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(pr2 f1):real^3`;`(pr2 f2):real^3`;`(pr2 f3):real^3`]
+THEN MRESA_TAC inter_aff_gt_3_1_is_aff_gt_1_3[`x:real^3`;`(pr3 f3):real^3`;`(pr3 f1):real^3`;`(pr3 f2):real^3`];
+
+STRIP_TAC
+THENL[
+REWRITE_TAC[conforming_solid_angle_fan]
+THEN REPEAT STRIP_TAC
+THEN CONV_TAC(TOP_DEPTH_CONV let_CONV) 
+THEN ONCE_REWRITE_TAC[SET_RULE`A INTER B= B INTER A`]
+THEN REMOVE_THEN "EM" (fun th-> MRESA1_TAC th `f:real^3#real^3#real^3#real^3->bool`)
+THEN MRESA_TAC measurable_dartset_leads_into30_fan[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`;]
+THEN MRESA_TAC dartset_leads_into_fan_eventually_radial_norm[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`;]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[eventually_radial_norm;eventually_radial;radial_norm; radial;ball_eq_normball]
+THEN DISCH_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC solid_of_dartset_leads_into_fan_triangle_fan
+[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`;];
+
+REWRITE_TAC[conforming_diagonal_fan]
+THEN REPEAT GEN_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_THEN "EM" (fun th-> MRESA1_TAC th `f:real^3#real^3#real^3#real^3->bool`)
+THEN MRESA_TAC CARD_FACE_SET_EQ_3_FULLY_SURROUNDED_FAN1[`x:real^3`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`f:real^3#real^3#real^3#real^3->bool`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` (pr2 f2):real^3`;`(pr2 f1):real^3`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` (pr2 f3):real^3`;`(pr2 f2):real^3`]
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` (pr2 f1):real^3`;`(pr2 f3):real^3`]
+THEN REPEAT DISCH_TAC
+THEN MP_TAC(SET_RULE`y IN {f1, f2, f3:real^3#real^3#real^3#real^3} /\ z IN {f1, f2, f3}/\ ~(y = z)
+==> (y=f1 /\ z= f2) \/ (y=f1 /\ z= f3) \/ (y=f2 /\ z= f1) \/ (y=f2 /\ z= f3)\/ (y=f3 /\ z= f1) \/ (y=f3 /\ z= f2)` )
+THEN RESA_TAC
+THEN ONCE_REWRITE_TAC[SET_RULE`{A,B,C}={A,C,B}`]
+THEN ASM_REWRITE_TAC[]]]]);;
+
+
+
+
+
+let NEGLIGIBLE_AFF_GE_2_1=prove(`!x:real^3 v:real^3 u:real^3.
+~collinear {x,v,u}
+==>  negligible (aff_ge {x,v} {u})`,
+ 
+REPEAT GEN_TAC THEN GEOM_ORIGIN_TAC `x:real^3` THEN 
+REPEAT STRIP_TAC
+THEN MATCH_MP_TAC NEGLIGIBLE_SUBSET
+THEN EXISTS_TAC`{w:real^3| (w) dot (e2_fan (vec 0) v u)= &0}`
+THEN MRESAL_TAC exp_aff_ge_by_dot[`(vec 0):real^3`;`v:real^3`;`u:real^3`][VECTOR_ARITH`A- vec 0=A`]
+THEN REWRITE_TAC[SET_RULE`{w | w dot e2_fan (vec 0) v u = &0 /\ &0 <= w dot e1_fan (vec 0) v u} SUBSET
+ {w | w dot e2_fan (vec 0) v u = &0}`]
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN MATCH_MP_TAC NEGLIGIBLE_HYPERPLANE
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN MRESAL_TAC properties_coordinate[`((vec 0):real^3)`;` (v:real^3)`;` (u:real^3)`][orthonormal;DOT_LZERO]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC);;
+
+
+
+let NEGLIGIBLE_AFF_GE_1_2=prove(`!x:real^3 v:real^3 u:real^3.
+~collinear {x,v,u}
+==>  negligible (aff_ge {x} {v,u})`, 
+
+REPEAT STRIP_TAC
+THEN MATCH_MP_TAC NEGLIGIBLE_SUBSET
+THEN EXISTS_TAC `aff_ge {x,v} {u:real^3}`
+THEN MRESA_TAC aff_ge_inter_aff_ge[`x:real^3`;`v:real^3`;`u:real^3`]
+THEN ASM_SIMP_TAC[SET_RULE`A INTER B SUBSET A`;NEGLIGIBLE_AFF_GE_2_1]);;
+
+let XFAN_EQ_UNIONS_AFF_GE_1_2=prove(`!x V E.
+xfan(x,V,E) =UNIONS {y | ?e. e IN E /\ y = aff_ge {x} e}`,
+REWRITE_TAC[xfan;UNIONS;IN_ELIM_THM]
+THEN SET_TAC[]);;
+
+
+
+
+let NEGLIGIBLE_XFAN=prove(`!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool).
+FAN (x,V,E) ==>  negligible (xfan (x,V,E))`,
+REPEAT STRIP_TAC THEN REWRITE_TAC[XFAN_EQ_UNIONS_AFF_GE_1_2] THEN MATCH_MP_TAC NEGLIGIBLE_UNIONS
+THEN MRESAL_TAC set_edges_is_finite_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`][IN_ELIM_THM]
+THEN MRESAL_TAC FINITE_IMAGE[`(\e:real^3->bool. aff_ge {x:real^3} e)`;`E:(real^3->bool)->bool`][IMAGE;]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC expand_edge_graph_fan [`(x:real^3)`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(e:real^3->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC "EM")
+THEN STRIP_TAC
+THEN REMOVE_THEN "EM" MP_TAC
+THEN RESA_TAC
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` w:real^3`;`v:real^3`]
+THEN ASM_MESON_TAC[NEGLIGIBLE_AFF_GE_1_2]);;
+
+
+let NEGLIGIBLE_XFAN_INTER_BALL=prove(`!x:real^3 V:real^3->bool (E:(real^3->bool)->bool) r:real.
+FAN (x,V,E) ==>  negligible (xfan (x,V,E) INTER normball x r)`,
+REPEAT STRIP_TAC THEN MATCH_MP_TAC NEGLIGIBLE_SUBSET
+THEN EXISTS_TAC`xfan ((x:real^3),(V:real^3->bool),(E:(real^3->bool)->bool))`
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[NEGLIGIBLE_XFAN;SET_RULE`xfan (x,V,E) INTER normball x r SUBSET xfan (x,V,E)`]);;
+
+
+
+let MEASURE_XFAN=prove(`!x:real^3 V E.
+FAN (x,V,E) ==>  measure (xfan (x,V,E))= &0`,
+
+REPEAT STRIP_TAC THEN MATCH_MP_TAC MEASURE_EQ_0
+THEN ASM_SIMP_TAC[NEGLIGIBLE_XFAN]);;
+
+
+let HAS_MEASURE_XFAN=prove(`!x:real^3 V E.
+FAN (x,V,E) ==>  (xfan (x,V,E)) has_measure  &0`,
+
+REPEAT STRIP_TAC 
+THEN ASM_SIMP_TAC[NEGLIGIBLE_XFAN;HAS_MEASURE_0]);;
+
+
+
+let MEASURE_XFAN_INTER_BALL=prove(`!x:real^3 V E r.
+FAN (x,V,E) ==>  measure (xfan (x,V,E) INTER normball x r)= &0`,
+
+REPEAT STRIP_TAC THEN MATCH_MP_TAC MEASURE_EQ_0
+THEN ASM_SIMP_TAC[NEGLIGIBLE_XFAN_INTER_BALL]);;
+
+
+let HAS_MEASURE_XFAN_INTER_BALL=prove(`!x:real^3 V E r.
+FAN (x,V,E) ==>  (xfan (x,V,E) INTER normball x r)  has_measure  &0`,
+
+REPEAT STRIP_TAC 
+THEN ASM_SIMP_TAC[NEGLIGIBLE_XFAN_INTER_BALL;HAS_MEASURE_0]);;
+
+
+
+let MEASURABLE_BALL_INTER_UNIV=prove(`!x r. measurable ((:real^3) INTER normball x r)`,
+REWRITE_TAC[SET_RULE`(:real^3) INTER (A:real^3->bool)=A`;GSYM ball_eq_normball;MEASURABLE_BALL]);;
+
+
+
+
+
+
+
+
+let MEASURE_YFAN_INTER_BALL=prove(`!x:real^3 V E r. 
+FAN(x,V,E)/\ &0<= r
+==> measure ( (yfan (x,V,E)) INTER normball x r)= &4/ &3 *pi *r pow 3`,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[yfan;SET_RULE`((:real^3) DIFF xfan (x,V,E)) INTER normball x r= normball x r DIFF (xfan (x,V,E) INTER normball x r)`]
+THEN MRESAL_TAC HAS_MEASURE_XFAN_INTER_BALL[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` r:real`][HAS_MEASURE_MEASURABLE_MEASURE;GSYM ball_eq_normball]
+THEN MRESAL_TAC MEASURE_DIFF_SUBSET[`normball (x:real^3) (r:real)`;`(xfan ((x:real^3),V:real^3->bool,E) INTER normball x r)`][GSYM ball_eq_normball;MEASURABLE_BALL;SET_RULE`xfan (x,V,E) INTER ball (x,r) SUBSET ball (x,r)`;]
+THEN ASM_SIMP_TAC[VOLUME_BALL]
+THEN REAL_ARITH_TAC);;
+
+
+
+
+let MESURABLE_YFAN_INTER_BALL=prove(`!x:real^3 V E r. 
+FAN(x,V,E)/\ &0<= r
+==> measurable ( (yfan (x,V,E)) INTER normball x r)`,
+
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[yfan;SET_RULE`((:real^3) DIFF xfan (x,V,E)) INTER normball x r= normball x r DIFF (xfan (x,V,E) INTER normball x r)`]
+THEN MRESAL_TAC HAS_MEASURE_XFAN_INTER_BALL[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` r:real`][HAS_MEASURE_MEASURABLE_MEASURE;GSYM ball_eq_normball]
+THEN MRESAL_TAC MEASURABLE_DIFF[`normball (x:real^3) (r:real)`;`(xfan ((x:real^3),V:real^3->bool,E) INTER normball x r)`][GSYM ball_eq_normball;MEASURABLE_BALL;SET_RULE`xfan (x,V,E) INTER ball (x,r) SUBSET ball (x,r)`;]);;
+
+
+
+
+
+
+let RADIAL_DIFF=prove(`!r v0 A B:real^N->bool. radial_norm r v0 A /\ radial_norm r v0 B /\ A SUBSET B ==> radial_norm r v0 (B DIFF A)`,
+
+REWRITE_TAC[radial_norm]
+THEN REPEAT STRIP_TAC
+THENL[
+ASM_TAC THEN SET_TAC[];
+
+MP_TAC(SET_RULE`v0 + u:real^N IN B DIFF A==> v0 + u IN B  /\ ~(v0 + u IN A)`)
+THEN RESA_TAC
+THEN FIND_ASSUM MP_TAC `!u:real^N. v0 + u IN B ==> (!t. t > &0 /\ t * norm u < r ==> v0 + t % u IN B)`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th-> MP_TAC(ISPEC `u:real^N` th))
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM (fun th-> REWRITE_TAC[th] THEN ASSUME_TAC th)
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `t:real`)
+THEN FIND_ASSUM MP_TAC `!u:real^N. v0 + u IN A ==> (!t. t > &0 /\ t * norm u < r ==> v0 + t % u IN A)`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th-> MP_TAC(ISPEC `t% u:real^N` th))
+THEN DISJ_CASES_TAC(SET_RULE`v0 + t % u IN A \/ ~(v0 + t % u:real^N IN A)`)
+THENL[POP_ASSUM (fun th-> REWRITE_TAC[th] THEN ASSUME_TAC th)
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `inv t:real`)
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(REAL_ARITH`t> &0==> ~(t= &0) /\ &0<= t`) THEN RESA_TAC
+THEN MRESA1_TAC REAL_ABS_REFL`t:real`
+THEN MRESA1_TAC REAL_MUL_LINV`t:real`
+THEN MRESAL1_TAC REAL_LT_INV `t:real`[REAL_ARITH`&0<A <=> A> &0`;NORM_MUL; REAL_ARITH`A*B*C=(A*B)*C`;REAL_ARITH`&1 *A=A`;VECTOR_ARITH`A % B%C=(A*B)%C`;VECTOR_ARITH`&1 %A=A`]
+THEN MP_TAC(SET_RULE`B SUBSET normball v0 r /\ v0 + u:real^N IN B==> v0 + u IN normball v0 r`)
+THEN ASM_REWRITE_TAC[normball;IN_ELIM_THM;dist;VECTOR_ARITH`(A+B)-A=B:real^N`]
+THEN SET_TAC[];
+
+ASM_TAC THEN SET_TAC[]]]);;
+
+
+
+
+let RADIAL_UNION=prove(`!r v0 A B:real^N->bool. radial_norm r v0 A /\ radial_norm r v0 B ==> radial_norm r v0 (A UNION B)`,
+
+REWRITE_TAC[radial_norm;IN_UNION]
+THEN REPEAT STRIP_TAC
+THEN ASM_TAC THEN SET_TAC[]);;
+
+
+let RADIAL_EMPTY=prove(`!r v0:real^N. radial_norm r v0 {}`,
+REWRITE_TAC[radial_norm;]
+THEN SET_TAC[]);;
+
+
+let RADIAL_UNIONS=prove(`!r v0 f:(real^N->bool)->bool.
+        FINITE f /\ (!s. s IN f ==> radial_norm r v0 s)
+        ==> (radial_norm r v0 (UNIONS f))`,
+  GEN_TAC THEN GEN_TAC THEN REWRITE_TAC[IMP_CONJ] THEN
+  MATCH_MP_TAC FINITE_INDUCT_STRONG THEN
+  SIMP_TAC[UNIONS_0; UNIONS_INSERT; RADIAL_EMPTY] THEN
+  REWRITE_TAC[IN_INSERT] THEN REPEAT STRIP_TAC THEN
+  MATCH_MP_TAC RADIAL_UNION THEN ASM_SIMP_TAC[]);;
+
+
+
+let RADIAL_UNIV=prove(`!r x. r> &0 ==> radial_norm r x ((:real^3) INTER normball x r)`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[radial_norm]
+THEN REPEAT STRIP_TAC
+THENL
+[ SET_TAC[];
+UNDISCH_TAC `(x:real^3) + u IN (:real^3) INTER normball x r` THEN
+ASM_SIMP_TAC[aff_normball;SET_RULE`(:real^3) INTER (A:real^3->bool)=A`]]);;
+
+
+
+let RADIAL_AFF_GE_1_2 = prove(`!x u v r.
+     (DISJOINT {(x:real^B)} {u,v} /\ (r > &0) ) ==>
+     radial_norm r x (aff_ge {x} {u,v} INTER normball x r)`,
+
+REWRITE_TAC[radial_norm]
+THEN REPEAT STRIP_TAC
+THENL[SET_TAC[];
+
+UNDISCH_TAC `(x:real^B) + u' IN aff_ge {x} {u, v} INTER normball x r`
+THEN ASM_SIMP_TAC[AFF_GE_1_2]
+THEN REWRITE_TAC[IN_ELIM_THM;IN_INTER]
+THEN REPEAT STRIP_TAC
+THENL[EXISTS_TAC `&1 + (t:real) * t1 - t`
+THEN EXISTS_TAC `(t:real) * t2`
+THEN EXISTS_TAC `(t:real) * t3`
+THEN ASM_REWRITE_TAC[REAL_ARITH`(&1 + t * t1 - t) + t * t2 + t * t3 = &1 + t * (t1 + t2 +t3)-t `; REAL_ARITH`&1 + t * &1 - t = &1`;VECTOR_ARITH`(&1 + t * t1 - t) % x + (t * t2) % u + (t * t3) % v=x + t % (t1 % x +  t2 % u + t3 % v) - t %x`;]
+THEN MP_TAC(REAL_ARITH`t> &0 ==> &0<= t`) THEN RESA_TAC
+THEN SUBGOAL_THEN `&0 <= t * t2 /\ &0 <= t * t3` (fun t -> REWRITE_TAC[t])
+THENL[ ASM_MESON_TAC[REAL_LE_MUL];
+REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
+THEN VECTOR_ARITH_TAC];
+
+MATCH_MP_TAC aff_normball
+THEN ASM_REWRITE_TAC[]]]);;
+
+
+
+let XFAN_INTER_BALL_UNIONS=prove(`!x:real^N V E.
+xfan(x,V,E) INTER normball x r= UNIONS {y | ?e. e IN E /\ y = (aff_ge {x} e) INTER normball x r}`,
+REPEAT GEN_TAC
+THEN REWRITE_TAC[XFAN_EQ_UNIONS_AFF_GE_1_2]
+THEN ONCE_REWRITE_TAC[ EXTENSION]
+THEN REWRITE_TAC[UNIONS; INTER;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC `{x' | x' IN aff_ge {x} e /\ x' IN normball (x:real^N) (r:real)}`
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+THEN RESA_TAC THEN RESA_TAC
+THEN EXISTS_TAC`e:real^N->bool`
+THEN ASM_REWRITE_TAC[];
+STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+THEN RESA_TAC
+THEN EXISTS_TAC `aff_ge {x:real^N} e `
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC `e:real^N->bool`
+THEN ASM_REWRITE_TAC[]]);;
+
+
+let RADIAL_XFAN_INTER_BALL=prove(`!(x:real^3) (V:real^3->bool) (E:(real^3->bool)->bool) r.
+FAN (x,V,E) /\ r> &0 ==>  radial_norm r x  (xfan (x,V,E) INTER normball x r)`,
+REPEAT STRIP_TAC THEN REWRITE_TAC[XFAN_INTER_BALL_UNIONS]
+ THEN MATCH_MP_TAC RADIAL_UNIONS
+THEN MRESAL_TAC set_edges_is_finite_fan[`x:real^3`;`V:real^3->bool`;`E:(real^3->bool)->bool`][IN_ELIM_THM]
+THEN MRESAL_TAC FINITE_IMAGE[`(\e:real^3->bool. aff_ge {x:real^3} e INTER normball x r)`;`E:(real^3->bool)->bool`][IMAGE;]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC expand_edge_graph_fan [`(x:real^3)`;`(V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(e:real^3->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC "EM")
+THEN STRIP_TAC
+THEN REMOVE_THEN "EM" MP_TAC
+THEN RESA_TAC
+THEN MRESA_TAC remark1_fan[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` w:real^3`;`v:real^3`]
+THEN ASM_MESON_TAC[RADIAL_AFF_GE_1_2]);;
+
+
+
+
+
+let RADIAL_NORM_YFAN_INTER_BALL=prove(`!x:real^3 V E r. 
+FAN(x,V,E) /\ r> &0
+==> radial_norm r x ( (yfan (x,V,E)) INTER normball x r)`,
+
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[yfan;SET_RULE`((:real^3) DIFF xfan (x,V,E)) INTER normball x r= ((:real^3) INTER normball x r) DIFF (xfan (x,V,E) INTER normball x r)`]
+THEN MRESA_TAC RADIAL_UNIV[`r:real`;`x:real^3`]
+THEN MRESA_TAC  RADIAL_XFAN_INTER_BALL[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` r:real`]
+THEN MRESAL_TAC RADIAL_DIFF[`r:real`;`x:real^3`;`(xfan ((x:real^3),V:real^3->bool,E) INTER normball x r)`;`(:real^3) INTER normball (x:real^3) (r:real)`;][SET_RULE`xfan (x,V,E) INTER normball x r SUBSET (:real^3) INTER normball x r`;]);;
+
+
+
+
+
+
+
+let SOLID_ANGLE_YFAN=prove(`!x:real^3 V E.
+FAN (x,V,E) ==>  sol x (yfan (x,V,E))= &4 * pi`,
+REPEAT STRIP_TAC
+THEN MRESAL_TAC RADIAL_NORM_YFAN_INTER_BALL[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` &1:real`][REAL_ARITH`&1> &0`]
+THEN MRESAL_TAC MESURABLE_YFAN_INTER_BALL
+[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` &1:real`][REAL_ARITH`&0<= &1`]
+THEN MRESAL_TAC MEASURE_YFAN_INTER_BALL
+[`x:real^3 `;`(V:real^3->bool) `;`(E:(real^3->bool)->bool)`;` &1:real`][REAL_ARITH`&0<= &1`]
+THEN MRESAL_TAC sol[`x:real^3`;`yfan(x:real^3,V:real^3->bool,E)`;`&1`][REAL_ARITH`&1> &0`]
+THEN REAL_ARITH_TAC);;
+
+
+
+
+
+
+end;;
+
+

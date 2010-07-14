@@ -200,6 +200,8 @@ let update_database =
 (* Search (automatically updates)                                            *)
 (* ------------------------------------------------------------------------- *)
 
+let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
+
 let search =
   let rec immediatesublist l1 l2 =
     match (l1,l2) with
@@ -211,15 +213,18 @@ let search =
       [],_ -> true
     | _,[] -> false
     | (h1::t1,h2::t2) -> immediatesublist l1 l2 or sublist l1 t2 in
-  let exists_subterm_satisfying p (n,th) = can (find_term p) (concl th)
-  and name_contains s (n,th) = sublist (explode s) (explode n) in
+  let exists_subterm_satisfying p (n,th) = can (find_term p) (concl th) in
+  let exists_fullterm_satisfying p (n,th) =  p (concl th) in
+  let name_contains s (n,th) = sublist (explode s) (explode n) in
   let rec filterpred tm =
     match tm with
       Comb(Var("<omit this pattern>",_),t) -> not o filterpred t
     | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
+    | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_match [] pat)) 
     | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
   fun pats -> update_database ();
+    if (pats = []) then failwith "keywords: omit, name, exactly, full" else
               itlist (filter o filterpred) pats (!theorems);;
 
 (* ------------------------------------------------------------------------- *)

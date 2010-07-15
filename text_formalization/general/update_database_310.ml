@@ -215,7 +215,7 @@ let sortlength_thml thml =
   let stml = sort (fun (a,_) (b,_) -> (a < b)) ltml in
     map snd stml;;
 
-let search_thml  =
+let search_thml term_matcher =
   let rec immediatesublist l1 l2 =
     match (l1,l2) with
       [],_ -> true
@@ -234,13 +234,13 @@ let search_thml  =
       Comb(Var("<omit this pattern>",_),t) -> not o filterpred t
     | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
-    | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_match [] pat)) 
-    | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
+    | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_matcher pat)) 
+    | pat -> exists_subterm_satisfying (can (term_matcher pat)) in
   fun pats thml -> update_database ();
     if (pats = []) then failwith "keywords: omit, name, exactly, full" else
         (itlist (filter o filterpred) pats thml);;
 
-let search pat = search_thml pat (!theorems);;
+let search pat = search_thml (term_match [])  pat (!theorems);;
 
 (* ------------------------------------------------------------------------- *)
 (* Update to bring things back to current state.                             *)

@@ -1,7 +1,16 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Build for all chapters                                            *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-07-14                                                           *)
+(* ========================================================================== *)
+
+
 (* 
    Build file for Flyspeck project.
    ocaml needs to be built with Unix.
-ocamlmktop unix.cma str.cma nums.cma -o ocampl
+   ocamlmktop unix.cma str.cma nums.cma -o ocampl
 
    the system dependent string flyspeck should be set to the "text_formalization" path.
    For example, on my system, I have added a line to my .bashrc file
@@ -34,9 +43,11 @@ let process_to_string unixstring =
   let rec read () = Buffer.add_channel b p 1; read () in
     try read () with End_of_file -> Buffer.contents b;;
 
-let flyspeck_version() = "Flyspeck "^process_to_string ("svn info "^flyspeck_dir^ " | grep Revision");;
+let flyspeck_version() = "Flyspeck "^
+  process_to_string ("svn info "^flyspeck_dir^ " | grep Revision");;
 
-let hollight_version() = "HOL Light "^process_to_string ("svn info "^hollight_dir^ " | grep Revision");;
+let hollight_version() = "HOL Light "^
+  process_to_string ("svn info "^hollight_dir^ " | grep Revision");;
 
 let ocaml_version() = "Ocaml "^Sys.ocaml_version;;
 
@@ -59,24 +70,27 @@ Sys.command("svn info "^flyspeck_dir^" | grep Revison");;
 
 
 
-(* boolean valued versions of Harrison's load files that return false if load was not a success *)
+(* boolean valued versions of Harrison's load files that return false
+   if load was not a success *)
 
 let use_file_b s =
   (Toploop.use_file Format.std_formatter s) or 
-  (Format.print_string("Error in included file "^s);Format.print_newline(); false);;
+    (Format.print_string("Error in included file "^s);
+     Format.print_newline(); false);;
 
 let load_on_path_b p s =
   let s' = file_on_path p s in
   let fileid = (Filename.basename s',Digest.file s') in
-   (use_file_b s' && (loaded_files := fileid::(!loaded_files);true));;
+    (use_file_b s' && (loaded_files := fileid::(!loaded_files);true));;
 
 let loadb s = load_on_path_b (!load_path) s;;
 
 let needb s =
   let s' = file_on_path (!load_path) s in
   let fileid = (Filename.basename s',Digest.file s') in
-  if List.mem fileid (!loaded_files)
-  then (Format.print_string("File \""^s^"\" already loaded\n");true) else loadb s;;
+    if List.mem fileid (!loaded_files)
+    then (Format.print_string("File \""^s^"\" already loaded\n");true) 
+    else loadb s;;
 
 (* debugging *)
 loadt (fullpath "general/debug.hl");;
@@ -86,28 +100,29 @@ Debug.set_verbose_parsing();;
 (* limit changes in the state of the proof assistant  *)
 
 let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
-let new_axiom _ = failwith "new_axiom has been disabled in the Flyspeck build";; 
+let new_axiom _ = failwith "new_axiom has been disabled.";; 
 
 loadt (fullpath "general/state_manager.hl");;
 
 State_manager.neutralize_state();;
 
-
 let fileid s = 
   let s' = file_on_path (!load_path) (fullpath s) in
     (Filename.basename s',Digest.file s');;
 
-(*
-The dependency calculation in flyspeck_needs still has a bug if the file does not
-load correctly, but it calls another file that does load correctly.  It seems that the
- correctly loaded modules disappear from the scope when the error is encountered.
-Thus, they should be filtered out as well from the depend statement.  For now,
-we offer depend_reset to clear the error.x
+(* The dependency calculation in flyspeck_needs still has a bug if the
+   file does not load correctly, but it calls another file that does load
+   correctly.  It seems that the correctly loaded modules disappear from
+   the scope when the error is encountered.  Thus, they should be
+   filtered out as well from the depend statement.  For now, we offer
+   depend_reset to clear the error.x
 *)
 
 let (flyspeck_needs,filetable,depend,depend_reset)  =
-  let ftable = ref [("pervasives",List.length (constants()))] in (* associate constants with files *) 
-  let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in (* dependency table *)
+  let ftable = ref [("pervasives",List.length (constants()))] in 
+   (* associate constants with files *) 
+  let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in 
+   (* dependency table *)
   let host = ref (fileid "build.hl") in
   let fn = fun s->
   let id = fileid s in 
@@ -123,11 +138,12 @@ let (flyspeck_needs,filetable,depend,depend_reset)  =
         let _ = (host := h) in
 	let _ = try State_manager.neutralize_state () with
 	    Failure msg -> Format.print_string("File \""^s^
-						 "\"corrupted neutral state.\n"^msg^"\n") in
+		 "\"corrupted neutral state.\n"^msg^"\n") in
 	  if b then (
             (ftable:= (s,List.length(constants()))::(!ftable));
 	    Format.print_string("File \""^s^"\" successfully loaded\n"))
-	  else (depend := filter ((<>) (h,id)) (!depend); failwith ("Aborting Flyspeck Needs "^s))
+	  else (depend := filter ((<>) (h,id)) (!depend); 
+            failwith ("Aborting Flyspeck Needs "^s))
       ) in
     (fn,(fun () -> !ftable),(fun() -> !depend),(fun() -> (depend:=[])));;
 
@@ -176,11 +192,5 @@ let rec cut_after f a acc = function
 let reset_after s = 
   (loaded_files := cut_after fst s [] (List.rev (!loaded_files)));;
 
-(*
-let reset() = reset_after "flyspeck.ml";;
-*)
-
-
-(* Build Notes *)
-
+(* let reset() = reset_after "flyspeck.ml";; *)
 

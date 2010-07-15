@@ -1,0 +1,367 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: Taylor Series for atn function                                      *)
+(* Chapter: Nonlinear Inequalities                                            *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-07-14                                                           *)
+(* ========================================================================== *)
+
+
+(* first we develop the half-angle identity for the atn function *)
+
+let halfatn = new_definition `halfatn x = x / (sqrt(&1 + x pow 2) + &1)`;;
+
+let pos1 = prove(
+  `&0 < &1 + x pow 2 `,
+MESON_TAC[Collect_geom.pow_g;REAL_ARITH `&0 <= t ==> &0 < &1 + t`];
+);;
+
+let pos2 = prove (
+  `!x. &0 < sqrt(&1 + x pow 2) + &1`,
+ MESON_TAC[pos1;REAL_ARITH `(&0 <= t ==> &0 < t + &1) /\ (&0 < t ==> &0 <= t)`;SQRT_POS_LE;]
+);;
+
+let halfatn_bounds_abs = prove_by_refinement(
+ `!x.  abs(halfatn x) < &1 `,
+[
+REWRITE_TAC[halfatn;REAL_ABS_DIV];
+GEN_TAC;
+ASSUME_TAC (ISPEC `x:real` pos2);
+ASM_SIMP_TAC[REAL_ARITH `(&0 < x ==> abs(x) = x)/\ (&1 * t = t)`;REAL_LT_LDIV_EQ];
+(* *)
+REWRITE_TAC[GSYM POW_2_SQRT_ABS];
+MATCH_MP_TAC REAL_LET_TRANS;
+EXISTS_TAC `sqrt(&1 + x pow 2)`;
+CONJ_TAC;
+MATCH_MP_TAC SQRT_MONO_LE;
+REWRITE_TAC[Collect_geom.pow_g];
+ARITH_TAC;
+ARITH_TAC;
+]
+);;
+
+let halfatn_bounds = prove(
+ `!x. -- &1 < halfatn x /\ halfatn x < &1 `,
+ REWRITE_TAC[REAL_BOUNDS_LT;halfatn_bounds_abs]
+);;
+
+let halfatn_half = prove_by_refinement(
+ `!x t. (abs (x) < t ==> abs(halfatn x) < t / &2) `,
+[
+REWRITE_TAC[halfatn;REAL_ABS_DIV];
+REPEAT STRIP_TAC;
+ASSUME_TAC (ISPEC `x:real` pos2);
+ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> &0 < abs(x)`;REAL_LT_LDIV_EQ];
+MATCH_MP_TAC REAL_LTE_TRANS;
+EXISTS_TAC `t:real`;
+ASM_REWRITE_TAC[REAL_ARITH `(t / &2 * x = t * (x / &2)) /\ (t <= t * x/ &2 <=> t * &2 <= t * x)`];
+MATCH_MP_TAC REAL_LE_LMUL;
+CONJ_TAC;
+UNDISCH_TAC `abs x < t`;
+REAL_ARITH_TAC;
+ASM_SIMP_TAC [REAL_ARITH `&0 < x ==> (abs(x) = x)`];
+REWRITE_TAC[REAL_ARITH `(&2 <= x + &1) = (&1 <= x)`];
+MATCH_MP_TAC REAL_LE_TRANS;
+EXISTS_TAC `sqrt(&1)`;
+CONJ_TAC;
+REWRITE_TAC[SQRT_1;REAL_ARITH `&1 <= &1`];
+MATCH_MP_TAC SQRT_MONO_LE;
+CONJ_TAC;
+ARITH_TAC;
+MATCH_MP_TAC (REAL_ARITH `&0 <= x ==> &1 <= &1 + x`);
+REWRITE_TAC[Collect_geom.pow_g];
+]
+);;
+
+let abs_pass_through = prove_by_refinement (
+ `(!x f.  (f (-- x) = -- f x) /\ (!y. &0 <= y ==> &0 <= f y)
+     ==> (abs (f x) = f (abs x)))`,
+ [
+ REPEAT STRIP_TAC;
+ DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ &0 <= --x`);
+   POP_ASSUM MP_TAC;
+   POP_ASSUM MP_TAC;
+  MESON_TAC[REAL_ARITH `&0 <= x ==> abs(x ) = x`];
+ REPEAT (POP_ASSUM MP_TAC);
+  MESON_TAC[REAL_ARITH `&0 <= --x ==> abs(x) = -- x`; REAL_ARITH `abs( -- x ) = abs(x)`];
+ ]
+);;
+
+let atn_abs = prove_by_refinement(
+ `!x. abs(atn x) = atn (abs x) `,
+[
+GEN_TAC;
+MATCH_MP_TAC abs_pass_through;
+REWRITE_TAC[ATN_NEG;ATN_POS_LE];
+]
+);;
+
+
+let atn_half_range = prove_by_refinement (
+ `!x. abs(atn (halfatn x)) < pi / &4 `,
+[
+REWRITE_TAC[GSYM ATN_1;atn_abs;ATN_MONO_LT_EQ];
+GEN_TAC;
+REWRITE_TAC [halfatn_bounds;GSYM REAL_BOUNDS_LT];
+]
+);;
+
+let tan_one_one = prove_by_refinement(
+ `!x y. (abs(x) < pi/ &2 /\ (abs y < pi / &2 ) /\ (tan x = tan y) ==> (x = y))`,
+[
+REPEAT STRIP_TAC;
+DISJ_CASES_TAC (REAL_ARITH `x < y \/ y < x \/ x = (y:real)`);
+REPEAT (POP_ASSUM MP_TAC);
+REWRITE_TAC[GSYM REAL_BOUNDS_LT];
+MESON_TAC[TAN_MONO_LT_EQ;REAL_ARITH `(x:real<y ) ==> ~(x = y)`];
+POP_ASSUM DISJ_CASES_TAC;
+REPEAT (POP_ASSUM MP_TAC);
+REWRITE_TAC[GSYM REAL_BOUNDS_LT];
+MESON_TAC[TAN_MONO_LT_EQ;REAL_ARITH `(x:real<y ) ==> ~(x = y)`];
+ASM_REWRITE_TAC[];
+]
+);;
+
+
+let abs_lemma = prove(
+ `!f x. (?n. x = f n) \/ (?n. x = -- f n) <=> (?n. abs(x) = abs(f n))`,
+ASM_MESON_TAC[REAL_ARITH `!x y. abs(x) = abs(y) <=> (x = y)\/ (x = -- y)`];
+);;
+
+
+let cos_nz = prove_by_refinement (
+  `!x. (abs(x) < pi / &2) ==> ~(cos x = &0) `,
+[
+GEN_TAC;
+REWRITE_TAC[COS_ZERO_PI;abs_lemma];
+ONCE_REWRITE_TAC[TAUT `(a ==> ~b) <=> (b ==> ~a)`];
+ONCE_REWRITE_TAC[REAL_ARITH `~(x < y) <=> (y <= x)`];
+REPEAT STRIP_TAC;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC REAL_LE_TRANS;
+EXISTS_TAC`(&n +  &1/ &2) * pi `;
+REWRITE_TAC[REAL_ARITH `x <= abs(x)`];
+MP_TAC PI_POS;
+MP_TAC (REAL_ARITH `&1/ &2 <= (&n + &1/ &2)`);
+REWRITE_TAC[REAL_ARITH `pi / &2 = (&1 / &2) * pi`];
+ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> &0 <= x`;Float.REAL_LE_RMUL_IMP];
+]
+);;
+
+let cos_2nz =  prove_by_refinement(
+   `!x. (abs(x) < pi / &4) ==> ~(cos (&2 * x) = &0) `,
+ [
+ STRIP_TAC THEN STRIP_TAC;
+ MATCH_MP_TAC cos_nz;
+ REWRITE_TAC[REAL_ABS_MUL;REAL_ARITH `abs(&2)= &2 /\ (&2 * x < pi/ &2 <=> x < pi/ &4)`];
+ ASM_REWRITE_TAC[];
+ ]
+);;
+
+let halfatn_double  =prove_by_refinement(
+ `!x. ~(cos (atn (halfatn x)) = &0) /\ ~(cos(&2 * atn (halfatn x)) = &0) `,
+[
+REPLICATE_TAC 2 (STRIP_TAC);
+MATCH_MP_TAC cos_nz;
+MATCH_MP_TAC REAL_LTE_TRANS;
+EXISTS_TAC `pi/ &4`;
+REWRITE_TAC[atn_half_range];
+MP_TAC PI_POS;
+REAL_ARITH_TAC;
+MATCH_MP_TAC cos_2nz;
+REWRITE_TAC[atn_half_range];
+]
+);;
+
+let REAL_DIV_MUL2z = prove (
+ `!x y z. (&0 < x)  ==> (y /z = (x pow 2 * y) / (x pow 2* z)) `,
+ CONV_TAC REAL_FIELD
+);;
+
+let atn_half = prove_by_refinement (
+ `!x. atn x = &2 * atn (halfatn x) `,
+[
+GEN_TAC;
+MATCH_MP_TAC tan_one_one;
+MATCH_MP_TAC (TAUT `a /\ b /\ (a /\ b ==> c) ==> a /\ b /\ c`);
+REPEAT CONJ_TAC;
+REWRITE_TAC[GSYM REAL_BOUNDS_LT;ATN_BOUNDS];
+(* *)
+REWRITE_TAC[REAL_ABS_MUL;REAL_ARITH `abs (&2) = &2`;REAL_ARITH `&2 * x < y / &2 <=> x < y / &4`;atn_half_range];
+(* *)
+REPEAT STRIP_TAC;
+ASSUME_TAC (ISPEC `x:real` halfatn_double);
+ASM_SIMP_TAC[TAN_DOUBLE;ATN_TAN];
+REWRITE_TAC[halfatn];
+ASSUME_TAC (ISPEC `x:real` pos2);
+ABBREV_TAC `t = sqrt(&1 + x pow 2) + &1`;
+MP_TAC (ISPECL [`t:real`;`&2 * x / t`;`&1 - (x / t) pow 2`] REAL_DIV_MUL2z);
+ASM_REWRITE_TAC[];
+DISCH_THEN (fun t-> REWRITE_TAC[t]);
+ASM_SIMP_TAC[REAL_FIELD `&0 < t ==> t pow 2 * &2 * x / t = t * &2 * x`];
+ASM_SIMP_TAC[REAL_FIELD `&0 < t ==> t pow 2 * (&1 - (x / t) pow 2) = t pow 2 - x pow 2`];
+EXPAND_TAC "t";
+REWRITE_TAC[REAL_FIELD `(a + &1) pow 2 = a pow 2 + &2 * a  + &1`];
+ASM_SIMP_TAC[pos1;REAL_ARITH `!x. &0 < x ==> &0 <= x`;SQRT_POW_2];
+ASM_REWRITE_TAC[REAL_ARITH `((&1 + v) + &2 * u + &1) - v = (u + &1) * &2`];
+UNDISCH_TAC `&0 < t`;
+CONV_TAC REAL_FIELD;
+]
+);;
+
+
+(* complex taylor for atn *)
+
+let id1 = COMPLEX_RING `inv (Cx (&1) + z pow 2)   = (inv (Cx (&2))) * ( ( inv (Cx (&1) + z pow 2) * (Cx (&1) - ii *z)) +  (inv (Cx (&1) + z pow 2)) * ( (Cx (&1) + ii * z)))`;;
+
+let id2 = SIMPLE_COMPLEX_ARITH  ` (Cx (&1) + ii * z) * (Cx (&1) - ii * z) = (Cx (&1) - ii * ii * z * z)`;;
+
+let id3 = prove_by_refinement (`!u. a - ii * ii * u = a + u`,
+[
+REWRITE_TAC[ii];
+SIMPLE_COMPLEX_ARITH_TAC;
+])
+;;
+
+
+let id4 = prove_by_refinement (` (Cx (&1) + z pow 2) = (Cx (&1) + ii*z) * (Cx (&1) - ii*z)`,
+[
+REWRITE_TAC[id2;id3;COMPLEX_POW_2];
+]);;
+
+
+let id4a = prove_by_refinement (`!z. (Re z = &0 ==> abs(Im z) < &1)
+  ==>( inv(Cx (&1) + ii* z) * (Cx (&1)  + ii*z) = Cx (&1))`,
+[
+REPEAT STRIP_TAC;
+MATCH_MP_TAC COMPLEX_MUL_LINV;
+REPEAT STRIP_TAC;
+SUBGOAL_THEN `(Re z = &0) /\ (Im z = &1)` ASSUME_TAC;
+POP_ASSUM MP_TAC;
+REWRITE_TAC[ii];
+SIMPLE_COMPLEX_ARITH_TAC;
+ASSUME_TAC (REAL_ARITH `(abs (&1) = &1) /\ ~(&1 < &1)`);
+ASM_MESON_TAC[];
+]);;
+
+let id4b = prove_by_refinement (`!z. (Re z = &0 ==> abs(Im z) < &1)
+  ==>( inv(Cx (&1) -  ii* z) * (Cx (&1)  - ii*z) = Cx (&1))`,
+[
+REPEAT STRIP_TAC;
+MATCH_MP_TAC COMPLEX_MUL_LINV;
+REPEAT STRIP_TAC;
+SUBGOAL_THEN `(Re z = &0) /\ (Im z = -- &1)` ASSUME_TAC;
+POP_ASSUM MP_TAC;
+REWRITE_TAC[ii];
+SIMPLE_COMPLEX_ARITH_TAC;
+ASSUME_TAC (REAL_ARITH `(abs (-- &1) = &1) /\ ~(&1 < &1)`);
+ASM_MESON_TAC[];
+]);;
+
+
+let id5 = prove_by_refinement (`!z. (Re z = &0 ==> abs(Im z) < &1) ==> ( inv (Cx (&1) + z pow 2) = (inv (Cx (&2))) * ( inv (Cx (&1) + ii * z) + inv (Cx (&1) - ii * z)))`,
+[
+REPEAT STRIP_TAC;
+ONCE_REWRITE_TAC[id1];
+REWRITE_TAC[id4;COMPLEX_INV_MUL];
+REWRITE_TAC[SIMPLE_COMPLEX_ARITH `((a*b)*c + (e*f)*g = (a:complex)*(b*c) + f * (e *g))`];
+ASM_SIMP_TAC[id4a;id4b];
+REWRITE_TAC[COMPLEX_MUL_RID];
+]);;
+
+let taylor_coeff_catn = new_definition `taylor_coeff_catn n (z:complex) = 
+  if (n=0) then catn z else Cx (& (FACT (n-1))) *
+   (inv(Cx (&2))) * ( ( (-- ii) pow (n - 1) * ((inv (Cx (&1) + ii * z)) pow n)) +
+      ( ii pow (n - 1) * ((inv (Cx (&1) - ii * z)) pow n)))`;;
+
+let taylor_coeff_catn0 = prove_by_refinement (
+  `taylor_coeff_catn 0 = catn `,
+ [
+ ONCE_REWRITE_TAC[FUN_EQ_THM];
+ REWRITE_TAC[taylor_coeff_catn];
+ ]);;
+
+let taylor_coeff_catn1 = prove_by_refinement (
+   `!z.  (Re z = &0 ==> abs(Im z) < &1) ==> 
+       (catn has_complex_derivative (taylor_coeff_catn 1 z)) (at z)`,
+  [
+  REPEAT STRIP_TAC;
+    SUBGOAL_THEN `taylor_coeff_catn 1 z = inv (Cx (&1) + z pow 2)` ASSUME_TAC;
+  REWRITE_TAC[taylor_coeff_catn;ARITH_RULE `~(1=0) /\ (1-1 = 0) /\ (FACT 0 =1)`;COMPLEX_POW_1;complex_pow;COMPLEX_MUL_LID];
+  ASM_SIMP_TAC[id5];
+  (* *)
+  ASM_SIMP_TAC[HAS_COMPLEX_DERIVATIVE_CATN;];
+  ]);;
+
+let taylor_coeff_catn_pos = prove_by_refinement(
+  `!n. (n > 0) ==> (taylor_coeff_catn n  = (\z.
+		Cx (& (FACT (n-1))) *
+   (inv(Cx (&2))) * ( ( (-- ii) pow (n - 1) * ((inv (Cx (&1) + ii * z)) pow n)) +
+      ( ii pow (n - 1) * ((inv (Cx (&1) - ii * z)) pow n)))			  ))`,
+  [
+  REPEAT STRIP_TAC;
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[taylor_coeff_catn];
+  ASM_SIMP_TAC[ARITH_RULE `n > 0 ==> ~(n=0)`];
+  ]);;
+
+(*
+
+let taylor_coeff_catn_deriv = prove_by_refinement(
+  `!z n. (Re z = &0 ==> abs(Im z) < &1) ==> 
+       ((taylor_coeff_catn n) has_complex_derivative 
+              (taylor_coeff_catn (n+1) z)) (at z)`,
+[
+REPEAT STRIP_TAC;
+DISJ_CASES_TAC (ARITH_RULE `(n = 0) \/ (n >0)`);
+ASM_SIMP_TAC[ taylor_coeff_catn0;taylor_coeff_catn1;ARITH_RULE `0+1=1`];
+REWRITE_TAC[taylor_coeff_catn;ARITH_RULE `(n+1)-1 = n`];
+ASM_SIMP_TAC[ARITH_RULE `(n>0) ==> ~(n+1=0)`];
+ASM_SIMP_TAC[taylor_coeff_catn_pos];
+ASM_REWRITE_TAC[ARITH_RULE `(n>0) ==> (FACT n = n * (FACT (n-1)))`];
+SUBGOAL_THEN `(n>0) ==> (FACT n = n * FACT (n-1))` MP_TAC;
+DISJ_CASES_TAC (ISPEC `n:num` num_CASES);
+ASM_MESON_TAC[ARITH_RULE `(n>0) ==> ~(n=0)`];
+ASM_MESON_TAC[FACT;ARITH_RULE `SUC n - 1 = n`];
+ASM_REWRITE_TAC[];
+DISCH_THEN (fun t-> REWRITE_TAC[t]);
+SUBGOAL_THEN `Cx (&(n * FACT (n-1))) * u = Cx (&n) * (Cx (&(FACT (n-1))) * u)` MP_TAC;
+REWRITE_TAC[CX_MUL;GSYM REAL_OF_NUM_MUL];
+SIMPLE_COMPLEX_ARITH_TAC;
+DISCH_THEN (fun t-> REWRITE_TAC[t]);
+(* to here *)
+MATCH_MP_TAC HAS_COMPLEX_DERIVATIVE_LMUL_AT;
+
+
+]
+);;
+
+
+
+search[`(has_complex_derivative) (\z. c * u)`];;
+HAS_COMPLEX_DERIVATIVE_LMUL_AT;;
+
+
+type_of `has_complex_derivative`;;
+type_of `at`;;
+type_of `within`;;
+search[`(at x within z)`;`(f has_complex_derivative f') (at x)`];;
+HAS_COMPLEX_DERIVATIVE_AT_WITHIN;; (at -> at within )
+search[`Cx (&1) * u = u`];;
+COMPLEX_TAYLOR;;
+Print_types.print_thm_types id1;;
+search[`inv:complex->complex`;`(*):complex->complex->complex`];;
+search[`ii * ii`];;
+search[`ii`];;
+search[`(z:complex) pow 0`];;
+HAS_COMPLEX_DERIVATIVE_CATN;;
+search[`Re`];;  `Im`; `cnj`; `cpow`;;
+search[`ii`];;
+search[`catn`];;
+search[`( * ):real^2->real^2->real^2`;`inv:real^2->real^2`];;
+type_of `inv`;;
+SIMPLE_COMPLEX_ARITH_TAC;;
+COMPLEX_RING `Cx (&1)  = (inv (Cx (&2))) * ( (Cx (&1) - ii *z) + ( (Cx (&1) + ii * z)))`;;
+
+*)

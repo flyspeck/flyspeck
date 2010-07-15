@@ -202,7 +202,20 @@ let update_database =
 
 let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
 
-let search =
+(* very rough measure of the size of a printed term *)
+let rec term_length tm = match tm with
+  | Abs(s,x) -> 1 + term_length x
+  | Comb(s,x) -> if ((s = `NUMERAL`) or (s = `DECIMAL`)) then 2
+    else ( (term_length s) + term_length x)
+  | _ -> 1;;
+
+let sortlength_thml thml =  
+  let ltml = map 
+   (function (s,t) as r -> (term_length (concl t),r)) thml in
+  let stml = sort (fun (a,_) (b,_) -> (a < b)) ltml in
+    map snd stml;;
+
+let search_thml  =
   let rec immediatesublist l1 l2 =
     match (l1,l2) with
       [],_ -> true
@@ -223,9 +236,11 @@ let search =
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
     | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_match [] pat)) 
     | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
-  fun pats -> update_database ();
+  fun pats thml -> update_database ();
     if (pats = []) then failwith "keywords: omit, name, exactly, full" else
-              itlist (filter o filterpred) pats (!theorems);;
+        (itlist (filter o filterpred) pats thml);;
+
+let search pat = search_thml pat (!theorems);;
 
 (* ------------------------------------------------------------------------- *)
 (* Update to bring things back to current state.                             *)

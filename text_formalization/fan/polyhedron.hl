@@ -1,5 +1,18 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: AJXXAWK, EDANAOL,   QLITJET MUGGQUF QSRHLXB LTHQIAA                 *)
+(*   CZZHBLI QOEPBJD NEHRQPR ZMQQFUP JLIGZGS                                  *)
+(* Section: Polyhedron                                                        *)
+(* Chapter: Packing                                                           *)
+(* Author: John Harrison                                                      *)
+(* Date: 2010-07-15                                                           *)
+(* ========================================================================== *)
+
+
 (*
-John Harrison's material on polyhedra:
+
+John Harrison's material on polyhedra in mostly in Multivariate/flyspeck.ml
 
 AJXXAWK
 Definition 4.5:   IS_AFFINE_HULL
@@ -56,11 +69,418 @@ ZMQQFUP:
  Def 4.9:          vertices
                    edges
 
-If you like, I can go ahead and prove the last few theorems at the
-end of the chapter, relating polyhedra and fans.
+JLIGZGS:
+                   POLYHEDRON_FAN
 
+AMHFNXP, WBLARHH, BSXAQBQ still need to be done as of July 15, 2010.
 
-(NOTE: I think John Harrison did the theorems relating polyhedra
-and fans, but I cannot find them -thales)
-JLIGZGS, AMHFNXP, WBLARHH, BSXAQBQ
+Email tchales<->John Harrison: July 15, 2010:
+
+|I'm not sure whether your work covers the results
+| relating polyhedra to fans.  I wasn't able to find any theorems on that
+| topic, but I recall that you had mentioned it in an earlier email.  I want
+| to confirm with you that this still needs to be formalized.
+
+I believe that I just did the most basic of these theorems, that a
+polyhedron gives rise to a fan, together with a bunch of invariance
+emmas for some relevant concepts.
+
 *)
+
+
+(* ************************************************* *)
+(* Invariance theorems *)
+
+module Polyhedron = struct
+
+  open Sphere;;
+  open Fan;;
+
+let GRAPH = prove
+ (`!E. graph E <=> !e. e IN E ==> e HAS_SIZE 2`,
+  REWRITE_TAC[graph; IN]);;
+
+let CYCLIC_SET = prove
+ (`cyclic_set W v w <=>
+         ~(v = w) /\
+         FINITE W /\
+         (!p q h. p IN W /\ q IN W /\ p - q = h % (v - w) ==> p = q) /\
+         W INTER affine hull {v, w} = {}`,
+  REWRITE_TAC[cyclic_set; IN; VECTOR_ARITH `p - q:real^N = r <=> p = q + r`]);;
+
+let CYCLIC_SET_TRANSLATION_EQ = prove
+ (`!a:real^N s x y.
+    cyclic_set (IMAGE (\x. a + x) s) (a + x) (a + y) <=> cyclic_set s x y`,
+  REWRITE_TAC[CYCLIC_SET] THEN GEOM_TRANSLATE_TAC[]);;
+
+let CYCLIC_SET_LINEAR_IMAGE = prove
+ (`!f:real^M->real^N s x y.
+        linear f /\ (!x y. f x = f y ==> x = y)
+        ==> (cyclic_set (IMAGE f s) (f x) (f y) <=> cyclic_set s x y)`,
+  GEN_REWRITE_TAC (funpow 4 BINDER_CONV o RAND_CONV o TOP_DEPTH_CONV)
+   [CYCLIC_SET; RIGHT_FORALL_IMP_THM; IMP_CONJ; FORALL_IN_IMAGE] THEN
+  GEOM_TRANSFORM_TAC[]);;
+
+add_translation_invariants [CYCLIC_SET_TRANSLATION_EQ];;
+
+add_linear_invariants [CYCLIC_SET_LINEAR_IMAGE];;
+
+let GRAPH_TRANSLATION_EQ = prove
+ (`!a:real^N E. graph (IMAGE (IMAGE (\x. a + x)) E) <=> graph E`,
+  REWRITE_TAC[GRAPH] THEN GEOM_TRANSLATE_TAC[]);;
+
+let GRAPH_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (graph(IMAGE (IMAGE f) E) <=> graph E)`,
+  REWRITE_TAC[GRAPH] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN1_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan1(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan1(x,V,E)`,
+  REWRITE_TAC[fan1] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN1_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan1(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan1(x,V,E))`,
+  REWRITE_TAC[fan1] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN2_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan2(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan2(x,V,E)`,
+  REWRITE_TAC[fan2] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN2_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan2(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan2(x,V,E))`,
+  REWRITE_TAC[fan2] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN3_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan3(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan3(x,V,E)`,
+  REWRITE_TAC[fan3] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN3_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan3(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan3(x,V,E))`,
+  let lemma = prove
+   (`{w | {a,w} IN IMAGE (IMAGE f) s} =
+     IMAGE f {w |w| {a,f w} IN IMAGE (IMAGE f) s}`,
+    MATCH_MP_TAC(SET_RULE
+     `(!y. P y ==> ?x. y = f x) ==> {w | P w} = IMAGE f {w | P(f w)}`) THEN
+    REWRITE_TAC[IN_IMAGE; EXTENSION; IN_IMAGE; IN_INSERT; NOT_IN_EMPTY] THEN
+    MESON_TAC[]) in
+  REWRITE_TAC[fan3; FORALL_IN_IMAGE; lemma] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN4_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan4(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan4(x,V,E)`,
+  REWRITE_TAC[fan4] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN4_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan4(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan4(x,V,E))`,
+  REWRITE_TAC[fan4] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN5_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan5(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan5(x,V,E)`,
+  REWRITE_TAC[fan5] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN5_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan5(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan5(x,V,E))`,
+  GEN_REWRITE_TAC (funpow 4 BINDER_CONV o RAND_CONV o TOP_DEPTH_CONV)
+   [fan5; IMP_CONJ; RIGHT_FORALL_IMP_THM; FORALL_IN_IMAGE] THEN
+  GEOM_TRANSFORM_TAC[]);;
+
+let FAN6_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan6(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan6(x,V,E)`,
+  REWRITE_TAC[fan6] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN6_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan6(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan6(x,V,E))`,
+  REWRITE_TAC[fan6] THEN GEOM_TRANSFORM_TAC[]);;
+
+let FAN7_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        fan7(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        fan7(x,V,E)`,
+  REWRITE_TAC[fan7] THEN
+  REWRITE_TAC[SET_RULE
+   `e IN s UNION {f x | t x} <=> e IN s \/ ?x. t x /\ e = f x`] THEN
+  GEOM_TRANSLATE_TAC[]);;
+
+let FAN7_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (fan7(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> fan7(x,V,E))`,
+  REWRITE_TAC[fan7; IN_UNION] THEN
+  REWRITE_TAC[LEFT_OR_DISTRIB; RIGHT_OR_DISTRIB;
+              TAUT `a \/ b ==> c <=> (a ==> c) /\ (b ==> c)`] THEN
+  GEN_REWRITE_TAC (funpow 4 BINDER_CONV o RAND_CONV o TOP_DEPTH_CONV)
+   [FORALL_AND_THM; IMP_CONJ; RIGHT_FORALL_IMP_THM] THEN
+  REWRITE_TAC[FORALL_IN_GSPEC] THEN REWRITE_TAC[IMP_IMP] THEN
+  GEOM_TRANSFORM_TAC[]);;
+
+add_translation_invariants
+ [GRAPH_TRANSLATION_EQ;
+  FAN1_TRANSLATION_EQ;
+  FAN2_TRANSLATION_EQ;
+  FAN3_TRANSLATION_EQ;
+  FAN4_TRANSLATION_EQ;
+  FAN5_TRANSLATION_EQ;
+  FAN6_TRANSLATION_EQ;
+  FAN7_TRANSLATION_EQ];;
+
+add_linear_invariants
+ [GRAPH_LINEAR_IMAGE_EQ;
+  FAN1_LINEAR_IMAGE_EQ;
+  FAN2_LINEAR_IMAGE_EQ;
+  FAN3_LINEAR_IMAGE_EQ;
+  FAN4_LINEAR_IMAGE_EQ;
+  FAN5_LINEAR_IMAGE_EQ;
+  FAN6_LINEAR_IMAGE_EQ;
+  FAN7_LINEAR_IMAGE_EQ];;
+
+let FAN_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        FAN(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) <=>
+        FAN(x,V,E)`,
+  REWRITE_TAC[FAN] THEN GEOM_TRANSLATE_TAC[]);;
+
+let FAN_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+    linear f /\ (!x y. f x = f y ==> x = y)
+    ==> (FAN(f x,IMAGE f V,IMAGE (IMAGE f) E) <=> FAN(x,V,E))`,
+  REWRITE_TAC[FAN] THEN GEOM_TRANSFORM_TAC[]);;
+
+add_translation_invariants [FAN_TRANSLATION_EQ];;
+add_linear_invariants [FAN_LINEAR_IMAGE_EQ];;
+
+let BASE_POINT_FAN_TRANSLATION_EQ = prove
+ (`!a x V E.
+    base_point_fan(a + x,IMAGE (\x. a + x) V,IMAGE (IMAGE (\x. a + x)) E) =
+    a + base_point_fan(x,V,E)`,
+  REWRITE_TAC[base_point_fan]);;
+
+let BASE_POINT_FAN_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+        linear f
+        ==> base_point_fan(f x,IMAGE f V,IMAGE (IMAGE f) E) =
+            f(base_point_fan(x,V,E))`,
+  REWRITE_TAC[base_point_fan]);;
+
+let SET_OF_EDGE_TRANSLATION_EQ = prove
+ (`!a:real^N x V E.
+        set_of_edge (a + x) (IMAGE (\x. a + x) V)
+                    (IMAGE (IMAGE (\x. a + x)) E) =
+        IMAGE (\x. a + x) (set_of_edge x V E)`,
+  REWRITE_TAC[set_of_edge] THEN GEOM_TRANSLATE_TAC[]);;
+
+let SET_OF_EDGE_LINEAR_IMAGE_EQ = prove
+ (`!f:real^M->real^N x V E.
+        linear f /\ (!x y. f x = f y ==> x = y)
+        ==> set_of_edge (f x) (IMAGE f V) (IMAGE (IMAGE f) E) =
+            IMAGE f (set_of_edge x V E)`,
+  let lemma = prove
+   (`{w | {a,w} IN IMAGE (IMAGE f) s /\ P w} =
+     {f w |w| {a,f w} IN IMAGE (IMAGE f) s /\ P(f w)}`,
+    MATCH_MP_TAC(SET_RULE
+     `(!y. P y ==> ?x. y = f x) ==> {w | P w} = {f w |w| P(f w)}`) THEN
+    REWRITE_TAC[IN_IMAGE; EXTENSION; IN_IMAGE; IN_INSERT; NOT_IN_EMPTY] THEN
+    MESON_TAC[]) in
+  REWRITE_TAC[set_of_edge; lemma] THEN
+  GEOM_TRANSFORM_TAC[] THEN SET_TAC[]);;
+
+add_translation_invariants
+ [BASE_POINT_FAN_TRANSLATION_EQ; SET_OF_EDGE_TRANSLATION_EQ];;
+
+add_linear_invariants
+ [BASE_POINT_FAN_LINEAR_IMAGE_EQ; SET_OF_EDGE_LINEAR_IMAGE_EQ];;
+
+(* ************************************************* *)
+(* Polyhedron gives rise to a fan *)
+
+let POLYHEDRON_FAN = prove
+ (`!p z:real^3.
+       bounded p /\ polyhedron p /\ z IN interior p
+       ==> FAN(z,vertices p,edges p)`,
+  let lemma = prove
+   (`!s a b c d:real^N.
+          segment[a,b] face_of s /\ segment[c,d] face_of s
+          ==> {a,b} = {c,d} \/
+              segment[a,b] INTER segment[c,d] = {a,b} INTER {c,d}`,
+    REPEAT STRIP_TAC THEN
+    MP_TAC(ISPECL [`s:real^N->bool`; `segment[a:real^N,b]`;
+                  `segment[c:real^N,d]`] SUBSET_OF_FACE_OF) THEN
+    MP_TAC(ISPECL [`s:real^N->bool`; `segment[c:real^N,d]`;
+                  `segment[a:real^N,b]`] SUBSET_OF_FACE_OF) THEN
+    ASM_SIMP_TAC[FACE_OF_IMP_SUBSET; RELATIVE_INTERIOR_SEGMENT] THEN
+    REPEAT(COND_CASES_TAC THEN ASM_REWRITE_TAC[SEGMENT_REFL; INSERT_AC]) THEN
+    MP_TAC(ISPECL [`a:real^N`; `b:real^N`; `c:real^N`; `d:real^N`]
+        SUBSET_SEGMENT_OPEN_CLOSED) THEN
+    MP_TAC(ISPECL [`c:real^N`; `d:real^N`; `a:real^N`; `b:real^N`]
+        SUBSET_SEGMENT_OPEN_CLOSED) THEN
+    ASM_REWRITE_TAC[open_segment] THEN
+    MP_TAC(ISPECL [`a:real^N`; `b:real^N`] ENDS_IN_SEGMENT) THEN
+    MP_TAC(ISPECL [`c:real^N`; `d:real^N`] ENDS_IN_SEGMENT) THEN
+    ASM SET_TAC[]) in
+  REPEAT GEN_TAC THEN GEOM_ORIGIN_TAC `z:real^3` THEN
+  REWRITE_TAC[FAN] THEN REPEAT GEN_TAC THEN STRIP_TAC THEN
+  SUBGOAL_THEN `polytope(p:real^3->bool)` ASSUME_TAC THENL
+   [ASM_REWRITE_TAC[POLYTOPE_EQ_BOUNDED_POLYHEDRON]; ALL_TAC] THEN
+  FIRST_ASSUM(ASSUME_TAC o MATCH_MP POLYTOPE_IMP_COMPACT) THEN
+  FIRST_ASSUM(ASSUME_TAC o MATCH_MP POLYTOPE_IMP_CONVEX) THEN
+  SUBGOAL_THEN `(vec 0:real^3) IN p` ASSUME_TAC THENL
+   [ASM_MESON_TAC[INTERIOR_SUBSET; SUBSET]; ALL_TAC] THEN
+  SUBGOAL_THEN `!a b:real^3. ~(p = segment[a,b])` ASSUME_TAC THENL
+   [REPEAT GEN_TAC THEN DISCH_THEN SUBST_ALL_TAC THEN
+    RULE_ASSUM_TAC(REWRITE_RULE[INTERIOR_SEGMENT; DIMINDEX_3; ARITH]) THEN
+    ASM SET_TAC[];
+    ALL_TAC] THEN
+  REPEAT STRIP_TAC THENL
+   [REWRITE_TAC[SUBSET; FORALL_IN_UNIONS; IMP_CONJ; RIGHT_FORALL_IMP_THM] THEN
+    REWRITE_TAC[edges; FORALL_IN_GSPEC; FORALL_IN_INSERT; NOT_IN_EMPTY] THEN
+    REWRITE_TAC[vertices; edge_of; IN_ELIM_THM; GSYM FACE_OF_SING] THEN
+    MAP_EVERY X_GEN_TAC [`v:real^3`; `w:real^3`] THEN REPEAT STRIP_TAC THEN
+    MATCH_MP_TAC FACE_OF_TRANS THEN EXISTS_TAC `segment[v:real^3,w]` THEN
+    ASM_REWRITE_TAC[FACE_OF_SING; EXTREME_POINT_OF_SEGMENT];
+    REWRITE_TAC[GRAPH; edges; edge_of; FORALL_IN_GSPEC] THEN
+    MAP_EVERY X_GEN_TAC [`v:real^3`; `w:real^3`] THEN
+    ASM_CASES_TAC `w:real^3 = v` THEN
+    ASM_REWRITE_TAC[SEGMENT_REFL; AFF_DIM_SING] THEN
+    CONV_TAC INT_REDUCE_CONV THEN STRIP_TAC THEN
+    ASM_SIMP_TAC[HAS_SIZE; CARD_CLAUSES; FINITE_INSERT; FINITE_EMPTY;
+                 IN_INSERT; NOT_IN_EMPTY] THEN
+    CONV_TAC NUM_REDUCE_CONV;
+    REWRITE_TAC[fan1; SUBSET_EMPTY; vertices] THEN
+    ASM_SIMP_TAC[FINITE_POLYHEDRON_EXTREME_POINTS] THEN
+    REWRITE_TAC[GSYM MEMBER_NOT_EMPTY; IN_ELIM_THM] THEN
+    MATCH_MP_TAC EXTREME_POINT_EXISTS_CONVEX THEN
+    ASM_REWRITE_TAC[] THEN ASM SET_TAC[];
+    REWRITE_TAC[fan2; vertices; IN_ELIM_THM] THEN
+    ASM_MESON_TAC[EXTREME_POINT_NOT_IN_INTERIOR];
+    REWRITE_TAC[fan6; edges; FORALL_IN_GSPEC; edge_of] THEN
+    MAP_EVERY X_GEN_TAC [`v:real^3`; `w:real^3`] THEN
+    ASM_CASES_TAC `w:real^3 = v` THEN
+    ASM_REWRITE_TAC[SEGMENT_REFL; AFF_DIM_SING] THEN
+    CONV_TAC INT_REDUCE_CONV THEN STRIP_TAC THEN
+    SUBGOAL_THEN `(v:real^3) extreme_point_of p /\ w extreme_point_of p`
+    STRIP_ASSUME_TAC THENL
+     [REWRITE_TAC[GSYM FACE_OF_SING] THEN CONJ_TAC THEN
+      MATCH_MP_TAC FACE_OF_TRANS THEN EXISTS_TAC `segment[v:real^3,w]` THEN
+      ASM_REWRITE_TAC[FACE_OF_SING; EXTREME_POINT_OF_SEGMENT];
+      ALL_TAC] THEN
+    SUBGOAL_THEN `~(v:real^3 = vec 0) /\ ~(w:real^3 = vec 0)`
+    STRIP_ASSUME_TAC THENL
+     [ASM_MESON_TAC[EXTREME_POINT_NOT_IN_INTERIOR]; ALL_TAC] THEN
+    REWRITE_TAC[SET_RULE `{a} UNION {b,c} = {a,b,c}`] THEN
+    ASM_REWRITE_TAC[COLLINEAR_LEMMA_ALT; NOT_EXISTS_THM] THEN
+    X_GEN_TAC `t:real` THEN
+    ASM_CASES_TAC `t = &0` THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO] THEN
+    DISCH_THEN SUBST_ALL_TAC THEN
+    FIRST_ASSUM(DISJ_CASES_TAC o MATCH_MP (REAL_ARITH
+     `~(x = &0) ==> x < &0 \/ &0 < x`))
+    THENL
+     [MP_TAC(ISPECL [`segment[v:real^3,t % v]`; `p:real^3->bool`]
+        FACE_OF_DISJOINT_INTERIOR) THEN
+      ASM_REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN
+      EXISTS_TAC `vec 0:real^3` THEN ASM_REWRITE_TAC[IN_INTER] THEN
+      REWRITE_TAC[IN_SEGMENT] THEN EXISTS_TAC `&1 / (&1 - t)` THEN
+      ASM_SIMP_TAC[REAL_LE_RDIV_EQ; REAL_LE_LDIV_EQ;
+                   REAL_ARITH `t < &0 ==> &0 < &1 - t`] THEN
+      REPEAT(CONJ_TAC THENL [ASM_ARITH_TAC; ALL_TAC]) THEN
+      CONV_TAC SYM_CONV THEN
+      REWRITE_TAC[VECTOR_MUL_ASSOC; GSYM VECTOR_ADD_RDISTRIB] THEN
+      REWRITE_TAC[VECTOR_MUL_EQ_0] THEN DISJ1_TAC THEN
+      UNDISCH_TAC `t < &0` THEN CONV_TAC REAL_FIELD;
+      MP_TAC(ISPECL [`p:real^3->bool`; `segment[v:real^3,t % v]`;
+                     `segment[v:real^3,t % v]`; `v:real^3`; `t % v:real^3`;
+                     `t:real`; `&1`] POLYHEDRON_COLLINEAR_FACES) THEN
+      ASM_REWRITE_TAC[ENDS_IN_SEGMENT; real_gt; REAL_LT_01] THEN
+      ASM_REWRITE_TAC[VECTOR_MUL_ASSOC; VECTOR_MUL_RCANCEL; REAL_MUL_LID] THEN
+      ASM_MESON_TAC[VECTOR_MUL_LID]];
+    REWRITE_TAC[fan7] THEN
+    MAP_EVERY X_GEN_TAC [`e1:real^3->bool`; `e2:real^3->bool`] THEN
+    DISCH_TAC THEN
+    SUBGOAL_THEN
+     `(?x1 y1:real^3. e1 = {x1,y1} /\ segment[x1,y1] face_of p) /\
+      (?x2 y2:real^3. e2 = {x2,y2} /\ segment[x2,y2] face_of p)`
+    STRIP_ASSUME_TAC THENL
+     [FIRST_X_ASSUM(fun th -> MP_TAC th THEN MATCH_MP_TAC MONO_AND) THEN
+      SIMP_TAC[IN_UNION; TAUT `(a \/ b ==> c) <=> (a ==> c) /\ (b ==> c)`] THEN
+      REWRITE_TAC[edges; edge_of; vertices; IN_ELIM_THM] THEN
+      REPEAT CONJ_TAC THENL
+       [MESON_TAC[]; ALL_TAC; MESON_TAC[]; ALL_TAC] THEN
+      DISCH_THEN(X_CHOOSE_TAC `v:real^3`) THEN
+      REPEAT(EXISTS_TAC `v:real^3`) THEN
+      ASM_REWRITE_TAC[SEGMENT_REFL; FACE_OF_SING; INSERT_AC];
+      ALL_TAC] THEN
+    SUBGOAL_THEN
+     `(x1:real^3) extreme_point_of p /\ y1 extreme_point_of p /\
+      x2 extreme_point_of p /\ y2 extreme_point_of p`
+    STRIP_ASSUME_TAC THENL
+     [REWRITE_TAC[GSYM FACE_OF_SING] THEN REPEAT CONJ_TAC THEN
+      MATCH_MP_TAC FACE_OF_TRANS THEN
+      ASM_MESON_TAC[FACE_OF_SING; EXTREME_POINT_OF_SEGMENT];
+      ALL_TAC] THEN
+    SUBGOAL_THEN
+     `~(x1:real^3 = vec 0) /\ ~(y1:real^3 = vec 0) /\
+      ~(x2:real^3 = vec 0) /\ ~(y2:real^3 = vec 0)`
+    STRIP_ASSUME_TAC THENL
+     [ASM_MESON_TAC[EXTREME_POINT_NOT_IN_INTERIOR]; ALL_TAC] THEN
+    ASM_SIMP_TAC[AFF_GE_0_CONVEX_HULL_ALT; FINITE_INTER; IN_INTER;
+                 IN_INSERT; NOT_IN_EMPTY; FINITE_INSERT; FINITE_EMPTY] THEN
+    MATCH_MP_TAC(SET_RULE
+     `s INTER t = u ==> (a INSERT s) INTER (a INSERT t) = a INSERT u`) THEN
+    MATCH_MP_TAC EQ_TRANS THEN
+    EXISTS_TAC `{t % y:real^3 | &0 < t /\
+                                y IN (convex hull {x1,y1}) INTER
+                                     (convex hull {x2,y2})}` THEN
+    CONJ_TAC THENL
+     [REWRITE_TAC[GSYM SEGMENT_CONVEX_HULL] THEN
+      MATCH_MP_TAC SUBSET_ANTISYM THEN CONJ_TAC THENL
+       [ALL_TAC; SET_TAC[]] THEN
+      REWRITE_TAC[SUBSET; IN_INTER; IMP_CONJ; FORALL_IN_GSPEC] THEN
+      MAP_EVERY X_GEN_TAC [`s:real`; `x:real^3`] THEN
+      DISCH_TAC THEN DISCH_TAC THEN
+      REWRITE_TAC[IN_ELIM_THM; LEFT_IMP_EXISTS_THM] THEN
+      MAP_EVERY X_GEN_TAC [`t:real`; `y:real^3`] THEN STRIP_TAC THEN
+      MP_TAC(ISPECL [`p:real^3->bool`; `segment[x1:real^3,y1]`;
+                     `segment[x2:real^3,y2]`; `x:real^3`; `y:real^3`;
+                     `s:real`; `t:real`] POLYHEDRON_COLLINEAR_FACES) THEN
+      ASM_REWRITE_TAC[real_gt] THEN DISCH_THEN SUBST_ALL_TAC THEN
+      MAP_EVERY EXISTS_TAC [`t:real`; `y:real^3`] THEN ASM_REWRITE_TAC[] THEN
+      UNDISCH_TAC `t % x:real^3 = t % y` THEN
+      ASM_SIMP_TAC[VECTOR_MUL_LCANCEL; REAL_LT_IMP_NZ] THEN ASM_MESON_TAC[];
+      SUBGOAL_THEN
+       `(convex hull {x1,y1}) INTER (convex hull {x2,y2}) :real^3->bool =
+        convex hull ({x1, y1} INTER {x2, y2})`
+       (fun th -> REWRITE_TAC[th]) THEN
+      MATCH_MP_TAC SUBSET_ANTISYM THEN CONJ_TAC THENL
+       [ALL_TAC;
+        REWRITE_TAC[SUBSET_INTER] THEN CONJ_TAC THEN
+        MATCH_MP_TAC HULL_MONO THEN SET_TAC[]] THEN
+      MP_TAC(ISPECL [`p:real^3->bool`; `x1:real^3`; `y1:real^3`;
+                     `x2:real^3`; `y2:real^3`] lemma) THEN
+      ASM_REWRITE_TAC[] THEN STRIP_TAC THENL
+       [ASM_REWRITE_TAC[INTER_IDEMPOT; SUBSET_REFL];
+        ASM_REWRITE_TAC[GSYM SEGMENT_CONVEX_HULL; HULL_SUBSET]]]]);;
+
+
+end;;

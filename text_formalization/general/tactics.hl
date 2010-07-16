@@ -1,0 +1,77 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Lemma: General Tactics                                                     *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-07-16                                                           *)
+(* ========================================================================== *)
+
+(* needs "general/update_database_310.ml" *)
+
+module Tactics = struct
+
+let ASM_STRIP_TAC = 
+   FIRST[FIRST_X_ASSUM CHOOSE_TAC;
+   FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC);
+	];;
+
+
+(* ------------------------------------------------------------------ *)
+(* SELECT ELIMINATION.
+   SELECT_TAC should work whenever there is a single predicate selected.
+   Something more sophisticated might be needed when there
+   is (@)A and (@)B
+   in the same formula.
+   Useful for proving statements such as  `1 + (@x. (x=3)) = 4` *)
+(* ------------------------------------------------------------------ *)
+
+(* spec form of SELECT_AX *)
+let select_thm select_fn select_exist =
+  BETA_RULE (ISPECL [select_fn;select_exist]
+             SELECT_AX);;
+
+(* example *)
+select_thm
+    `\m. (X:num->bool) m /\ (!n. X n ==> m <=| n)` `n:num`;;
+
+let SELECT_EXIST = prove_by_refinement(
+  `!(P:A->bool) Q. (?y. P y) /\ (!t. (P t ==> Q t)) ==> Q ((@) P)`,
+  (* {{{ proof *)
+
+  [
+  REPEAT STRIP_TAC;
+  ASSUME_TAC (ISPECL[`P:(A->bool)`;`y:A`] SELECT_AX);
+  ASM_MESON_TAC[];
+  ]);;
+
+  (* }}} *)
+
+let SELECT_THM = prove_by_refinement(
+  `!(P:A->bool) Q. (((?y. P y) ==> (!t. (P t ==> Q t))) /\ ((~(?y. P y)) ==>
+     (!t. Q t))) ==> Q ((@) P)`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[SELECT_EXIST];
+  ]);;
+  (* }}} *)
+
+let SELECT_TAC  =
+  let unbeta = prove(
+  `!(P:A->bool) (Q:A->bool). (Q ((@) P)) <=> (\t. Q t) ((@) P)`,MESON_TAC[]) in
+  let unbeta_tac = CONV_TAC (HIGHER_REWRITE_CONV[unbeta] true) in
+  unbeta_tac THEN (MATCH_MP_TAC SELECT_THM) THEN BETA_TAC THEN 
+  REPEAT STRIP_TAC;;
+
+(* PATTERNS *)
+
+let (PAT_TAC:term list -> (string * thm) -> tactic)  = fun pat sth -> if (search_thml (term_match[]) pat [sth] = []) then NO_TAC else ALL_TAC;;
+
+let (FIRST_PAT_ASSUM: term list -> thm_tactic -> tactic) =
+  fun pat ttac (asl,w as g) -> tryfind (fun sth -> (PAT_TAC pat sth THEN ttac (snd sth)) g) asl;;
+
+let (FIRST_PAT_X_ASSUM:term list -> thm_tactic -> tactic) =
+  fun pat ttac ->
+    FIRST_PAT_ASSUM pat (fun th -> UNDISCH_THEN (concl th) ttac);;
+
+
+ end;;

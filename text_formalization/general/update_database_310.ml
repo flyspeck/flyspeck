@@ -1,3 +1,10 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Update theorem search                 *)
+(* Date: 2010-07-16                                                           *)
+(* ========================================================================== *)
+
 (* ========================================================================= *)
 (* Create search database from OCaml / modify search database dynamically.   *)
 (*                                                                           *)
@@ -10,6 +17,8 @@
 (* copy using Obj.magic.                                                     *)
 (* ========================================================================= *)
 
+
+(* module Update_database_310 = struct *)
 
 (* Execute any OCaml expression given as a string. *)
 
@@ -247,3 +256,5 @@ let search pat = search_thml (term_match [])  pat (!theorems);;
 (* ------------------------------------------------------------------------- *)
 
 update_database ();;
+
+(* end;; *)

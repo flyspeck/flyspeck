@@ -10,10 +10,17 @@
 
 module Tactics = struct
 
+(* ASSUMPTION LISTS *)
+
 let ASM_STRIP_TAC = 
    FIRST[FIRST_X_ASSUM CHOOSE_TAC;
    FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC);
 	];;
+
+let FIRST_RULE_ASSUM rule ttc = FIRST_ASSUM (ttc o rule );;
+
+let FIRST_RULE_X_ASSUM rule ttc = FIRST_X_ASSUM (ttc o rule );;
+
 
 
 (* ------------------------------------------------------------------ *)
@@ -72,6 +79,31 @@ let (FIRST_PAT_ASSUM: term list -> thm_tactic -> tactic) =
 let (FIRST_PAT_X_ASSUM:term list -> thm_tactic -> tactic) =
   fun pat ttac ->
     FIRST_PAT_ASSUM pat (fun th -> UNDISCH_THEN (concl th) ttac);;
+
+
+(* Well defined functions *)
+
+(* Harrison's lemma *)
+let WELLDEFINED_FUNCTION_1 = prove
+ (`(?f:B->C. !x:A. f(s x) = t x) <=> (!x x'. s x = s x' ==> t x = t x')`,
+  MATCH_MP_TAC EQ_TRANS THEN
+  EXISTS_TAC `?f:B->C. !y. !x:A. s x = y ==> f y = t x` THEN 
+  CONJ_TAC THENL
+   [MESON_TAC[]; REWRITE_TAC[GSYM SKOLEM_THM] THEN 
+  MESON_TAC[]]);;
+
+
+let WELLDEFINED_FUNCTION_2b = prove_by_refinement(
+`(?f:C->D. (!x:A y:B. P x y ==> f(s x y) = t x y)) <=> 
+   (!x x' y y'. (P x y /\ P x' y' /\ (s x y = s x' y')) ==> t x y = t x' y')`,
+[
+  MATCH_MP_TAC EQ_TRANS ;
+  EXISTS_TAC  `?f:C->D. !z. !x:A y:B. ((P x y) /\ (s x y = z)) ==> f z = t x y`;
+  CONJ_TAC;
+  MESON_TAC[];
+  REWRITE_TAC[GSYM SKOLEM_THM];
+  MESON_TAC[];
+]);;
 
 
  end;;

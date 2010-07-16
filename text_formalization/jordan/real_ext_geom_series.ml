@@ -11,7 +11,7 @@
 
 module Real_ext_geom_series = struct
 
-open Tactics_ext;;
+open Tactics_jordan;;
 
 prioritize_real();;
 

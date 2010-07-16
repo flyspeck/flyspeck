@@ -11,7 +11,7 @@
 module Real_ext = struct
 
 open Parse_ext_override_interface;;
-open Tactics_ext;;
+open Tactics_jordan;;
 
 
 

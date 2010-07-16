@@ -15,8 +15,8 @@ module Float = struct
 open Lib_ext;;
 open Num_ext_nabs;;
 open Real_ext;;
-open Tactics_refine;;
-open Tactics_ext;;
+open Refinement;;
+open Tactics_jordan;;
 
 Parse_ext_override_interface.unambiguous_interface();;
 prioritize_real();;

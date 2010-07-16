@@ -14,14 +14,17 @@ Euclidan space that are not relevant here.
 
 module Misc_defs_and_lemmas = struct
 
-open Tactics_ext;;
-open Tactics_ext2;;
+open Tactics_jordan;;
+open Tactics_jordan;;
 open Parse_ext_override_interface;;
-open Tactics_refine;;
+(* open Refinement;; *)
 open Real_ext;;
 open Float;;
 
-labels_flag:= true;;
+(* labels_flag:= true;; *)
+
+let prove_by_refinement = Refinement.enhanced_prove_by_refinement true ALL_TAC;;
+
 unambiguous_interface();;
 
 
@@ -1667,10 +1670,11 @@ dets_flag:= !labels_flag;;
 *)
 
 
-labels_flag:=false;;
+(* labels_flag:=false;; *)
 
 (* Law of cardinals |B^A| = |B|^|A| *)
-let FUN_SIZE = prove_by_refinement(
+let FUN_SIZE = 
+ Refinement.enhanced_prove_by_refinement false ALL_TAC (
   `!b a. (FINITE (a:A->bool)) /\ (FINITE (b:B->bool))
           ==> ((FUN a b) HAS_SIZE ((CARD b) EXP (CARD a)))`,
 (* {{{ proof *)
@@ -1744,7 +1748,7 @@ let FUN_SIZE = prove_by_refinement(
   ]);;
 (* }}} *)
 
-labels_flag:= true;;
+(* labels_flag:= true;; *)
 
 
 (* ------------------------------------------------------------------ *)

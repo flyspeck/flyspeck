@@ -12,7 +12,7 @@
 
 module Num_ext_gcd = struct
 
-open Tactics_ext;;
+open Tactics_jordan;;
 open Parse_ext_override_interface;;
 (* 
         Author: Thomas C. Hales, 2003

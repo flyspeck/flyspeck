@@ -7,21 +7,8 @@
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
 
-module Tactics_fix = struct
 
-
-
-(* ------------------------------------------------------------------------- *)
-(* A printer for goals etc.                                                  *)
-(* ------------------------------------------------------------------------- *)
-
-(* To install:
-#install_printer print_goal_hashed;;
-#install_printer print_goalstack_hashed;;
-*)
-
-
-(* had (rev asl) in this method.  I don't want to reverse the list *)
+module Hash_term = struct
 
 
 let hash_of_string =
@@ -102,51 +89,5 @@ let hash_of_term =
            let h2 = (h*h) mod prime1220 in
              (prime260*h2 + prime270*hasht t + prime280) mod prime1220
   in hasht o paform;;
-
-let print_hyp n (s,th) =
-  open_hbox();
-  print_string " ";
-  print_as 4 (string_of_int (hash_of_term (concl th)));
-  print_string " [";
-  print_qterm (concl th);
-  print_string "]";
-  (if not (s = "") then (print_string (" ("^s^")")) else ());
-  close_box();
-  print_newline();;
-
-let rec print_hyps n asl =
-  if asl = [] then () else
-  (print_hyp n (hd asl);
-   print_hyps (n + 1) (tl asl));;
-
-let (print_goal_hashed:goal->unit) =
-  fun (asl,w) ->
-    print_newline();
-    if asl <> [] then (print_hyps 0 (asl); print_newline()) else ();
-    print_qterm w; print_newline();;
-
-let (print_goalstate_hashed:int->goalstate->unit) =
-  fun k gs -> let (_,gl,_) = gs in
-              let n = length gl in
-              let s = if n = 0 then "No subgoals" else
-                        (string_of_int k)^" subgoal"^(if k > 1 then "s" else "")
-                     ^" ("^(string_of_int n)^" total)" in
-              print_string s; print_newline();
-              if gl = [] then () else
-              do_list (print_goal_hashed o C el gl) (rev(0--(k-1)));;
-
-let (print_goalstack_hashed:goalstack->unit) =
-  fun l ->
-    if l = [] then print_string "Empty goalstack"
-    else if tl l = [] then
-      let (_,gl,_ as gs) = hd l in
-      print_goalstate_hashed 1 gs
-    else
-      let (_,gl,_ as gs) = hd l
-      and (_,gl0,_) = hd(tl l) in
-      let p = length gl - length gl0 in
-      let p' = if p < 1 then 1 else p + 1 in
-      print_goalstate_hashed p' gs;;
-
 
 end;;

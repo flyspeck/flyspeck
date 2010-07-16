@@ -9,14 +9,16 @@
 
 
 
-module Tactics_refine = struct
+module Refinement = struct
 
 (* ------------------------------------------------------------------ *)
 (* This bundles an interactive session into a proof. *)
+(* Later split off into general/prove_by_refinement *)
 (* ------------------------------------------------------------------ *)
 
+(*
 let labels_flag = ref false;; (* if true add labels to assumptions *)
-
+*)
 
 let LABEL_ALL_TAC:tactic = 
  let mk_label avoid =
@@ -39,27 +41,31 @@ let LABEL_ALL_TAC:tactic =
     (ALL_TAC (!aslp,w)));;
 
 (* global_var *)
-let (EVERY_STEP_TAC:tactic ref) = ref ALL_TAC;;
-
-let enhance tac =
-  if !labels_flag then (tac THEN (!EVERY_STEP_TAC)) THEN LABEL_ALL_TAC
+let enhance flag every tac =
+  if flag then (tac THEN every) THEN LABEL_ALL_TAC
    else tac;;
 
-let (e:tactic ->goalstack) =  
-   fun tac -> refine(by(VALID (enhance tac)));;
+let (e_enhance :bool ->tactic->tactic ->goalstack) =  
+   fun flag every tac -> refine(by(VALID (enhance flag every tac)));;
+
+(*
+let e_bak = e;;
+let every = ALL_TAC;;
+let e = e_enhance true every;;
+*)
 
 let has_stv t = 
   let typ = (type_vars_in_term t) in
   can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
 
-let prove_by_refinement(t,(tacl:tactic list)) = 
+let enhanced_prove_by_refinement flag every (t,(tacl:tactic list)) = 
   if (length (frees t) > 0) 
     then failwith "prove_by_refinement: free vars" else
   if (has_stv t) 
     then failwith "prove_by_refinement: has stv" else
   let gstate = mk_goalstate ([],t) in
   let _,sgs,just = rev_itlist 
-    (fun tac gs -> by  (enhance tac) gs)
+    (fun tac gs -> by  (enhance flag every tac) gs)
      tacl gstate in
   let th = if sgs = [] then just null_inst []
   else failwith "BY_REFINEMENT_PROOF: Unsolved goals" in
@@ -68,51 +74,6 @@ let prove_by_refinement(t,(tacl:tactic list)) =
   try EQ_MP (ALPHA t' t) th
   with Failure _ -> failwith "prove_by_refinement: generated wrong theorem";;
 
-
-(* ------------------------------------------------------------------ *)
-(* DUMPING AND PRELOADED THEOREMS *)
-(* ------------------------------------------------------------------ *)
-
-
-let saved_thm = ref ((Hashtbl.create 300):(term,thm) Hashtbl.t);;
-let save_thm thm = Hashtbl.add !saved_thm (concl thm) thm;;
-let mem_thm tm = Hashtbl.mem !saved_thm tm;;
-let remove_thm tm = Hashtbl.remove !saved_thm tm;;
-let find_thm tm = Hashtbl.find !saved_thm tm;;
-
-let dump_thm file_name = 
-    let ch = open_out_bin file_name in
-    (output_value ch !saved_thm;
-    close_out ch);;
-
-let load_thm file_name =
-  let ch = open_in_bin file_name in 
-  (saved_thm := input_value ch;
-   close_in ch);;
-
-(* ------------------------------------------------------------------ *)
-(* PROOFS STORED.  *)
-(* ------------------------------------------------------------------ *)
-
-
-let fast_load  = ref true;;
-
-let set_fast_load file_name =
-  (fast_load := true;
-  load_thm file_name);;
-
-let set_slow_load () = 
-  (fast_load := false;);;
-
-let prove_cache (x, tac) = 
-  if (!fast_load) then (try(find_thm x) with failure -> prove(x,tac))
-  else (let t = prove(x,tac) in (save_thm t; t));;
-
-let prove_by_refinement_cache (x, tacl) = 
-  if (!fast_load) then (try(find_thm x) 
-			with failure -> prove_by_refinement(x,tacl))
-  else (let t = prove_by_refinement(x,tacl) in (save_thm t; t));;
-
-if (false) then (set_fast_load "thm.dump") else (fast_load:=false);; 
+let prove_by_refinement = enhanced_prove_by_refinement false ALL_TAC;;
 
 end;;

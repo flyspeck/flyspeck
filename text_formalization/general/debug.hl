@@ -36,23 +36,34 @@ module Debug = struct
     print_mtm "VERBOSE MODE" s;  p (s,t);;
 
 (*
- let prove_verbose(s,t) = 
-   try prove(s,t) with Failure msg -> 
-     print_string "\nError while proving goal\n";  print_term s; print_string "\n"; failwith msg;;
-
- let prove_by_refinement_verbose(s,t) = 
-   try Prove_by_refinement.prove_by_refinement(s,t) with Failure msg -> 
-     print_string "\nError while proving goal by refinement\n";  
-     print_term s; print_string "\n"; failwith msg;;
+Type and Term parsing 
 *)
 
-(*
- let new_definition_verbose s = 
-   try new_definition s with Failure msg ->
-     print_string "\nErrror while defining term\n"; print_term s; print_string "\n"; failwith msg;;
-*)
+let rec find_subterms ptm =
+  let r = term_of_preterm o (retypecheck[]) in
+   let m s p = (s,r p,type_of (r p)) in 
+  match ptm with
+    |Varp (s,ty) -> (try (let _ = r ptm in []) with Failure _ -> 
+        failwith ("variable typing error: "^s))
+    | Constp (s,pty) -> (try let _ = r ptm in []
+	with Failure _ -> failwith ("constant typing error: "^s))
+    | Combp (s,t) -> (try let _ = r ptm in [] with Failure _ ->
+			if (can r s) && (can r t) then [m "function head" s; m "function arg" t] 
+			  else  if (can r s) then find_subterms t else find_subterms s)
+    | Absp (s,t) -> (try let _ = r ptm in [] with Failure _ ->
+             if (can r s) && (can r t) then [m "absvar" s; m "absbody" t] 
+			  else  if (can r s) then find_subterms t else find_subterms s)
+    | Typing (s,_) -> (try let _ = r ptm in [] with Failure _ -> 
+             if (can r s) then [m "user type constraint on term" s] else find_subterms s);;
 
- let err_msg msg r s = (print_string ("Error while parsing "^r^" \""^s^"\"\n"); failwith msg);;
+exception Term_of_preterm_error of (string * term * hol_type) list;;
+
+let parse_fail ptm =    let flag = !type_invention_warning in
+   let r = (type_invention_warning := false; find_subterms ptm) in 
+   let _ = type_invention_warning := flag in
+   raise (Term_of_preterm_error r);;
+
+ let err_msg msg r s = (print_string ("Cannot parse "^r^" \""^s^"\"\n"); failwith msg);;
 
  let string_of_lexcode = function
    Ident s -> s
@@ -68,12 +79,12 @@ let parse_type_verbose s =
   else failwith ("Unparsed input "^(string_of_lexcodel l)^" following type in string "^s);;
 
 let parse_term_verbose s =
-  let ptm,l = try ((parse_preterm o lex o explode) s) with
-     Failure msg -> err_msg msg "preterm" s in 
+  let ptm,l = try((parse_preterm o lex o explode) s) with
+     Failure msg -> err_msg msg "lex stream " s in
   if l = [] then
-   try ((term_of_preterm o (retypecheck [])) ptm) with
-       Failure msg -> err_msg msg "term" s 
-  else failwith ("Unparsed input "^(string_of_lexcodel l)^" following term in string "^s);;
+   try (term_of_preterm o (retypecheck [])) ptm 
+   with Failure msg -> (report msg; report ("bad input: "^s); parse_fail ptm)
+  else failwith ("Trailing junk "^(string_of_lexcodel l)^" following term in string "^s);;
 
  let quotexpander_verbose s =
    if String.sub s 0 1 = ":" then
@@ -81,12 +92,16 @@ let parse_term_verbose s =
     (String.escaped (String.sub s 1 (String.length s - 1)))^"\""
   else "Debug.parse_term_verbose \""^(String.escaped s)^"\"";;
 
-  unset_jrh_lexer;;
+
+unset_jrh_lexer
+
  let set_verbose_parsing() =
    Quotation.add "tot" (Quotation.ExStr (fun x -> quotexpander_verbose));;
 
  let restore_parsing() =
       Quotation.add "tot" (Quotation.ExStr (fun x -> quotexpander));;
- set_jrh_lexer;;
+ 
+set_jrh_lexer
+
 
 end;;

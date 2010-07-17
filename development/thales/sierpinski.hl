@@ -10,15 +10,29 @@ module Sierpinski = struct
 
 (* start 3:36 July 3 *)
 
-let num_0 = prove_by_refinement(`{n | n > 0 } = (:num) DIFF {0}`,
+let INFINITE_CRIT = prove( `!X Y Z. INFINITE X /\ FINITE Y /\ (Z = X DIFF Y) ==> INFINITE Z`,
+MESON_TAC[INFINITE_DIFF_FINITE]
+);;
+
+let INFINITE_EXISTS = prove_by_refinement (
+`!x P. INFINITE { (x:A) | P x } ==> (?x. P x)`,
+[
+REWRITE_TAC[INFINITE];
+REPEAT STRIP_TAC;
+SUBGOAL_THEN `~({(x:A) | P x} = {})` MP_TAC;
+ASM_MESON_TAC[FINITE_EMPTY];
+REWRITE_TAC[EXTENSION;NOT_IN_EMPTY;IN_ELIM_THM];
+MESON_TAC[];
+]);;
+
+
+
+let numm0 = prove_by_refinement(`{n | n > 0 } = (:num) DIFF {0}`,
 [
 REWRITE_TAC[DIFF;FUN_EQ_THM;IN_ELIM_THM;IN_SING;SET_RULE `x IN (:num)`];
 ARITH_TAC;
 ]);;
 
-let INFINITE_CRIT = prove( `!X Y Z. INFINITE X /\ FINITE Y /\ (Z = X DIFF Y) ==> INFINITE Z`,
-MESON_TAC[INFINITE_DIFF_FINITE]
-);;
 
 
 let inf_pos_y = prove_by_refinement( 
@@ -33,7 +47,7 @@ let inf_pos = prove_by_refinement(
 `INFINITE { n | n > 0 }`,
 [
 MATCH_MP_TAC INFINITE_CRIT; 
-MESON_TAC[num_0;FINITE_SING;num_INFINITE];
+MESON_TAC[numm0;FINITE_SING;num_INFINITE];
 ]);;
 
 
@@ -76,20 +90,6 @@ REWRITE_TAC[DIFF;FUN_EQ_THM;IN_ELIM_THM;IN_SING];
 GEN_TAC;
 MATCH_MP_TAC (TAUT` (x = y) ==>  (x /\ a <=> a /\ y) `);
 ARITH_TAC;
-]);;
-
-
-
-
-let INFINITE_EXISTS = prove_by_refinement (
-`!x P. INFINITE { (x:A) | P x } ==> (?x. P x)`,
-[
-REWRITE_TAC[INFINITE];
-REPEAT STRIP_TAC;
-SUBGOAL_THEN `~({(x:A) | P x} = {})` MP_TAC;
-ASM_MESON_TAC[FINITE_EMPTY];
-REWRITE_TAC[EXTENSION;NOT_IN_EMPTY;IN_ELIM_THM];
-MESON_TAC[];
 ]);;
 
 let inf_ex = prove_by_refinement(  `!y. INFINITE N ==> ?(n:num). n > y /\ n IN N`,
@@ -203,7 +203,7 @@ ASM_MESON_TAC[phi_domain_inf];
 EXISTS_TAC `\(y:real).  if A (x:real) y then h_b (phi_domain o f) (g y) else 0`;
 BETA_TAC;
 REPEAT CONJ_TAC THEN REPEAT STRIP_TAC THEN
-(* every subgoal *)
+(* terminate every subgoal *)
 TRY(FIRST_X_ASSUM MP_TAC) THEN
 ASM_REWRITE_TAC[] THEN
 ASM_MESON_TAC[IN;h_b_inj;h_b_IN];
@@ -254,6 +254,22 @@ ASM_MESON_TAC[fc_ex]
 
 let fd = new_specification[ "fd"] fd_ex;;
 
+phi_domain;;
+phi;;
+phin;;
+GSYM num_seq_type;;
+type_of `phi`;;
+type_of `phi_domain`;;
+
+let r_exists = prove_by_refinement(
+  `!X. INFINITE { n | ~(X n) = (:real) } ==>
+  (?r. 
+  (phi_domain r =  {n | n > 0 /\ (~((X n) = (:real))) } ) /\ 
+  (if n IN phi_domain r then ~(phi r n IN X n) else (phi r n = &0)))`,
+[
+]
+);;
+
 let countable_s = prove_by_refinement(
   `!A (b:real->num_seq) s. (continuum_family A) /\ (ONTO b) /\
     (INFINITE { n | ~(IMAGE (fd A n) s = (:real) ) }) ==> (COUNTABLE s)`,
@@ -262,40 +278,39 @@ let countable_s = prove_by_refinement(
 REPEAT STRIP_TAC;
 ABBREV_TAC `N = { n | ~(IMAGE (fd A n) s = (:real) ) }`;
 FIRST_RULE_ASSUM (MATCH_MP (ISPEC `0` inf_pos_y)) ASSUME_TAC; 
+(* intro ph, N0  *)
 ABBREV_TAC `N0 = {n | n > 0 /\ n IN N}`;
-(* Several lines for the next subgoal  *)
 SUBGOAL_THEN `?ph. !(n:num). if (n IN N0) then (~(ph n IN IMAGE (fd A  n) s)) else (ph n= &0)` MP_TAC;
 REWRITE_TAC[GSYM SKOLEM_THM];
 ASM SET_TAC[IN_ELIM_THM];
 REPEAT STRIP_TAC;
-(* next subgoal *)
-SUBGOAL_THEN `?(r:real). phin r = mk_num_seq (ph,N0)` MP_TAC;
-ASM_MESON_TAC[ONTO;phin];
-REPEAT STRIP_TAC;
-(* now rework the goal *)
-MATCH_MP_TAC COUNTABLE_SUBSET;
-EXISTS_TAC `(A:real->real->bool) r`;
-UNDISCH_THEN `continuum_family A` (fun t -> ASSUME_TAC t THEN MP_TAC (REWRITE_RULE[continuum_family] t));
-REPEAT STRIP_TAC;
-ASM_REWRITE_TAC[];
-REWRITE_TAC[SUBSET];
-ONCE_REWRITE_TAC[TAUT `(x ==> y) <=> (~y ==> ~x)`];
-REPEAT STRIP_TAC;
-(* *)
-SUBGOAL_TAC "A" `r IN (A:real->real -> bool) x` [ASM_MESON_TAC[]];
-SUBGOAL_TAC "B" `fd A  (hx A x r) x = phi r (hx A x r)` [ASM_MESON_TAC[IN;fd]];
 (* *)
 SUBGOAL_THEN `dest_num_seq (mk_num_seq (ph,N0)) = (ph,N0)` ASSUME_TAC;
 ASM_REWRITE_TAC[GSYM num_seq_type];
 CONJ_TAC;
 ASM_MESON_TAC[IN];
 EXPAND_TAC "N0";
-REWRITE_TAC[IN_ELIM_THM];
-ARITH_TAC;
+REWRITE_TAC[IN_ELIM_THM;TAUT `a /\ b ==> a`];
+(* intro r *)
+SUBGOAL_THEN `?(r:real). phin r = mk_num_seq (ph,N0)` MP_TAC;
+ASM_MESON_TAC[ONTO;phin];
+REPEAT STRIP_TAC;
 (*  *)
 SUBGOAL_THEN `(phi_domain r = N0) /\ (phi r = ph)`   MP_TAC;
 ASM_REWRITE_TAC[phi_domain;phi];
 REPEAT STRIP_TAC;
+(* unpack continuum family *)
+UNDISCH_THEN `continuum_family A` (fun t -> ASSUME_TAC t THEN MP_TAC (REWRITE_RULE[continuum_family] t));
+REPEAT STRIP_TAC;
+(* unpack goal *)
+MATCH_MP_TAC COUNTABLE_SUBSET; (* strategy *)
+EXISTS_TAC `(A:real->real->bool) r`;
+ASM_REWRITE_TAC[SUBSET];
+REPEAT STRIP_TAC;
+REFUTE_THEN ASSUME_TAC;
+(* *)
+SUBGOAL_TAC "A" `r IN (A:real->real -> bool) x` [ASM_MESON_TAC[]];
+SUBGOAL_TAC "B" `fd A  (hx A x r) x = phi r (hx A x r)` [ASM_MESON_TAC[IN;fd]];
 (*  *)
 SUBGOAL_THEN `hx A x r IN phi_domain r` ASSUME_TAC;
 ASM_MESON_TAC[hx;IN];

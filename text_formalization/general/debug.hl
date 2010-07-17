@@ -11,6 +11,8 @@
 
 module Debug = struct
 
+  open Parser_verbose;;
+
   let print_mtm m s = 
    (print_string ("\n"^m^"\n"); print_term s; print_string "\n";);;
 
@@ -63,28 +65,26 @@ let parse_fail ptm =    let flag = !type_invention_warning in
    let _ = type_invention_warning := flag in
    raise (Term_of_preterm_error r);;
 
- let err_msg msg r s = (print_string ("Cannot parse "^r^" \""^s^"\"\n"); failwith msg);;
+ let err_msg msg r s = (print_string ("Parse error, cannot create "^r^" from  \""^s^"\"\n"); failwith msg);;
 
- let string_of_lexcode = function
-   Ident s -> s
-   |Resword s -> s;;
 
- let string_of_lexcodel r = itlist (fun a b -> string_of_lexcode a^b) r "";;
- 
 let parse_type_verbose s =
-  let (pty,l) = try ((parse_pretype o lex o explode) s) with 
-      Failure msg -> err_msg msg "pretype" s in 
+  let (pty,l) = try ((parse_pretype_verbose o lex o explode) s) with 
+    Failure msg -> err_msg msg "pretype" s in 
   if l = [] then try (type_of_pretype pty) with
       Failure msg -> err_msg msg "type" s
   else failwith ("Unparsed input "^(string_of_lexcodel l)^" following type in string "^s);;
 
 let parse_term_verbose s =
-  let ptm,l = try((parse_preterm o lex o explode) s) with
-     Failure msg -> err_msg msg "lex stream " s in
+  let lexstream = try lex ( explode s) with
+    Failure msg -> err_msg msg "lex stream" s in
+  let ptm,l = try (parse_preterm_verbose lexstream) with
+    | Failure msg ->  err_msg msg "preterm " s 
+    | Noparse -> err_msg "preterm" " preterm " (string_of_lexcodel (lex (explode s))) in
   if l = [] then
    try (term_of_preterm o (retypecheck [])) ptm 
    with Failure msg -> (report msg; report ("bad input: "^s); parse_fail ptm)
-  else failwith ("Trailing junk "^(string_of_lexcodel l)^" following term in string "^s);;
+  else failwith ("Trailing junk "^(string_of_lexcodel l)^" following preterm in string "^s);;
 
  let quotexpander_verbose s =
    if String.sub s 0 1 = ":" then

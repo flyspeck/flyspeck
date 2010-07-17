@@ -71,7 +71,13 @@ let SELECT_TAC  =
 
 (* PATTERNS *)
 
-let (PAT_TAC:term list -> (string * thm) -> tactic)  = fun pat sth -> if (search_thml (term_match[]) pat [sth] = []) then NO_TAC else ALL_TAC;;
+let (PAT_MATCH:term list -> (string*thm) -> bool) = fun pat sth ->
+  not(search_thml (term_match[]) pat [sth] = []);;
+
+let (PAT_TAC2:tactic -> tactic -> term list -> (string * thm) -> tactic)  = fun tac1 tac2 pat sth -> if PAT_MATCH pat sth then tac1 else tac2;;
+
+let (PAT_TAC:term list -> (string * thm) -> tactic)  = 
+  PAT_TAC2 ALL_TAC NO_TAC;;
 
 let (FIRST_PAT_ASSUM: term list -> thm_tactic -> tactic) =
   fun pat ttac (asl,w as g) -> tryfind (fun sth -> (PAT_TAC pat sth THEN ttac (snd sth)) g) asl;;
@@ -80,6 +86,11 @@ let (FIRST_PAT_X_ASSUM:term list -> thm_tactic -> tactic) =
   fun pat ttac ->
     FIRST_PAT_ASSUM pat (fun th -> UNDISCH_THEN (concl th) ttac);;
 
+let (EVERY_PAT_ASSUM:term list -> thm_tactic -> tactic) = 
+  fun pat ttac (asl,w) -> 
+    let rl = map snd (filter (PAT_MATCH pat) asl) in 
+    let tacl = map ttac rl in  
+      EVERY tacl (asl,w);;
 
 (* Well defined functions *)
 

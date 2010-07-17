@@ -2,15 +2,29 @@
 
 flyspeck_needs "general/tactics.hl";;
 
-module Sierpinski = struct
+module Sierpinski:sig
 
-  let SELECT_TAC= Tactics.SELECT_TAC;;
+  val INFINITE_CRIT:thm
+
+  val INFINITE_EXISTS:thm
+
+  val num_seq_type:thm
+
+  val sierpinski:thm
+
+end = 
+
+struct
+
+let SELECT_TAC= Tactics.SELECT_TAC;;
+let EVERY_PAT_ASSUM = Tactics.EVERY_PAT_ASSUM;;
 
 (* Sierpinski's theorem *)
 
 (* start 3:36 July 3 *)
 
-let INFINITE_CRIT = prove( `!X Y Z. INFINITE X /\ FINITE Y /\ (Z = X DIFF Y) ==> INFINITE Z`,
+let INFINITE_CRIT = prove( 
+ `!X Y Z. INFINITE X /\ FINITE Y /\ (Z = X DIFF Y) ==> INFINITE Z`,
 MESON_TAC[INFINITE_DIFF_FINITE]
 );;
 
@@ -59,7 +73,8 @@ let num_seq_exists = prove_by_refinement(
  REWRITE_TAC[FST;SND;IN_ELIM_THM;inf_pos]
 ]);;
 
-let num_seq_type = new_type_definition "num_seq" ("mk_num_seq","dest_num_seq") num_seq_exists;;
+let num_seq_type = new_type_definition 
+  "num_seq" ("mk_num_seq","dest_num_seq") num_seq_exists;;
 
 let num_seq_axiom = `(?f:real->num_seq.  ONTO f)`;;
 
@@ -79,8 +94,8 @@ SELECT_ELIM_TAC;
 MESON_TAC[ONTO]
 ]);;
 
-let h_b = 
-define `(h_b N 0 = @(n:num). N 0 n) /\ (h_b N (SUC i) = @n. (N  (SUC i) n /\ n > h_b N i))`;;
+let h_b = define 
+ `(h_b N 0 = @(n:num). N 0 n) /\ (h_b N (SUC i) = @n. (N  (SUC i) n /\ n > h_b N i))`;;
 
 
 let num_y = prove_by_refinement(
@@ -95,9 +110,10 @@ ARITH_TAC;
 let inf_ex = prove_by_refinement(  `!y. INFINITE N ==> ?(n:num). n > y /\ n IN N`,
 [
 REPEAT STRIP_TAC;
-MATCH_MP_TAC INFINITE_EXISTS; (* strategy *)
+MATCH_MP_TAC INFINITE_EXISTS; 
 MATCH_MP_TAC inf_pos_y;
-ASM_REWRITE_TAC[];	]);;
+ASM_REWRITE_TAC[]
+]);;
 
 let h_b_inc = prove_by_refinement(
 `(!i. INFINITE (N i)) ==> (!i.  (h_b N i  <  h_b N (SUC i) ))`,
@@ -254,33 +270,20 @@ ASM_MESON_TAC[fc_ex]
 
 let fd = new_specification[ "fd"] fd_ex;;
 
-phi_domain;;
-phi;;
-phin;;
-GSYM num_seq_type;;
-type_of `phi`;;
-type_of `phi_domain`;;
 
 let r_exists = prove_by_refinement(
-  `!X. INFINITE { n | ~(X n) = (:real) } ==>
+  `!X (b:real->num_seq). INFINITE { n | ~((X n) = (:real)) } /\  (ONTO b)  ==>
   (?r. 
   (phi_domain r =  {n | n > 0 /\ (~((X n) = (:real))) } ) /\ 
-  (if n IN phi_domain r then ~(phi r n IN X n) else (phi r n = &0)))`,
+  (!n. if n IN phi_domain r then ~(phi r n IN X n) else (phi r n = &0)))`,
 [
-]
-);;
-
-let countable_s = prove_by_refinement(
-  `!A (b:real->num_seq) s. (continuum_family A) /\ (ONTO b) /\
-    (INFINITE { n | ~(IMAGE (fd A n) s = (:real) ) }) ==> (COUNTABLE s)`,
-[
-(* unpack *)
-REPEAT STRIP_TAC;
-ABBREV_TAC `N = { n | ~(IMAGE (fd A n) s = (:real) ) }`;
+REPEAT GEN_TAC;
+ABBREV_TAC `N = { n:num | ~(X n = (:real) ) }`;
+STRIP_TAC;
 FIRST_RULE_ASSUM (MATCH_MP (ISPEC `0` inf_pos_y)) ASSUME_TAC; 
 (* intro ph, N0  *)
 ABBREV_TAC `N0 = {n | n > 0 /\ n IN N}`;
-SUBGOAL_THEN `?ph. !(n:num). if (n IN N0) then (~(ph n IN IMAGE (fd A  n) s)) else (ph n= &0)` MP_TAC;
+SUBGOAL_THEN `?ph. !(n:num). if (n IN N0) then (~(ph n IN X n)) else (ph n= &0)` MP_TAC;
 REWRITE_TAC[GSYM SKOLEM_THM];
 ASM SET_TAC[IN_ELIM_THM];
 REPEAT STRIP_TAC;
@@ -298,6 +301,28 @@ REPEAT STRIP_TAC;
 (*  *)
 SUBGOAL_THEN `(phi_domain r = N0) /\ (phi r = ph)`   MP_TAC;
 ASM_REWRITE_TAC[phi_domain;phi];
+REPEAT STRIP_TAC;
+EXISTS_TAC `r:real`;
+ASM_REWRITE_TAC[];
+EVERY_PAT_ASSUM [`ph:num->real`] (fun t-> UNDISCH_THEN (concl t) (K ALL_TAC));
+EVERY_PAT_ASSUM [`phi_domain`] (fun t-> UNDISCH_THEN (concl t) (K ALL_TAC));
+EXPAND_TAC"N0";
+EXPAND_TAC"N";
+REWRITE_TAC[IN_ELIM_THM];
+]
+);;
+
+
+let countable_s = prove_by_refinement(
+  `!A (b:real->num_seq) s. (continuum_family A) /\ (ONTO b) /\
+    (INFINITE { n | ~(IMAGE (fd A n) s = (:real) ) }) ==> (COUNTABLE s)`,
+[
+(* unpack *)
+REPEAT STRIP_TAC;
+ABBREV_TAC `N = { n | ~(IMAGE (fd A n) s = (:real) ) }`;
+MP_TAC (ISPECL [`\n. IMAGE (fd A n) s`;`b:real->num_seq`] r_exists);
+BETA_TAC;
+ASM_REWRITE_TAC[];
 REPEAT STRIP_TAC;
 (* unpack continuum family *)
 UNDISCH_THEN `continuum_family A` (fun t -> ASSUME_TAC t THEN MP_TAC (REWRITE_RULE[continuum_family] t));
@@ -321,6 +346,8 @@ REWRITE_TAC[IN_IMAGE];
 EXISTS_TAC`x:real`;
 ASM_REWRITE_TAC[];
 ]);;
+
+
 
 let sierpinski = prove_by_refinement
 (`!A (b:real->num_seq).   (continuum_family A) /\ (ONTO b) ==>

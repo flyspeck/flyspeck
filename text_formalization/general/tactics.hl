@@ -10,6 +10,11 @@
 
 module Tactics = struct
 
+(* NB. These tactics are still in experimental form and may change.
+    Be cautious about using tactics that may break your proofs if they
+    are later changed.
+*)
+
 (* ASSUMPTION LISTS *)
 
 let ASM_STRIP_TAC = 
@@ -21,6 +26,11 @@ let FIRST_RULE_ASSUM rule ttc = FIRST_ASSUM (ttc o rule );;
 
 let FIRST_RULE_X_ASSUM rule ttc = FIRST_X_ASSUM (ttc o rule );;
 
+(* INDUCTION *)
+
+let INDUCT_SPEC_TAC vn = 
+  let v = mk_var (vn,`:nat`) in
+  SPEC_TAC (v,v) THEN INDUCT_TAC;;
 
 
 (* ------------------------------------------------------------------ *)
@@ -39,7 +49,7 @@ let select_thm select_fn select_exist =
 
 (* example *)
 select_thm
-    `\m. (X:num->bool) m /\ (!n. X n ==> m <=| n)` `n:num`;;
+    `\m. (X:num->bool) m /\ (!n. X n ==> m <= n)` `n:num`;;
 
 let SELECT_EXIST = prove_by_refinement(
   `!(P:A->bool) Q. (?y. P y) /\ (!t. (P t ==> Q t)) ==> Q ((@) P)`,
@@ -53,14 +63,9 @@ let SELECT_EXIST = prove_by_refinement(
 
   (* }}} *)
 
-let SELECT_THM = prove_by_refinement(
+let SELECT_THM = MESON[SELECT_EXIST]
   `!(P:A->bool) Q. (((?y. P y) ==> (!t. (P t ==> Q t))) /\ ((~(?y. P y)) ==>
-     (!t. Q t))) ==> Q ((@) P)`,
-  (* {{{ proof *)
-  [
-  MESON_TAC[SELECT_EXIST];
-  ]);;
-  (* }}} *)
+     (!t. Q t))) ==> Q ((@) P)`;;
 
 let SELECT_TAC  =
   let unbeta = prove(

@@ -39,9 +39,21 @@ struct
 let halfatn = new_definition `halfatn x = x / (sqrt(&1 + x pow 2) + &1)`;;
 
 let pos1 = prove(
-  `&0 < &1 + x pow 2 `,
+  `!x. &0 < &1 + x pow 2 `,
   MESON_TAC[Collect_geom.pow_g;REAL_ARITH `&0 <= t ==> &0 < &1 + t`];
 );;
+
+let ssqrt = new_definition `!x. ssqrt x = (if x < &0 then &0 else sqrt x)`;;
+
+let halfsqrt_ssqrt = prove_by_refinement(
+  `!x.  sqrt(&1+ x pow 2) = ssqrt(&1 + x pow 2)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ssqrt;];
+  MESON_TAC[pos1;REAL_ARITH `&0 < x ==> ~(x < &0)`];
+  ]);;
+  (* }}} *)
+
 
 let pos2 = prove_by_refinement (
   `!x. &0 < sqrt(&1 + x pow 2) + &1`,
@@ -161,6 +173,7 @@ let abs_lemma = prove(
 let cos_nz = prove_by_refinement (
   `!x. (abs(x) < pi / &2) ==> ~(cos x = &0) `,
 (* {{{ proof *)
+
 [
 GEN_TAC;
 REWRITE_TAC[COS_ZERO_PI;abs_lemma];
@@ -176,6 +189,7 @@ MP_TAC (REAL_ARITH `&1/ &2 <= (&n + &1/ &2)`);
 REWRITE_TAC[REAL_ARITH `pi / &2 = (&1 / &2) * pi`];
 ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> &0 <= x`;Float.REAL_LE_RMUL_IMP];
 ]
+
 (* }}} *));;
 
 let cos_2nz =  prove_by_refinement(
@@ -747,3 +761,118 @@ let real_taylor_atn = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
+let halfatn4 = new_definition `halfatn4 = halfatn o halfatn o halfatn o halfatn`;;
+
+let real_taylor_atn_halfatn4 = prove_by_refinement(
+  `!n x. abs (atn(halfatn4 x) - sum (0..n) (\j. (-- &1 pow j) * halfatn4 x pow (2 * j + 1)/ &(2 * j+ 1))) <= inv (&8 pow (2 * n + 3))`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `abs(halfatn4 x) pow (2 * n + 3)`;
+  REWRITE_TAC[real_taylor_atn;REAL_INV_POW];
+  MATCH_MP_TAC Real_ext.REAL_PROP_LE_POW;
+  REWRITE_TAC[REAL_ABS_POS;halfatn4;o_THM];
+  MATCH_MP_TAC (REAL_ARITH `x < y ==> x <= y`);
+  MP_TAC (ISPEC `x:real` Taylor_atn.halfatn_bounds_abs);
+  REPLICATE_TAC 3(  DISCH_THEN (fun t-> MP_TAC (MATCH_MP Taylor_atn.halfatn_half t)));
+  FORCE_MATCH;
+  CONV_TAC REAL_FIELD;
+  ]);;
+  (* }}} *)
+
+let atn_halfatn4 = prove_by_refinement(
+  `!x. atn x = &16 * atn(halfatn4 x)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[REAL_ARITH `&16 * x = &2 * &2 * &2 * &2 * x`];
+  REWRITE_TAC[halfatn4;o_THM;GSYM Taylor_atn.atn_half];
+  ]);;
+  (* }}} *)
+
+
+let real_taylor_atn_halfatn4_a = prove_by_refinement(
+  `!n x. abs (atn x - &16 * sum (0..n) (\j. (-- &1 pow j) * halfatn4 x pow (2 * j + 1)/ &(2 * j+ 1))) <= inv (&2 pow (6 * n + 5 ))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  ONCE_REWRITE_TAC [atn_halfatn4];
+  REWRITE_TAC[REAL_ARITH `abs (&16 * x - &16 * y) <=  z <=> abs(x - y) <= z *inv (&2 pow 4)`];
+  MP_TAC (ISPECL [`n:num`;`x:real`]  real_taylor_atn_halfatn4);
+  FORCE_MATCH;
+  REWRITE_TAC[GSYM REAL_INV_MUL;GSYM REAL_POW_ADD;REAL_ARITH `&8 = &2 pow 3`;REAL_POW_POW];
+  REPEAT AP_TERM_TAC;
+  ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let halfatn4_co = new_definition `halfatn4_co x j =  (-- &1 pow j) * halfatn4 x pow (2 * j + 1)/ &(2 * j+ 1)`;;
+
+let atn_bounds = prove_by_refinement(
+  `!x y. x <= y  ==> abs(atn x - atn y) <= abs(x - y)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  MP_TAC (ISPECL [`atn`;`(\t. inv(&1 + t pow 2))`;`x:real`;`y:real`] REAL_MVT_VERY_SIMPLE);
+  REWRITE_TAC[real_interval;IN_ELIM_THM];
+  ANTS_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN;
+  REWRITE_TAC[HAS_REAL_DERIVATIVE_ATN];
+  REPEAT STRIP_TAC;
+  ONCE_REWRITE_TAC[REAL_ARITH `abs(y - x) = abs(x-y)`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[REAL_ABS_MUL];
+  FORCE_MATCH_MP_TAC (ISPECL [`abs(inv (&1 + x' pow 2))`;`&1`;`abs(y-x)`] REAL_LE_RMUL);
+  REWRITE_TAC[REAL_ABS_POS;REAL_ABS_INV];
+ FORCE_MATCH_MP_TAC (ISPECL [`&1`;`abs(&1 + x' pow 2)`] REAL_LE_INV2);
+  CONJ_TAC THEN TRY(REAL_ARITH_TAC);
+  MP_TAC (ISPEC `x':real` pos1);
+  SIMP_TAC [REAL_ARITH `(&0 < x ==> (abs x = x)) /\  (&1 <= &1 + u <=> &0 <= u)`;Real_ext.REAL_LE_POW_2];
+ REAL_ARITH_TAC;
+ REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+(*
+let real_taylor_atn_approx = prove_by_refinement(
+  `!n x u v eps1 eps2 eps3 eps.
+     abs(x - u ) <= eps1 /\  
+    abs(atn(u) - &16 * sum (0..n) (halfatn4_co u)) <= eps2 /\
+    abs(&16 *sum (0..n) (halfatn4_co u) - v )<= eps3 /\
+   (eps1 + eps2 + eps3 <= eps) ==>
+   abs(atn(x) - v) <= eps`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+    MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `eps1 + eps2 + eps3`;
+  ASM_REWRITE_TAC[];
+  ZZ;
+  ]);;
+  (* }}} *)
+*)
+
+(*
+Searching.suggest();;
+search[`atn has_real_derivative z`];;
+searcht 10[name "WITHIN";`atreal`;`has_real_derivative`],"HAS_REAL_DERIVATIVE_ATREAL_WITHIN;
+searcht 3[name "MVT";`has_real_derivative`],REAL_MVT_VERY_SIMPLE;;
+searcht 5 [`inv (x * y ) = inv (x ) * inv (y)`],REAL_INV_MUL;;
+searcht 5 [`z pow (a + b) = z pow a * z pow b`],REAL_POW_ADD;;
+searcht 5 [`(z pow a) pow b = z pow (a * b)`];;
+searcht 8 [`halfatn`],halfatn_bounds_abs;;
+searcht 8 [`atn(halfatn x)`];;
+halfatn_half;
+searcht 8 [`&0 <= abs(x)`],REAL_ABS_POS;;
+searcht 8 [`inv (x pow k)`],REAL_INV_POW;;
+search[`x pow k <= y pow k`],Real_ext.REAL_PROP_LE_POW;
+search[`&0 <= x pow 2`];;
+search[`inv x <= inv y`];REAL_LE_INV2;;
+search[`&0 <= abs(x)`],REAL_ABS_POS;;
+search[`abs(inv x)`;`inv(abs x)`],REAL_ABS_INV;;
+search[`abs(x * y) = abs(x) * abs y`],REAL_ABS_MUL;;
+search[`x * y <= x * z`],REAL_LE_LMUL;;
+*)

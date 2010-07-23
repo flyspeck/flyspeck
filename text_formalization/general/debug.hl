@@ -13,11 +13,15 @@ module Debug = struct
 
   open Parser_verbose;;
 
-  let print_mtm m s = 
-   (print_string ("\n"^m^"\n"); print_term s; print_string "\n";);;
+  let silent= ref false;;
 
- let print_m f m s = 
+  let print_mtm m s = if !silent then () else 
+   (print_string ("\n"^m^"\n"); print_term s; print_string "\n");;
+
+ let print_m f m s = if !silent then () else 
    (print_string ("\n"^m^"\n"); f s; print_string "\n";);;
+
+ let parse_error_msg msg r s = if !silent then failwith msg else (print_string ("Parse error, cannot create "^r^" from  \""^s^"\"\n"); failwith msg);;
 
   let verbose_1 p s = 
     try p s with Failure msg ->
@@ -65,22 +69,22 @@ let parse_fail ptm =    let flag = !type_invention_warning in
    let _ = type_invention_warning := flag in
    raise (Term_of_preterm_error r);;
 
- let err_msg msg r s = (print_string ("Parse error, cannot create "^r^" from  \""^s^"\"\n"); failwith msg);;
+
 
 
 let parse_type_verbose s =
   let (pty,l) = try ((parse_pretype_verbose o lex o explode) s) with 
-    Failure msg -> err_msg msg "pretype" s in 
+    Failure msg -> parse_error_msg msg "pretype" s in 
   if l = [] then try (type_of_pretype pty) with
-      Failure msg -> err_msg msg "type" s
+      Failure msg -> parse_error_msg msg "type" s
   else failwith ("Unparsed input "^(string_of_lexcodel l)^" following type in string "^s);;
 
 let parse_term_verbose s =
   let lexstream = try lex ( explode s) with
-    Failure msg -> err_msg msg "lex stream" s in
+    Failure msg -> parse_error_msg msg "lex stream" s in
   let ptm,l = try (parse_preterm_verbose lexstream) with
-    | Failure msg ->  err_msg msg "preterm " s 
-    | Noparse -> err_msg "preterm" " preterm " (string_of_lexcodel (lex (explode s))) in
+    | Failure msg ->  parse_error_msg msg "preterm " s 
+    | Noparse -> parse_error_msg "preterm" " preterm " (string_of_lexcodel (lex (explode s))) in
   if l = [] then
    try (term_of_preterm o (retypecheck [])) ptm 
    with Failure msg -> (report msg; report ("bad input: "^s); parse_fail ptm)

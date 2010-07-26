@@ -261,8 +261,6 @@ CONV_TAC REAL_FIELD;
 ]
 (* }}} *));;
 
-end;;
-
 (* complex taylor for atn *)
 
 prioritize_complex();;
@@ -761,7 +759,6 @@ let real_taylor_atn = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let halfatn4 = new_definition `halfatn4 = halfatn o halfatn o halfatn o halfatn`;;
 
 let real_taylor_atn_halfatn4 = prove_by_refinement(
@@ -775,8 +772,8 @@ let real_taylor_atn_halfatn4 = prove_by_refinement(
   MATCH_MP_TAC Real_ext.REAL_PROP_LE_POW;
   REWRITE_TAC[REAL_ABS_POS;halfatn4;o_THM];
   MATCH_MP_TAC (REAL_ARITH `x < y ==> x <= y`);
-  MP_TAC (ISPEC `x:real` Taylor_atn.halfatn_bounds_abs);
-  REPLICATE_TAC 3(  DISCH_THEN (fun t-> MP_TAC (MATCH_MP Taylor_atn.halfatn_half t)));
+  MP_TAC (ISPEC `x:real` halfatn_bounds_abs);
+  REPLICATE_TAC 3(  DISCH_THEN (fun t-> MP_TAC (MATCH_MP halfatn_half t)));
   FORCE_MATCH;
   CONV_TAC REAL_FIELD;
   ]);;
@@ -787,10 +784,9 @@ let atn_halfatn4 = prove_by_refinement(
   (* {{{ proof *)
   [
   ONCE_REWRITE_TAC[REAL_ARITH `&16 * x = &2 * &2 * &2 * &2 * x`];
-  REWRITE_TAC[halfatn4;o_THM;GSYM Taylor_atn.atn_half];
+  REWRITE_TAC[halfatn4;o_THM;GSYM atn_half];
   ]);;
   (* }}} *)
-
 
 let real_taylor_atn_halfatn4_a = prove_by_refinement(
   `!n x. abs (atn x - &16 * sum (0..n) (\j. (-- &1 pow j) * halfatn4 x pow (2 * j + 1)/ &(2 * j+ 1))) <= inv (&2 pow (6 * n + 5 ))`,
@@ -836,6 +832,8 @@ let atn_bounds_anti = prove_by_refinement(
   ]);;
   (* }}} *)
 
+prioritize_real();;
+
 let atn_bounds = prove_by_refinement(
   `!x y. abs(atn x - atn y) <= abs(x-y)`,
   (* {{{ proof *)
@@ -849,7 +847,7 @@ let atn_bounds = prove_by_refinement(
   (* }}} *)
 
 
-
+(*
 let real_taylor_atn_approx = prove_by_refinement(
   `!n x u v eps1 eps2 eps3 eps.
      abs(x - u ) <= eps1 /\  
@@ -861,7 +859,7 @@ let real_taylor_atn_approx = prove_by_refinement(
   [
   REPEAT STRIP_TAC;
     MATCH_MP_TAC REAL_LE_TRANS;
-  EXISTS_TAC `eps1 + eps2 + eps3`;
+  EXISTS_TAC `(eps1:real) + eps2 + eps3`;
   ASM_REWRITE_TAC[];
   MATCH_MP_TAC REAL_LE_TRANS;
   ABBREV_TAC `r = &16 * sum(0..n) (halfatn4_co u)`;
@@ -870,7 +868,7 @@ let real_taylor_atn_approx = prove_by_refinement(
   CONV_TAC (PATH_CONV "l" (ONCE_REWRITE_CONV[REAL_ARITH `atn x - v = (atn x - atn u) + (atn u - r) +  (r - v)`]));
   MATCH_MP_TAC REAL_LE_TRANS;
   EXISTS_TAC `abs(atn x - atn u) + abs(atn u - r + r - v)`;
-  REWRITE_TAC[REAL_ABS_TRIANGLE;REAL_ARITH `x + y <= x + z <=> y <= z`];
+  REWRITE_TAC[REAL_ABS_TRIANGLE;REAL_ARITH `(x:real) + y <= x + z <=> y <= z`];
   MATCH_MP_TAC (REAL_ARITH `a1 <= b1 /\ a2 <= b2 /\ a3 <= b3 ==> a1 + a2 + a3 <= b1 + b2 + b3`);
   ASM_REWRITE_TAC[];
   CONJ_TAC;
@@ -886,8 +884,36 @@ let real_taylor_atn_approx = prove_by_refinement(
   REWRITE_TAC[FUN_EQ_THM;halfatn4_co];
   ]);;
   (* }}} *)
+*)
 
-search [`sum (i..SUC j)`];;
-Searching.suggest();;
-search[`abs(atn u - &16 *x)`];;
-search[`abs(x + y) <= abs(x) + abs y`],REAL_ABS_TRIANGLE;;
+let real_taylor_atn_approx = prove_by_refinement(
+  `!n x  v eps1 eps2 eps.
+    inv (&2 pow (6 * n + 5)) <= eps1 /\
+    abs(&16 *sum (0..n) (halfatn4_co x) - v )<= eps2 /\
+   (eps1 + eps2 <= eps) ==>
+   abs(atn(x) - v) <= eps`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+    MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `( eps1:real) + eps2`;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  ABBREV_TAC `r = &16 * sum(0..n) (halfatn4_co x)`;
+  EXISTS_TAC`abs(atn x - r) + abs(r - v)`;
+  CONJ_TAC;
+  MESON_TAC[REAL_ABS_TRIANGLE;REAL_ARITH `atn x - v = (atn x - r) + r - v`];
+ MATCH_MP_TAC (REAL_ARITH `a1 <= b1 /\ a2 <= b2  ==> a1 + a2  <= b1 + b2`);
+ ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `inv(&2 pow (6 * n + 5))`;
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "r";
+  MP_TAC (ISPECL [`n:num`;`x:real`] real_taylor_atn_halfatn4_a);
+  FORCE_MATCH;
+  REWRITE_TAC[FUN_EQ_THM;halfatn4_co];
+  ]);;
+  (* }}} *)
+
+
+end;;

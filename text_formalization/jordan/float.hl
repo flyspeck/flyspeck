@@ -10,6 +10,8 @@
 
 (* based on float.ml in hol/jordan/float.ml *)
 
+flyspeck_needs "jordan/taylor_atn.hl";;
+
 module Float = struct
 
 open Lib_ext;;
@@ -17,6 +19,7 @@ open Num_ext_nabs;;
 open Real_ext;;
 open Refinement;;
 open Tactics_jordan;;
+open Taylor_atn;;
 
 Parse_ext_override_interface.unambiguous_interface();;
 Parse_ext_override_interface.prioritize_real();;
@@ -944,8 +947,6 @@ EVERY[
   REWRITE_TAC[interval_eps;float;int_of_num_th;REAL_MUL_LZERO];
   REAL_ARITH_TAC]);;
 
-
-
 let REAL_EQ_RCANCEL_IMP' = prove(`!x y z.(x * z = y * z) ==> (~(z = &0) ==> (x=y))`,
   MESON_TAC[REAL_EQ_RCANCEL_IMP]);;
 
@@ -1021,6 +1022,30 @@ EVERY[
   ASSUME_TAC (SPECL [`x:real`;`f:real`] REAL_ABS_SUB_ABS);
   ASM_MESON_TAC[REAL_LE_TRANS]
 ]);;  (* 7 minutes *)
+
+(* ------------------------------------------------------------------ *)
+(*   INTERVAL ATN VALUE                                               *)
+(* ------------------------------------------------------------------ *)
+
+let taylor_atn = prove_by_refinement(
+  `!n x v eps2 eps.
+      interval_eps (&16 * sum (0..n) (halfatn4_co x)) v eps2 /\ 
+      float (int_of_num 1) ( -- int_of_num (6 * n + 5)) + eps2 <= eps ==>
+      interval_eps (atn x) v eps`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[interval_eps;float;TWOPOW_NEG;int_of_num_th;REAL_ARITH `&1 * x = x`];
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC real_taylor_atn_approx;
+  EXISTS_TAC `n:num`;
+  EXISTS_TAC `inv(&2 pow (6 * n +5))`;
+  EXISTS_TAC `eps2:real`;
+  ASM_REWRITE_TAC[];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+
 
 (* ------------------------------------------------------------------ *)
 (*   INTERVAL SQRT                                                    *)
@@ -1207,11 +1232,7 @@ test();;
 (*                                                                    *)
 (* ------------------------------------------------------------------ *)
 
-let DOUBLE_CONV_FILE=true;;
-
 let add_test,test = new_test_suite();;
-
-(* Num package docs at http://caml.inria.fr/ocaml/htmlman/libref/Num.html *)
 
 (* ------------------------------------------------------------------ *)
 (* num_exponent
@@ -1383,27 +1404,6 @@ let FLOAT_NN = Prove_by_refinement.prove_by_refinement(
   MESON_TAC[REAL_PROP_NN_RCANCEL;TWOPOW_MK_POS;REAL_PROP_NN_POS;REAL_PROP_NN_MUL2];
 ]);;
 
-(*
-
-let FLOAT_NN = prove(
-  `!a b. ((&.0) <=. (float a b)) <=> (int_of_num 0 <=: a)`,
-EVERY[
-  REWRITE_TAC[float;INT_OF_NUM_DEST];
-  REP_GEN_TAC;
-  EQ_TAC THENL[EVERY[
-  DISCH_ALL_TAC;
-  INPUT_COMBO[THM REAL_PROP_NN_RCANCEL;THM (SPEC `b:int` TWOPOW_MK_POS) &&& (HYP"0")];
-  ASM_MESON_TAC[int_le;int_of_num_th]];
-  EVERY[
-  DISCH_ALL_TAC;
-  INPUT_COMBO[THM REAL_PROP_NN_POS;THM(SPEC`b:int`TWOPOW_MK_POS)];
-  INPUT_COMBO[THM int_of_num_th   ; THM int_le ;(HYP"0")];
-  INPUT_COMBO[THM REAL_PROP_NN_MUL2; (HYP"2")&&&(HYP"1")];
-  ASM_REWRITE_TAC[]]]
-]);;
-
-*)
-
 let INT_NN = INT_POS;;
 
 let INT_NN_NEG = prove(`!n. ((int_of_num 0) <=: (--:(int_of_num n))) <=> (n = 0)`,
@@ -1522,54 +1522,9 @@ let get_real_constant cache bprec tm =
 
 let remove_entry t =   filter (fun x -> not(x = t));;
 
-
-(*
-let calculated_constants = ref ([]:(term*int*thm) list);;
-*)
-
-
-(*
-
-let add_real_constant ineq =
-  try(
-  let (abst,k) = dest_binop `real_le` (concl ineq) in
-  let (absh,cmu) = dest_comb abst in
-  let (c,u) = dest_binop `real_sub` cmu in
-  calculated_constants := (c,ineq)::(!calculated_constants))
-  with Failure _ ->
-  (try(
-  let (c,f,ex) = dest_interval (concl ineq) in
-  calculated_constants :=  (c,ineq)::(!calculated_constants))
-  with Failure _ -> failwith "calculated_constants format : abs(c - u) <= k");;
-*)
-
-(*
-let add_real_constant ineq = 
-   calculated_constants := mk_real_constant_entry ineq :: !calculated_constants;;
-
-let get_real_constant tm =
-  assoc tm !calculated_constants;;
-
-let remove_real_constant tm =
-  calculated_constants :=
-    filter (fun t -> not ((fst t) = tm)) !calculated_constants;;
-*)
-
 (* ------------------------------------------------------------------ *)
 
-
-
 (* take |- interval_eps r u e to interval_eps r' u e, where th_r gives r <=> r' *)
-
-(*
-let interval_rule th_r th_int =
-  let (iru,e) = dest_comb (concl th_int) in
-  let (ir,u) = dest_comb iru in
-  let (i,r) = dest_comb ir in
-  let ir_t = AP_TERM i th_r in
-  let iru_t = AP_THM ir_t u in
-    PURE_ONCE_REWRITE_RULE[th_int] (AP_THM iru_t e);;
-*)
 
 let interval_rule th_r th_int =
   let (iru,e) = dest_comb (concl th_int) in
@@ -1581,20 +1536,8 @@ let interval_rule th_r th_int =
   let a = try EQ_MP irue_t th_int 
      with Failure m -> (print_thm irue_t; print_thm th_int; failwith m) in
     a;;
-(*    PURE_ONCE_REWRITE_RULE[TAUT `(T <=> x) <=> x`] 
-   (PURE_ONCE_REWRITE_RULE[th_int] (AP_THM iru_t e)) in *)
-
 
 (* term of the form '&.n'. Assume error checking done already. *)
-
-(*
-let INTERVAL_OF_NUM:conv =
-  fun tm ->
-    let tm1 = snd (dest_comb tm) in
-    let th1 = (ARITH_REWRITE_CONV[] tm1) in
-    ONCE_REWRITE_RULE[AP_TERM `real_of_num` (GSYM th1)]
-      (SPEC (rhs (concl th1)) INTERVAL_NUM);;
-*)
 
 let INTERVAL_OF_NUM:conv =
   fun tm ->
@@ -1608,49 +1551,27 @@ add_test("INTERVAL_OF_NUM",
    dest_thm (INTERVAL_OF_NUM `&.3`) = ([],
    `interval_eps (&3) (float (int_of_num 3) (int_of_num 0)) (float (int_of_num 0) (int_of_num 0))`));;
 
-(* term of the form `real_neg  (real_of_num n)`.  Assume format checking already done. *)
-
-(* not used: *)
-(*
-let INTERVAL_OF_NEG:conv =
-  fun tm ->
-    let (sign,u) = dest_comb tm in
-    let _ = assert(sign = `real_neg `) in
-    let (amp,tm1) = (dest_comb u) in
-    let _ = assert(amp = `real_of_num`) in
-    let th1 = (ARITH_REWRITE_CONV[] tm1) in
-    ONCE_REWRITE_RULE[FLOAT_NEG] (
-    ONCE_REWRITE_RULE[INTERVAL_NEG] (
-    ONCE_REWRITE_RULE[AP_TERM `real_of_num` (GSYM th1)] (
-       (SPEC (rhs (concl th1)) INTERVAL_NUM))));;
-
-add_test("INTERVAL_OF_NEG",
-   dest_thm (INTERVAL_OF_NEG `real_neg (&. (3+4))`) =
-   ([],`interval_eps( real_neg (&.(3 + 4)) )
-      (float (--: (int_of_num 7)) (int_of_num 0)) (float (int_of_num 0) (int_of_num 0))`));;
-*)
-
-
+(* ------------------------------------------------------------------ *)
+(* conversion for float inequalities *)
 (* ------------------------------------------------------------------ *)
 
-(* combine  FLOAT_INEQ_CONV below with this one *)
 
 let FLOAT_LESS_CONV = FLOAT_CONV THENC ARITH_SIMP_CONV[FLOAT_POS;
    INT_POS';INT_POS_NEG;FLOAT_NN;INT_NN;INT_NN_NEG;];;
 
-(*
-let INTERVAL_TO_LESS_CONV = 
-  let rthm = ASSUME `!f g ex ey. (&.0 <. (g -. (ey +. ex +. f)))` in
-   fun thm1 thm2 ->
-   let (a,f,ex) = dest_interval (concl thm1) in
-   let (b,g,ey) = dest_interval (concl thm2) in
-   let rspec = concl (SPECL [f;g;ex;ey] rthm) in
-   let rspec_simp = FLOAT_CONV (snd (dest_binop `real_lt` rspec)) in
-   let rthm2 = prove (rspec,REWRITE_TAC[rspec_simp;FLOAT_POS;INT_POS';
-                                        INT_POS_NEG] THEN ARITH_TAC) in
-   let fthm = CONJ thm1 (CONJ thm2 rthm2) in
-   MATCH_MP INTERVAL_TO_LESS fthm;;
-*)
+let FLOAT_INEQ_CONV t = 
+  let th =FLOAT_LESS_CONV t in
+  let (_,rhs) = dest_eq (concl th) in
+  let _ =  (rhs = `T`) or raise Insufficient_precision in
+     EQ_MP (SYM th) TRUTH;;
+
+add_test("FLOAT_INEQ_CONV",
+  let f c x =
+    dest_thm (c x) = ([],x) in
+  let t1 =
+   `(float (int_of_num 3) (int_of_num 0)) +. (float (int_of_num 4) (int_of_num 0)) <. (float (int_of_num 8) (int_of_num 1))` in
+    ((f FLOAT_INEQ_CONV t1)));;
+
 
 let INTERVAL_TO_LESS_CONV = 
   let rthm = ASSUME `!f g ex ey. (&.0 <. (g -. (ey +. ex +. f)))` in
@@ -1658,10 +1579,7 @@ let INTERVAL_TO_LESS_CONV =
    let (a,f,ex) = dest_interval (concl thm1) in
    let (b,g,ey) = dest_interval (concl thm2) in
    let rspec = concl (SPECL [f;g;ex;ey] rthm) in
-   let rspec_eq = FLOAT_LESS_CONV rspec in
-   let (_,rhs) = dest_eq (concl rspec_eq) in
-   let _ =  (rhs = `T`) or raise Insufficient_precision in
-   let rspec_th = EQ_MP (SYM rspec_eq) TRUTH in
+   let rspec_th = FLOAT_INEQ_CONV rspec in
    let fthm = CONJ thm1 (CONJ thm2 rspec_th) in
    MATCH_MP INTERVAL_TO_LESS fthm;;
 
@@ -1716,33 +1634,8 @@ add_test("DEC_FLOAT",
     (f DEC_FLOAT `float (int_of_num 3) (int_of_num 2) <= (#13.0)`) &&
     (f DEC_FLOAT `float (int_of_num 3) (int_of_num 2) <= (#13)`) &&
     (f DEC_FLOAT `float (int_of_num 1) (--: (int_of_num 2)) <= (#0.3)`)));;
-(* ------------------------------------------------------------------ *)
-(* conversion for float inequalities *)
 
-let FLOAT_INEQ_CONV t =
-  let thm1=  (ONCE_REWRITE_CONV[GSYM REAL_SUB_LT;GSYM REAL_SUB_LE] t) in
-  let rhsx= rhs (concl thm1) in
-  let thm2= prove(rhsx,REWRITE_TAC[FLOAT_CONV (snd (dest_comb rhsx))] THEN
-                    REWRITE_TAC[FLOAT_NN;FLOAT_POS;INT_NN;INT_NN_NEG;
-                       INT_POS';INT_POS_NEG] THEN ARITH_TAC) in
-  REWRITE_RULE[GSYM thm1] thm2;;
-
-(*
-let t1 = `(float (int_of_num 3) (int_of_num 0)) +. (float (int_of_num 4) (int_of_num 0)) <. (float (int_of_num 8) (int_of_num 1))`;;
-*)
-
-add_test("FLOAT_INEQ_CONV",
-  let f c x =
-    dest_thm (c x) = ([],x) in
-  let t1 =
-   `(float (int_of_num 3) (int_of_num 0)) +. (float (int_of_num 4) (int_of_num 0)) <. (float (int_of_num 8) (int_of_num 1))` in
-    ((f FLOAT_INEQ_CONV t1)));;
-
-(*
-
-Conversion for powers
-
-*)
+(* Conversion for powers *)
 
 let pow_parity = prove(
   `!x u. x pow (NUMERAL(BIT0 u)) = (x pow (NUMERAL u) * x pow (NUMERAL u)) /\
@@ -1752,6 +1645,13 @@ let pow_parity = prove(
 
 let pow_conv = PURE_ONCE_REWRITE_CONV[CONJUNCT1 real_pow;REAL_POW_1;pow_parity];;
 
+(* conversion for negation *)
+
+let neg_conv = 
+   let th = REAL_ARITH `--x = &0 - x` in
+   PURE_ONCE_REWRITE_CONV[th];;
+
+(* conversion for sums *)
 
 let dest_sum  = 
   let sum = `sum:(num->bool)->(num->real)->real` in
@@ -1789,9 +1689,6 @@ let sum_conv  =
       let th' = REWRITE_RULE[rr;ARITH_RULE (mk_binop `(<=):num->num->bool` i j)] th in
 	PURE_ONCE_REWRITE_CONV[th'] tm;;
 
-
-
-
 (* ------------------------------------------------------------------ *)
 
 (* converts a DECIMAL TO A THEOREM *)
@@ -1803,7 +1700,6 @@ let INTERVAL_MINMAX = prove(`!x f ex.
    EVERY[REPEAT GEN_TAC;
    REWRITE_TAC[interval_eps;ABS_BOUNDS];
    REAL_ARITH_TAC]);;
-
 
 let INTERVAL_OF_DECIMAL bprec dec =
   let a_num = dest_decimal dec in
@@ -1829,6 +1725,20 @@ add_test("INTERVAL_OF_DECIMAL",
 add_test("INTERVAL_OF_DECIMAL2",
  can (fun() -> INTERVAL_TO_LESS_CONV (INTERVAL_OF_DECIMAL 4 `#33.33`)
   (INTERVAL_OF_DECIMAL 4 `#36.1`)) ());;
+
+let INTERVAL_FLOAT = prove_by_refinement(
+  `!a b. interval_eps (float a b) (float a b) (float (int_of_num 0) (int_of_num 0))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[interval_eps;REAL_ARITH `abs(x - x) = &0`];
+  REWRITE_TAC[float;int_of_num_th];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let INTERVAL_FLOAT_CONV flt = 
+  let (a,b) = dest_binop `float` flt in
+    (ISPECL [a;b] INTERVAL_FLOAT);;
 
 (*--------------------------------------------------------------------*)
 (*   functions to check format.                                       *)
@@ -1925,6 +1835,24 @@ let INTERVAL_OF_TWOPOW = prove(
    REAL_ARITH_TAC
    );;
 
+(* compute ez parameter for division *)
+
+let  division_ez bprec (f,ex,g,ey) =
+    let f_num = dest_float f in
+    let ex_num = dest_float ex in
+    let g_num = dest_float g in
+    let ey_num = dest_float ey in
+    let h_num = round_rat bprec (f_num//g_num) in
+    let h = mk_float h_num in
+    let ez_rat = (ex_num +/ abs_num (f_num -/ (h_num*/ g_num))
+        +/ (abs_num h_num */ ey_num))//((abs_num g_num) -/ (ey_num)) in
+    let ez_num = round_rat bprec (ez_rat) in
+    let _ = assert((ez_num >=/ (Int 0))) in
+    let ez = mk_float ez_num 
+    in (h,ez);;
+
+let pureconv (s,t) = (s,PURE_ONCE_REWRITE_CONV[t]);;
+
 (* ------------------------------------------------------------------ *)
 
 (*
@@ -1932,17 +1860,28 @@ bprec gives the bits of precision.
 *)
 
 
-let rec (INTERVAL_OF_TERM:(term *int*thm)list ->int -> term -> (term*int*thm) list * thm) = 
-fun cache  bprec tm ->
+let rec (INTERVAL_OF_TERM:(string*conv)list -> (term *int*thm)list ->int -> term -> (term*int*thm) list * thm) = 
+fun convl cache  bprec tm ->
   let mk c th = (cache_entry_of_ineq bprec th :: c, th) in
   (* treat user conversions *)
   let interval_of_conv cache bprec conv tm = 
     let th_r =  conv tm in
     let (lhs,rhs) = dest_eq (concl th_r) in
-    let _ = (not (aconv lhs rhs)) or failwith "interval_of_conv"  in
-    let (cache,th_rhs) = INTERVAL_OF_TERM cache bprec rhs in
+    let _ = (not (aconv lhs rhs)) or (print_term lhs; failwith "interval_of_conv: no change"  )in
+    let (cache,th_rhs) = INTERVAL_OF_TERM convl cache bprec rhs in
     let th_lhs = interval_rule (SYM th_r) th_rhs in
       mk cache th_lhs in 
+  let interval_of_binop op opname match_thm = 
+    begin
+    let (a,b) = dest_binop op tm in
+    let (cache,a_int) = INTERVAL_OF_TERM convl cache  bprec a in
+    let (cache,b_int) = INTERVAL_OF_TERM convl cache  bprec b in
+      try(
+    let c_int = MATCH_MP match_thm (CONJ a_int b_int) in
+    let th = EQ_MP (INTERVAL_CLEAN_CONV (concl c_int)) c_int in
+      mk cache th)
+    with Failure _ -> failwith ("INTERVAL_OF_TERM: "^opname)
+    end in
   (* treat cached values first *)
   if (can (get_real_constant cache bprec) tm) then
     begin
@@ -1954,8 +1893,8 @@ fun cache  bprec tm ->
     let (abst,k) = dest_binop `real_le` (concl absthm) in
     let (absh,cmu) = dest_comb abst in
     let (c,u) = dest_binop `real_sub` cmu in
-    let (cache,intk) = INTERVAL_OF_TERM cache  bprec k in
-    let (cache,intu) = INTERVAL_OF_TERM cache  bprec u in
+    let (cache,intk) = INTERVAL_OF_TERM convl cache  bprec k in
+    let (cache,intu) = INTERVAL_OF_TERM convl cache  bprec u in
     let thm1 = MATCH_MP ABS_TO_INTERVAL absthm in
     let thm2 = MATCH_MP thm1 (CONJ intu intk) in
     let (_,f,ex)= dest_interval (concl thm2) in
@@ -1971,28 +1910,14 @@ fun cache  bprec tm ->
   else if (is_decimal_format tm) then
     let th =  (INTERVAL_OF_DECIMAL bprec tm)
     in mk cache th
-  (* treat negative terms *)
-  else if (is_neg_real tm) then
-    begin
-    let (_,t) = dest_comb tm in
-    let (cache,int1) = INTERVAL_OF_TERM cache  bprec t in
-    let (_,b,_) = dest_interval (concl int1) in
-    try(
-    let thm1  = FLOAT_CONV (mk_comb (`real_neg`, b)) in
-    let th = REWRITE_RULE[thm1] (PURE_ONCE_REWRITE_RULE[INTERVAL_NEG] int1)  in
-       mk cache th)
-    with Failure _ -> failwith "INTERVAL_OF_TERM  : NEG"
-    end
   (* treat abs value *)
   else if (is_comb_of `real_abs` tm) then
     begin
       let (_,b) = dest_comb tm in
-      let (cache,i1) = (INTERVAL_OF_TERM cache  bprec b) in
+      let (cache,i1) = (INTERVAL_OF_TERM convl cache  bprec b) in
       try(
       let b_int = MATCH_MP INTERVAL_ABSV i1 in
-      let (_,f,_) = dest_interval (concl b_int) in
-      let thm1 = FLOAT_CONV f in
-      let th = REWRITE_RULE[thm1] b_int in
+      let th = EQ_MP (INTERVAL_CLEAN_CONV (concl b_int)) b_int in
         mk cache th)
       with Failure _ -> failwith "INTERVAL_OF_TERM  : ABS"
     end
@@ -2008,66 +1933,23 @@ fun cache  bprec tm ->
     end
   (* treat addition *)
   else if (can (dest_binop `real_add`) tm) then
-    begin
-    let (a,b) = dest_binop `real_add` tm in
-    let (cache,a_int) = INTERVAL_OF_TERM cache  bprec a in
-    let (cache,b_int) = INTERVAL_OF_TERM cache  bprec b in
-      try(
-    let c_int = MATCH_MP INTERVAL_ADD (CONJ a_int b_int) in
-    let (_,f,ex) = dest_interval (concl c_int) in
-    let thm1 = FLOAT_CONV f and thm2 = FLOAT_CONV ex in
-    let th = REWRITE_RULE[thm1;thm2] c_int 
-    in mk cache th)
-    with Failure _ -> failwith "INTERVAL_OF_TERM  : ADD"
-    end
+    interval_of_binop `real_add` "ADD" INTERVAL_ADD
   (* treat subtraction *)
   else if (can (dest_binop `real_sub`) tm) then
-    begin
-    let (a,b) = dest_binop `real_sub` tm in
-    let (cache,a_int) = INTERVAL_OF_TERM cache  bprec a in
-    let (cache,b_int) = INTERVAL_OF_TERM cache  bprec b in
-      try(
-    let c_int = MATCH_MP INTERVAL_SUB (CONJ a_int b_int) in
-    let (_,f,ex) = dest_interval (concl c_int) in
-    let thm1 = FLOAT_CONV f and thm2 = FLOAT_CONV ex in
-    let th = REWRITE_RULE[thm1;thm2] c_int
-    in mk cache th)
-    with Failure _ -> failwith "INTERVAL_OF_TERM  : SUB"
-    end
+    interval_of_binop `real_sub` "SUB" INTERVAL_SUB
   (* treat multiplication *)
   else if (can (dest_binop `real_mul`) tm) then
-    begin
-    let (a,b) = dest_binop `real_mul` tm in
-    let (cache,a_int) = INTERVAL_OF_TERM cache  bprec a in
-    let (cache,b_int) = INTERVAL_OF_TERM cache  bprec b in
-      try(
-    let c_int = MATCH_MP INTERVAL_MUL (CONJ a_int b_int) in
-    let (_,f,ex) = dest_interval (concl c_int) in
-    let thm1 = FLOAT_CONV f and thm2 = FLOAT_CONV ex in
-    let th = REWRITE_RULE[thm1;thm2] c_int
-    in mk cache th)
-    with Failure _ -> failwith "INTERVAL_OF_TERM : MUL"
-    end
+     interval_of_binop `real_mul` "MUL" INTERVAL_MUL
   (* treat division : instantiate INTERVAL_DIV *)
   else if (can (dest_binop `( / )`) tm) then
     begin
     let (a,b) = dest_binop `( / )` tm in
-    let (cache,a_int) = INTERVAL_OF_TERM cache  bprec a in
-    let (cache,b_int) = INTERVAL_OF_TERM cache  bprec b in
+    let (cache,a_int) = INTERVAL_OF_TERM convl cache  bprec a in
+    let (cache,b_int) = INTERVAL_OF_TERM convl cache  bprec b in
       try(
     let (_,f,ex) = dest_interval (concl a_int) in
     let (_,g,ey) = dest_interval (concl b_int) in
-    let f_num = dest_float f in
-    let ex_num = dest_float ex in
-    let g_num = dest_float g in
-    let ey_num = dest_float ey in
-    let h_num = round_rat bprec (f_num//g_num) in
-    let h = mk_float h_num in
-    let ez_rat = (ex_num +/ abs_num (f_num -/ (h_num*/ g_num))
-        +/ (abs_num h_num */ ey_num))//((abs_num g_num) -/ (ey_num)) in
-    let ez_num = round_rat bprec (ez_rat) in
-    let _ = assert((ez_num >=/ (Int 0))) in
-    let ez = mk_float ez_num in
+    let (h,ez) = division_ez bprec (f,ex,g,ey) in 
     let hyp1 = a_int in
     let hyp2 = b_int in
     let hyp3 = try (FLOAT_INEQ_CONV (mk_binop `real_lt` ey (mk_comb (`real_abs`,g))))
@@ -2084,19 +1966,24 @@ fun cache  bprec tm ->
   (* treat pow *)
   else if (can (dest_binary "real_pow") tm) then
      interval_of_conv cache bprec pow_conv tm  
-    (* with Failure _ -> failwith "INTERVAL_OF_TERM : POW" *)
+  (* treat negative terms *)
+  else if (is_neg_real tm) then
+    interval_of_conv cache bprec neg_conv tm
   (* treat beta *)
   else if  can (fun t-> let (f,x) = dest_comb t in dest_abs f )  tm then
      interval_of_conv cache bprec BETA_CONV tm
   (* treat sum *)
   else if can dest_sum tm then
      interval_of_conv cache bprec sum_conv tm
-  (* treat sqrt : instantiate INTERVAL_SSQRT *)
+  (* treat float *)
+  else if can (dest_binop `float`) tm then
+    (cache,INTERVAL_FLOAT_CONV tm)
+  (* treat ssqrt : instantiate INTERVAL_SSQRT *)
   else if (can (dest_unary `ssqrt`) tm) then
     begin
     try(
     let x = dest_unary `ssqrt` tm in
-    let (cache,x_int) = INTERVAL_OF_TERM cache   bprec x in
+    let (cache,x_int) = INTERVAL_OF_TERM convl cache   bprec x in
     let (_,f,ex)  = dest_interval (concl x_int) in
     let f_num = dest_float f in
     let ex_num = dest_float ex in
@@ -2141,37 +2028,62 @@ fun cache  bprec tm ->
     try(
     let x = dest_unary `sqrt` tm in
     let stm = mk_comb (`ssqrt`, x) in
-    let (cache,ssqrt_thm) = INTERVAL_OF_TERM cache  bprec stm in
-    let (cache,int1) = INTERVAL_OF_TERM cache  bprec`real_of_num 0` in
-    let (cache,int2)  =INTERVAL_OF_TERM cache  bprec x in
+    let (cache,ssqrt_thm) = INTERVAL_OF_TERM convl cache  bprec stm in
+    let (cache,int1) = INTERVAL_OF_TERM convl cache  bprec`real_of_num 0` in
+    let (cache,int2)  =INTERVAL_OF_TERM convl cache  bprec x in
     let ant = CONJ (INTERVAL_TO_LESS_CONV int1 int2) ssqrt_thm in
     let th = MATCH_MP ssqrt_sqrt ant
     in mk cache th)
     with  Failure _ -> failwith "INTERVAL_OF_TERM : SQRT"
     end
-  else failwith "INTERVAL_OF_TERM  : case not installed";;
+ else if can (dest_unary `atn`) tm then
+   begin
+     let half_co = ("halfatn4_co",ARITH_SIMP_CONV[Taylor_atn.halfatn4_co]) in
+     let half4 = ("halfatn4",PURE_REWRITE_CONV[Taylor_atn.halfatn4;o_THM]) in
+     let halfatnconv = pureconv("halfatn",Taylor_atn.halfatn) in
+     let aconvl =  (halfatnconv::half4::half_co::convl) in
+     let n = mk_numeral (Int (1 + (bprec - 5) / 6)) in
+     let x = dest_unary `atn` ax in
+     let sum_tm = instantiate ([],[(n,`n:num`);(x,`u:real`)],[]) `&16 * sum (0..n) (halfatn4_co u)` in
+     let (cache,hyp_1) = INTERVAL_OF_TERM (aconvl) cache bprec sum_tm in
+     let (_,_,eps2) = dest_interval (concl hyp_1) in
+     let eps_tm = instantiate([],[(n,`n:num`);(eps2,`eps2:real`)],[]) `float (int_of_num 1) ( -- int_of_num (6 * n + 5)) + eps2` in
+     let eps_thm = FLOAT_CONV eps_tm in
+     let eps = snd(dest_eq (concl eps_thm)) in
+     let hyp_2  = FLOAT_INEQ_CONV (mk_binop `(<=):real->real->bool` eps_tm eps) in (cache, MATCH_MP  taylor_atn   (CONJ hyp_1 hyp_2) )
+   end 
+  else 
+    begin
+      let (c,b) = strip_comb tm in
+      let _ = is_const c or failwith "INTERVAL_OF_TERM: case not installed" in
+      let (s,_) = dest_const c in
+      let conv = try (assoc s convl) 
+         with Failure _ -> failwith ("INTERVAL_OF_TERM: function not found "^s) in
+         interval_of_conv cache bprec conv tm
+    end;;
 
-let real_ineq cache bprec tm =
-  let (t1,t2) = dest_binop `real_lt` tm in
-  let (cache,int1) = INTERVAL_OF_TERM cache  bprec t1 in
-  let (cache,int2) = INTERVAL_OF_TERM cache  bprec t2 in
+let real_ineq convl cache bprec tm =
+  let (t1,t2) = try (dest_binop `real_lt` tm) 
+    with Failure _ -> failwith "real_ineq: inequality of the form `x < y` expected" in
+  let (cache,int1) = INTERVAL_OF_TERM convl cache  bprec t1 in
+  let (cache,int2) = INTERVAL_OF_TERM convl cache  bprec t2 in
   (cache,INTERVAL_TO_LESS_CONV int1 int2);;
 
-let rec rec_real_ineq cache bprec bprec_max tm = 
-   try (bprec,real_ineq cache bprec tm) with
+let rec rec_real_ineq convl cache bprec bprec_max tm = 
+   try (bprec,real_ineq convl cache bprec tm) with
    Insufficient_precision -> 
      let bprec = (16 * bprec) / 10 in
      let _ =  (bprec < bprec_max) or failwith ("insufficient precision "^ (string_of_int bprec_max)) in
      let _ = print_string ("increasing precision to "^string_of_int bprec^"\n") in
-     rec_real_ineq cache bprec  bprec_max tm;;
+     rec_real_ineq convl cache bprec  bprec_max tm;;
 
 (* Give it a conjunction of strict inequalities *)
 
-let REAL_INEQUALITY_CALCULATOR tm = 
+let REAL_INEQUALITY_CALCULATOR convl tm = 
   let tml = striplist dest_conj tm in
   let bprec_max = 70 in
   let (b,c,th) = List.fold_left (fun (b,c,thl) tm1 -> 
-			let (bprec,(cache,th1)) = rec_real_ineq c b bprec_max tm1
+			let (bprec,(cache,th1)) = rec_real_ineq convl c b bprec_max tm1
        in (bprec,cache, th1 ::thl)) (10,[], []) (tml) in
     (b,th);;
 (*

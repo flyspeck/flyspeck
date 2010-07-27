@@ -109,6 +109,58 @@ let REAL_PROP_LT_SQRT = SQRT_MONO_LT_EQ;; (* |- !x y. &0 <= x /\ &0 <= y ==> (sq
 let REAL_MK_NN_SQUARE = REAL_LE_SQUARE;; (* |- !x. &0 <= x * x *)
 let REAL_MK_NN_ABS = REAL_ABS_POS;; (* 2010 *) (* |- !x. &0 <= abs x *)
 
+(* moved here from float.hl *)
+
+(* from 778 *)
+
+
+let REAL_LE_LMUL_LOCAL = prove(
+  `!x y z. &0 < x ==> ((x * y) <= (x * z) <=> y <= z)`,
+  REPEAT GEN_TAC THEN DISCH_TAC THEN ONCE_REWRITE_TAC[GSYM REAL_NOT_LT] THEN
+  AP_TERM_TAC THEN MATCH_MP_TAC REAL_LT_LMUL_EQ THEN ASM_REWRITE_TAC[]);;
+
+
+let ABS_TRIANGLE = prove(
+  `!x y. abs(x + y) <= abs(x) + abs(y)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[real_abs] THEN
+  REPEAT COND_CASES_TAC THEN
+  REWRITE_TAC[REAL_NEG_ADD; REAL_LE_REFL; REAL_LE_LADD; REAL_LE_RADD] THEN
+  ASM_REWRITE_TAC[GSYM REAL_NEG_ADD; REAL_LE_NEGL; REAL_LE_NEGR] THEN
+  RULE_ASSUM_TAC(REWRITE_RULE[REAL_NOT_LE]) THEN
+  TRY(MATCH_MP_TAC REAL_LT_IMP_LE) THEN TRY(FIRST_ASSUM ACCEPT_TAC) THEN
+  TRY(UNDISCH_TAC `(x + y) < &0`) THEN SUBST1_TAC(SYM(SPEC `&0` REAL_ADD_LID))
+  THEN REWRITE_TAC[REAL_NOT_LT] THEN
+  MAP_FIRST MATCH_MP_TAC [REAL_LT_ADD2; REAL_LE_ADD2] THEN
+  ASM_REWRITE_TAC[]);;
+
+let REAL_LE_LMUL_IMP = prove(
+  `!x y z. &0 <= x /\ y <= z ==> (x * y) <= (x * z)`,
+  REPEAT GEN_TAC THEN DISCH_THEN(CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
+  DISCH_THEN(DISJ_CASES_TAC o REWRITE_RULE[REAL_LE_LT]) THENL
+   [FIRST_ASSUM(fun th -> ASM_REWRITE_TAC[MATCH_MP REAL_LE_LMUL_LOCAL th]);
+    FIRST_ASSUM(SUBST1_TAC o SYM) THEN REWRITE_TAC[REAL_MUL_LZERO] THEN
+    MATCH_ACCEPT_TAC REAL_LE_REFL]);;
+
+
+(*   from ? *)
+
+let ABS_POS = prove(
+  `!x. &0 <= abs(x)`,
+  GEN_TAC THEN ASM_CASES_TAC `&0 <= x` THENL
+   [ALL_TAC;
+    MP_TAC(SPEC `x:real` REAL_LE_NEGTOTAL) THEN ASM_REWRITE_TAC[] THEN
+    DISCH_TAC] THEN
+  ASM_REWRITE_TAC[real_abs]);;
+
+
+let REAL_PROP_LE_LABS = prove(
+  `!x y z. (y <=. z) ==> ((abs x)* y <=. (abs x) *z)`,(SIMP_TAC[REAL_LE_LMUL_IMP;ABS_POS]));;
+
+let REAL_LE_RMUL_IMP = prove(
+  `!x y z. &0 <= x /\ y <= z ==> (y * x) <= (z * x)`,
+  ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN MATCH_ACCEPT_TAC REAL_LE_LMUL_IMP);;
+
+
 (* ------------------------------------------------------------------ *)
 (* Propagation of Non-negative *)
 (* ------------------------------------------------------------------ *)

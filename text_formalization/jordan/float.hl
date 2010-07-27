@@ -7,8 +7,21 @@
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
 
+(*
+A handheld calculator, implemented in HOL light.
+
+It implements + - / * sqrt, ssqrt, abs, atn, acs, pi,
+The user can supply additional conversons to extend the calculator to other functions.
+
+There is an example file float_example.hl.
+*)
 
 (* based on float.ml in hol/jordan/float.ml *)
+
+(*
+To do. Allow the user to supply theorems that carry domain constraints,
+ (such as ACS_ATN).
+*)
 
 flyspeck_needs "jordan/taylor_atn.hl";;
 
@@ -736,33 +749,6 @@ let IWRITE_REAL_LE_LHS rel thm =
 (*   INTERVAL ADD, NEG, SUBTRACT                                      *)
 (* ------------------------------------------------------------------ *)
 
-let REAL_LE_LMUL_LOCAL = prove(
-  `!x y z. &0 < x ==> ((x * y) <= (x * z) <=> y <= z)`,
-  REPEAT GEN_TAC THEN DISCH_TAC THEN ONCE_REWRITE_TAC[GSYM REAL_NOT_LT] THEN
-  AP_TERM_TAC THEN MATCH_MP_TAC REAL_LT_LMUL_EQ THEN ASM_REWRITE_TAC[]);;
-
-
-let ABS_TRIANGLE = prove(
-  `!x y. abs(x + y) <= abs(x) + abs(y)`,
-  REPEAT GEN_TAC THEN REWRITE_TAC[real_abs] THEN
-  REPEAT COND_CASES_TAC THEN
-  REWRITE_TAC[REAL_NEG_ADD; REAL_LE_REFL; REAL_LE_LADD; REAL_LE_RADD] THEN
-  ASM_REWRITE_TAC[GSYM REAL_NEG_ADD; REAL_LE_NEGL; REAL_LE_NEGR] THEN
-  RULE_ASSUM_TAC(REWRITE_RULE[REAL_NOT_LE]) THEN
-  TRY(MATCH_MP_TAC REAL_LT_IMP_LE) THEN TRY(FIRST_ASSUM ACCEPT_TAC) THEN
-  TRY(UNDISCH_TAC `(x + y) < &0`) THEN SUBST1_TAC(SYM(SPEC `&0` REAL_ADD_LID))
-  THEN REWRITE_TAC[REAL_NOT_LT] THEN
-  MAP_FIRST MATCH_MP_TAC [REAL_LT_ADD2; REAL_LE_ADD2] THEN
-  ASM_REWRITE_TAC[]);;
-
-let REAL_LE_LMUL_IMP = prove(
-  `!x y z. &0 <= x /\ y <= z ==> (x * y) <= (x * z)`,
-  REPEAT GEN_TAC THEN DISCH_THEN(CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
-  DISCH_THEN(DISJ_CASES_TAC o REWRITE_RULE[REAL_LE_LT]) THENL
-   [FIRST_ASSUM(fun th -> ASM_REWRITE_TAC[MATCH_MP REAL_LE_LMUL_LOCAL th]);
-    FIRST_ASSUM(SUBST1_TAC o SYM) THEN REWRITE_TAC[REAL_MUL_LZERO] THEN
-    MATCH_ACCEPT_TAC REAL_LE_REFL]);;
-
 
 
 let INTERVAL_ADD = prove(
@@ -804,21 +790,6 @@ THEN (((ASM MESON_TAC)[INTERVAL_ADD])));;
 (*   INTERVAL MULTIPLICATION                                          *)
 (* ------------------------------------------------------------------ *)
 
-let ABS_POS = prove(
-  `!x. &0 <= abs(x)`,
-  GEN_TAC THEN ASM_CASES_TAC `&0 <= x` THENL
-   [ALL_TAC;
-    MP_TAC(SPEC `x:real` REAL_LE_NEGTOTAL) THEN ASM_REWRITE_TAC[] THEN
-    DISCH_TAC] THEN
-  ASM_REWRITE_TAC[real_abs]);;
-
-
-let REAL_PROP_LE_LABS = prove(
-  `!x y z. (y <=. z) ==> ((abs x)* y <=. (abs x) *z)`,(SIMP_TAC[REAL_LE_LMUL_IMP;ABS_POS]));;
-
-let REAL_LE_RMUL_IMP = prove(
-  `!x y z. &0 <= x /\ y <= z ==> (y * x) <= (z * x)`,
-  ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN MATCH_ACCEPT_TAC REAL_LE_LMUL_IMP);;
 
 
 (* renamed from REAL_LE_ABS_RMUL *)
@@ -1045,6 +1016,14 @@ let taylor_atn = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let pi_atn = prove_by_refinement(
+  `pi = &4 * atn (&1)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ATN_1];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
 
 
 (* ------------------------------------------------------------------ *)
@@ -1842,6 +1821,7 @@ let  division_ez bprec (f,ex,g,ey) =
     let ex_num = dest_float ex in
     let g_num = dest_float g in
     let ey_num = dest_float ey in
+    let _ = (ey_num </ abs_num g_num) or raise Insufficient_precision in
     let h_num = round_rat bprec (f_num//g_num) in
     let h = mk_float h_num in
     let ez_rat = (ex_num +/ abs_num (f_num -/ (h_num*/ g_num))
@@ -2036,6 +2016,7 @@ fun convl cache  bprec tm ->
     in mk cache th)
     with  Failure _ -> failwith "INTERVAL_OF_TERM : SQRT"
     end
+(* treat atn *)
  else if can (dest_unary `atn`) tm then
    begin
      let half_co = ("halfatn4_co",ARITH_SIMP_CONV[Taylor_atn.halfatn4_co]) in
@@ -2043,7 +2024,7 @@ fun convl cache  bprec tm ->
      let halfatnconv = pureconv("halfatn",Taylor_atn.halfatn) in
      let aconvl =  (halfatnconv::half4::half_co::convl) in
      let n = mk_numeral (Int (1 + (bprec - 5) / 6)) in
-     let x = dest_unary `atn` ax in
+     let x = dest_unary `atn` tm in
      let sum_tm = instantiate ([],[(n,`n:num`);(x,`u:real`)],[]) `&16 * sum (0..n) (halfatn4_co u)` in
      let (cache,hyp_1) = INTERVAL_OF_TERM (aconvl) cache bprec sum_tm in
      let (_,_,eps2) = dest_interval (concl hyp_1) in
@@ -2052,6 +2033,24 @@ fun convl cache  bprec tm ->
      let eps = snd(dest_eq (concl eps_thm)) in
      let hyp_2  = FLOAT_INEQ_CONV (mk_binop `(<=):real->real->bool` eps_tm eps) in (cache, MATCH_MP  taylor_atn   (CONJ hyp_1 hyp_2) )
    end 
+(* treat acs *)
+ else if can (dest_unary `acs`) tm then
+   begin
+     let x = dest_unary `acs` tm in
+     let (_,int_m1) = INTERVAL_OF_TERM convl cache  bprec`-- real_of_num 1` in
+     let (_,int_p1) = INTERVAL_OF_TERM convl cache  bprec`real_of_num 1` in
+     let (cache,int_x)  =INTERVAL_OF_TERM convl cache  bprec x in
+     let ant1 = INTERVAL_TO_LESS_CONV int_m1 int_x in
+     let ant2 = INTERVAL_TO_LESS_CONV int_x int_p1 in
+     let th =  MATCH_MP ACS_ATN (CONJ ant1 ant2) in
+       interval_of_conv cache bprec (PURE_ONCE_REWRITE_CONV[th]) tm
+   end
+(* treat pi *)
+ else if (tm = `pi`) then
+    begin
+      interval_of_conv cache bprec (PURE_ONCE_REWRITE_CONV[pi_atn]) tm
+    end
+(* user supplied conversions *)
   else 
     begin
       let (c,b) = strip_comb tm in
@@ -2074,18 +2073,32 @@ let rec rec_real_ineq convl cache bprec bprec_max tm =
    Insufficient_precision -> 
      let bprec = (16 * bprec) / 10 in
      let _ =  (bprec < bprec_max) or failwith ("insufficient precision "^ (string_of_int bprec_max)) in
-     let _ = print_string ("increasing precision to "^string_of_int bprec^"\n") in
+     let _ = Format.print_string ("increasing precision to "^(string_of_int bprec)^" bits");
+                 Format.print_newline() in
      rec_real_ineq convl cache bprec  bprec_max tm;;
 
 (* Give it a conjunction of strict inequalities *)
 
+let REAL_INEQUALITY_CALCULATOR_PREC (bprec_init,bprec_max) convl tm = 
+  let tml = striplist dest_conj tm in
+  let (b,c,th) = List.fold_left (fun (b,c,thl) tm1 -> 
+			let (bprec,(cache,th1)) = rec_real_ineq convl c b bprec_max tm1
+       in (bprec,cache, th1 ::thl)) (bprec_init,[], []) (tml) in
+    (b, EQ_MP (SYM(REWRITE_CONV th tm)) TRUTH);;
+
+let REAL_INEQUALITY_CALCULATOR convl tm = 
+   REAL_INEQUALITY_CALCULATOR_PREC (10,70) convl tm;;
+
+(*
 let REAL_INEQUALITY_CALCULATOR convl tm = 
   let tml = striplist dest_conj tm in
   let bprec_max = 70 in
   let (b,c,th) = List.fold_left (fun (b,c,thl) tm1 -> 
 			let (bprec,(cache,th1)) = rec_real_ineq convl c b bprec_max tm1
        in (bprec,cache, th1 ::thl)) (10,[], []) (tml) in
-    (b,th);;
+    (b, EQ_MP (SYM(REWRITE_CONV th tm)) TRUTH);;
+*)
+
 (*
   let tmint = map (rec_real_ineq [] 10) tml in
    List.fold_left CONJ (hd tmint) (tl tmint);;   

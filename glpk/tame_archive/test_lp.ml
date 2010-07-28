@@ -5,6 +5,8 @@ Sys.command("pwd");;
 #directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 #use "glpk_link.ml";;
 #use "tame_archive/lpproc.ml";;
+
+let sqrt = Pervasives.sqrt;;
 #use "sphere.ml";;
 
 open Str;;
@@ -22,7 +24,7 @@ let (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();;
 *)
 
 let dih_y = Sphere_math.dih_y;;
-let dumpfile = "/tmp/graph.out";; (* temp output *)
+let dumpfile = Filename.temp_file "test_lp_dump_" ".out";;
 (* build up hashtables of all the variables assignments from the dumpfile *)
 
 let ynhash = Hashtbl.create 13;;

@@ -1,12 +1,9 @@
 (* tests of the final cases... *)
 
-Sys.command("pwd");;
-
 #directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 #use "glpk_link.ml";;
 #use "tame_archive/lpproc.ml";;
 
-let sqrt = Pervasives.sqrt;;
 #use "sphere.ml";;
 
 open Str;;
@@ -14,29 +11,37 @@ open List;;
 open Glpk_link;;
 open Lpproc;;
 
-
-(*
-18839 cases in tame_bb
-470 in feasible_bb
-12 in hard_bb, so 99.936 % complete.
-
-let (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();;
-*)
-
+let sqrt = Pervasives.sqrt;;
 let dih_y = Sphere_math.dih_y;;
-let dumpfile = Filename.temp_file "test_lp_dump_" ".out";;
-(* build up hashtables of all the variables assignments from the dumpfile *)
+(* let dumpfile = Filename.temp_file "test_lp_dump_" ".out";; *)
 
-let ynhash = Hashtbl.create 13;;
+(* Generate graphics files of a branchnbound, save gif as a /tmp file.  *)
+
+let mk_gif bb = (Sys.chdir 
+ "/Users/thomashales/Desktop/googlecode/flyspeck/graph_generator/classes"; 
+ Sys.command 
+    ("java render/Gendot \""^bb.string_rep ^
+      "\" | neato -s -n -Tgif -o "^ 
+    (Filename.temp_file ("render"^bb.hypermap_id^"_") (".gif"))));;
+
+(* build up hashtables of all the variables assignments from the dumpfile *)
+let ynhash= Hashtbl.create 13;;
 let yehash = Hashtbl.create 70;;
 let azimhash = Hashtbl.create 70;;
 let yn i = Hashtbl.find ynhash i;;
 let ye (i,j) = Hashtbl.find yehash (i,j);;
 let azim(i,j) = Hashtbl.find azimhash (i,j);;
 
-let init_dumpfile bb = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb;;
+(*
+There is state involved here.  This code is rather fragile.
+The dumpfile gets overwritten the next time solve is called.
+First initialize the dumpfile, 
+then call init_hash to populate the hash tables.
+*)
 
-let init_hash () = 
+let init_dumpfile dumpfile bb = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb;;
+
+let init_hash dumpfile = 
   let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" dumpfile in
   let is = int_of_string in
   let fs = float_of_string in
@@ -62,7 +67,7 @@ let init_hash () =
 
 (* for debugging: reading optimal variables values from the dumpfile *)
 
-let get_dumpvar  s = (* read variables from dumpfile *)
+let get_dumpvar dumpfile s = (* read variables from dumpfile *)
   let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s dumpfile in
   let (ic,oc) = Unix.open_process(com) in
   let _ = close_out oc in
@@ -73,14 +78,16 @@ let get_dumpvar  s = (* read variables from dumpfile *)
 
 
 let float_of_dump s = float_of_string (hd s);;
-let get_float s = float_of_dump(get_dumpvar s);;
+let get_float dumpfile s = float_of_dump(get_dumpvar dumpfile s);;
 let int_of_face xs bb = wheremod (faces bb) xs;;
 
+(*
 let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
 (* get_sol [12;7;8] bb;; *)
 
 let get_tau xs bb = get_float (sprintf "tau.%d.*=" (int_of_face xs bb));;
 (* get_tau [12;7;8] bb;; *)
+*)
 
 (* for debugging: look at edge lengths and azimuth angles of a triangle *)
 
@@ -103,35 +110,25 @@ let get_azim_diff f xs bb =
    abs_float (a1 -. b1);;
 (* get_azim_diff dih_y [2;4;3] bb;;  *)
 
-(* std triangles, heights set, and not already small/big edge split *)
-
-let get_tri bb =
-  let xs = filter (fun t -> length t = 3) bb.std_faces_not_super in
-  let m i t = mem (nth t i) (bb.node_200_218 @ bb.node_218_252) in
-  let ys = rotation(filter (fun t -> m 0 t && m 1 t && m 2 t) xs) in
-  let zs = filter (fun t -> not(mem t (bb.d_edge_200_225 @ bb.d_edge_225_252))) ys in
-   zs;;
-
 (* experimental: first entry is the triangle with the biggest azim error. *)
-let biggest_azim_diff f bb = 
-  let _ = init_hash() in
-  let ys = get_tri bb in 
-  let u = map (fun t->  (get_azim_diff f t bb  ,t))  ys in
-  let v = sort (fun a b -> - compare (fst a) (fst b)) u in
+let sorted_azim_diff dumpfile p bb = 
+  let _ = init_hash dumpfile in
+  let ys = p bb in 
+  let u = map (fun t->  (get_azim_diff dih_y t bb  ,t))  ys in
+  let v = List.sort (fun a b -> - compare (fst a) (fst b)) u in
    v;;
-(* biggest_azim_diff dih_y bb;;   *)
+(* sorted_azim_diff get_tri bb;;   *)
 
+(* ------------------------ *)
+(* HINTS *)
 
-(*
-let shuffle_face f bb = 
-  let v = biggest_azim_diff f bb in
-   if (v = []) then bb else
-     let xs = snd(hd v) in
-       modify_bb bb false ["sh",xs] [];;
-*)
-let shuffle_face f bb = bb;;  (* add details later *)
+(* add_hints is called right after the LP is solved and the lpvalue set.  
+    The dumpfile has been initialized. *)
 
-let shuffle t = shuffle_face dih_y t;;
+let darts_of_std_tri bb =
+  rotation(filter (fun t -> length t = 3) bb.std_faces_not_super);;
+
+(* ------------------------ *)
 
 let is_none bb = match bb.lpvalue with (* for debugging *)
     None -> true
@@ -146,16 +143,103 @@ let find_max bbs =
   let r = Some (calc_max bbs) in
     find (fun bb -> r = bb.lpvalue) bbs;;
 
-let switch_edge bb = (* old *)
-  match get_tri bb  with
+let findid s  = find (fun t -> s = t.hypermap_id);;
+
+let findall s = filter (fun t -> s = t.hypermap_id);;
+
+(*   *)
+
+let check_basic_format bb =
+    (subset bb.std3_small  (rotation bb.std_faces_not_super)) &
+    (subset bb.std3_big (rotation bb.std_faces_not_super)) &
+    (intersect (rotation bb.std3_small) (rotation bb.std3_big) = []) &
+    (subset bb.node_218_236 bb.node_218_252) &
+    (subset bb.node_236_252 bb.node_218_252);;
+
+
+let face_of_dart fc bb =   (* dart as rotated list of any length *)
+  let xss = map (fun t-> rotation [t]) (faces bb) in
+  nth (find (fun t -> mem fc t) xss) 0;;
+
+(*
+We are proving the bound L(V) <= 12.  When there are 13 nodes,
+this is automatic when the nodes excess heights (|v|-2) add up to at least 0.52.
+Fail if the bb already satisfies L(V) <= 12.
+*)
+
+let node_list bb = 0 -- (card_node bb - 1);;
+
+let set_node_numerics bb = 
+  if not(card_node bb = 13) then bb else
+  let n_high = length bb.node_236_252 in
+  let n_mid = length bb.node_218_236 in
+  if (n_high =0 )  & (n_mid < 2) then bb else
+  let _ = (n_high =0) or (n_mid = 0) or failwith "set_node_numerics" in
+  let _ = (n_high <=1) or  failwith "set_node_numerics" in  
+  let _ = (n_mid <= 2) or failwith "set_node_numerics" in (* 3 * 0.18 > 0.52, etc. *)
+  let node_new_low = subtract (node_list bb) (unions [bb.node_200_218 ;bb.node_218_236; bb.node_236_252]) in
+  let vfields = map (fun t -> ("200_218",t)) node_new_low in
+    modify_bb bb false [] vfields;;
+
+(*
+let t1 = modify_bb  (pent_bb) false [] ["236_252",5];;
+set_node_numerics t1;;
+let t1 = modify_bb  (pent_bb) false [] [("236_252",5);("218_236",3)];;
+can set_node_numerics t1;;
+let t1 = modify_bb  (pent_bb) false [] [("218_236",5);("218_236",3)];;
+set_node_numerics t1;;
+*)
+
+
+(*
+if a face is small the three edges lie in the range [2,2.25].
+if an edge is in the range (2.25,2.52], then the face is big.
+*)
+
+let set_face_numerics bb = 
+  let small = rotation bb.std3_small in
+  let _ =  (intersect small bb.d_edge_225_252 = []) or failwith "set_face_numerics" in
+  let adds = subtract small bb.d_edge_200_225 in
+  let shortfields = (map (fun t-> ("e_200_225",t)) adds) in
+  let r = map (C face_of_dart bb) (bb.d_edge_225_252) in
+  let _ = (intersect (rotation bb.std3_small) r =[]) or failwith "set_face_numerics" in
+  let bigfields = map (fun t -> ("bt",t)) (subtract r bb.std3_big) in
+     modify_bb bb false (shortfields @ bigfields) [] ;;
+
+(*
+let t1 = modify_bb pent_bb false [("st",[9;6;10]);("e_225_252",[7;8;12])] [];;
+set_face_numerics t1;;    
+*)
+
+
+
+(* ------------------------ *)
+(* switch and selection functions *)
+
+let switch3_of_dart d bb = 
+  let c = face_of_dart d bb in 
+  [modify_bb bb false ["bt",c] [];modify_bb bb false ["st",c] []];;
+
+let switch_edge_of_dart d bb = 
+      [modify_bb bb false ["e_225_252",d] [];modify_bb bb false ["e_200_225",d] []];; 
+
+
+
+let dart_unsplit_of_std_tri bb =
+  let xs = filter (fun t -> length t = 3) bb.std_faces_not_super in
+  let split_nodes = bb.node_200_218 @ bb.node_218_252 in
+  let split_edge = bb.d_edge_200_225 @ bb.d_edge_225_252 in
+  let ys = rotation(filter (fun t -> subset t split_nodes) xs) in
+     subtract ys split_edge;;
+
+let switch_edge bb =   match dart_unsplit_of_std_tri bb  with
     | [] -> [bb]
-    | f::_ ->
-      [modify_bb bb false ["e_225_252",f] [];modify_bb bb false ["e_200_225",f] []];; 
+    | d::_ -> switch_edge_of_dart d bb;;
 
 let one_epass bbs = 
   let branches = flatten (map switch_edge bbs) in
   let _ =   echo bbs in
-    filter_feas_f shuffle branches;;
+    filter_feas_f (fun s t -> t) branches;;
 
 let switch3_edge bb =match bb.std_faces_not_super with
   |[] -> failwith ("switch3_edge empty: "^bb.hypermap_id)
@@ -187,14 +271,11 @@ let switch_high_node bb i =
   if (i<0) then [bb] else
   [modify_bb bb false [] ["236_252",i];modify_bb bb false [] ["218_236",i]];;
 
-
-
 let one_highvpass bbs = 
   let switch_v bb = switch_high_node bb (get_high_node bb) in
   let branches = flatten (map switch_v bbs) in
   let _ = echo bbs in
     filter_feas branches;;
-
 
 let onevpass bbs = 
   let switch_v bb = switch_node bb (get_node bb) in
@@ -224,120 +305,4 @@ let rec all_highvpass bbs =
      let t = fold_right max (map get_high_node bbs) (-1) in
        if t < 0 then bbs else all_highvpass (one_highvpass bbs);;
 
-let hard_string = map(fun t -> t.string_rep) 
-  (filter (fun t -> mem t.hypermap_id hardid) tame_bb);;
-
-let findid s  = find (fun t -> s = t.hypermap_id);;
-let findall s = filter (fun t -> s = t.hypermap_id);;
-let tests = ref [];;
-
-
-(* experimental section from here to the end of the file *)
-
-
-(* std4_diag3 disappears: *)
-length hard_bb;;  (* 12 *)
-
-
-(*  doing case 86506100695 *)
-
-length t8;; (* 1270 *)
-find_max t8;;
-let t865 = t8;;
-
-
-
-let testsuper _ = 
-  let allhardpassA_bb = allpass 3 hard_bb in 
-  let allhardpassS_bb =  (filter (fun t -> length t.std4_diag3 >0) allhardpassA_bb) in
-  let allhardpassF_bb =  filter (fun t -> ( length t.std4_diag3 = 0) && (length t.apex_sup_flat > 0))  allhardpassA_bb in 
-    allhardpassS_bb = [] && allhardpassF_bb = [];; 
-
-testsuper();;
-tests := testsuper :: !tests;;
-
-
-(* case 86506100695 *)
-let h86 _ =
-  let h86 = [findid "86506100695" hard_bb] in
-  let h86a = allpass 10 h86 in
-  let h86b = allpass 10  h86a in
-    allvpass h86b = [];;
-tests := h86 :: !tests;;
-
-
-(* the 2 pressed icosahedra remain *)
-
-let hard2_bb = filter (fun t -> mem t.hypermap_id ["161847242261";"223336279535"]) hard_bb;;
-
-
-length hard2_bb;;
-let h16 = allvpass (findall "161847242261" hard_bb);;
-let h16max = find_max h16;;  (* 12.0627 *)
-let b16 = h16;;
-let b16a = all_highvpass b16;;
-length b16a;;
-let b16Amax = find_max b16a;; (* 12.0627 *)
-let b16b =   (one_epass b16a);;
-let b16c  = one_epass (one_epass b16b);;
-let b16d = one_epass b16c;;
-length b16d;;
-let b16e = find_max b16d;;   (* 12.051 *)
-0;; (* -- *)
-let c16a= allpass 10 b16d;;
-let c16Amax = find_max c16a;; (* 12.048 *)  (* was 12.059 *)
-length c16a;;  (* 997 *)
-let c16b = allpass 15 c16a;;
-let c16Bmax = find_max c16b;;  (* 12.026 *) (* was 12.037 *)
-length c16b;;  (* 657 *) (* was 636 *)
-
-
-
-(*
-
-(* this one is a dodecahedron modified with node 2 pressed
-    into an edge *)
-  let h  = findid (nth hardid 3);;  (* 12223336279535  *)
-  let h1 = allpass [h];;
-  length h1;;   (* length 1885 *)
-  let k1 = find_max h1;;  (* 12.0416 *)
-  let h2 = onevpassi h1 2;; (* length h2 : 2637 *)
-(* unfinished... *)
-
-(* this one is triangles only, types {6,0}, {4,0}, {6,0}. *)
-  let r  = findid (nth hardid 5);;  (* 12161847242261  *)
-  length r1;;   (* length  *)
-  let r1 = allvpass [r];;
-  let r2 = allpass r1;;
-(* unfinished *)
-
-*)
-
-
-
-
-(*
-let allhardpassB_bb = allpass 8 hard2_bb;;
-*)
-
-(*
-let hard2_bb = [nth  hard_bb 0;nth hard_bb 1];;
-(* to here *)
-
-length (allhardpassB_bb);;  (* 288 *)
-let h16 = find_max allhardpassB_bb;;
-(* unfinished *)
-*)
-
-(*
-let h0 = nth hard_bb 0;;
-let h1 = 
-  let s i l= flatten((map (fun t -> switch_node t i)) l) in
-  let branches =   s 4(  s 3(  s 2(  s 1 (s 0 [h0])) ) )  in
-   filter_feas branches;;
-length h1;;
-find_max h1;;
-let all16_bb = allpass 6 h1;;
-(* unfinished *)
-*)
 

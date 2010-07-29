@@ -29,7 +29,7 @@ Execution instructions.
 
 3- Load this module and execute the following command.
 
-Lpproc.execute();;
+let  (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();;
 
 *)
 
@@ -88,16 +88,24 @@ let order_list (h,xs) =
 
 let convert_to_ordered_list s = order_list (convert_to_list s);;
 
+type hint  = Triangle_split of int list
+	      | High_low of int
+	      | Edge_split of int list;;
 
 (* type for holding the parameters for a linear program.
     Many of the parameters are not needed for the easy cases that are treated
     in this module.  They will only be needed for the hard cases (hardid). *)
 
+(*
+   Fields for the hard cases: hints, tables, node and edge lists 
+*)
+
 type branchnbound = 
   { 
     hypermap_id : string;
     mutable lpvalue : float option;
-    mutable hints : int list list;  (* hints about branching *) 
+    mutable hints : hint list;  (* hints about branching *) 
+    tables : ((int,float) Hashtbl.t) * (((int*int),float) Hashtbl.t) * (((int*int),float) Hashtbl.t);
     string_rep : string;
     (* std_faces is the disjoint union of std_faces_not_super, std56_flat_free, std4_diag3 *)
     std_faces_not_super: int list list;
@@ -121,10 +129,13 @@ type branchnbound =
     node_200_218 : int list;
   };;
 
+let new_tables () = (Hashtbl.create 13,Hashtbl.create 70,Hashtbl.create 70);;
+
 let mk_bb s = 
   let (h,face1) = convert_to_ordered_list s in
  {hypermap_id= h;
   lpvalue = None;
+  tables = new_tables();
   hints = [];
   string_rep=s;
   std_faces_not_super = face1;
@@ -154,19 +165,20 @@ let pent_bb = mk_bb pentstring;;
 
 let modify_bb bb drop1std fields vfields = 
   let add key xs t = nub ((get_values key xs) @ t)  in
-  let shuffle key xs vs = 
+  let jump_queue key xs vs = 
     let ys = get_values key xs in 
     let e = rotation ys in
       nub(ys @ (filter (fun t -> not(mem t e)) vs)) in 
   let std = bb.std_faces_not_super in
-  let shuffle_std = shuffle "sh" fields std in 
+  let jump_queue_std = jump_queue "jq" fields std in 
 {
 hypermap_id = bb.hypermap_id;
 lpvalue = None;
 hints = bb.hints;
+tables = new_tables();
 string_rep = bb.string_rep;
 
-std_faces_not_super = if drop1std then tl std else shuffle_std;
+std_faces_not_super = if drop1std then tl std else jump_queue_std;
 std3_big = add "bt" fields bb.std3_big;
 std3_small = add "st" fields bb.std3_small;
 std56_flat_free = add "flat_free" fields bb.std56_flat_free;
@@ -192,7 +204,7 @@ Example: move [8;1;6;9] from std to std56_flat_free.
 
 modify_bb pent_bb true  ["flat_free",[8;1;6;9];"ff",[9;10;11]] ["200_218",8;"218_252",3;"200_218",7];;
 pent_bb;;
-modify_bb pent_bb false ["sh",[0;3;5;4];"sh",[10;6;4]] [];;
+modify_bb pent_bb false ["jq",[0;3;5;4];"jq",[10;6;4]] [];;
 *)
 
 (* functions on branch n bound *)
@@ -273,8 +285,8 @@ let solve_branch_verbose addhints bb =
   let set_some bb r = (* side effects *)
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
   let inp = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb in
-  let _ = addhints bb in (* hints for control flow *)
   let _ = set_some bb inp in
+  let _ = addhints dumpfile bb in (* hints for control flow *)
   let r = match bb.lpvalue with
     | None -> -1.0
     | Some r -> r in
@@ -285,19 +297,20 @@ let solve_f f bb = match bb.lpvalue with
   | None -> solve_branch_verbose f bb
   | Some _ -> bb;;
 
-let solve bb = solve_f (fun t -> t) bb;;
+let solve bb = solve_f (fun s t -> t) bb;;
 
 (* filtering output *)
 
-let filter_feas_f f bbs = 
+let is_feas bb = 
   let feasible r = (r > 11.999) in (* relax a bit from 12.0 *)
-  let sol = map (fun t -> solve_f f t) bbs in
-    let fil ro = match ro.lpvalue with
+  match bb.lpvalue with
 	None -> true
-      | Some r -> feasible r in 
-      filter fil sol;;
+      | Some r -> feasible r;;
 
-let filter_feas bbs = filter_feas_f (fun t->t) bbs;;
+let filter_feas_f f bbs = 
+  filter is_feas (map (solve_f f) bbs);;
+
+let filter_feas bbs = filter_feas_f (fun s t->t) bbs;;
 
 (* 
 branching on face data:
@@ -398,8 +411,6 @@ val it : Digest.t = "X\221\153\0263Z\241\178\188\211S'\244\148f@"
 project svn 1909
 body.mod Last Changed Rev: 1849
 lpproc.ml Last Changed Rev: 1850
-
-
 
 *)
 

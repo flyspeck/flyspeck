@@ -92,12 +92,16 @@ type hint  = Triangle_split of int list
 	      | High_low of int
 	      | Edge_split of int list;;
 
+type init = No_data
+            | File of string*Digest.t
+	    | Hash_tables of (((int,float) Hashtbl.t) * (((int*int),float) Hashtbl.t) * (((int*int),float) Hashtbl.t));;
+
 (* type for holding the parameters for a linear program.
     Many of the parameters are not needed for the easy cases that are treated
     in this module.  They will only be needed for the hard cases (hardid). *)
 
 (*
-   Fields for the hard cases: hints, tables, node and edge lists 
+   Fields for the hard cases: hints, diagnostic, node and edge lists 
 *)
 
 type branchnbound = 
@@ -105,7 +109,7 @@ type branchnbound =
     hypermap_id : string;
     mutable lpvalue : float option;
     mutable hints : hint list;  (* hints about branching *) 
-    tables : ((int,float) Hashtbl.t) * (((int*int),float) Hashtbl.t) * (((int*int),float) Hashtbl.t);
+    mutable diagnostic : init;
     string_rep : string;
     (* std_faces is the disjoint union of std_faces_not_super, std56_flat_free, std4_diag3 *)
     std_faces_not_super: int list list;
@@ -129,13 +133,13 @@ type branchnbound =
     node_200_218 : int list;
   };;
 
-let new_tables () = (Hashtbl.create 13,Hashtbl.create 70,Hashtbl.create 70);;
+
 
 let mk_bb s = 
   let (h,face1) = convert_to_ordered_list s in
  {hypermap_id= h;
   lpvalue = None;
-  tables = new_tables();
+  diagnostic = No_data;
   hints = [];
   string_rep=s;
   std_faces_not_super = face1;
@@ -174,8 +178,8 @@ let modify_bb bb drop1std fields vfields =
 {
 hypermap_id = bb.hypermap_id;
 lpvalue = None;
+diagnostic = No_data;
 hints = bb.hints;
-tables = new_tables();
 string_rep = bb.string_rep;
 
 std_faces_not_super = if drop1std then tl std else jump_queue_std;
@@ -286,7 +290,8 @@ let solve_branch_verbose addhints bb =
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
   let inp = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb in
   let _ = set_some bb inp in
-  let _ = addhints dumpfile bb in (* hints for control flow *)
+  let _ = bb.diagnostic <- File (dumpfile,Digest.file dumpfile) in
+  let _ = addhints bb in (* hints for control flow *)
   let r = match bb.lpvalue with
     | None -> -1.0
     | Some r -> r in
@@ -297,7 +302,7 @@ let solve_f f bb = match bb.lpvalue with
   | None -> solve_branch_verbose f bb
   | Some _ -> bb;;
 
-let solve bb = solve_f (fun s t -> t) bb;;
+let solve bb = solve_f (fun t -> t) bb;;
 
 (* filtering output *)
 
@@ -310,7 +315,7 @@ let is_feas bb =
 let filter_feas_f f bbs = 
   filter is_feas (map (solve_f f) bbs);;
 
-let filter_feas bbs = filter_feas_f (fun s t->t) bbs;;
+let filter_feas bbs = filter_feas_f (fun t->t) bbs;;
 
 (* 
 branching on face data:

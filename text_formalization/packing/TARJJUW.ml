@@ -41,7 +41,7 @@ let saturated_packing =
 let weakly_saturated = 
     new_definition 
      `weakly_saturated (V:real^3 ->bool) (r:real) (r':real) <=>
-        (!(v:real^3).(dist(vec 0,v) > r') \/ (?(u:real^3). (u IN V) /\
+        (!(v:real^3).(dist(vec 0,v) > r') \/ (dist(vec 0, v) < &2) \/ (?(u:real^3). (u IN V) /\
         (~((vec 0) = u)) /\ (dist(u,v) < r)))`;;
 
 let weakly_saturated_finite_packing = 

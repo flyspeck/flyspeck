@@ -1,4 +1,4 @@
-BeginPackage["Numerical`",{"Sphere`"}]
+(* BeginPackage["Numerical`",{"Sphere`"}]
 
 LP::usage = "LP[c,con] gives the minimum solution to a linear program with objective
   c and constraints con";;
@@ -24,6 +24,8 @@ face, and d the d-table for what a face squanders";
 Begin["`Private`"];
 
 (* Minimizes c.x such that  con[[i, 1]].x ≥ con[[i, 2]] *)
+
+*)
 
 
 LP[c_, con_] := Module[{i},
@@ -52,7 +54,7 @@ that proposed lower bound is in fact a lower bound at all of the corners.
   
   
   *)
-Clear[SearchLB];
+Clear[SearchLB,SearchLBp];
 SumRange2[f_, r_] :=
     Apply[Plus, Table[f[r[[i]], i], {i, 1, Length[r]}]];
 SumRange[f_, r_] := Apply[Plus, Map[f, r]];
@@ -71,11 +73,11 @@ deriv, mkineq, corner, fa, cornerineq,
       dif[i_, j_] := If[i == 0, lb[[j]], up[[j]]];
       deriv = Map[(((f @@ (p + delta e[#, len])) - f0)/delta) &, Range[len]];
       
-      (* compute corner inequalities *)
+      (* Compute corner inequalities *)
       dderiv = deriv - Take[{d1, d2, d3, d4, d5, d6, d7, d8, d9}, len];
       corner[r_] := SumRange2[(dif[#1, #2]e[#2, len]) &, r];
       fa[y__] := f0 + dderiv.Table[{y}[[i]] - p[[i]], {i, 1, len}];
-      mkineq[{y___}] := fa[y] - f[y] ≤ t;
+      mkineq[{y___}] := (fa[y] - f[y] <= t);
       cornerineq = flatTable[
         mkineq[corner @ 
           Take[{i1, 
@@ -97,7 +99,7 @@ deriv, mkineq, corner, fa, cornerineq,
             d4], Abs[d5], Abs[d6], Abs[d7], Abs[d8], Abs[d9]}, len]];
       {val, ds} = NMinimize[Join[{objective}, cornerineq, extraineq, 
               pos, other], Take[{d1, d2, d3, d4, d5, d6, d7, d8, d9}, len]];
-      {"corner", f0 - t, "derivs", deriv, "approx", dderiv} /. ds
+      {"corner", f0 - t, "derivs", deriv, "approx", dderiv,"centerpoint",p} /. ds 
       ];
 
 SearchLB[f_, lb_, up_, t_, extrapoints_] := SearchLBp[f, lb,
@@ -180,7 +182,6 @@ computeTableBpq[p_, q_,{pIneq_,qIneq_,dihpmin_,dihpmax_,dihqmin_,dihqmax_}] :=
       c.y
       ];
 
-(* move to numerical.m, nextto computeTableBpq *)
 computeTableAp[p_, q_, r_,{pIneq_,qIneq_,dihpmin_,dihqmin_,dihrmin_,d_}] := 
   Module[{c, y},
       pfat = Map[{{1,-First[#],0,0},{Last[#],1}}&,pIneq];
@@ -195,6 +196,7 @@ computeTableAp[p_, q_, r_,{pIneq_,qIneq_,dihpmin_,dihqmin_,dihrmin_,d_}] :=
       ];
 
 
-
+(*
 End[];
 EndPackage[];
+*)

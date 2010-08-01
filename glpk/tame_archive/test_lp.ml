@@ -1,4 +1,15 @@
-(* tests of the final cases... *)
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Linear Programs                                                               *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-08-01                                                           *)
+(* ========================================================================== *)
+
+
+module Hard_lp = struct 
+
+(* code for the hard cases... *)
 
 #directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 (* 
@@ -118,7 +129,11 @@ let get_azim_table xs bb =
    let b1 = dih_y y1 y2 y3 y4 y5 y6 in
    let b2 = dih_y y2 y3 y1 y5 y6 y4 in
    let b3 = dih_y y3 y1 y2 y6 y4 y5 in
-   (y1,y2,y3,y4,y5,y6,(a1,b1,a1-. b1),(a2,b2,a2-. b2),(a3,b3,a3 -. b3),a1+. a2 +. a3 -.( b1 +. b2 +. b3));;
+   (y1,y2,y3,y4,y5,y6,("dih_lp",a1,"dih_y",b1,a1-. b1),("dih2_lp",a2,"dih2_y",b2,a2-. b2),("dih3_lp",a3,"dih3_y",b3,a3 -. b3),"soldiff",a1+. a2 +. a3 -.( b1 +. b2 +. b3));;
+
+let testval f xs bb = 
+  let (y1,y2,y3,y4,y5,y6,_,_,_,_,_) = get_azim_table xs bb in
+  f y1 y2 y3 y4 y5 y6;;
 
 (* get_azim_table dih_y [2;4;3] bb;; *)
 
@@ -175,10 +190,8 @@ let face_of_dart fc bb =
   let xss = map triples (faces bb) in
   nth (find (fun t -> mem fc t) xss) 0;;
 
-let add_hints bb = 
+let add_hints_force bb = 
   try(
-  if not(is_feas bb) then () else
-  if not(bb.hints = []) then () else
     let _ = init_hash bb in
   let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri bb)) in 
   let f = face_of_dart dart bb in
@@ -191,6 +204,10 @@ let add_hints bb =
   if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
   ) with Failure _ -> failwith "add_hints";;
 
+let add_hints bb = 
+  if not(is_feas bb) then () else
+  if not(bb.hints = []) then () else
+    add_hints_force bb;;
 
 (* ------------------------ *)
 
@@ -311,11 +328,12 @@ let switch_node bb i =
 let follow_hint bb = 
   let _ =assert(not(bb.hints = [])) in
   let hint = hd (bb.hints) in
-  let _ = clear_hint bb in
-   match hint with
+(*  let _ = clear_hint bb in *)
+  let sbb = match hint with
   | Triangle_split d -> switch_std3 d bb
   | High_low i -> switch_node bb i 
-  | Edge_split d -> switch_edge d bb;;
+  | Edge_split d -> switch_edge d bb in
+  let _ = map clear_hint sbb in sbb;;
 
 let filter_feas_hint bbs = filter_feas_f add_hints bbs;;
 
@@ -326,13 +344,20 @@ let switch_hint bb =
 
 let onepass_backup = ref [];;  (* in case we interrupt a calculation *)
 
-let onepass_hint bbs = 
+let sortbb bbs = 
+  let eval bb = (match bb.lpvalue with None -> 0.0 | Some r -> r) in
+  let v = List.sort (fun a b -> - compare (eval a) (eval b)) bbs in
+   v;;
+
+let onepass_hint = function 
+  [] -> []
+  | bb::bbss as bbs -> 
   let _ = onepass_backup := bbs in
-  let brs = flatten (map switch_hint bbs) in
+  let brs =  switch_hint bb in
   let brs1 = map set_face_numerics brs in
   let brs2 = map set_node_numerics brs1 in
   let _ = echo bbs in
-    filter_feas_hint brs2;;
+    sortbb ((filter_feas_hint brs2) @ bbss);;
 
 let rec allpass_hint count bbs = 
    if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
@@ -360,3 +385,6 @@ let prune_results n bbs =
      
 let rec allpass_prune_hint prune count bbs = 
    if  count <= 0 then bbs else allpass_prune_hint prune (count - 1) (prune_results prune (onepass_hint bbs));;
+
+
+end;;

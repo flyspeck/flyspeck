@@ -30,11 +30,11 @@ open Str;;
 open List;;
 let sprintf = Printf.sprintf;;
 
-let nextc = 
+let (nextc,resetc) = 
   let counter = ref 0 in
-  fun () ->
+  ((fun () ->
     counter:= !counter + 1;
-    !counter;;
+    !counter),(fun () -> (counter :=0)));;
 
 
 (* list operations *)

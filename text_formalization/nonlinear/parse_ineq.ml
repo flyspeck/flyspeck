@@ -410,13 +410,13 @@ let test_domain_symmetry idq =
     ((nth dom 1 = nth dom 2) & (nth dom 4 = nth dom 5)) or failwith "domain asym";;
 
 let lpstring() = 
-  let fil r = filter (can (fun t ->  (find ((=) r) t.tags))) (!Ineq.ineqs) in
-  let _ = map test_domain_symmetry (fil Lpsymmetry) in
+(*  let fil r = filter (can (fun t ->  (find ((=) r) t.tags))) (!Ineq.ineqs) in *)
+  let _ = map test_domain_symmetry (Ineq.getfield Lpsymmetry) in
   join_lines 
-    ("# File automatically generated from nonlinear inequality list.\n\n" ::
-    (map (mk_glpk_ineq false) (fil Lp)) @
+    ("# File automatically generated from nonlinear inequality list via lpstring().\n\n" ::
+    (map (mk_glpk_ineq false) (Ineq.getfield Lp)) @
     ["# Symmetry section\n\n"] @ 
-    (map (mk_glpk_ineq true) (fil Lpsymmetry)));;
+    (map (mk_glpk_ineq true) (Ineq.getfield Lpsymmetry)));;
 
 (* Tex Processing of Inequalities *)
 

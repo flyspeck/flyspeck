@@ -62,8 +62,8 @@ SumRange[f_, r_] := Apply[Plus, Map[f, r]];
 e[i_, j_] := Map[If[# == i, 1, 0] &, Range[j]];
 
 SearchLBp[f_, p_, lb_, up_, t_, extrapoints_] := Module[{f0, delta, len, dif, \
-deriv, mkineq, corner, fa, cornerineq, 
-      extraineq, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+deriv, dderiv,mkineq, corner, fa, cornerineq, 
+      pos,extraineq, d0,d1, d2, d3, d4, d5, d6, d7, d8, d9,
         i1, i2, i3, i4, i5, i6, i7, i8, i9, other, val, ds, y, objective},
       delta = 10^-8;
       len = Length[lb];
@@ -76,7 +76,7 @@ deriv, mkineq, corner, fa, cornerineq,
       (* Compute corner inequalities *)
       dderiv = deriv - Take[{d1, d2, d3, d4, d5, d6, d7, d8, d9}, len];
       corner[r_] := SumRange2[(dif[#1, #2]e[#2, len]) &, r];
-      fa[y__] := f0 + dderiv.Table[{y}[[i]] - p[[i]], {i, 1, len}];
+      fa[y__] := f0 + d0+ dderiv.Table[{y}[[i]] - p[[i]], {i, 1, len}];
       mkineq[{y___}] := (fa[y] - f[y] <= t);
       cornerineq = flatTable[
         mkineq[corner @ 
@@ -93,13 +93,14 @@ deriv, mkineq, corner, fa, cornerineq,
       special constraints, such as desired symmetries *)
       other = {}; (*  {  d2 == d3, d5 == d6}; *)
       
-      (* minimize *)
-      objective = Apply[Plus, Take[{Abs[d1], Abs[d2], 
+      (* minimize , the factor 100 discourages shifs in the constant term,
+          relative to changes in gradient. *)
+      objective = 100* Abs[d0] +Apply[Plus, Take[{Abs[d1], Abs[d2], 
           Abs[d3], Abs[
             d4], Abs[d5], Abs[d6], Abs[d7], Abs[d8], Abs[d9]}, len]];
       {val, ds} = NMinimize[Join[{objective}, cornerineq, extraineq, 
-              pos, other], Take[{d1, d2, d3, d4, d5, d6, d7, d8, d9}, len]];
-      {"corner", f0 - t, "derivs", deriv, "approx", dderiv,"centerpoint",p} /. ds 
+              pos, other], Take[{d0,d1, d2, d3, d4, d5, d6, d7, d8, d9}, len+1]];
+      {"corner", f0 +d0 - t, "derivs", deriv, "approx", dderiv,"centerpoint",p,"adjust"} /. ds 
       ];
 
 SearchLB[f_, lb_, up_, t_, extrapoints_] := SearchLBp[f, lb,

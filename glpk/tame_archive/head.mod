@@ -309,16 +309,32 @@ crossdiag 'ID[1085358243]+'
 
 # final dart sets.
 
-set dart_8282573160 := setof {(i1,i,i3,j) in e_dart : i1 in node_200_218 and i in node_218_252 and  i3 in node_200_218 and (i,j) in apex_flat} (i,j);
 
-set dart_3872614111 := setof  {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
-set dart_3139693500 := setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
-set dart_4841020453 :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
-set dart_9925287433 :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
-set dart_7409690040 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_218_236}  (i,j);
-set dart_4002562507 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_218_236}  (i,j);
-set dart_5835568093 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_236_252}  (i,j);
-set dart_1894886027 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_236_252}  (i,j);
+# deprecated:
+
+#set dart_8282573160 := setof {(i1,i,i3,j) in e_dart : i1 in node_200_218 and i in node_218_252 and  i3 in node_200_218 and (i,j) in apex_flat} (i,j);
+#set dart_3872614111 := setof  {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
+#set dart_3139693500 := setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
+#set dart_4841020453 :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
+#set dart_9925287433 :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
+#set dart_7409690040 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_218_236}  (i,j);
+#set dart_4002562507 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_218_236}  (i,j);
+#set dart_5835568093 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_236_252}  (i,j);
+#set dart_1894886027 :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_236_252}  (i,j);
+
+# rename them:
+
+#was dart_8282573160
+set apex_flat_hll := setof {(i1,i,i3,j) in e_dart : i1 in node_200_218 and i in node_218_252 and  i3 in node_200_218 and (i,j) in apex_flat} (i,j);
+
+#was dart_3872614111 .
+set dart_mll_w := setof  {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
+#was dart_3139693500 .
+set dart_mll_n := setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_218_236} (i,j);
+#was dart_4841020453 .
+set dart_Hll_n :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_200_225 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
+#was dart_9925287433 .
+set dart_Hll_w :=  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in apex_std3_hll and i in node_236_252} (i,j);
 
 set apexf4 := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex4} (i2,j);
 set apexff4 := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex4} (i3,j);
@@ -326,6 +342,10 @@ set apexf5 := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex5} (i2,j);
 set apexff5 := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex5} (i3,j);
 set apexfA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i2,j);
 set apexffA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i3,j);
+
+# added Aug 1, 2010.  low and wide.
+set dart_std3_lw  :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in dart_std3_big and i in node_200_218}  (i,j);
+
 
 # PUT auto generated body here.
 

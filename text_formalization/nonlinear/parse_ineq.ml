@@ -476,6 +476,7 @@ let ocaml_autogen = map (function b -> snd(strip_forall (concl (strip_let b))))
 let ocaml_code = 
   "(* code automatically generated from Parse_ineq.ocaml_code *)\n\n"^
    "module Sphere_math = struct\n\n"^
+   "let sqrt = Pervasives.sqrt\n\n" ^
    "let pi = 4.0 *. atan(1.0);;\n" ^
    (join_lines (map ocaml_function ocaml_autogen)) ^
    "end;;\n";;

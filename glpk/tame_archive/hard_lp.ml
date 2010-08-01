@@ -11,13 +11,14 @@ module Hard_lp = struct
 
 (* code for the hard cases... *)
 
-#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 (* 
 #use "glpk_link.ml";;
 #use "tame_archive/lpproc.ml";;
+#use "sphere.ml";;
 *)
 
-#use "sphere.ml";;
+
 
 open Str;;
 open List;;
@@ -26,7 +27,6 @@ open Lpproc;;
 
 let sqrt = Pervasives.sqrt;;
 let dih_y = Sphere_math.dih_y;;
-(* let dumpfile = Filename.temp_file "test_lp_dump_" ".out";; *)
 
 (* Generate graphics files of a branchnbound, save gif as a /tmp file.  *)
 
@@ -37,7 +37,7 @@ let mk_gif bb = (Sys.chdir
       "\" | neato -s -n -Tgif -o "^ 
     (Filename.temp_file ("render"^bb.hypermap_id^"_") (".gif"))));;
 
-(* build up hashtables of all the variables assignments from the dumpfile *)
+(* build up hashtables of all the variables assignments from the glpk_outfile *)
 
 let new_tables () = (Hashtbl.create 13,Hashtbl.create 70,Hashtbl.create 70);;
 
@@ -54,19 +54,19 @@ let azim bb (i,j) = Hashtbl.find (azimhash bb) (i,j);;
 
 (*
 There is state involved here.  This code is rather fragile.
-The dumpfile gets overwritten the next time solve is called.
+The glpk_outfile gets overwritten the next time solve is called.
 So we want to generate the hash tables right after solve is called.
 *)
 
-(* this renews the dumpfile *)
+(* this renews the glpk_outfile *)
 let resolve bb = solve_branch_verbose (fun t->t) bb;;
 
-let init_hash_verified_dumpfile dumpfile bb = 
+let init_hash_verified_glpk_outfile glpk_outfile bb = 
   let _ = (bb.diagnostic <- Hash_tables (new_tables())) in
   let _ = Hashtbl.clear (ynhash bb) in
   let _ = Hashtbl.clear (yehash bb) in
   let _ = Hashtbl.clear (azimhash bb) in
-  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" dumpfile in
+  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" glpk_outfile in
   let is = int_of_string in
   let fs = float_of_string in
   let (ic,oc) = Unix.open_process(com) in
@@ -89,16 +89,16 @@ let init_hash_verified_dumpfile dumpfile bb =
 
 let init_hash bb = 
   match bb.diagnostic with
-    | File (dumpfile,dig) ->  if not(dig = Digest.file dumpfile) 
+    | File (glpk_outfile,dig) ->  if not(dig = Digest.file glpk_outfile) 
       then (bb.diagnostic <- No_data; failwith "init_hash:stale") 
-      else init_hash_verified_dumpfile dumpfile bb
+      else init_hash_verified_glpk_outfile glpk_outfile bb
     | _ -> ();;
 
-(* for debugging: reading optimal variables values from a dumpfile *)
+(* for debugging: reading optimal variables values from a glpk_outfile *)
 
 (*
-let get_dumpvar dumpfile s = (* read variables from dumpfile *)
-  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s dumpfile in
+let get_dumpvar glpk_outfile s = (* read variables from glpk_outfile *)
+  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s glpk_outfile in
   let (ic,oc) = Unix.open_process(com) in
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in
@@ -107,7 +107,7 @@ let get_dumpvar dumpfile s = (* read variables from dumpfile *)
 
 let float_of_string_item s = float_of_string (hd s);;
 
-let get_float dumpfile s = float_of_string_item(get_dumpvar dumpfile s);;
+let get_float glpk_outfile s = float_of_string_item(get_dumpvar glpk_outfile s);;
 
 let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
 (* get_sol [12;7;8] bb;; *)
@@ -179,7 +179,7 @@ let sorted_azim_weighted_diff p bb =
 (* HINTS *)
 
 (* add_hints is called right after the LP is solved and the lpvalue set.  
-    The dumpfile has been initialized. *)
+    The glpk_outfile has been initialized. *)
 
 let darts_of_std_tri bb =
   rotation(filter (fun t -> length t = 3) bb.std_faces_not_super);;

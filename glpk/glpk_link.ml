@@ -154,16 +154,16 @@ let convert_to_list  =
 
 (* Linear programming *)
 
-let display_ampl tmpfile ampl_of_bb bb = (* for debugging *)
-  let outs = open_out tmpfile in
+let display_ampl ampl_datafile ampl_of_bb bb = (* for debugging *)
+  let outs = open_out ampl_datafile in
   let _ = ampl_of_bb outs bb in
   let _ = close_out outs in
-    Sys.command(sprintf "cat %s" tmpfile);;
+    Sys.command(sprintf "cat %s" ampl_datafile);;
 
 (* model should name the optimal value "optival" *)
 
-let solve_branch_f model dumpfile varname ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/%s = //' "  model dumpfile varname varname in 
+let solve_branch_f model glpk_outfile varname ampl_of_bb bb = 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/%s = //' "  model glpk_outfile varname varname in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
@@ -171,11 +171,11 @@ let solve_branch_f model dumpfile varname ampl_of_bb bb =
   let _ = Unix.close_process (ic,oc) in
     inp;;
 
-let display_lp model tmpfile dumpfile ampl_of_bb bb = 
-  let oc = open_out tmpfile in
+let display_lp model ampl_datafile glpk_outfile ampl_of_bb bb = 
+  let oc = open_out ampl_datafile in
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
-  let com = sprintf "glpsol -m %s -d %s | tee %s" model tmpfile dumpfile in
+  let com = sprintf "glpsol -m %s -d %s | tee %s" model ampl_datafile glpk_outfile in
   let _ = Sys.command(com) in 
     ();;
 
@@ -188,10 +188,10 @@ let cpx_branch model cpxfile ampl_of_bb bb = (* debug *)
   let _ = Unix.close_process (ic,oc) in
   sprintf "cplex file created of lp: %s" cpxfile;;
 
-(* for debugging: reading optimal variables values from the dumpfile *)
+(* for debugging: reading optimal variables values from the glpk_outfile *)
 
-let get_dumpvar dumpfile s = (* read variables from dumpfile *)
-  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s dumpfile in
+let get_dumpvar glpk_outfile s = (* read variables from glpk_outfile *)
+  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s glpk_outfile in
   let (ic,oc) = Unix.open_process(com) in
   let _ = close_out oc in
   let inp = load_and_close_channel false ic in

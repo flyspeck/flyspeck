@@ -136,8 +136,8 @@ set apex4 within {(i,j) in dart: j in non_std};
 set apex5 within {(i,j) in dart : j in non_std};  
 
 # directed edges
-set d_edge_225_252 within dart_std3;
-set d_edge_200_225 within dart_std3;
+set d_edge_225_252 within d_edge;
+set d_edge_200_225 within d_edge;
 
 # nodes.
 set node_218_252 within node;

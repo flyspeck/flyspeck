@@ -41,6 +41,9 @@ let flyspeck_dir =
 let glpk_dir = 
  Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "glpk";;
 
+let tame_dir = 
+ Filename.concat glpk_dir "tame_archive";;
+
 needs (Filename.concat glpk_dir "glpk_link.ml");;
 
 module Lpproc = struct 
@@ -58,14 +61,11 @@ open List;;
 
 let archiveraw = ref "/tmp/tame_graph.txt";;   (* read only *)
 let model = Filename.temp_file "graph_all_" ".mod";; 
-let tmpfile = Filename.temp_file "graph_" ".dat";; 
-let dumpfile = Filename.temp_file "graph_" ".out";;
-
-let lpproc_dir = 
- Filename.concat glpk_dir "tame_archive/";;
+let ampl_datafile = Filename.temp_file "ampl_datafile_" ".dat";; 
+let glpk_outfile = Filename.temp_file "glpk_outfile_" ".out";;
 
 let make_model = 
-  (Sys.chdir(lpproc_dir);
+  (Sys.chdir(tame_dir);
 Sys.command("cp head.mod "^model^"; cat body.mod >> "^
                      model^"; cat tail.mod >> "^model));;
 
@@ -288,9 +288,9 @@ let ampl_of_bb outs bb =
 let solve_branch_verbose addhints bb = 
   let set_some bb r = (* side effects *)
     if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
-  let inp = solve_branch_f model dumpfile "lnsum" ampl_of_bb bb in
+  let inp = solve_branch_f model glpk_outfile "lnsum" ampl_of_bb bb in
   let _ = set_some bb inp in
-  let _ = bb.diagnostic <- File (dumpfile,Digest.file dumpfile) in
+  let _ = bb.diagnostic <- File (glpk_outfile,Digest.file glpk_outfile) in
   let _ = addhints bb in (* hints for control flow *)
   let r = match bb.lpvalue with
     | None -> -1.0

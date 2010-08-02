@@ -94,31 +94,6 @@ let init_hash bb =
       else init_hash_verified_glpk_outfile glpk_outfile bb
     | _ -> ();;
 
-(* for debugging: reading optimal variables values from a glpk_outfile *)
-
-(*
-let get_dumpvar glpk_outfile s = (* read variables from glpk_outfile *)
-  let com = sprintf "grep '%s' %s | sed 's/^.*= //'  " s glpk_outfile in
-  let (ic,oc) = Unix.open_process(com) in
-  let _ = close_out oc in
-  let inp = load_and_close_channel false ic in
-  let _ = Unix.close_process(ic,oc) in
-  inp;;
-
-let float_of_string_item s = float_of_string (hd s);;
-
-let get_float glpk_outfile s = float_of_string_item(get_dumpvar glpk_outfile s);;
-
-let get_sol xs bb = get_float (sprintf "sol.%d.*=" (int_of_face xs bb));;
-(* get_sol [12;7;8] bb;; *)
-
-let get_tau xs bb = get_float (sprintf "tau.%d.*=" (int_of_face xs bb));;
-(* get_tau [12;7;8] bb;; *)
-*)
-
-(* get_dumpvar "yn.0.*=";; *)
-
-
 (* look at edge lengths and azimuth angles of a triangle *)
 let int_of_face xs bb = wheremod (faces bb) xs;;
 
@@ -226,7 +201,7 @@ let find_max bbs =
 
 let findid s  = find (fun t -> s = t.hypermap_id);;
 
-let findall s = filter (fun t -> s = t.hypermap_id);;
+let findid_list s = filter (fun t -> s = t.hypermap_id);;
 
 (*   *)
 

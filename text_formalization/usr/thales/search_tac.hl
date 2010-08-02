@@ -1,0 +1,138 @@
+#load "str.cma";;
+
+
+module Searching = struct
+
+let process_to_string unixstring = 
+  let p = Unix.open_process_in unixstring
+  and b = Buffer.create 64 in
+  let rec read () = Buffer.add_channel b p 1; read () in
+    try read () with End_of_file -> Buffer.contents b;;
+
+let hollight_dir = 
+  (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
+
+let helpdirs = ref [
+  Filename.concat flyspeck_dir "../help";
+  Filename.concat hollight_dir "Help"
+ ];;
+
+let help_h = ref [];;
+let help_grep_h = ref[];;
+let search_h = ref[];;
+
+
+let update i h = (h:= i:: !h);;
+let history n h = fst(chop_list n h);;
+
+let help_grep pat = 
+  let _ = update pat help_grep_h in
+  let split =   Str.split (Str.regexp "\n") in
+  let cmd s = process_to_string ("(cd "  ^s^  "; ls | sed 's/.doc$//g' | grep '" ^pat^ "')") in
+  List.flatten (map ( split o cmd ) (!helpdirs));;
+
+(*  
+Example:
+help_grep "ASM.*REWRITE";;
+help_grep "^ASM_";;
+help_grep "help";;
+help_grep "RULE";;
+help_grep "ARITH";;
+help_grep "_TAC$";;
+List.length (help_grep ".*");;
+*)
+
+let searcht n pat = 
+  let raw = search pat in
+  let _ =  (List.length raw <= 100) or failwith "over 100 matches" in
+  let m = min n (List.length raw) in
+  let s = sortlength_thml raw in
+    fst (chop_list m s);;
+  
+
+(* searching for relevant tactics *)
+
+(* term matching without higher order matches *)
+
+  let SELECT_TAC = Tactics.SELECT_TAC;;
+
+let term_match_no_ho pat u = 
+  let (_,b,c) = (term_match[] pat u) in
+  let v = instantiate ([],b,c) pat in 
+    aconv v u  or failwith "no match";;
+
+let match_g_no_ho pat (_,w) = not(search_thml term_match_no_ho pat [("", ASSUME w)] = []);;
+
+let match_g pat (_,w) = not(search_thml (term_match[]) pat [("", ASSUME w)] = []);;
+
+let match_asm pat (asl,_) = not(search_thml term_match_no_ho pat asl = []);;
+
+(* new_definition `(FULL:A->A) x = x`;; *)
+
+let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
+
+(* let assum t = mk_comb(mk_var("<assum>",W mk_fun_ty (type_of t)),t);; *)
+
+(* 
+
+trigger pattern;
+English text;
+prompt;
+tactic;
+
+*)
+
+let rrrrr = (match_g[`let x = (y:A) in (z:B)`],"LET_TAC","let elimination",fun t -> LET_TAC);;
+
+
+
+let tactic_patterns  = [
+(match_g[`(@):(A->bool)->A`],"SELECT_ELIM_TAC","remove @",fun t-> SELECT_ELIM_TAC);
+(match_g[`(@):(A->bool)->A`],"SELECT_TAC","remove @ with subgoals depending satisfiability",fun t-> SELECT_TAC);
+(match_g[`(\x. f x = \x. g x)`],"ABS_TAC","strip abstractions from equality",fun t-> ABS_TAC);
+(match_g[full ` ((p ==> q) ==> r)`],"ANTS_TAC","split off the antecdent of the antecedent",fun t-> ANTS_TAC);
+(match_g_no_ho[full ` (f x = g x)`],"AP_THM_TAC","drop the function argument",fun t-> AP_THM_TAC);
+(match_g_no_ho[full ` (f x y = f x' y)`],"AP_THM_TAC THEN AP_TERM_TAC","show first args of a binary function are equal",fun t-> AP_THM_TAC THEN AP_TERM_TAC);
+(match_g[`(\x. f) y`],"BETA_TAC","beta reduce",fun t-> BETA_TAC);
+(match_g[full ` (f x y = f x' y')`],"BINOP_TAC","show binary function args equal",fun t-> BINOP_TAC);
+(match_g[full ` (f x  = f x' )`],"AP_TERM_TAC","show function args equal",fun t-> AP_TERM_TAC);
+(match_g[full `(a /\ b)`],"CONJ_TAC","split into two subgoals",fun t-> CONJ_TAC);
+(match_g[full `(a ==>b)`],"DISCH_TAC","discharge antecedent",fun t -> DISCH_TAC);
+(match_g[full `(a <=> b)`],"EQ_TAC","split biconditional into two conditionals",fun t -> EQ_TAC);
+(match_g[full `(?x. t)`],"EXISTS_TAC","specify existence",fun t -> failwith "syntax: EXISTS_TAC `u`");
+(match_g[full `(!x. t)`],"GEN_TAC","remove universal",fun t-> GEN_TAC);
+(match_g[full `((f:A->B) = g)`],"ONCE_REWRITE_TAC[FUN_EQ_THM]","apply to arg",fun t-> ONCE_REWRITE_TAC[FUN_EQ_THM]);
+(match_g[full `(!(x:num). t)`],"INDUCT_TAC","induction",fun t->INDUCT_TAC);
+(match_g[full `(!(n:A list). P)`],"LIST_INDUCT_TAC","structure induction on lists",fun t->LIST_INDUCT_TAC);
+(match_g[full `(f x = g y)`],"MK_COMB_TAC","show equality of functions and args",fun t->MK_COMB_TAC);
+(* (match_g[full `(u:bool)`],"REFUTE_THEN ASSUME_TAC","proof by contradiction",fun t-> REFUTE_THEN ASSUME_TAC); *)
+(match_g[`!(p:A#B). P p`],"REWRITE_TAC[FORALL_PAIR_THM]","unpair",fun t->REWRITE_TAC[FORALL_PAIR_THM]);
+(match_g[`(?(x,y). P x y)`],"REWRITE_TAC[ EXISTS_PAIRED_THM]"," ",fun t->REWRITE_TAC[ EXISTS_PAIRED_THM]);
+(match_g[`(?x y. P x y)`],"REWRITE_TAC[GSYM EXISTS_PAIRED_THM]"," ",fun t->REWRITE_TAC[GSYM EXISTS_PAIRED_THM]);
+(match_g[full`x <= (z:real)`],"MATCH_MP_TAC REAL_LE_TRANS","x <= y /\ y <= z ",fun t -> MATCH_MP_TAC REAL_LE_TRANS);
+(match_g[full`x < (z:real)`],"MATCH_MP_TAC REAL_LET_TRANS","x <= y /\ y < z ",fun t -> MATCH_MP_TAC REAL_LET_TRANS);
+(match_g[full`x < (z:real)`],"MATCH_MP_TAC REAL_LTE_TRANS","x < y /\ y <= z",fun t -> MATCH_MP_TAC REAL_LTE_TRANS);
+(match_asm[ full `x \/ y`],"FIRST_X_ASSUM DISJ_CASES_TAC","split x \/ y assumption",fun t -> FIRST_X_ASSUM DISJ_CASES_TAC);
+(match_asm[full `?(x:A). y`],"FIRST_X_ASSUM CHOOSE_TAC","choose existential quant in assumption list",fun t-> FIRST_X_ASSUM CHOOSE_TAC);
+(match_asm[full `x /\ y`],"FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC)","split asumption conjunction",fun t->FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC));
+rrrrr
+];;
+
+let suggest _ = 
+  let s = filter (fun (a,_,_,_) -> a (top_realgoal())) tactic_patterns in
+  zip (0-- (List.length s  -1) ) s;;
+
+let s _ = suggest();;
+
+let eh n = let (_,(_,_,_,tac)) = List.nth (suggest()) n in e(tac());;
+
+
+let rewrite_suggest = [
+ ([`x IN {y}`],"IN_SING",IN_SING);
+];;
+
+let rewrites _ =
+  let s = filter (fun (a,_,_) -> match_g a (top_realgoal())) rewrite_suggest in
+    zip (0-- (List.length s  -1) ) s;;
+
+end;;  

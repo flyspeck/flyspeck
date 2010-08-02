@@ -157,19 +157,22 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    edge_flat_rewrite;const1;taum;flat_term;
    tauq;enclosed_rewrite];;
 
+(*
 let macro_expand = ref [];; 
+*)
 
-macro_expand := [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
+let get_macro_expand() = (
+   [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;Ineq.node2_y;Ineq.node3_y;
-   Ineq.rhazim2;Ineq.rhazim3] @ (!Ineq.dart_classes);;
+   Ineq.rhazim2;Ineq.rhazim3] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
    Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5];;
    *)
 
 let prep_term t = 
-  let t' = REWRITE_CONV (!macro_expand) (strip_let_tm t) in
+  let t' = REWRITE_CONV (get_macro_expand()) (strip_let_tm t) in
   let (a,b)=  dest_eq (concl t') in
     b;;
 

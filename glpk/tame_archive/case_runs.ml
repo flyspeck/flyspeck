@@ -11,9 +11,11 @@
 flyspeck_needs "nonlinear/parse_ineq.hl";;
 flyspeck_needs "nonlinear/temp_ineq.hl";;
 flyspeck_needs "../glpk/tame_archive/lpproc.ml";;
+flyspeck_needs "../glpk/tame_archive/hard_lp.ml";;
 
 module Lp_case_analysis = struct
 
+  open Glpk_link;;
   open Lpproc;;
   open Hard_lp;;
   open List;;
@@ -30,6 +32,8 @@ let display_ampl =
 
 let display_lp bb = Glpk_link.display_lp 
   Lpproc.model tmpfile Lpproc.glpk_outfile Lpproc.ampl_of_bb bb ;;
+
+
 
 let remake_model = 
   let bodyfile =  Filename.temp_file "body_" ".mod" in
@@ -49,9 +53,14 @@ let hard_string_rep =
    List.find_all (fun s -> mem (fst (Glpk_link.convert_to_list s)) hardid) 
    (Glpk_link.strip_archive (!Lpproc.archiveraw));;
 
+let resolve_with_hints t = 
+  let u = resolve t in 
+  let _ = add_hints_force u in
+    u;;
+
 let hard_bb =  
-  let r = map Lpproc.mk_bb hard_string_rep in
-  map (fun t -> let u = Hard_lp.resolve t in (Hard_lp.add_hints_force u; u)) r;;
+  let r = map mk_bb hard_string_rep in
+  map resolve_with_hints r;;
 
 let hard i = List.nth hard_bb i;;
 (* map mk_gif hard_bb;; *)
@@ -74,26 +83,72 @@ let b75641658977() =
   let b5 = allpass_hint 500 b4 in
     b5;;
 
-(* hard 9 88089363170 *)
-resetc();;
+(* this eliminates hard 9 88089363170 *)
+
+let b88089363170() = allpass_hint 1000 [hard 9];;
+
+(*
+Glpk_link.resetc();;
 let b1 = allpass_hint 500 [hard 9];;
-let b3 = allpass_hint 20 b1;;
-let bx = nth b3 0;;
+let bx = nth b1 0;; (* 12.011042 , it has become worse?? *) (* 12.0074 *)
 #print_length 600;;
- (fun t-> (t.hints = [])) b3);;
+resolve_with_hints bx;; (* 0 *)
+let b1' = tl b1;;
+let b2 = allpass_hint 500 b1';;
+*)
+
+(* hard 8 , XX work in progress.  *)
+Glpk_link.resetc();;
+let b1 = allpass_hint 500 [hard 8];;
+let bx = hd b1;;
+
+(* OLD *)
+length (filter (fun t-> (t.hints = [])) b1);;
 bx;;
 sorted_azim_diff darts_of_std_tri bx;; 
 sorted_azim_weighted_diff (fun bb -> rotation (bb.apex_flat))  bx;; 
-get_azim_table [0;3;5] bx;;
-get_azim_table [4;5;3] bx;;
+display_ampl bx;;
+get_azim_table [3;4;0] bx;;
+get_azim_table [3;0;2] bx;;
+
+(* pick it up here tomorrow *)
+let jj = generate_ineq_datum_p
+  "mDihedral" "{2.09,2.1,2.1,2.52,2,2}"  
+   "{2,2,2,2.52,2,2}" "{2.18,2.52,2.52,sqrt8,2.52,2.52}";;
+let fn = Temp_ineq.ocaml_eval jj;;
+testvalsym fn [3;4;0] bx;;
+
+testvalsym (Temp_ineq.ocaml_eval(hd(Ineq.getexact "8384511215"))) [0;3;5] bx;;
+testvalsym (Temp_ineq.ocaml_eval(hd(Ineq.getexact "7291663656"))) [0;3;5] bx;;
+testvalsym (fun y1 y2 y3 y4 y5 y6 -> [y1;y2;y3;y4;y5;y6]) [0;3;5] bx;;
+let jj = generate_ineq_datum_p
+  "Dihedral2" "{2.18,2.18,2,2.65,2,2.3}"  
+   "{2,2,2,2.52,2,2}" "{2.18,2.52,2.52,sqrt8,2.52,2.52}";;
+
+
 get_azim_table [0;1;3] bx;;
-let iqd = hd(Ineq.getexact "5000076558");;
-let fn = Temp_ineq.ocaml_eval iqd;;
-fn 2. 2. 2. 2.52 2. 2.;;
-let ii = generate_ineq_datum_p "Dihedral2" "{2,2,2.3,2.52,2,2.2}"
- "{2,2,2,2.25,2,2}" "{2.52,2.52,2.52,sqrt8,2.52,2.52}";;
-let tempval = ref junkval;;
- fn 
+let ii = generate_ineq_datum_p "Dihedral2" "{2,2,2.3,2.65,2,2.2}"
+ "{2,2,2,2.52,2,2}" "{2.52,2.52,2.52,sqrt8,2.52,2.52}";;
+let fn = Temp_ineq.ocaml_eval ii;;
+testvalsym fn [0;3;5] bx;; (* 0.139931, lousy here, need a new ineq. *)
+testval fn [4;5;3] bx;;  (* 0.0629 , install it. *)
+testval fn [0;1;3] bx;;  (* 0.0464 , install it. *)
+testvalsym (fun y1 y2 y3 y4 y5 y6 -> [y1;y2;y3;y4;y5;y6]) [0;3;5] bx;;
+let jj = generate_ineq_datum_p "Dihedral2" "{2.18,2.0,2.2,2.6,2.0,2.25}"
+   "{2,2,2,2.52,2,2}" "{2.52,2.52,2.52,sqrt8,2.52,2.52}";;
+let jj = generate_ineq_datum 
+  "Dihedral" "{2,2,2,2,2,2}" "{2.18,2.18,2.18,2.25,2.25,2.25}";;
+let jj = generate_ineq_datum_p
+  "Dihedral" "{2,2.1,2.1,2,2.25,2.25}" "{2,2,2,2,2,2}" "{2.18,2.18,2.18,2.25,2.25,2.25}";;
+let fnjj = Temp_ineq.ocaml_eval jj;;
+let idq = hd(Ineq.getexact "9229542852");;
+let fn9 = Temp_ineq.ocaml_eval idq;;
+testval fnjj [5;9;0] bx;;
+get_azim_table [5;9;0] bx;;
+remake_model();;
+resolve (hard 9);;
+
+
 
 (* OLD experiments *)
 

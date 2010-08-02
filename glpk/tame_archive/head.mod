@@ -181,7 +181,9 @@ set apex_std3_hll := setof{(i1,i2,i3,j) in e_dart :
    i3 in node_200_218 and
    j in std3}(i2,j);
 
+#combined with dart_std3_mini, which does not have to be small!
 set dart_std3_small_200_218 := dart_std3_200_218 inter dart_std3_small;
+
 set dart_std3_big_200_218 := dart_std3_200_218 inter dart_std3_big;
 set apex_std3_small_hll := apex_std3_hll inter dart_std3_small;
 
@@ -327,8 +329,18 @@ set apexfA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i2,j);
 set apexffA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i3,j);
 
 # added Aug 1, 2010.  low and wide.
+
 set dart_std3_lw  :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in dart_std3_big and i in node_200_218}  (i,j);
 
+# added Aug 2, 2010.
+
+set dart_std3_mini := dart_std3_small_200_218 union 
+   setof {(i1,i2,i3,j) in e_dart: (i1,j) in d_edge_225_252 
+     and      (i2,j) in d_edge_225_252 and (i3,j) in d_edge_225_252 
+     and i1 in node_200_218 
+     and i2 in node_200_218 and i3 in node_200_218 } (i1,j);
+
+set apex_flat_l := {(i,j) in apex_flat : i in node_200_218 };
 
 # PUT auto generated body here.
 

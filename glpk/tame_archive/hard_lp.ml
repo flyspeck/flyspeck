@@ -110,6 +110,8 @@ let testval f xs bb =
   let (y1,y2,y3,y4,y5,y6,_,_,_,_,_) = get_azim_table xs bb in
   f y1 y2 y3 y4 y5 y6;;
 
+let testvalsym d  = testval (fun y1 y2 y3 y4 y5 y6 -> d y1 y3 y2 y4 y6 y5);;
+
 (* get_azim_table dih_y [2;4;3] bb;; *)
 
 let get_azim_dart_diff f xs bb = 
@@ -257,15 +259,18 @@ A directed edge is in the same category as the oppositely directed edge.
 let set_face_numerics bb = 
   let opp xs = nub (xs @ map (C opposite_edge bb) xs) in
   let edge_of_small = opp (rotation bb.std3_small) in
+  let short_edge = opp bb.d_edge_200_225 in
   let long_edge = opp bb.d_edge_225_252 in
   let _ =  (intersect edge_of_small long_edge = []) or failwith "set_face_numerics" in
-  let adds =  subtract edge_of_small bb.d_edge_200_225 in
-  let shortfields = (map (fun t-> ("e_200_225",t)) adds) in
+  let shortadds =  subtract (edge_of_small @ short_edge) bb.d_edge_200_225 in
+  let shortfields = (map (fun t-> ("e_200_225",t)) shortadds) in
+  let longadds =  subtract long_edge bb.d_edge_225_252 in
+  let longfields = (map (fun t-> ("e_225_252",t)) longadds) in
   let r = filter (fun t -> mem t (std_faces bb) & (length t = 3) )
           (nub (map (C face_of_dart bb) long_edge)) in
   let _ = (intersect (rotation bb.std3_small) r =[]) or failwith "set_face_numerics" in
   let bigfields = map (fun t -> ("bt",t)) (subtract r bb.std3_big) in
-  let fields = shortfields @ bigfields in
+  let fields = shortfields @ longfields @ bigfields in
     if fields=[] then bb else     modify_bb bb false fields [];;
 
 

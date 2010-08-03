@@ -332,15 +332,27 @@ set apexffA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i3,j);
 
 set dart_std3_lw  :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in dart_std3_big and i in node_200_218}  (i,j);
 
-# added Aug 2, 2010.
+# added Aug 2, 2010, corrected Aug 3, 2010.
 
 set dart_std3_mini := dart_std3_small_200_218 union 
-   setof {(i1,i2,i3,j) in e_dart: (i1,j) in d_edge_225_252 
-     and      (i2,j) in d_edge_225_252 and (i3,j) in d_edge_225_252 
+   setof {(i1,i2,i3,j) in e_dart: (i1,j) in d_edge_200_225 
+     and      (i2,j) in d_edge_200_225 and (i3,j) in d_edge_200_225 
      and i1 in node_200_218 
      and i2 in node_200_218 and i3 in node_200_218 } (i1,j);
 
 set apex_flat_l := {(i,j) in apex_flat : i in node_200_218 };
+
+# Aug 3, 2010
+
+set apex_std3_lll_xww := 
+  setof {(i,i2,i3,j) in e_dart : (i,j) in d_edge_225_252 
+    and (i3,j) in d_edge_225_252
+    and (i,j) in dart_std3_200_218 } (i,j);
+
+set apex_std3_lll_wxx := 
+  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 
+    and (i,j) in dart_std3_200_218 } (i,j);
+
 
 # PUT auto generated body here.
 

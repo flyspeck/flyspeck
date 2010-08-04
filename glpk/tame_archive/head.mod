@@ -350,8 +350,14 @@ set apex_std3_lll_xww :=
     and (i,j) in dart_std3_200_218 } (i,j);
 
 set apex_std3_lll_wxx := 
-  setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 
+    setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 
     and (i,j) in dart_std3_200_218 } (i,j);
+
+#set apex_std3_mll_nwn :=
+#  setof {(i,i2,i3,j) in e_dart : (i,j) in d_edge_200_225
+#    and (i2,j) in d_edge_200_225  
+#    and (i3,j) in d_edge_225_252
+#    and (i,j) in dart_mll_n  } (i,j);
 
 
 # PUT auto generated body here.

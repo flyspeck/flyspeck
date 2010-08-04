@@ -1,8 +1,9 @@
-(* code automatically generated from formal specification *)
+(* code automatically generated from Parse_ineq.ocaml_code *)
 
-module Sphere_math = struct 
+module Sphere_math = struct
 
-let sqrt = Pervasives.sqrt;;
+let sqrt = Pervasives.sqrt
+
 let pi = 4.0 *. atan(1.0);;
 let  sqrt2   =  sqrt 2. ;;
 
@@ -38,6 +39,9 @@ let  dih_y y1 y2 y3 y4 y5 y6  =  dih_x (y1 *. y1) (y2 *. y2) (y3 *. y3) (y4 *. y
 
 
 let  dih2_y y1 y2 y3 y4 y5 y6  =  dih_y y2 y1 y3 y5 y4 y6 ;;
+
+
+let  dih3_y y1 y2 y3 y4 y5 y6  =  dih_y y3 y1 y2 y6 y4 y5 ;;
 
 
 let  sol_x x1 x2 x3 x4 x5 x6  = ( dih_x x1 x2 x3 x4 x5 x6  +. ( dih_x x2 x3 x1 x5 x6 x4  +. ( dih_x x3 x1 x2 x6 x4 x5  -.   pi  )));;

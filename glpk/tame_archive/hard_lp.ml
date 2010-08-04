@@ -140,7 +140,7 @@ let heuristic_weight d bb =
   if not(mem d (rotation (bb.std3_small @ bb.std3_big))) then 1.0 else
   if not(subset d (bb.node_200_218 @ bb.node_218_252)) then 0.7 else
   if not(subset d (bb.node_200_218 @ bb.node_218_236 @ bb.node_236_252)) then 0.49 else
-  if not(subset (rotation [d]) (bb.d_edge_200_225 @ bb.d_edge_225_252)) then 0.3
+  if not(subset (rotation [d]) (bb.d_edge_200_225 @ bb.d_edge_225_252 @ map (rotateL 1) bb.apex_flat)) then 0.3
   else 0.0;;
 
 (* first entry is the triangle with the biggest azim weighted error. *)
@@ -160,6 +160,9 @@ let sorted_azim_weighted_diff p bb =
 
 let darts_of_std_tri bb =
   rotation(filter (fun t -> length t = 3) bb.std_faces_not_super);;
+
+let darts_of_std_tri_and_flats bb =
+  rotation(filter (fun t -> length t = 3) (bb.std_faces_not_super @ bb.apex_flat));;
 
 let highish bb = subtract bb.node_218_252 (bb.node_218_236 @ bb.node_236_252);;
 
@@ -181,10 +184,27 @@ let add_hints_force bb =
   if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
   ) with Failure _ -> failwith "add_hints";;
 
+let add_hints_force_include_flat bb = 
+  try(
+    let _ = init_hash bb in
+  let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri_and_flats bb)) in 
+  let f = face_of_dart dart bb in
+  if (mem f (rotation bb.std_faces_not_super)) then add_hints_force bb else
+  let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
+  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
+    let f2 = intersect (highish bb) f in
+  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else ()
+  ) with Failure _ -> failwith "add_hints_flat";;
+
 let add_hints bb = 
   if not(is_feas bb) then () else
   if not(bb.hints = []) then () else
     add_hints_force bb;;
+
+let add_hints_include_flat bb = 
+  if not(is_feas bb) then () else
+  if not(bb.hints = []) then () else
+    add_hints_force_include_flat bb;;
 
 (* ------------------------ *)
 
@@ -317,6 +337,8 @@ let follow_hint bb =
 
 let filter_feas_hint bbs = filter_feas_f add_hints bbs;;
 
+let filter_feas_hint_include_flat bbs = filter_feas_f add_hints_include_flat bbs;;
+
 let switch_hint bb = 
    if (length bb.std_faces_not_super > 0) & 
       (length (hd bb.std_faces_not_super) > 3) then switch_face bb 
@@ -341,6 +363,20 @@ let onepass_hint = function
 
 let rec allpass_hint count bbs = 
    if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
+
+let onepass_hint_include_flat = function 
+  [] -> []
+  | bb::bbss as bbs -> 
+  let _ = onepass_backup := bbs in
+  let brs =  switch_hint bb in
+  let brs1 = map set_face_numerics brs in
+  let brs2 = map set_node_numerics brs1 in
+  let _ = echo bbs in
+    sortbb ((filter_feas_hint_include_flat brs2) @ bbss);;
+
+let rec allpass_hint_include_flat count bbs = 
+   if  count <= 0 then bbs else allpass_hint_include_flat (count - 1) 
+   (onepass_hint_include_flat bbs);;
 
 (* for debugging, we don't want overly long lists. Pick out random elts. *)
 

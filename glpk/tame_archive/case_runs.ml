@@ -33,8 +33,6 @@ let display_ampl =
 let display_lp bb = Glpk_link.display_lp 
   Lpproc.model tmpfile Lpproc.glpk_outfile Lpproc.ampl_of_bb bb ;;
 
-
-
 let remake_model = 
   let bodyfile =  Filename.temp_file "body_" ".mod" in
   let m = Lpproc.model in
@@ -58,6 +56,11 @@ let hard_string_rep =
 let resolve_with_hints t = 
   let u = resolve t in 
   let _ = add_hints_force u in
+    u;;
+
+let resolve_with_hints_include_flat t = 
+  let u = resolve t in 
+  let _ = add_hints_force_include_flat u in
     u;;
 
 let hard_bb =  
@@ -99,77 +102,15 @@ let b1' = tl b1;;
 let b2 = allpass_hint 500 b1';;
 *)
 
-(*
-(* hard 8 , early notes work in progress.  *)
-Glpk_link.resetc();;
-let b1 = allpass_hint 500 [hard 8];;
-let bx = hd b1;;
+let b86506100695() = allpass_hint 2000 [hard 8];;
 
-(* Aug 3 notes on hard 8. *)
-length (filter (fun t-> (t.hints = [])) b1);;
-bx;;
-sorted_azim_diff darts_of_std_tri bx;; 
-sorted_azim_weighted_diff (fun bb -> rotation (bb.apex_flat))  bx;; 
-display_ampl bx;;
-get_azim_table[6;11;4] bx;; (* lll_xww *)
-let jj = generate_ineq_datum_p  
-  "Dihedral" "{2,2,2.14,2,2.25,2.25}" "{2,2,2,2,2.25,2.25}" "{2.18,2.18,2.18,2.52,2.52,2.52}";;
-jj;;
-let fjj = ocaml_eval jj;;
-testval fjj  [6;11;4] bx;;  (* 0.035  not great, but use it *)
+let b242652038506() =  allpass_hint 10 [hard 7];;
 
-(* Aug 3 am . TO HERE, the ineq above has been added to the system, but haven't
-    called remake, the one below is in the makes.  It hasn't been added,
-    still at the experimentation stages.  *)
+let b179189825656() = allpass_hint 50 [hard 6];;
 
-get_azim_table [3;6;4] bx;;   (* lll_wxx *)
-let kk = generate_ineq_datum  "Dihedral2" "{2,2,2,2.25,2,2}" "{2.18,2.18,2.18,2.52,2.52,2.52}";;
-let fkk = ocaml_eval kk;;
-testvalsym fkk [3;6;4] bx;;  (* 0.012, not great, but use *)
-let bx1 = clone bx;;
-remake_model();;
-bx.lpvalue;;  (* 12.05 *)
-resolve_with_hints bx1;;  (* This digression has helped.  12.018 *)
-length b1;;
-get_azim_table [3;4;0] bx;;  
-let jj1 = generate_ineq_datum_p  
-  "mDihedral" "{2.18,2.1,2.1,2.52,2,2}" "{2,2,2,2.52,2,2}" "{2.52,2.52,2.52,sqrt8,2.52,2.52}";;
-let fjj1 = ocaml_eval jj1;;
-testvalsym fjj1 [3;4;0] bx;;  (* 0.045, not great, but use *)
-let bx1 = clone bx;;
-remake_model();;
-resolve_with_hints bx1;;  (* This digression didn't  help, still  12.018 *)
-get_azim_table [3;4;0] bx1;;  (* but it made the angles more accurate. *)
-sorted_azim_diff darts_of_std_tri bx1;;  (* [6;3;2], a mini *)
-get_azim_table [6;3;2] bx1;;
-let jj2 = generate_ineq_datum_p 
-   "Dihedral" "{2,2.18,2.18,2,2.25,2.25}" "{2,2,2,2,2,2}" "{2.18,2.18,2.18,2.25,2.25,2.25}";;
-let fjj2 = ocaml_eval jj2;;
-testval fjj2 [6;3;2] bx1;;   (* 0.005 huge improvement, use *)
-get_azim_table [6;3;2] bx1;;
-let jj3 = generate_ineq_datum_p 
-   "mDihedral2" "{2,2.18,2.18,2,2.25,2.25}" "{2,2,2,2,2,2}" "{2.18,2.18,2.18,2.25,2.25,2.25}";;
-jj3;;
-let fjj3 = ocaml_eval jj3;;
-testval fjj3 [6;3;2] bx1;;   (* 0.003 huge improvement, use *)
-let bx2 = clone bx;;
-remake_model();;
-resolve_with_hints bx2;;  (* still 12.018 *)
-get_azim_table [6;3;2] bx2;;  (* This didn't fix the angles, there must be a bug *)
-(* why didn't 9828015955 ineq get used?? *)
-display_lp bx2;;
-modelbody;;
-Glpk_link.cpx_branch model "/tmp/cpx.out"  ampl_of_bb bx2;;
-(* bug found dart_std3_mini incorrectly defined in head.mod, fixed. Aug 3, 2010 *)
-let bx2 = clone bx;;
-remake_model();;
-resolve_with_hints bx2;;  (* still 0.0, bug fixed!, unneeded mini inequalities removed. *)
-*)
+let b39599353438() = allpass_hint 10 [hard 4];;
 
-(* hard 8 , restart work in progress.  *)
-Glpk_link.resetc();;
-let b1 = allpass_hint 5000 [hard 8];;
-
+let b50803004532() = allpass_hint 500 [hard 2];;
 
 
 (* OLD *)

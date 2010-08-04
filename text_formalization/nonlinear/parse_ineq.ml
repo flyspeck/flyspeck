@@ -353,14 +353,14 @@ let compile () =
       ("dih2_y","dih3_y");] in
      let f (a,b) = (b,a) in
      let ys =     xs @ map f xs in
-       fun s -> try (assoc s ys) with Failure _ -> s;;
+       fun s -> try (List.assoc s ys) with Not_found -> s;;
 
   let glpk_lookup rev s xs =
     let s' = if rev then reverse s else s in
     if (xs = yy6) or (xs = yy9) then
-      try (assoc s' (!translate)) with Failure _ -> failwith ("glpk_lookup translate" ^ s)
+      try (List.assoc s' (!translate)) with Not_found -> failwith ("glpk_lookup translate" ^ s)
     else if xs = [] then 
-      try (assoc s' (!translate)) with Failure _ -> (s'^"[i,j]")
+      try (List.assoc s' (!translate)) with Not_found -> (s'^"[i,j]")
     else  failwith ("glpk_lookup unknown arg list:" ^ s);;
 
  let rec glpk_form rev t =
@@ -473,7 +473,7 @@ let ocaml_function t =
 
 let ocaml_autogen = map (function b -> snd(strip_forall (concl (strip_let b))))
    [sqrt2;sqrt8;delta_x;delta_y;delta_x4;delta_x6;ups_x;eta_x;
-    eta_y;dih_x;dih_y;dih2_y;sol_x;sol_y;interp;ly;const1;rho;rhazim;lnazim;taum];;
+    eta_y;dih_x;dih_y;dih2_y;dih3_y;sol_x;sol_y;interp;ly;const1;rho;rhazim;lnazim;taum];;
 
 
 let ocaml_code = 

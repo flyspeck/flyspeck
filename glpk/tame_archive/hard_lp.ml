@@ -382,5 +382,25 @@ let rec allpass_hint_include_flat count bbs =
    if  count <= 0 then bbs else allpass_hint_include_flat (count - 1) 
    (onepass_hint_include_flat bbs);;
 
+let hard_string_rep() = 
+   List.find_all (fun s -> mem (fst (Glpk_link.convert_to_list s)) hardid) 
+   (Glpk_link.strip_archive (!Lpproc.archiveraw));;
+
+let resolve_with_hints_include_flat t = 
+  let u = resolve t in 
+  let _ = add_hints_force_include_flat u in
+    u;;
+
+let hard_bb() =  
+  let r = map mk_bb (hard_string_rep()) in
+  map resolve_with_hints_include_flat r;;
+
+let hard i = List.nth (hard_bb()) i;;
+
+(* if successful, all 12 lists will be empty *)
+
+let execute() = 
+  let _ = resetc() in
+  map (fun t-> allpass_hint_include_flat 20000 [t]) (hard_bb());;
 
 end;;

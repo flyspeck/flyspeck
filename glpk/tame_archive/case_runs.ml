@@ -50,50 +50,11 @@ let hard_bb =
 
 let execute() = 
   let _ = resetc() in
-  map allpass_hint_include_flat 50000 hard_bb;;
+  map (fun t-> allpass_hint_include_flat 50000 [t]) hard_bb;;
 
 
-(* Don't need the rest of the file, if execute works. *)
 
 let hard i = List.nth hard_bb i;;
-
-
-(* this eliminates case 11 *)
-let b34970074286() = allpass_hint 500 [hard 11];;
-
-(* this eliminates case 10, about 5000 linear programs *)
-
-let b75641658977() = allpass_hint 2500 [hard 10];;
-
-(*
-  let b1 = allpass_hint 500 [hard 10] in
-  let b2 = allpass_hint 500 b1 in
-  let b3 = allpass_hint 500 b2 in
-  let b4 = allpass_hint 500 b3 in
-  let b5 = allpass_hint 500 b4 in
-    b5;;
-*)
-
-
-let b88089363170() = allpass_hint 1000 [hard 9];;
-
-let b86506100695() = allpass_hint 2000 [hard 8];;
-
-let b242652038506() =  allpass_hint 10 [hard 7];;
-
-let b179189825656() = allpass_hint 50 [hard 6];;
-
-(* missing 5, running. *)
-
-let b39599353438() = allpass_hint 10 [hard 4];;
-
-let b65974205892() = allpass_hint 30 [hard 3];;
-
-let b50803004532() = allpass_hint 500 [hard 2];;
-
-let b223336279535() = allpass_hint_include_flat 20000 [hard 1];;
-
-let b161847242261() = allpass_hint 5000 [hard 0];;  (* runs to 3583 *)
 
 
 end;;

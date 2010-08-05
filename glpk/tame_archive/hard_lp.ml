@@ -193,7 +193,8 @@ let add_hints_force_include_flat bb =
   let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
   if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
     let f2 = intersect (highish bb) f in
-  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else ()
+  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else 
+    add_hints_force bb
   ) with Failure _ -> failwith "add_hints_flat";;
 
 let add_hints bb = 

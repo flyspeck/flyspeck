@@ -181,6 +181,13 @@ set apex_std3_hll := setof{(i1,i2,i3,j) in e_dart :
    i3 in node_200_218 and
    j in std3}(i2,j);
 
+set apex_std3_lhh := setof{(i1,i2,i3,j) in e_dart : 
+   i1 in node_218_252 and
+   i2 in node_200_218 and
+   i3 in node_218_252 and
+   j in std3}(i2,j);
+
+
 #combined with dart_std3_mini, which does not have to be small!
 set dart_std3_small_200_218 := dart_std3_200_218 inter dart_std3_small;
 

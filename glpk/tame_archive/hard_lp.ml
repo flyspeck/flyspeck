@@ -1,11 +1,16 @@
 (* ========================================================================== *)
-(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* FLYSPECK - CODE FORMALIZATION                                              *)
 (*                                                                            *)
-(* Chapter: Linear Programs                                                               *)
+(* Program: Linear Programs                                                   *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2010-08-01                                                           *)
 (* ========================================================================== *)
 
+
+(*
+The purpose of this file is to treat the 12 hard tame hypermaps that
+are not treated in lpproc.ml.
+*)
 
 module Hard_lp = struct 
 
@@ -28,14 +33,13 @@ open Lpproc;;
 let sqrt = Pervasives.sqrt;;
 let dih_y = Sphere_math.dih_y;;
 
-(* Generate graphics files of a branchnbound, save gif as a /tmp file.  *)
+(*
+The purpose of this first section is to build up tables of what the
+LP solution gives as the dihedral angles 
+versus the floating point calculation of dihedral angles.
 
-let mk_gif bb = (Sys.chdir 
- "/Users/thomashales/Desktop/googlecode/flyspeck/graph_generator/classes"; 
- Sys.command 
-    ("java render/Gendot \""^bb.string_rep ^
-      "\" | neato -s -n -Tgif -o "^ 
-    (Filename.temp_file ("render"^bb.hypermap_id^"_") (".gif"))));;
+The idea is that branching should occur where the discrepancy is the biggest.
+*)
 
 (* build up hashtables of all the variables assignments from the glpk_outfile *)
 
@@ -97,20 +101,6 @@ let init_hash bb =
 (* look at edge lengths and azimuth angles of a triangle *)
 let int_of_face xs bb = wheremod (faces bb) xs;;
 
-let get_azim_table xs bb = 
-   let [y1;y2;y3] = map (yn bb) xs in
-   let [y6;y4;y5] = map (fun i -> ye bb ( i, int_of_face xs bb)) xs in
-   let [a1;a2;a3] = map (fun i -> azim bb (i, int_of_face xs bb)) xs in
-   let b1 = dih_y y1 y2 y3 y4 y5 y6 in
-   let b2 = dih_y y2 y3 y1 y5 y6 y4 in
-   let b3 = dih_y y3 y1 y2 y6 y4 y5 in
-   (y1,y2,y3,y4,y5,y6,("dih_lp",a1,"dih_y",b1,a1-. b1),("dih2_lp",a2,"dih2_y",b2,a2-. b2),("dih3_lp",a3,"dih3_y",b3,a3 -. b3),"soldiff",a1+. a2 +. a3 -.( b1 +. b2 +. b3));;
-
-let testval f xs bb = 
-  let (y1,y2,y3,y4,y5,y6,_,_,_,_,_) = get_azim_table xs bb in
-  f y1 y2 y3 y4 y5 y6;;
-
-let testvalsym d  = testval (fun y1 y2 y3 y4 y5 y6 -> d y1 y3 y2 y4 y6 y5);;
 
 (* get_azim_table dih_y [2;4;3] bb;; *)
 
@@ -134,7 +124,7 @@ let sorted_azim_diff p bb =
     possibilities because we can get stuck on a single triangle.  We need a
     heuristic that moves emphasis away from triangles where extensive branching
     has already been done.  Here is my heuristic to do so.   Many different
-    strategies are possible.   *)
+    strategies are possible.  This works sufficiently well in practice.  *)
 
 let heuristic_weight d bb = 
   if not(mem d (rotation (bb.std3_small @ bb.std3_big))) then 1.0 else
@@ -169,6 +159,15 @@ let highish bb = subtract bb.node_218_252 (bb.node_218_236 @ bb.node_236_252);;
 let face_of_dart fc bb = 
   let xss = map triples (faces bb) in
   nth (find (fun t -> mem fc t) xss) 0;;
+
+(*
+
+There are parallel versions of several functions here
+XX and XX_include_flat.
+I think we can use the XX_include_flat version everywhere and
+delete the others.
+
+*)
 
 let add_hints_force bb = 
   try(
@@ -226,14 +225,6 @@ let findid s  = find (fun t -> s = t.hypermap_id);;
 
 let findid_list s = filter (fun t -> s = t.hypermap_id);;
 
-(*   *)
-
-let check_basic_format bb =
-    (subset bb.std3_small  (rotation bb.std_faces_not_super)) &
-    (subset bb.std3_big (rotation bb.std_faces_not_super)) &
-    (intersect (rotation bb.std3_small) (rotation bb.std3_big) = []) &
-    (subset bb.node_218_236 bb.node_218_252) &
-    (subset bb.node_236_252 bb.node_218_252);;
 
 (*
 We are proving the bound L(V) <= 12.  When there are 13 nodes,
@@ -304,7 +295,11 @@ let t1 = modify_bb pent_bb false ["e_225_252",[7;12;11]] [];;
 set_face_numerics t1;;
 *)
 
-
+(*
+Hints are given as a list.  However, I never ended up using more
+than a single hint at a time.  It could be restructured as 
+Some _ | None.
+*)
 
 (* ------------------------ *)
 (* switch and selection functions *)
@@ -345,12 +340,17 @@ let switch_hint bb =
       (length (hd bb.std_faces_not_super) > 3) then switch_face bb 
    else if not(bb.hints = []) then follow_hint bb else [bb];;
 
-let onepass_backup = ref [];;  (* in case we interrupt a calculation *)
+
+(* For debugging purposes, when we interrupt a calculation *)
+
+let onepass_backup = ref [];;  
 
 let sortbb bbs = 
   let eval bb = (match bb.lpvalue with None -> 0.0 | Some r -> r) in
   let v = List.sort (fun a b -> - compare (eval a) (eval b)) bbs in
    v;;
+
+(* One iteration of the main loop *)
 
 let onepass_hint = function 
   [] -> []
@@ -362,9 +362,6 @@ let onepass_hint = function
   let _ = echo bbs in
     sortbb ((filter_feas_hint brs2) @ bbss);;
 
-let rec allpass_hint count bbs = 
-   if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
-
 let onepass_hint_include_flat = function 
   [] -> []
   | bb::bbss as bbs -> 
@@ -375,33 +372,15 @@ let onepass_hint_include_flat = function
   let _ = echo bbs in
     sortbb ((filter_feas_hint_include_flat brs2) @ bbss);;
 
+
+(* The main loop *)
+
+let rec allpass_hint count bbs = 
+   if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
+
 let rec allpass_hint_include_flat count bbs = 
    if  count <= 0 then bbs else allpass_hint_include_flat (count - 1) 
    (onepass_hint_include_flat bbs);;
-
-(* for debugging, we don't want overly long lists. Pick out random elts. *)
-
-let random_elt xs = 
-  let i = Random.int (length xs) in
-  let r = nth xs i in
-   r, (subtract xs [r]);;
-
-let rec random_elts n xs =
-  if n=0 then ([],xs) else 
-    let (a,b) = random_elts (n-1)  xs in
-    let (r,s) = random_elt b in (r::a,s);;
-
-let get_highest n bbs =
-  let eval bb = (match bb.lpvalue with None -> 0.0 | Some r -> r) in
-  (chop_list n (sort (fun b1 b2 -> eval b1 > eval b2) bbs));;
-
-let prune_results n bbs = 
-   if length bbs <= 2*n then bbs else
-     let (b1,b2) = get_highest n bbs in
-     b1 @ fst (random_elts n b2);;
-     
-let rec allpass_prune_hint prune count bbs = 
-   if  count <= 0 then bbs else allpass_prune_hint prune (count - 1) (prune_results prune (onepass_hint bbs));;
 
 
 end;;

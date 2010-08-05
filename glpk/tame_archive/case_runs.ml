@@ -21,37 +21,11 @@ module Lp_case_analysis = struct
   open List;;
   open Sphere_math;;
   open Temp_ineq;;  (* needs to be open for referencing in external files to work properly!  *)
-
-(* Experimental section from here to the end of the file to eliminate final cases. *)
-  let tmpfile = Filename.temp_file "display_ampl_" ".dat";;
+  open Tame_scaffolding;;
 
 Lpproc.archiveraw := "/Users/thomashales/Desktop/workspace/hanoi_workshop_files/tame_archive_svn1830.txt";;
 
-let display_ampl =
-   fun bb -> Glpk_link.display_ampl tmpfile Lpproc.ampl_of_bb bb;;
-
-let display_lp bb = Glpk_link.display_lp 
-  Lpproc.model tmpfile Lpproc.glpk_outfile Lpproc.ampl_of_bb bb ;;
-
-let remake_model = 
-  let bodyfile =  Filename.temp_file "body_" ".mod" in
-  let m = Lpproc.model in
-  fun () ->
-    let _ = Lpproc.modelbody := bodyfile in
-    let _ = Parse_ineq.output_string bodyfile (Parse_ineq.lpstring()) in    
-    let _ = Sys.chdir(tame_dir) in
-      Sys.command("cp head.mod "^m^"; cat "^bodyfile^" >> "^
-                     m^"; cat tail.mod >> "^m);;
-
 remake_model();;
-
-let clone bb = modify_bb bb false [] [];;
-
-
-let unset_edge bb = 
-  let f = rotation (faces bb) in
-  let g x = map (fun t -> [nth t 0; nth t 1]) x in
-  sort (<) (nub(subtract (g f) (g bb.d_edge_200_225 @ g bb.d_edge_225_252)));;
 
 let hardid = Lpproc.hardid;;
 
@@ -71,12 +45,17 @@ let resolve_with_hints_include_flat t =
 
 let hard_bb =  
   let r = map mk_bb hard_string_rep in
-  map resolve_with_hints r;;
+  map resolve_with_hints_include_flat r;;
+
+
+let execute() = 
+  let _ = resetc() in
+  map allpass_hint_include_flat 50000 hard_bb;;
+
+
+(* Don't need the rest of the file, if execute works. *)
 
 let hard i = List.nth hard_bb i;;
-(* map mk_gif hard_bb;; *)
-
-(* restart Aug 2, 2010 *)
 
 
 (* this eliminates case 11 *)
@@ -95,7 +74,6 @@ let b75641658977() = allpass_hint 2500 [hard 10];;
     b5;;
 *)
 
-(* this eliminates hard 9 88089363170 *)
 
 let b88089363170() = allpass_hint 1000 [hard 9];;
 
@@ -105,7 +83,7 @@ let b242652038506() =  allpass_hint 10 [hard 7];;
 
 let b179189825656() = allpass_hint 50 [hard 6];;
 
-(* missing 5 *)
+(* missing 5, running. *)
 
 let b39599353438() = allpass_hint 10 [hard 4];;
 

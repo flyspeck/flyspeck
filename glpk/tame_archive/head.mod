@@ -366,6 +366,10 @@ set apex_std3_lll_wxx :=
 #    and (i3,j) in d_edge_225_252
 #    and (i,j) in dart_mll_n  } (i,j);
 
+# Aug 5, 2010.
+
+set apex_flat_h :=  {(i,j) in apex_flat : i in node_218_252 };
+
 
 # PUT auto generated body here.
 

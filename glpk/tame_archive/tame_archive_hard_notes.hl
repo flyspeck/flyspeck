@@ -35,12 +35,85 @@ raise (failwith "File is not executable");;
 
 open Temp_ineq;;
 
+(*
+
+(* There are parallel versions of several functions here XX and
+  XX_include_flat.  I think we can use the XX_include_flat version
+  everywhere and delete the others.
+*)
+
+  let add_hints_force bb = 
+  try(
+  let _ = init_hash bb in
+  let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri bb)) in 
+  let f = face_of_dart dart bb in
+  if not(mem f (bb.std3_big @ bb.std3_small)) then bb.hints <-  [Triangle_split f] else
+  let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
+  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
+  let f2 = intersect (highish bb) f in
+  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else
+  let d1 = subtract (rotation [dart]) (bb.d_edge_200_225 @ bb.d_edge_225_252) in
+  if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
+  ) with Failure _ -> failwith "add_hints";;
+
+  let add_hints bb = 
+  if not(is_feas bb) then () else
+  if not(bb.hints = []) then () else
+  add_hints_force bb;;
+
+  let filter_feas_hint bbs = filter_feas_f add_hints bbs;;
+
+  let onepass_hint = function 
+  [] -> []
+  | bb::bbss as bbs -> 
+  let _ = onepass_backup := bbs in
+  let brs =  switch_hint bb in
+  let brs1 = map set_face_numerics brs in
+  let brs2 = map set_node_numerics brs1 in
+  let _ = echo bbs in
+  sortbb ((filter_feas_hint brs2) @ bbss);;
+
+  let rec allpass_hint count bbs = 
+  if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
+*)
 
 let resolve_with_hints t = 
   let u = resolve t in 
   let _ = add_hints_force u in
     u;;
 
+
+(* ========================================================================== *)
+(* Case: Hard 11                                                             *)
+(* ========================================================================== *)
+ 
+
+
+(* early note on case 11 *)
+
+
+let bb = findid "34970074286" hard_bb;;
+
+let bb1 = allpass 2 [bb];;
+let bb2 = allpass 4 bb1;;
+let bb3 = allpass 15 bb2;;
+length bb3;; (* 992 *)
+map (fun t -> t.lpvalue) bb3;;
+
+let bbmax = find_max bb3;;
+bbmax;;
+
+init_dumpfile bbmax;;
+init_hash();;
+yn 0;;
+
+dumpfile;;
+get_dumpvar "yn.1.*=";; 
+get_azim_table dih_y [5;4;3] bbmax;;
+
+get_azim_diff dih_y [4;3;5] bbmax;;
+get_tri bbmax;;
+biggest_azim_diff dih_y bbmax;;
 
 
 
@@ -62,6 +135,8 @@ let b2 = allpass_hint 500 b1';;
 (* Case: Hard 8                                                               *)
 (* ========================================================================== *)
 
+
+
 (* hard 8 , early notes work in progress.  *)
 Glpk_link.resetc();;
 let b1 = allpass_hint 500 [hard 8];;
@@ -80,9 +155,9 @@ jj;;
 let fjj = ocaml_eval jj;;
 testval fjj  [6;11;4] bx;;  (* 0.035  not great, but use it *)
 
-(* Aug 3 am . TO HERE, the ineq above has been added to the system, but haven't
-    called remake, the one below is in the makes.  It hasn't been added,
-    still at the experimentation stages.  *)
+(* Aug 3 am . TO HERE, the ineq above has been added to the system,
+   but haven't called remake, the one below is in the makes.  It
+   hasn't been added, still at the experimentation stages.  *)
 
 get_azim_table [3;6;4] bx;;   (* lll_wxx *)
 let kk = generate_ineq_datum  "Dihedral2" "{2,2,2,2.25,2,2}" "{2.18,2.18,2.18,2.52,2.52,2.52}";;

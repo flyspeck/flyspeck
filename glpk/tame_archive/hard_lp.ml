@@ -23,8 +23,6 @@ let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 #use "sphere.ml";;
 *)
 
-
-
 open Str;;
 open List;;
 open Glpk_link;;
@@ -160,29 +158,6 @@ let face_of_dart fc bb =
   let xss = map triples (faces bb) in
   nth (find (fun t -> mem fc t) xss) 0;;
 
-(*
-
-There are parallel versions of several functions here
-XX and XX_include_flat.
-I think we can use the XX_include_flat version everywhere and
-delete the others.
-
-*)
-
-let add_hints_force bb = 
-  try(
-    let _ = init_hash bb in
-  let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri bb)) in 
-  let f = face_of_dart dart bb in
-  if not(mem f (bb.std3_big @ bb.std3_small)) then bb.hints <-  [Triangle_split f] else
-  let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
-  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
-    let f2 = intersect (highish bb) f in
-  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else
-    let d1 = subtract (rotation [dart]) (bb.d_edge_200_225 @ bb.d_edge_225_252) in
-  if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
-  ) with Failure _ -> failwith "add_hints";;
-
 let add_hints_force_include_flat bb = 
   try(
     let _ = init_hash bb in
@@ -196,10 +171,7 @@ let add_hints_force_include_flat bb =
     add_hints_force bb
   ) with Failure _ -> failwith "add_hints_flat";;
 
-let add_hints bb = 
-  if not(is_feas bb) then () else
-  if not(bb.hints = []) then () else
-    add_hints_force bb;;
+
 
 let add_hints_include_flat bb = 
   if not(is_feas bb) then () else
@@ -331,15 +303,12 @@ let follow_hint bb =
   | Edge_split d -> switch_edge d bb in
   let _ = map clear_hint sbb in sbb;;
 
-let filter_feas_hint bbs = filter_feas_f add_hints bbs;;
-
 let filter_feas_hint_include_flat bbs = filter_feas_f add_hints_include_flat bbs;;
 
 let switch_hint bb = 
    if (length bb.std_faces_not_super > 0) & 
       (length (hd bb.std_faces_not_super) > 3) then switch_face bb 
    else if not(bb.hints = []) then follow_hint bb else [bb];;
-
 
 (* For debugging purposes, when we interrupt a calculation *)
 
@@ -351,16 +320,6 @@ let sortbb bbs =
    v;;
 
 (* One iteration of the main loop *)
-
-let onepass_hint = function 
-  [] -> []
-  | bb::bbss as bbs -> 
-  let _ = onepass_backup := bbs in
-  let brs =  switch_hint bb in
-  let brs1 = map set_face_numerics brs in
-  let brs2 = map set_node_numerics brs1 in
-  let _ = echo bbs in
-    sortbb ((filter_feas_hint brs2) @ bbss);;
 
 let onepass_hint_include_flat = function 
   [] -> []
@@ -374,9 +333,6 @@ let onepass_hint_include_flat = function
 
 
 (* The main loop *)
-
-let rec allpass_hint count bbs = 
-   if  count <= 0 then bbs else allpass_hint (count - 1) (onepass_hint bbs);;
 
 let rec allpass_hint_include_flat count bbs = 
    if  count <= 0 then bbs else allpass_hint_include_flat (count - 1) 
@@ -397,7 +353,8 @@ let hard_bb() =
 
 let hard i = List.nth (hard_bb()) i;;
 
-(* if successful, all 12 lists will be empty *)
+(* if successful, all 12 lists will be empty.  This takes several hours
+    to run on my laptop.  *)
 
 let execute() = 
   let _ = resetc() in

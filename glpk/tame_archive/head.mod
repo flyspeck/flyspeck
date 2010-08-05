@@ -17,8 +17,7 @@ quadrilaterals into two flats, certain pentagons into a flat+big4face
 or into 2 flats+apiece, certain hexagons into flat+big5face.  The new
 internal edges of pentagons and hexagons have length 2.52--sqrt8.
 
-
-  The sets std3, std4, std5, std6 index the
+The sets std3, std4, std5, std6 index the
 standard regions.  The other faces are faces of (V,E) obtained by
 adding diagonals to E_std.  If a standard region with 5 or 6 darts is
 has no flat quarters, then it belongs to std56_flat_free.
@@ -173,7 +172,9 @@ set dart_std3_200_218 := setof{(i1,i2,i3,j) in e_dart :
    i3 in node_200_218 and
     j in std3}(i2,j);
 
-# hll means high-low-low
+# l=low, m=midhigh, H=veryhigh, h=high (=m or H).
+# w=wide, n=narrow, x=w or n.
+# hll means y1:high,y2:low,y3:low
 
 set apex_std3_hll := setof{(i1,i2,i3,j) in e_dart : 
    i1 in node_200_218 and
@@ -284,7 +285,7 @@ tau4{j in std4}: tau[j] >= 0.206;
 tau5{j in std5}: tau[j] >= 0.4819;
 tau6{j in std6}: tau[j] >= 0.7578;
 
-## XXD to HERE.
+## SPECIAL NONLINEAR INEQUALITIES
 
 # secondary estimates:
 tauB5h 'ID[]' {(i,j) in apex5}: tau[j] >= 0.6548; # = tame table D[4,1]
@@ -303,7 +304,6 @@ tausf3 'ID[5451229371]'  {(i1,j1,i2,j2) in apex_sup_flat_pair}:
 yapex_sup_flat 'ID[8673686234]' {(i1,j1,i2,j2) in apex_sup_flat_pair}:
    (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
 
-
 # this one based on fact that crossdiag of apex_sup_flat is longer than diag.
 # y4[i1,j1] is the diag, which is shorter than the cross diag. 
 # By monotonicity of dih in opposite edge length, this may be substituted in.
@@ -314,6 +314,8 @@ crossdiag 'ID[1085358243]+'
   (azim[i,j1]+azim[i,j2]) - 1.903 - 0.4*(y1[i,j1] - 2)
   +0.49688*(y2[i,j2]+y3[i,j1]+y5[i,j1]+y6[i,j2]-8)
    -(y4[i1,j1]-sqrt8) >= 0;
+
+## END OF SPECIAL NONLINEAR INEQUALITIES
 
 
 # final dart sets.
@@ -335,11 +337,12 @@ set apexff5 := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex5} (i3,j);
 set apexfA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i2,j);
 set apexffA := setof {(i1,i2,i3,j) in e_dart: (i1,j) in apex_A} (i3,j);
 
-# added Aug 1, 2010.  low and wide.
+# dart sets added Aug 1--5, 2010.  
 
-set dart_std3_lw  :=  setof   {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 and (i,j) in dart_std3_big and i in node_200_218}  (i,j);
-
-# added Aug 2, 2010, corrected Aug 3, 2010.
+set dart_std3_lw  :=  
+   setof   {(i,i2,i3,j) in e_dart :   (i2,j) in d_edge_225_252 
+     and (i,j) in dart_std3_big 
+     and i in node_200_218}  (i,j);
 
 set dart_std3_mini := dart_std3_small_200_218 union 
    setof {(i1,i2,i3,j) in e_dart: (i1,j) in d_edge_200_225 
@@ -349,7 +352,7 @@ set dart_std3_mini := dart_std3_small_200_218 union
 
 set apex_flat_l := {(i,j) in apex_flat : i in node_200_218 };
 
-# Aug 3, 2010
+set apex_flat_h :=  {(i,j) in apex_flat : i in node_218_252 };
 
 set apex_std3_lll_xww := 
   setof {(i,i2,i3,j) in e_dart : (i,j) in d_edge_225_252 
@@ -360,18 +363,7 @@ set apex_std3_lll_wxx :=
     setof {(i,i2,i3,j) in e_dart : (i2,j) in d_edge_225_252 
     and (i,j) in dart_std3_200_218 } (i,j);
 
-#set apex_std3_mll_nwn :=
-#  setof {(i,i2,i3,j) in e_dart : (i,j) in d_edge_200_225
-#    and (i2,j) in d_edge_200_225  
-#    and (i3,j) in d_edge_225_252
-#    and (i,j) in dart_mll_n  } (i,j);
-
-# Aug 5, 2010.
-
-set apex_flat_h :=  {(i,j) in apex_flat : i in node_218_252 };
-
-
-# PUT auto generated body here.
+# Put auto generated body here.
 
 
 

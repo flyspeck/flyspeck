@@ -1,0 +1,120 @@
+(*
+ssh -t wh opt/bin/dmtcp/dmtcp_restart flyspeck.dmtcp
+rsync -ahv ~/doc/flyspeck/ wh:ext/flyspeck/ --exclude .svn
+*)
+
+#load "unix.cma";; (* on Mac OS unix.cma needs to be pre-cooked into the toplevel with ocamlmktop *)
+
+let sergei_path = "sergei/bin/sergei";;
+
+let dest_decimal x = match strip_comb x with
+  | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
+  | (sqrt8,[]) when sqrt8 = `sqrt8` -> div_num (Int 3880899) (Int 1372105)
+  | _ -> failwith ("dest_decimal: '" ^ string_of_term x ^ "'") ;;
+
+let string_of_num' x = string_of_float (float_of_num x);; (* rounding :( *)
+
+let rec sergei_of_ccl t =
+  let soh = sergei_of_ccl in
+  if is_var t then fst (dest_var t) else
+  let (f,xs) = strip_comb t in
+  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
+  (if not (is_const f) then failwith ("Oracle error: " ^ string_of_term f));
+  match fst (dest_const f) with
+  | "real_gt" | "real_ge" | "real_sub" -> ifix "-"
+  | "real_lt" | "real_le" -> ifix_swapped "-"
+  | "real_add" -> ifix "+"
+  | "real_mul" -> ifix "*"
+  | "real_div" -> ifix "/"
+  | "real_pow" -> ifix "^"
+  | "\\/" -> ifix "\\/"
+  | "atn"      -> let [a] = xs in "Atan [" ^ soh a ^ "]"
+  | "sqrt"     -> let [a] = xs in "Sqrt [" ^ soh a ^ "]"
+  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
+  | "pi"       -> let [] = xs in "Pi"
+  | "real_of_num" -> let [a] = xs in string_of_num' (dest_numeral a) (* is this line redundant ? *)
+  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+  | "DECIMAL" ->  string_of_num' (dest_decimal t)
+  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  "(" ^ soh a ^ " ATN2 " ^ soh b ^ ")"
+  | s -> failwith ("Encountered unknown constant '" ^ s ^ "'");;
+
+let sergei_of_goal (asms,ccl) =
+  print_endline "Converting HOL term to sergei format...";
+  let vars = map (fun (_,axb) ->
+         let (ax,xb) = dest_conj (concl axb) in
+         let (a,x) = dest_binary "real_le" ax in
+         let (x',b) = dest_binary "real_le" xb in
+           if x <> x' then
+             failwith ("Malformed assumption: " ^ string_of_term x' ^
+                       " should be " ^ string_of_term x ^ ".")
+           else
+             string_of_num' (dest_decimal a) ^ " <= " ^
+             string_of_term x ^ " <= " ^
+             string_of_num' (dest_decimal b) ^ " ->\n") asms
+  in List.fold_right (^) vars "" ^ " " ^ sergei_of_ccl ccl;;
+
+let SERGEI_TAC : tactic = fun (asms,ccl) ->
+  print_endline ("Running sergei [" ^ sergei_path ^ "]:");
+  let (pin,pout) = Unix.open_process ("time " ^ sergei_path ^ " -nv -e0.00001") in
+    output_string pout (sergei_of_goal (asms,ccl));
+    close_out pout;
+    (try while true do
+      print_endline ("sergei> " ^ input_line pin);
+      flush stdout
+    done with End_of_file -> ());
+    close_in pin; NO_TAC (asms,ccl);;
+
+let SERGEI_DUMP : tactic = fun gl ->
+  print_endline (sergei_of_goal gl); NO_TAC gl;;
+
+let rec SINGLE_CONV c = c
+  ORELSEC (fun t -> if is_comb t then
+             ((RATOR_CONV (SINGLE_CONV c)) ORELSEC (RAND_CONV (SINGLE_CONV c))) t
+           else failwith "SINGLE_CONV");;
+
+let SINGLE_REWR_TAC e = CONV_TAC (CHANGED_CONV (SINGLE_CONV (REWR_CONV e)));;
+
+let ineq' = define
+  `(!         c. ineq'                [] c <=> c)
+/\ (!a x b xs c. ineq' (CONS (a,x,b) xs) c <=> a <= x /\ x <= b ==> ineq' xs c)`;;
+
+(*
+  valid:  (except for x=0, y<=0)
+  useful: y >= 0    (1st & 2nd quadrant)
+*)
+let ATN2_ATN = prove (`atn2(x,y) = &2 * atn(y / (sqrt (x*x + y*y) + x))`, CHEAT_TAC);;
+
+let ATN2_90 = prove (`atn2(x,y) = atn2(--y,x) - pi/(&2)`, CHEAT_TAC);;
+
+let ATN2_30 = prove (`atn2(x,y) = atn2(sqrt (&3) * x - y, x + sqrt (&3) * y) - pi/(&6)`, CHEAT_TAC);;
+
+let ATN2_60 = prove (`atn2(x,y) = atn2(x - sqrt (&3) * y, sqrt (&3) * x + y) - pi/(&3)`, CHEAT_TAC);;
+
+let ATN2_45 = prove (`atn2(x,y) = atn2(x-y,x+y) - pi/(&4)`, CHEAT_TAC);;
+
+(* rotates atan by atan(t):
+valid if we don't cross the discontinuous line *)
+let ATN2_ROT_TAN = prove (`atn2 (x,y) = atn2 (x - y*t, y + x*t) - atn t`, CHEAT_TAC);;
+
+(*
+  valid : x >= 0    (1st & 4th quadrant)
+  useful: x >= 0 and y fixed   (1st & 4th quadrant)
+*)
+let ATN2_ATN_XPOS = prove (`atn2(x,y) = atn(y/x)`, CHEAT_TAC);;
+
+(* rotate such that sign y becomes constant, then use ATN2_ATN.  if we
+   manage to make both sign x and sign y positive, then ATN2_ATN_POS is
+   valid and useful (smaller formula) *)
+
+let delta = [ Sphere.taum; Sphere.sol_y; Sphere.const1; Sphere.lnazim;
+              Sphere.delta_x; Sphere.delta_x4; Sphere.ly; Sphere.interp; Sphere.rhazim; Sphere.tauq;
+              Pack_defs.lmfun (*COND*); Sphere.rho; Sphere.arclength; Sphere.ups_x; Sphere.dih_x; Sphere.dih_y;
+Enclosed.enclosed;
+Quadratic_root_plus.quadratic_root_plus;
+Abc_of_quadratic.abc_of_quadratic;
+Mur.muR; Cayleyr.cayleyR ];;
+
+let PREP =
+  ((REPEAT GEN_TAC) THEN (REWRITE_TAC [prove (`ineq = ineq'`, CHEAT_TAC)]) THEN (REWRITE_TAC [ineq'])) THEN
+  ((REWRITE_TAC delta) THEN (CONV_TAC (TOP_DEPTH_CONV let_CONV)) THEN (REPEAT DISCH_TAC));;

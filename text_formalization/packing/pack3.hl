@@ -4,12 +4,13 @@
 (* Chapter: Packing                                                           *)
 (* Author: Alexey Solovyev                                                    *)
 (* Date: 2010-03-15                                                           *)
-(* Proofs of: KIUMVTC, TIWWFYQ, DRUQUFE, KHEJKCI, IDBEZAL                     *)
+(* Proofs of: KIUMVTC, TIWWFYQ, DRUQUFE                                       *)
 (* ========================================================================== *)
 
 
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "packing/pack_defs.hl";;
+flyspeck_needs "packing/pack2.hl";;
 
 
 module Packing3 = struct
@@ -17,6 +18,9 @@ module Packing3 = struct
 
 open Sphere;;
 open Pack_defs;;
+
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
 
 
 (* Alternative definition of the packing *)
@@ -49,14 +53,209 @@ let discrete = new_definition `discrete S <=> ?e. &0 < e /\ (!x y. x IN S /\ y I
 (* Auxiliary general lemmas *)
 (****************************)
 
-
 let IMAGE_LEMMA = prove(`!s f. IMAGE f s = {f x | x IN s}`, SET_TAC[IMAGE]);;
 
 
 let CHOICE_LEMMA = MESON[] `!y (P:A->bool). ((?x. P x) /\ (!x. P x ==> (x = y))) ==> (@x. P x) = y`;;
 
 
+let SING_GSPEC_APP = prove(`!(f:A->B) a. {f x | x = a} = {f a}`,
+   REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_SING] THEN
+     REPEAT STRIP_TAC THEN
+     EQ_TAC THEN REPEAT STRIP_TAC THENL [ ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+     EXISTS_TAC `a:A` THEN ASM_REWRITE_TAC[]);;
+	 
+
+let SING_UNION_EQ_INSERT = prove(`!s x:A. {x} UNION s = x INSERT s`, SET_TAC[]);;
+
+
+let IN_TRANS = prove(`!(x:A) s t. x IN t /\ t SUBSET s ==> x IN s`, SIMP_TAC[SUBSET]);;
+
+
+let PROJECTION_ORTHOGONAL = prove(`!d v:real^N. projection d v dot d = &0`,
+   REWRITE_TAC[DOT_SYM; projection; VECTOR_SUB_PROJECT_ORTHOGONAL]);;
+
+
+
+let LENGTH_IMP_CONS = prove(`!l:(A)list. 1 <= LENGTH l ==> ?h t. l = CONS h t`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPECL [`l:(A)list`; `PRE (LENGTH (l:(A)list))`] LENGTH_EQ_CONS) THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= n ==> SUC (PRE n) = n`] THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`h:A`; `t:(A)list`] THEN
+     ASM_REWRITE_TAC[]);;
+
+   
+   
+let LENGTH_1_LEMMA = prove(`!ul:(A)list. LENGTH ul = 1 ==> ul = [HD ul]`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC `ul:(A)list` LENGTH_IMP_CONS) THEN
+     ASM_REWRITE_TAC[LE_REFL] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[HD] THEN
+     SUBGOAL_THEN `t:(A)list = []` (fun th -> REWRITE_TAC[th]) THEN
+     MP_TAC (ISPEC `ul:(A)list` LENGTH_TL) THEN
+     ASM_REWRITE_TAC[NOT_CONS_NIL; TL; SUB_REFL; LENGTH_EQ_NIL]);;
+
+
+	 
+	
+let PERMUTES_TRIVIAL = prove(`!p. p permutes 0..0 <=> p = I`,
+   GEN_TAC THEN EQ_TAC THENL
+     [
+       REWRITE_TAC[permutes; FUN_EQ_THM; I_THM; IN_NUMSEG; DE_MORGAN_THM; LE_0; NOT_LE] THEN
+	 REPEAT STRIP_TAC THEN
+	 ASM_CASES_TAC `x = 0` THENL
+	 [
+	   FIRST_X_ASSUM (MP_TAC o SPEC `0`) THEN
+	     REWRITE_TAC[EXISTS_UNIQUE] THEN
+	     STRIP_TAC THEN REMOVE_ASSUM THEN
+	     SUBGOAL_THEN `x' = 0` ASSUME_TAC THENL
+	     [
+	       ASM_CASES_TAC `x' = 0` THEN ASM_REWRITE_TAC[] THEN
+		 FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN
+		 ASM_REWRITE_TAC[ARITH_RULE `0 < x' <=> ~(x' = 0)`];
+	       ALL_TAC
+	     ] THEN
+
+	     UNDISCH_TAC `(p:num->num) x' = 0` THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SIMP_TAC[PERMUTES_I]);;
+	 
+	 
+let CONTAINS_BALL_AFFINE_HULL = prove(`!s (x:real^N) r. &0 < r /\ ball (x,r) SUBSET s ==> affine hull s = UNIV`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SUBSET_ANTISYM THEN
+     REWRITE_TAC[SUBSET_UNIV] THEN
+     MATCH_MP_TAC SUBSET_TRANS THEN
+     EXISTS_TAC `affine hull (ball (x:real^N,r))` THEN
+     ASM_SIMP_TAC[HULL_MONO] THEN
+     SUBGOAL_THEN `affine hull ball (x:real^N,r) = UNIV` (fun th -> REWRITE_TAC[th; SUBSET_REFL]) THEN
+     MATCH_MP_TAC AFFINE_HULL_OPEN THEN
+     ASM_REWRITE_TAC[OPEN_BALL; BALL_EQ_EMPTY; REAL_NOT_LE]);;
+
+	 
+(* conv (A UNION B) = conv(A UNION conv B) *)
+let CONV_UNION_lemma = prove(`!A B:real^N->bool. convex hull (A UNION B) = convex hull (A UNION convex hull B)`,
+   REPEAT GEN_TAC THEN
+     MATCH_MP_TAC CONVEX_HULLS_EQ THEN
+     CONJ_TAC THENL
+     [
+       MATCH_MP_TAC SUBSET_TRANS THEN
+	 EXISTS_TAC `convex hull (A UNION B:real^N->bool)` THEN
+	 REWRITE_TAC[HULL_SUBSET] THEN
+	 MATCH_MP_TAC HULL_MONO THEN
+	 REWRITE_TAC[SUBSET; IN_UNION] THEN
+	 GEN_TAC THEN
+	 DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	 DISJ2_TAC THEN
+	 POP_ASSUM MP_TAC THEN SPEC_TAC (`x:real^N`, `x:real^N`) THEN
+	 REWRITE_TAC[GSYM SUBSET; HULL_SUBSET];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC SUBSET_TRANS THEN
+     EXISTS_TAC `convex hull (A:real^N->bool) UNION convex hull (B:real^N->bool)` THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[SUBSET; IN_UNION] THEN
+	 GEN_TAC THEN DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	 DISJ1_TAC THEN
+	 POP_ASSUM MP_TAC THEN SPEC_TAC (`x:real^N`, `x:real^N`) THEN
+	 REWRITE_TAC[GSYM SUBSET; HULL_SUBSET];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[HULL_UNION_SUBSET]);;
+	 
+	 
+let CONVEX_HULL_EQ_EQ_SET_EQ = prove(`!s t:real^N->bool. ~affine_dependent s /\ ~affine_dependent t ==> 
+				      (convex hull s = convex hull t <=> s = t)`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `FINITE (s:real^N->bool) /\ FINITE (t:real^N->bool)` ASSUME_TAC THENL
+     [
+       ASM_SIMP_TAC[AFFINE_INDEPENDENT_IMP_FINITE];
+       ALL_TAC
+     ] THEN
+     
+     EQ_TAC THEN SIMP_TAC[] THEN
+     DISCH_TAC THEN
+
+     SUBGOAL_THEN `s = {x | x extreme_point_of convex hull s}:real^N->bool` ASSUME_TAC THENL
+     [
+       MP_TAC (ISPEC `s:real^N->bool` EXTREME_POINT_OF_CONVEX_HULL_AFFINE_INDEPENDENT) THEN
+	 ASM_REWRITE_TAC[EXTENSION; IN_ELIM_THM; EQ_SYM_EQ];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `t = {x | x extreme_point_of convex hull t}:real^N->bool` ASSUME_TAC THENL
+     [
+       MP_TAC (ISPEC `t:real^N->bool` EXTREME_POINT_OF_CONVEX_HULL_AFFINE_INDEPENDENT) THEN
+	 ASM_REWRITE_TAC[EXTENSION; IN_ELIM_THM; EQ_SYM_EQ];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (fun th -> ONCE_REWRITE_TAC[th]) THEN
+     POP_ASSUM (fun th -> ONCE_REWRITE_TAC[th]) THEN
+     ASM_REWRITE_TAC[]);;
+	 
+	 
 (* Lemmas about intersections *)
+
+let HULL_INTER_SUBSET_INTER_HULL = prove(`!P s (t:A->bool). P hull (s INTER t) SUBSET P hull s INTER P hull t`,
+   REWRITE_TAC[SUBSET_INTER] THEN
+     REPEAT STRIP_TAC THEN MATCH_MP_TAC HULL_MONO THEN REWRITE_TAC[INTER_SUBSET]);;
+
+
+let HULL_INTER_EQ_INTER = prove(`!P s (t:A->bool). P s /\ P t ==> P hull (s INTER t) = s INTER t`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SUBSET_ANTISYM THEN
+     REWRITE_TAC[HULL_SUBSET] THEN
+     MP_TAC (SPEC_ALL HULL_INTER_SUBSET_INTER_HULL) THEN
+     ASM_SIMP_TAC[HULL_P]);;
+
+
+let SUBSET_INTERS = prove(`!(s:A->bool) f. s SUBSET INTERS f <=> (!t. t IN f ==> s SUBSET t)`, SET_TAC[]);;
+
+
+let HULL_INTERS_SUBSET_INTERS_HULL = prove(`!P:((A->bool)->bool) s. P hull (INTERS s) SUBSET INTERS {P hull t | t IN s}`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[SUBSET_INTERS; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC HULL_MONO THEN
+     REWRITE_TAC[SUBSET; IN_INTERS; IN_ELIM_THM] THEN
+     GEN_TAC THEN DISCH_THEN (MP_TAC o SPEC `t':A->bool`) THEN
+     ASM_REWRITE_TAC[]);;
+
+	 
+let HULL_INTERS_EQ_INTERS = prove(`!P:((A->bool)->bool) s. (!t. t IN s ==> P t) ==> P hull (INTERS s) = INTERS s`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SUBSET_ANTISYM THEN
+     REWRITE_TAC[HULL_SUBSET] THEN
+     MP_TAC (SPEC_ALL HULL_INTERS_SUBSET_INTERS_HULL) THEN
+     SUBGOAL_THEN `{P hull t | t IN s} = s:(A->bool)->bool` (fun th -> SIMP_TAC[th]) THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN GEN_TAC THEN
+     EQ_TAC THENL
+     [
+       REWRITE_TAC[GSYM EXTENSION] THEN
+	 STRIP_TAC THEN
+	 ASM_SIMP_TAC[HULL_P];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GSYM EXTENSION] THEN
+     DISCH_TAC THEN EXISTS_TAC `x:A->bool` THEN
+     ASM_SIMP_TAC[HULL_P]);;
+	 
+	 
+	 
+
+
+
+
 
 let INTERS_2_LEMMA = prove(`!a b f. INTERS {f x | x IN {a, b}} = f a INTER f b`, SET_TAC[INTERS]);;
 
@@ -206,6 +405,22 @@ let CLOSED_BIS_LE = prove(`!u v:real^N. closed (bis_le u v)`,
 
 let CONVEX_BIS = prove(`!u v:real^N. convex(bis u v)`,
 						REWRITE_TAC[BIS_EQ_HYPERPLANE; CONVEX_HYPERPLANE]);;
+						
+						
+let POLYHEDRON_BIS = prove(`!u v:real^N. polyhedron (bis u v)`,
+     ASM_REWRITE_TAC[BIS_EQ_HYPERPLANE; POLYHEDRON_HYPERPLANE]);;
+	 
+	 
+
+let AFFINE_BIS = prove(`!a b:real^N. affine (bis a b)`,
+   REWRITE_TAC[BIS_EQ_HYPERPLANE; AFFINE_HYPERPLANE]);;
+     
+
+let AFFINE_HULL_INTERS_BIS = prove(`!(p:real^N) s. affine hull INTERS {bis p u | u IN s} = INTERS {bis p u | u IN s}`,
+   REPEAT GEN_TAC THEN
+     MATCH_MP_TAC HULL_INTERS_EQ_INTERS THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[AFFINE_BIS]);;
 
 
 
@@ -394,8 +609,161 @@ let TIWWFYQ = prove(`!V (p:real^3). packing V /\ saturated V ==> (?v.  v IN V /\
 (* Porperties of Voronoi cells *)
 (*******************************)
 
+(* v IN voronoi_closed V v *)
+let CENTER_IN_VORONOI_CELL = prove(`!V (v:real^3). v IN voronoi_closed V v /\ v IN voronoi_open V v`,
+   REPEAT GEN_TAC THEN
+     SUBGOAL_THEN `v IN voronoi_open V (v:real^3)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[voronoi_open; IN_ELIM_THM; DIST_REFL] THEN
+	 SIMP_TAC[DIST_POS_LT];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC IN_TRANS THEN
+     EXISTS_TAC `voronoi_open V (v:real^3)` THEN
+     ASM_REWRITE_TAC[Pack2.VORONOI_OPEN_SUBSET_CLOSED]);;
+	 
+	 
+
+(* voronoi_closed V v contains a ball *)
+let VORONOI_CLOSED_CONTAINS_BALL = prove(`!V (v:real^3). packing V ==> ?r. &0 < r /\ ball (v, r) SUBSET voronoi_closed V v`,
+   REWRITE_TAC[packing; voronoi_closed] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `v:real^3 IN V` THENL
+     [
+       POP_ASSUM MP_TAC THEN REWRITE_TAC[IN] THEN DISCH_TAC THEN
+	 EXISTS_TAC `&1` THEN
+	 REWRITE_TAC[REAL_LT_01; ball; SUBSET; IN_ELIM_THM] THEN
+	 REPEAT STRIP_TAC THEN
+	 ASM_CASES_TAC `w = v:real^3` THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+	 FIRST_X_ASSUM (MP_TAC o SPECL [`v:real^3`; `w:real^3`]) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 SUBGOAL_THEN `&2 - dist(x,v:real^3) <= dist(x,w:real^3)` MP_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_ARITH `a - b <= c <=> a <= b + c:real`] THEN
+	     MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `dist (v,w:real^3)` THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MP_TAC (ISPECL [`v:real^3`; `x:real^3`; `w:real^3`] DIST_TRIANGLE) THEN
+	     REWRITE_TAC[DIST_SYM];
+	   ALL_TAC
+	 ] THEN
+
+	 UNDISCH_TAC `dist (v,x:real^3) < &1` THEN
+	 REWRITE_TAC[DIST_SYM] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `?s. &0 < s /\ ball (v:real^3, s) INTER V = {}` STRIP_ASSUME_TAC THENL
+     [
+       SUBGOAL_THEN `~(ball (v:real^3, &1) INTER V = {}) ==> ?x. ball (v:real^3, &1) INTER V = {x}` MP_TAC THENL
+         [
+	   REWRITE_TAC[GSYM MEMBER_NOT_EMPTY; IN_INTER; EXTENSION; IN_SING; ball; IN_ELIM_THM] THEN
+	     STRIP_TAC THEN
+	     EXISTS_TAC `x:real^3` THEN
+	     GEN_TAC THEN EQ_TAC THENL
+	     [
+	       STRIP_TAC THEN
+		 SUBGOAL_THEN `dist (x:real^3, x') < &2` MP_TAC THENL
+		 [
+		   MATCH_MP_TAC REAL_LET_TRANS THEN
+		     EXISTS_TAC `dist (x,v) + dist(v:real^3,x')` THEN
+		     REWRITE_TAC[DIST_TRIANGLE; REAL_ARITH `&2 = &1 + &1`] THEN
+		     MATCH_MP_TAC REAL_LT_ADD2 THEN
+		     ASM_REWRITE_TAC[DIST_SYM];
+		   ALL_TAC
+		 ] THEN
+
+		 FIRST_X_ASSUM (MP_TAC o SPECL [`x:real^3`; `x':real^3`]) THEN
+		 POP_ASSUM MP_TAC THEN REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN SIMP_TAC[IN] THEN
+		 DISCH_TAC THEN DISCH_TAC THEN
+		 ASM_CASES_TAC `x' = x:real^3` THEN ASM_REWRITE_TAC[REAL_NOT_LT];
+	       ALL_TAC
+	     ] THEN
+
+	     ASM_SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_CASES_TAC `ball (v:real^3, &1) INTER V = {}` THEN ASM_REWRITE_TAC[] THENL
+         [
+	   EXISTS_TAC `&1` THEN
+	     ASM_REWRITE_TAC[REAL_LT_01];
+	   ALL_TAC
+	 ] THEN
+
+	 STRIP_TAC THEN
+	 EXISTS_TAC `dist (v:real^3, x)` THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC DIST_POS_LT THEN
+	     DISCH_THEN (ASSUME_TAC o SYM) THEN
+	     UNDISCH_TAC `ball (v:real^3, &1) INTER V = {x}` THEN
+	     ASM_REWRITE_TAC[EXTENSION; IN_INTER; IN_SING; NOT_FORALL_THM] THEN
+	     EXISTS_TAC `x:real^3` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[EXTENSION; IN_INTER; ball; IN_ELIM_THM; NOT_IN_EMPTY; IN_SING] THEN
+	 REPEAT STRIP_TAC THEN
+	 FIRST_ASSUM (MP_TAC o SPEC `x:real^3`) THEN
+	 REWRITE_TAC[] THEN DISCH_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `x':real^3`) THEN
+	 SUBGOAL_THEN `dist (v,x':real^3) < &1` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LT_TRANS THEN
+	     EXISTS_TAC `dist (v, x:real^3)` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 UNDISCH_TAC `dist (v,x':real^3) < dist (v,x)` THEN
+	 ASM_REWRITE_TAC[REAL_LT_REFL];
+       ALL_TAC
+     ] THEN
+
+     EXISTS_TAC `s / &2` THEN
+     POP_ASSUM MP_TAC THEN
+     ASM_REWRITE_TAC[REAL_ARITH `&0 < s / &2 <=> &0 < s`; ball; SUBSET; IN_ELIM_THM; EXTENSION; IN_INTER; NOT_IN_EMPTY; DE_MORGAN_THM; REAL_NOT_LT] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `w:real^3`) THEN
+     ASM_REWRITE_TAC[IN] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `s - dist(x,v:real^3) <= dist(x,w:real^3)` MP_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `a - b <= c <=> a <= b + c:real`] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `dist (v,w:real^3)` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (ISPECL [`v:real^3`; `x:real^3`; `w:real^3`] DIST_TRIANGLE) THEN
+	 REWRITE_TAC[DIST_SYM];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `dist (v, x:real^3) < s / &2` THEN
+     UNDISCH_TAC `&0 < s` THEN
+     REWRITE_TAC[DIST_SYM] THEN
+     REAL_ARITH_TAC);;
+
+
+
+(* aff_dim voronoi_closed V v = 3 *)  
+let AFF_DIM_VORONOI_CLOSED = prove(`!V v. packing V ==> aff_dim (voronoi_closed V v) = &3`,
+   REWRITE_TAC[GSYM DIMINDEX_3; AFF_DIM_EQ_FULL] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC CONTAINS_BALL_AFFINE_HULL THEN
+     MP_TAC (SPEC_ALL VORONOI_CLOSED_CONTAINS_BALL) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`v:real^3`; `r:real`] THEN
+     ASM_REWRITE_TAC[]);;
+
+	
+     
+
+
 (* For a saturated packing each Voronoi cell is inside a ball of radius 2 *)
-(* AS: real^N *)
 let VORONOI_BALL2 = prove(`!V (v:real^N). saturated V ==> voronoi_closed V v SUBSET ball(v, &2)`,
 			  REWRITE_TAC[saturated; voronoi_closed] THEN REPEAT STRIP_TAC THEN
 			     REWRITE_TAC[SUBSET; ball; IN_ELIM_THM] THEN
@@ -411,7 +779,6 @@ let VORONOI_BALL2 = prove(`!V (v:real^N). saturated V ==> voronoi_closed V v SUB
 
 
 (* A Voronoi cell is bounded (for a saturated packing) *)
-(* AS: real^N *)
 let BOUNDED_VORONOI_CLOSED = prove(`!V (v:real^N). saturated V ==> bounded (voronoi_closed V v)`,
 				   REPEAT STRIP_TAC THEN
 				     MATCH_MP_TAC BOUNDED_SUBSET THEN
@@ -453,8 +820,6 @@ let VORONOI_CLOSED_EQ_INTERS_BIS_LE_ALT = prove(`!S v:real^N. voronoi_closed S v
 
 
 (* A closed Voronoi cell is an intersection of bisectors for w IN ball(v, 4) *)
-(* AS: real^N, remove `packing` *)
-(* A mistake in the original formulation: no explicit | u | in the set description *)
 let VORONOI_INTER_BIS_LE = prove(`!V (v:real^3). packing V /\ saturated V /\ (v IN V) ==> 
 		(voronoi_closed V v =INTERS { bis_le v u | u | u IN V /\ u IN ball(v, &4) /\  ~(u=v) })`,
    REWRITE_TAC[VORONOI_CLOSED_EQ_INTERS_BIS_LE_ALT; saturated] THEN REPEAT STRIP_TAC THEN
@@ -617,12 +982,7 @@ let DRUQUFE = prove(`!V (v:real^3). packing V /\ saturated V  ==>
 
 
 
-			   
-			   
-(*****************************************)
-(* Faces                                 *)
-(*****************************************)
-
+(*************************************************************)			   
 
 
 (*******************************************)
@@ -869,9 +1229,454 @@ let INITIAL_SUBLIST_APPEND_SING = prove(`!xl ul (v:A). initial_sublist xl (APPEN
 	 EXISTS_TAC `[v:A]` THEN
 	 ASM_REWRITE_TAC[]
      ]);;
+	 
+	 
+(* (HD ul) is an initial sublist of ul *)
+let INITIAL_SUBLIST_HD = prove(`!ul:(A)list. 1 <= LENGTH ul ==> initial_sublist [HD ul] ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC `ul:(A)list` LENGTH_IMP_CONS) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[HD; INITIAL_SUBLIST; APPEND] THEN
+     EXISTS_TAC `t:(A)list` THEN
+     REWRITE_TAC[]);;
+
+(* (BUTLAST ul) is an initial sublist of ul *)
+let BUTLAST_INITIAL_SUBLIST = prove(`!ul:(A)list. 1 <= LENGTH ul ==> initial_sublist (BUTLAST ul) ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPEC `ul:(A)list` APPEND_BUTLAST_LAST) THEN
+     REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= a ==> ~(a = 0)`] THEN
+     REWRITE_TAC[INITIAL_SUBLIST] THEN
+     DISCH_TAC THEN
+     EXISTS_TAC `[LAST ul:A]` THEN
+     ASM_REWRITE_TAC[]);;
+
+
+(**********************************************************)
+
+(**********************************)
+(* Additional properties of lists *)
+(**********************************)
+
+let LENGTH_BUTLAST = prove(`!ul:(A)list. 1 <= LENGTH ul ==> LENGTH (BUTLAST ul) = LENGTH ul - 1`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPEC `ul:(A)list` APPEND_BUTLAST_LAST) THEN
+     REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= a ==> ~(a = 0)`] THEN
+     DISCH_THEN (fun th -> GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV) [GSYM th]) THEN
+     REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
+     ARITH_TAC);;
+	 
+	 
+	 
+
+let HD_IN_SET_OF_LIST = prove(`!ul:(A)list. 1 <= LENGTH ul ==> HD ul IN set_of_list ul`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[IN_SET_OF_LIST] THEN
+     ONCE_REWRITE_TAC[GSYM EL] THEN
+     MATCH_MP_TAC MEM_EL THEN
+     POP_ASSUM MP_TAC THEN
+     ARITH_TAC);;
+	 
+	 
+let HD_INITIAL_SUBLIST = prove(`!xl yl:(A)list. 1 <= LENGTH yl /\ initial_sublist yl xl ==> HD yl = HD xl`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC `yl:(A)list` LENGTH_IMP_CONS) THEN
+     ASM_REWRITE_TAC[] THEN
+     MP_TAC (SPEC `xl:(A)list` LENGTH_IMP_CONS) THEN
+     SUBGOAL_THEN `1 <= LENGTH (xl:(A)list)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MATCH_MP_TAC LE_TRANS THEN
+	 EXISTS_TAC `LENGTH (yl:(A)list)` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC INITIAL_SUBLIST_LENGTH_LE THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC INITIAL_SUBLIST_HEAD_EQ THEN
+     MAP_EVERY EXISTS_TAC [`yl:(A)list`; `xl:(A)list`; `t':(A)list`; `t:(A)list`] THEN
+     ASM_REWRITE_TAC[HD]);;
+	 
+	 
+let SET_OF_LIST_INITIAL_SUBLIST_SUBSET = prove(`!vl ul:(A)list. initial_sublist vl ul ==> set_of_list vl SUBSET set_of_list ul`,
+   REWRITE_TAC[INITIAL_SUBLIST] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[SET_OF_LIST_APPEND; SUBSET_UNION]);;
+	 
+	 
+let LENGTH_REVERSE = prove(`!ul:(A)list. LENGTH (REVERSE ul) = LENGTH ul`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[REVERSE; LENGTH] THEN
+     ASM_REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
+     ARITH_TAC);;
+     
+
+let EL_REVERSE = prove(`!(ul:(A)list) i. i < LENGTH ul ==> EL i (REVERSE ul) = EL (LENGTH ul - 1 - i) ul`,
+   LIST_INDUCT_TAC THENL
+     [
+       REWRITE_TAC[LENGTH] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[LENGTH; REVERSE; EL_APPEND; LENGTH_REVERSE] THEN
+     REPEAT STRIP_TAC THEN
+     COND_CASES_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 SUBGOAL_THEN `SUC (LENGTH t) - 1 - i = SUC (LENGTH (t:(A)list) - 1 - i)` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   POP_ASSUM MP_TAC THEN 
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[EL; TL];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `LENGTH (t:(A)list) = i` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[ARITH_RULE `i - i = 0`; ARITH_RULE `SUC i - 1 - i = 0`] THEN
+     REWRITE_TAC[EL; HD]);;
 
 
 
+let LENGTH_TABLE = prove(`!(f:num->A) n. LENGTH (TABLE f n) = n`,
+   GEN_TAC THEN INDUCT_TAC THEN REWRITE_TAC[TABLE; REVERSE_TABLE; REVERSE] THENL
+     [
+       REWRITE_TAC[LENGTH];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[GSYM TABLE; LENGTH_APPEND; LENGTH] THEN
+     ARITH_TAC);;
+
+
+let EL_TABLE = prove(`!(f:num->A) n i. i < n ==> EL i (TABLE f n) = f i`,
+   REPEAT GEN_TAC THEN SPEC_TAC (`n:num`, `n:num`) THEN
+     INDUCT_TAC THENL [ ARITH_TAC; ALL_TAC ] THEN
+     REWRITE_TAC[TABLE; REVERSE_TABLE; REVERSE; EL_APPEND] THEN
+     REWRITE_TAC[GSYM TABLE; LENGTH_TABLE] THEN
+     DISCH_TAC THEN COND_CASES_TAC THENL
+     [
+       FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `i = n:num` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[ARITH_RULE `n - n = 0`; EL; HD]);;
+   
+
+
+let LENGTH_LEFT_ACTION_LIST = prove(`!(ul:(A)list) p. LENGTH (left_action_list p ul) = LENGTH ul`,
+   REWRITE_TAC[left_action_list; LENGTH_TABLE]);;
+
+
+
+let EL_LEFT_ACTION_LIST = prove(`!(ul:(A)list) p i. p permutes (0..LENGTH ul - 1) /\ i < LENGTH ul
+				  ==> EL i ul = EL (p i) (left_action_list p ul)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[left_action_list] THEN
+     ABBREV_TAC `n = LENGTH (ul:(A)list)` THEN
+     SUBGOAL_THEN `(p:num->num) i < n` ASSUME_TAC THENL
+     [
+       MP_TAC (ISPECL [`p:num->num`; `0..n - 1`] Hypermap_and_fan.PERMUTES_IMP_INSIDE) THEN
+	 ASM_REWRITE_TAC[IN_NUMSEG] THEN
+	 DISCH_THEN (MP_TAC o SPEC `i:num`) THEN
+	 ASM_REWRITE_TAC[ARITH_RULE `0 <= i`] THEN
+	 ASM_SIMP_TAC[ARITH_RULE `i < n ==> i <= n - 1`] THEN
+	 UNDISCH_TAC `i < n:num` THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[EL_TABLE] THEN
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     MP_TAC (ISPECL [`p:num->num`; `0..n-1`] PERMUTES_INVERSES) THEN
+     ASM_REWRITE_TAC[] THEN
+     SIMP_TAC[]);;
+	 
+	 
+let MEM_LEFT_ACTION_LIST = prove(`!(ul:(A)list) p x. p permutes (0..LENGTH ul - 1) 
+				   ==> (MEM x (left_action_list p ul) <=> MEM x ul)`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `n = LENGTH (ul:(A)list)` THEN
+     ASM_REWRITE_TAC[MEM_EXISTS_EL; LENGTH_LEFT_ACTION_LIST] THEN
+     EQ_TAC THENL
+     [
+       STRIP_TAC THEN
+	 POP_ASSUM MP_TAC THEN
+	 ASM_SIMP_TAC[left_action_list; EL_TABLE] THEN
+	 DISCH_TAC THEN
+	 EXISTS_TAC `inverse (p:num->num) i` THEN
+	 REWRITE_TAC[] THEN
+	 MP_TAC (ISPECL [`p:num->num`; `0..n-1`] PERMUTES_INVERSE) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 MP_TAC (ISPECL [`inverse (p:num->num)`; `0..n-1`] Hypermap_and_fan.PERMUTES_IMP_INSIDE) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (MP_TAC o SPEC `i:num`) THEN
+	 ASM_SIMP_TAC[IN_NUMSEG; ARITH_RULE `i < n ==> i <= n - 1`; LE_0] THEN
+	 UNDISCH_TAC `i < n:num` THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `(p:num->num) i` THEN
+     MP_TAC (SPEC_ALL EL_LEFT_ACTION_LIST) THEN
+     ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (ISPECL [`p:num->num`; `0..n-1`] Hypermap_and_fan.PERMUTES_IMP_INSIDE) THEN
+     ASM_REWRITE_TAC[IN_NUMSEG] THEN DISCH_THEN (MP_TAC o SPEC `i:num`) THEN
+     UNDISCH_TAC `i < n:num` THEN
+     ARITH_TAC);;
+	 
+	 
+let SET_OF_LIST_LEFT_ACTION_LIST = prove(`!(ul:(A)list) p. p permutes 0..LENGTH ul - 1
+					   ==> set_of_list (left_action_list p ul) = set_of_list ul`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[EXTENSION; IN_SET_OF_LIST] THEN
+     ASM_SIMP_TAC[MEM_LEFT_ACTION_LIST]);;
+	 
+	 
+
+let CARD_SET_OF_LIST_EQ_LENGTH_IMP_ALL_DISTINCT = prove(`!ul:(A)list. CARD (set_of_list ul) = LENGTH ul
+                               ==> (!i j. i < LENGTH ul /\ j < LENGTH ul /\ ~(i = j) ==> ~(EL i ul = EL j ul))`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[set_of_list; LENGTH; CARD_CLAUSES; ARITH_RULE `~(j < 0)`] THEN
+     SIMP_TAC[CARD_CLAUSES; FINITE_SET_OF_LIST] THEN
+     COND_CASES_TAC THENL
+     [
+       MP_TAC (ISPEC `t:(A)list` CARD_SET_OF_LIST_LE) THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[ARITH_RULE `SUC n = SUC m <=> n = m`] THEN
+     DISCH_THEN (fun th -> FIRST_X_ASSUM (ASSUME_TAC o (fun th2 -> MATCH_MP th2 th))) THEN
+     REPEAT STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+
+     MP_TAC (SPEC `i:num` num_CASES) THEN STRIP_TAC THENL
+     [
+       ASM_REWRITE_TAC[EL; HD] THEN
+	 MP_TAC (SPEC `j:num` num_CASES) THEN STRIP_TAC THENL
+	 [
+	   UNDISCH_TAC `~(i = j:num)` THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_REWRITE_TAC[EL; TL] THEN
+	 DISCH_TAC THEN UNDISCH_TAC `~(h:A IN set_of_list t)` THEN
+	 ASM_REWRITE_TAC[IN_SET_OF_LIST] THEN
+	 MATCH_MP_TAC (ISPECL [`t:(A)list`; `n:num`] MEM_EL) THEN
+	 UNDISCH_TAC `j = SUC n` THEN UNDISCH_TAC `j < SUC (LENGTH (t:(A)list))` THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[EL; TL] THEN
+     MP_TAC (SPEC `j:num` num_CASES) THEN STRIP_TAC THENL
+     [
+       ASM_REWRITE_TAC[EL; HD] THEN
+	 DISCH_THEN (ASSUME_TAC o SYM) THEN UNDISCH_TAC `~(h:A IN set_of_list t)` THEN
+	 ASM_REWRITE_TAC[IN_SET_OF_LIST] THEN
+	 MATCH_MP_TAC (ISPECL [`t:(A)list`; `n:num`] MEM_EL) THEN
+	 UNDISCH_TAC `i = SUC n` THEN UNDISCH_TAC `i < SUC (LENGTH (t:(A)list))` THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[EL; TL] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN
+     ARITH_TAC);;
+	 
+	 
+let LENGTH_DROP = prove(`!i ul:(A)list. i < LENGTH ul ==> LENGTH (DROP ul i) = LENGTH ul - 1`,
+   INDUCT_TAC THENL
+     [
+       GEN_TAC THEN
+	 REWRITE_TAC[DROP] THEN DISCH_TAC THEN
+	 MATCH_MP_TAC LENGTH_TL THEN
+	 ASM_REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     REPEAT STRIP_TAC THEN
+     REWRITE_TAC[DROP; LENGTH] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `TL ul:(A)list`) THEN
+     SUBGOAL_THEN `LENGTH (TL ul) = LENGTH (ul:(A)list) - 1` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC LENGTH_TL THEN
+	 ASM_REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ANTS_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+     ARITH_TAC);;
+
+
+
+let EL_DROP = prove(`!i j ul:(A)list. i < LENGTH ul /\ j < LENGTH ul - 1 ==> 
+		      EL j (DROP ul i) = if (j < i) then EL j ul else EL (j + 1) ul`,
+   INDUCT_TAC THEN INDUCT_TAC THEN REPEAT STRIP_TAC THEN REWRITE_TAC[DROP; EL; LT_REFL; ARITH_RULE `0 + 1 = SUC 0`] THENL
+     [
+       REWRITE_TAC[ARITH_RULE `~(x < 0)`; ARITH_RULE `SUC j + 1 = SUC (SUC j)`; EL];
+       REWRITE_TAC[ARITH_RULE `0 < SUC i`; HD];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[ARITH_RULE `SUC j + 1 = SUC (SUC j)`; ARITH_RULE `SUC j < SUC i <=> j < i`; TL; EL] THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`j:num`; `TL ul:(A)list`]) THEN
+     SUBGOAL_THEN `LENGTH (TL ul:(A)list) = LENGTH ul - 1` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC LENGTH_TL THEN
+	 REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[ARITH_RULE `j + 1 = SUC j`; EL] THEN
+     DISCH_THEN MATCH_MP_TAC THEN
+     REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     ARITH_TAC);;
+	 
+	 
+let LIST_EL_EQ = prove(`!ul vl:(A)list. ul = vl <=> 
+               (LENGTH ul = LENGTH vl /\ (!j. j < LENGTH ul ==> EL j ul = EL j vl))`,
+   REPEAT STRIP_TAC THEN
+     EQ_TAC THEN STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     SPEC_TAC (`vl:(A)list`, `vl:(A)list`) THEN SPEC_TAC (`ul:(A)list`, `ul:(A)list`) THEN
+     LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN SIMP_TAC[LENGTH_EQ_NIL; EQ_SYM_EQ; LENGTH; ARITH_RULE `~(0 = SUC a)`] THEN
+     REMOVE_ASSUM THEN
+     REWRITE_TAC[ARITH_RULE `SUC a = SUC b <=> a = b`] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `t':(A)list`) THEN
+     ASM_REWRITE_TAC[] THEN
+     ANTS_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `SUC j`) THEN
+	 ASM_REWRITE_TAC[ARITH_RULE `SUC a < SUC b <=> a < b`; EL; TL];
+       ALL_TAC
+     ] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `0`) THEN
+     ASM_SIMP_TAC[ARITH_RULE `0 < SUC a`; EL; HD]);;
+	 
+	 
+let LEFT_ACTION_LIST_I = prove(`!ul:(A)list. left_action_list I ul = ul`,
+   ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN   
+     GEN_TAC THEN REWRITE_TAC[LIST_EL_EQ] THEN
+     ABBREV_TAC `k = LENGTH (ul:(A)list)` THEN
+     ASM_REWRITE_TAC[LENGTH_LEFT_ACTION_LIST] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[left_action_list; EL_TABLE; INVERSE_I; I_THM]);;
+
+
+	 
+	 
+let SET_OF_LIST_DELETE_SUBSET_DROP = prove(`!j ul:(A)list. j < LENGTH ul ==>
+					     set_of_list ul DELETE (EL j ul) SUBSET set_of_list (DROP ul j)`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `k = LENGTH (ul:(A)list)` THEN
+     ASM_REWRITE_TAC[SUBSET; IN_SET_OF_LIST; IN_DELETE; MEM_EXISTS_EL] THEN
+     REPEAT STRIP_TAC THEN
+     MP_TAC (ISPECL [`j:num`; `ul:(A)list`] LENGTH_DROP) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ASM_CASES_TAC `i:num < j` THENL
+     [
+       EXISTS_TAC `i:num` THEN
+	 MP_TAC (ARITH_RULE `i < j /\ j < k ==> i < k - 1`) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (ISPECL [`j:num`; `i:num`; `ul:(A)list`] EL_DROP) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     EXISTS_TAC `i - 1` THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[NOT_LT; LE_LT] THEN
+     STRIP_TAC THENL
+     [
+       MP_TAC (ARITH_RULE `j < k /\ i < k /\ j < i ==> i - 1 < k - 1`) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (ISPECL [`j:num`; `i - 1`; `ul:(A)list`] EL_DROP) THEN
+	 ASM_SIMP_TAC[ARITH_RULE `j < i ==> ~(i - 1 < j)`] THEN
+	 MP_TAC (ARITH_RULE `j < i ==> i - 1 + 1 = i`) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `x:A = EL i ul` THEN
+     POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]));;
+     
+
+
+
+let SET_OF_LIST_DELETE_EQ_DROP = prove(`!j ul:(A)list. CARD (set_of_list ul) = LENGTH ul /\ j < LENGTH ul
+    ==> set_of_list ul DELETE (EL j ul) = set_of_list (DROP ul j)`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SUBSET_ANTISYM THEN
+     ASM_SIMP_TAC[SET_OF_LIST_DELETE_SUBSET_DROP] THEN
+     ABBREV_TAC `k = LENGTH (ul:(A)list)` THEN
+     MP_TAC (SPECL [`j:num`; `ul:(A)list`] LENGTH_DROP) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     ASM_REWRITE_TAC[SUBSET; IN_SET_OF_LIST; IN_DELETE; MEM_EXISTS_EL] THEN
+     GEN_TAC THEN STRIP_TAC THEN
+     POP_ASSUM (ASSUME_TAC o SYM) THEN
+     MP_TAC (SPECL [`j:num`; `i:num`; `ul:(A)list`] EL_DROP) THEN
+     ASM_REWRITE_TAC[] THEN
+     MP_TAC (ARITH_RULE `i < k - 1 ==> i < k`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+
+     MP_TAC (SPEC `ul:(A)list` CARD_SET_OF_LIST_EQ_LENGTH_IMP_ALL_DISTINCT) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+
+     COND_CASES_TAC THENL
+     [
+       DISCH_TAC THEN
+	 CONJ_TAC THENL
+	 [
+	   EXISTS_TAC `i:num` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 ASM_SIMP_TAC[ARITH_RULE `i < j ==> ~(i = j:num)`];
+       ALL_TAC
+     ] THEN
+
+     DISCH_TAC THEN
+     CONJ_TAC THENL
+     [
+       EXISTS_TAC `i + 1` THEN
+	 ASM_SIMP_TAC[ARITH_RULE `i < k - 1 ==> i + 1 < k`];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_SIMP_TAC[ARITH_RULE `i < k - 1 ==> i + 1 < k`] THEN
+     UNDISCH_TAC `~(i < j:num)` THEN ARITH_TAC);;
+
+
+	 
+	 
+
+(**********************************************************)
 
 (*****************************************)
 (* Properties of barV                    *)
@@ -916,6 +1721,39 @@ let BARV_INITIAL_SUBLIST = prove(`!V k ul vl. barV V k ul /\ initial_sublist vl 
      ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
      FIRST_X_ASSUM (MP_TAC o SPEC `vl':(real^3)list`) THEN
      ASM_SIMP_TAC[]);;
+	 
+
+(* barV V 0 [v] (if v IN V) *)
+let BARV_0 = prove(`!V v. packing V /\ v IN V ==> barV V 0 [v]`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[BARV; VORONOI_NONDG; LENGTH; ARITH] THEN
+     REWRITE_TAC[INITIAL_SUBLIST_SING] THEN
+     GEN_TAC THEN
+     STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[LENGTH; ARITH] THEN
+     ASM_SIMP_TAC[set_of_list; SUBSET; IN_SING] THEN
+     ASM_REWRITE_TAC[VORONOI_LIST; set_of_list; VORONOI_SET; IN_SING; SING_GSPEC_APP; INTERS_1] THEN
+     ASM_SIMP_TAC[AFF_DIM_VORONOI_CLOSED] THEN
+     INT_ARITH_TAC);;
+	 
+	 
+(* ul IN barV V k ==> k <= 3 *)
+let BARV_IMP_K_LE_3 = prove(`!V ul k. barV V k ul ==> k <= 3`,
+   REWRITE_TAC[BARV; VORONOI_NONDG] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
+     ASM_REWRITE_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < k + 1`] THEN
+     ARITH_TAC);;
+	 
+
+(* ul IN barV V k ul ==> HD ul IN set_of_list ul *)
+let BARV_IMP_HD_IN_SET_OF_LIST = prove(`!V k ul. barV V k ul ==> HD ul IN set_of_list ul`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC HD_IN_SET_OF_LIST THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[BARV] THEN
+     ARITH_TAC);;
+	 
+
 
 
 (* Lemma for truncate_simplex operation *)
@@ -948,12 +1786,166 @@ let TRUNCATE_SIMPLEX_BARV = prove(`!V r k zl. barV V k zl /\ r <= k ==> barV V r
      ] THEN
      MP_TAC (ISPECL [`V:real^3->bool`; `k:num`; `zl:(real^3)list`; `xl:(real^3)list`] BARV_INITIAL_SUBLIST) THEN
      ASM_SIMP_TAC[ARITH_RULE `0 < r + 1`; ARITH_RULE `(r + 1) - 1 = r`]);;
+	 
+	 
+	 
+let TRUNCATE_SIMPLEX_REFL = prove(`!k ul:(A)list. LENGTH ul = k + 1 ==> truncate_simplex k ul = ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`k:num`; `ul:(A)list`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_REWRITE_TAC[LE_REFL; INITIAL_SUBLIST_REFL]);;
+	 
+	 
+
+let TRUNCATE_0_EQ_HEAD = prove(`!ul:(A)list. 1 <= LENGTH ul ==> truncate_simplex 0 ul = [HD ul]`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`0`; `[HD ul]:(A)list`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_REWRITE_TAC[ARITH] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ASM_SIMP_TAC[INITIAL_SUBLIST_HD; LENGTH; ARITH]);;
+	 
+
+let LENGTH_TRUNCATE_SIMPLEX = prove(`!k ul:(A)list. k + 1 <= LENGTH ul ==> LENGTH (truncate_simplex k ul) = k + 1`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`k:num`; `truncate_simplex k ul:(A)list`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_SIMP_TAC[]);;
+
+	 
+	 
+let TRUNCATE_SIMPLEX_EQ_BUTLAST = prove(`!ul:(A)list. 2 <= LENGTH ul ==> truncate_simplex (LENGTH ul - 2) ul = BUTLAST ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`LENGTH (ul:(A)list) - 2`; `BUTLAST (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_SIMP_TAC[ARITH_RULE `2 <= a ==> a - 2 + 1 = a - 1 /\ a - 1 <= a`] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ASM_SIMP_TAC[ARITH_RULE `2 <= a ==> 1 <= a`; BUTLAST_INITIAL_SUBLIST; LENGTH_BUTLAST]);;
+	 
+	 
+let HD_TRUNCATE_SIMPLEX = prove(`!(ul:(A)list) j. j + 1 <= LENGTH ul ==> HD (truncate_simplex j ul) = HD ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`j:num`; `truncate_simplex j (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     MATCH_MP_TAC HD_INITIAL_SUBLIST THEN
+     ASM_REWRITE_TAC[ARITH_RULE `1 <= j + 1`]);;
+	 
+	 
+let TRUNCATE_TRUNCATE_SIMPLEX = prove(`!(ul:(A)list) i j. i <= j /\ j + 1 <= LENGTH ul ==> 
+					truncate_simplex i (truncate_simplex j ul) = truncate_simplex i ul`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `xl = truncate_simplex j (ul:(A)list)` THEN
+     SUBGOAL_THEN `i + 1 <= LENGTH (xl:(A)list) /\ i + 1 <= LENGTH (ul:(A)list) /\ initial_sublist (xl:(A)list) ul` STRIP_ASSUME_TAC THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 MP_TAC (SPECL [`j:num`; `truncate_simplex j (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+	 ASM_SIMP_TAC[] THEN
+	 POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL [`i:num`; `truncate_simplex i (xl:(A)list)`; `xl:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     MP_TAC (SPECL [`i:num`; `truncate_simplex i (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC INITIAL_SUBLIST_UNIQUE THEN
+     MAP_EVERY EXISTS_TAC [`i + 1`; `ul:(A)list`] THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC INITIAL_SUBLIST_TRANS THEN
+     EXISTS_TAC `xl:(A)list` THEN
+     ASM_REWRITE_TAC[]);;
+	 
+	 
+let INITIAL_SUBLIST_IMP_TRUNCATE_SIMPLEX = prove(`!xl yl:(A)list. initial_sublist yl xl /\ 1 <= LENGTH yl ==>
+						                 yl = truncate_simplex (LENGTH yl - 1) xl /\ LENGTH yl <= LENGTH xl`,
+   REPEAT STRIP_TAC THENL
+     [
+       MP_TAC (SPECL [`LENGTH (yl:(A)list) - 1`; `yl:(A)list`; `xl:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	 SUBGOAL_THEN `LENGTH yl = LENGTH (yl:(A)list) - 1 + 1` MP_TAC THENL
+	 [
+	   UNDISCH_TAC `1 <= LENGTH (yl:(A)list)` THEN ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[INITIAL_SUBLIST_LENGTH_LE]);;
+	 
+	 
+let LIST_EQ_TRUNCATE_SIMPLEX_APPEND_LAST = prove(`!ul:(A)list. 2 <= LENGTH ul ==>
+						   ul = APPEND (truncate_simplex (LENGTH ul - 2) ul) [LAST ul]`,
+   ASM_SIMP_TAC[TRUNCATE_SIMPLEX_EQ_BUTLAST] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC (GSYM APPEND_BUTLAST_LAST) THEN
+     REWRITE_TAC[EQ_SYM_EQ; GSYM LENGTH_EQ_NIL] THEN
+     POP_ASSUM MP_TAC THEN ARITH_TAC);;
+	 
+	 
+let TRUNCATE_SIMPLEX_ADD1 = prove(`!(ul:(A)list) k. k + 2 <= LENGTH ul ==> 
+				    truncate_simplex (k + 1) ul = APPEND (truncate_simplex k ul) [LAST (truncate_simplex (k + 1) ul)]`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `xl:(A)list = truncate_simplex (k + 1) ul` THEN
+     SUBGOAL_THEN `truncate_simplex k ul = truncate_simplex k xl:(A)list` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       EXPAND_TAC "xl" THEN
+	 MATCH_MP_TAC (GSYM TRUNCATE_TRUNCATE_SIMPLEX) THEN
+	 REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `LENGTH (xl:(A)list) = k + 2` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "xl" THEN
+	 REWRITE_TAC[ARITH_RULE `k + 2 = (k + 1) + 1`] THEN
+	 MATCH_MP_TAC LENGTH_TRUNCATE_SIMPLEX THEN
+	 ASM_REWRITE_TAC[ARITH_RULE `(k + 1) + 1 = k + 2`];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `k = LENGTH (xl:(A)list) - 2` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC LIST_EQ_TRUNCATE_SIMPLEX_APPEND_LAST THEN
+     POP_ASSUM MP_TAC THEN ARITH_TAC);;
+	 
+	 
+
+let EL_TRUNCATE_SIMPLEX = prove(`!ul:(A)list k j. k + 1 <= LENGTH ul /\ j <= k ==> EL j (truncate_simplex k ul) = EL j ul`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `vl:(A)list = truncate_simplex k ul` THEN
+     SUBGOAL_THEN `?yl:(A)list. ul = APPEND vl yl /\ LENGTH vl = k + 1` CHOOSE_TAC THENL
+     [
+       MP_TAC (SPECL [`k:num`; `vl:(A)list`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+	 ASM_REWRITE_TAC[INITIAL_SUBLIST] THEN
+	 STRIP_TAC THEN
+	 EXISTS_TAC `yl:(A)list` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[EL_APPEND; ARITH_RULE `j < k + 1 <=> j <= k`]);;
+	 
+	 
+
+let TRUNCATE_SIMPLEX_ADD1_ALT = prove(`!ul:(A)list k. k + 2 <= LENGTH ul
+					==> truncate_simplex (k + 1) ul = APPEND (truncate_simplex k ul) [EL (k + 1) ul]`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL TRUNCATE_SIMPLEX_ADD1) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> ONCE_REWRITE_TAC[th]) THEN
+     AP_TERM_TAC THEN
+
+     MP_TAC (SPECL [`k + 1`; `ul:(A)list`] LENGTH_TRUNCATE_SIMPLEX) THEN
+     ASM_SIMP_TAC[ARITH_RULE `k + 2 <= a ==> (k + 1) + 1 <= a`] THEN
+     DISCH_TAC THEN
+					   
+     MP_TAC (ISPEC `(truncate_simplex (k + 1) ul:(A)list)` LAST_EL) THEN
+     ASM_REWRITE_TAC[GSYM LENGTH_EQ_NIL; ARITH_RULE `~(a + 1 = 0)`; ARITH_RULE `(a + 1) - 1 = a`] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MP_TAC (SPECL [`ul:(A)list`; `k + 1`; `k + 1`] EL_TRUNCATE_SIMPLEX) THEN
+     ASM_SIMP_TAC[ARITH_RULE `k + 2 <= a ==> (k + 1) + 1 <= a`; LE_REFL]);;
 
 
 
-
-
-
+(****************************************************)
 	 
 (***************************************************************************)
 (* Properties of voronoi_set (Omega(V, W)) and voronoi_list (Omega(V, vl)) *)
@@ -1301,666 +2293,236 @@ let VORONOI_LIST_CANONICAL = prove(`!V ul (h:real^3) t. packing V /\ saturated V
     ]);;
 
 
-
-
-
-(*********************************************)
-(* KHEJKCI                                   *)
-(*********************************************)
-
-
-(* A(u, v) is a face of A+(u, v) *)
-let BIS_FACE_OF_BIS_LE = prove(`!(u:real^N) v. bis u v face_of bis_le u v`,
-   REPEAT GEN_TAC THEN
-    SUBGOAL_THEN `bis (u:real^N) v = bis_le u v INTER bis u v` (fun th -> ONCE_REWRITE_TAC[th]) THENL
-    [
-      REWRITE_TAC[bis; bis_le; EXTENSION; IN_INTER; IN_ELIM_THM] THEN
-	REAL_ARITH_TAC;
-      ALL_TAC
-    ] THEN
-    REWRITE_TAC[BIS_EQ_HYPERPLANE] THEN
-    MATCH_MP_TAC FACE_OF_INTER_SUPPORTING_HYPERPLANE_LE THEN
-    REWRITE_TAC[CONVEX_BIS_LE; BIS_LE_EQ_HALFSPACE; IN_ELIM_THM]);;
-    
-
-
-	
-
-	 
-
-
-(* Generalized version of the target theorem *)
-let KHEJKCI_GEN = prove(`!V k r ul vl. saturated V /\ packing V /\ barV V k ul /\ barV V r vl /\ initial_sublist ul vl ==>
-   (voronoi_list V vl) face_of (voronoi_list V ul) `,
-  REWRITE_TAC[INITIAL_SUBLIST] THEN
-    REPEAT STRIP_TAC THEN
-    SUBGOAL_THEN `?h tl. ul = CONS (h:real^3) tl` MP_TAC THENL
-    [
-      ASM_MESON_TAC[BARV_CONS];
-      ALL_TAC
-    ] THEN
-
-    STRIP_TAC THEN
-    SUBGOAL_THEN `voronoi_list (V:real^3->bool) ul = voronoi_closed V h INTER INTERS {bis h u | u IN set_of_list tl}` (fun th -> REWRITE_TAC[th]) THENL
-    [
-      MATCH_MP_TAC VORONOI_LIST_BIS THEN
-	ASM_MESON_TAC[BARV_SUBSET];
-      ALL_TAC
-    ] THEN
-
-    SUBGOAL_THEN `voronoi_list (V:real^3->bool) vl = voronoi_closed V h INTER INTERS {bis h u | u IN set_of_list (APPEND tl yl)}` (fun th -> REWRITE_TAC[th]) THENL
-    [
-      MATCH_MP_TAC VORONOI_LIST_BIS THEN
-	ASM_MESON_TAC[BARV_SUBSET; APPEND];
-      ALL_TAC
-    ] THEN
-
-    REWRITE_TAC[face_of; IN_SET_OF_LIST; MEM_APPEND] THEN
-    REPEAT CONJ_TAC THENL
-    [
-      SET_TAC[];
-      MATCH_MP_TAC CONVEX_INTER THEN CONJ_TAC THENL
-	[
-	  ASM_MESON_TAC[DRUQUFE];
-	  ALL_TAC
-	] THEN
-	
-	MATCH_MP_TAC CONVEX_INTERS THEN
-	REWRITE_TAC[IN_ELIM_THM] THEN
-	MESON_TAC[CONVEX_BIS];
-
-      ALL_TAC
-    ] THEN
-
-
-    REPEAT GEN_TAC THEN
-    SIMP_TAC[IN_INTER; IN_INTERS; IN_ELIM_THM] THEN
-    REPLICATE_TAC 2 (DISCH_THEN (CONJUNCTS_THEN2 (ASSUME_TAC o CONJUNCT1) MP_TAC)) THEN
-    STRIP_TAC THEN
-    SUBGOAL_THEN `!u:real^3. u IN V ==> a:real^3 IN bis_le h u /\ b:real^3 IN bis_le h u` ASSUME_TAC THENL
-    [
-      REPLICATE_TAC 3 (POP_ASSUM (fun th -> ALL_TAC)) THEN GEN_TAC THEN
-	POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	REWRITE_TAC[voronoi_closed; bis_le; IN_ELIM_THM; IN] THEN
-	MESON_TAC[];
-      ALL_TAC
-    ] THEN
-
-    SUBGOAL_THEN `!u:real^3. (MEM u tl ==> u IN V) /\ (MEM u yl ==> u IN V)` ASSUME_TAC THENL
-    [
-      GEN_TAC THEN REPLICATE_TAC 6 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN
-	POP_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_SUBSET th)) THEN
-	POP_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_SUBSET th)) THEN
-	REWRITE_TAC[IMP_IMP; GSYM CONJ_ASSOC] THEN
-	REWRITE_TAC[IMP_CONJ_ALT] THEN
-	REPLICATE_TAC 2 (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
-	REWRITE_TAC[SUBSET; IN_SET_OF_LIST; MEM_APPEND; MEM] THEN
-	SIMP_TAC[];
-      ALL_TAC
-    ] THEN
-
-    SUBGOAL_THEN `!u:real^3. u IN V /\ x IN bis h u ==> a IN bis h u /\ b IN bis h u` ASSUME_TAC THENL
-    [
-      POP_ASSUM (fun th -> ALL_TAC) THEN GEN_TAC THEN
-	STRIP_TAC THEN
-	FIRST_X_ASSUM (MP_TAC o (SPEC `u:real^3`)) THEN
-	ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
-	MP_TAC (ISPECL [`h:real^3`; `u:real^3`] BIS_FACE_OF_BIS_LE) THEN
-	REWRITE_TAC[face_of] THEN
-	DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) (MP_TAC o CONJUNCT2)) THEN
-	DISCH_THEN (MP_TAC o ISPECL [`a:real^3`; `b:real^3`; `x:real^3`]) THEN
-	ASM_SIMP_TAC[];
-      ALL_TAC
-    ] THEN
-
-    ASM_MESON_TAC[]);;
-
-
-
-
-(* vor_list -> barV *)
-let KHEJKCI = prove(`!V k ul. saturated V /\ packing V /\ barV V k ul ==>
-   ((voronoi_list V ul)   face_of (voronoi_closed V (HD ul)) )`,
-  REPEAT STRIP_TAC THEN
-    FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_CONS th)) THEN
-    STRIP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-    REWRITE_TAC[GSYM VORONOI_LIST_SING] THEN
-    MATCH_MP_TAC KHEJKCI_GEN THEN
-    EXISTS_TAC `0` THEN EXISTS_TAC `k:num` THEN
-    SUBGOAL_THEN `initial_sublist [h:real^3] ul` ASSUME_TAC THENL
-    [
-      ASM_REWRITE_TAC[INITIAL_SUBLIST; APPEND] THEN MESON_TAC[];
-      ALL_TAC
-    ] THEN
-    ASM_REWRITE_TAC[] THEN
-    MP_TAC (SPECL [`V:real^3->bool`; `k:num`; `ul:(real^3)list`; `[h:real^3]`] BARV_INITIAL_SUBLIST) THEN
-    ASM_REWRITE_TAC[LENGTH; ARITH_RULE `0 < SUC 0`; ARITH_RULE `SUC 0 - 1 = 0`]);;
-
-    
-		    
-  
-
-
-(*********************************************)
-(* IDBEZAL                                   *)
-(* Characterization of facets of Omega(V,W)  *)
-(*********************************************)		   
-
-
-
-(* Canonical representation for Omega(V, barV(k)) *)
-let VORONOI_BARV_CANONICAL = prove(`!V k ul. packing V /\ saturated V /\ barV V k ul
-    ==> ?K. FINITE K /\ voronoi_list V ul = affine hull (voronoi_list V ul) INTER INTERS K /\ 
-	(!a. a IN K ==> (?v. v IN V /\ ~(v = HD ul) /\ (a = bis_le v (HD ul) \/ a = bis_le (HD ul) v))) /\
-	(!K'. K' PSUBSET K ==> (voronoi_list V ul) PSUBSET (affine hull (voronoi_list V ul) INTER INTERS K'))`,
-  REPEAT STRIP_TAC THEN
-    MP_TAC (SPECL [`V:real^3->bool`; `k:num`; `ul:(real^3)list`] BARV_CONS) THEN
-    MP_TAC (SPECL [`V:real^3->bool`; `k:num`; `ul:(real^3)list`] BARV_SUBSET) THEN
-    ASM_REWRITE_TAC[] THEN
-    REPEAT STRIP_TAC THEN
-    MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`; `h:real^3`; `t:(real^3)list`] VORONOI_LIST_CANONICAL) THEN
-    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-    DISCH_THEN (LABEL_TAC "A") THEN
-    DISCH_TAC THEN REMOVE_THEN "A" MP_TAC THEN
-    POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-    ASM_REWRITE_TAC[] THEN
-    DISCH_THEN (fun th -> REWRITE_TAC[th]));;
-
-
-
-
-let REAL_LINE_BOUNDED = prove(`!a b. (!t. t * a <= b) ==> a = &0`,
-  REPEAT STRIP_TAC THEN
-    DISJ_CASES_TAC (TAUT `a = &0 \/ ~(a = &0)`) THEN ASM_REWRITE_TAC[] THEN
-    FIRST_X_ASSUM (MP_TAC o SPEC `(b + &1) * inv(a)`) THEN
-    ASM_REWRITE_TAC[GSYM REAL_MUL_ASSOC] THEN
-    ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-    REAL_ARITH_TAC);;
-
-
-
-let REAL_NEG_LE_RMUL = prove(`!x y z. z < &0 ==> (x <= y <=> y * z <= x * z)`,
-			     REPEAT STRIP_TAC THEN
-			       MP_TAC (SPECL [`x:real`; `y:real`; `--z:real`] REAL_LE_LMUL_EQ) THEN
-			       ASM_REWRITE_TAC[REAL_NEG_GT0] THEN
-			       REWRITE_TAC[REAL_MUL_LNEG; REAL_LE_NEG; REAL_MUL_AC] THEN
-			       SIMP_TAC[]);;
-
-
-
-
-let HALFSPACE_EQ = prove(`!(a:real^N) b c d. {x | a dot x <= b} = {x | c dot x <= d} <=> (?t. c = t % a /\ d = t * b /\ &0 < t) \/ (a = vec 0 /\ c = vec 0 /\ ((&0 <= b /\ &0 <= d) \/ (b < &0 /\ d < &0)))`,
+(* voronoi_list is a polyhedron *)
+let POLYHEDRON_VORONOI_LIST = prove(`!V ul. packing V /\ saturated V /\ set_of_list ul SUBSET V 
+				    ==> polyhedron (voronoi_list V ul)`,
    REPEAT STRIP_TAC THEN
-     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
-     EQ_TAC THENL
+     DISJ_CASES_TAC (ISPEC `ul:(real^3)list` list_CASES) THENL
      [
-       DISCH_TAC THEN
-       DISJ_CASES_TAC (TAUT `(a:real^N) = vec 0 \/ ~(a = vec 0)`) THENL
+       ASM_REWRITE_TAC[VORONOI_LIST; set_of_list; VORONOI_SET; NOT_IN_EMPTY] THEN
+	 SUBGOAL_THEN `{voronoi_closed V (v:real^3) | v | F} = {}` (fun th -> REWRITE_TAC[th]) THENL
 	 [
-	   DISJ2_TAC THEN
-	     ASM_REWRITE_TAC[] THEN
-	     DISJ_CASES_TAC (TAUT `(c:real^N) = vec 0 \/ ~(c = vec 0)`) THEN ASM_REWRITE_TAC[] THENL
-	     [
-	       FIRST_X_ASSUM (MP_TAC o check (is_forall o concl)) THEN
-		 ASM_REWRITE_TAC[DOT_LZERO] THEN
-		 REAL_ARITH_TAC;
-	       ALL_TAC
-	     ] THEN
-
-
-	     SUBGOAL_TAC "A" `~((c:real^N) dot c = &0)` [ ASM_REWRITE_TAC[DOT_EQ_0] ] THEN
-	     DISJ_CASES_TAC (REAL_ARITH `&0 <= b \/ b < &0`) THENL
-	     [
-	       FIRST_X_ASSUM (MP_TAC o SPEC `((d + &1) * inv((c:real^N) dot c)) % c`) THEN
-		 ASM_REWRITE_TAC[DOT_LZERO] THEN
-		 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-		 ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-		 REAL_ARITH_TAC;
-
-	       FIRST_X_ASSUM (MP_TAC o SPEC `(d * inv((c:real^N) dot c)) % c`) THEN
-		 ASM_REWRITE_TAC[DOT_LZERO] THEN
-		 ASM_SIMP_TAC[REAL_ARITH `b < &0 ==> ((&0 <= b) <=> F)`] THEN
-		 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-		 ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-		 REWRITE_TAC[REAL_MUL_RID; REAL_LE_REFL]
-	     ];
-
+	   REWRITE_TAC[EXTENSION; NOT_IN_EMPTY; IN_ELIM_THM];
 	   ALL_TAC
 	 ] THEN
-
-	 DISJ1_TAC THEN
-	 SUBGOAL_TAC "A" `~((a:real^N dot a) = &0)` [ ASM_REWRITE_TAC[DOT_EQ_0] ] THEN
-	 SUBGOAL_THEN `!u. u*((a:real^N dot a)*(c dot c) - (a dot c)*(a dot c)) <= d*(a dot a) - b*(a dot c)` MP_TAC THENL
-	 [
-	   GEN_TAC THEN
-	     FIRST_X_ASSUM (MP_TAC o SPEC `((b - u * (a:real^N dot c)) * inv(a dot a)) % a + u % c`) THEN
-	     REWRITE_TAC[DOT_RADD; DOT_RMUL] THEN
-	     REWRITE_TAC[GSYM REAL_MUL_ASSOC] THEN
-	     ASM_SIMP_TAC[REAL_MUL_LINV; REAL_MUL_RID; REAL_ARITH `(b:real - a) + a = b`; REAL_LE_REFL] THEN
-	     
-	     DISCH_TAC THEN
-	     ASSUME_TAC (ISPEC `a:real^N` DOT_POS_LE) THEN
-
-	     MP_TAC (SPECL [`(b - u * (a:real^N dot c)) * inv(a dot a) * (c dot a) + u * (c dot c)`; `d:real`; `a:real^N dot a`] REAL_LE_RMUL) THEN
-	     ASM_REWRITE_TAC[REAL_ADD_RDISTRIB] THEN
-	     REWRITE_TAC[GSYM REAL_MUL_ASSOC] THEN
-	     ASM_SIMP_TAC[REAL_FIELD `~(a:real^N dot a = &0) ==> inv(a dot a) * (c dot a) * (a dot a) = (c dot a)`] THEN
-	     REWRITE_TAC[REAL_SUB_RDISTRIB; REAL_SUB_LDISTRIB; DOT_SYM] THEN
-	     REAL_ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-
-	 DISCH_THEN (MP_TAC o (fun th -> MATCH_MP REAL_LINE_BOUNDED th)) THEN
-	 REWRITE_TAC[GSYM REAL_POW_2; REAL_ARITH `a - b = &0 <=> b = a`] THEN
-	 DISCH_TAC THEN
-	 SUBGOAL_THEN `?t. c = t % (a:real^N)` MP_TAC THENL
-	 [
-	   MP_TAC (SPECL [`a:real^N`; `c:real^N`] DOT_CAUCHY_SCHWARZ_EQUAL) THEN
-	     ASM_REWRITE_TAC[COLLINEAR_LEMMA] THEN
-	     STRIP_TAC THENL
-	     [
-	       EXISTS_TAC `&0` THEN
-		 ASM_REWRITE_TAC[VECTOR_MUL_LZERO];
-	       ALL_TAC
-	     ] THEN
-	     EXISTS_TAC `c':real` THEN ASM_REWRITE_TAC[];
-
-	   ALL_TAC
-	 ] THEN
-	 
-	 STRIP_TAC THEN
-         EXISTS_TAC `t:real` THEN
-	 ASM_REWRITE_TAC[] THEN
-	 FIRST_X_ASSUM (MP_TAC o check (is_forall o concl)) THEN
-	 ASM_REWRITE_TAC[DOT_LMUL] THEN
-	 DISCH_TAC THEN
-	 FIRST_ASSUM (MP_TAC o SPEC `(b * inv(a:real^N dot a)) % a`) THEN
-	 FIRST_ASSUM (MP_TAC o SPEC `(d * inv(t) * inv(a:real^N dot a)) % a`) THEN
-	 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-	 ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-	 REWRITE_TAC[REAL_MUL_RID; REAL_LE_REFL] THEN
-	 SUBGOAL_THEN `~(t = &0)` ASSUME_TAC THENL
-	 [
-	   DISJ_CASES_TAC (TAUT `~(t = &0) \/ t = &0`) THEN ASM_REWRITE_TAC[] THEN
-	     FIRST_X_ASSUM (MP_TAC o check (is_forall o concl)) THEN
-	     ASM_REWRITE_TAC[REAL_ARITH `&0 * a = &0`] THEN
-	     DISCH_TAC THEN
-	     DISJ_CASES_TAC (REAL_ARITH `&0 <= d \/ d < &0`) THENL
-	     [
-	       FIRST_X_ASSUM (MP_TAC o SPEC `((b + &1) * inv((a:real^N) dot a)) % a`) THEN
-		 ASM_REWRITE_TAC[DOT_LZERO] THEN
-		 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-		 ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-		 REAL_ARITH_TAC;
-
-	       FIRST_X_ASSUM (MP_TAC o SPEC `(b * inv((a:real^N) dot a)) % a`) THEN
-		 ASM_REWRITE_TAC[DOT_LZERO] THEN
-		 ASM_SIMP_TAC[REAL_ARITH `b < &0 ==> ((&0 <= b) <=> F)`] THEN
-		 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-		 ASM_SIMP_TAC[REAL_MUL_LINV] THEN
-		 REWRITE_TAC[REAL_MUL_RID; REAL_LE_REFL]
-	     ];
-
-	   ALL_TAC
-	 ] THEN
-
-	 ASM_SIMP_TAC[REAL_FIELD `~(t = &0) ==> t * d * inv t = d`] THEN
-	 ASM_REWRITE_TAC[REAL_LE_REFL] THEN
-	 
-	 SUBGOAL_THEN `&0 < t` ASSUME_TAC THENL
-	 [
-	   DISJ_CASES_TAC (REAL_ARITH `&0 < t \/ t <= &0`) THEN ASM_REWRITE_TAC[] THEN
-	     POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[REAL_LE_LT] THEN
-	     DISCH_TAC THEN
-	     DISJ_CASES_TAC (REAL_ARITH `t * b - d - &1 <= &0 \/ &0 < t * b - d - &1`) THENL
-	     [
-	       FIRST_X_ASSUM (MP_TAC o SPEC `((d + &1) * inv(t) * inv(a:real^N dot a)) % a`) THEN
-		 REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-		 ASM_SIMP_TAC[REAL_MUL_LINV; REAL_MUL_RID; REAL_FIELD `~(t = &0) ==> (t * d * inv t = d)`] THEN
-		 REWRITE_TAC[REAL_ARITH `d + &1 <= d <=> F`] THEN
-		 SUBGOAL_THEN `(d + &1) * inv t <= b` MP_TAC THENL
-		 [
-		   MP_TAC (SPECL [`(d + &1) * inv t`; `b:real`; `t:real`] REAL_NEG_LE_RMUL) THEN
-		     ASM_REWRITE_TAC[GSYM REAL_MUL_ASSOC] THEN
-		     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-		     ASM_SIMP_TAC[REAL_MUL_LINV; REAL_MUL_RID] THEN
-		     POP_ASSUM MP_TAC THEN
-		     REAL_ARITH_TAC;
-
-		   ALL_TAC
-		 ] THEN
-		 MESON_TAC[];
-
-	       ALL_TAC
-	     ] THEN
-
-	     FIRST_X_ASSUM (MP_TAC o SPEC `(b * inv(a:real^N dot a)) % a`) THEN
-	     REWRITE_TAC[DOT_RMUL; GSYM REAL_MUL_ASSOC] THEN
-	     ASM_SIMP_TAC[REAL_MUL_LINV; REAL_MUL_RID; REAL_LE_REFL] THEN
-	     POP_ASSUM MP_TAC THEN
-	     REAL_ARITH_TAC;
-
-	   ALL_TAC
-	 ] THEN
-
-	 DISCH_TAC THEN
-	 SUBGOAL_THEN `d:real <= t * b` MP_TAC THENL
-	 [
-	   MP_TAC (SPECL [`t:real`; `(d:real) * inv t`; `b:real`] REAL_LE_LMUL) THEN
-	     ASM_SIMP_TAC[REAL_ARITH `&0 < t ==> &0 <= t`; REAL_FIELD `~(t = &0) ==> t * d * inv t = d`];
-	   ALL_TAC
-	 ] THEN
-	 
-	 ASM_REWRITE_TAC[] THEN
-	 REAL_ARITH_TAC;
-
+	 REWRITE_TAC[INTERS_0; POLYHEDRON_UNIV];
        ALL_TAC
      ] THEN
 
-     STRIP_TAC THENL
+     POP_ASSUM STRIP_ASSUME_TAC THEN
+     ASM_SIMP_TAC[VORONOI_LIST_BIS] THEN
+
+     MATCH_MP_TAC POLYHEDRON_INTER THEN
+     CONJ_TAC THENL
      [
-       GEN_TAC THEN
-	 ASM_REWRITE_TAC[DOT_LMUL] THEN
-	 ASM_SIMP_TAC[REAL_LE_LMUL_EQ];
+       MATCH_MP_TAC VORONOI_POLYHEDRON THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC IN_TRANS THEN
+	 EXISTS_TAC `set_of_list ul:real^3->bool` THEN
+         ASM_REWRITE_TAC[IN_SET_OF_LIST; MEM];
+       ALL_TAC
+     ] THEN
 
-       GEN_TAC THEN
-	 ASM_REWRITE_TAC[DOT_LZERO];
-
-       GEN_TAC THEN 
-	 ASM_REWRITE_TAC[DOT_LZERO] THEN
-	 POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	 REAL_ARITH_TAC
-     ]);;
-
-
-
-let HALFSPACE_EQ_BIS_LE_IMP_HYPERPLANE_EQ_BIS = prove(`!(a:real^N) b v w. ~(a = vec 0) /\ {x | a dot x <= b} = bis_le v w ==> {x | a dot x = b} = bis v w`,
-   REPEAT GEN_TAC THEN
-     REWRITE_TAC[BIS_LE_EQ_HALFSPACE; BIS_EQ_HYPERPLANE] THEN
-     REWRITE_TAC[HALFSPACE_EQ] THEN
-     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[DOT_LZERO; EXTENSION; IN_ELIM_THM] THENL
+     MATCH_MP_TAC POLYHEDRON_INTERS THEN
+     CONJ_TAC THENL
      [
-       GEN_TAC THEN
-	 REWRITE_TAC[DOT_LMUL] THEN
-	 REWRITE_TAC[REAL_EQ_MUL_LCANCEL] THEN
-	 ASM_SIMP_TAC[REAL_ARITH `&0 < t ==> ~(t = &0)`];
+       ONCE_REWRITE_TAC[GSYM IMAGE_LEMMA] THEN
+	 MATCH_MP_TAC FINITE_IMAGE THEN
+	 REWRITE_TAC[FINITE_SET_OF_LIST];
+       ALL_TAC
+     ] THEN
 
-       ASM_MESON_TAC[];
-       ASM_MESON_TAC[]
-     ]);;
-
-
-
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[POLYHEDRON_BIS]);;
 
 
-(* A special version of the FACET_OF_POLYHEDRON_EXPLICIT theorem for bisectors *)
-let FACET_OF_POLYHEDRON_EXPLICIT_BIS = prove(`!(V:real^3->bool) K s u.
-        FINITE K /\ s = affine hull s INTER INTERS K /\ 
-	(!a. a IN K ==> (?v. v IN V /\ ~(v = u) /\ (a = bis_le v u \/ a = bis_le u v))) /\
-	(!K'. K' PSUBSET K ==> s PSUBSET (affine hull s INTER INTERS K'))
-	==> (!c. c facet_of s <=> (?v. v IN V /\ (bis_le v u IN K \/ bis_le u v IN K) /\ c = s INTER bis u v))`,
-  REPEAT STRIP_TAC THEN
-    SUBGOAL_THEN `?a b. !h:real^3->bool. h IN K ==> ~(a h = vec 0) /\ h = {x | a h dot x <= b h}` MP_TAC THENL
-	[
-	  POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN
-	    REPLICATE_TAC 2 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	    DISCH_TAC THEN
-	    REWRITE_TAC[GSYM SKOLEM_THM] THEN
-	    GEN_TAC THEN
-	    REWRITE_TAC[RIGHT_EXISTS_IMP_THM] THEN
-	    DISCH_TAC THEN
-            FIRST_X_ASSUM (MP_TAC o SPEC `h:(real^3->bool)`) THEN
-	    ASM_REWRITE_TAC[BIS_LE_EQ_HALFSPACE] THEN STRIP_TAC THENL
-	    [
-	      EXISTS_TAC `&2 % (u - (v:real^3))` THEN
-		EXISTS_TAC `(u:real^3) dot u - (v:real^3) dot v` THEN
-		ASM_REWRITE_TAC[VECTOR_MUL_EQ_0; REAL_ARITH `&2 = &0 <=> F`; VECTOR_SUB_EQ];
-	      EXISTS_TAC `&2 % ((v:real^3) - u)` THEN
-		EXISTS_TAC `(v:real^3) dot v - (u:real^3) dot u` THEN
-		ASM_REWRITE_TAC[VECTOR_MUL_EQ_0; REAL_ARITH `&2 = &0 <=> F`; VECTOR_SUB_EQ]
-	    ];
+(* voronoi_list is a polytope *)
+let POLYTOPE_VORONOI_LIST = prove(`!V ul. packing V /\ saturated V /\ set_of_list ul SUBSET V /\ ~(ul = [])
+				    ==> polytope (voronoi_list V ul)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[POLYTOPE_EQ_BOUNDED_POLYHEDRON] THEN
+     ASM_SIMP_TAC[POLYHEDRON_VORONOI_LIST] THEN
+     MP_TAC (ISPEC `ul:(real^3)list` list_CASES) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[VORONOI_LIST_BIS] THEN
+     MATCH_MP_TAC BOUNDED_SUBSET THEN
+     EXISTS_TAC `voronoi_closed V (h:real^3)` THEN
+     REWRITE_TAC[INTER_SUBSET] THEN
+     ASM_SIMP_TAC[BOUNDED_VORONOI_CLOSED]);;
+	 
+	 
+let POLYTOPE_VORONOI_LIST_BARV = prove(`!V ul k. packing V /\ saturated V /\ barV V k ul ==> polytope (voronoi_list V ul)`,
+   REPEAT STRIP_TAC THEN
+   MATCH_MP_TAC POLYTOPE_VORONOI_LIST THEN
+   ASM_REWRITE_TAC[] THEN
+   CONJ_TAC THENL 
+   [ 
+     MATCH_MP_TAC BARV_SUBSET THEN
+       EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[];
+     ALL_TAC
+   ] THEN
+   REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+   POP_ASSUM MP_TAC THEN SIMP_TAC[BARV; ARITH_RULE `~(k + 1 = 0)`]);;
+   
 
-	  ALL_TAC
-	] THEN
+(* closed (voronoi_list V ul) *)   
+let CLOSED_VORONOI_LIST = prove(`!V ul. closed (voronoi_list V ul)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[VORONOI_LIST; VORONOI_SET] THEN
+     MATCH_MP_TAC CLOSED_INTERS THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[CLOSED_VORONOI_CLOSED]);;
 
-	STRIP_TAC THEN
-	MP_TAC (ISPECL [`s:(real^3->bool)`; `K:(real^3->bool)->bool`; `a:(real^3->bool)->real^3`; `b:(real^3->bool)->real`] FACET_OF_POLYHEDRON_EXPLICIT) THEN
-	ASM_REWRITE_TAC[] THEN ANTS_TAC THENL [ ASM_MESON_TAC[]; ALL_TAC] THEN
 
-	DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-	EQ_TAC THENL
-	[
-	  STRIP_TAC THEN
-	    FIRST_X_ASSUM (MP_TAC o SPEC `h:real^3->bool`) THEN
-	    FIRST_X_ASSUM ((fun th -> ALL_TAC) o check (is_forall o concl)) THEN
-	    FIRST_X_ASSUM (MP_TAC o SPEC `h:real^3->bool`) THEN
-	    ASM_REWRITE_TAC[] THEN
-	    REPEAT STRIP_TAC THENL
-	    [
-	      EXISTS_TAC `v:real^3` THEN
-		SUBGOAL_THEN `{x:real^3 | x | (a:(real^3->bool)->real^3) h dot x = b h} = bis u v` ASSUME_TAC THENL
-		[
-		  MP_TAC (ISPECL [`(a:(real^3->bool)->real^3) h`; `(b:(real^3->bool)->real) h`; `v:real^3`; `u:real^3`] HALFSPACE_EQ_BIS_LE_IMP_HYPERPLANE_EQ_BIS) THEN
-		    ASM_MESON_TAC[BIS_SYM];
-		  ALL_TAC
-		] THEN
-		ASM_MESON_TAC[];
+(* convex (voronoi_list V ul) *)
+let CONVEX_VORONOI_LIST = prove(`!V ul. convex (voronoi_list V ul)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[VORONOI_LIST; VORONOI_SET] THEN
+     MATCH_MP_TAC CONVEX_INTERS THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[CONVEX_VORONOI_CLOSED]);;
 
-	      EXISTS_TAC `v:real^3` THEN
-		SUBGOAL_THEN `{x:real^3 | x | (a:(real^3->bool)->real^3) h dot x = b h} = bis u v` ASSUME_TAC THENL
-		[
-		  MP_TAC (ISPECL [`(a:(real^3->bool)->real^3) h`; `(b:(real^3->bool)->real) h`; `u:real^3`; `v:real^3`] HALFSPACE_EQ_BIS_LE_IMP_HYPERPLANE_EQ_BIS) THEN
-		    ASM_MESON_TAC[];
-		  ALL_TAC
-		] THEN
-		ASM_MESON_TAC[]
-	    ];
 
-	  ALL_TAC
-	] THEN
 
-	STRIP_TAC THENL
-	[
-	  ABBREV_TAC `h = bis_le (v:real^3) u` THEN
-	    FIRST_X_ASSUM (MP_TAC o SPEC `h:real^3->bool`) THEN
-	    FIRST_X_ASSUM ((fun th -> ALL_TAC) o check (is_forall o concl)) THEN
-	    FIRST_X_ASSUM ((fun th -> ALL_TAC) o SPEC `h:real^3->bool`) THEN
-	    ASM_REWRITE_TAC[] THEN
-	    STRIP_TAC THEN
-	    EXISTS_TAC `h:real^3->bool` THEN
-	    SUBGOAL_THEN `{x:real^3 | x | (a:(real^3->bool)->real^3) h dot x = b h} = bis u v` ASSUME_TAC THENL
-	    [
-	      MP_TAC (ISPECL [`(a:(real^3->bool)->real^3) h`; `(b:(real^3->bool)->real) h`; `v:real^3`; `u:real^3`] HALFSPACE_EQ_BIS_LE_IMP_HYPERPLANE_EQ_BIS) THEN
-		ASM_MESON_TAC[BIS_SYM];
-		ALL_TAC
-	    ] THEN
-	    ASM_MESON_TAC[];
+(* aff_dim voronoi_list *)
+let AFF_DIM_VORONOI_LIST = prove(`!V ul k. barV V k ul ==> aff_dim (voronoi_list V ul) = &3 - &k`,
+   REWRITE_TAC[BARV; VORONOI_NONDG] THEN REPEAT STRIP_TAC THEN
+     POP_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
+     ASM_REWRITE_TAC[ARITH_RULE `0 < k + 1`; INITIAL_SUBLIST_REFL] THEN
+     REWRITE_TAC[GSYM INT_OF_NUM_ADD] THEN INT_ARITH_TAC);;
+	 
+	 
+(* voronoi_list V vl SUBSET voronoi_closed V (HD vl) *)
+let VORONOI_LIST_SUBSET_VORONOI_CLOSED = prove(`!V vl. 1 <= LENGTH vl ==> voronoi_list V vl SUBSET voronoi_closed V (HD vl)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[SUBSET; VORONOI_LIST; VORONOI_SET; IN_INTERS; IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `voronoi_closed V ((HD vl):real^3)`) THEN
+     ANTS_TAC THENL
+     [
+       EXISTS_TAC `HD vl:real^3` THEN
+	 REWRITE_TAC[] THEN
+	 MATCH_MP_TAC HD_IN_SET_OF_LIST THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[]);;
+  
 
-	  ABBREV_TAC `h = bis_le (u:real^3) v` THEN
-	    FIRST_X_ASSUM (MP_TAC o SPEC `h:real^3->bool`) THEN
-	    FIRST_X_ASSUM ((fun th -> ALL_TAC) o check (is_forall o concl)) THEN
-	    FIRST_X_ASSUM ((fun th -> ALL_TAC) o SPEC `h:real^3->bool`) THEN
-	    ASM_REWRITE_TAC[] THEN
-	    STRIP_TAC THEN
-	    EXISTS_TAC `h:real^3->bool` THEN
-	    SUBGOAL_THEN `{x:real^3 | x | (a:(real^3->bool)->real^3) h dot x = b h} = bis u v` ASSUME_TAC THENL
-	    [
-	      MP_TAC (ISPECL [`(a:(real^3->bool)->real^3) h`; `(b:(real^3->bool)->real) h`; `u:real^3`; `v:real^3`] HALFSPACE_EQ_BIS_LE_IMP_HYPERPLANE_EQ_BIS) THEN
-		ASM_MESON_TAC[BIS_SYM];
-		ALL_TAC
-	    ] THEN
-	    ASM_MESON_TAC[]
-	]);;
-	
-
-	
 
 (************************************************************)
-(* IDBEZAL: characterization of facets of Omega(V, ul)      *)
-(************************************************************)
 
-(* vor_list -> barV *)
-let IDBEZAL = prove(`!V ul k F.  saturated V /\ packing V /\ barV V k ul /\ (k < 3) ==>
-   (F facet_of voronoi_list V ul <=>
-        (?vl. (F = voronoi_list V vl) /\ barV V (k+1) vl /\ (truncate_simplex k vl = ul)))`,
-  REPEAT STRIP_TAC THEN
-    EQ_TAC THENL
-    [
-      MP_TAC (SPECL [`V:real^3->bool`; `k:num`; `ul:(real^3)list`] VORONOI_BARV_CANONICAL) THEN
-	ASM_REWRITE_TAC[] THEN
-	STRIP_TAC THEN
-	ABBREV_TAC `s = voronoi_list (V:real^3->bool) ul` THEN
+(*****************************************************)
+(* General properties of omega_list_n and omega_list *)
+(*****************************************************)
 
-	MP_TAC (SPECL [`V:real^3->bool`; `K:(real^3->bool)->bool`; `s:real^3->bool`; `(HD ul):real^3`] FACET_OF_POLYHEDRON_EXPLICIT_BIS) THEN
+(* omega_k(u) = omega_k (d_(k+i) u) *)
+let OMEGA_LIST_N_LEMMA = prove(`!V ul k i. k + i + 1 <= LENGTH ul ==> omega_list_n V ul k = omega_list_n V (truncate_simplex (k + i) ul) k`,
+   GEN_TAC THEN GEN_TAC THEN
+     INDUCT_TAC THEN REWRITE_TAC[OMEGA_LIST_N] THEN REPEAT STRIP_TAC THENL
+     [
+       MATCH_MP_TAC (GSYM HD_TRUNCATE_SIMPLEX) THEN
+	 POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MP_TAC (ISPECL [`ul:(real^3)list`; `SUC k`; `SUC k + i`] TRUNCATE_TRUNCATE_SIMPLEX) THEN
+     ASM_REWRITE_TAC[ARITH_RULE `a:num <= a + i`; ARITH_RULE `(a + b) + 1 = a + b + 1`] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     AP_TERM_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `i + 1`) THEN
+     ASM_REWRITE_TAC[ARITH_RULE `k + (i + 1) + 1 = SUC k + i + 1`] THEN
+     SIMP_TAC[ARITH_RULE `k + i + 1 = SUC k + i`]);;
 
-	ASM_REWRITE_TAC[] THEN
-	ANTS_TAC THENL [ ASM_MESON_TAC[]; ALL_TAC ] THEN
-	DISCH_TAC THEN DISCH_TAC THEN
-	SUBGOAL_THEN `aff_dim (F':real^3->bool) = aff_dim (s:real^3->bool) - &1` ASSUME_TAC THENL
-	[
-	  POP_ASSUM MP_TAC THEN
-	    REWRITE_TAC[facet_of] THEN
-	    SIMP_TAC[];
-	  ALL_TAC
-	] THEN
 
-	POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
-	DISCH_THEN (CHOOSE_THEN MP_TAC) THEN
-	DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
-	DISCH_THEN (ASSUME_TAC o CONJUNCT2) THEN
-	DISCH_TAC THEN
-	EXISTS_TAC `APPEND ul [v:real^3]` THEN
-	SUBGOAL_THEN `truncate_simplex k (APPEND ul [v:real^3]) = ul` (fun th -> REWRITE_TAC[th]) THENL
-	[
-	  REWRITE_TAC[TRUNCATE_SIMPLEX] THEN
-	    MATCH_MP_TAC CHOICE_LEMMA THEN
-	    CONJ_TAC THENL
-	    [
-	      EXISTS_TAC `ul:(real^3)list` THEN
-		CONJ_TAC THENL [ ASM_MESON_TAC[BARV]; ALL_TAC] THEN
-		REWRITE_TAC[INITIAL_SUBLIST_APPEND];
-	      ALL_TAC
-	    ] THEN
+(* omega(d_k u) = omega_k (u) *)
+let OMEGA_LIST_LEMMA = prove(`!V ul k. k + 1 <= LENGTH ul ==> omega_list V (truncate_simplex k ul) = omega_list_n V ul k`,
+   REPEAT STRIP_TAC THEN REWRITE_TAC[OMEGA_LIST] THEN
+     MP_TAC (ISPECL [`k:num`; `truncate_simplex k (ul:(real^3)list)`; `ul:(real^3)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_SIMP_TAC[ARITH_RULE `(k + 1) - 1 = k`] THEN
+     DISCH_TAC THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`; `k:num`; `0`] OMEGA_LIST_N_LEMMA) THEN
+     ASM_SIMP_TAC[ADD_CLAUSES]);;
+	 
 
-	    REPLICATE_TAC 9 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	    POP_ASSUM MP_TAC THEN REWRITE_TAC[BARV] THEN
-	    REPEAT STRIP_TAC THEN
-	    ASSUME_TAC (ISPECL [`ul:(real^3)list`; `[v:real^3]`] INITIAL_SUBLIST_APPEND) THEN
-	    ASM_MESON_TAC[INITIAL_SUBLIST_UNIQUE];
+	 
+let BARV_IMP_VORONOI_LIST_NOT_EMPTY = prove(`!V ul k. barV V k ul ==> ~(voronoi_list V ul = {})`,
+   REPEAT STRIP_TAC THEN
+     UNDISCH_TAC `barV V k ul` THEN DISCH_TAC THEN FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[BARV; VORONOI_NONDG] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
+     ASM_REWRITE_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < k + 1`; DE_MORGAN_THM] THEN
+     DISJ2_TAC THEN DISJ2_TAC THEN
+     REWRITE_TAC[AFF_DIM_EMPTY; GSYM INT_OF_NUM_ADD] THEN
+     SUBGOAL_THEN `&k <= int_of_num 3` MP_TAC THENL
+     [
+       REWRITE_TAC[INT_OF_NUM_LE] THEN
+	 MATCH_MP_TAC BARV_IMP_K_LE_3 THEN
+	 MAP_EVERY EXISTS_TAC [`V:real^3->bool`; `ul:(real^3)list`] THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     INT_ARITH_TAC);;
+     
+     
+(* omega_i IN voronoi_list V (d_i ul) *)
+let OMEGA_LIST_N_IN_VORONOI_LIST = prove(`!V ul k i. barV V k ul /\ i <= k
+					   ==> omega_list_n V ul i IN voronoi_list V (truncate_simplex i ul)`,
+   REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `LENGTH (ul:(real^3)list) = k + 1` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `barV V k ul` THEN
+	 SIMP_TAC[BARV];
+       ALL_TAC
+     ] THEN
+     DISJ_CASES_TAC (SPEC `i:num` num_CASES) THENL
+     [
+       ASM_REWRITE_TAC[OMEGA_LIST_N] THEN
+	 MP_TAC (ISPEC `ul:(real^3)list` TRUNCATE_0_EQ_HEAD) THEN
+	 ASM_REWRITE_TAC[ARITH_RULE `1 <= k + 1`] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[VORONOI_LIST_SING; CENTER_IN_VORONOI_CELL];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM CHOOSE_TAC THEN
+     ASM_REWRITE_TAC[OMEGA_LIST_N] THEN
+     MP_TAC (ISPECL [`voronoi_list V (truncate_simplex i ul):real^3->bool`; `omega_list_n V ul n`] CLOSEST_POINT_EXISTS) THEN
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[CLOSED_VORONOI_LIST] THEN
+	 MATCH_MP_TAC BARV_IMP_VORONOI_LIST_NOT_EMPTY THEN
+	 EXISTS_TAC `i:num` THEN
+	 MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+	 EXISTS_TAC `k:num` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[]);;
 
-	  ALL_TAC
-	] THEN
 
-	SUBGOAL_THEN `F' = voronoi_list V (APPEND ul [v:real^3])` ASSUME_TAC THENL
-	[
-	  POP_ASSUM (fun th -> ALL_TAC) THEN
-	    REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
-	    REPLICATE_TAC 5 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	    FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_SUBSET th)) THEN
-	    FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_CONS th)) THEN
-	    STRIP_TAC THEN
-	    FIRST_X_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-	    DISCH_TAC THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-	    DISCH_TAC THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-	    MATCH_MP_TAC VORONOI_LIST_INTER_BIS THEN
-	    ASM_MESON_TAC[];
-	  ALL_TAC
-	] THEN
+(* omega ul IN voronoi_list V ul *)
+let OMEGA_LIST_IN_VORONOI_LIST = prove(`!V ul k. barV V k ul ==> omega_list V ul IN voronoi_list V ul`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[OMEGA_LIST] THEN
+     MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`; `k:num`; `k:num`] OMEGA_LIST_N_IN_VORONOI_LIST) THEN
+     ASM_REWRITE_TAC[LE_REFL] THEN
+     SUBGOAL_THEN `LENGTH (ul:(real^3)list) = k + 1` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN SIMP_TAC[BARV];
+       ALL_TAC
+     ] THEN
 
-	SUBGOAL_THEN `barV (V:real^3->bool) (k + 1) (APPEND ul [v])` (fun th -> REWRITE_TAC[th]) THENL
-	[
-	  REWRITE_TAC[BARV] THEN CONJ_TAC THENL
-	    [
-	      REPLICATE_TAC 10 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-		POP_ASSUM MP_TAC THEN
-		REWRITE_TAC[BARV; LENGTH_APPEND] THEN
-		REWRITE_TAC[LENGTH; SYM ONE] THEN
-		SIMP_TAC[];
-	      ALL_TAC
-	    ] THEN
-	    
-	    REWRITE_TAC[VORONOI_NONDG; INITIAL_SUBLIST_APPEND_SING] THEN
-	    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	    EXPAND_TAC "s" THEN
-	    POP_ASSUM (fun th -> ALL_TAC) THEN
-	    POP_ASSUM MP_TAC THEN
-	    REPLICATE_TAC 5 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	    POP_ASSUM MP_TAC THEN
-	    FIRST_ASSUM (MP_TAC o (fun th -> MATCH_MP BARV_SUBSET th)) THEN
-	    POP_ASSUM MP_TAC THEN
-	    REPLICATE_TAC 2 (POP_ASSUM (fun th -> ALL_TAC)) THEN
-	    REWRITE_TAC[BARV; VORONOI_NONDG] THEN
-	    
-	    REPEAT STRIP_TAC THEN ASM_SIMP_TAC[] THENL
-	    [
-	      ASM_REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
-		ASM_SIMP_TAC [ARITH_RULE `k < 3 ==> (k + 1) + SUC 0 < 5`];
-	      REWRITE_TAC[SUBSET; IN_SET_OF_LIST; MEM_APPEND; MEM] THEN
-		ASM_MESON_TAC[SUBSET; IN_SET_OF_LIST];
+     SUBGOAL_THEN `truncate_simplex k ul = ul:(real^3)list` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MP_TAC (ISPECL [`k:num`; `ul:(real^3)list`; `ul:(real^3)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+	 ASM_REWRITE_TAC[LE_REFL; INITIAL_SUBLIST_REFL];
+       ALL_TAC
+     ] THEN
 
-	      POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM (fun th -> ALL_TAC) THEN
-		POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-		POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
-		REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
-		POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN
-		POP_ASSUM MP_TAC THEN
-		POP_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
-		ASM_REWRITE_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < k + 1`] THEN
-		ARITH_TAC
-	    ];
-	  ALL_TAC
-	] THEN
-	POP_ASSUM ACCEPT_TAC;
-
-      ALL_TAC
-    ] THEN
-    
-    REWRITE_TAC[facet_of] THEN
-    REPEAT STRIP_TAC THENL
-    [
-      SUBGOAL_THEN `initial_sublist ul (vl:(real^3)list)` ASSUME_TAC THENL
-	[
-	  SUBGOAL_TAC "A" `k + 1 <= LENGTH (vl:(real^3)list)` [ ASM_MESON_TAC[BARV; ARITH_RULE `k + 1 <= (k + 1) + 1`] ] THEN
-	    ASM_MESON_TAC[TRUNCATE_SIMPLEX_INITIAL_SUBLIST];
-	  ALL_TAC
-	] THEN
-	ASM_REWRITE_TAC[] THEN
-	MATCH_MP_TAC KHEJKCI_GEN THEN
-	ASM_MESON_TAC[];
-
-      POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN
-	POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
-	REWRITE_TAC[BARV; VORONOI_NONDG] THEN
-	STRIP_TAC THEN
-	POP_ASSUM (MP_TAC o SPEC `vl:(real^3)list`) THEN
-	ASM_SIMP_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `k < 3 ==> (k + 1) + 1 < 5`; ARITH_RULE `0 < a + 1`] THEN
-	DISCH_THEN ((LABEL_TAC "A") o CONJUNCT2) THEN
-	DISCH_TAC THEN REMOVE_THEN "A" MP_TAC THEN
-	POP_ASSUM (fun th -> REWRITE_TAC[th; AFF_DIM_EMPTY]) THEN
-	POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN
-	REWRITE_TAC[GSYM INT_OF_NUM_ADD] THEN
-	REWRITE_TAC[INT_ARITH `-- &1 + (((&k):int) + &1) + &1 = &4 <=> (&k):int = &3`] THEN
-	ONCE_REWRITE_TAC[INT_OF_NUM_EQ] THEN
-	ACCEPT_TAC (ARITH_RULE `k < 3 ==> ~(k = 3)`);
-
-      POP_ASSUM (fun th -> ALL_TAC) THEN
-	POP_ASSUM MP_TAC THEN
-	POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
-	POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	REWRITE_TAC[BARV; VORONOI_NONDG] THEN
-	REPEAT STRIP_TAC THEN
-	FIRST_X_ASSUM (MP_TAC o SPEC `vl:(real^3)list`) THEN
-	ASM_SIMP_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < a + 1`] THEN
-	DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) (ASSUME_TAC o CONJUNCT2)) THEN
-	FIRST_X_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
-	ASM_SIMP_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < a + 1`] THEN
-	DISCH_THEN (CONJUNCTS_THEN2 (fun th -> ALL_TAC) (ASSUME_TAC o CONJUNCT2)) THEN
-	POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	REWRITE_TAC[GSYM INT_OF_NUM_ADD] THEN
-	INT_ARITH_TAC
-    ]);;
+     ASM_REWRITE_TAC[ARITH_RULE `(k + 1) - 1 = k`]);;
 
 
 

@@ -1657,7 +1657,7 @@ static double rand01()
 
 void secondDerive::selfTest() {
 	static const interval zero("0");
-    cout << " -- loading derivative routines $Revision: 1.4 $ \n" << flush;
+    cout << " -- loading derivative routines \n" << flush;
 	double x[6]={4.01, 4.02, 4.03, 4.04, 4.05, 4.06};
 
 	/*test setChi126*/ {

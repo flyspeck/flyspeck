@@ -35,6 +35,13 @@ void error::message(const char *s)
 		}
 	}
 
+void error::fatal(const char* s)
+{
+  cout << "fatal error(" << time(0) << "): " << s << "\n" << flush;
+  ERROR_COUNT++;
+  exit(0);
+}
+
 static void diagnostic()
 	{
 	if (ERROR_COUNT>0)

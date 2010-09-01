@@ -1440,7 +1440,7 @@ void linearization::selfTest() {
 	static int lineIntervalCount =0;
 	if (interMath::sup(one)==0) return;
 	if (lineIntervalCount++>0) return;
-	cout << " -- loading lineInterval routines $Revision: 1.5 $ \n" << flush;
+	cout << " -- loading lineInterval routines\n" << flush;
 	//cout << one; return;
 	assert(lineInterval(one).hi() == 1.0);
 	domain x(4.04,4.08,4.12,4.16,4.2,4.24);

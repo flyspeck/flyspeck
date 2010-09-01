@@ -3,10 +3,12 @@
 #ifndef notPortableH
 #define notPortableH
 
-#define DA_SYSTEM 3
+#define DA_SYSTEM 1
 
 
-#if DA_SYSTEM == 1 /* PPC, PowerMac */
+#if DA_SYSTEM == 1 /* PPC, PowerMac, Mac OS X Intel, */
+
+#include <fenv.h>
 
 #define ROUND_UP        fesetround(FE_UPWARD)
 #define ROUND_DOWN      fesetround(FE_DOWNWARD)

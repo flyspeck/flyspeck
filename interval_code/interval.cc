@@ -19,10 +19,13 @@ extern "C"
 #include <time.h>
 #include <stdlib.h>
 #include <float.h>
+#include <time.h>
+#include <string.h>
 }
 #include "error.h"
 #include "notPortable.h"
 #include "interval.h"
+
 
 
 interval interMath::min(interval a,interval b) 
@@ -74,18 +77,26 @@ interval interval::wideInterval(const char *ch1,const char *ch2)
 	{
 	interval t;
 	interMath::down();
-	t.lo = double(atof(ch1));
+	t.lo =double(atof(ch1)) - DBL_MIN;
 	interMath::up();
-	t.hi = double(atof(ch2));
+	t.hi = double(atof(ch2)) + DBL_MIN;
 	return t;
 	}
 
+/* This constructor is not provably an interval containing the decimal represented by
+   the string ch1.  For example, if an integer is given that is too large to be
+   represented as an integer, this will fail.  It should be fully accurate for input
+   within a determinable domain.
+ */
 interval::interval(const char *ch1) 
-	{ 
-	interMath::down();
-	lo = double(atof(ch1));	
-	interMath::up();
-	hi = double(atof(ch1));
+	{
+	  interval t = wideInterval(ch1,ch1);
+	  lo = t.lo;
+	  hi = t.hi;
+          if (strchr(ch1,'.')==NULL) { 
+	    lo = double(atoi(ch1));
+	    hi = lo;
+	  }
 	}
 
 interval interval::slow_multiply(interval t2) const
@@ -253,7 +264,31 @@ void interMath::selfTest() {
 	static int intervalTestCount =0;
     if (intervalTestCount>0) return;
     intervalTestCount++;
-	cout << " -- loading interval routines $Revision: 1.5 $\n" << flush;
+	cout << " -- loading interval routines \n" << flush;
+
+	/*  string constructor */
+	{
+	  char* s = "3.1415926535897932384626433832795";
+	  interval t = s;
+	  cout.precision(30);
+	  assert(t.lo < t.hi);
+	}
+
+	/* integer string constructor */
+	{
+	  char* s = "1";
+	  interval t = s;
+	  assert(t.lo == 1);
+	  assert(t.hi == 1);
+	}
+
+	/* illustrate limitations of string constructor */
+	{
+	  char* s = "10000000000000000";
+	  interval t = s;
+	  interval u( "2147483647"); // overflow value.
+	  assert(t.lo == u.lo);
+	}
 
 	/* underflow and overflow tests */ {
 	double t = DBL_MAX;

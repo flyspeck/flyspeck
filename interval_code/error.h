@@ -34,6 +34,12 @@ static void printTime(const char* s);
 		//
 static void message(const char*); 
 
+		///////////
+		// prints an error message and terminates program.
+		//
+static void fatal(const char*); 
+
+
 		//////////
 		// prints the total number of errors.
 		//

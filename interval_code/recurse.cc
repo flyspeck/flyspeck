@@ -2,6 +2,8 @@
 
 
 #include <iomanip.h>
+#include <float.h>
+
 //#include <iostream.h>
 extern "C"
 {
@@ -969,116 +971,4 @@ int prove::generic(const domain& x,const domain& z,const taylorFunction& F)
     return recursiveVerifier(0,x,z,x0,z0,I,1,opt);
     }
 
-int prove::qrtet(const domain& x,const domain& z,const taylorFunction& F)
-	{
-	/*gamma*/{
-	domain x0=x,z0=z;
-	interval s141("1.41"); s141 = s141*s141;
-	taylorFunction G = F+taylorQrtet::gamma;
-	taylorFunction H = taylorQrtet::rad2*"-1" + taylorSimplex::unit*s141;
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(1);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("gamma done! ");
-	/*vor*/{
-	domain x0=x,z0=z;
-	interval s141("1.41"); s141 = s141*s141;
-	taylorFunction G = F+taylorQrtet::vor;
-	taylorFunction H = taylorQrtet::rad2 + taylorSimplex::unit*(-s141);
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(0);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("vor done! ");
-	return 1;
-	}
 
-int prove::flat(const domain& x,const domain& z,const taylorFunction& F)
-	{
-	/*gamma*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorFlat::gamma;
-	taylorFunction H = taylorSimplex::eta2_234*"-1" + taylorSimplex::unit*"2";
-	taylorFunction J = taylorSimplex::eta2_456*"-1" +taylorSimplex::unit*"2";
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(1);
-	J.setReducibleState(1);
-	const taylorFunction* I[3]= {&G,&H,&J};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,3,opt)) return 0;
-	}
-	error::printTime("gamma done! ");
- 
-	/*vorTop*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorFlat::vor;
-	taylorFunction H = taylorSimplex::eta2_456 + taylorSimplex::unit*"-2";
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(0);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("vor(top) done! ");
- 
-	/*vorSide*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorFlat::vor;
-	taylorFunction H = taylorSimplex::eta2_234 + taylorSimplex::unit*"-2";
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(0);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("vor(side) done! ");
-
-	return 1;
-	}
-
-int prove::upright(const domain& x,const domain& z,const taylorFunction& F)
-	{
-	/*gamma*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorUpright::gamma;
-	taylorFunction H = taylorSimplex::eta2_126*"-1" + taylorSimplex::unit*"2";
-	taylorFunction J = taylorSimplex::eta2_135*"-1" +taylorSimplex::unit*"2";
-	G.setReducibleState(F.getReducibleState());
-	H.setReducibleState(1);
-	J.setReducibleState(1);
-	const taylorFunction* I[3]= {&G,&H,&J};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,3,opt)) return 0;
-	}
-	error::printTime("gamma done! ");
- 
-	/*vor126*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorUpright::octavor;
-	taylorFunction H = taylorSimplex::eta2_126 + taylorSimplex::unit*"-2";
-	G.setReducibleState(0);
-	H.setReducibleState(0);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("vor(126) done! ");
- 
-	/*vor135*/{
-	domain x0=x,z0=z;
-	taylorFunction G = F+taylorUpright::octavor;
-	taylorFunction H = taylorSimplex::eta2_135 + taylorSimplex::unit*"-2";
-	G.setReducibleState(0);
-	H.setReducibleState(0);
-	const taylorFunction* I[2]= {&G,&H};
-	cellOption opt;
-	if (!recursiveVerifier(0,x,z,x0,z0,I,2,opt)) return 0;
-	}
-	error::printTime("vor(135) done! ");
-	return 1;
-	}

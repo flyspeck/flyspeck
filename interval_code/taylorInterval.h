@@ -258,19 +258,10 @@ public:
 	// dih,dih2,dih3, are the dihedral angles along the first
 	// three edges.
 	// sol is the solid angle of a simplex
-	// lowVorVc is the voronoi function truncated at 1.255.
-	// The domain is restricted to simplices whose first three edges
-	// have heights 2.51.
-	// highVorVc is the voronoi function truncated at 1.255.
-	// The domain is restricted to simplices whose first edge is greater
-	// than 2.51 and whose second and third edges are at most 2.51.
-	// vorSqc is the voronoi function truncated at sqrt(2).
-	// vor is the analytic voronoi function.
 	//
 	static const taylorFunction unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-		dih,dih2,dih3,sol,
-		lowVorVc,highVorVc,vorSqc,vor;
+	        dih,dih2,dih3,sol;
 
 	//////////
 	// functions on an upright,flat,or quasiregular:
@@ -286,141 +277,5 @@ public:
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456;
 };
 
-
-/*
-CLASS
-	taylorQrtet
-
-	A library of static functions of a quasi-regular tetrahedron S
-
-OVERVIEW TEXT
-
-	This class contains functions defined on quasi-regular tetrahedra.
-	Some of these functions are also available as functions on a
-	general simplex in the class taylorSimplex.  The version here
-	have been customized for quasi-regular tetrahedra.
-	Much more general functions can be built
-	up by taking linear combinations of these, using the operator
-	overloading on addition and scalar multiplication for
-	taylorFunctions.
-
-AUTHOR
-	
-	Thomas C. Hales
-*/
-
-class taylorQrtet
-{
-public:
-	//////////
-	// dih,dih2,dih3 are the dihedral angles of a quasi-regular
-	// tetrahedron along the first three edges.
-	// sol is the solid angle,
-	// gamma, gamma1,gamma32 are the functions
-	// gamma - L zeta pt solid, where L = 0,1,3.2, respectively, and
-	// gamma is the compression of the quasi-regular tetrahedron.
-	// The functions vor, vor1, and vor32 are the
-	// functions vor - L zetap pt solid, where L = 0,1,3.2, respectively,
-	// and vor is the analytic voronoi function on the quasi-regular 
-	// tetrahedron.
-	// The function rad2 is the circumradius squared of a quasi-regular 
-	// tetrahedrdon.
-	// Also, quo is the quoin of a single Rogers simplex R=R(a,b,c),
-	// a = y1/2, b=eta(y1,y2,y3), c = 1.255.
-	//
-	// The function rad2 has been designed to work on the slightly
-	// bigger region yi<= 2 Sqrt[3] Tan[Pi/5], so it can be used in
-	// connection with the dodecahedral conjecture.
-	// 
-	static const taylorFunction dih,dih2,dih3,
-	   sol,rad2,
-	   gamma,
-	   vor,
-	   quo;
-};
-
-/*
-CLASS
-	taylorFlat
-
-	A library of static functions of a flat quarter S
-
-OVERVIEW TEXT
-
-	This class contains functions defined on flat quarters.
-	Some of these functions are also available as functions on a
-	general simplex in the class taylorSimplex.  The version here
-	have been customized for flat quarters.
-	Much more general functions can be built
-	up by taking linear combinations of these, using the operator
-	overloading on addition and scalar multiplication for
-	taylorFunctions.  
-
-	In these functions, the fourth edge is assumed to be the
-	long edge.
-
-AUTHOR
-	
-	Thomas C. Hales
-*/
-
-class taylorFlat
-{
-public:
-	//////////
-	// flat quarters (x4 is the diagonal).
-	// gamma is the compression.
-	// vor is the analytic voronoi function.
-	// sol is the solid angle.
-	// dih,dih2,dih3 are the dihedral angles along the first three edges.
-	static const taylorFunction gamma,vor,vor1385,sol,dih,dih2,dih3;
-};
-
-/*
-CLASS
-	taylorUpright
-
-	A library of static functions of an upright quarter S
-
-OVERVIEW TEXT
-
-	This class contains functions defined on upright quarters.
-	Some of these functions are also available as functions on a
-	general simplex in the class taylorSimplex.  The version here
-	have been customized for upright quarters.
-	Much more general functions can be built
-	up by taking linear combinations of these, using the operator
-	overloading on addition and scalar multiplication for
-	taylorFunctions.  
-
-	In these functions, the first edge is assumed to be the
-	long edge.
-
-AUTHOR
-	
-	Thomas C. Hales
-*/
-
-class taylorUpright
-{
-public:
-	//////////
-	// upright quarters (x1 is the diagonal).
-	// gamma is the compression.
-	// vor is the analytic voronoi function.
-	// sol is the solid angle.
-	// dih,dih2,dih3 are the dihedral angles along the first three edges.
-	// vorVc is the voronoi function truncated at 1.255.
-	// swapVor is the inverted analytic voronoi function, so that
-	// octavor is (vor+swapVor)/2.
-	// swapVorVc is the inverted truncated voronoi function at 1.255
-	// so that octavor0 is (vorVc+swapVorVc)/2.
-	//
-	static const taylorFunction octavor,gamma,vor,vorVc,sol,dih,dih2,dih3;
-
-	//////////
-	// 
-	static const taylorFunction swapVor, swapVorVc;
-};
 
 #endif

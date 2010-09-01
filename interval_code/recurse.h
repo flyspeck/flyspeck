@@ -257,56 +257,6 @@ static void recursiveVerifierQ(int depth,
 	//
 static int generic(const domain& x,const domain& z,const taylorFunction& F);
 
-	//////////
-	// Prove that sigma+FlessScore <0 on the the domain x--z.
-	// Two cases are considered according to whether the score
-	// is compression or the analytic voronoi function.
-	// qrtet calls recursiveVerifier twice.
-	//
-static int qrtet(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	// Prove that sigma+FlessScore <0 on the the domain x--z, using
-	// dimension reduction.
-	// Two cases are considered according to whether the score
-	// is compression or the analytic voronoi function.
-	// It is assumed that FlessScore is reducible.  The procedure
-	// keeps track of when the score sigma is reducible and acts
-	// accordingly.
-	// qrtetReduce calls recursiveVerifier twice.
-	//
-static int qrtetReduce
-	(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	//
-static int flat(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	//
-static int flatVc(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	//  This uses gamma or octavor depending on the context.
-	//  This verification function is suitable for quad clusters.
-	//
-static int upright(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	//
-static int octa(const domain& x,const domain& z,const taylorFunction& FlessScore);
-
-	//////////
-	//
-static int octaWithoutEta(const domain& x,const domain& z,
-		const taylorFunction& FlessScore);
-
-	//////////
-	//
-static int quadcluster(const domain& xA,const domain& xB,
-		const domain& zA, const domain& zB, 
-		const taylorFunction& fA, const taylorFunction& fB);
 };
-
 
 #endif

@@ -103,7 +103,7 @@ let sqrt8_nn = prove_by_refinement(
   (* }}} *)
 
 let basic_constants_nn = [
- REAL_ARITH `&0 <= #2.18 /\ &0 <= &2 /\ &0 <= #2.52`;
+ REAL_ARITH `&0 <= #2.18 /\ &0 <= &2 /\ &0 <= #2.52 /\ #2.0 = &2 /\ #2 = &2 /\ &0 <= #2.25 `;
  sqrt8_nn
  ];;
 
@@ -138,6 +138,20 @@ let dih2_x_y = prove_by_refinement(
   (* {{{ proof *)
   [
   REWRITE_TAC[Sphere.dih2_y;Sphere.dih2_x;Sphere.dih_y;LET_DEF;LET_END_DEF];
+  ASM_MESON_TAC[sq_pow2];
+  ]);;
+  (* }}} *)
+
+
+let dih3_x_y = prove_by_refinement(
+  `!a1 a2 a3 a4 a5 a6 x1 x2 x3 x4 x5 x6.
+    (a1 pow 2 <= x1) /\ (a2 pow 2 <= x2) /\ (a3 pow 2 <= x3) /\ (a4 pow 2 <= x4) /\
+    (a5 pow 2 <= x5) /\ (a6 pow 2 <= x6) ==> 
+    (dih3_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+         dih3_x x1 x2 x3 x4 x5 x6)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih3_y;Sphere.dih3_x;Sphere.dih_y;LET_DEF;LET_END_DEF];
   ASM_MESON_TAC[sq_pow2];
   ]);;
   (* }}} *)
@@ -234,12 +248,19 @@ let cpp_assoc =
    ("dih_x","dih"); ("dih2_x","dih2");("dih3_x","dih3");("sol","sol")
  ];;
 
+let cpp0_assoc = 
+  [("sqrt8","sqrt8");("pi","pi")];;
+
 
 let x6list =  [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
 
 let cpp_of_fun s xs = 
   let _ = (xs = x6list) or failwith ("x6 list expected in "^s) in
     try (assoc s cpp_assoc) with Failure _ -> failwith (s^"find: cpp_of_fun") ;;
+
+let cpp_of_constant s  = 
+    try (assoc s cpp0_assoc) with Failure _ -> failwith (s^" find: cpp_of_constant") ;;
+
 
 let cpp_string_of_term t = 
  let rec ccform t =
@@ -268,7 +289,7 @@ let cpp_string_of_term t =
   | "COND" -> let [a;b;c] = xs in "( "^ soh a ^ " ? " ^ soh b ^ " : " ^ soh c ^ ")" 
   | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
          "(atn2( " ^ soh a ^ "," ^ soh b ^ "))" 
-  | s -> "(" ^ cpp_of_fun s xs  ^ ")" in
+  | s -> if (xs = []) then "("^cpp_of_constant s^")"  else "(" ^ cpp_of_fun s xs  ^ ")" in
    try (ccform t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 
@@ -301,12 +322,38 @@ let cpp_template = Printf.sprintf "
 	return prove::generic (x,z,F);
 	}";;
 
+let cpp_template2 = Printf.sprintf "
+ char* ineq_id = %s;
+
+ int testRun()
+	{
+	interval tx[6]={%s};
+	interval tz[6]={%s};
+	domain x = domain::lowerD(tx);
+	domain z = domain::upperD(tz);
+        domain x0=x;
+        domain z0=z;
+	taylorFunction F1 = %s;
+	taylorFunction F2 = %s;
+	F1.setReducibleState(0);
+	F2.setReducibleState(0);
+        const taylorFunction* I[2] = {&F1,&F2};
+        cellOption opt;
+	return prove::recursiveVerifier(0,x,z,x0,z0,I,2,opt);
+	}";;
+
+
 let mk_cpp_proc t s = 
   let c = map cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
-     let (aas,bbs,iis) = f (dest_nonlin t) in
-     let _ = (List.length iis = 1) or failwith "mk_cpp_proc: disjunctions not installed" in
-  cpp_template (quoted s) (join_comma aas) (join_comma bbs) (hd iis);;
+  let (aas,bbs,iis) = f (dest_nonlin t) in
+  let len = List.length iis in
+  let _ = (len < 3) or failwith "mk_cpp_proc: disjunctions not installed" in
+  let sq = quoted s in
+  let jaas = join_comma aas in
+  let jbbs = join_comma bbs in
+  if (len < 2) then cpp_template sq jaas jbbs (hd iis)
+  else cpp_template2 sq jaas jbbs (List.nth iis 0) (List.nth iis 1);;
 
 (* mk_cpp_proc testineq testid;;
     next: put together header, proc, tail and run *)
@@ -329,13 +376,13 @@ let load_and_close_channel do_close ic =
 let load_file filename = 
   let ic = Pervasives.open_in filename in load_and_close_channel true ic;;
 
-let cpp_header = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_head.txt"));;
+let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_head.txt"));;
 
-let cpp_tail = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_tail.txt"));;
+let cpp_tail() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_tail.txt"));;
 
 let mkfile_cpp  t s = 
   Parse_ineq.output_string tmpfile 
-   (join_lines [cpp_header; (mk_cpp_proc t s);cpp_tail]);;
+   (join_lines [cpp_header(); (mk_cpp_proc t s);cpp_tail()]);;
 
 let compile_cpp () = 
   let err = "/tmp/cpp_err.txt" in
@@ -364,42 +411,98 @@ let sqrt8_2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let dih_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. dih_x x1 x2 x3 x4 x5 x6 = dih_x x1 x3 x2 x4 x6 x5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT AP_TERM_TAC;
+  REWRITE_TAC[Sphere.delta_x;Sphere.delta_x4;PAIR_EQ];
+  CONJ_TAC THEN AP_TERM_TAC THEN REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+
+let sol_y_123 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. sol_y y1 y2 y3 y4 y5 y6 = dih_y y1 y2 y3 y4 y5 y6 + dih2_y y1 y2 y3 y4 y5 y6 + dih3_y y1  y2 y3 y4 y5 y6 - pi`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.sol_y;Sphere.dih2_y;Sphere.dih3_y];
+  REPEAT GEN_TAC;
+  MATCH_MP_TAC (REAL_ARITH `(b = b') ==> (a + b + c -pi = a + b' + c - pi)`);
+  REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+  MESON_TAC[dih_x_sym];
+  ]);;
+  (* }}} *)
+
+searcht 50 [`dih_x`];;
+
 
 let X_OF_Y_TAC = 
   (DISCH_TAC) THEN
   (REWRITE_TAC(Parse_ineq.get_macro_expand())) THEN
   (MATCH_MP_TAC ineq_square2) THEN
   (REWRITE_TAC basic_constants_nn) THEN
+  (REPEAT (CONJ_TAC THENL[ REAL_ARITH_TAC;ALL_TAC])) THEN
   (REPEAT GEN_TAC) THEN
+  (REWRITE_TAC [sol_y_123]) THEN
   (REWRITE_TAC[ineq]) THEN
   (REPEAT DISCH_TAC) THEN
-  (SUBGOAL_THEN `dih2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = dih2_x x1 x2 x3 x4 x5 x6` (fun t-> REWRITE_TAC[t]) THENL[ (ASM_MESON_TAC[dih2_x_y]);ALL_TAC]) THEN
+  (SUBGOAL_THEN `dih2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = dih2_x x1 x2 x3 x4 x5 x6 /\ dih3_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = dih3_x x1 x2 x3 x4 x5 x6 /\ dih_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = dih_x x1 x2 x3 x4 x5 x6` (fun t-> REWRITE_TAC[t]) THENL[ (ASM_MESON_TAC[dih_x_y;dih2_x_y;dih3_x_y]);ALL_TAC]) THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
   (REWRITE_TAC[GSYM ineq_expand]) THEN
   (REWRITE_TAC[REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)`;sqrt8_2]);;
 
-let testid = "6284721194";;
-let testid = "3137600529";;
+let STYLIZE_TAC = 
+  REWRITE_TAC[ineq] THEN
+  (REPEAT DISCH_TAC) THEN
+  (ONCE_REWRITE_TAC[REAL_ARITH `x < y <=> (x- y < &0)`]) THEN
+  (REWRITE_TAC[REAL_ARITH `x > y <=> (y - x < &0)`]) THEN
+  (SUBGOAL_THEN `sqrt x1 = sqrt_x1 x1 x2 x3 x4 x5 x6 /\ sqrt x2 = sqrt_x2 x1 x2 x3 x4 x5 x6 /\ sqrt x3 = sqrt_x3 x1 x2 x3 x4 x5 x6 /\ sqrt x4 = sqrt_x4 x1 x2 x3 x4 x5 x6 /\ sqrt x5 = sqrt_x5 x1 x2 x3 x4 x5 x6 /\ sqrt x6  = sqrt_x6 x1 x2 x3 x4 x5 x6` (fun t->REWRITE_TAC[t])  THENL [REWRITE_TAC[sqrt_x1;sqrt_x2; sqrt_x3;sqrt_x4;sqrt_x5;sqrt_x6];ALL_TAC]) THEN
+  (REWRITE_TAC[REAL_ARITH `f x1 x2 x3 x4 x5 x6 * (y:real) = y * f x1 x2 x3 x4 x5 x6`]) THEN
+  (REWRITE_TAC[REAL_ARITH `(&8 = #8) /\ (x - y = x + (-- #1.0) * y) /\ (x * (y+z) = x * y + x * z) /\ (y+z) * x = y * x + z * x /\ (x + y) + z = x + y + z /\ (-- x * -- y = x * y) /\ (x * -- y = -- x * y) /\ (x * y) * z = x * y * z /\ -- #1.0 * x = -- x /\ -- (x + y) = -- x + (--y) /\ -- (-- x) = x /\ (-- (-- x * y) = x * y) /\ #0.0 = &0 /\ #0 = &0 /\ &0 * x = &0 /\ x * &0 = &0 /\ &0 + x = x /\ &1 * x = x /\ -- &1 * x = -- x /\ x * sqrt8 = sqrt8 * x`]) THEN
+(*  (REWRITE_TAC[REAL_ARITH `(x:real) * y * z = (x * y) * z`]) THEN *)
+  (SUBGOAL_THEN `!x y z. (-- DECIMAL y z + x = (-- DECIMAL y z) * unit6 x1 x2 x3 x4 x5 x6 + x /\ x * DECIMAL y z = x * DECIMAL y z * unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))
+  /\ DECIMAL y z + x = DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 + x /\ x + DECIMAL y z = x + DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 /\  x + -- DECIMAL y z = x + -- DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 /\ (DECIMAL y z < &0) = (DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 < &0) /\ (pi + x = pi * unit6 x1 x2 x3 x4 x5 x6 + x) /\ (x + -- sqrt8 = x + -- sqrt8 * unit6 x1 x2 x3 x4 x5 x6)` (fun t -> REWRITE_TAC[t]) THENL [REWRITE_TAC[unit6] THEN REAL_ARITH_TAC;ALL_TAC]) THEN
+  (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+  (REWRITE_TAC[GSYM ineq_expand]) THEN DISCH_TAC;;
+
+let WRAPUP_TAC = 
+  (REWRITE_TAC[REAL_ARITH `(x * y * (z:real)) = (x * y) * z`]) THEN
+  (REWRITE_TAC[REAL_ARITH `(y:real) * f x1 x2 x3 x4 x5 x6 =  (f x1 x2 x3 x4 x5 x6) *  y `]) THEN
+ (REWRITE_TAC[REAL_ARITH ` -- (x * y) = x * (-- y) `]) THEN
+ (REWRITE_TAC[REAL_ARITH ` -- (f x1 x2 x3 x4 x5 x6) = f x1 x2 x3 x4 x5 x6 * -- &1`]);;
+
+
+let testids = [ "7718591733";"1085358243";"8611785756"; "181212899 1"; "8657368829";"1894886027";"2390583444";"1248932983";"6725783616";"9185711902";"6284721194";"3137600529"];;
+let testids2 = ["181212899 2";"181212899 3";"181212899 4";"181212899 5";];;
+let testid = List.nth testids 0;;
 let testcase = get_testcase  testid;;
 
-
 g (mk_imp (`NONLIN`,testcase));;
-
 e (X_OF_Y_TAC);;
-e (DISCH_TAC);;
-e (REWRITE_TAC[REAL_ARITH `x > y <=> (y - x < &0)`]);;
-e (SUBGOAL_THEN `sqrt x1 = sqrt_x1 x1 x2 x3 x4 x5 x6 /\ sqrt x2 = sqrt_x2 x1 x2 x3 x4 x5 x6 /\ sqrt x3 = sqrt_x3 x1 x2 x3 x4 x5 x6 /\ sqrt x4 = sqrt_x4 x1 x2 x3 x4 x5 x6 /\ sqrt x5 = sqrt_x5 x1 x2 x3 x4 x5 x6 /\ sqrt x6  = sqrt_x6 x1 x2 x3 x4 x5 x6` (fun t->REWRITE_TAC[t])  THENL [REWRITE_TAC[sqrt_x1;sqrt_x2; sqrt_x3;sqrt_x4;sqrt_x5;sqrt_x6];ALL_TAC]);;
-e (REWRITE_TAC[REAL_ARITH `f x1 x2 x3 x4 x5 x6 * (y:real) = y * f x1 x2 x3 x4 x5 x6`]);;
-e (REWRITE_TAC[REAL_ARITH `(x - y = x + (-- #1.0) * y) /\ (x * (y+z) = x * y + x * z) /\ (y+z) * x = y * x + z * x /\ (x + y) + z = x + y + z /\ (-- x * -- y = x * y) /\ (x * -- y = -- x * y)`]);;
-e (REWRITE_TAC[REAL_ARITH `(x:real) * y * z = (x * y) * z`]);;
-e (SUBGOAL_THEN `!x y z. (x * DECIMAL y z = x * DECIMAL y z * unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))
-  /\ DECIMAL y z + x = DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 + x /\ x + DECIMAL y z = x + DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 /\ (DECIMAL y z < &0) = (DECIMAL y z * unit6 x1 x2 x3 x4 x5 x6 < &0)` (fun t -> REWRITE_TAC[t]) THENL [REWRITE_TAC[unit6] THEN REAL_ARITH_TAC;ALL_TAC]);;
-e (REWRITE_TAC[REAL_ARITH `(x * y * (z:real)) = (x * y) * z`]);;
-e (REWRITE_TAC[REAL_ARITH `(y:real) * f x1 x2 x3 x4 x5 x6 =  (f x1 x2 x3 x4 x5 x6) *  y`]);;
+e (STYLIZE_TAC);;
+e (WRAPUP_TAC);;
 
 let testineq = snd(top_goal());;
 
-
-
 execute_interval (testineq,testid);;
 
+
+let test s = 
+  let testid = s in
+  let testcase = get_testcase  testid in
+  let _ = g (mk_imp (`NONLIN`,testcase)) in
+  let _ = e (X_OF_Y_TAC) in
+  let _ = e (STYLIZE_TAC) in
+  let _ = e (WRAPUP_TAC) in
+  let testineq = snd(top_goal()) in
+execute_interval (testineq,testid);;
+
+(*
+map test testids2;;
+*)
+
+let non_test = ["3636849632" (* taum *);
+ "9563139965" (* tauq, enclosed *)];;

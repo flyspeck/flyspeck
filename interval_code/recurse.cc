@@ -253,6 +253,11 @@ static cellOption::cellStatus
 			cout << "  value=[" << T[i]->lowerBound() << flush;
 			interMath::up();
 			cout << "," << T[i]->upperBound() << "]\n" << flush;
+			for (int j=0;j<6;j++) 
+			  { cout << "T" << i << " partial " << j << 
+			      ": [" << (T[i]->lowerPartial(j)) << 
+			      "," << (T[i]->upperPartial(j)) << "]\n" << flush;
+			  }
 			}
 		cout << flush;
 		return cellOption::counterexample;

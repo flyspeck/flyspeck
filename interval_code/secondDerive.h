@@ -124,7 +124,7 @@ static int setDelta(const double x[6],const double z[6],interval DDf[6][6]);
 		// If the derivatives were
 		// sucessfully computed a nonzero value is returned.
 		//
-static int setDihedral(const double x[6],const double z[6],double DDf[6][6]);
+static int setAbsDihedral(const double x[6],const double z[6],double DDf[6][6]);
 
 		//////////
 		// Compute the second derivative of the dihedral angle.
@@ -239,59 +239,6 @@ static int setVorAnalytic(const double x[6],const double z[6],
 		//
 static int setChi2over4uDelta(const double x[6],const double z[6],double DDf[6][6]);
 
-		//////////
-		// Compute the interval bounds on the second derivatives of
-        // the function vorVc.
-        // The lower and upper values of the domain are passes in
-        // the arrays x and z.  As usual, these represent the
-        // lengths squared of the variables.
-        //
-        // If the bounds are computed, the return value is nonzero,
-        // and the bounds are returned in DD.  If the return value
-        // is zero, the values of the array DD are undefined.
-        //
-static int setVorVc(const double x[6],const double z[6],double DD[6][6]);
-
-		//////////
-		// Compute the interval bounds on the second derivatives of
-        // the function vor1385.
-        // The lower and upper values of the domain are passes in
-        // the arrays x and z.  As usual, these represent the
-        // lengths squared of the variables.
-        //
-        // If the bounds are computed, the return value is nonzero,
-        // and the bounds are returned in DD.  If the return value
-        // is zero, the values of the array DD are undefined.
-        //
-static int setVor1385(const double x[6],const double z[6],double DD[6][6]);
-
-
-		//////////
-        // Compute the interval bounds on the second derivatives of
-        // the function vorVcInverted (used in octavor0).
-        // The lower and upper values of the domain are passes in
-        // the arrays x and z.  As usual, these represent the
-        // lengths squared of the variables.
-        //
-        // If the bounds are computed, the return value is nonzero,
-        // and the bounds are returned in DD.  If the return value
-        // is zero, the values of the array DD are undefined.
-        //
-static int setVorVcInverted(const double x[6],const double z[6],double DDv[6][6]);
-
-
-		//////////
-        // Compute the interval bounds on the second derivatives of
-        // the function vorVcSqc, the truncation of voronoi at sqrt(2).
-        // The lower and upper values of the domain are passes in
-        // the arrays x and z.  As usual, these represent the
-        // lengths squared of the variables.
-        //
-        // If the bounds are computed, the return value is nonzero,
-        // and the bounds are returned in DD.  If the return value
-        // is zero, the values of the array DD are undefined.
-        //
-static int setVorSqc(const double x[6],const double z[6],double DDv[6][6]);
 
 	//////////
 	// Check the correctness of secondDerive routines

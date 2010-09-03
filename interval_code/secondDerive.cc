@@ -3,20 +3,11 @@
 // This and 3d.cc give essential bounds on the second derivatives
 // of the key functions used in the Kepler conjecture.
 
-// This file contains the six dimensional functions such as vorAnalytic,
-// dih,solid, etc. and 3d.cc contains the three dimensional functions
-// such as eta, and quoin.
-
-// The regions over which the bounds were computed were flat quarters,
-// upright quarters, and quasi-regular tetrahedra.  The output has
-// been saved in several files out.sec.* and out.dih.*.
+// This file contains the six dimensional functions such as 
+// dih,solid, etc. 
 
 // This output will be fed into the inequality verifier to give good
 // Taylor approximations to these functions.
-
-// These programs only need to be run once, which is fortunate, because
-// they take a few days each 
-
 
 // compute second derivatives 
 
@@ -1090,55 +1081,37 @@ int secondDerive::setDih3(const double x[6],const double z[6],
 	return 1;
         }
 
-static int Adihfactor(double x,double z,interval t,interval& r,interval& Dr,
+// rho_x x = rho(sqrt x) 
+// `!x. rho (sqrt x) = &1 + const1 * (sqrt x - &2) / (#0.52)`
+static int rho_x_factor(double x,double z,interval& r,interval& Dr,
 		interval& DDr)
 	{
-	// (1-h/t)*(pretilde(t,t)-pretilde(h,t));  h = sqrt(x)/2;
-	// (1-h/t)*(phi(h,t)-phi(t,t));
-	// A(h), in the notation of SP.III.A.4. (also appearing other places).
-	// Adih = Adihfactor*dih
-	static const interval zero("0");
+	static const interval one("1");
 	static const interval two("2");
-	static const interval three("3");
 	static const interval four("4");
-	interval twicet = two*t;
+	static const interval _052("0.52");
+	static const interval const1("0.17547965609182181051");
 	double qu,qn;
-	interval t2=t*t;
 	interMath::up(); qu = sqrt(z); interMath::down(); qn = sqrt(x);
 	interval q = interval(qn,qu);
 	interval xx = interval(x,z);
 	interval xxq = xx*q;
-	if (qn >= interMath::sup(twicet)) 
-		{ r=Dr=DDr=zero; return 1; }
 	if ((interMath::inf(xxq)<=0.0)&& (interMath::sup(xxq)>=0.0)) return 0;
-	static const interval dt = "0.7209029495174650928412448"; // doct
-	static const interval dt12 = "0.06007524579312209107010373625"; //doct/12;
-	interval dtt2 = dt*t2;
-	static const interval N16("16");
-	static const interval N8("8");
-	DDr = dtt2/(four*xxq) + dt/(N16*q);
-	Dr =  -dtt2/(two*q) + dt*q/N8;
-	r = (four*dtt2*t)/three - dtt2*q + dt12*xxq;
-	if (qu>interMath::inf(twicet)) 
-		{ 
-		r = interMath::combine(r,zero); 
-		Dr=interMath::combine(Dr,zero);
-		DDr=interMath::combine(DDr,zero); 
-		}
+	r = one + const1 * (q - two) / _052;
+	Dr =  const1 / (two * _052 * q);
+	DDr = - const1 / (four * _052 * xxq);
 	return 1;
 	}
 
 	////////
 	//
-	// Adih = A[y1/2] dih(S).
-	// Adih = Adihfactor*dih.
 	//
-int Adih(double x,double z,interval trunc,
+int setRhazim(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	{
 	interval r,Dr,DDr;
-	if (!(Adihfactor(x,z,trunc,r,Dr,DDr))) return 0;
+	if (!(rho_x_factor(x,z,r,Dr,DDr))) return 0;
 	int i,j;
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDc[i][j] = r*DDd[i][j];
@@ -1152,9 +1125,8 @@ int Adih(double x,double z,interval trunc,
 
 	////////
 	//
-	// Adih2 = A[y2/2] dih2(S)
 	//
-int Adih2(double x,double z,interval trunc,
+int setRhazim2(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	// [x,z] is the second edge,
@@ -1162,7 +1134,7 @@ int Adih2(double x,double z,interval trunc,
 	// DDc output
 	{
 	interval r,Dr,DDr;
-	if (!Adihfactor(x,z,trunc,r,Dr,DDr)) return 0;
+	if (!rho_x_factor(x,z,r,Dr,DDr)) return 0;
 	int i,j;
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDc[i][j] = r*DDd[i][j];
@@ -1176,9 +1148,8 @@ int Adih2(double x,double z,interval trunc,
 
 	////////
 	//
-	// Adih3 = A[y3/2] dih3(S)
 	//
-int Adih3(double x,double z,interval trunc,
+int setRhazim3(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	// [x,z] is the third edge,
@@ -1186,252 +1157,23 @@ int Adih3(double x,double z,interval trunc,
 	// DDc output
 	{
 	interval r,Dr,DDr;
-	if (!Adihfactor(x,z,trunc,r,Dr,DDr)) return 0;
+	if (!rho_x_factor(x,z,r,Dr,DDr)) return 0;
 	int i,j;
+	int pos=2; // n - 1.
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDc[i][j] = r*DDd[i][j];
 	for (i=0;i<6;i++) for (j=0;j<i;j++)
 		DDc[i][j] = DDc[j][i];
-	for (i=0;i<6;i++) DDc[2][i] = DDc[2][i] + Dr*Dd[i];
-	for (i=0;i<6;i++) DDc[i][2] = DDc[i][2] + Dr*Dd[i];
-	DDc[2][2] = DDc[2][2] + DDr*d;
+	for (i=0;i<6;i++) DDc[pos][i] = DDc[pos][i] + Dr*Dd[i];
+	for (i=0;i<6;i++) DDc[i][pos] = DDc[i][pos] + Dr*Dd[i];
+	DDc[pos][pos] = DDc[pos][pos] + DDr*d;
 	return 1;
 	}
 
-int secondDerive::setVorSqc
-	(const double x[6],const double z[6],double DDv[6][6]) 
-	{
-	int i,j;
-	static const interval one("1");
-	static const interval two("2");
-	static const interval three("3");
-	static const interval four("4");
-	static const interval t("1.41421356237309504880168872421");
-	static const interval doct("0.72090294951746509284124483502");
-	static const interval tildeV = 
-	 four*(one-doct*t*t*t)/three;
-	static const interval doct4=four*doct;
-	static const interval tdoct4quoin= 
-		two*interval::wideInterval("-0.13","0.13")*doct4; 
-		 // nondiag max abs = 0.10629. 
-		 // from out.quoin.simplex.sqrt.
-		 // factor of 2 because 2 quoins on
-		 //   each face
-	static const interval s63("6.3001");
-	if ((z[0]>interMath::sup(s63))||
-		(z[1]>interMath::sup(s63))||
-		(z[2]>interMath::sup(s63)))
-			return 0; // because out.quoin.simplex.sqrt is used.
-	interval s,Ds[6],DDs[6][6];
-	interval DDf1[6][6],DDf2[6][6],DDf3[6][6],DDx[6][6];
-	interval f,Df[6];
-	interval DDx1[6][6],DDx2[6][6],DDx3[6][6];
-	if (!setSqrtDelta(x,z,s,Ds,DDs)) return 0;
-	if (!setDihedral(x,z,s,Ds,DDs,f,Df,DDf1)) return 0;
-	if (!Adih(x[0],z[0],t, f,Df,DDf1,DDx1)) return 0;
-	if (!setDih2(x,z,s,Ds,DDs,f,Df,DDf2)) return 0;
-	if (!Adih2(x[1],z[1],t, f,Df,DDf2,DDx2)) return 0;
-	if (!setDih3(x,z,s,Ds,DDs,f,Df,DDf3)) return 0;
-	if (!Adih3(x[2],z[2],t, f,Df,DDf3,DDx3)) return 0;
-	for (i=0;i<6;i++) for (j=i;j<6;j++)
-		{
-		DDx[i][j]=DDx1[i][j]+DDx2[i][j]+DDx3[i][j]+
-			(DDf1[i][j]+DDf2[i][j]+DDf3[i][j])*tildeV;
-		}
-	static const interval diag = 
-		two*interval::wideInterval("-0.192","0.192")*doct4;
-				// diag max abs = 0.147748...
-				// from out.quoin.simplex.sqrt;
-	if (x[5]<=8.0)
-		{
-		DDx[0][1] = DDx[0][1]+tdoct4quoin;
-		DDx[1][5] = DDx[1][5]+tdoct4quoin;
-		DDx[0][5] = DDx[0][5]+tdoct4quoin;
-		DDx[0][0] = DDx[0][0]+diag;
-		DDx[1][1] = DDx[1][1]+diag;
-		DDx[5][5] = DDx[5][5]+diag;
-		}
-	if (x[4]<=8.0)
-		{
-		DDx[0][2] = DDx[0][2]+tdoct4quoin;
-		DDx[0][4] = DDx[0][4]+tdoct4quoin;
-		DDx[2][4] = DDx[2][4]+tdoct4quoin;
-		DDx[0][0] = DDx[0][0]+diag;
-		DDx[2][2] = DDx[2][2]+diag;
-		DDx[4][4] = DDx[4][4]+diag;
-		}
-	if (x[3]<=8.0)
-		{
-		DDx[1][2] = DDx[1][2]+tdoct4quoin;
-		DDx[1][3] = DDx[1][3]+tdoct4quoin;
-		DDx[2][3] = DDx[2][3]+tdoct4quoin;
-		DDx[1][1] = DDx[1][1]+diag;
-		DDx[4][4] = DDx[4][4]+diag;
-		DDx[3][3] = DDx[3][3]+diag;
-		}
-	for (i=0;i<6;i++) for (j=0;j<i;j++)
-		DDx[i][j]=DDx[j][i];
-	for (i=0;i<6;i++) for (j=0;j<6;j++)
-		DDv[i][j]=interMath::sup(interMath::max(DDx[i][j],-DDx[i][j]));
-	return 1;
-	}
 
-static int setVorVcNoQuoin
-	(const double x[6],const double z[6],interval DDx[6][6]) 
-	{
-	int i,j;
-	static const interval one("1");
-	static const interval three("3");
-	static const interval four("4");
-	static const interval t("1.255");
-	static const interval doct("0.72090294951746509284124483502");
-	static const interval tildeV = 
-	 four*(one-doct*t*t*t)/three;
-	static const interval doct4=four*doct;
-	static const interval s63("6.3001");
-	if ((z[1]>interMath::sup(s63))||(z[2]>interMath::sup(s63)))
-		{ error::message("setVorVc used out of range"); 
-			return 0; }
-	interval s,Ds[6],DDs[6][6];
-	interval DDf1[6][6],DDf2[6][6],DDf3[6][6];
-	interval f,Df[6];
-	interval DDx1[6][6],DDx2[6][6],DDx3[6][6];
-	if (!secondDerive::setSqrtDelta(x,z,s,Ds,DDs)) return 0;
-	if (!secondDerive::setDihedral(x,z,s,Ds,DDs,f,Df,DDf1)) return 0;
-	if (!Adih(x[0],z[0],t, f,Df,DDf1,DDx1)) return 0;
-	if (!secondDerive::setDih2(x,z,s,Ds,DDs,f,Df,DDf2)) return 0;
-	if (!Adih2(x[1],z[1],t, f,Df,DDf2,DDx2)) return 0;
-	if (!secondDerive::setDih3(x,z,s,Ds,DDs,f,Df,DDf3)) return 0;
-	if (!Adih3(x[2],z[2],t, f,Df,DDf3,DDx3)) return 0;
-	for (i=0;i<6;i++) for (j=i;j<6;j++)
-		{
-		DDx[i][j]=DDx1[i][j] +DDx2[i][j]+DDx3[i][j]+
-			(DDf1[i][j]+DDf2[i][j]+DDf3[i][j])*tildeV;
-		}
-	for (i=0;i<6;i++) for (j=0;j<i;j++)
-		DDx[i][j]=DDx[j][i];
-	return 1;
-	}
 
-static int setVor1385NoQuoin // modified from setVorVcNoQuoin
-	(const double x[6],const double z[6],interval DDx[6][6]) 
-	{
-	int i,j;
-	static const interval one("1");
-	static const interval three("3");
-	static const interval four("4");
-	static const interval t("1.385"); // this is the only line modif.
-	static const interval doct("0.72090294951746509284124483502");
-	static const interval tildeV = 
-	 four*(one-doct*t*t*t)/three;
-	static const interval doct4=four*doct;
-	static const interval s63("6.3001");
-	if ((z[1]>interMath::sup(s63))||(z[2]>interMath::sup(s63)))
-		{ error::message("setVorVc used out of range"); 
-			return 0; }
-	interval s,Ds[6],DDs[6][6];
-	interval DDf1[6][6],DDf2[6][6],DDf3[6][6];
-	interval f,Df[6];
-	interval DDx1[6][6],DDx2[6][6],DDx3[6][6];
-	if (!secondDerive::setSqrtDelta(x,z,s,Ds,DDs)) return 0;
-	if (!secondDerive::setDihedral(x,z,s,Ds,DDs,f,Df,DDf1)) return 0;
-	if (!Adih(x[0],z[0],t, f,Df,DDf1,DDx1)) return 0;
-	if (!secondDerive::setDih2(x,z,s,Ds,DDs,f,Df,DDf2)) return 0;
-	if (!Adih2(x[1],z[1],t, f,Df,DDf2,DDx2)) return 0;
-	if (!secondDerive::setDih3(x,z,s,Ds,DDs,f,Df,DDf3)) return 0;
-	if (!Adih3(x[2],z[2],t, f,Df,DDf3,DDx3)) return 0;
-	for (i=0;i<6;i++) for (j=i;j<6;j++)
-		{
-		DDx[i][j]=DDx1[i][j] +DDx2[i][j]+DDx3[i][j]+
-			(DDf1[i][j]+DDf2[i][j]+DDf3[i][j])*tildeV;
-		}
-	for (i=0;i<6;i++) for (j=0;j<i;j++)
-		DDx[i][j]=DDx[j][i];
-	return 1;
-	}
 
-int secondDerive::setVorVc(const double x[6],const double z[6],double DDv[6][6]) 
-	{
-	interval DDx[6][6];
-	static const interval two("2");
-	static const interval four("4");
-	static const interval doct("0.72090294951746509284124483502");
-	static const interval doct4=four*doct;
-	if (!setVorVcNoQuoin(x,z,DDx)) return 0;
-	static const interval tdoct4quoin1255= 
-		 two*interval::wideInterval("-0.004","0.004")*doct4; 
-		 // nondiag max abs = 0.00364.. 
-		 // from secout.quoin.simplex.1255.
-	static const interval twice = two*tdoct4quoin1255;
-	// i,j determine the face, hence a pair of quoins
-	DDx[0][1] = DDx[0][1]+twice;
-	DDx[0][2] = DDx[0][2]+twice;
-	DDx[0][4] = DDx[0][4]+twice;
-	DDx[0][5] = DDx[0][5]+twice;
-	DDx[1][2] = DDx[1][2]+twice;
-	DDx[1][3] = DDx[1][3]+twice;
-	DDx[1][5] = DDx[1][5]+twice;
-	DDx[2][3] = DDx[2][3]+twice;
-	DDx[2][4] = DDx[2][4]+twice;
-	static const interval diag = two*
-		interval::wideInterval("-0.008","0.008")*doct4;
-		// diag max abs = 0.00621..
-		// from secout.quoin.simplex.1255;
-	DDx[0][0] = DDx[0][0]+two*diag;
-	DDx[1][1] = DDx[1][1]+two*diag;
-	DDx[2][2] = DDx[2][2]+two*diag;
-	DDx[3][3] = DDx[3][3]+diag;
-	DDx[4][4] = DDx[4][4]+diag;
-	DDx[5][5] = DDx[5][5]+diag;
-	int i,j;
-	for (i=0;i<6;i++) for (j=0;j<i;j++)
-		DDx[i][j]=DDx[j][i];
-	for (i=0;i<6;i++) for (j=0;j<6;j++)
-		DDv[i][j]=interMath::sup( interMath::max(DDx[i][j],-DDx[i][j]));
-	return 1;
-	}
-
-int secondDerive::setVor1385(const double x[6],const double z[6],double DDv[6][6]) 
-	{
-	interval DDx[6][6];
-	static const interval two("2");
-	static const interval four("4");
-	static const interval doct("0.72090294951746509284124483502");
-	static const interval doct4=four*doct;
-	if (!setVor1385NoQuoin(x,z,DDx)) return 0;
-	static const interval tdoct4quoin1385= 
-		 two*interval::wideInterval("-0.06","0.06")*doct4; 
-		 // nondiag max abs = 0.0538.. 
-		 // from secout.quoin.simplex.1385.
-	static const interval twice = two*tdoct4quoin1385;
-	// i,j determine the face, hence a pair of quoins
-	DDx[0][1] = DDx[0][1]+twice;
-	DDx[0][2] = DDx[0][2]+twice;
-	DDx[0][4] = DDx[0][4]+twice;
-	DDx[0][5] = DDx[0][5]+twice;
-	DDx[1][2] = DDx[1][2]+twice;
-	DDx[1][3] = DDx[1][3]+twice;
-	DDx[1][5] = DDx[1][5]+twice;
-	DDx[2][3] = DDx[2][3]+twice;
-	DDx[2][4] = DDx[2][4]+twice;
-	static const interval diag = two*
-		interval::wideInterval("-0.1","0.1")*doct4;
-		// diag max abs = 0.0801..
-		// from out.quoin.simplex.1385;
-	DDx[0][0] = DDx[0][0]+two*diag;
-	DDx[1][1] = DDx[1][1]+two*diag;
-	DDx[2][2] = DDx[2][2]+two*diag;
-	DDx[3][3] = DDx[3][3]+diag;
-	DDx[4][4] = DDx[4][4]+diag;
-	DDx[5][5] = DDx[5][5]+diag;
-	int i,j;
-	for (i=0;i<6;i++) for (j=0;j<i;j++)
-		DDx[i][j]=DDx[j][i];
-	for (i=0;i<6;i++) for (j=0;j<6;j++)
-		DDv[i][j]=interMath::sup( interMath::max(DDx[i][j],-DDx[i][j]));
-	return 1;
-	}
-
+/*
 // Not tested.
 int secondDerive::setVorVcInverted( const double x[6],const double z[6],double DD[6][6])
 	{
@@ -1443,6 +1185,7 @@ int secondDerive::setVorVcInverted( const double x[6],const double z[6],double D
 	for ( i=0;i<6;i++) for ( j=0;j<6;j++) DD[k[i]][k[j]]=DDxz[i][j]; 
 	return 1;
 	}
+*/
 
 int secondDerive::setSolid( const double x[6],const double z[6],
 	const interval ss,const interval Ds[6],const interval DDs[6][6],
@@ -1559,43 +1302,7 @@ static int voronoiVolume(const double x[6],const double z[6],
 	return 1;
 	}
 
-// 0.75 * vorAnalytic;
-static int vorAnalytic34(const double x[6],const double z[6],
-	const interval sqrt_d,const interval Dsqrt_d[6], 
-	const interval DDsqrt_d[6][6],
-	interval DDx[6][6],interval DDy[6][6])
-	{
-	int i,j;
-	static const interval r = interval("-2.162708848552395278523"); // -3 doct
-	if (!voronoiVolume(x,z,sqrt_d,Dsqrt_d,DDsqrt_d,DDx)) return 0;
-	if (!secondDerive::setSolid(x,z,sqrt_d,Dsqrt_d,DDsqrt_d,DDy)) return 0;
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		DDx[i][j]= DDx[i][j]*r + DDy[i][j];
-	return 1;
-	}
-
-int secondDerive::setVorAnalytic(const double x[6],const double z[6],
-    double DD[6][6])
-	{
-	static const interval f3("1.33333333333333333333333333333");
-    static const double d3=interMath::sup(f3);
-    int i,j;
-    interval sqrtd,Dsqrtd[6],DDsqrtd[6][6];
-    interval DDy[6][6];
-    interval DDx[6][6];
-    if (!setSqrtDelta(x,z,sqrtd,Dsqrtd,DDsqrtd)) return 0;
-    if (!vorAnalytic34(x,z,sqrtd,Dsqrtd,DDsqrtd,DDx,DDy)) return 0;
-    interMath::up();
-    for (i=0;i<6;i++) for (j=i;j<6;j++)
-    DD[i][j]= d3*interMath::sup(interMath::max(DDx[i][j],-DDx[i][j]));
-    for (i=0;i<6;i++) for (j=0;j<i;j++)
-            DD[i][j] = DD[j][i];
-    return 1;
-	}
-
-
-
-int secondDerive::setDihedral(const double x[6],const double z[6],double DDf[6][6])
+int secondDerive::setAbsDihedral(const double x[6],const double z[6],double DDf[6][6])
 	{
 	int i,j;
 	interval s,Ds[6],DDs[6][6];
@@ -1740,7 +1447,7 @@ void secondDerive::selfTest() {
 		}
 	}
 
-	/*test setDihedral*/ {
+	/*test setAbsDihedral*/ {
 	// constants computed in Mathematica with lineInterval routine.
 	double mf = 0;
 	double Dmf[6] = {0,0,0,0,0,0};
@@ -1760,7 +1467,7 @@ void secondDerive::selfTest() {
      0.001407409397727755}};
 	interval f=zero,Df[6]={f,f,f,f,f,f},DDf[6][6];
 	double DDg[6][6];
-	 secondDerive::setDihedral(x,x,DDg);
+	 secondDerive::setAbsDihedral(x,x,DDg);
 	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DDf[i][j]=interval(DDg[i][j],DDg[i][j]);
 	if (!epsilonClose(mf,Dmf,DDmf,f,Df,DDf,1.0e-12))
 		{
@@ -1957,240 +1664,119 @@ void secondDerive::selfTest() {
 		}
 	}
 
-	/*test setVorAnalytic */ {
-	// constants computed in Mathematica with lineInterval routine.
-	cout.precision(16);
-	double mf =0;
-	double Dmf[6] = {0,0,0,0,0,0};
-	double DDmf[6][6] =       // absolute values of data:
-	    {{0.04353277648516761, 0.002938575088868962, 0.002899978921543003, 
-    0.01198312463504135, 0.002664704137289541, 0.002626619500685369}, 
-   {0.002938575088868958, 0.04348983960076151, 0.002862426665875484, 
-    0.002702576763206101, 0.0119144489576484, 0.002627318650262751}, 
-   {0.002899978921543003, 0.002862426665875484, 0.04344822884131099, 
-    0.002702964367146558, 0.002665787828920914, 0.01184563865055325}, 
-   {0.01198312463504135, 0.002702576763206101, 0.002702964367146558, 
-    0.005384594888795314, 0.004054718411768715, 0.004035252456129672}, 
-   {0.002664704137289541, 0.0119144489576484, 0.002665787828920914, 
-    0.004054718411768715, 0.005391003571976912, 0.004015808910221681}, 
-   {0.002626619500685369, 0.002627318650262751, 0.01184563865055325, 
-    0.004035252456129672, 0.004015808910221681, 0.005397402515344627}};
-	double DDx[6][6];
-	interval s=zero,Ds[6]={s,s,s,s,s,s},DDs[6][6];
-	 secondDerive::setVorAnalytic(x,x,DDx);
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
-		DDs[i][j]=interval(DDx[i][j],DDx[i][j]);
-	if (!epsilonClose(mf,Dmf,DDmf,s,Ds,DDs,1.0e-12))
-		{
-		cout << "VorAnalytic failed: " ;
-		print (s,Ds,DDs);
-		error::message("Second derivatives failed to install properly");
-		}
-	}
-
-	/*test Adihfactor*/{
+	/*test rho_x_factor*/{
+	  // (D[1 + (sol0/Pi) * (Sqrt[x] - 2)/0.52, {x, 2}] /. x -> 4.1) // CForm
 	interval r,Dr,DDr;
-	Adihfactor(4.1,4.1,interval("1.255"),r,Dr,DDr);
-	if (!epsilonClose(0.0996154859996581,r,1.0e-14)||
-		!epsilonClose(-0.0979123125455502,Dr,1.0e-14)||
-		!epsilonClose(0.05644409964208811,DDr,1.0e-14))
-		cout << " Adihfactor " << r << " " << Dr << " " << DDr << endl;
+	rho_x_factor(4.1,4.1,r,Dr,DDr);
+	if (!epsilonClose(1.0083844426471409,r,1.0e-14)||
+	    !epsilonClose(0.08333002400566536,Dr,1.0e-14)||
+	    !epsilonClose(-0.010162198049471386,DDr,1.0e-14))
+		cout << " rho_x_factor " << r << " " << Dr << " " << DDr << endl;
 	}
 
-	/*test setAdih */ {
-	// constants computed in Mathematica with lineInterval routine.
+	/*test setRhazim */ {
+	// constants computed in Mathematica.
 	cout.precision(16);
 	double mf =0;
 	double Dmf[6] = {0,0,0,0,0,0};
 	double DDmf[6][6] =
-		 {{0.06004640331504228, 0.005090556359373819, 0.005165045370839407, 
-    -0.01683395507298248, 0.004991118632279848, 0.005065416998339743}, 
-   {0.005090556359373819, -0.0001387849846226313, 0.003554954897225364, 
-    -0.001185023496277934, -0.001196669350828043, 0.0014398974979986}, 
-   {0.005165045370839407, 0.003554954897225364, -0.0001335088682057223, 
-    -0.001173262050119386, 0.001439835866532678, -0.001196669350828044}, 
-   {-0.01683395507298248, -0.001185023496277934, -0.001173262050119386, 
-    -0.001179027181590221, -0.00116746802074644, -0.00115579326829422}, 
-   {0.004991118632279848, -0.001196669350828043, 0.001439835866532678, 
-    -0.00116746802074644, -0.0001580914194092942, 0.003519930639868706}, 
-   {0.005065416998339743, 0.0014398974979986, -0.001196669350828044, 
-    -0.00115579326829422, 0.003519930639868706, -0.0001529263835803189}};
+	  {{0.005245126669460297,-0.013297300244897132,-0.013213028939357187,
+    0.025500292935778365,-0.013315639664370316,-0.013231634715242573},
+   {-0.013297300244897134,-0.0012783404176458062,0.03274448270025619,
+    -0.010915182469278466,-0.011022451757882776,0.013262812068349122},
+   {-0.013213028939357187,0.03274448270025619,-0.0012297424163398379,
+    -0.01080684847309495,0.013262244384502759,-0.011022451757882776},
+   {0.025500292935778372,-0.010915182469278464,-0.01080684847309495,
+    -0.010859950763607504,-0.010753480005687592,-0.010645944540188482},
+   {-0.01331563966437032,-0.011022451757882776,0.013262244384502759,
+    -0.010753480005687594,-0.0014561708650500508,0.032421876303758854},
+   {-0.013231634715242576,0.013262812068349122,-0.011022451757882776,
+    -0.010645944540188482,0.032421876303758854,-0.0014085960205759114}};
 	interval s,Ds[6],DDs[6][6];
 	interval n=zero,Dn[6]={n,n,n,n,n,n}; 
 	interval f,Df[6],DDf[6][6];
 	interval DDx1[6][6];
 	secondDerive::setSqrtDelta(x,x,s,Ds,DDs);
 	secondDerive::setDihedral(x,x,s,Ds,DDs,f,Df,DDf); 
-	Adih(x[0],x[0],interval("1.255"), f,Df,DDf,DDx1); 
+	setRhazim(x[0],x[0], f,Df,DDf,DDx1); 
 	if (!epsilonClose(mf,Dmf,DDmf,n,Dn,DDx1,1.0e-8))
 		{
-		cout << "Adih failed: " ;
+		cout << "rhazim failed: " ;
 		print (n,Dn,DDx1);
 		error::message("Second derivatives failed to install properly");
 		}
 	}
 
-	/*test setVorVcNoQuoin */ {
-	// constants computed in Mathematica with lineInterval routine.
-	double z[6]={4.2,4.3,4.4,4.5,4.6,4.7}; // rad(z)>1.255, 
-	cout.precision(16);
-	double mf =0;
-	double Dmf[6] = {0,0,0,0,0,0};
-	double DDmf[6][6] =
-		  {{0.05399742262145269, 0.001941109611880804, 0.002591451769354967, 
-    -0.009341612836680926, 0.007105093042316984, 0.007324402654216028}, 
-   {0.001941109611880805, 0.05402015824995872, 0.003150669397111228, 
-    0.006969189493705773, -0.008721458819363622, 0.007351222717650264}, 
-   {0.002591451769354965, 0.003150669397111225, 0.05422091663845037, 
-    0.007035629668212111, 0.007200509217801438, -0.008091450771502836}, 
-   {-0.009341612836680926, 0.006969189493705773, 0.007035629668212111, 
-    0.00516319753220431, -0.004667265448268399, -0.00458015495504247}, 
-   {0.007105093042316984, -0.008721458819363622, 0.007200509217801438, 
-    -0.004667265448268399, 0.005267097722808903, -0.004487280153267206}, 
-   {0.007324402654216028, 0.007351222717650264, -0.008091450771502833, 
-    -0.004580154955042471, -0.004487280153267206, 0.005398344314989866}};
-	interval DDx[6][6];
-	 setVorVcNoQuoin(z,z,DDx);
-	interval n=zero,Dn[6]={n,n,n,n,n,n}; 
-	if (!epsilonClose(mf,Dmf,DDmf,n,Dn,DDx,1.0e-10))
-		{
-		cout << "VorVcNoQuoin failed: " ;
-		print (n,Dn,DDx);
-		error::message("Second derivatives failed to install properly");
-		}
-	}
-
-	/*test setVor1385NoQuoin */ {
+	/*test setRhazim2 */ {
 	// constants computed in Mathematica.
-	double z[6]={4.7,4.8,5.1,5.2,5.4,5.7}; // rad(z)>1.385, 
 	cout.precision(16);
 	double mf =0;
 	double Dmf[6] = {0,0,0,0,0,0};
 	double DDmf[6][6] =
-	  {{0.0478546308290609, -0.002889268658288134, -0.001273118788492866, 
-    -0.007541680741402377, 0.009956516628944605, 0.009948955415732298}, 
-   {-0.002889268658288141, 0.04858100332439985, -0.0007824601321044857, 
-    0.01008143637875229, -0.007004856760563882, 0.009969903466756662}, 
-   {-0.00127311878849287, -0.0007824601321044823, 0.04906190095094674, 
-    0.009932353325518896, 0.009810297045074584, -0.005359292348280169}, 
-   {-0.007541680741402371, 0.01008143637875229, 0.009932353325518894, 
-    0.008504386568552268, -0.007757250400015124, -0.00786228393249746}, 
-   {0.009956516628944605, -0.007004856760563884, 0.009810297045074584, 
-    -0.007757250400015124, 0.008544510896035715, -0.008006857876453842}, 
-   {0.009948955415732301, 0.009969903466756662, -0.005359292348280169, 
-    -0.00786228393249746, -0.008006857876453844, 0.009087438534120506}};
-	interval DDx[6][6];
-	 setVor1385NoQuoin(z,z,DDx);
+	  {{-0.0011252973689814488,-0.013452420681453378,0.03281287022035823,
+    -0.010937979050533644,-0.011045472373235487,0.013290511721913251},
+   {-0.013452420681453378,0.005393357573760159,-0.013284754121167338,
+    -0.013469872796702883,0.025575952434180323,-0.013302740261788173},
+   {0.03281287022035823,-0.01328475412116734,-0.001028865069229974,
+    0.013289381108784134,-0.0108294187965891,-0.01093797905053364},
+   {-0.010937979050533644,-0.013469872796702885,0.013289381108784134,
+    -0.0013052155288695245,-0.010882631992318677,0.03248878985538867},
+   {-0.011045472373235487,0.025575952434180333,-0.010829418796589102,
+    -0.010882631992318679,-0.010775938868048842,-0.010668178812536344},
+   {0.013290511721913253,-0.013302740261788173,-0.01093797905053364,
+    0.03248878985538867,-0.010668178812536346,-0.0012107950072768503}};
+	interval s,Ds[6],DDs[6][6];
 	interval n=zero,Dn[6]={n,n,n,n,n,n}; 
-	if (!epsilonClose(mf,Dmf,DDmf,n,Dn,DDx,1.0e-10))
+	interval f,Df[6],DDf[6][6];
+	interval DDx1[6][6];
+	secondDerive::setSqrtDelta(x,x,s,Ds,DDs);
+	secondDerive::setDih2(x,x,s,Ds,DDs,f,Df,DDf); 
+	setRhazim2(x[1],x[1], f,Df,DDf,DDx1); 
+	if (!epsilonClose(mf,Dmf,DDmf,n,Dn,DDx1,1.0e-8))
 		{
-		cout << "Vor1385NoQuoin failed: " ;
-		print (n,Dn,DDx);
+		cout << "rhazim2 failed: " ;
+		print (n,Dn,DDx1);
 		error::message("Second derivatives failed to install properly");
 		}
 	}
 
-	/*test setVorVc */ {
-	// constants computed in Mathematica with lineInterval routine.
-	double z[6]={4.2,4.3,4.4,4.5,4.6,4.7}; // rad(z)>1.255, 
+	/*test setRhazim3 */ {
+	// constants computed in Mathematica.
 	cout.precision(16);
-	//double mf =0;
-	//double Dmf[6] = {0,0,0,0,0,0};
-	double DDmf[6][6] =       // absolute values of data:
-		 {{0.04451022565404638, 0.003253033720076057, 0.002967145322222462, 
-    0.009341612836680944, 0.000145986994096521, 0.0004158696512009301}, 
-   {0.003253033720076055, 0.04411934782391634, 0.002752283828603631, 
-    0.0001451969147139176, 0.008721458819363625, 0.0003321760267211591}, 
-   {0.002967145322222464, 0.002752283828603629, 0.04383305357612751, 
-    0.0002099334785566593, 2.749648354369998e-7, 0.008091450771502849}, 
-   {0.009341612836680944, 0.0001451969147139176, 0.0002099334785566602, 
-    0.002234984578078722, 0.004667265448268401, 0.004580154955042468}, 
-   {0.0001459869940965228, 0.008721458819363627, 2.749648354369998e-7, 
-    0.004667265448268401, 0.002261097147820291, 0.004487280153267206}, 
-   {0.0004158696512009301, 0.0003321760267211582, 0.008091450771502849, 
-    0.004580154955042467, 0.004487280153267206, 0.002276886164839177}};
-	double DDx[6][6];
-	interval s=zero,/*Ds[6]={s,s,s,s,s,s},*/  DDs[6][6];
-	 secondDerive::setVorVc(z,z,DDx);
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
+	double mf =0;
+	double Dmf[6] = {0,0,0,0,0,0};
+	double DDmf[6][6] =
+	  {{-0.00092077066270158,0.03288124126681869,-0.01352504317384853,
+    -0.010851983683193324,0.013317634648200889,-0.011068487443228952},
+   {0.03288124126681869,-0.0008729432104908573,-0.013441649866266996,
+    0.013317071734051526,-0.010851983683193324,-0.010960770140396406},
+   {-0.01352504317384853,-0.013441649866266996,0.005544159342143369,
+    -0.01354187357424209,-0.013458747948172471,0.025653167416464027},
+   {-0.010851983683193324,0.013317071734051526,-0.01354187357424209,
+    -0.0011038288151572363,0.032555683760987324,-0.010905307757424315},
+   {0.013317634648200889,-0.010851983683193322,-0.013458747948172475,
+    0.032555683760987324,-0.0010569897102612775,-0.010798392320369683},
+   {-0.011068487443228952,-0.010960770140396408,0.02565316741646404,
+    -0.010905307757424317,-0.010798392320369683,-0.010690407728944524}};
+	interval s,Ds[6],DDs[6][6];
+	interval n=zero,Dn[6]={n,n,n,n,n,n}; 
+	interval f,Df[6],DDf[6][6];
+	interval DDx1[6][6];
+	secondDerive::setSqrtDelta(x,x,s,Ds,DDs);
+	secondDerive::setDih3(x,x,s,Ds,DDs,f,Df,DDf); 
+	setRhazim3(x[2],x[2], f,Df,DDf,DDx1); 
+	if (!epsilonClose(mf,Dmf,DDmf,n,Dn,DDx1,1.0e-8))
 		{
-		DDs[i][j]=interval(DDx[i][j],DDx[i][j]);
-		if (interMath::inf(DDs[i][j])<DDmf[i][j]) 
-		{
-		cout << "VorVc failed: " ;
-		cout << DDs[i][j] << " " << DDmf[i][j] << endl;
+		cout << "rhazim3 failed: " ;
+		print (n,Dn,DDx1);
 		error::message("Second derivatives failed to install properly");
-		}
 		}
 	}
 
-	/*test setVor1385 */ {
-	// constants computed in Mathematica with lineInterval routine.
-	double z[6]={4.7,4.8,5.1,5.2,5.4,5.7}; // rad(z)>1.385, 
-	cout.precision(16);
-	//double mf =0;
-	//double Dmf[6] = {0,0,0,0,0,0};
-	double DDmf[6][6] =       // absolute values of data:
-		  {{0.03889899498521678, 0.007523143233144931, 0.007165317875469733, 
-    0.007541680741402377, 0.0009378197311457164, 0.001164271193317731}, 
-   {0.007523143233144937, 0.03911589910267211, 0.007425269314345619, 
-    0.0005360683799675824, 0.007004856760563882, 0.001103923199169123}, 
-   {0.007165317875469736, 0.007425269314345616, 0.03852289468931363, 
-    3.746335451061677e-6, 0.0003551409556477469, 0.005359292348280169}, 
-   {0.007541680741402371, 0.0005360683799675824, 3.746335451059942e-6, 
-    0.001594711079555576, 0.007757250400015124, 0.00786228393249746}, 
-   {0.0009378197311457164, 0.007004856760563884, 0.0003551409556477453, 
-    0.007757250400015124, 0.001453346107969903, 0.008006857876453842}, 
-   {0.001164271193317734, 0.001103923199169123, 0.005359292348280169, 
-    0.00786228393249746, 0.008006857876453844, 0.001436156516679547}};
-	double DDx[6][6];
-	interval s=zero,/*Ds[6]={s,s,s,s,s,s},*/  DDs[6][6];
-	 secondDerive::setVor1385(z,z,DDx);
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
-		{
-		DDs[i][j]=interval(DDx[i][j],DDx[i][j]);
-		if (interMath::inf(DDs[i][j])<DDmf[i][j]) 
-		{
-		cout << "Vor1385 failed: " ;
-		cout << DDs[i][j] << " " << DDmf[i][j] << endl;
-		error::message("Second derivatives 1385 failed to install properly");
-		}
-		}
-	}
 
-	/*test setVorSqc */ {
-	// constants computed in Mathematica with lineInterval routine.
-	double z[6]={5.0,5.2,5.4,5.6,5.8,5.9}; // rad(z)>sqrt2,
-	cout.precision(16);
-	//double mf =0;
-	//double Dmf[6] = {0,0,0,0,0,0};
-	double DDmf[6][6] =       // absolute values of data:
-		  {{0.03779865771267261, 0.008526248758379868, 0.008153674342434429, 
-    0.006150356271165707, 0.002078061534485094, 0.001798102438960657}, 
-   {0.008526248758379866, 0.03730624817730242, 0.008123471264883946, 
-    0.001715235789950637, 0.005139529165605567, 0.001366146789444544}, 
-   {0.008153674342434429, 0.008123471264883949, 0.03644883102152213, 
-    0.001214466297812393, 0.00115110184311265, 0.004110707818849844}, 
-   {0.006150356271165707, 0.001715235789950637, 0.001214466297812391, 
-    0.0001456021154627295, 0.007967130062245022, 0.007945179163991298}, 
-   {0.002078061534485092, 0.005139529165605567, 0.00115110184311265, 
-    0.00796713006224502, 0.0001436042779515388, 0.008023844058987206}, 
-   {0.001798102438960653, 0.001366146789444544, 0.004110707818849844, 
-    0.007945179163991298, 0.008023844058987206, 0.0000378391999154605}};
-	double DDx[6][6];
-	interval s=zero,/*Ds[6]={s,s,s,s,s,s},*/  DDs[6][6];
-	 secondDerive::setVorSqc(z,z,DDx);
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
-		{
-		DDs[i][j]=interval(DDx[i][j],DDx[i][j]);
-		if (interMath::inf(DDs[i][j])<DDmf[i][j]) 
-		{
-		cout << "VorSqc failed: " ;
-		cout << DDs[i][j] << " " << DDmf[i][j] << endl;
-		error::message("Second derivatives failed to install properly");
-		}
-		}
-	}
+
+
+
 
 	/*test array_multiply */ {
 	interval a[8];
@@ -2238,3 +1824,18 @@ void secondDerive::selfTest() {
 
 }
 
+/* 
+
+(* Mathematica code used in testing *)
+xE = {4.01, 4.02, 4.03, 4.04, 4.05, 4.06};
+
+test2Data[f_] := Module[{},
+       g[x__] := f @@ Sqrt[{x}];
+      xsub = {x1 -> xE[[1]], x2 -> xE[[2]], x3 -> xE[[3]], x4 -> xE[[4]],
+         x5 -> xE[[5]], x6 -> xE[[6]]};
+      xxs = {x1, x2, x3, x4, x5, x6};
+      rr[i_, j_] := D[g @@ xxs, {xxs[[i]], 1}, {xxs[[j]], 1}];
+      ((Table[rr[i, j], {i, 1, 6}, {j, 1, 6}]) /. xsub) // CForm
+      ];
+
+ */

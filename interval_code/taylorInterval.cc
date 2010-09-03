@@ -160,6 +160,9 @@ static double taylorError(const domain& w,const double sec[6][6])
     interMath::up();
     double t=0.0;
     int i,j;
+    for (i=0;i<6;i++) for (j=0;j<6;j++) {
+	if (sec[i][j] < 0.0) { error::message("negative abs in taylorError"); }
+      }
     for (i=0;i<6;i++) t = t + (w.getValue(i)*w.getValue(i))*sec[i][i];
     t = t/2.0;
     for (i=0;i<6;i++) for (j=i+1;j<6;j++)
@@ -369,6 +372,7 @@ static lineInterval sqrt(lineInterval a)
     for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];
     return temp;
     }
+
 static lineInterval lineY1(const domain& x)
 	{
 	static const interval one("1");
@@ -376,6 +380,7 @@ static lineInterval lineY1(const domain& x)
 	h.Df[0]=one;
 	return sqrt(h);
 	}
+
 static int setY1(const domain& x,const domain&,double DD[6][6])
 	{
 	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
@@ -518,7 +523,7 @@ static int setDihedral(const domain& x,const domain& z,double DD[6][6])
 	double X[6],Z[6];
 	int i;
 	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	return secondDerive::setDihedral(X,Z,DD);
+	return secondDerive::setAbsDihedral(X,Z,DD);
 	}
 primitive dih1(linearization::dih,setDihedral);
 const taylorFunction taylorSimplex::dih(::dih1);

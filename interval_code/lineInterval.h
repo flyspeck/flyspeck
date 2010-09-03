@@ -167,16 +167,67 @@ static lineInterval dih2(const domain&);
 static lineInterval dih3(const domain&);
 
 	//////////
+	// The dihedral angle of a simplex along the fourth edge.  
+	// Explicit formulas for this function appear in SP I.8.3.1.
+	// The edge numbering conventions are given in SP I.1.
+	//
+static lineInterval dih4(const domain&);
+
+	//////////
+	// The dihedral angle of a simplex along the fifth edge.  
+	// Explicit formulas for this function appear in SP I.8.3.1.
+	// The edge numbering conventions are given in SP I.1.
+	//
+static lineInterval dih5(const domain&);
+
+	//////////
+	// The dihedral angle of a simplex along the sixth edge.  
+	// Explicit formulas for this function appear in SP I.8.3.1.
+	// The edge numbering conventions are given in SP I.1.
+	//
+static lineInterval dih6(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim2(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim3(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim4(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim5(const domain&);
+
+	//////////
+	// The rhazim function of a simplex along the nth edge.  
+	// Explicit formulas appear in general/sphere.hl
+	//
+static lineInterval rhazim6(const domain&);
+
+	//////////
 	// The solid angle of a simplex at its distinguished vertex.
 	// Explicit formulas for this function appear in SP I.8.4.
 	//
 static lineInterval solid(const domain&);
-
-	//////////
-	// The compression of a simplex.
-	// Explicit formulas for this function appear in SP I.8.5.
-	//
-static lineInterval gamma(const domain&);
 
 	//////////
 	// The circumradius squared of the face along edges 1,2,6 of a simplex.
@@ -235,63 +286,6 @@ static lineInterval vorAnalytic(const domain&);
 	// Explicit formulas for this function appear in SP I.8.2.
 	//
 static lineInterval chi324(const domain&);
-
-	//////////
-	// The function vor(S,1.255) of [Formulation].
-	// This is the truncation of the Voronoi function at 1.255.
-	// Explicit formulas for this function appear in [Formulation].
-	// The first three edges must be at most 2.51 in length.
-	// There is a different function uprightVorVc that should be
-	// used if one of the edges is greater than 2.51.
-	//
-static lineInterval VorVc(const domain&);
-
-	//////////
-	// The function vor(S,sqrt(2)) of [Formulation].
-	// This is the truncation of the Voronoi function at sqrt(2).
-	// Explicit formulas for this function appear in [Formulation].
-	//
-static lineInterval VorSqc(const domain&);
-
-	//////////
-	// The function vor(S,1.385) of [Formulation].
-	// This is the truncation of the Voronoi function at 1.385.
-	// The first three edges must be at most 2.77.
-	// Explicit formulas for this function appear in [Formulation].
-	//
-static lineInterval Vor1385(const domain&);
-
-	//////////
-	// The function vorAnalytic(hat Q) of [Formulation].
-	// The domain is upright quarters.  Hat Q is the inversion of Q.
-	// The function value is equal to vorAnalytic(x1,x6,x5,x4,x3,x2).
-	// The derivatives have been reindexed appropriately.
-	//
-static lineInterval VorInverted(const domain&);
-
-	//////////
-	// The function vorVc is not analytic or even differentiable
-	// as the length of one of the first three edges crosses the line at
-	// twice the truncation (2t = 2.51).  The version VorVc is intended
-	// for simplices whose first three edges are at most 2.51.  The
-	// version here is intended for use when the first edge has length
-	// greater than 2.51, which occurs, for instance, on upright quarters.
-	//
-static lineInterval uprightVorVc(const domain&);
-
-	//////////
-	// The function uprightVorVcInverted is the variant of VorVcInverted
-	// that is to be used when the first edge has length greater
-	// than 2.51, which occurs on upright quarters.
-	//
-static lineInterval uprightVorVcInverted(const domain&);
-
-	//////////
-	// The function quo is the quoin of a single Rogers simplex located
-	// along the edges 1,2,6 of the domain. It only depends on
-	// the variable y1,y2,y6.
-	//
-static lineInterval quo(const domain&);
 
 	//////////
 	// Check the correctness of the linearization procedures.

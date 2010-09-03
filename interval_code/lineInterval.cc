@@ -139,39 +139,6 @@ static lineInterval atan(lineInterval a,lineInterval b) // atan(a/b);
 	return temp;
 	}
 
-/* (not used)
-static lineInterval atan(lineInterval a)
-	{
-	static const interval one("1");
-	return atan(a,one);
-	}
-*/
-
-// modified arctan is defined as matan(x) = atan(sqrt(x))-sqrt(x)+sqrt(x)^3/3.
-static void matan(const interval&u,const interval Du[2],
-	interval& ma,interval Dma[2])
-	{
-	static const interval one("1");
-	static const interval two("2");
-	int i;
-	interval t = interMath::sqrt(u);
-	static const interval third= one/interval("3");
-	// make use of monotonicity of matan in computation of its interval:
-	interval atant = interMath::atan(t);
-	double mau;
-	interMath::up(); 
-	mau = interMath::sup(atant) + (-interMath::sup(t)) 
-	  + interMath::sup(t)*interMath::sup(u)*interMath::sup(third);
-	//                 ^^ sup instead of inf by monotonicity.
-	double man;
-	interMath::down(); 
-	man = interMath::inf(atant) + (-interMath::inf(t)) 
-	  + interMath::inf(t)*interMath::inf(u)*interMath::inf(third);
-	ma = interval(man,mau);
-	interval x = t*u/(two*(one+u));
-	for (i=0;i<2;i++) Dma[i]=Du[i]*x;
-	}
-
 static void compute_rogersterm(interval x,interval y,interval z,
 	interval& f,interval Df[2])
 	{ // Rogers5d:
@@ -260,79 +227,6 @@ static void Dfivehalves(const interval& u,const interval Du[2],
 	for (i=0;i<2;i++) Dfh[i]= x*Du[i];
 	}
 
-static void compute_quoin(interval x,interval y,interval z,interval& f,
-				interval Df[2] /* x and y derivatives */)
-	// method two : tangent expansion.
-	{
-	static const interval zero("0");
-	static const interval two("2");
-	static const interval three("3");
-	static const interval four("4");
-	if ((interMath::sup(y)<interMath::inf(x))||
-		(interMath::sup(z)<interMath::inf(y)))
-		{
-		f = Df[0]=Df[1]=zero; return;
-		}
-	int i;
-	interval x2 = x*x;
-	interval y2 = y*y;
-	interval z2 = z*z;
-	interval Df1[2];
-	Df1[0]= three*(-x*x+z*z);
-	Df1[1]= zero;
-	interval f1 = (-x+z)*(x*x+x*z-two*z*z);
-
-	interval unum = z2-y2;
-	interval Dunum[2] = {zero,-two*y};
-	interval uden = y2-x2;
-	interval Duden[2]= {-two*x,two*y};
-
-	interval u2, Du2[2];
-	interval atu,Datu[2];
-	quotient2(unum,Dunum,uden,Duden,u2,Du2);
-	if (u2.lo<0.0) u2.lo=0.0;
-	if (u2.hi<0.0) u2.hi=0.0;
-
-	matan(u2,Du2,atu,Datu);
-	interval g1,Dg1[2];
-	product2(atu,Datu,f1,Df1,g1,Dg1);
-	interval d5,Dd5[2];
-	compute_rogersterm(x,y,z,d5,Dd5);
-	interval fh,Dfh[2];
-	Dfivehalves(u2,Du2,fh,Dfh);
-	//interval lnum,Dlnum[2]; // same as uden //
-	interval lden;
-	interval yz = y+z; interval yz2=yz*yz; interval yz3=yz*yz2;
-	lden = yz2*yz2*three;
-	static const interval twelve("12");
-	interval ldenf = twelve*yz3;
-	interval Dlden[2] = {zero,ldenf};
-	// interval ldenf2 = interval("36.0")*yz2; // not used.
-	interval quo,Dquo[2];
-	quotient2(uden,Duden,lden,Dlden,quo,Dquo);
-	interval xx,Dxx[2];
-	product2(quo,Dquo,fh,Dfh,xx,Dxx);
-	interval g2,Dg2[2];
-	product2(xx,Dxx,d5,Dd5,g2,Dg2);
-
-	// Term g3.
-	interval fz3 = four*z*z2;
-	interval vnum = (-x+y)*(-y+z);
-	interval Dvnum[2]= {y-z,-two*y+z+x};
-	interval vden = (x+y)*(y+z);
-	interval Dvden[2]= {y+z,two*y+z+x};
-	interval v,Dv[2];
-	quotient2(vnum,Dvnum,vden,Dvden,v,Dv);
-	interval mv,Dmv[2];
-	matan(v,Dv,mv,Dmv);
-	interval g3,Dg3[2];
-	g3 = mv*fz3;
-	for (i=0;i<2;i++) Dg3[i]=fz3*Dmv[i];
-	// Combine terms. m16 because we consistently left out a factor of -1/6.
-	static const interval m16 = -interval("1")/interval("6");
-	f = m16*(g1+g2+g3);
-	for (i=0;i<2;i++) Df[i] = m16*(Dg1[i]+Dg2[i]+Dg3[i]);
-	}
 
 static lineInterval U126(double x1,double x2,double x6)
 	{
@@ -639,7 +533,6 @@ lineInterval linearization::dih2(const domain& x)
 	return t;
 	}
 
-
 lineInterval linearization::dih3(const domain& x)
 	{
 	double x1,x2,x3,x4,x5,x6;
@@ -648,6 +541,143 @@ lineInterval linearization::dih3(const domain& x)
 	static int k[6] = {2,1,0,5,4,3};
 	lineInterval s,t;
 	s =dih(domain(x3,x2,x1,x6,x5,x4));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::dih4(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {3,1,5,0,4,2};
+	lineInterval s,t;
+	s =dih(domain(x4,x2,x6,x1,x5,x3));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::dih5(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {1,3,5,4,0,2};
+	lineInterval s,t;
+	s =dih(domain(x5,x1,x6,x2,x4,x3));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::dih6(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {1,5,3,4,2,0};
+	lineInterval s,t;
+	s =dih(domain(x6,x1,x5,x3,x4,x2));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+/*implement y1 copied from taylorSimplex.cc */
+static lineInterval lineSqrt(lineInterval a)
+    {
+    lineInterval temp;
+	static const interval one("1");
+	static const interval two("2");
+    temp.f = interMath::sqrt(a.f);
+    interval rs = one/(two*temp.f);
+    int i;
+    for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];
+    return temp;
+    }
+
+static lineInterval lineY1(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(0),x.getValue(0)));
+	h.Df[0]=one;
+	return lineSqrt(h);
+	}
+
+lineInterval linearization::rhazim(const domain& x)
+	{
+	  static const lineInterval one(interval::interval ("1"));
+	  static const lineInterval two(interval::interval ("2"));
+	  static const lineInterval const1(interval::interval("0.17547965609182181051"));
+	  static const lineInterval _052(interval::interval("0.52"));
+	lineInterval d = linearization::dih(x);
+	// `!y. rho y = &1 + const1 *(y - &2) / (#0.52)`
+	lineInterval rho = one + const1 * (lineY1(x) - two) / _052;
+	return rho*d;
+	}
+
+lineInterval linearization::rhazim2(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {1,0,2,4,3,5};
+	lineInterval s,t;
+	s =rhazim(domain(x2,x1,x3,x5,x4,x6));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::rhazim3(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {2,1,0,5,4,3};
+	lineInterval s,t;
+	s =rhazim(domain(x3,x2,x1,x6,x5,x4));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::rhazim4(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {3,1,5,0,4,2};
+	lineInterval s,t;
+	s =rhazim(domain(x4,x2,x6,x1,x5,x3));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::rhazim5(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {1,3,5,4,0,2};
+	lineInterval s,t;
+	s =rhazim(domain(x5,x1,x6,x2,x4,x3));
+	t.f = s.f;
+	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
+	return t;
+	}
+
+lineInterval linearization::rhazim6(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static int k[6] = {1,5,3,4,2,0};
+	lineInterval s,t;
+	s =rhazim(domain(x6,x1,x5,x3,x4,x2));
 	t.f = s.f;
 	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
 	return t;
@@ -662,39 +692,6 @@ lineInterval linearization::solid(const domain& x)
 	lineInterval ax = a(x1,x2,x3,x4,x5,x6)*two;
 	lineInterval s = sqrt(delta(x));
 	return atan(s,ax)*two;
-	}
-
-lineInterval linearization::gamma(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval half("0.5");
-	static const interval twothird("0.66666666666666666666666666666");
-	static const interval mdoct6 = "-0.12015049158624418214";
-	lineInterval t = sqrt(delta(x))*half;
-	lineInterval a1,a2,a3,a4,b2,b3,b4;
-	a1 = a(x1,x2,x3,x4,x5,x6);
-	b2 = a(x1,x5,x6,x4,x2,x3);
-	b3 = a(x4,x5,x3,x1,x2,x6);
-	b4 = a(x4,x2,x6,x1,x5,x3);
-	int i;
-	{
-	int k[6]= {0,4,5,3,1,2};
-	a2.f = b2.f;
-	for (i=0;i<6;i++) a2.Df[i]=b2.Df[k[i]];
-	}
-	{
-	int k[6]= {3,4,2,0,1,5};
-	a3.f = b3.f;
-	for (i=0;i<6;i++) a3.Df[i]=b3.Df[k[i]];
-	}
-	{
-	int k[6]= {3,1,5,0,4,2};
-	a4.f = b4.f;
-	for (i=0;i<6;i++) a4.Df[i]=b4.Df[k[i]];
-	}
-	return t*mdoct6+(atan(t,a1)+atan(t,a2)+atan(t,a3)+atan(t,a4))*twothird;
 	}
 
 lineInterval linearization::eta2(const domain& x)
@@ -758,29 +755,6 @@ lineInterval linearization::eta2_456(const domain& x)
 	return u;
 	}
 
-static lineInterval quoin
-	(double x1,double x2,double x6,interval trunc)
-	{
-	static const interval zero("0");
-	static const interval eight("8");
-	lineInterval et = sqrt(linearization::eta2(domain(x1,x2,0,0,0,x6)));
-	interval a2,a0; a2 = interval(x1/4.0,x1/4.0); a0 = interMath::sqrt(a2);
-	lineInterval s;
-	interval Df[2];
-	compute_quoin(a0,et.f,trunc,s.f,Df);
-	s.Df[0]= Df[0]/(eight*a0) + Df[1]*et.Df[0];
-	s.Df[1]= Df[1]*et.Df[1];
-	s.Df[2]=s.Df[3]=s.Df[4]=zero;
-	s.Df[5]= Df[1]*et.Df[5];
-	return s;
-	}
-
-lineInterval linearization::quo(const domain& x) 
-	{
-	static const interval t0("1.255");
-	return quoin(x.getValue(0),x.getValue(1),x.getValue(5),t0);
-	}
-
 static inline double pos(double x)
 	{
 	return (x>0.0 ? x : 0.0);
@@ -838,20 +812,6 @@ lineInterval linearization::vorAnalytic(const domain &x)
 	return vol*mdoct4 + solid(x)*f43;
 	}
 
-lineInterval linearization::VorInverted(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	int i;
-	lineInterval s = vorAnalytic(domain(x1,x6,x5,x4,x3,x2));
-	lineInterval t;
-	t.f = s.f;
-	int k[6]= {0,5,4,3,2,1}; // an involution.
-	for (i=0;i<6;i++) t.Df[i]=s.Df[k[i]];
-	return t;
-	}
-
 lineInterval linearization::rad2(const domain& x)
 	{
 	static const interval four("4");
@@ -863,53 +823,6 @@ lineInterval linearization::rad2(const domain& x)
 			+ eta2(domain(x1,x2,0,0,0,x6));
 	}
 
-lineInterval linearization::chi126squaredOverEtc(const domain& x)
-	{
-	static const interval four("4");
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	lineInterval c = chi126(x1,x2,x3,x4,x5,x6);
-	return c*c/(U126(x1,x2,x6)*delta(x)*four) ;
-	}
-
-	//////////
-	//
-	// Bdih = (A(y1/2)+phi0) dih(S).
-	// 
-static lineInterval Bdih(const domain& x,
-	interval trunc,int long_edge_allowed=0)
-	{
-	static const interval zero("0");
-	static const interval two("2");
-	static const interval three("3");
-	static const interval four("4");
-	static const interval mdoct_12 = "-0.0600752457931220910701037362515";
-	static const interval doct_8 = -mdoct_12*three/two;
-	static const interval f_3 ("1.333333333333333333333333333333");
-	static const interval mdoc_43 = "-0.96120393268995345712165978002";
-	interval trunc2 = trunc*trunc;
-	lineInterval d = linearization::dih(x);
-	// phi0dih = phi[trunc,trunc] dih.
-	lineInterval phi0dih = d*(f_3 + mdoc_43*trunc2*trunc);
-
-	double x1 = x.getValue(0); 
-	interval xx(x1,x1);
-	interval sqrtx = interMath::sqrt(xx);
-	interval r = (-two*trunc+sqrtx); 
-	if (interMath::sup(r)>1.0e-10) 
-		{
-		if (long_edge_allowed) return phi0dih;
-		error::message("inappropriate use of Bdih");
-		cout << "sqrtx= " << sqrtx << endl << flush; 
-		}
-	r = -interMath::pos(-r);
-	lineInterval A; A.f = -mdoct_12*r*r*(four*trunc+sqrtx);
-	for (int i=0;i<6;i++) A.Df[i]=zero;
-	A.Df[0]= -doct_8*interMath::pos(four*trunc2-xx)/sqrtx;
-	return A*d+phi0dih;  // By SPIV. B[y] = A[y/2]+phi0.
-	}
-
 static lineInterval permute
 	(const lineInterval& r,int k1,int k2,int k3,int k4,int k5,int k6)
 	{
@@ -919,139 +832,6 @@ static lineInterval permute
 	for (i=0;i<6;i++) u.Df[i]= r.Df[k[i]];
 	u.f=r.f;
 	return u;
-	}
-
-static lineInterval quoins
-	(double x1,double x2,double x3,double x4,double x5,double x6,
-	interval trunc)
-	{
-	lineInterval 	q12 = quoin(x1,x2,x6,trunc),
-		q13 = quoin(x1,x3,x5,trunc),
-		q21 = quoin(x2,x1,x6,trunc),
-		q23 = quoin(x2,x3,x4,trunc),
-		q31 = quoin(x3,x1,x5,trunc),
-		q32 = quoin(x3,x2,x4,trunc);
-	lineInterval r12,r13,r21,r23,r31,r32;
-	r12=q12;
-	r13=permute(q13,0,2,1,3,5,4);
-	r21=permute(q21,1,0,2,4,3,5);
-	r23=permute(q23,2,0,1,5,3,4);
-	r31=permute(q31,1,2,0,4,5,3);
-	r32=permute(q32,2,1,0,5,4,3);
-	return r12+r13+r21+r23+r31+r32;
-	}
-
-static lineInterval quoins234
-	(double,double x2,double x3,double x4,double,double,
-	interval trunc)
-	{
-	lineInterval 	q23 = quoin(x2,x3,x4,trunc),
-		q32 = quoin(x3,x2,x4,trunc);
-	lineInterval r23,r32;
-	r23=permute(q23,2,0,1,5,3,4);
-	r32=permute(q32,2,1,0,5,4,3);
-	return r23+r32;
-	}
-
-static lineInterval vorVc
-	(double x1,double x2,double x3,double x4,double x5,double x6,
-	interval trunc)
-	{
-	double cut = 4*interMath::sup(trunc*trunc);
-	if ((x1>cut)|| (x2>cut)|| (x3>cut))
-		error::message("bad argument supplied to vorVc");
-	static const interval three("3");
-	static const interval f_3 ("1.333333333333333333333333333333");
-	static const interval mdoc_43 = "-0.96120393268995345712165978002";
-	static const interval pi = "3.14159265358979323846264338328";
-	static const interval doct4 = -mdoc_43*three;
-	interval consterm = (f_3 + mdoc_43*trunc*trunc*trunc)*pi;
-	lineInterval d1 = Bdih(domain(x1,x2,x3,x4,x5,x6),trunc);
-	lineInterval d2 = Bdih(domain(x2,x1,x3,x5,x4,x6),trunc);
-	lineInterval d3 = Bdih(domain(x3,x2,x1,x6,x5,x4),trunc);
-	interval t; // swap into correct order:
-	t=d2.Df[0]; d2.Df[0]=d2.Df[1]; d2.Df[1]=t;
-	t=d2.Df[3]; d2.Df[3]=d2.Df[4]; d2.Df[4]=t;
-	t=d3.Df[0]; d3.Df[0]=d3.Df[2]; d3.Df[2]=t;
-	t=d3.Df[3]; d3.Df[3]=d3.Df[5]; d3.Df[5]=t;
-	return d1+d2+d3-quoins(x1,x2,x3,x4,x5,x6,trunc)*doct4-consterm;
-	}
-
-static lineInterval uprightvorVc
-	(double x1,double x2,double x3,double x4,double x5,double x6,
-	interval trunc)
-	{
-	static const interval three("3");
-	static const interval four("4");
-	interval cut = four*trunc*trunc;
-	if ((x2>interMath::sup(cut))||
-		(x3>interMath::sup(cut))||
-		(x1<interMath::inf(cut)))
-		error::message("bad argument supplied to uprightvorVc");
-	static const interval f_3 ("1.333333333333333333333333333333");
-	static const interval mdoc_43 = "-0.96120393268995345712165978002";
-	static const interval pi = "3.14159265358979323846264338328";
-	static const interval doct4 = -mdoc_43*three;
-	interval consterm = (f_3 + mdoc_43*trunc*trunc*trunc)*pi;
-	lineInterval d1 = Bdih(domain(x1,x2,x3,x4,x5,x6),trunc,1);
-	lineInterval d2 = Bdih(domain(x2,x1,x3,x5,x4,x6),trunc);
-	lineInterval d3 = Bdih(domain(x3,x2,x1,x6,x5,x4),trunc);
-	interval t; // swap into correct order:
-	t=d2.Df[0]; d2.Df[0]=d2.Df[1]; d2.Df[1]=t;
-	t=d2.Df[3]; d2.Df[3]=d2.Df[4]; d2.Df[4]=t;
-	t=d3.Df[0]; d3.Df[0]=d3.Df[2]; d3.Df[2]=t;
-	t=d3.Df[3]; d3.Df[3]=d3.Df[5]; d3.Df[5]=t;
-	return d1+d2+d3-quoins234(x1,x2,x3,x4,x5,x6,trunc)*doct4-consterm;
-	}
-
-lineInterval linearization::VorVc(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval t("1.255");
-	return vorVc(x1,x2,x3,x4,x5,x6,t);
-	}
-
-lineInterval linearization::Vor1385(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval t("1.385");
-	return vorVc(x1,x2,x3,x4,x5,x6,t);
-	}
-
-lineInterval linearization::uprightVorVc(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval t("1.255");
-	return uprightvorVc(x1,x2,x3,x4,x5,x6,t);
-	}
-
-lineInterval linearization::uprightVorVcInverted(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	int i;
-	lineInterval s = uprightVorVc(domain(x1,x6,x5,x4,x3,x2));
-	lineInterval t;
-	t.f = s.f;
-	int k[6]= {0,5,4,3,2,1};
-	for (i=0;i<6;i++) t.Df[i]=s.Df[k[i]];
-	return t;
-	}
-
-lineInterval linearization::VorSqc(const domain& x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval t("1.41421356237309504880168872421");
-	return vorVc(x1,x2,x3,x4,x5,x6,t);
 	}
 
 // double version.
@@ -1445,6 +1225,26 @@ void linearization::selfTest() {
 	assert(lineInterval(one).hi() == 1.0);
 	domain x(4.04,4.08,4.12,4.16,4.2,4.24);
 
+	/* (* Mathematica code for testing *)
+      xD = {4.04, 4.08, 4.12, 4.16, 4.2, 4.24};
+
+     testData[f_] := Module[{g, g0, g1, g2, g3,
+       g4, g5, g6, xsub, x, x1, x2, x3, x4, x5, x6},
+        g[x__] := f @@ Sqrt[{x}];
+        xsub = {x1 -> xD[[1]], x2 -> xD[[2]], x3 -> xD[[3]], x4 -> xD[[4]], 
+        x5 -> xD[[5]], x6 -> xD[[6]]};
+        g0 = g @@ xD;
+        g1 = D[g[x1, x2, x3, x4, x5, x6], x1] /. xsub;
+        g2 = D[g[x1, x2, x3, x4, x5, x6], x2] /. xsub;
+        g3 = D[g[x1, x2, x3, x4, x5, x6], x3] /. xsub;
+        g4 = D[g[x1, x2, x3, x4, x5, x6], x4] /. xsub;
+        g5 = D[g[x1, x2, x3, x4, x5, x6], x5] /. xsub;
+        g6 = D[g[x1, x2, x3, x4, x5, x6], x6] /. xsub;
+        N[{g0, g1, g2, g3, g4, g5, g6}, 30]//CForm];
+
+       testData[Dihedral]
+	 */
+
 	/*test delta*/ {
 	lineInterval MathematicaAnswer = setHyperInterval
 		(141.772608,18.3056,17.6464,16.9616,17.2784,16.6384,15.9728);
@@ -1499,6 +1299,140 @@ void linearization::selfTest() {
 		}
 	}
 
+	/*test dih4*/ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+   (1.2103723386199303,0.1712972934491306,
+   -0.05373663326847471,-0.055975883938582466,
+   0.05544797653750441,-0.0549098185072793,
+							   -0.057126722791886006);
+	lineInterval ThisAnswer = linearization::dih4(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "dih4 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test dih5*/ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+   (1.2238420530327385,-0.05401473258931138,
+   0.1721188679153145,-0.058429840451965726,
+   -0.05517317646186233,0.05683252430443883,
+	  -0.05954497801152411);
+	lineInterval ThisAnswer = linearization::dih5(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "dih5 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test dih6*/ {
+	  lineInterval MathematicaAnswer = setHyperInterval (1.237773629512733,-0.05655420210343213,
+   -0.058729572893063145,0.1729365393486911,
+   -0.05767340245159547,-0.05982785360855054,
+	  0.058206469608373966);
+	lineInterval ThisAnswer = linearization::dih6(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "dih6 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim */ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+   (1.2284923443399745,0.15867695490603245,
+   -0.05646604413275723,-0.05872361821714059,
+   0.16937682646708305,-0.05315421893750245,
+    -0.05539009460772968);
+	lineInterval ThisAnswer = linearization::rhazim(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim2 */ {
+	  lineInterval MathematicaAnswer = setHyperInterval
+    (1.2460880011116569,-0.05693432496492495,
+   0.16086674754185729,-0.06139933548272868,
+   -0.053574824414306485,0.1707814922705073,
+     -0.057997714866165846);
+	lineInterval ThisAnswer = linearization::rhazim2(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim2 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim3 */ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+   (1.2642204264321166,-0.059697165194383554,
+   -0.06190386428530495,0.16308628826723298,
+   -0.05626591073357978,-0.05845223383209246,
+    0.17218483289496192); 
+	lineInterval ThisAnswer = linearization::rhazim3(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim3 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim4 */ {
+	  lineInterval MathematicaAnswer = setHyperInterval
+   (1.2265502778924742,0.17358686759301012,
+   -0.054454881663608706,-0.056724062347978284,
+   0.15631945481589718,-0.05564374779575763,
+							     -0.057890283410943405); 
+	lineInterval ThisAnswer = linearization::rhazim4(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim4 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim5 */ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+  (1.244240127657498,-0.054915009339454826,
+   0.17498761515550415,-0.05940370488398006,
+   -0.05609276127917207,0.15854115872549165,
+							     -0.06053742871380133); 
+	lineInterval ThisAnswer = linearization::rhazim5(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim5 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
+	/*test rhazim6 */ {
+	  lineInterval MathematicaAnswer = setHyperInterval 
+  (1.2624705818181052,-0.05768261233832029,
+   -0.05990138769511693,0.17638709392693988,
+   -0.05882414377914847,-0.061021582099667945,
+   0.16079441566571734); 
+	lineInterval ThisAnswer = linearization::rhazim6(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "rhazim6 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
 	/*test solid*/ {
 	lineInterval MathematicaAnswer = setHyperInterval
 	  (0.5721961897004516, -0.05995000620951383, -0.06047756676337781, 
@@ -1508,20 +1442,6 @@ void linearization::selfTest() {
 	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
 		{
 		cout << "solid failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test gamma*/ {
-	lineInterval MathematicaAnswer = setHyperInterval
-	  (0.01975528077233823, -0.04566103833985133, -0.04506689836142777, 
-    -0.04447779293358099, -0.04193097824527764, -0.04138040496415922, 
-    -0.04083396666833738);
-	lineInterval ThisAnswer = linearization::gamma(x);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
-		{
-		cout << "gamma failed = " << (MathematicaAnswer-ThisAnswer)
 				<< endl << flush;
 		error::message("lineInterval failed to install properly");
 		}
@@ -1593,20 +1513,6 @@ void linearization::selfTest() {
 		}
 	}
 
-	/*test chi126squaredOverEtc*/ {
-	lineInterval MathematicaAnswer = setHyperInterval
-		( 0.1791927094638431, -0.04827726663561425, -0.04929690789583435, 
-		0.06055789352721258, 0.06434422145485768, 0.06437959485862619, 
-		-0.05004729483580777);
-	lineInterval ThisAnswer = linearization::chi126squaredOverEtc(x);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
-		{
-		cout << "rad2 failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
 	/*test chi324*/ {
 	lineInterval MathematicaAnswer = setHyperInterval
 		  (71.98464, 16.8064, 0.5008, 
@@ -1631,112 +1537,6 @@ void linearization::selfTest() {
 	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
 		{
 		cout << "vorAnalytic failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test VorVc */ {
-	// use new domain so that Rad>1.255;
-	domain z(4.14,4.08,4.12,4.16,4.2,4.24);
-	lineInterval MathematicaAnswer = setHyperInterval
-		  (0.02239727638322316, -0.07138317679892827, -0.07451602566673953, 
-    -0.07300643854813292, -0.01592304492280537, -0.01540175383741551, 
-    -0.01577197942928313);
-	lineInterval ThisAnswer = linearization::VorVc(z);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "VorVc failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "VorVc failed = " << ThisAnswer
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test VorSqc */ {
-	// use new domain so that Rad>sqrt(2);
-	domain z(4.94,4.98,4.92,7,4.8,4.84);
-	lineInterval MathematicaAnswer = setHyperInterval
-		( -0.2597616779487081, -0.07288587250300103, -0.05214710431438422, 
-    -0.0545770739349982, -0.03171574795244974, -0.05310067279640517, 
-    -0.0526962997262784);
-	lineInterval ThisAnswer = linearization::VorSqc(z);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "VorSqc failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "VorSqc failed = " << ThisAnswer
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test Vor1385 */ {
-	// use new domain so that Rad>1.385;
-	domain z(4.94,4.98,4.92,7,4.8,4.84);
-	lineInterval MathematicaAnswer = setHyperInterval
-	 (-0.2594625272052193, -0.07254153705301419, -0.05139469025525832, 
-   -0.05383162002685866, -0.03053430820810097, -0.05258279881458921, 
-   -0.05217343132181529);
-	lineInterval ThisAnswer = linearization::Vor1385(z);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "VorSqc failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "VorSqc failed = " << ThisAnswer
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test VorInverted */ {
-	lineInterval MathematicaAnswer = setHyperInterval
-		  (0.01664456784635159, -0.07611735548795519, -0.01575286229548984, 
-    -0.01608336935298273, -0.01423143983855594, -0.06786394366567112, 
-    -0.06640100863645138);
-	lineInterval ThisAnswer = linearization::VorInverted(x);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "VorInverted failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "VorInverted failed = " << ThisAnswer
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test uprightVorVc */ {
-	// use new domain so that y1>2.51;
-	domain z(7,4.98,4.92,4,4.8,4.84);
-	lineInterval MathematicaAnswer = setHyperInterval
-		  (-0.1514990866278141, 0.0169484693935585, -0.04596710543235722, 
-    -0.04953540952028351, -0.02751799025996786, -0.01773336458764444, 
-    -0.01680364768904157);
-	lineInterval ThisAnswer = linearization::uprightVorVc(z);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "uprightVorVc failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "uprightVorVc failed = " << ThisAnswer
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test uprightVorVcInverted */ {
-	// use new domain so that y1>2.51;
-	domain z(7,4.98,4.92,4,4.8,4.84);
-	lineInterval MathematicaAnswer = setHyperInterval
-		(-0.1428970603500303, 0.01741080759166868, -0.01663159449795801, 
-    -0.01755642156853108, -0.02852521188212975, -0.05434462871151318, 
-    -0.05149311417970992);
-	lineInterval ThisAnswer = linearization::uprightVorVcInverted(z);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-8))
-		{
-		cout << "uprightVorVcInverted failed = " << (MathematicaAnswer-ThisAnswer)
-				<< endl << flush;
-		cout << "uprightVorVcInverted failed = " << ThisAnswer
 				<< endl << flush;
 		error::message("lineInterval failed to install properly");
 		}
@@ -1818,23 +1618,6 @@ void linearization::selfTest() {
 	double t = edgeBound::chi234min(xx,z);
 	if ((fabs(u-t)>1.0e-12)||(t>u))
 		cout << "chi234min failed = " << t << endl;
-	}
-
-	/* test quoin */ {
-	double q = 0.00091536560156357352747615;
-	double qq[6]={-0.001175131924613549419,-0.00159469529124843039,
-			0,0,0,-0.0016354898219547855};
-	interval trunc ("1.255");
-	lineInterval s = quoin(4.1,4.2,4.3,trunc);
-	if ((s.low()>q)||(s.hi()<q)||(fabs(s.low()-q)>1.0e-9)||
-			(fabs(s.hi()-q)>1.0e-9))
-		cout << "quoin = " << s.low() <<" " << s.hi() << endl;
-	for (int i=0;i<6;i++) if
-		((interMath::inf(s.partial(i))>qq[i])||
-		 (interMath::sup(s.partial(i))<qq[i])||
-		 (interMath::sup(s.partial(i))-
-			interMath::inf(s.partial(i))>1.0e-10))
-		cout << "quoin partial" << i << " " << s.partial(i) << endl;
 	}
 
 

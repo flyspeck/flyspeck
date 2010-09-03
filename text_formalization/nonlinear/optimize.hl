@@ -191,6 +191,37 @@ let dih_x_sym = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let dih_x_sym2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. dih_x x1 x2 x3 x4 x5 x6 = dih_x x1 x5 x6 x4 x2 x3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT AP_TERM_TAC;
+  REWRITE_TAC[Sphere.delta_x;Sphere.delta_x4;PAIR_EQ];
+  CONJ_TAC THEN AP_TERM_TAC THEN REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+
+let dih_y_sym = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. dih_y y1 y2 y3 y4 y5 y6 = dih_y y1 y3 y2 y4 y6 y5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+  MESON_TAC[dih_x_sym];
+  ]);;
+  (* }}} *)
+
+let dih_y_sym2 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. dih_y y1 y2 y3 y4 y5 y6 = dih_y y1 y5 y6 y4 y2 y3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+  MESON_TAC[dih_x_sym2];
+  ]);;
+  (* }}} *)
+
 let sol_y_123 = prove_by_refinement(
   `!y1 y2 y3 y4 y5 y6. sol_y y1 y2 y3 y4 y5 y6 = dih_y y1 y2 y3 y4 y5 y6 + dih2_y y1 y2 y3 y4 y5 y6 + dih3_y y1  y2 y3 y4 y5 y6 - pi`,
   (* {{{ proof *)
@@ -242,6 +273,90 @@ let rho_alt = prove_by_refinement(
   REAL_ARITH_TAC;
   ]);;
   (* }}} *)
+
+let rho_x = prove_by_refinement(
+  `!x. rho (sqrt x) = &1 + const1 * (sqrt x - &2) / (#0.52)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[rho_alt];
+  ]);;
+  (* }}} *)
+
+
+let lfun_ly = prove_by_refinement(
+  `!h. lfun h = ly (&2 * h)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.lfun;Sphere.ly;Sphere.interp;Sphere.h0];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+
+let rhazim2_alt = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. rhazim2 y1 y2 y3 y4 y5 y6 = rho y2 * dih2_y y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rhazim2;Sphere.node2_y;Sphere.rhazim;Sphere.dih2_y;];
+  MESON_TAC[dih_y_sym];
+  ]);;
+  (* }}} *)
+
+let rhazim3_alt = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. rhazim3 y1 y2 y3 y4 y5 y6 = rho y3 * dih3_y y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rhazim3;Sphere.node3_y;Sphere.rhazim;Sphere.dih3_y;];
+  ]);;
+  (* }}} *)
+
+let vol4f_alt = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. vol4f y1 y2 y3 y4 y5 y6 lfun  = 
+    (-- &8 * mm1)
+    + 
+    (&4 * mm1/pi - &8 * mm2 *(&1+const1)/(pi * const1) ) *
+    (dih_y y1 y2 y3 y4 y5 y6 + dih2_y y1 y2 y3 y4 y5 y6 + dih3_y y1 y2 y3 y4 y5 y6 +
+    dih4_y y1 y2 y3 y4 y5 y6 + dih5_y y1 y2 y3 y4 y5 y6 + dih6_y y1 y2 y3 y4 y5 y6)
+    +
+    (&8 * mm2 / (pi * const1)) * 
+    (rhazim y1 y2 y3 y4 y5 y6 + rhazim2 y1 y2 y3 y4 y5 y6 + rhazim3 y1 y2 y3 y4 y5 y6 +
+    rhazim4 y1 y2 y3 y4 y5 y6 + rhazim5 y1 y2 y3 y4 y5 y6 + rhazim6 y1 y2 y3 y4 y5 y6)
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[Sphere.vol4f;Sphere.sol_y;lfun_ly;REAL_ARITH `&2 * y / &2 = y`;Sphere.rhazim;rhazim2_alt;rhazim3_alt;Sphere.rhazim4;Sphere.rhazim5;Sphere.rhazim6;];
+  REWRITE_TAC[Sphere.rho;Sphere.node2_y;Sphere.node3_y;Sphere.rhazim];
+  SUBGOAL_THEN `dih_y y2 y3 y1 y5 y6 y4 = dih2_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y3 y1 y2 y6 y4 y5 = dih3_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y3 y1 y2 y6 y4 y5 = dih3_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y4 y3 y5 y1 y6 y2 = dih4_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y5 y1 y6 y2 y4 y3 = dih5_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y6 y1 y5 y3 y4 y2 = dih6_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y6 y4 y2 y3 y1 y5 = dih6_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y2 y6 y4 y5 y3 y1 = dih2_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y1 y5 y6  y4 y2 y3 = dih_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y5 y6 y1 y2 y3 y4 = dih5_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y4 y5 y3 y1 y2 y6 = dih4_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y5 y3 y4 y2 y6 y1 = dih5_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y3 y4 y5 y6 y1 y2 = dih3_y y1 y2 y3 y4 y5 y6 /\ 
+   dih_y y4 y2 y6 y1 y5 y3 = dih4_y y1 y2 y3 y4 y5 y6` (fun t-> REWRITE_TAC[t]);
+  REWRITE_TAC[Sphere.dih2_y;Sphere.dih3_y;Sphere.dih4_y;Sphere.dih5_y;Sphere.dih6_y];
+  MESON_TAC[dih_y_sym;dih_y_sym2];
+  ONCE_REWRITE_TAC[REAL_ARITH `x  = y <=> x - y = &0`];
+  SUBGOAL_THEN  `~(pi = &0)` ASSUME_TAC;
+  SIMP_TAC[PI_POS;REAL_ARITH `&0 < x ==> ~(x= &0)`];
+  SUBGOAL_THEN `~(const1 = &0)`   MP_TAC;
+  REWRITE_TAC[GSYM Tame_general.sol0_over_pi_EQ_const1];
+  MP_TAC Tame_general.sol0_POS;
+  FIRST_X_ASSUM MP_TAC;
+  CONV_TAC REAL_FIELD;
+  FIRST_X_ASSUM MP_TAC;
+  CONV_TAC REAL_FIELD;
+  ]);;
+  (* }}} *)
+
+
 
 (*
 Sphere.beta_bump_y;;
@@ -522,8 +637,9 @@ e (WRAPUP_TAC);;
 let testineq = snd(top_goal());;
 
 
+(*
 execute_interval (testineq,testid);;
-
+*)
 
 let test s = 
   let testid = s in

@@ -177,6 +177,33 @@ static int setDih3(const double x[6],const double z[6],
 
 		//////////
 		// Compute interval bounds on the second derivative of the
+		// rhazim of a simplex.  To call this procedure, it is
+		// necessary first to have computed dih and its first
+		// and second partials. 
+static int setRhazim(double x,double z,
+	const interval& d,const interval Dd[6],const interval DDd[6][6],
+	      interval DDc[6][6]);
+
+		//////////
+		// Compute interval bounds on the second derivative of the
+		// rhazim2 of a simplex.  To call this procedure, it is
+		// necessary first to have computed dih2 and its first
+		// and second partials. 
+static int setRhazim2(double x,double z,
+	const interval& d,const interval Dd[6],const interval DDd[6][6],
+	      interval DDc[6][6]);
+
+		//////////
+		// Compute interval bounds on the second derivative of the
+		// rhazim3 of a simplex.  To call this procedure, it is
+		// necessary first to have computed dih3 and its first
+		// and second partials. 
+static int setRhazim3(double x,double z,
+	const interval& d,const interval Dd[6],const interval DDd[6][6],
+	      interval DDc[6][6]);
+
+		//////////
+		// Compute interval bounds on the second derivative of the
 		// solid angle of a simplex.  To call this procedure, it is
 		// necessary first to have computed sqrt(delta) and its first
 		// and second partials. 

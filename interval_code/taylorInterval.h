@@ -261,7 +261,9 @@ public:
 	//
 	static const taylorFunction unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-	        dih,dih2,dih3,sol;
+	  delta,
+	  dih,dih2,dih3,sol,
+	  rhazim,rhazim2,rhazim3;
 
 	//////////
 	// functions on an upright,flat,or quasiregular:

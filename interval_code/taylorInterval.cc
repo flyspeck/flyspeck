@@ -273,7 +273,7 @@ double taylorInterval::lowerPartial(int i) const
 	return interMath::inf(centerPoint.partial(i)) - err;
 	}
 
-static void intervalToDouble(interval DDx[6][6],double DD[6][6])
+static void intervalToDouble(const interval DDx[6][6],double DD[6][6])
 	{
 	for (int i=0;i<6;i++) for (int j=0;j<6;j++)
 		DD[i][j]= interMath::sup(interMath::max(DDx[i][j],-DDx[i][j]));
@@ -517,6 +517,21 @@ static int setY6(const domain& x,const domain&,double DD[6][6])
 primitive Y6(lineY6,setY6);
 const taylorFunction taylorSimplex::y6(::Y6);
 
+
+/*implement delta */
+static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	interval DDh[6][6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	secondDerive::setDelta(X,Z,DDh);
+	intervalToDouble(DDh,DD);
+	return 1;
+	}
+primitive deltaPrimitive(linearization::delta,setAbsDelta);
+const taylorFunction taylorSimplex::delta(::deltaPrimitive);
+
 /*implement dih1*/
 static int setDihedral(const domain& x,const domain& z,double DD[6][6])
 	{
@@ -525,8 +540,8 @@ static int setDihedral(const domain& x,const domain& z,double DD[6][6])
 	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
 	return secondDerive::setAbsDihedral(X,Z,DD);
 	}
-primitive dih1(linearization::dih,setDihedral);
-const taylorFunction taylorSimplex::dih(::dih1);
+primitive dih1Primitive(linearization::dih,setDihedral);
+const taylorFunction taylorSimplex::dih(::dih1Primitive);
 
 /*implement dih2*/
 static int setDih2(const domain& x,const domain& z,double DD[6][6])
@@ -543,8 +558,8 @@ static int setDih2(const domain& x,const domain& z,double DD[6][6])
 	intervalToDouble(DDh,DD);
 	return outcome;
 	}
-primitive dih2(linearization::dih2,setDih2);
-const taylorFunction taylorSimplex::dih2(::dih2);
+primitive dih2Primitive(linearization::dih2,setDih2);
+const taylorFunction taylorSimplex::dih2(::dih2Primitive);
 
 /*implement dih3*/
 static int setDih3(const domain& x,const domain& z,double DD[6][6])
@@ -561,8 +576,69 @@ static int setDih3(const domain& x,const domain& z,double DD[6][6])
 	intervalToDouble(DDh,DD);
 	return outcome;
 	}
-primitive dih3(linearization::dih3,setDih3);
-const taylorFunction taylorSimplex::dih3(::dih3);
+primitive dih3Primitive(linearization::dih3,setDih3);
+const taylorFunction taylorSimplex::dih3(::dih3Primitive);
+
+/*implement azim*/
+static int setRhazim(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDihedral(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim(X[0],Z[0],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitive rhazimPrimitive(linearization::rhazim,setRhazim);
+const taylorFunction taylorSimplex::rhazim(::rhazimPrimitive);
+
+/*implement azim2*/
+static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim2(X[1],Z[1],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitive rhazim2Primitive(linearization::rhazim2,setRhazim2);
+const taylorFunction taylorSimplex::rhazim2(::rhazim2Primitive);
+
+/*implement azim3*/
+static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim3(X[2],Z[2],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitive rhazim3Primitive(linearization::rhazim3,setRhazim3);
+const taylorFunction taylorSimplex::rhazim3(::rhazim3Primitive);
+
 
 /*implement sol*/
 static int setSol(const domain& x,const domain& z,double DD[6][6])
@@ -578,8 +654,8 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
     for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
     return 1;
     }
-primitive sol(linearization::solid,setSol);
-const taylorFunction taylorSimplex::sol(::sol);
+primitive solPrimitive(linearization::solid,setSol);
+const taylorFunction taylorSimplex::sol(::solPrimitive);
 
 
 static int copy(double DD[6][6],const double sec[6][6])
@@ -602,8 +678,8 @@ static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
 	for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
 	return 1;
 	}
-primitive eta2(linearization::eta2,setEta2_126);
-const taylorFunction taylorSimplex::eta2_126(::eta2);
+primitive eta2Primitive(linearization::eta2,setEta2_126);
+const taylorFunction taylorSimplex::eta2_126(::eta2Primitive);
 
 /*implement eta2_135*/
 static int setEta2_135(const domain& x,const domain& z,double DD[6][6])
@@ -617,8 +693,8 @@ static int setEta2_135(const domain& x,const domain& z,double DD[6][6])
     for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
 	return 1;
     }
-primitive Peta2_135(linearization::eta2_135,setEta2_135);
-const taylorFunction taylorSimplex::eta2_135(::Peta2_135);
+primitive eta2_135_Primitive(linearization::eta2_135,setEta2_135);
+const taylorFunction taylorSimplex::eta2_135(::eta2_135_Primitive);
 
 /*implement eta2_234*/
 static int setEta2_234(const domain& x,const domain& z,double DD[6][6])
@@ -632,8 +708,8 @@ static int setEta2_234(const domain& x,const domain& z,double DD[6][6])
     for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
 	return 1;
     }
-primitive Peta2_234(linearization::eta2_234,setEta2_234);
-const taylorFunction taylorSimplex::eta2_234(::Peta2_234);
+primitive eta2_234_Primitive(linearization::eta2_234,setEta2_234);
+const taylorFunction taylorSimplex::eta2_234(::eta2_234_Primitive);
 
 /*implement eta2_456*/
 static int setEta2_456(const domain& x,const domain& z,double DD[6][6])

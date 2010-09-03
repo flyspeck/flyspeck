@@ -623,7 +623,7 @@ static int setA(const double x[6],const double z[6],
 	return 1;
 	}
 
-void setDelta(const double x[6],const double z[6],
+void setDeltaFull(const double x[6],const double z[6],
 	interval& f, interval Df[6], interval DDf[6][6])
 	{
 	double vmin, vmax, xmin[6], xmax[6], xxmin[6][6], xxmax[6][6];
@@ -809,7 +809,7 @@ void setDelta(const double x[6],const double z[6],
 int secondDerive::setDelta(const double x[6],const double z[6],interval DDf[6][6])
 	{
 	interval f,Df[6];
-	::setDelta(x,z,f,Df,DDf);
+	::setDeltaFull(x,z,f,Df,DDf);
 	return 1;
 	}
 
@@ -819,7 +819,7 @@ int secondDerive::setChi2over4uDelta(const double x[6],const double z[6],double 
 	interval d,Dd[6],DDd[6][6];
 	interval c,Dc[6],DDc[6][6];
 	interval u,Du[6],DDu[6][6];
-	::setDelta(x,z,d,Dd,DDd);
+	::setDeltaFull(x,z,d,Dd,DDd);
 	::setChi126(x,z,c,Dc,DDc);
 	::setU126(x,z,u,Du,DDu);
 	if (interMath::inf(u)<=1.0e-5) return 0;
@@ -1106,7 +1106,7 @@ static int rho_x_factor(double x,double z,interval& r,interval& Dr,
 	////////
 	//
 	//
-int setRhazim(double x,double z,
+int secondDerive::setRhazim(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	{
@@ -1126,7 +1126,7 @@ int setRhazim(double x,double z,
 	////////
 	//
 	//
-int setRhazim2(double x,double z,
+int secondDerive::setRhazim2(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	// [x,z] is the second edge,
@@ -1149,7 +1149,7 @@ int setRhazim2(double x,double z,
 	////////
 	//
 	//
-int setRhazim3(double x,double z,
+int secondDerive::setRhazim3(double x,double z,
 	const interval& d,const interval Dd[6],const interval DDd[6][6],
 	interval DDc[6][6])
 	// [x,z] is the third edge,
@@ -1236,70 +1236,8 @@ int secondDerive::setSqrtDelta(const double x[6],const double z[6],
 	interval& sqrt_d,interval Dsqrt_d[6],interval DDsqrt_d[6][6])
 	{
 	interval d,Dd[6],DDd[6][6];
-	::setDelta(x,z,d,Dd,DDd);
+	::setDeltaFull(x,z,d,Dd,DDd);
 	return Dsqrt(d,Dd,DDd,sqrt_d,Dsqrt_d,DDsqrt_d);
-	}
-
-static int vor_126(const double x[6],const double z[6],
-	const interval sqrt_d,const interval Dsqrt_d[6],
-	const interval DDsqrt_d[6][6],
-	interval DDv[6][6])
-	{
-	static const interval one("1");
-	interval f,Df[6],DDf[6][6];
-	interval c,Dc[6],DDc[6][6];
-	interval u,Du[6],DDu[6][6];
-	setF126(x,z,f,Df,DDf);
-	setChi126(x,z,c,Dc,DDc);
-	setU126(x,z,u,Du,DDu);
- 
-	interval a,Da[6],DDa[6][6];
-	Leibniz::product(f,Df,DDf,c,Dc,DDc,a,Da,DDa);
- 
-	interval b,Db[6],DDb[6][6];
-	Leibniz::product(u,Du,DDu,sqrt_d,Dsqrt_d,DDsqrt_d,b,Db,DDb);
- 
-	interval v,Dv[6],DDz[6][6];
-	if (!Leibniz::quotient(a,Da,DDa,b,Db,DDb,v,Dv,DDz)) return 0;
-	static const interval N48("48");
-	static const interval r = one/N48;
-	array_multiply(r,DDz,DDv); 
-	return 1;
-	}  // vor_126;
-
-
-static int voronoiVolume(const double x[6],const double z[6],
-	const interval sqrt_d,const interval Dsqrt_d[6],
-	const interval DDsqrt_d[6][6],
-	interval DDx[6][6])
-	{
-	interval DDt[6][6];
-	double xx[6],zz[6]; // permutations of x,z;
-	int i,j;
- 
-	if (!vor_126(x,z,sqrt_d,Dsqrt_d,DDsqrt_d,DDx)) return 0;
- 
-        // k is the inverse function of the reassignment.
-	interval Ds[6],DDs[6][6];
-	{
-        int k[6] = {0,2,1,3,5,4}; 
-	for (i=0;i<6;i++) { xx[i]=x[k[i]]; zz[i]=z[k[i]]; Ds[i]=Dsqrt_d[k[i]]; }
-	for (i=0;i<6;i++) for (j=0;j<6;j++) DDs[i][j]=DDsqrt_d[k[i]][k[j]];
-	if (!vor_126(xx,zz,sqrt_d,Ds,DDs,DDt)) return 0;
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		DDx[i][j] = DDx[i][j]+DDt[k[i]][k[j]];
-	}
- 
-	{
-        int k[6] = {2,1,0,5,4,3}; 
-	for (i=0;i<6;i++) { xx[i]=x[k[i]]; zz[i]=z[k[i]]; Ds[i]=Dsqrt_d[k[i]]; }
-	for (i=0;i<6;i++) { xx[i]=x[k[i]]; zz[i]=z[k[i]]; Ds[i]=Dsqrt_d[k[i]]; }
-	for (i=0;i<6;i++) for (j=0;j<6;j++) DDs[i][j]=DDsqrt_d[k[i]][k[j]];
-	if (!vor_126(xx,zz,sqrt_d,Ds,DDs,DDt)) return 0;
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		DDx[i][j]= DDx[i][j]+DDt[k[i]][k[j]]; // 2nd derivatives .
-	}
-	return 1;
 	}
 
 int secondDerive::setAbsDihedral(const double x[6],const double z[6],double DDf[6][6])
@@ -1422,7 +1360,7 @@ void secondDerive::selfTest() {
 		}
 	}
 
-	/*test setDelta*/ {
+	/*test setDeltaFull*/ {
 	// constants computed in Mathematica with lineInterval routine.
 	double mf = 131.380797;
 	double Dmf[6] = {16.56409999999999, 16.4029, 16.2401, 16.3199, 
@@ -1438,7 +1376,7 @@ void secondDerive::selfTest() {
      3.969999999999999, -8.039999999999999, 4.01}, 
     {4.05, 4.07, -0.06000000000000049, 3.989999999999999, 4.01, -8.06}};
 	interval f,Df[6],DDf[6][6];
-	 ::setDelta(x,x,f,Df,DDf);
+	 ::setDeltaFull(x,x,f,Df,DDf);
 	if (!epsilonClose(mf,Dmf,DDmf,f,Df,DDf,1.0e-12))
 		{
 		cout << "Delta failed: " ;

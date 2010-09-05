@@ -1,3 +1,11 @@
+/* ========================================================================== */
+/* FLYSPECK - CODE FORMALIZATION                                              */
+/*                                                                            */
+/* Chapter: nonlinear inequalities                                                             */
+/* Author:  Thomas Hales     */
+/* Date: 1997, 2010-09-04                                                    */
+/* ========================================================================== */
+
 /* based in part on Sam Ferguson's macros.h */
 
 #ifndef notPortableH

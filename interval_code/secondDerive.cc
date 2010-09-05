@@ -1,3 +1,11 @@
+/* ========================================================================== */
+/* FLYSPECK - CODE FORMALIZATION                                              */
+/*                                                                            */
+/* Chapter: nonlinear inequalities                                                             */
+/* Author:  Thomas Hales     */
+/* Date: 1997, 2010-09-04                                                    */
+/* ========================================================================== */
+
 //  copyright (c) 1997, Thomas C. Hales, all rights reserved.
 
 // This and 3d.cc give essential bounds on the second derivatives

@@ -1,3 +1,11 @@
+/* ========================================================================== */
+/* FLYSPECK - CODE FORMALIZATION                                              */
+/*                                                                            */
+/* Chapter: nonlinear inequalities                                                             */
+/* Author:  Thomas Hales     */
+/* Date: 1997, 2010-09-04                                                    */
+/* ========================================================================== */
+
 //  copyright (c) 1997, Thomas C. Hales, all rights reserved.
 
 
@@ -208,10 +216,6 @@ static cellOption::cellStatus
 			 return cellOption::cellPasses; //empty range.
 		}
 
-	// deltainf is not intended to catch everything, just main negativities
-	if (deltainf(z[0],x[1],x[2],z[3],x[4],x[5])<=0.0) 
-		return cellOption::inconclusive;
-
 	/* GOING STRONG LOOP*/
 	int i,j;
 	const taylorInterval* T[MAXcount];
@@ -221,10 +225,14 @@ static cellOption::cellStatus
 	while (goingstrong--)
 	{
 
-	/*exit if delta might be negative*/ {
+	/*exit if delta might be negative in a denominator */ {
 	double y[6],w[6];
 	centerform(x,z,y,w); 
-	if (deltainf(y[0],y[1],y[2],y[3],y[4],y[5])<=0.0) 
+	int hasDeltaDen =0;
+	for (i=0;i<count;i++) {
+	  if (I[i]->hasDeltaDenom()) { hasDeltaDen = 1; }
+	}
+	if (hasDeltaDen && (deltainf(y[0],y[1],y[2],y[3],y[4],y[5])<=0.0) )
 		return cellOption::inconclusive;
 	maxwidth = max(w); 
 	}
@@ -408,7 +416,6 @@ void stats()
 	if (count(statcounter++,1000000)) 
 		{
 		cout << "[" << statcounter/1000000 << "]" << flush;
-						//6/12/97, was 10^5
 		if (count(linefeed++,10) )
 			{
 			cout << " " << flush; 
@@ -440,6 +447,7 @@ int prove::recursiveVerifier(int depth,
 		{
 		report_failure(x,z,"iteration limit exceeded");
 		cout << "iteration limit is set at " << options.getIterationLimit() << endl;
+		stats();
 		return 0;
 		}
 	if ((options.getChiShortCut())&&
@@ -450,6 +458,13 @@ int prove::recursiveVerifier(int depth,
 		{
 		report_failure(x,z,"recursion limit exceeded");
 		cout << "recursion depth is currently at " << MAXDEPTH << endl;
+		cout << "count = " << count << endl;
+		for (i=0;i<count;i++) {
+		  		taylorInterval T0= I[i]->evalf(domain(x),domain(z)); 
+				taylorInterval* T=&T0;
+				cout << "lower " << i << " " << T->lowerBound() << endl;
+				cout << "upper " << i << " " << T->upperBound() << endl;
+		}
 		return 0;
 		}
 	if ((reducible(I,count) )&&(unreduced(x,z)))
@@ -476,6 +491,7 @@ int prove::recursiveVerifier(int depth,
 	const taylorFunction* II[MAXcount];
 	for (i=0;i<count;i++) II[i]=I[i]; 
 	int Ncount = count;
+
 	// Here is the main line of the procedure.  Check if it verifies.
 	cellOption::cellStatus v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
 			options);// xx,zz,.. affected.

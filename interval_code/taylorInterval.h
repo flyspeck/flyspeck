@@ -1,3 +1,12 @@
+/* ========================================================================== */
+/* FLYSPECK - CODE FORMALIZATION                                              */
+/*                                                                            */
+/* Chapter: nonlinear inequalities                                                             */
+/* Author:  Thomas Hales     */
+/* Date: 1997, 2010-09-04                                                    */
+/* ========================================================================== */
+
+
 // copyright (c) 1997, Thomas C. Hales, all rights reserved.
 #ifndef taylorInterval_
 #define taylorInterval_
@@ -35,8 +44,9 @@ AUTHOR
 class taylorInterval
 {
 public/* (for the moment) */:
-    double DD[6][6]; domain w; // w[] are upper bounds on widths.
-    lineInterval centerPoint;
+  double DD[6][6];  // DD bounds on the abs. value of second partials.
+    domain w; // w[] are upper bounds on widths.
+    lineInterval expansionPoint;
     int validDataFlag;
     static taylorInterval plus
 		(const taylorInterval&,const taylorInterval&);
@@ -100,12 +110,15 @@ double lowerPartial(int) const;
 	//////////
 	// A constructor, taking the lineInterval at the center,
 	// a bound on the half-widths of the cell (domain&),
-	// an an array [][] of doubles giving bounds on the second derivatives
-	// the first argument is nonzero or zero depending on whether the
+	// an an array [][] of doubles giving bounds on the absolute values of
+        // second derivatives.
+	// The first argument is nonzero or zero depending on whether the
 	// input is valid or not.
 taylorInterval(int,const lineInterval&, const domain&,
         const double [6][6]);
+
 taylorInterval() {};
+
 };
 
 class details;
@@ -167,6 +180,16 @@ taylorFunction operator+(const taylorFunction&) const;
 	//
 taylorFunction operator*(const interval&) const;
 
+/*
+	//////////
+	// Compose taylorFunctions f (p1(x),...,f (p6(x))), where x=x1,...,x6.
+	// Arguments are (f,p1,p2,...,p6).
+        //
+ taylorFunction composite(const taylorFunction&,
+      const taylorFunction&,const taylorFunction&,const taylorFunction&,
+      const taylorFunction&,const taylorFunction&,const taylorFunction&) const;
+*/
+
 	//////////
 	// Constructor.  For advanced users: 
 	// the capacity refers to the number of distinct
@@ -207,6 +230,17 @@ taylorFunction& operator=(const taylorFunction& f);
 	//
 taylorInterval evalf(const domain& x,const domain& z) const;
 
+
+	//////////
+	// Evaluate a taylorFunction
+	// There are four arguments, w = widths, x = lower bounds on variables,
+        // y = expansion point.
+	// z = upper bounds on variables,
+	//
+ taylorInterval evalf4(const domain& w,const domain& x,
+		       const domain& y,const domain& z) const;
+
+
 	//////////
 	// Evaluate a taylorFunction at a single point x
 	// 
@@ -219,6 +253,11 @@ int getReducibleState() const;
 	//////////
 	//
 void setReducibleState(int);
+
+	//////////
+	// non-zero if its calculation involves division by Delta
+        // 
+int hasDeltaDenom() const;
 
 	//////////
 	// Check the correctness of Taylor routines.

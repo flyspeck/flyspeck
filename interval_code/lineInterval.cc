@@ -8,8 +8,8 @@
 
 //  copyright (c) 1997, Thomas C. Hales, all rights reserved.
 
-#include <iomanip.h>
-#include <iostream.h>
+#include <iomanip>
+#include <iostream>
 extern "C"
 {
 #include <math.h>

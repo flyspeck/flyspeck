@@ -52,6 +52,10 @@ static void fatal(const char*);
 		// prints the total number of errors.
 		//
 static void diagnostic();
+
+static int get_error_count();
+
 };
+
 
 #endif

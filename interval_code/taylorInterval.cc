@@ -6,7 +6,7 @@
 /* Date: 1997, 2010-09-04                                                    */
 /* ========================================================================== */
 
-#include <iomanip.h>
+#include <iomanip>
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
@@ -29,7 +29,7 @@ private:
 	int (*setAbsSecond)(const domain& x,const domain& z,double [6][6]);
 
 public:
-	lineInterval center(const domain& x) { return (*hfn)(x); }
+	lineInterval tangentVectorOf(const domain& x) { return (*hfn)(x); }
 	taylorInterval evalf(const domain& w,const domain& x,
 		const domain& y,const domain& z) const;
 	primitive(lineInterval (*)(const domain& ),
@@ -52,19 +52,21 @@ private:
   const compositeData* link;
 
 public:
-  /*
+
   compositeData(const taylorFunction* ,
 		const taylorFunction*,const taylorFunction*,const taylorFunction*,
 		const taylorFunction*,const taylorFunction*,const taylorFunction*,
 		const compositeData*);
   compositeData();
   compositeData(const compositeData&);
+
   compositeData operator+(const compositeData&) const;
+
   compositeData operator*(const interval&) const;
 
-	taylorInterval evalf(const domain& w,const domain& x,
+  taylorInterval evalf(const domain& w,const domain& x,
 		const domain& y,const domain& z) const;
-  */
+
   // should add a destructor.
 };
 
@@ -115,7 +117,7 @@ public:
 
 
 
-/*
+
 compositeData::compositeData(const taylorFunction* hdr0, 
   const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
   const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60, 
@@ -129,6 +131,7 @@ compositeData::compositeData(const taylorFunction* hdr0,
   p6 = p60;
   link = c;
 };
+
 
 compositeData::compositeData() {
   hdr = NULL;
@@ -153,6 +156,7 @@ compositeData::compositeData(const compositeData& c) {
   link = c.link;
 };
 
+
 compositeData compositeData::operator+(const compositeData& b) const {
   compositeData a(*this);
   if (!link) {
@@ -163,6 +167,7 @@ compositeData compositeData::operator+(const compositeData& b) const {
   a.link = 0;
   return a + (c + b);
 };
+
 
 compositeData compositeData::operator*(const interval& t)  const {
   compositeData a(*this);
@@ -175,35 +180,104 @@ compositeData compositeData::operator*(const interval& t)  const {
   return a;
 };
 
-static taylorFunction zeroFunction (taylorSimplex::unit * "0");
+
+static inline double dabs(const interval x)
+    {
+    return interMath::sup(interMath::max(x,-x));
+    }
+
 
 taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain& y,const domain& z ) const
 {
-  if (!hdr) { error::message ("evalf: function expected, returning 0"); 
-    return zeroFunction.evalf4(w,x,y,z); 
-  }
-  taylorInterval pv[6] = (p1->evalf4(w,x,y,z),p2->evalf4(w,x,y,z),p3->evalf4(w,x,y,z),
-			  p4->evalf4(w,x,y,z),p5->evalf4(w,x,y,z),p6->evalf4(w,x,y,z));
-  // calculate value range of pv[i], 
-  //create image domains xt, zt.
-  // let yt be exact image of p1(y),.....  
-  // Let wt be the uncentered widths.
-  // give fv on that domain.
-  // apply chain rule to compute data.
+  if (!hdr) { error::fatal ("evalf: function expected, returning 0");   }
 
+  taylorInterval pv[6];
+  pv[0] = p1->evalf4(w,x,y,z);
+  pv[1] = p2->evalf4(w,x,y,z);
+  pv[2] = p3->evalf4(w,x,y,z);
+  pv[3] = p4->evalf4(w,x,y,z);
+  pv[4] = p5->evalf4(w,x,y,z);
+  pv[5] = p6->evalf4(w,x,y,z);
+  // calculate wide value range of pv[i], 
+  double a[6], b[6];
+  for (int i =0;i<6;i++) {
+    a[i] = pv[i].lowerBound(); b[i] = pv[i].upperBound(); 
+    //cout << "aW,bW" << a[i] << " " << b[i] << endl; // DEBUG.
+  }
+  domain aW(a);
+  domain bW(b);
+  // calculate narrow value range of pv[i].
+  for (int i=0;i<6;i++) {
+    a[i]=pv[i].tangentVectorOf().low(); b[i] =pv[i].tangentVectorOf().hi();
+    //cout << "aN,bN " << a[i] << " " << b[i] << endl; // DEBUG.
+  }
+  domain aN(a);
+  domain bN(b);
+
+  // value of outer function
+  taylorInterval fW = hdr->evalf(aW,bW);
+  taylorInterval fN = hdr->evalf(aN,bN);
+  // derivatives of outer function
+  interval fW_partial[6]; // wide partials (over entire domain)
+  interval fN_partial[6]; // narrow partials (at interval image of a point)
+  interval pW_partial[6][6]; // function i, partial j.
+  interval pN_partial[6][6];  
+  for (int i=0;i<6;i++) {
+    interval tW(fW.lowerPartial(i),fW.upperPartial(i));
+    fW_partial[i] = tW;
+    interval tN(fN.lowerPartial(i),fN.upperPartial(i));
+    fN_partial[i] = tN;
+    //cout << "f" << i << " " << fN_partial[i] << " " << fW_partial[i] << endl; // DEBUG.
+    for (int j=0;j<6;j++) {
+      interval uW(pv[i].lowerPartial(j),pv[i].upperPartial(j));
+      pW_partial[i][j] = uW;
+      pN_partial[i][j] = pv[i].tangentVectorOf().partial(j);
+      // cout << "p i j " << i << j << " " << pW_partial[i][j] << " " << pN_partial[i][j] << endl; // DEBUG
+    }
+  }
+  // apply chain rule to compute narrow first derivative data.
+  interval cN_partial[6];
+  static interval zero("0");
+  for (int i=0;i<6;i++) {
+    cN_partial[i] = zero;
+    for (int j=0;j<6;j++) { cN_partial[i]  =cN_partial[i] + fN_partial[j] * pN_partial[j][i]; }
+  }
+  // apply chain rule to compute bound on second derivative data. 
+  // This is the "wide" part of the calc.
+  double DcW[6][6];
+  interMath::up();
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+      DcW[i][j]= 0.0;
+      for (int k=0;k<6;k++) {
+	DcW[i][j] = DcW[i][j] + dabs(fW_partial[k]) * pv[k].DD[i][j];
+	for (int m=0;m<6;m++) {
+	  DcW[i][j] = DcW[i][j] + fW.DD[k][m] * dabs(pW_partial[k][i]) * dabs(pW_partial[m][j]);
+	}
+      }
+    }
+  lineInterval lin;
+  lin.f = fN.tangentVectorOf().f;
+  for (int i=0;i<6;i++) {
+    lin.Df[i] = cN_partial[i];
+  }
+  taylorInterval ch(1,lin,w,DcW);
   // if there is a link add it recursively.
-  //double DD[6][6];
-  //taylorFunction 
+  if (!link) {
+    return ch;
+  }
+  else {
+    return taylorInterval::plus(ch , link->evalf(w,x,y,z));
+  }
 };
-*/
+
 
 taylorInterval primitive::evalf
 	(const domain& w,const domain& x,const domain& y,const domain& z) const
 	{
 	double DD[6][6];
 	int s = (*setAbsSecond)(x,z,DD);
-	lineInterval expansionPoint = (*hfn)(y);
-	return taylorInterval(s,expansionPoint,w,DD);
+	lineInterval tangentVector = (*hfn)(y);
+	return taylorInterval(s,tangentVector,w,DD);
 	}
 
 static inline double max(double x,double y)
@@ -262,7 +336,7 @@ lineInterval taylorFunction::evalAt(const domain& x) const
 	if (X->basisCount<1) { error::message("empty function encountered"); }
     for (i=0;i<X->basisCount;i++)
 		{
-        temp = X->basisVector[i]->center(x);
+        temp = X->basisVector[i]->tangentVectorOf(x);
 		c = X->basisCoeff[i];
 		total.f = total.f + c*temp.f;
 		for (j=0;j<6;j++)
@@ -278,10 +352,6 @@ primitive::primitive(lineInterval (*hfn0)(const domain&),
 	setAbsSecond = setAbsSecond0;
 	}
 
-static inline double dabs(interval x)
-    {
-    return interMath::sup(interMath::max(x,-x));
-    }
 
 taylorInterval::taylorInterval(int s,const lineInterval& h0,
 	const domain& w0,const double DD0[6][6])
@@ -289,20 +359,20 @@ taylorInterval::taylorInterval(int s,const lineInterval& h0,
 	w = w0;
 	int i,j;
 	validDataFlag = s;
-	expansionPoint = h0;
+	tangentVector = h0;
 	if (s) for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=DD0[i][j];
 	}
 
 int taylorInterval::isValidData() const
 	{ return validDataFlag; }
 
-lineInterval taylorInterval::center() const
+lineInterval taylorInterval::tangentVectorOf() const
 	{
 	static const interval zero("0");
 	if (!validDataFlag) 
 		{ error::message("center computation failed"); 
 		  return lineInterval(zero); }
-	return expansionPoint;
+	return tangentVector;
 	}
 
 static double taylorError(const domain& w,const double sec[6][6])
@@ -320,6 +390,8 @@ static double taylorError(const domain& w,const double sec[6][6])
     return t;
     }
 
+
+
 double taylorInterval::upperBound() const
 	{
 	if (!validDataFlag) 
@@ -329,8 +401,8 @@ double taylorInterval::upperBound() const
 		}
 	double err = taylorError(w,DD);
 	interMath::up();
-    double t = expansionPoint.hi() + err;
-    for (int i=0;i<6;i++) t = t+ w.getValue(i)*dabs(expansionPoint.partial(i));
+    double t = tangentVector.hi() + err;
+    for (int i=0;i<6;i++) t = t+ w.getValue(i)*dabs(tangentVector.partial(i));
     return t;
     }
 
@@ -343,8 +415,8 @@ double taylorInterval::lowerBound() const
 		}
 	double err = taylorError(w,DD);
 	interMath::down();
-    double t = expansionPoint.low() - err;
-    for (int i=0;i<6;i++) t = t + (-w.getValue(i))*dabs(expansionPoint.partial(i));
+    double t = tangentVector.low() - err;
+    for (int i=0;i<6;i++) t = t + (-w.getValue(i))*dabs(tangentVector.partial(i));
     return t;
     }
 
@@ -358,14 +430,14 @@ double taylorInterval::upperboundQ
 		}
     interMath::up();
 	double err = taylorError(cA.w,cA.DD)+taylorError(cB.w,cB.DD);
-    double t = cA.expansionPoint.hi()+cB.expansionPoint.hi() + err;
+    double t = cA.tangentVector.hi()+cB.tangentVector.hi() + err;
     int k[3]={0,4,5},i;
     for (i=0;i<3;i++) t = 
-		t+ cA.w.getValue(k[i])*dabs(cA.center().partial(k[i]));
+		t+ cA.w.getValue(k[i])*dabs(cA.tangentVectorOf().partial(k[i]));
     for (i=0;i<3;i++) t = 
-		t+ cB.w.getValue(k[i])*dabs(cB.center().partial(k[i]));
+		t+ cB.w.getValue(k[i])*dabs(cB.tangentVectorOf().partial(k[i]));
     for (i=1;i<4;i++) t = t+ cB.w.getValue(i)*
-		dabs(cB.center().partial(i)+cA.center().partial(i));
+		dabs(cB.tangentVectorOf().partial(i)+cA.tangentVectorOf().partial(i));
     return t;
     }
  
@@ -380,14 +452,14 @@ double taylorInterval::lowerboundQ
     interMath::up();
 	double err = taylorError(cA.w,cA.DD)+taylorError(cB.w,cB.DD);
 	interMath::down();
-    double t = cA.expansionPoint.low()+cB.expansionPoint.low() - err;
+    double t = cA.tangentVector.low()+cB.tangentVector.low() - err;
     int k[3]={0,4,5},i;
     for (i=0;i<3;i++) t = t+ 
-		(-cA.w.getValue(k[i]))*dabs(cA.center().partial(k[i]));
+		(-cA.w.getValue(k[i]))*dabs(cA.tangentVectorOf().partial(k[i]));
     for (i=0;i<3;i++) t = t+ 
-		(-cB.w.getValue(k[i]))*dabs(cB.center().partial(k[i]));
+		(-cB.w.getValue(k[i]))*dabs(cB.tangentVectorOf().partial(k[i]));
     for (i=1;i<4;i++) t = t+ (-cB.w.getValue(i))
-		*dabs(cB.center().partial(i)+cA.center().partial(i));
+		*dabs(cB.tangentVectorOf().partial(i)+cA.tangentVectorOf().partial(i));
     return t;
     }
 
@@ -404,7 +476,7 @@ double taylorInterval::upperPartial(int i) const
 	interMath::up();
 	double err = 0.0;
 	for (int j=0;j<6;j++) err  = err + w.getValue(j)*DD[i][j];
-	return interMath::sup(expansionPoint.partial(i)) + err;
+	return interMath::sup(tangentVector.partial(i)) + err;
 	}
 
 double taylorInterval::lowerPartial(int i) const
@@ -420,13 +492,18 @@ double taylorInterval::lowerPartial(int i) const
 	double err = 0.0;
 	for (int j=0;j<6;j++) err  = err + w.getValue(j)*DD[i][j];
 	interMath::down();
-	return interMath::inf(expansionPoint.partial(i)) - err;
+	return interMath::inf(tangentVector.partial(i)) - err;
 	}
+
+/*
+static double doi(const interval x) {
+  return interMath::sup(interMath::max(x,-x));
+}
+*/
 
 static void intervalToDouble(const interval DDx[6][6],double DD[6][6])
 	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++)
-		DD[i][j]= interMath::sup(interMath::max(DDx[i][j],-DDx[i][j]));
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 	DD[i][j]= dabs(DDx[i][j]);
 	}
 
 /******************************* taylorSimplex functions ****************/
@@ -1029,8 +1106,8 @@ taylorInterval taylorInterval::plus
 	for (i=0;i<6;i++) for (j=0;j<6;j++) 
 		DD[i][j]= t1.DD[i][j]+t2.DD[i][j];
 	lineInterval s;
-	s.f = t1.expansionPoint.f + t2.expansionPoint.f;
-	for (i=0;i<6;i++) s.Df[i]= t1.expansionPoint.Df[i]+ t2.expansionPoint.Df[i];
+	s.f = t1.tangentVector.f + t2.tangentVector.f;
+	for (i=0;i<6;i++) s.Df[i]= t1.tangentVector.Df[i]+ t2.tangentVector.Df[i];
 	for (i=0;i<6;i++) if (t1.w.getValue(i)!=t2.w.getValue(i)) 
 		error::message("bad domain in ti");
 	taylorInterval t(flag,s,t1.w,DD);
@@ -1047,7 +1124,7 @@ taylorInterval taylorInterval::scale
 	interMath::up();
 	for (i=0;i<6;i++) for (j=0;j<6;j++) 
 		DD[i][j]= t1.DD[i][j]*absC;
-	lineInterval s = t1.expansionPoint;
+	lineInterval s = t1.tangentVector;
 	s.f = s.f*c;
 	for (i=0;i<6;i++) s.Df[i]=s.Df[i]*c;
 	taylorInterval t(flag,s,t1.w,DD);
@@ -1160,10 +1237,10 @@ static void testProcedure(taylorFunction F,lineInterval (*G)(const domain&),
 		cout << "diff = " << f.upperBound() - temp << endl;
 		for (j=0;j<6;j++) cout << xx.getValue(j) << " "; cout << endl;
 		for (j=0;j<6;j++) cout << zz.getValue(j) << " "; cout << endl;
-		cout << "expansionPoint = " << f.expansionPoint.hi() << endl;
+		cout << "tangentVector = " << f.tangentVector.hi() << endl;
 		cout << "widths = "; for (j=0;j<6;j++) cout << f.w.getValue(j)<<" " << endl;
 		cout << "center partials= "; 
-		for (j=0;j<6;j++) cout << f.expansionPoint.partial(j) << " " << endl;
+		for (j=0;j<6;j++) cout << f.tangentVector.partial(j) << " " << endl;
 		cout << "taylorError " << taylorError(f.w,f.DD) << endl << endl;
 		}
 
@@ -1289,7 +1366,7 @@ void taylorFunction::selfTest()
 	if (!epsilonClose(t.lowerPartial(1),"2",1.0e-15))
 		cout << " t.lowerPartial(1)= " << t.lowerPartial(1) << endl;
 	if (!t.isValidData()) cout << "invalid data " << endl;
-	lineInterval c = t.center();
+	lineInterval c = t.tangentVectorOf();
 	if (!epsilonClose(c.hi(),"78.205",1.0e-13))
 		cout << " c.hi() = " << c.hi() << endl;
 	if (!epsilonClose(c.low(),"78.205",1.0e-13))
@@ -1385,6 +1462,26 @@ void taylorFunction::selfTest()
 	  if (F2.hasDeltaDenom()) cout << "hasDeltaDenom fails 2" << endl;
 	  taylorFunction F3( taylorSimplex::dih);
 	  if (!F3.hasDeltaDenom()) cout << "hasDeltaDenom fails 3" << endl;
+	}
+
+	/* compositeData */ {
+	  compositeData cD (&taylorSimplex::dih,
+			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
+			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
+	  domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+	  domain w(0.0,0.0,0.0,0.0,0.0,0.0);
+          taylorInterval t = cD.evalf(w,x,x,x); //dih2alt
+	  taylorInterval u = taylorSimplex::dih2.evalf4(w,x,x,x);
+	  if (!epsilonClose(t.upperBound(),u.tangentVectorOf().f,1.0e-8))
+	  cout << "cD  fails " << t.upperBound() << endl;
+	  if (!epsilonClose(t.lowerBound(),u.tangentVectorOf().f,1.0e-8))
+		cout << "cD fails lB "  << t.lowerBound() << endl;
+	for (int i=0;i<6;i++) {
+	  if (!epsilonClose(t.upperPartial(i),u.tangentVectorOf().Df[i],1.0e-15))
+	    cout << "cD " << i << "++ fails " << t.upperPartial(i) << endl;
+	  if (!epsilonClose(t.lowerPartial(i),u.tangentVectorOf().Df[i],1.0e-15))
+		cout << "cDl fails " << i 	<< " " << t.lowerPartial(i) << endl;
+	}
 	}
 
 	/*

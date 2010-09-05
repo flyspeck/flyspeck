@@ -19,7 +19,7 @@
 
 */
 
-#include <iostream.h>
+#include <iostream>
 extern "C"
 {
 #include <math.h>

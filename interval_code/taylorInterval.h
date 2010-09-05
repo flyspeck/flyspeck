@@ -46,7 +46,7 @@ class taylorInterval
 public/* (for the moment) */:
   double DD[6][6];  // DD bounds on the abs. value of second partials.
     domain w; // w[] are upper bounds on widths.
-    lineInterval expansionPoint;
+    lineInterval tangentVector;
     int validDataFlag;
     static taylorInterval plus
 		(const taylorInterval&,const taylorInterval&);
@@ -61,12 +61,12 @@ public:
 int isValidData() const;
 
 	//////////
-	// Taylor interval is a linear approximation at the center of
-	// a cell with explicit error bounds.  center() is the
-	// lineInterval giving the linear approximation at the center of the
+	// Taylor interval is a linear approximation at the expansion point of
+	// a cell with explicit error bounds.  tangentVectorOf() is the
+	// lineInterval giving the linear approximation at the expansion point of the
 	// cell.
 	//
-lineInterval center() const;
+lineInterval tangentVectorOf() const;
 
 	//////////
 	// A rigorous upper bound on the value over the entire cell.

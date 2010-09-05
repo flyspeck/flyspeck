@@ -11,8 +11,8 @@
 #ifndef VOR
 #define VOR
 
-#include <iomanip.h>
-#include <iostream.h>
+#include <iomanip>
+#include <iostream>
 extern "C"
 {
 #include <math.h>
@@ -21,6 +21,7 @@ extern "C"
 #include "error.h"
 #include "interval.h"
 
+using namespace std;
 /* 
 CLASS
 	secondDerive

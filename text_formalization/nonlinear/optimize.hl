@@ -12,6 +12,13 @@ preprocessing for nonlinear ineq.
 
 *)
 
+
+let svn_version() = 
+  let strip_final s = String.sub s 0 (String.length s - 1) in
+  let p s = strip_final (process_to_string s) in
+  let q s ="svn info "^s^ " | grep Revision | sed 's/Revision: //g'" in
+    "svn("^p(q(flyspeck_dir))^","^p(q(hollight_dir))^")";;
+
 flyspeck_needs "general/sphere.hl";;
 
 let ineq = Sphere.ineq;;
@@ -508,8 +515,8 @@ let dest_nonlin t =
 (* let join_semi = Parse_ineq.unsplit ";" (fun t -> t);; *)
 
 let cpp_template = Printf.sprintf "
+ char* svn = %s;
  char* ineq_id = %s;
-
  int testRun()
 	{
 	interval tx[6]={%s};
@@ -522,6 +529,7 @@ let cpp_template = Printf.sprintf "
 	}";;
 
 let cpp_template2 = Printf.sprintf "
+ char* svn = %s;
  char* ineq_id = %s;
 
  int testRun()
@@ -549,10 +557,11 @@ let mk_cpp_proc t s =
   let len = List.length iis in
   let _ = (len < 3) or failwith "mk_cpp_proc: disjunctions not installed" in
   let sq = quoted s in
+  let svn = (quoted(svn_version())) in
   let jaas = join_comma aas in
   let jbbs = join_comma bbs in
-  if (len < 2) then cpp_template sq jaas jbbs (hd iis)
-  else cpp_template2 sq jaas jbbs (List.nth iis 0) (List.nth iis 1);;
+  if (len < 2) then cpp_template svn sq jaas jbbs (hd iis)
+  else cpp_template2 svn sq jaas jbbs (List.nth iis 0) (List.nth iis 1);;
 
 (* mk_cpp_proc testineq testid;;
     next: put together header, proc, tail and run *)
@@ -593,7 +602,7 @@ let compile_cpp () =
   let interval_dir = flyspeck_dir^"/../interval_code" in
   let _ =  mkfile_cpp t s in
   let _ = compile_cpp() in 
-  let _ = (0=  Sys.command("date; "^interval_dir^"/test_auto;"^" date")) or failwith "interval execution error" in
+  let _ = (0=  Sys.command(interval_dir^"/test_auto")) or failwith "interval execution error" in
     ();;
 
 (* test case *)
@@ -657,7 +666,7 @@ let WRAPUP_TAC =
 let test s = 
   let testid = s in
   let testcase = get_testcase  testid in
-  let _ = g (mk_imp (`NONLIN`,testcase)) in
+  let _ = g (mk_imp (`NONLIN`,(fun (_,_,c) -> c) testcase)) in
   let _ = e (X_OF_Y_TAC) in
   let _ = e (STYLIZE_TAC) in
   let _ = e (WRAPUP_TAC) in
@@ -669,19 +678,22 @@ let slowtests = ["5691615370";"1395142356";"3636849632"; ];;
 
 let testids = ["1550635295";"2563100177";"4652969746 2";"5735387903";"4047599236";"7726998381";"7394240696";"7718591733";"1085358243";"8611785756"; "181212899 1"; "8657368829";"1894886027";"2390583444";"1248932983";"6725783616";"9185711902";"6284721194";"3137600529"];;
 
+
 test (List.nth testids 0);;
+
+let _ = Sys.command("cat "^flyspeck_dir^"/../interval_code/qed_log.txt");;
 
 let testid = List.nth testids 0;;
 let testcase = get_testcase  testid;;
+
+map test testids;;
+
 
 g (mk_imp (`NONLIN`,(fun (_,_,c) -> c) testcase));;
 if ((fun (a,_,_) -> a) testcase) then let _ = e (X_OF_Y_TAC) in () else ();;
 e (STYLIZE_TAC);;
 e (WRAPUP_TAC);;
 
-(*
-e(REWRITE_TAC[GSYM rhazim_x]);;
-*)
 
 let testineq = snd(top_goal());;
 
@@ -690,9 +702,8 @@ execute_interval (testineq,testid);;
 *)
 
 
-(*
-map test testids;;
-*)
+
+
 
 let non_test = [
  "9563139965" (* tauq, enclosed *);

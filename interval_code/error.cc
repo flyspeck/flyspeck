@@ -9,8 +9,10 @@ extern "C" {
 #include <stdlib.h>
 #include <time.h>
 }
-#include <iostream.h>
+#include <iostream>
 #include "error.h"
+
+using namespace std;
 
 static int ERROR_COUNT=0;
 
@@ -23,6 +25,8 @@ void error::printTime(const char* s)
         {
         cout << s << " " << time(0) << endl << flush;
         }
+
+int error::get_error_count() { return ERROR_COUNT; }
 
 void error::message(const char *s)
 	{

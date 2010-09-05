@@ -12,8 +12,10 @@
 #ifndef _interval_h
 #define _interval_h
 
-#include <iostream.h>
+#include <iostream>
 #include "notPortable.h"
+
+using namespace std;
 
 /*
 CLASS

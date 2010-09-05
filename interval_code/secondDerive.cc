@@ -23,8 +23,8 @@
 // that unary negation is exact,
 // and that u*v + (-x)*y gives correct upward rounding (but u*v- x*y does not).
 
-#include <iomanip.h>
-#include <iostream.h>
+#include <iomanip>
+#include <iostream>
 extern "C"
 {
 #include <math.h>
@@ -36,7 +36,7 @@ extern "C"
 #include "interval.h"
 #include "secondDerive.h"
 
-
+using namespace std;
 /*
 CLASS
     Leibniz

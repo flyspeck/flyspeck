@@ -43,12 +43,12 @@ public:
 		interval f,Df[6];
 public:
 		//////////
-		// The upper bound on a lineInterval
+		// The upper bound on f
 		//
 inline double hi() const;
 		
 		//////////
-		// The lower bound on a lineInterval
+		// The lower bound on f 
 		//
 inline double low() const;
 

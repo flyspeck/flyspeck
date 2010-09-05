@@ -9,7 +9,7 @@
 //  copyright (c) 1997, Thomas C. Hales, all rights reserved.
 
 
-#include <iomanip.h>
+#include <iomanip>
 #include <float.h>
 
 //#include <iostream.h>
@@ -340,20 +340,20 @@ static cellOption::cellStatus
 	lineInterval cn,cu;
 	if (maxwidth<WCUTOFF)
 	{
-	i=0; while (i<count) if (T[i]->center().low() >0.0)
+	i=0; while (i<count) if (T[i]->tangentVectorOf().low() >0.0)
 		{
 		mixedsign=0;
 		for (j=0;j<6;j++)
 			{
-			yyn[j]= (sgn(T[i]->center().partial(j)) >0 ? x[j] : z[j]);
-			yu[j]= (sgn(T[i]->center().partial(j))> 0 ? z[j] : x[j]);
-			if (sgn(T[i]->center().partial(j))==0) mixedsign = 1;
+			yyn[j]= (sgn(T[i]->tangentVectorOf().partial(j)) >0 ? x[j] : z[j]);
+			yu[j]= (sgn(T[i]->tangentVectorOf().partial(j))> 0 ? z[j] : x[j]);
+			if (sgn(T[i]->tangentVectorOf().partial(j))==0) mixedsign = 1;
 			}
 		if (mixedsign) { mixedsign=0; i++; continue; }
 		cn = I[i]->evalAt(domain(yyn)); cu= I[i]->evalAt(domain(yu));
 		if ((min(cn.low(),cu.low())>0.0)&&
-			(sameSgn(T[i]->center(),cn))&&
-			sameSgn(T[i]->center(),cu))
+			(sameSgn(T[i]->tangentVectorOf(),cn))&&
+			sameSgn(T[i]->tangentVectorOf(),cu))
 			{
 			deleteFunction(T,I,count,i); 
 			resetBoundary(x0,z0,x,z);
@@ -373,19 +373,19 @@ static cellOption::cellStatus
 	if ((maxwidth<WCUTOFF)&&(count>1))
 	{
 	double margin =0.0;
-	for (i=0;i<count;i++) if (T[i]->center().hi()< 0.0)
+	for (i=0;i<count;i++) if (T[i]->tangentVectorOf().hi()< 0.0)
 		{
 		mixedsign=0;
 		for (j=0;j<6;j++)
 			{
-			yyn[j]= (sgn(T[i]->center().partial(j))>0 ? x[j] : z[j]);
-			yu[j]= (sgn(T[i]->center().partial(j))>0 ? z[j] : x[j]);
-			if (sgn(T[i]->center().partial(j))) mixedsign= 1;
+			yyn[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? x[j] : z[j]);
+			yu[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? z[j] : x[j]);
+			if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
 			}
 		if (mixedsign) { mixedsign=0; continue; }
 		cn = I[i]->evalAt(domain(yyn)); cu= I[i]->evalAt(domain(yu));
 		if ((max(cn.hi(),cu.hi())< -margin)&&
-			(sameSgn(T[i]->center(),cn))&&sameSgn(T[i]->center(),cu))
+			(sameSgn(T[i]->tangentVectorOf(),cn))&&sameSgn(T[i]->tangentVectorOf(),cu))
 			{
 			margin = -max(cn.hi(),cu.hi());
 			if (i) 
@@ -729,12 +729,12 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 	int mixedsign;
 	double margin =0.0;
 	for (i=0;i<Nineq;i++) 
-	if (interMath::up(), tA[i]->center().hi()+tB[i]->center().hi()< 0.0)
+	if (interMath::up(), tA[i]->tangentVectorOf().hi()+tB[i]->tangentVectorOf().hi()< 0.0)
 		{
 		mixedsign=0;
 		for (j=0;j<3;j++)
 			{
-			s = sgn(tA[i]->center().partial(k[j]));
+			s = sgn(tA[i]->tangentVectorOf().partial(k[j]));
 			yAn[k[j]]= (s>0 ? xA[k[j]]: zA[k[j]]);
 			yAu[k[j]]= (s>0 ? zA[k[j]]: xA[k[j]]);
 			if (s==0) mixedsign= 1;
@@ -742,7 +742,7 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 		if (mixedsign) { mixedsign=0; continue; }
 		for (j=0;j<3;j++)
 			{
-			s = sgn(tB[i]->center().partial(k[j]));
+			s = sgn(tB[i]->tangentVectorOf().partial(k[j]));
 			yBn[k[j]]= (s>0 ? xB[k[j]]: zB[k[j]]);
 			yBu[k[j]]= (s>0 ? zB[k[j]]: xB[k[j]]);
 			if (s==0) mixedsign= 1;
@@ -750,8 +750,8 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 		if (mixedsign) { mixedsign=0; continue; }
 		for (j=1;j<4;j++)
 			{
-			s = sgn(tB[i]->center().partial(j)
-					+tA[i]->center().partial(j));
+			s = sgn(tB[i]->tangentVectorOf().partial(j)
+					+tA[i]->tangentVectorOf().partial(j));
 			yAn[j]=yBn[j]= (s>0 ? xB[j]: zB[j]);
 			yAu[j]=yBu[j]= (s>0 ? zB[j]: xB[j]);
 			if (s==0) mixedsign= 1;
@@ -760,8 +760,8 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 		tAn = IA[i]->evalAt(yAn); tAu= IA[i]->evalAt(yAu);
 		tBn = IB[i]->evalAt(yBn); tBu= IB[i]->evalAt(yBu);
 		if ((min(-tAn.hi()-tBn.hi(),-tAu.hi()-tBu.hi()) > margin)
-			&&(sameSgnQ(tA[i]->center(),tB[i]->center(),tAn,tBn))
-			&&(sameSgnQ(tA[i]->center(),tB[i]->center(),tAu,tBu)))
+			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAn,tBn))
+			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAu,tBu)))
 			{
 			margin = min(-tAn.hi()-tBn.hi(),-tAu.hi()-tBu.hi());
 			moveFirst(tA,IA,i);

@@ -123,6 +123,7 @@ taylorInterval() {};
 
 class details;
 class primitive;
+class compositeData;
 typedef primitive* primPtr;
 
 
@@ -207,6 +208,13 @@ taylorFunction(int capacity =0);
 	// details.  End-users can safely ignore this constructor.
 	//
 taylorFunction(primitive&);
+
+
+	//////////
+	// This is the constructor that converts compositeData to 
+	// a taylorFunction.
+	//
+taylorFunction(compositeData&);
 
 	//////////
 	// create a bitwise copy of a taylorFunction

@@ -64,8 +64,11 @@ public:
 
   compositeData operator*(const interval&) const;
 
-  taylorInterval evalf(const domain& w,const domain& x,
-		const domain& y,const domain& z) const;
+  taylorInterval evalf(const domain& ,const domain& ,
+		const domain& ,const domain& ) const;
+
+  lineInterval evalAt(const domain&) const;
+
 
   // should add a destructor.
 };
@@ -116,22 +119,38 @@ public:
 
 
 
+/*
+// deep copy. creates a bus error??
+compositeData::compositeData(const taylorFunction* hdr0, 
+  const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
+  const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60, 
+			     const compositeData* c) {
+  hdr = (hdr0 ? new taylorFunction::taylorFunction ( *hdr0 ) : NULL);
+  p1 = (p10 ? new taylorFunction::taylorFunction ( *p10 ) : NULL);
+  p2  =(p20 ? new taylorFunction::taylorFunction ( *p20 ) : NULL);
+  p3 = (p30 ? new taylorFunction::taylorFunction ( *p30 ) : NULL);
+  p4 = (p40 ? new taylorFunction::taylorFunction ( *p40 ) : NULL);
+  p5 = (p50 ? new taylorFunction::taylorFunction ( *p50 ) : NULL);
+  p6 = (p60 ? new taylorFunction::taylorFunction ( *p60 ) : NULL);
+  link = (link ? new compositeData::compositeData ( *c ) : NULL);
+};
+*/
 
 
+//shallow copy
 compositeData::compositeData(const taylorFunction* hdr0, 
   const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
   const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60, 
 			     const compositeData* c) {
   hdr = hdr0;
   p1 = p10;
-  p2 = p20;
+  p2  =p20;
   p3 = p30;
   p4 = p40;
   p5 = p50;
   p6 = p60;
   link = c;
 };
-
 
 compositeData::compositeData() {
   hdr = NULL;
@@ -144,7 +163,7 @@ compositeData::compositeData() {
   link = NULL;
 };
 
-// copy.
+// shallow copy.
 compositeData::compositeData(const compositeData& c) {
   hdr = c.hdr;
   p1 = c.p1;
@@ -186,6 +205,66 @@ static inline double dabs(const interval x)
     return interMath::sup(interMath::max(x,-x));
     }
 
+static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
+  lineInterval h;
+  h.f = f.f + g.f;
+  for (int i=0;i<6;i++) {
+    h.Df[i] = f.Df[i] + g.Df[i];
+  }
+  return h;
+}
+
+lineInterval compositeData::evalAt(const domain& x) const
+{
+  if (!hdr) { error::fatal ("evalAt: function expected, returning 0");   }
+  lineInterval pv[6];
+  pv[0] = p1->evalAt(x);
+  pv[1] = p2->evalAt(x);
+  pv[2] = p3->evalAt(x);
+  pv[3] = p4->evalAt(x);
+  pv[4] = p5->evalAt(x);
+  pv[5] = p6->evalAt(x);
+  // calculate narrow value range of pv[i].
+  double a[6], b[6];
+  for (int i=0;i<6;i++) {
+    a[i]=interMath::inf(pv[i].f); b[i] =interMath::sup(pv[i].f);
+  }
+  domain aN(a);
+  domain bN(b);
+
+  // value of outer function
+  taylorInterval fN = hdr->evalf(aN,bN);
+  // derivatives of outer function
+  interval fN_partial[6]; // narrow partials (at interval image of a point)
+  interval pN_partial[6][6];  // function i, partial j.
+  for (int i=0;i<6;i++) {
+    interval tN(fN.lowerPartial(i),fN.upperPartial(i));
+    fN_partial[i] = tN;
+    for (int j=0;j<6;j++) {
+      pN_partial[i][j] = pv[i].Df[j];
+    }
+  }
+  // apply chain rule to compute narrow first derivative data.
+  interval cN_partial[6];
+  static interval zero("0");
+  for (int i=0;i<6;i++) {
+    cN_partial[i] = zero;
+    for (int j=0;j<6;j++) { cN_partial[i]  =cN_partial[i] + fN_partial[j] * pN_partial[j][i]; }
+  }
+  lineInterval lin;
+  lin.f = fN.tangentVectorOf().f;
+  for (int i=0;i<6;i++) {
+    lin.Df[i] = cN_partial[i];
+  }
+  // if there is a link add it recursively.
+  if (!link) {
+    return lin;
+  }
+  else {
+    return ::plus(lin , ( link->evalAt(x)));
+  }
+ };
+
 
 taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain& y,const domain& z ) const
 {
@@ -202,14 +281,12 @@ taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain
   double a[6], b[6];
   for (int i =0;i<6;i++) {
     a[i] = pv[i].lowerBound(); b[i] = pv[i].upperBound(); 
-    //cout << "aW,bW" << a[i] << " " << b[i] << endl; // DEBUG.
   }
   domain aW(a);
   domain bW(b);
   // calculate narrow value range of pv[i].
   for (int i=0;i<6;i++) {
     a[i]=pv[i].tangentVectorOf().low(); b[i] =pv[i].tangentVectorOf().hi();
-    //cout << "aN,bN " << a[i] << " " << b[i] << endl; // DEBUG.
   }
   domain aN(a);
   domain bN(b);
@@ -227,12 +304,10 @@ taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain
     fW_partial[i] = tW;
     interval tN(fN.lowerPartial(i),fN.upperPartial(i));
     fN_partial[i] = tN;
-    //cout << "f" << i << " " << fN_partial[i] << " " << fW_partial[i] << endl; // DEBUG.
     for (int j=0;j<6;j++) {
       interval uW(pv[i].lowerPartial(j),pv[i].upperPartial(j));
       pW_partial[i][j] = uW;
       pN_partial[i][j] = pv[i].tangentVectorOf().partial(j);
-      // cout << "p i j " << i << j << " " << pW_partial[i][j] << " " << pN_partial[i][j] << endl; // DEBUG
     }
   }
   // apply chain rule to compute narrow first derivative data.
@@ -282,68 +357,6 @@ taylorInterval primitive::evalf
 
 static inline double max(double x,double y)
 	{ return (x>y ? x : y); }
-
-taylorInterval taylorFunction::evalf4
-(const domain& w, const domain& x,const domain& y, const domain& z) const
-    {	
-    if (X->basisCount<1) { error::message("empty function encountered"); }
-    taylorInterval t = taylorInterval::scale(
-        X->basisVector[0]->evalf(w,x,y,z),X->basisCoeff[0]);
-    for (int i=1;i<X->basisCount;i++)
-        t = taylorInterval::plus(t,
-                taylorInterval::scale((X->basisVector[i]->evalf(w,x,y,z)),
-                                        (X->basisCoeff[i])));
-    return t;
-    }
-
-taylorInterval taylorFunction::evalf
-    (const domain& x,const domain& z) const
-    {
-	double w[6],y[6];
-	int i;
-	interMath::nearest();
-	for (i=0;i<6;i++) y[i]=(z.getValue(i)+x.getValue(i))/2.0;
-	interMath::up();
-	for (i=0;i<6;i++) w[i]=max(z.getValue(i)-y[i],
-						y[i]-x.getValue(i));
-	domain wD(w[0],w[1],w[2],w[3],w[4],w[5]);
-	domain yD(y[0],y[1],y[2],y[3],y[4],y[5]);
-	
-	//return taylorFunction::evalf4(wD,x,yD,z);
-	
-    if (X->basisCount<1) { error::message("empty function encountered"); }
-    taylorInterval t = taylorInterval::scale(
-        X->basisVector[0]->evalf(wD,x,yD,z),X->basisCoeff[0]);
-    for (i=1;i<X->basisCount;i++)
-        t = taylorInterval::plus(t,
-                taylorInterval::scale((X->basisVector[i]->evalf(wD,x,yD,z)),
-                                        (X->basisCoeff[i])));
-    return t;
-       
-    }
-
-void taylorFunction::setReducibleState(int i)
-	{ reduState = i; }
-int taylorFunction::getReducibleState() const
-	{ return reduState; }
-
-lineInterval taylorFunction::evalAt(const domain& x) const
-	{
-	lineInterval total;
-	lineInterval temp;
-	interval c;
-	int i,j;
-	if (X->basisCount<1) { error::message("empty function encountered"); }
-    for (i=0;i<X->basisCount;i++)
-		{
-        temp = X->basisVector[i]->tangentVectorOf(x);
-		c = X->basisCoeff[i];
-		total.f = total.f + c*temp.f;
-		for (j=0;j<6;j++)
-		total.Df[j]= total.Df[j]+ c*temp.Df[j];
-		}
-    return total;
-	}
 
 primitive::primitive(lineInterval (*hfn0)(const domain&),
 	int (*setAbsSecond0)(const domain&,const domain&,double [6][6]))
@@ -884,14 +897,12 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
 primitive solPrimitive(linearization::solid,setSol);
 const taylorFunction taylorSimplex::sol(::solPrimitive);
 
-
 static int copy(double DD[6][6],const double sec[6][6])
     {
     for (int i=0;i<6;i++) for (int j=0;j<6;j++)
         DD[i][j]=sec[i][j];
     return 1;
     }
-
 
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
@@ -961,7 +972,7 @@ static int primHasDeltaDenom(const primitive* p) {
 }
 
 
-/******************** MORE GENERAL STUFF **************************/
+/******************** MORE GENERAL STUFF taylorFunction ***********************/
 
 int taylorFunction::hasDeltaDenom() const {
 	taylorFunction u  (*this);
@@ -989,19 +1000,32 @@ taylorFunction::taylorFunction(primitive& x)
 	X->basisCapacity=1;
 	}
 
-taylorFunction::taylorFunction(const taylorFunction& f)
+taylorFunction::taylorFunction(compositeData& c)
 	{
-	X = new details(f.X->basisCapacity);
-	if (!X) error::message("allocation (X2)");
-	int i;
-	for (i=0;i<f.X->basisCount;i++) 
-		{
-		X->basisVector[i]= f.X->basisVector[i];
-		X->basisCoeff[i] = f.X->basisCoeff[i];
-		}
-	X->basisCount = f.X->basisCount;
-	reduState=f.reduState;
+	reduState=0;
+	X = new details(0);
+	if (!X) error::message("allocation (X1)");
+	X->cdata = &c;
 	}
+
+
+taylorFunction::taylorFunction(const taylorFunction& f)
+{
+  X = new details(f.X->basisCapacity);
+  if (!X) error::message("allocation (X2)");
+  int i;
+  for (i=0;i<f.X->basisCount;i++) 
+    {
+      X->basisVector[i]= f.X->basisVector[i];
+      X->basisCoeff[i] = f.X->basisCoeff[i];
+    }
+  X->basisCount = f.X->basisCount;
+  reduState=f.reduState;
+  if (f.X->cdata) {
+    X->cdata = new compositeData::compositeData(*(f.X->cdata));
+  }
+  else { X->cdata = NULL; }
+}
 
 taylorFunction& taylorFunction::operator=(const taylorFunction& ) 
 	{
@@ -1022,6 +1046,9 @@ taylorFunction taylorFunction::operator*(const interval& t) const
 		u.X->basisCoeff[i]= t*u.X->basisCoeff[i];
 		u.X->basisVector[i] = u.X->basisVector[i];
 		}
+	if (u.X->cdata) {
+	  u.X->cdata = new compositeData::compositeData( (* (u.X->cdata)) * t);
+	}
 	return u;
 	}
 
@@ -1031,6 +1058,16 @@ taylorFunction taylorFunction::operator+(const taylorFunction& f) const
 	static const int increment = 10;
 	taylorFunction a(*this);
     int i,j,match;
+
+    // add compositeData
+    if (a.X->cdata && f.X->cdata) {
+      a.X->cdata = new compositeData::compositeData( *(a.X->cdata) + *(f.X->cdata) );
+    }
+    else if (f.X -> cdata) {
+      a.X -> cdata = new compositeData::compositeData( *(f.X->cdata));
+    }
+
+    // add bases.
     for (i=0;i<f.X->basisCount;i++)
         {
 		if (f.X->basisCoeff[i]==zero) continue; // added 12/14/97
@@ -1130,6 +1167,80 @@ taylorInterval taylorInterval::scale
 	taylorInterval t(flag,s,t1.w,DD);
 	return t;
 	}
+
+taylorInterval taylorFunction::evalf4
+(const domain& w, const domain& x,const domain& y, const domain& z) const
+    {	
+      if (X->basisCount<1 && (!X -> cdata)) 
+	{ error::message("empty function encountered"); }
+      if (X->basisCount<1) {
+	return X->cdata->evalf(w,x,y,z);
+      }
+    taylorInterval t = taylorInterval::scale(
+        X->basisVector[0]->evalf(w,x,y,z),X->basisCoeff[0]);
+    for (int i=1;i<X->basisCount;i++)
+        t = taylorInterval::plus(t,
+                taylorInterval::scale((X->basisVector[i]->evalf(w,x,y,z)),
+                                        (X->basisCoeff[i])));
+    if (!X -> cdata) return t;
+    return taylorInterval::plus(t,X->cdata->evalf(w,x,y,z));
+    }
+
+taylorInterval taylorFunction::evalf
+    (const domain& x,const domain& z) const
+    {
+	double w[6],y[6];
+	int i;
+	interMath::nearest();
+	for (i=0;i<6;i++) y[i]=(z.getValue(i)+x.getValue(i))/2.0;
+	interMath::up();
+	for (i=0;i<6;i++) w[i]=max(z.getValue(i)-y[i],
+						y[i]-x.getValue(i));
+	domain wD(w[0],w[1],w[2],w[3],w[4],w[5]);
+	domain yD(y[0],y[1],y[2],y[3],y[4],y[5]);
+	
+	return taylorFunction::evalf4(wD,x,yD,z);
+	/*
+    if (X->basisCount<1) { error::message("empty function encountered"); }
+    taylorInterval t = taylorInterval::scale(
+        X->basisVector[0]->evalf(wD,x,yD,z),X->basisCoeff[0]);
+    for (i=1;i<X->basisCount;i++)
+        t = taylorInterval::plus(t,
+                taylorInterval::scale((X->basisVector[i]->evalf(wD,x,yD,z)),
+                                        (X->basisCoeff[i])));
+    return t;
+	*/
+    }
+
+void taylorFunction::setReducibleState(int i)
+	{ reduState = i; }
+
+int taylorFunction::getReducibleState() const
+	{ return reduState; }
+
+lineInterval taylorFunction::evalAt(const domain& x) const
+	{
+	lineInterval total;
+	lineInterval temp;
+	interval c;
+	int i,j;
+	if (X->basisCount<1 && !X->cdata ) 
+	  { error::message("empty function encountered"); }
+	if (X-> basisCount <1) {
+	  return X->cdata->evalAt(x);
+	  }
+    for (i=0;i<X->basisCount;i++)
+		{
+        temp = X->basisVector[i]->tangentVectorOf(x);
+		c = X->basisCoeff[i];
+		total.f = total.f + c*temp.f;
+		for (j=0;j<6;j++)
+		total.Df[j]= total.Df[j]+ c*temp.Df[j];
+		}
+    if (!X->cdata) { return total; }
+    return ::plus(total,X->cdata->evalAt(x));
+	}
+
 
 /************************* TESTING ROUTINES **************************/
 
@@ -1513,10 +1624,68 @@ void taylorFunction::selfTest()
 	}
 	}
 
+	/* test compositeData mixed sums */ {
+	  compositeData cdih2 (&taylorSimplex::dih,
+			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
+			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
+	  compositeData cdih3 (&taylorSimplex::dih,
+			    &taylorSimplex::x3,&taylorSimplex::x1,&taylorSimplex::x2,
+			    &taylorSimplex::x6,&taylorSimplex::x4,&taylorSimplex::x5,NULL);
+	  taylorFunction tdih2(cdih2);
+	  taylorFunction tdih3(cdih3);
+	  taylorFunction a = tdih2 + taylorSimplex::dih3 * "5.6";           
+	  taylorFunction b = taylorSimplex::dih2 + tdih3 * "5.6";
+	  taylorFunction c = taylorSimplex::dih2 + taylorSimplex::dih3 * "5.6";
+
+	  domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+	  domain w(0.0,0.0,0.0,0.0,0.0,0.0);
+	  taylorInterval at = a.evalf4(w,x,x,x); // dih2 + 5.6 dih3;
+	  taylorInterval bt = b.evalf4(w,x,x,x); // dih2 + 5.6 dih3;
+	  taylorInterval ct = c.evalf4(w,x,x,x); 
+
+	  if (!epsilonClose(at.upperBound(),bt.tangentVectorOf().f,1.0e-8))
+	  cout << "at  fails " << endl;
+	  if (!epsilonClose(at.upperBound(),ct.tangentVectorOf().f,1.0e-8))
+	    cout << "ct  fails " << endl;
+	  if (!epsilonClose(at.lowerBound(),bt.tangentVectorOf().f,1.0e-8))
+		cout << "aD fails lB "  << endl;
+	for (int i=0;i<6;i++) {
+	  if (!epsilonClose(at.upperPartial(i),bt.tangentVectorOf().Df[i],1.0e-12))
+	    cout << "aD " << i << "++ fails " << bt.upperPartial(i) << endl;
+	  if (!epsilonClose(at.lowerPartial(i),bt.tangentVectorOf().Df[i],1.0e-12))
+		cout << "aDl fails " << i << endl;
+	}
+
+	lineInterval al = a.evalAt(x);
+	lineInterval bl = b.evalAt(x);
+	lineInterval cl = c.evalAt(x);
+	//Mathematica values.
+	double p[6]={-0.38640611319175094,-0.30583249983684146,
+		     0.2592175068905934 ,
+		     -0.3337851812245894,-0.1547313284571169,0.8519721867862138};
+	if (!epsilonClose(interMath::sup(al.f),bl.f,1.0e-8))
+	  cout << "at'  fails " << endl;
+	if (!epsilonClose(interMath::sup(al.f),cl.f,1.0e-8))
+	    cout << "ct'  fails " << endl;
+	if (!epsilonClose(8.419942742042776,bl.f,1.0e-8))
+		cout << "aD' fails lB "  << endl;
+	for (int i=0;i<6;i++) {
+	  if (!epsilonClose(interMath::sup(al.Df[i]),bl.Df[i],1.0e-12))
+	    cout << "aD' " << i << "++ fails "  << endl;
+	  if (!epsilonClose(interMath::sup(al.Df[i]),bl.Df[i],1.0e-12))
+		cout << "aDl' fails " << i << endl;
+	  if (!epsilonClose(p[i],bl.Df[i],1.0e-12))
+		cout << "aDl' fails " << i << endl;
+
+	}
+	
+	}
+
+
 
 	/*
 	cout << " -- not tested :  " <<
 		" \n      taylorInterval::upper/lowerboundQ \n";
 	*/
 
-}
+	}

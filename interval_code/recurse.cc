@@ -176,6 +176,7 @@ static void deleteFunction(const taylorInterval* T[],const taylorFunction* I[],
 		{ T[j]=T[j+1];  I[j]=I[j+1]; }
 	}
 
+// to be used when reducing to a single inequality.  We overwrite at 0.
 static void moveFirst(const taylorInterval* T[],const taylorFunction* I[],int i)
 	{
 	if (i>0) { T[0]=T[i];  I[0]=I[i]; }

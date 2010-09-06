@@ -50,11 +50,6 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	recurse.h recurse.o
 	$(CC) $(CCOPTS1) test_auto.cc error.o interval.o lineInterval.o secondDerive.o taylorInterval.o recurse.o -o test_auto -lm $(L)
 
-part3 : part3.cc error.h error.o interval.h interval.o lineInterval.h \
-	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
-	recurse.h recurse.o
-	$(CC) $(CCOPTS1) part3.cc error.o interval.o lineInterval.o secondDerive.o taylorInterval.o recurse.o -o part3 -lm $(L)
-
 secondDerive : secondDerive.cc error.h interval.h interval_inline.h \
 	error.o interval.o io.o
 	$(CC) $(CCOPTS1) secondDerive.cc error.o interval.o io.o -o secondDerive -lm

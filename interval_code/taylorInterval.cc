@@ -1464,7 +1464,7 @@ void taylorFunction::selfTest()
 	  if (!F3.hasDeltaDenom()) cout << "hasDeltaDenom fails 3" << endl;
 	}
 
-	/* compositeData */ {
+	/* test compositeData1 */ {
 	  compositeData cD (&taylorSimplex::dih,
 			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
 			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
@@ -1483,6 +1483,36 @@ void taylorFunction::selfTest()
 		cout << "cDl fails " << i 	<< " " << t.lowerPartial(i) << endl;
 	}
 	}
+
+	/* test compositeData sums */ {
+	  compositeData cdih2 (&taylorSimplex::dih,
+			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
+			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
+	  compositeData cdih3 (&taylorSimplex::dih,
+			    &taylorSimplex::x3,&taylorSimplex::x1,&taylorSimplex::x2,
+			    &taylorSimplex::x6,&taylorSimplex::x4,&taylorSimplex::x5,NULL);
+	  compositeData cD = cdih2 + cdih3 * "5.6";           
+
+	  domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+	  domain w(0.0,0.0,0.0,0.0,0.0,0.0);
+	  taylorInterval t = cD.evalf(w,x,x,x); // dih2 + 5.6 dih3;
+
+	  taylorInterval udih2 = taylorSimplex::dih2.evalf4(w,x,x,x);
+	  taylorInterval udih3 = taylorSimplex::dih3.evalf4(w,x,x,x);
+	  taylorInterval uD = taylorInterval::plus(udih2,taylorInterval::scale(udih3,"5.6"));
+
+	  if (!epsilonClose(t.upperBound(),uD.tangentVectorOf().f,1.0e-8))
+	  cout << "cD  fails " << t.upperBound() << endl;
+	  if (!epsilonClose(t.lowerBound(),uD.tangentVectorOf().f,1.0e-8))
+		cout << "cD fails lB "  << t.lowerBound() << endl;
+	for (int i=0;i<6;i++) {
+	  if (!epsilonClose(t.upperPartial(i),uD.tangentVectorOf().Df[i],1.0e-12))
+	    cout << "cD " << i << "++ fails " << t.upperPartial(i) << endl;
+	  if (!epsilonClose(t.lowerPartial(i),uD.tangentVectorOf().Df[i],1.0e-12))
+		cout << "cDl fails " << i 	<< " " << t.lowerPartial(i) << endl;
+	}
+	}
+
 
 	/*
 	cout << " -- not tested :  " <<

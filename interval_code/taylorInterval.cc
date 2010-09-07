@@ -119,24 +119,6 @@ public:
 
 
 
-/*
-// deep copy. creates a bus error??
-compositeData::compositeData(const taylorFunction* hdr0, 
-  const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
-  const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60, 
-			     const compositeData* c) {
-  hdr = (hdr0 ? new taylorFunction::taylorFunction ( *hdr0 ) : NULL);
-  p1 = (p10 ? new taylorFunction::taylorFunction ( *p10 ) : NULL);
-  p2  =(p20 ? new taylorFunction::taylorFunction ( *p20 ) : NULL);
-  p3 = (p30 ? new taylorFunction::taylorFunction ( *p30 ) : NULL);
-  p4 = (p40 ? new taylorFunction::taylorFunction ( *p40 ) : NULL);
-  p5 = (p50 ? new taylorFunction::taylorFunction ( *p50 ) : NULL);
-  p6 = (p60 ? new taylorFunction::taylorFunction ( *p60 ) : NULL);
-  link = (link ? new compositeData::compositeData ( *c ) : NULL);
-};
-*/
-
-
 //shallow copy
 compositeData::compositeData(const taylorFunction* hdr0, 
   const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,

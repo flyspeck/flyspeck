@@ -359,7 +359,7 @@ static cellOption::cellStatus
 			if (sgn(T[i]->tangentVectorOf().partial(j))==0) mixedsign = 1;
 			}
 		if (mixedsign) { mixedsign=0; i++; continue; }
-		cn = I[i]->evalAt(domain(yyn)); cu= I[i]->evalAt(domain(yu));
+		cn = I[i]->tangentAt(domain(yyn)); cu= I[i]->tangentAt(domain(yu));
 		if ((min(cn.low(),cu.low())>0.0)&&
 			(sameSgn(T[i]->tangentVectorOf(),cn))&&
 			sameSgn(T[i]->tangentVectorOf(),cu))
@@ -392,7 +392,7 @@ static cellOption::cellStatus
 			if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
 			}
 		if (mixedsign) { mixedsign=0; continue; }
-		cn = I[i]->evalAt(domain(yyn)); cu= I[i]->evalAt(domain(yu));
+		cn = I[i]->tangentAt(domain(yyn)); cu= I[i]->tangentAt(domain(yu));
 		if ((max(cn.hi(),cu.hi())< -margin)&&
 			(sameSgn(T[i]->tangentVectorOf(),cn))&&sameSgn(T[i]->tangentVectorOf(),cu))
 			{
@@ -766,8 +766,8 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 			if (s==0) mixedsign= 1;
 			}
 		if (mixedsign) { mixedsign=0; continue; }
-		tAn = IA[i]->evalAt(yAn); tAu= IA[i]->evalAt(yAu);
-		tBn = IB[i]->evalAt(yBn); tBu= IB[i]->evalAt(yBu);
+		tAn = IA[i]->tangentAt(yAn); tAu= IA[i]->tangentAt(yAu);
+		tBn = IB[i]->tangentAt(yBn); tBu= IB[i]->tangentAt(yBu);
 		if ((min(-tAn.hi()-tBn.hi(),-tAu.hi()-tBu.hi()) > margin)
 			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAn,tBn))
 			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAu,tBu)))
@@ -798,8 +798,8 @@ static int breaksapart(int depth,
 	lineInterval tA,tB,tAu,tBu,tAn,tBn;
 	centerform(xA,zA,yA,wA);
 	centerform(xB,zB,yB,wB);
-	tA=IA[0]->evalAt(yA);
-	tB=IB[0]->evalAt(yB);
+	tA=IA[0]->tangentAt(yA);
+	tB=IB[0]->tangentAt(yB);
 	double WCUTOFF=0.3;
 	if (max(zA[0],zB[0])>6.00) WCUTOFF=0.1; // things are unstable here!
 	if (max(max(wA),max(wB)) >WCUTOFF) return 0;
@@ -816,8 +816,8 @@ static int breaksapart(int depth,
 		yBn[u]= (sgnB[u]>0 ? xB[u] : zB[u]);
 		yBu[u]= (sgnB[u]>0 ? zB[u] : xB[u]);
 		}
-	tAn=IA[0]->evalAt(yAn); tAu=IA[0]->evalAt(yAu);
-	tBn=IB[0]->evalAt(yBn); tBu=IB[0]->evalAt(yBu);
+	tAn=IA[0]->tangentAt(yAn); tAu=IA[0]->tangentAt(yAu);
+	tBn=IB[0]->tangentAt(yBn); tBu=IB[0]->tangentAt(yBu);
 	if (!(sameSgnQ(tA,tB,tAn,tBn))) return 0;
 	if (!(sameSgnQ(tA,tB,tAu,tBu))) return 0;
 	interval e,eps[6];

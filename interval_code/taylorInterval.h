@@ -128,22 +128,23 @@ taylorInterval(const lineInterval&, const domain&,
 // zero function of arbitrary width.
 taylorInterval(domain w0);
 
- taylorInterval() {}; // dangerous.  Gives random values.
+ taylorInterval() {}; // dangerous.  Gives uninitialized values.
 
 };
 
-class details;
+//class details;
 
 class primitive {
 
  public:
-  virtual lineInterval tangentVectorOf(const domain& x) const =0;
+  virtual lineInterval tangentAt(const domain& x) const =0;
+
   virtual taylorInterval evalf4(const domain& w,const domain& x,
 		const domain& y,const domain& z) const =0;
 };
 
-class compositeData;
-typedef primitive* primPtr;
+
+//typedef primitive* primPtr;
 
 
 /*
@@ -212,6 +213,7 @@ taylorFunction operator*(const interval&) const;
       const taylorFunction&,const taylorFunction&,const taylorFunction&) const;
 */
 
+/*
 	//////////
 	// Constructor.  For advanced users: 
 	// the capacity refers to the number of distinct
@@ -220,6 +222,8 @@ taylorFunction operator*(const interval&) const;
 	// use the default argument!
 	//
 taylorFunction(int capacity =0);
+*/
+
 
 	//////////
 	// taylorFunctions are built up from certain primitive functions.
@@ -241,7 +245,7 @@ taylorFunction(int capacity =0);
 	// This is the constructor that converts compositeData to 
 	// a taylorFunction.
 	//
-taylorFunction(compositeData&);
+ //taylorFunction(compositeData&);
 
 	//////////
 	// create a bitwise copy of a taylorFunction
@@ -279,7 +283,7 @@ taylorInterval evalf(const domain& x,const domain& z) const;
 	//////////
 	// Evaluate a taylorFunction at a single point x
 	// 
-lineInterval evalAt(const domain&) const;
+lineInterval tangentAt(const domain&) const;
 
 	//////////
 	//

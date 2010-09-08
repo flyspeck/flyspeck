@@ -10,8 +10,8 @@
 #ifndef RECURSE_H
 #define RECURSE_H
 
-#include <iomanip.h>
-#include <iostream.h>
+#include <iomanip>
+#include <iostream>
 extern "C"
 {
 #include <math.h>

@@ -7,9 +7,6 @@
 /* ========================================================================== */
 
 
-
-
-// copyright (c) 2010, Thomas C. Hales, all rights reserved.
 #ifndef univariate_
 #define univariate_
 
@@ -88,13 +85,12 @@ univariate& operator=(const univariate& f);
 	//////////
 	// pow0 is the constant function taking value 1.
 	// pow1 is the identity function,
-	// y pow n
+	// pow_ is the nth power function,
         // atan,
-	// three edges.
         // cos, sin are restricted to the domain [-pi/2,pi/2].
-	// sol is the solid angle of a simplex
 	//
-static const univariate i_pow0,i_pow1, i_pow2,i_pow3,i_pow4,i_sqrt, i_atan, i_asin, i_sin, i_cos;
+ static const univariate i_pow0,i_pow1, i_pow2,i_pow3,i_pow4,
+    i_sqrt, i_atan, i_asin,i_acos, i_sin, i_cos;
 
 	//////////
 	// Check the correctness of univariate routines.

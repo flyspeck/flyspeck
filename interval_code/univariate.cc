@@ -27,18 +27,17 @@ using namespace tr1;
 
 class uniprimitive
 {
-public:
+private:
 	interval (*f)(const interval&);
 	interval (*df)(const interval&);
 	interval (*ddf)(const interval&);
+
 public:
 
   interval eval(const interval&,int n) const;
 
   uniprimitive(interval (*)(const interval& ),interval(*) (const interval&),
 		interval(*) (const interval&));
-
-  static void selfTest();
 
 };
 
@@ -52,7 +51,7 @@ uniprimitive::uniprimitive(interval (*f0)(const interval& ),interval(*df0) (cons
 	     interval(*ddf0) (const interval&)) {
   f = f0;
   df = df0;
-  ddf0 = ddf0;
+  ddf = ddf0;
 }
 
 //sqrt 
@@ -362,22 +361,20 @@ interval univariate::eval(const interval& x, int n) const {
   return t;
 };
 
-// static const univariate pow0, pow1,pow2,pow3,pow4,sqrt, atan, asin, sin, cos;
 
-//static void univariate::selfTest() {};
+const univariate univariate::i_pow0(&ppow0);
+const univariate univariate::i_pow1(&ppow1);
+const univariate univariate::i_pow2(&ppow2);
+const univariate univariate::i_pow3(&ppow3);
+const univariate univariate::i_pow4(&ppow4);
+const univariate univariate::i_sqrt(&psqrt);
+const univariate univariate::i_atan(&patan);
+const univariate univariate::i_asin(&pasin);
+const univariate univariate::i_acos(&pacos);
+const univariate univariate::i_sin(&psin);
+const univariate univariate::i_cos(&pcos);
 
-static const univariate::univariate i_pow0(&ppow0);
-static const univariate::univariate i_pow1(&ppow1);
-static const univariate::univariate i_pow2(&ppow2);
-static const univariate::univariate i_pow3(&ppow3);
-static const univariate::univariate i_pow4(&ppow4);
-static const univariate::univariate i_sqrt(&psqrt);
-static const univariate::univariate i_atan(&patan);
-static const univariate::univariate i_asin(&pasin);
-static const univariate::univariate i_acos(&pacos);
-static const univariate::univariate i_sin(&psin);
-static const univariate::univariate i_cos(&pcos);
-//,pow1, pow2,pow3,pow4,sqrt, atan, asin, sin, cos;
+// TESTING ROUTINES.
 
 
 static int epsilonClose(double x,double y,double epsilon)
@@ -391,14 +388,47 @@ static int epsilonClose(double x,double y,double epsilon)
     return 1;
     }
 
-static int epsilon3(double f,double df,double ddf,interval x,double epsilon) {
-  return 0; // fill in.
+static int epsilon3(double* f,const univariate & u) {
+  interval x("0.21");
+  for (int i=0;i<3;i++) {
+  epsilonClose(f[i],interMath::sup(u.eval(x,i)),1.0e-8);
+  }
 }
 
-
+/* (* Mathematica code used for testing *)
+testUni[f_] := Module[{},
+      	xsub = {x -> 0.21};
+              Table[D[f, {x, i}], {i, 0, 2}] /. xsub
+      ];
+ */
 void univariate::selfTest() 
 	{
 	cout << " -- loading univariate routines " << endl;
+	double pow0d[3]={1, 0, 0};
+        epsilon3(pow0d,univariate::i_pow0);
+	double pow1d[3]={0.21, 1, 0};
+        epsilon3(pow1d,univariate::i_pow1);
+	double pow2d[3]={0.0441, 0.42, 2};
+        epsilon3(pow2d,univariate::i_pow2);
+	double pow3d[3]={0.009260999999999998,0.13229999999999997,1.26};
+        epsilon3(pow3d,univariate::i_pow3);
+	double pow4d[3]={0.0019448099999999995,0.037043999999999994,0.5291999999999999};
+        epsilon3(pow4d,univariate::i_pow4);
+	double sqrtd[3]={0.458257569495584,1.0910894511799618,-2.5978320266189567};
+        epsilon3(sqrtd,univariate::i_sqrt);
+	double atand[3]={0.206992194219821,0.9577626664112633,-0.3852699165719094};
+        epsilon3(atand,univariate::i_atan);
+	double asind[3]={0.2115749597580956,1.0228071826600218,0.22469872199874943};
+        epsilon3(asind,univariate::i_asin);
+	double acosd[3]={1.3592213670368012,-1.0228071826600218,-0.22469872199874943};
+        epsilon3(acosd,univariate::i_acos);
+	double sind[3]={0.20845989984609956,0.9780309147241483,-0.20845989984609956};
+        epsilon3(sind,univariate::i_sin);
+	double cosd[3]={0.9780309147241483,-0.20845989984609956,-0.9780309147241483};
+        epsilon3(cosd,univariate::i_cos);
+	univariate t = univariate::i_pow2 + univariate::i_atan * "3.4";
+	double td[3]= {0.7478734603473914,3.676393065798295,0.690082283655508};
+	        epsilon3(td,t);
 	}
 
 

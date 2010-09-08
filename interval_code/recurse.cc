@@ -195,7 +195,7 @@ static cellOption::cellStatus
 		return cellOption::inconclusive;
 		}
 
-	taylorInterval dih;	 // a pseudo-inequality
+	taylorInterval dih;   // a pseudo-inequality
 	if (options.isUsingDihMax()) 
 		{
 		double x4max;

@@ -6,11 +6,26 @@
 /* Date: 1997, 2010-09-04                                                    */
 /* ========================================================================== */
 
+#include <iomanip>
+#include <utility>
+#include <tr1/unordered_map>
+extern "C"
+{
+#include <math.h>
+#include <time.h>
+#include <stdlib.h>
+#include <float.h>
+}
+#include "lineInterval.h"
 
-// copyright (c) 1997, Thomas C. Hales, all rights reserved.
+using namespace std;
+using namespace tr1;
+
+
 #ifndef taylorInterval_
 #define taylorInterval_
-#include "lineInterval.h"
+
+
 
 
 /*
@@ -117,12 +132,24 @@ double lowerPartial(int) const;
 taylorInterval(int,const lineInterval&, const domain&,
         const double [6][6]);
 
-taylorInterval() {};
+
+// zero function of arbitrary width.
+taylorInterval(domain w0);
+
+ taylorInterval() {}; // dangerous.  Gives random values.
 
 };
 
 class details;
-class primitive;
+
+class primitive {
+
+ public:
+  virtual lineInterval tangentVectorOf(const domain& x) const =0;
+  virtual taylorInterval evalf4(const domain& w,const domain& x,
+		const domain& y,const domain& z) const =0;
+};
+
 class compositeData;
 typedef primitive* primPtr;
 
@@ -161,13 +188,15 @@ AUTHOR
 	
 	Thomas C. Hales
 */
+typedef tr1::unordered_map<void*,interval> mapPrim;
 
 class taylorFunction 
 {
 private:
 	int reduState;
 public: // private:
-	details* X;
+	//details* X;
+	mapPrim data;
 
 public:
 
@@ -207,7 +236,13 @@ taylorFunction(int capacity =0);
 	// The class primitive and this class is only used in the implementation
 	// details.  End-users can safely ignore this constructor.
 	//
-taylorFunction(primitive&);
+//taylorFunction(primitive&);
+
+
+//
+// a constructor from primitives.
+//
+ taylorFunction::taylorFunction(void* p);
 
 
 	//////////
@@ -238,13 +273,13 @@ taylorFunction& operator=(const taylorFunction& f);
 	//
 taylorInterval evalf(const domain& x,const domain& z) const;
 
-
 	//////////
 	// Evaluate a taylorFunction
-	// There are four arguments, w = widths, x = lower bounds on variables,
-        // y = expansion point.
-	// z = upper bounds on variables,
+        // precondition: The domain x--z is contained in the rectangle center y width w.
+        // postcondition: The evaluation is at center y, 
+        // post: 2nd derivative bounds hold on x--z.
 	//
+
  taylorInterval evalf4(const domain& w,const domain& x,
 		       const domain& y,const domain& z) const;
 

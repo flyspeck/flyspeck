@@ -6,35 +6,97 @@
 /* Date: 1997, 2010-09-04                                                    */
 /* ========================================================================== */
 
-#include <iomanip>
-#include <math.h>
-#include <time.h>
-#include <stdlib.h>
-#include <float.h>
-#include "interval.h"
-#include "lineInterval.h"
-#include "secondDerive.h"
-#include "taylorInterval.h"
-
 // parameter passing modes (const-reference parameters)
 // http://pages.cs.wisc.edu/~hasti/cs368/CppTutorial/NOTES/PARAMS.html
 
 
-class primitive
+#include <iomanip>
+#include <utility>
+#include <tr1/unordered_map>
+extern "C"
+{
+#include <math.h>
+#include <time.h>
+#include <stdlib.h>
+#include <float.h>
+}
+#include "interval.h"
+#include "univariate.h"
+#include "lineInterval.h"
+#include "secondDerive.h"
+#include "taylorInterval.h"
+
+using namespace std;
+using namespace tr1;
+
+
+static inline double max(double x,double y)
+	{ return (x>y ? x : y); }
+
+static inline double dabs(const interval x) {
+  return interMath::sup(interMath::max(x,-x));
+}
+
+static void intervalToDouble(const interval DDx[6][6],double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 	DD[i][j]= dabs(DDx[i][j]);
+	}
+
+
+// primitives
+
+class primitiveA : public primitive 
 {
 private:
-	lineInterval (*hfn)(const domain&);
+  lineInterval (*hfn)(const domain&);
 
   // all the arrays of double [6][6] are bounds on abs value of second partials.
-	int (*setAbsSecond)(const domain& x,const domain& z,double [6][6]);
+  int (*setAbsSecond)(const domain& x,const domain& z,double [6][6]);
 
 public:
-	lineInterval tangentVectorOf(const domain& x) { return (*hfn)(x); }
-	taylorInterval evalf(const domain& w,const domain& x,
-		const domain& y,const domain& z) const;
-	primitive(lineInterval (*)(const domain& ),
-		int (*)(const domain& ,const domain&,double [6][6]));
+  lineInterval tangentVectorOf(const domain& x) const { return (*hfn)(x); }
+  taylorInterval evalf4(const domain& w,const domain& x,
+			const domain& y,const domain& z) const;
+  primitiveA(lineInterval (*)(const domain& ),
+	     int (*)(const domain& ,const domain&,double [6][6]));
 };
+
+class primitive_univariate : public primitive 
+{
+private:
+  int slot;
+  const univariate* f;
+
+public:
+
+  lineInterval tangentVectorOf(const domain& x) const ;
+
+  taylorInterval evalf4(const domain& w,const domain& x,
+			const domain& y,const domain& z) const;
+
+  primitive_univariate(const univariate&x, int slot0 ) { f = &x; slot = slot0; };
+};
+
+lineInterval primitive_univariate::tangentVectorOf(const domain& x) const {
+  static interval zero("0");
+  lineInterval a;
+  double y = x.getValue(slot);
+  interval t(y,y);
+  a.f = f->eval(t,0);
+  for (int i=1;i<6;i++) a.Df[i]=zero;
+  a.Df[slot] = f->eval(t,1);
+  return a;
+}
+
+taylorInterval primitive_univariate::evalf4(const domain& w,const domain& x,
+					    const domain& y,const domain& z) const {
+  double DD[6][6];
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j]=0.0; }
+  interval t(x.getValue(slot),z.getValue(slot));
+  DD[slot][slot] = dabs(f->eval(t,2));
+  taylorInterval a(true,primitive_univariate::tangentVectorOf(y),w,DD);
+  return a;
+}
 
 // the various composite functions are held in a linked list.
 // f(p1(x),p2(x),...,p6(x)), where x = x1..x6, and f is given by hdr.
@@ -64,7 +126,7 @@ public:
 
   compositeData operator*(const interval&) const;
 
-  taylorInterval evalf(const domain& ,const domain& ,
+  taylorInterval evalf4(const domain& ,const domain& ,
 		const domain& ,const domain& ) const;
 
   lineInterval evalAt(const domain&) const;
@@ -181,12 +243,6 @@ compositeData compositeData::operator*(const interval& t)  const {
   return a;
 };
 
-
-static inline double dabs(const interval x)
-    {
-    return interMath::sup(interMath::max(x,-x));
-    }
-
 static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
   lineInterval h;
   h.f = f.f + g.f;
@@ -248,10 +304,11 @@ lineInterval compositeData::evalAt(const domain& x) const
  };
 
 
-taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain& y,const domain& z ) const
+taylorInterval compositeData::evalf4(const domain& w,const domain& x,const domain& y,const domain& z ) const
 {
-  if (!hdr) { error::fatal ("evalf: function expected, returning 0");   }
+  if (!hdr) { error::fatal ("evalf4: function expected, returning 0");   }
 
+  /*
   taylorInterval pv[6];
   pv[0] = p1->evalf4(w,x,y,z);
   pv[1] = p2->evalf4(w,x,y,z);
@@ -259,6 +316,15 @@ taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain
   pv[3] = p4->evalf4(w,x,y,z);
   pv[4] = p5->evalf4(w,x,y,z);
   pv[5] = p6->evalf4(w,x,y,z);
+  */
+  taylorInterval pv[6] = {
+     p1->evalf4(w,x,y,z),
+     p2->evalf4(w,x,y,z),
+     p3->evalf4(w,x,y,z),
+     p4->evalf4(w,x,y,z),
+     p5->evalf4(w,x,y,z),
+     p6->evalf4(w,x,y,z)};
+
   // calculate wide value range of pv[i], 
   double a[6], b[6];
   for (int i =0;i<6;i++) {
@@ -323,12 +389,11 @@ taylorInterval compositeData::evalf(const domain& w,const domain& x,const domain
     return ch;
   }
   else {
-    return taylorInterval::plus(ch , link->evalf(w,x,y,z));
+    return taylorInterval::plus(ch , link->evalf4(w,x,y,z));
   }
 };
 
-
-taylorInterval primitive::evalf
+taylorInterval primitiveA::evalf4
 	(const domain& w,const domain& x,const domain& y,const domain& z) const
 	{
 	double DD[6][6];
@@ -337,10 +402,7 @@ taylorInterval primitive::evalf
 	return taylorInterval(s,tangentVector,w,DD);
 	}
 
-static inline double max(double x,double y)
-	{ return (x>y ? x : y); }
-
-primitive::primitive(lineInterval (*hfn0)(const domain&),
+primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
 	int (*setAbsSecond0)(const domain&,const domain&,double [6][6]))
 	{
 	hfn = hfn0;
@@ -348,14 +410,503 @@ primitive::primitive(lineInterval (*hfn0)(const domain&),
 	}
 
 
+/******************************* taylorSimplex functions ****************/
+
+static void testAbs(double DD[6][6],char* s) {
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+      if (DD[i][j] < 0) {
+	error::message("negative absolute value detected " );
+	cout << s << " " << DD[i][j] << " " << i << " " << j << endl;
+      }
+    }
+}
+
+/*implement unit*/
+static int setZero(const domain& ,const domain& ,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	testAbs(DD,"setZero");
+	return 1;
+	}
+static lineInterval unit(const domain& )
+	{
+	static const interval one("1");
+	return lineInterval(one);
+	}
+static primitiveA scalr(unit,setZero);
+const taylorFunction taylorSimplex::unit(&scalr);
+
+/*implement x1 */
+static lineInterval lineX1(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(0),x.getValue(0)));
+	h.Df[0]=one;
+	return h;
+	}
+primitiveA x1(lineX1,setZero);
+const taylorFunction taylorSimplex::x1(&::x1);
+/*implement x2 */
+static lineInterval lineX2(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(1),x.getValue(1)));
+	h.Df[1]=one;
+	return h;
+	}
+primitiveA x2(lineX2,setZero);
+const taylorFunction taylorSimplex::x2(&::x2);
+
+/*implement x3 */
+static lineInterval lineX3(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(2),x.getValue(2)));
+	h.Df[2]=one;
+	return h;
+	}
+primitiveA x3(lineX3,setZero);
+const taylorFunction taylorSimplex::x3(&::x3);
+
+/*implement x4 */
+static lineInterval lineX4(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(3),x.getValue(3)));
+	h.Df[3]=one;
+	return h;
+	}
+primitiveA x4(lineX4,setZero);
+const taylorFunction taylorSimplex::x4(&::x4);
+
+/*implement x5 */
+static lineInterval lineX5(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(4),x.getValue(4)));
+	h.Df[4]=one;
+	return h;
+	}
+primitiveA x5(lineX5,setZero);
+const taylorFunction taylorSimplex::x5(&::x5);
+
+/*implement x6 */
+static lineInterval lineX6(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(5),x.getValue(5)));
+	h.Df[5]=one;
+	return h;
+	}
+primitiveA x6(lineX6,setZero);
+const taylorFunction taylorSimplex::x6(&::x6);
+
+/*implement y1 */
+static lineInterval sqrt(lineInterval a)
+    {
+    lineInterval temp;
+	static const interval one("1");
+	static const interval two("2");
+    temp.f = interMath::sqrt(a.f);
+    interval rs = one/(two*temp.f);
+    int i;
+    for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];
+    return temp;
+    }
+
+static lineInterval lineY1(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(0),x.getValue(0)));
+	h.Df[0]=one;
+	return sqrt(h);
+	}
+
+static int setY1(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(0);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	interMath::up();
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	DD[0][0]= 1.0/y3;
+	testAbs(DD,"setY1");
+	return 1;
+	}
+primitiveA Y1(lineY1,setY1);
+const taylorFunction taylorSimplex::y1(&::Y1);
+
+/*implement y2 */
+static lineInterval lineY2(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(1),x.getValue(1)));
+	h.Df[1]=one;
+	return sqrt(h);
+	}
+static int setY2(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(1);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	interMath::up();
+	DD[1][1]= 1.0/y3;
+	testAbs(DD,"setY2");
+	return 1;
+	}
+primitiveA Y2(lineY2,setY2);
+const taylorFunction taylorSimplex::y2(&::Y2);
+
+/*implement y3 */
+static lineInterval lineY3(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(2),x.getValue(2)));
+	h.Df[2]=one;
+	return sqrt(h);
+	}
+static int setY3(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(2);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	interMath::up();
+	DD[2][2]= 1.0/y3;
+	testAbs(DD,"setY3");
+	return 1;
+	}
+primitiveA Y3(lineY3,setY3);
+const taylorFunction taylorSimplex::y3(&::Y3);
+
+/*implement y4 */
+static lineInterval lineY4(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(3),x.getValue(3)));
+	h.Df[3]=one;
+	return sqrt(h);
+	}
+static int setY4(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(3);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	interMath::up();
+	DD[3][3]= 1.0/y3;
+	testAbs(DD,"setY4");
+	return 1;
+	}
+primitiveA Y4(lineY4,setY4);
+const taylorFunction taylorSimplex::y4(&::Y4);
+
+/*implement y5 */
+static lineInterval lineY5(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(4),x.getValue(4)));
+	h.Df[4]=one;
+	return sqrt(h);
+	}
+static int setY5(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(4);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	interMath::up();
+	DD[4][4]= 1.0/y3;
+	testAbs(DD,"setY5");
+	return 1;
+	}
+primitiveA Y5(lineY5,setY5);
+const taylorFunction taylorSimplex::y5(&::Y5);
+
+/*implement y6 */
+static lineInterval lineY6(const domain& x)
+	{
+	static const interval one("1");
+	lineInterval h(interval(x.getValue(5),x.getValue(5)));
+	h.Df[5]=one;
+	return sqrt(h);
+	}
+static int setY6(const domain& x,const domain&,double DD[6][6])
+	{
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+	double x0 = x.getValue(5);
+	if (x0<1.0e-8) return 0;
+	interMath::down();
+	double y = sqrt(x0);
+	double y3 = 4.0*y*y*y;
+	if (y3</*float.h*/DBL_EPSILON) return 0;
+	interMath::up();
+	DD[5][5]= 1.0/y3;
+	testAbs(DD,"setY6");
+	return 1;
+	}
+primitiveA Y6(lineY6,setY6);
+const taylorFunction taylorSimplex::y6(&::Y6);
+
+
+/*implement delta */
+static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	interval DDh[6][6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	secondDerive::setDelta(X,Z,DDh);
+	intervalToDouble(DDh,DD);
+		testAbs(DD,"setAbsDelta");
+	return 1;
+	}
+primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
+const taylorFunction taylorSimplex::delta(&::deltaPrimitive);
+
+/*implement dih1*/
+static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	int r = secondDerive::setAbsDihedral(X,Z,DD);
+	testAbs(DD,"setAbsDihedral");
+	return r;
+	}
+primitiveA dih1Primitive(linearization::dih,setAbsDihedral);
+const taylorFunction taylorSimplex::dih(&::dih1Primitive);
+
+/*implement dih2*/
+static int setAbsDih2(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	intervalToDouble(DDh,DD);
+	testAbs(DD,"setAbsDih2");
+	return outcome;
+	}
+primitiveA dih2Primitive(linearization::dih2,setAbsDih2);
+const taylorFunction taylorSimplex::dih2(&::dih2Primitive);
+
+/*implement dih3*/
+static int setDih3(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	intervalToDouble(DDh,DD);
+	return outcome;
+	}
+primitiveA dih3Primitive(linearization::dih3,setDih3);
+const taylorFunction taylorSimplex::dih3(&::dih3Primitive);
+
+/*implement azim*/
+static int setRhazim(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDihedral(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim(X[0],Z[0],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
+const taylorFunction taylorSimplex::rhazim(&::rhazimPrimitive);
+
+/*implement azim2*/
+static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim2(X[1],Z[1],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitiveA rhazim2Primitive(linearization::rhazim2,setRhazim2);
+const taylorFunction taylorSimplex::rhazim2(&::rhazim2Primitive);
+
+/*implement azim3*/
+static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+	int i;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+	interval s,Ds[6],DDs[6][6];
+	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
+	if (!outcome) return outcome;
+	interval h,Dh[6],DDh[6][6];
+	outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
+	if (!outcome) return outcome;
+	interval DDa[6][6];
+	outcome = secondDerive::setRhazim3(X[2],Z[2],h,Dh,DDh,DDa);
+	intervalToDouble(DDa,DD);
+	return outcome;
+	}
+primitiveA rhazim3Primitive(linearization::rhazim3,setRhazim3);
+const taylorFunction taylorSimplex::rhazim3(&::rhazim3Primitive);
+
+
+/*implement sol*/
+static int setSol(const domain& x,const domain& z,double DD[6][6])
+	{
+	double X[6],Z[6];
+    int i,j;
+	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+    interval s,Ds[6],DDs[6][6],DDx[6][6];
+    if (!(secondDerive::setSqrtDelta(X,Z,s,Ds,DDs))) return 0;
+    if (!(secondDerive::setSolid(X,Z,s,Ds,DDs,DDx))) return 0;
+    for (i=0;i<6;i++) for (j=i;j<6;j++)
+        DD[i][j]=dabs(DDx[i][j]);
+    for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
+    return 1;
+    }
+primitiveA solPrimitive(linearization::solid,setSol);
+const taylorFunction taylorSimplex::sol(&::solPrimitive);
+
+static int copy(double DD[6][6],const double sec[6][6])
+    {
+    for (int i=0;i<6;i++) for (int j=0;j<6;j++)
+        DD[i][j]=sec[i][j];
+    return 1;
+    }
+
+/*implement eta2_126*/
+static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
+	{
+	// use bounds from SECOUT/out.eta2
+	static const int k[3]={0,1,5};
+	x.getValue(0); // useless line
+	z.getValue(0); // useless line
+	int i,j;
+	for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
+	for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
+	return 1;
+	}
+primitiveA eta2Primitive(linearization::eta2,setEta2_126);
+const taylorFunction taylorSimplex::eta2_126(&::eta2Primitive);
+
+/*implement eta2_135*/
+static int setEta2_135(const domain& x,const domain& z,double DD[6][6])
+    {
+    // use bounds from SECOUT/out.eta2
+    static const int k[3]={0,2,4};
+	x.getValue(0); // useless line
+	z.getValue(0); // useless line
+    int i,j;
+    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
+    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
+	return 1;
+    }
+primitiveA eta2_135_Primitive(linearization::eta2_135,setEta2_135);
+const taylorFunction taylorSimplex::eta2_135(&::eta2_135_Primitive);
+
+/*implement eta2_234*/
+static int setEta2_234(const domain& x,const domain& z,double DD[6][6])
+    {
+    // use bounds from SECOUT/out.eta2
+    static const int k[3]={1,2,3};
+	x.getValue(0); // useless line
+	z.getValue(0); // useless line
+    int i,j;
+    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
+    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
+	return 1;
+    }
+primitiveA eta2_234_Primitive(linearization::eta2_234,setEta2_234);
+const taylorFunction taylorSimplex::eta2_234(&::eta2_234_Primitive);
+
+/*implement eta2_456*/
+static int setEta2_456(const domain& x,const domain& z,double DD[6][6])
+    {
+    // use bounds from SECOUT/out.eta2
+    static const int k[3]={3,4,5};
+	x.getValue(0); // useless line
+	z.getValue(0); // useless line
+    int i,j;
+    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
+    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
+	return 1;
+    }
+primitiveA Peta2_456(linearization::eta2_456,setEta2_456);
+const taylorFunction taylorSimplex::eta2_456(&::Peta2_456);
+
+static int primHasDeltaDenom(const primitive* p) {
+  return
+    ((p == &dih1Primitive) || (p == &dih2Primitive) || (p == &dih3Primitive) ||
+    (p == &rhazimPrimitive) || (p== &rhazim2Primitive) || (p == &rhazim3Primitive) ||
+     (p == &solPrimitive));
+}
+
+/*************** taylorInterval *****************/
+
+taylorInterval::taylorInterval(domain w0) {
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j]=0.0; }
+  w = w0;
+  validDataFlag =1;
+}
+
 taylorInterval::taylorInterval(int s,const lineInterval& h0,
 	const domain& w0,const double DD0[6][6])
 	{
 	w = w0;
-	int i,j;
+	for (int i=0;i<6;i++) {
+	  if (w.getValue(i) < 0.0) { error::message("constructing neg width ");
+	    cout << w.getValue(i) << " " << (w0.getValue(i)-w.getValue(i)) << " " << i << endl;
+	  }
+	}
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+	    if (DD0[i][j] < 0.0) { error::message("invalid DD input"); 
+	      cout << i << " " << j << " " << DD0[i][j] << endl;
+	    }
+	  }
 	validDataFlag = s;
 	tangentVector = h0;
-	if (s) for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=DD0[i][j];
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=DD0[i][j];
 	}
 
 int taylorInterval::isValidData() const
@@ -370,18 +921,21 @@ lineInterval taylorInterval::tangentVectorOf() const
 	return tangentVector;
 	}
 
-static double taylorError(const domain& w,const double sec[6][6])
+static double taylorError(const domain& w,const double DD[6][6])
     {
     interMath::up();
     double t=0.0;
     int i,j;
+    for (i=0;i<6;i++) {
+      if (w.getValue(i) < 0.0) { error::message("negative width"); cout << w.getValue(i); }
+    }
     for (i=0;i<6;i++) for (j=0;j<6;j++) {
-	if (sec[i][j] < 0.0) { error::message("negative abs in taylorError"); }
+	if (DD[i][j] < 0.0) {} // { error::message("negative abs in taylorError"); } //DEBUG
       }
-    for (i=0;i<6;i++) t = t + (w.getValue(i)*w.getValue(i))*sec[i][i];
+    for (i=0;i<6;i++) t = t + (w.getValue(i)*w.getValue(i))*DD[i][i];
     t = t/2.0;
     for (i=0;i<6;i++) for (j=i+1;j<6;j++)
-        t = t+ (w.getValue(i)*w.getValue(j))*sec[i][j];
+        t = t+ (w.getValue(i)*w.getValue(j))*DD[i][j];
     return t;
     }
 
@@ -490,486 +1044,64 @@ double taylorInterval::lowerPartial(int i) const
 	return interMath::inf(tangentVector.partial(i)) - err;
 	}
 
-/*
-static double doi(const interval x) {
-  return interMath::sup(interMath::max(x,-x));
-}
-*/
-
-static void intervalToDouble(const interval DDx[6][6],double DD[6][6])
+taylorInterval taylorInterval::plus
+	(const taylorInterval& t1,const taylorInterval& t2)
 	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 	DD[i][j]= dabs(DDx[i][j]);
-	}
-
-/******************************* taylorSimplex functions ****************/
-
-/*implement unit*/
-static int setZero(const domain& ,const domain& ,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	return 1;
-	}
-static lineInterval unit(const domain& )
-	{
-	static const interval one("1");
-	return lineInterval(one);
-	}
-primitive scalr(unit,setZero);
-const taylorFunction taylorSimplex::unit(scalr);
-
-/*implement x1 */
-static lineInterval lineX1(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(0),x.getValue(0)));
-	h.Df[0]=one;
-	return h;
-	}
-primitive x1(lineX1,setZero);
-const taylorFunction taylorSimplex::x1(::x1);
-/*implement x2 */
-static lineInterval lineX2(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(1),x.getValue(1)));
-	h.Df[1]=one;
-	return h;
-	}
-primitive x2(lineX2,setZero);
-const taylorFunction taylorSimplex::x2(::x2);
-
-/*implement x3 */
-static lineInterval lineX3(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(2),x.getValue(2)));
-	h.Df[2]=one;
-	return h;
-	}
-primitive x3(lineX3,setZero);
-const taylorFunction taylorSimplex::x3(::x3);
-
-/*implement x4 */
-static lineInterval lineX4(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(3),x.getValue(3)));
-	h.Df[3]=one;
-	return h;
-	}
-primitive x4(lineX4,setZero);
-const taylorFunction taylorSimplex::x4(::x4);
-
-/*implement x5 */
-static lineInterval lineX5(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(4),x.getValue(4)));
-	h.Df[4]=one;
-	return h;
-	}
-primitive x5(lineX5,setZero);
-const taylorFunction taylorSimplex::x5(::x5);
-
-/*implement x6 */
-static lineInterval lineX6(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(5),x.getValue(5)));
-	h.Df[5]=one;
-	return h;
-	}
-primitive x6(lineX6,setZero);
-const taylorFunction taylorSimplex::x6(::x6);
-
-/*implement y1 */
-static lineInterval sqrt(lineInterval a)
-    {
-    lineInterval temp;
-	static const interval one("1");
-	static const interval two("2");
-    temp.f = interMath::sqrt(a.f);
-    interval rs = one/(two*temp.f);
-    int i;
-    for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];
-    return temp;
-    }
-
-static lineInterval lineY1(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(0),x.getValue(0)));
-	h.Df[0]=one;
-	return sqrt(h);
-	}
-
-static int setY1(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(0);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	interMath::up();
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	DD[0][0]= 1.0/y3;
-	return 1;
-	}
-primitive Y1(lineY1,setY1);
-const taylorFunction taylorSimplex::y1(::Y1);
-
-/*implement y2 */
-static lineInterval lineY2(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(1),x.getValue(1)));
-	h.Df[1]=one;
-	return sqrt(h);
-	}
-static int setY2(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(1);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	interMath::up();
-	DD[1][1]= 1.0/y3;
-	return 1;
-	}
-primitive Y2(lineY2,setY2);
-const taylorFunction taylorSimplex::y2(::Y2);
-
-/*implement y3 */
-static lineInterval lineY3(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(2),x.getValue(2)));
-	h.Df[2]=one;
-	return sqrt(h);
-	}
-static int setY3(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(2);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	interMath::up();
-	DD[2][2]= 1.0/y3;
-	return 1;
-	}
-primitive Y3(lineY3,setY3);
-const taylorFunction taylorSimplex::y3(::Y3);
-
-/*implement y4 */
-static lineInterval lineY4(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(3),x.getValue(3)));
-	h.Df[3]=one;
-	return sqrt(h);
-	}
-static int setY4(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(3);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	interMath::up();
-	DD[3][3]= 1.0/y3;
-	return 1;
-	}
-primitive Y4(lineY4,setY4);
-const taylorFunction taylorSimplex::y4(::Y4);
-
-/*implement y5 */
-static lineInterval lineY5(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(4),x.getValue(4)));
-	h.Df[4]=one;
-	return sqrt(h);
-	}
-static int setY5(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(4);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	interMath::up();
-	DD[4][4]= 1.0/y3;
-	return 1;
-	}
-primitive Y5(lineY5,setY5);
-const taylorFunction taylorSimplex::y5(::Y5);
-
-/*implement y6 */
-static lineInterval lineY6(const domain& x)
-	{
-	static const interval one("1");
-	lineInterval h(interval(x.getValue(5),x.getValue(5)));
-	h.Df[5]=one;
-	return sqrt(h);
-	}
-static int setY6(const domain& x,const domain&,double DD[6][6])
-	{
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-	double x0 = x.getValue(5);
-	if (x0<1.0e-8) return 0;
-	interMath::down();
-	double y = sqrt(x0);
-	double y3 = 4.0*y*y*y;
-	if (y3</*float.h*/DBL_EPSILON) return 0;
-	interMath::up();
-	DD[5][5]= 1.0/y3;
-	return 1;
-	}
-primitive Y6(lineY6,setY6);
-const taylorFunction taylorSimplex::y6(::Y6);
-
-
-/*implement delta */
-static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	interval DDh[6][6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	secondDerive::setDelta(X,Z,DDh);
-	intervalToDouble(DDh,DD);
-	return 1;
-	}
-primitive deltaPrimitive(linearization::delta,setAbsDelta);
-const taylorFunction taylorSimplex::delta(::deltaPrimitive);
-
-/*implement dih1*/
-static int setDihedral(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	return secondDerive::setAbsDihedral(X,Z,DD);
-	}
-primitive dih1Primitive(linearization::dih,setDihedral);
-const taylorFunction taylorSimplex::dih(::dih1Primitive);
-
-/*implement dih2*/
-static int setDih2(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	interval s,Ds[6],DDs[6][6];
-	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
-	if (!outcome) return outcome;
-	interval h,Dh[6],DDh[6][6];
-	outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
-	if (!outcome) return outcome;
-	intervalToDouble(DDh,DD);
-	return outcome;
-	}
-primitive dih2Primitive(linearization::dih2,setDih2);
-const taylorFunction taylorSimplex::dih2(::dih2Primitive);
-
-/*implement dih3*/
-static int setDih3(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	interval s,Ds[6],DDs[6][6];
-	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
-	if (!outcome) return outcome;
-	interval h,Dh[6],DDh[6][6];
-	outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
-	if (!outcome) return outcome;
-	intervalToDouble(DDh,DD);
-	return outcome;
-	}
-primitive dih3Primitive(linearization::dih3,setDih3);
-const taylorFunction taylorSimplex::dih3(::dih3Primitive);
-
-/*implement azim*/
-static int setRhazim(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	interval s,Ds[6],DDs[6][6];
-	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
-	if (!outcome) return outcome;
-	interval h,Dh[6],DDh[6][6];
-	outcome = secondDerive::setDihedral(X,Z,s,Ds,DDs,h,Dh,DDh);
-	if (!outcome) return outcome;
-	interval DDa[6][6];
-	outcome = secondDerive::setRhazim(X[0],Z[0],h,Dh,DDh,DDa);
-	intervalToDouble(DDa,DD);
-	return outcome;
-	}
-primitive rhazimPrimitive(linearization::rhazim,setRhazim);
-const taylorFunction taylorSimplex::rhazim(::rhazimPrimitive);
-
-/*implement azim2*/
-static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	interval s,Ds[6],DDs[6][6];
-	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
-	if (!outcome) return outcome;
-	interval h,Dh[6],DDh[6][6];
-	outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
-	if (!outcome) return outcome;
-	interval DDa[6][6];
-	outcome = secondDerive::setRhazim2(X[1],Z[1],h,Dh,DDh,DDa);
-	intervalToDouble(DDa,DD);
-	return outcome;
-	}
-primitive rhazim2Primitive(linearization::rhazim2,setRhazim2);
-const taylorFunction taylorSimplex::rhazim2(::rhazim2Primitive);
-
-/*implement azim3*/
-static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-	int i;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-	interval s,Ds[6],DDs[6][6];
-	int outcome = secondDerive::setSqrtDelta(X,Z,s,Ds,DDs);
-	if (!outcome) return outcome;
-	interval h,Dh[6],DDh[6][6];
-	outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
-	if (!outcome) return outcome;
-	interval DDa[6][6];
-	outcome = secondDerive::setRhazim3(X[2],Z[2],h,Dh,DDh,DDa);
-	intervalToDouble(DDa,DD);
-	return outcome;
-	}
-primitive rhazim3Primitive(linearization::rhazim3,setRhazim3);
-const taylorFunction taylorSimplex::rhazim3(::rhazim3Primitive);
-
-
-/*implement sol*/
-static int setSol(const domain& x,const domain& z,double DD[6][6])
-	{
-	double X[6],Z[6];
-    int i,j;
-	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-    interval s,Ds[6],DDs[6][6],DDx[6][6];
-    if (!(secondDerive::setSqrtDelta(X,Z,s,Ds,DDs))) return 0;
-    if (!(secondDerive::setSolid(X,Z,s,Ds,DDs,DDx))) return 0;
-    for (i=0;i<6;i++) for (j=i;j<6;j++)
-        DD[i][j]=dabs(DDx[i][j]);
-    for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
-    return 1;
-    }
-primitive solPrimitive(linearization::solid,setSol);
-const taylorFunction taylorSimplex::sol(::solPrimitive);
-
-static int copy(double DD[6][6],const double sec[6][6])
-    {
-    for (int i=0;i<6;i++) for (int j=0;j<6;j++)
-        DD[i][j]=sec[i][j];
-    return 1;
-    }
-
-/*implement eta2_126*/
-static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
-	{
-	// use bounds from SECOUT/out.eta2
-	static const int k[3]={0,1,5};
-	x.getValue(0); // useless line
-	z.getValue(0); // useless line
+	int flag = t1.isValidData() && t2.isValidData();
+	double DD[6][6];
 	int i,j;
-	for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-	for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-	return 1;
+	interMath::up();
+	for (i=0;i<6;i++) for (j=0;j<6;j++) 
+		DD[i][j]= t1.DD[i][j]+t2.DD[i][j];
+	lineInterval s;
+	s.f = t1.tangentVector.f + t2.tangentVector.f;
+	for (i=0;i<6;i++) s.Df[i]= t1.tangentVector.Df[i]+ t2.tangentVector.Df[i];
+	for (i=0;i<6;i++) if (t1.w.getValue(i)!=t2.w.getValue(i)) ; // DEBUG.
+			    //error::message("bad domain in ti");
+	taylorInterval t(flag,s,t1.w,DD);
+	return t;
 	}
-primitive eta2Primitive(linearization::eta2,setEta2_126);
-const taylorFunction taylorSimplex::eta2_126(::eta2Primitive);
 
-/*implement eta2_135*/
-static int setEta2_135(const domain& x,const domain& z,double DD[6][6])
-    {
-    // use bounds from SECOUT/out.eta2
-    static const int k[3]={0,2,4};
-	x.getValue(0); // useless line
-	z.getValue(0); // useless line
-    int i,j;
-    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-	return 1;
-    }
-primitive eta2_135_Primitive(linearization::eta2_135,setEta2_135);
-const taylorFunction taylorSimplex::eta2_135(::eta2_135_Primitive);
+taylorInterval taylorInterval::scale
+	(const taylorInterval& t1,const interval& c)
+	{
+	int flag = t1.isValidData();
+	double absC = dabs(c); // interMath::sup(interMath::max(c,-c));
+	double DD[6][6];
+	interMath::up();
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
+			    { DD[i][j]= t1.DD[i][j]*absC; }
+	lineInterval s = t1.tangentVector;
+	s.f = s.f *c;
+	for (int i=0;i<6;i++) s.Df[i]=s.Df[i]*c;
+	taylorInterval t(flag,s,t1.w,DD);
+	return t;
+	}
 
-/*implement eta2_234*/
-static int setEta2_234(const domain& x,const domain& z,double DD[6][6])
-    {
-    // use bounds from SECOUT/out.eta2
-    static const int k[3]={1,2,3};
-	x.getValue(0); // useless line
-	z.getValue(0); // useless line
-    int i,j;
-    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-	return 1;
-    }
-primitive eta2_234_Primitive(linearization::eta2_234,setEta2_234);
-const taylorFunction taylorSimplex::eta2_234(::eta2_234_Primitive);
-
-/*implement eta2_456*/
-static int setEta2_456(const domain& x,const domain& z,double DD[6][6])
-    {
-    // use bounds from SECOUT/out.eta2
-    static const int k[3]={3,4,5};
-	x.getValue(0); // useless line
-	z.getValue(0); // useless line
-    int i,j;
-    for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-    for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-	return 1;
-    }
-primitive Peta2_456(linearization::eta2_456,setEta2_456);
-const taylorFunction taylorSimplex::eta2_456(::Peta2_456);
-
-static int primHasDeltaDenom(const primitive* p) {
-  return
-    ((p == &dih1Primitive) || (p == &dih2Primitive) || (p == &dih3Primitive) ||
-    (p == &rhazimPrimitive) || (p== &rhazim2Primitive) || (p == &rhazim3Primitive) ||
-     (p == &solPrimitive));
-}
 
 
 /******************** MORE GENERAL STUFF taylorFunction ***********************/
 
 int taylorFunction::hasDeltaDenom() const {
 	taylorFunction u  (*this);
-	for (int i=0;i<u.X->basisCount;i++) 
-		{
-		  if (primHasDeltaDenom((u.X->basisVector[i]))) { return 1; }
-		}
+	for (mapPrim::const_iterator it = u.data.begin(); it!= u.data.end(); ++it) {
+	  primitive* p = (primitive*) (it->first);
+	  if (primHasDeltaDenom(p)) { return 1; } }
+//	for (int i=0;i<u.X->basisCount;i++) 
+//		{
+//		  if (primHasDeltaDenom((u.X->basisVector[i]))) { return 1; }
+//		}
 	return 0;
 }
 
+/*
 taylorFunction::taylorFunction(int c) { X = new details(c); 
 		reduState=0;
 		if (!X) error::message("allocation (X)");
 		if (X->basisCapacity != c) error::message("capacity not initialized"); }
+*/
 
+/*
 taylorFunction::taylorFunction(primitive& x)
 	{
 	reduState=0;
@@ -981,16 +1113,20 @@ taylorFunction::taylorFunction(primitive& x)
 	X->basisCount=1;
 	X->basisCapacity=1;
 	}
+*/
 
+
+// DEBUG::
 taylorFunction::taylorFunction(compositeData& c)
 	{
 	reduState=0;
-	X = new details(0);
-	if (!X) error::message("allocation (X1)");
-	X->cdata = &c;
+	//X = new details(0);
+	//if (!X) error::message("allocation (X1)");
+	//X->cdata = &c;
 	}
 
 
+/*
 taylorFunction::taylorFunction(const taylorFunction& f)
 {
   X = new details(f.X->basisCapacity);
@@ -1008,6 +1144,20 @@ taylorFunction::taylorFunction(const taylorFunction& f)
   }
   else { X->cdata = NULL; }
 }
+*/
+
+taylorFunction::taylorFunction(const taylorFunction& rhs)
+{
+  for (mapPrim::const_iterator it = rhs.data.begin(); it!= rhs.data.end(); ++it)
+      data[it->first]=it->second;
+}
+
+// constructor from a primitive.
+taylorFunction::taylorFunction(void* p) {
+  static interval one("1");
+  data[p] = one;
+}
+
 
 taylorFunction& taylorFunction::operator=(const taylorFunction& ) 
 	{
@@ -1017,9 +1167,9 @@ taylorFunction& taylorFunction::operator=(const taylorFunction& )
 
 taylorFunction::~taylorFunction()
 	{
-	if (X) delete X;
+	  //  if (X) delete X;  // remove.
 	}
-
+/*
 taylorFunction taylorFunction::operator*(const interval& t) const
 	{
 	taylorFunction u  (*this);
@@ -1033,14 +1183,23 @@ taylorFunction taylorFunction::operator*(const interval& t) const
 	}
 	return u;
 	}
+*/
 
+taylorFunction taylorFunction::operator*(const interval& x) const  {
+  taylorFunction a(*this);
+  for (mapPrim::const_iterator ia = a.data.begin();ia!=a.data.end();++ia) {
+    a.data[ia->first] = ia->second * x;
+  }
+  return a;
+}
+
+/*
 taylorFunction taylorFunction::operator+(const taylorFunction& f) const
 	{
 	static const interval zero("0");
 	static const int increment = 10;
 	taylorFunction a(*this);
     int i,j,match;
-
     // add compositeData
     if (a.X->cdata && f.X->cdata) {
       a.X->cdata = new compositeData::compositeData( *(a.X->cdata) + *(f.X->cdata) );
@@ -1048,7 +1207,6 @@ taylorFunction taylorFunction::operator+(const taylorFunction& f) const
     else if (f.X -> cdata) {
       a.X -> cdata = new compositeData::compositeData( *(f.X->cdata));
     }
-
     // add bases.
     for (i=0;i<f.X->basisCount;i++)
         {
@@ -1083,14 +1241,6 @@ taylorFunction taylorFunction::operator+(const taylorFunction& f) const
 					}
 				delete[] a.X->basisVector;
 				delete[] a.X->basisCoeff;
-
-				//VER1.
-				/*
-				a.X->basisVector = temp;
-				a.X->basisCoeff= stemp;
-				a.X->basisCapacity = cap+increment;
-				*/
-
 				a.X->basisVector = new primPtr[cap+increment];
 				//cout <<"(3)"<<flush;
 				if (!a.X->basisVector) 
@@ -1114,59 +1264,51 @@ taylorFunction taylorFunction::operator+(const taylorFunction& f) const
         }
 	return a;
     }
+*/
 
-taylorInterval taylorInterval::plus
-	(const taylorInterval& t1,const taylorInterval& t2)
-	{
-	int flag = t1.isValidData() && t2.isValidData();
-	double DD[6][6];
-	int i,j;
-	interMath::up();
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		DD[i][j]= t1.DD[i][j]+t2.DD[i][j];
-	lineInterval s;
-	s.f = t1.tangentVector.f + t2.tangentVector.f;
-	for (i=0;i<6;i++) s.Df[i]= t1.tangentVector.Df[i]+ t2.tangentVector.Df[i];
-	for (i=0;i<6;i++) if (t1.w.getValue(i)!=t2.w.getValue(i)) 
-		error::message("bad domain in ti");
-	taylorInterval t(flag,s,t1.w,DD);
-	return t;
-	}
+taylorFunction taylorFunction::operator+(const taylorFunction& rhs) const {
+  taylorFunction lhs(*this);
+  mapPrim::iterator ilhs = lhs.data.begin();
+  for (mapPrim::const_iterator irhs = rhs.data.begin();irhs!=rhs.data.end();++irhs) {
+    ilhs = lhs.data.find(irhs->first);
+    if (ilhs != lhs.data.end()) {      
+      lhs.data[irhs->first] = ilhs->second + irhs->second;    
+    }
+    else {      lhs.data[irhs->first] = irhs->second;    }
+  }
+  return lhs;
+}
 
-taylorInterval taylorInterval::scale
-	(const taylorInterval& t1,const interval& c)
-	{
-	int flag = t1.isValidData();
-	double absC = interMath::sup(interMath::max(c,-c));
-	double DD[6][6];
-	int i,j;
-	interMath::up();
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		DD[i][j]= t1.DD[i][j]*absC;
-	lineInterval s = t1.tangentVector;
-	s.f = s.f*c;
-	for (i=0;i<6;i++) s.Df[i]=s.Df[i]*c;
-	taylorInterval t(flag,s,t1.w,DD);
-	return t;
-	}
 
+/*
 taylorInterval taylorFunction::evalf4
 (const domain& w, const domain& x,const domain& y, const domain& z) const
     {	
       if (X->basisCount<1 && (!X -> cdata)) 
 	{ error::message("empty function encountered"); }
       if (X->basisCount<1) {
-	return X->cdata->evalf(w,x,y,z);
+	return X->cdata->evalf4(w,x,y,z);
       }
     taylorInterval t = taylorInterval::scale(
-        X->basisVector[0]->evalf(w,x,y,z),X->basisCoeff[0]);
+        X->basisVector[0]->evalf4(w,x,y,z),X->basisCoeff[0]);
     for (int i=1;i<X->basisCount;i++)
         t = taylorInterval::plus(t,
-                taylorInterval::scale((X->basisVector[i]->evalf(w,x,y,z)),
+                taylorInterval::scale((X->basisVector[i]->evalf4(w,x,y,z)),
                                         (X->basisCoeff[i])));
     if (!X -> cdata) return t;
-    return taylorInterval::plus(t,X->cdata->evalf(w,x,y,z));
+    return taylorInterval::plus(t,X->cdata->evalf4(w,x,y,z));
     }
+*/
+
+taylorInterval taylorFunction::evalf4(const domain& w, const domain& x,const domain& y, const domain& z) const {
+  taylorInterval t(w);
+  for (mapPrim::const_iterator ia = this->data.begin();ia!=this->data.end();++ia) {
+    t = taylorInterval::plus(t, 
+			     taylorInterval::scale((*((primitive*)(ia->first))).evalf4(w,x,y,z),
+						   ia->second));
+  }
+  return t;
+};
 
 taylorInterval taylorFunction::evalf
     (const domain& x,const domain& z) const
@@ -1176,22 +1318,15 @@ taylorInterval taylorFunction::evalf
 	interMath::nearest();
 	for (i=0;i<6;i++) y[i]=(z.getValue(i)+x.getValue(i))/2.0;
 	interMath::up();
-	for (i=0;i<6;i++) w[i]=max(z.getValue(i)-y[i],
+	for (i=0;i<6;i++) {
+	  w[i]=max(z.getValue(i)-y[i],
 						y[i]-x.getValue(i));
+	  assert(w[i] >= 0.0);
+	}
 	domain wD(w[0],w[1],w[2],w[3],w[4],w[5]);
 	domain yD(y[0],y[1],y[2],y[3],y[4],y[5]);
 	
 	return taylorFunction::evalf4(wD,x,yD,z);
-	/*
-    if (X->basisCount<1) { error::message("empty function encountered"); }
-    taylorInterval t = taylorInterval::scale(
-        X->basisVector[0]->evalf(wD,x,yD,z),X->basisCoeff[0]);
-    for (i=1;i<X->basisCount;i++)
-        t = taylorInterval::plus(t,
-                taylorInterval::scale((X->basisVector[i]->evalf(wD,x,yD,z)),
-                                        (X->basisCoeff[i])));
-    return t;
-	*/
     }
 
 void taylorFunction::setReducibleState(int i)
@@ -1200,6 +1335,7 @@ void taylorFunction::setReducibleState(int i)
 int taylorFunction::getReducibleState() const
 	{ return reduState; }
 
+/*
 lineInterval taylorFunction::evalAt(const domain& x) const
 	{
 	lineInterval total;
@@ -1222,9 +1358,39 @@ lineInterval taylorFunction::evalAt(const domain& x) const
     if (!X->cdata) { return total; }
     return ::plus(total,X->cdata->evalAt(x));
 	}
+*/
+
+lineInterval taylorFunction::evalAt(const domain& x) const {
+  lineInterval t;
+  lineInterval temp;
+  for (mapPrim::const_iterator ia = this->data.begin();ia!=this->data.end();++ia) {
+    temp =  ((primitive*)(ia->first))->tangentVectorOf(x);
+    t.f = t.f + temp.f * ia -> second;
+    for (int i=0;i<6;i++) { t.Df[i] = t.Df[i] + temp.Df[i] * ia->second; }
+  }
+  return t;
+};
 
 
 /************************* TESTING ROUTINES **************************/
+
+
+void tempselfTest() {
+  cout << "new test " << endl << flush;
+  domain d(4,4,4,4,4,4); 
+  lineInterval f = (taylorSimplex::x1 + taylorSimplex::x4 * "3.1" + taylorSimplex::dih).evalAt(d);
+  cout << f.f << endl;
+  for (int i=0;i<6;i++) cout << f.Df[i] << endl;
+  cout << endl;
+  	interval tx[6]={interval::interval ("4.7524"),interval::interval ("4."),interval::interval ("4."),interval::interval ("6.3504"),interval::interval ("4."),interval::interval ("4.")};
+		interval tz[6]={interval::interval ("6.3504"),interval::interval ("6.3504"),interval::interval ("6.3504"),interval::interval ("8."),interval::interval ("6.3504"),interval::interval ("6.3504")};
+	domain x = domain::lowerD(tx);
+	domain z = domain::upperD(tz);
+	lineInterval F = (((taylorSimplex::unit) * interval::interval ("0.868174")) + (((taylorSimplex::unit) * (interval::interval ("0.701906") * interval::interval ("2.25"))) + (((taylorSimplex::y1) * (-interval::interval ("0.701906"))) + (((taylorSimplex::unit) * (interval::interval ("0.136514") * (-interval::interval ("2.")))) + (((taylorSimplex::y2) * interval::interval ("0.136514")) + (((taylorSimplex::unit) * (interval::interval ("0.209239") * interval::interval ("2.18"))) + (((taylorSimplex::y3) * (-interval::interval ("0.209239"))) + (((taylorSimplex::unit) * (interval::interval ("0.493373") * interval::interval ("2.65"))) + (((taylorSimplex::y4) * (-interval::interval ("0.493373"))) + (((taylorSimplex::unit) * (interval::interval ("0.537385") * (-interval::interval ("2.")))) + (((taylorSimplex::y5) * interval::interval ("0.537385")) + (((taylorSimplex::unit) * (interval::interval ("0.0187672") * (-interval::interval ("2.2")))) + (((taylorSimplex::y6) * interval::interval ("0.0187672")) + (((taylorSimplex::dih2) * (-interval::interval ("1."))) + ((taylorSimplex::unit) * (-interval::interval ("0.0042"))))))))))))))))).evalf(x,z).tangentVector;
+  cout << F.f << endl;
+  for (int i=0;i<6;i++) cout << F.Df[i] << endl;	
+}
+
 
 static int epsilonClose(double x,interval y,double epsilon)
     {
@@ -1374,8 +1540,7 @@ static void testProcedure(taylorFunction F,lineInterval (*G)(const domain&),
 
 	}
 
-
-void taylorFunction::selfTest() 
+void taylorFunction::selfTest()
 	{
 	cout << " -- loading taylor routines " << endl;
 	/*test Proc*/{
@@ -1407,7 +1572,7 @@ void taylorFunction::selfTest()
 		"taylorSimplex::eta2_456",5.0e-6);
 
 	}
-	
+
 
 	/*test +,*,evalf,evalAt */{
 	domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -1471,7 +1636,7 @@ void taylorFunction::selfTest()
 	}
 	
 
-	/*test x1*/ {
+	/*test x1*/  {
 	int i,j;
 	domain x(4.1,4.2,4.3,4.4,4.5,4.6);
 	domain z(4.11,4.22,4.33,4.44,4.55,4.66);
@@ -1503,7 +1668,7 @@ void taylorFunction::selfTest()
 	}
 	}
 
-	/*test y1*/ {
+	/*test y1*/  {
 	int i,j;
 	domain x(4.1,4.2,4.3,4.4,4.5,4.6);
 	domain z(4.11,4.22,4.33,4.44,4.55,4.66);
@@ -1538,7 +1703,7 @@ void taylorFunction::selfTest()
 	}
 	}
 
-	/*test unit*/ {
+	/*test unit*/  {
 	domain x(4.1,4.2,4.3,4.4,4.5,4.6);
 	domain z(4.11,4.22,4.33,4.44,4.55,4.66);
 	taylorInterval t = taylorSimplex::unit.evalf(x,z);
@@ -1557,13 +1722,13 @@ void taylorFunction::selfTest()
 	  if (!F3.hasDeltaDenom()) cout << "hasDeltaDenom fails 3" << endl;
 	}
 
-	/* test compositeData1 */ {
+	/* test compositeData1 */  if (0) {
 	  compositeData cD (&taylorSimplex::dih,
 			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
 			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
 	  domain x(4.1,4.2,4.3,4.4,4.5,4.6);
 	  domain w(0.0,0.0,0.0,0.0,0.0,0.0);
-          taylorInterval t = cD.evalf(w,x,x,x); //dih2alt
+          taylorInterval t = cD.evalf4(w,x,x,x); //dih2alt
 	  taylorInterval u = taylorSimplex::dih2.evalf4(w,x,x,x);
 	  if (!epsilonClose(t.upperBound(),u.tangentVectorOf().f,1.0e-8))
 	  cout << "cD  fails " << t.upperBound() << endl;
@@ -1577,7 +1742,7 @@ void taylorFunction::selfTest()
 	}
 	}
 
-	/* test compositeData sums */ {
+	/* test compositeData sums */  if(0) {
 	  compositeData cdih2 (&taylorSimplex::dih,
 			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
 			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);
@@ -1588,7 +1753,7 @@ void taylorFunction::selfTest()
 
 	  domain x(4.1,4.2,4.3,4.4,4.5,4.6);
 	  domain w(0.0,0.0,0.0,0.0,0.0,0.0);
-	  taylorInterval t = cD.evalf(w,x,x,x); // dih2 + 5.6 dih3;
+	  taylorInterval t = cD.evalf4(w,x,x,x); // dih2 + 5.6 dih3;
 
 	  taylorInterval udih2 = taylorSimplex::dih2.evalf4(w,x,x,x);
 	  taylorInterval udih3 = taylorSimplex::dih3.evalf4(w,x,x,x);
@@ -1606,7 +1771,7 @@ void taylorFunction::selfTest()
 	}
 	}
 
-	/* test compositeData mixed sums */ {
+	/* test compositeData mixed sums */  if (0) {
 	  compositeData cdih2 (&taylorSimplex::dih,
 			    &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::x1,
 			    &taylorSimplex::x5,&taylorSimplex::x6,&taylorSimplex::x4,NULL);

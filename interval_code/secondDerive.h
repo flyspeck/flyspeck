@@ -55,6 +55,11 @@ AUTHOR
 */
 
 	
+class unstable 
+{
+ public:
+  static const unstable x;
+};
 
 
 class secondDerive 

@@ -20,9 +20,11 @@ extern "C"
 }
 #include "error.h"
 #include "interval.h"
+#include "secondDerive.h"
 #include "taylorInterval.h"
 #include "recurse.h"
 
+using namespace std;
 
 static const int MAXcount = 4; // MAX number of taylorFunctions in an array.
 /*
@@ -196,6 +198,7 @@ static cellOption::cellStatus
 		}
 
 	taylorInterval dih;   // a pseudo-inequality
+	int dihfail=0;
 	if (options.isUsingDihMax()) 
 		{
 		double x4max;
@@ -205,17 +208,22 @@ static cellOption::cellStatus
 			if (z[3]>x4max) z[3] = x4max;
 			if (deltainf(z[0],x[1],x[2],z[3],x[4],x[5])<=0.0) 
 				return cellOption::inconclusive;
-			dih = taylorSimplex::dih.evalf(domain(x),domain(z));
+			try { dih = taylorSimplex::dih.evalf(domain(x),domain(z)); }
+			catch (unstable x) { dihfail=1; }
 			}
 		}
 
 	taylorInterval eta;	 // a pseudo-inequality.
+	int etafail=0;
 	if (options.isUsingBigFace126())
-		{
-		taylorInterval eta = taylorSimplex::eta2_126.evalf(domain(x),domain(z));
-		if ((eta.isValidData()) && (eta.upperBound()<2.0))
-			 return cellOption::cellPasses; //empty range.
-		}
+	  {
+	    try { 
+	      taylorInterval eta = taylorSimplex::eta2_126.evalf(domain(x),domain(z));
+	      if ( (eta.upperBound()<2.0))
+		return cellOption::cellPasses; //empty range.
+	    }
+	    catch (unstable x) { etafail=1; }
+	  }
 
 	/* GOING STRONG LOOP*/
 	int i,j;
@@ -241,10 +249,10 @@ static cellOption::cellStatus
 	/*pass cell if some taylor bound holds*/{
 	for (i=0;i<count;i++)
 		{
-		Target[i]= I[i]->evalf(domain(x),domain(z)); 
-		T[i]=&Target[i];
-		if (!(T[i]->isValidData())) return cellOption::inconclusive;
-		if (T[i]->upperBound()<0.0) return cellOption::cellPasses;
+		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   }
+		  catch (unstable x) { return cellOption::inconclusive; }
+		  T[i]=&Target[i];
+		  if (T[i]->upperBound()<0.0) return cellOption::cellPasses;
 		}
 	}
 
@@ -302,7 +310,7 @@ static cellOption::cellStatus
 		if ((options.isUsingDihMax())&&(allpos+allneg>0))
 			{
 			// don't flow through the dihMax.
-			if (!dih.isValidData()) { allpos=allneg=0; }
+			if (dihfail) { allpos=allneg=0; }
 			else if ((dih.upperBound()> options.getDihMax())&&
 				 dih.lowerBound()< options.getDihMax())
 				{
@@ -313,7 +321,7 @@ static cellOption::cellStatus
 		if (options.isUsingBigFace126())
 			{
 			// treat the pseudo-inequality eta2- 2 < 0 :
-			if (!eta.isValidData()) { allpos=allneg=0; }
+			if (etafail) { allpos=allneg=0; }
 			else if ((eta.upperBound()> 2.0)&&
 				(eta.lowerBound()<2.0)) { allpos=allneg=0;}
 			}
@@ -669,12 +677,12 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 	// get out fast if any of the crude taylor bounds hold.
 	for (i=0;i<Nineq;i++)
 		{
-		targetA[i]= IA[i]->evalf(xA,zA);
+		  try { targetA[i]= IA[i]->evalf(xA,zA); }
+		  catch (unstable x) { return 0; }
 		tA[i]=&targetA[i];
-		if (!tA[i]->isValidData()) return 0;
-		targetB[i]= IB[i]->evalf(xB,zB);
+		try { targetB[i]= IB[i]->evalf(xB,zB); }
+		catch (unstable x) { return 0; }
 		tB[i]=&targetB[i];
-		if (!tB[i]->isValidData()) return 0;
 		if (taylorInterval::upperboundQ(*tA[i],*tB[i])< 0.0) return 1;
 		}
  

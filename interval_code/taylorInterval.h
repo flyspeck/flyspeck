@@ -45,11 +45,8 @@ OVERVIEW TEXT
 	explicit lower and upper bounds, as well as bounds on the
 	derivatives can be determined.
 
-	A taylorInterval may contain invalid data, meaning that error
-	bounds were impossible to obtain on the given domain.  Calling
-	most of the functions will result in an error if the data is
-	invalid.  To avoid the error messages, check the data with
-	the member function isValidData().
+	A taylorInterval may contain invalid data.
+	Bad data throws an "unstable" exception.
 
 AUTHOR
 	
@@ -62,7 +59,7 @@ public/* (for the moment) */:
   double DD[6][6];  // DD bounds on the abs. value of second partials.
     domain w; // w[] are upper bounds on widths.
     lineInterval tangentVector;
-    int validDataFlag;
+    //int validDataFlag;
     static taylorInterval plus
 		(const taylorInterval&,const taylorInterval&);
 	static taylorInterval scale
@@ -70,10 +67,6 @@ public/* (for the moment) */:
 
 public:
 
-	//////////
-	// Return a nonzero value if the data is valid, 0 otherwise.
-	//
-int isValidData() const;
 
 	//////////
 	// Taylor interval is a linear approximation at the expansion point of
@@ -127,9 +120,8 @@ double lowerPartial(int) const;
 	// a bound on the half-widths of the cell (domain&),
 	// an an array [][] of doubles giving bounds on the absolute values of
         // second derivatives.
-	// The first argument is nonzero or zero depending on whether the
-	// input is valid or not.
-taylorInterval(int,const lineInterval&, const domain&,
+        //
+taylorInterval(const lineInterval&, const domain&,
         const double [6][6]);
 
 

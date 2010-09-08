@@ -94,7 +94,7 @@ taylorInterval primitive_univariate::evalf4(const domain& w,const domain& x,
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j]=0.0; }
   interval t(x.getValue(slot),z.getValue(slot));
   DD[slot][slot] = dabs(f->eval(t,2));
-  taylorInterval a(true,primitive_univariate::tangentVectorOf(y),w,DD);
+  taylorInterval a(primitive_univariate::tangentVectorOf(y),w,DD);
   return a;
 }
 
@@ -383,7 +383,7 @@ taylorInterval compositeData::evalf4(const domain& w,const domain& x,const domai
   for (int i=0;i<6;i++) {
     lin.Df[i] = cN_partial[i];
   }
-  taylorInterval ch(1,lin,w,DcW);
+  taylorInterval ch(lin,w,DcW);
   // if there is a link add it recursively.
   if (!link) {
     return ch;
@@ -397,9 +397,9 @@ taylorInterval primitiveA::evalf4
 	(const domain& w,const domain& x,const domain& y,const domain& z) const
 	{
 	double DD[6][6];
-	int s = (*setAbsSecond)(x,z,DD);
+	(*setAbsSecond)(x,z,DD);
 	lineInterval tangentVector = (*hfn)(y);
-	return taylorInterval(s,tangentVector,w,DD);
+	return taylorInterval(tangentVector,w,DD);
 	}
 
 primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
@@ -674,7 +674,7 @@ static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
 	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
 	secondDerive::setDelta(X,Z,DDh);
 	intervalToDouble(DDh,DD);
-		testAbs(DD,"setAbsDelta");
+	testAbs(DD,"setAbsDelta");
 	return 1;
 	}
 primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
@@ -687,7 +687,7 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 	int i;
 	for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
 	int r = secondDerive::setAbsDihedral(X,Z,DD);
-	testAbs(DD,"setAbsDihedral");
+	if (r) { testAbs(DD,"setAbsDihedral"); }
 	return r;
 	}
 primitiveA dih1Primitive(linearization::dih,setAbsDihedral);
@@ -887,10 +887,9 @@ static int primHasDeltaDenom(const primitive* p) {
 taylorInterval::taylorInterval(domain w0) {
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j]=0.0; }
   w = w0;
-  validDataFlag =1;
 }
 
-taylorInterval::taylorInterval(int s,const lineInterval& h0,
+taylorInterval::taylorInterval(const lineInterval& h0,
 	const domain& w0,const double DD0[6][6])
 	{
 	w = w0;
@@ -904,20 +903,12 @@ taylorInterval::taylorInterval(int s,const lineInterval& h0,
 	      cout << i << " " << j << " " << DD0[i][j] << endl;
 	    }
 	  }
-	validDataFlag = s;
 	tangentVector = h0;
 	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=DD0[i][j];
 	}
 
-int taylorInterval::isValidData() const
-	{ return validDataFlag; }
-
 lineInterval taylorInterval::tangentVectorOf() const
 	{
-	static const interval zero("0");
-	if (!validDataFlag) 
-		{ error::message("center computation failed"); 
-		  return lineInterval(zero); }
 	return tangentVector;
 	}
 
@@ -941,13 +932,7 @@ static double taylorError(const domain& w,const double DD[6][6])
 
 
 
-double taylorInterval::upperBound() const
-	{
-	if (!validDataFlag) 
-		{
-		error::message("upperBound computation failed");
-		return 0;
-		}
+double taylorInterval::upperBound() const {
 	double err = taylorError(w,DD);
 	interMath::up();
     double t = tangentVector.hi() + err;
@@ -955,13 +940,7 @@ double taylorInterval::upperBound() const
     return t;
     }
 
-double taylorInterval::lowerBound() const
-	{
-	if (!validDataFlag) 
-		{
-		error::message("lowerBound computation failed");
-		return 0;
-		}
+double taylorInterval::lowerBound() const {
 	double err = taylorError(w,DD);
 	interMath::down();
     double t = tangentVector.low() - err;
@@ -969,14 +948,8 @@ double taylorInterval::lowerBound() const
     return t;
     }
 
-double taylorInterval::upperboundQ
-	(const taylorInterval& cA,const taylorInterval& cB)
-    {
-	if ((!cA.validDataFlag)||(!cB.validDataFlag))
-		{
-		error::message("upperBoundQ failed");
-		return 0;
-		}
+double taylorInterval::upperboundQ 
+(const taylorInterval& cA,const taylorInterval& cB) {
     interMath::up();
 	double err = taylorError(cA.w,cA.DD)+taylorError(cB.w,cB.DD);
     double t = cA.tangentVector.hi()+cB.tangentVector.hi() + err;
@@ -993,11 +966,6 @@ double taylorInterval::upperboundQ
 double taylorInterval::lowerboundQ
 	(const taylorInterval& cA,const taylorInterval& cB)
     {
-	if ((!cA.validDataFlag)||(!cB.validDataFlag))
-		{
-		error::message("upperBoundQ failed");
-		return 0;
-		}
     interMath::up();
 	double err = taylorError(cA.w,cA.DD)+taylorError(cB.w,cB.DD);
 	interMath::down();
@@ -1017,11 +985,6 @@ double taylorInterval::upperPartial(int i) const
 	{
 	if ((i<0)||(i>=6)) 
 		{ error::message("upperPartial index out of range"); return 0; }
-	if (!validDataFlag) 
-		{
-		error::message("upperPartial computation failed");
-		return 0;
-		}
 	interMath::up();
 	double err = 0.0;
 	for (int j=0;j<6;j++) err  = err + w.getValue(j)*DD[i][j];
@@ -1032,11 +995,6 @@ double taylorInterval::lowerPartial(int i) const
 	{
 	if ((i<0)||(i>=6)) 
 		{ error::message("upperPartial index out of range"); return 0; }
-	if (!validDataFlag) 
-		{
-		error::message("lowerParial computation failed");
-		return 0;
-		}
 	interMath::up();
 	double err = 0.0;
 	for (int j=0;j<6;j++) err  = err + w.getValue(j)*DD[i][j];
@@ -1047,7 +1005,6 @@ double taylorInterval::lowerPartial(int i) const
 taylorInterval taylorInterval::plus
 	(const taylorInterval& t1,const taylorInterval& t2)
 	{
-	int flag = t1.isValidData() && t2.isValidData();
 	double DD[6][6];
 	int i,j;
 	interMath::up();
@@ -1056,16 +1013,15 @@ taylorInterval taylorInterval::plus
 	lineInterval s;
 	s.f = t1.tangentVector.f + t2.tangentVector.f;
 	for (i=0;i<6;i++) s.Df[i]= t1.tangentVector.Df[i]+ t2.tangentVector.Df[i];
-	for (i=0;i<6;i++) if (t1.w.getValue(i)!=t2.w.getValue(i)) ; // DEBUG.
-			    //error::message("bad domain in ti");
-	taylorInterval t(flag,s,t1.w,DD);
+	for (i=0;i<6;i++) if (t1.w.getValue(i)!=t2.w.getValue(i)) 
+			    error::message("bad domain in ti");
+	taylorInterval t(s,t1.w,DD);
 	return t;
 	}
 
 taylorInterval taylorInterval::scale
 	(const taylorInterval& t1,const interval& c)
 	{
-	int flag = t1.isValidData();
 	double absC = dabs(c); // interMath::sup(interMath::max(c,-c));
 	double DD[6][6];
 	interMath::up();
@@ -1074,7 +1030,7 @@ taylorInterval taylorInterval::scale
 	lineInterval s = t1.tangentVector;
 	s.f = s.f *c;
 	for (int i=0;i<6;i++) s.Df[i]=s.Df[i]*c;
-	taylorInterval t(flag,s,t1.w,DD);
+	taylorInterval t(s,t1.w,DD);
 	return t;
 	}
 
@@ -1278,7 +1234,6 @@ taylorFunction taylorFunction::operator+(const taylorFunction& rhs) const {
   }
   return lhs;
 }
-
 
 /*
 taylorInterval taylorFunction::evalf4
@@ -1623,7 +1578,6 @@ void taylorFunction::selfTest()
 		cout << " t.upperPartial(1)= " << t.upperPartial(1) << endl;
 	if (!epsilonClose(t.lowerPartial(1),"2",1.0e-15))
 		cout << " t.lowerPartial(1)= " << t.lowerPartial(1) << endl;
-	if (!t.isValidData()) cout << "invalid data " << endl;
 	lineInterval c = t.tangentVectorOf();
 	if (!epsilonClose(c.hi(),"78.205",1.0e-13))
 		cout << " c.hi() = " << c.hi() << endl;

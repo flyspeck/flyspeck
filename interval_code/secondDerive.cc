@@ -830,14 +830,14 @@ int secondDerive::setChi2over4uDelta(const double x[6],const double z[6],double 
 	::setDeltaFull(x,z,d,Dd,DDd);
 	::setChi126(x,z,c,Dc,DDc);
 	::setU126(x,z,u,Du,DDu);
-	if (interMath::inf(u)<=1.0e-5) return 0;
-	if (interMath::inf(d)<=1.0e-5) return 0;
+	if (interMath::inf(u)<=1.0e-5) { throw unstable::x; }
+	if (interMath::inf(d)<=1.0e-5) { throw unstable::x; }
 	interval c2,Dc2[6],DDc2[6][6];
 	Leibniz::product(c,Dc,DDc,c,Dc,DDc,c2,Dc2,DDc2);
 	interval den,Dden[6],DDden[6][6];
 	Leibniz::product(u,Du,DDu,d,Dd,DDd,den,Dden,DDden);
 	interval q,Dq[6],DDq[6][6];
-	if (!Leibniz::quotient(c2,Dc2,DDc2,den,Dden,DDden,q,Dq,DDq)) return 0;
+	if (!Leibniz::quotient(c2,Dc2,DDc2,den,Dden,DDden,q,Dq,DDq)) { throw unstable::x; }
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDf[i][j]= interMath::sup(interMath::max(DDq[i][j],-DDq[i][j]))/4.0;
 	for (i=0;i<6;i++) for (j=0;j<i;j++)
@@ -930,9 +930,9 @@ int Dsqrt(const interval&u,const interval Du[6],const interval DDu[6][6],
 	interval& sqrt_u,interval Dsqrt_u[6],interval DDsqrt_u[6][6])
 	{
 	int i,j;
-	if (interMath::inf(u)<=DBL_EPSILON) return 0;
+	if (interMath::inf(u)<=DBL_EPSILON) { throw unstable::x; }
 	sqrt_u = interMath::sqrt(u);
-	if (interMath::inf(sqrt_u)<DBL_EPSILON) return 0;
+	if (interMath::inf(sqrt_u)<DBL_EPSILON) { throw unstable::x; }
 	interval t = interval(   
 		(interMath::down(), 0.5/interMath::sup(sqrt_u)),
 		(interMath::up(), 0.5/interMath::inf(sqrt_u)));
@@ -959,7 +959,7 @@ int Leibniz::quotient(const interval& a,const interval Da[6],const interval DDa[
 	static const interval two("2");
 	int i,j;
 	double smallDen = 1.0e-08;
-	if ((interMath::inf(b)< smallDen)&&(interMath::sup(b)> -smallDen)) return 0;
+	if ((interMath::inf(b)< smallDen)&&(interMath::sup(b)> -smallDen)) { throw unstable::x; }
 	v = a/b;
 	interval b2 = one/(b*b);
 	interval t = -two*b2/b;
@@ -1005,10 +1005,10 @@ int secondDerive::setDihedral(const double x[6],const double z[6],
  
 	interval b,Db[6],DDb[6][6];
 	b = s*ty1;
-	if ((interMath::inf(s)<=0.0)) return 0;
-	if ((interMath::inf(b)<=0.0)&&(interMath::sup(b)>=0.0)) return 0;
-	if ((interMath::inf(u135)<=0.0)&&(interMath::sup(u135)>=0.0)) return 0;
-	if ((interMath::inf(u126)<=0.0)&&(interMath::sup(u126)>=0.0)) return 0;
+	if ((interMath::inf(s)<=0.0)) { throw unstable::x; }
+	if ((interMath::inf(b)<=0.0)&&(interMath::sup(b)>=0.0)) { throw unstable::x; }
+	if ((interMath::inf(u135)<=0.0)&&(interMath::sup(u135)>=0.0)) { throw unstable::x; }
+	if ((interMath::inf(u126)<=0.0)&&(interMath::sup(u126)>=0.0)) { throw unstable::x; }
 	h = pi2+ interMath::atan(-dX/b);
 	for (i=0;i<6;i++) Db[i]= Ds[i]*ty1;
 	interval ry1 = two/ty1;
@@ -1061,7 +1061,7 @@ int secondDerive::setDih2(const double x[6],const double z[6],
 			    Dsn[i]=Ds[k[i]];}
 	for (i=0;i<6;i++) for (j=0;j<6;j++)
 			DDsn[i][j]=DDs[k[i]][k[j]];
-        if (!(setDihedral(xx,zz,s,Dsn,DDsn,h,Dt,DDt))) return 0;
+        if (!(setDihedral(xx,zz,s,Dsn,DDsn,h,Dt,DDt))) { throw unstable::x; }
 	for (i=0;i<6;i++) Dh[i]=Dt[k[i]];
         for (i=0;i<6;i++) for (j=0;j<6;j++)
                 DDh[i][j] = DDt[k[i]][k[j]];
@@ -1082,7 +1082,7 @@ int secondDerive::setDih3(const double x[6],const double z[6],
 			    Dsn[i]=Ds[k[i]];}
 	for (i=0;i<6;i++) for (j=0;j<6;j++)
 			DDsn[i][j]=DDs[k[i]][k[j]];
-        if (!(setDihedral(xx,zz,s,Dsn,DDsn,h,Dt,DDt))) return 0;
+        if (!(setDihedral(xx,zz,s,Dsn,DDsn,h,Dt,DDt))) { throw unstable::x; }
 	for (i=0;i<6;i++) Dh[i]=Dt[k[i]];
         for (i=0;i<6;i++) for (j=0;j<6;j++)
                 DDh[i][j] = DDt[k[i]][k[j]];
@@ -1104,7 +1104,7 @@ static int rho_x_factor(double x,double z,interval& r,interval& Dr,
 	interval q = interval(qn,qu);
 	interval xx = interval(x,z);
 	interval xxq = xx*q;
-	if ((interMath::inf(xxq)<=0.0)&& (interMath::sup(xxq)>=0.0)) return 0;
+	if ((interMath::inf(xxq)<=0.0)&& (interMath::sup(xxq)>=0.0)) { throw unstable::x; }
 	r = one + const1 * (q - two) / _052;
 	Dr =  const1 / (two * _052 * q);
 	DDr = - const1 / (four * _052 * xxq);
@@ -1119,7 +1119,7 @@ int secondDerive::setRhazim(double x,double z,
 	interval DDc[6][6])
 	{
 	interval r,Dr,DDr;
-	if (!(rho_x_factor(x,z,r,Dr,DDr))) return 0;
+	if (!(rho_x_factor(x,z,r,Dr,DDr))) { throw unstable::x; }
 	int i,j;
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDc[i][j] = r*DDd[i][j];
@@ -1142,7 +1142,7 @@ int secondDerive::setRhazim2(double x,double z,
 	// DDc output
 	{
 	interval r,Dr,DDr;
-	if (!rho_x_factor(x,z,r,Dr,DDr)) return 0;
+	if (!rho_x_factor(x,z,r,Dr,DDr)) { throw unstable::x; }
 	int i,j;
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		DDc[i][j] = r*DDd[i][j];
@@ -1165,7 +1165,7 @@ int secondDerive::setRhazim3(double x,double z,
 	// DDc output
 	{
 	interval r,Dr,DDr;
-	if (!rho_x_factor(x,z,r,Dr,DDr)) return 0;
+	if (!rho_x_factor(x,z,r,Dr,DDr)) { throw unstable::x; }
 	int i,j;
 	int pos=2; // n - 1.
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
@@ -1189,7 +1189,7 @@ int secondDerive::setVorVcInverted( const double x[6],const double z[6],double D
 	int i,j;
 	const int k[6]={0,5,4,3,2,1};
 	for ( i=0;i<6;i++) { xx[i]=x[k[i]]; zz[i]=z[k[i]]; }
-	if (!setVorVc( xx,zz,DDxz)) return 0;
+	if (!setVorVc( xx,zz,DDxz)) { throw unstable::x; }
 	for ( i=0;i<6;i++) for ( j=0;j<6;j++) DD[k[i]][k[j]]=DDxz[i][j]; 
 	return 1;
 	}
@@ -1203,9 +1203,9 @@ int secondDerive::setSolid( const double x[6],const double z[6],
  
 	static const interval two("2");
 	interval a,Da[6],DDa[6][6];
-	if (!setA( x,z,a,Da,DDa)) return 0;
+	if (!setA( x,z,a,Da,DDa)) { throw unstable::x; }
 	a = two*a;
-	if (interMath::inf(a)<=0.0) return 0;
+	if (interMath::inf(a)<=0.0) { throw unstable::x; }
 	for (i=0;i<6;i++) Da[i]=two*Da[i];
 	for (i=0;i<6;i++) for (j=0;j<6;j++) 
 		{
@@ -1253,8 +1253,8 @@ int secondDerive::setAbsDihedral(const double x[6],const double z[6],double DDf[
 	int i,j;
 	interval s,Ds[6],DDs[6][6];
 	interval r,Dr[6],DDr[6][6];
-	if (!setSqrtDelta(x,z,s,Ds,DDs)) return 0;
-	if (!setDihedral(x,z,s,Ds,DDs,r,Dr,DDr)) return 0;
+	if (!setSqrtDelta(x,z,s,Ds,DDs)) { throw unstable::x; }
+	if (!setDihedral(x,z,s,Ds,DDs,r,Dr,DDr)) { throw unstable::x; }
 	for (i=0;i<6;i++) for (j=i;j<6;j++)
 		{
 		DDf[i][j] = interMath::sup(interMath::max(DDr[i][j],-DDr[i][j]));

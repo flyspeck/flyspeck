@@ -279,16 +279,6 @@ static lineInterval rad2(const domain&);
 static lineInterval chi126squaredOverEtc(const domain& x);
 
 	//////////
-	// The analytic voronoi function.
-	// Explicit formulas for this function appear in SP I.8.6.3.
-	// The original domain of the function is the set of all simplices
-	// with edges of length in the interval [2,sqrt(8)], such that
-	// the simplex contains its own circumcenter.  This function is
-	// analytically continued using the formula of SP I.8.6.3.
-	//
-static lineInterval vorAnalytic(const domain&);
-
-	//////////
 	// The function chi determinining the orientation of simplices,
 	// where orientation is used in the sense of SP I.8.2.3.
 	// Explicit formulas for this function appear in SP I.8.2.

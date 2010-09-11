@@ -1,9 +1,9 @@
 /* ========================================================================== */
 /* FLYSPECK - CODE FORMALIZATION                                              */
 /*                                                                            */
-/* Chapter: nonlinear inequalities                                                             */
+/* Chapter: nonlinear inequalities                                            */
 /* Author:  Thomas Hales     */
-/* Date: 1997, 2010-09-04                                                    */
+/* Date: 1997, 2010-09-04                                                     */
 /* ========================================================================== */
 
 //  copyright (c) 1997, Thomas C. Hales, all rights reserved.

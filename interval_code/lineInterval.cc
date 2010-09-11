@@ -147,60 +147,6 @@ static lineInterval atan(lineInterval a,lineInterval b) // atan(a/b);
 	return temp;
 	}
 
-static void compute_rogersterm(interval x,interval y,interval z,
-	interval& f,interval Df[2])
-	{ // Rogers5d:
-
-	double  xn=interMath::inf(x), yyn=interMath::inf(y), zn=interMath::inf(z),
-			xu=interMath::sup(x), yu=interMath::sup(y), zu=interMath::sup(z);
-	interMath::up();
-	double xu2=xu*xu, yu2=yu*yu, zu2=zu*zu;
-	double xu3=xu*xu2, yu3=yu*yu2, zu3=zu*zu2;
-	interMath::down();
-	double xn2=xn*xn, yn2=yyn*yyn, zn2=zn*zn;
-	double xn3=xn2*xn, yn3=yn2*yyn, zn3=zn2*zn;
-
-	double fmin,fmax;
-	interMath::down();
-	fmin = //=Rogers5d
-		2.0*xn2*xn*yn2 + 3.0*(xu*(yu2*(-yu2))) + 8.0*xn2*xn*yyn*zn
-		+ 12.0*(xu*(yu2*(yu*(-zu)))) + 8.0*xn2*xn*zn2
-		+ 12.0*(xu*(yu2*(-zu2))) +
-		6.0*xn2*zn3 + 12.0*(xu*(yu*(-zu3))) + 8.0*yn2*zn3
-		+ 3.0*(xu*(zu2*(-zu2))) + 8.0*yyn*zn2*zn2 +
-		   2.0*zn2*zn2*zn;
-
-	interMath::up();
-	fmax = //=Rogers5d
-		2.0*xu2*xu*yu2 + 3.0*(xn*(yn2*(-yn2))) + 8.0*xu2*xu*yu*zu
-		+ 12.0*(xn*(yn2*(yyn*(-zn)))) + 8.0*xu2*xu*zu2
-		+ 12.0*(xn*(yn2*(-zn2))) +
-		6.0*xu2*zu3 + 12.0*(xn*(yyn*(-zn3))) + 8.0*yu2*zu3
-		+ 3.0*(xn*(zn2*(-zn2))) + 8.0*yu*zu2*zu2 +
-		   2.0*zu2*zu2*zu;
-	f = interval(fmin,fmax);
-
-	// Warning!! We never use the z-derivatives, so we set them to 0.
-
-	// now for the first derivatives:
-	double xmin[2],xmax[2];
-
-	interMath::down();
-	xmin[0]= 3.0*(2.0*xn2*yn2 +yu2*(-yu2)+8.0*xn2*yyn*zn+4.0*(yu3*(-zu))
-		+8.0*xn2*zn2 + 4.0*(yu2*(-zu2))+4.0*xn*zn3 + 4.0*(yu*(-zu3))
-		+zu2*(-zu2));
-	xmin[1]= 4.0*(xn3*yyn + 3.0*(xu*(-yu3))+2.0*xn3*zn +9.0*(xu*(yu2*(-zu)))
-		+6.0*(xu*(yu*(-zu2))) + 3.0*(xu*(-zu3))+4.0*yyn*zn3+2.0*zn2*zn2);
-
-	interMath::up();
-	xmax[0]= 3.0*(2.0*xu2*yu2 +yn2*(-yn2)+8.0*xu2*yu*zu +4.0*(yn3*(-zn))
-		+8.0*xu2*zu2 + 4.0*(yn2*(-zn2))+4.0*xu*zu3 + 4.0*(yyn*(-zn3))
-		+(zn2*(-zn2)));
-	xmax[1]= 4.0*(xu3*yu + 3.0*(xn*(-yn3))+2.0*xu3*zu +9.0*(xn*(yn2*(-zn)))
-		+6.0*(xn*(yyn*(-zn2))) + 3.0*(xn*(-zn3))+4.0*yu*zu3+2.0*zu2*zu2);
-	for (int i=0;i<2;i++) Df[i]=interval(xmin[i],xmax[i]);
-	}
-
 static void quotient2(const interval& a,const interval Da[2],
 const interval& b,const interval Db[2],
 	interval& v,interval Dv[2])
@@ -221,18 +167,6 @@ static void product2(const interval& u,const interval Du[2],
 	int i;
 	uv = u*v;
 	for (i=0;i<2;i++) Duv[i] = u*Dv[i] + v*Du[i];
-	}
-
-static void Dfivehalves(const interval& u,const interval Du[2],
-	interval& fh,interval Dfh[2])
-	{
-	int i;
-	interval sqrt_u = interMath::sqrt(u);
-	static const interval two("2");
-	static const interval fiveh = interval("5")/two;
-	interval x = fiveh*u*sqrt_u;
-	fh = sqrt_u*u*u;                        // Def' is u^(5/2) & derivs.
-	for (i=0;i<2;i++) Dfh[i]= x*Du[i];
 	}
 
 
@@ -800,24 +734,6 @@ double edgeBound::chi234min(const domain& x0,const domain& z0)
 	double temp = q[0];
 	for (i=1;i<8;i++) if (q[i]<temp) temp = q[i];
 	return temp;
-	}
-
-lineInterval linearization::vorAnalytic(const domain &x)
-	{
-	double x1,x2,x3,x4,x5,x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
-	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	static const interval mdoct4 = "-2.883611798069860371364";
-	static const interval f43 = "1.333333333333333333333333333333";
-	static const interval f48 = "48.0";
-	lineInterval u126 = U126(x1,x2,x6), u135 = U135(x1,x3,x5),
-	u234 = U324(x3,x2,x4);
-	lineInterval vol = 
-		f126(x1,x2,x3,x4,x6,x6)*chi126(x1,x2,x3,x4,x5,x6)/u126 +
-		f324(x1,x2,x3,x4,x5,x6)*chi324(x)/u234 +
-		f135(x1,x2,x3,x4,x5,x6)*chi135(x1, x2, x3, x4, x5, x6)/u135;
-	vol = vol/(sqrt(delta(x))*f48);
-	return vol*mdoct4 + solid(x)*f43;
 	}
 
 lineInterval linearization::rad2(const domain& x)
@@ -1531,20 +1447,6 @@ void linearization::selfTest() {
 		cout << "chi324 failed = " << (MathematicaAnswer-ThisAnswer)
 				<< endl << flush;
 		cout << "chi324 failed = " << (ThisAnswer)
-				<< endl << flush;
-		error::message("lineInterval failed to install properly");
-		}
-	}
-
-	/*test vorAnalytic */ {
-	lineInterval MathematicaAnswer = setHyperInterval
-		  (0.02975516833884084, -0.07571540919858652, -0.07420774316145259, 
-    -0.07271212399542648, -0.01481484335869471, -0.01519798350605676, 
-    -0.01558173388510887);
-	lineInterval ThisAnswer = linearization::vorAnalytic(x);
-	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
-		{
-		cout << "vorAnalytic failed = " << (MathematicaAnswer-ThisAnswer)
 				<< endl << flush;
 		error::message("lineInterval failed to install properly");
 		}

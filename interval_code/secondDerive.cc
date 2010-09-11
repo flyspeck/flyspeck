@@ -1178,23 +1178,6 @@ int secondDerive::setRhazim3(double x,double z,
 	return 1;
 	}
 
-
-
-
-/*
-// Not tested.
-int secondDerive::setVorVcInverted( const double x[6],const double z[6],double DD[6][6])
-	{
-	double xx[6],zz[6],DDxz[6][6];
-	int i,j;
-	const int k[6]={0,5,4,3,2,1};
-	for ( i=0;i<6;i++) { xx[i]=x[k[i]]; zz[i]=z[k[i]]; }
-	if (!setVorVc( xx,zz,DDxz)) { throw unstable::x; }
-	for ( i=0;i<6;i++) for ( j=0;j<6;j++) DD[k[i]][k[j]]=DDxz[i][j]; 
-	return 1;
-	}
-*/
-
 int secondDerive::setSolid( const double x[6],const double z[6],
 	const interval ss,const interval Ds[6],const interval DDs[6][6],
 	interval DDx[6][6])

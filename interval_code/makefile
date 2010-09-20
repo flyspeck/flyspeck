@@ -28,7 +28,7 @@ lineInterval.o : lineInterval.h lineInterval.cc interval.h \
 	error.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c lineInterval.cc 
 
-taylorInterval.o : taylorInterval.cc error.h interval.h #Can be opt. in level2
+taylorInterval.o : taylorInterval.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorInterval.cc
 
 recurse.o : recurse.h recurse.cc taylorInterval.h error.h \

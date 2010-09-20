@@ -37,7 +37,7 @@ static inline double dabs(const interval x) {
   return interMath::sup(interMath::max(x,-x));
 }
 
-static void intervalToDouble(const interval DDx[6][6],double DD[6][6])
+static void intervalToAbsDouble(const interval DDx[6][6],double DD[6][6])
 {
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) 	
 			  DD[i][j]= dabs(DDx[i][j]);
@@ -139,7 +139,7 @@ taylorInterval primitive_univariate::evalf4(const domain& w,const domain& x,
 
 /* ========================================================================== */
 /*                                                                            */
-/*   primitiveC                                                               */
+/*   primitiveC  composites                                                   */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -168,10 +168,11 @@ public:
 	     );
 };
 
-primitiveC::primitiveC(const taylorFunction* hdr0, 
-		       const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
-		       const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60
-		       ) {
+primitiveC::primitiveC
+  (const taylorFunction* hdr0, 
+   const taylorFunction* p10,const taylorFunction* p20,const taylorFunction* p30,
+   const taylorFunction* p40,const taylorFunction* p50,const taylorFunction* p60) 
+{
   hdr = hdr0;
   p1 = p10;
   p2  =p20;
@@ -344,6 +345,7 @@ static lineInterval lineX1(const domain& x)
 }
 primitiveA x1(lineX1,setZero);
 const taylorFunction taylorSimplex::x1(&::x1);
+
 /*implement x2 */
 static lineInterval lineX2(const domain& x)
 {
@@ -562,6 +564,27 @@ static int setY6(const domain& x,const domain&,double DD[6][6])
 primitiveA Y6(lineY6,setY6);
 const taylorFunction taylorSimplex::y6(&::Y6);
 
+/*implement x1*x2 */
+static lineInterval lineX1X2(const domain& x)
+{
+  static const interval one("1");
+  lineInterval h(interval(x.getValue(0),x.getValue(0)) * 
+		 interval(x.getValue(1),x.getValue(1)));
+  h.Df[0]=one;
+  h.Df[1]=one;
+  return h;
+}
+static int setX1X2DD(const domain& ,const domain& ,double DD[6][6])
+{
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+  DD[1][0]=1.0;
+  DD[0][1]=1.0;
+  testAbs(DD,"setX1X2DD");
+  return 1;
+}
+static primitiveA x1x2Prim(lineX1X2,setX1X2DD);
+static const taylorFunction x1x2(&::x1x2Prim);
+
 
 /*implement delta */
 static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
@@ -571,12 +594,22 @@ static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
   int i;
   for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
   secondDerive::setDelta(X,Z,DDh);
-  intervalToDouble(DDh,DD);
+  intervalToAbsDouble(DDh,DD);
   testAbs(DD,"setAbsDelta");
   return 1;
 }
 primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
 const taylorFunction taylorSimplex::delta(&::deltaPrimitive);
+
+/*implement vol_x */ 
+static interval one("1");
+static interval twelve("12");
+static taylorFunction f_twelth = taylorSimplex::y1 * (one/ twelve);
+primitiveC volXPrimitive
+ (&f_twelth,
+  &taylorSimplex::delta  , &taylorSimplex::unit, &taylorSimplex::unit,
+  &taylorSimplex::unit  , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::vol_x(&::volXPrimitive);
 
 /*implement dih1*/
 static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
@@ -603,7 +636,7 @@ static int setAbsDih2(const domain& x,const domain& z,double DD[6][6])
   interval h,Dh[6],DDh[6][6];
   outcome = secondDerive::setDih2(X,Z,s,Ds,DDs,h,Dh,DDh);
   if (!outcome) return outcome;
-  intervalToDouble(DDh,DD);
+  intervalToAbsDouble(DDh,DD);
   testAbs(DD,"setAbsDih2");
   return outcome;
 }
@@ -622,11 +655,33 @@ static int setDih3(const domain& x,const domain& z,double DD[6][6])
   interval h,Dh[6],DDh[6][6];
   outcome = secondDerive::setDih3(X,Z,s,Ds,DDs,h,Dh,DDh);
   if (!outcome) return outcome;
-  intervalToDouble(DDh,DD);
+  intervalToAbsDouble(DDh,DD);
   return outcome;
 }
 primitiveA dih3Primitive(linearization::dih3,setDih3);
 const taylorFunction taylorSimplex::dih3(&::dih3Primitive);
+
+/*implement dih4 : |- dih4_y y1 y2 y3 y4 y5 y6 = dih_y y4 y2 y6 y1 y5 y3 */ 
+primitiveC dih4Primitive
+(&taylorSimplex::dih,
+  &taylorSimplex::x4  , &taylorSimplex::x2, &taylorSimplex::x6,
+  &taylorSimplex::x1 , &taylorSimplex::x5, &taylorSimplex::x3);
+const taylorFunction taylorSimplex::dih4(&::dih4Primitive);
+
+/*implement dih5 : |- dih5_y y1 y2 y3 y4 y5 y6 = dih_y y5 y1 y6 y2 y4 y3 */
+primitiveC dih5Primitive
+(&taylorSimplex::dih,
+  &taylorSimplex::x5  , &taylorSimplex::x1, &taylorSimplex::x6,
+  &taylorSimplex::x2 , &taylorSimplex::x4, &taylorSimplex::x3);
+const taylorFunction taylorSimplex::dih5(&::dih5Primitive);
+
+/*implement dih6 : |- dih6_y y1 y2 y3 y4 y5 y6 = dih_y y6 y1 y5 y3 y4 y2 */
+primitiveC dih6Primitive
+(&taylorSimplex::dih,
+  &taylorSimplex::x6  , &taylorSimplex::x1, &taylorSimplex::x5,
+  &taylorSimplex::x3 , &taylorSimplex::x4, &taylorSimplex::x2);
+const taylorFunction taylorSimplex::dih6(&::dih6Primitive);
+
 
 /*implement azim*/
 static int setRhazim(const domain& x,const domain& z,double DD[6][6])
@@ -642,7 +697,7 @@ static int setRhazim(const domain& x,const domain& z,double DD[6][6])
   if (!outcome) return outcome;
   interval DDa[6][6];
   outcome = secondDerive::setRhazim(X[0],Z[0],h,Dh,DDh,DDa);
-  intervalToDouble(DDa,DD);
+  intervalToAbsDouble(DDa,DD);
   return outcome;
 }
 primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
@@ -662,7 +717,7 @@ static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
   if (!outcome) return outcome;
   interval DDa[6][6];
   outcome = secondDerive::setRhazim2(X[1],Z[1],h,Dh,DDh,DDa);
-  intervalToDouble(DDa,DD);
+  intervalToAbsDouble(DDa,DD);
   return outcome;
 }
 primitiveA rhazim2Primitive(linearization::rhazim2,setRhazim2);
@@ -682,12 +737,11 @@ static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
   if (!outcome) return outcome;
   interval DDa[6][6];
   outcome = secondDerive::setRhazim3(X[2],Z[2],h,Dh,DDh,DDa);
-  intervalToDouble(DDa,DD);
+  intervalToAbsDouble(DDa,DD);
   return outcome;
 }
 primitiveA rhazim3Primitive(linearization::rhazim3,setRhazim3);
 const taylorFunction taylorSimplex::rhazim3(&::rhazim3Primitive);
-
 
 /*implement sol*/
 static int setSol(const domain& x,const domain& z,double DD[6][6])
@@ -712,6 +766,33 @@ static int copy(double DD[6][6],const double sec[6][6])
 			  DD[i][j]=sec[i][j];
   return 1;
 }
+
+/* implement gchi (univariate) */ 
+// gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
+static interval i_gchi_c0("0.974990367692870754241952463595");
+static interval i_gchi_c1("0.124456752559607807811255454313");
+static univariate i_gchi = univariate::i_sqrt * i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
+/*implement gchi1_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x1) * dih_x x1 x2 x3 x4 x5 x6; */
+/*
+static primitive_univariate i_gchi1P(&::i_gchi, 0 );
+static primitive_univariate i_gchi2P(&::i_gchi, 1 );
+static primitive_univariate i_gchi3P(&::i_gchi, 2 );
+static primitive_univariate i_gchi4P(&::i_gchi, 3 );
+static primitive_univariate i_gchi5P(&::i_gchi, 4 );
+static primitive_univariate i_gchi6P(&::i_gchi, 5 );
+static taylorFunction i_gchi1(&::i_gchi1P);
+static taylorFunction i_gchi2(&::i_gchi2P);
+static taylorFunction i_gchi3(&::i_gchi3P);
+static taylorFunction i_gchi4(&::i_gchi4P);
+static taylorFunction i_gchi5(&::i_gchi5P);
+static taylorFunction i_gchi6(&::i_gchi6P);
+
+static primitiveC gchi1XPrim
+(&::x1x2,
+  &::i_gchi1  , &taylorSimplex::dih, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi1_x(&::gchi1XPrim);
+*/
 
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
@@ -1066,6 +1147,18 @@ static int epsilonClose(double x,interval y,double epsilon)
   return 1;
 }
 
+static int epsilonCloseDoubles(double x,double y,double epsilon)
+{
+  if (abs(y-x)>epsilon)
+    {
+      cout << "close-doubles : " << abs(y-x)
+	   << " " << x << " " << y << endl<< flush;
+      return 0;
+    }
+  return 1;
+}
+
+
 static int barelyLess(double x,double y,double epsilon)
 {
   if ((x>y)||(y>x+epsilon))
@@ -1373,6 +1466,68 @@ void taylorFunction::selfTest()
     for (int i=0;i<6;i++) if ((t.upperPartial(i)!=0)||(t.lowerPartial(i)!=0))
 			    cout << "unitp fails = " << t.upperPartial(i)<<" " << t.lowerPartial(i)<<endl;
   }
+
+  /* test volx */   {
+    
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.0661359356729956;
+    double mathValueD[6]={0.0716828019335723,0.06608105639401098,
+   0.05995821824611842,0.06249854471173341,0.05728761862842055,
+			       0.05155559993677649};
+    taylorInterval at = taylorSimplex::vol_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "volx  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "volx D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test dih4 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.1816295663326204;
+    double mathValueD[6]={0.1639579615001743,-0.04682400379844412,
+   -0.05202995747407655,0.050900945512886715,-0.04971942136745523,
+			  -0.0547966898177983};
+    taylorInterval at = taylorSimplex::dih4.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "dih4  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "dih4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test dih5 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.2130685583865823;
+    double mathValueD[6]={-0.04745584218563276,0.16581065263975656,
+   -0.05752859201151561,-0.050281240571535483,0.0540659685457473,
+			  -0.060113530960320245};
+    taylorInterval at = taylorSimplex::dih5.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "dih5  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "dih5 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test dih6 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.2471258394979472;
+    double mathValueD[6]={-0.05343065929090237,-0.05829075337080253,
+   0.16764287016855614,-0.05602822987514417,-0.06077778903656598,
+			  0.05718408426966532};
+    taylorInterval at = taylorSimplex::dih6.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "dih6  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "dih6 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
   
   /* test hasDeltaDenom */ {
     taylorFunction F1 = taylorSimplex::y1 + taylorSimplex::dih2;
@@ -1463,6 +1618,8 @@ void taylorFunction::selfTest()
       if (!epsilonClose(at.lowerPartial(i),bt.tangentVectorOf().Df[i],1.0e-12))
 	cout << "aDl fails " << i << endl;
     }
+
+
     
     lineInterval al = a.tangentAt(x);
     lineInterval bl = b.tangentAt(x);

@@ -57,16 +57,15 @@ class taylorInterval
 {
 public/* (for the moment) */:
   double DD[6][6];  // DD bounds on the abs. value of second partials.
-    domain w; // w[] are upper bounds on widths.
-    lineInterval tangentVector;
-    //int validDataFlag;
-    static taylorInterval plus
-		(const taylorInterval&,const taylorInterval&);
-	static taylorInterval scale
-		(const taylorInterval& t1,const interval& c);
+  domain w; // w[] are upper bounds on widths.
+  lineInterval tangentVector;
+  //int validDataFlag;
+  static taylorInterval plus
+    (const taylorInterval&,const taylorInterval&);
+  static taylorInterval scale
+    (const taylorInterval& t1,const interval& c);
 
 public:
-
 
 	//////////
 	// Taylor interval is a linear approximation at the expansion point of
@@ -124,11 +123,12 @@ double lowerPartial(int) const;
 taylorInterval(const lineInterval&, const domain&,
         const double [6][6]);
 
-
-// zero function of arbitrary width.
+	//////////
+        // zero function of arbitrary width.
+        //
 taylorInterval(domain w0);
 
- taylorInterval() {}; // dangerous.  Gives uninitialized values.
+taylorInterval() {}; // dangerous.  Gives uninitialized values.
 
 };
 
@@ -181,14 +181,14 @@ AUTHOR
 	
 	Thomas C. Hales
 */
+
 typedef tr1::unordered_map<void*,interval> mapPrim;
 
 class taylorFunction 
 {
 private:
 	int reduState;
-public: // private:
-	//details* X;
+public: 
 	mapPrim data;
 
 public:
@@ -213,39 +213,13 @@ taylorFunction operator*(const interval&) const;
       const taylorFunction&,const taylorFunction&,const taylorFunction&) const;
 */
 
-/*
-	//////////
-	// Constructor.  For advanced users: 
-	// the capacity refers to the number of distinct
-	// primitive functions occuring in the linear combination represented
-	// by the taylorFunction.  If in doubt, 
-	// use the default argument!
-	//
-taylorFunction(int capacity =0);
-*/
-
-
 	//////////
 	// taylorFunctions are built up from certain primitive functions.
 	// This is the constructor that converts a primitive function to
 	// a taylorFunction.
-	// The class primitive and this class is only used in the implementation
-	// details.  End-users can safely ignore this constructor.
 	//
-//taylorFunction(primitive&);
-
-
-//
-// a constructor from primitives.
-//
+        //
  taylorFunction::taylorFunction(void* p);
-
-
-	//////////
-	// This is the constructor that converts compositeData to 
-	// a taylorFunction.
-	//
- //taylorFunction(compositeData&);
 
 	//////////
 	// create a bitwise copy of a taylorFunction
@@ -336,12 +310,14 @@ public:
 	// dih,dih2,dih3, are the dihedral angles along the first
 	// three edges.
 	// sol is the solid angle of a simplex
+        // all of these are expressed in terms of the variables xi.
 	//
 	static const taylorFunction unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-	  delta,
-	  dih,dih2,dih3,sol,
-	  rhazim,rhazim2,rhazim3;
+	  delta,vol_x,sol,
+	  dih,dih2,dih3,dih4,dih5,dih6,
+	  rhazim,rhazim2,rhazim3,
+	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x;
 
 	//////////
 	// functions on an upright,flat,or quasiregular:

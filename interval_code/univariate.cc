@@ -319,11 +319,26 @@ static interval DDpow4(const interval& x) {
 
 univariate::univariate(const univariate& rhs)
 {
+  data.clear();
+  //cout << "debug : univariate construct " << endl << flush;
   for (mapType::const_iterator it = rhs.data.begin(); it!= rhs.data.end(); ++it)
       data[it->first]=it->second;
 }
 
-univariate::univariate(void* p) {
+
+/*
+univariate univariate::operator=(const univariate& rhs)
+{
+  data.clear();
+  //cout << "debug : univariate = " << endl << flush;
+  for (mapType::const_iterator it = rhs.data.begin(); it!= rhs.data.end(); ++it)
+      data[it->first]=it->second;
+}
+*/
+
+univariate::univariate(uniprimitive* p) {
+  //  cout << "debug : univariate primitive " << endl << flush;
+  data.clear();
   static interval one("1");
   data[p] = one;
 }
@@ -349,9 +364,7 @@ univariate univariate::operator*(const interval& x) const  {
   return a;
 }
 
-  univariate::~univariate() {};
-
-
+univariate::~univariate() {};
 
 interval univariate::eval(const interval& x, int n) const {
   interval t("0");
@@ -360,7 +373,6 @@ interval univariate::eval(const interval& x, int n) const {
   }
   return t;
 };
-
 
 const univariate univariate::i_pow0(&ppow0);
 const univariate univariate::i_pow1(&ppow1);
@@ -387,6 +399,7 @@ static int epsilonClose(double x,double y,double epsilon)
         }
     return 1;
     }
+
 
 static int epsilon3(double* f,const univariate & u) {
   interval x("0.21");
@@ -429,6 +442,9 @@ void univariate::selfTest()
 	univariate t = univariate::i_pow2 + univariate::i_atan * "3.4";
 	double td[3]= {0.7478734603473914,3.676393065798295,0.690082283655508};
 	        epsilon3(td,t);
+interval i_gchi_c0("0.974990367692870754241952463595");
+ interval i_gchi_c1("0.124456752559607807811255454313");
+ univariate i_gchi = univariate::i_sqrt * i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 	}
 
 

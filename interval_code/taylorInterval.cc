@@ -771,15 +771,14 @@ static int copy(double DD[6][6],const double sec[6][6])
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
 static interval i_gchi_c0("0.974990367692870754241952463595");
 static interval i_gchi_c1("0.124456752559607807811255454313");
-static univariate i_gchi = univariate::i_sqrt * i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
+univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 /*implement gchi1_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x1) * dih_x x1 x2 x3 x4 x5 x6; */
-/*
-static primitive_univariate i_gchi1P(&::i_gchi, 0 );
-static primitive_univariate i_gchi2P(&::i_gchi, 1 );
-static primitive_univariate i_gchi3P(&::i_gchi, 2 );
-static primitive_univariate i_gchi4P(&::i_gchi, 3 );
-static primitive_univariate i_gchi5P(&::i_gchi, 4 );
-static primitive_univariate i_gchi6P(&::i_gchi, 5 );
+static primitive_univariate i_gchi1P(::i_gchi, 0 );
+static primitive_univariate i_gchi2P(::i_gchi, 1 );
+static primitive_univariate i_gchi3P(::i_gchi, 2 );
+static primitive_univariate i_gchi4P(::i_gchi, 3 );
+static primitive_univariate i_gchi5P(::i_gchi, 4 );
+static primitive_univariate i_gchi6P(::i_gchi, 5 );
 static taylorFunction i_gchi1(&::i_gchi1P);
 static taylorFunction i_gchi2(&::i_gchi2P);
 static taylorFunction i_gchi3(&::i_gchi3P);
@@ -792,7 +791,7 @@ static primitiveC gchi1XPrim
   &::i_gchi1  , &taylorSimplex::dih, &taylorSimplex::unit,
   &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::gchi1_x(&::gchi1XPrim);
-*/
+
 
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])

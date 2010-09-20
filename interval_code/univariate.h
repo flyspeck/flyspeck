@@ -35,15 +35,15 @@ AUTHOR
 	Thomas C. Hales
 */
 
+class uniprimitive;
 
-typedef tr1::unordered_map<void*,interval> mapType;
+typedef tr1::unordered_map<uniprimitive*,interval> mapType;
+
 
 class univariate
 {
- public: // for now
+public: // for now
   mapType data;
-
-
 
 public:
 
@@ -62,12 +62,12 @@ univariate operator*(const interval&) const;
 	//
 univariate(const univariate&);
 
- univariate(void* ) ;
+univariate(uniprimitive* ) ;
 
 	//////////
 	// assignment of a univariate
 	//
-univariate& operator=(const univariate& f);
+//univariate operator=(const univariate& f);
 
 	//////////
 	// Deallocate memory:

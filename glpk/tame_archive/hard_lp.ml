@@ -158,6 +158,20 @@ let face_of_dart fc bb =
   let xss = map triples (faces bb) in
   nth (find (fun t -> mem fc t) xss) 0;;
 
+let add_hints_force bb = 
+  try(
+    let _ = init_hash bb in
+  let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri bb)) in 
+  let f = face_of_dart dart bb in
+  if not(mem f (bb.std3_big @ bb.std3_small)) then bb.hints <-  [Triangle_split f] else
+  let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
+  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
+    let f2 = intersect (highish bb) f in
+  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else
+    let d1 = subtract (rotation [dart]) (bb.d_edge_200_225 @ bb.d_edge_225_252) in
+  if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
+  ) with Failure _ -> failwith "add_hints";;
+
 let add_hints_force_include_flat bb = 
   try(
     let _ = init_hash bb in
@@ -318,6 +332,8 @@ let sortbb bbs =
   let eval bb = (match bb.lpvalue with None -> 0.0 | Some r -> r) in
   let v = List.sort (fun a b -> - compare (eval a) (eval b)) bbs in
    v;;
+
+
 
 (* One iteration of the main loop *)
 

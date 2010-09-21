@@ -1,0 +1,49 @@
+(*
+People who are working on the later chapters may use results from earlier chapters.  Suppose I want to use
+GLTVHUM_concl from the file pack/pack_concl.hl before it has been proved.
+
+First, create a new definition:
+let GLTVHUM_concl = mk_eq (`GLTVHUM_concl:bool`,Pack_concl.GLTVHUM_concl);;
+
+Then use it:
+let mylemma = prove (`GLTVHUM_concl ==>  RiemannHypothesis`,AMAZING_TAC);;
+
+*)
+
+(* lemma about sup of function on finite set *)
+let let finite_num_func_attain_max = 
+prove_by_refinement(
+`! (S:A->bool) (f:A->num). FINITE S /\ ~ (S = {}) 
+     ==> (? x. x IN S /\ (! y. y IN S ==> f y <= f x))`,
+[
+  (REPEAT STRIP_TAC);
+
+(* subgoal 1 *)
+  (SUBGOAL_THEN 
+` FINITE (IMAGE (& o(f:A->num)) (S:A->bool)) /\ ~ (IMAGE (& o f) S = {})`
+ASSUME_TAC);
+  CONJ_TAC;
+(* subgoal 1.1 *)
+  (ASM_SIMP_TAC[FINITE_IMAGE]);
+(* subgoal 2.1 *)
+  (ASM_SIMP_TAC[NOT_EMPTY_IMAGE]);
+
+  (FIRST_ASSUM(MP_TAC o (MATCH_MP SUP_FINITE)));
+  (CONV_TAC(PAT_CONV `\k. _ IN k /\ _ ==> _` (REWRITE_CONV[IMAGE])));
+  (PURE_REWRITE_TAC[IN_ELIM_THM]);
+  STRIP_TAC;
+  (EXISTS_TAC `x:A`);
+  (ASM_SIMP_TAC[]);
+  (REPEAT STRIP_TAC);
+  (FIRST_X_ASSUM(MP_TAC o SPEC ` (& o (f:A->num)) y`));
+
+(* subgoal 2 *)
+  (SUBGOAL_THEN ` (& o (f:A->num)) y IN IMAGE (& o f) S` ASSUME_TAC);
+  (PURE_REWRITE_TAC[IMAGE;IN_ELIM_THM]);
+  (EXISTS_TAC `y:A` THEN ASM_SIMP_TAC[]);
+
+    (ASM_SIMP_TAC[o_THM; REAL_OF_NUM_LE]);
+]);;
+
+
+

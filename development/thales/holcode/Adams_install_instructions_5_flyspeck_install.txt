@@ -1,0 +1,501 @@
+INSTALLING FLYSPECK PROGRAMS
+============================
+
+INTRODUCTION
+
+This file explains the procedure for setting up a Linux computer with all the
+programs needed for working on the text formalisation part of the Flyspeck
+project.  The main programs used are:
+   HOL Light  - the theorem prover used in the Flyspeck text formalisation
+   OCaml      - the ML interpreter used by HOL Light
+   DMTCP      - a utility used for freezing HOL Light state
+   xpp        - a simple interactive command line GUI used with HOL Light
+   Subversion - a utility used for managing the Flyspeck file repository
+
+It may seem quite daunting to have the prospect of following a 12-step
+procedure for installing the programs.  However, each step is fully explained
+and relatively quick and easy to follow.  Also, some substeps or even entire
+steps can be missed out, depending on your setup.
+
+The time taken to follow the procedure should be:
+- 30-45 mins for everything other than downloading files & HOL Light processing
+- 10-200 mins for downloading (depending on connection speed)
+- 20-100 mins for HOL Light processing (depending on processor speed)
+The overall downloading time can be reduced by around 10-20% by using a USB
+stick with the manually downloaded files already on it, instead of manually
+downloading files from websites.
+
+Lines beginning with ">$" or ">#" refer to commands that should be entered at
+a terminal window.  Remember that (as with all Unix-like operating systems)
+Linux is case-sensitive, and so commands must be entered precisely as they
+appear below.  Angled brackets ("<" and ">", for example "<version>") are used
+to denote text that should be determined by the user.  If any operation fails,
+seek advice rather than try to fix it.
+
+Lines beginning with ">$" should be entered by the normal user, and those with
+">#" by the 'root' user.  Type "su" at a terminal window to log in as root, and
+"exit" to log out.  It is necessary to switch between root user and normal user
+several times during the installation process.  It's best to keep one terminal
+window logged in as root, and another logged in as normal user.
+
+STEP 1: DISABLE SELINUX (Fedora only)
+
+SELinux gives Linux an extra level of security: it stops processes from working
+if it thinks things look suspicious.  However, it needs to be disabled to enable
+checkpointing to work reliably.  This is hardly putting your computer at risk,
+because even without SELinux, Linux is considerably more secure than any Windows
+OS.
+
+a) Edit the file '/etc/selinux/config' (as root):
+      ># gedit /etc/selinux/config &
+
+   Change the line setting 'SELINUX':
+   - change it from "SELINUX=enforcing" to "SELINUX=disabled"
+
+b) Reboot your computer.
+
+STEP 2: CREATE SOME DIRECTORIES
+
+We are going to install DMTCP, OCaml and xpp in centralised directories that can
+be accessed by any user.  In the future, it may be useful to switch between
+different versions of these tools.  So we now create holding directories for
+each of these programs, and a 'bin' directory in the your home directory for
+links to each program's 'bin' directory.  Directories are also needed for
+storing downloaded package files and for each user's Flyspeck working material.
+
+a) Create the centralised program installation directories (as root):
+      ># mkdir /usr/programs
+      ># mkdir /usr/programs/dmtcp
+      ># mkdir /usr/programs/ocaml
+      ># mkdir /usr/programs/pp
+      ># mkdir /usr/programs/hollight
+
+b) Ensure that a 'bin' directory exists in your home directory (both as user and
+   as root).
+      >$ ls -d /home/<user>/bin
+      ># ls -d /root/bin
+
+   If the 'bin' directory doesn't exist, then create it (both as user and as
+   root):
+      >$ mkdir /home/<user>/bin
+      ># mkdir /root/bin
+
+c) Check that your home 'bin' directory is in your execution path (both as user
+   and as root).
+      >$ echo $PATH
+      ># echo $PATH
+
+   If '/home/<user>/bin' (for user) or '/root/bin' (for root) doesn't occur in
+   the ':'-separated list, then add it in the respective '.bash_profile' file:
+
+   Fedora:
+
+   1) Edit the '.bash_profile' file in the respective home directory to add the
+      home 'bin' directory to the execution path (as user or as root):
+         >$ gedit /home/<user>/.bash_profile &
+         ># gedit /root/.bash_profile &
+
+      If the '.bash_profile' file doesn't already exist, then edit it as a new
+      file and put this at the top:
+          if [ -f ~/.bashrc ]
+          then
+            . ~/.bashrc
+          fi
+
+      Add the following line to the end of '.bash_profile' file:
+          PATH=$PATH:~/bin
+
+   2) Execute '.bash_profile' in the respective terminal windows you are using
+      for installation (for user and for root):
+         >$ source /home/<user>/.bash_profile
+         ># source /root/.bash_profile
+
+   Ubuntu:
+
+   1) Edit the '.bashrc' file in the respective home directory to add the home
+      'bin' directory to the execution path (as user or as root):
+         >$ gedit /home/<user>/.bashrc &
+         ># gedit /root/.bashrc &
+
+      Add the following line to the end of '.bashrc' file:
+          PATH=$PATH:~/bin
+
+d) Create the directory for manually downloaded package files (as root):
+      Fedora: ># mkdir /root/rpms
+      Ubuntu: ># mkdir /root/debs
+
+e) Create the user Flyspeck directory (as user):
+      >$ mkdir /home/<user>/flyspeck
+
+STEP 3: INSTALL MAKE
+
+The 'make' program is a basic Unix command commonly used in manual installation,
+but for some reason it's not bundled with some Linux distributions.
+
+a) Auto-install the 'make' package (as root):
+      Fedora: ># yum install make
+      Ubuntu: ># apt-get install make
+
+STEP 4: INSTALL DMTCP CHECKPOINTING
+
+DMTCP checkpointing is a utility for freezing the state of a process.  We use it
+for freezing an OCaml session, so that we can use HOL Light without having to
+rebuild from scratch each time.  Unfortunately DMTCP does not always work
+reliably across all operating systems, however some combinations of operating
+system and DMTCP have been found to work reliably:
+   Fedora: use version 1.1.1 (works reliably on Fedora Core 10)
+   Ubuntu: use version 1.1.2 (can(!) work reliably on Ubuntu 9.10)
+
+a) Change to the DMTCP directory:
+      ># cd /usr/programs/dmtcp
+
+b) Manually download the source from the website at:
+       http://dmtcp.sourceforge.net
+
+   Unpack it into '/usr/programs/dmtcp/dmtcp-<version>' directory (as root):
+      ># tar -xzf <dir>/dmtcp_<version>.tar.gz
+      ># mv dmtcp_<version> dmtcp-<version>
+
+c) Auto-install some dependent packages (as root):
+      Fedora: ># yum install patch gcc-c++ glibc-static
+      Ubuntu: ># apt-get install patch g++ glibc-dev  [Dat: glibc-dev exists?]
+
+d) Install (as root):
+      ># cd dmtcp-<version>
+      ># ./configure
+      ># make
+      ># make check
+          - the first test must pass (it's ok for subsequent tests to fail)
+          - seek advice if the first test fails
+
+e) Set the version of DMTCP that you use to this version (as user):
+      >$ vm dmtcp <version>
+
+STEP 5: INSTALL OCAML
+
+OCaml is the ML interpreter needed for HOL Light.  Any recent version will do,
+from 3.08 to 3.11.
+
+a) Change to the OCaml directory:
+      ># cd /usr/programs/ocaml
+
+b) Manually download the source from the website at:
+       http://caml.inria.fr
+
+   Unpack it into '/usr/programs/ocaml/ocaml-<version>' directory (as root):
+      ># tar -xzf <dir>/ocaml-<version>.tar.gz
+
+c) Install (as root):
+      ># cd ocaml-<version>
+      ># ./configure -prefix `pwd`
+      ># make world
+      ># make bootstrap
+      ># make bootstrap             (repeated)
+      ># make opt
+      ># make opt.opt
+      ># make install
+      ># make clean
+
+d) Set the version of OCaml that you use to this version (as user):
+      >$ vm ocaml <version>
+
+STEP 6: INSTALL CAMLP5 (if using OCaml 3.10 or later)
+
+Camlp5 is needed for HOL Light if using OCaml 3.10 or later.  Make sure OCaml is
+already installed (Step 5) before installing this.  Files are created that get
+put into the current OCaml 'bin' directory.
+
+a) Change to the OCaml directory:
+      ># cd /usr/programs/ocaml
+
+b) Manually download the source from the website at:
+       http://pauillac.inria.fr/~ddr/camlp5/
+
+   Unpack it into '/usr/programs/ocaml/camlp5-<version>' directory (as root):
+      ># tar -xzf <dir>/camlp5-<version>.tgz
+
+c) Temporarily add the OCaml 'bin' directory to the execution path (as root):
+      ># PATH=/usr/programs/ocaml/ocaml-<version>/bin:$PATH
+
+d) Install (as root):
+      ># cd camlp5-<version>
+      ># ./configure
+      ># make world.opt
+      ># make install
+
+e) Set again the version of OCaml that you use to incorporate Camlp5 (as user):
+      >$ vm ocaml <version>
+
+STEP 7: INSTALL ALIEN (Ubuntu only)
+
+Alien is a utility for converting RPM package files into Deb package files. 
+This is needed for getting the right version of OpenMotif in Ubuntu.
+
+a) Auto-install the following package (as root):
+      Ubuntu: ># apt-get install alien
+
+STEP 8: INSTALL OPENMOTIF
+
+Motif is the interactive GUI platform used by 'xpp', and OpenMotif is the most
+reliable implementation of Motif.  Versions 2.3.1-1 or 2.3.2-1 of OpenMotif are
+required, because cut & paste doesn't work before 2.3.1-1, and 'xpp' appears to
+have problems with version 2.3.2-5.
+
+For Fedora, we cannot auto-install OpenMotif because we do not want the latest
+version (2.3.2-5), so instead we manually install from .rpm package files.  For
+Ubuntu, we cannot even use original .deb package files, because they only exist
+for versions earlier than 2.3.1-1, so instead we download .rpm package files and
+convert them using Alien.
+
+a) Change to the '/root/rpms' directory:
+      ># cd /root/rpms
+
+b) Manually download the OpenMotif .rpm package files from the website at:
+       http://www.motifzone.net/filebrowser/openmotif
+   - need the 'openmotif' and 'openmotif-devel' packages
+   - navigate to version 2.3.1-1 or 2.3.2-1, and then:
+   - the files are named <package>-<version>.<os>.<arch>.<format>
+   - Fedora: choose for 'fc' operating system <= your Fedora version (e.g. fc9)
+   - Ubuntu: choose for any operating system (preferably 'fc')
+   - choose for 'i386' architecture and for .rpm file format
+   - choose identical versions for 'openmotif' and 'openmotif-devel'
+
+   Move the .rpm files into the '/root/rpms' directory (as root):
+      ># mv <dir>/openmotif-<version>.<os>.i386.rpm .
+      ># mv <dir>/openmotif-devel-<version>.<os>.i386.rpm .
+
+c) Auto-install a dependent package (as root):
+      Fedora: ># yum install libXp
+      Ubuntu: ># apt-get install libxp        [Dat: should this be libxp-dev?]
+
+Fedora:
+
+d) Manually install the .rpm package files:
+      ># rpm -i openmotif-<version>.<os>.i386.rpm
+      ># rpm -i openmotif-devel-<version>.<os>.i386.rpm
+
+   This completes Step 8 for Fedora.
+
+Ubuntu:
+
+d) Create .deb package files from the .rpm package files.  To do this, first
+   find out what architecture your Linux Kernel is for:
+      ># uname -m
+
+   If the architecture is 'lpia', then:
+   
+   1) Use 'alien' to generate intermediate conversion directories:
+         ># alien -g openmotif-<version>.<os>.i386.rpm
+         ># alien -g openmotif-devel-<version>.<os>.i386.rpm
+
+   2) Edit the 'debian/control' file in the resulting directories:
+         ># gedit openmotif-<version>/debian/control
+         ># gedit openmotif-devel-<version>/debian/control
+
+      Change each file's "Architecture: i386" line to "Architecture: lpia"
+
+   3) Complete the Alien conversion by doing the following:
+         ># cd openmotif-<version>
+         ># debian/rules binary
+         ># cd ../openmotif-devel-<version>
+         ># debian/rules binary
+         ># cd ..
+
+   4) Clean up '/root/rpms' directory by deleting the conversion directories:
+         ># rm -r openmotif-<version> openmotif-<version>.orig
+         ># rm -r openmotif-devel-<version> openmotif-devel-<version>.orig
+
+   If the architecture is 'generic' or 'i686', then:
+
+   1) Use Alien to convert the .rpm files to .deb files (as root):
+         ># alien -d openmotif-<version>.<os>.i386.rpm
+         ># alien -d openmotif-devel-<version>.<os>.i386.rpm
+
+e) Manually install the resulting .deb package files (as root):
+      ># dpkg -i --force-all openmotif_<version>.<os>_<arch>.deb
+      ># dpkg -i --force-all openmotif-devel_<version>.<os>_<arch>.deb
+
+STEP 9: INSTALL XPP
+
+'xpp' is a nice, simple GUI for interactive theorem proving.  It comes bundled
+with ProofPower (another HOL theorem prover), but there is no need to install
+the whole of ProofPower.  Version 2.8.1 or later is required for a good GUI.
+Make sure Motif is already installed (Step 8) before installing 'xpp'.
+
+a) Change to the ProofPower directory:
+      ># cd /usr/programs/pp
+
+b) Manually download the ProofPower source from the website at:
+       http://www.lemma-one.com
+
+   Unpack it into '/usr/programs/pp/pp-<version>' directory (as root):
+      ># tar -xzf <dir>/OpenProofPower-<version>.tgz
+      ># mv OpenProofPower-<version> pp-<version>
+
+c) Auto-install some dependent packages (as root):
+      Fedora: ># yum install libXt-devel libXp-devel libXmu-devel
+              ># yum install texlive-latex
+              ># yum install xorg-x11-fonts-misc
+      Ubuntu: ># apt-get install groff
+              ># apt-get install libxt-dev libxp-dev libxmu-dev
+              ># apt-get install texlive-latex-base texlive-generic-recommended
+
+d) Install just xpp (as root):
+      ># cd pp-<version>
+      ># PPTARGETS="xpp" PPHOME=`pwd` ./configure
+      ># ./install
+
+e) Edit the 'XppKeyboard' file in the 'app-defaults' directory (as root):
+      ># gedit app-defaults/XppKeyboard &
+
+   Remove the following key mapping lines:
+       Ctrl <Key>g : execute("print_current_goal();\n")\n\
+       Ctrl <Key>r : execute("redo ();\n")\n\
+       Ctrl <Key>u : execute("undo 1;\n")\n\
+
+   Change the following key mapping lines:
+       Ctrl <Key>; : execute(";;\n")\n\
+       Ctrl <key>p : execute("p ();;\n")\n\
+       Xpp*command.semicolon.acceleratorText: 			Ctrl-;;
+       Xpp*command.execute-selection.acceleratorText:		Ctrl-Enter
+
+   Add the following key mapping line:
+       Ctrl <key>b : execute("b ();;\n")\n\
+
+f) Edit the 'Xpp' file in the 'app-defaults' directory (as root):
+      ># gedit app-defaults/Xpp &
+
+   Remove the following lines from the Command Line Tool list:
+       print_current_goal();\n\
+       print_status();\n\
+       save_and_quit();\n\
+       undo 1;
+
+g) Set the version of xpp that you use (as user):
+      >$ vm pp <version>
+
+h) Test that 'xpp' works (as user):
+      >$ xpp
+
+   If you get an error window saying this:
+       "An error was detected while setting up the templates tool."
+   then remove all information from the 'XppTemplates' file in 'apt-defaults':
+      ># gedit app-defaults/XppTemplates &
+   Deleting all lines following "Xpp*templates:"
+
+STEP 10: INSTALL EMACS
+
+Emacs is a commonly used GUI for interactive theorem proving.  Some people may
+prefer it to 'xpp'.
+
+a) Auto-install the following package (as root):
+      Fedora: ># yum install emacs
+      Ubuntu: ># apt-get install emacs
+
+STEP 11: INSTALL SUBVERSION
+
+The Flyspeck files are under Subversion control, and Subversion can be used
+locally for easily downloading the latest files en masse.
+
+a) Auto-install the following package (as root):
+      Fedora: ># yum install subversion
+      Ubuntu: ># apt-get install subversion
+
+STEP 12: INSTALL HOL LIGHT (as root/user)
+
+HOL Light is the main Flyspeck theorem prover.  The current version required for
+Flyspeck is a development snapshot dated 24th August 2009.
+
+a) As root, change to the HOL Light directory:
+      ># cd /usr/programs/hollight
+
+b) Manually download the source from the website at:
+       http://code.google.com/p/flyspeck/wiki/InstallHolLight
+
+   Unpack it into 'flyspeck/hollight/hollight-<version>' directory (as root):
+      ># tar -xzf <dir>/hol_light_<version>.tgz
+      ># mv hol_light hollight-<version>
+
+c) Make some adjustments to the HOL Light version directory (as root):
+
+   First, change to the HOL Light directory:
+      ># cd /usr/programs/hollight/hollight-<version>
+
+   Change the ownership of all files to 'root':
+      ># chown -R root.root *
+
+   Create the 'pa_j.cmo' file to set up HOL Light's variant ML lex:
+      ># make
+
+   Manually edit the HOL Light version number in the source code:
+      ># xpp hol.ml
+      - change the following line from 
+           let hol_version = "2.20++";;
+        to
+           let hol_version = "<version>";;
+
+   Create a subdirectory for checkpointed files, giving everyone write access:
+      ># mkdir checkpoint
+      ># chmod a+w checkpoint
+
+   Make sure you stay in the HOL Light directory as root.
+
+d) As user, in a separate terminal window, install the base HOL Light system:
+
+   Change to the newly created HOL Light 'checkpoint' directory:
+      >$ cd /usr/programs/hollight/hollight-<version>
+
+   Set the HOL Light directory environment variable:
+      >$ HOLLIGHT_DIR=`pwd`
+      >$ export HOLLIGHT_DIR
+
+   Change to the newly created HOL Light 'checkpoint' directory:
+      >$ cd checkpoint
+
+   Build HOL Light using DMTCP checkpointing to freeze state.
+      >$ xpp -c dmtcp_checkpoint ocaml
+      - enter the following line in the xpp OCaml session:
+             (note that to enter text, type the text in the upper window, select
+              it and press Ctrl-Enter)
+           #use "/usr/programs/hollight/hollight-<version>/hol.ml";;
+      ... this can take around 2 to 8 minutes, depending on your hardware
+
+   Checkpoint the OCaml session and preserve the resulting file: 
+      >$ dmtcp_command --checkpoint
+      ... wait for 5 seconds until feedback appears in the lower xpp window
+      >$ rm dmtcp_restart_script.sh
+      >$ cp -p ckpt_ocamlrun*.dmtcp hol.dmtcp
+
+   Incorporate more files into the existing OCaml session:
+      - enter the following lines in the xpp OCaml session:
+           loads "Multivariate/flyspeck.ml";;
+      ... this can take around 15 minutes to 1 hour, depending on your hardware
+
+   Checkpoint the OCaml session and preserve the resulting file: 
+      >$ dmtcp_command --checkpoint
+      ... wait 10 or 20 seconds until feedback appears in the lower xpp window
+      >$ rm dmtcp_restart_script.sh
+      >$ cp -p ckpt_ocamlrun*.dmtcp flyspeck_hollight.dmtcp
+
+   Quit xpp.
+
+   Give the running checkpointing file a shorter name:
+      >$ mv ckpt_ocamlrun*.dmtcp current.dmtcp
+
+e) Back as root, create a HOL Light 'bin' directory, and executables file for
+   directly accessing the checkpointed versions of HOL Light:
+      ># mkdir bin
+      ># gedit bin/hollight &
+      - put the following lines into the file and save:
+          exec dmtcp_restart \
+             /usr/programs/hollight/hollight-<version>/checkpoint/hol.dmtcp
+      ># gedit bin/flyspeck_hollight &
+      - put the following lines into the file and save:
+          exec dmtcp_restart \
+    /usr/programs/hollight/hollight-<version>/checkpoint/flyspeck_hollight.dmtcp
+
+   Give everyone execution access to these files:
+      ># chmod a+x bin/*
+
+f) Set the version of HOL Light that you use (as user):
+      >$ vm hollight <version>

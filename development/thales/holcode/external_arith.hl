@@ -1,0 +1,119 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* External Rational Number Operations                                                    *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2010-09-17                                                           *)
+(* ========================================================================== *)
+
+
+type mixed_term = 
+  | Ocaml_num of num
+  | Ocaml_real of num
+  | Hol_light of bool*term;; (* true if changed *)
+
+(*
+type num =
+|	Int of int
+|	Big_int of Big_int.big_int
+|	Ratio of Ratio.ratio ///;;
+
+let internalize_bool = function
+  |  true -> `T`
+  |  false -> `F`;;
+*)
+
+let realize = 
+  let amp = `real_of_num` in
+   fun x -> mk_comb (amp,x);;
+
+let real_of_rat  = 
+  let real_div = `real_div` in
+  let quot n d = mk_binop real_div (realize n) (realize d) in
+    fun x -> 
+      let n = mk_numeral(Big_int (Ratio.numerator_ratio x)) in
+      let d = mk_numeral(Big_int (Ratio.denominator_ratio x)) in 
+	quot n d;;
+
+let term_of_mixed = 
+    function
+  | Ocaml_real a -> 
+      (match a with
+	| Big_int _ -> realize(mk_numeral a)
+        | Int x -> realize (mk_small_numeral x)
+	| Ratio x -> real_of_rat x)
+  | Ocaml_num a -> 
+      (match a with
+	| Big_int _ ->(mk_numeral a)
+        | Int x ->  (mk_small_numeral x)
+	| Ratio _ -> failwith "unnatural quotient")
+  | Hol_light (changed,t) -> t;;
+
+let dest_binop_from oplist t = 
+  let (h,y)= dest_comb t in
+  let (op,x) = dest_comb h in
+    if (mem op oplist) then (op,x,y) else failwith "op not found";;
+
+let zero  = Int 0;;
+
+let one = Int 1;;
+
+let num_trunc_minus x y =  if ( y >/ x) then zero else x -/ y;;
+
+let rat_div x y = if (y =/ zero) then zero else (x // y);;
+
+let rat_inv x = if (x =/ zero) then zero else (one // x);;
+
+let mk_cty ty = map (fun (a,b)-> (mk_mconst(a,ty),b));;
+
+(*
+let real_rels = mk_cty `:real->real->bool` 
+ ["real_lt";"real_le";"=";"real_ge";"real_gt"];;
+
+let num_rels = mk_cty `:num->num->bool`
+  ["<=";"<";"=";">=";">="];;
+*)
+
+let real_binop = mk_cty `:real->real->real`
+ [("real_add",( +/ ));("real_sub", ( -/ ));("real_mul", ( */ ));("real_div",rat_div)];;
+
+let num_binop = mk_cty `:num->num->num`
+ [("+",( +/ ));("-",num_trunc_minus);("*", ( */ ))];;
+
+let dec_op = mk_cty `:num->num->real`
+ [("DECIMAL",( // ))];;
+
+let numeral_op = mk_cty `:num->real` ["real_of_num",I];;
+
+let real_unary = mk_cty `:real->real` [("real_neg",minus_num);("real_inv",rat_inv)];;
+
+(*
+let lift (a,b) x  = function;;
+*)
+
+let rec mixed_of_term arith = function
+  | Var _ as u -> Hol_light (false,u)
+  | Const _ as u -> Hol_light (false,u)
+  | Abs(x,t) as u -> let t' = mixed_of_term false t in
+      (match t' with
+	 | Hol_light (false,_) -> Hol_light (false,u)
+	 | _ -> Hol_light (true,mk_abs(x, term_of_mixed t')))
+(*
+  | Const (h,y) as u -> Hol_lightu;;
+      if (is_const h) 
+*)
+;;
+
+type_of `DECIMAL`;;
+type_of `3`;;
+let mixedalize t = t;;
+
+mk_numeral;;    
+Int 3;;
+
+Int 3;;
+
+let v = Int 3 // Int 4;;
+let rec sqx n v = if (n = 0) then Int 1 else if (n=1) then v else (sqx (n-1) v)*/ (sqx (n-1) v);;
+
+let vv = sqx 10 v;;

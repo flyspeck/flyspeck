@@ -567,11 +567,11 @@ const taylorFunction taylorSimplex::y6(&::Y6);
 /*implement x1*x2 */
 static lineInterval lineX1X2(const domain& x)
 {
-  static const interval one("1");
+  //static const interval one("1");
   lineInterval h(interval(x.getValue(0),x.getValue(0)) * 
 		 interval(x.getValue(1),x.getValue(1)));
-  h.Df[0]=one;
-  h.Df[1]=one;
+  h.Df[0]= interval(x.getValue(1),x.getValue(1));
+  h.Df[1]= interval(x.getValue(0),x.getValue(0));
   return h;
 }
 static int setX1X2DD(const domain& ,const domain& ,double DD[6][6])
@@ -767,6 +767,8 @@ static int copy(double DD[6][6],const double sec[6][6])
   return 1;
 }
 
+
+
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
 static interval i_gchi_c0("0.974990367692870754241952463595");
@@ -791,6 +793,36 @@ static primitiveC gchi1XPrim
   &::i_gchi1  , &taylorSimplex::dih, &taylorSimplex::unit,
   &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::gchi1_x(&::gchi1XPrim);
+
+static primitiveC gchi2XPrim
+(&::x1x2,
+  &::i_gchi2  , &taylorSimplex::dih2, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi2_x(&::gchi2XPrim);
+
+static primitiveC gchi3XPrim
+(&::x1x2,
+  &::i_gchi3  , &taylorSimplex::dih3, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi3_x(&::gchi3XPrim);
+
+static primitiveC gchi4XPrim
+(&::x1x2,
+  &::i_gchi4  , &taylorSimplex::dih4, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi4_x(&::gchi4XPrim);
+
+static primitiveC gchi5XPrim
+(&::x1x2,
+  &::i_gchi5  , &taylorSimplex::dih5, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi5_x(&::gchi5XPrim);
+
+static primitiveC gchi6XPrim
+(&::x1x2,
+  &::i_gchi6  , &taylorSimplex::dih6, &taylorSimplex::unit,
+  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
+const taylorFunction taylorSimplex::gchi6_x(&::gchi6XPrim);
 
 
 /*implement eta2_126*/
@@ -1157,6 +1189,13 @@ static int epsilonCloseDoubles(double x,double y,double epsilon)
   return 1;
 }
 
+  /* from univariate.cc */
+    static int epsilon3(double* f,const univariate & u) {
+      interval x("0.21");
+      for (int i=0;i<3;i++) {
+	epsilonCloseDoubles(f[i],interMath::sup(u.eval(x,i)),1.0e-8);
+      }
+    }
 
 static int barelyLess(double x,double y,double epsilon)
 {
@@ -1482,6 +1521,97 @@ void taylorFunction::selfTest()
     }
   }
 
+  /* test gchi1_x */   {
+      double gchid[3]={1.0320236166281522,0.135793449845905,-0.32331773772834516};
+      epsilon3(gchid,::i_gchi);
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.4921173443920384;
+      double mathValueD[6]={0.10048454642157742,-0.06477906444011666,
+			    -0.07123930364273548,0.19419644576045844,-0.05557999884990159,
+			    -0.06189373946233846};
+    taylorInterval at = taylorSimplex::gchi1_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi1  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test gchi2_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.5340569117310174;
+      double mathValueD[6]={-0.06572752258736782,0.10500885807170765,
+   -0.07824003437923059,-0.056271683063299445,0.19703975945664476,
+   -0.06851228454381249};
+    taylorInterval at = taylorSimplex::gchi2_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test gchi3_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.5793842997093803;
+      double mathValueD[6]={-0.07331727287522762,-0.07936025924977397,
+   0.1095205207388263,-0.06342330577935136,-0.06934245768731484,
+			    0.19986093458496015};
+    taylorInterval at = taylorSimplex::gchi3_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi3  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi3 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test gchi4_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.4605568345059332;
+      double mathValueD[6]={0.20266073908760945,-0.05787695290919818,
+   -0.06431178785046088,0.09797074520733327,-0.06145584263882206,
+			    -0.06773161581432371};
+    taylorInterval at = taylorSimplex::gchi4_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi4  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test gchi5_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.502995593710665;
+      double mathValueD[6]={-0.05879793125270706,0.205439897510248,
+   -0.07127809859377435,-0.06229860835387361,0.10257294591611826,
+			    -0.07448084572888418};
+    taylorInterval at = taylorSimplex::gchi5_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi5  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi5 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test gchi6_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=1.5488309766758375;
+      double mathValueD[6]={-0.06635662384100449,-0.07239247365030564,
+   0.20819909435958153,-0.06958259964677825,-0.07548117388987628,
+			    0.10720235004689033};
+    taylorInterval at = taylorSimplex::gchi6_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gchi6  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "gchi6 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
   /* test dih4 */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue=1.1816295663326204;

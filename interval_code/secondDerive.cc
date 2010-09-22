@@ -821,6 +821,118 @@ int secondDerive::setDelta(const double x[6],const double z[6],interval DDf[6][6
 	return 1;
 	}
 
+// Moved from 3d.cc:
+/* An interval bound on the second derivatives D[eta^2(x,y,z),{x,2}].
+ D[..,{x,2}] = -2 y z *
+  (x^3 - 3*x*y^2 + 2*y^3 + 6*x*y*z - 2*y^2*z - 3*x*z^2 - 2*y*z^2 + 2*z^3)/
+	UU[x,y,z]^3. */
+static interval eta2xx(double x[3],double z[3])
+	{
+	interMath::down();
+	double umin = (-z[0])*z[0] + 2.0*x[0]*x[1] +(-z[1])*z[1] +2.0*x[0]*x[2] 
+		+2.0*x[1]*x[2] + (-z[2])*z[2];
+	if (umin<0.0) umin=0.0;
+	double umin3 = umin*umin*umin;
+	// cout << umin3 << endl;
+	double nmin =  x[0]*x[0]*x[0]  
+		+ 2.0*x[1]*x[1]*x[1] + 6.0*x[0]*x[1]*x[2] 
+		+ 2.0*x[2]*x[2]*x[2]
+		+3.0*(((-z[0])*z[1])*z[1]) +3.0*(((-z[0])*z[2])*z[2])
+		+ 2.0*(((-z[2])*z[1])*z[1]) + 2.0*((-z[2]*z[1])*z[2]);
+	// cout << nmin << endl;
+	double x12 = x[1]*x[2]*2.0;
+	// cout << x12 << endl;
+ 
+	interMath::up();
+	double umax = (-x[0])*x[0] + 2.0*z[0]*z[1] +(-x[1])*x[1] +2.0*z[0]*z[2] 
+		+2.0*z[1]*z[2] + (-x[2])*x[2];
+	if (umax<0.0) umax=0.0;
+	double umax3 = umax*umax*umax;
+	double nmax =  z[0]*z[0]*z[0] + 3.0*(((-x[0])*x[1])*x[1]) + 
+		2.0*z[1]*z[1]*z[1] + 6.0*z[0]*z[1]*z[2] 
+		+2.0*(((-x[1])*x[1])*x[2])
+		 + 3.0*(((-x[0])*x[2])*x[2]) + 2.0*(((-x[1])*x[2])*x[2])
+		+ 2.0*z[2]*z[2]*z[2];
+	double z12 = z[1]*z[2]*2.0;
+ 
+	interval n = interval(nmin,nmax);
+	interval u3 = interval(umin3,umax3);
+	return interval(x12,z12)*n/u3;
+	}
+
+// Moved from 3d.cc
+/* second derivative of eta^2, wrt x[0],x[1].
+ The formula is
+	  (z*(x^4 + 2*x^3*y - 6*x^2*y^2 + 2*x*y^3 + y^4 - 2*x^3*z + 6*x^2*y*z + 
+       6*x*y^2*z - 2*y^3*z - 10*x*y*z^2 + 2*x*z^3 + 2*y*z^3 - z^4))/
+		UU[x,y,z]^3
+*/
+static interval eta2xy(double x[3],double z[3])
+	{
+	interMath::up();
+	double z0sq = z[0]*z[0], z1sq = z[1]*z[1], z2sq=z[2]*z[2];
+ 
+	interMath::down();
+        double umin = -z1sq-z2sq-z0sq 
+		+2.0*(x[0]*x[1] +x[0]*x[2] +x[1]*x[2]);
+        if (umin<=0.0) { throw unstable::x; } //umin=0.0;
+        double umin3 = umin*umin*umin;
+	double x0sq = x[0]*x[0], x1sq = x[1]*x[1], x2sq=x[2]*x[2];
+        double nmin =    
+		+ 6.0*x0sq*x1sq
+		+ 2.0*x[0]*x0sq*x[2] 
+		+ 2.0*x[1]*x1sq*x[2] + 10.0*x[0]*x[1]*x2sq
+		+ x2sq*x2sq+
+		(-z0sq)*z0sq +2.0*((-z[0])*z0sq)*z[1] 
+		 +2.0*((-z[0])*z2sq)*z[2]+  2.0*((-z[1])*z2sq)*z[2] +
+		 2.0*((-z[0])*z1sq)*z[1] + (-z1sq)*z1sq +
+		 6.0*((-z0sq)*z[1])*z[2] + 6.0*((-z[0])*z1sq)*z[2];
+ 
+ 
+        interMath::up();
+        double umax = -x0sq-x1sq-x2sq 
+		+ 2.0*(z[0]*z[1] +z[0]*z[2] +z[1]*z[2] );
+        if (umax<0.0) { throw unstable::x; } //umax=0.0;
+        double umax3 = umax*umax*umax;
+        double nmax =  
+		+ 6.0*z0sq*z1sq
+		+ 2.0*z[0]*z0sq*z[2] 
+		+ 2.0*z[1]*z1sq*z[2] + 10.0*z[0]*z[1]*z2sq
+		+ z2sq*z2sq +
+		(-x0sq)*x0sq +2.0*((-x[0])*x0sq)*x[1] 
+		 +2.0*((-x[0])*x2sq)*x[2]  + 2.0*((-x[1])*x2sq)*x[2] +
+		 2.0*((-x[0])*x1sq)*x[1] + (-x1sq)*x1sq +
+		 6.0*((-x0sq)*x[1])*x[2] + 6.0*((-x[0])*x1sq)*x[2];
+ 
+	return interval(nmin,nmax)*interval(x[2],z[2])/interval(umin3,umax3);
+	}
+
+static inline double dabs(const interval x) {
+  return interMath::sup(interMath::max(x,-x));
+}
+
+// eta_x^2(x1,x2,x6) (squared inputs, square of circumradius)
+int secondDerive::setEta2_x_126(const double x[6],const double z[6],double DDf[6][6]) 
+{ 
+  double x0[3] = {x[0],x[1],x[5]};
+  double z0[3] = {z[0],z[1],z[5]};
+  double x1[3] = {x[1],x[5],x[0]};
+  double z1[3] = {z[1],z[5],z[0]};
+  double x5[3] = {x[5],x[0],x[1]};
+  double z5[3] = {z[5],z[0],z[1]};
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 0.0; }
+  DDf[0][0] = (eta2xx(x0,z0));
+  DDf[1][1] = (eta2xx(x1,z1));
+  DDf[5][5] = (eta2xx(x5,z5));
+  DDf[0][1] = (eta2xy(x0,z0));
+  DDf[1][5] = (eta2xy(x1,z1));
+  DDf[5][0] = (eta2xy(x5,z5));
+  DDf[1][0] = DDf[0][1];
+  DDf[5][1] = DDf[1][5];
+  DDf[0][5] = DDf[5][0];
+}
+
+
 int secondDerive::setChi2over4uDelta(const double x[6],const double z[6],double DDf[6][6])
 	{ // this + eta^2 126 is the circumradius squared of a simplex.
 	int i,j;

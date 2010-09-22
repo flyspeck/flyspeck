@@ -767,7 +767,25 @@ static int copy(double DD[6][6],const double sec[6][6])
   return 1;
 }
 
-
+/* implement halfbump_x (univariate) */
+/*
+ |- !x. &0 <= x
+         ==> halfbump_x x =
+             --(&4398119 / &2376200) +
+             &17500 / &11881 * sqrt x - &31250 / &106929 * x
+*/
+static interval a0("-4398119");
+static interval b0("2376200");
+static interval a1("17500");
+static interval b1("11881");
+static interval a2("-31250");
+static interval b2("106929");
+univariate i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
+  univariate::i_sqrt * (a1 / b1) + univariate::i_pow1 * (a2 / b2);
+static primitive_univariate i_halfbump1P(::i_halfbump_x,0);
+static primitive_univariate i_halfbump4P(::i_halfbump_x,3);
+const taylorFunction taylorSimplex::halfbump_x1(&::i_halfbump1P);
+const taylorFunction taylorSimplex::halfbump_x4(&::i_halfbump4P);
 
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
@@ -1612,6 +1630,38 @@ void taylorFunction::selfTest()
 	cout << "gchi6 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test halfbump_x1 */   {
+    double halfd[3]={-1.2372909856488465,1.3148592857021388,-3.8264506746765212};
+      epsilon3(halfd,::i_halfbump_x);
+
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue= -0.06665321364422902;
+      double mathValueD[6]={0.07146660745052882,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::halfbump_x1.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "halfbump_x1 fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "halfbump_x1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test halfbump_x4 */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue= -0.047139389935398804;
+      double mathValueD[6]={0,0,0,0.0588482960800643,0,0};
+    taylorInterval at = taylorSimplex::halfbump_x4.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "halfbump_x4  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "halfbump_x4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+
   /* test dih4 */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue=1.1816295663326204;

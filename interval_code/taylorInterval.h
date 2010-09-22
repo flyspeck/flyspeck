@@ -317,7 +317,8 @@ public:
 	  delta,vol_x,sol,
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  rhazim,rhazim2,rhazim3,
-	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x;
+	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
+	  halfbump_x1, halfbump_x4;
 
 	//////////
 	// functions on an upright,flat,or quasiregular:

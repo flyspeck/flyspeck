@@ -253,20 +253,6 @@ static int setSqrtDelta(const double x[6],const double z[6],
 	interval& sqrt_d,interval Dsqrt_d[6],interval DDsqrt_d[6][6]);
 
 		//////////
-		// Compute the interval bounds on the second derivatives of
-		// the function vorAnalytic.
-		// The lower and upper values of the domain are passes in
-		// the arrays x and z.  As usual, these represent the 
-		// lengths squared of the variables.
-		//
-		// If the bounds are computed, the return value is nonzero,
-		// and the bounds are returned in DD.  If the return value
-		// is zero, the values of the array DD are undefined.
-		//
-static int setVorAnalytic(const double x[6],const double z[6],
-    double DD[6][6]);
-
-		//////////
 		// chi^2/(4 u delta)+ eta^2 126 is the circumradius squared of a simplex.
 		// Compute interval bounds on the second derivatives of
 		// chi^2/(4 u delta).
@@ -275,7 +261,7 @@ static int setVorAnalytic(const double x[6],const double z[6],
 		// squared of the variables.
 		//
 		// If the values are successfully computed a nonzero
-        // value is returned, and the information is placed in DDf.
+                // value is returned, and the information is placed in DDf.
 		// Otherwise the value of DDf is undefined.
 		//
 static int setChi2over4uDelta(const double x[6],const double z[6],double DDf[6][6]);

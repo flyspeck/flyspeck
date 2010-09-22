@@ -215,8 +215,8 @@ public class Score {
             if((ex == 0) && (V.size() > Constants.getNodeCardMax()))
                 return true;
         }
-        //3. look for squander or score beyond target.
-        if(ExcessNotAt(null, G, p) + faceSquanderLowerBound(G, p) > Constants.getSquanderTarget())
+        //3. look for squander or score at least target.
+        if(ExcessNotAt(null, G, p) + faceSquanderLowerBound(G, p) >= Constants.getSquanderTarget())
             return true;
         //if(scoreUpperBound(G, p) < Constants.getScoreTarget())
         //    return true;

@@ -154,6 +154,11 @@ public:
 static lineInterval delta(const domain&);
 
 	//////////
+	// x4 partial derivative of delta.
+	//
+static lineInterval delta_x4(const domain&);
+
+	//////////
 	// The dihedral angle of a simplex along the first edge.  
 	// Explicit formulas for this function appear in SP I.8.3.1.
 	// The edge numbering conventions are given in SP I.1.
@@ -242,7 +247,7 @@ static lineInterval solid(const domain&);
 	// Explicit formulas for this function appear in SP I.8.2.
 	// The variables are the lengths squared of the edges of the triangle.
 	//
-static lineInterval eta2(const domain&);
+static lineInterval eta2_126(const domain&);
 
 	//////////
 	// The circumradius squared of the face along edges 1,3,5 of a simplex.

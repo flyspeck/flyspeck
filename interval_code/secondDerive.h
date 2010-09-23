@@ -252,9 +252,11 @@ static int setSolid(const double x[6],const double z[6],
 static int setSqrtDelta(const double x[6],const double z[6],
 	interval& sqrt_d,interval Dsqrt_d[6],interval DDsqrt_d[6][6]);
 
+ static int setAbsEta2_x_126(const double x[6],const double z[6],double DDf[6][6]) ;
+
 		//////////
 		// chi^2/(4 u delta)+ eta^2 126 is the circumradius squared of a simplex.
-		// Compute interval bounds on the second derivatives of
+		// Compute positive double bounds on the second derivatives of
 		// chi^2/(4 u delta).
 		// The lower and upper values of the domain are passed in
 		// the arrays x and z. As usual, these represent the lengths

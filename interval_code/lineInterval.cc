@@ -241,6 +241,33 @@ lineInterval linearization::delta(const domain& x)
 	return t;
 	}
 
+lineInterval linearization::delta_x4(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	lineInterval t;
+	interMath::up();
+	t.f.hi =  (-x2)*x3 +(- x1)*x4 + x2*x5 + x3*x6 +(- x5)*x6 +
+                x1*(-x1) + x1*(-x4) + x1*(x2 + x3 + x5 + x6); 
+        t.Df[0].hi = (-2.0)* x1 + x2 + x3 + (- 2.0)* x4 + x5 + x6;
+	t.Df[1].hi = x1 + (- 1.0) * x3 + x5;
+	t.Df[2].hi = x1 + (- 1.0) * x2 + x6;
+	t.Df[3].hi = (-2.0) * x1;
+	t.Df[4].hi = x1 + x2 + (-1.0) * x6;
+	t.Df[5].hi = x1 + x3 + (-1.0)* x5;
+	interMath::down();
+	t.f.lo = (-x2)*x3 +(- x1)*x4 + x2*x5 + x3*x6 +(- x5)*x6 +
+                x1*(-x1) + x1*(-x4) + x1*(x2 + x3 + x5 + x6); 
+        t.Df[0].lo = (-2.0)* x1 + x2 + x3 + (- 2.0)* x4 + x5 + x6;
+	t.Df[1].lo = x1 + (- 1.0) * x3 + x5;
+	t.Df[2].lo = x1 + (- 1.0) * x2 + x6;
+	t.Df[3].lo = (-2.0) * x1;
+	t.Df[4].lo = x1 + x2 + (-1.0) * x6;
+	t.Df[5].lo = x1 + x3 + (- 1.0)* x5;
+	return t;
+	}
+
 static lineInterval f126
 	(double x1,double x2,double ,double ,double ,double x6)
 	{
@@ -636,12 +663,11 @@ lineInterval linearization::solid(const domain& x)
 	return atan(s,ax)*two;
 	}
 
-lineInterval linearization::eta2(const domain& x)
+lineInterval linearization::eta2_126(const domain& x)
 	{	
 	static const interval zero("0");
-	double x1,x2,/*x3,x4,x5,*/x6;
-	x1 = x.getValue(0); x2 = x.getValue(1); // x3 = x.getValue(2);
-	// x4 = x.getValue(3); x5 = x.getValue(4); 
+	double x1,x2,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); 
 	x6 = x.getValue(5);
 	lineInterval t;
 	t.Df[2]=t.Df[3]=t.Df[4]=zero;
@@ -662,7 +688,7 @@ lineInterval linearization::eta2_135(const domain& x)
 	{
 	domain y(x.getValue(0),x.getValue(2),x.getValue(1),
 			 x.getValue(3),x.getValue(5),x.getValue(4));
-	lineInterval t = eta2(y);
+	lineInterval t = eta2_126(y);
 	lineInterval u;
 	u.f=t.f;
 	static int k[6]={0,2,1,3,5,4};
@@ -675,7 +701,7 @@ lineInterval linearization::eta2_234(const domain& x)
 	{
 	domain y(x.getValue(3),x.getValue(1),x.getValue(5),
 			 x.getValue(0),x.getValue(4),x.getValue(2));
-	lineInterval t = eta2(y);
+	lineInterval t = eta2_126(y);
 	lineInterval u;
 	u.f=t.f;
 	static int k[6]={3,1,5,0,4,2};
@@ -688,7 +714,7 @@ lineInterval linearization::eta2_456(const domain& x)
 	{
 	domain y(x.getValue(3),x.getValue(4),x.getValue(2),
 			 x.getValue(0),x.getValue(1),x.getValue(5));
-	lineInterval t = eta2(y);
+	lineInterval t = eta2_126(y);
 	lineInterval u;
 	u.f=t.f;
 	static int k[6]={3,4,2,0,1,5};
@@ -744,7 +770,7 @@ lineInterval linearization::rad2(const domain& x)
 	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
 	lineInterval c = chi126(x1,x2,x3,x4,x5,x6);
 	return c*c/(U126(x1,x2,x6)*delta(x)*four) 
-			+ eta2(domain(x1,x2,0,0,0,x6));
+			+ eta2_126(domain(x1,x2,0,0,0,x6));
 	}
 
 static lineInterval permute
@@ -1371,14 +1397,14 @@ void linearization::selfTest() {
 		}
 	}
 
-	/*test eta2*/ {
+	/*test eta2_126*/ {
 	lineInterval MathematicaAnswer = setHyperInterval
 	  (1.373643196326929, 0.1089030755574367, 0.109889405933634, 0, 0, 0, 
     0.1144636780343532);
-	lineInterval ThisAnswer = linearization::eta2(x);
+	lineInterval ThisAnswer = linearization::eta2_126(x);
 	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
 		{
-		cout << "eta2 failed = " << (MathematicaAnswer-ThisAnswer)
+		cout << "eta2_126 failed = " << (MathematicaAnswer-ThisAnswer)
 				<< endl << flush;
 		error::message("lineInterval failed to install properly");
 		}
@@ -1436,6 +1462,21 @@ void linearization::selfTest() {
 		error::message("lineInterval failed to install properly");
 		}
 	}
+
+
+	/*test delta_x4*/ {
+	lineInterval MathematicaAnswer = setHyperInterval
+		  (17.2784,0.2400000000000011,4.12,4.2,-8.08,3.880000000000001,
+		   3.96);
+	lineInterval ThisAnswer = linearization::delta_x4(x);
+	if (!epsilonClose(MathematicaAnswer,ThisAnswer,1.0e-9))
+		{
+		cout << "delta_x4 failed = " << (MathematicaAnswer-ThisAnswer)
+				<< endl << flush;
+		error::message("lineInterval failed to install properly");
+		}
+	}
+
 
 	/*test chi324*/ {
 	lineInterval MathematicaAnswer = setHyperInterval

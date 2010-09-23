@@ -912,7 +912,7 @@ static inline double dabs(const interval x) {
 }
 
 // eta_x^2(x1,x2,x6) (squared inputs, square of circumradius)
-int secondDerive::setEta2_x_126(const double x[6],const double z[6],double DDf[6][6]) 
+int secondDerive::setAbsEta2_x_126(const double x[6],const double z[6],double DDf[6][6]) 
 { 
   double x0[3] = {x[0],x[1],x[5]};
   double z0[3] = {z[0],z[1],z[5]};
@@ -921,12 +921,12 @@ int secondDerive::setEta2_x_126(const double x[6],const double z[6],double DDf[6
   double x5[3] = {x[5],x[0],x[1]};
   double z5[3] = {z[5],z[0],z[1]};
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 0.0; }
-  DDf[0][0] = (eta2xx(x0,z0));
-  DDf[1][1] = (eta2xx(x1,z1));
-  DDf[5][5] = (eta2xx(x5,z5));
-  DDf[0][1] = (eta2xy(x0,z0));
-  DDf[1][5] = (eta2xy(x1,z1));
-  DDf[5][0] = (eta2xy(x5,z5));
+  DDf[0][0] = dabs(eta2xx(x0,z0));
+  DDf[1][1] = dabs(eta2xx(x1,z1));
+  DDf[5][5] = dabs(eta2xx(x5,z5));
+  DDf[0][1] = dabs(eta2xy(x0,z0));
+  DDf[1][5] = dabs(eta2xy(x1,z1));
+  DDf[5][0] = dabs(eta2xy(x5,z5));
   DDf[1][0] = DDf[0][1];
   DDf[5][1] = DDf[1][5];
   DDf[0][5] = DDf[5][0];
@@ -1459,6 +1459,29 @@ void secondDerive::selfTest() {
 		{
 		cout << "U135 failed: " ;
 		print (f,Df,DDf);
+		error::message("Second derivatives failed to install properly");
+		}
+	}
+
+	/*test setAbsEta2_x_126 */ {
+	// constants computed in Mathematica 
+	  double mf = 0.0;
+	  double Dmf[6] = {0,0,0,0,0,0};
+	  double DDmf[6][6] =  {{0.018202898168066993,0.008709783878386806,0,0,0,
+    0.009354751345525561},
+   {0.008709783878386806,0.018294796324576736,0,0,0,
+    0.009512031495681618},{0,0,0,0,0,0},{0,0,0,0,0,0},
+   {0,0,0,0,0,0},{0.009354751345525561,
+    0.009512031495681618,0,0,0,0.018657861947831922}};
+	  interval zero("0");
+	  double DDf[6][6];
+	secondDerive::setAbsEta2_x_126(x,x,DDf);
+	interval s=zero,Ds[6]={s,s,s,s,s,s},DDs[6][6];
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) DDs[i][j]=interval(DDf[i][j],DDf[i][j]);
+	if (!epsilonClose(mf,Dmf,DDmf,s,Ds,DDs,1.0e-12))
+		{
+		cout << "AbsEta failed: " ;
+		print (s,Ds,DDs);
 		error::message("Second derivatives failed to install properly");
 		}
 	}

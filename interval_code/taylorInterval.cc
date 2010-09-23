@@ -611,6 +611,31 @@ primitiveC volXPrimitive
   &taylorSimplex::unit  , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::vol_x(&::volXPrimitive);
 
+/*implement rad2*/
+static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
+  double  X[6],Z[6];
+  int i;
+  double DD1[6][6], DD2[6][6];
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r1 = secondDerive::setAbsEta2_x_126(X,Z,DD1);
+  int r2 = secondDerive::setChi2over4uDelta(X,Z,DD2);
+  interMath::up();
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j] = DD1[i][j] + DD2[i][j]; }
+  if (r1+r2) { testAbs(DD,"setAbsDihedral"); }
+  return r1+r2;
+}
+primitiveA rad2Primitive(linearization::rad2,setAbsRad2);
+const taylorFunction taylorSimplex::rad2(&::rad2Primitive);
+
+/*implement delta_x4*/
+static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 2.0; }
+  // all second partials are pm 0,1,2.  
+}
+primitiveA deltax4Primitive(linearization::delta_x4,setAbsDeltaX4);
+const taylorFunction taylorSimplex::delta_x4(&::deltax4Primitive);
+
+
 /*implement dih1*/
 static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 {
@@ -846,62 +871,37 @@ const taylorFunction taylorSimplex::gchi6_x(&::gchi6XPrim);
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
 {
-  // use bounds from SECOUT/out.eta2
-  static const int k[3]={0,1,5};
-  x.getValue(0); // useless line
-  z.getValue(0); // useless line
-  int i,j;
-  for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-  for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
+  double xa[6],za[6];
+  for (int i=0;i<6;i++) {
+    xa[i] = x.getValue(i);
+    za[i] = z.getValue(i);
+  }
+  secondDerive::setAbsEta2_x_126(xa,za,DD);
   return 1;
 }
-primitiveA eta2Primitive(linearization::eta2,setEta2_126);
+primitiveA eta2Primitive(linearization::eta2_126,setEta2_126);
 const taylorFunction taylorSimplex::eta2_126(&::eta2Primitive);
 
 /*implement eta2_135*/
-static int setEta2_135(const domain& x,const domain& z,double DD[6][6])
-{
-  // use bounds from SECOUT/out.eta2
-  static const int k[3]={0,2,4};
-  x.getValue(0); // useless line
-  z.getValue(0); // useless line
-  int i,j;
-  for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-  for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-  return 1;
-}
-primitiveA eta2_135_Primitive(linearization::eta2_135,setEta2_135);
+static primitiveC eta2_135_Primitive
+(&taylorSimplex::eta2_126,
+ &taylorSimplex::x1,&taylorSimplex::x3,&taylorSimplex::unit,
+ &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x5);
 const taylorFunction taylorSimplex::eta2_135(&::eta2_135_Primitive);
 
 /*implement eta2_234*/
-static int setEta2_234(const domain& x,const domain& z,double DD[6][6])
-{
-  // use bounds from SECOUT/out.eta2
-  static const int k[3]={1,2,3};
-  x.getValue(0); // useless line
-  z.getValue(0); // useless line
-  int i,j;
-  for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-  for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-  return 1;
-}
-primitiveA eta2_234_Primitive(linearization::eta2_234,setEta2_234);
+static primitiveC eta2_234_Primitive
+(&taylorSimplex::eta2_126,
+ &taylorSimplex::x2,&taylorSimplex::x3,&taylorSimplex::unit,
+ &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x4);
 const taylorFunction taylorSimplex::eta2_234(&::eta2_234_Primitive);
 
 /*implement eta2_456*/
-static int setEta2_456(const domain& x,const domain& z,double DD[6][6])
-{
-  // use bounds from SECOUT/out.eta2
-  static const int k[3]={3,4,5};
-  x.getValue(0); // useless line
-  z.getValue(0); // useless line
-  int i,j;
-  for (i=0;i<6;i++) for (j=0;j<6;j++) DD[i][j]=0.0;
-  for (i=0;i<3;i++) for (j=0;j<3;j++) DD[k[i]][k[j]]=0.09;
-  return 1;
-}
-primitiveA Peta2_456(linearization::eta2_456,setEta2_456);
-const taylorFunction taylorSimplex::eta2_456(&::Peta2_456);
+static primitiveC eta2_456_Primitive
+(&taylorSimplex::eta2_126,
+ &taylorSimplex::x4,&taylorSimplex::x5,&taylorSimplex::unit,
+ &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x6);
+const taylorFunction taylorSimplex::eta2_456(&::eta2_456_Primitive);
 
 static int primHasDeltaDenom(const primitive* p) {
   return
@@ -1369,7 +1369,7 @@ void taylorFunction::selfTest()
     testProcedure(taylorSimplex::sol,linearization::solid,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
 		  "taylorSimplex::sol");
-    testProcedure(taylorSimplex::eta2_126,linearization::eta2,
+    testProcedure(taylorSimplex::eta2_126,linearization::eta2_126,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
 		  "taylorSimplex::eta2_126",5.0e-6);
     testProcedure(taylorSimplex::eta2_135,linearization::eta2_135,
@@ -1523,8 +1523,7 @@ void taylorFunction::selfTest()
 			    cout << "unitp fails = " << t.upperPartial(i)<<" " << t.lowerPartial(i)<<endl;
   }
 
-  /* test volx */   {
-    
+  /* test volx */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue=1.0661359356729956;
     double mathValueD[6]={0.0716828019335723,0.06608105639401098,
@@ -1536,6 +1535,93 @@ void taylorFunction::selfTest()
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
 	cout << "volx D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test rad2 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.6333363881302794;
+    double mathValueD[6]={0.057786164807838214,0.05761105521751131,
+   0.05741965636296806,0.06701170422099567,0.06721538721254888,
+			  0.06743943850325723};
+    taylorInterval at = taylorSimplex::rad2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "rad2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "rad2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test delta_x4 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.6333363881302794;
+    double mathValueD[6]={0.057786164807838214,0.05761105521751131,
+   0.05741965636296806,0.06701170422099567,0.06721538721254888,
+			  0.06743943850325723};
+    taylorInterval at = taylorSimplex::rad2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "delta_x4  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "delta_x4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test eta2_126 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 19.19;
+    double mathValueD[6]={0.5999999999999996,4.3,4.499999999999999,-8.2,
+			  3.700000000000001,3.8999999999999986};
+    taylorInterval at = taylorSimplex::delta_x4.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "delta_x4  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "delta_x4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test eta2_135 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.4343699150244082;
+    double mathValueD[6]={0.10607345504918758,0,0.11054816002151685,
+			  0,0.11646925805115915,0};
+    taylorInterval at = taylorSimplex::eta2_135.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "eta2_135  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "eta2_135 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test eta2_234 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.4335919177340792;
+    double mathValueD[6]={0,0.10856346275290063,0.11097076506380871,
+			  0.11373888281761776,0,0};
+    taylorInterval at = taylorSimplex::eta2_234.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "eta2_234  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "eta2_234 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test eta2_456 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.5002470762642062;
+    double mathValueD[6]={0,0,0,0.10867530033135317,
+			  0.11098297337542629,0.11362008143844202};
+    taylorInterval at = taylorSimplex::eta2_456.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "eta2_456  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "eta2_456 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
 

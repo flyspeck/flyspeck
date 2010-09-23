@@ -314,7 +314,7 @@ public:
 	//
 	static const taylorFunction unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-	  delta,vol_x,sol,
+	  delta,delta_x4,vol_x,sol,rad2,
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
@@ -323,13 +323,7 @@ public:
 	//////////
 	// functions on an upright,flat,or quasiregular:
 	// circumradius squared of the four faces of a simplex:
-	// The domain of eta2_126,eta2_135,eta2_234, and eta2_456 are simplices
-	// whose edges are between 2.51 and 2sqrt(2), or 2 and 2.51 as appropriate.
 	// The circumradius squared of the face (ijk) of a simplex is eta2_ijk;
-	//
-	// These functions take into account the slightly different edge
-	// lengths occuring in the dodecahedral conjecture, and works
-	// fine in that context as well.
 	//
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456;
 };

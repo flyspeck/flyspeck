@@ -250,6 +250,13 @@ static lineInterval solid(const domain&);
 static lineInterval eta2_126(const domain&);
 
 	//////////
+	// The angle of a triangle as a function of the edges squared.
+	// The edge opposite the angle is x3. The other two are x1 and x2.
+	// x4,x5,x6 are disregarded.
+	//
+ static lineInterval arclength_x_123(const domain&);
+
+	//////////
 	// The circumradius squared of the face along edges 1,3,5 of a simplex.
 	// Explicit formulas for this function appear in SP I.8.2.
 	// The variables are the lengths squared of the edges of the triangle.

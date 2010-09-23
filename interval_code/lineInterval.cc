@@ -663,6 +663,14 @@ lineInterval linearization::solid(const domain& x)
 	return atan(s,ax)*two;
 	}
 
+/*
+lineInterval arclength_x_123(const domain&) {
+  double x1,x2,x3;
+  x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+  lineInterval t;
+}
+*/
+
 lineInterval linearization::eta2_126(const domain& x)
 	{	
 	static const interval zero("0");

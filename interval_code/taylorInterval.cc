@@ -903,6 +903,22 @@ static primitiveC eta2_456_Primitive
  &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x6);
 const taylorFunction taylorSimplex::eta2_456(&::eta2_456_Primitive);
 
+/*implement arclength_x_123*/
+//ArcCos[(x1 + x2 - x3)/(Sqrt[4 x1 x2])].
+static interval mone("-1");
+static interval four("4");
+static taylorFunction al_num = 
+  taylorSimplex::x1 + taylorSimplex::x2 + taylorSimplex::x3 * mone;
+static taylorFunction x1x2_4 = ::x1x2 * four;
+static taylorFunction al_den = 
+  taylorFunction::uni_compose(univariate::i_sqrt,x1x2_4);
+static taylorFunction al_den_inv = 
+  taylorFunction::uni_compose(univariate::i_inv,al_den);
+static taylorFunction a_arg = 
+  taylorFunction::product(al_num,al_den_inv);
+const taylorFunction taylorSimplex::arclength_x_123 =
+  taylorFunction::uni_compose(univariate::i_acos,a_arg);
+
 static int primHasDeltaDenom(const primitive* p) {
   return
     ((p == &dih1Primitive) || (p == &dih2Primitive) || (p == &dih3Primitive) ||
@@ -915,7 +931,6 @@ static int primHasDeltaDenom(const primitive* p) {
 /*   taylorInterval                                                           */
 /*                                                                            */
 /* ========================================================================== */
-
 
 
 
@@ -1074,7 +1089,24 @@ taylorInterval taylorInterval::scale
 /*                                                                            */
 /* ========================================================================== */
 
+taylorFunction taylorFunction::uni_compose // minor memory leak
+(const univariate& f,const taylorFunction& g) {
+  primitive_univariate* fp = new primitive_univariate(f,0);
+  taylorFunction* fF = new taylorFunction(fp);
+  primitive* uCp = new primitiveC
+   (fF,&g,&taylorSimplex::unit,&taylorSimplex::unit,
+    &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::unit);
+  taylorFunction uc(uCp);
+  return uc;
+  }
 
+taylorFunction taylorFunction::product // minor memory leak.
+(const taylorFunction& f,const taylorFunction& g) {
+  primitive* pp = new primitiveC(&::x1x2,&f,&g,&taylorSimplex::unit,
+		&taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::unit);
+  taylorFunction prod(pp);
+  return prod;
+}
 
 taylorFunction::taylorFunction(const taylorFunction& rhs)
 {
@@ -1568,6 +1600,50 @@ void taylorFunction::selfTest()
     }
   }
 
+  /* test uni_compose */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.04939015319192;
+    double mathValueD[6]={0,0.24397501823713327,0,0,0,0};
+    taylorFunction t = taylorFunction::uni_compose(univariate::i_sqrt,taylorSimplex::x2);
+    taylorInterval at = t.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "uni  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }    
+  }
+
+  /* test prod */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.4623610348104914;
+    double mathValueD[6]={0.40443775297783785,-0.10690140741833755,
+   -0.11756239286152013,0.32047195412373986,-0.0917206840314374,
+			  -0.10213991072724367};
+    taylorFunction t = 
+      taylorFunction::product(taylorSimplex::y1,taylorSimplex::dih);
+    taylorInterval at = t.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "uni  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }    
+  }
+
+  /* test arclength_x_123 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 1.0679029643628666;
+    double mathValueD[6]={-0.07043519394425567,-0.07203236387496442,
+			  0.13751633103402303,0,0,0};
+    taylorInterval at = taylorSimplex::arclength_x_123.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "arclength_x_123  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "arclength_x_123 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
   /* test eta2_126 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

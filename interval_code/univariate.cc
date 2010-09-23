@@ -74,6 +74,25 @@ static interval DDsqrt(const interval& x) {
 
 static uniprimitive psqrt(usqrt,Dsqrt,DDsqrt);
 
+//inv
+
+static interval uinv(const interval& x) {
+  static interval one("1");
+  return one/x;
+}
+
+static interval Dinv(const interval& x) {
+	static const interval one("1");
+	return - one/(x * x);
+}
+
+static interval DDinv(const interval& x) {
+	static const interval two("2");
+	return two/(x * x * x);
+}
+
+static uniprimitive pinv(uinv,Dinv,DDinv);
+
 
 // atan 
 static interval uatan(const interval& x) {
@@ -380,6 +399,7 @@ const univariate univariate::i_pow2(&ppow2);
 const univariate univariate::i_pow3(&ppow3);
 const univariate univariate::i_pow4(&ppow4);
 const univariate univariate::i_sqrt(&psqrt);
+const univariate univariate::i_inv(&pinv);
 const univariate univariate::i_atan(&patan);
 const univariate univariate::i_asin(&pasin);
 const univariate univariate::i_acos(&pacos);
@@ -429,6 +449,9 @@ void univariate::selfTest()
         epsilon3(pow4d,univariate::i_pow4);
 	double sqrtd[3]={0.458257569495584,1.0910894511799618,-2.5978320266189567};
         epsilon3(sqrtd,univariate::i_sqrt);
+	double invd[3]={4.761904761904762,-22.67573696145125,215.95939963286907};
+        epsilon3(invd,univariate::i_inv);
+
 	double atand[3]={0.206992194219821,0.9577626664112633,-0.3852699165719094};
         epsilon3(atand,univariate::i_atan);
 	double asind[3]={0.2115749597580956,1.0228071826600218,0.22469872199874943};

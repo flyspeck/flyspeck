@@ -17,6 +17,7 @@ extern "C"
 #include <float.h>
 }
 #include "lineInterval.h"
+#include "univariate.h"
 
 using namespace std;
 using namespace tr1;
@@ -237,6 +238,17 @@ taylorFunction& operator=(const taylorFunction& f);
 ~taylorFunction();
 
 	//////////
+	// compose a univariate with a Taylor function.
+	//
+ static taylorFunction uni_compose(const univariate&,const taylorFunction&);
+
+	//////////
+	// multiply two Taylor functions
+	//
+ static taylorFunction product(const taylorFunction&,const taylorFunction&);
+
+
+	//////////
 	// Evaluate a taylorFunction
 	// There are two arguments, x = lower bounds on variables,
 	// z = upper bounds on variables,
@@ -325,7 +337,8 @@ public:
 	// circumradius squared of the four faces of a simplex:
 	// The circumradius squared of the face (ijk) of a simplex is eta2_ijk;
 	//
-	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456;
+	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456,
+	  arclength_x_123;
 };
 
 

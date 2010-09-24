@@ -812,6 +812,24 @@ static primitive_univariate i_halfbump4P(::i_halfbump_x,3);
 const taylorFunction taylorSimplex::halfbump_x1(&::i_halfbump1P);
 const taylorFunction taylorSimplex::halfbump_x4(&::i_halfbump4P);
 
+/* implement marchalQuartic (univariate) */
+// marchalQuartic[Sqrt[x]/2] = 
+static interval m0("-8.3439434337479413233");
+static interval m1("29.738910202367943669");
+static interval m2("-24.647762183814337061");
+static interval m3("7.7264705379397797225");
+static interval m4("-0.83466203370305222185");
+univariate i_marchalQ = univariate::i_pow0 * m0 +
+  univariate::i_sqrt * m1 +
+  univariate::i_pow1 * m2 +
+  univariate::i_pow3h2 * m3 +
+  univariate::i_pow2 * m4;
+static primitive_univariate i_marchalQprim(::i_marchalQ,0);
+static taylorFunction marchalQ(&::i_marchalQprim);
+const taylorFunction taylorSimplex::marchalDih = taylorFunction::product(marchalQ,taylorSimplex::dih);
+const taylorFunction taylorSimplex::marchalDih2 = taylorFunction::rotate2(taylorSimplex::marchalDih);
+const taylorFunction taylorSimplex::marchalDih3 = taylorFunction::rotate3(taylorSimplex::marchalDih);
+
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
 static interval i_gchi_c0("0.974990367692870754241952463595");
@@ -1093,8 +1111,9 @@ taylorFunction taylorFunction::uni_compose // minor memory leak
 (const univariate& f,const taylorFunction& g) {
   primitive_univariate* fp = new primitive_univariate(f,0);
   taylorFunction* fF = new taylorFunction(fp);
+  taylorFunction* gF = new taylorFunction(g);
   primitive* uCp = new primitiveC
-   (fF,&g,&taylorSimplex::unit,&taylorSimplex::unit,
+   (fF,gF,&taylorSimplex::unit,&taylorSimplex::unit,
     &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::unit);
   taylorFunction uc(uCp);
   return uc;
@@ -1102,10 +1121,45 @@ taylorFunction taylorFunction::uni_compose // minor memory leak
 
 taylorFunction taylorFunction::product // minor memory leak.
 (const taylorFunction& f,const taylorFunction& g) {
-  primitive* pp = new primitiveC(&::x1x2,&f,&g,&taylorSimplex::unit,
+  taylorFunction* fF = new taylorFunction(f);
+  taylorFunction* gF = new taylorFunction(g);
+  primitive* pp = new primitiveC(&::x1x2,fF,gF,&taylorSimplex::unit,
 		&taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::unit);
   taylorFunction prod(pp);
   return prod;
+}
+
+taylorFunction taylorFunction::compose // minor memory leak
+(const taylorFunction& f,
+ const taylorFunction& x1,const taylorFunction& x2,const taylorFunction& x3,
+ const taylorFunction& x4, const taylorFunction& x5, const taylorFunction& x6)
+{
+  taylorFunction* fp = new taylorFunction(f);
+  taylorFunction* x1p = new taylorFunction(x1);
+  taylorFunction* x2p = new taylorFunction(x2);
+  taylorFunction* x3p = new taylorFunction(x3);
+  taylorFunction* x4p = new taylorFunction(x4);
+  taylorFunction* x5p = new taylorFunction(x5);
+  taylorFunction* x6p = new taylorFunction(x6);
+  primitive* pp = new primitiveC(fp,x1p,x2p,x3p,x4p,x5p,x6p);
+  taylorFunction g(pp);
+  return g;
+}
+
+ taylorFunction taylorFunction::rotate2(const taylorFunction& f) {
+  taylorFunction g = taylorFunction::compose
+  (f,
+   taylorSimplex::x2,taylorSimplex::x3,taylorSimplex::x1,
+   taylorSimplex::x5,taylorSimplex::x6,taylorSimplex::x4);
+  return g;
+}
+
+ taylorFunction taylorFunction::rotate3(const taylorFunction& f) {
+  taylorFunction g = taylorFunction::compose
+  (f,
+   taylorSimplex::x3,taylorSimplex::x1,taylorSimplex::x2,
+   taylorSimplex::x6,taylorSimplex::x4,taylorSimplex::x5);
+  return g;
 }
 
 taylorFunction::taylorFunction(const taylorFunction& rhs)
@@ -1597,6 +1651,23 @@ void taylorFunction::selfTest()
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
 	cout << "delta_x4 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test marchalDih */   { 
+    double md[3]={0.8148484787433622,12.760561387665467,-66.28061167966449};
+      epsilon3(md,::i_marchalQ);
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.1314338321497612;
+    double mathValueD[6]={-0.7804417742116788,-0.049120282260656074,
+   -0.054018913876389546,0.14725412156249917,-0.042144869722190594,
+      -0.04693241526153936};
+    taylorInterval at = taylorSimplex::marchalDih.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "marchalDih  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "marchalDih D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
 

@@ -72,7 +72,27 @@ static interval DDsqrt(const interval& x) {
 	return - one/(four * x * interMath::sqrt(x));
 }
 
+
 static uniprimitive psqrt(usqrt,Dsqrt,DDsqrt);
+
+//pow3h2
+
+static interval upow3h2(const interval& x) {
+  return interMath::sqrt(x) * x;
+}
+
+static interval Dpow3h2(const interval& x) {
+	static const interval th("1.5");
+	return interMath::sqrt(x) * th;
+}
+
+static interval DDpow3h2(const interval& x) {
+	static const interval tq("0.75");
+	return tq/(interMath::sqrt(x));
+}
+
+
+static uniprimitive ppow3h2(upow3h2,Dpow3h2,DDpow3h2);
 
 //inv
 
@@ -399,6 +419,7 @@ const univariate univariate::i_pow2(&ppow2);
 const univariate univariate::i_pow3(&ppow3);
 const univariate univariate::i_pow4(&ppow4);
 const univariate univariate::i_sqrt(&psqrt);
+const univariate univariate::i_pow3h2(&ppow3h2);
 const univariate univariate::i_inv(&pinv);
 const univariate univariate::i_atan(&patan);
 const univariate univariate::i_asin(&pasin);
@@ -449,6 +470,8 @@ void univariate::selfTest()
         epsilon3(pow4d,univariate::i_pow4);
 	double sqrtd[3]={0.458257569495584,1.0910894511799618,-2.5978320266189567};
         epsilon3(sqrtd,univariate::i_sqrt);
+	double pow3h2d[3]={0.09623408959407263,0.687386354243376,1.6366341767699426};
+        epsilon3(pow3h2d,univariate::i_pow3h2);
 	double invd[3]={4.761904761904762,-22.67573696145125,215.95939963286907};
         epsilon3(invd,univariate::i_inv);
 

@@ -238,7 +238,7 @@ taylorFunction& operator=(const taylorFunction& f);
 ~taylorFunction();
 
 	//////////
-	// compose a univariate with a Taylor function.
+	// compose a univariate with a Taylor function, f o g
 	//
  static taylorFunction uni_compose(const univariate&,const taylorFunction&);
 
@@ -246,6 +246,24 @@ taylorFunction& operator=(const taylorFunction& f);
 	// multiply two Taylor functions
 	//
  static taylorFunction product(const taylorFunction&,const taylorFunction&);
+
+	//////////
+	// compose Taylor functions f(x1,x2,x3,x4,x5,x6);
+	//
+ static taylorFunction compose
+    (const taylorFunction&,
+     const taylorFunction&, const taylorFunction&,const taylorFunction&,
+     const taylorFunction&,const taylorFunction&,const taylorFunction&);
+
+	//////////
+	// reorder args f(x2,x3,x1,x5,x6,x2);
+	//
+ static taylorFunction rotate2(const taylorFunction&);
+
+	//////////
+	// reorder args f(x3,x1,x2,x6,x2,x5);
+	//
+ static taylorFunction rotate3(const taylorFunction&);
 
 
 	//////////
@@ -330,6 +348,7 @@ public:
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
+	  marchalDih,marchalDih2,marchalDih3,
 	  halfbump_x1, halfbump_x4;
 
 	//////////

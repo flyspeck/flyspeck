@@ -649,7 +649,15 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 primitiveA dih1Primitive(linearization::dih,setAbsDihedral);
 const taylorFunction taylorSimplex::dih(&::dih1Primitive);
 
+const taylorFunction taylorSimplex::dih2 = taylorFunction::rotate2(taylorSimplex::dih);
+const taylorFunction taylorSimplex::dih3 = taylorFunction::rotate3(taylorSimplex::dih);
+const taylorFunction taylorSimplex::dih4 = taylorFunction::rotate4(taylorSimplex::dih);
+const taylorFunction taylorSimplex::dih5 = taylorFunction::rotate5(taylorSimplex::dih);
+const taylorFunction taylorSimplex::dih6 = taylorFunction::rotate6(taylorSimplex::dih);
+
+
 /*implement dih2*/
+/*
 static int setAbsDih2(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -667,8 +675,10 @@ static int setAbsDih2(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA dih2Primitive(linearization::dih2,setAbsDih2);
 const taylorFunction taylorSimplex::dih2(&::dih2Primitive);
+*/
 
 /*implement dih3*/
+/*
 static int setDih3(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -685,30 +695,36 @@ static int setDih3(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA dih3Primitive(linearization::dih3,setDih3);
 const taylorFunction taylorSimplex::dih3(&::dih3Primitive);
+*/
 
 /*implement dih4 : |- dih4_y y1 y2 y3 y4 y5 y6 = dih_y y4 y2 y6 y1 y5 y3 */ 
+/*
 primitiveC dih4Primitive
 (&taylorSimplex::dih,
   &taylorSimplex::x4  , &taylorSimplex::x2, &taylorSimplex::x6,
   &taylorSimplex::x1 , &taylorSimplex::x5, &taylorSimplex::x3);
 const taylorFunction taylorSimplex::dih4(&::dih4Primitive);
+*/
 
 /*implement dih5 : |- dih5_y y1 y2 y3 y4 y5 y6 = dih_y y5 y1 y6 y2 y4 y3 */
+/*
 primitiveC dih5Primitive
 (&taylorSimplex::dih,
   &taylorSimplex::x5  , &taylorSimplex::x1, &taylorSimplex::x6,
   &taylorSimplex::x2 , &taylorSimplex::x4, &taylorSimplex::x3);
 const taylorFunction taylorSimplex::dih5(&::dih5Primitive);
+*/
 
 /*implement dih6 : |- dih6_y y1 y2 y3 y4 y5 y6 = dih_y y6 y1 y5 y3 y4 y2 */
+/*
 primitiveC dih6Primitive
 (&taylorSimplex::dih,
   &taylorSimplex::x6  , &taylorSimplex::x1, &taylorSimplex::x5,
   &taylorSimplex::x3 , &taylorSimplex::x4, &taylorSimplex::x2);
 const taylorFunction taylorSimplex::dih6(&::dih6Primitive);
+*/
 
-
-/*implement azim*/
+/*implement rhazim*/
 static int setRhazim(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -728,7 +744,13 @@ static int setRhazim(const domain& x,const domain& z,double DD[6][6])
 primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
 const taylorFunction taylorSimplex::rhazim(&::rhazimPrimitive);
 
-/*implement azim2*/
+/*implement rhazim2 ... */
+const taylorFunction taylorSimplex::rhazim2 = 
+  taylorFunction::rotate2(taylorSimplex::rhazim);
+const taylorFunction taylorSimplex::rhazim3 = 
+  taylorFunction::rotate3(taylorSimplex::rhazim);
+
+/*
 static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -747,8 +769,10 @@ static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA rhazim2Primitive(linearization::rhazim2,setRhazim2);
 const taylorFunction taylorSimplex::rhazim2(&::rhazim2Primitive);
+*/
 
 /*implement azim3*/
+/*
 static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -767,6 +791,7 @@ static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA rhazim3Primitive(linearization::rhazim3,setRhazim3);
 const taylorFunction taylorSimplex::rhazim3(&::rhazim3Primitive);
+*/
 
 /*implement sol*/
 static int setSol(const domain& x,const domain& z,double DD[6][6])
@@ -829,6 +854,10 @@ static taylorFunction marchalQ(&::i_marchalQprim);
 const taylorFunction taylorSimplex::marchalDih = taylorFunction::product(marchalQ,taylorSimplex::dih);
 const taylorFunction taylorSimplex::marchalDih2 = taylorFunction::rotate2(taylorSimplex::marchalDih);
 const taylorFunction taylorSimplex::marchalDih3 = taylorFunction::rotate3(taylorSimplex::marchalDih);
+const taylorFunction taylorSimplex::marchalDih4 = taylorFunction::rotate4(taylorSimplex::marchalDih);
+const taylorFunction taylorSimplex::marchalDih5 = taylorFunction::rotate5(taylorSimplex::marchalDih);
+const taylorFunction taylorSimplex::marchalDih6 = taylorFunction::rotate6(taylorSimplex::marchalDih);
+
 
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
@@ -837,17 +866,22 @@ static interval i_gchi_c1("0.124456752559607807811255454313");
 univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 /*implement gchi1_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x1) * dih_x x1 x2 x3 x4 x5 x6; */
 static primitive_univariate i_gchi1P(::i_gchi, 0 );
+/*
 static primitive_univariate i_gchi2P(::i_gchi, 1 );
 static primitive_univariate i_gchi3P(::i_gchi, 2 );
 static primitive_univariate i_gchi4P(::i_gchi, 3 );
 static primitive_univariate i_gchi5P(::i_gchi, 4 );
 static primitive_univariate i_gchi6P(::i_gchi, 5 );
+*/
+
 static taylorFunction i_gchi1(&::i_gchi1P);
+/*
 static taylorFunction i_gchi2(&::i_gchi2P);
 static taylorFunction i_gchi3(&::i_gchi3P);
 static taylorFunction i_gchi4(&::i_gchi4P);
 static taylorFunction i_gchi5(&::i_gchi5P);
 static taylorFunction i_gchi6(&::i_gchi6P);
+*/
 
 static primitiveC gchi1XPrim
 (&::x1x2,
@@ -855,6 +889,12 @@ static primitiveC gchi1XPrim
   &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::gchi1_x(&::gchi1XPrim);
 
+const taylorFunction taylorSimplex::gchi2_x = taylorFunction::rotate2(taylorSimplex::gchi1_x);
+const taylorFunction taylorSimplex::gchi3_x = taylorFunction::rotate3(taylorSimplex::gchi1_x);
+const taylorFunction taylorSimplex::gchi4_x = taylorFunction::rotate4(taylorSimplex::gchi1_x);
+const taylorFunction taylorSimplex::gchi5_x = taylorFunction::rotate5(taylorSimplex::gchi1_x);
+const taylorFunction taylorSimplex::gchi6_x = taylorFunction::rotate6(taylorSimplex::gchi1_x);
+/*
 static primitiveC gchi2XPrim
 (&::x1x2,
   &::i_gchi2  , &taylorSimplex::dih2, &taylorSimplex::unit,
@@ -884,6 +924,7 @@ static primitiveC gchi6XPrim
   &::i_gchi6  , &taylorSimplex::dih6, &taylorSimplex::unit,
   &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::gchi6_x(&::gchi6XPrim);
+*/
 
 
 /*implement eta2_126*/
@@ -937,12 +978,14 @@ static taylorFunction a_arg =
 const taylorFunction taylorSimplex::arclength_x_123 =
   taylorFunction::uni_compose(univariate::i_acos,a_arg);
 
+/*
 static int primHasDeltaDenom(const primitive* p) {
   return
     ((p == &dih1Primitive) || (p == &dih2Primitive) || (p == &dih3Primitive) ||
      (p == &rhazimPrimitive) || (p== &rhazim2Primitive) || (p == &rhazim3Primitive) ||
      (p == &solPrimitive));
 }
+*/
 
 /* ========================================================================== */
 /*                                                                            */
@@ -1162,6 +1205,30 @@ taylorFunction taylorFunction::compose // minor memory leak
   return g;
 }
 
+ taylorFunction taylorFunction::rotate4(const taylorFunction& f) {
+  taylorFunction g = taylorFunction::compose
+    (f,
+  taylorSimplex::x4  , taylorSimplex::x2, taylorSimplex::x6,
+  taylorSimplex::x1 , taylorSimplex::x5,  taylorSimplex::x3);
+  return g;
+}
+
+ taylorFunction taylorFunction::rotate5(const taylorFunction& f) {
+  taylorFunction g = taylorFunction::compose
+    (f,
+     taylorSimplex::x5  , taylorSimplex::x1, taylorSimplex::x6,
+     taylorSimplex::x2 , taylorSimplex::x4, taylorSimplex::x3);
+  return g;
+}
+
+ taylorFunction taylorFunction::rotate6(const taylorFunction& f) {
+  taylorFunction g = taylorFunction::compose
+    (f,
+     taylorSimplex::x6  , taylorSimplex::x1, taylorSimplex::x5,
+     taylorSimplex::x3 , taylorSimplex::x4, taylorSimplex::x2);
+  return g;
+}
+
 taylorFunction::taylorFunction(const taylorFunction& rhs)
 {
   for (mapPrim::const_iterator it = rhs.data.begin(); it!= rhs.data.end(); ++it)
@@ -1248,13 +1315,15 @@ lineInterval taylorFunction::tangentAt(const domain& x) const {
 };
 
 
+/*
 void taylorFunction::setReducibleState(int i)
 { reduState = i; }
 
 int taylorFunction::getReducibleState() const
 { return reduState; }
+*/
 
-
+/*
 int taylorFunction::hasDeltaDenom() const {
   taylorFunction u  (*this);
   for (mapPrim::const_iterator it = u.data.begin(); it!= u.data.end(); ++it) {
@@ -1262,7 +1331,7 @@ int taylorFunction::hasDeltaDenom() const {
     if (primHasDeltaDenom(p)) { return 1; } }
   return 0;
 }
-
+*/
 
 /* ========================================================================== */
 /*                                                                            */
@@ -1942,12 +2011,14 @@ void taylorFunction::selfTest()
 
   
   /* test hasDeltaDenom */ {
+    /*
     taylorFunction F1 = taylorSimplex::y1 + taylorSimplex::dih2;
     if (!F1.hasDeltaDenom()) cout << "hasDeltaDenom fails 1" << endl;
     taylorFunction F2 (taylorSimplex::y2);
     if (F2.hasDeltaDenom()) cout << "hasDeltaDenom fails 2" << endl;
     taylorFunction F3( taylorSimplex::dih);
     if (!F3.hasDeltaDenom()) cout << "hasDeltaDenom fails 3" << endl;
+    */
   }
   
   /* test primitiveC1 */  {

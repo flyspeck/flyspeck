@@ -112,13 +112,14 @@ static int setreduction(int i,const double x[6],const double z[6],
 	return 1;
 	}
 
+/*
 static int reducible(const taylorFunction* I[],int count)
 	{
 	for (int i=0;i<count;i++)
 		if (!I[i]->getReducibleState()) return 0;
 	return 1;
 	}
-
+*/
 
 static void report_failure(const double x[6],const double z[6],const char* s)
 	{
@@ -234,16 +235,18 @@ static cellOption::cellStatus
 	while (goingstrong--)
 	{
 
-	/*exit if delta might be negative in a denominator */ {
+	/* calculate width */ {
 	double y[6],w[6];
 	centerform(x,z,y,w); 
+	maxwidth = max(w); 
+	/* // exit if delta might be negative in a denominator
 	int hasDeltaDen =0;
 	for (i=0;i<count;i++) {
 	  if (I[i]->hasDeltaDenom()) { hasDeltaDen = 1; }
 	}
 	if (hasDeltaDen && (deltainf(y[0],y[1],y[2],y[3],y[4],y[5])<=0.0) )
 		return cellOption::inconclusive;
-	maxwidth = max(w); 
+	*/
 	}
 
 	/*pass cell if some taylor bound holds*/{
@@ -476,6 +479,7 @@ int prove::recursiveVerifier(int depth,
 		}
 		return 0;
 		}
+	/*
 	if ((reducible(I,count) )&&(unreduced(x,z)))
 		{
 		double zz[6];
@@ -486,6 +490,7 @@ int prove::recursiveVerifier(int depth,
 			};
 		return 1;
 		}
+	*/
 	// make a backup. verifyCell changes the parameters.
 	double xx[6],zz[6],xx0[6],zz0[6];
 	for (i=0;i<6;i++) 
@@ -839,8 +844,8 @@ static int breaksapart(int depth,
 		(taylorSimplex::x4+taylorSimplex::unit*(-iyAu3))*eps[3];
 	taylorFunction A1 = *IA[0]+T*interval("-1");
 	taylorFunction B1 = *IB[0]+T;
-	A1.setReducibleState(0);
-	B1.setReducibleState(0);
+	//A1.setReducibleState(0);
+	//B1.setReducibleState(0);
 	const taylorFunction* IA1[1]= {&A1};
 	const taylorFunction* IB1[1]= {&B1};
 	double xA0[6],xB0[6],zA0[6],zB0[6];
@@ -899,6 +904,7 @@ void prove::recursiveVerifierQ(int depth,
 		return;
 		}
 	double zzA[6],zzB[6];
+	/*
 	if ((reducible(IA,Nineq) )&&(reducible(IB,Nineq))&&
 		(unreducedQ(xA,xB,zA,zB)))
 		{
@@ -913,6 +919,7 @@ void prove::recursiveVerifierQ(int depth,
 			};
 		return;
 		}
+	*/
 	// make a backup. verifyCellQ changes the parameters.
 	double xxA[6],xxB[6];
 	for (i=0;i<6;i++) 

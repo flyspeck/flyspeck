@@ -188,7 +188,7 @@ typedef tr1::unordered_map<void*,interval> mapPrim;
 class taylorFunction 
 {
 private:
-	int reduState;
+  //int reduState;
 public: 
 	mapPrim data;
 
@@ -261,9 +261,12 @@ taylorFunction& operator=(const taylorFunction& f);
  static taylorFunction rotate2(const taylorFunction&);
 
 	//////////
-	// reorder args f(x3,x1,x2,x6,x2,x5);
+	// reorder args f(x3,x1,x2,x6,x2,x5), etc.
 	//
  static taylorFunction rotate3(const taylorFunction&);
+ static taylorFunction rotate4(const taylorFunction&);
+ static taylorFunction rotate5(const taylorFunction&);
+ static taylorFunction rotate6(const taylorFunction&);
 
 
 	//////////
@@ -291,16 +294,16 @@ lineInterval tangentAt(const domain&) const;
 
 	//////////
 	//
-int getReducibleState() const;
+//int getReducibleState() const;
 
 	//////////
 	//
-void setReducibleState(int);
+//void setReducibleState(int);
 
 	//////////
 	// non-zero if its calculation involves division by Delta
         // 
-int hasDeltaDenom() const;
+//int hasDeltaDenom() const;
 
 	//////////
 	// Check the correctness of Taylor routines.
@@ -349,6 +352,7 @@ public:
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
 	  marchalDih,marchalDih2,marchalDih3,
+	  marchalDih4,marchalDih5,marchalDih6,
 	  halfbump_x1, halfbump_x4;
 
 	//////////

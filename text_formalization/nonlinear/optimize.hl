@@ -53,10 +53,13 @@ let dih5_x = new_definition `dih5_x x1 x2 x3 x4 x5 x6 =
 let dih6_x = new_definition `dih6_x x1 x2 x3 x4 x5 x6 = 
   dih6_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6)`;;
 
-
+let edge_flat2_x = new_definition `edge_flat2_x x1 x2 x3 x4 x5 x6 =
+  (edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)) pow 2`;;
  (* three dummy variables x4 x5 x6 *)
 
+(*
 let arclength6_x  = new_definition `arclength6_x x1 x2 x3 x4 x5 x6 = arclength (sqrt x1) (sqrt x2) (sqrt x3)`;;
+*)
 
 let sqrt_x1 = define `sqrt_x1 x1 x2 x3 x4 x5 x6 = sqrt x1`;;
 
@@ -101,6 +104,22 @@ let pow2 = new_definition `pow2 y = y pow 2`;;
 let pow3 = new_definition `pow3 y = y pow 3`;;
 
 let pow4 = new_definition `pow4 y = y pow 4`;;
+
+(*
+let asn797 = new_definition `asn797 k = 
+  k * asn (cos (#0.797) * sin (pi / k))`;;
+*)
+
+let asn797k = new_definition `asn797k k x2 x3 x4 x5 x6 = 
+  k * asn (cos (#0.797) * sin (pi / k))`;;
+
+(*
+let asnFn = new_definition `asnFn h k = 
+  k * asn (( h * sqrt3 / #4.0 + sqrt(&1 - (h/ &2) pow 2)/ &2) * sin (pi/ k))`;;
+*)
+
+let asnFnhk = new_definition `asnFnhk h k x3 x4 x5 x6 = 
+  k * asn (( h * sqrt3 / #4.0 + sqrt(&1 - (h/ &2) pow 2)/ &2) * sin (pi/ k))`;;
 
 let compose6 = new_definition `compose6 f p1 p2 p3 p4 p5 p6 
   (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) =
@@ -596,6 +615,53 @@ let lmfun_lfun2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let edge_flat2_x_rewrite = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. (&0 <= x1 /\ &0 <= x2 /\ &0 <= x3 /\ &0 <= x5 /\
+    &0 <= x6) ==> (edge_flat2_x x1 x2 x3 x4 x5 x6 = 
+    (sqrt (quadratic_root_plus
+           (x1,
+            (x1) * x1 +
+            (x3 - x5) * (x2 - x6) -
+            (x1) * (x2 + x3 + x5 + x6),
+            (x1) * (x3) * x5 +
+            (x1) * (x2) * x6 -
+            (x3) *
+            (x1 + x2 - x3 + x5 - x6) * x6 -
+            (x2) *
+            (x5) *
+            (x1 - x2 + x3 - x5 + x6)))) pow 2)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[edge_flat2_x];
+  REPEAT STRIP_TAC;
+  AP_THM_TAC;
+  AP_TERM_TAC;
+  REWRITE_TAC[Parse_ineq.edge_flat_rewrite];
+  ASM_SIMP_TAC[REAL_ARITH `sqrt x * sqrt x = (sqrt x) pow 2`;SQRT_POW2;SQRT_WORKS];
+  ]);;
+  (* }}} *)
+
+let edge_quadratic = prove_by_refinement(
+  `!x1 x2 x3 x5 x6. quadratic_root_plus (x1,
+            x1 * x1 +
+            (x3 - x5) * (x2 - x6) -
+            x1 * (x2 + x3 + x5 + x6),
+            x1 * x3 * x5 +
+            (x1) * (x2) * x6 -  (x3) * (x1 + x2 - x3 + x5 - x6) * x6 -
+	      (x2) * (x5) * (x1 - x2 + x3 - x5 + x6)) =
+  (-- (x1 * x1) + x1*x2 + x1*x3 - x2*x3 + x1*x5 + x2*x5 + x1*x6 + x3*x6 - 
+  x5*x6 + sqrt(ups_x x1 x3 x5 * ups_x x1 x2 x6))/(&2*x1)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.quadratic_root_plus;Sphere.ups_x];
+  REPEAT STRIP_TAC;
+  AP_THM_TAC;
+  AP_TERM_TAC;
+  REWRITE_TAC[REAL_ARITH `--(x1 * x1 + (x3 - x5) * (x2 - x6) - x1 * (x2 + x3 + x5 + x6)) + a = -- (x1 * x1) + x1 * x2 + x1 * x3 - x2 * x3 + x1 * x5 + x2 * x5 + x1 * x6 + x3 * x6 - x5 * x6 + a`];
+  REPEAT (AP_THM_TAC ORELSE AP_TERM_TAC);
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
 
 (* compute hminus *)
 
@@ -1093,7 +1159,7 @@ let cpp_template = Printf.sprintf "
 	domain x = domain::lowerD(tx);
 	domain z = domain::upperD(tz);
 	taylorFunction F = %s;
-	F.setReducibleState(0);
+	//F.setReducibleState(0);
 	return prove::generic (x,z,F);
 	}";;
 
@@ -1111,8 +1177,8 @@ let cpp_template2 = Printf.sprintf "
         domain z0=z;
 	taylorFunction F1 = %s;
 	taylorFunction F2 = %s;
-	F1.setReducibleState(0);
-	F2.setReducibleState(0);
+	//F1.setReducibleState(0);
+	//F2.setReducibleState(0);
         const taylorFunction* I[2] = {&F1,&F2};
         cellOption opt;
 	return prove::recursiveVerifier(0,x,z,x0,z0,I,2,opt);
@@ -1293,6 +1359,7 @@ REWRITE_TAC[vol2f_marchal_pow_y;vol2r_y] THEN
   SUBGOAL_THEN `x1 pow 1 = promote pow1 x1 x2 x3 x4 x5 x6 /\ x1 pow 2 = promote pow2 x1 x2 x3 x4 x5 x6 /\ x1 pow 3 = promote pow3 x1 x2 x3 x4 x5 x6 /\ x1 pow 4 = promote pow4 x1 x2 x3 x4 x5 x6` (fun t->REWRITE_TAC[t]) THENL[ REWRITE_TAC[promote;pow1;pow2;pow3;pow4];REWRITE_TAC[LET_DEF;LET_END_DEF]] ;;
 
 let DEF_expand = [Sphere.a_spine5;Sphere.b_spine5;Sphere.mm1;
+		  Sphere.flat_term;
    Sphere.mm2;GSYM Sphere.sqrt2;GSYM sqrt3;GSYM Sphere.sqrt8;sol0_const1;sqrt2_sqrt8;
    Sphere.mm1;Sphere.mm2;Sphere.tau0;Sphere.hplus;tame_table_d_values];;
 
@@ -1421,33 +1488,36 @@ let special_ids = filter (fun t -> not(List.length (get_const t) = 0   )) allids
 
 let constant_list = Parse_ineq.nub (List.flatten (map get_const allids));;
 
-  ["tauq"; "enclosed"; "edge_flat"; "flat_term";  
-    "sqrt"; "asn"; "cos"; "sin"; "acs"; 
-    "lmfun"; "vol2r"; 
-   "norm2hh"; "marchal_quartic";
+  ["tauq"; "enclosed"; "edge_flat"; 
+     "vol2r"; 
+
+  (* polynomials *)
+
+  (* case split *)
+    "lmfun"; 
+   
   (* implemented *)
-   "arclength"; "eta_y"; 
+   "arclength"; "eta_y"; "marchal_quartic"; "acs"; "norm2hh";
+    "asn"; "cos"; "sin"; "sqrt";
+  (* define away *)
+  "flat_term";
   ]
 *)
 
-let has_acs = filter (has_const "acs") allids;;
-let has_asn = filter (has_const "asn") allids;;
-let has_sqrt = filter (has_const "sqrt") allids;;
+let has_edge_flat = filter (has_const "edge_flat") allids;;
 let has_vol2r = filter (has_const "vol2r") allids;;
+has_acs;;
 filter(has_const "flat_term") allids;;
 ineq_of_ids it;;
-map preprocess (map ASSUME (ineq_of_ids has_vol2r));;
+map concl (map preprocess (map ASSUME (ineq_of_ids has_edge_flat)));;
+
 let mk_goodid() = filter (fun t -> List.length(get_const t) = 0) allids;;
 map get_const testids;;
 
 (*
 let goodid = mk_goodid();;
 *)
-Sphere.delta_x4;;
-Sphere.arclength;;
-Sphere.gamma23f;;
-Sphere.gamma3f;;
-Sphere.edge_flat;;
+searcht 5 [`edge_flat`];;
 
 (* NEXT *)
 Sphere.vol2r;;
@@ -1456,7 +1526,7 @@ Sphere.flat_term;;
 
 let non_test = [
  "9563139965" (* tauq, enclosed *);
-  "GYQVFXJ hexD 1" (* edge_flat; flat_term;tame_table_d *);
+  "GYQVFXJ hexD 1" (* edge_flat;  *);
   "2986512815" (* 9 variable polynomial *);
 ];;
 

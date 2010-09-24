@@ -74,7 +74,6 @@ univariate(uniprimitive* ) ;
 	//
 ~univariate();
 
-
 	//////////
 	// Evaluate nth univariate derivative.
         // n=0 gives function value, n=1 gives first der, n>=2 gives second der.

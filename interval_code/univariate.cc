@@ -41,7 +41,6 @@ public:
 
 };
 
-
 interval uniprimitive::eval(const interval& x,int n) const
 {
   return (n ==0 ?  (*f)(x) : (n == 1 ? (*df)(x) : (*ddf)(x) ) );

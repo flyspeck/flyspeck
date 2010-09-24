@@ -866,22 +866,9 @@ static interval i_gchi_c1("0.124456752559607807811255454313");
 univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 /*implement gchi1_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x1) * dih_x x1 x2 x3 x4 x5 x6; */
 static primitive_univariate i_gchi1P(::i_gchi, 0 );
-/*
-static primitive_univariate i_gchi2P(::i_gchi, 1 );
-static primitive_univariate i_gchi3P(::i_gchi, 2 );
-static primitive_univariate i_gchi4P(::i_gchi, 3 );
-static primitive_univariate i_gchi5P(::i_gchi, 4 );
-static primitive_univariate i_gchi6P(::i_gchi, 5 );
-*/
 
 static taylorFunction i_gchi1(&::i_gchi1P);
-/*
-static taylorFunction i_gchi2(&::i_gchi2P);
-static taylorFunction i_gchi3(&::i_gchi3P);
-static taylorFunction i_gchi4(&::i_gchi4P);
-static taylorFunction i_gchi5(&::i_gchi5P);
-static taylorFunction i_gchi6(&::i_gchi6P);
-*/
+
 
 static primitiveC gchi1XPrim
 (&::x1x2,
@@ -894,38 +881,6 @@ const taylorFunction taylorSimplex::gchi3_x = taylorFunction::rotate3(taylorSimp
 const taylorFunction taylorSimplex::gchi4_x = taylorFunction::rotate4(taylorSimplex::gchi1_x);
 const taylorFunction taylorSimplex::gchi5_x = taylorFunction::rotate5(taylorSimplex::gchi1_x);
 const taylorFunction taylorSimplex::gchi6_x = taylorFunction::rotate6(taylorSimplex::gchi1_x);
-/*
-static primitiveC gchi2XPrim
-(&::x1x2,
-  &::i_gchi2  , &taylorSimplex::dih2, &taylorSimplex::unit,
-  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
-const taylorFunction taylorSimplex::gchi2_x(&::gchi2XPrim);
-
-static primitiveC gchi3XPrim
-(&::x1x2,
-  &::i_gchi3  , &taylorSimplex::dih3, &taylorSimplex::unit,
-  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
-const taylorFunction taylorSimplex::gchi3_x(&::gchi3XPrim);
-
-static primitiveC gchi4XPrim
-(&::x1x2,
-  &::i_gchi4  , &taylorSimplex::dih4, &taylorSimplex::unit,
-  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
-const taylorFunction taylorSimplex::gchi4_x(&::gchi4XPrim);
-
-static primitiveC gchi5XPrim
-(&::x1x2,
-  &::i_gchi5  , &taylorSimplex::dih5, &taylorSimplex::unit,
-  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
-const taylorFunction taylorSimplex::gchi5_x(&::gchi5XPrim);
-
-static primitiveC gchi6XPrim
-(&::x1x2,
-  &::i_gchi6  , &taylorSimplex::dih6, &taylorSimplex::unit,
-  &taylorSimplex::unit , &taylorSimplex::unit, &taylorSimplex::unit);
-const taylorFunction taylorSimplex::gchi6_x(&::gchi6XPrim);
-*/
-
 
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
@@ -975,8 +930,76 @@ static taylorFunction al_den_inv =
   taylorFunction::uni_compose(univariate::i_inv,al_den);
 static taylorFunction a_arg = 
   taylorFunction::product(al_num,al_den_inv);
-const taylorFunction taylorSimplex::arclength_x_123 =
-  taylorFunction::uni_compose(univariate::i_acos,a_arg);
+const taylorFunction taylorSimplex::arclength_x_123 = 
+ taylorFunction::uni_compose(univariate::i_acos,a_arg);
+  
+
+/*implement acos_sqrt_x1 */
+const taylorFunction taylorSimplex::acos_sqrt_x1 = 
+  taylorFunction::uni_compose(univariate::i_acos,
+			      taylorSimplex::y1);
+
+
+/*implement asn797 */
+static interval pi("3.1415926535897932385");
+static taylorFunction asn797e = 
+  taylorFunction::product
+ (taylorSimplex::unit * pi,
+  taylorFunction::uni_compose(univariate::i_inv,taylorSimplex::x1));
+static taylorFunction sinpik =
+  taylorFunction::uni_compose(univariate::i_sin,asn797e);
+static interval cos797("0.69885563921392235500");
+static taylorFunction asn797b = taylorFunction::product
+  (taylorSimplex::unit * cos797,::sinpik);
+static taylorFunction asn797a = 
+  taylorFunction::uni_compose(univariate::i_asin,::asn797b);
+const taylorFunction taylorSimplex::asn797k = 
+  taylorFunction::product(taylorSimplex::x1,::asn797a);
+
+/*implement asnFnhk */
+// k * asn (( h * sqrt3 / #4.0 + sqrt(&1 - (h/ &2) pow 2)/ &2) * sin (pi/ k))`;;
+// sinpik as above.
+static taylorFunction sinpiR2 = taylorFunction::rotate2(sinpik);
+static interval sqrt3("1.7320508075688772935");
+static interval two ("2");
+static taylorFunction asnFh = 
+ taylorSimplex::x1 * (sqrt3 / four) +
+  (taylorFunction::uni_compose
+ (univariate::i_sqrt,
+  taylorSimplex::unit + 
+  (taylorFunction::uni_compose
+ (univariate::i_pow2,taylorSimplex::x1 * (one /two))) * (-one)))*(one / two);
+static taylorFunction asnFnhka = 
+  taylorFunction::uni_compose
+  (univariate::i_asin,
+   taylorFunction::product(asnFh,sinpiR2));
+const taylorFunction taylorSimplex::asnFnhk = 
+  taylorFunction::product(taylorSimplex::x2,asnFnhka);
+
+
+/*implement norm2hhx */
+//(y1 - hminus - hplus)^2 + (y2 - 2)^2 + (y3 - 2)^2 + 
+// (y4 - 2)^2 + (y5 - 2)^2 + (y6 - 2)^2;
+static interval mfour("-4");
+//static interval four("4");
+static interval n0("-5.114308844180643");
+static interval n1("26.539038738416085");
+static univariate ym2sq = 
+  univariate::i_pow1 + univariate::i_sqrt * "-4.0";
+static primitive_univariate ym2sqP(ym2sq,0);
+static univariate ymmsq = 
+  univariate::i_pow1 + univariate::i_sqrt * n0 + univariate::i_pow0 * n1;
+static primitive_univariate ymmsqP(ymmsq,0);
+static taylorFunction t_ym2sq(&ym2sqP);
+static taylorFunction t_ymmsq(&ymmsqP);
+const taylorFunction taylorSimplex::norm2hhx =
+  t_ymmsq + taylorFunction::rotate2(t_ym2sq) +
+   taylorFunction::rotate3(t_ym2sq) +
+  taylorFunction::rotate4(t_ym2sq) +
+  taylorFunction::rotate5(t_ym2sq) +
+  taylorFunction::rotate6(t_ym2sq);
+  
+
 
 /*
 static int primHasDeltaDenom(const primitive* p) {
@@ -1784,6 +1807,63 @@ void taylorFunction::selfTest()
 	cout << "arclength_x_123 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test norm2hhx */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 0.33641905470850064;
+    double mathValueD[6]={-0.262888552950994,0.024099927051466907,
+   0.0355143556591757,0.04653741075440776,0.057190958417936553,
+			  0.06749519175968627};
+    taylorInterval at = taylorSimplex::norm2hhx.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "norm2hhx  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "norm2hhx D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test acos_sqrt_x1 */   { 
+    domain x(0.1,0.2,0.3,0.4,0.5,0.6);
+    double mValue= 1.2490457723982542;
+    double mathValueD[6]={-1.6666666666666667,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::acos_sqrt_x1.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "acos_sqrt_x1  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "acos_sqrt_x1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test asn797k */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.0742570836404837;
+    double mathValueD[6]={0.0648275015403495,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::asn797k.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "asn797k  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "asn797k D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test asnFnhk */   { 
+    domain x(1.04, 1.08, 1.12, 1.16, 1.2, 1.24);
+    double mValue= 0.22005326245872275;
+    double mathValueD[6]={0.07141922522392495,2.7397148354175482,0,
+			  0,0,0};
+    taylorInterval at = taylorSimplex::asnFnhk.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "asnFnhk  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "asnFnhk D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
 
   /* test eta2_126 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

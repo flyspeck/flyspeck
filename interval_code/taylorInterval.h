@@ -359,9 +359,12 @@ public:
 	// functions on an upright,flat,or quasiregular:
 	// circumradius squared of the four faces of a simplex:
 	// The circumradius squared of the face (ijk) of a simplex is eta2_ijk;
+	// Miscellaneous functions.
 	//
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456,
-	  arclength_x_123;
+	  arclength_x_123,norm2hhx,
+	  asn797k,asnFnhk,
+	  acos_sqrt_x1;
 };
 
 

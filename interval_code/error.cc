@@ -15,6 +15,7 @@ extern "C" {
 using namespace std;
 
 static int ERROR_COUNT=0;
+static int CORNER_COUNT=0;
 
 void error::printTime()
         {
@@ -26,7 +27,13 @@ void error::printTime(const char* s)
         cout << s << " " << time(0) << endl << flush;
         }
 
+void error::inc_corner() {
+  CORNER_COUNT++;
+}
+
 int error::get_error_count() { return ERROR_COUNT; }
+
+int error::get_corner_count() { return CORNER_COUNT; }
 
 void error::message(const char *s)
 	{

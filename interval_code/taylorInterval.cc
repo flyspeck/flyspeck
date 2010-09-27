@@ -839,6 +839,7 @@ const taylorFunction taylorSimplex::halfbump_x4(&::i_halfbump4P);
 
 /* implement marchalQuartic (univariate) */
 // marchalQuartic[Sqrt[x]/2] = 
+/* deprecated: 
 static interval m0("-8.3439434337479413233");
 static interval m1("29.738910202367943669");
 static interval m2("-24.647762183814337061");
@@ -857,6 +858,7 @@ const taylorFunction taylorSimplex::marchalDih3 = taylorFunction::rotate3(taylor
 const taylorFunction taylorSimplex::marchalDih4 = taylorFunction::rotate4(taylorSimplex::marchalDih);
 const taylorFunction taylorSimplex::marchalDih5 = taylorFunction::rotate5(taylorSimplex::marchalDih);
 const taylorFunction taylorSimplex::marchalDih6 = taylorFunction::rotate6(taylorSimplex::marchalDih);
+*/
 
 
 /* implement gchi (univariate) */ 
@@ -1746,7 +1748,8 @@ void taylorFunction::selfTest()
     }
   }
 
-  /* test marchalDih */   { 
+  /* test marchalDih, deprecated */  
+  /*  { 
     double md[3]={0.8148484787433622,12.760561387665467,-66.28061167966449};
       epsilon3(md,::i_marchalQ);
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -1761,7 +1764,7 @@ void taylorFunction::selfTest()
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
 	cout << "marchalDih D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
-  }
+    } */
 
   /* test uni_compose */ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

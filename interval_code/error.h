@@ -55,6 +55,16 @@ static void diagnostic();
 
 static int get_error_count();
 
+		//////////
+		//  number of corner solutions.
+		//
+static int get_corner_count();
+
+		//////////
+		//  adds a corner solution.
+		//
+ static void inc_corner();
+
 };
 
 

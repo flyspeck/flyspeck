@@ -45,25 +45,34 @@ AUTHOR
 */
 
 class cellOption {
+
 public:
     enum X { silent, verbose };
     enum cellStatus { /*likely*/counterexample, cellPasses, inconclusive };
+
 private:
-	int iterationLimit;
-	int iterationCount;
+    int iterationLimit;
+    int iterationCount;
     double dihmax;
     int usingDihMax;
-	int usingBigFace126;
+    int usingBigFace126;
     int chiShortCut;
-	int startingIndex;
-	int recursionDepth;
+    int startingIndex;
+    int recursionDepth;
     X printingMode;
-	double widthCutoff;
-	int usingWidthCutoff;
-	enum { Nskip = 30 };
-	int skip_these[Nskip];
-	int skipped;
+    double widthCutoff;
+    int usingWidthCutoff;
+    enum { Nskip = 30 };
+    int skip_these[Nskip];
+    int skipped;
+
 public:
+
+	//////////
+	// Allows a sharp inequality at some point without failing. 
+	//
+	int allowSharp;
+
 	//////////
 	// 
 	//
@@ -184,9 +193,9 @@ public:
 
 	//////////
 	//
-    cellOption() { dihmax = 0.0; usingDihMax = 0; chiShortCut=0; 
+	cellOption() { dihmax = 0.0; usingDihMax = 0; chiShortCut=0; allowSharp=0;
 				usingBigFace126=0;
-                printingMode=verbose; usingWidthCutoff=0; 
+				printingMode=verbose; usingWidthCutoff=0; 
 				recursionDepth=0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;
 				iterationCount=0;
@@ -259,11 +268,6 @@ static void recursiveVerifierQ(int depth,
 	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,
 	cellOption& options);
 
-	//////////
-	// Prove that F<0 on the domain x--z.  This function calls
-	// recursiveVerifier.
-	//
-static int generic(const domain& x,const domain& z,const taylorFunction& F);
 
 };
 

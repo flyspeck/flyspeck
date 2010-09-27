@@ -280,7 +280,8 @@ static cellOption::cellStatus
 			  }
 			}
 		cout << flush;
-		return cellOption::counterexample;
+		(options.allowSharp ? error::inc_corner(): error::message("corner solution failure "));   
+		return (options.allowSharp ? cellOption::cellPasses : cellOption::counterexample);
 		}
 	}
 
@@ -308,7 +309,7 @@ static cellOption::cellStatus
 		{
 		int allpos=1, allneg=1;
 		for (j=0;j<count;j++) if (T[j]->lowerPartial(i)<0.0) allpos=0;
-		for (j=0;j<count;j++) if (T[j]->upperPartial(i)>0.0) allneg=0;
+		for (j=0;j<count;j++) if (T[j]->upperPartial(i)>= 0.0) allneg=0; // >= breaks symmetry.
 
 		if ((options.isUsingDihMax())&&(allpos+allneg>0))
 			{
@@ -1000,12 +1001,5 @@ void prove::recursiveVerifierQ(int depth,
 	}
 
 
-int prove::generic(const domain& x,const domain& z,const taylorFunction& F)
-    {
-	domain x0 = x,z0 = z;
-	const taylorFunction* I[1] = {&F};
-	cellOption opt;
-    return recursiveVerifier(0,x,z,x0,z0,I,1,opt);
-    }
 
 

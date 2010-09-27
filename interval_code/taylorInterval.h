@@ -351,8 +351,8 @@ public:
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
-	  marchalDih,marchalDih2,marchalDih3,
-	  marchalDih4,marchalDih5,marchalDih6,
+	  //	  marchalDih,marchalDih2,marchalDih3,
+	  //    marchalDih4,marchalDih5,marchalDih6,
 	  halfbump_x1, halfbump_x4;
 
 	//////////

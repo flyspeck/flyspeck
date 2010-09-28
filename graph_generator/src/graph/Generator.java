@@ -19,15 +19,15 @@ public class Generator {
     private void generatePolygon(int ngon, Vertex V, Face F, Graph G) {
         //1. initialize
         int outer = F.size();
-        boolean neglectable[][] = new boolean[outer][outer];
-        initNeglectTable(neglectable, V, F, G);
+        boolean neglectableJoinTable[][] = new boolean[outer][outer];
+        initNeglectTable(neglectableJoinTable, V, F, G);
         /* genpoly loop */
         EnumerationLoop:for(Enumeration E = new Enumerator(ngon, outer);E.hasMoreElements(); /*--*/) {
             int[] list = (int[])E.nextElement();
             //1. continue if it has an edge (i,i+1) that is neglectable.
             for(int i = 0;i + 1 < list.length;i++) {
                 if((list[i + 1] > list[i]) && ((i == 0) || (list[i] > list[i - 1]))) {
-                    if(neglectable[list[i]][list[i + 1]])
+                    if(neglectableJoinTable[list[i]][list[i + 1]])
                         continue EnumerationLoop;
                 }
             }
@@ -48,26 +48,26 @@ public class Generator {
     }
     /**
      * helper for generatePolygon
-     * Score.neglectableEdge is called many times with the same parameters, and
+     * Score.neglectableJoin is called many times with the same parameters, and
      * this makes a cache of the values.
      * @param neglectable write-only
      * @param V vertex on face F on Graph G.
      */
 
-    private void initNeglectTable(boolean[][] neglectable, Vertex V, Face F, Graph G) {
-        util.Eiffel.precondition(neglectable.length == F.size());
+    private void initNeglectTable(boolean[][] neglectableJoinTable, Vertex V, Face F, Graph G) {
+        util.Eiffel.precondition(neglectableJoinTable.length == F.size());
         for(int i = 0;i < F.size();i++)
             for(int j = i + 1;j < F.size();j++) {
-                if(Score.neglectableEdge(F.next(V, i), F.next(V, j), F))
-                    neglectable[i][j] = true;
+                if(Score.neglectableJoin(F.next(V, i), F.next(V, j), F))
+                    neglectableJoinTable[i][j] = true;
                 else
-                    neglectable[i][j] = false;
+                    neglectableJoinTable[i][j] = false;
             }
         for(int i = 0;i < F.size();i++)
             for(int j = i + 1;j < F.size();j++)
-                neglectable[j][i] = neglectable[i][j];
+                neglectableJoinTable[j][i] = neglectableJoinTable[i][j];
         for(int i = 0;i < F.size();i++)
-            neglectable[i][i] = false;
+            neglectableJoinTable[i][i] = false;
     }
     /**
      * helper for LOOP
@@ -129,7 +129,7 @@ public class Generator {
         Vertex Vlist[] = new Vertex[4];
         for(int i = 0;i < 4;i++)
             Vlist[i] = F.next(V, i);
-        if(Score.neglectableEdge(V, F.next(V, 2), F)) {
+        if(Score.neglectableJoin(V, F.next(V, 2), F)) {
             util.Eiffel.jassert(false);
             return null;
             }
@@ -242,8 +242,8 @@ public class Generator {
                 return true;
             if(Score.neglectableModification(G, 1, 0, 0, -1, B, param))
                 return true;
-            if(Score.neglectableEdge(A, B, F))
-                return true;
+            //if(Score.neglectableJoin(A, B, F))
+            //    return true;
             G = G.add(new Face[] {
                 F
             }, new Vertex[] {

@@ -149,8 +149,8 @@ public class Score {
     final static boolean neglectableModification(Graph G, int tri, int quad, int excep, int temp, Vertex V, Parameter p) {
         //1. set constants.
 	int tgt = Constants.getSquanderTarget();
-        int t = tri + V.faceCount(3, 3);
-        int q = quad + V.faceCount(4, 4);
+        int triX = tri + V.faceCount(3, 3);
+        int quadX = quad + V.faceCount(4, 4);
         int tempX = temp + V.nonFinalCount();
         util.Eiffel.precondition(tempX >= 0);
         util.Eiffel.precondition(V.nonFinalCount() > 0);
@@ -158,9 +158,9 @@ public class Score {
         if(excep > 0)
             e++;
         //2. if vertex is too crowded, it is neglectable.
-        if((e > 0) && (t + q + tempX + e > Constants.getNodeCardMaxAtExceptionalVertex()))
+        if((e > 0) && (triX + quadX + tempX + e > Constants.getNodeCardMaxAtExceptionalVertex()))
             return true;
-        if((e == 0) && (t + q + tempX > Constants.getNodeCardMax()))
+        if((e == 0) && (triX + quadX + tempX > Constants.getNodeCardMax()))
             return true;
         //3. if squanders more than the target, it is neglectable.
         int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.tableWeightD(excep) : 0) + tri * p.tableWeightD(3) + quad * p.tableWeightD(4);
@@ -176,16 +176,17 @@ public class Score {
 	int extraExceptSq = p.tableWeightDStartingAt(5);
 	boolean noExceptAtV = (e==0) && 
 	     ((tempX ==0) || 
-	      (t + q + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
+	      (triX + quadX + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
 	      (sq + ena + extraExceptSq >= tgt));
-	int pqSquAtV = p.squanderForecast(t, q, tempX) ;
-	int fSquNotAtV = sq -t * p.tableWeightD(3) - q * p.tableWeightD(4);
+	int pqSquAtV = p.squanderForecast(triX, quadX, tempX) ;
+	int fSquNotAtV = sq -triX * p.tableWeightD(3) - quadX * p.tableWeightD(4);
         if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= tgt)))
             return true;
         /** end change 11/30/05 **/
         //5. tests were inconclusive.
         return false;
     }
+
     /**
      * helper for neglectable(G,p).
      * return true if the graph is bad for reasons of scoring.
@@ -389,13 +390,14 @@ public class Score {
      * Would having a new straight line from A to B in Face F cause any problems??
      * true means it would definitely be bad.
      *   Tests:
-     *   (1) if A and B are already adjacent by an edge not on the face, a double join would be created.
-     *   (2) Is a triangle with an enclosed vertex created?
+     *   (1) if A and B are already adjacent by an edge not on the face, 
+     *  a double join would be created.
+     *  // deprecated: (2) Is a triangle with an enclosed vertex created?
      * false means that the tests are inconclusive.
      * precondition: A and B lie on F.
      */
 
-    static boolean neglectableEdge(Vertex A, Vertex B, Face F) {
+    static boolean neglectableJoin(Vertex A, Vertex B, Face F) {
         //1. Are A and B already adjacent by an edge not on F?
         if(F.size() < 5)
             return false;
@@ -408,6 +410,9 @@ public class Score {
                 return true; // adjacent condition fulfilled
         }
         //2. Is a triangle with an enclosed vertex created?
+	// deprecated condition.
+	return false;
+	/*
         if(Math.min(AtoB, BtoA) < 3)
             return false; // can return false whenever we please.
         Vertex[] vA = new Vertex[A.size()];
@@ -420,8 +425,9 @@ public class Score {
             for(int j = 0;j < vB.length;j++)
                 if(vA[i] == vB[j])
                     return true; // triangle with enclosed vertex found.
+	*/
         //3. give up, inconclusive.
-        return false;
+        //return false;
     }
     public static class Test extends util.UnitTest {
 

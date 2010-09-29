@@ -41,7 +41,7 @@ public class GraphStack {
             String S = archive.getArchiveString(i);
             Graph G = Graph.getInstance(new Formatter(S));
             util.Eiffel.jassert(Structure.isFinal(G));
-            if (Score.neglectable(G,P))
+            if (Score.neglectableFinal(G,P))
                 continue;
             Invariant inv = new Invariant(G);
             if(!archivePruned.contains(inv))
@@ -147,7 +147,7 @@ public class GraphStack {
             util.Eiffel.jassert(Structure.isFinal(G));
             if (!Structure.hasType(G, Constants.getQuadCases(casenum)))
                 continue;
-            if (Score.neglectable(G,P))
+            if (Score.neglectableFinal(G,P))
                 continue;
             Invariant inv = new Invariant(G);
             if(!archivePruned.contains(inv))

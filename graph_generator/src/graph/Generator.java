@@ -40,7 +40,7 @@ public class Generator {
                     poly[i] = null;
             }
             //3. push onto stack.
-            if(!Score.neglectable(poly, F, G, param))
+            if(!Score.neglectablePoly(poly, F, G, param))
                 Xpush(G.add(new Face[] {
                     F
                 }, poly));
@@ -151,7 +151,7 @@ public class Generator {
           /*1. get out if it squanders over target. */{
             int faceSqu = Score.faceSquanderLowerBound(G, param);
             int exN = Score.ExcessNotAt(null, G, param);
-            int forecast = param.squanderForecast(4, 0, 0);
+            int forecast = param.squanderForecastPureB(4, 0, 0);
             if(faceSqu + exN + forecast >= Constants.getSquanderTarget())
                 return null;
         }
@@ -261,7 +261,7 @@ public class Generator {
     private void Xpush(Graph G) {
 	boolean TL  = Constants.getExclude1inTri(); // ;
         if (TL) Structure.makeTrianglesFinal(G);
-        if (!Score.neglectable(G, param))
+        if (!Score.neglectableGeneral(G, param))
             stack.push(G);
 	
     }
@@ -310,25 +310,7 @@ public class Generator {
         Graph Seed = Graph.getInstance(NGON);
         Generator gen = new Generator(param, Seed, new GraphStack( param));
     }
-    /**
-     * deprecated
-     * This takes the Quad case number and generates a list of all the graphs
-     * satisfying the list of properties growing out of the Constants file.
-     */
 
-    public static void generateQuadSeriesDeprecated(int casenum) {
-        //1. print banner.
-        int[] type = Constants.getQuadCases(casenum);
-        String S = "***** ";
-        for (int i=0;i<type.length;i++)
-            S = S + " "+type[i];
-        System.out.println("//********  "+casenum+"/"+Constants.getQuadCasesLength()+":  "+S);
-        //2. initialize.
-        Parameter param = Parameter.getQuadCase(casenum);
-        GraphStack stack = new GraphStack(param);
-        Graph Seed = Graph.getInstance(Constants.getQuadCases(casenum));
-        Generator gen = new Generator(param, Seed, stack);
-    }
 
     /**
      * Constructor, generates all possible Graphs.
@@ -382,7 +364,6 @@ public class Generator {
 	//120635117931 test:
 	String case11 = "0 21 5 0 1 2 3 4 3 0 4 2 3 4 3 2 3 0 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 10 3 10 0 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 13 3 13 8 9 3 13 9 10 4 10 11 12 13 ";
 	Graph G = Graph.getInstance(new Formatter(case11));
-	//System.out.println( (Constants.getExcludePentQRTet()  ? "exclude" : "no exclude" ));;
 
 
 	Constants.getProperties().list(System.out);

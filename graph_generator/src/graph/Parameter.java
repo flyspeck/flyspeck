@@ -13,12 +13,7 @@ import java.math.BigInteger;
  */
 abstract public class Parameter {
 
-    // deprecated:
-    public static Parameter getQuadCase(int quadCaseNumber) {
-        return new QuadParameter(quadCaseNumber);
-    }
 
-    // use this one:
     public static Parameter getGeneralCase(int maxGon) {
         return new GeneralParameter(maxGon);
     }
@@ -75,35 +70,35 @@ abstract public class Parameter {
      * precondition: tri>=0, quad>=0, temp>=0.
      */
 
-    int squanderForecast(int tri, int quad, int temp) {
+    int squanderForecastPureB(int tri, int quad, int temp) {
         if(tri <= 0)
             tri = 0;
         if(quad <= 0)
             quad = 0;
         if(temp <= 0)
             temp = 0;
-        if((tri >= forecastD.length) || (quad >= forecastD.length) || (temp >= forecastD.length))
+        if((tri >= forecastB.length) || (quad >= forecastB.length) || (temp >= forecastB.length))
             return Constants.getSquanderTarget();
-        return forecastD[tri][quad][temp];
+        return forecastB[tri][quad][temp];
     }
     /**
-     * helper array for squanderForecast method.
+     * helper array for squanderForecastPureB method.
      */
-    private int forecastD[][][];
+    private int forecastB[][][];
 
     /**
-     * initialization for squanderForecast method.  called by constructor.
+     * initialization for squanderForecastPureB method.  called by constructor.
      */
 
-    protected void initForecastD() {
+    protected void initForecastB() {
         //1. create array;
         int Q = Constants.getFixedTableWeightBLength();
         int target = Constants.getSquanderTarget();
-        forecastD = new int[Q][Q][Q];
+        forecastB = new int[Q][Q][Q];
         for(int i = 0;i < Q;i++)
             for(int j = 0;j < Q;j++)
                 for(int k = 0;k < Q;k++)
-                    forecastD[i][j][k] = target;
+                    forecastB[i][j][k] = target;
         //2. build a list of triples (p,q,squander).
         ArrayList triple = new ArrayList();
         for(int p = 0;p < Q;p++)
@@ -123,8 +118,8 @@ abstract public class Parameter {
             for(int px = 0;px <= p;px++)
                 for(int qx = 0;qx <= q;qx++)
                     for(int tx = 0;tx <= p + q - px - qx;tx++) {
-                        if(forecastD[px][qx][tx] > squander)
-                            forecastD[px][qx][tx] = squander;
+                        if(forecastB[px][qx][tx] > squander)
+                            forecastB[px][qx][tx] = squander;
                     }
         }
     }
@@ -169,7 +164,7 @@ class GeneralParameter extends Parameter {
         util.Eiffel.precondition(maxGon >= 3);
         util.Eiffel.precondition(maxGon < Constants.getFixedTableWeightDLength());
         this.maxGon = maxGon;
-        initForecastD();
+        initForecastB();
     }
 
     /**
@@ -241,114 +236,3 @@ class GeneralParameter extends Parameter {
 
 
 
-// deprecated.
-class QuadParameter extends Parameter {
-
-    /**
-     * This keeps track of the case in the Quad Series.
-     * Number of the quadcase, ordered by Constants.quadCases.
-     */
-    private int quadCaseNumber = -1;
-
-
-
-    /**
-     * Helper to tableWeightB. Counts triangles in a given seed.
-     */
-
-    private static int tCount(int quadCaseNumber) {
-        int temp = 0;
-        for(int i = 0;i < Constants.getQuadCases(quadCaseNumber).length;i++) {
-            if(Constants.getQuadCases(quadCaseNumber)[i] == 3)
-                temp++;
-        }
-        return temp;
-    }
-
-    /**
-     * Helper to tableWeightB. Counts quads in a given seed.
-     */
-
-    private static int qCount(int quadCaseNumber) {
-        int temp = 0;
-        for(int i = 0;i < Constants.getQuadCases(quadCaseNumber).length;i++) {
-            if(Constants.getQuadCases(quadCaseNumber)[i] == 4)
-                temp++;
-        }
-        return temp;
-    }
-
-    /**
-     * The maximum number of vertices in a polygon.
-     */
-
-    int maxGon() {
-        return 4;
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightB(int triangleCount, int quadCount) {
-        int target = Constants.getSquanderTarget();
-        int len = Constants.getFixedTableWeightBLength();
-        //1. return target if out of range.
-        if(triangleCount < 0 || triangleCount >= len)
-            return target;
-        if(quadCount < 0 || quadCount >= len)
-            return target;
-        //2. return value if parameters match seed.
-        int value = Constants.getFixedTableWeightB(triangleCount,quadCount);
-        if(triangleCount == tCount(quadCaseNumber) && quadCount == qCount(quadCaseNumber))
-            return value;
-        //3. return target if parameters match an earlier seed.
-        for(int i = 0;i < quadCaseNumber;i++) {
-            if(triangleCount == tCount(i) && quadCount == qCount(i))
-                return target;
-        }
-        return value;
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightD(int ngon) {
-        int target = Constants.getSquanderTarget();
-        if(ngon < 0)
-            return target;
-        if(ngon > 4)
-            return target;
-        return Constants.getFixedTableWeightD(ngon);
-    }
-
-    /**
-     * implements abstract method.
-     */
-
-    int tableWeightDStartingAt(int ngon) {
-        return tableWeightD(ngon);
-    }
-
-    /**
-     * implements abstract method.
-     * @precondition: exCount=0.
-     */
-
-    int pqrExcess(int tCount, int qCount, int exCount) {
-        if(tCount + qCount > Constants.getNodeCardMax())
-            return Constants.getSquanderTarget();
-        int u = tableWeightB(tCount, qCount) - qCount * tableWeightD(4) - tCount * tableWeightD(3);
-        return Math.max(0, u);
-    }
-
-    /**
-     * Triangles and Quads only constructor.
-     */
-
-    QuadParameter(int quadCaseNumber) {
-        this.quadCaseNumber = quadCaseNumber;
-        initForecastD();
-    }
-}

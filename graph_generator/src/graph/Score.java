@@ -178,7 +178,7 @@ public class Score {
 	     ((tempX ==0) || 
 	      (triX + quadX + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
 	      (sq + ena + extraExceptSq >= tgt));
-	int pqSquAtV = p.squanderForecast(triX, quadX, tempX) ;
+	int pqSquAtV = p.squanderForecastPureB(triX, quadX, tempX) ;
 	int fSquNotAtV = sq -triX * p.tableWeightD(3) - quadX * p.tableWeightD(4);
         if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= tgt)))
             return true;
@@ -188,7 +188,7 @@ public class Score {
     }
 
     /**
-     * helper for neglectable(G,p).
+     * helper for neglectableGeneral(G,p).
      * return true if the graph is bad for reasons of scoring.
      * Tests:
      *      (1) too many or too few vertices.
@@ -198,8 +198,7 @@ public class Score {
      * precondition: G is final.
      */
 
-    final private static boolean neglectableFinal(Graph G, Parameter p) {
-	boolean QL = Constants.getExclude2inQuad();
+    final public static boolean neglectableFinal(Graph G, Parameter p) {
         //0. test precondition.
         util.Eiffel.precondition(Structure.isFinal(G));
         //1. count number of vertices.
@@ -224,7 +223,7 @@ public class Score {
 	//4. look for special structures:
        if(Constants.getExcludePentQRTet() && Structure.has11Type(G))
             return true;
-        if (QL && Structure.hasAdjacent40(G))
+        if (Constants.getExclude2inQuad() && Structure.hasAdjacent40(G))
             return true;
 	if (Constants.getExcludeDegree2() && Structure.hasDegree2(G))
 	    return true;
@@ -235,9 +234,10 @@ public class Score {
     /**
      *
      */
-    public static boolean neglectable(Graph G, Parameter param) {
-        if(Score.neglectableByBasePointSymmetry(G))
-            return true;
+    public static boolean neglectableGeneral(Graph G, Parameter param) {
+	//DEBUG: try without symmetries.
+        //if(Score.neglectableByBasePointSymmetry(G))
+        //    return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))
             return true;
         return false;
@@ -260,7 +260,7 @@ public class Score {
      * Return false if inconclusive.
      */
 
-    final static boolean neglectable(Vertex[] poly, Face F, Graph G, Parameter p) {
+    final static boolean neglectablePoly(Vertex[] poly, Face F, Graph G, Parameter p) {
 	boolean TL = Constants.getExclude1inTri();
         int ngon = poly.length;
         for(int i = 0;i < poly.length;i++) {
@@ -322,9 +322,9 @@ public class Score {
         int excessNot = ExcessNotAt(V, G, p);
         //2. case of no exceptionals at V.
         if(e == 0) {
-           if(p.squanderForecast(t, q + 1, tempX - 1) + fsqred + excessNot < target)
+           if(p.squanderForecastPureB(t, q + 1, tempX - 1) + fsqred + excessNot < target)
                 return false;
-            if(p.squanderForecast(t + tempX + 1, q, 0) + fsqred + excessNot < target)
+            if(p.squanderForecastPureB(t + tempX + 1, q, 0) + fsqred + excessNot < target)
                 return false;
 	    if (p.maxGon() < 5) // 5/2010.
 		return true;

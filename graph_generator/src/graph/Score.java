@@ -101,7 +101,7 @@ public class Score {
             if(ex > 0)
                 eTable.put(W, new Integer(ex));
         }
-        return ExcessNotAt(V, eTable, G, p);
+        return ExcessNotAtTable(V, eTable, G, p);
     }
 
     /**
@@ -109,7 +109,7 @@ public class Score {
      * @post eTable unchanged.
      */
 
-    final static int ExcessNotAt(Vertex V, Hashtable table, Graph G, Parameter p) {
+    final static int ExcessNotAtTable(Vertex V, Hashtable table, Graph G, Parameter p) {
         //1. copy Hashtable so it doesn't get modified.
         Hashtable eTable = new Hashtable();
         for(Enumeration E = table.keys();E.hasMoreElements(); /*--*/) {
@@ -123,9 +123,9 @@ public class Score {
         if (E.hasMoreElements()) {
             Vertex W = (Vertex)E.nextElement();
             int value = ((Integer)eTable.get(W)).intValue();
-            int valueWithW = value + ExcessNotAt(W,eTable,G,p);
+            int valueWithW = value + ExcessNotAtTable(W,eTable,G,p);
             eTable.remove(W);
-            int valueWithoutW = ExcessNotAt(null,eTable,G,p);
+            int valueWithoutW = ExcessNotAtTable(null,eTable,G,p);
             return Math.max(valueWithW,valueWithoutW);
         }
         //3. no remaining vertices
@@ -236,8 +236,8 @@ public class Score {
      */
     public static boolean neglectableGeneral(Graph G, Parameter param) {
 	//DEBUG: try without symmetries.
-        //if(Score.neglectableByBasePointSymmetry(G))
-        //    return true;
+        if(Score.neglectableByBasePointSymmetry(G))
+            return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))
             return true;
         return false;
@@ -272,29 +272,23 @@ public class Score {
             int quad = (ngon == 4 ? 1 : 0);
             int tri = (ngon == 3 ? 1 : 0);
             //2. get size of forward looking ngon.
+	    {
             int index = Misc.mod(i + 1, ngon);
             while(poly[index] == null)
                 index = Misc.mod(index + 1, ngon);
             int forwardNgon = F.directedLength(poly[i], poly[index]) + Misc.mod(index - i, ngon);
-	    if (TL) {
-		if(forwardNgon == 3)
-		    tri += 1;
-		if(forwardNgon > 3)
-		    temp += 1;
+	    if (forwardNgon > 2) temp += 1;
+	    if (TL && (forwardNgon == 3)) { tri += 1; temp -= 1; }
 	    }
-	    else if (forwardNgon > 2) temp += 1;
             //3. get size of backward looking ngon.
-            index = Misc.mod(i - 1, ngon);
+	    {
+            int index = Misc.mod(i - 1, ngon);
             while(poly[index] == null)
                 index = Misc.mod(index - 1, ngon);
             int backwardNgon = F.directedLength(poly[index], poly[i]) + Misc.mod(i - index, ngon);
-	    if (TL) {
-		if(backwardNgon == 3)
-		    tri += 1;
-		if(backwardNgon > 3)
-		    temp += 1;
+	    if (backwardNgon > 2) temp += 1;
+	    if (TL && (backwardNgon == 3)) { tri += 1; temp -= 1; }
 	    }
-	    else if (backwardNgon > 2) temp += 1;
             if(Score.neglectableModification(G, tri, quad, excep, temp, poly[i], p))
                 return true;
         }
@@ -341,32 +335,6 @@ public class Score {
         return true;
     }
 
-    /**
-     * helper for hashVertex
-     */
-
-    static private long pow(int exp) {
-        long r = 1;
-        for(int i = 0;i < exp;i++)
-            r *= base;
-        return r;
-    }
-
-    /**
-     * helper for neglectableByBasePointSymmetry.
-     * hash = sum_i^size base^(facesize#i)
-     * base is large enough that that largest hash vertex will appear on a largest face
-     */
-
-    static public long hashVertex(Vertex V) {
-        long hash = 0;
-        Face F = V.getAny();
-        for(int i = 0;i < V.size();i++)
-            hash += pow(V.next(F, i).size());
-        return hash;
-    }
-    final private static long base = Constants.getNodeCardMax() * 2;
-
 
     /**
      * By construction, when there are exceptional regions, the
@@ -378,10 +346,10 @@ public class Score {
         Vertex bV = G.getBaseVertex();
         if(bV == null)
             return false;
-        long hashBV = hashVertex(bV);
+        long hashBV = Structure.hashVertex(bV);
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
             Vertex V = (Vertex)E.nextElement();
-            if(V.nonFinalCount() == 0 && hashVertex(V) > hashBV)
+            if(V.nonFinalCount() == 0 && Structure.hashVertex(V) > hashBV)
                 return true;
         }
         return false;

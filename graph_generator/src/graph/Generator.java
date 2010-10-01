@@ -9,7 +9,7 @@ public class Generator {
     //    private static stringArchive series = new archive();
     private static GraphStack stack;
     private Parameter param;
-
+    private static boolean debug = true;
     //private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
     /**
      * Push onto the stack all possible ngons constructed in face F
@@ -204,6 +204,7 @@ public class Generator {
 
     private void handleQuad(Face F, Graph G) {
         util.Eiffel.precondition(F.size() == 4);
+        util.Eiffel.precondition(!debug);
         Graph G_temp;
         if(null != (G_temp = makeQuadFinal(F, G)))
             Xpush(G_temp);
@@ -223,6 +224,7 @@ public class Generator {
      */
 
     private boolean handleForcedTriangle(Graph G) {
+	//if (debug) { return false; }
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
             //1. skip if there is no forced triangle.
             Vertex V = (Vertex)E.nextElement();
@@ -259,11 +261,10 @@ public class Generator {
      */
 
     private void Xpush(Graph G) {
-	boolean TL  = Constants.getExclude1inTri(); // ;
-        if (TL) Structure.makeTrianglesFinal(G);
+        if (Constants.getExclude1inTri()) 
+	    Structure.makeTrianglesFinal(G);
         if (!Score.neglectableGeneral(G, param))
             stack.push(G);
-	
     }
 
 
@@ -295,7 +296,9 @@ public class Generator {
         //5. handle general face.
         int polylimit = Score.polyLimit(G, param);
         if(QL && (F.size() == 4) && (G.vertexSize() > 5))
-            polylimit = Math.min(polylimit, 5);
+	    { polylimit = Math.min(polylimit, 5); }
+	if (debug) {
+	    polylimit = Math.min(polylimit,4); 	}
         for(int i = 3;i <= polylimit;i++)
             generatePolygon(i, V, F, G);
     }
@@ -365,20 +368,27 @@ public class Generator {
 	String case11 = "0 21 5 0 1 2 3 4 3 0 4 2 3 4 3 2 3 0 2 5 3 5 2 6 3 6 2 1 3 6 1 7 3 7 1 8 3 8 1 9 3 9 1 0 3 9 0 10 3 10 0 5 3 10 5 11 3 11 5 6 3 11 6 7 3 11 7 12 3 12 7 8 3 12 8 13 3 13 8 9 3 13 9 10 4 10 11 12 13 ";
 	Graph G = Graph.getInstance(new Formatter(case11));
 
-
+	String case219 = "219222971900 17 5 0 1 2 3 4 3 0 4 5 4 5 4 6 2 3 6 4 7 3 5 2 1 3 7 4 3 3 1 0 5 4 7 3 8 9 4 8 3 10 11 3 10 3 2 3 10 2 6 3 10 6 12 3 12 6 7 3 12 7 9 3 11 10 12 3 11 12 9 3 9 8 11 ";
+	/*
+	Graph H = Graph.getInstance(new Formatter(case219));
+        */
 	Constants.getProperties().list(System.out);
 
 	System.out.println("//archive series/size = "+archive.name()+"/"+archive.size());
 
 	//boolean QL = Constants.getExclude2inQuad();
         for (int i=3;i<= Constants.getMaxFaceSize();i++) {
+	    if (debug && (i!=5)) { continue; } // debug.
 	    System.out.println("//***** generating general series "+i);
             Generator.generateSeries(i);
             Graph[] glist = stack.getTerminalList();
 	    for (int j=0;j<glist.length;j++) {
 		System.out.println("\""+Formatter.toArchiveString(glist[j])+"\",");
 	    }
+	    System.out.println("//***** finished generating general series "+i);
 	}
+	
+
     }
 }
 

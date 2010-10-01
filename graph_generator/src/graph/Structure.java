@@ -170,6 +170,34 @@ public class Structure {
         return false;
     }
 
+
+    /**
+     * helper for hashVertex
+     */
+
+    static private long pow(int exp) {
+        long r = 1;
+        for(int i = 0;i < exp;i++)
+            r *= base;
+        return r;
+    }
+
+    /**
+     * helper for neglectableByBasePointSymmetry.
+     * hash = sum_i^size base^(facesize#i)
+     * base is large enough that that largest hash vertex will appear on a largest face
+     */
+
+    static public long hashVertex(Vertex V) {
+        long hash = 0;
+        Face F = V.getAny();
+        for(int i = 0;i < V.size();i++)
+            hash += pow(V.next(F, i).size());
+        return hash;
+    }
+    final private static long base = Constants.getNodeCardMax() * 2;
+
+
     /**
      * returns the number of sides on the face with the most sides at V.
      * Does not consider whether faces are isFinal or not.
@@ -207,16 +235,20 @@ public class Structure {
 
     /**
      * returns the vertex around Face F of minimal height.
+     * If there is a tie, the one with the largest hash is selected.
      */
 
     final static Vertex selectMinimalVertex(Face F) {
         int minheight = Integer.MAX_VALUE;
         int index = -1;
+	long hV = 0;
         Vertex V = F.getAny();
         for(int i = 0;i < F.size();i++) {
-            int h = F.next(V, i).getHeight();
-            if(h < minheight) {
+	    Vertex W = F.next(V,i);
+            int h = W.getHeight();
+            if((h < minheight) || ((h == minheight) && (hV < hashVertex(W)))) {
                 minheight = h;
+		hV = hashVertex(W);
                 index = i;
             }
         }

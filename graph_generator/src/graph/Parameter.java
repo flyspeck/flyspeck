@@ -129,7 +129,7 @@ abstract public class Parameter {
      * @param qCount number of quads at the vertex
      * @param exCount number of exceptional faces at the vertex.
      * The parameters tCount,qCount,exCount are counts for a final vertex.
-     * Let A be the set of tCount + qCount vertices at the vertex.
+     * Let A be the set of tCount + qCount triangle and quad vertices at the vertex.
      * return value is such that
      * sum_{F\in A} \tau(F) >= pqrExcess + tCount d(3) + qCount d(4).
      * postcondition: return>=0.

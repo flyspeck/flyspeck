@@ -6,11 +6,10 @@ import java.util.*;
  * Generate all graphs with a given set of properties.
  */
 public class Generator {
-    //    private static stringArchive series = new archive();
+
     private static GraphStack stack;
     private Parameter param;
-    private static boolean debug = true;
-    //private static String path = "C:\\Documents and Settings\\Thomas Hales\\Desktop\\";
+
     /**
      * Push onto the stack all possible ngons constructed in face F
      * using the edge terminating at vertex V.
@@ -204,7 +203,6 @@ public class Generator {
 
     private void handleQuad(Face F, Graph G) {
         util.Eiffel.precondition(F.size() == 4);
-        util.Eiffel.precondition(!debug);
         Graph G_temp;
         if(null != (G_temp = makeQuadFinal(F, G)))
             Xpush(G_temp);
@@ -224,7 +222,6 @@ public class Generator {
      */
 
     private boolean handleForcedTriangle(Graph G) {
-	//if (debug) { return false; }
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
             //1. skip if there is no forced triangle.
             Vertex V = (Vertex)E.nextElement();
@@ -297,8 +294,6 @@ public class Generator {
         int polylimit = Score.polyLimit(G, param);
         if(QL && (F.size() == 4) && (G.vertexSize() > 5))
 	    { polylimit = Math.min(polylimit, 5); }
-	if (debug) {
-	    polylimit = Math.min(polylimit,4); 	}
         for(int i = 3;i <= polylimit;i++)
             generatePolygon(i, V, F, G);
     }
@@ -376,9 +371,7 @@ public class Generator {
 
 	System.out.println("//archive series/size = "+archive.name()+"/"+archive.size());
 
-	//boolean QL = Constants.getExclude2inQuad();
         for (int i=3;i<= Constants.getMaxFaceSize();i++) {
-	    if (debug && (i!=5)) { continue; } // debug.
 	    System.out.println("//***** generating general series "+i);
             Generator.generateSeries(i);
             Graph[] glist = stack.getTerminalList();

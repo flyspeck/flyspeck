@@ -136,52 +136,57 @@ public class Score {
      * Unusual parameter passing.
      * @param V Vertex under consideration
      * @param p scoring parameter.
-     * @param tri number of additional triangles.
-     * @param quad = number of additional quads,
-     * @param excep=0 means no exceptionals added.
-     * @param excep=n>0 means one exceptional, an n-gon added at v.
-     * @param temp = number of additional temps (can be negative to take away from V).
+     * @param triDelta number of additional triangles.
+     * @param quadDelta = number of additional quads,
+     * @param excepSz=0 means no exceptionals added.
+     * @param excepSz=n>0 means one exceptional, an n-gon added at v.
+     * @param tempDelta = number of additional temps (can be negative to take away from V).
      * return false inconclusive
      * return true : this parameter set is neglectable
-     * NB: 5/2010. It appears that this is never called in practice with excep>0.
      */
 
-    final static boolean neglectableModification(Graph G, int tri, int quad, int excep, int temp, Vertex V, Parameter p) {
+    final static boolean neglectableModification
+	(Graph G, int triDelta, int quadDelta, int excepSz, int tempDelta, Vertex V, Parameter p) {
         //1. set constants.
 	int tgt = Constants.getSquanderTarget();
-        int triX = tri + V.faceCount(3, 3);
-        int quadX = quad + V.faceCount(4, 4);
-        int tempX = temp + V.nonFinalCount();
+        int triX = triDelta + V.faceCount(3, 3);
+        int quadX = quadDelta + V.faceCount(4, 4);
+        int tempX = tempDelta + V.nonFinalCount();
+        int eX = V.faceCount(5, Integer.MAX_VALUE);
+        if(excepSz > 0)
+            eX++;
         util.Eiffel.precondition(tempX >= 0);
         util.Eiffel.precondition(V.nonFinalCount() > 0);
-        int e = V.faceCount(5, Integer.MAX_VALUE);
-        if(excep > 0)
-            e++;
+
         //2. if vertex is too crowded, it is neglectable.
-        if((e > 0) && (triX + quadX + tempX + e > Constants.getNodeCardMaxAtExceptionalVertex()))
+        if((eX == 0) && (triX + quadX + tempX > Constants.getNodeCardMax()))
             return true;
-        if((e == 0) && (triX + quadX + tempX > Constants.getNodeCardMax()))
+        if((eX > 0) && (triX + quadX + tempX + eX > Constants.getNodeCardMaxAtExceptionalVertex()))
             return true;
+
         //3. if squanders more than the target, it is neglectable.
-        int sq = faceSquanderLowerBound(G, p) + (excep > 0 ? p.tableWeightD(excep) : 0) + tri * p.tableWeightD(3) + quad * p.tableWeightD(4);
+        int faceSqX = faceSquanderLowerBound(G, p) + triDelta * p.tableWeightD(3) + 
+	    quadDelta * p.tableWeightD(4) +  (excepSz > 0 ? p.tableWeightD(excepSz) : 0) ;
 	//redundant:
-        if(sq >= tgt)
+        if(faceSqX >= tgt)
             return true;
 	//strengthening of previous:
-	int ena = ExcessNotAt(null, G, p);
-        if(sq + ena >= tgt)
+	int excess = ExcessNotAt(null, G, p);
+        if(faceSqX + excess >= tgt)
             return true;
 	/** change 11/30/05, 9/6/09 **/
 	//4. if no exceptionals at V, and over target, it is neglectable.
 	int extraExceptSq = p.tableWeightDStartingAt(5);
-	boolean noExceptAtV = (e==0) && 
+	boolean noExceptAtV = (eX==0) && 
 	     ((tempX ==0) || 
 	      (triX + quadX + tempX > Constants.getNodeCardMaxAtExceptionalVertex()) ||
-	      (sq + ena + extraExceptSq >= tgt));
-	int pqSquAtV = p.squanderForecastPureB(triX, quadX, tempX) ;
-	int fSquNotAtV = sq -triX * p.tableWeightD(3) - quadX * p.tableWeightD(4);
-        if((noExceptAtV) && ((fSquNotAtV + ExcessNotAt(V, G, p) + pqSquAtV >= tgt)))
-            return true;
+	      (faceSqX + excess + extraExceptSq >= tgt));
+	if (noExceptAtV) {
+	    int pqSquAtV = p.squanderForecastPureB(triX, quadX, tempX) ;
+	    int faceSqXNotV = faceSqX -triX * p.tableWeightD(3) - quadX * p.tableWeightD(4);
+	    if(faceSqXNotV + ExcessNotAt(V, G, p) + pqSquAtV >= tgt)
+		return true;
+	}
         /** end change 11/30/05 **/
         //5. tests were inconclusive.
         return false;
@@ -235,7 +240,6 @@ public class Score {
      *
      */
     public static boolean neglectableGeneral(Graph G, Parameter param) {
-	//DEBUG: try without symmetries.
         if(Score.neglectableByBasePointSymmetry(G))
             return true;
         if(Structure.isFinal(G) && Score.neglectableFinal(G, param))
@@ -266,19 +270,19 @@ public class Score {
         for(int i = 0;i < poly.length;i++) {
             if(poly[i] == null)
                 continue;
-            //1. initialize tri,quad,excep as in neglectableModification method.
-            int temp = -1;
-            int excep = (ngon > 4 ? ngon : 0);
-            int quad = (ngon == 4 ? 1 : 0);
-            int tri = (ngon == 3 ? 1 : 0);
+            //1. initialize triDelta,quadDelta,excep as in neglectableModification method.
+            int tempDelta = -1;
+            int excepSz = (ngon > 4 ? ngon : 0);
+            int quadDelta = (ngon == 4 ? 1 : 0);
+            int triDelta = (ngon == 3 ? 1 : 0);
             //2. get size of forward looking ngon.
 	    {
             int index = Misc.mod(i + 1, ngon);
             while(poly[index] == null)
                 index = Misc.mod(index + 1, ngon);
             int forwardNgon = F.directedLength(poly[i], poly[index]) + Misc.mod(index - i, ngon);
-	    if (forwardNgon > 2) temp += 1;
-	    if (TL && (forwardNgon == 3)) { tri += 1; temp -= 1; }
+	    if (forwardNgon > 2) tempDelta += 1;
+	    if (TL && (forwardNgon == 3)) { triDelta += 1; tempDelta -= 1; }
 	    }
             //3. get size of backward looking ngon.
 	    {
@@ -286,14 +290,15 @@ public class Score {
             while(poly[index] == null)
                 index = Misc.mod(index - 1, ngon);
             int backwardNgon = F.directedLength(poly[index], poly[i]) + Misc.mod(i - index, ngon);
-	    if (backwardNgon > 2) temp += 1;
-	    if (TL && (backwardNgon == 3)) { tri += 1; temp -= 1; }
+	    if (backwardNgon > 2) tempDelta += 1;
+	    if (TL && (backwardNgon == 3)) { triDelta += 1; tempDelta -= 1; }
 	    }
-            if(Score.neglectableModification(G, tri, quad, excep, temp, poly[i], p))
+            if(Score.neglectableModification(G, triDelta, quadDelta, excepSz, tempDelta, poly[i], p))
                 return true;
         }
         return false;
     }
+
     /**
      * return true if the only way to stay under the target is to replace every
      * temp face at V with a single triangle at V, filling three consecutive vertices
@@ -306,33 +311,36 @@ public class Score {
 
     final static boolean ForcedTriangleAt(Graph G, Vertex V, Parameter p) {
         //1. compute constants.
-        int t = V.faceCount(3, 3);
-        int q = V.faceCount(4, 4);
+        int tgt = Constants.getSquanderTarget();
+
+        int triX = V.faceCount(3, 3);
+        int quadX = V.faceCount(4, 4);
         int tempX = V.nonFinalCount();
-        int e = V.faceCount(5, Integer.MAX_VALUE);
+        int eX = V.faceCount(5, Integer.MAX_VALUE);
         int fsq = faceSquanderLowerBound(G, p);
-        int fsqred = fsq - q * p.tableWeightD(4) - t * p.tableWeightD(3);
-        int target = Constants.getSquanderTarget();
-        int excessNot = ExcessNotAt(V, G, p);
+        int excessNotV = ExcessNotAt(V, G, p);
         //2. case of no exceptionals at V.
-        if(e == 0) {
-           if(p.squanderForecastPureB(t, q + 1, tempX - 1) + fsqred + excessNot < target)
+        if(eX == 0) {
+	    int fsqNotV = fsq - quadX * p.tableWeightD(4) - triX * p.tableWeightD(3);
+           if(p.squanderForecastPureB(triX, quadX + 1, tempX - 1) + fsqNotV + excessNotV < tgt)
                 return false;
-            if(p.squanderForecastPureB(t + tempX + 1, q, 0) + fsqred + excessNot < target)
+            if(p.squanderForecastPureB(triX + tempX + 1, quadX, 0) + fsqNotV + excessNotV < tgt)
                 return false;
 	    if (p.maxGon() < 5) // 5/2010.
 		return true;
-            if(fsq + p.tableWeightDStartingAt(5) < target)
+            if(fsq + p.tableWeightDStartingAt(5) < tgt)
                 return false;
             return true;
         }
         //3. case of exceptionals at V.
+	else {
         int nextface = p.tableWeightDStartingAt(4);
-        if(fsq + excessNot + nextface <= target)
+        if(fsq + excessNotV + nextface < tgt)
             return false;
-        if(t + tempX + q + e + 1 <= Constants.getNodeCardMaxAtExceptionalVertex())
+        if(triX + tempX + quadX + eX  < Constants.getNodeCardMaxAtExceptionalVertex())
             return false;
         return true;
+	}
     }
 
 
@@ -344,7 +352,10 @@ public class Score {
 
     static boolean neglectableByBasePointSymmetry(Graph G) {
         Vertex bV = G.getBaseVertex();
-        if(bV == null)
+	// This fixes error exposed in Isabelle formal verfication by T. Nipkow.
+	// BUG FIXED OCT 1, 2010, 8:38pm.
+	// The second disjunct was missing, which resulted in 2 dropped cases.
+        if ((bV == null) || (bV.nonFinalCount() > 0))   
             return false;
         long hashBV = Structure.hashVertex(bV);
         for(Enumeration E = G.vertexEnumeration();E.hasMoreElements(); /*--*/) {
@@ -377,25 +388,8 @@ public class Score {
             if(A.next(F, i).next(A, 1) == B)
                 return true; // adjacent condition fulfilled
         }
-        //2. Is a triangle with an enclosed vertex created?
-	// deprecated condition.
+        //2. Give up, inconclusive.
 	return false;
-	/*
-        if(Math.min(AtoB, BtoA) < 3)
-            return false; // can return false whenever we please.
-        Vertex[] vA = new Vertex[A.size()];
-        Vertex[] vB = new Vertex[B.size()];
-        for(int i = 0;i < A.size();i++)
-            vA[i] = A.next(F, i).next(A, 1); //array of neighbors.
-        for(int i = 0;i < B.size();i++)
-            vB[i] = B.next(F, i).next(B, 1);
-        for(int i = 0;i < vA.length;i++)
-            for(int j = 0;j < vB.length;j++)
-                if(vA[i] == vB[j])
-                    return true; // triangle with enclosed vertex found.
-	*/
-        //3. give up, inconclusive.
-        //return false;
     }
     public static class Test extends util.UnitTest {
 
@@ -406,13 +400,13 @@ public class Score {
                 String S = archive.getArchiveString( i);
                 Graph G = Graph.getInstance(new Formatter(S));
                 int fsq = Score.faceSquanderLowerBound(G, p);
-                int ena = Score.ExcessNotAt(null, G, p);
+                int excess = Score.ExcessNotAt(null, G, p);
                 Invariant inv = new Invariant(G);
                 long hash = inv.getHash();
                 if(i!= 43 && i != 42 && i != 41 && i != 40
                     && i!= 39 && i != 38 && i != 36 && i != 35
                     && i!= 34 && i!= 33 && i!= 32 && i != 10 && i != 9 && i != 8)
-                    {} // jassert(fsq + ena < Constants.getSquanderTarget()," "+i);
+                    {} // jassert(fsq + excess < Constants.getSquanderTarget()," "+i);
             }
         }
     }

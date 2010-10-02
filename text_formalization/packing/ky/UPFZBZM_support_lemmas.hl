@@ -1,0 +1,396 @@
+
+(* ========================================================================= *)
+(*      Supporting lemmas for UPFZBZM                                        *)
+(*      Chaper    : Packing (Clusters)                                       *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+(* ========================================================================= *)
+(*                     FILES NEED TO BE LOADED                               *)
+(* ========================================================================= *)
+
+(* dmtcp: needs "flyspeck_load.hl";; *)
+
+needs "vukhacky_tactics.hl";;
+flyspeck_needs "packing/pack_defs.hl";;
+flyspeck_needs "packing/pack_concl.hl";;
+needs "beta_pair_thm.hl";;
+
+open Pack_defs;;
+open Pack_concl;;
+open Vukhacky_tactics;;
+
+(*-------------------------------------------------------------------------- *) 
+  
+ let UPFZBZM_concl = 
+   `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+         marchal_inequality /\
+         lmfun_inequality V ==>
+    (?G. negligible_fun_0 G V /\ fcc_compatible G V)`;;
+
+(* ------------------------------------------------------------------------- *)
+(* Loading the list of unproved lemmas *)
+
+needs "UPFZBZM_axioms.hl";;
+
+(* ========================================================================= *)
+(*                 SOME COMPLEMENTARY LEMMAS                                 *)
+(* ========================================================================= *)
+(* Lemma 1 *)
+
+ let john_harrison_lemma1 = prove
+  (`(\(x,y). P x y) = (\p. P (FST p) (SND p))`,
+   REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM]);;
+
+ let john_harrison_lemma2 = MESON[] `(?x. P x) /\ (@x. P x) = a ==> P a`;;
+
+ let JOHN_SELECT_THM = prove
+  (`(?x y. P x /\ Q y /\ R x y) /\
+    (@(x,y). P x /\ Q y /\ R x y) = (a,b)
+    ==> P a /\ Q b /\ R a b`,
+   REWRITE_TAC[GSYM EXISTS_PAIRED_THM] THEN
+   REWRITE_TAC[john_harrison_lemma1] THEN
+   DISCH_THEN(MP_TAC o MATCH_MP john_harrison_lemma2) THEN
+   REWRITE_TAC[FST; SND]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 2 *)
+
+let SQRT_RULE_Euler_lemma = prove 
+ (`!x y. x pow 2 = y /\ &0 <= x ==> x = sqrt y`,
+ REPEAT STRIP_TAC THEN 
+ REWRITE_TAC[GSYM (ASSUME `x pow 2 = y`);REAL_POW_2] THEN   
+ ASM_SIMP_TAC[SQRT_MUL] THEN
+ ASM_MESON_TAC[GSYM REAL_POW_2;SQRT_POW_2]);;
+
+let  SQRT_OF_32_lemma = prove_by_refinement (
+ `sqrt (&32) = &8 * sqrt (&1 / &2)`,
+  [ (REWRITE_WITH `&8 = sqrt (&64)`);
+   (MATCH_MP_TAC SQRT_RULE_Euler_lemma);
+   (REAL_ARITH_TAC);
+   (REWRITE_TAC[REAL_ARITH `&32 = &64 * (&1 / &2)`]);
+   (MATCH_MP_TAC SQRT_MUL);
+   (REAL_ARITH_TAC)]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 3 *)
+
+let m1_minus_12m2 = prove_by_refinement (
+ `mm1 - &12 * mm2 = sqrt (&1 / &2)`,
+
+[ (REWRITE_TAC[mm1;mm2]);
+ (REWRITE_TAC [REAL_ARITH `a * (b / c) = (a * b) / c`]);
+ (REWRITE_WITH 
+ `&12 * (&6 * sol0 - pi) * sqrt (&2) = ((&6 * sol0 - pi) * sqrt (&8)) * &6`);
+ (REWRITE_TAC[REAL_ARITH`&12 * a * b = (a * &2 * b) * &6`]);
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_RCANCEL] `a = b ==> a * x = b * x`));
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_LCANCEL] `a = b ==> x * a = x * b`));
+
+ (REWRITE_TAC[REAL_ARITH `&8 = &4 * &2`]);
+ (REWRITE_WITH `sqrt (&4 * &2) = sqrt (&4) * sqrt (&2)`);
+ (MATCH_MP_TAC SQRT_MUL);
+ (REAL_ARITH_TAC);
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_RCANCEL] `a = b ==> a * x = b * x`));
+ (MATCH_MP_TAC SQRT_RULE_Euler_lemma);
+ (REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_ARITH `(m * &6) / (&6 * tau0) = m * &6 / (tau0 * &6)`]);
+ (REWRITE_WITH `((&6 * sol0 - pi) * sqrt (&8)) * &6 / (tau0 * &6) = 
+ ((&6 * sol0 - pi) * sqrt (&8)) / tau0`);
+ (MATCH_MP_TAC REDUCE_WITH_DIV_Euler_lemma);
+ (REWRITE_TAC[REAL_ARITH `~(&6 = &0)`;tau0_not_zero]);
+
+ (REWRITE_TAC[REAL_ARITH `a / b - c / b = (a - c) / b`]);
+ (REWRITE_TAC[REAL_ARITH `a * x - b * x = (a - b) * x`]);
+ (REWRITE_WITH `sol0 - (&6 * sol0 - pi) = tau0 / &4`);
+ (REWRITE_TAC[tau0]);
+ (REAL_ARITH_TAC);
+
+ (REWRITE_TAC[REAL_ARITH 
+  `(tau0 / &4 * x) / tau0 = (tau0 / tau0) * (x / &4)`]);
+ (REWRITE_WITH `sqrt (&8) / &4 = sqrt (&1 / &2)`);
+ (REWRITE_TAC[REAL_ARITH `&1 / &2 = &8 / &16`]);
+ (REWRITE_WITH `sqrt (&8 / &16) = sqrt (&8) / sqrt (&16)`);
+ (MATCH_MP_TAC SQRT_DIV THEN REAL_ARITH_TAC);
+ (REWRITE_WITH `sqrt (&16) = &4`);
+
+ (MATCH_MP_TAC (MESON[] `a = b ==> b = a`));
+ (MATCH_MP_TAC SQRT_RULE_Euler_lemma THEN REAL_ARITH_TAC);
+ (MATCH_MP_TAC (MESON[REAL_MUL_LID] `x = &1 ==> x * y = y`));
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (REWRITE_TAC[tau0_not_zero])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 4 *)
+
+let ZERO_LE_MM2_LEMMA = 
+   MATCH_MP (REAL_ARITH `&0 < x ==> &0 <= x`) ZERO_LT_MM2_LEMMA;;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 5 *)
+
+let FINITE_edgeX = prove_by_refinement (
+ `!V X. FINITE (edgeX V X)`,
+[(REPEAT GEN_TAC THEN REWRITE_TAC[edgeX;VX]);
+ (COND_CASES_TAC);
+(* Break into 2 subgoal *)
+
+(REWRITE_WITH `{{u:real^3, v} | {} u /\ {} v /\ ~(u = v)} = {}`);
+(* New Subgoal 1.1 *)
+(SET_TAC[]);  (*  End subgoal 1.1 *)
+(MESON_TAC[FINITE_CASES]);  (* End Subgoal 1 *)
+(REPEAT LET_TAC);
+(SUBGOAL_THEN 
+   `FINITE (set_of_list (truncate_simplex (k - 1) (ul:(real^3)list)))`
+   ASSUME_TAC);
+(REWRITE_TAC[FINITE_SET_OF_LIST]);
+(ABBREV_TAC `S = set_of_list (truncate_simplex (k - 1) (ul:(real^3)list))`);
+(MATCH_MP_TAC FINITE_SUBSET);
+(EXISTS_TAC `{t:real^3->bool | t SUBSET S}`);
+(STRIP_TAC);
+(ASM_MESON_TAC[FINITE_POWERSET]);
+(REWRITE_TAC[SUBSET;IN_ELIM_THM]);
+(REPEAT STRIP_TAC);
+(REPLICATE_TAC 5 UP_ASM_TAC);
+(SET_TAC[])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 6 *)
+
+let FINITE_critical_edgeX = prove_by_refinement (
+ `!V X. FINITE (critical_edgeX V X)`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_TAC[critical_edgeX]);
+ (REWRITE_WITH 
+  `{{u:real^3, v} | {u, v} IN edgeX V X /\ hminus <= hl [u; v] /\ 
+                     hl [u; v] <= hplus} = 
+   {{u, v} | hminus <= hl [u; v] /\ hl [u; v] <= hplus} INTER (edgeX V X)`);
+ (REPEAT GEN_TAC THEN SET_TAC[]);
+ (MESON_TAC[FINITE_edgeX;FINITE_INTER])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 7 *)
+
+let DIHV_LE_0 = prove_by_refinement (
+ `!x:real^N y z t.  &0 <= dihV x y z t`,
+[ (REPEAT GEN_TAC THEN REWRITE_TAC[dihV]);
+ (REPEAT LET_TAC THEN REWRITE_TAC[arcV]);
+ (MATCH_MP_TAC (MESON[] `&0 <= acs y /\ acs y <= pi ==> &0 <= acs y`));
+ (MATCH_MP_TAC ACS);
+ (REWRITE_TAC[GSYM REAL_ABS_BOUNDS; NORM_CAUCHY_SCHWARZ_DIV])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 8 *)
+
+let DIHV_SYM = prove_by_refinement (
+ `!(x:real^N) y z t. dihV x y z t = dihV y x z t`,
+[ (REPEAT GEN_TAC);
+ (REWRITE_TAC[dihV] THEN REPEAT LET_TAC);
+ (MATCH_MP_TAC (MESON[]
+  `!a b c d x. (a = b) /\ (c = d) ==> arcV x a c = arcV x b d`));
+ (REPEAT STRIP_TAC);
+  (* Break into 2 subgoals with similar proofs *)
+   
+  (* Subgoal 1 *)
+   (EXPAND_TAC "vap'" THEN EXPAND_TAC "vap");
+
+     (REWRITE_WITH `(va':real^N) = va - vc`);
+     (EXPAND_TAC "va'" THEN EXPAND_TAC "va" THEN EXPAND_TAC "vc");
+     (VECTOR_ARITH_TAC);
+
+     (REWRITE_WITH `(vc':real^N) = --vc`);
+     (EXPAND_TAC "vc'" THEN EXPAND_TAC "vc");
+     (VECTOR_ARITH_TAC);
+
+     (REWRITE_WITH 
+   `(--vc dot --vc) % (va:real^N - vc) = (vc dot vc) % va - (vc dot vc) % vc`);
+    (REWRITE_TAC[DOT_RNEG;DOT_LNEG;REAL_ARITH `-- --x = x `]);
+    (VECTOR_ARITH_TAC);
+
+  (MATCH_MP_TAC (VECTOR_ARITH `a = b + c ==> x:real^N - b - c = x - a `));
+  (REWRITE_WITH `((va:real^N - vc) dot --vc) % --vc = 
+                 (va dot vc) % vc - (vc dot vc) % vc`);
+ (REWRITE_TAC[DOT_RNEG;DOT_LNEG;VECTOR_MUL_LNEG; VECTOR_MUL_RNEG]);
+ (REWRITE_TAC[VECTOR_NEG_MINUS1;VECTOR_MUL_ASSOC]);
+ (REWRITE_TAC[REAL_ARITH `-- &1 * -- &1 * x = x`;
+               DOT_LSUB;VECTOR_SUB_RDISTRIB]);
+ (VECTOR_ARITH_TAC);
+
+   (* Subgoal 2 *)
+ (EXPAND_TAC "vbp'" THEN EXPAND_TAC "vbp");
+ (REWRITE_WITH `(vb':real^N) = vb - vc`);
+ (EXPAND_TAC "vb'" THEN EXPAND_TAC "vb" THEN EXPAND_TAC "vc");
+ (VECTOR_ARITH_TAC);
+
+   (REWRITE_WITH `(vc':real^N) = --vc`);
+   (EXPAND_TAC "vc'" THEN EXPAND_TAC "vc");
+   (VECTOR_ARITH_TAC);
+
+   (REWRITE_WITH 
+  `(--vc dot --vc) % (vb:real^N - vc) = (vc dot vc) % vb - (vc dot vc) % vc`);
+   (REWRITE_TAC[DOT_RNEG;DOT_LNEG;REAL_ARITH `-- --x = x `]);
+   (VECTOR_ARITH_TAC);
+ 
+   (MATCH_MP_TAC (VECTOR_ARITH `a = b + c ==> x:real^N - b - c = x - a `));
+   (REWRITE_WITH `((vb:real^N - vc) dot --vc) % --vc = 
+                 (vb dot vc) % vc - (vc dot vc) % vc`);
+   (REWRITE_TAC[DOT_RNEG;DOT_LNEG;VECTOR_MUL_LNEG; VECTOR_MUL_RNEG]);
+   (REWRITE_TAC[VECTOR_NEG_MINUS1;VECTOR_MUL_ASSOC]);
+   (REWRITE_TAC[REAL_ARITH `-- &1 * -- &1 * x = x`;
+               DOT_LSUB;VECTOR_SUB_RDISTRIB]);
+   (VECTOR_ARITH_TAC)]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 9 *)
+
+let DIHX_POS = prove_by_refinement ( 
+ `!u v V X. &0 <= dihX V X (u,v)`,
+[(REPEAT GEN_TAC THEN REWRITE_TAC[dihX]);
+ (COND_CASES_TAC);
+ REAL_ARITH_TAC;
+ (LET_TAC THEN COND_CASES_TAC);
+ (REWRITE_TAC[dihX2] THEN LET_TAC THEN REWRITE_TAC[DIHV_LE_0]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[dihX3] THEN LET_TAC THEN MATCH_MP_TAC (SUM_POS_LE));
+ STRIP_TAC;
+
+ (REWRITE_TAC[left_action_list;TABLE]);
+ (ABBREV_TAC `P = {p | p permutes {0, 1, 2}}`);
+ (ABBREV_TAC 
+`VL = {vl:(real^3)list | ?p. p permutes {0, 1, 2} /\
+                vl = REVERSE (REVERSE_TABLE (\i. EL (inverse p i) ul') 
+                    (LENGTH ul')) /\
+                u = EL 0 vl /\
+                v = EL 1 vl}`);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `(VL:(real^3)list->bool) CROSS (P: (num->num)->bool)`);
+ STRIP_TAC;
+ (MATCH_MP_TAC FINITE_CROSS);
+ (NEW_GOAL `FINITE (P:(num->num)->bool)`);
+ (EXPAND_TAC "P");
+ (REWRITE_TAC[FINITE_PERMUTE_3]);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "VL");
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (ABBREV_TAC 
+  `f = (\(p:num->num). REVERSE (REVERSE_TABLE (\i. EL (inverse p i)
+                       (ul':(real^3)list)) (LENGTH ul')))`);
+ (EXISTS_TAC `{vl:(real^3)list | ?p:num->num. p IN P /\ vl = f p}`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC FINITE_IMAGE_EXPAND);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "P" THEN EXPAND_TAC "f");
+ (REWRITE_TAC[SUBSET;IN;IN_ELIM_THM;BETA_THM]);
+ (MESON_TAC[]);
+
+ (EXPAND_TAC "VL");
+ (EXPAND_TAC "P");
+ (REWRITE_TAC[CROSS;IN;IN_ELIM_THM;SUBSET]);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `vl:(real^3)list`);
+ (EXISTS_TAC `p:(num->num)`);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `p:(num->num)`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ GEN_TAC;
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (DISCH_TAC);
+ (CHOOSE_TAC (ASSUME `?vl p.
+         (p permutes {0, 1, 2} /\
+           vl = left_action_list p ul' /\
+           u:real^3 = EL 0 vl /\
+           v = EL 1 vl) /\
+          x = vl,p`)) ;
+ (CHOOSE_TAC (ASSUME `?p.
+          (p permutes {0, 1, 2} /\
+           vl = left_action_list p ul' /\
+           u:real^3 = EL 0 vl /\
+           v = EL 1 vl) /\
+          x = vl,p`)) ;
+ (UP_ASM_TAC THEN (REPEAT STRIP_TAC));
+ (REWRITE_ONLY_TAC (ASSUME `x:(real^3)list#(num->num) = vl,p`));
+ (REWRITE_TAC[DIHV_LE_0]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[dihX4]);
+ LET_TAC;
+ (MATCH_MP_TAC REAL_LE_MUL THEN REWRITE_TAC[REAL_ARITH `&0 <= &1 / &2`]);
+ (MATCH_MP_TAC SUM_POS_LE);
+ STRIP_TAC;
+
+ (ABBREV_TAC `P = {p | p permutes {0, 1, 2, 3}}`);
+ (ABBREV_TAC 
+`VL = {vl:(real^3)list | ?p. p permutes {0, 1, 2, 3} /\
+                vl = left_action_list p ul' /\
+                u = EL 0 vl /\
+                v = EL 1 vl}`);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `(VL:(real^3)list->bool) CROSS (P: (num->num)->bool)`);
+ STRIP_TAC;
+ (MATCH_MP_TAC FINITE_CROSS);
+ (NEW_GOAL `FINITE (P:(num->num)->bool)`);
+ (EXPAND_TAC "P");
+ (REWRITE_TAC[FINITE_PERMUTE_4]);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "VL");
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (ABBREV_TAC 
+  `f = (\(p:num->num). left_action_list p (ul':(real^3)list))`);
+ (EXISTS_TAC `{vl:(real^3)list | ?p:num->num. p IN P /\ vl = f p}`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC FINITE_IMAGE_EXPAND);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "P" THEN EXPAND_TAC "f");
+ (REWRITE_TAC[SUBSET;IN;IN_ELIM_THM;BETA_THM]);
+ (MESON_TAC[]);
+
+ (EXPAND_TAC "VL");
+ (EXPAND_TAC "P");
+ (REWRITE_TAC[CROSS;IN;IN_ELIM_THM;SUBSET]);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `vl:(real^3)list`);
+ (EXISTS_TAC `p:(num->num)`);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `p:(num->num)`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ GEN_TAC;
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (DISCH_TAC);
+ (CHOOSE_TAC (ASSUME `?vl p.
+          (p permutes {0, 1, 2, 3} /\
+           vl = left_action_list p ul' /\
+           u:real^3 = EL 0 vl /\
+           v = EL 1 vl) /\
+          x = vl,p`)) ;
+ (CHOOSE_TAC (ASSUME `?p.
+          (p permutes {0, 1, 2, 3} /\
+           vl = left_action_list p ul' /\
+           u:real^3 = EL 0 vl /\
+           v = EL 1 vl) /\
+          x = vl,p`)) ;
+ (UP_ASM_TAC THEN (REPEAT STRIP_TAC));
+ (REWRITE_ONLY_TAC (ASSUME `x:(real^3)list#(num->num) = vl,p`));
+ (REWRITE_TAC[DIHV_LE_0]);
+ REAL_ARITH_TAC ]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 10 *)
+
+let SUM_SET_OF_2_ELEMENTS = prove_by_refinement (
+ `!s t f. ~(s = t) ==> sum {s:A,t} f = f s + f t`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_WITH `!s t f. f s = sum{s:A} f /\ f t = sum{t} f`);
+ (MESON_TAC[SUM_SING]);
+ (REWRITE_WITH `{s:A, t} = {s} UNION {t}`);
+ (SET_TAC[]);
+ (MATCH_MP_TAC SUM_UNION);
+ (REWRITE_TAC[FINITE_SING]);
+ (UP_ASM_TAC THEN SET_TAC[])]);;

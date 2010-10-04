@@ -16,7 +16,8 @@ flyspeck_needs "nonlinear/ineqdata3q1h.hl" ;;
 
 type tag = Lp | Lpsymmetry | Clusterlp | Tablelp | Flypaper 
   | Cfsqp | Eps of float | Penalty of float*float
-  | Further | Tex | Derived of string list | Xconvert | Series3q1h | Sharp;;
+  | Further | Tex | Derived of string list | Xconvert | Split of int list 
+  | Tprep | Sharp;;
 
 type ineq_datum = 
   { 
@@ -85,6 +86,10 @@ let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
 
    Xconvert means to use the squared variables "x1...x6" rather than
    "y1..y6" when doing the nonlinear verification.
+
+   Split is an instruction to the nonlinear ineq verification to split
+   the indicated variables (at 2 h0).  This is needed on piecewise differentiable
+   functions (namely, lmfun) to restrict to differentiable domains.
 
    Sharp means that equality is attained.
 
@@ -185,7 +190,7 @@ add
 	      ]
 	      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun >= &0) )`);
     doc=      "If a simplex does not have any critical edges then it is non-negative.";
-     tags = [Flypaper;Tex;Cfsqp;Xconvert;Eps 1.0e-12;Sharp];
+     tags = [Flypaper;Tex;Cfsqp;Xconvert;Tprep;Eps 1.0e-12;Sharp];
   };;
 
 add
@@ -203,7 +208,7 @@ add
 	      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun >= &0) )`);
 (* \/                 (y_of_x rad2_x y1 y2 y3 y4 y5 y6 >= &2) *)
     doc=      "If a simplex does not have any critical edges then it is non-negative.";
-     tags = [Flypaper;Tex;Cfsqp;Xconvert;Eps 1.0e-12;Sharp];
+     tags = [Flypaper;Tex;Cfsqp;Xconvert;Tprep;Eps 1.0e-12;Sharp];
   };;
 
 add
@@ -221,7 +226,7 @@ add
 	      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun >= &0) )`);
     doc=        "If a simplex does not have any critical edges then it is non-negative.";
  (* \/                 (y_of_x rad2_x y1 y2 y3 y4 y5 y6 >= &2) *)
-     tags = [Flypaper;Tex;Cfsqp;Xconvert];
+     tags = [Flypaper;Tex;Tprep;Cfsqp;Xconvert];
   };;
 
 add
@@ -239,7 +244,7 @@ add
 	      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun >= &0) )`);
     doc=      "If a simplex does not have any critical edges then it is non-negative.";
  (* \/                 (y_of_x rad2_x y1 y2 y3 y4 y5 y6 >= &2) *)
-     tags = [Flypaper;Tex;Cfsqp;Xconvert;];
+     tags = [Flypaper;Tex;Tprep;Cfsqp;Xconvert;];
   };;
 
 add
@@ -257,7 +262,7 @@ add
 	      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun >= &0)   \/    (y_of_x rad2_x y1 y2 y3 y4 y5 y6 >= &2))`);
     doc=     "If a simplex does not have any critical edges then it is non-negative.
            This is a degenerate calculation, because the volume of the simplex tends to zero.";
-     tags = [Flypaper;Tex;Cfsqp;Xconvert;Eps 1.0e-12;Sharp];
+     tags = [Flypaper;Tex;Cfsqp;Tprep;Xconvert;Eps 1.0e-12;Sharp];
   };;
 
 (*
@@ -336,7 +341,7 @@ add
   If the norm condition holds, then it is a quarter.  This norm condition seems easier to
   check in practice than the conditions defining a quarter.
   ";
-  tags = [Flypaper;Tex];
+  tags = [Flypaper;Tex;Xconvert;Tprep;Split[0;1;2;3;4;5]];
 };;
 
 add 
@@ -344,15 +349,18 @@ add
   id = "GLFVCVK3";
   ineq = all_forall `ineq
    [(&2 , y1, sqrt8);
-    (&2,y2,sqrt8);
-    (&2,y3,sqrt8)
+    (&1,dummy2,&1);
+    (&2,y3,sqrt8);
+        (&1,dummy4,&1);
+    (&2,y5,sqrt8);
+        (&1,dummy6,&1)
    ]
-    ((vol3r y1 y2 y3 sqrt2 - vol3f y1 y2 y3 sqrt2 lmfun > &0)\/ 
-    (eta_y y1 y2 y3  > sqrt2))`;
+    ((vol3r y1 y3 y5 sqrt2 - vol3f y1 y3 y5 sqrt2 lmfun > &0)\/ 
+    (eta_y y1 y3 y5  > sqrt2))`;
   doc =   "
      %4869905472
      If $X$ is a $3$-cell, then $\\gamma(X,L)\\ge0$.";
-  tags = [Flypaper;Tex;Cfsqp;Eps 1.0e-7];
+  tags = [Flypaper;Tex;Cfsqp;Eps 1.0e-7;Xconvert;Tprep;Split[0;2;4]];
 };;
 
 add
@@ -362,7 +370,7 @@ add
   [     (#2.0,y,sqrt8) ]
    (vol2r y sqrt2 - vol2f y sqrt2 lmfun > &0)`;
   doc =   "If $X$ is a $2$-cell, then $\\gamma(X,L)\\ge0$.";
-    tags = [Flypaper;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp;Xconvert;Tprep;Split[0]];  
   };;
 
 
@@ -398,7 +406,7 @@ then % gammaL is nonneg on quarters. cc:qtr
   \\]
   and the simplex is not a $4$-cell.
  ";
-    tags = [Flypaper;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp;Xconvert;Tprep;Split[0;3]];  
   };;
 
 
@@ -413,7 +421,7 @@ add
        (&2,y5,&2 * hminus );
        (&2,y6,&2 * hminus )
       ]
-      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun  + gamma3f y1 y2 y6 sqrt2 lmfun
+      ((gamma4f y1 y2 y3 y4 y5 y6 lmfun  + gamma3f y1 y3 y5 sqrt2 lmfun
 	> &0)\/ 
 	 (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
     doc = "
@@ -423,7 +431,7 @@ If $X$ is any quarter, and  $Y$ is a $3$-cell that flanks it, then
 \\gamma(X,L) + \\gamma(Y,L) \\ge 0.
 \\]  
  ";
-    tags = [Flypaper;Tex;Cfsqp];  
+    tags = [Flypaper;Tex;Cfsqp;Xconvert;Tprep;Split[0]];  
   };;
 
 addtex(Comment,"",
@@ -517,12 +525,20 @@ let mk_ineq0 i3 i4 i5 i6  =
   let m = if (w =2) && (i4 = 1) then `1` else `0` in
  mk_tplate template [x i3;X i3; x i4;X i4; x i5;X i5; x i6 ;X i6; mk_small_numeral w; m];;
 
+let split_F4 i3 i4 i5 i6 = 
+  let sp ls i pos = if (i=1) then ls @ [pos] else ls in
+  let l0 = [0] in
+  let l3 = sp l0 i3 2 in
+  let l4 = sp l3 i4 3 in
+  let l5 = sp l4 i5 4 in
+    sp l5 i6 5;;
+
 let make_F4 i3 i4 i5 i6 = 
    {
     id = Printf.sprintf "ZTGIJCF4 %d %d %d %d 1821661595" i3 i4 i5 i6;
     ineq = mk_ineq0 i3 i4 i5 i6;
     doc = "This is the $4$-cell inequality for five or more leaves.";
-    tags = (if (i3,i4,i5,i6)=(0,0,0,0) then [Tex] else [] ) @ [Cfsqp;Flypaper;Penalty(50.0,500.0)];
+    tags = (if (i3,i4,i5,i6)=(0,0,0,0) then [Tex] else [] ) @ [Cfsqp;Flypaper;Xconvert;Penalty(50.0,500.0);Tprep;Split (split_F4 i3 i4 i5 i6)];
   };;
 
  for i3=0 to 1 do 
@@ -559,7 +575,7 @@ let make_F23 i3 i5 i6 =
     id = Printf.sprintf "ZTGIJCF23 %d %d %d 7907792228" i3 i5 i6;
     ineq = mk_ineq23 i3 i5 i6;
     doc = "This is the $2$- and $3$-cell inequality for five or more leaves.";
-    tags = (if (i3,i5,i6)=(0,0,0) then [Tex] else []) @ [Cfsqp;Flypaper;Penalty(50.0,500.0)];
+    tags = (if (i3,i5,i6)=(0,0,0) then [Tex] else []) @ [Cfsqp;Flypaper;Xconvert;Penalty(50.0,500.0);Tprep;Split (split_F4 i3 1 i5 i6)];
   };;
 
  for i3=0 to 1 do 
@@ -589,7 +605,7 @@ add
     (gamma4f y1 y2 y3 y4 y5 y6 lmfun > -- #0.00569) `;
   doc =   "
      If $X$ is a quarter, then $\\gamma(X,L)\\ge -0.00569$.";
-  tags = [Flypaper;Cfsqp;Clusterlp;Tex];
+  tags = [Flypaper;Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 
@@ -607,7 +623,7 @@ add
     ((gamma4f y1 y2 y3 y4 y5 y6 lmfun > &0) \/ (dih_y y1 y2 y3 y4 y5 y6 < #1.65))`;
   doc =   "
      If $X$ is a quarter such that $\\gamma(X,L)\\le 0$, then $\\dih(X) < 1.65$.";
-  tags = [Flypaper;Cfsqp;Clusterlp;Tex];
+  tags = [Flypaper;Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 add 
@@ -677,7 +693,7 @@ add
   doc =   "
      If $X$ is a $4$-cell with a single critical edge (the spine), and if $\\dih(X)\\ge 2.3$,
       then  $\\gamma(X,L) > 0.0057$.";
-  tags = [Flypaper;Cfsqp;Clusterlp;Tex];
+  tags = [Flypaper;Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0;1;2;3;4;5]];
 };;
 
 add 
@@ -695,7 +711,7 @@ add
       - #0.042*dih_y y1 y2 y3 y4 y5 y6 > #0.0)`;
   doc =   "
      This is an inequality for quarters used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 add 
@@ -714,7 +730,7 @@ add
    (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
   doc =   "
      This is an inequality for nonquarter $4$-cells of weight $1$ used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 add 
@@ -736,7 +752,7 @@ add
   doc =   "
      Note the lower bound on $y_4$ is $2.1$.
      This is an inequality for $23$-cells used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0;3]];
 };;
 
 add {
@@ -772,7 +788,7 @@ add
     (gamma4f y1 y2 y3 y4 y5 y6 lmfun + #0.0142852 - #0.00609451 *dih_y y1 y2 y3 y4 y5 y6 > #0.0) `;
   doc =   "
      This is an inequality for quarters used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 add 
@@ -789,7 +805,7 @@ add
     (gamma4f y1 y2 y3 y4 y5 y6 lmfun - #0.00127562 + #0.00522841 * dih_y y1 y2 y3 y4 y5 y6 > #0.0) `;
   doc =   "
      This is an inequality for quarters used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 
@@ -807,7 +823,7 @@ add
     (gamma4f y1 y2 y3 y4 y5 y6 lmfun - #0.161517 + #0.119482* dih_y y1 y2 y3 y4 y5 y6 > #0.0) `;
   doc =   "
      This is an inequality for quarters used to prove the cluster inequality.";
-  tags = [Cfsqp;Clusterlp;Tex];
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0]];
 };;
 
 (* beta_bump_lb -> beta_bump_y 2010-06-23, false otherwise on (i3,i4,i5,i6) = (0,1,0,0) 
@@ -834,10 +850,10 @@ let mk_QITNPEA i3 i4 i5 i6  =
 
 let add_QITNPEA i3 i4 i5 i6 = if (i3+i4+i5+i6 = 0) then () else
   add {
-    id = Printf.sprintf "QITNPEA %d %d %d %d 3803737830" i3 i4 i5 i6;
+    id = Printf.sprintf "QITNPEA4 %d %d %d %d 3803737830" i3 i4 i5 i6;
     ineq = mk_QITNPEA i3 i4 i5 i6;
     doc = "This is a $4$-cell (nonquarter) inequality for four leaves.";
-    tags = (if (i3,i4,i5,i6)=(0,0,0,1) then [Tex] else []) @ [Cfsqp;Flypaper;Penalty(50.0,500.0)];
+    tags = (if (i3,i4,i5,i6)=(0,0,0,1) then [Tex] else []) @ [Cfsqp;Xconvert;Flypaper;Penalty(50.0,500.0);Tprep;Split (split_F4 i3 i4 i5 i6)];
   };;
 
  for i3=0 to 1 do 
@@ -867,11 +883,11 @@ let mk_tm0 i3 i4  =
 
 let add0 i3 i4 = if (i3+i4 = 0) then () else
   add {
-    id = Printf.sprintf "QITNPEA %d %d 9063653052" i3 i4 ;
+    id = Printf.sprintf "QITNPEA1 %d %d 9063653052" i3 i4 ;
     ineq = mk_tm0 i3 i4 ;
     doc = "This is a $4$-cell (nonquarter) inequality.  The four cell is assumed to
     have exactly one {\\it small} face.";
-    tags = (if (i3+i4=1) then [Tex] else []) @ [Cfsqp;Flypaper;Penalty(50.0,500.0)]; (* 2010-06-23 *)
+    tags = (if (i3+i4=1) then [Tex] else []) @ [Cfsqp;Flypaper;Xconvert;Penalty(50.0,500.0);Tprep;Split (split_F4 i3 i4 0 0)]; 
   };;
 
 for i3=1 to 2 do (* start at 1 to force the triangle (y1,y3,y5) not to be small *)
@@ -891,7 +907,7 @@ add {
     (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
     doc = "This is a $4$-cell (nonquarter) inequality.  The two edges along the
      spine are small.";
-    tags = [Cfsqp;Flypaper;Clusterlp;Tex];
+    tags = [Cfsqp;Flypaper;Clusterlp;Xconvert;Tex;Tprep;Split[0;3]];
 };;
 
 add {
@@ -907,7 +923,7 @@ add {
     (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))`;
     doc = "This is a $4$-cell (nonquarter) and adjacent $3$-cell inequality.  
      The edges along the   spine are small.";
-    tags = [Cfsqp;Flypaper;Clusterlp;Tex];
+    tags = [Cfsqp;Flypaper;Clusterlp;Xconvert;Tex;Tprep;Split[0;3]];
 };;
 
 (* Add all the inequalities from ineqdata3q1h.hl *)
@@ -920,7 +936,7 @@ let add3q1h  =
     let f = mk_ineq case d in
       { ineq = f; 
 	id = Printf.sprintf "OXLZLEZ 6346351218 %d %d" case r; 
-	tags = (if (case,r)=(0,0) then [Tex] else []) @ [Clusterlp;Series3q1h] @
+	tags = (if (case,r)=(0,0) then [Tex] else []) @ [Clusterlp;Tprep] @
 	  (if (case >0) then [Xconvert] else []); 
 	doc = "One of many inequalities for four leaves, three quarters, and
          simplex of weight $1/2$"; } in
@@ -1071,7 +1087,7 @@ ineq = all_forall `ineq
 (&2, y6, &2*h0)
 ]
   (delta_y y1 y2 y3 y4 y5 y6 > &0)`;
-tags = [Flypaper;Tex];
+tags = [Flypaper;Tex;Xconvert];
 doc = "A certain configuration of four points cannot be coplanar.";
 };;
 
@@ -1221,8 +1237,12 @@ ineq =  all_forall `ineq
     [
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2) (&2) (&2) >= #0.0)`;
+      (#2.0,y3,#2.52);
+    (&2,y4,&2);
+    (&2,y5,&2);
+    (&2,y6,&2)
+    ]
+( taum y1 y2 y3 y4 y5 y6 >= #0.0)`;
 };;
 
 add {
@@ -1233,8 +1253,12 @@ ineq =  all_forall `ineq
     [
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2) (&2) (&2 * h0) > tame_table_d 2 1)`;
+      (#2.0,y3,#2.52);
+      (&2,y4,&2);
+      (&2,y5,&2);
+      (&2 * h0, y6, &2 * h0)
+    ]
+( taum y1 y2 y3 y4 y5 y6  > tame_table_d 2 1)`;
 };;
 
 add {
@@ -1248,8 +1272,12 @@ ineq =  all_forall `ineq
     [
       (#2.0,y1,#2.52);
       (#2.0,y2,#2.52);
-      (#2.0,y3,#2.52)]
-( taum y1 y2 y3 (&2) (&2 * h0) (&2 * h0) > tame_table_d 1 2)`;
+      (#2.0,y3,#2.52);
+      (&2,y4,&2);
+      (&2 * h0,y5,&2 * h0);
+      (&2 * h0,y6,&2 * h0)
+    ]
+( taum y1 y2 y3 y4 y5 y6 > tame_table_d 1 2)`;
 };;
 
 {
@@ -1433,9 +1461,12 @@ ineq = all_forall `ineq
  [
    (&2,y1, &2 * h0);
    (&2,y2, &2 * h0);
-   (&2,y3, &2 * h0)
+   (&2,y3, &2 * h0);
+   (&2,y4,&2);
+   (&2,y5,&2);
+   (sqrt8,y6,sqrt8)
  ]
-  (taum y1 y2 y3 (&2) (&2) sqrt8 > tame_table_d 2 1)`;
+  (taum y1 y2 y3 y4 y5 y6  > tame_table_d 2 1)`;
 };;
 
 add {
@@ -1446,9 +1477,12 @@ ineq = all_forall `ineq
  [
    (&2,y1, &2 * h0);
    (&2,y2, &2 * h0);
-   (&2,y3, &2 * h0)
+   (&2,y3, &2 * h0);
+   (&2,y4,&2);
+   (&2 * h0,y5,&2 *h0);
+   (sqrt8,y6,sqrt8)
  ]
-  (taum y1 y2 y3 (&2) (&2 * h0) sqrt8 > tame_table_d 1 2)`;
+  (taum y1 y2 y3 y4 y5 y6  > tame_table_d 1 2)`;
 };;
 
 add {
@@ -1459,9 +1493,12 @@ ineq = all_forall `ineq
  [
    (&2,y1, &2 * h0);
    (&2,y2, &2 * h0);
-   (&2,y3, &2 * h0)
+   (&2,y3, &2 * h0);
+   (&2 * h0,y4,&2 * h0);
+   (&2 * h0,y5,&2 * h0);
+   (sqrt8,y6,sqrt8)
  ]
-  (taum y1 y2 y3 (&2 * h0) (&2 * h0) sqrt8 > tame_table_d 0 3)`;
+  (taum y1 y2 y3 y4 y5 y6  > tame_table_d 0 3)`;
 };;
 
 
@@ -2033,7 +2070,7 @@ add {
 add {
   id = "2570626711";
   doc="";
-  tags = [Cfsqp;Tablelp;Tex];
+  tags = [Cfsqp;Tablelp;Xconvert;Tex];
   ineq = all_forall `ineq
     [ 
       (#2.0,y1,&2 * h0);
@@ -2125,7 +2162,7 @@ add {
   show the result holds for $\\v_1,\\ldots,\\v_4$.  We may increase a diagonal,
   with fixed perimeter, until the four points are coplanar.  We may contract the
   diagonals until both equal $3$.  This calculation provides the desired inequality.";
-  tags = [Cfsqp;Tex];
+  tags = [Cfsqp;Tex;Xconvert];
   ineq = all_forall `ineq
   [
   (#3.0,y1,#3.0);

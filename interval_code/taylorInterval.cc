@@ -1001,6 +1001,9 @@ const taylorFunction taylorSimplex::norm2hhx =
   taylorFunction::rotate5(t_ym2sq) +
   taylorFunction::rotate6(t_ym2sq);
   
+const taylorFunction taylorSimplex::x1cube = taylorFunction::product
+  (taylorSimplex::x1,taylorFunction::product
+   (taylorSimplex::x1,taylorSimplex::x1));;
 
 
 /*
@@ -1169,6 +1172,8 @@ taylorInterval taylorInterval::scale
   return t;
 }
 
+					    
+							      
 /* ========================================================================== */
 /*                                                                            */
 /*   taylorFunction                                                           */

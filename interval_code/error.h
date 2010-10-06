@@ -67,5 +67,11 @@ static int get_corner_count();
 
 };
 
+class unstable 
+{
+ public:
+  static const unstable x;
+};
+
 
 #endif

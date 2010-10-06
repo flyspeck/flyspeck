@@ -144,7 +144,7 @@ let native_c = [
   (* -- *)
   "sol_y";"dih_y";
   "lmfun";"lnazim";"hminus";
-  "wtcount3_y";"wtcount6_y";"beta_bump_y";
+  "wtcount3_y";"wtcount6_y";"beta_bump_y";"matan";
   ];;
 
 let autogen = ref[];;
@@ -155,7 +155,10 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
    tame_table_d;delta_x4;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
-   tauq;enclosed_rewrite];;
+   tauq;enclosed_rewrite;
+   sol_euler_x_div_sqrtdelta;
+   dih_x_div_sqrtdelta_posbranch;
+   ];;
 
 (*
 let macro_expand = ref [];; 
@@ -165,7 +168,17 @@ let get_macro_expand() = (
    [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
-   rhazim2;rhazim3] @ (!Ineq.dart_classes));;
+   rhazim2;rhazim3;rotate2;rotate3;rotate4;rotate5;rotate6;
+		       sol_euler345_x_div_sqrtdelta;
+		       sol_euler156_x_div_sqrtdelta;
+		       sol_euler246_x_div_sqrtdelta;
+		       ldih_x_div_sqrtdelta_posbranch;
+		       ldih2_x_div_sqrtdelta_posbranch;
+		       ldih2_x_div_sqrtdelta_posbranch;
+		      ldih3_x_div_sqrtdelta_posbranch;
+		      ldih5_x_div_sqrtdelta_posbranch;
+		      ldih6_x_div_sqrtdelta_posbranch;
+   ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
    Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5];;

@@ -132,6 +132,59 @@ static interval DDatan(const interval& x) {
 
 static uniprimitive patan(uatan,Datan,DDatan);
 
+//
+
+static interval umatan(const interval& x) {
+  // switch to the power series and error term if x is small.
+  // radius of convergence is 1.
+  if (x.lo < 1.0e-16) {
+    if (x.lo < -0.9) { throw unstable::x; }
+    if (x.hi >  0.9) { throw unstable::x; }
+    static const interval one("1");
+    static const interval three("3");
+    static const interval five("5");
+    static const interval seven("7");
+    interval x2 = x * x;
+    interval ax = interMath::max(x,-x);
+    interval error = x * x2 / (seven * (one - ax));
+    return one - x / three + x2 / five + interMath::combine(error,-error);
+  }
+  else {
+    interval r = interMath::sqrt(x);
+    return interMath::atan(r) / r;
+  }
+}
+
+static interval Dmatan(const interval& x) {
+  // (2*x + 2*x^2)^(-1) - ArcTan[Sqrt[x]]/(2*x^(3/2)) 
+	static const interval one("1");
+	static const interval two("2");
+  if (x.lo < 1.0e-8) {
+    if (x.lo < -0.9) { throw unstable::x; }
+    if (x.hi >  0.9) { throw unstable::x; }
+    static const interval three("3");
+    static const interval five("5");
+    static const interval seven("7");
+    interval x2 = x * x;
+    interval ax = interMath::max(x,-x);
+    interval error = x2 / (two * (one - ax));
+    return  - one / three + two * x / five + interMath::combine(error,-error);
+  }
+  else {
+    interval r = interMath::sqrt(x);
+    return (one / (two * x + two * x * x) - 
+	    interMath::atan(r) / (two * x * r));
+  }
+}
+
+static interval DDmatan(const interval& x) {
+  // monotonic decreasing second derivative, just return m''(-0.2).
+    if (x.lo < -0.2) { throw unstable::x; }
+    static const interval v("0.65");
+    return interMath::combine(v,-v);
+}
+
+static uniprimitive pmatan(umatan,Dmatan,DDmatan);
 
 // asin,
 
@@ -421,6 +474,7 @@ const univariate univariate::i_sqrt(&psqrt);
 const univariate univariate::i_pow3h2(&ppow3h2);
 const univariate univariate::i_inv(&pinv);
 const univariate univariate::i_atan(&patan);
+const univariate univariate::i_matan(&pmatan);
 const univariate univariate::i_asin(&pasin);
 const univariate univariate::i_acos(&pacos);
 const univariate univariate::i_sin(&psin);
@@ -476,6 +530,8 @@ void univariate::selfTest()
 
 	double atand[3]={0.206992194219821,0.9577626664112633,-0.3852699165719094};
         epsilon3(atand,univariate::i_atan);
+	double matand[3]={0.9376815458267412,-0.26484586865477544,/*fudge*/0.65};
+        epsilon3(matand,univariate::i_matan);
 	double asind[3]={0.2115749597580956,1.0228071826600218,0.22469872199874943};
         epsilon3(asind,univariate::i_asin);
 	double acosd[3]={1.3592213670368012,-1.0228071826600218,-0.22469872199874943};

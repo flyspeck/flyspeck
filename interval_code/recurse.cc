@@ -154,36 +154,36 @@ static double deltainf(double x1,double x2,double x3,double x4,double x5,
         }
 
 static inline int sgn(interval x) 
-	{ if (interMath::inf(x)>0.0) return 1;
-			else if (interMath::sup(x)<0.0) return -1; else return 0;
-	}
+{ if (interMath::inf(x)>0.0) return 1;
+  else if (interMath::sup(x)<0.0) return -1; else return 0;
+}
 
 static int sameSgn(const lineInterval& x,const lineInterval& y)
-	{
-	for (int i=0;i<6;i++) if (sgn(x.partial(i))!=sgn(y.partial(i))) return 0;
-	return 1;
-	}
+{
+  for (int i=0;i<6;i++) if (sgn(x.partial(i))!=sgn(y.partial(i))) return 0;
+  return 1;
+}
 
 static void resetBoundary(double x0[6],double z0[6],
-	const double x[6],const double z[6])
-	{
-	for (int i=0;i<6;i++) { x0[i]=x[i]; z0[i]=z[i]; }
-	}
+			  const double x[6],const double z[6])
+{
+  for (int i=0;i<6;i++) { x0[i]=x[i]; z0[i]=z[i]; }
+}
 
 static void deleteFunction(const taylorInterval* T[],const taylorFunction* I[],
-	int& count,int i)
-	{
-	count--; if (count<0) error::message("unexpected negative number");
-	int j;
-	for (j=i;j<count;j++)
-		{ T[j]=T[j+1];  I[j]=I[j+1]; }
-	}
+			   int& count,int i)
+{
+  count--; if (count<0) error::message("unexpected negative number");
+  int j;
+  for (j=i;j<count;j++)
+    { T[j]=T[j+1];  I[j]=I[j+1]; }
+}
 
 // to be used when reducing to a single inequality.  We overwrite at 0.
 static void moveFirst(const taylorInterval* T[],const taylorFunction* I[],int i)
-	{
-	if (i>0) { T[0]=T[i];  I[0]=I[i]; }
-	}
+{
+  if (i>0) { T[0]=T[i];  I[0]=I[i]; }
+}
 
 
 static cellOption::cellStatus
@@ -250,14 +250,18 @@ static cellOption::cellStatus
 	}
 
 	/*pass cell if some taylor bound holds*/{
+	int has_unstable_branch=0;
 	for (i=0;i<count;i++)
 		{
-		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   }
-		  catch (unstable x) { return cellOption::inconclusive; }
+		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
 		  T[i]=&Target[i];
 		  if (T[i]->upperBound()<0.0) return cellOption::cellPasses;
+		  }
+		  catch (unstable x) { has_unstable_branch=1; } 
 		}
+	if (has_unstable_branch) { return cellOption::inconclusive; }
 	}
+	
 
 	/*report zero width cells */ {
 	static const double epsilon_width = 1.0e-8;
@@ -463,11 +467,11 @@ int prove::recursiveVerifier(int depth,
 		stats();
 		return 0;
 		}
-	if ((options.getChiShortCut())&&
-		(edgeBound::chi234min(domain(x),domain(z)) >0.0)) return 1;
-	int MAXDEPTH = 20;
+	//if ((options.getChiShortCut())&&
+	//	(edgeBound::chi234min(domain(x),domain(z)) >0.0)) return 1;
+	int MAXDEPTH = 200;
 	if (options.getRecursionDepth()>0) MAXDEPTH = options.getRecursionDepth();
-	if (depth++ > MAXDEPTH) 
+	if (depth > MAXDEPTH) 
 		{
 		report_failure(x,z,"recursion limit exceeded");
 		cout << "recursion depth is currently at " << MAXDEPTH << endl;
@@ -513,7 +517,8 @@ int prove::recursiveVerifier(int depth,
 	if (v==cellOption::counterexample) return 0; 
 	else if (v==cellOption::cellPasses) return 1; 
 	// hence (v==cellOption::inconclusive)
-	
+
+	/* // old recursion 
 	// Continue by starting the recursion;
 	interMath::up();
 	double y[6]; for (i=0;i<6;i++) y[i]= (xx[i]+zz[i])/2.0; // ~ center.
@@ -536,9 +541,28 @@ int prove::recursiveVerifier(int depth,
 		{
 		for (i=0;i<6;i++) xr[i] = ( iter[i] ? y[i] : xx[i] );
 		for (i=0;i<6;i++) zr[i] = ( imax[i]-iter[i]-1? y[i] : zz[i] );
-		if (!recursiveVerifier(depth,xr,zr,xx0,zz0,II,Ncount,
+		if (!recursiveVerifier(depth+1,xr,zr,xx0,zz0,II,Ncount,
 			options)) return 0;
 		}
+	*/
+	
+	/* run recursion into two cases. This runs 3x-5x faster! */ { 
+	interMath::up();
+	int i_wide=0; /* init i_wide */	{
+	double w = zz[0]-xx[0]; 
+	for (i=0;i<6;i++) {
+	  if (zz[i]-xx[i] > w) { i_wide = i; w = zz[i]-xx[i]; }
+	  }}
+	for (int k=0;k<2;k++) 	{
+	  double y, xr[6], zr[6];
+	  y = (xx[i_wide]+zz[i_wide])/2.0;
+	  for (i=0;i<6;i++) { xr[i] = xx[i]; zr[i]=zz[i]; }
+	  (k? xr[i_wide] = y : zr[i_wide] = y);
+	  if (!recursiveVerifier(depth+1,xr,zr,xx0,zz0,II,Ncount,
+				 options)) return 0;
+	}}
+
+
 	return 1;
 	}
 

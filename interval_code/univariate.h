@@ -87,9 +87,14 @@ univariate(uniprimitive* ) ;
 	// pow_ is the nth power function,
         // atan,
         // cos, sin are restricted to the domain [-pi/2,pi/2].
+
+        // matan modified arctan (sqrt x) / (sqrt x).  on (-1,infinty).
+        // At 0, matan has a power series 1 - x/3 + x^2/5 ... 
+        // with radius of convergence 1
 	//
  static const univariate i_pow0,i_pow1, i_pow2,i_pow3,i_pow4,i_pow3h2,
-   i_sqrt, i_atan, i_asin,i_acos, i_sin, i_cos, i_inv;
+   i_sqrt, i_atan, i_asin,i_acos, i_sin, i_cos, i_inv,
+   i_matan;
 
 	//////////
 	// Check the correctness of univariate routines.

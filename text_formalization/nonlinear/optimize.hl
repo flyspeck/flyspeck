@@ -185,6 +185,60 @@ let gchi5_x = new_definition `gchi5_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x5) * dih5_
 let gchi6_x = new_definition `gchi6_x x1 x2 x3 x4 x5 x6 = gchi (sqrt x6) * dih6_x x1 x2 x3 x4 x5 x6`;;
 
 
+(* modified arctangent, ArcTan[Sqrt[x]]/Sqrt[x] *)
+
+let matan = new_definition `matan x = 
+  if (x = &0) then &1
+  else if (x > &0) then atn (sqrt x) / (sqrt x) 
+  else  (log ((&1 + sqrt( -- x))/(&1 - sqrt( -- x)))) / (&2 * sqrt (-- x))`;;
+
+(* compare "Euler_main_theorem.EULER_ANGLE_SUM_rescal" *)
+
+let solid_euler_x =  new_definition `solid_euler_x x1 x2 x3 x4 x5 x6 = 
+  (let a = sqrt(x1*x2*x3) + sqrt( x1)*(x2 + x3 - x4)/ &2 + 
+     sqrt(x2)*(x1 + x3 - x5)/ &2 + sqrt(x3)*(x1 + x2 - x6)/ &2 in
+  &2 * atn2( &2 * a, sqrt (delta_x x1 x2 x3 x4 x5 x6)))`;;
+
+(*
+let solid_euler_y =  `solid_euler_y y1 y2 y3 y4 y5 y6 = 
+  (let a = y1*y2*y3 + y1*(y2*y2 + y3*y3 - y4*y4)/ &2 + 
+     y2*(y1*y1 + y3*y3 - y5*y5)/ &2 + y3*(y1*y1 + y2*y2 - y6*y6)/ &2 in
+  &2 * atn2( &2 * a, sqrt (delta_y y1 y2 y3 y4 y5 y6)))`;;
+*)
+
+let solid_euler_y = new_definition `solid_euler_y = y_of_x solid_euler_x`;;
+
+(* This is valid when a > 0 *)
+
+let solid_euler_x_div_sqrtdelta =  `solid_euler_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = 
+  (let a = sqrt(x1*x2*x3) + sqrt( x1)*(x2 + x3 - x4)/ &2 + 
+     sqrt(x2)*(x1 + x3 - x5)/ &2 + sqrt(x3)*(x1 + x2 - x6)/ &2 in
+     (matan (delta_x x1 x2 x3 x4 x5 x6)/(&4 * a pow 2 ))/(&2 * a))`;;
+
+(* This is a valid formula for dih_x / sqrt(delta) when delta >0 and d_x4 !=0 *)
+
+let dih_x_div_sqrtdelta = `dih_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 =
+  ( let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+	  let pi_shift = if (d_x4 < &0) then pi else (&0) in
+	    pi_shift + (sqrt(&4 * x1) / d_x4) * matan((&4 * x1 * d)/(d_x4 pow 2)))`;;
+
+let dih_x_div_sqrtdelta_posbranch = new_definition
+ `dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+  ( let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+	     (sqrt(&4 * x1) / d_x4) * matan((&4 * x1 * d)/(d_x4 pow 2)))`;;
+
+
+let dih_y_div_sqrtdelta_posbranch = new_definition 
+  `dih_y_div_sqrtdelta_posbranch  = y_of_x dih_x_div_sqrtdelta_posbranch`;;
+
+Sphere.dih_x;;
+Sphere.atn2;;
+Sphere.vol_x;;
+Sphere.vol4f;;
+Sphere.gamma4f;;
+
 (*
 let rhof_x = define `rhof_x x = rho (sqrt x)`;;
 *)
@@ -1413,10 +1467,13 @@ let rec REPEAT_RULE rule =
 
 let h0_lt_gt = prove_by_refinement(
   `((y <= #2.01) ==> (y <= &2 * h0)) /\
-   ((#2.8 <= y) ==> (&2 * h0 <= y))`,
+   ((#2.8 <= y) ==> (&2 * h0 <= y)) /\
+  (( y <= &2) ==> (y <= &2 * h0)) /\
+    ((sqrt8 <= y) ==> (&2 * h0 <= y))`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[Sphere.h0];
+  REWRITE_TAC[Sphere.h0;sqrt8_sqrt2];
+    MP_TAC sqrt2_lb;
   REAL_ARITH_TAC;
   ]);;
   (* }}} *)
@@ -1451,6 +1508,8 @@ let ineq6_of_ineq5 = prove_by_refinement(
   MESON_TAC[REAL_ARITH `&1 <= &1`];
   ]);;
   (* }}} *)
+
+
 
 let SERIES3Q1H_5D_TAC = 
   let instjx = INST_TYPE [(`:real`,`:A`);(`:real`,`:B`);(`:real`,`:C`);
@@ -1561,6 +1620,69 @@ let WRAPUP_TAC =
  (REWRITE_TAC[REAL_ARITH ` -- (f x1 x2 x3 x4 x5 x6) = f x1 x2 x3 x4 x5 x6 * -- &1`]) THEN
  (REWRITE_TAC[REAL_ARITH `(x * y) * (z:real) = x * y * z`]) THEN
   (REWRITE_TAC[REAL_ARITH `inv y = (&1/y)`]);;
+
+(* SHARP CASES *)
+
+let delta_x_eq0 = prove_by_refinement(
+  `delta_x (&8) (&4) (&4) (&8) (&4) (&4) = &0 /\
+   delta_x (&4) (&8) (&4) (&4) (&8) (&4) = &0
+  `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_x];
+    REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let delta_x4_eq64 = prove_by_refinement(
+  `delta_x4 (&8) (&4) (&4) (&8) (&4) (&4) = -- &64 /\
+   delta_x4 (&4) (&8) (&4) (&4) (&8) (&4) = &64
+  `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_x4];
+    REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let atn2_0y = prove_by_refinement(
+  `atn2 (&0,&64) = pi / &2 /\ atn2 (&0 ,-- &64) = -- pi/ &2`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.atn2;REAL_ARITH `~(abs(&64) < &0) /\ &0 < &64 /\ ~(abs (-- &64) < &0) /\ ~(&0 < -- &64) /\ (-- &64 < &0) /\ (&0 / &64 = &0) /\ (&0 / -- &64 = &0)`;ATN_0];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let gamma4f_delta0 = prove_by_refinement(
+  mk_imp (`NONLIN:bool`,all_forall `ineq [(sqrt8,y1,sqrt8);
+		    (&2,y2,&2);
+		    (&2,y3,&2);
+		    (sqrt8,y4,sqrt8);
+		    (&2,y5,&2);
+		    (&2,y6,&2)]
+ 		    (gamma4f y1 y2 y3 y4 y5 y6 lmfun = &0)`),
+  (* {{{ proof *)
+  [
+  TPREP_TAC;
+  X_OF_Y_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT STRIP_TAC;
+  SUBGOAL_THEN `x1 = &8 /\ x2 = &4 /\ x3 = &4 /\ x4 = &8 /\ x5 = &4 /\ x6 = &4` (fun t -> REWRITE_TAC[t]);
+  REPEAT (POP_ASSUM MP_TAC);
+  REAL_ARITH_TAC;
+  REPEAT (POP_ASSUM (fun t -> ALL_TAC));
+  REWRITE_TAC[Sphere.vol_x;gchi2_x;gchi3_x;gchi5_x;gchi6_x;Sphere.dih_x;Sphere.dih2_x;Sphere.dih3_x;dih4_x;Sphere.dih4_y;dih5_x;Sphere.dih5_y;dih6_x;Sphere.dih6_y;Sphere.dih_y];
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  SUBGOAL_THEN `sqrt (&4) * sqrt(&4) = &4 /\ sqrt(&8) *sqrt (&8) = &8` (fun t-> REWRITE_TAC[t]);
+  CONJ_TAC THEN MATCH_MP_TAC sq_pow2 THEN EXISTS_TAC `&0` THEN REAL_ARITH_TAC;
+  REWRITE_TAC[delta_x_eq0;REAL_ARITH `x * &0 = &0 /\ -- -- x = x`;SQRT_0;delta_x4_eq64;atn2_0y];
+  MP_TAC PI_POS;
+  CONV_TAC  REAL_FIELD;    
+  ]);;
+  (* }}} *)
+
+
 
 (* ========================================================================== *)
 (*    VERIFYING INEQUALITIES                                                  *)

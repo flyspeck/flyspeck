@@ -332,9 +332,10 @@ AUTHOR
 	Thomas C. Hales
 */
 
+
 class taylorSimplex
 {
-public:
+  public:
 
 	//////////
 	// unit is the constant function taking value 1.
@@ -366,6 +367,13 @@ public:
 	  arclength_x_123,norm2hhx,
 	  asn797k,asnFnhk,
 	  acos_sqrt_x1;
+
+	static const taylorFunction
+	  sol_euler_x_div_sqrtdelta,
+	  sol_euler345_x_div_sqrtdelta,
+	  sol_euler156_x_div_sqrtdelta,
+	  sol_euler246_x_div_sqrtdelta
+          ;
 };
 
 

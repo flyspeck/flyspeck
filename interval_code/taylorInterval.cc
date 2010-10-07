@@ -52,6 +52,33 @@ static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
   return h;
 }
 
+namespace local {
+
+ taylorFunction operator*(const taylorFunction& f,const taylorFunction& g) {
+   return taylorFunction::product(f,g);
+ };
+
+  taylorFunction uni (const univariate& u,const taylorFunction& f) {
+   return taylorFunction::uni_compose(u,f);
+  };
+
+  taylorFunction y1 = taylorSimplex::y1;
+  taylorFunction y2 = taylorSimplex::y2;
+  taylorFunction y3 = taylorSimplex::y3;
+
+  taylorFunction x1 = taylorSimplex::x1;
+  taylorFunction x2 = taylorSimplex::x2;
+  taylorFunction x3 = taylorSimplex::x3;
+  taylorFunction x4 = taylorSimplex::x4;
+  taylorFunction x5 = taylorSimplex::x5;
+  taylorFunction x6 = taylorSimplex::x6;
+
+  taylorFunction delta = taylorSimplex::delta;
+
+  static const univariate i_inv = univariate::i_inv;
+  static const univariate i_matan = univariate::i_matan;
+   };
+
 /* ========================================================================== */
 /*                                                                            */
 /*   primitiveA                                                               */
@@ -333,7 +360,9 @@ static lineInterval unit(const domain& )
   return lineInterval(one);
 }
 static primitiveA scalr(unit,setZero);
+
 const taylorFunction taylorSimplex::unit(&scalr);
+
 
 /*implement x1 */
 static lineInterval lineX1(const domain& x)
@@ -343,8 +372,10 @@ static lineInterval lineX1(const domain& x)
   h.Df[0]=one;
   return h;
 }
-primitiveA x1(lineX1,setZero);
-const taylorFunction taylorSimplex::x1(&::x1);
+primitiveA x1p(lineX1,setZero);
+
+const taylorFunction taylorSimplex::x1(&::x1p);
+
 
 /*implement x2 */
 static lineInterval lineX2(const domain& x)
@@ -354,8 +385,8 @@ static lineInterval lineX2(const domain& x)
   h.Df[1]=one;
   return h;
 }
-primitiveA x2(lineX2,setZero);
-const taylorFunction taylorSimplex::x2(&::x2);
+primitiveA x2p(lineX2,setZero);
+const taylorFunction taylorSimplex::x2(&::x2p);
 
 /*implement x3 */
 static lineInterval lineX3(const domain& x)
@@ -365,8 +396,8 @@ static lineInterval lineX3(const domain& x)
   h.Df[2]=one;
   return h;
 }
-primitiveA x3(lineX3,setZero);
-const taylorFunction taylorSimplex::x3(&::x3);
+primitiveA x3p(lineX3,setZero);
+const taylorFunction taylorSimplex::x3(&::x3p);
 
 /*implement x4 */
 static lineInterval lineX4(const domain& x)
@@ -376,8 +407,8 @@ static lineInterval lineX4(const domain& x)
   h.Df[3]=one;
   return h;
 }
-primitiveA x4(lineX4,setZero);
-const taylorFunction taylorSimplex::x4(&::x4);
+primitiveA x4p(lineX4,setZero);
+const taylorFunction taylorSimplex::x4(&::x4p);
 
 /*implement x5 */
 static lineInterval lineX5(const domain& x)
@@ -387,8 +418,8 @@ static lineInterval lineX5(const domain& x)
   h.Df[4]=one;
   return h;
 }
-primitiveA x5(lineX5,setZero);
-const taylorFunction taylorSimplex::x5(&::x5);
+primitiveA x5p(lineX5,setZero);
+const taylorFunction taylorSimplex::x5(&::x5p);
 
 /*implement x6 */
 static lineInterval lineX6(const domain& x)
@@ -398,8 +429,8 @@ static lineInterval lineX6(const domain& x)
   h.Df[5]=one;
   return h;
 }
-primitiveA x6(lineX6,setZero);
-const taylorFunction taylorSimplex::x6(&::x6);
+primitiveA x6p(lineX6,setZero);
+const taylorFunction taylorSimplex::x6(&::x6p);
 
 /*implement y1 */
 static lineInterval sqrt(lineInterval a)
@@ -1000,10 +1031,41 @@ const taylorFunction taylorSimplex::norm2hhx =
   taylorFunction::rotate4(t_ym2sq) +
   taylorFunction::rotate5(t_ym2sq) +
   taylorFunction::rotate6(t_ym2sq);
-  
-const taylorFunction taylorSimplex::x1cube = taylorFunction::product
-  (taylorSimplex::x1,taylorFunction::product
-   (taylorSimplex::x1,taylorSimplex::x1));;
+ 
+
+namespace local { 
+  static const taylorFunction x1cube = x1 * x1 * x1;
+}
+const taylorFunction taylorSimplex::x1cube = local::x1cube;
+
+
+/*
+`sol_euler_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = 
+  (let a = sqrt(x1*x2*x3) + sqrt( x1)*(x2 + x3 - x4)/ &2 + 
+     sqrt(x2)*(x1 + x3 - x5)/ &2 + sqrt(x3)*(x1 + x2 - x6)/ &2 in
+     (matan ((delta_x x1 x2 x3 x4 x5 x6)/(&4 * a pow 2 )))/( a))`;;
+ */
+
+/* implement sol_euler_x_div_sqrtdelta */  
+
+namespace local {
+  static const interval half("0.5");
+  static const interval four ("4");
+  static const interval mone("-1");
+  static const taylorFunction 
+   aso (y1 * y2 * y3 + y1 * (x2 + x3 + x4 * mone)* half +
+     y2 * (x1 + x3 + x5* mone) * half + y3 * (x1 + x2 + x6* mone) * half);
+  static const taylorFunction sol_euler_x_div_sqrtdelta = 
+   (uni(i_matan, (delta * uni(i_inv,aso * aso * four ) )) * uni(i_inv,aso));
+};
+
+const taylorFunction taylorSimplex::sol_euler_x_div_sqrtdelta = local::sol_euler_x_div_sqrtdelta;
+
+const taylorFunction taylorSimplex::sol_euler246_x_div_sqrtdelta = taylorFunction::rotate4(taylorSimplex::sol_euler_x_div_sqrtdelta);
+
+const taylorFunction taylorSimplex::sol_euler345_x_div_sqrtdelta = taylorFunction::rotate5(taylorSimplex::sol_euler_x_div_sqrtdelta);
+
+const taylorFunction taylorSimplex::sol_euler156_x_div_sqrtdelta = taylorFunction::rotate6(taylorSimplex::sol_euler_x_div_sqrtdelta);
 
 
 /*
@@ -1246,8 +1308,8 @@ taylorFunction taylorFunction::compose // minor memory leak
  taylorFunction taylorFunction::rotate5(const taylorFunction& f) {
   taylorFunction g = taylorFunction::compose
     (f,
-     taylorSimplex::x5  , taylorSimplex::x1, taylorSimplex::x6,
-     taylorSimplex::x2 , taylorSimplex::x4, taylorSimplex::x3);
+     taylorSimplex::x5  , taylorSimplex::x3, taylorSimplex::x4,
+     taylorSimplex::x2 , taylorSimplex::x6, taylorSimplex::x1);
   return g;
 }
 

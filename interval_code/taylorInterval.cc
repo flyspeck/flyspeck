@@ -52,32 +52,6 @@ static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
   return h;
 }
 
-namespace local {
-
- taylorFunction operator*(const taylorFunction& f,const taylorFunction& g) {
-   return taylorFunction::product(f,g);
- };
-
-  taylorFunction uni (const univariate& u,const taylorFunction& f) {
-   return taylorFunction::uni_compose(u,f);
-  };
-
-  taylorFunction y1 = taylorSimplex::y1;
-  taylorFunction y2 = taylorSimplex::y2;
-  taylorFunction y3 = taylorSimplex::y3;
-
-  taylorFunction x1 = taylorSimplex::x1;
-  taylorFunction x2 = taylorSimplex::x2;
-  taylorFunction x3 = taylorSimplex::x3;
-  taylorFunction x4 = taylorSimplex::x4;
-  taylorFunction x5 = taylorSimplex::x5;
-  taylorFunction x6 = taylorSimplex::x6;
-
-  taylorFunction delta = taylorSimplex::delta;
-
-  static const univariate i_inv = univariate::i_inv;
-  static const univariate i_matan = univariate::i_matan;
-   };
 
 /* ========================================================================== */
 /*                                                                            */
@@ -1032,6 +1006,36 @@ const taylorFunction taylorSimplex::norm2hhx =
   taylorFunction::rotate5(t_ym2sq) +
   taylorFunction::rotate6(t_ym2sq);
  
+namespace local {
+
+ taylorFunction operator*(const taylorFunction& f,const taylorFunction& g) {
+   return taylorFunction::product(f,g);
+ };
+
+  taylorFunction uni (const univariate& u,const taylorFunction& f) {
+   return taylorFunction::uni_compose(u,f);
+  };
+
+  taylorFunction y1 = taylorSimplex::y1;
+  taylorFunction y2 = taylorSimplex::y2;
+  taylorFunction y3 = taylorSimplex::y3;
+
+  taylorFunction x1 = taylorSimplex::x1;
+  taylorFunction x2 = taylorSimplex::x2;
+  taylorFunction x3 = taylorSimplex::x3;
+  taylorFunction x4 = taylorSimplex::x4;
+  taylorFunction x5 = taylorSimplex::x5;
+  taylorFunction x6 = taylorSimplex::x6;
+
+  taylorFunction delta = taylorSimplex::delta;
+  taylorFunction delta_x4 = taylorSimplex::delta_x4;
+  taylorFunction unit = taylorSimplex::unit;
+
+  static const univariate i_inv = univariate::i_inv;
+  static const univariate i_pow2 = univariate::i_pow2;
+  static const univariate i_matan = univariate::i_matan;
+   };
+
 
 namespace local { 
   static const taylorFunction x1cube = x1 * x1 * x1;
@@ -1051,21 +1055,88 @@ const taylorFunction taylorSimplex::x1cube = local::x1cube;
 namespace local {
   static const interval half("0.5");
   static const interval four ("4");
+  static const interval two ("2");
   static const interval mone("-1");
   static const taylorFunction 
-   aso (y1 * y2 * y3 + y1 * (x2 + x3 + x4 * mone)* half +
+   a (y1 * y2 * y3 + y1 * (x2 + x3 + x4 * mone)* half +
      y2 * (x1 + x3 + x5* mone) * half + y3 * (x1 + x2 + x6* mone) * half);
   static const taylorFunction sol_euler_x_div_sqrtdelta = 
-   (uni(i_matan, (delta * uni(i_inv,aso * aso * four ) )) * uni(i_inv,aso));
+   (uni(i_matan, (delta * uni(i_inv,a * a * four ) )) * uni(i_inv,a));
 };
 
-const taylorFunction taylorSimplex::sol_euler_x_div_sqrtdelta = local::sol_euler_x_div_sqrtdelta;
+const taylorFunction taylorSimplex::sol_euler_x_div_sqrtdelta = 
+local::sol_euler_x_div_sqrtdelta;
 
-const taylorFunction taylorSimplex::sol_euler246_x_div_sqrtdelta = taylorFunction::rotate4(taylorSimplex::sol_euler_x_div_sqrtdelta);
+const taylorFunction taylorSimplex::sol_euler246_x_div_sqrtdelta =
+ taylorFunction::rotate4(taylorSimplex::sol_euler_x_div_sqrtdelta);
 
-const taylorFunction taylorSimplex::sol_euler345_x_div_sqrtdelta = taylorFunction::rotate5(taylorSimplex::sol_euler_x_div_sqrtdelta);
+const taylorFunction taylorSimplex::sol_euler345_x_div_sqrtdelta = 
+taylorFunction::rotate5(taylorSimplex::sol_euler_x_div_sqrtdelta);
 
-const taylorFunction taylorSimplex::sol_euler156_x_div_sqrtdelta = taylorFunction::rotate6(taylorSimplex::sol_euler_x_div_sqrtdelta);
+const taylorFunction taylorSimplex::sol_euler156_x_div_sqrtdelta = 
+taylorFunction::rotate6(taylorSimplex::sol_euler_x_div_sqrtdelta);
+
+/*
+ `dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+  ( let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+	     (sqrt(&4 * x1) / d_x4) * matan((&4 * x1 * d)/(d_x4 pow 2)))`;;
+ */
+
+namespace local {
+  static const taylorFunction dih_x_div_sqrtdelta_posbranch =
+    (y1 * uni(i_inv,delta_x4) * two) *
+    uni(i_matan,(x1 * delta *  uni(i_inv,uni(i_pow2,delta_x4)) * four));
+};
+
+const taylorFunction taylorSimplex::dih_x_div_sqrtdelta_posbranch = 
+  local::dih_x_div_sqrtdelta_posbranch;
+
+const taylorFunction taylorSimplex::dih2_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate2 (taylorSimplex::dih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::dih3_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate3 (taylorSimplex::dih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::dih4_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate4 (taylorSimplex::dih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::dih5_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate5 (taylorSimplex::dih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::dih6_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate6 (taylorSimplex::dih_x_div_sqrtdelta_posbranch);
+
+/*
+`ldih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x1) / &2) * dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+` !h. lfun h = (h0 - h) / (h0 - &1)`;;
+ */
+
+namespace local {
+  static const interval h0 ("1.26");
+  static const taylorFunction ldih_x_div_sqrtdelta_posbranch =
+    ( ( unit * h0 + y1 * (mone/ two)) * (one / (h0 - one))) * dih_x_div_sqrtdelta_posbranch;
+}
+
+const taylorFunction taylorSimplex::ldih_x_div_sqrtdelta_posbranch = 
+  local::ldih_x_div_sqrtdelta_posbranch;
+
+const taylorFunction taylorSimplex::ldih2_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate2 (taylorSimplex::ldih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::ldih3_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate3 (taylorSimplex::ldih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::ldih4_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate4 (taylorSimplex::ldih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::ldih5_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate5 (taylorSimplex::ldih_x_div_sqrtdelta_posbranch);
+
+const taylorFunction taylorSimplex::ldih6_x_div_sqrtdelta_posbranch = 
+  taylorFunction::rotate6 (taylorSimplex::ldih_x_div_sqrtdelta_posbranch);
 
 
 /*
@@ -2082,6 +2153,55 @@ void taylorFunction::selfTest()
 	cout << "gchi6 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test sol_x_div_sqrtdelta */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=0.04709264939663462;
+      double mathValueD[6]={-0.007970124315933509,
+   -0.0078097332943296155,-0.007652473097370668,
+   0.0020141581396420677,0.002054235662205097,
+			    0.0020953681436752004};
+    taylorInterval at = taylorSimplex::sol_euler_x_div_sqrtdelta.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "sol_euler  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "sol_euler D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test dih_x_div_sqrtdelta_posbranch */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=0.09505303179216332;
+      double mathValueD[6]={-0.0023705608269591763,
+   -0.010018211153794957,-0.00988385942104016,0.006798828382032002,
+			    -0.008648206061779122,-0.008539365987877277};
+    taylorInterval at = taylorSimplex::dih_x_div_sqrtdelta_posbranch.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "dih_x_div  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "dih_x_div D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test ldih_x_div_sqrtdelta_posbranch */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=0.09051138456508404;
+      double mathValueD[6]={-0.04739512815129222,-0.00953953961592741,
+   -0.009411607227858571,0.006473979405766214,-0.0082349935598826,
+			    -0.008131353880018816};
+    taylorInterval at = taylorSimplex::ldih_x_div_sqrtdelta_posbranch.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "ldih_x_div  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "ldih_x_div D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
 
   /* test halfbump_x1 */   {
     double halfd[3]={-1.2372909856488465,1.3148592857021388,-3.8264506746765212};

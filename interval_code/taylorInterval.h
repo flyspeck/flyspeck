@@ -372,8 +372,22 @@ class taylorSimplex
 	  sol_euler_x_div_sqrtdelta,
 	  sol_euler345_x_div_sqrtdelta,
 	  sol_euler156_x_div_sqrtdelta,
-	  sol_euler246_x_div_sqrtdelta
-          ;
+	  sol_euler246_x_div_sqrtdelta,
+	  dih_x_div_sqrtdelta_posbranch,
+	  dih2_x_div_sqrtdelta_posbranch,
+	  dih3_x_div_sqrtdelta_posbranch,
+	  dih4_x_div_sqrtdelta_posbranch,
+	  dih5_x_div_sqrtdelta_posbranch,
+	  dih6_x_div_sqrtdelta_posbranch,
+	  ldih_x_div_sqrtdelta_posbranch,
+	  ldih2_x_div_sqrtdelta_posbranch,
+	  ldih3_x_div_sqrtdelta_posbranch,
+	  ldih4_x_div_sqrtdelta_posbranch,
+	  ldih5_x_div_sqrtdelta_posbranch,
+	  ldih6_x_div_sqrtdelta_posbranch
+	  ;
+
+
 };
 
 

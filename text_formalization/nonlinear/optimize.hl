@@ -1199,6 +1199,22 @@ let cpp_assoc =
 ("promote_pow3","x1cube");
 ("halfbump_x1","halfbump_x1");
 ("halfbump_x4","halfbump_x4");
+("dih_x_div_sqrtdelta_posbranch","dih_x_div_sqrtdelta_posbranch");
+("dih2_x_div_sqrtdelta_posbranch","dih2_x_div_sqrtdelta_posbranch");
+("dih3_x_div_sqrtdelta_posbranch","dih3_x_div_sqrtdelta_posbranch");
+("dih4_x_div_sqrtdelta_posbranch","dih4_x_div_sqrtdelta_posbranch");
+("dih5_x_div_sqrtdelta_posbranch","dih5_x_div_sqrtdelta_posbranch");
+("dih6_x_div_sqrtdelta_posbranch","dih6_x_div_sqrtdelta_posbranch");
+("ldih_x_div_sqrtdelta_posbranch","ldih_x_div_sqrtdelta_posbranch");
+("ldih2_x_div_sqrtdelta_posbranch","ldih2_x_div_sqrtdelta_posbranch");
+("ldih3_x_div_sqrtdelta_posbranch","ldih3_x_div_sqrtdelta_posbranch");
+("ldih4_x_div_sqrtdelta_posbranch","ldih4_x_div_sqrtdelta_posbranch");
+("ldih5_x_div_sqrtdelta_posbranch","ldih5_x_div_sqrtdelta_posbranch");
+("ldih6_x_div_sqrtdelta_posbranch","ldih6_x_div_sqrtdelta_posbranch");
+("sol_euler_x_div_sqrtdelta","sol_euler_x_div_sqrtdelta");
+("sol_euler345_x_div_sqrtdelta","sol_euler345_x_div_sqrtdelta");
+("sol_euler156_x_div_sqrtdelta","sol_euler156_x_div_sqrtdelta");
+("sol_euler246_x_div_sqrtdelta","sol_euler246_x_div_sqrtdelta");
  ];;
 
 let cpp0_assoc = 
@@ -1246,10 +1262,38 @@ let cpp_string_of_term t =
    try (ccform t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 
-(* processing *)
+(* processing cpp code *)
+
+let prep_expand = (
+   [Sphere.gamma4f;Sphere.vol4f;Parse_ineq.y_of_x_e;Parse_ineq.vol_y_e;Sphere.vol3f;
+    Sphere.vol3r;Sphere.vol2f;
+   Sphere.gamma3f;Sphere.gamma23f;GSYM Parse_ineq.quadratic_root_plus_curry;
+   REAL_MUL_LZERO;
+   REAL_MUL_RZERO;FST;SND;Sphere.pathL;Sphere.pathR;Sphere.node2_y;Sphere.node3_y;
+   Sphere.rhazim2;Sphere.rhazim3;
+   Sphere.rotate2;Sphere.rotate3;Sphere.rotate4;Sphere.rotate5;Sphere.rotate6;
+   ] @ (!Ineq.dart_classes));;
+   (* dart categories 
+   Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
+   Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5];;
+   *)
+
+let prep_term t = 
+  let t' = REWRITE_CONV (prep_expand) (Parse_ineq.strip_let_tm t) in
+  let (a,b)=  dest_eq (concl t') in
+    b;;
+
+let dest_ineq ineq = 
+  let t = snd(strip_forall (prep_term (ineq))) in
+  let (vs,i) = dest_comb t in
+  let (_,vs) = dest_comb vs in
+  let vs = dest_list vs in
+  let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
+  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
+    (t,vs,disjuncts i);;
 
 let dest_nonlin t = 
-  let (_,r,il) = Parse_ineq.dest_ineq t in 
+  let (_,r,il) = dest_ineq t in 
   let p1 (a,_,_) = a in
   let p2 (_,b,_) = b in
   let p3 (_,_,c) = c in
@@ -1438,7 +1482,7 @@ let SERIES3Q1H_5D_TAC =
  (REPEAT (POP_ASSUM MP_TAC)) THEN
  (REWRITE_TAC[GSYM ineq_expand6]);;
 
-let get_macro_expand() = (
+let get_macro_cpp_expand() = (
    [vol4f_palt;Parse_ineq.y_of_x_e;(* Parse_ineq.vol_y_e; *)
    Sphere.vol3f;Sphere.vol3r;Sphere.vol2f;Sphere.gamma4f;
    Sphere.gamma3f;Sphere.gamma23f;GSYM Parse_ineq.quadratic_root_plus_curry;
@@ -1452,7 +1496,7 @@ let X_OF_Y_TAC =
   (
   (DISCH_TAC) THEN
   (REWRITE_TAC[GSYM Sphere.rad2_y]) THEN
-  (REWRITE_TAC(get_macro_expand())) THEN
+  (REWRITE_TAC(get_macro_cpp_expand())) THEN
   (MATCH_MP_TAC ineq_square2) THEN
   (REWRITE_TAC basic_constants_nn) THEN
   REWRITE_TAC[GSYM CONJ_ASSOC] THEN
@@ -1652,7 +1696,7 @@ let testids = [(* "HJKDESR2"; *) "1965189142 34";"ZTGIJCF0";"1550635295";
 
 let more = [ "TSKAJXY-XLLIPLS";"TSKAJXY-WKGUESB";"TSKAJXY-IYOUOBF";"TSKAJXY-RIBCYXU"; "4717061266";  "OMKYNLT 3336871894";"OMKYNLT 2 1"; "OMKYNLT 1 2";"JNTEFVP 1"; "JNTEFVP 2 1";"JNTEFVP 1 2";"JNTEFVP 0 3";"2570626711";"5691615370";"TADIAMB";"TSKAJXY";  "IYOUOBF"; "WKGUESB"; "XLLIPLS"; "GXSABWC";];;
 
-let thack = ["TSKAJXY-GXSABWC b";"9225295803";"OXLZLEZ 6346351218 4 3";"TSKAJXY-GXSABWC a";"TSKAJXY-TADIAMB";"GLFVCVK3";"HJKDESR1a";];;
+let thack = ["9225295803";"OXLZLEZ 6346351218 4 3";"TSKAJXY-TADIAMB";"GLFVCVK3";"HJKDESR1a";];;
 
 let nighttests = 
   ["QITNPEA 2134082733"] @
@@ -1665,8 +1709,11 @@ let nighttests =
    ["GLFVCVK4a 8328676778";"GLFVCVK4 2477216213";"TSKAJXY-GXSABWC";
   "TSKAJXY-XLLIPLS";"TSKAJXY-WKGUESB";"TSKAJXY-IYOUOBF";"TSKAJXY-RIBCYXU"];;
 
+
+let malt = ["TSKAJXY-GXSABWC DIV";];;
+
 (* moved "TSKAJXY-RIBCYXU" into early spot *)
-let testid = hd thack;;
+let testid = hd malt;;
 
 failwith "stop here";;
 

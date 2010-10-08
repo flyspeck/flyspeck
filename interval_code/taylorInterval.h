@@ -365,7 +365,7 @@ class taylorSimplex
 	//
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456,
 	  arclength_x_123,norm2hhx,
-	  asn797k,asnFnhk,
+	  asn797k,asnFnhk,lfun_y1,
 	  acos_sqrt_x1;
 
 	static const taylorFunction
@@ -386,6 +386,12 @@ class taylorSimplex
 	  ldih5_x_div_sqrtdelta_posbranch,
 	  ldih6_x_div_sqrtdelta_posbranch
 	  ;
+
+	static const taylorFunction taum_x1(const interval&,const interval&);
+	static const taylorFunction taum_x2(const interval&,const interval&);
+	static const taylorFunction taum_x1_x2(const interval&);
+
+	static const taylorFunction arclength_x1(const interval&,const interval&);
 
 
 };

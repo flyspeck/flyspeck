@@ -192,8 +192,9 @@ static uniprimitive pmatan(umatan,Dmatan,DDmatan);
 
 static void atrig_domain_check(const interval& x,char* ch) {
   if (interMath::inf(x) <= -1.0 || interMath::sup(x) >= 1.0) {
-    cout << "bad argument for trig " << ch << endl << flush;
-    error::fatal("domain error, aborting ");
+    //cout << "bad argument for atrig " << ch << endl << flush;
+    //error::message("domain error, aborting ");
+    throw  unstable::x ;
   }
 } 
 
@@ -243,10 +244,12 @@ static uniprimitive pacos(uacos,Dacos,DDacos);
 // sin , cos
 
 static void trig_domain_check(const interval& x,char* ch) {
-  static double pi_minus_eps = 3.1415926;
+  static double pi_minus_eps = 4.5; // needs to be less than 3Pi/2.
   if (interMath::inf(x) <= -pi_minus_eps || interMath::sup(x) >= pi_minus_eps) {
-    cout << "bad argument for trig " << ch << endl << flush;
-    error::fatal("domain error, aborting ");
+    //cout << "bad argument for trig " << ch << endl << flush;
+    //cout << "[" << x.lo << "," << x.hi << "]" << endl << flush;
+    //error::message("domain error ");
+    throw  unstable::x; 
   }
 } 
 
@@ -285,9 +288,13 @@ static interval usin(const interval& x) {
 static interval ucos(const interval& x) {
   static interval zero("0");
   static interval one ("1");
+  static interval mone("-1");
+  static interval pi ("3.141592653589793238");
   trig_domain_check(x,"cos");
   interval t = interMath::combine(cos_p(interMath::inf(x)),cos_p(interMath::sup(x)));
   t =  (meets(x,zero) ? interMath::combine(t,one) : t);
+  t =  (meets(x,pi) ? interMath::combine(t,mone) : t);
+  t =  (meets(x,-pi) ? interMath::combine(t,mone) : t);
   return t;
 }
 

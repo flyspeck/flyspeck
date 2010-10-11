@@ -153,13 +153,13 @@ let native_c = [
 let autogen = ref[];;
 
 autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
-  [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;rho_x;
+  [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;sqrt3;rho_x;
    rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
    tame_table_d;delta_x4;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
    taum_y1;taum_y2;taum_y1_y2;arclength_y1;arc_hhn;asn797k;asnFnhk;
-   lfun_y1;
+   lfun_y1;arclength_x_123;acs_sqrt_x1_d4;acs_sqrt_x2_d4;
    tauq;enclosed_rewrite;
    sol_euler_x_div_sqrtdelta;
    dih_x_div_sqrtdelta_posbranch;

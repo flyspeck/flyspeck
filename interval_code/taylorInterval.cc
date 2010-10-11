@@ -976,19 +976,23 @@ static primitiveC eta2_456_Primitive
  &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x6);
 const taylorFunction taylorSimplex::eta2_456(&::eta2_456_Primitive);
 
-/*implement acos_sqrt_x1 */
-const taylorFunction taylorSimplex::acos_sqrt_x1 = 
+/*implement acs_sqrt_x1_d4 */
+static const interval quarter("0.25");
+const taylorFunction taylorSimplex::acs_sqrt_x1_d4 = 
   taylorFunction::uni_compose(univariate::i_acos,
-			      taylorSimplex::y1);
+			      taylorSimplex::y1 * quarter);
+
+/*implement acs_sqrt_x2_d4 */
+const taylorFunction taylorSimplex::acs_sqrt_x2_d4 = 
+  taylorFunction::rotate2(taylorSimplex::acs_sqrt_x1_d4);
+
 
 /*implement asn797 */
 namespace local {
-  static const interval cos797("0.69885563921392235500");
-  static const taylorFunction asn797e = (unit * pi) * uni(i_inv,x1);
-  static const taylorFunction sinpik =  uni(i_sin,asn797e);
-  static const taylorFunction asn797b =  (unit * cos797) * sinpik;
-  static const taylorFunction asn797a =   uni(i_asin,asn797b);
-  static const taylorFunction asn797k = x1 * asn797a;
+  //   `k * asn (cos (#0.797) * sin (pi / k))`;; 
+  static const interval cos0797("0.69885563921392235500");
+  static const taylorFunction sinpik =  uni(i_sin, uni(i_inv,x1) * pi);
+  static const taylorFunction asn797k =  x1 * uni(i_asin,sinpik * cos0797);
 }
 
 const taylorFunction taylorSimplex::asn797k = local::asn797k;
@@ -2087,16 +2091,16 @@ void taylorFunction::selfTest()
     }
   }
 
-  /* test acos_sqrt_x1 */   { 
+  /* test acs_sqrt_x1_d4 */   { 
     domain x(0.1,0.2,0.3,0.4,0.5,0.6);
-    double mValue= 1.2490457723982542;
-    double mathValueD[6]={-1.6666666666666667,0,0,0,0,0};
-    taylorInterval at = taylorSimplex::acos_sqrt_x1.evalf(x,x); 
+    double mValue= 1.491656801832486;
+    double mathValueD[6]={-0.396525792859072,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::acs_sqrt_x1_d4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
-      cout << "acos_sqrt_x1  fails " << endl;
+      cout << "acs_sqrt_x1_d4  fails " << endl;
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
-	cout << "acos_sqrt_x1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+	cout << "acs_sqrt_x1_d4 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
 

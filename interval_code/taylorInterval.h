@@ -366,7 +366,7 @@ class taylorSimplex
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456,
 	  arclength_x_123,norm2hhx,
 	  asn797k,asnFnhk,lfun_y1,
-	  acos_sqrt_x1;
+	  acs_sqrt_x1_d4,	  acs_sqrt_x2_d4;
 
 	static const taylorFunction
 	  sol_euler_x_div_sqrtdelta,

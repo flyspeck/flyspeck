@@ -15,6 +15,8 @@ pi,delta_x,sol_y,dih_y
 
 // math.
 double pi();
+double adodec();
+double bdodec();
 //double pt();
 double max(double a,double b);
 double min(double a,double b);
@@ -50,7 +52,7 @@ double U(double a,double b,double c);
 // rogers:/abc parameters.
 double dihR(double a,double b,double c);
 double solR(double a,double b,double c);
-double volR(double a,double b,double c);
+//double volR(double a,double b,double c);
 
 
 // misc:

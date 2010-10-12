@@ -40,11 +40,13 @@ dihR::usage = "dihR[a,b,c]  dihedral angle of a Rogers simplex";
 
 Solid::usage = "Solid[y1, y2, y3, y4, y5, y6] = solid angle of a simplex ";
 
+SolidAlt::usage = "SolidAlt[y1_, y2_, y3_, y4_, y5_, y6_] = solid angle";
 
 Dihedral::usage = "Dihedral[y1, y2, y3, y4, y5, y6] ";
 
 DihedralAlt::usage = "DihedralAlt[y1, y2, y3, y4, y5, y6] ";
-
+                    
+                    
 Dihedral2::usage = "Dihedral2[y1, y2, y3, y4, y5, y6] dihedral angle along the second edge";
 
 Dihedral3::usage = "Dihedral3[y1, y2, y3, y4, y5, y6] ";

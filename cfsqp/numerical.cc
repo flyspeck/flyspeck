@@ -7,6 +7,10 @@
 // GENERAL STUFF
 double pi() { return  4.0*atan(1.0); }
 //double pt() { return 0.0553736456684637; }
+double adodec() { return -0.581169206221610; }
+double bdodec() { return 0.023248513304698; }
+//interval yStrongDodec("2.1029244484765344");
+
 
 
 /******************* SIMPLEX STUFF ***********************/
@@ -198,11 +202,12 @@ double circum2(double x1,double x2,double x3,double x4,
         };
 
 
+/*
 double volR(double a,double b, double c) 
 {
   return a*safesqrt(b*b-a*a)*safesqrt(c*c-b*b)/6.0 ;
 }
-
+*/
 
 //---- stuff for quad clusters.
 

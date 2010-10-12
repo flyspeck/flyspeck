@@ -130,6 +130,10 @@ let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 =
     y_of_x vol_x y1 y2 y3 y4 y5 y6`,
     REWRITE_TAC[vol_y]);;
 
+let rad2_y_e = prove(`!y1 y2 y3 y4 y5 y6. rad2_y y1 y2 y3 y4 y5 y6 = 
+    y_of_x rad2_x y1 y2 y3 y4 y5 y6`,
+    REWRITE_TAC[rad2_y]);;
+
 
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
@@ -142,7 +146,7 @@ let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 =
 
 let native_c = [
   ",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";
-  "ineq";  "pi"; "real_add"; "real_div";"real_pow";"cos";
+  "ineq";  "pi"; "adodec"; "bdodec";"real_add"; "real_div";"real_pow";"cos";
   "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "machine_eps";
   (* -- *)
   "sol_y";"dih_y";
@@ -154,7 +158,8 @@ let autogen = ref[];;
 
 autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;sqrt3;rho_x;
-   rad2_x;ups_x;eta_x;eta_y;norm2hh;arclength;regular_spherical_polygon_area;
+   rad2_x;ups_x;eta_x;eta_y;volR;solRy;dihRy;
+   norm2hh;arclength;regular_spherical_polygon_area;
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
    tame_table_d;delta_x4;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
@@ -163,6 +168,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    tauq;enclosed_rewrite;
    sol_euler_x_div_sqrtdelta;
    dih_x_div_sqrtdelta_posbranch;
+   surfR;surfRy;surfy;
    ];;
 
 (*
@@ -170,7 +176,7 @@ let macro_expand = ref [];;
 *)
 
 let get_macro_expand() = (
-   [gamma4f;vol4f;y_of_x_e;vol_y_e;vol3f;vol3r;vol2f;
+   [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;
    gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
    rhazim2;rhazim3;rotate2;rotate3;rotate4;rotate5;rotate6;

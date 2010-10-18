@@ -243,6 +243,11 @@ static lineInterval rhazim6(const domain&);
 static lineInterval solid(const domain&);
 
 	//////////
+	// The upsilon function.
+	//
+static lineInterval ups_126(const domain&);
+
+	//////////
 	// The circumradius squared of the face along edges 1,2,6 of a simplex.
 	// Explicit formulas for this function appear in SP I.8.2.
 	// The variables are the lengths squared of the edges of the triangle.
@@ -296,6 +301,14 @@ static lineInterval chi126squaredOverEtc(const domain& x);
 	// Explicit formulas for this function appear in SP I.8.2.
 	//
 static lineInterval chi324(const domain&);
+
+	//////////
+	// The function chi(x4,x5,x3,x1,x2,x6) determinining the orientation of simplices,
+	// where orientation is used in the sense of SP I.8.2.3.
+	// Explicit formulas for this function appear in SP I.8.2.
+        // 
+static lineInterval chi126(const domain&);
+
 
 	//////////
 	// Check the correctness of the linearization procedures.

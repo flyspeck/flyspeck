@@ -616,6 +616,23 @@ primitiveC volXPrimitive
   &taylorSimplex::unit  , &taylorSimplex::unit, &taylorSimplex::unit);
 const taylorFunction taylorSimplex::vol_x(&::volXPrimitive);
 
+
+/*implement chi126 */
+static int setAbsChi126(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  interval DDh[6][6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  secondDerive::setChi126(X,Z,DDh);
+  intervalToAbsDouble(DDh,DD);
+  testAbs(DD,"setAbsChi126");
+  return 1;
+}
+primitiveA chi126Primitive(linearization::chi126,setAbsChi126);
+static const taylorFunction chi126(&::chi126Primitive);
+
+
 /*implement rad2*/
 static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
   double  X[6],Z[6];
@@ -626,11 +643,13 @@ static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
   int r2 = secondDerive::setChi2over4uDelta(X,Z,DD2);
   interMath::up();
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j] = DD1[i][j] + DD2[i][j]; }
-  if (r1+r2) { testAbs(DD,"setAbsDihedral"); }
+  if (r1+r2) { testAbs(DD,"setAbsRad2"); }
   return r1+r2;
 }
 primitiveA rad2Primitive(linearization::rad2,setAbsRad2);
 const taylorFunction taylorSimplex::rad2(&::rad2Primitive);
+
+
 
 /*implement delta_x4*/
 static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
@@ -653,6 +672,8 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA dih1Primitive(linearization::dih,setAbsDihedral);
 const taylorFunction taylorSimplex::dih(&::dih1Primitive);
+
+
 
 const taylorFunction taylorSimplex::dih2 = taylorFunction::rotate2(taylorSimplex::dih);
 const taylorFunction taylorSimplex::dih3 = taylorFunction::rotate3(taylorSimplex::dih);
@@ -919,6 +940,7 @@ namespace local {
 
   taylorFunction delta = taylorSimplex::delta;
   taylorFunction delta_x4 = taylorSimplex::delta_x4;
+  taylorFunction dih = taylorSimplex::dih;
   taylorFunction unit = taylorSimplex::unit;
 
   static const univariate i_inv = univariate::i_inv;
@@ -930,8 +952,10 @@ namespace local {
   static const univariate i_asin = univariate::i_asin;
 
   static const interval sqrt3("1.7320508075688772935");
+  static const interval quarter("0.25");
   static const interval half("0.5");
   static const interval four ("4");
+  static const interval eight ("8");
   static const interval two ("2");
   static const interval mone("-1");
   static const interval pi("3.1415926535897932385");
@@ -940,6 +964,23 @@ namespace local {
 
    };
 
+/*implement ups_126*/
+namespace local {
+static int setAbsUps(const domain& x,const domain& z,double DD[6][6])
+{
+  double xa[6],za[6];
+  for (int i=0;i<6;i++) {
+    xa[i] = x.getValue(i);
+    za[i] = z.getValue(i);
+  }
+  interval DDi[6][6];
+  secondDerive::setU126(xa,za,DDi);
+  intervalToAbsDouble(DDi,DD);
+  return 1;
+}
+primitiveA upsPrimitive(linearization::ups_126,setAbsUps);
+static const taylorFunction ups_126(&upsPrimitive);
+};
 
 /*implement eta2_126*/
 static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
@@ -977,10 +1018,9 @@ static primitiveC eta2_456_Primitive
 const taylorFunction taylorSimplex::eta2_456(&::eta2_456_Primitive);
 
 /*implement acs_sqrt_x1_d4 */
-static const interval quarter("0.25");
 const taylorFunction taylorSimplex::acs_sqrt_x1_d4 = 
   taylorFunction::uni_compose(univariate::i_acos,
-			      taylorSimplex::y1 * quarter);
+			      taylorSimplex::y1 * local::quarter);
 
 /*implement acs_sqrt_x2_d4 */
 const taylorFunction taylorSimplex::acs_sqrt_x2_d4 = 
@@ -1024,8 +1064,22 @@ namespace local {
   static const interval h0 ("1.26");
   static const taylorFunction lfun_y1 = 
     (unit * h0 + x1 * mone) * (one /  (h0 - one));
-}
+
+
+  static const taylorFunction lfun_sqrtx1_div2 = 
+    (unit * h0 + y1 * mone * half) * (one / (h0 -one));
+
+  const taylorFunction ldih_x = lfun_sqrtx1_div2 * dih;
+
+};
+
 const taylorFunction taylorSimplex::lfun_y1 = local::lfun_y1;
+
+
+const taylorFunction taylorSimplex::ldih_x = local::ldih_x;
+const taylorFunction taylorSimplex::ldih2_x = taylorFunction::rotate2 (local::ldih_x);
+const taylorFunction taylorSimplex::ldih3_x = taylorFunction::rotate3 (local::ldih_x);
+const taylorFunction taylorSimplex::ldih6_x = taylorFunction::rotate6 (local::ldih_x);
 
 
 /*implement norm2hhx */
@@ -1056,6 +1110,12 @@ namespace local {
   static const taylorFunction x1cube = x1 * x1 * x1;
 }
 const taylorFunction taylorSimplex::x1cube = local::x1cube;
+
+namespace local { 
+  static const taylorFunction x1square = x1  * x1;
+}
+const taylorFunction taylorSimplex::x1square = local::x1square;
+
 
 /*implement arclength_x_123*/
 //ArcCos[(x1 + x2 - x3)/(Sqrt[4 x1 x2])].
@@ -1229,7 +1289,32 @@ namespace local {
      x1, unit * (b * b), unit * (c* c), unit,unit,unit);
     return g;
   }
+
+  static const taylorFunction surfR126d
+  (const interval& ic2) {
+    taylorFunction c2 = unit * (ic2);
+    taylorFunction g = 
+      ((x2 + x6 + x1* mone) * y1 + (x1 + x6 + x2 * mone) * y2) * uni(i_inv,local::ups_126) * 
+      uni(i_sqrt,taylorFunction::compose
+	  (delta,x1,x2,c2,c2,c2,x6)) * quarter;
+      return g;
+  };
+
+  taylorFunction surfR12_6rad_x =  // cf. S.P.I Sec. 8.6.3.
+      ((x2 + x6 + x1* mone) * y1 + (x1 + x6 + x2 * mone) * y2) * chi126 *
+      uni(i_inv,
+	  local::ups_126 * uni(i_sqrt,delta) * eight);
+
+  static const taylorFunction surf_x =     local::surfR12_6rad_x +
+    taylorFunction::rotate2 (local::surfR12_6rad_x) +
+    taylorFunction::rotate3 (local::surfR12_6rad_x);
 };
+
+const taylorFunction taylorSimplex::surfR126d  (const interval& circumrad)  {
+  return local::surfR126d(circumrad);
+}
+
+const taylorFunction taylorSimplex::surf_x = local::surf_x;
 
 const taylorFunction 
  taylorSimplex::taum_x1(const interval& a,const interval& b) {
@@ -1969,6 +2054,22 @@ void taylorFunction::selfTest()
     }
   }
 
+
+  /* test chi126 */   { 
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=84.6;
+    double mathValueD[6]={2.68,1.4499999999999957,17.019999999999996,
+			  19.269999999999996,18.9,-1.3699999999999974};
+    taylorInterval at = ::chi126.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "chi126  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "chi126 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
   /* test rad2 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue=1.6333363881302794;
@@ -2358,6 +2459,35 @@ void taylorFunction::selfTest()
   }
 
 
+  /* test surfR126d */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      interval iv("1.26");
+      double mValue=0.24612962297243207;
+      double mathValueD[6]={-0.09070836975729879,-0.09295483666087634,
+			    0,0,0,-0.05957970324319257};
+      taylorInterval at = local::surfR126d(iv*iv).evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "surfR126d  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "surfR126d D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test surf_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=0.8292709333317916;
+      double mathValueD[6]={-0.039547523814608646,
+   -0.042240250046217266,-0.04530842004702463,0.10392001499779156,
+			    0.10117451454538572,0.09806905563554107};
+      taylorInterval at = local::surf_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "surf_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "surf_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
   /* test halfbump_x1 */   {
     double halfd[3]={-1.2372909856488465,1.3148592857021388,-3.8264506746765212};
@@ -2435,6 +2565,21 @@ void taylorFunction::selfTest()
     }
   }
 
+
+  /* test ldih_x */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.1579692760682505;
+    double mathValueD[6]={-0.5284984757448858,-0.050272297038852574,
+   -0.055285815942576776,0.1507076628774728,-0.04313329060478024,
+			  -0.04803311813761087};
+    taylorInterval at = taylorSimplex::ldih_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "ldih_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "ldih_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
   
   /* test hasDeltaDenom */ {
     /*

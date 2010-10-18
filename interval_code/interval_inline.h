@@ -72,8 +72,10 @@ inline interval interval::operator/(interval t2) const
 		interMath::down(); t.lo = 1.0/t2.hi;
 		return (*this)*t;
 		}
-	error::message("division by zero encountered"); 
-	return interval("0");
+	//throw unstable::x; 
+	error::printTime("division by zero encountered"); 
+	cout << t2.lo << " " << t2.hi << endl << flush;
+	throw unstable::x;
 	}
 
 inline int interMath::boundedFromZero(const interval& t)

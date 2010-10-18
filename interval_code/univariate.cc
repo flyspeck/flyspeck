@@ -62,13 +62,21 @@ static interval usqrt(const interval& x) {
 static interval Dsqrt(const interval& x) {
 	static const interval one("1");
 	static const interval two("2");
-	return one/(two * interMath::sqrt(x));
+	if (interMath::boundedFromZero(x))
+	  {	return one/(two * interMath::sqrt(x)); }
+	error::message ("sqrt derivative at 0 ");
+	cout << x.lo << " " << x.hi << endl << flush;
+	throw unstable::x;
 }
 
 static interval DDsqrt(const interval& x) {
 	static const interval one("1");
 	static const interval four("4");
-	return - one/(four * x * interMath::sqrt(x));
+	if (interMath::boundedFromZero(x))
+	  {	return - one/(four * x * interMath::sqrt(x)); }
+	error::message ("D2 sqrt at 0 ");
+	cout << x.lo << " " << x.hi << endl << flush;
+	throw unstable::x;
 }
 
 
@@ -97,17 +105,27 @@ static uniprimitive ppow3h2(upow3h2,Dpow3h2,DDpow3h2);
 
 static interval uinv(const interval& x) {
   static interval one("1");
-  return one/x;
+  if (interMath::boundedFromZero(x)) {
+    return one/x; }
+  error::message ("inv at 0 ");
+  cout << x.lo << " " << x.hi << endl << flush;
+  throw unstable::x;
 }
 
 static interval Dinv(const interval& x) {
-	static const interval one("1");
-	return - one/(x * x);
+  static const interval one("1");
+  if (interMath::boundedFromZero(x)) {	return - one/(x * x);     }
+  error::message ("D inv at 0 ");
+  cout << x.lo << " " << x.hi << endl << flush;
+  throw unstable::x;
 }
 
 static interval DDinv(const interval& x) {
 	static const interval two("2");
-	return two/(x * x * x);
+  if (interMath::boundedFromZero(x)) {	return two/(x * x * x);  }
+  error::message ("D2 inv at 0 ");
+  cout << x.lo << " " << x.hi << endl << flush;
+  throw unstable::x;
 }
 
 static uniprimitive pinv(uinv,Dinv,DDinv);

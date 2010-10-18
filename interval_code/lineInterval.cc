@@ -192,6 +192,13 @@ static lineInterval U126(double x1,double x2,double x6)
 	return t;
 	}
 
+ lineInterval linearization::ups_126(const domain& x) 
+	{
+	double x1,x2,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x6 = x.getValue(5);
+	return U126(x1,x2,x6);
+	}
+
 lineInterval linearization::delta(const domain& x)
 	{
 	double x1,x2,x3,x4,x5,x6;
@@ -313,7 +320,7 @@ static lineInterval f324
 	return t;
 	}
 
-static lineInterval chi126
+static lineInterval chi126_local
 	(double x1,double x2,double x3,double x4,double x5,double x6)
 	{
 	lineInterval t;
@@ -348,13 +355,21 @@ static lineInterval chi126
 	return t;
 	}
 
+lineInterval linearization::chi126(const domain& x)
+	{
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	return chi126_local(x1,x2,x3,x4,x5,x6);
+	}
+
 lineInterval linearization::chi324(const domain& x)
 	{
 	double x1,x2,x3,x4,x5,x6;
 	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
 	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
 	lineInterval t,s;
-	s = chi126(x3,x2,x1,x6,x5,x4);
+	s = chi126_local(x3,x2,x1,x6,x5,x4);
 	int k[6]={2,1,0,5,4,3};
 	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
 	t.f = s.f;
@@ -366,7 +381,7 @@ static lineInterval chi135
 	(double x1,double x2,double x3,double x4,double x5,double x6)
 	{
 	lineInterval t,s;
-	s = chi126(x1,x3,x2,x4,x6,x5);
+	s = chi126_local(x1,x3,x2,x4,x6,x5);
 	int k[6]={0,2,1,3,5,4};
 	for (int i=0;i<6;i++) t.Df[i]= s.Df[k[i]];
 	t.f = s.f;
@@ -776,7 +791,7 @@ lineInterval linearization::rad2(const domain& x)
 	double x1,x2,x3,x4,x5,x6;
 	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
 	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
-	lineInterval c = chi126(x1,x2,x3,x4,x5,x6);
+	lineInterval c = chi126_local(x1,x2,x3,x4,x5,x6);
 	return c*c/(U126(x1,x2,x6)*delta(x)*four) 
 			+ eta2_126(domain(x1,x2,0,0,0,x6));
 	}

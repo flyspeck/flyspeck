@@ -350,11 +350,12 @@ class taylorSimplex
 		y1,y2,y3,y4,y5,y6,
 	  delta,delta_x4,vol_x,sol,rad2,
 	  dih,dih2,dih3,dih4,dih5,dih6,
+	  ldih_x,ldih2_x,ldih3_x,ldih6_x,
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
 	  //	  marchalDih,marchalDih2,marchalDih3,
 	  //    marchalDih4,marchalDih5,marchalDih6,
-	  x1cube,
+	  x1cube,x1square,
 	  halfbump_x1, halfbump_x4;
 
 	//////////
@@ -384,7 +385,8 @@ class taylorSimplex
 	  ldih3_x_div_sqrtdelta_posbranch,
 	  ldih4_x_div_sqrtdelta_posbranch,
 	  ldih5_x_div_sqrtdelta_posbranch,
-	  ldih6_x_div_sqrtdelta_posbranch
+	  ldih6_x_div_sqrtdelta_posbranch,
+	  surf_x
 	  ;
 
 	static const taylorFunction taum_x1(const interval&,const interval&);
@@ -393,6 +395,7 @@ class taylorSimplex
 
 	static const taylorFunction arclength_x1(const interval&,const interval&);
 
+	static const taylorFunction surfR126d(const interval&);
 
 };
 

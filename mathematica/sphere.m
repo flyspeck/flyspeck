@@ -24,9 +24,9 @@ Ns::usage = "Ns[x] approximates x to precision $SpherePrecision";
 
 doct::usage = "doct = 0.72... is the density of an octahedron";
 
-chi::usage = "chi a polynomial in six variables";
+chi::usage = "chi a polynomial (in x) in six variables";
 
-Chi::usage = "Chi[x1,..,x6] evaluates the polynomial chi ";
+Chi::usage = "Chi[y1,..,y6] evaluates the polynomial chi ";
 
 eta::usage = "eta[x, y, z] circumradius of a triangle with sides x,y,z";
 
@@ -133,12 +133,12 @@ solR[x_, y_, z_] := 2*ArcTan[Sqrt[((z - y)*(y - x))/((
 
 dihR[x_, y_, z_] := ArcTan[Sqrt[(z^2 - y^2)/(y^2 - x^2)]] // Ns;
 
-
-
-Chi[x__] := Module[{x1, x2, x3, x4, x5, x6}, {x1, x2, x3, 
-      x4, x5, x6} = {x}^2;
+ChiX[x__] := Module[{x1, x2, x3, x4, x5, x6}, {x1, x2, x3, 
+      x4, x5, x6} = {x};
       -(x1*x4^2) + x1*x4*x5 + x2*x4*x5 - x2*x5^2 + x1*x4*x6 + x3*x4*x6 + 
       x2*x5*x6 + x3*x5*x6 - 2*x4*x5*x6 - x3*x6^2];
+
+Chi[y__] := ChiX @@ ({y}^2);
 
 DeltaX[x1_, x2_, x3_, x4_, x5_, x6_] :=
     (x1*x4*(-x1 + x2 + x3 - x4 + x5 + x6) + x2*

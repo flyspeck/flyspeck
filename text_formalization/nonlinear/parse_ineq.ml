@@ -158,7 +158,7 @@ let autogen = ref[];;
 
 autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;sqrt3;rho_x;
-   rad2_x;ups_x;eta_x;eta_y;volR;solRy;dihRy;
+   rad2_x;ups_x;eta_x;eta_y;volR; (* solRy;dihRy; *)
    norm2hh;arclength;regular_spherical_polygon_area;
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
    tame_table_d;delta_x4;quad_root_plus_curry;
@@ -168,7 +168,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    tauq;enclosed_rewrite;
    sol_euler_x_div_sqrtdelta;
    dih_x_div_sqrtdelta_posbranch;
-   surfR;surfRy;surfy;
+   surfR;surfRy;surfRdyc2;surfy;dih4_y;dih5_y;dih6_y;
    ];;
 
 (*

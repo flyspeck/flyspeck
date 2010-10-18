@@ -831,7 +831,7 @@ static interval eta2xx(double x[3],double z[3])
 	interMath::down();
 	double umin = (-z[0])*z[0] + 2.0*x[0]*x[1] +(-z[1])*z[1] +2.0*x[0]*x[2] 
 		+2.0*x[1]*x[2] + (-z[2])*z[2];
-	if (umin<0.0) umin=0.0;
+        if (umin<=0.0) { throw unstable::x; } 
 	double umin3 = umin*umin*umin;
 	// cout << umin3 << endl;
 	double nmin =  x[0]*x[0]*x[0]  
@@ -846,7 +846,7 @@ static interval eta2xx(double x[3],double z[3])
 	interMath::up();
 	double umax = (-x[0])*x[0] + 2.0*z[0]*z[1] +(-x[1])*x[1] +2.0*z[0]*z[2] 
 		+2.0*z[1]*z[2] + (-x[2])*x[2];
-	if (umax<0.0) umax=0.0;
+        if (umax<=0.0) { throw unstable::x; } 
 	double umax3 = umax*umax*umax;
 	double nmax =  z[0]*z[0]*z[0] + 3.0*(((-x[0])*x[1])*x[1]) + 
 		2.0*z[1]*z[1]*z[1] + 6.0*z[0]*z[1]*z[2] 
@@ -892,7 +892,7 @@ static interval eta2xy(double x[3],double z[3])
         interMath::up();
         double umax = -x0sq-x1sq-x2sq 
 		+ 2.0*(z[0]*z[1] +z[0]*z[2] +z[1]*z[2] );
-        if (umax<0.0) { throw unstable::x; } //umax=0.0;
+        if (umax<=0.0) { throw unstable::x; } //umax=0.0;
         double umax3 = umax*umax*umax;
         double nmax =  
 		+ 6.0*z0sq*z1sq

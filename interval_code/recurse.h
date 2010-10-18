@@ -73,6 +73,15 @@ public:
 	//
 	int allowSharp;
 
+
+	//////////
+	// A cell passes if (partial f/partial x1 < 0).  The value of the function doesn't matter.
+	// This can be useful in proving the monotonicity of certain functions.
+	// There should only be one disjunct when this option is set.
+	//
+	int onlyCheckDeriv1Negative;
+
+
 	//////////
 	// 
 	//

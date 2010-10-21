@@ -36,10 +36,14 @@ std4: 5-way split on a standard quad, according to std4_diag3,
    apex_sup_flat one way, apex_sup_flat other way, flats one
    way, flats the other way.  In these first 4 cases, a new edge (the
    diagonal) is added to (V,E).  In std4_diag3, both diags are at
-   least 3, but no new edge is added to (V,E).  the apex_sup_flat
+   least 3, but no new edge is added to (V,E).  
+
+   The apex_sup_flat
    has both diags at least sqrt(8), and the shorter diagonal at most
    3.  The apex_sup_flat always splits along the shorter
-   diagonal.  A flat has a diagonal at most sqrt(8).
+   diagonal.  
+
+   A flat has a diagonal at most sqrt(8).
 
 std5: * 11-way split on std. pent, std56_flat_free, 5
 (flat+big4face), 5 (flat+flat+Apiece).  In each case except the first,
@@ -296,15 +300,11 @@ tau6h 'ID[]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
   y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j] >= 8.472;
 
-tausf3 'ID[5451229371]'  {(i1,j1,i2,j2) in apex_sup_flat_pair}:
- tau[j1]+tau[j2]  - 0.24
-    -0.14132*(y1[i1,j1]+ y2[i1,j1] + y3[i1,j1] + y1[i2,j2] - 8)
-    -0.38*(y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2] -8) >= 0;
-
+# constant 7.99 changed, Oct 20, 2010 so that it isn't sharp.
 yapex_sup_flat 'ID[8673686234]' {(i1,j1,i2,j2) in apex_sup_flat_pair}:
-   (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-8) >= 2.75*(y4[i1,j1]-sqrt8);
+   (y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2]-7.99) >= 2.75*(y4[i1,j1]-sqrt8);
 
-# this one based on fact that crossdiag of apex_sup_flat is longer than diag.
+# this one based on fact that diag of apex_sup_flat is shorter than the crossdiag.
 # y4[i1,j1] is the diag, which is shorter than the cross diag. 
 # By monotonicity of dih in opposite edge length, this may be substituted in.
 # checked 2010-06-23.
@@ -314,6 +314,15 @@ crossdiag 'ID[1085358243]+'
   (azim[i,j1]+azim[i,j2]) - 1.903 - 0.4*(y1[i,j1] - 2)
   +0.49688*(y2[i,j2]+y3[i,j1]+y5[i,j1]+y6[i,j2]-8)
    -(y4[i1,j1]-sqrt8) >= 0;
+
+# constant -0.22 changed from -0.24 on Oct 20, 2010
+# It should be possible to autogenerate the inequality now.
+# It now holds on each sup flat separately.
+
+#tausf3 'ID[5451229371]'  {(i1,j1,i2,j2) in apex_sup_flat_pair}:
+# tau[j1]+tau[j2]  - 0.22
+#    -0.14132*(y1[i1,j1]+ y2[i1,j1] + y3[i1,j1] + y1[i2,j2] - 8)
+#    -0.38*(y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2] -8) >= 0;
 
 ## END OF SPECIAL NONLINEAR INEQUALITIES
 

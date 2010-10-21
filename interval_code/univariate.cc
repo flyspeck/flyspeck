@@ -64,7 +64,7 @@ static interval Dsqrt(const interval& x) {
 	static const interval two("2");
 	if (interMath::boundedFromZero(x))
 	  {	return one/(two * interMath::sqrt(x)); }
-	error::message ("sqrt derivative at 0 ");
+	error::printTime ("sqrt derivative at 0 ");
 	cout << x.lo << " " << x.hi << endl << flush;
 	throw unstable::x;
 }
@@ -74,7 +74,7 @@ static interval DDsqrt(const interval& x) {
 	static const interval four("4");
 	if (interMath::boundedFromZero(x))
 	  {	return - one/(four * x * interMath::sqrt(x)); }
-	error::message ("D2 sqrt at 0 ");
+	error::printTime ("D2 sqrt at 0 ");
 	cout << x.lo << " " << x.hi << endl << flush;
 	throw unstable::x;
 }
@@ -107,7 +107,7 @@ static interval uinv(const interval& x) {
   static interval one("1");
   if (interMath::boundedFromZero(x)) {
     return one/x; }
-  error::message ("inv at 0 ");
+  error::printTime ("inv at 0 ");
   cout << x.lo << " " << x.hi << endl << flush;
   throw unstable::x;
 }
@@ -115,7 +115,7 @@ static interval uinv(const interval& x) {
 static interval Dinv(const interval& x) {
   static const interval one("1");
   if (interMath::boundedFromZero(x)) {	return - one/(x * x);     }
-  error::message ("D inv at 0 ");
+  error::printTime ("D inv at 0 ");
   cout << x.lo << " " << x.hi << endl << flush;
   throw unstable::x;
 }
@@ -123,7 +123,7 @@ static interval Dinv(const interval& x) {
 static interval DDinv(const interval& x) {
 	static const interval two("2");
   if (interMath::boundedFromZero(x)) {	return two/(x * x * x);  }
-  error::message ("D2 inv at 0 ");
+  error::printTime ("D2 inv at 0 ");
   cout << x.lo << " " << x.hi << endl << flush;
   throw unstable::x;
 }
@@ -211,7 +211,7 @@ static uniprimitive pmatan(umatan,Dmatan,DDmatan);
 static void atrig_domain_check(const interval& x,char* ch) {
   if (interMath::inf(x) <= -1.0 || interMath::sup(x) >= 1.0) {
     //cout << "bad argument for atrig " << ch << endl << flush;
-    //error::message("domain error, aborting ");
+    //error::printTime("domain error, aborting ");
     throw  unstable::x ;
   }
 } 
@@ -266,7 +266,7 @@ static void trig_domain_check(const interval& x,char* ch) {
   if (interMath::inf(x) <= -pi_minus_eps || interMath::sup(x) >= pi_minus_eps) {
     //cout << "bad argument for trig " << ch << endl << flush;
     //cout << "[" << x.lo << "," << x.hi << "]" << endl << flush;
-    //error::message("domain error ");
+    //error::printTime("domain error ");
     throw  unstable::x; 
   }
 } 

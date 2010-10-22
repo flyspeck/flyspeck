@@ -162,11 +162,14 @@ let display_ampl ampl_datafile ampl_of_bb bb = (* for debugging *)
 
 (* model should name the optimal value "optival" *)
 
+let solve_counter=ref 0;;
+
 let solve_branch_f model glpk_outfile varname ampl_of_bb bb = 
   let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/%s = //' "  model glpk_outfile varname varname in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
+  let _ = (solve_counter := !solve_counter + 1) in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
     inp;;

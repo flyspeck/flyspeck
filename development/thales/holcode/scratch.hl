@@ -34,6 +34,57 @@ let  (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = lpdata;;
 Hard_lp.execute();;
 *)
 
+(* redo hexagons *)
+
+let executea() = 
+  let _ = Lpproc.make_model() in
+  let tame = Glpk_link.strip_archive (!Lpproc.archiveraw) in
+  let tame_bb = map Lpproc.mk_bb tame in
+    tame_bb;;
+hd tame_bb;;
+let has_hex t = 
+  let ls = map List.length t.Lpproc.std_faces_not_super  in 
+  let b = (mem 6 ls) in b;;
+let hex_bb =  filter has_hex tame_bb;;
+List.length hex_bb;;
+
+let has_pent t = 
+  let ls = map List.length (t.Lpproc.std_faces_not_super  @ t.Lpproc. std56_flat_free) in 
+  let b = (mem 5 ls) in b;;
+let pent_bb =  filter has_pent tame_bb;;
+List.length pent_bb;;
+
+let tame_bb = executea();;
+
+  let feasible_pent_bb =  Lpproc.filter_feas (map Lpproc.solve pent_bb) ;;
+(* to here *)
+List.length feasible_pent_bb;;
+
+  let (hard_bb,easy_bb) = partition (fun t -> (mem t.Lpproc.hypermap_id Lpproc.hardid)) feasible_pent_bb ;;
+List.length hard_bb;;
+  
+  let _ = Lpproc.make_model();;
+
+  let filter_feas_p bb = let
+      bbs = Lpproc.filter_feas bb in
+    filter has_pent bbs;;
+
+let onepass_p bbs = 
+  let branches = List.flatten (map Lpproc.switch_face bbs) in
+  let _ = Lpproc.echo bbs in
+    filter_feas_p branches;;
+
+let rec allpass_p count bbs = 
+   let _ = Glpk_link.resetc() in
+   let t = Glpk_link.maxlist0 (map (fun b -> length (Lpproc.std_tri_prebranch b)) bbs) in
+   if t = 0 or count <= 0 then bbs else allpass_p (count - 1) (onepass_p bbs);;
+
+let remaining_easy_bb = allpass_p 20 easy_bb;;
+
+
+  (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb);;
+
+
 (*let searcht = Searching.searcht;;
 let help_grep = Searching.help_grep;; *)
 
@@ -96,7 +147,7 @@ let numlist = map (fun s -> (s,numvars s)) unfinished_cases;;
 let numhi = map fst (filter (fun (_,a) -> (a>6)) numlist);;
 let cfsqp s = Parse_ineq.execute_cfsqp  (hd(Ineq.getexact  s));;
 map cfsqp numhi;;
-cfsqp "9620775909";;
+cfsqp  "ZHPXLTX 9620775909 1,0,2";;
 
 map (REWRITE_CONV[Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5]) (map (fun f-> f.ineq) (Ineq.getprefix "181212899"));;
 let idq = hd(Ineq.getexact "9627800748 a");;

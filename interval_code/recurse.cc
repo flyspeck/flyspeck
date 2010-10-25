@@ -250,7 +250,7 @@ static cellOption::cellStatus
 		{
 		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
 		  T[i]=&Target[i];
-		  if (options.onlyCheckDeriv1Negative && (i=0)) {
+		  if (options.onlyCheckDeriv1Negative) {
 		    if (T[i]->upperPartial(0)<0.0) { return cellOption::cellPasses; }
 		    if (T[i]->lowerPartial(0)>0.0) { return cellOption::counterexample; }
 		    return cellOption::inconclusive;
@@ -426,15 +426,16 @@ void stats(int force)
 	{
 	static int statcounter=0;
 	static int linefeed=0;
-	if (force || count(statcounter++,10000)) 
-		{
-		cout << "[" << statcounter/10000 << "*10^4]" << flush;
-		if (count(linefeed++,10) )
-			{
-			cout << " " << flush; 
-			error::printTime();
-			}
-		}
+	if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
+	else if (count(statcounter++,10000)) 
+	  {
+	    cout << "[" << statcounter/10000 << "*10^4]" << flush;
+	    if (count(linefeed++,10) )
+	      {
+		cout << " " << flush; 
+		error::printTime();
+	      }
+	  }
 	}
 
 int prove::recursiveVerifier(int depth,

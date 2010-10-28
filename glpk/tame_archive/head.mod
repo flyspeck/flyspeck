@@ -298,14 +298,14 @@ tauB5h 'ID[]' {(i,j) in apex5}: tau[j] >= 0.6548;
 # The next two appear as lemma ZHPXLTX in the flypaper.
 # new values, Oct 22, 2010:
 tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.477;
-tau5h 'ID[]' {j in std5 inter std56_flat_free}: tau[j] >= 0.696;
+tau5h 'ID[9620775909-5]' {j in std5 inter std56_flat_free}: tau[j] >= 0.696;
 
 #old values:
-#tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.492;
-#tau5h 'ID[]' {j in std5 inter std56_flat_free}: tau[j] >= 0.751;
+#tauB4h 'ID[deprecated]' {(i,j) in apex4}: tau[j] >= 0.492;
+#tau5h 'ID[deprecated]' {j in std5 inter std56_flat_free}: tau[j] >= 0.751;
 
 # Commented out Oct 21, 2010. Not needed.
-# tau6h 'ID[]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
+# tau6h 'ID[deprecated]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
 perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
   y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j] >= 8.472;

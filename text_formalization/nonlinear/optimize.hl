@@ -370,19 +370,31 @@ let OR_RULE rule1 rule2 th = try rule1 th with _ -> rule2 th;;
 let rec REPEAT_RULE rule =
   fun t -> if can rule t then REPEAT_RULE rule (rule t) else t;;
 
+let hm0 = prove_by_refinement(
+  `!y. ((y <= &2 * hminus) ==> (y <= &2 * h0))`,
+  (* {{{ proof *)
+  [
+   MP_TAC hminus_lt_h0;
+  CONV_TAC REAL_FIELD;
+  ]);;
+  (* }}} *)
+
 let h0_lt_gt = prove_by_refinement(
   `((y <= #2.01) ==> (y <= &2 * h0)) /\
    ((#2.8 <= y) ==> (&2 * h0 <= y)) /\
   (( y <= &2) ==> (y <= &2 * h0)) /\
     ((sqrt8 <= y) ==> (&2 * h0 <= y)) /\   ((&2 * h0 <= y) ==> (&0 <= y)) /\
-   ((&2 <= y) ==> (&0 <= y))`,
+   ((&2 <= y) ==> (&0 <= y)) /\
+   ((y <= &2 * hminus) ==> (y <= &2 * h0))`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[Sphere.h0;sqrt8_sqrt2];
+  REWRITE_TAC[Sphere.h0;sqrt8_sqrt2;hm0];
     MP_TAC sqrt2_lb;
   REAL_ARITH_TAC;
   ]);;
   (* }}} *)
+
+search[`hminus`;`h0`];;
 
 let sqrtxx = prove_by_refinement(
   `!x. &0 <= x ==> (sqrt(x * x) = x)`,
@@ -420,7 +432,6 @@ let lmdih5_ldih5 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let lmdih0 = prove_by_refinement(
   `!y1 y2 y3 y4 y5 y6. (&2 * h0 <= y1 ) ==>(y_of_x lmdih_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 =  &0 )`,
   (* {{{ proof *)
@@ -448,6 +459,53 @@ let lmdih5_0 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let vol3f_lmln = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. (y1 <= &2 * h0) /\ (y2 <= &2 * h0) /\ (y6 <= &2 * h0) ==> (vol3f y1 y2 y6 sqrt2 lmfun = vol3f y1 y2 y6 sqrt2 lfun)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.vol3f];
+  MESON_TAC[lmfun_lfun];
+  ]);;
+  (* }}} *)
+
+let vol3f_sqrt2_lmplus = new_definition 
+  `vol3f_sqrt2_lmplus y1 y2 (y3:real) (y4:real) (y5:real) y6 = 
+    (&2 * mm1 / pi) *
+             (&2 * dih_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              &2 * dih2_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              &2 * dih6_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              dih3_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              dih4_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              dih5_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - &3 * pi) -
+             (&8 * mm2 / pi) *
+             (
+              lfun (y2 / &2) * dih2_y y1 y2 sqrt2 sqrt2 sqrt2 y6 +
+              lfun (y6 / &2) * dih6_y y1 y2 sqrt2 sqrt2 sqrt2 y6)`;;
+
+let vol3f_lm0 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. 
+  ( &2 * h0 <= y1) /\ (y2 <= &2 * h0) /\ (y6 <= &2 * h0) ==>
+  (vol3f y1 y2 y6 sqrt2 lmfun = vol3f_sqrt2_lmplus y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[vol3f_sqrt2_lmplus];
+  MP_TAC (SPECL [`y1:real`;`y2:real`;`sqrt2`;`sqrt2`;`sqrt2`;`y6:real`; `sqrt2`;`lmfun`] vol3f_palt);
+  REWRITE_TAC[];
+  DISCH_THEN (fun t-> REWRITE_TAC[t]);
+  ASM_SIMP_TAC[lmfun_lfun;lmfun0];
+  REWRITE_TAC[REAL_ARITH `&0 * x = &0 /\ &0 + y = y`];
+  ]);;
+  (* }}} *)
+
+
+
+
+
+vol3f_palt;;
+help_grep "GEN";;
+[`y1:real`;`y2:real`;`sqrt2`;`sqrt2;`sqrt2`;`y6:real`; `sqrt2`;`lmfun`]
+
 (* take care of branching *)
 
 let BRANCH_TAC = EVERY[
@@ -459,7 +517,7 @@ REPEAT GEN_TAC;
 REPEAT DISCH_TAC;
 ASSUM_LIST (let rec r = function | [] -> ALL_TAC | th::ths -> (MP_TAC (REPEAT_RULE (OR_RULE (MATCH_MP pathL_bound) (MATCH_MP pathR_bound)) th)) THEN r ths in r);
 REWRITE_TAC[];
-SIMP_TAC[gcy_low;gcy_low_hminus;gcy_high;gcy_high_hplus;h0_lt_gt;lmdih3_ldih3;lmdih5_ldih5;lmdih_ldih;lmdih5_0;lmdih3_0;lmdih0];
+SIMP_TAC[gcy_low;gcy_low_hminus;gcy_high;gcy_high_hplus;h0_lt_gt;lmdih3_ldih3;lmdih5_ldih5;lmdih_ldih;lmdih5_0;lmdih3_0;lmdih0;(* Oct 28, 2010:*) vol3f_lm0;vol3f_lmln];
 SIMP_TAC[lmfun_lfun;lmfun0];
 REWRITE_TAC[REAL_ARITH `&0 * x = &0 /\ &0 + x = x`];
 REPEAT (DISCH_THEN (fun t-> ALL_TAC));
@@ -736,7 +794,7 @@ let testids = [ "1965189142 34";"3137600529"];;
 let nightrun = [  "6938212390"; "9627800748 a";"9627800748 b";"9627800748 c";
   ];;
 
-let malt =  ["9627800748 d"; "FHBVYXZ b"; ];;
+let malt =  [ "FHBVYXZ b"; ];;
 
 (* ["9563139965"; "7676202716"; "3862621143"; "4240815464"; "6944699408"; 
    "7043724150";];; *)

@@ -365,6 +365,9 @@ class taylorSimplex
 	// Miscellaneous functions.
 	//
 	static const taylorFunction eta2_126,eta2_135,eta2_234,eta2_456,
+	  vol3_x_sqrt,
+	  vol3f_x_lfun,
+	  vol3f_x_sqrt2_lmplus,
 	  arclength_x_123,norm2hhx,
 	  asn797k,asnFnhk,lfun_y1,
 	  acs_sqrt_x1_d4,	  acs_sqrt_x2_d4;

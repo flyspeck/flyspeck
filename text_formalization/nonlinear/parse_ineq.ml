@@ -176,8 +176,10 @@ let macro_expand = ref [];;
 *)
 
 let get_macro_expand() = (
-   [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;
-   gamma3f;gamma23f;GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
+   [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;
+   gamma3f;gamma23f; (* gamma23f_126_w1;gamma23f_red; *)
+   gamma23f_red_03;gamma23f_126_03;
+   GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
    rhazim2;rhazim3;rotate2;rotate3;rotate4;rotate5;rotate6;
 		       sol_euler345_x_div_sqrtdelta;

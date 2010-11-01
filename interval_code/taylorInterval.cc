@@ -954,9 +954,10 @@ namespace local {
   static const interval sqrt3("1.7320508075688772935");
   static const interval quarter("0.25");
   static const interval half("0.5");
+  static const interval two ("2");
+  static const interval three ("3");
   static const interval four ("4");
   static const interval eight ("8");
-  static const interval two ("2");
   static const interval mone("-1");
   static const interval pi("3.1415926535897932385");
   static const interval const1 ("0.175479656091821810");
@@ -1336,6 +1337,87 @@ taylorSimplex::arclength_x1(const interval& b,const interval& c) {
   return local::arclength_x1(b,c);
 }  
 
+namespace local {
+
+  /* `!x1 x2 x3 x4 x5 x6.  
+  &0 <= x1 /\ &0 <= x2 /\ &0 <= x6 ==>
+  (vol3_x_sqrt x1 x2 x3 x4 x5 x6 = vol_x x1 x2 (&2) (&2) (&2) x6)`, */
+
+  static const taylorFunction two_unit = unit * two;
+
+  static const taylorFunction vol3_x_sqrt = 
+    taylorFunction::compose(taylorSimplex::vol_x,
+			    x1,x2,two_unit,two_unit,two_unit,x6);
+
+  /*
+`!x1 x2 x3 x4 x5 x6.  
+   &0 <= x1 /\ &0 <= x2 /\ &0 <= x6 ==>
+   vol3f_x_lfun x1 x2 x3 x4 x5 x6 =   (&2 * mm1 / pi) *
+             (&2 * dih_x x1 x2 (&2) (&2) (&2) x6 +
+              &2 * dih2_x x1 x2 (&2) (&2) (&2) x6 +
+              &2 * dih6_x x1 x2 (&2) (&2) (&2) x6 +
+              dih3_x x1 x2 (&2) (&2) (&2) x6 +
+              dih4_x x1 x2 (&2) (&2) (&2) x6 +
+              dih5_x x1 x2 (&2) (&2) (&2) x6 - &3 * pi) -
+             (&8 * mm2 / pi) *
+             ( ldih_x x1 x2 (&2) (&2) (&2) x6 +
+              ldih2_x x1 x2 (&2) (&2) (&2) x6 +
+              ldih6_x x1 x2 (&2) (&2) (&2) x6)`,
+   */
+
+  static const interval mm1("1.01208086842065466") ;
+
+  static const interval mm2("0.0254145072695089280");
+
+  static const taylorFunction vol3f_x_lfun_mm1 = 
+    taylorFunction::compose(taylorSimplex::dih,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    taylorFunction::compose(taylorSimplex::dih2,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    taylorFunction::compose(taylorSimplex::dih6,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    taylorFunction::compose(taylorSimplex::dih3,x1,x2,two_unit,two_unit,two_unit,x6) +
+    taylorFunction::compose(taylorSimplex::dih4,x1,x2,two_unit,two_unit,two_unit,x6) +
+    taylorFunction::compose(taylorSimplex::dih5,x1,x2,two_unit,two_unit,two_unit,x6) +
+    unit * (pi * mone * three);
+ 
+   static const taylorFunction vol3f_x_lfun_mm2 = 
+     taylorFunction::compose(taylorSimplex::ldih_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     taylorFunction::compose(taylorSimplex::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     taylorFunction::compose(taylorSimplex::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
+
+  static const taylorFunction vol3f_x_lfun = 
+    vol3f_x_lfun_mm1 * (two * mm1 / pi) + vol3f_x_lfun_mm2 * (eight * mone * mm2 /pi);
+
+  /*
+  `!x1 x2 x3 x4 x5 x6.  
+   ((&2 * h0) pow 2 <= x1) /\ &0 <= x2 /\ &0 <= x6 ==>
+   vol3f_x_sqrt2_lmplus x1 x2 x3 x4 x5 x6 =   (&2 * mm1 / pi) *
+             (&2 * dih_x x1 x2 (&2) (&2) (&2) x6 +
+              &2 * dih2_x x1 x2 (&2) (&2) (&2) x6 +
+              &2 * dih6_x x1 x2 (&2) (&2) (&2) x6 +
+              dih3_x x1 x2 (&2) (&2) (&2) x6 +
+              dih4_x x1 x2 (&2) (&2) (&2) x6 +
+              dih5_x x1 x2 (&2) (&2) (&2) x6 - &3 * pi) -
+             (&8 * mm2 / pi) *
+             (
+              ldih2_x x1 x2 (&2) (&2) (&2) x6 +
+              ldih6_x x1 x2 (&2) (&2) (&2) x6)`,
+  */
+
+  static const taylorFunction vol3f_x_lfun_mm2_no_dih1 = 
+      taylorFunction::compose(taylorSimplex::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     taylorFunction::compose(taylorSimplex::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
+
+  static const taylorFunction vol3f_x_sqrt2_lmplus = 
+    vol3f_x_lfun_mm1 * (two * mm1 / pi) + vol3f_x_lfun_mm2_no_dih1 * (eight * mone * mm2 /pi);
+
+
+};
+
+const taylorFunction taylorSimplex::vol3_x_sqrt = local::vol3_x_sqrt;
+
+const taylorFunction taylorSimplex::vol3f_x_lfun = local::vol3f_x_lfun;
+
+const taylorFunction taylorSimplex::vol3f_x_sqrt2_lmplus = local::vol3f_x_sqrt2_lmplus;
+
 
 /*
 static int primHasDeltaDenom(const primitive* p) {
@@ -1345,6 +1427,9 @@ static int primHasDeltaDenom(const primitive* p) {
      (p == &solPrimitive));
 }
 */
+
+
+
 
 /* ========================================================================== */
 /*                                                                            */
@@ -2580,6 +2665,51 @@ void taylorFunction::selfTest()
 	cout << "ldih_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+
+  /* test vol3_x_sqrt */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.4652359019298107;
+  double mathValueD[6]={-0.0038809463071660254,
+			-0.006418488123389966,0,0,0,-0.01806132704488803};
+    taylorInterval at = taylorSimplex::vol3_x_sqrt.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "vol3_x_sqrt  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "vol3_x_sqrt D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test vol3f_x_lfun */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.4457211325536522;
+    double mathValueD[6]={-0.02940386658560512,-0.029833252900862778,
+			  0,0,0,-0.03280740250782458};
+    taylorInterval at = taylorSimplex::vol3f_x_lfun.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "vol3f_x_lfun  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "vol3f_x_lfun D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test vol3f_x_sqrt2_lmplus */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.4990241768945513;
+    double mathValueD[6]={-0.05347687268458264,-0.03672605271672298,
+      0,0,0,-0.040461569165859704};
+    taylorInterval at = taylorSimplex::vol3f_x_sqrt2_lmplus.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "vol3f_x_sqrt2_lmplus  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "vol3f_x_sqrt2_lmplus D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
   
   /* test hasDeltaDenom */ {
     /*

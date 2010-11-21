@@ -5,15 +5,63 @@ places:
 
 *)
 
+(*
+theorem searching -n NAME, -o omit, -r rewrite format, -s sort by length, -
+save search history and selected results., 
+
+*)
+
+(* Jordan from: 
+    eventually merge...  *)
+
+let rec type_set: (string*term) list  -> (term list*term) -> (term list*term)=
+  fun tinfo (acclist,utm) -> match acclist with
+    | [] -> (acclist,utm)
+    | (Var(s,_) as a)::rest ->
+         let a' = (assocd s tinfo a) in
+           if (a = a') then type_set tinfo (rest,utm)
+           else let inst = instantiate (term_match [] a a') in
+             type_set tinfo ((map inst rest),inst utm)
+    | _ -> failwith "type_set: variable expected"
+  ;;
+
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let typeinfo (asl,w) =   
+  let freel = itlist (union o frees o concl o snd) asl (frees w) in
+  let pairup  = (function
+		   |Var(s,_) as t -> (s,t) 
+		   | _ -> failwith "typeinfo: unreachable state" ) in
+  map pairup freel;;
+
+let set_types_from_goal (asl,w)  =
+  let set_types tinfo t = snd (type_set tinfo ((frees t),t)) in
+    set_types (typeinfo(asl,w));;
+
+let TYPE_THEN: term  -> (term -> tactic) -> tactic =
+  fun t tac (asl,w) ->
+  let t' = set_types_from_goal(asl,w) t in
+    (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
+    tac t' (asl,w);;
+
+let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
+  fun t tac (asl,w) ->
+  let t' = map (set_types_from_goal(asl,w)) t in 
+    (warn ((can (find has_stv) t')) "TYPEL_THEN: unresolved type vars");
+     tac t' (asl,w);;
+
 help "ABBREV_TAC";;
 (* hightlight term, typeover abbrev *)
-let I_ABBREV_TAC oldtext abbrev = 
-  let abbrev' = mk_var(abbrev,(type_of oldtext)) in
-   ABBREV_TAC (mk_eq (abbrev', oldtext));;
+let MK_ABBREV_TAC: term -> string -> goal -> goalstate = 
+  fun oldtext abbrev (asl,w) ->
+    let text = set_types_from_goal (asl,w) oldtext in
+  let abbrev' = mk_var(abbrev,(type_of text)) in
+   ABBREV_TAC (mk_eq (abbrev', text)) (asl,w);;
 
 help "ABS_TAC";;
 (* delete the lambda, or the bound variable *)
-let I_ABS_TAC = ABS_TAC;;
 
 help "ACCEPT_TAC";; (* ignore for now *)
 
@@ -21,12 +69,29 @@ help "ALL_TAC";; (* ignore for now *)
 
 help "ANTE_RES_THEN";; (* ignore for now *)
 
-help "ANTS_TAC";;  (* delete ant of ant *)
+help "ANTS_TAC";;  (* delete ant of ant, subgoal button *)
 
 help "AP_TERM_TAC";;  (* delete f in f x = f y, either first or second instance *)
 
 help "AP_THM_TAC";;  (* delete x in f x = g x, either first or second *)
 
-help "ARITH_TAC";;  (* terminator, flag "+" *)
+help "ARITH_TAC";;  (* terminator, try if it is an arithmetic expression. *)
 
 help "ASM_CASES_TAC";;  (* needs a term u to split *)
+
+help "ASM_FOL_TAC";; (* ignore forever *)
+
+help "ASM_MESON_TAC";; (* terminator , option -a on MESON_TAC *)
+
+help "ASM_REWRITE_TAC";; (* option -a on REWRITE_TAC *)
+
+help "ASM_SIMP_TAC";; (* option -a on SIMP_TAC *)
+
+help "ASSUME_TAC";; (* needs theorem *)
+
+help "BETA_TAC";; (* delete lambda *)
+
+
+
+
+

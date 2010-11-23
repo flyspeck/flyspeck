@@ -8,8 +8,8 @@
 
 
 (*
-preprocessing for nonlinear ineq.
-
+Input is a nonlinear inequality.
+Output is executable interval arithmetic code in C++.
 *)
 
 
@@ -31,6 +31,11 @@ let nub = Parse_ineq.nub;;
 let join_comma = Parse_ineq.join_comma;;
 let join_space = Parse_ineq.join_space;;
 let join_lines = Parse_ineq.join_lines;;
+
+let string_of_num' = Parse_ineq.string_of_num';;
+let dest_decimal = Parse_ineq.dest_decimal;;
+let strip_let_tm = Parse_ineq.strip_let_tm;;
+let output_string = Parse_ineq.output_string;;
 
 let NONLIN = new_definition `NONLIN = F`;;
 
@@ -55,20 +60,14 @@ let split_interval = prove_by_refinement(
 
 let split_2h0 = INST [(`&2 * h0`,`m:real`)] split_interval;;
 
-let all_goal() = map (function (_,w) -> w) ((function (_,b,_) -> b) 
-  (hd (!current_goalstack)));;
-
 let SPLIT_H0_TAC pos =  
  (REPEAT GEN_TAC) THEN
  (REWRITE_TAC[ineq_expand6]) THEN
  (REPLICATE_TAC (pos) DISCH_TAC) THEN
  (DISCH_THEN (fun t -> MP_TAC (MATCH_MP split_2h0 t))) THEN
- DISCH_THEN DISJ_CASES_TAC    THEN (REPEAT (POP_ASSUM MP_TAC)) THEN (REWRITE_TAC[GSYM ineq_expand6]);;
-
-let split_h0_term i inq = 
-  let _ = g inq in
-  let _ = e(SPLIT_H0_TAC i) in
-    map all_forall (all_goal());;
+ DISCH_THEN DISJ_CASES_TAC    THEN 
+ (REPEAT (POP_ASSUM MP_TAC)) THEN 
+ (REWRITE_TAC[GSYM ineq_expand6]);;
 
 let get_split idq = 
   let ts = idq.tags in
@@ -80,7 +79,16 @@ let get_split idq =
 
 (* let filter_split not_i = filter (fun t -> not(t=not_i));; *)
 
+(* WARNING: This disturbs the goal *)
+
 let split_h0 (ineq,ss) = 
+  let all_goal() = 
+    map (function (_,w) -> w) ((function (_,b,_) -> b) 
+				 (hd (!current_goalstack))) in 
+  let split_h0_term i inq = 
+    let _ = g inq in
+    let _ = e(SPLIT_H0_TAC i) in
+      map all_forall (all_goal()) in 
   let _ = (List.length ss > 0)  or failwith "empty split" in
   let ineql = split_h0_term (hd ss) ineq in
    map (fun t-> (t, tl ss)) ineql;;
@@ -99,11 +107,10 @@ let rec split_all_h0 = function
 
 let quoted s = let q = "\"" in (q^s^q);;
 
+let paren s = "("^ s ^")";;
+
 let i_mk s = "interval::interval ("^quoted s ^")";;
 
-let string_of_num' = Parse_ineq.string_of_num';;
-
-let dest_decimal = Parse_ineq.dest_decimal;;
 
  (* these names don't change in cpp *)
 
@@ -172,8 +179,6 @@ let cpp_of_constant s  =
   try (assoc s cpp0_assoc) with 
       Failure _ -> failwith (s^" find: cpp_of_constant") ;;
 
-let paren s = "("^ s ^")";;
-
 let cpp_of_fun to_string s xs = 
   let (arg,xss) = chop_list (List.length xs - 6) xs in
   let _ = (xss = x6list) or failwith ("x6 list expected in "^s) in
@@ -210,8 +215,9 @@ let rec ccform t =
     failwith (s^" .......   "^string_of_term t);;
 
 
-(* processing cpp code *)
+(* generation of cpp code *)
 
+(*  (* This type of prepping should be done with the mega preprocessing tactics below *)
 let prep_expand = (
    [Sphere.gamma4f;Sphere.vol4f;Parse_ineq.y_of_x_e;
     Parse_ineq.vol_y_e;Sphere.vol3f;
@@ -227,12 +233,13 @@ let prep_expand = (
    ] @ (!Ineq.dart_classes));;
 
 let prep_term t = 
-  let t' = REWRITE_CONV (prep_expand) (Parse_ineq.strip_let_tm t) in
+  let t' = REWRITE_CONV (prep_expand) (strip_let_tm t) in
   let (a,b)=  dest_eq (concl t') in
     b;;
+*)
 
 let dest_ineq ineq = 
-  let t = snd(strip_forall (prep_term (ineq))) in
+  let t = snd(strip_forall ((* prep_term *) (ineq))) in
   let (vs,i) = dest_comb t in
   let (_,vs) = dest_comb vs in
   let vs = dest_list vs in
@@ -341,7 +348,7 @@ let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../interval_code/gener
 let cpp_tail() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_tail.txt"));;
 
 let mkfile_cpp  t s sharp checkderiv = 
-  Parse_ineq.output_string tmpfile 
+  output_string tmpfile 
    (join_lines [cpp_header(); (mk_cpp_proc t s sharp checkderiv);cpp_tail()]);;
 
 let compile_cpp () = 
@@ -360,8 +367,9 @@ let compile_cpp () =
 
 
 (* ========================================================================== *)
-(*    MEGA PREP    TACTICS                                                    *)
+(*    DEFS AND PROOFS                                                    *)
 (* ========================================================================== *)
+
 
 
 (* for big series in ineqdata... *)
@@ -396,8 +404,6 @@ let h0_lt_gt = prove_by_refinement(
   REAL_ARITH_TAC;
   ]);;
   (* }}} *)
-
-search[`hminus`;`h0`];;
 
 let sqrtxx = prove_by_refinement(
   `!x. &0 <= x ==> (sqrt(x * x) = x)`,
@@ -598,6 +604,87 @@ let vol3f_lm0 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* remaining splits *)
+
+let gamma3f_126 = new_definition 
+ `gamma3f_126 (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) f = 
+   gamma3f y1 y2 y6 sqrt2 f`;;
+
+let gamma3f_135 = new_definition 
+ `gamma3f_135 (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) f  = 
+   gamma3f y1 y3 y5 sqrt2 f`;;
+
+let gamma3f_vLR = new_definition 
+ `gamma3f_vLR (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) f  = 
+  (dih_y y1 y2 y3 y4 y5 y6 - dih_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - dih_y y1 y3 sqrt2 sqrt2 sqrt2 y5) * 
+  (vol2r y1 sqrt2 - vol2f y1 sqrt2 f)/(&2 * pi)`;;  
+
+let gamma3f_vL = new_definition 
+ `gamma3f_vL (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) f  = 
+  (dih_y y1 y2 y3 y4 y5 y6 - dih_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - #0.03) * (vol2r y1 sqrt2 - vol2f y1 sqrt2 f)/(&2 * pi)`;;
+
+(*
+let gamma3f_v = new_definition 
+ `gamma3f_v (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) f  = 
+  (dih_y y1 y2 y3 y4 y5 y6 - &2 * #0.03) * (vol2r y1 sqrt2 - vol2f y1 sqrt2 f)/(&2 * pi)`;;
+*)
+
+let gamma23f = new_definition `gamma23f y1 y2 y3 y4 y5 y6 w1 w2 r f =
+      (gamma3f y1 y2 y6 r f / &w1 + gamma3f y1 y3 y5 r f / &w2
+      + (dih_y y1 y2 y3 y4 y5 y6 - dih_y y1 y2 r r r y6 - dih_y y1 y3 r r r y5) * (vol2r y1 r - vol2f y1 r f)/(&2 * pi)) `;;
+
+let gamma23f_126_03 = new_definition `gamma23f_126_03 y1 y2 y3 y4 y5 y6 w1 r f =
+      (gamma3f y1 y2 y6 r f / &w1 
+      + (dih_y y1 y2 y3 y4 y5 y6 - dih_y y1 y2 r r r y6 - #0.03) * (vol2r y1 r - vol2f y1 r f)/(&2 * pi)) `;;
+
+let gamma23f_red_03 = new_definition `gamma23f_red_03 y1 y2 y3 y4 y5 y6 r f =
+       (dih_y y1 y2 y3 y4 y5 y6 - &2 * #0.03) * (vol2r y1 r - vol2f y1 r f)/(&2 * pi)`;;
+
+let gamma23f' = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6 w1 w2 f. gamma23f y1 y2 y3 y4 y5 y6 w1 w2 sqrt2 f =
+     gamma3f_126 y1 y2 y3 y4 y5 y6 f / &w1 + gamma3f_135 y1 y2 y3 y4 y5 y6 f / &w2 +
+     gamma3f_vLR y1 y2 y3 y4 y5 y6 f `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[gamma23f;gamma3f_126;gamma3f_135;gamma3f_vLR];
+  ]);;
+  (* }}} *)
+
+let gamma23f_126_03' = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6 w1 f. gamma23f_126_03 y1 y2 y3 y4 y5 y6 w1 sqrt2 f =
+     gamma3f_126 y1 y2 y3 y4 y5 y6 f / &w1 +   gamma3f_vL y1 y2 y3 y4 y5 y6 f `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[gamma23f_126_03;gamma3f_126;gamma3f_vL];
+  ]);;
+  (* }}} *)
+
+
+
+
+(* ========================================================================== *)
+(*    MEGA PREP    TACTICS                                                    *)
+(* ========================================================================== *)
+
+
+(* apply at the beginning *)
+
+let macro_expand = (
+   [
+     gamma23f';gamma23f_126_03';
+   vol4f_palt;Parse_ineq.y_of_x_e;(* Parse_ineq.vol_y_e; *)
+   (* Oct 20: Sphere.vol3f; *) Sphere.vol3r;Sphere.vol2f;Sphere.gamma4f;
+   Sphere.gamma3f;  GSYM Parse_ineq.quadratic_root_plus_curry;
+   REAL_MUL_LZERO;
+   REAL_MUL_RZERO;FST;SND;Sphere.pathL;Sphere.pathR;
+   Sphere.node2_y;Sphere.node3_y] @ (!Ineq.dart_classes));;
+
+
+let PRELIM_TAC = EVERY[
+  (REWRITE_TAC[GSYM Sphere.rad2_y]) ;
+  (REWRITE_TAC(macro_expand)) ;
+];;
+
 
 
 (* take care of branching *)
@@ -661,13 +748,6 @@ let SERIES3Q1H_5D_TAC =
  (REPEAT (POP_ASSUM MP_TAC)) THEN
  (REWRITE_TAC[GSYM ineq_expand6]);;
 
-let get_macro_cpp_expand() = (
-   [vol4f_palt;Parse_ineq.y_of_x_e;(* Parse_ineq.vol_y_e; *)
-   (* Oct 20: Sphere.vol3f; *) Sphere.vol3r;Sphere.vol2f;Sphere.gamma4f;
-   Sphere.gamma3f;  Sphere.gamma23f;GSYM Parse_ineq.quadratic_root_plus_curry;
-   REAL_MUL_LZERO;
-   REAL_MUL_RZERO;FST;SND;Sphere.pathL;Sphere.pathR;
-   Sphere.node2_y;Sphere.node3_y] @ (!Ineq.dart_classes));;
 
 let xspec = SPECL [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
 
@@ -718,11 +798,14 @@ EVERY[
   DISCH_TAC;
 ];;
 
+
 let X_OF_Y_TAC = 
   (
   (DISCH_TAC) THEN
+(* (* move to PREP_TAC *)
   (REWRITE_TAC[GSYM Sphere.rad2_y]) THEN
-  (REWRITE_TAC(get_macro_cpp_expand())) THEN
+  (REWRITE_TAC(macro_expand)) THEN
+*)
   (MATCH_MP_TAC ineq_square2) THEN
   (REWRITE_TAC basic_constants_nn) THEN
   REWRITE_TAC[GSYM CONJ_ASSOC] THEN
@@ -841,25 +924,17 @@ let gamma4f_delta0 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
 (* ========================================================================== *)
 (*    VERIFYING INEQUALITIES                                                  *)
 (* ========================================================================== *)
-
-
-let get_testcase s = 
-  let idq =  hd(Ineq.getexact s) in
-(*  let b = mem Xconvert idq.tags in *)
-  (idq,Parse_ineq.strip_let_tm idq.ineq);;
 
 let is_xconvert (idq,_) = mem Xconvert idq.tags;;
 
 let is_branch (idq,_) = mem Tprep idq.tags;;
 
-
 let testfull ex s case = 
   let _ = g (mk_imp (`NONLIN`,snd case)) in
+  let _ = e(PRELIM_TAC) in 
   let _ = if (is_branch case) then e(BRANCH_TAC) else e(ALL_TAC) in
   let _ = if (is_xconvert case) then e (X_OF_Y_TAC) else e(ALL_TAC) in
   let _ =   if (is_branch case && not(is_xconvert case)) then
@@ -870,6 +945,10 @@ let testfull ex s case =
   let checkderiv = if  mem Onlycheckderiv1negative (fst case).tags then 1 else 0 in
   let testineq = snd(top_goal()) in
     execute_interval ex (testineq,s,sharp,checkderiv);;
+
+let get_testcase s = 
+  let idq =  hd(Ineq.getexact s) in
+  (idq,strip_let_tm idq.ineq);;
 
 let test ex s = 
   let testid = s in
@@ -886,168 +965,5 @@ let testsplit ex s =
 	  try (testfull ex (s^name_suffix i) (fst testcase,(List.nth cases i)))
 	  with Failure s -> failwith (s ^ " case fail: " ^(string_of_int i))
 	done;;
-
-(* let hassplit = filter (fun t -> List.length (get_split t) > 0) (!Ineq.ineqs);; *)
-
-let testids = [ "1965189142 34";"3137600529"];;
-
-let nightrun = [ ];;
-
-let thackmac =  [ "QITNPEA 4003532128 d"; "QITNPEA 4003532128 c";
-   "QITNPEA 4003532128 b"; "QITNPEA 4003532128 a";
-   "ZTGIJCF23 1 1 1 7907792228 d"; "ZTGIJCF23 1 1 0 7907792228 d";
-   "ZTGIJCF23 1 0 1 7907792228 d"; "ZTGIJCF23 1 0 0 7907792228 d";
-   "ZTGIJCF23 0 1 1 7907792228 d"; "ZTGIJCF23 0 1 0 7907792228 d";
-   "ZTGIJCF23 0 0 1 7907792228 d"; "ZTGIJCF23 0 0 0 7907792228 d";
-   "ZTGIJCF23 1 1 1 7907792228 c"; "ZTGIJCF23 1 1 0 7907792228 c";
-   "ZTGIJCF23 1 0 1 7907792228 c"; "ZTGIJCF23 1 0 0 7907792228 c";
-   "ZTGIJCF23 0 1 1 7907792228 c"; "ZTGIJCF23 0 1 0 7907792228 c";
-   "ZTGIJCF23 0 0 1 7907792228 c"; "ZTGIJCF23 0 0 0 7907792228 c";
-   "ZTGIJCF23 1 1 1 7907792228 b"; "ZTGIJCF23 1 1 0 7907792228 b";
-   "ZTGIJCF23 1 0 1 7907792228 b"; "ZTGIJCF23 1 0 0 7907792228 b";
-   "ZTGIJCF23 0 1 1 7907792228 b"; "ZTGIJCF23 0 1 0 7907792228 b";
-   "ZTGIJCF23 0 0 1 7907792228 b"; "ZTGIJCF23 0 0 0 7907792228 b"];;
-
-let malt = thackmac;;
-
-
-(* ["9563139965"; "7676202716"; "3862621143"; "4240815464"; "6944699408"; 
-   "7043724150";];; *)
-
-(* moved "TSKAJXY-RIBCYXU" into early spot *)
-let testid = hd malt;;
-
-
-failwith "stop here";;
-
-testsplit true testid;;
-map (testsplit true) nightrun;;
-
-
-(* Parse_ineq.execute_cfsqp (hd(Ineq.getexact testid));; *)
-
-let testcase = get_testcase  testid;;
-
-let cases =
-  let ls = get_split (fst testcase) in
-     map (fun t -> (fst testcase,t)) (split_all_h0  [(snd testcase, ls)]);;
-List.length cases;;
-g (mk_imp (`NONLIN`,(fun (_,c) -> c) (List.nth cases 0)));;
-
-(* Parse_ineq.execute_cfsqp (List.nth testids 0);; *)
-
-(* goal *)
-
-g (mk_imp (`NONLIN`,(fun (_,c) -> c) (get_testcase testid)));;
-if (is_branch testcase ) then e(BRANCH_TAC) else e(ALL_TAC);; 
-if (is_xconvert testcase) then e (X_OF_Y_TAC) else e(ALL_TAC);;
-if (is_branch testcase && not(is_xconvert testcase)) then e(SERIES3Q1H_5D_TAC) else e(ALL_TAC);;
-e (STYLIZE_TAC);;
-e (WRAPUP_TAC);;
-
-(* FIRST PASS OVER FULL LIST OF INEQS, SCAFFOLDING *)
-
-let preprocess = REWRITE_RULE (DEF_expand @ Parse_ineq.get_macro_expand());; 
-
-  let constants_of_id t = map fst (nub(Print_types.get_const_types 
-   (concl(preprocess
-   (ASSUME ((fun (_,c) -> c) (get_testcase t)))))));;
-
-let get_const t = 
-  let r = constants_of_id t in
-  let knowns = 
-    ["ineq";"real_neg";"lfun";
-     "taum";"dih_y";"dih2_y";"dih3_y";"sqrt3";
-     "beta_bump_force_y";"rad2_x";"vol_x";"delta_y";"delta_x4";"sol_y";
-     "rhazim";"rhazim2";"rhazim3";
-    (* constants *)
-     "h0"; "hplus"; "sol0"; "mm1"; "mm2"; "hminus";  "beta_bump_lb"; 
-    "a_spine5";"b_spine5";"sqrt8";"sqrt2";"pi";"const1";
-    ] in
-  let f = filter (fun s -> not (mem s knowns)) in
-    f r;;
-
-(*
-let allids  =map (fun t-> t.id) (!Ineq.ineqs);;
-
-let has_const c t = mem c (get_const t);;
-
-let ineq_of_ids ids = map (fun (a,b) -> b) (map (get_testcase) ids);;
-
-Parse_ineq.get_macro_expand();;
-
-
-(*
-
-let constant_list = nub (List.flatten (map get_const allids));;
-
-  ["tauq"; "enclosed"; "edge_flat"; 
-     "vol2r"; 
-
-  (* polynomials *)
-
-  (* case split *)
-    "lmfun"; 
-   
-  (* implemented *)
-   "arclength"; "eta_y"; "marchal_quartic"; "acs"; "norm2hh";
-    "asn"; "cos"; "sin"; "sqrt";
-  (* define away *)
-  "flat_term";
-  ]
-*)
-
-let has_edge_flat = filter (has_const "edge_flat") allids;;
-let has_vol2r = filter (has_const "vol2r") allids;;
-map concl (map preprocess (map ASSUME (ineq_of_ids has_edge_flat)));;
-
-let mk_goodid() = filter (fun t -> List.length(get_const t) = 0) allids;;
-map get_const testids;;
-*)
-
-(*
-let goodid = mk_goodid();;
-*)
-searcht 5 [`edge_flat`];;
-
-(* NEXT *)
-Sphere.vol2r;;
-Sphere.flat_term;;
-(* next: filter out those that have run and pick a new one to do. *)
-
-let non_test = [
- "9563139965" (* tauq, enclosed *);
-  "GYQVFXJ hexD 1" (* edge_flat;  *);
-  "2986512815" (* 9 variable polynomial *);
-];;
-
-
-(* some benchmarks 
-(id, hales's nitpick time "H:MM:SS", zumkeller's sergei time "H:MM:SS");
-
-*)
-
-[("7394240696","0:01:32","0:29:26");
- ("7726998381","0:01:03","0:06:16");
- ("4047599236","0:01:04","0:00:59");
-("5735387903","0:00:13","0:00:03");
-("1550635295","0:00:01","0:00:46");
-("1395142356","0:05:13","1:57:15");
- ];;
-
-(*
-Parse_ineq.execute_cfsqp (hd (Ineq.getexact "1395142356"));;
-constrained min: 0.000999588577191658
-*)
-
-(*
-process_to_string "cat qed_log.txt | sed  's/^.*ineq./\"/' | sed 's/., secs.*$/\";/'  "
-
-cat qed_log.txt | sed  's/^.*ineq./"/' | sed 's/., secs.*$/";/' | sort -u | wc  
-
-(*
-let _ = Sys.command("cat "^flyspeck_dir^"/../interval_code/qed_log.txt");;
-*)
-*)
 
 

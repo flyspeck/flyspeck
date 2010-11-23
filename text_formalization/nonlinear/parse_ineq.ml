@@ -41,6 +41,9 @@ let join_lines  = unsplit "\n" (fun x-> x);;
 
 let join_space  = unsplit " " (fun x-> x);;
 
+let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
+
+let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
 
 let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; 
 (* from HOL Light lib.ml *)
@@ -48,6 +51,14 @@ let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);;
 let rec nub = function (* from lpproc.ml *)
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
+
+let output_string tmpfile a = 
+  let outs = open_out tmpfile in
+  let _ = (Printf.fprintf outs "%s" a) in
+   close_out outs ;;
+
+
+(* start parsing routines *)
 
 let c_string_of_term t = 
  let rec ccform t =
@@ -90,9 +101,6 @@ let constant_names i =
 
 (* Rewrite unusual terms to prepare for C++ conversion *)
 
-let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
-
-let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
 
 let abc_quadratic = prove (`abc_of_quadratic (\x. a * (x pow 2) + b * x + c) = (a,b,c)`,
  REWRITE_TAC[abc_of_quadratic] THEN
@@ -191,6 +199,9 @@ let get_macro_expand() = (
 		      ldih3_x_div_sqrtdelta_posbranch;
 		      ldih5_x_div_sqrtdelta_posbranch;
 		      ldih6_x_div_sqrtdelta_posbranch;
+		      lmdih_x_div_sqrtdelta_posbranch;
+		      lmdih3_x_div_sqrtdelta_posbranch;
+		      lmdih5_x_div_sqrtdelta_posbranch;
    ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
@@ -456,10 +467,6 @@ let mk_texstring (tm,id,s) = match tm with
 
 let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
 
-let output_string tmpfile a = 
-  let outs = open_out tmpfile in
-  let _ = (Printf.fprintf outs "%s" a) in
-   close_out outs ;;
 
 (*
 output_string "/tmp/ineqdoc.tex" (texstring());;

@@ -1,0 +1,179 @@
+(* Nov 2010 *)
+
+1;;
+
+(* Desktop init.                                *)
+let desktop_init _ = 
+  let _ = load_path := 
+     "/Users/thomashales/Desktop/googlecode/flyspeck/text_formalization/" :: 
+       !load_path in
+   needs "strictbuild.hl";;
+
+desktop_init();;
+(* #load "unix.cma";; (* dynamic loading not supported *) *)
+
+let open_search =
+  let _ = flyspeck_needs "general/tactics.hl" in
+  let _ = flyspeck_needs "usr/thales/search_tac.hl" in
+    reneeds "usr/thales/search_tac.hl";;
+
+open Searching;;
+
+(* laptop/desktop init *)
+reneeds "strictbuild.hl";;
+build_silent();;
+build_and_report();;
+
+flyspeck_needs "usr/thales/localbuild.hl";;
+
+(* END LOCAL BUILD *)
+
+(* RUNNING LINEAR PROGRAMS *)
+
+
+(* Desktop source: *)
+Lpproc.archiveraw := "/Users/thomashales/Desktop/tame_archive_svn1830.txt";;
+flyspeck_needs "../glpk/sphere.ml";;
+flyspeck_needs "../glpk/tame_archive/hard_lp.ml";;
+flyspeck_needs "../glpk/tame_archive/scaffolding.hl";;
+
+(* START NONLINEAR INEQS *)
+(* reneeds "nonlinear/ineqdata3q1h.hl";; *)
+(* reneeds "nonlinear/strongdodec_ineq.hl";; *)
+
+flyspeck_needs "general/sphere.hl";;
+reneeds "nonlinear/ineq.hl";;
+reneeds "nonlinear/parse_ineq.ml";;
+reneeds "nonlinear/optimize.hl";;
+
+let all_cases = 
+  Parse_ineq.nub (map (fun t -> t.id) (!Ineq.ineqs));;
+List.length  all_cases;;
+
+let finished_cases = 
+  let split_sp=  Str.split (Str.regexp "\n") in
+  let p = process_to_string ("cat "^flyspeck_dir
+			      ^"/../interval_code/qed_log.txt   "
+			     ^"| sed  's/^.*ineq./\"/' | sed 's/., secs.*$/\";/'   "
+			     ^"| sed 's/ split.*$//g' | sed 's/\"//g' "
+			    ^" | sed 's/;//g' ") in
+    Parse_ineq.nub (split_sp p);;
+List.length finished_cases;;
+
+
+let unfinished_cases = subtract all_cases finished_cases;;
+List.length unfinished_cases;;
+
+let hassplit =  
+  let a = filter (fun t -> List.length (get_split t) > 0)  !Ineq.ineqs in 
+  let a' = filter (fun t -> mem t.id  unfinished_cases) a in
+    map (fun t-> t.id) a';;
+List.length hassplit;;
+
+(* lists of inequality ids *)
+
+let testids = ["ZTGIJCF23 0 0 0 7907792228 b"];;
+
+let nightrun = [ ];;
+
+let thackmac = hassplit;;
+
+let malt = thackmac;;
+
+(* running one id *)
+
+let testid = hd testids;;
+
+testsplit false testid;;
+map (testsplit false) nightrun;;
+
+
+(* Parse_ineq.execute_cfsqp (hd(Ineq.getexact testid));; *)
+
+let testcase = get_testcase  testid;;
+
+let cases =
+  let ls = get_split (fst testcase) in
+     map (fun t -> (fst testcase,t)) (split_all_h0  [(snd testcase, ls)]);;
+List.length cases;;
+g (mk_imp (`NONLIN`,(fun (_,c) -> c) (List.nth cases 0)));;
+
+(* Parse_ineq.execute_cfsqp (List.nth testids 0);; *)
+
+(* goal *)
+
+g (mk_imp (`NONLIN`,(fun (_,c) -> c) (get_testcase testid)));;
+e(PRELIM_TAC);;
+if (is_branch testcase ) then e(BRANCH_TAC) else e(ALL_TAC);; 
+if (is_xconvert testcase) then e (X_OF_Y_TAC) else e(ALL_TAC);;
+if (is_branch testcase && not(is_xconvert testcase)) then e(SERIES3Q1H_5D_TAC) else e(ALL_TAC);;
+e (STYLIZE_TAC);;
+e (WRAPUP_TAC);;
+
+
+
+(*
+process_to_string "cat qed_log.txt | sed  's/^.*ineq./\"/' | sed 's/., secs.*$/\";/'  "
+
+cat qed_log.txt | sed  's/^.*ineq./"/' | sed 's/., secs.*$/";/' | sort -u | wc  
+
+(*
+let _ = Sys.command("cat "^flyspeck_dir^"/../interval_code/qed_log.txt");;
+*)
+*)
+
+vol3f_lm0;;
+
+let gamma3f_vLR0 = new_definition `gamma3f_vLR0 y1 y2 y3 y4 y5 y6 = 
+   (dih_y y1 y2 y3 y4 y5 y6 -
+  dih_y y1 y2 sqrt2 sqrt2 sqrt2 y6 -
+  dih_y y1 y3 sqrt2 sqrt2 sqrt2 y5) *
+ (vol2r y1 sqrt2 - (&2 * mm1 / pi) * &2 * pi * (&1 - y1 / (sqrt2 * &2))) /
+ (&2 * pi)`;;
+
+let gamma3f_vLR0_case = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. &2 * h0 <= y1 ==> gamma3f_vLR y1 y2 y3 y4 y5 y6 lmfun = 
+    gamma3f_vLR0 y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[gamma3f_vLR;Sphere.vol2f;gamma3f_vLR0];
+  ASM_SIMP_TAC[lmfun0;REAL_MUL_RZERO;REAL_SUB_RZERO];
+  ]);;
+  (* }}} *)
+
+let gamma3f_vLR_lfun = new_definition `gamma3f_vLR_lfun y1 y2 y3 y4 y5 y6 = 
+(dih_y y1 y2 y3 y4 y5 y6 -
+  dih_y y1 y2 sqrt2 sqrt2 sqrt2 y6 -
+  dih_y y1 y3 sqrt2 sqrt2 sqrt2 y5) *
+ (vol2r y1 sqrt2 -
+  ((&2 * mm1 / pi) * &2 * pi * (&1 - y1 / (sqrt2 * &2)) -
+   (&8 * mm2 / pi) * &2 * pi * lfun (y1 / &2))) /
+ (&2 * pi) `;;
+
+let gamma3f_vLR_lfun_case = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. y1 <= &2 * h0 ==> gamma3f_vLR y1 y2 y3 y4 y5 y6 lmfun = 
+    gamma3f_vLR_lfun y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[gamma3f_vLR;Sphere.vol2f;gamma3f_vLR_lfun];
+  ASM_SIMP_TAC[lmfun_lfun];
+  ]);;
+  (* }}} *)
+
+search[`x * &0 = &0`];;
+search[`x - &0 = x`];;
+search[`y <= &2 * h0`;`lmfun`;`lfun`];;
+
+
+
+
+(* TESTING CFSQP *)
+
+Parse_ineq.execute_cfsqp (hd(Ineq.getexact "TSKAJXY-GXSABWC b"));;
+
+map Parse_ineq.execute_cfsqp !Ineq.ineqs;;
+
+
+(* Parse_ineq.trialcount:= 500;; *)

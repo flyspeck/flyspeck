@@ -107,10 +107,10 @@ let join_lines  = unsplit "\n" (fun x-> x);;
 let load_and_close_channel do_close ic = 
   let rec lf ichan a = 
     try
-      lf ic (input_line ic::a)
+      lf ic (Pervasives.input_line ic::a)
     with End_of_file -> a in
     let rs = lf ic [] in
-      if do_close then close_in ic else ();
+      if do_close then Pervasives.close_in ic else ();
       rev rs;;
 
 let load_file filename = 

@@ -952,15 +952,19 @@ namespace local {
   static const univariate i_asin = univariate::i_asin;
 
   static const interval sqrt3("1.7320508075688772935");
+  static const interval sqrt2("1.4142135623730950488");
   static const interval quarter("0.25");
   static const interval half("0.5");
   static const interval two ("2");
   static const interval three ("3");
   static const interval four ("4");
   static const interval eight ("8");
+  static const interval sixteen ("16");
   static const interval mone("-1");
   static const interval pi("3.1415926535897932385");
   static const interval const1 ("0.175479656091821810");
+  static const interval mm1("1.01208086842065466") ;
+  static const interval mm2("0.0254145072695089280");
 
 
    };
@@ -1071,6 +1075,7 @@ namespace local {
     (unit * h0 + y1 * mone * half) * (one / (h0 -one));
 
   const taylorFunction ldih_x = lfun_sqrtx1_div2 * dih;
+
 
 };
 
@@ -1349,6 +1354,12 @@ namespace local {
     taylorFunction::compose(taylorSimplex::vol_x,
 			    x1,x2,two_unit,two_unit,two_unit,x6);
 
+  static const taylorFunction vol3_x_135_s2 = 
+    taylorFunction::compose(taylorSimplex::vol_x,
+			    x1,two_unit,x3,two_unit,x5,two_unit);
+
+
+
   /*
 `!x1 x2 x3 x4 x5 x6.  
    &0 <= x1 /\ &0 <= x2 /\ &0 <= x6 ==>
@@ -1365,9 +1376,6 @@ namespace local {
               ldih6_x x1 x2 (&2) (&2) (&2) x6)`,
    */
 
-  static const interval mm1("1.01208086842065466") ;
-
-  static const interval mm2("0.0254145072695089280");
 
   static const taylorFunction vol3f_x_lfun_mm1 = 
     taylorFunction::compose(taylorSimplex::dih,x1,x2,two_unit,two_unit,two_unit,x6) * two+
@@ -1409,14 +1417,111 @@ namespace local {
   static const taylorFunction vol3f_x_sqrt2_lmplus = 
     vol3f_x_lfun_mm1 * (two * mm1 / pi) + vol3f_x_lfun_mm2_no_dih1 * (eight * mone * mm2 /pi);
 
+  static const taylorFunction dih_x_126_s2 = taylorFunction::compose(taylorSimplex::dih,
+								     x1,x2,two_unit,two_unit,two_unit,x6);
+
+  static const taylorFunction ldih_x_126_s2 = taylorFunction::compose(taylorSimplex::ldih_x,
+								     x1,x2,two_unit,two_unit,two_unit,x6);
+
+  static const taylorFunction delta_x_126_s2 = taylorFunction::compose(taylorSimplex::delta,
+								     x1,x2,two_unit,two_unit,two_unit,x6);
+
+  static const taylorFunction dih_x_135_s2 = taylorFunction::compose(taylorSimplex::dih,
+								     x1,two_unit,x3,two_unit,x5,two_unit);
+
+  static const taylorFunction ldih_x_135_s2 = taylorFunction::compose(taylorSimplex::ldih_x,
+								     x1,two_unit,x3,two_unit,x5,two_unit);
+
+  static const taylorFunction delta_x_135_s2 = taylorFunction::compose(taylorSimplex::delta,
+								     x1,two_unit,x3,two_unit,x5,two_unit);
+
+  static const taylorFunction vol2r = (two_unit  + x1 * (mone/four) ) * (two * pi/three);
+
+  static const taylorFunction vv_term_m1 = 
+    (unit + y1 * (mone / (two * sqrt2))) * (four * mm1 ) ;
+
+  static const taylorFunction vv_term_m2 = 
+    lfun_sqrtx1_div2 * sixteen * mm2;
+
+  // gamma3f_vLR_lfun
+    static const taylorFunction gamma3f_x_vLR_lfun = 
+    (dih + dih_x_126_s2 * mone +  dih_x_135_s2 * mone) * 
+       (vol2r + vv_term_m1 * mone + vv_term_m2 ) *     (one / (two * pi));
+
+  // gamma3f_vLR0
+    static const taylorFunction gamma3f_x_vLR0 = 
+    (dih + dih_x_126_s2 * mone +  dih_x_135_s2 * mone) * 
+       (vol2r + vv_term_m1 * mone  ) *     (one / (two * pi));
+
+
+  static const interval m03("-0.03");
+
+  // gamma3f_vL_lfun
+    static const taylorFunction gamma3f_x_vL_lfun = 
+    (dih + dih_x_126_s2 * mone + unit * m03) * 
+       (vol2r + vv_term_m1 * mone + vv_term_m2 ) *     (one / (two * pi));
+
+  // gamma3f_vL0
+    static const taylorFunction gamma3f_x_vL0 = 
+    (dih + dih_x_126_s2 * mone +  unit * m03) * 
+       (vol2r + vv_term_m1 * mone  ) *     (one / (two * pi));
+
+  // gamma3f_v_lfun
+    static const taylorFunction gamma3f_x_v_lfun = 
+    (dih +  unit * two * m03) * 
+       (vol2r + vv_term_m1 * mone + vv_term_m2 ) *     (one / (two * pi));
+
+  // gamma3f_v0
+    static const taylorFunction gamma3f_x_v0 = 
+    (dih +   unit * two * m03) * 
+       (vol2r + vv_term_m1 * mone  ) *     (one / (two * pi));
+
 
 };
 
 const taylorFunction taylorSimplex::vol3_x_sqrt = local::vol3_x_sqrt;
 
+const taylorFunction taylorSimplex::vol3_x_135_s2 = local::vol3_x_135_s2;
+
 const taylorFunction taylorSimplex::vol3f_x_lfun = local::vol3f_x_lfun;
 
 const taylorFunction taylorSimplex::vol3f_x_sqrt2_lmplus = local::vol3f_x_sqrt2_lmplus;
+
+const taylorFunction taylorSimplex::delta_x_126_s2 = local::delta_x_126_s2;
+
+const taylorFunction taylorSimplex::delta_x_135_s2 = local::delta_x_135_s2;
+
+const taylorFunction taylorSimplex::ldih_x_126_s2 = local::ldih_x_126_s2;
+
+const taylorFunction taylorSimplex::ldih_x_135_s2 = local::ldih_x_135_s2;
+
+const taylorFunction taylorSimplex::dih_x_126_s2 = local::dih_x_126_s2;
+const taylorFunction taylorSimplex::dih2_x_126_s2 = taylorFunction::rotate2(local::dih_x_126_s2);
+const taylorFunction taylorSimplex::dih3_x_126_s2 = taylorFunction::rotate3(local::dih_x_126_s2);
+const taylorFunction taylorSimplex::dih4_x_126_s2 = taylorFunction::rotate4(local::dih_x_126_s2);
+const taylorFunction taylorSimplex::dih5_x_126_s2 = taylorFunction::rotate5(local::dih_x_126_s2);
+const taylorFunction taylorSimplex::dih6_x_126_s2 = taylorFunction::rotate6(local::dih_x_126_s2);
+const taylorFunction taylorSimplex::ldih6_x_126_s2 = taylorFunction::rotate6(local::ldih_x_126_s2);
+const taylorFunction taylorSimplex::ldih2_x_126_s2 = taylorFunction::rotate2(local::ldih_x_126_s2);
+
+
+const taylorFunction taylorSimplex::dih_x_135_s2 = local::dih_x_135_s2;
+const taylorFunction taylorSimplex::dih2_x_135_s2 = taylorFunction::rotate2(local::dih_x_135_s2);
+const taylorFunction taylorSimplex::dih3_x_135_s2 = taylorFunction::rotate3(local::dih_x_135_s2);
+const taylorFunction taylorSimplex::dih4_x_135_s2 = taylorFunction::rotate4(local::dih_x_135_s2);
+const taylorFunction taylorSimplex::dih5_x_135_s2 = taylorFunction::rotate5(local::dih_x_135_s2);
+const taylorFunction taylorSimplex::dih6_x_135_s2 = taylorFunction::rotate6(local::dih_x_135_s2);
+const taylorFunction taylorSimplex::ldih3_x_135_s2 = taylorFunction::rotate3(local::ldih_x_135_s2);
+const taylorFunction taylorSimplex::ldih5_x_135_s2 = taylorFunction::rotate5(local::ldih_x_135_s2);
+
+const taylorFunction taylorSimplex::gamma3f_x_vLR_lfun = local::gamma3f_x_vLR_lfun;
+const taylorFunction taylorSimplex::gamma3f_x_vLR0 = local::gamma3f_x_vLR0;
+const taylorFunction taylorSimplex::gamma3f_x_vL_lfun = local::gamma3f_x_vL_lfun;
+const taylorFunction taylorSimplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
+const taylorFunction taylorSimplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
+const taylorFunction taylorSimplex::gamma3f_x_v0 = local::gamma3f_x_v0;
+
+
 
 
 /*

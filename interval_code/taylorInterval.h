@@ -389,7 +389,37 @@ class taylorSimplex
 	  ldih4_x_div_sqrtdelta_posbranch,
 	  ldih5_x_div_sqrtdelta_posbranch,
 	  ldih6_x_div_sqrtdelta_posbranch,
-	  surf_x
+	  surf_x,
+	  vol3r_126_x,
+
+	  dih_x_126_s2,
+	  dih2_x_126_s2,
+	  dih3_x_126_s2,
+	  dih4_x_126_s2,
+	  dih5_x_126_s2,
+	  dih6_x_126_s2,
+	  ldih_x_126_s2,
+	  ldih2_x_126_s2,
+	  ldih6_x_126_s2,
+	  dih_x_135_s2,
+	  dih2_x_135_s2,
+	  dih3_x_135_s2,
+	  dih4_x_135_s2,
+	  dih5_x_135_s2,
+	  dih6_x_135_s2,
+	  ldih_x_135_s2,
+	  ldih3_x_135_s2,
+	  ldih5_x_135_s2,
+
+	  delta_x_135_s2,
+	  delta_x_126_s2,
+
+	  vol3_x_135_s2, 
+
+	  gamma3f_x_vLR_lfun,
+	  gamma3f_x_vLR0,
+	  gamma3f_x_vL_lfun,  gamma3f_x_vL0,
+	  gamma3f_x_v_lfun,  gamma3f_x_v0
 	  ;
 
 	static const taylorFunction taum_x1(const interval&,const interval&);

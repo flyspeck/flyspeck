@@ -1085,6 +1085,7 @@ const taylorFunction taylorSimplex::lfun_y1 = local::lfun_y1;
 const taylorFunction taylorSimplex::ldih_x = local::ldih_x;
 const taylorFunction taylorSimplex::ldih2_x = taylorFunction::rotate2 (local::ldih_x);
 const taylorFunction taylorSimplex::ldih3_x = taylorFunction::rotate3 (local::ldih_x);
+const taylorFunction taylorSimplex::ldih5_x = taylorFunction::rotate5 (local::ldih_x);
 const taylorFunction taylorSimplex::ldih6_x = taylorFunction::rotate6 (local::ldih_x);
 
 
@@ -1410,30 +1411,27 @@ namespace local {
               ldih6_x x1 x2 (&2) (&2) (&2) x6)`,
   */
 
+  static taylorFunction mk_135 (const taylorFunction& f) {
+    return taylorFunction::compose(f,x1,two_unit,x3,two_unit,x5,two_unit);
+  }
+
+  static taylorFunction mk_126 (const taylorFunction& f) {
+    return taylorFunction::compose(f,x1,x2,two_unit,two_unit,two_unit,x6);
+  }
+
+  static const taylorFunction vol3f_x_lfun_mm2_no_dih1 = 
+    mk_126(taylorSimplex::ldih2_x) + mk_126(taylorSimplex::ldih6_x);
+
+  /*
   static const taylorFunction vol3f_x_lfun_mm2_no_dih1 = 
       taylorFunction::compose(taylorSimplex::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
      taylorFunction::compose(taylorSimplex::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
+  */
 
   static const taylorFunction vol3f_x_sqrt2_lmplus = 
     vol3f_x_lfun_mm1 * (two * mm1 / pi) + vol3f_x_lfun_mm2_no_dih1 * (eight * mone * mm2 /pi);
 
-  static const taylorFunction dih_x_126_s2 = taylorFunction::compose(taylorSimplex::dih,
-								     x1,x2,two_unit,two_unit,two_unit,x6);
 
-  static const taylorFunction ldih_x_126_s2 = taylorFunction::compose(taylorSimplex::ldih_x,
-								     x1,x2,two_unit,two_unit,two_unit,x6);
-
-  static const taylorFunction delta_x_126_s2 = taylorFunction::compose(taylorSimplex::delta,
-								     x1,x2,two_unit,two_unit,two_unit,x6);
-
-  static const taylorFunction dih_x_135_s2 = taylorFunction::compose(taylorSimplex::dih,
-								     x1,two_unit,x3,two_unit,x5,two_unit);
-
-  static const taylorFunction ldih_x_135_s2 = taylorFunction::compose(taylorSimplex::ldih_x,
-								     x1,two_unit,x3,two_unit,x5,two_unit);
-
-  static const taylorFunction delta_x_135_s2 = taylorFunction::compose(taylorSimplex::delta,
-								     x1,two_unit,x3,two_unit,x5,two_unit);
 
   static const taylorFunction vol2r = (two_unit  + x1 * (mone/four) ) * (two * pi/three);
 
@@ -1442,6 +1440,9 @@ namespace local {
 
   static const taylorFunction vv_term_m2 = 
     lfun_sqrtx1_div2 * sixteen * mm2;
+
+static const taylorFunction dih_x_126_s2 = mk_126(taylorSimplex::dih);
+static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
 
   // gamma3f_vLR_lfun
     static const taylorFunction gamma3f_x_vLR_lfun = 
@@ -1487,32 +1488,29 @@ const taylorFunction taylorSimplex::vol3f_x_lfun = local::vol3f_x_lfun;
 
 const taylorFunction taylorSimplex::vol3f_x_sqrt2_lmplus = local::vol3f_x_sqrt2_lmplus;
 
-const taylorFunction taylorSimplex::delta_x_126_s2 = local::delta_x_126_s2;
-
-const taylorFunction taylorSimplex::delta_x_135_s2 = local::delta_x_135_s2;
-
-const taylorFunction taylorSimplex::ldih_x_126_s2 = local::ldih_x_126_s2;
-
-const taylorFunction taylorSimplex::ldih_x_135_s2 = local::ldih_x_135_s2;
-
 const taylorFunction taylorSimplex::dih_x_126_s2 = local::dih_x_126_s2;
-const taylorFunction taylorSimplex::dih2_x_126_s2 = taylorFunction::rotate2(local::dih_x_126_s2);
-const taylorFunction taylorSimplex::dih3_x_126_s2 = taylorFunction::rotate3(local::dih_x_126_s2);
-const taylorFunction taylorSimplex::dih4_x_126_s2 = taylorFunction::rotate4(local::dih_x_126_s2);
-const taylorFunction taylorSimplex::dih5_x_126_s2 = taylorFunction::rotate5(local::dih_x_126_s2);
-const taylorFunction taylorSimplex::dih6_x_126_s2 = taylorFunction::rotate6(local::dih_x_126_s2);
-const taylorFunction taylorSimplex::ldih6_x_126_s2 = taylorFunction::rotate6(local::ldih_x_126_s2);
-const taylorFunction taylorSimplex::ldih2_x_126_s2 = taylorFunction::rotate2(local::ldih_x_126_s2);
-
+const taylorFunction taylorSimplex::dih2_x_126_s2 = local::mk_126(taylorSimplex::dih2);
+const taylorFunction taylorSimplex::dih3_x_126_s2 = local::mk_126(taylorSimplex::dih3);
+const taylorFunction taylorSimplex::dih4_x_126_s2 = local::mk_126(taylorSimplex::dih4);
+const taylorFunction taylorSimplex::dih5_x_126_s2 = local::mk_126(taylorSimplex::dih5);
+const taylorFunction taylorSimplex::dih6_x_126_s2 = local::mk_126(taylorSimplex::dih6);
+ 
+const taylorFunction taylorSimplex::ldih_x_126_s2 = local::mk_126(taylorSimplex::ldih_x);
+const taylorFunction taylorSimplex::ldih2_x_126_s2 = local::mk_126(taylorSimplex::ldih2_x);
+const taylorFunction taylorSimplex::ldih6_x_126_s2 = local::mk_126(taylorSimplex::ldih6_x);
+const taylorFunction taylorSimplex::delta_x_126_s2 = local::mk_126(taylorSimplex::delta);
 
 const taylorFunction taylorSimplex::dih_x_135_s2 = local::dih_x_135_s2;
-const taylorFunction taylorSimplex::dih2_x_135_s2 = taylorFunction::rotate2(local::dih_x_135_s2);
-const taylorFunction taylorSimplex::dih3_x_135_s2 = taylorFunction::rotate3(local::dih_x_135_s2);
-const taylorFunction taylorSimplex::dih4_x_135_s2 = taylorFunction::rotate4(local::dih_x_135_s2);
-const taylorFunction taylorSimplex::dih5_x_135_s2 = taylorFunction::rotate5(local::dih_x_135_s2);
-const taylorFunction taylorSimplex::dih6_x_135_s2 = taylorFunction::rotate6(local::dih_x_135_s2);
-const taylorFunction taylorSimplex::ldih3_x_135_s2 = taylorFunction::rotate3(local::ldih_x_135_s2);
-const taylorFunction taylorSimplex::ldih5_x_135_s2 = taylorFunction::rotate5(local::ldih_x_135_s2);
+const taylorFunction taylorSimplex::dih2_x_135_s2 = local::mk_135(taylorSimplex::dih2);
+const taylorFunction taylorSimplex::dih3_x_135_s2 = local::mk_135(taylorSimplex::dih3);
+const taylorFunction taylorSimplex::dih4_x_135_s2 = local::mk_135(taylorSimplex::dih4);
+const taylorFunction taylorSimplex::dih5_x_135_s2 = local::mk_135(taylorSimplex::dih5);
+const taylorFunction taylorSimplex::dih6_x_135_s2 = local::mk_135(taylorSimplex::dih6);
+
+const taylorFunction taylorSimplex::ldih_x_135_s2 = local::mk_135(taylorSimplex::ldih_x);
+const taylorFunction taylorSimplex::ldih3_x_135_s2 = local::mk_135(taylorSimplex::ldih3_x);
+const taylorFunction taylorSimplex::ldih5_x_135_s2 = local::mk_135(taylorSimplex::ldih5_x);
+const taylorFunction taylorSimplex::delta_x_135_s2 = local::mk_135(taylorSimplex::delta);
 
 const taylorFunction taylorSimplex::gamma3f_x_vLR_lfun = local::gamma3f_x_vLR_lfun;
 const taylorFunction taylorSimplex::gamma3f_x_vLR0 = local::gamma3f_x_vLR0;
@@ -1895,8 +1893,8 @@ static int epsilonClose(double x,interval y,double epsilon)
 {
   if (interMath::abs(y-interval(x,x))>epsilon)
     {
-      cout << "close : " << interMath::abs(y-interval(x,x))
-	   << " " << x << " " << y << endl<< flush;
+      cout << "close eps : " << interMath::abs(y-interval(x,x))
+	   << " x: " << x << " y: " << y << endl<< flush;
       return 0;
     }
   return 1;
@@ -1906,8 +1904,8 @@ static int epsilonCloseDoubles(double x,double y,double epsilon)
 {
   if (abs(y-x)>epsilon)
     {
-      cout << "close-doubles : " << abs(y-x)
-	   << " " << x << " " << y << endl<< flush;
+      cout << "close-doubles eps: " << abs(y-x)
+	   << " x: " << x << "  y: " << y << endl<< flush;
       return 0;
     }
   return 1;
@@ -2770,6 +2768,39 @@ void taylorFunction::selfTest()
 	cout << "ldih_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test dih3_x_135_s2 */   {
+    /* fj[y1_, y2_, y3_, y4_, y5_, y6_] := Dihedral3[y1, sqrt2, y3, sqrt2, y5, sqrt2];    testData[fj, xD] */
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.8978353845717557;
+    double mathValueD[6]={-0.11763582712748807,0,0.04693838886383641,
+			  0,-0.1291648084755952,0};
+    taylorInterval at = taylorSimplex::dih3_x_135_s2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "dih3_x_135_s2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "dih3_x_135_s2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test ldih2_x_126_s2 */   {
+    /* fj[y1_, y2_, y3_, y4_, y5_, y6_] := Lfun[y2/2] Dihedral2[y1, y2, sqrt2, 
+       sqrt2, sqrt2, y6]; */
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.7968080665440581;
+      double mathValueD[6]={-0.10245354865782212,-0.37336749454984774,
+			    0,0,0,-0.11599764292809825};
+    taylorInterval at = taylorSimplex::ldih2_x_126_s2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "ldih2_x_126_s2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "ldih2_x_126_s2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
 
 
   /* test vol3_x_sqrt */   {

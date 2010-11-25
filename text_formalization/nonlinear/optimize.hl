@@ -12,12 +12,21 @@ Input is a nonlinear inequality.
 Output is executable interval arithmetic code in C++.
 *)
 
-
+(* Bug: process_to_string creates a fork that does not get cleaned up for some reason. 
 let svn_version() = 
   let strip_final s = String.sub s 0 (String.length s - 1) in
   let p s = strip_final (process_to_string s) in
   let q s ="svn info "^s^ " | grep Revision | sed 's/Revision: //g'" in
     "svn("^p(q(flyspeck_dir))^","^p(q(hollight_dir))^")";;
+*)
+
+let svn_version() =
+  let reg = Str.regexp "^Revision: \([0-9]+\)$" in
+  let p s =  process_to_string ("svn info "^s) in
+  let q s = 
+    let _ = Str.search_forward reg s 0 in
+      Str.matched_group 1 s  in
+    "svn("^q(p(flyspeck_dir))^","^q(p(hollight_dir))^")";;
 
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/lemma.hl";;
@@ -356,6 +365,15 @@ let load_and_close_channel_true ic =
 
 let load_file filename = 
   let ic = Pervasives.open_in filename in load_and_close_channel_true ic;;
+
+(* debug, to find where forks are not getting cleaned up 
+let procc s = 
+  let _ = Sys.command("ps -aux | grep '(sh)' | wc") in 
+  let _ = Sys.command("ps -aux | grep '(svn)' | wc") in
+  let _ = Sys.command("ps -aux | grep 'sbin' | wc") in
+  let _ = Sys.command("ps -aux  | wc") in
+   report s;;
+*)
 
 let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_head.txt"));;
 
@@ -1235,6 +1253,7 @@ let is_branch (idq,_) = mem Tprep idq.tags;;
 
 let process_and_exec ex s case = 
   let _ = report ("process and exec: "^s) in
+  let _ = Sys.command ("ps -aux | wc") in
   let _ = g (mk_imp (`NONLIN`,snd case)) in
   let _ = e(PRELIM_TAC) in 
   let _ = if (is_branch case) then e(BRANCH_TAC) else e(ALL_TAC) in
@@ -1246,7 +1265,8 @@ let process_and_exec ex s case =
   let sharp = if  mem Sharp (fst case).tags then 1 else 0 in
   let checkderiv = if  mem Onlycheckderiv1negative (fst case).tags then 1 else 0 in
   let testineq = snd(top_goal()) in
-    execute_interval ex (testineq,s,sharp,checkderiv);;
+  let u =     execute_interval ex (testineq,s,sharp,checkderiv) in
+    u;;
 
 let process_and_exec_by_id ex s = 
   let testid = s in

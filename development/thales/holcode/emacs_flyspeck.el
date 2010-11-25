@@ -13,7 +13,11 @@
 
 (hol-light-interactive-get-old-input)
 
-(* custom *)
+
+; process control 
+(signal-process 6592 9)
+
+; (* custom *)
 (hol-light-display-buffer-on-eval)
 
 (defun insert-date()

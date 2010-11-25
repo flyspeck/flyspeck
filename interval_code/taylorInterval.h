@@ -87,23 +87,6 @@ double upperBound() const;
 double lowerBound() const;
 
 	//////////
-	// A rigorous upper bound on the combined value of two simplices
-	// sharing edges 2,3,4.  In general this bound will be better
-	// than combining the bounds for the two separate simplices.
-	// 
-static double upperboundQ
-    (const taylorInterval& cA,const taylorInterval& cB);
-
-	//////////
-	// A rigorous lower bound on the combined value of two simplices
-	// sharing edges 2,3,4.  In general this bound will be better
-	// than combining the bounds for the two separate simplices.
-	// 
-static double lowerboundQ
-    (const taylorInterval& cA,const taylorInterval& cB);
-
-
-	//////////
 	// A rigorous upper bound on the ith partial derivative over the 
 	// entire cell.
 	//
@@ -130,6 +113,23 @@ taylorInterval(const lineInterval&, const domain&,
 taylorInterval(domain w0);
 
 taylorInterval() {}; // dangerous.  Gives uninitialized values.
+
+	//////////
+	// A rigorous upper bound on the combined value of two simplices
+	// sharing edges 2,3,4.  In general this bound will be better
+	// than combining the bounds for the two separate simplices.
+	// 
+static double upperboundQ
+    (const taylorInterval& cA,const taylorInterval& cB);
+
+	//////////
+	// A rigorous lower bound on the combined value of two simplices
+	// sharing edges 2,3,4.  In general this bound will be better
+	// than combining the bounds for the two separate simplices.
+	// 
+static double lowerboundQ
+    (const taylorInterval& cA,const taylorInterval& cB);
+
 
 };
 

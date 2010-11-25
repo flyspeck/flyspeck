@@ -26,7 +26,7 @@ extern "C"
 
 using namespace std;
 
-static const int MAXcount = 4; // MAX number of taylorFunctions in an array.
+static const int MAXcount = 5; // MAX number of taylorFunctions in an array.
 
 static const int DIM = 6; // number of variables in inequalities.  This is not resettable.
 /*

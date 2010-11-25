@@ -2801,7 +2801,105 @@ void taylorFunction::selfTest()
   }
 
 
+  /* test gamma3f_x_vLR_lfun */   {
+    /* fj[y1_, y2_, y3_, y4_, y5_, y6_] :=
+    (Dihedral[y1, y2, y3, y4, y5, y6] - 
+    Dihedral[y1, y2, sqrt2, sqrt2, sqrt2, y6] - Dihedral[y1, sqrt2, y3, sqrt2,
+           y5, sqrt2]) *(vol2r[y1, sqrt2] - ((2*mm1/Pi)* 2*Pi*(1 - y1/(
+            sqrt2*2)) - (8*mm2/Pi)*2*Pi*Lfun [y1/2]))/(2*Pi); */
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=-0.10478996414996176;
+    double mathValueD[6]={0.02370215728957028,0.012021942974373388,
+   0.01156437446193877,0.032219123924855125,0.015414868484842895,
+			  0.015015719816071069};
+    taylorInterval at = taylorSimplex::gamma3f_x_vLR_lfun.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_vLR_lfun  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_vLR_lfun D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
+  /* test gamma3f_x_vLR0 */   {
+    /* fj[y1_, y2_, y3_, y4_, y5_, y6_] :=
+    (Dihedral[y1, y2, y3, y4, y5, y6] - 
+    Dihedral[y1, y2, sqrt2, sqrt2, sqrt2, y6] - Dihedral[y1, sqrt2, y3, sqrt2,
+           y5, sqrt2]) *(vol2r[y1, sqrt2] - ((2*mm1/Pi)* 2*Pi*(1 - y1/(
+            sqrt2*2)) ))/(2*Pi); */
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=-0.07306777810008296;
+    double mathValueD[6]={0.009716449167778748,0.008382641111760384,
+   0.00806358847343414,0.022465699044914193,0.010748454768823143,
+   0.010470137025369903};
+    taylorInterval at = taylorSimplex::gamma3f_x_vLR0.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_vLR0  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_vLR0 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+ /* test gamma3f_x_vL_lfun */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.06537057859213256;
+    double mathValueD[6]={-0.016383158282497496,0.012021942974373388,
+   -0.011819309789103422,0.032219123924855125,-0.009221275207565662,
+   0.015015719816071069};
+    taylorInterval at = taylorSimplex::gamma3f_x_vL_lfun.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_vL_lfun  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_vL_lfun D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+/* test gamma3f_x_vL0 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.04558149217427438;
+    double mathValueD[6]={-0.007175030424085833,0.008382641111760384,
+   -0.008241349369396288,0.022465699044914193,-0.0064297959841076065,
+			  0.010470137025369903};
+    taylorInterval at = taylorSimplex::gamma3f_x_vL0.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_vL0  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_vL0 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+/* test gamma3f_x_v_lfun */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.2353428720907426;
+    double mathValueD[6]={-0.05636749908923225,-0.010747491782145005,
+   -0.011819309789103422,0.032219123924855125,-0.009221275207565662,
+			  -0.010268787639757223};
+    taylorInterval at = taylorSimplex::gamma3f_x_v_lfun.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_v_lfun  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_v_lfun D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+/* test gamma3f_x_v0 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=0.16409950031812143;
+    double mathValueD[6]={-0.024008337266888214,-0.0074939938288978115,
+   -0.008241349369396288,0.022465699044914193,-0.0064297959841076065,
+			  -0.007160203772423269};
+    taylorInterval at = taylorSimplex::gamma3f_x_v0.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "gamma3f_x_v0  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "gamma3f_x_v0 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
   /* test vol3_x_sqrt */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

@@ -427,6 +427,7 @@ class taylorSimplex
 	static const taylorFunction taum_x1_x2(const interval&);
 
 	static const taylorFunction arclength_x1(const interval&,const interval&);
+	static const taylorFunction arclength_x2(const interval&,const interval&);
 
 	static const taylorFunction surfR126d(const interval&);
 

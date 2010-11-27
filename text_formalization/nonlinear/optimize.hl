@@ -144,7 +144,7 @@ let idem_assoc = map (fun a -> (a,a)) [
   "vol3_x_sqrt";"vol3_x_135_s2";
   "sol_euler_x_div_sqrtdelta";"sol_euler345_x_div_sqrtdelta";
   "sol_euler156_x_div_sqrtdelta";"sol_euler246_x_div_sqrtdelta";
-  "taum_x1";"taum_x2";"taum_x1_x2";"arclength_x1";
+  "taum_x1";"taum_x2";"taum_x1_x2";"arclength_x1";"arclength_x2";
   "arclength_x_123";"acs_sqrt_x1_d4";"acs_sqrt_x2_d4";
   "gchi2_x";"gchi3_x";"gchi4_x";"gchi5_x";"gchi6_x";
   "ldih_x";"ldih2_x";"ldih3_x";"ldih6_x";
@@ -1056,7 +1056,7 @@ let X_OF_Y_DEF =  [REAL_ARITH `&2 = #2.0`;
  GSYM mardih4_x;GSYM mardih5_x;GSYM mardih6_x;beta_bump_force_x;
  GSYM Sphere.gchi1_x;GSYM Sphere.gchi2_x;GSYM Sphere.gchi3_x;GSYM Sphere.gchi4_x;GSYM Sphere.gchi5_x;GSYM Sphere.gchi6_x;
  GSYM Sphere.taum_x1_x2;GSYM Sphere.taum_x1;GSYM Sphere.taum_x2;
- GSYM Sphere.arclength_x1;GSYM Sphere.surf_x;
+ GSYM Sphere.arclength_x1;GSYM Sphere.arclength_x2;GSYM Sphere.surf_x;
  GSYM Sphere.ldih_x;GSYM Sphere.ldih2_x;GSYM Sphere.ldih3_x;GSYM Sphere.ldih6_x;
  GSYM Sphere.surfR126d;];;
 
@@ -1243,44 +1243,47 @@ let gamma4f_delta0 = prove_by_refinement(
 (*    VERIFYING INEQUALITIES                                                  *)
 (* ========================================================================== *)
 
-let get_firstexact s = 
-  let idq =  hd(Ineq.getexact s) in
-  (idq,strip_let_tm idq.ineq);;
+let strip_idq idq = (idq.id,idq.tags,strip_let_tm idq.ineq);;
 
-let is_xconvert (idq,_) = mem Xconvert idq.tags;;
+let is_xconvert tags = mem Xconvert tags;;
 
-let is_branch (idq,_) = mem Tprep idq.tags;;
+let is_branch tags = mem Tprep tags;;
 
-let process_and_exec ex s case = 
+let process_and_exec ex (s,tags,case) = 
   let _ = report ("process and exec: "^s) in
-  let _ = g (mk_imp (`NONLIN`,snd case)) in
+  let _ = g (mk_imp (`NONLIN`,case)) in
   let _ = e(PRELIM_TAC) in 
-  let _ = if (is_branch case) then e(BRANCH_TAC) else e(ALL_TAC) in
-  let _ = if (is_xconvert case) then e (X_OF_Y_TAC) else e(ALL_TAC) in
-  let _ =   if (is_branch case && not(is_xconvert case)) then
+  let _ = if (is_branch tags) then e(BRANCH_TAC) else e(ALL_TAC) in
+  let _ = if (is_xconvert tags) then e (X_OF_Y_TAC) else e(ALL_TAC) in
+  let _ =   if (is_branch tags && not(is_xconvert tags)) then
     e(SERIES3Q1H_5D_TAC) else e(ALL_TAC) in
   let _ = e (STYLIZE_TAC) in
   let _ = e (WRAPUP_TAC) in
-  let sharp = if  mem Sharp (fst case).tags then 1 else 0 in
-  let checkderiv = if  mem Onlycheckderiv1negative (fst case).tags then 1 else 0 in
+  let sharp = if  mem Sharp tags then 1 else 0 in
+  let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
   let testineq = snd(top_goal()) in
   let u =     execute_interval ex (testineq,s,sharp,checkderiv) in
     u;;
 
-let process_and_exec_by_id ex s = 
-  let testid = s in
-  let testcase = get_firstexact  testid in 
-    process_and_exec ex testid testcase;;
+(*
 
-let testsplit ex s = 
-  let testcase = get_firstexact s in
-  let ls = get_split (fst testcase) in
-    if (ls = []) then process_and_exec_by_id ex s else
-      let cases = split_all_h0  [(snd testcase, ls)] in
+let get_firstexact s = strip_idq (hd(Ineq.getexact s));;
+
+let process_and_exec_by_id ex s = 
+  let testcase = get_firstexact  s in 
+    process_and_exec ex s testcase;;
+*)
+
+let testsplit_idq ex idq = 
+  let (s,tags,ineq) = strip_idq idq in
+  let ls = get_split idq in
+    if (ls = []) then process_and_exec ex (s,tags,ineq) else
+      let cases = split_all_h0  [(ineq, ls)] in
       let name_suffix i = Printf.sprintf " split(%d/%d)" i (List.length cases) in
 	for i=0 to (List.length cases - 1) do 
-	  try (process_and_exec ex (s^name_suffix i) (fst testcase,(List.nth cases i)))
+	  try (process_and_exec ex ((s^name_suffix i),tags,(List.nth cases i)))
 	  with Failure s -> failwith (s ^ " case fail: " ^(string_of_int i))
 	done;;
 
+let testsplit ex s = testsplit_idq ex (hd (Ineq.getexact s));;
 

@@ -1297,6 +1297,15 @@ namespace local {
     return g;
   }
 
+  static const taylorFunction arclength_x2
+   (const interval& b,const interval& c) {
+    taylorFunction g = taylorFunction::compose
+    (taylorSimplex::arclength_x_123,
+     x2, unit * (b * b), unit * (c* c), unit,unit,unit);
+    return g;
+  }
+
+
   static const taylorFunction surfR126d
   (const interval& ic2) {
     taylorFunction c2 = unit * (ic2);
@@ -1341,6 +1350,11 @@ const taylorFunction
 const taylorFunction 
 taylorSimplex::arclength_x1(const interval& b,const interval& c) {
   return local::arclength_x1(b,c);
+}
+
+const taylorFunction 
+taylorSimplex::arclength_x2(const interval& b,const interval& c) {
+  return local::arclength_x2(b,c);
 }  
 
 namespace local {

@@ -754,7 +754,7 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 		tAn = IA[i]->tangentAt(yAn); tAu= IA[i]->tangentAt(yAu);
 		tBn = IB[i]->tangentAt(yBn); tBu= IB[i]->tangentAt(yBu);
 		double temp_margin = min(-tAn.hi()-tBn.hi(),-tAu.hi()-tBu.hi());
-		if (temp_margin > margin)
+		if ((temp_margin > margin)
 			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAn,tBn))
 			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAu,tBu)))
 			{

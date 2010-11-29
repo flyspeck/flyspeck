@@ -356,6 +356,7 @@ class taylorSimplex
 	  //	  marchalDih,marchalDih2,marchalDih3,
 	  //    marchalDih4,marchalDih5,marchalDih6,
 	  x1cube,x1square,
+	  num1,
 	  halfbump_x1, halfbump_x4;
 
 	//////////
@@ -421,6 +422,9 @@ class taylorSimplex
 	  gamma3f_x_vL_lfun,  gamma3f_x_vL0,
 	  gamma3f_x_v_lfun,  gamma3f_x_v0
 	  ;
+
+	// construct x1^n1 .. x6^n6;
+	static const taylorFunction monomial(int,int,int,int,int,int);
 
 	static const taylorFunction taum_x1(const interval&,const interval&);
 	static const taylorFunction taum_x2(const interval&,const interval&);

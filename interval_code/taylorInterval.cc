@@ -96,6 +96,135 @@ primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
 
 /* ========================================================================== */
 /*                                                                            */
+/*   primitive_monom                                                               */
+/*                                                                            */
+/* ========================================================================== */
+
+
+// procedures for monomial terms x1^n1 ... x6^n6 .
+
+interval mpow_i(const interval& x,int n) {
+  static const interval one("1");
+  static const interval zero("0");
+  switch (n) {
+  case 0 : return one;
+  case 1 : return x;
+  default : 
+    if (n <0) { error::fatal("negative exponent in mpow_i");  return zero; } else
+      {
+	int m = n / 2;
+	interval u = mpow_i(x,m);
+	interval u2 = u*u;
+	return ( n % 2 ? x * u2 : u2);
+      }
+  }
+}
+
+// compute x^n, n x^{n-1},
+
+void mpow_d(const interval& x, int n, interval x_d[2]) {
+  static const interval zero("0");
+  static const interval one("1");
+  switch (n) {
+  case 0: x_d[0] = one; x_d[1]=zero; return;
+  case 1: x_d[0] = x; x_d[1]=one; return;
+   default: 
+     if ((n < 0) || (n > 50)) { error::fatal(" exponent out of range in mpow_d"); return; } 
+     interval u = mpow_i(x,n-1);
+     interval ni(1.0* n,1.0* n); // N.B. for huge n, this can produce a rounding error.
+     x_d[0] = x * u; x_d[1] = ni * u;
+     return;
+  }
+}
+
+// compute x^n, n x^{n-1}, n (n-1) x^{n-2}:
+
+void mpow_d_dd(const interval& x, int n, interval x_d_dd[3]) {
+  static const interval zero("0");
+  static const interval one("1");
+  static const interval two("2");
+  for (int i =0;i<3;i++) { x_d_dd[i]=zero; }
+  switch (n) {
+  case 0: x_d_dd[0] = one; return;
+  case 1: x_d_dd[0] = x; x_d_dd[1]=one; return;
+  case 2: x_d_dd[0] = x*x; x_d_dd[1]=two * x; x_d_dd[2] = two; return;
+  default: 
+    if ((n < 0) || (n > 50)) { error::fatal("exponent range in mpow_d_dd"); return; } 
+    interval u = mpow_i(x,n-2);
+    interval ni(1.0* n,1.0* n); // N.B. for huge n, this can produce a rounding error.
+    interval mi(n-1.0,n-1.0);
+    interval xu = x * u;
+    x_d_dd[0] = x * xu;  x_d_dd[1] = ni * xu;  x_d_dd[2]= ni * mi * u;
+    return;
+  }
+}
+
+// 
+static const lineInterval tangent_of_monom(const domain& w,const int n[6]) {
+  static const interval one("1");
+  lineInterval t;
+  t.f = one;
+  for (int j=0;j<6;j++) { t.Df[j] = one; };
+  for (int i=0;i<6;i++) {
+    double w0 = w.getValue(i);
+    interval x(w0,w0);
+    interval y[2];
+    mpow_d(x,n[i],y);
+    t.f = t.f * y[0];
+    for (int j=0;j<6;j++)  { t.Df[j] = t.Df[j] * (i==j ? y[1] : y[0]);    }
+  }
+  return t;
+}
+
+static const taylorInterval taylor_of_monom(const domain& w,const domain& x,
+					    const domain& y,const domain& z,const int n[6]) {
+  static const interval one("1");
+  interval DDw[6][6];
+  // initialize
+  for (int j=0;j<6;j++) for (int k=0;k<6;k++) { DDw[j][k]=one; }
+  interval r[6][3];
+  for (int i=0;i<6;i++) { 
+    interval xz(x.getValue(i),z.getValue(i));
+    mpow_d_dd(xz,n[i],r[i]); 
+  }
+  // calculate second derivatives
+  for (int j=0;j<6;j++) for (int k=0;k<6;k++) for (int i=0;i<6;i++) {
+	if ((i!=j) && (i != k)) { DDw[j][k] = DDw[j][k] * r[i][0]; }
+      }
+  for (int i=0;i<6;i++) { DDw[i][i] = DDw[i][i] * r[i][2]; }
+  for (int j=0;j<6;j++) 
+    for (int k=0;k<6;k++) 
+      if (j!=k) {
+	DDw[j][k] = DDw[j][k] * (r[j][1] * r[k][1]);
+      }
+  double DD[6][6];
+  intervalToAbsDouble(DDw,DD);
+  lineInterval tangentVector = tangent_of_monom(y,n);
+  return taylorInterval(tangentVector,w,DD);
+}
+
+class primitive_monom : public primitive 
+{
+private:
+  int n[6];
+  
+public:
+  lineInterval tangentAt(const domain& x) const { return tangent_of_monom(x,n); }
+  taylorInterval evalf4(const domain& w,const domain& x,
+			const domain& y,const domain& z) const {
+    return taylor_of_monom(w,x,y,z,n);
+  }
+  primitive_monom(const int [6]);
+};
+
+primitive_monom::primitive_monom(const int m[6])
+{
+  for (int i=0;i<6;i++) { n[i] = m[i]; }
+}
+
+
+/* ========================================================================== */
+/*                                                                            */
 /*   primitive_univariate                                                     */
 /*                                                                            */
 /* ========================================================================== */
@@ -337,6 +466,13 @@ static primitiveA scalr(unit,setZero);
 
 const taylorFunction taylorSimplex::unit(&scalr);
 
+/* implement monomial */
+const taylorFunction taylorSimplex::monomial(int i1,int i2,int i3,int i4,int i5,int i6) {
+  int n[6]={i1,i2,i3,i4,i5,i6};
+  primitive* pp = new primitive_monom(n); // minor memory leak
+  taylorFunction g(pp);
+  return g;
+}
 
 /*implement x1 */
 static lineInterval lineX1(const domain& x)
@@ -1491,6 +1627,17 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     (dih +   unit * two * m03) * 
        (vol2r + vv_term_m1 * mone  ) *     (one / (two * pi));
 
+  // num1
+  /* thm =  |- !x1 x2 x3 x4 x5 x6.         num1 x1 x2 x3 x4 x5 x6 =
+         &64 * x1 * x4 -          &32 * x2 * x4 -         &32 * x3 * x4 -
+         &4 * x1 * x4 pow 2 -          &32 * x2 * x5 +         &32 * x3 * x5 +
+         &4 * x2 * x4 * x5 +         &32 * x2 * x6 - &32 * x3 * x6 +         &4 * x3 * x4 * x6 */
+  static const interval t64("64");
+  static const interval t32("32");
+  static const taylorFunction num1 = 
+     x1 * x4 * t64 +  x2 * x4 *mone * t32 +  x3 * x4 *mone * t32 
+    + x1 * x4 * x4 * mone * four  +  x2 * x5 * mone * t32 + x3 * x5 * t32
+    + x2 * x4 * x5  * four +  x2 * x6 * t32 + x3 * x6 * mone * t32 +  x3 * x4 * x6 * four;
 
 };
 
@@ -1532,6 +1679,7 @@ const taylorFunction taylorSimplex::gamma3f_x_vL_lfun = local::gamma3f_x_vL_lfun
 const taylorFunction taylorSimplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
 const taylorFunction taylorSimplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
 const taylorFunction taylorSimplex::gamma3f_x_v0 = local::gamma3f_x_v0;
+const taylorFunction taylorSimplex::num1 = local::num1;
 
 
 
@@ -2240,6 +2388,46 @@ void taylorFunction::selfTest()
     for (int i=0;i<6;i++) if ((t.upperPartial(i)!=0)||(t.lowerPartial(i)!=0))
 			    cout << "unitp fails = " << t.upperPartial(i)<<" " << t.lowerPartial(i)<<endl;
   }
+
+  /* test monomial */   { 
+    domain x(1.1,1.2,1.3,1.4,1.5,1.6);
+    taylorInterval at = taylorSimplex::monomial(7,12,1,0,2,3).evalf(x,x);
+    double mValue= 208.16588972375973;
+    double mathValueD[6]={1324.692025514837,2081.6588972376016,
+      160.1276074798155,0,277.5545196316802,390.3110432320503};
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "monomial  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "monomial D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+	/*test monomial DD */ {
+	// constants computed in Mathematica.
+	cout.precision(16);
+	domain x(1.1,1.2,1.3,1.4,1.5,1.6);
+	double DDmf[6][6] = {{
+	    7225.592866444565,13246.920255148372,1018.9938657806439,0,
+	    1766.2560340197826,2483.7975478403196},
+			     {13246.920255148372,19081.87322467802,1601.2760747981552,0,
+			      2775.545196316802,3903.1104323205036},
+			     {1018.9938657806439,1601.2760747981552,0,0,213.50347663975396,
+			      300.23926402465406},{0,0,0,0,0,0},
+			     {1766.2560340197826,2775.545196316802,213.50347663975396,0,
+			      185.0363464211201,520.4147243094003},
+			     {2483.7975478403196,3903.1104323205036,300.23926402465406,0,
+			      520.4147243094003,487.8888040400628}};
+        taylorInterval g = taylorSimplex::monomial(7,12,1,0,2,3).evalf(x,x);
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+	    if (!epsilonCloseDoubles(DDmf[i][j],g.DD[i][j],1.0e-8)) {
+		cout << "monomial DD " << i << " " << j << " " << g.DD[i][j];
+		cout << " eps: " << (DDmf[i][j] - g.DD[i][j]) << endl;
+		error::message("monomial failure");
+	      }
+	  }
+  }
+
 
   /* test volx */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

@@ -156,6 +156,8 @@ let idem_assoc = map (fun a -> (a,a)) [
   "gamma3f_x_vLR_lfun";  "gamma3f_x_vLR0";
   "gamma3f_x_vL_lfun";  "gamma3f_x_vL0";
   "gamma3f_x_v_lfun";  "gamma3f_x_v0";
+  "monomial";
+  "num1";
  ];;
 
 (* these names can change in cpp *)
@@ -194,8 +196,15 @@ let cpp0_assoc =
    ];;
 
 
+(* 
 let x6list =  
   [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
+*)
+
+let x9list =  
+  [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`;`x7:real`;`x8:real`;`x9:real`];;
+
+let x6list = fst(chop_list 6 x9list);;
 
 
 let cpp_of_constant s  = 
@@ -510,7 +519,6 @@ let vol3f_lmln = prove_by_refinement(
   (* }}} *)
 
 (* SOME DEFINITIONS *)
-
 
 
 let vol3f_sqrt2_lmplus = new_definition 
@@ -955,6 +963,30 @@ let vol3_x_135_s2 = new_definition
 `vol3_x_135_s2 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
  vol3r (sqrt x1) (sqrt x3) (sqrt x5) sqrt2`;;
 
+let monomial = new_definition `monomial n1 n2 n3 n4 n5 n6 y1 y2 y3 y4 y5 y6 = 
+   (y1 pow n1) * (y2 pow n2) * (y3 pow n3) * (y4 pow n4) * (y5 pow n5) * (y6 pow n6)`;;
+
+let num1_poly = prove_by_refinement(
+  `! x1 x2 x3 x4 x5 x6. num1 x1 x2 x3 x4 x5 x6 =
+     &64*x1*x4 - &32*x2*x4 - &32*x3*x4 - &4*x1*(x4 pow 2) - &32*x2*x5 + &32*x3*x5 + 
+   &4*x2*x4*x5 + &32*x2*x6 - &32*x3*x6 + &4*x3*x4*x6 `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.num1];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let num_combo1_num1  = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. num_combo1 x1 x2 x3 x4 x5 x6 = 
+      (num1 x1 x2 x3 x4 x5 x6) pow 2 - #0.01 * num2 x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.num1;Sphere.num2;num_combo1];
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
 
 
 
@@ -1146,6 +1178,21 @@ let REMOVE_dummy = SUBGOAL_THEN `!(f:bool). (!(dummy:real). ineq [&1,dummy,&1] f
 
 let EXPAND_1var = SUBGOAL_THEN `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))` (fun t-> REWRITE_TAC[t]) THENL [REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];ALL_TAC] ;;
 
+(* XX
+let RENAME_x1_x6 = prove_by_refinement(
+  `(!(z1:real) (z2:real) (z3:real) (z4:real) (z5:real) (z6:real). 
+    ineq[(a,z1,b);(&1,z2,&1);(&1,z3,&1);(&1,z4,&1);(&1,z5,&1);(&1,z6,&1)] (f z1 z2 z3 z4 z5 z6)) =
+    (!x1 x2 x3 x4 x5 x6.
+    ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1 x2 x3 x4 x5 x6))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[];
+  ]);;
+  (* }}} *)
+*)
+
+
+
 
 let REAL_SIMPLIFY_EXPRESSION =  let
   arith = REAL_ARITH `!x y z. (&8 = #8) /\ (x - y = x + (-- #1.0) * y) /\ 
@@ -1175,10 +1222,21 @@ let DEF_expand = [Sphere.a_spine5;Sphere.b_spine5;Sphere.mm1;
    Sphere.lfun; (* added Oct 17, 2010 *)
    ];;
 
+(* renames variables as x1,x2,x3,.... *)
+let (X_RENAME_TAC:tactic) = 
+   fun  (asl,w) ->
+     let (_,loc,_) = dest_ineq w in
+     let loc' = map (fun (_,b,_) -> b) loc in
+     let u = fst(chop_list (List.length loc') x9list) in
+       EVERY (map SPEC_TAC (zip loc' u)) (asl,w);;
+
 let STYLIZE_TAC = 
   REMOVE_dummy  THEN
   EXPAND_1var THEN
   DISCH_TAC THEN REPEAT GEN_TAC THEN
+  (* rename added Nov 27, 2010 *)
+  X_RENAME_TAC THEN 
+  REPEAT GEN_TAC THEN
   EXPAND_vol2 THEN
  (* prev line added Sep 8 , 2010 *)
   REWRITE_TAC  DEF_expand THEN
@@ -1196,7 +1254,7 @@ let STYLIZE_TAC =
   (REWRITE_TAC[REAL_ARITH `unit0 * (x + y ) = unit0 * x + unit0 * y /\ unit0 * --x = --(unit0 * x) /\ (unit0 * x  = x  * unit0) /\ (x * y) * z = x * y * z`]) THEN
   (REWRITE_TAC[REAL_ARITH `unit0 * x = x * unit0`]) THEN
   (REWRITE_TAC[unit0f]) THEN
-    (SUBGOAL_THEN `x2 * unit0 = proj_x2 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) /\ x1 * unit0 = proj_x1 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) ` (fun t-> REWRITE_TAC[t]) THENL[REWRITE_TAC[proj_x2;proj_x1;unit0;REAL_ARITH `x * &1 = x`];ALL_TAC]) THEN
+    (SUBGOAL_THEN `x2 * unit0 = proj_x2 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) /\ x1 * unit0 = proj_x1 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) /\ (x4 * unit0 = proj_x4 x1 x2 x3 x4 x5 x6) /\ (x6 * unit0 = proj_x6 x1 x2 x3 x4 x5 x6)` (fun t-> REWRITE_TAC[t]) THENL[REWRITE_TAC[proj_x4;proj_x6;proj_x2;proj_x1;unit0;REAL_ARITH `x * &1 = x`];ALL_TAC]) THEN
   (SUBGOAL_THEN `unit0 = unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real)` (fun t-> REWRITE_TAC[t]) THENL [REWRITE_TAC[unit0;unit6];ALL_TAC]) THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
   (REWRITE_TAC[GSYM ineq_expand6]) THEN DISCH_TAC;;

@@ -356,7 +356,7 @@ class taylorSimplex
 	  //	  marchalDih,marchalDih2,marchalDih3,
 	  //    marchalDih4,marchalDih5,marchalDih6,
 	  x1cube,x1square,
-	  num1,
+	  num1,num_combo1,
 	  halfbump_x1, halfbump_x4;
 
 	//////////

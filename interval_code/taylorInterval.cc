@@ -1639,6 +1639,44 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     + x1 * x4 * x4 * mone * four  +  x2 * x5 * mone * t32 + x3 * x5 * t32
     + x2 * x4 * x5  * four +  x2 * x6 * t32 + x3 * x6 * mone * t32 +  x3 * x4 * x6 * four;
 
+  static const taylorFunction operator*(const taylorFunction& t,int j) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const taylorFunction operator*(int j,const taylorFunction& t) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const taylorFunction operator-(const taylorFunction& u,const taylorFunction& t) {
+    return u + t * mone;
+  }
+
+  // num_combo1 = ((num1^2 - 1/100 num2 // Simplify) /. {e1 -> x1, e2 -> x2, 
+  //          e3 -> x3, a2 -> x4, b2 -> x5, c2 -> x6}) // CForm;
+  static const taylorFunction x4_pow2 = x4 * x4;
+  static const taylorFunction x5_pow2 = x5 * x5;
+  static const taylorFunction x6_pow2 = x6 * x6;
+  static const taylorFunction x4_pow3 = x4_pow2 * x4;
+  static const taylorFunction x4_pow4 = x4_pow2 * x4_pow2;
+  static const taylorFunction x4_pow5 = x4_pow3 * x4_pow2;
+  static const taylorFunction x5mx6 = (x5 + x6 * mone);
+  static const taylorFunction x5mx6_pow3 = x5mx6 * x5mx6 * x5mx6;
+  static const taylorFunction num_combo1_subexp =
+    x1* x4_pow2  + x4*(x1*16 + x2*(unit*-8 + x5) + 
+    x3*(unit*-8 + x6))*mone + (x2 + x3*mone)*(x5 + x6*mone)*8;
+  static const interval t25("25");
+
+  static const taylorFunction num_combo1 = 
+     (2*(-2*x1*x4_pow5 + 2* x4_pow4 *(32*x1 + 3*(x2*(unit*-8 + x5) + x3*(unit*-8 + x6))) + 
+       200*num_combo1_subexp * num_combo1_subexp  + 256*(x2 + x3*mone)* x5mx6_pow3  + 
+       2* x4_pow2 *(x5 - x6)*(384*(x2 + x3*mone) + x2* x5_pow2  + 
+          x5*(x1*-32 + x2*(unit*56  + 9*x6*mone) + 9*x3*(unit*-8 + x6)) + 8*(4*x1 + 9*x2 + x3*-7)*x6 
+     +           x3* x6_pow2*mone ) - 16*x4*(x5 - x6)*
+        ((x2 - 3*x3)* x5_pow2  + x6*(32*x1 + 3*x2*(unit*16 + x6) - x3*(unit*80 + x6)) - 
+          4*x5*(8*x1 - 3*x3*(unit*-4 + x6) + x2*(unit*-20 + 3*x6))) + 
+        x4_pow3 *(2*x1*(unit*-256 +  x5_pow2  - 2*x5*x6 +  x6_pow2 ) + 
+          x2*( x5_pow2 *(unit*-8 + x6) - 16*x5*(unit*3 + x6) + 16*(unit*16 + 9*x6)) + 
+		  x3*(x5*(unit*144 - 16*x6 +  x6_pow2 ) - 8*(unit*-32 + 6*x6 +  x6_pow2 ))))) * (one/t25);
 };
 
 const taylorFunction taylorSimplex::vol3_x_sqrt = local::vol3_x_sqrt;
@@ -1680,6 +1718,7 @@ const taylorFunction taylorSimplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
 const taylorFunction taylorSimplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
 const taylorFunction taylorSimplex::gamma3f_x_v0 = local::gamma3f_x_v0;
 const taylorFunction taylorSimplex::num1 = local::num1;
+const taylorFunction taylorSimplex::num_combo1 = local::num_combo1;
 
 
 
@@ -3102,6 +3141,21 @@ void taylorFunction::selfTest()
 	cout << "gamma3f_x_v0 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+/* test num_combo1 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=106856.19915775987;
+    double mathValueD[6]={129116.82713599993,-36041.29702399999,-39139.13697279997,
+			  3345.7972223999877,48540.89593855997,45449.9555584};
+    taylorInterval at = taylorSimplex::num_combo1.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "num_combo1  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "num_combo1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
 
   /* test vol3_x_sqrt */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

@@ -3,7 +3,7 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (hol-light-run-process-if-needed)
-(setq hol-light-interactive-buffer-name "*o15*")
+(setq hol-light-interactive-buffer-name "*n30*")
 (setq hol-light-interactive-buffer-name "*n25*")
 (setq hol-light-interactive-buffer-name "*n26*")
 

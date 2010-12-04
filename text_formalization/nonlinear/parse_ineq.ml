@@ -177,7 +177,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    sol_euler_x_div_sqrtdelta;
    dih_x_div_sqrtdelta_posbranch;
    surfR;surfRy;surfRdyc2;surfy;dih4_y;dih5_y;dih6_y;
-   num1;num2;
+   num1;num2;num_combo1;
    ];;
 
 (*

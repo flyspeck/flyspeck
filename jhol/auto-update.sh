@@ -1,8 +1,7 @@
 #!/bin/bash
-cd /home/joseph/Desktop
-date >> auto-update.log
-svn update flyspeck            
-T2=`svnversion flyspeck`
+JHOL_DIR=`dirname $BASH_SOURCE`
+svn update $JHOL_DIR/..
+T2=`svnversion $JHOL_DIR/..`
 
 
   if [ -a "$T2.cr" ]; then

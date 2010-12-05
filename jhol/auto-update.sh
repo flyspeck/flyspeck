@@ -1,7 +1,10 @@
 #!/bin/bash
-JHOL_DIR=`dirname $BASH_SOURCE`
-svn update $JHOL_DIR/..
-T2=`svnversion $JHOL_DIR/..`
+JHOL_SOURCE=`readlink --canonicalize --no-newline $BASH_SOURCE`
+JHOL_DIR=`dirname $JHOL_SOURCE`
+cd $JHOL_DIR
+
+svn update ../text_formalization
+T2=`svnversion ../text_formalization`
 
 
   if [ -a "$T2.cr" ]; then

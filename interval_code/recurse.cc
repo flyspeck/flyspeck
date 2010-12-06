@@ -16,6 +16,7 @@
 extern "C"
 {
 #include <math.h>
+#include <time.h>
 //#include <stdlib.h>
 }
 #include "error.h"
@@ -26,7 +27,7 @@ extern "C"
 
 using namespace std;
 
-static const int MAXcount = 5; // MAX number of taylorFunctions in an array.
+static const int MAXcount = 6; // MAX number of taylorFunctions in an array.
 
 static const int DIM = 6; // number of variables in inequalities.  This is not resettable.
 /*
@@ -422,21 +423,25 @@ static int count(int i,int j)
 	return (0 == (i % j));
 	}
 
-void stats(int force)
+void stats(int force) {
+  static const long starting_time = time(0); //  Time out after this many seconds.
+  static const long TIMEOUT = 4000; //  Time out after this many seconds.
+  static int statcounter=0;
+  static int linefeed=0;
+  if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
+  if (time(0) - starting_time > TIMEOUT) {
+    error::fatal("time allocation exceeded 4K secs. Bailing out.");
+  }
+  else if (count(statcounter++,10000)) 
+    {
+      cout << "[" << statcounter/10000 << "*10^4]" << flush;
+      if (count(linefeed++,10) )
 	{
-	static int statcounter=0;
-	static int linefeed=0;
-	if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
-	else if (count(statcounter++,10000)) 
-	  {
-	    cout << "[" << statcounter/10000 << "*10^4]" << flush;
-	    if (count(linefeed++,10) )
-	      {
-		cout << " " << flush; 
-		error::printTime();
-	      }
-	  }
+	  cout << " " << flush; 
+	  error::printTime();	  
 	}
+    }
+}
 
 int prove::recursiveVerifier(int depth,
 		const domain& xD,const domain& zD,     /// current cell

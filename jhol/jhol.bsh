@@ -44,6 +44,11 @@ String readLine(BufferedReader br){
 
 //end low level functions
 
+EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
+    "  .real {color:teal; background-color:white;         "+
+    "            font-weight:bold; text-align:center;}.num {color:fuchsia; background-color:white;            "+
+    "         font-weight:bold; text-align:center;}.int {color:olive; background-color:white;     "+
+    "                font-weight:bold; text-align:center;}</style></HEAD><BODY><PRE>";
 
 //Create frame
 JFrame frame = new JFrame("JHOL");
@@ -77,9 +82,19 @@ clearEvalStr(){
 }
 
 //Console for getting input from user
-//Supports name completion
 JConsole console = new JConsole();
 console.getViewport().getView().setContentType("text/html");
+console.getViewport().getView().setText(EDITOR_HTML_HEADER);
+
+//Method for printing to the console
+printHTML(String html){
+    consoleTextPane = console.getViewport().getView();
+    consoleDocument = consoleTextPane.getDocument();
+    consoleEditorKit = consoleTextPane.getEditorKit();
+    consoleEditorKit.insertHTML(consoleDocument, consoleDocument.getLength(), 
+EDITOR_HTML_HEADER + html, 0,0,null);
+    console.print("");
+}
 
 //Reader for the console
 BufferedReader bufInput = new BufferedReader(console.getIn());
@@ -98,10 +113,10 @@ JEditorPane createEditorPane() {
 }
 
 //Panes for displaying different output
-JEditorPane outputPane = createEditorPane();
-JScrollPane outputScrollPane = new JScrollPane(outputPane);
 JEditorPane editorPane = createEditorPane();
 JScrollPane editorScrollPane = new JScrollPane(editorPane);
+
+
 
 //Object for holding hol process
 HOLLightWrapper(JConsole console) {
@@ -152,7 +167,7 @@ HOLLightWrapper(JConsole console) {
 		      str.charAt(1) == ' ' &&
 		      !bout.ready()));
 	   
-		suppressedOutput.append(str.toString());
+	    //	suppressedOutput.append(str.toString());
 	    return suppressedOutput.toString();
         } catch (IOException ex) {
             Logger.getLogger(
@@ -164,7 +179,7 @@ HOLLightWrapper(JConsole console) {
     public String runCommand(String cmd) {
 	
 	if(cmd.length() == 0)
-	    return;
+	    return null;
 	flag = cmd.charAt(cmd.length() - 1) != '\n';
 	if(flag)
 	    {
@@ -180,11 +195,7 @@ HOLLightWrapper(JConsole console) {
 	    conjTac2.setEnabled(true);//Interrupt button	    
 	    String result = flushOutput();
 	    if (!flag){
-		consoleTextPane = console.getViewport().getView();
-		consoleDocument = consoleTextPane.getDocument();
-		consoleEditorKit = consoleTextPane.getEditorKit();
-		consoleEditorKit.insertHTML(consoleDocument, consoleDocument.getLength(), result, 0,0,null);//FIXME
-		console.print("");
+		printHTML(result);
 	    }
 	    conjTac2.setEnabled(false);
 
@@ -195,9 +206,9 @@ HOLLightWrapper(JConsole console) {
 	    return null;
 	}
     }
-		consoleTextPane = console.getViewport().getView();
-		consoleTextPane.setText(flushOutput() );
-		console.print("");
+    printHTML(flushOutput());
+
+
     return this;
 }
 
@@ -233,7 +244,7 @@ runHOLCommands(
 
 newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
 int c = newprinterMLStream.read();
-Stringbuilder newprinterMLString = new StringBuilder();
+StringBuilder newprinterMLString = new StringBuilder();
 while (c != -1){
     newprinterMLString.append((char)c);
     c = newprinterMLStream.read();
@@ -274,95 +285,6 @@ updateHolTheorems(){
 
 //update the theorem list
 updateHolTheorems();
-
-//used for auto completion of theorem names
-holTheoremCompletor = new NameCompletion(){
-	completeName(String part){
-	    updateHolTheorems();
-	    List preResult = new LinkedList ();
-	    for (String s : holTheorems){
-		if (s.startsWith(part)){
-		    preResult.add(s);
-		}
-	    }
-	    int numResult = preResult.size() > 11 ? 11 : preResult.size();
-	    String[] result = new String[numResult];	    
-	    int i = 0;
-	    for(String s : preResult){
-		result[i] = s;
-		i++;
-		if (i == numResult)
-		    break;
-	    }
-	    return result;
-	}
-    };
-
-//used for auto completion of hol commands
-NameCompletion nc = new NameCompletion(){
-	String[] completeName (String part){
-	    int matches = 0;
-	    int[] index = new int[11];
-	    int len = part.length();
-	    int current = 0;
-	    
-	    while (matches < 11 && current < NUM_HOL_COMMANDS){
-		if (part.regionMatches(false,0,HOL_COMMANDS[current],0,len)){
-		    index[matches] = current;
-		    matches++;}
-		current++;
-	    }
-	    String[] thms;
-	    int thmlen = 0;
-	    if (matches < 11)
-		{
-		    thms = holTheoremCompletor.completeName(part);
-		    if (thms != null)
-			thmlen = Array.getLength(thms);
-		}
-	    if (thmlen + matches > 11)
-		thmlen = 11 - matches;
-	    String[] result = new String[matches + thmlen];
-	    int i;
-	    for (i = 0; i < matches; i++){
-		result[i] = HOL_COMMANDS[index[i]];
-	    }
-	    for (int j = 0; i < matches + thmlen; i++){
-		result[i]  = thms[j];
-		j++;
-	    }
-
-	    //Return max common
-	    shortResultLength = 100;
-	    for (int i = 0; i < matches + thmlen; i++){
-		if (result[i].length() < shortResultLength)
-		    shortResultLength = result[i].length();}
-	    if (thmlen + matches < 11 && thmlen + matches > 1 && part.length() < shortResultLength){
-		int resultLength;
-		for (resultLength = part.length(); resultLength < shortResultLength; resultLength++){
-		    char testChar = result[0].charAt(resultLength);
-		    for (int i = 0; i < matches + thmlen; i ++){
-			if (testChar != result[i].charAt(resultLength) && resultLength == part.length()){
-			    return result;
-			}
-			if (testChar != result[i].charAt(resultLength)){
-			    tmpresult = new String[1];
-			    tmpresult[0] = result[0].substring(0,resultLength);
-			    return tmpresult;}
-
-		    }
-		}
-		tmpresult = new String[1];
-		tmpresult[0] = result[0];
-		return tmpresult;
-	    }
-	
-	    return result;
-	}
-    };
-
-//notify the console of the auto complete methods
-console.setNameCompletion(nc);
 
 test1(){
     //TEST1
@@ -473,30 +395,20 @@ al  = new ActionListener() {
 
 JPanel toolbar = new JPanel();
 
-console.setPreferredSize(new Dimension(600,200));
-
+console.setPreferredSize(new Dimension(700,400));
 
 //START EDITORPANE
 
-EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
-    "  .real {color:teal; background-color:white;         "+
-    "            font-weight:bold; text-align:center;}.num {color:fuchsia; background-color:white;            "+
-    "         font-weight:bold; text-align:center;}.int {color:olive; background-color:white;     "+
-    "                font-weight:bold; text-align:center;}</style></HEAD><BODY>";
-EDITOR_HTML_FOOTER = "</BODY></HTML>";
 
-outputScrollPane.setVerticalScrollBarPolicy(
-					    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-outputScrollPane.setPreferredSize(new Dimension(250, 145));
-outputScrollPane.setMinimumSize(new Dimension(10, 10));
 
 editorScrollPane.setVerticalScrollBarPolicy(
 					    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 editorScrollPane.setPreferredSize(new Dimension(250, 145));
 editorScrollPane.setMinimumSize(new Dimension(10, 10));
+
 //Put the editor pane and the text pane in a split pane.
 JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-				      outputScrollPane,
+				      editorScrollPane,
 				      console);
 splitPane.setOneTouchExpandable(true);
 splitPane.setResizeWeight(0.5);
@@ -527,7 +439,6 @@ myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
 frame.getContentPane().add(toolbar,BorderLayout.NORTH);
 frame.getContentPane().add(splitPane,BorderLayout.WEST);
 frame.getContentPane().add(myScroll,BorderLayout.CENTER);
-frame.getContentPane().add(editorScrollPane,BorderLayout.SOUTH);
 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 //Display the window.
@@ -546,18 +457,11 @@ updateTopGoal(){
     text.append("<b> Goal: </b> ");
     text.append((hol.runCommand("(snd o top_goal)();;")));
     text.append("<br><br><b>Assumption(s): </b><br>");
-    String termList = hol.runCommand("List.iter (fun x,y ->( ((fun ()->"
-				     +"(print_string \"\\n\")) o  (fun () ->"
-				     +" (((print_qterm o  concl) y)))) "
-				     +"o print_string) (x^\"\\n\"))((fst "
-				     +"o top_realgoal)());;");
+    String termList = hol.runCommand(
+    "List.iter (fun x,y ->( ((fun ()->(print_string \"\\n\")) o  (fun () -> (((print_qterm o  concl) y)))) o print_string) (\"\"))   ((fst o top_realgoal)());;");
     text.append(termList);
-    text.append(EDITOR_HTML_FOOTER);
     editorPane.setText(text.toString());
-    //print("DEBUG in updateTopGoal()\n" + hol.runCommand("p();;"));
 }
-
-//console.getViewport().getView().setText(" <b> Hi </b> There <br>");
 
 List cmdList = new LinkedList();
 try {

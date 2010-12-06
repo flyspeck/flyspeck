@@ -12,11 +12,17 @@ let pp_print_string fmt str =
     List.fold_right (uncurry(Str.global_replace)) [
       Str.regexp "<","&#60;";
       Str.regexp ">","&#62;";
+      Str.regexp "\\\\", "&lambda;";
       Str.regexp "/\\\\","&and;";
       Str.regexp "\\\\/","&or;";
-      Str.regexp "\\\\", "&lambda;";
+      Str.regexp "<=", "&le;";
+      Str.regexp ">=", "&ge;";
       Str.regexp "==>", "&rArr;";
+      Str.regexp "<=>", "&#8660;";
       Str.regexp "~", "&not;";
+      Str.regexp "|-", "&#8866;";
+      Str.regexp "--", "&minus;";
+      Str.regexp "?", "&exist;";
       Str.regexp "!","&forall;"
     ] str);;
 

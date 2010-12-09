@@ -7,7 +7,7 @@
 (setq hol-light-interactive-buffer-name "*n25*")
 (setq hol-light-interactive-buffer-name "*n26*")
 
-(setq hol-light-interactive-buffer-name "*o20*")
+(setq hol-light-interactive-buffer-name "*d7*")
 (setq hol-light-interactive-buffer-name "*s29-hol*")
 
 (print hol-light-interactive-buffer-name)

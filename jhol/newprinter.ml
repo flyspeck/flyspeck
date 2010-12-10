@@ -7,6 +7,7 @@ set_max_boxes 100;;
 (* Protection for HTML output                                                *)
 (* ------------------------------------------------------------------------- *)
 let pp_print_string' = pp_print_string;;
+let print_string' = print_string;;
 let pp_print_string fmt str = 
   pp_print_string' fmt (
     List.fold_right (uncurry(Str.global_replace)) [
@@ -25,7 +26,7 @@ let pp_print_string fmt str =
       Str.regexp "?", "&exist;";
       Str.regexp "!","&forall;"
     ] str);;
-
+let print_string = pp_print_string std_formatter;;
 
 (* ------------------------------------------------------------------------- *)
 (* Determine binary operators that print without surrounding spaces.         *)

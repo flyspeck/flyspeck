@@ -179,23 +179,29 @@ static const lineInterval tangent_of_monom(const domain& w,const int n[6]) {
 static const taylorInterval taylor_of_monom(const domain& w,const domain& x,
 					    const domain& y,const domain& z,const int n[6]) {
   static const interval one("1");
+  static const interval zero("0");
   interval DDw[6][6];
+  
   // initialize
-  for (int j=0;j<6;j++) for (int k=0;k<6;k++) { DDw[j][k]=one; }
+  int nz = 0;
+  int p[6];
+  for (int i=0;i<6;i++) if (n[i]>0) { p[nz] = i; nz ++; }
+  for (int j=0;j<6;j++) for (int k=0;k<6;k++) { DDw[j][k]=zero; }
+  for (int j=0;j<nz;j++) for (int k=0;k<nz;k++) { DDw[p[j]][p[k]]=one; }
   interval r[6][3];
   for (int i=0;i<6;i++) { 
     interval xz(x.getValue(i),z.getValue(i));
     mpow_d_dd(xz,n[i],r[i]); 
   }
   // calculate second derivatives
-  for (int j=0;j<6;j++) for (int k=0;k<6;k++) for (int i=0;i<6;i++) {
-	if ((i!=j) && (i != k)) { DDw[j][k] = DDw[j][k] * r[i][0]; }
+  for (int j=0;j<nz;j++) for (int k=0;k<nz;k++) for (int i=0;i<nz;i++) {
+	if ((i!=j) && (i != k)) { DDw[p[j]][p[k]] = DDw[p[j]][p[k]] * r[p[i]][0]; }
       }
-  for (int i=0;i<6;i++) { DDw[i][i] = DDw[i][i] * r[i][2]; }
-  for (int j=0;j<6;j++) 
-    for (int k=0;k<6;k++) 
+  for (int i=0;i<nz;i++) { DDw[p[i]][p[i]] = DDw[p[i]][p[i]] * r[p[i]][2]; }
+  for (int j=0;j<nz;j++) 
+    for (int k=0;k<nz;k++) 
       if (j!=k) {
-	DDw[j][k] = DDw[j][k] * (r[j][1] * r[k][1]);
+	DDw[p[j]][p[k]] = DDw[p[j]][p[k]] * (r[p[j]][1] * r[p[k]][1]);
       }
   double DD[6][6];
   intervalToAbsDouble(DDw,DD);
@@ -1647,9 +1653,14 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return t * interval(j * 1.0, j * 1.0);
   }
 
+
   static const taylorFunction operator-(const taylorFunction& u,const taylorFunction& t) {
     return u + t * mone;
   }
+
+const taylorFunction monomial(int i1,int i2,int i3,int i4,int i5,int i6) {
+  return taylorSimplex::monomial(i1, i2,i3,i4,i5,i6);
+}
 
   // num_combo1 = ((num1^2 - 1/100 num2 // Simplify) /. {e1 -> x1, e2 -> x2, 
   //          e3 -> x3, a2 -> x4, b2 -> x5, c2 -> x6}) // CForm;
@@ -1666,7 +1677,10 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     x3*(unit*-8 + x6))*mone + (x2 + x3*mone)*(x5 + x6*mone)*8;
   static const interval t25("25");
 
-  static const taylorFunction num_combo1 = 
+  // slow: 10^6 cases took 1292075074 -- 1292077520.
+  // This is about 11x slower than num_combo1_alt.
+  // deprecated.
+  static const taylorFunction num_combo1_deprecated = 
      (2*(-2*x1*x4_pow5 + 2* x4_pow4 *(32*x1 + 3*(x2*(unit*-8 + x5) + x3*(unit*-8 + x6))) + 
        200*num_combo1_subexp * num_combo1_subexp  + 256*(x2 + x3*mone)* x5mx6_pow3  + 
        2* x4_pow2 *(x5 - x6)*(384*(x2 + x3*mone) + x2* x5_pow2  + 
@@ -1677,7 +1691,48 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
         x4_pow3 *(2*x1*(unit*-256 +  x5_pow2  - 2*x5*x6 +  x6_pow2 ) + 
           x2*( x5_pow2 *(unit*-8 + x6) - 16*x5*(unit*3 + x6) + 16*(unit*16 + 9*x6)) + 
 		  x3*(x5*(unit*144 - 16*x6 +  x6_pow2 ) - 8*(unit*-32 + 6*x6 +  x6_pow2 ))))) * (one/t25);
+
+static const taylorFunction num_combo1_alt = 
+(512*monomial(0,0,1,0,0,3) - 1536*monomial(0,0,1,0,1,2) + 1536*monomial(0,0,1,0,2,1) - 
+   512*monomial(0,0,1,0,3,0) - 2560*monomial(0,0,1,1,0,2) - 32*monomial(0,0,1,1,0,3) + 
+   1024*monomial(0,0,1,1,1,1) + 416*monomial(0,0,1,1,1,2) + 1536*monomial(0,0,1,1,2,0) - 
+   480*monomial(0,0,1,1,2,1) + 96*monomial(0,0,1,1,3,0) + 1536*monomial(0,0,1,2,0,1) + 
+   224*monomial(0,0,1,2,0,2) + 4*monomial(0,0,1,2,0,3) - 1536*monomial(0,0,1,2,1,0) + 
+   64*monomial(0,0,1,2,1,1) - 40*monomial(0,0,1,2,1,2) - 288*monomial(0,0,1,2,2,0) + 
+   36*monomial(0,0,1,2,2,1) + 512*monomial(0,0,1,3,0,0) - 96*monomial(0,0,1,3,0,1) - 
+   16*monomial(0,0,1,3,0,2) + 288*monomial(0,0,1,3,1,0) - 32*monomial(0,0,1,3,1,1) + 
+   2*monomial(0,0,1,3,1,2) - 96*monomial(0,0,1,4,0,0) + 12*monomial(0,0,1,4,0,1) + 
+   25600*monomial(0,0,2,0,0,2) - 51200*monomial(0,0,2,0,1,1) + 25600*monomial(0,0,2,0,2,0) + 
+   51200*monomial(0,0,2,1,0,1) - 6400*monomial(0,0,2,1,0,2) - 51200*monomial(0,0,2,1,1,0) + 
+   6400*monomial(0,0,2,1,1,1) + 25600*monomial(0,0,2,2,0,0) - 6400*monomial(0,0,2,2,0,1) + 
+   400*monomial(0,0,2,2,0,2) - 512*monomial(0,1,0,0,0,3) + 1536*monomial(0,1,0,0,1,2) - 
+   1536*monomial(0,1,0,0,2,1) + 512*monomial(0,1,0,0,3,0) + 1536*monomial(0,1,0,1,0,2) + 
+   96*monomial(0,1,0,1,0,3) + 1024*monomial(0,1,0,1,1,1) - 480*monomial(0,1,0,1,1,2) - 
+   2560*monomial(0,1,0,1,2,0) + 416*monomial(0,1,0,1,2,1) - 32*monomial(0,1,0,1,3,0) - 
+   1536*monomial(0,1,0,2,0,1) - 288*monomial(0,1,0,2,0,2) + 1536*monomial(0,1,0,2,1,0) + 
+   64*monomial(0,1,0,2,1,1) + 36*monomial(0,1,0,2,1,2) + 224*monomial(0,1,0,2,2,0) - 
+   40*monomial(0,1,0,2,2,1) + 4*monomial(0,1,0,2,3,0) + 512*monomial(0,1,0,3,0,0) + 
+   288*monomial(0,1,0,3,0,1) - 96*monomial(0,1,0,3,1,0) - 32*monomial(0,1,0,3,1,1) - 
+   16*monomial(0,1,0,3,2,0) + 2*monomial(0,1,0,3,2,1) - 96*monomial(0,1,0,4,0,0) + 
+   12*monomial(0,1,0,4,1,0) - 51200*monomial(0,1,1,0,0,2) + 102400*monomial(0,1,1,0,1,1) - 
+   51200*monomial(0,1,1,0,2,0) + 6400*monomial(0,1,1,1,0,2) - 12800*monomial(0,1,1,1,1,1) + 
+   6400*monomial(0,1,1,1,2,0) + 51200*monomial(0,1,1,2,0,0) - 6400*monomial(0,1,1,2,0,1) - 
+   6400*monomial(0,1,1,2,1,0) + 800*monomial(0,1,1,2,1,1) + 25600*monomial(0,2,0,0,0,2) - 
+   51200*monomial(0,2,0,0,1,1) + 25600*monomial(0,2,0,0,2,0) - 51200*monomial(0,2,0,1,0,1) + 
+   51200*monomial(0,2,0,1,1,0) + 6400*monomial(0,2,0,1,1,1) - 6400*monomial(0,2,0,1,2,0) + 
+   25600*monomial(0,2,0,2,0,0) - 6400*monomial(0,2,0,2,1,0) + 400*monomial(0,2,0,2,2,0) + 
+   1024*monomial(1,0,0,1,0,2) - 2048*monomial(1,0,0,1,1,1) + 1024*monomial(1,0,0,1,2,0) - 
+   128*monomial(1,0,0,2,0,2) + 256*monomial(1,0,0,2,1,1) - 128*monomial(1,0,0,2,2,0) - 
+   1024*monomial(1,0,0,3,0,0) + 4*monomial(1,0,0,3,0,2) - 8*monomial(1,0,0,3,1,1) + 
+   4*monomial(1,0,0,3,2,0) + 128*monomial(1,0,0,4,0,0) - 4*monomial(1,0,0,5,0,0) - 
+   102400*monomial(1,0,1,1,0,1) + 102400*monomial(1,0,1,1,1,0) - 
+   102400*monomial(1,0,1,2,0,0) + 19200*monomial(1,0,1,2,0,1) - 6400*monomial(1,0,1,2,1,0) + 
+   6400*monomial(1,0,1,3,0,0) - 800*monomial(1,0,1,3,0,1) + 102400*monomial(1,1,0,1,0,1) - 
+   102400*monomial(1,1,0,1,1,0) - 102400*monomial(1,1,0,2,0,0) - 6400*monomial(1,1,0,2,0,1) + 
+   19200*monomial(1,1,0,2,1,0) + 6400*monomial(1,1,0,3,0,0) - 800*monomial(1,1,0,3,1,0) + 
+   102400*monomial(2,0,0,2,0,0) - 12800*monomial(2,0,0,3,0,0) + 400*monomial(2,0,0,4,0,0))*(one/t25);
 };
+
 
 const taylorFunction taylorSimplex::vol3_x_sqrt = local::vol3_x_sqrt;
 
@@ -1718,7 +1773,7 @@ const taylorFunction taylorSimplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
 const taylorFunction taylorSimplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
 const taylorFunction taylorSimplex::gamma3f_x_v0 = local::gamma3f_x_v0;
 const taylorFunction taylorSimplex::num1 = local::num1;
-const taylorFunction taylorSimplex::num_combo1 = local::num_combo1;
+const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
 
 
@@ -3148,7 +3203,7 @@ void taylorFunction::selfTest()
     double mathValueD[6]={129116.82713599993,-36041.29702399999,-39139.13697279997,
 			  3345.7972223999877,48540.89593855997,45449.9555584};
     taylorInterval at = taylorSimplex::num_combo1.evalf(x,x); 
-    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "num_combo1  fails " << endl;
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))

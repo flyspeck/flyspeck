@@ -425,7 +425,7 @@ static int count(int i,int j)
 
 void stats(int force) {
   static const long starting_time = time(0); //  Time out after this many seconds.
-  static const long TIMEOUT = 4000; //  Time out after this many seconds.
+  static const long TIMEOUT = 40000; //  Time out after this many seconds.
   static int statcounter=0;
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }

@@ -1143,6 +1143,13 @@ static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
 primitiveA eta2Primitive(linearization::eta2_126,setEta2_126);
 const taylorFunction taylorSimplex::eta2_126(&::eta2Primitive);
 
+/*implement ups_135*/
+static primitiveC ups_135_Primitive
+(&local::ups_126,
+ &taylorSimplex::x1,&taylorSimplex::x3,&taylorSimplex::unit,
+ &taylorSimplex::unit,&taylorSimplex::unit,&taylorSimplex::x5);
+const taylorFunction ups_135(&::ups_135_Primitive);
+
 /*implement eta2_135*/
 static primitiveC eta2_135_Primitive
 (&taylorSimplex::eta2_126,
@@ -1658,6 +1665,14 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return u + t * mone;
   }
 
+
+  // implement edge_flat2_x.
+  const taylorFunction bx_neg_quadratic = x1*(x2 + x3 + x5 + x6) -x1 * x1 - (x3 - x5)*(x2 - x6) ;
+  const taylorFunction disc_quadratic =  uni(i_sqrt, ups_126 * ups_135 );
+  const taylorFunction ax2_inv_quadratic = uni(i_inv,x1 * two) ;
+  const taylorFunction edge_flat2_x = (bx_neg_quadratic + disc_quadratic) * ax2_inv_quadratic;
+
+
 const taylorFunction monomial(int i1,int i2,int i3,int i4,int i5,int i6) {
   return taylorSimplex::monomial(i1, i2,i3,i4,i5,i6);
 }
@@ -1731,6 +1746,31 @@ static const taylorFunction num_combo1_alt =
    102400*monomial(1,1,0,1,1,0) - 102400*monomial(1,1,0,2,0,0) - 6400*monomial(1,1,0,2,0,1) + 
    19200*monomial(1,1,0,2,1,0) + 6400*monomial(1,1,0,3,0,0) - 800*monomial(1,1,0,3,1,0) + 
    102400*monomial(2,0,0,2,0,0) - 12800*monomial(2,0,0,3,0,0) + 400*monomial(2,0,0,4,0,0))*(one/t25);
+
+static const taylorFunction num2 = 
+  (-2048)*monomial(0,0,1,0,0,3) + 6144*monomial(0,0,1,0,1,2) - 6144*monomial(0,0,1,0,2,1) + 
+   2048*monomial(0,0,1,0,3,0) + 10240*monomial(0,0,1,1,0,2) + 128*monomial(0,0,1,1,0,3) - 
+   4096*monomial(0,0,1,1,1,1) - 1664*monomial(0,0,1,1,1,2) - 6144*monomial(0,0,1,1,2,0) + 
+   1920*monomial(0,0,1,1,2,1) - 384*monomial(0,0,1,1,3,0) - 6144*monomial(0,0,1,2,0,1) - 
+   896*monomial(0,0,1,2,0,2) - 16*monomial(0,0,1,2,0,3) + 6144*monomial(0,0,1,2,1,0) - 
+   256*monomial(0,0,1,2,1,1) + 160*monomial(0,0,1,2,1,2) + 1152*monomial(0,0,1,2,2,0) - 
+   144*monomial(0,0,1,2,2,1) - 2048*monomial(0,0,1,3,0,0) + 384*monomial(0,0,1,3,0,1) + 
+   64*monomial(0,0,1,3,0,2) - 1152*monomial(0,0,1,3,1,0) + 128*monomial(0,0,1,3,1,1) - 
+   8*monomial(0,0,1,3,1,2) + 384*monomial(0,0,1,4,0,0) - 48*monomial(0,0,1,4,0,1) + 
+   2048*monomial(0,1,0,0,0,3) - 6144*monomial(0,1,0,0,1,2) + 6144*monomial(0,1,0,0,2,1) - 
+   2048*monomial(0,1,0,0,3,0) - 6144*monomial(0,1,0,1,0,2) - 384*monomial(0,1,0,1,0,3) - 
+   4096*monomial(0,1,0,1,1,1) + 1920*monomial(0,1,0,1,1,2) + 10240*monomial(0,1,0,1,2,0) - 
+   1664*monomial(0,1,0,1,2,1) + 128*monomial(0,1,0,1,3,0) + 6144*monomial(0,1,0,2,0,1) + 
+   1152*monomial(0,1,0,2,0,2) - 6144*monomial(0,1,0,2,1,0) - 256*monomial(0,1,0,2,1,1) - 
+   144*monomial(0,1,0,2,1,2) - 896*monomial(0,1,0,2,2,0) + 160*monomial(0,1,0,2,2,1) - 
+   16*monomial(0,1,0,2,3,0) - 2048*monomial(0,1,0,3,0,0) - 1152*monomial(0,1,0,3,0,1) + 
+   384*monomial(0,1,0,3,1,0) + 128*monomial(0,1,0,3,1,1) + 64*monomial(0,1,0,3,2,0) - 
+   8*monomial(0,1,0,3,2,1) + 384*monomial(0,1,0,4,0,0) - 48*monomial(0,1,0,4,1,0) - 
+   4096*monomial(1,0,0,1,0,2) + 8192*monomial(1,0,0,1,1,1) - 4096*monomial(1,0,0,1,2,0) + 
+   512*monomial(1,0,0,2,0,2) - 1024*monomial(1,0,0,2,1,1) + 512*monomial(1,0,0,2,2,0) + 
+   4096*monomial(1,0,0,3,0,0) - 16*monomial(1,0,0,3,0,2) + 32*monomial(1,0,0,3,1,1) - 
+16*monomial(1,0,0,3,2,0) - 512*monomial(1,0,0,4,0,0) + 16*monomial(1,0,0,5,0,0);
+
 };
 
 
@@ -1773,7 +1813,10 @@ const taylorFunction taylorSimplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
 const taylorFunction taylorSimplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
 const taylorFunction taylorSimplex::gamma3f_x_v0 = local::gamma3f_x_v0;
 const taylorFunction taylorSimplex::num1 = local::num1;
+const taylorFunction taylorSimplex::num2 = local::num2;
+const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;
 const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
+
 
 
 
@@ -3210,6 +3253,36 @@ void taylorFunction::selfTest()
 	cout << "num_combo1 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+/* test num2 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= -400514.3541760006;
+    double mathValueD[6]={183303.01440000001,-141693.01760000008,-129522.33472000009,
+   -283267.08224000037,92448.90214400007,103929.62816000001};
+    taylorInterval at = taylorSimplex::num2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "num2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "num2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+/* test edge_flat2_x */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 13.47804480741523;
+    double mathValueD[6]={-0.9946443990172562,
+   1.0737670163683373,1.0726015670201678,0,
+			  0.9263130491578268,0.927319546791744};
+    taylorInterval at = taylorSimplex::edge_flat2_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "edge_flat2_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "edge_flat2_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
 
 
   /* test vol3_x_sqrt */   {

@@ -142,6 +142,48 @@ let rad2_y_e = prove(`!y1 y2 y3 y4 y5 y6. rad2_y y1 y2 y3 y4 y5 y6 =
     y_of_x rad2_x y1 y2 y3 y4 y5 y6`,
     REWRITE_TAC[rad2_y]);;
 
+let taum_template_B_x_alt = prove_by_refinement(
+  `!x1  x12  x15  x2  x3  x34  x4  x45  x5  x6.
+    taum_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
+    taum_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+      (edge_flat2_x x2 x1 x3 (&0) x12 x12) +
+      flat_term_x x2 +
+      flat_term_x x5 `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.taum_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let dih_template_B_x_alt = prove_by_refinement(
+  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
+    dih_template_B_x  x15 x45 x34 x12 x25 x1 x2 x3 x4 x5 x6 = 
+   dih_x x1 x2 x5 x25 x15 x12 -
+     dih_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let dih_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. dih_x x1 x2 x3 x4 x5 x6 = pi / &2 +
+     atn2
+     (sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6),
+      --delta_x4 x1 x2 x3 x4 x5 x6) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_x];
+  REPEAT LET_TAC;
+  REWRITE_TAC[];
+  ]);;
+  (* }}} *)
+
 
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
@@ -157,7 +199,7 @@ let native_c = [
   "ineq";  "pi"; "adodec"; "bdodec";"real_add"; "real_div";"real_pow";"cos";
   "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "machine_eps";
   (* -- *)
-  "sol_y";"dih_y";
+  "delta_x";"sol_y";"dih_y";"rhazim";
   "lmfun";"lnazim";"hminus";
   "wtcount3_y";"wtcount6_y";"beta_bump_y";"matan";
   ];;
@@ -169,7 +211,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    rad2_x;ups_x;eta_x;eta_y;volR; (* solRy;dihRy; *)
    norm2hh;arclength;regular_spherical_polygon_area;
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
-   tame_table_d;delta_x4;quad_root_plus_curry;
+   tame_table_d;delta_x4;dih_x_alt;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
    taum_y1;taum_y2;taum_y1_y2;arclength_y1;arc_hhn;asn797k;asnFnhk;
    lfun_y1;arclength_x_123;acs_sqrt_x1_d4;acs_sqrt_x2_d4;
@@ -178,11 +220,17 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    dih_x_div_sqrtdelta_posbranch;
    surfR;surfRy;surfRdyc2;surfy;dih4_y;dih5_y;dih6_y;
    num1;num2;num_combo1;
+   flat_term_x;
    ];;
+
+
 
 (*
 let macro_expand = ref [];; 
 *)
+
+
+
 
 let get_macro_expand() = (
    [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;
@@ -190,7 +238,8 @@ let get_macro_expand() = (
    gamma23f_red_03;gamma23f_126_03;
    GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
-   rhazim2;rhazim3;rotate2;rotate3;rotate4;rotate5;rotate6;
+   rhazim2;rhazim3;rhazim_x;rhazim2_x;rhazim3_x;
+   rotate2;rotate3;rotate4;rotate5;rotate6;
 		       sol_euler345_x_div_sqrtdelta;
 		       sol_euler156_x_div_sqrtdelta;
 		       sol_euler246_x_div_sqrtdelta;
@@ -203,6 +252,10 @@ let get_macro_expand() = (
 		      lmdih_x_div_sqrtdelta_posbranch;
 		      lmdih3_x_div_sqrtdelta_posbranch;
 		      lmdih5_x_div_sqrtdelta_posbranch;
+		      taum_x;
+		      edge_flat2_x;
+		      taum_template_B_x_alt;
+		      dih_template_B_x_alt;
    ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;

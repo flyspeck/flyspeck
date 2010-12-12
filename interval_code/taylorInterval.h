@@ -358,6 +358,8 @@ class taylorSimplex
 	  x1cube,x1square,
 	  num1,num2,num_combo1,
 	  edge_flat2_x,
+	  flat_term_x,
+	  taum_x,
 	  halfbump_x1, halfbump_x4;
 
 	//////////
@@ -436,7 +438,15 @@ class taylorSimplex
 
 	static const taylorFunction surfR126d(const interval&);
 
+	static const taylorFunction dih_template_B_x(const interval& x15,const interval& x45,
+					const interval& x34,const interval& x12, 
+					     const interval& x25);
+
+	static const taylorFunction taylorSimplex::taum_template_B_x(const interval& x15,
+								     const interval& x45,const interval& x34,const interval& x12   );
 };
+
+
 
 
 #endif

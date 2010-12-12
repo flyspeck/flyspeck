@@ -168,7 +168,8 @@ set dartY := apex_sup_flat union apex4 union
 
 # darts with opposite at least 3, others in [2,2.52].
 set dart4_diag3 := {(i,j) in dart: j in std4_diag3};
-set dart4_diag3_a := dart4_diag3;
+set dart4_diag3_b := dart4_diag3;
+# renamed Dec 12, 2010 from dart4_diag3_a.
 
 set dart_std3_200_218 := setof{(i1,i2,i3,j) in e_dart : 
    i1 in node_200_218 and

@@ -432,12 +432,12 @@ ineq241 'ID[5735387903]'
 
 
 ineq242 'ID[9563139965]' 
-  { (i,j) in dart4_diag3_a } : 
+  { (i,j) in dart4_diag3_b } : 
   ((tau[j]) - 0.496) >= 0.0;
 
 
 ineq243 'ID[7676202716]' 
-  { (i,j) in dart4_diag3_a } : 
+  { (i,j) in dart4_diag3_b } : 
   ((((tau[j]) - 0.46) - ((y5[i,j] + (y6[i,j] + (y8[i,j] + (y9[i,j] - 8.472)))) * 0.45)) - 0.) >= 0.0;
 
 

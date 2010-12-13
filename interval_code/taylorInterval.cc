@@ -1711,6 +1711,34 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return d;
   };
 
+  // implement test_function
+  const taylorFunction test_function(const interval& x15,const interval& x45,
+					const interval& x34,const interval& x12, 
+					const interval& x25)
+  {
+    static const interval zero ("0");
+    taylorFunction uz = unit * zero;
+    taylorFunction ef_514 = taylorFunction::compose(
+						    edge_flat2_x,x5,x1,x4,uz,unit * x45, unit * x15);
+    taylorFunction ef_213 = taylorFunction::compose(
+						    edge_flat2_x,x2,x1,x3,uz, unit * x12, unit * x12);
+    taylorFunction d_125 = taylorFunction::compose(dih,
+						    x1,x2,x5,unit * x25, unit * x15, unit * x12);
+    taylorFunction d_134 = taylorFunction::compose(dih,
+						   x1,x3,x4,unit * x34,ef_514,ef_213);
+    // ef_213 is ok.
+    // ef_514 is ok. 
+    // d_125 is ok.
+    // d_134 is bad.
+    // taylorFunction d =  (bx_neg_quadratic + disc_quadratic) * ax2_inv_quadratic;
+    taylorFunction d =  unit * x34 ; 
+    return d * mone;
+    // ef_514 = 10.598318505191786087;
+    // ef_213 = 15.319704987801792129;
+  };
+
+
+
   // implement taum_template_B_x.
   /*
      taum_template_B_x x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 =
@@ -1889,6 +1917,13 @@ const taylorFunction taylorSimplex::dih_template_B_x(const interval& x15,const i
 						     const interval& x25) {
   return local::dih_template_B_x( x15, x45,x34,x12,    x25);
 };
+
+const taylorFunction taylorSimplex::test_function(const interval& x15,const interval& x45,
+					const interval& x34,const interval& x12, 
+						     const interval& x25) {
+  return local::test_function( x15, x45,x34,x12,    x25);
+};
+
 
 const taylorFunction taylorSimplex::taum_template_B_x(const interval& x15,const interval& x45,
 					const interval& x34,const interval& x12   ) {
@@ -3391,6 +3426,21 @@ testDataY[DihTemplateBY, xD]
 	cout << "dih_template_B_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+
+/* test test_function */  /*{
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= -1.0;
+    double mathValueD[6]={0,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::test_function("4.05","4.06","4.07","4.08","4.09").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "test_function  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "test_function D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+    }*/
+
 
 /* test taum_template_B_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

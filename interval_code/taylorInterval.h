@@ -442,6 +442,11 @@ class taylorSimplex
 					const interval& x34,const interval& x12, 
 					     const interval& x25);
 
+	// for debugging on Dec 13, 2010.
+	static const taylorFunction test_function(const interval& x15,const interval& x45,
+					const interval& x34,const interval& x12, 
+					     const interval& x25);
+
 	static const taylorFunction taylorSimplex::taum_template_B_x(const interval& x15,
 								     const interval& x45,const interval& x34,const interval& x12   );
 };

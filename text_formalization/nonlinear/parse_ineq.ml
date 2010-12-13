@@ -150,11 +150,13 @@ let taum_template_B_x_alt = prove_by_refinement(
       flat_term_x x2 +
       flat_term_x x5 `,
   (* {{{ proof *)
+
   [
   REWRITE_TAC[Sphere.taum_template_B_x];
   REPEAT  LET_TAC;
   ASM_MESON_TAC[];
   ]);;
+
   (* }}} *)
 
 let dih_template_B_x_alt = prove_by_refinement(
@@ -166,6 +168,19 @@ let dih_template_B_x_alt = prove_by_refinement(
   (* {{{ proof *)
   [
   REWRITE_TAC[Sphere.dih_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let delta_template_B_x_alt = prove_by_refinement(
+  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
+    delta_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
+     delta_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_template_B_x];
   REPEAT  LET_TAC;
   ASM_MESON_TAC[];
   ]);;
@@ -254,6 +269,7 @@ let get_macro_expand() = (
 		      lmdih5_x_div_sqrtdelta_posbranch;
 		      taum_x;
 		      edge_flat2_x;
+		      delta_template_B_x_alt;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
    ] @ (!Ineq.dart_classes));;

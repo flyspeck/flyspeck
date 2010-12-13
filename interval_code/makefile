@@ -48,9 +48,3 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	secondDerive.o univariate.o taylorInterval.o recurse.o  -o test_auto -lm $(L)
 
 
-dec13_2010_test: dec13_2010_test.cc error.h error.o interval.h interval.o lineInterval.h \
-	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
-	recurse.h recurse.o univariate.h univariate.o
-	$(CC) $(CCOPTS1) dec13_2010_test.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o taylorInterval.o recurse.o  -o dec13_2010_test -lm $(L)
-

@@ -11,9 +11,7 @@ let print_string' = print_string;;
 let pp_print_string fmt str = 
   pp_print_string' fmt (
     List.fold_right (uncurry(Str.global_replace)) [
-      Str.regexp "[", "&#91;";
-      Str.regexp "]", "&#93;";
-      Str.regexp "<","&#60;";
+       Str.regexp "<","&#60;";
       Str.regexp ">","&#62;";
       Str.regexp "\\\\", "&lambda;";
       Str.regexp "/\\\\","&and;";
@@ -202,8 +200,9 @@ let code_of_term t =
     if is_numeral tm then Numeral
     else if is_list tm then
       begin
-	if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" then List
-	else Char_list
+	try if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" 
+then fail()
+else Char_list with Failure _ -> List
       end
     else if is_gabs tm then Generalized_abstraction
     else 

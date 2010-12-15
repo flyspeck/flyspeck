@@ -68,6 +68,17 @@ private:
 
 public:
 
+    //////////
+    // A lower bound (for quads) on the cross diagonal (default is 0).
+    //
+    double crossDiagMin;
+
+    //////////
+    // Option (for quads) to use Enclosed cross diag to give upper bound on common diagonal.
+    //
+    int useEnclosed;
+
+
 	//////////
 	// Allows a sharp inequality at some point without failing. 
 	//
@@ -206,6 +217,8 @@ public:
 				usingBigFace126=0;
 				printingMode=verbose; usingWidthCutoff=0; 
 				recursionDepth=0;
+				crossDiagMin = 0.0;
+				useEnclosed=0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;
 				iterationCount=0;
 				iterationLimit=0;
@@ -271,7 +284,7 @@ static int recursiveVerifier(int depth,
 	//
 	// The depth starts out at 0.
 	//
-static void recursiveVerifierQ(int depth, 
+static int recursiveVerifierQ(int depth, 
 	const domain& xA,const domain& xB,
 	const domain& zA,const domain& zB,
 	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,

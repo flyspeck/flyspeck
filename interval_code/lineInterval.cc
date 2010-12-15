@@ -875,10 +875,86 @@ static double dihedralinf
 	return interMath::inf(pi2+interMath::atan(num/den));
 	}
 
+// double version returns pi if there is trouble
+static double dihedralmax
+	(double x1,double x2,double x3,double x4,double x5,
+	double x6)
+	{
+	static const interval two("2");
+	static const interval pi2("1.57079632679489661923132169164");
+	static const double pi_ub = 3.14159265359; // This is always an upper bound on dihedral.
+	lineInterval u = linearization::delta(domain(x1,x2,x3,x4,x5,x6));
+	interval den = interMath::sqrt(u.f*interval(x1,x1))*two;
+	interval num = -u.Df[3];
+	if ((interMath::sup(den)<1.0e-2)&&(interMath::abs(num)<1.0e-2))
+	  return pi_ub;
+	if (interMath::sup(den)<1.0e-2)
+		{
+		if (interMath::inf(den) < 0)
+			{
+			error::message("negative square root???");
+			return pi_ub;
+			}
+		if (interMath::inf(num) > 0)
+			return interMath::sup(two*pi2 - interMath::atan(den/num));
+		if (interMath::sup(num) < 0)
+			return interMath::sup(-interMath::atan(den/num));
+		return pi_ub;
+		}
+	if (interMath::sup(den)<1.0e-8) return pi_ub;
+	return interMath::sup(pi2+interMath::atan(num/den));
+	}
+
+// uses monotonicity. return 1 if successful.
+// quad cluster labeling of variables.
+// input of x4 irrelevant, 
+static double x4_quad_max(double cd,
+			    double x1,double x2,double x3,double x5,double x6,double x7,
+			    double x8,double x9,int& ok) {
+  double th1 = dihedralmax(cd,x6,x1,x2,x7,x9);
+  double th2 = dihedralmax(cd,x5,x1,x3,x7,x8);
+  ok = 0;
+  interMath::up();
+  double theta = th1 + th2;
+  if (theta > 3.14159265358) {  return 0.0; }
+  interMath::down();
+  double ctheta = cos(theta);
+  if (ctheta > 0.0) {  return 0.0; }
+  interMath::up();
+  double mct = - ctheta;
+  // XX finish.   (b + mct * sqrt(u1 * u2)) / (2.0 * cd);
+}
+
+
+
+static double edge_flat2_x(double x1,double x2,double x3,double x5,double x6) {
+  // Solve[DeltaX[x1,x2,x3,x4,x5,x6]==0,x4].  gives an upper bound.
+  // same as `edge_flat2_x` in sphere.hl.
+  interMath::up();
+  return 
+    ((-x1)*x1 + x1*x2 + x1*x3 + (- x2)*x3 + x1*x5 + x2*x5 + x1*x6 + x3*x6 + (-    x5)*x6 
+     + sqrt((x1 * x1 + x3 * x3 + x5 * x5 + ((-2.0)*x3) *x5 + ((-2.0)*x1)*x3 + ((-2.0)*x1*x5)) *  
+	    (x1*x1 + x2*x2 + x6 * x6 +  ((-2.0)*x2) *x6 + ((-2.0)*x1)*x2 + ((-2.0)*x1*x6))))/(2.0*x1);
+}
+
+// 
+double edgeBound::x4_upper_from_top_delta(int cd_lb,
+						 const double zA[6],const double zB[6]) {
+  double x1=cd_lb;
+  double x2=zA[4];
+  double x3=zA[5];
+  double x5=zB[5];
+  double x6=zB[4];
+  // We should add some  preconditions make the implicit monotonicity lemmas easier to prove.
+  return edge_flat2_x(x1,x2,x3,x5,x6);
+}
+
+
+
 
 // Assuming opposite edges to x3 on 3 simplices have lengths at least
 // x0min,x3min,x0pmin, calculate the Excess angle over 2pi.
-// If one of the terms is "greater than pi" (geometrically speaking),
+// If one of the terms is "greater than pi" (as an azimuth angle),
 // then the geometric excess will be even greater than the return
 // value.
 static double ExcessAngle
@@ -1521,8 +1597,14 @@ void linearization::selfTest() {
 	double outvalue;
 	edgeBound::x4_upper_from_dih_upper(xx,xx,1.832330520094706,outvalue);
 	outvalue -= 0.0001; // remove the epsilon...
-	if (fabs(6.6-outvalue)>1.0e-10)
+	if (fabs(6.6 - outvalue)>1.0e-10)
 		cout << "x4_upper failed = " << outvalue << "\n";
+	}
+
+	/*test edge_flat2_x */ {
+	double outvalue =edge_flat2_x(4.1,4.2,4.3,4.5,4.6);
+	if (fabs(13.47804480741523-outvalue)>1.0e-10)
+		cout << "edge_flat2_x = " << outvalue << "\n";
 	}
 
 	/* test deltasup*/ {

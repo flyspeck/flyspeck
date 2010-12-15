@@ -35,11 +35,11 @@ recurse.o : recurse.h recurse.cc taylorInterval.h error.h \
 	interval.h interval_inline.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c recurse.cc 
 
-testit: test.cc error.h error.o interval.h interval.o lineInterval.h \
+test: test.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
-	recurse.h recurse.o
+	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) test.cc error.o interval.o lineInterval.o \
-	secondDerive.o taylorInterval.o recurse.o -o testit -lm $(L)
+	secondDerive.o univariate.o taylorInterval.o recurse.o -o test -lm $(L)
 
 test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \

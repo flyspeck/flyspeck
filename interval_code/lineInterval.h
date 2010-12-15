@@ -366,6 +366,26 @@ static int shortDiagMax
 	//
 static int crossDiagMax(const domain&,double y1prime,double& maxCD);
 
+
+	//////////
+	// given a pair of simplices, calculate upper bound on x4 (ie. zA[3]=zB[3]) from the condition
+        // Delta (top) = 0.
+        // Various monotonicity lemmas are implicitly invoked to justify that the max occurs at the upper
+        // (zA,zB) endpoints.
+	//
+static double edgeBound::x4_upper_from_top_delta(int cd_lb,
+						 const double zA[6],const double zB[6]) ;
+
+	//////////
+	// given a pair of simplices, calculate upper bound on x4 (ie. zA[3]=zB[3]) from the condition
+        // "enclosed"
+        // Various monotonicity lemmas are implicitly invoked to justify that the max occurs where it does.
+        // (The belt shrinks and the other edges stretch to make x4 as large as possible.)
+	//
+static double edgeBound::x4_upper_from_enclosed(int cd_lb,
+						const double xA[6],const double xB[6],
+						 const double zA[6],const double zB[6]) ;
+
 	//////////
 	// given upper bound theta on dih, find corresponding upper bd on x4.
 	//

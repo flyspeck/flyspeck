@@ -53,10 +53,10 @@ public:
 private:
     int iterationLimit;
     int iterationCount;
-    double dihmax;
-    int usingDihMax;
-    int usingBigFace126;
-    int chiShortCut;
+    //    double dihmax;
+    //    int usingDihMax;
+    // int usingBigFace126;
+    // int chiShortCut;
     int startingIndex;
     int recursionDepth;
     X printingMode;
@@ -71,12 +71,13 @@ public:
     //////////
     // A lower bound (for quads) on the cross diagonal (default is 0).
     //
-    double crossDiagMin;
+    double crossDiagMinEnclosed;
+    double crossDiagMinDelta;
 
     //////////
     // Option (for quads) to use Enclosed cross diag to give upper bound on common diagonal.
     //
-    int useEnclosed;
+    //int useEnclosed;
 
 
 	//////////
@@ -169,31 +170,31 @@ public:
 
 	//////////
 	//
-    void setChiShortCut(int i) { chiShortCut=i; }
+	//    void setChiShortCut(int i) { chiShortCut=i; }
 
 	//////////
 	//
-    int getChiShortCut() const { return chiShortCut; }
+	//  int getChiShortCut() const { return chiShortCut; }
 
 	//////////
 	//
-    void setDihMax(double theta) { dihmax=theta; usingDihMax=1;  }
+    //    void setDihMax(double theta) { dihmax=theta; usingDihMax=1;  }
 
 	//////////
 	//
-    double getDihMax() { return dihmax; }
+    //    double getDihMax() { return dihmax; }
 
 	//////////
 	//
-    int isUsingDihMax() { return usingDihMax; }
+    //    int isUsingDihMax() { return usingDihMax; }
 
 	//////////
 	//
-	void setBigFace126() { usingBigFace126=1; }
+	//	void setBigFace126() { usingBigFace126=1; }
 
 	//////////
 	//
-	int isUsingBigFace126() { return usingBigFace126; }
+	//	int isUsingBigFace126() { return usingBigFace126; }
 
 	//////////
 	//
@@ -213,12 +214,13 @@ public:
 
 	//////////
 	//
-	cellOption() { dihmax = 0.0; usingDihMax = 0; chiShortCut=0; allowSharp=0;
-				usingBigFace126=0;
+	cellOption() {  // chiShortCut=0;
+	  allowSharp=0;
+	  // usingBigFace126=0;
 				printingMode=verbose; usingWidthCutoff=0; 
 				recursionDepth=0;
-				crossDiagMin = 0.0;
-				useEnclosed=0;
+				crossDiagMinDelta = 0.0;
+				crossDiagMinEnclosed = 0.0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;
 				iterationCount=0;
 				iterationLimit=0;

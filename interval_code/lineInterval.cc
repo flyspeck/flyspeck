@@ -169,6 +169,10 @@ static void product2(const interval& u,const interval Du[2],
 	for (i=0;i<2;i++) Duv[i] = u*Dv[i] + v*Du[i];
 	}
 
+double ups_max(double x1,double x2,double x6) {
+  interMath::up();
+  return  (-x1)*x1+(-x2)*x2+(-x6)*x6+2.0*(x1*x2+x2*x6+x6*x1);
+}
 
 static lineInterval U126(double x1,double x2,double x6)
 	{
@@ -761,6 +765,7 @@ static double chimin(   double x1,double x2,double x3,
                +2.0*(((-x4)*x5)*x6);
         }
 
+/*
 double edgeBound::chi234min(const domain& x0,const domain& z0)
 	{
 	double x[6],z[6];
@@ -784,6 +789,7 @@ double edgeBound::chi234min(const domain& x0,const domain& z0)
 	for (i=1;i<8;i++) if (q[i]<temp) temp = q[i];
 	return temp;
 	}
+*/
 
 lineInterval linearization::rad2(const domain& x)
 	{
@@ -847,7 +853,7 @@ static double dihedral
 	}
 
 // double version returns zero if there is trouble
-static double dihedralinf
+static double dihedralmin
 	(double x1,double x2,double x3,double x4,double x5,
 	double x6)
 	{
@@ -882,7 +888,7 @@ static double dihedralmax
 	{
 	static const interval two("2");
 	static const interval pi2("1.57079632679489661923132169164");
-	static const double pi_ub = 3.14159265359; // This is always an upper bound on dihedral.
+	static const double pi_ub = 3.14159265359; // > pi. This is always an upper bound on dihedral.
 	lineInterval u = linearization::delta(domain(x1,x2,x3,x4,x5,x6));
 	interval den = interMath::sqrt(u.f*interval(x1,x1))*two;
 	interval num = -u.Df[3];
@@ -892,7 +898,7 @@ static double dihedralmax
 		{
 		if (interMath::inf(den) < 0)
 			{
-			error::message("negative square root???");
+			error::message("dihedralmax. negative square root???");
 			return pi_ub;
 			}
 		if (interMath::inf(num) > 0)
@@ -905,42 +911,90 @@ static double dihedralmax
 	return interMath::sup(pi2+interMath::atan(num/den));
 	}
 
-// uses monotonicity. return 1 if successful.
-// quad cluster labeling of variables.
-// input of x4 irrelevant, 
-static double x4_quad_max(double cd,
-			    double x1,double x2,double x3,double x5,double x6,double x7,
-			    double x8,double x9,int& ok) {
-  double th1 = dihedralmax(cd,x6,x1,x2,x7,x9);
-  double th2 = dihedralmax(cd,x5,x1,x3,x7,x8);
-  ok = 0;
-  interMath::up();
-  double theta = th1 + th2;
-  if (theta > 3.14159265358) {  return 0.0; }
-  interMath::down();
-  double ctheta = cos(theta);
-  if (ctheta > 0.0) {  return 0.0; }
-  interMath::up();
-  double mct = - ctheta;
-  // XX finish.   (b + mct * sqrt(u1 * u2)) / (2.0 * cd);
-}
-
-
 
 static double edge_flat2_x(double x1,double x2,double x3,double x5,double x6) {
   // Solve[DeltaX[x1,x2,x3,x4,x5,x6]==0,x4].  gives an upper bound.
   // same as `edge_flat2_x` in sphere.hl.
+  double ua = ups_max(x1,x3,x5);
+  double ub = ups_max(x1,x2,x6);
+  if (ua < 0.0 || ub < 0.0) { throw unstable::x; }
   interMath::up();
   return 
     ((-x1)*x1 + x1*x2 + x1*x3 + (- x2)*x3 + x1*x5 + x2*x5 + x1*x6 + x3*x6 + (-    x5)*x6 
-     + sqrt((x1 * x1 + x3 * x3 + x5 * x5 + ((-2.0)*x3) *x5 + ((-2.0)*x1)*x3 + ((-2.0)*x1*x5)) *  
-	    (x1*x1 + x2*x2 + x6 * x6 +  ((-2.0)*x2) *x6 + ((-2.0)*x1)*x2 + ((-2.0)*x1*x6))))/(2.0*x1);
+     + sqrt( ua * ub   ))/(2.0*x1);
+}
+
+/* uses monotonicity. 
+ throws unstable::x.
+ quad cluster labeling of variables.
+ The formula comes form solving 
+   theta == Dihedral[Sqrt[x1], Sqrt[x2], Sqrt[x3], Sqrt[x4], Sqrt[x5], Sqrt[x6]]
+   for x4.
+
+  This is a trigonometric calculation of the "Enclosed" function in mathematica.
+*/
+static double x4_diag_max_simple(double xcd,
+			    double x1,double x2,double x3,double x5,double x6,double x7,
+			  double x8min,double x8max,double x9min,double x9max) {
+  static interval pi("3.141592653589793238462");
+  static interval two("2.0");
+  double th1 = dihedralmax(x1,x2,x7,x9max,xcd,x6);
+  double th2 = dihedralmax(x1,x3,x7,x8max,xcd,x5);
+  int reflex = 0;
+  interMath::up();
+  double theta = th1 + th2;
+  if (theta > interMath::sup(pi)) { 
+    reflex = 1; 
+    th1 = dihedralmin(x1,x2,x7,x9min,xcd,x6);
+    th2 = dihedralmin(x1,x3,x7,x8min,xcd,x5);
+    interMath::up();
+    theta = 2.0* interMath::sup(pi) + (-1.0 * th1) + (-1.0 * th2);
+    if (theta > interMath::inf(pi)) { return edge_flat2_x(x1,x2,x3,     x5,x6);       };
+  }
+  interMath::down();
+  double ctheta = cos(theta);
+  interMath::up();
+  double mct = - ctheta;
+  if (mct < 0.0) { mct = 0.0; }  // mct <0 <=> theta < pi/2.  This effectively makes theta at least pi/2.
+  double u126 = ups_max(x1,x2,x6);
+  double u135 = ups_max(x1,x3,x5);
+  if (u126 < 0.0 || u135 < 0.0) { throw unstable::x; }
+  double f = mct * sqrt(u126 * u135);
+  double b = (- x1)*x1 + x1*x2 + x1*x3 + (- x2)*x3 + x1*x5 + 
+    x2*x5 + x1*x6 + x3*x6 + (- x5)*x6;
+    return (b + f) / (2.0 * x1);  
+    // - 2 x1 x4 + b = - f =  cos(theta) * sqrt(u126 * u135);
+    // theta = arccos( (- 2 x1 x4 + b) / sqrt (u126 * u135) );
+}
+
+/*
+  This is only to be applied to quad clusters.  There are implicit monotonicity results
+  that might not hold outside quad clusters.  x4_diag_max takes the angle along the edge x1.
+  Here we  take the angle along the cross-diag.  This calls for some unpleasant reindexing.
+ */
+double edgeBound::x4_diag_max(double xcd_lb,
+						const double xA[6],const double xB[6],
+						 const double zA[6],const double zB[6])  {
+  double x1 = xcd_lb;
+  double x2 =zA[5];
+  double x3 =zA[4];
+  double x5 =zB[4];
+  double x6= zB[5];
+  double x7 = xA[0];
+  double x8min=xA[2];
+  double x8max=zA[2];
+  double x9min=xA[1];
+  double x9max=zA[1];
+  double xcd=xB[0];
+  return x4_diag_max_simple(xcd,
+			    x1,x2,x3,x5,x6,x7,
+		     x8min,x8max,x9min,x9max);
 }
 
 // 
-double edgeBound::x4_upper_from_top_delta(int cd_lb,
+double edgeBound::x4_upper_from_top_delta(double xcd_lb,
 						 const double zA[6],const double zB[6]) {
-  double x1=cd_lb;
+  double x1=xcd_lb;
   double x2=zA[4];
   double x3=zA[5];
   double x5=zB[5];
@@ -957,6 +1011,7 @@ double edgeBound::x4_upper_from_top_delta(int cd_lb,
 // If one of the terms is "greater than pi" (as an azimuth angle),
 // then the geometric excess will be even greater than the return
 // value.
+/*
 static double ExcessAngle
 	(double x0min,double x0pmin,double x1,double x2,double x3min,
 	double x4,double x4p,double x5,double x5p)
@@ -966,21 +1021,23 @@ static double ExcessAngle
 	  dihedral(x3min,x4,x4p,x3min,x5p,x5)+
 	  dihedral(x3min,x4p,x2,x0pmin,x1,x5p)-pi2;
 	}
+*/
 
 // Same as ExcessAngle but use careful intervals rather than 
 // floating point.
+/*
 static double ExcessAngleInf
 	(double x0min,double x0pmin,double x1,double x2,double x3min,
 	double x4,double x4p,double x5,double x5p)
 	{
 	static const interval pi2("6.28318530717958647692528676656");
-	double d1=dihedralinf(x3min,x4,x2,x0min,x1,x5),
-	  d2= dihedralinf(x3min,x4,x4p,x3min,x5p,x5),
-	  d3 = dihedralinf(x3min,x4p,x2,x0pmin,x1,x5p);
+	double d1=dihedralmin(x3min,x4,x2,x0min,x1,x5),
+	  d2= dihedralmin(x3min,x4,x4p,x3min,x5p,x5),
+	  d3 = dihedralmin(x3min,x4p,x2,x0pmin,x1,x5p);
 	interMath::down();
 	return d1+d2+d3-interMath::sup(pi2);
 	}
-
+*/
 
 // f(x1):=a0 + a1 x1 + a2 x1^2 + a3 x1^3 = delta(x1,x2,x3,x1,x5,x6);
 // return value = 0 means effort failed and x1 return value is
@@ -1026,6 +1083,7 @@ static int x1supDELTA
 
 // return 1 if we successfully set x3max to an upper bound.
 // proofed on Oct 30, 97. I believe its accuracy. It uses monotonicity lemmas.
+/*
 int edgeBound::shortDiagMax
 	(double x0min,double x0pmin,double x1,double x2,double x3min,
 	double& x3max,double x4,double x4p,double x5,double x5p)
@@ -1090,6 +1148,7 @@ int edgeBound::shortDiagMax
 		x4p,x5,x5p)<0.0) return 0;
 	return 1;
 	}
+*/
 
 int PositiveDelta2(const double x[6],const double z[6])
 	// return 1 if Delta2>0, 0 otherwise.
@@ -1174,6 +1233,7 @@ int PositiveDelta6(const double x[6],const double z[6])
 	return PositiveDelta2(xx,zz);
 	}
 
+/*
 int edgeBound::x4_upper_from_dih_upper
 	(const double x[6],const double z[6],double theta,
 	double& new_x4_upper)
@@ -1224,6 +1284,7 @@ int edgeBound::x4_upper_from_dih_upper
 	if (interMath::inf(dihx.f) > theta) return 1;
 	return 0;
 	}
+*/
 
 domain domain::lowerD(const interval tx[6])
     {
@@ -1592,7 +1653,7 @@ void linearization::selfTest() {
 		}
 	}
 
-	/*test x4_upper_from_dih_upper*/ {
+	/*test x4_upper_from_dih_upper {
 	double xx[6]={7.1,4.2,4.3,6.4,4.5,4.6};
 	double outvalue;
 	edgeBound::x4_upper_from_dih_upper(xx,xx,1.832330520094706,outvalue);
@@ -1600,11 +1661,52 @@ void linearization::selfTest() {
 	if (fabs(6.6 - outvalue)>1.0e-10)
 		cout << "x4_upper failed = " << outvalue << "\n";
 	}
+	*/
 
 	/*test edge_flat2_x */ {
 	double outvalue =edge_flat2_x(4.1,4.2,4.3,4.5,4.6);
 	if (fabs(13.47804480741523-outvalue)>1.0e-10)
 		cout << "edge_flat2_x = " << outvalue << "\n";
+	}
+
+	/*test x4_upper_max*/
+	// (Enclosed  @@ (Sqrt[{4.03, 4.05, 4.055, 4.0, 7.015, 7.01, 4.02, 4.06, 4.065}]))^2 
+       {
+	  double x4;
+	  /* testA */ {
+	  double xcd_lb = 4.0;
+	  double xA[6]={4.0,4.0,4.0,4.0,4.0,4.0};
+	  double xB[6]={4,4,4,4,4,4};
+	  double x4 = edgeBound::x4_diag_max( xcd_lb,xA,xB,xA,xB);
+	if (fabs(10.66666666666667 -x4)>1.0e-8)
+		cout << "A: x4_upper_max = " << x4 << "\n"; 
+	  }
+	  /* testB */ {
+	  double xcd_lb = 4.0;
+	  double xA[6]={4.01,4.02,4.03,4.04,4.05,4.06};
+	  double xB[6]={4.015,4.02,4.03,4.04,4.055,4.065};
+	  double x4 = edgeBound::x4_diag_max( xcd_lb,xA,xB,xA,xB);
+	if (fabs(10.841772254941086 -x4)>1.0e-8)
+		cout << "B: x4_upper_max = " << x4 << "\n"; 
+	  }
+	  /* testC */ {
+	  double xcd_lb = 4.0;
+	  double xA[6]={7.01,4.02,4.03,4.04,4.05,4.06};
+	  double xB[6]={7.015,4.02,4.03,4.04,4.055,4.065};
+	  double x4 = edgeBound::x4_diag_max( xcd_lb,xA,xB,xA,xB);
+	if (fabs(7.996812539196705 -x4)>1.0e-8)
+		cout << "C: x4_upper_max = " << x4 << "\n"; 
+	  }
+	  /* testD flat case: EdgeFlat2X[4.0, 4.05, 4.06, 0,   4.065, 4.055] */ {
+	  double xcd_lb = 4.0;
+	  double xA[6]={4.01,4.02,4.03,4.04,4.05,4.06};
+	  double xB[6]={4.015,4.02,4.03,4.04,4.055,4.065};
+	  double zA[6]={4.01,7.02,7.03,4.04,4.05,4.06};
+	  double zB[6]={4.015,7.02,7.03,4.04,4.055,4.065};
+	  double x4 = edgeBound::x4_diag_max( xcd_lb,xA,xB,zA,zB);
+	if (fabs(12.229985573375473 -x4)>1.0e-8)
+		cout << "D: x4_upper_max = " << x4 << "\n"; 
+	  }
 	}
 
 	/* test deltasup*/ {
@@ -1618,19 +1720,19 @@ void linearization::selfTest() {
 	}
 
 	/* test dihedral*/ {
-	double t = dihedralinf(4.0,4.1,4.2,4.3,4.4,4.5);
+	double t = dihedralmin(4.0,4.1,4.2,4.3,4.4,4.5);
 	if ((fabs(1.215755859685464005686485-t)>1.0e-9)||
 		(t>1.215755859685464005686485))
-		{ cout << "dihedralinf failed = " << t << "\n"; }
-	double r = dihedralinf(8.575025,4,4.575025,8.575025,4,4.575025);
+		{ cout << "dihedralmin failed = " << t << "\n"; }
+	double r = dihedralmin(8.575025,4,4.575025,8.575025,4,4.575025);
 	if ((fabs(3.141592653589793238462643-r)>1.0e-4))
-		{ cout << "dihedralinf2 failed = " << r << "\n"; }
+		{ cout << "dihedralmin2 failed = " << r << "\n"; }
 	double u = dihedral(4.0,4.1,4.2,4.3,4.4,4.5);
 	if ((fabs(u-t)>1.0e-9)||(u<t))
 		{ cout << "dihedral failed = " << u << "\n"; }
 	}
 
-	/* test ExcessAngle*/{
+	/* test ExcessAngle*{
 	double t = ExcessAngle(4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8);
 	double u = ExcessAngleInf(4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8);
 	if (t<u) 
@@ -1640,6 +1742,7 @@ void linearization::selfTest() {
 	if (fabs(t+2.7764844880256246130678471280)>1.0e-12)
 		cout << "Excess failed(2) = " << t << "\n";
 	}
+	*/
 
 	/* test x1supDELTA*/ {
 	double u;
@@ -1650,7 +1753,7 @@ void linearization::selfTest() {
 		cout << "x1supDELTA failed = " << u << endl;
 	}
 
-	/* test shortDiagMax*/ {
+	/* test shortDiagMax {
 	// test delta branch of procedure:
 	double u=9.2973110504893041858; 
 	double t=12.6;
@@ -1666,15 +1769,18 @@ void linearization::selfTest() {
 	if ((fabs(u-t)>1.0e-4)||(t<u))
 		cout << "shortDiagMax failed = " << t << endl;
 	}
+	*/
 	
-	/* test chi234 */ {
+	
+	/* test chi234  {
 	double u=85.1275;
 	domain xx(4.1,4.2,4.3,4.4,4.5,4.6);
 	domain z(4.15,4.25,4.35,4.45,4.55,4.65);
 	double t = edgeBound::chi234min(xx,z);
 	if ((fabs(u-t)>1.0e-12)||(t>u))
 		cout << "chi234min failed = " << t << endl;
-	}
+		}  
+	*/
 
 
 

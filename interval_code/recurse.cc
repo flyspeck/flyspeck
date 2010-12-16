@@ -198,13 +198,16 @@ static cellOption::cellStatus
 		}
 
 	if (options.onlyCheckDeriv1Negative) {
-	  if (options.isUsingDihMax() || options.isUsingBigFace126() || (count > 1)) {
+	  if (
+	      //options.isUsingDihMax() || options.isUsingBigFace126() || 
+            (count > 1)) {
 	    error::fatal("verifyCell: incompatible options");
-	  }
+	   }
 	}
 
 	taylorInterval dih;   // a pseudo-inequality
 	int dihfail=0;
+	/*
 	if (options.isUsingDihMax()) 
 		{
 		double x4max;
@@ -218,9 +221,11 @@ static cellOption::cellStatus
 			catch (unstable x) { dihfail=1; }
 			}
 		}
+	*/
 
 	taylorInterval eta;	 // a pseudo-inequality.
 	int etafail=0;
+	/*
 	if (options.isUsingBigFace126())
 	  {
 	    try { 
@@ -230,6 +235,7 @@ static cellOption::cellStatus
 	    }
 	    catch (unstable x) { etafail=1; }
 	  }
+	*/
 
 	/* GOING STRONG LOOP*/
 	const taylorInterval* T[MAXcount];
@@ -316,6 +322,7 @@ static cellOption::cellStatus
 		for (int i=0;i<count;i++) if (T[i]->lowerPartial(j)<0.0) allpos=0;
 		for (int i=0;i<count;i++) if (T[i]->upperPartial(j)>= 0.0) allneg=0; // >= breaks symmetry.
 
+		/*
 		if ((options.isUsingDihMax())&&(allpos+allneg>0))
 			{
 			// don't flow through the dihMax.
@@ -326,7 +333,9 @@ static cellOption::cellStatus
 				allpos=allneg=0;
 				}
 			}
+		*/
 
+		/*
 		if (options.isUsingBigFace126())
 			{
 			// treat the pseudo-inequality eta2- 2 < 0 :
@@ -334,6 +343,7 @@ static cellOption::cellStatus
 			else if ((eta.upperBound()> 2.0)&&
 				(eta.lowerBound()<2.0)) { allpos=allneg=0;}
 			}
+		*/
 
 		if (allpos)
 			{
@@ -929,7 +939,7 @@ int prove::recursiveVerifierQ(int depth,
 		}
 	*/
 
-	// make a backup. verifyCellQ changes the parameters.
+	// make a local copy of data. verifyCellQ etc. change the parameters.
 	double xxA[6],xxB[6];
 	for (i=0;i<6;i++) 
 		{xxA[i]=xA[i];zzA[i]=zA[i];xxB[i]=xB[i];zzB[i]=zB[i];}
@@ -959,17 +969,17 @@ int prove::recursiveVerifierQ(int depth,
 		}
 	*/
 
-	/* Use top delta to compute upper bound on common diag */ {
-	  if (opt.crossDiagMin > 0.0) {
-	    double z3 = edgeBound::x4_upper_from_top_delta(opt.crossDiagMin,zzA,zzB);
+	/* Use top delta to compute upper bound on common diag in quad cluster */ {
+	  if (opt.crossDiagMinDelta > 0.0) {
+	    double z3 = edgeBound::x4_upper_from_top_delta(opt.crossDiagMinDelta,zzA,zzB);
 	    if (xxA[3] > z3) { return 1; } // empty domain.
 	    if (z3 < zzA[3]) { zzA[3] = z3; zzB[3] = z3; }
 	  }
 	}
  
-	/* Use "Enclosed" to compute upper bound on common diag. */ {
-	  if ((opt.crossDiagMin > 0.0) && (opt.useEnclosed)) {
-	    double z3 = edgeBound::x4_upper_from_enclosed(opt.crossDiagMin,xxA,xxB,zzA,zzB);
+	/* Use "Enclosed" to compute upper bound on common diag in quad cluster. */ {
+	  if (opt.crossDiagMinEnclosed > 0.0) {
+	    double z3 = edgeBound::x4_diag_max(opt.crossDiagMinEnclosed,xxA,xxB,zzA,zzB);
 	    if (xxA[3] > z3) { return 1; } // empty domain.
 	    if (z3 < zzA[3]) { zzA[3] = z3; zzB[3] = z3; }
 	  }
@@ -990,14 +1000,18 @@ int prove::recursiveVerifierQ(int depth,
 	/* run recursion into two cases.  */ { 
 	interMath::up();
 	int jB=0, jA=1;
-	int j_wide=0; /* init j_wide */ {
+	int j_wide=0; 
+	/* init j_wide, jB, jA */ {
 	double w = zzA[0]-xxA[0]; 
 	for (int j=0;j<DIM6;j++) {
-	  if (zzA[j]-xxA[j] > w) { j_wide = j; if ((j>0)&&(j<4)) { jB=1; } else { jB =0; };  w = zzA[j]-xxA[j]; }
+	  double w0 = zzA[j]-xxA[j];
+	  if (w0 > w) { j_wide = j; if ((j>0)&&(j<4)) { jB=1; } else { jB =0; };  w = w0; }
 	  }
 	int k[3]={0,4,5}; // unshared coords.
 	for (int j=0;j<3;j++) {
-	  if (zzB[k[j]]-xxB[k[j]] > w) { j_wide = k[j]; jB = 1; jA=0; w = zzB[k[j]]-xxB[k[j]]; }
+	  int j0 = k[j];
+	  double w0 = zzB[j0]-xxB[j0];
+	  if (w0 > w) { j_wide = j0; jB = 1; jA=0; w = w0; }
 	}}
 	for (int k=0;k<2;k++) 	{
 	  double y, xAr[DIM6], zAr[DIM6], xBr[DIM6], zBr[DIM6];

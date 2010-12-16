@@ -350,9 +350,11 @@ public:
 	// We assume that the edge length belongs to [x3min,x3max(inputvalue)]
 	// A revised x3max(output) is set, with x3max(output)<=x3max(input).
 	//
+  /*
 static int shortDiagMax
 	(double x0min,double x0pmin,double x1,double x2,double x3min,
         double& x3max,double x4,double x4p,double x5,double x5p);
+  */
 
 	//////////
 	// Given two simplices S (domain), and S' sharing the
@@ -364,7 +366,7 @@ static int shortDiagMax
 	// if possible an upper bound on the crossdiagonal of (S,S').
 	// The initial value of maxCD is ignored.
 	//
-static int crossDiagMax(const domain&,double y1prime,double& maxCD);
+  // static int crossDiagMax(const domain&,double y1prime,double& maxCD);
 
 
 	//////////
@@ -373,30 +375,32 @@ static int crossDiagMax(const domain&,double y1prime,double& maxCD);
         // Various monotonicity lemmas are implicitly invoked to justify that the max occurs at the upper
         // (zA,zB) endpoints.
 	//
-static double edgeBound::x4_upper_from_top_delta(int cd_lb,
+static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
 						 const double zA[6],const double zB[6]) ;
 
 	//////////
 	// given a pair of simplices, calculate upper bound on x4 (ie. zA[3]=zB[3]) from the condition
         // "enclosed"
         // Various monotonicity lemmas are implicitly invoked to justify that the max occurs where it does.
-        // (The belt shrinks and the other edges stretch to make x4 as large as possible.)
+        // This should only be used on convex quad clusters because of these implicit assumptions.
 	//
-static double edgeBound::x4_upper_from_enclosed(int cd_lb,
+static double edgeBound::x4_diag_max(double xcd_lb,
 						const double xA[6],const double xB[6],
 						 const double zA[6],const double zB[6]) ;
+
+
 
 	//////////
 	// given upper bound theta on dih, find corresponding upper bd on x4.
 	//
-static int x4_upper_from_dih_upper(const double x[6],const double z[6],
-		double dih_upper, double& new_x4_upper);
+/* static int x4_upper_from_dih_upper(const double x[6],const double z[6],
+   double dih_upper, double& new_x4_upper); */
 
 	//////////
 	// lower bound on chi234. This has only been implemented
 	// when the face(2,3,4) is acute.
 	// 
-static double chi234min(const domain&, const domain&); // for acute guys only
+//static double chi234min(const domain&, const domain&); 
 
 };
 

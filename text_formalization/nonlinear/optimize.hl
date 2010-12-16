@@ -124,6 +124,46 @@ let paren s = "("^ s ^")";;
 
 let i_mk s = "interval::interval ("^quoted s ^")";;
 
+let x9list =  
+  [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`;`x7:real`;`x8:real`;`x9:real`];;
+
+let x_backlist =
+  [`x7:real`;`x2:real`;`x3:real`;`x4:real`;`x8:real`;`x9:real`];;
+
+let x6list = fst(chop_list 6 x9list);;
+
+let dest_ineq ineq = 
+  let t = snd(strip_forall ((* prep_term *) (ineq))) in
+  let (vs,i) = dest_comb t in
+  let (_,vs) = dest_comb vs in
+  let vs = dest_list vs in
+  let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
+  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
+    (t,vs,disjuncts i);;
+
+let dest_nonlin t = 
+  let (_,r,il) = dest_ineq t in 
+  let p1 (a,_,_) = a in
+  let p2 (_,b,_) = b in
+  let p3 (_,_,c) = c in
+  let dest x = try dest_binop `(real_lt)` x with Failure _ -> dest_binop `(real_le)` x in
+  let (iis,zzs) = unzip( map (dest) il) in
+  let zz = nub zzs in
+  let _ = (zz = [`&0`]) or failwith "zero expected" in
+  let _ = ((map p2 r = x6list) or (map p2 r = x9list)) or failwith "x1..x6 or x1..x9 expected" in
+  (map p1 r, map p3 r,iis);;
+
+
+(*
+let tm1 = `dih_x x1 x2 x3 x4 x5 x6 * -- #0.7573 +
+      unit6 x1 x2 x3 x4 x5 x6 * #1.433 +  delta_x x7 x2 x3 x4 x8 x9`;;
+
+partition_quad_term tm1 ;;
+*)
+
+
+
+
 
  (* these names don't change in cpp *)
 
@@ -161,6 +201,7 @@ let idem_assoc = map (fun a -> (a,a)) [
   "monomial";
   "num1";"num2";"num_combo1";
   "dih_template_B_x";"taum_template_B_x";"delta_template_B_x";
+  "taum_x";
  ];;
 
 
@@ -199,25 +240,13 @@ let cpp0_assoc =
   ("ydodec","yStrongDodec");
    ];;
 
-
-(* 
-let x6list =  
-  [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
-*)
-
-let x9list =  
-  [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`;`x7:real`;`x8:real`;`x9:real`];;
-
-let x6list = fst(chop_list 6 x9list);;
-
-
 let cpp_of_constant s  = 
   try (assoc s cpp0_assoc) with 
       Failure _ -> failwith (s^" find: cpp_of_constant") ;;
 
-let cpp_of_fun to_string s xs = 
-  let (arg,xss) = chop_list (List.length xs - 6) xs in
-  let _ = (xss = x6list) or failwith ("x6 list expected in "^s) in
+let cpp_of_fun to_string xlist s xs = 
+  let (arg,xss) = chop_list (List.length xs - List.length xlist) xs in
+  let _ = (xss = xlist) or failwith ("standard x list expected in "^s) in
   let hd =  try (assoc s cpp_assoc) with 
       Failure _ -> failwith (s^" not found in cpp_assoc")  in
   let arg_s = map (paren o to_string) arg in
@@ -246,97 +275,23 @@ let rec ccform t =
   | "DECIMAL" ->  i_mk(string_of_num' (dest_decimal t))
 (*  | "COND" -> let [a;b;c] = xs in paren(soh a ^ " ? " ^ soh b ^ " : " ^ soh c) *)
   | s -> if (xs = []) then "("^cpp_of_constant s^")"  
-    else "(" ^ cpp_of_fun ccform s xs  ^ ")" in
+    else "(" ^ cpp_of_fun ccform x6list s xs  ^ ")" in
   fun t -> try (ccform t) with Failure s -> 
     failwith (s^" .......   "^string_of_term t);;
 
-
 (* generation of cpp code *)
 
-(*  (* This type of prepping should be done with the mega preprocessing tactics below *)
-let prep_expand = (
-   [Sphere.gamma4f;Sphere.vol4f;Parse_ineq.y_of_x_e;
-    Parse_ineq.vol_y_e;Sphere.vol3f;
-    Sphere.vol3r;Sphere.vol2f;lfun1;
-   Sphere.gamma3f;Sphere.gamma23f;
-   GSYM Parse_ineq.quadratic_root_plus_curry;
-   REAL_MUL_LZERO;
-   REAL_MUL_RZERO;FST;SND;Sphere.pathL;Sphere.pathR;
-   Sphere.node2_y;Sphere.node3_y;
-   Sphere.rhazim2;Sphere.rhazim3;
-   Sphere.rotate2;Sphere.rotate3;Sphere.rotate4;
-   Sphere.rotate5;Sphere.rotate6;
-   ] @ (!Ineq.dart_classes));;
+let cpp_template_taylor c (i,s) = Printf.sprintf 
+"       taylorFunction F%s%d = %s;" c i s;;
 
-let prep_term t = 
-  let t' = REWRITE_CONV (prep_expand) (strip_let_tm t) in
-  let (a,b)=  dest_eq (concl t') in
-    b;;
-*)
-
-let dest_ineq ineq = 
-  let t = snd(strip_forall ((* prep_term *) (ineq))) in
-  let (vs,i) = dest_comb t in
-  let (_,vs) = dest_comb vs in
-  let vs = dest_list vs in
-  let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
-  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
-    (t,vs,disjuncts i);;
-
-let dest_nonlin t = 
-  let (_,r,il) = dest_ineq t in 
-  let p1 (a,_,_) = a in
-  let p2 (_,b,_) = b in
-  let p3 (_,_,c) = c in
-  let dest x = try dest_binop `(real_lt)` x with Failure _ -> dest_binop `(real_le)` x in
-  let (iis,zzs) = unzip( map (dest) il) in
-  let zz = nub zzs in
-  let _ = (zz = [`&0`]) or failwith "zero expected" in
-  let _ = (map p2 r = x6list) or failwith "x1..x6 expected" in
-  (map p1 r, map p3 r,iis);;
-
-(* look for a disjunct `enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9 < t` and return Some `t` *)
-
-let enclosed_option ineq = 
-  let t = snd(strip_forall  ineq) in
-  let (_,i) = dest_comb t in
-  let il = disjuncts i in
-  let il2 = filter (can (dest_binop `(real_lt)`)) il in
-  let il3 = map (dest_binop `(real_lt)`) il2 in
-  let il4 = filter (fun (a,_) -> (a = `enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9`)) il3 in
-  if (List.length il4 !=1) then None else Some (let (_,b) = hd il4 in b) ;;
-
-
-(* let join_semi = Parse_ineq.unsplit ";" (fun t -> t);; *)
-
-(*
-let cpp_template = Printf.sprintf "
- char* svn = %s;
- char* ineq_id = %s;
- int testRun()
-	{
-	interval tx[6]={%s};
-	interval tz[6]={%s};
-	domain x = domain::lowerD(tx);
-	domain z = domain::upperD(tz);
-	taylorFunction F = %s;
-	//F.setReducibleState(0);
-        cellOption opt;
-	return generic (x,z,F,%d);
-	}";;
-*)
-
-let cpp_template_taylor (i,s) = Printf.sprintf 
-"       taylorFunction F%d = %s;" i s;;
-
-let cpp_template_t iis = 
+let cpp_template_t c iis = 
   join_lines 
-    (map cpp_template_taylor (zip (1--(List.length iis)) iis));;
+    (map (cpp_template_taylor c) (zip (1--(List.length iis)) iis));;
 
-let cpp_template_F i = Printf.sprintf "&F%d" i;;
+let cpp_template_F c i = Printf.sprintf "&F%s%d" c i;;
 
-let cpp_template_Fc len = join_comma 
-  (map cpp_template_F (1-- len));;
+let cpp_template_Fc c len = join_comma 
+  (map (cpp_template_F c) (1-- len));;
 
 let cpp_template_gen = Printf.sprintf "
  char* svn = %s;
@@ -363,17 +318,106 @@ let mk_cpp_proc t s sharp checkderiv=
   let f (x,y,z) = (c x,c y,c z) in
   let (aas,bbs,iis) = f (dest_nonlin t) in
   let len = List.length iis in
-(*  let _ = (len < 3) or failwith "mk_cpp_proc: higher disjunctions not installed" in *)
   let sq = quoted s in
   let svn = (quoted(svn_version())) in
   let jaas = join_comma aas in
   let jbbs = join_comma bbs in
-  (* if (len < 2) then cpp_template svn sq jaas jbbs (hd iis) sharp checkderiv else *)
-  cpp_template_gen svn sq jaas jbbs (cpp_template_t iis) 
-    len (cpp_template_Fc len) sharp  checkderiv len;;
+  cpp_template_gen svn sq jaas jbbs (cpp_template_t "" iis) 
+    len (cpp_template_Fc "" len) sharp  checkderiv len;;
 
-(* mk_cpp_proc testineq testid;;
-    next: put together header, proc, tail and run *)
+
+(* quad clusters *)
+
+let has_subterm sub tm = 
+  can (find_term ((=) sub)) tm;; 
+
+let has_cross_diag = has_subterm `quad_cross_diag2_x`;;
+
+let is_quad_cluster idq = (mem Quad_cluster idq.tags);;
+
+let check_quad_partition_term (r,s,t) tm = 
+  let tm2 = list_mk_binop `(+)` (r @ s @ t) in
+  let t = mk_eq (tm ,tm2) in 
+      (REAL_ARITH) t;;
+
+let partition_quad_term tm = 
+  let rec split tm = 
+    if (has_cross_diag tm) then ([],[],[tm]) else
+      if (subset (frees tm) x6list) then ([tm],[],[]) else
+	if (subset (frees tm) x_backlist) then ([],[tm],[]) else
+	  let (a1,a2) = dest_binop `(+)` tm in
+	  let  (r1,s1,t1) = split a1 in
+	  let (r2,s2,t2) = split a2  in
+	    (r1 @ r2, s1 @ s2, t1 @ t2) in
+  let (r,s,t) = split tm in
+  let _ = check_quad_partition_term (r,s,t) tm in
+  let v =  vsubst [`x1:real`,`x7:real`;  `x5:real`,`x8:real`; `x6:real`,`x9:real`] in
+  let w = function | [] -> 
+   `unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) * #0.0` | xl -> list_mk_binop `(+)` xl in
+   (w r,w(map v s), t);;
+
+
+
+let cppq_template_gen = Printf.sprintf "
+ char* svn = %s;
+ char* ineq_id = %s;
+ int testRun()
+ int testRunQ()
+        {
+	interval txA[6]={%s};
+	interval tzA[6]={%s};
+	domain xA = domain::lowerD(txA);
+	domain zA = domain::upperD(tzA);
+	interval txB[6]={%s};
+	interval tzB[6]={%s};
+	domain xB = domain::lowerD(txB);
+	domain zB = domain::upperD(tzB);
+        // Declare FA, FB...
+        %s
+        %s
+	const taylorFunction* IA[%d] = {%s};
+	const taylorFunction* IB[%d] = {%s};
+	cellOption opt;
+        %s // options.
+	return prove::recursiveVerifierQ(0,xA,xB,zA,zB,IA,IB,%d,opt);
+        }";;
+
+let get_cross_diag_squared is9 =
+  let id9' = filter (fun (_,_,c)-> List.length c >0) is9 in
+  let is9'' = (fun (_,_,[c])::_ -> c ) id9' in
+  let tm = term_match x9list `quad_cross_diag2_x x1 x2 x3 x4 x5 x6 x7 x8 x9 +
+    unit6 x1 x2 x3 x4 x5 x6 * t` is9'' in
+  let t =   (fun ([],[(x,_)],[]) -> x) tm in
+    mk_binop `( * )` t t;;  (* t is negative, but it gets squared *)
+
+let cde_template = 
+  Printf.sprintf "opt.crossDiagMinEnclosed = interMath::inf(%s);\n";;
+
+let mk_cppq_proc t s =   
+  let svn = (quoted(svn_version())) in
+  let ineq_id = quoted s in
+  let cpp = cpp_string_of_term in
+  let (x,z,is) = dest_nonlin t  in
+  let is' = map partition_quad_term is in
+  let (is9,is6) = partition (fun (_,_,c) -> List.length c > 0)   is' in
+  let (is6A,is6B) = unzip (map (fun (a,b,_) -> (cpp a,cpp b)) is6) in
+  let len = List.length  is6 in
+  let xs = c x in
+  let zs = c z in
+  let nth = List.nth in
+  let a_part u = [nth u 0;nth u 1;nth u 2;nth u 3; nth u 4;nth u 5] in
+  let b_part u = [nth u 6;nth u 1;nth u 2;nth u 3;nth u 7; nth u 8] in
+  let xA = join_comma(a_part xs) in
+  let xB = join_comma(b_part xs) in
+  let zA = join_comma(a_part zs) in
+  let zB = join_comma(b_part zs) in
+  let opt_cross = try (  cde_template (cpp ( get_cross_diag_squared is9) )) with _ -> "" in
+  cppq_template_gen svn ineq_id xA zA xB zB (cpp_template_t "A" is6A) (cpp_template_t "B" is6B) 
+      len (cpp_template_Fc "A" len) len (cpp_template_Fc "B" len) opt_cross len ;;
+
+
+
+(*     next: put together header, proc, tail and run *)
 
 let tmpfile = flyspeck_dir^"/../interval_code/test_auto.cc";;
 
@@ -390,15 +434,6 @@ let load_and_close_channel_true ic =
 
 let load_file filename = 
   let ic = Pervasives.open_in filename in load_and_close_channel_true ic;;
-
-(* debug, to find where forks are not getting cleaned up 
-let procc s = 
-  let _ = Sys.command("ps -aux | grep '(sh)' | wc") in 
-  let _ = Sys.command("ps -aux | grep '(svn)' | wc") in
-  let _ = Sys.command("ps -aux | grep 'sbin' | wc") in
-  let _ = Sys.command("ps -aux  | wc") in
-   report s;;
-*)
 
 let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_head.txt"));;
 
@@ -1106,7 +1141,9 @@ let X_OF_Y_DEF =  [REAL_ARITH `&2 = #2.0`;
  GSYM Sphere.taum_x1_x2;GSYM Sphere.taum_x1;GSYM Sphere.taum_x2;
  GSYM Sphere.arclength_x1;GSYM Sphere.arclength_x2;GSYM Sphere.surf_x;
  GSYM Sphere.ldih_x;GSYM Sphere.ldih2_x;GSYM Sphere.ldih3_x;GSYM Sphere.ldih6_x;
- GSYM Sphere.surfR126d;];;
+ GSYM Sphere.surfR126d;GSYM Sphere.quad_cross_diag2_x;tauq_x_y];;
+
+
 
 let FROZEN_REWR =map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
     (GSYM dih_x_126_s2); (GSYM dih2_x_126_s2);
@@ -1122,35 +1159,38 @@ let FROZEN_REWR =map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
     GSYM gamma3f_x_vL_lfun;GSYM gamma3f_x_vL0;
     ];;
 
-let VAR_ORDER_TM = 
-`norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-     norm2hh_x x1 x2 x3 x4 x5 x6 /\ 
- rad2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-     rad2_x x1 x2 x3 x4 x5 x6 /\ 
- delta4_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-     delta_x4 x1 x2 x3 x4 x5 x6 /\ 
- dih2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-     dih2_x x1 x2 x3 x4 x5 x6 /\         
- dih3_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-    dih3_x x1 x2 x3 x4 x5 x6 /\         
- dih_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-     dih_x x1 x2 x3 x4 x5 x6 /\  
- dih4_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-    dih4_x x1 x2 x3 x4 x5 x6 /\
- dih5_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-   dih5_x x1 x2 x3 x4 x5 x6 /\
- dih6_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-   dih6_x x1 x2 x3 x4 x5 x6 /\      
- delta_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-   delta_x x1 x2 x3 x4 x5 x6 /\ 
- vol_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
-   vol_x x1 x2 x3 x4 x5 x6 /\ 
- eta_y (sqrt x1) (sqrt x2) (sqrt x6) pow 2 = eta2_126 x1 x2 x3 x4 x5 x6 /\ 
- eta_y (sqrt x1) (sqrt x3) (sqrt x5) pow 2 = eta2_135 x1 x2 x3 x4 x5 x6 /\
- vol3f (sqrt x1) (sqrt x2) (sqrt x6)  sqrt2 lfun = vol3f_x_lfun x1 x2 x3 x4 x5 x6 /\
- vol_y sqrt2 sqrt2 sqrt2 (sqrt x1) (sqrt x2) (sqrt x6)  = vol3_x_sqrt x1 x2 x3 x4 x5 x6 /\
- vol3f_sqrt2_lmplus (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5)      (sqrt x6) =
-   vol3f_x_sqrt2_lmplus x1 x2 x3 x4 x5 x6`;;
+let VAR_ORDER_SQRT = 
+[`norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+     norm2hh_x x1 x2 x3 x4 x5 x6 `;  
+`rad2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+     rad2_x x1 x2 x3 x4 x5 x6 `;  
+`delta4_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+     delta_x4 x1 x2 x3 x4 x5 x6 `;  
+`dih2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+     dih2_x x1 x2 x3 x4 x5 x6 `;  
+`dih3_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+    dih3_x x1 x2 x3 x4 x5 x6 `;  
+`dih_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+     dih_x x1 x2 x3 x4 x5 x6 `;  
+`dih4_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+    dih4_x x1 x2 x3 x4 x5 x6 `;  
+`dih5_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+   dih5_x x1 x2 x3 x4 x5 x6 `;  
+`dih6_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+   dih6_x x1 x2 x3 x4 x5 x6 `;  
+`delta_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+   delta_x x1 x2 x3 x4 x5 x6 `;  
+`delta_y (sqrt x7) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x8) (sqrt x9) =
+   delta_x x7 x2 x3 x4 x8 x9`;
+`vol_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
+   vol_x x1 x2 x3 x4 x5 x6 `;  
+`eta_y (sqrt x1) (sqrt x2) (sqrt x6) pow 2 = eta2_126 x1 x2 x3 x4 x5 x6 `;  
+`eta_y (sqrt x1) (sqrt x3) (sqrt x5) pow 2 = eta2_135 x1 x2 x3 x4 x5 x6 `;  
+`vol3f (sqrt x1) (sqrt x2) (sqrt x6)  sqrt2 lfun = vol3f_x_lfun x1 x2 x3 x4 x5 x6 `;  
+`vol_y sqrt2 sqrt2 sqrt2 (sqrt x1) (sqrt x2) (sqrt x6)  = vol3_x_sqrt x1 x2 x3 x4 x5 x6 `;  
+`vol3f_sqrt2_lmplus (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5)      (sqrt x6) =
+   vol3f_x_sqrt2_lmplus x1 x2 x3 x4 x5 x6`;
+ ];;
 
   let SQRT_SQRT_TAC = 
 EVERY[
@@ -1160,6 +1200,13 @@ EVERY[
   DISCH_TAC;
 ];;
 
+  let VAR_ORDER_SQRT_TAC:tactic = 
+    fun (asl,a) ->
+      let fr = frees a in
+      let vos = filter (fun t -> subset (frees t) fr ) VAR_ORDER_SQRT  in
+    let VAR_ORDER_SQRT_FIL = list_mk_conj vos in
+  (SUBGOAL_THEN  VAR_ORDER_SQRT_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (ASM_MESON_TAC[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) (asl,a)
+;;
 
 let X_OF_Y_TAC = 
   (
@@ -1168,7 +1215,7 @@ let X_OF_Y_TAC =
   (REWRITE_TAC[GSYM Sphere.rad2_y]) THEN
   (REWRITE_TAC(macro_expand)) THEN
 *)
-  (MATCH_MP_TAC ineq_square2) THEN
+  TRY (MATCH_MP_TAC ineq_square2) THEN TRY (MATCH_MP_TAC ineq_square2_9) THEN
   (REWRITE_TAC basic_constants_nn) THEN
   REWRITE_TAC[GSYM CONJ_ASSOC] THEN
   (REPEAT (CONJ_TAC THENL[MP_TAC hminus_gt THEN MP_TAC sqrt3_nn THEN REWRITE_TAC[Sphere.h0;Sphere.hplus] THEN REAL_ARITH_TAC;ALL_TAC])) THEN
@@ -1178,13 +1225,16 @@ let X_OF_Y_TAC =
   (SQRT_SQRT_TAC) THEN
 (*    SIMP_TAC[sq_pow2] THEN *)
   (REPEAT DISCH_TAC) THEN
-  (SUBGOAL_THEN  VAR_ORDER_TM  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (ASM_MESON_TAC[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) THEN
+    VAR_ORDER_SQRT_TAC THEN
    FROZEN_REWRITE_TAC FROZEN_REWR THEN 
   REWRITE_TAC X_OF_Y_DEF THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+  (REWRITE_TAC[GSYM ineq_expand9]) THEN
   (REWRITE_TAC[GSYM ineq_expand6]) THEN
   (REWRITE_TAC[REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)`;sqrt8_2;Sphere.h0;Sphere.hplus]) THEN
   ALL_TAC);;
+
+
 
 let EXPAND_lfun = 
   (SUBGOAL_THEN `lfun x1 = (#1.26 - proj_x1  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))/(#0.26)` (fun t-> REWRITE_TAC[t])) THENL [
@@ -1273,6 +1323,7 @@ let STYLIZE_TAC =
     (SUBGOAL_THEN `x2 * unit0 = proj_x2 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) /\ x1 * unit0 = proj_x1 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) /\ (x4 * unit0 = proj_x4 x1 x2 x3 x4 x5 x6) /\ (x6 * unit0 = proj_x6 x1 x2 x3 x4 x5 x6)` (fun t-> REWRITE_TAC[t]) THENL[REWRITE_TAC[proj_x4;proj_x6;proj_x2;proj_x1;unit0;REAL_ARITH `x * &1 = x`];ALL_TAC]) THEN
   (SUBGOAL_THEN `unit0 = unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real)` (fun t-> REWRITE_TAC[t]) THENL [REWRITE_TAC[unit0;unit6];ALL_TAC]) THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+  (REWRITE_TAC[GSYM ineq_expand9]) THEN
   (REWRITE_TAC[GSYM ineq_expand6]) THEN DISCH_TAC;;
 
 let WRAPUP_TAC = 

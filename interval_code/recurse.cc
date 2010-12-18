@@ -64,6 +64,7 @@ static void centerform
 		}
 	}
 
+/*
 static int unreduced(const double x[DIM6],const double z[DIM6])
 	{
 	int t;
@@ -78,7 +79,9 @@ static int unreduced(const double x[DIM6],const double z[DIM6])
 	     );
 	return (!t);
 	}
+*/
 
+/*
 static int setreduction(int i,const double x[DIM6],const double z[DIM6],
 	const double x0[DIM6], double zz[DIM6])
 	// return false if the reduction flows out of the cell.
@@ -113,6 +116,8 @@ static int setreduction(int i,const double x[DIM6],const double z[DIM6],
 		}
 	return 1;
 	}
+*/
+
 
 /*
 static int reducible(const taylorFunction* I[],int count)
@@ -193,7 +198,7 @@ static cellOption::cellStatus
 	if (count>MAXcount) 
 		{
 		cout << "There are " << count << " inequalities." << endl;
-		error::message("In verifyCell, increase MAXcount and recompile");
+		error::fatal("In verifyCell, increase MAXcount and recompile");
 		return cellOption::inconclusive;
 		}
 
@@ -479,6 +484,7 @@ int prove::recursiveVerifier(int depth,
 		return 0;
 		}
 
+	/* exit if too deep */ {
 	int MAXDEPTH = 200;
 	if (options.getRecursionDepth()>0) MAXDEPTH = options.getRecursionDepth();
 	if (depth > MAXDEPTH) 
@@ -494,6 +500,7 @@ int prove::recursiveVerifier(int depth,
 		}
 		return 0;
 		}
+	}
 
 	// make a backup. verifyCell changes the parameters.
 	double xx[DIM6],zz[DIM6],xx0[DIM6],zz0[DIM6];
@@ -551,6 +558,7 @@ static int fitstogether(const double x[6],const double y[6])
 	return ((x[1]==y[1])&&(x[2]==y[2])&&(x[3]==y[3]));
 	}
 
+/*
 static int unreducedQ(const double xA[6],const double xB[6],
 	const double zA[6],const double zB[6])
 	{
@@ -578,7 +586,9 @@ static int unreducedQ(const double xA[6],const double xB[6],
 	     );
 	return (!t);
 	}
+*/
 
+/*
 static int setreductionQ(int i,const double xA[6],const double xB[6],
 		const double zA[6],const double zB[6],
 		double zzA[6],double zzB[6])
@@ -611,6 +621,41 @@ static int setreductionQ(int i,const double xA[6],const double xB[6],
 		default : error::message("setreductionQ out of range");
 		}
 	return 1;
+	}
+*/
+
+static void setDimRedBackSym(int i /* 0..7 */ ,const double xA[6],const double xB[6],
+		const double zA[6],const double zB[6],
+			    double xxA[6],double xxB[6],double zzA[6],double zzB[6])
+	{
+	  for (int j=0;j<6;j++) { zzA[j]=zA[j]; zzB[j]=zB[j]; xxA[j]= xA[j]; xxB[j]= xB[j];  }
+	switch (i % 2)
+	  {
+	  case 0 : zzA[0]=xA[0]; xxA[0]=xA[0]; break;
+	  case 1 : zzA[4]=xA[4];  xxA[4]=xA[4]; break;
+	  default : error::fatal("setDimRedBackSym A variable out of range");
+	  }
+	switch (i / 2) 
+	  {
+	  case 0 : 
+	    zzB[4]=xB[4]; xxB[4]=xB[4]; 
+	    zzB[5]=xB[5]; xxB[5]=xB[5]; 
+	    break;
+	  case 1:
+	    zzB[4]=zB[4]; xxB[4]=zB[4]; 
+	    zzB[5]=xB[5]; xxB[5]=xB[5]; 
+	    break;
+	  case 2 : 
+	    zzB[4]=xB[4]; xxB[4]=xB[4]; 
+	    zzB[5]=zB[5]; xxB[5]=zB[5]; 
+	    break;
+	  case 3:
+	    zzB[0]=xB[0]; zzB[0]=xB[0];
+	    zzB[4]=zB[4]; xxB[4]=zB[4]; 
+	    zzB[5]=zB[5]; xxB[5]=zB[5]; 
+	    break;
+	  default : error::fatal("setDimRedBackSym B variable out of range");
+	  }
 	}
 
 static int sameSgnQ(const lineInterval& cA,const lineInterval& cB,
@@ -805,44 +850,58 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 static int breaksapart(int depth, // all inputs are left unchanged.
 	const double xA[6],const double xB[6],
 	const double zA[6],const double zB[6],
-	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq)
+		       const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,double margin)
 	{
 	static const interval zero("0");
 	static const interval two("2");
-	if (Nineq<1) { error::fatal("Lacking in inequalities"); }
+	if (Nineq<1) { error::fatal("No inequalities"); }
 	if (Nineq>1) return 0;
-	if (deltainf(zA[0],xA[1],xA[2],zA[3],xA[4],xA[5])<=0.0) return 0;
-	if (deltainf(zB[0],xB[1],xB[2],zB[3],xB[4],xB[5])<=0.0) return 0;
-	double yA[6],yB[6],wA[6],wB[6],yAn[6],yBn[6],yAu[6],yBu[6];
-	lineInterval tA,tB,tAu,tBu,tAn,tBn;
+	if (deltainf(zA[0],xA[1],xA[2],zA[3],xA[4],xA[5])<= 0.5) return 0;
+	if (deltainf(zB[0],xB[1],xB[2],zB[3],xB[4],xB[5])<=0.5) return 0;
+
+	double yA[6],yB[6],wA[6],wB[6];
+	lineInterval tA,tB;
+	/* initialize center */ {
 	centerform(xA,zA,yA,wA);
 	centerform(xB,zB,yB,wB);
 	tA=IA[0]->tangentAt(yA);
 	tB=IB[0]->tangentAt(yB);
+	}
+
+	/* exit if domain is too large */ {
 	double WCUTOFF=0.3;
 	if (max(zA[0],zB[0])>6.00) WCUTOFF *=0.3; // things are unstable here!
 	if (max(max(wA),max(wB)) >WCUTOFF) return 0;
-	int u,sgnA[6],sgnB[6],k[6]={1,2,3,0,4,5};
+	}
+
+	/* initialize lower and upper corners of A and B */
+	double yAn[6],yBn[6],yAu[6],yBu[6];
+	lineInterval tAu,tBu,tAn,tBn;
+	{
+	int k[6]={1,2,3,0,4,5};
 	for (int j=0;j<6;j++)
 		{
-		u = k[j];
-		sgnA[u] = sgn(tA.Df[u] + (j<3 ? tB.Df[u] : zero ) );
-		if (sgnA[u]==0) return 0;
-		yAn[u]= (sgnA[u]>0 ? xA[u] : zA[u]);
-		yAu[u]= (sgnA[u]>0 ? zA[u] : xA[u]);
-		sgnB[u] = sgn(tB.Df[u] + (j<3 ? tA.Df[u] : zero ) );
-		if (sgnB[u]==0) return 0;
-		yBn[u]= (sgnB[u]>0 ? xB[u] : zB[u]);
-		yBu[u]= (sgnB[u]>0 ? zB[u] : xB[u]);
+		int u = k[j];
+		int sgnA = sgn(tA.Df[u] + (j<3 ? tB.Df[u] : zero ) );
+		//if (0==sgnA) return 0;
+		yAn[u]= (sgnA>=0 ? xA[u] : zA[u]);
+		yAu[u]= (sgnA>=0 ? zA[u] : xA[u]);
+		int sgnB = sgn(tB.Df[u] + (j<3 ? tA.Df[u] : zero ) );
+		//if (0==sgnB) return 0;
+		yBn[u]= (sgnB>=0 ? xB[u] : zB[u]);
+		yBu[u]= (sgnB>=0 ? zB[u] : xB[u]);
 		}
 	tAn=IA[0]->tangentAt(yAn); tAu=IA[0]->tangentAt(yAu);
 	tBn=IB[0]->tangentAt(yBn); tBu=IB[0]->tangentAt(yBu);
 	if (!(sameSgnQ(tA,tB,tAn,tBn))) return 0;
 	if (!(sameSgnQ(tA,tB,tAu,tBu))) return 0;
+	if (interMath::sup(tAu.f + tBu.f) > - fabs(margin))  { return 0; }
+	}
+
+	// set T , T is the linear adjustment in shared variables at yAu:
 	interval e,eps[6];
 	e = (tAu.f - tBu.f)/two;
-	for (int j=0;j<6;j++) eps[j]= (tAu.Df[j]-tBu.Df[j])/two;
-	// test these values;
+	for (int j=1;j<4;j++) eps[j]= (tAu.Df[j]-tBu.Df[j])/two;
 	if ((interMath::sup(tAu.f)> interMath::inf(e)) ||
 		(interMath::sup(tAn.f)> interMath::inf(e)) ||
 		(interMath::sup(tBu.f)> interMath::inf(-e)) ||
@@ -851,31 +910,45 @@ static int breaksapart(int depth, // all inputs are left unchanged.
 		(interMath::sup(tA.f+tB.f)>interMath::sup(tAu.f+tBu.f))
 			) return 0;
 	interval iyAu1(yAu[1],yAu[1]),iyAu2(yAu[2],yAu[2]),iyAu3(yAu[3],yAu[3]);
-	// T is the linear bound on A at yAu:
 	taylorFunction T = taylorSimplex::unit*e +
 		(taylorSimplex::x2+taylorSimplex::unit*(-iyAu1))*eps[1] +
 		(taylorSimplex::x3+taylorSimplex::unit*(-iyAu2))*eps[2] +
 		(taylorSimplex::x4+taylorSimplex::unit*(-iyAu3))*eps[3];
+	
+	// split:
 	taylorFunction A1 = *IA[0]+T*interval("-1");
 	taylorFunction B1 = *IB[0]+T;
-	//A1.setReducibleState(0);
-	//B1.setReducibleState(0);
 	const taylorFunction* IA1[1]= {&A1};
 	const taylorFunction* IB1[1]= {&B1};
-	double xA0[6],xB0[6],zA0[6],zB0[6];
-	for (int j=0;j<6;j++)
-		{
-		xA0[j]=xA[j]; xB0[j]=xB[j]; zA0[j]=zA[j]; zB0[j]=zB[j]; 
-		}
 	cellOption option; 
 	option.setPrintMode(cellOption::silent);
-	if ((prove::recursiveVerifier
-		(depth,domain(xA),domain(zA),domain(xA0),domain(zA0),IA1,1,option))&&
-	    (prove::recursiveVerifier
-		(depth,domain(xB),domain(zB),domain(xB0),domain(zB0),IB1,1,option))
-	   ) return 1;
+	if (prove::recursiveVerifier(depth+1,xB,zB,xB,zB,IB1,1,option) && 
+	    prove::recursiveVerifier(depth+1,xA,zA,xA,zA,IA1,1,option))
+	  {  return 1; }
+	// debug: indicate failed recursiveVerifier.  
+	// this should not normally fail this late, if we have done due diligence.
+	// cout << "^"; 
 	return 0;
 	}
+
+void statsQ() {
+  static const long starting_time = time(0); //  Time out after this many seconds.
+  static const long TIMEOUT = 40000; //  Time out after this many seconds.
+  static int statcounter=0;
+  static int linefeed=0;
+   if (time(0) - starting_time > TIMEOUT) {
+    error::fatal("time allocation exceeded 4K secs. Bailing out.");
+  }
+  else if (count(statcounter++,10000)) 
+    {
+      cout << "[q" << statcounter/10000 << "*10^4]" << flush;
+      if (count(linefeed++,10) )
+	{
+	  cout << " " << flush; 
+	  error::printTime();	  
+	}
+    }
+}
 
 /*
  0 return means verification is a total failure (false ineq, fatal error, recursion limits exceeded).
@@ -883,6 +956,7 @@ static int breaksapart(int depth, // all inputs are left unchanged.
  1 means the ineq is true on the domain.
  function should not change any input parameters  except iteration counter in opt.
 */
+
 
 int prove::recursiveVerifierQ(int depth,
 	const domain& xAd,const domain& xBd,     /// current lower bound
@@ -902,7 +976,7 @@ int prove::recursiveVerifierQ(int depth,
 	  { error::message("Rx-mismatch:"); printit(xA); printit(xB); return 0; }
 	if (!fitstogether(zA,zB)) 
 	  { error::message("Rz-mismatch:"); printit(zA); printit(zB); return 0; }
-	stats(0); 
+	statsQ(); 
 	opt.augmentIterationCount();
 	if ((opt.getIterationLimit()>0)&&
 		(opt.getIterationLimit()<opt.getIterationCount()))
@@ -921,7 +995,7 @@ int prove::recursiveVerifierQ(int depth,
 		cout << "recursion depth is currently at " << MAXDEPTH << endl;
 		return 0;
 		}
-	double zzA[6],zzB[6];
+
 	/*
 	if ((reducible(IA,Nineq) )&&(reducible(IB,Nineq))&&
 		(unreducedQ(xA,xB,zA,zB)))
@@ -939,8 +1013,22 @@ int prove::recursiveVerifierQ(int depth,
 		}
 	*/
 
+	if (opt.dimRedBackSym)
+		{
+		  double xxA[6],xxB[6],zzA[6],zzB[6];
+		  opt.dimRedBackSym=0;
+		  for (int i=opt.getStartingIndex();i<8;i++) {
+		    setDimRedBackSym(i,xA,xB,zA,zB,xxA,xxB,zzA,zzB);
+		    cout << "R" << i << "." << flush;
+		    if (!recursiveVerifierQ
+			(depth+1,xxA,xxB,zzA,zzB,IA,IB,Nineq,opt)) { return 0; };
+		  };
+		  { return 1; }
+		}
+
+
 	// make a local copy of data. verifyCellQ etc. change the parameters.
-	double xxA[6],xxB[6];
+	double xxA[6],xxB[6],zzA[6],zzB[6];
 	for (i=0;i<6;i++) 
 		{xxA[i]=xA[i];zzA[i]=zA[i];xxB[i]=xB[i];zzB[i]=zB[i];}
 	if (Nineq>MAXcount) 
@@ -971,31 +1059,31 @@ int prove::recursiveVerifierQ(int depth,
 
 	/* Use top delta to compute upper bound on common diag in quad cluster */ {
 	  if (opt.crossDiagMinDelta > 0.0) {
-	    double z3 = edgeBound::x4_upper_from_top_delta(opt.crossDiagMinDelta,zzA,zzB);
-	    if (xxA[3] > z3) { return 1; } // empty domain.
-	    if (z3 < zzA[3]) { zzA[3] = z3; zzB[3] = z3; }
+	    double z = edgeBound::x4_upper_from_top_delta(opt.crossDiagMinDelta,zzA,zzB);
+	    if (xxA[3] > z) { return 1; } // empty domain.
+	    if (z < zzA[3]) { zzA[3] = z; zzB[3] = z; }
 	  }
 	}
  
 	/* Use "Enclosed" to compute upper bound on common diag in quad cluster. */ {
 	  if (opt.crossDiagMinEnclosed > 0.0) {
-	    double z3 = edgeBound::x4_diag_max(opt.crossDiagMinEnclosed,xxA,xxB,zzA,zzB);
-	    if (xxA[3] > z3) { return 1; } // empty domain.
-	    if (z3 < zzA[3]) { zzA[3] = z3; zzB[3] = z3; }
+	    double z = edgeBound::x4_diag_max(opt.crossDiagMinEnclosed,xxA,xxB,zzA,zzB);
+	    if (xxA[3] > z) { return 1; } // empty domain.
+	    if (z < zzA[3]) { zzA[3] = z; zzB[3] = z; }
 	  }
 	}
  
 
-	// Here is the main line of the procedure.  Check if it verifies.
+	// Here is the main line of the procedure.  Check if it verifies. 		//xxA,.. affected.
 	if (verifyCellQ(xxA,xxB,zzA,zzB,IIA,IIB,NNineq,opt)) return 1;
-		//xxA,.. affected.
+
  
 	if (NNineq<1) {
 	  error::message("Empty recursion");
 	  return 0;
 	}
 
-	if (breaksapart(depth,xA,xB,zzA,zzB,IIA,IIB,NNineq)) return 1;
+	if (breaksapart(depth,xxA,xxB,zzA,zzB,IIA,IIB,NNineq,opt.margin)) return 1;
 
 	/* run recursion into two cases.  */ { 
 	interMath::up();

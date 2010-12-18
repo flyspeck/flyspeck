@@ -75,6 +75,15 @@ public:
     double crossDiagMinDelta;
 
     //////////
+    // Boolean flag for quads, to reduce to 8=4x2 extremal cases:
+    // x8,x9 extremal, and if both are maximal then x7 is minimal (4 cases).
+    // x1 or x5 is minimal (2 cases),
+    int dimRedBackSym;
+
+    // used in breaksapart to set threshhold.
+    double margin;
+
+    //////////
     // Option (for quads) to use Enclosed cross diag to give upper bound on common diagonal.
     //
     //int useEnclosed;
@@ -221,6 +230,8 @@ public:
 				recursionDepth=0;
 				crossDiagMinDelta = 0.0;
 				crossDiagMinEnclosed = 0.0;
+				dimRedBackSym=0;
+				margin=0.0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;
 				iterationCount=0;
 				iterationLimit=0;

@@ -1,5 +1,6 @@
 
-;; modified  from svn rev 66
+
+;; modified  from svn rev 66 of
 ;; URL: http://seanmcl-ocaml-lib.googlecode.com/svn/trunk/workshop/software/emacs 
 ;; author Sean McLaughlin
 
@@ -17,11 +18,28 @@
   (recenter)
   (other-window 1))
 
+;;
+
+(defun hol-light-insert-proof()
+  "Insert template for a prove_by_refinement "
+  (interactive)
+  (insert "let # = prove_by_refinement(\n")
+  (insert "  `#`,\n")
+  (insert "  (* {{{ proof *)\n")
+  (insert "  [\n")
+  (insert "  #\n")
+  (insert "  ]);;\n")
+  (insert "  (* }}} *)\n")
+  (previous-line 7)
+  (search-forward "#"))
+
 ;;----------------------------------------------------------------------------;;
 ;; Fix Hol-Light Mode                                                         ;;
 ;;----------------------------------------------------------------------------;;
 
 (defun hol-light-run-process-if-needed ()
+  "Start hol-light process if needed"
+  (interactive)
   (if (not (comint-check-proc hol-light-interactive-buffer-name))
       (let ((hol-light-interactive-program 
              (read-shell-command "Caml toplevel to run: "
@@ -35,6 +53,7 @@
   "Eval the string in the Caml toplevel."
   (interactive "s")
   (save-excursion (hol-light-run-process-if-needed))
+  (hol-light-interrupt-caml) ; added thales 2010-07.
   (comint-preinput-scroll-to-bottom)
   (save-excursion
     (set-buffer hol-light-interactive-buffer-name)
@@ -402,8 +421,8 @@
     (local-set-key "\C-c\C-f\C-t" 'hol-light-fold-test)
 
     ;; g
-    (local-set-key "\C-cg" 'hol-light-goal-types)
-    (local-set-key "\C-c\C-g" 'hol-light-make-goal)
+    (local-set-key "\C-c\C-g" 'keyboard-quit)
+    (local-set-key "\C-cg" 'hol-light-make-goal)
 
     ;; h
     (local-set-key "\C-c\C-h" 'hol-light-help-word)
@@ -429,12 +448,14 @@
 
     ;; r
     (local-set-key "\C-c\C-r" 'hol-light-tactic-region)
-    (local-set-key "\C-cr" 'hol-light-restart-goal)
+    (local-set-key "\C-cr" 'hol-light-eval-region)
+    ;(local-set-key "\C-cr" 'hol-light-restart-goal)
 
     ;; s
     (local-set-key "\C-c\C-s" 'hol-light-frees)
 
     ;; t
+    (local-set-key "\C-ct" 'hol-light-goal-types)
     (local-set-key "\C-c\C-t\C-l" 'hol-light-tactic-line)
     (local-set-key "\C-c\C-t\C-r" 'hol-light-tactic-region)
     (local-set-key "\C-c\C-t\C-w" 'hol-light-tactic-word)

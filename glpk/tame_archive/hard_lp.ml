@@ -17,6 +17,8 @@ module Hard_lp = struct
 (* code for the hard cases... *)
 
 let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+let glpk_dir = 
+ Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "glpk";;
 (* 
 #use "glpk_link.ml";;
 #use "tame_archive/lpproc.ml";;

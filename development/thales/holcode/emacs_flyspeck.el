@@ -1,12 +1,10 @@
 ;
 ; C-x C-e to evaluate
 
-(setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
-(hol-light-run-process-if-needed)
-(setq hol-light-interactive-buffer-name "*n30*")
-(setq hol-light-interactive-buffer-name "*n25*")
-(setq hol-light-interactive-buffer-name "*n26*")
 
+(hol-light-run-process-if-needed)
+
+(setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*d7*")
 (setq hol-light-interactive-buffer-name "*d13*")
 

@@ -71,7 +71,6 @@ let ampl_datafile = Filename.temp_file "ampl_datafile_" ".dat";;  (* only used f
 
 let glpk_outfile = Filename.temp_file "glpk_outfile_" ".out";;
 
-
 let make_model() = 
   (Sys.chdir(tame_dir);
 Sys.command("cp head.mod "^model^"; cat "^(!modelbody)^"  >> "^

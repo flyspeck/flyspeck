@@ -1,5 +1,5 @@
 # File automatically generated from nonlinear inequality list via lpstring().
-
+# Edited by hand Dec 18, 2010 for experimental run, see comment below.
 
 ineq156 'ID[3137600529]' 
   { (i,j) in apex_flat_h } : 
@@ -433,8 +433,8 @@ ineq241 'ID[5735387903]'
 
 ineq242 'ID[9563139965]' 
   { (i,j) in dart4_diag3_b } : 
-  ((tau[j]) - 0.496) >= 0.0;
-
+  ((tau[j]) - 0.467) >= 0.0;
+# constant edited Dec 18, 2010 for  experimental run.
 
 ineq243 'ID[7676202716]' 
   { (i,j) in dart4_diag3_b } : 

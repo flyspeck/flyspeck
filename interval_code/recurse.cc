@@ -383,7 +383,7 @@ static cellOption::cellStatus
 			if (sgn(T[i]->tangentVectorOf().partial(j))==0) mixedsign = 1;
 			}
 		if (mixedsign) { mixedsign=0; i++; continue; }
-		cn = I[i]->tangentAt(domain(yyn)); cu= I[i]->tangentAt(domain(yu));
+		cn = I[i]->tangentAtEstimate(domain(yyn)); cu= I[i]->tangentAtEstimate(domain(yu));
 		if ((min(cn.low(),cu.low())>0.0)&&
 			(sameSgn(T[i]->tangentVectorOf(),cn))&&
 			sameSgn(T[i]->tangentVectorOf(),cu))
@@ -416,7 +416,7 @@ static cellOption::cellStatus
 			if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
 			}
 		if (mixedsign) { mixedsign=0; continue; }
-		cn = I[i]->tangentAt(domain(yyn)); cu= I[i]->tangentAt(domain(yu));
+		cn = I[i]->tangentAtEstimate(domain(yyn)); cu= I[i]->tangentAtEstimate(domain(yu));
 		if ((max(cn.hi(),cu.hi())< -margin)&&
 			(sameSgn(T[i]->tangentVectorOf(),cn))&&sameSgn(T[i]->tangentVectorOf(),cu))
 			{
@@ -827,8 +827,8 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
 			if (s==0) mixedsign= 1;
 			}
 		if (mixedsign) { mixedsign=0; continue; }
-		tAn = IA[i]->tangentAt(yAn); tAu= IA[i]->tangentAt(yAu);
-		tBn = IB[i]->tangentAt(yBn); tBu= IB[i]->tangentAt(yBu);
+		tAn = IA[i]->tangentAtEstimate(yAn); tAu= IA[i]->tangentAtEstimate(yAu);
+		tBn = IB[i]->tangentAtEstimate(yBn); tBu= IB[i]->tangentAtEstimate(yBu);
 		double temp_margin = min(-tAn.hi()-tBn.hi(),-tAu.hi()-tBu.hi());
 		if ((temp_margin > margin)
 			&&(sameSgnQ(tA[i]->tangentVectorOf(),tB[i]->tangentVectorOf(),tAn,tBn))
@@ -864,8 +864,8 @@ static int breaksapart(int depth, // all inputs are left unchanged.
 	/* initialize center */ {
 	centerform(xA,zA,yA,wA);
 	centerform(xB,zB,yB,wB);
-	tA=IA[0]->tangentAt(yA);
-	tB=IB[0]->tangentAt(yB);
+	tA=IA[0]->tangentAtEstimate(yA);
+	tB=IB[0]->tangentAtEstimate(yB);
 	}
 
 	/* exit if domain is too large */ {
@@ -891,8 +891,8 @@ static int breaksapart(int depth, // all inputs are left unchanged.
 		yBn[u]= (sgnB>=0 ? xB[u] : zB[u]);
 		yBu[u]= (sgnB>=0 ? zB[u] : xB[u]);
 		}
-	tAn=IA[0]->tangentAt(yAn); tAu=IA[0]->tangentAt(yAu);
-	tBn=IB[0]->tangentAt(yBn); tBu=IB[0]->tangentAt(yBu);
+	tAn=IA[0]->tangentAtEstimate(yAn); tAu=IA[0]->tangentAtEstimate(yAu);
+	tBn=IB[0]->tangentAtEstimate(yBn); tBu=IB[0]->tangentAtEstimate(yBu);
 	if (!(sameSgnQ(tA,tB,tAn,tBn))) return 0;
 	if (!(sameSgnQ(tA,tB,tAu,tBu))) return 0;
 	if (interMath::sup(tAu.f + tBu.f) > - fabs(margin))  { return 0; }

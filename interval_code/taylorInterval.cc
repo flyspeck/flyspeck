@@ -69,7 +69,7 @@ private:
   int (*setAbsSecond)(const domain& x,const domain& z,double [6][6]);
   
 public:
-  lineInterval tangentAt(const domain& x) const { return (*hfn)(x); }
+  lineInterval tangentAtEstimate(const domain& x) const { return (*hfn)(x); }
   taylorInterval evalf4(const domain& w,const domain& x,
 			const domain& y,const domain& z) const;
   primitiveA(lineInterval (*)(const domain& ),
@@ -215,7 +215,7 @@ private:
   int n[6];
   
 public:
-  lineInterval tangentAt(const domain& x) const { return tangent_of_monom(x,n); }
+  lineInterval tangentAtEstimate(const domain& x) const { return tangent_of_monom(x,n); }
   taylorInterval evalf4(const domain& w,const domain& x,
 			const domain& y,const domain& z) const {
     return taylor_of_monom(w,x,y,z,n);
@@ -244,7 +244,7 @@ private:
   
 public:
   
-  lineInterval tangentAt(const domain& x) const ;
+  lineInterval tangentAtEstimate(const domain& x) const ;
   
   taylorInterval evalf4(const domain& w,const domain& x,
 			const domain& y,const domain& z) const;
@@ -252,7 +252,7 @@ public:
   primitive_univariate(const univariate&x, int slot0 ) { f = &x; slot = slot0; };
 };
 
-lineInterval primitive_univariate::tangentAt(const domain& x) const {
+lineInterval primitive_univariate::tangentAtEstimate(const domain& x) const {
   static interval zero("0");
   lineInterval a;
   double y = x.getValue(slot);
@@ -269,7 +269,7 @@ taylorInterval primitive_univariate::evalf4(const domain& w,const domain& x,
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j]=0.0; }
   interval t(x.getValue(slot),z.getValue(slot));
   DD[slot][slot] = dabs(f->eval(t,2));
-  taylorInterval a(primitive_univariate::tangentAt(y),w,DD);
+  taylorInterval a(primitive_univariate::tangentAtEstimate(y),w,DD);
   return a;
 }
 
@@ -293,7 +293,7 @@ private:
   
 public:
   
-  lineInterval tangentAt(const domain& x) const ;
+  lineInterval tangentAtEstimate(const domain& x) const ;
   
   taylorInterval evalf4(const domain& w,const domain& x,
 			const domain& y,const domain& z) const;
@@ -318,16 +318,16 @@ primitiveC::primitiveC
   p6 = p60;
 };
 
-lineInterval primitiveC::tangentAt(const domain& x) const
+lineInterval primitiveC::tangentAtEstimate(const domain& x) const
 {
-  if (!hdr) { error::fatal ("tangentAt: function expected, returning 0");   }
+  if (!hdr) { error::fatal ("tangentAtEstimate: function expected, returning 0");   }
   lineInterval pv[6];
-  pv[0] = p1->tangentAt(x);
-  pv[1] = p2->tangentAt(x);
-  pv[2] = p3->tangentAt(x);
-  pv[3] = p4->tangentAt(x);
-  pv[4] = p5->tangentAt(x);
-  pv[5] = p6->tangentAt(x);
+  pv[0] = p1->tangentAtEstimate(x);
+  pv[1] = p2->tangentAtEstimate(x);
+  pv[2] = p3->tangentAtEstimate(x);
+  pv[3] = p4->tangentAtEstimate(x);
+  pv[4] = p5->tangentAtEstimate(x);
+  pv[5] = p6->tangentAtEstimate(x);
   // calculate narrow value range of pv[i].
   double a[6], b[6];
   for (int i=0;i<6;i++) {
@@ -376,45 +376,66 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
     p6->evalf4(w,x,y,z)};
   
   // calculate wide value range of pv[i], 
-  double a[6], b[6];
+  double aw[6], bw[6];
   for (int i =0;i<6;i++) {
-    a[i] = pv[i].lowerBound(); b[i] = pv[i].upperBound(); 
+    aw[i] = pv[i].lowerBound(); bw[i] = pv[i].upperBound(); 
   }
-  domain aW(a);
-  domain bW(b);
+
   // calculate narrow value range of pv[i].
+  double a[6],b[6];
   for (int i=0;i<6;i++) {
     a[i]=pv[i].tangentVectorOf().low(); b[i] =pv[i].tangentVectorOf().hi();
   }
-  domain aN(a);
-  domain bN(b);
   
-  // value of outer function
-  taylorInterval fW = hdr->evalf(aW,bW);
-  taylorInterval fN = hdr->evalf(aN,bN);
-  // derivatives of outer function
-  interval fW_partial[6]; // wide partials (over entire domain)
-  interval fN_partial[6]; // narrow partials (at interval image of a point)
-  interval pW_partial[6][6]; // function i, partial j.
-  interval pN_partial[6][6];  
+  // choose an expansion point u near p(y), and widths wu for image of p1,...,p6 under y
+  double u[6],wu[6],wf[6];
+  interMath::up();
   for (int i=0;i<6;i++) {
-    interval tW(fW.lowerPartial(i),fW.upperPartial(i));
-    fW_partial[i] = tW;
-    interval tN(fN.lowerPartial(i),fN.upperPartial(i));
-    fN_partial[i] = tN;
-    for (int j=0;j<6;j++) {
-      interval uW(pv[i].lowerPartial(j),pv[i].upperPartial(j));
-      pW_partial[i][j] = uW;
-      pN_partial[i][j] = pv[i].tangentVectorOf().partial(j);
+    u[i] =(b[i] + a[i] )/2.0;
+    wf[i] = max(b[i]-u[i],u[i]-a[i]);  // narrow w
+    wu[i] = max(bw[i]-u[i],u[i]-aw[i]); // wide w.
+  }
+  taylorInterval fu = hdr->evalf4(wu,aw,u,bw);
+
+  // now compute interval tangentVector of f (at exact point p(y) as opposed to approximation u)
+  lineInterval fpy;
+  {
+    taylorInterval t(fu.tangentVectorOf(),wf,fu.DD); // narrow adjustment from p(y) to u.
+    interval v(t.lowerBound(),t.upperBound());
+    fpy.f = v;
+    for (int i=0;i<6;i++)  {
+      interval r(t.lowerPartial(i),t.upperPartial(i));
+      fpy.Df[i] = r;
     }
   }
+
   // apply chain rule to compute narrow first derivative data.
-  interval cN_partial[6];
+  lineInterval lin;  {
+    lin.f = fpy.f;
   static interval zero("0");
+  for (int i=0;i<6;i++)     lin.Df[i] = zero; 
+  for (int j=0;j<6;j++) {
+    if ((fpy.Df[j].zero())) continue;
+    for (int i=0;i<6;i++)
+      {
+	interval r = pv[j].tangentVectorOf().partial(i);
+	if (!(r.zero()))
+	  lin.Df[i]  = lin.Df[i] + fpy.Df[j] * r;
+      }
+  }}
+
+  // initialize second derivative data.
+  double fW_partial_dabs[6]; // abs value of wide partials (over entire domain)
+  double pW_partial_dabs[6][6]; // abs of function p i, partial j.
   for (int i=0;i<6;i++) {
-    cN_partial[i] = zero;
-    for (int j=0;j<6;j++) { cN_partial[i]  =cN_partial[i] + fN_partial[j] * pN_partial[j][i]; }
+    interval tW(fu.lowerPartial(i),fu.upperPartial(i));
+    fW_partial_dabs[i] = dabs( tW);
+    for (int j=0;j<6;j++) {
+      interval uW(pv[i].lowerPartial(j),pv[i].upperPartial(j));
+      pW_partial_dabs[i][j] = dabs(uW);
+    }
   }
+
   // apply chain rule to compute bound on second derivative data. 
   // This is the "wide" part of the calc.
   // Often, many terms in the 4-nested loop are zero.
@@ -424,31 +445,31 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
       for (int k=0;k<6;k++) {
 	if (pv[k].DD[i][j] != 0.0) 
-	  DcW[i][j] = DcW[i][j] +  dabs(fW_partial[k]) * pv[k].DD[i][j];
+	  DcW[i][j] = DcW[i][j] +  fW_partial_dabs[k] * pv[k].DD[i][j];
       }}
   int Nki = 0;
   int Nmj = 0;
   int kk[36], ii[36], jj[36], mm[36];
   double rki[36], rmj[36];
   for (int i=0;i<6;i++) for (int k=0;k<6;k++) {
-      if (!((0.0==pW_partial[k][i].hi) && (0.0==pW_partial[k][i].lo))) {
-      rki[Nki] = dabs(pW_partial[k][i]); kk[Nki]= k; ii[Nki]= i; Nki++;
+      if (!(0.0==pW_partial_dabs[k][i])) {
+      rki[Nki] = pW_partial_dabs[k][i]; kk[Nki]= k; ii[Nki]= i; Nki++;
       if (Nki > 36) { error::fatal("Nki out of range "); }
       }}
   for (int j=0;j<6;j++)  for (int m=0;m<6;m++) {
-      if (!((0.0==pW_partial[m][j].hi) && (0.0==pW_partial[m][j].lo))) {
-      rmj[Nmj] = dabs(pW_partial[m][j]); mm[Nmj]= m; jj[Nmj]= j; Nmj++;
+      if (!(0.0==pW_partial_dabs[m][j])) {
+      rmj[Nmj] = pW_partial_dabs[m][j]; mm[Nmj]= m; jj[Nmj]= j; Nmj++;
       if (Nmj > 36) { error::fatal("Nmj out of range "); }
       }}
   interMath::up();
   for (int ki=0;ki<Nki;ki++) 
     for (int mj=0;mj<Nmj;mj++) 
-      { DcW[ii[ki]][jj[mj]] = DcW[ii[ki]][jj[mj]] + fW.DD[kk[ki]][mm[mj]] * rki[ki] * rmj[mj];    }
+      { DcW[ii[ki]][jj[mj]] = DcW[ii[ki]][jj[mj]] + fu.DD[kk[ki]][mm[mj]] * rki[ki] * rmj[mj];    }
 
   // debug: 
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
-      if (fW.DD[i][j]<0.0) { cout << endl << i << " " << j << " " << fW.DD[i][j] << endl;
-	error::fatal("DD neg fW.DD in primitive C"); }
+      if (fu.DD[i][j]<0.0) { cout << endl << i << " " << j << " " << fu.DD[i][j] << endl;
+	error::fatal("DD neg fu.DD in primitive C"); }
     }
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) for (int k=0;k<6;k++) { 
 	if (pv[k].DD[i][j]<0.0) { cout << endl << i << " " << j << " " << k << " " << pv[k].DD[i][j]  << endl;
@@ -460,11 +481,6 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
     }
 
   // wrapup.
-  lineInterval lin;
-  lin.f = fN.tangentVectorOf().f;
-  for (int i=0;i<6;i++) {
-    lin.Df[i] = cN_partial[i];
-  }
   taylorInterval ch(lin,w,DcW);
   return ch;
 };
@@ -2117,7 +2133,7 @@ taylorInterval taylorInterval::plus
 taylorInterval taylorInterval::scale
 (const taylorInterval& t1,const interval& c)
 {
-  double absC = dabs(c); // interMath::sup(interMath::max(c,-c));
+  double absC = dabs(c); 
   double DD[6][6];
   interMath::up();
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) 
@@ -2290,11 +2306,11 @@ taylorInterval taylorFunction::evalf
   return taylorFunction::evalf4(wD,x,yD,z);
 }
 
-lineInterval taylorFunction::tangentAt(const domain& x) const {
+lineInterval taylorFunction::tangentAtEstimate(const domain& x) const {
   lineInterval t;
   lineInterval temp;
   for (mapPrim::const_iterator ia = this->data.begin();ia!=this->data.end();++ia) {
-    temp =  ((primitive*)(ia->first))->tangentAt(x);
+    temp =  ((primitive*)(ia->first))->tangentAtEstimate(x);
     t.f = t.f + temp.f * ia -> second;
     for (int i=0;i<6;i++) { t.Df[i] = t.Df[i] + temp.Df[i] * ia->second; }
   }
@@ -2527,7 +2543,7 @@ void taylorFunction::selfTest()
   }
   
   
-  /*test +,*,evalf,tangentAt */{
+  /*test +,*,evalf,tangentAtEstimate */{
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     domain z(4.11,4.22,4.33,4.44,4.55,4.66);
     taylorFunction f = taylorSimplex::x1*"17" + taylorSimplex::x2*"2";
@@ -2544,7 +2560,7 @@ void taylorFunction::selfTest()
       cout << " t.upperPartial(1)= " << t.upperPartial(1) << endl;
     if (!epsilonClose(t.lowerPartial(1),"2",1.0e-15))
       cout << " t.lowerPartial(1)= " << t.lowerPartial(1) << endl;
-    lineInterval L = f.tangentAt(x);
+    lineInterval L = f.tangentAtEstimate(x);
     if (!epsilonClose(L.hi(),"78.1",1.0e-13))
       cout << " L.hi() = " << L.hi() << endl;
     if (!epsilonClose(L.low(),"78.1",1.0e-13))
@@ -3642,9 +3658,9 @@ testDataY[DihTemplateBY, xD]
 
 
     
-    lineInterval al = a.tangentAt(x);
-    lineInterval bl = b.tangentAt(x);
-    lineInterval cl = c.tangentAt(x);
+    lineInterval al = a.tangentAtEstimate(x);
+    lineInterval bl = b.tangentAtEstimate(x);
+    lineInterval cl = c.tangentAtEstimate(x);
     //Mathematica values.
     double p[6]={-0.38640611319175094,-0.30583249983684146,
 		 0.2592175068905934 ,

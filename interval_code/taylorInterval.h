@@ -138,7 +138,7 @@ static double lowerboundQ
 class primitive {
 
  public:
-  virtual lineInterval tangentAt(const domain& x) const =0;
+  virtual lineInterval tangentAtEstimate(const domain& x) const =0;
 
   virtual taylorInterval evalf4(const domain& w,const domain& x,
 		const domain& y,const domain& z) const =0;
@@ -278,19 +278,20 @@ taylorInterval evalf(const domain& x,const domain& z) const;
 
 	//////////
 	// Evaluate a taylorFunction
-        // precondition: The domain x--z is contained in the rectangle center y width w.
-        // postcondition: The evaluation is at center y, 
+        // precondition: The domain is x--z.
+        // precondition: y is some point in the domain.
+        // precondition for each i,  max(y[i]-x[i],z[i]-y[i]) <= w[i].
+        // postcondition: The evaluation is at point y in the domain. 
         // post: 2nd derivative bounds hold on x--z.
 	//
 
  taylorInterval evalf4(const domain& w,const domain& x,
 		       const domain& y,const domain& z) const;
 
-
 	//////////
-	// Evaluate a taylorFunction at a single point x
+	// Estimate a taylorFunction at a single point x.  Used in heuristics in recurse.cc
 	// 
-lineInterval tangentAt(const domain&) const;
+lineInterval tangentAtEstimate(const domain&) const;
 
 	//////////
 	//

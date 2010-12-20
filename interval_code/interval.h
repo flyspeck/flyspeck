@@ -157,6 +157,11 @@ public:
 		//
 	inline int operator==(interval) const;  // identically =
 
+		//////////
+		//  Is zero boolean check.
+		//
+	inline int zero() const;
+
 		////////
 		// Output an interval.  The endpoints of the interval are printed
 		// with the precision set at 18 digits.

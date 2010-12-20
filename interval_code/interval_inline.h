@@ -30,6 +30,9 @@ inline interval::interval(double a,double b)
 inline int interval::operator==(interval a) const
         { return ((a.lo==lo)&&(a.hi==hi)); }
 
+inline int interval::zero() const
+        { return ((lo==0.0)&&(hi==0.0)); }
+
 inline int interval::operator<(interval a) const
 	{ return (hi<a.lo); }
 

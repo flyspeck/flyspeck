@@ -1,0 +1,57 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>monotonicity_theorems : thm list ref</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+List of monotonicity theorems for inductive definitions package.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+The various tools for making inductive definitions, such as
+<SPAN CLASS=BRKT>new_inductive_definition</SPAN>, need to prove certain `monotonicity'
+side-conditions. They attempt to do so automatically by using various
+pre-proved theorems asserting the monotonicity of certain operators. Normally,
+all this happens smoothly without user intervention, but if the inductive
+definition involves new operators, you may need to augment this list with
+corresponding monotonicity theorems.
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+Not applicable.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+Suppose we define a `lexical order' construct:
+<DIV class=XMPL><PRE>
+  # let LEX = define
+     `(LEX(<<) [] l <=> F) /\
+      (LEX(<<) l [] <=> F) /\
+      (LEX(<<) (CONS h1 t1) (CONS h2 t2) <=>
+            if h1 << h2 then LENGTH t1 = LENGTH t2
+            else (h1 = h2) /\ LEX(<<) t1 t2)`;;
+</PRE></DIV>
+If we want to make an inductive definition that uses this --- for example a
+lexicographic path order on a representation of first-order terms --- we need
+to add a theorem asserting that this operation is monotonic. To prove it, we
+first establish a lemma:
+<DIV class=XMPL><PRE>
+  # let LEX_LENGTH = prove
+     (`!l1 l2 R. LEX(R) l1 l2 ==> (LENGTH l1 = LENGTH l2)`,
+      REPEAT(LIST_INDUCT_TAC THEN SIMP_TAC[LEX]) THEN ASM_MESON_TAC[LENGTH]);;
+</PRE></DIV>
+and hence derive monotonicity:
+<DIV class=XMPL><PRE>
+  # let MONO_LEX = prove
+     (`(!x:A y:A. R x y ==> S x y) ==> LEX R x y ==> LEX S x y`,
+      DISCH_TAC THEN
+      MAP_EVERY (fun t -> SPEC_TAC(t,t)) [`x:A list`; `y:A list`] THEN
+      REPEAT(LIST_INDUCT_TAC THEN REWRITE_TAC[LEX]) THEN
+      ASM_MESON_TAC[LEX_LENGTH]);;
+</PRE></DIV>
+We can now make the inductive definitions package aware of it by:
+<DIV class=XMPL><PRE>
+  # monotonicity_theorems := MONO_LEX::(!monotonicity_theorems);;
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="new_inductive_definition.html">new_inductive_definition</A>.
+
+
+</DL>

@@ -1,0 +1,74 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>MAP_FIRST : ('a -&gt; tactic) -&gt; 'a list -&gt; tactic</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Applies first tactic that succeeds in a list given by mapping a function over a
+list.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+When applied to a tactic-producing function <SPAN CLASS=BRKT>f</SPAN> and an operand list
+<SPAN CLASS=BRKT>[x1;...;xn]</SPAN>, the elements of which have the same type as <SPAN CLASS=BRKT>f</SPAN>'s domain
+type, <SPAN CLASS=BRKT>MAP_FIRST</SPAN> maps the function <SPAN CLASS=BRKT>f</SPAN> over the list, producing a list of
+tactics, then tries applying these tactics to the goal till one succeeds.
+If <SPAN CLASS=BRKT>f(xm)</SPAN> is the first to succeed, then the overall effect is the same
+as applying <SPAN CLASS=BRKT>f(xm)</SPAN>. Thus:
+<DIV class=XMPL><PRE>
+   MAP_FIRST f [x1;...;xn] = (f x1) ORELSE ... ORELSE (f xn)
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+The application of <SPAN CLASS=BRKT>MAP_FIRST</SPAN> to a function and tactic list fails iff
+the function does when applied to any of the elements of the list. The
+resulting tactic fails iff all the resulting tactics fail when
+applied to the goal.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+Using the definition of integer-valued real numbers:
+<DIV class=XMPL><PRE>
+  # needs "Library/floor.ml";;
+</PRE></DIV>
+we have a set of `composition' theorems asserting that the predicate
+is closed under various arithmetic operations:
+<DIV class=XMPL><PRE>
+  # INTEGER_CLOSED;;
+  val it : thm =
+    |- (!n. integer (&amp;n)) /\
+       (!x y. integer x /\ integer y ==> integer (x + y)) /\
+       (!x y. integer x /\ integer y ==> integer (x - y)) /\
+       (!x y. integer x /\ integer y ==> integer (x * y)) /\
+       (!x r. integer x ==> integer (x pow r)) /\
+       (!x. integer x ==> integer (--x)) /\
+       (!x. integer x ==> integer (abs x))
+</PRE></DIV>
+if we want to prove that some composite term has integer type:
+<DIV class=XMPL><PRE>
+  # g `integer(x) /\ integer(y)
+       ==> integer(&amp;2 * (x - &amp;1) pow 7 + &amp;11 * (y + &amp;1))`;;
+  ...
+  # e(REPEAT STRIP_TAC);;
+  val it : goalstack = 1 subgoal (1 total)
+
+   0 [`integer x`]
+   1 [`integer y`]
+
+  `integer (&amp;2 * (x - &amp;1) pow 7 + &amp;11 * (y + &amp;1))`
+</PRE></DIV>
+A direct proof using <SPAN CLASS=BRKT>ASM_MESON_TAC[INTEGER_CLOSED]</SPAN> works fine. However if we
+want to control the application of composition theorems more precisely we
+might do:
+<DIV class=XMPL><PRE>
+  # let INT_CLOSURE_TAC =
+      MAP_FIRST MATCH_MP_TAC (CONJUNCTS(CONJUNCT2 INTEGER_CLOSED)) THEN
+      TRY CONJ_TAC;;
+</PRE></DIV>
+and then could solve the goal by:
+<DIV class=XMPL><PRE>
+  e(REPEAT INT_CLOSURE_TAC THEN ASM_REWRITE_TAC[CONJUNCT1 INTEGER_CLOSED]);;
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="EVERY.html">EVERY</A>, <A href="FIRST.html">FIRST</A>, <A href="MAP_EVERY.html">MAP_EVERY</A>, <A href="ORELSE.html">ORELSE</A>.
+
+
+</DL>

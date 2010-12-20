@@ -445,7 +445,7 @@ void stats(int force) {
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
   if (time(0) - starting_time > TIMEOUT) {
-    error::fatal("time allocation exceeded 4K secs. Bailing out.");
+    error::fatal("time allocation exceeded 40K secs. Bailing out.");
   }
   else if (count(statcounter++,10000)) 
     {
@@ -933,11 +933,11 @@ static int breaksapart(int depth, // all inputs are left unchanged.
 
 void statsQ() {
   static const long starting_time = time(0); //  Time out after this many seconds.
-  static const long TIMEOUT = 40000; //  Time out after this many seconds.
+  static const long TIMEOUT = 60000; //  Time out after this many seconds.
   static int statcounter=0;
   static int linefeed=0;
    if (time(0) - starting_time > TIMEOUT) {
-    error::fatal("time allocation exceeded 4K secs. Bailing out.");
+    error::fatal("time allocation exceeded 50K secs. Bailing out.");
   }
   else if (count(statcounter++,10000)) 
     {

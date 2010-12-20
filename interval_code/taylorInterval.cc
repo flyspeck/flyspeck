@@ -417,17 +417,49 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
   }
   // apply chain rule to compute bound on second derivative data. 
   // This is the "wide" part of the calc.
+  // Often, many terms in the 4-nested loop are zero.
   double DcW[6][6];
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DcW[i][j]= 0.0; }
   interMath::up();
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
-      DcW[i][j]= 0.0;
       for (int k=0;k<6;k++) {
-	DcW[i][j] = DcW[i][j] + dabs(fW_partial[k]) * pv[k].DD[i][j];
-	for (int m=0;m<6;m++) {
-	  DcW[i][j] = DcW[i][j] + fW.DD[k][m] * dabs(pW_partial[k][i]) * dabs(pW_partial[m][j]);
-	}
-      }
+	if (pv[k].DD[i][j] != 0.0) 
+	  DcW[i][j] = DcW[i][j] +  dabs(fW_partial[k]) * pv[k].DD[i][j];
+      }}
+  int Nki = 0;
+  int Nmj = 0;
+  int kk[36], ii[36], jj[36], mm[36];
+  double rki[36], rmj[36];
+  for (int i=0;i<6;i++) for (int k=0;k<6;k++) {
+      if (!((0.0==pW_partial[k][i].hi) && (0.0==pW_partial[k][i].lo))) {
+      rki[Nki] = dabs(pW_partial[k][i]); kk[Nki]= k; ii[Nki]= i; Nki++;
+      if (Nki > 36) { error::fatal("Nki out of range "); }
+      }}
+  for (int j=0;j<6;j++)  for (int m=0;m<6;m++) {
+      if (!((0.0==pW_partial[m][j].hi) && (0.0==pW_partial[m][j].lo))) {
+      rmj[Nmj] = dabs(pW_partial[m][j]); mm[Nmj]= m; jj[Nmj]= j; Nmj++;
+      if (Nmj > 36) { error::fatal("Nmj out of range "); }
+      }}
+  interMath::up();
+  for (int ki=0;ki<Nki;ki++) 
+    for (int mj=0;mj<Nmj;mj++) 
+      { DcW[ii[ki]][jj[mj]] = DcW[ii[ki]][jj[mj]] + fW.DD[kk[ki]][mm[mj]] * rki[ki] * rmj[mj];    }
+
+  // debug: 
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+      if (fW.DD[i][j]<0.0) { cout << endl << i << " " << j << " " << fW.DD[i][j] << endl;
+	error::fatal("DD neg fW.DD in primitive C"); }
     }
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) for (int k=0;k<6;k++) { 
+	if (pv[k].DD[i][j]<0.0) { cout << endl << i << " " << j << " " << k << " " << pv[k].DD[i][j]  << endl;
+	error::fatal("DD neg pv[].DD in primitive C"); }
+    }
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+      if (DcW[i][j]<0.0) { cout << endl<<  i << " " << j << " " << Nki << " " << Nmj << " " << DcW[i][j] << endl;
+	error::fatal("DD neg in primitive C"); }
+    }
+
+  // wrapup.
   lineInterval lin;
   lin.f = fN.tangentVectorOf().f;
   for (int i=0;i<6;i++) {
@@ -1238,6 +1270,8 @@ const taylorFunction taylorSimplex::ldih3_x = taylorFunction::rotate3 (local::ld
 const taylorFunction taylorSimplex::ldih5_x = taylorFunction::rotate5 (local::ldih_x);
 const taylorFunction taylorSimplex::ldih6_x = taylorFunction::rotate6 (local::ldih_x);
 
+const taylorFunction taylorSimplex::lfun_sqrtx1_div2 = local::lfun_sqrtx1_div2;
+
 
 /*implement norm2hhx */
 //(y1 - hminus - hplus)^2 + (y2 - 2)^2 + (y3 - 2)^2 + 
@@ -1984,7 +2018,7 @@ static double taylorError(const domain& w,const double DD[6][6])
       error::message("negative width"); cout << w.getValue(i); }
   }
   for (i=0;i<6;i++) for (j=0;j<6;j++) {
-      if (DD[i][j] < 0.0)  { error::message("negative abs in taylorError"); } 
+      if (DD[i][j] < 0.0)  { error::message("negative DD in taylorError"); } 
     }
   for (i=0;i<6;i++) t = t + (w.getValue(i)*w.getValue(i))*DD[i][i];
   t = t/2.0;

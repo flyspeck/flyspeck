@@ -414,6 +414,7 @@ class taylorSimplex
 	  ldih_x_135_s2,
 	  ldih3_x_135_s2,
 	  ldih5_x_135_s2,
+	  lfun_sqrtx1_div2 ,
 
 	  delta_x_135_s2,
 	  delta_x_126_s2,

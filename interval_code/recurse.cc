@@ -474,9 +474,11 @@ static int count(int i,int j)
 	return (0 == (i % j));
 	}
 
+static long TIMEOUT = 60000; //  Time out after this many seconds.
+
 void stats(int force) {
   static const long starting_time = time(0); //  Time out after this many seconds.
-  static const long TIMEOUT = 60000; //  Time out after this many seconds.
+
   static int statcounter=0;
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
@@ -509,6 +511,7 @@ int prove::recursiveVerifier(int depth,
 		x[j]=xD.getValue(j); z[j]=zD.getValue(j);
 		x0[j]=x0D.getValue(j); z0[j]=z0D.getValue(j);
 		}
+	TIMEOUT = options.timeout;
 	stats(0); 
 	options.augmentIterationCount();
 	if ((options.getIterationLimit()>0)&&
@@ -969,7 +972,6 @@ static int breaksapart(int depth, // all inputs are left unchanged.
 
 void statsQ() {
   static const long starting_time = time(0); //  Time out after this many seconds.
-  static const long TIMEOUT = 60000; //  Time out after this many seconds.
   static int statcounter=0;
   static int linefeed=0;
    if (time(0) - starting_time > TIMEOUT) {
@@ -1002,6 +1004,7 @@ int prove::recursiveVerifierQ(int depth,
 	{
 	double xA[6],xB[6],zA[6],zB[6]; 
 	int i;
+	TIMEOUT = opt.timeout;
 	for (i=0;i<6;i++)
 		{
 		xA[i]=xAd.getValue(i); xB[i]=xBd.getValue(i);

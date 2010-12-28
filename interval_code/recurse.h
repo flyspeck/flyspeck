@@ -86,6 +86,9 @@ public:
     // if set, then we may assume rad2(x1,x2,x3,x4,x5,x6)==2.
     int setRad2;
 
+    // give up after this many seconds.
+    int timeout;
+
     
 
     //////////
@@ -249,6 +252,7 @@ public:
      delta135Min = -1;
      delta135Max= -1;
      setRad2=0;
+     timeout=10000;
 				dimRedBackSym=0;
 				margin=0.0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;

@@ -216,7 +216,7 @@ let native_c = [
   (* -- *)
   "delta_x";"sol_y";"dih_y";"rhazim";
   "lmfun";"lnazim";"hminus";
-  "wtcount3_y";"wtcount6_y";"beta_bump_y";"matan";
+  "wtcount3_y";"wtcount6_y";"beta_bump_y";"matan";"sqp";
   ];;
 
 let autogen = ref[];;
@@ -236,6 +236,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    surfR;surfRy;surfRdyc2;surfy;dih4_y;dih5_y;dih6_y;
    num1;num2;num_combo1;
    flat_term_x;
+   upper_dih_x; (* in test.hl *)
    ];;
 
 
@@ -272,6 +273,7 @@ let get_macro_expand() = (
 		      delta_template_B_x_alt;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
+		      upper_dih_y;gamma23f_test4; (* test *)
    ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;

@@ -1021,3 +1021,83 @@ let make_F23 i3 i5 i6 j =
     let (i3,i5,i6) = List.nth i356list k in
    Parse_ineq.execute_cfsqp (make_F23 i3 i5 i6 j) done done ;;
 
+
+
+(* test upper bound to sqrt with bounded derivatives at 0 *)
+
+let sqp = new_definition `sqp x = 
+    if (x < &1) then
+       &3 / &8 +  (&1 - x) pow 3 * (-- #0.25 + #0.7 * x) +
+	 &3 * x / &4 - x * x/ &8 else sqrt x`;;
+
+
+(* upper bound on dih (when delta_x4 > 0) *)
+
+let upper_dih_x = new_definition `upper_dih_x x1 x2 x3 x4 x5 x6 =
+  (let d = delta_x x1 x2 x3 x4 x5 x6 in
+  let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in (
+   &2 * sqrt x1 * sqp d *
+    matan (&4 * x1 * d / (d4 pow 2) ) / d4))`;;
+
+let upper_dih_y = new_definition `upper_dih_y = y_of_x upper_dih_x`;;
+
+let gamma23f_test4 = new_definition `gamma23f_test4 y1 y2 y3 y4 y5 y6 w1 w2 r f =
+         gamma3f y1 y2 y6 r f / &w1 +
+         gamma3f y1 y3 y5 r f / &w2 +
+         (dih_y y1 y2 y3 y4 y5 y6 -
+          upper_dih_y y1 y2 r r r y6 -
+          upper_dih_y y1 y3 r r r y5) *
+         (vol2r y1 r - vol2f y1 r f) / (&2 * pi)`;;
+
+Sphere.gamma23f;;
+Sphere.matan;;
+Sphere.y_of_x;;
+Parse_ineq.execute_cfsqp
+{
+id = "test";
+ineq = all_forall `ineq [&1,x,&1] (upper_dih_y 
+   #2.6507999999999998 #2.15800282434262058 
+   #2.4635088441806432 #2.10000000000000009 
+   #2.15800282434262058 #2.4635088441806432 > &0)`;
+doc = "";
+tags = [];
+};;
+
+Parse_ineq.execute_cfsqp
+{
+id = "test";
+ineq = all_forall `ineq [&1,x,&1] (upper_dih_x 
+   #7.0267406399999990 #4.6569761898707273 #6.06888 
+   #4.4100000000000004 #4.6569761898707273 #6.06888 > &0)`;
+doc = "";
+tags = [];
+};;
+
+Parse_ineq.execute_cfsqp 
+{
+  id = "test QITNPEA 4003532128 b2";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (#2.1 ,y4, #2.1);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    ((gamma23f y1 y2 y3 y4 y5 y6 1 1 sqrt2 lmfun - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) \/ (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) 
+   )`;
+  doc =   "
+     Note the lower bound on $y_4$ is $2.1$.
+     This is an inequality for $23$-cells used to prove the cluster inequality.
+     We may use monotonicity so that $y_4=2.1$";
+(* Dec 27, 2010 tested to see if it can be split into a left-and-right inequality.  It cannot be done
+    with a correction term of the form 
+    + #0.004 * (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2)  *)
+  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0];Delta126min (0.14-. 1.0e-12);
+	 Delta135min (0.14 -. 1.0e-12)];
+};;
+  
+     

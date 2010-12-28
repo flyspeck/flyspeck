@@ -29,6 +29,11 @@ double safesqrt(double t)
 	if (t<0.0) return 0.0; else return sqrt(t);
 	}
 
+double sqp(double x)
+{
+  return  ( ( x < 1. ) ? ((3. / 8.) + (((real_pow((1. - x),3.)) * ((-0.25) + (0.7 * x))) + ((3. * (x / 4.)) - (x * (x / 8.))))) : (sqrt(x))) ; 
+}
+
 double pos(double t)
 	{
 	return (t>0.0 ? t : 0.0);

@@ -285,6 +285,26 @@ let cpp_template_F c i = Printf.sprintf "&F%s%d" c i;;
 let cpp_template_Fc c len = join_comma 
   (map (cpp_template_F c) (1-- len));;
 
+let rec delta126min = function 
+    | [] -> -1.0
+    | Delta126min t :: _ -> t
+    | _ :: a -> delta126min a;;
+
+let rec delta126max = function 
+    | [] -> -1.0
+    | Delta126max t :: _ -> t
+    | _ :: a -> delta126max a;;
+
+let rec delta135min = function 
+    | [] -> -1.0
+    | Delta135min t :: _ -> t
+    | _ :: a -> delta135min a;;
+
+let rec delta135max = function 
+    | [] -> -1.0
+    | Delta135max t :: _ -> t
+    | _ :: a -> delta135max a;;
+
 let cpp_template_gen = Printf.sprintf "
  char* svn = %s;
  char* ineq_id = %s;
@@ -302,10 +322,23 @@ let cpp_template_gen = Printf.sprintf "
         cellOption opt;
         opt.allowSharp = %d; // sharp
         opt.onlyCheckDeriv1Negative = %d; // checkderiv
+        %s // other options.
 	return prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt); // len
 	}";;
 
-let mk_cpp_proc t s sharp checkderiv= 
+let mk_cpp_proc t s tags = 
+  let sharp = if  mem Sharp tags then 1 else 0 in
+  let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
+  let setrad2 = if mem Set_rad2 tags then "\topt.setRad2 = 1;\n" else "" in
+  let d126min = delta126min tags in
+  let s126min = if (d126min > -1.0) then Printf.sprintf "\topt.delta126Min = %8.16f;\n" d126min else "" in
+  let d126max = delta126max tags in
+  let s126max = if (d126max > -1.0) then Printf.sprintf "\topt.delta126Max = %8.16f;\n" d126max else "" in
+  let d135min = delta135min tags in
+  let s135min = if (d135min > -1.0) then Printf.sprintf "\topt.delta135Min = %8.16f;\n" d135min else "" in
+  let d135max = delta135max tags in
+  let s135max = if (d135max > -1.0) then Printf.sprintf "\topt.delta135Max = %8.16f;\n" d135max else "" in
+  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max in
   let c = map cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
   let (aas,bbs,iis) = f (dest_nonlin t) in
@@ -315,7 +348,7 @@ let mk_cpp_proc t s sharp checkderiv=
   let jaas = join_comma aas in
   let jbbs = join_comma bbs in
   cpp_template_gen svn sq jaas jbbs (cpp_template_t "" iis) 
-    len (cpp_template_Fc "" len) sharp  checkderiv len;;
+    len (cpp_template_Fc "" len) sharp  checkderiv others len;;
 
 
 (* quad clusters *)
@@ -422,7 +455,7 @@ let mk_cppq_proc t s tags =
   let opt_cross = try (  cde_template (cpp ( get_cross_diag_squared is9) )) with _ -> "" in
   let opt_delta_top = try (  cdt_template (cpp ( get_delta_top_squared is9) )) with _ -> "" in
   let backsym = if (mem Dim_red_backsym tags) then "\topt.dimRedBackSym = 1;\n" else "" in
-  let margin = Printf.sprintf "\topt.margin = %f;\n\n" (quad_margin tags) in
+  let margin = Printf.sprintf "\topt.margin = %8.16f;\n\n" (quad_margin tags) in
   let options = opt_cross ^ opt_delta_top ^ backsym^margin in
   cppq_template_gen svn ineq_id xA zA xB zB (cpp_template_t "A" is6A) (cpp_template_t "B" is6B) 
       len (cpp_template_Fc "A" len) len (cpp_template_Fc "B" len) options len ;;
@@ -455,9 +488,9 @@ let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../interval_code/gener
 
 let cpp_tail() = join_lines (load_file  (flyspeck_dir^"/../interval_code/generic_tail.txt"));;
 
-let mkfile_cpp  t s sharp checkderiv = 
+let mkfile_cpp  t s tags  = 
   output_string tmpfile 
-   (join_lines [cpp_header(); (mk_cpp_proc t s sharp checkderiv);cpp_tail()]);;
+   (join_lines [cpp_header(); (mk_cpp_proc t s tags);cpp_tail()]);;
 
 let mkfile_cppq  t s tags =
   output_string tmpfile 
@@ -476,9 +509,7 @@ let compile_cpp () =
   let _ = if quad_cluster then
    mkfile_cppq testineq s tags
   else 
-    let sharp = if  mem Sharp tags then 1 else 0 in
-    let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
-      mkfile_cpp testineq s sharp checkderiv in
+      mkfile_cpp testineq s tags in
   let _ = compile_cpp() in 
   let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto")) or failwith "interval execution error" in
     ();;

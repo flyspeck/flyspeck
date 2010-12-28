@@ -193,7 +193,7 @@ static void moveFirst(const taylorInterval* T[],const taylorFunction* I[],int k)
 static cellOption::cellStatus
 	verifyCell(double x[DIM6],double z[DIM6],double x0[DIM6],double z0[DIM6],
 		const taylorFunction* I[],int& count,
-		cellOption options)
+		cellOption opt)
 	{
 	if (count>MAXcount) 
 		{
@@ -202,21 +202,21 @@ static cellOption::cellStatus
 		return cellOption::inconclusive;
 		}
 
-	if (options.onlyCheckDeriv1Negative) {
+	if (opt.onlyCheckDeriv1Negative) {
 	  if (
-	      //options.isUsingDihMax() || options.isUsingBigFace126() || 
+	      //opt.isUsingDihMax() || opt.isUsingBigFace126() || 
             (count > 1)) {
-	    error::fatal("verifyCell: incompatible options");
+	    error::fatal("verifyCell: incompatible opt");
 	   }
 	}
 
 	taylorInterval dih;   // a pseudo-inequality
 	int dihfail=0;
 	/*
-	if (options.isUsingDihMax()) 
+	if (opt.isUsingDihMax()) 
 		{
 		double x4max;
-		if (edgeBound::x4_upper_from_dih_upper(x,z,options.getDihMax(),x4max))
+		if (edgeBound::x4_upper_from_dih_upper(x,z,opt.getDihMax(),x4max))
 			{
 			if (x4max<x[3]) return cellOption::cellPasses; // empty range.
 			if (z[3]>x4max) z[3] = x4max;
@@ -228,10 +228,46 @@ static cellOption::cellStatus
 		}
 	*/
 
+	/* use "rad2" to compute lower and upper bounds on x4 */ {
+	  if (opt.setRad2) {
+	    try {
+	    double x4max = edgeBound::x4_upper_from_rad2(x);
+	    if (x4max < x[3]) return cellOption::cellPasses;
+	    if (x4max < z[3]) { z[3] = x4max;  }} catch (unstable x) { }
+	    try {
+	      double x4min = edgeBound::x4_lower_from_rad2(z);
+	    if (x4min > z[3]) return cellOption::cellPasses;
+	    if (x4min > x[3]) { x[3] = x4min;  }} catch (unstable x) {} 
+	  }
+	}
+
+	/* use delta126, delta135 to computer lower and upper bounds on edges */ {
+	  if (opt. delta126Min > -1.0) {
+	    try { double x6max = edgeBound::x3_upper_from_delta(opt.delta126Min,x[0],x[1]);
+	    if (x6max < x[5]) return cellOption::cellPasses;
+	    if (x6max < z[5]) { z[5] = x6max; } } catch (unstable x) {}
+	  }
+	  if (opt.delta126Max > -1.0) {
+	    try { double x6min = edgeBound::x3_lower_from_delta(opt.delta126Max,z[0],z[1]);
+	    if (x6min > z[5]) return cellOption::cellPasses;
+	    if (x6min > x[5]) { x[5] = x6min; } } catch (unstable x) {}
+	  }
+	  if (opt. delta135Min > -1.0) {
+	    try { double x5max = edgeBound::x3_upper_from_delta(opt.delta135Min,x[0],x[2]);
+	    if (x5max < x[4]) return cellOption::cellPasses;
+	    if (x5max < z[4]) { z[4] = x5max; } } catch (unstable x) {}
+	  }
+	  if (opt.delta135Max > -1.0) {
+	    try { double x5min = edgeBound::x3_lower_from_delta(opt.delta135Max,z[0],z[2]);
+	    if (x5min > z[4]) return cellOption::cellPasses;
+	    if (x5min > x[4]) { x[4] = x5min; } } catch (unstable x) {}
+	  }
+	}
+
 	taylorInterval eta;	 // a pseudo-inequality.
 	int etafail=0;
 	/*
-	if (options.isUsingBigFace126())
+	if (opt.isUsingBigFace126())
 	  {
 	    try { 
 	      taylorInterval eta = taylorSimplex::eta2_126.evalf(domain(x),domain(z));
@@ -262,7 +298,7 @@ static cellOption::cellStatus
 		{
 		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
 		  T[i]=&Target[i];
-		  if (options.onlyCheckDeriv1Negative) {
+		  if (opt.onlyCheckDeriv1Negative) {
 		    if (T[i]->upperPartial(0)<0.0) { return cellOption::cellPasses; }
 		    if (T[i]->lowerPartial(0)>0.0) { return cellOption::counterexample; }
 		    return cellOption::inconclusive;
@@ -279,7 +315,7 @@ static cellOption::cellStatus
 	static const double epsilon_width = 1.0e-8;
 	if (maxwidth < epsilon_width) 
 		{
-		if (options.getPrintMode()==cellOption::silent) 
+		if (opt.getPrintMode()==cellOption::silent) 
 			return cellOption::counterexample; 
 		report_failure(x,z,"isolated point");
 		cout.precision(20);
@@ -296,8 +332,8 @@ static cellOption::cellStatus
 			  }
 			}
 		cout << flush;
-		(options.allowSharp ? error::inc_corner(): error::message("corner solution failure "));   
-		return (options.allowSharp ? cellOption::cellPasses : cellOption::counterexample);
+		(opt.allowSharp ? error::inc_corner(): error::message("corner solution failure "));   
+		return (opt.allowSharp ? cellOption::cellPasses : cellOption::counterexample);
 		}
 	}
 
@@ -313,7 +349,7 @@ static cellOption::cellStatus
 		}
 	if (count==0) 
 		{
-		if (options.getPrintMode()==cellOption::silent) 
+		if (opt.getPrintMode()==cellOption::silent) 
 			return cellOption::counterexample; 
 		report_failure(x,z,"current inequalities are false");
 		return cellOption::counterexample;
@@ -328,12 +364,12 @@ static cellOption::cellStatus
 		for (int i=0;i<count;i++) if (T[i]->upperPartial(j)>= 0.0) allneg=0; // >= breaks symmetry.
 
 		/*
-		if ((options.isUsingDihMax())&&(allpos+allneg>0))
+		if ((opt.isUsingDihMax())&&(allpos+allneg>0))
 			{
 			// don't flow through the dihMax.
 			if (dihfail) { allpos=allneg=0; }
-			else if ((dih.upperBound()> options.getDihMax())&&
-				 dih.lowerBound()< options.getDihMax())
+			else if ((dih.upperBound()> opt.getDihMax())&&
+				 dih.lowerBound()< opt.getDihMax())
 				{
 				allpos=allneg=0;
 				}
@@ -341,7 +377,7 @@ static cellOption::cellStatus
 		*/
 
 		/*
-		if (options.isUsingBigFace126())
+		if (opt.isUsingBigFace126())
 			{
 			// treat the pseudo-inequality eta2- 2 < 0 :
 			if (etafail) { allpos=allneg=0; }
@@ -397,7 +433,7 @@ static cellOption::cellStatus
 	}
 	if (count==0) 
 		{
-		if (options.getPrintMode()==cellOption::silent) return cellOption::counterexample; 
+		if (opt.getPrintMode()==cellOption::silent) return cellOption::counterexample; 
 		report_failure(x,z,"current inequalities are doubtful");
 		return cellOption::counterexample;
 		}
@@ -1072,6 +1108,8 @@ int prove::recursiveVerifierQ(int depth,
 	    if (z < zzA[3]) { zzA[3] = z; zzB[3] = z; }
 	  }
 	}
+	
+	
  
 
 	// Here is the main line of the procedure.  Check if it verifies. 		//xxA,.. affected.

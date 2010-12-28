@@ -75,6 +75,20 @@ public:
     double crossDiagMinDelta;
 
     //////////
+    // Bounds on DeltaX[2,2,2,x1,x2,x6] and on DeltaX[2,2,2,x1,x3,x5].
+    // Default = -1, means no bound.
+    //
+    double delta126Min;
+    double delta126Max;
+    double delta135Min;
+    double delta135Max;
+
+    // if set, then we may assume rad2(x1,x2,x3,x4,x5,x6)==2.
+    int setRad2;
+
+    
+
+    //////////
     // Boolean flag for quads, to reduce to 8=4x2 extremal cases:
     // x8,x9 extremal, and if both are maximal then x7 is minimal (4 cases).
     // x1 or x5 is minimal (2 cases),
@@ -230,6 +244,11 @@ public:
 				recursionDepth=0;
 				crossDiagMinDelta = 0.0;
 				crossDiagMinEnclosed = 0.0;
+				    delta126Min=-1.0;
+    delta126Max = -1;
+     delta135Min = -1;
+     delta135Max= -1;
+     setRad2=0;
 				dimRedBackSym=0;
 				margin=0.0;
 				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;

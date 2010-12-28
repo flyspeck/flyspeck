@@ -1003,6 +1003,78 @@ double edgeBound::x4_upper_from_top_delta(double xcd_lb,
   return edge_flat2_x(x1,x2,x3,x5,x6);
 }
 
+double edgeBound::x3_upper_from_delta(double deltamin, double x1,double x2)  {
+  // Solve[DeltaX[2, 2, 2, x1, x2, x3] == deltamin, x3] // Last // InputForm
+  interMath::up();
+  double discr = (-8.0)*deltamin + 64.0*x1*x2 + ((- 8.0*x1)*x1)*x2 + (( - 8.0*x1)*x2) * x2 + x1*x1*x2*x2;
+  if (discr < 0.0) { throw unstable::x; };
+  double sqrtd = sqrt(discr);
+  return (4.0*x1 + 4.0*x2 + (-  x1)*x2 +  sqrtd)/4.0;
+}
+
+double edgeBound::x3_lower_from_delta(double deltamax, double z1,double z2)  {
+  // adapted from x3_upper_from_delta
+  interMath::down();
+  double discr = (-8.0)*deltamax + 64.0*z1*z2 + ((- 8.0*z1)*z1)*z2 + (( - 8.0*z1)*z2) * z2 + z1*z1*z2*z2;
+  if (discr < 0.0) { throw unstable::x; }
+  double sqrtd = sqrt(discr);
+  return (4.0*z1 + 4.0*z2 + (-  z1)*z2 +  sqrtd)/4.0;
+}
+
+double edgeBound::x4_lower_from_rad2(double z[6]) {
+  double x1 = z[0]; double x2 = z[1]; double x3 = z[2]; double x5 = z[4]; double x6 = z[5];
+  /* numrad2 = 2 - (Rad @@ 
+    Sqrt[{x1, x2, x3, x4, x5, x6}])^2 // Together // Numerator;
+    Solve[numrad2 == 0, x4] // Last // InputForm */
+  interMath::up();
+  double aup =  (8*x1  + (- x1) * x1);
+  double bup =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
+		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
+  double cup =  ((-8*x1)*x2)*x5 + 8*x2*x2*x5 + 
+    8*x1*x3*x5 + ((- 8*x2)*x3)*x5 + 8*x2*x5*x5 + (((- x2)*x2)*x5)*x5 + 
+    8*x1*x2*x6 + ((- 8*x1)*x3)*x6 + ((- 8*x2)*x3)*x6 + 
+    8*x3*x3*x6 + ((- 8*x2)*x5)*x6 + ((- 8*x3)*x5)*x6 + 
+    2*x2*x3*x5*x6 + 8*x3*x6*x6 + (((- x3)*x3)*x6)*x6; 
+
+  interMath::down();
+  double bdown =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
+		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
+  if (bdown * bup < 0.0)  { throw unstable::x; }
+  double b = ( (bdown > 0.0) ? bdown : bup );
+  double discr = b * b + ( - 4 * cup) * aup;
+  if (discr < 0.0) { throw unstable::x; };
+  return   (- bup +  sqrt(discr  ))/(2.0 * aup );
+
+}
+
+double edgeBound::x4_upper_from_rad2(double x[6]) {
+  double x1 = x[0]; double x2 = x[1]; double x3 = x[2]; double x5 = x[4]; double x6 = x[5];
+  /* reverse rounding from x4_lower... */
+  interMath::down();
+  double adown =  (8*x1  + (- x1) * x1);
+  double bdown =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
+		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
+  double cdown =  ((-8*x1)*x2)*x5 + 8*x2*x2*x5 + 
+    8*x1*x3*x5 + ((- 8*x2)*x3)*x5 + 8*x2*x5*x5 + (((- x2)*x2)*x5)*x5 + 
+    8*x1*x2*x6 + ((- 8*x1)*x3)*x6 + ((- 8*x2)*x3)*x6 + 
+    8*x3*x3*x6 + ((- 8*x2)*x5)*x6 + ((- 8*x3)*x5)*x6 + 
+    2*x2*x3*x5*x6 + 8*x3*x6*x6 + (((- x3)*x3)*x6)*x6; 
+
+  interMath::up();
+  double bup =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
+		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
+  if (bdown * bup < 0.0)  { throw unstable::x; }
+  double b =( (bup > 0.0) ? bup : bdown );
+  double discr = b * b + (- 4 * cdown) * adown;
+  if (discr < 0.0) { throw unstable::x; };
+  return   (- bdown +  sqrt( discr ))/(2.0 * adown );
+
+}
+
 
 
 
@@ -1752,6 +1824,33 @@ void linearization::selfTest() {
 	if ((fabs(u-t)>1.0e-6)||(u<t))
 		cout << "x1supDELTA failed = " << u << endl;
 	}
+
+       /* test x3_upper_from_delta */ {
+	 double deltaval = 0.14;
+	 double x1 = 5.0; double x2 = 5.1;
+         double x3 = 7.439246222317523;
+	 double x3u = edgeBound::x3_upper_from_delta(deltaval,x1,x2);
+	 if ((x3u < x3) || (fabs(x3 -x3u) > 1.0e-9)) {
+	   cout << "x3_upper_from_delta fail " << x3 << " " << x3u << endl;
+	 }
+	 double x3l = edgeBound::x3_lower_from_delta(deltaval,x1,x2);
+	 if ((x3 < x3l) || (fabs(x3-x3l) > 1.0e-9)) {
+	   	   cout << "x3_lower_from_delta fail " << x3l << " " << x3 << endl;
+	 }
+       }
+
+       /* test x4_upper_from_rad2 */ {
+	 double x[6]={5.0,5.01,5.02,5.03,5.04,5.05};
+	 double x4 = 6.585286666119991766;
+	 double x4u = edgeBound::x4_upper_from_rad2(x);
+	 if ((x4u < x4) || (fabs(x4 -x4u) > 1.0e-9)) {
+	   cout << "x4_upper_from_rad2 fail " << x4 << " " << x4u << endl;
+	 }
+	 double x4l = edgeBound::x4_lower_from_rad2(x);
+	 if ((x4 < x4l) || (fabs(x4-x4l) > 1.0e-9)) {
+	   	   cout << "x4_lower_from_rad2 fail " << x4l << " " << x4 << endl;
+	 }
+       }
 
 	/* test shortDiagMax {
 	// test delta branch of procedure:

@@ -188,7 +188,7 @@ interval interMath::sqrt(interval a)
 	interMath::down(); a.lo= (a.lo <= 0.0 ? 0.0 : ::sqrt(a.lo));
 	return a;
 	}
-	
+
 /*
    Now compute the arctangent.  Here there is no IEEE standard to fall back on.
    We use "Computer Approximations", John F. Hart et al. page 125 (s=4)

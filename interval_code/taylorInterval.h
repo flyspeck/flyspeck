@@ -352,6 +352,8 @@ class taylorSimplex
 	  delta,delta_x4,vol_x,sol,rad2,
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  ldih_x,ldih2_x,ldih3_x,ldih5_x,ldih6_x,
+	  upper_dih,
+
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
 	  //	  marchalDih,marchalDih2,marchalDih3,

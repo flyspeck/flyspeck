@@ -91,9 +91,15 @@ univariate(uniprimitive* ) ;
         // matan modified arctan (sqrt x) / (sqrt x).  on (-1,infinty).
         // At 0, matan has a power series 1 - x/3 + x^2/5 ... 
         // with radius of convergence 1
+        //
+        // i_sqp is a spline upper bound on i_sqrt that is C^2 and extends beyond 0.
+        // it is useful as a replacement for i_sqrt near 0.  It is not terribly accurate, but it is
+        // very well behaved.  
+        //
+        // i_sqn is a spline lower bound on i_sqrt.
 	//
  static const univariate i_pow0,i_pow1, i_pow2,i_pow3,i_pow4,i_pow3h2,
-   i_sqrt, i_atan, i_asin,i_acos, i_sin, i_cos, i_inv,
+   i_sqrt, i_sqp, i_sqn,i_atan, i_asin,i_acos, i_sin, i_cos, i_inv,
    i_matan;
 
 	//////////

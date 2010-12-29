@@ -1807,6 +1807,20 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return (t_134 + ft_2 + ft_5);
   };
 
+  // implement upper_dih
+  /*
+  `upper_dih_x x1 x2 x3 x4 x5 x6 =
+  (let d = delta_x x1 x2 x3 x4 x5 x6 in
+  let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in (
+   &2 * sqrt x1 * sqp d *
+    matan (&4 * x1 * d / (d4 pow 2) ) / d4))`;;
+   */
+  static const taylorFunction rdelta_x4 = uni(univariate::i_inv,delta_x4);
+
+  static const  taylorFunction upper_dih = 
+    (y1 * uni (univariate::i_sqp,delta) * rdelta_x4 *
+    uni(univariate::i_matan, ( x1 * delta * uni(univariate::i_pow2, rdelta_x4) ) * four) ) * two;
+
 
 const taylorFunction monomial(int i1,int i2,int i3,int i4,int i5,int i6) {
   return taylorSimplex::monomial(i1, i2,i3,i4,i5,i6);
@@ -1972,6 +1986,9 @@ const taylorFunction taylorSimplex::delta_template_B_x(const interval& x15,const
 					const interval& x34,const interval& x12   ) {
   return local::delta_template_B_x( x15, x45,x34,x12);
 };
+
+const taylorFunction taylorSimplex::upper_dih = local::upper_dih;
+
 
 
 
@@ -3517,8 +3534,21 @@ testDataY[DihTemplateBY, xD]
     }
   }
 
-
-
+/* test upper_dih */  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 1.2160734358595164;
+    double mathValueD[6]={0.051435930789879736,
+   -0.052794842015294,-0.058059927441134945,
+   0.15826981699207354,-0.04529761712139804,
+			  -0.050443306412222735};
+    taylorInterval at = taylorSimplex::upper_dih.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "upper_dih  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "upper_dih D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
   /* test vol3_x_sqrt */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

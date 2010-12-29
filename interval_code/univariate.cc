@@ -82,6 +82,163 @@ static interval DDsqrt(const interval& x) {
 
 static uniprimitive psqrt(usqrt,Dsqrt,DDsqrt);
 
+
+//  sqp
+
+static interval sqp_small(const interval& x) { // monotonic increasing.
+  double t = max(interMath::inf(x),0.0);
+  interMath::down();
+  double st = 1.0/8.0 + (11.0*t)/5.0 + ((- 119.0 * t)*t)/40.0 + (47.0*t*t*t)/20.0 +
+    ((((- 7.0*t)*t)*t)*t)/10.0;
+  double u = min(interMath::sup(x),1.0);
+  interMath::up();
+  double su = 1.0/8.0 + (11.0*u)/5.0 + ((- 119.0 * u)*u)/40.0 + (47.0*u*u*u)/20.0 +
+    ((((- 7.0*u)*u)*u)*u)/10.0;
+  if (su < st) { error::fatal("inverted interval in sqp_small"); }
+  interval s(st,su);
+  return s;
+}
+
+static interval Dsqp_small(const interval& x) { // monotonic decreasing.
+  double t = min(interMath::sup(x),1.0);
+  interMath::down();
+  double st = 11.0/5.0 + (- 119.0*t)/20.0 + (141.0*t*t)/20.0 + (((- 14*t)*t)*t)/5.0;
+  double u = max(interMath::inf(x),0.0);
+  interMath::up();
+  double su = 11.0/5.0 + (- 119.0*u)/20.0 + (141.0*u*u)/20.0 + (((- 14*u)*u)*u)/5.0;
+ interval s(su,st);
+ if (su < st) { error::fatal("inverted interval in Dsqp_small"); }  
+  return s;
+}
+
+static interval DDsqp_small(const interval& x) {  // unique max at (47/56=0.8392...,-0.0330...)
+  double t = max(interMath::inf(x),0.0);
+  double u = min(interMath::sup(x),1.0);
+  ( (t > 0.8393)  ? interMath::up() : interMath::down() );
+  double st = (-119.0)/20.0 + (141.0*t)/10.0 + ((- 42*t) * t)/5.0;
+  ( (u < 0.8392) ? interMath::up() : interMath::down() );
+  double su = (-119.0)/20.0 + (141.0*u)/10.0 + ((- 42*u) * u)/5.0;
+  interval s(min(st,su),max(st,su));
+  if ((t > 0.8393) || (u < 0.8392)) return s; // monotonic regions.
+  // so     t <= 0.8393,  0.8392 <= u,  t <= u, st su both rounded down, v gives upper end.
+ static const interval v("-0.0330357142857142857142857142857");
+ return interMath::combine(v,s);
+}
+
+static interval usqp(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return interMath::sqrt(x);
+  if (interMath::sup(x) <= 1.0) return sqp_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = interMath::sqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = sqp_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+static interval Dusqp(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return Dsqrt(x);
+  if (interMath::sup(x) <= 1.0) return Dsqp_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = Dsqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = Dsqp_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+
+static interval DDusqp(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return DDsqrt(x);
+  if (interMath::sup(x) <= 1.0) return DDsqp_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = DDsqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = DDsqp_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+static uniprimitive psqp(usqp,Dusqp,DDusqp);
+
+// sqn
+
+static interval sqn_small(const interval& x) { // monotonic increasing.
+  double t = max(interMath::inf(x),0.0);
+  interMath::down();
+  double st = (127.0*t)/40.0 + ((-27.0*t)*t)/4.0 + (363.0*t*t*t)/40.0 
+    + ((((- 61.0*t)*t)*t)*t) /10.0 +  (8.0*t*t*t*t*t)/5.0;
+  double u = min(interMath::sup(x),1.0);
+  interMath::up();
+  double su =  (127.0*u)/40.0 + ((-27.0*u)*u)/4.0 + (363.0*u*u*u)/40.0 
+    + ((((- 61.0*u)*u)*u)*u) /10.0 +  (8.0*u*u*u*u*u)/5.0;
+  if (su < st) { error::fatal("inverted interval in sqn_small"); }
+  interval s(st,su);
+  return s;
+}
+
+static interval Dsqn_small(const interval& x) { // monotonic decreasing.
+  double t = min(interMath::sup(x),1.0);
+  interMath::down();
+  double st = 127.0/40.0 + (-27.0*t)/2.0 + (1089.0*t*t)/40.0 
+  +  ((( - 122.0*t)*t)*t)/5.0 + 8.0*t*t*t*t;
+  double u = max(interMath::inf(x),0.0);
+  interMath::up();
+  double su = 127.0/40.0 + (-27.0*u)/2.0 + (1089.0*u*u)/40.0 
+   +  ((( - 122.0*u)*u)*u)/5.0 + 8.0*u*u*u*u;
+ interval s(su,st);
+ if (su < st) { error::fatal("inverted interval in Dsqn_small"); }  
+  return s;
+}
+
+static interval DDsqn_small(const interval& x) {  
+  // increasing on [0,0.6], f[0.6,1.0] subset [-0.47,-0.24].
+  double t = max(interMath::inf(x),0.0);
+  double u = min(interMath::sup(x),1.0);
+  interMath::down();
+  double st = -27.0/2.0 + (1089.0*t)/20.0 + ((- 366.0*t)*t)/5.0 + 32.0*t*t*t;
+  interMath::up();
+  double su =-27.0/2.0 + (1089.0*u)/20.0 + ((- 366.0*u)*u)/5.0 + 32.0*u*u*u;
+  interval s(min(st,su),max(st,su));
+  if (u < 0.6) return s; // monotonic regions.
+  static const interval v(-0.47,-0.24);
+ return interMath::combine(v,s);
+}
+
+static interval usqn(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return interMath::sqrt(x);
+  if (interMath::sup(x) <= 1.0) return sqn_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = interMath::sqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = sqn_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+static interval Dusqn(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return Dsqrt(x);
+  if (interMath::sup(x) <= 1.0) return Dsqn_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = Dsqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = Dsqn_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+
+static interval DDusqn(const interval& x) {
+  if (interMath::inf(x) >= 1.0) return DDsqrt(x);
+  if (interMath::sup(x) <= 1.0) return DDsqn_small(x);
+  interval xplus(1.0,interMath::sup(x));
+  interval splus = DDsqrt(xplus);
+  interval xminus(interMath::inf(x),1.0);
+  interval sminus = DDsqn_small(xminus);
+  return interMath::combine(sminus,splus);
+}
+
+static uniprimitive psqn(usqn,Dusqn,DDusqn);
+
+
+
+
+
 //pow3h2
 
 static interval upow3h2(const interval& x) {
@@ -496,6 +653,8 @@ const univariate univariate::i_pow2(&ppow2);
 const univariate univariate::i_pow3(&ppow3);
 const univariate univariate::i_pow4(&ppow4);
 const univariate univariate::i_sqrt(&psqrt);
+const univariate univariate::i_sqp(&psqp);
+const univariate univariate::i_sqn(&psqn);
 const univariate univariate::i_pow3h2(&ppow3h2);
 const univariate univariate::i_inv(&pinv);
 const univariate univariate::i_atan(&patan);
@@ -530,7 +689,7 @@ static int epsilon3(double* f,const univariate & u) {
 /* (* Mathematica code used for testing *)
 testUni[f_] := Module[{},
       	xsub = {x -> 0.21};
-              Table[D[f, {x, i}], {i, 0, 2}] /. xsub
+              Table[D[f, {x, i}], {i, 0, 2}] /. xsub]
       ];
  */
 void univariate::selfTest() 
@@ -548,6 +707,11 @@ void univariate::selfTest()
         epsilon3(pow4d,univariate::i_pow4);
 	double sqrtd[3]={0.458257569495584,1.0910894511799618,-2.5978320266189567};
         epsilon3(sqrtd,univariate::i_sqrt);
+	double sqpd[3]={0.476204483, 1.23547420, -3.3594400};
+        epsilon3(sqpd,univariate::i_sqp);
+	double sqnd[3]={0.4419086901599999,1.33021258,-4.9972680};
+        epsilon3(sqnd,univariate::i_sqn);
+
 	double pow3h2d[3]={0.09623408959407263,0.687386354243376,1.6366341767699426};
         epsilon3(pow3h2d,univariate::i_pow3h2);
 	double invd[3]={4.761904761904762,-22.67573696145125,215.95939963286907};

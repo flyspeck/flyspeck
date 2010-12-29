@@ -34,6 +34,22 @@ double sqp(double x)
   return  ( ( x < 1. ) ? ((3. / 8.) + (((real_pow((1. - x),3.)) * ((-0.25) + (0.7 * x))) + ((3. * (x / 4.)) - (x * (x / 8.))))) : (sqrt(x))) ; 
 }
 
+/*
+double sql(double x)
+{
+  return  ( ( x < 1. ) ? -0.025 + 3.15*x - 6.125*real_pow(x,2) + 7.6*real_pow(x,3) - 
+	    4.8*real_pow(x,4) + 1.2*real_pow(x,5) : (sqrt(x))) ; 
+}
+*/
+
+double sqn(double x) {
+  if (x <0) return 0;
+  if (x >1.0) return sqrt(x);
+  return 0.375 + (3.0*x)/4.0 - real_pow(x,2)/8.0 - 
+   0.3*real_pow(1.0 - x,3)*real_pow(x,2) + 
+    real_pow(1.0 - x,3)*(-0.375 + 1.3*(1 - x)*x) ;
+}
+
 double pos(double t)
 	{
 	return (t>0.0 ? t : 0.0);
@@ -74,19 +90,36 @@ double U(double a,double b,double c)
         return -a*a-b*b-c*c+2.0*(a*b+b*c+c*a);
        }
 
+double d4(double x1,double x2,double x3,double x4,
+	  double x5, double x6) {
+  return  -(x2*x3) - x1*x4 + x2*x5 + x3*x6 - x5*x6 +
+                        x1*(-x1 + x2 + x3 - x4 + x5 + x6);
+}
+
 double dihedral(double x1,double x2,double x3,double x4,
                 double x5, double x6)
         {
-        double d4 = -(x2*x3) - x1*x4 + x2*x5 + x3*x6 - x5*x6 +
-                        x1*(-x1 + x2 + x3 - x4 + x5 + x6);
-        return safeacos(d4/safesqrt(U(x1,x2,x6)*U(x1,x3,x5)));
+	  double d = d4(x1,x2,x3,x4,x5,x6);
+        return safeacos(d/safesqrt(U(x1,x2,x6)*U(x1,x3,x5)));
         }
+
+
 
 double dih_y(double y1,double y2,double y3,double y4,double y5,
         double y6)
         {
         return dihedral(y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6);
         }
+
+/*
+double upper_dih_y_large(double y1,double y2,double y3,double y4,double y5,
+			 double y6) {
+  double d= delta_y(y1,y2,y3,y4,y5,y6);
+  if (d >1.0) return dih_y (y1,y2,y3,y4,y5,y6);
+  double d_4 = d4(y1 * y1,y2*y2,y3 *y3,y4*y4,y5*y5,y6*y6);
+  return pi() + 2.0 * y1 * sql(d) * matan( 4.0 * y1 * y1 * d/(d_4 *d_4)) / d_4;
+}
+*/
 
 double dih2_y(double y1,double y2,double y3,double y4,double y5,
         double y6)

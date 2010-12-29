@@ -1021,61 +1021,60 @@ let make_F23 i3 i5 i6 j =
     let (i3,i5,i6) = List.nth i356list k in
    Parse_ineq.execute_cfsqp (make_F23 i3 i5 i6 j) done done ;;
 
+(* deprecated *)
+let sql = new_definition `sql x = 
+  if (x < &1)
+  then &3/ &8 + (&3*x)/ &4 - x pow 2 / &8 + 
+    (&1 - x) pow 3 * ((&12/ &10) * x * (&1 - x) - &4/ &10)
+  else sqrt x`;;
 
 
-(* test upper bound to sqrt with bounded derivatives at 0 *)
-
-let sqp = new_definition `sqp x = 
-    if (x < &1) then
-       &3 / &8 +  (&1 - x) pow 3 * (-- #0.25 + #0.7 * x) +
-	 &3 * x / &4 - x * x/ &8 else sqrt x`;;
 
 
-(* upper bound on dih (when delta_x4 > 0) *)
 
-let upper_dih_x = new_definition `upper_dih_x x1 x2 x3 x4 x5 x6 =
+(* deprecated (* upper bound when d4 < 0 *)  *)
+let upper_dih_x_large = new_definition `upper_dih_x_large x1 x2 x3 x4 x5 x6 =
   (let d = delta_x x1 x2 x3 x4 x5 x6 in
   let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in (
-   &2 * sqrt x1 * sqp d *
-    matan (&4 * x1 * d / (d4 pow 2) ) / d4))`;;
+      if (d < &1) then
+   pi +  &2 * sqrt x1 * sql d * matan (&4 * x1 * d / (d4 pow 2) ) / d4
+      else dih_x x1 x2 x3 x4 x5 x6))`;;
 
-let upper_dih_y = new_definition `upper_dih_y = y_of_x upper_dih_x`;;
 
-let gamma23f_test4 = new_definition `gamma23f_test4 y1 y2 y3 y4 y5 y6 w1 w2 r f =
-         gamma3f y1 y2 y6 r f / &w1 +
-         gamma3f y1 y3 y5 r f / &w2 +
-         (dih_y y1 y2 y3 y4 y5 y6 -
-          upper_dih_y y1 y2 r r r y6 -
-          upper_dih_y y1 y3 r r r y5) *
-         (vol2r y1 r - vol2f y1 r f) / (&2 * pi)`;;
 
-Sphere.gamma23f;;
-Sphere.matan;;
-Sphere.y_of_x;;
-Parse_ineq.execute_cfsqp
-{
-id = "test";
-ineq = all_forall `ineq [&1,x,&1] (upper_dih_y 
-   #2.6507999999999998 #2.15800282434262058 
-   #2.4635088441806432 #2.10000000000000009 
-   #2.15800282434262058 #2.4635088441806432 > &0)`;
-doc = "";
-tags = [];
-};;
+(* deprecated *)
+let upper_dih_y_large = new_definition `upper_dih_y_large = y_of_x upper_dih_x_large`;;
 
-Parse_ineq.execute_cfsqp
-{
-id = "test";
-ineq = all_forall `ineq [&1,x,&1] (upper_dih_x 
-   #7.0267406399999990 #4.6569761898707273 #6.06888 
-   #4.4100000000000004 #4.6569761898707273 #6.06888 > &0)`;
-doc = "";
-tags = [];
-};;
+(* deprecated *)
+let vol_xl = new_definition 
+  `vol_xl x1 x2 x3 x4 x5 x6 = sql (delta_x x1 x2 x3 x4 x5 x6) / &12`;;
+
+let vol_yl = new_definition `vol_yl = y_of_x vol_xl`;;
+
+let vol3rl = new_definition `vol3rl y1 y2 y3 r = vol_yl r r r y1 y2 y3`;;
+
+let sol_yu_large = new_definition `sol_yu_large y1 y2 y3 y4 y5 y6 =
+         upper_dih_y y1 y2 y3 y4 y5 y6 +
+         upper_dih_y y2 y3 y1 y5 y6 y4 +
+         upper_dih_y_large y3 y1 y2 y6 y4 y5 - pi`;;
+
+let vol3fu_large = new_definition ` vol3fu_large y1 y2 y3 r f =
+         (&2 * mm1 / pi) *
+         (sol_yu_large y1 y2 r r r y3 + sol_yu_large y2 y3 r r r y1 + sol_yu_large y3 y1 r r r y2) -
+         (&8 * mm2 / pi) *
+         (f (y1 / &2) * upper_dih_y y1 y2 r r r y3 +
+          f (y2 / &2) * upper_dih_y y2 y3 r r r y1 +
+          f (y3 / &2) * upper_dih_y y3 y1 r r r y2)`;;
+
+let gamma3fl_large = new_definition `gamma3fl_large y1 y2 y3 r f = vol3rl y1 y2 y3 r - vol3fu_large y1 y2 y3 r f`;;
+
+
 
 (*
 
 g[x_] := 3/8 + (3*x)/4 - x^2/8  + (1 - x)^3  (0.7 x - 0.25);
+
+lupper = g[x];
 
 Sqp[x_] := If[N[x] < 1, 3/8 + (3*x)/4 - x^2/8  + (1 - x)^3  (0.7 x - 
       0.25), Sqrt[x]];
@@ -1103,7 +1102,172 @@ Dihedral[2.1, 2.2, 2.3, 2.4, 2.5, 2.6]
 
 DeltaX4 @@ ({2.1, 2.2, 2.3, 2.4, 2.5, 2.6}^2)
 
+lower approx to sqrt on [0,1].
+
+llowerDeprecated = 3/8 + (3*x)/4 - x^2/8 + (1 - x)^3 (12/10  x (1 - x) - 4/10);
+
+llower = 3/8 + (3*x)/4 - x^2/8 + (1 - x)^3 (1.3 x (1 - x) - 3/8) - 0.3 x^2(1 - x)^3;
+
+Thm: if y1,y2,y3 >= 2, then Dihedral[sqrt2,y1,y2,y3,sqrt2,sqrt2] >= pi/2,
+  (and delta_x4 <= 0).  Proof: Imagine the cube of side sqrt2. qed.
+  The case of equality delta_x4=0 occurs when y3=2, and y1 or y2=2.
+Thm: if y1,y2,y3 in [2,sqrt8], then Dihedral[y1,y2,sqrt2,sqrt2,sqrt2,y6] <= pi/2
+  (and delta_x4 >= 0).  Proof. The triangle y1,y2,y3 is acute, so the circumcenter lands inside.
 *)
+
+let upper_dih_y = new_definition `upper_dih_y = y_of_x upper_dih_x`;;
+
+let sqn = new_definition `sqn x = 
+  if (x < &1)
+  then #0.375 + (&3*x)/ &4  - (x pow 2)/ &8 -   #0.3*((&1 - x) pow 3)*(x pow 2) + 
+   ((&1 - x) pow 3)*(-- #0.375 + #1.3*(&1 - x)*x) 
+  else sqrt x`;;
+
+let gamma3f_135_test = new_definition `gamma3f_135_test y1 y2 y3 y4 y5 y6 =
+    sqn(delta_y y1 y2 y3 y4 y5 y6) * (&1 / &12 - 
+   ( (&2 * mm1 / pi) *
+         (y_of_x sol_euler_x_div_sqrtdelta y1 y2 y3 y4 y5 y6 
+	  + y_of_x sol_euler156_x_div_sqrtdelta y1 y2 y3 y4 y5 y6 + 
+	  y_of_x sol_euler345_x_div_sqrtdelta y1 y2 y3 y4 y5 y6) -
+         (&8 * mm2 / pi) *
+         (y_of_x lmdih_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 +
+          y_of_x lmdih3_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 +
+          y_of_x lmdih5_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6)
+   ))`;;
+
+let lmdih2_x_div_sqrtdelta_posbranch = new_definition 
+  `lmdih2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+         rotate2 lmdih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+let lmdih6_x_div_sqrtdelta_posbranch = new_definition 
+  `lmdih6_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+         rotate6 lmdih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+let gamma3f_126_test = new_definition `gamma3f_126_test y1 y2 y3 y4 y5 y6 =
+    sqn(delta_y y1 y2 y3 y4 y5 y6) * (&1 / &12 - 
+   ( (&2 * mm1 / pi) *
+         (y_of_x sol_euler_x_div_sqrtdelta y1 y2 y3 y4 y5 y6 
+	  + y_of_x sol_euler246_x_div_sqrtdelta y1 y2 y3 y4 y5 y6 + 
+	  y_of_x sol_euler156_x_div_sqrtdelta y1 y2 y3 y4 y5 y6) -
+         (&8 * mm2 / pi) *
+         (y_of_x lmdih_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 +
+          y_of_x lmdih2_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 +
+          y_of_x lmdih6_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6)
+   ))`;;
+
+(* New series with sqp *)
+(* test upper bound to sqrt with bounded derivatives at 0 *)
+
+let all_forall = Sphere.all_forall;;
+Sphere.gamma3f;;
+Sphere.vol3r;;
+Sphere.vol3f;;
+Sphere.vol_x;;
+let gamma23f_test7 = new_definition `gamma23f_test7 y1 y2 y3 y4 y5 y6 w1 w2 r f =
+         gamma3f_126_test y1 y2 sqrt2 sqrt2 sqrt2 y6 / &w1 +
+         gamma3f_135_test y1 sqrt2 y3 sqrt2 y5 sqrt2 / &w2 +
+         (dih_y y1 y2 y3 y4 y5 y6 -
+          upper_dih_y y1 y2 r r r y6 -
+          upper_dih_y y1 y3 r r r y5) *
+         (vol2r y1 r - vol2f y1 r f) / (&2 * pi)`;;
+
+Parse_ineq.execute_cfsqp
+{
+id = "test";
+ineq = all_forall `ineq [&1,x,&1] (upper_dih_y 
+   #2.6507999999999998 #2.15800282434262058 
+   #2.4635088441806432 #2.10000000000000009 
+   #2.15800282434262058 #2.4635088441806432 > &0)`;
+doc = "";
+tags = [];
+};;
+
+Parse_ineq.execute_cfsqp
+{
+id = "test";
+ineq = all_forall `ineq [&1,x,&1] (upper_dih_x 
+   #7.0267406399999990 #4.6569761898707273 #6.06888 
+   #4.4100000000000004 #4.6569761898707273 #6.06888 > &0)`;
+doc = "";
+tags = [];
+};;
+
+Parse_ineq.execute_cfsqp
+{
+id = "test";
+ineq = all_forall `ineq [&1,x,&1] (gamma3f_126_test #2.3 #2.35 sqrt2 sqrt2 sqrt2 #2.4  > &0)`;
+doc = "";
+tags = [];
+};;
+Sphere.vol3f;;
+vol3fu;;
+
+Sphere.gamma23f_126_03;;
+
+let gamma23f_126_03_test7 = new_definition 
+  `gamma23f_126_03_test7 y1 y2 y3 y4 y5 y6 w1 r f =
+         gamma3f_126_test y1 y2 sqrt2 sqrt2 sqrt2 y6 / &w1 +
+         (dih_y y1 y2 y3 y4 y5 y6 - upper_dih_y y1 y2 r r r y6 - #0.03) *
+         (vol2r y1 r - vol2f y1 r f) / (&2 * pi)`;;
+
+Parse_ineq.execute_cfsqp 
+{
+  id = "QITNPEA 4003532128 c";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2 ,y2, &2 * hminus);
+     (&2,y3, &2 * hminus);
+    (#2.1 ,y4, #2.1);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    (    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0) \/  
+   (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14) \/
+   ( gamma23f_126_03_test7 y1 y2 y3 y4 y5 y6 1 sqrt2 lmfun  
+       - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) 
+ )`;
+  doc =   "
+   Inititally, $y_4$ extends to $\\sqrt8$, but we use monotonicity
+to reduced it to the lower bound.
+     This gives an upper bound $0.08$ on the dihedral angle of the $3$-cell.
+     This is an inequality for $23$-cells used to prove the cluster inequality.";
+  tags = [Cfsqp;Cfsqp_branch 3;Clusterlp;Tex;Xconvert;Tprep;Split[0];Delta126min (0.14 -. 1.0e-12);
+    Delta135min (0.0); Delta135max(0.14 +. 1.0e-12)];
+  (* d4 > 67 > Tan[Pi/2 - 0.03] Sqrt[4 1.0] ==> dih <= 0.03. *)
+ (*   (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/ dropped 12/23/2010 *)
+};;
+
+Parse_ineq.execute_cfsqp 
+{
+  id = "QITNPEA 4003532128 b";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (#2.1 ,y4, sqrt8);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+   (gamma23f_test7 y1 y2 y3 y4 y5 y6 1 1 sqrt2 lmfun - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) 
+   )`;
+  doc =   "
+     Note the lower bound on $y_4$ is $2.1$.
+     This is an inequality for $23$-cells used to prove the cluster inequality.
+     We may use monotonicity so that rad2 is exactly 2.";
+(* Dec 27, 2010 tested to see if it can be split into a left-and-right inequality.  It cannot be done
+    with a correction term of the form 
+    + #0.004 * (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2)  *)
+  tags = [Cfsqp;Cfsqp_branch 3;
+    Clusterlp;Tex;Xconvert;Tprep;Split[0];Set_rad2;Delta126min (0.14-. 1.0e-12);
+	 Delta135min (0.14 -. 1.0e-12)];
+};;
+
 
 Parse_ineq.execute_cfsqp 
 {
@@ -1116,10 +1280,11 @@ Parse_ineq.execute_cfsqp
     (&2,y5, &2 * hminus);
     (&2,y6, &2 * hminus)
    ]
-    ((gamma23f y1 y2 y3 y4 y5 y6 1 1 sqrt2 lmfun - #0.00457511 
-    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) \/ (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
     (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
-  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) 
+  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+  (gamma23f_test7 y1 y2 y3 y4 y5 y6 1 1 sqrt2 lmfun - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) 
    )`;
   doc =   "
      Note the lower bound on $y_4$ is $2.1$.
@@ -1128,8 +1293,91 @@ Parse_ineq.execute_cfsqp
 (* Dec 27, 2010 tested to see if it can be split into a left-and-right inequality.  It cannot be done
     with a correction term of the form 
     + #0.004 * (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 - delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2)  *)
-  tags = [Cfsqp;Clusterlp;Tex;Xconvert;Tprep;Split[0];Delta126min (0.14-. 1.0e-12);
+  tags = [Cfsqp;Cfsqp_branch 3;Clusterlp;Tex;Xconvert;Tprep;Split[0];Delta126min (0.14-. 1.0e-12);
 	 Delta135min (0.14 -. 1.0e-12)];
 };;
   
      
+let template23b = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, sqrt8 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+   (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+  (gamma23f_test7 y1 y2 y3 y4 y5 y6 w1 w2 sqrt2 lmfun    >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+   )`;;
+
+
+let template23b' = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, &2 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+   (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+  (gamma23f_test7 y1 y2 y3 y4 y5 y6 w1 w2 sqrt2 lmfun    >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+   )`;;
+(* Dec 27, 2010. split into two cases 23b 23b', by monotonicity of x4, either rad2=2 or x4=2 *)
+
+
+let template23b_tags = [Cfsqp_branch 3;Delta126min (0.14 -. 1.0e-12);Delta135min (0.14-. 1.0e-12);Set_rad2];;
+
+let template23b'_tags = [Cfsqp_branch 3;Delta126min (0.14 -. 1.0e-12);Delta135min (0.14-. 1.0e-12)];;
+
+let template23c_tags = 
+  [Cfsqp_branch 3;Delta126min (0.14 -. 1.0e-12);Delta135min (0.0);Delta135max(0.14+. 1.0e-12)];;
+
+let template23c = `\ y3m y3M y5m y5M y6m y6M (w1:num) (w2:num). ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, &2 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    (
+(delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0) \/
+(gamma23f_126_03_test7 y1 y2 y3 y4 y5 y6 w1 sqrt2 lmfun    >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+      )`;;
+  (* upper bound on y4 changed from sqrt8 to 2 on Dec 27, 2010 by monotonicity,
+      Also rad2 constraint dropped.  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2)  *)
+
+
+let mk_ineq23 i3 i5 i6 j = 
+  let template = List.nth [template23b;template23b';template23c;template23c] j in
+  let x i = List.nth [`&2`; `&2 * hminus` ; `sqrt8`] i in
+  let X i = x (i+1) in
+  let mid i = if (i>0) then 1 else 0 in
+  let m = mk_small_numeral in
+  let w1 = 1 +  mid i6 in
+  let w2 = 1 + mid i3 + mid i5 in
+    Ineq.mk_tplate template  [x i3;X i3; x i5;X i5; x i6 ;X i6; m w1; m w2];; 
+
+let make_F23 i3 i5 i6 j = 
+  let ext = List.nth ["b";"b2";"c";"d"] j in
+  let template_F23_tags = [template23b_tags;template23b'_tags;template23c_tags;[]] in
+   {
+    id = Printf.sprintf "ZTGIJCF23 %d %d %d 7907792228 %s" i3 i5 i6 ext;
+    ineq = mk_ineq23 i3 i5 i6 j;
+    doc = "This is the $2$- and $3$-cell inequality for five or more leaves.";
+    tags = (if (i3,i5,i6)=(0,0,0) then [Tex] else []) @ [Cfsqp;Flypaper;Xconvert;Penalty(200.0,5000.0);Tprep;Split (Ineq.split_F4 i3 0 i5 i6)] @ (List.nth template_F23_tags j);
+  };;
+
+ for j=0 to 2 do
+  for k = 0 to 3 do
+    let i356list = [(0,0,0);(0,0,1);(1,0,1);(0,1,1)] in (* cases up to symmetry, simplified on Dec 27, 2010. *)
+    let (i3,i5,i6) = List.nth i356list k in
+   Parse_ineq.execute_cfsqp (make_F23 i3 i5 i6 j) done done ;;
+
+

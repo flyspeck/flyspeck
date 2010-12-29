@@ -26,6 +26,7 @@ double matan(double); // atan(sqrt(x))/(sqrt(x)), and analytic continuation
 double asn(double x);
 
 double sqp(double x);  // upper bound on sqrt that is analytic near 0.
+double sqn(double x);  // lower bound on sqrt that is analytic near 0.
 
 // simplex:
 double delta_x(double x1,double x2,double x3,double x4,double x5,double x6);
@@ -37,6 +38,10 @@ double dih2_y(double y1,double y2,double y3,double y4,
                         double y5, double y6);
 double dih3_y(double y1,double y2,double y3,double y4,
                         double y5, double y6);
+
+// deprecated: an upper bound on dih_y, valid when d4 <0.
+//double upper_dih_y_large(double y1,double y2,double y3,double y4,double y5,
+//			 double y6);
 
 // circumradius: 
 double eta2(double x1,double x2,double x3);

@@ -217,8 +217,7 @@ let native_c = [
   "delta_x";"sol_y";"dih_y";"rhazim";
   "lmfun";"lnazim";"hminus";
   "wtcount3_y";"wtcount6_y";"beta_bump_y";"matan";"sqp";"sqn";
-  (* "upper_dih_x_large"; *)
-  ];;
+   ];;
 
 let autogen = ref[];;
 
@@ -236,11 +235,9 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    dih_x_div_sqrtdelta_posbranch;
    surfR;surfRy;surfRdyc2;surfy;dih4_y;dih5_y;dih6_y;
    num1;num2;num_combo1;
-   flat_term_x;  (* vol_xl;  *)
-   upper_dih_x; (* sol_yu_large; *)
+   flat_term_x; 
+   upper_dih_x; 
    ];;
-
-
 
 (*
 let macro_expand = ref [];; 
@@ -251,8 +248,7 @@ let macro_expand = ref [];;
 
 let get_macro_expand() = (
    [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;
-    (* vol3rl;vol3fu_large; *)
-   gamma3f;gamma23f; gamma3fl_large; (* gamma23f_126_w1;gamma23f_red; *)
+   gamma3f;gamma23f;  (* gamma23f_126_w1;gamma23f_red; *)
    gamma23f_red_03;gamma23f_126_03;
    GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
@@ -277,7 +273,8 @@ let get_macro_expand() = (
 		      delta_template_B_x_alt;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
-		      upper_dih_y; (* vol_yl;  *) gamma3f_135_test;gamma3f_126_test;gamma23f_test7;gamma23f_126_03_test7; (* test *) 
+		      upper_dih_y; 
+   gamma3f_135_n;gamma3f_126_n;gamma23f_n;gamma23f_126_03_n;
    ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;

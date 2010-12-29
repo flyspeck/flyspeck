@@ -92,20 +92,9 @@ let thackmac =  ["QITNPEA 4003532128 c"; "QITNPEA 4003532128 b2";
    "ZTGIJCF23 0 1 1 7907792228 b"; "ZTGIJCF23 1 0 1 7907792228 b";
    "ZTGIJCF23 0 0 1 7907792228 b"; "ZTGIJCF23 0 0 0 7907792228 b";"QITNPEA 4003532128 b";];;
 
-(*  [
-   "ZTGIJCF23 1 0 1 7907792228 c"; "ZTGIJCF23 1 0 0 7907792228 c";
-   "ZTGIJCF23 0 1 1 7907792228 c"; "ZTGIJCF23 0 1 0 7907792228 c";
-   "ZTGIJCF23 0 0 1 7907792228 c"; "ZTGIJCF23 0 0 0 7907792228 c";
-   "ZTGIJCF23 1 0 1 7907792228 b"; "ZTGIJCF23 1 0 0 7907792228 b";
-   "ZTGIJCF23 0 1 1 7907792228 b"; "ZTGIJCF23 0 1 0 7907792228 b";
-   "ZTGIJCF23 0 0 1 7907792228 b"; "ZTGIJCF23 0 0 0 7907792228 b";
-   "QITNPEA 4003532128 c"; "QITNPEA 4003532128 b";];;
-*)
-
 List.length thackmac;;
 
-let malt = [ "QITNPEA 4003532128 b2"; "QITNPEA 4003532128 b"; "QITNPEA 4003532128 c"; "ZTGIJCF23 0 0 0 7907792228 b";
- "ZTGIJCF23 0 0 1 7907792228 c";"ZTGIJCF23 0 0 1 7907792228 d";];;
+let malt = [ "QITNPEA 4003532128 b";];;
 
 Sphere.gamma23f;;
 Sphere.matan;;
@@ -123,41 +112,19 @@ testsplit true testid;;
 
 map (testsplit true) thackmac;;
 
-let svnstring = 
-  "svn commit -m \"\" /Users/thomashales/Desktop/googlecode/flyspeck";;
-let svn_commit() = Sys.command(svnstring);;
-
-let test_and_commit t = (let _ = testsplit true t in svn_commit());;
-
-let xmax2010() = map test_and_commit ( !testids);;
-
-test_and_commit "1085358243";;
-
-xmax2010();;
-
-
-
-
-
-(* script *)
-
-if (10 = !sleep) {
-  sleep:= 11;;
-  Sys.command("pwd >> /Users/thomashales/Dropbox/hello.txt");;
-}
-
-Sys.command("svn /Users/Users/thomashales/Desktop/googlecode/flyspeck");
-flyspeck_needs "general/sphere.hl";;
-reneeds "nonlinear/ineq.hl";;
-reneeds "nonlinear/parse_ineq.ml";;
-reneeds "nonlinear/optimize.hl";;
-map (testsplit_report true) ( !testids);;
 
 (* Parse_ineq.execute_cfsqp (List.nth testids 0);; *)
 
 (* goal *)
 
-let (id,tags,case) = strip_idq (hd(Ineq.getexact testid));;
+let (id,tags,case) = 
+  let idq =  (hd(Ineq.getexact testid)) in
+  let (s,tags,ineq) = strip_idq idq in
+  let ls = get_split idq in
+   if (ls=[]) then (s,tags,ineq) else
+     let cases = split_all_h0 [(ineq,ls)] in 
+       (s^" case0",tags,hd cases);;
+
 g (mk_imp (`NONLIN`,case));;
 e(PRELIM_TAC);;
 if (is_branch tags ) then e(BRANCH_TAC) else e(ALL_TAC);; 
@@ -165,19 +132,6 @@ if (is_xconvert tags) then e (X_OF_Y_TAC) else e(ALL_TAC);;
 if (is_branch tags && not(is_xconvert tags)) then e(SERIES3Q1H_5D_TAC) else e(ALL_TAC);;
 e (STYLIZE_TAC);;
 e (WRAPUP_TAC);;
-
-
-(* case splitting needs updating: *)
-
-let testcase = get_firstexact  testid;;
-
-let cases =
-  let ls = get_split (fst testcase) in
-     map (fun t -> (fst testcase,t)) (split_all_h0  [(snd testcase, ls)]);;
-List.length cases;;
-g (mk_imp (`NONLIN`,(fun (_,c) -> c) (List.nth cases 0)));;
-
-
 
 
 
@@ -190,3 +144,24 @@ map Parse_ineq.execute_cfsqp !Ineq.ineqs;;
 
 
 (* Parse_ineq.trialcount:= 500;; *)
+
+
+(* SCRIPT *)
+let svnstring = 
+  "svn commit -m \"\" /Users/thomashales/Desktop/googlecode/flyspeck";;
+let svn_commit() = Sys.command(svnstring);;
+
+let test_and_commit t = (let _ = testsplit true t in svn_commit());;
+
+let xmax2010() = map test_and_commit ( !testids);;
+
+test_and_commit "1085358243";;
+
+xmax2010();;
+
+Sys.command("svn /Users/Users/thomashales/Desktop/googlecode/flyspeck");
+flyspeck_needs "general/sphere.hl";;
+reneeds "nonlinear/ineq.hl";;
+reneeds "nonlinear/parse_ineq.ml";;
+reneeds "nonlinear/optimize.hl";;
+map (testsplit_report true) ( !testids);;

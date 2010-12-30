@@ -55,7 +55,7 @@ static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
 
 /* ========================================================================== */
 /*                                                                            */
-/*   primitiveA                                                               */
+/*   Section:primitiveA                                                               */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -96,7 +96,7 @@ primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
 
 /* ========================================================================== */
 /*                                                                            */
-/*   primitive_monom                                                               */
+/*   Section:primitive_monom                                                               */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -231,7 +231,7 @@ primitive_monom::primitive_monom(const int m[6])
 
 /* ========================================================================== */
 /*                                                                            */
-/*   primitive_univariate                                                     */
+/*   Section:primitive_univariate                                                     */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -275,7 +275,7 @@ taylorInterval primitive_univariate::evalf4(const domain& w,const domain& x,
 
 /* ========================================================================== */
 /*                                                                            */
-/*   primitiveC  composites                                                   */
+/*   Section:primitiveC  composites                                                   */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -488,7 +488,7 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
 
 /* ========================================================================== */
 /*                                                                            */
-/*   taylorSimplex                                                            */
+/*   Section:taylorSimplex                                                            */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -1102,7 +1102,7 @@ const taylorFunction taylorSimplex::gchi6_x = taylorFunction::rotate6(taylorSimp
 
 /* ========================================================================== */
 /*                                                                            */
-/*   taylorSimplex local namespace                                            */
+/*   Section:taylorSimplex local namespace                                            */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -2091,7 +2091,7 @@ static int primHasDeltaDenom(const primitive* p) {
 
 /* ========================================================================== */
 /*                                                                            */
-/*   taylorInterval                                                           */
+/*   Section:taylorInterval                                                           */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -2250,7 +2250,7 @@ taylorInterval taylorInterval::scale
 							      
 /* ========================================================================== */
 /*                                                                            */
-/*   taylorFunction                                                           */
+/*   Section:taylorFunction                                                           */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -2439,7 +2439,7 @@ int taylorFunction::hasDeltaDenom() const {
 
 /* ========================================================================== */
 /*                                                                            */
-/*    TESTING ROUTINES                                                        */
+/*    Section:TESTING ROUTINES                                                        */
 /*                                                                            */
 /* ========================================================================== */
 

@@ -228,8 +228,8 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
    tame_table_d;delta_x4;dih_x_alt;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
-   taum_y1;taum_y2;taum_y1_y2;arclength_y1;arc_hhn;asn797k;asnFnhk;
-   lfun_y1;arclength_x_123;acs_sqrt_x1_d4;acs_sqrt_x2_d4;
+   taum_y1;taum_y2;taum_y1_y2;arclength_y1;arclength_y2;arc_hhn;asn797k;asnFnhk;
+   lfun_y1;arclength_x_123;arclength_x_345;acs_sqrt_x1_d4;acs_sqrt_x2_d4;
    tauq;enclosed_rewrite;
    sol_euler_x_div_sqrtdelta;
    dih_x_div_sqrtdelta_posbranch;
@@ -271,6 +271,8 @@ let get_macro_expand() = (
 		      taum_x;
 		      edge_flat2_x;
 		      delta_template_B_x_alt;
+		      dih_hexall_x;
+		      taum_hexall_x;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
 		      upper_dih_y; 

@@ -264,6 +264,8 @@ static cellOption::cellStatus
 	  }
 	}
 
+	static const double WCUTOFF = 0.05;
+
 	taylorInterval eta;	 // a pseudo-inequality.
 	int etafail=0;
 	/*
@@ -292,10 +294,13 @@ static cellOption::cellStatus
 	maxwidth = max(w); 
 	}
 
+
 	/*pass cell if some taylor bound holds*/{
 	int has_unstable_branch=0;
+	int unstable_branches[MAXcount];
 	for (int i=0;i<count;i++)
 		{
+		  unstable_branches[i]=0;
 		  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
 		  T[i]=&Target[i];
 		  if (opt.onlyCheckDeriv1Negative) {
@@ -305,9 +310,23 @@ static cellOption::cellStatus
 		  }
 		  if (T[i]->upperBound()<0.0) return cellOption::cellPasses;
 		  }
-		  catch (unstable x) { has_unstable_branch=1; } 
+		  catch (unstable x) { has_unstable_branch=1; unstable_branches[i]=1; } 
 		}
 	if (has_unstable_branch) { return cellOption::inconclusive; }
+	/*
+	if (has_unstable_branch) { 
+	  if (2.0* maxwidth > WCUTOFF) { return cellOption::inconclusive;  }
+	  int i=0; while (i<count)   {  // delete unstable inequalities when maxwidth is small.
+	    if (unstable_branches[i] )
+			{
+			resetBoundary(x0,z0,x,z);
+			for (int j=i;j<count-1;j++) { unstable_branches[j]=unstable_branches[j+1]; }
+			deleteFunction(T,I,count,i); //it decrements count; 
+			}
+		else i++;
+		}
+	}
+	*/
 	}
 	
 
@@ -403,7 +422,6 @@ static cellOption::cellStatus
  
 
 	// now drop the numerically false inequalities;
-	static const double WCUTOFF = 0.05;
 	int mixedsign;
 	double yyn[DIM6],yu[DIM6];  // look at the lowest & highest corners
 	lineInterval cn,cu;
@@ -465,7 +483,7 @@ static cellOption::cellStatus
 			}
 		}
 	if (margin>0.0) count =1; // Disregard the rest of the inequalities;
-	} // if max(w) 
+	} // if maxwidth
 	return cellOption::inconclusive;
 	} // end verifyCell.
 
@@ -487,12 +505,12 @@ void stats(int force) {
   }
   else if (count(statcounter++,10000)) 
     {
-      cout << "[" << statcounter/10000 << "*10^4]" << flush;
       if (count(linefeed++,10) )
 	{
-	  cout << " " << flush; 
 	  error::printTime();	  
+	  cout << " " << flush; 
 	}
+      cout << "[" << statcounter/10000 << "*10^4]" << flush;
     }
 }
 

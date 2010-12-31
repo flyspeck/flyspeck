@@ -375,7 +375,11 @@ class taylorSimplex
 	  vol3_x_sqrt,
 	  vol3f_x_lfun,
 	  vol3f_x_sqrt2_lmplus,
-	  arclength_x_123,norm2hhx,
+	  arclength_x_123,
+	  arclength_x_234,
+	  arclength_x_126,
+	  arclength_x_345,
+	  norm2hhx,
 	  asn797k,asnFnhk,lfun_y1,
 	  acs_sqrt_x1_d4,	  acs_sqrt_x2_d4;
 
@@ -470,6 +474,14 @@ class taylorSimplex
 
 	static const taylorFunction taylorSimplex::taum_template_B_x(const interval& x15,
 								     const interval& x45,const interval& x34,const interval& x12   );
+
+	static const taylorFunction taylorSimplex::dih_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+	static const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+
 };
 
 

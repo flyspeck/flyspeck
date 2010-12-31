@@ -5,7 +5,7 @@
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
-(setq hol-light-interactive-buffer-name "*d7*")
+(setq hol-light-interactive-buffer-name "*d31*")
 (setq hol-light-interactive-buffer-name "*d13*")
 
 (print hol-light-interactive-buffer-name)

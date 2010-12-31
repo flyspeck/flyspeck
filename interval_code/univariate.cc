@@ -281,8 +281,8 @@ static interval Dinv(const interval& x) {
 static interval DDinv(const interval& x) {
 	static const interval two("2");
   if (interMath::boundedFromZero(x)) {	return two/(x * x * x);  }
-  error::printTime ("D2 inv at 0 ");
-  cout << x.lo << " " << x.hi << endl << flush;
+  if (0) { error::printTime ("D2 inv at 0 ");  // debug.
+    cout << x.lo << " " << x.hi << endl << flush; }
   throw unstable::x;
 }
 

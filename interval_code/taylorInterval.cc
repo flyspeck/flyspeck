@@ -103,6 +103,7 @@ primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
 
 // procedures for monomial terms x1^n1 ... x6^n6 .
 
+/*
 interval mpow_i(const interval& x,int n) {
   static const interval one("1");
   static const interval zero("0");
@@ -117,6 +118,25 @@ interval mpow_i(const interval& x,int n) {
 	interval u2 = u*u;
 	return ( n % 2 ? x * u2 : u2);
       }
+  }
+}
+*/
+
+interval mpow_i(const interval& x,int n) {
+  static const interval one("1");
+  static const interval zero("0");
+  switch (n) {
+  case 0 : return one;
+  case 1 : return x;
+  default : 
+    if (n <0) { error::fatal("negative exponent in mpow_i");  return zero; } 
+    if (interMath::inf(x) < 0.0) { error::fatal("negative base in mpow"); return zero; }
+    interMath::up();
+    double u = pow(interMath::sup(x),n);
+    interMath::down();
+    double l = pow(interMath::inf(x),n);
+    interval lu(l,u);
+    return lu;
   }
 }
 

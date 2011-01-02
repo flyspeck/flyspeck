@@ -448,7 +448,8 @@ class taylorSimplex
 	  gamma3f_vLR_x_nlfun,
 	  gamma3f_vLR_x_n0,
 	  gamma3f_vL_x_nlfun,
-	  gamma3f_vL_x_n0
+	  gamma3f_vL_x_n0,
+
 	  
 	  ;
 
@@ -490,6 +491,11 @@ class taylorSimplex
 
 	static const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const interval& x12,
 								const interval & x23);
+
+	static const taylorFunction taylorSimplex::eulerA_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+	static const taylorFunction taylorSimplex::factor345_hexall_x(const interval& costheta);
 
 
 };

@@ -210,24 +210,6 @@ static cellOption::cellStatus
 	   }
 	}
 
-	taylorInterval dih;   // a pseudo-inequality
-	int dihfail=0;
-	/*
-	if (opt.isUsingDihMax()) 
-		{
-		double x4max;
-		if (edgeBound::x4_upper_from_dih_upper(x,z,opt.getDihMax(),x4max))
-			{
-			if (x4max<x[3]) return cellOption::cellPasses; // empty range.
-			if (z[3]>x4max) z[3] = x4max;
-			if (deltainf(z[0],x[1],x[2],z[3],x[4],x[5])<=0.0) 
-				return cellOption::inconclusive;
-			try { dih = taylorSimplex::dih.evalf(domain(x),domain(z)); }
-			catch (unstable x) { dihfail=1; }
-			}
-		}
-	*/
-
 	/* use "rad2" to compute lower and upper bounds on x4 */ {
 	  if (opt.setRad2) {
 	    try {
@@ -266,20 +248,6 @@ static cellOption::cellStatus
 
 	static const double WCUTOFF = 0.05;
 
-	taylorInterval eta;	 // a pseudo-inequality.
-	int etafail=0;
-	/*
-	if (opt.isUsingBigFace126())
-	  {
-	    try { 
-	      taylorInterval eta = taylorSimplex::eta2_126.evalf(domain(x),domain(z));
-	      if ( (eta.upperBound()<2.0))
-		return cellOption::cellPasses; //empty range.
-	    }
-	    catch (unstable x) { etafail=1; }
-	  }
-	*/
-
 	/* GOING STRONG LOOP*/
 	const taylorInterval* T[MAXcount];
 	taylorInterval  Target[MAXcount];
@@ -293,7 +261,6 @@ static cellOption::cellStatus
 	centerform(x,z,y,w); 
 	maxwidth = max(w); 
 	}
-
 
 	/*pass cell if some taylor bound holds*/{
 	int has_unstable_branch=0;
@@ -381,30 +348,6 @@ static cellOption::cellStatus
 		int allpos=1, allneg=1;
 		for (int i=0;i<count;i++) if (T[i]->lowerPartial(j)<0.0) allpos=0;
 		for (int i=0;i<count;i++) if (T[i]->upperPartial(j)>= 0.0) allneg=0; // >= breaks symmetry.
-
-		/*
-		if ((opt.isUsingDihMax())&&(allpos+allneg>0))
-			{
-			// don't flow through the dihMax.
-			if (dihfail) { allpos=allneg=0; }
-			else if ((dih.upperBound()> opt.getDihMax())&&
-				 dih.lowerBound()< opt.getDihMax())
-				{
-				allpos=allneg=0;
-				}
-			}
-		*/
-
-		/*
-		if (opt.isUsingBigFace126())
-			{
-			// treat the pseudo-inequality eta2- 2 < 0 :
-			if (etafail) { allpos=allneg=0; }
-			else if ((eta.upperBound()> 2.0)&&
-				(eta.lowerBound()<2.0)) { allpos=allneg=0;}
-			}
-		*/
-
 		if (allpos)
 			{
 			if (z[j]<z0[j]) return cellOption::cellPasses; // slide off the edge.
@@ -492,7 +435,7 @@ static int count(int i,int j)
 	return (0 == (i % j));
 	}
 
-static long TIMEOUT = 60000; //  Time out after this many seconds.
+static long timeout = 0; //  Set with options.  opt.Time out after this many seconds.
 
 void stats(int force) {
   static const long starting_time = time(0); //  Time out after this many seconds.
@@ -500,8 +443,10 @@ void stats(int force) {
   static int statcounter=0;
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
-  if (time(0) - starting_time > TIMEOUT) {
-    error::fatal("time allocation exceeded 60K secs. Bailing out.");
+  if (time(0) - starting_time > timeout) {
+    char msg[100];
+    sprintf(msg, "time allocation exceeded %dK secs. Bailing out.", (timeout / 1000));
+    error::fatal(msg);
   }
   else if (count(statcounter++,10000)) 
     {
@@ -529,7 +474,7 @@ int prove::recursiveVerifier(int depth,
 		x[j]=xD.getValue(j); z[j]=zD.getValue(j);
 		x0[j]=x0D.getValue(j); z0[j]=z0D.getValue(j);
 		}
-	TIMEOUT = options.timeout;
+	timeout = options.timeout;
 	stats(0); 
 	options.augmentIterationCount();
 	if ((options.getIterationLimit()>0)&&
@@ -992,7 +937,7 @@ void statsQ() {
   static const long starting_time = time(0); //  Time out after this many seconds.
   static int statcounter=0;
   static int linefeed=0;
-   if (time(0) - starting_time > TIMEOUT) {
+   if (time(0) - starting_time > timeout) {
     error::fatal("time allocation exceeded 50K secs. Bailing out.");
   }
   else if (count(statcounter++,10000)) 
@@ -1022,7 +967,7 @@ int prove::recursiveVerifierQ(int depth,
 	{
 	double xA[6],xB[6],zA[6],zB[6]; 
 	int i;
-	TIMEOUT = opt.timeout;
+	timeout = opt.timeout;
 	for (i=0;i<6;i++)
 		{
 		xA[i]=xAd.getValue(i); xB[i]=xBd.getValue(i);

@@ -277,6 +277,8 @@ let get_macro_expand() = (
 		      delta_hexall_x;
 		      delta4_hexall_x;
 		      taum_hexall_x;
+		      eulerA_hexall_x;
+		      factor345_hexall_x;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
 		      upper_dih_y; 

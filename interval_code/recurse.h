@@ -53,10 +53,6 @@ public:
 private:
     int iterationLimit;
     int iterationCount;
-    //    double dihmax;
-    //    int usingDihMax;
-    // int usingBigFace126;
-    // int chiShortCut;
     int startingIndex;
     int recursionDepth;
     X printingMode;
@@ -89,8 +85,6 @@ public:
     // give up after this many seconds.
     int timeout;
 
-    
-
     //////////
     // Boolean flag for quads, to reduce to 8=4x2 extremal cases:
     // x8,x9 extremal, and if both are maximal then x7 is minimal (4 cases).
@@ -105,12 +99,10 @@ public:
     //
     //int useEnclosed;
 
-
 	//////////
 	// Allows a sharp inequality at some point without failing. 
 	//
 	int allowSharp;
-
 
 	//////////
 	// A cell passes if (partial f/partial x1 < 0).  The value of the function doesn't matter.
@@ -118,7 +110,6 @@ public:
 	// There should only be one disjunct when this option is set.
 	//
 	int onlyCheckDeriv1Negative;
-
 
 	//////////
 	// 
@@ -150,8 +141,6 @@ public:
 	//
 	void augmentIterationCount() { iterationCount++; }
 
-	
-
 	//////////
 	// setSkipCases allows the user to enter an array that
 	// specifies what input integers caseNumber will return
@@ -167,6 +156,7 @@ public:
 		for (i=0;i<len;i++) cout << skiplist[i] << " ";
 		cout << endl << flush;
 		}
+
 	//////////
 	// skip is called by recursiveVerifierQ when there is 
 	// dimension reduction.  Dimension reduction breaks a quad
@@ -230,9 +220,9 @@ public:
 	//
     X getPrintMode() { return printingMode; }
 
-	//////////
-	//
-	void setStartingIndex(int i) { startingIndex=i; }
+    //////////
+    //
+    void setStartingIndex(int i) { startingIndex=i; }
 
 	//////////
 	//
@@ -240,25 +230,28 @@ public:
 
 	//////////
 	//
-	cellOption() {  // chiShortCut=0;
+	cellOption() {  
 	  allowSharp=0;
-	  // usingBigFace126=0;
-				printingMode=verbose; usingWidthCutoff=0; 
-				recursionDepth=0;
-				crossDiagMinDelta = 0.0;
-				crossDiagMinEnclosed = 0.0;
-				    delta126Min=-1.0;
-    delta126Max = -1;
-     delta135Min = -1;
-     delta135Max= -1;
-     setRad2=0;
-     timeout=10000;
-				dimRedBackSym=0;
-				margin=0.0;
-				startingIndex =0; for (int i=0;i<Nskip;i++) skip_these[i]=-1;
-				iterationCount=0;
-				iterationLimit=0;
-				skipped=0; }
+	  printingMode=verbose; 
+	  usingWidthCutoff=0; 
+	  recursionDepth=0;
+	  crossDiagMinDelta = 0.0;
+	  crossDiagMinEnclosed = 0.0;
+	  delta126Min=-1.0;
+	  delta126Max = -1;
+	  delta135Min = -1;
+	  delta135Max= -1;
+	  setRad2=0;
+	  timeout=10000;
+	  dimRedBackSym=0;
+	  margin=0.0;
+	  startingIndex =0; 
+	  for (int i=0;i<Nskip;i++) skip_these[i]=-1;
+	  iterationCount=0;
+	  iterationLimit=0;
+	  skipped=0; 
+	}
+
 };
 
 

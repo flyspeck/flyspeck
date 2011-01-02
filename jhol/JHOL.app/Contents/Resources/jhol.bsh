@@ -49,18 +49,6 @@ String readLine(BufferedReader br){
 
 //end low level functions
 
-aboutBoxHandler = new ApplicationAdapter() {
-        public void handleAbout(ApplicationEvent event) {
-           (new JFrame()).show();
-        }
-    };
-
-
-macOSAboutHandler =   Application.getApplication() ;
-
-macOSAboutHandler.addApplicationListener(aboutBoxHandler);
-
-
 
 EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
     "  .real {color:teal; background-color:white;         "+
@@ -90,6 +78,43 @@ buttonList.add(genTac);
 buttonList.add(conjTac);
 buttonList.add(conjTac1);
 buttonList.add(conjTac2);
+
+//begin MacOS stuff
+applicationAdapter = new ApplicationAdapter() {
+        public void handleAbout(ApplicationEvent event) {
+           (new JFrame()).show();
+	   event.setHandled(true);
+        }
+    
+	public void handleOpenApplication(ApplicationEvent e) {
+	    //What to do when user double clicks on app icon
+	}
+	public void handleOpenFile(ApplicationEvent e) {
+	    //What to do when user double clicks on associated file
+	}
+
+	public void handleQuit(ApplicationEvent e) {
+	    e.setHandled(true);
+	    JHOLEnd();
+	    //Check to see if user has unsaved changes, if not set e.setHandled(true)
+	    //If user has unsaved changes set e.setHandled(false) and move into code
+	    //that handles saving files.
+	}	public void handlePreferences(ApplicationEvent e) {
+	    //what to do on flower-,
+	}	public void handlePrintFile(ApplicationEvent e) {
+	    //User selects print from finder?
+	}
+	public void handleReOpenApplication(ApplicationEvent e) {
+	    frame.show();
+	}
+
+    };
+
+
+macOSApplication = Application.getApplication() ;
+macOSApplication.addApplicationListener(applicationAdapter);
+//end MacOS stuff
+
 
 //Queue for commands to be run in java from hol
 StringBuilder evalStr;
@@ -121,6 +146,7 @@ BufferedReader bufInput = new BufferedReader(console.getIn());
 //DANGER: I am not sure this will necessarily be executed
 void JHOLEnd (){
     bufInput.close();
+    print("Goodbye.");    
     exit();}
 
 //For creating panes
@@ -279,7 +305,7 @@ while (c != -1){
     c = newprinterMLStream.read();
 }
 runHOLCommands(newprinterMLString.toString());
-
+newprinterMLStream.close();
 
 //Set up sig int method for hol
 int holPid = Integer.decode(
@@ -306,6 +332,8 @@ updateHolTheorems(){
 	numHolTheorems = getNumHolTheorems();
 	String[] bangTheorems = hol.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
 	for (int i = 0; i < Array.getLength(bangTheorems); i++){
+	    if (bangTheorems[i].equals("\nval"))
+		break;
 	    holTheorems.add(bangTheorems[i]);
 	}
     }
@@ -474,7 +502,7 @@ myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
 frame.getContentPane().add(toolbar,BorderLayout.NORTH);
 frame.getContentPane().add(splitPane,BorderLayout.WEST);
 frame.getContentPane().add(myScroll,BorderLayout.CENTER);
-frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
 //Display the window.
 frame.pack();
@@ -498,6 +526,8 @@ updateTopGoal(){
     editorPane.setText(text.toString());
 }
 
+
+//Main Loop
 List cmdList = new LinkedList();
 try {
     while ( true ){
@@ -514,5 +544,6 @@ try {
     
 } catch (IOException e) {
     e.printStackTrace();
+    JHOLEnd();
 }
-
+//Unreachable code below

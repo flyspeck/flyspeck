@@ -52,6 +52,10 @@ let rec nub = function (* from lpproc.ml *)
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
 
+
+(* This should be renamed.  
+   It conflicts with Pervasives module *)
+
 let output_string tmpfile a = 
   let outs = open_out tmpfile in
   let _ = try (Printf.fprintf outs "%s" a) 

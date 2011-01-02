@@ -237,7 +237,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    num1;num2;num_combo1;
    flat_term_x; 
    upper_dih_x; 
-   euler_ap;
+   eulerA_x;
    ];;
 
 (*

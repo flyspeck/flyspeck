@@ -31,7 +31,9 @@ double safesqrt(double t)
 
 double sqp(double x)
 {
-  return  ( ( x < 1. ) ? ((3. / 8.) + (((real_pow((1. - x),3.)) * ((-0.25) + (0.7 * x))) + ((3. * (x / 4.)) - (x * (x / 8.))))) : (sqrt(x))) ; 
+  if (x < 0) return 0;
+  if (x > 1.0) return sqrt(x);
+  return  ((3. / 8.) + (((real_pow((1. - x),3.)) * ((-0.25) + (0.7 * x))) + ((3. * (x / 4.)) - (x * (x / 8.)))));
 }
 
 /*

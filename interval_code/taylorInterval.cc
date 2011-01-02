@@ -3851,6 +3851,27 @@ testDataY[DihTemplateBY, xD];
     }
   }
 
+  /*
+xF = {4.1, 4.2, 4.3, 4.4, 9.1, 4.5};
+
+flatTerm[y_] := sol0 ( y - 2 * hmid)/(2 hmid - 2);
+
+DihHexall[y1_, y2_, y3_, y4_, y5_, y6_] := Module[{x14, x12,
+         x23, y14, y12, y23, y13},
+      {x14, x12, x23} = {4.05, 4.06, 4.07};
+      {y14, y12, y23} = Sqrt[{x14, x12, x23}];
+      y13 = EdgeFlatY[y2, y1, y3, 0, y23, y12];
+      Dihedral[y1, y2, y4, (2hmid), y14, y12] -
+        Dihedral[y1, y3, y4, y5, y14, y13] ];
+
+tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
+    Module[{x14, x12, x23, y14, y12, y23, y13},
+      {x14, x12, x23} = {4.05, 4.06, 4.07};
+      {y14, y12, y23} = Sqrt[{x14, x12, x23}];
+      y13 = EdgeFlatY[y2, y1, y3, 0, y23, y12];
+      taumarAlt[y1, y3, y4, y5, y14, y13] + flatTerm[y2]];
+   */
+
   /* test dih_hexall_x */ {
     domain x(4.1,4.2,4.3,4.4,9.1,4.5);
     double mValue= 0.27539762137268586; 

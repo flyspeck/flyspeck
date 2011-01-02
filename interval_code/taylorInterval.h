@@ -478,6 +478,16 @@ class taylorSimplex
 	static const taylorFunction taylorSimplex::dih_hexall_x(const interval& x14, const interval& x12,
 								const interval & x23);
 
+	static const taylorFunction taylorSimplex::upper_dih_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+	static const taylorFunction taylorSimplex::delta_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+	static const taylorFunction taylorSimplex::delta4_hexall_x(const interval& x14, const interval& x12,
+								const interval & x23);
+
+
 	static const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const interval& x12,
 								const interval & x23);
 

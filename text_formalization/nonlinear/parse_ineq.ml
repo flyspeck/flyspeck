@@ -237,6 +237,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    num1;num2;num_combo1;
    flat_term_x; 
    upper_dih_x; 
+   euler_ap;
    ];;
 
 (*
@@ -272,6 +273,9 @@ let get_macro_expand() = (
 		      edge_flat2_x;
 		      delta_template_B_x_alt;
 		      dih_hexall_x;
+		      upper_dih_hexall_x;
+		      delta_hexall_x;
+		      delta4_hexall_x;
 		      taum_hexall_x;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;

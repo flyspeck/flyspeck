@@ -7,6 +7,7 @@
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*d31*")
 (setq hol-light-interactive-buffer-name "*d8*")
+(setq hol-light-interactive-buffer-name "*d7*")
 
 (print hol-light-interactive-buffer-name)
 

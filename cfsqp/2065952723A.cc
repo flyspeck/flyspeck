@@ -6,6 +6,8 @@
 #include <math.h>
 #include "Minimizer.h"
 #include "numerical.h"
+#include "2065952723A.h"
+
 class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};
 int trialcount = 2;
 
@@ -652,9 +654,9 @@ double rectangle(double xmin[6],double xmax[6]) {
   return v;
 }
 
-// split on the final three variables.
+// split on the final three variables
 
-void split3(const double xmin[6],const double xmax[6],
+int split3(const double xmin[6],const double xmax[6],
 	   double rmin[2][6],double rmax[2][6]) {  
 	int j_wide=0; /* init j_wide */ {
 	double w = xmax[0]-xmin[0]; 
@@ -668,26 +670,21 @@ void split3(const double xmin[6],const double xmax[6],
 	  for (int j=0;j<6;j++) { rmin[k][j] = xmin[j]; rmax[k][j]=xmax[j]; }
 	  (k? rmin[k][j_wide] = y : rmax[k][j_wide] = y);
 	}
+	return j_wide;
 }
-
-
 
 
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
 
-struct strategy {
-  enum X { split, merge };
-  double alpha;
-  int splitvar;
-};
 
-int recursiveA (double xmin[6],double xmax[6],int iter)
+
+int setStrategy (double xmin[6],double xmax[6],strategy& s,int recurse)
 {
   counter ++;
-  trialcount = iter-1;
-  int iter2 = max(iter-10,2);
+  double eps = 0.01;
+
   Minimizer zer1 = m_num1(xmin,xmax);
   Minimizer zer1m = m_num1m(xmin,xmax);
   Minimizer zer2m = m_num2m(xmin,xmax);
@@ -697,7 +694,15 @@ int recursiveA (double xmin[6],double xmax[6],int iter)
   double m2m = zer2m.optimize();
   double mm = max(m2m,max(m1,m1m));
   int which = (mm==m1 ? 1 : (mm==m1m ? 2 : 3));
-  if (mm > 0.0) { rectangle_partial += rectangle(xmin,xmax); return 1; }
+  if (mm > eps) { 
+    switch (which) {
+    case 1 : s.mode = strategy::n1; break;
+    case 2: s.mode = strategy::n1m; break;
+    default : s.mode = strategy::n2m; break;
+    }
+    rectangle_partial += rectangle(xmin,xmax); 
+    return 1; 
+  }
 
   // check for a C/E.
   double mc = m_combo(xmin,xmax).optimize();
@@ -726,15 +731,20 @@ int recursiveA (double xmin[6],double xmax[6],int iter)
   global_alpha = sign1 *simplex2Dalpha(data,64);
   }
 
-  // check if it works.
+  // check if it works
   Minimizer znn = m_varcombo(xmin,xmax);
   double nn = znn.optimize();
-  if (nn > 0.0) { combcounter++; rectangle_partial += rectangle(xmin,xmax); return 1; } // It works!
+  if (nn > eps) { 
+    s.mode = strategy::merge;
+    s.alpha = global_alpha;
+    combcounter++; 
+    rectangle_partial += rectangle(xmin,xmax); 
+    return 1; } 
   
-  // print some statistics.
+  // print some statistics
   double w = 0;
   for (int i=0;i<5;i++) { w += xmax[i]-xmin[i]; }
-  if (mm < 0 && (lastprintcount + 500 <= counter)) {
+  if (mm < 0 && (lastprintcount + 1000 <= counter)) {
       cout.precision(3);
       lastprintcount = counter;
       cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << global_alpha ;
@@ -743,11 +753,15 @@ int recursiveA (double xmin[6],double xmax[6],int iter)
 
   // subdivide recursively:
   double rmin[2][6], rmax[2][6];
-  split3(xmin,xmax,rmin,rmax);
-  return (recursiveA(rmin[0],rmax[0],iter2) && 
-	  (recursiveA(rmin[1],rmax[1],iter2)));;
+  s.mode = strategy::split;
+  s.splitvar =split3(xmin,xmax,rmin,rmax);
+  return (recurse ? (setStrategy(rmin[0],rmax[0],s,recurse) && 
+		     (setStrategy(rmin[1],rmax[1],s,recurse))) : 0);;
 }
 
+int setStrategy206A (double xmin[6],double xmax[6],strategy& s) {
+  return setStrategy(xmin,xmax,s,0);
+}
 
 int main(){
 
@@ -760,7 +774,8 @@ int main(){
 
   rectangle_total = rectangle(xmin,xmax);
   cout << "r: " << rectangle_total << endl;
-  recursiveA(xmin,xmax,trialcount);
+  strategy s;
+  setStrategy(xmin,xmax,s,0/*1*/);
 
   {
   double data[4] = {1.0,4.0,2.0,3.0};

@@ -45,7 +45,8 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
 	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) test_auto.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o  taylorInterval.o recurse.o -o test_auto -lm $(L)
+	secondDerive.o univariate.o  taylorInterval.o recurse.o \
+	../cfsqp/2065952723A.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o -o test_auto -lm $(L)
 
 dec20_test: dec20_test.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \

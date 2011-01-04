@@ -52,7 +52,6 @@ public:
 
 private:
     int iterationLimit;
-    int iterationCount;
     int startingIndex;
     int recursionDepth;
     X printingMode;
@@ -63,6 +62,9 @@ private:
     int skipped;
 
 public:
+
+    int iterationCount;
+
 
     //////////
     // A lower bound (for quads) on the cross diagonal (default is 0).
@@ -99,159 +101,163 @@ public:
     //
     //int useEnclosed;
 
-	//////////
-	// Allows a sharp inequality at some point without failing. 
-	//
-	int allowSharp;
+    //////////
+    // Allows a sharp inequality at some point without failing. 
+    //
+    int allowSharp;
 
-	//////////
-	// A cell passes if (partial f/partial x1 < 0).  The value of the function doesn't matter.
-	// This can be useful in proving the monotonicity of certain functions.
-	// There should only be one disjunct when this option is set.
-	//
-	int onlyCheckDeriv1Negative;
+    //////////
+    // A cell passes if (partial f/partial x1 < 0).  The value of the function doesn't matter.
+    // This can be useful in proving the monotonicity of certain functions.
+    // There should only be one disjunct when this option is set.
+    //
+    int onlyCheckDeriv1Negative;
 
-	//////////
-	// 
-	//
-	void setRecursionDepth(int rd) { recursionDepth=rd; }
-
-	//////////
-	// This only has an effect if it is positive.
-	//
-	int getRecursionDepth() const { return recursionDepth; }
-
-	//////////
-	// quit after so many tries.
-	void setIterationLimit(int lim) { iterationLimit=lim; }
-	
-	//////////
-	// 
-	int getIterationLimit() const { return iterationLimit; }
-
-	//////////
-	// 
-	void resetIterationCount() { iterationCount=0; }
-
-	//////////
-	//
-	int getIterationCount() const { return iterationCount; }
-
-	//////////
-	//
-	void augmentIterationCount() { iterationCount++; }
-
-	//////////
-	// setSkipCases allows the user to enter an array that
-	// specifies what input integers caseNumber will return
-	// a nonzero value skip(caseNumber).
-	//
-	void setSkipCases(const int skiplist[],int len)
-		{
-		int i;
-		if (len>Nskip) { error::message("skip array out of bounds"); len=Nskip; }
-		for (i=0;i<len;i++) skip_these[i]=skiplist[i];
-		skipped=len;
-		cout << "\nWarning: skipping R-cases ";
-		for (i=0;i<len;i++) cout << skiplist[i] << " ";
-		cout << endl << flush;
-		}
-
-	//////////
-	// skip is called by recursiveVerifierQ when there is 
-	// dimension reduction.  Dimension reduction breaks a quad
-	// inequality into many cases.  Before running each case,
-	// recurseiveVerifierQ calls skip(casenumber) and omits the
-	// case if a nonzero value is returned.  The nonzero return values
-	// are set using setSkipCases.
-	//
-	int skip(int i) const
-		{
-		for (int j=0;j<skipped;j++)  if (i==skip_these[j]) return 1;
-		return 0;
-		}
-
-	//////////
-	// 
-	void setWidthCutoff(double x) { widthCutoff=x; 
-		usingWidthCutoff=1; }
-
-	//////////
-	//
-	double getWidthCutoff() const { return widthCutoff; }
-
-	//////////
-	//
-	int hasWidthCutoff() const { return usingWidthCutoff; }
-
-	//////////
-	//
-	//    void setChiShortCut(int i) { chiShortCut=i; }
-
-	//////////
-	//
-	//  int getChiShortCut() const { return chiShortCut; }
-
-	//////////
-	//
+    // special code for the case 2065952723A.
+    int strategy206A;
+    
+    //////////
+    // 
+    //
+    void setRecursionDepth(int rd) { recursionDepth=rd; }
+    
+    //////////
+    // This only has an effect if it is positive.
+    //
+    int getRecursionDepth() const { return recursionDepth; }
+    
+    //////////
+    // quit after so many tries.
+    void setIterationLimit(int lim) { iterationLimit=lim; }
+    
+    //////////
+    // 
+    int getIterationLimit() const { return iterationLimit; }
+    
+    //////////
+    // 
+    void resetIterationCount() { iterationCount=0; }
+    
+    //////////
+    //
+    int getIterationCount() const { return iterationCount; }
+    
+    //////////
+    //
+    void augmentIterationCount() { iterationCount++; }
+    
+    //////////
+    // setSkipCases allows the user to enter an array that
+    // specifies what input integers caseNumber will return
+    // a nonzero value skip(caseNumber).
+    //
+    void setSkipCases(const int skiplist[],int len)
+    {
+      int i;
+      if (len>Nskip) { error::message("skip array out of bounds"); len=Nskip; }
+      for (i=0;i<len;i++) skip_these[i]=skiplist[i];
+      skipped=len;
+      cout << "\nWarning: skipping R-cases ";
+      for (i=0;i<len;i++) cout << skiplist[i] << " ";
+      cout << endl << flush;
+    }
+    
+    //////////
+    // skip is called by recursiveVerifierQ when there is 
+    // dimension reduction.  Dimension reduction breaks a quad
+    // inequality into many cases.  Before running each case,
+    // recurseiveVerifierQ calls skip(casenumber) and omits the
+    // case if a nonzero value is returned.  The nonzero return values
+    // are set using setSkipCases.
+    //
+    int skip(int i) const
+    {
+      for (int j=0;j<skipped;j++)  if (i==skip_these[j]) return 1;
+      return 0;
+    }
+    
+    //////////
+    // 
+    void setWidthCutoff(double x) { widthCutoff=x; 
+      usingWidthCutoff=1; }
+    
+    //////////
+    //
+    double getWidthCutoff() const { return widthCutoff; }
+    
+    //////////
+    //
+    int hasWidthCutoff() const { return usingWidthCutoff; }
+    
+    //////////
+    //
+    //    void setChiShortCut(int i) { chiShortCut=i; }
+    
+    //////////
+    //
+    //  int getChiShortCut() const { return chiShortCut; }
+    
+    //////////
+    //
     //    void setDihMax(double theta) { dihmax=theta; usingDihMax=1;  }
-
-	//////////
-	//
+    
+    //////////
+    //
     //    double getDihMax() { return dihmax; }
-
-	//////////
-	//
+    
+    //////////
+    //
     //    int isUsingDihMax() { return usingDihMax; }
-
-	//////////
-	//
-	//	void setBigFace126() { usingBigFace126=1; }
-
-	//////////
-	//
-	//	int isUsingBigFace126() { return usingBigFace126; }
-
-	//////////
-	//
+    
+    //////////
+    //
+    //	void setBigFace126() { usingBigFace126=1; }
+    
+    //////////
+    //
+    //	int isUsingBigFace126() { return usingBigFace126; }
+    
+    //////////
+    //
     void setPrintMode(X u) { printingMode = u; }
-
-	//////////
-	//
+    
+    //////////
+    //
     X getPrintMode() { return printingMode; }
-
+    
     //////////
     //
     void setStartingIndex(int i) { startingIndex=i; }
-
-	//////////
-	//
-	int getStartingIndex() const { return startingIndex; }
-
-	//////////
-	//
-	cellOption() {  
-	  allowSharp=0;
-	  printingMode=verbose; 
-	  usingWidthCutoff=0; 
-	  recursionDepth=0;
-	  crossDiagMinDelta = 0.0;
-	  crossDiagMinEnclosed = 0.0;
-	  delta126Min=-1.0;
-	  delta126Max = -1;
-	  delta135Min = -1;
-	  delta135Max= -1;
-	  setRad2=0;
-	  timeout=60000;
-	  dimRedBackSym=0;
-	  margin=0.0;
-	  startingIndex =0; 
-	  for (int i=0;i<Nskip;i++) skip_these[i]=-1;
-	  iterationCount=0;
-	  iterationLimit=0;
-	  skipped=0; 
-	}
-
+    
+    //////////
+    //
+    int getStartingIndex() const { return startingIndex; }
+    
+    //////////
+    //
+    cellOption() {  
+      allowSharp=0;
+      printingMode=verbose; 
+      usingWidthCutoff=0; 
+      recursionDepth=0;
+      crossDiagMinDelta = 0.0;
+      crossDiagMinEnclosed = 0.0;
+      delta126Min=-1.0;
+      delta126Max = -1;
+      delta135Min = -1;
+      delta135Max= -1;
+      setRad2=0;
+      timeout=60000;
+      dimRedBackSym=0;
+      margin=0.0;
+      startingIndex =0; 
+      for (int i=0;i<Nskip;i++) skip_these[i]=-1;
+      iterationCount=0;
+      iterationLimit=0;
+      skipped=0; 
+      strategy206A=0;
+    }
+    
 };
 
 

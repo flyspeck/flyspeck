@@ -247,7 +247,7 @@ public:
       delta135Min = -1;
       delta135Max= -1;
       setRad2=0;
-      timeout=60000;
+      timeout=150000;
       dimRedBackSym=0;
       margin=0.0;
       startingIndex =0; 

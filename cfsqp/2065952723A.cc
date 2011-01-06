@@ -654,6 +654,14 @@ double rectangle(double xmin[6],double xmax[6]) {
   return v;
 }
 
+double percent_done() {
+  return rectangle_partial / rectangle_total;
+}
+
+void set_rectangle(double xmin[6],double xmax[6]) {
+  rectangle_total = rectangle(xmin,xmax);
+}
+
 // split on the final three variables
 
 int split3(const double xmin[6],const double xmax[6],
@@ -677,7 +685,11 @@ int split3(const double xmin[6],const double xmax[6],
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
+int printspan=1;
 
+int getCounter() {
+  return counter;
+}
 
 
 int setStrategy (double xmin[6],double xmax[6],strategy& s,int recurse)
@@ -744,7 +756,7 @@ int setStrategy (double xmin[6],double xmax[6],strategy& s,int recurse)
   // print some statistics
   double w = 0;
   for (int i=0;i<5;i++) { w += xmax[i]-xmin[i]; }
-  if (mm < 0 && (lastprintcount + 1000 <= counter)) {
+  if (mm < 0 && (lastprintcount + printspan<= counter)) {
       cout.precision(3);
       lastprintcount = counter;
       cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << global_alpha ;
@@ -763,7 +775,8 @@ int setStrategy206A (double xmin[6],double xmax[6],strategy& s) {
   return setStrategy(xmin,xmax,s,0);
 }
 
-int main(){
+
+int omain ()  {
 
   double xmin[6]= {
 1.,1.,1.,(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.))
@@ -775,7 +788,7 @@ int main(){
   rectangle_total = rectangle(xmin,xmax);
   cout << "r: " << rectangle_total << endl;
   strategy s;
-  setStrategy(xmin,xmax,s,0/*1*/);
+  //  setStrategy(xmin,xmax,s,0/*1*/);
 
   {
   double data[4] = {1.0,4.0,2.0,3.0};
@@ -791,6 +804,18 @@ int main(){
     double data[8] = {0.99,10.0,1.0,9.0,11.0,12.0,9.0,1.0};
   assert(0.5==simplex2Dalpha(data,4));
   }
+
+  global_alpha = 0.99915589538304627748 ;
+  double y[6]={0.99999999999999988898,0.99999999999999988898,0.99999999999999988898,2.5195263290501368481,2.5195263290501368481,7.8392912459240529088};
+  double r;
+  t_varcombo(6,1,y,&r,0);
+  
+  cout.precision(30);
+  cout << "alpha " << global_alpha << endl;
+  cout << "combo " << r << endl;
+  cout << "num1 " << numsgn(1.0,y,1) << endl;
+  cout << "num2 " << numsgn(1.0,y,0) << endl;
+
 
 
 }

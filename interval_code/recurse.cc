@@ -260,7 +260,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	centerform(x,z,y,w); 
 	maxwidth = max(w); 
       }
-      
+
       /*pass cell if some taylor bound holds*/{
 	int has_unstable_branch=0;
 	int unstable_branches[MAXcount];
@@ -294,7 +294,6 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  }
 	*/
       }
-      
       
       /*report zero width cells */ {
 	static const double epsilon_width = 1.0e-8;
@@ -342,22 +341,21 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
       }
       
       /* do derivatives. */{
-	for (int j=0;j<DIM6;j++) if (x[j]<z[j])
-				   {
-				     int allpos=1, allneg=1;
-				     for (int i=0;i<count;i++) if (T[i]->lowerPartial(j)<0.0) allpos=0;
-				     for (int i=0;i<count;i++) if (T[i]->upperPartial(j)>= 0.0) allneg=0; // >= breaks symmetry.
-				     if (allpos)
-				       {
-					 if (z[j]<z0[j]) return cellOption::cellPasses; // slide off the edge.
-					 else { z0[j]=x0[j]=x[j]=z[j]; goingstrong=1; }
-				       }
-				     else if (allneg)
-				       {
-					 if (x[j]>x0[j]) return cellOption::cellPasses;
-					 else { x0[j]=z0[j]=z[j]=x[j]; goingstrong=1; }
-				       }
-				   }
+	for (int j=0;j<DIM6;j++) if (x[j]<z[j]) {
+	    int allpos=1, allneg=1;
+	    for (int i=0;i<count;i++) if (T[i]->lowerPartial(j)<0.0) allpos=0;
+	    for (int i=0;i<count;i++) if (T[i]->upperPartial(j)>= 0.0) allneg=0; // >= breaks symmetry.
+	    if (allpos)
+	      {
+		if (z[j]<z0[j]) return cellOption::cellPasses; // slide off the edge.
+		else { z0[j]=x0[j]=x[j]=z[j]; goingstrong=1; }
+	      }
+	    else if (allneg)
+	      {
+		if (x[j]>x0[j]) return cellOption::cellPasses;
+		else { x0[j]=z0[j]=z[j]=x[j]; goingstrong=1; }
+	      }
+	  }
       }
       
     } // end while goingstrong
@@ -452,9 +450,13 @@ void stats(int force) {
     {
       if (count(linefeed++,10) )
 	{
-	  error::printTime();	  
 	  cout << " " << flush; 
+	  error::printTime();	  
 	}
+      /*  206A case only. */ {
+      int c = getCounter();  
+      if (c>0) { cout << "(" << getCounter() << ":" << percent_done() << ")"; }
+      }
       cout << "[" << statcounter/10000 << "*10^4]" << flush;
     }
 }
@@ -476,6 +478,7 @@ int prove::recursiveVerifier(int depth,
     }
   timeout = options.timeout;
   stats(0); 
+  if (depth==0) { set_rectangle(x,z); }  // 206A code.
   options.augmentIterationCount();
   if ((options.getIterationLimit()>0)&&
       (options.getIterationLimit()<options.getIterationCount()))
@@ -528,15 +531,14 @@ int prove::recursiveVerifier(int depth,
 	  interval alpha(s.alpha,s.alpha);
 	  interval malpha = one - interMath::max(alpha,-alpha);
 	  const taylorFunction F = 
-	    ( (s.mode==strategy::n1) ? taylorSimplex::num1 :
-	      ((s.mode ==strategy::n1m) ? taylorSimplex::num1 * "-1"  :
-	       ((s.mode == strategy::n2m) ? taylorSimplex::num2 * "-1" :
-		/* s.mode == strategy::merge */ 
-                taylorSimplex::num2 * malpha + 
-		taylorSimplex::num1 * alpha) ) );
-	  const taylorFunction* J[1] = {&F};
-          cellOption opt1;
-	  opt1.setPrintMode(cellOption::silent);
+	    ( (s.mode==strategy::n1) ? taylorSimplex::num1   :
+	      ((s.mode ==strategy::n1m) ? taylorSimplex::num1 * "- 1"  :
+	       ((s.mode == strategy::n2m) ? taylorSimplex::num2 * " - 1" :
+		(assert(s.mode == strategy::merge),
+                taylorSimplex::num2 * malpha * "-1" + 
+		 taylorSimplex::num1 * alpha) ) ) );
+	  const taylorFunction Fm = F * "-1";
+	  const taylorFunction* J[1] = {&Fm};
 	  // use linearity in e1,e2,e3 to do dimension reduction.
 	  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
 		double xr[6], zr[6];
@@ -544,24 +546,39 @@ int prove::recursiveVerifier(int depth,
 		xr[1] = (j ? zz[1] : xx[1]); zr[1] = xr[1];
 		xr[2] = (k ? zz[2] : xx[2]); zr[2] = xr[2];
 		for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
+		cellOption opt1;
+		opt1.setPrintMode(cellOption::silent);
+		opt1.iterationCount = options.iterationCount;
 		int rv = recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
-		options.iterationCount   += opt1.iterationCount;
-		if (!rv) return 0;
+		options.iterationCount   = opt1.iterationCount;
+		if (!rv) {
+		  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
+		  cout << "x r" << endl;
+		  for (int u=0;u<6;u++) {
+		    cout << xr[u] << " " << zr[u] << endl;
+		  }
+		  if (s.mode==strategy::merge) 
+		    { cout << " alpha " << alpha << endl; }
+		  return 0;
+
+		}
 	      }
+	  return 1;
     }
   }
 
 
   else {
   /* Here is the main line of the procedure.  Check if it verifies. */
-  cellOption::cellStatus v;
-  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
+  cellOption::cellStatus  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
 				       options);// xx,zz,.. affected.
-  if (v==cellOption::counterexample) return 0; 
-  else if (v==cellOption::cellPasses) return 1; 
+  if (v==cellOption::counterexample) {
+    cout << "counterexample found " << endl;
+    return 0; 
+  }
+  else if (v==cellOption::cellPasses) { return 1;  }
   assert (v==cellOption::inconclusive);
   }
-  
   /* run recursion into two cases. */ { 
     interMath::up();
     int j_wide=0; /* init j_wide */ {

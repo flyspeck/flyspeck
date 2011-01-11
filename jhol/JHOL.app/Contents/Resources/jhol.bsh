@@ -1,6 +1,4 @@
-#!/usr/bin/java -Xdock:name=JHOL -Xdock:icon=applet.icns -Dapple.laf.useScreenMenuBar=true -Dcom.apple.mrj.application.apple.menu.about.name=JHOL -Dcom.apple.mrj.application.growbox.intrudes=false -Dcom.apple.macos.smallTabs=true bsh.Interpreter 
-       
-       import java.lang.reflect.Array;
+    import java.lang.reflect.Array;
 
 import bsh.util.JConsole;
 import bsh.util.NameCompletion;
@@ -49,37 +47,16 @@ String readLine(BufferedReader br){
 
 //end low level functions
 
-
-EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
-    "  .real {color:teal; background-color:white;         "+
-    "            font-weight:bold; text-align:center;}.num {color:fuchsia; background-color:white;            "+
-    "         font-weight:bold; text-align:center;}.int {color:olive; background-color:white;     "+
-    "                font-weight:bold; text-align:center;}</style></HEAD><BODY><PRE>";
-
-//Create frame
-JFrame frame = new JFrame("JHOL");
-
-//Create buttons 
-JButton sigIntButton = new JButton("Assume");
-sigIntButton.setActionCommand("assume");
-JButton genTac = new JButton("Remove  \"for all\"");
-genTac.setActionCommand("e(GEN_TAC);;");
-JButton conjTac = new JButton("Remove Conjuction");
-conjTac.setActionCommand("e(CONJ_TAC);;");
-JButton conjTac1 = new JButton("Test Button 1");
-conjTac1.setActionCommand("test1");
-JButton conjTac2 = new JButton("Interrupt");
-conjTac2.setActionCommand("test2");
-
-//Keep track of buttons
-List buttonList = new LinkedList();
-buttonList.add(sigIntButton);
-buttonList.add(genTac);
-buttonList.add(conjTac);
-buttonList.add(conjTac1);
-buttonList.add(conjTac2);
+     IS_A_MAC = System.getProperty(
+          "os.name").toLowerCase().indexOf("mac") != -1;
 
 //begin MacOS stuff
+if (IS_A_MAC){
+    System.setProperty("apple.laf.useScreenMenuBar", "true");
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JHOL");
+    System.setProperty("com.apple.mrj.application.growbox.intrudes", "false");
+    System.setProperty("com.apple.macos.smallTabs", "true");
+
 applicationAdapter = new ApplicationAdapter() {
         public void handleAbout(ApplicationEvent event) {
            (new JFrame()).show();
@@ -113,7 +90,41 @@ applicationAdapter = new ApplicationAdapter() {
 
 macOSApplication = Application.getApplication() ;
 macOSApplication.addApplicationListener(applicationAdapter);
+}
 //end MacOS stuff
+
+
+EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
+    "  .real {color:teal; background-color:white;         "+
+    "            font-weight:bold; text-align:center;}.num {color:fuchsia; background-color:white;            "+
+    "         font-weight:bold; text-align:center;}.int {color:olive; background-color:white;     "+
+    "                font-weight:bold; text-align:center;}</style></HEAD><BODY><PRE>";
+
+
+
+//Create frame
+JFrame frame = new JFrame("JHOL");
+
+//Create buttons 
+JButton sigIntButton = new JButton("Assume");
+sigIntButton.setActionCommand("assume");
+JButton genTac = new JButton("Remove  \"for all\"");
+genTac.setActionCommand("e(GEN_TAC);;");
+JButton conjTac = new JButton("Remove Conjuction");
+conjTac.setActionCommand("e(CONJ_TAC);;");
+JButton conjTac1 = new JButton("Test Button 1");
+conjTac1.setActionCommand("test1");
+JButton conjTac2 = new JButton("Interrupt");
+conjTac2.setActionCommand("test2");
+
+//Keep track of buttons
+List buttonList = new LinkedList();
+buttonList.add(sigIntButton);
+buttonList.add(genTac);
+buttonList.add(conjTac);
+buttonList.add(conjTac1);
+buttonList.add(conjTac2);
+
 
 
 //Queue for commands to be run in java from hol
@@ -166,18 +177,12 @@ JScrollPane helpScrollPane = new JScrollPane(helpPane,JScrollPane.VERTICAL_SCROL
                                  JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 
-PopupFactory factory = PopupFactory.getSharedInstance();
-Popup popup = factory.getPopup(frame, helpScrollPane, 200, 200);
-
-  
-
-
 
 //Object for holding hol process
 HOLLightWrapper(JConsole console) {
     List command = new ArrayList();
-    command.add("/usr/local/bin/hol_light");
-     
+    //    command.add("/usr/local/bin/hol_light");
+    command.add("./local.hol");
     proc = new ProcessBuilder(command);
     proc.redirectErrorStream(true);
     try {
@@ -197,6 +202,7 @@ HOLLightWrapper(JConsole console) {
 	    char c;
 	    do {
 		c = (char) bout.read();
+
 		if (str.length() == 0 && c == '@')
 		    {
 			evalStr.append(bout.readLine());
@@ -206,6 +212,7 @@ HOLLightWrapper(JConsole console) {
 		if (c == 65535){
 		   
 			suppressedOutput.append(str.toString());
+		    print("hol_light: EOF reached.");
 		    JHOLEnd();}
 		str.append(c);		
 		
@@ -225,8 +232,8 @@ HOLLightWrapper(JConsole console) {
 	    //	suppressedOutput.append(str.toString());
 	    return suppressedOutput.toString();
         } catch (IOException ex) {
-            Logger.getLogger(
-			     HOLLightWrapper.class.getName()).log(Level.SEVERE, null, ex);
+	ex.printStackTrace();           
+
             JHOLEnd();
         }
     }
@@ -234,7 +241,7 @@ HOLLightWrapper(JConsole console) {
     public String runCommand(String cmd) {
 	
 	if(cmd.length() == 0)
-	    return null;
+	    return "";
 	flag = cmd.charAt(cmd.length() - 1) != '\n';
 	if(flag)
 	    {
@@ -258,10 +265,13 @@ HOLLightWrapper(JConsole console) {
 	    return result;
 	    
 	} catch (IOException e) {
-	    return null;
+	    e.printStackTrace();
+	    return "";
 	}
     }
+
     printHTML(flushOutput());
+
 
 
     return this;
@@ -273,6 +283,7 @@ hol = HOLLightWrapper(console);
 //method for running multiple hol commands at once
 runHOLCommands (String cmds){
     String[] array = cmds.split("\n");
+
     for(int i = 0; i < Array.getLength(array); i++){
 	print(hol.runCommand(array[i]));//DEBUG
     }

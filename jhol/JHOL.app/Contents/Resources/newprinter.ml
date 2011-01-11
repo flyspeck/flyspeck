@@ -11,20 +11,20 @@ let print_string' = print_string;;
 let pp_print_string fmt str = 
   pp_print_string' fmt (
     List.fold_right (uncurry(Str.global_replace)) [
-       Str.regexp "<","&#60;";
-      Str.regexp ">","&#62;";
-      Str.regexp "\\\\", "&lambda;";
-      Str.regexp "/\\\\","&and;";
-      Str.regexp "\\\\/","&or;";
-      Str.regexp "<=", "&le;";
-      Str.regexp ">=", "&ge;";
-      Str.regexp "==>", "&rArr;";
-      Str.regexp "<=>", "&#8660;";
-      Str.regexp "~", "&not;";
-      Str.regexp "|-", "&#8866;";
-      Str.regexp "--", "&minus;";
-      Str.regexp "?", "&exist;";
-      Str.regexp "!","&forall;"
+      Str.regexp "<",    "&#60;";
+      Str.regexp ">",    "&#62;";
+      Str.regexp "\\\\", "&#955;";
+      Str.regexp "/\\\\","&#8743;";
+      Str.regexp "\\\\/","&#8744;";
+      Str.regexp "<=",   "&#8804;";
+      Str.regexp ">=",   "&#8805;";
+      Str.regexp "==>",  "&#8658;";
+      Str.regexp "<=>",  "&#8660;";
+      Str.regexp "~",    "&#172;";
+      Str.regexp "|-",   "&#8866;";
+      Str.regexp "--",   "&#8722;";
+      Str.regexp "?",    "&#8707;";
+      Str.regexp "!",    "&#8704;"
     ] str);;
 let print_string = pp_print_string std_formatter;;
 

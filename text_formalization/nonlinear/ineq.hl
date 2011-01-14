@@ -2733,9 +2733,21 @@ let template_hexall_main = `\y14val y12val y2max y5min y5max. ineq
       (delta_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 < &10) \/
       (arclength_x_345 x1 x2 x3 x4 x5 x6 > #2.42) \/
       (dih_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 > &0) \/
+	(eulerA_hexall_x x14 x12 x23    x1 x2 x3 x4 x5 x6 < #1.72) \/
        (taum_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6
           > (tame_table_d 6 0) / &2) 
 )`;;
+
+(* eulerA_hexall factor added to hexall_main on Jan 14, 2011.
+   tau(Q-flat) >= sum_3 azim      - (pi + sol0) + flatterm
+                        = sol(Triangle) + pi - (pi + sol0) - sol0
+                        = sol(Triangle) - 2 sol 0.
+
+   t = Sqrt[delta]/ 2.    On hexall_main, Sqrt[10]/2 <= t
+
+   If eulerA < 1.72.   
+   1.72 < Tan[Pi/2  - (sol0 + tau60 / 4)] t, ==> sol > 2 sol0 + tau60 /2.
+   ==> tau(Q,flat) > tau60 / 2, so the taum_hexall_x ineq. holds.   *)
 
 (*
 let template_hexall_d = `\y14val y12val y2max y5min y5max. ineq
@@ -2758,6 +2770,8 @@ let template_hexall_d = `\y14val y12val y2max y5min y5max. ineq
 )`;;
 *)
 
+
+
 let template_hexall_a = `\y14val y12val y2max y5min y5max. ineq
   [
 (&2 pow 2,x1,(&2 *h0) pow 2);
@@ -2771,12 +2785,18 @@ let template_hexall_a = `\y14val y12val y2max y5min y5max. ineq
     let x12 = y12val pow 2 in
     let x23 = y12val pow 2 in
     let x14 = y14val pow 2 in
+    let cos242 = -- #0.75 in
       (delta_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 > &10) \/  
 	(delta_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 < &0) \/
 	(delta4_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 < &10) \/
 	(upper_dih_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 x6 > &0) \/
-	(arclength_x_345 x1 x2 x3 x4 x5 x6 > #2.42) 
+	( factor345_hexall_x cos242 x1 x2 x3 x4 x5 x6 > &0) 
 )`;;
+
+
+
+(*  changed (arclength_x_345 x1 x2 x3 x4 x5 x6 > #2.42)  , Jan 14, 2011. *)
+
 
 let template_hexall_b = `\y14val y12val y2max y5min y5max. ineq
   [
@@ -2800,17 +2820,17 @@ let template_hexall_b = `\y14val y12val y2max y5min y5max. ineq
 )`;;
 
    (*  // upper approximation cos(2.42) *)
-   (* If euler < 0, and a flat then tau(quad) >= tau(tri) + flatTerm[2] 
-       >= (sol+pi) -sol0
-      >= 2pi - sol0 >> tameTableD[6,0]/2, and the estimate holds *)
+   (* If euler < 0, and a flat then tau(quad-flat) >= tau(tri) + flatTerm[2] 
+       >= (sol-sol0) -sol0
+      >= pi - 2 sol0 >> tameTableD[6,0]/2, and the estimate holds *)
 (* factor 345 asserts: x5 > x3 + x4 - &2 * cos242 * sqrt(x3) * sqrt(x4)    ) *)
 
 let make_hexall y14 y2 i =
   let y14val = List.nth [`&2`;`&2 * h0`] y14 in
   let (y12val,y2max) = List.nth [(`&2`,`&2 * h0`); (`&2 * h0`,`&2`) ] y2 in
   let (y5min,y5max) = (`&2 * h0`,`#4.72`) in
-  let ext = List.nth ["main";"a";"b"] i in
-  let template = List.nth [template_hexall_main;template_hexall_a;template_hexall_b] i in
+  let ext = List.nth ["main";"b";"a";] i in
+  let template = List.nth [template_hexall_main;template_hexall_b;template_hexall_a] i in
    {
     id = Printf.sprintf  "PROIQUZ hexall 1-%s: %d %d" ext y14 y2;
     ineq = mk_tplate template [y14val;y12val;y2max;y5min;y5max];
@@ -2820,12 +2840,18 @@ let make_hexall y14 y2 i =
     The main branch is i=0.  The others are there to justify why we can assume Delta >= 10,
 	  split according to whether delta4 is positive.
 *)
+(* January 14, 2011. Note, the branch hexall_a can be proved directly with interval arithmetic.
+   if delta4_hexall_x > 8, and delta in 0..10, then
+   Angle is ArcTan[Sqrt[4 x1 Delta]/d4] < ArcTan[Sqrt[4 2.52^2 10]/8] < 1.15 <
+   dih (y1,y2,y4,2.52,y14,y12) (by 2570626711), so upper_dih_hexall_x holds.
+   Thus hexall_a is automatically satisfied.  
+*)
     tags = [Tex; Flypaper; Penalty (500., 5000.);]
   };;
 
 for y14=0 to 1 do 
 for y2 = 0 to 1 do
-for i = 0 to 2 do
+for i = 0 to 1 do  (* i=2 not needed by comment about hexall_a above *)
    add (make_hexall y14 y2 i) done done done;;
 
 (*
@@ -2908,10 +2934,10 @@ ineq =  all_forall `ineq
 (&2,y5,&2 * h0);
 (&2 * h0,y6,&2 * h0)
   ]
-  (
+  (    let cos242 = -- #0.75 in
        (taum y1 y2 y3 y4 y5 y6
           > (tame_table_d 6 0) / &2  -  tame_table_d 2 1) \/
-      (arclength y2 y3 y4 > #2.42) \/
+	(y_of_x (factor345_hexall_x cos242) y1 y2 y3 y4 y5 y6 > &0) \/
       (pi + upper_dih_y y1 y2 y3 y4 y5 y6 > pi - #0.852 ) \/ (delta4_y y1 y2 y3 y4 y5 y6 > -- &20) \/
      ((taum y1 y2 y3 y4 y5 y6 - ( (tame_table_d 6 0) / &2  -  tame_table_d 2 1)) +
       #0.546233 * (upper_dih_y y1 y2 y3 y4 y5 y6 + #0.852) > &0 ) \/
@@ -2922,6 +2948,8 @@ ineq =  all_forall `ineq
        When delta4\\_y  is negative, $\\op{dih} \\ge \\pi + \\op{upper}.$
     The last disjunct is a gratuitous redundant positive linear combination of the earlier disjuncts.";
    tags = [Tex; Flypaper; Penalty (5., 50.); Xconvert]
+ (*       (arclength y2 y3 y4 > #2.42) \/ replaced Jan 11, 2011. 
+    3-a1 does the case when delta4_y  *)
 };;
 
 add 

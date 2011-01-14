@@ -263,36 +263,31 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 
       /*pass cell if some taylor bound holds*/{
 	int has_unstable_branch=0;
-	int unstable_branches[MAXcount];
-	for (int i=0;i<count;i++)
-	  {
-	    unstable_branches[i]=0;
-	    try { Target[i]= I[i]->evalf(domain(x),domain(z));   
-	      T[i]=&Target[i];
-	      if (opt.onlyCheckDeriv1Negative) {
-		if (T[i]->upperPartial(0)<0.0) { return cellOption::cellPasses; }
-		if (T[i]->lowerPartial(0)>0.0) { return cellOption::counterexample; }
-		return cellOption::inconclusive;
-	      }
-	      if (T[i]->upperBound()<0.0) return cellOption::cellPasses;
+	int i=0; while (i<count)     { // each loop increments i, or decrements count.
+	  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
+	    taylorInterval* U=&Target[i]; 
+	    if (opt.onlyCheckDeriv1Negative) {
+	      if (U->upperPartial(0)<0.0) { return cellOption::cellPasses; }
+	      if (U->lowerPartial(0)>0.0) { return cellOption::counterexample; }
+	      return cellOption::inconclusive;
 	    }
-	    catch (unstable x) { has_unstable_branch=1; unstable_branches[i]=1; } 
+	    if (U->upperBound()<0.0) return cellOption::cellPasses;
+	    T[i] = &Target[i];
+	    i++;
 	  }
+	  // exceptions are common early on, when intervals are too fat for reliable computation:
+	  catch (unstable u) { // modified Jan 14, 2011.
+	    if (2.0 * maxwidth > WCUTOFF) {
+	      has_unstable_branch=1;  
+	      i++;
+	    }
+	    else {
+	      resetBoundary(x0,z0,x,z);
+	      deleteFunction(T,I,count,i); //decrements count; T not initialized, but no matter.
+	    }
+	  } // end unstable. 
+	} // end while
 	if (has_unstable_branch) { return cellOption::inconclusive; }
-	/*
-	  if (has_unstable_branch) { 
-	  if (2.0* maxwidth > WCUTOFF) { return cellOption::inconclusive;  }
-	  int i=0; while (i<count)   {  // delete unstable inequalities when maxwidth is small.
-	  if (unstable_branches[i] )
-	  {
-	  resetBoundary(x0,z0,x,z);
-	  for (int j=i;j<count-1;j++) { unstable_branches[j]=unstable_branches[j+1]; }
-	  deleteFunction(T,I,count,i); //it decrements count; 
-	  }
-	  else i++;
-	  }
-	  }
-	*/
       }
       
       /*report zero width cells */ {
@@ -571,7 +566,7 @@ int prove::recursiveVerifier(int depth,
   else {
   /* Here is the main line of the procedure.  Check if it verifies. */
   cellOption::cellStatus  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
-				       options);// xx,zz,.. affected.
+				       options);// xx,zz,xx0,zz0,II,Ncount .. affected.
   if (v==cellOption::counterexample) {
     cout << "counterexample found " << endl;
     return 0; 

@@ -147,7 +147,7 @@ struct
     let oc = open_out filename in
       for i=0 to List.length xs -1
       do
-	output_string oc (List.nth xs i ^ "\n");
+	Pervasives.output_string oc (List.nth xs i ^ "\n");
       done;
       close_out oc;;
 

@@ -9,7 +9,7 @@
 #include "2065952723A.h"
 
 class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};
-int trialcount = 2;
+int trialcount = 200;
 
 double sol0(
 
@@ -685,7 +685,7 @@ int split3(const double xmin[6],const double xmax[6],
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
-int printspan=1;
+int printspan=10000;
 
 int getCounter() {
   return counter;

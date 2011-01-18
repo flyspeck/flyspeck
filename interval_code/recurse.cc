@@ -64,89 +64,30 @@ static void centerform
 		}
 	}
 
-/*
-static int unreduced(const double x[DIM6],const double z[DIM6])
-	{
-	int t;
-	t = (
-		   ((z[0]==x[0])&&(z[3]==x[3])) 
-		|| ((z[1]==x[1])&&(z[4]==x[4]))
-		|| ((z[2]==x[2])&&(z[5]==x[5]))
-		|| ((z[3]==x[3])&&(z[4]==x[4]))
-		|| ((z[3]==x[3])&&(z[5]==x[5]))
-		|| ((z[4]==x[4])&&(z[5]==x[5]))
-		|| ((z[0]==x[0])&&(z[1]==x[1])&&(z[2]==x[2]))
-	     );
-	return (!t);
-	}
-*/
+static void report_current(const double x[DIM6],const double z[DIM6],const char* s,int prec) {
+  cout.precision(prec);
+  //  interMath::down();
+  cout << "\n{" << flush;
+  for (int j=0;j<DIM6;j++) cout << x[j] << (j+1<DIM6?",":"} ")  << flush;
+  //  interMath::up();
+  cout << "{" << flush;
+  for (int j=0;j<DIM6;j++) cout << z[j] << (j+1<DIM6?",":"} ")  << flush;
+  cout << " " << flush;
+  cout << s << endl << flush;
+}
 
-/*
-static int setreduction(int i,const double x[DIM6],const double z[DIM6],
-	const double x0[DIM6], double zz[DIM6])
-	// return false if the reduction flows out of the cell.
-	// else true;
-	{
-	for (int j=0;j<DIM6;j++) zz[j]=z[j];
-	switch (i)
-		{
-		case 0 : if ((x[0]>x0[0])||(x[3]>x0[3])) return 0; 
-			 zz[0]=x[0]; zz[3]=x[3];
-			 break;
-		case 1 : if ((x[1]>x0[1])||(x[4]>x0[4])) return 0; 
-			 zz[1]=x[1]; zz[4]=x[4];
-			 break;
-		case 2 : if ((x[2]>x0[2])||(x[5]>x0[5])) return 0; 
-			 zz[2]=x[2]; zz[5]=x[5];
-			 break;
-		case 3 : if ((x[3]>x0[3])||(x[4]>x0[4])) return 0; 
-			 zz[3]=x[3]; zz[4]=x[4];
-			 break;
-		case 4 : if ((x[3]>x0[3])||(x[5]>x0[5])) return 0; 
-			 zz[3]=x[3]; zz[5]=x[5];
-			 break;
-		case 5 : if ((x[4]>x0[4])||(x[5]>x0[5])) return 0; 
-			 zz[4]=x[4]; zz[5]=x[5];
-			 break;
-		case 6 : if ((x[0]>x0[0])||(x[1]>x0[1])||(x[2]>x0[2])) 
-			 return 0; 
-			 zz[0]=x[0]; zz[1]=x[1]; zz[2]=x[2];
-			 break;
-		default : error::message("setreduction out of range");
-		}
-	return 1;
-	}
-*/
+static void report_failure(const double x[DIM6],const double z[DIM6],const char* s) {
+  report_current(x,z,s,20);
+  static const int MAXFAIL=25;
+  static int fail_count=0;
+  if (fail_count++> MAXFAIL)
+    { error::message("too many exceptions; bailing out");
+      exit(0);
+    }
+  cout << flush;
+}
 
 
-/*
-static int reducible(const taylorFunction* I[],int count)
-	{
-	for (int i=0;i<count;i++)
-		if (!I[i]->getReducibleState()) return 0;
-	return 1;
-	}
-*/
-
-static void report_failure(const double x[DIM6],const double z[DIM6],const char* s)
-	{
-	static const int MAXFAIL=25;
-	static int fail_count=0;
-	cout.precision(20);
-	interMath::down();
-	cout << "\n{" << flush;
-	for (int j=0;j<DIM6;j++) cout << x[j] << (j+1<DIM6?",":"} ")  << flush;
-	interMath::up();
-	cout << "{" << flush;
-	for (int j=0;j<DIM6;j++) cout << z[j] << (j+1<DIM6?",":"} ")  << flush;
-	cout << " " << flush;
-	cout << s << endl << flush;
-	if (fail_count++> MAXFAIL)
-		{ error::message("too many exceptions; bailing out");
-		  exit(0);
-		}
-	cout << flush;
-	}
 
 static double deltainf(double x1,double x2,double x3,double x4,double x5,
         double x6)
@@ -194,6 +135,13 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 					 double x0[DIM6],double z0[DIM6],
 		const taylorFunction* I[],int& count,
 		cellOption opt)	{
+
+  /* report some stats  */ {
+    static int end_count=0;
+    if (end_count++ > 80000) {
+      report_current(x,z,"entry",5); end_count = 0;
+    }
+  }
 
   if (count>MAXcount) {
     cout << "There are " << count << " inequalities." << endl;
@@ -263,7 +211,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 
       /*pass cell if some taylor bound holds*/{
 	int has_unstable_branch=0;
-	int i=0; while (i<count)     { // each loop increments i, or decrements count.
+	int i=0; while (i<count) { // each loop increments i, or decrements count.
 	  try { Target[i]= I[i]->evalf(domain(x),domain(z));   
 	    taylorInterval* U=&Target[i]; 
 	    if (opt.onlyCheckDeriv1Negative) {
@@ -271,24 +219,40 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	      if (U->lowerPartial(0)>0.0) { return cellOption::counterexample; }
 	      return cellOption::inconclusive;
 	    }
-	    if (U->upperBound()<0.0) return cellOption::cellPasses;
+	    if (U->upperBound()<0.0) {
+	      return cellOption::cellPasses;
+	    }
 	    T[i] = &Target[i];
 	    i++;
 	  }
-	  // exceptions are common early on, when intervals are too fat for reliable computation:
+	  // exceptions are common early on, with fat intervals
 	  catch (unstable u) { // modified Jan 14, 2011.
+	    cout << "unstable" << endl; // debug.
 	    if (2.0 * maxwidth > WCUTOFF) {
 	      has_unstable_branch=1;  
 	      i++;
 	    }
 	    else {
 	      resetBoundary(x0,z0,x,z);
-	      deleteFunction(T,I,count,i); //decrements count; T not initialized, but no matter.
+	      deleteFunction(T,I,count,i); //decs count; T not initialized, but no matter.
 	    }
 	  } // end unstable. 
 	} // end while
 	if (has_unstable_branch) { return cellOption::inconclusive; }
       }
+
+      /* report some stats-debug   { 
+	static int end_count2=0;
+	if (end_count2++ < 100) {
+	  report_current(x,z,"current",4); 
+	  cout << "maxwidth: " << maxwidth << endl;
+	  for (int i=0;i<count;i++) {
+	    cout << "("<<i<<") midp: " << T[i]->tangentVectorOf().hi() << 
+	      " ub: " << T[i]->upperBound() << endl;
+	  }
+	}
+	}  */
+
       
       /*report zero width cells */ {
 	static const double epsilon_width = 1.0e-8;
@@ -301,7 +265,8 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	    for (int i=0;i<count;i++)
 	      {
 		interMath::down();
-		cout << "  value=[" << T[i]->lowerBound() << flush;
+		cout << "function " << i << 
+		  " value=[" << T[i]->lowerBound() << flush;
 		interMath::up();
 		cout << "," << T[i]->upperBound() << "]\n" << flush;
 		for (int j=0;j<DIM6;j++) 
@@ -393,33 +358,33 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
     }
   
   // now keep a single numerically true inequality.
-  if ((maxwidth<WCUTOFF)&&(count>1))
-    {
-      double margin =0.0;
-      for (int i=0;i<count;i++) if (T[i]->tangentVectorOf().hi()< 0.0)
-				  {
-				    mixedsign=0;
-				    for (int j=0;j<DIM6;j++)
-				      {
-					yyn[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? x[j] : z[j]);
-					yu[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? z[j] : x[j]);
-					if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
-				      }
-				    if (mixedsign) { mixedsign=0; continue; }
-				    cn = I[i]->tangentAtEstimate(domain(yyn)); cu= I[i]->tangentAtEstimate(domain(yu));
-				    if ((max(cn.hi(),cu.hi())< -margin)&&
-					(sameSgn(T[i]->tangentVectorOf(),cn))&&sameSgn(T[i]->tangentVectorOf(),cu))
-				      {
-					margin = -max(cn.hi(),cu.hi());
-					if (i) 
-					  {
-					    moveFirst(T,I,i);
-					    resetBoundary(x0,z0,x,z);
-					  }
-				      }
-				  }
-      if (margin>0.0) count =1; // Disregard the rest of the inequalities;
-    } // if maxwidth
+  if ((maxwidth<WCUTOFF)&&(count>1)) {
+    double margin =0.0;
+    for (int i=0;i<count;i++) if (T[i]->tangentVectorOf().hi()< 0.0) {
+	mixedsign=0;
+	for (int j=0;j<DIM6;j++)
+	  {
+	    yyn[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? x[j] : z[j]);
+	    yu[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? z[j] : x[j]);
+	    if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
+	  }
+	if (mixedsign) { mixedsign=0; continue; }
+	cn = I[i]->tangentAtEstimate(domain(yyn)); 
+	cu= I[i]->tangentAtEstimate(domain(yu));
+	if ((max(cn.hi(),cu.hi())< -margin)&&
+	    (sameSgn(T[i]->tangentVectorOf(),cn))&&
+	    sameSgn(T[i]->tangentVectorOf(),cu)) {
+	  margin = -max(cn.hi(),cu.hi());
+	  if (i) {
+	    moveFirst(T,I,i);
+	    resetBoundary(x0,z0,x,z);
+	  }
+	}
+      }
+    if (margin>0.0) count =1; // Disregard the rest of the inequalities;
+  } // if maxwidth
+
+
   return cellOption::inconclusive;
 } // end verifyCell.
 
@@ -523,26 +488,39 @@ int prove::recursiveVerifier(int depth,
     setStrategy206A(xx,zz,s);
     if (!(s.mode == strategy::split)) {
 	  static interval one("1");
+	  static interval mone = -one;
 	  interval alpha(s.alpha,s.alpha);
 	  interval malpha = one - interMath::max(alpha,-alpha);
 	  const taylorFunction F = 
 	    ( (s.mode==strategy::n1) ? taylorSimplex::num1   :
-	      ((s.mode ==strategy::n1m) ? taylorSimplex::num1 * "- 1"  :
-	       ((s.mode == strategy::n2m) ? taylorSimplex::num2 * " - 1" :
+	      ((s.mode ==strategy::n1m) ? taylorSimplex::num1 * mone  :
+	       ((s.mode == strategy::n2m) ? taylorSimplex::num2 * mone :
 		(assert(s.mode == strategy::merge),
-                taylorSimplex::num2 * malpha * "-1" + 
+                taylorSimplex::num2 * malpha * mone + 
 		 taylorSimplex::num1 * alpha) ) ) );
-	  const taylorFunction Fm = F * "-1";
+	  const taylorFunction Fm = F * mone;
 	  const taylorFunction* J[1] = {&Fm};
 	  // use linearity in e1,e2,e3 to do dimension reduction.
+	  /* stats */ {
+	    static int rc = 0;
+	    rc++;
+	    if (rc < 100) {
+	      report_current(xx,zz,"206",5); 
+	      taylorInterval U = Fm.evalf(domain(x),domain(z));
+	      cout.precision(20);
+	      cout << "iub: " << U.upperBound() << endl;
+	      cout << "mid: " << U.tangentVectorOf().hi() << endl;
+	    }
+	  }
 	  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
 		double xr[6], zr[6];
-		xr[0] = (i ? zz[0] : xx[0]); zr[0] = xr[0];
-		xr[1] = (j ? zz[1] : xx[1]); zr[1] = xr[1];
-		xr[2] = (k ? zz[2] : xx[2]); zr[2] = xr[2];
+		xr[0] = (i ? zz[0] : xx[0]); 
+		xr[1] = (j ? zz[1] : xx[1]); 
+		xr[2] = (k ? zz[2] : xx[2]); 
+		for (int r=0;r<3;r++) { zr[r]=xr[r]; }
 		for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
 		cellOption opt1;
-		opt1.setPrintMode(cellOption::silent);
+		//opt1.setPrintMode(cellOption::silent);
 		opt1.iterationCount = options.iterationCount;
 		int rv = recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
 		options.iterationCount   = opt1.iterationCount;
@@ -554,6 +532,14 @@ int prove::recursiveVerifier(int depth,
 		  }
 		  if (s.mode==strategy::merge) 
 		    { cout << " alpha " << alpha << endl; }
+		  switch (s.mode) {
+		    case strategy::n1 : cout << "strategy n1"; break;
+		    case strategy::n1m : cout << "strategy n1m"; break;
+		    case strategy::n2m : cout << "strategy n2m"; break;
+		    case strategy::split : cout << "strategy split"; break;
+		    case strategy::merge : cout << "strategy merge"; break;
+		  default: cout << "strategy unknown"; break;
+		  }
 		  return 0;
 
 		}
@@ -574,6 +560,7 @@ int prove::recursiveVerifier(int depth,
   else if (v==cellOption::cellPasses) { return 1;  }
   assert (v==cellOption::inconclusive);
   }
+
   /* run recursion into two cases. */ { 
     interMath::up();
     int j_wide=0; /* init j_wide */ {
@@ -838,7 +825,7 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
   // now keep a single numerically true inequality.
   double WCUTOFF = 0.3;
   if (max(zA[0],zB[0])>6.00) WCUTOFF=0.1; // heuristic: things are unstable here!
-  if (option.hasWidthCutoff()) WCUTOFF=option.getWidthCutoff(); 
+  if (option.usingWidthCutoff) WCUTOFF=option.widthCutoff; 
   int s;
   if ((max(max(wA),max(wB))<WCUTOFF)&&(Nineq>1))
     {
@@ -1046,28 +1033,11 @@ int prove::recursiveVerifierQ(int depth,
       return 0;
     }
   
-  /*
-    if ((reducible(IA,Nineq) )&&(reducible(IB,Nineq))&&
-    (unreducedQ(xA,xB,zA,zB)))
-    {
-    // should be 0..18
-    for (i=opt.getStartingIndex();i<18;i++) 
-    if (setreductionQ(i,xA,xB,zA,zB,zzA,zzB))
-    {
-    if (opt.skip(i)) continue;
-    cout << "R" << i << "." << flush;
-    if (!recursiveVerifierQ
-    (depth,xA,xB,zzA,zzB,IA,IB,Nineq,opt)) { return 0; };
-    };
-    return 1;
-    }
-  */
-  
   if (opt.dimRedBackSym)
     {
       double xxA[6],xxB[6],zzA[6],zzB[6];
       opt.dimRedBackSym=0;
-      for (int i=opt.getStartingIndex();i<8;i++) {
+      for (int i=opt.startingIndex;i<8;i++) {
 	setDimRedBackSym(i,xA,xB,zA,zB,xxA,xxB,zzA,zzB);
 	cout << "R" << i << "." << flush;
 	if (!recursiveVerifierQ

@@ -52,11 +52,9 @@ let rec nub = function (* from lpproc.ml *)
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
 
+(* renamed from output_string to avoid Pervasives module name clash *)
 
-(* This should be renamed.  
-   It conflicts with Pervasives module *)
-
-let output_string tmpfile a = 
+let output_filestring tmpfile a = 
   let outs = open_out tmpfile in
   let _ = try (Printf.fprintf outs "%s" a) 
   with _ as t -> (close_out outs; raise t) in
@@ -565,7 +563,7 @@ let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
 
 
 (*
-output_string "/tmp/ineqdoc.tex" (texstring());;
+output_filestring "/tmp/ineqdoc.tex" (texstring());;
 *)
 
 (* Objective caml processing from ineq *)
@@ -612,7 +610,7 @@ let ocaml_code =
    (join_lines (map ocaml_function ocaml_autogen)) ^
    "end;;\n";;
 
-output_string "/tmp/sphere.ml" ocaml_code;;
+output_filestring "/tmp/sphere.ml" ocaml_code;;
 
 
 

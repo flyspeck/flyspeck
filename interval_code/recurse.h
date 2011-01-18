@@ -51,17 +51,18 @@ public:
     enum cellStatus { /*likely*/counterexample, cellPasses, inconclusive };
 
 private:
+    //enum { Nskip = 30 };
+    //int skip_these[Nskip];
+    //int skipped;
+
+public:
     int iterationLimit;
     int startingIndex;
     int recursionDepth;
     X printingMode;
     double widthCutoff;
     int usingWidthCutoff;
-    enum { Nskip = 30 };
-    int skip_these[Nskip];
-    int skipped;
 
-public:
 
     int iterationCount;
 
@@ -151,6 +152,7 @@ public:
     // specifies what input integers caseNumber will return
     // a nonzero value skip(caseNumber).
     //
+    /*
     void setSkipCases(const int skiplist[],int len)
     {
       int i;
@@ -161,6 +163,7 @@ public:
       for (i=0;i<len;i++) cout << skiplist[i] << " ";
       cout << endl << flush;
     }
+    */
     
     //////////
     // skip is called by recursiveVerifierQ when there is 
@@ -170,24 +173,26 @@ public:
     // case if a nonzero value is returned.  The nonzero return values
     // are set using setSkipCases.
     //
+    /*
     int skip(int i) const
     {
       for (int j=0;j<skipped;j++)  if (i==skip_these[j]) return 1;
       return 0;
     }
+    */
     
     //////////
     // 
-    void setWidthCutoff(double x) { widthCutoff=x; 
-      usingWidthCutoff=1; }
+    //    void setWidthCutoff(double x) { widthCutoff=x; 
+    //usingWidthCutoff=1; }
     
     //////////
     //
-    double getWidthCutoff() const { return widthCutoff; }
+    //    double getWidthCutoff() const { return widthCutoff; }
     
     //////////
     //
-    int hasWidthCutoff() const { return usingWidthCutoff; }
+    //    int hasWidthCutoff() const { return usingWidthCutoff; }
     
     //////////
     //
@@ -227,11 +232,11 @@ public:
     
     //////////
     //
-    void setStartingIndex(int i) { startingIndex=i; }
+    //void setStartingIndex(int i) { startingIndex=i; }
     
     //////////
     //
-    int getStartingIndex() const { return startingIndex; }
+    //int getStartingIndex() const { return startingIndex; }
     
     //////////
     //
@@ -251,10 +256,10 @@ public:
       dimRedBackSym=0;
       margin=0.0;
       startingIndex =0; 
-      for (int i=0;i<Nskip;i++) skip_these[i]=-1;
+      //      for (int i=0;i<Nskip;i++) skip_these[i]=-1;
+      //skipped=0; 
       iterationCount=0;
       iterationLimit=0;
-      skipped=0; 
       strategy206A=0;
     }
     

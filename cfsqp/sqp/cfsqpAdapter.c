@@ -24,7 +24,7 @@ double findMinimumEQ(int numargs, int nconstr,
 double myrand()
 	{
 	static int w =0;
-	if (w==0) { srand(time(0)); w = 1; }
+	if (w==0) { srand(48222257 /* random but fixed seed *//* time(0) */); w = 1; }
 	double u = double(rand());
 	double v =  double(/*stdlib.h*/RAND_MAX); 
 	return u/v;

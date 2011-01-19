@@ -80,14 +80,9 @@ static void report_failure(const double x[DIM6],const double z[DIM6],const char*
   report_current(x,z,s,20);
   static const int MAXFAIL=25;
   static int fail_count=0;
-  if (fail_count++> MAXFAIL)
-    { error::message("too many exceptions; bailing out");
-      exit(0);
-    }
+  if (fail_count++> MAXFAIL) { error::fatal("too many exceptions; bailing out");  }
   cout << flush;
 }
-
-
 
 static double deltainf(double x1,double x2,double x3,double x4,double x5,
         double x6)
@@ -216,7 +211,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	    taylorInterval* U=&Target[i]; 
 	    if (opt.onlyCheckDeriv1Negative) {
 	      if (U->upperPartial(0)<0.0) { return cellOption::cellPasses; }
-	      if (U->lowerPartial(0)>0.0) { return cellOption::counterexample; }
+	      if (U->lowerPartial(0)>0.0) { cout << "deriv1neg" << endl; return cellOption::counterexample; }
 	      return cellOption::inconclusive;
 	    }
 	    if (U->upperBound()<0.0) {
@@ -258,8 +253,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	static const double epsilon_width = 1.0e-8;
 	if (maxwidth < epsilon_width) 
 	  {
-	    if (opt.getPrintMode()==cellOption::silent) 
-	      return cellOption::counterexample; 
+	    if (cellOption::verbose==opt.printingMode) {
 	    report_failure(x,z,"isolated point");
 	    cout.precision(20);
 	    for (int i=0;i<count;i++)
@@ -276,8 +270,8 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 		  }
 	      }
 	    cout << flush;
-	    (opt.allowSharp ? error::inc_corner(): error::message("corner solution failure "));   
-	    return (opt.allowSharp ? cellOption::cellPasses : cellOption::counterexample);
+	    }
+	    return (opt.allowSharp ? (error::inc_corner(), cellOption::cellPasses) : cellOption::counterexample);
 	  }
       }
       
@@ -293,9 +287,9 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 		   }
 	if (count==0) 
 	  {
-	    if (opt.getPrintMode()==cellOption::silent) 
-	      return cellOption::counterexample; 
-	    report_failure(x,z,"current inequalities are false");
+	    if (cellOption::verbose==opt.printingMode)  {
+	      report_failure(x,z,"current inequalities are false");
+	    }
 	    return cellOption::counterexample;
 	  }
       }
@@ -350,10 +344,10 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	}
 	else i++;
     }
-  if (count==0) 
-    {
-      if (opt.getPrintMode()==cellOption::silent) return cellOption::counterexample; 
+  if (count==0)  {
+      if (cellOption::verbose==opt.printingMode) {
       report_failure(x,z,"current inequalities are doubtful");
+      }
       return cellOption::counterexample;
     }
   
@@ -439,23 +433,22 @@ int prove::recursiveVerifier(int depth,
   timeout = options.timeout;
   stats(0); 
   if (depth==0) { set_rectangle(x,z); }  // 206A code.
-  options.augmentIterationCount();
-  if ((options.getIterationLimit()>0)&&
-      (options.getIterationLimit()<options.getIterationCount()))
+  if ((options.iterationLimit >0)&&
+      (options.iterationLimit <options.iterationCount++))
     {
       report_failure(x,z,"iteration limit exceeded");
-      cout << "iteration limit is set at " << options.getIterationLimit() << endl;
+      cout << "iteration limit is set at " << options.iterationLimit << endl;
       stats(1);
       return 0;
     }
   
   /* exit if too deep */ {
-    int MAXDEPTH = 200;
-    if (options.getRecursionDepth()>0) MAXDEPTH = options.getRecursionDepth();
-    if (depth > MAXDEPTH) 
+    //    int MAXDEPTH = 200;
+    //if (options.recursionDepth>0) MAXDEPTH = options.recursionDepth;
+    if (depth > options.recursionDepth) 
       {
 	report_failure(x,z,"recursion limit exceeded");
-	cout << "recursion depth is currently at " << MAXDEPTH << endl;
+	cout << "recursion depth is currently at " << options.recursionDepth << endl;
 	cout << "count = " << count << endl;
 	for (int i=0;i<count;i++) {
 	  taylorInterval T0= I[i]->evalf(domain(x),domain(z)); 
@@ -520,7 +513,7 @@ int prove::recursiveVerifier(int depth,
 		for (int r=0;r<3;r++) { zr[r]=xr[r]; }
 		for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
 		cellOption opt1;
-		//opt1.setPrintMode(cellOption::silent);
+		//opt1.printingMode=cellOption::silent;
 		opt1.iterationCount = options.iterationCount;
 		int rv = recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
 		options.iterationCount   = opt1.iterationCount;
@@ -553,7 +546,7 @@ int prove::recursiveVerifier(int depth,
   /* Here is the main line of the procedure.  Check if it verifies. */
   cellOption::cellStatus  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
 				       options);// xx,zz,xx0,zz0,II,Ncount .. affected.
-  if (v==cellOption::counterexample) {
+  if (cellOption::counterexample==v) {
     cout << "counterexample found " << endl;
     return 0; 
   }
@@ -958,7 +951,7 @@ static int breaksapart(int depth, // all inputs are left unchanged.
   const taylorFunction* IA1[1]= {&A1};
   const taylorFunction* IB1[1]= {&B1};
   cellOption option; 
-  option.setPrintMode(cellOption::silent);
+  option.printingMode=cellOption::silent;
   if (prove::recursiveVerifier(depth+1,xB,zB,xB,zB,IB1,1,option) && 
       prove::recursiveVerifier(depth+1,xA,zA,xA,zA,IA1,1,option))
     {  return 1; }
@@ -1014,22 +1007,21 @@ int prove::recursiveVerifierQ(int depth,
   if (!fitstogether(zA,zB)) 
     { error::message("Rz-mismatch:"); printit(zA); printit(zB); return 0; }
   statsQ(); 
-  opt.augmentIterationCount();
-  if ((opt.getIterationLimit()>0)&&
-      (opt.getIterationLimit()<opt.getIterationCount()))
+  if ((opt.iterationLimit>0)&&
+      (opt.iterationLimit<opt.iterationCount++))
     {
       report_failure(xA,zA,"A:iteration limit exceeded");
       report_failure(xB,zB,"B:iteration limit exceeded");
-      cout << "iteration limit is set at " << opt.getIterationLimit() << endl;
+      cout << "iteration limit is set at " << opt.iterationLimit << endl;
       return 0 ;
     }
-  int MAXDEPTH = 200;
-  if (opt.getRecursionDepth()>0) MAXDEPTH=opt.getRecursionDepth();
-  if (depth++ > MAXDEPTH) 
+  //  int MAXDEPTH = 200;
+  //if (opt.recursionDepth>0) MAXDEPTH=opt.recursionDepth;
+  if (depth++ > opt.recursionDepth) 
     {
       report_failure(xA,zA,"A:recursion limit exceeded");
       report_failure(xB,zB,"B:recursion limit exceeded");
-      cout << "recursion depth is currently at " << MAXDEPTH << endl;
+      cout << "recursion depth is currently at " << opt.recursionDepth << endl;
       return 0;
     }
   

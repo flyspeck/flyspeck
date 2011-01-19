@@ -50,22 +50,17 @@ public:
     enum X { silent, verbose };
     enum cellStatus { /*likely*/counterexample, cellPasses, inconclusive };
 
-private:
-    //enum { Nskip = 30 };
-    //int skip_these[Nskip];
-    //int skipped;
-
-public:
+    // bailout options:
+    int iterationCount;
     int iterationLimit;
-    int startingIndex;
     int recursionDepth;
+    int timeout;    // in seconds.
+
     X printingMode;
+
+    int startingIndex;
     double widthCutoff;
     int usingWidthCutoff;
-
-
-    int iterationCount;
-
 
     //////////
     // A lower bound (for quads) on the cross diagonal (default is 0).
@@ -85,9 +80,6 @@ public:
     // if set, then we may assume rad2(x1,x2,x3,x4,x5,x6)==2.
     int setRad2;
 
-    // give up after this many seconds.
-    int timeout;
-
     //////////
     // Boolean flag for quads, to reduce to 8=4x2 extremal cases:
     // x8,x9 extremal, and if both are maximal then x7 is minimal (4 cases).
@@ -96,11 +88,6 @@ public:
 
     // used in breaksapart to set threshhold.
     double margin;
-
-    //////////
-    // Option (for quads) to use Enclosed cross diag to give upper bound on common diagonal.
-    //
-    //int useEnclosed;
 
     //////////
     // Allows a sharp inequality at some point without failing. 
@@ -120,146 +107,69 @@ public:
     //////////
     // 
     //
-    void setRecursionDepth(int rd) { recursionDepth=rd; }
+    //void setRecursionDepth(int rd) { recursionDepth=rd; }
     
     //////////
     // This only has an effect if it is positive.
     //
-    int getRecursionDepth() const { return recursionDepth; }
+    //int getRecursionDepth() const { return recursionDepth; }
     
     //////////
     // quit after so many tries.
-    void setIterationLimit(int lim) { iterationLimit=lim; }
+    //void setIterationLimit(int lim) { iterationLimit=lim; }
     
     //////////
     // 
-    int getIterationLimit() const { return iterationLimit; }
+    //int getIterationLimit() const { return iterationLimit; }
     
     //////////
     // 
-    void resetIterationCount() { iterationCount=0; }
+    //void resetIterationCount() { iterationCount=0; }
     
     //////////
     //
-    int getIterationCount() const { return iterationCount; }
+    //int getIterationCount() const { return iterationCount; }
     
     //////////
     //
-    void augmentIterationCount() { iterationCount++; }
-    
+    //void augmentIterationCount() { iterationCount++; }
+
     //////////
-    // setSkipCases allows the user to enter an array that
-    // specifies what input integers caseNumber will return
-    // a nonzero value skip(caseNumber).
     //
-    /*
-    void setSkipCases(const int skiplist[],int len)
-    {
-      int i;
-      if (len>Nskip) { error::message("skip array out of bounds"); len=Nskip; }
-      for (i=0;i<len;i++) skip_these[i]=skiplist[i];
-      skipped=len;
-      cout << "\nWarning: skipping R-cases ";
-      for (i=0;i<len;i++) cout << skiplist[i] << " ";
-      cout << endl << flush;
-    }
-    */
-    
-    //////////
-    // skip is called by recursiveVerifierQ when there is 
-    // dimension reduction.  Dimension reduction breaks a quad
-    // inequality into many cases.  Before running each case,
-    // recurseiveVerifierQ calls skip(casenumber) and omits the
-    // case if a nonzero value is returned.  The nonzero return values
-    // are set using setSkipCases.
-    //
-    /*
-    int skip(int i) const
-    {
-      for (int j=0;j<skipped;j++)  if (i==skip_these[j]) return 1;
-      return 0;
-    }
-    */
-    
-    //////////
-    // 
-    //    void setWidthCutoff(double x) { widthCutoff=x; 
-    //usingWidthCutoff=1; }
+    //void setPrintMode(X u) { printingMode = u; }
     
     //////////
     //
-    //    double getWidthCutoff() const { return widthCutoff; }
-    
-    //////////
-    //
-    //    int hasWidthCutoff() const { return usingWidthCutoff; }
-    
-    //////////
-    //
-    //    void setChiShortCut(int i) { chiShortCut=i; }
-    
-    //////////
-    //
-    //  int getChiShortCut() const { return chiShortCut; }
-    
-    //////////
-    //
-    //    void setDihMax(double theta) { dihmax=theta; usingDihMax=1;  }
-    
-    //////////
-    //
-    //    double getDihMax() { return dihmax; }
-    
-    //////////
-    //
-    //    int isUsingDihMax() { return usingDihMax; }
-    
-    //////////
-    //
-    //	void setBigFace126() { usingBigFace126=1; }
-    
-    //////////
-    //
-    //	int isUsingBigFace126() { return usingBigFace126; }
-    
-    //////////
-    //
-    void setPrintMode(X u) { printingMode = u; }
-    
-    //////////
-    //
-    X getPrintMode() { return printingMode; }
-    
-    //////////
-    //
-    //void setStartingIndex(int i) { startingIndex=i; }
-    
-    //////////
-    //
-    //int getStartingIndex() const { return startingIndex; }
+    //X getPrintMode() { return printingMode; }
     
     //////////
     //
     cellOption() {  
-      allowSharp=0;
+      iterationCount=0;
+      iterationLimit=0;
+      recursionDepth=200;
+      timeout=150000;
+
       printingMode=verbose; 
+
+      startingIndex =0; 
+      widthCutoff=0;
       usingWidthCutoff=0; 
-      recursionDepth=0;
-      crossDiagMinDelta = 0.0;
+
       crossDiagMinEnclosed = 0.0;
-      delta126Min=-1.0;
+      crossDiagMinDelta = 0.0;
+  
+      delta126Min= -1;
       delta126Max = -1;
       delta135Min = -1;
       delta135Max= -1;
       setRad2=0;
-      timeout=150000;
+
       dimRedBackSym=0;
       margin=0.0;
-      startingIndex =0; 
-      //      for (int i=0;i<Nskip;i++) skip_these[i]=-1;
-      //skipped=0; 
-      iterationCount=0;
-      iterationLimit=0;
+      allowSharp=0;
+      onlyCheckDeriv1Negative=0;
+  
       strategy206A=0;
     }
     

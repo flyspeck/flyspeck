@@ -11,7 +11,7 @@ let print_string' = print_string;;
 let pp_print_string fmt str = 
 pp_print_string' fmt (
 		      List.fold_right (uncurry(Str.global_replace)) [
-				      Str.regexp "\n", "<br>"	      
+				      Str.regexp "\n", "<br>";	      
 				      Str.regexp " ", "&#160;";
 				      Str.regexp "<",    "&#60;";
 				      Str.regexp ">",    "&#62;";
@@ -662,3 +662,5 @@ close_tag();
 end in
 install_user_printer("print_typed_var", print_typed_var);;
 set_mark_tags true;;
+
+let pp_print_string = pp_print_string';;

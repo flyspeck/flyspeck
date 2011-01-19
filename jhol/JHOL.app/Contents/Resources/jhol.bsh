@@ -1,5 +1,4 @@
-
-    import java.lang.reflect.Array;
+import java.lang.reflect.Array;
 
 import bsh.util.JConsole;
 import bsh.util.NameCompletion;
@@ -8,10 +7,9 @@ import com.apple.eawt.AboutHandler;
 import com.apple.eawt.PreferencesHandler;
 import com.apple.eawt.Application;
 
-
 /**
    Initial version created on Oct 29 2010
-
+   
    * @author Joe Pleso
    */
 
@@ -45,499 +43,523 @@ String readLine(BufferedReader br){
     }
     return sb.toString();
 }
-
 //end low level functions
 
-     IS_A_MAC = System.getProperty(
-          "os.name").toLowerCase().indexOf("mac") != -1;
 
+
+sourceRelative("about.bsh");		       
+
+IS_A_MAC = System.getProperty("os.name").equals("Mac OS X");
+					       
 //begin MacOS stuff
 if (IS_A_MAC){
-        System.setProperty("apple.laf.useScreenMenuBar", "true");
-        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JHOL");
-        System.setProperty("com.apple.mrj.application.growbox.intrudes", "false");
-        System.setProperty("com.apple.macos.smallTabs", "true");
-
-	aboutHandler = new AboutHandler() {
-		public void handleAbout(com.apple.eawt.AppEvent.AboutEvent event) {
-		    (new JFrame()).show();
-		    event.setHandled(true);
-		}
-	    };
-	
-	preferencesHandler = new PreferencesHandler(){
-		public void handlePreferences(com.apple.eawt.AppEvent.PreferencesEvent e) {
-		    //what to do on flower-,
-		}
-	    };
-
-	macOSApplication = Application.getApplication() ;
-	macOSApplication.setAboutHandler(aboutHandler);
-	macOSApplication.setPreferencesHandler(preferencesHandler);
+    aboutHandler = new AboutHandler() {
+	    public void handleAbout(com.apple.eawt.AppEvent.AboutEvent event) {
+		(ad).show();
+	    }
+	};
+						   
+    preferencesHandler = new PreferencesHandler(){
+	    public void handlePreferences(com.apple.eawt.AppEvent.PreferencesEvent e) {
+		//what to do on flower-,
+	    }
+	};
+						   
+    macOSApplication = Application.getApplication() ;
+    macOSApplication.setAboutHandler(aboutHandler);
+    macOSApplication.setPreferencesHandler(preferencesHandler);
 }
 //end MacOS stuff
 
+void showGUI(){	
 
-EDITOR_HTML_HEADER = "<HTML><HEAD><style type=\"text/css\">"+
-    "  .real {color:teal; background-color:white;         "+
-    "            font-weight:bold; text-align:center;}.num {color:fuchsia; background-color:white;            "+
-    "         font-weight:bold; text-align:center;}.int {color:olive; background-color:white;     "+
-    "                font-weight:bold; text-align:center;}</style></HEAD><BODY><PRE>";
+    ad = getNewAboutDialog();
 
+    //Create frame
+    JFrame frame = new JFrame("JHOL");
+					       
+    //Create buttons 
+    JButton sigIntButton = new JButton("Assume");
+    sigIntButton.setActionCommand("assume");
+    JButton genTac = new JButton("Remove  \"for all\"");
+    genTac.setActionCommand("e(GEN_TAC);;");
+    JButton conjTac = new JButton("Remove Conjuction");
+    conjTac.setActionCommand("e(CONJ_TAC);;");
+    JButton conjTac1 = new JButton("Test Button 1");
+    conjTac1.setActionCommand("test1");
+    JButton conjTac2 = new JButton("Interrupt");
+    conjTac2.setActionCommand("test2");
+					       
+    //Keep track of buttons
+    List buttonList = new LinkedList();
+    buttonList.add(sigIntButton);
+    buttonList.add(genTac);
+    buttonList.add(conjTac);
+    buttonList.add(conjTac1);
+    buttonList.add(conjTac2);
 
+    //Queue for commands to be run in java from hol
+    StringBuilder evalStr;
 
-//Create frame
-JFrame frame = new JFrame("JHOL");
+    //Run java commands in the queue from hol
+    clearEvalStr(){
+	eval(evalStr.toString());
+    }
 
-//Create buttons 
-JButton sigIntButton = new JButton("Assume");
-sigIntButton.setActionCommand("assume");
-JButton genTac = new JButton("Remove  \"for all\"");
-genTac.setActionCommand("e(GEN_TAC);;");
-JButton conjTac = new JButton("Remove Conjuction");
-conjTac.setActionCommand("e(CONJ_TAC);;");
-JButton conjTac1 = new JButton("Test Button 1");
-conjTac1.setActionCommand("test1");
-JButton conjTac2 = new JButton("Interrupt");
-conjTac2.setActionCommand("test2");
-
-//Keep track of buttons
-List buttonList = new LinkedList();
-buttonList.add(sigIntButton);
-buttonList.add(genTac);
-buttonList.add(conjTac);
-buttonList.add(conjTac1);
-buttonList.add(conjTac2);
-
-
-
-//Queue for commands to be run in java from hol
-StringBuilder evalStr;
-
-//Run java commands in the queue from hol
-clearEvalStr(){
-    eval(evalStr.toString());
-}
-
-//Console for getting input from user
-JConsole console = new JConsole();
-console.getViewport().getView().setContentType("text/html");
-console.getViewport().getView().setText(EDITOR_HTML_HEADER);
-
-//Method for printing to the console
-printHTML(String html){
+    //Console for getting input from user
+    JConsole console = new JConsole();
     consoleTextPane = console.getViewport().getView();
-    consoleDocument = consoleTextPane.getDocument();
-    consoleEditorKit = consoleTextPane.getEditorKit();
-    consoleEditorKit.insertHTML(consoleDocument, consoleDocument.getLength(), 
-EDITOR_HTML_HEADER + html, 0,0,null);
-    console.print("");
-}
-
-//Reader for the console
-BufferedReader bufInput = new BufferedReader(console.getIn());
-
-//To be run on program quit
-//DANGER: I am not sure this will necessarily be executed
-void JHOLEnd (){
-    bufInput.close();
-    print("Goodbye.");    
-    exit();}
-
-//For creating panes
-JEditorPane createEditorPane() {
-    JEditorPane editorPane = new JEditorPane("text/html",null);
-    editorPane.setEditable(false);
-    return editorPane;
-}
-
-//Panes for displaying different output
-JEditorPane editorPane = createEditorPane();
-JScrollPane editorScrollPane = new JScrollPane(editorPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                                 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-
-JEditorPane helpPane = createEditorPane();
-JScrollPane helpScrollPane = new JScrollPane(helpPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                                 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-
-
-
-//Object for holding hol process
-HOLLightWrapper(JConsole console) {
-    List command = new ArrayList();
-    command.add("./local.hol");
-    proc = new ProcessBuilder(command);
-    proc.redirectErrorStream(true);
-    try {
-	proc =  proc.start();
-    } catch (IOException e) {
-	return null;
-    }
+    //console.getViewport().getView().setContentType("text/html");
+    //console.getViewport().getView().setText(EDITOR_HTML_HEADER);
     
-    bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-    bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-    
-    public String flushOutput () {
-	try {
-	    StringBuilder str = new StringBuilder();
-	    evalStr = new StringBuilder();
-	    suppressedOutput = new StringBuilder();
-	    char c;
-	    do {
-		c = (char) bout.read();
 
-		if (str.length() == 0 && c == '@')
-		    {
-			evalStr.append(bout.readLine());
-			evalStr.append(';');
-			continue;}
+    consoleTextPane.addKeyListener( new KeyListener(){
+	    invoke( name, args ) { print("Method: "+name+" invoked!");}
+	    //handle other methods
+	    void keyPressed(KeyEvent e){
+		if  (e.getKeyCode() != KeyEvent.VK_ENTER )
+		    return;
 		
-		if (c == 65535){
-		   
-			suppressedOutput.append(str.toString());
-		    print("hol_light: EOF reached.");
-		    JHOLEnd();}
-		str.append(c);		
-		
-		if (c == 10)
-		    {
-		
-			    suppressedOutput.append(str.toString());
-			str = new StringBuilder();
-			continue;}
-		
-	    }while (!(
-		      str.length() == 2 &&
-		      (str.charAt(0) == '#' || str.charAt(0) == ' ') &&
-		      str.charAt(1) == ' ' &&
-		      !bout.ready()));
-	   
-	    //	suppressedOutput.append(str.toString());
-	    return suppressedOutput.toString();
-        } catch (IOException ex) {
-	ex.printStackTrace();           
-
-            JHOLEnd();
-        }
-    }
-    
-    public String runCommand(String cmd) {
-	
-	if(cmd.length() == 0)
-	    return "";
-	flag = cmd.charAt(cmd.length() - 1) != '\n';
-	if(flag)
-	    {
-		cmd = cmd + "\n";
-		print(cmd);
-	
-       	    }
-
-	try {
-	    bin.write(cmd);
-	    bin.flush();
-
-	    conjTac2.setEnabled(true);//Interrupt button	    
-	    String result = flushOutput();
-	    if (!flag){
-		printHTML(result);
-	    }
-	    conjTac2.setEnabled(false);
-
-	    clearEvalStr();
-	    return result;
-	    
-	} catch (IOException e) {
-	    e.printStackTrace();
-	    return "";
-	}
-    }
-
-    printHTML(flushOutput());
-
-
-
-    return this;
-}
-
-//start a new hol process
-hol = HOLLightWrapper(console);
-
-//method for running multiple hol commands at once
-runHOLCommands (String cmds){
-    String[] array = cmds.split("\n");
-
-    for(int i = 0; i < Array.getLength(array); i++){
-	print(hol.runCommand(array[i]));//DEBUG
-    }
-}
-
-//run commands in hol to initialize the data pipe
-runHOLCommands( 
-	       "let java cmd = ignore(Sys.command(String.concat  \" \" [\"echo \\\"@\";String.escaped cmd;\"\\\"\"]));;\n" +
-	       "let suffices_to_prove q tac = SUBGOAL_THEN q (fun th -> MP_TAC th THEN tac);;\n" +
-	       "let assume lab t = DISCH_THEN(fun th -> if concl th = t then LABEL_TAC lab th else failwith \"assume\");;\n" +
-	       "let note(lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(fun th -> LABEL_TAC lab th);;\n" +
-	       "let cases (lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (LABEL_TAC lab));;\n" +
-	       "let consider (x,lab,t) tac  = let tm  = mk_exists(x,t) in SUBGOAL_THEN tm (X_CHOOSE_THEN x (LABEL_TAC lab))   THENL [tac; ALL_TAC];;\n" +
-	       "let trivial = MESON_TAC[];;\n" +
-	       "let induction = INDUCT_TAC;;\n" +
-	       "let by labs tac = MAP_EVERY (fun l -> USE_THEN l MP_TAC) labs THEN tac;;\n" +
-	       "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n" +
-	       "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n" +
-	       "let g goal = (java o (fun () -> \"beginTopGoal();\") o ignore o g) goal;;\n" +
-	       "let e tactic = (java o (fun () -> \"updateTopGoal();\") o ignore o e) tactic;;\n" +
-	       "let b () = (java o (fun () -> \"updateTopGoal();\") o ignore o b) ();;\n" +
-	       "let set_goal (asl,goal) = (java o (fun () -> \"beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
-	       "let r int = (java o (fun () -> \"updateTopGoal();\") o ignore o r) int;;");
-
-newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
-int c = newprinterMLStream.read();
-StringBuilder newprinterMLString = new StringBuilder();
-while (c != -1){
-    newprinterMLString.append((char)c);
-    c = newprinterMLStream.read();
-}
-runHOLCommands(newprinterMLString.toString());
-newprinterMLStream.close();
-
-//Set up sig int method for hol
-int holPid = Integer.decode(
-			    hol.runCommand("Sys.command(\"echo $PPID\");;").trim().split("\n")[0]);
-command = new LinkedList();
-command.add("sig_int_hol_light");
-command.add(holPid.toString());
-kill = new ProcessBuilder(command);
-kill.redirectErrorStream(true);
-
-//query hol for the number of theorems in the system  
-getNumHolTheorems(){
-    return Integer.decode(hol.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5]) ;}
-
-//variable to keep track of the theorem count
-int numHolTheorems = 0;
-
-//variable to hold all the theorems
-Set holTheorems = new TreeSet();
-
-//method to keep theorem list up to date
-updateHolTheorems(){
-    if (numHolTheorems != getNumHolTheorems()){
-	numHolTheorems = getNumHolTheorems();
-	String[] bangTheorems = hol.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
-	for (int i = 0; i < Array.getLength(bangTheorems); i++){
-	    if (bangTheorems[i].equals("\nval"))
-		break;
-	    holTheorems.add(bangTheorems[i]);
-	}
-    }
-}
-
-//update the theorem list
-updateHolTheorems();
-
-test1(){
-       popup.show();
-  
-
-
-}
-
-//List of theorem labels
-String[] thmStrings = { "All", "Basic Logic", "Constructs", "Pairs", "Well Foundedness",
-			"Natural Numbers", "Lists", "Real Numbers", "Integers",
-			"Sets and Functions", "Iterated Operations", "Cartesian Powers"};
-
-//Combo box to select which list of theorems to list
-JComboBox thmCombo = new JComboBox(thmStrings);
-JList myList = new JList ();
-
-//find the matching set of theorems
-lookupTheoremList(String name){
-    if (name.equals("Real Numbers"))
-	return realNumberTheorems.toArray();
-    if (name.equals("Integers"))
-	return integerTheorems.toArray();
-    if (name.equals("Sets and Functions"))
-	return setAndFunctionTheorems.toArray();
-    if (name.equals("Iterated Operations"))
-	return iteratedOperationTheorems.toArray();
-    if(name.equals("Cartesian Powers"))
-	return cartesianPowerTheorems.toArray();
-    if(name.equals("Constructs"))
-	return constructTheorems.toArray();
-    if(name.equals("Pairs"))
-	return pairTheorems.toArray();
-    if(name.equals("Well Foundedness"))
-	return wellfoundednessTheorems.toArray();
-    if (name.equals("Natural Numbers"))
-	return naturalNumberTheorems.toArray();
-    if(name.equals("Lists"))
-	return listTheorems.toArray();
-    if (name.equals("All"))
-	{
-	    updateHolTheorems();
-	    return holTheorems.toArray();
-	}
-    if( name.equals("Basic Logic"))
-	return basicLogicTheorems.toArray();
-
-    return null;
-}
-
-//Detect mouse clicks
-ml = new MouseAdapter() {
-	public void mouseClicked(MouseEvent e) {
-	    if (e.getClickCount() == 2) {
-		hol.runCommand(((String)e.getSource().getSelectedValue())+";;\n");
-	    }
-	}
-    };
-
-//Detect button presses
-al  = new ActionListener() {
-	actionPerformed( event ) {
-	    if ( event.getSource() == thmCombo){
-		myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
-	    }
-	    
-	    if (event.getActionCommand().startsWith("e"))
-		hol.runCommand(event.getActionCommand());
-	    if (event.getActionCommand().equals("assume")){
-		numAssumptions++;
-		hol.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
-	    }
-	    if (event.getActionCommand().equals("test1")){
-		test1();
-	    }
-	    if(event.getActionCommand().equals("test2")){
-		try {
-		    conjTac2.setEnabled(false);
-		    kill.start();
-		    //	print(hol.flushOutput(false));
+		//Main Loop
+		List cmdList = new LinkedList();
+		try {	
+		    do
+			{
+			    //in case someone pastes more than one command into the buffer	    
+			    line = readLine(bufInput);
+			    cmdList.add(line);
+			}while(bufInput.ready());
+		    while(cmdList.size() != 0){
+			hol.runCommand(cmdList.removeFirst()  + "\n");
+		    }	   
+		    //updateTopGoal();
 		    
+		} catch (IOException e) {
+		    e.printStackTrace();
+		}
+	    }
+	});
+    //Method for printing to the console
+    printHTML(String html){
+	while (html.indexOf("<HTML>") != -1){
+	    int start = html.indexOf("<HTML>");
+	    console.print(html.substring(0, start));
+	    int end = html.indexOf("</HTML>");
+	    JLabel tmpLabel = new JLabel (html.substring(start,end+7), JLabel.LEFT);
+	    consoleTextPane.insertComponent(tmpLabel);
+	    html = html.substring(end+7, html.length());
+	}
+	/*	
+		consoleDocument = consoleTextPane.getDocument();
+		consoleEditorKit = consoleTextPane.getEditorKit();
+		consoleEditorKit.insertHTML(consoleDocument, consoleDocument.getLength(), 
+		EDITOR_HTML_HEADER + html, 0,0,null);
+		console.print("");*/
+	console.print(html);
+    }
+    
+    //Reader for the console
+    BufferedReader bufInput = new BufferedReader(console.getIn());
+    
+    //For creating panes
+    JEditorPane createEditorPane() {
+	JEditorPane editorPane = new JEditorPane("text/html",null);
+	editorPane.setEditable(false);
+	return editorPane;
+    }
+    
+    //Panes for displaying different output
+	    JEditorPane editorPane = createEditorPane();
+	    JScrollPane editorScrollPane = new JScrollPane(editorPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+							   JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+	    JEditorPane helpPane = createEditorPane();
+	    JScrollPane helpScrollPane = new JScrollPane(helpPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+							 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+
+
+	    //Object for holding hol process
+	    HOLLightWrapper(JConsole console) {
+		List command = new ArrayList();
+		command.add("./local.hol");
+		proc = new ProcessBuilder(command);
+		proc.redirectErrorStream(true);
+		try {
+		    proc =  proc.start();
 		} catch (IOException e) {
 		    return null;
 		}
-	    }
-	}
-    };
-
-/*
-  SPEC  copy paste
-  INDUCT_TAC
-  ALL_TAC
-  UNDISCH_TAC
-  asm ONCE PURE REWRITE_TAC
-  /SIMP_TAC
-  let_tac
-  asm meson tac
-  highlight delete comma rewrite tac pair eq
-  abbrev tac highlight type
-  sexpand tac highlight
-  mp_tac thm
-  assume_tac
-
-  rewritetac real arith 1+1 highlight type 2
-  ap thm tac
-  ap term tac
-  gsym
-  sqrt pos lt
-
-*/
-
-JPanel toolbar = new JPanel();
-
-console.setPreferredSize(new Dimension(700,400));
-
-//START EDITORPANE
-helpScrollPane.setVerticalScrollBarPolicy(
-					    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-helpScrollPane.setPreferredSize(new Dimension(250, 145));
-helpScrollPane.setMinimumSize(new Dimension(10, 10));
-editorScrollPane.setVerticalScrollBarPolicy(
-					    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-editorScrollPane.setPreferredSize(new Dimension(250, 145));
-editorScrollPane.setMinimumSize(new Dimension(10, 10));
-
-
-
-
-//Put the editor pane and the text pane in a split pane.
-JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-				      editorScrollPane,
-				      console);
-splitPane.setOneTouchExpandable(true);
-splitPane.setResizeWeight(0.5);
-
-
-for (JButton jb: buttonList){
-    jb.addActionListener(al);
-    toolbar.add(jb);
-}
-
-conjTac2.setEnabled(false);
-
-
-myList.setLayoutOrientation(JList.VERTICAL);
-JScrollPane myScroll = new JScrollPane(myList);
-myList.addMouseListener(ml);
-
-
-toolbar.add(thmCombo);
-//END EDITORPANE
-
-
-thmCombo.setSelectedIndex(0);
-thmCombo.addActionListener(al);
-
-myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
-
-frame.getContentPane().add(toolbar,BorderLayout.NORTH);
-frame.getContentPane().add(splitPane,BorderLayout.WEST);
-frame.getContentPane().add(myScroll,BorderLayout.CENTER);
-frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-//Display the window.
-frame.pack();
-frame.setVisible(true);
-
-int numAssumptions;
-beginTopGoal(){
-    numAssumptions = 0;
-    updateTopGoal();
-}
-
-updateTopGoal(){
-    StringBuilder text = new StringBuilder();
-    text.append(EDITOR_HTML_HEADER);
-    text.append("<b> Goal: </b> ");
-    text.append((hol.runCommand("(snd o top_goal)();;")));
-    text.append("<br><br><b>Assumption(s): </b><br>");
-    String termList = hol.runCommand(
-    "List.iter (fun x,y ->( ((fun ()->(print_string \"\\n\")) o  (fun () -> (((print_qterm o  concl) y)))) o print_string) (\"\"))   ((fst o top_realgoal)());;");
-    text.append(termList);
-    editorPane.setText(text.toString());
-}
-
-
-//Main Loop
-List cmdList = new LinkedList();
-try {
-    while ( true ){
-	do{
-	    //in case someone pastes more than one command into the buffer	    
-	    line = readLine(bufInput);
-      	    cmdList.add(line);
-	}while(bufInput.ready());
-	while(cmdList.size() != 0){
-	    hol.runCommand(cmdList.removeFirst() + "\n");
-	}	   
-	//updateTopGoal();
-    }
     
-} catch (IOException e) {
-    e.printStackTrace();
-    JHOLEnd();
-}
-//Unreachable code below
+		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+    
+		public String flushOutput () {
+		    try {
+			StringBuilder str = new StringBuilder();
+			evalStr = new StringBuilder();
+			suppressedOutput = new StringBuilder();
+			char c;
+			do {
+			    c = (char) bout.read();
+
+			    if (str.length() == 0 && c == '@')
+				{
+				    evalStr.append(bout.readLine());
+				    evalStr.append(';');
+				    continue;}
+		
+			    if (c == 65535){
+		   
+				suppressedOutput.append(str.toString());
+				print("hol_light: EOF reached.");
+			    }
+			    str.append(c);		
+		
+			    if (c == 10)
+				{
+		
+				    suppressedOutput.append(str.toString());
+				    str = new StringBuilder();
+				    continue;}
+		
+			}while (!(
+				  str.length() == 2 &&
+				  (str.charAt(0) == '#' || str.charAt(0) == ' ') &&
+				  str.charAt(1) == ' ' &&
+				  !bout.ready()));
+	   
+				suppressedOutput.append(str.toString());
+			return suppressedOutput.toString();
+		    } catch (IOException ex) {
+			ex.printStackTrace();           
+
+		    }
+		}
+    
+		public String runCommand(String cmd) {
+	
+		    if(cmd.length() == 0)
+			return null;
+		    flag = cmd.charAt(cmd.length() - 1) != '\n';
+		    if(flag)
+			{
+			    cmd = cmd + "\n";
+			    printHTML(cmd);
+	
+			}
+
+		    try {
+			bin.write(cmd);
+			bin.flush();
+
+			conjTac2.setEnabled(true);//Interrupt button	    
+			String result = flushOutput();
+			//if (!flag){
+			    printHTML(result);
+			    //		}
+			conjTac2.setEnabled(false);
+
+			clearEvalStr();
+			return result;
+	    
+		    } catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		    }
+		}
+
+		printHTML(flushOutput());
+
+		return this;
+	    }
+
+	    //start a new hol process
+	    hol = HOLLightWrapper(console);
+
+	    //method for running multiple hol commands at once
+	    runHOLCommands (String cmds){
+		String[] array = cmds.split("\n");
+
+		for(int i = 0; i < Array.getLength(array); i++){
+		    print(hol.runCommand(array[i]));//DEBUG
+		}
+	    }
+
+	    //run commands in hol to initialize the data pipe
+	    runHOLCommands( 
+			   "let java cmd = ignore(Sys.command(String.concat  \" \" [\"echo \\\"@\";String.escaped cmd;\"\\\"\"]));;\n" +
+			   "let suffices_to_prove q tac = SUBGOAL_THEN q (fun th -> MP_TAC th THEN tac);;\n" +
+			   "let assume lab t = DISCH_THEN(fun th -> if concl th = t then LABEL_TAC lab th else failwith \"assume\");;\n" +
+			   "let note(lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(fun th -> LABEL_TAC lab th);;\n" +
+			   "let cases (lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (LABEL_TAC lab));;\n" +
+			   "let consider (x,lab,t) tac  = let tm  = mk_exists(x,t) in SUBGOAL_THEN tm (X_CHOOSE_THEN x (LABEL_TAC lab))   THENL [tac; ALL_TAC];;\n" +
+			   "let trivial = MESON_TAC[];;\n" +
+			   "let induction = INDUCT_TAC;;\n" +
+			   "let by labs tac = MAP_EVERY (fun l -> USE_THEN l MP_TAC) labs THEN tac;;\n" +
+			   "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n" +
+			   "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n" +
+			   "let g goal = (java o (fun () -> \"beginTopGoal();\") o ignore o g) goal;;\n" +
+			   "let e tactic = (java o (fun () -> \"updateTopGoal();\") o ignore o e) tactic;;\n" +
+			   "let b () = (java o (fun () -> \"updateTopGoal();\") o ignore o b) ();;\n" +
+			   "let set_goal (asl,goal) = (java o (fun () -> \"beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
+			   "let r int = (java o (fun () -> \"updateTopGoal();\") o ignore o r) int;;");
+	    try{
+		newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
+		int c = newprinterMLStream.read();
+		StringBuilder newprinterMLString = new StringBuilder();
+		while (c != -1){
+		    newprinterMLString.append((char)c);
+		    c = newprinterMLStream.read();
+		}
+
+		runHOLCommands(newprinterMLString.toString());
+	    }
+	    catch (IOException x) {
+		System.err.println(x);
+	    } 
+	    finally{
+		if (newprinterMLStream != null)
+		    newprinterMLStream.close();
+	    }
+	    //Set up sig int method for hol
+	    int holPid = Integer.decode(
+					hol.runCommand("Sys.command(\"echo $PPID\");;").trim().split("\n")[0]);
+	    command = new LinkedList();
+	    command.add("sig_int_hol_light");
+	    command.add(holPid.toString());
+	    kill = new ProcessBuilder(command);
+	    kill.redirectErrorStream(true);
+
+	    //query hol for the number of theorems in the system  
+	    getNumHolTheorems(){
+		return Integer.decode(hol.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5]) ;}
+
+	    //variable to keep track of the theorem count
+	    int numHolTheorems = 0;
+
+	    //variable to hold all the theorems
+	    Set holTheorems = new TreeSet();
+
+	    //method to keep theorem list up to date
+	    updateHolTheorems(){
+		if (numHolTheorems != getNumHolTheorems()){
+		    numHolTheorems = getNumHolTheorems();
+		    String[] bangTheorems = hol.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
+		    for (int i = 0; i < Array.getLength(bangTheorems); i++){
+			if (bangTheorems[i].equals("\nval"))
+			    break;
+			holTheorems.add(bangTheorems[i]);
+		    }
+		}
+	    }
+
+	    //update the theorem list
+	    updateHolTheorems();
+
+	    test1(){
+		popup.show();
+  
+
+
+	    }
+
+	    //List of theorem labels
+	    String[] thmStrings = { "All", "Basic Logic", "Constructs", "Pairs", "Well Foundedness",
+				    "Natural Numbers", "Lists", "Real Numbers", "Integers",
+				    "Sets and Functions", "Iterated Operations", "Cartesian Powers"};
+
+	    //Combo box to select which list of theorems to list
+	    JComboBox thmCombo = new JComboBox(thmStrings);
+	    JList myList = new JList ();
+
+	    //find the matching set of theorems
+	    lookupTheoremList(String name){
+		if (name.equals("Real Numbers"))
+		    return realNumberTheorems.toArray();
+		if (name.equals("Integers"))
+		    return integerTheorems.toArray();
+		if (name.equals("Sets and Functions"))
+		    return setAndFunctionTheorems.toArray();
+		if (name.equals("Iterated Operations"))
+		    return iteratedOperationTheorems.toArray();
+		if(name.equals("Cartesian Powers"))
+		    return cartesianPowerTheorems.toArray();
+		if(name.equals("Constructs"))
+		    return constructTheorems.toArray();
+		if(name.equals("Pairs"))
+		    return pairTheorems.toArray();
+		if(name.equals("Well Foundedness"))
+		    return wellfoundednessTheorems.toArray();
+		if (name.equals("Natural Numbers"))
+		    return naturalNumberTheorems.toArray();
+		if(name.equals("Lists"))
+		    return listTheorems.toArray();
+		if (name.equals("All"))
+		    {
+			updateHolTheorems();
+			return holTheorems.toArray();
+		    }
+		if( name.equals("Basic Logic"))
+		    return basicLogicTheorems.toArray();
+
+		return null;
+	    }
+
+	    //Detect mouse clicks
+	    ml = new MouseAdapter() {
+		    public void mouseClicked(MouseEvent e) {
+			if (e.getClickCount() == 2) {
+			    hol.runCommand(((String)e.getSource().getSelectedValue())+";;\n");
+			}
+		    }
+		};
+
+	    //Detect button presses
+	    al  = new ActionListener() {
+		    actionPerformed( event ) {
+			if ( event.getSource() == thmCombo){
+			    myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
+			}
+	    
+			if (event.getActionCommand().startsWith("e"))
+			    hol.runCommand(event.getActionCommand());
+			if (event.getActionCommand().equals("assume")){
+			    numAssumptions++;
+			    hol.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
+			}
+			if (event.getActionCommand().equals("test1")){
+			    test1();
+			}
+			if(event.getActionCommand().equals("test2")){
+			    try {
+				conjTac2.setEnabled(false);
+				kill.start();
+				//	print(hol.flushOutput(false));
+		    
+			    } catch (IOException e) {
+				return null;
+			    }
+			}
+		    }
+		};
+
+	    /*
+	      SPEC  copy paste
+	      INDUCT_TAC
+	      ALL_TAC
+	      UNDISCH_TAC
+	      asm ONCE PURE REWRITE_TAC
+	      /SIMP_TAC
+	      let_tac
+	      asm meson tac
+	      highlight delete comma rewrite tac pair eq
+	      abbrev tac highlight type
+	      sexpand tac highlight
+	      mp_tac thm
+	      assume_tac
+
+	      rewritetac real arith 1+1 highlight type 2
+	      ap thm tac
+	      ap term tac
+	      gsym
+	      sqrt pos lt
+
+	    */
+
+	    JPanel toolbar = new JPanel();
+
+	    console.setPreferredSize(new Dimension(700,400));
+
+	    //START EDITORPANE
+	    helpScrollPane.setVerticalScrollBarPolicy(
+						      JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+	    helpScrollPane.setPreferredSize(new Dimension(250, 145));
+	    helpScrollPane.setMinimumSize(new Dimension(10, 10));
+	    editorScrollPane.setVerticalScrollBarPolicy(
+							JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+	    editorScrollPane.setPreferredSize(new Dimension(250, 145));
+	    editorScrollPane.setMinimumSize(new Dimension(10, 10));
+
+
+
+
+	    //Put the editor pane and the text pane in a split pane.
+	    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+						  editorScrollPane,
+						  console);
+	    splitPane.setOneTouchExpandable(true);
+	    splitPane.setResizeWeight(0.5);
+
+
+	    for (JButton jb: buttonList){
+		jb.addActionListener(al);
+		toolbar.add(jb);
+	    }
+
+	    conjTac2.setEnabled(false);
+
+
+	    myList.setLayoutOrientation(JList.VERTICAL);
+	    JScrollPane myScroll = new JScrollPane(myList);
+	    myList.addMouseListener(ml);
+
+
+	    toolbar.add(thmCombo);
+	    //END EDITORPANE
+
+
+	    thmCombo.setSelectedIndex(0);
+	    thmCombo.addActionListener(al);
+
+	    myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
+
+	    frame.getContentPane().add(toolbar,BorderLayout.NORTH);
+	    frame.getContentPane().add(splitPane,BorderLayout.WEST);
+	    frame.getContentPane().add(myScroll,BorderLayout.CENTER);
+	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+	    //Display the window.
+	    frame.pack();
+	    frame.setVisible(true);
+	}
+
+
+	javax.swing.SwingUtilities.invokeLater(
+					       new Runnable() {
+						   void run() {
+						       System.setProperty("apple.laf.useScreenMenuBar", "true");
+						       System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JHOL");
+						       System.setProperty("com.apple.mrj.application.growbox.intrudes", "false");
+						       System.setProperty("com.apple.macos.smallTabs", "true");
+
+
+					       
+
+						       showGUI();
+						   }
+					       }); 						
+
+
+	int numAssumptions;
+	beginTopGoal(){
+	    numAssumptions = 0;
+	    updateTopGoal();
+	}
+
+	updateTopGoal(){
+	    StringBuilder text = new StringBuilder();
+	    text.append(EDITOR_HTML_HEADER);
+	    text.append("<b> Goal: </b> ");
+	    text.append((hol.runCommand("(snd o top_goal)();;")));
+	    text.append("<br><br><b>Assumption(s): </b><br>");
+	    String termList = hol.runCommand(
+					     "List.iter (fun x,y ->( ((fun ()->" +
+					     "(print_string \"\\n\")) o  (fun () ->" +
+					     "(((print_qterm o  concl) y)))) o print_string) (\"\"" +
+					     "))   ((fst o top_realgoal)());;");
+	    text.append(termList);
+	    editorPane.setText(text.toString());
+	}
+
+

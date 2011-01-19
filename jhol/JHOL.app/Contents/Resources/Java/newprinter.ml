@@ -11,6 +11,8 @@ let print_string' = print_string;;
 let pp_print_string fmt str = 
 pp_print_string' fmt (
 		      List.fold_right (uncurry(Str.global_replace)) [
+				      Str.regexp "\n", "<br>"	      
+				      Str.regexp " ", "&#160;";
 				      Str.regexp "<",    "&#60;";
 				      Str.regexp ">",    "&#62;";
 				      Str.regexp "\\\\", "&#955;";

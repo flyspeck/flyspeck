@@ -685,7 +685,7 @@ int split3(const double xmin[6],const double xmax[6],
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
-int printspan=10000;
+int printspan=1000;
 
 int getCounter() {
   return counter;
@@ -776,7 +776,7 @@ int setStrategy206A (double xmin[6],double xmax[6],strategy& s) {
 }
 
 
-int omain ()  {
+int main ()  {
 
   double xmin[6]= {
 1.,1.,1.,(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.))
@@ -788,7 +788,8 @@ int omain ()  {
   rectangle_total = rectangle(xmin,xmax);
   cout << "r: " << rectangle_total << endl;
   strategy s;
-  //  setStrategy(xmin,xmax,s,0/*1*/);
+  setStrategy(xmin,xmax,s,1);
+  //  setStrategy(xmin,xmax,s,0);
 
   {
   double data[4] = {1.0,4.0,2.0,3.0};

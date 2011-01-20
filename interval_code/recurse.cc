@@ -443,8 +443,6 @@ int prove::recursiveVerifier(int depth,
     }
   
   /* exit if too deep */ {
-    //    int MAXDEPTH = 200;
-    //if (options.recursionDepth>0) MAXDEPTH = options.recursionDepth;
     if (depth > options.recursionDepth) 
       {
 	report_failure(x,z,"recursion limit exceeded");
@@ -1015,8 +1013,6 @@ int prove::recursiveVerifierQ(int depth,
       cout << "iteration limit is set at " << opt.iterationLimit << endl;
       return 0 ;
     }
-  //  int MAXDEPTH = 200;
-  //if (opt.recursionDepth>0) MAXDEPTH=opt.recursionDepth;
   if (depth++ > opt.recursionDepth) 
     {
       report_failure(xA,zA,"A:recursion limit exceeded");

@@ -222,7 +222,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  }
 	  // exceptions are common early on, with fat intervals
 	  catch (unstable u) { // modified Jan 14, 2011.
-	    cout << "unstable" << endl; // debug.
+	    //	    cout << "unstable" << endl; // debug.
 	    if (2.0 * maxwidth > WCUTOFF) {
 	      has_unstable_branch=1;  
 	      i++;

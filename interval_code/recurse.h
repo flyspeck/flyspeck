@@ -148,7 +148,7 @@ public:
       iterationCount=0;
       iterationLimit=0;
       recursionDepth=200;
-      timeout=150000;
+      timeout=300000; // was 150000;
 
       printingMode=verbose; 
 

@@ -685,7 +685,7 @@ int split3(const double xmin[6],const double xmax[6],
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
-int printspan=1000;
+int printspan=40;
 
 int getCounter() {
   return counter;
@@ -695,7 +695,7 @@ int getCounter() {
 int setStrategy (double xmin[6],double xmax[6],strategy& s,int recurse)
 {
   counter ++;
-  double eps = 0.01;
+  double eps = 10.0; // was 0.01.
 
   Minimizer zer1 = m_num1(xmin,xmax);
   Minimizer zer1m = m_num1m(xmin,xmax);
@@ -776,19 +776,19 @@ int setStrategy206A (double xmin[6],double xmax[6],strategy& s) {
 }
 
 
-int main ()  {
+int qmain ()  { // constant changed to 15.53 on Jan 21, 2011.
 
   double xmin[6]= {
 1.,1.,1.,(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.))
 };
   double xmax[6]= {
-(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),15.99,(real_pow(4.,2.)),(real_pow(4.,2.))
+(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),15.53,(real_pow(4.,2.)),(real_pow(4.,2.))
 };
 
   rectangle_total = rectangle(xmin,xmax);
   cout << "r: " << rectangle_total << endl;
   strategy s;
-  setStrategy(xmin,xmax,s,1);
+  setStrategy(xmin,xmax,s,1);  // this does the cases.
   //  setStrategy(xmin,xmax,s,0);
 
   {

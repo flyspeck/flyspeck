@@ -275,6 +275,7 @@ let get_macro_expand() = (
 		      edge_flat2_x;
 		      delta_template_B_x_alt;
 		      dih_hexall_x;
+		      dih1_hexall_x;
 		      upper_dih_hexall_x;
 		      delta_hexall_x;
 		      delta4_hexall_x;

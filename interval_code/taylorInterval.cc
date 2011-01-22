@@ -1950,6 +1950,16 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return d1 + d2 * mone;
   }
 
+  const taylorFunction dih1_hexall_x(const interval& x14, const interval& x12,
+						   const interval & x23) {
+    static const interval zero("0");
+    taylorFunction uz = unit * zero;
+    taylorFunction ef_213 = taylorFunction::compose(edge_flat2_x,x2,x1,x3,uz,unit * x23, unit * x12);
+    taylorFunction d = taylorFunction::compose(dih,x1,x3,x4,x5,unit * x14, ef_213);
+    return d;
+  }
+
+
 
   const taylorFunction upper_dih_hexall_x(const interval& x14, const interval& x12,
 						   const interval & x23) {
@@ -2216,12 +2226,15 @@ const taylorFunction taylorSimplex::dih_hexall_x(const interval& x14, const inte
   return local::dih_hexall_x(x14,x12,x23);
 };
 
+const taylorFunction taylorSimplex::dih1_hexall_x(const interval& x14, const interval& x12,
+						 const interval & x23) {
+  return local::dih1_hexall_x(x14,x12,x23);
+};
+
 const taylorFunction taylorSimplex::upper_dih_hexall_x(const interval& x14, const interval& x12,
 						 const interval & x23) {
   return local::upper_dih_hexall_x(x14,x12,x23);
 };
-
-
 
 const taylorFunction taylorSimplex::delta_hexall_x(const interval& x14, const interval& x12,
 						 const interval & x23) {
@@ -3969,6 +3982,10 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
 	cout << "dih_hexall_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test dih1_hexall_x */ {
+  }
+
 
   /* test upper_dih_hexall_x */ {
     domain x(4.1,4.2,4.3,4.4,9.1,4.5);

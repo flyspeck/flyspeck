@@ -44,6 +44,16 @@ String readLine(BufferedReader br){
     }
     return sb.toString();
 }
+
+String getHTMLHeader(String title){
+    if (title == null)
+	title = "";
+    return "<HTML><HEAD><TITLE>" + title +"</TITLE></HEAD><BODY>";
+}
+
+String getHTMLFooter(){
+    return "</BODY></HTML>";
+}
 //end low level functions
 
 
@@ -208,27 +218,53 @@ void showGUI(WindowAdapter controller){
     updateTopGoal(){
 
 	text = editorPane;
-	text.insertComponent(new JLabel("<HTML><b> Goal: </b> </HTML>",JLabel.LEFT));
-	//insert new line DEBUG
+	text.setText("");
+	doc = text.getStyledDocument();
+
+	//Print "Goal: " 
+	String htmlString = getHTMLHeader("") + "<b>Goal: </b>" + getHTMLFooter();
+	JLabel label = htmlToJLabel(htmlString);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print top_goal
 	junk =  hol.runCommand("(snd o top_goal)();;");
 	junkInt = junk.indexOf("<HTML>");//DEBUG all html tag tests should be case insensitive 
 	if (junkInt == -1)
 	    return;
 	junkEnd = junk.indexOf("</HTML>") + 7;
 	junk = junk.substring(junkInt, junkEnd);
-	text.insertComponent(new JLabel(junk,JLabel.LEFT));
-	//insert new line DEBUG
-	text.insertComponent(new JLabel("<HTML><b>Assumption(s): </b></HTML>",JLabel.LEFT));
+	label = htmlToJLabel(junk);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print "Assumptions: "
+	htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>" + getHTMLFooter();
+	label = htmlToJLabel(htmlString);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print the assumptions
 	junk = hol.runCommand(
 					 "List.iter (fun x,y ->( ((fun ()->" +
 					 "(print_string \"\\n\")) o  (fun () ->" +
 					 "(((print_qterm o  concl) y)))) o print_string) (\"\"" +
 					 "))   ((fst o top_realgoal)());;");
-	junkInt = junk.indexOf("<HTML>");//we might need to split these into multiple JLabels DEBUG
-	if (junkInt == -1)
-	    return;
-	junkEnd = junk.indexOf("</HTML>") + 7;//DEBUG Last occurence
-	text.insertComponent(new JLabel(termList,JLabel.LEFT));
+	while( junk.indexOf("<HTML>")!=-1){
+	    junkInt = junk.indexOf("<HTML>");
+	    junkEnd = junk.indexOf("</HTML>") + 7;
+	    label = htmlToJLabel(junk.substring(junkInt,junkEnd));
+	    text.insertComponent(label);
+	}
     }
 
     //Console for getting input from user
@@ -260,35 +296,40 @@ void showGUI(WindowAdapter controller){
 		}
 	    }
 	});
+
+    JLabel htmlToJLabel(String htmlText){
+	inTag = false;
+	sb = new StringBuilder();
+	sb.append(htmlText.substring(0,htmlText.indexOf("<BODY>")));
+	for (int i = htmlText.indexOf("<BODY>") ; i < htmlText.length(); i++){
+	    if (inTag)
+		{
+		    inTag = (htmlText.charAt(i) != '>');
+		    sb.append(htmlText.charAt(i));
+		}
+	    else
+		{
+		    inTag = (htmlText.charAt(i) == '<');
+		    if (htmlText.charAt(i) == '\n')
+			sb.append("<br>");
+		    else if (htmlText.charAt(i) == ' ')
+			sb.append("&#160;");
+		    else
+			sb.append(htmlText.charAt(i));
+		}
+	}
+	htmlText = sb.toString();
+	return new JLabel (htmlText, JLabel.LEFT);
+    }
+    
     //Method for printing to the console
     printHTML(String html){
 	while (html.indexOf("<HTML>") != -1){
 	    int start = html.indexOf("<HTML>");
-	    console.print(html.substring(0, start));
+	    console.print(html.substring(0, start));//Print any text that occurs before the HTML
 	    int end = html.indexOf("</HTML>");
 	    htmlText = html.substring(start,end+7);
-	    inTag = false;
-	    sb = new StringBuilder();
-	    sb.append(htmlText.substring(0,htmlText.indexOf("<BODY>")));
-	    for (int i = htmlText.indexOf("<BODY>") ; i < end + 7 - start; i++){
-		if (inTag)
-		    {
-			inTag = (htmlText.charAt(i) != '>');
-			sb.append(htmlText.charAt(i));
-		    }
-		else
-		    {
-			inTag = (htmlText.charAt(i) == '<');
-			if (htmlText.charAt(i) == '\n')
-			    sb.append("<br>");
-			else if (htmlText.charAt(i) == ' ')
-			    sb.append("&#160;");
-			else
-			    sb.append(htmlText.charAt(i));
-		    }
-	    }
-	    htmlText = sb.toString();
-	    JLabel tmpLabel = new JLabel (htmlText, JLabel.LEFT);
+	    JLabel tmpLabel = htmlToJLabel(htmlText);
 	    consoleTextPane.insertComponent(tmpLabel);
 	    html = html.substring(end+7, html.length());
 	}
@@ -469,7 +510,9 @@ void showGUI(WindowAdapter controller){
 		    hol.runCommand(event.getActionCommand());
 		if (event.getActionCommand().equals("assume")){
 		    numAssumptions++;
+		    print("HI");
 		    hol.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
+		    print("BYR");
 		}
 		if (event.getActionCommand().equals("test1")){
 		    test1();

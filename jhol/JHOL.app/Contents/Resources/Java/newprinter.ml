@@ -6,26 +6,118 @@ set_max_boxes 100;;
 (* ------------------------------------------------------------------------- *)
 (* Protection for HTML output                                                *)
 (* ------------------------------------------------------------------------- *)
+ let output_functions = get_all_formatter_output_functions();;
+let make n s=
+  let rec make_aux n s str =
+    match n with
+    | 0 -> str
+    | _ -> make_aux (n - 1) s (str ^ s)
+  in
+  make_aux n s "";;
+
+let new_output_functions (x,y,z,w) = set_all_formatter_output_functions x y  (fun () ->x "<br>" 0 4) (fun n -> x (make n "&#160;")  0 (6 * n));;
+ let restore_output_functions (x,y,z,w) = set_all_formatter_output_functions x y z w;;
+
 let pp_print_string' = pp_print_string;;
 let print_string' = print_string;;
-let pp_print_string fmt str = 
-pp_print_string' fmt (
-		      List.fold_right (uncurry(Str.global_replace)) [
-				      Str.regexp "<",    "&#60;";
-				      Str.regexp ">",    "&#62;";
-				      Str.regexp "\\\\", "&#955;";
-				      Str.regexp "/\\\\","&#8743;";
-				      Str.regexp "\\\\/","&#8744;";
-				      Str.regexp "<=",   "&#8804;";
-				      Str.regexp ">=",   "&#8805;";
-				      Str.regexp "==>",  "&#8658;";
-				      Str.regexp "<=>",  "&#8660;";
-				      Str.regexp "~",    "&#172;";
-				      Str.regexp "|-",   "&#8866;";
-				      Str.regexp "--",   "&#8722;";
-				      Str.regexp "?",    "&#8707;";
-				      Str.regexp "!",    "&#8704;"
-				      ] str);;
+let rec pp_print_string fmt str = 
+match (String.length str) with
+| 0 -> ()
+|_->
+if (Str.string_match (Str.regexp "!") str 0)
+then begin
+pp_print_as fmt 1 "&#8704;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp "?") str 0)
+then begin
+pp_print_as fmt 1 "&#8707;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp "--") str 0)
+then begin
+pp_print_as fmt 1 "&#8722;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "|-") str 0)
+then begin
+pp_print_as fmt 1 "&#8866;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "~") str 0)
+then begin
+pp_print_as fmt 1 "&#172;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp "<=>") str 0)
+then begin
+pp_print_as fmt 1 "&#8660;";
+pp_print_string fmt (String.sub str 3 ((String.length str) - 3))
+end
+else
+if (Str.string_match (Str.regexp "==>") str 0)
+then begin
+pp_print_as fmt 1 "&#8658;";
+pp_print_string fmt (String.sub str 3 ((String.length str) - 3))
+end
+else
+if (Str.string_match (Str.regexp ">=") str 0)
+then begin
+pp_print_as fmt 1 "&#8805;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "<=") str 0)
+then begin
+pp_print_as fmt 1 "&#8804;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "\\\\/") str 0)
+then begin
+pp_print_as fmt 1 "&#8744;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "/\\\\") str 0)
+then begin
+pp_print_as fmt 1 "&#8743;";
+pp_print_string fmt (String.sub str 2 ((String.length str) - 2))
+end
+else
+if (Str.string_match (Str.regexp "\\\\") str 0)
+then begin
+pp_print_as fmt 1 "&#955;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp ">") str 0)
+then begin
+pp_print_as fmt 1 "&#62;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp "<") str 0)
+then begin
+pp_print_as fmt 1 "&#60;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+if (Str.string_match (Str.regexp " ") str 0)
+then begin
+pp_print_as fmt 1 "&#160;";
+pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
+end
+else
+begin
+pp_print_as fmt 1 (String.sub str 0 1);
+pp_print_string fmt  (String.sub str 1 ((String.length str) - 1))
+end;;
 let print_string = pp_print_string std_formatter;;
 
 (* ------------------------------------------------------------------------- *)
@@ -560,18 +652,22 @@ let newprec = fst(get_infix_status s) in
 (* ------------------------------------------------------------------------- *)
 
 let pp_print_qterm fmt tm =
+new_output_functions output_functions;
 open_tag "HTML";
 open_tag "HEAD";
+open_tag "TITLE";
+close_tag ();
 open_tag "style type=\"text/css\"";
-pp_print_string fmt ".real {color:teal; background-color:white; font-weight:bold; text-align:center;} .num {color:fuchsia; background-color:white; font-weight:bold; text-align:center;} .int {color:olive; background-color:white; font-weight:bold; text-align:center;}";
+pp_print_as fmt 0 ".real {color:teal; background-color:white; font-weight:bold; text-align:center;} .num {color:fuchsia; background-color:white; font-weight:bold; text-align:center;} .int {color:olive; background-color:white; font-weight:bold; text-align:center;}";
 close_tag();
 close_tag();
 open_tag "BODY";
-
+open_tag "TT";
 pp_print_term fmt tm;
-
 close_tag();
-close_tag();;
+close_tag();
+close_tag();
+restore_output_functions output_functions;;
 
 
 (* ------------------------------------------------------------------------- *)
@@ -598,18 +694,22 @@ let asl,tm = dest_thm th in
 
 let pp_print_thm' = pp_print_thm;;
 let pp_print_thm fmt tm = 
+new_output_functions output_functions;
 open_tag "HTML";
 open_tag "HEAD";
+open_tag "TITLE";
+close_tag();
 open_tag "style type=\"text/css\"";
-pp_print_string fmt ".real {color:teal; background-color:white; font-weight:bold; text-align:center;} .num {color:fuchsia; background-color:white; font-weight:bold; text-align:center;} .int {color:olive; background-color:white; font-weight:bold; text-align:center;}";
+pp_print_as fmt 0 ".real {color:teal; background-color:white; font-weight:bold; text-align:center;} .num {color:fuchsia; background-color:white; font-weight:bold; text-align:center;} .int {color:olive; background-color:white; font-weight:bold; text-align:center;}";
 close_tag();
 close_tag();
 open_tag "BODY";
-
+open_tag "TT";
 pp_print_thm fmt tm;
-
 close_tag();
-close_tag();;
+close_tag();
+close_tag();
+restore_output_functions output_functions;;
 
 
 (* ------------------------------------------------------------------------- *)
@@ -663,3 +763,6 @@ set_mark_tags true;;
 
 let pp_print_string = pp_print_string';;
 let print_string = print_string';;
+
+
+

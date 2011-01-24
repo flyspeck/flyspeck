@@ -153,7 +153,7 @@ public:
       printingMode=verbose; 
 
       startingIndex =0; 
-      widthCutoff=0;
+      widthCutoff=0.05;
       usingWidthCutoff=0; 
 
       crossDiagMinEnclosed = 0.0;

@@ -303,6 +303,11 @@ let rec delta126min = function
     | Delta126min t :: _ -> t
     | _ :: a -> delta126min a;;
 
+let rec widthCut = function
+  | [] -> (false,0.0)
+  | Widthcutoff t::_ -> (true,t)
+  | _:: a -> widthCut a;;
+
 let rec delta126max = function 
     | [] -> -1.0
     | Delta126max t :: _ -> t
@@ -343,6 +348,8 @@ let mk_cpp_proc t s tags =
   let sharp = if  mem Sharp tags then 1 else 0 in
   let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
   let setrad2 = if mem Set_rad2 tags then "\topt.setRad2 = 1;\n" else "" in
+  let (b,f) = widthCut tags in
+  let sWidth = if b then Printf.sprintf "\topt.widthCutoff = %8.16f;\n" f else "" in
   let d126min = delta126min tags in
   let s126min = if (d126min > -1.0) then Printf.sprintf "\topt.delta126Min = %8.16f;\n" d126min else "" in
   let d126max = delta126max tags in
@@ -352,7 +359,7 @@ let mk_cpp_proc t s tags =
   let d135max = delta135max tags in
   let s135max = if (d135max > -1.0) then Printf.sprintf "\topt.delta135Max = %8.16f;\n" d135max else "" in
   let s206A = if (s="2065952723 A1" ) then Printf.sprintf "\topt.strategy206A=1;\n" else "" in
-  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ s206A in
+  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ sWidth ^ s206A in
   let c = map cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
   let (aas,bbs,iis) = f (dest_nonlin t) in

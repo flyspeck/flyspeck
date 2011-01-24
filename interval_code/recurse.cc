@@ -188,7 +188,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
     }
   }
 
-  static const double WCUTOFF = 0.05;
+  //  static const double WCUTOFF = 0.05;
 
   /* GOING STRONG LOOP*/
   const taylorInterval* T[MAXcount];
@@ -222,8 +222,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  }
 	  // exceptions are common early on, with fat intervals
 	  catch (unstable u) { // modified Jan 14, 2011.
-	    //	    cout << "unstable" << endl; // debug.
-	    if (2.0 * maxwidth > WCUTOFF) {
+	    if (2.0 * maxwidth > opt.widthCutoff) {
 	      has_unstable_branch=1;  
 	      i++;
 	    }
@@ -319,7 +318,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
   int mixedsign;
   double yyn[DIM6],yu[DIM6];  // look at the lowest & highest corners
   lineInterval cn,cu;
-  if (maxwidth<WCUTOFF)
+  if (maxwidth<opt.widthCutoff)
     {
       int i=0; 
       while (i<count) if (T[i]->tangentVectorOf().low() >0.0)  {
@@ -352,7 +351,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
     }
   
   // now keep a single numerically true inequality.
-  if ((maxwidth<WCUTOFF)&&(count>1)) {
+  if ((maxwidth<opt.widthCutoff)&&(count>1)) {
     double margin =0.0;
     for (int i=0;i<count;i++) if (T[i]->tangentVectorOf().hi()< 0.0) {
 	mixedsign=0;
@@ -816,7 +815,7 @@ static int verifyCellQ(double xA[6],double xB[6],double zA[6],double zB[6],
   // now keep a single numerically true inequality.
   double WCUTOFF = 0.3;
   if (max(zA[0],zB[0])>6.00) WCUTOFF=0.1; // heuristic: things are unstable here!
-  if (option.usingWidthCutoff) WCUTOFF=option.widthCutoff; 
+  if (option.usingWidthCutoff) WCUTOFF= option.widthCutoff; 
   int s;
   if ((max(max(wA),max(wB))<WCUTOFF)&&(Nineq>1))
     {

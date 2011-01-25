@@ -30,7 +30,7 @@ pp_print_as fmt 1 "&#8704;";
 pp_print_string fmt (String.sub str 1 ((String.length str) - 1))
 end
 else
-if (Str.string_match (Str.regexp "?") str 0)
+if (Str.string_match (Str.regexp "\?") str 0)
 then begin
 pp_print_as fmt 1 "&#8707;";
 pp_print_string fmt (String.sub str 1 ((String.length str) - 1))

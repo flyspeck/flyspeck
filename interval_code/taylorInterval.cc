@@ -870,6 +870,9 @@ primitiveA deltax4Primitive(linearization::delta_x4,setAbsDeltaX4);
 const taylorFunction taylorSimplex::delta_x4(&::deltax4Primitive);
 
 
+
+
+
 /*implement dih1*/
 static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 {
@@ -1858,6 +1861,13 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   const taylorFunction taum_x = taylorSimplex::rhazim + taylorSimplex::rhazim2 + 
     taylorSimplex::rhazim3 - unit  * pi * (one + const1);
 
+  //implement delta4_squared_x
+  const taylorFunction delta4_squared_x = taylorSimplex::delta_x4 * taylorSimplex::delta_x4;
+
+  //implement x1_delta_x
+  const taylorFunction x1_delta_x = taylorSimplex::x1 * taylorSimplex::delta;
+
+
   // implement flat_term_x.
   const taylorFunction flat_term_x = (y1 - unit * two * h0) * sol0 * (one / (two * h0 - two));
 
@@ -2201,6 +2211,8 @@ const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
 const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;
 const taylorFunction taylorSimplex::taum_x = local::taum_x;
+const taylorFunction taylorSimplex::x1_delta_x = local::x1_delta_x;
+const taylorFunction taylorSimplex::delta4_squared_x = local::delta4_squared_x;
 const taylorFunction taylorSimplex::flat_term_x = local::flat_term_x;
 
 
@@ -3397,6 +3409,38 @@ void taylorFunction::selfTest()
 	cout << "gchi6 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+
+  /* test x1_delta_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=671.0757000000002;
+      double mathValueD[6]={253.91800000000006,
+   83.18899999999998,75.48100000000002,78.679,
+			    72.11899999999999,64.90300000000006};
+      taylorInterval at = local::x1_delta_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "x1_delta_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "x1_delta_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test delta4_squared_x */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue=368.25610000000006;
+      double mathValueD[6]={23.027999999999988,165.034,
+   172.70999999999998,-314.716,142.00600000000006,
+			    149.68199999999996};
+      taylorInterval at = local::delta4_squared_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "delta4_squared_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "delta4_squared_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
 
   /* test taum */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);

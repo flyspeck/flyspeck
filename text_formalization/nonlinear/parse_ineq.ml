@@ -228,7 +228,7 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    rad2_x;ups_x;eta_x;eta_y;volR; (* solRy;dihRy; *)
    norm2hh;arclength;regular_spherical_polygon_area;
    beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
-   tame_table_d;delta_x4;dih_x_alt;quad_root_plus_curry;
+   tame_table_d;delta_x4;dih_x_alt;delta4_squared_x;x1_delta_x;quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
    taum_y1;taum_y2;taum_y1_y2;arclength_y1;arclength_y2;arc_hhn;asn797k;asnFnhk;
    lfun_y1;arclength_x_123;arclength_x_345;acs_sqrt_x1_d4;acs_sqrt_x2_d4;
@@ -250,7 +250,7 @@ let macro_expand = ref [];;
 
 
 let get_macro_expand() = (
-   [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;
+   [gamma4f;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;delta4_squared_y;x1_delta_y;
    gamma3f;gamma23f;  (* gamma23f_126_w1;gamma23f_red; *)
    gamma23f_red_03;gamma23f_126_03;
    GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;

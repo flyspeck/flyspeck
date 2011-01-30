@@ -349,7 +349,7 @@ class taylorSimplex
 	//
 	static const taylorFunction unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-	  delta,delta_x4,vol_x,sol,rad2,
+	  delta,delta_x4,x1_delta_x,delta4_squared_x,vol_x,sol,rad2,
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  ldih_x,ldih2_x,ldih3_x,ldih5_x,ldih6_x,
 	  upper_dih,

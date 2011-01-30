@@ -2023,6 +2023,13 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   }
 
 
+  // law_cosines_234_x
+  const taylorFunction law_cosines_234_x(const interval& costheta) {
+    taylorFunction t = x4 + x2*mone + x3*mone + y2 * y3 * (two * costheta);
+    return t;
+  }
+
+
   // implement taum_hexall_x.
   /*
   `taum_hexall_x  x14 x12 x23  x1 x2 x3 x4 x5 (x6:real) = 
@@ -2267,6 +2274,11 @@ const taylorFunction taylorSimplex::eulerA_hexall_x(const interval& x14, const i
 const taylorFunction taylorSimplex::factor345_hexall_x(const interval& costheta) {
   return local::factor345_hexall_x(costheta);
 };
+
+const taylorFunction taylorSimplex::law_cosines_234_x(const interval& costheta) {
+  return local::law_cosines_234_x(costheta);
+};
+
 
 const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const interval& x12,
 						 const interval & x23) {
@@ -4120,6 +4132,21 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
 	cout << "factor345_hexall_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+ /* test law_cosines_234_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 0.9996470466101872;
+    double mathValueD[6]={0,-0.39289916111783496,
+			  -0.40701778527788524,1.,0,0};
+    taylorInterval at = taylorSimplex::law_cosines_234_x("0.6").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "law_cosines_234_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "law_cosines_234_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
 
 
   /* test upper_dih */  {

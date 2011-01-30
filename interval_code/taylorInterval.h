@@ -501,6 +501,8 @@ class taylorSimplex
 
 	static const taylorFunction taylorSimplex::factor345_hexall_x(const interval& costheta);
 
+	static const taylorFunction taylorSimplex::law_cosines_234_x(const interval& costheta);
+
 
 };
 

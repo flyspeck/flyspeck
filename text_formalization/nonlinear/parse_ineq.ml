@@ -283,6 +283,8 @@ let get_macro_expand() = (
 		      eulerA_hexall_x;
 		      factor345_hexall_x;
 		      law_cosines_234_x;
+		      law_cosines_126_x;
+		      delta_126_x;
 		      taum_template_B_x_alt;
 		      dih_template_B_x_alt;
 		      upper_dih_y; 

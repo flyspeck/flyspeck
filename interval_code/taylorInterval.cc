@@ -2029,6 +2029,20 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return t;
   }
 
+  // law_cosines_126_x
+  const taylorFunction law_cosines_126_x(const interval& costheta) {
+    taylorFunction t = x6 + x1*mone + x2*mone + y1 * y2 * (two * costheta);
+    return t;
+  }
+
+  // delta_126_x
+  const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
+						  const interval& x5s) {
+    taylorFunction t = taylorFunction::compose(delta,x1,x2,unit * x3s, unit * x4s, unit *x5s, x6);
+    return t;
+  }
+
+
 
   // implement taum_hexall_x.
   /*
@@ -2279,11 +2293,20 @@ const taylorFunction taylorSimplex::law_cosines_234_x(const interval& costheta) 
   return local::law_cosines_234_x(costheta);
 };
 
+const taylorFunction taylorSimplex::law_cosines_126_x(const interval& costheta) {
+  return local::law_cosines_126_x(costheta);
+};
+
 
 const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const interval& x12,
 						 const interval & x23) {
   return local::taum_hexall_x(x14,x12,x23);
 };
+
+//const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
+//						 const interval & x5s) {
+//  return local::delta_126_x(x3s,x4s,x5s);
+//};
 
 
 
@@ -4144,6 +4167,20 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
 	cout << "law_cosines_234_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+ /* test delta_126_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 185.7530000000001;
+    double mathValueD[6]={25.770000000000007,
+			  23.889999999999993,0,0,0,18.790000000000013};
+    taylorInterval at = taylorSimplex::delta_126_x("4.7","4.8","4.9").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_126_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_126_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
 

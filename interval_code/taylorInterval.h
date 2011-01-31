@@ -503,6 +503,11 @@ class taylorSimplex
 
 	static const taylorFunction taylorSimplex::law_cosines_234_x(const interval& costheta);
 
+	static const taylorFunction taylorSimplex::law_cosines_126_x(const interval& costheta);
+
+	static const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
+							       const interval& x5s);
+
 
 };
 

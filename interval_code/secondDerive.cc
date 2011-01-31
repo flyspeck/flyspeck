@@ -960,12 +960,12 @@ int secondDerive::setChi2over4uDelta(const double x[6],const double z[6],double 
 	//////////
 	//
 	// numerator in dihedral function. Take the derivative wrt opposite edge.
-	// deltaX=  -(x1*x2) - x0*x3 + x1*x4 + x2*x5 - x4*x5 + 
+	// deltaX4=  -(x1*x2) - x0*x3 + x1*x4 + x2*x5 - x4*x5 + 
     // 						x0*(-x0 + x1 + x2 - x3 + x4 + x5);
-	// deltaX = D[Delta @@ Sqrt[{x0,x1,x2,x3,x4,x5}],x3], where Delta
+	// deltaX4 = D[Delta @@ Sqrt[{x0,x1,x2,x3,x4,x5}],x3], where Delta
 	// is the Mathematica function giving Delta in terms of y-variables.
 	//
-static void setDeltaX(const double x[6],const double z[6],
+static void setDeltaX4(const double x[6],const double z[6],
 	interval& f, interval Df[6], interval DDf[6][6])
 	{
 	static const interval zero("0");
@@ -1113,7 +1113,7 @@ int secondDerive::setDihedral(const double x[6],const double z[6],
 	::setU135(x,z,u135,Du135,DDu135);
 	
 	interval dX,DdX[6],DDdX[6][6];
-	::setDeltaX(x,z,dX,DdX,DDdX);
+	::setDeltaX4(x,z,dX,DdX,DDdX);
  
 	interval b,Db[6],DDb[6][6];
 	b = s*ty1;

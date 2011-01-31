@@ -464,8 +464,8 @@ static lineInterval a
 	return t;
 	}
 	
-//	deltaX := partial delta/partial x4.
-lineInterval deltaX(double x1,double x2,double x3,double x4,double x5,double x6)
+//	deltaX4 := partial delta/partial x4.
+lineInterval deltaX4(double x1,double x2,double x3,double x4,double x5,double x6)
 	{
 	lineInterval t;
 	interMath::up();
@@ -499,7 +499,7 @@ lineInterval linearization::dih(const domain& x)
 	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
 	static const interval pi2 = "1.5707963267948966192313216916";
 	static lineInterval p = lineInterval(pi2);
-	lineInterval ax = -deltaX(x1,x2,x3,x4,x5,x6);
+	lineInterval ax = -deltaX4(x1,x2,x3,x4,x5,x6);
 	double x14 = 4.0*x1;
 	lineInterval t = lineInterval(interval(x14,x14));  
 	t.Df[0]=four;

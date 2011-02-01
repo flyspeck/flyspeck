@@ -407,8 +407,8 @@ void stats(int force) {
 	  error::printTime();	  
 	}
       /*  206A case only. */ {
-      int c = getCounter();  
-      if (c>0) { cout << "(" << getCounter() << ":" << percent_done() << ")"; }
+	int c = numerical_data::getCounter();  
+      if (c>0) { cout << "(" << numerical_data::getCounter() << ":" << numerical_data::percent_done() << ")"; }
       }
       cout << "[" << statcounter/10000 << "*10^4]" << flush;
     }
@@ -431,7 +431,7 @@ int prove::recursiveVerifier(int depth,
     }
   timeout = options.timeout;
   stats(0); 
-  if (depth==0) { set_rectangle(x,z); }  // 206A code.
+  if (depth==0) { numerical_data::set_rectangle(x,z); }  // 206A code.
   if ((options.iterationLimit >0)&&
       (options.iterationLimit <options.iterationCount++))
     {
@@ -474,18 +474,18 @@ int prove::recursiveVerifier(int depth,
 
   /* special code for one difficult inequality */ 
   if (options.strategy206A) {
-    strategy s;
-    setStrategy206A(xx,zz,s);
-    if (!(s.mode == strategy::split)) {
+    numerical_data::strategy s;
+    numerical_data::setStrategy206A(xx,zz,s);
+    if (!(s.mode == numerical_data::strategy::split)) {
 	  static interval one("1");
 	  static interval mone = -one;
 	  interval alpha(s.alpha,s.alpha);
 	  interval malpha = one - interMath::max(alpha,-alpha);
 	  const taylorFunction F = 
-	    ( (s.mode==strategy::n1) ? taylorSimplex::num1   :
-	      ((s.mode ==strategy::n1m) ? taylorSimplex::num1 * mone  :
-	       ((s.mode == strategy::n2m) ? taylorSimplex::num2 * mone :
-		(assert(s.mode == strategy::merge),
+	    ( (s.mode==numerical_data::strategy::n1) ? taylorSimplex::num1   :
+	      ((s.mode ==numerical_data::strategy::n1m) ? taylorSimplex::num1 * mone  :
+	       ((s.mode == numerical_data::strategy::n2m) ? taylorSimplex::num2 * mone :
+		(assert(s.mode == numerical_data::strategy::merge),
                 taylorSimplex::num2 * malpha * mone + 
 		 taylorSimplex::num1 * alpha) ) ) );
 	  const taylorFunction Fm = F * mone;
@@ -520,14 +520,14 @@ int prove::recursiveVerifier(int depth,
 		  for (int u=0;u<6;u++) {
 		    cout << xr[u] << " " << zr[u] << endl;
 		  }
-		  if (s.mode==strategy::merge) 
+		  if (s.mode==numerical_data::strategy::merge) 
 		    { cout << " alpha " << alpha << endl; }
 		  switch (s.mode) {
-		    case strategy::n1 : cout << "strategy n1"; break;
-		    case strategy::n1m : cout << "strategy n1m"; break;
-		    case strategy::n2m : cout << "strategy n2m"; break;
-		    case strategy::split : cout << "strategy split"; break;
-		    case strategy::merge : cout << "strategy merge"; break;
+		    case numerical_data::strategy::n1 : cout << "strategy n1"; break;
+		    case numerical_data::strategy::n1m : cout << "strategy n1m"; break;
+		    case numerical_data::strategy::n2m : cout << "strategy n2m"; break;
+		    case numerical_data::strategy::split : cout << "strategy split"; break;
+		    case numerical_data::strategy::merge : cout << "strategy merge"; break;
 		  default: cout << "strategy unknown"; break;
 		  }
 		  return 0;

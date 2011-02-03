@@ -19,6 +19,10 @@ class numerical_data {
     int splitvar;
   };
 
+enum n298 { neg_deltaA, neg_deltaB, neg_num1, pos_num1, neg_num2, reflexAB,
+	    angleYA, angleYB, angleYAB, neg_rat1, pos_rat1, neg_rat2, split };
+
   static int setStrategy206A (double xmin[6],double xmax[6],strategy& s);
 
 };
+

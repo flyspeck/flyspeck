@@ -829,17 +829,38 @@ int numerical_data::getCounter() {
 
 numerical_data::n298 setStrategy298(double xmin[9],double xmax[9]) {
   counter++;
-  double eps = 0.01;
-  /* deltaA < 0 */ {
-  Minimizer z_deltaAm = m_deltaAm(xmin,xmax);
-  double v_deltaAm =z_deltaAm.optimize();
-  if (v_deltaAm > eps) { return numerical_data::neg_deltaA; }
+  double eps = 0.1;
+  /* deltaA < 0 */ 
+  if (m_deltaAm(xmin,xmax).optimize() > eps) 
+    { return numerical_data::neg_deltaA; }
+
+  /* deltaB < 0 */
+  if (m_deltaBm(xmin,xmax).optimize() > eps) 
+    { return numerical_data::neg_deltaB; }
+
+  double vA,vB;
+  /* num1A > 0 and num1B >0 */ {
+    vA = m_num1A(xmin,xmax).optimize();
+    vB = m_num1B(xmin,xmax).optimize();
+    if (vA > eps && vB > eps) { return numerical_data::pos_num1; }
   }
-  /* deltaB < 0 */ {
-  Minimizer z_deltaBm = m_deltaBm(xmin,xmax);
-  double v_deltaBm = z_deltaBm.optimize();
-  if (v_deltaBm > eps) { return numerical_data::neg_deltaB; }
+  /* num1A < 0 and num1B <0 */ 
+  if (vA < - eps && vB < - eps) {
+    if (m_num1Am(xmin,xmax).optimize() > eps && 
+	m_num1Bm(xmin,xmax).optimize() > eps) 
+      { return numerical_data::neg_num1; }
   }
+  /* num2A < 0 and num2B <0 */  
+  if ( m_num2Am(xmin,xmax).optimize() > eps &&
+       m_num2Bm(xmin,xmax).optimize() > eps )
+    { return numerical_data::neg_num2; }
+
+  double v_deltaA;
+  /* dihA > c and dihB > pi -c */ {
+    v_deltaA = m_deltaA(xmin,xmax).optimize();
+    
+  }
+  
 }
 
 int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int recurse)

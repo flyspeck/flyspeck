@@ -517,7 +517,7 @@ double y2 = y_mangle__[8];
  *ret =  lindih_x(thetaGlobal,y2,b2,a2); // dihA < theta, or dihA > pi - theta.
 }
 
-void dihY_gt_theta(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+void dihY_lt_theta(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
 double e2 = y_mangle__[1];
 double e3 = y_mangle__[2];
@@ -527,7 +527,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  - lindih_x(thetaGlobal,a2,b2,y2); // dihY > theta, or dihY > pi - theta.
+ *ret =  lindih_x(thetaGlobal,a2,b2,y2); // dihY < theta, or dihY > pi - theta.
 }
 
 double rat1(double e1,double e2,double e3,double a2,double b2,double c2) {
@@ -535,6 +535,33 @@ double rat1(double e1,double e2,double e3,double a2,double b2,double c2) {
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
   return num1(e1,e2,e3,a2,b2,c2)/(afac * sd);
 }
+
+void rat1A(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = rat1(e1,e2,e3,y2,b2,a2);
+}
+
+void rat1B(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  rat1(e4,e2,e3,y2,c2,d2);
+}
+
 
 void rat1AB(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -546,7 +573,35 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2);
+ *ret =  rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2);
+}
+
+
+
+void rat1Am(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = - rat1(e1,e2,e3,y2,b2,a2) ;
+}
+
+void rat1Bm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = - rat1(e4,e2,e3,y2,c2,d2);
 }
 
 void rat1ABm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -559,7 +614,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = -(rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
+ *ret =  -(rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
 }
 
 double rat2(double e1,double e2,double e3,double a2,double b2,double c2) {
@@ -567,6 +622,33 @@ double rat2(double e1,double e2,double e3,double a2,double b2,double c2) {
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
   return num2(e1,e2,e3,a2,b2,c2)/(afac * afac* sd * sd * sd);
 }
+
+void rat2Am(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = - rat2(e1,e2,e3,y2,b2,a2) ;
+}
+
+void rat2Bm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = - rat2(e4,e2,e3,y2,c2,d2);
+}
+
 
 void rat2ABm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -578,8 +660,9 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = -(rat2(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
+ *ret =  -(rat2(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
 }
+
 
 Minimizer m_num1m(double xmin[6],double xmax[6]) {
 	Minimizer M(trialcount,6,0,xmin,xmax);
@@ -750,9 +833,51 @@ Minimizer m_dihA_lt_theta(double xmin[9],double xmax[9]) {
 	return M;
 };
 
-Minimizer m_dihY_gt_theta(double xmin[9],double xmax[9]) {
+Minimizer m_dihY_lt_theta(double xmin[9],double xmax[9]) {
 	Minimizer M(trialcount,9,0,xmin,xmax);
-	M.func = dihY_gt_theta;
+	M.func = dihY_lt_theta;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat1A(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat1A;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat1Am(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat1Am;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat2Am(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat2Am;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat1B(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat1B;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat1Bm(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat1Bm;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_rat2Bm(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat2Bm;
 	M.cFunc = c0;
 	return M;
 };
@@ -818,6 +943,32 @@ int split3(const double xmin[6],const double xmax[6],
 }
 
 
+void split9(const double xmin[9],const double xmax[9],
+	   double rmin[2][9],double rmax[2][9]) {  
+	int j_wide=0; /* init j_wide */ {
+	double w = xmax[0]-xmin[0]; 
+	for (int j=0;j<9;j++) {
+	  if (xmax[j]-xmin[j] > w) { j_wide = j; w = xmax[j]-xmin[j]; }
+	  }
+	}
+	double y = (xmin[j_wide]+xmax[j_wide])/2.0;
+	for (int k=0;k<2;k++) 	{
+	  for (int j=0;j<9;j++) { rmin[k][j] = xmin[j]; rmax[k][j]=xmax[j]; }
+	  (k? rmin[k][j_wide] = y : rmax[k][j_wide] = y);
+	}
+}
+
+
+
+void print9(double xmin[9],double xmax[9]) {
+	cout << "xmin : " << endl;
+	for (int i=0;i<9;i++) { cout << ", " << xmin[i]; }
+	cout << "xmax : " << endl;
+	for (int i=0;i<9;i++) { cout << ", " << xmax[i]; }
+	cout << flush;
+}
+
+
 int counter = 0;
 int lastprintcount = 0;
 int combcounter =0;
@@ -827,9 +978,9 @@ int numerical_data::getCounter() {
   return counter;
 }
 
-numerical_data::n298 setStrategy298(double xmin[9],double xmax[9]) {
-  counter++;
+numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
   double eps = 0.1;
+
   /* deltaA < 0 */ 
   if (m_deltaAm(xmin,xmax).optimize() > eps) 
     { return numerical_data::neg_deltaA; }
@@ -855,12 +1006,114 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9]) {
        m_num2Bm(xmin,xmax).optimize() > eps )
     { return numerical_data::neg_num2; }
 
-  double v_deltaA;
-  /* dihA > c and dihB > pi -c */ {
-    v_deltaA = m_deltaA(xmin,xmax).optimize();
+  double v_deltaA  = m_deltaA(xmin,xmax).optimize();
+  double v_delta4Bm  = m_delta4Bm(xmin,xmax).optimize();
+
+  /* dihA > c and dihB > pi -c */ 
+  if (v_deltaA > eps && v_delta4Bm > eps) {
+    double dihA = m_dihA(xmin,xmax).optimize();
+    thetaGlobal = dihA;
+    if (m_dihB_lt_theta(xmin,xmax).optimize() > 2.0* eps) 
+      { *cut = dihA; return numerical_data::reflexAB; }
+  }
     
+  double v_deltaB =  m_deltaB(xmin,xmax).optimize();
+  double v_delta4Ym =  m_delta4Ym(xmin,xmax).optimize();
+  double v_delta4A =  m_delta4A(xmin,xmax).optimize();
+  
+  /* dihA + dihB < dihY, deltaA ~ 0. */
+  if (v_deltaB > eps && v_delta4A > eps && v_delta4Ym > eps) {
+    double v_dihB_max = - m_dihBm(xmin,xmax).optimize();
+    double c = (pi() - v_dihB_max)/3.0;
+    if ( (thetaGlobal = c, m_dihA_lt_theta(xmin,xmax).optimize() > eps)  &&
+	 (thetaGlobal = 2.0*c, m_dihY_lt_theta(xmin,xmax).optimize() > eps) ) 
+      { *cut = c;  return numerical_data::angleYA; }
   }
   
+  double v_delta4B = m_delta4B(xmin,xmax).optimize();
+
+  /* dihA + dihB < dihY, deltaB ~ 0. */
+  if (v_deltaA > eps && v_delta4B > eps) {
+    double diff = m_dihYdihAm(xmin,xmax).optimize();
+    thetaGlobal = diff;
+    if (m_dihB_lt_theta(xmin,xmax).optimize() > eps) 
+      { *cut = diff; return numerical_data::angleYB; }
+  }
+
+  /* dihA + dihB < dihY, deltaA ~ 0, deltaB ~ 0 */
+  if (v_delta4Ym > eps && v_delta4B > eps && v_delta4A > eps) {
+    thetaGlobal = pi()/ 4.0;
+    if (m_dihA_lt_theta(xmin,xmax).optimize() > eps &&
+	m_dihB_lt_theta(xmin,xmax).optimize() > eps )
+      { return numerical_data::angleYAB; }
+  }
+
+  /* rat1A + rat1B > 0 */
+  if (v_deltaA > eps && v_deltaB > eps) {
+    double v_rat1A = m_rat1A(xmin,xmax).optimize();
+    if (v_rat1A + m_rat1B(xmin,xmax).optimize() > eps) 
+      { *cut = v_rat1A; return numerical_data::pos_rat1; }
+  }
+
+  /* rat1A + rat1B < 0 */
+  if (v_deltaA > eps && v_deltaB > eps) {
+    double v_rat1Am = m_rat1Am(xmin,xmax).optimize();
+    if (v_rat1Am + m_rat1Bm(xmin,xmax).optimize() > eps) 
+      { *cut = v_rat1Am; return numerical_data::neg_rat1; }
+  }
+
+  /* rat2A + rat2B < 0 */ 
+  if (v_deltaA > eps && v_deltaB > eps) {
+    double v_rat2Am = m_rat2Am(xmin,xmax).optimize();
+    if (v_rat2Am + m_rat2Bm(xmin,xmax).optimize() > eps) 
+      { *cut = v_rat2Am; return numerical_data::neg_rat2; }
+  }
+
+  /* search for counterexample. 
+     This isn't quite right. 
+     We should subdivide if the different optimal x values are separated.
+   */ if (0) {
+    if (m_rat1AB(xmin,xmax).optimize() <= eps &&
+	m_rat1ABm(xmin,xmax).optimize() <= eps &&
+	m_rat2ABm(xmin,xmax).optimize() <= eps)
+      {
+	cout << "counterexample found " << endl;
+	print9(xmin,xmax);
+	exit(0);
+      }
+  }
+
+  return numerical_data::split; 
+  
+}
+
+
+int recurse298(double xmin[9],double xmax[9]) {
+  counter ++;
+
+  // exit if narrow.
+  double width=xmax[0]-xmin[0];
+  for (int i=0;i<9;i++) {
+    double w = xmax[i]-xmin[i];
+    if (width < w) { width = w; }
+  }
+  if (width < 0.2) {
+    cout << "too narrow." << endl;
+    print9(xmin,xmax);
+    return 0;
+  }
+
+  // main step.
+  double cut;
+  if (!(numerical_data::split==setStrategy298(xmin,xmax,&cut))) {
+    return 1;
+  }
+
+  // subdivide recursively:
+  double rmin[2][9], rmax[2][9];
+  split9(xmin,xmax,rmin,rmax);
+  return (recurse298(rmin[0],rmax[0]) && recurse298(rmin[1],rmax[1]));
+
 }
 
 int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int recurse)

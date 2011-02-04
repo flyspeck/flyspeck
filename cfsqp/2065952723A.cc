@@ -1092,12 +1092,13 @@ int recurse298(double xmin[9],double xmax[9]) {
   counter ++;
 
   // exit if narrow.
+  double MINWIDTH=0.5;
   double width=xmax[0]-xmin[0];
   for (int i=0;i<9;i++) {
     double w = xmax[i]-xmin[i];
     if (width < w) { width = w; }
   }
-  if (width < 0.2) {
+  if (width < MINWIDTH) {
     cout << "too narrow." << endl;
     print9(xmin,xmax);
     return 0;
@@ -1197,6 +1198,16 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
 
 int numerical_data::setStrategy206A (double xmin[6],double xmax[6],numerical_data::strategy& s) {
   return setStrategy(xmin,xmax,s,0);
+}
+
+int main298() {
+  double x0 = 1.0 + sol0()/pi();
+  double xmin = real_pow(2.0 / h0(),2.0);
+  double xmax = real_pow(2.0 * h0(),2.0);
+  double xmin[9]={1,1,1,1,     xmin,xmin,xmin,   4.0,4.0  };
+  double xmax[9]={x0,x0,x0,x0, xmax,xmax,xmax, 
+		  real_pow(3.915,2.0), real_pow(3.93,2.0) };
+  numerical_data::set_rectangle(xmin,xmax);
 }
 
 

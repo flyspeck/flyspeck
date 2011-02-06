@@ -551,7 +551,7 @@ double y2 = y_mangle__[8];
 }
 
 double rat1(double e1,double e2,double e3,double a2,double b2,double c2) {
-  double afac = 4.0 * sqrt(a2) * (16.0 - a2);
+  double afac = sqrt(a2) * (16.0 - a2); // 4 deleted Feb 6, 2011.
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
   return num1(e1,e2,e3,a2,b2,c2)/(afac * sd);
 }
@@ -638,14 +638,12 @@ double y2 = y_mangle__[8];
 }
 
 double den2(double a2,double b2,double c2) {
-  double afac = 4.0 * sqrt(a2) * (16.0 - a2);
+  double afac =  sqrt(a2) * (16.0 - a2); // Feb 6, 2011, corrected.
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
   return (afac * afac* sd * sd * sd);
 }
 
 double rat2(double e1,double e2,double e3,double a2,double b2,double c2) {
-  double afac = 4.0 * sqrt(a2) * (16.0 - a2);
-  double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
   return num2(e1,e2,e3,a2,b2,c2)/den2(a2,b2,c2);
 }
 
@@ -1104,6 +1102,8 @@ numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9
   eps=0.01; mid=1; big=5; // completes in 2293 steps.
   eps=0.02; mid=3; big=10; // completes in 2491 steps.
   eps=0.04; mid=6; big=20; //  completes in 4477 steps.
+  eps=0.1; mid=6; big=20; // completes in 4477 steps.
+  eps=0.2; mid=6; big=20; // completes in 4477 steps.
 
 
   /* deltaA < 0 */ 
@@ -1405,6 +1405,6 @@ int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
 }
 
 
-int zmain() {
+int main() {
   main298();
 }

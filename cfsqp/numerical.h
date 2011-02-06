@@ -19,6 +19,7 @@ double adodec();
 double bdodec();
 //double pt();
 double max(double a,double b);
+double real_max(double a,double b);
 double min(double a,double b);
 double real_pow(double a,double b);
 double atn2(double x,double y);  // = atan(y/x) in first quadrant.

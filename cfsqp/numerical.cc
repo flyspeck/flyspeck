@@ -17,6 +17,7 @@ double bdodec() { return 0.023248513304698; }
 
 double mabs(double a) { return (a>0? a : -a); }
 double max(double a,double b) { return (a>b? a : b); }
+double real_max(double a,double b) { return max(a,b); }
 double min(double a,double b) { return (a<b? a : b); }
 double real_pow(double a,double b) { return  pow(a,b);}
 

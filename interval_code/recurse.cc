@@ -512,8 +512,39 @@ int prove::recursiveVerifier(int depth,
   return 1;
 }
 
+int recursiveVerifierWithLinear3(int depth,
+			     const domain& xD,const domain& zD,     /// current cell
+			     const domain& x0D,const domain& z0D,   // boundary
+			     const taylorFunction* I[],
+				 int count,cellOption& options) {
+  double x[DIM6],z[DIM6];     /// current cell
+  double x0[DIM6],z0[DIM6]; 
+  for (int j=0;j<DIM6;j++)
+    {
+      x[j]=xD.getValue(j); z[j]=zD.getValue(j);
+      x0[j]=x0D.getValue(j); z0[j]=z0D.getValue(j);
+    }
+  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
+	double xr[6], zr[6];
+	xr[0] = (i ? zz[0] : xx[0]); 
+	xr[1] = (j ? zz[1] : xx[1]); 
+	xr[2] = (k ? zz[2] : xx[2]); 
+	for (int r=0;r<3;r++) { zr[r]=xr[r]; }
+	for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
+	cellOption opt1;
+	opt1.iterationCount = options.iterationCount;
+	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,I,count,opt1);
+	options.iterationCount   = opt1.iterationCount;
+	if (!rv) { return 0; }
+      }
+  return 1;
+ }
+
+
 int f298(int depth,double xx[9],double zz[9],cellOption options) {
-  double cut;
+  const double INVALID=7777;
+  double cut=INVALID;
+  double eps = 0.2; double mid = 6.0; double big = 20.0; // values from setStrategy298.
   numerical_data::n298 o = numerical_data::setStrategy298(xx,zz,&cut);
 
   if (o == numerical_data::split) {
@@ -556,25 +587,27 @@ int f298(int depth,double xx[9],double zz[9],cellOption options) {
   double xY[6]={4.0,4.0,4.0,y2n,a2n,b2n};
   double zY[6]={4.0,4.0,4.0,y2u,a2u,b2u};
 
+  double xEY[6]={e1n,e2n,e3n,y2n,b2n,a2n};
+  double zEY[6]={e1u,e2u,e3u,y2u,b2u,a2u};
+
   double xH[6]={4.0,4.0,4.0,y2n,c2n,d2n};
   double zH[6]={4.0,4.0,4.0,y2u,c2u,d2u};
+
+  double xEH[6]={e4n,e2n,e3n,y2n,c2n,d2n};
+  double zEH[6]={e4u,e2u,e3u,y2u,c2u,d2u};
+
 
   cellOption opt1;
   opt1.iterationCount = options.iterationCount;
   static interval mone("-1");
 
-  if (o== numerical_data::neg_deltaA) {
-    taylorFunction F  = taylorSimplex::delta;
+  if (o== numerical_data::neg_deltaA || o==numerical_data::neg_deltaB) {
+    taylorFunction F  = taylorSimplex::delta ;
     const taylorFunction* I[1] = {&F};
-    int rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1);
-    options.iterationCount   = opt1.iterationCount;
-    return rv;
-  }
-
-  if (o== numerical_data::neg_deltaB) {
-    taylorFunction F  = taylorSimplex::delta;
-    const taylorFunction* I[1] = {&F};
-    int rv = prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1);
+    int rv; 
+    rv = (o==numerical_data::neg_deltaA ?
+	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1) : 
+	  prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1));
     options.iterationCount   = opt1.iterationCount;
     return rv;
   }
@@ -585,15 +618,39 @@ int f298(int depth,double xx[9],double zz[9],cellOption options) {
       (o==numerical_data::pos_num1 ? taylorSimplex::num1 * mone :
        (o==numerical_data::neg_num1 ? taylorSimplex::num1 : taylorSimplex::num2));
     const taylorFunction* I[1] = {&F};
-    /* XXD DO e1,e2,e3,e4 
-    int rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1) &&
-      prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1);
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,xEY,zEY,I,1,opt1) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,xEH,zEH,I,1,opt1);
     options.iterationCount   = opt1.iterationCount;
-    return rv;
-    */
+    return rv;    
   }
 
+  /* insert dihedral guys here */
 
+  if (o== numerical_data::pos_rat1 || o==numerical_data::neg_rat1 ||
+      o==numerical_data::neg_rat2) {
+    assert(!( cut==INVALID)); // cut needs to have been set.
+    double v = cut - eps/2.0;
+    interval shift(v,v);
+    taylorFunction F  = 
+      (o==numerical_data::pos_rat1 ? taylorSimplex::rat1 * mone :
+       (o==numerical_data::neg_rat1 ? taylorSimplex::rat1 : taylorSimplex::rat2));
+    taylorFunction FY = F + unit * shift;
+    taylorFunction FH = F - unit * shift;
+    const taylorFunction* IY[1] = {&FY};
+    const taylorFunction* IH[1] = {&FH};
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,xEY,zEY,IY,1,opt1) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,xEH,zEH,IH,1,opt1);
+    options.iterationCount   = opt1.iterationCount;
+    return rv;    
+  }
+
+  if (o==numerical_data::neg_rat2_A0) {
+  }
+
+  if (o==numerical_data::eulerB) {
+  }
+
+  assert((0==1),"unreachable code");
 
 }
 
@@ -626,6 +683,7 @@ int f206A(int depth,double xx[6],double zz[6],cellOption options) {
       cout << "mid: " << U.tangentVectorOf().hi() << endl;
     }
   }
+  // This block can be rewritten using recursiveVerifierWithLinear3
   for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
 	double xr[6], zr[6];
 	xr[0] = (i ? zz[0] : xx[0]); 

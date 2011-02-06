@@ -1476,6 +1476,10 @@ namespace local {
   static const taylorFunction sqndelta = 
     uni(univariate::i_sqn,delta);
 
+  static const taylorFunction sqrtdelta = 
+    uni(univariate::i_sqrt,delta);
+
+
   static const taylorFunction ldih_x_n = sqndelta * ldih_x_div_sqrtdelta_posbranch;
 
 }
@@ -1636,6 +1640,18 @@ namespace local {
   (vol3_x_sqrt x1 x2 x3 x4 x5 x6 = vol_x x1 x2 (&2) (&2) (&2) x6)`, */
 
   static const taylorFunction two_unit = unit * two;
+
+  static const taylorFunction operator*(const taylorFunction& t,int j) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const taylorFunction operator*(int j,const taylorFunction& t) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const taylorFunction operator-(const taylorFunction& u,const taylorFunction& t) {
+    return u + t * mone;
+  }
 
   static const taylorFunction vol3_x_sqrt = 
     taylorFunction::compose(taylorSimplex::vol_x,
@@ -1831,18 +1847,16 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     + x1 * x4 * x4 * mone * four  +  x2 * x5 * mone * t32 + x3 * x5 * t32
     + x2 * x4 * x5  * four +  x2 * x6 * t32 + x3 * x6 * mone * t32 +  x3 * x4 * x6 * four;
 
-  static const taylorFunction operator*(const taylorFunction& t,int j) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
 
-  static const taylorFunction operator*(int j,const taylorFunction& t) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
+  static const taylorFunction afac = y4 * (unit* t16  - x4);
 
+  static const taylorFunction sd = compose(delta,unit*four,unit*four,unit*four,x4,x5,x6);
 
-  static const taylorFunction operator-(const taylorFunction& u,const taylorFunction& t) {
-    return u + t * mone;
-  }
+  static const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) 
+
+  static const taylorFunction rat2 = num2 * uni(univariate::i_inv, 
+						uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
+
 
 
   // implement edge_flat2_x.

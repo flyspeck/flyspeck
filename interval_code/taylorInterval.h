@@ -360,6 +360,7 @@ class taylorSimplex
 	  //    marchalDih4,marchalDih5,marchalDih6,
 	  x1cube,x1square,
 	  num1,num2,num_combo1,
+	  rat1,rat2,
 	  edge_flat2_x,
 	  flat_term_x,
 	  taum_x,
@@ -504,6 +505,8 @@ class taylorSimplex
 	static const taylorFunction taylorSimplex::law_cosines_234_x(const interval& costheta);
 
 	static const taylorFunction taylorSimplex::law_cosines_126_x(const interval& costheta);
+
+	static const taylorFunction taylorSimplex::dih_lt_theta_x(const interval& theta);
 
 	static const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
 							       const interval& x5s);

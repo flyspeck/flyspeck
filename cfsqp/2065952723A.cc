@@ -93,6 +93,13 @@ double e1,double e2,double e3,double a2,double b2,double c2
   return - num2(e1,e2,e3,a2,b2,c2);
 }
 
+double eulerA_x(
+double x1,double x2,double x3,double x4,double x5,double x6
+) { 
+return ( (((sqrt(x1)) * ((sqrt(x2)) * (sqrt(x3)))) + (((sqrt(x1)) * ((x2 + (x3 - x4)) / 2.)) + (((sqrt(x2)) * ((x1 + (x3 - x5)) / 2.)) + ((sqrt(x3)) * ((x1 + (x2 - x6)) / 2.))))) ); 
+}
+
+
 
 // Start hand-crafted code.
 
@@ -413,6 +420,19 @@ double y2 = y_mangle__[8];
  *ret =  delta_x4(4.0,4.0,4.0,a2,b2,y2);
 }
 
+void delta4Y(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  delta_x4(4.0,4.0,4.0,y2,a2,b2);
+}
+
 void delta4Ym(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
 double e2 = y_mangle__[1];
@@ -617,10 +637,16 @@ double y2 = y_mangle__[8];
  *ret =  -(rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
 }
 
+double den2(double a2,double b2,double c2) {
+  double afac = 4.0 * sqrt(a2) * (16.0 - a2);
+  double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
+  return (afac * afac* sd * sd * sd);
+}
+
 double rat2(double e1,double e2,double e3,double a2,double b2,double c2) {
   double afac = 4.0 * sqrt(a2) * (16.0 - a2);
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
-  return num2(e1,e2,e3,a2,b2,c2)/(afac * afac* sd * sd * sd);
+  return num2(e1,e2,e3,a2,b2,c2)/den2(a2,b2,c2);
 }
 
 void rat2Am(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -661,6 +687,32 @@ double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
  *ret =  -(rat2(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
+}
+
+void rat2A0m(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  - num2(e1,e2,e3,y2,b2,a2) - thetaGlobal * den2(y2,b2,a2);
+}
+
+void eulerBm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  - eulerA_x(4.0,4.0,4.0,y2,d2,c2);
 }
 
 
@@ -791,6 +843,13 @@ Minimizer m_delta4A(double xmin[9],double xmax[9]) {
 	return M;
 };
 
+Minimizer m_delta4Y(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = delta4Y;
+	M.cFunc = c0;
+	return M;
+};
+
 Minimizer m_delta4Ym(double xmin[9],double xmax[9]) {
 	Minimizer M(trialcount,9,0,xmin,xmax);
 	M.func = delta4Ym;
@@ -903,25 +962,44 @@ Minimizer m_rat2ABm(double xmin[9],double xmax[9]) {
 	return M;
 };
 
+Minimizer m_rat2A0m(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = rat2A0m;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_eulerBm(double xmin[9],double xmax[9]) {
+	Minimizer M(trialcount,9,0,xmin,xmax);
+	M.func = eulerBm;
+	M.cFunc = c0;
+	return M;
+};
 
 
 
 double rectangle_partial=0;
 double rectangle_total=0;
 
-double rectangle(double xmin[6],double xmax[6]) {
+double rectangle(double xmin[],double xmax[],int size) {
   double v = 1;
-  for (int i=0;i<6;i++) { v *= (xmax[i] - xmin[i]); }
+  for (int i=0;i<size;i++) { v *= (xmax[i] - xmin[i]); }
   return v;
 }
+
+void add_rectangle(double xmin[],double xmax[],int size) {
+  rectangle_partial += rectangle(xmin,xmax,size);
+}
+
 
 double numerical_data::percent_done() {
   return rectangle_partial / rectangle_total;
 }
 
-void numerical_data::set_rectangle(double xmin[6],double xmax[6]) {
-  rectangle_total = rectangle(xmin,xmax);
+void numerical_data::set_rectangle(double xmin[],double xmax[],int size) {
+  rectangle_total = rectangle(xmin,xmax,size);
 }
+
 
 // split on the final three variables
 
@@ -961,25 +1039,72 @@ void split9(const double xmin[9],const double xmax[9],
 
 
 void print9(double xmin[9],double xmax[9]) {
-	cout << "xmin : " << endl;
-	for (int i=0;i<9;i++) { cout << ", " << xmin[i]; }
-	cout << "xmax : " << endl;
-	for (int i=0;i<9;i++) { cout << ", " << xmax[i]; }
-	cout << flush;
+  cout << "\n\nxmin : " ;
+  for (int i=0;i<9;i++) { cout << ", " << xmin[i]; }
+  cout << endl << "xmax : ";
+  for (int i=0;i<9;i++) { cout << ", " << xmax[i]; }
+  cout << endl << flush;
 }
 
 
 int counter = 0;
-int lastprintcount = 0;
 int combcounter =0;
+
+int lastprintcount = 0;
 int printspan=40;
 
 int numerical_data::getCounter() {
   return counter;
 }
 
-numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
-  double eps = 0.1;
+void dumpdata298(double xmin[9],double xmax[9]) {
+  cout << "\n\n";
+  cout << "deltaA min " << m_deltaA(xmin,xmax).optimize() << endl;
+  cout << "deltaA max " << - m_deltaAm(xmin,xmax).optimize() << endl;
+  cout << "deltaB min " << m_deltaB(xmin,xmax).optimize() << endl;
+  cout << "deltaB max " << - m_deltaBm(xmin,xmax).optimize() << endl;
+
+  cout << "delta4Y min" << m_delta4Y(xmin,xmax).optimize() << endl;
+  cout << "delta4Y max" << -m_delta4Ym(xmin,xmax).optimize() << endl;
+
+  cout << "delta4B min" << m_delta4B(xmin,xmax).optimize() << endl;
+  cout << "delta4B max" << -m_delta4Bm(xmin,xmax).optimize() << endl;
+
+
+  cout << "num1A min " <<  m_num1A(xmin,xmax).optimize() << endl;
+  cout << "num1A max " <<  - m_num1Am(xmin,xmax).optimize() << endl;
+  cout << "num1B min " <<  m_num1B(xmin,xmax).optimize() << endl;
+  cout << "num1B max " <<  - m_num1Bm(xmin,xmax).optimize() << endl;
+
+  cout << "num2A max " <<  - m_num2Am(xmin,xmax).optimize() << endl;
+  cout << "num2B max " <<  - m_num2Bm(xmin,xmax).optimize() << endl;
+
+  cout << "rat1A min " <<  m_rat1A(xmin,xmax).optimize() << endl;
+  cout << "rat1A max " <<  - m_rat1Am(xmin,xmax).optimize() << endl;
+  cout << "rat1B min " <<  m_rat1B(xmin,xmax).optimize() << endl;
+  cout << "rat1B max " <<  - m_rat1Bm(xmin,xmax).optimize() << endl;
+  cout << "rat1AB min " <<  m_rat1AB(xmin,xmax).optimize() << endl;
+  cout << "rat1AB max " <<  - m_rat1ABm(xmin,xmax).optimize() << endl;
+
+  cout << "rat2A max " <<  - m_rat2Am(xmin,xmax).optimize() << endl;
+  cout << "rat2B max " <<  - m_rat2Bm(xmin,xmax).optimize() << endl;
+  cout << "rat2AB max " <<  - m_rat2ABm(xmin,xmax).optimize() << endl;
+
+  cout << "eulerB max " <<  - m_eulerBm(xmin,xmax).optimize() << endl;
+
+
+}
+
+numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9],double* cut) {
+  double eps = 0.001; // 
+  double mid = eps;
+  double big = eps;  // completes in 2032 steps.
+
+  eps=0.001; mid=1; big=1; // completes in 2084 steps.
+  eps=0.01; mid=1; big=5; // completes in 2293 steps.
+  eps=0.02; mid=3; big=10; // completes in 2491 steps.
+  eps=0.04; mid=6; big=20; //  completes in 4477 steps.
+
 
   /* deltaA < 0 */ 
   if (m_deltaAm(xmin,xmax).optimize() > eps) 
@@ -993,24 +1118,26 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
   /* num1A > 0 and num1B >0 */ {
     vA = m_num1A(xmin,xmax).optimize();
     vB = m_num1B(xmin,xmax).optimize();
-    if (vA > eps && vB > eps) { return numerical_data::pos_num1; }
+    if (vA > big && vB > big) { return numerical_data::pos_num1; }
   }
+
   /* num1A < 0 and num1B <0 */ 
   if (vA < - eps && vB < - eps) {
-    if (m_num1Am(xmin,xmax).optimize() > eps && 
-	m_num1Bm(xmin,xmax).optimize() > eps) 
+    if (m_num1Am(xmin,xmax).optimize() > big && 
+	m_num1Bm(xmin,xmax).optimize() > big) 
       { return numerical_data::neg_num1; }
   }
+
   /* num2A < 0 and num2B <0 */  
-  if ( m_num2Am(xmin,xmax).optimize() > eps &&
-       m_num2Bm(xmin,xmax).optimize() > eps )
+  if ( m_num2Am(xmin,xmax).optimize() > big &&
+       m_num2Bm(xmin,xmax).optimize() > big )
     { return numerical_data::neg_num2; }
 
   double v_deltaA  = m_deltaA(xmin,xmax).optimize();
   double v_delta4Bm  = m_delta4Bm(xmin,xmax).optimize();
 
   /* dihA > c and dihB > pi -c */ 
-  if (v_deltaA > eps && v_delta4Bm > eps) {
+  if (v_deltaA > mid && v_delta4Bm > eps) {
     double dihA = m_dihA(xmin,xmax).optimize();
     thetaGlobal = dihA;
     if (m_dihB_lt_theta(xmin,xmax).optimize() > 2.0* eps) 
@@ -1022,7 +1149,7 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
   double v_delta4A =  m_delta4A(xmin,xmax).optimize();
   
   /* dihA + dihB < dihY, deltaA ~ 0. */
-  if (v_deltaB > eps && v_delta4A > eps && v_delta4Ym > eps) {
+  if (v_deltaB > mid && v_delta4A > eps && v_delta4Ym > eps) {
     double v_dihB_max = - m_dihBm(xmin,xmax).optimize();
     double c = (pi() - v_dihB_max)/3.0;
     if ( (thetaGlobal = c, m_dihA_lt_theta(xmin,xmax).optimize() > eps)  &&
@@ -1033,10 +1160,10 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
   double v_delta4B = m_delta4B(xmin,xmax).optimize();
 
   /* dihA + dihB < dihY, deltaB ~ 0. */
-  if (v_deltaA > eps && v_delta4B > eps) {
+  if (v_deltaA > mid && v_delta4B > eps) {
     double diff = m_dihYdihAm(xmin,xmax).optimize();
     thetaGlobal = diff;
-    if (m_dihB_lt_theta(xmin,xmax).optimize() > eps) 
+    if (m_dihB_lt_theta(xmin,xmax).optimize() > 2.0 * eps) 
       { *cut = diff; return numerical_data::angleYB; }
   }
 
@@ -1049,39 +1176,38 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
   }
 
   /* rat1A + rat1B > 0 */
-  if (v_deltaA > eps && v_deltaB > eps) {
+  if (v_deltaA > mid && v_deltaB > mid) {
     double v_rat1A = m_rat1A(xmin,xmax).optimize();
     if (v_rat1A + m_rat1B(xmin,xmax).optimize() > eps) 
       { *cut = v_rat1A; return numerical_data::pos_rat1; }
   }
 
   /* rat1A + rat1B < 0 */
-  if (v_deltaA > eps && v_deltaB > eps) {
+  if (v_deltaA > mid && v_deltaB > mid) {
     double v_rat1Am = m_rat1Am(xmin,xmax).optimize();
     if (v_rat1Am + m_rat1Bm(xmin,xmax).optimize() > eps) 
       { *cut = v_rat1Am; return numerical_data::neg_rat1; }
   }
 
   /* rat2A + rat2B < 0 */ 
-  if (v_deltaA > eps && v_deltaB > eps) {
+  if (v_deltaA > mid && v_deltaB > mid) {
     double v_rat2Am = m_rat2Am(xmin,xmax).optimize();
     if (v_rat2Am + m_rat2Bm(xmin,xmax).optimize() > eps) 
       { *cut = v_rat2Am; return numerical_data::neg_rat2; }
   }
 
-  /* search for counterexample. 
-     This isn't quite right. 
-     We should subdivide if the different optimal x values are separated.
-   */ if (0) {
-    if (m_rat1AB(xmin,xmax).optimize() <= eps &&
-	m_rat1ABm(xmin,xmax).optimize() <= eps &&
-	m_rat2ABm(xmin,xmax).optimize() <= eps)
-      {
-	cout << "counterexample found " << endl;
-	print9(xmin,xmax);
-	exit(0);
-      }
+  /* rat2A + rat2B < 0,  deltaA ~ 0 */
+  if (v_deltaB > mid) {
+    double v_rat2Bm = m_rat2Bm(xmin,xmax).optimize();
+    thetaGlobal = v_rat2Bm;
+    if (m_rat2A0m(xmin,xmax).optimize() > eps)
+      { *cut = v_rat2Bm; return numerical_data::neg_rat2_A0; }
   }
+
+  /* eulerB < 0 */
+  if (m_eulerBm(xmin,xmax).optimize() > eps)
+    { return numerical_data::eulerB; }
+
 
   return numerical_data::split; 
   
@@ -1091,8 +1217,28 @@ numerical_data::n298 setStrategy298(double xmin[9],double xmax[9],double* cut) {
 int recurse298(double xmin[9],double xmax[9]) {
   counter ++;
 
+// main step.
+  double cut;
+  if (!(numerical_data::split==numerical_data::setStrategy298(xmin,xmax,&cut))) {
+    add_rectangle(xmin,xmax,9);
+    return 1;
+  }
+
+  // print stats.
+  static int lastprintcount = 0;
+  static int printspan = 50; 
+  static int c = 0;
+  if (lastprintcount + printspan<= counter) {
+   lastprintcount = counter;
+   cout.precision(3);
+   cout <<  counter << " ";
+   cout.precision(6);
+   cout << " f:" << numerical_data::percent_done() << endl << flush; 
+   if (0== c++ % 10) { print9(xmin,xmax); dumpdata298(xmin,xmax); }
+  } 
+
   // exit if narrow.
-  double MINWIDTH=0.5;
+  double MINWIDTH=0.01;// 0.04 bails at 94%, MINWIDTH=0.1 bails at 92%
   double width=xmax[0]-xmin[0];
   for (int i=0;i<9;i++) {
     double w = xmax[i]-xmin[i];
@@ -1101,13 +1247,8 @@ int recurse298(double xmin[9],double xmax[9]) {
   if (width < MINWIDTH) {
     cout << "too narrow." << endl;
     print9(xmin,xmax);
+    dumpdata298(xmin,xmax);
     return 0;
-  }
-
-  // main step.
-  double cut;
-  if (!(numerical_data::split==setStrategy298(xmin,xmax,&cut))) {
-    return 1;
   }
 
   // subdivide recursively:
@@ -1116,6 +1257,24 @@ int recurse298(double xmin[9],double xmax[9]) {
   return (recurse298(rmin[0],rmax[0]) && recurse298(rmin[1],rmax[1]));
 
 }
+
+int main298() {
+  double x0 = 1.0 + sol0()/pi();
+  double xlo = real_pow(2.0 / h0(),2.0);
+  double xhi = real_pow(2.0 * h0(),2.0);
+  double xmin[9]={1,1,1,1,     xlo,xlo,xlo,   4.0,4.0  };
+  double xmax[9]={x0,x0,x0,x0, xhi,xhi,xhi, 
+		  real_pow(3.915,2.0), real_pow(3.915,2.0) };
+  numerical_data::set_rectangle(xmin,xmax,9);
+  int r = recurse298(xmin,xmax);
+  if (r) { cout << "\nfinished " << numerical_data::percent_done() << endl << flush; 
+  }
+  
+  return r;
+}
+
+
+// NOW 206 STUFF:
 
 int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int recurse)
 {
@@ -1137,7 +1296,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
     case 2: s.mode = numerical_data::strategy::n1m; break;
     default : s.mode = numerical_data::strategy::n2m; break;
     }
-    rectangle_partial += rectangle(xmin,xmax); 
+    rectangle_partial += rectangle(xmin,xmax,6); 
     return 1; 
   }
 
@@ -1175,7 +1334,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
     s.mode = numerical_data::strategy::merge;
     s.alpha = global_alpha;
     combcounter++; 
-    rectangle_partial += rectangle(xmin,xmax); 
+    rectangle_partial += rectangle(xmin,xmax,6); 
     return 1; } 
   
   // print some statistics
@@ -1186,7 +1345,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
       lastprintcount = counter;
       cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << global_alpha ;
       cout.precision(6);
-      cout << " f:" << rectangle_partial/rectangle_total << endl << flush; } 
+      cout << " f:" << numerical_data::percent_done() << endl << flush; } 
 
   // subdivide recursively:
   double rmin[2][6], rmax[2][6];
@@ -1200,18 +1359,7 @@ int numerical_data::setStrategy206A (double xmin[6],double xmax[6],numerical_dat
   return setStrategy(xmin,xmax,s,0);
 }
 
-int main298() {
-  double x0 = 1.0 + sol0()/pi();
-  double xmin = real_pow(2.0 / h0(),2.0);
-  double xmax = real_pow(2.0 * h0(),2.0);
-  double xmin[9]={1,1,1,1,     xmin,xmin,xmin,   4.0,4.0  };
-  double xmax[9]={x0,x0,x0,x0, xmax,xmax,xmax, 
-		  real_pow(3.915,2.0), real_pow(3.93,2.0) };
-  numerical_data::set_rectangle(xmin,xmax);
-}
-
-
-int qmain ()  { // constant changed to 15.53 on Jan 21, 2011.
+int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
 
   double xmin[6]= {
 1.,1.,1.,(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.)),(real_pow((2. / (h0())),2.))
@@ -1220,7 +1368,7 @@ int qmain ()  { // constant changed to 15.53 on Jan 21, 2011.
 (1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),15.53,(real_pow(4.,2.)),(real_pow(4.,2.))
 };
 
-  rectangle_total = rectangle(xmin,xmax);
+  rectangle_total = rectangle(xmin,xmax,6);
   cout << "r: " << rectangle_total << endl;
   numerical_data::strategy s;
   setStrategy(xmin,xmax,s,1);  // this does the cases.
@@ -1256,3 +1404,7 @@ int qmain ()  { // constant changed to 15.53 on Jan 21, 2011.
 
 }
 
+
+int zmain() {
+  main298();
+}

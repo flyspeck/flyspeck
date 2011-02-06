@@ -406,13 +406,17 @@ void stats(int force) {
 	  cout << " " << flush; 
 	  error::printTime();	  
 	}
-      /*  206A case only. */ {
+      /*  206A_298 case only. */ {
 	int c = numerical_data::getCounter();  
-      if (c>0) { cout << "(" << numerical_data::getCounter() << ":" << numerical_data::percent_done() << ")"; }
+      if (c>0) { cout << "(" << numerical_data::getCounter() 
+		      << ":" << numerical_data::percent_done() << ")"; }
       }
       cout << "[" << statcounter/10000 << "*10^4]" << flush;
     }
 }
+
+
+int f206A(int depth,double xx[6],double zz[6],cellOption options); // forward decl.
 
 int prove::recursiveVerifier(int depth,
 			     const domain& xD,const domain& zD,     /// current cell
@@ -431,7 +435,7 @@ int prove::recursiveVerifier(int depth,
     }
   timeout = options.timeout;
   stats(0); 
-  if (depth==0) { numerical_data::set_rectangle(x,z); }  // 206A code.
+  if (depth==0) { numerical_data::set_rectangle(x,z,6); }  // 206A_298 code.
   if ((options.iterationLimit >0)&&
       (options.iterationLimit <options.iterationCount++))
     {
@@ -474,71 +478,9 @@ int prove::recursiveVerifier(int depth,
 
   /* special code for one difficult inequality */ 
   if (options.strategy206A) {
-    numerical_data::strategy s;
-    numerical_data::setStrategy206A(xx,zz,s);
-    if (!(s.mode == numerical_data::strategy::split)) {
-	  static interval one("1");
-	  static interval mone = -one;
-	  interval alpha(s.alpha,s.alpha);
-	  interval malpha = one - interMath::max(alpha,-alpha);
-	  const taylorFunction F = 
-	    ( (s.mode==numerical_data::strategy::n1) ? taylorSimplex::num1   :
-	      ((s.mode ==numerical_data::strategy::n1m) ? taylorSimplex::num1 * mone  :
-	       ((s.mode == numerical_data::strategy::n2m) ? taylorSimplex::num2 * mone :
-		(assert(s.mode == numerical_data::strategy::merge),
-                taylorSimplex::num2 * malpha * mone + 
-		 taylorSimplex::num1 * alpha) ) ) );
-	  const taylorFunction Fm = F * mone;
-	  const taylorFunction* J[1] = {&Fm};
-	  // use linearity in e1,e2,e3 to do dimension reduction.
-	  /* stats */ {
-	    static int rc = 0;
-	    rc++;
-	    if (rc < 100) {
-	      report_current(xx,zz,"206",5); 
-	      taylorInterval U = Fm.evalf(domain(x),domain(z));
-	      cout.precision(20);
-	      cout << "iub: " << U.upperBound() << endl;
-	      cout << "mid: " << U.tangentVectorOf().hi() << endl;
-	    }
-	  }
-	  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
-		double xr[6], zr[6];
-		xr[0] = (i ? zz[0] : xx[0]); 
-		xr[1] = (j ? zz[1] : xx[1]); 
-		xr[2] = (k ? zz[2] : xx[2]); 
-		for (int r=0;r<3;r++) { zr[r]=xr[r]; }
-		for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
-		cellOption opt1;
-		//opt1.printingMode=cellOption::silent;
-		opt1.iterationCount = options.iterationCount;
-		int rv = recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
-		options.iterationCount   = opt1.iterationCount;
-		if (!rv) {
-		  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
-		  cout << "x r" << endl;
-		  for (int u=0;u<6;u++) {
-		    cout << xr[u] << " " << zr[u] << endl;
-		  }
-		  if (s.mode==numerical_data::strategy::merge) 
-		    { cout << " alpha " << alpha << endl; }
-		  switch (s.mode) {
-		    case numerical_data::strategy::n1 : cout << "strategy n1"; break;
-		    case numerical_data::strategy::n1m : cout << "strategy n1m"; break;
-		    case numerical_data::strategy::n2m : cout << "strategy n2m"; break;
-		    case numerical_data::strategy::split : cout << "strategy split"; break;
-		    case numerical_data::strategy::merge : cout << "strategy merge"; break;
-		  default: cout << "strategy unknown"; break;
-		  }
-		  return 0;
-
-		}
-	      }
-	  return 1;
-    }
+    int r = f206A(depth,xx,zz,options); 
+    if (r>=0) return r;
   }
-
-
   else {
   /* Here is the main line of the procedure.  Check if it verifies. */
   cellOption::cellStatus  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
@@ -570,7 +512,153 @@ int prove::recursiveVerifier(int depth,
   return 1;
 }
 
+int f298(int depth,double xx[9],double zz[9],cellOption options) {
+  double cut;
+  numerical_data::n298 o = numerical_data::setStrategy298(xx,zz,&cut);
 
+  if (o == numerical_data::split) {
+    interMath::up();
+    int j_wide=0; /* init j_wide */ {
+      double w = zz[0]-xx[0]; 
+      for (int j=0;j<9;j++) {
+	if (zz[j]-xx[j] > w) { j_wide = j; w = zz[j]-xx[j]; }
+      }}
+    for (int k=0;k<2;k++) 	{
+      double y, xr[9], zr[9];
+      y = (xx[j_wide]+zz[j_wide])/2.0;
+      for (int j=0;j<9;j++) { xr[j] = xx[j]; zr[j]=zz[j]; }
+      (k? xr[j_wide] = y : zr[j_wide] = y);
+      if (!f298(depth+1,xr,zr,options)) return 0;
+    }
+    return 1;
+  }
+
+  double e1n = xx[0];
+  double e2n = xx[1];
+  double e3n = xx[2];
+  double e4n = xx[3];
+  double a2n = xx[4];
+  double b2n = xx[5];
+  double c2n = xx[6];
+  double d2n = xx[7];
+  double y2n = xx[8];
+
+  double e1u = zz[0];
+  double e2u = zz[1];
+  double e3u = zz[2];
+  double e4u = zz[3];
+  double a2u = zz[4];
+  double b2u = zz[5];
+  double c2u = zz[6];
+  double d2u = zz[7];
+  double y2u = zz[8];
+
+  double xY[6]={4.0,4.0,4.0,y2n,a2n,b2n};
+  double zY[6]={4.0,4.0,4.0,y2u,a2u,b2u};
+
+  double xH[6]={4.0,4.0,4.0,y2n,c2n,d2n};
+  double zH[6]={4.0,4.0,4.0,y2u,c2u,d2u};
+
+  cellOption opt1;
+  opt1.iterationCount = options.iterationCount;
+  static interval mone("-1");
+
+  if (o== numerical_data::neg_deltaA) {
+    taylorFunction F  = taylorSimplex::delta;
+    const taylorFunction* I[1] = {&F};
+    int rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1);
+    options.iterationCount   = opt1.iterationCount;
+    return rv;
+  }
+
+  if (o== numerical_data::neg_deltaB) {
+    taylorFunction F  = taylorSimplex::delta;
+    const taylorFunction* I[1] = {&F};
+    int rv = prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1);
+    options.iterationCount   = opt1.iterationCount;
+    return rv;
+  }
+
+  if (o== numerical_data::pos_num1 || o==numerical_data::neg_num1 ||
+      o==numerical_data::neg_num2) {
+    taylorFunction F  = 
+      (o==numerical_data::pos_num1 ? taylorSimplex::num1 * mone :
+       (o==numerical_data::neg_num1 ? taylorSimplex::num1 : taylorSimplex::num2));
+    const taylorFunction* I[1] = {&F};
+    /* XXD DO e1,e2,e3,e4 
+    int rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1) &&
+      prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1);
+    options.iterationCount   = opt1.iterationCount;
+    return rv;
+    */
+  }
+
+
+
+}
+
+int f206A(int depth,double xx[6],double zz[6],cellOption options) {
+  numerical_data::strategy s;
+  numerical_data::setStrategy206A(xx,zz,s);
+  if (s.mode == numerical_data::strategy::split) { return -1; }
+  static interval one("1");
+  static interval mone = -one;
+  interval alpha(s.alpha,s.alpha);
+  interval malpha = one - interMath::max(alpha,-alpha);
+  const taylorFunction F = 
+    ( (s.mode==numerical_data::strategy::n1) ? taylorSimplex::num1   :
+      ((s.mode ==numerical_data::strategy::n1m) ? taylorSimplex::num1 * mone  :
+       ((s.mode == numerical_data::strategy::n2m) ? taylorSimplex::num2 * mone :
+	(assert(s.mode == numerical_data::strategy::merge),
+	 taylorSimplex::num2 * malpha * mone + 
+	 taylorSimplex::num1 * alpha) ) ) );
+  const taylorFunction Fm = F * mone;
+  const taylorFunction* J[1] = {&Fm};
+  // use linearity in e1,e2,e3 to do dimension reduction.
+  /* stats */ {
+    static int rc = 0;
+    rc++;
+    if (rc < 100) {
+      report_current(xx,zz,"206",5); 
+      taylorInterval U = Fm.evalf(domain(xx),domain(zz));
+      cout.precision(20);
+      cout << "iub: " << U.upperBound() << endl;
+      cout << "mid: " << U.tangentVectorOf().hi() << endl;
+    }
+  }
+  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
+	double xr[6], zr[6];
+	xr[0] = (i ? zz[0] : xx[0]); 
+	xr[1] = (j ? zz[1] : xx[1]); 
+	xr[2] = (k ? zz[2] : xx[2]); 
+	for (int r=0;r<3;r++) { zr[r]=xr[r]; }
+	for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
+	cellOption opt1;
+	//opt1.printingMode=cellOption::silent;
+	opt1.iterationCount = options.iterationCount;
+	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
+	options.iterationCount   = opt1.iterationCount;
+	if (!rv) {
+	  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
+	  cout << "x r" << endl;
+	  for (int u=0;u<6;u++) {
+	    cout << xr[u] << " " << zr[u] << endl;
+	  }
+	  if (s.mode==numerical_data::strategy::merge) 
+	    { cout << " alpha " << alpha << endl; }
+	  switch (s.mode) {
+	  case numerical_data::strategy::n1 : cout << "strategy n1"; break;
+	  case numerical_data::strategy::n1m : cout << "strategy n1m"; break;
+	  case numerical_data::strategy::n2m : cout << "strategy n2m"; break;
+	  case numerical_data::strategy::split : cout << "strategy split"; break;
+	  case numerical_data::strategy::merge : cout << "strategy merge"; break;
+	  default: cout << "strategy unknown"; break;
+	  }
+	  return 0;
+	}
+      }
+  return 1;
+}
 
 
 

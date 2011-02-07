@@ -26,6 +26,7 @@ flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineq.hl";;
 flyspeck_needs "nonlinear/lemma.hl";;
 
+open Lemma;;
 
 let svn_version() =
   let reg = Str.regexp "^Revision: \([0-9]+\)$" in
@@ -51,7 +52,7 @@ let dest_decimal = Parse_ineq.dest_decimal;;
 let strip_let_tm = Parse_ineq.strip_let_tm;;
 let output_filestring = Parse_ineq.output_filestring;;
 
-let NONLIN = new_definition `NONLIN = F`;;
+let NONLIN = new_definition `NONLIN = F`;; (* change to T *)
 
 let FROZEN_REWRITE_TAC ths = 
    if (ths=[]) then REWRITE_TAC [] else
@@ -323,6 +324,12 @@ let rec delta135max = function
     | Delta135max t :: _ -> t
     | _ :: a -> delta135max a;;
 
+let rec set298 = function
+    | [] -> false
+    | Set298 :: _ -> true
+    | _ :: a -> set298 a;;
+
+
 let cpp_template_gen = Printf.sprintf "
  char* svn = %s;
  char* ineq_id = %s;
@@ -341,7 +348,7 @@ let cpp_template_gen = Printf.sprintf "
         opt.allowSharp = %d; // sharp
         opt.onlyCheckDeriv1Negative = %d; // checkderiv
         %s // other options.
-	return prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt); // len
+	return (opt.set298 ? prove::f298() : prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt)); // len
 	}";;
 
 let mk_cpp_proc t s tags = 
@@ -359,6 +366,7 @@ let mk_cpp_proc t s tags =
   let d135max = delta135max tags in
   let s135max = if (d135max > -1.0) then Printf.sprintf "\topt.delta135Max = %8.16f;\n" d135max else "" in
   let s206A = if (s="2065952723 A1" ) then Printf.sprintf "\topt.strategy206A=1;\n" else "" in
+  let s298 = if (set298 tags) then Printf.sprintf "\topt.set298=1;\n" else "" in
   let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ sWidth ^ s206A in
   let c = map cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in

@@ -244,6 +244,8 @@ static int recursiveVerifierQ(int depth,
 	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,
 	cellOption& options);
 
+ static int f298();
+
 
 };
 

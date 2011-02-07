@@ -1842,6 +1842,8 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
          &4 * x2 * x4 * x5 +         &32 * x2 * x6 - &32 * x3 * x6 +         &4 * x3 * x4 * x6 */
   static const interval t64("64");
   static const interval t32("32");
+  static const interval t16("16");
+
   static const taylorFunction num1 = 
      x1 * x4 * t64 +  x2 * x4 *mone * t32 +  x3 * x4 *mone * t32 
     + x1 * x4 * x4 * mone * four  +  x2 * x5 * mone * t32 + x3 * x5 * t32
@@ -1850,12 +1852,11 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
 
   static const taylorFunction afac = y4 * (unit* t16  - x4);
 
-  static const taylorFunction sd = compose(delta,unit*four,unit*four,unit*four,x4,x5,x6);
+  static const taylorFunction sd = taylorFunction::compose(delta,unit*four,unit*four,unit*four,x4,x5,x6);
 
-  static const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) 
+  //  const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) ;
 
-  static const taylorFunction rat2 = num2 * uni(univariate::i_inv, 
-						uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
+  //  const taylorFunction rat2 = taylorSimplex::num2 * uni(univariate::i_inv,uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
 
 
 
@@ -2242,6 +2243,8 @@ const taylorFunction taylorSimplex::upper_dih = local::upper_dih;
 
 const taylorFunction taylorSimplex::num1 = local::num1;
 const taylorFunction taylorSimplex::num2 = local::num2;
+//const taylorFunction taylorSimplex::rat1 = local::rat1;
+//const taylorFunction taylorSimplex::rat2 = local::rat2;
 const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
 const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;

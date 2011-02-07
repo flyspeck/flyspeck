@@ -360,7 +360,7 @@ class taylorSimplex
 	  //    marchalDih4,marchalDih5,marchalDih6,
 	  x1cube,x1square,
 	  num1,num2,num_combo1,
-	  rat1,rat2,
+	  //rat1,rat2,
 	  edge_flat2_x,
 	  flat_term_x,
 	  taum_x,

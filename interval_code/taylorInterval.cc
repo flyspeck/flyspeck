@@ -1852,11 +1852,11 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
 
   static const taylorFunction afac = y4 * (unit* t16  - x4);
 
-  static const taylorFunction sd = taylorFunction::compose(delta,unit*four,unit*four,unit*four,x4,x5,x6);
+  static const taylorFunction sd = uni(i_sqrt,taylorFunction::compose(delta,unit*four,unit*four,unit*four,x4,x5,x6));
 
-  //  const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) ;
+  const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) ;
 
-  //  const taylorFunction rat2 = taylorSimplex::num2 * uni(univariate::i_inv,uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
+
 
 
 
@@ -2176,6 +2176,9 @@ static const taylorFunction num2 =
    4096*monomial(1,0,0,3,0,0) - 16*monomial(1,0,0,3,0,2) + 32*monomial(1,0,0,3,1,1) - 
 16*monomial(1,0,0,3,2,0) - 512*monomial(1,0,0,4,0,0) + 16*monomial(1,0,0,5,0,0);
 
+  const taylorFunction rat2 = num2 * uni(univariate::i_inv,uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
+
+
 }; // end local scope
 
 
@@ -2243,8 +2246,8 @@ const taylorFunction taylorSimplex::upper_dih = local::upper_dih;
 
 const taylorFunction taylorSimplex::num1 = local::num1;
 const taylorFunction taylorSimplex::num2 = local::num2;
-//const taylorFunction taylorSimplex::rat1 = local::rat1;
-//const taylorFunction taylorSimplex::rat2 = local::rat2;
+const taylorFunction taylorSimplex::rat1 = local::rat1;
+const taylorFunction taylorSimplex::rat2 = local::rat2;
 const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
 const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;
@@ -3124,11 +3127,10 @@ void taylorFunction::selfTest()
 
   /* test delta_x4 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
-    double mValue=1.6333363881302794;
-    double mathValueD[6]={0.057786164807838214,0.05761105521751131,
-   0.05741965636296806,0.06701170422099567,0.06721538721254888,
-			  0.06743943850325723};
-    taylorInterval at = taylorSimplex::rad2.evalf(x,x); 
+    double mValue=19.19;
+    double mathValueD[6]={0.5999999999999996,4.3,4.499999999999999,-8.2,
+			  3.700000000000001,3.8999999999999986};
+    taylorInterval at = taylorSimplex::delta_x4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "delta_x4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3947,6 +3949,39 @@ void taylorFunction::selfTest()
     }
   }
 
+  /* test rat1 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=1.0698955725351036;
+    double mathValueD[6]={0.6810949663514232,
+   -0.19482732187952154,-0.210306752932963,
+   -0.08624960600633869,0.2017254648627028,
+			  0.1903349863136786};
+    taylorInterval at = taylorSimplex::rat1.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "rat1  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "rat1 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test rat2 */   {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue=-0.36183739972254936;
+    double mathValueD[6]={0.16560177032420434,
+   -0.12800997645316778,-0.1170145946391821,
+   -0.17562113079076758,0.13988551095572183,
+			  0.1461089273035437};
+    taylorInterval at = taylorSimplex::rat2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "rat2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-8))
+	cout << "rat2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
 /* test edge_flat2_x */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 13.47804480741523;
@@ -4262,6 +4297,8 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
 	cout << "vol3f_x_sqrt2_lmplus D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+
 
   
   /* test hasDeltaDenom */ {

@@ -538,19 +538,9 @@ int recursiveVerifierWithLinear3(int depth,
  }
 
 
-int f298() { // verification of inequality 2986512815.
+int f298x(int depth,double xx[9],double zz[9],cellOption options) { // verification of inequality 2986512815.
 
-  // initialize variables.
-  int depth =0;
-  static const interval h0 ("1.26");
-  static const interval two ("2");
-  double emax  =1.1754796561; // upper bound on 1 + sol0/pi.
-  double ymin = 2.519526329; //lower bound on (2/h0)^2
-  double ymax = 6.35040000001; // upper bound on (2 h0)^2.
-  double ylmax = 15.3272; // upper bound on 3.915^2.
-  double xx[9]={1,1,1,1,ymin,ymin,ymin,4,4};
-  double zz[9]={emax,emax,emax,emax,ymax,ymax,ymax,ylmax,ylmax,ylmax};
-  cellOption options;
+  // initialize;
   const double INVALID=7777;
   double cut=INVALID;
   double eps = 0.2; double mid = 6.0; double big = 20.0; // values from setStrategy298.
@@ -568,7 +558,7 @@ int f298() { // verification of inequality 2986512815.
       y = (xx[j_wide]+zz[j_wide])/2.0;
       for (int j=0;j<9;j++) { xr[j] = xx[j]; zr[j]=zz[j]; }
       (k? xr[j_wide] = y : zr[j_wide] = y);
-      if (!f298(depth+1,xr,zr,options)) return 0;
+      if (!f298x(depth+1,xr,zr,options)) return 0;
     }
     return 1;
   }
@@ -665,6 +655,24 @@ int f298() { // verification of inequality 2986512815.
   assert((0==1)); // "unreachable code";
 
 }
+
+
+
+int prove::f298() {
+  static const interval h0 ("1.26");
+  static const interval two ("2");
+  double emax  =1.1754796561; // upper bound on 1 + sol0/pi.
+  double ymin = 2.519526329; //lower bound on (2/h0)^2
+  double ymax = 6.35040000001; // upper bound on (2 h0)^2.
+  double ylmax = 15.3272; // upper bound on 3.915^2.
+  double x0[9]={1,1,1,1,                            ymin,ymin,ymin,          4,4};
+  double z0[9]={emax,emax,emax,emax,  ymax,ymax,ymax,        ylmax,ylmax};
+  cellOption opt;
+  f298x(0,x0,z0,opt);
+}
+
+
+
 
 int f206A(int depth,double xx[6],double zz[6],cellOption options) {
   numerical_data::strategy s;

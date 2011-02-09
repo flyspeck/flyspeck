@@ -1,4 +1,6 @@
 import java.lang.reflect.Array;
+import java.nio.file.StandardOpenOption.*;
+
 import javax.swing.text.DefaultStyledDocument;
 
 import bsh.util.JConsole;
@@ -7,6 +9,18 @@ import bsh.util.NameCompletion;
 import com.apple.eawt.AboutHandler;
 import com.apple.eawt.PreferencesHandler;
 import com.apple.eawt.Application;
+
+
+import com.syncleus.dann.*;
+import com.syncleus.dann.hyperassociativemap.*;
+import com.syncleus.dann.visualization.*;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+
+import edu.pitt.math.jhol.*;
+
 
 /**
    Initial version created on Oct 29 2010
@@ -71,6 +85,24 @@ readFile(String filename){
     return result;
 }
 
+void appendStringToFilename(String s, String p){
+    //Convert the string to a byte array.
+    byte[] data = s.getBytes();
+    
+    OutputStream out = null;
+    try {
+	out = new BufferedOutputStream(new FileOutputStream(p));
+	out.write(data, 0, data.length);
+    } catch (IOException x) {
+	System.err.println(x);
+    } finally {
+	if (out != null) {
+	    out.flush();
+	    out.close();
+	}
+    }
+}
+
 String getHTMLHeader(String title){
     if (title == null)
 	title = "";
@@ -80,12 +112,109 @@ String getHTMLHeader(String title){
 String getHTMLFooter(){
     return "</BODY></HTML>";
 }
+
+String runCommand(String cmd){
+    String result;
+    result = global.hol.runCommand(cmd);
+    eval(global.hol.getEvalString());
+    return result;
+}
 //end low level functions
 
 
 
 sourceRelative("about.bsh");		       
- sourceRelative("holhelp.bsh");
+sourceRelative("holhelp.bsh");
+
+    int numAssumptions;
+    beginTopGoal(){
+	numAssumptions = 0;
+	updateTopGoal();
+    }
+
+    updateTopGoal(){
+
+	text = editorPane;
+	text.setText("");
+	doc = text.getStyledDocument();
+
+	//Print "Goal: " 
+	String htmlString = getHTMLHeader("") + "<b>Goal: </b>" + getHTMLFooter();
+	JLabel label = htmlToJLabel(htmlString);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print top_goal
+	junk =  global.runCommand("(snd o top_goal)();;");
+	junkInt = junk.indexOf("<HTML>");//DEBUG all html tag tests should be case insensitive 
+	if (junkInt == -1)
+	    return;
+	junkEnd = junk.indexOf("</HTML>") + 7;
+	junk = junk.substring(junkInt, junkEnd);
+	label = htmlToJLabel(junk);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print "Assumptions: "
+	htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>" + getHTMLFooter();
+	label = htmlToJLabel(htmlString);
+	text.insertComponent(label);
+
+	//Line break
+	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
+	text.setCaretPosition(doc.getLength());
+
+	//Print the assumptions
+	junk = global.runCommand(
+					 "List.iter (fun x,y ->( ((fun ()->" +
+					 "(print_string \"\\n\")) o  (fun () ->" +
+					 "(((print_qterm o  concl) y)))) o print_string) (\"\"" +
+					 "))   ((fst o top_realgoal)());;");
+	while( junk.indexOf("<HTML>")!=-1){
+	    junkInt = junk.indexOf("<HTML>");
+	    junkEnd = junk.indexOf("</HTML>") + 7;
+	    label = htmlToJLabel(junk.substring(junkInt,junkEnd));
+	    junk = junk.substring(junkEnd,junk.length());
+	    text.insertComponent(label);
+	    doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
+	    text.setCaretPosition(doc.getLength());
+	}
+    }
+
+   JLabel htmlToJLabel(String htmlText){
+	/*	inTag = false;
+	sb = new StringBuilder();
+	sb.append(htmlText.substring(0,htmlText.indexOf("<BODY>")));
+	print(htmlText);//DEBUG
+	for (int i = htmlText.indexOf("<BODY>") ; i < htmlText.length(); i++){
+	    if (inTag)
+		{
+		    inTag = (htmlText.charAt(i) != '>');
+		    sb.append(htmlText.charAt(i));
+		}
+	    else
+		{
+		    inTag = (htmlText.charAt(i) == '<');
+		    /*if (htmlText.charAt(i) == '\n')
+		      sb.append("<br>");
+		    if (htmlText.charAt(i) == ' ')
+			sb.append("&#160;");
+		    else
+			sb.append(htmlText.charAt(i));
+		}
+	}
+	htmlText = sb.toString();
+*/
+	return new JLabel (htmlText, JLabel.LEFT);
+    }
+
+
 void showGUI(WindowAdapter controller){	
     IS_A_MAC = System.getProperty("os.name").equals("Mac OS X");
 					       
@@ -249,74 +378,6 @@ void showGUI(WindowAdapter controller){
     buttonList.add(conjTac1);
     buttonList.add(conjTac2);
 
-    //Queue for commands to be run in java from hol
-    StringBuilder evalStr;
-
-    //Run java commands in the queue from hol
-    clearEvalStr(){
-	eval(evalStr.toString());
-    }
-
-    int numAssumptions;
-    beginTopGoal(){
-	numAssumptions = 0;
-	updateTopGoal();
-    }
-
-    updateTopGoal(){
-
-	text = editorPane;
-	text.setText("");
-	doc = text.getStyledDocument();
-
-	//Print "Goal: " 
-	String htmlString = getHTMLHeader("") + "<b>Goal: </b>" + getHTMLFooter();
-	JLabel label = htmlToJLabel(htmlString);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print top_goal
-	junk =  hol.runCommand("(snd o top_goal)();;");
-	junkInt = junk.indexOf("<HTML>");//DEBUG all html tag tests should be case insensitive 
-	if (junkInt == -1)
-	    return;
-	junkEnd = junk.indexOf("</HTML>") + 7;
-	junk = junk.substring(junkInt, junkEnd);
-	label = htmlToJLabel(junk);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print "Assumptions: "
-	htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>" + getHTMLFooter();
-	label = htmlToJLabel(htmlString);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print the assumptions
-	junk = hol.runCommand(
-					 "List.iter (fun x,y ->( ((fun ()->" +
-					 "(print_string \"\\n\")) o  (fun () ->" +
-					 "(((print_qterm o  concl) y)))) o print_string) (\"\"" +
-					 "))   ((fst o top_realgoal)());;");
-	while( junk.indexOf("<HTML>")!=-1){
-	    junkInt = junk.indexOf("<HTML>");
-	    junkEnd = junk.indexOf("</HTML>") + 7;
-	    label = htmlToJLabel(junk.substring(junkInt,junkEnd));
-	    junk = junk.substring(junkEnd,junk.length());
-	    text.insertComponent(label);
-	    doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	    text.setCaretPosition(doc.getLength());
-	}
-    }
 
     //Console for getting input from user
     JConsole console = new JConsole();
@@ -338,7 +399,7 @@ void showGUI(WindowAdapter controller){
 			    cmdList.add(line);
 			    //		}while(bufInput.ready());
 		    while(cmdList.size() != 0){
-			hol.runCommand(cmdList.removeFirst()  + "\n");
+			printHTML(global.runCommand(cmdList.removeFirst()  + "\n"));
 		    }	   
 		    //updateTopGoal();
 		    
@@ -348,33 +409,7 @@ void showGUI(WindowAdapter controller){
 	    }
 	});
 
-    JLabel htmlToJLabel(String htmlText){
-	/*	inTag = false;
-	sb = new StringBuilder();
-	sb.append(htmlText.substring(0,htmlText.indexOf("<BODY>")));
-	print(htmlText);//DEBUG
-	for (int i = htmlText.indexOf("<BODY>") ; i < htmlText.length(); i++){
-	    if (inTag)
-		{
-		    inTag = (htmlText.charAt(i) != '>');
-		    sb.append(htmlText.charAt(i));
-		}
-	    else
-		{
-		    inTag = (htmlText.charAt(i) == '<');
-		    /*if (htmlText.charAt(i) == '\n')
-		      sb.append("<br>");
-		    if (htmlText.charAt(i) == ' ')
-			sb.append("&#160;");
-		    else
-			sb.append(htmlText.charAt(i));
-		}
-	}
-	htmlText = sb.toString();
-*/
-	return new JLabel (htmlText, JLabel.LEFT);
-    }
-    
+     
     //Method for printing to the console
     printHTML(String html){
 	while (html.indexOf("<HTML>") != -1){
@@ -400,26 +435,32 @@ void showGUI(WindowAdapter controller){
     }
     
     //Panes for displaying different output
-    editorPane = createEditorPane();
-    JScrollPane editorScrollPane = new JScrollPane(editorPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-						   JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    global.editorPane = createEditorPane();
+    JScrollPane editorScrollPane = new JScrollPane(editorPane);
 
     helpPane = createEditorPane();
     JScrollPane helpScrollPane = new JScrollPane(helpPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 						 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 
-    sourceRelative("hol.bsh");
+    
 
     //start a new hol process
-    hol = HOLLightWrapper(console);
-
+List command = new ArrayList();
+	command.add("./local.hol");
+	print ("TEST!");//DEBUG
+    global.hol = new HOLLightWrapper(command);
+	print ("TEST!");//DEBUG
+	while(!global.hol.isReady()){}
+	printHTML(global.hol.flushOutput());
+        eval(global.hol.getEvalString());
+	print ("TEST!");//DEBUG
     //method for running multiple hol commands at once
     runHOLCommands (String cmds){
 	String[] array = cmds.split("\n");
 
 	for(int i = 0; i < Array.getLength(array); i++){
-	    (hol.runCommand(array[i]));
+	    (global.runCommand(array[i]));
 	}
     }
 
@@ -461,7 +502,7 @@ void showGUI(WindowAdapter controller){
     }
     //Set up sig int method for hol
     int holPid = Integer.decode(
-				hol.runCommand("Sys.command(\"echo $PPID\");;").trim().split("\n")[0]);
+				global.runCommand("Sys.command(\"echo $PPID\");;").trim().split("\n")[0]);
     command = new LinkedList();
     command.add("sig_int_hol_light");
     command.add(holPid.toString());
@@ -470,19 +511,19 @@ void showGUI(WindowAdapter controller){
 
     //query hol for the number of theorems in the system  
     getNumHolTheorems(){
-	return Integer.decode(hol.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5]) ;}
+	return Integer.decode(global.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5]) ;}
 
     //variable to keep track of the theorem count
     int numHolTheorems = 0;
 
     //variable to hold all the theorems
-    Set holTheorems = new TreeSet();
+    global.holTheorems = new TreeSet();
 
     //method to keep theorem list up to date
     updateHolTheorems(){
 	if (numHolTheorems != getNumHolTheorems()){
 	    numHolTheorems = getNumHolTheorems();
-	    String[] bangTheorems = hol.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
+	    String[] bangTheorems = global.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
 	    for (int i = 0; i < Array.getLength(bangTheorems); i++){
 		if (bangTheorems[i].equals("\nval"))
 		    break;
@@ -498,7 +539,7 @@ void showGUI(WindowAdapter controller){
 
 
     test1(){
-	hol.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
+	global.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
     }
 
     //List of theorem labels
@@ -547,7 +588,7 @@ void showGUI(WindowAdapter controller){
     ml = new MouseAdapter() {
 	    public void mouseClicked(MouseEvent e) {
 		if (e.getClickCount() == 2) {
-		    hol.runCommand(((String)e.getSource().getSelectedValue())+";;");
+		    global.runCommand(((String)e.getSource().getSelectedValue())+";;");
 		}
 	    }
 	};
@@ -560,10 +601,10 @@ void showGUI(WindowAdapter controller){
 		}
 	    
 		if (event.getActionCommand().startsWith("e"))
-		    hol.runCommand(event.getActionCommand());
+		    global.runCommand(event.getActionCommand());
 		if (event.getActionCommand().equals("assume")){
 		    numAssumptions++;
-       		    hol.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
+       		    global.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
 		}
 		if (event.getActionCommand().equals("test1")){
 		    test1();
@@ -658,7 +699,11 @@ void showGUI(WindowAdapter controller){
 
     //Display the window.
     frame.pack();
+
     frame.setVisible(true);
+
+    //tmp2();//DEBUG
+
 }
 
 getNewFramework(){
@@ -742,7 +787,6 @@ getNewFramework(){
 	maxX = screenSize.width - 50;
 	maxY = screenSize.height - 50;
 	showGUI(this);
-	
     };
 }
 

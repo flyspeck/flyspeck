@@ -16,20 +16,33 @@ public abstract class Term extends CamlObject {
 		return CamlType.TERM;
 	}
 	
-	
-	/**
-	 * Creates a term from a raw string description
-	 */
-	public static Term create(String rawString) {
-		throw new RuntimeException("Not implemented");
-	}
-	
-	
 	/**
 	 * Creates a variable
 	 */
 	public static Term mk_var(String v, HOLType ty) {
 		return new VarTerm(v, ty);
+	}
+	
+	
+	/**
+	 * Destroys a variable
+	 * @param t
+	 * @return null if the input argument is not a variable
+	 */
+	public static Pair<String, HOLType> dest_var(Term t) {
+		if (!(t instanceof VarTerm))
+			return null;
+		
+		VarTerm t2 = (VarTerm) t;
+		return new Pair<String, HOLType>(t2.name, t2.type);
+	}
+	
+	
+	/**
+	 * Returns true if the input argument is a variable
+	 */
+	public static boolean is_var(Term t) {
+		return t instanceof VarTerm;
 	}
 	
 
@@ -41,13 +54,35 @@ public abstract class Term extends CamlObject {
 //		return new ConstTerm(name, HOLType.)
 		throw new Exception("Not implemented"); 
 	}
-	
+
 	
 	/**
 	 * Creates a constant
 	 */
 	public static Term mk_mconst(String name, HOLType type) {
 		return new ConstTerm(name, type);
+	}
+	
+
+	/**
+	 * Destroys a constant
+	 * @param t
+	 * @return null if the input argument is not a constant
+	 */
+	public static Pair<String, HOLType> dest_const(Term t) {
+		if (!(t instanceof ConstTerm))
+			return null;
+		
+		ConstTerm t2 = (ConstTerm) t;
+		return new Pair<String, HOLType>(t2.name, t2.type);
+	}
+	
+	
+	/**
+	 * Returns true if the input argument is a constant
+	 */
+	public static boolean is_const(Term t) {
+		return t instanceof ConstTerm;
 	}
 	
 	
@@ -61,6 +96,28 @@ public abstract class Term extends CamlObject {
 		
 		throw new Exception("mk_abs: not a variable");
 	}
+	
+	/**
+	 * Destroys an abstraction
+	 * @param t
+	 * @return null if the input argument is not an abstraction
+	 */
+	public static Pair<Term, Term> dest_abs(Term t) {
+		if (!(t instanceof AbsTerm))
+			return null;
+		
+		AbsTerm t2 = (AbsTerm) t;
+		return new Pair<Term, Term>(t2.var, t2.body);
+	}
+	
+	
+	/**
+	 * Returns true if the input argument is an abstraction
+	 */
+	public static boolean is_abs(Term t) {
+		return t instanceof AbsTerm;
+	}
+
 	
 	
 	/**
@@ -79,6 +136,28 @@ public abstract class Term extends CamlObject {
 		
 		return new CombTerm(f, a);
 	}
+
+	/**
+	 * Destroys a combination
+	 * @param t
+	 * @return null if the input argument is not a combination
+	 */
+	public static Pair<Term, Term> dest_comb(Term t) {
+		if (!(t instanceof CombTerm))
+			return null;
+		
+		CombTerm t2 = (CombTerm) t;
+		return new Pair<Term, Term>(t2.rator, t2.rand);
+	}
+	
+	
+	/**
+	 * Returns true if the input argument is a combination
+	 */
+	public static boolean is_comb(Term t) {
+		return t instanceof CombTerm;
+	}
+
 	
 	
 	/**
@@ -184,7 +263,7 @@ public abstract class Term extends CamlObject {
 			StringBuilder str = new StringBuilder();
 			str.append("Var(");
 			str.append(name);
-			str.append(',');
+			str.append(" : ");
 			str.append(type);
 			str.append(')');
 			
@@ -276,8 +355,10 @@ public abstract class Term extends CamlObject {
 		public String toString() {
 			StringBuilder str = new StringBuilder();
 			str.append("Const(");
+			str.append('"');
 			str.append(name);
-			str.append(',');
+			str.append('"');
+			str.append(" : ");
 			str.append(type);
 			str.append(')');
 			

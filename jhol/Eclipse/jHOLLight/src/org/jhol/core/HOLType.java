@@ -7,6 +7,7 @@ import java.util.HashMap;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
 
+
 /**
  * Represents a HOL Light type
  * @author Alexey
@@ -81,6 +82,11 @@ public abstract class HOLType extends CamlObject {
 	}
 	
 	
+	public static HOLType mk_type(String name, Collection<HOLType> args) throws Exception {
+		return new TyApp(name, args);
+	}
+	
+	
 	public static HOLType mk_fun_ty(HOLType ty1, HOLType ty2) throws Exception {
 		return mk_type("fun", ty1, ty2);
 	}
@@ -89,7 +95,7 @@ public abstract class HOLType extends CamlObject {
 	/**
 	 * Type destructor
 	 */
-	public abstract Pair<String, HOLType[]> dest() throws Exception;
+	public abstract Pair<String, HOLType[]> dest();
 	
 	
 	/**
@@ -103,9 +109,12 @@ public abstract class HOLType extends CamlObject {
 			this.name = name;
 		}
 		
+
+	
+		
 		@Override
-		public Pair<String, HOLType[]> dest() throws Exception {
-			throw new Exception("dest_type: type variable not a constructor");
+		public Pair<String, HOLType[]> dest() {
+			return new Pair<String, HOLType[]>(name, null);
 		}
 		
 		
@@ -173,9 +182,9 @@ public abstract class HOLType extends CamlObject {
 			}
 		}
 		
-		
+
 		@Override
-		public Pair<String, HOLType[]> dest() throws Exception {
+		public Pair<String, HOLType[]> dest() {
 			HOLType[] a = new HOLType[args.size()];
 			return new Pair<String, HOLType[]>(constructorName, args.toArray(a));
 		}
@@ -198,7 +207,7 @@ public abstract class HOLType extends CamlObject {
 			for (int i = 0; i < n; i++) {
 				cmd.append(args.get(i).makeCamlCommand());
 				if (i < n - 1)
-					cmd.append(',');
+					cmd.append(';');
 			}
 			
 			cmd.append(']');
@@ -235,14 +244,17 @@ public abstract class HOLType extends CamlObject {
 		@Override
 		public String toString() {
 			StringBuilder str = new StringBuilder();
-			str.append('(');
-			str.append(constructorName);
-			str.append(')');
 			
-			for (HOLType arg : args) {
-				str.append(arg);
-				str.append(' ');
+			str.append(constructorName);
+			
+			str.append('[');
+			int n = args.size();
+			for (int i = 0; i < n; i++) {
+				str.append(args.get(i));
+				if (i < n - 1)
+					str.append("; ");
 			}
+			str.append(']');
 			
 			return str.toString();
 		}

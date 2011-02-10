@@ -15,8 +15,23 @@ public class HOLLightWrapper {
 		evalStr = new StringBuilder();
 		return result;
 	}
+	
+	
+	public HOLLightWrapper(String ... command) throws IOException {
+		ArrayList<String> list = new ArrayList<String>();
+		for (String cmd : command)
+			list.add(cmd);
+		
+		init(list);
+	}
+	
 
 	public HOLLightWrapper(List<String> command) throws IOException {
+		init(command);
+	}
+	
+	
+	private void init(List<String> command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command);
 		pb.redirectErrorStream(true);
 		evalStr = new StringBuilder();
@@ -27,8 +42,8 @@ public class HOLLightWrapper {
 
 		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-
 	}
+	
 
 	public boolean isReady() throws IOException {
 		return bout.ready();

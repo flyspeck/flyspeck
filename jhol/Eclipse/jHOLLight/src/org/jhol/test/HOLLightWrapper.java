@@ -64,7 +64,7 @@ public class HOLLightWrapper {
 			}
 
 			if (c == 65535) {
-
+				System.err.println("flushOutput: EOF");
 				suppressedOutput.append(str.toString());
 				// print("hol_light: EOF reached.");
 				break;
@@ -78,9 +78,16 @@ public class HOLLightWrapper {
 				continue;
 			}
 
-		} while (!(str.length() == 2
-				&& (str.charAt(0) == '#' || str.charAt(0) == ' ')
-				&& str.charAt(1) == ' ' && !bout.ready()));
+	
+			if (str.length() == 2) {
+				if (str.charAt(0) == '#')
+					break;
+			}
+		}
+		while (true);
+//		} while (!(str.length() == 2
+//				&& (str.charAt(0) == '#' || str.charAt(0) == ' ')
+//				&& str.charAt(1) == ' ' && !bout.ready()));
 
 		suppressedOutput.append(str.toString());
 		return suppressedOutput.toString();

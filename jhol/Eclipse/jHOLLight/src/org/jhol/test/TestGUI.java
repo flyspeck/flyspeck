@@ -173,8 +173,8 @@ public class TestGUI extends JFrame implements ActionListener {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-//		TestGUI test = new TestGUI(new TestCamlEnvironment());
-		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
+		TestGUI test = new TestGUI(new TestCamlEnvironment());
+//		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
 		CamlObjectList terms = test.getTerms();
 
 		// Test terms

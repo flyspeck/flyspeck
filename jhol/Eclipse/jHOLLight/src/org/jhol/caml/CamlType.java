@@ -11,13 +11,37 @@ public abstract class CamlType {
 	
 	
 	/**
+	 * Returns the number of arguments of an object of this type
+	 */
+	public int numberOfArguments() {
+		return 0;
+	}
+	
+	
+	/**
+	 * Returns the type of the n-th argument (n is from 0 to numberOfArguments() - 1)
+	 */
+	public CamlType getArgType(int n) {
+		return null;
+	}
+	
+	
+	/**
+	 * Creates a function type
+	 */
+	public static FunctionType mk_function(CamlType argType, CamlType returnType) {
+		return new FunctionType(argType, returnType);
+	}
+	
+	
+	/**
 	 * Function type
 	 */
 	public static class FunctionType extends CamlType {
 		private final CamlType argType;
 		private final CamlType returnType;
 		
-		public FunctionType(CamlType argType, CamlType returnType) {
+		private FunctionType(CamlType argType, CamlType returnType) {
 			if (argType == null || returnType == null)
 				throw new RuntimeException("FunctionType: null arguments");
 			
@@ -33,6 +57,21 @@ public abstract class CamlType {
 		
 		public CamlType getReturnType() {
 			return returnType;
+		}
+		
+		
+		@Override
+		public int numberOfArguments() {
+			return 1 + returnType.numberOfArguments();
+		}
+		
+		
+		@Override
+		public CamlType getArgType(int n) {
+			if (n == 0)
+				return argType;
+			
+			return returnType.getArgType(n - 1);
 		}
 		
 		

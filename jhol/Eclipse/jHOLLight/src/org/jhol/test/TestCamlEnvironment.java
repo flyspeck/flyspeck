@@ -3,6 +3,8 @@ package org.jhol.test;
 import org.jhol.caml.CamlEnvironment;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
+import org.jhol.core.Term;
+import org.jhol.core.Theorem;
 import org.jhol.core.lexer.TermParser;
 
 public class TestCamlEnvironment extends CamlEnvironment {
@@ -18,42 +20,60 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	public CamlObject execute(String command) throws Exception {
 		throw new Exception("Unimplemented");
 	}
+	
+	
+	@Override
+	public void runCommand(String rawCommand) throws Exception {
+		caml.runCommand(rawCommand);
+	}
+	
 
 	@Override
 	public CamlObject execute(String command, CamlType returnType) throws Exception {
-		if (!returnType.equals(CamlType.TERM))
-			return null;
+		String output;
 		
-		command = "print_string(raw_string_of_term (" + command + "));;"; 
-		String output = caml.runCommand(command);
-		output = strip(output);
+		// Term
+		if (returnType.equals(CamlType.TERM)) {
+			command = "print_string(raw_string_of_term (" + command + "));;";
+			System.out.println("Executing: " + command);
+			
+			output = caml.runCommand(command);
+			System.out.println("Out: " + output);
+			
+			output = strip(output);
+			
+			return TermParser.parseTerm(output);
+		}
 		
-		return TermParser.parseTerm(output);
+		
+		// Theorem
+		if (returnType.equals(CamlType.THM)) {
+			command = "(print_string o raw_string_of_term o concl) (" + command + ");;";
+			System.out.println("Executing: " + command);
+			
+			output = caml.runCommand(command);
+			System.out.println("Out: " + output);
+			
+			output = strip(output);
+			
+			Term concl = TermParser.parseTerm(output);
+			return new Theorem.TempTheorem(concl);
+		}
+
+		return null;
 	}
 	
 	
 	private static String strip(String str) {
 		String[] els = str.split("\n");
-		return els[0];
 		
-/*		
-		// Find the appropriate element (starting from ")
-		String s = null;
-		for (String e : els) {
-			if (e.trim().startsWith("\"")) {
-				s = e;
-				break;
-			}
+		for (int i = 1; i < els.length; i++) {
+			String tmp = els[i].trim();
+			if (tmp.startsWith("val it"))
+				return els[i - 1];
 		}
 		
-		if (s == null)
-			return str;
-		
-		str = s.trim();
-		if (str.length() < 3)
-			return str;
-		
-		return str.substring(1, str.length() - 2);*/
+		return els[0];
 	}
 	
 }

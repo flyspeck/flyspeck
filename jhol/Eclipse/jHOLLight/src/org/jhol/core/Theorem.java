@@ -16,6 +16,14 @@ public abstract class Theorem extends CamlObject {
 	
 	
 	/**
+	 * Creates an arbitrary theorem
+	 */
+	public static Theorem mk_theorem(String name, Term concl) {
+		return new NamedTheorem(name, concl);
+	}
+	
+	
+	/**
 	 * Theorem's name
 	 * @return
 	 */
@@ -58,6 +66,11 @@ public abstract class Theorem extends CamlObject {
 			return name;
 		}
 		
+		@Override
+		public String toCommandString() {
+			return name;
+		}		
+		
 		
 		/* Object methods */
 		
@@ -99,9 +112,13 @@ public abstract class Theorem extends CamlObject {
 	public static class TempTheorem extends Theorem {
 		private final Term cachedConcl;
 		private CamlObject.CamlApplication command;
+		private final String tmpName;
+		
+		private static int nameCounter = 1;
 		
 		public TempTheorem(Term concl) {
 			this.cachedConcl = concl;
+			this.tmpName = "?tmp:" + nameCounter++;
 		}
 		
 		
@@ -112,7 +129,7 @@ public abstract class Theorem extends CamlObject {
 		
 		@Override
 		public String name() {
-			return null;
+			return tmpName;
 		}
 		
 		@Override
@@ -124,6 +141,11 @@ public abstract class Theorem extends CamlObject {
 		@Override
 		public String makeCamlCommand() {
 			return command.makeCamlCommand();
+		}
+		
+		@Override
+		public String toCommandString() {
+			return command.toCommandString();
 		}
 		
 		

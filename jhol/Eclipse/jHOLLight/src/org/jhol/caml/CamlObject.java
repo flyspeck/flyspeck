@@ -59,6 +59,12 @@ public abstract class CamlObject {
 	
 	
 	/**
+	 * Returns a textual description of the object
+	 */
+	public abstract String toCommandString();
+	
+	
+	/**
 	 * Application of a function to an argument
 	 */
 	public static class CamlApplication extends CamlObject {
@@ -99,7 +105,7 @@ public abstract class CamlObject {
 				throw new Exception("CamlApplication.eval: evaluation works only for non-function objects");
 			
 			String cmd = makeCamlCommand();
-			CamlObject result = env.execute(cmd);
+			CamlObject result = env.execute(cmd, type);
 			
 			// TODO: find better solution
 			if (result instanceof Theorem.TempTheorem) {
@@ -107,6 +113,22 @@ public abstract class CamlObject {
 			}
 			
 			return result;
+		}
+		
+		
+		@Override
+		public String toCommandString() {
+			StringBuilder str = new StringBuilder();
+			str.append(f.toCommandString());
+			str.append(' ');
+			
+			String argStr = arg.toCommandString();
+			if (arg instanceof CamlApplication || arg instanceof Theorem.TempTheorem)
+				argStr = "(" + argStr + ")";
+			
+			str.append(argStr);
+			
+			return str.toString();
 		}
 
 		

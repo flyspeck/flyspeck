@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
+import org.jhol.core.printer.TermPrinter;
 
 /**
  * Abstract HOL term
@@ -15,6 +16,19 @@ public abstract class Term extends CamlObject {
 	public final CamlType camlType() {
 		return CamlType.TERM;
 	}
+	
+	
+	@Override
+	public String toCommandString() {
+		StringBuilder str = new StringBuilder();
+		
+		str.append('`');
+		str.append(TermPrinter.simplePrint(this));
+		str.append('`');
+		
+		return str.toString();
+	}
+	
 	
 	/**
 	 * Creates a variable

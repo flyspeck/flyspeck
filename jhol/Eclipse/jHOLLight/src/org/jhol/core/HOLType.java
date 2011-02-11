@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
+import org.jhol.core.printer.TypePrinter;
 
 
 /**
@@ -31,6 +32,17 @@ public abstract class HOLType extends CamlObject {
 	@Override
 	public final CamlType camlType() {
 		return CamlType.TYPE;
+	}
+	
+	
+	@Override
+	public String toCommandString() {
+		StringBuilder str = new StringBuilder();
+		str.append("`:");
+		str.append(TypePrinter.printType(this));
+		str.append("`");
+		
+		return str.toString();
 	}
 	
 	

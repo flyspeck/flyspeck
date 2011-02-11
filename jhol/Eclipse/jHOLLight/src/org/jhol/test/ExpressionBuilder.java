@@ -95,15 +95,13 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				// lhs == null && rhs == null
 				// Accept either terms, theorems, types as rhs, or functions as lhs
 				if (obj instanceof Term || obj instanceof Theorem || obj instanceof HOLType) {
-					rhs = obj;
-					update();
+					update(lhs, obj);
 					return true;
 				}
 				else {
 					CamlType type = obj.camlType();
 					if (type.numberOfArguments() > 0) {
-						lhs = obj;
-						update();
+						update(obj, rhs);
 						return true;
 					}
 					
@@ -121,8 +119,7 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				if (!lastArgType.equals(rhs.camlType()))
 					return false;
 				
-				lhs = obj;
-				update();
+				update(obj, rhs);
 				return true;
 			}
 		}
@@ -136,8 +133,7 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 			if (!argType.equals(obj.camlType()))
 				return false;
 			
-			lhs = lhs.apply(obj);
-			update();
+			update(lhs.apply(obj), rhs);
 			return true;
 		}
 	}
@@ -176,13 +172,13 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 	/**
 	 * Updates the component
 	 */
-	private void update() throws Exception {
+	private void update(CamlObject lhs, CamlObject rhs) throws Exception {
 		if (lhs != null) {
 			int nargs = lhs.camlType().numberOfArguments();
 			
 			if (nargs == 0) {
 				if (rhs != null)
-					throw new Exception("Unexpected number of arguments for lhs = " + lhs);
+					throw new Exception("Unexpected number of arguments for newLhs = " + lhs);
 				
 				// Evaluate the expression
 				rhs = lhs.eval(caml);
@@ -197,6 +193,9 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				rhs = rhs.eval(caml);
 			}
 		}
+		
+		this.lhs = lhs;
+		this.rhs = rhs;
 		
 		// Update the visual components
 		result.clear();
@@ -216,7 +215,7 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 		if (cmd == "clear") {
 			lhs = rhs = null;
 			try {
-				update();
+				update(lhs, rhs);
 			}
 			catch (Exception ex) {
 				ex.printStackTrace();

@@ -1,5 +1,3 @@
-// The top part of the code is machine generated.
-// The end is hand crafted.
 
 #include <iomanip.h>
 #include <iostream.h>
@@ -9,7 +7,14 @@
 #include "2065952723A.h"
 
 class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};
-int trialcount = 200;
+
+
+
+
+
+// The top part of the code is machine generated.
+// The end is hand crafted.
+
 
 double sol0(
 
@@ -224,7 +229,6 @@ double c2 = y_mangle__[5];
 *ret = (0.000000e+00) + (((num_combo1(e1,e2,e3,a2,b2,c2)) - 0.)) + (0.0);
 }
 
-double global_alpha=0 ; // sorry about the global variable!
 
 void t_varcombo(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -233,8 +237,8 @@ double e3 = y_mangle__[2];
 double a2 = y_mangle__[3];
 double b2 = y_mangle__[4];
 double c2 = y_mangle__[5];
- *ret = (1.0-fabs(global_alpha)) * num2m(e1,e2,e3,a2,b2,c2) +
-              global_alpha*num1(e1,e2,e3,a2,b2,c2);
+ *ret = (1.0-fabs(global::alpha)) * num2m(e1,e2,e3,a2,b2,c2) +
+              global::alpha*num1(e1,e2,e3,a2,b2,c2);
   }
 
 double numsgn(double sgn, double y_mangle__[6],int parity) {
@@ -251,6 +255,12 @@ double c2 = y_mangle__[5];
 
 // functions for 29865.. 
 
+
+
+double delta_x_a_priori(double x1,double x2,double x3,double x4,double x5,double x6) {
+  max(global::delta_a_priori,delta_x(x1,x2,x3,x4,x5,x6));
+}
+
 void deltaA(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
 double e2 = y_mangle__[1];
@@ -261,7 +271,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = delta_x(4.0,4.0,4.0,a2,b2,y2);
+ *ret = delta_x_a_priori(4.0,4.0,4.0,a2,b2,y2);
 }
 
 void deltaAm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -509,7 +519,7 @@ double lindih_x(double theta,double a2,double b2,double y2) { // y2 opposite.
   */
 }
 
-double thetaGlobal=0;
+
 
 void dihB_lt_theta(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -521,7 +531,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  lindih_x(thetaGlobal,y2,c2,d2); // dihB < theta, or dihB > pi - theta.
+ *ret =  lindih_x(global::theta,y2,c2,d2); // dihB < theta, or dihB > pi - theta.
 }
 
 void dihA_lt_theta(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -534,7 +544,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  lindih_x(thetaGlobal,y2,b2,a2); // dihA < theta, or dihA > pi - theta.
+ *ret =  lindih_x(global::theta,y2,b2,a2); // dihA < theta, or dihA > pi - theta.
 }
 
 void dihY_lt_theta(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -547,12 +557,18 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  lindih_x(thetaGlobal,a2,b2,y2); // dihY < theta, or dihY > pi - theta.
+ *ret =  lindih_x(global::theta,a2,b2,y2); // dihY < theta, or dihY > pi - theta.
 }
 
 double rat1(double e1,double e2,double e3,double a2,double b2,double c2) {
   double afac = sqrt(a2) * (16.0 - a2); // 4 deleted Feb 6, 2011.
   double sd = sqrt(delta_x(4.0,4.0,4.0,a2,b2,c2));
+  return num1(e1,e2,e3,a2,b2,c2)/(afac * sd);
+}
+
+double rat1_a_priori(double e1,double e2,double e3,double a2,double b2,double c2) {
+  double afac = sqrt(a2) * (16.0 - a2); // 4 deleted Feb 6, 2011.
+  double sd = sqrt(delta_x_a_priori(4.0,4.0,4.0,a2,b2,c2));
   return num1(e1,e2,e3,a2,b2,c2)/(afac * sd);
 }
 
@@ -566,7 +582,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = rat1(e1,e2,e3,y2,b2,a2);
+ *ret = rat1_a_priori(e1,e2,e3,y2,b2,a2);
 }
 
 void rat1B(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -593,7 +609,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2);
+ *ret =  rat1_a_priori(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2);
 }
 
 
@@ -608,7 +624,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = - rat1(e1,e2,e3,y2,b2,a2) ;
+ *ret = - rat1_a_priori(e1,e2,e3,y2,b2,a2) ;
 }
 
 void rat1Bm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -634,7 +650,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  -(rat1(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
+ *ret =  -(rat1_a_priori(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
 }
 
 double den2(double a2,double b2,double c2) {
@@ -643,9 +659,51 @@ double den2(double a2,double b2,double c2) {
   return (afac * afac* sd * sd * sd);
 }
 
+double den2_a_priori(double a2,double b2,double c2) {
+  double afac =  sqrt(a2) * (16.0 - a2); // Feb 6, 2011, corrected.
+  double sd = sqrt(delta_x_a_priori(4.0,4.0,4.0,a2,b2,c2));
+  return (afac * afac* sd * sd * sd);
+}
+
 double rat2(double e1,double e2,double e3,double a2,double b2,double c2) {
   return num2(e1,e2,e3,a2,b2,c2)/den2(a2,b2,c2);
 }
+
+double rat2_a_priori(double e1,double e2,double e3,double a2,double b2,double c2) {
+  return num2(e1,e2,e3,a2,b2,c2)/den2_a_priori(a2,b2,c2);
+}
+
+double ratsgn(double sgn, double y_mangle__[9],int parity) {
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ if (0==parity) return  -(rat2_a_priori(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
+ double r1AB = rat1_a_priori(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2);
+ return sgn * r1AB;
+}
+
+void ratcombo(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret = - (1.0-fabs(global::alpha)) * (rat2_a_priori(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2)) +
+   global::alpha*( rat1_a_priori(e1,e2,e3,y2,b2,a2) + rat1(e4,e2,e3,y2,c2,d2));
+  }
+
+
+
 
 void rat2Am(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -657,7 +715,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret = - rat2(e1,e2,e3,y2,b2,a2) ;
+ *ret = - rat2_a_priori(e1,e2,e3,y2,b2,a2) ;
 }
 
 void rat2Bm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -684,7 +742,7 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  -(rat2(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
+ *ret =  -(rat2_a_priori(e1,e2,e3,y2,b2,a2) + rat2(e4,e2,e3,y2,c2,d2));
 }
 
 void rat2A0m(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
@@ -697,8 +755,22 @@ double b2 = y_mangle__[5];
 double c2 = y_mangle__[6];
 double d2 = y_mangle__[7];
 double y2 = y_mangle__[8];
- *ret =  - num2(e1,e2,e3,y2,b2,a2) - thetaGlobal * den2(y2,b2,a2);
+ *ret =  - num2(e1,e2,e3,y2,b2,a2) - global::theta * den2_a_priori(y2,b2,a2);
 }
+
+void rat2B0m(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  - num2(e4,e2,e3,y2,c2,d2) - global::theta * den2(y2,c2,d2);
+}
+
 
 void eulerBm(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
@@ -713,23 +785,36 @@ double y2 = y_mangle__[8];
  *ret =  - eulerA_x(4.0,4.0,4.0,y2,d2,c2);
 }
 
+void solidB(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
+double e1 = y_mangle__[0];
+double e2 = y_mangle__[1];
+double e3 = y_mangle__[2];
+double e4 = y_mangle__[3];
+double a2 = y_mangle__[4];
+double b2 = y_mangle__[5];
+double c2 = y_mangle__[6];
+double d2 = y_mangle__[7];
+double y2 = y_mangle__[8];
+ *ret =  sol_y(2.0,2.0,2.0,sqrt(y2),sqrt(d2),sqrt(c2));
+}
+
 
 Minimizer m_num1m(double xmin[6],double xmax[6]) {
-	Minimizer M(trialcount,6,0,xmin,xmax);
+	Minimizer M(global::trialcount,6,0,xmin,xmax);
 	M.func = t_num1m;
 	M.cFunc = c0;
 	return M;
 }
 
 Minimizer m_num1(double xmin[6],double xmax[6]) {
-	Minimizer M(trialcount,6,0,xmin,xmax);
+	Minimizer M(global::trialcount,6,0,xmin,xmax);
 	M.func = t_num1;
 	M.cFunc = c0;
 	return M;
 }
 
 Minimizer m_num2m(double xmin[6],double xmax[6]) {
-	Minimizer M(trialcount,6,0,xmin,xmax);
+	Minimizer M(global::trialcount,6,0,xmin,xmax);
 	M.func = t_num2m;
 	M.cFunc = c0;
 	return M;
@@ -737,239 +822,262 @@ Minimizer m_num2m(double xmin[6],double xmax[6]) {
 
 
 Minimizer m_combo(double xmin[6],double xmax[6]) {
-	Minimizer M(trialcount,6,0,xmin,xmax);
+	Minimizer M(global::trialcount,6,0,xmin,xmax);
 	M.func = t_combo;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_varcombo(double xmin[6],double xmax[6]) {
-	Minimizer M(trialcount,6,0,xmin,xmax);
+	Minimizer M(global::trialcount,6,0,xmin,xmax);
 	M.func = t_varcombo;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_deltaA(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = deltaA;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_deltaAm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = deltaAm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_deltaB(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = deltaB;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_deltaBm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = deltaBm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num1A(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num1A;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num1Am(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num1Am;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num1B(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num1B;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num1Bm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num1Bm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num2Am(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num2Am;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_num2Bm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = num2Bm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihA(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihA;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihBm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihBm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_delta4A(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = delta4A;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_delta4Y(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = delta4Y;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_delta4Ym(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = delta4Ym;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_delta4Bm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = delta4Bm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_delta4B(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = delta4B;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihYdihAm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihYdihAm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihB_lt_theta(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihB_lt_theta;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihA_lt_theta(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihA_lt_theta;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_dihY_lt_theta(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = dihY_lt_theta;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat1A(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1A;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat1Am(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1Am;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat2Am(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat2Am;
 	M.cFunc = c0;
 	return M;
 };
 
+Minimizer m_ratcombo(double xmin[9],double xmax[9]) {
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
+	M.func = ratcombo;
+	M.cFunc = c0;
+	return M;
+};
+
+
 Minimizer m_rat1B(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1B;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat1Bm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1Bm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat2Bm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat2Bm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat1AB(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1AB;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat1ABm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat1ABm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat2ABm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat2ABm;
 	M.cFunc = c0;
 	return M;
 };
 
 Minimizer m_rat2A0m(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = rat2A0m;
 	M.cFunc = c0;
 	return M;
 };
 
+Minimizer m_rat2B0m(double xmin[9],double xmax[9]) {
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
+	M.func = rat2B0m;
+	M.cFunc = c0;
+	return M;
+};
+
+
 Minimizer m_eulerBm(double xmin[9],double xmax[9]) {
-	Minimizer M(trialcount,9,0,xmin,xmax);
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
 	M.func = eulerBm;
+	M.cFunc = c0;
+	return M;
+};
+
+Minimizer m_solidB(double xmin[9],double xmax[9]) {
+	Minimizer M(global::trialcount,9,0,xmin,xmax);
+	M.func = solidB;
 	M.cFunc = c0;
 	return M;
 };
@@ -1089,30 +1197,140 @@ void dumpdata298(double xmin[9],double xmax[9]) {
   cout << "rat2AB max " <<  - m_rat2ABm(xmin,xmax).optimize() << endl;
 
   cout << "eulerB max " <<  - m_eulerBm(xmin,xmax).optimize() << endl;
-
+  cout << "solidB min " <<   m_solidB(xmin,xmax).optimize() << endl;
+  cout << "dihA min" << m_dihA(xmin,xmax).optimize() << endl;
 
 }
 
-numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9],double* cut) {
-  double eps = 0.001; // 
-  double mid = eps;
-  double big = eps;  // completes in 2032 steps.
+void print_strategy(numerical_data::n298 o) {
+  switch(o) {
+  case numerical_data::neg_deltaA : cout << "neg_deltaA"; break;
+  case numerical_data::neg_deltaB : cout << "neg_deltaB"; break;
+  case numerical_data::neg_num1 : cout << "neg_num1"; break;
+  case numerical_data::pos_num1 : cout << "pos_num1"; break;
+  case numerical_data::neg_num2 : cout << "neg_num2"; break;
+  case numerical_data::reflexAB : cout << "reflexAB"; break;
+  case numerical_data::angleYA : cout << "angleYA"; break;
+  case numerical_data::angleYB : cout << "angleYB"; break;
+  case numerical_data::neg_rat1 : cout << "neg_rat1"; break;
+  case numerical_data::rat_combo : cout << "rat_combo"; break;
+  case numerical_data::pos_rat1 : cout << "pos_rat1"; break;
+  case numerical_data::neg_rat2 : cout << "neg_rat2"; break;
+  case numerical_data::neg_rat2_A0 : cout << "neg_rat2_A0"; break;
+  case numerical_data::eulerB : cout << "eulerB"; break;
+  case numerical_data::solidB : cout << "solidB"; break;
+  case numerical_data::split : cout << "split"; break;
+  default : cout << "unknown"; break;
+  }
+  cout << endl << flush;
+}
 
-  eps=0.001; mid=1; big=1; // completes in 2084 steps.
-  eps=0.01; mid=1; big=5; // completes in 2293 steps.
-  eps=0.02; mid=3; big=10; // completes in 2491 steps.
-  eps=0.04; mid=6; big=20; //  completes in 4477 steps.
-  eps=0.1; mid=6; big=20; // completes in 4477 steps.
-  eps=0.2; mid=6; big=20; // completes in 4477 steps.
+numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9],double* cut,numerical_data::case298 caseno) {
+    int debug = 0;
 
+    /*
+  double global::eps = 0.001; // 
+  double global::mid = global::eps;
+  double global::big = global::eps;  // completes in 2032 steps.
+
+  global::eps=0.001; global::mid=1; global::big=1; // completes in 2084 steps.
+  global::eps=0.01; global::mid=1; global::big=5; // completes in 2293 steps.
+  global::eps=0.02; global::mid=3; global::big=10; // completes in 2491 steps.
+  global::eps=0.04; global::mid=6; global::big=20; //  completes in 4477 steps.
+  global::eps=0.1; global::mid=6; global::big=20; // completes in 4477 steps.
+  global::eps=0.2; global::mid=6; global::big=20; // completes in 4477 steps.  // old Feb < 2/9 runs.
+
+  global::eps=0.001; global::mid=global::eps; global::big=global::eps;   // 22735 steps brings it to 87% .  Much worse! Use quads!
+  // 93775 steps to 91%.  
+  
+  // benchmarks with rat_combo added in.
+  global::eps=0.001; global::mid=global::eps; global::big=global::eps;   // 500s 46%,  // aborted, more bugs corrected 2/10/2011.
+  global::eps=0.001; global::mid=global::eps; global::big=global::eps;   // 500s 49%, completes in 26553 steps.
+
+  global::eps=0.001; global::mid=global::eps; global::big=global::eps; // top1401, completes in 876 steps.
+  global::eps=0.2; global::mid=6; global::big=20; // top1401, completes in 1689 steps
+
+  // benchmarks for subcases.
+
+  if (numerical_data::top1401==caseno) {
+    global::eps=0.4; global::mid=10; global::big=40; // *top1401, completes in 3300 steps.
+  }
+
+  if (numerical_data::topit==caseno) {
+  global::eps=0.2; global::mid=10; global::big=10; // topit, completes in 915 steps
+  global::eps=0.2; global::mid=10; global::big=20; // *topit, completes in 1432 steps
+  }
+
+  if (numerical_data::dih_constraint==caseno) {
+    global::eps=0.4; global::mid=10; global::big=40; // dih..., 37% after 500 steps, 40% after 1583 steps.
+  global::eps=0.2; global::mid=10; global::big=10; //   45% after 1579 steps. 72% after 6200 steps.
+  global::eps=0.1; global::mid=5; global::big=10; // 74% after 2097 steps.  76% after 3215 steps.
+  global::eps=0.05; global::mid=4; global::big=5; // 74% after 2000 steps, 78% after 6161 steps.
+
+  // retry with global::delta_a_priori truncation.
+  global::delta_a_priori=21.4; // 
+  global::eps=0.05; global::mid=4; global::big=5; // completes in 2039 steps.
+  global::eps=0.2; global::mid=10; global::big=10; //  *completes in 3931 steps.
+  }
+
+  if (numerical_data::pent_acute==caseno) {
+  // retry with global::delta_a_priori truncation.
+  global::delta_a_priori=25.7; // 
+  global::eps=0.05; global::mid=4; global::big=5; //  completes in 3005 steps.
+  global::eps=0.2; global::mid=10; global::big=10; //  completes in 4351 steps.
+  }
+    */
+
+
+  if (numerical_data::top1401==caseno) {
+    global::eps=0.4; global::mid=10; global::big=40; // *top1401, completes in 3300 steps.
+  }
+
+  if (numerical_data::topit==caseno) {
+  global::eps=0.2; global::mid=10; global::big=20; // *topit, completes in 1432 steps
+  }
+
+  if (numerical_data::dih_constraint==caseno) {
+  global::delta_a_priori=21.4; // 
+  global::eps=0.2; global::mid=10; global::big=10; //  *completes in 3931 steps.
+  }
+
+  if (numerical_data::pent_acute==caseno) {
+  global::delta_a_priori=25.7; // 
+  global::eps=0.2; global::mid=10; global::big=10; //  completes in 4351 steps.
+  }
+
+
+  double eps = global::eps;  double mid=global::mid; double big = global::big;
+  
 
   /* deltaA < 0 */ 
-  if (m_deltaAm(xmin,xmax).optimize() > eps) 
-    { return numerical_data::neg_deltaA; }
+  double v_deltaAm = m_deltaAm(xmin,xmax).optimize() ;
 
+  if (v_deltaAm > eps) 
+    { return numerical_data::neg_deltaA; }
+  
   /* deltaB < 0 */
   if (m_deltaBm(xmin,xmax).optimize() > eps) 
     { return numerical_data::neg_deltaB; }
+
+  /* deltaA < delta_a_priori */
+  if ((numerical_data::dih_constraint==caseno || numerical_data::pent_acute==caseno) && 
+      v_deltaAm + global::delta_a_priori > eps) 
+    { return numerical_data::small_deltaA; }
+
+  /* dihY > v_dih_constraint. */
+  double v_delta4Ym =  m_delta4Ym(xmin,xmax).optimize();
+  if (numerical_data::dih_constraint==caseno && v_delta4Ym > eps) {
+    global::theta = pi() - global::v_dih_constraint;
+    if (m_dihY_lt_theta(xmin,xmax).optimize() > eps) 
+    { return numerical_data::big_dihY; }
+  }
+
+  /* delta4Y > 0 */
+  if (numerical_data::pent_acute==caseno && v_delta4Ym > eps) {
+    return numerical_data::delta4Y; 
+  }
 
   double vA,vB;
   /* num1A > 0 and num1B >0 */ {
@@ -1139,21 +1357,26 @@ numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9
   /* dihA > c and dihB > pi -c */ 
   if (v_deltaA > mid && v_delta4Bm > eps) {
     double dihA = m_dihA(xmin,xmax).optimize();
-    thetaGlobal = dihA;
+    global::theta = dihA;
     if (m_dihB_lt_theta(xmin,xmax).optimize() > 2.0* eps) 
       { *cut = dihA; return numerical_data::reflexAB; }
   }
     
   double v_deltaB =  m_deltaB(xmin,xmax).optimize();
-  double v_delta4Ym =  m_delta4Ym(xmin,xmax).optimize();
   double v_delta4A =  m_delta4A(xmin,xmax).optimize();
+
+  /* solidB > t[6,0]/2 + 2 sol0.  */ 
+  if (v_deltaB > mid && (numerical_data::top1401==caseno)) {
+    if (m_solidB(xmin,xmax).optimize() > 1.4815 + eps) { return numerical_data::solidB; }
+    // tameTableD[6,0]/2 + 2 sol0 approx 1.48147. // hexcase.
+  }
   
   /* dihA + dihB < dihY, deltaA ~ 0. */
   if (v_deltaB > mid && v_delta4A > eps && v_delta4Ym > eps) {
     double v_dihB_max = - m_dihBm(xmin,xmax).optimize();
     double c = (pi() - v_dihB_max)/3.0;
-    if ( (thetaGlobal = c, m_dihA_lt_theta(xmin,xmax).optimize() > eps)  &&
-	 (thetaGlobal = 2.0*c, m_dihY_lt_theta(xmin,xmax).optimize() > eps) ) 
+    if ( (global::theta = c, m_dihA_lt_theta(xmin,xmax).optimize() > eps)  &&
+	 (global::theta = 2.0*c, m_dihY_lt_theta(xmin,xmax).optimize() > eps) ) 
       { *cut = c;  return numerical_data::angleYA; }
   }
   
@@ -1162,14 +1385,14 @@ numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9
   /* dihA + dihB < dihY, deltaB ~ 0. */
   if (v_deltaA > mid && v_delta4B > eps) {
     double diff = m_dihYdihAm(xmin,xmax).optimize();
-    thetaGlobal = diff;
+    global::theta = diff;
     if (m_dihB_lt_theta(xmin,xmax).optimize() > 2.0 * eps) 
       { *cut = diff; return numerical_data::angleYB; }
   }
 
   /* dihA + dihB < dihY, deltaA ~ 0, deltaB ~ 0 */
   if (v_delta4Ym > eps && v_delta4B > eps && v_delta4A > eps) {
-    thetaGlobal = pi()/ 4.0;
+    global::theta = pi()/ 4.0;
     if (m_dihA_lt_theta(xmin,xmax).optimize() > eps &&
 	m_dihB_lt_theta(xmin,xmax).optimize() > eps )
       { return numerical_data::angleYAB; }
@@ -1196,30 +1419,72 @@ numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9
       { *cut = v_rat2Am; return numerical_data::neg_rat2; }
   }
 
-  /* rat2A + rat2B < 0,  deltaA ~ 0 */
+  /* rat2A + rat2B < 0,  deltaA ~ 0 */ 
   if (v_deltaB > mid) {
-    double v_rat2Bm = m_rat2Bm(xmin,xmax).optimize();
-    thetaGlobal = v_rat2Bm;
+    double v_rat2Bm =  m_rat2Bm(xmin,xmax).optimize();
+    global::theta = eps - v_rat2Bm;
     if (m_rat2A0m(xmin,xmax).optimize() > eps)
       { *cut = v_rat2Bm; return numerical_data::neg_rat2_A0; }
+  }
+
+  /* rat2A + rat2B < 0,  deltaB ~ 0 */ 
+  if (v_deltaA > mid || (global::delta_a_priori > mid))  {
+    double v_rat2Am =  m_rat2Am(xmin,xmax).optimize();
+    global::theta = eps - v_rat2Am;
+    if (m_rat2B0m(xmin,xmax).optimize() > eps)
+      { *cut = v_rat2Am; return numerical_data::neg_rat2_B0; }
   }
 
   /* eulerB < 0 */
   if (m_eulerBm(xmin,xmax).optimize() > eps)
     { return numerical_data::eulerB; }
 
+  /* (rat2A + rat2B)*(1-t) + sign1 * t* (rat1A + rat1B) < 0 */ 
+  if (v_deltaA > mid && v_deltaB > mid) {
+    double sign1; {
+      Minimizer m_rat2ABmx = m_rat2ABm(xmin,xmax); 
+    double v_rat2ABm = m_rat2ABmx.optimize();
+    if (debug) { cout << "rat_combo rat2ABm " << v_rat2ABm << endl; }
+    double v_rat1AB = ratsgn(1.0,m_rat2ABmx.x,1); 
+    if (debug) { cout << "rat_combo rat1AB " << v_rat1AB << endl; }
+    sign1 = (v_rat1AB > 0? 1.0 : -1.0);
+    }
+    // look for a combination of rat2 and rat1 that works.
+    // generate 512= 2^9 data points:
+    double data[2 * 512];
+    for (int i=0;i<2;i++)
+      for (int j=0;j<512;j++) {
+	int u=1;
+	double x[9];
+	for (int k=0;k<9;k++) { 
+	  int bit =  (j/u) % 2; u *= 2;  // kth bit of binary rep of j.
+	  x[k]= (bit ? xmax[k] : xmin[k] ); 
+	}
+	data[2 * j + i] = ratsgn(sign1,x,i);
+	//if (debug) { cout << "data " << 2*j + i << " " << data[2*j+i] << endl; }
+      }
+    global::alpha = sign1 *simplex2Dalpha(data,512);
+    if (debug) { cout << "rat_combo global::alpha " << global::alpha << endl; } 
+    if (debug) { cout << "rat_combo opt " << m_ratcombo(xmin,xmax).optimize() << endl; }
+    if ( m_ratcombo(xmin,xmax).optimize() > eps) { 
+      *cut = global::alpha;
+      return numerical_data::rat_combo; 
+    } 
+  }
 
   return numerical_data::split; 
   
 }
 
 
-int recurse298(double xmin[9],double xmax[9]) {
+
+int recurse298(double xmin[9],double xmax[9],numerical_data::case298 caseno) {
   counter ++;
 
-// main step.
+
+// main line
   double cut;
-  if (!(numerical_data::split==numerical_data::setStrategy298(xmin,xmax,&cut))) {
+  if (!(numerical_data::split==numerical_data::setStrategy298(xmin,xmax,&cut,caseno))) {
     add_rectangle(xmin,xmax,9);
     return 1;
   }
@@ -1254,24 +1519,45 @@ int recurse298(double xmin[9],double xmax[9]) {
   // subdivide recursively:
   double rmin[2][9], rmax[2][9];
   split9(xmin,xmax,rmin,rmax);
-  return (recurse298(rmin[0],rmax[0]) && recurse298(rmin[1],rmax[1]));
+  return (recurse298(rmin[0],rmax[0],caseno) && recurse298(rmin[1],rmax[1],caseno));
 
 }
 
-int main298() {
-  double x0 = 1.0 + sol0()/pi();
+int main298(numerical_data::case298 caseno) {
+  double emax = 1.0 + sol0()/pi();
   double xlo = real_pow(2.0 / h0(),2.0);
   double xhi = real_pow(2.0 * h0(),2.0);
-  double xmin[9]={1,1,1,1,     xlo,xlo,xlo,   4.0,4.0  };
-  double xmax[9]={x0,x0,x0,x0, xhi,xhi,xhi, 
-		  real_pow(3.915,2.0), real_pow(3.915,2.0) };
-  numerical_data::set_rectangle(xmin,xmax,9);
-  int r = recurse298(xmin,xmax);
+  double xp = real_pow(3.915,2.0);
+  double topit= 10.0; 
+  double x0[9]={1,1,1,1,     xlo,xlo,xlo,   4.0,4.0  };
+  double z0[9]={emax,emax,emax,emax, xhi,xhi,xhi, xp,xp };	 
+  int d2=7; int b2=5;
+  switch(caseno) {
+  case numerical_data::topit :  z0[d2]=topit;   break; 
+  case numerical_data::top1401 :  x0[d2]=topit; z0[d2]=14.01;  break;
+  case numerical_data::dih_constraint :  x0[d2]=topit;   break;
+  case numerical_data::pent_acute : x0[b2]=topit; z0[b2]=xp; x0[d2]=xlo; z0[d2]=xhi; break;
+  }
+
+  numerical_data::set_rectangle(x0,z0,9);
+  int r = recurse298(x0,z0,caseno);
   if (r) { cout << "\nfinished " << numerical_data::percent_done() << endl << flush; 
   }
   
   return r;
 }
+
+
+
+int main298test() {
+  double x0[9]={1, 1, 1, 1, 5.87154, 5.63211, 5.39268, 12.1414, 14.2653};
+  double z0[9]={1.17548, 1.17548, 1.17548, 1.17548, 6.11097, 5.87154, 5.87154, 12.4954, 14.6193};
+  numerical_data::set_rectangle(x0,z0,9);
+  double cut;
+  print_strategy(numerical_data::setStrategy298(x0,z0,&cut,numerical_data::top1401));
+  print9(x0,z0);
+  dumpdata298(x0,z0);
+  }
 
 
 // NOW 206 STUFF:
@@ -1324,7 +1610,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
       }
       data[2 * j + i] = numsgn(sign1,x,i);
     }
-  global_alpha = sign1 *simplex2Dalpha(data,64);
+  global::alpha = sign1 *simplex2Dalpha(data,64);
   }
 
   // check if it works
@@ -1332,7 +1618,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
   double nn = znn.optimize();
   if (nn > eps) { 
     s.mode = numerical_data::strategy::merge;
-    s.alpha = global_alpha;
+    s.alpha = global::alpha;
     combcounter++; 
     rectangle_partial += rectangle(xmin,xmax,6); 
     return 1; } 
@@ -1343,7 +1629,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
   if (mm < 0 && (lastprintcount + printspan<= counter)) {
       cout.precision(3);
       lastprintcount = counter;
-      cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << global_alpha ;
+      cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << global::alpha ;
       cout.precision(6);
       cout << " f:" << numerical_data::percent_done() << endl << flush; } 
 
@@ -1389,13 +1675,13 @@ int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
   assert(0.5==simplex2Dalpha(data,4));
   }
 
-  global_alpha = 0.99915589538304627748 ;
+  global::alpha = 0.99915589538304627748 ;
   double y[6]={0.99999999999999988898,0.99999999999999988898,0.99999999999999988898,2.5195263290501368481,2.5195263290501368481,7.8392912459240529088};
   double r;
   t_varcombo(6,1,y,&r,0);
   
   cout.precision(30);
-  cout << "alpha " << global_alpha << endl;
+  cout << "alpha " << global::alpha << endl;
   cout << "combo " << r << endl;
   cout << "num1 " << numsgn(1.0,y,1) << endl;
   cout << "num2 " << numsgn(1.0,y,0) << endl;
@@ -1406,5 +1692,8 @@ int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
 
 
 int main() {
-  main298();
+  //  main298(numerical_data::top1401);
+  //main298(numerical_data::topit);
+  // main298(numerical_data::dih_constraint);
+  main298(numerical_data::pent_acute);
 }

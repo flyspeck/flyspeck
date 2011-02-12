@@ -2018,7 +2018,7 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   }
 
   // eulerA_hexall_x
-  const taylorFunction euler_ax = 
+  const taylorFunction eulerA_x = 
     y1 * y2 * y3 + y1 * (x2 + x3 - x4) * half + y2 * (x1 + x3 - x5) * half +
     y3 * (x1 + x2 - x6) * half;
 
@@ -2027,7 +2027,7 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     static const interval zero("0");
     taylorFunction uz = unit * zero;
     taylorFunction ef_213 = taylorFunction::compose(edge_flat2_x,x2,x1,x3,uz,unit * x23, unit * x12);
-    taylorFunction d = taylorFunction::compose(euler_ax,x1,x3,x4,x5,unit * x14, ef_213);
+    taylorFunction d = taylorFunction::compose(eulerA_x,x1,x3,x4,x5,unit * x14, ef_213);
     return d;
   }
 
@@ -2176,7 +2176,9 @@ static const taylorFunction num2 =
    4096*monomial(1,0,0,3,0,0) - 16*monomial(1,0,0,3,0,2) + 32*monomial(1,0,0,3,1,1) - 
 16*monomial(1,0,0,3,2,0) - 512*monomial(1,0,0,4,0,0) + 16*monomial(1,0,0,5,0,0);
 
-  const taylorFunction rat2 = num2 * uni(univariate::i_inv,uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac)); 
+  const taylorFunction den2 = uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac); 
+
+  const taylorFunction rat2 = num2 * uni(univariate::i_inv,den2);
 
 
 }; // end local scope
@@ -2248,6 +2250,7 @@ const taylorFunction taylorSimplex::num1 = local::num1;
 const taylorFunction taylorSimplex::num2 = local::num2;
 const taylorFunction taylorSimplex::rat1 = local::rat1;
 const taylorFunction taylorSimplex::rat2 = local::rat2;
+const taylorFunction taylorSimplex::den2 = local::den2;
 const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
 const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;
@@ -2255,6 +2258,7 @@ const taylorFunction taylorSimplex::taum_x = local::taum_x;
 const taylorFunction taylorSimplex::x1_delta_x = local::x1_delta_x;
 const taylorFunction taylorSimplex::delta4_squared_x = local::delta4_squared_x;
 const taylorFunction taylorSimplex::flat_term_x = local::flat_term_x;
+const taylorFunction taylorSimplex::eulerA_x = local::eulerA_x;
 
 
 const taylorFunction taylorSimplex::dih_template_B_x(const interval& x15,const interval& x45,

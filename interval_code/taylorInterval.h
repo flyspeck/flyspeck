@@ -353,6 +353,7 @@ class taylorSimplex
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  ldih_x,ldih2_x,ldih3_x,ldih5_x,ldih6_x,
 	  upper_dih,
+	  eulerA_x,
 
 	  rhazim,rhazim2,rhazim3,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
@@ -360,7 +361,7 @@ class taylorSimplex
 	  //    marchalDih4,marchalDih5,marchalDih6,
 	  x1cube,x1square,
 	  num1,num2,num_combo1,
-	  rat1,rat2,
+	  rat1,rat2,den2,
 	  edge_flat2_x,
 	  flat_term_x,
 	  taum_x,

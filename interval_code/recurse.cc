@@ -24,7 +24,7 @@ extern "C"
 #include "secondDerive.h"
 #include "taylorInterval.h"
 #include "recurse.h"
-#include "../cfsqp/2065952723A.h"   // custom case.
+#include "../cfsqp/2065952723A.h"   // custom cases.
 using namespace std;
 
 static const int MAXcount = 7; // MAX number of taylorFunctions in an array.
@@ -416,7 +416,7 @@ void stats(int force) {
 }
 
 
-int f206A(int depth,double xx[6],double zz[6],cellOption options); // forward decl.
+int f206A(int depth,double xx[6],double zz[6],cellOption options); // forward decl. for mutual recursion.
 
 int prove::recursiveVerifier(int depth,
 			     const domain& xD,const domain& zD,     /// current cell
@@ -538,205 +538,6 @@ int recursiveVerifierWithLinear3(int depth,
  }
 
 
-int f298x(int depth,double xx[9],double zz[9],cellOption options) { // verification of inequality 2986512815.
-
-  // initialize;
-  const double INVALID=7777;
-  double cut=INVALID;
-  double eps = 0.2; double mid = 6.0; double big = 20.0; // values from setStrategy298.
-  numerical_data::n298 o = numerical_data::setStrategy298(xx,zz,&cut);
-
-  if (o == numerical_data::split) {
-    interMath::up();
-    int j_wide=0; /* init j_wide */ {
-      double w = zz[0]-xx[0]; 
-      for (int j=0;j<9;j++) {
-	if (zz[j]-xx[j] > w) { j_wide = j; w = zz[j]-xx[j]; }
-      }}
-    for (int k=0;k<2;k++) 	{
-      double y, xr[9], zr[9];
-      y = (xx[j_wide]+zz[j_wide])/2.0;
-      for (int j=0;j<9;j++) { xr[j] = xx[j]; zr[j]=zz[j]; }
-      (k? xr[j_wide] = y : zr[j_wide] = y);
-      if (!f298x(depth+1,xr,zr,options)) return 0;
-    }
-    return 1;
-  }
-
-  double e1n = xx[0];
-  double e2n = xx[1];
-  double e3n = xx[2];
-  double e4n = xx[3];
-  double a2n = xx[4];
-  double b2n = xx[5];
-  double c2n = xx[6];
-  double d2n = xx[7];
-  double y2n = xx[8];
-
-  double e1u = zz[0];
-  double e2u = zz[1];
-  double e3u = zz[2];
-  double e4u = zz[3];
-  double a2u = zz[4];
-  double b2u = zz[5];
-  double c2u = zz[6];
-  double d2u = zz[7];
-  double y2u = zz[8];
-
-  double xY[6]={4.0,4.0,4.0,y2n,a2n,b2n};
-  double zY[6]={4.0,4.0,4.0,y2u,a2u,b2u};
-
-  double xEY[6]={e1n,e2n,e3n,y2n,b2n,a2n};
-  double zEY[6]={e1u,e2u,e3u,y2u,b2u,a2u};
-
-  double xH[6]={4.0,4.0,4.0,y2n,c2n,d2n};
-  double zH[6]={4.0,4.0,4.0,y2u,c2u,d2u};
-
-  double xEH[6]={e4n,e2n,e3n,y2n,c2n,d2n};
-  double zEH[6]={e4u,e2u,e3u,y2u,c2u,d2u};
-
-
-  cellOption opt1;
-  opt1.iterationCount = options.iterationCount;
-  static interval mone("-1");
-
-  if (o== numerical_data::neg_deltaA || o==numerical_data::neg_deltaB) {
-    taylorFunction F  = taylorSimplex::delta ;
-    const taylorFunction* I[1] = {&F};
-    int rv; 
-    rv = (o==numerical_data::neg_deltaA ?
-	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt1) : 
-	  prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt1));
-    options.iterationCount   = opt1.iterationCount;
-    return rv;
-  }
-
-  if (o== numerical_data::pos_num1 || o==numerical_data::neg_num1 ||
-      o==numerical_data::neg_num2) {
-    taylorFunction F  = 
-      (o==numerical_data::pos_num1 ? taylorSimplex::num1 * mone :
-       (o==numerical_data::neg_num1 ? taylorSimplex::num1 : taylorSimplex::num2));
-    const taylorFunction* I[1] = {&F};
-    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,I,1,opt1) &&
-      recursiveVerifierWithLinear3(depth+1,xEH,zEH,I,1,opt1);
-    options.iterationCount   = opt1.iterationCount;
-    return rv;    
-  }
-
-  /* insert dihedral guys here */
-
-  /*
-  if (o== numerical_data::pos_rat1 || o==numerical_data::neg_rat1 ||
-      o==numerical_data::neg_rat2) {
-    assert(!( cut==INVALID)); // cut needs to have been set.
-    double v = cut - eps/2.0;
-    static interval mone("-1");
-    interval shift(v,v);
-    taylorFunction F  = 
-      (o==numerical_data::pos_rat1 ? taylorSimplex::rat1 * mone :
-       (o==numerical_data::neg_rat1 ? taylorSimplex::rat1 : taylorSimplex::rat2));
-    taylorFunction FY = F + taylorSimplex::unit * shift;
-    taylorFunction FH = F +  taylorSimplex::unit * shift* mone;
-    const taylorFunction* IY[1] = {&FY};
-    const taylorFunction* IH[1] = {&FH};
-    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt1) &&
-      recursiveVerifierWithLinear3(depth+1,xEH,zEH,IH,1,opt1);
-    options.iterationCount   = opt1.iterationCount;
-    return rv;    
-  }
-  */
-
-  if (o==numerical_data::neg_rat2_A0) {
-  }
-
-  if (o==numerical_data::eulerB) {
-  }
-
-  assert((0==1)); // "unreachable code";
-
-}
-
-
-
-int prove::f298() {
-  static const interval h0 ("1.26");
-  static const interval two ("2");
-  double emax  =1.1754796561; // upper bound on 1 + sol0/pi.
-  double ymin = 2.519526329; //lower bound on (2/h0)^2
-  double ymax = 6.35040000001; // upper bound on (2 h0)^2.
-  double ylmax = 15.3272; // upper bound on 3.915^2.
-  double x0[9]={1,1,1,1,                            ymin,ymin,ymin,          4,4};
-  double z0[9]={emax,emax,emax,emax,  ymax,ymax,ymax,        ylmax,ylmax};
-  cellOption opt;
-  f298x(0,x0,z0,opt);
-}
-
-
-
-
-int f206A(int depth,double xx[6],double zz[6],cellOption options) {
-  numerical_data::strategy s;
-  numerical_data::setStrategy206A(xx,zz,s);
-  if (s.mode == numerical_data::strategy::split) { return -1; }
-  static interval one("1");
-  static interval mone = -one;
-  interval alpha(s.alpha,s.alpha);
-  interval malpha = one - interMath::max(alpha,-alpha);
-  const taylorFunction F = 
-    ( (s.mode==numerical_data::strategy::n1) ? taylorSimplex::num1   :
-      ((s.mode ==numerical_data::strategy::n1m) ? taylorSimplex::num1 * mone  :
-       ((s.mode == numerical_data::strategy::n2m) ? taylorSimplex::num2 * mone :
-	(assert(s.mode == numerical_data::strategy::merge),
-	 taylorSimplex::num2 * malpha * mone + 
-	 taylorSimplex::num1 * alpha) ) ) );
-  const taylorFunction Fm = F * mone;
-  const taylorFunction* J[1] = {&Fm};
-  // use linearity in e1,e2,e3 to do dimension reduction.
-  /* stats */ {
-    static int rc = 0;
-    rc++;
-    if (rc < 100) {
-      report_current(xx,zz,"206",5); 
-      taylorInterval U = Fm.evalf(domain(xx),domain(zz));
-      cout.precision(20);
-      cout << "iub: " << U.upperBound() << endl;
-      cout << "mid: " << U.tangentVectorOf().hi() << endl;
-    }
-  }
-  // This block can be rewritten using recursiveVerifierWithLinear3
-  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
-	double xr[6], zr[6];
-	xr[0] = (i ? zz[0] : xx[0]); 
-	xr[1] = (j ? zz[1] : xx[1]); 
-	xr[2] = (k ? zz[2] : xx[2]); 
-	for (int r=0;r<3;r++) { zr[r]=xr[r]; }
-	for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
-	cellOption opt1;
-	//opt1.printingMode=cellOption::silent;
-	opt1.iterationCount = options.iterationCount;
-	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
-	options.iterationCount   = opt1.iterationCount;
-	if (!rv) {
-	  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
-	  cout << "x r" << endl;
-	  for (int u=0;u<6;u++) {
-	    cout << xr[u] << " " << zr[u] << endl;
-	  }
-	  if (s.mode==numerical_data::strategy::merge) 
-	    { cout << " alpha " << alpha << endl; }
-	  switch (s.mode) {
-	  case numerical_data::strategy::n1 : cout << "strategy n1"; break;
-	  case numerical_data::strategy::n1m : cout << "strategy n1m"; break;
-	  case numerical_data::strategy::n2m : cout << "strategy n2m"; break;
-	  case numerical_data::strategy::split : cout << "strategy split"; break;
-	  case numerical_data::strategy::merge : cout << "strategy merge"; break;
-	  default: cout << "strategy unknown"; break;
-	  }
-	  return 0;
-	}
-      }
-  return 1;
-}
 
 
 
@@ -1286,51 +1087,257 @@ int prove::recursiveVerifierQ(int depth,
     return 1;
   }}
 
-/*
-// now start the old recursion;	
-interMath::up();
-double yyA[6]; for (i=0;i<6;i++) yyA[i]= (xxA[i]+zzA[i])/2.0;//~center.
-double xAr[6],zAr[6];
-double yyB[6]; for (i=0;i<6;i++) yyB[i]= (xxB[i]+zzB[i])/2.0;//~center.
-for (i=1;i<4;i++) yyB[i]=yyA[i];
-double xBr[6],zBr[6];
-static const double epsilon_width = 1.0e-8;
-for (i=0;i<6;i++) { xAr[i]=xxA[i]; zAr[i]=zzA[i]; }
-for (i=0;i<6;i++) { xBr[i]=xxB[i]; zBr[i]=zzB[i]; }
-int imaxA[6],imaxB[6],iterA[6],iterB[6];
-for (i=0;i<6;i++) { imaxA[i]= ( zzA[i]>xxA[i]+epsilon_width? 2 : 1 ); }
-for (i=0;i<6;i++) { imaxB[i]= ( zzB[i]>xxB[i]+epsilon_width? 2 : 1 ); }
-double w0=zzA[0]-xxA[0]; 
-for (i=1;i<6;i++) 
-if (w0<zzA[i]-xxA[i]) w0=zzA[i]-xxA[i]; 
-for (i=0;i<6;i++) 
-if (w0<zzB[i]-xxB[i]) w0=zzB[i]-xxB[i]; 
-w0 = w0/2.0; //  approximate width;
-for (i=0;i<6;i++) if ((imaxA[i]>1)&&(zzA[i]-xxA[i]<w0)) imaxA[i]=1;
-for (i=0;i<6;i++) if ((imaxB[i]>1)&&(zzB[i]-xxB[i]<w0)) imaxB[i]=1;
-for (iterA[0]=0;iterA[0]<imaxA[0];iterA[0]++)  // at most 2^9 cases
-for (iterA[1]=0;iterA[1]<imaxA[1];iterA[1]++)
-for (iterA[2]=0;iterA[2]<imaxA[2];iterA[2]++)
-for (iterA[3]=0;iterA[3]<imaxA[3];iterA[3]++)
-for (iterA[4]=0;iterA[4]<imaxA[4];iterA[4]++)
-for (iterA[5]=0;iterA[5]<imaxA[5];iterA[5]++)
-for (iterB[0]=0;iterB[0]<imaxB[0];iterB[0]++)
-for (iterB[4]=0;iterB[4]<imaxB[4];iterB[4]++)
-for (iterB[5]=0;iterB[5]<imaxB[5];iterB[5]++)
-{
-iterB[1]=iterA[1]; iterB[2]=iterA[2]; iterB[3]=iterA[3];
-for (i=0;i<6;i++) 
-{
-xAr[i] = ( iterA[i] ? yyA[i] : xxA[i] );
-zAr[i] = ( imaxA[i]-iterA[i]-1? yyA[i] : zzA[i] );
-xBr[i] = ( iterB[i] ? yyB[i] : xxB[i] );
-zBr[i] = ( imaxB[i]-iterB[i]-1? yyB[i] : zzB[i] );
+
+/**********************************************
+
+   START of SPECIAL CASE MATERIAL : 2986512815 and 2065952723.
+
+***********************************************/
+
+
+int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::case298 caseno) { 
+
+  // verification of inequality 2986512815.
+
+  // initialize;
+  const double INVALID=7777;
+  double cut=INVALID;
+  double delta_a_priori = 0;
+  double v_dih_constraint=2.7458;
+  double eps = 0.2; double mid = 10.0; double big = 10.0; // values from setStrategy298.
+  switch(caseno) {
+  case numerical_data::top1401:  eps=0.4;  big=40; break; 
+  case numerical_data::topit:  eps=0.2;  big=20; break; 
+  case numerical_data::dih_constraint: delta_a_priori=21.4;  break; 
+  case numerical_data::pent_acute: delta_a_priori=25.7;  break; 
+  default : error::fatal("missing case");
+  }
+  numerical_data::n298 o = numerical_data::setStrategy298(xx,zz,&cut,caseno);
+
+  if (o == numerical_data::split) {
+    interMath::up();
+    int j_wide=0; /* init j_wide */ {
+      double w = zz[0]-xx[0]; 
+      for (int j=0;j<9;j++) {
+	if (zz[j]-xx[j] > w) { j_wide = j; w = zz[j]-xx[j]; }
+      }}
+    for (int k=0;k<2;k++) 	{
+      double y, xr[9], zr[9];
+      y = (xx[j_wide]+zz[j_wide])/2.0;
+      for (int j=0;j<9;j++) { xr[j] = xx[j]; zr[j]=zz[j]; }
+      (k? xr[j_wide] = y : zr[j_wide] = y);
+      if (!f298x(depth+1,xr,zr,opt,caseno)) return 0;
+    }
+    return 1;
+  }
+
+  double e1n = xx[0];
+  double e2n = xx[1];
+  double e3n = xx[2];
+  double e4n = xx[3];
+  double a2n = xx[4];
+  double b2n = xx[5];
+  double c2n = xx[6];
+  double d2n = xx[7];
+  double y2n = xx[8];
+
+  double e1u = zz[0];
+  double e2u = zz[1];
+  double e3u = zz[2];
+  double e4u = zz[3];
+  double a2u = zz[4];
+  double b2u = zz[5];
+  double c2u = zz[6];
+  double d2u = zz[7];
+  double y2u = zz[8];
+
+  double xY[6]={4.0,4.0,4.0,y2n,a2n,b2n};
+  double zY[6]={4.0,4.0,4.0,y2u,a2u,b2u};
+
+  double xEY[6]={e1n,e2n,e3n,y2n,b2n,a2n};
+  double zEY[6]={e1u,e2u,e3u,y2u,b2u,a2u};
+
+  double xH[6]={4.0,4.0,4.0,y2n,c2n,d2n};
+  double zH[6]={4.0,4.0,4.0,y2u,c2u,d2u};
+
+  double xEH[6]={e4n,e2n,e3n,y2n,c2n,d2n};
+  double zEH[6]={e4u,e2u,e3u,y2u,c2u,d2u};
+
+  static const interval mone("-1");
+
+  if (o== numerical_data::neg_deltaA || o==numerical_data::neg_deltaB) {
+    taylorFunction F  = taylorSimplex::delta ;
+    const taylorFunction* I[1] = {&F};
+    int rv; 
+    rv = (o==numerical_data::neg_deltaA ?
+	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt) : 
+	  prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt));
+    return rv;
+  } // 
+
+  if (numerical_data::dih_constraint==caseno && numerical_data::big_dihY ==o) {
+    taylorFunction F = taylorSimplex::delta4_x;
+   const taylorFunction* I[1] = {&F};
+   int rv = 	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt) ;
+   if (!rv) { return rv; }
+    taylorFunction G = taylorSimplex::dih_minus_theta(cut) * mone;
+    const taylorFunction* J[1] = {&G};
+    rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,J,1,opt);
+    if (!rv) {return rv; }
+    taylorFunction H = taylorSimplex::dih
+  }
+
+  if (o== numerical_data::pos_num1 || o==numerical_data::neg_num1 ||
+      o==numerical_data::neg_num2) {
+    taylorFunction F  = 
+      (o==numerical_data::pos_num1 ? taylorSimplex::num1 * mone :
+       (o==numerical_data::neg_num1 ? taylorSimplex::num1 : taylorSimplex::num2));
+    const taylorFunction* I[1] = {&F};
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,I,1,opt) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,I,1,opt);
+    return rv;    
+  }
+
+  /* insert dihedral guys here */
+
+  if (o== numerical_data::pos_rat1 || o==numerical_data::neg_rat1 ||
+      o==numerical_data::neg_rat2) {
+    assert(!( cut==INVALID)); // cut needs to have been set.
+    double v = cut - eps/2.0;
+    interval shift(v,v);
+    taylorFunction F  = 
+      (o==numerical_data::pos_rat1 ? taylorSimplex::rat1  :
+       (o==numerical_data::neg_rat1 ? taylorSimplex::rat1 *mone  : taylorSimplex::rat2 * mone));
+    taylorFunction FY = F*mone + taylorSimplex::unit * shift ;
+    taylorFunction FH = F*mone +  taylorSimplex::unit * shift * mone;
+    const taylorFunction* IY[1] = {&FY};
+    const taylorFunction* IH[1] = {&FH};
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,IH,1,opt);
+    return rv;    
+  }
+
+  if (o==numerical_data::neg_rat2_A0) {
+    assert(!(INVALID==cut));
+    double v = eps - cut ;
+    interval theta(v,v);
+    taylorFunction FH = taylorSimplex::rat2  + taylorSimplex::unit * theta * mone;
+    taylorFunction FY = taylorSimplex::num2 + taylorSimplex::den2 * theta ;
+    const taylorFunction* IY[1] = {&FY};
+    const taylorFunction* IH[1] = {&FH};
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,IH,1,opt);
+    return rv;    
+  }
+
+  if (o==numerical_data::eulerB) {
+    taylorFunction e = taylorSimplex::eulerA_x * mone;
+    const taylorFunction* I[1]={&e};
+    int rv = prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt);
+    return rv;       
+  }
+
+  assert((0==1)); // "unreachable code";
+
 }
-if (!recursiveVerifierQ
-(depth+1,xAr,xBr,zAr,zBr,IIA,IIB,NNineq,opt)) return 0;
+
+int f298case(numerical_data::case298 caseno) {  // follows main298.
+  cellOption opt;
+  static const interval h0 ("1.26");
+  static const interval two ("2");
+  double emax  =1.1754796561; // upper bound on 1 + sol0/pi.
+  double xlo = 2.519526329; //lower bound on (2/h0)^2
+  double xhi = 6.35040000001; // upper bound on (2 h0)^2.
+  double xp = 15.3272; // upper bound on 3.915^2.
+  double topit=10.0;
+  double x0[9]={1,1,1,1,                            xlo,xlo,xlo,          4,4};
+  double z0[9]={emax,emax,emax,emax,  xhi,xhi,xhi,        xp,xp};
+  int d2=7; int b2=5;
+
+  switch(caseno) {
+  case numerical_data::topit :  z0[d2]=topit;   break; 
+  case numerical_data::top1401 :  x0[d2]=topit; z0[d2]=14.01;  break;
+  case numerical_data::dih_constraint :  x0[d2]=topit;   break;
+  case numerical_data::pent_acute : x0[b2]=topit; z0[b2]=xp; x0[d2]=xlo; z0[d2]=xhi; break;
+  }
+return  f298x(0,x0,z0,opt,caseno);
 }
-return 1;
+
+
+int prove::f298() {
+  return (f298case(numerical_data::top1401) &&
+	  f298case(numerical_data::topit) &&
+	  f298case(numerical_data::dih_constraint) &&
+	  f298case(numerical_data::pent_acute))
+	  ;
+  }
+
+
+
+int f206A(int depth,double xx[6],double zz[6],cellOption options) {
+  numerical_data::strategy s;
+  numerical_data::setStrategy206A(xx,zz,s);
+  if (s.mode == numerical_data::strategy::split) { return -1; }
+  static interval one("1");
+  static interval mone = -one;
+  interval alpha(s.alpha,s.alpha);
+  interval malpha = one - interMath::max(alpha,-alpha);
+  const taylorFunction F = 
+    ( (s.mode==numerical_data::strategy::n1) ? taylorSimplex::num1   :
+      ((s.mode ==numerical_data::strategy::n1m) ? taylorSimplex::num1 * mone  :
+       ((s.mode == numerical_data::strategy::n2m) ? taylorSimplex::num2 * mone :
+	(assert(s.mode == numerical_data::strategy::merge),
+	 taylorSimplex::num2 * malpha * mone + 
+	 taylorSimplex::num1 * alpha) ) ) );
+  const taylorFunction Fm = F * mone;
+  const taylorFunction* J[1] = {&Fm};
+  // use linearity in e1,e2,e3 to do dimension reduction.
+  /* stats */ {
+    static int rc = 0;
+    rc++;
+    if (rc < 100) {
+      report_current(xx,zz,"206",5); 
+      taylorInterval U = Fm.evalf(domain(xx),domain(zz));
+      cout.precision(20);
+      cout << "iub: " << U.upperBound() << endl;
+      cout << "mid: " << U.tangentVectorOf().hi() << endl;
+    }
+  }
+  // This block can be rewritten using recursiveVerifierWithLinear3
+  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
+	double xr[6], zr[6];
+	xr[0] = (i ? zz[0] : xx[0]); 
+	xr[1] = (j ? zz[1] : xx[1]); 
+	xr[2] = (k ? zz[2] : xx[2]); 
+	for (int r=0;r<3;r++) { zr[r]=xr[r]; }
+	for (int r=3;r<6;r++) { xr[r]=xx[r]; zr[r] = zz[r]; }
+	cellOption opt1;
+	//opt1.printingMode=cellOption::silent;
+	opt1.iterationCount = options.iterationCount;
+	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
+	options.iterationCount   = opt1.iterationCount;
+	if (!rv) {
+	  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
+	  cout << "x r" << endl;
+	  for (int u=0;u<6;u++) {
+	    cout << xr[u] << " " << zr[u] << endl;
+	  }
+	  if (s.mode==numerical_data::strategy::merge) 
+	    { cout << " alpha " << alpha << endl; }
+	  switch (s.mode) {
+	  case numerical_data::strategy::n1 : cout << "strategy n1"; break;
+	  case numerical_data::strategy::n1m : cout << "strategy n1m"; break;
+	  case numerical_data::strategy::n2m : cout << "strategy n2m"; break;
+	  case numerical_data::strategy::split : cout << "strategy split"; break;
+	  case numerical_data::strategy::merge : cout << "strategy merge"; break;
+	  default: cout << "strategy unknown"; break;
+	  }
+	  return 0;
+	}
+      }
+  return 1;
 }
-*/
+
+
 
 // end of buffer.

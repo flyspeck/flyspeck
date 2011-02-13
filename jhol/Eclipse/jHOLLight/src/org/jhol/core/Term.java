@@ -23,7 +23,7 @@ public abstract class Term extends CamlObject {
 		StringBuilder str = new StringBuilder();
 		
 		str.append('`');
-		str.append(TermPrinter.simplePrint(this));
+		str.append(TermPrinter.print(this));
 		str.append('`');
 		
 		return str.toString();
@@ -162,6 +162,23 @@ public abstract class Term extends CamlObject {
 		
 		CombTerm t2 = (CombTerm) t;
 		return new Pair<Term, Term>(t2.rator, t2.rand);
+	}
+	
+	
+	/**
+	 * Iteratively breaks apart combinations
+	 */
+	public static Pair<Term, ArrayList<Term>> strip_comb(Term t) {
+		ArrayList<Term> args = new ArrayList<Term>();
+		
+		while (true) {
+			if (!is_comb(t))
+				return new Pair<Term, ArrayList<Term>>(t, args);
+			
+			Pair<Term,Term> p = dest_comb(t);
+			args.add(0, p.getSecond());
+			t = p.getFirst();
+		}
 	}
 	
 	

@@ -77,6 +77,14 @@ public abstract class HOLType extends CamlObject {
 		return new TyVar(name);
 	}
 	
+	
+	/**
+	 * Returns true if the given type is a type variable
+	 */
+	public static boolean is_vartype(HOLType type) {
+		return type instanceof TyVar;
+	}
+	
 
 	
 	/**
@@ -91,6 +99,11 @@ public abstract class HOLType extends CamlObject {
 			throw new Exception("mk_type: wrong number of arguments to " + name);
 */		
 		return new TyApp(name, args);
+	}
+	
+	
+	public static HOLType mk_type(String name) throws Exception {
+		return mk_type(name, new ArrayList<HOLType>());
 	}
 	
 	
@@ -111,6 +124,12 @@ public abstract class HOLType extends CamlObject {
 	
 	
 	/**
+	 * Computes a type instantiation to match the given type
+	 */
+	public abstract ArrayList<Pair<HOLType, HOLType>> type_match(HOLType cty, ArrayList<Pair<HOLType, HOLType>> env);
+	
+	
+	/**
 	 * Type variable
 	 */
 	public static class TyVar extends HOLType {
@@ -127,6 +146,27 @@ public abstract class HOLType extends CamlObject {
 		@Override
 		public Pair<String, HOLType[]> dest() {
 			return new Pair<String, HOLType[]>(name, null);
+		}
+		
+		
+		@Override
+		public ArrayList<Pair<HOLType,HOLType>> type_match(HOLType cty, ArrayList<Pair<HOLType,HOLType>> env) {
+			if (env == null)
+				env = new ArrayList<Pair<HOLType,HOLType>>();
+			
+			HOLType tmp = Utils.rev_assoc(this, env);
+			
+			ArrayList<Pair<HOLType,HOLType>> result = new ArrayList<Pair<HOLType,HOLType>>();
+			if (tmp == null) {
+				result.add(new Pair<HOLType,HOLType>(cty, this));
+				result.addAll(env);
+				return result;
+			}
+			
+			if (tmp.equals(cty))
+				return env;
+			
+			return null;
 		}
 		
 		
@@ -199,6 +239,42 @@ public abstract class HOLType extends CamlObject {
 		public Pair<String, HOLType[]> dest() {
 			HOLType[] a = new HOLType[args.size()];
 			return new Pair<String, HOLType[]>(constructorName, args.toArray(a));
+		}
+		
+		
+		@Override
+		public ArrayList<Pair<HOLType,HOLType>> type_match(HOLType cty, ArrayList<Pair<HOLType,HOLType>> env) {
+			if (env == null)
+				env = new ArrayList<Pair<HOLType,HOLType>>();
+			
+			if (is_vartype(cty))
+				return null;
+			
+			Pair<String, HOLType[]> p1 = dest();
+			Pair<String, HOLType[]> p2 = cty.dest();
+			
+			String vop = p1.getFirst();
+			String cop = p2.getFirst();
+			HOLType[] vargs = p1.getSecond();
+			HOLType[] cargs = p2.getSecond();
+			
+			if (!vop.equals(cop))
+				return null;
+
+			if (vargs.length != cargs.length)
+				return null;
+			
+			int n = vargs.length;
+			ArrayList<Pair<HOLType,HOLType>> result = new ArrayList<Pair<HOLType,HOLType>>();
+			result.addAll(env);
+			
+			for (int i = n - 1; i >= 0; i--) {
+				result = vargs[i].type_match(cargs[i], result);
+				if (result == null)
+					return null;
+			}
+			
+			return result;
 		}
 		
 		

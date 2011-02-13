@@ -78,7 +78,7 @@ public class TermList extends AbstractTableModel {
 			switch (columnIndex) {
 			case 0:
 				// The first column is the term itself
-				return TermPrinter.simplePrint(term);
+				return TermPrinter.print(term);
 			case 1:
 				// The second column is the type of the term
 				return TypePrinter.printType(term.type());

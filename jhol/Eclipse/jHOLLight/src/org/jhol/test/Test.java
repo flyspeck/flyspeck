@@ -1,13 +1,19 @@
 package org.jhol.test;
 
 import java.io.BufferedReader;
+
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 import org.jhol.core.HOLType;
+import org.jhol.core.Pair;
 import org.jhol.core.Term;
 import org.jhol.core.lexer.TermParser;
 import org.jhol.core.printer.TermPrinter;
 import org.jhol.core.printer.TypePrinter;
+
+import static org.jhol.core.HOLType.*;
+import static org.jhol.core.Term.*;
 
 
 public class Test {
@@ -31,7 +37,7 @@ public class Test {
 		Term term = TermParser.parseTerm(test);
 		
 		System.out.println("term = " + term);
-		System.out.println(TermPrinter.simplePrint(term));
+		System.out.println(TermPrinter.print(term));
 		System.out.println(term.makeCamlCommand());
 	}
 	
@@ -60,6 +66,10 @@ public class Test {
 	}
 	
 	
+	/**
+	 * test2
+	 * @throws Exception
+	 */
 	public static void test2() throws Exception {
 		HOLLightWrapper console = new HOLLightWrapper("hol_light");
 		console.runCommand("needs \"caml/raw_printer.hl\";;");
@@ -80,8 +90,89 @@ public class Test {
 		
 	}
 	
+	static HOLType num;
+	static HOLType bool;
+	static HOLType aty;
+	static HOLType bty;
+	
+	static {
+		try {
+			num = mk_type("num");
+			bool = mk_type("bool");
+			aty = mk_vartype("A");
+			bty = mk_vartype("B");
+		}
+		catch (Exception e) {
+		}
+	}
+	
+	/**
+	 * test3
+	 */
+	public static void test3() throws Exception {
+		
+		HOLType t1 = mk_fun_ty(aty, mk_fun_ty(bty, bool));
+		HOLType t2 = mk_fun_ty(num, mk_fun_ty(bool, bool));
+		
+		ArrayList<Pair<HOLType,HOLType>> t = t1.type_match(t2, null); 
+
+		String str = "";
+		if (t != null) {
+			str += "[";
+			for (int i = 0; i < t.size(); i++) {
+				str += TypePrinter.printType(t.get(i).getFirst());
+				str += ", ";
+				str += TypePrinter.printType(t.get(i).getSecond());
+				str += "; ";
+			}
+			
+			str += "]";
+		}
+		
+		System.out.println(str);
+	}
+	
+	
+	public static void test(Pair<Term, ArrayList<Term>> p) {
+		String str = "(";
+		str += TermPrinter.print(p.getFirst());
+		str += ", ";
+		str += "[";
+		
+		for (Term x : p.getSecond()) {
+			str += TermPrinter.print(x);
+			str += "; ";
+		}
+		str += "])";
+
+		System.out.println(str);
+	}
+	
+	/**
+	 * test4
+	 */
+	public static void test4() throws Exception {
+		Term f = mk_var("f", mk_fun_ty(num, mk_fun_ty(bool, aty)));
+		Term t1 = mk_var("t1", num);
+		Term t2 = mk_var("t2", bool);
+		
+		Term t = mk_comb(mk_comb(f, t1), t2);
+		
+		System.out.println(TermPrinter.print(t));
+		
+		test(strip_comb(t));
+		test(strip_comb(t1));
+		test(strip_comb(f));
+	}
+	
+	
+	/**
+	 * main
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
-		test2();
+		test4();
 		
 		System.exit(0);
 	}

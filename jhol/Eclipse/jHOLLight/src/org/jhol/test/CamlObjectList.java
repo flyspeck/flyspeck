@@ -120,7 +120,7 @@ public class CamlObjectList extends AbstractTableModel {
 			// Column 1
 			case 0:
 				if (obj instanceof Term) {
-					return TermPrinter.simplePrint((Term) obj);
+					return TermPrinter.print((Term) obj);
 				}
 				if (obj instanceof HOLType) {
 					return "";

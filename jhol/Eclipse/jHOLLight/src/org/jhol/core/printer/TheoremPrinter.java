@@ -10,7 +10,7 @@ public class TheoremPrinter {
 		StringBuilder str = new StringBuilder();
 		str.append("|- ");
 		
-		String concl = TermPrinter.simplePrint(thm.concl());
+		String concl = TermPrinter.print(thm.concl());
 		str.append(concl);
 		
 		return str.toString();

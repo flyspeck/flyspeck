@@ -509,11 +509,6 @@ class taylorSimplex
 
 	static const taylorFunction taylorSimplex::lindih(const interval& theta);
 
-	// functions with a_priori lower bounds on delta.
-	static const taylorFunction taylorSimplex::delta_a_priori(const interval& a_priori);
-	static const taylorFunction taylorSimplex::rat1_a_priori(const interval& a_priori);
-	static const taylorFunction taylorSimplex::rat2_a_priori(const interval& a_priori);
-
 	static const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
 							       const interval& x5s);
 

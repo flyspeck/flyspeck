@@ -95,50 +95,6 @@ primitiveA::primitiveA(lineInterval (*hfn0)(const domain&),
 
 /* ========================================================================== */
 /*                                                                            */
-/*   Section:primitive_a_priori                                                               */
-/*                                                                            */
-/* ========================================================================== */
-
-
-class primitive_a_priori : public primitive 
-{
-private:
-  lineInterval (*hfn)(const domain&,const interval& a_priori);
-
-  interval a_priori;
-  
-  // all the arrays of double [6][6] are bounds on abs value of second partials.
-  int (*setAbsSecond)(const domain& x,const domain& z,double [6][6]);
-  
-public:
-  lineInterval tangentAtEstimate(const domain& x) const { return (*hfn)(x,a_priori); }
-  taylorInterval evalf4(const domain& w,const domain& x,
-			const domain& y,const domain& z) const;
-  primitive_a_priori(lineInterval (*)(const domain& ),const interval& a_priori,
-	     int (*)(const domain& ,const domain&,double [6][6]));
-};
-
-
-taylorInterval primitive_a_priori::evalf4
-(const domain& w,const domain& x,const domain& y,const domain& z) const
-{
-  double DD[6][6];
-  (*setAbsSecond)(x,z,DD);
-  lineInterval tangentVector = (*hfn)(y,a_priori);
-  return taylorInterval(tangentVector,w,a_priori,DD);
-}
-
-primitive_a_priori::primitive_a_priori(lineInterval (*hfn0)(const domain&),const interval& a_priori0,
-		       int (*setAbsSecond0)(const domain&,const domain&,double [6][6]))
-{
-  hfn = hfn0;
-  a_priori = a_priori0;
-  setAbsSecond = setAbsSecond0;
-}
-
-
-/* ========================================================================== */
-/*                                                                            */
 /*   Section:primitive_monom                                                               */
 /*                                                                            */
 /* ========================================================================== */
@@ -858,14 +814,6 @@ static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
 const taylorFunction taylorSimplex::delta(&::deltaPrimitive);
-
-/*implement delta_a_priori */
-const taylorFunction taylorSimplex::delta_a_priori(const interval& a_priori) {
-  primitive_a_priori prim(linearization::delta_a_priori,a_priori,setAbsDelta);
-  taylorFunction F(&::prim);
-  return F;
-}
-
 
 
 /*implement vol_x */ 
@@ -1906,17 +1854,8 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
 
   static const taylorFunction sd = uni(i_sqrt,taylorFunction::compose(delta,unit*four,unit*four,unit*four,x4,x5,x6));
 
-  static const taylorFunction sd_apriori(interval a_priori) {
-    taylorFunction F = tayloruni(i_sqrt,taylorFunction::compose(taylorSimplex::delta_a_priori(a_priori),unit*four,unit*four,unit*four,x4,x5,x6));
-    return F;
-  }
 
   const taylorFunction rat1 = num1 * uni(univariate::i_inv, sd * afac) ;
-
-  const taylorFunction rat1_a_priori(interval a_priori) {
-    taylorFunction F = num1 * uni(univariate::i_inv, sd_apriori(a_priori) * afac) ;
-    return F;
-  }
 
 
 
@@ -1955,7 +1894,8 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     double v1 = tan(v);
     interMath::up();
     double u2 = tan(u); double v2 = tan(v);
-    double tantheta = combine (new interval(u1,u2),new interval(v1,v2));
+    interval a1(u1,u2); interval b1(v1,v2);
+    interval tantheta = interMath::combine (a1,b1);
     static const interval t2 = tantheta*tantheta;
     taylorFunction F = delta4_squared_x * t2 + x1_delta_x * four * mone;
     return F;
@@ -2258,17 +2198,9 @@ static const taylorFunction num2 =
 
   const taylorFunction den2 = uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac); 
 
-  const taylorFunction den2_a_priori(interval a_priori) {
-    taylorFunction F = uni(univariate::i_pow3,sd) * uni(univariate::i_pow2,  afac); 
-    return F;
-  }
 
   const taylorFunction rat2 = num2 * uni(univariate::i_inv,den2);
 
-  const taylorFunction rat2_a_priori(interval a_priori) {
-    taylorFunction F = num2 * uni(univariate::i_inv,den2);
-    return F;
-  }
 
 
 }; // end local scope
@@ -2345,24 +2277,20 @@ const taylorFunction taylorSimplex::rat2 = local::rat2;
 const taylorFunction taylorSimplex::den2 = local::den2;
 const taylorFunction taylorSimplex::num_combo1 = local::num_combo1_alt;
 
-const taylorFunction taylorSimplex::rat1_a_priori(interval a_priori) {
-  taylorFunction F = local::rat1_a_priori(a_priori);
-  return F;
-}
-
-const taylorFunction taylorSimplex::rat2_a_priori(interval a_priori) {
-  taylorFunction F = local::rat2_a_priori(a_priori);
-  return F;
-}
 
 
 const taylorFunction taylorSimplex::edge_flat2_x = local::edge_flat2_x;
 const taylorFunction taylorSimplex::taum_x = local::taum_x;
 const taylorFunction taylorSimplex::x1_delta_x = local::x1_delta_x;
 const taylorFunction taylorSimplex::delta4_squared_x = local::delta4_squared_x;
+
 const taylorFunction taylorSimplex::flat_term_x = local::flat_term_x;
 const taylorFunction taylorSimplex::eulerA_x = local::eulerA_x;
 
+const taylorFunction taylorSimplex::lindih(const interval& theta) {
+  taylorFunction F = local::lindih(theta);
+  return F;
+}
 
 const taylorFunction taylorSimplex::dih_template_B_x(const interval& x15,const interval& x45,
 					const interval& x34,const interval& x12, 

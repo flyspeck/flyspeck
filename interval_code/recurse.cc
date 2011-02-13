@@ -1230,7 +1230,9 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
     return rec(depth+1,F,xB,zB,opt,o);
   }
 
-/* dihA + dihB < dihY, deltaA ~ 0. */
+  interval pi("3.141592653589793238462643");
+  interval two("2");
+  /* dihA + dihB < dihY, deltaA ~ 0. */
   if (o==numerical_data::angleYA) {
     /* delta4A  > 0 */ {
       taylorFunction F = taylorSimplex::delta_x4 * mone;
@@ -1241,7 +1243,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
       if (!rec(depth+1,F,xY,zY,opt,o)) return 0;
     }
     /* dihB < v_dihB_max */ {
-      double m = pi - 3.0*cut;
+      double m = pi.hi - 3.0*cut;
       interval v_dihB_max(m,m);
       taylorFunction F = taylorSimplex::dih + taylorSimplex::unit * mone * v_dihB_max ;
       if (!rec(depth+1,F,xB,zB,opt,o)) return 0;
@@ -1265,7 +1267,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
     }
     /* dihY - dihA > cut  */ {
       taylorFunction F = taylorSimplex::dih * mone + taylorSimplex::dih3 + taylorSimplex::unit * icut;
-      if (!rec(depth+1,F,xY,zY,opt,o)) return 
+      if (!rec(depth+1,F,xY,zY,opt,o)) return 0;
     }
     /* dihB < cut */ {
       taylorFunction F = taylorSimplex::lindih(icut) * mone;
@@ -1290,7 +1292,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
     }
     /* dihA < cut   */ {
       taylorFunction F = taylorSimplex::lindih(icut) * mone;
-      if (!rec(depth+1,F,xA,zA,opt,o)) return 
+      if (!rec(depth+1,F,xA,zA,opt,o)) return 0;
     }
     /* dihB < cut */ {
       taylorFunction F = taylorSimplex::lindih(icut) * mone;
@@ -1331,7 +1333,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
 
   if (o==numerical_data::eulerB) {
     taylorFunction e = taylorSimplex::eulerA_x * mone;
-    return rec(depth+1,e,xH,zH,xH,zH,opt,o);
+    return rec(depth+1,e,xH,zH,opt,o);
   }
 
   assert((0==1)); // "unreachable code";

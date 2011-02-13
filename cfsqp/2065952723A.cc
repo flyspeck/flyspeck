@@ -1533,10 +1533,10 @@ void numerical_data::reset(numerical_data::case298 caseno) {
     nglobal::big=10.0;
 
     switch(caseno) {
-    case numerical_data::top1401:  eps=0.4;  big=40; break; 
-    case numerical_data::topit:  eps=0.2;  big=20; break; 
-    case numerical_data::dih_constraint: delta_a_priori=21.4;  break; 
-    case numerical_data::pent_acute: delta_a_priori=25.7;  break; 
+    case numerical_data::top1401:  nglobal::eps=0.4;  nglobal::big=40; break; 
+    case numerical_data::topit:  nglobal::eps=0.2;  nglobal::big=20; break; 
+    case numerical_data::dih_constraint: nglobal::delta_a_priori=21.4;  break; 
+    case numerical_data::pent_acute: nglobal::delta_a_priori=25.7;  break; 
     default : break;
     }
   }
@@ -1710,9 +1710,9 @@ int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
 }
 
 
-int main() {
+int remain() {
   //  main298(numerical_data::top1401);
   //main298(numerical_data::topit);
   // main298(numerical_data::dih_constraint);
-  main298(numerical_data::pent_acute);
+  //main298(numerical_data::pent_acute);
 }

@@ -1096,8 +1096,48 @@ int prove::recursiveVerifierQ(int depth,
 
 int rec(int depth, taylorFunction& F,double x[9],double z[9], cellOption opt,numerical_data::n298 o) {
     const taylorFunction* I[1] = {&F};
-    return (prove::recursiveVerifier(depth+1,x,z,x,z,I,1,opt));
+    int rv= (prove::recursiveVerifier(depth+1,x,z,x,z,I,1,opt));
+    if (!rv) {
+      cout << "Failure" << endl;
+      error::fatal("fail rec");
+    }
+    return rv;
 }
+
+
+int recursiveVerifierQWithLinear4(int depth,
+			      const domain& xAd,const domain& xBd,     /// current lower bound
+			      const domain& zAd,const domain& zBd,   // current upper bound
+			      const taylorFunction* IA[],const taylorFunction* IB[],
+				  int Nineq,cellOption& opt,double cut) {
+  double xA[DIM6],xB[DIM6],zA[DIM6],zB[DIM6];     /// current cell
+  for (int j=0;j<DIM6;j++)
+    {
+      xA[j]=xAd.getValue(j); zA[j]=zAd.getValue(j);
+      xB[j]=xBd.getValue(j); zB[j]=zBd.getValue(j);
+    }
+  for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) for (int m=0;m<2;m++) {
+	double xAr[6], zAr[6], xBr[6], zBr[6];
+	xAr[0] = (i ? zA[0] : xA[0]); 
+	xAr[1] = (j ? zA[1] : xA[1]); 
+	xAr[2] = (k ? zA[2] : xA[2]); 
+	xBr[0] = (m ? zB[0] : xB[0]);
+	xBr[1] = xAr[1];
+	xBr[2] = xAr[2];
+	for (int r=0;r<3;r++) { zAr[r]=xAr[r];  zBr[r]= xBr[r]; }
+	for (int r=3;r<6;r++) { xAr[r]=xA[r]; zAr[r] = zA[r]; xBr[r]=xB[r]; zBr[r] = zB[r]; }
+	int rv = prove::recursiveVerifierQ(depth+1,xAr,xBr,zAr,zBr,IA,IB,Nineq,opt);
+	if (!rv) { 
+	  cout << "Linear4 cut: " << cut << endl; 
+	  report_current(xA,zA,"A",12);
+	  report_current(xB,zB,"B",12);
+	  cout << "vals " << endl << flush;
+	  cout << "A upper " << IA[0]->evalf(domain(zAr),domain(zAr)).upperBound() << endl << flush;
+	  cout << "B upper " << IB[0]->evalf(domain(xBr),domain(zBr)).upperBound() << endl << flush;
+	  return 0; }
+      }
+  return 1;
+ }
 
 
 int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::case298 caseno) { 
@@ -1304,13 +1344,11 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
   if (o== numerical_data::pos_rat1 || o==numerical_data::neg_rat1 ||
       o==numerical_data::neg_rat2) {
     assert(!( cut==INVALID)); // cut needs to have been set.
-    double v = cut - nglobal::eps/2.0;
-    interval shift(v,v);
     taylorFunction F  = 
       (o==numerical_data::pos_rat1 ? taylorSimplex::rat1  :
        (o==numerical_data::neg_rat1 ? taylorSimplex::rat1 *mone  : taylorSimplex::rat2 * mone));
-    taylorFunction FY = F*mone + taylorSimplex::unit * shift ;
-    taylorFunction FH = F*mone +  taylorSimplex::unit * shift * mone;
+    taylorFunction FY = F*mone + taylorSimplex::unit * icut ;
+    taylorFunction FH = F*mone +  taylorSimplex::unit * icut * mone;
     const taylorFunction* IY[1] = {&FY};
     const taylorFunction* IH[1] = {&FH};
     int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt) &&
@@ -1320,10 +1358,19 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
 
   if (o==numerical_data::neg_rat2_A0) {
     assert(!(INVALID==cut));
-    double v = nglobal::eps - cut ;
-    interval theta(v,v);
-    taylorFunction FH = taylorSimplex::rat2  + taylorSimplex::unit * theta * mone;
-    taylorFunction FY = taylorSimplex::num2 + taylorSimplex::den2 * theta ;
+    taylorFunction FH = taylorSimplex::rat2  + taylorSimplex::unit * icut * mone;
+    taylorFunction FY = taylorSimplex::num2 + taylorSimplex::den2 * icut ;
+    const taylorFunction* IY[1] = {&FY};
+    const taylorFunction* IH[1] = {&FH};
+    int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt) &&
+      recursiveVerifierWithLinear3(depth+1,xEH,zEH,IH,1,opt);
+    return rv;    
+  }
+
+  if (o==numerical_data::neg_rat2_B0) {
+    assert(!(INVALID==cut));
+    taylorFunction FY = taylorSimplex::rat2  + taylorSimplex::unit * icut * mone;
+    taylorFunction FH = taylorSimplex::num2 + taylorSimplex::den2 * icut ;
     const taylorFunction* IY[1] = {&FY};
     const taylorFunction* IH[1] = {&FH};
     int rv = recursiveVerifierWithLinear3(depth+1,xEY,zEY,IY,1,opt) &&
@@ -1334,6 +1381,17 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
   if (o==numerical_data::eulerB) {
     taylorFunction e = taylorSimplex::eulerA_x * mone;
     return rec(depth+1,e,xH,zH,opt,o);
+  }
+
+  if (o==numerical_data::rat_combo) {
+    static interval one("1");
+    interval abst(fabs(cut),fabs(cut));
+    interval c = one - abst;
+    taylorFunction FY = taylorSimplex::rat2 * c + taylorSimplex::rat1 * icut * mone;
+    taylorFunction FH = taylorSimplex::rat2 * c + taylorSimplex::rat1 * icut * mone;
+    const taylorFunction* IY[1]={&FY};
+    const taylorFunction* IH[1]={&FH};
+    return recursiveVerifierQWithLinear4(depth+1,xEY,xEH,zEY,zEH,IY,IH,1,opt,cut);
   }
 
   assert((0==1)); // "unreachable code";
@@ -1359,6 +1417,7 @@ int f298case(numerical_data::case298 caseno) {  // follows main298.
   case numerical_data::dih_constraint :  x0[d2]=topit;   break;
   case numerical_data::pent_acute : x0[b2]=topit; z0[b2]=xp; x0[d2]=xlo; z0[d2]=xhi; break;
   }
+  cout << "*";
 return  f298x(0,x0,z0,opt,caseno);
 }
 

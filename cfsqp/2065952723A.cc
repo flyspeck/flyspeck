@@ -1399,46 +1399,44 @@ numerical_data::n298 numerical_data::setStrategy298(double xmin[9],double xmax[9
 
   /* rat1A + rat1B > 0 */
   if (v_deltaA > mid && v_deltaB > mid) {
-    double v_rat1A = m_rat1A(xmin,xmax).optimize();
+    double v_rat1A = m_rat1A(xmin,xmax).optimize() - eps;
     if (v_rat1A + m_rat1B(xmin,xmax).optimize() > eps) 
       { *cut = v_rat1A; return numerical_data::pos_rat1; }
   }
 
   /* rat1A + rat1B < 0 */
   if (v_deltaA > mid && v_deltaB > mid) {
-    double v_rat1Am = m_rat1Am(xmin,xmax).optimize();
+    double v_rat1Am = m_rat1Am(xmin,xmax).optimize() - eps;
     if (v_rat1Am + m_rat1Bm(xmin,xmax).optimize() > eps) 
       { *cut = v_rat1Am; return numerical_data::neg_rat1; }
   }
 
   /* rat2A + rat2B < 0 */ 
   if (v_deltaA > mid && v_deltaB > mid) {
-    double v_rat2Am = m_rat2Am(xmin,xmax).optimize();
+    double v_rat2Am = m_rat2Am(xmin,xmax).optimize() - eps;
     if (v_rat2Am + m_rat2Bm(xmin,xmax).optimize() > eps) 
       { *cut = v_rat2Am; return numerical_data::neg_rat2; }
   }
 
   /* rat2A + rat2B < 0,  deltaA ~ 0 */ 
   if (v_deltaB > mid) {
-    double v_rat2Bm =  m_rat2Bm(xmin,xmax).optimize();
-    nglobal::theta = eps - v_rat2Bm;
+    nglobal::theta =  eps - m_rat2Bm(xmin,xmax).optimize();
     if (m_rat2A0m(xmin,xmax).optimize() > eps)
-      { *cut = v_rat2Bm; return numerical_data::neg_rat2_A0; }
+      { *cut = nglobal::theta; return numerical_data::neg_rat2_A0; }
   }
 
   /* rat2A + rat2B < 0,  deltaB ~ 0 */ 
   if (v_deltaA > mid || (nglobal::delta_a_priori > mid))  {
-    double v_rat2Am =  m_rat2Am(xmin,xmax).optimize();
-    nglobal::theta = eps - v_rat2Am;
+    nglobal::theta = eps - m_rat2Am(xmin,xmax).optimize();
     if (m_rat2B0m(xmin,xmax).optimize() > eps)
-      { *cut = v_rat2Am; return numerical_data::neg_rat2_B0; }
+      { *cut = nglobal::theta; return numerical_data::neg_rat2_B0; }
   }
 
   /* eulerB < 0 */
   if (m_eulerBm(xmin,xmax).optimize() > eps)
     { return numerical_data::eulerB; }
 
-  /* (rat2A + rat2B)*(1-t) + sign1 * t* (rat1A + rat1B) < 0 */ 
+  /* - (rat2A + rat2B)*(1-t) + sign1 * t* (rat1A + rat1B) > 0 */ 
   if (v_deltaA > mid && v_deltaB > mid) {
     double sign1; {
       Minimizer m_rat2ABmx = m_rat2ABm(xmin,xmax); 
@@ -1568,7 +1566,64 @@ int main298(numerical_data::case298 caseno) {
   return r;
 }
 
-int main298test() {
+void merge(double zA[6],double zB[6],double z[9]) {
+  z[0]=zA[0]; z[1]=zA[1]; z[2]=zA[2];  z[3]=zB[0];
+  z[4]=zA[5]; z[5]=zA[4]; z[6]=zB[4]; z[7]=zB[5]; z[8]=zA[3];
+  //A:0,1,2,3,4,5
+  //B:0,4,5.
+}
+
+void main298test2(){
+
+  {
+    numerical_data::reset(numerical_data::top1401);
+  double xA[6]={1,1,1,5.4159000000000006025,2.5195263290000000644,2.5195263290000000644};
+  double zA[6]={1,1,1,5.4159027006149305095,2.5195299824058299265,2.5195303739970587031};
+  double xB[6]=
+    {1,1,1,5.4159000000000006025,2.5195263290000000644,10};
+  double zB[6]={1,1,1,5.4159027006149305095,2.5195299824058299265,10.000003824234010352};
+  nglobal::alpha =0.6594565;
+  nglobal::delta_a_priori=0.0;
+  double x0[9];
+  double z0[9];
+  merge(xA,xB,x0);
+  merge(zA,zB,z0);
+  double r = m_ratcombo(x0,z0).optimize() ;
+  cout << "ratcombo " << r << endl;
+  double r1A = rat1(1,1,1,5.4159000000000006025,2.5195263290000000644,2.5195263290000000644) ;
+  double r2A = rat2(1,1,1,5.4159000000000006025,2.5195263290000000644,2.5195263290000000644) ;
+  double r1B = rat1(   1,1,1,5.4159000000000006025,2.5195263290000000644,10) ;
+  double r2B = rat2(   1,1,1,5.4159000000000006025,2.5195263290000000644,10);
+  cout << "rat1A " << r1A << endl;
+  cout << "rat2A " << r2A << endl;
+
+  cout << "rat1B " << r1B << endl;
+  cout << "rat2B " << r2B << endl;
+  cout << "combo " << - (r2A+r2B) * (1-fabs(nglobal::alpha)) + (r1A + r1B) * nglobal::alpha << endl;
+  print9(x0,z0);
+  dumpdata298(x0,z0);
+  }
+
+  //
+  cout << "\n\n\nround 2" << endl;
+  double xA[6]={1,1,1,5.4159,2.519526329,2.519526329};
+  double zA[6]={1.1754796561,1.1754796561,1.1754796561,6.8318,4.43496316451,4.43496316451};
+  double xB[6]=
+    {1,1,1,5.4159,2.519526329,10};
+  double zB[6]={1.1754796561,1.1754796561,1.1754796561,6.8318,4.43496316451,11.0025};
+  double x0[9];
+  double z0[9];
+  merge(xA,xB,x0);
+  merge(zA,zB,z0);
+  double cut;
+  numerical_data::n298 o = numerical_data::setStrategy298(x0,z0,&cut,numerical_data::top1401);
+  print_strategy(o);
+  cout << "cut " << cut << endl;
+  print9(x0,z0);
+  dumpdata298(x0,z0);
+}
+
+void main298test() {
   double x0[9]={1, 1, 1, 1, 5.87154, 5.63211, 5.39268, 12.1414, 14.2653};
   double z0[9]={1.17548, 1.17548, 1.17548, 1.17548, 6.11097, 5.87154, 5.87154, 12.4954, 14.6193};
   numerical_data::set_rectangle(x0,z0,9);
@@ -1716,3 +1771,9 @@ int remain() {
   // main298(numerical_data::dih_constraint);
   //main298(numerical_data::pent_acute);
 }
+
+/*
+int main() {
+  main298test2();
+}
+*/

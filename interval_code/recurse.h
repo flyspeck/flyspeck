@@ -105,7 +105,7 @@ public:
     int strategy206A;
 
     // special code for the case 2986512815.
-    int strategy298;
+    int set298;
     
     //////////
     // 
@@ -174,7 +174,7 @@ public:
       onlyCheckDeriv1Negative=0;
   
       strategy206A=0;
-      strategy298=0;
+      set298=0;
     }
     
 };

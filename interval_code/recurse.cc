@@ -1094,6 +1094,11 @@ int prove::recursiveVerifierQ(int depth,
 
 ***********************************************/
 
+int rec(int depth, taylorFunction& F,double x[9],double z[9], cellOption opt,numerical_data::n298 o) {
+    const taylorFunction* I[1] = {&F};
+    return (prove::recursiveVerifier(depth+1,x,z,x,z,I,1,opt));
+}
+
 
 int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::case298 caseno) { 
 
@@ -1102,17 +1107,9 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
   // initialize;
   const double INVALID=7777;
   double cut=INVALID;
-  double delta_a_priori = 0;
-  double v_dih_constraint=2.7458;
-  double eps = 0.2; double mid = 10.0; double big = 10.0; // values from setStrategy298.
-  switch(caseno) {
-  case numerical_data::top1401:  eps=0.4;  big=40; break; 
-  case numerical_data::topit:  eps=0.2;  big=20; break; 
-  case numerical_data::dih_constraint: delta_a_priori=21.4;  break; 
-  case numerical_data::pent_acute: delta_a_priori=25.7;  break; 
-  default : error::fatal("missing case");
-  }
+  numerical_data::reset(caseno);
   numerical_data::n298 o = numerical_data::setStrategy298(xx,zz,&cut,caseno);
+  interval icut(cut,cut);
 
   if (o == numerical_data::split) {
     interMath::up();
@@ -1151,14 +1148,21 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
   double d2u = zz[7];
   double y2u = zz[8];
 
-  double xY[6]={4.0,4.0,4.0,y2n,a2n,b2n};
-  double zY[6]={4.0,4.0,4.0,y2u,a2u,b2u};
+  double xY[6]={4.0,4.0,4.0,y2n,b2n,a2n};
+  double zY[6]={4.0,4.0,4.0,y2u,b2u,a2u};
+
+  double xA[6]={4.0,4.0,4.0,a2n,y2n,b2n};
+  double zA[6]={4.0,4.0,4.0,a2u,y2u,b2u};
 
   double xEY[6]={e1n,e2n,e3n,y2n,b2n,a2n};
   double zEY[6]={e1u,e2u,e3u,y2u,b2u,a2u};
 
   double xH[6]={4.0,4.0,4.0,y2n,c2n,d2n};
   double zH[6]={4.0,4.0,4.0,y2u,c2u,d2u};
+
+  double xB[6]={4.0,4.0,4.0,d2n,y2n,c2n};
+  double zB[6]={4.0,4.0,4.0,d2u,y2u,c2u};
+
 
   double xEH[6]={e4n,e2n,e3n,y2n,c2n,d2n};
   double zEH[6]={e4u,e2u,e3u,y2u,c2u,d2u};
@@ -1167,26 +1171,38 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
 
   if (o== numerical_data::neg_deltaA || o==numerical_data::neg_deltaB) {
     taylorFunction F  = taylorSimplex::delta ;
-    const taylorFunction* I[1] = {&F};
-    int rv; 
-    rv = (o==numerical_data::neg_deltaA ?
-	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt) : 
-	  prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt));
-    return rv;
+    return (o==numerical_data::neg_deltaA ?
+	  rec(depth+1,F,xY,zY,opt,o) : rec(depth+1,F,xH,zH,opt,o));
   } // 
 
-  if (numerical_data::dih_constraint==caseno && numerical_data::big_dihY ==o) {
-    taylorFunction F = taylorSimplex::delta4_x;
-   const taylorFunction* I[1] = {&F};
-   int rv = 	  prove::recursiveVerifier(depth+1,xY,zY,xY,zY,I,1,opt) ;
-   if (!rv) { return rv; }
-    taylorFunction G = taylorSimplex::dih_minus_theta(cut) * mone;
-    const taylorFunction* J[1] = {&G};
-    rv = prove::recursiveVerifier(depth+1,xY,zY,xY,zY,J,1,opt);
-    if (!rv) {return rv; }
-    taylorFunction H = taylorSimplex::dih
+  /* deltaA < delta_a_apriori */
+  if (o== numerical_data::small_deltaA) {
+    double a = -nglobal::delta_a_priori;
+    interval b(a,a);
+    taylorFunction F = taylorSimplex::delta  +  taylorSimplex::unit * b;
+    return (rec(depth+1,F,xY,zY,opt,o));
+  };  
+
+  /* dihY > v_dih_constraint. */ 
+  if (o==numerical_data::big_dihY) {
+    /* check delta4Y < 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4;
+      if (!rec(depth+1,F,xY,zY,opt,o)) { return 0; }
+    }
+    /* check dihY > v_dih_constraint > pi/2. */ {
+      interval theta(nglobal::v_dih_constraint,nglobal::v_dih_constraint);
+    taylorFunction F = taylorSimplex::lindih(theta) * mone;
+    return rec(depth+1,F,xY,zY,opt,o);
+    }
   }
 
+  /* delta4Y > 0 */
+  if (o==numerical_data::delta4Y) {
+    taylorFunction F = taylorSimplex::delta_x4 * mone;
+    return rec(depth+1,F,xY,zY,opt,o);
+  }
+
+  /* num1 and num2 */
   if (o== numerical_data::pos_num1 || o==numerical_data::neg_num1 ||
       o==numerical_data::neg_num2) {
     taylorFunction F  = 
@@ -1198,12 +1214,95 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
     return rv;    
   }
 
-  /* insert dihedral guys here */
+   /* dihA > c and dihB > pi -c */ 
+  if (o==numerical_data::reflexAB) {
+    /* dihA > c */ {
+      taylorFunction F = taylorSimplex::dih * mone + taylorSimplex::unit * icut;
+      if (!rec(depth+1,F,xA,zA,opt,o)) return 0;
+    }
+    taylorFunction F = taylorSimplex::lindih(icut) * mone;
+    return rec(depth+1,F,xB,zB,opt,o);
+  }
+
+  /* solidB > t[6,0]/2 + 2 sol0.  */  
+  if (o==numerical_data::solidB) {
+    taylorFunction F = taylorSimplex::unit * "1.4815" + taylorSimplex::sol * mone;
+    return rec(depth+1,F,xB,zB,opt,o);
+  }
+
+/* dihA + dihB < dihY, deltaA ~ 0. */
+  if (o==numerical_data::angleYA) {
+    /* delta4A  > 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 * mone;
+      if (! rec(depth+1,F,xA,zA,opt,o)) return 0;
+    }
+    /* delta4Y  < 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 ;
+      if (!rec(depth+1,F,xY,zY,opt,o)) return 0;
+    }
+    /* dihB < v_dihB_max */ {
+      double m = pi - 3.0*cut;
+      interval v_dihB_max(m,m);
+      taylorFunction F = taylorSimplex::dih + taylorSimplex::unit * mone * v_dihB_max ;
+      if (!rec(depth+1,F,xB,zB,opt,o)) return 0;
+    }
+    /* dihA < c */ {
+      taylorFunction F = taylorSimplex::lindih(icut) * mone;
+      if (!rec(depth+1,F,xA,zA,opt,o)) return 0;      
+    }
+    /* dihY > pi - 2 * c */ {
+      taylorFunction F = taylorSimplex::lindih(icut * two) * mone;
+      if (!rec(depth+1,F,xY,zY,opt,o)) return 0;      
+    }
+    return 1;
+  }
+
+ /* dihA + dihB < dihY, deltaB ~ 0. */
+  if (o==numerical_data::angleYB) {
+    /* delta4B  > 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 * mone;
+      if (! rec(depth+1,F,xB,zB,opt,o)) return 0;
+    }
+    /* dihY - dihA > cut  */ {
+      taylorFunction F = taylorSimplex::dih * mone + taylorSimplex::dih3 + taylorSimplex::unit * icut;
+      if (!rec(depth+1,F,xY,zY,opt,o)) return 
+    }
+    /* dihB < cut */ {
+      taylorFunction F = taylorSimplex::lindih(icut) * mone;
+      if (!rec(depth+1,F,xB,zB,opt,o)) return 0;      
+    }
+    return 1;
+  }
+
+  /* dihA + dihB < dihY, deltaA ~ 0, deltaB ~ 0 */
+  if (o==numerical_data::angleYAB) {
+    /* delta4Y < 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 ;
+      if (! rec(depth+1,F,xY,zY,opt,o)) return 0;
+    }
+    /* delta4A > 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 * mone ;
+      if (! rec(depth+1,F,xA,zA,opt,o)) return 0;
+    }
+    /* delta4B > 0 */ {
+      taylorFunction F = taylorSimplex::delta_x4 * mone ;
+      if (! rec(depth+1,F,xB,zB,opt,o)) return 0;
+    }
+    /* dihA < cut   */ {
+      taylorFunction F = taylorSimplex::lindih(icut) * mone;
+      if (!rec(depth+1,F,xA,zA,opt,o)) return 
+    }
+    /* dihB < cut */ {
+      taylorFunction F = taylorSimplex::lindih(icut) * mone;
+      if (!rec(depth+1,F,xB,zB,opt,o)) return 0;      
+    }
+    return 1;
+  }
 
   if (o== numerical_data::pos_rat1 || o==numerical_data::neg_rat1 ||
       o==numerical_data::neg_rat2) {
     assert(!( cut==INVALID)); // cut needs to have been set.
-    double v = cut - eps/2.0;
+    double v = cut - nglobal::eps/2.0;
     interval shift(v,v);
     taylorFunction F  = 
       (o==numerical_data::pos_rat1 ? taylorSimplex::rat1  :
@@ -1219,7 +1318,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
 
   if (o==numerical_data::neg_rat2_A0) {
     assert(!(INVALID==cut));
-    double v = eps - cut ;
+    double v = nglobal::eps - cut ;
     interval theta(v,v);
     taylorFunction FH = taylorSimplex::rat2  + taylorSimplex::unit * theta * mone;
     taylorFunction FY = taylorSimplex::num2 + taylorSimplex::den2 * theta ;
@@ -1232,9 +1331,7 @@ int f298x(int depth,double xx[9],double zz[9],cellOption opt,numerical_data::cas
 
   if (o==numerical_data::eulerB) {
     taylorFunction e = taylorSimplex::eulerA_x * mone;
-    const taylorFunction* I[1]={&e};
-    int rv = prove::recursiveVerifier(depth+1,xH,zH,xH,zH,I,1,opt);
-    return rv;       
+    return rec(depth+1,e,xH,zH,xH,zH,opt,o);
   }
 
   assert((0==1)); // "unreachable code";

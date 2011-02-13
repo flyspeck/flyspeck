@@ -252,6 +252,15 @@ lineInterval linearization::delta(const domain& x)
 	return t;
 	}
 
+// delta with a priori lower bound.
+lineInterval linearization::delta_apriori(const domain& x,const interval& a) {
+  lineInterval t = linearization::delta(x);
+  if (t.f.lo < a.lo) { t.f.lo = a.lo; }
+  if (t.f.hi < a.lo) { t.f.hi = a.lo; }
+  return t;
+}
+
+
 lineInterval linearization::delta_x4(const domain& x)
 	{
 	double x1,x2,x3,x4,x5,x6;

@@ -335,12 +335,19 @@ public class TermPrinter {
 		Pair<String, HOLType> name_ty;
 		if (is_const(hop))
 			name_ty = dest_const(hop);
-		else
+		else if (is_var(hop)) {
 			name_ty = dest_var(hop);
+		}
+		else {
+			// abs
+			try {
+				name_ty = new Pair<String, HOLType>("", hop.type());
+			}
+			catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 
-		if (name_ty == null)
-			throw new RuntimeException("Unexpected situation");
-			
 		String s0 = name_ty.getFirst();
 		HOLType ty0 = name_ty.getSecond();
 		

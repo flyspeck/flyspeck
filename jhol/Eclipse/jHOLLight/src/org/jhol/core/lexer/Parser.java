@@ -114,6 +114,7 @@ public class Parser {
 		switch (t.type) {
 		// String
 		case STRING:
+			s.nextToken();
 			return new CamlString(t.value);
 		
 		// List
@@ -194,6 +195,11 @@ public class Parser {
 
 		CamlType type = parseType(s);
 
+		// ,
+		t = s.nextToken();
+		if (t.type != TokenType.COMMA)
+			throw new Exception(", expected: " + t);
+		
 		// [
 		t = s.nextToken();
 		if (t.type != TokenType.LBRACK)
@@ -204,8 +210,11 @@ public class Parser {
 		t = s.peekToken();
 
 		while (true) {
-			if (t.type == TokenType.RBRACK)
+			if (t.type == TokenType.RBRACK) {
+				// ]
+				s.nextToken();
 				break;
+			}
 			
 			CamlObject obj = parse(s);
 			// The type will be checked when the list is created
@@ -213,8 +222,11 @@ public class Parser {
 			
 			// ; or ]
 			t = s.nextToken();
-			if (t.type != TokenType.SEMICOLON && t.type != TokenType.RBRACK)
-				throw new Exception("; or ] expected: " + t);
+			if (t.type == TokenType.RBRACK)
+				break;
+			
+			if (t.type != TokenType.SEMICOLON)
+				throw new Exception("; expected: " + t);
 		}
 		
 		// )

@@ -50,5 +50,10 @@ public class CamlString extends CamlObject {
 		return str.equals(obj2.str);
 	}
 	
+	@Override
+	public String toString() {
+		return '"' + str + '"';
+	}
+	
 	
 }

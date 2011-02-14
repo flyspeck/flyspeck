@@ -47,7 +47,8 @@ IdentifierSymbol = [a-zA-Z]
 
 Identifier = {IdentifierSymbol} ({IdentifierSymbol} | [_0-9])*
 
-StringCharacter = [^\r\n\"\\]
+//StringCharacter = [^\r\n\"\\]
+StringCharacter = [^\r\n\"]
 
 %state STRING
 

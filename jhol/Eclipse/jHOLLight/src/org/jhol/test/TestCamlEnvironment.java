@@ -35,7 +35,12 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		System.out.println("Executing: " + command);
 		
 		output = caml.runCommand(command);
-		System.out.println("Out: " + output);
+		String testString = output;
+		
+		if (testString.length() > 1000) {
+			testString = testString.substring(0, 1000);
+		}
+		System.out.println("Out: " + testString);
 		
 		output = strip(output);
 		

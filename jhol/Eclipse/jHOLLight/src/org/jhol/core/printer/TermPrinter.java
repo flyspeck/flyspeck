@@ -338,6 +338,9 @@ public class TermPrinter {
 		else
 			name_ty = dest_var(hop);
 
+		if (name_ty == null)
+			throw new RuntimeException("Unexpected situation");
+			
 		String s0 = name_ty.getFirst();
 		HOLType ty0 = name_ty.getSecond();
 		

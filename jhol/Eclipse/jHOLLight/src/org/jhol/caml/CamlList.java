@@ -19,7 +19,8 @@ public class CamlList extends CamlObject {
 	 * Constructor
 	 */
 	public CamlList(CamlType elementType, Collection<CamlObject> objs) {
-		this.elements = objs.toArray(null);
+		this.elements = new CamlObject[objs.size()];
+		objs.toArray(elements);
 		this.elementType = elementType;
 		
 		for (CamlObject x : elements) {

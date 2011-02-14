@@ -5,7 +5,8 @@ package org.jhol.caml;
  */
 public abstract class CamlType {
 	/* Constants for simple types */
-	public static final CamlType TYPE = new HOLTypeType();
+	public static final CamlType STRING = new StringType();
+	public static final CamlType HOL_TYPE = new HOLTypeType();
 	public static final CamlType TERM = new TermType();
 	public static final CamlType THM = new TheoremType();
 	
@@ -24,6 +25,12 @@ public abstract class CamlType {
 	public CamlType getArgType(int n) {
 		return null;
 	}
+	
+	
+	/**
+	 * Returns the command for printing a Caml object of this type
+	 */
+	public abstract String getPrintCommand();
 	
 	
 	/**
@@ -58,6 +65,13 @@ public abstract class CamlType {
 		public CamlType getReturnType() {
 			return returnType;
 		}
+
+
+		@Override
+		public String getPrintCommand() {
+			throw new RuntimeException("FuntionType: objects of this type are not allowed");
+		}
+
 		
 		
 		@Override
@@ -96,11 +110,10 @@ public abstract class CamlType {
 		@Override
 		public String toString() {
 			StringBuilder str = new StringBuilder();
+			str.append("Fun");
 			str.append('(');
 			str.append(argType);
-			str.append(')');
-			str.append("->");
-			str.append('(');
+			str.append(',');
 			str.append(returnType);
 			str.append(')');
 			
@@ -108,12 +121,53 @@ public abstract class CamlType {
 		}
 	}
 	
+
+	/**
+	 * String
+	 */
+	public static class StringType extends CamlType {
+		private StringType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_string";
+		}
+		
+		@Override
+		public int hashCode() {
+			return 47;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof StringType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "String";
+		}
+	}
+
 	
 	/**
 	 * HOL type
 	 */
 	public static class HOLTypeType extends CamlType {
 		private HOLTypeType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_type";
 		}
 		
 		@Override
@@ -135,7 +189,7 @@ public abstract class CamlType {
 		
 		@Override
 		public String toString() {
-			return "type";
+			return "HOLType";
 		}
 	}
 	
@@ -146,6 +200,12 @@ public abstract class CamlType {
 	public static class TermType extends CamlType {
 		private TermType() {
 		}
+		
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_term";
+		}
+
 		
 		@Override
 		public int hashCode() {
@@ -166,7 +226,7 @@ public abstract class CamlType {
 		
 		@Override
 		public String toString() {
-			return "term";
+			return "Term";
 		}
 	}
 	
@@ -177,6 +237,12 @@ public abstract class CamlType {
 	public static class TheoremType extends CamlType {
 		private TheoremType() {
 		}
+		
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_thm";
+		}
+
 		
 		@Override
 		public int hashCode() {
@@ -197,7 +263,7 @@ public abstract class CamlType {
 		
 		@Override
 		public String toString() {
-			return "thm";
+			return "Theorem";
 		}
 	}
 
@@ -221,6 +287,16 @@ public abstract class CamlType {
 			return elementType;
 		}
 		
+		
+		@Override
+		public String getPrintCommand() {
+			String type = '"' + elementType.toString() + '"';
+			String cmd = "(" + elementType.getPrintCommand() + ")";
+			return "raw_string_of_list " + type + " " + cmd;
+		}
+
+		
+		
 		@Override
 		public int hashCode() {
 			return elementType.hashCode() * 17;
@@ -243,13 +319,82 @@ public abstract class CamlType {
 		@Override
 		public String toString() {
 			StringBuilder str = new StringBuilder();
-			str.append("list");
+			str.append("List");
 			str.append('(');
 			str.append(elementType);
 			str.append(')');
 			
 			return str.toString();
 		}
+	}
+	
+	
+	/**
+	 * Pair type
+	 */
+	public static class PairType extends CamlType {
+		private final CamlType a, b;
+		
+		
+		public PairType(CamlType a, CamlType b) {
+			if (a == null || b == null)
+				throw new RuntimeException("PairType: null argument");
+			
+			this.a = a;
+			this.b = b;
+		}
+		
+		
+		public CamlType getFirstType() {
+			return a;
+		}
+		
+		
+		public CamlType getSecondType() {
+			return b;
+		}
+		
+		
+		@Override
+		public String getPrintCommand() {
+			String cmd1 = "(" + a.getPrintCommand() + ")";
+			String cmd2 = "(" + b.getPrintCommand() + ")";
+			return "raw_string_of_pair " + cmd1 + " " + cmd2;
+		}
+		
+		
+		@Override
+		public int hashCode() {
+			return a.hashCode() + b.hashCode() * 31;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof PairType))
+				return false;
+			
+			PairType obj2 = (PairType) obj;
+		
+			return a.equals(obj2.a) && b.equals(obj2.b);
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder();
+			str.append("Pair");
+			str.append('(');
+			str.append(a);
+			str.append(',');
+			str.append(b);
+			str.append(')');
+			
+			return str.toString();
+		}
+		
 	}
 	
 }

@@ -1,6 +1,7 @@
 package org.jhol.test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import javax.swing.table.AbstractTableModel;
 
@@ -71,6 +72,25 @@ public class CamlObjectList extends AbstractTableModel {
 		int n = objects.size();
 		objects.add(obj);
 		fireTableRowsInserted(n, n);
+	}
+	
+	
+	/**
+	 * Adds the collection of objects into the list
+	 */
+	public void add(Collection<? extends CamlObject> objs) {
+		int n = objects.size();
+		
+		for (CamlObject obj : objs) {
+			if (!allowDuplicates) {
+				if (objects.contains(obj))
+					continue;
+			}
+			
+			objects.add(obj);
+		}
+		
+		fireTableRowsInserted(n, objects.size() - 1);
 	}
 	
 	

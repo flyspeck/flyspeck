@@ -3,9 +3,7 @@ package org.jhol.test;
 import org.jhol.caml.CamlEnvironment;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
-import org.jhol.core.Term;
-import org.jhol.core.Theorem;
-import org.jhol.core.lexer.TermParser;
+import org.jhol.core.lexer.Parser;
 
 public class TestCamlEnvironment extends CamlEnvironment {
 	private HOLLightWrapper caml;
@@ -32,7 +30,18 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	public CamlObject execute(String command, CamlType returnType) throws Exception {
 		String output;
 		
-		// Term
+		String printCmd = returnType.getPrintCommand();
+		command = "print_string(" + printCmd + "(" + command + "));;";
+		System.out.println("Executing: " + command);
+		
+		output = caml.runCommand(command);
+		System.out.println("Out: " + output);
+		
+		output = strip(output);
+		
+		return Parser.parse(output);
+		
+/*		// Term
 		if (returnType.equals(CamlType.TERM)) {
 			command = "print_string(raw_string_of_term (" + command + "));;";
 			System.out.println("Executing: " + command);
@@ -60,7 +69,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 			return new Theorem.TempTheorem(concl);
 		}
 
-		return null;
+		return null;*/
 	}
 	
 	

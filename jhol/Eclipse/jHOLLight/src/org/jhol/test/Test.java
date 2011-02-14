@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import org.jhol.core.HOLType;
 import org.jhol.core.Pair;
 import org.jhol.core.Term;
-import org.jhol.core.lexer.TermParser;
+import org.jhol.core.lexer.Parser;
 import org.jhol.core.printer.TermPrinter;
 import org.jhol.core.printer.TypePrinter;
 
@@ -25,7 +25,7 @@ public class Test {
 		
 		// Type test
 		System.out.println("TYPE");
-		HOLType type = TermParser.parseType(testType);
+		HOLType type = Parser.parseHOLType(testType);
 		
 		System.out.println("type = " + type);
 		System.out.println(TypePrinter.printType(type));
@@ -34,7 +34,7 @@ public class Test {
 
 		// Term test
 		System.out.println("TERM");
-		Term term = TermParser.parseTerm(test);
+		Term term = Parser.parseTerm(test);
 		
 		System.out.println("term = " + term);
 		System.out.println(TermPrinter.print(term));

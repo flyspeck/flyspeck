@@ -31,7 +31,7 @@ public abstract class HOLType extends CamlObject {
 	
 	@Override
 	public final CamlType camlType() {
-		return CamlType.TYPE;
+		return CamlType.HOL_TYPE;
 	}
 	
 	

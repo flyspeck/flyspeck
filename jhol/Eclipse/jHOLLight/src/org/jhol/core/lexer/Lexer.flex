@@ -60,6 +60,8 @@ StringCharacter = [^\r\n\"\\]
         "[" { return new Token(TokenType.LBRACK); }
         "]" { return new Token(TokenType.RBRACK); }
         "," { return new Token(TokenType.COMMA); }
+		";" { return new Token(TokenType.SEMICOLON); }
+		":" { return new Token(TokenType.COLON); }
 		
 		/* keywords */
 		"Tyapp" { return new Token(TokenType.Tyapp); }
@@ -68,6 +70,13 @@ StringCharacter = [^\r\n\"\\]
 		"Const" { return new Token(TokenType.Const); }
 		"Comb" { return new Token(TokenType.Comb); }
 		"Abs" { return new Token(TokenType.Abs); }
+		
+		"String" { return new Token(TokenType.String); }
+		"HOLType" { return new Token(TokenType.HOLType); }
+		"Term" { return new Token(TokenType.Term); }
+		"Theorem" { return new Token(TokenType.Theorem); }
+		"List" { return new Token(TokenType.List); }
+		"Pair" { return new Token(TokenType.Pair); }
 		
 
         /* string literal */

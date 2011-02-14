@@ -31,7 +31,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		String output;
 		
 		String printCmd = returnType.getPrintCommand();
-		command = "print_string(" + printCmd + "(" + command + "));;";
+		command = "raw_print_string(" + printCmd + "(" + command + "));;";
 		System.out.println("Executing: " + command);
 		
 		output = caml.runCommand(command);
@@ -43,43 +43,26 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		System.out.println("Out: " + testString);
 		
 		output = strip(output);
+		if (output == null) {
+			System.err.println("Null result");
+			return null;
+		}
 		
 		return Parser.parse(output);
-		
-/*		// Term
-		if (returnType.equals(CamlType.TERM)) {
-			command = "print_string(raw_string_of_term (" + command + "));;";
-			System.out.println("Executing: " + command);
-			
-			output = caml.runCommand(command);
-			System.out.println("Out: " + output);
-			
-			output = strip(output);
-			
-			return TermParser.parseTerm(output);
-		}
-		
-		
-		// Theorem
-		if (returnType.equals(CamlType.THM)) {
-			command = "(print_string o raw_string_of_term o concl) (" + command + ");;";
-			System.out.println("Executing: " + command);
-			
-			output = caml.runCommand(command);
-			System.out.println("Out: " + output);
-			
-			output = strip(output);
-			
-			Term concl = TermParser.parseTerm(output);
-			return new Theorem.TempTheorem(concl);
-		}
-
-		return null;*/
 	}
 	
 	
 	private static String strip(String str) {
-		String[] els = str.split("\n");
+		int i1 = str.indexOf("$begin$");
+		int i2 = str.indexOf("$end$");
+		
+		if (i2 <= i1)
+			return null;
+		
+		return str.substring(i1 + "$begin".length() + 1, i2);
+		
+		
+/*		String[] els = str.split("\n");
 		
 		for (int i = 1; i < els.length; i++) {
 			String tmp = els[i].trim();
@@ -87,7 +70,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 				return els[i - 1];
 		}
 		
-		return els[0];
+		return els[0];*/
 	}
 	
 }

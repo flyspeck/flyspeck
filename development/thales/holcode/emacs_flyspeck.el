@@ -6,6 +6,7 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*j12*")
+(setq hol-light-interactive-buffer-name "*f15*")
 
 ; thackmac
 (setq hol-light-interactive-buffer-name "*j25*")

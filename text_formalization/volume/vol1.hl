@@ -1200,7 +1200,7 @@ let set_of_cube= new_definition`set_of_cube S= {cube x| x IN S}`;;
 
 let union_of_cube= new_definition `union_of_cube (x:real^3) (r:real)= UNIONS (set_of_cube (hinhcau x r))`;;
 
-let int_ball= new_definition `int_ball (x:real^3) r= { y :real^3 | !i. (1<= i) /\ (i<= 3) ==> is_int (y$i)} INTER (hinhcau x r)`;;
+let int_ball= new_definition `int_ball (x:real^3) r= { y :real^3 | !i. (1<= i) /\ (i<= 3) ==> integer (y$i)} INTER (hinhcau x r)`;;
 let union_of_int_cube=new_definition `union_of_int_cube (x:real^3) (r:real) = UNIONS (set_of_cube (int_ball x r))`;;
 
 let map0=new_definition `map0 = \(c:real^3). cube c`;;
@@ -1215,10 +1215,13 @@ let COMPONENT_LE_NORM_3=prove(`!(x:real^3) i. (1<= i) /\ (i<= 3) ==> abs (x$i)<=
 
 let component_hinhcau_bound=prove(`! (p:real^3) (r:real) x. x IN hinhcau p r ==> (!i. (1 <= i) /\ ( i <= 3 ) ==> ( p$i - r <= x$i ) /\ ( x$i <= p$i + r))`,REPEAT GEN_TAC THEN REWRITE_TAC[hinhcau] THEN REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[REAL_ARITH `(p$i):real - r <= x$i <=> p$i - x$i <= r`; REAL_ARITH `a:real <= b+c <=> -- c <= b-a`] THEN REWRITE_TAC[MESON[] `C/\B <=> B/\ C`] THEN REWRITE_TAC[GSYM REAL_ABS_BOUNDS] THEN  REWRITE_TAC[MESON[] `C/\B <=> B/\ C`] THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL [`p - x:real^3`; `i:num`] COMPONENT_LE_NORM_3) THEN ASM_REWRITE_TAC[] THEN UNDISCH_TAC `(norm (p:real^3 - x) < r):bool` THEN REWRITE_TAC[VECTOR_SUB_COMPONENT] THEN REAL_ARITH_TAC);;
 
-let int_interval= new_definition `int_interval (a:real) b = {x:real | is_int x /\  (a<= x) /\ (x <= b)}`;;
+let int_interval= new_definition `int_interval (a:real) b = {x:real | integer x /\  (a<= x) /\ (x <= b)}`;;
 
+let finite_int_interval=prove(`! a:real b. FINITE (int_interval a b)`,REPEAT GEN_TAC THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[FINITE_INTSEG] THEN  REWRITE_TAC[int_interval] THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[FINITE_INTSEG]);;
+
+(*
 let finite_int_interval=prove(`! a:real b. FINITE (int_interval a b)`,REPEAT GEN_TAC THEN ASSUME_TAC (GSYM INTEGER_IS_INT) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[INTEGER_IS_INT;FINITE_INTSEG] THEN  REWRITE_TAC[int_interval] THEN ASM_REWRITE_TAC[] THEN SIMP_TAC[FINITE_INTSEG]);;
-
+*)
 
 let vector_to_pair =new_definition`vector_to_pair (x:real^3) = x$1, x$2, x$3 `;;
 
@@ -1254,8 +1257,11 @@ let finite_int_ball=prove(`!(x:real^3) (r:real). FINITE (int_ball x r)`,REPEAT G
 (*                      Needed lemmas                       *)
 (*----------------------------------------------------------*)
 
-let disjoint_line_interval=prove(`!(x:real) (y:real). is_int x /\ is_int y /\ (? (z:real). x< z /\ z< x+ &1 /\ y<z /\ z< y+ &1) ==> x= y`,
+let disjoint_line_interval=prove(`!(x:real) (y:real). integer x /\ integer y /\ (? (z:real). x< z /\ z< x+ &1 /\ y<z /\ z< y+ &1) ==> x= y`,
+(*
 REPEAT GEN_TAC THEN SIMP_TAC[GSYM INTEGER_IS_INT] THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL [`x:real`;`y:real`] REAL_LE_CASES_INTEGERS)
+-- 2/16/2011. *)
+REPEAT GEN_TAC THEN SIMP_TAC[] THEN REPEAT STRIP_TAC THEN MP_TAC(SPECL [`x:real`;`y:real`] REAL_LE_CASES_INTEGERS)
   THEN ASM_SIMP_TAC[] THEN ASM_SIMP_TAC[SPECL [`x:real`;`y:real`] REAL_LE_INTEGERS] THEN SIMP_TAC[MESON[] `(((P\/Q)\/R ==> P) <=> (Q\/R ==> P))`]
   THEN STRIP_TAC
 THENL [UNDISCH_TAC `(y:real <z):bool` THEN UNDISCH_TAC `(z:real< x+ &1):bool`;UNDISCH_TAC `(x:real <z):bool` THEN UNDISCH_TAC `(z:real< y+ &1):bool`]
@@ -1271,13 +1277,13 @@ let nonempty_cube=prove(`!(x:real^3). ~ (cube x= {})`,GEN_TAC THEN REWRITE_TAC[G
 THEN REWRITE_TAC[cube;IN_ELIM_THM] THEN GEN_TAC THEN DISCH_TAC THEN ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_3] THEN REAL_ARITH_TAC);;
 
 
-let disjoint_cube=prove(`!(x:real^3) (y:real^3).(!i. 1<=i /\ i<=3 ==> is_int (x$i) /\ is_int (y$i))
+let disjoint_cube=prove(`!(x:real^3) (y:real^3).(!i. 1<=i /\ i<=3 ==> integer (x$i) /\ integer (y$i))
  ==> ( ~(DISJOINT (cube x) (cube y)) <=> x = y)`, REPEAT STRIP_TAC THEN EQ_TAC
 THENL [REWRITE_TAC[DISJOINT;SET_RULE `~ ((B:real^3 -> bool)= {}) <=> ?(x:real^3). x IN B`];SIMP_TAC[]]
 THENL [DISCH_TAC THEN FIRST_X_ASSUM(CHOOSE_TAC);REWRITE_TAC[DISJOINT]]
 THENL [UNDISCH_TAC `(x' IN cube (x:real^3) INTER cube y):bool`;SIMP_TAC[INTER_ACI;nonempty_cube]]
        THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM;cube] THEN 
-UNDISCH_TAC `(!i. 1 <= i /\ i <= 3 ==> is_int ((x:real^3)$i) /\ is_int ((y:real^3)$i)):bool`
+UNDISCH_TAC `(!i. 1 <= i /\ i <= 3 ==> integer ((x:real^3)$i) /\ integer ((y:real^3)$i)):bool`
 	 THEN SIMP_TAC[FORALL_3] THEN REWRITE_TAC[MESON[] `P ==> Q ==> R <=> P /\ Q  ==> R`]
 	 THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC (SPECL [`x:real^3`;`y:real^3`] vector_eq2)
 	 THEN REWRITE_TAC[FORALL_3] THEN ASM_MESON_TAC[disjoint_line_interval]);;
@@ -1412,7 +1418,7 @@ let negligible_cube=prove( `!(x:real^3)(r:real) (s:real^3 ->bool) (t:real^3 ->bo
   THEN REPEAT STRIP_TAC THEN UNDISCH_TAC `(~ ((s:real^3 -> bool) = t)):bool` THEN ASM_REWRITE_TAC[]
   THEN DISCH_TAC THEN MP_TAC(MESON[] ` (x':real^3 = x'') ==> (cube x'= cube x'')`)
   THEN ONCE_REWRITE_TAC[MESON[] `(A ==> B) <=> (~B ==> ~A)`] THEN ASM_REWRITE_TAC[]
-  THEN MP_TAC(MESON[int_ball;IN_INTER;IN_ELIM_THM] `x' IN int_ball x r /\ x'' IN int_ball x r ==> !i. 1 <= i /\ i <= 3 ==> is_int ((x')$i) /\ is_int ((x'')$i)`) THEN ASM_REWRITE_TAC[]
+  THEN MP_TAC(MESON[int_ball;IN_INTER;IN_ELIM_THM] `x' IN int_ball x r /\ x'' IN int_ball x r ==> !i. 1 <= i /\ i <= 3 ==> integer ((x')$i) /\ integer ((x'')$i)`) THEN ASM_REWRITE_TAC[]
   THEN DISCH_TAC THEN MP_TAC(SPECL [`x':real^3`;`x'':real^3`] disjoint_cube) THEN ASM_REWRITE_TAC[]
 THEN SIMP_TAC[DISJOINT;NEGLIGIBLE_EMPTY] THEN ONCE_REWRITE_TAC[MESON[] `( a<=>b ) <=> (b<=>a)`]
   THEN SIMP_TAC[NEGLIGIBLE_EMPTY;MESON[] `~ a ==> ~b <=> b==> a`]);;
@@ -1634,7 +1640,7 @@ let ball_subset_union_ccube=prove(`!(x:real^3) (r:real).ball(x,r- sqrt(&3)) SUBS
 				   THEN SIMP_TAC[] THEN REWRITE_TAC[int_ball;IN_ELIM_THM]
 				   THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM]
 				   THEN SIMP_TAC[LAMBDA_BETA;DIMINDEX_3;hinhcau;IN_ELIM_THM;FLOOR]
-				   THEN REWRITE_TAC[FLOOR;GSYM INTEGER_IS_INT]
+				   THEN REWRITE_TAC[FLOOR;(* GSYM INTEGER_IS_INT *)]
 				   THEN REWRITE_TAC[MESON[VECTOR_ARITH `(x:real^3) - (lambda i. floor ((x':real^3)$i))= (x- x') + (x' - (lambda i. floor (x'$i)))`] `(norm:real^3 ->real) ((x:real^3) - (lambda i. (floor ((x':real^3)$i)):real))= norm ((x- x') + (x' - (lambda i. floor (x'$i))))`]
 				   THEN MP_TAC(SPECL [`(lambda i. (floor ((x':real^3)$i)):real):real^3`;`x':real^3`] ccube_to_ball)
 				   THEN SIMP_TAC[SPEC `x':real^3` in_ccube_floor]
@@ -1660,7 +1666,7 @@ let PWVIIOL=prove(`!(x:real^3)(r:real). (sqrt(&3) <= r) ==> FINITE (int_ball x r
 (*-----------------------------------------------------------------------*)
 
 
-let integer_point= new_definition`integer_point (S:real^3 -> bool)= {x:real^3 | (!i. 1<= i /\ i<=3 ==> is_int(x$i)) /\ x IN S}`;;
+let integer_point= new_definition`integer_point (S:real^3 -> bool)= {x:real^3 | (!i. 1<= i /\ i<=3 ==> integer(x$i)) /\ x IN S}`;;
 
 let int_ball_subset=prove( `!(x:real^3)(r1:real)(r2:real). r1< r2 ==> (int_ball x r1) SUBSET (int_ball x r2)`,REPEAT STRIP_TAC THEN REWRITE_TAC[SUBSET;int_ball;IN_INTER;IN_ELIM_THM] THEN GEN_TAC THEN SIMP_TAC[]
 			     THEN REWRITE_TAC[hinhcau;IN_ELIM_THM] THEN ASM_MESON_TAC[REAL_ARITH `a:real< b /\ b< c ==> a< c`]);;

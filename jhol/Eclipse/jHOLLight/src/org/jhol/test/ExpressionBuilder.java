@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -16,6 +17,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import org.jhol.caml.CamlEnvironment;
+import org.jhol.caml.CamlList;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
 import org.jhol.core.HOLType;
@@ -28,6 +30,9 @@ import org.jhol.core.Theorem;
 @SuppressWarnings("serial")
 public class ExpressionBuilder extends JPanel implements ActionListener {
 	private CamlObject lhs, rhs;
+	
+	// Objects for a list
+	private ArrayList<CamlObject> listObjects;
 	
 	private final CamlEnvironment caml;
 	
@@ -90,6 +95,18 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 	 * @return true if the object has been accepted
 	 */
 	public boolean insert(CamlObject obj) throws Exception {
+		if (obj == null) {
+			// Special object
+			if (listObjects != null) {
+				CamlType elType = listObjects.get(0).camlType();
+				// Close the list
+				obj = new CamlList(elType, listObjects);
+			}
+			else {
+				return false;
+			}
+		}
+		
 		if (lhs == null) {
 			if (rhs == null) {
 				// lhs == null && rhs == null
@@ -130,8 +147,27 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 			if (argType == null)
 				throw new Exception("Bad type: a function type is expected, lhs = " + lhs);
 			
-			if (!argType.equals(obj.camlType()))
+			if (!argType.equals(obj.camlType())) {
+				// Special case for lists
+				if (argType instanceof CamlType.ListType) {
+					CamlType.ListType listType = (CamlType.ListType) argType;
+					
+					if (!listType.getElementType().equals(obj.camlType()))
+						return false;
+					
+					if (listObjects == null)
+						listObjects = new ArrayList<CamlObject>();
+					
+					listObjects.add(obj);
+					update(lhs, rhs);
+					return true;
+				}
+				
 				return false;
+			}
+			else {
+				listObjects = null;
+			}
 			
 			update(lhs.apply(obj), rhs);
 			return true;
@@ -162,7 +198,24 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 		}
 
 		for (int i = 0; i < args; i++) {
-			lhsStr += " (...)";
+			lhsStr += " ";
+			CamlType argType = lhs.camlType().getArgType(i);
+			if (argType instanceof CamlType.ListType) {
+				if (i == 0 && listObjects != null) {
+					lhsStr += "[";
+					for (CamlObject obj : listObjects) {
+						lhsStr += obj.toCommandString();
+						lhsStr += "; ";
+					}
+					lhsStr += "...]";
+				}
+				else {
+					lhsStr += "[...]";
+				}
+			}
+			else {
+				lhsStr += "(...)";
+			}
 		}
 
 		return lhsStr + " " + rhsStr;
@@ -182,6 +235,9 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				
 				// Evaluate the expression
 				rhs = lhs.eval(caml);
+				if (rhs == null) {
+					return;
+				}
 				lhs = null;
 			}
 			else if (nargs == 1 && rhs != null) {
@@ -191,6 +247,9 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				
 				// Evaluate the expression
 				rhs = rhs.eval(caml);
+				if (rhs == null) {
+					return;
+				}
 			}
 		}
 		
@@ -214,6 +273,7 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 		// Clear
 		if (cmd == "clear") {
 			lhs = rhs = null;
+			listObjects = null;
 			try {
 				update(lhs, rhs);
 			}

@@ -56,9 +56,15 @@ public class TheoremWindow extends JDialog implements ActionListener {
 		final JTable table = new JTable(list);
 
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		table.setColumnSelectionAllowed(false);
+		table.setRowSelectionAllowed(false);
+		
 		table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
+				if (e.getValueIsAdjusting())
+					return;
+				
 				try {
 					int index = table.getSelectedRow();
 					if (index < 0)
@@ -66,6 +72,8 @@ public class TheoremWindow extends JDialog implements ActionListener {
 					
 					CamlObject obj = list.get(index);
 					builder.insert(obj);
+					
+					table.getSelectionModel().clearSelection();
 				}
 				catch (Exception ex) {
 					ex.printStackTrace();

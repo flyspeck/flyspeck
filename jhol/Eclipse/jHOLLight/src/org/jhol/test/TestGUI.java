@@ -83,9 +83,15 @@ public class TestGUI extends JFrame implements ActionListener {
 		final JTable termsTable = new JTable(terms);
 
 		termsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		termsTable.setColumnSelectionAllowed(false);
+		termsTable.setRowSelectionAllowed(false);
+		
 		termsTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
+				if (e.getValueIsAdjusting())
+					return;
+				
 				try {
 					int index = termsTable.getSelectedRow();
 					if (index < 0)
@@ -93,6 +99,8 @@ public class TestGUI extends JFrame implements ActionListener {
 					
 					CamlObject obj = terms.get(index);
 					builder.insert(obj);
+					
+					termsTable.getSelectionModel().clearSelection();
 				}
 				catch (Exception ex) {
 					ex.printStackTrace();
@@ -152,9 +160,25 @@ public class TestGUI extends JFrame implements ActionListener {
 		win.setLocation(100, this.getHeight());
 		win.setLayout(new BoxLayout(win.getContentPane(), BoxLayout.PAGE_AXIS));
 		
+		// A special "null" button
+		JButton button = new JButton("]");
+		button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					builder.insert(null);
+				}
+				catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		win.add(button);
+		
+		// Create buttons for all functions
 		for (int i = 0; i < functions.length; i++) {
 			final CamlFunction f = functions[i];
-			JButton button = new JButton(f.toCommandString());
+			button = new JButton(f.toCommandString());
 			button.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
@@ -182,8 +206,8 @@ public class TestGUI extends JFrame implements ActionListener {
 	public static void main(String[] args) throws Exception {
 		TermPrinterData.init();
 		
-		TestGUI test = new TestGUI(new TestCamlEnvironment());
-//		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
+//		TestGUI test = new TestGUI(new TestCamlEnvironment());
+		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
 		CamlObjectList terms = test.getTerms();
 
 		// Test terms
@@ -212,6 +236,11 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlType term_to_thm = CamlType.mk_function(CamlType.TERM, CamlType.THM);
 		CamlType thm_to_thm = CamlType.mk_function(CamlType.THM, CamlType.THM);
 		CamlType thm_to_term = CamlType.mk_function(CamlType.THM, CamlType.TERM);
+		CamlType thm_list = new CamlType.ListType(CamlType.THM);
+		CamlType term_list = new CamlType.ListType(CamlType.TERM);
+		CamlType thm_list_to_term_to_thm = CamlType.mk_function(thm_list, CamlType.mk_function(CamlType.TERM, CamlType.THM));
+		CamlType term_list_to_term_to_thm = CamlType.mk_function(term_list, CamlType.mk_function(CamlType.TERM, CamlType.THM));
+		
 		
 		CamlFunction ARITH_RULE = new CamlFunction("ARITH_RULE", term_to_thm);
 		CamlFunction REFL = new CamlFunction("REFL", term_to_thm);
@@ -221,8 +250,11 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlFunction SPEC_ALL = new CamlFunction("SPEC_ALL", thm_to_thm);
 		CamlFunction GEN = new CamlFunction("GEN", CamlType.mk_function(CamlType.TERM, thm_to_thm));
 		
+		CamlFunction REWRITE_CONV = new CamlFunction("REWRITE_CONV", thm_list_to_term_to_thm);
+		CamlFunction SPECL = new CamlFunction("SPECL", term_list_to_term_to_thm);
 		
-		test.createFunctions(ARITH_RULE, REFL, concl, SPEC_ALL, GEN);
+		
+		test.createFunctions(ARITH_RULE, REFL, concl, SPEC_ALL, GEN, SPECL, REWRITE_CONV);
 
 		
 		

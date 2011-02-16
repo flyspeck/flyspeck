@@ -46,6 +46,8 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 	// Clears the expression
 	private final JButton clearButton;
 	
+	// For updating the goal state
+	private GoalstateWindow goalstateWindow;
 	
 	/**
 	 * Constructor
@@ -88,6 +90,15 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 
 		this.add(splitter);
 		this.add(clearButton);
+	}
+	
+	
+	/**
+	 * Sets the GoalstateWindow
+	 * @param win
+	 */
+	public void setGoalstateWindow(GoalstateWindow win) {
+		this.goalstateWindow = win;
 	}
 	
 
@@ -269,6 +280,9 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 		if (lhs != null && lhs.camlType().equals(CamlType.TACTIC)) {
 			String cmd = "(hd o e) (" + lhs.makeCamlCommand() + ")";
 			Goalstate newState = (Goalstate) caml.execute(cmd, CamlType.GOAL_STATE);
+			if (newState != null && goalstateWindow != null) {
+				goalstateWindow.update(newState);
+			}
 			
 			result.add(0, lhs);
 			this.lhs = this.rhs = null;

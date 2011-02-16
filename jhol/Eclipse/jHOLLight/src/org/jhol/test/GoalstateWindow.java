@@ -11,6 +11,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import org.jhol.caml.CamlEnvironment;
 import org.jhol.caml.CamlObject;
@@ -25,7 +28,7 @@ import org.jhol.core.printer.TermPrinter;
 @SuppressWarnings("serial")
 public class GoalstateWindow extends JDialog {
 	// Goalstate
-	private Goalstate goalstate;
+//	private Goalstate goalstate;
 	
 	private final CamlEnvironment caml;
 	
@@ -39,21 +42,23 @@ public class GoalstateWindow extends JDialog {
 	/**
 	 * Constructor
 	 */
-	public GoalstateWindow(CamlEnvironment caml, JFrame owner) {
+	public GoalstateWindow(CamlEnvironment caml, ExpressionBuilder builder, JFrame owner) {
 		super(owner, "GoalState", false);
 		this.caml = caml;
 		
-		initInterface();
+		builder.setGoalstateWindow(this);
+		
+		initInterface(builder);
 	}
 	
 	
 	/**
 	 * Interface initialization
 	 */
-	private void initInterface() {
+	private void initInterface(final ExpressionBuilder builder) {
 		// List of goals
 		goalsList = new CamlObjectList();
-		JTable goalTable = new JTable(goalsList);
+		final JTable goalTable = new JTable(goalsList);
 		JScrollPane goalScroll = new JScrollPane(goalTable);
 		goalScroll.setPreferredSize(new Dimension(500, 100));
 		
@@ -62,7 +67,7 @@ public class GoalstateWindow extends JDialog {
 		
 		// List of (active goal) assumptions
 		activeGoalAssumptions = new CamlObjectList();
-		JTable assumptionTable = new JTable(activeGoalAssumptions);
+		final JTable assumptionTable = new JTable(activeGoalAssumptions);
 		JScrollPane assumptionScroll = new JScrollPane(assumptionTable);
 		assumptionScroll.setPreferredSize(new Dimension(500, 200));
 		
@@ -90,6 +95,62 @@ public class GoalstateWindow extends JDialog {
 		this.add(refresh);
 		
 		this.pack();
+		
+		
+		// Register table selection listeners
+		goalTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		goalTable.setColumnSelectionAllowed(false);
+		goalTable.setRowSelectionAllowed(false);
+		
+		goalTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				if (e.getValueIsAdjusting())
+					return;
+				
+				try {
+					int index = goalTable.getSelectedRow();
+					if (index < 0)
+						return;
+					
+					CamlObject obj = goalsList.get(index);
+					builder.insert(obj);
+					
+					goalTable.getSelectionModel().clearSelection();
+				}
+				catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		
+		
+		assumptionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		assumptionTable.setColumnSelectionAllowed(false);
+		assumptionTable.setRowSelectionAllowed(false);
+		
+		assumptionTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				if (e.getValueIsAdjusting())
+					return;
+				
+				try {
+					int index = assumptionTable.getSelectedRow();
+					if (index < 0)
+						return;
+					
+					CamlObject obj = activeGoalAssumptions.get(index);
+					builder.insert(obj);
+					
+					assumptionTable.getSelectionModel().clearSelection();
+				}
+				catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		
 	}
 	
 	
@@ -101,7 +162,7 @@ public class GoalstateWindow extends JDialog {
 		activeGoalText.setText("");
 		activeGoalAssumptions.clear();
 	
-		this.goalstate = state;
+//		this.goalstate = state;
 		
 		if (state == null)
 			return;

@@ -77,7 +77,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		win.setVisible(true);
 		
 		// Create a GoalstateWindow
-		GoalstateWindow win2 = new GoalstateWindow(caml, this);
+		GoalstateWindow win2 = new GoalstateWindow(caml, builder, this);
 		win2.setLocation(500, dialog.getHeight());
 		win2.pack();
 		win2.setVisible(true);

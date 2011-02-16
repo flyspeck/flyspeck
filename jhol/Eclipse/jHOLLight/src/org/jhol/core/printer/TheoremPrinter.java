@@ -8,6 +8,10 @@ import org.jhol.core.Theorem;
 public class TheoremPrinter {
 	public static String printSimple(Theorem thm) {
 		StringBuilder str = new StringBuilder();
+		
+		if (thm.hyp())
+			str.append("A ");
+		
 		str.append("|- ");
 		
 		String concl = TermPrinter.print(thm.concl());

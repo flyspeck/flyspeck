@@ -34,7 +34,7 @@ public class EmptyCamlEnvironment extends CamlEnvironment {
 		}
 		
 		if (returnType.equals(CamlType.THM)) {
-			return new Theorem.TempTheorem(testTerm);
+			return new Theorem.TempTheorem(testTerm, true);
 		}
 		
 		return null;

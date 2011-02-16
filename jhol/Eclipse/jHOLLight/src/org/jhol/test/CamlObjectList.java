@@ -76,6 +76,20 @@ public class CamlObjectList extends AbstractTableModel {
 	
 	
 	/**
+	 * Inserts the object at the given position
+	 */
+	public void add(int position, CamlObject obj) {
+		if (!allowDuplicates) {
+			if (objects.contains(obj))
+				return;
+		}
+		
+		objects.add(position, obj);
+		fireTableDataChanged();
+	}
+	
+	
+	/**
 	 * Adds the collection of objects into the list
 	 */
 	public void add(Collection<? extends CamlObject> objs) {
@@ -148,6 +162,9 @@ public class CamlObjectList extends AbstractTableModel {
 				if (obj instanceof Theorem) {
 					return TheoremPrinter.printSimple((Theorem) obj);
 				}
+				else if (obj != null) {
+					return obj.toCommandString();
+				}
 				break;
 
 			// Column 2
@@ -161,6 +178,9 @@ public class CamlObjectList extends AbstractTableModel {
 				if (obj instanceof Theorem) {
 					String name = ((Theorem) obj).name();
 					return name != null ? name : "%TMP_THEOREM%";
+				}
+				else if (obj != null) {
+					return obj.camlType();
 				}
 				break;
 			}

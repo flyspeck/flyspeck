@@ -12,5 +12,6 @@ public enum TokenType {
 	COMMA, COLON, SEMICOLON,
 	Tyapp, Tyvar,
 	Var, Const, Comb, Abs,
-	String, HOLType, Term, Theorem, List, Pair
+	String, HOLType, Term, Theorem, List, Pair,
+	Goal, Goalstate
 }

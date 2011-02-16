@@ -5,6 +5,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
+import org.jhol.caml.CamlEnvironment;
+import org.jhol.caml.CamlObject;
+import org.jhol.caml.CamlType;
 import org.jhol.core.HOLType;
 import org.jhol.core.Pair;
 import org.jhol.core.Term;
@@ -167,12 +170,30 @@ public class Test {
 	
 	
 	/**
+	 * test5
+	 */
+	public static void test5() throws Exception {
+		CamlEnvironment env = new TestCamlEnvironment();
+		
+		String cmd1 = "(hd o g)(`p /\\ q ==> (r /\\ x)`)";
+		String cmd2 = "(hd o e)(REPEAT STRIP_TAC)";
+		
+		CamlObject obj = env.execute(cmd1, CamlType.GOAL_STATE);
+		System.err.println(obj);
+
+		obj = env.execute(cmd2, CamlType.GOAL_STATE);
+		System.err.println(obj);
+
+	}
+	
+	
+	/**
 	 * main
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		test4();
+		test5();
 		
 		System.exit(0);
 	}

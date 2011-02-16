@@ -3,12 +3,16 @@ package org.jhol.core.lexer;
 import java.io.StringReader;
 import java.util.ArrayList;
 
+import org.jhol.caml.CamlFunction;
 import org.jhol.caml.CamlList;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlPair;
 import org.jhol.caml.CamlString;
 import org.jhol.caml.CamlType;
+import org.jhol.core.Goal;
+import org.jhol.core.Goalstate;
 import org.jhol.core.HOLType;
+import org.jhol.core.Pair;
 import org.jhol.core.Term;
 import org.jhol.core.Theorem;
 
@@ -62,6 +66,12 @@ public class Parser {
 			
 		case HOLType:
 			return CamlType.HOL_TYPE;
+			
+		case Goal:
+			return CamlType.GOAL;
+			
+		case Goalstate:
+			return CamlType.GOAL_STATE;
 			
 		case Pair:
 			// (
@@ -140,10 +150,99 @@ public class Parser {
 		case Tyapp:
 		case Tyvar:
 			return parseHOLType(s);
+			
+		case Goal:
+			return parseGoal(s);
+			
+		case Goalstate:
+			return parseGoalstate(s);
 		}
 		
 		throw new Exception("Unexpected token: " + t);
 	}
+	
+	
+	/**
+	 * Parses a goal
+	 */
+	private final static Goal parseGoal(Scanner s) throws Exception {
+		// Goal
+		Token t = s.nextToken();
+		if (t.type != TokenType.Goal)
+			throw new Exception("Goal expected: " + t);
+		
+		// (
+		t = s.nextToken();
+		if (t.type != TokenType.LPAR)
+			throw new Exception("( expected: " + t);
+		
+		CamlList assumptions = parseList(s);
+		
+		// ,
+		t = s.nextToken();
+		if (t.type != TokenType.COMMA)
+			throw new Exception(", expected: " + t);
+
+		Term goalTerm = parseTerm(s);
+		
+		// )
+		t = s.nextToken();
+		if (t.type != TokenType.RPAR)
+			throw new Exception(") expected: " + t);
+		
+		// Convert the CamlList into a Java list 
+		ArrayList<Pair<String, Theorem>> assumptionList = new ArrayList<Pair<String,Theorem>>();
+		
+		CamlFunction ASSUME = new CamlFunction("ASSUME", CamlType.mk_function(CamlType.TERM, CamlType.THM));
+		
+		for (int i = 0; i < assumptions.size(); i++) {
+			CamlPair p = (CamlPair) assumptions.get(i);
+			CamlString name = (CamlString) p.first();
+			Theorem.TempTheorem th = (Theorem.TempTheorem) p.second();
+
+			CamlObject.CamlApplication assumption = (CamlObject.CamlApplication) ASSUME.apply(th.concl());
+			th.setCommand(assumption);
+			
+			assumptionList.add(new Pair<String, Theorem>(name.str, th));
+		}
+		
+		return new Goal(assumptionList, goalTerm);
+	}
+	
+	
+
+	/**
+	 * Parses a goal state
+	 */
+	private final static Goalstate parseGoalstate(Scanner s) throws Exception {
+		// Goalstate
+		Token t = s.nextToken();
+		if (t.type != TokenType.Goalstate)
+			throw new Exception("Goalstate expected: " + t);
+		
+		// (
+		t = s.nextToken();
+		if (t.type != TokenType.LPAR)
+			throw new Exception("( expected: " + t);
+		
+		CamlList goals = parseList(s);
+		
+		// )
+		t = s.nextToken();
+		if (t.type != TokenType.RPAR)
+			throw new Exception(") expected: " + t);
+		
+		// Convert the CamlList into a Java list 
+		ArrayList<Goal> goalList = new ArrayList<Goal>();
+		
+		for (int i = 0; i < goals.size(); i++) {
+			Goal g = (Goal) goals.get(i);
+			goalList.add(g);
+		}
+		
+		return new Goalstate(goalList);
+	}
+	
 	
 	
 	/**
@@ -251,10 +350,9 @@ public class Parser {
 		t = s.nextToken();
 		if (t.type != TokenType.LPAR)
 			throw new Exception("( expected: " + t);
-		
-		// TODO: do not ignore hypotheses
-//		CamlList hyp = parseList(s);
-		parseList(s);
+
+		// Parse assumptions
+		CamlList hyp = parseList(s);
 		
 		
 		// ,
@@ -269,7 +367,7 @@ public class Parser {
 		if (t.type != TokenType.RPAR)
 			throw new Exception(") expected: " + t);
 		
-		return new Theorem.TempTheorem(concl);
+		return new Theorem.TempTheorem(concl, hyp.size() > 0);
 	}
 	
 	

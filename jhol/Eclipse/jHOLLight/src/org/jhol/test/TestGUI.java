@@ -1,6 +1,8 @@
 package org.jhol.test;
 
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -37,6 +39,9 @@ public class TestGUI extends JFrame implements ActionListener {
 	private CamlObjectList terms;
 	private JTextField termField;
 	
+	// Arbitrary command
+	private JTextField commandField;
+	
 	private ExpressionBuilder builder;
 	
 	/**
@@ -46,7 +51,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		this.caml = caml;
 		
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		setPreferredSize(new Dimension(700, 300));
+		setPreferredSize(new Dimension(500, 300));
 		setMinimumSize(new Dimension(400, 300));
 
 		this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
@@ -63,13 +68,19 @@ public class TestGUI extends JFrame implements ActionListener {
 		dialog.add(builder);
 		dialog.pack();
 		dialog.setVisible(true);
-		dialog.setLocation(700, 0);
+		dialog.setLocation(500, 0);
 		
 		// Create a TheoremWindow
 		TheoremWindow win = new TheoremWindow(caml, builder, this);
-		win.setLocation(700, dialog.getHeight());
+		win.setLocation(300, dialog.getHeight());
 		win.pack();
 		win.setVisible(true);
+		
+		// Create a GoalstateWindow
+		GoalstateWindow win2 = new GoalstateWindow(caml, this);
+		win2.setLocation(500, dialog.getHeight());
+		win2.pack();
+		win2.setVisible(true);
 	}
 	
 	
@@ -115,7 +126,13 @@ public class TestGUI extends JFrame implements ActionListener {
 		// A field for entering new terms
 		termField = new JTextField();
 		termField.addActionListener(this);
+		
+		// A field for entering Caml commands
+		commandField = new JTextField();
+		commandField.addActionListener(this);
+		
 		add(termField);
+		add(commandField);
 	}
 	
 
@@ -125,6 +142,7 @@ public class TestGUI extends JFrame implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == termField) {
+			// Term field
 			String termString = termField.getText();
 			String cmd = "`" + termString + "`";
 			
@@ -135,6 +153,16 @@ public class TestGUI extends JFrame implements ActionListener {
 				
 				Term term = (Term) obj;
 				terms.add(term);
+			}
+			catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+		else if (e.getSource() == commandField) {
+			// Command field
+			String cmd = commandField.getText() + ";;";
+			try {
+				caml.runCommand(cmd);
 			}
 			catch (Exception ex) {
 				ex.printStackTrace();
@@ -158,7 +186,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		JDialog win = new JDialog(this, false);
 		
 		win.setLocation(100, this.getHeight());
-		win.setLayout(new BoxLayout(win.getContentPane(), BoxLayout.PAGE_AXIS));
+		win.setLayout(new GridLayout(0, 3));
 		
 		// A special "null" button
 		JButton button = new JButton("]");
@@ -178,7 +206,19 @@ public class TestGUI extends JFrame implements ActionListener {
 		// Create buttons for all functions
 		for (int i = 0; i < functions.length; i++) {
 			final CamlFunction f = functions[i];
+
+			Color color = Color.GRAY;
+			
+			CamlType lastType = f.camlType().getLastType();
+			if (lastType.equals(CamlType.THM))
+				color = Color.CYAN;
+			
+			if (lastType.equals(CamlType.GOAL_STATE))
+				color = Color.GREEN;
+			
+			
 			button = new JButton(f.toCommandString());
+			button.setBackground(color);
 			button.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
@@ -206,8 +246,8 @@ public class TestGUI extends JFrame implements ActionListener {
 	public static void main(String[] args) throws Exception {
 		TermPrinterData.init();
 		
-//		TestGUI test = new TestGUI(new TestCamlEnvironment());
-		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
+		TestGUI test = new TestGUI(new TestCamlEnvironment());
+//		TestGUI test = new TestGUI(new EmptyCamlEnvironment());
 		CamlObjectList terms = test.getTerms();
 
 		// Test terms
@@ -233,17 +273,25 @@ public class TestGUI extends JFrame implements ActionListener {
 
 		
 		// Test functions
+		CamlType term = CamlType.TERM;
+		CamlType thm = CamlType.THM;
 		CamlType term_to_thm = CamlType.mk_function(CamlType.TERM, CamlType.THM);
 		CamlType thm_to_thm = CamlType.mk_function(CamlType.THM, CamlType.THM);
+		CamlType thm_to_thm_to_thm = CamlType.mk_function(CamlType.THM, thm_to_thm);
 		CamlType thm_to_term = CamlType.mk_function(CamlType.THM, CamlType.TERM);
-		CamlType thm_list = new CamlType.ListType(CamlType.THM);
-		CamlType term_list = new CamlType.ListType(CamlType.TERM);
+		CamlType thm_list = new CamlType.ListType(thm);
+		CamlType term_list = new CamlType.ListType(term);
 		CamlType thm_list_to_term_to_thm = CamlType.mk_function(thm_list, CamlType.mk_function(CamlType.TERM, CamlType.THM));
-		CamlType term_list_to_term_to_thm = CamlType.mk_function(term_list, CamlType.mk_function(CamlType.TERM, CamlType.THM));
+		CamlType term_list_to_thm_to_thm = CamlType.mk_function(term_list, CamlType.mk_function(CamlType.THM, CamlType.THM));
+		CamlType tac = CamlType.TACTIC;
+		CamlType ttac = CamlType.mk_function(thm, CamlType.TACTIC);
+		CamlType thm_list_to_tac = CamlType.mk_function(thm_list, tac);
 		
 		
 		CamlFunction ARITH_RULE = new CamlFunction("ARITH_RULE", term_to_thm);
 		CamlFunction REFL = new CamlFunction("REFL", term_to_thm);
+		CamlFunction ASSUME = new CamlFunction("ASSUME", term_to_thm);
+		CamlFunction DISCH_ALL = new CamlFunction("DISCH_ALL", thm_to_thm);
 		
 		CamlFunction concl = new CamlFunction("concl", thm_to_term);
 		
@@ -251,16 +299,39 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlFunction GEN = new CamlFunction("GEN", CamlType.mk_function(CamlType.TERM, thm_to_thm));
 		
 		CamlFunction REWRITE_CONV = new CamlFunction("REWRITE_CONV", thm_list_to_term_to_thm);
-		CamlFunction SPECL = new CamlFunction("SPECL", term_list_to_term_to_thm);
+		CamlFunction REWRITE_RULE = new CamlFunction("REWRITE_RULE", thm_list_to_term_to_thm);
+		CamlFunction SPECL = new CamlFunction("SPECL", term_list_to_thm_to_thm);
+		CamlFunction MESON = new CamlFunction("MESON", thm_list_to_term_to_thm);
+		
+		CamlFunction MATCH_MP = new CamlFunction("MATCH_MP", thm_to_thm_to_thm);
+		
+		CamlFunction TAUT = new CamlFunction("TAUT", term_to_thm);
+		CamlFunction CONJ = new CamlFunction("CONJ", thm_to_thm_to_thm);
+
+		CamlFunction STRIP_TAC = new CamlFunction("STRIP_TAC", CamlType.TACTIC);
+		CamlFunction MATCH_MP_TAC = new CamlFunction("MATCH_MP_TAC", ttac);
+		CamlFunction CONJ_TAC = new CamlFunction("CONJ_TAC", tac);
+		CamlFunction REWRITE_TAC = new CamlFunction("REWRITE_TAC", thm_list_to_tac);
+		CamlFunction ARITH_TAC = new CamlFunction("ARITH_TAC", tac);
+		CamlFunction GEN_TAC = new CamlFunction("GEN_TAC", tac);
+		CamlFunction DISCH_TAC = new CamlFunction("DISCH_TAC", tac);
+		CamlFunction ASM_REWRITE_TAC = new CamlFunction("ASM_REWRITE_TAC", thm_list_to_tac);
 		
 		
-		test.createFunctions(ARITH_RULE, REFL, concl, SPEC_ALL, GEN, SPECL, REWRITE_CONV);
+		test.createFunctions(ARITH_RULE, REFL, ASSUME, DISCH_ALL, concl, 
+				SPEC_ALL, GEN, SPECL, REWRITE_CONV,
+				REWRITE_RULE, MESON, MATCH_MP, TAUT, CONJ,
+				STRIP_TAC, MATCH_MP_TAC, CONJ_TAC,
+				REWRITE_TAC, ARITH_TAC, GEN_TAC,
+				DISCH_TAC, ASM_REWRITE_TAC);
 
 		
 		
 		// A test theorem
 		Theorem th = Theorem.mk_theorem("TEST_THM", t1);
 		terms.add(th);
+		
+		terms.add(CONJ);
 	}
 
 

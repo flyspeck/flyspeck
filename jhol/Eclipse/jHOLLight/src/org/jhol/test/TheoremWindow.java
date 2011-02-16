@@ -1,5 +1,6 @@
 package org.jhol.test;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import org.jhol.core.Theorem;
 public class TheoremWindow extends JDialog implements ActionListener {
 	private CamlObjectList list;
 	private JTextField termField;
+	private JTextField nameField;
 	
 	private final CamlEnvironment caml;
 	private final ExpressionBuilder builder;
@@ -82,13 +84,21 @@ public class TheoremWindow extends JDialog implements ActionListener {
 		});
 		
 		JScrollPane scroll = new JScrollPane(table);
+		scroll.setPreferredSize(new Dimension(500, 300));
 		
 		add(scroll);
 		
 		// A field for entering new terms
 		termField = new JTextField();
+		termField.setActionCommand("term");
 		termField.addActionListener(this);
-		add(termField);		
+		add(termField);
+		
+		// A field for entering names
+		nameField = new JTextField();
+		nameField.setActionCommand("name");
+		nameField.addActionListener(this);
+		add(nameField);
 	}
 	
 	
@@ -98,6 +108,7 @@ public class TheoremWindow extends JDialog implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == termField) {
+			// Term
 			String termString = termField.getText();
 			String cmd = "`" + termString + "`";
 			
@@ -117,6 +128,13 @@ public class TheoremWindow extends JDialog implements ActionListener {
 			list.clear();
 			
 			ArrayList<Theorem> ths = data.find(term);
+			list.add(ths);
+		}
+		else if (e.getSource() == nameField){
+			// Name
+			list.clear();
+			
+			ArrayList<Theorem> ths = data.find(nameField.getText());
 			list.add(ths);
 		}
 	}

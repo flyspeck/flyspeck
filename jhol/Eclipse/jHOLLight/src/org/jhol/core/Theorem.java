@@ -19,7 +19,7 @@ public abstract class Theorem extends CamlObject {
 	 * Creates an arbitrary theorem
 	 */
 	public static Theorem mk_theorem(String name, Term concl) {
-		return new NamedTheorem(name, concl);
+		return new NamedTheorem(name, concl, false);
 	}
 	
 	
@@ -37,16 +37,25 @@ public abstract class Theorem extends CamlObject {
 	
 	
 	/**
+	 * Returns true if the theorem has assumptions
+	 */
+	public abstract boolean hyp();
+	
+	
+	/**
 	 * Theorem with a fixed name
 	 */
 	public static class NamedTheorem extends Theorem {
 		private final String name;
 		private final Term concl;
 		
+		private final boolean hyps;
 		
-		private NamedTheorem(String name, Term concl) {
+		
+		private NamedTheorem(String name, Term concl, boolean hyps) {
 			this.name = name;
 			this.concl = concl;
+			this.hyps = hyps;
 		}
 		
 		@Override
@@ -57,6 +66,11 @@ public abstract class Theorem extends CamlObject {
 		@Override
 		public Term concl() {
 			return concl;
+		}
+		
+		@Override
+		public boolean hyp() {
+			return hyps;
 		}
 		
 		
@@ -89,7 +103,7 @@ public abstract class Theorem extends CamlObject {
 				return false;
 			
 			NamedTheorem obj2 = (NamedTheorem) obj;
-			return name.equals(obj2.name) && concl.equals(obj2.concl);
+			return name.equals(obj2.name) && concl.equals(obj2.concl) && hyps == obj2.hyps;
 		}
 		
 		
@@ -111,13 +125,17 @@ public abstract class Theorem extends CamlObject {
 	 */
 	public static class TempTheorem extends Theorem {
 		private final Term cachedConcl;
+		private final boolean hyps;
+		
+		// FIXME: command should be immutable
 		private CamlObject.CamlApplication command;
 		private final String tmpName;
 		
 		private static int nameCounter = 1;
 		
-		public TempTheorem(Term concl) {
+		public TempTheorem(Term concl, boolean hyps) {
 			this.cachedConcl = concl;
+			this.hyps = hyps;
 			this.tmpName = "?tmp:" + nameCounter++;
 		}
 		
@@ -135,6 +153,11 @@ public abstract class Theorem extends CamlObject {
 		@Override
 		public Term concl() {
 			return cachedConcl;
+		}
+		
+		@Override
+		public boolean hyp() {
+			return hyps;
 		}
 		
 		

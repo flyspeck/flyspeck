@@ -50,6 +50,47 @@ public class TheoremDatabase {
 		
 		// Process the result
 		CamlList list = (CamlList) obj;
+		if (list == null)
+			return result;
+
+		for (int i = 0; i < list.size(); i++) {
+			CamlPair pair = (CamlPair) list.get(i);
+			CamlString name = (CamlString) pair.first();
+			Theorem th = (Theorem) pair.second();
+			
+			result.add(Theorem.mk_theorem(name.str, th.concl()));
+		}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * Finds all theorems name of which contains the given string
+	 */
+	public ArrayList<Theorem> find(String str) {
+		ArrayList<Theorem> result = new ArrayList<Theorem>();
+		
+		// Prepare a command
+		String cmd = "search[name \"" + str + "\"]";
+		
+		CamlType pairType = new CamlType.PairType(CamlType.STRING, CamlType.THM);
+		CamlType returnType = new CamlType.ListType(pairType);
+		
+		// Execute the command
+		CamlObject obj;
+		try {
+			obj = caml.execute(cmd, returnType);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return result;
+		}
+		
+		// Process the result
+		CamlList list = (CamlList) obj;
+		if (list == null)
+			return result;
 
 		for (int i = 0; i < list.size(); i++) {
 			CamlPair pair = (CamlPair) list.get(i);

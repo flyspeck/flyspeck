@@ -9,6 +9,9 @@ public abstract class CamlType {
 	public static final CamlType HOL_TYPE = new HOLTypeType();
 	public static final CamlType TERM = new TermType();
 	public static final CamlType THM = new TheoremType();
+	public static final CamlType GOAL = new GoalType();
+	public static final CamlType GOAL_STATE = new GoalstateType();
+	public static final CamlType TACTIC = mk_function(GOAL, GOAL_STATE);
 	
 	
 	/**
@@ -24,6 +27,15 @@ public abstract class CamlType {
 	 */
 	public CamlType getArgType(int n) {
 		return null;
+	}
+	
+	
+	/**
+	 * Returns the return type of a function
+	 * @return
+	 */
+	public CamlType getLastType() {
+		return this; 
 	}
 	
 	
@@ -77,6 +89,12 @@ public abstract class CamlType {
 		@Override
 		public int numberOfArguments() {
 			return 1 + returnType.numberOfArguments();
+		}
+		
+		
+		@Override
+		public CamlType getLastType() {
+			return returnType.getLastType();
 		}
 		
 		
@@ -156,6 +174,80 @@ public abstract class CamlType {
 			return "String";
 		}
 	}
+	
+	
+	/**
+	 * Goal
+	 */
+	public static class GoalType extends CamlType {
+		private GoalType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_goal";
+		}
+		
+		@Override
+		public int hashCode() {
+			return 71;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof GoalType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "Goal";
+		}
+	}
+	
+	
+	/**
+	 * Goal state
+	 */
+	public static class GoalstateType extends CamlType {
+		private GoalstateType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_goalstate";
+		}
+		
+		@Override
+		public int hashCode() {
+			return 73;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof GoalstateType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "Goalstate";
+		}
+	}
+
+
 
 	
 	/**

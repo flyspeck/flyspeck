@@ -22,7 +22,9 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	
 	@Override
 	public void runCommand(String rawCommand) throws Exception {
-		caml.runCommand(rawCommand);
+		System.out.println("Executing: " + rawCommand);
+		String output = caml.runCommand(rawCommand);
+		System.out.println("Output: " + output);
 	}
 	
 
@@ -32,6 +34,8 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		
 		String printCmd = returnType.getPrintCommand();
 		command = "raw_print_string(" + printCmd + "(" + command + "));;";
+		
+		command = escape(command);
 		System.out.println("Executing: " + command);
 		
 		output = caml.runCommand(command);
@@ -49,6 +53,23 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		}
 		
 		return Parser.parse(output);
+	}
+	
+	
+	private static String escape(String str) {
+		StringBuilder out = new StringBuilder(str.length() * 2);
+		int n = str.length();
+		
+		for (int i = 0; i < n; i++) {
+			char ch = str.charAt(i);
+			if (ch == '\\' && i < n - 1 && str.charAt(i + 1) == '"') {
+				out.append('\\');
+			}
+			
+			out.append(ch);
+		}
+		
+		return out.toString();
 	}
 	
 	

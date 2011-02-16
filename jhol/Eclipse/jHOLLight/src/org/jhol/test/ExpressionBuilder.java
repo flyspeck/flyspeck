@@ -20,6 +20,7 @@ import org.jhol.caml.CamlEnvironment;
 import org.jhol.caml.CamlList;
 import org.jhol.caml.CamlObject;
 import org.jhol.caml.CamlType;
+import org.jhol.core.Goalstate;
 import org.jhol.core.HOLType;
 import org.jhol.core.Term;
 import org.jhol.core.Theorem;
@@ -257,12 +258,23 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 		this.rhs = rhs;
 		
 		// Update the visual components
-		result.clear();
+//		result.clear();
 		
 		if (rhs != null)
-			result.add(rhs);
+			result.add(0, rhs);
 
 		exprText.setText(getCommand());
+		
+		// Tactics
+		if (lhs != null && lhs.camlType().equals(CamlType.TACTIC)) {
+			String cmd = "(hd o e) (" + lhs.makeCamlCommand() + ")";
+			Goalstate newState = (Goalstate) caml.execute(cmd, CamlType.GOAL_STATE);
+			
+			result.add(0, lhs);
+			this.lhs = this.rhs = null;
+			
+			exprText.setText(getCommand());
+		}
 	}
 
 

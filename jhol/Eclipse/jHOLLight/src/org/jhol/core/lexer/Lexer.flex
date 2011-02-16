@@ -79,6 +79,9 @@ StringCharacter = [^\r\n\"]
 		"List" { return new Token(TokenType.List); }
 		"Pair" { return new Token(TokenType.Pair); }
 		
+		"Goal" { return new Token(TokenType.Goal); }
+		"Goalstate" { return new Token(TokenType.Goalstate); }
+		
 
         /* string literal */
         \"    { yybegin(STRING); string.setLength(0); }

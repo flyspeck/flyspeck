@@ -1,0 +1,75 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>lookup : term -&gt; 'a net -&gt; 'a list</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Look up term in a term net.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+Term nets (type <SPAN CLASS=BRKT>'a net</SPAN>) are a lookup structure associating objects of type
+<SPAN CLASS=BRKT>'a</SPAN>, e.g. conversions, with a corresponding `pattern' term. For a given term,
+one can then relatively quickly look up all objects whose pattern terms might
+possibly match to it. This is used, for example, in rewriting to quickly filter
+out obviously inapplicable rewrites rather than attempting each one in turn.
+The call <SPAN CLASS=BRKT>lookup t net</SPAN> for a term <SPAN CLASS=BRKT>t</SPAN> returns the list of objects whose
+patterns might possibly be matchable to <SPAN CLASS=BRKT>t</SPAN>. Note that this is conservative: if
+the pattern could be matched (even higher-order matched) in the sense of
+<SPAN CLASS=BRKT>term_match</SPAN>, it will be in the list, but it is possible that some
+non-matchable objects will be returned. (For example, a pattern term <SPAN CLASS=BRKT>x + x</SPAN>
+will match any term of the form <SPAN CLASS=BRKT>a + b</SPAN>, even if <SPAN CLASS=BRKT>a</SPAN> and <SPAN CLASS=BRKT>b</SPAN> are the same.) It
+is intended that nets are a first-level filter for efficiency; finer
+discrimination may be embodied in the subsequent action with the list of
+returned objects.
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+Never fails.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+If we want to create ourselves the kind of automated rewriting with the basic
+rewrites that is done by <SPAN CLASS=BRKT>REWRITE_CONV</SPAN>, we could simply try in succession all
+the rewrites:
+<DIV class=XMPL><PRE>
+  # let BASIC_REWRITE_CONV' = FIRST_CONV (map REWR_CONV (basic_rewrites()));;
+  val ( BASIC_REWRITE_CONV' ) : conv = <fun>
+</PRE></DIV>
+However, it would be more efficient to use the left-hand sides as patterns
+in a term net to organize the different rewriting conversions:
+<DIV class=XMPL><PRE>
+  # let rewr_net =
+      let enter_thm th = enter (freesl(hyp th)) (lhs(concl th),REWR_CONV th) in
+      itlist enter_thm (basic_rewrites()) empty_net;;
+</PRE></DIV>
+Now given a term, we get only the items with matchable patterns, usually much
+less than the full list:
+<DIV class=XMPL><PRE>
+  # lookup `(\x. x + 1) 2` rewr_net;;
+  val it : (term -> thm) list = [<fun>]
+
+  # lookup `T /\ T` rewr_net;;
+  val it : (term -> thm) list = [<fun>; <fun>; <fun>]
+</PRE></DIV>
+The three items returned in the last call are rewrites based on the theorems
+<SPAN CLASS=BRKT>|- T /\ t <=> t</SPAN>, <SPAN CLASS=BRKT>|- t /\ T <=> t</SPAN> and <SPAN CLASS=BRKT>|- t /\ t <=> t</SPAN>, which are the only
+ones matchable. We can use this net for a more efficient version of the same
+conversion:
+<DIV class=XMPL><PRE>
+  # let BASIC_REWRITE_CONV tm = FIRST_CONV (lookup tm rewr_net) tm;;
+  val ( BASIC_REWRITE_CONV ) : term -> conv = <fun>
+</PRE></DIV>
+To see that it is indeed more efficient, consider:
+<DIV class=XMPL><PRE>
+  # let tm = funpow 8 (fun x -> mk_conj(x,x)) `T`;;
+  ...
+  time (DEPTH_CONV BASIC_REWRITE_CONV) tm;;
+  CPU time (user): 0.08
+  ...
+  time (DEPTH_CONV BASIC_REWRITE_CONV') tm;;
+  CPU time (user): 1.121
+  ...
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="empty_net.html">empty_net</A>, <A href="enter.html">enter</A>, <A href="merge_nets.html">merge_nets</A>.
+
+
+</DL>

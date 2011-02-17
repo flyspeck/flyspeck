@@ -1,0 +1,130 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>SUBGOAL_THEN : term -&gt; thm_tactic -&gt; tactic</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Introduces a lemma as a new subgoal.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+The user proposes a lemma and is then invited to prove it under the current
+assumptions. The lemma is then used with the <SPAN CLASS=BRKT>thm_tactic</SPAN> to apply to the goal.
+That is, if
+<DIV class=XMPL><PRE>
+    A1 ?- t1
+   ==========  ttac (t |- t)
+    A2 ?- t2
+</PRE></DIV>
+then
+<DIV class=XMPL><PRE>
+         A1 ?- t1
+   ====================  SUBGOAL_THEN `t` ttac
+    A1 ?- t   A2 ?- t2
+</PRE></DIV>
+In the quite common special case where <SPAN CLASS=BRKT>ttac</SPAN> is <SPAN CLASS=BRKT>ASSUME_TAC</SPAN>, the net
+behaviour is simply to present the user with two subgoals, one in which the
+lemma is to be proved and one in which it may be assumed:
+<DIV class=XMPL><PRE>
+         A1 ?- t1
+   ============================  SUBGOAL_THEN `t` ASSUME_TAC
+    A1 ?- t   A1 u {t} ?- t2
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+<SPAN CLASS=BRKT>SUBGOAL_THEN</SPAN> will fail if an attempt is made to use a non-boolean term as a
+lemma.
+
+<P><DT><SPAN CLASS=FIELD-NAME>USES</SPAN><DD>
+Introducing lemmas into the same basic proof script without separately binding
+them to names. This is often a good structuring technique for large tactic
+proofs, where separate lemmas might look artificial because of all the ad-hoc
+context in which they occur.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+Consider the proof of the Knaster-Tarski fixpoint theorem, to be found in
+<SPAN CLASS=BRKT>Library/card.ml</SPAN>. This (in its set-lattice context) states that every
+monotonic function has a fixpoint. After setting the initial goal:
+<DIV class=XMPL><PRE>
+  # g `!f. (!s t. s SUBSET t ==> f(s) SUBSET f(t)) ==> ?s:A->bool. f(s) = s`;;
+</PRE></DIV>
+we start off the proof, already proceeding via a series of lemmas
+with <SPAN CLASS=BRKT>SUBGOAL_THEN</SPAN>, though we will focus our attention on a later one:
+<DIV class=XMPL><PRE>
+  # e(REPEAT STRIP_TAC THEN MAP_EVERY ABBREV_TAC
+       [`Y = {b:A->bool | f(b) SUBSET b}`; `a:A->bool = INTERS Y`] THEN
+      SUBGOAL_THEN `!b:A->bool. b IN Y <=> f(b) SUBSET b` ASSUME_TAC THENL
+       [EXPAND_TAC "Y" THEN REWRITE_TAC[IN_ELIM_THM]; ALL_TAC] THEN
+      SUBGOAL_THEN `!b:A->bool. b IN Y ==> f(a:A->bool) SUBSET b`
+      ASSUME_TAC THENL
+       [ASM_MESON_TAC[SUBSET_TRANS; IN_INTERS; SUBSET]; ALL_TAC]);;
+  ...
+  val it : goalstack = 1 subgoal (1 total)
+
+   0 [`!s t. s SUBSET t ==> f s SUBSET f t`]
+   1 [`{b | f b SUBSET b} = Y`]
+   2 [`INTERS Y = a`]
+   3 [`!b. b IN Y <=> f b SUBSET b`]
+   4 [`!b. b IN Y ==> f a SUBSET b`]
+
+  `?s. f s = s`
+</PRE></DIV>
+Now we select a particularly interesting lemma:
+<DIV class=XMPL><PRE>
+  # e(SUBGOAL_THEN `f(a:A->bool) SUBSET a` ASSUME_TAC);;
+  val it : goalstack = 2 subgoals (2 total)
+
+   0 [`!s t. s SUBSET t ==> f s SUBSET f t`]
+   1 [`{b | f b SUBSET b} = Y`]
+   2 [`INTERS Y = a`]
+   3 [`!b. b IN Y <=> f b SUBSET b`]
+   4 [`!b. b IN Y ==> f a SUBSET b`]
+   5 [`f a SUBSET a`]
+
+  `?s. f s = s`
+
+   0 [`!s t. s SUBSET t ==> f s SUBSET f t`]
+   1 [`{b | f b SUBSET b} = Y`]
+   2 [`INTERS Y = a`]
+   3 [`!b. b IN Y <=> f b SUBSET b`]
+   4 [`!b. b IN Y ==> f a SUBSET b`]
+
+  `f a SUBSET a`
+</PRE></DIV>
+The lemma is relatively easy to prove by giving <SPAN CLASS=BRKT>MESON_TAC</SPAN> the right
+lemmas:
+<DIV class=XMPL><PRE>
+  # e(ASM_MESON_TAC[IN_INTERS; SUBSET]);;
+  ...
+  val it : goalstack = 1 subgoal (1 total)
+
+   0 [`!s t. s SUBSET t ==> f s SUBSET f t`]
+   1 [`{b | f b SUBSET b} = Y`]
+   2 [`INTERS Y = a`]
+   3 [`!b. b IN Y <=> f b SUBSET b`]
+   4 [`!b. b IN Y ==> f a SUBSET b`]
+   5 [`f a SUBSET a`]
+
+  `?s. f s = s`
+</PRE></DIV>
+and the remaining subgoal is also quite easy for <SPAN CLASS=BRKT>MESON_TAC</SPAN>:
+<DIV class=XMPL><PRE>
+  # e(ASM_MESON_TAC[SUBSET_ANTISYM; IN_INTERS]);;
+  ...
+  val it : goalstack = No subgoals
+</PRE></DIV>
+On the other hand, without splitting off the last lemmas, <SPAN CLASS=BRKT>MESON_TAC</SPAN> finds the
+automated step rather large. If you step back three steps with
+<DIV class=XMPL><PRE>
+  # b(); b(); b();;
+</PRE></DIV>
+then although the following works, it takes half a minute:
+<DIV class=XMPL><PRE>
+  # e(ASM_MESON_TAC[IN_INTERS; SUBSET; SUBSET_ANTISYM]);;
+  ....
+  val it : goalstack = No subgoals
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="MATCH_MP_TAC.html">MATCH_MP_TAC</A>, <A href="MP_TAC.html">MP_TAC</A>, <A href="SUBGOAL_TAC.html">SUBGOAL_TAC</A>.
+
+
+</DL>

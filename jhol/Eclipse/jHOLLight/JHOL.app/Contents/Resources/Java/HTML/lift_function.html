@@ -1,0 +1,119 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>lift_function : thm -&gt; thm * thm -&gt; string -&gt; thm -&gt; thm * thm</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Lift a function on representing type to quotient type of equivalence classes.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+Suppose type <SPAN CLASS=BRKT>qty</SPAN> is a quotient type of <SPAN CLASS=BRKT>rty</SPAN> under an equivalence relation
+<SPAN CLASS=BRKT>R:rty->rty->bool</SPAN>, as defined by <SPAN CLASS=BRKT>define_quotient_type</SPAN>, and <SPAN CLASS=BRKT>f</SPAN> is a function
+<SPAN CLASS=BRKT>f:ty1->...->tyn->ty</SPAN>, some <SPAN CLASS=BRKT>tyi</SPAN> being the representing type <SPAN CLASS=BRKT>rty</SPAN>. The term
+<SPAN CLASS=BRKT>lift_function</SPAN> should be applied to (i) a theorem of the form
+<SPAN CLASS=BRKT>|- (?x. r = R x) <=> rep(abs r) = r</SPAN> as returned by <SPAN CLASS=BRKT>define_quotient_type</SPAN>,
+(ii) a pair of
+theorems asserting that <SPAN CLASS=BRKT>R</SPAN> is reflexive and transitive, (iii) a desired name
+for the counterpart of <SPAN CLASS=BRKT>f</SPAN> lifted to the type of equivalence classes, and (iv)
+a theorem asserting that <SPAN CLASS=BRKT>f</SPAN> is ``welldefined'', i.e. respects the equivalence
+class. This last theorem essentially asserts that the value of <SPAN CLASS=BRKT>f</SPAN> is
+independent of the choice of representative: any <SPAN CLASS=BRKT>R</SPAN>-equivalent inputs give an
+equal output, or an <SPAN CLASS=BRKT>R</SPAN>-equivalent one. Syntactically, the welldefinedness
+theorem should be of the form:
+<DIV class=XMPL><PRE>
+  |- !x1 x1' .. xn xn'. (x1 == x1') /\ ... /\ (xn == xn')
+                        ==> (f x1 .. xn == f x1' .. f nx')
+</PRE></DIV>
+where each <SPAN CLASS=BRKT>==</SPAN> may be either equality or the relation <SPAN CLASS=BRKT>R</SPAN>, the
+latter of course only if the type of that argument is <SPAN CLASS=BRKT>rty</SPAN>. The reflexivity
+and transitivity theorems should be
+<DIV class=XMPL><PRE>
+  |- !x. R x x
+</PRE></DIV>
+and
+<DIV class=XMPL><PRE>
+  |- !x y z. R x y /\ R y z ==> R x z
+</PRE></DIV>
+It returns two theorems, a definition and a consequential theorem that can be
+used by <SPAN CLASS=BRKT>lift_theorem</SPAN> later.
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+Fails if the theorems are malformed or if there is already a constant of the
+given name.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+Suppose that we have defined a type of finite multisets as in the documentation
+for <SPAN CLASS=BRKT>define_quotient_type</SPAN>, based on the equivalence relation <SPAN CLASS=BRKT>multisame</SPAN> on
+lists. First we prove that the equivalence relation <SPAN CLASS=BRKT>multisame</SPAN> is indeed
+reflexive and transitive:
+<DIV class=XMPL><PRE>
+  # let MULTISAME_REFL,MULTISAME_TRANS = (CONJ_PAIR o prove)
+     (`(!l:(A)list. multisame l l) /\
+       (!l1 l2 l3:(A)list.
+            multisame l1 l2 /\ multisame l2 l3 ==> multisame l1 l3)`,
+      REWRITE_TAC[multisame] THEN MESON_TAC[]);;
+</PRE></DIV>
+We would like to define the multiplicity of an element in a multiset. First we
+define this notion on the representing type of lists:
+<DIV class=XMPL><PRE>
+  # let listmult = new_definition
+     `listmult a l = LENGTH (FILTER (\x:A. x = a) l)`;;
+</PRE></DIV>
+and prove that it is welldefined. Note that the second argument is
+the only one we want to lift to the quotient type, so that's the only one for
+which we use the relation <SPAN CLASS=BRKT>multisame</SPAN>. For the first argument and the result we
+only use equality:
+<DIV class=XMPL><PRE>
+  # let LISTMULT_WELLDEF = prove
+     (`!a a':A l l'.
+        a = a' /\ multisame l l' ==> listmult a l = listmult a' l'`,
+      SIMP_TAC[listmult; multisame]);;
+</PRE></DIV>
+Now we can lift it to a multiplicity function on the quotient type:
+<DIV class=XMPL><PRE>
+  # let multiplicity,multiplicity_th =
+      lift_function multiset_rep (MULTISAME_REFL,MULTISAME_TRANS)
+      "multiplicity" LISTMULT_WELLDEF;;
+  val multiplicity : thm =
+    |- multiplicity a l = (@u. ?l. listmult a l = u /\ list_of_multiset l l)
+  val multiplicity_th : thm =
+    |- listmult a l = multiplicity a (multiset_of_list (multisame l))
+</PRE></DIV>
+Another example is the `union' of multisets, which we can consider as the
+lifting of the <SPAN CLASS=BRKT>APPEND</SPAN> operation on lists, which we show is welldefined:
+<DIV class=XMPL><PRE>
+  # let APPEND_WELLDEF = prove
+     (`!l l' m m' :A list.
+         multisame l l' /\ multisame m m'
+         ==> multisame (APPEND l m) (APPEND l' m')`,
+      SIMP_TAC[multisame; FILTER_APPEND]);;
+</PRE></DIV>
+and lift as follows:
+<DIV class=XMPL><PRE>
+  # let munion,munion_th =
+      lift_function multiset_rep (MULTISAME_REFL,MULTISAME_TRANS)
+      "munion" APPEND_WELLDEF;;
+  val munion : thm =
+    |- munion l m =
+       multiset_of_list
+       (\u. ?l m.
+                multisame (APPEND l m) u /\
+                list_of_multiset l l /\
+                list_of_multiset m m)
+  val munion_th : thm =
+    |- multiset_of_list (multisame (APPEND l m)) =
+       munion (multiset_of_list (multisame l)) (multiset_of_list (multisame m))
+</PRE></DIV>
+For continuation of this example, showing how to lift theorems from the
+representing functions to the functions on the quotient type, see the
+documentation entry for <SPAN CLASS=BRKT>lift_theorem</SPAN>.
+
+<P><DT><SPAN CLASS=FIELD-NAME>COMMENTS</SPAN><DD>
+If, as in these examples, the representing type is parametrized by type
+variables, make sure that the same type variables are used consistently in the
+various theorems.
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="define_quotient_type.html">define_quotient_type</A>, <A href="lift_theorem.html">lift_theorem</A>.
+
+
+</DL>

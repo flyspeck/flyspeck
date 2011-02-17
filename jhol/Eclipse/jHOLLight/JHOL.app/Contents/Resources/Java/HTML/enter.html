@@ -1,0 +1,70 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>enter : term list -&gt; term * 'a -&gt; 'a net -&gt; 'a net</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Enter an object and its pattern term into a term net.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+Term nets (type <SPAN CLASS=BRKT>'a net</SPAN>) are a lookup structure
+associating objects of type <SPAN CLASS=BRKT>'a</SPAN>, e.g. conversions, with a corresponding
+`pattern' term. For a given term, one can then relatively quickly look up all
+objects whose pattern terms might possibly match to it. This is used, for
+example, in rewriting to quickly filter out obviously inapplicable rewrites
+rather than attempting each one in turn. The call <SPAN CLASS=BRKT>enter lconsts (pat,obj) net</SPAN>
+enters the item <SPAN CLASS=BRKT>obj</SPAN> into a net <SPAN CLASS=BRKT>obj</SPAN> with indexing pattern term <SPAN CLASS=BRKT>pat</SPAN>. The
+list <SPAN CLASS=BRKT>lconsts</SPAN> lists variables that should be considered `local constants' when
+matching, so will only match terms with exactly the same variable in
+corresponding places.
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+Never fails.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+Here we construct a net with the conversions for various arithmetic operations
+on numerals, each with a pattern term to identify the class of terms to which
+it might apply:
+<DIV class=XMPL><PRE>
+  let arithnet = itlist (enter [])
+     [`SUC n`,NUM_SUC_CONV;
+      `m + n:num`,NUM_ADD_CONV;
+      `m - n:num`,NUM_SUB_CONV;
+      `m * n:num`,NUM_MULT_CONV;
+      `m EXP n`,NUM_EXP_CONV;
+      `m DIV n`,NUM_DIV_CONV;
+      `m MOD n`,NUM_MOD_CONV]
+     empty_net;;
+</PRE></DIV>
+Now we can define a conversion that uses lookup in this net as a first-stage
+filter and tries to apply the results.
+<DIV class=XMPL><PRE>
+  let NUM_ARITH_CONV tm = FIRST_CONV (lookup tm arithnet) tm;;
+</PRE></DIV>
+
+Note that this is functionally not really different from just
+<DIV class=XMPL><PRE>
+ let NUM_ARITH_CONV' =
+   FIRST_CONV [NUM_SUC_CONV; NUM_ADD_CONV; NUM_SUB_CONV; NUM_MULT_CONV;
+               NUM_EXP_CONV; NUM_DIV_CONV; NUM_MOD_CONV];;
+</PRE></DIV>
+but it may be significantly more efficient because instead of
+successive attempts to apply the conversions, each one is only invoked when
+the term has the right pattern.
+<DIV class=XMPL><PRE>
+  # let tm = funpow 5 (fun x -> mk_binop `(*):num->num->num` x x) `12`;;
+  ...
+  time (DEPTH_CONV NUM_ARITH_CONV) term;;
+  CPU time (user): 0.12
+  ...
+  time (DEPTH_CONV NUM_ARITH_CONV') term;;
+  CPU time (user): 0.22
+  ...
+</PRE></DIV>
+In situations with very many conversions, each one quite fast, the difference
+can be much more striking.
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="empty_net.html">empty_net</A>, <A href="lookup.html">lookup</A>, <A href="merge_nets.html">merge_nets</A>.
+
+
+</DL>

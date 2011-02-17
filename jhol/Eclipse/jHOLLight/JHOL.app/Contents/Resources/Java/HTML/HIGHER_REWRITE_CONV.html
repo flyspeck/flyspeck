@@ -1,0 +1,60 @@
+<link rel = "stylesheet" href = "hollightref.css">
+<DIV class=TYPE><PRE>HIGHER_REWRITE_CONV : thm list -&gt; bool -&gt; term -&gt; thm</PRE></DIV>
+<DL>
+
+<P><DT><SPAN CLASS=FIELD-NAME>SYNOPSIS</SPAN><DD>
+Rewrite once using more general higher order matching.
+
+<P><DT><SPAN CLASS=FIELD-NAME>DESCRIPTION</SPAN><DD>
+The call <SPAN CLASS=BRKT>HIGHER_REWRITE_CONV [th1;...;thn] flag t</SPAN> will find a higher-order
+match for the whole term <SPAN CLASS=BRKT>t</SPAN> against one of the left-hand sides of the
+equational theorems in the list <SPAN CLASS=BRKT>[th1;...;thn]</SPAN>. Each such theorem should be of
+the form <SPAN CLASS=BRKT>|- P pat <=> t</SPAN> where <SPAN CLASS=BRKT>f</SPAN> is a variable. A free subterm <SPAN CLASS=BRKT>pat'</SPAN> of <SPAN CLASS=BRKT>t</SPAN>
+will be found that matches (in the usual restricted higher-order sense) the
+pattern <SPAN CLASS=BRKT>pat</SPAN>. If the <SPAN CLASS=BRKT>flag</SPAN> argument is true, this will be some topmost
+matchable term, while if it is false, some innermost matchable term will be
+selected. The rewrite is then applied by instantiating <SPAN CLASS=BRKT>P</SPAN> to a lambda-term
+reflecting how <SPAN CLASS=BRKT>t</SPAN> is built up from <SPAN CLASS=BRKT>pat'</SPAN>, and beta-reducing as in normal
+higher-order matching. However, this process is more general than HOL Light's
+normal higher-order matching (as in <SPAN CLASS=BRKT>REWRITE_CONV</SPAN> etc., with core behaviour
+inherited from <SPAN CLASS=BRKT>PART_MATCH</SPAN>), because <SPAN CLASS=BRKT>pat'</SPAN> need not be uniquely determined by
+bound variable correspondences.
+
+<P><DT><SPAN CLASS=FIELD-NAME>FAILURE CONDITIONS</SPAN><DD>
+Fails if no match is found.
+
+<P><DT><SPAN CLASS=FIELD-NAME>EXAMPLE</SPAN><DD>
+The theorem <SPAN CLASS=BRKT>COND_ELIM_THM</SPAN> can be applied to eliminate conditionals:
+<DIV class=XMPL><PRE>
+  # COND_ELIM_THM;;
+  val it : thm = |- P (if c then x else y) <=> (c ==> P x) /\ (~c ==> P y)
+</PRE></DIV>
+in a term like this:
+<DIV class=XMPL><PRE>
+  # let t = `z = if x = 0 then if y = 0 then 0 else x + y else x + y`;;
+  val t : term = `z = (if x = 0 then if y = 0 then 0 else x + y else x + y)`
+</PRE></DIV>
+either outermost first:
+<DIV class=XMPL><PRE>
+  # HIGHER_REWRITE_CONV[COND_ELIM_THM] true t;;
+  val it : thm =
+    |- z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
+       (x = 0 ==> z = (if y = 0 then 0 else x + y)) /\ (~(x = 0) ==> z = x + y)
+</PRE></DIV>
+or innermost first:
+<DIV class=XMPL><PRE>
+  # HIGHER_REWRITE_CONV[COND_ELIM_THM] false t;;
+  val it : thm =
+    |- z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
+       (y = 0 ==> z = (if x = 0 then 0 else x + y)) /\
+       (~(y = 0) ==> z = (if x = 0 then x + y else x + y))
+</PRE></DIV>
+
+<P><DT><SPAN CLASS=FIELD-NAME>USES</SPAN><DD>
+Applying general simplification patterns without manual instantiation.
+
+<P><DT><SPAN CLASS=FIELD-NAME>SEE ALSO</SPAN><DD>
+<A href="PART_MATCH.html">PART_MATCH</A>, <A href="REWRITE_CONV.html">REWRITE_CONV</A>.
+
+
+</DL>

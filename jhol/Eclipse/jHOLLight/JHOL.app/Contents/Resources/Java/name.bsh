@@ -1,0 +1,89 @@
+//used for auto completion of theorem names
+holTheoremCompletor = new NameCompletion(){
+	completeName(String part){
+	    updateHolTheorems();
+	    List preResult = new LinkedList ();
+	    for (String s : holTheorems){
+		if (s.startsWith(part)){
+		    preResult.add(s);
+		}
+	    }
+	    int numResult = preResult.size() > 11 ? 11 : preResult.size();
+	    String[] result = new String[numResult];	    
+	    int i = 0;
+	    for(String s : preResult){
+		result[i] = s;
+		i++;
+		if (i == numResult)
+		    break;
+	    }
+	    return result;
+	}
+    };
+
+//used for auto completion of hol commands
+NameCompletion nc = new NameCompletion(){
+	String[] completeName (String part){
+	    int matches = 0;
+	    int[] index = new int[11];
+	    int len = part.length();
+	    int current = 0;
+	    
+	    while (matches < 11 && current < NUM_HOL_COMMANDS){
+		if (part.regionMatches(false,0,HOL_COMMANDS_STRING[current],0,len)){
+		    index[matches] = current;
+		    matches++;}
+		current++;
+	    }
+	    String[] thms;
+	    int thmlen = 0;
+	    if (matches < 11)
+		{
+		    thms = holTheoremCompletor.completeName(part);
+		    if (thms != null)
+			thmlen = Array.getLength(thms);
+		}
+	    if (thmlen + matches > 11)
+		thmlen = 11 - matches;
+	    String[] result = new String[matches + thmlen];
+	    int i;
+	    for (i = 0; i < matches; i++){
+		result[i] = HOL_COMMANDS_STRING[index[i]];
+	    }
+	    for (int j = 0; i < matches + thmlen; i++){
+		result[i]  = thms[j];
+		j++;
+	    }
+
+	    //Return max common
+	    shortResultLength = 100;
+	    for (int i = 0; i < matches + thmlen; i++){
+		if (result[i].length() < shortResultLength)
+		    shortResultLength = result[i].length();}
+	    if (thmlen + matches < 11 && thmlen + matches > 1 && part.length() < shortResultLength){
+		int resultLength;
+		for (resultLength = part.length(); resultLength < shortResultLength; resultLength++){
+		    char testChar = result[0].charAt(resultLength);
+		    for (int i = 0; i < matches + thmlen; i ++){
+			if (testChar != result[i].charAt(resultLength) && resultLength == part.length()){
+			    return result;
+			}
+			if (testChar != result[i].charAt(resultLength)){
+			    tmpresult = new String[1];
+			    tmpresult[0] = result[0].substring(0,resultLength);
+			    return tmpresult;}
+
+		    }
+		}
+		tmpresult = new String[1];
+		tmpresult[0] = result[0];
+		return tmpresult;
+	    }
+	
+	    return result;
+	}
+    };
+
+//notify the console of the auto complete methods
+console.setNameCompletion(nc);
+

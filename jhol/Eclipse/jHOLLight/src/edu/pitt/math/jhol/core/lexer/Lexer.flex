@@ -1,4 +1,4 @@
-package org.jhol.core.lexer;
+package edu.pitt.math.jhol.core.lexer;
 
 %%
 %function get_token

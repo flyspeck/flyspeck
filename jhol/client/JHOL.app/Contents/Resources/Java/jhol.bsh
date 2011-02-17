@@ -113,9 +113,21 @@ String getHTMLFooter(){
     return "</BODY></HTML>";
 }
 
+global.holIsEchoing  = false;
 String runCommand(String cmd){
     String result;
+    int length = cmd.length();
+    if (length == 0)
+	return null;
     result = global.hol.runCommand(cmd);
+    if(global.holIsEchoing){
+
+	if (cmd.charAt(length - 1) != '\n')
+	    length++;
+	length++;
+	result = result.substring(length, result.length());
+    }
+    print(result);
     eval(global.hol.getEvalString());
     return result;
 }
@@ -449,10 +461,15 @@ void showGUI(WindowAdapter controller){
 List command = new ArrayList();
 	command.add("./local.hol");
 	print ("TEST!");//DEBUG
+
     global.hol = new HOLLightWrapper(command);
 	print ("TEST!");//DEBUG
-	while(!global.hol.isReady()){}
-	printHTML(global.hol.flushOutput());
+	String firstOutput = "";
+	while(firstOutput.indexOf("#") == -1){
+	    firstOutput += (global.hol.flushOutput());
+	    //This should go on another thread since this may block for a while
+	}
+	printHTML(firstOutput);
         eval(global.hol.getEvalString());
 	print ("TEST!");//DEBUG
     //method for running multiple hol commands at once
@@ -501,8 +518,15 @@ List command = new ArrayList();
 	    newprinterMLStream.close();
     }
     //Set up sig int method for hol
-    int holPid = Integer.decode(
-				global.runCommand("Sys.command(\"echo $PPID\");;").trim().split("\n")[0]);
+    String[] ppid = (global.runCommand("Sys.command(\"echo $PPID\");;")).trim().split("\n");
+    int ppidLength = ( Array.getLength(ppid)); 
+    for(int i = 0; i < ppidLength; i++)
+	print(ppid[i]);
+    global.holIsEchoing = (ppid[0].charAt(0) == 'S');
+    if (global.holIsEchoing)
+	holPid = Integer.decode(ppid[1].trim());
+    else
+	holPid = Integer.decode(ppid[0].trim());
     command = new LinkedList();
     command.add("sig_int_hol_light");
     command.add(holPid.toString());
@@ -511,7 +535,7 @@ List command = new ArrayList();
 
     //query hol for the number of theorems in the system  
     getNumHolTheorems(){
-	return Integer.decode(global.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5]) ;}
+	return Integer.decode(global.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5].trim()) ;}
 
     //variable to keep track of the theorem count
     int numHolTheorems = 0;
@@ -524,10 +548,12 @@ List command = new ArrayList();
 	if (numHolTheorems != getNumHolTheorems()){
 	    numHolTheorems = getNumHolTheorems();
 	    String[] bangTheorems = global.runCommand("List.iter (fun x->(print_string(fst(x)^\" \"))) !theorems;;").trim().split(" ");
+	    boolean flag = false;
 	    for (int i = 0; i < Array.getLength(bangTheorems); i++){
-		if (bangTheorems[i].equals("\nval"))
-		    break;
-		holTheorems.add(bangTheorems[i]);
+		if (!flag)
+		    flag = bangTheorems[i].equals("\nval");
+		else 	
+		    holTheorems.add(bangTheorems[i]);
 	    }
 	}
     }

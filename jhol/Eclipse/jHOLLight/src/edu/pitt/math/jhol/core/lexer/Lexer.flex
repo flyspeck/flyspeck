@@ -47,6 +47,8 @@ IdentifierSymbol = [a-zA-Z]
 
 Identifier = {IdentifierSymbol} ({IdentifierSymbol} | [_0-9])*
 
+Integer = [-]? [1-9] [0-9]*
+
 //StringCharacter = [^\r\n\"\\]
 StringCharacter = [^\r\n\"]
 
@@ -73,6 +75,7 @@ StringCharacter = [^\r\n\"]
 		"Abs" { return new Token(TokenType.Abs); }
 		
 		"String" { return new Token(TokenType.String); }
+		"Int" { return new Token(TokenType.Int); }
 		"HOLType" { return new Token(TokenType.HOLType); }
 		"Term" { return new Token(TokenType.Term); }
 		"Theorem" { return new Token(TokenType.Theorem); }
@@ -89,6 +92,7 @@ StringCharacter = [^\r\n\"]
         {WhiteSpace}        {}
         {LineTerminator}        {}
 
+		{Integer} { return new Token(TokenType.INTEGER, yytext()); }
         {Identifier} { return new Token(TokenType.IDENTIFIER, yytext()); }
 }
 

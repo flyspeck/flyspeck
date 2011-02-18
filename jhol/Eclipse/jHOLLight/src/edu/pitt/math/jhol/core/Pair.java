@@ -39,5 +39,18 @@ public class Pair<T, U> {
 				&& (second == null ? other.second == null : second
 						.equals(other.second));
 	}
+	
+	
+	@Override
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		str.append('(');
+		str.append(first);
+		str.append(',');
+		str.append(second);
+		str.append(')');
+		
+		return str.toString();
+	}
 
 }

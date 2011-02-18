@@ -3,19 +3,8 @@ package edu.pitt.math.jhol.core.lexer;
 import java.io.StringReader;
 import java.util.ArrayList;
 
-
-import edu.pitt.math.jhol.caml.CamlFunction;
-import edu.pitt.math.jhol.caml.CamlList;
-import edu.pitt.math.jhol.caml.CamlObject;
-import edu.pitt.math.jhol.caml.CamlPair;
-import edu.pitt.math.jhol.caml.CamlString;
-import edu.pitt.math.jhol.caml.CamlType;
-import edu.pitt.math.jhol.core.Goal;
-import edu.pitt.math.jhol.core.Goalstate;
-import edu.pitt.math.jhol.core.HOLType;
-import edu.pitt.math.jhol.core.Pair;
-import edu.pitt.math.jhol.core.Term;
-import edu.pitt.math.jhol.core.Theorem;
+import edu.pitt.math.jhol.caml.*;
+import edu.pitt.math.jhol.core.*;
 
 /**
  * Parses HOL terms and types
@@ -58,6 +47,9 @@ public class Parser {
 		switch (t.type) {
 		case String:
 			return CamlType.STRING;
+			
+		case Int:
+			return CamlType.INT;
 		
 		case Theorem:
 			return CamlType.THM;
@@ -127,6 +119,11 @@ public class Parser {
 		case STRING:
 			s.nextToken();
 			return new CamlString(t.value);
+			
+		// Integer
+		case INTEGER:
+			s.nextToken();
+			return new CamlInt(Integer.parseInt(t.value));
 		
 		// List
 		case List:

@@ -5,13 +5,12 @@ package edu.pitt.math.jhol.core.lexer;
  */
 public enum TokenType {
 	EOF,
-	STRING,
-	IDENTIFIER,
+	STRING, IDENTIFIER, INTEGER,
 	LPAR, RPAR,
 	LBRACK, RBRACK,
 	COMMA, COLON, SEMICOLON,
 	Tyapp, Tyvar,
 	Var, Const, Comb, Abs,
-	String, HOLType, Term, Theorem, List, Pair,
+	String, Int, HOLType, Term, Theorem, List, Pair,
 	Goal, Goalstate
 }

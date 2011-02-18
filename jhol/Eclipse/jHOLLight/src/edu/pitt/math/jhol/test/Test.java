@@ -18,6 +18,7 @@ import edu.pitt.math.jhol.core.printer.TypePrinter;
 
 import static edu.pitt.math.jhol.core.HOLType.*;
 import static edu.pitt.math.jhol.core.Term.*;
+import static edu.pitt.math.jhol.core.TermUtils.*;
 
 
 public class Test {
@@ -189,12 +190,24 @@ public class Test {
 	
 	
 	/**
+	 * test6
+	 */
+	public static void test6() throws Exception {
+        String str5 = "Comb(Const(\"GABS\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])])])),Abs(Var(\"f\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])])),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"P\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])])),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"t\",Tyapp(\"num\"[])),Comb(Comb(Const(\"GEQ\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])])),Comb(Var(\"f\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])])),Comb(Var(\"P\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])])),Var(\"t\",Tyapp(\"num\"[]))))),Comb(Const(\"GABS\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])])),Abs(Var(\"f\",Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"a\",Tyapp(\"num\"[])),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"b\",Tyapp(\"num\"[])),Comb(Comb(Const(\"GEQ\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"bool\"[])])])),Comb(Var(\"f\",Tyapp(\"fun\"[Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])]),Tyapp(\"bool\"[])])),Comb(Comb(Const(\",\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"prod\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])])])])),Var(\"a\",Tyapp(\"num\"[]))),Var(\"b\",Tyapp(\"num\"[]))))),Comb(Comb(Const(\"<\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"bool\"[])])])),Comb(Comb(Const(\"+\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])])])),Var(\"a\",Tyapp(\"num\"[]))),Var(\"b\",Tyapp(\"num\"[])))),Var(\"t\",Tyapp(\"num\"[])))))))))))))))))";
+        Term tm = Parser.parseTerm(str5);
+        Pair<Term, Term> p = dest_gabs(tm);
+        
+        System.out.println(p);
+	}
+	
+	
+	/**
 	 * main
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		test5();
+		test6();
 		
 		System.exit(0);
 	}

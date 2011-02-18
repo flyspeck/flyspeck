@@ -332,7 +332,7 @@ public abstract class HOLType extends CamlObject {
 		
 		@Override
 		public String toString() {
-			StringBuilder str = new StringBuilder();
+/*			StringBuilder str = new StringBuilder();
 			
 			str.append(constructorName);
 			
@@ -345,7 +345,8 @@ public abstract class HOLType extends CamlObject {
 			}
 			str.append(']');
 			
-			return str.toString();
+			return str.toString();*/
+			return TypePrinter.printType(this);
 		}
 	}
 }

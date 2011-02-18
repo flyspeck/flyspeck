@@ -132,7 +132,6 @@ public abstract class Term extends CamlObject {
 	public static boolean is_abs(Term t) {
 		return t instanceof AbsTerm;
 	}
-
 	
 	
 	/**
@@ -152,6 +151,7 @@ public abstract class Term extends CamlObject {
 		return new CombTerm(f, a);
 	}
 
+
 	/**
 	 * Destroys a combination
 	 * @param t
@@ -163,23 +163,6 @@ public abstract class Term extends CamlObject {
 		
 		CombTerm t2 = (CombTerm) t;
 		return new Pair<Term, Term>(t2.rator, t2.rand);
-	}
-	
-	
-	/**
-	 * Iteratively breaks apart combinations
-	 */
-	public static Pair<Term, ArrayList<Term>> strip_comb(Term t) {
-		ArrayList<Term> args = new ArrayList<Term>();
-		
-		while (true) {
-			if (!is_comb(t))
-				return new Pair<Term, ArrayList<Term>>(t, args);
-			
-			Pair<Term,Term> p = dest_comb(t);
-			args.add(0, p.getSecond());
-			t = p.getFirst();
-		}
 	}
 	
 	
@@ -206,7 +189,7 @@ public abstract class Term extends CamlObject {
 	/**
 	 * Returns the type of the term
 	 */
-	public abstract HOLType type() throws Exception;
+	public abstract HOLType type();
 	
 	/**
 	 * Var term
@@ -418,7 +401,7 @@ public abstract class Term extends CamlObject {
 		
 
 		@Override
-		public HOLType type() throws Exception {
+		public HOLType type() {
 			HOLType ratorType = rator.type();
 			return ratorType.dest().getSecond()[1];
 		}
@@ -519,11 +502,16 @@ public abstract class Term extends CamlObject {
 		}
 		
 		@Override
-		public HOLType type() throws Exception {
+		public HOLType type() {
 			HOLType varType = var.type();
 			HOLType bodyType = body.type();
 			
-			return HOLType.mk_fun_ty(varType, bodyType);
+			try {
+				return HOLType.mk_fun_ty(varType, bodyType);
+			}
+			catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 		
 		@Override

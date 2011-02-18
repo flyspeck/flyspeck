@@ -6,6 +6,7 @@ package edu.pitt.math.jhol.caml;
 public abstract class CamlType {
 	/* Constants for simple types */
 	public static final CamlType STRING = new StringType();
+	public static final CamlType INT = new IntType();
 	public static final CamlType HOL_TYPE = new HOLTypeType();
 	public static final CamlType TERM = new TermType();
 	public static final CamlType THM = new TheoremType();
@@ -172,6 +173,42 @@ public abstract class CamlType {
 		@Override
 		public String toString() {
 			return "String";
+		}
+	}
+	
+	
+	/**
+	 * Int
+	 */
+	public static class IntType extends CamlType {
+		private IntType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_int";
+		}
+		
+		@Override
+		public int hashCode() {
+			return 79;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof IntType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "Int";
 		}
 	}
 	

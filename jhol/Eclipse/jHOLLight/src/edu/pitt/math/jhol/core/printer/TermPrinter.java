@@ -8,6 +8,7 @@ import edu.pitt.math.jhol.core.HOLType;
 import edu.pitt.math.jhol.core.Pair;
 import edu.pitt.math.jhol.core.Term;
 import static edu.pitt.math.jhol.core.Term.*;
+import static edu.pitt.math.jhol.core.TermUtils.*;
 
 /**
  * Prints a term
@@ -20,7 +21,7 @@ public class TermPrinter {
 	}
 	
 	// The set of binders
-	private static HashSet<String> binders;
+	private static final HashSet<String> binders;
 	
 	// Describes an overloaded interface
 	private static class Interface {
@@ -36,16 +37,16 @@ public class TermPrinter {
 	}
 	
 	// The list of interface mappings
-	private static ArrayList<Interface> the_interface;
+	private static final ArrayList<Interface> the_interface;
 	
 	// The list of the infixes
-	private static HashMap<String, Pair<Integer, InfixAssoc>> infixes;
+	private static final HashMap<String, Pair<Integer, InfixAssoc>> infixes;
 	
 	// The set of the prefixes
-	private static HashSet<String> prefixes;
+	private static final HashSet<String> prefixes;
 	
 	// The set of binary operators that print without surrounding spaces
-	private static HashSet<String> unspaced_binops;
+	private static final HashSet<String> unspaced_binops;
 	
 	// Flag determining whether interface is reversed on printing
 	private static boolean reverse_interface_mapping = true;	
@@ -78,6 +79,7 @@ public class TermPrinter {
 	}
 	
 	
+
 	/**
 	 * Adds a special printer
 	 */
@@ -227,6 +229,20 @@ public class TermPrinter {
 	
 	
 	/**
+	 * Returns the name of a constant or variable
+	 */
+	private static String name_of(Term tm) {
+		if (is_var(tm))
+			return dest_var(tm).getFirst();
+		
+		if (is_const(tm))
+			return dest_const(tm).getFirst();
+		
+		return "";
+	}
+	
+	
+	/**
 	 * Finds an identifier corresponding to the given interface
 	 */
 	private static String reverse_interface(String s0, HOLType ty0) {
@@ -303,13 +319,108 @@ public class TermPrinter {
 	 * Prints a binder
 	 */
 	private static String print_binder(Term tm, int prec) {
-		if (is_abs(tm)) {
-			Pair<Term,Term> p = dest_abs(tm);
-			String v = dest_var(p.getFirst()).getFirst();
-			return "(\\" + v + ". " + print_term(p.getSecond(), 0) + ")";
+		StringBuilder str = new StringBuilder();
+		boolean absf = is_gabs(tm);
+		
+		String s = absf ? "\\" : name_of(rator(tm));
+		// Collect the bounded variables
+		Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, tm);
+		ArrayList<Pair<Boolean, Term>> vs = vs_bod.getFirst();
+		Term bod = vs_bod.getSecond();
+		
+		if (prec != 0)
+			str.append('(');
+		
+		str.append(s);
+
+//		if (isalnum(s))
+//			str.append(' ');
+		char ch = s.length() > 0 ? s.charAt(0) : 0;
+		if (Character.isDigit(ch) || Character.isLetter(ch) || ch == '_' || ch == '\'')
+			str.append(' ');
+		
+		for (int i = 0; i < vs.size(); i++) {
+			Pair<Boolean, Term> p = vs.get(i);
+			if (p.getFirst())
+				str.append('(');
+			
+			str.append(print_term(p.getSecond(), 0));
+			
+			if (p.getFirst())
+				str.append(')');
+			
+			if (i < vs.size() - 1)
+				str.append(' ');
+			else
+				str.append('.');
 		}
 		
-		return "BINDER";
+		str.append(' ');
+		str.append(print_term(bod, 0));
+		
+		if (prec != 0)
+			str.append(')');
+
+		return str.toString();
+	}
+	
+	
+	
+	/**
+	 * Auxiliary function for collecting bounded variables
+	 */
+	private static Pair<ArrayList<Pair<Boolean, Term>>, Term> collectvs(boolean absf, String s, Term tm) {
+//		ArrayList<Pair<Boolean, Term>> vars = new ArrayList<Pair<Boolean,Term>>();
+		
+		if (absf) {
+			// Generalized abstraction
+			if (is_abs(tm)) {
+				Pair<Term, Term> p = dest_abs(tm);
+				Term v = p.getFirst();
+				Term t = p.getSecond();
+				
+				Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, t);
+				vs_bod.getFirst().add(0, new Pair<Boolean, Term>(false, v));
+				return vs_bod;
+			}
+			else if (is_gabs(tm)) {
+				Pair<Term, Term> p = dest_gabs(tm);
+				Term v = p.getFirst();
+				Term t = p.getSecond();
+				
+				Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, t);
+				vs_bod.getFirst().add(0, new Pair<Boolean, Term>(true, v));
+				return vs_bod;
+			}
+			
+			ArrayList<Pair<Boolean, Term>> vars = new ArrayList<Pair<Boolean,Term>>();
+			return new Pair<ArrayList<Pair<Boolean,Term>>, Term>(vars, tm);
+		}
+		
+		// Binder
+		if (is_comb(tm) && name_of(rator(tm)).equals(s)) {
+			if (is_abs(rand(tm))) {
+				Pair<Term, Term> p = dest_abs(rand(tm));
+				Term v = p.getFirst();
+				Term t = p.getSecond();
+				
+				Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, t);
+				vs_bod.getFirst().add(0, new Pair<Boolean, Term>(false, v));
+				return vs_bod;
+			}
+			else if (is_gabs(rand(tm))) {
+				Pair<Term, Term> p = dest_gabs(rand(tm));
+				Term v = p.getFirst();
+				Term t = p.getSecond();
+				
+				Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, t);
+				vs_bod.getFirst().add(0, new Pair<Boolean, Term>(true, v));
+				return vs_bod;
+			}
+		}
+		
+		ArrayList<Pair<Boolean, Term>> vars = new ArrayList<Pair<Boolean,Term>>();
+		return new Pair<ArrayList<Pair<Boolean,Term>>, Term>(vars, tm);
 	}
 	
 	
@@ -322,8 +433,7 @@ public class TermPrinter {
 	public static String print_term(final Term tm, final int prec) {
 		StringBuilder str = new StringBuilder();
 		
-		// TODO: is_gabs(tm)
-		if (is_abs(tm))
+		if (is_gabs(tm))
 			return print_binder(tm, prec);
 		
 		// Split an operation and its arguments
@@ -332,24 +442,8 @@ public class TermPrinter {
 		ArrayList<Term> args = op_args.getSecond();
 		int nargs = args.size();
 		
-		Pair<String, HOLType> name_ty;
-		if (is_const(hop))
-			name_ty = dest_const(hop);
-		else if (is_var(hop)) {
-			name_ty = dest_var(hop);
-		}
-		else {
-			// abs
-			try {
-				name_ty = new Pair<String, HOLType>("", hop.type());
-			}
-			catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		String s0 = name_ty.getFirst();
-		HOLType ty0 = name_ty.getSecond();
+		String s0 = name_of(hop);
+		HOLType ty0 = hop.type(); 
 		
 		// Find the inverse interface
 		String s = reverse_interface(s0, ty0);
@@ -384,9 +478,14 @@ public class TermPrinter {
 			return str.toString();
 		}
 		
-		// TODO:
-		//		 if parses_as_binder s & length args = 1 & is_gabs (hd args) then
-		//	        print_binder prec tm		
+		////////////////////////////////
+		
+		// Binders
+		if (parses_as_binder(s) && nargs == 1 && is_gabs(args.get(0))) {
+			return print_binder(tm, prec);
+		}
+		
+		///////////////////////////////
 		
 		// Infix operations
 		Pair<Integer,InfixAssoc> infix = get_infix_status(s);
@@ -428,16 +527,21 @@ public class TermPrinter {
 			if (newprec <= prec)
 				str.append('(');
 			
+			boolean unspaced = unspaced_binops.contains(s); 
 			int nbargs = bargs.size();
 			for (int i = 0; i < nbargs; i++) {
 				String sarg = print_term(bargs.get(i), newprec);
 				str.append(sarg);
-				
+
 				if (i < nbargs - 1) {
 					// Print the operation
-					str.append(' ');
+					if (!unspaced)
+						str.append(' ');
+					
 					str.append(s);
-					str.append(' ');
+					
+					if (!unspaced)
+						str.append(' ');
 				}
 			}
 			

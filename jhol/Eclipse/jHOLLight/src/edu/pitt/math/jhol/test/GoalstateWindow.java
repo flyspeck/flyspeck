@@ -176,7 +176,7 @@ public class GoalstateWindow extends JDialog {
 		
 		if (n > 0) {
 			Goal g = state.getGoal(0);
-			activeGoalText.setText(TermPrinter.print(g.goalTerm()));
+			activeGoalText.setText(TermPrinter.print(g.goalTerm()).toString());
 			
 			int k = g.numberOfAssumptions();
 			for (int i = 0; i < k; i++) {

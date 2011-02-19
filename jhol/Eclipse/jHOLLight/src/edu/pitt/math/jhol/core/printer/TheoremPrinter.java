@@ -6,17 +6,17 @@ import edu.pitt.math.jhol.core.Theorem;
  * Prints a theorem
  */
 public class TheoremPrinter {
-	public static String printSimple(Theorem thm) {
-		StringBuilder str = new StringBuilder();
+	public static TermPrinterTree printSimple(Theorem thm) {
+		TermPrinterTree tree = new TermPrinterTree(null, null);
 		
 		if (thm.hyp())
-			str.append("A ");
+			tree.addBranch(new TermPrinterTree(null, "A "));
+
+		tree.addBranch(new TermPrinterTree(null, "|- "));
 		
-		str.append("|- ");
+		TermPrinterTree concl = TermPrinter.print(thm.concl());
+		tree.addBranch(concl);
 		
-		String concl = TermPrinter.print(thm.concl());
-		str.append(concl);
-		
-		return str.toString();
+		return tree;
 	}
 }

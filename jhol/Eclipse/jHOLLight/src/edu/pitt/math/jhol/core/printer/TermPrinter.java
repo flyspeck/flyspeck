@@ -61,7 +61,7 @@ public class TermPrinter {
 		public SpecialPrinter() {
 		}
 		
-		public abstract String print(Term tm, String s, Term op, ArrayList<Term> args, int prec);
+		public abstract TermPrinterTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec);
 	}
 	
 	
@@ -177,7 +177,7 @@ public class TermPrinter {
 	/**
 	 * Converts the given term into a string
 	 */
-	public static String print(Term t) {
+	public static TermPrinterTree print(Term t) {
 //		return printSimple(t);
 		return print_term(t, 0);
 	}
@@ -202,8 +202,8 @@ public class TermPrinter {
 			Term t1 = p.getFirst();
 			Term t2 = p.getSecond();
 			
-			String s1 = print(p.getFirst());
-			String s2 = print(p.getSecond());
+			String s1 = printSimple(p.getFirst());
+			String s2 = printSimple(p.getSecond());
 			
 			if (is_abs(t1))
 				s1 = "(" + s1 + ")";
@@ -216,8 +216,8 @@ public class TermPrinter {
 		
 		if (is_abs(t)) {
 			Pair<Term, Term> p = dest_abs(t);
-			String s1 = print(p.getFirst());
-			String s2 = print(p.getSecond());
+			String s1 = printSimple(p.getFirst());
+			String s2 = printSimple(p.getSecond());
 			
 			return "\\" + s1 + ". " + s2;
 		}
@@ -268,21 +268,19 @@ public class TermPrinter {
 	/**
 	 * Prints a list of terms
 	 */
-	static String print_term_sequence(String sep, int prec, ArrayList<Term> tms) {
-		if (tms == null)
-			return "";
-		
-		StringBuilder str = new StringBuilder();
-		
+	static TermPrinterTree print_term_sequence(TermPrinterTree node, String sep, int prec, ArrayList<Term> tms) {
 		int n = tms.size();
 		for (int i = 0; i < n; i++) {
 			Term tm = tms.get(i);
-			str.append(print_term(tm, prec));
+			
+			TermPrinterTree branch = print_term(tm, prec);
+			node.addBranch(branch);
+
 			if (i < n - 1)
-				str.append(sep);
+				node.addBranch(new TermPrinterTree(node.getTerm(), sep));
 		}
 		
-		return str.toString();
+		return node;
 	}
 	
 	
@@ -316,8 +314,7 @@ public class TermPrinter {
 	/**
 	 * Prints a binder
 	 */
-	static String print_binder(Term tm, int prec) {
-		StringBuilder str = new StringBuilder();
+	static TermPrinterTree print_binder(final Term tm, final int prec) {
 		boolean absf = is_gabs(tm);
 		
 		String s = absf ? "\\" : name_of(rator(tm));
@@ -325,41 +322,39 @@ public class TermPrinter {
 		Pair<ArrayList<Pair<Boolean, Term>>, Term> vs_bod = collectvs(absf, s, tm);
 		ArrayList<Pair<Boolean, Term>> vs = vs_bod.getFirst();
 		Term bod = vs_bod.getSecond();
+
+		TermPrinterTree node = new TermPrinterTree(tm, s);
 		
 		if (prec != 0)
-			str.append('(');
+			node.setBrackets("(", ")");
 		
-		str.append(s);
-
 //		if (isalnum(s))
 //			str.append(' ');
 		char ch = s.length() > 0 ? s.charAt(0) : 0;
 		if (Character.isDigit(ch) || Character.isLetter(ch) || ch == '_' || ch == '\'')
-			str.append(' ');
+			node.addBranch(new TermPrinterTree(tm, " "));
 		
 		for (int i = 0; i < vs.size(); i++) {
 			Pair<Boolean, Term> p = vs.get(i);
-			if (p.getFirst())
-				str.append('(');
-			
-			str.append(print_term(p.getSecond(), 0));
+			TermPrinterTree branch = print_term(p.getSecond(), 0);
 			
 			if (p.getFirst())
-				str.append(')');
+				branch.setBrackets("(", ")");
+
+			node.addBranch(branch);
 			
 			if (i < vs.size() - 1)
-				str.append(' ');
+				node.addBranch(new TermPrinterTree(tm, " "));
 			else
-				str.append('.');
+				node.addBranch(new TermPrinterTree(tm, "."));
 		}
-		
-		str.append(' ');
-		str.append(print_term(bod, 0));
-		
-		if (prec != 0)
-			str.append(')');
 
-		return str.toString();
+		node.addBranch(new TermPrinterTree(tm, " "));
+		
+		TermPrinterTree body = print_term(bod, 0);
+		node.addBranch(body);
+		
+		return node;
 	}
 	
 	
@@ -428,9 +423,7 @@ public class TermPrinter {
 	 * @param prec
 	 * @return
 	 */
-	public static String print_term(final Term tm, final int prec) {
-		StringBuilder str = new StringBuilder();
-		
+	public static TermPrinterTree print_term(final Term tm, final int prec) {
 		if (is_gabs(tm))
 			return print_binder(tm, prec);
 		
@@ -451,30 +444,32 @@ public class TermPrinter {
 		// Test special printers
 		
 		for (SpecialPrinter printer : specialPrinters) {
-			String testStr = printer.print(tm, s, hop, args, prec);
-			if (testStr != null)
-				return testStr;
+			TermPrinterTree test = printer.print(tm, s, hop, args, prec);
+			if (test != null)
+				return test;
 		}
+		
+
+		TermPrinterTree node = new TermPrinterTree(tm, null);
+		TermPrinterTree opNode = new TermPrinterTree(hop, s);
+		TermPrinterTree spaceNode = new TermPrinterTree(tm, " ");
 		
 		//////////////////////////////
 		
 		// Prefix operations
 		if (prefixes.contains(s) && nargs == 1) {
 			if (prec == 1000)
-				str.append('(');
-			
-			str.append(s);
+				node.setBrackets("(", ")");
+
+			node.addBranch(opNode);
 			
 			// Forced space
-			str.append(' ');
+			node.addBranch(spaceNode);
 
-			String sarg = print_term(args.get(0), 999);
-			str.append(sarg);
+			TermPrinterTree argNode = print_term(args.get(0), 999);
+			node.addBranch(argNode);
 			
-			if (prec == 1000)
-				str.append(')');
-			
-			return str.toString();
+			return node;
 		}
 		
 		////////////////////////////////
@@ -524,45 +519,41 @@ public class TermPrinter {
 			
 			int newprec = infix.getFirst();
 			if (newprec <= prec)
-				str.append('(');
+				node.setBrackets("(", ")");
 			
 			boolean unspaced = unspaced_binops.contains(s); 
 			int nbargs = bargs.size();
 			for (int i = 0; i < nbargs; i++) {
-				String sarg = print_term(bargs.get(i), newprec);
-				str.append(sarg);
+				TermPrinterTree argNode = print_term(bargs.get(i), newprec);
+				node.addBranch(argNode);
 
 				if (i < nbargs - 1) {
 					// Print the operation
 					if (!unspaced)
-						str.append(' ');
-					
-					str.append(s);
+						node.addBranch(spaceNode);
+
+					node.addBranch(opNode);
 					
 					if (!unspaced)
-						str.append(' ');
+						node.addBranch(spaceNode);
 				}
 			}
 			
-			if (newprec <= prec)
-				str.append(')');
-			
-			return str.toString();
+			return node;
 		}
 	
 		
 		// Constants and variables
 		if ((is_const(hop) || is_var(hop)) && nargs == 0) {
 			if (parses_as_binder(s) || get_infix_status(s) != null || is_prefix(s)) {
-				str.append('(');
-				str.append(s);
-				str.append(')');
+				node.setBrackets("(", ")");
+				node.addBranch(opNode);
 			}
 			else {
-				str.append(s);
+				node.addBranch(opNode);
 			}
 			
-			return str.toString();
+			return node;
 		}
 
 		// Combinations
@@ -571,24 +562,21 @@ public class TermPrinter {
 		Term r = p.getSecond();
 		
 		if (prec == 1000)
-			str.append('(');
+			node.setBrackets("(", ")");
 		
-		String sl = print_term(l, 999);
-		str.append(sl);
+		TermPrinterTree lNode = print_term(l, 999);
+		node.addBranch(lNode);
 
 		// TODO:
 //	     (if try mem (fst(dest_const l)) ["real_of_num"; "int_of_num"]
 //         with Failure _ -> false
 //      then () else pp_print_space fmt ());
+
+		node.addBranch(spaceNode);
 		
-		str.append(' ');
+		TermPrinterTree rNode = print_term(r, 1000);
+		node.addBranch(rNode);
 		
-		String sr = print_term(r, 1000);
-		str.append(sr);
-		
-		if (prec == 1000)
-			str.append(')');
-		
-		return str.toString();
+		return node;
 	}
 }

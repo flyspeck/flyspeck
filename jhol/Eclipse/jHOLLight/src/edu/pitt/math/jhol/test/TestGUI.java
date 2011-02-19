@@ -285,7 +285,8 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlType thm_list_to_term_to_thm = CamlType.mk_function(thm_list, CamlType.mk_function(CamlType.TERM, CamlType.THM));
 		CamlType term_list_to_thm_to_thm = CamlType.mk_function(term_list, CamlType.mk_function(CamlType.THM, CamlType.THM));
 		CamlType tac = CamlType.TACTIC;
-		CamlType ttac = CamlType.mk_function(thm, CamlType.TACTIC);
+		CamlType ttac = CamlType.mk_function(thm, tac);
+		CamlType term_to_tac = CamlType.mk_function(term, tac);
 		CamlType thm_list_to_tac = CamlType.mk_function(thm_list, tac);
 		
 		
@@ -316,6 +317,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlFunction ARITH_TAC = new CamlFunction("ARITH_TAC", tac);
 		CamlFunction GEN_TAC = new CamlFunction("GEN_TAC", tac);
 		CamlFunction DISCH_TAC = new CamlFunction("DISCH_TAC", tac);
+		CamlFunction UNDISCH_TAC = new CamlFunction("UNDISCH_TAC", term_to_tac);
 		CamlFunction ASM_REWRITE_TAC = new CamlFunction("ASM_REWRITE_TAC", thm_list_to_tac);
 		
 		
@@ -324,7 +326,7 @@ public class TestGUI extends JFrame implements ActionListener {
 				REWRITE_RULE, MESON, MATCH_MP, TAUT, CONJ,
 				STRIP_TAC, MATCH_MP_TAC, CONJ_TAC,
 				REWRITE_TAC, ARITH_TAC, GEN_TAC,
-				DISCH_TAC, ASM_REWRITE_TAC);
+				DISCH_TAC, UNDISCH_TAC, ASM_REWRITE_TAC);
 
 		
 		

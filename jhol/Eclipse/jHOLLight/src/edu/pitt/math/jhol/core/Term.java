@@ -57,6 +57,9 @@ public abstract class Term extends CamlObject {
 	 * Returns true if the input argument is a variable
 	 */
 	public static boolean is_var(Term t) {
+		if (t == null)
+			return false;
+		
 		return t instanceof VarTerm;
 	}
 	

@@ -1,13 +1,14 @@
 package edu.pitt.math.jhol;
 
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
@@ -16,17 +17,22 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 
-import bsh.EvalError;
 import bsh.Interpreter;
 import bsh.util.JConsole;
 import bsh.util.NameCompletion;
@@ -41,7 +47,9 @@ public class Framework extends WindowAdapter{
 	private JFrame frame;
 	private List<JButton> buttonList;
 	private JConsole console;
-	private Interpreter interpreter;
+	
+	private Component consoleTextPane;
+	private GoalPane goalPane;
 	//DEBUG	
 	boolean quitConfirmed(JFrame frame) {
 	    String s1 = "Quit";
@@ -75,15 +83,7 @@ public class Framework extends WindowAdapter{
 	}
 	
 	public Framework(Interpreter interpreter) {
-		this.interpreter = interpreter;
-		Point lastLocation = null;
-		int maxX = 500;
-		int maxY = 500;
-
-			
-		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		maxX = screenSize.width - 50;
-		maxY = screenSize.height - 50;	
+		
 		
 		WindowAdapter controller = this;
 		    boolean IS_A_MAC = System.getProperty("os.name").equals("Mac OS X");
@@ -131,7 +131,7 @@ public class Framework extends WindowAdapter{
 		    conjTac.setActionCommand("e(CONJ_TAC);;");
 		    JButton conjTac1 = new JButton("Test Button 1");
 		    conjTac1.setActionCommand("test1");
-		    JButton conjTac2 = new JButton("Interrupt");
+		    final JButton conjTac2 = new JButton("Interrupt");
 		    conjTac2.setActionCommand("test2");
 							       
 		    //Keep track of buttons
@@ -145,7 +145,7 @@ public class Framework extends WindowAdapter{
 
 		    //Console for getting input from user
 		     console = new JConsole();
-		    Component consoleTextPane = console.getViewport().getView();
+		     consoleTextPane = console.getViewport().getView();
 		    consoleTextPane.addKeyListener( new KeyAdapter(){
 			    
 			    //handle other methods
@@ -157,21 +157,16 @@ public class Framework extends WindowAdapter{
 			    
 				//Main Loop
 				List<String> cmdList = new LinkedList<String>();
-				try {	
-				    //	    do
-					//{
-					    //in case someone pastes more than one command into the buffer	    
-					    String line = Utilities.readLine(bufInput);
-					    cmdList.add(line);
-					    //		}while(bufInput.ready());
-				    while(cmdList.size() != 0){
-					printHTML(hol.runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n"));
-				    }	   
-				    //updateTopGoal();
-				    
-				} catch (IOException e2) {
-				    e2.printStackTrace();
-				}
+				//	    do
+				//{
+				    //in case someone pastes more than one command into the buffer	    
+				    String line = Utilities.readLine(bufInput);
+				    cmdList.add(line);
+				    //		}while(bufInput.ready());
+				while(cmdList.size() != 0){
+				printHTML(hol.runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n"));
+				}	   
+				//updateTopGoal();
 			    }
 			});
 
@@ -199,15 +194,23 @@ public class Framework extends WindowAdapter{
 			command.add("./local.hol");
 			
 			ExecutorService es = Executors.newCachedThreadPool();
-			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(command));
+			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(command,interpreter));
 			
 
-		    hol = futureHOL.get();
+		    try {
+				hol = futureHOL.get();
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (ExecutionException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			
 			printHTML("# ");
 		    
 		    
-		    BufferedReader newprinterMLStream;
+		    BufferedReader newprinterMLStream = null;
 			try{
 			newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
 			int c = newprinterMLStream.read();
@@ -217,14 +220,19 @@ public class Framework extends WindowAdapter{
 			    c = newprinterMLStream.read();
 			}
 
-			runHOLCommands(newprinterMLString.toString());
+			hol.runHOLCommands(newprinterMLString.toString());
 		    }
 		    catch (IOException x) {
 			System.err.println(x);
 		    } 
 		    finally{
 			if (newprinterMLStream != null)
-			    newprinterMLStream.close();
+				try {
+					newprinterMLStream.close();
+				} catch (IOException e1) {
+					
+					e1.printStackTrace();
+				}
 		    }
 		    
 
@@ -249,78 +257,42 @@ public class Framework extends WindowAdapter{
 		    
 
 		    //List of theorem labels
-		    String[] thmStrings = { "All", "Basic Logic", "Constructs", "Pairs", "Well Foundedness",
+		    final String[] thmStrings = { "All", "Basic Logic", "Constructs", "Pairs", "Well Foundedness",
 					    "Natural Numbers", "Lists", "Real Numbers", "Integers",
 					    "Sets and Functions", "Iterated Operations", "Cartesian Powers"};
 
 		    //Combo box to select which list of theorems to list
-		    JComboBox thmCombo = new JComboBox(thmStrings);
-		    JList myList = new JList ();
+		    final JComboBox thmCombo = new JComboBox(thmStrings);
+		    final JList myList = new JList ();
 
-		    //find the matching set of theorems
-		    lookupTheoremList(String name){
-			if (name.equals("Real Numbers"))
-			    return realNumberTheorems.toArray();
-			if (name.equals("Integers"))
-			    return integerTheorems.toArray();
-			if (name.equals("Sets and Functions"))
-			    return setAndFunctionTheorems.toArray();
-			if (name.equals("Iterated Operations"))
-			    return iteratedOperationTheorems.toArray();
-			if(name.equals("Cartesian Powers"))
-			    return cartesianPowerTheorems.toArray();
-			if(name.equals("Constructs"))
-			    return constructTheorems.toArray();
-			if(name.equals("Pairs"))
-			    return pairTheorems.toArray();
-			if(name.equals("Well Foundedness"))
-			    return wellfoundednessTheorems.toArray();
-			if (name.equals("Natural Numbers"))
-			    return naturalNumberTheorems.toArray();
-			if(name.equals("Lists"))
-			    return listTheorems.toArray();
-			if (name.equals("All"))
-			    {
-				global.hol.updateHolTheorems();
-				return global.hol.getTheoremList().toArray();
-			    }
-			if( name.equals("Basic Logic"))
-			    return basicLogicTheorems.toArray();
-
-			return null;
-		    }
+		    
 
 		    //Detect mouse clicks
-		    ml = new MouseAdapter() {
+		    MouseAdapter ml = new MouseAdapter() {
 			    public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
-				    global.runCommand(((String)e.getSource().getSelectedValue())+";;");
+				    hol.runCommand(((String)((JList) e.getSource()).getSelectedValue())+";;");
 				}
 			    }
 			};
 
 		    //Detect button presses
-		    al  = new ActionListener() {
-			    actionPerformed( event ) {
+		    ActionListener al = new ActionListener() {
+			    public void actionPerformed( ActionEvent event ) {
 				if ( event.getSource() == thmCombo){
 				    myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
 				}
 			    
 				if (event.getActionCommand().startsWith("e"))
-				    global.runCommand(event.getActionCommand());
+				   hol.runCommand(event.getActionCommand());
 				
 				if (event.getActionCommand().equals("test1")){
 				    test1();
 				}
 				if(event.getActionCommand().equals("test2")){
-				    try {
-					conjTac2.setEnabled(false);
-					kill.start();
+				    conjTac2.setEnabled(false);
+					hol.interrupt();
 					//	print(hol.flushOutput(false));
-				    
-				    } catch (IOException e) {
-					return null;
-				    }
 				}
 			    }
 			};
@@ -356,8 +328,9 @@ public class Framework extends WindowAdapter{
 		    
 		   /* helpScrollPane.setPreferredSize(new Dimension(250, 145));
 		    helpScrollPane.setMinimumSize(new Dimension(10, 10));
-		    */global.goalPane = new GoalPane(global.hol);
-		    JScrollPane editorScrollPane = new JScrollPane(global.goalPane);
+		    */
+		    goalPane = new GoalPane(hol);
+		    JScrollPane editorScrollPane = new JScrollPane(goalPane);
 
 		    editorScrollPane.setPreferredSize(new Dimension(250, 145));
 		    editorScrollPane.setMinimumSize(new Dimension(10, 10));
@@ -427,14 +400,14 @@ public class Framework extends WindowAdapter{
 	}
 
 	public void windowIconified(WindowEvent e){
-	    Window window = e.getWindow();
-	    window.zoomItem.setEnabled(false);
-	    window.minimizeItem.setEnabled(false);
+	    HOLFrame window = (HOLFrame) e.getWindow();
+	    window.getZoomItem().setEnabled(false);
+	    window.getMinimizeItem().setEnabled(false);
 	}	
 	public void windowDeiconified(WindowEvent e){
-	    Window window = e.getWindow();
-	    window.zoomItem.setEnabled(true);
-	    window.minimizeItem.setEnabled(true);
+	    HOLFrame window = (HOLFrame) e.getWindow();
+	    window.getZoomItem().setEnabled(true);
+	    window.getMinimizeItem().setEnabled(true);
 	}	
 	    		
 	/*	void makeNewWindow() {
@@ -465,8 +438,8 @@ public class Framework extends WindowAdapter{
 	    int end = html.indexOf("</HTML>");
 	    String htmlText = html.substring(start,end+7);
 	    JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
-	    JTextPane consoleTextPane;
-		consoleTextPane.insertComponent(tmpLabel);
+	    
+		((JTextPane) consoleTextPane).insertComponent(tmpLabel);
 	    html = html.substring(end+7, html.length());
 	}
 	console.print(html);
@@ -474,4 +447,36 @@ public class Framework extends WindowAdapter{
     void test1(){
 		hol.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
 	    }
+  //find the matching set of theorems
+    private String[] lookupTheoremList(String name){
+	if (name.equals("Real Numbers"))
+	    return (String[]) Database.realNumberTheorems.toArray();
+	if (name.equals("Integers"))
+	    return (String[]) Database.integerTheorems.toArray();
+	if (name.equals("Sets and Functions"))
+	    return (String[]) Database.setAndFunctionTheorems.toArray();
+	if (name.equals("Iterated Operations"))
+	    return (String[]) Database.iteratedOperationTheorems.toArray();
+	if(name.equals("Cartesian Powers"))
+	    return (String[]) Database.cartesianPowerTheorems.toArray();
+	if(name.equals("Constructs"))
+	    return (String[]) Database.constructTheorems.toArray();
+	if(name.equals("Pairs"))
+	    return (String[]) Database.pairTheorems.toArray();
+	if(name.equals("Well Foundedness"))
+	    return (String[]) Database.wellfoundednessTheorems.toArray();
+	if (name.equals("Natural Numbers"))
+	    return (String[]) Database.naturalNumberTheorems.toArray();
+	if(name.equals("Lists"))
+	    return (String[]) Database.listTheorems.toArray();
+	if (name.equals("All"))
+	    {
+		hol.updateHolTheorems();
+		return (String[]) hol.getTheoremList().toArray();
+	    }
+	if( name.equals("Basic Logic"))
+	    return (String[]) Database.basicLogicTheorems.toArray();
+
+	return null;
+    }
 }

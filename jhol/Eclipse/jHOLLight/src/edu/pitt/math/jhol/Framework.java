@@ -62,29 +62,7 @@ public class Framework extends WindowAdapter{
 	    }
 	}
 	
-	String runCommand(String cmd){
-	    String result;
-	    
-	    result = hol.runCommand(cmd);
-	    
-	    //print(result);
-	    try {
-			interpreter.eval(hol.getEvalString());
-		} catch (EvalError e) {
-			
-			e.printStackTrace();
-		}
-	    return result;
-	}
-	void runHOLCommands(String cmd){
-		hol.runHOLCommands(cmd);
-		try {
-			interpreter.eval(hol.getEvalString());
-		} catch (EvalError e) {
-			
-			e.printStackTrace();
-		}
-	}
+	
 	
 	//This method must be evoked from the event-dispatching thread.
 	public void quit(JFrame frame) {
@@ -268,9 +246,7 @@ public class Framework extends WindowAdapter{
 
 		    
 
-		    test1(){
-			global.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
-		    }
+		    
 
 		    //List of theorem labels
 		    String[] thmStrings = { "All", "Basic Logic", "Constructs", "Pairs", "Well Foundedness",
@@ -495,5 +471,7 @@ public class Framework extends WindowAdapter{
 	}
 	console.print(html);
     }
-	
+    void test1(){
+		hol.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
+	    }
 }

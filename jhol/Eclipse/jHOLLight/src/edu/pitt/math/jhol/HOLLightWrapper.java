@@ -7,6 +7,8 @@ import java.util.concurrent.Callable;
 import java.io.*;
 import java.lang.reflect.Array;
 
+import bsh.EvalError;
+
 public class HOLLightWrapper{
 
     private BufferedWriter bin;
@@ -23,10 +25,12 @@ private boolean isBuilt;
 
     //variable to hold all the theorems
     private Set<String> holTheorems;
+    private bsh.Interpreter interpreter;
 
     
-private HOLLightWrapper(List<String> command) throws IOException {
+private HOLLightWrapper(List<String> command,bsh.Interpreter interpreter) throws IOException {
 	ProcessBuilder pb = new ProcessBuilder(command);
+	this.interpreter = interpreter;
 	pb.redirectErrorStream(true);
 	evalStr = new StringBuilder();
 holIsEchoing = null;
@@ -98,9 +102,9 @@ protected boolean isBuilt(){
     
 
     
-    public static Callable<HOLLightWrapper> getHOLBuilderTask(List<String> command) {
+    public static Callable<HOLLightWrapper> getHOLBuilderTask(List<String> command,bsh.Interpreter interpreter) {
     	try {
-			return new HOLBuilderTask(new HOLLightWrapper(command));
+			return new HOLBuilderTask(new HOLLightWrapper(command,interpreter));
 		} catch (IOException e) {
 			
 			e.printStackTrace();
@@ -181,6 +185,12 @@ protected boolean isBuilt(){
 	    	result = result.substring(cmd.length()+1, result.length());
 	        }
 	    //System.out.println(result);
+	    try {
+			interpreter.eval(getEvalString());
+		} catch (EvalError e) {
+			
+			e.printStackTrace();
+		}
 	    return result;
 	    
 	} catch (IOException e) {
@@ -198,6 +208,12 @@ protected boolean isBuilt(){
 	}
     }
 
+    
+    
+    
+  
+    
+    
     
     
 

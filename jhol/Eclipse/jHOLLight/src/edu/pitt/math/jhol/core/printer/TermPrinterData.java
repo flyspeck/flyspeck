@@ -263,7 +263,7 @@ public class TermPrinterData {
 				TermPrinterTree node = new TermPrinterTree(tm, null);
 				node.setBrackets("{", "}");
 				node.addBranch(TermPrinter.print_term(fabs, 0));
-				node.addBranch(new TermPrinterTree(tm, " | "));
+				node.addBranch(new TermPrinterTree(null, " | "));
 				
 				ArrayList<Term> fvs = fabs.frees();
 				ArrayList<Term> bvs = babs.frees();
@@ -278,9 +278,9 @@ public class TermPrinterData {
 				}
 				
 				if (!evs.containsAll(intersection) || !intersection.containsAll(evs)) {
-					TermPrinterTree seq = new TermPrinterTree(tm, null);
+					TermPrinterTree seq = new TermPrinterTree(null, null);
 					node.addBranch(TermPrinter.print_term_sequence(seq, ",", 14, evs));
-					node.addBranch(new TermPrinterTree(tm, " | "));
+					node.addBranch(new TermPrinterTree(null, " | "));
 				}
 
 				node.addBranch(TermPrinter.print_term(babs, 0));
@@ -327,7 +327,7 @@ public class TermPrinterData {
 				node.addBranch(new TermPrinterTree(args.get(0), s_num));
 				
 				if (!n_den.equals(BigInteger.ONE)) {
-					node.addBranch(new TermPrinterTree(tm, "."));
+					node.addBranch(new TermPrinterTree(null, "."));
 					node.addBranch(new TermPrinterTree(args.get(1), s_den));
 				}
 				

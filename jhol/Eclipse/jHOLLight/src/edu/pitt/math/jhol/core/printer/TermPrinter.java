@@ -277,7 +277,7 @@ public class TermPrinter {
 			node.addBranch(branch);
 
 			if (i < n - 1)
-				node.addBranch(new TermPrinterTree(node.getTerm(), sep));
+				node.addBranch(new TermPrinterTree(null, sep));
 		}
 		
 		return node;
@@ -332,7 +332,7 @@ public class TermPrinter {
 //			str.append(' ');
 		char ch = s.length() > 0 ? s.charAt(0) : 0;
 		if (Character.isDigit(ch) || Character.isLetter(ch) || ch == '_' || ch == '\'')
-			node.addBranch(new TermPrinterTree(tm, " "));
+			node.addBranch(new TermPrinterTree(null, " "));
 		
 		for (int i = 0; i < vs.size(); i++) {
 			Pair<Boolean, Term> p = vs.get(i);
@@ -344,12 +344,12 @@ public class TermPrinter {
 			node.addBranch(branch);
 			
 			if (i < vs.size() - 1)
-				node.addBranch(new TermPrinterTree(tm, " "));
+				node.addBranch(new TermPrinterTree(null, " "));
 			else
-				node.addBranch(new TermPrinterTree(tm, "."));
+				node.addBranch(new TermPrinterTree(null, "."));
 		}
 
-		node.addBranch(new TermPrinterTree(tm, " "));
+		node.addBranch(new TermPrinterTree(null, " "));
 		
 		TermPrinterTree body = print_term(bod, 0);
 		node.addBranch(body);
@@ -452,7 +452,7 @@ public class TermPrinter {
 
 		TermPrinterTree node = new TermPrinterTree(tm, null);
 		TermPrinterTree opNode = new TermPrinterTree(hop, s);
-		TermPrinterTree spaceNode = new TermPrinterTree(tm, " ");
+		TermPrinterTree spaceNode = new TermPrinterTree(null, " ");
 		
 		//////////////////////////////
 		

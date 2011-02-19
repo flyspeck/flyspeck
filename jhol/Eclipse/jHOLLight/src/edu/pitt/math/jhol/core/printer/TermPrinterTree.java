@@ -30,6 +30,22 @@ public class TermPrinterTree {
 	
 	
 	/**
+	 * Describes a subterm
+	 */
+	public static class Subterm {
+		public final Term tm;
+		public final int start;
+		public final int end;
+		
+		public Subterm(Term tm, int start, int end) {
+			this.tm = tm;
+			this.start = start;
+			this.end = end;
+		}
+	}
+	
+	
+	/**
 	 * Constructor
 	 */
 	public TermPrinterTree(Term term, String text) {
@@ -57,14 +73,6 @@ public class TermPrinterTree {
 	
 	
 	/**
-	 * Returns the associated term
-	 */
-	public Term getTerm() {
-		return term;
-	}
-	
-	
-	/**
 	 * Prints the tree using the given printer
 	 */
 	public String print(Printer printer) {
@@ -83,6 +91,57 @@ public class TermPrinterTree {
 		
 		return str.toString();
 	}
+	
+	
+	/**
+	 * Returns the term associated with the character at the given position
+	 * and at the given depth level
+	 */
+	public Subterm getSubterm(int pos, int level) {
+		int start = 0;
+		int end = this.toString().length();
+		Subterm def = new Subterm(term, start, end);
+		
+		int dpos = 0;
+		
+		if (level <= 0)
+			return def;
+		
+		if (lbrack != null) {
+			if (pos < lbrack.length())
+				return def;
+			
+			pos -= 1;
+			dpos += 1;
+		}
+		
+		if (text != null) {
+			if (pos < text.length())
+				return new Subterm(term, start, end);
+			
+			pos -= text.length();
+			dpos += text.length();
+		}
+		
+		for (TermPrinterTree branch : branches) {
+			String str = branch.toString();
+			if (pos < str.length()) {
+				Subterm tm = branch.getSubterm(pos, level - 1);
+				if (tm.tm == null)
+					return def;
+				else
+					return new Subterm(tm.tm, tm.start + dpos, tm.end + dpos);
+			}
+			
+			pos -= str.length();
+			dpos += str.length();
+		}
+		
+		return def;
+	}
+	
+	
+
 	
 	
 	@Override

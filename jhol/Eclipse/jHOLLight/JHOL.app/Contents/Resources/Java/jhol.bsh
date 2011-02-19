@@ -6,10 +6,7 @@ import javax.swing.text.DefaultStyledDocument;
 import bsh.util.JConsole;
 import bsh.util.NameCompletion;
 
-import com.apple.eawt.AboutHandler;
-import com.apple.eawt.PreferencesHandler;
-import com.apple.eawt.Application;
-
+import com.apple.eawt.*;
 
 import com.syncleus.dann.*;
 import com.syncleus.dann.hyperassociativemap.*;
@@ -30,113 +27,8 @@ import edu.pitt.math.jhol.caml.*;
    * @author Joe Pleso
    */
 
-//begin low level functions
 sourceRelative("jhol_db.bsh");
-
-int asciiToDecimal(int c){
-    if (97 <= c){
-	c = c - 87;}else{
-	c = c - 48;}
-    return  c;}
-
-int getChar(BufferedReader br){
-    char[] tmp = new char[6];
-    for (int i = 0; i < 6; i++)
-        tmp[i] = (char)br.read();
-    int result = 0;
-    int factor = 1;
-    for (int i = 5; i >= 2; i--){
-	result += factor * asciiToDecimal(tmp[i]);
-	factor *= 16;}
-    return  result;}
-
-String readLine(BufferedReader br){
-    StringBuilder sb = new StringBuilder();
-    while(true){
-	int c = getChar(br);
-	if(c==10)
-	    break;
-        sb.appendCodePoint(c);
-    }
-    return sb.toString();
-}
-
-readFile(String filename){
-    String result = null;
-    try{
-	//print(filename);
-	File file = new File(filename);
-	// print(file);
-	stream = new BufferedReader(new FileReader(file));
-	int c = stream.read();
-	StringBuilder sb = new StringBuilder();
-	while (c != -1){
-	    sb.append((char)c);
-	    c = stream.read();
-	}
-	result = sb.toString();
-
-    }
-    catch (IOException x) {
-	System.err.println(x);
-    } 
-    finally{
-	if (stream != null)
-	    stream.close();
-    }
-    return result;
-}
-
-void appendStringToFilename(String s, String p){
-    //Convert the string to a byte array.
-    byte[] data = s.getBytes();
-    
-    OutputStream out = null;
-    try {
-	out = new BufferedOutputStream(new FileOutputStream(p));
-	out.write(data, 0, data.length);
-    } catch (IOException x) {
-	System.err.println(x);
-    } finally {
-	if (out != null) {
-	    out.flush();
-	    out.close();
-	}
-    }
-}
-
-String getHTMLHeader(String title){
-    if (title == null)
-	title = "";
-    return "<HTML><HEAD><TITLE>" + title +"</TITLE></HEAD><BODY>";
-}
-
-String getHTMLFooter(){
-    return "</BODY></HTML>";
-}
-
-global.holIsEchoing  = false;
-String runCommand(String cmd){
-    String result;
-    int length = cmd.length();
-    if (length == 0)
-	return null;
-    result = global.hol.runCommand(cmd);
-    if(global.holIsEchoing){
-
-	if (cmd.charAt(length - 1) != '\n')
-	    length++;
-	length++;
-	result = result.substring(length, result.length());
-    }
-    //print(result);
-    eval(global.hol.getEvalString());
-    return result;
-}
-//end low level functions
-
-
-
+sourceRelative("lowlevel.bsh");
 sourceRelative("about.bsh");		       
 sourceRelative("holhelp.bsh");
 
@@ -202,29 +94,6 @@ sourceRelative("holhelp.bsh");
     }
 
    JLabel htmlToJLabel(String htmlText){
-	/*	inTag = false;
-	sb = new StringBuilder();
-	sb.append(htmlText.substring(0,htmlText.indexOf("<BODY>")));
-	print(htmlText);//DEBUG
-	for (int i = htmlText.indexOf("<BODY>") ; i < htmlText.length(); i++){
-	    if (inTag)
-		{
-		    inTag = (htmlText.charAt(i) != '>');
-		    sb.append(htmlText.charAt(i));
-		}
-	    else
-		{
-		    inTag = (htmlText.charAt(i) == '<');
-		    /*if (htmlText.charAt(i) == '\n')
-		      sb.append("<br>");
-		    if (htmlText.charAt(i) == ' ')
-			sb.append("&#160;");
-		    else
-			sb.append(htmlText.charAt(i));
-		}
-	}
-	htmlText = sb.toString();
-*/
 	return new JLabel (htmlText, JLabel.LEFT);
     }
 
@@ -245,10 +114,18 @@ void showGUI(WindowAdapter controller){
 		    //what to do on flower-,
 		}
 	    };
+	    
+	    quitHandler = new QuitHandler(){
+	    	void handleQuitRequestWith(AppEvent.QuitEvent e,
+                    QuitResponse response){
+	    		
+	    	}
+	    };
 						   
 	macOSApplication = Application.getApplication() ;
 	macOSApplication.setAboutHandler(aboutHandler);
 	macOSApplication.setPreferencesHandler(preferencesHandler);
+	macOSApplication.setQuitHandler(quitHandler);
     }
     //end MacOS stuff
 
@@ -462,45 +339,15 @@ void showGUI(WindowAdapter controller){
     //start a new hol process
 List command = new ArrayList();
 	command.add("./local.hol");
-	print ("TEST!");//DEBUG
+	futureHOL = new FutureTask(HOLLightWrapper.getHOLBuilderTask(command));
+	es = Executors.newCachedThreadPool();
+	es.execute(futureHOL);
 
-    global.hol = new HOLLightWrapper(command);
-	print ("TEST!");//DEBUG
-	String firstOutput = "";
-	while(firstOutput.indexOf("#") == -1){
-	    firstOutput += (global.hol.flushOutput());
-	    //This should go on another thread since this may block for a while
-	}
-	printHTML(firstOutput);
-        eval(global.hol.getEvalString());
-	print ("TEST!");//DEBUG
-    //method for running multiple hol commands at once
-    runHOLCommands (String cmds){
-	String[] array = cmds.split("\n");
-
-	for(int i = 0; i < Array.getLength(array); i++){
-	    (global.runCommand(array[i]));
-	}
-    }
-
-    //run commands in hol to initialize the data pipe
-    runHOLCommands( 
-		   "let java cmd = ignore(Sys.command(String.concat  \" \" [\"echo \\\"@\";String.escaped cmd;\"\\\"\"]));;\n" +
-		   "let suffices_to_prove q tac = SUBGOAL_THEN q (fun th -> MP_TAC th THEN tac);;\n" +
-		   "let assume lab t = DISCH_THEN(fun th -> if concl th = t then LABEL_TAC lab th else failwith \"assume\");;\n" +
-		   "let note(lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(fun th -> LABEL_TAC lab th);;\n" +
-		   "let cases (lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (LABEL_TAC lab));;\n" +
-		   "let consider (x,lab,t) tac  = let tm  = mk_exists(x,t) in SUBGOAL_THEN tm (X_CHOOSE_THEN x (LABEL_TAC lab))   THENL [tac; ALL_TAC];;\n" +
-		   "let trivial = MESON_TAC[];;\n" +
-		   "let induction = INDUCT_TAC;;\n" +
-		   "let by labs tac = MAP_EVERY (fun l -> USE_THEN l MP_TAC) labs THEN tac;;\n" +
-		   "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n" +
-		   "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n" +
-		   "let g goal = (java o (fun () -> \"beginTopGoal();\") o ignore o g) goal;;\n" +
-		   "let e tactic = (java o (fun () -> \"updateTopGoal();\") o ignore o e) tactic;;\n" +
-		   "let b () = (java o (fun () -> \"updateTopGoal();\") o ignore o b) ();;\n" +
-		   "let set_goal (asl,goal) = (java o (fun () -> \"beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
-		   "let r int = (java o (fun () -> \"updateTopGoal();\") o ignore o r) int;;");
+    global.hol = futureHOL.get();
+	
+	printHTML("# ");
+    
+    
     try{
 	newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
 	int c = newprinterMLStream.read();
@@ -519,51 +366,12 @@ List command = new ArrayList();
 	if (newprinterMLStream != null)
 	    newprinterMLStream.close();
     }
-    //Set up sig int method for hol
-    String[] ppid = (global.runCommand("Sys.command(\"echo $PPID\");;")).trim().split("\n");
-    int ppidLength = ( Array.getLength(ppid)); 
-    for(int i = 0; i < ppidLength; i++)
-	print(ppid[i]);
-    global.holIsEchoing = (ppid[0].charAt(0) == 'S');
-    if (global.holIsEchoing)
-	holPid = Integer.decode(ppid[1].trim());
-    else
-	holPid = Integer.decode(ppid[0].trim());
-    command = new LinkedList();
-    command.add("sig_int_hol_light");
-    command.add(holPid.toString());
-    kill = new ProcessBuilder(command);
-    kill.redirectErrorStream(true);
+    
 
-    //query hol for the number of theorems in the system  
-    getNumHolTheorems(){
-	return Integer.decode(global.runCommand("List.length !theorems;;").trim().split("\n")[0].split(" ")[5].trim()) ;}
 
-    //variable to keep track of the theorem count
-    int numHolTheorems = 0;
-
-    //variable to hold all the theorems
-    global.holTheorems = new TreeSet();
-
-    //method to keep theorem list up to date
-    updateHolTheorems(){
-	if (numHolTheorems != getNumHolTheorems()){
-	    numHolTheorems = getNumHolTheorems();
-	    	    
-	    bangTheorems = global.runCommand("String.concat \" \" ((fst o List.split)!theorems);;");
-	    beginIndex = bangTheorems.indexOf('\"');
-	    bangTheorems = bangTheorems.substring(beginIndex+1, bangTheorems.length());
-	    endIndex = bangTheorems.indexOf('\"');
-	    bangTheorems = bangTheorems.substring(0,endIndex).split(" ");
-	    boolean flag = false;
-	    for (int i = 0; i < Array.getLength(bangTheorems); i++){
-		    holTheorems.add(bangTheorems[i]);
-	    }
-	}
-    }
 
     //update the theorem list
-    updateHolTheorems();
+    global.hol.updateHolTheorems();
 
     sourceRelative("name.bsh");
 
@@ -605,8 +413,8 @@ List command = new ArrayList();
 	    return listTheorems.toArray();
 	if (name.equals("All"))
 	    {
-		updateHolTheorems();
-		return holTheorems.toArray();
+		global.hol.updateHolTheorems();
+		return global.hol.getTheoremList().toArray();
 	    }
 	if( name.equals("Basic Logic"))
 	    return basicLogicTheorems.toArray();
@@ -725,7 +533,7 @@ List command = new ArrayList();
     frame.getContentPane().add(toolbar,BorderLayout.NORTH);
     frame.getContentPane().add(splitPane,BorderLayout.WEST);
     frame.getContentPane().add(myScroll,BorderLayout.CENTER);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
     //Display the window.
     frame.pack();
@@ -766,6 +574,7 @@ getNewFramework(){
 	public void quit( frame) {
 	    if (quitConfirmed(frame)) {
 		System.out.println("Quitting.");
+		global.hol.kill();
 		System.exit(0);
 	    }
 	    System.out.println("Quit operation not confirmed; staying alive.");

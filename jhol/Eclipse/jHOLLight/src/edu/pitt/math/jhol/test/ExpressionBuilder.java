@@ -116,7 +116,19 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				obj = new CamlList(elType, listObjects);
 			}
 			else {
-				return false;
+				if (lhs != null) {
+					CamlType argType = lhs.camlType().getArgType(0);
+					if (argType != null && argType instanceof CamlType.ListType) {
+						CamlType.ListType listType = (CamlType.ListType) argType;
+						obj = new CamlList(listType.getElementType());
+					}
+					else {
+						return false;
+					}
+				}
+				else {
+					return false;
+				}
 			}
 		}
 		
@@ -130,7 +142,7 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				}
 				else {
 					CamlType type = obj.camlType();
-					if (type.numberOfArguments() > 0) {
+					if (type.numberOfArguments() > 0 || type.equals(CamlType.TACTIC)) {
 						update(obj, rhs);
 						return true;
 					}
@@ -235,6 +247,25 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 	}
 	
 	
+	private void evalTactic(CamlObject tac) throws Exception {
+		String cmd = "(hd o e) (" + tac.makeCamlCommand() + ")";
+		Goalstate newState = (Goalstate) caml.execute(cmd, CamlType.GOAL_STATE);
+		
+		if (newState == null)
+			return;
+		
+		if (newState != null && goalstateWindow != null) {
+			goalstateWindow.update(newState);
+		}
+		
+		result.add(0, tac);
+		this.lhs = this.rhs = null;
+		
+		exprText.setText(getCommand());
+		return;
+	}
+	
+	
 	/**
 	 * Updates the component
 	 */
@@ -245,6 +276,12 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 			if (nargs == 0) {
 				if (rhs != null)
 					throw new Exception("Unexpected number of arguments for newLhs = " + lhs);
+
+				// Tactic
+				if (lhs.camlType().equals(CamlType.TACTIC)) {
+					evalTactic(lhs);
+					return;
+				}
 				
 				// Evaluate the expression
 				rhs = lhs.eval(caml);
@@ -257,6 +294,12 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 				// Apply the lhs to the rhs
 				rhs = lhs.apply(rhs);
 				lhs = null;
+				
+				// Tactic
+				if (rhs.camlType().equals(CamlType.TACTIC)) {
+					evalTactic(rhs);
+					return;
+				}
 				
 				// Evaluate the expression
 				rhs = rhs.eval(caml);
@@ -276,20 +319,6 @@ public class ExpressionBuilder extends JPanel implements ActionListener {
 			result.add(0, rhs);
 
 		exprText.setText(getCommand());
-		
-		// Tactics
-		if (lhs != null && lhs.camlType().equals(CamlType.TACTIC)) {
-			String cmd = "(hd o e) (" + lhs.makeCamlCommand() + ")";
-			Goalstate newState = (Goalstate) caml.execute(cmd, CamlType.GOAL_STATE);
-			if (newState != null && goalstateWindow != null) {
-				goalstateWindow.update(newState);
-			}
-			
-			result.add(0, lhs);
-			this.lhs = this.rhs = null;
-			
-			exprText.setText(getCommand());
-		}
 	}
 
 

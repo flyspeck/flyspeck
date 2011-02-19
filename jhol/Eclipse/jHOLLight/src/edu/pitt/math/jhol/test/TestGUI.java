@@ -187,7 +187,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		JDialog win = new JDialog(this, false);
 		
 		win.setLocation(100, this.getHeight());
-		win.setLayout(new GridLayout(0, 3));
+		win.setLayout(new GridLayout(0, 4));
 		
 		// A special "null" button
 		JButton button = new JButton("]");
@@ -214,7 +214,7 @@ public class TestGUI extends JFrame implements ActionListener {
 			if (lastType.equals(CamlType.THM))
 				color = Color.CYAN;
 			
-			if (lastType.equals(CamlType.GOAL_STATE))
+			if (lastType.equals(CamlType.TACTIC))
 				color = Color.GREEN;
 			
 			
@@ -291,6 +291,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		
 		
 		CamlFunction ARITH_RULE = new CamlFunction("ARITH_RULE", term_to_thm);
+		CamlFunction REAL_ARITH = new CamlFunction("REAL_ARITH", term_to_thm);
 		CamlFunction REFL = new CamlFunction("REFL", term_to_thm);
 		CamlFunction ASSUME = new CamlFunction("ASSUME", term_to_thm);
 		CamlFunction DISCH_ALL = new CamlFunction("DISCH_ALL", thm_to_thm);
@@ -299,6 +300,7 @@ public class TestGUI extends JFrame implements ActionListener {
 		
 		CamlFunction SPEC_ALL = new CamlFunction("SPEC_ALL", thm_to_thm);
 		CamlFunction GEN = new CamlFunction("GEN", CamlType.mk_function(CamlType.TERM, thm_to_thm));
+		CamlFunction GSYM = new CamlFunction("GSYM", thm_to_thm);
 		
 		CamlFunction REWRITE_CONV = new CamlFunction("REWRITE_CONV", thm_list_to_term_to_thm);
 		CamlFunction REWRITE_RULE = new CamlFunction("REWRITE_RULE", thm_list_to_term_to_thm);
@@ -319,14 +321,17 @@ public class TestGUI extends JFrame implements ActionListener {
 		CamlFunction DISCH_TAC = new CamlFunction("DISCH_TAC", tac);
 		CamlFunction UNDISCH_TAC = new CamlFunction("UNDISCH_TAC", term_to_tac);
 		CamlFunction ASM_REWRITE_TAC = new CamlFunction("ASM_REWRITE_TAC", thm_list_to_tac);
+		CamlFunction MP_TAC = new CamlFunction("MP_TAC", ttac);
+		CamlFunction CONV_TAC = new CamlFunction("CONV_TAC", CamlType.mk_function(term_to_thm, tac));
+		CamlFunction SUBGOAL_THEN = new CamlFunction("SUBGOAL_THEN", CamlType.mk_function(term, CamlType.mk_function(ttac, tac)));
 		
 		
-		test.createFunctions(ARITH_RULE, REFL, ASSUME, DISCH_ALL, concl, 
-				SPEC_ALL, GEN, SPECL, REWRITE_CONV,
+		test.createFunctions(ARITH_RULE, REAL_ARITH, REFL, ASSUME, DISCH_ALL, concl, 
+				SPEC_ALL, GEN, GSYM, SPECL, REWRITE_CONV,
 				REWRITE_RULE, MESON, MATCH_MP, TAUT, CONJ,
-				STRIP_TAC, MATCH_MP_TAC, CONJ_TAC,
-				REWRITE_TAC, ARITH_TAC, GEN_TAC,
-				DISCH_TAC, UNDISCH_TAC, ASM_REWRITE_TAC);
+				CONV_TAC, STRIP_TAC, MATCH_MP_TAC, CONJ_TAC,
+				REWRITE_TAC, ARITH_TAC, GEN_TAC, MP_TAC,
+				DISCH_TAC, UNDISCH_TAC, ASM_REWRITE_TAC, SUBGOAL_THEN);
 
 		
 		

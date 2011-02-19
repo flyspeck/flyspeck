@@ -12,7 +12,7 @@ public abstract class CamlType {
 	public static final CamlType THM = new TheoremType();
 	public static final CamlType GOAL = new GoalType();
 	public static final CamlType GOAL_STATE = new GoalstateType();
-	public static final CamlType TACTIC = mk_function(GOAL, GOAL_STATE);
+	public static final CamlType TACTIC = new TacticType();
 	
 	
 	/**
@@ -211,6 +211,43 @@ public abstract class CamlType {
 			return "Int";
 		}
 	}
+
+	
+	/**
+	 * Tactic
+	 */
+	public static class TacticType extends CamlType {
+		private TacticType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			throw new RuntimeException("TacticType: objects of this type are not allowed");
+		}
+		
+		@Override
+		public int hashCode() {
+			return 13;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof TacticType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "Tactic";
+		}
+	}
+
 	
 	
 	/**

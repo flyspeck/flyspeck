@@ -32,109 +32,15 @@ sourceRelative("lowlevel.bsh");
 sourceRelative("about.bsh");		       
 sourceRelative("holhelp.bsh");
 
-    int numAssumptions;
-    beginTopGoal(){
-	numAssumptions = 0;
-	updateTopGoal();
-    }
-
-    updateTopGoal(){
-
-	text = editorPane;
-	text.setText("");
-	doc = text.getStyledDocument();
-
-	//Print "Goal: " 
-	String htmlString = getHTMLHeader("") + "<b>Goal: </b>" + getHTMLFooter();
-	JLabel label = htmlToJLabel(htmlString);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print top_goal
-	junk =  global.runCommand("(snd o top_goal)();;");
-	junkInt = junk.indexOf("<HTML>");//DEBUG all html tag tests should be case insensitive 
-	if (junkInt == -1)
-	    return;
-	junkEnd = junk.indexOf("</HTML>") + 7;
-	junk = junk.substring(junkInt, junkEnd);
-	label = htmlToJLabel(junk);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print "Assumptions: "
-	htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>" + getHTMLFooter();
-	label = htmlToJLabel(htmlString);
-	text.insertComponent(label);
-
-	//Line break
-	doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	text.setCaretPosition(doc.getLength());
-
-	//Print the assumptions
-	junk = global.runCommand(
-					 "List.iter (fun x,y ->( ((fun ()->" +
-					 "(print_string \"\\n\")) o  (fun () ->" +
-					 "(((print_qterm o  concl) y)))) o print_string) (\"\"" +
-					 "))   ((fst o top_realgoal)());;");
-	while( junk.indexOf("<HTML>")!=-1){
-	    junkInt = junk.indexOf("<HTML>");
-	    junkEnd = junk.indexOf("</HTML>") + 7;
-	    label = htmlToJLabel(junk.substring(junkInt,junkEnd));
-	    junk = junk.substring(junkEnd,junk.length());
-	    text.insertComponent(label);
-	    doc.insertString(doc.getEndPosition().getOffset(),"\n",null);
-	    text.setCaretPosition(doc.getLength());
-	}
-    }
-
-   JLabel htmlToJLabel(String htmlText){
-	return new JLabel (htmlText, JLabel.LEFT);
-    }
-
-
 void showGUI(WindowAdapter controller){	
     IS_A_MAC = System.getProperty("os.name").equals("Mac OS X");
 					       
-    //begin MacOS stuff
-    if (IS_A_MAC){
-	aboutHandler = new AboutHandler() {
-		public void handleAbout(com.apple.eawt.AppEvent.AboutEvent event) {
-		    (ad).show();
-		}
-	    };
-						   
-	preferencesHandler = new PreferencesHandler(){
-		public void handlePreferences(com.apple.eawt.AppEvent.PreferencesEvent e) {
-		    //what to do on flower-,
-		}
-	    };
-	    
-	    quitHandler = new QuitHandler(){
-	    	void handleQuitRequestWith(AppEvent.QuitEvent e,
-                    QuitResponse response){
-	    		
-	    	}
-	    };
-						   
-	macOSApplication = Application.getApplication() ;
-	macOSApplication.setAboutHandler(aboutHandler);
-	macOSApplication.setPreferencesHandler(preferencesHandler);
-	macOSApplication.setQuitHandler(quitHandler);
-    }
-    //end MacOS stuff
+    sourceRelative("mac.bsh");
 
-
-
-    ad = getNewAboutDialog();
+    global.ad = getNewAboutDialog();
 
     //Create frame
-    JFrame frame = new JFrame()
+     global.frame = new JFrame()
 	{
 	    //set name to JHOL DEBUG//
 	    WindowAdapter framework = controller;
@@ -308,7 +214,7 @@ void showGUI(WindowAdapter controller){
 	    //console.print(html.substring(0, start));//Print any text that occurs before the HTML
 	    int end = html.indexOf("</HTML>");
 	    htmlText = html.substring(start,end+7);
-	    JLabel tmpLabel = htmlToJLabel(htmlText);
+	    JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
 	    consoleTextPane.insertComponent(tmpLabel);
 	    html = html.substring(end+7, html.length());
 	}
@@ -318,21 +224,20 @@ void showGUI(WindowAdapter controller){
     //Reader for the console
     BufferedReader bufInput = new BufferedReader(console.getIn());
     
-    //For creating panes
+    /*//For creating panes
     JTextPane createEditorPane() {
 	JTextPane editorPane = new JTextPane(new DefaultStyledDocument());
 	editorPane.setEditable(false);
 	return editorPane;
-    }
+    }*/
     
     //Panes for displaying different output
-    global.editorPane = createEditorPane();
-    JScrollPane editorScrollPane = new JScrollPane(editorPane);
+    global.goalPane = new GoalPane(global.hol);
+    JScrollPane editorScrollPane = new JScrollPane(global.goalPane);
 
-    helpPane = createEditorPane();
-    JScrollPane helpScrollPane = new JScrollPane(helpPane,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-						 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-
+    /*helpPane = createEditorPane();
+    JScrollPane helpScrollPane = new JScrollPane(helpPane);
+*/
 
     
 
@@ -440,10 +345,7 @@ List command = new ArrayList();
 	    
 		if (event.getActionCommand().startsWith("e"))
 		    global.runCommand(event.getActionCommand());
-		if (event.getActionCommand().equals("assume")){
-		    numAssumptions++;
-       		    global.runCommand("e( assume \"" + (numAssumptions).toString() + "\" ((fst o dest_imp o snd o top_goal) ()));;");
-		}
+		
 		if (event.getActionCommand().equals("test1")){
 		    test1();
 		}
@@ -488,12 +390,10 @@ List command = new ArrayList();
     console.setPreferredSize(new Dimension(700,400));
 
     //START EDITORPANE
-    helpScrollPane.setVerticalScrollBarPolicy(
-					      JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    
     helpScrollPane.setPreferredSize(new Dimension(250, 145));
     helpScrollPane.setMinimumSize(new Dimension(10, 10));
-    editorScrollPane.setVerticalScrollBarPolicy(
-						JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    
     editorScrollPane.setPreferredSize(new Dimension(250, 145));
     editorScrollPane.setMinimumSize(new Dimension(10, 10));
 

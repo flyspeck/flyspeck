@@ -45,20 +45,15 @@ public class HOLBuilderTask implements Callable<HOLLightWrapper> {
 	        hol.runHOLCommands( 
 	    		   "let java cmd = ignore(Sys.command(String.concat  \" \" [\"echo \\\"@\";String.escaped cmd;\"\\\"\"]));;\n" +
 	    		   "let suffices_to_prove q tac = SUBGOAL_THEN q (fun th -> MP_TAC th THEN tac);;\n" +
-	    		   "let assume lab t = DISCH_THEN(fun th -> if concl th = t then LABEL_TAC lab th else failwith \"assume\");;\n" +
-	    		   "let note(lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(fun th -> LABEL_TAC lab th);;\n" +
-	    		   "let cases (lab,t) tac = SUBGOAL_THEN t MP_TAC  THENL [tac; ALL_TAC]  THEN DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (LABEL_TAC lab));;\n" +
-	    		   "let consider (x,lab,t) tac  = let tm  = mk_exists(x,t) in SUBGOAL_THEN tm (X_CHOOSE_THEN x (LABEL_TAC lab))   THENL [tac; ALL_TAC];;\n" +
 	    		   "let trivial = MESON_TAC[];;\n" +
 	    		   "let induction = INDUCT_TAC;;\n" +
-	    		   "let by labs tac = MAP_EVERY (fun l -> USE_THEN l MP_TAC) labs THEN tac;;\n" +
 	    		   "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n" +
 	    		   "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n" +
-	    		   "let g goal = (java o (fun () -> \"beginTopGoal();\") o ignore o g) goal;;\n" +
-	    		   "let e tactic = (java o (fun () -> \"updateTopGoal();\") o ignore o e) tactic;;\n" +
-	    		   "let b () = (java o (fun () -> \"updateTopGoal();\") o ignore o b) ();;\n" +
-	    		   "let set_goal (asl,goal) = (java o (fun () -> \"beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
-	    		   "let r int = (java o (fun () -> \"updateTopGoal();\") o ignore o r) int;;");
+	    		   "let g goal = (java o (fun () -> \"global.goalPane.beginTopGoal();\") o ignore o g) goal;;\n" +
+	    		   "let e tactic = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o e) tactic;;\n" +
+	    		   "let b () = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o b) ();;\n" +
+	    		   "let set_goal (asl,goal) = (java o (fun () -> \"global.goalPane.beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
+	    		   "let r int = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o r) int;;");
 	        
 	        //update the theorem list
 	        hol.updateHolTheorems();

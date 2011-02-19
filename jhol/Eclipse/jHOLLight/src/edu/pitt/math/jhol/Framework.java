@@ -50,6 +50,11 @@ public class Framework extends WindowAdapter{
 	
 	private Component consoleTextPane;
 	private GoalPane goalPane;
+	
+	public GoalPane getGoalPane(){
+		return goalPane;
+	}
+	
 	//DEBUG	
 	boolean quitConfirmed(JFrame frame) {
 	    String s1 = "Quit";
@@ -450,32 +455,32 @@ public class Framework extends WindowAdapter{
   //find the matching set of theorems
     private String[] lookupTheoremList(String name){
 	if (name.equals("Real Numbers"))
-	    return (String[]) Database.realNumberTheorems.toArray();
+	    return  Database.realNumberTheorems.toArray(new String[0]);
 	if (name.equals("Integers"))
-	    return (String[]) Database.integerTheorems.toArray();
+	    return (String[]) Database.integerTheorems.toArray(new String[0]);
 	if (name.equals("Sets and Functions"))
-	    return (String[]) Database.setAndFunctionTheorems.toArray();
+	    return (String[]) Database.setAndFunctionTheorems.toArray(new String[0]);
 	if (name.equals("Iterated Operations"))
-	    return (String[]) Database.iteratedOperationTheorems.toArray();
+	    return (String[]) Database.iteratedOperationTheorems.toArray(new String[0]);
 	if(name.equals("Cartesian Powers"))
-	    return (String[]) Database.cartesianPowerTheorems.toArray();
+	    return (String[]) Database.cartesianPowerTheorems.toArray(new String[0]);
 	if(name.equals("Constructs"))
-	    return (String[]) Database.constructTheorems.toArray();
+	    return (String[]) Database.constructTheorems.toArray(new String[0]);
 	if(name.equals("Pairs"))
-	    return (String[]) Database.pairTheorems.toArray();
+	    return (String[]) Database.pairTheorems.toArray(new String[0]);
 	if(name.equals("Well Foundedness"))
-	    return (String[]) Database.wellfoundednessTheorems.toArray();
+	    return (String[]) Database.wellfoundednessTheorems.toArray(new String[0]);
 	if (name.equals("Natural Numbers"))
-	    return (String[]) Database.naturalNumberTheorems.toArray();
+	    return (String[]) Database.naturalNumberTheorems.toArray(new String[0]);
 	if(name.equals("Lists"))
-	    return (String[]) Database.listTheorems.toArray();
+	    return (String[]) Database.listTheorems.toArray(new String[0]);
 	if (name.equals("All"))
 	    {
 		hol.updateHolTheorems();
-		return (String[]) hol.getTheoremList().toArray();
+		return (String[]) hol.getTheoremList().toArray(new String[0]);
 	    }
 	if( name.equals("Basic Logic"))
-	    return (String[]) Database.basicLogicTheorems.toArray();
+	    return (String[]) Database.basicLogicTheorems.toArray(new String[0]);
 
 	return null;
     }

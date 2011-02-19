@@ -49,11 +49,11 @@ public class HOLBuilderTask implements Callable<HOLLightWrapper> {
 	    		   "let induction = INDUCT_TAC;;\n" +
 	    		   "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n" +
 	    		   "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n" +
-	    		   "let g goal = (java o (fun () -> \"global.goalPane.beginTopGoal();\") o ignore o g) goal;;\n" +
-	    		   "let e tactic = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o e) tactic;;\n" +
-	    		   "let b () = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o b) ();;\n" +
-	    		   "let set_goal (asl,goal) = (java o (fun () -> \"global.goalPane.beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
-	    		   "let r int = (java o (fun () -> \"global.goalPane.updateTopGoal();\") o ignore o r) int;;");
+	    		   "let g goal = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o g) goal;;\n" +
+	    		   "let e tactic = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o e) tactic;;\n" +
+	    		   "let b () = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o b) ();;\n" +
+	    		   "let set_goal (asl,goal) = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o set_goal) asl,goal;;\n" +
+	    		   "let r int = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o r) int;;");
 	        
 	        //update the theorem list
 	        hol.updateHolTheorems();

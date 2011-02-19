@@ -1,6 +1,8 @@
 package edu.pitt.math.jhol;
 
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.JFrame;
@@ -18,7 +20,16 @@ public class HOLFrame extends JFrame {
 	 */
 	private static final long serialVersionUID = 1L;
 	private WindowAdapter framework;
-	public HOLFrame(WindowAdapter controller){
+	private ActionListener getNewHOLCommandHelpListener(HOLFrame child){
+		return new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+			//System.out.println("Minimize request");
+			//child.setState ( Frame.ICONIFIED );;
+			child.popupHOLHelp();
+		    }
+		};
+	    }
+	public  HOLFrame(WindowAdapter controller){
 	    //set name to JHOL DEBUG//
 	    framework = controller;
 	    addWindowListener(framework);
@@ -36,15 +47,7 @@ public class HOLFrame extends JFrame {
 	    item = new JMenuItem("HOL Light Commands");
 	    //	    item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M,
 	    //						       Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));		
-	    getNewHOLCommandHelpListener(child){
-		return new ActionListener() {
-		    public void actionPerformed(ActionEvent e) {
-			//System.out.println("Minimize request");
-			//child.setState ( Frame.ICONIFIED );;
-			child.popupHOLHelp();
-		    }
-		};
-	    }	
+	    	
 	    item.addActionListener(getNewHOLCommandHelpListener(holHelpDialog));
 	    //	    JMenuItem minimizeItem = item;	
 	    helpMenu.add(item);

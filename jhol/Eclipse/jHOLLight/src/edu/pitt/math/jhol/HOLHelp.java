@@ -1,5 +1,8 @@
 package edu.pitt.math.jhol;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
@@ -13,7 +16,7 @@ public class HOLHelp {
 	private JTextField filterText;
 	private JList list;
 	void newFilter(){
-		final Pattern p = null;
+		Pattern p = null;
 		try{
 		    p = java.util.regex.Pattern.compile(filterText.getText());
 		}		
@@ -22,16 +25,16 @@ public class HOLHelp {
 	        }
 		if (p == null)
 		    return;
-		
+		final Pattern p2 = p;
 		Predicate pred = new Predicate(){
 			public boolean evaluate (Object input){
-			    return ((Pattern) p).matcher((CharSequence) input).find();
+			    return ((Pattern) p2).matcher((CharSequence) input).find();
 			}
 		    };
 
 			
 
-		list.setListData(CollectionUtils.select(HOL_COMMANDS,pred).toArray());
+		list.setListData(CollectionUtils.select(Database.HOL_COMMANDS,pred).toArray());
 	    }
 	
 	
@@ -41,40 +44,7 @@ public class HOLHelp {
 
 	    
 	    
-	    getHTMLListener(JFrame f, JScrollPane sp){
-		return new  HyperlinkListener() {
-	 
-		    public void hyperlinkUpdate(HyperlinkEvent e) {
-			if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-			    JEditorPane pane = (JEditorPane) e.getSource();
-			    // if (e instanceof HTMLFrameHyperlinkEvent) {
-			    //HTMLFrameHyperlinkEvent  evt = (HTMLFrameHyperlinkEvent)e;
-			    //       HTMLDocument doc = (HTMLDocument)pane.getDocument();
-			    //       doc.processHTMLFrameHyperlinkEvent(evt);
-			    //   } else {
-			    try {
-				//pane.setPage(e.getURL());
-				pane.setText(readFile("HTML/"+e.getDescription()));
-				//	sp.getViewport().setViewPosition(new Point());
-		
-
-				    SwingUtilities.invokeLater(new Runnable()
-					{
-					    public void run()
-					    {
-						sp.getVerticalScrollBar().setValue(0);   
-						sp.getHorizontalScrollBar().setValue(0);
-					    }           
-					});       
-
-				f.setTitle(e.getDescription().split("\\.")[0]);
-			    } catch (Throwable t) {
-				t.printStackTrace();
-			    }
-			}
-		    }
-		};
-	    }
+	    
 	    
 
 
@@ -85,7 +55,7 @@ public class HOLHelp {
 			  
 			    String filename = "HTML/" + ((String)e.getSource().getSelectedValue())
 				+ ".html";
-			    String epText = readFile(filename);
+			    String epText = Utilities.readFile(filename);
 			    JEditorPane ep = new JEditorPane("text/html",
 							     epText);
 			     ep.setEditable(false);

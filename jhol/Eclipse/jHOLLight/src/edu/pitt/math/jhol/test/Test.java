@@ -198,6 +198,13 @@ public class Test {
         Pair<Term, Term> p = dest_gabs(tm);
         
         System.out.println(p);
+
+        
+        str5 = "Comb(Comb(Const(\"CONS\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"fun\"[Tyapp(\"list\"[Tyapp(\"num\"[])]),Tyapp(\"list\"[Tyapp(\"num\"[])])])])),Var(\"a\",Tyapp(\"num\"[]))),Comb(Comb(Const(\"CONS\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"fun\"[Tyapp(\"list\"[Tyapp(\"num\"[])]),Tyapp(\"list\"[Tyapp(\"num\"[])])])])),Var(\"b\",Tyapp(\"num\"[]))),Const(\"NIL\",Tyapp(\"list\"[Tyapp(\"num\"[])]))))";
+        tm = Parser.parseTerm(str5);
+        Pair<ArrayList<Term>, Term> pp = strip_right_binary("CONS", tm);
+        
+        System.out.println(pp);
 	}
 	
 	

@@ -2,6 +2,7 @@ package edu.pitt.math.jhol.core.printer;
 
 import static edu.pitt.math.jhol.core.printer.TermPrinter.*;
 import static edu.pitt.math.jhol.core.Term.*;
+import static edu.pitt.math.jhol.core.TermUtils.*;
 import static edu.pitt.math.jhol.core.HOLType.*;
 
 import java.math.BigInteger;
@@ -33,7 +34,6 @@ public class TermPrinterData {
 		}
 	}
 
-	
 	/**
 	 * initMisc()
 	 */
@@ -42,127 +42,118 @@ public class TermPrinterData {
 		addUnspacedBinop("..");
 		addUnspacedBinop("$");
 	}
-	
-	
+
 	/**
 	 * initInfixes()
 	 */
 	public static void initInfixes() throws Exception {
-/*		parse_as_infix("<=>", 2, InfixAssoc.RIGHT);
-		parse_as_infix("==>", 4, InfixAssoc.RIGHT);
-		parse_as_infix("\\/", 6, InfixAssoc.RIGHT);
-		parse_as_infix("/\\", 8, InfixAssoc.RIGHT);
-		parse_as_infix("==", 10, InfixAssoc.RIGHT);
-		parse_as_infix("===", 10, InfixAssoc.RIGHT);
-		parse_as_infix("treal_eq", 10, InfixAssoc.RIGHT);
-		parse_as_infix("IN", 11, InfixAssoc.RIGHT);
-		parse_as_infix("belong", 11, InfixAssoc.RIGHT);
-		parse_as_infix("--->", 12, InfixAssoc.RIGHT);
-		parse_as_infix("-->", 12, InfixAssoc.RIGHT);
-		parse_as_infix("<", 12, InfixAssoc.RIGHT);
-		parse_as_infix("<<", 12, InfixAssoc.RIGHT);
-		parse_as_infix("<<<", 12, InfixAssoc.RIGHT);
-		parse_as_infix("<<=", 12, InfixAssoc.RIGHT);
-		parse_as_infix("<=", 12, InfixAssoc.RIGHT);
-		parse_as_infix("=", 12, InfixAssoc.RIGHT);
-		parse_as_infix(">", 12, InfixAssoc.RIGHT);
-		parse_as_infix(">=", 12, InfixAssoc.RIGHT);
-		parse_as_infix("HAS_SIZE", 12, InfixAssoc.RIGHT);
-		parse_as_infix("PSUBSET", 12, InfixAssoc.RIGHT);
-		parse_as_infix("SUBSET", 12, InfixAssoc.RIGHT);
+		/*
+		 * parse_as_infix("<=>", 2, InfixAssoc.RIGHT); parse_as_infix("==>", 4,
+		 * InfixAssoc.RIGHT); parse_as_infix("\\/", 6, InfixAssoc.RIGHT);
+		 * parse_as_infix("/\\", 8, InfixAssoc.RIGHT); parse_as_infix("==", 10,
+		 * InfixAssoc.RIGHT); parse_as_infix("===", 10, InfixAssoc.RIGHT);
+		 * parse_as_infix("treal_eq", 10, InfixAssoc.RIGHT);
+		 * parse_as_infix("IN", 11, InfixAssoc.RIGHT); parse_as_infix("belong",
+		 * 11, InfixAssoc.RIGHT); parse_as_infix("--->", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("-->", 12, InfixAssoc.RIGHT); parse_as_infix("<", 12,
+		 * InfixAssoc.RIGHT); parse_as_infix("<<", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("<<<", 12, InfixAssoc.RIGHT); parse_as_infix("<<=",
+		 * 12, InfixAssoc.RIGHT); parse_as_infix("<=", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("=", 12, InfixAssoc.RIGHT); parse_as_infix(">", 12,
+		 * InfixAssoc.RIGHT); parse_as_infix(">=", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("HAS_SIZE", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("PSUBSET", 12, InfixAssoc.RIGHT);
+		 * parse_as_infix("SUBSET", 12, InfixAssoc.RIGHT);
+		 * 
+		 * parse_as_infix("+", 16, InfixAssoc.RIGHT); parse_as_infix("-", 18,
+		 * InfixAssoc.LEFT); parse_as_infix("*", 20, InfixAssoc.RIGHT);
+		 * parse_as_infix("/", 22, InfixAssoc.RIGHT);
+		 */
 
-		parse_as_infix("+", 16, InfixAssoc.RIGHT);
-		parse_as_infix("-", 18, InfixAssoc.LEFT);
-		parse_as_infix("*", 20, InfixAssoc.RIGHT);
-		parse_as_infix("/", 22, InfixAssoc.RIGHT);
-*/
-		
-		CamlList interfaceList = (CamlList)Parser.parse(infixes);
+		CamlList interfaceList = (CamlList) Parser.parse(infixes);
 		for (int i = 0; i < interfaceList.size(); i++) {
-			CamlPair p = (CamlPair) interfaceList.get(i); 
+			CamlPair p = (CamlPair) interfaceList.get(i);
 			CamlString name = (CamlString) p.first();
 			p = (CamlPair) p.second();
 			CamlInt prec = (CamlInt) p.first();
 			CamlString assoc = (CamlString) p.second();
 
-			InfixAssoc a = assoc.equals("left") ? InfixAssoc.LEFT : InfixAssoc.RIGHT;
+			InfixAssoc a = assoc.equals("left") ? InfixAssoc.LEFT
+					: InfixAssoc.RIGHT;
 			parse_as_infix(name.str, prec.val, a);
 		}
-		
+
 	}
 
 	/**
 	 * initPrefixes()
 	 */
 	public static void initPrefixes() throws Exception {
-//		parse_as_prefix("~");
-//		parse_as_prefix("--");
-//		parse_as_prefix("mod");
-		
-		CamlList list = (CamlList)Parser.parse(prefixes);
+		// parse_as_prefix("~");
+		// parse_as_prefix("--");
+		// parse_as_prefix("mod");
+
+		CamlList list = (CamlList) Parser.parse(prefixes);
 		for (int i = 0; i < list.size(); i++) {
 			CamlString name = (CamlString) list.get(i);
 			parse_as_prefix(name.str);
-		}		
+		}
 	}
 
 	/**
 	 * initBinders()
 	 */
 	public static void initBinders() throws Exception {
-/*		parse_as_binder("\\");
-		parse_as_binder("!");
-		parse_as_binder("?");
-		parse_as_binder("?!");
-		parse_as_binder("@");
-		parse_as_binder("minimal");
-		parse_as_binder("lambda");
-		parse_as_binder("lambdas");
-*/
-		CamlList list = (CamlList)Parser.parse(binders);
+		/*
+		 * parse_as_binder("\\"); parse_as_binder("!"); parse_as_binder("?");
+		 * parse_as_binder("?!"); parse_as_binder("@");
+		 * parse_as_binder("minimal"); parse_as_binder("lambda");
+		 * parse_as_binder("lambdas");
+		 */
+		CamlList list = (CamlList) Parser.parse(binders);
 		for (int i = 0; i < list.size(); i++) {
 			CamlString name = (CamlString) list.get(i);
 			parse_as_binder(name.str);
-		}		
-		
+		}
+
 	}
 
 	/**
 	 * initInterface()
 	 */
 	public static void initInterface() throws Exception {
-/*		HOLType real = mk_type("real");
-		HOLType num = mk_type("num");
-		HOLType bool = mk_type("bool");
+		/*
+		 * HOLType real = mk_type("real"); HOLType num = mk_type("num"); HOLType
+		 * bool = mk_type("bool");
+		 * 
+		 * HOLType rrr = mk_fun_ty(real, mk_fun_ty(real, real)); HOLType rrb =
+		 * mk_fun_ty(real, mk_fun_ty(real, bool)); HOLType rnr = mk_fun_ty(real,
+		 * mk_fun_ty(num, real)); HOLType rr = mk_fun_ty(real, real); HOLType nr
+		 * = mk_fun_ty(num, real);
+		 * 
+		 * overload_interface("+", mk_mconst("real_add", rrr));
+		 * overload_interface("-", mk_mconst("real_sub", rrr));
+		 * overload_interface("*", mk_mconst("real_mul", rrr));
+		 * overload_interface("/", mk_mconst("real_div", rrr));
+		 * overload_interface("<", mk_mconst("real_lt", rrb));
+		 * overload_interface("<=", mk_mconst("real_le", rrb));
+		 * overload_interface(">", mk_mconst("real_gt", rrb));
+		 * overload_interface(">=", mk_mconst("real_ge", rrb));
+		 * overload_interface("--", mk_mconst("real_neg", rr));
+		 * overload_interface("pow", mk_mconst("real_pow", rnr));
+		 * overload_interface("inv", mk_mconst("real_inv", rr));
+		 * overload_interface("abs", mk_mconst("real_abs", rr));
+		 * overload_interface("&", mk_mconst("real_of_num", nr));
+		 */
 
-		HOLType rrr = mk_fun_ty(real, mk_fun_ty(real, real));
-		HOLType rrb = mk_fun_ty(real, mk_fun_ty(real, bool));
-		HOLType rnr = mk_fun_ty(real, mk_fun_ty(num, real));
-		HOLType rr = mk_fun_ty(real, real);
-		HOLType nr = mk_fun_ty(num, real);
-
-		overload_interface("+", mk_mconst("real_add", rrr));
-		overload_interface("-", mk_mconst("real_sub", rrr));
-		overload_interface("*", mk_mconst("real_mul", rrr));
-		overload_interface("/", mk_mconst("real_div", rrr));
-		overload_interface("<", mk_mconst("real_lt", rrb));
-		overload_interface("<=", mk_mconst("real_le", rrb));
-		overload_interface(">", mk_mconst("real_gt", rrb));
-		overload_interface(">=", mk_mconst("real_ge", rrb));
-		overload_interface("--", mk_mconst("real_neg", rr));
-		overload_interface("pow", mk_mconst("real_pow", rnr));
-		overload_interface("inv", mk_mconst("real_inv", rr));
-		overload_interface("abs", mk_mconst("real_abs", rr));
-		overload_interface("&", mk_mconst("real_of_num", nr));*/
-		
-		CamlList interfaceList = (CamlList)Parser.parse(the_interface);
+		CamlList interfaceList = (CamlList) Parser.parse(the_interface);
 		for (int i = 0; i < interfaceList.size(); i++) {
-			CamlPair p = (CamlPair) interfaceList.get(i); 
+			CamlPair p = (CamlPair) interfaceList.get(i);
 			CamlString name = (CamlString) p.first();
 			p = (CamlPair) p.second();
 			CamlString constName = (CamlString) p.first();
 			HOLType type = (HOLType) p.second();
-			
+
 			overload_interface(name.str, mk_mconst(constName.str, type));
 		}
 	}
@@ -172,71 +163,225 @@ public class TermPrinterData {
 		// HOLType bool = mk_type("bool");
 		HOLType nn = mk_fun_ty(num, num);
 
-		// EMPTY
+		// List
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public boolean test(String s, Term op, ArrayList<Term> args, Term tm) {
-				return s.equals("EMPTY") && is_const(tm) && args.size() == 0;
-			}
+			public String print(Term tm, String s, Term op,
+					ArrayList<Term> args, int prec) {
+				Pair<ArrayList<Term>, Term> p = strip_right_binary("CONS", tm);
+				Term nil = p.getSecond();
 
-			@Override
-			public String print(Term tm, Term op, ArrayList<Term> args, int prec) {
-				return "{}";
+				if (!is_const(nil))
+					return null;
+
+				if (!dest_const(nil).getFirst().equals("NIL"))
+					return null;
+
+				String str = "["
+						+ TermPrinter
+								.print_term_sequence("; ", 0, p.getFirst())
+						+ "]";
+				return str;
 			}
 		});
 
+		// EMPTY
+		addSpecialPrinter(new SpecialPrinter() {
+			@Override
+			public String print(Term tm, String s, Term op,
+					ArrayList<Term> args, int prec) {
+				if (s.equals("EMPTY") && is_const(tm) && args.size() == 0) {
+					return "{}";
+				}
+
+				return null;
+			}
+		});
+
+		// INSERT
+		addSpecialPrinter(new SpecialPrinter() {
+			@Override
+			public String print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
+				Pair<ArrayList<Term>, Term> p = strip_right_binary("INSERT", tm);
+				Term nil = p.getSecond();
+
+				if (!is_const(nil))
+					return null;
+
+				if (!dest_const(nil).getFirst().equals("EMPTY"))
+					return null;
+
+				String str = "{"
+						+ TermPrinter.print_term_sequence(", ", 14, p
+								.getFirst()) + "}";
+				return str;
+			}
+
+		});
+
+		// GSPEC
+		addSpecialPrinter(new SpecialPrinter() {
+			@Override
+			public String print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
+				if (!s.equals("GSPEC"))
+					return null;
+
+				Term rand_tm = rand(tm);
+				if (rand_tm == null)
+					return null;
+
+				Term b = body(rand_tm);
+				if (b == null)
+					return null;
+
+				Pair<ArrayList<Term>, Term> pp = strip_binder("?", b);
+				ArrayList<Term> evs = pp.getFirst();
+				Term bod = pp.getSecond();
+
+				Pair<Term, Term> p = dest_comb(bod);
+				if (p == null)
+					return null;
+
+				Term bod1 = p.getFirst();
+				Term fabs = p.getSecond();
+
+				p = dest_comb(bod1);
+				if (p == null)
+					return null;
+
+				Term bod2 = p.getFirst();
+				Term babs = p.getSecond();
+
+				Term c = rator(bod2);
+				if (c == null)
+					return null;
+
+				if (!is_const(c))
+					return null;
+
+				if (!dest_const(c).getFirst().equals("SETSPEC"))
+					return null;
+
+				StringBuilder str = new StringBuilder();
+				str.append('{');
+				str.append(TermPrinter.print_term(fabs, 0));
+				str.append(" | ");
+				
+				ArrayList<Term> fvs = fabs.frees();
+				ArrayList<Term> bvs = babs.frees();
+				
+				ArrayList<Term> intersection;
+				
+				if (fvs.size() <= 1 || bvs.size() == 0)
+					intersection = fvs;
+				else {
+					intersection = fvs;
+					intersection.retainAll(bvs);
+				}
+				
+				if (!evs.containsAll(intersection) || !intersection.containsAll(evs)) {
+					str.append(TermPrinter.print_term_sequence(",", 14, evs));
+					str.append(" | ");
+				}
+				
+				str.append(TermPrinter.print_term(babs, 0));
+				str.append('}');
+				
+				return str.toString();
+			}
+
+		});
+		
+		
+		// DECIMAL
+		addSpecialPrinter(new SpecialPrinter() {
+			private boolean powerof10(BigInteger n) {
+				int flag = n.compareTo(BigInteger.ONE);
+				
+				if (flag < 0)
+					return false;
+				if (flag == 0)
+					return true;
+				
+				return powerof10(n.divide(BigInteger.TEN));
+			}
+			
+			@Override
+			public String print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
+				if (!s.equals("DECIMAL") || args.size() != 2)
+					return null;
+				
+				BigInteger n_num = dest_numeral(args.get(0));
+				if (n_num == null)
+					return null;
+				
+				BigInteger n_den = dest_numeral(args.get(1));
+				if (n_den == null)
+					return null;
+				
+				if (!powerof10(n_den))
+					return null;
+				
+				String s_num = n_num.divide(n_den).toString();
+				String s_den = n_num.mod(n_den).add(n_den).toString().substring(1);
+
+				StringBuilder str = new StringBuilder();
+				str.append('#');
+				str.append(s_num);
+				
+				if (!n_den.equals(BigInteger.ONE)) {
+					str.append('.');
+					str.append(s_den);
+				}
+				
+				return str.toString();
+			}
+			
+		});
+		
+		
+		// COND
+		addSpecialPrinter(new SpecialPrinter() {
+			@Override
+			public String print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
+				if (!s.equals("COND") || args.size() != 3)
+					return null;
+				
+				StringBuilder str = new StringBuilder();
+				
+				if (prec != 0)
+					str.append('(');
+				
+				str.append("if ");
+				str.append(TermPrinter.print_term(args.get(0), 0));
+				str.append(" then ");
+				str.append(TermPrinter.print_term(args.get(1), 0));
+				str.append(" else ");
+				str.append(TermPrinter.print_term(args.get(2), 0));
+				
+				if (prec != 0)
+					str.append(')');
+				
+				return str.toString();
+			}
+		});
+		
+		
 		// NUMERAL
 		final Term numeral = mk_mconst("NUMERAL", nn);
 
 		addSpecialPrinter(new SpecialPrinter() {
-			BigInteger r;
-
 			@Override
-			public boolean test(String s, Term op, ArrayList<Term> args, Term tm) {
+			public String print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
 				if (op.equals(numeral) && args.size() > 0) {
-					Pair<Term, Term> p = dest_comb(tm);
-					r = getNumber(p.getSecond());
-					return r != null;
+					BigInteger r = dest_numeral(tm);
+					if (r != null)
+						return r.toString();
 				}
-
-				return false;
-			}
-
-			@Override
-			public String print(Term tm, Term op, ArrayList<Term> args, int prec) {
-				return r.toString();
-			}
-
-			// Converts a numeral into a number
-			BigInteger getNumber(Term t) {
-				if (!is_comb(t)) {
-					if (is_const(t)) {
-						if (dest_const(t).getFirst().equals("_0"))
-							return BigInteger.ZERO;
-					}
-
-					return null;
-				}
-
-				Pair<Term, Term> p = dest_comb(t);
-				Term btm = p.getFirst();
-				Term rtm = p.getSecond();
-				if (!is_const(btm))
-					return null;
-
-				BigInteger r = getNumber(rtm);
-				if (r == null)
-					return null;
-
-				String cn = dest_const(btm).getFirst();
-				if (cn.equals("BIT0"))
-					return r.add(r);
-
-				if (cn.equals("BIT1"))
-					return r.add(r).add(BigInteger.ONE);
 
 				return null;
 			}
+
 		});
 	}
 }

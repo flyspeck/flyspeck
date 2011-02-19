@@ -61,9 +61,7 @@ public class TermPrinter {
 		public SpecialPrinter() {
 		}
 		
-		public abstract boolean test(String s, Term op, ArrayList<Term> args, Term tm);
-		
-		public abstract String print(Term tm, Term op, ArrayList<Term> args, int prec);
+		public abstract String print(Term tm, String s, Term op, ArrayList<Term> args, int prec);
 	}
 	
 	
@@ -231,7 +229,7 @@ public class TermPrinter {
 	/**
 	 * Returns the name of a constant or variable
 	 */
-	private static String name_of(Term tm) {
+	static String name_of(Term tm) {
 		if (is_var(tm))
 			return dest_var(tm).getFirst();
 		
@@ -245,7 +243,7 @@ public class TermPrinter {
 	/**
 	 * Finds an identifier corresponding to the given interface
 	 */
-	private static String reverse_interface(String s0, HOLType ty0) {
+	static String reverse_interface(String s0, HOLType ty0) {
 		if (!reverse_interface_mapping)
 			return s0;
 		
@@ -262,7 +260,7 @@ public class TermPrinter {
 		return s0;
 	}
 	
-	private static String reverse_interface(Pair<String, HOLType> p) {
+	static String reverse_interface(Pair<String, HOLType> p) {
 		return reverse_interface(p.getFirst(), p.getSecond());
 	}
 	
@@ -270,7 +268,7 @@ public class TermPrinter {
 	/**
 	 * Prints a list of terms
 	 */
-	private static String print_term_sequence(String sep, int prec, ArrayList<Term> tms) {
+	static String print_term_sequence(String sep, int prec, ArrayList<Term> tms) {
 		if (tms == null)
 			return "";
 		
@@ -318,7 +316,7 @@ public class TermPrinter {
 	/**
 	 * Prints a binder
 	 */
-	private static String print_binder(Term tm, int prec) {
+	static String print_binder(Term tm, int prec) {
 		StringBuilder str = new StringBuilder();
 		boolean absf = is_gabs(tm);
 		
@@ -453,8 +451,9 @@ public class TermPrinter {
 		// Test special printers
 		
 		for (SpecialPrinter printer : specialPrinters) {
-			if (printer.test(s, hop, args, tm))
-				return printer.print(tm, hop, args, prec);
+			String testStr = printer.print(tm, s, hop, args, prec);
+			if (testStr != null)
+				return testStr;
 		}
 		
 		//////////////////////////////

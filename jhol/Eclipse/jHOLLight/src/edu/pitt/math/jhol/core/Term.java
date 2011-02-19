@@ -178,12 +178,12 @@ public abstract class Term extends CamlObject {
 	/**
 	 * Finds the variables free in the term
 	 */
-	public abstract ArrayList<VarTerm> frees();
+	public abstract ArrayList<Term> frees();
 	
 	/**
 	 * Finds all variables in the term
 	 */
-	public abstract ArrayList<VarTerm> variables();
+	public abstract ArrayList<Term> variables();
 	
 	
 	/**
@@ -218,13 +218,13 @@ public abstract class Term extends CamlObject {
 		
 		
 		@Override
-		public ArrayList<VarTerm> frees() {
+		public ArrayList<Term> frees() {
 			return variables();
 		}
 		
 		@Override
-		public ArrayList<VarTerm> variables() {
-			ArrayList<VarTerm> result = new ArrayList<VarTerm>();
+		public ArrayList<Term> variables() {
+			ArrayList<Term> result = new ArrayList<Term>();
 			result.add(this);
 			return result;
 		}
@@ -314,14 +314,14 @@ public abstract class Term extends CamlObject {
 		
 
 		@Override
-		public ArrayList<VarTerm> frees() {
+		public ArrayList<Term> frees() {
 			return variables();
 		}
 		
 		
 		@Override
-		public ArrayList<VarTerm> variables() {
-			return new ArrayList<VarTerm>();
+		public ArrayList<Term> variables() {
+			return new ArrayList<Term>();
 		}
 		
 		
@@ -407,9 +407,9 @@ public abstract class Term extends CamlObject {
 		}
 		
 		@Override
-		public ArrayList<VarTerm> frees() {
-			ArrayList<VarTerm> ratorFrees = rator.frees();
-			ArrayList<VarTerm> randFrees = rand.frees();
+		public ArrayList<Term> frees() {
+			ArrayList<Term> ratorFrees = rator.frees();
+			ArrayList<Term> randFrees = rand.frees();
 			
 			// Take the union
 			randFrees.removeAll(ratorFrees);
@@ -420,9 +420,9 @@ public abstract class Term extends CamlObject {
 		
 		
 		@Override
-		public ArrayList<VarTerm> variables() {
-			ArrayList<VarTerm> ratorVars = rator.variables();
-			ArrayList<VarTerm> randVars = rand.variables();
+		public ArrayList<Term> variables() {
+			ArrayList<Term> ratorVars = rator.variables();
+			ArrayList<Term> randVars = rand.variables();
 			
 			// Take the union
 			randVars.removeAll(ratorVars);
@@ -515,8 +515,8 @@ public abstract class Term extends CamlObject {
 		}
 		
 		@Override
-		public ArrayList<VarTerm> frees() {
-			ArrayList<VarTerm> result = body.frees();
+		public ArrayList<Term> frees() {
+			ArrayList<Term> result = body.frees();
 			result.remove(var);
 			
 			return result;
@@ -524,8 +524,8 @@ public abstract class Term extends CamlObject {
 		
 		
 		@Override
-		public ArrayList<VarTerm> variables() {
-			ArrayList<VarTerm> result = body.variables();
+		public ArrayList<Term> variables() {
+			ArrayList<Term> result = body.variables();
 			if (!result.contains(var))
 				result.add(var);
 			

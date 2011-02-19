@@ -1,5 +1,6 @@
 package edu.pitt.math.jhol.core;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 
 import static edu.pitt.math.jhol.core.Term.*;
@@ -129,6 +130,48 @@ public class TermUtils {
 	
 	
 	/**
+	 * Iteratively breaks apart the given right associative binary operation
+	 */
+	public static Pair<ArrayList<Term>, Term> strip_right_binary(String op, Term tm) {
+		ArrayList<Term> terms = new ArrayList<Term>();
+		
+		Term t0 = tm;
+		
+		while (true) {
+			Pair<Term, Term> p = dest_binary(op, t0);
+			if (p == null)
+				break;
+			
+			terms.add(p.getFirst());
+			t0 = p.getSecond();
+		}
+		
+		return new Pair<ArrayList<Term>, Term>(terms, t0);
+	}	
+
+	
+	/**
+	 * Iteratively breaks apart the given left associative binary operation
+	 */
+	public static Pair<ArrayList<Term>, Term> strip_left_binary(String op, Term tm) {
+		ArrayList<Term> terms = new ArrayList<Term>();
+		
+		Term t0 = tm;
+		
+		while (true) {
+			Pair<Term, Term> p = dest_binary(op, t0);
+			if (p == null)
+				break;
+			
+			terms.add(p.getSecond());
+			t0 = p.getFirst();
+		}
+		
+		return new Pair<ArrayList<Term>, Term>(terms, t0);
+	}	
+
+	
+	/**
 	 * Destroys the given binder
 	 */
 	public static Pair<Term, Term> dest_binder(String binderName, Term tm) {
@@ -165,5 +208,53 @@ public class TermUtils {
 		return new Pair<ArrayList<Term>, Term>(binders, body);
 	}	
 	
+	
+	/**
+	 * Converts a numeral into a number
+	 */
+	public static BigInteger dest_numeral(Term tm) {
+		if (!is_comb(tm))
+			return null;
+		
+		Pair<Term, Term> p = dest_comb(tm);
+		if (!is_const(p.getFirst()))
+			return null;
+		
+		if (!dest_const(p.getFirst()).getFirst().equals("NUMERAL"))
+			return null;
+		
+		return dest_numeral0(p.getSecond());
+	}
+		
+	private static BigInteger dest_numeral0(Term tm) {
+		if (!is_comb(tm)) {
+			if (is_const(tm)) {
+				if (dest_const(tm).getFirst().equals("_0"))
+					return BigInteger.ZERO;
+			}
+
+			return null;
+		}
+
+		Pair<Term, Term> p = dest_comb(tm);
+		Term btm = p.getFirst();
+		Term rtm = p.getSecond();
+		if (!is_const(btm))
+			return null;
+
+		BigInteger r = dest_numeral0(rtm);
+		if (r == null)
+			return null;
+
+		String cn = dest_const(btm).getFirst();
+		if (cn.equals("BIT0"))
+			return r.add(r);
+
+		if (cn.equals("BIT1"))
+			return r.add(r).add(BigInteger.ONE);
+
+		return null;
+	}
+
 
 }

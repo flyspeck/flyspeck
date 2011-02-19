@@ -1,9 +1,12 @@
 package edu.pitt.math.jhol;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 
 public class Utilities {
 	//begin low level functions
@@ -84,25 +87,19 @@ public class Utilities {
 		System.err.println(x);
 	    } finally {
 		if (out != null) {
-		    out.flush();
-		    out.close();
+		    try {
+				out.flush();
+				out.close();
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+		    
 		}
 	    }
 	}
 
-	String runCommand(String cmd){
-	    String result;
-	    
-	    result = global.hol.runCommand(cmd);
-	    
-	    //print(result);
-	    eval(global.hol.getEvalString());
-	    return result;
-	}
-	runHOLCommands(String cmd){
-		global.hol.runHOLCommands(cmd);
-		eval(global.hol.getEvalString());
-	}
+	
 	//end low level functions
 
 }

@@ -1,17 +1,35 @@
 package edu.pitt.math.jhol;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JTextPane;
 
+import bsh.EvalError;
 import bsh.Interpreter;
+import bsh.util.JConsole;
+import bsh.util.NameCompletion;
 
 import com.apple.eawt.*;
 
@@ -21,6 +39,9 @@ public class Framework extends WindowAdapter{
 	private HOLLightWrapper hol;
 	private AboutDialog ad;
 	private JFrame frame;
+	private List<JButton> buttonList;
+	private JConsole console;
+	private Interpreter interpreter;
 	//DEBUG	
 	boolean quitConfirmed(JFrame frame) {
 	    String s1 = "Quit";
@@ -41,6 +62,30 @@ public class Framework extends WindowAdapter{
 	    }
 	}
 	
+	String runCommand(String cmd){
+	    String result;
+	    
+	    result = hol.runCommand(cmd);
+	    
+	    //print(result);
+	    try {
+			interpreter.eval(hol.getEvalString());
+		} catch (EvalError e) {
+			
+			e.printStackTrace();
+		}
+	    return result;
+	}
+	void runHOLCommands(String cmd){
+		hol.runHOLCommands(cmd);
+		try {
+			interpreter.eval(hol.getEvalString());
+		} catch (EvalError e) {
+			
+			e.printStackTrace();
+		}
+	}
+	
 	//This method must be evoked from the event-dispatching thread.
 	public void quit(JFrame frame) {
 	    if (quitConfirmed(frame)) {
@@ -52,7 +97,7 @@ public class Framework extends WindowAdapter{
 	}
 	
 	public Framework(Interpreter interpreter) {
-		
+		this.interpreter = interpreter;
 		Point lastLocation = null;
 		int maxX = 500;
 		int maxY = 500;
@@ -96,7 +141,7 @@ public class Framework extends WindowAdapter{
 		    ad = new AboutDialog();
 
 		    //Create frame
-		     frame = new JFrame()
+		     frame = new HOLFrame(controller);
 			
 		    
 		    //Create buttons 
@@ -112,7 +157,7 @@ public class Framework extends WindowAdapter{
 		    conjTac2.setActionCommand("test2");
 							       
 		    //Keep track of buttons
-		    List buttonList = new LinkedList();
+		    buttonList = new LinkedList<JButton>();
 		    buttonList.add(sigIntButton);
 		    buttonList.add(genTac);
 		    buttonList.add(conjTac);
@@ -121,52 +166,40 @@ public class Framework extends WindowAdapter{
 
 
 		    //Console for getting input from user
-		    JConsole console = new JConsole();
-		    consoleTextPane = console.getViewport().getView();
-		    consoleTextPane.addKeyListener( new KeyListener(){
-			    invoke( name, args ) { print("Method: "+name+" invoked!");}
+		     console = new JConsole();
+		    Component consoleTextPane = console.getViewport().getView();
+		    consoleTextPane.addKeyListener( new KeyAdapter(){
+			    
 			    //handle other methods
-			    void keyPressed(KeyEvent e){
+			    public void keyPressed(KeyEvent e){
 				if  (e.getKeyCode() != KeyEvent.VK_ENTER )
 				    return;
-				
+				//Reader for the console
+			    BufferedReader bufInput = new BufferedReader(console.getIn());
+			    
 				//Main Loop
-				List cmdList = new LinkedList();
+				List<String> cmdList = new LinkedList<String>();
 				try {	
 				    //	    do
 					//{
 					    //in case someone pastes more than one command into the buffer	    
-					    line = readLine(bufInput);
+					    String line = Utilities.readLine(bufInput);
 					    cmdList.add(line);
 					    //		}while(bufInput.ready());
 				    while(cmdList.size() != 0){
-					printHTML(global.runCommand(cmdList.removeFirst()  + "\n"));
+					printHTML(hol.runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n"));
 				    }	   
 				    //updateTopGoal();
 				    
-				} catch (IOException e) {
-				    e.printStackTrace();
+				} catch (IOException e2) {
+				    e2.printStackTrace();
 				}
 			    }
 			});
 
 		     
-		    //Method for printing to the console
-		    printHTML(String html){
-			while (html.indexOf("<HTML>") != -1){
-			    int start = html.indexOf("<HTML>");
-			    //console.print(html.substring(0, start));//Print any text that occurs before the HTML
-			    int end = html.indexOf("</HTML>");
-			    htmlText = html.substring(start,end+7);
-			    JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
-			    consoleTextPane.insertComponent(tmpLabel);
-			    html = html.substring(end+7, html.length());
-			}
-			console.print(html);
-		    }
 		    
-		    //Reader for the console
-		    BufferedReader bufInput = new BufferedReader(console.getIn());
+		    
 		    
 		    /*//For creating panes
 		    JTextPane createEditorPane() {
@@ -184,19 +217,20 @@ public class Framework extends WindowAdapter{
 		    
 
 		    //start a new hol process
-		List command = new ArrayList();
+		List<String> command = new ArrayList<String>();
 			command.add("./local.hol");
 			
-			es = Executors.newCachedThreadPool();
-			futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(command));
+			ExecutorService es = Executors.newCachedThreadPool();
+			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(command));
 			
 
-		    global.hol = futureHOL.get();
+		    hol = futureHOL.get();
 			
 			printHTML("# ");
 		    
 		    
-		    try{
+		    BufferedReader newprinterMLStream;
+			try{
 			newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
 			int c = newprinterMLStream.read();
 			StringBuilder newprinterMLString = new StringBuilder();
@@ -219,10 +253,20 @@ public class Framework extends WindowAdapter{
 
 
 		    //update the theorem list
-		    global.hol.updateHolTheorems();
+		    hol.updateHolTheorems();
 
-		    sourceRelative("name.bsh");
+		
 
+		  //used for auto completion of theorem names
+		    TheoremCompletor holTheoremCompletor = new TheoremCompletor(hol);
+
+		    //used for auto completion of hol commands
+		    NameCompletion nc = new NameCompleter(holTheoremCompletor);
+
+		    //notify the console of the auto complete methods
+		    console.setNameCompletion(nc);
+
+		    
 
 		    test1(){
 			global.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
@@ -436,5 +480,20 @@ public class Framework extends WindowAdapter{
 		System.out.println("Frame location: " + lastLocation);
 		frame.setVisible(true);
 		}*/
+	
+	//Method for printing to the console
+    void printHTML(String html){
+	while (html.indexOf("<HTML>") != -1){
+	    int start = html.indexOf("<HTML>");
+	    //console.print(html.substring(0, start));//Print any text that occurs before the HTML
+	    int end = html.indexOf("</HTML>");
+	    String htmlText = html.substring(start,end+7);
+	    JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
+	    JTextPane consoleTextPane;
+		consoleTextPane.insertComponent(tmpLabel);
+	    html = html.substring(end+7, html.length());
+	}
+	console.print(html);
+    }
 	
 }

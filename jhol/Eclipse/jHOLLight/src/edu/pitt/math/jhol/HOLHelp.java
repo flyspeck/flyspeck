@@ -1,13 +1,20 @@
 package edu.pitt.math.jhol;
 
+import java.awt.BorderLayout;
+import java.awt.Container;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.regex.Pattern;
 
+import javax.swing.JDialog;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
@@ -15,6 +22,7 @@ import org.apache.commons.collections.Predicate;
 public class HOLHelp {
 	private JTextField filterText;
 	private JList list;
+	private JDialog d;
 	void newFilter(){
 		Pattern p = null;
 		try{
@@ -42,18 +50,12 @@ public class HOLHelp {
 	HOLHelp(JFrame parent){
 		   
 
-	    
-	    
-	    
-	    
-
-
 	    //Detect mouse clicks
 	    MouseListener ml = new MouseAdapter() {
 		    public void mouseClicked(MouseEvent e) {
 			if (e.getClickCount() == 2) {
 			  
-			    String filename = "HTML/" + ((String)e.getSource().getSelectedValue())
+			    String filename = "HTML/" + ((String)((JList) e.getSource()).getSelectedValue())
 				+ ".html";
 			    String epText = Utilities.readFile(filename);
 			    JEditorPane ep = new JEditorPane("text/html",
@@ -61,20 +63,20 @@ public class HOLHelp {
 			     ep.setEditable(false);
 		
 			     JScrollPane sp = new JScrollPane(ep);
-			     JFrame helpFrame = new JFrame(((String)e.getSource().getSelectedValue()));
+			     JFrame helpFrame = new JFrame(((String)((JList) e.getSource()).getSelectedValue()));
 			     helpFrame.getContentPane().add(sp);
-			     ep.addHyperlinkListener(getHTMLListener(helpFrame,sp));
+			     ep.addHyperlinkListener(new HTMLListener(helpFrame,sp));
 			     helpFrame.pack();
-			     helpFrame.show();
+			     helpFrame.setVisible(true);
 			}
 		    }
 		};
 
-	    JDialog d = new JDialog (parent, "HOL Commands Help", false);
-	    cp  = d.getContentPane();
+	     d = new JDialog (parent, "HOL Commands Help", false);
+	    Container cp = d.getContentPane();
 
 	    JList list = new JList ();
-	    list.setListData( HOL_COMMANDS.toArray());
+	    list.setListData( Database.HOL_COMMANDS_STRING);
 	    JScrollPane scrollPane = new JScrollPane(list);
 	    list.addMouseListener(ml);
 	    
@@ -96,18 +98,18 @@ public class HOLHelp {
 							     }
 							 });
 
-	    popupHOLHelp(){
-		filterText.setText("");
-		d.show();
-	    }
+	    
 
 	    cp.add(filterText, BorderLayout.NORTH);
 	    d.pack();
-	    return this;    
+	    
 	    
 	}
 
-
+	public void popupHOLHelp(){
+		filterText.setText("");
+		d.setVisible(true);
+	    }
 
 
 }

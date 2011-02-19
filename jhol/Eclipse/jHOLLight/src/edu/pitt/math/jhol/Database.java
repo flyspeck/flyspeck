@@ -960,9 +960,10 @@ public class Database {
 	public static final Set<String> setAndFunctionTheorems ;
 	public static final Set<String> iteratedOperationTheorems ;
 	public static final Set<String> cartesianPowerTheorems ;
+	public static final int NUM_HOL_COMMANDS;
 	static{
 		
-		int NUM_HOL_COMMANDS = Array.getLength(HOL_COMMANDS_STRING);
+		 NUM_HOL_COMMANDS = Array.getLength(HOL_COMMANDS_STRING);
 		HOL_COMMANDS = new LinkedList<String>();
 		for (int i = 0; i < NUM_HOL_COMMANDS; i++){
 		   HOL_COMMANDS.add(HOL_COMMANDS_STRING[i]);

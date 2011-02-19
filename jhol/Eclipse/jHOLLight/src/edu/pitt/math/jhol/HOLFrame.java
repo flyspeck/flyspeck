@@ -1,14 +1,17 @@
 package edu.pitt.math.jhol;
 
+import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.KeyStroke;
 
 
 
@@ -20,7 +23,15 @@ public class HOLFrame extends JFrame {
 	 */
 	private static final long serialVersionUID = 1L;
 	private WindowAdapter framework;
-	private ActionListener getNewHOLCommandHelpListener(HOLFrame child){
+	private JMenuItem minimizeItem;
+	private JMenuItem zoomItem;
+	public JMenuItem getMinimizeItem(){
+		return minimizeItem;
+	}
+	public JMenuItem getZoomItem(){
+		return zoomItem;
+	}
+	private ActionListener getNewHOLCommandHelpListener(final HOLHelp child){
 		return new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
 			//System.out.println("Minimize request");
@@ -29,6 +40,25 @@ public class HOLFrame extends JFrame {
 		    }
 		};
 	    }
+	private ActionListener getNewMinimizeListener(final Frame child){
+		return new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+			System.out.println("Minimize request");
+			child.setState ( Frame.ICONIFIED );;
+		    }
+		};
+	    }	
+	private ActionListener getNewZoomListener(final Frame child){
+		return new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+			System.out.println("Zoom request");
+			if ((child.getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH)
+			    child.setExtendedState(Frame.MAXIMIZED_BOTH ^ child.getExtendedState());
+			else
+			    child.setExtendedState(Frame.MAXIMIZED_BOTH | child.getExtendedState());		    
+		    }
+		};
+	    }	
 	public  HOLFrame(WindowAdapter controller){
 	    //set name to JHOL DEBUG//
 	    framework = controller;
@@ -57,35 +87,18 @@ public class HOLFrame extends JFrame {
 	    item = new JMenuItem("Minimize");
 	    item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M,
 						       Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));		
-	    getNewMinimizeListener(child){
-		return new ActionListener() {
-		    public void actionPerformed(ActionEvent e) {
-			System.out.println("Minimize request");
-			child.setState ( Frame.ICONIFIED );;
-		    }
-		};
-	    }	
+	    
 	    item.addActionListener(getNewMinimizeListener(this));
-	    JMenuItem minimizeItem = item;	
+	    minimizeItem = item;	
 	    windowMenu.add(item);
 	    
 	    //Zoom
 	    item = new JMenuItem("Zoom");
 	    item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z,
 						       6));	//6 is ctrl-meta mask
-	    getNewZoomListener(child){
-		return new ActionListener() {
-		    public void actionPerformed(ActionEvent e) {
-			System.out.println("Zoom request");
-			if ((child.getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH)
-			    child.setExtendedState(Frame.MAXIMIZED_BOTH ^ child.getExtendedState());
-			else
-			    child.setExtendedState(Frame.MAXIMIZED_BOTH | child.getExtendedState());		    
-		    }
-		};
-	    }	
+	    
 	    item.addActionListener(getNewZoomListener(this));
-	    JMenuItem zoomItem = item;
+	     zoomItem = item;
 	    windowMenu.add(item);
 	    
 	    //new

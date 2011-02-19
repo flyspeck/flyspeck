@@ -1,28 +1,40 @@
 //Object for holding hol process
 package edu.pitt.math.jhol;
 
+import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.io.*;
-import java.lang.*;
+import java.lang.reflect.Array;
 
 public class HOLLightWrapper{
 
     private BufferedWriter bin;
     private BufferedReader bout;
     private StringBuilder evalStr;
+    private Process proc;
+private ProcessBuilder interrupt;	
+private Boolean holIsEchoing;
+private boolean isBuilt;
+    private int holPid;
 
-    public String getEvalString(){
-	String result = evalStr.toString();
-	evalStr = new StringBuilder();
-	return result;
-    }
+  //variable to keep track of the theorem count
+    private int numHolTheorems;
 
-    public HOLLightWrapper(List<String> command) throws IOException {
+    //variable to hold all the theorems
+    private Set<String> holTheorems;
+
+    
+private HOLLightWrapper(List<String> command) throws IOException {
 	ProcessBuilder pb = new ProcessBuilder(command);
 	pb.redirectErrorStream(true);
 	evalStr = new StringBuilder();
-
-	Process proc;
+holIsEchoing = null;
+isBuilt = false;
+	holPid = 0;
+	interrupt = null;
+	numHolTheorems = 0;
+	holTheorems =  new TreeSet<String>();
 	
 	    proc =  pb.start();
 
@@ -31,6 +43,72 @@ public class HOLLightWrapper{
 	bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 
     }	
+@SuppressWarnings("unchecked")
+public Set<String> getTheoremList(){
+	return (Set<String>) ((TreeSet<String>) this.holTheorems).clone();
+}
+protected void setInterrupt(ProcessBuilder kill){
+	if (interrupt != null)
+		throw new IllegalArgumentException("interrupt already set.");
+	else
+		interrupt = kill;
+}
+protected Integer getPID(){
+	return holPid;
+}
+protected void setPID(int pid){
+	if (holPid != 0)
+		throw new IllegalArgumentException("PID already set.");
+	else holPid = pid;
+}
+protected  void setEcho(boolean b){
+	if (holIsEchoing == null)
+		holIsEchoing = b;
+	else throw new IllegalArgumentException("Already set echo status.");
+}
+protected  boolean isEchoing(){
+	return (holIsEchoing != null) && holIsEchoing;
+}
+protected void setBuilt() {
+	isBuilt = true;
+}
+
+protected boolean isBuilt(){
+	return isBuilt;
+}
+
+    public String getEvalString(){
+	String result = evalStr.toString();
+	evalStr = new StringBuilder();
+	return result;
+    }
+
+    public void kill(){
+    	proc.destroy();
+    }
+    
+    public void interrupt(){
+    	try {
+			interrupt.start();
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+    }
+    
+
+    
+    public static Callable<HOLLightWrapper> getHOLBuilderTask(List<String> command) {
+    	try {
+			return new HOLBuilderTask(new HOLLightWrapper(command));
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		return null;
+    }
+    
+
 
     public boolean isReady() throws IOException{
 	return bout.ready();
@@ -96,7 +174,13 @@ public class HOLLightWrapper{
 	    //if (!flag)
 	    //		printHTML(result);
 	    //	    conjTac2.setEnabled(false);
+	    
+	    if(isEchoing()){
 
+	    	
+	    	result = result.substring(cmd.length()+1, result.length());
+	        }
+	    //System.out.println(result);
 	    return result;
 	    
 	} catch (IOException e) {
@@ -104,6 +188,75 @@ public class HOLLightWrapper{
 	    return null;
 	}
     }
+    
+  //method for running multiple hol commands at once
+    public void runHOLCommands (String cmds){
+	String[] array = cmds.split("\n");
 
+	for(int i = 0; i < Array.getLength(array); i++){
+	    runCommand(array[i]);
+	}
+    }
+
+    
+    
+
+  //query hol for the number of theorems in the system  
+    private Integer getNumHolTheorems(){
+    	String output = runCommand("List.length !theorems;;");
+    	//System.out.println(output);
+	return parseForInteger(output) ;}
+
+    public static Integer parseForInteger(String rawOutput){
+    	int equalsIndex = rawOutput.indexOf('=');
+    	rawOutput = rawOutput.substring(equalsIndex + 2);
+    	int newlineIndex = rawOutput.indexOf('\n');
+    	rawOutput = rawOutput.substring(0,newlineIndex);
+    	//System.out.println(rawOutput);
+    	return Integer.decode(rawOutput.trim());
+    }
+    
+    public static String parseForString(String rawOutput) throws ParseException{
+    	int beginIndex = rawOutput.indexOf('\"') + 1;
+	    int endIndex = 0;
+    	for (int i = beginIndex;i < rawOutput.length();i++){
+	    	if (rawOutput.charAt(i) == '\\'){
+	    		i++;
+	    		continue;
+	    	}
+	    	if (rawOutput.charAt(i) == '\"'){
+	    		endIndex = i;
+	    		break;
+	    	}
+	    	
+	    }
+    	if (beginIndex == 0)
+    		throw new ParseException("Missing opening \".",0 );
+    	if (endIndex == 0)
+    		throw new ParseException("Missing closing \".",rawOutput.length()-1);
+	    return rawOutput.substring(beginIndex,endIndex);
+    }
+    
+    //method to keep theorem list up to date
+    public void updateHolTheorems(){
+	if (numHolTheorems != getNumHolTheorems()){
+	    numHolTheorems = getNumHolTheorems();
+	    	    
+	    String bangTheorems = runCommand("String.concat \" \" ((fst o List.split)!theorems);;");
+	    String[] bangTheorems2 ;
+		try {
+			bangTheorems2 = parseForString(bangTheorems).split(" ");
+		} catch (ParseException e) {
+			
+			e.printStackTrace();
+			return;
+		}
+	   
+	    for (int i = 0; i < Array.getLength(bangTheorems2); i++){
+		    holTheorems.add(bangTheorems2[i]);
+	    }
+	}
+    }
+    
 }
 

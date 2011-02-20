@@ -104,7 +104,7 @@ public class TermPrinterTree {
 	}
 	
 	
-	public Subterm getSubterm0(int pos, int level, int maxLevel) {
+	private Subterm getSubterm0(int pos, int level, int maxLevel) {
 		int start = 0;
 		int end = this.toString().length();
 		Subterm def = new Subterm(term, level, start, end);

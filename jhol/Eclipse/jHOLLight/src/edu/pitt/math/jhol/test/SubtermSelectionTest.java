@@ -161,13 +161,12 @@ public class SubtermSelectionTest extends JComponent {
 			}
 			else {
 				level--;
-				if (level < 0)
-					level = 0;
 			}
 			
 			stm = term.getSubterm(i, level);
 			start0 = stm.start;
 			end0 = stm.end;
+			level = stm.level;
 			
 			selectedTerm.setText(level + ": " + TermPrinter.print(stm.tm).toString());
 			mouseMoved(e);

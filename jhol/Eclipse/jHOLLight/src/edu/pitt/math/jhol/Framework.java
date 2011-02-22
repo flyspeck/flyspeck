@@ -195,11 +195,11 @@ public class Framework extends WindowAdapter{
 		    
 
 		    //start a new hol process
-		List<String> command = new ArrayList<String>();
-			command.add("./local.hol");
-			
+		
+			String user = "joepleso";
+			String server = "weyl";
 			ExecutorService es = Executors.newCachedThreadPool();
-			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(command,interpreter));
+			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(user,server,interpreter));
 			
 
 		    try {

@@ -9,11 +9,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.io.*;
 import java.lang.reflect.Array;
 
 import javax.swing.JLabel;
 import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import bsh.EvalError;
@@ -122,13 +124,30 @@ public class HOLLightWrapper extends JConsole {
 
 		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-
+		Font font = new Font("Monospaced", Font.PLAIN, 12);
+		this.consoleTextPane.setFont(font);
 		es = Executors.newSingleThreadExecutor();
-	
 		
-
+		
+notifyES();
 	}
 
+    private synchronized void guardedES(){
+    	while(es == null){
+    		try {
+				wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	
+    }
+    private synchronized void notifyES(){
+    	
+    	notifyAll();
+    }
+    
 	public boolean ready() throws IOException {
 		return bout.ready();
 	}
@@ -253,9 +272,12 @@ public class HOLLightWrapper extends JConsole {
 		return sb.toString();
 	}
 
-	public void run() {
+	public  void run() {
 		
-		  
+		
+		
+	guardedES();
+		
 		  
 		  try {
 			  while((char)read()!='#'){}
@@ -264,7 +286,7 @@ public class HOLLightWrapper extends JConsole {
 			printErr(e1);
 		}
 		 
-		 
+		
 		
 		String output = (runCommand("Sys.command(\"exit $PPID\");;"));
 
@@ -318,14 +340,19 @@ public class HOLLightWrapper extends JConsole {
 			printErr("Error in " + HOLLightWrapper.class.toString()
 					+ "in run(): " + e);
 		}
-
-		consoleTextPane.addKeyListener(new HOLKeyAdapter(this));
+		SwingUtilities.invokeLater(new Runnable()
+		{
+		    public void run()
+		    {
+		    	consoleTextPane.addKeyListener(new HOLKeyAdapter(HOLLightWrapper.this));
+		    }           
+		});      
+		
 
 	}
 
 	protected int read() throws IOException {
-if(null == bout)
-	throw new RuntimeException("JOE");
+
 		return bout.read();
 	}
 
@@ -369,11 +396,12 @@ if(null == bout)
 			StringBuilder str = new StringBuilder();
 			StringBuilder suppressedOutput = new StringBuilder();
 			char c;
+			if (isEchoing()) {
+				for (int i = 0; i < command.length(); i++)
+					c = (char) read();
+			}
 			do {
-				if (isEchoing()) {
-					for (int i = 0; i < command.length(); i++)
-						c = (char) read();
-				}
+				
 				c = (char) read();
 				
 				// System.out.print(c);

@@ -1,5 +1,6 @@
 package edu.pitt.math.jhol;
 
+import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,7 +13,12 @@ public class TheoremCompletor implements NameCompletion{
 	}
 	
 		public String[] completeName(String part){
-		    hol.updateHolTheorems();
+		    try {
+				hol.updateHolTheorems();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		    List<String> preResult = new LinkedList<String> ();
 		    for (String s : hol.getTheoremList()){
 			if (s.startsWith(part)){

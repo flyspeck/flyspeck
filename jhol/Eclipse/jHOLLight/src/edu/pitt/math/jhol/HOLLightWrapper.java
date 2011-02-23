@@ -346,8 +346,9 @@ notifyES();
 		    {
 		    	consoleTextPane.addKeyListener(new HOLKeyAdapter(HOLLightWrapper.this));
 		    }           
-		});      
-		
+		});  
+		System.out.print("READY");
+		super.run();
 
 	}
 

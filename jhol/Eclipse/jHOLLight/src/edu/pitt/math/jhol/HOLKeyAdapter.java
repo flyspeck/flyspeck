@@ -29,7 +29,7 @@ public class HOLKeyAdapter extends KeyAdapter{
                 cmdList.add(line);
                 //          }while(bufInput.ready());
             while(cmdList.size() != 0){
-            hol.runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n");
+            hol.runBackgroundCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n");
             }          
             //updateTopGoal();
         }

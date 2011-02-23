@@ -1,0 +1,1652 @@
+module type Arith_hash_sig =
+  sig
+    val MY_PROVE_HYP : thm -> thm -> thm
+    val test : int -> ('a -> 'b) -> 'a -> float
+    val bits : int
+    val num_def : thm
+    val NUM_THM : thm
+    val num_const : term
+    val const_array : term array
+    val def_array: thm array
+    val def_thm_array: thm array
+    val mk_numeral_hash : num -> term
+    val mk_numeral_array : num -> term
+    val mk_small_numeral_array : int -> term
+    val mk_int64_numeral_array : int64 -> term
+    val dest_numeral_hash : term -> num
+    val dest_numeral64_hash : term -> int64
+    val NUMERAL_TO_NUM_CONV : term -> thm
+    val NUM_TO_NUMERAL_CONV : term -> thm
+    val raw_suc_conv_hash : term -> thm
+    val NUM_SUC_HASH_CONV : term -> thm
+    val raw_eq0_hash_conv : term -> thm
+    val NUM_EQ0_HASH_CONV : term -> thm
+    val raw_pre_hash_conv : term -> thm
+    val NUM_PRE_HASH_CONV : term -> thm
+    val raw_gt0_hash_conv : term -> thm
+    val NUM_GT0_HASH_CONV : term -> thm
+    val raw_lt_hash_conv : term -> thm
+    val raw_le_hash_conv : term -> thm
+    val NUM_LT_HASH_CONV : term -> thm
+    val NUM_LE_HASH_CONV : term -> thm
+    val raw_add_conv_hash : term -> thm
+    val NUM_ADD_HASH_CONV : term -> thm
+    val raw_sub_hash_conv : term -> thm
+    val raw_sub_and_le_hash_conv : term -> term -> thm * thm
+    val NUM_SUB_HASH_CONV : term -> thm
+    val raw_mul_conv_hash : term -> thm
+    val NUM_MULT_HASH_CONV : term -> thm
+    val raw_div_hash_conv : term -> thm
+    val NUM_DIV_HASH_CONV : term -> thm
+end;;
+
+
+module Arith_hash : Arith_hash_sig = struct
+
+(*****************************)
+
+
+let MY_PROVE_HYP hyp th = EQ_MP (DEDUCT_ANTISYM_RULE hyp th) hyp;;
+
+
+let test n f arg =
+  let start = Sys.time() in
+    for i = 1 to n do
+      let _ = f arg in ()
+    done;
+  Sys.time() -. start;;
+
+
+(* Main parameter *)
+
+let bits = 4;;
+
+(******************)
+let maximum = 1 lsl bits;;
+let mask = maximum - 1;;
+
+
+
+(* Generate definitions and constants *)
+
+let num_type = `:num`;;
+let fnum_type = `:num->num`;;
+
+let numeral_const = `NUMERAL` and
+    zero_const = `_0` and
+    bit0_const = `BIT0` and
+    bit1_const = `BIT1` and
+    truth_const = `T` and
+    false_const = `F`;;
+
+let m_var_num = `m:num` and
+    n_var_num = `n:num` and
+    t_var_num = `t:num` and
+    r_var_num = `r:num` and
+    p_var_num = `p:num` and
+    q_var_num = `q:num`;;
+
+let suc_const = `SUC` and
+    plus_op_num = `(+):num->num->num` and
+    minus_op_num = `(-):num->num->num` and
+    mul_op_num = `( * ):num->num->num` and
+    div_op_num = `(DIV):num->num->num` and
+    le_op_num = `(<=):num->num->bool` and
+    lt_op_num = `(<):num->num->bool`;;
+
+
+let plus_op_real = `(+):real->real->real` and
+    mul_op_real = `( * ):real->real->real`;;
+
+
+
+let decode n k =
+  let rec decode n level =
+  if (level >= k) then ""
+    else if (n land 1 = 1) then "1"^decode (n lsr 1) (level + 1)
+    else "0"^decode (n lsr 1) (level + 1) in
+    decode n 0;;
+
+
+let rec create_bit_term n k =
+  if (k <= 0) then n_var_num
+  else let bit =
+    if (n land 1 = 1) then bit1_const else bit0_const in
+    mk_comb (bit, create_bit_term (n lsr 1) (k - 1));;
+
+
+
+let names_array = Array.init maximum (fun i -> "B"^(string_of_int i));;
+
+
+(* Definitions *)
+
+let num_name = "NUM"^(string_of_int bits);;
+let num_def = new_basic_definition (mk_eq(mk_var(num_name, fnum_type), numeral_const));;
+let num_const = mk_const(num_name, []);;
+let num_def_sym = SYM num_def;;
+let NUM_THM = prove(mk_eq(mk_comb(num_const, n_var_num), n_var_num),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+
+let mk_bit_definition i =
+  let lhs = mk_var (names_array.(i), fnum_type) in
+  let rhs = mk_abs (n_var_num, create_bit_term i bits) in
+    new_basic_definition (mk_eq(lhs, rhs));;
+
+
+let def_basic_array = Array.init maximum mk_bit_definition;;
+let def_array = Array.init maximum (fun i ->
+                                      let basic = def_basic_array.(i) in
+                                      let th1 = AP_THM basic n_var_num in
+                                        TRANS th1 (BETA (rand (concl th1))));;
+let def_table = Hashtbl.create maximum;;
+let def_basic_table = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  let _ = Hashtbl.add def_table names_array.(i) def_array.(i) in
+    Hashtbl.add def_basic_table names_array.(i) def_basic_array.(i)
+done;;
+
+
+(* Constants *)
+
+
+let const_array = Array.init maximum (fun i -> mk_const(names_array.(i),[]));;
+
+let b0_def = def_array.(0);;
+let b0_const = const_array.(0);;
+let b0_name = names_array.(0);;
+
+let max_const = mk_small_numeral maximum;;
+
+
+
+(* Alternative definition of B_i *)
+
+let ADD_0_n = prove(`_0 + n = n`,
+                    ONCE_REWRITE_TAC[GSYM NUMERAL] THEN
+                      REWRITE_TAC[GSYM ARITH_ADD; ADD_CLAUSES]);;
+let ADD_n_0 = prove(`n + _0 = n`,
+                    ONCE_REWRITE_TAC[GSYM NUMERAL] THEN
+                      REWRITE_TAC[GSYM ARITH_ADD; ADD_CLAUSES]);;
+
+(* B_i(n) = i + B_0(n) *)
+let def_thm i =
+  let bin = mk_comb(const_array.(i), n_var_num) in
+  let bi0 = mk_comb(const_array.(i), zero_const) in
+  let b0n = mk_comb(const_array.(0), n_var_num) in
+  let rhs = mk_binop plus_op_num bi0 b0n in
+    prove(mk_eq(bin, rhs), REWRITE_TAC[def_array.(i); def_array.(0)] THEN
+            REWRITE_TAC[ARITH_ZERO; ARITH_ADD; ADD_0_n; ADD_n_0]);;
+
+let def_thm_array = Array.init maximum def_thm;;
+
+
+let B0_0 = prove(mk_eq(mk_comb(b0_const, zero_const), zero_const),
+                 REWRITE_TAC[b0_def; ARITH_ZERO]);;
+
+let B0_EXPLICIT = prove(mk_eq(mk_comb(b0_const, n_var_num),
+                              mk_binop mul_op_num max_const n_var_num),
+                        REWRITE_TAC[b0_def] THEN
+                          GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [BIT0] THEN
+                          ARITH_TAC);;
+
+
+
+
+
+(******************************)
+
+(* mk_numeral and dest_numeral *)
+
+
+(* mk_table *)
+
+let mk_table = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add mk_table (Int i) const_array.(i)
+done;;
+
+
+(* mk_numeral *)
+let max_num = Int maximum;;
+let mask64 = Int64.of_int mask;;
+
+let mk_numeral_hash =
+  let rec mk_num n =
+    if (n =/ num_0) then
+      zero_const
+    else
+      let m = mod_num n max_num in
+      let bit = Hashtbl.find mk_table m in
+        mk_comb(bit, mk_num(quo_num n max_num)) in
+  fun n -> if n </ num_0 then failwith "mk_numeral_hash: negative argument"
+  else mk_comb(num_const, mk_num n);;
+
+
+let mk_numeral_array =
+  let rec mk_num n =
+    if (n =/ num_0) then
+      zero_const
+    else
+      let m = Num.int_of_num (mod_num n max_num) in
+      let bit = const_array.(m) in
+        mk_comb(bit, mk_num(quo_num n max_num)) in
+    fun n -> if n </ num_0 then failwith "mk_numeral_array: negative argument"
+    else mk_comb(num_const, mk_num n);;
+
+
+let mk_small_numeral_array =
+  let rec mk_num n =
+    if (n = 0) then zero_const
+    else
+      let m = n land mask in
+      let bit = const_array.(m) in
+        mk_comb(bit, mk_num(n lsr bits)) in
+    fun n -> if n < 0 then failwith "mk_small_numeral_array: negative argument"
+    else mk_comb (num_const, mk_num n);;
+
+
+let mk_int64_numeral_array =
+  let rec mk_num n =
+    if (n = 0L) then zero_const
+    else
+      let m = Int64.to_int (Int64.logand n mask64) in
+      let bit = const_array.(m) in
+        mk_comb(bit, mk_num(Int64.shift_right n bits)) in
+    fun n -> if n < 0L then failwith "mk_int64_numeral_array: negative argument"
+    else mk_comb (num_const, mk_num n);;
+
+
+
+(*
+test 10000 mk_numeral_hash (Int 65535);; (* 0.736 *)
+test 10000 mk_numeral_array (Int 65535);; (* 0.728 *)
+test 100000 mk_small_numeral_array 65535;; (* 0.216 *)
+test 100000 mk_int64_numeral_array 65535L;; (* 0.264 *)
+
+test 1000 mk_numeral_array (num_of_string "9111111111111111");; (* 0.288 *)
+test 1000 mk_int64_numeral_array 9111111111111111L;; (* 0.012 *)
+*)
+
+
+
+(* dest_table *)
+
+let dest_table_num = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add dest_table_num names_array.(i) (Int i)
+done;;
+
+
+let dest_table_int64 = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add dest_table_int64 names_array.(i) (Int64.of_int i)
+done;;
+
+
+
+(* dest_numeral *)
+
+let max_num = Int maximum;;
+
+
+let rec raw_dest_hash tm =
+  if tm = zero_const then
+    num_0
+  else
+    let l, r = dest_comb tm in
+    let n = max_num */ raw_dest_hash r in
+    let cn = fst(dest_const l) in
+      n +/ (Hashtbl.find dest_table_num cn);;
+
+
+let dest_numeral_hash tm = raw_dest_hash (rand tm);;
+
+
+let dest_numeral64_hash tm =
+  let rec dest_num tm =
+    if (tm = zero_const) then
+      0L
+    else
+      let l, r = dest_comb tm in
+      let n = Int64.shift_left (dest_num r) bits in
+      let cn = fst(dest_const l) in
+        Int64.add n (Hashtbl.find dest_table_int64 cn) in
+    dest_num (rand tm);;
+
+
+
+(*
+test 100000 dest_numeral_hash (mk_numeral_array (Int 11111111));; (* 5: 0.572 *)
+test 100000 dest_numeral64_hash (mk_numeral_array (Int 11111111));; (* 5: 0.264 *)
+*)
+
+
+
+(******************************)
+
+(* NUMERAL_TO_NUM_CONV: coverts usual HOL numerals into k-bit numerals *)
+
+
+let th_num_conv = Array.init maximum (fun i -> (SYM o SPEC_ALL) def_array.(i));;
+
+let th_part_num_conv = Array.init maximum
+  (fun i -> REWRITE_RULE[ARITH_ZERO] (INST [zero_const, n_var_num] th_num_conv.(i)));;
+
+th_part_num_conv.(0) <- REFL zero_const;;
+
+
+
+let NUMERAL_TO_NUM_CONV tm =
+  let rec find_match tm i level =
+    if (level >= bits) then
+      if (tm = zero_const) then
+        INST [zero_const, n_var_num] th_num_conv.(i)
+      else
+        let th = INST[tm, n_var_num] th_num_conv.(i) in
+        let ltm, rtm = dest_comb (rand (concl th)) in
+          TRANS th (AP_TERM ltm (find_match rtm 0 0))
+    else if (tm = zero_const) then
+      INST [zero_const, n_var_num] th_part_num_conv.(i)
+    else
+      let btm, ntm = dest_comb tm in
+      let cn = fst(dest_const btm) in
+        if (cn = "BIT0") then
+          find_match ntm i (level + 1)
+        else if (cn = "BIT1") then
+          find_match ntm (i lor (1 lsl level)) (level + 1)
+        else failwith("NUMERAL_TO_NUM_CONV") in
+  let ltm, rtm = dest_comb tm in
+    if (ltm = numeral_const) then
+      MK_COMB (num_def_sym, find_match rtm 0 0)
+    else failwith("NUMERAL_TO_NUM_CONV");;
+
+
+let replace_numerals = rand o concl o DEPTH_CONV NUMERAL_TO_NUM_CONV;;
+let REPLACE_NUMERALS = CONV_RULE (DEPTH_CONV NUMERAL_TO_NUM_CONV);;
+(* NUM_TO_NUMERAL_CONV *)
+
+
+let th_part_num_table = Hashtbl.create maximum;;
+
+for i = 1 to maximum - 1 do
+  Hashtbl.add th_part_num_table names_array.(i) (SYM th_part_num_conv.(i))
+done;;
+
+
+
+let NUM_TO_NUMERAL_CONV tm =
+  let rec bits_to_num tm =
+    if (tm = zero_const) then
+      REFL zero_const
+    else
+      let btm, ntm = dest_comb tm in
+      let cn = fst(dest_const btm) in
+        if ntm = zero_const then
+          Hashtbl.find th_part_num_table cn
+        else
+          let th0 = Hashtbl.find def_basic_table cn in
+          let th1 = bits_to_num ntm in
+          let th = MK_COMB(th0, th1) in
+            TRANS th (BETA_CONV (rand(concl th))) in
+  let ltm, rtm = dest_comb tm in
+    if (ltm = num_const) then
+      MK_COMB(num_def, bits_to_num rtm)
+    else
+      failwith("NUM_TO_NUMERAL_CONV");;
+
+
+
+(*************************)
+
+(* SUC_CONV *)
+
+let suc_const = `SUC`;;
+
+(* Theorems *)
+
+let SUC_NUM = prove(mk_eq(mk_comb(suc_const, mk_comb (num_const, n_var_num)),
+                          mk_comb(num_const, mk_comb (suc_const, n_var_num))),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+let SUC_0 = prove(mk_eq(`SUC _0`, mk_comb (const_array.(1), zero_const)),
+                  REWRITE_TAC[def_array.(1); ARITH_SUC; ARITH_ZERO]);;
+
+
+let suc_th i =
+  let cflag = (i + 1 >= maximum) in
+  let suc = if (cflag) then 0 else i + 1 in
+  let lhs = mk_comb(suc_const, (mk_comb (const_array.(i), n_var_num))) in
+  let rhs = mk_comb(const_array.(suc),
+                    if (cflag) then mk_comb(suc_const, n_var_num) else n_var_num) in
+  let proof = REWRITE_TAC [def_array.(i); def_array.(suc); ARITH_SUC] in
+    prove(mk_eq(lhs, rhs), proof);;
+
+
+let th_suc_array = Array.init maximum suc_th;;
+
+let th_suc_table = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add th_suc_table names_array.(i) th_suc_array.(i)
+done;;
+
+let SUC_MAX = th_suc_array.(maximum - 1);;
+let bit_max_name = names_array.(maximum - 1);;
+
+
+(* Conversion *)
+
+let rec raw_suc_conv_hash tm =
+  let otm = rand tm in
+    if (otm = zero_const) then
+      SUC_0
+    else
+      let btm, ntm = dest_comb otm in
+      let cn = fst(dest_const btm) in
+        if (cn = bit_max_name) then
+          let th = INST [ntm, n_var_num] SUC_MAX in
+          let ltm, rtm = dest_comb(rand(concl th)) in
+            TRANS th (AP_TERM ltm (raw_suc_conv_hash rtm))
+        else
+          INST [ntm, n_var_num] (Hashtbl.find th_suc_table cn);;
+
+
+
+let NUM_SUC_HASH_CONV tm =
+  let ntm = rand (rand tm) in
+  let th = INST [ntm, n_var_num] SUC_NUM in
+  let lhs, rhs = dest_eq(concl th) in
+    if (lhs <> tm) then failwith("NUM_SUC_HASH_CONV")
+    else
+      let ltm, rtm = dest_comb rhs in
+        TRANS th (AP_TERM ltm (raw_suc_conv_hash rtm));;
+
+
+
+
+
+(*
+let x = mk_comb(suc_const, mk_small_numeral_array 65535);;
+test 50000 NUM_SUC_HASH_CONV x;; (* 5: 0.980 *)
+*)
+
+
+(**************************************)
+
+(* EQ_0_CONV *)
+
+let EQ_0_NUM = prove(mk_eq(mk_eq(mk_comb(num_const, n_var_num), `_0`), `n = _0`),
+		     REWRITE_TAC[num_def; NUMERAL]);;
+
+let EQ_B0_0 = prove(mk_eq(mk_eq(mk_comb(b0_const, n_var_num), `_0`), `n = _0`),
+		    REWRITE_TAC[b0_def; ARITH_EQ]);;
+
+let EQ_0_0 = prove(`_0 = _0 <=> T`, REWRITE_TAC[ARITH_EQ]);;
+
+let eq_0_i i =
+  let concl = mk_eq(mk_eq(mk_comb(const_array.(i), n_var_num), zero_const), false_const) in
+    prove(concl, REWRITE_TAC[def_array.(i); ARITH_EQ]);;
+
+
+
+let th_eq0_array = Array.init maximum (fun i -> if (i = 0) then EQ_0_0 else eq_0_i i);;
+
+let th_eq0_table = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add th_eq0_table names_array.(i) th_eq0_array.(i)
+done;;
+
+
+
+let rec raw_eq0_hash_conv rtm =
+  if (rtm = zero_const) then
+    EQ_0_0
+  else
+    let b_tm, n_tm = dest_comb rtm in
+    let cn = (fst o dest_const) b_tm in
+      if (cn = b0_name) then
+	let th0 = INST[n_tm, n_var_num] EQ_B0_0 in
+	let th1 = raw_eq0_hash_conv n_tm in
+	  TRANS th0 th1
+      else
+	INST[n_tm, n_var_num] (Hashtbl.find th_eq0_table cn);;
+	
+
+
+let NUM_EQ0_HASH_CONV rtm =
+  let n_tm = rand rtm in
+  let th = INST [n_tm, n_var_num] EQ_0_NUM in
+    TRANS th (raw_eq0_hash_conv n_tm);;
+
+
+
+(**************************************)
+
+(* PRE_CONV *)
+
+let pre_const = `PRE`;;
+
+(* Theorems *)
+
+let PRE_NUM = prove(mk_eq(mk_comb(pre_const, mk_comb (num_const, n_var_num)),
+                          mk_comb(num_const, mk_comb (pre_const, n_var_num))),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+
+let PRE_0 = prove(`PRE _0 = _0`, 
+		  MP_TAC (CONJUNCT1 PRE) THEN SIMP_TAC[NUMERAL]);;
+
+let PRE_B1_0 = prove(mk_eq(mk_comb(`PRE`, mk_comb(const_array.(1), `_0`)), `_0`),
+		     REWRITE_TAC[def_array.(1); ARITH_PRE; ARITH_EQ]);;
+
+let PRE_B0_n0 = (UNDISCH_ALL o prove)(mk_imp(`n = _0 <=> T`, 
+		     mk_eq(mk_comb(`PRE`, mk_comb(b0_const, `n:num`)), `_0`)),
+   REWRITE_TAC[def_array.(0); ARITH_PRE; ARITH_EQ] THEN SIMP_TAC[]);;
+
+
+let PRE_B0_n1 = (UNDISCH_ALL o prove)(mk_imp(`n = _0 <=> F`,
+		     mk_eq(mk_comb(`PRE`, mk_comb(b0_const, `n:num`)),
+			   mk_comb(const_array.(maximum - 1), `PRE n`))),
+   REWRITE_TAC[def_array.(0); def_array.(maximum - 1); ARITH_PRE; ARITH_EQ] THEN SIMP_TAC[]);;
+
+
+
+let pre_th i =
+  let pre = i - 1 in
+  let lhs = mk_comb(pre_const, (mk_comb (const_array.(i), n_var_num))) in
+  let rhs = mk_comb(const_array.(pre), n_var_num) in
+  let proof = REWRITE_TAC [def_array.(i); def_array.(pre); ARITH_PRE; ARITH_EQ] in
+    prove(mk_eq(lhs, rhs), proof);;
+
+
+let th_pre_array = Array.init maximum (fun i -> if i = 0 then REFL `_0` else pre_th i);;
+
+let th_pre_table = Hashtbl.create maximum;;
+
+for i = 0 to maximum - 1 do
+  Hashtbl.add th_pre_table names_array.(i) th_pre_array.(i)
+done;;
+
+
+(* Conversion *)
+let b1_name = names_array.(1);;
+let b1_pre_thm = th_pre_array.(1);;
+
+let rec raw_pre_hash_conv tm =
+  let otm = rand tm in
+    if (otm = zero_const) then
+      PRE_0
+    else
+      let btm, ntm = dest_comb otm in
+      let cn = fst(dest_const btm) in
+        if (cn = b0_name) then
+	  let n_th = raw_eq0_hash_conv ntm in
+	    if (rand(concl n_th) = false_const) then
+	      let th0 = INST[ntm, n_var_num] PRE_B0_n1 in
+	      let th1 = MY_PROVE_HYP n_th th0 in
+	      let ltm, rtm = dest_comb(rand(concl th1)) in
+	      let th2 = raw_pre_hash_conv rtm in
+		TRANS th1 (AP_TERM ltm th2)
+	    else
+	      let th = INST[ntm, n_var_num] PRE_B0_n0 in
+		MY_PROVE_HYP n_th th
+        else
+	  if (cn = b1_name) then
+	    if (ntm = zero_const) then
+	      PRE_B1_0
+	    else
+	      INST[ntm, n_var_num] b1_pre_thm
+	  else
+            INST [ntm, n_var_num] (Hashtbl.find th_pre_table cn);;
+
+
+
+let NUM_PRE_HASH_CONV tm =
+  let ntm = rand (rand tm) in
+  let th = INST [ntm, n_var_num] PRE_NUM in
+  let lhs, rhs = dest_eq(concl th) in
+    if (lhs <> tm) then failwith("NUM_PRE_HASH_CONV")
+    else
+      let ltm, rtm = dest_comb rhs in
+        TRANS th (AP_TERM ltm (raw_pre_hash_conv rtm));;
+
+
+(*
+let x = mk_comb(pre_const, mk_small_numeral_array 65535);;
+(* 8: 0.444 *)
+test 50000 NUM_PRE_HASH_CONV x;;
+let x = mk_comb(pre_const, mk_small_numeral_array 65536);;
+(* 8: 1.752 *)
+test 50000 NUM_PRE_HASH_CONV x;;
+*)
+
+
+
+
+(**************************************)
+
+(* GT0_CONV *)
+
+
+let gt0_table = Hashtbl.create maximum;;
+
+let GT0_NUM = (REWRITE_RULE[GSYM num_def] o prove)(`0 < NUMERAL n <=> _0 < n`, REWRITE_TAC[NUMERAL]);;
+
+let gt0_0 = prove(`_0 < _0 <=> F`, REWRITE_TAC[ARITH_LT]);;
+let gt0_b0 = prove(mk_eq (mk_binop lt_op_num zero_const (mk_comb(b0_const, n_var_num)), `_0 < n`),
+		   REWRITE_TAC[b0_def; ARITH_LT]);;
+
+
+
+let gt0_th i =
+  let bi = const_array.(i) in
+  let concl = mk_eq (mk_binop lt_op_num zero_const (mk_comb(bi, n_var_num)), truth_const) in
+  let proof = REWRITE_TAC[def_array.(i); ARITH_LT] in
+    prove(concl, proof);;
+
+
+for i = 1 to maximum - 1 do
+  Hashtbl.add gt0_table names_array.(i) (gt0_th i)
+done;;
+
+
+let rec raw_gt0_hash_conv rtm =
+  if (rtm = zero_const) then
+    gt0_0
+  else
+    let b_tm, n_tm = dest_comb rtm in
+    let cn = (fst o dest_const) b_tm in
+      if (cn = b0_name) then
+	let th0 = INST[n_tm, n_var_num] gt0_b0 in
+	let th1 = raw_gt0_hash_conv n_tm in
+	  TRANS th0 th1
+      else
+	INST[n_tm, n_var_num] (Hashtbl.find gt0_table cn);;
+	
+
+
+let NUM_GT0_HASH_CONV rtm =
+  let n_tm = rand rtm in
+  let th = INST [n_tm, n_var_num] GT0_NUM in
+    TRANS th (raw_gt0_hash_conv n_tm);;
+
+
+
+(*
+let tm = `0 < 65536`;;
+let tm' = rand (replace_numerals tm);;
+
+(* 3.704 *)
+test 10000 NUM_LT_CONV tm;;
+(* 0.112 *)
+test 10000 NUM_GT0_HASH_CONV tm';;
+*)
+
+
+
+(*************************************)
+
+(* LT and LE *)
+
+let LT_NUM = (REWRITE_RULE[SYM num_def] o prove)(`NUMERAL m < NUMERAL n <=> m < n`, REWRITE_TAC[NUMERAL]);;
+let LE_NUM = (REWRITE_RULE[SYM num_def] o prove)(`NUMERAL m <= NUMERAL n <=> m <= n`, REWRITE_TAC[NUMERAL]);;
+
+let LT_n_0 = prove(`n < _0 <=> F`, 
+		   SUBGOAL_THEN `_0 = 0` MP_TAC THENL [ REWRITE_TAC[NUMERAL]; ALL_TAC ] THEN
+		       DISCH_THEN (fun th -> PURE_ONCE_REWRITE_TAC[th]) THEN
+		       ARITH_TAC);;
+
+let LE_0_n = prove(`_0 <= n <=> T`,
+		   SUBGOAL_THEN `_0 = 0` MP_TAC THENL [ REWRITE_TAC[NUMERAL]; ALL_TAC ] THEN
+		       DISCH_THEN (fun th -> PURE_ONCE_REWRITE_TAC[th]) THEN
+		       ARITH_TAC);;
+
+let SUC_LT_THM = ARITH_RULE `SUC m < SUC n <=> m < n`;;
+let SUC_LE_THM = ARITH_RULE `SUC m <= SUC n <=> m <= n`;;
+
+
+
+(* LT tables *)
+
+(* Generates the theorem |- _0 < bi(n) <=> T (or |- _0 < b0(n) <=> _0 < n) *)
+let gen_0_lt_bi i =
+  let bin = mk_comb (const_array.(i), n_var_num) in
+  let lt_tm = mk_binop lt_op_num zero_const bin in
+    REWRITE_CONV[def_array.(i); ARITH_LT; ARITH_LE] lt_tm;;
+
+
+let th_lt0_table = Hashtbl.create maximum;;
+for i = 0 to maximum - 1 do
+  let th = gen_0_lt_bi i in
+  let name = names_array.(i) in
+    Hashtbl.add th_lt0_table name th
+done;;
+
+
+
+
+(* Generates the theorem |- bi(m) < bj(n) <=> m <= n (or m < n) *)
+let gen_bi_lt_bj i j =
+  let bim = mk_comb (const_array.(i), m_var_num) in
+  let bjn = mk_comb (const_array.(j), n_var_num) in
+  let lt_tm = mk_binop lt_op_num bim bjn in
+    REWRITE_CONV[def_array.(i); def_array.(j); ARITH_LT; ARITH_LE] lt_tm;;
+
+
+(* Given a theorem |- bi(m) < bj(n) <=> P m n, generates the theorem
+   |- SUC(bi(m)) < SUC(bj(n)) <=> P m n *)
+let gen_next_lt_thm th =
+  let ltm, n_tm = (dest_comb o lhand o concl) th in
+  let m_tm = rand ltm in
+  let th0 = INST[m_tm, m_var_num; n_tm, n_var_num] SUC_LT_THM in
+  let suc_m = raw_suc_conv_hash (mk_comb (suc_const, m_tm)) in
+  let suc_n = raw_suc_conv_hash (mk_comb (suc_const, n_tm)) in
+  let th1 = SYM (MK_COMB ((AP_TERM lt_op_num suc_m), suc_n)) in
+    TRANS (TRANS th1 th0) th;;
+  
+
+
+
+let th_lt_table = Hashtbl.create (maximum * maximum);;
+
+
+for i = 0 to maximum - 1 do
+  let th = ref (gen_bi_lt_bj 0 i) in
+  let name_left = names_array.(0) and
+      name_right = names_array.(i) in
+  let _ = Hashtbl.add th_lt_table (name_left ^ name_right) !th in
+
+    for k = 1 to maximum - i - 1 do
+      let x = k and y = i + k in
+      let name_left = names_array.(x) and
+	  name_right = names_array.(y) in
+	th := gen_next_lt_thm (!th);
+	Hashtbl.add th_lt_table (name_left ^ name_right) !th
+    done;
+done;;
+
+
+for i = 1 to maximum - 1 do
+  let th = ref (gen_bi_lt_bj i 0) in
+  let name_left = names_array.(i) and
+      name_right = names_array.(0) in
+  let _ = Hashtbl.add th_lt_table (name_left ^ name_right) !th in
+
+    for k = 1 to maximum - i - 1 do
+      let x = i + k and y = k in
+      let name_left = names_array.(x) and
+	  name_right = names_array.(y) in
+	th := gen_next_lt_thm (!th);
+	Hashtbl.add th_lt_table (name_left ^ name_right) !th
+    done;
+done;;
+
+
+
+
+(* LE tables *)
+
+
+(* Generates the theorem |- bi(n) <= _0 <=> F (or |- b0(n) <= _0 <=> n <= _0) *)
+let gen_bi_le_0 i =
+  let bin = mk_comb (const_array.(i), n_var_num) in
+  let lt_tm = mk_binop le_op_num bin zero_const in
+    REWRITE_CONV[def_array.(i); ARITH_LT; ARITH_LE] lt_tm;;
+
+
+let th_le0_table = Hashtbl.create maximum;;
+for i = 0 to maximum - 1 do
+  let th = gen_bi_le_0 i in
+  let name = names_array.(i) in
+    Hashtbl.add th_le0_table name th
+done;;
+
+
+
+
+(* Generates the theorem |- bi(m) <= bj(n) <=> m <= n (or m < n) *)
+let gen_bi_le_bj i j =
+  let bim = mk_comb (const_array.(i), m_var_num) in
+  let bjn = mk_comb (const_array.(j), n_var_num) in
+  let lt_tm = mk_binop le_op_num bim bjn in
+    REWRITE_CONV[def_array.(i); def_array.(j); ARITH_LT; ARITH_LE] lt_tm;;
+
+
+(* Given a theorem |- bi(m) <= bj(n) <=> P m n, generates the theorem
+   |- SUC(bi(m)) <= SUC(bj(n)) <=> P m n *)
+let gen_next_le_thm th =
+  let ltm, n_tm = (dest_comb o lhand o concl) th in
+  let m_tm = rand ltm in
+  let th0 = INST[m_tm, m_var_num; n_tm, n_var_num] SUC_LE_THM in
+  let suc_m = raw_suc_conv_hash (mk_comb (suc_const, m_tm)) in
+  let suc_n = raw_suc_conv_hash (mk_comb (suc_const, n_tm)) in
+  let th1 = SYM (MK_COMB ((AP_TERM le_op_num suc_m), suc_n)) in
+    TRANS (TRANS th1 th0) th;;
+  
+
+
+let th_le_table = Hashtbl.create (maximum * maximum);;
+
+
+for i = 0 to maximum - 1 do
+  let th = ref (gen_bi_le_bj 0 i) in
+  let name_left = names_array.(0) and
+      name_right = names_array.(i) in
+  let _ = Hashtbl.add th_le_table (name_left ^ name_right) !th in
+
+    for k = 1 to maximum - i - 1 do
+      let x = k and y = i + k in
+      let name_left = names_array.(x) and
+	  name_right = names_array.(y) in
+	th := gen_next_le_thm (!th);
+	Hashtbl.add th_le_table (name_left ^ name_right) !th
+    done;
+done;;
+
+
+for i = 1 to maximum - 1 do
+  let th = ref (gen_bi_le_bj i 0) in
+  let name_left = names_array.(i) and
+      name_right = names_array.(0) in
+  let _ = Hashtbl.add th_le_table (name_left ^ name_right) !th in
+
+    for k = 1 to maximum - i - 1 do
+      let x = i + k and y = k in
+      let name_left = names_array.(x) and
+	  name_right = names_array.(y) in
+	th := gen_next_le_thm (!th);
+	Hashtbl.add th_le_table (name_left ^ name_right) !th
+    done;
+done;;
+
+
+(* Conversions *)
+
+let rec raw_lt_hash_conv tm =
+  let ltm, rtm = dest_comb tm in
+  let ltm = rand ltm in
+    if is_const rtm then
+      (* n < _0 <=> F *)
+      INST[ltm, n_var_num] LT_n_0
+    else
+      if is_const ltm then
+	(* _0 < Bi(n) *)
+	let bn_tm, n_tm = dest_comb rtm in
+	let cbn = (fst o dest_const) bn_tm in
+	let th0 = INST[n_tm, n_var_num] (Hashtbl.find th_lt0_table cbn) in
+	  if cbn = b0_name then
+	    let th1 = raw_lt_hash_conv (rand (concl th0)) in
+	      TRANS th0 th1
+	  else
+	    th0
+      else
+	(* Bi(n) < Bj(m) *)
+	let bm_tm, m_tm = dest_comb ltm in
+	let bn_tm, n_tm = dest_comb rtm in
+	let cbm = (fst o dest_const) bm_tm in
+	let cbn = (fst o dest_const) bn_tm in
+	let th0 = INST[m_tm, m_var_num; n_tm, n_var_num] (Hashtbl.find th_lt_table (cbm^cbn)) in
+	let op = (fst o dest_const o rator o rator o rand o concl) th0 in
+	let th1 = 
+	  if op = "<" then
+	    raw_lt_hash_conv (rand (concl th0))
+	  else
+	    raw_le_hash_conv (rand (concl th0)) in
+	  TRANS th0 th1 and
+    
+    raw_le_hash_conv tm =
+  let ltm, rtm = dest_comb tm in
+  let ltm = rand ltm in
+    if is_const ltm then
+      (* _0 <= n <=> T *)
+      INST[rtm, n_var_num] LE_0_n
+    else
+      if is_const rtm then
+	(* Bi(n) <= _0 *)
+	let bn_tm, n_tm = dest_comb ltm in
+	let cbn = (fst o dest_const) bn_tm in
+	let th0 = INST[n_tm, n_var_num] (Hashtbl.find th_le0_table cbn) in
+	  if cbn = b0_name then
+	    let th1 = raw_le_hash_conv (rand (concl th0)) in
+	      TRANS th0 th1
+	  else
+	    th0
+      else
+	(* Bi(n) <= Bj(m) *)
+	let bm_tm, m_tm = dest_comb ltm in
+	let bn_tm, n_tm = dest_comb rtm in
+	let cbm = (fst o dest_const) bm_tm in
+	let cbn = (fst o dest_const) bn_tm in
+	let th0 = INST[m_tm, m_var_num; n_tm, n_var_num] (Hashtbl.find th_le_table (cbm^cbn)) in
+	let op = (fst o dest_const o rator o rator o rand o concl) th0 in
+	let th1 = 
+	  if op = "<" then
+	    raw_lt_hash_conv (rand (concl th0))
+	  else
+	    raw_le_hash_conv (rand (concl th0)) in
+	  TRANS th0 th1;;
+
+
+
+let NUM_LT_HASH_CONV tm =
+  let atm, rtm = dest_comb tm in
+  let ltm = rand atm in
+  let th = INST [rand ltm, m_var_num; rand rtm, n_var_num] LT_NUM in
+  let rtm = rand(concl th) in
+    TRANS th (raw_lt_hash_conv rtm);;
+
+
+
+let NUM_LE_HASH_CONV tm =
+  let atm, rtm = dest_comb tm in
+  let ltm = rand atm in
+  let th = INST [rand ltm, m_var_num; rand rtm, n_var_num] LE_NUM in
+  let rtm = rand(concl th) in
+    TRANS th (raw_le_hash_conv rtm);;
+
+
+
+(*
+let x = num_of_string "3543593547359325353535";;
+let y = num_of_string "9392392983247294924242";;
+
+let xx = mk_binop lt_op_num (mk_numeral_array x) (mk_numeral_array y);;
+let yy = mk_binop lt_op_num (mk_numeral x) (mk_numeral y);;
+
+
+(* 8: 2.352 *)
+test 1000 NUM_LT_CONV yy;;
+(* 8: 0.644 *)
+test 10000 NUM_LT_HASH_CONV xx;;
+*)
+
+
+
+
+(**************************************)
+
+(* ADD_CONV *)
+
+
+(* ADD theorems *)
+
+let ADD_NUM = prove(mk_eq(mk_binop plus_op_num (mk_comb (num_const, m_var_num)) (mk_comb (num_const, n_var_num)),
+                          mk_comb(num_const, mk_binop plus_op_num m_var_num n_var_num)),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+let CADD_0_n = prove(`SUC (_0 + n) = SUC n`, REWRITE_TAC[ADD_0_n]);;
+let CADD_n_0 = prove(`SUC (n + _0) = SUC n`, REWRITE_TAC[ADD_n_0]);;
+
+(* B0 (SUC n) = B0 n + maximum *)
+let B0_SUC = prove(mk_eq(mk_comb(b0_const, mk_comb(suc_const, n_var_num)),
+                         mk_binop plus_op_num max_const (mk_comb(b0_const, n_var_num))),
+                   REWRITE_TAC [B0_EXPLICIT] THEN ARITH_TAC);;
+
+let B0_ADD = prove(mk_eq(mk_binop plus_op_num (mk_comb(b0_const, m_var_num)) (mk_comb(b0_const, n_var_num)),
+                         mk_comb(b0_const, mk_binop plus_op_num m_var_num n_var_num)),
+                   REWRITE_TAC[B0_EXPLICIT] THEN ARITH_TAC);;
+
+let SUC_ADD_RIGHT = prove(`SUC(m + n) = m + SUC n`, ARITH_TAC);;
+
+
+(* Generate all theorems iteratively *)
+
+let th_add_right_next th =
+  let lhs, rhs = dest_eq(concl th) in
+  let ltm, rtm = dest_comb rhs in
+  let cn = fst(dest_const ltm) in
+  let suc_th = AP_TERM suc_const th in
+  let th_rhs = INST[rtm, n_var_num] (Hashtbl.find th_suc_table cn) in
+  let ltm, rarg = dest_comb lhs in
+  let larg = rand ltm in
+  let th1 = INST[larg, m_var_num; rarg, n_var_num] SUC_ADD_RIGHT in
+  let cn = fst(dest_const(rator rarg)) in
+  let th2 = Hashtbl.find th_suc_table cn in
+  let th_lhs = TRANS th1 (AP_TERM ltm th2) in
+    TRANS (TRANS (SYM th_lhs) suc_th) th_rhs;;
+
+
+let th_add_array = Array.make (maximum * maximum) (REFL zero_const);;
+
+for i = 0 to maximum - 1 do
+  let th0 =
+    if i = 0 then
+      B0_ADD
+    else
+      INST[n_var_num, m_var_num; m_var_num, n_var_num]
+        (ONCE_REWRITE_RULE[ADD_AC] th_add_array.(i)) in
+  let _ = th_add_array.(i * maximum) <- th0 in
+
+    for j = 1 to maximum - 1 do
+      th_add_array.(i * maximum + j) <- th_add_right_next th_add_array.(i * maximum + j - 1)
+    done;
+done;;
+
+
+
+(* SUC (B_i(m) + B_j(n)) = B_p(...) *)
+let th_cadd i j =
+  let add_th = th_add_array.(i * maximum + j) in
+  let th0 = AP_TERM suc_const add_th in
+  let ltm, rtm = dest_comb(rand(concl th0)) in
+  let ltm, rtm = dest_comb rtm in
+  let cn = fst(dest_const ltm) in
+  let suc_th = INST[rtm, n_var_num] (Hashtbl.find th_suc_table cn) in
+    TRANS th0 suc_th;;
+
+
+let th_cadd_array = Array.make (maximum * maximum) (REFL zero_const);;
+
+for i = 0 to maximum - 1 do
+  for j = 0 to maximum - 1 do
+    th_cadd_array.(i * maximum + j) <- th_cadd i j
+  done;
+done;;
+
+
+
+let th_add_table = Hashtbl.create (maximum * maximum);;
+
+for i = 0 to maximum - 1 do
+  for j = 0 to maximum - 1 do
+    let name = names_array.(i) ^ names_array.(j) in
+    let th = th_add_array.(i * maximum + j) in
+    let cflag = (i + j >= maximum) in
+      Hashtbl.add th_add_table name (th, cflag)
+  done;
+done;;
+
+
+
+let th_cadd_table = Hashtbl.create (maximum * maximum);;
+
+for i = 0 to maximum - 1 do
+  for j = 0 to maximum - 1 do
+    let name = names_array.(i) ^ names_array.(j) in
+    let th = th_cadd_array.(i * maximum + j) in
+    let cflag = (i + j + 1 >= maximum) in
+      Hashtbl.add th_cadd_table name (th, cflag)
+  done;
+done;;
+
+
+
+(* ADD conversion *)
+
+
+let rec raw_add_conv_hash tm =
+  let atm,rtm = dest_comb tm in
+  let ltm = rand atm in
+    if ltm = zero_const then
+      INST [rtm,n_var_num] ADD_0_n
+    else if rtm = zero_const then
+      INST [ltm,n_var_num] ADD_n_0
+    else
+      let lbit,larg = dest_comb ltm
+      and rbit,rarg = dest_comb rtm in
+      let name = fst(dest_const lbit) ^ fst(dest_const rbit) in
+      let th0, cflag = Hashtbl.find th_add_table name in
+      let th = INST [larg, m_var_num; rarg, n_var_num] th0 in
+      let ltm, rtm = dest_comb(rand(concl th)) in
+        if cflag then
+          TRANS th (AP_TERM ltm (raw_adc_conv_hash rtm))
+        else
+          TRANS th (AP_TERM ltm (raw_add_conv_hash rtm))
+and raw_adc_conv_hash tm =
+  let atm,rtm = dest_comb (rand tm) in
+  let ltm = rand atm in
+    if ltm = zero_const then
+      let th = INST [rtm,n_var_num] CADD_0_n in
+        TRANS th (raw_suc_conv_hash (rand(concl th)))
+    else if rtm = zero_const then
+      let th = INST [ltm,n_var_num] CADD_n_0 in
+        TRANS th (raw_suc_conv_hash (rand(concl th)))
+    else
+      let lbit,larg = dest_comb ltm
+      and rbit,rarg = dest_comb rtm in
+      let name = fst(dest_const lbit) ^ fst(dest_const rbit) in
+      let th0, cflag = Hashtbl.find th_cadd_table name in
+      let th = INST [larg, m_var_num; rarg, n_var_num] th0 in
+      let ltm, rtm = dest_comb(rand(concl th)) in
+        if cflag then
+          TRANS th (AP_TERM ltm (raw_adc_conv_hash rtm))
+        else
+          TRANS th (AP_TERM ltm (raw_add_conv_hash rtm));;
+
+
+let NUM_ADD_HASH_CONV tm =
+  let atm, rtm = dest_comb tm in
+  let ltm = rand atm in
+  let th = INST [rand ltm, m_var_num; rand rtm, n_var_num] ADD_NUM in
+  let ltm, rtm = dest_comb(rand(concl th)) in
+    TRANS th (AP_TERM ltm (raw_add_conv_hash rtm));;
+
+
+(*
+let x = num_of_string "3543593547359325353535";;
+let y = num_of_string "9392392983247294924242";;
+
+let xx = mk_binop plus_op_num (mk_numeral_array x) (mk_numeral_array y);;
+let yy = mk_binop plus_op_num (mk_numeral x) (mk_numeral y);;
+
+test 10000 NUM_ADD_CONV yy;; (* 5.672 *)
+test 10000 NUM_ADD_HASH_CONV xx;; (* 8: 0.728 *)
+*)
+
+(********************************)
+
+(* Subtraction *)
+
+let SUB_NUM = prove(mk_eq(mk_binop minus_op_num (mk_comb (num_const, m_var_num)) (mk_comb (num_const, n_var_num)),
+                          mk_comb(num_const, mk_binop minus_op_num m_var_num n_var_num)),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+let SUB_lemma1 = (UNDISCH_ALL o ARITH_RULE) `n + t = m ==> m - n = t:num`;;
+let SUB_lemma2 = (UNDISCH_ALL o REWRITE_RULE[NUMERAL] o ARITH_RULE) `m + t = n ==> m - n = 0`;;
+let LE_lemma = (UNDISCH_ALL o ARITH_RULE) `n + t = m ==> n <= m:num`;;
+
+
+let raw_sub_hash_conv tm =
+  let ltm, n_tm = dest_comb tm in
+  let m_tm = rand ltm in
+  let m = raw_dest_hash m_tm in
+  let n = raw_dest_hash n_tm in
+  let t = m -/ n in
+    if t >=/ num_0 then
+      let t_tm = rand (mk_numeral_array t) in
+      let th0 = INST[n_tm, n_var_num; t_tm, t_var_num; m_tm, m_var_num] SUB_lemma1 in
+      let th_add = raw_add_conv_hash (mk_binop plus_op_num n_tm t_tm) in
+	MY_PROVE_HYP th_add th0
+    else
+      let t_tm = rand (mk_numeral_array (Num.abs_num t)) in
+      let th0 = INST[m_tm, m_var_num; t_tm, t_var_num; n_tm, n_var_num] SUB_lemma2 in
+      let th_add = raw_add_conv_hash (mk_binop plus_op_num m_tm t_tm) in
+	MY_PROVE_HYP th_add th0;;
+
+
+
+(* Returns either (tm1 - tm2, tm2 <= tm1) or (tm2 - tm1, tm1 <= tm2) *)
+let raw_sub_and_le_hash_conv tm1 tm2 =
+  let m = raw_dest_hash tm1 in
+  let n = raw_dest_hash tm2 in
+  let t = m -/ n in
+    if t >=/ num_0 then
+      let t_tm = rand (mk_numeral_array t) in
+      let inst = INST[tm2, n_var_num; t_tm, t_var_num; tm1, m_var_num] in
+      let th_sub = inst SUB_lemma1 in
+      let th_le = inst LE_lemma in
+      let th_add = raw_add_conv_hash (mk_binop plus_op_num tm2 t_tm) in
+	(MY_PROVE_HYP th_add th_sub, MY_PROVE_HYP th_add th_le)
+    else
+      let t_tm = rand (mk_numeral_array (Num.abs_num t)) in
+      let inst = INST[tm2, m_var_num; t_tm, t_var_num; tm1, n_var_num] in
+      let th_sub = inst SUB_lemma1 in
+      let th_le = inst LE_lemma in
+      let th_add = raw_add_conv_hash (mk_binop plus_op_num tm1 t_tm) in
+	(MY_PROVE_HYP th_add th_sub, MY_PROVE_HYP th_add th_le);;
+
+
+
+let NUM_SUB_HASH_CONV tm =
+  let atm, rtm = dest_comb tm in
+  let ltm = rand atm in
+  let th = INST [rand ltm, m_var_num; rand rtm, n_var_num] SUB_NUM in
+  let ltm, rtm = dest_comb(rand(concl th)) in
+    TRANS th (AP_TERM ltm (raw_sub_hash_conv rtm));;
+
+
+(*
+let y = num_of_string "3543593547359325353535";;
+let x = num_of_string "9392392983247294924242";;
+
+let xx = mk_binop minus_op_num (mk_numeral_array x) (mk_numeral_array y);;
+let yy = mk_binop minus_op_num (mk_numeral x) (mk_numeral y);;
+
+test 1000 NUM_SUB_CONV yy;; (* 2.376 *)
+test 1000 NUM_SUB_HASH_CONV xx;; (* 4: 0.692 *)
+*)
+
+
+
+(********************************)
+
+(* Multiplication *)
+
+let MUL_NUM = prove(mk_eq(mk_binop mul_op_num (mk_comb(num_const, m_var_num)) (mk_comb(num_const, n_var_num)),
+                          mk_comb(num_const, mk_binop mul_op_num m_var_num n_var_num)),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+let MUL_0_n = prove(`_0 * n = _0`, ONCE_REWRITE_TAC[GSYM NUM_THM] THEN
+                      ONCE_REWRITE_TAC[GSYM MUL_NUM] THEN REWRITE_TAC[num_def] THEN
+                      REWRITE_TAC[MULT_CLAUSES]);;
+
+let MUL_n_0 = ONCE_REWRITE_RULE[MULT_AC] MUL_0_n;;
+
+let MUL_1_n, MUL_n_1 =
+  let one_const = mk_comb (const_array.(1), zero_const) in
+  let cond = mk_eq(mk_binop mul_op_num one_const n_var_num, n_var_num) in
+  let th = prove(cond, REWRITE_TAC[def_array.(1); ARITH_ZERO] THEN
+                   ONCE_REWRITE_TAC[GSYM NUM_THM] THEN
+                   ONCE_REWRITE_TAC[GSYM MUL_NUM] THEN
+                   REWRITE_TAC[num_def] THEN
+                   REWRITE_TAC[MULT_CLAUSES]) in
+    th, ONCE_REWRITE_RULE[MULT_AC] th;;
+
+
+let MUL_BIT0_t = prove(`BIT0 n * t = BIT0 (n * t)`, REWRITE_TAC[BIT0; RIGHT_ADD_DISTRIB]);;
+
+let MUL_B0_t = prove(mk_eq(mk_binop mul_op_num (mk_comb(b0_const, n_var_num)) t_var_num,
+                           mk_comb(b0_const, mk_binop mul_op_num n_var_num t_var_num)),
+                     REWRITE_TAC[def_array.(0)] THEN REWRITE_TAC[MUL_BIT0_t]);;
+
+let MUL_t_B0 = ONCE_REWRITE_RULE[MULT_AC] MUL_B0_t;;
+
+
+let MUL_SUC_RIGHT = prove(`m * SUC(n) = m * n + m`, ARITH_TAC);;
+
+
+(* Multiplication table *)
+
+let mul_th_next_right th =
+  let ltm, rtm = dest_comb(rand(rator(concl th))) in
+  let mtm = rand ltm in
+  let th0 = INST[mtm, m_var_num; rtm, n_var_num] MUL_SUC_RIGHT in
+  let th1 = AP_THM (AP_TERM plus_op_num th) mtm in
+  let sum_th = raw_add_conv_hash (rand(concl th1)) in
+  let th2 = TRANS (TRANS th0 th1) sum_th in
+  let cn = fst(dest_const (rator rtm)) in
+  let th_suc = INST[zero_const, n_var_num] (Hashtbl.find th_suc_table cn) in
+  let th3 = AP_TERM (mk_comb (mul_op_num, mtm)) th_suc in
+    TRANS (SYM th3) th2;;
+
+
+let mul_array = Array.make (maximum * maximum) (REFL zero_const);;
+for i = 1 to maximum - 1 do
+  let th1 = INST[mk_comb(const_array.(i), zero_const), n_var_num] MUL_n_1 in
+  let _ = mul_array.(i * maximum + 1) <- th1 in
+
+    for j = 2 to maximum - 1 do
+      mul_array.(i * maximum + j) <- mul_th_next_right mul_array.(i * maximum + j - 1)
+    done;
+done;;
+
+
+let mul_table = Hashtbl.create (maximum * maximum);;
+for i = 1 to maximum - 1 do
+  for j = 1 to maximum - 1 do
+    Hashtbl.add mul_table (names_array.(i) ^ names_array.(j)) mul_array.(i * maximum + j)
+  done;
+done;;
+
+
+(* General multiplication theorem *)
+
+let prod_lemma =
+  let mul (a,b) = mk_binop mul_op_num a b and
+      add (a,b) = mk_binop plus_op_num a b in
+  let lhs = mul(add(t_var_num, mk_comb(b0_const, m_var_num)),
+                add(r_var_num, mk_comb(b0_const, n_var_num))) in
+  let rhs = add(mul(t_var_num, r_var_num),
+                mk_comb(b0_const, add(mk_comb(b0_const, mul(m_var_num, n_var_num)),
+                                      add(mul(m_var_num, r_var_num),
+                                          mul(n_var_num, t_var_num))))) in
+    prove(mk_eq(lhs, rhs),
+          REWRITE_TAC[LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB] THEN
+            REWRITE_TAC[MUL_B0_t; MUL_t_B0] THEN
+            ONCE_REWRITE_TAC[GSYM ADD_ASSOC] THEN
+            REWRITE_TAC[th_add_array.(0)] THEN
+            REWRITE_TAC[ADD_AC; MULT_AC]);;
+
+let ADD_ASSOC' = SPEC_ALL ADD_ASSOC;;
+
+let dest_op tm =
+  let ltm, rtm = dest_comb tm in
+    rand ltm, rtm;;
+
+
+(* B_i(m) * B_j(n) = B_p(B_q(m * n) + m * B_j(0) + n * B_i(0))
+   where B_p(B_q(0)) = i * j *)
+let gen_mul_thm i j =
+  let bi0 = mk_comb(const_array.(i), zero_const) and
+      bj0 = mk_comb(const_array.(j), zero_const) in
+  let def_i = INST[m_var_num, n_var_num] def_thm_array.(i) in
+  let def_j = def_thm_array.(j) in
+  let th0 = MK_COMB(AP_TERM mul_op_num def_i, def_j) in
+  let th1 = TRANS th0 (INST[bi0, t_var_num; bj0, r_var_num] prod_lemma) in
+  let mul_th = mul_array.(i * maximum + j) in
+  let larg, rarg = dest_op (rand (concl th1)) in
+  let th2 = TRANS th1 (AP_THM (AP_TERM plus_op_num mul_th) rarg) in
+  let larg = rand(concl mul_th) in
+  let b_low, b_high = dest_comb larg in
+  let rtm = rand(rarg) in
+  let th_add = INST[b_high, m_var_num; rtm, n_var_num]
+    (fst(Hashtbl.find th_add_table (fst(dest_const b_low)^b0_name))) in
+    if i * j < maximum then
+      let ltm, rtm = dest_op(rand(rand(concl th_add))) in
+      let add_0 = AP_TERM b_low (INST[rtm, n_var_num] ADD_0_n) in
+        TRANS th2 (TRANS th_add add_0)
+    else
+      let larg, rtm = dest_op (rand(rand(concl th_add))) in
+      let rarg, rtm = dest_op rtm in
+      let th_assoc = INST[larg, m_var_num; rarg, n_var_num; rtm, p_var_num] ADD_ASSOC' in
+      let mn = rand(rarg) in
+      let b_high = rator b_high in
+      let th_add2' = INST[zero_const, m_var_num; mn, n_var_num]
+        (fst(Hashtbl.find th_add_table (fst(dest_const b_high)^b0_name))) in
+      let add_0 = AP_TERM b_high (INST[mn, n_var_num] ADD_0_n) in
+      let th_add2 = TRANS th_add2' add_0 in
+      let th3 = TRANS th_assoc (AP_THM (AP_TERM plus_op_num th_add2) rtm) in
+      let th4 = TRANS th_add (AP_TERM b_low th3) in
+        TRANS th2 th4;;
+
+
+let gen_mul_table = Hashtbl.create (maximum * maximum);;
+
+for i = 1 to maximum - 1 do
+  for j = 1 to maximum - 1 do
+    let name = names_array.(i) ^ names_array.(j) in
+      Hashtbl.add gen_mul_table name (gen_mul_thm i j)
+  done;
+done;;
+
+
+(* B_i(m) * B_j(0) = B_p(B_q(0) + m * B_j(0))
+   where i * j = B_p(B_q(0)) *)
+let mul1_right_th i j =
+  let th0 = INST[zero_const, n_var_num]
+    (Hashtbl.find gen_mul_table (names_array.(i)^names_array.(j))) in
+  let b_low, rtm = dest_comb(rand(concl th0)) in
+  let tm1, tm23 = dest_op rtm in
+  let tm2p, tm3 = dest_comb tm23 in
+  let tm3_th = INST[rand tm3, n_var_num] MUL_0_n in
+  let tm2_th = INST[rand(tm2p), n_var_num] ADD_n_0 in
+  let tm23_th = TRANS (AP_TERM tm2p tm3_th) tm2_th in
+  let ltm, rtm = dest_comb tm1 in
+    if (i * j < maximum) then
+      let tm1_th = TRANS (AP_TERM ltm (INST[m_var_num, n_var_num] MUL_n_0)) B0_0 in
+      let tm123_th' = TRANS (INST[tm23, n_var_num] ADD_0_n) tm23_th in
+      let tm123_th = TRANS (AP_THM (AP_TERM plus_op_num tm1_th) tm23) tm123_th' in
+        TRANS th0 (AP_TERM b_low tm123_th)
+    else
+      let tm1_th = AP_TERM ltm (INST[m_var_num, n_var_num] MUL_n_0) in
+      let tm123_th = MK_COMB(AP_TERM plus_op_num tm1_th, tm23_th) in
+        TRANS th0 (AP_TERM b_low tm123_th);;
+
+
+(* B_j(0) * B_i(m) = B_p(B_q(0) + B_j(0) * B_i(m) *)
+
+let MULT_AC' = CONJUNCT1 MULT_AC;;
+
+let mul1_left_th th =
+  let lhs, rhs = dest_eq(concl th) in
+  let ltm, rtm = dest_op lhs in
+  let th_lhs = INST[ltm, n_var_num; rtm, m_var_num] MULT_AC' in
+  let btm, rtm = dest_comb rhs in
+  let larg, rarg = dest_op rtm in
+    if (is_comb larg) then
+      let ltm, rtm = dest_op rarg in
+      let th_rhs' = INST[ltm, m_var_num; rtm, n_var_num] MULT_AC' in
+      let th_rhs = AP_TERM (mk_comb(plus_op_num, larg)) th_rhs' in
+        TRANS th_lhs (TRANS th (AP_TERM btm th_rhs))
+    else
+      let th_rhs = INST[larg, m_var_num; rarg, n_var_num] MULT_AC' in
+        TRANS th_lhs (TRANS th (AP_TERM btm th_rhs));;
+
+
+
+
+let mul1_right_th_table = Hashtbl.create (maximum * maximum);;
+let mul1_left_th_table = Hashtbl.create (maximum * maximum);;
+
+for i = 1 to maximum - 1 do
+  for j = 1 to maximum - 1 do
+    let name_right = names_array.(i) ^ names_array.(j) in
+    let name_left = names_array.(j) ^ names_array.(i) in
+    let th = mul1_right_th i j in
+    let add_flag = (i * j >= maximum) in
+    let _ = Hashtbl.add mul1_right_th_table name_right (add_flag, th) in
+      Hashtbl.add mul1_left_th_table name_left (add_flag, mul1_left_th th)
+  done;
+done;;
+
+
+
+(******************************************************)
+
+(* Conversions *)
+
+
+(* Multiplies arg and (tm = tmname(_0)) *)
+let rec raw_mul1_right_hash arg tm tmname =
+  if arg = zero_const then
+    INST [tm, n_var_num] MUL_0_n
+  else
+    let btm, mtm = dest_comb arg in
+    let cn = fst(dest_const btm) in
+      if (cn = b0_name) then
+        let th = INST[mtm, n_var_num; tm, t_var_num] MUL_B0_t in
+          TRANS th (AP_TERM b0_const (raw_mul1_right_hash mtm tm tmname))
+      else
+        let name = cn ^ tmname in
+          if (mtm = zero_const) then
+            Hashtbl.find mul_table name
+          else
+            let add_flag, th' = Hashtbl.find mul1_right_th_table name in
+            let th = INST[mtm, m_var_num] th' in
+              if add_flag then
+                let ltm, rtm = dest_comb(rand(concl th)) in
+                let lplus, rarg = dest_comb rtm in
+                let th2 = AP_TERM lplus (raw_mul1_right_hash mtm tm tmname) in
+                let th_add = raw_add_conv_hash (rand(concl th2)) in
+                  TRANS th (AP_TERM ltm (TRANS th2 th_add))
+              else
+                let ltm = rator(rand(concl th)) in
+                let th2 = AP_TERM ltm (raw_mul1_right_hash mtm tm tmname) in
+                  TRANS th th2;;
+
+
+(* Multiplies (tm = tmname(_0)) and arg *)
+let rec raw_mul1_left_hash tm tmname arg =
+  if arg = zero_const then
+    INST [tm, n_var_num] MUL_n_0
+  else
+    let btm, mtm = dest_comb arg in
+    let cn = fst(dest_const btm) in
+      if (cn = b0_name) then
+        let th = INST[mtm, n_var_num; tm, t_var_num] MUL_t_B0 in
+          TRANS th (AP_TERM b0_const (raw_mul1_left_hash tm tmname mtm))
+      else
+        let name = tmname ^ cn in
+          if (mtm = zero_const) then
+            Hashtbl.find mul_table name
+          else
+            let add_flag, th' = Hashtbl.find mul1_left_th_table name in
+            let th = INST[mtm, m_var_num] th' in
+              if add_flag then
+                let ltm, rtm = dest_comb(rand(concl th)) in
+                let lplus, rarg = dest_comb rtm in
+                let th2 = AP_TERM lplus (raw_mul1_left_hash tm tmname mtm) in
+                let th_add = raw_add_conv_hash (rand(concl th2)) in
+                  TRANS th (AP_TERM ltm (TRANS th2 th_add))
+              else
+                let ltm = rator(rand(concl th)) in
+                let th2 = AP_TERM ltm (raw_mul1_left_hash tm tmname mtm) in
+                  TRANS th th2;;
+
+
+(* Computes B_i(m) * B_j(n) *)
+let rec raw_mul_conv_hash tm =
+  let larg, rarg = dest_comb tm in
+  let larg = rand larg in
+    if larg = zero_const then
+      INST [rarg, n_var_num] MUL_0_n
+    else if rarg = zero_const then
+      INST [larg, n_var_num] MUL_n_0
+    else
+
+      let lbtm, mtm = dest_comb larg in
+      let lcn = fst(dest_const lbtm) in
+        if (lcn = b0_name) then
+          let th = INST[rarg, t_var_num; mtm, n_var_num] MUL_B0_t in
+          let ltm, rtm = dest_comb(rand(concl th)) in
+            TRANS th (AP_TERM ltm (raw_mul_conv_hash rtm))
+        else
+          let rbtm, ntm = dest_comb rarg in
+          let rcn = fst(dest_const rbtm) in
+            if (rcn = b0_name) then
+              let th = INST[larg, t_var_num; ntm, n_var_num] MUL_t_B0 in
+              let ltm, rtm = dest_comb(rand(concl th)) in
+                TRANS th (AP_TERM ltm (raw_mul_conv_hash rtm))
+            else
+
+              if (ntm = zero_const) then
+                if (mtm = zero_const) then
+                  Hashtbl.find mul_table (lcn ^ rcn)
+                else
+                  raw_mul1_right_hash larg (mk_comb(rbtm, zero_const)) rcn
+              else if (mtm = zero_const) then
+                raw_mul1_left_hash (mk_comb(lbtm, zero_const)) lcn rarg
+              else
+
+                let th0 = INST[mtm, m_var_num; ntm, n_var_num]
+                  (Hashtbl.find gen_mul_table (lcn ^ rcn)) in
+                let b_low, expr = dest_comb(rand(concl th0)) in
+                let ltm, rsum = dest_comb expr in
+                let b_high, mul0 = dest_comb (rand ltm) in
+                let th_mul0 = raw_mul_conv_hash mul0 in
+                let th_mul1 = raw_mul1_right_hash mtm (mk_comb(rbtm, zero_const)) rcn in
+                let th_mul2 = raw_mul1_right_hash ntm (mk_comb(lbtm, zero_const)) lcn in
+                let th_larg = AP_TERM plus_op_num (AP_TERM b_high th_mul0) in
+                let th_rarg = MK_COMB(AP_TERM plus_op_num th_mul1, th_mul2) in
+
+                let add_rarg = TRANS th_rarg (raw_add_conv_hash (rand(concl th_rarg))) in
+                let add_th = MK_COMB (th_larg, add_rarg) in
+                let add = TRANS add_th (raw_add_conv_hash (rand(concl add_th))) in
+
+                  TRANS th0 (AP_TERM b_low add);;
+
+
+
+(* The main multiplication conversion *)
+let NUM_MULT_HASH_CONV tm =
+  let ltm, rtm = dest_comb tm in
+  let larg, rarg = rand (rand ltm), rand rtm in
+  let th0 = INST[larg, m_var_num; rarg, n_var_num] MUL_NUM in
+    if (rand(rator(concl th0)) <> tm) then
+      failwith "NUM_MULT_HASH_CONV"
+    else
+      let rtm = rand(rand(concl th0)) in
+      let th = raw_mul_conv_hash rtm in
+        TRANS th0 (AP_TERM num_const th);;
+
+
+
+(**************************)
+
+(* Tests *)
+
+(*
+let x = Int 325325353;;
+let y = Int 999434312;;
+
+let xx = mk_binop mul_op_num (mk_numeral_array x) (mk_numeral_array y);;
+let yy = mk_binop mul_op_num (mk_numeral x) (mk_numeral y);;
+let zz = rand(concl(REWRITE_CONV[NUMERAL] xx));;
+
+NUM_MULT_HASH_CONV xx;;
+
+test 1000 NUM_MULT_CONV yy;; (* 4.12 *)
+test 1000 NUM_MULT_HASH_CONV xx;; (* 4: 1.69; 6: 0.716(1), 0.608(2), 8: 0.328(3) *)
+test 1000 raw_mul_conv_hash zz;; (* 4: 2.45(1), 1.576(2), 8: 0.320 *)
+
+
+needs "example0.hl";;
+
+let x = map (fun t1, t2 -> mk_binop mul_op_num (mk_numeral t1) (mk_numeral t2)) example;;
+let h1 = map (fun t1, t2 -> mk_binop mul_op_num (mk_numeral_array t1) (mk_numeral_array t2)) example;;
+let h2 = map (fun t1, t2 -> mk_binop mul_op_num
+               (rand (mk_numeral_array t1))
+               (rand (mk_numeral_array t2))) example;;
+
+
+test 1 (map NUM_MULT_CONV) x;; (* 2.64 *)
+test 10 (map NUM_MULT_HASH_CONV) h1;; (* 4: 5.43; 6: 3.12; 8: 1.67 *)
+test 10 (map raw_mul_conv_hash) h2;; (* 5.42; 8: 1.576 *)
+*)
+
+
+
+(************************************)
+
+(* DIV *)
+
+
+let DIV_NUM = prove(mk_eq(mk_binop div_op_num (mk_comb(num_const, m_var_num)) (mk_comb(num_const, n_var_num)),
+                          mk_comb(num_const, mk_binop div_op_num m_var_num n_var_num)),
+                    REWRITE_TAC[num_def; NUMERAL]);;
+
+
+let DIV_UNIQ' = (UNDISCH_ALL o 
+		   PURE_ONCE_REWRITE_RULE[ARITH_RULE `a < b <=> (a < b:num <=> T)`] o 
+		   ONCE_REWRITE_RULE[ARITH_RULE `m = q * n + r <=> q * n + r = m:num`] o
+		   REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL) DIV_UNIQ;;
+
+(* Computes m DIV n *)
+let raw_div_hash_conv tm =
+  let ltm, n_tm = dest_comb tm in
+  let m_tm = rand ltm in
+  let m = raw_dest_hash m_tm in
+  let n = raw_dest_hash n_tm in
+  let q = Num.quo_num m n and
+      r = Num.mod_num m n in
+  let q_tm = rand (mk_numeral_array q) and
+      r_tm = rand (mk_numeral_array r) in
+
+  let qn_th = raw_mul_conv_hash (mk_binop mul_op_num q_tm n_tm) in
+  let qn_tm = rand (concl qn_th) in
+  let qnr_th = raw_add_conv_hash (mk_binop plus_op_num qn_tm r_tm) in
+  let th1 = TRANS (AP_THM (AP_TERM plus_op_num qn_th) r_tm) qnr_th in
+  let th2 = raw_lt_hash_conv (mk_binop lt_op_num r_tm n_tm) in
+  let th0 = INST[r_tm, r_var_num; n_tm, n_var_num; m_tm, m_var_num; q_tm, q_var_num] DIV_UNIQ' in
+    MY_PROVE_HYP th1 (MY_PROVE_HYP th2 th0);;
+
+
+
+(* The main division conversion *)
+let NUM_DIV_HASH_CONV tm =
+  let ltm, rtm = dest_comb tm in
+  let larg, rarg = rand (rand ltm), rand rtm in
+  let th0 = INST[larg, m_var_num; rarg, n_var_num] DIV_NUM in
+    if (rand(rator(concl th0)) <> tm) then
+      failwith "NUM_DIV_HASH_CONV"
+    else
+      let rtm = rand(rand(concl th0)) in
+      let th = raw_div_hash_conv rtm in
+        TRANS th0 (AP_TERM num_const th);;
+
+
+(*
+let y = num_of_string "3543593547359";;
+let x = num_of_string "9392392983247294924242";;
+
+
+let xx = mk_binop div_op_num (mk_numeral_array x) (mk_numeral_array y);;
+let yy = mk_binop div_op_num (mk_numeral x) (mk_numeral y);;
+
+(* 1.624 *)
+test 100 NUM_DIV_CONV yy;;
+(* 8: 1.084 *)
+test 1000 NUM_DIV_HASH_CONV xx;;
+*)
+
+
+end;;
+
+

@@ -1,0 +1,384 @@
+needs "arith_hash_int.hl";;
+
+
+let MY_PROVE_HYP hyp th = EQ_MP (DEDUCT_ANTISYM_RULE hyp th) hyp;;
+let REFL_CONV tm = EQT_INTRO (REFL (rand tm));;
+
+
+(* Constants *)
+
+let div_op_real = `(/):real->real->real` and
+    inv_op_real = `inv:real->real`;;
+
+
+let REPLACE_NUMERALS_CONV = DEPTH_CONV from_numeral;;
+let REPLACE_NUMERALS = CONV_RULE REPLACE_NUMERALS_CONV;;
+let REPLACE_NUMS = CONV_RULE (DEPTH_CONV to_numeral);;
+
+
+(******************************)
+
+(* INT_RAT_CONV *)
+
+let int_to_rat = (REPLACE_NUMERALS o prove) (`&n = &n / &1`, 
+		       CONV_TAC (DEPTH_CONV to_numeral) THEN REAL_ARITH_TAC) and
+    neg_int_to_rat = (REPLACE_NUMERALS o prove) (`-- &n = -- &n / &1`,
+			   CONV_TAC (DEPTH_CONV to_numeral) THEN REAL_ARITH_TAC);;
+
+
+let my_real_int_rat_conv tm =
+  if (is_binop div_op_real tm) then
+    REFL tm
+  else
+    let ltm, rtm = dest_comb tm in
+      if (ltm = neg_op_real) then
+	let amp_tm, n_tm = dest_comb rtm in
+	  if (amp_tm = amp_op_real) then
+	    INST[n_tm, n_var_num] neg_int_to_rat
+	  else
+	    failwith "my_real_int_rat_conv: --(&n) expected"
+      else
+	if (ltm = amp_op_real) then
+	  INST[rtm, n_var_num] int_to_rat
+	else
+	  failwith "my_real_int_rat_conv: &n expected";;
+
+
+(*
+let tm = `-- &343`;;
+(* 0.180 *)
+test 10000 REAL_INT_RAT_CONV tm;;
+(* 0.044 *)
+test 10000 my_real_int_rat_conv tm;;
+*)
+
+
+
+(*********************************)
+
+(* ADD *)
+
+let add_th = (UNDISCH_ALL o REPLACE_NUMERALS o prove) (`0 < n1==> 0 < n2 ==> 0 < n3 ==>
+		     (x1 * &n2 + x2 * &n1) * &n3 = x3 * &n1 * &n2 ==>
+		     x1 / &n1 + x2 / &n2 = x3 / &n3`,
+  REWRITE_TAC[GSYM REAL_OF_NUM_LT] THEN
+    MAP_EVERY ABBREV_TAC [`y1 = &n1`; `y2 = &n2`; `y3 = &n3`] THEN
+    REPEAT DISCH_TAC THEN
+    MP_TAC RAT_LEMMA2 THEN
+    ASM_REWRITE_TAC[] THEN
+    DISCH_THEN SUBST1_TAC THEN
+    REWRITE_TAC[GSYM REAL_INV_MUL; GSYM real_div] THEN
+    SUBGOAL_THEN `&0 < y1 * y2 /\ &0 < y3` MP_TAC THENL
+     [ASM_REWRITE_TAC[] THEN MATCH_MP_TAC REAL_LT_MUL THEN
+      ASM_REWRITE_TAC[];
+      DISCH_THEN(fun th -> ASM_REWRITE_TAC[MATCH_MP RAT_LEMMA5 th])]);;
+
+let x1_var = `x1:real` and x2_var = `x2:real` and x3_var = `x3:real` and
+    y1_var = `y1:real` and y2_var = `y2:real` and
+    n1_var = `n1:num` and n2_var = `n2:num` and n3_var = `n3:num`;;
+
+
+let raw_real_rat_add_conv tm =
+  let r1, r2 = dest_binop plus_op_real tm in
+  let x1_tm, y1_tm = dest_binop div_op_real r1 and
+      x2_tm, y2_tm = dest_binop div_op_real r2 in
+  let x1n = my_dest_realintconst x1_tm and 
+      y1n = my_dest_realintconst y1_tm and
+      x2n = my_dest_realintconst x2_tm and 
+      y2n = my_dest_realintconst y2_tm in
+  let x3n = x1n */ y2n +/ x2n */ y1n and
+      y3n = y1n */ y2n in
+  let d = gcd_num x3n y3n in
+    let x3n' = quo_num x3n d and y3n' = quo_num y3n d in
+    let x3n'',y3n'' = if y3n' >/ Int 0 then x3n',y3n'
+                      else minus_num x3n',minus_num y3n' in
+    let x3_tm = my_mk_realintconst x3n'' and 
+	y3_tm = my_mk_realintconst y3n'' in
+
+    let n1_tm = rand y1_tm and n2_tm = rand y2_tm and n3_tm = rand y3_tm in
+    let n1_pos = EQT_ELIM(num_gt0 n1_tm) and
+	n2_pos = EQT_ELIM(num_gt0 n2_tm) and
+	n3_pos = EQT_ELIM(num_gt0 n3_tm) in
+
+    let th0 = INST [x1_tm, x1_var; n1_tm, n1_var; x2_tm, x2_var; 
+		    n2_tm, n2_var; x3_tm, x3_var; n3_tm, n3_var] add_th in
+    let th1 = MY_PROVE_HYP n1_pos (MY_PROVE_HYP n2_pos (MY_PROVE_HYP n3_pos th0)) in
+    let tm2, tm3 = (dest_eq o hd o hyp) th1 in
+    let th2 = (LAND_CONV (BINOP_CONV my_real_int_mul_conv THENC
+                          my_real_int_add_conv) THENC my_real_int_mul_conv) tm2 and
+	th3 = (RAND_CONV my_real_int_mul_conv THENC my_real_int_mul_conv) tm3 in
+      MY_PROVE_HYP (TRANS th2 (SYM th3)) th1;;
+
+
+let my_real_rat_add_conv tm =
+  (BINOP_CONV my_real_int_rat_conv THENC raw_real_rat_add_conv) tm;;
+  
+
+(*
+let tm = `-- &235346 / &146424 + -- &44635 / &3463462`;;
+let tm' = replace_numerals tm;;
+
+(* 2.868 *)
+test 100 REAL_RAT_ADD_CONV tm;;
+(* 0.216 *)
+test 100 my_real_rat_add_conv tm';;
+*)
+
+
+(*************************************)
+
+(* MUL *)
+
+let mul_nocancel = prove(`(x1 / y1) * (x2 / y2) = (x1 * x2) / (y1 * y2)`,
+			 REWRITE_TAC[real_div; REAL_INV_MUL; REAL_MUL_AC]);;
+let mul_cancel = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o REPLACE_NUMERALS o prove) 
+                        (`0 < n1 /\ 0 < n2 /\
+			 (&n1 * u1 = x1) /\ (&n2 * u2 = x2) /\
+			 (&n2 * v1 = y1) /\ (&n1 * v2 = y2)
+		       ==> ((x1 / y1) * (x2 / y2) = (u1 * u2) / (v1 * v2))`,
+   REWRITE_TAC[ARITH_RULE `0 < n <=> ~(n = 0)`] THEN
+     REWRITE_TAC[GSYM REAL_OF_NUM_EQ] THEN
+     MAP_EVERY ABBREV_TAC [`d1 = &n1`; `d2 = &n2`] THEN
+     DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
+     DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN
+     DISCH_THEN(REPEAT_TCL CONJUNCTS_THEN (SUBST1_TAC o SYM)) THEN
+     ASM_REWRITE_TAC[real_div; REAL_INV_MUL] THEN
+     ONCE_REWRITE_TAC[AC REAL_MUL_AC
+	`((d1 * u1) * (id2 * iv1)) * ((d2 * u2) * id1 * iv2) =
+	 (u1 * u2) * (iv1 * iv2) * (id2 * d2) * (id1 * d1)`] THEN
+     ASM_SIMP_TAC[REAL_MUL_LINV; REAL_MUL_RID]);;
+
+let u1_var = `u1:real` and v1_var = `v1:real` and
+    u2_var = `u2:real` and v2_var = `v2:real`;;
+
+
+
+let raw_real_rat_mul_conv tm =
+  let r1,r2 = dest_binop mul_op_real tm in
+  let x1',y1' = dest_binop div_op_real r1 and
+      x2',y2' = dest_binop div_op_real r2 in
+    
+  let x1n = my_dest_realintconst x1' and
+      y1n = my_dest_realintconst y1' and 
+      x2n = my_dest_realintconst x2' and 
+      y2n = my_dest_realintconst y2' in
+    
+  let d1n = gcd_num x1n y2n and
+      d2n = gcd_num x2n y1n in
+    if d1n = num_1 & d2n = num_1 then
+      let th0 = INST [x1',x1_var; y1',y1_var; x2',x2_var; y2',y2_var] mul_nocancel in
+      let th1 = BINOP_CONV my_real_int_mul_conv (rand(concl th0)) in
+	TRANS th0 th1
+    else
+      let u1n = quo_num x1n d1n and
+	  u2n = quo_num x2n d2n and
+	  v1n = quo_num y1n d2n and
+	  v2n = quo_num y2n d1n in
+      let u1' = my_mk_realintconst u1n and
+	  u2' = my_mk_realintconst u2n and
+	  v1' = my_mk_realintconst v1n and
+	  v2' = my_mk_realintconst v2n and
+	  n1' = mk_num d1n and
+	  n2' = mk_num d2n in
+      
+      let th0 = INST [x1',x1_var; y1',y1_var; x2',x2_var; y2',y2_var;
+                      u1',u1_var; v1',v1_var; u2',u2_var; v2',v2_var; 
+		      n1',n1_var; n2',n2_var] mul_cancel in
+      let n1_pos = EQT_ELIM(num_gt0 n1') and
+	  n2_pos = EQT_ELIM(num_gt0 n2') in
+      let th1 = MY_PROVE_HYP n1_pos (MY_PROVE_HYP n2_pos th0) in
+      let hyp_ths = map (EQT_ELIM o (LAND_CONV my_real_int_mul_conv THENC REFL_CONV)) (hyp th1) in
+      let th2 = itlist MY_PROVE_HYP hyp_ths th1 in
+      let th3 = BINOP_CONV my_real_int_mul_conv (rand(concl th2)) in
+	TRANS th2 th3;;
+
+
+let my_real_rat_mul_conv tm =
+  (BINOP_CONV my_real_int_rat_conv THENC raw_real_rat_mul_conv) tm;;
+
+
+(*
+let tm = `-- &656 / &4567 * &4566 / &3666`;;
+let tm' = replace_numerals tm;;
+
+(* 6.384 *)
+test 1000 REAL_RAT_MUL_CONV tm;;
+(* 0.640 *)
+test 1000 my_real_rat_mul_conv tm';;
+*)
+
+
+
+(***********************************)
+
+(* DIV *)
+
+
+let div_th = prove(`(x1 / y1) / (x2 / y2) = (x1 / y1) * (y2 / x2)`,
+   REWRITE_TAC[real_div; REAL_INV_MUL; REAL_INV_INV; REAL_MUL_AC]);;
+
+
+let my_real_rat_div_conv tm =
+  let th0 = BINOP_CONV my_real_int_rat_conv tm in
+  let r1, r2 = dest_binop div_op_real (rand(concl th0)) in
+  let x1, y1 = dest_binop div_op_real r1 and
+      x2, y2 = dest_binop div_op_real r2 in
+  let th1 = INST[x1,x1_var; y1,y1_var; x2,x2_var; y2,y2_var] div_th in
+  let th2 = raw_real_rat_mul_conv (rand(concl th1)) in
+    TRANS th0 (TRANS th1 th2);;
+
+
+
+
+(***********************************************)
+
+(* Polynomial functions *)
+
+
+let poly_f = new_definition `poly_f cs x = ITLIST (\c s. c + x * s) cs (&0)`;;
+
+(* Even function *)
+let poly_f_even = new_definition `poly_f_even cs x = ITLIST (\c s. c + (x * x) * s) cs (&0)`;;
+(* Odd function *)
+let poly_f_odd = new_definition `poly_f_odd cs x = x * poly_f_even cs x`;;
+let poly_f_odd' = SPECL[`t:(real)list`; `x:real`] poly_f_odd;;
+
+let POLY_F_EMPTY = (REPLACE_NUMERALS o prove) (`poly_f [] x = &0`, REWRITE_TAC[poly_f; ITLIST]) and
+    POLY_F_CONS = prove(`poly_f (CONS h t) x = h + x * poly_f t x`, REWRITE_TAC[poly_f; ITLIST]);;
+
+let POLY_F_EVEN_EMPTY = (REPLACE_NUMERALS o prove) (`poly_f_even [] x = &0`, REWRITE_TAC[poly_f_even; ITLIST]) and
+    POLY_F_EVEN_CONS = prove(`poly_f_even (CONS h t) x = h + (x * x) * poly_f_even t x`, REWRITE_TAC[poly_f_even; ITLIST]);;
+
+let POLY_F_ODD_EMPTY = (REPLACE_NUMERALS o prove) (`poly_f_odd [] x = &0`, REWRITE_TAC[poly_f_odd; poly_f_even; ITLIST; REAL_MUL_RZERO]);;
+
+
+let x_var = `x:real` and
+    h_var = `h:real` and
+    t_var = `t:(real)list`;;
+
+
+(*************************)
+
+(* poly_f_conv, poly_f_even_conv, poly_f_odd_conv *)
+
+
+
+let poly_f_conv tm =
+  let ltm, x_tm = dest_comb tm in
+  let list_tm = rand ltm in
+  let inst_t = INST[x_tm, x_var] in
+  let poly_f_cons, poly_f_empty = inst_t POLY_F_CONS, inst_t POLY_F_EMPTY in
+
+  let rec poly_f_conv_raw list_tm =
+    if (is_comb list_tm) then
+      let h_tm, t_tm = dest_comb list_tm in
+      let th0 = INST[rand h_tm, h_var; t_tm, t_var] poly_f_cons in
+      let h_plus, rtm = dest_comb(rand(concl th0)) in
+      let x_times = rator rtm in
+      let th1 = poly_f_conv_raw t_tm in
+      let th2 = TRANS th0 (AP_TERM h_plus (AP_TERM x_times th1)) in
+      let th3 = (RAND_CONV my_real_rat_mul_conv THENC my_real_rat_add_conv) (rand(concl th2)) in
+	TRANS th2 th3
+    else
+      poly_f_empty in
+
+    poly_f_conv_raw list_tm;;
+
+
+
+let poly_f_even_conv tm =
+  let ltm, x_tm = dest_comb tm in
+  let list_tm = rand ltm in
+  let inst_t = INST[x_tm, x_var] in
+  let poly_f_even_cons = inst_t POLY_F_EVEN_CONS and
+      poly_f_even_empty = inst_t POLY_F_EVEN_EMPTY in
+  let x2_times = AP_TERM mul_op_real (my_real_rat_mul_conv (mk_binop mul_op_real x_tm x_tm)) in
+
+  let rec poly_f_even_conv_raw list_tm =
+    if (is_comb list_tm) then
+      let h_tm, t_tm = dest_comb list_tm in
+      let th0 = INST[rand h_tm, h_var; t_tm, t_var] poly_f_even_cons in
+      let h_plus, rtm = dest_comb(rand(concl th0)) in
+      let th1 = poly_f_even_conv_raw t_tm in
+      let th2 = TRANS th0 (AP_TERM h_plus (MK_COMB(x2_times, th1))) in
+      let th3 = (RAND_CONV my_real_rat_mul_conv THENC my_real_rat_add_conv) (rand(concl th2)) in
+	TRANS th2 th3
+    else
+      poly_f_even_empty in
+
+    poly_f_even_conv_raw list_tm;;
+
+
+
+let poly_f_odd_conv tm =
+  let ltm, x_tm = dest_comb tm in
+  let list_tm = rand ltm in
+  let th0 = INST[list_tm, t_var; x_tm, x_var] poly_f_odd' in
+  let ltm, rtm = dest_comb(rand(concl th0)) in
+  let th1 = AP_TERM ltm (poly_f_even_conv rtm) in
+  let th2 = my_real_rat_mul_conv (rand(concl th1)) in
+    TRANS th0 (TRANS th1 th2);;
+
+
+
+(*	
+let tm = `poly_f [-- &1436346 / &436346; -- &244664 / &4654235; &3 / &43545] (-- &144545 / &2345345)`;;
+let tm2 = (rand o concl) (REWRITE_CONV[poly_f; ITLIST] tm);;
+let tm' = replace_numerals tm;;
+
+poly_f_conv tm';;
+
+(* 3.280 *)
+test 10 (REWRITE_CONV [poly_f; ITLIST] THENC REAL_RAT_REDUCE_CONV) tm;;
+(* 3.188 *)
+test 10 REAL_RAT_REDUCE_CONV tm2;;
+(* 0.184 *)
+test 10 poly_f_conv tm';;
+*)
+
+
+(********************************)
+
+let REVERSE_TABLE  = define `(REVERSE_TABLE (f:num->A) 0 = []) /\
+   (REVERSE_TABLE f (SUC i) = CONS (f i)  ( REVERSE_TABLE f i))`;; 
+
+let TABLE = new_definition `!(f:num->A) k. TABLE f k = REVERSE (REVERSE_TABLE f k)`;;
+
+
+let rec reverse_table_conv tm =
+  let ltm, i_tm = dest_comb tm in
+    if (i_tm = `0`) then
+      ONCE_REWRITE_CONV[REVERSE_TABLE] tm
+    else
+      let i_suc = num_CONV i_tm in
+      let th1 = ONCE_REWRITE_RULE[REVERSE_TABLE] (AP_TERM ltm i_suc) in
+      let ltm, rtm = dest_comb (rand(concl th1)) in
+      let th2 = reverse_table_conv rtm in
+	TRANS th1 (AP_TERM ltm th2);;
+
+
+let cos_taylor n = 
+  let tm = mk_comb(`TABLE (\k. (if (EVEN k) then &1 else --(&1)) / &(FACT(2 * k)))`, 
+		   mk_small_numeral n) in
+    (rand o concl) ((REWRITE_CONV[TABLE] THENC 
+       ONCE_DEPTH_CONV reverse_table_conv THENC 
+       REWRITE_CONV[REVERSE; APPEND] THENC NUM_REDUCE_CONV) tm);;
+  
+
+let cos_poly n x = 
+  let tm = mk_comb(mk_comb(`poly_f_even`, cos_taylor n), x) in
+  let tm' = replace_numerals tm in
+    tm';;
+
+let x = rand(concl(REWRITE_CONV[DECIMAL] `#1.230959417`));;
+
+let tm = cos_poly 6 x;;
+
+let tm' = (rand(concl(REPLACE_NUMS (REWRITE_CONV[poly_f_even; ITLIST] tm))));;
+(* 5.860 *)
+test 1 REAL_RAT_REDUCE_CONV tm';;
+
+(* 0.200 *)
+test 1 poly_f_even_conv tm;;
+let result = poly_f_even_conv tm;;
+REPLACE_NUMS result;;

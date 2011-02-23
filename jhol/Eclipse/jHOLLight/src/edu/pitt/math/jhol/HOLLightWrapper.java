@@ -3,96 +3,61 @@ package edu.pitt.math.jhol;
 
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.awt.Color;
+import java.awt.Component;
 import java.io.*;
 import java.lang.reflect.Array;
 
+import javax.swing.JLabel;
+import javax.swing.JTextPane;
+import javax.swing.SwingWorker;
+
 import bsh.EvalError;
+import bsh.util.JConsole;
 
-public class HOLLightWrapper {
+public class HOLLightWrapper extends JConsole implements Runnable {
 
-	private BufferedWriter bin;
-	private BufferedReader bout;
-	private StringBuilder evalStr;
-	private Process proc;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private final BufferedWriter bin;
+	private final BufferedReader bout;
+	private final Process proc;
+	private final ExecutorService es;
+
 	private ProcessBuilder interrupt;
 	private Boolean holIsEchoing;
-	private boolean isBuilt;
 	private int holPid;
 
 	// variable to keep track of the theorem count
 	private int numHolTheorems;
 
 	// variable to hold all the theorems
-	private Set<String> holTheorems;
-	private bsh.Interpreter interpreter;
+	private final Set<String> holTheorems;
+	private final bsh.Interpreter interpreter;
+	private final Component consoleTextPane;
+	private String user;
+	private String server;
 
-	private HOLLightWrapper(List<String> command, bsh.Interpreter interpreter)
-			throws IOException {
-		ProcessBuilder pb = new ProcessBuilder(command);
-		this.interpreter = interpreter;
-		pb.redirectErrorStream(true);
-		evalStr = new StringBuilder();
-		holIsEchoing = null;
-		isBuilt = false;
-		holPid = 0;
-		interrupt = null;
-		numHolTheorems = 0;
-		holTheorems = new TreeSet<String>();
-
-		proc = pb.start();
-
-		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-
-	}
-
-	@SuppressWarnings("unchecked")
 	public Set<String> getTheoremList() {
-		return (Set<String>) ((TreeSet<String>) this.holTheorems).clone();
+		return new TreeSet<String>(this.holTheorems);
 	}
 
-	protected void setInterrupt(ProcessBuilder kill) {
-		if (interrupt != null)
-			throw new IllegalArgumentException("interrupt already set.");
-		else
-			interrupt = kill;
+	protected void eval(String evalStr) throws EvalError {
+		interpreter.eval(evalStr);
 	}
 
 	protected Integer getPID() {
 		return holPid;
 	}
 
-	protected void setPID(int pid) {
-		if (holPid != 0)
-			throw new IllegalArgumentException("PID already set.");
-		else
-			holPid = pid;
-	}
-
-	protected void setEcho(boolean b) {
-		if (holIsEchoing == null)
-			holIsEchoing = b;
-		else
-			throw new IllegalArgumentException("Already set echo status.");
-	}
-
 	protected boolean isEchoing() {
 		return (holIsEchoing != null) && holIsEchoing;
-	}
-
-	protected void setBuilt() {
-		isBuilt = true;
-	}
-
-	protected boolean isBuilt() {
-		return isBuilt;
-	}
-
-	public String getEvalString() {
-		String result = evalStr.toString();
-		evalStr = new StringBuilder();
-		return result;
 	}
 
 	public void kill() {
@@ -103,112 +68,61 @@ public class HOLLightWrapper {
 		try {
 			interrupt.start();
 		} catch (IOException e) {
+			printErr(e);
 
-			e.printStackTrace();
 		}
 	}
 
-	public static Callable<HOLLightWrapper> getHOLBuilderTask(
-			String user, String server, bsh.Interpreter interpreter) {
+	private void printErr(IOException e) {
+		printErr("Console: I/O Error: " + e);
+	}
+
+	protected void printErr(String s) {
+		print(s + "\n", Color.red);
+	}
+
+	protected void write(String s) throws IOException {
+		bin.write(s);
+	}
+
+	protected void flush() throws IOException {
+		bin.flush();
+	}
+
+	public HOLLightWrapper(String user, String server,
+			bsh.Interpreter interpreter) throws IOException {
 		List<String> command = new ArrayList<String>();
 		command.add("ssh");
 		command.add("-tt");
 		command.add(user + "@" + server);
 		command.add("hol_light");
-		return getHOLBuilderTask(command, interpreter);
-		//ssh -tt ${USER}@${SERVER} hol_light
-	}
-	
-	protected static Callable<HOLLightWrapper> getHOLBuilderTask(
-			List<String> command, bsh.Interpreter interpreter) {
-		try {
-			return new HOLBuilderTask(new HOLLightWrapper(command, interpreter));
-		} catch (IOException e) {
 
-			e.printStackTrace();
-		}
-		return null;
+		this.user = user;
+		this.server = server;
+
+		ProcessBuilder pb = new ProcessBuilder(command);
+		this.interpreter = interpreter;
+		pb.redirectErrorStream(true);
+
+		holIsEchoing = null;
+
+		holPid = 0;
+		interrupt = null;
+		numHolTheorems = 0;
+		holTheorems = new TreeSet<String>();
+		consoleTextPane = getViewport().getView();
+		proc = pb.start();
+
+		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+		es = Executors.newSingleThreadExecutor();
+		new Thread(this).start();
+
 	}
 
-	public boolean isReady() throws IOException {
+	public boolean ready() throws IOException {
 		return bout.ready();
-	}
-
-	public String flushOutput() throws IOException {
-
-		StringBuilder str = new StringBuilder();
-		StringBuilder suppressedOutput = new StringBuilder();
-		char c;
-		do {
-			c = (char) bout.read();
-
-			if (str.length() == 0 && c == '@') {
-				evalStr.append(bout.readLine());
-				evalStr.append(';');
-				continue;
-			}
-
-			if (c == 65535) {
-
-				suppressedOutput.append(str.toString());
-				// print("hol_light: EOF reached.");
-				break;
-			}
-			str.append(c);
-
-			if (c == 10) {
-
-				suppressedOutput.append(str.toString());
-				str = new StringBuilder();
-				continue;
-			}
-
-		} while (!(str.length() == 2
-				&& (str.charAt(0) == '#' || str.charAt(0) == ' ')
-				&& str.charAt(1) == ' ' && !bout.ready()));
-
-		suppressedOutput.append(str.toString());
-		return suppressedOutput.toString();
-
-	}
-
-	public String runCommand(String cmd) {
-
-		if (cmd.length() == 0)
-			return null;
-		boolean flag = cmd.charAt(cmd.length() - 1) != '\n';
-		if (flag) {
-			cmd = cmd + "\n";
-			// printHTML(cmd);
-		}// If we generated the command, dont let them know
-
-		try {
-			bin.write(cmd);
-			bin.flush();
-
-			// conjTac2.setEnabled(true);//Interrupt button
-			String result = flushOutput();
-			// if (!flag)
-			// printHTML(result);
-			// conjTac2.setEnabled(false);
-
-			if (isEchoing()) {
-
-				result = result.substring(cmd.length() + 1, result.length());
-			}
-			// System.out.println(result);
-			try {
-				interpreter.eval(getEvalString());
-			} catch (EvalError e) {
-
-				e.printStackTrace();
-			}
-			return result;
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
 	}
 
 	// method for running multiple hol commands at once
@@ -259,19 +173,14 @@ public class HOLLightWrapper {
 	}
 
 	// method to keep theorem list up to date
-	public void updateHolTheorems() {
+	public void updateHolTheorems() throws ParseException {
 		if (numHolTheorems != getNumHolTheorems()) {
 			numHolTheorems = getNumHolTheorems();
 
 			String bangTheorems = runCommand("String.concat \" \" ((fst o List.split)!theorems);;");
 			String[] bangTheorems2;
-			try {
-				bangTheorems2 = parseForString(bangTheorems).split(" ");
-			} catch (ParseException e) {
 
-				e.printStackTrace();
-				return;
-			}
+			bangTheorems2 = parseForString(bangTheorems).split(" ");
 
 			for (int i = 0; i < Array.getLength(bangTheorems2); i++) {
 				holTheorems.add(bangTheorems2[i]);
@@ -279,4 +188,240 @@ public class HOLLightWrapper {
 		}
 	}
 
+	// Method for printing to the console
+	void printHTML(String html) {
+		while (html.indexOf("<HTML>") != -1) {
+			int start = html.indexOf("<HTML>");
+			// console.print(html.substring(0, start));//Print any text that
+			// occurs before the HTML
+			int end = html.indexOf("</HTML>");
+			String htmlText = html.substring(start, end + 7);
+			JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
+
+			((JTextPane) consoleTextPane).insertComponent(tmpLabel);
+			html = html.substring(end + 7, html.length());
+		}
+		print(html);
+	}
+
+	// begin low level functions
+	public static int asciiToDecimal(int c) {
+		if (97 <= c) {
+			c = c - 87;
+		} else {
+			c = c - 48;
+		}
+		return c;
+	}
+
+	public int getChar() {
+		Reader br = getIn();
+		char[] tmp = new char[6];
+		for (int i = 0; i < 6; i++)
+			try {
+				tmp[i] = (char) br.read();
+			} catch (IOException e) {
+
+				e.printStackTrace();
+			}
+		int result = 0;
+		int factor = 1;
+		for (int i = 5; i >= 2; i--) {
+			result += factor * asciiToDecimal(tmp[i]);
+			factor *= 16;
+		}
+		return result;
+	}
+
+	public String getLine() {
+
+		StringBuilder sb = new StringBuilder();
+		while (true) {
+			int c = getChar();
+			if (c == 10)
+				break;
+			sb.appendCodePoint(c);
+		}
+		return sb.toString();
+	}
+
+	public void run() {
+		/*
+		 * String firstOutput = ""; while(firstOutput.indexOf("#") == -1){
+		 * firstOutput += (hol.flushOutput()); //This is on another thread since
+		 * this may block for a while }
+		 */
+		runCommand("2+2;;");// Clear pipes
+		String output = (runCommand("Sys.command(\"exit $PPID\");;"));
+
+		this.holIsEchoing = (output.charAt(0) == 'S');
+		if (isEchoing())
+			output = (runCommand("Sys.command(\"exit $PPID\");;"));
+		int lowByte = HOLLightWrapper.parseForInteger(output);
+		int highByte = HOLLightWrapper
+				.parseForInteger(runCommand("Sys.command \"exit $(($PPID / 256))\";;"));
+		;
+		int pid = highByte * 256 + lowByte;
+
+		this.holPid = pid;
+
+		// ssh ${USER}@${SERVER} kill -2 $1
+		List<String> command = new ArrayList<String>();
+		command.add("ssh");
+		command.add("-tt");
+		command.add(user + "@" + server);
+		command.add("kill");
+		command.add("-2");
+		command.add(getPID().toString());
+
+		ProcessBuilder kill = new ProcessBuilder(command);
+		kill.redirectErrorStream(true);
+
+		interrupt = kill;
+
+		// run commands in hol to initialize the data pipe
+		runHOLCommands("let java cmd = ignore(Sys.command(String.concat  \" \" [\"echo \\\"@\";String.escaped cmd;\"\\\"\"]));;\n"
+				+ "let suffices_to_prove q tac = SUBGOAL_THEN q (fun th -> MP_TAC th THEN tac);;\n"
+				+ "let trivial = MESON_TAC[];;\n"
+				+ "let induction = INDUCT_TAC;;\n"
+				+ "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n"
+				+ "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n"
+				+ "let g goal = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o g) goal;;\n"
+				+ "let e tactic = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o e) tactic;;\n"
+				+ "let b () = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o b) ();;\n"
+				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
+				+ "let r int = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o r) int;;");
+
+		// update the theorem list
+		try {
+			updateHolTheorems();
+		} catch (ParseException e) {
+
+			printErr("Error in " + HOLLightWrapper.class.toString()
+					+ "in run(): " + e);
+		}
+
+		consoleTextPane.addKeyListener(new HOLKeyAdapter(this));
+
+	}
+
+	protected int read() throws IOException {
+
+		return bout.read();
+	}
+
+	protected String readLine() throws IOException {
+		return bout.readLine();
+	}
+
+	public Future<String> runBackgroundCommand(String command) {
+		HOLTask task = new HOLTask(command);
+		es.submit(task);
+		return task;
+	}
+
+	public String runCommand(String string) {
+		
+		try {
+			return runBackgroundCommand(string).get();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	private class HOLTask extends SwingWorker<String, Character> {
+
+		private boolean flag;
+		private String command;
+
+		public HOLTask(String command) {
+			this.command = command;
+
+		}
+
+		private String flushOutput() throws IOException {
+
+			StringBuilder evalStr = new StringBuilder();
+			StringBuilder str = new StringBuilder();
+			StringBuilder suppressedOutput = new StringBuilder();
+			char c;
+			do {
+				if (isEchoing()) {
+					for (int i = 0; i < command.length(); i++)
+						c = (char) read();
+				}
+				c = (char) read();
+				
+				// System.out.print(c);
+				if (str.length() == 0 && c == '@') {
+					evalStr.append(readLine());
+					evalStr.append(';');
+					continue;
+				}
+
+				if (c == 65535) {
+
+					suppressedOutput.append(str.toString());
+					
+					printErr("hol_light: EOF reached.");
+					break;
+				}
+				str.append(c);
+				if (!flag)
+				this.publish(c);
+				if (c == 10) {
+
+					suppressedOutput.append(str.toString());
+					str = new StringBuilder();
+					continue;
+				}
+
+			} while (!(str.length() == 2
+					&& (str.charAt(0) == '#' || str.charAt(0) == ' ')
+					&& str.charAt(1) == ' ' && !ready()));
+
+			suppressedOutput.append(str.toString());
+			String result = suppressedOutput.toString();
+			try {
+				eval(evalStr.toString());
+			} catch (EvalError e) {
+
+				printErr("Java command failed: " + e);
+			}
+			return result;
+		}
+
+		protected void process(List<Character> chunks){
+			for (Character c : chunks){
+				print(c);
+			}
+		}
+		
+		protected String doInBackground() {
+
+			if (command.length() == 0)
+				return null;
+			flag = command.charAt(command.length() - 1) != '\n';
+			if (flag) {
+				command = command + "\n";
+				// printHTML(cmd);
+			}// If we generated the command, dont let them know
+
+			try {
+				write(command);
+				flush();
+
+				return flushOutput();
+
+			} catch (IOException e) {
+				printErr(e);
+				return null;
+			}
+		}
+	}
 }

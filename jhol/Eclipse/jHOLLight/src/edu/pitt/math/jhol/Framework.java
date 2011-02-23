@@ -1,12 +1,9 @@
 package edu.pitt.math.jhol;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -14,7 +11,6 @@ import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -25,30 +21,25 @@ import java.util.concurrent.Future;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextPane;
-
 import bsh.Interpreter;
 import bsh.util.JConsole;
-import bsh.util.NameCompletion;
-
 import com.apple.eawt.*;
 
 public class Framework extends WindowAdapter{
 
 	
-	private HOLLightWrapper hol;
-	private AboutDialog ad;
-	private JFrame frame;
-	private List<JButton> buttonList;
-	private JConsole console;
 	
-	private Component consoleTextPane;
+	private AboutDialog ad;
+	private HOLFrame frame;
+	private List<JButton> buttonList;
+	private HOLConsole console;
+	
+
 	private GoalPane goalPane;
 	
 	public GoalPane getGoalPane(){
@@ -81,7 +72,7 @@ public class Framework extends WindowAdapter{
 	public void quit(JFrame frame) {
 	    if (quitConfirmed(frame)) {
 		System.out.println("Quitting.");
-		hol.kill();
+		console.kill();
 		System.exit(0);
 	    }
 	    System.out.println("Quit operation not confirmed; staying alive.");
@@ -90,7 +81,7 @@ public class Framework extends WindowAdapter{
 	public Framework(Interpreter interpreter) {
 		
 		
-		WindowAdapter controller = this;
+		
 		    boolean IS_A_MAC = System.getProperty("os.name").equals("Mac OS X");
 							       
 		  //begin MacOS stuff
@@ -124,9 +115,9 @@ public class Framework extends WindowAdapter{
 		    ad = new AboutDialog();
 
 		    //Create frame
-		     frame = new HOLFrame(controller);
+		     frame = new HOLFrame();
 			
-		    
+		     frame.addWindowListener(this);
 		    //Create buttons 
 		    JButton sigIntButton = new JButton("Assume");
 		    sigIntButton.setActionCommand("assume");
@@ -148,33 +139,8 @@ public class Framework extends WindowAdapter{
 		    buttonList.add(conjTac2);
 
 
-		    //Console for getting input from user
-		     console = new JConsole();
-		     consoleTextPane = console.getViewport().getView();
-		    consoleTextPane.addKeyListener( new KeyAdapter(){
-			    
-			    //handle other methods
-			    public void keyPressed(KeyEvent e){
-				if  (e.getKeyCode() != KeyEvent.VK_ENTER )
-				    return;
-				//Reader for the console
-			    BufferedReader bufInput = new BufferedReader(console.getIn());
-			    
-				//Main Loop
-				List<String> cmdList = new LinkedList<String>();
-				//	    do
-				//{
-				    //in case someone pastes more than one command into the buffer	    
-				    String line = Utilities.readLine(bufInput);
-				    cmdList.add(line);
-				    //		}while(bufInput.ready());
-				while(cmdList.size() != 0){
-				printHTML(hol.runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n"));
-				}	   
-				//updateTopGoal();
-			    }
-			});
-
+		    
+		     
 		     
 		    
 		    
@@ -202,8 +168,10 @@ public class Framework extends WindowAdapter{
 			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(user,server,interpreter));
 			
 
-		    try {
-				hol = futureHOL.get();
+			HOLLightWrapper tmp2 = null;
+		    final HOLLightWrapper hol;
+			try {
+				 tmp2 = futureHOL.get();
 			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -211,9 +179,10 @@ public class Framework extends WindowAdapter{
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
+			hol = tmp2;
 			
-			printHTML("# ");
-		    
+			//Console for getting input from user
+		     console = new HOLConsole(hol);
 		    
 		    BufferedReader newprinterMLStream = null;
 			try{
@@ -248,14 +217,7 @@ public class Framework extends WindowAdapter{
 
 		
 
-		  //used for auto completion of theorem names
-		    TheoremCompletor holTheoremCompletor = new TheoremCompletor(hol);
-
-		    //used for auto completion of hol commands
-		    NameCompletion nc = new NameCompleter(holTheoremCompletor);
-
-		    //notify the console of the auto complete methods
-		    console.setNameCompletion(nc);
+		  
 
 		    
 
@@ -327,8 +289,7 @@ public class Framework extends WindowAdapter{
 
 		    JPanel toolbar = new JPanel();
 
-		    console.setPreferredSize(new Dimension(700,400));
-
+		  
 		    //START EDITORPANE
 		    
 		   /* helpScrollPane.setPreferredSize(new Dimension(250, 145));
@@ -435,20 +396,7 @@ public class Framework extends WindowAdapter{
 		frame.setVisible(true);
 		}*/
 	
-	//Method for printing to the console
-    void printHTML(String html){
-	while (html.indexOf("<HTML>") != -1){
-	    int start = html.indexOf("<HTML>");
-	    //console.print(html.substring(0, start));//Print any text that occurs before the HTML
-	    int end = html.indexOf("</HTML>");
-	    String htmlText = html.substring(start,end+7);
-	    JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
-	    
-		((JTextPane) consoleTextPane).insertComponent(tmpLabel);
-	    html = html.substring(end+7, html.length());
-	}
-	console.print(html);
-    }
+	
     void test1(){
 		hol.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
 	    }

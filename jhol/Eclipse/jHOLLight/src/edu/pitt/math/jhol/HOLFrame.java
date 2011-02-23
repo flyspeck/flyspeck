@@ -5,8 +5,6 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -22,7 +20,7 @@ public class HOLFrame extends JFrame {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private WindowAdapter framework;
+	
 	private JMenuItem minimizeItem;
 	private JMenuItem zoomItem;
 	public JMenuItem getMinimizeItem(){
@@ -59,10 +57,10 @@ public class HOLFrame extends JFrame {
 		    }
 		};
 	    }	
-	public  HOLFrame(WindowAdapter controller){
+	public  HOLFrame(){
 	    //set name to JHOL DEBUG//
-	    framework = controller;
-	    addWindowListener(framework);
+	    
+	    
 	    
 	   
 	    HOLHelp holHelpDialog = new HOLHelp(this);

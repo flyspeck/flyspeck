@@ -8,16 +8,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -27,7 +21,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import bsh.Interpreter;
-import bsh.util.JConsole;
 import com.apple.eawt.*;
 
 public class Framework extends WindowAdapter{
@@ -37,9 +30,7 @@ public class Framework extends WindowAdapter{
 	private AboutDialog ad;
 	private HOLFrame frame;
 	private List<JButton> buttonList;
-	private HOLConsole console;
-	
-
+	private final HOLLightWrapper hol;
 	private GoalPane goalPane;
 	
 	public GoalPane getGoalPane(){
@@ -72,13 +63,13 @@ public class Framework extends WindowAdapter{
 	public void quit(JFrame frame) {
 	    if (quitConfirmed(frame)) {
 		System.out.println("Quitting.");
-		console.kill();
+		hol.kill();
 		System.exit(0);
 	    }
 	    System.out.println("Quit operation not confirmed; staying alive.");
 	}
 	
-	public Framework(Interpreter interpreter) {
+	public Framework(Interpreter interpreter) throws IOException, ParseException {
 		
 		
 		
@@ -164,61 +155,12 @@ public class Framework extends WindowAdapter{
 		
 			String user = "joepleso";
 			String server = "weyl";
-			ExecutorService es = Executors.newCachedThreadPool();
-			Future<HOLLightWrapper> futureHOL = es.submit(HOLLightWrapper.getHOLBuilderTask(user,server,interpreter));
+			 hol = HOLLightWrapper.create(user, server, interpreter);
+
 			
-
-			HOLLightWrapper tmp2 = null;
-		    final HOLLightWrapper hol;
-			try {
-				 tmp2 = futureHOL.get();
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (ExecutionException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			hol = tmp2;
 			
-			//Console for getting input from user
-		     console = new HOLConsole(hol);
+			
 		    
-		    BufferedReader newprinterMLStream = null;
-			try{
-			newprinterMLStream = new BufferedReader(new FileReader("newprinter.ml"));
-			int c = newprinterMLStream.read();
-			StringBuilder newprinterMLString = new StringBuilder();
-			while (c != -1){
-			    newprinterMLString.append((char)c);
-			    c = newprinterMLStream.read();
-			}
-
-			hol.runHOLCommands(newprinterMLString.toString());
-		    }
-		    catch (IOException x) {
-			System.err.println(x);
-		    } 
-		    finally{
-			if (newprinterMLStream != null)
-				try {
-					newprinterMLStream.close();
-				} catch (IOException e1) {
-					
-					e1.printStackTrace();
-				}
-		    }
-		    
-
-
-
-		    //update the theorem list
-		    hol.updateHolTheorems();
-
-		
-
-		  
-
 		    
 
 		    
@@ -247,7 +189,12 @@ public class Framework extends WindowAdapter{
 		    ActionListener al = new ActionListener() {
 			    public void actionPerformed( ActionEvent event ) {
 				if ( event.getSource() == thmCombo){
-				    myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
+				    try {
+						myList.setListData(lookupTheoremList(thmStrings[thmCombo.getSelectedIndex()]));
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 			    
 				if (event.getActionCommand().startsWith("e"))
@@ -307,7 +254,7 @@ public class Framework extends WindowAdapter{
 		    //Put the editor pane and the text pane in a split pane.
 		    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
 							  editorScrollPane,
-							  console);
+							  hol);
 		    splitPane.setOneTouchExpandable(true);
 		    splitPane.setResizeWeight(0.5);
 
@@ -401,7 +348,7 @@ public class Framework extends WindowAdapter{
 		hol.runCommand("g `!x. ~(x = &1) ==> !n. (sum(0..n) (\\i. x pow i) = ((x pow (n + 1)) - &1) / (x - &1))`;;");
 	    }
   //find the matching set of theorems
-    private String[] lookupTheoremList(String name){
+    private String[] lookupTheoremList(String name) throws ParseException{
 	if (name.equals("Real Numbers"))
 	    return  Database.realNumberTheorems.toArray(new String[0]);
 	if (name.equals("Integers"))

@@ -19,30 +19,31 @@ import javax.swing.SwingWorker;
 import bsh.EvalError;
 import bsh.util.JConsole;
 
-public class HOLLightWrapper extends JConsole implements Runnable {
+public class HOLLightWrapper extends JConsole {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private final BufferedWriter bin;
-	private final BufferedReader bout;
-	private final Process proc;
-	private final ExecutorService es;
+	
+	private  BufferedWriter bin;
+	private  BufferedReader bout;
+	private  Process proc;
+	private ExecutorService es;
 
-	private ProcessBuilder interrupt;
-	private Boolean holIsEchoing;
-	private int holPid;
+	private  ProcessBuilder interrupt;
+	private  Boolean holIsEchoing;
+	private  int holPid;
 
 	// variable to keep track of the theorem count
-	private int numHolTheorems;
+	private  int numHolTheorems;
 
 	// variable to hold all the theorems
-	private final Set<String> holTheorems;
-	private final bsh.Interpreter interpreter;
-	private final Component consoleTextPane;
-	private String user;
-	private String server;
+	private  Set<String> holTheorems;
+	private  bsh.Interpreter interpreter;
+	private  Component consoleTextPane;
+	private  String user;
+	private  String server;
 
 	public Set<String> getTheoremList() {
 		return new TreeSet<String>(this.holTheorems);
@@ -89,7 +90,13 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 		bin.flush();
 	}
 
-	public HOLLightWrapper(String user, String server,
+	public static HOLLightWrapper create(String user, String server, bsh.Interpreter interpreter) throws IOException{
+		final HOLLightWrapper result = new HOLLightWrapper(user,server,interpreter);
+		//new Thread(result).start();
+		return result;
+	}
+	
+    private HOLLightWrapper(String user, String server,
 			bsh.Interpreter interpreter) throws IOException {
 		List<String> command = new ArrayList<String>();
 		command.add("ssh");
@@ -117,7 +124,8 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 
 		es = Executors.newSingleThreadExecutor();
-		new Thread(this).start();
+	
+		
 
 	}
 
@@ -246,21 +254,26 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 	}
 
 	public void run() {
-		/*
-		 * String firstOutput = ""; while(firstOutput.indexOf("#") == -1){
-		 * firstOutput += (hol.flushOutput()); //This is on another thread since
-		 * this may block for a while }
-		 */
-		runCommand("2+2;;");// Clear pipes
+		
+		  
+		  
+		  try {
+			  while((char)read()!='#'){}
+			  read();
+		} catch (IOException e1) {
+			printErr(e1);
+		}
+		 
+		 
+		
 		String output = (runCommand("Sys.command(\"exit $PPID\");;"));
 
 		this.holIsEchoing = (output.charAt(0) == 'S');
 		if (isEchoing())
 			output = (runCommand("Sys.command(\"exit $PPID\");;"));
 		int lowByte = HOLLightWrapper.parseForInteger(output);
-		int highByte = HOLLightWrapper
-				.parseForInteger(runCommand("Sys.command \"exit $(($PPID / 256))\";;"));
-		;
+		int highByte = HOLLightWrapper.parseForInteger(runCommand("Sys.command \"exit $(($PPID / 256))\";;"));
+		
 		int pid = highByte * 256 + lowByte;
 
 		this.holPid = pid;
@@ -292,6 +305,11 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
 				+ "let r int = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o r) int;;");
 
+		String newprinterML = Utilities.readFile("newprinter.ml");
+	
+		runHOLCommands(newprinterML);
+	    
+		
 		// update the theorem list
 		try {
 			updateHolTheorems();
@@ -306,7 +324,8 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 	}
 
 	protected int read() throws IOException {
-
+if(null == bout)
+	throw new RuntimeException("JOE");
 		return bout.read();
 	}
 
@@ -314,7 +333,7 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 		return bout.readLine();
 	}
 
-	public Future<String> runBackgroundCommand(String command) {
+	public synchronized Future<String> runBackgroundCommand(String command) {
 		HOLTask task = new HOLTask(command);
 		es.submit(task);
 		return task;
@@ -420,8 +439,12 @@ public class HOLLightWrapper extends JConsole implements Runnable {
 
 			} catch (IOException e) {
 				printErr(e);
+				
 				return null;
 			}
 		}
 	}
+	
+	
+	
 }

@@ -155,7 +155,7 @@ public class Framework extends WindowAdapter{
 		
 			String user = "joepleso";
 			String server = "weyl";
-			 hol = HOLLightWrapper.create(user, server, interpreter);
+			 hol = new HOLLightWrapper(user, server, interpreter);
 
 			
 			

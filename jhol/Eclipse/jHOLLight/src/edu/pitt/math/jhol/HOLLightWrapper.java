@@ -28,24 +28,25 @@ public class HOLLightWrapper extends JConsole {
 	 */
 	private static final long serialVersionUID = 1L;
 	
-	private  BufferedWriter bin;
-	private  BufferedReader bout;
-	private  Process proc;
-	private ExecutorService es;
+	private  volatile BufferedWriter bin;
+	private  volatile BufferedReader bout;
+	private  volatile Process proc;
+	private volatile ExecutorService es;
 
-	private  ProcessBuilder interrupt;
-	private  Boolean holIsEchoing;
-	private  int holPid;
+	private volatile ProcessBuilder interrupt;
+	private volatile Boolean holIsEchoing;
+	private volatile int holPid;
 
 	// variable to keep track of the theorem count
-	private  int numHolTheorems;
+	private volatile int numHolTheorems;
 
 	// variable to hold all the theorems
-	private  Set<String> holTheorems;
-	private  bsh.Interpreter interpreter;
-	private  Component consoleTextPane;
-	private  String user;
-	private  String server;
+	private volatile Set<String> holTheorems;
+	private volatile  bsh.Interpreter interpreter;
+	private volatile Component consoleTextPane;
+	private volatile String user;
+	private volatile String server;
+	private volatile BufferedReader bufInput;
 
 	public Set<String> getTheoremList() {
 		return new TreeSet<String>(this.holTheorems);
@@ -92,13 +93,9 @@ public class HOLLightWrapper extends JConsole {
 		bin.flush();
 	}
 
-	public static HOLLightWrapper create(String user, String server, bsh.Interpreter interpreter) throws IOException{
-		final HOLLightWrapper result = new HOLLightWrapper(user,server,interpreter);
-		//new Thread(result).start();
-		return result;
-	}
 	
-    private HOLLightWrapper(String user, String server,
+	
+    public HOLLightWrapper(String user, String server,
 			bsh.Interpreter interpreter) throws IOException {
 		List<String> command = new ArrayList<String>();
 		command.add("ssh");
@@ -126,6 +123,7 @@ public class HOLLightWrapper extends JConsole {
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 		Font font = new Font("Monospaced", Font.PLAIN, 12);
 		this.consoleTextPane.setFont(font);
+		bufInput = new BufferedReader(getIn());
 		es = Executors.newSingleThreadExecutor();
 		
 		
@@ -232,7 +230,7 @@ notifyES();
 	}
 
 	// begin low level functions
-	public static int asciiToDecimal(int c) {
+	private static int asciiToDecimal(int c) {
 		if (97 <= c) {
 			c = c - 87;
 		} else {
@@ -241,8 +239,8 @@ notifyES();
 		return c;
 	}
 
-	public int getChar() {
-		Reader br = getIn();
+	private int getChar() {
+		BufferedReader br = bufInput;
 		char[] tmp = new char[6];
 		for (int i = 0; i < 6; i++)
 			try {
@@ -260,13 +258,14 @@ notifyES();
 		return result;
 	}
 
-	public String getLine() {
+	protected  String getLine() {
 
 		StringBuilder sb = new StringBuilder();
 		while (true) {
 			int c = getChar();
 			if (c == 10)
 				break;
+			System.out.print(c);
 			sb.appendCodePoint(c);
 		}
 		return sb.toString();
@@ -348,12 +347,34 @@ notifyES();
 		    }           
 		});  
 		System.out.print("READY");
-		super.run();
+		//super.run();
+		//Main Loop
+        List<String> cmdList = new LinkedList<String>();
+        try {
+        	while(true){
+			do
+			{
+			    //in case someone pastes more than one command into the buffer          
+			System.out.println("BEGIN");    
+			String line = getLine();
+			System.out.println(line);
+			    cmdList.add(line);
+			              }while(bufInput.ready());
+			while(cmdList.size() != 0){
+		        runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n");
+		        }    
+        	}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+             
 
 	}
 
 	protected int read() throws IOException {
-
+		if(SwingUtilities.isEventDispatchThread())
+			throw new RuntimeException("EDT");
 		return bout.read();
 	}
 
@@ -398,7 +419,7 @@ notifyES();
 			StringBuilder suppressedOutput = new StringBuilder();
 			char c;
 			if (isEchoing()) {
-				for (int i = 0; i < command.length(); i++)
+				for (int i = 0; i < command.length()+1; i++)
 					c = (char) read();
 			}
 			do {
@@ -420,7 +441,7 @@ notifyES();
 					break;
 				}
 				str.append(c);
-				if (!flag)
+				//if (!flag)
 				this.publish(c);
 				if (c == 10) {
 

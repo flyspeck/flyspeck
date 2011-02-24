@@ -8,14 +8,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.awt.Color;
-import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
 import java.lang.reflect.Array;
 
+import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -48,7 +50,7 @@ public class HOLLightWrapper extends JConsole {
 	// variable to hold all the theorems
 	private volatile Set<String> holTheorems;
 	private volatile bsh.Interpreter interpreter;
-	private volatile Component consoleTextPane;
+	private volatile JTextPane consoleTextPane;
 	private volatile String user;
 	private volatile String server;
 	private volatile BufferedReader bufInput;
@@ -103,22 +105,39 @@ public class HOLLightWrapper extends JConsole {
 		return goalPane;
 	}
 
-	public HOLLightWrapper(String user, String server) throws IOException,
-			EvalError {
+	public HOLLightWrapper() throws IOException, EvalError{
+		this(null,null);
+	}
+	
+	public void connect(String user, String server) throws IllegalArgumentException, IOException{
+		if (proc != null)
+			throw new IllegalArgumentException("Already connected");
 		List<String> command = new ArrayList<String>();
 		command.add("ssh");
 		command.add("-tt");
 		command.add(user + "@" + server);
 		command.add("hol_light");
-
+		ProcessBuilder pb = new ProcessBuilder(command);
+		pb.redirectErrorStream(true);
+		proc = pb.start();
+		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		
 		this.user = user;
 		this.server = server;
+		
+		notifyES();
+	}
+	
+	public HOLLightWrapper(String user, String server) throws IOException,
+			EvalError {
+		
 
 		goalPane = new GoalPane();
-		ProcessBuilder pb = new ProcessBuilder(command);
+		
 		this.interpreter = new bsh.Interpreter();
 		interpreter.set("hol", this);
-		pb.redirectErrorStream(true);
+		
 
 		holIsEchoing = null;
 
@@ -126,17 +145,17 @@ public class HOLLightWrapper extends JConsole {
 		interrupt = null;
 		numHolTheorems = 0;
 		holTheorems = new TreeSet<String>();
-		consoleTextPane = getViewport().getView();
-		proc = pb.start();
-
-		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		consoleTextPane = (JTextPane) getViewport().getView();	
 		Font font = new Font("Monospaced", Font.PLAIN, 12);
 		this.consoleTextPane.setFont(font);
 		bufInput = new BufferedReader(getIn());
 		es = Executors.newSingleThreadExecutor();
-
-		notifyES();
+consoleTextPane.setEditable(false);
+		this.setPreferredSize(new Dimension(550,350));
+		if (user != null && server != null)
+			connect(user, server);
+		
+		
 	}
 
 	private synchronized void guardedES() {
@@ -275,7 +294,7 @@ public class HOLLightWrapper extends JConsole {
 			int c = getChar();
 			if (c == 10)
 				break;
-			System.out.print(c);
+			
 			sb.appendCodePoint(c);
 		}
 		return sb.toString();
@@ -284,11 +303,15 @@ public class HOLLightWrapper extends JConsole {
 	public void run() {
 
 		guardedES();
-
+final StringBuilder sb = new StringBuilder();
 		try {
-			while ((char) read() != '#') {
+			char c;
+			while ((c = (char) read()) != '#') {
+				sb.append(c);
 			}
-			read();
+			sb.append(c);
+			c = (char) read();
+			sb.append(c);
 		} catch (IOException e1) {
 			printErr(e1);
 		}
@@ -327,11 +350,11 @@ public class HOLLightWrapper extends JConsole {
 				+ "let induction = INDUCT_TAC;;\n"
 				+ "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n"
 				+ "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n"
-				+ "let g goal = (java o (fun () -> \"global.goal.beginTopGoal();\") o ignore o g) goal;;\n"
-				+ "let e tactic = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o e) tactic;;\n"
-				+ "let b () = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o b) ();;\n"
-				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.goal.beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
-				+ "let r int = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o r) int;;");
+				+ "let g goal = (java o (fun () -> \"global.hol.beginTopGoal();\") o ignore o g) goal;;\n"
+				+ "let e tactic = (java o (fun () -> \"global.hol.updateTopGoal();\") o ignore o e) tactic;;\n"
+				+ "let b () = (java o (fun () -> \"global.hol.updateTopGoal();\") o ignore o b) ();;\n"
+				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.hol.beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
+				+ "let r int = (java o (fun () -> \"global.hol.updateTopGoal();\") o ignore o r) int;;");
 
 		String newprinterML = Utilities.readFile("newprinter.ml");
 
@@ -347,6 +370,9 @@ public class HOLLightWrapper extends JConsole {
 		}
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
+				
+				HOLLightWrapper.this.consoleTextPane.setEditable(true);
+				print(sb.toString());
 				consoleTextPane.addKeyListener(new KeyAdapter(){
 					
 				      
@@ -362,7 +388,7 @@ public class HOLLightWrapper extends JConsole {
 			    });
 			}
 		});
-		System.out.print("READY");
+
 		// super.run();
 		// Main Loop
 		List<String> cmdList = new LinkedList<String>();
@@ -371,9 +397,9 @@ public class HOLLightWrapper extends JConsole {
 				do {
 					// in case someone pastes more than one command into the
 					// buffer
-					System.out.println("BEGIN");
+					
 					String line = getLine();
-					System.out.println(line);
+					
 					cmdList.add(line);
 				} while (bufInput.ready());
 				while (cmdList.size() != 0) {
@@ -457,7 +483,7 @@ public class HOLLightWrapper extends JConsole {
 					break;
 				}
 				str.append(c);
-				// if (!flag)
+				 if (!flag)
 				this.publish(c);
 				if (c == 10) {
 
@@ -621,4 +647,79 @@ public class HOLLightWrapper extends JConsole {
 		return "</BODY></HTML>";
 	}
 
+	
+	
+	public static void main(String[] args){
+		javax.swing.SwingUtilities.invokeLater(
+				  new Runnable() {
+				    public void run() {
+					System.setProperty("apple.laf.useScreenMenuBar", "true");
+					
+					System.setProperty("com.apple.mrj.application.apple.menu.about.name", "HOL Terminal");
+					
+					System.setProperty("com.apple.mrj.application.growbox.intrudes", "false");
+					
+					System.setProperty("com.apple.macos.smallTabs", "true");
+					
+					HOLLightWrapper hol;
+					try {
+						hol = new HOLLightWrapper();
+						//Create and set up the window.
+						JFrame frame = new JFrame("HOL Terminal");
+						frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+						frame.add(hol);
+
+						
+						//Display the window.
+						frame.pack();
+						frame.setVisible(true);
+						hol.connectDialog( frame);
+					    
+						
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (EvalError e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					
+				    }
+					
+				  }); 	
+
+	
+	}
+	
+	public void connectDialog(JFrame frame) throws IllegalArgumentException, IOException{
+		String s = (String)JOptionPane.showInputDialog(
+                frame,
+                "Enter username",
+                
+                "Username",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                null);
+		String t = (String)JOptionPane.showInputDialog(
+                frame,
+                "Enter hostname",
+                
+                "HOL Server",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                null);
+
+//If a string was returned, say so.
+if ((s != null) && (s.length() > 0) && (t != null) && (t.length() > 0)) {
+connect(s,t);
+}
+else
+throw new IllegalArgumentException("Bad Input");
+	}
+		
+	
+	
+	
 }

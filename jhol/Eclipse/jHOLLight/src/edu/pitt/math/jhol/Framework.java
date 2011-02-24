@@ -20,7 +20,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import bsh.Interpreter;
+import javax.swing.JTextPane;
+
+import bsh.EvalError;
 import com.apple.eawt.*;
 
 public class Framework extends WindowAdapter{
@@ -30,12 +32,9 @@ public class Framework extends WindowAdapter{
 	private AboutDialog ad;
 	private HOLFrame frame;
 	private List<JButton> buttonList;
-	private final HOLLightWrapper hol;
-	private GoalPane goalPane;
+	private HOLLightWrapper hol;
+	private JTextPane goalPane;
 	
-	public GoalPane getGoalPane(){
-		return goalPane;
-	}
 	
 	//DEBUG	
 	boolean quitConfirmed(JFrame frame) {
@@ -69,7 +68,7 @@ public class Framework extends WindowAdapter{
 	    System.out.println("Quit operation not confirmed; staying alive.");
 	}
 	
-	public Framework(Interpreter interpreter) throws IOException, ParseException {
+	public Framework() throws IOException, ParseException {
 		
 		
 		
@@ -155,7 +154,12 @@ public class Framework extends WindowAdapter{
 		
 			String user = "joepleso";
 			String server = "weyl";
-			 hol = new HOLLightWrapper(user, server, interpreter);
+			 try {
+				hol = new HOLLightWrapper(user, server);
+			} catch (EvalError e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 
 			
 			
@@ -242,7 +246,7 @@ public class Framework extends WindowAdapter{
 		   /* helpScrollPane.setPreferredSize(new Dimension(250, 145));
 		    helpScrollPane.setMinimumSize(new Dimension(10, 10));
 		    */
-		    goalPane = new GoalPane(hol);
+		    goalPane = hol.getGoalPane();
 		    JScrollPane editorScrollPane = new JScrollPane(goalPane);
 
 		    editorScrollPane.setPreferredSize(new Dimension(250, 145));

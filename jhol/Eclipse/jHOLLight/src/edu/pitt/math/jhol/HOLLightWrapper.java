@@ -10,6 +10,8 @@ import java.util.concurrent.Future;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.*;
 import java.lang.reflect.Array;
 
@@ -17,6 +19,9 @@ import javax.swing.JLabel;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.StyledDocument;
 
 import bsh.EvalError;
 import bsh.util.JConsole;
@@ -27,10 +32,10 @@ public class HOLLightWrapper extends JConsole {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	
-	private  volatile BufferedWriter bin;
-	private  volatile BufferedReader bout;
-	private  volatile Process proc;
+
+	private volatile BufferedWriter bin;
+	private volatile BufferedReader bout;
+	private volatile Process proc;
 	private volatile ExecutorService es;
 
 	private volatile ProcessBuilder interrupt;
@@ -42,11 +47,12 @@ public class HOLLightWrapper extends JConsole {
 
 	// variable to hold all the theorems
 	private volatile Set<String> holTheorems;
-	private volatile  bsh.Interpreter interpreter;
+	private volatile bsh.Interpreter interpreter;
 	private volatile Component consoleTextPane;
 	private volatile String user;
 	private volatile String server;
 	private volatile BufferedReader bufInput;
+	private volatile JTextPane goalPane;
 
 	public Set<String> getTheoremList() {
 		return new TreeSet<String>(this.holTheorems);
@@ -93,10 +99,12 @@ public class HOLLightWrapper extends JConsole {
 		bin.flush();
 	}
 
-	
-	
-    public HOLLightWrapper(String user, String server,
-			bsh.Interpreter interpreter) throws IOException {
+	public JTextPane getGoalPane(){
+		return goalPane;
+	}
+
+	public HOLLightWrapper(String user, String server) throws IOException,
+			EvalError {
 		List<String> command = new ArrayList<String>();
 		command.add("ssh");
 		command.add("-tt");
@@ -106,8 +114,10 @@ public class HOLLightWrapper extends JConsole {
 		this.user = user;
 		this.server = server;
 
+		goalPane = new GoalPane();
 		ProcessBuilder pb = new ProcessBuilder(command);
-		this.interpreter = interpreter;
+		this.interpreter = new bsh.Interpreter();
+		interpreter.set("hol", this);
 		pb.redirectErrorStream(true);
 
 		holIsEchoing = null;
@@ -125,27 +135,27 @@ public class HOLLightWrapper extends JConsole {
 		this.consoleTextPane.setFont(font);
 		bufInput = new BufferedReader(getIn());
 		es = Executors.newSingleThreadExecutor();
-		
-		
-notifyES();
+
+		notifyES();
 	}
 
-    private synchronized void guardedES(){
-    	while(es == null){
-    		try {
+	private synchronized void guardedES() {
+		while (es == null) {
+			try {
 				wait();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-    	}
-    	
-    }
-    private synchronized void notifyES(){
-    	
-    	notifyAll();
-    }
-    
+		}
+
+	}
+
+	private synchronized void notifyES() {
+
+		notifyAll();
+	}
+
 	public boolean ready() throws IOException {
 		return bout.ready();
 	}
@@ -221,7 +231,7 @@ notifyES();
 			// occurs before the HTML
 			int end = html.indexOf("</HTML>");
 			String htmlText = html.substring(start, end + 7);
-			JLabel tmpLabel = GoalPane.htmlToJLabel(htmlText);
+			JLabel tmpLabel = htmlToJLabel(htmlText);
 
 			((JTextPane) consoleTextPane).insertComponent(tmpLabel);
 			html = html.substring(end + 7, html.length());
@@ -258,7 +268,7 @@ notifyES();
 		return result;
 	}
 
-	protected  String getLine() {
+	protected String getLine() {
 
 		StringBuilder sb = new StringBuilder();
 		while (true) {
@@ -271,30 +281,27 @@ notifyES();
 		return sb.toString();
 	}
 
-	public  void run() {
-		
-		
-		
-	guardedES();
-		
-		  
-		  try {
-			  while((char)read()!='#'){}
-			  read();
+	public void run() {
+
+		guardedES();
+
+		try {
+			while ((char) read() != '#') {
+			}
+			read();
 		} catch (IOException e1) {
 			printErr(e1);
 		}
-		 
-		
-		
+
 		String output = (runCommand("Sys.command(\"exit $PPID\");;"));
 
 		this.holIsEchoing = (output.charAt(0) == 'S');
 		if (isEchoing())
 			output = (runCommand("Sys.command(\"exit $PPID\");;"));
 		int lowByte = HOLLightWrapper.parseForInteger(output);
-		int highByte = HOLLightWrapper.parseForInteger(runCommand("Sys.command \"exit $(($PPID / 256))\";;"));
-		
+		int highByte = HOLLightWrapper
+				.parseForInteger(runCommand("Sys.command \"exit $(($PPID / 256))\";;"));
+
 		int pid = highByte * 256 + lowByte;
 
 		this.holPid = pid;
@@ -320,17 +327,16 @@ notifyES();
 				+ "let induction = INDUCT_TAC;;\n"
 				+ "let using ths tac = MAP_EVERY MP_TAC ths THEN tac;;\n"
 				+ "let so constr arg tac = constr arg (FIRST_ASSUM MP_TAC THEN tac);;\n"
-				+ "let g goal = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o g) goal;;\n"
-				+ "let e tactic = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o e) tactic;;\n"
-				+ "let b () = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o b) ();;\n"
-				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.framework.getGoalPane().beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
-				+ "let r int = (java o (fun () -> \"global.framework.getGoalPane().updateTopGoal();\") o ignore o r) int;;");
+				+ "let g goal = (java o (fun () -> \"global.goal.beginTopGoal();\") o ignore o g) goal;;\n"
+				+ "let e tactic = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o e) tactic;;\n"
+				+ "let b () = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o b) ();;\n"
+				+ "let set_goal (asl,goal) = (java o (fun () -> \"global.goal.beginTopGoal();\") o ignore o set_goal) asl,goal;;\n"
+				+ "let r int = (java o (fun () -> \"global.goal.updateTopGoal();\") o ignore o r) int;;");
 
 		String newprinterML = Utilities.readFile("newprinter.ml");
-	
+
 		runHOLCommands(newprinterML);
-	    
-		
+
 		// update the theorem list
 		try {
 			updateHolTheorems();
@@ -339,41 +345,51 @@ notifyES();
 			printErr("Error in " + HOLLightWrapper.class.toString()
 					+ "in run(): " + e);
 		}
-		SwingUtilities.invokeLater(new Runnable()
-		{
-		    public void run()
-		    {
-		    	consoleTextPane.addKeyListener(new HOLKeyAdapter(HOLLightWrapper.this));
-		    }           
-		});  
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				consoleTextPane.addKeyListener(new KeyAdapter(){
+					
+				      
+			        public void keyPressed(KeyEvent e){
+			        	if (!SwingUtilities.isEventDispatchThread())
+			        		throw new RuntimeException("EDT@");
+			        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_C){
+			        	HOLLightWrapper.this.interrupt();
+			        }
+			        
+			        
+			        }
+			    });
+			}
+		});
 		System.out.print("READY");
-		//super.run();
-		//Main Loop
-        List<String> cmdList = new LinkedList<String>();
-        try {
-        	while(true){
-			do
-			{
-			    //in case someone pastes more than one command into the buffer          
-			System.out.println("BEGIN");    
-			String line = getLine();
-			System.out.println(line);
-			    cmdList.add(line);
-			              }while(bufInput.ready());
-			while(cmdList.size() != 0){
-		        runCommand(((LinkedList<String>) cmdList).removeFirst()  + "\n");
-		        }    
-        	}
+		// super.run();
+		// Main Loop
+		List<String> cmdList = new LinkedList<String>();
+		try {
+			while (true) {
+				do {
+					// in case someone pastes more than one command into the
+					// buffer
+					System.out.println("BEGIN");
+					String line = getLine();
+					System.out.println(line);
+					cmdList.add(line);
+				} while (bufInput.ready());
+				while (cmdList.size() != 0) {
+					runCommand(((LinkedList<String>) cmdList).removeFirst()
+							+ "\n");
+				}
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-             
 
 	}
 
 	protected int read() throws IOException {
-		if(SwingUtilities.isEventDispatchThread())
+		if (SwingUtilities.isEventDispatchThread())
 			throw new RuntimeException("EDT");
 		return bout.read();
 	}
@@ -389,7 +405,7 @@ notifyES();
 	}
 
 	public String runCommand(String string) {
-		
+
 		try {
 			return runBackgroundCommand(string).get();
 		} catch (InterruptedException e) {
@@ -419,13 +435,13 @@ notifyES();
 			StringBuilder suppressedOutput = new StringBuilder();
 			char c;
 			if (isEchoing()) {
-				for (int i = 0; i < command.length()+1; i++)
+				for (int i = 0; i < command.length() + 1; i++)
 					c = (char) read();
 			}
 			do {
-				
+
 				c = (char) read();
-				
+
 				// System.out.print(c);
 				if (str.length() == 0 && c == '@') {
 					evalStr.append(readLine());
@@ -436,12 +452,12 @@ notifyES();
 				if (c == 65535) {
 
 					suppressedOutput.append(str.toString());
-					
+
 					printErr("hol_light: EOF reached.");
 					break;
 				}
 				str.append(c);
-				//if (!flag)
+				// if (!flag)
 				this.publish(c);
 				if (c == 10) {
 
@@ -465,12 +481,12 @@ notifyES();
 			return result;
 		}
 
-		protected void process(List<Character> chunks){
-			for (Character c : chunks){
+		protected void process(List<Character> chunks) {
+			for (Character c : chunks) {
 				print(c);
 			}
 		}
-		
+
 		protected String doInBackground() {
 
 			if (command.length() == 0)
@@ -489,12 +505,120 @@ notifyES();
 
 			} catch (IOException e) {
 				printErr(e);
-				
+
 				return null;
 			}
 		}
 	}
-	
-	
-	
+
+	private class GoalPane extends JTextPane {
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public GoalPane() {
+			super(new DefaultStyledDocument());
+			setEditable(false);
+		}
+
+	}
+
+	public void beginTopGoal() {
+
+		updateTopGoal();
+	}
+
+	public void updateTopGoal() {
+
+		JTextPane text = goalPane;
+		text.setText("");
+		StyledDocument doc = text.getStyledDocument();
+
+		// Print "Goal: "
+		String htmlString = getHTMLHeader("") + "<b>Goal: </b>"
+				+ getHTMLFooter();
+		JLabel label = htmlToJLabel(htmlString);
+		text.insertComponent(label);
+
+		// Line break
+		try {
+			doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
+		} catch (BadLocationException e) {
+
+			e.printStackTrace();
+		}
+		text.setCaretPosition(doc.getLength());
+
+		// Print top_goal
+		String junk = runCommand("(snd o top_goal)();;");
+		int junkInt = junk.indexOf("<HTML>");// DEBUG all html tag tests should
+												// be case insensitive
+		if (junkInt == -1)
+			return;
+		int junkEnd = junk.indexOf("</HTML>") + 7;
+		junk = junk.substring(junkInt, junkEnd);
+		label = htmlToJLabel(junk);
+		text.insertComponent(label);
+
+		// Line break
+		try {
+			doc.insertString(doc.getEndPosition().getOffset(), "\n\n", null);
+		} catch (BadLocationException e) {
+
+			e.printStackTrace();
+		}
+		text.setCaretPosition(doc.getLength());
+
+		// Print "Assumptions: "
+		htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>"
+				+ getHTMLFooter();
+		label = htmlToJLabel(htmlString);
+		text.insertComponent(label);
+
+		// Line break
+		try {
+			doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
+		} catch (BadLocationException e) {
+
+			e.printStackTrace();
+		}
+		text.setCaretPosition(doc.getLength());
+
+		// Print the assumptions
+		junk = runCommand("List.iter (fun x,y ->( ((fun ()->"
+				+ "(print_string \"\\n\")) o  (fun () ->"
+				+ "(((print_qterm o  concl) y)))) o print_string) (\"\""
+				+ "))   ((fst o top_realgoal)());;");
+		while (junk.indexOf("<HTML>") != -1) {
+			junkInt = junk.indexOf("<HTML>");
+			junkEnd = junk.indexOf("</HTML>") + 7;
+			label = htmlToJLabel(junk.substring(junkInt, junkEnd));
+			junk = junk.substring(junkEnd, junk.length());
+			text.insertComponent(label);
+			try {
+				doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
+			} catch (BadLocationException e) {
+
+				e.printStackTrace();
+			}
+			text.setCaretPosition(doc.getLength());
+		}
+	}
+
+	static JLabel htmlToJLabel(String htmlText) {
+		return new JLabel(htmlText, JLabel.LEFT);
+	}
+
+	static String getHTMLHeader(String title) {
+		if (title == null)
+			title = "";
+		return "<HTML><HEAD><TITLE>" + title + "</TITLE></HEAD><BODY>";
+	}
+
+	static String getHTMLFooter() {
+		return "</BODY></HTML>";
+	}
+
 }

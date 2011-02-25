@@ -461,10 +461,12 @@ public class TermPrinter {
 			if (prec == 1000)
 				node.setBrackets("(", ")");
 
-			node.addBranch(opNode);
+			TermPrinterTree spacedOp = new TermPrinterTree(hop, " " + s);
+//			node.addBranch(opNode);
+			node.addBranch(spacedOp);
 			
 			// Forced space
-			node.addBranch(spaceNode);
+//			node.addBranch(spaceNode);
 
 			TermPrinterTree argNode = print_term(args.get(0), 999);
 			node.addBranch(argNode);
@@ -521,7 +523,11 @@ public class TermPrinter {
 			if (newprec <= prec)
 				node.setBrackets("(", ")");
 			
-			boolean unspaced = unspaced_binops.contains(s); 
+			boolean unspaced = unspaced_binops.contains(s);
+			TermPrinterTree spacedOp = opNode;
+			if (!unspaced)
+				spacedOp = new TermPrinterTree(hop, " " + s + " ");
+			
 			int nbargs = bargs.size();
 			for (int i = 0; i < nbargs; i++) {
 				TermPrinterTree argNode = print_term(bargs.get(i), newprec);
@@ -529,13 +535,14 @@ public class TermPrinter {
 
 				if (i < nbargs - 1) {
 					// Print the operation
-					if (!unspaced)
+					node.addBranch(spacedOp);
+/*					if (!unspaced)
 						node.addBranch(spaceNode);
 
 					node.addBranch(opNode);
 					
 					if (!unspaced)
-						node.addBranch(spaceNode);
+						node.addBranch(spaceNode);*/
 				}
 			}
 			
@@ -545,12 +552,10 @@ public class TermPrinter {
 		
 		// Constants and variables
 		if ((is_const(hop) || is_var(hop)) && nargs == 0) {
+			node = opNode;
+			
 			if (parses_as_binder(s) || get_infix_status(s) != null || is_prefix(s)) {
 				node.setBrackets("(", ")");
-				node.addBranch(opNode);
-			}
-			else {
-				node.addBranch(opNode);
 			}
 			
 			return node;

@@ -201,6 +201,13 @@ public class SubtermSelectionTest extends JComponent {
 			
 			repaint();
 		}
+		
+		
+		@Override
+		public void mouseExited(MouseEvent e) {
+			start1 = end1 = 0;
+			repaint();
+		}
 	}
 
 	public static void main(String[] args) throws Exception {

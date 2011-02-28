@@ -1,0 +1,588 @@
+(*open Sphere;;
+
+needs "jordan/refinement.hl";;
+needs "jordan/lib_ext.hl";;
+needs "jordan/parse_ext_override_interface.hl";;
+needs "jordan/real_ext.hl";;
+needs "jordan/hash_term.hl";;
+prioritize_real();;
+open Refinement;;
+needs "jordan/tactics_jordan.hl";;
+needs "jordan/taylor_atn.hl";;
+needs "jordan/num_ext_nabs.hl";;
+needs "Rqe/num_calc_simp.ml";;
+needs "jordan/float.hl";;
+
+Float.REAL_INEQUALITY_CALCULATOR["sqrt8", PURE_ONCE_REWRITE_CONV[sqrt8]] `#2.82842712 < sqrt8 /\ sqrt8 < #2.82842713`;;
+Float.REAL_INEQUALITY_CALCULATOR["sol0", PURE_ONCE_REWRITE_CONV[sol0]] `sol0 < #0.55128599`;;
+Float.REAL_INEQUALITY_CALCULATOR["sol0", PURE_ONCE_REWRITE_CONV[sol0]] `#0.55128597 < sol0`;;
+Float.REAL_INEQUALITY_CALCULATOR["sol0", PURE_ONCE_REWRITE_CONV[sol0]] `#0.55128598 < sol0`;;
+*)
+
+
+(* Basic interval arithmetic for approximation of constants *)
+
+let interval_arith = new_definition `interval_arith (x:real) (lo, hi) <=> lo <= x /\ x <= hi`;;
+
+
+let CONST_INTERVAL = prove(`!x. interval_arith x (x,x)`, REWRITE_TAC[interval_arith; REAL_LE_REFL]);;
+
+
+let EPS_TO_INTERVAL = prove(`abs (f - x) <= e <=> interval_arith f (x - e, x + e)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+
+let APPROX_INTERVAL = prove(`(a <= lo /\ hi <= b) /\ interval_arith x (lo, hi)
+			      ==> interval_arith x (a,b)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+ 
+
+
+(* Numerical approximations for cos and acos *)
+
+
+let COS_EQ_NEG_SIN = prove(`!x. cos (x + pi / &2) = --sin x`,
+     REWRITE_TAC[COS_SIN; REAL_ARITH `a - (b + a) = --b`; SIN_NEG]);;
+
+   
+
+
+let COS_DERIVATIVES = prove(`!x n. ((\x. cos (x + &n * pi / &2)) has_real_derivative cos (x + &(n + 1) * pi / &2)) (atreal x)`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[] THEN
+     MP_TAC (REAL_DIFF_CONV `((\x. cos (x + &n * pi / &2)) has_real_derivative f) (atreal x)`) THEN
+     SUBGOAL_THEN `(&1 + &0) * --sin (x + &n * pi / &2) = cos (x + &(n + 1) * pi / &2)` (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[REAL_ARITH `(&1 + &0) * --a = --a`] THEN
+     REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN
+     REWRITE_TAC[REAL_ARITH `x + (a + &1) * t = (x + a * t) + t`] THEN
+     REWRITE_TAC[COS_EQ_NEG_SIN]);;
+
+
+
+
+let REAL_TAYLOR_COS_RAW = prove(`!x n. abs (cos x - sum (0..n) (\k. if (EVEN k) then ((-- &1) pow (k DIV 2) * x pow k) / &(FACT k) else &0)) <= 
+				  abs x pow (n + 1) / &(FACT (n + 1))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`(\i x. cos (x + &i * pi / &2))`; `n:num`; `UNIV:real->bool`; `&1`] REAL_TAYLOR) THEN
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[is_realinterval; IN_UNIV; WITHINREAL_UNIV; COS_DERIVATIVES; COS_BOUND];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[IN_UNIV] THEN
+     DISCH_THEN (MP_TAC o SPECL [`&0`; `x:real`]) THEN
+     REWRITE_TAC[REAL_MUL_LZERO; REAL_ADD_RID; REAL_ADD_LID; REAL_SUB_RZERO; REAL_MUL_LID] THEN
+     SUBGOAL_THEN `!i. cos (&i * pi / &2) * x pow i / &(FACT i) = if EVEN i then (-- &1 pow (i DIV 2) * x pow i) / &(FACT i) else &0` (fun th -> SIMP_TAC[th]) THEN
+     GEN_TAC THEN
+     ASM_CASES_TAC `EVEN i` THEN ASM_REWRITE_TAC[] THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[EVEN_EXISTS] THEN
+	 STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `(2 * m) DIV 2 = m` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   MATCH_MP_TAC DIV_MULT THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[GSYM REAL_OF_NUM_MUL] THEN
+	 REWRITE_TAC[REAL_ARITH `(&2 * a) * b / &2 = a * b`] THEN
+	 REWRITE_TAC[COS_NPI] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `cos (&i * pi / &2) = &0` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[COS_ZERO] THEN
+	 DISJ1_TAC THEN EXISTS_TAC `i:num` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[REAL_MUL_LZERO]);;
+
+
+let SUM_PAIR_0 = prove(`!f n. sum (0..2 * n + 1) f = sum(0..n) (\i. f (2 * i) + f (2 * i + 1))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`f:num->real`; `0`; `n:num`] SUM_PAIR) THEN
+     REWRITE_TAC[ARITH_RULE `2 * 0 = 0`]);;
+
+
+let REAL_TAYLOR_COS = prove(`!x n. abs (cos x - sum (0..n) (\i. (-- &1) pow i * x pow (2 * i) / &(FACT (2 * i)))) <= abs x pow (2*n + 2) / &(FACT (2*n + 2))`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPECL [`x:real`; `2 * n + 1`] REAL_TAYLOR_COS_RAW) THEN
+     REWRITE_TAC[SUM_PAIR_0; EVEN_DOUBLE; ARITH_RULE `(2 * n + 1) + 1 = 2 *n + 2`] THEN
+     SUBGOAL_THEN `!i. ~(EVEN (2 * i + 1))` MP_TAC THENL
+     [
+       GEN_TAC THEN REWRITE_TAC[NOT_EVEN] THEN
+	 REWRITE_TAC[ARITH_ODD; ODD_ADD; ODD_MULT];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> SIMP_TAC[th]) THEN
+     SUBGOAL_THEN `!i. (2 * i) DIV 2 = i` MP_TAC THENL
+     [
+       GEN_TAC THEN
+	 MATCH_MP_TAC DIV_MULT THEN
+	 REWRITE_TAC[ARITH];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th; REAL_ADD_RID]) THEN
+     REWRITE_TAC[REAL_ARITH `(a * b) / c = a * b / c`]);;
+     
+
+
+
+
+let gen_sum_thm n =
+  let SUM_lemma n =
+    let tm = list_mk_comb (`sum:(num->bool)->(num->real)->real`, [mk_comb (`(..) 0`, mk_small_numeral n); `f:num->real`]) in
+    let suc_th = REWRITE_RULE[EQ_CLAUSES] (REWRITE_CONV[ARITH] (mk_eq (mk_small_numeral n, mk_comb (`SUC`, mk_small_numeral (n - 1))))) in
+    let th1 = REWRITE_CONV[suc_th] tm in
+      REWRITE_RULE[SUM_CLAUSES_NUMSEG; ARITH] th1 in
+  let rec rewriter th n =
+    if n > 0 then
+      rewriter (REWRITE_RULE[SUM_lemma n; GSYM REAL_ADD_ASSOC] th) (n - 1)
+    else
+      th in
+    GEN_ALL (rewriter (SUM_lemma n) (n - 1));;
+
+
+(* Evaluates cos at a given point using n terms from the cosine Taylor series *)
+let cos_eval x n =
+  let th1 = (SPECL [x; mk_small_numeral n] REAL_TAYLOR_COS) in
+  let th2 = REWRITE_RULE[gen_sum_thm n] th1 in
+  let th4 = CONV_RULE (NUM_REDUCE_CONV) th2 in
+  let th5 = CONV_RULE (DEPTH_CONV REAL_INT_POW_CONV) th4 in
+    CONV_RULE (REAL_RAT_REDUCE_CONV) th5;;
+
+
+
+let acs3_lo = prove(`#1.230959417 <= acs (&1 / &3)`,
+   SUBGOAL_THEN `#1.230959417 = acs (cos(#1.230959417))` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+   [
+     MATCH_MP_TAC (GSYM ACS_COS) THEN
+       MP_TAC PI_APPROX_32 THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+   MATCH_MP_TAC ACS_MONO_LE THEN
+   REWRITE_TAC[COS_BOUNDS] THEN
+   MP_TAC (cos_eval `#1.230959417` 6) THEN
+   REAL_ARITH_TAC);;
+
+(* 1.23095941734077 *)
+let acs3_hi = prove(`acs(&1 / &3) <= #1.230959418`,
+   SUBGOAL_THEN `#1.230959418 = acs(cos(#1.230959418))` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+   [
+     MATCH_MP_TAC (GSYM ACS_COS) THEN
+       MP_TAC PI_APPROX_32 THEN
+       REAL_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+   MATCH_MP_TAC ACS_MONO_LE THEN
+   REWRITE_TAC[COS_BOUNDS] THEN
+   MP_TAC (cos_eval `#1.230959418` 6) THEN
+   REAL_ARITH_TAC);;
+
+
+let le_op_real = `(<=):real->real->bool` and
+    minus_op_real = `(-):real->real->real` and
+    plus_op_real = `(+):real->real->real` and
+    mul_op_real = `( * ):real->real->real` and
+    div_op_real = `(/):real->real->real` and
+    inv_op_real = `inv:real->real` and
+    neg_op_real = `(--):real->real`;;
+
+let mk_decimal a b = 
+  let tm = mk_comb(mk_comb(`DECIMAL`, mk_numeral (Num.abs_num a)), mk_numeral b) in
+    if (a </ Int 0) then
+      mk_comb (neg_op_real, tm)
+    else
+      tm;;
+
+
+
+let approx_interval th precision =
+  let th' = CONV_RULE (RAND_CONV (REWRITE_CONV[DECIMAL] THENC REAL_RAT_REDUCE_CONV)) th in
+  let lo_tm, hi_tm = dest_pair (rand(concl th')) in
+  let lo, hi = rat_of_term lo_tm, rat_of_term hi_tm in
+  let m = (Int 10 **/ Int precision) in
+  let lo_bound = floor_num (lo */ m) in
+  let hi_bound = ceiling_num (hi */ m) in
+  let conv = EQT_ELIM o REAL_RAT_LE_CONV in
+  let lo_th = conv (mk_binop le_op_real (mk_decimal lo_bound m) lo_tm) in
+  let hi_th = conv (mk_binop le_op_real hi_tm (mk_decimal hi_bound m)) in
+  let th0 = CONJ (CONJ lo_th hi_th) th' in
+    MATCH_MP APPROX_INTERVAL th0;;
+
+
+
+(*
+approx_interval th1 9;;
+
+let th = cos_eval `#0.61547970867` 5;;
+let th1 = (CONV_RULE REAL_RAT_REDUCE_CONV) (REWRITE_RULE[EPS_TO_INTERVAL] th);;
+float_of_num (rat_of_term (rand(concl th)));;
+
+approx_interval (concl th1) 10;;
+*)
+
+
+
+(************************************)
+
+(* Square root *)
+
+
+let INTERVAL_SQRT = prove(`interval_arith x (a, b) /\
+			    (c * c <= a /\ b <= d * d) ==>
+			    interval_arith (sqrt x) (abs c, abs d)`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THENL
+     [
+       MATCH_MP_TAC REAL_LE_RSQRT THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `a:real` THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `abs a pow 2 = a * a`];
+       MATCH_MP_TAC REAL_LE_LSQRT THEN
+	 ASM_REWRITE_TAC[REAL_ARITH `abs d pow 2 = d * d`; REAL_ABS_POS] THEN
+	 CONJ_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `a:real` THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `c * c:real` THEN
+	     ASM_REWRITE_TAC[REAL_LE_SQUARE];
+	   MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `b:real` THEN
+	     ASM_REWRITE_TAC[]
+	 ]
+     ]);;
+
+
+
+let interval_sqrt th precision =
+  let th' = CONV_RULE (REWRITE_CONV[DECIMAL] THENC REAL_RAT_REDUCE_CONV) th in
+  let lo, hi = dest_pair(rand(concl th')) in
+  let x_lo, x_hi = float_of_num (rat_of_term lo), float_of_num (rat_of_term hi) in
+  let lo_sqrt, hi_sqrt = Pervasives.sqrt x_lo, Pervasives.sqrt x_hi in
+  let m = 10.0 ** float_of_int precision in
+  let hack n = num_of_string (Int64.to_string (Int64.of_float n)) in
+  let sqrt_lo_num, sqrt_hi_num = hack (floor (lo_sqrt *. m)), hack (ceil (hi_sqrt *. m)) in
+  let m_num = Int 10 **/ Int precision in
+  let x_lo_tm = mk_decimal sqrt_lo_num m_num in
+  let x_hi_tm = mk_decimal sqrt_hi_num m_num in
+  let conv = EQT_ELIM o REAL_RAT_REDUCE_CONV in
+  let lo_th = conv (mk_binop le_op_real (mk_binop mul_op_real x_lo_tm x_lo_tm) lo) in
+  let hi_th = conv (mk_binop le_op_real hi (mk_binop mul_op_real x_hi_tm x_hi_tm)) in
+  let th0 = CONJ th' (CONJ lo_th hi_th) in
+    (CONV_RULE REAL_RAT_REDUCE_CONV) (MATCH_MP INTERVAL_SQRT th0);;
+
+
+
+(************************************)
+
+(* Arithmetic of intervals *)
+
+let INTERVAL_ADD = prove(`interval_arith x (a, b) /\ interval_arith y (c, d)
+			   ==> interval_arith (x + y) (a + c, b + d)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+
+let INTERVAL_SUB = prove(`interval_arith x (a, b) /\ interval_arith y (c, d)
+			  ==> interval_arith (x - y) (a - d, b - c)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+
+let INTERVAL_NEG = prove(`interval_arith x (a, b) ==>
+			   interval_arith (--x) (--b, --a)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+
+
+let INTERVAL_INV = prove(`interval_arith x (a, b) /\ (&0 < a \/ b < &0)
+			   ==> interval_arith (inv x) (inv b, inv a)`,
+   REWRITE_TAC[interval_arith] THEN
+     STRIP_TAC THENL
+     [
+       CONJ_TAC THEN MATCH_MP_TAC REAL_LE_INV2 THEN 
+	 ASM_REWRITE_TAC[] THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN 
+     ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> --b <= --a`] THEN
+     REWRITE_TAC[GSYM REAL_INV_NEG] THEN
+     CONJ_TAC THEN MATCH_MP_TAC REAL_LE_INV2 THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REAL_ARITH_TAC);;
+
+
+let INTERVAL_INV_POS = prove(`interval_arith x (a,b) /\ &0 < a
+			       ==> interval_arith (inv x) (inv b, inv a)`,
+			     SIMP_TAC[INTERVAL_INV]);;
+
+
+let INTERVAL_INV_NEG = prove(`interval_arith x (a,b) /\ b < &0
+			       ==> interval_arith (inv x) (inv b, inv a)`,
+			     SIMP_TAC[INTERVAL_INV]);;
+
+
+
+let INTERVAL_MUL_lemma = prove(`!x y a b c d. interval_arith x (a, b) /\ interval_arith y (c, d) /\ x <= y
+				 ==> x * y <= max (max (a * c) (a * d)) (max (b * c) (b * d))`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[interval_arith] THEN DISCH_TAC THEN
+     ABBREV_TAC `t = max (max (a * c) (a * d)) (max (b * c) (b * d))` THEN
+     SUBGOAL_THEN `a * c <= t /\ a * d <= t /\ b * c <= t /\ b * d <= t:real` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "t" THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     
+     DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ x <= &0`) THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `b * d:real` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `x:real` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISJ_CASES_TAC (REAL_ARITH `&0 <= b \/ b <= &0`) THENL
+     [
+       DISJ_CASES_TAC (REAL_ARITH `&0 <= y \/ y <= &0`) THENL
+	 [
+	   MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `&0` THEN
+	     CONJ_TAC THENL
+	     [
+	       ONCE_REWRITE_TAC[REAL_ARITH `&0 = &0 * y`] THEN
+		 MATCH_MP_TAC REAL_LE_RMUL THEN
+		 ASM_REWRITE_TAC[];
+	       ALL_TAC
+	     ] THEN
+	     
+	     MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `b * d:real` THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MATCH_MP_TAC REAL_LE_MUL THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MATCH_MP_TAC REAL_LE_TRANS THEN
+	     EXISTS_TAC `y:real` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `a * c:real` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ONCE_REWRITE_TAC[GSYM REAL_NEG_MUL2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[REAL_LE_NEG; REAL_NEG_GE0];
+       ALL_TAC
+     ] THEN
+
+     DISJ_CASES_TAC (REAL_ARITH `&0 <= c \/ c <= &0`) THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `b * c:real` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `x * y <= b * c <=> (--b) * c <= (--x) * y`] THEN
+	 MATCH_MP_TAC REAL_LE_MUL2 THEN
+	 ASM_REWRITE_TAC[REAL_LE_NEG; REAL_NEG_GE0];
+       ALL_TAC
+     ] THEN
+
+     DISJ_CASES_TAC (REAL_ARITH `&0 <= y \/ y <= &0`) THENL
+     [
+       MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `&0` THEN
+	 CONJ_TAC THENL
+	 [
+	   ONCE_REWRITE_TAC[REAL_ARITH `&0 = &0 * y`] THEN
+	     MATCH_MP_TAC REAL_LE_RMUL THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `a * c:real` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ONCE_REWRITE_TAC[GSYM REAL_NEG_MUL2] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 ASM_REWRITE_TAC[REAL_NEG_GE0] THEN
+	 MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `x:real` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_TRANS THEN
+     EXISTS_TAC `a * c:real` THEN
+     ASM_REWRITE_TAC[] THEN
+     ONCE_REWRITE_TAC[GSYM REAL_NEG_MUL2] THEN
+     MATCH_MP_TAC REAL_LE_MUL2 THEN
+     ASM_REWRITE_TAC[REAL_LE_NEG; REAL_NEG_GE0]);;
+
+
+
+let INTERVAL_MUL_lemma2 = prove(`!x y a b c d. interval_arith x (a,b) /\ interval_arith y (c,d)
+				  ==> x * y <= max (max (a * c) (a * d)) (max (b * c) (b * d))`,
+   REPEAT STRIP_TAC THEN
+     DISJ_CASES_TAC (REAL_ARITH `x <= y \/ y <= x:real`) THENL
+     [
+       MATCH_MP_TAC INTERVAL_MUL_lemma THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`y:real`; `x:real`; `c:real`; `d:real`; `a:real`; `b:real`] INTERVAL_MUL_lemma) THEN
+     ASM_REWRITE_TAC[] THEN
+     REAL_ARITH_TAC);;
+     
+
+
+
+let INTERVAL_MUL = prove(`interval_arith x (a, b) /\ interval_arith y (c, d)
+			   ==> interval_arith (x * y)
+			   (min (min (a * c) (a * d)) (min (b * c) (b * d)),
+			    max (max (a * c) (a * d)) (max (b * c) (b * d)))`,
+   DISCH_TAC THEN REWRITE_TAC[interval_arith] THEN
+     ASM_SIMP_TAC[INTERVAL_MUL_lemma2] THEN
+     MP_TAC (SPECL[`--x:real`; `y:real`; `--b:real`; `--a:real`; `c:real`; `d:real`] INTERVAL_MUL_lemma2) THEN
+     ASM_SIMP_TAC[INTERVAL_NEG] THEN
+     REAL_ARITH_TAC);;
+     
+   
+
+
+
+
+(**************************************)
+
+
+let const_interval tm = SPEC tm CONST_INTERVAL;;
+
+
+let interval_neg th = MATCH_MP INTERVAL_NEG th;;
+
+
+let interval_add th1 th2 =
+  let th0 = MATCH_MP INTERVAL_ADD (CONJ th1 th2) in
+    (CONV_RULE (RAND_CONV REAL_RAT_REDUCE_CONV)) th0;;
+
+let interval_sub th1 th2 =
+  let th0 = MATCH_MP INTERVAL_SUB (CONJ th1 th2) in
+    (CONV_RULE (RAND_CONV REAL_RAT_REDUCE_CONV)) th0;;
+
+
+let interval_mul th1 th2 =
+  let th0 = MATCH_MP INTERVAL_MUL (CONJ th1 th2) in
+    (CONV_RULE (RAND_CONV REAL_RAT_REDUCE_CONV)) th0;;
+
+
+let interval_inv th =
+  let lt_op_real = `(<):real->real->bool` in
+  let lo_tm, hi_tm = dest_pair(rand(concl th)) in
+  let lo_ineq = REAL_RAT_LT_CONV (mk_binop lt_op_real `&0` lo_tm) in
+    if (rand(concl lo_ineq) = `T`) then
+      let th0 = CONJ th (EQT_ELIM lo_ineq) in
+	(CONV_RULE (RAND_CONV REAL_RAT_REDUCE_CONV)) (MATCH_MP INTERVAL_INV_POS th0)
+    else 
+      let hi_ineq = REAL_RAT_LT_CONV (mk_binop lt_op_real hi_tm `&0`) in
+	if (rand(concl hi_ineq) = `T`) then
+	  let th0 = CONJ th (EQT_ELIM hi_ineq) in
+	    (CONV_RULE (RAND_CONV REAL_RAT_REDUCE_CONV)) (MATCH_MP INTERVAL_INV_NEG th0)
+	else failwith("interval_inv: 0 is inside interval");;
+
+let interval_div th1 th2 =
+  let th2' = interval_inv th2 in
+    ONCE_REWRITE_RULE[GSYM real_div] (interval_mul th1 th2');;
+
+
+
+(*************************)
+
+
+let acs3_interval = REWRITE_RULE[GSYM interval_arith] (CONJ acs3_lo acs3_hi);;
+
+
+let pi_interval = prove(`interval_arith pi (#3.141592653, #3.141592654)`,
+   REWRITE_TAC[interval_arith] THEN
+     MP_TAC PI_APPROX_32 THEN REAL_ARITH_TAC);;
+
+
+let tgt_interval = prove(`interval_arith tgt (#1.541, #1.541)`,
+   REWRITE_TAC[Tame_defs.tgt; interval_arith; REAL_LE_REFL]);;
+
+
+
+let interval_table = Hashtbl.create 10;;
+let add_interval th = Hashtbl.add interval_table ((rand o rator o concl) th) th;;
+
+
+
+let rec create_interval tm =
+  if Hashtbl.mem interval_table tm then
+    Hashtbl.find interval_table tm
+  else
+    if (is_ratconst tm) then
+      const_interval tm
+    else if (is_binop plus_op_real tm) then
+      let lhs, rhs = dest_binop plus_op_real tm in
+	interval_add (create_interval lhs) (create_interval rhs)
+    else if (is_binop minus_op_real tm) then
+      let lhs, rhs = dest_binop minus_op_real tm in
+	interval_sub (create_interval lhs) (create_interval rhs)
+    else if (is_binop mul_op_real tm) then
+      let lhs, rhs = dest_binop mul_op_real tm in
+	interval_mul (create_interval lhs) (create_interval rhs)
+    else if (is_binop div_op_real tm) then
+      let lhs, rhs = dest_binop div_op_real tm in
+	interval_div (create_interval lhs) (create_interval rhs)
+    else if (is_comb tm) then
+      let ltm, rtm = dest_comb tm in
+	if (ltm = inv_op_real) then
+	  interval_inv (create_interval rtm)
+	else if (ltm = neg_op_real) then
+	  interval_neg (create_interval rtm)
+	else failwith "create_interval: unknown unary operation"
+    else
+      failwith "create_interval: unexpected term";;
+
+
+
+open Sphere;;
+  
+
+add_interval pi_interval;;
+add_interval acs3_interval;;
+add_interval tgt_interval;;
+add_interval (REWRITE_RULE[GSYM sqrt8] (interval_sqrt (const_interval `&8`) 9));;
+add_interval (REWRITE_RULE[GSYM sol0] (create_interval `&3 * acs(&1 / &3) - pi`));;
+add_interval (create_interval `sol0 / pi`);;
+
+
+let rho218 = new_definition `rho218 = rho(#2.18)`;;
+
+let rho218_def = (REWRITE_CONV[rho218; rho; ly; interp; GSYM Tame_general.sol0_over_pi_EQ_const1] THENC
+   REAL_RAT_REDUCE_CONV) `rho218`;;
+
+let rho218_interval = REWRITE_RULE[SYM rho218_def] (create_interval(rand(concl rho218_def)));;
+
+add_interval rho218_interval;;
+
+
+(*
+approx_interval (create_interval `rho (#2.18)`) 8;;
+
+approx_interval (create_interval `&2 * (pi + sol0)`) 6;;
+
+approx_interval (create_interval `sqrt8 - pi / sol0 + rho(#2.18) * &3`) 6;;
+
+approx_interval (create_interval `pi * pi`) 6;;
+*)

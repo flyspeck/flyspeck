@@ -1,0 +1,2513 @@
+needs "list_hypermap_defs.hl";;
+
+
+open Sphere;;
+(* For IMAGE_LEMMA *)
+open Hypermap_and_fan;;
+
+let REMOVE_ASSUM = POP_ASSUM (fun th -> ALL_TAC);;
+
+let IN_TRANS = prove(`!(x:A) s t. t SUBSET s /\ x IN t ==> x IN s`,
+   SET_TAC[]);;
+
+let LENGTH_ZIP = prove(`!(l1:(A)list) (l2:(B)list). LENGTH l1 = LENGTH l2 ==> LENGTH (ZIP l1 l2) = LENGTH l1`,
+   LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; ZIP; NOT_SUC; GSYM NOT_SUC] THEN
+     REWRITE_TAC[SUC_INJ] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let MEM_ZIP = prove(`!(i:A) (j:B) l1 l2. LENGTH l1 = LENGTH l2 /\ MEM (i,j) (ZIP l1 l2) ==> MEM i l1 /\ MEM j l2`,
+   GEN_TAC THEN GEN_TAC THEN
+     LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; ZIP; MEM; NOT_SUC; GSYM NOT_SUC] THEN
+     REWRITE_TAC[SUC_INJ; PAIR_EQ] THEN
+     STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `t':(B)list`) THEN
+     ASM_SIMP_TAC[]);;
+
+
+let EL_ZIP = prove(`!(l1:(A)list) (l2:(B)list) i. LENGTH l1 = LENGTH l2 /\ i < LENGTH l1 ==> EL i (ZIP l1 l2) = (EL i l1, EL i l2)`,
+   LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; ZIP; LT; NOT_SUC; SUC_INJ] THEN
+     POP_ASSUM (fun th -> ALL_TAC) THEN GEN_TAC THEN
+     REWRITE_TAC[GSYM LT] THEN
+     DISJ_CASES_TAC (SPEC `i:num` num_CASES) THENL
+     [
+       ASM_REWRITE_TAC[EL; HD];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM CHOOSE_TAC THEN
+     ASM_REWRITE_TAC[LT_SUC; EL; TL]);;
+
+
+(****************************)
+
+(* INDEX *)
+
+
+let EL_INDEX = prove(`!(x:A) list. MEM x list ==> EL (INDEX x list) list = x`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     ASM_CASES_TAC `x = h:A` THEN ASM_REWRITE_TAC[] THENL
+     [
+       ASM_REWRITE_TAC[INDEX; EL; HD];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[INDEX; EL; TL]);;
+
+
+let INDEX_LE_LENGTH = prove(`!(x:A) list. INDEX x list <= LENGTH list`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[INDEX; LENGTH; LE_REFL] THEN
+     ASM_CASES_TAC `x = h:A` THEN ASM_REWRITE_TAC[ARITH_RULE `0 <= SUC n`; LE_SUC]);;
+
+   
+
+let INDEX_EQ_LENGTH = prove(`!(x:A) list. ~(MEM x list) <=> INDEX x list = LENGTH list`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM; INDEX; LENGTH] THEN
+     REWRITE_TAC[DE_MORGAN_THM] THEN
+     ASM_CASES_TAC `x = h:A` THEN ASM_REWRITE_TAC[GSYM NOT_SUC; EQ_SUC]);;
+				
+
+
+let INDEX_LT_LENGTH = prove(`!(x:A) list. MEM x list <=> INDEX x list < LENGTH list`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[INDEX; LENGTH; MEM; LT_REFL] THEN
+     ASM_CASES_TAC `x = h:A` THEN ASM_REWRITE_TAC[ARITH_RULE `0 < SUC n`; LT_SUC]);;
+   
+
+(* ALL_DISTINCT *)
+
+let CARD_SET_OF_LIST_ALL_DISTINCT = prove(`!l:(A)list. ALL_DISTINCT l ==>
+					    CARD (set_of_list l) = LENGTH l`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; LENGTH; set_of_list; CARD_CLAUSES] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     ASM_SIMP_TAC[FINITE_SET_OF_LIST; CARD_CLAUSES; IN_SET_OF_LIST]);;
+
+
+(* list_sum *)
+
+
+let ALL_DISTINCT_SUM = prove(`!(f:A->real) list. ALL_DISTINCT list ==> sum (set_of_list list) f = list_sum list f`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; set_of_list; SUM_CLAUSES; list_sum; ITLIST] THEN
+     REWRITE_TAC[GSYM list_sum] THEN
+     STRIP_TAC THEN
+     ASM_SIMP_TAC[SUM_CLAUSES; FINITE_SET_OF_LIST] THEN
+     ASM_REWRITE_TAC[IN_SET_OF_LIST]);;
+
+
+
+let ALL_DISTINCT_APPEND = prove(`!l1 l2:(A)list. ALL_DISTINCT (APPEND l1 l2) ==> ALL_DISTINCT l1 /\ ALL_DISTINCT l2`,
+   LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; APPEND; APPEND_NIL] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `CONS (h':A) t'`) THEN
+     ASM_REWRITE_TAC[ALL_DISTINCT_ALT] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     POP_ASSUM MP_TAC THEN
+     SIMP_TAC[MEM_APPEND; DE_MORGAN_THM]);;
+
+
+let ALL_DISTINCT_APPEND_SYM = prove(`!l1 l2:(A)list. ALL_DISTINCT (APPEND l1 l2) <=> 
+				      ALL_DISTINCT (APPEND l2 l1)`,
+   LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; APPEND; APPEND_NIL] THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     FIRST_ASSUM (MP_TAC o SPEC `CONS (h':A) t'`) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[APPEND; ALL_DISTINCT_ALT; MEM_APPEND; DE_MORGAN_THM] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `t':(A)list`) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[MEM; DE_MORGAN_THM] THEN
+     EQ_TAC THEN SIMP_TAC[]);;
+
+
+
+let ALL_DISTINCT_IMP_INDEX_UNIQUE = prove(`!(x:A) i l. ALL_DISTINCT l /\ MEM x l /\ i < LENGTH l /\ EL i l = x ==> i = INDEX x l`,
+   REWRITE_TAC[ALL_DISTINCT] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`i:num`; `INDEX (x:A) l`]) THEN
+     ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH] THEN
+     ASM_SIMP_TAC[EL_INDEX]);;
+
+
+
+let INDEX_EL = prove(`!i (list:(A)list). ALL_DISTINCT list /\ i < LENGTH list ==> INDEX (EL i list) list = i`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC (GSYM ALL_DISTINCT_IMP_INDEX_UNIQUE) THEN
+     ASM_SIMP_TAC[MEM_EL]);;
+   
+
+
+
+     
+(* Shift left/right *)
+     
+
+
+let SHIFT_RIGHT = prove(`!h h' (t:(A)list). shift_right ([]:(A)list) = [] 
+    /\ shift_right (CONS h []) = [h] 
+    /\ shift_right (CONS h (CONS h' t)) = CONS (LAST (CONS h' t)) (BUTLAST (CONS h (CONS h' t)))`,
+   REPEAT GEN_TAC THEN
+     REWRITE_TAC[shift_right; NOT_CONS_NIL; LAST; BUTLAST]);;
+
+
+let SHIFT_RIGHT = prove(`!(h:A) t. shift_right ([]:(A)list) = [] /\ shift_right (CONS h t) = CONS (LAST (CONS h t)) (BUTLAST (CONS h t))`,
+   REWRITE_TAC[shift_right; NOT_CONS_NIL]);;
+
+
+
+let MEM_SHIFT_LEFT = prove(`!(x:A) l. MEM x l <=> MEM x (shift_left l)`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM; shift_left] THEN
+     REWRITE_TAC[MEM_APPEND; MEM] THEN
+     ASM_CASES_TAC `x = h:A` THEN ASM_REWRITE_TAC[]);;
+
+
+
+
+let BUTLAST_APPEND_SING = prove(`!(x:A) t. BUTLAST (APPEND t [x]) = t`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[APPEND; BUTLAST] THEN
+     COND_CASES_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN REWRITE_TAC[APPEND_EQ_NIL; NOT_CONS_NIL];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let SHIFT_LEFT_RIGHT = prove(`!list:(A)list. shift_left (shift_right list) = list /\ shift_right (shift_left list) = list`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[shift_left; SHIFT_RIGHT] THEN
+     SIMP_TAC[NOT_CONS_NIL; APPEND_BUTLAST_LAST] THEN
+     REWRITE_TAC[shift_right] THEN
+     COND_CASES_TAC THENL
+     [
+       POP_ASSUM (MP_TAC o AP_TERM `LENGTH:(A)list->num`) THEN
+	 REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[BUTLAST_APPEND_SING; LAST_APPEND; NOT_CONS_NIL; LAST]);;
+
+
+     
+let SHIFT_LEFT_RIGHT_o_I = prove(`shift_left o shift_right = (I:(A)list->(A)list) /\ shift_right o shift_left = (I:(A)list->(A)list)`,
+   REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM; SHIFT_LEFT_RIGHT]);;
+
+
+
+let MEM_SHIFT_RIGHT = prove(`!(x:A) l. MEM x l <=> MEM x (shift_right l)`,
+   REPEAT GEN_TAC THEN
+     MP_TAC (SPEC `l:(A)list` SHIFT_LEFT_RIGHT) THEN
+     DISCH_THEN (MP_TAC o SYM o CONJUNCT1) THEN
+     DISCH_THEN (fun th -> CONV_TAC (LAND_CONV (ONCE_REWRITE_CONV[th]))) THEN
+     REWRITE_TAC[GSYM MEM_SHIFT_LEFT]);;
+     
+
+
+
+let EL_SHIFT_LEFT = prove(`!i (list:(A)list). i < LENGTH list ==> EL i (shift_left list) = if (i = LENGTH list - 1) then EL 0 list else EL (i + 1) list`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[EL; LENGTH; shift_left; LT] THEN
+     STRIP_TAC THENL
+     [
+       ASM_REWRITE_TAC[EL_APPEND; ARITH_RULE `SUC n - 1 = n`; LT_REFL; SUB_REFL; EL; HD];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[ARITH_RULE `i < n ==> ~(i = SUC n - 1)`] THEN
+     ASM_REWRITE_TAC[EL_APPEND; GSYM ADD1; EL; TL]);;
+
+
+
+
+let LENGTH_SHIFT_LEFT = prove(`!list:(A)list. LENGTH (shift_left list) = LENGTH list`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; shift_left] THEN
+     REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN ARITH_TAC);;
+
+
+let LENGTH_SHIFT_RIGHT = prove(`!list:(A)list. LENGTH (shift_right list) = LENGTH list`,
+   GEN_TAC THEN 
+     MP_TAC (CONJUNCT1 (SPEC `list:(A)list` SHIFT_LEFT_RIGHT)) THEN
+     DISCH_THEN (MP_TAC o (fun th -> AP_TERM `LENGTH:(A)list->num` th)) THEN
+     REWRITE_TAC[LENGTH_SHIFT_LEFT]);;
+
+
+let EL_SHIFT_RIGHT = prove(`!i (list:(A)list). i < LENGTH list ==> EL i (shift_right list) = if (i = 0) then EL (LENGTH list - 1) list else EL (i - 1) list`,
+   REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `i = 0` THEN ASM_REWRITE_TAC[] THENL
+     [
+       SUBGOAL_THEN `~(list:(A)list = [])` ASSUME_TAC THENL
+	 [
+	   DISCH_TAC THEN UNDISCH_TAC `i < LENGTH (list:(A)list)` THEN
+	     ASM_REWRITE_TAC[LENGTH; LT_REFL];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[GSYM LAST_EL] THEN
+	 ASM_REWRITE_TAC[shift_right; EL; HD];
+       ALL_TAC
+     ] THEN
+			       
+     MP_TAC (CONJUNCT1 (SPEC `list:(A)list` SHIFT_LEFT_RIGHT)) THEN
+     DISCH_THEN (MP_TAC o (fun th -> AP_TERM `(EL:num->(A)list->A) (i - 1)` th)) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     MP_TAC (SPECL [`i - 1`; `shift_right (list:(A)list)`] EL_SHIFT_LEFT) THEN
+     REWRITE_TAC[LENGTH_SHIFT_RIGHT; SHIFT_LEFT_RIGHT] THEN
+     ANTS_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `~(i - 1 = LENGTH (list:(A)list) - 1)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[ARITH_RULE `~(i = 0) ==> i - 1 + 1 = i`]);;
+
+     
+(* NEXT_EL, PREV_EL *)  
+
+
+let NEXT_EL_ALT = prove(`!(x:A) list. MEM x list ==> NEXT_EL x list = EL (INDEX x list) (shift_left list)`,
+   REWRITE_TAC[INDEX_LT_LENGTH] THEN REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`INDEX x (list:(A)list)`; `list:(A)list`] EL_SHIFT_LEFT) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[NEXT_EL; EL]);;
+
+
+let PREV_EL_ALT = prove(`!(x:A) list. MEM x list ==> PREV_EL x list = EL (INDEX x list) (shift_right list)`,
+   REWRITE_TAC[INDEX_LT_LENGTH] THEN REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`INDEX x (list:(A)list)`; `list:(A)list`] EL_SHIFT_RIGHT) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[PREV_EL] THEN
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     MATCH_MP_TAC LAST_EL THEN
+     DISCH_TAC THEN UNDISCH_TAC `INDEX x (list:(A)list) < LENGTH (list:(A)list)` THEN
+     ASM_REWRITE_TAC[LENGTH; LT]);;
+
+
+let MEM_NEXT_EL = prove(`!(x:A) list. MEM x list ==> MEM (NEXT_EL x list) list`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[NEXT_EL_ALT] THEN
+     ONCE_REWRITE_TAC[MEM_SHIFT_LEFT] THEN
+     REWRITE_TAC[MEM_EXISTS_EL] THEN
+     EXISTS_TAC `INDEX (x:A) list` THEN
+     ASM_REWRITE_TAC[LENGTH_SHIFT_LEFT; GSYM INDEX_LT_LENGTH]);;
+
+
+let MEM_PREV_EL = prove(`!(x:A) list. MEM x list ==> MEM (PREV_EL x list) list`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[PREV_EL_ALT] THEN
+     ONCE_REWRITE_TAC[MEM_SHIFT_RIGHT] THEN
+     REWRITE_TAC[MEM_EXISTS_EL] THEN
+     EXISTS_TAC `INDEX (x:A) list` THEN
+     ASM_REWRITE_TAC[LENGTH_SHIFT_RIGHT; GSYM INDEX_LT_LENGTH]);;
+
+
+
+let INDEX_HD = prove(`!list:(A)list. ~(list = []) ==> INDEX (HD list) list = 0`,
+   LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[NOT_CONS_NIL; INDEX; HD]);;
+   
+
+let PREV_NEXT_ID = prove(`!(x:A) list. ALL_DISTINCT list /\ MEM x list ==> PREV_EL (NEXT_EL x list) list = x`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[NEXT_EL] THEN
+     SUBGOAL_THEN `~(list = []:(A)list)` ASSUME_TAC THENL
+     [
+       DISCH_TAC THEN UNDISCH_TAC `MEM (x:A) list` THEN
+	 ASM_REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     COND_CASES_TAC THENL
+     [
+       REWRITE_TAC[PREV_EL] THEN
+	 ASM_SIMP_TAC[INDEX_HD; LAST_EL] THEN
+	 MP_TAC (SPECL [`x:A`; `list:(A)list`] EL_INDEX) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[PREV_EL] THEN
+     ABBREV_TAC `i = INDEX (x:A) list` THEN
+     SUBGOAL_THEN `i + 1 < LENGTH (list:(A)list)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[ARITH_RULE `i + 1 < n <=> i < n /\ ~(i = n - 1)`] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`i + 1`; `list:(A)list`] INDEX_EL) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[ARITH_RULE `~(i + 1 = 0)`; ARITH_RULE `(i + 1) - 1 = i`] THEN
+     MP_TAC (SPECL [`x:A`; `list:(A)list`] EL_INDEX) THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+let NEXT_PREV_ID = prove(`!(x:A) list. ALL_DISTINCT list /\ MEM x list ==> NEXT_EL (PREV_EL x list) list = x`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[PREV_EL] THEN
+     SUBGOAL_THEN `~(list = []:(A)list)` ASSUME_TAC THENL
+     [
+       DISCH_TAC THEN UNDISCH_TAC `MEM (x:A) list` THEN
+	 ASM_REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `0 < LENGTH (list:(A)list)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `~(list = []:(A)list)` THEN
+	 ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+	 REWRITE_TAC[NOT_LT; LE; LENGTH_EQ_NIL];
+       ALL_TAC
+     ] THEN
+
+     COND_CASES_TAC THENL
+     [
+       REWRITE_TAC[NEXT_EL] THEN
+	 SUBGOAL_THEN `INDEX (LAST list) (list:(A)list) = LENGTH list - 1` ASSUME_TAC THENL
+	 [
+	   ASM_SIMP_TAC[LAST_EL] THEN
+	     MATCH_MP_TAC INDEX_EL THEN
+	     ASM_REWRITE_TAC[ARITH_RULE `n - 1 < n <=> 0 < n`];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPECL [`x:A`; `list:(A)list`] EL_INDEX) THEN
+	 ASM_REWRITE_TAC[EL];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[NEXT_EL] THEN
+     ABBREV_TAC `i = INDEX (x:A) list` THEN
+     SUBGOAL_THEN `0 < i /\ i - 1 < LENGTH (list:(A)list)` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[LT_NZ] THEN
+	 MATCH_MP_TAC (ARITH_RULE `i < n ==> i - 1 < n`) THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`i - 1`; `list:(A)list`] INDEX_EL) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ASM_SIMP_TAC[ARITH_RULE `0 < i /\ 0 < n ==> (i - 1 = n - 1 <=> i = n)`] THEN
+     ASM_SIMP_TAC[ARITH_RULE `0 < i ==> i - 1 + 1 = i`] THEN
+     EXPAND_TAC "i" THEN ASM_REWRITE_TAC[GSYM INDEX_EQ_LENGTH] THEN
+     MP_TAC (SPECL [`x:A`; `list:(A)list`] EL_INDEX) THEN
+     ASM_SIMP_TAC[]);;
+     
+     
+     
+(* FLATTEN, REMOVE_DUPLICATES *)
+
+let MEM_REMOVE_DUPLICATES = prove(`!(x:A) list. MEM x (REMOVE_DUPLICATES list) <=> MEM x list`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[REMOVE_DUPLICATES; MEM] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[MEM] THEN
+     EQ_TAC THEN SIMP_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[]);;
+
+
+let ALL_DISTINCT_REMOVE_DUPLICATES = prove(`!list:(A)list. ALL_DISTINCT (REMOVE_DUPLICATES list)`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; REMOVE_DUPLICATES] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+     ASM_REWRITE_TAC[ALL_DISTINCT_ALT; MEM_REMOVE_DUPLICATES]);;
+
+
+let MEM_FLATTEN = prove(`!(x:A) ll. MEM x (FLATTEN ll) <=> ?l. MEM l ll /\ MEM x l`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM; FLATTEN; ITLIST] THEN
+     REWRITE_TAC[MEM_APPEND; GSYM FLATTEN] THEN
+     EQ_TAC THENL
+     [
+       STRIP_TAC THENL
+	 [
+	   EXISTS_TAC `h:(A)list` THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	 EXISTS_TAC `l:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THENL
+     [
+       UNDISCH_TAC `l = h:(A)list` THEN DISCH_THEN (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+     DISJ2_TAC THEN ASM_REWRITE_TAC[] THEN
+     EXISTS_TAC `l:(A)list` THEN ASM_REWRITE_TAC[]);;
+
+     
+(* lists *)
+
+
+let LIST_PAIRS_EMPTY = prove(`!list:(A)list. list_pairs list = [] <=> list = []`,
+   REWRITE_TAC[list_pairs; GSYM LENGTH_EQ_NIL] THEN
+     SIMP_TAC[LENGTH_ZIP; LENGTH_SHIFT_LEFT]);;
+
+
+
+
+let LIST_OF_DARTS = prove(`!ll:((A)list)list. list_of_darts ll = FLATTEN (list_of_faces ll)`,
+   REWRITE_TAC[list_of_darts; FLATTEN; list_of_faces] THEN
+     LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[ITLIST; MAP]);;
+     
+
+(* Faces *)
+
+
+let FIND_FACE = prove(`!(d:A#A) ll. find_face d ll = list_pairs (find_pair_list d ll)`,
+   REWRITE_TAC[find_face; list_of_faces] THEN
+     GEN_TAC THEN LIST_INDUCT_TAC THENL 
+     [
+       REWRITE_TAC[MAP; find_list; find_pair_list; list_pairs; shift_left; ZIP];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[MAP; find_pair_list; find_list] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
+
+
+let MEM_FIND_LIST = prove(`!(x:A) ll. MEM x (FLATTEN ll) ==>
+			    MEM (find_list x ll) ll`,
+   REWRITE_TAC[MEM_FLATTEN] THEN 
+     GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     STRIP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[find_list] THEN DISCH_TAC THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_CASES_TAC `MEM (x:A) h` THEN ASM_REWRITE_TAC[find_list] THEN
+     DISJ2_TAC THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     EXISTS_TAC `l:(A)list` THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let MEM_FIND_FACE = prove(`!(d:A#A) ll. MEM d (list_of_darts ll)
+			    ==> MEM (find_face d ll) (list_of_faces ll)`,
+   REWRITE_TAC[LIST_OF_DARTS] THEN REPEAT STRIP_TAC THEN
+     REWRITE_TAC[find_face] THEN
+     MATCH_MP_TAC MEM_FIND_LIST THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let MEM_FIND_LIST_NONEMPTY = prove(`!(x:A) ll. ALL (\l. ~(l = [])) ll ==>
+				     (MEM x (FLATTEN ll) <=> MEM (find_list x ll) ll)`,
+   REWRITE_TAC[GSYM ALL_MEM] THEN
+     REPEAT STRIP_TAC THEN
+     EQ_TAC THENL
+     [
+       ASM_REWRITE_TAC[MEM_FIND_LIST];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN SPEC_TAC (`ll:((A)list)list`, `ll:((A)list)list`) THEN
+     LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check(is_imp o concl)) THEN
+     ANTS_TAC THENL
+     [
+       GEN_TAC THEN DISCH_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `x:(A)list`) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISCH_TAC THEN
+     REWRITE_TAC[find_list] THEN
+     SUBGOAL_THEN `!t. find_list x t = h ==> MEM (x:A) h` ASSUME_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `h:(A)list`) THEN
+	 REWRITE_TAC[] THEN DISCH_TAC THEN
+	 LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[find_list] THEN
+	 COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     ASM_CASES_TAC `MEM (x:A) h` THEN ASM_REWRITE_TAC[] THENL
+     [
+       REWRITE_TAC[MEM_FLATTEN; MEM] THEN
+	 EXISTS_TAC `h:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `t:((A)list)list`) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[FLATTEN; ITLIST; MEM_APPEND] THEN
+     ASM_REWRITE_TAC[GSYM FLATTEN] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+
+
+let MEM_FIND_FACE_NONEMPTY = prove(`!(d:A#A) ll. ALL (\l. ~(l = [])) ll
+	     ==> (MEM d (list_of_darts ll) <=> MEM (find_face d ll) (list_of_faces ll))`,
+   REWRITE_TAC[find_face; LIST_OF_DARTS] THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC MEM_FIND_LIST_NONEMPTY THEN
+     REWRITE_TAC[list_of_faces] THEN
+     REWRITE_TAC[ALL_MAP] THEN
+     POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[GSYM ALL_MEM; o_THM] THEN
+     DISCH_TAC THEN GEN_TAC THEN DISCH_TAC THEN
+     REWRITE_TAC[list_pairs] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `x:(A)list`) THEN
+     ASM_REWRITE_TAC[CONTRAPOS_THM] THEN
+     REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+     SIMP_TAC[LENGTH_ZIP; LENGTH_SHIFT_LEFT]);;
+     
+ 
+
+(* Hypermap maps properties *)    
+
+ 
+(* e_list_ext permutes darts *)
+
+let E_LIST_EXT_INVOLUTION = prove(`!ll:((A)list)list. good_list ll ==> e_list_ext ll o e_list_ext ll = I`,
+   REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM; e_list_ext; good_list] THEN
+     REPEAT STRIP_TAC THEN
+     MP_TAC (ISPEC `x:A#A` PAIR_SURJECTIVE) THEN
+     DISCH_THEN (X_CHOOSE_THEN `i:A` MP_TAC) THEN
+     DISCH_THEN (X_CHOOSE_THEN `j:A` ASSUME_TAC) THEN
+     ASM_REWRITE_TAC[res; e_list] THEN
+     ASM_CASES_TAC `i,j:A IN darts_of_list ll` THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC (`i:A,j:A`)) THEN
+	 POP_ASSUM MP_TAC THEN
+	 SIMP_TAC[darts_of_list; IN_SET_OF_LIST];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+     
+
+let LEFT_RIGHT_INVERSES_COINSIDE = prove(`!(f:A->B) l r. f o r = I /\ l o f = I ==> r = l`,
+   REPEAT STRIP_TAC THEN
+     POP_ASSUM (MP_TAC o (AP_TERM `\tm:(A->A). tm o (r:B->A)`)) THEN
+     ASM_REWRITE_TAC[I_O_ID; GSYM o_ASSOC] THEN
+     SIMP_TAC[]);;
+
+
+let INVERSE_EXISTS_IMP_BIJECTIVE = prove(`!(f:A->B) g. f o g = I /\ g o f = I ==> (!y. ?!x. f x = y)`,
+   REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM] THEN			
+     REPEAT STRIP_TAC THEN REWRITE_TAC[EXISTS_UNIQUE] THEN
+     EXISTS_TAC `(g:B->A) y` THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM (MP_TAC o AP_TERM `g:B->A`) THEN
+     ASM_REWRITE_TAC[]);;
+     
+     
+   
+
+
+let E_LIST_EXT_PERMUTES_DARTS = prove(`!ll:((A)list)list. good_list ll ==> (e_list_ext ll) permutes (darts_of_list ll)`,
+   REWRITE_TAC[ permutes] THEN
+     GEN_TAC THEN STRIP_TAC THEN STRIP_TAC THENL
+     [
+       REPEAT STRIP_TAC THEN
+       ASM_REWRITE_TAC[e_list_ext; res];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC INVERSE_EXISTS_IMP_BIJECTIVE THEN
+     EXISTS_TAC `e_list_ext (ll:((A)list)list)` THEN
+     REWRITE_TAC[ETA_AX] THEN
+     ASM_SIMP_TAC[E_LIST_EXT_INVOLUTION]);;
+
+     
+     
+(* f_list_ext permutes darts *)
+
+let DART_IN_DARTS = prove(`!(d:A#A) l ll. MEM d (list_pairs l) /\ MEM l ll ==> MEM d (list_of_darts ll)`,
+   GEN_TAC THEN GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     REPEAT STRIP_TAC THEN REWRITE_TAC[list_of_darts; ITLIST; MEM_APPEND] THENL
+     [
+       DISJ1_TAC THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+     DISJ2_TAC THEN
+     REWRITE_TAC[GSYM list_of_darts] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let MEM_FIND_PAIR_LIST = prove(`!(d:A#A) ll. MEM d (list_of_darts ll) ==> MEM (find_pair_list d ll) ll`,
+   GEN_TAC THEN LIST_INDUCT_TAC THENL
+     [
+       ASM_REWRITE_TAC[list_of_darts; ITLIST; MEM];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[list_of_darts; find_pair_list; ITLIST; MEM] THEN
+     COND_CASES_TAC THEN REWRITE_TAC[] THEN
+     ASM_REWRITE_TAC[MEM_APPEND; GSYM list_of_darts] THEN
+     DISCH_TAC THEN DISJ2_TAC THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+
+
+let DART_IN_FIND_PAIR_LIST = prove(`!(d:A#A) ll. MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list d ll))`,
+   GEN_TAC THEN LIST_INDUCT_TAC THENL
+     [
+       ASM_REWRITE_TAC[list_of_darts; ITLIST; MEM; find_pair_list; list_pairs; shift_left; ZIP];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[list_of_darts; find_pair_list; ITLIST; MEM] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[MEM_APPEND] THEN
+     ASM_REWRITE_TAC[GSYM list_of_darts]);;
+
+
+
+
+let DART_IN_FACE = prove(`!(d:A#A) ll. MEM d (list_of_darts ll) <=> MEM d (find_face d ll)`,
+   REWRITE_TAC[FIND_FACE; DART_IN_FIND_PAIR_LIST]);;
+
+
+
+     
+
+
+let MEM_IMP_NOT_ALL_DISTINCT_APPEND = prove(`!(x:A) l1 l2. MEM x l1 /\ MEM x l2 ==> ~ALL_DISTINCT (APPEND l1 l2)`,
+   REWRITE_TAC[ALL_DISTINCT; NOT_FORALL_THM; LENGTH_APPEND; EL_APPEND] THEN
+     REWRITE_TAC[MEM_EXISTS_EL] THEN
+     REPEAT STRIP_TAC THEN
+     EXISTS_TAC `i:num` THEN EXISTS_TAC `LENGTH (l1:(A)list) + i'` THEN
+     REWRITE_TAC[NOT_IMP] THEN
+     ASM_SIMP_TAC[ARITH_RULE `i < l1 ==> i < l1 + l2:num`; ARITH_RULE `i' < l2 ==> l1 + i' < l1 + l2:num`; ARITH_RULE `i < l1 ==> ~(i = l1 + i':num)`] THEN
+     REWRITE_TAC[ARITH_RULE `(l1 + i') - l1 = i':num`] THEN
+     REWRITE_TAC[ARITH_RULE `~(l1 + i' < l1:num)`] THEN
+     REPEAT (FIRST_X_ASSUM (fun th -> REWRITE_TAC[SYM th])));;
+     
+     
+   
+
+
+let ALL_DISTINCT_IMP_UNIQUE_LIST = prove(`!l1 l2 (d:A#A) ll. ALL_DISTINCT (list_of_darts ll) /\ MEM l1 ll /\ MEM l2 ll
+					 /\ MEM d (list_pairs l1) /\ MEM d (list_pairs l2) ==> l1 = l2`,
+   GEN_TAC THEN GEN_TAC THEN GEN_TAC THEN LIST_INDUCT_TAC THENL
+     [
+       REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[MEM; list_of_darts; ITLIST] THEN
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o check (fun th -> (rator o concl) th = `ALL_DISTINCT:(A#A)list->bool`)) THEN
+	 ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+	 DISCH_TAC THEN
+	 MATCH_MP_TAC MEM_IMP_NOT_ALL_DISTINCT_APPEND THEN
+	 EXISTS_TAC `d:A#A` THEN
+	 FIRST_X_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[GSYM list_of_darts] THEN
+	 MATCH_MP_TAC DART_IN_DARTS THEN
+	 EXISTS_TAC `l2:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+
+       FIRST_X_ASSUM (MP_TAC o check (fun th -> (rator o concl) th = `ALL_DISTINCT:(A#A)list->bool`)) THEN
+	 ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+	 DISCH_TAC THEN
+	 MATCH_MP_TAC MEM_IMP_NOT_ALL_DISTINCT_APPEND THEN
+	 EXISTS_TAC `d:A#A` THEN
+	 FIRST_X_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[GSYM list_of_darts] THEN
+	 MATCH_MP_TAC DART_IN_DARTS THEN
+	 EXISTS_TAC `l1:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+
+       ALL_TAC
+     ] THEN
+
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o (fun th -> MATCH_MP ALL_DISTINCT_APPEND th)) THEN
+     SIMP_TAC[GSYM list_of_darts]);;
+     
+
+
+
+let FIND_PAIR_LIST_UNIQUE = prove(`!l d (ll:((A)list)list). ALL_DISTINCT (list_of_darts ll) /\ 
+				    MEM l ll /\ MEM d (list_pairs l) ==> l = find_pair_list d ll`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC ALL_DISTINCT_IMP_UNIQUE_LIST THEN
+     MAP_EVERY EXISTS_TAC [`d:A#A`; `ll:((A)list)list`] THEN
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `MEM (d:A#A) (list_of_darts ll)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC DART_IN_DARTS THEN
+	 EXISTS_TAC `l:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[MEM_FIND_PAIR_LIST] THEN
+     ASM_REWRITE_TAC[GSYM DART_IN_FIND_PAIR_LIST]);;
+
+
+
+let ALL_DISTINCT_FIND_FACE = prove(`!(d:A#A) ll. ALL_DISTINCT (list_of_darts ll) ==> ALL_DISTINCT (find_face d ll)`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[list_of_darts; ALL_DISTINCT_ALT; ITLIST; find_face; list_of_faces; find_list; MAP] THEN
+     REWRITE_TAC[GSYM list_of_darts; GSYM find_face; GSYM list_of_faces] THEN
+     DISCH_THEN (MP_TAC o (fun th -> MATCH_MP ALL_DISTINCT_APPEND th)) THEN
+     STRIP_TAC THEN
+     COND_CASES_TAC THEN ASM_SIMP_TAC[]);;
+
+
+
+
+   
+   
+
+
+let LENGTH_LIST_PAIRS = prove(`!l:(A)list. LENGTH (list_pairs l) = LENGTH l`,
+   GEN_TAC THEN REWRITE_TAC[list_pairs] THEN
+     MATCH_MP_TAC LENGTH_ZIP THEN
+     REWRITE_TAC[LENGTH_SHIFT_LEFT]);;
+
+
+
+
+let MEM_LIST_PAIRS = prove(`!(x:A) y l. MEM (x,y) (list_pairs l) ==> MEM x l /\ MEM y l`,
+   REWRITE_TAC[list_pairs] THEN
+     REPEAT GEN_TAC THEN DISCH_TAC THEN
+     MP_TAC (ISPECL [`x:A`; `y:A`; `l:(A)list`; `shift_left (l:(A)list)`] MEM_ZIP) THEN
+     ASM_REWRITE_TAC[LENGTH_SHIFT_LEFT; GSYM MEM_SHIFT_LEFT]);;
+
+
+
+let MEM_F_LIST = prove(`!(d:A#A) ll. MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face d ll)`,
+   REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[f_list] THEN
+     MATCH_MP_TAC MEM_NEXT_EL THEN
+     ASM_REWRITE_TAC[GSYM DART_IN_FACE]);;
+
+
+
+
+let EL_LIST_PAIRS = prove(`!i (list:(A)list). i < LENGTH list ==> EL i (list_pairs list) = (EL i list, EL (if i = LENGTH list - 1 then 0 else i + 1) list)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[list_pairs] THEN
+     MP_TAC (ISPECL [`list:(A)list`; `shift_left (list:(A)list)`; `i:num`] EL_ZIP) THEN
+     ASM_REWRITE_TAC[LENGTH_SHIFT_LEFT] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]) THEN
+     ASM_SIMP_TAC[EL_SHIFT_LEFT] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[]);;
+
+
+
+let ALL_DISTINCT_LIST_PAIRS = prove(`!list:(A)list. ALL_DISTINCT list ==> ALL_DISTINCT (list_pairs list)`,
+   REWRITE_TAC[ALL_DISTINCT; LENGTH_LIST_PAIRS] THEN
+     GEN_TAC THEN ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+     REWRITE_TAC[NOT_FORALL_THM; NOT_IMP] THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`i:num`; `j:num`] THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[EL_LIST_PAIRS; PAIR_EQ]);;
+
+
+
+let ALL_DISTINCT_SHIFT_LEFT = prove(`!list:(A)list. ALL_DISTINCT list ==> ALL_DISTINCT (shift_left list)`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[shift_left] THEN
+     POP_ASSUM (fun th -> ALL_TAC) THEN
+     ASM_REWRITE_TAC[ALL_DISTINCT] THEN
+     ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+     REWRITE_TAC[NOT_FORALL_THM; NOT_IMP; EL_APPEND; LENGTH_APPEND; LENGTH; ARITH_SUC] THEN
+     STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+     ABBREV_TAC `m = LENGTH (t:(A)list)` THEN
+     ASSUME_TAC (ARITH_RULE `!n. n < m + 1 /\ ~(n < m) ==> n = m`) THEN
+     REPEAT COND_CASES_TAC THENL
+     [
+       DISCH_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`SUC i`; `SUC j`] THEN
+	 ASM_REWRITE_TAC[LT_SUC; SUC_INJ; EL; TL];
+       FIRST_X_ASSUM (MP_TAC o SPEC `j:num`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th; SUB_REFL]) THEN
+	 REWRITE_TAC[EL; HD] THEN DISCH_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`SUC i`; `0`] THEN
+	 ASM_REWRITE_TAC[LT_SUC; NOT_SUC; LT_0; EL; TL; HD];
+       FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th; SUB_REFL]) THEN
+	 REWRITE_TAC[EL; HD] THEN DISCH_TAC THEN
+	 MAP_EVERY EXISTS_TAC [`0`; `SUC j`] THEN
+	 ASM_REWRITE_TAC[LT_SUC; NOT_SUC; LT_0; EL; TL; HD];
+       UNDISCH_TAC `~(i = j:num)` THEN
+         FIRST_ASSUM (MP_TAC o SPEC `i:num`) THEN FIRST_X_ASSUM (MP_TAC o SPEC `j:num`) THEN
+	 ASM_SIMP_TAC[]
+     ]);;
+
+
+
+let MEM_LIST_PAIRS_EXPLICIT = prove(`!(d:A#A) list. ALL_DISTINCT list /\ MEM d (list_pairs list) 
+				    ==> d = (FST d, NEXT_EL (FST d) list)`,
+   REWRITE_TAC[MEM_EXISTS_EL] THEN
+     REWRITE_TAC[LENGTH_LIST_PAIRS] THEN
+     REPEAT STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+     REWRITE_TAC[list_pairs] THEN
+     MP_TAC (ISPECL [`list:(A)list`; `shift_left list:(A)list`; `i:num`] EL_ZIP) THEN
+     ASM_REWRITE_TAC[LENGTH_SHIFT_LEFT] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]) THEN
+     MP_TAC (SPECL [`EL i list:A`; `list:(A)list`] NEXT_EL_ALT) THEN
+     ASM_SIMP_TAC[MEM_EL] THEN
+     DISCH_TAC THEN
+     MP_TAC (SPEC_ALL INDEX_EL) THEN
+     ASM_SIMP_TAC[]);;
+     
+
+
+
+
+let INDEX_FST_SND = prove(`!i (d:A#A) list. ALL_DISTINCT list /\ i < LENGTH list /\ EL i (list_pairs list) = d ==> 
+	INDEX (FST d) list = i /\ INDEX (SND d) list = if (i = LENGTH list - 1) then 0 else i + 1`,
+   REPEAT GEN_TAC THEN STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     ASM_SIMP_TAC[EL_LIST_PAIRS] THEN
+     MP_TAC (ISPEC `d:A#A` PAIR_SURJECTIVE) THEN
+     STRIP_TAC THEN ASM_REWRITE_TAC[PAIR_EQ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+     CONJ_TAC THEN MATCH_MP_TAC INDEX_EL THEN ASM_REWRITE_TAC[] THEN
+     ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+     UNDISCH_TAC `i < n:num` THEN COND_CASES_TAC THEN POP_ASSUM MP_TAC THEN ARITH_TAC);;
+     
+
+
+
+let NEXT_EL_LIST_PAIRS = prove(`!(d:A#A) list. ALL_DISTINCT list /\ MEM d (list_pairs list) ==> NEXT_EL d (list_pairs list) = (SND d, NEXT_EL (SND d) list)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[NEXT_EL; LENGTH_LIST_PAIRS] THEN
+     MP_TAC (SPEC `list:(A)list` ALL_DISTINCT_LIST_PAIRS) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     ABBREV_TAC `i = INDEX (d:A#A) (list_pairs list)` THEN
+     ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+     SUBGOAL_THEN `i < n:num` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "n" THEN EXPAND_TAC "i" THEN
+	 ONCE_REWRITE_TAC[GSYM LENGTH_LIST_PAIRS] THEN
+	 ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+       ALL_TAC
+     ] THEN
+				   
+     SUBGOAL_THEN `EL i (list_pairs list) = d:A#A` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "i" THEN
+	 MATCH_MP_TAC EL_INDEX THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`i:num`; `d:A#A`; `list:(A)list`] INDEX_FST_SND) THEN
+     ASM_REWRITE_TAC[] THEN
+
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       STRIP_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPEC_ALL EL_LIST_PAIRS) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ANTS_TAC THENL
+	 [
+	   MATCH_MP_TAC (ARITH_RULE `i < n ==> n - 1 < n`) THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 ONCE_REWRITE_TAC[GSYM EL] THEN
+	 MP_TAC (SPECL [`0`; `list:(A)list`] EL_LIST_PAIRS) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ANTS_TAC THENL [ MATCH_MP_TAC (ARITH_RULE `i < n ==> 0 < n`) THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]) THEN
+	 COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MP_TAC (SPECL [`i + 1`; `list:(A)list`] EL_LIST_PAIRS) THEN
+     SUBGOAL_THEN `i + 1 < n` ASSUME_TAC THENL
+     [
+       REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     ONCE_REWRITE_TAC[GSYM EL] THEN
+     MP_TAC (SPECL [`i:num`; `list:(A)list`] EL_LIST_PAIRS) THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]) THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[PAIR_EQ]);;
+
+     
+
+     
+let PREV_EL_LIST_PAIRS = prove(`!(d:A#A) list. ALL_DISTINCT list /\ MEM d (list_pairs list) ==>
+				 PREV_EL d (list_pairs list) = (PREV_EL (FST d) list, FST d)`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `t = PREV_EL (d:A#A) (list_pairs list)` THEN
+     SUBGOAL_THEN `MEM (t:A#A) (list_pairs list)` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "t" THEN
+	 MATCH_MP_TAC MEM_PREV_EL THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL [`t:A#A`; `list:(A)list`] MEM_LIST_PAIRS_EXPLICIT) THEN
+     ASM_REWRITE_TAC[] THEN
+
+     MP_TAC (ISPEC `t:A#A` PAIR_SURJECTIVE) THEN
+     STRIP_TAC THEN ASM_REWRITE_TAC[PAIR_EQ] THEN
+     DISCH_THEN (MP_TAC o AP_TERM `(\tm:A. PREV_EL tm list)`) THEN
+     REWRITE_TAC[] THEN
+     MP_TAC (SPEC_ALL PREV_NEXT_ID) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPECL [`x:A`; `y:A`; `list:(A)list`] MEM_LIST_PAIRS) THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `y = FST (d:A#A)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `PREV_EL d (list_pairs list) = t:A#A` THEN
+	 DISCH_THEN (MP_TAC o AP_TERM `\tm:A#A. NEXT_EL tm (list_pairs list)`) THEN
+	 MP_TAC (ISPECL [`d:A#A`; `list_pairs (list:(A)list)`] NEXT_PREV_ID) THEN
+	 ANTS_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[] THEN
+	     MATCH_MP_TAC ALL_DISTINCT_LIST_PAIRS THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 MP_TAC (SPECL [`t:A#A`; `list:(A)list`] NEXT_EL_LIST_PAIRS) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]);
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> ASM_REWRITE_TAC[SYM th]));;
+   
+
+
+let F_LIST_INVERSE = prove(`!(d:A#A) ll. ALL_DISTINCT (list_of_darts ll) /\ MEM d (list_of_darts ll) ==>
+			       let g = (\x:A#A. PREV_EL x (find_face x ll)) in
+				 f_list ll (g d) = d /\ g (f_list ll d) = d`,
+   REWRITE_TAC[LET_DEF; LET_END_DEF; f_list] THEN
+     REPEAT STRIP_TAC THENL
+     [
+       ABBREV_TAC `f = find_face (d:A#A) ll` THEN
+	 SUBGOAL_THEN `find_face (PREV_EL (d:A#A) f) ll = f` ASSUME_TAC THENL
+	 [
+	   EXPAND_TAC "f" THEN REWRITE_TAC[FIND_FACE] THEN
+	     AP_TERM_TAC THEN
+	     REWRITE_TAC[GSYM FIND_FACE] THEN
+
+	     MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MP_TAC (SPEC_ALL MEM_FIND_PAIR_LIST) THEN
+	     ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+	     DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
+	     ASM_REWRITE_TAC[GSYM FIND_FACE] THEN
+	     MATCH_MP_TAC MEM_PREV_EL THEN
+	     EXPAND_TAC "f" THEN
+	     ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC NEXT_PREV_ID THEN
+	 MP_TAC (SPEC_ALL ALL_DISTINCT_FIND_FACE) THEN
+	 ASM_SIMP_TAC[] THEN
+	 DISCH_TAC THEN
+	 POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM (fun th -> ALL_TAC) THEN
+	 EXPAND_TAC "f" THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     ABBREV_TAC `f = find_face (d:A#A) ll` THEN
+     SUBGOAL_THEN `find_face (NEXT_EL (d:A#A) f) ll = f` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "f" THEN REWRITE_TAC[FIND_FACE] THEN
+	 AP_TERM_TAC THEN
+	 REWRITE_TAC[GSYM FIND_FACE] THEN
+
+	 MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPEC_ALL MEM_FIND_PAIR_LIST) THEN
+	 ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+	 DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
+	 ASM_REWRITE_TAC[GSYM FIND_FACE] THEN
+	 MATCH_MP_TAC MEM_NEXT_EL THEN
+	 EXPAND_TAC "f" THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC PREV_NEXT_ID THEN
+     MP_TAC (SPEC_ALL ALL_DISTINCT_FIND_FACE) THEN
+     ASM_SIMP_TAC[] THEN
+     DISCH_TAC THEN
+     POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM (fun th -> ALL_TAC) THEN
+     EXPAND_TAC "f" THEN
+     ASM_REWRITE_TAC[GSYM DART_IN_FACE]);;
+
+     
+     
+
+let FIND_FACE_F_LIST = prove(`!(d:A#A) ll. ALL_DISTINCT (list_of_darts ll) /\ MEM d (list_of_darts ll) ==>
+			       find_face (f_list ll d) ll = find_face d ll`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[FIND_FACE] THEN
+     AP_TERM_TAC THEN
+     MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+     ASM_SIMP_TAC[MEM_FIND_PAIR_LIST] THEN
+     REWRITE_TAC[GSYM FIND_FACE] THEN
+     ASM_SIMP_TAC[MEM_F_LIST]);;
+     
+
+
+
+let F_LIST_EXT_PERMUTES_DARTS = prove(`!ll:((A)list)list. ALL_DISTINCT (list_of_darts ll) ==> (f_list_ext ll) permutes (darts_of_list ll)`,
+   REWRITE_TAC[f_list_ext; permutes; res] THEN
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[EXISTS_UNIQUE] THEN
+     ASM_CASES_TAC `y:A#A IN darts_of_list ll` THENL
+     [
+       FIRST_ASSUM MP_TAC THEN REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN DISCH_TAC THEN
+	 MP_TAC (SPECL [`y:A#A`; `ll:((A)list)list`] F_LIST_INVERSE) THEN
+	 ASM_REWRITE_TAC[LET_DEF; LET_END_DEF] THEN
+	 ABBREV_TAC `x:A#A = PREV_EL y (find_face y ll)` THEN
+	 STRIP_TAC THEN
+	 EXISTS_TAC `x:A#A` THEN
+	 CONJ_TAC THENL
+	 [
+	   SUBGOAL_THEN `MEM (x:A#A) (list_of_darts ll)` ASSUME_TAC THENL
+	     [
+	       REWRITE_TAC[DART_IN_FACE] THEN
+		 EXPAND_TAC "x" THEN
+		 SUBGOAL_THEN `find_face (PREV_EL y (find_face y ll)) ll = find_face (y:A#A) ll` (fun th -> REWRITE_TAC[th]) THENL
+		 [
+		   REWRITE_TAC[FIND_FACE] THEN AP_TERM_TAC THEN
+		     MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+		     REWRITE_TAC[GSYM FIND_FACE] THEN
+		     ASM_SIMP_TAC[MEM_FIND_PAIR_LIST] THEN
+		     EXPAND_TAC "x" THEN
+		     MATCH_MP_TAC MEM_PREV_EL THEN
+		     ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+		   ALL_TAC
+		 ] THEN
+
+		 MATCH_MP_TAC MEM_PREV_EL THEN
+		 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+	       ALL_TAC
+	     ] THEN
+
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 X_GEN_TAC `d:A#A` THEN
+	 COND_CASES_TAC THENL
+	 [
+	   DISCH_TAC THEN
+	     MP_TAC (SPEC_ALL F_LIST_INVERSE) THEN
+	     ASM_REWRITE_TAC[LET_DEF; LET_END_DEF] THEN
+	     SIMP_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (fun th -> POP_ASSUM (MP_TAC o REWRITE_RULE[th])) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     EXISTS_TAC `y:A#A` THEN
+     ASM_REWRITE_TAC[] THEN
+     X_GEN_TAC `z:A#A` THEN
+     COND_CASES_TAC THENL
+     [
+       FIRST_ASSUM MP_TAC THEN REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN DISCH_TAC THEN
+	 DISCH_THEN (ASSUME_TAC o SYM) THEN
+	 MP_TAC (SPECL [`z:A#A`; `ll:((A)list)list`] MEM_F_LIST) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPECL [`z:A#A`; `ll:((A)list)list`] FIND_FACE_F_LIST) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+	 REWRITE_TAC[GSYM DART_IN_FACE] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[GSYM IN_SET_OF_LIST; GSYM darts_of_list];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[]);;
+
+
+
+
+
+
+(* e o n o f = I *)
+
+
+let FIND_FACE_EMPTY = prove(`!(d:A#A) ll. find_face d ll = [] <=> ~MEM d (list_of_darts ll)`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[find_face; MAP; list_of_faces; find_list; list_of_darts; ITLIST; MEM] THEN
+     COND_CASES_TAC THENL
+     [
+       ASM_REWRITE_TAC[MEM_APPEND] THEN
+	 DISCH_TAC THEN UNDISCH_TAC `MEM (d:A#A) (list_pairs h)` THEN
+	 ASM_REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[GSYM list_of_faces; GSYM find_face; GSYM list_of_darts; MEM_APPEND]);;
+     
+
+
+
+let MEM_FIND_FACE_IMP_FACES_EQ = prove(`!(x:A#A) y ll. ALL_DISTINCT (list_of_darts ll) /\ MEM y (find_face x ll) 
+				       ==> find_face y ll = find_face x ll`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[FIND_FACE] THEN AP_TERM_TAC THEN
+     MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+     ASM_REWRITE_TAC[GSYM FIND_FACE] THEN
+     MATCH_MP_TAC MEM_FIND_PAIR_LIST THEN
+     POP_ASSUM MP_TAC THEN
+     ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+     REWRITE_TAC[GSYM FIND_FACE_EMPTY] THEN
+     DISCH_TAC THEN ASM_REWRITE_TAC[MEM]);;
+
+
+
+let MEM_FIND_FACE_IMP_MEM_DARTS = prove(`!(d:A#A) x ll. MEM d (find_face x ll) ==> MEM d (list_of_darts ll)`,
+   GEN_TAC THEN GEN_TAC THEN LIST_INDUCT_TAC THENL
+     [
+       REWRITE_TAC[find_face; list_of_darts; ITLIST; MEM; list_of_faces; MAP; find_list];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[find_face; list_of_darts; ITLIST; MEM_APPEND; list_of_faces; MAP; find_list] THEN
+     COND_CASES_TAC THENL
+     [
+       DISCH_THEN (fun th -> REWRITE_TAC[th]);
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[GSYM list_of_faces; GSYM find_face; GSYM list_of_darts]);;
+     
+
+
+
+
+
+let F_LIST_EXT_INVERSE = prove(`!ll:((A)list)list. ALL_DISTINCT (list_of_darts ll) ==> 
+				 inverse (f_list_ext ll) = res (\d. PREV_EL d (find_face d ll)) (darts_of_list ll)`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC INVERSE_UNIQUE_o THEN
+     REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM; f_list_ext; res] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+     CONJ_TAC THEN GEN_TAC THENL
+     [
+       ASM_CASES_TAC `MEM (x:A#A) (list_of_darts ll)` THEN ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `MEM (PREV_EL (x:A#A) (find_face x ll)) (list_of_darts ll)` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	     EXISTS_TAC `x:A#A` THEN
+	     MATCH_MP_TAC MEM_PREV_EL THEN
+	     ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+	   ALL_TAC
+	 ] THEN
+
+	 ASM_REWRITE_TAC[f_list] THEN
+	 SUBGOAL_THEN `find_face (PREV_EL x (find_face x ll)) ll = find_face (x:A#A) ll` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   REWRITE_TAC[FIND_FACE] THEN AP_TERM_TAC THEN
+	     MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+	     REWRITE_TAC[GSYM FIND_FACE] THEN
+	     ASM_SIMP_TAC[MEM_FIND_PAIR_LIST] THEN
+	     MATCH_MP_TAC MEM_PREV_EL THEN
+	     ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+	   ALL_TAC
+	 ] THEN
+
+	 MATCH_MP_TAC NEXT_PREV_ID THEN
+	 ASM_SIMP_TAC[ALL_DISTINCT_FIND_FACE] THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     ASM_CASES_TAC `MEM (x:A#A) (list_of_darts ll)` THEN ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[f_list] THEN
+     SUBGOAL_THEN `MEM (NEXT_EL (x:A#A) (find_face x ll)) (list_of_darts ll)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	 EXISTS_TAC `x:A#A` THEN
+	 MATCH_MP_TAC MEM_NEXT_EL THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `find_face (NEXT_EL x (find_face x ll)) ll = find_face (x:A#A) ll` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[FIND_FACE] THEN AP_TERM_TAC THEN
+	 MATCH_MP_TAC (GSYM FIND_PAIR_LIST_UNIQUE) THEN
+	 REWRITE_TAC[GSYM FIND_FACE] THEN
+	 ASM_SIMP_TAC[MEM_FIND_PAIR_LIST] THEN
+	 MATCH_MP_TAC MEM_NEXT_EL THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC PREV_NEXT_ID THEN
+     ASM_SIMP_TAC[ALL_DISTINCT_FIND_FACE] THEN
+     ASM_REWRITE_TAC[GSYM DART_IN_FACE]);;
+
+
+let F_LIST_EXT_INVERSE_WORKS = prove(`!ll:((A)list)list. ALL_DISTINCT (list_of_darts ll) ==>
+				   f_list_ext ll o inverse (f_list_ext ll) = I /\ inverse (f_list_ext ll) o f_list_ext ll = I`,
+   GEN_TAC THEN DISCH_TAC THEN
+     MATCH_MP_TAC PERMUTES_INVERSES_o THEN
+     EXISTS_TAC `(darts_of_list ll):(A#A)->bool` THEN
+     MATCH_MP_TAC F_LIST_EXT_PERMUTES_DARTS THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+
+let N_EQ_E_FI = prove(`!ll:((A)list)list. ALL_DISTINCT (list_of_darts ll) ==>
+			n_list_ext ll = e_list_ext ll o (inverse (f_list_ext ll))`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[F_LIST_EXT_INVERSE] THEN
+     REWRITE_TAC[FUN_EQ_THM; o_THM] THEN GEN_TAC THEN
+     REWRITE_TAC[n_list_ext; e_list_ext; res] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `MEM (PREV_EL (x:A#A) (find_face x ll)) (list_of_darts ll)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	 EXISTS_TAC `x:A#A` THEN
+	 MATCH_MP_TAC MEM_PREV_EL THEN
+	 ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[n_list]);;
+
+
+
+let N_LIST_EXT_PERMUTES_DARTS = prove(`!ll:((A)list)list. good_list ll ==>
+					(n_list_ext ll) permutes (darts_of_list ll)`,
+   REPEAT STRIP_TAC THEN FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[N_EQ_E_FI] THEN
+     MATCH_MP_TAC PERMUTES_COMPOSE THEN
+     ASM_SIMP_TAC[E_LIST_EXT_PERMUTES_DARTS] THEN
+     MATCH_MP_TAC PERMUTES_INVERSE THEN
+     ASM_SIMP_TAC[F_LIST_EXT_PERMUTES_DARTS]);;
+
+
+
+let E_N_F_ID = prove(`!ll:((A)list)list. good_list ll ==> 
+		       e_list_ext ll o n_list_ext ll o f_list_ext ll = I`,
+   REPEAT STRIP_TAC THEN FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[N_EQ_E_FI] THEN
+     SUBGOAL_THEN `!e (f:A#A->A#A) fi:(A#A)->(A#A). e o (e o fi) o f = (e o e) o (fi o f)` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REWRITE_TAC[o_ASSOC];
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[E_LIST_EXT_INVOLUTION; F_LIST_EXT_INVERSE_WORKS] THEN
+     REWRITE_TAC[I_O_ID]);;
+     
+
+
+(* hypermap_of_list is a hypermap *)
+
+let HYPERMAP_OF_LIST = prove(`!ll:((A)list)list. good_list ll ==>
+			       tuple_hypermap (hypermap_of_list ll) =
+				 darts_of_list ll, e_list_ext ll, n_list_ext ll, f_list_ext ll`,
+   REWRITE_TAC[hypermap_of_list; GSYM Hypermap.hypermap_tybij] THEN
+     GEN_TAC THEN DISCH_TAC THEN FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[E_LIST_EXT_PERMUTES_DARTS; N_LIST_EXT_PERMUTES_DARTS; F_LIST_EXT_PERMUTES_DARTS; E_N_F_ID] THEN
+     REWRITE_TAC[darts_of_list; FINITE_SET_OF_LIST]);;
+
+
+(* Set of faces *)
+
+
+
+
+let NEXT_EL_MOD = prove(`!list (x:A). MEM x list ==>
+			  NEXT_EL x list = EL ((INDEX x list + 1) MOD LENGTH list) list`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[NEXT_EL] THEN
+     ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+     SUBGOAL_THEN `1 <= n` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `MEM (x:A) list` THEN
+	 ASM_REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 STRIP_TAC THEN UNDISCH_TAC `i < n:num` THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     COND_CASES_TAC THENL
+     [
+       ASM_SIMP_TAC[ARITH_RULE `1 <= n ==> n - 1 + 1 = n`] THEN
+	 MP_TAC (SPECL [`n:num`; `1`] MOD_MULT) THEN
+	 ASM_SIMP_TAC[ARITH_RULE `1 <= n ==> ~(n = 0)`; MULT_CLAUSES; EL];
+       ALL_TAC
+     ] THEN
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     MATCH_MP_TAC (GSYM MOD_LT) THEN
+     MP_TAC (SPEC_ALL INDEX_LT_LENGTH) THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN ARITH_TAC);;
+
+
+
+
+let NEXT_EL_POWER = prove(`!list (x:A) i. ALL_DISTINCT list /\ MEM x list ==>
+	((\t. NEXT_EL t list) POWER i) x = EL ((INDEX x list + i) MOD (LENGTH list)) list`,
+   GEN_TAC THEN GEN_TAC THEN 
+     ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+     ABBREV_TAC `k = INDEX (x:A) list` THEN
+     INDUCT_TAC THENL
+     [
+       REWRITE_TAC[ADD_0; Hypermap.POWER_0; I_THM] THEN
+	 STRIP_TAC THEN
+	 SUBGOAL_THEN `k MOD n = k` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   MATCH_MP_TAC MOD_LT THEN
+	     EXPAND_TAC "k" THEN EXPAND_TAC "n" THEN
+	     ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+	   ALL_TAC
+	 ] THEN
+
+	 EXPAND_TAC "k" THEN
+	 MATCH_MP_TAC (GSYM EL_INDEX) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     STRIP_TAC THEN
+     SUBGOAL_THEN `~(n = 0)` ASSUME_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 STRIP_TAC THEN UNDISCH_TAC `i' < n:num` THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     FIRST_X_ASSUM (MP_TAC o check(is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     ASM_REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+     ABBREV_TAC `y:A = EL ((k + i) MOD n) list` THEN
+     MP_TAC (SPECL [`list:(A)list`; `y:A`] NEXT_EL_MOD) THEN
+     ANTS_TAC THENL
+     [
+       REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 EXISTS_TAC `(k + i) MOD n` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ASM_SIMP_TAC[DIVISION];
+       ALL_TAC
+     ] THEN
+
+     DISCH_THEN (fun th -> ASM_REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `INDEX (y:A) list = (k + i) MOD n` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       EXPAND_TAC "y" THEN
+	 MATCH_MP_TAC INDEX_EL THEN
+	 ASM_SIMP_TAC[DIVISION];
+       ALL_TAC
+     ] THEN
+
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     ASM_CASES_TAC `n = 1` THENL
+     [
+       ASM_REWRITE_TAC[MOD_1];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `1 = 1 MOD n` (fun th -> ONCE_REWRITE_TAC[th]) THENL
+     [
+       MATCH_MP_TAC (GSYM MOD_LT) THEN
+	 ASM_REWRITE_TAC[ARITH_RULE `1 < n <=> ~(n = 0) /\ ~(n = 1)`];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[MOD_ADD_MOD] THEN
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     ARITH_TAC);;
+     
+
+
+
+let NEXT_EL_ORBIT = prove(`!(list:(A)list) x. ALL_DISTINCT list /\ MEM x list ==> 
+			    orbit_map (\t. NEXT_EL t list) x = set_of_list list`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+     SUBGOAL_THEN `~(n = 0)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `MEM (x:A) list` THEN
+	 ASM_REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 STRIP_TAC THEN UNDISCH_TAC `i < n:num` THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[Hypermap.orbit_map; EXTENSION; IN_SET_OF_LIST; IN_ELIM_THM] THEN
+     GEN_TAC THEN EQ_TAC THENL
+     [
+       STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+	 ASM_SIMP_TAC[NEXT_EL_POWER] THEN DISCH_TAC THEN
+	 MATCH_MP_TAC MEM_EL THEN
+	 ASM_SIMP_TAC[DIVISION];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[MEM_EXISTS_EL] THEN
+     STRIP_TAC THEN
+     ASM_SIMP_TAC[NEXT_EL_POWER] THEN
+     ABBREV_TAC `k = INDEX (x:A) list` THEN
+     EXISTS_TAC `n - k + i:num` THEN
+     SUBGOAL_THEN `k < n:num` ASSUME_TAC THENL
+     [
+       EXPAND_TAC "k" THEN EXPAND_TAC "n" THEN
+	 ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GE; LE_0] THEN
+     AP_THM_TAC THEN AP_TERM_TAC THEN
+     ASM_SIMP_TAC[ARITH_RULE `k < n ==> k + n - k + i = n + i:num`] THEN
+     MP_TAC (SPECL [`1`; `n:num`; `i:num`] MOD_MULT_ADD) THEN
+     REWRITE_TAC[MULT_CLAUSES] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC (GSYM MOD_LT) THEN
+     ASM_REWRITE_TAC[]);;
+     
+
+
+
+let ORBIT_MAP_RES_LEMMA = prove(`!f (x:A) s. orbit_map f x SUBSET s ==> 
+			    orbit_map (res f s) x = orbit_map f x`,
+   REWRITE_TAC[SUBSET; Hypermap.orbit_map; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
+     SUBGOAL_THEN `!n. (res f s POWER n) x = (f POWER n) (x:A)` ASSUME_TAC THENL
+     [
+       INDUCT_TAC THEN REWRITE_TAC[Hypermap.POWER_0] THEN
+	 ASM_REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+	 REWRITE_TAC[res] THEN
+	 SUBGOAL_THEN `(f POWER n) (x:A) IN s` (fun th -> REWRITE_TAC[th]) THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 EXISTS_TAC `n:num` THEN
+	 REWRITE_TAC[GE; LE_0];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[]);;
+
+
+
+let ORBIT_SUBSET_LEMMA = prove(`!f s (x:A). x IN s /\ (!y. y IN s ==> f y IN s)
+				 ==> orbit_map f x SUBSET s`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[Hypermap.orbit_map; SUBSET; IN_ELIM_THM] THEN
+     GEN_TAC THEN DISCH_THEN CHOOSE_TAC THEN POP_ASSUM MP_TAC THEN
+     SPEC_TAC (`x':A`, `y:A`) THEN
+     SPEC_TAC (`n:num`, `n:num`) THEN
+     INDUCT_TAC THEN ASM_SIMP_TAC[GE; LE_0; Hypermap.POWER_0; I_THM] THEN
+     GEN_TAC THEN REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `(f POWER n) (x:A)`) THEN
+     ASM_REWRITE_TAC[GE; LE_0]);;
+     
+     
+
+
+let ORBIT_MAP_RES = prove(`!f (x:A) s. x IN s /\ (res f s) permutes s
+			    ==> orbit_map (res f s) x = orbit_map f x`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC ORBIT_MAP_RES_LEMMA THEN
+     MATCH_MP_TAC ORBIT_SUBSET_LEMMA THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `(f:A->A) y = (res f s) y` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       ASM_REWRITE_TAC[res];
+       ALL_TAC
+     ] THEN
+     MP_TAC (ISPECL [`res (f:A->A) s`; `s:A->bool`] Hypermap_and_fan.PERMUTES_IMP_INSIDE) THEN
+     ASM_SIMP_TAC[]);;
+
+   
+
+
+let F_LIST_EXT_ORBIT = prove(`!ll (x:A#A). MEM x (list_of_darts ll) /\ ALL_DISTINCT (list_of_darts ll) ==> 
+			       orbit_map (f_list_ext ll) x = set_of_list (find_face x ll)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL F_LIST_EXT_PERMUTES_DARTS) THEN
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[f_list_ext] THEN
+     DISCH_TAC THEN
+     SUBGOAL_THEN `x:A#A IN darts_of_list ll` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[ORBIT_MAP_RES] THEN
+
+     REWRITE_TAC[Hypermap.orbit_map] THEN
+     SUBGOAL_THEN `!n. (f_list ll POWER n) x = ((\d:A#A. NEXT_EL d (find_face x ll)) POWER n) x` ASSUME_TAC THENL
+     [
+       INDUCT_TAC THENL
+	 [
+	   REWRITE_TAC[Hypermap.POWER_0; I_THM];
+	   ALL_TAC
+	 ] THEN
+	 
+	 ASM_REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+	 REWRITE_TAC[f_list] THEN
+	 AP_TERM_TAC THEN
+	 MATCH_MP_TAC MEM_FIND_FACE_IMP_FACES_EQ THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (ISPECL [`find_face (x:A#A) ll`; `x:A#A`; `n:num`] NEXT_EL_POWER) THEN
+	 ANTS_TAC THENL
+	 [
+	   ASM_SIMP_TAC[ALL_DISTINCT_FIND_FACE] THEN
+	     ASM_REWRITE_TAC[GSYM DART_IN_FACE];
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 ABBREV_TAC `f:(A#A)list = find_face x ll` THEN
+	 EXISTS_TAC `(INDEX (x:A#A) f + n) MOD LENGTH f` THEN
+	 REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `~(LENGTH (f:(A#A)list) = 0)` ASSUME_TAC THENL
+	 [
+	   MP_TAC (SPEC_ALL (SPECL [`x:A#A`] DART_IN_FACE)) THEN
+	     ASM_REWRITE_TAC[MEM_EXISTS_EL] THEN
+	     STRIP_TAC THEN UNDISCH_TAC `i < LENGTH (f:(A#A)list)` THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[DIVISION];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[GSYM Hypermap.orbit_map] THEN
+     MATCH_MP_TAC NEXT_EL_ORBIT THEN
+     ASM_SIMP_TAC[ALL_DISTINCT_FIND_FACE; GSYM DART_IN_FACE]);;
+
+
+
+let ALL_DISTINCT_FLATTEN = prove(`!ll:((A)list)list. 
+	ALL_DISTINCT (FLATTEN ll) /\ ALL (\l. ~(l = [])) ll ==> ALL_DISTINCT ll`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[FLATTEN; ALL_DISTINCT_ALT] THEN
+     REWRITE_TAC[ITLIST; ALL] THEN
+     REWRITE_TAC[GSYM FLATTEN; ALL_DISTINCT_APPEND] THEN
+     STRIP_TAC THEN
+     MP_TAC (SPECL [`h:(A)list`; `FLATTEN t:(A)list`] ALL_DISTINCT_APPEND) THEN
+     ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[] THEN
+     REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN POP_ASSUM (fun th -> ALL_TAC) THEN
+     SPEC_TAC (`t:((A)list)list`, `t:((A)list)list`) THEN
+     LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     REWRITE_TAC[ALL; FLATTEN; ITLIST] THEN
+     REWRITE_TAC[GSYM FLATTEN] THEN
+     REWRITE_TAC[APPEND_ASSOC; DE_MORGAN_THM] THEN
+     REPEAT STRIP_TAC THENL
+     [
+       MP_TAC (SPECL [`APPEND h h':(A)list`; `FLATTEN t:(A)list`] ALL_DISTINCT_APPEND) THEN
+	 ASM_REWRITE_TAC[DE_MORGAN_THM] THEN
+	 DISJ1_TAC THEN MATCH_MP_TAC MEM_IMP_NOT_ALL_DISTINCT_APPEND THEN
+	 MP_TAC (ISPEC `h':(A)list` list_CASES) THEN
+	 ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	 EXISTS_TAC `h'':A` THEN
+	 ASM_REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     REPEAT ANTS_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       REPLICATE_TAC 5 REMOVE_ASSUM THEN
+	 POP_ASSUM MP_TAC THEN
+	 ONCE_REWRITE_TAC[ALL_DISTINCT_APPEND_SYM] THEN
+	 REWRITE_TAC[APPEND_ASSOC] THEN
+	 DISCH_TAC THEN
+	 MP_TAC (SPECL [`APPEND (FLATTEN t) h:(A)list`; `h':(A)list`] ALL_DISTINCT_APPEND) THEN
+	 ASM_SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL [`h':(A)list`; `FLATTEN t:(A)list`] ALL_DISTINCT_APPEND) THEN
+     ASM_SIMP_TAC[]);;
+     
+
+
+let FLATTEN_FILTER_EMPTY = prove(`!ll:((A)list)list. 
+				   FLATTEN (FILTER (\l. ~(l = [])) ll) = FLATTEN ll`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[FLATTEN; FILTER; ITLIST] THEN
+     REWRITE_TAC[GSYM FLATTEN] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[APPEND] THEN
+     REWRITE_TAC[FLATTEN; ITLIST] THEN
+     ASM_REWRITE_TAC[GSYM FLATTEN]);;
+
+
+let ALL_FILTER = prove(`!P list:(A)list. ALL P (FILTER P list)`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[FILTER; ALL] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[ALL]);;
+     
+     
+
+
+
+let ALL_DISTINCT_SUBLIST_UNIQUE = prove(`!l1 l2 (x:A) ll. ALL_DISTINCT (FLATTEN ll) /\
+					  MEM l1 ll /\ MEM l2 ll /\ MEM x l1 /\ MEM x l2
+					==> l1 = l2`,
+   GEN_TAC THEN GEN_TAC THEN GEN_TAC THEN 
+     LIST_INDUCT_TAC THEN REWRITE_TAC[MEM] THEN
+     REWRITE_TAC[FLATTEN; ITLIST] THEN
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o check (fun th -> (rator o concl) th = `ALL_DISTINCT:(A)list->bool`)) THEN
+	 ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+	 DISCH_TAC THEN
+	 MATCH_MP_TAC MEM_IMP_NOT_ALL_DISTINCT_APPEND THEN
+	 EXISTS_TAC `x:A` THEN
+	 FIRST_X_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[GSYM FLATTEN] THEN
+	 REWRITE_TAC[MEM_FLATTEN] THEN
+	 EXISTS_TAC `l2:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+
+       FIRST_X_ASSUM (MP_TAC o check (fun th -> (rator o concl) th = `ALL_DISTINCT:(A)list->bool`)) THEN
+	 ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+	 DISCH_TAC THEN
+	 MATCH_MP_TAC MEM_IMP_NOT_ALL_DISTINCT_APPEND THEN
+	 EXISTS_TAC `x:A` THEN
+	 FIRST_X_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[GSYM FLATTEN] THEN
+	 REWRITE_TAC[MEM_FLATTEN] THEN
+	 EXISTS_TAC `l1:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+
+       ALL_TAC
+     ] THEN
+
+     FIRST_X_ASSUM MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o (fun th -> MATCH_MP ALL_DISTINCT_APPEND th)) THEN
+     SIMP_TAC[GSYM FLATTEN]);;
+
+
+
+
+
+let ALL_DISTINCT_FACE_UNIQUE = prove(`!f1 f2 d (ll:((A)list)list). 
+          ALL_DISTINCT (list_of_darts ll) /\ MEM f1 (list_of_faces ll) /\ 
+          MEM f2 (list_of_faces ll) /\ MEM d f1 /\ MEM d f2 ==> f1 = f2`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC ALL_DISTINCT_SUBLIST_UNIQUE THEN
+     EXISTS_TAC `d:A#A` THEN
+     EXISTS_TAC `list_of_faces ll:((A#A)list)list` THEN
+     ASM_REWRITE_TAC[GSYM LIST_OF_DARTS]);;
+
+
+
+
+let MEM_FACE_LEMMA = prove(`!f (ll:((A)list)list). good_list ll /\
+			     MEM f (list_of_faces ll) ==>
+			     ?d. MEM d (list_of_darts ll) /\ f = find_face d ll`,
+   REWRITE_TAC[good_list] THEN REPEAT STRIP_TAC THEN
+     EXISTS_TAC `HD f:A#A` THEN
+     POP_ASSUM MP_TAC THEN
+     MP_TAC (ISPEC `f:(A#A)list` list_CASES) THEN
+     STRIP_TAC THENL
+     [
+       ASM_REWRITE_TAC[list_of_faces; MEM_MAP] THEN
+	 STRIP_TAC THEN POP_ASSUM (MP_TAC o SYM) THEN
+	 REWRITE_TAC[LIST_PAIRS_EMPTY] THEN DISCH_TAC THEN
+	 UNDISCH_TAC `ALL (\l:(A)list. ~(l = [])) ll` THEN
+	 REWRITE_TAC[GSYM ALL_MEM] THEN
+	 DISCH_THEN (MP_TAC o SPEC `x:(A)list`) THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[HD] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `MEM (h:A#A) (list_of_darts ll)` ASSUME_TAC THENL
+     [
+       REWRITE_TAC[LIST_OF_DARTS; MEM_FLATTEN] THEN
+	 EXISTS_TAC `f:(A#A)list` THEN
+	 ASM_REWRITE_TAC[MEM];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC ALL_DISTINCT_FACE_UNIQUE THEN
+     EXISTS_TAC `h:A#A` THEN
+     EXISTS_TAC `ll:((A)list)list` THEN
+     ASM_REWRITE_TAC[MEM] THEN
+     ASM_SIMP_TAC[MEM_FIND_FACE] THEN
+     ASM_REWRITE_TAC[GSYM DART_IN_FACE]);;
+     
+
+     
+   
+
+
+
+
+let FACE_SET_EQ_LIST = prove(`!ll:((A)list)list. good_list ll ==> 
+			       face_set (hypermap_of_list ll) = set_of_list (faces_of_list ll)`,
+   REPEAT STRIP_TAC THEN FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[Hypermap.face_set; Hypermap.face_map; Hypermap.dart; HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[Hypermap.set_of_orbits] THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_SET_OF_LIST] THEN
+     
+     X_GEN_TAC `f:(A#A->bool)` THEN
+     REWRITE_TAC[GSYM EXTENSION] THEN
+     EQ_TAC THENL
+     [
+       DISCH_THEN (X_CHOOSE_THEN `d:A#A` MP_TAC) THEN
+	 REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+	 STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+	 ASM_SIMP_TAC[F_LIST_EXT_ORBIT] THEN
+	 DISCH_TAC THEN
+	 REWRITE_TAC[faces_of_list; MEM_MAP] THEN
+	 EXISTS_TAC `find_face (d:A#A) ll` THEN
+	 ASM_SIMP_TAC[MEM_FIND_FACE];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[faces_of_list; MEM_MAP] THEN
+     DISCH_THEN (X_CHOOSE_THEN `ff:(A#A)list` ASSUME_TAC) THEN
+     MP_TAC (SPECL [`ff:(A#A)list`; `ll:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `d:A#A` THEN
+     ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+     ASM_SIMP_TAC[F_LIST_EXT_ORBIT]);;
+
+     
+(* Define nodes of a good hypermap *)
+let good_list_nodes = new_definition `good_list_nodes L <=> 
+  node_set (hypermap_of_list L) = set_of_list (nodes_of_list L)`;;
+
+
+
+
+let COMPONENTS_HYPERMAP_OF_LIST = prove(`!L:((A)list)list. good_list L ==>
+					  dart (hypermap_of_list L) = darts_of_list L /\
+					  edge_map (hypermap_of_list L) = e_list_ext L /\
+					  node_map (hypermap_of_list L) = n_list_ext L /\
+					  face_map (hypermap_of_list L) = f_list_ext L`,
+   GEN_TAC THEN DISCH_TAC THEN
+     REWRITE_TAC[Hypermap.dart; Hypermap.edge_map; Hypermap.node_map; Hypermap.face_map] THEN
+     ASM_SIMP_TAC[HYPERMAP_OF_LIST]);;
+	 
+	 
+	 
+	 
+let SET_OF_LIST_FILTER = prove(`!P list:(A)list.
+				 set_of_list (FILTER P list) = {x | MEM x list /\ P x}`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[FILTER; MEM] THENL
+     [
+       REWRITE_TAC[set_of_list] THEN SET_TAC[];
+       ALL_TAC
+     ] THEN
+     COND_CASES_TAC THENL
+     [
+       ASM_REWRITE_TAC[set_of_list] THEN
+	 POP_ASSUM MP_TAC THEN SET_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN SET_TAC[]);;
+
+
+
+let SET_OF_LIST_REMOVE_DUPLICATES = prove(`!list:(A)list.
+		set_of_list (REMOVE_DUPLICATES list) = set_of_list list`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[REMOVE_DUPLICATES; set_of_list] THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[set_of_list] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[GSYM IN_SET_OF_LIST] THEN
+     SET_TAC[]);;
+
+
+
+
+let SET_OF_LIST_FLATTEN = prove(`!list:((A)list)list.
+		set_of_list (FLATTEN list) = UNIONS {set_of_list l | MEM l list}`,
+   LIST_INDUCT_TAC THEN REWRITE_TAC[FLATTEN; ITLIST; MEM] THENL
+     [
+       SET_TAC[set_of_list];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GSYM FLATTEN] THEN
+     ASM_REWRITE_TAC[SET_OF_LIST_APPEND] THEN
+     SET_TAC[]);;
+
+
+
+
+let NODE_OF_LIST_LEMMA = prove(`!(x:A) L. 
+		set_of_list (FILTER (\d. FST d = x) (list_of_darts L))
+			       = {(x, y) | y | (x, y) IN darts_of_list L}`,
+   REWRITE_TAC[SET_OF_LIST_FILTER; darts_of_list; IN_SET_OF_LIST] THEN
+     REPEAT GEN_TAC THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
+     X_GEN_TAC `d:A#A` THEN
+     EQ_TAC THEN STRIP_TAC THENL
+     [
+       EXISTS_TAC `SND (d:A#A)` THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ASM_REWRITE_TAC[]
+     ]);;
+
+
+
+
+let NODES_OF_LIST = prove(`!L:((A)list)list. set_of_list (nodes_of_list L)
+	    = {{(x, y) | y | (x, y) IN darts_of_list L} | x | x IN elements_of_list L}`,
+   REWRITE_TAC[nodes_of_list; list_of_nodes] THEN
+     REWRITE_TAC[SET_OF_LIST_MAP] THEN
+     REWRITE_TAC[GSYM IMAGE_LEMMA; IN_ELIM_THM; GSYM elements_of_list] THEN
+     GEN_TAC THEN
+     REWRITE_TAC[EXTENSION] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     X_GEN_TAC `y:A#A->bool` THEN
+     EQ_TAC THEN STRIP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN
+	 ASM_REWRITE_TAC[NODE_OF_LIST_LEMMA] THEN
+	 DISCH_TAC THEN
+	 EXISTS_TAC `x':A` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     EXISTS_TAC `FILTER (\d. FST d = x:A) (list_of_darts L)` THEN
+     ASM_REWRITE_TAC[NODE_OF_LIST_LEMMA] THEN
+     EXISTS_TAC `x:A` THEN
+     ASM_REWRITE_TAC[]);;
+     
+
+
+let GOOD_LIST_NODE = prove(`!L (d:A#A). good_list L /\ good_list_nodes L /\ d IN darts_of_list L
+     ==> node (hypermap_of_list L) d = {(FST d, x) | x | (FST d, x) IN darts_of_list L}`,
+   REWRITE_TAC[good_list_nodes; Hypermap.node_set; Hypermap.set_of_orbits] THEN
+     REWRITE_TAC[GSYM Hypermap.node] THEN
+     REWRITE_TAC[NODES_OF_LIST] THEN
+     REPEAT GEN_TAC THEN
+     GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV) [EXTENSION] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `node (hypermap_of_list L) (d:A#A)`) THEN
+     SUBGOAL_THEN `?x:A#A. x IN dart (hypermap_of_list L) /\ node (hypermap_of_list L) d = node (hypermap_of_list L) x` ASSUME_TAC THENL
+     [
+       EXISTS_TAC `d:A#A` THEN
+	 ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MP_TAC (ISPECL [`hypermap_of_list (L:((A)list)list)`; `d:A#A`] Hypermap.node_refl) THEN
+     ASM_REWRITE_TAC[IN_ELIM_THM] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+
+	 
+let PREV_EL_LIST_PAIRS_GENERAL = prove(`!x (y:A) list. MEM (x,y) (list_pairs list)
+		 ==> ?z. PREV_EL (x,y) (list_pairs list) = (z, x) /\ MEM (z,x) (list_pairs list)`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `z = FST (PREV_EL (x:A,y) (list_pairs list))` THEN
+     EXISTS_TAC `z:A` THEN
+     SUBGOAL_THEN `PREV_EL (x:A,y) (list_pairs list) = z,x` ASSUME_TAC THENL
+     [
+       POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 REWRITE_TAC[PREV_EL] THEN
+	 ABBREV_TAC `k = INDEX (x:A,y) (list_pairs list)` THEN
+	 ABBREV_TAC `n = LENGTH (list:(A)list)` THEN
+	 SUBGOAL_THEN `k < n:num` ASSUME_TAC THENL
+	 [
+	   MP_TAC (SPEC `list:(A)list` LENGTH_LIST_PAIRS) THEN
+	     ASM_REWRITE_TAC[] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+	     EXPAND_TAC "k" THEN
+	     ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH];
+	   ALL_TAC
+	 ] THEN
+
+	 COND_CASES_TAC THENL
+	 [
+	   MP_TAC (ISPEC `list_pairs (list:(A)list)` LAST_EL) THEN
+	     ANTS_TAC THENL
+	     [
+	       DISCH_TAC THEN
+		 UNDISCH_TAC `MEM (x:A,y) (list_pairs list)` THEN
+		 ASM_REWRITE_TAC[MEM];
+	       ALL_TAC
+	     ] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	     ASM_REWRITE_TAC[LENGTH_LIST_PAIRS] THEN
+	     MP_TAC (SPECL [`n - 1`; `list:(A)list`] EL_LIST_PAIRS) THEN
+	     ASM_REWRITE_TAC[] THEN
+	     ANTS_TAC THENL
+	     [
+	       MATCH_MP_TAC (ARITH_RULE `k < n ==> n - 1 < n`) THEN
+		 ASM_REWRITE_TAC[];
+	       ALL_TAC
+	     ] THEN
+
+	     DISCH_THEN (fun th -> REWRITE_TAC[th; PAIR_EQ]) THEN
+	     MP_TAC (ISPECL [`(x:A,y:A)`; `list_pairs (list:(A)list)`] EL_INDEX) THEN
+	     ASM_REWRITE_TAC[] THEN
+	     MP_TAC (SPECL [`0`; `list:(A)list`] EL_LIST_PAIRS) THEN
+	     ANTS_TAC THENL
+	     [
+	       POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	       ALL_TAC
+	     ] THEN
+
+	     DISCH_THEN (fun th -> SIMP_TAC[th; PAIR_EQ]);
+	   ALL_TAC
+	 ] THEN
+
+	 MP_TAC (SPECL [`k - 1`; `list:(A)list`] EL_LIST_PAIRS) THEN
+	 ASM_SIMP_TAC[ARITH_RULE `k < n ==> k - 1 < n`; PAIR_EQ] THEN
+	 DISCH_THEN (fun th -> ALL_TAC) THEN
+	 ASM_SIMP_TAC[ARITH_RULE `k < n /\ ~(k = 0) ==> ~(k - 1 = n - 1)`] THEN
+	 ASM_SIMP_TAC[ARITH_RULE `~(k = 0) ==> k - 1 + 1 = k`] THEN
+	 EXPAND_TAC "k" THEN
+	 MP_TAC (ISPECL [`(x:A,y:A)`; `list_pairs (list:(A)list)`] EL_INDEX) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 ASM_SIMP_TAC[EL_LIST_PAIRS; PAIR_EQ];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     MATCH_MP_TAC MEM_PREV_EL THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+let N_LIST_EXT_FST = prove(`!(x:A) y L. good_list L /\ (x,y) IN darts_of_list L
+			 ==> ?z. n_list_ext L (x,y) = (x,z) /\ (x,z) IN darts_of_list L`,
+   REPEAT STRIP_TAC THEN FIRST_ASSUM MP_TAC THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+     GEN_REWRITE_TAC (LAND_CONV o ONCE_DEPTH_CONV)[DART_IN_FACE] THEN
+     REWRITE_TAC[FIND_FACE] THEN
+     STRIP_TAC THEN
+     MP_TAC (SPECL[`x:A`; `y:A`; `find_pair_list (x:A,y) L`] PREV_EL_LIST_PAIRS_GENERAL) THEN
+     ASM_REWRITE_TAC[] THEN
+
+     STRIP_TAC THEN
+     EXISTS_TAC `z:A` THEN
+     SUBGOAL_THEN `n_list_ext L (x,y) = x,z:A` ASSUME_TAC THENL
+     [
+       ASM_REWRITE_TAC[n_list_ext; res; n_list; FIND_FACE; e_list];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[GSYM IN_SET_OF_LIST; GSYM darts_of_list] THEN
+     MP_TAC (ISPECL[`n_list_ext (L:((A)list)list)`; `darts_of_list (L:((A)list)list)`] PERMUTES_IMP_INSIDE) THEN
+     ASM_SIMP_TAC[N_LIST_EXT_PERMUTES_DARTS] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:A,y:A`) THEN
+     ASM_SIMP_TAC[]);;
+
+
+
+     
+
+let LIST_EXT_POWER_IN_DARTS = prove(`!(d:A#A) L n. good_list L /\ d IN darts_of_list L
+					==> (e_list_ext L POWER n) d IN darts_of_list L /\
+					    (n_list_ext L POWER n) d IN darts_of_list L /\
+					    (f_list_ext L POWER n) d IN darts_of_list L`,
+    REPEAT GEN_TAC THEN STRIP_TAC THEN
+      ABBREV_TAC `H = hypermap_of_list (L:((A)list)list)` THEN
+      MP_TAC (SPEC_ALL COMPONENTS_HYPERMAP_OF_LIST) THEN
+      ASM_REWRITE_TAC[] THEN 
+      REPEAT STRIP_TAC THENL
+      [
+	MATCH_MP_TAC IN_TRANS THEN
+	  EXISTS_TAC `edge H (d:A#A)` THEN
+	  MP_TAC (ISPECL [`H:(A#A)hypermap`; `d:A#A`] Hypermap.lemma_edge_subset) THEN
+	  ASM_SIMP_TAC[Hypermap.edge; Hypermap.orbit_map] THEN
+	  REWRITE_TAC[IN_ELIM_THM] THEN
+	  DISCH_TAC THEN
+	  EXISTS_TAC `n:num` THEN
+	  REWRITE_TAC[GE; LE_0];
+
+	MATCH_MP_TAC IN_TRANS THEN
+	  EXISTS_TAC `node H (d:A#A)` THEN
+	  MP_TAC (ISPECL [`H:(A#A)hypermap`; `d:A#A`] Hypermap.lemma_node_subset) THEN
+	  ASM_SIMP_TAC[Hypermap.node; Hypermap.orbit_map] THEN
+	  REWRITE_TAC[IN_ELIM_THM] THEN
+	  DISCH_TAC THEN
+	  EXISTS_TAC `n:num` THEN
+	  REWRITE_TAC[GE; LE_0];
+
+	MATCH_MP_TAC IN_TRANS THEN
+	  EXISTS_TAC `face H (d:A#A)` THEN
+	  MP_TAC (ISPECL [`H:(A#A)hypermap`; `d:A#A`] Hypermap.lemma_face_subset) THEN
+	  ASM_SIMP_TAC[Hypermap.face; Hypermap.orbit_map] THEN
+	  REWRITE_TAC[IN_ELIM_THM] THEN
+	  DISCH_TAC THEN
+	  EXISTS_TAC `n:num` THEN
+	  REWRITE_TAC[GE; LE_0];
+     ]);;
+
+
+
+let FST_N_LIST_EXT_POWER = prove(`!x (y:A) L n. good_list L /\ x,y IN darts_of_list L
+				   ==> FST ((n_list_ext L POWER n) (x,y)) = x`,
+   GEN_TAC THEN GEN_TAC THEN GEN_TAC THEN
+     INDUCT_TAC THEN REWRITE_TAC[Hypermap.POWER_0; I_THM] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     ABBREV_TAC `d = (n_list_ext L POWER n) (x:A,y)` THEN
+     ASM_REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+     MP_TAC (SPECL [`FST (d:A#A)`; `SND (d:A#A)`; `L:((A)list)list`] N_LIST_EXT_FST) THEN
+     ASM_REWRITE_TAC[PAIR] THEN
+     ANTS_TAC THENL
+     [
+       EXPAND_TAC "d" THEN
+	 ASM_SIMP_TAC[LIST_EXT_POWER_IN_DARTS];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[]);;
+	 
+	 
+	 
+
+let MEM_LIST_PAIRS_EXISTS = prove(`!x l. MEM x l <=> ?y:A. MEM (x,y) (list_pairs l)`,
+   REPEAT GEN_TAC THEN
+     EQ_TAC THENL
+     [
+       DISCH_TAC THEN
+	 EXISTS_TAC `NEXT_EL (x:A) l` THEN
+	 REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 EXISTS_TAC `INDEX (x:A) l` THEN
+	 REWRITE_TAC[LENGTH_LIST_PAIRS] THEN
+	 ASM_REWRITE_TAC[GSYM INDEX_LT_LENGTH] THEN
+	 ASM_SIMP_TAC[GSYM INDEX_LT_LENGTH; EL_LIST_PAIRS] THEN
+	 ASM_SIMP_TAC[EL_INDEX; PAIR_EQ; NEXT_EL] THEN
+	 COND_CASES_TAC THEN ASM_REWRITE_TAC[EL];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[MEM_LIST_PAIRS]);;
+
+
+
+
+let MEM_LIST_OF_DARTS = prove(`!d L. MEM d (list_of_darts L) <=>
+				?l:(A)list. MEM l L /\ MEM d (list_pairs l)`,
+   REPEAT GEN_TAC THEN EQ_TAC THENL
+     [
+       SPEC_TAC (`L:((A)list)list`, `L:((A)list)list`) THEN
+	 LIST_INDUCT_TAC THEN REWRITE_TAC[list_of_darts; ITLIST; MEM] THEN
+	 REWRITE_TAC[GSYM list_of_darts; MEM_APPEND] THEN
+	 STRIP_TAC THENL
+	 [
+	   EXISTS_TAC `h:(A)list` THEN
+	     ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+	 ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	 EXISTS_TAC `l:(A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     MATCH_MP_TAC DART_IN_DARTS THEN
+     EXISTS_TAC `l:(A)list` THEN ASM_REWRITE_TAC[]);;
+
+   
+
+     
+let MEM_LIST_OF_ELEMENTS = prove(`!x L. MEM x (list_of_elements L) <=>
+				   ?y:A. MEM (x,y) (list_of_darts L)`,
+   REWRITE_TAC[list_of_elements; MEM_REMOVE_DUPLICATES; MEM_FLATTEN] THEN
+     REWRITE_TAC[MEM_LIST_OF_DARTS] THEN
+     ONCE_REWRITE_TAC[SWAP_EXISTS_THM] THEN
+     REWRITE_TAC[RIGHT_EXISTS_AND_THM] THEN
+     REWRITE_TAC[GSYM MEM_LIST_PAIRS_EXISTS]);;
+
+
+
+
+
+let ALL_DISTINCT_FILTER = prove(`!(P:A->bool) l. ALL_DISTINCT l ==> ALL_DISTINCT (FILTER P l)`,
+   GEN_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ALL_DISTINCT_ALT; FILTER] THEN
+     STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o check (is_imp o concl)) THEN
+     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     COND_CASES_TAC THEN ASM_REWRITE_TAC[ALL_DISTINCT_ALT; MEM_FILTER]);;
+     
+
+
+
+let ALL_DISTINCT_NODE = prove(`!L (n:(A#A)list). good_list L /\ MEM n (list_of_nodes L)
+				==> ALL_DISTINCT n`,
+   REWRITE_TAC[good_list; list_of_nodes; MEM_MAP] THEN 
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC ALL_DISTINCT_FILTER THEN
+     ASM_REWRITE_TAC[]);;
+
+
+
+
+let ALL_DISTINCT_FACE = prove(`!L (f:(A#A)list). good_list L /\ MEM f (list_of_faces L)
+				==> ALL_DISTINCT f`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL [`f:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC ALL_DISTINCT_FIND_FACE THEN
+     UNDISCH_TAC `good_list (L:((A)list)list)` THEN
+     SIMP_TAC[good_list]);;
+
+
+
+
+
+let LIST_OF_EDGES = prove(`!L:((A)list)list. good_list L ==>
+			    hyp_edge_pairs (hypermap_of_list L) = set_of_list (list_of_edges L)`,
+   REWRITE_TAC[hyp_edge_pairs; list_of_edges] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[darts_of_list; e_list_ext; e_list; res; IN_SET_OF_LIST] THEN
+     REWRITE_TAC[EXTENSION; IN_SET_OF_LIST; IN_ELIM_THM; MEM_MAP] THEN
+     GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN
+	 DISCH_TAC THEN
+	 EXISTS_TAC `x':A#A` THEN
+	 ASM_REWRITE_TAC[];
+       EXISTS_TAC `x':A#A` THEN
+	 ASM_REWRITE_TAC[]
+     ]);;
+
+
+(* Theorems for special lists *)
+
+let FACE_OF_LIST = prove(`!L (x:A#A). good_list L /\ MEM x (list_of_darts L) ==>
+			   face (hypermap_of_list L) x = set_of_list (find_face x L)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC `L:((A)list)list` FACE_SET_EQ_LIST) THEN
+     ASM_REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST; darts_of_list; IN_SET_OF_LIST] THEN
+     GEN_REWRITE_TAC LAND_CONV [EXTENSION] THEN
+     DISCH_THEN (MP_TAC o SPEC `face (hypermap_of_list L) (x:A#A)`) THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     DISCH_THEN (MP_TAC o MATCH_MP (TAUT `(A <=> B) ==> (A ==> B)`)) THEN
+     ANTS_TAC THENL
+     [
+       EXISTS_TAC `x:A#A` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[IN_SET_OF_LIST; faces_of_list; MEM_MAP] THEN
+     DISCH_THEN (X_CHOOSE_THEN `f:(A#A)list` STRIP_ASSUME_TAC) THEN
+     
+     MP_TAC (SPECL [`f:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN 
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     AP_TERM_TAC THEN
+     MATCH_MP_TAC (GSYM MEM_FIND_FACE_IMP_FACES_EQ) THEN
+     CONJ_TAC THENL
+     [
+       UNDISCH_TAC `good_list (L:((A)list)list)` THEN
+	 SIMP_TAC[good_list];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     REMOVE_ASSUM THEN
+     REWRITE_TAC[GSYM IN_SET_OF_LIST] THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     REWRITE_TAC[Hypermap.face_refl]);;
+
+
+
+let CARD_FACE_OF_LIST = prove(`!L (x:A#A). good_list L /\ MEM x (list_of_darts L) ==>
+			     CARD (face (hypermap_of_list L) x) = LENGTH (find_face x L)`,
+   REPEAT STRIP_TAC THEN
+     ASM_SIMP_TAC[FACE_OF_LIST] THEN
+     MATCH_MP_TAC CARD_SET_OF_LIST_ALL_DISTINCT THEN
+     MATCH_MP_TAC ALL_DISTINCT_FIND_FACE THEN
+     REMOVE_ASSUM THEN POP_ASSUM MP_TAC THEN
+     SIMP_TAC[good_list]);;
+
+
+let LIST_OF_FACES_n = prove(`!(L:((A)list)list) n. good_list L ==>
+			      {f | f IN face_set (hypermap_of_list L) /\ CARD f = n} =
+				set_of_list (MAP set_of_list (FILTER (\f. LENGTH f = n) (list_of_faces L)))`,
+   REPEAT STRIP_TAC THEN
+     FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     REWRITE_TAC[Hypermap.face_set; Hypermap.set_of_orbits; GSYM Hypermap.face] THEN
+     REWRITE_TAC[IN_ELIM_THM] THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST] THEN
+     REWRITE_TAC[EXTENSION] THEN
+     X_GEN_TAC `f:A#A->bool` THEN
+     REWRITE_TAC[GSYM EXTENSION] THEN
+     REWRITE_TAC[IN_ELIM_THM; IN_SET_OF_LIST; MEM_MAP; MEM_FILTER] THEN
+     EQ_TAC THENL
+     [
+       STRIP_TAC THEN
+	 EXISTS_TAC `find_face (x:A#A) L` THEN
+	 ASM_SIMP_TAC[MEM_FIND_FACE; FACE_OF_LIST] THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_SIMP_TAC[CARD_FACE_OF_LIST];
+       DISCH_THEN (X_CHOOSE_THEN `l:(A#A)list` STRIP_ASSUME_TAC) THEN
+	 MP_TAC (SPECL[`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 CONJ_TAC THENL
+	 [
+	   EXISTS_TAC `d:A#A` THEN
+	     ASM_REWRITE_TAC[] THEN
+	     ASM_SIMP_TAC[FACE_OF_LIST];
+	   ALL_TAC
+	 ] THEN
+
+	 UNDISCH_TAC `LENGTH (l:(A#A)list) = n` THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC CARD_SET_OF_LIST_ALL_DISTINCT THEN
+	 MATCH_MP_TAC ALL_DISTINCT_FIND_FACE THEN
+	 ASM_REWRITE_TAC[]
+     ]);;
+			     
+     
+			     
+
+let LIST_OF_FACES3 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_face3 (hypermap_of_list L) = 
+			       set_of_list (MAP set_of_list (list_of_faces3 L))`,
+   REWRITE_TAC[hyp_face3; list_of_faces3] THEN
+     REWRITE_TAC[LIST_OF_FACES_n]);;
+
+
+
+let LIST_OF_FACES4 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_face4 (hypermap_of_list L) = 
+			       set_of_list (MAP set_of_list (list_of_faces4 L))`,
+   REWRITE_TAC[hyp_face4; list_of_faces4] THEN
+     REWRITE_TAC[LIST_OF_FACES_n]);;
+
+
+
+let LIST_OF_FACES5 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_face5 (hypermap_of_list L) = 
+			       set_of_list (MAP set_of_list (list_of_faces5 L))`,
+   REWRITE_TAC[hyp_face5; list_of_faces5] THEN
+     REWRITE_TAC[LIST_OF_FACES_n]);;
+
+
+
+let LIST_OF_FACES6 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_face6 (hypermap_of_list L) = 
+			       set_of_list (MAP set_of_list (list_of_faces6 L))`,
+   REWRITE_TAC[hyp_face6; list_of_faces6] THEN
+     REWRITE_TAC[LIST_OF_FACES_n]);;
+   
+     
+
+
+let LIST_OF_DARTS3 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_dart3 (hypermap_of_list L) = set_of_list (list_of_darts3 L)`,
+  REWRITE_TAC[hyp_dart3; list_of_darts3; list_of_faces3] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; LIST_OF_DARTS] THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_SET_OF_LIST] THEN
+     REWRITE_TAC[MEM_FLATTEN; MEM_FILTER] THEN
+     GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	     EXISTS_TAC `d:A#A` THEN
+	     POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+	 AP_TERM_TAC THEN
+	 MATCH_MP_TAC (GSYM MEM_FIND_FACE_IMP_FACES_EQ) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+
+     SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	 EXISTS_TAC `d:A#A` THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+     UNDISCH_TAC `LENGTH (l:(A#A)list) = 3` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     AP_TERM_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC (MEM_FIND_FACE_IMP_FACES_EQ) THEN
+     ASM_REWRITE_TAC[] THEN
+     REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]));;
+
+
+
+let LIST_OF_DARTS4 = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_dart4 (hypermap_of_list L) = set_of_list (list_of_darts4 L)`,
+   REWRITE_TAC[hyp_dart4; list_of_darts4; list_of_faces4] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; LIST_OF_DARTS] THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_SET_OF_LIST] THEN
+     REWRITE_TAC[MEM_FLATTEN; MEM_FILTER] THEN
+     GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	     EXISTS_TAC `d:A#A` THEN
+	     POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+	 AP_TERM_TAC THEN
+	 MATCH_MP_TAC (GSYM MEM_FIND_FACE_IMP_FACES_EQ) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+
+     SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	 EXISTS_TAC `d:A#A` THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+     UNDISCH_TAC `LENGTH (l:(A#A)list) = 4` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     AP_TERM_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC (MEM_FIND_FACE_IMP_FACES_EQ) THEN
+     ASM_REWRITE_TAC[] THEN
+     REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]));;
+
+
+
+let LIST_OF_DARTS_X = prove(`!L:((A)list)list. good_list L ==>
+			     hyp_dartX (hypermap_of_list L) = set_of_list (list_of_dartsX L)`,
+   REWRITE_TAC[hyp_dartX; list_of_dartsX; list_of_faces456] THEN
+     REPEAT STRIP_TAC THEN
+     FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
+     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST] THEN
+     REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; LIST_OF_DARTS] THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_SET_OF_LIST] THEN
+     REWRITE_TAC[MEM_FLATTEN; MEM_FILTER] THEN
+     GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 POP_ASSUM MP_TAC THEN
+	 MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+	 [
+	   MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	     EXISTS_TAC `d:A#A` THEN
+	     POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+	 SUBGOAL_THEN `find_face (x:A#A) L = find_face d L` (fun th -> SIMP_TAC[th]) THEN
+	 MATCH_MP_TAC MEM_FIND_FACE_IMP_FACES_EQ THEN
+	 ASM_REWRITE_TAC[] THEN
+	 REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     CONJ_TAC THENL
+     [
+       EXISTS_TAC `l:(A#A)list` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     MP_TAC (SPECL [`l:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
+     ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN
+
+     SUBGOAL_THEN `MEM (x:A#A) (list_of_darts L)` ASSUME_TAC THENL
+     [
+       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
+	 EXISTS_TAC `d:A#A` THEN
+	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+       ALL_TAC
+     ] THEN
+
+     ASM_SIMP_TAC[CARD_FACE_OF_LIST] THEN
+     UNDISCH_TAC `4 <= LENGTH (l:(A#A)list)` THEN
+     ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `find_face (x:A#A) L = find_face d L` (fun th -> SIMP_TAC[th]) THEN
+     MATCH_MP_TAC (MEM_FIND_FACE_IMP_FACES_EQ) THEN
+     ASM_REWRITE_TAC[] THEN
+     REMOVE_ASSUM THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]));;
+

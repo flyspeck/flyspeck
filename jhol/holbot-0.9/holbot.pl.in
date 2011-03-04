@@ -1,0 +1,210 @@
+#!/usr/bin/perl -w
+# xavierbot : an OCaml interpreter IRC bot.
+# By Richard W.M. Jones <rich@annexia.org>.
+# This code is in the Public Domain.
+# $Id: xavierbot.pl.in,v 1.10 2010/04/04 19:38:40 rjones Exp $
+
+use strict;
+use POE qw(Component::IRC Wheel::Run);
+use Getopt::Long;
+use POE::Component::IRC::Plugin::NickServID;
+
+#----------------------------------------------------------------------
+# Start of configuration.
+
+my $nick = "@PACKAGE@";
+my $ircname = "HOLbot";		# Printable name.
+my $server = "charizard.zapto.org";
+my $port = 6667;
+my $channel = "#hol";
+
+my $nickservpw = "123456"; # or undef
+
+# End of configuration.
+#----------------------------------------------------------------------
+
+# Command line args can override configuration.
+GetOptions ("nick=s" => \$nick,
+	    "ircname=s" => \$ircname,
+	    "server=s" => \$server,
+	    "port=i" => \$port,
+	    "channel=s" => \$channel)
+    or die "$0: GetOptions: $!";
+
+
+# Are we awake or sleeping?
+my $sleeping = 0;
+
+#----------------------------------------------------------------------
+
+$ENV{PATH} = "/usr/local/bin:/usr/bin:/bin";
+
+POE::Session->create (
+  package_states => [
+    main => [ qw(_default _start irc_001 irc_public got_stdout got_sigchld) ],
+  ],
+);
+
+POE::Kernel->run ();
+exit 0;
+
+sub _start
+{
+    my ($kernel, $heap) = @_[KERNEL,HEAP];
+
+    my $irc = POE::Component::IRC->spawn
+	(
+	 nick => $nick,
+	 ircname => $ircname,
+	 server => $server,
+	 port => $port,
+	 ) or die "POE::Component::IRC->spawn failed: $!";
+
+    $irc->plugin_add('NickServID',
+                     POE::Component::IRC::Plugin::NickServID->new(
+                         Password => $nickservpw,
+                     ));
+
+    my $ocaml = start_toplevel ();
+
+    $kernel->sig(CHLD => qw(got_sigchld));
+
+    $heap->{irc} = $irc;
+    $heap->{ocaml} = $ocaml;
+
+    my $irc_session = $heap->{irc}->session_id ();
+    $kernel->post ($irc_session => register => "all");
+    $kernel->post ($irc_session => connect => { });
+
+    undef;
+}
+
+sub irc_001
+{
+    my ($kernel, $sender) = @_[KERNEL,SENDER];
+
+    my $poco_object = $sender->get_heap ();
+    print "Connected to ", $poco_object->server_name (), "\n";
+
+    $kernel->post ($sender => join => $channel);
+    undef;
+}
+
+sub irc_public
+{
+    my ($kernel, $sender, $who, $where, $what, $heap) =
+	@_[KERNEL,SENDER,ARG0,ARG1,ARG2,HEAP];
+    my $nick = (split /!/, $who)[0];
+    my $channel = $where->[0];
+
+    my @usage =
+	(
+	 "expr ;;  evaluate expr in toplevel and print result",
+	 "help     help message",
+	 "restart  restart the toplevel",
+	 "sleep    go to sleep",
+	 "wake     wake me up from sleep",
+	 );
+
+    print "got: $what\n";
+    # XXX How to interpolate $nick into the patterns?
+    if ($what =~ /^\s*@PACKAGE@\b.*\bhelp\b/) {
+	my $nick = (split /!/, $who)[0];
+	$kernel->post ($sender => privmsg => $channel =>
+	    "hello $nick, I am @PACKAGE@ @VERSION@, an HOL Light toplevel");
+	$kernel->post ($sender => privmsg => $channel => $_)
+	    foreach (@usage);
+    }
+    elsif ($what =~ /^\s*@PACKAGE@\b.*\brestart\b/) {
+	$sleeping = 0;
+	print STDOUT "got instruction to restart ...\n";
+	restart_toplevel ($heap->{ocaml});
+    }
+    elsif (!$sleeping) {
+	
+	if ($what =~ /^\s*@PACKAGE@\b.*\b(sleep|shut|quiet)\b/) {
+	    $sleeping = 1;
+	    $kernel->post ($sender => privmsg => $channel =>
+			   "Sleep mode activated. (do '@PACKAGE@ wake' to wake)");
+	}
+
+
+	else {
+	    $heap->{ocaml}->put ("$what\n");
+	   
+	}
+	
+    } else { # sleeping
+	if ($what =~ /^\s*@PACKAGE@\b.*\bwake\b/) {
+	    $sleeping = 0;
+	    $kernel->post ($sender => privmsg => $channel =>
+			   "Sentry mode activated.");
+	}
+    }
+    undef;
+}
+
+sub _default
+{
+    my ($event, $args) = @_[ARG0 .. $#_];
+    my @output = ("$event: ");
+
+    foreach my $arg (@$args) {
+	if (ref ($arg) eq "ARRAY") {
+	    push @output, "[" . join (" ,", @$arg) . "]";
+	} else {
+	    push @output, "'$arg'";
+	}
+    }
+    print STDOUT join " ", @output, "\n";
+    return 0;
+}
+
+#----------------------------------------------------------------------
+
+# Toplevel wrote something.
+
+sub got_stdout
+{
+    my ($kernel,$heap, $input, $wheel_id) = @_[KERNEL,HEAP,ARG0,ARG1];
+    print "Child said: $input\n";
+   
+	$kernel->post ($heap->{irc} => privmsg => $channel => ">$input");
+   
+   
+}
+
+# Got a SIGCHLD, so start the bot up again.
+
+sub got_sigchld
+{
+    my ($kernel, $heap) = @_[KERNEL,HEAP];
+    my $ocaml = start_toplevel ();
+    $heap->{ocaml} = $ocaml;
+}
+
+# Start up the toplevel (assumes it's not running).
+
+sub start_toplevel
+{
+    return POE::Wheel::Run->new
+	(
+	 Program => "@WRAPPER@",
+	 StdoutEvent => "got_stdout",
+	 StderrEvent => "got_stdout",
+	 ) or die "POE::Wheel::Run->new @WRAPPER@ failed: $!";
+}
+
+# Restart the toplevel - kill the old one, and a new one
+# will be spawned after we get the SIGCHLD signal.
+#
+# XXX Can't send signal to setuid child, so instead just close
+# stdin.
+
+sub restart_toplevel
+{
+    my $ocaml = shift;
+
+    $ocaml->kill (9);
+    $ocaml->shutdown_stdin;
+}

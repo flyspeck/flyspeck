@@ -39,6 +39,8 @@ public class EchoBot extends PircBot {
 		
 		BufferedReader in
 		   = new BufferedReader(new InputStreamReader(System.in));
+		
+		bot.setMessageDelay(0);
 		 
 		String line = "";
 		while(line != null){

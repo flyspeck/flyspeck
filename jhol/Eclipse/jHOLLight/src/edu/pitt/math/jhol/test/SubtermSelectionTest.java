@@ -19,7 +19,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import edu.pitt.math.jhol.core.Term;
-import edu.pitt.math.jhol.core.lexer.Parser;
+import edu.pitt.math.jhol.core.parser.Parser;
 import edu.pitt.math.jhol.core.printer.TermPrinter;
 import edu.pitt.math.jhol.core.printer.TermPrinterData;
 import edu.pitt.math.jhol.core.printer.TermPrinterTree;

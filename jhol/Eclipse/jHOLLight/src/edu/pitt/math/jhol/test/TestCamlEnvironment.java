@@ -4,7 +4,7 @@ package edu.pitt.math.jhol.test;
 import edu.pitt.math.jhol.caml.CamlEnvironment;
 import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
-import edu.pitt.math.jhol.core.lexer.Parser;
+import edu.pitt.math.jhol.core.parser.Parser;
 
 public class TestCamlEnvironment extends CamlEnvironment {
 	private HOLLightWrapper caml;

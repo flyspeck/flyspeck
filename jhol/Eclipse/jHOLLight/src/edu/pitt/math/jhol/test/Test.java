@@ -12,7 +12,7 @@ import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.HOLType;
 import edu.pitt.math.jhol.core.Pair;
 import edu.pitt.math.jhol.core.Term;
-import edu.pitt.math.jhol.core.lexer.Parser;
+import edu.pitt.math.jhol.core.parser.Parser;
 import edu.pitt.math.jhol.core.printer.TermPrinter;
 import edu.pitt.math.jhol.core.printer.TypePrinter;
 

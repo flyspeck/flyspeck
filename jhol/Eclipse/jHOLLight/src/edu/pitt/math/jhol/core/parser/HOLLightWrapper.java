@@ -1,5 +1,5 @@
 //Object for holding hol process
-package edu.pitt.math.jhol;
+package edu.pitt.math.jhol.core.parser;
 
 import java.text.ParseException;
 import java.util.*;
@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -14,6 +15,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -25,6 +27,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.StyledDocument;
 
+import edu.pitt.math.jhol.UnicodeOutputStream;
+
 import bsh.EvalError;
 import bsh.util.JConsole;
 
@@ -35,26 +39,31 @@ public class HOLLightWrapper extends JConsole {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private volatile BufferedWriter bin;
-	private volatile BufferedReader bout;
-	private volatile Process proc;
-	private volatile ExecutorService es;
+	private  BufferedWriter bin;
+	private  BufferedReader bout;
+	private  Process proc;
+	private  ExecutorService es;
+	
 
-	private volatile ProcessBuilder interrupt;
-	private volatile Boolean holIsEchoing;
-	private volatile int holPid;
+	private  ProcessBuilder interrupt;
+	private  Boolean holIsEchoing;
+	private  int holPid;
 
 	// variable to keep track of the theorem count
-	private volatile int numHolTheorems;
+	private  int numHolTheorems;
 
 	// variable to hold all the theorems
-	private volatile Set<String> holTheorems;
-	private volatile bsh.Interpreter interpreter;
-	private volatile JTextPane consoleTextPane;
-	private volatile String user;
-	private volatile String server;
-	private volatile BufferedReader bufInput;
-	private volatile JTextPane goalPane;
+	private  Set<String> holTheorems;
+	private  bsh.Interpreter interpreter;
+	private  JTextPane consoleTextPane;
+	private  String user;
+	private  String server;
+	private  BufferedReader bufInput;
+	private  JTextPane goalPane;
+	private  Thread taskThread;
+
+	private  int interruptCount;
+	private boolean threadSuspended;
 
 	public Set<String> getTheoremList() {
 		return new TreeSet<String>(this.holTheorems);
@@ -72,18 +81,15 @@ public class HOLLightWrapper extends JConsole {
 		return (holIsEchoing != null) && holIsEchoing;
 	}
 
-	public void kill() {
-		proc.destroy();
-	}
+	
 
-	public void interrupt() {
-		try {
-			interrupt.start();
-		} catch (IOException e) {
-			printErr(e);
-
-		}
+	public synchronized boolean interrupt() {
+		interruptCount++;
+		return interruptCount > 0;
 	}
+	
+	
+	
 
 	private void printErr(IOException e) {
 		printErr("Console: I/O Error: " + e);
@@ -105,8 +111,12 @@ public class HOLLightWrapper extends JConsole {
 		return goalPane;
 	}
 
+	public HOLLightWrapper(InputStream is, OutputStream os){
+		super(new HOLStream(is,null),new UnicodeOutputStream(os));
+	}
+	
 	public HOLLightWrapper() throws IOException, EvalError{
-		this(null,null);
+		this("","");//FIXME
 	}
 	
 	public void connect(String user, String server) throws IllegalArgumentException, IOException{
@@ -129,6 +139,16 @@ public class HOLLightWrapper extends JConsole {
 		notifyES();
 	}
 	
+	private class SimpleThreadFactory implements ThreadFactory {
+		   
+		
+		public Thread newThread(Runnable r) {
+		    System.out.println("Starting taskThread");
+			taskThread =  Executors.defaultThreadFactory().newThread(r);
+			return taskThread;
+		   }
+		 }
+	
 	public HOLLightWrapper(String user, String server) throws IOException,
 			EvalError {
 		
@@ -149,7 +169,7 @@ public class HOLLightWrapper extends JConsole {
 		Font font = new Font("Monospaced", Font.PLAIN, 12);
 		this.consoleTextPane.setFont(font);
 		bufInput = new BufferedReader(getIn());
-		es = Executors.newSingleThreadExecutor();
+		es = Executors.newSingleThreadExecutor(new SimpleThreadFactory());
 consoleTextPane.setEditable(false);
 		this.setPreferredSize(new Dimension(550,350));
 		if (user != null && server != null)
@@ -242,56 +262,15 @@ consoleTextPane.setEditable(false);
 		}
 	}
 
-	// Method for printing to the console
-	void printHTML(String html) {
-		while (html.indexOf("<HTML>") != -1) {
-			int start = html.indexOf("<HTML>");
-			// console.print(html.substring(0, start));//Print any text that
-			// occurs before the HTML
-			int end = html.indexOf("</HTML>");
-			String htmlText = html.substring(start, end + 7);
-			JLabel tmpLabel = htmlToJLabel(htmlText);
+	
 
-			((JTextPane) consoleTextPane).insertComponent(tmpLabel);
-			html = html.substring(end + 7, html.length());
-		}
-		print(html);
-	}
 
-	// begin low level functions
-	private static int asciiToDecimal(int c) {
-		if (97 <= c) {
-			c = c - 87;
-		} else {
-			c = c - 48;
-		}
-		return c;
-	}
-
-	private int getChar() {
-		BufferedReader br = bufInput;
-		char[] tmp = new char[6];
-		for (int i = 0; i < 6; i++)
-			try {
-				tmp[i] = (char) br.read();
-			} catch (IOException e) {
-
-				e.printStackTrace();
-			}
-		int result = 0;
-		int factor = 1;
-		for (int i = 5; i >= 2; i--) {
-			result += factor * asciiToDecimal(tmp[i]);
-			factor *= 16;
-		}
-		return result;
-	}
 
 	protected String getLine() {
 
 		StringBuilder sb = new StringBuilder();
 		while (true) {
-			int c = getChar();
+			int c = 10;//FIXME
 			if (c == 10)
 				break;
 			
@@ -300,7 +279,7 @@ consoleTextPane.setEditable(false);
 		return sb.toString();
 	}
 
-	public void run() {
+/*	public void run() {
 
 		guardedES();
 final StringBuilder sb = new StringBuilder();
@@ -368,26 +347,34 @@ final StringBuilder sb = new StringBuilder();
 			printErr("Error in " + HOLLightWrapper.class.toString()
 					+ "in run(): " + e);
 		}
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				
-				HOLLightWrapper.this.consoleTextPane.setEditable(true);
-				print(sb.toString());
-				consoleTextPane.addKeyListener(new KeyAdapter(){
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
 					
-				      
-			        public void keyPressed(KeyEvent e){
-			        	if (!SwingUtilities.isEventDispatchThread())
-			        		throw new RuntimeException("EDT@");
-			        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_C){
-			        	HOLLightWrapper.this.interrupt();
-			        }
-			        
-			        
-			        }
-			    });
-			}
-		});
+					HOLLightWrapper.this.consoleTextPane.setEditable(true);
+					print(sb.toString());
+					consoleTextPane.addKeyListener(new KeyAdapter(){
+						
+					      
+				        public void keyPressed(KeyEvent e){
+				        	if (!SwingUtilities.isEventDispatchThread())
+				        		throw new RuntimeException("EDT@");
+				        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_C){
+				        	HOLLightWrapper.this.interrupt();
+				        }
+				        
+				        
+				        }
+				    });
+				}
+			});
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (InvocationTargetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		// super.run();
 		// Main Loop
@@ -412,11 +399,10 @@ final StringBuilder sb = new StringBuilder();
 			e.printStackTrace();
 		}
 
-	}
+	}*/
 
 	protected int read() throws IOException {
-		if (SwingUtilities.isEventDispatchThread())
-			throw new RuntimeException("EDT");
+		
 		return bout.read();
 	}
 
@@ -424,7 +410,8 @@ final StringBuilder sb = new StringBuilder();
 		return bout.readLine();
 	}
 
-	public synchronized Future<String> runBackgroundCommand(String command) {
+	
+	public  Future<String> runBackgroundCommand(String command) {
 		HOLTask task = new HOLTask(command);
 		es.submit(task);
 		return task;
@@ -444,17 +431,22 @@ final StringBuilder sb = new StringBuilder();
 		return null;
 	}
 
+	
+	
 	private class HOLTask extends SwingWorker<String, Character> {
 
-		private boolean flag;
+		
 		private String command;
+		
 
 		public HOLTask(String command) {
 			this.command = command;
 
 		}
 
-		private String flushOutput() throws IOException {
+		
+		
+		private String flushOutput(boolean flag) throws IOException {
 
 			StringBuilder evalStr = new StringBuilder();
 			StringBuilder str = new StringBuilder();
@@ -465,7 +457,32 @@ final StringBuilder sb = new StringBuilder();
 					c = (char) read();
 			}
 			do {
-
+				/*if (threadSuspended) {
+                    synchronized(this) {
+                        while (threadSuspended)
+							try {
+								wait();
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+                    }
+                }*/
+			
+				/*if (isInterrupted()){
+					interrupt.start();
+					StringBuilder sb = new StringBuilder();
+					while(sb.indexOf("Interrupted.") == -1)
+					{
+						sb.append(c = (char) read());
+					}
+					str.append(sb.toString());
+					if (!flag)
+						publish(sb.toString());
+					HOLLightWrapper.this.acknowledgeInterrupt();
+					continue;
+				}*/
+				
 				c = (char) read();
 
 				// System.out.print(c);
@@ -517,7 +534,7 @@ final StringBuilder sb = new StringBuilder();
 
 			if (command.length() == 0)
 				return null;
-			flag = command.charAt(command.length() - 1) != '\n';
+			boolean flag = command.charAt(command.length() - 1) != '\n';
 			if (flag) {
 				command = command + "\n";
 				// printHTML(cmd);
@@ -526,8 +543,8 @@ final StringBuilder sb = new StringBuilder();
 			try {
 				write(command);
 				flush();
-
-				return flushOutput();
+				
+				return flushOutput(flag);
 
 			} catch (IOException e) {
 				printErr(e);
@@ -653,17 +670,37 @@ final StringBuilder sb = new StringBuilder();
 		javax.swing.SwingUtilities.invokeLater(
 				  new Runnable() {
 				    public void run() {
-					System.setProperty("apple.laf.useScreenMenuBar", "true");
 					
-					System.setProperty("com.apple.mrj.application.apple.menu.about.name", "HOL Terminal");
 					
-					System.setProperty("com.apple.mrj.application.growbox.intrudes", "false");
-					
-					System.setProperty("com.apple.macos.smallTabs", "true");
-					
-					HOLLightWrapper hol;
+					HOLLightWrapper hol = null;
+					List<String> cmd = new ArrayList<String>();
+					cmd.add("ssh");
+					cmd.add("-tt");
+					cmd.add("weyl");
+					cmd.add("hol_light");
+					ProcessBuilder pb = new ProcessBuilder(cmd);
+					Process ben = null;
 					try {
-						hol = new HOLLightWrapper();
+						ben = pb.start();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					InputStream is = ben.getInputStream();
+					OutputStream os = (ben.getOutputStream());
+					System.out.println(is);
+					System.out.println(os);
+					hol=new HOLLightWrapper(is,os);
+					
+					JFrame joe = new JFrame("junk");
+					joe.add(hol);
+					joe.setVisible(true);
+					
+					/*
+					try {
+						
+							hol = new HOLLightWrapper();
+						
 						//Create and set up the window.
 						JFrame frame = new JFrame("HOL Terminal");
 						frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -673,17 +710,24 @@ final StringBuilder sb = new StringBuilder();
 						//Display the window.
 						frame.pack();
 						frame.setVisible(true);
-						hol.connectDialog( frame);
+						try {
+							hol.connectDialog( frame);
+						} catch (IllegalArgumentException e) {
+							System.exit(0);
+						} catch (IOException e) {
+							hol.printErr(e);
+						}
 					    
 						
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					} catch (EvalError e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
+					} 
 					
+					 catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						} catch (EvalError e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}*/
 				    }
 					
 				  }); 	
@@ -701,7 +745,10 @@ final StringBuilder sb = new StringBuilder();
                 null,
                 null,
                 null);
-		String t = (String)JOptionPane.showInputDialog(
+		String t;
+		if (s==null)
+			t = null;
+		else t = (String)JOptionPane.showInputDialog(
                 frame,
                 "Enter hostname",
                 
@@ -710,7 +757,7 @@ final StringBuilder sb = new StringBuilder();
                 null,
                 null,
                 null);
-
+//Thread.currentThread().
 //If a string was returned, say so.
 if ((s != null) && (s.length() > 0) && (t != null) && (t.length() > 0)) {
 connect(s,t);

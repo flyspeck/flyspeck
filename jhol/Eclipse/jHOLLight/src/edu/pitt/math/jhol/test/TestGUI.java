@@ -24,7 +24,7 @@ import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Term;
 import edu.pitt.math.jhol.core.Theorem;
-import edu.pitt.math.jhol.core.lexer.Parser;
+import edu.pitt.math.jhol.core.parser.Parser;
 import edu.pitt.math.jhol.core.printer.TermPrinterData;
 
 /**

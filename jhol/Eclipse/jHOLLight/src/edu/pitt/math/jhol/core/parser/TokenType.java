@@ -1,4 +1,4 @@
-package edu.pitt.math.jhol.core.lexer;
+package edu.pitt.math.jhol.core.parser;
 
 /**
  * Token type

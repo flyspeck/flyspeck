@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 import edu.pitt.math.jhol.caml.*;
 import edu.pitt.math.jhol.core.*;
-import edu.pitt.math.jhol.core.lexer.Parser;
+import edu.pitt.math.jhol.core.parser.Parser;
 
 /**
  * Data for TermPrinter

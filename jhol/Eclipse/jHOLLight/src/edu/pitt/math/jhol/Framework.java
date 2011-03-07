@@ -25,6 +25,9 @@ import javax.swing.JTextPane;
 import bsh.EvalError;
 import com.apple.eawt.*;
 
+import edu.pitt.math.jhol.core.parser.HOLLightWrapper;
+
+
 public class Framework extends WindowAdapter{
 
 	

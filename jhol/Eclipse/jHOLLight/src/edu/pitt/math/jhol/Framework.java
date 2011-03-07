@@ -65,7 +65,7 @@ public class Framework extends WindowAdapter{
 	public void quit(JFrame frame) {
 	    if (quitConfirmed(frame)) {
 		System.out.println("Quitting.");
-		hol.kill();
+//		hol.kill();//FIXME
 		System.exit(0);
 	    }
 	    System.out.println("Quit operation not confirmed; staying alive.");

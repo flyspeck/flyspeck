@@ -7,6 +7,7 @@ import java.util.List;
 import edu.pitt.math.jhol.core.parser.HOLLightWrapper;
 
 
+
 import bsh.util.NameCompletion;
 
 public class TheoremCompletor implements NameCompletion{

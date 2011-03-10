@@ -3,51 +3,32 @@ package edu.pitt.math.jhol.core.parser;
 
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.awt.Color;
-import java.awt.Dimension;
+
 import java.awt.Font;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+
 import java.io.*;
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
+
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.StyledDocument;
 
-import edu.pitt.math.jhol.UnicodeOutputStream;
 
 import bsh.EvalError;
-import bsh.util.JConsole;
 
-public class HOLLightWrapper extends JConsole {
+public class HOLLightWrapper  {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private  BufferedWriter bin;
-	private  BufferedReader bout;
-	private  Process proc;
-	private  ExecutorService es;
 	
-
-	private  ProcessBuilder interrupt;
-	private  Boolean holIsEchoing;
-	private  int holPid;
 
 	// variable to keep track of the theorem count
 	private  int numHolTheorems;
@@ -58,7 +39,7 @@ public class HOLLightWrapper extends JConsole {
 	private  JTextPane consoleTextPane;
 	private  String user;
 	private  String server;
-	private  BufferedReader bufInput;
+	//private  BufferedReader bufInput;
 	private  JTextPane goalPane;
 	private  Thread taskThread;
 
@@ -73,13 +54,9 @@ public class HOLLightWrapper extends JConsole {
 		interpreter.eval(evalStr);
 	}
 
-	protected Integer getPID() {
-		return holPid;
-	}
+	
 
-	protected boolean isEchoing() {
-		return (holIsEchoing != null) && holIsEchoing;
-	}
+	
 
 	
 
@@ -91,55 +68,33 @@ public class HOLLightWrapper extends JConsole {
 	
 	
 
-	private void printErr(IOException e) {
+	/*private void printErr(IOException e) {
 		printErr("Console: I/O Error: " + e);
-	}
+	}*/
 
-	protected void printErr(String s) {
+	/*protected void printErr(String s) {
 		print(s + "\n", Color.red);
-	}
+	}*/
 
-	protected void write(String s) throws IOException {
-		bin.write(s);
-	}
-
-	protected void flush() throws IOException {
-		bin.flush();
-	}
-
+	
 	public JTextPane getGoalPane(){
 		return goalPane;
 	}
 
-	public HOLLightWrapper(InputStream is, OutputStream os){
-		super(new HOLStream(is,null),new UnicodeOutputStream(os));
-	}
 	
 	public HOLLightWrapper() throws IOException, EvalError{
 		this("","");//FIXME
 	}
 	
 	public void connect(String user, String server) throws IllegalArgumentException, IOException{
-		if (proc != null)
-			throw new IllegalArgumentException("Already connected");
-		List<String> command = new ArrayList<String>();
-		command.add("ssh");
-		command.add("-tt");
-		command.add(user + "@" + server);
-		command.add("hol_light");
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectErrorStream(true);
-		proc = pb.start();
-		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
-		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		
 		
 		this.user = user;
 		this.server = server;
 		
-		notifyES();
 	}
 	
-	private class SimpleThreadFactory implements ThreadFactory {
+/*	private class SimpleThreadFactory implements ThreadFactory {
 		   
 		
 		public Thread newThread(Runnable r) {
@@ -148,7 +103,7 @@ public class HOLLightWrapper extends JConsole {
 			return taskThread;
 		   }
 		 }
-	
+	*/
 	public HOLLightWrapper(String user, String server) throws IOException,
 			EvalError {
 		
@@ -159,46 +114,23 @@ public class HOLLightWrapper extends JConsole {
 		interpreter.set("hol", this);
 		
 
-		holIsEchoing = null;
-
-		holPid = 0;
-		interrupt = null;
+		
 		numHolTheorems = 0;
 		holTheorems = new TreeSet<String>();
-		consoleTextPane = (JTextPane) getViewport().getView();	
+			
 		Font font = new Font("Monospaced", Font.PLAIN, 12);
 		this.consoleTextPane.setFont(font);
-		bufInput = new BufferedReader(getIn());
-		es = Executors.newSingleThreadExecutor(new SimpleThreadFactory());
+		
+		
 consoleTextPane.setEditable(false);
-		this.setPreferredSize(new Dimension(550,350));
+		
 		if (user != null && server != null)
 			connect(user, server);
 		
 		
 	}
 
-	private synchronized void guardedES() {
-		while (es == null) {
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-	}
-
-	private synchronized void notifyES() {
-
-		notifyAll();
-	}
-
-	public boolean ready() throws IOException {
-		return bout.ready();
-	}
-
+	
 	// method for running multiple hol commands at once
 	public void runHOLCommands(String cmds) {
 		String[] array = cmds.split("\n");
@@ -401,39 +333,24 @@ final StringBuilder sb = new StringBuilder();
 
 	}*/
 
-	protected int read() throws IOException {
-		
-		return bout.read();
-	}
-
-	protected String readLine() throws IOException {
-		return bout.readLine();
-	}
+	
 
 	
-	public  Future<String> runBackgroundCommand(String command) {
+	/*public  Future<String> runBackgroundCommand(String command) {
 		HOLTask task = new HOLTask(command);
 		es.submit(task);
 		return task;
-	}
+	}*/
 
 	public String runCommand(String string) {
 
-		try {
-			return runBackgroundCommand(string).get();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		//FIXME
 		return null;
 	}
 
 	
 	
-	private class HOLTask extends SwingWorker<String, Character> {
+	/*private class HOLTask extends SwingWorker<String, Character> {
 
 		
 		private String command;
@@ -457,7 +374,7 @@ final StringBuilder sb = new StringBuilder();
 					c = (char) read();
 			}
 			do {
-				/*if (threadSuspended) {
+				//if (threadSuspended) {
                     synchronized(this) {
                         while (threadSuspended)
 							try {
@@ -467,9 +384,9 @@ final StringBuilder sb = new StringBuilder();
 								e.printStackTrace();
 							}
                     }
-                }*/
+                }//Comment if thread suspended block
 			
-				/*if (isInterrupted()){
+				//if (isInterrupted()){
 					interrupt.start();
 					StringBuilder sb = new StringBuilder();
 					while(sb.indexOf("Interrupted.") == -1)
@@ -481,7 +398,7 @@ final StringBuilder sb = new StringBuilder();
 						publish(sb.toString());
 					HOLLightWrapper.this.acknowledgeInterrupt();
 					continue;
-				}*/
+				}//Comment if is interrupted block
 				
 				c = (char) read();
 
@@ -553,7 +470,7 @@ final StringBuilder sb = new StringBuilder();
 			}
 		}
 	}
-
+*/
 	private class GoalPane extends JTextPane {
 
 		/**
@@ -671,63 +588,7 @@ final StringBuilder sb = new StringBuilder();
 				  new Runnable() {
 				    public void run() {
 					
-					
-					HOLLightWrapper hol = null;
-					List<String> cmd = new ArrayList<String>();
-					cmd.add("ssh");
-					cmd.add("-tt");
-					cmd.add("weyl");
-					cmd.add("hol_light");
-					ProcessBuilder pb = new ProcessBuilder(cmd);
-					Process ben = null;
-					try {
-						ben = pb.start();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					InputStream is = ben.getInputStream();
-					OutputStream os = (ben.getOutputStream());
-					System.out.println(is);
-					System.out.println(os);
-					hol=new HOLLightWrapper(is,os);
-					
-					JFrame joe = new JFrame("junk");
-					joe.add(hol);
-					joe.setVisible(true);
-					
-					/*
-					try {
-						
-							hol = new HOLLightWrapper();
-						
-						//Create and set up the window.
-						JFrame frame = new JFrame("HOL Terminal");
-						frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-						frame.add(hol);
-
-						
-						//Display the window.
-						frame.pack();
-						frame.setVisible(true);
-						try {
-							hol.connectDialog( frame);
-						} catch (IllegalArgumentException e) {
-							System.exit(0);
-						} catch (IOException e) {
-							hol.printErr(e);
-						}
-					    
-						
-					} 
-					
-					 catch (IOException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						} catch (EvalError e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}*/
+				
 				    }
 					
 				  }); 	

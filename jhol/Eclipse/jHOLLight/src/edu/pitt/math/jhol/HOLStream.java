@@ -1,9 +1,8 @@
-package edu.pitt.math.jhol.core.parser;
+package edu.pitt.math.jhol;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.swing.JLabel;
 import javax.swing.JTextPane;
 
 

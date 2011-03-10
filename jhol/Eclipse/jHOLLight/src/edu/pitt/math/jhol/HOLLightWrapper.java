@@ -1,5 +1,5 @@
 //Object for holding hol process
-package edu.pitt.math.jhol.core.parser;
+package edu.pitt.math.jhol;
 
 import java.text.ParseException;
 import java.util.*;

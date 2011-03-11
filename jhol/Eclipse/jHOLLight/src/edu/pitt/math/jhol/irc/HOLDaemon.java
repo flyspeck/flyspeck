@@ -35,28 +35,10 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 	private String channel;
 	private boolean sleeping;
 
-	public HOLDaemon() throws Exception {
+	public HOLDaemon()  {
 		// interpreter = new Interpreter();
 		// interpreter.set("bot", this);
-		this.setName(InetAddress.getLocalHost().getHostName());
-
-		List<String> command = new ArrayList<String>();
-
-		homeChannel = "#hol";
-		// channel = "#hol";
-
-		command.add("hol_light");
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectErrorStream(true);
 		
-
-		es = Executors.newSingleThreadExecutor();
-
-		this.setMessageDelay(0);// So we can output at fast rates
-		this.setVerbose(true);// DEBUG
-
-		holPid = 0;
-		interrupt = null;
 	}
 
 	protected void write(String s) throws IOException {
@@ -216,6 +198,27 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 
 		@Override
 		public void init(DaemonContext arg0) throws DaemonInitException, Exception {
+			
+			this.setName(InetAddress.getLocalHost().getHostName());
+
+			List<String> command = new ArrayList<String>();
+
+			homeChannel = "#hol";
+			// channel = "#hol";
+
+			command.add("hol_light");
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.redirectErrorStream(true);
+			
+
+			es = Executors.newSingleThreadExecutor();
+
+			this.setMessageDelay(0);// So we can output at fast rates
+			this.setVerbose(true);// DEBUG
+
+			holPid = 0;
+			interrupt = null;
+			
 			// Config stuff goes here
 			//String[] args = arg0.getArguments();
 			//server = args[0];

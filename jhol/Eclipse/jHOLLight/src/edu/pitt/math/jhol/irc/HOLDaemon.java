@@ -226,8 +226,9 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		@Override
 		public void start() throws Exception {
 			// TODO Auto-generated method stub
-
+			System.out.print(pb);
 			proc = pb.start();
+			System.out.print(proc);
 			bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 			bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 			

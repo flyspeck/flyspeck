@@ -231,7 +231,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			
 			List<String> command = new ArrayList<String>();
 			
-			command.add("hol_light");
+			command.add("/usr/local/hol_light");
 			ProcessBuilder pb = new ProcessBuilder(command);
 			pb.redirectErrorStream(true);
 			

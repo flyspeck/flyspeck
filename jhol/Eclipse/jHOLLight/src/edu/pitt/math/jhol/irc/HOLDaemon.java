@@ -199,8 +199,9 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		@Override
 		public void init(DaemonContext arg0) throws DaemonInitException, Exception {
 			
-			this.setName(InetAddress.getLocalHost().getHostName());
+			this.setName(InetAddress.getLocalHost().getHostName() + "bot");
 
+			
 			
 
 			homeChannel = "#hol";
@@ -262,7 +263,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		
 		public void run() {
 			String line = "";
-			while (line != null) {
+			while (true) {
 				try {
 					line = bout.readLine();
 				//	line = line.substring(1).trim();

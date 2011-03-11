@@ -242,9 +242,14 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 			
 			this.connect(server);
+			
 			es.submit(this);
 		}
 
+		protected void onConnect(){
+			this.joinChannel(homeChannel);
+		}
+		
 		@Override
 		public void stop() throws Exception {
 			// TODO Auto-generated method stub

@@ -261,7 +261,7 @@ public class Framework extends WindowAdapter{
 		    //Put the editor pane and the text pane in a split pane.
 		    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
 							  editorScrollPane,
-							  hol);
+							  null);//DEBUG
 		    splitPane.setOneTouchExpandable(true);
 		    splitPane.setResizeWeight(0.5);
 

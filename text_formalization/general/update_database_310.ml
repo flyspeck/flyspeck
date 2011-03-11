@@ -22,6 +22,8 @@
 
 (* Execute any OCaml expression given as a string. *)
 
+module Update_database_310 = struct
+
 let exec = ignore o Toploop.execute_phrase false Format.std_formatter
   o !Toploop.parse_toplevel_phrase o Lexing.from_string;;
 
@@ -256,5 +258,7 @@ let search pat = search_thml (term_match [])  pat (!theorems);;
 (* ------------------------------------------------------------------------- *)
 
 update_database ();;
+
+end;;
 
 (* end;; *)

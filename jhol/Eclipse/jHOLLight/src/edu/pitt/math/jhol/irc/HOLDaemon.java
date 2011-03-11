@@ -217,8 +217,8 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		@Override
 		public void init(DaemonContext arg0) throws DaemonInitException, Exception {
 			// Config stuff goes here
-			String[] args = arg0.getArguments();
-			server = args[0];
+			//String[] args = arg0.getArguments();
+			//server = args[0];
 			if (server == null || server.length() == 0)
 				server = "charizard.zapto.org";
 		}

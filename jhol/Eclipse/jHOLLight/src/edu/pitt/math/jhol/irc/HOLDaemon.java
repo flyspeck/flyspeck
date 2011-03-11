@@ -201,14 +201,12 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			
 			this.setName(InetAddress.getLocalHost().getHostName());
 
-			List<String> command = new ArrayList<String>();
+			
 
 			homeChannel = "#hol";
 			// channel = "#hol";
 
-			command.add("hol_light");
-			ProcessBuilder pb = new ProcessBuilder(command);
-			pb.redirectErrorStream(true);
+			
 			
 
 			es = Executors.newSingleThreadExecutor();
@@ -229,6 +227,14 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		@Override
 		public void start() throws Exception {
 			// TODO Auto-generated method stub
+			
+			List<String> command = new ArrayList<String>();
+			
+			command.add("hol_light");
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.redirectErrorStream(true);
+			
+			
 			System.out.print(pb);
 			proc = pb.start();
 			System.out.print(proc);
@@ -248,7 +254,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			
 		}
 
-		@Override
+		
 		public void run() {
 			String line = "";
 			while (line != null) {

@@ -263,16 +263,22 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		
 		public void run() {
 			String line = "";
-			while (true) {
+			while (line != null) {
 				try {
 					line = bout.readLine();
 				//	line = line.substring(1).trim();
+					if (channel == null)
+						
+					this.sendMessage(homeChannel, line);
+					else
 					this.sendMessage(channel, line);
+					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
+			//TODO restart the toplevel
 		}
 
 	}

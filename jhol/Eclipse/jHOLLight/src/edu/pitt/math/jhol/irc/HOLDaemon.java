@@ -236,9 +236,10 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			pb.redirectErrorStream(true);
 			
 			
-			System.out.print(pb);
+			this.sendMessage("#hol", pb.toString());
 			proc = pb.start();
-			System.out.print(proc);
+			this.sendMessage("#hol", proc.toString());
+		
 			bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 			bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 			

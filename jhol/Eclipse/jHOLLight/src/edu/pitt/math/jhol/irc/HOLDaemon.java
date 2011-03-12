@@ -14,6 +14,8 @@ import java.util.concurrent.Executors;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.apache.commons.daemon.DaemonInitException;
+import org.jibble.pircbot.IrcException;
+import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 
 import bsh.EvalError;
@@ -190,7 +192,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		 */
 
 		@Override
-		public void destroy() {
+		public void destroy()  {
 			// TODO Auto-generated method stub
 			es.shutdown();
 			
@@ -237,14 +239,35 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 			
 			
 			this.sendMessage("#hol", pb.toString());
-			proc = pb.start();
+			try {
+				proc = pb.start();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			this.sendMessage("#hol", proc.toString());
 		
 			bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 			bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-			this.sendMessage("#hol", bout.readLine());
+			try {
+				this.sendMessage("#hol", bout.readLine());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
-			this.connect(server);
+			try {
+				this.connect(server);
+			} catch (NickAlreadyInUseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IrcException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			es.submit(this);
 		}

@@ -227,6 +227,22 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 				server = "charizard.zapto.org";
 		}
 
+		
+		protected void onDisconnect(){
+			try {
+				this.connect(server);
+			} catch (NickAlreadyInUseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IrcException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			this.joinChannel(homeChannel);
+		}
 		@Override
 		public void start() throws Exception {
 			// TODO Auto-generated method stub

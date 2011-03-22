@@ -2,17 +2,17 @@ package edu.pitt.math.jhol.core.printer;
 
 import java.util.ArrayList;
 
-import edu.pitt.math.jhol.core.Term;
+import edu.pitt.math.jhol.caml.CamlObject;
 
 /**
- * A tree for printing terms
+ * A tree for printing expression and for selecting subelements
  */
-public class TermPrinterTree {
-	// The associated term
-	protected final Term term;
+public class SelectionTree {
+	// The associated element
+	protected final CamlObject element;
 	
 	// Branches
-	private final ArrayList<TermPrinterTree> branches;
+	private final ArrayList<SelectionTree> branches;
 	
 	// Text (printed if it is not null)
 	protected final String text;
@@ -22,24 +22,16 @@ public class TermPrinterTree {
 
 	
 	/**
-	 * A base class for user-defined printers
+	 * Describes a subelement
 	 */
-	public abstract class Printer {
-		public abstract String print(TermPrinterTree branch);
-	}
-	
-	
-	/**
-	 * Describes a subterm
-	 */
-	public static class Subterm {
-		public final Term tm;
+	public static class Subelement {
+		public final CamlObject element;
 		public final int level;
 		public final int start;
 		public final int end;
 		
-		public Subterm(Term tm, int level, int start, int end) {
-			this.tm = tm;
+		public Subelement(CamlObject element, int level, int start, int end) {
+			this.element = element;
 			this.level = level;
 			this.start = start;
 			this.end = end;
@@ -50,10 +42,10 @@ public class TermPrinterTree {
 	/**
 	 * Constructor
 	 */
-	public TermPrinterTree(Term term, String text) {
-		this.term = term;
+	public SelectionTree(CamlObject element, String text) {
+		this.element = element;
 		this.text = text;
-		this.branches = new ArrayList<TermPrinterTree>();
+		this.branches = new ArrayList<SelectionTree>();
 	}
 	
 	
@@ -69,7 +61,7 @@ public class TermPrinterTree {
 	/**
 	 * Adds the branch
 	 */
-	public void addBranch(TermPrinterTree branch) {
+	public void addBranch(SelectionTree branch) {
 		this.branches.add(branch);
 	}
 	
@@ -77,14 +69,14 @@ public class TermPrinterTree {
 	/**
 	 * Prints the tree using the given printer
 	 */
-	public String print(Printer printer) {
+/*	public String print(Printer printer) {
 		StringBuilder str = new StringBuilder();
 		if (lbrack != null)
 			str.append(lbrack);
 		
 		str.append(printer.print(this));
 		
-		for (TermPrinterTree branch : branches) {
+		for (SelectionTree branch : branches) {
 			str.append(branch.print(printer));
 		}
 		
@@ -93,21 +85,21 @@ public class TermPrinterTree {
 		
 		return str.toString();
 	}
-	
+*/	
 	
 	/**
 	 * Returns the term associated with the character at the given position
 	 * and at the given depth level
 	 */
-	public Subterm getSubterm(int pos, int maxLevel) {
-		return getSubterm0(pos, 0, maxLevel);
+	public Subelement getSubelement(int pos, int maxLevel) {
+		return getSubelement0(pos, 0, maxLevel);
 	}
 	
 	
-	private Subterm getSubterm0(int pos, int level, int maxLevel) {
+	private Subelement getSubelement0(int pos, int level, int maxLevel) {
 		int start = 0;
 		int end = this.toString().length();
-		Subterm def = new Subterm(term, level, start, end);
+		Subelement def = new Subelement(element, level, start, end);
 		
 		int dpos = 0;
 		
@@ -130,14 +122,14 @@ public class TermPrinterTree {
 			dpos += text.length();
 		}
 		
-		for (TermPrinterTree branch : branches) {
+		for (SelectionTree branch : branches) {
 			String str = branch.toString();
 			if (pos < str.length()) {
-				Subterm tm = branch.getSubterm0(pos, level + 1, maxLevel);
-				if (tm.tm == null)
+				Subelement e = branch.getSubelement0(pos, level + 1, maxLevel);
+				if (e.element == null)
 					return def;
 				else
-					return new Subterm(tm.tm, tm.level, tm.start + dpos, tm.end + dpos);
+					return new Subelement(e.element, e.level, e.start + dpos, e.end + dpos);
 			}
 			
 			pos -= str.length();
@@ -162,7 +154,7 @@ public class TermPrinterTree {
 			str.append(text);
 		}
 		
-		for (TermPrinterTree branch : branches) {
+		for (SelectionTree branch : branches) {
 			str.append(branch);
 		}
 		

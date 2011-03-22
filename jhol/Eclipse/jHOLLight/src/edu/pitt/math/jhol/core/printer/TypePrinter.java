@@ -8,6 +8,15 @@ import edu.pitt.math.jhol.core.Pair;
  */
 public class TypePrinter {
 	/**
+	 * Prints a HOL type
+	 */
+	public static SelectionTree print(HOLType type) {
+		// TODO: implement
+		return new SelectionTree(type, printType(type));
+	}
+	
+	
+	/**
 	 * Converts a HOL Type into a string
 	 */
 	public static String printType(HOLType type) {

@@ -166,7 +166,7 @@ public class TermPrinterData {
 		// List
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op,
+			public SelectionTree print(Term tm, String s, Term op,
 					ArrayList<Term> args, int prec) {
 				Pair<ArrayList<Term>, Term> p = strip_right_binary("CONS", tm);
 				Term nil = p.getSecond();
@@ -177,7 +177,7 @@ public class TermPrinterData {
 				if (!dest_const(nil).getFirst().equals("NIL"))
 					return null;
 
-				TermPrinterTree node = new TermPrinterTree(tm, null);
+				SelectionTree node = new SelectionTree(tm, null);
 				node.setBrackets("[", "]");
 				return TermPrinter.print_term_sequence(node, "; ", 0, p.getFirst());
 			}
@@ -186,10 +186,10 @@ public class TermPrinterData {
 		// EMPTY
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op,
+			public SelectionTree print(Term tm, String s, Term op,
 					ArrayList<Term> args, int prec) {
 				if (s.equals("EMPTY") && is_const(tm) && args.size() == 0) {
-					return new TermPrinterTree(tm, "{}");
+					return new SelectionTree(tm, "{}");
 				}
 
 				return null;
@@ -199,7 +199,7 @@ public class TermPrinterData {
 		// INSERT
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
+			public SelectionTree print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
 				Pair<ArrayList<Term>, Term> p = strip_right_binary("INSERT", tm);
 				Term nil = p.getSecond();
 
@@ -209,7 +209,7 @@ public class TermPrinterData {
 				if (!dest_const(nil).getFirst().equals("EMPTY"))
 					return null;
 				
-				TermPrinterTree node = new TermPrinterTree(tm, null);
+				SelectionTree node = new SelectionTree(tm, null);
 				node.setBrackets("{", "}");
 
 				return TermPrinter.print_term_sequence(node, ", ", 14, p.getFirst());
@@ -220,7 +220,7 @@ public class TermPrinterData {
 		// GSPEC
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
+			public SelectionTree print(Term tm, String s, Term op,	ArrayList<Term> args, int prec) {
 				if (!s.equals("GSPEC"))
 					return null;
 
@@ -260,10 +260,10 @@ public class TermPrinterData {
 				if (!dest_const(c).getFirst().equals("SETSPEC"))
 					return null;
 
-				TermPrinterTree node = new TermPrinterTree(tm, null);
+				SelectionTree node = new SelectionTree(tm, null);
 				node.setBrackets("{", "}");
 				node.addBranch(TermPrinter.print_term(fabs, 0));
-				node.addBranch(new TermPrinterTree(null, " | "));
+				node.addBranch(new SelectionTree(null, " | "));
 				
 				ArrayList<Term> fvs = fabs.frees();
 				ArrayList<Term> bvs = babs.frees();
@@ -278,9 +278,9 @@ public class TermPrinterData {
 				}
 				
 				if (!evs.containsAll(intersection) || !intersection.containsAll(evs)) {
-					TermPrinterTree seq = new TermPrinterTree(null, null);
+					SelectionTree seq = new SelectionTree(null, null);
 					node.addBranch(TermPrinter.print_term_sequence(seq, ",", 14, evs));
-					node.addBranch(new TermPrinterTree(null, " | "));
+					node.addBranch(new SelectionTree(null, " | "));
 				}
 
 				node.addBranch(TermPrinter.print_term(babs, 0));
@@ -305,7 +305,7 @@ public class TermPrinterData {
 			}
 			
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
+			public SelectionTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
 				if (!s.equals("DECIMAL") || args.size() != 2)
 					return null;
 				
@@ -323,12 +323,12 @@ public class TermPrinterData {
 				String s_num = n_num.divide(n_den).toString();
 				String s_den = n_num.mod(n_den).add(n_den).toString().substring(1);
 
-				TermPrinterTree node = new TermPrinterTree(tm, "#");
-				node.addBranch(new TermPrinterTree(args.get(0), s_num));
+				SelectionTree node = new SelectionTree(tm, "#");
+				node.addBranch(new SelectionTree(args.get(0), s_num));
 				
 				if (!n_den.equals(BigInteger.ONE)) {
-					node.addBranch(new TermPrinterTree(null, "."));
-					node.addBranch(new TermPrinterTree(args.get(1), s_den));
+					node.addBranch(new SelectionTree(null, "."));
+					node.addBranch(new SelectionTree(args.get(1), s_den));
 				}
 				
 				return node;
@@ -340,19 +340,19 @@ public class TermPrinterData {
 		// COND
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
+			public SelectionTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
 				if (!s.equals("COND") || args.size() != 3)
 					return null;
 
-				TermPrinterTree node = new TermPrinterTree(tm, "if ");
+				SelectionTree node = new SelectionTree(tm, "if ");
 				
 				if (prec != 0)
 					node.setBrackets("(", ")");
 				
 				node.addBranch(TermPrinter.print_term(args.get(0), 0));
-				node.addBranch(new TermPrinterTree(null, " then "));
+				node.addBranch(new SelectionTree(null, " then "));
 				node.addBranch(TermPrinter.print_term(args.get(1), 0));
-				node.addBranch(new TermPrinterTree(null, " else "));
+				node.addBranch(new SelectionTree(null, " else "));
 				node.addBranch(TermPrinter.print_term(args.get(2), 0));
 				
 				return node;
@@ -365,11 +365,11 @@ public class TermPrinterData {
 
 		addSpecialPrinter(new SpecialPrinter() {
 			@Override
-			public TermPrinterTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
+			public SelectionTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec) {
 				if (op.equals(numeral) && args.size() > 0) {
 					BigInteger r = dest_numeral(tm);
 					if (r != null)
-						return new TermPrinterTree(tm, r.toString());
+						return new SelectionTree(tm, r.toString());
 				}
 
 				return null;

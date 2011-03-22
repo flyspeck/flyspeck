@@ -20,15 +20,16 @@ import javax.swing.JLabel;
 
 import edu.pitt.math.jhol.core.Term;
 import edu.pitt.math.jhol.core.parser.Parser;
+import edu.pitt.math.jhol.core.printer.Printer;
 import edu.pitt.math.jhol.core.printer.TermPrinter;
 import edu.pitt.math.jhol.core.printer.TermPrinterData;
-import edu.pitt.math.jhol.core.printer.TermPrinterTree;
+import edu.pitt.math.jhol.core.printer.SelectionTree;
 
 @SuppressWarnings("serial")
 public class SubtermSelectionTest extends JComponent {
 	// The TextLayout to draw and hit-test.
 	private TextLayout textLayout;
-	private TermPrinterTree term;
+	private SelectionTree term;
 
 	JLabel selectedTerm;
 
@@ -50,12 +51,12 @@ public class SubtermSelectionTest extends JComponent {
 		start1 = end1 = 0;
 		level = 0;
 		
-		TermPrinterTree.Subterm stm = term.getSubterm(0, 0);
+		SelectionTree.Subelement stm = term.getSubelement(0, 0);
 		start0 = stm.start;
 		end0 = stm.end;
 		
 		selectedTerm = new JLabel();
-		selectedTerm.setText(TermPrinter.print(stm.tm).toString());
+		selectedTerm.setText(Printer.print(stm.element).toString());
 		
 
 		addMouseListener(new HitTestMouseListener());
@@ -156,7 +157,7 @@ public class SubtermSelectionTest extends JComponent {
 			TextHitInfo currentHit = textLayout.hitTestChar(clickX, clickY);
 			int i = currentHit.getCharIndex();
 			
-			TermPrinterTree.Subterm stm;
+			SelectionTree.Subelement stm;
 			if (i >= start0 && i <= end0) {
 				level++;
 			}
@@ -164,12 +165,12 @@ public class SubtermSelectionTest extends JComponent {
 				level--;
 			}
 			
-			stm = term.getSubterm(i, level);
+			stm = term.getSubelement(i, level);
 			start0 = stm.start;
 			end0 = stm.end;
 			level = stm.level;
 			
-			selectedTerm.setText(level + ": " + TermPrinter.print(stm.tm).toString());
+			selectedTerm.setText(level + ": " + Printer.print(stm.element).toString());
 			mouseMoved(e);
 			
 			repaint();
@@ -188,12 +189,12 @@ public class SubtermSelectionTest extends JComponent {
 			TextHitInfo currentHit = textLayout.hitTestChar(clickX, clickY);
 			int i = currentHit.getCharIndex();
 
-			TermPrinterTree.Subterm stm;
+			SelectionTree.Subelement stm;
 			if (i >= start0 && i <= end0) {
-				stm = term.getSubterm(i, level + 1);
+				stm = term.getSubelement(i, level + 1);
 			}
 			else {
-				stm = term.getSubterm(i, level - 1);
+				stm = term.getSubelement(i, level - 1);
 			}
 			
 			start1 = stm.start;

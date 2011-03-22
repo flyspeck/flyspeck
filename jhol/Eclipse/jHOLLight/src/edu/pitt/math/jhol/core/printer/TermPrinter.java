@@ -61,7 +61,7 @@ public class TermPrinter {
 		public SpecialPrinter() {
 		}
 		
-		public abstract TermPrinterTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec);
+		public abstract SelectionTree print(Term tm, String s, Term op, ArrayList<Term> args, int prec);
 	}
 	
 	
@@ -177,7 +177,7 @@ public class TermPrinter {
 	/**
 	 * Converts the given term into a string
 	 */
-	public static TermPrinterTree print(Term t) {
+	public static SelectionTree print(Term t) {
 //		return printSimple(t);
 		return print_term(t, 0);
 	}
@@ -268,16 +268,16 @@ public class TermPrinter {
 	/**
 	 * Prints a list of terms
 	 */
-	static TermPrinterTree print_term_sequence(TermPrinterTree node, String sep, int prec, ArrayList<Term> tms) {
+	static SelectionTree print_term_sequence(SelectionTree node, String sep, int prec, ArrayList<Term> tms) {
 		int n = tms.size();
 		for (int i = 0; i < n; i++) {
 			Term tm = tms.get(i);
 			
-			TermPrinterTree branch = print_term(tm, prec);
+			SelectionTree branch = print_term(tm, prec);
 			node.addBranch(branch);
 
 			if (i < n - 1)
-				node.addBranch(new TermPrinterTree(null, sep));
+				node.addBranch(new SelectionTree(null, sep));
 		}
 		
 		return node;
@@ -314,7 +314,7 @@ public class TermPrinter {
 	/**
 	 * Prints a binder
 	 */
-	static TermPrinterTree print_binder(final Term tm, final int prec) {
+	static SelectionTree print_binder(final Term tm, final int prec) {
 		boolean absf = is_gabs(tm);
 		
 		String s = absf ? "\\" : name_of(rator(tm));
@@ -323,7 +323,7 @@ public class TermPrinter {
 		ArrayList<Pair<Boolean, Term>> vs = vs_bod.getFirst();
 		Term bod = vs_bod.getSecond();
 
-		TermPrinterTree node = new TermPrinterTree(tm, s);
+		SelectionTree node = new SelectionTree(tm, s);
 		
 		if (prec != 0)
 			node.setBrackets("(", ")");
@@ -332,11 +332,11 @@ public class TermPrinter {
 //			str.append(' ');
 		char ch = s.length() > 0 ? s.charAt(0) : 0;
 		if (Character.isDigit(ch) || Character.isLetter(ch) || ch == '_' || ch == '\'')
-			node.addBranch(new TermPrinterTree(null, " "));
+			node.addBranch(new SelectionTree(null, " "));
 		
 		for (int i = 0; i < vs.size(); i++) {
 			Pair<Boolean, Term> p = vs.get(i);
-			TermPrinterTree branch = print_term(p.getSecond(), 0);
+			SelectionTree branch = print_term(p.getSecond(), 0);
 			
 			if (p.getFirst())
 				branch.setBrackets("(", ")");
@@ -344,14 +344,14 @@ public class TermPrinter {
 			node.addBranch(branch);
 			
 			if (i < vs.size() - 1)
-				node.addBranch(new TermPrinterTree(null, " "));
+				node.addBranch(new SelectionTree(null, " "));
 			else
-				node.addBranch(new TermPrinterTree(null, "."));
+				node.addBranch(new SelectionTree(null, "."));
 		}
 
-		node.addBranch(new TermPrinterTree(null, " "));
+		node.addBranch(new SelectionTree(null, " "));
 		
-		TermPrinterTree body = print_term(bod, 0);
+		SelectionTree body = print_term(bod, 0);
 		node.addBranch(body);
 		
 		return node;
@@ -423,7 +423,7 @@ public class TermPrinter {
 	 * @param prec
 	 * @return
 	 */
-	public static TermPrinterTree print_term(final Term tm, final int prec) {
+	public static SelectionTree print_term(final Term tm, final int prec) {
 		if (is_gabs(tm))
 			return print_binder(tm, prec);
 		
@@ -444,15 +444,15 @@ public class TermPrinter {
 		// Test special printers
 		
 		for (SpecialPrinter printer : specialPrinters) {
-			TermPrinterTree test = printer.print(tm, s, hop, args, prec);
+			SelectionTree test = printer.print(tm, s, hop, args, prec);
 			if (test != null)
 				return test;
 		}
 		
 
-		TermPrinterTree node = new TermPrinterTree(tm, null);
-		TermPrinterTree opNode = new TermPrinterTree(hop, s);
-		TermPrinterTree spaceNode = new TermPrinterTree(null, " ");
+		SelectionTree node = new SelectionTree(tm, null);
+		SelectionTree opNode = new SelectionTree(hop, s);
+		SelectionTree spaceNode = new SelectionTree(null, " ");
 		
 		//////////////////////////////
 		
@@ -461,14 +461,14 @@ public class TermPrinter {
 			if (prec == 1000)
 				node.setBrackets("(", ")");
 
-			TermPrinterTree spacedOp = new TermPrinterTree(hop, " " + s);
+			SelectionTree spacedOp = new SelectionTree(hop, " " + s);
 //			node.addBranch(opNode);
 			node.addBranch(spacedOp);
 			
 			// Forced space
 //			node.addBranch(spaceNode);
 
-			TermPrinterTree argNode = print_term(args.get(0), 999);
+			SelectionTree argNode = print_term(args.get(0), 999);
 			node.addBranch(argNode);
 			
 			return node;
@@ -524,13 +524,13 @@ public class TermPrinter {
 				node.setBrackets("(", ")");
 			
 			boolean unspaced = unspaced_binops.contains(s);
-			TermPrinterTree spacedOp = opNode;
+			SelectionTree spacedOp = opNode;
 			if (!unspaced)
-				spacedOp = new TermPrinterTree(hop, " " + s + " ");
+				spacedOp = new SelectionTree(hop, " " + s + " ");
 			
 			int nbargs = bargs.size();
 			for (int i = 0; i < nbargs; i++) {
-				TermPrinterTree argNode = print_term(bargs.get(i), newprec);
+				SelectionTree argNode = print_term(bargs.get(i), newprec);
 				node.addBranch(argNode);
 
 				if (i < nbargs - 1) {
@@ -569,7 +569,7 @@ public class TermPrinter {
 		if (prec == 1000)
 			node.setBrackets("(", ")");
 		
-		TermPrinterTree lNode = print_term(l, 999);
+		SelectionTree lNode = print_term(l, 999);
 		node.addBranch(lNode);
 
 		// TODO:
@@ -579,7 +579,7 @@ public class TermPrinter {
 
 		node.addBranch(spaceNode);
 		
-		TermPrinterTree rNode = print_term(r, 1000);
+		SelectionTree rNode = print_term(r, 1000);
 		node.addBranch(rNode);
 		
 		return node;

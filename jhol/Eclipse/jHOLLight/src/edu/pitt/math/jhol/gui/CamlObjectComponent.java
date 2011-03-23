@@ -1,9 +1,12 @@
 package edu.pitt.math.jhol.gui;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Shape;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.FontRenderContext;
@@ -18,6 +21,8 @@ import java.util.Hashtable;
 
 import javax.swing.JPanel;
 
+import edu.pitt.math.jhol.caml.CamlObject;
+import edu.pitt.math.jhol.core.printer.Printer;
 import edu.pitt.math.jhol.core.printer.SelectionTree;
 
 /**
@@ -27,70 +32,69 @@ import edu.pitt.math.jhol.core.printer.SelectionTree;
 public class CamlObjectComponent extends JPanel {
 	// Description of an element
 	public static class Element {
-		private SelectionTree tree;
-		private int level;
-		public int start0, end0;
-		public int start1, end1;
+		CamlObject object;
+		int level;
+		int index;
 		
-		public Element(SelectionTree tree) {
-			this.tree = tree;
-		}
-		
-		public int getLevel() {
-			return level;
-		}
-		
-		public void setLevel(int level) {
-			if (level < 0)
-				level = 0;
-			this.level = level;
-		}
-		
-		public void incLevel() {
-			level++;
-		}
-		
-		public void decLevel() {
-			level--;
-			if (level < 0)
-				level = 0;
+		public Element(CamlObject obj) {
+			if (obj == null)
+				throw new RuntimeException("obj == null");
+			
+			this.object = obj;
 		}
 		
 		public void resetSelection() {
 			level = 0;
-			end0 = start0 = 0;
-			end1 = start1 = 0;
+			index = 0;
 		}
 		
-		public void setSelection0(int symbolIndex) {
-			if (tree == null)
-				return;
-			
-			SelectionTree.Subelement e = tree.getSubelement(symbolIndex, level);
-			start0 = e.start;
-			end0 = e.end;
-			setLevel(e.level);
+		public void setSelection(int level, int index) {
+			this.level = level;
+			this.index = index;
 		}
-
-		public void setSelection1(int level, int symbolIndex) {
-			if (tree == null)
-				return;
-			
-			SelectionTree.Subelement e = tree.getSubelement(symbolIndex, level);
-			start1 = e.start;
-			end1 = e.end;
+		
+		@Override
+		public int hashCode() {
+			return object.hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			return object.equals(obj);
+		}
+		
+		@Override
+		public String toString() {
+			return object.toString();
 		}
 	}
-	
+		
 	// Default font rendering context
 	private static final FontRenderContext frc = new FontRenderContext(null,
 			true, false);
 
+	// If true then a multiline mode is on
+	private boolean wordWrap;
+	
+	// If true then the text layout is changed automatically
+	private boolean autoResize;
+	
+	// The width of the text
+	// If 0 then the width of the component is used
+	private int textWidth;
+	
 	// Element
 	private Element element;
 	
 	// Text for rendering
-	private AttributedString text;
+	private AttributedCharacterIterator text;
+	
+	// Selection tree
+	private SelectionTree tree;
+	
+	// Selection indices
+	private int start0, end0;
+	private int start1, end1;
 	
 	// Tables with attributes
 	private static final Hashtable<TextAttribute, Object> map;
@@ -124,26 +128,136 @@ public class CamlObjectComponent extends JPanel {
 		map = new Hashtable<TextAttribute, Object>();
 		map.put(TextAttribute.SIZE, new Float(20.0));
 	}
-
+	
+	
 	/**
 	 * Default constructor
 	 */
-	public CamlObjectComponent() {
+	public CamlObjectComponent(boolean wordWrapFlag, boolean autoResizeFlag) {
+		this.wordWrap = wordWrapFlag;
+		this.autoResize = autoResizeFlag;
+		
+		// Add a mouse listener
 		TestMouseListener m = new TestMouseListener();
 		addMouseMotionListener(m);
 		addMouseListener(m);
+		
+		// Add a component listener
+		addComponentListener(new ComponentListener() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+			}
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				if (autoResize) {
+					textWidth = 0;
+					computeRows();
+				}
+			}
+			
+			@Override
+			public void componentMoved(ComponentEvent e) {
+			}
+			
+			@Override
+			public void componentHidden(ComponentEvent e) {
+			}
+		});
+		
 		element = null;
 	}
 	
 	
 	/**
-	 * Resets the selection region
+	 * Sets the word wrap flag.
+	 * The component is not automatically updated. 
+	 * @param wordWrap
+	 */
+	public void setWordWrap(boolean wordWrap) {
+		if (this.wordWrap == wordWrap)
+			return;
+		
+		this.wordWrap = wordWrap;
+		computeRows();
+	}
+	
+	
+	/**
+	 * Sets the text width.
+	 * The component is not automatically updated.
+	 * @param width
+	 */
+	public void setTextWidth(int width) {
+		if (this.textWidth == width)
+			return;
+		
+		this.textWidth = width;
+		computeRows();
+	}
+	
+	
+	/**
+	 * Resets the selection
 	 */
 	public void resetSelection() {
 		if (element != null)
 			element.resetSelection();
+		end0 = start0 = 0;
+		end1 = start1 = 0;
 	}
 	
+	/**
+	 * Sets the main selection region
+	 * @param symbolIndex
+	 */
+	protected void setSelection0(int level, int symbolIndex) {
+		if (element == null)
+			return;
+		
+		SelectionTree.Subelement e = tree.getSubelement(symbolIndex, level);
+		start0 = e.start;
+		end0 = e.end;
+		element.level = e.level;
+		element.index = start0;
+	}
+
+	/**
+	 * Sets the secondary selection region
+	 */
+	protected void setSelection1(int level, int symbolIndex) {
+		if (element == null)
+			return;
+		
+		SelectionTree.Subelement e = tree.getSubelement(symbolIndex, level);
+		start1 = e.start;
+		end1 = e.end;
+	}
+	
+	
+	/**
+	 * Increases the selection level
+	 */
+	protected void incLevel() {
+		if (element == null)
+			return;
+		
+		element.level++;
+	}
+	
+	
+	/**
+	 * Decreases the selection level
+	 */
+	protected void decLevel() {
+		if (element == null)
+			return;
+		
+		element.level--;
+		if (element.level < 0)
+			element.level = 0;
+	}
+
 	
 	/**
 	 * Returns the element
@@ -160,62 +274,90 @@ public class CamlObjectComponent extends JPanel {
 		if (element == null)
 			return;
 		
-		element.setLevel(level);
-		element.setSelection0(symbol);
+		setSelection0(level, symbol);
 	}
 
+	
 	/**
-	 * Initializes the component with a new Caml object
+	 * Initializes the component with a new Caml object.
+	 * Returns the desired height of the component.
 	 */
-	public void init(SelectionTree tree) {
-		element = new Element(tree);
-		text = new AttributedString(tree.toString(), map);
+	public float init(CamlObject obj) {
+		element = new Element(obj);
+		tree = Printer.print(obj);
+		AttributedString str = new AttributedString(tree.toString(), map);
 
-		AttributedCharacterIterator it = text.getIterator();
-		start = it.getBeginIndex();
-		end = it.getEndIndex();
-		lineMeasurer = new LineBreakMeasurer(it, frc);
+		text = str.getIterator();
+		start = text.getBeginIndex();
+		end = text.getEndIndex();
+		lineMeasurer = new LineBreakMeasurer(text, frc);
+		
+		return computeRows();
 	}
 
+	
 	/**
 	 * Computes the text layout
 	 */
-	public float computeRows(float width) {
+	protected float computeRows() {
 		rows.clear();
+		if (element == null)
+			return 0;
 
 		float y = 0;
+		int width = (textWidth <= 0) ? getWidth() : textWidth;
+		
+		if (wordWrap) {
+			lineMeasurer.setPosition(start);
 
-		lineMeasurer.setPosition(start);
+			while (lineMeasurer.getPosition() < end) {
+				// Compute attributes of the next row
+				int firstIndex = lineMeasurer.getPosition();
+				TextLayout layout = lineMeasurer.nextLayout(width);
+				int lastIndex = lineMeasurer.getPosition() - 1;
 
-		while (lineMeasurer.getPosition() < end) {
-			// Compute attributes of the next row
-			int firstIndex = lineMeasurer.getPosition();
-			TextLayout layout = lineMeasurer.nextLayout(width);
-			int lastIndex = lineMeasurer.getPosition() - 1;
+				float y0 = y;
+				float yy = y0 + layout.getAscent();
+				float y1 = yy + layout.getDescent();
 
-			float y0 = y;
-			float yy = y0 + layout.getAscent();
-			float y1 = yy + layout.getDescent();
+				TextRow row = new TextRow();
+				row.layout = layout;
+				row.firstIndex = firstIndex;
+				row.lastIndex = lastIndex;
+				row.y = yy;
+				row.y0 = y0;
+				row.y1 = y1;
 
-			TextRow row = new TextRow();
-			row.layout = layout;
-			row.firstIndex = firstIndex;
-			row.lastIndex = lastIndex;
-			row.y = yy;
-			row.y0 = y0;
-			row.y1 = y1;
+				rows.add(row);
 
-			rows.add(row);
-
-			y = y1 + layout.getLeading();
+				y = y1 + layout.getLeading();
+			}
 		}
+		else {
+			// Create one layout
+			TextRow row = new TextRow();
+			row.layout = new TextLayout(text, frc);
+			row.firstIndex = start;
+			row.lastIndex = end;
+			row.y = row.layout.getAscent();
+			row.y0 = 0;
+			row.y1 = row.y + row.layout.getDescent();
+			
+			rows.add(row);
+			
+			y = row.y1 + row.layout.getLeading();
+		}
+		
+		setPreferredSize(new Dimension((int)width, (int) y));
 
 		return y;
 	}
 
+	
 	/**
-	 * Draws a multiline text
+	 * Draws the text
 	 */
+	@Override
 	public void paint(Graphics g) {
 		super.paint(g);
 		
@@ -227,8 +369,9 @@ public class CamlObjectComponent extends JPanel {
 		for (TextRow row : rows) {
 			TextLayout layout = row.layout;
 
-			if (element.end1 > element.start1) {
-				int first = element.start1, last = element.end1;
+			// Draw the secondary selection
+			if (end1 > start1) {
+				int first = start1, last = end1;
 
 				if (first <= row.lastIndex && row.firstIndex <= last) {
 					first -= row.firstIndex;
@@ -248,8 +391,9 @@ public class CamlObjectComponent extends JPanel {
 				}
 			}
 			
-			if (element.end0 > element.start0) {
-				int first = element.start0, last = element.end0;
+			// Draw the main selection
+			if (end0 > start0) {
+				int first = start0, last = end0;
 
 				if (first <= row.lastIndex && row.firstIndex <= last) {
 					first -= row.firstIndex;
@@ -273,7 +417,8 @@ public class CamlObjectComponent extends JPanel {
 			row.layout.draw(g2, 0, row.y);
 		}
 	}
-
+	
+	
 	/**
 	 * Returns a row for which y0 <= y <= y1
 	 */
@@ -308,13 +453,13 @@ public class CamlObjectComponent extends JPanel {
 			TextHitInfo currentHit = row.layout.hitTestChar(x, y);
 			int i = currentHit.getCharIndex() + row.firstIndex;
 
-			if (i >= element.start0 && i <= element.end0) {
-				element.incLevel();
+			if (i >= start0 && i <= end0) {
+				incLevel();
 			} else {
-				element.decLevel();
+				decLevel();
 			}
 			
-			element.setSelection0(i);
+			setSelection0(element.level, i);
 
 			mouseMoved(e);
 			repaint();
@@ -336,10 +481,10 @@ public class CamlObjectComponent extends JPanel {
 			TextHitInfo currentHit = row.layout.hitTestChar(x, y);
 			int i = currentHit.getCharIndex() + row.firstIndex;
 
-			if (i >= element.start0 && i <= element.end0) {
-				element.setSelection1(element.getLevel() + 1, i);
+			if (i >= start0 && i <= end0) {
+				setSelection1(element.level + 1, i);
 			} else {
-				element.setSelection1(element.getLevel() - 1, i);
+				setSelection1(element.level - 1, i);
 			}
 
 			repaint();
@@ -347,7 +492,7 @@ public class CamlObjectComponent extends JPanel {
 
 		@Override
 		public void mouseExited(MouseEvent e) {
-			element.start1 = element.end1 = 0;
+			start1 = end1 = 0;
 			repaint();
 		}
 	}

@@ -48,7 +48,7 @@ public class Printer {
 		
 		
 		// Default
-		SelectionTree tree = new SelectionTree(obj, obj.toString());
+		SelectionTree tree = new SelectionTree(obj, obj.toCommandString());
 		return tree;
 	}
 }

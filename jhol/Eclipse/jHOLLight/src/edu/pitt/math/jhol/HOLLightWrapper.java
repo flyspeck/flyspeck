@@ -90,6 +90,7 @@ public class HOLLightWrapper extends PircBot {
 			e.printStackTrace();
 		}
 		this.joinChannel("#hol");
+		this.setMessageDelay(0);
 		this.interpreter = new bsh.Interpreter();
 		try {
 			interpreter.set("hol", this);
@@ -120,7 +121,11 @@ public class HOLLightWrapper extends PircBot {
 				e.printStackTrace();
 			}
 		}
-		
+		if (this.getOutgoingQueueSize() == 0){
+			synchronized(this){
+				this.notifyAll();
+		}
+		}
 	}
 
 	public void runCommand (String cmd){
@@ -194,18 +199,24 @@ public class HOLLightWrapper extends PircBot {
 
 
 
-/*	protected String getLine() {
+	private static String getLine(BufferedReader br) {
 
 		StringBuilder sb = new StringBuilder();
-		while (true) {
-			int c = ;//FIXME
-			if (c == 10)
-				break;
-			
-			sb.appendCodePoint(c);
+		int c;
+		try {
+			while ( (c = br.read()) != -1) {
+				//System.out.println(c);
+				if (c == 10)
+					return sb.toString();
+				
+				sb.appendCodePoint(c);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return sb.toString();
-	}*/
+		return null;
+	}
 
 	/*public void run() {
 
@@ -445,34 +456,46 @@ public class HOLLightWrapper extends PircBot {
 */
 	
 	
+	
 	public static void main(String[] args){
 		//javax.swing.SwingUtilities.invokeLater(
 			//	  new Runnable() {
 				//    public void run() {
-					
+		
+		if (args.length < 1)
+			System.exit(-1);
+		
 				    	BufferedReader in
 				    	   = new BufferedReader(new InputStreamReader(System.in));
 				    	BufferedWriter out
 				    	= new BufferedWriter(new OutputStreamWriter(System.out));
-				    	HOLLightWrapper test = new HOLLightWrapper("weyl0", "HLWtest", "charizard.zapto.org",out);
+				    	HOLLightWrapper test = new HOLLightWrapper("weyl0", args[0], "charizard.zapto.org",out);
 				    	String cmd;
-				    	try {
-							while(null != (cmd = in.readLine()))
+				    	
+							while(null != (cmd = getLine(in)))
 							{
 								test.runCommand(cmd);
-  	}
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+							}
+							
+							synchronized(test){
+								try {
+									
+									test.wait();
+									
+								} catch (InterruptedException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}
+							
+							test.disconnect();
+							test.dispose();
+							test = null;
+							
+						} 
 				//
 				 //   }
 					
 				 // }); 	
-
-	
-	}
-	
-	
 	
 }

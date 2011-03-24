@@ -2,26 +2,22 @@
 package edu.pitt.math.jhol;
 
 import java.text.ParseException;
-import java.util.*;
-
-import java.awt.Font;
 
 import java.io.*;
 import java.lang.reflect.Array;
 
 
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextPane;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.StyledDocument;
+
+
+import org.jibble.pircbot.IrcException;
+import org.jibble.pircbot.NickAlreadyInUseException;
+import org.jibble.pircbot.PircBot;
 
 
 import bsh.EvalError;
 
-public class HOLLightWrapper  {
+
+public class HOLLightWrapper extends PircBot {
 
 	/**
 	 * 
@@ -31,24 +27,28 @@ public class HOLLightWrapper  {
 	
 
 	// variable to keep track of the theorem count
-	private  int numHolTheorems;
+	//private  int numHolTheorems;
 
 	// variable to hold all the theorems
-	private  Set<String> holTheorems;
+	//private  Set<String> holTheorems;
 	private  bsh.Interpreter interpreter;
-	private  JTextPane consoleTextPane;
-	private  String user;
-	private  String server;
+	
+	//private  String user;
+	//private  String server;
 	//private  BufferedReader bufInput;
-	private  JTextPane goalPane;
-	private  Thread taskThread;
+	//private  JTextPane goalPane;
+	//private  Thread taskThread;
+	
+	private BufferedWriter out;
 
-	private  int interruptCount;
-	private boolean threadSuspended;
+	
+	//private boolean threadSuspended;
 
-	public Set<String> getTheoremList() {
-		return new TreeSet<String>(this.holTheorems);
-	}
+
+
+	private String botName;
+
+
 
 	protected void eval(String evalStr) throws EvalError {
 		interpreter.eval(evalStr);
@@ -57,43 +57,15 @@ public class HOLLightWrapper  {
 	
 
 	
-
-	
-
-	public synchronized boolean interrupt() {
-		interruptCount++;
-		return interruptCount > 0;
-	}
-	
-	
-	
-
-	/*private void printErr(IOException e) {
-		printErr("Console: I/O Error: " + e);
-	}*/
-
-	/*protected void printErr(String s) {
-		print(s + "\n", Color.red);
-	}*/
-
-	
-	public JTextPane getGoalPane(){
-		return goalPane;
-	}
-
-	
-	public HOLLightWrapper() throws IOException, EvalError{
-		this("","");//FIXME
-	}
-	
-	public void connect(String user, String server) throws IllegalArgumentException, IOException{
+	public HOLLightWrapper(String botName, String myName, String server,BufferedWriter out) {
+		//this.in = in;
+		this.out =out;
+		//this.server = server;
+		this.setName(myName);
+		this.botName = botName;
 		
-		
-		this.user = user;
-		this.server = server;
-		
-	}
 	
+		
 /*	private class SimpleThreadFactory implements ThreadFactory {
 		   
 		
@@ -104,32 +76,56 @@ public class HOLLightWrapper  {
 		   }
 		 }
 	*/
-	public HOLLightWrapper(String user, String server) throws IOException,
-			EvalError {
-		
-
-		goalPane = new GoalPane();
-		
+	
+		try {
+			this.connect(server);
+		} catch (NickAlreadyInUseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IrcException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.joinChannel("#hol");
 		this.interpreter = new bsh.Interpreter();
-		interpreter.set("hol", this);
+		try {
+			interpreter.set("hol", this);
+		} catch (EvalError e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 
 		
-		numHolTheorems = 0;
-		holTheorems = new TreeSet<String>();
-			
-		Font font = new Font("Monospaced", Font.PLAIN, 12);
-		this.consoleTextPane.setFont(font);
+		//numHolTheorems = 0;
+		//holTheorems = new TreeSet<String>();
 		
 		
-consoleTextPane.setEditable(false);
-		
-		if (user != null && server != null)
-			connect(user, server);
 		
 		
 	}
 
+
+	protected void onMessage(String chan, String sender, String login, String hostname, String message){
+		if (out !=null && sender.equals( botName) && chan.equals("#hol") ){
+			try {
+				out.write(message);
+				out.newLine();
+				out.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
+
+	public void runCommand (String cmd){
+		this.sendMessage("#hol", botName + " eval " + cmd);
+	}
 	
 	// method for running multiple hol commands at once
 	public void runHOLCommands(String cmds) {
@@ -141,11 +137,11 @@ consoleTextPane.setEditable(false);
 	}
 
 	// query hol for the number of theorems in the system
-	private Integer getNumHolTheorems() {
+	/*private Integer getNumHolTheorems() {
 		String output = runCommand("List.length !theorems;;");
 		// System.out.println(output);
 		return parseForInteger(output);
-	}
+	}*/
 
 	public static Integer parseForInteger(String rawOutput) {
 		int equalsIndex = rawOutput.indexOf('=');
@@ -179,7 +175,7 @@ consoleTextPane.setEditable(false);
 	}
 
 	// method to keep theorem list up to date
-	public void updateHolTheorems() throws ParseException {
+	/*public void updateHolTheorems() throws ParseException {
 		if (numHolTheorems != getNumHolTheorems()) {
 			numHolTheorems = getNumHolTheorems();
 
@@ -193,39 +189,27 @@ consoleTextPane.setEditable(false);
 			}
 		}
 	}
-
+*/
 	
 
 
 
-	protected String getLine() {
+/*	protected String getLine() {
 
 		StringBuilder sb = new StringBuilder();
 		while (true) {
-			int c = 10;//FIXME
+			int c = ;//FIXME
 			if (c == 10)
 				break;
 			
 			sb.appendCodePoint(c);
 		}
 		return sb.toString();
-	}
+	}*/
 
-/*	public void run() {
+	/*public void run() {
 
-		guardedES();
-final StringBuilder sb = new StringBuilder();
-		try {
-			char c;
-			while ((c = (char) read()) != '#') {
-				sb.append(c);
-			}
-			sb.append(c);
-			c = (char) read();
-			sb.append(c);
-		} catch (IOException e1) {
-			printErr(e1);
-		}
+
 
 		String output = (runCommand("Sys.command(\"exit $PPID\");;"));
 
@@ -240,14 +224,7 @@ final StringBuilder sb = new StringBuilder();
 
 		this.holPid = pid;
 
-		// ssh ${USER}@${SERVER} kill -2 $1
-		List<String> command = new ArrayList<String>();
-		command.add("ssh");
-		command.add("-tt");
-		command.add(user + "@" + server);
-		command.add("kill");
-		command.add("-2");
-		command.add(getPID().toString());
+		
 
 		ProcessBuilder kill = new ProcessBuilder(command);
 		kill.redirectErrorStream(true);
@@ -331,10 +308,10 @@ final StringBuilder sb = new StringBuilder();
 			e.printStackTrace();
 		}
 
-	}*/
+	}
 
 	
-
+*/
 	
 	/*public  Future<String> runBackgroundCommand(String command) {
 		HOLTask task = new HOLTask(command);
@@ -342,12 +319,7 @@ final StringBuilder sb = new StringBuilder();
 		return task;
 	}*/
 
-	public String runCommand(String string) {
-
-		//FIXME
-		return null;
-	}
-
+	
 	
 	
 	/*private class HOLTask extends SwingWorker<String, Character> {
@@ -471,162 +443,35 @@ final StringBuilder sb = new StringBuilder();
 		}
 	}
 */
-	private class GoalPane extends JTextPane {
-
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		public GoalPane() {
-			super(new DefaultStyledDocument());
-			setEditable(false);
-		}
-
-	}
-
-	public void beginTopGoal() {
-
-		updateTopGoal();
-	}
-
-	public void updateTopGoal() {
-
-		JTextPane text = goalPane;
-		text.setText("");
-		StyledDocument doc = text.getStyledDocument();
-
-		// Print "Goal: "
-		String htmlString = getHTMLHeader("") + "<b>Goal: </b>"
-				+ getHTMLFooter();
-		JLabel label = htmlToJLabel(htmlString);
-		text.insertComponent(label);
-
-		// Line break
-		try {
-			doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
-		} catch (BadLocationException e) {
-
-			e.printStackTrace();
-		}
-		text.setCaretPosition(doc.getLength());
-
-		// Print top_goal
-		String junk = runCommand("(snd o top_goal)();;");
-		int junkInt = junk.indexOf("<HTML>");// DEBUG all html tag tests should
-												// be case insensitive
-		if (junkInt == -1)
-			return;
-		int junkEnd = junk.indexOf("</HTML>") + 7;
-		junk = junk.substring(junkInt, junkEnd);
-		label = htmlToJLabel(junk);
-		text.insertComponent(label);
-
-		// Line break
-		try {
-			doc.insertString(doc.getEndPosition().getOffset(), "\n\n", null);
-		} catch (BadLocationException e) {
-
-			e.printStackTrace();
-		}
-		text.setCaretPosition(doc.getLength());
-
-		// Print "Assumptions: "
-		htmlString = getHTMLHeader("") + "<b>Assumption(s): </b>"
-				+ getHTMLFooter();
-		label = htmlToJLabel(htmlString);
-		text.insertComponent(label);
-
-		// Line break
-		try {
-			doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
-		} catch (BadLocationException e) {
-
-			e.printStackTrace();
-		}
-		text.setCaretPosition(doc.getLength());
-
-		// Print the assumptions
-		junk = runCommand("List.iter (fun x,y ->( ((fun ()->"
-				+ "(print_string \"\\n\")) o  (fun () ->"
-				+ "(((print_qterm o  concl) y)))) o print_string) (\"\""
-				+ "))   ((fst o top_realgoal)());;");
-		while (junk.indexOf("<HTML>") != -1) {
-			junkInt = junk.indexOf("<HTML>");
-			junkEnd = junk.indexOf("</HTML>") + 7;
-			label = htmlToJLabel(junk.substring(junkInt, junkEnd));
-			junk = junk.substring(junkEnd, junk.length());
-			text.insertComponent(label);
-			try {
-				doc.insertString(doc.getEndPosition().getOffset(), "\n", null);
-			} catch (BadLocationException e) {
-
-				e.printStackTrace();
-			}
-			text.setCaretPosition(doc.getLength());
-		}
-	}
-
-	static JLabel htmlToJLabel(String htmlText) {
-		return new JLabel(htmlText, JLabel.LEFT);
-	}
-
-	static String getHTMLHeader(String title) {
-		if (title == null)
-			title = "";
-		return "<HTML><HEAD><TITLE>" + title + "</TITLE></HEAD><BODY>";
-	}
-
-	static String getHTMLFooter() {
-		return "</BODY></HTML>";
-	}
-
 	
 	
 	public static void main(String[] args){
-		javax.swing.SwingUtilities.invokeLater(
-				  new Runnable() {
-				    public void run() {
+		//javax.swing.SwingUtilities.invokeLater(
+			//	  new Runnable() {
+				//    public void run() {
 					
-				
-				    }
+				    	BufferedReader in
+				    	   = new BufferedReader(new InputStreamReader(System.in));
+				    	BufferedWriter out
+				    	= new BufferedWriter(new OutputStreamWriter(System.out));
+				    	HOLLightWrapper test = new HOLLightWrapper("weyl0", "HLWtest", "charizard.zapto.org",out);
+				    	String cmd;
+				    	try {
+							while(null != (cmd = in.readLine()))
+							{
+								test.runCommand(cmd);
+  	}
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+				//
+				 //   }
 					
-				  }); 	
+				 // }); 	
 
 	
 	}
-	
-	public void connectDialog(JFrame frame) throws IllegalArgumentException, IOException{
-		String s = (String)JOptionPane.showInputDialog(
-                frame,
-                "Enter username",
-                
-                "Username",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                null,
-                null);
-		String t;
-		if (s==null)
-			t = null;
-		else t = (String)JOptionPane.showInputDialog(
-                frame,
-                "Enter hostname",
-                
-                "HOL Server",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                null,
-                null);
-//Thread.currentThread().
-//If a string was returned, say so.
-if ((s != null) && (s.length() > 0) && (t != null) && (t.length() > 0)) {
-connect(s,t);
-}
-else
-throw new IllegalArgumentException("Bad Input");
-	}
-		
 	
 	
 	

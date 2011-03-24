@@ -1,6 +1,8 @@
-package edu.pitt.math.jhol;
+package edu.pitt.math.jhol.jconsole;
 
 import java.lang.reflect.Array;
+
+import edu.pitt.math.jhol.Database;
 
 import bsh.util.NameCompletion;
 

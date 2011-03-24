@@ -1,8 +1,10 @@
-package edu.pitt.math.jhol;
+package edu.pitt.math.jhol.jconsole;
 
 import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
+
+import edu.pitt.math.jhol.HOLLightWrapper;
 
 
 

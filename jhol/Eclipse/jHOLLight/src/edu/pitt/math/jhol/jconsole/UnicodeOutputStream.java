@@ -1,4 +1,4 @@
-package edu.pitt.math.jhol;
+package edu.pitt.math.jhol.jconsole;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;

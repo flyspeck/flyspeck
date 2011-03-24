@@ -5,13 +5,12 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.InetAddress;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.commons.daemon.Daemon;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
@@ -22,7 +21,7 @@ public class HOLBot extends PircBot implements  Runnable {
 
 	// private String owner;
 	// private Interpreter interpreter;
-	private ProcessBuilder pb;
+	
 	private Process proc;
 	private BufferedWriter bin;
 	private BufferedReader bout;
@@ -32,6 +31,7 @@ public class HOLBot extends PircBot implements  Runnable {
 	private String server;
 	private String channel;
 	private boolean sleeping;
+	private ProcessBuilder pb;
 	/*
 	 * public String setOwner(String owner){ return this.owner = owner; }
 	 * 
@@ -68,7 +68,7 @@ public class HOLBot extends PircBot implements  Runnable {
 List<String> command = new ArrayList<String>();
 		
 		command.add("./hol");
-		ProcessBuilder pb = new ProcessBuilder(command);
+		 pb = new ProcessBuilder(command);
 		pb.redirectErrorStream(true);
 		
 		

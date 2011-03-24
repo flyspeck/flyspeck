@@ -36,6 +36,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 	private String server;
 	private String channel;
 	private boolean sleeping;
+	
 
 	public HOLDaemon()  {
 		// interpreter = new Interpreter();
@@ -201,7 +202,7 @@ public class HOLDaemon extends PircBot implements Daemon, Runnable {
 		@Override
 		public void init(DaemonContext arg0) throws DaemonInitException, Exception {
 			
-			this.setName(InetAddress.getLocalHost().getHostName() + "bot");
+			this.setName("holbot00");
 
 			
 			

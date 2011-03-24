@@ -54,7 +54,10 @@ private HOLBot[] holbots;
 	public void destroy()  {
 		// TODO Auto-generated method stub
 		
-		
+		for (int i = 0 ; i < count; i++){
+			
+			holbots[i].dispose();
+		}
 	}
 
 	@Override
@@ -64,9 +67,9 @@ private HOLBot[] holbots;
 		prefix = argv[0];
 		server = argv[1];
 		count  = Integer.parseInt(argv[2]);
-		System.out.println(prefix);
-		System.out.println(server);
-		System.out.println(count);
+		//System.out.println(prefix);
+		//System.out.println(server);
+		//S/ystem.out.println(count);
 		//nick prefix
 		//number of instances
 		//server
@@ -110,7 +113,7 @@ private HOLBot[] holbots;
 		
 		for (int i = 0 ; i < count; i++){
 			holbots[i].disconnect();
-			holbots[i].dispose();
+			
 		}
 		
 		

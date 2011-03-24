@@ -61,8 +61,15 @@ public class HOLBot extends PircBot implements  Runnable {
 		// Config stuff goes here
 		//String[] args = arg0.getArguments();
 		//server = args[0];
-		if (server == null || server.length() == 0)
-			server = "charizard.zapto.org";
+		//if (server == null || server.length() == 0)
+			//server = "charizard.zapto.org";
+		
+		
+List<String> command = new ArrayList<String>();
+		
+		command.add("./hol");
+		ProcessBuilder pb = new ProcessBuilder(command);
+		pb.redirectErrorStream(true);
 		
 		
 		try {
@@ -76,11 +83,7 @@ public class HOLBot extends PircBot implements  Runnable {
 		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 		
-List<String> command = new ArrayList<String>();
-		
-		command.add("./hol");
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectErrorStream(true);
+
 		
 		
 		es.submit(this);

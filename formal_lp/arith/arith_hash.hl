@@ -14,31 +14,46 @@ module type Arith_hash_sig =
     val mk_numeral_array : num -> term
     val mk_small_numeral_array : int -> term
     val mk_int64_numeral_array : int64 -> term
+    val raw_dest_hash : term -> num
     val dest_numeral_hash : term -> num
     val dest_numeral64_hash : term -> int64
     val NUMERAL_TO_NUM_CONV : term -> thm
     val NUM_TO_NUMERAL_CONV : term -> thm
+
     val raw_suc_conv_hash : term -> thm
     val NUM_SUC_HASH_CONV : term -> thm
+
     val raw_eq0_hash_conv : term -> thm
     val NUM_EQ0_HASH_CONV : term -> thm
+
     val raw_pre_hash_conv : term -> thm
     val NUM_PRE_HASH_CONV : term -> thm
+
     val raw_gt0_hash_conv : term -> thm
     val NUM_GT0_HASH_CONV : term -> thm
+
     val raw_lt_hash_conv : term -> thm
     val raw_le_hash_conv : term -> thm
     val NUM_LT_HASH_CONV : term -> thm
     val NUM_LE_HASH_CONV : term -> thm
+
     val raw_add_conv_hash : term -> thm
     val NUM_ADD_HASH_CONV : term -> thm
+
     val raw_sub_hash_conv : term -> thm
     val raw_sub_and_le_hash_conv : term -> term -> thm * thm
     val NUM_SUB_HASH_CONV : term -> thm
+
     val raw_mul_conv_hash : term -> thm
     val NUM_MULT_HASH_CONV : term -> thm
+
     val raw_div_hash_conv : term -> thm
     val NUM_DIV_HASH_CONV : term -> thm
+
+    val raw_even_hash_conv : term -> thm
+    val raw_odd_hash_conv : term -> thm
+    val NUM_EVEN_HASH_CONV : term -> thm
+    val NUM_ODD_HASH_CONV : term -> thm
 end;;
 
 
@@ -1646,6 +1661,139 @@ test 100 NUM_DIV_CONV yy;;
 (* 8: 1.084 *)
 test 1000 NUM_DIV_HASH_CONV xx;;
 *)
+
+
+(*********************************************)
+
+(* EVEN_CONV, ODD_CONV *)
+
+let even_const = `EVEN` and
+    odd_const = `ODD` and
+    eq_const = `<=>` and
+    f_const = `F` and
+    t_const = `T`;;
+
+
+
+let EVEN_NUM = (REWRITE_RULE[GSYM num_def] o prove)
+  (`EVEN (NUMERAL n) <=> EVEN n`, REWRITE_TAC[NUMERAL]);;
+
+let ODD_NUM = (REWRITE_RULE[GSYM num_def] o prove)
+  (`ODD (NUMERAL n) <=> ODD n`, REWRITE_TAC[NUMERAL]);;
+
+let EVEN_ZERO = prove(`EVEN _0 <=> T`, REWRITE_TAC[ARITH_EVEN]);;
+let ODD_ZERO = prove(`ODD _0 <=> F`, REWRITE_TAC[ARITH_ODD]);;
+
+
+let EVEN_B0 = prove(mk_eq(mk_comb(`EVEN`, mk_comb(b0_const, `n:num`)), `T`),
+		    REWRITE_TAC[B0_EXPLICIT; EVEN_MULT] THEN
+		      DISJ1_TAC THEN CONV_TAC NUM_EVEN_CONV);;
+
+
+let ODD_B0 = prove(mk_eq(mk_comb(`ODD`, mk_comb(b0_const, `n:num`)), `F`),
+		   REWRITE_TAC[NOT_ODD; EVEN_B0]);;
+		   
+let EVEN_SUC_T = prove(`(EVEN (SUC n) <=> T) <=> (EVEN n <=> F)`, REWRITE_TAC[EVEN]);;
+let EVEN_SUC_F = prove(`(EVEN (SUC n) <=> F) <=> (EVEN n <=> T)`, REWRITE_TAC[EVEN]);;
+
+let ODD_SUC_T = prove(`(ODD (SUC n) <=> T) <=> (ODD n <=> F)`, REWRITE_TAC[ODD]);;
+let ODD_SUC_F = prove(`(ODD (SUC n) <=> F) <=> (ODD n <=> T)`, REWRITE_TAC[ODD]);;
+
+
+
+let next_even_th th =
+  let ltm, rtm = dest_comb(concl th) in
+  let b_tm = rand(rand ltm) in
+  let suc_b = raw_suc_conv_hash (mk_comb (suc_const, b_tm)) in
+  let flag = (fst o dest_const) rtm = "T" in
+  let th0 = SYM (AP_TERM even_const suc_b) in
+  let th1 = AP_THM (AP_TERM eq_const th0) (if flag then f_const else t_const) in
+  let th2 = INST[b_tm, n_var_num] (if flag then EVEN_SUC_F else EVEN_SUC_T) in
+    EQ_MP (SYM (TRANS th1 th2)) th;;
+
+
+let next_odd_th th =
+  let ltm, rtm = dest_comb(concl th) in
+  let b_tm = rand(rand ltm) in
+  let suc_b = raw_suc_conv_hash (mk_comb (suc_const, b_tm)) in
+  let flag = (fst o dest_const) rtm = "T" in
+  let th0 = SYM (AP_TERM odd_const suc_b) in
+  let th1 = AP_THM (AP_TERM eq_const th0) (if flag then f_const else t_const) in
+  let th2 = INST[b_tm, n_var_num] (if flag then ODD_SUC_F else ODD_SUC_T) in
+    EQ_MP (SYM (TRANS th1 th2)) th;;
+
+
+let even_thm_table = Hashtbl.create maximum;;
+
+
+Hashtbl.add even_thm_table names_array.(0) EVEN_B0;;
+
+
+for i = 1 to maximum - 1 do
+  let th0 = next_even_th (Hashtbl.find even_thm_table names_array.(i - 1)) in
+    Hashtbl.add even_thm_table names_array.(i) th0
+done;;
+
+
+let odd_thm_table = Hashtbl.create maximum;;
+
+Hashtbl.add odd_thm_table names_array.(0) ODD_B0;;
+
+for i = 1 to maximum - 1 do
+  let th0 = next_odd_th (Hashtbl.find odd_thm_table names_array.(i - 1)) in
+    Hashtbl.add odd_thm_table names_array.(i) th0
+done;;
+
+
+let raw_even_hash_conv tm =
+  let ltm, rtm = dest_comb tm in
+    if ((fst o dest_const) ltm <> "EVEN") then
+      failwith "raw_even_hash_conv: no EVEN"
+    else
+      if (is_const rtm) then
+	EVEN_ZERO
+      else
+	let b_tm, n_tm = dest_comb rtm in
+	let th0 = Hashtbl.find even_thm_table ((fst o dest_const) b_tm) in
+	  INST[n_tm, n_var_num] th0;;
+
+
+let raw_odd_hash_conv tm =
+  let ltm, rtm = dest_comb tm in
+    if ((fst o dest_const) ltm <> "ODD") then
+      failwith "raw_odd_hash_conv: no ODD"
+    else
+      if (is_const rtm) then
+	ODD_ZERO
+      else
+	let b_tm, n_tm = dest_comb rtm in
+	let th0 = Hashtbl.find odd_thm_table ((fst o dest_const) b_tm) in
+	  INST[n_tm, n_var_num] th0;;
+
+
+
+let NUM_EVEN_HASH_CONV tm =
+  let ltm, rtm = dest_comb tm in
+  let th0 = INST[rand rtm, n_var_num] EVEN_NUM in
+  let ltm, rtm = dest_comb(concl th0) in
+    if (rand ltm <> tm) then
+      failwith "NUM_EVEN_HASH_CONV"
+    else
+      let th1 = raw_even_hash_conv rtm in
+	TRANS th0 th1;;
+
+
+let NUM_ODD_HASH_CONV tm =
+  let ltm, rtm = dest_comb tm in
+  let th0 = INST[rand rtm, n_var_num] ODD_NUM in
+  let ltm, rtm = dest_comb(concl th0) in
+    if (rand ltm <> tm) then
+      failwith "NUM_ODD_HASH_CONV"
+    else
+      let th1 = raw_odd_hash_conv rtm in
+	TRANS th0 th1;;
+
+
 
 
 end;;

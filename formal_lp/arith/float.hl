@@ -4,7 +4,7 @@ needs "arith_hash2.hl";;
 open Arith_hash2;;
 
 
-(* The main parameter *)
+(* The main parameter (should be even for the square root operation) *)
 let min_exp = 20;;
 
 
@@ -55,10 +55,25 @@ let le_op_num = `(<=):num->num->bool` and
     plus_op_num = `(+):num->num->num` and
     minus_op_num = `(-):num->num->num` and
     div_op_real = `(/):real->real->real` and
+    div_op_num = `DIV` and
     mul_op_real = `( * ):real->real->real` and
     plus_op_real = `(+):real->real->real` and
     minus_op_real = `(-):real->real->real` and
     neg_op_real = `(--):real->real`;;
+
+
+
+let amp_op_real = `(&):num->real` and
+    interval_const = `interval_arith` and
+    num_exp_const = `num_exp`;;
+
+let x_var_real = `x:real` and
+    y_var_real = `y:real` and
+    z_var_real = `z:real` and
+    a_var_real = `a:real` and
+    b_var_real = `b:real` and
+    lo_var_real = `lo:real` and
+    hi_var_real = `hi:real`;;
 
 
 
@@ -120,7 +135,11 @@ let float = new_definition float_tm;;
 let dest_float tm =
   let ltm, e_tm = dest_comb tm in
   let ltm, n_tm = dest_comb ltm in
-    (fst o dest_const o rand) ltm, n_tm, e_tm;;
+  let float_tm, s_tm = dest_comb ltm in
+    if (fst o dest_const) float_tm <> "float" then
+      failwith "dest_float: not float"
+    else
+      (fst o dest_const) s_tm, n_tm, e_tm;;
 
 
 
@@ -337,6 +356,15 @@ let rec normalize tm =
         (REFL tm, false)
   else
     (REFL tm, false);;
+
+
+(* Converts a raw numeral to a num_exp expression *)
+let to_num_exp tm =
+  let x, flag = normalize tm in
+    if flag then x
+    else
+      INST[tm, n_var_num] NUM_EXP_0';;
+	
 
 
 
@@ -1983,6 +2011,7 @@ float_sub_hi 1 f2 f1;;
 *)
 
 
+
 (******************************************)
 
 (* float intervals *)
@@ -1997,18 +2026,6 @@ let FLOAT_F_bound' = (UNDISCH_ALL o SPEC_ALL) FLOAT_F_bound;;
 let FLOAT_T_bound' = (UNDISCH_ALL o SPEC_ALL) FLOAT_T_bound;;
 
 
-
-let amp_op_real = `(&):num->real` and
-    interval_const = `interval_arith` and
-    num_exp_const = `num_exp`;;
-
-let x_var_real = `x:real` and
-    y_var_real = `y:real` and
-    z_var_real = `z:real` and
-    a_var_real = `a:real` and
-    b_var_real = `b:real` and
-    lo_var_real = `lo:real` and
-    hi_var_real = `hi:real`;;
 
 
 
@@ -2383,18 +2400,14 @@ test 100 (float_interval_mul 5 th1') th2';;
 
 (* float_interval_div *)
 
-let FLOAT_INTERVAL_DIV_FF = (UNDISCH_ALL o
-                               PURE_REWRITE_RULE[TAUT `~P <=> (P <=> F)`] o
-                               REWRITE_RULE[GSYM IMP_IMP] o
-                               NUMERALS_TO_NUM o prove)(
-  `~(m1 = 0) /\ ~(m2 = 0) /\
+let FLOAT_INTERVAL_DIV_FF_FF = prove(
+  `~(m1 = 0) /\
     interval_arith x (float F n1 e1, float F n2 e2) /\
     interval_arith y (float F m1 r1, float F m2 r2) /\
-    float F n e <= float F n1 e1 / float F m2 r2 /\
-    float F n2 e2 / float F m1 r1 <= float F m r
-    ==> interval_arith (x / y) (float F n e, float F m r)`,
+    f1 <= float F n1 e1 / float F m2 r2 /\
+    float F n2 e2 / float F m1 r1 <= f2
+    ==> interval_arith (x / y) (f1, f2)`,
    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
-     MAP_EVERY ABBREV_TAC [`lo = float F n e`; `hi = float F m r`] THEN
      REWRITE_TAC[real_div] THEN
      STRIP_TAC THEN
      SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` MP_TAC THENL
@@ -2403,14 +2416,23 @@ let FLOAT_INTERVAL_DIV_FF = (UNDISCH_ALL o
          REWRITE_TAC[FLOAT_F_POS];
        ALL_TAC
      ] THEN
-     SUBGOAL_THEN `~(c = &0) /\ ~(d = &0)` MP_TAC THENL
+     SUBGOAL_THEN `~(c = &0)` ASSUME_TAC THENL
      [
-       EXPAND_TAC "c" THEN EXPAND_TAC "d" THEN
-         ASM_REWRITE_TAC[FLOAT_EQ_0];
+       EXPAND_TAC "c" THEN ASM_REWRITE_TAC[FLOAT_EQ_0];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     SUBGOAL_THEN `~(d = &0)` MP_TAC THENL
+     [
+       MATCH_MP_TAC (REAL_ARITH `~(c = &0) /\ &0 <= c /\ c <= d ==> ~(d = &0)`) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 UNDISCH_TAC `interval_arith y (c,d)` THEN
+	 REWRITE_TAC[interval_arith] THEN
+	 REAL_ARITH_TAC;
        ALL_TAC
      ] THEN
 
-     REPLICATE_TAC 6 (POP_ASSUM MP_TAC) THEN
+     REPLICATE_TAC 10 (POP_ASSUM MP_TAC) THEN
      REPEAT (POP_ASSUM (fun th -> ALL_TAC)) THEN
      REWRITE_TAC[interval_arith] THEN
      REPEAT STRIP_TAC THENL
@@ -2445,42 +2467,143 @@ let FLOAT_INTERVAL_DIV_FF = (UNDISCH_ALL o
 
 
 
+let FLOAT_INTERVAL_DIV_TT_TT = prove(
+  `~(m2 = 0) /\
+    interval_arith x (float T n1 e1, float T n2 e2) /\
+    interval_arith y (float T m1 r1, float T m2 r2) /\
+    f1 <= float T n2 e2 / float T m1 r1 /\
+    float T n1 e1 / float T m2 r2 <= f2
+    ==> interval_arith (x / y) (f1,f2)`,
+   REWRITE_TAC[FLOAT_NEG_T] THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG; REAL_NEG_MUL2] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[interval_arith] THEN
+     REWRITE_TAC[REAL_ARITH `--a <= x /\ x <= --b <=> b <= --x /\ --x <= a`] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[GSYM interval_arith] THEN
+     STRIP_TAC THEN
+     MP_TAC ((SPECL[`n2:num`; `e2:num`; `m1:num`; `r1:num`; `n1:num`; `e1:num`; `m2:num`; `r2:num`; `--x`; `--y`] o GEN_ALL) FLOAT_INTERVAL_DIV_FF_FF) THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG; REAL_NEG_MUL2] THEN
+     DISCH_THEN MATCH_MP_TAC THEN
+     ASM_REWRITE_TAC[]);;     
+
+
+
+let FLOAT_INTERVAL_DIV_FF_TT = prove(
+  `~(m2 = 0) /\
+    interval_arith x (float F n1 e1, float F n2 e2) /\
+    interval_arith y (float T m1 r1, float T m2 r2) /\
+    f1 <= float F n2 e2 / float T m2 r2 /\
+    float F n1 e1 / float T m1 r1 <= f2
+    ==> interval_arith (x / y) (f1,f2)`,
+   REWRITE_TAC[FLOAT_NEG_T] THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG] THEN
+     REWRITE_TAC[REAL_ARITH `a * --b <= c <=> --c <= a * b`] THEN
+     REWRITE_TAC[REAL_ARITH `c <= a * --b <=> a * b <= --c`] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[interval_arith] THEN
+     REWRITE_TAC[REAL_ARITH `--a <= x /\ x <= --b <=> b <= --x /\ --x <= a`] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[GSYM interval_arith] THEN
+     STRIP_TAC THEN
+     MP_TAC ((SPECL[`n1:num`; `e1:num`; `m1:num`; `r1:num`; `n2:num`; `e2:num`; `m2:num`; `r2:num`; `x:real`; `--y`; `--f2`; `--f1`] o GEN_ALL) FLOAT_INTERVAL_DIV_FF_FF) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[real_div];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG; interval_arith] THEN
+     REAL_ARITH_TAC);;
+
+
+
+let FLOAT_INTERVAL_DIV_TT_FF = prove(
+  `~(m1 = 0) /\
+    interval_arith x (float T n1 e1, float T n2 e2) /\
+    interval_arith y (float F m1 r1, float F m2 r2) /\
+    f1 <= float T n1 e1 / float F m1 r1 /\
+    float T n2 e2 / float F m2 r2 <= f2
+    ==> interval_arith (x / y) (f1,f2)`,
+   REWRITE_TAC[FLOAT_NEG_T] THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG] THEN
+     REWRITE_TAC[REAL_ARITH `--a * b <= c <=> --c <= a * b`] THEN
+     REWRITE_TAC[REAL_ARITH `c <= --a * b <=> a * b <= --c`] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[interval_arith] THEN
+     REWRITE_TAC[REAL_ARITH `--a <= x /\ x <= --b <=> b <= --x /\ --x <= a`] THEN
+     GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV)[GSYM interval_arith] THEN
+     STRIP_TAC THEN
+     MP_TAC ((SPECL[`n2:num`; `e2:num`; `m2:num`; `r2:num`; `n1:num`; `e1:num`; `m1:num`; `r1:num`; `--x:real`; `y:real`; `--f2`; `--f1`] o GEN_ALL) FLOAT_INTERVAL_DIV_FF_FF) THEN
+     ANTS_TAC THENL
+     [
+       ASM_REWRITE_TAC[real_div];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[real_div; REAL_INV_NEG; interval_arith] THEN
+     REAL_ARITH_TAC);;
+
+
+
+
+
+let transform = UNDISCH_ALL o
+  PURE_REWRITE_RULE[TAUT `~P <=> (P <=> F)`] o
+  REWRITE_RULE[GSYM IMP_IMP] o
+  NUMERALS_TO_NUM;;
+
+
+let FLOAT_INTERVAL_DIV_FF_FF' = transform FLOAT_INTERVAL_DIV_FF_FF and
+    FLOAT_INTERVAL_DIV_TT_TT' = transform FLOAT_INTERVAL_DIV_TT_TT and
+    FLOAT_INTERVAL_DIV_FF_TT' = transform FLOAT_INTERVAL_DIV_FF_TT and
+    FLOAT_INTERVAL_DIV_TT_FF' = transform FLOAT_INTERVAL_DIV_TT_FF;;
+
+
 
 let float_interval_div pp th1 th2 =
-  let x, l_lo, l_hi = dest_float_interval (concl th1) in
-  let y, r_lo, r_hi = dest_float_interval (concl th2) in
+  let x, l_lo, l_hi = dest_float_interval (concl th1) and
+      y, r_lo, r_hi = dest_float_interval (concl th2) in
   let s1, n1, e1 = dest_float l_lo and
       s2, n2, e2 = dest_float l_hi and
       s3, m1, r1 = dest_float r_lo and
       s4, m2, r2 = dest_float r_hi in
-    if s1 <> "F" or s3 <> "F" then
-      failwith "float_interval_div: not implemented"
-    else
-      let lo_th = float_div_lo pp l_lo r_hi in
-      let hi_th = float_div_hi pp l_hi r_lo in
-      let m1_th = raw_eq0_hash_conv m1 in
-      let m2_th = raw_eq0_hash_conv m2 in
 
-      let ltm, e_tm = dest_comb(lhand(concl lo_th)) in
-      let n_tm = rand ltm in
-      let ltm, r_tm = dest_comb(rand(concl hi_th)) in
-      let m_tm = rand ltm in
-      let th0 = INST[x, x_var_real; n1, n1_var_num; e1, e1_var_num;
-                     y, y_var_real; n2, n2_var_num; e2, e2_var_num;
-                     m1, m1_var_num; r1, r1_var_num; m2, m2_var_num;
-                     r2, r2_var_num; n_tm, n_var_num; e_tm, e_var_num;
-                     m_tm, m_var_num; r_tm, r_var_num] FLOAT_INTERVAL_DIV_FF in
-      let th = MY_PROVE_HYP lo_th (MY_PROVE_HYP hi_th (MY_PROVE_HYP th1 (MY_PROVE_HYP th2 th0))) in
-        MY_PROVE_HYP m1_th (MY_PROVE_HYP m2_th th);;
+    if s1 <> s2 or s3 <> s4 then
+      failwith "float_interval_mul: not implemented"
+    else
+      let lo_th, hi_th, th0, zero_th =
+	if s1 = "F" then
+	  if s3 = "F" then
+	    float_div_lo pp l_lo r_hi, float_div_hi pp l_hi r_lo, 
+	FLOAT_INTERVAL_DIV_FF_FF', raw_eq0_hash_conv m1
+	  else
+	    float_div_lo pp l_hi r_hi, float_div_hi pp l_lo r_lo, 
+	FLOAT_INTERVAL_DIV_FF_TT', raw_eq0_hash_conv m2
+	else
+	  if s3 = "F" then
+	    float_div_lo pp l_lo r_lo, float_div_hi pp l_hi r_hi, 
+	FLOAT_INTERVAL_DIV_TT_FF', raw_eq0_hash_conv m1
+	  else
+	    float_div_lo pp l_hi r_lo, float_div_hi pp l_lo r_hi, 
+	FLOAT_INTERVAL_DIV_TT_TT', raw_eq0_hash_conv m2 in
+
+      let f1_tm = lhand(concl lo_th) and
+	  f2_tm = rand(concl hi_th) in
+
+      let th = INST[x, x_var_real; n1, n1_var_num; e1, e1_var_num;
+		    y, y_var_real; n2, n2_var_num; e2, e2_var_num;
+		    m1, m1_var_num; r1, r1_var_num;
+		    m2, m2_var_num; r2, r2_var_num;
+		    f1_tm, f1_var_real; f2_tm, f2_var_real] th0 in
+	MY_PROVE_HYP lo_th (MY_PROVE_HYP hi_th (MY_PROVE_HYP th1 (MY_PROVE_HYP th2 (MY_PROVE_HYP zero_th th))));;
 
 
 
 
 
 (*
-let th1 = mk_float_interval_num 123456781;;
-let th2 = mk_float_interval_num 514;;
+let th1 = mk_float_interval_small_num 123456781;;
+let th2 = mk_float_interval_small_num 514;;
+let th1' = float_interval_neg th1;;
+let th2' = float_interval_neg th2;;
 float_interval_div 5 th1 th2;;
+float_interval_div 5 th1' th2;;
+float_interval_div 5 th1 th2';;
+float_interval_div 5 th1' th2';;
 float_interval_div 1 th1 th2;;
 (* 4: 0.392 *)
 test 100 (float_interval_div 5 th1) th2;;
@@ -2609,5 +2732,27 @@ test 1000 (float_interval_add 3 th1') th2';;
 
 
 
+
+
+(******************************************)
+
+(* FLOAT_TO_NUM_CONV *)
+
+
+let FLOAT_TO_NUM_CONV tm =
+  let ltm, e_tm = dest_comb tm in
+  let f_tm, n_tm = dest_comb ltm in
+    if (fst o dest_const o rator) f_tm <> "float" then
+      failwith "FLOAT_TO_NUM_CONV"
+    else
+      let n_th' = SYM (INST[n_tm, n_var_num] NUM_THM) in
+      let e_th' = SYM (INST[e_tm, n_var_num] NUM_THM) in
+      let n_th = TRANS n_th' (NUM_TO_NUMERAL_CONV (mk_comb(num_const, n_tm))) in
+      let e_th = TRANS e_th' (NUM_TO_NUMERAL_CONV (mk_comb(num_const, e_tm))) in
+      let th0 = MK_COMB (AP_TERM f_tm n_th, e_th) in
+      let tm0 = rand(concl th0) in
+      let th1 = REWRITE_CONV[float; num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; min_exp_def] tm0 in
+      let th2 = REAL_RAT_REDUCE_CONV (rand(concl th1)) in
+	TRANS th0 (TRANS th1 th2);;
 
 

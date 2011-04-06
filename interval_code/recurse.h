@@ -16,6 +16,7 @@ extern "C"
 {
 #include <math.h>
 #include <stdlib.h>
+#include <assert.h>
 }
 #include "error.h"
 #include "interval.h"

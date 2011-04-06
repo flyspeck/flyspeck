@@ -19,6 +19,7 @@ extern "C"
 #include <time.h>
 #include <stdlib.h>
 #include <float.h>
+#include <assert.h>
 }
 #include "interval.h"
 #include "univariate.h"
@@ -514,7 +515,7 @@ taylorInterval primitiveC::evalf4(const domain& w,const domain& x,const domain& 
 
 
 
-static void testAbs(double DD[6][6],char* s) {
+static void testAbs(double DD[6][6],const char* s) {
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
       if (DD[i][j] < 0) {
 	error::message("negative absolute value detected " );
@@ -2071,8 +2072,7 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   }
 
   // delta_126_x
-  const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
-						  const interval& x5s) {
+  const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s) {
     taylorFunction t = taylorFunction::compose(delta,x1,x2,unit * x3s, unit * x4s, unit *x5s, x6);
     return t;
   }
@@ -2820,7 +2820,7 @@ static domain makeDomain(int i,const domain& x,const domain& z)
 // give an upper bound that is much bigger than needs be.
 
 static void testProcedure(taylorFunction F,lineInterval (*G)(const domain&),
-			  const domain& x,const domain& z,char* s,double epsilon=1.0e-9)
+			  const domain& x,const domain& z,const char* s,double epsilon=1.0e-9)
 {
   double t = 1.0e-5; 
   domain xx(rand(0,x,z),rand(1,x,z),rand(2,x,z),

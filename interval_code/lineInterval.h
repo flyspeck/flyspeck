@@ -375,7 +375,7 @@ static int shortDiagMax
         // Various monotonicity lemmas are implicitly invoked to justify that the max occurs at the upper
         // (zA,zB) endpoints.
 	//
-static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
+  static double /*edgeBound::*/ x4_upper_from_top_delta(double xcd_lb,
 						 const double zA[6],const double zB[6]) ;
 
 
@@ -385,7 +385,7 @@ static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
         // D[DeltaX[2, 2, 2, x1, x2, x3], x3]  +  4 (x3 - 4)  + (x1 - 4) (x2 - 4)  == 0.
         // input x1, x2 should be lower bounds on the first two edges of the triangle.
 	//
- static double edgeBound::x3_upper_from_delta(double deltamin, double x1,double x2) ;
+  static double /* edgeBound::*/ x3_upper_from_delta(double deltamin, double x1,double x2) ;
 
 	//////////
         // Find lower bound on  { x3 : Delta (2,2,2,x1,x2,x3) <= deltamax }.
@@ -393,7 +393,7 @@ static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
         // D[DeltaX[2, 2, 2, x1, x2, x3], x3]  +  4 (x3 - 4)  + (x1 - 4) (x2 - 4)  == 0.
         // input x1, x2 should be upper bounds on first two edges of the triangle.
 	//
- static double edgeBound::x3_lower_from_delta(double deltamax, double z1,double z2) ;
+  static double /* edgeBound::*/ x3_lower_from_delta(double deltamax, double z1,double z2) ;
 
 
 	//////////
@@ -403,7 +403,7 @@ static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
         // When rad2 <= 2.  rad2 is monotonic increasing in edge lengths by S.P.I.
         // input x[6] should be lower bounds on the other 5 edges.
 	//
- static double edgeBound::x4_upper_from_rad2(double x[6]);
+  static double /* edgeBound::*/ x4_upper_from_rad2(double x[6]);
 
 	//////////
         // Find lower bound on  { x4 : rad2(x1,x2,x3,x4,x5,x6) = 2 }.
@@ -412,7 +412,7 @@ static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
         // When rad2 <= 2.  rad2 is monotonic increasing in edge lengths by S.P.I.
        // input x[6] should be upper bounds on the other 5 edges.
 	//
- static double edgeBound::x4_lower_from_rad2(double z[6]);
+  static double /* edgeBound::*/ x4_lower_from_rad2(double z[6]);
 
 	//////////
 	// given a pair of simplices, calculate upper bound on x4 (ie. zA[3]=zB[3]) from the condition
@@ -420,7 +420,7 @@ static double edgeBound::x4_upper_from_top_delta(double xcd_lb,
         // Various monotonicity lemmas are implicitly invoked to justify that the max occurs where it does.
         // This should only be used on convex quad clusters because of these implicit assumptions.
 	//
-static double edgeBound::x4_diag_max(double xcd_lb,
+  static double /* edgeBound::*/ x4_diag_max(double xcd_lb,
 						const double xA[6],const double xB[6],
 						 const double zA[6],const double zB[6]) ;
 

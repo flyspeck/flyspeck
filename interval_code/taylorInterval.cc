@@ -2072,7 +2072,7 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   }
 
   // delta_126_x
-  const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s) {
+  const taylorFunction delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s) {
     taylorFunction t = taylorFunction::compose(delta,x1,x2,unit * x3s, unit * x4s, unit *x5s, x6);
     return t;
   }

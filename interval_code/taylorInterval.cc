@@ -4257,19 +4257,19 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
     }
   }
 
- /* test delta_126_x */ {
+ /* test delta_126_x */ /* {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 185.7530000000001;
     double mathValueD[6]={25.770000000000007,
 			  23.889999999999993,0,0,0,18.790000000000013};
-    taylorInterval at = taylorSimplex::delta_126_x("4.7","4.8","4.9").evalf(x,x); 
+    taylorInterval at = delta_126_x("4.7","4.8","4.9").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_126_x  fails " << endl;
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
 	cout << "delta_126_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
-  }
+    } */
 
 
 

@@ -1,6 +1,6 @@
-#include <iomanip.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <iomanip>
+#include <iostream>
+#include <fstream>
 #include <math.h>
 #include <stdlib.h>
 #include "float.h"
@@ -62,18 +62,18 @@ double Minimizer::optimize(){
 }
 
 void Minimizer::coutReport(char* s){
-	cout << endl << endl;
-	cout << "Cfsqp minimization results: " << s << endl;
-	cout.precision(18);
-	cout << "numargs = " << numargs << endl;
+	std::cout << std::endl << std::endl;
+	std::cout << "Cfsqp minimization results: " << s << std::endl;
+	std::cout.precision(18);
+	std::cout << "numargs = " << numargs << std::endl;
 	double opt = optimize();
-	cout << "constrained min: " << opt << endl;
-	cout << "variables: " << "{";
+	std::cout << "constrained min: " << opt << std::endl;
+	std::cout << "variables: " << "{";
 	for (int i=0;i<numargs;i++) {
-		cout << x[i] << (i+1<numargs ? ", ": "}") ;
-		if ((i>0)&&(0==(i % 10))) cout << endl;
+		std::cout << x[i] << (i+1<numargs ? ", ": "}") ;
+		if ((i>0)&&(0==(i % 10))) std::cout << std::endl;
 	}
-        if (opt < 0.0) { cout << endl << "NEGATIVE!!"; }
-	cout <<"\nExiting cfsqp numerical optimizer." << endl;	
+        if (opt < 0.0) { std::cout << std::endl << "NEGATIVE!!"; }
+	std::cout <<"\nExiting cfsqp numerical optimizer." << std::endl;	
 }
 

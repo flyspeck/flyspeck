@@ -13,15 +13,17 @@ public class GoalPane extends JTextPane{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	private HOLLightWrapper hol;
 
-	public GoalPane() {
+	public GoalPane(HOLLightWrapper hol) {
 		super(new DefaultStyledDocument());
 		setEditable(false);
+		this.hol = hol;
 	}
 	
 	public void updateTopGoal() {
 
-		JTextPane text = goalPane;
+		JTextPane text = this;
 		text.setText("");
 		StyledDocument doc = text.getStyledDocument();
 
@@ -41,7 +43,7 @@ public class GoalPane extends JTextPane{
 		text.setCaretPosition(doc.getLength());
 
 		// Print top_goal
-		String junk = runCommand("(snd o top_goal)();;");
+		String junk = hol.runCommand("(snd o top_goal)();;");
 		int junkInt = junk.indexOf("<HTML>");// DEBUG all html tag tests should
 												// be case insensitive
 		if (junkInt == -1)
@@ -76,7 +78,7 @@ public class GoalPane extends JTextPane{
 		text.setCaretPosition(doc.getLength());
 
 		// Print the assumptions
-		junk = runCommand("List.iter (fun x,y ->( ((fun ()->"
+		junk = hol.runCommand("List.iter (fun x,y ->( ((fun ()->"
 				+ "(print_string \"\\n\")) o  (fun () ->"
 				+ "(((print_qterm o  concl) y)))) o print_string) (\"\""
 				+ "))   ((fst o top_realgoal)());;");
@@ -121,14 +123,9 @@ public class GoalPane extends JTextPane{
 
 
 	
-	public JTextPane getGoalPane(){
-		return goalPane;
-	}
+	
 
 
-	/*
-	public Set<String> getTheoremList() {
-		return new TreeSet<String>(this.holTheorems);
-	}*/
+	
 	
 }

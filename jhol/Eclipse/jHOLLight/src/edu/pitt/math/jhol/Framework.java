@@ -22,7 +22,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 
-import bsh.EvalError;
 import com.apple.eawt.*;
 
 
@@ -155,14 +154,7 @@ public class Framework extends WindowAdapter{
 
 		    //start a new hol process
 		
-			String user = "joepleso";
-			String server = "weyl";
-			 try {
-				hol = new HOLLightWrapper(user, server);
-			} catch (EvalError e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+			//FIXME
 
 			
 			
@@ -249,7 +241,7 @@ public class Framework extends WindowAdapter{
 		   /* helpScrollPane.setPreferredSize(new Dimension(250, 145));
 		    helpScrollPane.setMinimumSize(new Dimension(10, 10));
 		    */
-		    goalPane = hol.getGoalPane();
+		    goalPane = new GoalPane(hol);
 		    JScrollPane editorScrollPane = new JScrollPane(goalPane);
 
 		    editorScrollPane.setPreferredSize(new Dimension(250, 145));

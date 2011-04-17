@@ -2,6 +2,8 @@
 package edu.pitt.math.jhol;
 
 import java.text.ParseException;
+import java.util.Set;
+import java.util.TreeSet;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -27,10 +29,10 @@ public class HOLLightWrapper extends PircBot {
 	
 
 	// variable to keep track of the theorem count
-	//private  int numHolTheorems;
+	private  int numHolTheorems;
 
 	// variable to hold all the theorems
-	//private  Set<String> holTheorems;
+	private  Set<String> holTheorems;
 	private  bsh.Interpreter interpreter;
 	
 	//private  String user;
@@ -128,8 +130,9 @@ public class HOLLightWrapper extends PircBot {
 		}
 	}
 
-	public void runCommand (String cmd){
+	public String runCommand (String cmd){
 		this.sendMessage("#hol", botName + " eval " + cmd);
+		throw new RuntimeException("FIX ME");
 	}
 	
 	// method for running multiple hol commands at once
@@ -142,11 +145,11 @@ public class HOLLightWrapper extends PircBot {
 	}
 
 	// query hol for the number of theorems in the system
-	/*private Integer getNumHolTheorems() {
+	private Integer getNumHolTheorems() {
 		String output = runCommand("List.length !theorems;;");
 		// System.out.println(output);
 		return parseForInteger(output);
-	}*/
+	}
 
 	public static Integer parseForInteger(String rawOutput) {
 		int equalsIndex = rawOutput.indexOf('=');
@@ -180,7 +183,7 @@ public class HOLLightWrapper extends PircBot {
 	}
 
 	// method to keep theorem list up to date
-	/*public void updateHolTheorems() throws ParseException {
+	public void updateHolTheorems() throws ParseException {
 		if (numHolTheorems != getNumHolTheorems()) {
 			numHolTheorems = getNumHolTheorems();
 
@@ -194,7 +197,7 @@ public class HOLLightWrapper extends PircBot {
 			}
 		}
 	}
-*/
+
 	
 
 
@@ -469,7 +472,7 @@ public class HOLLightWrapper extends PircBot {
 				    	   = new BufferedReader(new InputStreamReader(System.in));
 				    	BufferedWriter out
 				    	= new BufferedWriter(new OutputStreamWriter(System.out));
-				    	HOLLightWrapper test = new HOLLightWrapper("weyl0", args[0], "charizard.zapto.org",out);
+				    	HOLLightWrapper test = new HOLLightWrapper("castor0", args[0], "charizard.zapto.org",out);
 				    	String cmd;
 				    	
 							while(null != (cmd = getLine(in)))
@@ -497,5 +500,18 @@ public class HOLLightWrapper extends PircBot {
 				 //   }
 					
 				 // }); 	
+	
+	
+	public Set<String> getTheoremList() {
+		return new TreeSet<String>(this.holTheorems);
+	}
+
+
+
+
+	public void interrupt() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

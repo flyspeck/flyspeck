@@ -11,12 +11,13 @@
 // nonlinear inequalities for linear programming relaxation.
 // basic functions to be studied: azim, rhazim, sol (3), tau_m (3).
 
-#include <iomanip.h>
-#include <iostream.h>
-#include <math.h>
+#include <iomanip>
+#include <iostream>
+#include <cmath>
 #include "Minimizer.h"
 #include "numerical.h"
 
+using namespace std;
 
 // lp2009.cc
 // $ make lp2009.o

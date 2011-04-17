@@ -27,6 +27,7 @@ import com.apple.eawt.*;
 
 
 
+
 public class Framework extends WindowAdapter{
 
 	

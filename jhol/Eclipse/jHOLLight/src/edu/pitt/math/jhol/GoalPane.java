@@ -6,6 +6,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.StyledDocument;
 
+
 public class GoalPane extends JTextPane{
 
 	

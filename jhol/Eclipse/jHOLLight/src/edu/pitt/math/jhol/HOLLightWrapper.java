@@ -15,6 +15,9 @@ import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 
+import edu.pitt.math.jhol.core.parser.Parser;
+
+
 
 import bsh.EvalError;
 
@@ -118,6 +121,14 @@ public class HOLLightWrapper extends PircBot {
 				out.write(message);
 				out.newLine();
 				out.flush();
+				try {
+					out.write(Parser.parse(message).toString());
+					out.newLine();
+					out.flush();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -465,7 +476,7 @@ public class HOLLightWrapper extends PircBot {
 			//	  new Runnable() {
 				//    public void run() {
 		
-		if (args.length < 1)
+		if (args.length < 3)
 			System.exit(-1);
 		
 				    	BufferedReader in
@@ -474,6 +485,7 @@ public class HOLLightWrapper extends PircBot {
 				    	= new BufferedWriter(new OutputStreamWriter(System.out));
 				    	HOLLightWrapper test = new HOLLightWrapper(args[1], args[0], args[2], out);
 				    	String cmd;
+				    	
 				    	
 							while(null != (cmd = getLine(in)))
 							{

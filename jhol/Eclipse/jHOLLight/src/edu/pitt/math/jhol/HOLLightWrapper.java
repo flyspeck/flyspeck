@@ -472,7 +472,7 @@ public class HOLLightWrapper extends PircBot {
 				    	   = new BufferedReader(new InputStreamReader(System.in));
 				    	BufferedWriter out
 				    	= new BufferedWriter(new OutputStreamWriter(System.out));
-				    	HOLLightWrapper test = new HOLLightWrapper(args[1], args[0], "charizard.zapto.org",out);
+				    	HOLLightWrapper test = new HOLLightWrapper(args[1], args[0], args[2], out);
 				    	String cmd;
 				    	
 							while(null != (cmd = getLine(in)))

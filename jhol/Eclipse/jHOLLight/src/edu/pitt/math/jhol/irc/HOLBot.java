@@ -89,6 +89,15 @@ List<String> command = new ArrayList<String>();
 		es.submit(this);
 		
 		try {
+			write("Sys.command \"stty -echo\";;\n");
+			flush();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		
+		try {
 			this.connect(server);
 		} catch (NickAlreadyInUseException e) {
 			// TODO Auto-generated catch block
@@ -194,10 +203,33 @@ List<String> command = new ArrayList<String>();
 					
 				}
 				if (message.startsWith("restart")){
-
+					this.disconnect();
+					this.dispose();
+					
+					System.exit(0);
 				}
 				if (message.startsWith("update")){
+					List<String> l = new ArrayList<String>();
+					l.add("svn");
+					l.add("update");
 					
+					ProcessBuilder tmp = new ProcessBuilder(l);
+					Process p = null;
+					try {
+						p = tmp.start();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					p.exitValue();
+					l.clear();
+					l.add("ant");
+					try {
+						tmp.start();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 
 				if (message.startsWith("interrupt")){

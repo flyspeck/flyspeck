@@ -91,6 +91,8 @@ List<String> command = new ArrayList<String>();
 		try {
 			write("Sys.command \"stty -echo\";;\n");
 			flush();
+			write("2+2;;\n");
+			flush();
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

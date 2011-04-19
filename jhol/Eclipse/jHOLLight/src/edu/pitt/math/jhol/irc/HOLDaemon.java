@@ -2,9 +2,6 @@ package edu.pitt.math.jhol.irc;
 
 
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;

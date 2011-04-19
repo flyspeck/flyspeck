@@ -99,8 +99,8 @@ List<String> command = new ArrayList<String>();
 			flush();
 			write("let svn = Sys.command \"svn update\";;\n");
 			flush();
-			write("2+2;;\n");
-			flush();
+			//write("2+2;;\n");
+			//flush();
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

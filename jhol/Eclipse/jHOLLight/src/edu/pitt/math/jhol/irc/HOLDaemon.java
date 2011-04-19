@@ -73,34 +73,7 @@ private DaemonController controller;
 	}
 	
 	public void update(){
-		List<String> l = new ArrayList<String>();
-		l.add("svn");
-		l.add("update");
 		
-		ProcessBuilder tmp = new ProcessBuilder(l);
-		Process p = null;
-		try {
-			p = tmp.start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		p.exitValue();
-		l.clear();
-		l.add("ant");
-		try {
-			p = tmp.start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		p.exitValue();
-		try {
-			this.stop();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		controller.reload();
 	}
 

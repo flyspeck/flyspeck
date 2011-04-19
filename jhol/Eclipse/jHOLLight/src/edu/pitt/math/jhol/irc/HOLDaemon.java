@@ -89,11 +89,12 @@ private DaemonController controller;
 		l.clear();
 		l.add("ant");
 		try {
-			tmp.start();
+			p = tmp.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		p.exitValue();
 		try {
 			this.stop();
 		} catch (Exception e) {

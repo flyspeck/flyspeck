@@ -1,5 +1,4 @@
 
-
 let backup_stdout=Unix.dup Unix.stdout;;
 let backup_stderr=Unix.dup Unix.stderr;;
 
@@ -26,7 +25,7 @@ Unix.dup2 flyspeck_stderr Unix.stderr;;
 Unix.close hollight_stdout;;
 Unix.close hollight_stderr;;
 #use "strictbuild.hl";;
-build_and_report();;
+build_silent();;
 Unix.dup2 backup_stdout Unix.stdout;;
 Unix.dup2 backup_stderr Unix.stderr;;
 Unix.close backup_stdout;;

@@ -2,8 +2,13 @@ package edu.pitt.math.jhol.irc;
 
 
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
+import org.apache.commons.daemon.DaemonController;
 import org.apache.commons.daemon.DaemonInitException;
 
 import bsh.EvalError;
@@ -20,6 +25,7 @@ public class HOLDaemon implements Daemon {
 	private String server;
 	private String prefix;
 private HOLBot[] holbots;
+private DaemonController controller;
 	
 	/**
 	 * @param args
@@ -59,10 +65,41 @@ private HOLBot[] holbots;
 			holbots[i].dispose();
 		}
 	}
+	
+	public void restart(int n){
+		if (holbots[n] != null)
+			holbots[n].dispose();
+		holbots[n] = new HOLBot(prefix , n , server, this);
+	}
+	
+	public void update(){
+		List<String> l = new ArrayList<String>();
+		l.add("svn");
+		l.add("update");
+		
+		ProcessBuilder tmp = new ProcessBuilder(l);
+		Process p = null;
+		try {
+			p = tmp.start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		p.exitValue();
+		l.clear();
+		l.add("ant");
+		try {
+			tmp.start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		controller.reload();
+	}
 
 	@Override
 	public void init(DaemonContext arg0) throws DaemonInitException, Exception {
-		
+		this.controller = arg0.getController();
 		String[] argv = arg0.getArguments();
 		prefix = argv[0];
 		server = argv[1];
@@ -77,18 +114,8 @@ private HOLBot[] holbots;
 		holbots = new HOLBot[count];
 		
 		//this.setName("holbot" + count);
-	
-		
-		
-	
 		
 		// channel = "#hol";
-	
-		
-		
-	
-	
-	
 		
 	}
 
@@ -100,12 +127,14 @@ private HOLBot[] holbots;
 		
 		
 		for (int i = 0; i < count; i++){
-			holbots[i] = new HOLBot(prefix + i , server);
+			restart(i);
 		}
 		
 		
 	
 	}
+	
+	
 
 	@Override
 	public void stop() throws Exception {

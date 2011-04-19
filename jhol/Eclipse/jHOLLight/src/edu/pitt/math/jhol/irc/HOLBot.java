@@ -39,16 +39,20 @@ public class HOLBot extends PircBot implements  Runnable {
 	 */
 	
 	private ExecutorService es;
+	private int cellNumber;
+	private HOLDaemon controller;
 	
 	
 	
 	
-	public HOLBot(String nick, String server)  {
+	public HOLBot(String nick, int n, String server, HOLDaemon holDaemon)  {
 		// interpreter = new Interpreter();
 		// interpreter.set("bot", this);
 		homeChannel = "#hol";
-		this.setName(nick);
+		this.setName(nick + n);
+		this.cellNumber = n;
 		this.server = server;
+		this.controller = holDaemon;
 	
 		es = Executors.newSingleThreadExecutor();
 		
@@ -91,8 +95,6 @@ List<String> command = new ArrayList<String>();
 		try {
 			write("Sys.command \"stty -echo\";;\n");
 			flush();
-			write("2+2;;\n");
-			flush();
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -115,6 +117,7 @@ List<String> command = new ArrayList<String>();
 	}
 
 	public void dispose(){
+		super.dispose();
 		es.shutdown();
 		proc.destroy();
 	}
@@ -205,33 +208,11 @@ List<String> command = new ArrayList<String>();
 					
 				}
 				if (message.startsWith("restart")){
-					this.disconnect();
-					this.dispose();
-					
-					System.exit(0);
+					controller.restart(cellNumber);
 				}
 				if (message.startsWith("update")){
-					List<String> l = new ArrayList<String>();
-					l.add("svn");
-					l.add("update");
+					controller.update();
 					
-					ProcessBuilder tmp = new ProcessBuilder(l);
-					Process p = null;
-					try {
-						p = tmp.start();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					p.exitValue();
-					l.clear();
-					l.add("ant");
-					try {
-						tmp.start();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
 				}
 
 				if (message.startsWith("interrupt")){

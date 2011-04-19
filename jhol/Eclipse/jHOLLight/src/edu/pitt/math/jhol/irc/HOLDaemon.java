@@ -94,6 +94,12 @@ private DaemonController controller;
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		try {
+			this.stop();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		controller.reload();
 	}
 

@@ -95,12 +95,11 @@ List<String> command = new ArrayList<String>();
 		try {
 			write("Sys.command \"stty -echo\";;\n");
 			flush();
-			write("let ant = Sys.command \"ant -f Eclipse/jHOLLight/build.xml\";;\n");
+			write("let ant = fun ()->Sys.command \"ant -f Eclipse/jHOLLight/build.xml\";;\n");
 			flush();
-			write("let svn = Sys.command \"svn update\";;\n");
+			write("let svn = fun()->Sys.command \"svn update\";;\n");
 			flush();
-			//write("2+2;;\n");
-			//flush();
+			
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

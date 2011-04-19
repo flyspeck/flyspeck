@@ -1,7 +1,6 @@
-
-#include <iomanip.h>
-#include <iostream.h>
-#include <math.h>
+#include <iomanip>
+#include <iostream>
+#include <cmath>
 #include "Minimizer.h"
 #include "numerical.h"
 #include "2065952723A.h"

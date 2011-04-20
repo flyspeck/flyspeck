@@ -5,6 +5,8 @@
 #include "numerical.h"
 #include "2065952723A.h"
 
+using namespace std;
+
 class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};
 
 

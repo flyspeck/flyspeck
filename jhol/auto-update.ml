@@ -1,3 +1,12 @@
+(* ========================================================================= *)
+(* FLYSPECK - BOOK FORMALISATION                                             *)
+(*                                                                           *)
+(* File to kickstart checkpointed flyspeck using BLCR                        *)
+(*                                                                           *)
+(* Author: Joe Pleso                                                         *)
+(* Date:   2011-04-20                                                        *)
+(* ========================================================================= *)
+
 
 let backup_stdout=Unix.dup Unix.stdout;;
 let backup_stderr=Unix.dup Unix.stderr;;
@@ -33,7 +42,6 @@ Unix.close backup_stderr;;
 Unix.close flyspeck_stdout;;
 Unix.close flyspeck_stderr;;
 
-
-let checkpoint_name=String.concat "." [flyspeck_rev;"cr"];;
-let ocampl_pid=string_of_int(Unix.getpid());;
-Sys.command(String.concat " " ["cr_checkpoint -f";checkpoint_name;"--term";ocampl_pid;"&"]);;
+let ocampl_pid()=process_to_string "echo -n $PPID";;
+Sys.command("cr_checkpoint " ^ ocampl_pid() ^ " &");;
+(* possibly "--term" if non-interactive *)

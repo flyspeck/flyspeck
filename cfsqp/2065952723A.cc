@@ -1,6 +1,8 @@
 #include <iomanip>
 #include <iostream>
 #include <cmath>
+#include <assert>
+#include <stdlib>
 #include "Minimizer.h"
 #include "numerical.h"
 #include "2065952723A.h"

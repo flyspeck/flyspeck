@@ -45,5 +45,5 @@ Unix.close flyspeck_stderr;;
 
 let ocampl_pid()=process_to_string "echo -n $PPID";;
 let blcr()=(build_silent o ignore o Sys.command)
-  ("cr_checkpoint -f context.ocampl --backup --term " ^ ocampl_pid() ^ " &");;
+  ("cr_checkpoint -f context.ocampl --backup --term " ^ (ocampl_pid()) ^ " &");;
 blcr();;

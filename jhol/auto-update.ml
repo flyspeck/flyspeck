@@ -13,20 +13,21 @@ let backup_stderr=Unix.dup Unix.stderr;;
 
 let default_flag_list=[Unix.O_TRUNC;Unix.O_WRONLY;Unix.O_CREAT];;
 
-let hollight_stdout_name=String.concat "." ["hol_light";"out"];;
+
+let hollight_name = "hol_light";;
+let hollight_stdout_name= hollight_name ^ ".out";;
 let hollight_stdout=Unix.openfile hollight_stdout_name default_flag_list 420;;
-let hollight_stderr_name=String.concat "." ["hol_light";"err"];;
+let hollight_stderr_name= hollight_name ^ ".err";;
 let hollight_stderr=Unix.openfile hollight_stderr_name default_flag_list 420;;
 Unix.dup2 hollight_stdout Unix.stdout;;
 Unix.dup2 hollight_stderr Unix.stderr;;
 
 #use "hol.ml";;
 
-let flyspeck_rev=Sys.getenv "FLYSPECK_REV";;
-
-let flyspeck_stdout_name=String.concat "." [(flyspeck_rev);"out"];;
+let flyspeck_name = "flyspeck";;
+let flyspeck_stdout_name= flyspeck_name ^ ".out";;
 let flyspeck_stdout=Unix.openfile flyspeck_stdout_name default_flag_list 420;;
-let flyspeck_stderr_name=String.concat "." [(flyspeck_rev);"err"];;
+let flyspeck_stderr_name= flyspeck_name ^ ".err";;
 let flyspeck_stderr=Unix.openfile flyspeck_stderr_name default_flag_list 420;;
 
 Unix.dup2 flyspeck_stdout Unix.stdout;;
@@ -43,5 +44,6 @@ Unix.close flyspeck_stdout;;
 Unix.close flyspeck_stderr;;
 
 let ocampl_pid()=process_to_string "echo -n $PPID";;
-Sys.command("cr_checkpoint " ^ ocampl_pid() ^ " &");;
+let blcr()=Sys.command("cr_checkpoint -f context.ocampl --backup " ^ ocampl_pid() ^ " &");;
 (* possibly "--term" if non-interactive *)
+blcr();;

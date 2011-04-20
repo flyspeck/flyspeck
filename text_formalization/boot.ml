@@ -44,6 +44,5 @@ Unix.close flyspeck_stdout;;
 Unix.close flyspeck_stderr;;
 
 let ocampl_pid()=process_to_string "echo -n $PPID";;
-let blcr()=Sys.command("cr_checkpoint -f context.ocampl --backup " ^ ocampl_pid() ^ " &");;
-(* possibly "--term" if non-interactive *)
+let blcr()=Sys.command("cr_checkpoint -f context.ocampl --backup --term " ^ ocampl_pid() ^ " &");;
 blcr();;

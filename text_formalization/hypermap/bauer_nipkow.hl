@@ -1,0 +1,166 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: hypermap                                                             *)
+(* Author:  Thomas Hales     *)
+(* Date: 2011-04-29                                                    *)
+(* ========================================================================== *)
+
+(* Port The Bauer-Nipkow completeness theorem from Isabelle,
+    based on
+   http://afp.sourceforge.net/browser_info/current/HOL/Flyspeck-Tame/outline.pdf
+     *)
+
+flyspeck_needs "hypermap/hypermap.hl" ;; (* for POWER *)
+
+
+(* import of 1.1 HOL *)
+
+
+let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;;
+
+(* 1.2 length xs, 1.2.2 filter P xs, 1.2.3 concat,  *)
+
+let bn_filter = new_recursive_definition list_RECURSION
+  `bn_filter (f:A->bool) [] = [] /\
+    bn_filter f (CONS x xs) = if (f x) then (CONS x (bn_filter f xs)) else bn_filter f xs`;;
+
+let bn_concat = new_recursive_definition list_RECURSION
+  `bn_concat [] = [] /\
+    bn_concat (CONS (x:A list) xs) = APPEND x (bn_concat xs)`;;
+
+(* list_update *)
+
+(* 1.2.3 listProd1, listProd *)
+
+let bn_listProd1 = new_definition `bn_listProd1 (a:A) (b:B list) = 
+   MAP(\x. (a,x)) b`;;
+
+let bn_listProd = new_definition `bn_listProd (a:A list) (b:B list) =
+   bn_concat (MAP (\x. bn_listProd1 x b) a)`;;
+
+(* 1.2.5 *)
+
+let bn_minimal = new_recursive_definition list_RECURSION
+  `(bn_minimal (f:A->num)  [] = CHOICE (UNIV:A->bool)) /\
+    (bn_minimal (f:A->num) (CONS (x:A)  xs) = if (xs= []) then (x:A) else
+        (let m = bn_minimal f xs in (if(f x <= f m) then x else m)))`;;
+
+(* benign redefinition from Misc_defs_and_lemmas module *)
+
+let min_num = new_definition `min_num X = (@m. (m:num) IN X /\ (!n. n IN X ==> m <= n))`;;
+
+let bn_min_list = new_definition `bn_min_list (xs:num list) = min_num (set_of_list xs)`;;
+
+let max_num = new_definition `max_num (x:num->bool) = (@m. x m /\ (!n. x n ==> n <= m))`;;
+
+let bn_max_list = new_definition `bn_max_list (xs:num list) = max_num (set_of_list xs)`;;
+
+(* 1.2.6 replace *)
+
+let bn_replace = new_recursive_definition list_RECURSION 
+   `(bn_replace x ys [] = []) /\
+     bn_replace x ys (CONS (z:A) zs) = 
+            if (z = x) then APPEND ys zs else CONS  z (bn_replace x ys zs)`;;
+
+(*
+let sub_list = new_recursive_definition list_RECURSION
+   `sub_list r n xs [] = REVERSE xs /\
+     sub_list r n xs (CONS (y:A) ys) = if (n=0) then (APPEND (REVERSE xs) (CONS r ys)) 
+         else (sub_list r (n-1) (CONS y xs) ys)`;;
+*)
+
+let mapAt1 = new_recursive_definition list_RECURSION
+   `mapAt1 (f:A->A) n xs [] = REVERSE xs /\
+     mapAt1 (f:A->A) n xs (CONS (y:A) ys) = if (n=0) then (APPEND (REVERSE xs) (CONS (f y) ys)) 
+         else (mapAt1 f (n-1) (CONS y xs) ys)`;;
+
+let bn_mapAt = new_recursive_definition list_RECURSION 
+  `(bn_mapAt [] (f:A->A) (xs:A list) = xs) /\
+    (bn_mapAt (CONS (n:num) ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
+       then bn_mapAt ns f (mapAt1 f n [] xs) else bn_mapAt ns f xs)`;;
+
+let bn_rotate1 = new_recursive_definition list_RECURSION
+   `bn_rotate1 [] = [] /\
+     bn_rotate1 (CONS (x:A) xs) = APPEND xs [x]`;;
+
+let bn_rotate = new_definition `bn_rotate (n:num) (xs:A list) = (bn_rotate1 POWER n) xs`;;
+
+(* 1.3 splitAt *)
+
+let bn_splitAtRec = new_recursive_definition list_RECURSION 
+ `bn_splitAtRec (c:A) bs [] = (bs,[]) /\
+   bn_splitAtRec c bs (CONS (a:A) xs) = if (a = c) then (bs,xs) else bn_splitAtRec c (APPEND bs [a]) xs`;;
+
+let bn_splitAt = new_definition `bn_splitAt (c:A) xs = bn_splitAtRec c [] xs`;;
+
+(* 1.4 between *)
+
+let bn_between = new_definition `bn_between (vs:A list) (ram1:A) (ram2:A) = 
+    (let (pre1,post1) = bn_splitAt ram1 vs in
+       if (set_of_list post1 ram2) then
+	 (let (pre2,post2) = bn_splitAt ram2 post1 in pre2)
+       else (let (pre2,post2) = bn_splitAt ram2 pre1 in APPEND post1 pre2))`;;
+
+(* 1.5 Tables *)
+
+(* type (a,b) table is (a#b) list *)
+
+let bn_isTable = new_definition `bn_isTable (f:A->B) vs t =
+    !p. (set_of_list t p ==> ((SND p = f (FST p)) /\ set_of_list vs (FST p)))`;;
+
+let bn_removeKey = new_definition `bn_removeKey a (ps:(A#B) list) = 
+    bn_filter (\p. ~(a = FST p)) ps`;;
+
+let bn_removeKeyList = new_recursive_definition list_RECURSION
+  `bn_removeKeyList [] ps = ps /\
+    bn_removeKeyList (CONS w ws) (ps:(A#B) list) = bn_removeKey w (bn_removeKeyList ws ps)`;;
+
+(*  infixes: =~ (congs) is congruence modulo rotation on lists,  -~ unused on lists.
+                  =~ is pr_isomorphism on graphs, -~ isomorphic of graphs.
+
+     {=~} is Isabelle notation for {(f1,f2). f1 =~ f2}.
+
+    type a Fgraph  a list -> bool
+            a fgraph a list list
+*)
+
+let bn_congs = new_definition `bn_congs (f1:A list) f2 = ?n. f2 = bn_rotate n f1`;;
+
+(* 2.2 homomorphism and isomorphism *)
+
+search [`x:num -> A list  -> bool`];;
+
+List.nth;;
+
+search [`x:A list -> A -> bool`];;
+search [`x:num list -> num`];;
+type_of `min_num`;;
+type_of `set_of_list`;;
+type_of `CHOICE (UNIV:A->bool)`;;
+
+
+
+length;;
+
+(* import of plane graph iso *)
+
+let bn_rotate = 0;; (* rotate a list of nums by n *)
+
+let bn_cong = new_definition `bn_cong f1 f2 = ?n. f2 = bn_rotate n f1`;;
+
+
+
+(* import of theory Graph *)
+
+let bn_graph_exists = 
+  prove_by_refinement(`?(x:(num ->bool) # (num#num -> bool)). T`, [MESON_TAC[]]);;
+
+let (mk_bn_graph,dest_bn_graph) =
+  new_basic_type_definition "bn_graph" ("mk_bn_graph","dest_bn_graph") bn_graph_exists;;
+
+let bn_vertices = new_definition `bn_vertices g = FST (dest_bn_graph g)`;;
+
+let maxGon = new_definition `maxGon (p:num) = p + 3`;;
+
+let duplicateEdge = new_definition `(duplicateEdge:graph -> face -> vertex -> vertex-> bool) = 

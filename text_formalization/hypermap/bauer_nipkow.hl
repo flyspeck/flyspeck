@@ -9,6 +9,11 @@
 (* Port The Bauer-Nipkow completeness theorem from Isabelle,
     based on
    http://afp.sourceforge.net/browser_info/current/HOL/Flyspeck-Tame/outline.pdf
+
+   This is a human-translation of the Isabelle code.
+   As a correctness check, it should be autmatically translated back into Isabelle,
+   then checked that the Isabelle thm implies the translation of the thm here.
+
      *)
 
 flyspeck_needs "hypermap/hypermap.hl" ;; (* for POWER *)
@@ -28,6 +33,8 @@ let bn_filter = new_recursive_definition list_RECURSION
 let bn_concat = new_recursive_definition list_RECURSION
   `bn_concat [] = [] /\
     bn_concat (CONS (x:A list) xs) = APPEND x (bn_concat xs)`;;
+
+(* notation: disjoint_sum { x in xs } f  = bn_concat (MAP (\x. f) xs) *)
 
 (* list_update *)
 
@@ -129,35 +136,347 @@ let bn_congs = new_definition `bn_congs (f1:A list) f2 = ?n. f2 = bn_rotate n f1
 
 (* 2.2 homomorphism and isomorphism *)
 
-search [`x:num -> A list  -> bool`];;
+let bn_is_Hom = new_definition`bn_is_Hom (phi:A->B) Fs1 Fs2 = 
+  IMAGE bn_congs (IMAGE (MAP phi) Fs1)
+  = IMAGE bn_congs (Fs2)`;;
 
-List.nth;;
+let bn_inj_on = new_definition 
+  `bn_inj_on (f:A->B) s = ( !x y. (s x /\ s y /\ (f x = f y)) ==> (x = y))`;;
 
-search [`x:A list -> A -> bool`];;
-search [`x:num list -> num`];;
-type_of `min_num`;;
-type_of `set_of_list`;;
-type_of `CHOICE (UNIV:A->bool)`;;
+let bn_is_pr_Iso = new_definition `bn_is_pr_Iso (phi:A->B) Fs1 Fs2 = 
+   (bn_is_Hom phi Fs1 Fs2 /\ bn_inj_on phi (UNIONS (IMAGE set_of_list Fs1)))`;;
+
+let bn_is_hom = new_definition
+   `bn_is_hom (phi:A->B) fs1 fs2 = bn_is_Hom phi (set_of_list fs1) (set_of_list fs2)`;;
+
+let bn_is_pr_iso = new_definition
+ `bn_is_pr_iso (phi:A->B) fs1 fs2  = bn_is_pr_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
+
+(* 
+I don't think I'll need these:
+*)
+
+bn_pr_iso_test0, bn_pr_iso_test1,  *)
+
+(* 2.3.1 
+   def bn_oneone, 
+    types (A,B) tester, (A,B) merger.
+   def bn_pr_iso_test2
+   def bn_test:(A,B) tester
+   bn_merge:(A,B) merger
+   bn_test2:(A,B) tester
+   bn_merge2:(A,B) merger
+   bn_pr_iso_test3,
+   bn_pr_iso_test,
+*)
+
+(* 2.3.2, improper isomorphisms *)
+
+let bn_is_Iso = new_definition `bn_is_Iso (phi:A->B) Fs1 Fs2 = 
+   (bn_is_pr_Iso phi Fs1 Fs2 \/ bn_is_pr_Iso phi Fs1 (IMAGE REVERSE Fs2))`;;
+
+let bn_is_iso = new_definition `bn_is_iso (phi:A->B) fs1 fs2 = 
+   bn_is_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
+
+let bn_cong_iso = new_definition 
+  `bn_cong_iso fs1 fs2 = ?(phi:A->B). bn_is_iso phi fs1 fs2`;;
+
+let bn_cong_pr_iso = new_definition 
+  `bn_cong_pr_iso fs1 fs2 = ?(phi:A->B). bn_is_pr_iso phi fs1 fs2`;;
+
+(* -~ abbrev for bn_cong_iso, =~ bn_cong_pr_iso *)
+
+(* bn_iso_test,
+*)
+
+(* 2.4 Elementhood *)
+
+(* XX drop primes *)
+
+let bn_pr_iso_in' = new_definition
+  `bn_pr_iso_in' (x:(A list) list) M = ?(y:(B list) list). (bn_cong_pr_iso x y /\ M y)`;;
+
+let bn_pr_iso_subseteq = new_definition
+  `bn_pr_iso_subseteq (M:(A list) list -> bool) (N:(B list) list -> bool) 
+     = !x. M x ==> bn_pr_iso_in x N`;;
+
+let bn_is_in = new_definition
+  `bn_iso_in (x:(A list) list) M = ?(y:(B list) list). (bn_cong_iso x y /\ M y)`;;
+
+let bn_iso_subseteq = new_definition
+  `bn_iso_subseteq (M:(A list) list -> bool) (N:(B list) list -> bool) 
+     = !x. M x ==> bn_iso_in x N`;;
+
+(* 3.0 More rotation *)
+
+let bn_rotate_to = new_definition `bn_rotate_to (vs:A list) v = 
+    CONS v (APPEND (SND (bn_splitAt v vs))  (FST (bn_splitAt v vs)))`;;
+
+let bn_rotate_min = new_definition `bn_rotate_min (vs:num list) = 
+  bn_rotate_to vs (bn_min_list vs)`;;  
+
+(* 4.0 Graph
+
+UNION1
+INTER1
+UNION
+INTER
+
+types vertex = nat
+
+const
+  vertices
+  edges
+
+abbrev vertices_set
+
+4.2 Faces
+
+   facetype = Final | Nonfinal
+   datatype face = Face (vertex list) facetype
+   consts final:A->bool
+        type:A->facetype
+   
+    final_face = final:face->bool
+    type_face = type:face->facetype
+    vertices_face = vertices:face -> vertex list
 
 
+*)
 
-length;;
+let bn_final_face = new_definition `bn_final_face (vs:A,f:bool) = f`;;
 
-(* import of plane graph iso *)
+(* bn_type_face  = bn_final_face *)
 
-let bn_rotate = 0;; (* rotate a list of nums by n *)
+let bn_vertices_face = new_definition `bn_vertices_face (vs:A,f:B) = vs`;;
 
-let bn_cong = new_definition `bn_cong f1 f2 = ?n. f2 = bn_rotate n f1`;;
+let bn_vertices_set = new_definition `bn_vertices_set (fs:A list#B) = 
+  set_of_list (bn_vertices_face fs)`;;
+
+(* =~ on faces means =~ on vertex list *)
+
+(* delete:
+let bn_set_final = new_definition `bn_set_final (vs:A,f:bool) = (vs,T)`;;
+*)
+
+let bn_setFinal = new_definition `bn_setFinal (vs:A,f:bool) = (vs,T)`;;
+
+(* nextVertex written as a dot . *)
+
+let bn_nextElem = new_recursive_definition list_RECURSION 
+  `bn_nextElem [] (b:A) x = b /\
+    bn_nextElem (CONS a aas) b x = 
+     if (x=a) then (if (LENGTH aas = 0) then b else HD aas) else bn_nextElem aas b x`;;
+
+let bn_nextVertex = new_definition `bn_nextVertex (vs:A list,f:bool) =
+   bn_nextElem vs (HD vs)`;;
+
+let bn_edges = new_definition `bn_edges (fs:A list # bool)  =
+   IMAGE (\a. (a, bn_nextVertex fs a)) (bn_vertices_set fs)`;;
+
+let bn_nextVertices = new_definition `bn_nextVertices (vs:A list,f:bool) (n:num) v = 
+    (bn_nextVertex (vs,f) POWER n) v`;;
+
+(* op = REVERSE,  op_graph = Graph.op, op_graph *)
+
+let bn_prevVertex = new_definition `bn_prevVertex (vs:A list,f:bool) v =
+   (bn_nextElem (REVERSE vs) (LAST vs) v)`;;
+
+let bn_triangle = new_definition `bn_triangle (vs:A list,f:bool) = (LENGTH vs = 3)`;;
+
+(* 4.3 Graphs *)
+
+(* XX drop primes *)
+
+let new_graph_th = prove(`?(x:((num list # bool) list) #  (num) 
+   # (((num list # bool) list) list) # (num list))  . T`,MESON_TAC[]);;
+
+let bn_graph_type'' = new_type_definition 
+  "bn_graph''" ("mk_bn_graph''","dest_bn_graph''") new_graph_th;;
+
+let bn_faces = new_definition `bn_faces g = FST (dest_bn_graph'' g)`;;
+
+(* abbrev F *)
+
+let bn_Faces = new_definition `bn_Faces g = set_of_list (bn_faces g)`;;
+
+let bn_countVertices = new_definition
+  `bn_countVertices g = FST (SND (dest_bn_graph'' g))`;;
+
+let bn_vertices_graph = new_definition 
+ `bn_vertices_graph g = 0.. (bn_countVertices g - 1)`;;
+
+let bn_faceListAt = new_definition
+  `bn_faceListAt g = FST (SND (SND (dest_bn_graph'' g)))`;;
+
+let bn_facesAt = new_definition
+  `bn_facesAt g v = EL v (bn_faceListAt g )`;;
+
+let bn_heights = new_definition `bn_heights g = SND(SND(SND(dest_bn_graph'' g)))`;;
+
+let bn_height = new_definition `bn_height g v = EL v (bn_heights g)`;;
+
+(* seed *)
+
+let LIST_TO = new_recursive_definition num_RECURSION
+  `LIST_TO 0 = [] /\ LIST_TO (SUC n) = APPEND (LIST_TO n) [n]`;;
+
+let UPT= new_recursive_definition num_RECURSION
+   `UPT m 0 = [] /\ (UPT m (SUC n) = if (n < m) then [] else APPEND (UPT m n) [n]  )`;;
+
+(* notation: [m..<n] = UPT m n *)
+
+(* could replace LIST_TO with UPT 0 *)
+
+let bn_graph = new_definition  `bn_graph n = 
+     (let vs = LIST_TO n in
+      let fs =  [(vs,T);(vs,F)] in
+	mk_bn_graph'' (    fs , n, REPLICATE n fs, REPLICATE n 0))`;;
+
+(* 4.4 Operations on graphs *)
+
+let bn_finals = new_definition `bn_finals g =
+   FILTER bn_final_face (bn_faces g)`;;
+
+let bn_nonFinals = new_definition `bn_nonFinals g = 
+   FILTER (\r. ~( bn_final_face r)) (bn_faces g)`;;
+
+let bn_countNonFinals = new_definition `bn_countNonFinals g =
+   LENGTH (bn_nonFinals g)`;;
+
+let bn_finalGraph = new_definition `bn_finalGraph g = (bn_countNonFinals g = 0)`;;
+
+let bn_finalVertex = new_definition `bn_finalVertex g v = 
+   (!f.  set_of_list(bn_facesAt g v) f ==> bn_final_face f)`;;
+
+let bn_degree = new_definition `bn_degree g v = LENGTH(bn_facesAt g v)`;;
+
+let bn_tri = new_definition  `bn_tri g v =
+    LENGTH(FILTER (\f. bn_final_face f /\ LENGTH(bn_vertices_face f)=3) (bn_facesAt g v))`;;
+
+let bn_quad = new_definition  `bn_quad g v =
+    LENGTH(FILTER (\f. bn_final_face f /\ LENGTH(bn_vertices_face f)=4) (bn_facesAt g v))`;;
+
+let bn_except = new_definition  `bn_except g v =
+    LENGTH(FILTER (\f. bn_final_face f /\ 5 <= LENGTH(bn_vertices_face f)) (bn_facesAt g v))`;;
+
+let bn_vertextype = new_definition `bn_vertextype g v = 
+    (bn_tri g v, bn_quad g v, bn_except g v)`;;
+
+let bn_exceptionalVertex = new_definition `bn_exceptionalVertex g v = 
+  ~(bn_except g v = 0)`;;
+
+let bn_noExceptionals = new_definition   `bn_noExceptionals g V =
+   (!v. V v ==> ~(bn_exceptionalVertex g v))`;;
+
+let bn_edges_graph = new_definition
+  `bn_edges_graph g = UNIONS { bn_edges f | bn_Faces g f }`;; 
+
+let bn_neighbors = new_definition
+  `bn_neighbors g v = MAP (\f. bn_nextVertex f v )  (bn_facesAt g v)`;;
+
+(* 4.5 Navigation in graphs *)
+
+(* nextFace *)
+
+let bn_directedLength = new_definition `bn_directedLength f (a:A) b =
+  if (a=b) then 0 else LENGTH(bn_between(bn_vertices_face f) a b) + 1`;;
+
+(* 4.6 Code generator setup *)
+
+(* 5 Vector *)
+
+(* vector = list *)
+
+(* 5.1 Tabulation *)
+
+let bn_tabulate0 = new_definition `bn_tabulate0 (p:num# (num->A)) =
+    (MAP (SND p) (LIST_TO (FST p)))`;;
+
+let bn_tabulate = new_definition `bn_tabulate n (f:num->A) = bn_tabulate0 (n,f)`;;
+
+let bn_tabulate2 = new_definition `bn_tabulate2 m n (f:num->num->A) =
+   bn_tabulate m (\i. bn_tabulate n (f i))`;;
+
+let bn_tabulate3 = new_definition `bn_tabulate3 l m n (f:num->num->num->A) =
+   bn_tabulate l (\i. bn_tabulate m (\j. bn_tabulate n (\k. f i j k)))`;;
+
+(*
+syntax. [f. x < n], [f. x < m, y < n], [f. x < l, y < m, z < n].
+*)
+
+(* 5.2 Access *)
+
+let bn_sub1 = new_definition `bn_sub1 ((xs:A list), (n:num)) = EL n xs`;;
+   
+let bn_sub = new_definition `bn_sub   (a:A list) n = bn_sub1 (a,n)`;;
+
+(* notaton: a[n] = sub a n, a[m,n] = sub (sub a m) n, a[l,m,n] = sub(sub(sub a l)m)n *)
 
 
+(* 6 Enumerating Patches  *)
 
+let bn_enumBase = new_definition 
+  `bn_enumBase nmax = MAP (\i. [i]) (LIST_TO (SUC nmax))`;;
+
+let bn_enumAppend = new_definition
+   `bn_enumAppend nmax iss = 
+   bn_concat (MAP (\is.   MAP (\n. APPEND is [n]) (UPT (LAST is) (SUC nmax))) iss)`;;
+
+let bn_enumerator = new_definition
+   `bn_enumerator inner outer = 
+      (let nmax = outer - 2 in
+       let k = inner - 3 in
+       (MAP (\is. APPEND [0] (APPEND is [outer -1])) 
+	  ((bn_enumAppend nmax POWER k) (bn_enumBase nmax))))`;;
+
+let bn_enumTab = new_definition
+  `bn_enumTab = bn_tabulate2 9 9 bn_enumerator`;;
+
+(* bn_enum already defined above, call this bn_enumt *)
+
+let bn_enumt = new_definition `bn_enumt inner outer = 
+   if (inner < 9 /\ outer < 9) then (bn_sub(bn_sub bn_enumTab inner) outer) else
+    bn_enumerator inner outer`;;
+
+let bn_hideDupsRec = new_recursive_definition list_RECURSION 
+  `bn_hideDupsRec (a:A) [] = []  /\
+    bn_hideDupsRec a (CONS b bs) = 
+      if (a = b) then CONS NONE (bn_hideDupsRec b bs) 
+      else CONS (SOME b) (bn_hideDupsRec b bs)`;;
+
+let bn_hideDups = new_recursive_definition list_RECURSION
+  `bn_hideDups [] = [] /\
+    bn_hideDups (CONS b bs) = CONS(SOME b) (bn_hideDupsRec b bs)`;;
+
+(* 7 Subdividing a Face *)
+
+let bn_split_face = new_definition 
+   `bn_split_face f (ram1:A) ram2 newVs = 
+      (let vs = bn_vertices_face f in
+       let f1 = APPEND [ram1] (APPEND (bn_between vs ram1 ram2) [ram2]) in
+       let f2 = APPEND [ram2] (APPEND (bn_between vs ram2 ram1) [ram1]) in
+	 ((APPEND (REVERSE newVs) f1,F), ((APPEND f2 newVs), F)))`;;
+
+let bn_replacefacesAt = new_definition
+  `bn_replacefacesAt ns f fs Fs = bn_mapAt ns (bn_replace f fs) Fs`;;
+
+let bn_makeFaceFinalFaceList = new_definition
+  `bn_makeFaceFinalFaceList f fs = bn_replace f [bn_setFinal f] fs`;;
+
+let bn_makeFaceFinal = new_definition
+  `bn_makeFaceFinal = `;;
+
+type_of `bn_split_face`;;
+
+(* ZZ *)
 (* import of theory Graph *)
 
 let bn_graph_exists = 
   prove_by_refinement(`?(x:(num ->bool) # (num#num -> bool)). T`, [MESON_TAC[]]);;
 
 let (mk_bn_graph,dest_bn_graph) =
-  new_basic_type_definition "bn_graph" ("mk_bn_graph","dest_bn_graph") bn_graph_exists;;
+  new_type_definition "bn_graph" ("mk_bn_graph","dest_bn_graph") bn_graph_exists;;
 
 let bn_vertices = new_definition `bn_vertices g = FST (dest_bn_graph g)`;;
 

@@ -10,17 +10,28 @@
     based on
    http://afp.sourceforge.net/browser_info/current/HOL/Flyspeck-Tame/outline.pdf
 
-   This is a human-translation of the Isabelle code.
-   As a correctness check, it should be autmatically translated back into Isabelle,
-   then checked that the Isabelle thm implies the translation of the thm here.
+   This is a human-translation of the Isabelle code.  As a correctness
+   check, it should be autmatically translated back into Isabelle,
+   then checked that the Isabelle thm implies the retranslation of the
+   thm here.
 
-     *)
+   The tame_graph_classification_theorem is the translation into HOL
+   Light of the main result of Flyspeck I, Bauer-Nipkow.  To use it,
+   we should prove that a (restricted) planar hypermap has a
+   face listing that in bn_planar, and a tame hypermap has a
+   face listing that is bn_tame.
 
+*)
+
+needs "Library/rstc.ml";; (* for RTC reflexive transitive closure *)
 flyspeck_needs "hypermap/hypermap.hl" ;; (* for POWER *)
+flyspeck_needs "../../tame_archive/tame_archive.hl";;
 
+module Tame_classification = struct
 
 (* import of 1.1 HOL *)
 
+let bn_the = new_definition `bn_the s = @(x:A). (s = SOME x)`;;
 
 let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;;
 
@@ -193,14 +204,14 @@ let bn_cong_pr_iso = new_definition
 
 (* XX drop primes *)
 
-let bn_pr_iso_in' = new_definition
-  `bn_pr_iso_in' (x:(A list) list) M = ?(y:(B list) list). (bn_cong_pr_iso x y /\ M y)`;;
+let bn_pr_iso_in = new_definition
+  `bn_pr_iso_in (x:(A list) list) M = ?(y:(B list) list). (bn_cong_pr_iso x y /\ M y)`;;
 
 let bn_pr_iso_subseteq = new_definition
   `bn_pr_iso_subseteq (M:(A list) list -> bool) (N:(B list) list -> bool) 
      = !x. M x ==> bn_pr_iso_in x N`;;
 
-let bn_is_in = new_definition
+let bn_iso_in = new_definition
   `bn_iso_in (x:(A list) list) M = ?(y:(B list) list). (bn_cong_iso x y /\ M y)`;;
 
 let bn_iso_subseteq = new_definition
@@ -291,28 +302,28 @@ let bn_triangle = new_definition `bn_triangle (vs:A list,f:bool) = (LENGTH vs = 
 let new_graph_th = prove(`?(x:((num list # bool) list) #  (num) 
    # (((num list # bool) list) list) # (num list))  . T`,MESON_TAC[]);;
 
-let bn_graph_type'' = new_type_definition 
-  "bn_graph''" ("mk_bn_graph''","dest_bn_graph''") new_graph_th;;
+let bn_graph_type = new_type_definition 
+  "bn_graph" ("mk_bn_graph","dest_bn_graph") new_graph_th;;
 
-let bn_faces = new_definition `bn_faces g = FST (dest_bn_graph'' g)`;;
+let bn_faces = new_definition `bn_faces g = FST (dest_bn_graph g)`;;
 
 (* abbrev F *)
 
 let bn_Faces = new_definition `bn_Faces g = set_of_list (bn_faces g)`;;
 
 let bn_countVertices = new_definition
-  `bn_countVertices g = FST (SND (dest_bn_graph'' g))`;;
+  `bn_countVertices g = FST (SND (dest_bn_graph g))`;;
 
 let bn_vertices_graph = new_definition 
  `bn_vertices_graph g = 0.. (bn_countVertices g - 1)`;;
 
 let bn_faceListAt = new_definition
-  `bn_faceListAt g = FST (SND (SND (dest_bn_graph'' g)))`;;
+  `bn_faceListAt g = FST (SND (SND (dest_bn_graph g)))`;;
 
 let bn_facesAt = new_definition
   `bn_facesAt g v = EL v (bn_faceListAt g )`;;
 
-let bn_heights = new_definition `bn_heights g = SND(SND(SND(dest_bn_graph'' g)))`;;
+let bn_heights = new_definition `bn_heights g = SND(SND(SND(dest_bn_graph g)))`;;
 
 let bn_height = new_definition `bn_height g v = EL v (bn_heights g)`;;
 
@@ -331,7 +342,7 @@ let UPT= new_recursive_definition num_RECURSION
 let bn_graph = new_definition  `bn_graph n = 
      (let vs = LIST_TO n in
       let fs =  [(vs,T);(vs,F)] in
-	mk_bn_graph'' (    fs , n, REPLICATE n fs, REPLICATE n 0))`;;
+	mk_bn_graph (    fs , n, REPLICATE n fs, REPLICATE n 0))`;;
 
 (* 4.4 Operations on graphs *)
 
@@ -449,6 +460,9 @@ let bn_hideDups = new_recursive_definition list_RECURSION
   `bn_hideDups [] = [] /\
     bn_hideDups (CONS b bs) = CONS(SOME b) (bn_hideDupsRec b bs)`;;
 
+let bn_indexToVertexList = new_definition `bn_indexToVertexList f v is = 
+  bn_hideDups (MAP (\k. bn_nextVertices f k (v:A)) is)`;;
+
 (* 7 Subdividing a Face *)
 
 let bn_split_face = new_definition 
@@ -465,21 +479,298 @@ let bn_makeFaceFinalFaceList = new_definition
   `bn_makeFaceFinalFaceList f fs = bn_replace f [bn_setFinal f] fs`;;
 
 let bn_makeFaceFinal = new_definition
-  `bn_makeFaceFinal = `;;
+  `bn_makeFaceFinal f g = 
+      mk_bn_graph (
+	bn_makeFaceFinalFaceList f (bn_faces g),
+	bn_countVertices g,
+	MAP (\fs. bn_makeFaceFinalFaceList f fs) (bn_faceListAt g),
+	(bn_heights g)
+      )`;;
 
-type_of `bn_split_face`;;
+let bn_heightsNewVertices = new_definition 
+  `bn_heightsNewVertices h1 h2 n = 
+       MAP (\i. min_num { (h1 + i + 1), (h2 + n -i) } ) (LIST_TO n)`;;
 
-(* ZZ *)
-(* import of theory Graph *)
+let bn_splitFace = new_definition
+  `bn_splitFace g ram1 ram2 oldF newVs = 
+     (let fs = bn_faces g in
+      let n = bn_countVertices g in
+      let Fs = bn_faceListAt g in
+      let h = bn_heights g in
+      let lVs = LENGTH(newVs) in
+      let vs1 = bn_between (bn_vertices_face oldF) ram1 ram2 in
+      let vs2  = bn_between (bn_vertices_face oldF) ram2 ram1 in
+      let (f1,f2) = bn_split_face oldF ram1 ram2 newVs in
+      let Fs = bn_replacefacesAt vs1 oldF [f1] Fs in
+      let Fs = bn_replacefacesAt vs2 oldF [f2] Fs in
+      let Fs = bn_replacefacesAt [ram1] oldF [f2;f1] Fs in
+      let Fs = bn_replacefacesAt [ram2] oldF [f1;f2] Fs in
+      let Fs = APPEND Fs (REPLICATE lVs [f1;f2]) in
+	  (f1,f2, mk_bn_graph ((APPEND(bn_replace oldF [f2] fs ) [f1]), (n + lVs),
+				 Fs,(APPEND h (bn_heightsNewVertices (EL ram1 h) (EL ram2 h) lVs)))
+	))`;;
 
-let bn_graph_exists = 
-  prove_by_refinement(`?(x:(num ->bool) # (num#num -> bool)). T`, [MESON_TAC[]]);;
+(* XX replaced @ with bn_the vo *)
 
-let (mk_bn_graph,dest_bn_graph) =
-  new_type_definition "bn_graph" ("mk_bn_graph","dest_bn_graph") bn_graph_exists;;
+let bn_subdivFace0 = new_recursive_definition list_RECURSION
+  `bn_subdivFace0 g f u n [] = bn_makeFaceFinal f g /\
+    bn_subdivFace0 g f u n (CONS vo vos) = 
+      if (vo = NONE) then bn_subdivFace0 g f u (SUC n) vos else
+	(let v = bn_the vo in
+	   if (bn_nextVertex f u = v /\ n = 0) then bn_subdivFace0 g f v 0 vos
+	   else 
+	     (let ws = UPT (bn_countVertices g) (bn_countVertices g + n) in
+	      let (f1,f2,g') = bn_splitFace g u v f ws in
+		bn_subdivFace0 g' f2 v 0 vos))`;;
 
-let bn_vertices = new_definition `bn_vertices g = FST (dest_bn_graph g)`;;
+let bn_subdivFace = new_definition 
+  `bn_subdivFace g f vos = bn_subdivFace0 g f (bn_the(HD vos)) 0 (TL vos)`;;
 
-let maxGon = new_definition `maxGon (p:num) = p + 3`;;
 
-let duplicateEdge = new_definition `(duplicateEdge:graph -> face -> vertex -> vertex-> bool) = 
+(* 8. Transitive closure *)
+
+(* doing it somewhat differently from the Isabelle since Library/rstc.ml
+    already does the reflexive and transitive closure of a relation *)
+
+let bn_RTranCl = new_definition `bn_RTranCl (g:A -> A list) = 
+  UNCURRY    (RTC (\x y.  MEM y (g x)))`;;
+
+let bn_invariant = new_definition `bn_invariant (P:A->bool) succs = 
+   !g g'. MEM g (succs g) ==> P g ==> P g'`;;
+
+(* notation: g  [s]->*   g'   for (g,g') IN (RTranCl s)  *)
+
+(* 9. Plane Graph Enumeration  *)
+
+let bn_maxGon = new_definition `bn_maxGon (p:num) = p + 3`;;
+
+let bn_duplicateEdge = new_definition `bn_duplicateEdge g f a b =
+   (2 <= bn_directedLength f a b /\ 2 <= bn_directedLength f b a /\
+    set_of_list (bn_neighbors g a) b)`;;
+
+let bn_containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
+  `bn_containsUnacceptableEdgeSnd N (v:num) [] = F /\
+    bn_containsUnacceptableEdgeSnd N v (CONS w ws) = 
+  if (LENGTH ws = 0) then F else
+    (let w' = HD ws in
+     let ws' = TL ws in
+  if (v < w /\ w < w' /\ N w w') then T 
+  else bn_containsUnacceptableEdgeSnd N w ws)`;;
+  
+let bn_containsUnacceptableEdge = new_recursive_definition list_RECURSION
+  `bn_containsUnacceptableEdge N [] = F /\
+  bn_containsUnacceptableEdge N (CONS v vs) = 
+  if (LENGTH vs = 0) then F else
+    (let w = HD vs in
+     let ws = TL vs in
+       if ((v:num) < w /\ N v w) then T else bn_containsUnacceptableEdgeSnd N v vs)`;;
+
+let bn_containsDuplicateEdge = new_definition
+  `bn_containsDuplicateEdge g f v is = bn_containsUnacceptableEdge
+    (\i j. bn_duplicateEdge g f (bn_nextVertices f i v ) (bn_nextVertices f j v)) is`;;
+
+(* a lemma in 13.3 proves this to be the same *)
+
+let bn_containsDuplicateEdge0 = new_definition
+  `bn_containsDuplicateEdge0 g f v is =
+  ((2 <= LENGTH is) /\ 
+    ((?k. (k < LENGTH is - 2) /\ 
+	(let i0 = EL k is in
+	 let i1  = EL (k+1) is in
+	 let i2 = EL (k+2) is in
+	   (bn_duplicateEdge g f (bn_nextVertices f i1 v) (bn_nextVertices f i2 v) /\
+	      (i0 < i1 /\ i1 < i2))))
+	\/
+	(let i0 = EL 0 is in
+	 let i1 = EL 1 is in
+	   (bn_duplicateEdge g f (bn_nextVertices f i0 v) (bn_nextVertices f i1 v) /\
+	      (i0 < i1)))))`;;
+
+let bn_generatePolygon = new_definition 
+  `bn_generatePolygon n v f g = 
+  (let enumeration = bn_enumerator n (LENGTH (bn_vertices_face f)) in
+   let enumeration = FILTER (\is. ~(bn_containsDuplicateEdge g f v is)) enumeration in
+   let vertexLists = MAP (\is. bn_indexToVertexList f v is) enumeration in
+     MAP (\vs. bn_subdivFace g f vs) vertexLists)`;;
+
+(* concatenated union *)
+
+let c_union = new_definition `c_union xs r = bn_concat (MAP r xs)`;;
+
+let bn_Seed = new_definition
+  `bn_Seed p = bn_graph (bn_maxGon p)`;;
+
+(*
+
+let bn_next_plane0 = new_definition
+  `bn_next_plane0 p g = if (bn_finalGraph g) then [] else
+    c_union (bn_nonFinals g) 
+      (\f. c_union (bn_vertices_face f)
+	 (\v. c_union (UPT 3 (SUC(bn_maxGon p)))
+	    (\i. bn_generatePolygon i v f g)))`;;
+
+
+let bn_PlaneGraphs0 = new_definition
+ `bn_PlaneGraphs0 = 
+   { g | ? p.   bn_RTranCl (bn_next_plane0 p) (bn_Seed p,g) /\ bn_finalGraph g }`;;
+
+*)
+
+(* Plane1 *)
+
+let bn_minimalFace = new_definition 
+ `bn_minimalFace = bn_minimal (LENGTH o bn_vertices_face)`;;
+
+let bn_minimalVertex = new_definition
+  `bn_minimalVertex g f = bn_minimal (bn_height g) (bn_vertices_face f)`;;
+
+let bn_next_plane = new_definition
+  `bn_next_plane p g = 
+  (let fs = bn_nonFinals g in
+     if (fs = []) then [] else
+       (let f = bn_minimalFace fs in
+	let v = bn_minimalVertex g f in
+	  c_union (UPT 3 (SUC (bn_maxGon p))) (\i. bn_generatePolygon i v f g)))`;;
+
+let bn_PlaneGraphsP = new_definition
+  `bn_planeGraphsP p = 
+   { g | bn_RTranCl (bn_next_plane p) (bn_Seed p,g) /\ bn_finalGraph g} `;;
+
+let bn_PlaneGraphs = new_definition
+`bn_PlaneGraphs = UNIONS (IMAGE bn_planeGraphsP (:num))`;;
+
+(* 10 Properties *)
+
+(* 11 Properties of Patch Enumeration *)
+
+(* bn_increasing *)
+
+(* 12 Properties of Face Division *)
+
+(* bn_is_prefix *)
+
+(* bn_is_sublist *)
+
+(* 12.4,  bn_is_nextElem *)
+(* 12.6,  bn_before *)
+(* 12.7,  bn_pre_between *)
+(* 12.8,  bn_pre_split_face *)
+(* 12.9, bn_verticesFrom  *)
+(* 12.10 bn_pre_splitFace, bn_Edges,  *)
+(* 12.11 bn_removeNones *)
+(* 12.12 bn_natToVertexListRec, bn_natToVertexList *)
+(* 12.13 bn_is_duplicateEdge, bn_invalidVertexList *)
+(* 12.14 bn_subdivFace, bn_pre_subdivFace, bn_pre_subdivFace0 *)
+
+(* 13 *)
+
+(* 13.1, bn_minVertex, bn_normFace, bn_normFaces, 
+etc. etc.
+
+*)
+
+
+(* 16 Tameness *)
+
+let bn_squanderTarget = new_definition `bn_squanderTarget = 15410`;;
+
+let bn_excessTCount = new_definition `bn_excessTCount = 6300`;;
+
+let bn_squanderVertex = new_definition `bn_squanderVertex p q = 
+  if (p=0 /\ q=3) then 6180 else
+    if (p=0 /\ q=4) then 9700 else
+      if (p=1 /\ q=2) then 6560 else
+	if (p=1 /\ q=3) then 6180 else
+	  if (p=2 /\ q=1) then 7970 else
+	    if (p=2 /\ q=2) then 4120 else
+	      if (p=2 /\ q=3) then 12851 else
+		if (p=3 /\ q=1) then 3110 else
+		  if (p=3 /\ q=2) then 8170 else
+		    if (p=4 /\ q=0) then 3470 else
+		      if (p=4 /\ q=1) then 3660 else
+			if (p=5 /\ q=0) then 400 else
+			  if (p=5 /\ q=1) then 11360 else
+			    if (p=6 /\ q=0) then 6860 else
+			      if (p=7 /\ q=0) then 14500 else bn_squanderTarget`;;
+
+let bn_squanderFace = new_definition `bn_squanderFace n = 
+  if (n=3) then 0 else
+    if (n=4) then 2060 else
+      if (n=5) then 4819 else
+	if (n=6) then 7578 else bn_squanderTarget`;;
+
+let bn_separated2 = new_definition `bn_separated2 g V = 
+  !v.  V v ==> ( !f. (MEM f (bn_facesAt g v)) ==> ~(V (bn_nextVertex f v)))`;;
+
+let bn_separated3 = new_definition `bn_separated3 g V = 
+  !v. V v ==> (!f. (MEM f (bn_facesAt g v)) ==> LENGTH (bn_vertices_face f)<= 4 ==>
+		 (bn_vertices_set f INTER V = { v }) )`;;
+
+let bn_separated = new_definition `bn_separated g V = 
+  (bn_separated2 g V /\ bn_separated3 g V)`;;
+
+(* 16.3 Admissible weight assignments *)
+
+let bn_admissible1 = new_definition `bn_admissible1 w g =
+  (!f. bn_Faces g f ==> bn_squanderFace (LENGTH (bn_vertices_face f)) <= w f)`;;
+
+let LIST_SUM = new_definition `LIST_SUM xs (f:A->num) = ITLIST (\x y. f x + y) xs 0`;;
+
+let bn_admissible2 = new_definition  `bn_admissible2 w g = 
+  (!v. bn_vertices_graph g v ==> (bn_except g v = 0) ==> 
+     bn_squanderVertex (bn_tri g v) (bn_quad g v) <= LIST_SUM (bn_facesAt g v) w)`;;
+
+let bn_admissible3 = new_definition `bn_admissible3 w g = 
+  (!v. bn_vertices_graph g v ==> (bn_vertextype g v = (5,0,1)) ==>
+     (LIST_SUM (FILTER bn_triangle (bn_facesAt g v)) w >= bn_excessTCount))`;;
+
+let bn_admissible = new_definition `bn_admissible w g = 
+  (bn_admissible1 w g /\ bn_admissible2 w g /\ bn_admissible3 w g) `;;
+
+(* 16.4 Tameness *)
+
+let bn_tame9a = new_definition `bn_tame9a g = 
+  (!f. bn_Faces g f ==> 
+     3 <= LENGTH(bn_vertices_face f) /\ LENGTH(bn_vertices_face f) <= 6)`;;
+
+let bn_tame10 = new_definition `bn_tame10 g = 
+  (let n = bn_countVertices g in
+     13 <= n /\ n <= 15)`;;
+
+let bn_tame11a = new_definition `bn_tame11a g = 
+  (!v. bn_vertices_graph g v ==>  3 <= bn_degree g v)`;;
+
+let bn_tame11b = new_definition `bn_tame11b g = 
+  (!v. bn_vertices_graph g v ==> 
+     bn_degree g v <= (if (bn_except g v = 0) then 7 else 6))`;;
+
+let bn_tame12o = new_definition `bn_tame12o g = 
+  (!v. bn_vertices_graph g v ==>
+     (~(bn_except g v = 0) /\ bn_degree g v = 6) ==> (bn_vertextype g v = (5,0,1)))`;;
+
+let bn_tame13a = new_definition `bn_tame13a g = 
+  (?w. bn_admissible w g /\ LIST_SUM (bn_faces g) w < bn_squanderTarget)`;;
+
+let bn_tame = new_definition `bn_tame g= 
+  (bn_tame9a g /\ bn_tame10 g/\ bn_tame11a g/\ 
+    bn_tame11b g/\ bn_tame12o g/\ bn_tame13a g)`;;
+  
+(* 26 *)
+
+let bn_fgraph = new_definition `bn_fgraph g = MAP bn_vertices_face (bn_faces g)`;;
+
+(* the list bn_Archive is the concatenation of bn_Tri, bn_Quad, bn_Pent, and bn_Hex.
+    These definitions need to be loaded from the Arch theory (which converts
+    them from .ML files)  *)
+
+(*  (* bn_tame_archive is defined in ../../tame_archive/tame_archive.hl *)
+let tame_graph_classification_theorem = (* new_definition *)
+  `tame_graph_classification_theorem = 
+  (!g. bn_PlaneGraphs g /\ bn_tame g ==> bn_iso_in (bn_fgraph g)   bn_tame_archive)`;;
+
+*)
+end;;
+
+
+
+

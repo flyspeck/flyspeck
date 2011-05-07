@@ -1,0 +1,92 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: hypermap                                                             *)
+(* Author:  Thomas Hales     *)
+(* Date: 2011-04-29                                                    *)
+(* ========================================================================== *)
+
+(* The tame archive from the Bauer-Nipkow classification.
+    The ML files in this directory are identical to those in Isabelle-HOL, Flyspeck-I. *)
+
+module Tame_archive  = struct 
+
+let flyspeck_dir = 
+  (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
+
+let archive_dir = 
+ Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "tame_archive";;
+
+(* from glpk.ml *)
+let load_and_close_channel do_close ic = 
+  let rec lf ichan a = 
+    try
+      lf ic (Pervasives.input_line ic::a)
+    with End_of_file -> a in
+    let rs = lf ic [] in
+      if do_close then Pervasives.close_in ic else ();
+      rev rs;;
+
+let save_stringarray filename xs = 
+  let oc = open_out filename in
+    for i=0 to List.length xs -1
+    do
+      Pervasives.output_string oc (List.nth xs i ^ "\n");
+      done;
+    close_out oc;;
+
+let convert_archive filename =  (* strip // comments, blank lines, quotation marks etc. *)
+  let (ic,oc) = Unix.open_process(sprintf "cat %s  | sed 's/,/;/g' | sed 's/val /let archive_/g' | sed 's/]]];/]]];;/g' | tr 'A-Z' 'a-z' " filename) in
+  let s = load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+    s;;
+
+let ocaml_of_ml (output_f,input_f) = 
+save_stringarray output_f (convert_archive (Filename.concat archive_dir input_f));;
+
+let tri_archive = Filename.temp_file "archive3_" ".hl";; 
+let quad_archive = Filename.temp_file "archive4_" ".hl";; 
+let pent_archive = Filename.temp_file "archive5_" ".hl";; 
+let hex_archive = Filename.temp_file "archive6_" ".hl";; 
+
+map ocaml_of_ml [(tri_archive,"Tri.ML");(quad_archive,"Quad.ML");
+		(pent_archive,"Pent.ML");(hex_archive,"Hex.ML")];;
+
+let hol_of_smalllist  = 
+  let ty = `:num` in 
+    fun ls ->
+      let xs = map mk_small_numeral ls in
+	mk_list (xs,ty);;
+
+let hol_of_list2 = 
+  let ty = `:num list` in
+    fun ls -> let x = map hol_of_smalllist ls in mk_list (x,ty);;
+
+let hol_of_list3 =
+  let ty = `:(num list) list` in
+    fun ls -> let x = map hol_of_list2 ls in mk_list (x,ty);;
+
+loadt tri_archive;;
+
+let arc3 = mk_eq (`archive3:((num list)list)list`, hol_of_list3 archive_tri);;
+
+let archive3 = new_definition arc3;; 
+
+
+loadt quad_archive;;
+
+(* slow processing and printing.  Had to kill process .  Fix before rerunning ...
+    Turn off printing and organize into a tree ...
+
+let arc4 = mk_eq (`archive4:((num list)list)list`, hol_of_list3 archive_quad);;
+
+let archive4 = new_definition arc4;; 
+
+Do the same for 5 and 6.  
+
+let bn_tame_archive = new_definition `bn_tame_archive = 
+   APPEND arc3 (APPEND arc4 (APPEND arc5 arc6))`;;
+
+*)
+
+end;;

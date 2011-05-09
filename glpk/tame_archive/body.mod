@@ -436,10 +436,10 @@ ineq242 'ID[9563139965]'
   ((tau[j]) - 0.467) >= 0.0;
 # constant edited Dec 18, 2010 for  experimental run.
 
-ineq243 'ID[7676202716]' 
-  { (i,j) in dart4_diag3_b } : 
-  ((((tau[j]) - 0.46) - ((y5[i,j] + (y6[i,j] + (y8[i,j] + (y9[i,j] - 8.472)))) * 0.45)) - 0.) >= 0.0;
-
+#ineq243 'ID[7676202716]' 
+#  { (i,j) in dart4_diag3_b } : 
+#  ((((tau[j]) - 0.46) - ((y5[i,j] + (y6[i,j] + (y8[i,j] + (y9[i,j] - 8.472)))) * 0.45)) - 0.) >= 0.0;
+# experiment on May 9, 2011. 
 
 ineq244 'ID[3862621143]' 
   { (i,j) in dart_std4 } : 

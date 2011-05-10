@@ -440,6 +440,9 @@ project svn 1909
 body.mod Last Changed Rev: 1849
 lpproc.ml Last Changed Rev: 1850
 
+Retested 2011-05-09, after deleting inequality 7676202716 from body.mod.
+Runs with 24K cases. All still good.
+
 *)
 
 let execute() = 

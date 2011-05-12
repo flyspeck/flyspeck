@@ -101,7 +101,6 @@ let init_hash bb =
 (* look at edge lengths and azimuth angles of a triangle *)
 let int_of_face xs bb = wheremod (faces bb) xs;;
 
-
 (* get_azim_table dih_y [2;4;3] bb;; *)
 
 let get_azim_dart_diff f xs bb = 
@@ -140,7 +139,7 @@ let sorted_azim_weighted_diff p bb =
   let u = map (fun t->  ((heuristic_weight t bb *. get_azim_dart_diff dih_y t bb)  ,t))  ys in
   let v = List.sort (fun a b -> - compare (fst a) (fst b)) u in
    v;;
-  get_azim_dart_diff;;
+
 
 (* ------------------------ *)
 (* HINTS *)
@@ -172,21 +171,23 @@ let add_hints_force bb =
   if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else
     let d1 = subtract (rotation [dart]) (bb.d_edge_200_225 @ bb.d_edge_225_252) in
   if not (d1 = []) then bb.hints <- [Edge_split (hd d1)] else ()
-  ) with Failure _ -> failwith "add_hints";;
+  ) with | Failure s -> failwith (s^"in add_hints")
+    | Not_found -> failwith "Not_found add_hints_force";;
+
 
 let add_hints_force_include_flat bb = 
   try(
     let _ = init_hash bb in
-  let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri_and_flats bb)) in 
-  let f = face_of_dart dart bb in
-  if (mem f (rotation bb.std_faces_not_super)) then add_hints_force bb else
-  let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
-  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
-    let f2 = intersect (highish bb) f in
-  if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else 
-    add_hints_force bb
-  ) with Failure _ -> failwith "add_hints_flat";;
-
+    let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri_and_flats bb)) in 
+    let f = face_of_dart dart bb in
+      if (mem f (rotation bb.std_faces_not_super)) then add_hints_force bb else
+	let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
+	  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
+	    let f2 = intersect (highish bb) f in
+	      if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else 
+		add_hints_force bb
+  ) with | Failure s -> failwith ( s^" in add_hints_force_include_flat")
+    | Not_found -> failwith ( " Not_found in add_hints_force_include_flat");;
 
 
 let add_hints_include_flat bb = 
@@ -371,10 +372,11 @@ let hard_bb() =
 
 let hard i = List.nth (hard_bb()) i;;
 
-(* if successful, all 12 lists will be empty.  This takes several hours
+(* if successful, all lists will be empty.  This takes several hours
     to run on my laptop.  *)
 
 let execute() = 
+  let _ = Lpproc.make_model() in 
   let _ = resetc() in
   map (fun t-> allpass_hint_include_flat 20000 [t]) (hard_bb());;
 

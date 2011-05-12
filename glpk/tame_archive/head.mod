@@ -15,7 +15,7 @@ Many of the inequalities are automatically generated from the formal specificati
 The model starts with a tame hypermap, then breaks certain
 quadrilaterals into two flats, certain pentagons into a flat+big4face
 or into 2 flats+apiece, certain hexagons into flat+big5face.  The new
-internal edges of pentagons and hexagons have length 2.52--sqrt8.
+edges along cuts have length 2.52--sqrt8.
 
 The sets std3, std4, std5, std6 index the
 standard regions.  The other faces are faces of (V,E) obtained by
@@ -293,20 +293,15 @@ tau6{j in std6}: tau[j] >= 0.7578;
 ## SPECIAL NONLINEAR INEQUALITIES
 
 # secondary estimates:
-# The following is tame table D[4,1]:
+# The following is precisely tame table D[4,1]:
 tauB5h 'ID[]' {(i,j) in apex5}: tau[j] >= 0.6548; 
 
 # The next two appear as lemma ZHPXLTX in the flypaper.
 # new values, Oct 22, 2010:
 tauB4h 'ID[9620775909]' {(i,j) in apex4}: tau[j] >= 0.477;
+
+# It is necessary, for example hypermap_id "207710175290" needs it (barely).
 tau5h 'ID[9620775909-5]' {j in std5 inter std56_flat_free}: tau[j] >= 0.696;
-
-#old values:
-#tauB4h 'ID[deprecated]' {(i,j) in apex4}: tau[j] >= 0.492;
-#tau5h 'ID[deprecated]' {j in std5 inter std56_flat_free}: tau[j] >= 0.751;
-
-# Commented out Oct 21, 2010. Not needed.
-# tau6h 'ID[deprecated]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
 perimZ 'ID[5691615370]' {(i1,i2,i3,j) in e_dart : j in std4_diag3}:
   y5[i1,j] + y6[i1,j] + y5[i3,j] + y6[i3,j] >= 8.472;
@@ -319,12 +314,16 @@ yapex_sup_flat 'ID[8673686234]' {(i1,j1,i2,j2) in apex_sup_flat_pair}:
 # y4[i1,j1] is the diag, which is shorter than the cross diag. 
 # By monotonicity of dih in opposite edge length, this may be substituted in.
 # checked 2010-06-23.
+# derived from 1085358243,
+# which also appears in body.mod in a simpler form on domain apex_sup_flat
 crossdiag 'ID[1085358243]+' 
    {(i1,i,i3,j1,k1,k2,k3,j2) in e_dart cross e_dart :
      i = k3 and i3 = k2 and (i1,j1,k1,j2) in apex_sup_flat_pair}:
   (azim[i,j1]+azim[i,j2]) - 1.903 - 0.4*(y1[i,j1] - 2)
   +0.49688*(y2[i,j2]+y3[i,j1]+y5[i,j1]+y6[i,j2]-8)
    -(y4[i1,j1]-sqrt8) >= 0;
+
+## DEPRECATED SPECIAL NONLINEAR INEQUALITIES:
 
 # constant -0.22 changed from -0.24 on Oct 20, 2010
 # It now holds on each sup flat separately.
@@ -334,6 +333,13 @@ crossdiag 'ID[1085358243]+'
 # tau[j1]+tau[j2]  - 0.22
 #    -0.14132*(y1[i1,j1]+ y2[i1,j1] + y3[i1,j1] + y1[i2,j2] - 8)
 #    -0.38*(y5[i1,j1]+y6[i1,j1]+y5[i2,j2]+y6[i2,j2] -8) >= 0;
+
+#old values:
+#tauB4h 'ID[deprecated]' {(i,j) in apex4}: tau[j] >= 0.492;
+#tau5h 'ID[deprecated]' {j in std5 inter std56_flat_free}: tau[j] >= 0.751;
+
+# Commented out Oct 21, 2010. Not needed.
+# tau6h 'ID[deprecated]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
 ## END OF SPECIAL NONLINEAR INEQUALITIES
 
@@ -364,11 +370,13 @@ set dart_std3_lw  :=
      and (i,j) in dart_std3_big 
      and i in node_200_218}  (i,j);
 
+# bug corrected May 10, 2011.
 set dart_std3_mini := dart_std3_small_200_218 union 
    setof {(i1,i2,i3,j) in e_dart: (i1,j) in d_edge_200_225 
      and      (i2,j) in d_edge_200_225 and (i3,j) in d_edge_200_225 
      and i1 in node_200_218 
-     and i2 in node_200_218 and i3 in node_200_218 } (i1,j);
+     and i2 in node_200_218 and i3 in node_200_218
+     and j in std3 } (i1,j);
 
 set apex_flat_l := {(i,j) in apex_flat : i in node_200_218 };
 

@@ -553,72 +553,8 @@ static int fitstogether(const double x[6],const double y[6])
   return ((x[1]==y[1])&&(x[2]==y[2])&&(x[3]==y[3]));
 }
 
-/*
-  static int unreducedQ(const double xA[6],const double xB[6],
-  const double zA[6],const double zB[6])
-  {
-  int t;
-  t = (
-  ((zA[4]==xA[4])&&(zB[5]==xB[5])) 
-  || ((zA[5]==xA[5])&&(zB[4]==xB[4]))
-  || ((zA[4]==xA[4])&&(zB[4]==xB[4])&&(zA[1]==xA[1]))
-  || ((zA[5]==xA[5])&&(zB[5]==xB[5])&&(zA[2]==xA[2]))
-  || ((zA[4]==xA[4])&&(zA[5]==xA[5])&&(zB[0]==xB[0]))
-  || ((zB[4]==xB[4])&&(zB[5]==xB[5])&&(zA[0]==xA[0]))
-  || ((zA[0]==xA[0])&&(zA[1]==xA[1])&&(zB[4]==xB[4]))
-  || ((zA[0]==xA[0])&&(zA[2]==xA[2])&&(zB[5]==xB[5]))
-  || ((zB[0]==xB[0])&&(zB[2]==xB[2])&&(zA[5]==xA[5]))
-  || ((zB[0]==xB[0])&&(zB[1]==xB[1])&&(zA[4]==xA[4]))
-  || ((zB[0]==xB[0])&&(zB[1]==xB[1])&&(zB[2]==xB[2])&&
-  (zA[0]==xA[0])) // case 10
-  || ((zA[4]==xA[4])&&(zB[4]==xB[4])&&(zB[3]==xB[3]))
-  || ((zA[5]==xA[5])&&(zB[5]==xB[5])&&(zB[3]==xB[3])) //12
-  || ((zB[3]==xB[3])&&(zB[0]==xB[0])&&(zA[4]==xA[4])) //13
-  || ((zB[3]==xB[3])&&(zB[0]==xB[0])&&(zA[5]==xA[5])) //14
-  || ((zB[3]==xB[3])&&(zA[0]==xA[0])&&(zB[4]==xB[4])) //15
-  || ((zB[3]==xB[3])&&(zA[0]==xA[0])&&(zB[5]==xB[5])) //16
-  || ((zB[3]==xB[3])&&(zA[0]==xA[0])&&(zB[0]==xB[0])) //17
-  );
-  return (!t);
-  }
-*/
 
-/*
-  static int setreductionQ(int i,const double xA[6],const double xB[6],
-  const double zA[6],const double zB[6],
-  double zzA[6],double zzB[6])
-  // return false if the reduction flows out of the cell.
-  // else true;
-  {
-  int j;
-  for (j=0;j<6;j++) { zzA[j]=zA[j]; zzB[j]=zB[j]; }
-  switch (i)
-  {
-  case 0 : zzA[4]=xA[4]; zzB[5]=xB[5]; break;
-  case 1 : zzA[1]=zzB[1]=xA[1]; zzA[4]=xA[4]; zzB[4]=xB[4]; break;
-  case 2 : zzA[4]=xA[4]; zzA[5]=xA[5]; zzB[0]=xB[0]; break;
-  case 3 : zzA[0]=xA[0]; zzB[4]=xB[4]; zzB[5]=xB[5]; break;
-  case 4 : zzA[0]=xA[0]; zzA[1]=zzB[1]=xA[1]; zzB[4]=xB[4]; break;
-  case 5 : zzA[1]=zzB[1]=xA[1]; zzA[4]=xA[4]; zzB[0]=xB[0]; break;
-  case 6 : zzA[0]=xA[0]; zzA[1]=zzB[1]=xA[1]; 
-  zzA[2]=zzB[2]=xA[2]; zzB[0]=xB[0]; break;
-  case 7 : zzA[5]=xA[5]; zzB[4]=xB[4]; break;
-  case 8 : zzA[2]=zzB[2]=xA[2]; zzA[5]=xA[5]; zzB[5]=xB[5]; break;
-  case 9 : zzA[0]=xA[0]; zzA[2]=zzB[2]=xA[2]; zzB[5]=xB[5]; break;
-  case 10: zzA[2]=zzB[2]=xA[2]; zzA[5]=xA[5]; zzB[0]=xB[0]; break;
-  case 11: zzA[3]=zzB[3]=xA[3]; zzA[4]=xA[4]; zzB[4]=xB[4]; break;
-  case 12: zzA[3]=zzB[3]=xA[3]; zzA[5]=xA[5]; zzB[5]=xB[5]; break;
-  case 13: zzA[3]=zzB[3]=xA[3]; zzA[4]=xA[4]; zzB[0]=xB[0]; break;
-  case 14: zzA[3]=zzB[3]=xA[3]; zzA[5]=xA[5]; zzB[0]=xB[0]; break;
-  case 15: zzA[3]=zzB[3]=xA[3]; zzA[0]=xA[0]; zzB[4]=xB[4]; break;
-  case 16: zzA[3]=zzB[3]=xA[3]; zzA[0]=xA[0]; zzB[5]=xB[5]; break;
-  case 17: zzA[3]=zzB[3]=xA[3]; zzA[0]=xA[0]; zzB[0]=xB[0]; break;
-  default : error::message("setreductionQ out of range");
-  }
-  return 1;
-  }
-*/
-
+// cases are described in recurse.h cellOption.
 static void setDimRedBackSym(int i /* 0..7 */ ,const double xA[6],const double xB[6],
 			     const double zA[6],const double zB[6],
 			     double xxA[6],double xxB[6],double zzA[6],double zzB[6])
@@ -632,11 +568,11 @@ static void setDimRedBackSym(int i /* 0..7 */ ,const double xA[6],const double x
     }
   switch (i / 2) 
     {
-    case 0 : 
+    case 0 :   
       zzB[4]=xB[4]; xxB[4]=xB[4]; 
       zzB[5]=xB[5]; xxB[5]=xB[5]; 
       break;
-    case 1:
+    case 1:  
       zzB[4]=zB[4]; xxB[4]=zB[4]; 
       zzB[5]=xB[5]; xxB[5]=xB[5]; 
       break;

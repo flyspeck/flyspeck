@@ -399,7 +399,6 @@ let onepass bbs =
     filter_feas branches;;
 
 let rec allpass count bbs = 
-   let _ = resetc() in
    let t = maxlist0 (map (fun b -> length (std_tri_prebranch b)) bbs) in
    if t = 0 or count <= 0 then bbs else allpass (count - 1) (onepass bbs);;
 
@@ -415,6 +414,7 @@ let hardid =
 "50803004532";"39599353438";"242652038506";
 "88089363170";"75641658977";"34970074286";
 ];;
+
 
 (*
 tame_bb is the entire archive.
@@ -447,6 +447,7 @@ Runs with 24K cases. All still good.
 
 let execute() = 
   let _ = make_model() in
+  let _ = Glpk_link.resetc() in
   let tame = strip_archive (!archiveraw) in
   let tame_bb = map mk_bb tame in
   let feasible_bb =  filter_feas (map solve tame_bb) in

@@ -290,7 +290,7 @@ tau4{j in std4}: tau[j] >= 0.206;
 tau5{j in std5}: tau[j] >= 0.4819;
 tau6{j in std6}: tau[j] >= 0.7578;
 
-## SPECIAL NONLINEAR INEQUALITIES
+## AD HOC NONLINEAR INEQUALITIES
 
 # secondary estimates:
 # The following is precisely tame table D[4,1]:
@@ -323,7 +323,7 @@ crossdiag 'ID[1085358243]+'
   +0.49688*(y2[i,j2]+y3[i,j1]+y5[i,j1]+y6[i,j2]-8)
    -(y4[i1,j1]-sqrt8) >= 0;
 
-## DEPRECATED SPECIAL NONLINEAR INEQUALITIES:
+## DEPRECATED AD HOC NONLINEAR INEQUALITIES:
 
 # constant -0.22 changed from -0.24 on Oct 20, 2010
 # It now holds on each sup flat separately.
@@ -341,7 +341,7 @@ crossdiag 'ID[1085358243]+'
 # Commented out Oct 21, 2010. Not needed.
 # tau6h 'ID[deprecated]' {j in std6 inter std56_flat_free}: tau[j] >= 0.91;
 
-## END OF SPECIAL NONLINEAR INEQUALITIES
+## END OF AD HOC NONLINEAR INEQUALITIES
 
 
 # final dart sets.

@@ -288,7 +288,11 @@ yy16 {(i,j) in apex_A}: y4[i,j] <= 2.52; # others redun. via apex_flat
 tau3{j in std3}: tau[j] >= 0;
 tau4{j in std4}: tau[j] >= 0.206;
 tau5{j in std5}: tau[j] >= 0.4819;
-tau6{j in std6}: tau[j] >= 0.7578;
+#experiment May 15, 2011.  I reran and 0.7 and even 0.6 work fine.
+tau6{j in std6}: tau[j] >= 0.6;
+
+#old value:
+#tau6{j in std6}: tau[j] >= 0.7578;
 
 ## AD HOC NONLINEAR INEQUALITIES
 

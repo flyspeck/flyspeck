@@ -443,6 +443,10 @@ lpproc.ml Last Changed Rev: 1850
 Retested 2011-05-09, after deleting inequality 7676202716 from body.mod.
 Runs with 24K cases. All still good.
 
+Retested 2011-05-15 on hex cases, using 0.6 instead of 0.7578=tameTableD[6,0].
+All still good.  (But a change in the tameTable would create more tame graphs,
+and this hasn't been checked.)
+
 *)
 
 let execute() = 

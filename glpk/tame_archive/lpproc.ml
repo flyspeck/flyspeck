@@ -44,7 +44,7 @@ let project_root_dir = (Filename.concat (flyspeck_dir) Filename.parent_dir_name)
 
 let glpk_dir =  Filename.concat project_root_dir "glpk";;
 
-let archive_dir = Filename.concat project_root_dir "tame_archive";;
+let archive_dir = Filename.concat project_root_dir "graph_generator/output";;
 
 let tame_dir =  Filename.concat glpk_dir "tame_archive";;
 

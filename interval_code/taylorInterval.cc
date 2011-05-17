@@ -1771,6 +1771,29 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   static const taylorFunction upper_dih_x_135 = mk_135(upper_dih);
 
 
+  // tau_lowform_x
+  static const interval rho_y1_c0("0.337460877099657327908782072437");
+  static const interval rho_y1_c1("0.325078245800685344182435855126");
+  static const taylorFunction rho_y1 = 
+    y1 * rho_y1_c0 + unit * rho_y1_c1;
+
+  static const taylorFunction rhazim_x_div_sqrtdelta_posbranch =
+    rho_y1 * dih_x_div_sqrtdelta_posbranch;
+
+  static const taylorFunction rhazim2_x_div_sqrtdelta_posbranch =
+    taylorFunction::rotate2  (rhazim_x_div_sqrtdelta_posbranch);
+
+  static const taylorFunction rhazim3_x_div_sqrtdelta_posbranch =
+    taylorFunction::rotate3  (rhazim_x_div_sqrtdelta_posbranch);
+
+  // 
+  static const taylorFunction tau_lowform_x =
+    rho_y1 * pi - unit * (pi + sol0) +
+    uni(univariate::i_sqp,delta) * rhazim_x_div_sqrtdelta_posbranch +
+    uni(univariate::i_sqn,delta) * rhazim2_x_div_sqrtdelta_posbranch +
+    uni(univariate::i_sqn,delta) * rhazim3_x_div_sqrtdelta_posbranch;
+    
+
   // gamma3f_vLR_lfun
     static const taylorFunction gamma3f_x_vLR_lfun = 
     (dih + dih_x_126_s2 * mone +  dih_x_135_s2 * mone) * 
@@ -2237,6 +2260,8 @@ const taylorFunction taylorSimplex::ldih_x_135_s2 = local::mk_135(taylorSimplex:
 const taylorFunction taylorSimplex::ldih3_x_135_s2 = local::mk_135(taylorSimplex::ldih3_x);
 const taylorFunction taylorSimplex::ldih5_x_135_s2 = local::mk_135(taylorSimplex::ldih5_x);
 const taylorFunction taylorSimplex::delta_x_135_s2 = local::mk_135(taylorSimplex::delta);
+
+const taylorFunction taylorSimplex::tau_lowform_x = local::tau_lowform_x;
 
 //
 const taylorFunction taylorSimplex::ldih_x_126_n = local::ldih_x_126_n;
@@ -3545,6 +3570,23 @@ void taylorFunction::selfTest()
 	cout << "taum D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
+
+  /* test taum_lowform_x */   {
+      domain x(4.1,4.2,4.3,13.0,4.5,4.6);
+      double mValue= -0.09297193692831349;
+      double mathValueD[6]={-0.24482490694251993,
+   0.38015846387975194,0.38126584517884354,
+   -0.3876234171705304,0.44246843996649915,
+			    0.44281661177015513};
+      taylorInterval at = taylorSimplex::tau_lowform_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "tau_lowform_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "tau_lowform_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
 
   /* test taum_x1 */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);

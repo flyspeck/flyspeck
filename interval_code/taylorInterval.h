@@ -453,7 +453,11 @@ class taylorSimplex
 	  gamma3f_vL_x_n0,
 
 	  // may 2011:
-	  tau_lowform_x
+	  tau_lowform_x,
+	  delta_y_LC,
+	  mdtau_y_LC,
+	  mdtau2_y_LC
+
 	  
 	  ;
 

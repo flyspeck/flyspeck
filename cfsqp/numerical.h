@@ -105,6 +105,22 @@ double tau_m_alt(double y1,double y2,double y3,double y4,double y5,double y6);
 double lfun(double h);
 double lmfun(double h);
 
+// approximations for y1 derivatives.
+double tau_m_diff_quotient(double y1,double y2,double y3,double y4,double y5,double y6);
+double tau_m_diff_quotient2(double y1,double y2,double y3,double y4,double y5,double y6);
+
+// a formula for Sqrt[delta] D[taum,y1], valid when delta4 <0, extends to delta->0.
+/*
+I spent a long time making sure every subexpression corresponds with
+the Mathematica calculations and with the interval arithmetic calculations.
+It also approximates the results given by difference quotients.  Hopefully,
+this is bug-free!
+ */
+double mdtau(double y1,double y2,double y3,double y4,double y5,double y6);
+
+// a formula for  D[taum,{y1,2}], valid when delta4 <0, delta>0, various u factors >0.
+double mdtau2(double y1,double y2,double y3,double y4,double y5,double y6);
+
 // cluster functions
 int critical_edge_y(double h) ;
 int wtcount6_y(double y1,double y2,double y3,double y4,double y5,double y6);

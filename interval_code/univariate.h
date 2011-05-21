@@ -81,6 +81,9 @@ univariate(uniprimitive* ) ;
 	// 
  interval eval(const interval&,int n) const;
 
+        // interval to interval version of matan.
+static const interval matan(const interval& x) ;
+
 	//////////
 	// pow0 is the constant function taking value 1.
 	// pow1 is the identity function,

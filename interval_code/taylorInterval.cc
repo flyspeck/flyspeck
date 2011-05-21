@@ -24,6 +24,7 @@ extern "C"
 #include "interval.h"
 #include "univariate.h"
 #include "lineInterval.h"
+#include "wide.h"
 #include "secondDerive.h"
 #include "taylorInterval.h"
 
@@ -53,6 +54,41 @@ static lineInterval plus (const lineInterval& f, const lineInterval& g)  {
   return h;
 }
 
+
+/* ========================================================================== */
+/*                                                                            */
+/*   Section:primitiveLC                                                               */
+/*                                                                            */
+/* ========================================================================== */
+
+// Locally constant constructor.  All derivative information is zero.
+
+class primitiveLC : public primitive 
+{
+private:
+  interval (*hfn)(const domain&,const domain&);
+  
+public:
+  lineInterval tangentAtEstimate(const domain& x) const { return (*hfn)(x,x); }
+  taylorInterval evalf4(const domain& w,const domain& x,
+			const domain& y,const domain& z) const;
+  primitiveLC(interval (*)(const domain&,const domain& ));
+};
+
+
+taylorInterval primitiveLC::evalf4
+(const domain& w,const domain& x,const domain& y,const domain& z) const
+{
+  double DD[6][6];
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
+  lineInterval t( (*hfn)(x,z) );
+  return taylorInterval(t,w,DD);
+}
+
+primitiveLC::primitiveLC(interval (*hfn0)(const domain&,const domain&))
+{
+  hfn = hfn0;
+}
 
 /* ========================================================================== */
 /*                                                                            */
@@ -524,6 +560,21 @@ static void testAbs(double DD[6][6],const char* s) {
     }
 }
 
+
+/*implement deltaLC */
+primitiveLC deltaLCPrim(wide::delta_y);
+const taylorFunction taylorSimplex::delta_y_LC(&::deltaLCPrim);
+
+/*implement mdtau_y_LC */
+primitiveLC mdtau_y_Prim(wide::mdtau_y);
+const taylorFunction taylorSimplex::mdtau_y_LC(&::mdtau_y_Prim);
+
+/*implement mdtau2_y_LC */
+primitiveLC mdtau2_y_Prim(wide::mdtau2_y);
+const taylorFunction taylorSimplex::mdtau2_y_LC(&::mdtau2_y_Prim);
+
+
+
 /*implement unit*/
 static int setZero(const domain& ,const domain& ,double DD[6][6])
 {
@@ -886,6 +937,8 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 }
 primitiveA dih1Primitive(linearization::dih,setAbsDihedral);
 const taylorFunction taylorSimplex::dih(&::dih1Primitive);
+
+
 
 
 
@@ -3138,6 +3191,44 @@ void taylorFunction::selfTest()
 	  }
   }
 
+  /* test mdtau_y */   { 
+    domain x(2.1,2.2,2.3,3.4,2.5,2.6);
+    double mValue= -0.5994620477455596 ;
+    double mathValueD[6]={0,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::mdtau_y_LC.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "mdtau_y_LC  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "mdtau_y_LC D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test mdtau2_y */   { 
+    domain x(2.1,2.2,2.3,3.4,2.5,2.6);
+    double mValue= 0.2804657791758259;
+    double mathValueD[6]={0,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::mdtau2_y_LC.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "mdtau2_y_LC  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "mdtau2_y_LC D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test delta_y_LC */   { 
+    domain x(2.1,2.2,2.3,3.4,2.5,2.6);
+    double mValue= 339.9384510;
+    double mathValueD[6]={0,0,0,0,0,0};
+    taylorInterval at = taylorSimplex::delta_y_LC.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "delta_y_LC  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "delta_y_LC D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
 
   /* test volx */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

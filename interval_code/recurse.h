@@ -95,6 +95,9 @@ public:
     //
     int allowSharp;
 
+    // boolean flag.  Set to true to allow first derivative tests, for sliding to boundary.
+    int allowDerivatives;
+
     //////////
     // A cell passes if (partial f/partial x1 < 0).  The value of the function doesn't matter.
     // This can be useful in proving the monotonicity of certain functions.
@@ -172,6 +175,7 @@ public:
       dimRedBackSym=0;
       margin=0.0;
       allowSharp=0;
+      allowDerivatives=1;
       onlyCheckDeriv1Negative=0;
   
       strategy206A=0;

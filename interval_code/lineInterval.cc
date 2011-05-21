@@ -932,6 +932,11 @@ static double edge_flat2_x(double x1,double x2,double x3,double x5,double x6) {
    for x4.
 
   This is a trigonometric calculation of the "Enclosed" function in mathematica.
+  or enclosed in sphere.hl.  The edge numbers y1,..y9 are the
+  standard quad cluster numbering (with y1 y2 y3 y7 connected to the origin,
+  and y4 diagonal, and y5, y6, y8, y9 top edges).
+
+  xcd = cd^2, cd = enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9,   yi^2 = xi.
 */
 static double x4_diag_max_simple(double xcd,
 			    double x1,double x2,double x3,double x5,double x6,double x7,
@@ -968,9 +973,22 @@ static double x4_diag_max_simple(double xcd,
 }
 
 /*
-  This is only to be applied to quad clusters.  There are implicit monotonicity results
-  that might not hold outside quad clusters.  x4_diag_max takes the angle along the edge x1.
+
+  x4_diag_max takes the angle along the edge x1.
   Here we  take the angle along the cross-diag.  This calls for some unpleasant reindexing.
+
+  The implicit monotonicity results hold for quad clusters.  Beyond that caveat emptor.
+  (But I believe it should hold for all nonreflexive quads.)
+  The upper bound monotonicity is stating that a diagonal of a skew triangle increases if
+   the other diagonal has fixed length and one edge of the quad increases.
+   So x2 x3 x5 x6 are as large as possible.
+
+   The lower bound monotonicity are on the three edges that form the triangle of
+   edges that do not meet the edge x4.
+
+   The two edges x8 x9 
+   that vary between lower and upper bounds are the two edges opposite
+   the edge x1 used to compute dihedral angles.
  */
 double edgeBound::x4_diag_max(double xcd_lb,
 						const double xA[6],const double xB[6],

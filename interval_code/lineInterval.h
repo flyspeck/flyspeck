@@ -72,7 +72,8 @@ lineInterval();
 
 /*
 CLASS
-	domain
+	
+domain
 
 	Six doubles representing the squares of the edge lengths
 	of a simplex.

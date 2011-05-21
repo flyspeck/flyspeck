@@ -28,6 +28,9 @@ lineInterval.o : lineInterval.h lineInterval.cc interval.h \
 	error.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c lineInterval.cc 
 
+wide.o : wide.cc error.h interval.h univariate.h #Can be opt. in level2
+	$(CC) $(CCOPTS1) $(CCOPTS2) -c wide.cc
+
 taylorInterval.o : taylorInterval.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorInterval.cc
 
@@ -43,9 +46,9 @@ test: test.cc error.h error.o interval.h interval.o lineInterval.h \
 
 test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
-	recurse.h recurse.o univariate.h univariate.o
+	recurse.h recurse.o univariate.h univariate.o wide.h wide.o
 	$(CC) $(CCOPTS1) test_auto.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o  taylorInterval.o recurse.o \
+	secondDerive.o univariate.o wide.o  taylorInterval.o recurse.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o -o test_auto -lm $(L)
 
 jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \

@@ -294,7 +294,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  }
       }
       
-      /* do derivatives. */{
+      /* do derivatives. */ if (opt.allowDerivatives) {
 	for (int j=0;j<DIM6;j++) if (x[j]<z[j]) {
 	    int allpos=1, allneg=1;
 	    for (int i=0;i<count;i++) if (T[i]->lowerPartial(j)<0.0) allpos=0;
@@ -319,7 +319,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
   int mixedsign;
   double yyn[DIM6],yu[DIM6];  // look at the lowest & highest corners
   lineInterval cn,cu;
-  if (maxwidth<opt.widthCutoff)
+  if (maxwidth<opt.widthCutoff && opt.allowDerivatives)
     {
       int i=0; 
       while (i<count) if (T[i]->tangentVectorOf().low() >0.0)  {
@@ -352,7 +352,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
     }
   
   // now keep a single numerically true inequality.
-  if ((maxwidth<opt.widthCutoff)&&(count>1)) {
+  if ((maxwidth<opt.widthCutoff)&&(count>1) && opt.allowDerivatives) {
     double margin =0.0;
     for (int i=0;i<count;i++) if (T[i]->tangentVectorOf().hi()< 0.0) {
 	mixedsign=0;
@@ -487,7 +487,9 @@ int prove::recursiveVerifier(int depth,
   cellOption::cellStatus  v =verifyCell(xx,zz,xx0,zz0,II,Ncount,
 				       options);// xx,zz,xx0,zz0,II,Ncount .. affected.
   if (cellOption::counterexample==v) {
-    cout << "counterexample found " << endl;
+    static int bt = 0;
+    if (0 == bt ++ % 100) {
+      cout << "local counterexample found - backtrack " << bt++ << endl; }
     return 0; 
   }
   else if (v==cellOption::cellPasses) { return 1;  }

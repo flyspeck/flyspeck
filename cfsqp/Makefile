@@ -56,8 +56,12 @@ numerical.o : numerical.h numerical.cc
 #local_fan.o : local_fan.cc  $(DEPS)
 #	$(CC) $(CCOPTS1) local_fan.cc $(DOTS)  -o local_fan.o
 
+maytest.o : maytest.cc  $(DEPS) numerical.cc
+	$(CC) $(CCOPTS1) maytest.cc $(DOTS)  -o maytest.o
+
 #tame_hypermap.o : tame_hypermap.cc  $(DEPS)
 #	$(CC) $(CCOPTS1) tame_hypermap.cc $(DOTS)  -o tame_hypermap.o
+
 
 #glpk_ineq.o : glpk_ineq.cc  $(DEPS)
 #	$(CC) $(CCOPTS1) glpk_ineq.cc $(DOTS)  -o glpk_ineq.o

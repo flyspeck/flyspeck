@@ -16,6 +16,8 @@ module Hard_lp = struct
 
 (* code for the hard cases... *)
 
+let hardidref = ref Lpproc.hardid;;
+
 let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 let glpk_dir = 
  Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "glpk";;
@@ -358,7 +360,7 @@ let rec allpass_hint_include_flat count bbs =
    (onepass_hint_include_flat bbs);;
 
 let hard_string_rep() = 
-   List.find_all (fun s -> mem (fst (Glpk_link.convert_to_list s)) hardid) 
+   List.find_all (fun s -> mem (fst (Glpk_link.convert_to_list s)) !hardidref) 
    (Glpk_link.strip_archive (!Lpproc.archiveraw));;
 
 let resolve_with_hints_include_flat t = 

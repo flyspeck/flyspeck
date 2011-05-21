@@ -4,6 +4,9 @@
 #include "numerical.h"
 //#include "morefn.h"
 
+//#include <iomanip.h>
+//#include <iostream.h>
+
 // GENERAL STUFF
 double pi() { return  4.0*atan(1.0); }
 //double pt() { return 0.0553736456684637; }
@@ -92,6 +95,8 @@ double U(double a,double b,double c)
        {
         return -a*a-b*b-c*c+2.0*(a*b+b*c+c*a);
        }
+
+
 
 double d4(double x1,double x2,double x3,double x4,
 	  double x5, double x6) {
@@ -354,6 +359,15 @@ double tau_m(double y1,double y2,double y3,double y4,double y5,double y6) {
     rho(y3)*dih_y(y3,y1,y2,y6,y4,y5) - (pi() + sol_y(2,2,2,2,2,2));
 }
 
+double tau_m_diff_quotient(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double h = 1.0e-8;
+  return (tau_m(y1+h,y2,y3,y4,y5,y6)-tau_m(y1,y2,y3,y4,y5,y6))/h;
+}
+double tau_m_diff_quotient2(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double h = 1.0e-3;
+  return (tau_m(y1+h,y2,y3,y4,y5,y6)-2*tau_m(y1,y2,y3,y4,y5,y6) + tau_m(y1-h,y2,y3,y4,y5,y6))/(h*h);
+}
+
 double hplus =  1.3254; 
 
 
@@ -398,3 +412,224 @@ double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6) 
 }
 
 double machine_eps() { return 2.0e-8; } // is 0 in formal text.
+
+
+// Material added May 19, 2011 for y1 derivatives of tau.
+
+double DUa(double a,double b,double c)
+       {
+	 return 2.0 *(-a + b + c);
+       }
+
+// debug
+void show(double y,char* s) {
+  //     cout << s << ": " << y << endl;
+}
+
+/*
+mdtau is a symbolic formula for Sqrt[del] D[taumar,y1].
+ */
+
+double mdtau(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double x1=y1*y1;
+  double x2 = y2*y2;
+  double x3 = y3*y3;
+  double x4 = y4*y4;
+  double x5 = y5*y5;
+  double x6 = y6*y6;
+  show(x1,"x1"); show(x2,"x2"); show(x3,"x3"); 
+   show(x4,"x4"); show(x5,"x5"); show(x6,"x6");
+
+  double chain = 2.0*y1;  // D[x1,y1].
+  double Pchain = 2.0;
+  double chain2 = 4.0* x1;
+
+  double u135 = U(x1,x3,x5);
+  double u126 = U(x1,x2,x6);
+  double u234 = U(x2,x3,x4);
+  show(u135,"u135"); show(u126,"u126"); show(u234,"u234");
+
+  double uf = 4.0*u135*u126*u234*y1*y2*y3;
+  double du135 = DUa(x1,x3,x5);
+  double du126 = DUa(x1,x2,x6);
+
+  double Luf = (du135/u135 + du126/u126 )*chain + 1.0/y1;
+  show(uf,"uf"); show(du135,"du135"); show(du126,"du126"); show(Luf,"Luf");
+
+  double n4 = x2*x3 + x1*x4 - x2*x5 - x3*x6 + x5*x6 - 
+    x1*(-x1 + x2 + x3 - x4 + x5 + x6); // - del4
+  double del4 = -n4;
+
+  double n5 = x1*x3 - x1*x4 + x2*x5 - x3*x6 + x4*x6 - 
+    x2*(x1 - x2 + x3 + x4 - x5 + x6);  // - del5
+
+  double n6 = x1*x2 - x1*x4 - x2*x5 + x4*x5 - 
+    x3*(x1 + x2 - x3 + x4 + x5 - x6) + x3*x6; // - del6
+
+  double Dn4 = 2*x1 - x2 - x3 + 2*x4 - x5 - x6;
+
+  double del = delta_x(x1,x2,x3,x4,x5,x6);
+
+  double del1 = -(x1*x4) + x2*x5 - x3*x5 - x2*x6 + x3*x6 +
+   x4*(-x1 + x2 + x3 - x4 + x5 + x6);
+
+  double del2 = x1*x4 - x3*x4 - x2*x5 - x1*x6 + 
+    x3*x6 + x5*(x1 - x2 + x3 + x4 - x5 + x6);
+
+  double del3 = x1*x4 - x2*x4 - x1*x5 + x2*x5 - 
+    x3*x6 + (x1 + x2 - x3 + x4 + x5 - x6)*x6;
+
+  double Pdel = del1 * chain;
+
+  double Ldel = Pdel/del;
+  show(n4,"n4"); show(n5,"n5"); show(n6,"n6");
+  show(Dn4,"Dn4"); show(del,"del"); show(del1,"del1"); show(del2,"del2"); 
+  show(del3,"del3"); show(Pdel,"Pdel"); show(Ldel,"Ldel");
+
+  double sd4 = 4.0*x1*del;
+  double sd5 = 4.0*x2*del;
+  double sd6 = 4.0*x3*del;
+
+  double Dsd4 = 4.0*del + 4.0*x1*del1;
+
+  double m4diff = 2.0*Dn4*sd4 - n4* Dsd4;
+  double m4 = m4diff*chain*u234*y2*y3;
+  double m5 = -4.0*x2*u234*del3*2.0*x1*u135*y3;
+  double m6 = -4.0*x3*u234*del2*2.0*x1*u126*y2;
+
+  double const1 = sol_y(2,2,2,2,2,2)/pi();
+  double rhoy1 = rho(y1);
+  double rhoy2 = rho(y2);
+  double rhoy3 = rho(y3);
+  double Prhoy1 = c1()/(0.52);
+
+  show(sd4,"sd4"); show(sd5,"sd5"); show(sd6,"sd6");
+  show(Dsd4,"Dsd4"); show(m4diff,"m4diff"); show(m4,"m4");
+  show (m5,"m5"); show(m6,"m6"); show(const1,"const1"); show(rhoy1,"rhoy1");
+  show(rhoy2,"rhoy2"); show(rhoy3,"rhoy3"); show(Prhoy1,"Prhoy1");
+
+  double rr = rhoy1 * m4 + rhoy2 * m5 + rhoy3 * m6;
+  
+  double term1 = Prhoy1 * pi() * safesqrt(del);
+  double t = sqrt(4.0 * x1)/del4;
+  double t2 = t*t;
+  double term2a = del * t * matan(t2 *del);
+  double term2 = term2a * Prhoy1;
+  double term3 = rr/uf;
+
+  show(rr,"rr"); show(term1,"term1"); show(t,"t"); show(t2,"t2"); 
+  show(term2a,"term2a");
+  show(term2,"term2"); show(term3,"term3");
+
+  return term1+term2+term3;
+}
+
+
+/*
+mdtau2 =  D[taumar,{y1,2}],
+ Most of the code is the same as for mdtau.
+ */
+
+double mdtau2(double y1,double y2,double y3,double y4,double y5,double y6) {
+  double x1=y1*y1;
+  double x2 = y2*y2;
+  double x3 = y3*y3;
+  double x4 = y4*y4;
+  double x5 = y5*y5;
+  double x6 = y6*y6;
+  show(x1,"x1"); show(x2,"x2"); show(x3,"x3"); 
+   show(x4,"x4"); show(x5,"x5"); show(x6,"x6");
+
+  double chain = 2.0*y1;  // D[x1,y1].
+  double Pchain = 2.0;
+  double chain2 = 4.0* x1;
+
+  double u135 = U(x1,x3,x5);
+  double u126 = U(x1,x2,x6);
+  double u234 = U(x2,x3,x4);
+  show(u135,"u135"); show(u126,"u126"); show(u234,"u234");
+
+  double uf = 4.0*u135*u126*u234*y1*y2*y3;
+  double du135 = DUa(x1,x3,x5);
+  double du126 = DUa(x1,x2,x6);
+
+  double Luf = (du135/u135 + du126/u126 )*chain + 1.0/y1;
+  show(uf,"uf"); show(du135,"du135"); show(du126,"du126"); show(Luf,"Luf");
+
+  double n4 = x2*x3 + x1*x4 - x2*x5 - x3*x6 + x5*x6 - 
+    x1*(-x1 + x2 + x3 - x4 + x5 + x6); // - del4
+  double del4 = -n4;
+
+  double n5 = x1*x3 - x1*x4 + x2*x5 - x3*x6 + x4*x6 - 
+    x2*(x1 - x2 + x3 + x4 - x5 + x6);  // - del5
+
+  double n6 = x1*x2 - x1*x4 - x2*x5 + x4*x5 - 
+    x3*(x1 + x2 - x3 + x4 + x5 - x6) + x3*x6; // - del6
+
+  double Dn4 = 2*x1 - x2 - x3 + 2*x4 - x5 - x6;
+
+  double del = delta_x(x1,x2,x3,x4,x5,x6);
+
+  double del1 = -(x1*x4) + x2*x5 - x3*x5 - x2*x6 + x3*x6 +
+   x4*(-x1 + x2 + x3 - x4 + x5 + x6);
+
+  double del2 = x1*x4 - x3*x4 - x2*x5 - x1*x6 + 
+    x3*x6 + x5*(x1 - x2 + x3 + x4 - x5 + x6);
+
+  double del3 = x1*x4 - x2*x4 - x1*x5 + x2*x5 - 
+    x3*x6 + (x1 + x2 - x3 + x4 + x5 - x6)*x6;
+
+  double Pdel = del1 * chain;
+
+  double Ldel = Pdel/del;
+  show(n4,"n4"); show(n5,"n5"); show(n6,"n6");
+  show(Dn4,"Dn4"); show(del,"del"); show(del1,"del1"); show(del2,"del2"); 
+  show(del3,"del3"); show(Pdel,"Pdel"); show(Ldel,"Ldel");
+
+  double sd4 = 4.0*x1*del;
+  double sd5 = 4.0*x2*del;
+  double sd6 = 4.0*x3*del;
+
+  double Dsd4 = 4.0*del + 4.0*x1*del1;
+
+  double m4diff = 2.0*Dn4*sd4 - n4* Dsd4;
+  double m4 = m4diff*chain*u234*y2*y3;
+  double m5 = -4.0*x2*u234*del3*2.0*x1*u135*y3;
+  double m6 = -4.0*x3*u234*del2*2.0*x1*u126*y2;
+
+  double const1 = sol_y(2,2,2,2,2,2)/pi();
+  double rhoy1 = rho(y1);
+  double rhoy2 = rho(y2);
+  double rhoy3 = rho(y3);
+  double Prhoy1 = c1()/(0.52);
+
+  show(sd4,"sd4"); show(sd5,"sd5"); show(sd6,"sd6");
+  show(Dsd4,"Dsd4"); show(m4diff,"m4diff"); show(m4,"m4");
+  show (m5,"m5"); show(m6,"m6"); show(const1,"const1"); show(rhoy1,"rhoy1");
+  show(rhoy2,"rhoy2"); show(rhoy3,"rhoy3"); show(Prhoy1,"Prhoy1");
+
+  double rr = rhoy1 * m4 + rhoy2 * m5 + rhoy3 * m6;
+  // no changes in code up to here.
+
+  // start variation in code here.
+  double D2n4 = 2.0;
+  double D2sd4 = -8*x1*x4 + 8*(-(x1*x4) + x2*x5 - x3*x5 - x2*x6 + x3*x6 + 
+			       x4*(-x1 + x2 + x3 - x4 + x5 + x6));
+  double Dm4diff = 2.0 * D2n4 * sd4 + Dn4 * Dsd4 - n4 *D2sd4;
+  double Pm4 = (Dm4diff * chain2 + m4diff * Pchain ) * u234 * y2 * y3;
+  double Ddel3 = x4 - x5 + x6;
+  double Ddel2 = x4 + x5 - x6;
+  double Pm5 =  (Ddel3 * x1 * u135 + del3 * 1.0 * u135 + del3 * x1 * du135) * 
+    chain * (-4.0 * x2 * u234 * 2.0 * y3);
+  double Pm6 = (Ddel2 * x1 * u126 + del2 * 1.0 * u126 + del2 * x1 * du126) *
+    chain * (-4.0 * x3 * u234 * 2.0 * y2);
+
+  double PrrC = 2.0 * Prhoy1 * m4 + rhoy1 * Pm4 + rhoy2 * Pm5 + rhoy3 * Pm6;
+  double P2tauNum = (PrrC) + (-Luf - 0.5 * Ldel) * rr;
+  double P2tau = P2tauNum/ (uf * safesqrt(del));
+
+  show(Pm4,"Pm4"); show(Pm5,"Pm5"); show(Pm6,"Pm6"); show(PrrC,"Prrc");
+  show(P2tauNum,"P2taunum"); show(P2tau,"P2tau");
+
+  return P2tau;
+}

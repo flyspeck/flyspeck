@@ -331,6 +331,10 @@ static interval umatan(const interval& x) {
   }
 }
 
+const interval univariate::matan(const interval& x) {
+  return umatan(x);
+}
+
 static interval Dmatan(const interval& x) {
   // (2*x + 2*x^2)^(-1) - ArcTan[Sqrt[x]]/(2*x^(3/2)) 
 	static const interval one("1");

@@ -363,6 +363,7 @@ class taylorSimplex
 	  num1,num2,num_combo1,
 	  rat1,rat2,den2,
 	  edge_flat2_x,
+	  edge_flat_x,
 	  flat_term_x,
 	  taum_x,
 	  halfbump_x1, halfbump_x4;
@@ -454,11 +455,10 @@ class taylorSimplex
 
 	  // may 2011:
 	  tau_lowform_x,
+	  tau_residual_x,
 	  delta_y_LC,
 	  mdtau_y_LC,
-	  mdtau2_y_LC
-
-	  
+	  mdtau2_y_LC	  
 	  ;
 
 	// construct x1^n1 .. x6^n6;
@@ -516,6 +516,12 @@ class taylorSimplex
 	static const taylorFunction /* taylorSimplex:: */ lindih(const interval& theta);
 
 	static const taylorFunction /* taylorSimplex:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
+
+	static const taylorFunction /* taylorSimplex:: */ taum_sub1_x(const interval& x1s);
+
+	static const taylorFunction /* taylorSimplex:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
+
+	static const taylorFunction /* taylorSimplex:: */ taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s);
 
 
 };

@@ -112,44 +112,6 @@ public:
     int set298;
     
     //////////
-    // 
-    //
-    //void setRecursionDepth(int rd) { recursionDepth=rd; }
-    
-    //////////
-    // This only has an effect if it is positive.
-    //
-    //int getRecursionDepth() const { return recursionDepth; }
-    
-    //////////
-    // quit after so many tries.
-    //void setIterationLimit(int lim) { iterationLimit=lim; }
-    
-    //////////
-    // 
-    //int getIterationLimit() const { return iterationLimit; }
-    
-    //////////
-    // 
-    //void resetIterationCount() { iterationCount=0; }
-    
-    //////////
-    //
-    //int getIterationCount() const { return iterationCount; }
-    
-    //////////
-    //
-    //void augmentIterationCount() { iterationCount++; }
-
-    //////////
-    //
-    //void setPrintMode(X u) { printingMode = u; }
-    
-    //////////
-    //
-    //X getPrintMode() { return printingMode; }
-    
-    //////////
     //
     cellOption() {  
       iterationCount=0;

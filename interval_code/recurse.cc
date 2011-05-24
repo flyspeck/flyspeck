@@ -28,7 +28,7 @@ extern "C"
 #include "../cfsqp/2065952723A.h"   // custom cases.
 using namespace std;
 
-static const int MAXcount = 7; // MAX number of taylorFunctions in an array.
+static const int MAXcount = 9; // MAX number of taylorFunctions in an array.
 
 static const int DIM6 = 6; // number of variables in inequalities.  This is not resettable.
 /*

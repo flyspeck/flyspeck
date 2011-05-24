@@ -447,7 +447,7 @@ Runs with 24K cases. All still good.
 
 Retested 2011-05-15 on hex cases, using 0.6 instead of 0.7578=tameTableD[6,0].
 All still good.  (But a change in the tameTable would create more tame graphs,
-and this hasn't been checked.)
+and this didn't terminate in reasonable time.)
 
 *)
 

@@ -6,17 +6,12 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*hol-may20*")
-(setq hol-light-interactive-buffer-name "*f15*")
 
 ; thackmac
-(setq hol-light-interactive-buffer-name "*j25*")
-(setq hol-light-interactive-buffer-name "*206A*")
 
 (print hol-light-interactive-buffer-name)
 
-
 (hol-light-interactive-get-old-input)
-
 
 ; process control 
 (signal-process 6592 9)
@@ -47,7 +42,6 @@
 ; C-5, to switch to shells
 (global-set-key [(control 5)]
   (lambda () (interactive) (switch-to-buffer "*search*")))
-
 
 ;(remove-hook 'comint-output-filter-functions
 ;          'comint-truncate-buffer)

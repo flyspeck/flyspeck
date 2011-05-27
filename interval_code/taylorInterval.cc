@@ -671,6 +671,7 @@ static lineInterval sqrt(lineInterval a)
   static const interval one("1");
   static const interval two("2");
   temp.f = interMath::sqrt(a.f);
+  if (! interMath::boundedFromZero(temp.f)) { throw unstable::x; }
   interval rs = one/(two*temp.f);
   int i;
   for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];

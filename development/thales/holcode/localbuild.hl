@@ -34,7 +34,7 @@ build_and_report();;
 (* RUNNING LINEAR PROGRAMS, see build_lp.hl.  *)
 
 (* START NONLINEAR INEQS *)
-(* reneeds "nonlinear/ineqdata3q1h.hl";; *)
+(* reneeds "nonlinear/ineqdata3q1h.hl";;  *)
 (* reneeds "nonlinear/strongdodec_ineq.hl";; *)
 
 
@@ -47,8 +47,6 @@ reneeds "nonlinear/tame_table_ineq.hl";;
 reneeds "nonlinear/parse_ineq.hl";;
 reneeds "nonlinear/optimize.hl";;
 
-let maybe i = (mem Tame_table_d i.tags);;
-let maybes = Parse_ineq.nub (map (fun t -> t.idv) (filter maybe (!Ineq.ineqs)));;
 
 let all_cases = 
   Parse_ineq.nub (map (fun t -> t.idv) (!Ineq.ineqs));;
@@ -58,9 +56,10 @@ let finished_cases =
   let split_sp=  Str.split (Str.regexp "\n") in
   let p = process_to_string ("cat "^flyspeck_dir
 			      ^"/../interval_code/qed_log.txt   "
-			     ^"| sed  's/^.*ineq./\"/' " 
+			     ^"| sed 's!^//.*$!!'"
+			     ^"| sed  's/^.*ineq(/\"/' " 
                              ^"| sed 's/., secs.*$/\";/'   "
-			     ^"| sed 's/ split.*$//g' " 
+			     ^"| sed 's/ split(.*$//g' " 
                              ^"| sed 's/\"//g' "
 			     ^" | sed 's/;//g' ") in
     Parse_ineq.nub (split_sp p);;
@@ -107,19 +106,24 @@ let view nth = hd (Ineq.getexact (List.nth !testids nth));;
 strip_idq(view 0);;
 view 1;;
 
-(* nub (map (fun t -> t.idv) (Ineq.getprefix "6941549865"));; *)
+let expand_string = map (fun t->t.idv) o Ineq.getprefix;;
 
-let thackmac=["QITNPEA 5653753305"; (* no longer generates *)];;
+let special_concerns = [
+  "2065952723 A1"; (* requires special code *)
+   ] @ expand_string  "ZTGIJCF23" (* slow *);;
 
-let malt = [ "QITNPEA 4003532128 b sym"; ];;
+let nocompile =
+  [
+    "5556646409"; "4322269127"; (* mdtau_y_LC not defined *)
+    "9563139965D"; (* derived *)
+] ;;
 
-testids:= List.rev ( (subtract (intersect maybes unfinished_cases)  (ignore)));;
-testids:=ignore;;
-testids:=thackmac;;
+let night = [];;
+
+let malt = [];;
+
 testids:=   malt;;
 
-let mm = (intersect maybes unfinished_cases);;
-maybes;;
 !testids;;
 
 (* running one id *)
@@ -137,7 +141,7 @@ let (id,tags,case) =
   let ls = Optimize.get_split idq in
    if (ls=[]) then (s,tags,ineq) else
      let cases = Optimize.split_all_h0 [(ineq,ls)] in 
-       (s^" case0",tags,hd cases);;
+       (s^" case-",tags,List.nth cases 1);;
 
 g (mk_imp (`NONLIN`,case));;
 e(PRELIM_TAC);;
@@ -156,8 +160,6 @@ let cfsqp t = Parse_ineq.execute_cfsqp (hd(Ineq.getexact t));;
 cfsqp (hd !testids);;
 cfsqp "3862621143 a";
 map cfsqp !testids;;
-map Parse_ineq.execute_cfsqp (map (hd o Ineq.getexact) maybes);;
-
 
 (* Parse_ineq.trialcount:= 500;; *)
 
@@ -188,6 +190,17 @@ map (testsplit_report true) ( !testids);;
 
 (* Timing *)
 
+let rec finalize = function (* use time from most recent verification *)
+  | [] -> []
+  | (x,t)::vs -> if (exists (fun (x',_) -> (x'=x)) vs) then finalize vs
+    else  (x,t)::(finalize vs);;
+
+let total r = 
+  let rr = map snd r in
+    end_itlist (+) rr;;
+
+let hour r = float_of_int r /. (60.0 *. 60.0);;
+
 let finished_times,finished_rejects = 
   let split_sp = Str.split (Str.regexp "\n") in
   let split_semi = Str.split (Str.regexp ";") in
@@ -203,24 +216,36 @@ let finished_times,finished_rejects =
 		 (map split_semi (split_sp p)) in
      (map int_s accept,Parse_ineq.nub rejects);;
 
-let rec finalize = function (* use time from most recent verification *)
-  | [] -> []
-  | (x,t)::vs -> if (exists (fun (x',_) -> (x'=x)) vs) then finalize vs
-    else  (x,t)::(finalize vs);;
-
 let times =   
   let ft = finalize finished_times in
   let split = Str.split(Str.regexp " +split") in
   let fti = filter (fun (x,_) -> mem (hd (split x)) all_cases) ft in
     sort (fun (_,y) (_,y') -> (y>y')) fti;;
 
-let total r = 
-  let rr = map snd r in
-    end_itlist (+) rr;;
-
-let hour r = float_of_int r /. (60.0 *. 60.0);;
-
 hour (total times);;
 
-(filter (fun (_,t) -> t>2500) times);;
+filter (fun (_,t) -> t>300) times;;
+
+
+(* splits, test for missing cases, -- none found! may 27, 2011 *)
+
+let case_splits ls = 
+  let split = Str.split(Str.regexp " +split") in
+  let ss = map split ls in
+  let ss2 = filter (fun t-> List.length t  = 2) ss in
+  let pair bs = (List.nth bs 0,List.nth bs 1) in
+  let nodigit = Str.split(Str.regexp "[^0-9]") in
+  let digitize s =  map int_of_string (nodigit s) in
+  let f  = function      | b::bs  -> 	(b,pair (unions (map digitize bs)))
+    | _ -> failwith "case_splits" in
+    map f ss2;;
+
+let rec unify_splits = function
+  | [] -> []
+  | (s,(_,t)):: _ as ys -> let (st,xs') = partition (fun (s',(_,t')) -> (s'=s & t'=t)) ys in
+       (s,Parse_ineq.nub (map (fun (_,(r',_ )) -> r') st),t) ::unify_splits xs';;
+
+  let vv = unify_splits (case_splits (map fst finished_times));;
+  
+filter (fun (_,ls,r) -> not ((0--(r-1)) = sort (<) ls)) vv;;
 

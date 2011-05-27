@@ -109,7 +109,7 @@ public:
     int strategy206A;
 
     // special code for the case 2986512815.
-    int set298;
+    // int set298; // deprecated
     
     //////////
     //
@@ -141,7 +141,7 @@ public:
       onlyCheckDeriv1Negative=0;
   
       strategy206A=0;
-      set298=0;
+      //set298=0;
     }
     
 };
@@ -211,7 +211,7 @@ static int recursiveVerifierQ(int depth,
 	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,
 	cellOption& options);
 
- static int f298();
+// static int f298();
 
 
 };

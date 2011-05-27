@@ -505,6 +505,7 @@ lineInterval linearization::dih(const domain& x)
 	t.Df[0]=four;
 	lineInterval b2 = linearization::delta(x)*t;
 	lineInterval b = sqrt(b2);
+	if (! interMath::boundedFromZero(b.f)) { throw unstable::x; };
 	return p + atan(ax,b);
 	}
 

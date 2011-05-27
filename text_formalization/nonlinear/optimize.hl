@@ -327,11 +327,12 @@ let rec delta135max = function
     | Delta135max t :: _ -> t
     | _ :: a -> delta135max a;;
 
+(* deprecated.
 let rec set298 = function
     | [] -> false
     | Set298 :: _ -> true
     | _ :: a -> set298 a;;
-
+*)
 
 let cpp_template_gen = Printf.sprintf "
  char* svn = %s;
@@ -351,7 +352,7 @@ let cpp_template_gen = Printf.sprintf "
         opt.allowSharp = %d; // sharp
         opt.onlyCheckDeriv1Negative = %d; // checkderiv
         %s // other options.
-	return (opt.set298 ? prove::f298() : prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt)); // len
+	return  prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt); // len
 	}";;
 
 let mk_cpp_proc t s tags = 
@@ -369,9 +370,9 @@ let mk_cpp_proc t s tags =
   let d135max = delta135max tags in
   let s135max = if (d135max > -1.0) then Printf.sprintf "\topt.delta135Max = %8.16f;\n" d135max else "" in
   let s206A = if (s="2065952723 A1" ) then Printf.sprintf "\topt.strategy206A=1;\n" else "" in
-  let s298 = if (set298 tags) then Printf.sprintf "\topt.set298=1;\n" else "" in
+  (* let s298 = if (set298 tags) then Printf.sprintf "\topt.set298=1;\n" else "" in , deprecated *)
   let disallowderiv = if  mem Disallow_derivatives tags then "\topt.allowDerivatives=0;\n" else "" in    
-  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ sWidth ^ s206A ^ s298^disallowderiv in
+  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ sWidth ^ s206A ^ disallowderiv in
   let c = map cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
   let (aas,bbs,iis) = f (dest_nonlin t) in
@@ -1076,7 +1077,8 @@ let macro_expand = (
    (* Oct 20: Sphere.vol3f; *) Sphere.vol3r;Sphere.vol2f;Sphere.gamma4f;
    Sphere.gamma3f;  GSYM Parse_ineq.quadratic_root_plus_curry;
    REAL_MUL_LZERO;
-   REAL_MUL_RZERO;FST;SND;Sphere.pathL;Sphere.pathR;
+   REAL_MUL_RZERO;FST;SND;
+   (* Sphere.pathL;Sphere.pathR;  -- removed May 24, 2011. for ineqdata cases to work. *)
    Sphere.node2_y;Sphere.node3_y] @ (!Ineq.dart_classes));;
 
 
@@ -1097,19 +1099,24 @@ let BRANCH_TAC = EVERY[
   REPEAT DISCH_TAC;
   ASSUM_LIST (let rec r = function | [] -> ALL_TAC | th::ths -> (MP_TAC (REPEAT_RULE (OR_RULE (MATCH_MP pathL_bound) (MATCH_MP pathR_bound)) th)) THEN r ths in r);
   REWRITE_TAC[];
-  SIMP_TAC[gcy_low;gcy_low_const;gcy_low_hminus;gcy_high;gcy_high_hplus;
-                   h0_lt_gt;
-                   lmdih3_ldih3;lmdih5_ldih5;lmdih_ldih;lmdih5_0;lmdih3_0;lmdih0;
-                   (* Oct 28, 2010:*) vol3f_lm0;vol3f_lmln;
+  SIMP_TAC[c2001;
+	   gcy_low;gcy_low_const;gcy_low_hminus;gcy_high;gcy_high_hplus;
+           h0_lt_gt;
+           lmdih3_ldih3;lmdih5_ldih5;lmdih_ldih;lmdih5_0;lmdih3_0;lmdih0;
+           (* Oct 28, 2010:*) vol3f_lm0;vol3f_lmln;
            (* nov23 *) lmfun0;lmfun_lfun;hm0;
 	   gamma3f_vLR0_case;gamma3f_vLR_lfun_case;
 	   gamma3f_vL0_case;gamma3f_vL_lfun_case;
 	   gamma3f_v0_case;gamma3f_v_lfun_case;
-          (* dec 29 *) gamma3f_vL_nlfun_case;gamma3f_vL_n0_case;
+           (* dec 29 *) gamma3f_vL_nlfun_case;gamma3f_vL_n0_case;
          gamma3f_vLR_n0_case;gamma3f_vLR_nlfun_case;
-        lmdih_ldih_n;lmdih2_ldih2_n;lmdih3_ldih3_n;
-	lmdih5_ldih5_n;lmdih6_ldih6_n;
-	lmdih_n0;lmdih2_n0;lmdih3_n0;lmdih5_n0;lmdih6_n0;
+         lmdih_ldih_n;lmdih2_ldih2_n;lmdih3_ldih3_n;
+	 lmdih5_ldih5_n;lmdih6_ldih6_n;
+	 lmdih_n0;lmdih2_n0;lmdih3_n0;lmdih5_n0;lmdih6_n0;
+	 (* may 26, 2011. macro_expand was moved to prelim tac, 
+	    so additional simps are needed. *)
+	 lmdih1_0';lmdih3_0';lmdih5_0';
+	 lmdih_ldih';lmdih3_ldih3';lmdih5_ldih5';
    ];
   SIMP_TAC[lmfun_lfun;lmfun0];
   REWRITE_TAC[REAL_ARITH `&0 * x = &0 /\ &0 + x = x`];
@@ -1119,6 +1126,7 @@ let BRANCH_TAC = EVERY[
   DISCH_TAC;
   EVERY (map SPEC_TAC [(`y6:real`,`y6:real`);(`y5:real`,`y5:real`);(`y4:real`,`y4:real`);(`y3:real`,`y3:real`);(`y2:real`,`y2:real`);(`y1:real`,`y1:real`)]);
   POP_ASSUM MP_TAC;
+  REWRITE_TAC[Sphere.pathL;Sphere.pathR]; (*  moved May 24, 2011 *)
 ]
 ;;
 
@@ -1160,42 +1168,7 @@ let SERIES3Q1H_5D_TAC =
  (REPEAT (POP_ASSUM MP_TAC)) THEN
  (REWRITE_TAC[GSYM ineq_expand6]);;
 
-
-let xspec = SPECL [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
-
-let X_OF_Y_DEF =  [REAL_ARITH `&2 = #2.0`;
- GSYM mardih_x;GSYM mardih2_x;GSYM mardih3_x;
- GSYM mardih4_x;GSYM mardih5_x;GSYM mardih6_x;beta_bump_force_x;
- GSYM Sphere.gchi1_x;GSYM Sphere.gchi2_x;GSYM Sphere.gchi3_x;GSYM Sphere.gchi4_x;GSYM Sphere.gchi5_x;GSYM Sphere.gchi6_x;
- GSYM Sphere.taum_x1_x2;GSYM Sphere.taum_x1;GSYM Sphere.taum_x2;
- GSYM Sphere.arclength_x1;GSYM Sphere.arclength_x2;GSYM Sphere.surf_x;
- GSYM Sphere.ldih_x;GSYM Sphere.ldih2_x;GSYM Sphere.ldih3_x;GSYM Sphere.ldih6_x;
- GSYM Sphere.surfR126d;GSYM Enclosed.quad_cross_diag2_x;tauq_x_y;];;
-
-
-let FROZEN_REWR =(map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
-    (GSYM dih_x_126_s2); (GSYM dih2_x_126_s2);
-    GSYM dih3_x_126_s2; GSYM dih4_x_126_s2; GSYM dih5_x_126_s2; GSYM dih6_x_126_s2;
-    GSYM ldih_x_126_s2; GSYM ldih2_x_126_s2;GSYM ldih6_x_126_s2;
-    (GSYM dih_x_135_s2); (GSYM dih2_x_135_s2);
-    GSYM dih3_x_135_s2; GSYM dih4_x_135_s2; GSYM dih5_x_135_s2; GSYM dih6_x_135_s2;
-    GSYM ldih_x_135_s2; GSYM ldih3_x_135_s2;GSYM ldih5_x_135_s2;
-    GSYM delta_x_126_s2;GSYM delta_x_135_s2;
-    GSYM vol3_x_135_s2;
-    GSYM gamma3f_x_vLR_lfun;GSYM gamma3f_x_vLR0;
-    GSYM gamma3f_x_v_lfun;GSYM gamma3f_x_v0;
-    GSYM gamma3f_x_vL_lfun;GSYM gamma3f_x_vL0;
-    GSYM gamma3f_vLR_x_nlfun;     GSYM gamma3f_vL_x_nlfun; 
-    GSYM gamma3f_vLR_x_n0;     GSYM gamma3f_vL_x_n0; 
-    GSYM gamma3f_135_x_s_n; GSYM gamma3f_126_x_s_n;
-    GSYM ldih_x_126_n;     GSYM ldih2_x_126_n;     GSYM ldih6_x_126_n; 
-    GSYM ldih_x_135_n;GSYM ldih3_x_135_n;GSYM ldih5_x_135_n;
-    GSYM arclength_x_234;
-    GSYM arclength_x_126;
-    ] ) @ [delta_top_x_alt];;
-
-
-let VAR_ORDER_SQRT = 
+let X_SQRT_COMPOUND_ORDER = 
 [`norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
      norm2hh_x x1 x2 x3 x4 x5 x6 `;  
 `rad2_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
@@ -1232,6 +1205,8 @@ let VAR_ORDER_SQRT =
    vol3f_x_sqrt2_lmplus x1 x2 x3 x4 x5 x6`;
  ];;
 
+
+
   let SQRT_SQRT_TAC = 
 EVERY[
   REPEAT DISCH_TAC;
@@ -1240,13 +1215,56 @@ EVERY[
   DISCH_TAC;
 ];;
 
-  let VAR_ORDER_SQRT_TAC:tactic = 
+  let X_SQRT_COMPOUND_ORDER_TAC:tactic = 
     fun (asl,a) ->
       let fr = frees a in
-      let vos = filter (fun t -> subset (frees t) fr ) VAR_ORDER_SQRT  in
-    let VAR_ORDER_SQRT_FIL = list_mk_conj vos in
-  (SUBGOAL_THEN  VAR_ORDER_SQRT_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;upper_dih_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) (asl,a)
+      let vos = filter (fun t -> subset (frees t) fr ) X_SQRT_COMPOUND_ORDER  in
+    let X_SQRT_COMPOUND_ORDER_FIL = list_mk_conj vos in
+  (SUBGOAL_THEN  X_SQRT_COMPOUND_ORDER_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;upper_dih_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) (asl,a)
 ;;
+
+
+let X_FROZEN_COMPOUND =(map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
+ (GSYM dih_x_126_s2); (GSYM dih2_x_126_s2);
+ GSYM dih3_x_126_s2; GSYM dih4_x_126_s2; 
+ GSYM dih5_x_126_s2; GSYM dih6_x_126_s2;
+ GSYM ldih_x_126_s2; GSYM ldih2_x_126_s2;GSYM ldih6_x_126_s2;
+ (GSYM dih_x_135_s2); (GSYM dih2_x_135_s2);
+ GSYM dih3_x_135_s2; GSYM dih4_x_135_s2; 
+ GSYM dih5_x_135_s2; GSYM dih6_x_135_s2;
+ GSYM ldih_x_135_s2; GSYM ldih3_x_135_s2;GSYM ldih5_x_135_s2;
+ GSYM delta_x_126_s2;GSYM delta_x_135_s2;
+ GSYM vol3_x_135_s2;
+ GSYM gamma3f_x_vLR_lfun;GSYM gamma3f_x_vLR0;
+ GSYM gamma3f_x_v_lfun;GSYM gamma3f_x_v0;
+ GSYM gamma3f_x_vL_lfun;GSYM gamma3f_x_vL0;
+ GSYM gamma3f_vLR_x_nlfun;     GSYM gamma3f_vL_x_nlfun; 
+ GSYM gamma3f_vLR_x_n0;     GSYM gamma3f_vL_x_n0; 
+ GSYM gamma3f_135_x_s_n; GSYM gamma3f_126_x_s_n;
+ GSYM ldih_x_126_n;     GSYM ldih2_x_126_n;     GSYM ldih6_x_126_n; 
+ GSYM ldih_x_135_n;GSYM ldih3_x_135_n;GSYM ldih5_x_135_n;
+ GSYM arclength_x_234;
+ GSYM arclength_x_126;
+ ] ) @ [delta_top_x_alt];;
+
+
+let xspec = SPECL [`x1:real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`];;
+let decimal = REWRITE_RULE [REAL_ARITH `&2 = #2.0`];;
+
+let X_COMPOUND_DEF =  [REAL_ARITH `&2 = #2.0`;
+ GSYM mardih_x;GSYM mardih2_x;GSYM mardih3_x;
+ GSYM mardih4_x;GSYM mardih5_x;GSYM mardih6_x;beta_bump_force_x;
+ GSYM Sphere.gchi1_x;GSYM Sphere.gchi2_x;
+ GSYM Sphere.gchi3_x;GSYM Sphere.gchi4_x;
+ GSYM Sphere.gchi5_x;GSYM Sphere.gchi6_x;
+ GSYM Sphere.taum_x1_x2;GSYM Sphere.taum_x1;GSYM Sphere.taum_x2;
+ GSYM Sphere.arclength_x1;GSYM Sphere.arclength_x2;GSYM Sphere.surf_x;
+ GSYM Sphere.surfR126d;GSYM Enclosed.quad_cross_diag2_x;
+ tauq_x_y;] @ 
+  map decimal [
+ GSYM Sphere.ldih_x;GSYM Sphere.ldih2_x;
+ GSYM Sphere.ldih3_x;GSYM Sphere.ldih6_x;
+  ];;
 
 let X_OF_Y_TAC = 
   (
@@ -1264,17 +1282,18 @@ let X_OF_Y_TAC =
   (REWRITE_TAC[ineq]) THEN
   (SQRT_SQRT_TAC) THEN
 (*    SIMP_TAC[sq_pow2] THEN *)
-  (REPEAT DISCH_TAC) THEN
-    VAR_ORDER_SQRT_TAC THEN
-   FROZEN_REWRITE_TAC FROZEN_REWR THEN 
-  REWRITE_TAC X_OF_Y_DEF THEN
-  (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
-  (REWRITE_TAC[GSYM ineq_expand9]) THEN
-  (REWRITE_TAC[GSYM ineq_expand6]) THEN
-  (REWRITE_TAC[REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)`;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
-  ALL_TAC);;
-
-
+    (REPEAT DISCH_TAC) THEN
+    (* remove x variable compound *)
+    X_SQRT_COMPOUND_ORDER_TAC THEN
+    FROZEN_REWRITE_TAC X_FROZEN_COMPOUND THEN 
+    REWRITE_TAC X_COMPOUND_DEF THEN
+    (* repackage *)
+    (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+    (REWRITE_TAC[GSYM ineq_expand9]) THEN
+    (REWRITE_TAC[GSYM ineq_expand6]) THEN
+    (REWRITE_TAC[REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)`;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
+  ALL_TAC
+  );;
 
 let EXPAND_lfun = 
   (SUBGOAL_THEN `lfun x1 = (#1.26 - proj_x1  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))/(#0.26)` (fun t-> REWRITE_TAC[t])) THENL [
@@ -1412,7 +1431,7 @@ let strip_idq idq = (idq.idv,idq.tags,strip_let_tm idq.ineq);;
 
 let is_xconvert tags = mem Xconvert tags;;
 
-let is_branch tags = mem Tprep tags;;
+let is_branch tags = mem Branch tags;;
 
 let process_and_exec ex (s,tags,case) = 
   let _ = report ("process and exec: "^s) in

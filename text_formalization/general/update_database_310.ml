@@ -172,11 +172,12 @@ let eval n =
   Obj.magic (Toploop.getvalue "buf__");;
 
 (* Register all theorems added since the last update. *)
+let thm_hashtable = Hashtbl.create 5000;;
 
 let update_database =
   let lastStamp = ref 0
   and currentStamp = ref 0
-  and thms = Hashtbl.create 5000 in
+  and thms = thm_hashtable (* Hashtbl.create 5000 *) in
 
   let ifNew f i x =
     if i.stamp > !lastStamp then
@@ -214,10 +215,13 @@ let update_database =
 let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
 
 (* very rough measure of the size of a printed term *)
-let rec term_length tm = match tm with
+let rec term_length = 
+  let n = `NUMERAL` in
+  let d = `DECIMAL` in
+  function 
   | Abs(s,x) -> 1 + term_length x
-  | Comb(s,x) -> if ((s = `NUMERAL`) or (s = `DECIMAL`)) then 2
-    else ( (term_length s) + term_length x)
+  | Comb(s,x) -> if ((s = n) or (s = d)) then 2
+    else ( term_length s + term_length x)
   | _ -> 1;;
 
 let sortlength_thml thml =  

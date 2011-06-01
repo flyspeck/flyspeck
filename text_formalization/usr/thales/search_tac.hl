@@ -3,7 +3,7 @@
 
 module Searching = struct
 
-(* Bugged: doesn't close process. Use process_to_string in strictbuild.hl//
+(* Old fixed bug: doesn't close process. Use process_to_string in strictbuild.hl//
 let process_to_string unixstring = 
   let p = Unix.open_process_in unixstring
   and b = Buffer.create 64 in
@@ -14,15 +14,29 @@ let process_to_string unixstring =
 let hollight_dir = 
   (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
 
+(* hol-light help path *)
+
 let helpdirs = ref [
   Filename.concat flyspeck_dir "../help";
   Filename.concat hollight_dir "Help"
  ];;
 
-let help_h = ref [];;
+help_path := !helpdirs @ (!help_path);; (* hol-light help *)
+
+let thm_of_string = Hashtbl.find thm_hashtable;;
+(* EXAMPLE thm_of_string "TRUTH" returns |- T *)
+
+(* MATCHES a substring of theorem name starting at position 0 *)
+let thm_of_pat s = 
+  let pat = Str.regexp s in
+    filter (fun (s,_) -> Str.string_match pat s 0) (!theorems);;
+(* EXAMPLE  
+thm_of_pat "COMPLEX.*CHAIN$" returns ("COMPLEX_DERIVATIVE_CHAIN",...) 
+*)
+
+(* let help_h = ref [];; *)
 let help_grep_h = ref[];;
 let search_h = ref[];;
-
 
 let update i h = (h:= i:: !h);;
 let history n h = fst(chop_list n h);;
@@ -32,6 +46,14 @@ let help_grep pat =
   let split =   Str.split (Str.regexp "\n") in
   let cmd s = process_to_string ("(cd "  ^s^  "; ls | sed 's/.doc$//g' | grep '" ^pat^ "')") in
   List.flatten (map ( split o cmd ) (!helpdirs));;
+
+let help_grep_flags pat flags = 
+  let _ = update pat help_grep_h in
+  let split =   Str.split (Str.regexp "\n") in
+  let cmd s = process_to_string ("(cd "  ^s^  "; ls | sed 's/.doc$//g' | grep -"^flags^" '" ^pat^ "')") in
+  List.flatten (map ( split o cmd ) (!helpdirs));;
+
+help_grep_flags "r.*w" "i";;
 
 (*  
 Example:
@@ -44,12 +66,34 @@ help_grep "_TAC$";;
 List.length (help_grep ".*");;
 *)
 
+(*
+let search_limit = ref 100;;
+
+let sortlength_thml term_length_limit  thml =  
+  let lthml = map
+   (function (s,t) as r -> (term_length (concl t),r)) thml in
+  let f = filter (fun (s,_) -> (s < term_length_limit)) lthml in
+  let stml = List.sort (fun (a,_) (b,_) -> (a-b)) f in
+    (* map snd *) stml;;
+
+let sortlength_thml tm_length nkeep thml = 
+  let tmls  = map (term_length o concl o snd) thml in
+  let ts = filter ((>) tm_length) tmls in 
+  let ss = List.sort (-) ts in 
+  let n = List.nth ss nkeep in
+   filter (fun t -> term_length (concl (snd t)) <= n) thml;;
+
+*)
+
 let searcht n pat = 
   let raw = search pat in
-  let _ =  (List.length raw <= 100) or failwith "over 100 matches" in
+  let len = List.length raw in
+(*  let _ =  (len <= !search_limit) or 
+    failwith (string_of_int len^" matches, reset Searching.search_limit") in *)
   let m = min n (List.length raw) in
   let s = sortlength_thml raw in
     fst (chop_list m s);;
+
   
 
 (* searching for relevant tactics *)

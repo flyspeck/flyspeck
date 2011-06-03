@@ -2134,6 +2134,159 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     return d;
   }
 
+
+  // implement euler_3flat_x
+  /*
+ `euler_3flat_x x1 x2 x3 x4 x5 x6 = 
+let x5r = edge_flat2_x x5 x1 x3 (&0)    (&4) (&4) in
+let x6r = edge_flat2_x x6 x1 x2 (&0)    (&4) (&4) in
+let x4r = edge_flat2_x x4 x2 x3 (&0)    (&4) (&4) in
+  (eulerA_x x1 x2 x3 x4r x5r x6r)`
+   */
+  const taylorFunction euler_3flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x4r = taylorFunction::compose(
+						 edge_flat2_x,x4,x2,x3,uz,u4,u4);
+    static taylorFunction x5r = taylorFunction::compose(
+						 edge_flat2_x,x5,x1,x3,uz,u4,u4);
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    taylorFunction d = taylorFunction::compose(eulerA_x,
+						   x1,x2,x3,x4r,x5r,x6r);
+    return d;
+  };
+
+
+  // implement euler_2flat_x
+  /*
+`euler_2flat_x x1 x2 x3 x4 x5 x6 =
+let x5r = edge_flat2_x x5 x1 x3 (&0)    (&4) (&4) in
+let x6r = edge_flat2_x x6 x1 x2 (&0)    (&4) (&4) in
+  (eulerA_x x1 x2 x3 x4 x5r x6r)`;;
+   */
+  const taylorFunction euler_2flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x5r = taylorFunction::compose(
+						 edge_flat2_x,x5,x1,x3,uz,u4,u4);
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    taylorFunction d = taylorFunction::compose(eulerA_x,
+						   x1,x2,x3,x4,x5r,x6r);
+    return d;
+  };
+
+
+  // implement euler_1flat_x
+  /*
+
+let euler_1flat_x = new_definition
+  `euler_1flat_x x1 x2 x3 x4 x5 x6 = 
+let x6r = edge_flat2_x x6 x1 x2 (&0)    (&4) (&4) in
+  (eulerA_x x1 x2 x3 x4 x5 x6r)`;;
+   */
+  const taylorFunction euler_1flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    taylorFunction d = taylorFunction::compose(eulerA_x,
+						   x1,x2,x3,x4,x5,x6r);
+    return d;
+  };
+
+  //
+
+
+
+  // implement taum_3flat_x
+  /*
+`taum_3flat_x x1 x2 x3 x23 x13 x12 = 
+let x5 = edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) in
+let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
+let x4 = edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) in
+  (taum_x x1 x2 x3 x4 x5 x6  + flat_term_x x12 + flat_term_x x23 + flat_term_x x13)`;
+   */
+  const taylorFunction taum_3flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x4r = taylorFunction::compose(
+						 edge_flat2_x,x4,x2,x3,uz,u4,u4);
+    static taylorFunction x5r = taylorFunction::compose(
+						 edge_flat2_x,x5,x1,x3,uz,u4,u4);
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    static taylorFunction ft_4 = taylorFunction::rotate4(flat_term_x);
+    static taylorFunction ft_5 = taylorFunction::rotate5(flat_term_x);
+    static taylorFunction ft_6 = taylorFunction::rotate6(flat_term_x);
+    taylorFunction d = taylorFunction::compose(taum_x,
+						   x1,x2,x3,x4r,x5r,x6r);
+    taylorFunction e = d + ft_4 + ft_5 + ft_6;
+    return e;
+  };
+
+
+  // implement taum_2flat_x
+  /*
+`taum_2flat_x x1 x2 x3 x4 x13 x12 = 
+let x5 = edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) in
+let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
+  (taum_x x1 x2 x3 x4 x5 x6  + flat_term_x x12 +  flat_term_x x13)`;;
+   */
+  const taylorFunction taum_2flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x5r = taylorFunction::compose(
+						 edge_flat2_x,x5,x1,x3,uz,u4,u4);
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    taylorFunction d = taylorFunction::compose(taum_x,
+						   x1,x2,x3,x4,x5r,x6r);
+    static taylorFunction ft_5 = taylorFunction::rotate5(flat_term_x);
+    static taylorFunction ft_6 = taylorFunction::rotate6(flat_term_x);
+    taylorFunction e = d + ft_5 + ft_6;
+    return e;
+  };
+
+
+  // implement taum_1flat_x
+  /*
+`taum_1flat_x x1 x2 x3 x4 x5 x12 = 
+let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
+  (taum_x x1 x2 x3 x4 x5 x6  + flat_term_x x12)`;;
+   */
+  const taylorFunction taum_1flat_x() 
+  {
+    static const interval zero ("0");
+    static taylorFunction uz = unit * zero;
+    static taylorFunction u4 = unit* four;
+    static taylorFunction x6r = taylorFunction::compose(
+						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
+    taylorFunction d = taylorFunction::compose(taum_x,
+						   x1,x2,x3,x4,x5,x6r);
+    static taylorFunction ft_6 = taylorFunction::rotate6(flat_term_x);
+    taylorFunction e = d +  ft_6;
+    return e;
+  };
+
+  /*
+  `delta_pent_x  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+     delta_x x1 x2 x6 (&4) (&4) (#3.24 pow 2)`;;
+  */
+  static const taylorFunction delta_pent_x = taylorFunction::compose(
+		delta,x1,x2,x6,unit * four,unit*four,unit*"10.4976");
+
   // factor345_hexall_x
   const taylorFunction factor345_hexall_x(const interval& costheta) {
     taylorFunction t = x5 + x3*mone + x4*mone + y3 * y4 * (two * costheta);
@@ -2158,6 +2311,26 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     taylorFunction t = taylorFunction::compose(delta,x1,x2,unit * x3s, unit * x4s, unit *x5s, x6);
     return t;
   }
+
+  // delta_234_x
+  const taylorFunction delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s) {
+    taylorFunction t = taylorFunction::compose(delta,unit * x1s,x2,x3,x4, unit *x5s,unit* x6s);
+    return t;
+  }
+
+  // delta_135_x
+  const taylorFunction delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s) {
+    taylorFunction t = taylorFunction::compose(delta,x1,unit*x2s,x3,unit*x4s,x5,unit* x6s);
+    return t;
+  }
+
+
+  // delta_sub1_x
+  const taylorFunction delta_sub1_x(const interval& x1s) {
+    taylorFunction t = taylorFunction::compose(delta,unit * x1s,x2,x3,x4,x5,x6);
+    return t;
+  }
+
 
   // taum_sub1_x
   const taylorFunction taum_sub1_x(const interval& x1s) {
@@ -2391,6 +2564,13 @@ const taylorFunction taylorSimplex::delta4_squared_x = local::delta4_squared_x;
 
 const taylorFunction taylorSimplex::flat_term_x = local::flat_term_x;
 const taylorFunction taylorSimplex::eulerA_x = local::eulerA_x;
+const taylorFunction taylorSimplex::euler_3flat_x = local::euler_3flat_x();
+const taylorFunction taylorSimplex::euler_2flat_x = local::euler_2flat_x();
+const taylorFunction taylorSimplex::euler_1flat_x = local::euler_1flat_x();
+const taylorFunction taylorSimplex::taum_3flat_x = local::taum_3flat_x();
+const taylorFunction taylorSimplex::taum_2flat_x = local::taum_2flat_x();
+const taylorFunction taylorSimplex::taum_1flat_x = local::taum_1flat_x();
+const taylorFunction taylorSimplex::delta_pent_x = local::delta_pent_x;
 
 const taylorFunction taylorSimplex::lindih(const interval& theta) {
   taylorFunction F = local::lindih(theta);
@@ -2463,10 +2643,23 @@ const taylorFunction taylorSimplex::taum_hexall_x(const interval& x14, const int
   return local::taum_hexall_x(x14,x12,x23);
 };
 
-//const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
-//						 const interval & x5s) {
-//  return local::delta_126_x(x3s,x4s,x5s);
-//};
+const taylorFunction taylorSimplex::delta_126_x(const interval& x3s, const interval& x4s,
+						 const interval & x5s) {
+  return local::delta_126_x(x3s,x4s,x5s);
+};
+
+const taylorFunction taylorSimplex::delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s) {
+  return local::delta_234_x(x1s,x5s,x6s);
+};
+
+const taylorFunction taylorSimplex::delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s) {
+  return local::delta_135_x(x2s,x4s,x6s);
+}
+
+const taylorFunction taylorSimplex::delta_sub1_x(const interval& x1s) {
+  return local::delta_sub1_x(x1s);
+};
+
 
 const taylorFunction taylorSimplex::taum_sub1_x(const interval& x1s) {
   return local::taum_sub1_x(x1s);
@@ -4432,6 +4625,142 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
     }
   }
 
+  /* test euler_3flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= -2.121609865784845;
+    double mathValueD[6]={
+   0.6737084033773958,
+   0.6902589278645416,
+   0.7056477507843881,
+   1.0091748931784064,
+   1.0227533022114286,
+1.0357403437633583};
+    taylorInterval at = taylorSimplex::euler_3flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "euler_3flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "euler_3flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test euler_2flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 5.6594786559641665;
+    double mathValueD[6]={
+   1.6226216377370315,
+   1.6489436803632092,
+   1.6568794951410062,
+   -1.0124228365658292,
+   1.0227533022114286,
+   1.0357403437633583
+};
+    taylorInterval at = taylorSimplex::euler_2flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "euler_2flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "euler_2flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test euler_1flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 13.232326788404254;
+    double mathValueD[6]={
+ 2.609893335624244,
+   2.550473219939409,
+   2.6284065596455224,-1.0124228365658292,
+			  -1.02469507659596,
+1.0357403437633583
+};
+    taylorInterval at = taylorSimplex::euler_1flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "euler_1flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "euler_1flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test taum_3flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.2414954157837754;
+    double mathValueD[6]={
+   -0.2613140942120977,
+   -0.2692548488515125,
+   -0.2766949823571116,
+   -0.24406969240041604,
+   -0.25312961074090523,
+   -0.26174167375093715
+      };
+    taylorInterval at = taylorSimplex::taum_3flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "taum_3flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "taum_3flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test taum_2flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 0.44100012571539665;
+    double mathValueD[6]={
+   -0.027483496321557374,
+   -0.034059014370184104,
+   -0.039499518716381576,
+   0.24119388495382113,
+   0.11325504246946491,
+   0.10504273307028097
+      };
+    taylorInterval at = taylorSimplex::taum_2flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "taum_2flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "taum_2flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test taum_1flat_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= -0.30409206340858125;
+    double mathValueD[6]={
+   -0.012535113352211726,
+   -0.009623703088404816,
+   -0.0649878713945033,
+   0.2528044930489979,
+   0.25286723701958674,
+			 0.40754754381729874
+};
+    taylorInterval at = taylorSimplex::taum_1flat_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "taum_1flat_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "taum_1flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test delta_pent_x */ {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 57.81269350399995;
+    double mathValueD[6]={46.989440000000016,46.4392,0,0,0,
+			  -35.66664576000002};
+    taylorInterval at = taylorSimplex::delta_pent_x.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_pent_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_pent_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
  /* test factor345_hexall_x */ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 1.0196551610235698;
@@ -4460,6 +4789,66 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
     }
   }
 
+ /* test delta_126_x */  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 166.43650000000008;
+    double mathValueD[6]={22.480000000000008,
+			  20.73999999999999,0,0,0,16.199999999999996};
+    taylorInterval at = taylorSimplex::delta_126_x("4.35","4.45","4.55").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_126_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_126_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+    } 
+
+
+ /* test delta_234_x */  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 166.4485000000001;
+    double mathValueD[6]={0,20.74,18.840000000000007,
+			  19.599999999999998,0,0};
+    taylorInterval at = taylorSimplex::delta_234_x("4.15","4.55","4.65").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_234_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_234_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+    } 
+
+
+ /* test delta_135_x */  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 166.44249999999994;
+    double mathValueD[6]={22.480000000000008,0,
+			  18.839999999999993,0,17.979999999999997,0};
+    taylorInterval at = taylorSimplex::delta_135_x("4.25","4.45","4.65").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_135_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_135_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+    } 
+
+
+ /* test delta_sub1_x */  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 175.299000000000;
+    double mathValueD[6]={0,22.869999999999994,21.11,19.19,
+			  20.169999999999995,18.530000000000005};
+    taylorInterval at = taylorSimplex::delta_sub1_x("4.7").evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
+      cout << "delta_sub1_x  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "delta_sub1_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+    } 
+
+
  /* test taum_sub1_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 0.137542519738995;
@@ -4474,6 +4863,7 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
 	cout << "taum_sub1_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
     } 
+
 
  /* test taum_sub246_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);

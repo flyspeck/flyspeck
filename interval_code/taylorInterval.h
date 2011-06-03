@@ -458,7 +458,15 @@ class taylorSimplex
 	  tau_residual_x,
 	  delta_y_LC,
 	  mdtau_y_LC,
-	  mdtau2_y_LC	  
+	  mdtau2_y_LC,
+	  euler_3flat_x,
+	  euler_2flat_x,
+	  euler_1flat_x,
+	  taum_3flat_x,
+	  taum_2flat_x,
+	  taum_1flat_x,
+	  delta_pent_x,
+
 	  ;
 
 	// construct x1^n1 .. x6^n6;
@@ -517,7 +525,13 @@ class taylorSimplex
 
 	static const taylorFunction /* taylorSimplex:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
 
+	static const taylorFunction /* taylorSimplex:: */ delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s);
+
+	static const taylorFunction /* taylorSimplex:: */ delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s);
+
 	static const taylorFunction /* taylorSimplex:: */ taum_sub1_x(const interval& x1s);
+
+	static const taylorFunction /* taylorSimplex:: */ delta_sub1_x(const interval& x1s);
 
 	static const taylorFunction /* taylorSimplex:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
 

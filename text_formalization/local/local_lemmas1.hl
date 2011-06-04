@@ -1,0 +1,1008 @@
+
+
+(* ============================================================= *)
+(* ============================================================= *)
+(* ============================================================= *)
+(* =============================================================
+This file should be loaded after loading the file LOCAL_LEMMAS
+needs "/home/user1/flyspeck/working/local_lemmas1.hl";;
+   ============================================================= *)
+
+
+(* ============================================================== *)
+(* ============================================================== *)
+(* ============================================================== *)
+
+
+open Ldurdpn;;
+open Lvducxu;;
+open Sphere;;
+open Trigonometry1;;
+open Trigonometry2;;
+open Hypermap;;
+open Fan;;
+open Prove_by_refinement;;
+open Wrgcvdr_cizmrrh;;
+open Aff_sgn_tac;;
+open Fan_misc;;
+open Fan_defs;;
+open Planarity;;
+open Topology;;
+open Local_lemmas;;
+
+
+` spherical_coor v0 (e1,e2,e3) v = (dist (v0,v), azim v0 (v0 + e3) (v0 + e1) v, arcV v0 (v0 + e3) v)`;;
+
+let spherical_map = new_definition ` spherical_map (e1,e2,e3) (r,theta, phi) = 
+(r * cos theta * sin phi) % e1 +
+(r * sin theta * sin phi ) % e2 + (r * cos phi) % e3 `;;
+
+let lunar_deform = new_definition ` lunar_deform (e1,e2,e3) t x = 
+(norm x * cos (( &1 - t) * (azim (vec 0) e3 e1 x )) * sin (arcV (vec 0) e3 x)) % e1 +
+(norm x * sin ( ( &1 - t ) * (azim (vec 0) e3 e1 x )) * sin (arcV (vec 0) e3 x)) % e2 +
+(norm x * cos (arcV (vec 0) e3 x )) % e3`;;
+
+
+let LUNAR_DEFORM_PRESERVE_NORM = prove(`orthonormal e1 e2 e3 ==>
+norm (lunar_deform (e1,e2,e3) t x) = norm x `,
+SIMP_TAC[NORM_EQ; lunar_deform; orthonormal; DOT_RADD; DOT_LADD; DOT_RMUL; 
+DOT_LMUL; DOT_SYM; REAL_MUL_RZERO; Collect_geom.ZERO_NEUTRAL] THEN 
+ABBREV_TAC` aa = ((&1 - t) * azim (vec 0) e3 e1 x) ` THEN 
+ABBREV_TAC` bb = arcV (vec 0) e3 (x:real^3)` THEN REWRITE_TAC[
+REAL_ARITH` (norm x * cos aa * sin bb) * (norm x * cos aa * sin bb) * &1 +
+     (norm x * sin aa * sin bb) * (norm x * sin aa * sin bb) * &1 +
+     (norm x * cos bb) * (norm x * cos bb) * &1 =
+(norm x pow 2 ) * (sin bb pow 2 * ( sin aa pow 2 + cos aa pow 2 ) + cos bb pow 2 )`] THEN 
+REWRITE_TAC[SIN_CIRCLE; REAL_MUL_RID; DOT_SQUARE_NORM]);;
+
+
+
+
+let ACR_REFL = prove(` ~( u = v ) ==> arcV u v v = &0 `,
+REWRITE_TAC[arcV; DOT_SQUARE_NORM; GSYM POW_2] THEN 
+NHANH (NORM_ARITH` ~( u = v ) ==> ~(norm (v - u) = &0)`) THEN 
+SIMP_TAC[REAL_FIELD` ~(x = &0) ==> x pow 2 / x pow 2 = &1 `; ACS_1]);;
+
+
+
+
+let ARC_OPPOSITE = prove(` ~(u = v) ==> arcV u v (&2 % u - v ) = pi `,
+REWRITE_TAC[arcV; VECTOR_ARITH` &2 % u - v - u = -- (v - u)`; DOT_RNEG;
+ NORM_NEG; DOT_SQUARE_NORM; GSYM POW_2] THEN 
+NHANH (NORM_ARITH` ~(u = v) ==> ~( norm (v - u)= &0 )`) THEN 
+SIMP_TAC[ACS_NEG_1; REAL_FIELD` ~( x = &0 ) ==> -- ( x pow 2) / ( x pow 2 ) = -- &1 `]);;
+
+
+
+
+
+
+let ARCV_EQ_0 = prove(` ~(u = v) /\ &0 < t ==> arcV u v (u + t % (v - u)) = &0`,
+NHANH ACR_REFL THEN ONCE_REWRITE_TAC[Trigonometry2.ARCV_VEC0_FORM] THEN 
+SIMP_TAC[VECTOR_ARITH`(a + b) - a:real^N = b`; GSYM
+ Trigonometry2.WHEN_K_POS_ARCV_STABLE]);;
+
+let ARCV_EQ_0_ORIGIN = prove(`~( u = vec 0) /\ &0 < t ==> arcV (vec 0) u (t % u) = &0`,
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN NHANH ARCV_EQ_0 THEN 
+SIMP_TAC[VECTOR_ARITH` vec 0 + t % (u - vec 0) = t % u`]);;
+
+
+let ARCV_PI_OPPOSITE = prove(`~(u = v) /\ t < &0 ==> arcV u v (u + t % (v - u)) = pi`,
+NHANH ARC_OPPOSITE THEN ONCE_REWRITE_TAC[Trigonometry2.ARCV_VEC0_FORM] THEN 
+SIMP_TAC[VECTOR_ARITH`(a + b) - a:real^N = b`; VECTOR_ARITH` &2 % u - v - u = -- (v - u)`] THEN 
+ONCE_REWRITE_TAC[VECTOR_ARITH` a % x = (-- a) % ( -- x)`] THEN 
+SIMP_TAC[GSYM Trigonometry2.WHEN_K_POS_ARCV_STABLE; REAL_ARITH` t < &0 <=> &0 < -- t `]);;
+
+
+
+
+
+
+
+let DOT_0_ARCV = prove(` (v - u) dot (w - u) = &0 ==> arcV u v w = pi / &2 `,
+SIMP_TAC[arcV; Collect_geom.REAL_DIV_LZERO; ACS_0]);;
+
+let ARCV_DEGENERATE = prove(` arcV u u v = pi / &2 /\ arcV u v u = pi / &2 `,
+CONJ_TAC THENL [MATCH_MP_TAC DOT_0_ARCV THEN 
+REWRITE_TAC[VECTOR_SUB_REFL; DOT_LZERO];
+MATCH_MP_TAC DOT_0_ARCV THEN 
+REWRITE_TAC[VECTOR_SUB_REFL; DOT_RZERO]]);;
+
+
+
+
+
+let ARCV_DIRECTIONS = prove(`~( u = v) ==> 
+(arcV u v (u + t % (v - u)) = &0 <=> &0 < t) /\
+(arcV u v (u + t % (v - u)) = pi <=> t < &0)`,
+ASM_CASES_TAC` t = &0` THENL [
+ASM_REWRITE_TAC[REAL_LT_REFL; VECTOR_MUL_LZERO; VECTOR_ADD_RID; ARCV_DEGENERATE]
+THEN STRIP_TAC THEN MP_TAC PI_NZ THEN REAL_ARITH_TAC;
+DOWN THEN REWRITE_TAC[REAL_ARITH` ~(a = &0) <=> &0 < a \/ a < &0`] THEN 
+MESON_TAC[ARCV_EQ_0; ARCV_PI_OPPOSITE; PI_NZ]]);;
+
+
+
+
+
+let ARCV_ORI_DIRECTIONS = prove(` ~( v = vec 0) ==>
+(arcV (vec 0) v (t % v) = &0 <=> &0 < t) /\
+         (arcV (vec 0) v (t % v) = pi <=> t < &0)`,
+ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN NHANH ARCV_DIRECTIONS THEN 
+SIMP_TAC[EQ_SYM_EQ; VECTOR_ADD_LID; VECTOR_SUB_RZERO]);;
+
+
+
+
+let REAL_NEG_MUL_EQ = prove(` a < &0 ==> ( a * x < &0 <=> &0 < x ) /\
+(&0 < a * x <=> x < &0)  `,
+REWRITE_TAC[REAL_ARITH` a < &0 <=> &0 < -- a `; REAL_ARITH` -- ( a * x) = -- a * x `] THEN 
+SIMP_TAC[REAL_LT_MUL_EQ] THEN 
+ONCE_REWRITE_TAC[REAL_ARITH` a * b = -- a * -- b `] THEN 
+SIMP_TAC[REAL_LT_MUL_EQ]);;
+
+
+
+
+
+let NOT_EQ_0 = REAL_ARITH` ~( x = &0 ) <=> &0 < x \/ x < &0 `;;
+
+
+let SIN_ARCV_EQ_0 = prove(` ~( u = v) /\ ~( t = &0) ==> sin (arcV u v (u + t % (v - u))) = &0`,
+REWRITE_TAC[NOT_EQ_0] THEN STRIP_TAC THENL [
+ASM_SIMP_TAC[ARCV_EQ_0; SIN_0];
+ASM_SIMP_TAC[ARCV_PI_OPPOSITE; SIN_PI]]);;
+
+
+let COLLINEAR_SIN_ARCV_0 = prove(` collinear {u,v,x} /\ ~(u = x) /\ ~(u = v) ==> sin (arcV u v (x:real^N)) = &0`,
+REWRITE_TAC[Local_lemmas.collinear_fan22; AFF2; IN_ELIM_THM] THEN 
+STRIP_TAC THENL [
+
+ASM_REWRITE_TAC[] THEN UNDISCH_TAC` x = t % u + (&1 - t) % (v:real^N)` THEN 
+ASM_CASES_TAC` t = &1 ` THENL [
+ASM_REWRITE_TAC[REAL_SUB_REFL; VECTOR_ADD_RID; VECTOR_MUL_LZERO; VECTOR_MUL_LID];
+
+REWRITE_TAC[VECTOR_ARITH` t % u + (&1 - t) % v = u + (&1 - t) % ( v - u)`] THEN 
+STRIP_TAC THEN MATCH_MP_TAC SIN_ARCV_EQ_0 THEN 
+ASM_REWRITE_TAC[REAL_ARITH` a - b = &0 <=> b = a`]];
+
+DOWN THEN ASM_REWRITE_TAC[]]);;
+
+
+
+
+let normize = new_definition` normize (v:real^N) = (&1 / norm v) % v`;;
+
+
+
+
+
+
+let COLL_AFF_GT_2_1 = prove(`!x v w:real^N.
+           ~collinear {x, v, w}
+           ==> aff_gt {x, v} {w} =
+               {y | ?t1 t2 t3.
+                        &0 < t3 /\
+                        t1 + t2 + t3 = &1 /\
+                        y = t1 % x + t2 % v + t3 % w}`,
+NHANH Fan.th3a THEN SIMP_TAC[AFF_GT_2_1]);;
+
+
+
+
+let COLL_EQ_DEPENDENT = prove_by_refinement (
+` collinear {vec 0, x, y:real^N} <=> ? tx ty. ~( tx = &0 /\ ty = &0) /\ tx % x + ty % y = vec 0`,
+[EQ_TAC;
+REWRITE_TAC[COLLINEAR_LEMMA_ALT];
+STRIP_TAC;
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0`;
+ASM_REWRITE_TAC[VECTOR_MUL_LZERO; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+REAL_ARITH_TAC;
+
+EXISTS_TAC` -- (c:real)`;
+EXISTS_TAC` &1 `;
+ASM_REWRITE_TAC[VECTOR_MUL_LID; REAL_ARITH` ~( &1 = &0)`];
+VECTOR_ARITH_TAC;
+
+SPEC_TAC (`y:real^N`,`y:real^N`);
+SPEC_TAC (`x:real^N`,`x:real^N`);
+MATCH_MP_TAC (
+MESON[]` (!x y tx ty. P x y tx ty ==> P y x ty tx) /\
+     (!x y. Q x y ==> Q y x) /\
+     (!x y tx ty. ~(ty = &0) /\ P x y tx ty ==> Q x y)
+     ==> ! x y. (?tx ty. ~(tx = &0 /\ ty = &0) /\ P x y tx ty)
+     ==> Q x y `);
+SIMP_TAC[VECTOR_ADD_SYM; INSERT_COMM];
+REWRITE_TAC[SIMP_RULE[INSERT_COMM] COLLINEAR_LEMMA_ALT];
+REPEAT STRIP_TAC;
+DISJ2_TAC;
+EXISTS_TAC` ( -- tx ) / ty `;
+DOWN;
+NHANH_PAT`\x. x ==> y` (MESON[]` x = y ==> &1 / ty % x = &1 / ty % y`);
+REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC; VECTOR_MUL_RZERO];
+ASM_SIMP_TAC[REAL_FIELD` ~(x = &0) ==> &1 / x * x = &1 `; VECTOR_MUL_LID];
+SIMP_TAC[VECTOR_ARITH` a + b = vec 0 <=> b = -- a `];
+STRIP_TAC;
+VECTOR_ARITH_TAC]);;
+
+
+
+
+
+
+
+
+let NOT_COLL_ORTHONORMAL = prove_by_refinement (
+` ~ collinear {vec 0, x, y:real^N} ==> ?u. u IN aff {vec 0, x, y} /\
+ norm u = &1 /\ x dot u = &0 `,
+[NHANH Fan.th3b;
+REWRITE_TAC[COLL_EQ_DEPENDENT; NOT_EXISTS_THM; DE_MORGAN_THM];
+STRIP_TAC;
+EXISTS_TAC` normize  ((x dot y) % x + -- (x dot x) % (y:real^N))`;
+REWRITE_TAC[aff; AFFINE_HULL_3; IN_ELIM_THM];
+CONJ_TAC;
+REWRITE_TAC[normize; Local_lemmas.VECTOR_ADD_LDISTRIB1; VECTOR_MUL_RZERO; 
+VECTOR_ADD_LID];
+MESON_TAC[REAL_ARITH`&1 - a + a = &1 `];
+
+REWRITE_TAC[normize; GSYM Trigonometry2.NOT_VEC0_UNITABLE];
+CONJ_TAC;
+SUBGOAL_THEN` ~(x dot (x:real^N) = &0)` MP_TAC;
+ASM_REWRITE_TAC[DOT_EQ_0];
+ONCE_REWRITE_TAC[REAL_ARITH` a = &0 <=> -- a = &0`];
+ASM_MESON_TAC[];
+
+REWRITE_TAC[DOT_RADD; DOT_RMUL; REAL_ARITH` a * b + -- b * a = &0`; REAL_MUL_RZERO]]);;
+
+
+
+
+
+
+
+
+
+let NORM1_NOT_0 = prove(` norm x = &1 ==> ~( x = vec 0) `,
+NHANH (REAL_ARITH` x = &1 ==> &0 < x `) THEN SIMP_TAC[NORM_POS_LT]);;
+
+
+
+
+let ARCV_DETER_DIRECTION = prove_by_refinement (
+` (x:real^N) = tu % u + ty % y /\ &0 < ty /\
+~( collinear {vec 0,  u, y}) /\ norm x = &1 /\ norm y = &1 /\
+arcV (vec 0) u x = arcV (vec 0) u y ==> x = y`,
+[NHANH NOT_COLL_ORTHONORMAL;
+NHANH Fan.th3b;
+NHANH NORM1_NOT_0;
+STRIP_TAC;
+MP_TAC (ISPECL [`u' :real^N`;` u:real^N` ] Rogers.IN_PLANE_NOT_COLLINEAR);
+ANTS_TAC;
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+
+UNDISCH_TAC` u' IN aff {vec 0, u, y:real^N}`;
+REWRITE_TAC[aff; AFFINE_HULL_3; IN_ELIM_THM];
+STRIP_TAC;
+ASM_CASES_TAC` w = &0`;
+UNDISCH_TAC` u dot (u':real^N) = &0`;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_MUL_LZERO; VECTOR_ADD_LID; 
+VECTOR_ADD_RID; DOT_RMUL; REAL_ENTIRE; DOT_EQ_0];
+DISCH_THEN SUBST_ALL_TAC;
+UNDISCH_TAC` u' = u'' % vec 0 + &0 % u + w % (y:real^N)`;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_MUL_LZERO; VECTOR_ADD_LID; 
+VECTOR_ADD_RID];
+
+UNDISCH_TAC`u' = u'' % vec 0 + v % u + w % (y:real^N) `;
+REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = u % x + (y:real^N) <=> y = ( -- u) % x + a`];
+ABBREV_TAC` tt <=> x = (y:real^N)`;
+ASM_SIMP_TAC[Ldurdpn.VECTOR_SCALE_CHANGE; VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC];
+STRIP_TAC;
+UNDISCH_TAC` x = tu % u + ty % (y:real^N)`;
+ASM_SIMP_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC; VECTOR_ARITH` a % x + b % x + c = (a + b) % x + c`];
+ABBREV_TAC` x1 = tu + ty * &1 / w * --v `;
+ABBREV_TAC` x2 = ty * &1 / w `;
+STRIP_TAC;
+UNDISCH_TAC` arcV (vec 0) u x = arcV (vec 0) u (y:real^N)`;
+NHANH (MESON[]` a = b ==> cos a = cos b `);
+SWITCH_TAC` ~(y:real^N = vec 0)`;
+ASSUME_TAC2 (ISPEC`x:real^N` (GEN_ALL NORM1_NOT_0));
+SWITCH_TAC` ~(x:real^N = vec 0)`;
+SWITCH_TAC` x = x1 % u + x2 % (u':real^N)`;
+SWITCH_TAC` (y:real^N) = (&1 / w * --v) % u + &1 / w % u'`;
+ASM_SIMP_TAC[Trigonometry2.NOT_EQ_IMPCOS_ARC; VECTOR_SUB_RZERO; REAL_MUL_RID];
+
+SUBGOAL_THEN` &0 < norm (u:real^N)` MP_TAC;
+ASM_REWRITE_TAC[NORM_POS_LT];
+SIMP_TAC[REAL_FIELD` &0 < x ==> (a / x = b / x <=> a = b )`];
+EXPAND_TAC "x";
+EXPAND_TAC "y";
+REWRITE_TAC[DOT_RADD; DOT_RMUL];
+ASM_REWRITE_TAC[REAL_MUL_RZERO; REAL_ADD_RID];
+
+
+
+SIMP_TAC[NORM_POS_LT; GSYM DOT_EQ_0; REAL_EQ_MUL_RCANCEL];
+REPEAT STRIP_TAC;
+SUBGOAL_THEN` x  dot (x:real^N) = y dot (y:real^N)` MP_TAC;
+ASM_REWRITE_TAC[DOT_SQUARE_NORM];
+
+
+EXPAND_TAC "x";
+EXPAND_TAC "y";
+REWRITE_TAC[DOT_LADD; DOT_RADD; DOT_LMUL; DOT_RMUL];
+ASM_REWRITE_TAC[DOT_SYM; REAL_MUL_RZERO; REAL_ADD_LID; REAL_ADD_RID;
+ REAL_ARITH` a + b = a + c <=> b = c`];
+ASM_REWRITE_TAC[REAL_EQ_MUL_RCANCEL; REAL_RING`a * b * c = (a*b)*c`;
+ DOT_EQ_0];
+REWRITE_TAC[REAL_ARITH` a * a = b * b <=> (a - b) * ( a + b ) = &0`; REAL_ENTIRE; REAL_SUB_0];
+STRIP_TAC;
+EXPAND_TAC "tt";
+EXPAND_TAC "x";
+EXPAND_TAC "y";
+REPLICATE_TAC 2 (FIRST_X_ASSUM SUBST1_TAC);
+REWRITE_TAC[];
+
+
+DOWN;
+EXPAND_TAC "x2";
+REWRITE_TAC[REAL_ARITH` a * x + x = ( a + &1) * x `; REAL_ENTIRE];
+ASM_SIMP_TAC[REAL_ARITH` &0 < a ==> ~( a + &1 = &0) `; REAL_FIELD` ~( x = &0)
+ ==> ~( &1 / x = &0) `]]);;
+
+
+
+
+
+
+
+
+let NORM_NORMIZE = REWRITE_RULE[GSYM normize] Trigonometry2.NOT_VEC0_UNITABLE;;
+
+
+
+let ARCV_EQ_IMP_NORMIZE = prove_by_refinement (
+` (x:real^N) IN aff_gt {vec 0, u} {y} /\ ~ collinear {vec 0, u, y} /\
+arcV (vec 0) u x = arcV (vec 0) u y ==> normize x = normize y `,
+[NHANH COLL_AFF_GT_2_1;
+STRIP_TAC;
+UNDISCH_TAC` x IN aff_gt {vec 0, u} {y:real^N} `;
+ASM_REWRITE_TAC[IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+NHANH_PAT`\x. x ==> y` (MESON[]` x = y ==> (&1 /norm x) % x = (&1 / norm x) % y `);
+STRIP_TAC;
+MP_TAC (ISPECL [`&1 `;` &1 / norm (y:real^N)`;`u:real^N`;` y:real^N`] COLLINEAR_SCALE_ALL);
+SUBGOAL_THEN` &0 < norm (y:real^N) /\ &0 < norm (x:real^N)` ASSUME_TAC;
+REWRITE_TAC[NORM_POS_LT];
+UNDISCH_TAC` ~ collinear {vec 0, u, y:real^N}`;
+NHANH Trigonometry2.NOT_COLLINEAR_IMP_2_UNEQUAL;
+SIMP_TAC[];
+REPEAT STRIP_TAC;
+UNDISCH_TAC` x = t2 % u + t3 % (y:real^N)`;
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 (REAL_ARITH` &0 < t3 ==> ~( t3 = &0) `);
+ASM_MESON_TAC[COLL_EQ_DEPENDENT];
+
+
+ANTS_TAC;
+DOWN;
+CONV_TAC REAL_FIELD;
+
+SUBGOAL_THEN `&0 < &1 / norm (x:real^N) * t3 ` MP_TAC;
+REWRITE_TAC[REAL_ARITH` &1 / a * b = b / a `];
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REWRITE_TAC[];
+
+
+
+REWRITE_TAC[VECTOR_MUL_LID];
+STRIP_TAC;
+DISCH_THEN (ASSUME_TAC o SYM);
+DOWN THEN DOWN THEN DOWN;
+ONCE_REWRITE_TAC[Collect_geom.POS_EQ_INV_POS];
+NHANH (ISPECL [`u:real^N`;` &1 / norm (v:real^N)`;`v:real^N`] (GEN_ALL
+ Trigonometry2.WHEN_K_POS_ARCV_STABLE));
+REWRITE_TAC[GSYM Collect_geom.POS_EQ_INV_POS];
+DOWN;
+REWRITE_TAC[NORM_POS_LT; Trigonometry2.NOT_VEC0_UNITABLE; VECTOR_ADD_LDISTRIB;
+ VECTOR_MUL_ASSOC];
+REPEAT STRIP_TAC;
+REWRITE_TAC[normize];
+MATCH_MP_TAC (GEN_ALL ARCV_DETER_DIRECTION);
+EXISTS_TAC` (&1 / norm (x:real^N) * t2)`;
+EXISTS_TAC` (&1 / norm (x:real^N) * t3) * (norm (y:real^N)) `;
+EXISTS_TAC` u:real^N`;
+FIRST_X_ASSUM (SUBST1_TAC o SYM);
+ABBREV_TAC` nx = &1 / norm x % (x:real^N)`;
+ABBREV_TAC` ny = &1 / norm y % (y:real^N)`;
+SWITCH_TAC` x = t2 % u + t3 % (y:real^N)`;
+SWITCH_TAC` nx = (&1 / norm (x:real^N) * t2) % u + (&1 / norm x * t3) % (y:real^N)`;
+ASM_REWRITE_TAC[];
+
+CONJ_TAC;
+EXPAND_TAC "ny";
+REWRITE_TAC[VECTOR_MUL_ASSOC; REAL_ARITH` (a*b)*c = a*b*c`];
+SUBGOAL_THEN` norm (y:real^N) * &1 / norm y = &1 ` SUBST1_TAC;
+MATCH_MP_TAC (REAL_FIELD` &0 < a ==> a * &1 / a = &1 `);
+UNDISCH_TAC` norm (ny:real^N) = &1 `;
+EXPAND_TAC "ny";
+REWRITE_TAC[NORM_POS_LT; GSYM normize; NORM_NORMIZE];
+ASM_REWRITE_TAC[REAL_MUL_RID];
+
+CONJ_TAC;
+MATCH_MP_TAC REAL_LT_MUL;
+UNDISCH_TAC` norm (ny:real^N) = &1 `;
+EXPAND_TAC "ny";
+SIMP_TAC[NORM_POS_LT; GSYM normize; NORM_NORMIZE];
+ASM_REWRITE_TAC[];
+ASM_MESON_TAC[]]);;
+
+
+
+
+
+
+let AZIM_AND_ARCV_EQ_IMP_PARA = prove_by_refinement  (
+` ~ collinear {v0,u,v} /\ azim v0 u v x = azim v0 u v y /\
+arcV v0 u x = arcV v0 u y ==> y = v0 \/ (? t. &0 <= t /\ x - v0 = t % (y - v0)) `,
+[ASM_CASES_TAC` collinear {v0,u,y:real^3}`;
+ASM_SIMP_TAC[AZIM_DEGENERATE];
+ASM_CASES_TAC` collinear {v0,u,x:real^3}`;
+NHANH Fan.th3b;
+NHANH (REWRITE_RULE[GSYM RIGHT_IMP_FORALL_THM]
+ Trigonometry2.NOT_EQ_IMP_AFF_AND_COLL3);
+STRIP_TAC;
+SWITCH_TAC` !u'. u' IN aff {v0, u} <=> collinear {v0, u, u':real^3}`;
+UNDISCH_TAC` collinear {v0, u, y:real^3}`;
+UNDISCH_TAC` collinear {v0, u, x:real^3}`;
+ASM_REWRITE_TAC[Trigonometry2.AFF2; IN_ELIM_THM];
+REPEAT STRIP_TAC;
+ASM_REWRITE_TAC[VECTOR_ARITH` (t % v0 + (&1 - t) % u) - v0 = (&1 - t) % ( u - v0)`];
+
+ASM_CASES_TAC` t' = &1 `;
+DISJ1_TAC;
+ASM_REWRITE_TAC[REAL_SUB_REFL; VECTOR_MUL_LZERO; VECTOR_MUL_LID; VECTOR_ADD_RID];
+
+
+DISJ2_TAC;
+EXISTS_TAC` ( &1 - t ) / ( &1 - t')`;
+ASM_SIMP_TAC[VECTOR_MUL_ASSOC; REAL_FIELD` ~(t' = &1) ==> 
+((&1 - t) / (&1 - t')) * (&1 - t') = &1 - t `];
+UNDISCH_TAC` arcV v0 u x = arcV v0 (u:real^3) y `;
+ONCE_REWRITE_TAC[Trigonometry2.ARCV_VEC0_FORM];
+ASM_REWRITE_TAC[VECTOR_ARITH` (t % v0 + (&1 - t) % u) - v0 = (&1 - t) % (u - v0)`];
+
+ASSUME_TAC2 (REAL_FIELD` ~( t' = &1 ) ==> 
+&1 - t = ((&1 - t)/ (&1 - t')) * ( &1 - t')`);
+ABBREV_TAC` tt = (&1 - t) / (&1 - t') `;
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 (REAL_ARITH`~( t' = &1 ) ==> &0 < &1 - t' \/ &1 - t' < &0 `);
+FIRST_X_ASSUM DISJ_CASES_TAC;
+SUBGOAL_THEN` arcV (vec 0) (u:real^3 - v0) ((&1 - t') % (u - v0)) = &0` SUBST1_TAC;
+MATCH_MP_TAC ARCV_EQ_0_ORIGIN;
+ASM_REWRITE_TAC[VECTOR_ARITH` a - b = vec 0 <=> b = a `];
+UNDISCH_TAC` ~(v0 = u:real^3)`;
+ONCE_REWRITE_TAC[VECTOR_ARITH`a = b <=> b - a = vec 0`];
+SIMP_TAC[ARCV_ORI_DIRECTIONS];
+STRIP_TAC;
+UNDISCH_TAC` &0 < &1 - t'`;
+SIMP_TAC[REAL_LT_MUL_EQ; REAL_LT_IMP_LE];
+ASSUME_TAC2 (ISPECL [`&1 - t'`;` u:real^3`;`v0:real^3`] (GEN_ALL
+ ( ONCE_REWRITE_RULE[Trigonometry2.ARCV_VEC0_FORM] ARCV_PI_OPPOSITE)));
+DOWN;
+SIMP_TAC[VECTOR_ARITH`(a + b:real^N) - a = b `];
+STRIP_TAC;
+UNDISCH_TAC` ~( v0 = u:real^3)`;
+ONCE_REWRITE_TAC[VECTOR_ARITH` a = b <=> b - a = vec 0`];
+SIMP_TAC[ARCV_ORI_DIRECTIONS];
+STRIP_TAC;
+UNDISCH_TAC` &1 - t' < &0 `;
+SIMP_TAC[ONCE_REWRITE_RULE[REAL_MUL_SYM] REAL_NEG_MUL_EQ; REAL_LT_IMP_LE];
+
+
+
+
+
+
+
+UNDISCH_TAC` collinear {v0, u, y:real^3}`;
+NHANH Fan.th3b;
+ASM_CASES_TAC` y = v0:real^3`;
+ASM_REWRITE_TAC[];
+
+
+REPEAT STRIP_TAC;
+SUBGOAL_THEN` sin (arcV v0 u (y:real^3)) = &0` MP_TAC;
+MATCH_MP_TAC COLLINEAR_SIN_ARCV_0;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ~(sin (arcV v0 u (x:real^3)) = &0 )` MP_TAC;
+MATCH_MP_TAC Trigonometry2.NOT_COLLINEAR_IMP_NOT_SIN0;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[];
+
+
+ASM_CASES_TAC` x = v0:real^3`;
+STRIP_TAC;
+DISJ2_TAC;
+EXISTS_TAC` &0 `;
+ASM_REWRITE_TAC[REAL_LE_REFL; VECTOR_SUB_REFL; VECTOR_MUL_LZERO];
+
+
+ASM_CASES_TAC` collinear {v0, u, x:real^3}`;
+STRIP_TAC;
+SUBGOAL_THEN` sin (arcV v0 u (x:real^3)) = &0` MP_TAC;
+MATCH_MP_TAC COLLINEAR_SIN_ARCV_0;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC Fan.th3b;
+EXISTS_TAC` v:real^3`;
+FIRST_ASSUM ACCEPT_TAC;
+UNDISCH_TAC` ~collinear {v0, u, y:real^3}`;
+ASM_SIMP_TAC[Trigonometry2.NOT_COLLINEAR_IMP_NOT_SIN0];
+STRIP_TAC;
+
+ASSUME_TAC2 (ISPECL [`v0:real^3`;` u:real^3`;`v:real^3`; ` x:real^3`;`
+ y:real^3`] AZIM_EQ_ALT);
+UNDISCH_TAC` ~collinear {v0, u, y:real^3}`;
+NHANH COLL_AFF_GT_2_1;
+STRIP_TAC;
+DISJ2_TAC;
+UNDISCH_TAC` azim v0 u v x = azim v0 u v (y:real^3)`;
+ASM_REWRITE_TAC[IN_ELIM_THM; REAL_ARITH` a + b = &1 <=> a = &1 - b`];
+STRIP_TAC;
+DOWN;
+ASM_REWRITE_TAC[VECTOR_ARITH` x = (&1 - (t2 + t3)) % v0 + t2 % u + t3 % y <=> 
+x - v0 = t2 % ( u - v0) + t3 % (y - v0) `];
+ABBREV_TAC` xx = x - v0:real^3`;
+ABBREV_TAC` uu = u - v0:real^3 `;
+ABBREV_TAC` yy = y - v0:real^3`;
+STRIP_TAC;
+EXISTS_TAC` t3:real`;
+
+UNDISCH_TAC` arcV v0 u x = arcV v0 u (y:real^3)`;
+NHANH (MESON[]`arcV v0 u x = arcV v0 u y ==> cos (arcV v0 u x) = cos (arcV v0 u y)`);
+ASSUME_TAC2 (ISPECL [`v0:real^3`;`u:real^3`;` x:real^3`]
+ Collect_geom.NOT_COL3_IMP_DIFF);
+ASSUME_TAC2 (ISPECL [`v0:real^3`;`u:real^3`;` y:real^3`]
+ Collect_geom.NOT_COL3_IMP_DIFF);
+DOWN THEN DOWN;
+REWRITE_TAC[DE_MORGAN_THM];
+ASM_SIMP_TAC[Trigonometry2.NOT_EQ_IMPCOS_ARC];
+
+STRIP_TAC THEN STRIP_TAC;
+SUBGOAL_THEN` &0 < norm (xx:real^3) /\ &0 < norm (uu:real^3) /\
+&0 < norm (yy:real^3)` MP_TAC;
+REWRITE_TAC[NORM_POS_LT];
+EXPAND_TAC "xx";
+EXPAND_TAC "uu";
+EXPAND_TAC "yy";
+REWRITE_TAC[VECTOR_SUB_EQ];
+ASM_REWRITE_TAC[];
+
+REPEAT STRIP_TAC;
+ASM_SIMP_TAC[REAL_LT_IMP_LE];
+
+SUBGOAL_THEN` normize  (xx:real^3) = normize  (yy:real^3)` MP_TAC;
+MATCH_MP_TAC (GEN_ALL ARCV_EQ_IMP_NORMIZE);
+EXISTS_TAC` uu:real^3`;
+CONJ_TAC;
+UNDISCH_TAC` ~collinear {v0, u, y:real^3}`;
+ONCE_REWRITE_TAC[Trigonometry2.COLLINEAR_TRANSABLE];
+NHANH_PAT`\x. x ==> y` COLL_AFF_GT_2_1;
+ASM_SIMP_TAC[];
+STRIP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` t1:real`;
+EXISTS_TAC` t2:real`;
+EXISTS_TAC` t3:real`;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+REAL_ARITH_TAC;
+
+UNDISCH_TAC` ~ collinear {v0, u, y:real^3}`;
+UNDISCH_TAC` arcV v0 u x = arcV v0 u (y:real^3)`;
+ONCE_REWRITE_TAC[Trigonometry2.ARCV_VEC0_FORM];
+ONCE_REWRITE_TAC[Trigonometry2.COLLINEAR_TRANSABLE];
+ASM_SIMP_TAC[VECTOR_SUB_RZERO];
+
+
+
+ASM_REWRITE_TAC[normize; VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC];
+ONCE_REWRITE_TAC[VECTOR_ARITH` a + x % b = y % b <=> a + (x - y) % b = vec 0`];
+
+ASM_CASES_TAC` ~( (&1 / norm (t2 % uu + t3 % (yy:real^3)) * t2) = &0)`;
+STRIP_TAC;
+SUBGOAL_THEN` collinear {vec 0, uu, yy:real^3}` MP_TAC;
+REWRITE_TAC[COLL_EQ_DEPENDENT];
+DOWN THEN DOWN THEN MESON_TAC[];
+
+
+
+UNDISCH_TAC` ~ collinear {v0, u, y:real^3}`;
+ONCE_REWRITE_TAC[Trigonometry2.COLLINEAR_TRANSABLE];
+ASM_SIMP_TAC[VECTOR_SUB_RZERO];
+
+
+
+DOWN;
+SIMP_TAC[REAL_ENTIRE];
+ASSUME_TAC2 (REAL_FIELD` &0 < norm (xx:real^3) ==> ~( &1 / norm xx = &0) `);
+DOWN;
+ASM_SIMP_TAC[VECTOR_MUL_LZERO; REAL_SUB_REFL; VECTOR_ADD_LID]]);;
+
+
+
+
+
+
+
+let NORM_CAUCHY_SCHWARZ_FRAC2 = prove(` -- &1 <= (u dot v) / (norm u * norm v) /\
+             (u dot v) / (norm u * norm (v:real^N)) <= &1 `,
+ASM_CASES_TAC`~((u:real^N) = vec 0) /\ ~((v: real^N) = vec 0)` THEN 
+ASM_SIMP_TAC[Trigonometry1.NORM_CAUCHY_SCHWARZ_FRAC] THEN 
+DOWN THEN REWRITE_TAC[DE_MORGAN_THM] THEN STRIP_TAC THENL [
+ASM_REWRITE_TAC[DOT_LZERO] THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[DOT_RZERO] THEN REAL_ARITH_TAC]);;
+
+
+let COS_ARCV_EQ_ARCV = prove(
+` cos (arcV x y z) = cos (arcV xx yy zz) <=> arcV x y z = arcV xx yy zz `,
+EQ_TAC THENL [REWRITE_TAC[arcV] THEN STRIP_TAC THEN MATCH_MP_TAC COS_INJ_PI THEN 
+DOWN THEN MESON_TAC[ACS_BOUNDS; NORM_CAUCHY_SCHWARZ_FRAC2];SIMP_TAC[]]);;
+
+
+
+let ARCV_BOUNDS = prove(` &0 <= arcV (x:real^N) y z /\ arcV x y z <= pi `,
+REWRITE_TAC[arcV] THEN MATCH_MP_TAC ACS_BOUNDS THEN 
+REWRITE_TAC[NORM_CAUCHY_SCHWARZ_FRAC2]);;
+
+
+
+
+
+let SIN_ARCV_EQ_0_EQ_LAP = prove(
+`  sin (arcV x y (z:real^N)) = &0 <=> arcV x y z = &0 \/ arcV x y z = pi `,
+MP_TAC ARCV_BOUNDS THEN MP_TAC PI_POS THEN 
+MESON_TAC[REAL_ARITH` &0 < x /\ &0 <= a ==> -- x < a`; Trigonometry1.SIN_NEGPOS_PI]);;
+
+
+
+
+
+
+let ORTHONORMAL_NOT_COLLINEAR = prove(
+` orthonormal e1 e2 e3 ==> ~ collinear {vec 0, e3, e1} `,
+REWRITE_TAC[orthonormal; GSYM CROSS_EQ_0] THEN 
+ONCE_REWRITE_TAC[GSYM CROSS_TRIPLE] THEN REPEAT STRIP_TAC THEN 
+FIRST_X_ASSUM SUBST_ALL_TAC THEN DOWN THEN 
+REWRITE_TAC[DOT_LZERO; REAL_LT_REFL]);;
+
+
+
+
+let LUNAR_DEFORM_INJ = prove_by_refinement (
+` orthonormal e1 e2 e3 /\ &0 <= t /\ t < &1 ==> 
+(! x y. lunar_deform (e1,e2,e3) t x = lunar_deform (e1,e2,e3) t y ==> x = y )`,
+[REPEAT STRIP_TAC;
+ASM_CASES_TAC` (x:real^3)  = vec 0`;
+ASSUME_TAC2 (SPEC` y:real^3 ` (GEN `x:real^3 ` LUNAR_DEFORM_PRESERVE_NORM));
+ASSUME_TAC2 LUNAR_DEFORM_PRESERVE_NORM;
+DOWN;
+DOWN;
+ASM_SIMP_TAC[NORM_0; NORM_EQ_0];
+
+ 
+DOWN THEN DOWN;
+NHANH_PAT`\a. a ==> b ` (MESON[]` a = b ==> norm a = norm b `);
+ASM_SIMP_TAC[LUNAR_DEFORM_PRESERVE_NORM];
+REWRITE_TAC[lunar_deform];
+ASM_SIMP_TAC[ORTHONORMAL_IMP_INDEPENDENT_EXPLICIT; GSYM NORM_POS_LT];
+REPEAT STRIP_TAC;
+UNDISCH_TAC` norm (x:real^3) * cos (arcV (vec 0) e3 x) = norm y * cos (arcV (vec 0) e3 (y:real^3))`;
+ASM_SIMP_TAC[REAL_EQ_MUL_LCANCEL; REAL_POS_NZ; COS_ARCV_EQ_ARCV];
+STRIP_TAC;
+ASM_CASES_TAC` sin (arcV (vec 0) e3 (x:real^3)) = &0`;
+DOWN;
+
+
+NHANH (REWRITE_RULE[CONTRAPOS_THM] Trigonometry2.NOT_COLLINEAR_IMP_NOT_SIN0);
+ASM_REWRITE_TAC[];
+NHANH (REWRITE_RULE[CONTRAPOS_THM] Trigonometry2.NOT_COLLINEAR_IMP_NOT_SIN0);
+REWRITE_TAC[COLLINEAR_LEMMA_ALT];
+SUBGOAL_THEN` ~(e3:real^3 = vec 0) ` MP_TAC;
+UNDISCH_TAC` orthonormal e1 e2 e3`;
+REWRITE_TAC[orthonormal];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM SUBST_ALL_TAC;
+UNDISCH_TAC` vec 0 dot (vec 0: real^3) = &1`;
+REWRITE_TAC[DOT_LZERO];
+REAL_ARITH_TAC;
+SIMP_TAC[SIN_ARCV_EQ_0_EQ_LAP];
+STRIP_TAC THEN STRIP_TAC;
+REPEAT STRIP_TAC;
+SUBGOAL_THEN` arcV (vec 0) e3 (x:real^3) = &0` MP_TAC;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` arcV (vec 0) e3 (y:real^3) = &0`;
+PHA;
+UNDISCH_TAC` ~( (e3:real^3) = vec 0) `;
+DOWN THEN DOWN;
+SIMP_TAC[ARCV_ORI_DIRECTIONS];
+REPEAT STRIP_TAC;
+UNDISCH_TAC` norm (x:real^3) = norm (y:real^3)`;
+ASM_SIMP_TAC[NORM_MUL; Trigonometry2.LT_IMP_ABS_REFL; REAL_EQ_MUL_RCANCEL; NORM_EQ_0];
+
+SUBGOAL_THEN` arcV (vec 0) e3 (x:real^3) = pi` MP_TAC;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` arcV (vec 0) e3 (y:real^3) = pi`;
+PHA;
+UNDISCH_TAC` ~( (e3:real^3) = vec 0) `;
+DOWN THEN DOWN;
+SIMP_TAC[ARCV_ORI_DIRECTIONS];
+REPEAT STRIP_TAC;
+UNDISCH_TAC` norm (x:real^3) = norm (y:real^3)`;
+ASM_REWRITE_TAC[NORM_MUL];
+ONCE_REWRITE_TAC[GSYM REAL_ABS_NEG];
+DOWN THEN DOWN;
+REWRITE_TAC[REAL_ARITH` a < &0 <=> &0 < -- a `];
+ASM_SIMP_TAC[NORM_MUL; Trigonometry2.LT_IMP_ABS_REFL; REAL_EQ_MUL_RCANCEL; NORM_EQ_0];
+SIMP_TAC[REAL_ARITH` -- a = -- b <=> a = b `];
+
+UNDISCH_TAC` norm x *
+      sin ((&1 - t) * azim (vec 0) e3 e1 x) *
+      sin (arcV (vec 0) e3 x) =
+      norm y *
+      sin ((&1 - t) * azim (vec 0) e3 e1 y) *
+      sin (arcV (vec 0) e3 y)`;
+UNDISCH_TAC` norm x *
+      cos ((&1 - t) * azim (vec 0) e3 e1 x) *
+      sin (arcV (vec 0) e3 x) =
+      norm y *
+      cos ((&1 - t) * azim (vec 0) e3 e1 y) *
+      sin (arcV (vec 0) e3 y)`;
+DOWN;
+ASM_SIMP_TAC[REAL_EQ_MUL_RCANCEL; REAL_EQ_MUL_LCANCEL; REAL_POS_NZ];
+REPEAT STRIP_TAC;
+SUBGOAL_THEN` (&1 - t) * azim (vec 0) e3 e1 x = (&1 - t) * azim (vec 0) e3 e1 y` MP_TAC;
+MATCH_MP_TAC SIN_COS_INJ;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC (REAL_FIELD` &0 <= x /\ x < a /\ &0 <= y /\ y < a ==> abs ( x - y) < a `);
+SPEC_TAC (`x:real^3`,`x:real^3`);
+SPEC_TAC (`y:real^3`,`y:real^3`);
+
+MATCH_MP_TAC (MESON[]`(! x. P x /\ L x ) ==> (! y x. P x /\ L x /\ P y /\ L y)`);
+GEN_TAC;
+CONJ_TAC;
+MATCH_MP_TAC REAL_LE_MUL;
+REWRITE_TAC[AZIM_RANGE];
+UNDISCH_TAC` t < &1 ` THEN REAL_ARITH_TAC;
+REWRITE_TAC[REAL_SUB_RDISTRIB; REAL_MUL_LID];
+MATCH_MP_TAC (
+REAL_FIELD` azim (vec 0) e3 e1 x' < &2 * pi /\ &0 <= t * azim (vec 0) e3 e1 x'
+==> azim (vec 0) e3 e1 x' - t * azim (vec 0) e3 e1 x' < &2 * pi`);
+REWRITE_TAC[AZIM_RANGE];
+MATCH_MP_TAC REAL_LE_MUL;
+ASM_REWRITE_TAC[AZIM_RANGE];
+
+ASM_SIMP_TAC[REAL_EQ_MUL_LCANCEL; REAL_ARITH` t < a ==> ~( a - t = &0)`];
+ASSUME_TAC2 ORTHONORMAL_NOT_COLLINEAR;
+STRIP_TAC;
+ASSUME_TAC2 (
+SPECL[`e1:real^3`;`e3:real^3`;`x:real^3`;`y:real^3`;` vec 0:real^3`]
+  (GEN_ALL AZIM_AND_ARCV_EQ_IMP_PARA));
+DOWN;
+ASM_SIMP_TAC[GSYM NORM_EQ_0; REAL_POS_NZ; VECTOR_SUB_RZERO];
+STRIP_TAC;
+
+UNDISCH_TAC` norm (x:real^3) = norm (y:real^3)`;
+ASM_SIMP_TAC[NORM_MUL; REAL_ARITH` a * x = x <=> ( a - &1 ) * x = &0`; REAL_ENTIRE; REAL_POS_NZ];
+UNDISCH_TAC` &0 <= t'`;
+SIMP_TAC[GSYM REAL_ABS_REFL; REAL_SUB_0; VECTOR_MUL_LID]]);;
+
+
+
+
+
+let GRAPH_IMAGE_IMAGE = prove_by_refinement (
+`graph E /\ (! x y. (f:real^N -> real^M) x = f y ==> x = y) 
+==> graph (IMAGE (IMAGE f) E)`,
+[REWRITE_TAC[graph; HAS_SIZE_2_EXISTS; IMAGE; IN_ELIM_THM; IN];
+IMP_TAC;
+DISCH_THEN NHANH;
+REPEAT STRIP_TAC;
+EXISTS_TAC` (f:real^N -> real^M) x' `;
+EXISTS_TAC` (f:real^N -> real^M) y `;
+CONJ_TAC;
+ASM_MESON_TAC[];
+STRIP_TAC;
+ASM_REWRITE_TAC[IN_ELIM_THM];
+MESON_TAC[]]);;
+
+
+
+
+
+
+let LUNAR_DEFORM_ORIGIN = prove(` lunar_deform (e1,e2,e3) t (vec 0) = vec 0`,
+REWRITE_TAC[lunar_deform; NORM_0; REAL_MUL_LZERO; VECTOR_MUL_LZERO;
+ VECTOR_ADD_RID]);;
+
+
+
+
+
+let orthonormal1 = prove(`!e1 e2 e3.
+         orthonormal e1 e2 e3 <=>
+         norm e1 = &1 /\
+         norm e2 = &1 /\
+         norm e3 = &1 /\
+         e1 dot e2 = &0 /\
+         e1 dot e3 = &0 /\
+         e2 dot e3 = &0 /\
+         &0 < (e1 cross e2) dot e3 `,
+REWRITE_TAC[orthonormal; NORM_EQ_1]);;
+
+
+
+
+
+
+
+let ORTHO_SPHERICAL_AZIM = prove_by_refinement(`orthonormal e1 e2 e3 /\ 
+x = ( r * cos theta) % e1 + (r * sin theta) % e2 + h % e3 /\
+&0 < r /\
+&0 <= theta /\ theta < &2 * pi 
+==> azim (vec 0) e3 e1 x = theta `,
+[STRIP_TAC;
+MP_TAC (ISPECL [` vec 0:real^3 `;` e3: real^3 `;` e1: real^3 `;` x:real^3 `;` &0 `;
+`h:real`;` &1 `;` r:real`;` e1:real^3 `;` e2: real^3`;` e3:real^3`;` &0`;
+`theta: real`] AZIM_UNIQUE);
+ANTS_TAC;
+ASM_REWRITE_TAC[VECTOR_SUB_RZERO; dist; SIN_0; COS_0; REAL_ADD_LID;
+ VECTOR_MUL_LZERO; REAL_MUL_RZERO; VECTOR_ADD_RID; REAL_MUL_RID; VECTOR_MUL_LID];
+REWRITE_TAC[REAL_ARITH` &0 < &1 `];
+DOWN_TAC;
+SIMP_TAC[orthonormal1; VECTOR_MUL_LID; GSYM NORM_EQ_0; REAL_ARITH` ~(&1 = &0)`];
+
+SIMP_TAC[]]);;
+
+
+
+
+let COS_ARCV = prove_by_refinement(`cos (arcV v0 u (w:real^N)) =
+           ((u - v0) dot (w - v0)) / (norm (u - v0) * norm (w - v0))`,
+[ASM_CASES_TAC` ~(v0 = u) /\ ~(v0 = w:real^N)`;
+DOWN THEN REWRITE_TAC[Trigonometry2.NOT_EQ_IMPCOS_ARC]; DOWN;
+REWRITE_TAC[DE_MORGAN_THM]; STRIP_TAC;
+ASM_SIMP_TAC[VECTOR_SUB_REFL; arcV; DOT_LZERO; REAL_ARITH` &0 / x = &0`; ACS_0;
+COS_PI2];
+ASM_SIMP_TAC[VECTOR_SUB_REFL; arcV; DOT_RZERO; REAL_ARITH` &0 / x = &0`; ACS_0;
+COS_PI2]]);;
+
+
+
+
+
+
+let LUNAR_DEFORM_ARCV_PRESERVED = prove(`orthonormal e1 e2 e3 ==>
+arcV (vec 0) e3 x = arcV (vec 0) e3 (lunar_deform (e1,e2,e3) t x) `,
+ASM_CASES_TAC` (x:real^3) = vec 0 ` THENL [
+ASM_REWRITE_TAC[LUNAR_DEFORM_ORIGIN];
+SIMP_TAC[LUNAR_DEFORM_PRESERVE_NORM; arcV; orthonormal; VECTOR_SUB_RZERO] THEN 
+SIMP_TAC[lunar_deform; DOT_RADD; DOT_RMUL; DOT_SYM; REAL_MUL_RZERO; REAL_ADD_LID; REAL_MUL_RID; COS_ARCV; VECTOR_SUB_RZERO; GSYM NORM_EQ_1; REAL_MUL_LID] THEN 
+DOWN THEN SIMP_TAC[GSYM NORM_EQ_0; REAL_FIELD` ~( a = &0) ==> a * b / a = b`; NORM_EQ_1; REAL_MUL_RID]]);;
+
+
+
+(* ========================================================================= *)
+(* ========================================================================= *)
+
+
+
+Local_lemmas.LUNAR_IMP_INTERIOR_ANGLE1_EQ_PI;;
+Local_lemmas.interior_angle1;;
+Wrgcvdr_cizmrrh.lunar;;
+Local_lemmas.HKIRPEP;;
+
+(* because interior_angle1 (vec 0) FF v <= pi and
+interior_angle1 x FF v = azim x v (rho_node1 FF v) (@a. a,v IN FF)
+,  the condition theta (ivs_rho_node1 FF v) <= &0
+is satisfied automatically *)
+
+
+g ` convex_local_fan (V,E,FF) /\ lunar (v,w) V E /\
+orthonormal e1 e2 e3 /\ v = a % e3 /\ &0 < a /\
+rho_node1 FF v IN aff_gt {vec 0, e3} {e1} /\
+lunar_deform (e1,e2,e3) t = f /\ &0 <= t /\ t < &1
+==>
+convex_local_fan (IMAGE f V, IMAGE (\S. IMAGE f S) E, IMAGE (\ (m,n). f m, f n) FF) 
+ /\
+lunar (v,w) (IMAGE f V) (IMAGE (\S. IMAGE f S) E) /\
+CARD (IMAGE f V) = CARD V`;;
+
+
+
+
+g ` convex_local_fan (V,E,FF) /\ lunar (v,w) V E /\
+orthonormal e1 e2 e3 /\ v = a % e3 /\ &0 < a /\
+rho_node1 FF v IN aff_gt {vec 0, e3} {e1} /\
+lunar_deform (e1,e2,e3) t = f /\ &0 <= t /\ t < &1
+==> FAN (vec 0,IMAGE f V,IMAGE ( IMAGE f ) E) `;;
+e (REWRITE_TAC[convex_local_fan]);;
+e (NHANH Local_lemmas.LOCAL_FAN_ORBIT_MAP_V);;
+e (REWRITE_TAC[local_fan; FAN]);;
+e (LET_TAC);;
+e (STRIP_TAC);;
+e (CONJ_TAC);;
+e (UNDISCH_TAC` UNIONS E SUBSET (V:real^3 -> bool) `);;
+e (REWRITE_TAC[GSYM IMAGE_UNIONS]);;
+e (SET_TAC[]);;
+
+e (CONJ_TAC);;
+e (MATCH_MP_TAC GRAPH_IMAGE_IMAGE);;
+e (ASM_REWRITE_TAC[]);;
+e (EXPAND_TAC "f");;
+e (MATCH_MP_TAC LUNAR_DEFORM_INJ);;
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[fan1; fan2; fan6; fan7]);;
+e (CONJ_TAC);;
+
+e (UNDISCH_TAC` fan1 ((vec 0:real^3),(V:real^3 -> bool),(E:(real^3 -> bool) -> bool))`);;
+e (REWRITE_TAC[fan1]);;
+e (SIMP_TAC[FINITE_IMAGE]);;
+e (SET_TAC[]);;
+e (ASSUME_TAC2 LUNAR_DEFORM_INJ);;
+
+e (CONJ_TAC);;
+e (UNDISCH_TAC` fan2 (vec 0,V: real^3 -> bool,(E:(real^3 -> bool) -> bool)) `);;
+e (REWRITE_TAC[fan2]);;
+e (DOWN);;
+e (MP_TAC LUNAR_DEFORM_ORIGIN);;
+e (ASM_REWRITE_TAC[IN_IMAGE]);;
+e (MESON_TAC[]);;
+
+e (CONJ_TAC);;
+e (GEN_TAC);;
+e (UNDISCH_TAC` fan6 (vec 0,V:real^3 -> bool,E:(real^3 -> bool) -> bool ) `);;
+e (REWRITE_TAC[IN_IMAGE; IMAGE; fan6]);;
+e (STRIP_TAC);;
+e (FIRST_ASSUM NHANH);;
+e (STRIP_TAC);;
+e (MP_TAC Local_lemmas.HKIRPEP);;
+e (ANTS_TAC);;
+e (ASM_REWRITE_TAC[convex_local_fan; local_fan]);;
+e (CONV_TAC (ONCE_DEPTH_CONV let_CONV));;
+e (SWITCH_TAC ` FF = face H (x:real^3 # real^3 )`);;
+e (ASM_REWRITE_TAC[FAN; fan6]);;
+e (EXISTS_TAC `x:(real^3 #real^3)`);;
+e (ASM_REWRITE_TAC[]);;
+e (STRIP_TAC);;
+e (UNDISCH_TAC` graph (E: (real^3 -> bool) -> bool) `);;
+e (REWRITE_TAC[graph]);;
+e (STRIP_TAC);;
+e (UNDISCH_TAC`(x': real^3 -> bool) IN E `);;
+e (REWRITE_TAC[IN]);;
+e (FIRST_ASSUM NHANH);;
+e (REWRITE_TAC[HAS_SIZE]);;
+e (NHANH Rogers.CARD_2_IMP_DOUBLE);;
+e (STRIP_TAC);;
+
+
+Local_lemmas.LOOP_SET_ITER_CARD_ID;;
+
+Lvducxu.ITER_CYCLIC_ORBIT;;
+
+
+
+seans_fn();;
+lunar;;
+HYP;;
+darts_of_hyp;;
+self_pairs;;
+EE;;
+theta;;
+fan6;;
+rho_node1;;
+p();;
+b();;
+search[`ITER i f x = x `;` orbit_map`];;
+

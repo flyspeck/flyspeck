@@ -24,10 +24,18 @@
 *)
 
 needs "Library/rstc.ml";; (* for RTC reflexive transitive closure *)
-flyspeck_needs "hypermap/hypermap.hl" ;; (* for POWER *)
-flyspeck_needs "../../tame_archive/tame_archive.hl";;
+
+(* flyspeck_needs "../../tame_archive/tame_archive.hl";; *)
 
 module Tame_classification = struct
+
+(* HOL Light definition from hypermap *)
+
+parse_as_infix("POWER",(24,"right"));;
+
+let POWER = new_recursive_definition num_RECURSION 
+  `(!(f:A->A). f POWER 0  = I) /\  
+   (!(f:A->A) (n:num). f POWER (SUC n) = (f POWER n) o f)`;;
 
 (* import of 1.1 HOL *)
 
@@ -40,6 +48,14 @@ let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;;
 let bn_filter = new_recursive_definition list_RECURSION
   `bn_filter (f:A->bool) [] = [] /\
     bn_filter f (CONS x xs) = if (f x) then (CONS x (bn_filter f xs)) else bn_filter f xs`;;
+
+let bn_filter_FILTER = prove_by_refinement (`bn_filter = FILTER`,
+  [
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  GEN_TAC;
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[FILTER;bn_filter];
+  ]);;
 
 let bn_concat = new_recursive_definition list_RECURSION
   `bn_concat [] = [] /\
@@ -128,7 +144,7 @@ let bn_isTable = new_definition `bn_isTable (f:A->B) vs t =
     !p. (set_of_list t p ==> ((SND p = f (FST p)) /\ set_of_list vs (FST p)))`;;
 
 let bn_removeKey = new_definition `bn_removeKey a (ps:(A#B) list) = 
-    bn_filter (\p. ~(a = FST p)) ps`;;
+    FILTER (\p. ~(a = FST p)) ps`;;
 
 let bn_removeKeyList = new_recursive_definition list_RECURSION
   `bn_removeKeyList [] ps = ps /\
@@ -167,7 +183,7 @@ let bn_is_pr_iso = new_definition
 I don't think I'll need these:
 *)
 
-bn_pr_iso_test0, bn_pr_iso_test1,  *)
+(* bn_pr_iso_test0, bn_pr_iso_test1,  *)
 
 (* 2.3.1 
    def bn_oneone, 
@@ -298,6 +314,14 @@ let bn_triangle = new_definition `bn_triangle (vs:A list,f:bool) = (LENGTH vs = 
 (* 4.3 Graphs *)
 
 (* XX drop primes *)
+
+(*
+bn_graph:
+list of faces (with boolean marking if each face is final),
+number of vertices,
+list whose ith entry is the list of faces containing vertex i,
+a list of heights.
+*)
 
 let new_graph_th = prove(`?(x:((num list # bool) list) #  (num) 
    # (((num list # bool) list) list) # (num list))  . T`,MESON_TAC[]);;

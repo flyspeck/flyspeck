@@ -66,6 +66,41 @@ help_grep "_TAC$";;
 List.length (help_grep ".*");;
 *)
 
+(* grab a definition, or anything vaguely similar to a definition. *)
+
+let stripfa t = snd (strip_forall t);;
+
+let rec conjuncts t = 
+  let t' = stripfa t in 
+  if (is_conj t') then (let (a,b) = dest_conj t' in conjuncts a @ conjuncts b) else [t'];;
+
+let heads t = 
+  let c = map (fst o dest_eq) (filter (is_eq) (conjuncts t)) in
+  let h = map (fst o strip_comb) c in
+  let hc = filter (is_const) h in
+    map (fst o dest_const) hc;;
+
+let def_of_string ss = 
+  let t = map (fun (s,t)-> (s, t,heads(snd( dest_thm t))) ) !theorems in
+  let t2 =  filter (fun (_,_,t) -> mem ss t) t in
+   map (fun (s,t,_) -> (s,t)) t2;;
+
+let constant_of_regexp ss = 
+  let re = Str.regexp_case_fold ss in
+  let c = map fst (constants()) in
+   filter (fun s -> Str.string_match re s 0) c;;
+
+(* examples:
+
+def_of_string "cos";;
+def_of_string "DIFF";;
+constant_of_regexp ".*contin";;
+constant_of_regexp ".*integr";;
+constant_of_regexp ".*auchy";;
+constant_of_regexp "at.*[ng]$";;
+
+*)
+
 (*
 let search_limit = ref 100;;
 
@@ -135,7 +170,7 @@ let rrrrr = (match_g[`let x = (y:A) in (z:B)`],"LET_TAC","let elimination",fun t
 let tactic_patterns  = [
 (match_g[`(@):(A->bool)->A`],"SELECT_ELIM_TAC","remove @",fun t-> SELECT_ELIM_TAC);
 (match_g[`(@):(A->bool)->A`],"SELECT_TAC","remove @ with subgoals depending satisfiability",fun t-> SELECT_TAC);
-(match_g[`(\x. f x = \x. g x)`],"ABS_TAC","strip abstractions from equality",fun t-> ABS_TAC);
+(match_g[full `(\x. f x = \x. g x)`],"ABS_TAC","strip abstractions from equality",fun t-> ABS_TAC);
 (match_g[full ` ((p ==> q) ==> r)`],"ANTS_TAC","split off the antecdent of the antecedent",fun t-> ANTS_TAC);
 (match_g_no_ho[full ` (f x = g x)`],"AP_THM_TAC","drop the function argument",fun t-> AP_THM_TAC);
 (match_g_no_ho[full ` (f x y = f x' y)`],"AP_THM_TAC THEN AP_TERM_TAC","show first args of a binary function are equal",fun t-> AP_THM_TAC THEN AP_TERM_TAC);
@@ -180,5 +215,37 @@ let rewrite_suggest = [
 let rewrites _ =
   let s = filter (fun (a,_,_) -> match_g a (top_realgoal())) rewrite_suggest in
     zip (0-- (List.length s  -1) ) s;;
+
+(* get all word counts in HOL LIGHT and FLYSPECK *)
+
+let word_counts() = 
+  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/flyspeck/text_formalization/*/*.hl") in
+  let ss2 = Str.split (Str.regexp "\n") ss1 in
+  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/hol_light/*/*.ml") in
+  let ss2 =  Str.split (Str.regexp "\n") ss1 @ ss2 in
+  let tmpfile =  Filename.temp_file "tmp_" ".txt" in
+  let _ =     Sys.command("touch "^tmpfile) in
+  let _ =     map (fun s -> Sys.command("cat "^ s^ " >> " ^ tmpfile)) ss2 in
+  let sout = Str.split (Str.regexp "\n") (process_to_string("cat "^tmpfile^" | tr -C 'A-Z:a-z0-9_' '\n' | sort | uniq -c | sed 's/^ *//'")) in
+  let sout1 = map (Str.split (Str.regexp " ")) sout in
+  let sout2 = filter (fun t -> List.length t = 2) sout1 in
+  let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
+    sout3;;
+
+(* let tcs = word_counts();; *)
+
+
+(* APROPOS *)
+
+
+let apropos_alist = ref [];;
+let add_apropos t = 
+  let _ = (apropos_alist:= t::!apropos_alist) in ();;
+let apropos_keys = map fst !apropos_alist;;
+
+let apropos s = 
+  let re = Str.regexp s in
+     filter (fun (u,_) -> Str.string_match re u 0) !apropos_alist;;
+
 
 end;;  

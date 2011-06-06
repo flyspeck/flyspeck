@@ -5,7 +5,8 @@
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
-(setq hol-light-interactive-buffer-name "*hol-may20*")
+(setq hol-light-interactive-buffer-name "*hol-jun3*")
+(setq hol-light-interactive-buffer-name "*jun4*")
 
 ; thackmac
 

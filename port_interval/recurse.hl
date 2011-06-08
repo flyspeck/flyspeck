@@ -1,0 +1,252 @@
+(* port of recurse.cc *)
+
+flyspeck_needs "../port_interval/types.hl";;
+flyspeck_needs "../port_interval/error.hl";;
+reneeds "../port_interval/interval.hl";;
+reneeds "../port_interval/line_interval.hl";;
+open Interval;;
+open Line_interval;;
+
+type taylor_function = bool;; (* XX redo later *)
+
+type cellOption = {
+  onlyCheckDeriv1Negative : bool;
+  isUsingDihMax : bool;
+  isUsingBigFace126 : bool;
+  widthCutoff : float;
+  allowSharp : bool;
+  allowDerivatives : bool;
+  mutable iteration_count : int;
+  iteration_limit : int;
+  recursion_depth : int;
+};;
+
+
+
+type  verifier_return = 
+  | Cell_passes 
+  | Cell_counterexample 
+  | Cell_inconclusive of (float list * float list * float list * float list * taylor_function list);;
+
+exception Cell_short of  verifier_return;;
+
+
+let dim6 = 6;;
+let iter6 = 0--5;;
+
+
+
+let taylor_error ti =
+  let _ = up() in
+  let f r = List.fold_left2 (fun a b c -> a +. b *. iabs c) 0.0 ti.w r in
+  let p = map f (ti.dd) in
+ end_itlist ( +. ) p;;
+
+let upper_bound ti = 
+  let e = taylor_error ti in
+  let _ = up() in
+  let t = ti.l.f.hi +. e in
+    t +. List.fold_left2 (fun a b c -> a +. b *. iabs c) 0.0 ti.w ti.l.df;;
+
+let lower_bound ti = 
+  let e = taylor_error ti in
+  let _ = down() in
+  let t = ti.l.f.hi -. e in
+    t +. List.fold_left2 (fun a b c -> a +. ( ~-. b) *. iabs c) 0.0 ti.w ti.l.df;;
+
+let upper_partial ti i = 
+  let _ =  (0 <= i && i < 6) or failwith "upper partial out of range" in
+  let nth = List.nth in
+    up();
+    let err = List.fold_left2 (fun a b c -> a +. b*.c.hi) 0.0 ti.w (nth ti.dd i) in
+      err +. Interval.sup ( nth ti.l.df i);;
+
+let lower_partial ti i = 
+  let _ =  (0 <= i && i < 6) or failwith "lower partial out of range" in
+  let nth = List.nth in
+    down();
+    let err = List.fold_left2 (fun a b c -> a +. b*.c.lo) 0.0 ti.w (nth ti.dd i) in
+      Interval.sup ( nth ti.l.df i) -. err;;
+
+let tangent_at_estimate ti y = line_zero;;  (* XX implement later *)    
+
+
+let evalf tf x z = { (* XX redo *)
+  l =line_zero;
+  w = [];
+  dd = [];
+};;
+
+
+let maxl xs = end_itlist max xs;;
+  
+let center_form(x,z) =
+  let nth = List.nth in
+  (up();
+   let y = map (fun i -> (nth x i +. nth z i)/. 2.0) iter6 in
+   let w = map (fun i -> max (nth z i -. nth y i) (nth y i -. nth x i)) iter6 in
+     (y,w));;
+
+let report_current _ = ();;
+let report_failure _ = ();;
+
+let deltainf = 
+  let ( * ) = ( *. ) in
+  let ( + ) = ( +. ) in
+  let ( - ) = ( -. ) in
+  let ( ~- ) = ( ~-. ) in
+    fun x1 x2 x3 x4 x5 x6 ->
+      (down();
+         ((~- x2)*x3)*x4 +((~-  x1)*x3)*x5 +((~-  x1)*x2)*x6 +((~-  x4)*x5)*x6 +
+   x3*(x1 + x2 + x4 + x5)*x6 +  (x3*(~- x3- x6))*x6 +
+   x2*x5*(x1 + x3 + x4 + x6) + x2*(x5*(~- x2-x5)) +
+        x1*x4*(x2 + x3 + x5 + x6)+ x1*(x4*(~- x1-x4)));;
+
+let sgn x = if (x.lo > 0.0) then 1 else if (x.hi < 0.0) then -1 else 0;;
+
+let rec same_sgn x y = (x = []) or (sgn (hd x) = sgn (hd y) && same_sgn (tl x) (tl y));;
+
+let check_count = 
+  let end_count = ref 0 in
+    fun () ->
+      let _ = end_count := !end_count + 1 in
+	(!end_count < 80000);;
+
+let check_limit opt depth = 
+  let _ = opt.iteration_count <- opt.iteration_count + 1 in
+   ( opt.iteration_count < opt.iteration_limit or opt.iteration_limit = 0 ) &&
+     (depth < opt.recursion_depth);;
+
+(* a bit tricky because unstable exceptions are common early on,
+    and evaluations are very expensive. *)
+
+let rec set_targets (x,z,x0,z0,tf,tis,opt,maxwidth,has_unstable) =
+    try (
+      if (tf = []) then
+	let _ = not(has_unstable) or raise
+	  (Cell_short (Cell_inconclusive (x,z,x0,z0,map snd tis))) in
+	  List.rev tis
+      else (
+	let target = evalf (hd tf)  x z in
+
+	let _ =  not( opt.onlyCheckDeriv1Negative) or raise (Cell_short(
+	  (if upper_partial target 0 < 0.0 then   Cell_passes
+	   else if  lower_partial target 0 > 0.0 then Cell_counterexample
+	   else Cell_inconclusive(x,z,x0,z0,tf)))) in
+	  
+	let _ =  upper_bound target >= 0.0 or raise (Cell_short Cell_passes) in
+	  
+	  set_targets(x,z,x0,z0,tl tf,(target,hd tf)::tis,opt,maxwidth,has_unstable));	
+    )
+    with Unstable -> (
+      if (2.0 *. maxwidth > opt.widthCutoff) 
+      then set_targets(x,z,x0,z0,tl tf,tis,opt,maxwidth,true)
+      else set_targets(x,z,x0,z0,tl tf,tis,opt,maxwidth,has_unstable);
+    );
+;;
+
+let rec delete_false acc tis =
+  if (tis=[]) then List.rev acc 
+  else if (lower_bound (fst (hd tis)) > 0.0) then delete_false acc (tl tis) 
+  else delete_false (hd tis::acc) (tl tis);;
+
+let rec has_monotone tis x z x0 z0 is found  = match is with
+  | [] -> (x,z,x0,z0,found)
+  | j::js -> 
+    let allpos = List.fold_left (fun a ti -> a && lower_partial (fst ti) j >= 0.0) true tis in
+    let allneg = List.fold_left (fun a ti -> a && upper_partial (fst ti) j < 0.0) true tis in
+    if (allpos) then
+      let _ = (List.nth z j >= List.nth z0 j) or raise (Cell_short Cell_passes) in
+      let setj u = map (fun i -> (if i=j then List.nth z j else List.nth u i)) iter6 in
+	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
+    else if (allneg) then
+      let _ = (List.nth x j <= List.nth x0 j) or raise (Cell_short Cell_passes) in
+      let setj u = map (fun i -> (if i=j then List.nth x j else List.nth u i)) iter6 in
+	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
+    else has_monotone tis x z x0 z0 js found;;
+
+
+let rec going_strong(x,z,x0,z0,tf,opt) =
+  let (y,w) = center_form (x,z) in
+  let maxwidth = maxl w in
+  let tis = set_targets(x,z,x0,z0,tf,[],opt,maxwidth,false) in
+  let epsilon_width = 1.0e-8 in
+  let _ = (maxwidth >= epsilon_width) or raise (Cell_short 
+	(if (opt.allowSharp) then (Error.inc_corner_count(); Cell_passes) 
+				   else Cell_counterexample)) in
+  let tis = delete_false [] tis in
+  let _ = (List.length tis > 0) or raise (Cell_short Cell_counterexample) in
+  let (x0,z0) = if (List.length tis < List.length tf) then (x,z)  else (x0,z0) in
+  let (x,z,x0,z0,strong) = 
+    if (opt.allowDerivatives) then has_monotone tis  x z x0 z0 iter6 false 
+    else (x,z,x0,z0,false) in
+    if (strong) then going_strong(x,z,x0,z0,map snd tis,opt) else (x,z,x0,z0,maxwidth,tis);;
+
+let guess_optimal_corners (x,z,ti,tf) = 
+  let nth = List.nth in
+  let mixedsign = List.fold_left (fun a i -> a or (sgn(nth ti.l.df i)=0)) false iter6 in
+  let yyn = map (fun i-> nth (if sgn (nth  ti.l.df i) >0 then x else z) i) iter6 in
+  let yyu = map (fun i-> nth (if sgn (nth  ti.l.df i) >0 then z else x) i) iter6 in
+  let cn = tangent_at_estimate tf yyn in
+  let cu = tangent_at_estimate tf yyu in
+    (mixedsign,yyn,yyu,cn,cu);;
+
+let rec drop_numerically_false acc (x,z,x0,z0,tis) =
+    match tis with 
+      | [] -> (x0,z0,List.rev tis)
+      | (ti,tf) :: tiss -> 
+	  if (ti.l.f.lo <= 0.0) then drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss)
+	  else 
+	    let (mixedsign,yyn,yyu,cn,cu)= guess_optimal_corners(x,z,ti,tf) in
+	      if (mixedsign) then drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss)
+	      else if (min cn.f.lo cu.f.lo > 0.0 && 
+			 same_sgn ti.l.df cn.df && same_sgn ti.l.df cu.df) 
+	      then drop_numerically_false acc (x,z,x,z,tiss)
+	      else drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss);;
+
+let rec keep_numerically_true best (x,z,x0,z0,tis,evalue) = match tis with
+  | [] -> 
+       if (evalue < 0.0 && List.length best >0) then (x,z,best)
+       else (x0,z0,tis)
+  | (ti,tf)::tiss ->
+      if (ti.l.f.hi > 0.0) then keep_numerically_true best (x,z,x0,z0,tiss,evalue)
+      else
+	let (mixedsign,yyn,yyu,cn,cu) = guess_optimal_corners(x,z,ti,tf) in
+	let evalue' = max cn.f.hi cu.f.hi  in
+	  if ((evalue' < evalue) &&
+		same_sgn ti.l.df cn.df && same_sgn ti.l.df cu.df && not(mixedsign)) then
+	    keep_numerically_true [(ti,tf)] (x,z,x0,z0,tiss,evalue')
+	  else keep_numerically_true best (x,z,x0,z0,tiss,evalue);;    
+
+let rec verify_cell (x,z,x0,z0,tf,opt) =
+  try (
+  let _ = check_count () or ( report_current (x,z,"entry",5); true) in
+  let _ = not(opt.onlyCheckDeriv1Negative) or (List.length tf <= 1) or 
+	     failwith "verify_cell: incompatible options" in
+	(* XX skip rad2, delta126, delta135 *)
+  let (x,z,x0,z0,maxwidth,tis) = going_strong(x,z,x0,z0,tf,opt) in
+  let (x0,z0,tis) =   if (maxwidth < opt.widthCutoff && opt.allowDerivatives)  
+  then  drop_numerically_false [] (x,z,x0,z0,tis)   else (x0,z0,tis) in
+  let _ = (List.length tis >0) or raise (Cell_short Cell_counterexample) in
+  let (x0,z0,tis) = 
+    if ((maxwidth<opt.widthCutoff)&&(List.length tis >1) && opt.allowDerivatives) 
+    then keep_numerically_true [] (x,z,x0,z0,tis,0.0) else (x0,z0,tis) in
+    Cell_inconclusive (x,z,x0,z0,map snd tis);
+  )
+  with Cell_short c -> c;;
+  
+let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) = 
+  let nth = List.nth in
+  let _ = check_limit opt depth in (* or insert diagnostics and terminate *)
+    match verify_cell(x,z,x0,z0,tf,opt)  with
+      | Cell_counterexample -> false
+      | Cell_passes -> true
+      | Cell_inconclusive(x,z,x0,z0,tf) ->
+	  (up();
+	   let w = map (fun (z1,x1) -> z1 -. x1) (zip z x) in
+	   let wmax = maxl w in
+	   let j_wide =   find (fun i -> nth w i = wmax) iter6 in
+	   let y = (nth x j_wide +. nth z j_wide) /. 2.0 in
+	   let delta b v =map (fun i-> if (i=j_wide && b) then y else nth v i) in
+           recursive_verifier(depth+1, delta false x iter6,delta true z iter6,x0,z0,tf,opt) &&
+           recursive_verifier(depth+1, delta true x iter6,delta false z iter6,x0,z0,tf,opt));;

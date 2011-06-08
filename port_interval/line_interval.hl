@@ -1,0 +1,87 @@
+(* port of lineInterval.cc.  
+   Only the top section has been translated.  The rest should be
+   automatically generated from HOL Light specs.
+ *)
+
+(* use 6-tuples for domains *)
+
+flyspeck_needs "../port_interval/interval.hl";;
+
+module Line_interval = struct
+
+  open List;;
+  open Interval;;
+
+let partial line i = if ((i >= 0) && (i < 6)) then List.nth line.df i 
+else failwith "partial out of range";;
+
+let mk_line(f1,df1) = { f = f1; df =df1};;
+
+let lmul =
+  let ( * ) = Interval.imul in
+  let ( + ) = Interval.iadd in
+  let nth = List.nth in
+  fun a b -> mk_line ( a.f * b.f, map (fun i -> a.f * nth b.df i + b.f * nth a.df i) (0--5));;
+
+let smul = 
+  let ( * ) = Interval.imul in
+  fun a b -> mk_line ( a.f * b, map (fun x -> x * b) a.df);;
+  
+let ldiv = 
+  let one = Interval.mk_interval(1.0,1.0) in
+  let ( * ) = Interval.imul in
+  let ( - ) = Interval.isub in
+  let ( / ) = Interval.idiv in
+  let nth = List.nth in
+  fun b a -> 
+    let r = one/a.f in
+    let f = b.f * r in
+    let r2 = r * r in
+    mk_line ( f, map (fun i -> ((nth b.df i) * a.f - (nth a.df i) * b.f)* r2) (0--5));;
+  
+let ladd = 
+  let ( + ) = Interval.iadd in
+  let nth = List.nth in
+    fun b a ->
+      mk_line(b.f + a.f, map (fun i -> nth b.df i + nth a.df i) (0--5));;
+
+let lsub = 
+  let ( - ) = Interval.isub in
+  let nth = List.nth in
+    fun b a ->
+      mk_line(b.f - a.f, map (fun i -> nth b.df i - nth a.df i) (0--5));;
+
+let lneg = 
+  let ineg = Interval.ineg in
+    fun a ->
+      mk_line(ineg a.f, map ineg a.df);;
+
+let line_zero = 
+  let z = Interval.izero in
+  mk_line(z,replicate z 6);;
+
+let lsqrt =
+  let one = Interval.mk_interval(1.0,1.0) in
+  let two = Interval.mk_interval(2.0,2.0) in
+  let ( * ) = Interval.imul in
+  let ( / ) = Interval.idiv in
+  let nth = List.nth in
+  fun a -> 
+    let f = Interval.isqrt a.f in
+    let rs = one / (two * f) in
+      mk_line(f, map (fun i -> nth a.df i * rs) (0--5));;
+
+let latan = (* arctan (a/b) *)
+  let one = Interval.mk_interval(1.0,1.0) in
+  let ( * ) = Interval.imul in
+  let ( + ) = Interval.iadd in
+  let ( - ) = Interval.isub in
+  let ( / ) = Interval.idiv in
+  let nth = List.nth in
+  fun a b -> 
+    let f = Interval.iatan (a.f/b.f) in
+    let rden = one/ (a.f * a.f + b.f * b.f) in
+      mk_line(f, map (fun i -> rden * (nth a.df i * b.f - nth b.df i * a.f)) (0--5));;
+
+
+ end;;

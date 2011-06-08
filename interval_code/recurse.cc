@@ -360,7 +360,8 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  {
 	    yyn[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? x[j] : z[j]);
 	    yu[j]= (sgn(T[i]->tangentVectorOf().partial(j))>0 ? z[j] : x[j]);
-	    if (sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
+	    // corrected sign June 8, 2011. (0==) missing.
+	    if (0==sgn(T[i]->tangentVectorOf().partial(j))) mixedsign= 1;
 	  }
 	if (mixedsign) { mixedsign=0; continue; }
 	cn = I[i]->tangentAtEstimate(domain(yyn)); 
@@ -375,7 +376,8 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  }
 	}
       }
-    if (margin>0.0) count =1; // Disregard the rest of the inequalities;
+    if (margin>0.0 ) { count =1; } 
+	// Disregard the rest of the inequalities;
   } // if maxwidth
 
 

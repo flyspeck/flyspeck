@@ -1,16 +1,8 @@
 (* port of error.cc *)
 
-module Error = struct
+module Report = struct
 
 let time_string () =   Printf.sprintf "time(%.0f)" (Sys.time());;
-
-
-let report s =
-  Format.print_string s; Format.print_newline(); Format.print_flush();;
-
-(* renamed printTime *)
-
-let timed_report s = report (s^" "^(time_string()));;
 
 let (get_error_count,reset_error_count,inc_error_count) =
   let error_count = ref 0 in
@@ -22,20 +14,23 @@ let (get_corner_count,reset_corner_count,inc_corner_count) =
     ((fun _ -> !corner_count),(fun _ -> corner_count := 0),
    (fun _ -> corner_count:= !corner_count + 1));;
 
-exception Interval_fatal;;
-let error_max = 200;;
-
-(* renamed message *)
-
-let error s = 
-  (inc_error_count(); timed_report ("error "^s); 
-  ignore(get_error_count() < error_max or raise Interval_fatal));;
-  
-let fatal s = 
-  ( inc_error_count(); timed_report ("error "^s); raise Interval_fatal);;
-
 let diagnostic_string () = 
   let d = get_error_count() in
   if (d>0) then Printf.sprintf "(errors %d)" (get_error_count())  else "(no errors)";;
+
+let report s =
+  Format.print_string s; Format.print_newline(); Format.print_flush();;
+
+let report_timed s = report (s^" "^(time_string()));;
+
+let report_error = 
+  let error_max = 25 in  (* was 200, recurse.cc had a separate counter limit at 25 *)
+    fun s ->
+      let ec = get_error_count() in
+      (inc_error_count(); report_timed (Printf.sprintf "error(%d) --\n%s" ec s); 
+       ignore(get_error_count() < error_max or raise Fatal));;
+  
+let report_fatal s = 
+  ( inc_error_count(); report_timed ("error --\n"^s); raise Fatal);;
 
 end;;

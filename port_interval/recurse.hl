@@ -1,7 +1,7 @@
 (* port of recurse.cc *)
 
 flyspeck_needs "../port_interval/types.hl";;
-flyspeck_needs "../port_interval/error.hl";;
+flyspeck_needs "../port_interval/report.hl";;
 flyspeck_needs "../port_interval/interval.hl";;
 flyspeck_needs "../port_interval/univariate.hl";;
 flyspeck_needs "../port_interval/line_interval.hl";;
@@ -42,7 +42,7 @@ let return c = raise (Return c);;
 (* error checking and reporting functions *)
 
 let string_of_domain x =
-  let n = List.nth in
+  let n = mth in
   Printf.sprintf "{%f, %f, %f, %f, %f, %f}" (n x 0) (n x 1) (n x 2) (n x 3) (n x 4) (n x 5);;
 
 let string3 (x,z,s) =  (string_of_domain x ^"\n"^ string_of_domain z ^ "\n" ^ s);;
@@ -70,17 +70,14 @@ let check_limit opt depth =
 
 (* general utilities *)
 
-let iter6 = 0--5;;
-
-let maxl xs = end_itlist max xs;;
   
 
 (* move this somewhere else! *)
 
 let deltainf = 
-  let ( * ) = ( *. ) in
-  let ( + ) = ( +. ) in
-  let ( - ) = ( -. ) in
+  let ( * ) =  downmul in
+  let ( + ) = downadd  in
+  let  ( - ) = downsub in
   let ( ~- ) = ( ~-. ) in
     fun x1 x2 x3 x4 x5 x6 ->
       (down();
@@ -132,12 +129,12 @@ let rec has_monotone tis x z x0 z0 is found  = match is with
     let allpos = List.fold_left (fun a ti -> a && lower_partial (fst ti) j >= 0.0) true tis in
     let allneg = List.fold_left (fun a ti -> a && upper_partial (fst ti) j < 0.0) true tis in
     if (allpos) then
-      let _ = (List.nth z j >= List.nth z0 j) or return Cell_pass in
-      let setj u = map (fun i -> (if i=j then List.nth z j else List.nth u i)) iter6 in
+      let _ = (mth z j >= mth z0 j) or return Cell_pass in
+      let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
 	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
     else if (allneg) then
-      let _ = (List.nth x j <= List.nth x0 j) or  return Cell_pass in
-      let setj u = map (fun i -> (if i=j then List.nth x j else List.nth u i)) iter6 in
+      let _ = (mth x j <= mth x0 j) or  return Cell_pass in
+      let setj u = table (fun i -> (if i=j then mth x j else mth u i))  in
 	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
     else has_monotone tis x z x0 z0 js found;;
 
@@ -158,10 +155,9 @@ let rec going_strong(x,z,x0,z0,tf,opt) =
     if (strong) then going_strong(x,z,x0,z0,map snd tis,opt) else (x,z,x0,z0,maxwidth,tis);;
 
 let guess_optimal_corners (x,z,ti,tf) = 
-  let nth = List.nth in
-  let mixedsign = List.fold_left (fun a i -> a or (sgn(nth ti.l.df i)=0)) false iter6 in
-  let yyn = map (fun i-> nth (if sgn (nth  ti.l.df i) >0 then x else z) i) iter6 in
-  let yyu = map (fun i-> nth (if sgn (nth  ti.l.df i) >0 then z else x) i) iter6 in
+  let mixedsign = List.fold_left (fun a i -> a or (sgn(mth ti.l.df i)=0)) false iter6 in
+  let yyn = table (fun i-> mth (if sgn (mth  ti.l.df i) >0 then x else z) i)  in
+  let yyu = table (fun i-> mth (if sgn (mth  ti.l.df i) >0 then z else x) i)  in
   let cn = line_estimate tf yyn in
   let cu = line_estimate tf yyu in
     (mixedsign,yyn,yyu,cn,cu);;
@@ -211,20 +207,19 @@ let rec verify_cell (x,z,x0,z0,tf,opt) =
   with Return c -> c;;
 
 let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) = 
-  let nth = List.nth in
   let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "depth %d" depth) in
     match verify_cell(x,z,x0,z0,tf,opt)  with
       | Cell_counterexample -> false
       | Cell_pass -> true
       | Cell_inconclusive(x,z,x0,z0,tf) ->
 	  (up();
-	   let w = map (fun (z1,x1) -> z1 -. x1) (zip z x) in
+	   let w = map (fun (z1,x1) -> upsub z1  x1) (zip z x) in
 	   let wmax = maxl w in
-	   let j_wide =   find (fun i -> nth w i = wmax) iter6 in
-	   let y = (nth x j_wide +. nth z j_wide) /. 2.0 in
-	   let delta b v =map (fun i-> if (i=j_wide && b) then y else nth v i) in
-           recursive_verifier(depth+1, delta false x iter6,delta true z iter6,x0,z0,tf,opt) &&
-           recursive_verifier(depth+1, delta true x iter6,delta false z iter6,x0,z0,tf,opt));;
+	   let j_wide =   find (fun i -> mth w i = wmax) iter6 in
+	   let y = updiv (upadd (mth x j_wide) ( mth z j_wide))  2.0 in
+	   let delta b v =table (fun i-> if (i=j_wide && b) then y else mth v i) in
+           recursive_verifier(depth+1, delta false x ,delta true z ,x0,z0,tf,opt) &&
+           recursive_verifier(depth+1, delta true x ,delta false z ,x0,z0,tf,opt));;
 
 
 end;;

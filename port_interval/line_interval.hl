@@ -12,8 +12,28 @@ module Line_interval = struct
   open List;;
   open Interval;;
 
-let partial line i = if ((i >= 0) && (i < 6)) then List.nth line.df i 
-else failwith "partial out of range";;
+
+(* general utilities *)
+
+  let table f = map f iter6;;
+  
+  let table2 f = map (fun i -> map (fun j-> f i j) iter6) iter6;;
+
+  let rth m x i  = if (i >=0) && (i < m) then List.nth x i else
+		      failwith (Printf.sprintf "index %d not in 0..%d" i (m-1));;
+
+  let mth x i =  if (i >=0) && (i < 6) then List.nth x i else
+		      failwith (Printf.sprintf "index %d not in 0..6" i );;
+
+  let mth2 a i j = mth (mth a i) j;;
+
+  let iter6 = 0--5;;
+
+  let maxl xs = end_itlist max xs;;
+
+(* line interval proper *)
+
+let partial line i = mth line.df i ;; 
 
 let mk_line(f1,df1) = { f = f1; df =df1};;
 
@@ -27,7 +47,7 @@ let line_unit =
 let lmul =
   let ( * ) = imul in
   let ( + ) = iadd in
-  fun a b -> mk_line ( a.f * b.f, map (fun i -> a.f * nth b.df i + b.f * nth a.df i) (0--5));;
+  fun a b -> mk_line ( a.f * b.f, map (fun i -> a.f * mth b.df i + b.f * mth a.df i) iter6);;
 
 let smul = 
   let ( * ) = imul in
@@ -42,17 +62,17 @@ let ldiv =
     let r = one/a.f in
     let f = b.f * r in
     let r2 = r * r in
-    mk_line ( f, map (fun i -> ((nth b.df i) * a.f - (nth a.df i) * b.f)* r2) (0--5));;
+    mk_line ( f, map (fun i -> ((mth b.df i) * a.f - (mth a.df i) * b.f)* r2) iter6);;
   
 let ladd = 
   let ( + ) = iadd in
     fun b a ->
-      mk_line(b.f + a.f, map (fun i -> nth b.df i + nth a.df i) (0--5));;
+      mk_line(b.f + a.f, map (fun i -> mth b.df i + mth a.df i) iter6);;
 
 let lsub = 
   let ( - ) = isub in
     fun b a ->
-      mk_line(b.f - a.f, map (fun i -> nth b.df i - nth a.df i) (0--5));;
+      mk_line(b.f - a.f, map (fun i -> mth b.df i - mth a.df i) iter6);;
 
 let lneg = 
   let ineg = ineg in
@@ -67,7 +87,7 @@ let lsqrt =
   fun a -> 
     let f = isqrt a.f in
     let rs = one / (two * f) in
-      mk_line(f, map (fun i -> nth a.df i * rs) (0--5));;
+      mk_line(f, map (fun i -> mth a.df i * rs) iter6);;
 
 let latan = (* arctan (a/b) *)
   let one = mk_interval(1.0,1.0) in
@@ -78,7 +98,7 @@ let latan = (* arctan (a/b) *)
   fun a b -> 
     let f = iatan (a.f/b.f) in
     let rden = one/ (a.f * a.f + b.f * b.f) in
-      mk_line(f, map (fun i -> rden * (nth a.df i * b.f - nth b.df i * a.f)) (0--5));;
+      mk_line(f, map (fun i -> rden * (mth a.df i * b.f - mth b.df i * a.f)) iter6);;
 
 
  end;;

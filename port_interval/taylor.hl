@@ -1,0 +1,272 @@
+(* taylor functions, taylor interval *)
+
+
+module Taylor = struct
+
+open Interval;;
+open Univariate;;
+open Line_interval;;
+
+
+(* general utilities *)
+
+
+let m6_sum =
+  let ( + ) = iadd in
+    fun dd1 dd2 ->
+      let r6_sum (x,y) = table (fun i -> mth x i + mth y i)  in
+	map r6_sum (zip dd1 dd2);;
+
+let center_form(x,z) =
+  let ( + ) , ( - ), ( / ) = up(); upadd,upsub,updiv in
+  let y = table (fun i -> (mth x i + mth z i)/ 2.0)  in
+   let w = table (fun i -> max (mth z i - mth y i) (mth y i - mth x i))  in
+     (y,w);;
+
+
+(* start with taylor interval operations *)
+
+let make_taylor_interval (l1,w1,dd1) = {l = l1; w = w1; dd=dd1;};;
+
+let ti_add (ti1,ti2) =
+  let _ = (ti1.w = ti2.w) or failwith ("width mismatch in ti") in
+   make_taylor_interval( ladd ti1.l ti2.l,ti1.w, m6_sum ti1.dd ti2.dd);;
+
+let ti_scale (ti,t) =
+   make_taylor_interval( smul ti.l t,ti.w,  table2 (fun i j ->  imul (mth2 ti.dd i j) t));;
+
+let taylor_error ti =
+  let ( + ), ( * ) = up(); upadd, upmul in
+  let f r = List.fold_left2 (fun a b c -> a + b * iabs c) 0.0 ti.w r in
+  let p = map f (ti.dd) in
+ end_itlist ( + ) p;;
+
+let upper_bound ti = 
+  let e = taylor_error ti in
+  let ( + ), ( * ) = up(); upadd, upmul in
+  let t = ti.l.f.hi + e in
+    t + List.fold_left2 (fun a b c -> a + b * iabs c) 0.0 ti.w ti.l.df;;
+
+let lower_bound ti = 
+  let e = taylor_error ti in
+  let ( + ), ( * ),(- ) = down(); downadd,downmul,downsub in
+  let t = ti.l.f.hi - e in
+    t + List.fold_left2 (fun a b c -> a + ( ~-. b) * iabs c) 0.0 ti.w ti.l.df;;
+
+let upper_partial ti i = 
+  let ( + ), ( * ) =   up(); upadd,upmul in
+    let err = List.fold_left2 (fun a b c -> a + b*c.hi) 0.0 ti.w (mth ti.dd i) in
+      err + Interval.sup ( mth ti.l.df i);;
+
+let lower_partial ti i = 
+  let ( + ), ( * ), ( - ) = down();downadd,downmul,downsub in
+    let err = List.fold_left2 (fun a b c -> a + b * c.lo) 0.0 ti.w (mth ti.dd i) in
+      Interval.sup ( mth ti.l.df i) - err;;
+
+
+(* primitive A *)
+
+type primitiveA = {
+  hfn : float list -> line;
+  second : float list -> float list -> interval list list;
+};;
+
+let make_primitiveA (h1,s1) = {hfn = h1; second = s1; };;
+
+let unitA = 
+  let zero2 = table2 (fun i j -> zero) in
+    make_primitiveA (
+      (fun y -> line_unit),
+      (fun x z -> zero2)
+);;
+
+let evalf4A pA w x y z =
+  make_taylor_interval(
+    pA.hfn y,
+    w,
+    pA.second x z
+  );;
+
+let line_estimateA pA y = pA.hfn y;;
+
+(* primitive U *)
+
+type primitiveU = {
+  slot: int;
+  uv: univariate;
+};;
+
+let mk_primitiveU s1 uv1 = 
+  let _ = (s1 < 6) or failwith (Printf.sprintf "slot %d" s1) in
+    { slot = s1; uv = uv1; };;
+
+let line_estimateU p y = 
+  let y0 = mth y p.slot in
+  let t = mk_interval(y0,y0) in
+  let d = table (fun i -> if (i=p.slot) then eval p.uv t 1 else zero)  in
+    mk_line (    eval p.uv t 0,    d  );;
+
+let evalf4U =
+  let row0 = table (fun i -> zero)  in
+    fun p w x y z ->
+      let t = mk_interval(mth x p.slot,mth z p.slot) in
+      let row_slot = table  (fun i -> if (i=p.slot) then eval p.uv t 2 else zero)  in
+      let dd = table (fun i -> if (i=p.slot) then row_slot else row0)  in
+      make_taylor_interval(
+	line_estimateU p y,
+	w,
+	dd
+      );;
+
+type taylor_function = 
+  |  Prim_a of primitiveA
+  |  Uni of primitiveU
+  |  Plus of taylor_function * taylor_function
+  |  Scale of taylor_function * interval
+  |  Uni_compose of univariate * taylor_function
+  |  Composite of taylor_function *  (* F(g1,g2,g3,g4,g5,g6) *)
+       taylor_function *taylor_function *taylor_function *
+       taylor_function *taylor_function *taylor_function ;;
+
+let unit = Prim_a unitA;;
+
+let x1 = Uni (mk_primitiveU 0 ux1);;
+let x2 = Uni (mk_primitiveU 1 ux1);;
+let x3 = Uni (mk_primitiveU 2 ux1);;
+let x4 = Uni (mk_primitiveU 3 ux1);;
+let x5 = Uni (mk_primitiveU 4 ux1);;
+let x6 = Uni (mk_primitiveU 5 ux1);;
+
+let x1x2 = 
+  let tab2 = table2 (fun i j -> if (i+j=1) then one else zero) in
+    Prim_a (make_primitiveA(
+		     (fun y -> 
+			let u1 = mth y 0 in 
+			let u2 = mth y 1 in
+			let x1 = mk_interval(u1,u1) in
+			let x2 = mk_interval(u2,u2) in
+			  mk_line(
+			    imul x1 x2,
+			    table (fun i -> if i=0 then x2 else if i=1 then x1 else zero)
+			  )),
+		     (fun x z -> tab2)));;
+
+let rotate2 f = Composite(f,x2,x3,x1,x5,x6,x4);;
+let rotate3 f = Composite(f,x3,x1,x2,x6,x4,x5);;
+let rotate4 f = Composite(f,x4,x2,x6,x1,x5,x3);;
+let rotate5 f = Composite(f,x5,x3,x4,x2,x6,x1);;
+let rotate6 f = Composite(f,x6,x1,x5,x3,x4,x2);;
+
+let tf_product tf1 tf2 = Composite(x1x2,tf1,tf2,unit,unit,unit,unit);;
+  
+
+(* This is one of the most difficult functions in the interval code.
+   It uses the chain rule to compute the second partial derivatives with
+   respect to x(i) x(j), of a function composition
+
+   F(x1,...,x6) = f(g1(x1,...x6),g2(x1,...x6),...,g6(x1,...x6)).
+
+   (F i j) = sum {k m} (f k m) (gk i) (gm j)     + sum {r} (f r) (gr i j).
+
+   Fast performance of this function is very important, especially
+   when many of the functions g* are constant.
+   There is a bit of imperative programming here, in computing the sums.
+
+   Note that ( + ) and ( * ) have different types in various subsections.
+*)
+
+let eval_composite =
+  let rest = () in
+  let  sparse_table h f = filter h (List.flatten (table2 f)) in
+    fun hdr p1 p2 p3 p4 p5 p6 w ->
+      let p = [p1;p2;p3;p4;p5;p6] in
+	(* wide and narrow ranges of p *)
+      let (aw,bw) = map (lower_bound) p, map (upper_bound) p  in 
+      let (a,b) = map (fun p -> p.l.f.lo) p, map (fun p -> p.l.f.hi) p in 
+	(* wide and narrow widths from a to b *)
+      let (u,wu,wf) = 
+	let ( + ),( - ),( / ) = up();upadd,upsub,updiv in
+	let u = table (fun i -> (mth a i + mth b i) / 2.0)  in
+	let wu = table (fun i -> max (mth bw i - mth u i) (mth u i - mth aw i))  in
+	let wf = table (fun i -> max (mth b i - mth u i) (mth u i - mth a i))  in
+	  (u,wu,wf) in
+      let (fu:taylor_interval) = hdr wu aw u bw in
+      let fpy = 
+	let t = make_taylor_interval(fu.l,wf,fu.dd) in
+	  mk_line (
+	    mk_interval(lower_bound t, upper_bound t),
+	    table (fun i -> mk_interval(lower_partial t i,upper_partial t i))  ) in
+	(* use chain rule imperatively to compute narrow first derivative *)
+      let df_tmp = Array.create 6 zero in
+      let ( + ) = iadd in
+      let ( * ) = imul in
+      let _ = for j=0 to 5 do 
+	let dfj = mth fpy.df j in
+	  if is_zero dfj then rest 
+	  else for i=0 to 5 do
+	    let r = mth (mth p j).l.df i in
+	      if (is_zero r) then rest else df_tmp.(i) <- df_tmp.(i) + dfj * r;
+	  done;
+      done in
+      let lin = mk_line (	fpy.f, Array.to_list df_tmp ) in
+	(* second derivative init *)
+      let fW_partial = table (fun i -> mk_interval(lower_partial fu i,upper_partial fu i)) in
+      let pW_partial = sparse_table (fun (_,_,z) ->not (is_zero z))  
+	(fun k i -> (k,i,(mk_interval(lower_partial (mth p k) i,upper_partial (mth p k) i)))) in
+	(* chain rule 4-nested loop!, but flattened with sparse table *)
+      let dcw = Array.make_matrix 6 6 zero in 
+      let _ = for i=0 to 5 do for j=0 to 5 do for k=0 to 5 do
+	if (is_zero (mth2 (mth p k).dd i j)) then rest 
+	else dcw.(i).(j) <- dcw.(i).(j) + mth fW_partial k * mth2 ((mth p k).dd) i j ;
+      done; done; done in
+      let len = List.length pW_partial in
+      let _ = for ki = 0 to len-1 do 
+	let (k,i,rki) = List.nth pW_partial ki in
+	  for mj=0 to len-1 do
+	    let (m,j,rmj) = List.nth pW_partial mj in
+	      Report.report (Printf.sprintf "k i m j rki rmj fuddkm = %d %d %d %d %f %f %f" k i m j rki.lo rmj.lo (mth2 fu.dd k m).lo);
+	      dcw.(i).(j) <- dcw.(i).(j) +  mth2 fu.dd k m * rki * rmj; (* innermost loop *)
+	  done; done in
+      let dcw_list =  map Array.to_list (Array.to_list dcw) in
+	make_taylor_interval(lin,w,dcw_list);;
+
+let rec evalf4 tf w x y z = match tf with
+  | Prim_a p -> evalf4A p w x y z
+  | Uni p -> evalf4U p w x y z
+  | Plus (tf1,tf2) -> ti_add(evalf4 tf1 w x y z, evalf4 tf2 w x y z)
+  | Composite(h,g1,g2,g3,g4,g5,g6) ->
+      let [p1;p2;p3;p4;p5;p6] = map (fun t-> evalf4 t w x y z) [g1;g2;g3;g4;g5;g6] in
+	eval_composite (evalf4 h) p1 p2 p3 p4 p5 p6 w
+  | Scale (tf,t) -> ti_scale ((evalf4 tf w x y z),t)
+  | Uni_compose (uf,tf) -> 
+      evalf4 (Composite(Uni (mk_primitiveU 0 uf),tf,unit,unit,unit,unit,unit)) w x y z;;
+
+let evalf tf x z = 
+  let (y,w) = center_form (x,z) in
+    evalf4 tf w x y z;;
+
+let line_estimate_composite =
+  let ( + ) = iadd in
+  let ( * ) = imul in
+    fun h p1 p2 p3 p4 p5 p6 ->
+      let p =  [p1;p2;p3;p4;p5;p6] in
+      let (a,b) = map (fun p -> p.f.lo) p, map (fun p -> p.f.hi) p in 
+      let fN = evalf h a b in
+      let fN_partial = table (fun i -> mk_interval(lower_partial fN i,upper_partial fN i)) in
+      let pN_partial =table2(fun i j-> (mth (mth p i).df j)) in
+      let cN_partial2 = table2 (fun i j -> mth fN_partial j * mth2 pN_partial j i) in
+      let cN_partial = map (end_itlist ( + )) cN_partial2 in
+	mk_line ( fN.l.f, cN_partial );;
+
+let rec line_estimate tf y = match tf with
+  | Prim_a p -> line_estimateA p y
+  | Uni p -> line_estimateU p y
+  | Plus (p,q) -> ladd (line_estimate p y) (line_estimate q y)
+  | Scale (p,t) -> smul (line_estimate p y) t
+  | Uni_compose (uf,tf) -> 
+      line_estimate (Composite(Uni { slot=0; uv=uf; },tf,unit,unit,unit,unit,unit)) y
+  | Composite(h,g1,g2,g3,g4,g5,g6) ->
+      let [p1;p2;p3;p4;p5;p6] = map (fun t-> line_estimate t y) [g1;g2;g3;g4;g5;g6] in
+	line_estimate_composite h p1 p2 p3 p4 p5 p6;;
+
+end;;

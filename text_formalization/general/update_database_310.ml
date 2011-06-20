@@ -213,6 +213,9 @@ let update_database =
 (* ------------------------------------------------------------------------- *)
 
 let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
+let rewrite t = mk_comb(mk_var("<rewrite>",W mk_fun_ty (type_of t)),t);;
+let regexp s = mk_comb(mk_var("<regexp>",W mk_fun_ty aty),
+                     mk_var(s,aty));;
 
 (* very rough measure of the size of a printed term *)
 let rec term_length = 
@@ -241,6 +244,24 @@ let search_thml term_matcher =
       [],_ -> true
     | _,[] -> false
     | (h1::t1,h2::t2) -> immediatesublist l1 l2 or sublist l1 t2 in
+
+  let rec conjuncts t = 
+    let t' = snd (strip_forall t) in 
+      if (is_conj t') then (let (a,b) = dest_conj t' in conjuncts a @ conjuncts b) else [t'] in
+    
+  let heads t = 
+    let c = map (fst o dest_eq) (filter (is_eq) (conjuncts t)) in
+    let h = map (fst o strip_comb) c in
+    let hc = filter (is_const) h in
+      map (fst o dest_const) hc in
+    
+  let is_rewrite t (n,th) = 
+    mem (fst(dest_const t)) (heads(snd( dest_thm th))) in
+
+  let name_matches_regexp s (n,th) =
+    let pat = Str.regexp (".*"^s) in
+      Str.string_match pat n 0 in
+
   let exists_subterm_satisfying p (n,th) = can (find_term p) (concl th) in
   let exists_fullterm_satisfying p (n,th) =  p (concl th) in
   let name_contains s (n,th) = sublist (explode s) (explode n) in
@@ -248,17 +269,19 @@ let search_thml term_matcher =
     match tm with
       Comb(Var("<omit this pattern>",_),t) -> not o filterpred t
     | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
+    | Comb(Var("<regexp>",_),Var(pat,_)) -> name_matches_regexp pat
+    | Comb(Var("<rewrite>",_),t) -> is_rewrite t
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
     | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_matcher pat)) 
     | pat -> exists_subterm_satisfying (can (term_matcher pat)) in
   fun pats thml -> update_database ();
-    if (pats = []) then failwith "keywords: omit, name, exactly, full" else
+    if (pats = []) then failwith "keywords: omit (term), name (string), regexp (string), exactly (term), full (term), rewrite (term constant)" else
         (itlist (filter o filterpred) pats thml);;
 
 let search pat = search_thml (term_match [])  pat (!theorems);;
 
 (* ------------------------------------------------------------------------- *)
-(* Update to bring things back to current state.                             *)
+(* Update to bring to current state.                             *)
 (* ------------------------------------------------------------------------- *)
 
 update_database ();;

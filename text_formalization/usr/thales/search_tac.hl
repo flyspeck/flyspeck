@@ -3,13 +3,36 @@
 
 module Searching = struct
 
-(* Old fixed bug: doesn't close process. Use process_to_string in strictbuild.hl//
-let process_to_string unixstring = 
-  let p = Unix.open_process_in unixstring
-  and b = Buffer.create 64 in
-  let rec read () = Buffer.add_channel b p 1; read () in
-    try read () with End_of_file -> Buffer.contents b;;
+
+(* 
+
+    Different search results.
+   search: Theorem list
+   constant list
+   index: Help index list
+   help: help doc.
+
+   All the searches with the same return type should be combined.
+
+
 *)
+
+
+(* quicksilver style search for name matching.
+    ignore case and look for nonconsecutive letters. *)
+
+let unsplit d f = function
+  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
+  | [] -> "";;
+
+let match_sparse s u = 
+  let re = Str.regexp_case_fold (".*"^(unsplit ".*" I (   explode s))) in
+    Str.string_match re u 0;;
+
+
+(* ========================================================================== *)
+(* HELP                                              *)
+
 
 let hollight_dir = 
   (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
@@ -23,17 +46,6 @@ let helpdirs = ref [
 
 help_path := !helpdirs @ (!help_path);; (* hol-light help *)
 
-let thm_of_string = Hashtbl.find thm_hashtable;;
-(* EXAMPLE thm_of_string "TRUTH" returns |- T *)
-
-(* MATCHES a substring of theorem name starting at position 0 *)
-let thm_of_pat s = 
-  let pat = Str.regexp s in
-    filter (fun (s,_) -> Str.string_match pat s 0) (!theorems);;
-(* EXAMPLE  
-thm_of_pat "COMPLEX.*CHAIN$" returns ("COMPLEX_DERIVATIVE_CHAIN",...) 
-*)
-
 (* let help_h = ref [];; *)
 let help_grep_h = ref[];;
 let search_h = ref[];;
@@ -46,6 +58,10 @@ let help_grep pat =
   let split =   Str.split (Str.regexp "\n") in
   let cmd s = process_to_string ("(cd "  ^s^  "; ls | sed 's/.doc$//g' | grep '" ^pat^ "')") in
   List.flatten (map ( split o cmd ) (!helpdirs));;
+
+(*
+if pat starts with - then it should be taken as a flags command.
+*)
 
 let help_grep_flags pat flags = 
   let _ = update pat help_grep_h in
@@ -66,57 +82,26 @@ help_grep "_TAC$";;
 List.length (help_grep ".*");;
 *)
 
+
+(* ========================================================================== *)
+(* SEARCH *)
+
+
+
+
 (* grab a definition, or anything vaguely similar to a definition. *)
 
-let stripfa t = snd (strip_forall t);;
-
-let rec conjuncts t = 
-  let t' = stripfa t in 
-  if (is_conj t') then (let (a,b) = dest_conj t' in conjuncts a @ conjuncts b) else [t'];;
-
-let heads t = 
-  let c = map (fst o dest_eq) (filter (is_eq) (conjuncts t)) in
-  let h = map (fst o strip_comb) c in
-  let hc = filter (is_const) h in
-    map (fst o dest_const) hc;;
-
-let def_of_string ss = 
-  let t = map (fun (s,t)-> (s, t,heads(snd( dest_thm t))) ) !theorems in
-  let t2 =  filter (fun (_,_,t) -> mem ss t) t in
-   map (fun (s,t,_) -> (s,t)) t2;;
-
 let constant_of_regexp ss = 
-  let re = Str.regexp_case_fold ss in
+  let re = Str.regexp_case_fold (".*"^ss) in
   let c = map fst (constants()) in
    filter (fun s -> Str.string_match re s 0) c;;
 
 (* examples:
 
-def_of_string "cos";;
-def_of_string "DIFF";;
 constant_of_regexp ".*contin";;
 constant_of_regexp ".*integr";;
 constant_of_regexp ".*auchy";;
 constant_of_regexp "at.*[ng]$";;
-
-*)
-
-(*
-let search_limit = ref 100;;
-
-let sortlength_thml term_length_limit  thml =  
-  let lthml = map
-   (function (s,t) as r -> (term_length (concl t),r)) thml in
-  let f = filter (fun (s,_) -> (s < term_length_limit)) lthml in
-  let stml = List.sort (fun (a,_) (b,_) -> (a-b)) f in
-    (* map snd *) stml;;
-
-let sortlength_thml tm_length nkeep thml = 
-  let tmls  = map (term_length o concl o snd) thml in
-  let ts = filter ((>) tm_length) tmls in 
-  let ss = List.sort (-) ts in 
-  let n = List.nth ss nkeep in
-   filter (fun t -> term_length (concl (snd t)) <= n) thml;;
 
 *)
 
@@ -129,9 +114,188 @@ let searcht n pat =
   let s = sortlength_thml raw in
     fst (chop_list m s);;
 
+
+let nsearch,select  = 
+  let selection = ref [] in
+  let nsearch v = 
+    let u = search v in
+    let _ = selection := u in
+    let r = List.length u in
+      map (fun (n,(s,th)) -> (n,s,th)) (zip (0--(r-1)) u) in
+  let select n = fst(List.nth !selection n) in
+    nsearch,select;;
+
+(* ========================================================================== *)
+(* EVAL *)
+
+(*
+eval_command comes from
+
+http://solaria.dimino.org/cgi-bin/darcsweb.cgi?r=peps;a=headblob;f=/src/core/peps_top.ml
+License: BSD3
+*)
+
+
+let eval_command ?(silent=false) command =
+   let buffer = Buffer.create 512 in
+   let pp = Format.formatter_of_buffer buffer in
+   Format.pp_set_margin pp max_int;
+   try
+     let _ =
+       Toploop.execute_phrase (not silent) pp
+         (!Toploop.parse_toplevel_phrase (Lexing.from_string (command ^ ";;")))
+     in
+     (true, Buffer.contents buffer)
+   with exn ->
+     let save = !Toploop.parse_use_file in
+     Toploop.parse_use_file := (fun _ -> raise exn);
+     ignore (Toploop.use_silently pp "/dev/null");
+     Toploop.parse_use_file := save;
+     (false,  Buffer.contents buffer);;
+
+(* eval_command ~silent:false "g `x=y`";; *)
+
+type proof_record = Tax of string*tactic | Bax | Gax of term;;
+
+let proof_record  =ref [];;
+let tactic_cache = ref ALL_TAC;;
+
+let eval_tactic  = 
+  fun s ->
+    let (b,r) = eval_command ~silent:true ("tactic_cache := "^s^";;") in
+    let _ = b or failwith r in
+    let t= !tactic_cache in
+    let v = e(t) in
+    let _ = proof_record := Tax (s,t)::!proof_record in
+      v;;
+
+let eval_goal t = 
+  let _ = proof_record := Gax t::!proof_record in
+    g(t);;
+
+let eval_back () = 
+  let _ = proof_record := Bax::!proof_record in
+    b();;
+
+(*
+eval_goal `1 + 1 = 2`;;
+eval_tactic "REPEAT STRIP_TAC";;
+eval_back();;
+eval_tactic "ARITH_TAC";;
+eval_tactic "REWRITE_TAC[TRUTH]";;
+*)
+
+let rec strs_of_proof_records skip buf  = function
+    [] -> buf
+  | Gax _ :: xs -> buf
+  | Tax (s,_) :: xs -> if (skip=0) then strs_of_proof_records skip (s::buf) xs
+    else strs_of_proof_records (skip-1) buf xs
+  | Bax :: xs -> strs_of_proof_records (skip+1) buf xs;;
+
+let string_of_proof () = 
+  let ss = strs_of_proof_records 0 [] !proof_record in
+    "\n[\n"^unsplit ";\n" I (List.rev ss) ^"\n]\n";;
+
+(*
+print_string (string_of_proof());;
+*)   
+
+(* ========================================================================== *)
+(* STATS *)
+
+
+(* get all word counts in HOL LIGHT and FLYSPECK *)
+
+let wc_tmpfile = Filename.temp_file "tmp_" ".txt";;
+
+let int_tmpfile = 
+  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/flyspeck/text_formalization/*/*.hl") in
+  let ss2 = Str.split (Str.regexp "\n") ss1 in
+  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/hol_light/*/*.ml") in
+  let ss2 =  Str.split (Str.regexp "\n") ss1 @ ss2 in
+  let tmpfile =  wc_tmpfile in
+  let _ =     Sys.command("touch "^tmpfile) in
+  let _ =     map (fun s -> Sys.command("cat "^ s^ " >> " ^ tmpfile)) ss2 in
+    ();;
+
+let word_counts() = 
+  let sout = Str.split (Str.regexp "\n") (process_to_string("cat "^wc_tmpfile^" | tr -C 'A-Z:a-z0-9_' '\n' | sort | uniq -c | sed 's/^ *//'")) in
+  let sout1 = map (Str.split (Str.regexp " ")) sout in
+  let sout2 = filter (fun t -> List.length t = 2) sout1 in
+  let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
+    sout3;;
+
+let word_count_list = word_counts();;
+
+
+(* word counts of theorems *)
+
+(* word counts of tactic following repeat.
+
+grep -r "\bREPEAT\b" . | grep -v svn | sed 's/^.*REPEAT *//' | sed 's/^[^a-zA-Z].*$//g' | sed 's/ .*$//g' | tr -C 'A-Za-z_' '\n' | sed 's/ //g' | sort | uniq -c | sed 's/^ *//'
+
+
+
+*)
+
+(* stats of the word immediately following another word *)
+
+let trigger_counts trigger = 
+  let sed_pipe = Printf.sprintf "grep '%s ' %s | sed 's/^.*%s *//'  | sed 's/^[^a-z.A-Z]*//g' | sed 's/ .*$//g' | tr -C 'A-Z.a-z_0-9' '\n' | sed 's/ //g' | sort | uniq -c | sed 's/^ *//'" 
+    trigger wc_tmpfile trigger in 
+  let sout = Str.split (Str.regexp "\n") 
+    (process_to_string(sed_pipe )) in
+  let sout1 = map (Str.split (Str.regexp " ")) sout in
+  let sout2 = filter (fun t -> List.length t = 2) sout1 in
+  let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
+    sort (fun (_,a) (_,b) -> (a > b)) sout3;;
+
+(*
+map (fun s -> (s,trigger_counts s)) ["REPEAT";"GSYM";"MATCH_MP_TAC";" MP_TAC";"REWRITE_TAC"];;
+
+map (fun s -> (s,trigger_counts s)) ["POP_ASSUM";"ALL_THEN"; "ANTE_RES_THEN"; 
+   " CHOOSE_THEN"; "CONJUNCTS_THEN";
+   "CONJUNCTS_THEN2"; "DISCH_THEN"; "DISJ_CASES_THEN"; "DISJ_CASES_THEN2";
+   "FREEZE_THEN"; "IMP_RES_THEN"; "NO_THEN"; "REFUTE_THEN"; "REMOVE_THEN";
+   "STRIP_GOAL_THEN"; "STRIP_THM_THEN"; "SUBGOAL_THEN"; "THEN"; "THENC";
+   "THENL"; "THEN_TCL"; "UNDISCH_THEN"; "USE_THEN"; "X_CHOOSE_THEN"];;
+
+trigger_counts "MATCH_MP_TAC";;
+trigger_counts "REWRITE_RULE";;
+trigger_counts " CHOOSE_THEN";;
+trigger_counts " POP_ASSUM";;
+help "X_CHOOSE_THEN";;
+*)
+
+(* inaccurate because constants and theorems with the same name are overcounted *)
+
+let thm_count_list = 
+  let alpha_thm = sort (<) (map fst !theorems) in
+  let rec build buff ats bts = match (ats,bts) with
+    | ([],_) -> buff
+    | (_,[]) -> buff
+    | (a::atss,(b,n)::btss) -> if (a=b) then build ((b,n)::buff) atss btss
+      else if (a>b) then build buff ats btss else build buff atss bts in
+  sort (fun (_,a) (_,b) -> (a > b)) (build [] (alpha_thm) word_count_list);;
+
+let tactic_list =  (help_grep "TAC$");;
+
+let then_list =  (help_grep "THEN");;
+
+let tactic_counts = sort (fun (_,a) (_,b) -> (a > b)) 
+  (filter (fun (a,_) -> mem a  (["REPEAT";"POP_ASSUM";"FIRST_X_ASSUM";"FIRST_ASSUM"] @ tactic_list @ then_list)) word_count_list);;
+
+
   
+(* ========================================================================== *)
+(* TACTIC                                              *)
 
 (* searching for relevant tactics *)
+
+
+let tachy  s = 
+  filter (match_sparse s) (map fst tactic_counts);;
+
 
 (* term matching without higher order matches *)
 
@@ -148,9 +312,8 @@ let match_g pat (_,w) = not(search_thml (term_match[]) pat [("", ASSUME w)] = []
 
 let match_asm pat (asl,_) = not(search_thml term_match_no_ho pat asl = []);;
 
-(* new_definition `(FULL:A->A) x = x`;; *)
 
-let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
+
 
 (* let assum t = mk_comb(mk_var("<assum>",W mk_fun_ty (type_of t)),t);; *)
 
@@ -216,36 +379,35 @@ let rewrites _ =
   let s = filter (fun (a,_,_) -> match_g a (top_realgoal())) rewrite_suggest in
     zip (0-- (List.length s  -1) ) s;;
 
-(* get all word counts in HOL LIGHT and FLYSPECK *)
 
-let word_counts() = 
-  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/flyspeck/text_formalization/*/*.hl") in
-  let ss2 = Str.split (Str.regexp "\n") ss1 in
-  let ss1 = process_to_string ("ls /Users/thomashales/Desktop/googlecode/hol_light/*/*.ml") in
-  let ss2 =  Str.split (Str.regexp "\n") ss1 @ ss2 in
-  let tmpfile =  Filename.temp_file "tmp_" ".txt" in
-  let _ =     Sys.command("touch "^tmpfile) in
-  let _ =     map (fun s -> Sys.command("cat "^ s^ " >> " ^ tmpfile)) ss2 in
-  let sout = Str.split (Str.regexp "\n") (process_to_string("cat "^tmpfile^" | tr -C 'A-Z:a-z0-9_' '\n' | sort | uniq -c | sed 's/^ *//'")) in
-  let sout1 = map (Str.split (Str.regexp " ")) sout in
-  let sout2 = filter (fun t -> List.length t = 2) sout1 in
-  let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
-    sout3;;
-
-(* let tcs = word_counts();; *)
-
-
+(* ========================================================================== *)
 (* APROPOS *)
 
 
 let apropos_alist = ref [];;
-let add_apropos t = 
+
+let apropos_a t = 
   let _ = (apropos_alist:= t::!apropos_alist) in ();;
+
 let apropos_keys = map fst !apropos_alist;;
 
 let apropos s = 
   let re = Str.regexp s in
      filter (fun (u,_) -> Str.string_match re u 0) !apropos_alist;;
+
+let docstring = ref [];;
+let doc () = !docstring;;
+let doc_a s = docstring := s::!docstring;;
+
+
+(* ========================================================================== *)
+(* TYPES *)
+
+
+let types_of = Print_types.print_term_types;;
+let type_of_thm = Print_types.print_thm_types;;
+let type_of_goal = Print_types.print_goal_types;;
+
 
 
 end;;  

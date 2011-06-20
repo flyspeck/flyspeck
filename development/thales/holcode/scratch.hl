@@ -141,6 +141,8 @@ edge_flat_x;;
 Print_types.print_term_types 
 `dih_hexall_x x14 x12 x23 x1 x2 x3 x4 x5 (x6:real) = 
    dih_x x1 x2 x4 ((&2 * h0) pow 2) x14 x12 - dih_x x1 x3 x4 x5 x14 (edge_flat2_x x2 x1 x3 (&0)    x23 x12)`;;
+
+
 (*
 (* parsing printing *)
 let pterm = Print_types.print_term_types;;
@@ -166,7 +168,7 @@ find_term  ( can (term_match[ `r a (r y z) = r (r x y) z`])) (concl IMP_IMP);;
 
 filter_pred;;
 can (term_match[]);;
-
+type_of;;
 
 constant_of_regexp "at.*[gn]$";;
 
@@ -224,47 +226,59 @@ suggest;;
 
 (* get all word counts in HOL LIGHT and FLYSPECK *)
 
-let tcs = word_counts();;
+let match_mp_strip =
+  fun th ->
+          let tm = concl th in
+          let avs,bod = strip_forall tm in
+          let ant,con = dest_imp bod in
+          let th1 = SPECL avs (ASSUME tm) in
+          let th2 = UNDISCH th1 in
+          let evs = filter (fun v -> vfree_in v ant & not (vfree_in v con))
+                           avs in
+          let th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2) in
+          let tm3 = hd(hyp th3) in
+            MP (DISCH tm (GEN_ALL (DISCH tm3 (UNDISCH th3)))) th;;
 
-let tacsss =  (help_grep "TAC$");;
-
-let stactics = sort (fun (_,a) (_,b) -> (a > b)) (filter (fun (a,_) -> mem a  tacsss) tcs);;
-
-(* word counts of theorems *)
-
-let alphatheorem = sort (<) (map fst !theorems);;
-
-let rec stheorems buff ats bts = match (ats,bts) with
-  | ([],_) -> buff
-  | (_,[]) -> buff
-  | (a::atss,(b,n)::btss) -> if (a=b) then stheorems ((b,n)::buff) atss btss
-    else if (a>b) then stheorems buff ats btss else stheorems buff atss bts;;
-
-let st = sort (fun (_,a) (_,b) -> (a > b)) (stheorems [] (alphatheorem) tcs);;
+let mp_short_list = 
+  let u = fst(chop_list 50 (trigger_counts "MATCH_MP_TAC")) in
+  let sl = map fst !theorems in
+  let f1 = filter (fun (t,_) -> mem t sl ) u in
+  let f2 = map (fun (s,n) -> (s,n,assoc s !theorems)) f1 in
+    filter (fun (_,_,t) -> can  match_mp_strip t) f2;;
 
 
-(* quicksilver style search for tactics *)
+let relevant_match_mp r = 
+  filter (fun (_,_,t) -> can (MATCH_MP_TAC t) r) mp_short_list;;
 
-let unsplit d f = function
-  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
+let suggest_match_mp () = relevant_match_mp (top_realgoal());;
+
+mp_short_list;;
+
+tachy"rep";;
+
+tcs;;
+
+grep -r "\bREPEAT\b" . | grep -v svn | sed 's/^.*REPEAT *//' | sed 's/ .*$//g'
+
 
 let recent_search = ref [""];;
 
 let refcount = ref [("",0)];;
 
-let tachy  = 
-  let tac = map fst stactics in
-  fun s ->
-  let re = Str.regexp_case_fold (unsplit ".*" I (   explode s)) in
-      filter (fun u-> Str.string_match re u 0) tac;;
+trigger_counts "MATCH_MP_TAC";;
 
-tachy "rt";;
+EQ_EXT;;
+FINITE_SUBSET;;
+search[regexp "EQ_SYM"];;
+tachy "amt";;
+tachy "asmcase";;
 
 (* to get tacticals as well *)
 (* grep "TYPE.*tactic" -i *.doc -l | sed 's/.doc//g' *)
 
-tachy "";;
+List.length tactic_list;;
+List.length(tachy "");;
+subtract tactic_list (tachy "");;
 tachy "bool";;
 
 help "SUBST1_TAC";;
@@ -274,6 +288,7 @@ let typesss ss =
   let cmd s = process_to_string ("(cd "  ^s^  "; grep TYPE "^ss^".doc | sed 's/TYPE[^{]*//g' )") in
   List.flatten (map ( split o cmd ) (!helpdirs));;
 
+typesss "ALL_TAC";;
 help "SUBST1_TAC";;
 
 (*
@@ -353,3 +368,98 @@ search[`c cross (a cross b) `];;
 search[`sqrt(x) = y`];;
 
 (* search, what is the arc cosine called?  acs *)
+
+`(?x. a) /\ b ==> c`;;
+STRIP_TAC;;
+
+search[];;
+searcht 15 [`inv`];;
+search[rewrite `inv`;`( / )`];;
+searcht 5 [rewrite `inv`;`a*b`];;
+search [regexp "[dD]iff"];;
+is_rewrite "inv" ("",REAL_INV_MUL);;
+heads (snd(dest_thm(REAL_INV_MUL)));;
+
+288. /. 32.;;
+Toploop.execute_phrase;;
+
+
+types();;
+
+constants();;
+heads(concl(hd(definitions())));;
+
+let rec c_of buf = function
+  | Const _ as t  -> t:: buf
+  | Comb (r,s)  -> c_of (c_of buf r) s
+  | Abs (x,t) -> c_of buf t
+  | _ -> buf
+;;
+
+let def_break = map (fun (x,y) -> (fst(dest_const(x)),Parse_ineq.nub (map (fst o dest_const) (c_of [] y)))) (map (dest_eq o concl) (definitions()));;
+
+  let maxl xs = try (end_itlist max xs) with _ -> 0;;
+
+filter (fun (x,y)  ->  mem x y) def_break;;
+
+let sd = 
+  let cache = ref [] in
+  let rec s_depth t = 
+    try (assoc t !cache)
+    with _ -> 
+      let rs = try (assoc t def_break)
+      with _ -> [] in
+      let _ = not(mem t rs) or failwith t in
+      let u = 1 + maxl (map s_depth rs) in
+      let _ = cache:= (t,u)::!cache in
+	u in
+    s_depth;;
+
+let dds = map fst def_break;;
+sort (fun (_,a) (_,b) -> a > b) (map (fun t-> (t,sd t)) dds);;
+
+let tdepth th =
+  let c = map (fst o dest_const )(c_of [] (concl th)) in
+  let u = map (fun x -> (x,sd x)) c in
+   hd (sort (fun (_,a) (_,b) -> a > b) u);;
+
+let tdepth th =
+  let c = map (fst o dest_const )(c_of [] (concl th)) in
+  let u = map (fun x -> (x,sd x)) c in
+  let s = (sort (fun (_,a) (_,b) -> a > b) u) in
+    [List.nth s 0 ; List.nth s 1];;
+
+
+let tdepthnth n =
+  let (s,th) = List.nth !theorems n in
+  let d = tdepth th in (s,d,th);;
+
+tdepthnth 600;;
+
+sd "?";;
+sd "!";;
+sd "hull";;
+sd "uniformly_continuous_on";;
+sd "real_add";;
+sd "treal_add";;
+sd "hreal_add";;
+sd "nadd_eq";;
+sd "dist";;
+sd "-";;
+sd "PRE";;
+sd "_0";;
+assoc "_0" def_break;;
+
+dest_const `(+)`;;
+s_depth "arclength";;
+
+c_depth `acs`;;
+c_depth `(@)`;;
+assoc `T` def_break;;
+maxl [1;2;3];;
+
+rho_node;;
+
+c_of [] `sin(cos (x + y))`;;
+
+let rec c_depth r = 

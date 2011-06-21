@@ -389,77 +389,220 @@ types();;
 constants();;
 heads(concl(hd(definitions())));;
 
-let rec c_of buf = function
-  | Const _ as t  -> t:: buf
-  | Comb (r,s)  -> c_of (c_of buf r) s
-  | Abs (x,t) -> c_of buf t
-  | _ -> buf
-;;
-
-let def_break = map (fun (x,y) -> (fst(dest_const(x)),Parse_ineq.nub (map (fst o dest_const) (c_of [] y)))) (map (dest_eq o concl) (definitions()));;
-
-  let maxl xs = try (end_itlist max xs) with _ -> 0;;
-
-filter (fun (x,y)  ->  mem x y) def_break;;
-
-let sd = 
-  let cache = ref [] in
-  let rec s_depth t = 
-    try (assoc t !cache)
-    with _ -> 
-      let rs = try (assoc t def_break)
-      with _ -> [] in
-      let _ = not(mem t rs) or failwith t in
-      let u = 1 + maxl (map s_depth rs) in
-      let _ = cache:= (t,u)::!cache in
-	u in
-    s_depth;;
-
-let dds = map fst def_break;;
-sort (fun (_,a) (_,b) -> a > b) (map (fun t-> (t,sd t)) dds);;
-
-let tdepth th =
-  let c = map (fst o dest_const )(c_of [] (concl th)) in
-  let u = map (fun x -> (x,sd x)) c in
-   hd (sort (fun (_,a) (_,b) -> a > b) u);;
-
-let tdepth th =
-  let c = map (fst o dest_const )(c_of [] (concl th)) in
-  let u = map (fun x -> (x,sd x)) c in
-  let s = (sort (fun (_,a) (_,b) -> a > b) u) in
-    [List.nth s 0 ; List.nth s 1];;
 
 
-let tdepthnth n =
+
+(* experiments *)
+
+let _ = 
+  let dds = map fst def_assoc in
+    sort (fun (_,a) (_,b) -> a > b) (map (fun t-> (t,stm_depth t)) dds);;
+
+
+
+
+let thm_depthnth n =
   let (s,th) = List.nth !theorems n in
-  let d = tdepth th in (s,d,th);;
+  let d = thm_depth th in (s,d,th);;
 
-tdepthnth 600;;
 
-sd "?";;
-sd "!";;
-sd "hull";;
-sd "uniformly_continuous_on";;
-sd "real_add";;
-sd "treal_add";;
-sd "hreal_add";;
-sd "nadd_eq";;
-sd "dist";;
-sd "-";;
-sd "PRE";;
-sd "_0";;
-assoc "_0" def_break;;
+tm_depth `!a b.  (&2 <= a /\ a <= #2.52) /\ &2 <= b /\ b <= #2.52
+         ==>( ((\x. -- (&4 + a pow 2 - x pow 2)/(a * sqrt(ups_x (a pow 2) (b pow 2) (&4)))) has_real_derivative
+              (&32 * a * b /( (sqrt (ups_x (a pow 2) (b pow 2) (&4))) pow 3)))
+             (atreal b within real_interval [&2,#2.52]))`;;
+
+let depth_filter n = filter (fun (_,t)-> 
+	  let (_,c) = hd (thm_depth t) in (c <= n));;
+
+searcht 10 [`has_real_derivative`;`real_div`];;
+(* now distance between constants *)
+
+help_grep_flags "rat" "i";;
+
+help "REAL_RAT_REDUCE_CONV";;
+stm_depth "pi";;
+stm_depth "cos";;
+stm_depth "sin";;
+assoc "pi" def_assoc;;
+
+thm_depthnth 1000;;
+
+stm_depth "?";;
+stm_depth "!";;
+stm_depth "hull";;
+stm_depth "uniformly_continuous_on";;
+stm_depth "real_add";;
+stm_depth "treal_add";;
+stm_depth "hreal_add";;
+stm_depth "nadd_eq";;
+stm_depth "dist";;
+stm_depth "-";;
+stm_depth "PRE";;
+stm_depth "_0";;
+assoc "_0" def_assoc;;
 
 dest_const `(+)`;;
 s_depth "arclength";;
 
 c_depth `acs`;;
 c_depth `(@)`;;
-assoc `T` def_break;;
-maxl [1;2;3];;
+assoc `T` def_assoc;;
 
 rho_node;;
 
 c_of [] `sin(cos (x + y))`;;
 
-let rec c_depth r = 
+searcht 5 [`a/b + c/d`];;
+
+let ratform  = new_definition `ratform p r a b = (p ==> ~(b = &0) /\ (r = a/b))`;;
+
+let ratform_tac =   REWRITE_TAC [ratform] THEN
+    REPEAT STRIP_TAC THENL
+    [ASM_MESON_TAC[REAL_ENTIRE] ;
+    REPEAT (FIRST_X_ASSUM (fun t -> MP_TAC t THEN ANTS_TAC THEN ASM_REWRITE_TAC[])) THEN 
+    REPEAT STRIP_TAC THEN 
+    ASM_REWRITE_TAC[] THEN 
+    REPEAT (POP_ASSUM MP_TAC) THEN 
+    CONV_TAC REAL_FIELD];;
+
+let REAL_POW_NEQ_0 = prove_by_refinement(
+  `!x n. ~(x pow n = &0) <=> ~(x = &0) \/ (n = 0)`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[REAL_POW_EQ_0];
+  ]);;
+  (* }}} *)
+
+let ratform_add = prove_by_refinement(
+  `ratform p1 r1 a1 b1 /\ ratform p2 r2 a2 b2 ==> ratform (p1 /\ p2) (r1 + r2) (a1 * b2 + b1 * a2) (b1 * b2)`,
+  (* {{{ proof *)
+  [
+  ratform_tac;
+  ]);;
+  (* }}} *)
+
+let ratform_sub = prove_by_refinement(
+  `ratform p1 r1 a1 b1 /\ ratform p2 r2 a2 b2 ==> ratform (p1 /\ p2) (r1 - r2) (a1 * b2 - b1 * a2) (b1 * b2)`,
+  (* {{{ proof *)
+  [
+    ratform_tac;
+  ]);;
+  (* }}} *)
+
+
+let ratform_neg = prove_by_refinement(
+  `ratform p1 r1 a1 b1 ==> ratform p1 (-- r1 ) (-- a1 ) (b1)`,
+  (* {{{ proof *)
+  [
+    ratform_tac;
+  ]);;
+  (* }}} *)
+
+let ratform_mul = prove_by_refinement(
+  `ratform p1 r1 a1 b1 /\ ratform p2 r2 a2 b2 ==> ratform (p1 /\ p2) (r1 * r2) (a1 * a2) (b1 * b2)`,
+  (* {{{ proof *)
+  [
+    ratform_tac;
+  ]);;
+  (* }}} *)
+
+let ratform_inv = prove_by_refinement(
+  `ratform p1 r1 a1 b1 ==> ratform (p1 /\ ~(a1= &0)) (inv r1) b1 a1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC [ratform;];
+    REPEAT STRIP_TAC;
+    ASM_MESON_TAC[REAL_ENTIRE];
+    REPEAT (FIRST_X_ASSUM (fun t -> MP_TAC t THEN ANTS_TAC THEN ASM_REWRITE_TAC[]));
+    REPEAT STRIP_TAC;
+    ASM_REWRITE_TAC[REAL_INV_DIV];
+  ]);;
+  (* }}} *)
+
+let ratform_div = prove_by_refinement(
+  `ratform p1 r1 a1 b1 /\ ratform p2 r2 a2 b2 ==> ratform (p1 /\ p2 /\ ~(a2 = &0)) (r1 / r2) (a1 * b2) (b1 * a2)`,
+  (* {{{ proof *)
+  [
+  ratform_tac;
+  ]);;
+  (* }}} *)
+
+let mk_ratform =
+  let rf = `ratform` in
+    fun p r a b -> list_mk_comb (rf ,[p;r;a;b]);;
+
+let dest_ratform rf =
+    snd(strip_comb rf);;
+
+let trivial_ratform = prove_by_refinement(
+  `!t. ratform T t t (&1)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ratform];
+    REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let clean_ratform = prove_by_refinement(
+  `ratform p r a b /\ (p = p') /\ (a = a') /\ (b = b') ==> ratform p' r a' b'`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let pre_rationalize = 
+  let   binop_assoc = [(`(+)`,ratform_add);(`( * )`,
+					    ratform_mul);(`( - )`,ratform_sub);
+		       (`( / )`,ratform_div)] in
+  let unary_assoc = [(` ( -- )`,ratform_neg);(`inv`,ratform_inv)] in
+  let rec pre_rationalize tm = 
+    try (
+      let h = fst (strip_comb tm) in
+      let bin_th = assoc h binop_assoc in
+      let (x,y) = dest_binop h tm in
+	MATCH_MP bin_th (CONJ (rationalize x) (rationalize y))
+    )
+    with _ -> (
+      try (
+	let (h,x) = dest_comb tm in
+	let un_th = assoc h unary_assoc in
+	  MATCH_MP un_th (rationalize x)
+      )
+      with _ -> SPEC tm trivial_ratform) in
+    pre_rationalize;;
+
+let rationalize = 
+  let rc = REWRITE_CONV[REAL_POW_NEQ_0;GSYM CONJ_ASSOC;REAL_ARITH `&1 * x = x /\ x * &1 = x` ]  in
+  fun tm ->
+    let pr = pre_rationalize tm in
+    let [p;_;a;b] = dest_ratform (concl pr) in
+    let p' = rc p in
+    let a' = rc a in
+    let b' = rc b in
+      MATCH_MP clean_ratform (end_itlist CONJ [pr;p';a';b']);;
+
+
+
+rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
+
+searcht 5 [`x pow n = &0`];;
+
+help_grep "REAL_RAT";;
+    
+pre_rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
+
+strip_comb `&1 + &2`;;
+dest_comb;;
+
+
+
+
+REAL_INV_DIV;;
+
+searcht 5 [`inv`;`a/b`];;
+searcht 5 [`a/b + c/d`];;
+searcht 5 [
+
+let rat_add = !p1 r1 a1 b1 p2 r2 a2 b2.  (p1 ==> ~(b1 = &0) /\ (r1 = a1/b1
+

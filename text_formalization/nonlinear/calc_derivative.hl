@@ -6,19 +6,36 @@
 (* Date: 2011-06-22                                                           *)
 (* ========================================================================== *)
 
-
-(*
-
-written to simplify the calculation of derivatives
-
-
-*)
-
 (* Example:
     to put all terms over a common denominator :
 
    rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
+
+   To prove a rational identity, modulo accumulated side conditions:
+
+   rational_identity `&1 / (x + y) - &1 / (x - y) = -- &2 * y / (x pow 2 - y pow 2)`;;
 *)
+
+
+(*
+
+  written to automate the calculation of derivatives, with accumulating side conditions.
+  It implements --, -, +, *, /, inv, pow, sqrt, sin, cos, atn, asn, acs, chain rule. 
+
+  To recover results without "within" use:
+
+  "WITHINREAL_UNIV", |- !a. atreal x within (:real) = atreal x)
+
+   derived_form p f f' x s   means:
+   Under the assumption p, the derivative of the function f evaluated at x, 
+   on the interval s
+   is equal to the real number f'.
+
+  Apply REWRITE_RULE[derived_form] to express the result back in terms of
+  has_real_derivative.
+
+*)
+
 
 
 (* Example:
@@ -29,23 +46,20 @@ To calculate the derivative of tm with respect to q, evaluated at x, on the inte
     let x = `x:real` in
     let s = `{t | t > &0}` in
     let tm = `(\q:real. (q  - sin(q pow 3) + q pow 7 + y)/(q pow 2  + q pow 4 *(&33 + &43 * q)) +  (q pow 3) *  ((q pow 2) / (-- (q pow 3))))` in
-      derivative_form tm x s;;
-
-   deriv_form p f f' x s   means:
-   Under the assumption p, the derivative of the function f evaluated at x, 
-   on the interval s
-   is equal to the real number f'.
+      differentiate tm x s;;
 
 *)
 
 
 module Calc_derivative : sig
+
   val ratform : thm
   val rationalize_ratform: term -> thm
+
   val rationalize: term -> thm
-  val deriv_form:thm
-  val derivative_form:term -> term -> term -> thm
-  val real_interval_nonempty:thm
+  val rational_identity:term -> thm
+
+  val differentiate:term -> term -> term -> thm
 end  = struct
 
 
@@ -76,6 +90,15 @@ let REAL_POW_NEQ_0 = prove_by_refinement(
   (* {{{ proof *)
   [
   MESON_TAC[REAL_POW_EQ_0];
+  ]);;
+  (* }}} *)
+
+let ratform_pow = prove_by_refinement(
+  `ratform p1 r1 a1 b1 ==> ratform p1 (r1 pow n) (a1 pow n) (b1 pow n)`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[GSYM REAL_POW_DIV;ratform];
+    MESON_TAC[REAL_POW_NEQ_0;];
   ]);;
   (* }}} *)
 
@@ -132,7 +155,6 @@ let ratform_inv = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let trivial_ratform = prove_by_refinement(
   `!t. ratform T t t (&1)`,
   (* {{{ proof *)
@@ -149,6 +171,11 @@ let pre_rationalize =
   let unary_assoc = [(` ( -- )`,ratform_neg);(`inv`,ratform_inv)] in
   let rec pre_rationalize tm = 
     try (
+      let (x,y) = dest_binop `(pow)` tm in
+	MATCH_MP (INST [y,`n:num`] ratform_pow) (pre_rationalize x)
+    )
+    with _ -> 
+    try (
       let h = fst (strip_comb tm) in
       let bin_th = assoc h binop_assoc in
       let (x,y) = dest_binop h tm in
@@ -163,8 +190,18 @@ let pre_rationalize =
       with _ -> SPEC tm trivial_ratform) in
     pre_rationalize;;
 
+let clean_conv = 
+  let ra = REAL_ARITH `&1 * x = x /\ x * &1 = x /\ &0 * x = &0 /\ 
+    x * &0 = &0 /\ &0+x = x /\ x + &0 = x /\ x - &0 = x /\ &0 - x = -- x ` in
+    REWRITE_CONV[REAL_POW_NEQ_0;GSYM CONJ_ASSOC;
+		 TAUT `~(p \/ q) <=> ~p /\ ~q`;
+			      REAL_POW_POW;REAL_POW_1;real_pow;REAL_POW_ONE;
+			      REAL_ENTIRE;
+			      ra] 
+  THENC NUM_REDUCE_CONV;;
+
 let rationalize_ratform = 
-  let rc = REWRITE_CONV[REAL_POW_NEQ_0;GSYM CONJ_ASSOC;REAL_ARITH `&1 * x = x /\ x * &1 = x` ] THENC NUM_REDUCE_CONV in
+  let rc = clean_conv in
   let clean_ratform = MESON[] 
     `ratform p r a b /\ (p = p') /\ (a = a') /\ (b = b') ==> ratform p' r a' b'` in
   let dest_ratform rf =  snd(strip_comb rf) in
@@ -183,19 +220,60 @@ let rationalize =
 rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
 *)
 
+
+let lite_imp = prove_by_refinement(
+  `ratform p (u - v) a b /\ (p = p') /\ (a = &0) ==> (p' ==> (u = v))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ratform];
+  ASM_MESON_TAC[REAL_ARITH `(u = v) <=> u - v = &0 /b`];
+  ]);;
+  (* }}} *)
+
+let lite_imp2 = prove_by_refinement(
+  `ratform p (u - v) a b /\ (p = p') /\ (a = a') ==> ((p' /\ (a' = &0)) ==> (u = v))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ratform];
+  ASM_MESON_TAC[REAL_ARITH `(u = v) <=> u - v = &0 /b`];
+  ]);;
+  (* }}} *)
+
+let rational_identity  = 
+  let sub = `( - )` in
+    fun tm ->
+      let (lhs,rhs) = dest_eq tm in
+      let diff =     mk_binop sub lhs rhs in
+      let rf = pre_rationalize diff in
+      let [p;_;a;_]=dest_ratform (concl rf) in
+      let p' = clean_conv p in
+      let a' = clean_conv a in
+	try (
+	  let zero = REAL_FIELD (mk_eq (a,`&0`)) in
+	    MATCH_MP (lite_imp) (end_itlist CONJ [rf ;p';zero])
+	)
+	with _ -> MATCH_MP (lite_imp2) (end_itlist CONJ [rf;p';a']);;
+
+
+(* Example:
+
+rational_identity `(&1 / u  - &1/v) pow 2  = inv u pow 2 - &2 * inv (u * v) + inv v pow 2`;;
+
+rational_identity `&1 / (x + y) - &1 / (x - y) = -- &2 * y / (x pow 2 - y pow 2)`;;
+
+*)
+
 (* ========================================================================== *)
 (* DERIV FORM                                              *)
 
 
-  let deriv_form = new_definition
-    `deriv_form p f f' x s = 
-    if (s={}) then (p ==> (f has_real_derivative f') (atreal x) )
-    else (p==> (f has_real_derivative f') (atreal x within s))`;;
+  let derived_form = new_definition
+    `derived_form p f f' x s = (p ==> (f has_real_derivative f') (atreal x within s))`;;
 
-  let deriv_tac =   REWRITE_TAC[deriv_form] THEN
-    REPEAT GEN_TAC THEN
+  let deriv_tac =   REWRITE_TAC[derived_form] THEN
+(*    REPEAT GEN_TAC THEN
     COND_CASES_TAC THEN 
-    REWRITE_TAC[] THEN     
+    REWRITE_TAC[] THEN     *)
     REPEAT STRIP_TAC  THEN 
     ASM_REWRITE_TAC[]  THEN 
     FIRST (map MATCH_MP_TAC [
@@ -211,48 +289,48 @@ rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
 	   ]) THEN
     ASM_MESON_TAC[];;
 
-  let deriv_form_add = prove_by_refinement(
-  `!x s. deriv_form p1 f1 f1' x s /\ deriv_form p2 f2 f2' x s /\ (u =  (\x. f1 x + f2 x)) ==> deriv_form (p1 /\ p2) u (f1'+f2') x s`,
+  let derived_form_add = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s /\ (u =  (\x. f1 x + f2 x)) ==> derived_form (p1 /\ p2) u (f1'+f2') x s`,
   (* {{{ proof *)
   [
   deriv_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_sub = prove_by_refinement(
-  `!x s. deriv_form p1 f1 f1' x s /\ deriv_form p2 f2 f2' x s /\ (u = (\x. f1 x - f2 x)) ==> deriv_form (p1 /\ p2) u (f1'-f2') x s`,
+  let derived_form_sub = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s /\ (u = (\x. f1 x - f2 x)) ==> derived_form (p1 /\ p2) u (f1'-f2') x s`,
   (* {{{ proof *)
   [
     deriv_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_mul = prove_by_refinement(
-  `!x s. deriv_form p1 f1 f1' x s /\ deriv_form p2 f2 f2' x s /\ (u = (\x. f1 x * f2 x)) ==> deriv_form (p1 /\ p2) u  (f1 x * f2' + f1' * f2 x) x s`,
+  let derived_form_mul = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s /\ (u = (\x. f1 x * f2 x)) ==> derived_form (p1 /\ p2) u  (f1 x * f2' + f1' * f2 x) x s`,
   (* {{{ proof *)
   [
     deriv_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_div = prove_by_refinement(
-  `!x s. deriv_form p1 f1 f1' x s /\ deriv_form p2 f2 f2' x s /\ (u =  (\x. f1 x / f2 x) ) ==> deriv_form (p1 /\ p2 /\ ~(f2 x = &0)) u  ((f1'  * f2 x - f1 x * f2')/(f2 x pow 2)) x s`,
+  let derived_form_div = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s /\ (u =  (\x. f1 x / f2 x) ) ==> derived_form (p1 /\ p2 /\ ~(f2 x = &0)) u  ((f1'  * f2 x - f1 x * f2')/(f2 x pow 2)) x s`,
   (* {{{ proof *)
   [
     deriv_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_neg = prove_by_refinement(
-  `!x s. deriv_form p1 f1 f1' x s /\ (u = (\x.  -- f1 x))  ==> deriv_form p1 u (-- f1') x s`,
+  let derived_form_neg = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ (u = (\x.  -- f1 x))  ==> derived_form p1 u (-- f1') x s`,
   (* {{{ proof *)
   [
   deriv_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_pow = prove_by_refinement(
-  `!x s.  deriv_form p f f' x s /\ (u = (\x.  f x pow n)) ==> deriv_form p u (&n * f x pow (n-1)* f') x s`,
+  let derived_form_pow = prove_by_refinement(
+  `!x s.  derived_form p f f' x s /\ (u = (\x.  f x pow n)) ==> derived_form p u (&n * f x pow (n-1)* f') x s`,
   (* {{{ proof *)
   [
     deriv_tac;
@@ -260,8 +338,8 @@ rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
   (* }}} *)
 
   let deriv_fn_tac =     REPEAT STRIP_TAC THEN
-  ASM_REWRITE_TAC[deriv_form] THEN
-  COND_CASES_TAC THEN 
+  ASM_REWRITE_TAC[derived_form] THEN
+  (* COND_CASES_TAC THEN  *)
   ASM_MESON_TAC[ HAS_REAL_DERIVATIVE_CONST;
 		 HAS_REAL_DERIVATIVE_ATREAL_WITHIN;
 		 HAS_REAL_DERIVATIVE_SIN;
@@ -273,56 +351,56 @@ rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
 		 HAS_REAL_DERIVATIVE_INV_BASIC;
 	       ];;
 
-  let deriv_form_const = prove_by_refinement(
-  `!x s. (u = \x. c) ==> deriv_form T u (&0) x s`,
+  let derived_form_const = prove_by_refinement(
+  `!x s. (u = \x. c) ==> derived_form T u (&0) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_sin = prove_by_refinement(
-  `!x s.  deriv_form T sin (cos x) x s`,
+  let derived_form_sin = prove_by_refinement(
+  `!x s.  derived_form T sin (cos x) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_cos = prove_by_refinement(
-  `!x s.  deriv_form T cos (-- sin x) x s`,
+  let derived_form_cos = prove_by_refinement(
+  `!x s.  derived_form T cos (-- sin x) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_sqrt = prove_by_refinement(
-  `!x s.  deriv_form (&0 < x) sqrt (inv (&2 * sqrt x)) x s`,
+  let derived_form_sqrt = prove_by_refinement(
+  `!x s.  derived_form (&0 < x) sqrt (inv (&2 * sqrt x)) x s`,
   (* {{{ proof *)
     [
       deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_atn = prove_by_refinement(
-  `!x s.  deriv_form T atn (inv (&1 + x pow 2)) x s`,
+  let derived_form_atn = prove_by_refinement(
+  `!x s.  derived_form T atn (inv (&1 + x pow 2)) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_acs = prove_by_refinement(
-  `!x s.  deriv_form (abs x < &1) acs (-- inv (sqrt(&1 - x pow 2))) x s`,
+  let derived_form_acs = prove_by_refinement(
+  `!x s.  derived_form (abs x < &1) acs (-- inv (sqrt(&1 - x pow 2))) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_asn = prove_by_refinement(
-  `!x s.  deriv_form (abs x < &1) asn ( inv (sqrt(&1 - x pow 2))) x s`,
+  let derived_form_asn = prove_by_refinement(
+  `!x s.  derived_form (abs x < &1) asn ( inv (sqrt(&1 - x pow 2))) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
@@ -330,134 +408,129 @@ rationalize `-- (v/ u pow 3)/(&1/x  + &3 * (-- (u /( v * inv (w)))))`;;
   (* }}} *)
 
 
-  let deriv_form_inv = prove_by_refinement(
-  `!x s.  deriv_form (~(x = &0)) inv  (-- inv (x pow 2)) x s`,
+  let derived_form_inv = prove_by_refinement(
+  `!x s.  derived_form (~(x = &0)) inv  (-- inv (x pow 2)) x s`,
   (* {{{ proof *)
   [
     deriv_fn_tac;
   ]);;
   (* }}} *)
 
-  let deriv_form_id = prove_by_refinement(
-  `!x s. (u = (\x. x)) ==>deriv_form T u  (&1) x s`,
+  let derived_form_id = prove_by_refinement(
+  `!x s. (u = (\x. x)) ==>derived_form T u  (&1) x s`,
   (* {{{ proof *)
   [
     REPEAT STRIP_TAC;
-  ASM_REWRITE_TAC[deriv_form;HAS_REAL_DERIVATIVE_ID];
-  MESON_TAC[];
+  ASM_REWRITE_TAC[derived_form;HAS_REAL_DERIVATIVE_ID];
   ]);;
   (* }}} *)
 
-  let deriv_form_chain = prove_by_refinement(
-  `!x s.  deriv_form p g g' (f x) ({}) /\ deriv_form p' f f' x s /\ (u = (\x.  g(f x))) ==> deriv_form (p /\ p' ) u  (f' * g') x s`,
+  let derived_form_chain = prove_by_refinement(
+  `!x s.  derived_form p g g' (f x) (:real) /\ derived_form p' f f' x s /\ (u = (\x.  g(f x))) ==> derived_form (p /\ p' ) u  (f' * g') x s`,
   (* {{{ proof *)
   [
-    REWRITE_TAC[deriv_form];
+    REWRITE_TAC[derived_form];
     REPEAT STRIP_TAC;
     MP_TAC (SPECL [`(\t. ((t = (f:real->real) x) /\ p))`;`(f:real->real)`;`(g:real->real)`] (INST [`(\(t:real). (g':real))`,`g':real->real`] HAS_REAL_DERIVATIVE_CHAIN));
     ANTS_TAC;
     GEN_TAC;
     BETA_TAC;
-    ASM_MESON_TAC[];
+    ASM_MESON_TAC[WITHINREAL_UNIV];
     REPEAT (POP_ASSUM MP_TAC);
     (* *)
-    COND_CASES_TAC THEN ASM_MESON_TAC[];
+    ASM_MESON_TAC[];
   ]);;
   (* }}} *)
 
 
 (* apply chain only when head is a named constant, sqrt, cos, sin,... *)
 
-  let derivative_form =
-    let binop = [(`( / )`,deriv_form_div);(`( * )`,deriv_form_mul);
-		 (`( + )`,deriv_form_add); (`( - )`,deriv_form_sub)] in
-    let unop = [((` -- `), deriv_form_neg)] in
-    let fns = [(`sin`,deriv_form_sin);(`cos`,deriv_form_cos);(`sqrt`,deriv_form_sqrt);
-		 (`inv`,deriv_form_inv);
-	       (`acs`,deriv_form_acs);
-	       (`asn`,deriv_form_asn);
-	       (`atn`,deriv_form_atn);
+  let differentiate =
+    let binop = [(`( / )`,derived_form_div);(`( * )`,derived_form_mul);
+		 (`( + )`,derived_form_add); (`( - )`,derived_form_sub)] in
+    let unop = [((` -- `), derived_form_neg)] in
+    let fns = [(`sin`,derived_form_sin);(`cos`,derived_form_cos);(`sqrt`,derived_form_sqrt);
+		 (`inv`,derived_form_inv);
+	       (`acs`,derived_form_acs);
+	       (`asn`,derived_form_asn);
+	       (`atn`,derived_form_atn);
 	      ] in
-   let rc = REWRITE_CONV[REAL_POW_NEQ_0;GSYM CONJ_ASSOC;
-			 REAL_POW_POW;REAL_POW_1;real_pow;
-			 REAL_ARITH `&1 * x = x /\ x * &1 = x /\ &0 * x = &0 /\ 
-       x * &0 = &0 /\ &0+x = x /\ x + &0 = x /\ x - &0 = x /\ &0 - x = -- x` ] THENC 
-     NUM_REDUCE_CONV  in
-   let clean_deriv_form = MESON[] 
-      `deriv_form p f f' x s /\ (p = p') /\ (f' = f'') /\ (s = s') ==> deriv_form p' f f'' x s'` in
-   let cleanup_deriv_form th s = 
+   let rc = clean_conv   in
+   let clean_derived_form = MESON[] 
+      `derived_form p f f' x s /\ (p = p') /\ (f' = f'') /\ (s = s') ==> derived_form p' f f'' x s'` in
+   let cleanup_derived_form th s = 
      let (_,[p;f;f';x;s']) = strip_comb (concl th) in
      let p' = rc p in
      let f'' = rc f' in
-       MATCH_MP (clean_deriv_form) (end_itlist CONJ [th;p';f'';REFL s]) in
+       REWRITE_RULE[derived_form;WITHINREAL_UNIV] (MATCH_MP (clean_derived_form) (end_itlist CONJ [th;p';f'';REFL s])) in
 
     let rec derivative'  tm x s =
       let hyp r = end_itlist CONJ ((map (fun t->derivative' t x s) r) @[REFL tm]) in
       let m r dd =  MATCH_MP (SPECL [x;s] dd) (hyp r) in
       let d_fns tm =
-	let deriv_form_fn = assoc tm fns in
-	  SPECL[x;s] deriv_form_fn in
+	let derived_form_fn = assoc tm fns in
+	  SPECL[x;s] derived_form_fn in
       let d_const tm = 
 	let (v,bod) = dest_abs tm in
 	let _ = not(mem v (frees bod)) or failwith "constant" in
-	 (* m deriv_form_const  (REFL tm) in *)
-	  m [] deriv_form_const  in
+	 (* m derived_form_const  (REFL tm) in *)
+	  m [] derived_form_const  in
       let d_id tm =
 	let (v,bod) = dest_abs tm in
 	let _ = (v=bod) or failwith "id" in	
-	  m [] deriv_form_id  in
+	  m [] derived_form_id  in
       let d_pow tm =
 	let (v,bod) = dest_abs tm in
 	let (t,n) = dest_binop `(pow)` bod in
 	let r = mk_abs (v,t) in
-	  m [r] deriv_form_pow in
+	  m [r] derived_form_pow in
       let d_op tm = 
 	let (v,bod) = dest_abs tm in
 	let (h,b) = strip_comb bod in
 	  if (List.length b = 1) then
-	    let deriv_form_unary = assoc h unop in
+	    let derived_form_unary = assoc h unop in
 	    let r = mk_abs (v,hd b) in
-	      m [r] deriv_form_unary
+	      m [r] derived_form_unary
 	  else 	
 	    let [f1;f2] = b in
-	    let deriv_form_op = assoc h binop in
+	    let derived_form_op = assoc h binop in
 	    let r1 = mk_abs (v,f1) in
 	    let r2 = mk_abs (v,f2) in
-	      m [r1;r2] deriv_form_op in
+	      m [r1;r2] derived_form_op in
       let d_chain tm =
 	let (v,bod) = dest_abs tm in
 	let (h,br) = strip_comb bod in
 	let fs = mk_abs(v,hd br) in
-	let r1 = SPECL [mk_comb (fs,x);`({}:real->bool)`] (assoc h fns) in
+	let r1 = SPECL [mk_comb (fs,x);`(:real)`] (assoc h fns) in
 	let r2 = derivative' (mk_abs (v,hd br)) x s in
 	let b1 = ABS v (AP_TERM h (SYM(BETA (mk_comb (fs,v))))) in
-	  MATCH_MP (SPECL [x;s] deriv_form_chain)  (end_itlist CONJ [r1;r2;b1]) in
+	  MATCH_MP (SPECL [x;s] derived_form_chain)  (end_itlist CONJ [r1;r2;b1]) in
 	tryfind (fun t ->  t tm)  [d_fns;d_const;d_id;d_pow;d_op;d_chain] in
-      fun tm x s -> cleanup_deriv_form  (derivative' tm x s) s;;
+      fun tm x s -> cleanup_derived_form  (derivative' tm x s) s;;
 
-(* examples *)
+(* Examples. The third is pure nonsense. *)
 
 (*
   let th1 = 
     let x = `x:real` in
     let s = `{t | t > &0}` in
     let tm = `(\q:real. (q  - sin(q pow 3) + q pow 7 + y)/(q pow 2  + q pow 4 *(&33 + &43 * q)) +  (q pow 3) *  ((q pow 2) / (-- (q pow 3))))` in
-      derivative_form tm x s;;
+      differentiate tm x s;;
 
   let th2 = 
     let x = `x:real` in
-    let s = `{}:real->bool` in
+    let s = `(:real)` in
     let tm = `\q.  cos(&1 + q pow 2) * acs (q pow 4) + atn(cos q) + inv (q + &1)` in
-      derivative_form tm x s;;
+      differentiate tm x s;;
   
   let th3 = 
     let x = `&5` in
-    let s = `{}:real->bool` in
+    let s = `(:real)` in
     let tm = `\q.  cos(&1 + q pow 2) * acs (q pow 4) + atn(cos q) + inv (q + &1)` in
-      derivative_form tm x s;;
+      differentiate tm x s;;
 *)  
 
-
+(*
 let real_interval_nonempty = prove_by_refinement(
   `!a b. (a<=b) ==> ~(real_interval[a,b]={})`,
   (* {{{ proof *)
@@ -470,7 +543,7 @@ let real_interval_nonempty = prove_by_refinement(
    POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
   ]);;
   (* }}} *)
-
+*)
 
 
 

@@ -488,6 +488,13 @@ search [name "HAS_REAL";name "COS"];;
 search [`(within)`;`(:real)`];;
 
 open Calc_derivative;;
+
+  let th1 = 
+    let x = `x:real` in
+    let s = `{t | t > &0}` in
+    let tm = `\x. x pow 3 + x * x - x * -- x + x/(x + &1)`in 
+      differentiate tm x s;;
+
   let th1 = 
     let x = `x:real` in
     let s = `{t | t > &0}` in
@@ -545,4 +552,258 @@ let ratform_pow = prove_by_refinement(
   ]);;
   (* }}} *)
 
-rational_identity `a / (x + y) - &1 / (x - y) = -- &2 * y / (x pow 2 - y pow 2)`;;
+rational_identity `&1 / (x + y) - &1 / (x - y) = -- &2 * y / (x pow 2 - y pow 2)`;;
+
+
+REAL_FIELD `&2 * x * y - &2 * y * x`;;
+
+
+   let mk_derived tm =
+     let (h1,[f1;f1';r1]) = strip_comb tm in
+     let (h2,[b2;s1]) = strip_comb r1 in
+     let (h3,b) = dest_comb b2 in
+       (f1,SPECL [f1;f1';b;s1] triv) in
+
+   let hooked_deriv hook =
+     let assumed_rules = map mk_derived hook in
+     let d_hyp tm  = 
+       let r =        assoc tm assumed_rules in
+       let _ = print_thm r in
+	 r in
+
+    let  triv = REWRITE_RULE[](REWRITE_CONV[derived_form] 
+     `!f f' x s. derived_form ((f has_real_derivative f') (atreal x within s)) f f' x s` ) in 
+
+differentiate_hook [`(f has_real_derivative (&17)) (atreal x within (:real))`] `\x. ((f:real->real) x) pow 2` `x:real` `(:real)`;;
+
+  differentiate_hook [`(f has_real_derivative f') (atreal x within (:real))`] `f:real->real` `x:real` `(:real)`;;
+
+let  triv = REWRITE_RULE[](REWRITE_CONV[derived_form] 
+     `!f f' x s. derived_form ((f has_real_derivative f') (atreal x within s)) f f' x s` );;
+
+
+mk_derived `(f has_real_derivative (&17)) (atreal x within (:real))`;;
+assoc `f:real->real` [it];;
+differentiate_hook;;
+
+`(f has_real_derivative f') (atreal x within (:univ))`;;
+
+  let d_hyp assumed_rules tm =
+    snd(find (fun (r,s) -> aconv tm r) assumed_rules);;
+
+
+let triv2 = prove_by_refinement(
+  `f f' x s. derived_form ((f has_real_derivative f') (atreal x)) f f' x (:real)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[derived_form;WITHINREAL_UNIV];
+  ]);;
+  (* }}} *)
+
+
+(* acceptable forms
+   `!x s. p ==> (f has_real_derivative f') (atreal x within s)`
+   `!x s. p ==> (f has_real_derivative f') (atreal x)`
+   `!x s. derived_form f f' x s`;;
+*)
+
+let thm5 = prove_by_refinement(
+  `!x s. derived_form (p x /\ (!x s.  (derived_form (p x) f (f' x) x s))) f (f' x) x s`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[derived_form];
+    MESON_TAC[];
+  ]);;
+
+
+let thm4 = prove_by_refinement(
+  `!x s. derived_form (!x s.  (f has_real_derivative f' x) (atreal x within s)) f (f' x) x s`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[derived_form];
+    MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let thm3 = prove_by_refinement(
+  `!x s. derived_form (!x.  (f has_real_derivative f' x) (atreal x)) f (f' x) x s`,
+  (* {{{ proof *)
+  [
+   REWRITE_TAC[derived_form];
+    MESON_TAC[HAS_REAL_DERIVATIVE_ATREAL_WITHIN];
+  ]);;
+  (* }}} *)
+
+let thm2 = prove_by_refinement(
+  `!x s. derived_form (p x /\ (!x. p x ==> (f has_real_derivative f' x) (atreal x) )) f (f' x) x s`,
+  (* {{{ proof *)
+  [
+     REWRITE_TAC[derived_form];
+    MESON_TAC[HAS_REAL_DERIVATIVE_ATREAL_WITHIN];
+  ]);;
+  (* }}} *)
+
+let thm1 = prove_by_refinement(
+  `! x s. derived_form (p x /\ (!x s. p x==> (f has_real_derivative f' x) (atreal x within s)))
+    f (f' x) x s`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[derived_form];
+    MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let mk_derived  = 
+  let     form1 =    `!x s. p x==> (f has_real_derivative f' x) (atreal x within s)`in
+  let     form2 =    `!x. p x ==> (f has_real_derivative f' x) (atreal x)` in
+  let     form3 =    `!x.  (f has_real_derivative f' x) (atreal x)` in
+  let     form4 =    `!x s.  (f has_real_derivative f' x) (atreal x within s)` in
+  let     form5 =    `!x s.  derived_form p f f' x s` in
+  let fls =  [
+    (form1,thm1);(form2,thm2);(form3,thm3);(form4,thm4);(form5,thm5)] in
+  let mm tm (r,s) = 
+    let ins = term_match [] r tm in
+      INST ((fun (_,a,_) -> a) ins) s in
+    fun tm -> 
+      tryfind (mm tm) fls;;
+
+
+
+
+df tm4;;
+search [`within`;`atreal`;`has_real_derivative`;name "HAS_REAL"];;
+let tm5 = `!x u. derived_form q g g' x u`;;
+let tm4 = `!x u. (x > &0) ==> (g has_real_derivative (x pow 2)) (atreal x within u)`;;
+if (can (term_match [] form5) tm) then tm else ( failwith "form5");;
+MATCH_MP th4 tm4;;
+MATCH_MP;;
+let ins =  (term_match [] form4) tm4 ;;
+INST ((fun (_,a,_) -> a) ins)  thm4;;
+
+mk_derived tm5;;
+
+   let mk_derived tm =
+     let (h1,[f1;f1';r1]) = strip_comb tm in
+     let (h2,[b2;s1]) = strip_comb r1 in
+     let (h3,b) = dest_comb b2 in
+       (f1,SPECL [f1;f1';b;s1] triv) ;;
+
+ 
+
+
+MATCH_MP;;
+
+
+  
+
+type_of `has_real_derivative`;;
+types_of `derived_form ((f has_real_deriv f') (atreal x within s))`;;
+
+
+
+snd(top_realgoal());;
+let (h1,[f;f';r]) = strip_comb (snd(top_realgoal()));;
+let _ = (h1 = `(has_real_derivative)`) or 
+  failwith "form 'f has_real_derivative f' atreal b within s' expected." ;;
+let (h2,[atb;s1]) = strip_comb r;;
+let (h3,b) = dest_comb atb;;
+1;;
+1;;
+
+BETA_CONV;;
+
+
+
+derived_form;;
+help_grep "EQ";;
+EQT_ELIM;;
+help "EQ_MP";;
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `\x:real. &1` in
+    differentiate tm x s;;
+
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `\x:real. x` in
+    differentiate tm x s;;
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `sin` in
+    differentiate tm x s;;
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `( -- )` in
+    differentiate tm x s;;
+
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `\x. &1 + x` in
+    differentiate tm x s;;
+
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `\x. x + &1` in
+    differentiate tm x s;;
+
+let th1 = 
+  let x = `x:real` in
+  let s = `(:real)` in
+  let tm = `\x. -- (x pow 2)` in
+    differentiate tm x s;;
+
+  let th1 = 
+    let x = `x:real` in
+    let s = `{t | t > &0}` in
+    let tm = `(\q:real. (q  - sin(q pow 3) + q pow 7 + y)/(q pow 2  + q pow 4 *(&33 + &43 * q)) +  (q pow 3) *  ((q pow 2) / (-- (q pow 3))))` in
+      time(differentiate tm x) s;;
+
+  let th2 = 
+    let x = `x:real` in
+    let s = `(:real)` in
+    let tm = `\q.  cos(&1 + q pow 2) * acs (q pow 4) + atn(cos q) + inv (q + &1)` in
+      time(differentiate tm x) s;;
+  
+  let th3 = 
+    let x = `r:real` in
+    let s = `(:real)` in
+    let tm = `\q.  cos(&1 + q pow 2) * acs (q pow 4) + atn(cos q) + inv (q + &1)` in
+      time(differentiate tm x) s;;
+
+  let th3 = 
+    let x = `t:real` in
+    let s = `(:real)` in
+    let tm = `\q.  (\x.  x pow 5 + x* y - cos x) (&1 + q pow 2) ` in
+      differentiate tm x s;;
+
+ let th3 = 
+    let x = `t:real` in
+    let s = `(:real)` in
+    let tm = `\q.  (\x.  x pow 5 + &1 - cos x) q` in
+      differentiate tm x s;;
+
+let th3 = 
+    let x = `t:real` in
+    let s = `(:real)` in
+    let tm = `\q.  (\x.  &2 + sin x + &1) q` in
+      differentiate tm x s;;
+
+  let th3 = 
+    let x = `x:real` in
+    let s = `(:real)` in
+    let tm = `\q.  ((f:real->real) ((g:real->real) ((h:real->real)q)))  + (g:real->real) q ` in
+      differentiate tm x s;;
+
+

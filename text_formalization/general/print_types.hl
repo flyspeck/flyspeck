@@ -9,6 +9,8 @@ module Print_types
       val print_goal_types: unit -> unit
       val print_thm_types: thm -> unit
       val print_term_types: term -> unit
+      val print_goal_var_overload: unit -> unit
+
       val get_term_types: term -> (string*hol_type) list
       val get_const_types: term -> (string*hol_type) list
 
@@ -45,6 +47,11 @@ struct
       | Comb (t1,t2) -> get_const_types t1 @ get_const_types t2 
       | Abs (t1,t2) -> get_const_types t1 @ get_const_types t2 
 
+  let rec get_var_types = function
+        Var(s,t) -> [(s,t)]
+      | Const(s,t) -> []
+      | Comb (t1,t2) -> get_var_types t1 @ get_var_types t2 
+      | Abs (t1,t2) -> get_var_types t1 @ get_var_types t2 
 
   let print_atom_type : string * hol_type -> unit =
     fun (s,t) -> 
@@ -65,6 +72,20 @@ struct
     let tms = g::asms in
     let tm = end_itlist (curry mk_conj) tms in
       (print_term_types tm)
+
+  let print_goal_var_overload() =
+    let (asms,g) = top_goal() in
+    let tms = g::asms in
+    let tm = end_itlist (curry mk_conj) tms in
+    let vt = ((sort (<)) o setify) (get_var_types tm) in
+    let ct = ((sort (<)) o setify) (get_const_types tm @ vt) in
+    let ft x = filter (fun t -> (fst t = fst x) && not(snd t = snd x)) ct in 
+    let ov = ((sort (<)) o setify) (List.flatten ( map ft vt )) in
+      if (List.length ov >0) then 
+	(print_string "Warning: type-overloaded variables\n";
+	 List.iter print_atom_type ov)
+      else ();;
+
 
 end;;
 

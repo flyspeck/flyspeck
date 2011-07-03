@@ -1,7 +1,7 @@
 ;
 ; C-x C-e to evaluate
 
-
+(load "hol-light.el")
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")

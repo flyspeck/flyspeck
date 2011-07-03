@@ -310,6 +310,12 @@
 				     (hol-light-de-then 
 				      (hol-light-get-line))) ")")))
 
+(defun hol-light-abbrev-tactic-line()
+  (interactive)
+  (hol-light-seval-string (concat "e_abbrev (\"" 
+				      (hol-light-get-line) "\")")))
+
+
 (defun hol-light-tactic-newline()
   (interactive)
   (hol-light-tactic-line)
@@ -393,12 +399,16 @@
     (local-set-key [(meta return)] 'hol-light-seval-line)
     (local-set-key [(control return)] 'hol-light-seval-region)
     (local-set-key [(control meta return)] 'hol-light-seval-newline)
+    (local-set-key [(shift return)] 'hol-light-abbrev-tactic-line)
    
     (local-set-key "\C-fl" 'folding-toggle-enter-exit)
     (local-set-key "\C-f\C-l" 'folding-toggle-show-hide)
     (local-set-key "\C-g" 'keyboard-quit)
 
+
+
     ;;; c bindings
+
 
     ;; a
     (local-set-key "\C-c\C-a" 'hol-light-type-assum)

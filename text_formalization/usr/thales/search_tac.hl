@@ -256,7 +256,7 @@ let eval_tactic  =
   fun s ->
     let (b,r) = eval_command ~silent:false 
       ("tactic_cache := (fun () -> ("^s^"));;") in
-    let _ = b or failwith r in
+    let _ = b or (print_string (r^"\n"^s^"\n"); failwith "bad input string") in
     let t= (!tactic_cache)() in
     let v = Hol_pervasives.e(t) in
     let _ = proof_record := Tax (s,t)::!proof_record in
@@ -387,7 +387,7 @@ let UNDISCH_FIND_TAC = Tactics_jordan.UNDISCH_FIND_TAC;;
 
 let TYPE_THEN = Tactics_jordan.TYPE_THEN;;
 
-let TYPE_THENL = Tactics_jordan.TYPE_THENL;;
+let TYPEL_THEN = Tactics_jordan.TYPEL_THEN;;
 
 
 
@@ -573,6 +573,7 @@ let tactic_abbreviations = ref [
 ("c","CONJ_TAC");
 ("a","ASSUME_TAC");
 ("g","GEN_TAC");
+("g/r","REPEAT GEN_TAC");
 ("!","GEN_TAC");
 ("?","EXISTS_TAC");
 ("/\\","CONJ_TAC");
@@ -636,11 +637,22 @@ let unabbrev_tactic  =
       rest in
     tryfind (fun f -> f s) [assoc_u;assoc_ut;sg;hash;literal;tachit];; 
 
+(*
+let escape s = 
+  let ss = Str.split (Str.regexp "\"") s in
+  let s = unsplit "\\\"" I ss in
+  let ss = Str.split (Str.regexp "\\ ") s in
+  let s = unsplit "\\\\ " I ss in
+    s;;
+*)
+
 let p() = 
   let _ = print_string (string_of_proof()) in
-  let _ = Print_types.print_goal_var_overload() in
-  let _ = print_goalstack (!current_goalstack) in
-    ();;
+    if (!current_goalstack=[]) then print_string "There is no current goal." 
+    else 
+      let _ = Print_types.print_goal_var_overload() in
+      let _ = print_goalstack (!current_goalstack) in
+	();;
 
 let eval_tactic_abbrev s = 
   let expand_s = 
@@ -651,7 +663,8 @@ let eval_tactic_abbrev s =
 	((unabbrev_tactic pre)^" "^post) 
     )
     with _ -> s in
-  let _ = eval_tactic expand_s in
+ (* let _ = print_string (String.escaped expand_s) in *)
+  let _ = eval_tactic (expand_s) in
     p();;
 
 let e_abbrev = eval_tactic_abbrev;;

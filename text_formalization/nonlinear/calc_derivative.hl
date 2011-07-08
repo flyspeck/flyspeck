@@ -34,6 +34,11 @@
   Apply REWRITE_RULE[derived_form] to express the result back in terms of
   has_real_derivative.
 
+  (* A rational inequality implies a polynomial ineq with
+  denominators cleared.  Allowed ops <,>, <=,>=,=,~=,*)
+
+  val rational_ineq_rule  : thm -> thm
+
 *)
 
 
@@ -58,10 +63,14 @@ module Calc_derivative : sig
 
   val rationalize: term -> thm
   val rational_identity:term -> thm
+  val rational_ineq_rule  : thm -> thm
+
+  val invert_den_lt :thm
+  val invert_den_le: thm
 
   val derived_form:thm
   val differentiate:term -> term -> term -> thm
-end  = struct
+end = struct
 
 
 (* ========================================================================== *)
@@ -256,6 +265,119 @@ let rational_identity  =
 	)
 	with _ -> MATCH_MP (lite_imp2) (end_itlist CONJ [rf;p';a']);;
 
+let invert_den_lt = prove_by_refinement(
+  `!a b. &0 < a/b <=> &0 < a*b`,
+  (* {{{ proof *)
+[
+  REPEAT GEN_TAC;
+REWRITE_TAC  [real_div];
+REWRITE_TAC  [REAL_MUL_POS_LT];
+REWRITE_TAC  [REAL_ARITH `inv x < &0 <=> &0 < -- inv x`];
+REWRITE_TAC  [GSYM REAL_INV_NEG];
+REWRITE_TAC  [REAL_LT_INV_EQ];
+REAL_ARITH_TAC 
+ ]);;
+  (* }}} *)
+
+let invert_den_le = prove_by_refinement(
+  `!a b. &0 <= a/b <=> &0 <= a*b`,
+  (* {{{ proof *)
+[
+  REPEAT GEN_TAC;
+REWRITE_TAC  [real_div];
+REWRITE_TAC  [REAL_MUL_POS_LE];
+REWRITE_TAC  [REAL_ARITH `inv x < &0 <=> &0 < -- inv x`];
+REWRITE_TAC  [GSYM REAL_INV_NEG];
+REWRITE_TAC  [REAL_LT_INV_EQ;Real_ext.REAL_PROP_ZERO_INV];
+REAL_ARITH_TAC 
+ ]);;
+  (* }}} *)
+
+let invert_den_eq = prove_by_refinement(
+  `!a b. (a/b = &0)  <=> ( a*b = &0)`,
+  (* {{{ proof *)
+[
+  REPEAT GEN_TAC;
+REWRITE_TAC  [real_div];
+REWRITE_TAC  [REAL_ENTIRE];
+REWRITE_TAC  [REAL_LT_INV_EQ;Real_ext.REAL_PROP_ZERO_INV];
+ ]);;
+  (* }}} *)
+
+let imp_lt = prove_by_refinement(
+  `!p p' x a a' b b'. (&0 < x) /\ (ratform p x a b) /\ (p = p') /\ (a = a') /\ (b = b') ==> (p' ==> &0 < a' * b')`,
+  (* {{{ proof *)
+[
+REWRITE_TAC [ratform];
+REPEAT STRIP_TAC ;
+ASM_MESON_TAC [invert_den_lt]
+]);;
+  (* }}} *)
+
+
+let imp_le = prove_by_refinement(
+  `!p p' x a a' b b'. (&0 <= x) /\ (ratform p x a b) /\ (p = p') /\ (a = a') /\ (b = b') ==> (p' ==> &0 <= a' * b')`,
+  (* {{{ proof *)
+[
+REWRITE_TAC [ratform];
+REPEAT STRIP_TAC ;
+ASM_MESON_TAC [invert_den_le]
+]);;
+  (* }}} *)
+
+let imp_eq = prove_by_refinement(
+  `!p p' x a a' b b'. (x= &0) /\ (ratform p x a b) /\ (p = p') /\ (a = a') /\ (b = b') ==> (p' /\ ~(b' = &0) ==>  (a'= &0 ))`,
+  (* {{{ proof *)
+[
+REWRITE_TAC [ratform];
+REPEAT STRIP_TAC ;
+ASM_MESON_TAC [invert_den_eq;REAL_ENTIRE]
+]);;
+  (* }}} *)
+
+
+let imp_nz = prove_by_refinement(
+  `!p p' x a a' b b'. ~(x= &0) /\ (ratform p x a b) /\ (p = p') /\ (a = a') /\ (b = b') ==> (p' ==>  (~(a' = &0) /\ ~(b' = &0)))`,
+  (* {{{ proof *)
+[
+REWRITE_TAC [ratform];
+REPEAT STRIP_TAC THEN ASM_MESON_TAC [invert_den_eq;REAL_ENTIRE]
+]);;
+  (* }}} *)
+
+let dest_nz  = 
+  let neg = `(~)` in
+    fun tm -> 
+      let (a,b) = dest_comb tm in
+      let _ = (a = neg) or failwith "not a negation" in
+	dest_eq b;;
+
+(* clear the denominator of an inequality *)
+
+let rational_ineq_rule  = 
+  let lt = `(<)` in
+  let le = `(<=)` in
+  let ra1 = REAL_ARITH `a < b <=> &0 < b - a` in
+  let ra2 = REAL_ARITH `a <= b <=> &0 <= b - a` in
+  let ra3 = REAL_ARITH `(x = y) <=> (x - y = &0)` in 
+  let ineq_types = 
+    [snd o (dest_binop lt ), imp_lt;
+     snd o (dest_binop le ), imp_le;
+     fst o (dest_eq ), imp_eq;
+     fst o (dest_nz), imp_nz] in
+    fun thm ->
+      let thm' = REWRITE_RULE[real_gt;real_ge] thm  in
+      let thm' = ONCE_REWRITE_RULE [ra1] thm' in
+      let thm' = ONCE_REWRITE_RULE [ra2] thm' in
+      let thm' = ONCE_REWRITE_RULE [ra3] thm' in
+      let (diff,imp) = tryfind (fun (d,imp) -> (d(concl thm'),imp)) ineq_types in
+      let rf = pre_rationalize diff in
+      let [p;_;a;b]=dest_ratform (concl rf) in
+      let p' = clean_conv p in
+      let a' = clean_conv a in
+      let b' = clean_conv b in
+      let thm' = MATCH_MP (imp) (end_itlist CONJ [thm';rf ;p';a';b']) in
+	thm';;
 
 (* Example:
 
@@ -263,7 +385,10 @@ rational_identity `(&1 / u  - &1/v) pow 2  = inv u pow 2 - &2 * inv (u * v) + in
 
 rational_identity `&1 / (x + y) - &1 / (x - y) = -- &2 * y / (x pow 2 - y pow 2)`;;
 
+rational_ineq_rule (ASSUME `a / (b * e) <  c / (&2 * b)`);;
+
 *)
+
 
 (* ========================================================================== *)
 (* DERIV FORM                                              *)

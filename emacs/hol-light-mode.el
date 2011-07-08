@@ -312,8 +312,12 @@
 
 (defun hol-light-abbrev-tactic-line()
   (interactive)
-  (hol-light-seval-string (concat "e_abbrev (\"" 
-				      (hol-light-get-line) "\")")))
+  (hol-light-seval-string 
+   (concat "e_abbrev (\"" 
+	   (replace-regexp-in-string "\"" "\\\\\"" 
+	   (replace-regexp-in-string "\\\\" "\\\\\\\\"   
+				     (hol-light-get-line))) "\")")))
+
 
 
 (defun hol-light-tactic-newline()

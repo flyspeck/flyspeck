@@ -27,7 +27,6 @@ let arclength2 = prove_by_refinement(
   DISCH_THEN SUBST1_TAC;
   AP_TERM_TAC;
   UNDISCH_TAC `&1 <= h`;
-  MP_TAC (REAL_ARITH `&1 <= h ==> &0 <= h`);
   BY (CONV_TAC REAL_FIELD);
   ]);;
   (* }}} *)
@@ -396,72 +395,40 @@ REAL_ARITH_TAC
 ]);;
   (* }}} *)
 
-
-let ORDER_FINITE_REAL_HAS_SIZE = prove_by_refinement(
-  `!n s. ((s:real->bool) HAS_SIZE n)  ==> (?f.
-    IMAGE f {i | i < CARD s} SUBSET s /\ (!i (j:num). (i< j) /\ (j< CARD s) ==> (f i < f j)))`,
+let REAL_SORT  = prove_by_refinement(
+  `!n s. s HAS_SIZE n /\ (1 <= n) ==>
+    (?(f:num->real). (s = IMAGE f (0..(n-1)) /\ ( (!j k.
+                                     j < n /\ k < n /\ j < k
+                                     ==> ~(f j < f k)))))`,
   (* {{{ proof *)
 [
-INDUCT_TAC;
-REWRITE_TAC [HAS_SIZE_0];
 REPEAT STRIP_TAC ;
-ASM_REWRITE_TAC [CARD_CLAUSES;IMAGE_CLAUSES;LT;EMPTY_GSPEC;EMPTY_SUBSET];
-REPEAT STRIP_TAC ;
-ABBREV_TAC `r = sup s`;
-HASH_RULE_TAC 9804  (SPEC `s DELETE (r:real)`);
-MP_TAC (SPEC `(s:real->bool)` SUP_FINITE);
+MP_TAC (SPEC `((>):real->real->bool)` (INST_TYPE [(`:real`,`:A`)] TOPOLOGICAL_SORT));
+ANTS_TAC ;
+ARITH_TAC ;
+DISCH_THEN (fun t -> MP_TAC (SPECL[`n:num`;`s:real->bool`] t));
 ASM_REWRITE_TAC [];
-HASH_KILL_TAC 4079 ;
-REWRITE_TAC [IMAGE;SUBSET;IN_ELIM_THM;IN];
-ANTS_TAC;
-ASM_MESON_TAC [HAS_SIZE;HAS_SIZE_0;ARITH_RULE `~(SUC  n = 0)`];
-STRIP_TAC ;
-SUBGOAL_THEN `(s DELETE r:real) HAS_SIZE n` ASSUME_TAC;
-HASH_RULE_TAC 6639 (REWRITE_RULE[HAS_SIZE_SUC]);
-  DISCH_THEN (fun t-> MATCH_MP_TAC (CONJUNCT2 t));
-ASM_MESON_TAC [IN];
-ASM_REWRITE_TAC [];
-HASH_RULE_TAC 799 (REWRITE_RULE[HAS_SIZE]);
-DISCH_THEN (fun t -> SUBST1_TAC (CONJUNCT2 t));
-HASH_RULE_TAC 6639 (REWRITE_RULE[HAS_SIZE]);
-DISCH_THEN (fun t -> SUBST1_TAC (CONJUNCT2 t));
-REWRITE_TAC [DELETE;IN_ELIM_THM;IN];
 REPEAT STRIP_TAC ;
-ABBREV_TAC `g = \i. if (n <= i:num) then (r:real) else (f i)`;
-EXISTS_TAC `g:num->real`;
-SUBGOAL_THEN `r = (g:num->real) n` (fun t -> REPEAT (POP_ASSUM MP_TAC) THEN (SUBST1_TAC t) THEN REPEAT DISCH_TAC);
-EXPAND_TAC "g";
-REWRITE_TAC [ARITH_RULE `n<= (n:num)`];
-SUBGOAL_THEN  `!(i:num). (i < n) ==> g i = (f:num->real) i` ASSUME_TAC;
-EXPAND_TAC "g";
-MESON_TAC [ARITH_RULE `(i < (n:num) ==> ~(n <= i))`];
-HASH_KILL_TAC 9577 ;
+EXISTS_TAC `\ (i:num). (f:num->real) (SUC i)`;
+CONJ_TAC ;
+ASM_REWRITE_TAC [IMAGE];
+ONCE_REWRITE_TAC[FUN_EQ_THM] ;
+REWRITE_TAC [IN_ELIM_THM;IN;X_IN IN_NUMSEG];
+X_GEN_TAC `t:real`;
+HASH_UNDISCH_TAC 6963 ;
+MESON_TAC [ARITH_RULE `(1 <= x /\ x <= n ==> (0 <= PRE x /\ PRE x <= n-1 /\ SUC (PRE x) = x)) /\ (0 <= x /\ x <= (n-1) /\ (1 <= n) ==> 1 <= SUC x /\ SUC x <= n)`];
+BETA_TAC ;
+HASH_UNDISCH_TAC 4230 ;
+REWRITE_TAC [IN_ELIM_THM;IN;X_IN IN_NUMSEG];
 REPEAT STRIP_TAC ;
-ASM_MESON_TAC [ARITH_RULE `(x' < SUC n) ==> (x' < n) \/ (x' = n)`];
-MP_TAC (ARITH_RULE `(j < SUC n ==> ((j < n) \/ (j = n)))`);
-ASM_REWRITE_TAC [];
-DISCH_THEN DISJ_CASES_TAC;
-ASM_MESON_TAC [ARITH_RULE `(i < j /\ j < SUC n ==> i < n)`];
-HASH_KILL_TAC 6747 ;
-HASH_RULE_TAC 6432  (SPEC `(g:num->real) i`);
-HASH_RULE_TAC 4968  (SPEC `(g:num->real) i`);
-REWRITE_TAC [REAL_ARITH `x <= (y:real) <=> (x < y \/ x = y)`];
-ASM_MESON_TAC [ARITH_RULE ` (i < j /\ j < SUC n ==> i < n)`]
+HASH_RULE_TAC 4713 (SPECL [`SUC j`;`SUC k`]);
+ASM_REWRITE_TAC [REAL_ARITH `(x > y) = (y<x)`];
+REPEAT (POP_ASSUM MP_TAC);
+ARITH_TAC
 ]
 );;
   (* }}} *)
 
-let ORDER_FINITE_REAL = prove_by_refinement(
-  `!s. (FINITE (s:real->bool))  ==> (?f.
-    IMAGE f {i | i < CARD s} SUBSET s /\ (!i (j:num). (i< j) /\ (j< CARD s) ==> (f i < f j)))`,
-  (* {{{ proof *)
-[
-REPEAT STRIP_TAC ;
-MATCH_MP_TAC ORDER_FINITE_REAL_HAS_SIZE;
-REWRITE_TAC [HAS_SIZE];
-ASM_MESON_TAC []
-]);;
-  (* }}} *)
 
 let facet_rep_uniq = prove_by_refinement(
   `!(P:real^2 -> bool) a b1 b2. polyhedron P /\ bounded P /\

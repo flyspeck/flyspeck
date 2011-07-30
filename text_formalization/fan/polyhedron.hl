@@ -5,7 +5,7 @@
 (*   CZZHBLI QOEPBJD NEHRQPR ZMQQFUP JLIGZGS                                  *)
 (* Section: Polyhedron                                                        *)
 (* Chapter: Packing                                                           *)
-(* Author: John Harrison                                                      *)
+(* Author: John Harrison, Hoang Le Truong                                     *)
 (* Date: 2010-07-15                                                           *)
 (* ========================================================================== *)
 
@@ -95,6 +95,17 @@ module Polyhedron = struct
 
   open Sphere;;
   open Fan;;
+
+  open Topology;;
+  open Sphere;;
+  open Hypermap;;
+  open Fan;;
+  open Planarity;;
+  open Topology;;
+  open Fan_defs;;
+  open Conforming;;
+
+
 
 let GRAPH = prove
  (`!E. graph E <=> !e. e IN E ==> e HAS_SIZE 2`,
@@ -481,6 +492,2624 @@ let POLYHEDRON_FAN = prove
       ASM_REWRITE_TAC[] THEN STRIP_TAC THENL
        [ASM_REWRITE_TAC[INTER_IDEMPOT; SUBSET_REFL];
         ASM_REWRITE_TAC[GSYM SEGMENT_CONVEX_HULL; HULL_SUBSET]]]]);;
+
+
+
+(* Hoang Le Truong's additions start here. *)
+
+let fchanged=new_definition`fchanged f={v| ?v1 t. v=t% v1 /\ v1 IN (relative_interior f)/\ t> &0}`;;
+
+let CONVEX_RELATIVE_INTERIOR=prove(`!p:real^3->bool. 
+ polyhedron p 
+==> convex (relative_interior p) `,
+let LEMMA=prove(`!f:(real^3->bool)->bool (a:(real^3->bool)->real^3) (b:(real^3->bool)->real).
+{x | !h. h IN f ==> a h dot x < b h}=INTERS{{x | a h dot x < b h}| h IN f} `,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[INTERS;IN_ELIM_THM;]
+THEN ONCE_REWRITE_TAC[EXTENSION]
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+THEN ASM_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "LINH"(fun th-> MRESA1_TAC th`h:real^3->bool`);
+ DISCH_THEN(LABEL_TAC"LINH")
+THEN REPEAT STRIP_TAC
+THEN SUBGOAL_THEN`?(h':real^3->bool). h' IN f /\ {x | (a:(real^3->bool)->real^3) h dot x < (b:(real^3->bool)->real) h} = {x | a h' dot x < b h'}`ASSUME_TAC
+THENL[
+EXISTS_TAC`h:real^3->bool`
+THEN ASM_REWRITE_TAC[];
+REMOVE_THEN "LINH"(fun th-> MRESAL1_TAC th`{x:real^3 | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x < (b:(real^3->bool)->real) h}`[IN_ELIM_THM])]])in
+
+REPEAT STRIP_TAC THEN FIRST_ASSUM
+   (MP_TAC o GEN_REWRITE_RULE I [POLYHEDRON_INTER_AFFINE_MINIMAL]) THEN
+  REWRITE_TAC[RIGHT_IMP_EXISTS_THM; SKOLEM_THM] THEN
+  SIMP_TAC[LEFT_IMP_EXISTS_THM; RIGHT_AND_EXISTS_THM; LEFT_AND_EXISTS_THM] 
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT[`p:real^3->bool`;`f:(real^3->bool)->bool`;`a:(real^3->bool)->real^3`;`b:(real^3->bool)->real`]
+THEN POP_ASSUM MP_TAC
+THEN FIND_ASSUM(fun th-> GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])`(p:real^3->bool) = affine hull p INTER INTERS f`
+THEN REWRITE_TAC[]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[SET_RULE`{x | x IN p /\ (!h. h IN f ==> a h dot x < b h)}= p INTER {x | (!h. h IN f ==> a h dot x < b h)}`]
+THEN MATCH_MP_TAC CONVEX_INTER
+THEN MRESA1_TAC POLYHEDRON_EQ_FINITE_FACES`p:real^3->bool`
+THEN MRESA_TAC LEMMA [`f:(real^3->bool)->bool`;`(a:(real^3->bool)->real^3)`; `(b:(real^3->bool)->real)`]
+THEN MATCH_MP_TAC CONVEX_INTERS
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[CONVEX_HALFSPACE_LT]);;
+
+
+let CONVEX_RELATIVE_INTERIOR_FACE=prove(`!p f:(real^3->bool). 
+ polyhedron p 
+/\ f face_of p
+==> convex (relative_interior f) `,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC FACE_OF_POLYHEDRON_POLYHEDRON[`p:(real^3->bool)`;`f:real^3->bool`]
+THEN MRESA1_TAC CONVEX_RELATIVE_INTERIOR`f:(real^3->bool)`);;
+
+let CONVEX_RELATIVE_INTERIOR_FACET=prove(`!p f:(real^3->bool). 
+ polyhedron p 
+/\ f facet_of p
+==> convex (relative_interior f) `,
+REPEAT STRIP_TAC
+THEN MRESA_TAC CONVEX_RELATIVE_INTERIOR_FACE[`p:(real^3->bool)`;`f:real^3->bool`]
+THEN MRESA_TAC FACET_OF_IMP_FACE_OF[`f:(real^3->bool)`;`p:(real^3->bool)`]);;
+
+let CONNECTED_RELATIVE_INTERIOR_FACET=prove(`!p f:(real^3->bool). 
+ polyhedron p 
+/\ f facet_of p
+==> connected (relative_interior f) `,
+REPEAT STRIP_TAC
+THEN MRESA_TAC CONVEX_RELATIVE_INTERIOR_FACET[`p:(real^3->bool)`;`f:real^3->bool`]
+THEN MRESA1_TAC CONVEX_CONNECTED `relative_interior f:(real^3->bool)`);;
+
+let CONNECTED_HALF_LINE=prove(`!x:real^3 v. connected(aff_gt {x} {v})`,
+REPEAT STRIP_TAC
+THEN MATCH_MP_TAC CONVEX_CONNECTED
+THEN SIMP_TAC[CONVEX_AFF_GT]);;
+
+
+
+let RELATIVE_SUBSET_FCHANGE=prove(`!p x f:(real^3->bool). 
+  bounded p /\ polyhedron p /\ x IN interior p 
+/\ f facet_of p
+==> (relative_interior f) SUBSET fchanged f`,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[SUBSET; fchanged;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`x':real^3`
+THEN EXISTS_TAC `&1`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1> &0`;VECTOR_ARITH`A= &1 %A`]);;
+
+
+
+let AFF_GT_SUBSET_FCHANGED=prove(`!p x f:(real^3->bool) y. 
+  bounded p /\ polyhedron p /\ x IN interior p 
+/\ f facet_of p
+/\ y IN (relative_interior f)
+==>  {v| ?t. &0< t /\ v=t%y} SUBSET fchanged f  `,
+REWRITE_TAC[fchanged;SUBSET;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`y:real^3`
+THEN EXISTS_TAC`t:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH` t> &0<=> &0< t`]);;
+
+
+
+let CONNECTED_HALF_LINE1=prove(`!y:real^3. connected {v| ?t. &0< t /\ v=t%y}`,
+let LEMMA=prove(`!x:real^3. ~(x= vec 0)==>aff_gt {vec 0} {x}= {v| ?t. &0< t /\ v=t%x}`,
+
+REPEAT STRIP_TAC
+THEN MRESAL_TAC AFF_GT_1_1[`(vec 0):real^3`;`x:real^3`][SET_RULE`DISJOINT {vec 0} {x} <=> ~(x= vec 0)`;VECTOR_ARITH`t % (vec 0)+A=A:real^3`;EXTENSION;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+REPEAT STRIP_TAC
+THEN EXISTS_TAC`t2:real`
+THEN ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC
+THEN EXISTS_TAC`&1-t:real`
+THEN EXISTS_TAC`t:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1-t+t= &1`]]) in
+
+REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`(y= vec 0)\/ ~(y:real^3 = vec 0)`)
+THENL[
+ASM_REWRITE_TAC[VECTOR_ARITH`t % vec 0= vec 0`]
+THEN SUBGOAL_THEN`{v:real^3 | ?t. &0 < t /\ v = vec 0}= {vec 0}` ASSUME_TAC
+THENL[
+REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_SING]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+STRIP_TAC THEN ASM_REWRITE_TAC[];
+STRIP_TAC THEN EXISTS_TAC`&1`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0< &1`]];
+
+ASM_REWRITE_TAC[CONNECTED_SING]];
+
+MRESA1_TAC LEMMA`y:real^3`
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th])
+THEN MRESA_TAC CONNECTED_HALF_LINE[`vec 0:real^3`;`y:real^3`]]);;
+
+
+let CONNECTED_COMPONENT_OF_SUBSET = prove
+ (`!s t x y. s SUBSET t /\ connected_component s x y
+           ==> connected_component t x y`,
+  REWRITE_TAC[connected_component] THEN SET_TAC[]);;
+
+let CONNECTED_COMPONENT_TRANS = prove
+ (`!s x y z:real^N.
+    connected_component s x y /\ connected_component s y z
+    ==> connected_component s x z`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[connected_component] THEN
+  DISCH_THEN(CONJUNCTS_THEN2 (X_CHOOSE_TAC `t:real^N->bool`)
+                             (X_CHOOSE_TAC `u:real^N->bool`)) THEN
+  EXISTS_TAC `t UNION u:real^N->bool` THEN
+  ASM_REWRITE_TAC[IN_UNION; UNION_SUBSET] THEN
+  MATCH_MP_TAC CONNECTED_UNION THEN ASM SET_TAC[]);;
+
+
+
+let CONNECTED_FCHANGED=prove(`!p x f:(real^3->bool). 
+  bounded p /\ polyhedron p /\ x IN interior p 
+/\ f facet_of p
+==> connected (fchanged f) `,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[CONNECTED_IFF_CONNECTED_COMPONENT;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o DEPTH_CONV)[fchanged]
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o DEPTH_CONV)[fchanged]
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN SUBGOAL_THEN`x' IN {v| ?t. &0< t /\ v=t % v1:real^3}`ASSUME_TAC
+THENL[
+REWRITE_TAC[IN_ELIM_THM]
+THEN EXISTS_TAC`t:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0< t<=> t> &0`];
+
+SUBGOAL_THEN`v1 IN {v| ?t. &0< t /\ v=t % v1:real^3}`ASSUME_TAC
+THENL[
+REWRITE_TAC[IN_ELIM_THM]
+THEN EXISTS_TAC`&1:real`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`&1 %A=A`]
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC;
+
+MRESA1_TAC CONNECTED_HALF_LINE1`v1:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONNECTED_IFF_CONNECTED_COMPONENT]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA_TAC th[`x':real^3`;`v1:real^3`])
+THEN SUBGOAL_THEN`y IN {v| ?t. &0< t /\ v=t % v1':real^3}`ASSUME_TAC
+THENL[
+REWRITE_TAC[IN_ELIM_THM]
+THEN EXISTS_TAC`t':real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0< t' <=> t'> &0`];
+
+SUBGOAL_THEN`v1' IN {v| ?t. &0< t /\ v=t % v1':real^3}`ASSUME_TAC
+THENL[
+REWRITE_TAC[IN_ELIM_THM]
+THEN EXISTS_TAC`&1:real`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`&1 %A=A`]
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC;
+
+
+MRESA1_TAC CONNECTED_HALF_LINE1`v1':real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONNECTED_IFF_CONNECTED_COMPONENT]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA_TAC th[`v1':real^3`;`y:real^3`;])
+THEN MRESA_TAC CONNECTED_RELATIVE_INTERIOR_FACET[`p:real^3->bool`;`f:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONNECTED_IFF_CONNECTED_COMPONENT]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA_TAC th[`v1:real^3`;`v1':real^3`;])
+THEN MRESA_TAC AFF_GT_SUBSET_FCHANGED[`p:real^3->bool`;`x:real^3`;`f:real^3->bool`;`v1:real^3`]
+THEN MRESA_TAC AFF_GT_SUBSET_FCHANGED[`p:real^3->bool`;`x:real^3`;`f:real^3->bool`;`v1':real^3`]
+THEN MRESA_TAC RELATIVE_SUBSET_FCHANGE[`p:real^3->bool`;`x:real^3`;`f:real^3->bool`;]
+ THEN MRESA_TAC CONNECTED_COMPONENT_OF_SUBSET[`{v | ?t. &0 < t /\ v = t % v1:real^3}`;`fchanged (f:real^3->bool)`;`t% v1:real^3`;`v1:real^3`]
+ THEN MRESA_TAC CONNECTED_COMPONENT_OF_SUBSET[`{v | ?t. &0 < t /\ v = t % v1':real^3}`;`fchanged (f:real^3->bool)`;`v1':real^3`;`t'% v1':real^3`]
+ THEN MRESA_TAC CONNECTED_COMPONENT_OF_SUBSET[`relative_interior (f:real^3->bool)`;`fchanged (f:real^3->bool)`;`v1:real^3`;` v1':real^3`]
+THEN MRESA_TAC CONNECTED_COMPONENT_TRANS[`fchanged f:real^3->bool`;`t % v1:real^3`;`v1:real^3`;`v1':real^3`]
+THEN MRESA_TAC CONNECTED_COMPONENT_TRANS[`fchanged f:real^3->bool`;`t % v1:real^3`;`v1':real^3`;`t' % v1':real^3`]]]]]);;
+ 
+
+let CONTINUOUS_ON_LIFT_DOT = prove
+ (`!s a. (lift o (\y. a dot y)) continuous_on s`,
+  SIMP_TAC[CONTINUOUS_AT_IMP_CONTINUOUS_ON; CONTINUOUS_AT_LIFT_DOT]);;
+
+
+
+
+let AFFINITE_HULL_BALL_EQ_UNIV=prove(`!x e. &0< e ==> affine hull ball (x,e) =(:real^3)`,
+let delta_func=new_definition`delta_func x y= (if x=y then &1 else &0) ` in
+(let func1=new_definition`func1 a x y z= (if x=z then a else  (if  y= z then (&1- a) else &0)) ` in
+
+REPEAT STRIP_TAC
+THEN  REWRITE_TAC[EXTENSION]
+THEN REWRITE_TAC[AFFINE_HULL_EXPLICIT;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+SET_TAC[];
+STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`x'= x:real^3\/ ~(x'=x)`)
+THENL[
+ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`{x:real^3}`
+THEN EXISTS_TAC`(delta_func (x:real^3))`
+THEN REWRITE_TAC[FINITE_SING;SET_RULE`~({x}={})`;SUM_SING;VSUM_SING;delta_func;VECTOR_ARITH`&1 % x=x`;SUBSET;IN_SING]
+THEN STRIP_TAC
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[ball;IN_ELIM_THM;dist; VECTOR_ARITH`x-x= vec 0`;NORM_0];
+
+ABBREV_TAC`v =(inv(norm (x'-x)) * e/ &2) % (x'-x) +x:real^3`
+THEN SUBGOAL_THEN `~(x=v:real^3)` ASSUME_TAC
+THENL[
+POP_ASSUM (fun th-> REWRITE_TAC[SYM th; VECTOR_ARITH`A= B+A<=> B= vec 0`; GSYM NORM_EQ_0;NORM_MUL;])
+THEN REWRITE_TAC[REAL_ENTIRE; REAL_ABS_MUL;REAL_ABS_INV;REAL_ABS_NORM;DE_MORGAN_THM]
+THEN MRESA_TAC imp_norm_not_zero_fan[`x':real^3`;`x:real^3`]
+THEN MRESA_TAC imp_inv_norm_not_zero_fan[`x':real^3`;`x:real^3`]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;
+
+ABBREV_TAC`a=  (norm(x'-x:real^3) *inv e * &2)`
+THEN EXISTS_TAC`{x,v:real^3}`
+THEN EXISTS_TAC `func1 (a:real) v (x:real^3)`
+THEN ASM_REWRITE_TAC[SET_RULE`~({x, v} = {})`]
+THEN SIMP_TAC[HAS_SIZE;  FINITE_INSERT; FINITE_EMPTY;
+                 IN_INSERT; NOT_IN_EMPTY;VSUM_CLAUSES;SUM_CLAUSES;func1]
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1 - a + a + &0 = &1`; VECTOR_ARITH`(&1 - a) % x + a % v + vec 0 = x'<=>  a % (v-x) = x'- x`]
+THEN EXPAND_TAC"v"
+THEN REWRITE_TAC[VECTOR_ARITH`(A+B)-B=A:real^3 /\ a % b % v=(a*b)%v`]
+THEN EXPAND_TAC"a"
+THEN REWRITE_TAC[REAL_ARITH`(norm (x' - x) * inv e * &2) * inv (norm (x' - x)) * e / &2= ( inv (norm (x' - x)) * norm (x' - x)) *( inv e * e) `]
+THEN MRESA_TAC IMP_NORM_FAN[`x':real^3`;`x:real^3`]
+THEN MP_TAC(REAL_ARITH`&0< e==> ~(e= &0) /\ &0 <= e`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`e:real`
+THEN REWRITE_TAC[VECTOR_ARITH`(&1 * &1) %v= v`;SUBSET;SET_RULE`x IN {y,z}<=> x= y \/ x= z`]
+THEN GEN_TAC
+THEN STRIP_TAC
+THENL[
+ASM_REWRITE_TAC[ball;IN_ELIM_THM;dist; VECTOR_ARITH`x-x= vec 0`;NORM_0];
+ASM_REWRITE_TAC[ball;IN_ELIM_THM;dist; ]
+THEN POP_ASSUM (fun th-> REWRITE_TAC[])
+THEN EXPAND_TAC"v"
+THEN REWRITE_TAC[VECTOR_ARITH`A-(B+A)= -- B:real^3`; NORM_NEG;NORM_MUL;REAL_ABS_MUL;REAL_ABS_INV;REAL_ABS_NORM;]
+THEN ONCE_REWRITE_TAC[ REAL_ARITH`(a * b)* c= (a * c) * b`]
+THEN ASM_REWRITE_TAC[REAL_ARITH`abs(e/ &2)= abs(e)/ &2`]
+THEN MRESA1_TAC REAL_ABS_REFL`e:real`
+THEN ASM_TAC
+THEN REAL_ARITH_TAC]]]]));;
+
+
+let INTERIOR_AFFINIE_HUL_EQ_UNIV=prove(`!x p:(real^3->bool). 
+ x IN interior p 
+==>  affine hull p= (:real^3)`,
+
+REWRITE_TAC[IN_INTERIOR]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC AFFINITE_HULL_BALL_EQ_UNIV[`x:real^3`;`e:real`]
+THEN MRESA_TAC HULL_MONO [`affine:(real^3->bool)->bool`;`ball(x:real^3,e)`;`p:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[]);;
+
+
+
+let AFF_DIM_INTERIOR_EQ_3=prove(`!x p:(real^3->bool). 
+ x IN interior p 
+==>  aff_dim p= &3`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`x:real^3`;`p:real^3->bool`]
+THEN MRESA1_TAC AFF_DIM_AFFINE_HULL`p:real^3->bool`
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th])
+THEN SIMP_TAC[AFF_DIM_UNIV;DIMINDEX_3]);;
+ 
+
+
+let INTERIOR_IMP_RELATIVE_INTERIOR=prove(`!x p:(real^3->bool). 
+   x IN interior p 
+==> x IN relative_interior p`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[RELATIVE_INTERIOR;IN_ELIM_THM]
+THEN MRESA1_TAC INTERIOR_SUBSET`p:real^3->bool`
+THEN MP_TAC(SET_RULE`x IN interior p /\ interior p SUBSET p ==> (x:real^3) IN p`)
+THEN RESA_TAC
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`x:real^3`;`p:real^3->bool`]
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[interior;IN_ELIM_THM; SET_RULE`t INTER (:real^3)= (t:real^3->bool)`]);;
+
+
+
+
+let IN_RELATIVE_INTERIOR1 = prove
+ (`!x:real^N s.
+        x IN relative_interior s ==>
+         ?e. &0 < e /\ (ball(x,e) INTER (affine hull s)) SUBSET relative_interior s`,
+
+  REPEAT GEN_TAC THEN REWRITE_TAC[IN_RELATIVE_INTERIOR; IN_ELIM_THM] 
+THEN STRIP_TAC
+THEN EXISTS_TAC`e:real`
+THEN ASM_REWRITE_TAC[SUBSET ;IN_RELATIVE_INTERIOR; IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THENL[ASM_TAC THEN SET_TAC[];
+
+
+MP_TAC(SET_RULE`x' IN ball (x,e) INTER affine hull s ==> x' IN ball (x:real^N,e)`)
+THEN RESA_TAC
+THEN MRESAL_TAC OPEN_BALL[`x:real^N`;`e:real`][open_def]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x':real^N`)
+THEN SUBGOAL_THEN`ball(x':real^N,e') SUBSET ball(x,e)` ASSUME_TAC
+THENL[
+REWRITE_TAC[SUBSET]
+THEN GEN_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o DEPTH_CONV)[ball;IN_ELIM_THM;]
+THEN ONCE_REWRITE_TAC[DIST_SYM]
+THEN ASM_REWRITE_TAC[];
+ EXISTS_TAC`e':real`
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN ASM_TAC
+THEN SET_TAC[]]]);;
+
+
+
+
+let FCHANGED_OPEN=prove(`!p f:(real^3->bool). 
+  bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ f facet_of p
+==> open (fchanged f) `,
+
+REPEAT STRIP_TAC THEN FIRST_ASSUM
+   (MP_TAC o GEN_REWRITE_RULE I [POLYHEDRON_INTER_AFFINE_MINIMAL]) THEN
+  REWRITE_TAC[RIGHT_IMP_EXISTS_THM; SKOLEM_THM] THEN
+  SIMP_TAC[LEFT_IMP_EXISTS_THM; RIGHT_AND_EXISTS_THM; LEFT_AND_EXISTS_THM] 
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH1")
+THEN STRIP_TAC
+THEN MRESA_TAC FACET_OF_POLYHEDRON_EXPLICIT[`p:real^3->bool`;`f':(real^3->bool)->bool`;`a:(real^3->bool)->real^3`;`b:(real^3->bool)->real`]
+THEN POP_ASSUM MP_TAC
+THEN FIND_ASSUM(fun th-> GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])`p = affine hull p INTER INTERS (f':(real^3->bool)->bool)`
+THEN REWRITE_TAC[open_def]
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th `f:real^3->bool`)
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th] THEN ASSUME_TAC(SYM th))
+THEN GEN_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV  o DEPTH_CONV)[fchanged]
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC CONTINUOUS_ON_LIFT_DOT[`(:real^3)`;`(a:(real^3->bool)->real^3) (h:real^3->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[continuous_on;]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> MRESAL1_TAC th `v1:real^3`[SET_RULE`v1 IN (:real^3)`;o_DEF;dist;GSYM LIFT_SUB])
+THEN POP_ASSUM MP_TAC
+THEN MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f:real^3->bool`
+THEN MP_TAC(SET_RULE`(v1:real^3) IN relative_interior f /\ relative_interior f SUBSET f /\ p INTER {x | a h dot x = b h} = f
+==> v1 IN {x | a (h:real^3->bool) dot x = b h}`)
+THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+THEN RESA_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN SUBGOAL_THEN`affine hull f= {x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h}` ASSUME_TAC
+THENL(*1*)[
+
+FIND_ASSUM(MP_TAC)`f facet_of (p:real^3->bool)`
+THEN REWRITE_TAC[facet_of]
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN STRIP_TAC
+THEN USE_THEN "LINH1"(fun th-> MP_TAC(ISPEC `h:real^3->bool` th))
+THEN FIND_ASSUM (fun th-> REWRITE_TAC[th])`(h:real^3->bool) IN f'`
+THEN STRIP_TAC
+THEN MRESA_TAC AFF_DIM_HYPERPLANE[`(a:(real^3->bool)->real^3) (h:real^3->bool)`;
+`(b:(real^3->bool)->real) (h:real^3->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[DIMINDEX_3]
+THEN STRIP_TAC
+THEN MRESA_TAC AFFINE_HYPERPLANE[`(a:(real^3->bool)->real^3) (h:real^3->bool)`;
+`(b:(real^3->bool)->real) (h:real^3->bool)`]
+THEN MRESA1_TAC AFFINE_HULL_EQ`{x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h}`
+THEN MRESA_TAC AFF_DIM_EQ_AFFINE_HULL[`f:real^3->bool`;`{x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h}`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN STRIP_TAC
+THENL[ ASM_TAC THEN SET_TAC[];ARITH_TAC];(*1*)
+
+MRESA_TAC IN_RELATIVE_INTERIOR1[`v1:real^3`;`f:real^3->bool`]
+THEN MRESA_TAC IN_RELATIVE_INTERIOR[`v1:real^3`;`f:real^3->bool`]
+THEN ABBREV_TAC`r1= min (inv(norm (v1:real^3)) *e / &6) (&1) / &2 `
+THEN ABBREV_TAC`r2= abs((b:(real^3->bool)->real) (h:real^3->bool)) * r1 / &2` 
+THEN MRESA1_TAC RELATIVE_INTERIOR_OF_POLYHEDRON`p:real^3->bool`
+THEN MRESA_TAC INTERIOR_IMP_RELATIVE_INTERIOR[`vec 0:real^3`;`p:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[DIFF;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`~(vec 0 IN UNIONS {f | f facet_of p}) /\ v1 IN f /\ f facet_of p==> ~(v1 = vec 0:real^3)`)
+THEN RESA_TAC
+THEN MRESAL_TAC IMP_NORM_FAN[`v1:real^3`;`vec 0:real^3`][VECTOR_ARITH`a - vec 0 = a`]
+THEN MRESA_TAC REAL_LT_MUL[`inv(norm (v1:real^3))`;`e:real`]
+THEN MP_TAC(REAL_ARITH`&0< inv (norm (v1:real^3)) * e ==> &0 < min (inv (norm v1) * e / &6) (&1) / &2 `)
+THEN RESA_TAC
+THEN USE_THEN "LINH1"(fun th-> MP_TAC(ISPEC `h:real^3->bool` th))
+THEN FIND_ASSUM (fun th-> REWRITE_TAC[th])`(h:real^3->bool) IN f'`
+THEN STRIP_TAC
+THEN MRESA1_TAC REAL_ABS_CASES`(b:(real^3->bool)->real) (h:real^3->bool)`
+THENL(*2*)[
+
+SUBGOAL_THEN `vec 0 IN {x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h}` ASSUME_TAC
+THENL[
+ASM_REWRITE_TAC[IN_ELIM_THM;DOT_RZERO];
+
+MP_TAC(SET_RULE`p INTER {x | a h dot x = b h} = f /\ vec 0 IN {x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h} /\ vec 0 IN p ==> vec 0 IN f `)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`~(vec 0 IN UNIONS {f | f facet_of (p:real^3->bool)}) /\ vec 0 IN f /\ f facet_of p ==> F`)
+THEN ASM_REWRITE_TAC[]];(*2*)
+
+MRESA_TAC REAL_LT_MUL[`abs ((b:(real^3->bool)->real) (h:real^3->bool))`;`r1:real`]
+THEN MP_TAC(REAL_ARITH`&0 < abs ((b:(real^3->bool)->real) (h:real^3->bool)) * r1 ==> &0 < abs (b h) * r1/ &2`)
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN REMOVE_THEN "LINH"(fun th-> MRESA1_TAC th`r2:real`)
+THEN SUBGOAL_THEN`!y:real^3. norm(y-v1)< d ==> ?t1. abs(&1- t1)< r1 /\ &0 < t1 /\  t1 % y IN {x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = b h}`
+ASSUME_TAC
+THENL(*3*)[
+POP_ASSUM MP_TAC
+THEN DISCH_THEN (LABEL_TAC"LINH2")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "LINH2"(fun th-> MRESA1_TAC th`y:real^3`)
+THEN REWRITE_TAC[IN_ELIM_THM;DOT_RMUL]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[NORM_LIFT]
+THEN STRIP_TAC
+THEN MP_TAC(REAL_ARITH`min (inv (norm (v1:real^3)) * e / &6) (&1) / &2 = r1 ==> r1< &1`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_LT_LMUL[`abs ((b:(real^3->bool)->real) (h:real^3->bool))`;`r1:real`;`&1`][REAL_ARITH`a* &1=a`]
+THEN MP_TAC(REAL_ARITH`abs ((b:(real^3->bool)->real) (h:real^3->bool)) * r1 < abs (b h) ==> abs (b h) * r1 / &2 < abs (b h)/ &2`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_SUB_ABS[`(b:(real^3->bool)->real) (h:real^3->bool)`;`(b:(real^3->bool)->real) (h:real^3->bool) - (a:(real^3->bool)->real^3) (h:real^3->bool) dot y`;][REAL_ARITH`A- (A-B)=B`]
+THEN MP_TAC(REAL_ARITH`abs ((a:(real^3->bool)->real^3) (h:real^3->bool) dot y - b h) < r2 /\ r2 < abs ((b:(real^3->bool)->real) (h:real^3->bool)) / &2 /\ abs (b h) - abs (b h - a h dot y) <= abs (a h dot y)==> &0 <  abs (a h dot y ) /\ abs((b:(real^3->bool)->real) (h:real^3->bool))/ &2 < abs (a h dot y )`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_ABS_NZ`(a:(real^3->bool)->real^3) (h:real^3->bool) dot y`
+THEN MRESA1_TAC REAL_ABS_NZ`(b:(real^3->bool)->real) (h:real^3->bool) `
+THEN EXISTS_TAC`inv((a:(real^3->bool)->real^3) (h:real^3->bool) dot y) * (b:(real^3->bool)->real) (h:real^3->bool)`
+THEN ONCE_REWRITE_TAC[REAL_ARITH`(a * b)* c= (a * c) * b`]
+THEN MRESA1_TAC REAL_MUL_LINV`(a:(real^3->bool)->real^3) (h:real^3->bool) dot y`
+THEN REWRITE_TAC[REAL_ARITH`&1 * a= a`]
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
+THEN REWRITE_TAC[REAL_ARITH`a * b - a * c= a*(b-c)`]
+THEN MP_TAC(REAL_ARITH`&0< abs((b:(real^3->bool)->real) (h:real^3->bool)) ==> &0< abs((b:(real^3->bool)->real) (h:real^3->bool))/ &2`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_LT_INV2[`abs((b:(real^3->bool)->real) (h:real^3->bool)/ &2)`;`abs((a:(real^3->bool)->real^3) (h:real^3->bool) dot y)`][REAL_ARITH`abs(a/ &2)= abs a/ &2`]
+THEN REWRITE_TAC[REAL_ABS_MUL;REAL_ABS_INV]
+THEN MRESAL_TAC REAL_LT_MUL2[`inv(abs((a:(real^3->bool)->real^3) (h:real^3->bool) dot y))`;`inv (abs ((b:(real^3->bool)->real) (h:real^3->bool)) / &2)`;`abs ((a:(real^3->bool)->real^3) (h:real^3->bool) dot y- (b:(real^3->bool)->real) (h:real^3->bool))`;`r2:real`][REAL_ABS_POS]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[GSYM REAL_ABS_INV;REAL_ABS_POS]
+THEN REWRITE_TAC[REAL_ABS_INV]
+THEN MP_TAC(REAL_ARITH`&0< abs((b:(real^3->bool)->real) (h:real^3->bool))/ &2 ==> ~(abs(b h)/ &2 = &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`abs((b:(real^3->bool)->real) (h:real^3->bool))/ &2`
+THEN EXPAND_TAC"r2"
+THEN REWRITE_TAC[REAL_ARITH`inv (abs (b h) / &2) * abs (b h) * r1 / &2= (inv (abs (b h) / &2) * (abs (b h)  / &2)) * r1`]
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1 * a= a`]
+THEN RESA_TAC
+THEN MP_TAC (REAL_ARITH`~((b:(real^3->bool)->real) (h:real^3->bool) = &0)==> &0< (b:(real^3->bool)->real) (h:real^3->bool) \/  &0< -- (b:(real^3->bool)->real) (h:real^3->bool)`)
+THEN RESA_TAC
+
+THENL[
+
+MRESA_TAC REAL_ABS_BETWEEN[`(b:(real^3->bool)->real) (h:real^3->bool)`;`(a:(real^3->bool)->real^3) (h:real^3->bool) dot y`;`r2:real`]
+THEN MP_TAC(REAL_ARITH`r2 < abs ((b:(real^3->bool)->real) (h:real^3->bool)) / &2 /\ &0< b h /\ b h - r2 < a h dot y ==> &0 <  (a:(real^3->bool)->real^3) (h:real^3->bool) dot y`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_LT_INV`(a:(real^3->bool)->real^3) (h:real^3->bool) dot y`
+THEN MATCH_MP_TAC REAL_LT_MUL
+THEN ASM_REWRITE_TAC[];
+
+
+MRESA_TAC REAL_ABS_BETWEEN[`(b:(real^3->bool)->real) (h:real^3->bool)`;`(a:(real^3->bool)->real^3) (h:real^3->bool) dot y`;`r2:real`]
+THEN MP_TAC(REAL_ARITH`r2 < abs ((b:(real^3->bool)->real) (h:real^3->bool)) / &2 /\ &0< --b h /\ a h dot y<  b h + r2  ==> &0 <  -- ((a:(real^3->bool)->real^3) (h:real^3->bool) dot y)`)
+THEN RESA_TAC
+THEN MRESAL1_TAC REAL_LT_INV`--((a:(real^3->bool)->real^3) (h:real^3->bool) dot y)`[REAL_INV_NEG]
+THEN MRESAL_TAC REAL_LT_MUL[`-- inv ((a:(real^3->bool)->real^3) (h:real^3->bool) dot y)`;`--((b:(real^3->bool)->real) (h:real^3->bool) )`][REAL_ARITH`-- a * -- b= a* b`]]; (*3*)
+
+POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH2")
+THEN ABBREV_TAC`r3= min (e:real / &12) (d/ &2)`
+THEN SUBGOAL_THEN `!y:real^3. norm(y- v1)< r3 ==> ?t1. &0< t1/\ t1 % y IN relative_interior (f:real^3->bool)  ` ASSUME_TAC
+THENL(*4*)[
+
+REPEAT STRIP_TAC
+THEN MP_TAC(REAL_ARITH`&0< d /\ min (e / &12) (d / &2) = r3 /\ norm (y - (v1:real^3)) < r3 ==> norm (y - v1) < d`)
+THEN RESA_TAC
+THEN REMOVE_THEN "LINH2"(fun th-> MRESA1_TAC th `y:real^3`)
+THEN EXISTS_TAC `t1:real`
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC (SET_RULE`!A B C x. A INTER B SUBSET C /\ x IN A /\ x IN B==> x IN C`)
+THEN EXISTS_TAC `ball(v1:real^3,e)`
+THEN EXISTS_TAC`{x | (a:(real^3->bool)->real^3) (h:real^3->bool) dot x = (b:(real^3->bool)->real) (h:real^3->bool)}`
+THEN ASM_REWRITE_TAC[ball;IN_ELIM_THM;dist]
+THEN MRESAL_TAC NORM_TRIANGLE[`(&1- t1) % v1:real^3`;`t1%(v1- y:real^3)`][VECTOR_ARITH`(&1 - t1) % v1 + t1 % (v1 - y)= v1- t1 % y`; NORM_MUL]
+THEN MRESA_TAC REAL_LT_RMUL [`abs(&1- t1:real)`;`r1:real`;`norm (v1:real^3)`] 
+THEN MP_TAC (REAL_ARITH`&0< r1 /\ min (inv (norm (v1:real^3)) * e / &6) (&1) / &2 = r1 ==> r1 <= inv (norm v1) * e / &6/\ r1<= &1/ &2`)
+THEN RESA_TAC
+THEN MRESA_TAC REAL_LE_RMUL [`r1:real`;`(inv (norm( v1:real^3)) * e / &6)`;`norm (v1:real^3)`] 
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[REAL_ARITH`(a * b/ &6) *c= (a * c) * b/ &6`]
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1 *A=A`]
+THEN STRIP_TAC
+THEN MP_TAC(REAL_ARITH`abs (&1 - t1) * norm v1 < r1 * norm (v1:real^3) /\
+ r1 * norm v1<= e/ &6 ==> abs (&1 - t1) * norm v1 < e/ &6`)
+THEN RESA_TAC
+THEN MRESA_TAC REAL_ABS_BETWEEN[`t1:real`;`&1`;`r1:real`]
+THEN MP_TAC(REAL_ARITH`t1- r1< &1 /\  r1<= &1/ &2 ==> t1< &2`)
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN MP_TAC(REAL_ARITH`&0< t1==> &0<= t1`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_LT_MUL2[`t1:real`;`&2`;`norm(y- v1:real^3)`;`r3:real`][NORM_POS_LE; NORM_SUB]
+THEN MP_TAC(REAL_ARITH`min (e / &12) (d / &2) = r3 /\ &0< e /\ &0< d ==> &2 * r3<=  e/ &6 `)
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`t1 * norm (v1 - y:real^3) < &2 * r3 /\ &2 * r3<= e/ &6 ==> t1 * norm (v1 - y) < e/ &6 `)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_ABS_REFL`t1:real`
+THEN MRESA_TAC REAL_LT_ADD2[`abs (&1 - t1) * norm (v1:real^3)`;`e/ &6`;`abs t1 * norm (v1 - y:real^3)`;`e/ &6`;]
+THEN MP_TAC(REAL_ARITH`  abs (&1 - t1) * norm v1 + abs t1 * norm (v1 - y) < e/ &6 + e/ &6 /\ &0< e 
+/\ norm (v1 - t1 % y) <= abs (&1 - t1) * norm v1 + abs t1 * norm (v1 - y) ==> norm (v1 - t1 % y:real^3) < e`)
+THEN ASM_REWRITE_TAC[];
+
+
+POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH3")
+THEN EXISTS_TAC`t * r3:real`
+THEN MP_TAC(REAL_ARITH`&0< e /\ &0< d==> &0< min (e / &12) (d / &2)`)
+THEN RESA_TAC
+THEN STRIP_TAC
+THENL(*5*)[
+MATCH_MP_TAC REAL_LT_MUL
+THEN ASM_REWRITE_TAC[]
+THEN ONCE_REWRITE_TAC[REAL_ARITH`&0< t<=> t> &0`]
+THEN ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[fchanged;IN_ELIM_THM]
+THEN MP_TAC(REAL_ARITH`t > &0 ==>  &0< t /\ ~(t= &0) /\ &0<= t`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_LT_INV`t:real`
+THEN MRESA1_TAC REAL_LE_INV`t:real`
+THEN MRESA1_TAC REAL_MUL_LINV`t:real`
+THEN MRESA1_TAC REAL_ABS_REFL`inv t:real`
+THEN MRESAL_TAC NORM_MUL[`inv t:real`;`x' - t % v1:real^3`][VECTOR_ARITH`inv t % (x' - t % v1)=inv t % x' -(inv t * t) % v1 /\ &1 %a=a`]
+THEN MRESAL_TAC REAL_LT_LMUL[`inv (t:real)`;`norm (x' - t % v1:real^3)`;`t * r3:real`][REAL_ARITH`A *B *C= (A* B) *C/\ &1 *A=A`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
+THEN STRIP_TAC
+THEN REMOVE_THEN "LINH3"(fun th-> MRESAL1_TAC th `(inv t) % (x':real^3)`[VECTOR_ARITH`a %b % v= (a * b)%v`])
+THEN MRESA_TAC REAL_LT_MUL[`t1:real`;`inv t:real`]
+THEN MRESA1_TAC REAL_LT_INV`t1 * inv t:real`
+THEN EXISTS_TAC`(t1 * inv t) % x':real^3`
+THEN EXISTS_TAC`inv(t1 * inv t) :real` 
+THEN ASM_REWRITE_TAC[REAL_ARITH`t> &0 <=> &0 < t`;VECTOR_ARITH`a %b % v= (a * b)%v`]
+THEN MP_TAC(REAL_ARITH`&0 < t1 * inv t==> ~(t1 * inv t= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t1 * inv t:real`
+THEN VECTOR_ARITH_TAC]]]]]);;
+ 
+
+
+
+let FCHANGED_ONE_TO_ONE=prove(`!p f1 f2:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p /\ f1 facet_of p
+ /\ f2 facet_of p /\  ~(fchanged f1 INTER fchanged f2= {})
+==> f1=f2`,
+
+REWRITE_TAC[SET_RULE`~(A= {})<=> ?y. y IN A`; fchanged;INTER;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN DISCH_THEN(LABEL_TAC"LINH1")
+THEN REPEAT STRIP_TAC
+THEN MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f1:real^3->bool`
+THEN MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f2:real^3->bool`
+THEN MP_TAC(SET_RULE`v1 IN relative_interior f1 /\ v1' IN relative_interior f2 /\ relative_interior f2 SUBSET f2 /\ relative_interior f1 SUBSET f1
+==> v1 IN (f1:real^3->bool) /\ v1' IN (f2:real^3->bool)`) 
+THEN RESA_TAC
+THEN FIND_ASSUM(MP_TAC)`f1 facet_of (p:real^3->bool)`
+THEN FIND_ASSUM(MP_TAC)`f2 facet_of (p:real^3->bool)`
+THEN REWRITE_TAC[facet_of]
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN DISJ_CASES_TAC(SET_RULE`f1= p \/ ~(f1= p:real^3->bool)`)
+THENL[
+ASM_REWRITE_TAC[]
+THEN ARITH_TAC;
+DISJ_CASES_TAC(SET_RULE`f2= p \/ ~(f2= p:real^3->bool)`)
+THENL[
+
+ASM_REWRITE_TAC[]
+THEN ARITH_TAC;
+REPEAT STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_COLLINEAR_FACES[`p:real^3->bool`;`f1:real^3->bool`;`f2:real^3->bool`;`v1:real^3`;`v1':real^3`;`t:real`;`t':real`]
+THEN REMOVE_THEN "LINH1" MP_TAC
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`t' % v1 = t' % v1'==> inv t' % (t' % v1) = inv t' % (t' % v1':real^3)`)
+THEN POP_ASSUM(fun th-> GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN REWRITE_TAC[VECTOR_ARITH`A%B%v=(A*B)%v`]
+THEN MP_TAC(REAL_ARITH`t'> &0 ==> ~(t'= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t':real`
+THEN REWRITE_TAC[VECTOR_ARITH`&1 %A=A`]
+THEN STRIP_TAC
+THEN MATCH_MP_TAC FACE_OF_EQ
+THEN EXISTS_TAC`p:real^3->bool`
+THEN ASM_REWRITE_TAC[DISJOINT;SET_RULE`~(A= {})<=> ?y. y IN A`;INTER;IN_ELIM_THM]
+THEN EXISTS_TAC `v1:real^3`
+THEN ASM_REWRITE_TAC[]]]);;
+
+
+
+
+let CARD_EXISTS_2=prove(`!e:A->bool. 
+ FINITE e /\ CARD e=2 
+==> ?v:A w:A. e={v,w}`,
+
+REPEAT GEN_TAC
+THEN STRIP_TAC
+THEN SUBGOAL_THEN `~((e:A->bool)={})` ASSUME_TAC
+THENL[
+STRIP_TAC
+THEN MP_TAC(ISPEC`(e:A->bool)`CARD_EQ_0)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC 
+THEN ARITH_TAC;
+MP_TAC(SET_RULE `~((e:A->bool)={})==> ?v:A. v IN e`)
+THEN RESA_TAC
+THEN SUBGOAL_THEN`~((e:A->bool) DELETE v={})` ASSUME_TAC
+THENL[
+STRIP_TAC
+THEN MP_TAC(ISPECL[`v:A`;`(e:A->bool)`;]CARD_DELETE)
+THEN RESA_TAC
+THEN MP_TAC(ISPECL[`(e:A->bool)`;`v:A`] FINITE_DELETE)
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(e:A->bool) DELETE v`CARD_EQ_0)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC;
+MP_TAC(SET_RULE `~((e:A->bool)DELETE v={})==> ?w:A. w IN (e:A->bool)DELETE v/\ w IN e`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE `(v IN (e:A->bool))/\ (w IN (e:A->bool))==> {v,w} SUBSET e`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE `(w IN (e:A->bool)DELETE v)==> ~(v=w)`)
+THEN RESA_TAC
+THEN MP_TAC(ISPECL [`{v:A,w:A}`;`(e:(A->bool))`] FINITE_SUBSET)
+THEN RESA_TAC
+THEN ASSUME_TAC(SET_RULE `v:A IN {v:A,w:A} `)
+THEN MP_TAC(ISPECL[`v:A`;`{v:A,w:A}`;]CARD_DELETE)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE `v IN {v,w}==>{v:A,w:A} DELETE v PSUBSET {v,w}`)
+THEN RESA_TAC
+THEN MP_TAC(ISPECL[`{v:A,w:A} DELETE v`;`{v:A,w:A}`]CARD_PSUBSET)
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN FIND_ASSUM MP_TAC`FINITE {v:A,w:A}`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN DISCH_TAC
+THEN MP_TAC(ARITH_RULE`CARD ({v, w} DELETE v) < CARD {v, w}/\ CARD ({v, w} DELETE v) = CARD {v, w}-1
+<=>CARD ({v, w} DELETE v) +1= CARD {v:A, w:A}`)
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th;])
+THEN REWRITE_TAC[ARITH_RULE`A=A`]
+THEN DISCH_TAC
+THEN SUBGOAL_THEN `w:A IN ({v:A,w:A} DELETE v)` ASSUME_TAC
+THENL[
+ASM_SET_TAC[];
+MP_TAC(ISPECL[`{v:A,w:A}`;`v:A`] FINITE_DELETE)
+THEN RESA_TAC
+THEN MP_TAC(ISPECL[`w:A`;`{v:A,w:A} DELETE v`;]CARD_DELETE)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE `w IN ({v,w} DELETE v)==>{v:A,w:A} DELETE v DELETE w PSUBSET {v,w} DELETE v`)
+THEN RESA_TAC
+THEN MP_TAC(ISPECL[`{v:A,w:A} DELETE v DELETE w`;`{v:A,w:A} DELETE v`]CARD_PSUBSET)
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN FIND_ASSUM MP_TAC`FINITE ({v:A,w:A} DELETE v)`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN DISCH_TAC
+THEN MP_TAC(ARITH_RULE`CARD ({v, w} DELETE v DELETE w) < CARD ({v, w} DELETE v)/\ CARD ({v, w} DELETE v DELETE w) = CARD ({v, w} DELETE v)-1
+<=>CARD ({v, w} DELETE v DELETE w) +1= CARD ({v:A, w:A} DELETE v)`)
+THEN POP_ASSUM (fun th->REWRITE_TAC[th])
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th;])
+THEN REWRITE_TAC[ARITH_RULE`A=A`]
+THEN DISCH_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM (fun th->REWRITE_TAC[])
+THEN POP_ASSUM (fun th->REWRITE_TAC[])
+THEN ASSUME_TAC(SET_RULE `{v, w} DELETE v:A DELETE w:A={}`)
+THEN POP_ASSUM (fun th->REWRITE_TAC[th;CARD_CLAUSES; ARITH_RULE `0+1=1`])
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"B")
+THEN DISCH_TAC
+THEN REMOVE_THEN "B" MP_TAC
+THEN POP_ASSUM (fun th->REWRITE_TAC[SYM(th);ARITH_RULE` 1+1=2`])
+THEN FIND_ASSUM MP_TAC`CARD (e:A->bool)=2`
+THEN DISCH_TAC
+THEN POP_ASSUM (fun th->REWRITE_TAC[SYM(th)])
+THEN DISCH_TAC
+THEN MP_TAC(ISPECL[`{v:A,w:A}`;`e:A->bool`]CARD_SUBSET_EQ)
+THEN POP_ASSUM (fun th->REWRITE_TAC[SYM(th)])
+THEN RESA_TAC
+THEN EXISTS_TAC`v:A`
+THEN EXISTS_TAC`w:A`
+THEN POP_ASSUM (fun th->REWRITE_TAC[SYM(th)])]]]);; 
+ 
+
+let EXISTS_EDGE_POLYTOPE=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> ?e. e IN edges p`,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[edges;IN_ELIM_THM]
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN MRESAL1_TAC POLYTOPE_FACET_EXISTS`p:real^3->bool`[ARITH_RULE`&0:int < &3`; facet_of; ARITH_RULE`&3- &1= &2:int`]
+THEN MRESA_TAC FACE_OF_POLYTOPE_POLYTOPE[`f:real^3->bool`;`p:real^3->bool`] 
+THEN MRESAL1_TAC POLYTOPE_FACET_EXISTS`f:real^3->bool`[ARITH_RULE`&0:int < &2`; facet_of; ARITH_RULE`&2- &1= &1:int`]
+THEN MRESA1_TAC AFF_DIM`f':real^3->bool`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[ARITH_RULE`&1=A - &1:int <=> A= &2`;INT_OF_NUM_EQ]
+THEN STRIP_TAC
+THEN MRESA1_TAC AFFINE_INDEPENDENT_IMP_FINITE`b:real^3->bool`
+THEN MRESA1_TAC CARD_EXISTS_2`b:real^3->bool`
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC FACE_OF_POLYTOPE_POLYTOPE[`f':real^3->bool`;`f:real^3->bool`] 
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`f':real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CONVEX`f':real^3->bool`
+THEN SUBGOAL_THEN`?u v. f' SUBSET affine hull {u,v:real^3}` ASSUME_TAC
+THENL[
+ EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN ASM_REWRITE_TAC[HULL_SUBSET];
+ MRESAL1_TAC COMPACT_CONVEX_COLLINEAR_SEGMENT`f':real^3->bool`[COLLINEAR_AFFINE_HULL]
+THEN MRESA_TAC FACE_OF_TRANS[`f':real^3->bool`;`f:real^3->bool`;`p:real^3->bool`]
+THEN EXISTS_TAC`{a,b:real^3}`
+THEN EXISTS_TAC`a:real^3`
+THEN EXISTS_TAC`b:real^3`
+THEN ASM_REWRITE_TAC[edge_of]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> ASM_REWRITE_TAC[SYM th])]);;
+
+
+
+let EXISTS_EDGE_POLYTOPE1=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> ~(edges p= {})`,
+REWRITE_TAC[SET_RULE`~(A= {})<=> ?x. x IN A`;EXISTS_EDGE_POLYTOPE]);;
+ 
+
+
+
+let REDUCE_POINT_FACET=prove(`!x p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ x IN yfan(vec 0,vertices p,edges p)
+==> ?f t.  &0< t /\  f facet_of p /\ t % x IN f `,
+
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA1_TAC EXISTS_EDGE_POLYTOPE1`p:real^3->bool`
+THEN MRESA_TAC x_in_xfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`]
+THEN SUBGOAL_THEN`~(x= vec 0:real^3)`ASSUME_TAC
+THENL[
+ASM_TAC
+THEN REWRITE_TAC[yfan; DIFF;IN_ELIM_THM]
+THEN SET_TAC[];
+MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`p:real^3->bool`
+THEN MRESA1_TAC INTERIOR_SUBSET`p:real^3->bool`
+THEN MP_TAC(SET_RULE`interior p SUBSET p /\ vec 0 IN interior p ==> vec 0 IN (p:real^3->bool)`)
+THEN RESA_TAC
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`vec 0:real^3`;`p:real^3->bool`]
+THEN MRESA1_TAC RELATIVE_INTERIOR_INTERIOR`p:real^3->bool`
+THEN MRESA1_TAC RELATIVE_FRONTIER_OF_POLYHEDRON`p:real^3->bool`
+THEN MRESA1_TAC COMPACT_IMP_CLOSED`p:real^3->bool`
+THEN MRESA1_TAC CLOSURE_CLOSED`p:real^3->bool`
+THEN MRESAL_TAC COMPACT_FRONTIER_LINE_LEMMA[`p:real^3->bool`;`x:real^3`][frontier;UNIONS;IN_ELIM_THM]
+THEN EXISTS_TAC`u':real^3->bool`
+THEN EXISTS_TAC`u:real`
+THEN ASM_REWRITE_TAC[]
+THEN MP_TAC(REAL_ARITH`&0<= u==> u= &0 \/ &0< u`)
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th; VECTOR_ARITH`&0 % v= vec 0:real^3`] THEN REPEAT STRIP_TAC)
+THEN ASM_TAC THEN SET_TAC[]]);;
+ 
+
+
+let aff_ge_1_1_subset_xfan=prove(`!x:real^3 (V:real^3->bool) (E:(real^3->bool)->bool) y:real^3.
+FAN(x,V,E) 
+/\ y IN xfan(x,V,E) /\ ~(x=y)
+==>  aff_ge {x} {y} SUBSET xfan(x,V,E)`,
+
+REWRITE_TAC[xfan;IN_ELIM_THM;SUBSET]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC expand_edge_graph_fan [`(x:real^3)`;` (V:real^3->bool)`;`(E:(real^3->bool)->bool)`;`(e:real^3->bool)`]
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[IN]
+THEN RESA_TAC
+THEN EXISTS_TAC`e:real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC aff_ge_1_1_subset_aff_ge_fan[`x:real^3`;`v:real^3`;`w:real^3`;`y:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM(th)] THEN ASM_REWRITE_TAC[] THEN ASSUME_TAC(th))
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC remark1_fan[`(x:real^3) `;`(V:real^3->bool)`;` (E:(real^3->bool)->bool) `;` (w:real^3)`;
+` (v:real^3)`]
+THEN POP_ASSUM MP_TAC
+THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM(th)] THEN GEN_REWRITE_TAC (LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[IN]THEN ASM_REWRITE_TAC[] THEN ASSUME_TAC(th))
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC THEN SET_TAC[]);;
+
+
+let YFAN_SUBSET_UNIONS_FCHANGED=prove(`!y p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ y IN yfan(vec 0,vertices p,edges p)
+==> y IN UNIONS {fchanged f| f facet_of p}`,
+
+REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[UNIONS;IN_ELIM_THM]
+THEN MRESA_TAC REDUCE_POINT_FACET[`y:real^3`;`p:real^3->bool`]
+THEN MRESA_TAC FACET_OF_IMP_FACE_OF[`f:real^3->bool`;`p:real^3->bool`]
+THEN MRESA_TAC FACE_OF_POLYHEDRON_POLYHEDRON[`p:real^3->bool`;`f:real^3->bool`]
+THEN MRESA1_TAC RELATIVE_FRONTIER_OF_POLYHEDRON`f:real^3->bool`
+THEN MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f:real^3->bool`
+THEN MP_TAC(SET_RULE`t % y IN f ==> t % y IN relative_interior f \/ t % (y:real^3) IN f DIFF relative_interior f `)
+THEN RESA_TAC
+THENL[
+EXISTS_TAC`fchanged (f:real^3->bool)` 
+THEN STRIP_TAC
+THENL[
+EXISTS_TAC`f:real^3->bool`
+THEN ASM_REWRITE_TAC[];
+
+ASM_REWRITE_TAC[fchanged;IN_ELIM_THM]
+THEN EXISTS_TAC`t % y:real^3`
+THEN EXISTS_TAC`inv t :real`
+THEN MP_TAC(REAL_ARITH`&0< t==> ~(t= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t:real`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`a % b % v= (a* b)% v/\ &1 % w= w`;]
+THEN ONCE_REWRITE_TAC[REAL_ARITH`t> &0<=> &0< t`]
+THEN MATCH_MP_TAC REAL_LT_INV
+THEN ASM_REWRITE_TAC[]];
+
+POP_ASSUM MP_TAC
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN FIND_ASSUM MP_TAC`f facet_of p:real^3->bool`
+THEN REWRITE_TAC[UNIONS;IN_ELIM_THM; facet_of]
+THEN ASM_REWRITE_TAC[ARITH_RULE`&3- &1= &2:int`]
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[ARITH_RULE`&2- &1= &1:int`]
+THEN RESA_TAC
+THEN MRESA1_TAC AFF_DIM`u:real^3->bool`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[ARITH_RULE`&1=A - &1:int <=> A= &2`;INT_OF_NUM_EQ]
+THEN STRIP_TAC
+THEN MRESA1_TAC AFFINE_INDEPENDENT_IMP_FINITE`b:real^3->bool`
+THEN MRESA1_TAC CARD_EXISTS_2`b:real^3->bool`
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN MRESA_TAC FACE_OF_POLYTOPE_POLYTOPE[`f:real^3->bool`;`p:real^3->bool`] 
+THEN MRESA_TAC FACE_OF_POLYTOPE_POLYTOPE[`u:real^3->bool`;`f:real^3->bool`] 
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`u:real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CONVEX`u:real^3->bool`
+THEN SUBGOAL_THEN`?u1 v. u SUBSET affine hull {u1,v:real^3}` ASSUME_TAC
+THENL[
+ EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`w:real^3`
+THEN ASM_REWRITE_TAC[HULL_SUBSET];
+ MRESAL1_TAC COMPACT_CONVEX_COLLINEAR_SEGMENT`u:real^3->bool`[COLLINEAR_AFFINE_HULL]
+THEN MRESA_TAC FACE_OF_TRANS[`u:real^3->bool`;`f:real^3->bool`;`p:real^3->bool`]
+THEN SUBGOAL_THEN `{a,b} IN edges (p:real^3->bool)`ASSUME_TAC
+THENL[
+REWRITE_TAC[edges;edge_of;IN_ELIM_THM]
+THEN EXISTS_TAC`a:real^3`
+THEN EXISTS_TAC`b:real^3`
+THEN ASM_REWRITE_TAC[]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> ASM_REWRITE_TAC[SYM th]) ;
+
+MRESA_TAC AFF_GE_SUBSET_XFAN[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`a:real^3`;`b:real^3`]
+THEN MRESAL_TAC CONVEX_AFF_GE[`{vec 0:real^3}`;`{a,b:real^3}`][GSYM CONVEX_HULL_EQ]
+THEN MRESA_TAC SEGMENT_CONVEX_HULL[`a:real^3`;`b:real^3`]
+THEN POP_ASSUM (fun th-> MP_TAC(SYM th) THEN STRIP_TAC)
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[FAN; fan6]
+THEN STRIP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESAL1_TAC th`{a,b:real^3}`[SET_RULE`{x} UNION {a,b}={x,a,b}`])
+THEN MRESA_TAC point_in_aff_ge[`vec 0:real^3`;`a:real^3`;`b:real^3`]
+THEN MP_TAC(SET_RULE`a IN aff_ge {vec 0} {a, b} /\ b IN aff_ge {vec 0} {a, b}
+==> {a,b:real^3} SUBSET  aff_ge {vec 0} {a, b}`)
+THEN RESA_TAC
+THEN MRESA_TAC HULL_MONO[`convex:(real^3->bool)->bool`;`{a,b:real^3}`;`aff_ge {vec 0} {a, b:real^3}`]
+THEN MP_TAC(SET_RULE`segment [a,b] SUBSET aff_ge {vec 0} {a, b}
+/\ aff_ge {vec 0} {a, b} SUBSET xfan (vec 0,vertices p,edges p)
+/\ u = segment [a,b] /\ t % y IN u
+==>  t % y IN xfan (vec 0,vertices p,edges (p:real^3->bool))`)
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN DISJ_CASES_TAC(SET_RULE`(vec 0 = t % y:real^3) \/ ~(vec 0 = t % y) `)
+THENL[
+POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[SYM th] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`vec 0:real^3`;`p:real^3->bool`]
+THEN MRESA1_TAC RELATIVE_INTERIOR_INTERIOR`p:real^3->bool`
+THEN MRESA1_TAC RELATIVE_FRONTIER_OF_POLYHEDRON`p:real^3->bool`
+THEN MP_TAC (SET_RULE`vec 0 IN interior (p:real^3->bool)
+/\ p DIFF interior p = UNIONS {f | f facet_of p}
+==> ~(vec 0 IN UNIONS {f | f facet_of p})`)
+THEN ASM_REWRITE_TAC[UNIONS;IN_ELIM_THM]
+THEN ASM_TAC
+THEN SET_TAC[];
+
+MRESA_TAC aff_ge_1_1_subset_xfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`t % y:real^3`]
+THEN SUBGOAL_THEN`y IN aff_ge {vec 0} {t % y:real^3}`ASSUME_TAC
+THENL[
+MRESAL_TAC AFF_GE_1_1[`vec 0:real^3`;`t % y:real^3`][IN_ELIM_THM]
+THEN EXISTS_TAC`&1- inv t:real`
+THEN EXISTS_TAC`inv t`
+THEN MP_TAC(REAL_ARITH`&0< t==> ~(t= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t:real`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`a % b % v= (a* b)% v/\ &1 % w= w/\ y = (&1 - inv t) % vec 0 + y`; REAL_ARITH`&1 - a+ a= &1`;REAL_LE_INV_EQ]
+THEN ASM_TAC THEN REAL_ARITH_TAC;
+
+ASM_TAC
+THEN REWRITE_TAC[yfan; DIFF; IN_ELIM_THM]
+THEN SET_TAC[]]]]]]);;
+
+let in_aff_ge_fan=prove(`!x:real^3 v:real^3 u:real^3 a:real.
+DISJOINT {x} {v,u}
+/\ &0<=a /\ a<= &1
+==>
+(&1-a)%v + a % u IN aff_ge {x} {v,u:real^3}`,
+
+REPEAT STRIP_TAC
+THEN MRESAL_TAC AFF_GE_1_2[`x:real^3`;`v:real^3`;`u:real^3`][IN_ELIM_THM]
+THEN EXISTS_TAC`&0`
+THEN EXISTS_TAC`&1 -a:real`
+THEN EXISTS_TAC`a:real`
+THEN MP_TAC(REAL_ARITH`&0<= a /\ a  <= &1 ==> &0 <= &1 - a /\ &0 <= a`)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[]
+THEN REDUCE_VECTOR_TAC
+THEN REAL_ARITH_TAC);;
+
+
+
+let REDUCE_POINT_FACET_EXISTS=prove(`!x p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ ~(x= vec 0)
+==> ?f t.  &0< t /\  f facet_of p /\ t % x IN f `,
+
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA1_TAC EXISTS_EDGE_POLYTOPE1`p:real^3->bool`
+THEN MRESA_TAC x_in_xfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`]
+THEN SUBGOAL_THEN`~(x= vec 0:real^3)`ASSUME_TAC
+THENL[
+ASM_TAC
+THEN REWRITE_TAC[yfan; DIFF;IN_ELIM_THM]
+THEN SET_TAC[];
+MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`p:real^3->bool`
+THEN MRESA1_TAC INTERIOR_SUBSET`p:real^3->bool`
+THEN MP_TAC(SET_RULE`interior p SUBSET p /\ vec 0 IN interior p ==> vec 0 IN (p:real^3->bool)`)
+THEN RESA_TAC
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`vec 0:real^3`;`p:real^3->bool`]
+THEN MRESA1_TAC RELATIVE_INTERIOR_INTERIOR`p:real^3->bool`
+THEN MRESA1_TAC RELATIVE_FRONTIER_OF_POLYHEDRON`p:real^3->bool`
+THEN MRESA1_TAC COMPACT_IMP_CLOSED`p:real^3->bool`
+THEN MRESA1_TAC CLOSURE_CLOSED`p:real^3->bool`
+THEN MRESAL_TAC COMPACT_FRONTIER_LINE_LEMMA[`p:real^3->bool`;`x:real^3`][frontier;UNIONS;IN_ELIM_THM]
+THEN EXISTS_TAC`u':real^3->bool`
+THEN EXISTS_TAC`u:real`
+THEN ASM_REWRITE_TAC[]
+THEN MP_TAC(REAL_ARITH`&0<= u==> u= &0 \/ &0< u`)
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th; VECTOR_ARITH`&0 % v= vec 0:real^3`] THEN REPEAT STRIP_TAC)
+THEN ASM_TAC THEN SET_TAC[]]);;
+ 
+
+
+
+
+
+
+let FCHANGED_SUBSET_YFAN=prove(`!x p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ x IN UNIONS {fchanged f| f facet_of p}
+==> x IN yfan(vec 0,vertices p,edges p)`,
+
+REWRITE_TAC[UNIONS;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[fchanged;IN_ELIM_THM;yfan;DIFF;SET_RULE`x:real^3 IN (:real^3)`;XFAN_EQ_UNIONS_AFF_GE_1_2;UNIONS;]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> MP_TAC th THEN REWRITE_TAC[edges;edge_of;IN_ELIM_THM]  THEN STRIP_TAC THEN MP_TAC th THEN RESA_TAC)
+THEN RESA_TAC
+THEN RESA_TAC
+THEN SUBGOAL_THEN`?t1.  &0< t1 /\ t1 % x IN  segment[v,w:real^3]`ASSUME_TAC
+THENL[
+POP_ASSUM MP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w:real^3)`;
+` (v:real^3)`]
+THEN MRESAL_TAC  AFF_GE_1_2[`vec 0:real^3`;`v:real^3`;`w:real^3`][IN_ELIM_THM;VECTOR_ARITH`t% vec 0+A+B=A+B`;]
+THEN RESA_TAC
+THEN EXISTS_TAC`inv (t2+ t3)`
+THEN REWRITE_TAC[segment;IN_ELIM_THM;VECTOR_ARITH`a%(b % v+ c % w)=(a*b)%v+(a* c)%w`]
+THEN MP_TAC(REAL_ARITH`&0<= t2/\ &0<= t3:real ==> (t2= &0 /\ t3= &0)\/ &0< t2+t3`)
+THEN RESA_TAC
+THENL[
+POP_ASSUM (fun th -> POP_ASSUM (fun th1 -> POP_ASSUM MP_TAC THEN REWRITE_TAC[th; th1; VECTOR_ARITH`&0 % v= vec 0/\  vec 0 + vec 0= vec 0`;VECTOR_MUL_EQ_0]))
+THEN MP_TAC(REAL_ARITH`t> &0 ==> ~(t= &0)`)
+THEN RESA_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th -> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f:real^3->bool`
+THEN MRESA_TAC INTERIOR_AFFINIE_HUL_EQ_UNIV[`vec 0:real^3`;`p:real^3->bool`]
+THEN MRESA1_TAC RELATIVE_INTERIOR_INTERIOR`p:real^3->bool`
+THEN MRESA1_TAC RELATIVE_FRONTIER_OF_POLYHEDRON`p:real^3->bool`
+THEN MP_TAC (SET_RULE`vec 0 IN interior (p:real^3->bool)
+/\ p DIFF interior p = UNIONS {f | f facet_of p}
+==> ~(vec 0 IN UNIONS {f | f facet_of p})`)
+THEN ASM_REWRITE_TAC[UNIONS;IN_ELIM_THM]
+THEN ASM_TAC
+THEN SET_TAC[];
+
+MRESA1_TAC REAL_LT_INV`t2+t3:real`
+THEN MP_TAC(REAL_ARITH`&0< inv(t2+t3)/\ &0< t2+t3==> &0<= inv(t2+t3:real) /\ ~(t2+ t3= &0) `)
+THEN RESA_TAC
+THEN MRESA_TAC REAL_LE_MUL[`inv(t2+ t3):real`;`t2:real`]
+THEN MRESA_TAC REAL_LE_MUL[`inv(t2+ t3):real`;`t3:real`]
+THEN MRESAL1_TAC REAL_MUL_LINV`t2+ t3:real`[REAL_ARITH`c*(a+b)=c*a+ c*b`]
+THEN EXISTS_TAC`inv(t2+t3) * t3`
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th; REAL_ARITH`(a+b)-b=a`])
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC];
+
+POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN FIND_ASSUM MP_TAC`f facet_of (p:real^3->bool)`
+THEN REWRITE_TAC[facet_of; ]
+THEN DISJ_CASES_TAC(SET_RULE`f= p\/ ~(f=p:real^3->bool)`)
+THENL[
+ASM_REWRITE_TAC[]
+THEN ARITH_TAC;
+
+RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`segment [v,w]= p\/ ~(segment [v,w]=p:real^3->bool)`)
+THENL[
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] )
+THEN ARITH_TAC;
+
+MRESA1_TAC RELATIVE_INTERIOR_SUBSET`f:real^3->bool`
+THEN MP_TAC(SET_RULE`v1 IN relative_interior (f:real^3->bool) /\ relative_interior f SUBSET f ==> v1 IN f`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_LT_MUL[`t:real`;`t1:real`][REAL_ARITH`&0< t<=> t> &0`]
+THEN MRESAL_TAC POLYHEDRON_COLLINEAR_FACES[`p:real^3->bool`;`f:real^3->bool`;`segment[v,w]:real^3->bool`;`v1:real^3`;`t1% x:real^3`;`t * t1:real`;`&1:real`][VECTOR_ARITH`(t * t1) % v1 = &1 % t1 % t % v1`;REAL_ARITH`&1> &0`]
+THEN POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th; VECTOR_ARITH`a%b % v= (b*a)%v/\ &1 %v=v`] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC SEGMENT_CLOSED_OPEN[`v:real^3`;`w:real^3`]
+THEN MP_TAC(SET_RULE`segment [v,w] = segment (v,w) UNION {v, w}
+/\ v1 IN segment [v,w] ==> v1 IN segment (v,w:real^3) \/ v1=v \/ v1= w`)
+THEN RESA_TAC
+THENL[
+POP_ASSUM MP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w:real^3)`;
+` (v:real^3)`]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(SET_RULE`v1 IN segment (v,w) /\ v1 IN relative_interior f
+==> ~DISJOINT (relative_interior f) (segment (v,w:real^3))`)
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN MRESAL_TAC FACE_OF_EQ[`p:real^3->bool`;`f:real^3->bool`;`segment[v,w:real^3]`][RELATIVE_INTERIOR_SEGMENT;]
+THEN POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT RESA_TAC)
+THEN ASM_TAC
+THEN ARITH_TAC;
+
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC SEGMENT_FACE_OF[`p:real^3->bool`;`v:real^3`;`w:real^3`]
+THEN MRESA_TAC EXTREME_POINT_OF_FACE[`f:real^3->bool`;`p:real^3->bool`;`v:real^3`]
+THEN MP_TAC( ISPECL [`f:real^3->bool`;`v:real^3`]EXTREME_POINT_NOT_IN_RELATIVE_INTERIOR)
+THEN RESA_TAC
+THEN POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th;
+AFF_DIM_SING])
+THEN ARITH_TAC;
+
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC SEGMENT_FACE_OF[`p:real^3->bool`;`v:real^3`;`w:real^3`]
+THEN MRESA_TAC EXTREME_POINT_OF_FACE[`f:real^3->bool`;`p:real^3->bool`;`w:real^3`]
+THEN MP_TAC( ISPECL [`f:real^3->bool`;`w:real^3`]EXTREME_POINT_NOT_IN_RELATIVE_INTERIOR)
+THEN RESA_TAC
+THEN POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th;
+AFF_DIM_SING])
+THEN ARITH_TAC]]]]);;
+ 
+
+
+
+let FCHANGED_EQ_YFAN=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> UNIONS {fchanged f| f facet_of p}= yfan(vec 0,vertices p,edges p)`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[EXTENSION]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[ ASM_SIMP_TAC[FCHANGED_SUBSET_YFAN];
+ASM_SIMP_TAC[YFAN_SUBSET_UNIONS_FCHANGED]]);;
+ 
+
+
+let EXISTS_POINT_IN_FCHANGED=prove(`!f p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p /\ 
+ f facet_of p
+==> ?y. y IN fchanged f `,
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[fchanged;IN_ELIM_THM;IN_ELIM_THM;facet_of]
+THEN STRIP_TAC
+THEN MRESA_TAC FACE_OF_IMP_CONVEX[`p:real^3->bool`;`f:real^3->bool`]
+THEN MRESAL1_TAC  RELATIVE_INTERIOR_EQ_EMPTY`f:real^3->bool`[SET_RULE`~(A={})<=> ?v1. v1 IN A`]
+THEN EXISTS_TAC`v1:real^3`
+THEN EXISTS_TAC`v1:real^3`
+THEN EXISTS_TAC`&1`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`&1 % v= v`;REAL_ARITH`&1> &0`]);;
+
+
+
+let FCHANGED_IN_COMPONENT=prove(`!f p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p /\ 
+ f facet_of p
+==> fchanged f IN topological_component_yfan(vec 0:real^3,vertices (p:real^3->bool),edges (p:real^3->bool))`,
+
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[topological_component_yfan;IN_ELIM_THM]
+THEN MRESA1_TAC FCHANGED_EQ_YFAN`p:real^3->bool`
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th])
+THEN MRESA_TAC EXISTS_POINT_IN_FCHANGED[`f:real^3->bool`;`p:real^3->bool`]
+THEN EXISTS_TAC`y:real^3`
+THEN MP_TAC(SET_RULE`f facet_of (p:real^3->bool) /\ y IN fchanged f ==> y IN UNIONS{fchanged f| f facet_of p} /\ fchanged f SUBSET UNIONS{fchanged f| f facet_of p}`)
+THEN RESA_TAC
+THEN MRESAL_TAC CONNECTED_FCHANGED[`p:real^3->bool`;`vec 0:real^3`;`f:real^3->bool`][CONNECTED_CONNECTED_COMPONENT_SET]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`y:real^3`)
+THEN MRESA_TAC CONNECTED_COMPONENT_MONO[`fchanged (f:real^3->bool)`;`UNIONS{fchanged f| f facet_of (p:real^3->bool)}`;`y:real^3`]
+THEN REWRITE_TAC[EXTENSION;]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL[
+POP_ASSUM MP_TAC
+THEN SET_TAC[];
+
+
+STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(x IN fchanged (f:real^3->bool))\/ (x IN fchanged (f:real^3->bool))`)
+THENL[
+
+ASM_REWRITE_TAC[]
+THEN MRESAL_TAC CONNECTED_COMPONENT_SUBSET[`UNIONS{fchanged f| f facet_of (p:real^3->bool)}`;`y:real^3`][SUBSET]
+THEN POP_ASSUM (fun th-> MRESAL1_TAC th`x:real^3`[UNIONS;IN_ELIM_THM])
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`f= f'\/ ~(f= f':real^3->bool)`)
+THENL[
+POP_ASSUM (fun th-> POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[SYM th]);
+
+
+MRESA_TAC CONNECTED_CONNECTED_COMPONENT[`UNIONS{fchanged f| f facet_of (p:real^3->bool)}`;`y:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[connected]
+THEN ABBREV_TAC`e1=UNIONS {fchanged f1 | f1 facet_of (p:real^3->bool) /\ ~(f1= f)}`
+THEN MRESA_TAC FCHANGED_OPEN[`p:real^3->bool`;`f:real^3->bool`]
+THEN EXISTS_TAC`fchanged (f:real^3->bool)`
+THEN EXISTS_TAC`e1:real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THENL[
+
+EXPAND_TAC "e1"
+THEN MATCH_MP_TAC OPEN_UNIONS
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC FCHANGED_OPEN[`p:real^3->bool`;`f1:real^3->bool`];
+
+STRIP_TAC
+THENL[
+
+MATCH_MP_TAC (SET_RULE`!A B C. A SUBSET B/\  B SUBSET C==> A SUBSET C`)
+THEN EXISTS_TAC`UNIONS{fchanged f| f facet_of (p:real^3->bool)}`
+THEN ASM_REWRITE_TAC[CONNECTED_COMPONENT_SUBSET]
+THEN EXPAND_TAC"e1"
+THEN REWRITE_TAC[SUBSET;IN_ELIM_THM;UNION;UNIONS;EX]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`f= f'' \/ ~(f''= f:real^3->bool )`)
+THENL[
+ASM_REWRITE_TAC[];
+
+MATCH_MP_TAC(SET_RULE`A==> B\/ A`)
+THEN EXISTS_TAC`fchanged (f'':real^3->bool)`
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`f'':real^3->bool`
+THEN ASM_REWRITE_TAC[]];
+
+STRIP_TAC
+THENL[
+
+MATCH_MP_TAC(SET_RULE`A INTER B= {}==> A INTER B INTER C= {}`)
+THEN EXPAND_TAC"e1"
+THEN MATCH_MP_TAC(SET_RULE`(!s. s IN B==> A INTER s= {} )==> A INTER UNIONS B={}`)
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC FCHANGED_ONE_TO_ONE[`p:real^3->bool`;`f:real^3->bool`;`f1:real^3->bool`];
+
+
+
+STRIP_TAC
+THENL[
+
+ASM_TAC
+THEN SET_TAC[];
+REWRITE_TAC[SET_RULE`~(A={})<=> ?a. a IN A`;INTER; IN_ELIM_THM]
+THEN EXISTS_TAC`x:real^3`
+THEN ASM_REWRITE_TAC[]
+THEN EXPAND_TAC"e1"
+THEN REWRITE_TAC[UNIONS;IN_ELIM_THM]
+THEN EXISTS_TAC`fchanged (f':real^3->bool)`
+THEN ASM_REWRITE_TAC[]
+THEN EXISTS_TAC`f':real^3->bool`
+THEN ASM_REWRITE_TAC[]]]]]];
+
+ASM_REWRITE_TAC[]]]);;
+
+
+
+let SUR_FCHANGED=prove(`!s p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p /\ 
+ s IN topological_component_yfan(vec 0:real^3,vertices (p:real^3->bool),edges (p:real^3->bool))
+==> ?f. f facet_of p /\ s= fchanged f`,
+
+REPEAT STRIP_TAC
+THEN MRESA1_TAC FCHANGED_EQ_YFAN`p:real^3->bool`
+THEN MRESA_TAC topological_component_subset_yfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`s:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM (fun th-> REWRITE_TAC[SYM th;SUBSET;IN_ELIM_THM;UNIONS])
+THEN MRESA_TAC exists_point_in_component_yfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`s:real^3->bool`]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`z:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN EXISTS_TAC`f:real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC FCHANGED_IN_COMPONENT[`f:real^3->bool`;`p:real^3->bool`]
+THEN ASM_TAC
+THEN REWRITE_TAC[topological_component_yfan;IN_ELIM_THM]
+THEN REPEAT RESA_TAC
+THEN MP_TAC(SET_RULE`z IN connected_component (yfan (vec 0,vertices p,edges p)) y
+/\ z IN fchanged f /\ fchanged f=connected_component (yfan (vec 0,vertices p,edges p)) y'
+==> ~(connected_component (yfan (vec 0,vertices p,edges p)) y INTER connected_component (yfan (vec 0,vertices p,edges p)) y'= {})
+`)
+THEN RESA_TAC
+THEN MRESA_TAC CONNECTED_COMPONENT_OVERLAP[`yfan (vec 0,vertices p,edges p)`;`y:real^3`;`y':real^3`]);;
+
+
+
+
+
+let AMHFNXP= prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> 
+(!s. s IN topological_component_yfan (vec 0,vertices (p:real^3->bool),edges (p:real^3->bool)) ==> (?!f. f facet_of p /\ 
+							 s = fchanged f))`,
+
+REWRITE_TAC[EXISTS_UNIQUE]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC SUR_FCHANGED[`s:real^3->bool`;`p:real^3->bool`]
+THEN EXISTS_TAC`f:real^3->bool`
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC FCHANGED_ONE_TO_ONE[`p:real^3->bool`;`y:real^3->bool`;`f:real^3->bool`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN REWRITE_TAC[SET_RULE`A INTER A= A`]
+THEN MRESA_TAC EXISTS_POINT_IN_FCHANGED[`y:real^3->bool`;`p:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[]);;
+
+
+
+let EXPAND_EDGE_POLYTOPE=prove(`!f p:real^N->bool.
+polytope p /\ f face_of p /\ aff_dim f= &1
+==> ?a b. f= segment[a,b]`,
+REPEAT STRIP_TAC
+THEN MRESA1_TAC AFF_DIM`f:real^N->bool`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[ARITH_RULE`&1=A - &1:int <=> A= &2`;INT_OF_NUM_EQ]
+THEN STRIP_TAC
+THEN MRESA1_TAC AFFINE_INDEPENDENT_IMP_FINITE`b:real^N->bool`
+THEN MRESA1_TAC CARD_EXISTS_2`b:real^N->bool`
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MATCH_MP_TAC COMPACT_CONVEX_COLLINEAR_SEGMENT
+THEN MRESA_TAC FACE_OF_POLYTOPE_POLYTOPE[`f:real^N->bool`;`p:real^N->bool`] 
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`f:real^N->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CONVEX`f:real^N->bool`
+THEN SUBGOAL_THEN`?u v. f SUBSET affine hull {u,v:real^N}` ASSUME_TAC
+THENL[ EXISTS_TAC`v:real^N`
+THEN EXISTS_TAC`w:real^N`
+THEN ASM_REWRITE_TAC[HULL_SUBSET];
+ASM_REWRITE_TAC[COLLINEAR_AFFINE_HULL]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th;AFF_DIM_EMPTY])
+THEN ARITH_TAC]);;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let EXISTS_EDGE_AT_VERTICES=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==>  (!v. v IN vertices p ==> ~(set_of_edge v (vertices p) (edges p) ={}) )`,
+
+REWRITE_TAC[SET_RULE`~(A={})<=> ?a. a IN A`;]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o DEPTH_CONV)[vertices; IN_ELIM_THM;GSYM FACE_OF_SING]
+THEN STRIP_TAC
+THEN MRESA1_TAC AFF_DIM_SING`v:real^3`
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`p ={v}\/ ~({v}=p:real^3->bool) `)
+THENL[
+ASM_REWRITE_TAC[]
+THEN ARITH_TAC;
+STRIP_TAC
+THEN MRESAL_TAC FACE_OF_POLYHEDRON_SUBSET_FACET[`p:real^3->bool`;`{v:real^3}`][SET_RULE`~({v}={})`]
+THEN MRESA_TAC FACE_OF_SING[`v:real^3`;`p:real^3->bool`]
+THEN MP_TAC(SET_RULE`{v:real^3} SUBSET f==> v IN f`)
+THEN RESA_TAC
+THEN FIND_ASSUM MP_TAC`f facet_of (p:real^3->bool)`
+THEN REWRITE_TAC[facet_of]
+THEN STRIP_TAC
+THEN MRESAL_TAC EXTREME_POINT_OF_FACE[`f:real^3->bool`;`p:real^3->bool`;`v:real^3`][GSYM FACE_OF_SING]
+THEN MRESA_TAC FACE_OF_SING[`v:real^3`;`f:real^3->bool`]
+THEN MRESA_TAC FACE_OF_POLYHEDRON_POLYHEDRON[`p:real^3->bool`;`f:real^3->bool`]
+THEN DISJ_CASES_TAC(SET_RULE`f ={v}\/ ~({v}=f:real^3->bool) `)
+THENL[
+POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT RESA_TAC)
+THEN ASM_TAC
+THEN ARITH_TAC;
+ MRESAL_TAC FACE_OF_POLYHEDRON_SUBSET_FACET[`f:real^3->bool`;`{v:real^3}`][SET_RULE`~({v}={})`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[facet_of;ARITH_RULE`&3- &1- &1= &1:int`]
+THEN STRIP_TAC
+THEN MRESA_TAC FACE_OF_TRANS[`f':real^3->bool`;`f:real^3->bool`;`p:real^3->bool`] 
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`{v:real^3} SUBSET f' ==> v IN f'`)
+THEN RESA_TAC
+THEN MRESAL_TAC EXTREME_POINT_OF_FACE[`f':real^3->bool`;`f:real^3->bool`;`v:real^3`][GSYM FACE_OF_SING]
+THEN MRESA_TAC FACE_OF_SING[`v:real^3`;`f':real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC EXPAND_EDGE_POLYTOPE[`f':real^3->bool`;`p:real^3->bool`]
+THEN REWRITE_TAC[EXTREME_POINT_OF_SEGMENT]
+THEN STRIP_TAC
+THENL[
+POP_ASSUM(fun th-> ASM_TAC THEN ASM_REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ASM_REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN EXISTS_TAC`b:real^3`
+THEN ASM_REWRITE_TAC[set_of_edge;IN_ELIM_THM;edges;vertices]
+THEN MRESAL_TAC SEGMENT_EDGE_OF[`p:real^3->bool`;`a:real^3`;`b:real^3`][edge_of]
+THEN EXISTS_TAC`a:real^3`
+THEN EXISTS_TAC`b:real^3`
+THEN ASM_REWRITE_TAC[];
+POP_ASSUM(fun th-> ASM_TAC THEN ASM_REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ASM_REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN EXISTS_TAC`a:real^3`
+THEN ASM_REWRITE_TAC[set_of_edge;IN_ELIM_THM;edges;vertices]
+THEN MRESAL_TAC SEGMENT_EDGE_OF[`p:real^3->bool`;`a:real^3`;`b:real^3`][edge_of]
+THEN EXISTS_TAC`a:real^3`
+THEN EXISTS_TAC`b:real^3`
+THEN ASM_REWRITE_TAC[]
+THEN SET_TAC[]]]]);;
+
+
+
+
+
+
+
+let FLVNSME=prove(`!v A a b p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+ /\ A={x| a dot x < b } /\ ~(a= vec 0)
+/\ v IN {x| a dot x = b } /\ vec 0 IN {x| a dot x = b }
+/\ v IN vertices p
+==> ?w. w IN vertices p /\ w IN A/\ {v,w} IN edges p`,
+(let lemma = prove
+   (`!X:real->bool. 
+          FINITE X /\ ~(X = {}) 
+          ==> ?a. a IN X /\ !x. x IN X ==> a <= x`,
+    MESON_TAC[INF_FINITE]) in
+
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM (fun th-> MP_TAC th
+THEN GEN_REWRITE_TAC(LAND_CONV o DEPTH_CONV)[vertices; IN_ELIM_THM;GSYM FACE_OF_SING] THEN ASSUME_TAC(th)
+THEN STRIP_TAC)
+THEN MRESA1_TAC AFF_DIM_SING`v:real^3`
+THEN MRESA_TAC AFF_DIM_INTERIOR_EQ_3[`vec 0:real^3`;`p:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`p ={v}\/ ~({v}=p:real^3->bool) `)
+
+THENL(*1*)[
+
+ASM_REWRITE_TAC[]
+THEN ARITH_TAC;(*1*)
+
+STRIP_TAC
+THEN MRESAL_TAC FACE_OF_POLYHEDRON_SUBSET_FACET[`p:real^3->bool`;`{v:real^3}`][SET_RULE`~({v}={})`]
+THEN MRESA_TAC FACE_OF_SING[`v:real^3`;`p:real^3->bool`]
+THEN MRESAL_TAC EXPOSED_FACE_OF_POLYHEDRON[`p:real^3->bool`;`{v:real^3}`][EXPOSED_FACE_OF;SET_RULE`~({v}={})`]
+THEN ABBREV_TAC`s={-- (a':real^3) dot w| w IN vertices p /\ ~(v=w)}`
+THEN SUBGOAL_THEN`~(s:real->bool={})`ASSUME_TAC
+
+THENL(*2*)[
+
+MRESA1_TAC EXISTS_EDGE_AT_VERTICES`p:real^3->bool`
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`v:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"s"
+THEN REWRITE_TAC[set_of_edge;SET_RULE`~(A={})<=> ?a. a IN A`;IN_ELIM_THM; edges; ]
+THEN STRIP_TAC
+THEN EXISTS_TAC`-- a' dot (a'':real^3)`
+THEN EXISTS_TAC`a'':real^3`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC SEGMENT_EDGE_OF[`p:real^3->bool`;`v':real^3`;`w':real^3`]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th; SET_RULE`{v,v}={v}`]
+THEN REPEAT STRIP_TAC)
+THEN MP_TAC(SET_RULE`{a''} = {v', w':real^3}==> v'=w'`)
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN SET_TAC[];(*2*)
+
+ MRESAL_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`][FAN;fan1]
+THEN ASSUME_TAC(SET_RULE`{w|w IN vertices p /\ ~(v = w:real^3)} SUBSET vertices p`)
+THEN MRESA_TAC FINITE_SUBSET[`{w|w IN vertices p /\ ~(v = w:real^3)}`;`vertices (p:real^3->bool)`]
+THEN MRESAL_TAC FINITE_IMAGE[`(\w:real^3. -- a' dot w)`;`{w|w IN vertices p /\ ~(v = w:real^3)}`][IMAGE;IN_ELIM_THM;SET_RULE`{y | ?x. (x IN vertices p /\ ~(v = x)) /\ y = -- a' dot x}={-- a' dot w | w IN vertices p /\ ~(v = w)}`]
+THEN MRESA1_TAC lemma`s:real->bool`
+THEN SUBGOAL_THEN(`-- a''< b':real`)ASSUME_TAC
+
+THENL(*3*)[
+
+POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"s"
+THEN REWRITE_TAC[IN_ELIM_THM;vertices;GSYM FACE_OF_SING]
+THEN RESA_TAC
+THEN MRESA_TAC FACE_OF_IMP_SUBSET[`p:real^3->bool`;`{w:real^3}`]
+THEN MP_TAC(SET_RULE`p SUBSET {x | a' dot x <= b'} /\ {w:real^3} SUBSET p==> w IN {x | a' dot x <= b'}`)
+THEN ASM_REWRITE_TAC[IN_ELIM_THM]
+THEN STRIP_TAC
+THEN MP_TAC(REAL_ARITH`a' dot (w:real^3) <= b'==> a' dot w = b' \/ a' dot w < b'`)
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THENL(*4*)[
+
+MP_TAC(SET_RULE`a' dot w = b'/\ {w} SUBSET p /\{v}=p INTER {x | a' dot (x:real^3) = b'}==> w =v`)
+THEN RESA_TAC;(*4*)
+
+ASM_REWRITE_TAC[VECTOR_ARITH`--(-- a dot w)= a dot w`]](*4*);(*3*)
+
+MRESA1_TAC INTERIOR_SUBSET`p:real^3->bool`
+THEN MP_TAC(SET_RULE` interior p SUBSET p /\ p SUBSET {x:real^3 | a' dot x <= b'} ==>  interior p  SUBSET {x | a' dot x <= b'} `)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`(vec 0) IN interior (p:real^3->bool) /\ interior p  SUBSET {x | a' dot x <= b'}==> (vec 0) IN {x:real^3 | a' dot x <= b'}`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[IN_ELIM_THM; DOT_RZERO]
+THEN STRIP_TAC
+THEN MP_TAC(REAL_ARITH`&0<= b' ==> b'= &0 \/ &0< b'`)
+THEN RESA_TAC
+THENL(*6*)[ 
+
+POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN SUBGOAL_THEN`vec 0 IN  {x:real^3 | a' dot x = &0}` ASSUME_TAC
+
+THENL(*7*)[
+REWRITE_TAC[IN_ELIM_THM; DOT_RZERO];(*7*)
+
+MP_TAC(SET_RULE`(vec 0) IN interior (p:real^3->bool) /\ interior p SUBSET p ==> (vec 0) IN p`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`(vec 0) IN  (p:real^3->bool) /\ vec 0 IN  {x:real^3 | a' dot x = &0} ==> (vec 0) IN p INTER  {x:real^3 | a' dot x = &0}`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`(vec 0) IN p INTER  {x:real^3 | a' dot x = &0} /\
+ p INTER  {x:real^3 | a' dot x = &0} = {v} ==> v= vec 0`)
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MRESA_TAC EXTREME_POINT_NOT_IN_INTERIOR[`p:real^3->bool`;`vec 0:real^3`]](*7*);(*6*)
+
+
+
+ABBREV_TAC`b1= max (-- a'') (&0) + (b'- max (-- a'') (&0))/ &2`
+THEN MP_TAC(REAL_ARITH`max (-- a'') (&0) + (b'- max (-- a'') (&0))/ &2 = b1 /\ -- a''< b' /\  &0< b' ==> -- a''< b1 /\ b1< b' /\ &0< b1`)
+THEN RESA_TAC
+THEN SUBGOAL_THEN`vertices (p:real^3->bool) INTER {x| a' dot x >= b1}={v}` ASSUME_TAC
+THENL(*7*)[
+
+REWRITE_TAC[EXTENSION; IN_SING; INTER;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+
+THENL(*8*)[
+
+STRIP_TAC
+THEN MP_TAC(REAL_ARITH`--a'' < b1 /\ a' dot (x:real^3) >= b1 ==> -- (a' dot x) < a''`)
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(v= x) \/ x=v:real^3`)
+
+THENL(*9*)[
+
+MP_TAC(SET_RULE`~(v = x) /\ x IN vertices p ==> -- a' dot x IN {--a' dot w | w IN vertices p /\ ~(v = w:real^3)}`)
+THEN RESA_TAC
+THEN FIND_ASSUM (fun th-> MP_TAC(ISPEC `--a' dot x:real^3` th))`!x. x IN s ==> a'' <= x`
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th; VECTOR_ARITH`--a' dot x= --(a' dot x)`])
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*9*)
+
+ASM_REWRITE_TAC[]](*9*);(*8*)
+
+
+RESA_TAC
+THEN MP_TAC(SET_RULE`{v} = p INTER {x | a' dot x:real^3 = b'} ==> a' dot v= b'`)
+THEN RESA_TAC
+THEN ASM_TAC
+THEN REAL_ARITH_TAC](*8*);(*7*)
+
+ABBREV_TAC`p'= p INTER {x | a' dot x:real^3 = b1}`
+THEN SUBGOAL_THEN `vec 0 IN {x:real^3 | a' dot x < b1}`ASSUME_TAC
+THENL(*8*)[
+ASM_REWRITE_TAC[IN_ELIM_THM; DOT_RZERO];(*8*)
+ 
+
+MRESAL_TAC OPEN_HALFSPACE_LT[`a':real^3`;`b1:real`][open_def]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`vec 0:real^3`)
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN FIND_ASSUM MP_TAC`vec 0 IN interior p:real^3->bool`
+THEN REWRITE_TAC[IN_INTERIOR]
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH1")
+THEN SUBGOAL_THEN`vec 0 IN closure {x:real^3 | a dot x < b}`ASSUME_TAC
+THENL(*9*)[
+
+MRESAL_TAC CLOSURE_HALFSPACE_LT[`a:real^3`;`b:real`][IN_ELIM_THM]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM] THEN REPEAT RESA_TAC
+THEN REAL_ARITH_TAC;(*9*)
+
+POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CLOSURE_APPROACHABLE]
+THEN MP_TAC(REAL_ARITH`&0< e /\ &0< e'==> &0< min (e:real) e'/ &2 /\  min (e:real) e'/ &2< e/\ min (e:real) e'/ &2< e'`)
+THEN RESA_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`(min (e:real) e') / &2`)
+THEN MP_TAC(REAL_ARITH`dist (y:real^3,vec 0) < min e e' / &2 /\  min e e' / &2 < e
+/\ min e e' / &2 < e'==> dist (y,vec 0) < e /\ dist (y,vec 0) < e'`)
+THEN RESA_TAC
+THEN REMOVE_THEN "LINH"(fun th-> MRESA1_TAC th`y:real^3`)
+THEN SUBGOAL_THEN `y:real^3 IN ball(vec 0, e')` ASSUME_TAC
+
+THENL(*10*)[
+
+ASM_REWRITE_TAC[SUBSET;ball;IN_ELIM_THM; DIST_SYM];(*10*)
+
+MRESAL_TAC OPEN_BALL[`vec 0:real^3`;`e':real`][open_def]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`y:real^3`)
+THEN SUBGOAL_THEN`y IN interior p:real^3->bool` ASSUME_TAC
+THENL(*11*)[
+
+REWRITE_TAC[IN_INTERIOR]
+THEN EXISTS_TAC`e'':real`
+THEN ASM_REWRITE_TAC[SUBSET;IN_ELIM_THM;ball;DIST_SYM]
+THEN GEN_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH2")
+THEN STRIP_TAC
+THEN REMOVE_THEN"LINH2"(fun th-> MRESA1_TAC th`x:real^3`)
+THEN ASM_TAC
+THEN SET_TAC[];(*11*)
+
+MP_TAC(SET_RULE`y IN interior p /\ interior p SUBSET p ==>  y IN (p:real^3->bool)`)
+THEN RESA_TAC
+THEN SUBGOAL_THEN`?z. z IN segment[y,v:real^3] INTER {x| a' dot x= b1} /\ ~(z= v)` ASSUME_TAC
+THENL(*12*)[
+
+MP_TAC(SET_RULE`vertices p INTER {x | a' dot x >= b1} = {v:real^3} ==> v IN {x | a' dot x >= b1}`)
+THEN RESA_TAC
+THEN REWRITE_TAC[INTER;IN_SEGMENT;IN_ELIM_THM]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT RESA_TAC
+THEN MP_TAC(SET_RULE`{v} = p INTER {x | a' dot x = b'}==> a' dot (v:real^3)= b'`)
+THEN RESA_TAC
+THEN  MP_TAC(REAL_ARITH`a' dot y < b1 /\ a' dot v >= b1 /\ a' dot v = b' /\ b1< b' ==> &0< a' dot v - a' dot (y:real^3) /\ &0< b1- a' dot y/\ b1- a' dot y < a' dot v - a' dot (y:real^3) /\ ~(a' dot v - a' dot (y:real^3)= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_LT_INV`a' dot v - a' dot (y:real^3)` 
+THEN MRESA_TAC REAL_LT_MUL[`inv(a' dot v - a' dot (y:real^3))`;`b1 - a' dot (y:real^3)`]
+THEN MP_TAC(REAL_ARITH`&0< inv(a' dot v - a' dot (y:real^3))==> &0<= inv(a' dot v - a' dot (y:real^3))`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`a' dot v - a' dot (y:real^3)` 
+THEN MRESA_TAC REAL_LT_LMUL[`inv(a' dot v - a' dot (y:real^3))`;`b1 - a' dot (y:real^3)`;`a' dot v - a' dot (y:real^3)`]
+THEN EXISTS_TAC`(&1- inv (a' dot v - a' dot y) * (b1 - a' dot y)) % (y:real^3)+ (inv (a' dot v - a' dot y) * (b1 - a' dot y))% v`
+THEN REWRITE_TAC[DOT_RMUL; DOT_RADD; REAL_ARITH`(&1- b)* c+b * d=a<=>b*(d-c)= a- c`;]
+THEN ASM_REWRITE_TAC[ REAL_ARITH`(a*b)*c= b*(a*c)`; REAL_ARITH`a * &1= a`]
+THEN STRIP_TAC
+THENL(*13*)[
+
+
+ EXISTS_TAC`inv (a' dot v - a' dot y) * (b1 - a' dot (y:real^3))`
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*13*)
+
+REWRITE_TAC[VECTOR_ARITH`(&1- b)%a + b % v= v<=> (&1-b)%(a-v)= vec 0`;VECTOR_MUL_EQ_0]
+THEN STRIP_TAC
+
+THENL(*14*)[
+ASM_TAC THEN REAL_ARITH_TAC;(*14*)
+
+POP_ASSUM MP_TAC
+THEN REWRITE_TAC[VECTOR_ARITH`y- v= vec 0<=> y= v`]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] )
+THEN REAL_ARITH_TAC](*14*)](*13*);(*12*)
+
+POP_ASSUM MP_TAC
+THEN STRIP_TAC
+THEN MRESA_TAC FACET_OF_IMP_SUBSET[`f:real^3->bool`;`p:real^3->bool`]
+THEN MP_TAC(SET_RULE`{v:real^3} SUBSET f /\ f SUBSET p/\ y IN p==> {v,y} SUBSET p `)
+THEN RESA_TAC
+THEN MRESA1_TAC POLYHEDRON_IMP_CONVEX`p:real^3->bool`
+THEN  MRESAL_TAC SUBSET_HULL [`convex:(real^3->bool)->bool`;`{v,y:real^3}`;`p:real^3->bool`] [GSYM SEGMENT_CONVEX_HULL;]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SEGMENT_SYM]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`z IN segment [y,v] INTER {x | a' dot x = b1}
+/\ segment [y,v:real^3] SUBSET p ==> z IN  p INTER {x | a' dot x = b1}`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`y IN {x | a dot x < b}==>  a dot (y:real^3) < b`)
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`a dot (y:real^3) < b==> a dot (y:real^3) <= b `)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`v IN {x | a dot x = b} ==>  a dot (v:real^3) = b`)
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`a dot (v:real^3) = b==> a dot (v:real^3) <= b `)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`  a dot (y:real^3) <= b /\  a dot v <= b ==> {v,y} SUBSET {x | a dot x <= b}`)
+THEN RESA_TAC
+THEN MRESA_TAC CONVEX_HALFSPACE_LE[`a:real^3`;`b:real`]
+THEN  MRESAL_TAC SUBSET_HULL [`convex:(real^3->bool)->bool`;`{v,y:real^3}`;`{x | a dot x <= b}:real^3->bool`] [GSYM SEGMENT_CONVEX_HULL;]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[SEGMENT_SYM]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`z IN segment [y,v] INTER {x | a' dot x = b1}
+/\ segment [y,v:real^3] SUBSET {x | a dot x <= b} ==>   z IN {x | a dot x <= b}/\ z IN segment [y,v] `)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[IN_ELIM_THM; REAL_ARITH`a<=b<=> a=b\/ a<b`]
+THEN STRIP_TAC
+THENL(*13*)[
+
+REWRITE_TAC[segment;IN_ELIM_THM;]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC 
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[DOT_RADD;DOT_RMUL;REAL_ARITH`(&1-a) *b+a*c=c<=> (&1-a)*(b-c)= &0`;REAL_ENTIRE; REAL_ARITH`a-b= &0<=> b=a`]
+THEN ASM_TAC THEN REWRITE_TAC[SYM th] THEN REPEAT STRIP_TAC THEN ASSUME_TAC th)
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`z = (&1 - &1) % y + &1 % v <=> z=v `]
+THEN ASM_TAC THEN REAL_ARITH_TAC;(*13*)
+
+
+STRIP_TAC
+THEN  MP_TAC(SET_RULE`  a dot z < b ==> z IN {x:real^3 | a dot x < b}`)
+THEN RESA_TAC
+THEN MRESA_TAC POLYHEDRON_HYPERPLANE[`a':real^3`;`b1:real`]
+THEN MRESA_TAC POLYHEDRON_INTER[`p:real^3->bool`;`{x:real^3 | a' dot x = b1}`]
+THEN MRESAL_TAC BOUNDED_SUBSET[`p INTER {x:real^3 | a' dot x = b1}`;`p:real^3->bool`;][SET_RULE`p INTER {x:real^3 | a' dot x = b1} SUBSET p`]
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p':real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`p':real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CONVEX`p':real^3->bool`
+THEN MRESA1_TAC KREIN_MILMAN_MINKOWSKI `p':real^3->bool`
+THEN POP_ASSUM (fun th-> MP_TAC(SYM th))
+THEN STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE` ({x:real^3 | x extreme_point_of p'} SUBSET {x | a dot x>=b}) \/ (?w. w extreme_point_of p' /\ ~(w IN  {x | a dot x>=b})) `)
+THENL(*14*)[
+
+MRESA_TAC CONVEX_HALFSPACE_GE[`a:real^3`;`b:real`]
+THEN  MRESA_TAC SUBSET_HULL [`convex:(real^3->bool)->bool`;`{x:real^3 | x extreme_point_of p'}`;`{x | a dot x >= b}:real^3->bool`] 
+THEN MP_TAC(SET_RULE`convex hull {x:real^3 | x extreme_point_of p'} SUBSET {x | a dot x >= b}
+/\ p' = convex hull {x | x extreme_point_of p'} /\ z IN p' ==> a dot z>= b`)
+THEN RESA_TAC
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*14*)
+
+POP_ASSUM MP_TAC
+THEN REWRITE_TAC[IN_ELIM_THM;REAL_ARITH`~(a>=b)<=> a< b`]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`  a dot w < b ==> w IN {x:real^3 | a dot x < b}`)
+THEN RESA_TAC
+THEN ABBREV_TAC`p1= p INTER {x:real^3| a' dot x >= b1}`
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p:real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CLOSED`p:real^3->bool`
+THEN MRESA1_TAC CLOSURE_CLOSED`p:real^3->bool`
+THEN MRESAL_TAC IN_INTERIOR_CLOSURE_CONVEX_SEGMENT[`p:real^3->bool`;`y:real^3`;`v:real^3`][SET_RULE`v IN p<=> {v} SUBSET p`; SET_RULE`A INTER B SUBSET A`]
+THEN MRESA_TAC CONVEX_HALFSPACE_GE[`a':real^3`;`b1:real`]
+THEN MRESA_TAC CLOSED_HALFSPACE_GE[`a':real^3`;`b1:real`]
+THEN MRESA1_TAC CLOSURE_CLOSED`{x:real^3| a' dot x >= b1}:real^3->bool`
+THEN MRESA_TAC INTERIOR_HALFSPACE_GE[`a':real^3`;`b1:real`]
+THEN MP_TAC(SET_RULE`{v:real^3} = p INTER {x | a' dot x = b'}==> a' dot v = b'`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`z IN segment [y,v:real^3] INTER {x | a' dot x = b1}==> a' dot z = b1`)
+THEN RESA_TAC
+THEN MRESAL_TAC IN_INTERIOR_CLOSURE_CONVEX_SEGMENT[`{x:real^3| a' dot x >= b1}:real^3->bool`;`v:real^3`;`z:real^3`][IN_ELIM_THM; REAL_ARITH`a>b<=> b<a`;REAL_ARITH`b>=b`; ]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[REAL_ARITH`a< b<=> b> a`]
+THEN STRIP_TAC
+THEN MRESA_TAC SUBSET_SEGMENT_OPEN_CLOSED [`v:real^3`;`z:real^3`;`y:real^3`;`v:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o RAND_CONV o ONCE_DEPTH_CONV)[SUBSET_SEGMENT]
+THEN ASM_REWRITE_TAC[ENDS_IN_SEGMENT]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`segment (v,z) SUBSET segment (y,v) /\  segment (y,v) SUBSET interior (p:real^3->bool)==> segment (v,z) SUBSET interior p`)
+THEN RESA_TAC
+THEN FIND_ASSUM MP_TAC`~(z = v:real^3)`
+THEN REWRITE_TAC[GSYM SEGMENT_EQ_EMPTY;SEGMENT_SYM;SET_RULE`~(A={})<=> ?v1. v1 IN A`]
+THEN STRIP_TAC
+THEN SUBGOAL_THEN` v1:real^3 IN interior p1`ASSUME_TAC
+THENL(*15*)[
+
+EXPAND_TAC"p1"
+THEN REWRITE_TAC[INTERIOR_INTER]
+THEN ASM_REWRITE_TAC[INTER;IN_ELIM_THM]
+THEN ASM_TAC
+THEN SET_TAC[];(*15*)
+
+
+
+MRESAL_TAC POLYHEDRON_INTER[`p:real^3->bool`;`{x:real^3| a' dot x >= b1}`][POLYHEDRON_HALFSPACE_GE]
+THEN MRESAL_TAC BOUNDED_SUBSET[`p INTER {x:real^3| a' dot x >= b1} `;`p:real^3->bool`;][SET_RULE`(A INTER B) SUBSET A`]
+THEN MRESA1_TAC POLYTOPE_EQ_BOUNDED_POLYHEDRON`p1:real^3->bool`
+THEN MRESA1_TAC POLYTOPE_IMP_CONVEX`p1:real^3->bool`
+THEN MRESA_TAC FACE_OF_INTER_SUPPORTING_HYPERPLANE_GE[`p1:real^3->bool`;`a':real^3`;`b1:real`]
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"p1"
+THEN GEN_REWRITE_TAC( LAND_CONV o LAND_CONV o DEPTH_CONV)[INTER;IN_ELIM_THM]
+THEN ASM_REWRITE_TAC[IN_ELIM_THM;SET_RULE`(!x. x IN p /\ a' dot x >= b1 ==> a' dot x >= b1)`]
+THEN SUBGOAL_THEN`p1 INTER {x:real^3 | a' dot x = b1}= p'`ASSUME_TAC
+THENL(*16*)[
+
+EXPAND_TAC"p1"
+THEN REWRITE_TAC[INTER;IN_ELIM_THM;SET_RULE`(A INTER B) INTER C= A INTER (B INTER C)`
+; REAL_ARITH`(a>=b /\ a=b) <=>  a = b`]
+THEN ASM_TAC
+THEN REWRITE_TAC[INTER;IN_ELIM_THM]
+THEN REPEAT RESA_TAC;(*16*)
+
+ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN MRESA_TAC EXPOSED_FACE_OF_POLYHEDRON[`p1:real^3->bool`;`p':real^3->bool`]
+THEN MRESA_TAC FACE_OF_SING[`w:real^3`;`p':real^3->bool`]
+THEN MRESA_TAC EXPOSED_FACE_OF_POLYHEDRON[`p':real^3->bool`;`{w}:real^3->bool`]
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[exposed_face_of]
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH10")
+THEN ABBREV_TAC`a2= (v-w:real^3) cross (a''' cross a')`
+THEN ABBREV_TAC`b2= a2 dot w:real^3`
+THEN SUBGOAL_THEN`{x| a' dot x =b1} INTER {x | a''' dot x <= b''}= {x| a' dot x =b1} INTER  {x:real^3 | a2 dot x <= b2}`ASSUME_TAC
+THENL(*17*)[
+
+REWRITE_TAC[INTER;IN_ELIM_THM]
+THEN EXPAND_TAC "b2"
+THEN EXPAND_TAC "a2"
+THEN REWRITE_TAC[CROSS_LADD;VECTOR_ARITH`A-B=A+(-- B:real^3)`;DOT_LADD;CROSS_LNEG;DOT_LNEG;DOT_CROSS_SELF;]
+THEN REWRITE_TAC[CROSS_LAGRANGE;DOT_LSUB;DOT_LMUL;EXTENSION;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL(*18*)[
+
+
+RESA_TAC
+THEN MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a''' dot x = b''}
+/\ p1 INTER {x | a' dot x = b1} = p' ==> a''' dot w = b'' /\ a' dot w= b1`)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[DOT_SYM;REAL_ARITH`b' * (a''' dot x) - (a''' dot v) * b1 + --(b1 * (a''' dot x) - b'' * b1) <=
+ b' * b'' - (a''' dot v) * b1 + -- &0
+<=> 
+&0<= ( b'-b1) * (b''- a''' dot x) 
+`]
+THEN MATCH_MP_TAC REAL_LE_MUL
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0<= a-b<=> b<=a`]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*18*)
+
+RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a''' dot x = b''}
+/\ p1 INTER {x | a' dot x = b1} = p' ==> a''' dot w = b'' /\ a' dot w= b1`)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[DOT_SYM;REAL_ARITH`b' * (a''' dot x) - (a''' dot v) * b1 + --(b1 * (a''' dot x) - b'' * b1) <=
+ b' * b'' - (a''' dot v) * b1 + -- &0
+<=> 
+&0<= ( b'-b1) * (b''- a''' dot x) 
+`]
+THEN STRIP_TAC
+THEN MP_TAC(ARITH_RULE`b1< b' ==> ~(b'- b1= &0) /\ &0< b'-b1`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`b'-b1:real`
+THEN MRESA1_TAC REAL_LT_INV_EQ`b'-b1:real`
+THEN MP_TAC(ARITH_RULE` &0< inv(b'-b1)==> &0<= inv(b'- b1)`)
+THEN RESA_TAC
+THEN MRESAL_TAC REAL_LE_MUL[`inv(b'-b1)`;`(b' - b1) * (b'' - a''' dot (x:real^3))`][REAL_ARITH`A*B*C=(A*B)*C`;REAL_ARITH`&1*A=A`]
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC](*18*);(*17*)
+
+
+SUBGOAL_THEN`{x| a' dot x =b1} INTER {x | a''' dot x = b''}= {x| a' dot x =b1} INTER  {x:real^3 | a2 dot x = b2}`ASSUME_TAC
+THENL(*18*)[
+
+REWRITE_TAC[INTER;IN_ELIM_THM]
+THEN EXPAND_TAC "b2"
+THEN EXPAND_TAC "a2"
+THEN REWRITE_TAC[CROSS_LADD;VECTOR_ARITH`A-B=A+(-- B:real^3)`;DOT_LADD;CROSS_LNEG;DOT_LNEG;DOT_CROSS_SELF;]
+THEN REWRITE_TAC[CROSS_LAGRANGE;DOT_LSUB;DOT_LMUL;EXTENSION;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL(*19*)[
+
+RESA_TAC
+THEN MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a''' dot x = b''}
+/\ p1 INTER {x | a' dot x = b1} = p' ==> a''' dot w = b'' /\ a' dot w= b1`)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[DOT_SYM;REAL_ARITH`b' * (a''' dot x) - (a''' dot v) * b1 + --(b1 * (a''' dot x) - b'' * b1) =
+ b' * b'' - (a''' dot v) * b1 + -- &0
+<=> 
+&0= ( b'-b1) * (b''- a''' dot x) 
+`]
+THEN REAL_ARITH_TAC;(*19*)
+
+RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a''' dot x = b''}
+/\ p1 INTER {x | a' dot x = b1} = p' ==> a''' dot w = b'' /\ a' dot w= b1`)
+THEN RESA_TAC
+THEN MP_TAC(ARITH_RULE`b1< b' ==> ~(b'- b1= &0) `)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[DOT_SYM;REAL_ARITH`b' * (a''' dot x) - (a''' dot v) * b1 + --(b1 * (a''' dot x) - b'' * b1) =
+ b' * b'' - (a''' dot v) * b1 + -- &0
+<=> 
+ ( b'-b1) * (b''- a''' dot x) = &0
+`;REAL_ENTIRE]
+THEN REAL_ARITH_TAC](*19*);(*18*)
+
+
+
+
+REMOVE_THEN "LINH10" MP_TAC
+THEN EXPAND_TAC"p'"
+THEN REWRITE_TAC[SET_RULE`(A INTER B) INTER C=A INTER(B INTER C)`]
+THEN ASM_REWRITE_TAC[]
+THEN ASM_REWRITE_TAC[SET_RULE`A INTER(B INTER C)= (A INTER B) INTER C`]
+THEN MP_TAC(SET_RULE`p' SUBSET {x | a''' dot x <= b''} /\ p1 INTER {x | a' dot x = b1} = p' ==> p' SUBSET {x:real^3 | a' dot x = b1} INTER {x | a''' dot x <= b''} `)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`p' SUBSET {x | a' dot x = b1} INTER {x | a2 dot x <= b2}
+==> p' SUBSET  {x:real^3 | a2 dot x <= b2}`)
+THEN RESA_TAC
+THEN RESA_TAC
+THEN SUBGOAL_THEN`v IN {x:real^3 | a2 dot x = b2}`ASSUME_TAC
+THENL(*19*)[
+
+REWRITE_TAC[IN_ELIM_THM]
+THEN EXPAND_TAC "b2"
+THEN EXPAND_TAC "a2"
+THEN REWRITE_TAC[CROSS_LADD;VECTOR_ARITH`A-B=A+(-- B:real^3)`;DOT_LADD;CROSS_LNEG;DOT_LNEG;DOT_CROSS_SELF;]
+THEN REWRITE_TAC[CROSS_LAGRANGE;DOT_LSUB;DOT_LMUL;EXTENSION;IN_ELIM_THM]
+THEN GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[DOT_SYM]
+THEN REAL_ARITH_TAC;(*19*)
+
+
+SUBGOAL_THEN`!v3:real^3. v3 IN p /\ ~(v3=v)==> ?v4. v4 IN p' /\ v4 IN aff_ge {v} {v3}`ASSUME_TAC
+THENL(*10*)[
+
+REPEAT STRIP_TAC
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`p:real^3->bool`
+THEN MRESAL1_TAC KREIN_MILMAN_MINKOWSKI`p:real^3->bool`[GSYM vertices]
+THEN MP_TAC(SET_RULE`(v3:real^3) IN p /\ (p:real^3->bool) = convex hull vertices p ==> v3 IN convex hull vertices p`)
+THEN ASM_REWRITE_TAC[]
+THEN POP_ASSUM(fun th-> GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th;])
+THEN ASM_REWRITE_TAC[CONVEX_HULL_EXPLICIT;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN ABBREV_TAC`s1= s' DELETE (v:real^3)`
+THEN MRESA_TAC FINITE_DELETE[`s':real^3->bool`;`v:real^3`]
+THEN ABBREV_TAC`v12=vsum s1 (\v:real^3. u v % v)`
+THEN ABBREV_TAC`t12=sum (s1:real^3->bool) (u:real^3->real)`
+THEN MP_TAC(SET_RULE`(!x. x IN s' ==> &0 <= u x) ==>(!x:real^3. x IN s' DELETE v ==> &0 <= u x)`)
+THEN RESA_TAC
+THEN MRESA_TAC SUM_POS_LE[`u:real^3->real`;`s1:real^3->bool`]
+THEN MP_TAC(REAL_ARITH`&0<= t12==> t12= &0 \/ &0< t12`)
+THEN RESA_TAC
+THENL(*11*)[
+
+MRESA_TAC SUM_DELETE_CASES[`u:real^3->real`;`s':real^3->bool`;`v:real^3`]
+THEN MP_TAC(SET_RULE`&0 = (if (v:real^3) IN s' then &1 - (u:real^3->real) v else &1) /\ ~(&0= &1)==> v IN s' /\ &1- u v= &0`)
+THEN REWRITE_TAC[REAL_ARITH`~(&0= &1) `;REAL_ARITH`A- B= &0<=> B=A` ]
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th])
+THEN RESA_TAC
+THEN MRESA_TAC VSUM_DELETE_CASES[`v:real^3`;`(\v:real^3. (u:real^3->real) v % v)`;`s':real^3->bool`]
+THEN MRESA_TAC SUM_POS_EQ_0[`u:real^3->real`;`s1:real^3->bool`]
+THEN SUBGOAL_THEN`(!x:real^3. x IN s1 ==> (u x) % x = vec 0)`ASSUME_TAC
+THENL(*12*)[
+
+POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "LINH"(fun th-> MRESA1_TAC th`x:real^3`)
+THEN VECTOR_ARITH_TAC;(*12*)
+
+MRESAL_TAC VSUM_EQ_0[`(\v. (u:real^3->real) v % v)`;`s1:real^3->bool`][VECTOR_ARITH`v3 - &1 % v = vec 0 <=> v3=v`]](*12*);(*11*)
+
+
+SUBGOAL_THEN`(inv t12) % v12 IN p:real^3->bool`ASSUME_TAC 
+THENL(*12*)[
+
+MRESAL1_TAC KREIN_MILMAN_MINKOWSKI`p:real^3->bool`[GSYM vertices]
+THEN POP_ASSUM(fun th-> ONCE_REWRITE_TAC[th;])
+THEN ASM_REWRITE_TAC[CONVEX_HULL_EXPLICIT;IN_ELIM_THM]
+THEN MP_TAC(REAL_ARITH`&0< t12==> ~(t12= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t12:real`
+THEN EXISTS_TAC`s1:real^3->bool`
+THEN EXISTS_TAC`(\v. inv(t12) * (u:real^3->real) v)`
+THEN ASM_REWRITE_TAC[SUM_LMUL;VECTOR_ARITH`(a*b) %v=a%(b%v)`;VSUM_LMUL]
+THEN MP_TAC(SET_RULE`s1= s' DELETE v:real^3 /\ s' SUBSET vertices p ==> s1 SUBSET vertices p`)
+THEN RESA_TAC
+THEN REPEAT STRIP_TAC
+THEN MATCH_MP_TAC REAL_LE_MUL
+THEN ASM_REWRITE_TAC[REAL_LE_INV_EQ]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[];(*12*)
+
+
+
+
+SUBGOAL_THEN`a' dot inv t12 % v12:real^3 <= b1`ASSUME_TAC
+THENL(*13*)[
+
+EXPAND_TAC"v12"
+THEN REWRITE_TAC[GSYM VSUM_LMUL]
+THEN MRESA_TAC DOT_RSUM[`s1:real^3->bool`;`(\x:real^3. inv t12 % u x % x)`;`a':real^3`]
+THEN REWRITE_TAC[DOT_RMUL]
+THEN SUBGOAL_THEN`!x:real^3. x IN s1 ==> (\y. inv t12 * u y * (a' dot y)) x<= (\y. inv t12 * u y * b1) x` ASSUME_TAC
+THENL(*14*)[
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"s1"
+THEN REWRITE_TAC[DELETE;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`vertices p INTER {x:real^3 | a' dot x >= b1} = {v:real^3} /\ x IN s' /\ s' SUBSET vertices p /\ ~(x=v) ==> ~(a' dot x >= b1)`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[REAL_ARITH`~(a>= b)<=> a<b`; REAL_ARITH`a*b*c=(a*b)*c`]
+THEN STRIP_TAC
+THEN MATCH_MP_TAC REAL_LE_LMUL
+THEN ASM_REWRITE_TAC[]
+THEN MP_TAC(REAL_ARITH`a' dot x < b1==> a' dot x:real^3 <= b1`)
+THEN RESA_TAC
+THEN MATCH_MP_TAC REAL_LE_MUL
+THEN ASM_REWRITE_TAC[REAL_LE_INV_EQ]
+THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[];(*14*)
+
+MP_TAC(REAL_ARITH`&0< t12==> ~(t12= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t12:real`
+THEN MRESA_TAC SUM_LE[`(\y:real^3. inv t12 * u y * (a' dot y))`;`(\y:real^3. inv t12 * u y * b1)`;`s1:real^3->bool`]
+THEN POP_ASSUM MP_TAC 
+THEN REWRITE_TAC[REAL_ARITH`a*b*c= (a*c) *b`;]
+THEN ASM_REWRITE_TAC[SUM_LMUL; REAL_ARITH`(a*b)*c= b*(a*c)`; REAL_ARITH`a* &1=a` ]](*14*);(*13*)
+
+SUBGOAL_THEN`~(inv t12 % v12= v:real^3)` ASSUME_TAC
+THENL(*14*)[
+
+STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[REAL_ARITH`~(a<= b)<=> b< a`];(*14*)
+
+SUBGOAL_THEN `aff_ge {v:real^3} {inv t12 % v12}= aff_ge {v:real^3} {v3}` ASSUME_TAC
+THENL(*15*)[
+
+MRESA_TAC AFF_GE_1_1[`v:real^3`;`inv t12 % v12:real^3`]
+THEN MRESA_TAC AFF_GE_1_1[`v:real^3`;`v3:real^3`]
+THEN EXPAND_TAC"v3"
+THEN MRESAL_TAC VSUM_DELETE_CASES[`v:real^3`;`(\v:real^3. (u:real^3->real) v % v)`;`s':real^3->bool`][VECTOR_ARITH`a= b-c<=> b=a+c:real^3`]
+THEN REWRITE_TAC[EXTENSION;IN_ELIM_THM]
+THEN GEN_TAC
+THEN EQ_TAC
+THENL(*16*)[
+
+
+DISJ_CASES_TAC(SET_RULE`v IN (s':real^3->bool) \/ ~(v IN s')`)
+THENL(*17*)[
+
+RESA_TAC
+THEN EXISTS_TAC`t1 - t2 * inv t12 * (u (v:real^3))`
+THEN EXISTS_TAC`t2* inv t12:real`
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`t1 % v + t2 % inv t12 % (v3 - u v % v) =
+ (t1 - t2 * inv t12 * u v) % v + (t2 * inv t12) % v3`;REAL_ARITH`t1 - t2 * inv t12 * u v + t2 * inv t12= t1 +t2 * inv t12 *(&1- u v)`]
+THEN MRESA_TAC SUM_DELETE_CASES[`u:real^3->real`;`s':real^3->bool`;`v:real^3`]
+THEN MP_TAC(REAL_ARITH`&0< t12==> ~(t12= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t12:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`a* &1=a`]
+THEN MATCH_MP_TAC REAL_LE_MUL
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC REAL_LE_INV
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM(fun th-> ASM_REWRITE_TAC[SYM th]);(*17*)
+
+
+
+MRESA_TAC SUM_DELETE_CASES[`u:real^3->real`;`s':real^3->bool`;`v:real^3`]
+THEN REWRITE_TAC[VECTOR_ARITH`a % inv (&1) %v=a %v`]](*17*);(*16*)
+
+DISJ_CASES_TAC(SET_RULE`v IN (s':real^3->bool) \/ ~(v IN s')`)
+THENL(*17*)[
+
+ASM_REWRITE_TAC[VECTOR_ARITH`t1 % v + t2 % inv t12 % (v3 - u v % v)= (t1 - t2 * inv t12 * u v) %v+ (inv t12 * t2)% v3`]
+THEN STRIP_TAC
+THEN EXISTS_TAC`&1- t12 * t2:real`
+THEN EXISTS_TAC`t12 * t2:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1- a+a= &1`;]
+THEN MP_TAC(REAL_ARITH`&0< t12==> ~(t12= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t12:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1 *a=a`;REAL_ARITH`a * b * c=(a*b)*c`]
+THEN ASM_REWRITE_TAC[REAL_ARITH`((a*b)*c)*d=(c*a)*(b*d)`;REAL_ARITH`&1 *a=a`;REAL_ARITH`&1- a*b-b*c= &1- (c+a)*b`]
+THEN MRESA_TAC SUM_DELETE_CASES[`u:real^3->real`;`s':real^3->bool`;`v:real^3`]
+THEN ASM_REWRITE_TAC[REAL_ARITH`(&1 - (u v + &1 - u v) * t2) = &1-(t1+t2) +t1`;REAL_ARITH`&1- &1+a=a`]
+THEN MATCH_MP_TAC REAL_LE_MUL
+THEN ASM_REWRITE_TAC[]
+THEN POP_ASSUM (fun th-> ASM_REWRITE_TAC[SYM th]);(*17*)
+
+MRESA_TAC SUM_DELETE_CASES[`u:real^3->real`;`s':real^3->bool`;`v:real^3`]
+THEN REWRITE_TAC[VECTOR_ARITH`a % inv (&1) %v=a %v`]](*17*)](*16*);(*15*)
+
+
+ABBREV_TAC`v31=inv t12 % (v12:real^3)`
+THEN MP_TAC(REAL_ARITH`(a':real^3) dot v31<= b1 ==> a' dot v31:real^3< b1\/ a' dot v31 = b1`)
+THEN RESA_TAC
+THENL(*16*)[
+
+
+SUBGOAL_THEN`?z. z IN segment[v31,v:real^3] INTER {x| a' dot x= b1} /\ ~(z= v)` ASSUME_TAC
+THENL(*17*)[
+
+MP_TAC(SET_RULE`vertices p INTER {x | a' dot x >= b1} = {v:real^3} ==> v IN {x | a' dot x >= b1}`)
+THEN RESA_TAC
+THEN REWRITE_TAC[INTER;IN_SEGMENT;IN_ELIM_THM]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT RESA_TAC
+THEN  MP_TAC(REAL_ARITH`a' dot v31 < b1 /\ a' dot v >= b1 /\ a' dot v = b' /\ b1< b' ==> &0< a' dot v - a' dot (v31:real^3) /\ &0< b1- a' dot v31 /\ b1- a' dot v31 < a' dot v - a' dot (v31:real^3) /\ ~(a' dot v - a' dot (v31:real^3)= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_LT_INV`a' dot v - a' dot (v31:real^3)` 
+THEN MRESA_TAC REAL_LT_MUL[`inv(a' dot v - a' dot (v31:real^3))`;`b1 - a' dot (v31:real^3)`]
+THEN MP_TAC(REAL_ARITH`&0< inv(a' dot v - a' dot (v31:real^3))==> &0<= inv(a' dot v - a' dot (v31:real^3))`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`a' dot v - a' dot (v31:real^3)` 
+THEN MRESA_TAC REAL_LT_LMUL[`inv(a' dot v - a' dot (v31:real^3))`;`b1 - a' dot (v31:real^3)`;`a' dot v - a' dot (v31:real^3)`]
+THEN EXISTS_TAC`(&1- inv (a' dot v - a' dot v31) * (b1 - a' dot v31)) % (v31:real^3)+ (inv (a' dot v - a' dot v31) * (b1 - a' dot v31))% v`
+THEN REWRITE_TAC[DOT_RMUL; DOT_RADD; REAL_ARITH`(&1- b)* c+b * d=a<=>b*(d-c)= a- c`;]
+THEN ASM_REWRITE_TAC[ REAL_ARITH`(a*b)*c= b*(a*c)`; REAL_ARITH`a * &1= a`]
+THEN STRIP_TAC
+THENL(*18*)[
+
+
+ EXISTS_TAC`inv (a' dot v - a' dot v31) * (b1 - a' dot (v31:real^3))`
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*18*)
+
+REWRITE_TAC[VECTOR_ARITH`(&1- b)%a + b % v= v<=> (&1-b)%(a-v)= vec 0`;VECTOR_MUL_EQ_0]
+THEN STRIP_TAC
+THENL(*19*)[
+
+ASM_TAC THEN REAL_ARITH_TAC;(*19*)
+
+
+POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`A-B= vec 0 <=> A=B`]](*19*)](*18*);(*17*)
+
+POP_ASSUM MP_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`{v:real^3} SUBSET f /\ f SUBSET p/\ v31 IN p==> {v,v31} SUBSET p `)
+THEN RESA_TAC
+THEN  MRESAL_TAC SUBSET_HULL [`convex:(real^3->bool)->bool`;`{v,v31:real^3}`;`p:real^3->bool`] [GSYM 
+SEGMENT_CONVEX_HULL;]
+THEN MRESA_TAC SEGMENT_SUBSET_HALFLINE[`v:real^3`;`v31:real^3`]
+THEN EXISTS_TAC`z':real^3`
+THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC
+THEN REMOVE_ASSUM_TAC THEN REMOVE_ASSUM_TAC
+THEN ONCE_REWRITE_TAC[SEGMENT_SYM]
+THEN ASM_TAC
+THEN SET_TAC[]](*17*);(*16*)
+
+
+EXISTS_TAC`v31:real^3`
+THEN MP_TAC(SET_RULE`a' dot v31 = b1 /\ v31 IN p ==> v31 IN p INTER {x:real^3| a' dot x= b1}`)
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0<= &1`]
+THEN RESA_TAC
+THEN MRESA_TAC point_in_aff_ge_1_1[`v:real^3`;`v31:real^3`]](*16*)](*15*)](*14*)](*13*)](*12*)](*11*);(*10*)
+
+
+SUBGOAL_THEN`p SUBSET {x:real^3| a2 dot x <= b2}` ASSUME_TAC
+THENL(*11*)[
+
+POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN REWRITE_TAC[SUBSET;IN_ELIM_THM]
+THEN GEN_TAC
+THEN STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`x=v \/ ~(x=v:real^3)`)
+THENL(*12*)[
+
+ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[REAL_ARITH`a<=a`];(*12*)
+
+MRESA_TAC AFF_GE_1_1[`v:real^3`;`x:real^3`]
+THEN REMOVE_THEN "LINH" (fun th-> MRESAL1_TAC th`x:real^3`[IN_ELIM_THM])
+THEN MP_TAC(SET_RULE`v4 IN p' /\p' SUBSET {x:real^3 | a2 dot x <= b2} ==> a2 dot v4<= b2`)
+THEN ASM_REWRITE_TAC[DOT_RADD;DOT_RMUL]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[REAL_ARITH`t1 * b2 + t2 * (a2 dot x) <= b2<=>  t2 * (a2 dot x) <= (t2+ &1 -(t1+t2))*b2`; REAL_ARITH`a + &1- &1=a`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(REAL_ARITH`&0<= t2==> t2= &0 \/ &0< t2`)
+THEN RESA_TAC
+THENL(*13*)[
+
+ASM_REWRITE_TAC[REAL_ARITH`t1+ &0= &1<=> t1= &1`]
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`v4 = &1 % v + &0 % x<=> v4=v`]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN MP_TAC(SET_RULE`v IN p' /\ p INTER {x:real^3 | a' dot x = b1}= p' ==> a' dot v =b1`)
+THEN RESA_TAC
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*13*)
+
+REPEAT STRIP_TAC
+THEN MP_TAC(REAL_ARITH`&0< t2==> ~(t2= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t2:real`
+THEN MRESAL_TAC REAL_LE_LMUL[`inv t2`;`t2 * (a2 dot (x:real^3))`;`t2 * b2`][REAL_LE_INV_EQ;REAL_ARITH`a*b*c=(a*b)*c`;REAL_ARITH`&1 * a=a`]
+](*13*)](*12*);(*11*)
+
+
+
+
+
+SUBGOAL_THEN`p INTER {x| a2 dot x = b2} SUBSET aff_ge {v:real^3} {w}`ASSUME_TAC
+THENL(*12*)[
+POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN STRIP_TAC
+THEN REWRITE_TAC[INTER;SUBSET;IN_ELIM_THM]
+THEN DISJ_CASES_TAC(SET_RULE`w=v \/ ~(v=(w:real^3))`)
+THENL(*13*)[
+ MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a2 dot x = b2} /\ p INTER {x :real^3| a' dot x = b1} = p'==> a' dot w= b1`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*13*)
+
+MRESAL_TAC AFF_GE_1_1[`v:real^3`;`w:real^3`][IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`x=v \/ ~(x=(v:real^3))`)
+THENL(*14*)[
+
+EXISTS_TAC`&1:real`
+THEN EXISTS_TAC`&0:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&0<= &0 /\ &1 + &0= &1`]
+THEN VECTOR_ARITH_TAC;(*14*)
+
+MRESA_TAC AFF_GE_1_1[`v:real^3`;`x:real^3`]
+THEN REMOVE_THEN "LINH" (fun th-> MRESAL1_TAC th`x:real^3`[IN_ELIM_THM])
+THEN SUBGOAL_THEN`v4 IN {x:real^3 | a2 dot x=b2}` ASSUME_TAC
+THENL(*15*)[
+
+ASM_REWRITE_TAC[IN_ELIM_THM;DOT_RADD;DOT_RMUL]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[REAL_ARITH`t1 * b2 + t2 * b2 =(t1+ t2) * b2`]
+THEN REAL_ARITH_TAC;(*15*)
+
+MP_TAC(SET_RULE`{w} = p' INTER {x | a2 dot x = b2} /\ v4 IN p'/\ v4 IN {x:real^3 | a2 dot x = b2}==> v4=w`)
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC THEN MP_TAC(SYM th))
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC )
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(REAL_ARITH`&0<= t2==> t2= &0 \/ &0<t2`)
+THEN RESA_TAC
+THENL(*16*)[
+
+ASM_REWRITE_TAC[REAL_ARITH`t1+ &0= &1<=> t1= &1`]
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`v4 = &1 % v + &0 % x<=> v4=v`]
+THEN STRIP_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC);(*16*)
+
+REPEAT RESA_TAC
+THEN EXISTS_TAC`&1 - inv t2:real`
+THEN EXISTS_TAC`inv t2:real`
+THEN MP_TAC(REAL_ARITH`&0< t2==> ~(t2= &0)`)
+THEN RESA_TAC
+THEN MRESA1_TAC REAL_MUL_LINV`t2:real`
+THEN ASM_REWRITE_TAC[REAL_ARITH`&1- a +a= &1`;REAL_LE_INV_EQ;VECTOR_ARITH`(&1 - inv t2) % v + inv t2 % (t1 % v + t2 % x)= (&1 - inv t2*(t2 + &1-(t1+t2))) % v + (inv t2 * t2) % x`;REAL_ARITH`a+ &1- &1=a`]
+THEN VECTOR_ARITH_TAC](*16*)](*15*)](*14*)](*13*);(*12*)
+
+
+
+
+SUBGOAL_THEN`aff_ge {v:real^3} {w}  SUBSET {x | a2 dot x = b2}` ASSUME_TAC
+THENL(*13*)[
+
+DISJ_CASES_TAC(SET_RULE`w=v \/ ~(v=w:real^3)`)
+THENL(*14*)[
+
+ MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a2 dot x = b2} /\ p INTER {x :real^3| a' dot x = b1} = p'==> a' dot w= b1`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*14*)
+
+MRESA_TAC AFF_GE_1_1[`v:real^3`;`w:real^3`]
+THEN REWRITE_TAC[SUBSET;IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[DOT_RADD;DOT_RMUL]
+THEN ASM_TAC
+THEN REWRITE_TAC[IN_ELIM_THM]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[REAL_ARITH`a*b+c*b=(a+c)*b`;REAL_ARITH`&1 *a=a`]
+](*14*);(*13*)
+
+MP_TAC(SET_RULE`p INTER {x | a2 dot x = b2} SUBSET aff_ge {v} {w}
+/\ aff_ge {v} {w} SUBSET {x | a2 dot x = b2}/\ {v, y} SUBSET p
+==>  aff_ge {v} {w} INTER p= p INTER {x:real^3 | a2 dot x = b2} /\ v IN p `)
+THEN RESA_TAC
+THEN MRESA1_TAC POLYTOPE_IMP_COMPACT`p:real^3->bool`
+THEN MRESA_TAC HALFLINE_INTER_COMPACT_SEGMENT[`p:real^3->bool`;`v:real^3`;`w:real^3`]
+THEN MRESAL_TAC FACE_OF_INTER_SUPPORTING_HYPERPLANE_LE_STRONG[`p:real^3->bool`;`a2:real^3`;`b2:real`][SET_RULE`(!x. x IN p ==> a2 dot x <= b2)<=> p SUBSET {x| a2 dot x<= b2}`;CONVEX_SEGMENT;SET_RULE`{a} SUBSET A<=> a IN A`]
+THEN MRESA_TAC SEGMENT_FACE_OF[`p:real^3->bool`;`v:real^3`;`c:real^3`]
+THEN MP_TAC(SET_RULE`p INTER {x | a2 dot x = b2} SUBSET aff_ge {v} {w}
+/\ p INTER {x | a2 dot x = b2} =segment[v,c] /\ c IN segment[v,c] ==> c IN aff_ge {v} {w:real^3}`)
+THEN ASM_REWRITE_TAC[ENDS_IN_SEGMENT]
+THEN DISJ_CASES_TAC(SET_RULE`w=v \/ ~(v=w:real^3)`)
+THENL(*14*)[
+
+ MP_TAC(SET_RULE`{w:real^3} = p' INTER {x | a2 dot x = b2} /\ p INTER {x :real^3| a' dot x = b1} = p'==> a' dot w= b1`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN ASM_TAC
+THEN REAL_ARITH_TAC;(*14*)
+
+MRESA_TAC AFF_GE_1_1[`v:real^3`;`w:real^3`]
+THEN REWRITE_TAC[SUBSET;IN_ELIM_THM]
+THEN DISCH_TAC
+THEN EXISTS_TAC`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[edges; IN_ELIM_THM;vertices]
+THEN MP_TAC(SET_RULE`{w} = p' INTER {x | a2 dot x = b2} /\ p INTER {x | a' dot x = b1} = p' ==> w IN p INTER {x:real^3| a2 dot x = b2}`)
+THEN RESA_TAC
+THEN MP_TAC(SET_RULE`~(v:real^3 = w) /\ w IN segment [v,c] ==> ~(segment [v,c]={v})`)
+THEN REWRITE_TAC[SEGMENT_EQ_SING]
+THEN RESA_TAC
+THEN DISCH_TAC
+THEN STRIP_TAC
+THENL(*15*)[
+
+POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[DOT_RADD;DOT_RMUL]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(REAL_ARITH`&0<= t2==> t2= &0 \/ &0< t2 `)
+THEN RESA_TAC
+THENL(*16*)[
+
+REWRITE_TAC[REAL_ARITH`t+ &0= &1<=> t= &1`]
+THEN RESA_TAC 
+THEN ASM_REWRITE_TAC[VECTOR_ARITH` &1 % v + &0 % w= v`];(*16*)
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC REAL_LT_LMUL[`t2:real`;`a dot w:real^3`;`b:real`]
+THEN MP_TAC(REAL_ARITH`t2 * (a dot w:real^3) < t2 * b ==> t1 * b+ t2 * (a dot w) < (t1+t2) * b`)
+THEN RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC](*16*);(*15*)
+
+EXISTS_TAC`v:real^3`
+THEN EXISTS_TAC`c:real^3`
+THEN ASM_REWRITE_TAC[edge_of]
+THEN ONCE_REWRITE_TAC[GSYM AFF_DIM_AFFINE_HULL]
+THEN REWRITE_TAC[AFFINE_HULL_SEGMENT]
+THEN ASM_REWRITE_TAC[AFF_DIM_AFFINE_HULL;AFF_DIM_2]
+]]]]]]]]]]]]]]]]]]]]]]]));;
+
+
+
+let CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==>  (!v. v IN vertices p ==>CARD (set_of_edge v (vertices p) (edges p)) >1)`,
+REPEAT STRIP_TAC
+THEN MRESA1_TAC EXISTS_EDGE_AT_VERTICES`p:real^3->bool`
+THEN POP_ASSUM (fun th-> MRESAL1_TAC th`v:real^3`[SET_RULE`~(A={})<=> ?w. w IN A`])
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w:real^3)`;
+` (v:real^3)`]
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN MRESAL_TAC properties_coordinate[`((vec 0):real^3)`;` (v:real^3)`;` (w:real^3)`][VECTOR_ARITH`a - vec 0=a`]
+THEN ABBREV_TAC`a= e2_fan (vec 0) v (w:real^3)`
+THEN MRESA_TAC ORTHONORMAL_IMP_NONZERO [`e1_fan ((vec 0):real^3) (v:real^3) (w:real^3)`;`e2_fan ((vec 0):real^3) (v:real^3) (w:real^3)`;`e3_fan ((vec 0):real^3) (v:real^3) (w:real^3)`]
+THEN MRESAL_TAC FLVNSME[`v:real^3`;`{x:real^3| a dot x < &0}`;`a:real^3`;`&0`;`p:real^3->bool`][IN_ELIM_THM; DOT_RZERO]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`w =w' \/ ~(w= w':real^3)`)
+THENL[
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REAL_ARITH_TAC);
+MRESA_TAC CARD_2_FAN[`w:real^3`;`w':real^3`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w':real^3)`;
+` (v:real^3)`]
+THEN MP_TAC(SET_RULE`w' IN set_of_edge v (vertices p) (edges p) /\ w IN set_of_edge v (vertices p) (edges p)
+==> {w,w':real^3} SUBSET set_of_edge v (vertices p) (edges p)`)
+THEN RESA_TAC
+THEN MRESA_TAC CARD_SUBSET[`{w,w':real^3}`;`set_of_edge v (vertices p) (edges (p:real^3->bool))`]
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC]);;
+
+
+let BSXAQBQ=prove(`!p:real^3->bool x.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+/\ x IN d_fan((vec 0),(vertices p),(edges p))
+==> azim_fan (vec 0) (vertices p) (edges p) (pr2 x) (pr3 x) < pi`,
+
+REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA1_TAC CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON`p:real^3->bool`
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA_TAC dartset_fully_surrounded_is_non_isolated_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`]
+THEN REWRITE_TAC[d1_fan;IN_ELIM_THM]
+THEN RESA_TAC
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w:real^3)`;
+` (v:real^3)`]
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_THEN"LINH"(fun th-> MP_TAC(ISPEC `v:real^3` th))
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th] THEN ASSUME_TAC th)
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[azim_fan;pr2;pr3]
+THEN ABBREV_TAC`a= v cross w:real^3`
+THEN MRESAL_TAC FLVNSME[`v:real^3`;`{x:real^3| (-- a) dot x < &0}`;`(-- a):real^3`;`&0`;`p:real^3->bool`][IN_ELIM_THM; DOT_LNEG; DOT_RZERO; VECTOR_ARITH`((-- A:real^3)= vec 0) <=> (A = vec 0)`;REAL_ARITH`(-- a= &0) <=> (a= &0)`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN REWRITE_TAC[REAL_ARITH`-- a< &0<=> &0< a`]
+THEN EXPAND_TAC"a"
+THEN REWRITE_TAC[CROSS_EQ_0;DOT_CROSS_SELF]
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`w =w' \/ ~(w'= w:real^3)`)
+THENL[
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"a"
+THEN REWRITE_TAC[CROSS_EQ_0;DOT_CROSS_SELF]
+THEN REAL_ARITH_TAC;
+ MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w':real^3)`;
+` (v:real^3)`]
+THEN MP_TAC(SET_RULE`w' IN set_of_edge v (vertices p) (edges p) /\ w IN set_of_edge v (vertices p) (edges p)/\ ~(w'=w:real^3)
+==> ~( set_of_edge v (vertices p) (edges p)= {w})`)
+THEN RESA_TAC
+THEN MRESA_TAC SIGMA_FAN[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (v:real^3)`;
+` (w:real^3)`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`w':real^3`)
+THEN MRESA_TAC JBDNJJB[`v:real^3`;`w:real^3`;`w':real^3`]
+THEN MRESA_TAC REAL_LT_MUL[`t:real`;`a dot w':real^3`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th->  ASM_REWRITE_TAC[SYM th;])
+THEN ONCE_REWRITE_TAC[DOT_SYM] 
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`azim (vec 0) v w w' < &2 * pi ==> (&0 <= azim (vec 0) v w w' -pi /\ azim (vec 0) v w w' - pi <= pi) \/ azim (vec 0) v w w'< pi`)
+THEN ASM_REWRITE_TAC[azim]
+THEN STRIP_TAC
+THENL[
+MRESA1_TAC SIN_POS_PI_LE`azim (vec 0) v w w' - pi`
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[SIN_SUB; SIN_PI;COS_PI; REAL_ARITH`&0<= a * -- &1- b * &0<=> ~( &0< a)`];
+ ASM_TAC
+THEN REAL_ARITH_TAC]]);;
+
+
+
+let POLYTOPE_FAN80=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> fan80 (vec 0,vertices p,edges p)`,
+
+REWRITE_TAC[fan80]
+THEN REPEAT  GEN_TAC
+THEN STRIP_TAC
+THEN REPEAT  GEN_TAC
+THEN STRIP_TAC
+THEN MRESA1_TAC CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON`p:real^3->bool`
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (u:real^3)`;
+` (v:real^3)`]
+THEN ABBREV_TAC`a= v cross u:real^3`
+THEN MRESAL_TAC FLVNSME[`v:real^3`;`{x:real^3| (-- a) dot x < &0}`;`(-- a):real^3`;`&0`;`p:real^3->bool`][IN_ELIM_THM; DOT_LNEG; DOT_RZERO; VECTOR_ARITH`((-- A:real^3)= vec 0) <=> (A = vec 0)`;REAL_ARITH`(-- a= &0) <=> (a= &0)`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN REWRITE_TAC[REAL_ARITH`-- a< &0<=> &0< a`]
+THEN EXPAND_TAC"a"
+THEN REWRITE_TAC[CROSS_EQ_0;DOT_CROSS_SELF]
+THEN RESA_TAC
+THEN DISJ_CASES_TAC(SET_RULE`u =w \/ ~(w= u:real^3)`)
+THENL[
+POP_ASSUM (fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN REPEAT STRIP_TAC)
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"a"
+THEN REWRITE_TAC[CROSS_EQ_0;DOT_CROSS_SELF]
+THEN REAL_ARITH_TAC;
+ 
+
+ MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (w:real^3)`;
+` (v:real^3)`]
+THEN MP_TAC(SET_RULE`w IN set_of_edge v (vertices p) (edges p) /\ u IN set_of_edge v (vertices p) (edges p)/\ ~(w=u:real^3)
+==> ~( set_of_edge v (vertices p) (edges p)= {u})`)
+THEN RESA_TAC
+THEN MRESA_TAC SIGMA_FAN[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (v:real^3)`;
+` (u:real^3)`]
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`w:real^3`)
+THEN MRESA_TAC JBDNJJB[`v:real^3`;`u:real^3`;`w:real^3`]
+THEN MRESA_TAC REAL_LT_MUL[`t:real`;`a dot w:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th->  ASM_REWRITE_TAC[SYM th;])
+THEN ONCE_REWRITE_TAC[DOT_SYM] 
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`azim (vec 0) v u w < &2 * pi ==> (&0 <= azim (vec 0) v u w -pi /\ azim (vec 0) v u w - pi <= pi) \/ azim (vec 0) v u w< pi`)
+THEN ASM_REWRITE_TAC[azim]
+THEN STRIP_TAC
+THENL[
+
+MRESA1_TAC SIN_POS_PI_LE`azim (vec 0) v u w - pi`
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[SIN_SUB; SIN_PI;COS_PI; REAL_ARITH`&0<= a * -- &1- b * &0<=> ~( &0< a)`];
+MP_TAC(REAL_ARITH`azim (vec 0) v u w < pi /\ azim (vec 0) v u (sigma_fan (vec 0) (vertices p) (edges p) v u) <= azim (vec 0) v u w ==> azim (vec 0) v u (sigma_fan (vec 0) (vertices p) (edges p) v u)< pi `)
+THEN RESA_TAC
+THEN MP_TAC(REAL_ARITH`&0<= azim (vec 0) v u (sigma_fan (vec 0) (vertices p) (edges p) v u) ==> (azim (vec 0) v u (sigma_fan (vec 0) (vertices p) (edges p) v u)= &0) \/ &0< azim (vec 0) v u (sigma_fan (vec 0) (vertices p) (edges p) v u)`)
+THEN ASM_REWRITE_TAC[azim]
+THEN STRIP_TAC
+THEN 
+ MRESA_TAC remark1_fan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`(sigma_fan (vec 0) (vertices p) (edges p) v u):real^3`;
+` (v:real^3)`]
+THEN  MRESA_TAC UNIQUE_AZIM_0_POINT_FAN[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;` (v:real^3)`;
+` (u:real^3)`; `(sigma_fan (vec 0) (vertices p) (edges p) v u):real^3`]]]);;
+
+
+
+
+let WBLARHH=prove(`!p:real^3->bool.
+         bounded p /\ polyhedron p /\ vec 0 IN interior p 
+==> 
+ (!f. f IN face_set (hypermap1_of_fanx  (vec 0,vertices p,edges p)) ==> (?!f1. f1 facet_of p /\ 							 dartset_leads_into_fan (vec 0) (vertices p) (edges p) f = fchanged f1))`,
+
+REPEAT STRIP_TAC
+THEN MRESA_TAC POLYHEDRON_FAN[`p:real^3->bool`;`vec 0:real^3`]
+THEN MRESA1_TAC CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON`p:real^3->bool`
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"LINH")
+THEN MRESA1_TAC POLYTOPE_FAN80`p:real^3->bool`
+THEN MRESA_TAC dartset_leads_into_is_topological_component_yfan[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;`f:real^3#real^3#real^3#real^3->bool`]
+THEN ABBREV_TAC`s= dartset_leads_into_fan (vec 0) (vertices p) (edges (p:real^3->bool)) f`
+THEN MRESAL_TAC PIIJBJK[`vec 0:real^3`;`vertices (p:real^3->bool)`;`edges (p:real^3->bool)`;][conforming_fan;conforming_bijection_fan]
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`s:real^3->bool`)
+THEN POP_ASSUM MP_TAC
+THEN MRESA1_TAC AMHFNXP`p:real^3->bool`
+THEN POP_ASSUM (fun th-> MRESA1_TAC th`s:real^3->bool`));;
 
 
 end;;

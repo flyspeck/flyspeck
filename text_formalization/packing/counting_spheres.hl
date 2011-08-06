@@ -12,7 +12,7 @@
 
 (* great study example. It is an obvious conseq. of 
   Trigonometry1.ACS_ARCLENGTH, but a direct match doesn't work *)
-Trigonometry1.ACS_ARCLENGTH;;
+
 let arclength2 = prove_by_refinement(
   `!h.  (&1 <= h /\ h <= h0) ==> arclength (&2) (&2 * h) (&2) = acs(h / &2)`,
   (* {{{ proof *)
@@ -321,10 +321,12 @@ REAL_ARITH_TAC
 );;
   (* }}} *)
 
+(* REMOVE:
 let eus1 = prove_by_refinement(
   `!(P:real^2 -> bool) c r. (&0 < r) /\ polyhedron P /\ c facet_of P /\  
   (!p. norm p < r ==> P p) ==>
-     (?a b.  (norm a = &1) /\ (r <= b) /\
+     (?a b.  (norm a = &1) /\ 
+      (r <= b) /\
                     P SUBSET {x | a dot x <= b} /\
                     c = P INTER {x | a dot x = b})`,
   (* {{{ proof *)
@@ -394,6 +396,348 @@ REWRITE_TAC [REAL_MUL_POS_LE;REAL_MUL_POS_LT;REAL_ENTIRE;REAL_ARITH `a * b < &0 
 REAL_ARITH_TAC
 ]);;
   (* }}} *)
+*)
+
+let eus1 = prove_by_refinement(
+  `!(P:real^2 -> bool) c. polyhedron P /\ c facet_of P  ==>  
+     (?a b.  (norm a = &1) /\
+        (!r. (&0 < r) /\ (!p. norm p < r ==> P p) ==> (r <= b)) /\
+                    P SUBSET {x | a dot x <= b} /\
+                    c = P INTER {x | a dot x = b})`,
+  (* {{{ proof *)
+[
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL[`P:real^2->bool`;`c:real^2->bool`] (INST_TYPE [(`:2`,`:N`)] FACET_OF_POLYHEDRON));
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+EXISTS_TAC  `&1/ norm a % (a:real^2)`;
+EXISTS_TAC  `&1/ norm (a:real^2) * (b:real)`;
+ASM_REWRITE_TAC [GSYM Trigonometry2.NOT_VEC0_UNITABLE];
+SUBGOAL_THEN  `&0 < norm (a:real^2)` ASSUME_TAC;
+ASM_REWRITE_TAC [NORM_POS_LT];
+SUBGOAL_THEN `&0 < &1/ norm (a:real^2)` ASSUME_TAC;
+MATCH_MP_TAC  REAL_LT_DIV THEN CONJ_TAC THEN TRY REAL_ARITH_TAC THEN ASM_REWRITE_TAC[];
+HASH_UNDISCH_TAC 7978 ;
+REWRITE_TAC  [DOT_LMUL];
+ASM_SIMP_TAC [REAL_LE_LMUL_EQ];
+REWRITE_TAC [REAL_EQ_MUL_LCANCEL];
+SIMP_TAC [REAL_ARITH `&0 < d==> ~(d= &0)`];
+DISCH_TAC ;
+REPEAT STRIP_TAC;
+SUBGOAL_THEN `!p. norm (p:real^2) < r ==> (a:real^2) dot p <= b` ASSUME_TAC;
+REPEAT STRIP_TAC ;
+HASH_UNDISCH_TAC 5889 ;
+REWRITE_TAC [SUBSET;IN;IN_ELIM_THM];
+DISCH_THEN MATCH_MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN  `(&0 < norm (a:real^2) pow 2) /\(&0 < r/ norm a) /\(!t. &0 <= t /\( t < r/ norm a) ==> (norm a pow 2 )*t <= b)` (fun t -> MP_TAC (MATCH_MP lemma t));
+CONJ_TAC ;
+HASH_UNDISCH_TAC 7435 ;
+REWRITE_TAC [GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT];
+REAL_ARITH_TAC ;
+CONJ_TAC ;
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+HASH_RULE_TAC 4896 (SPEC `t % (a:real^2)`);
+ASM_SIMP_TAC [NORM_MUL;REAL_ARITH `&0 <= t ==> (abs t = t)`];
+REWRITE_TAC [DOT_RMUL];
+REWRITE_TAC [DOT_SQUARE_NORM];
+ANTS_TAC;
+HASH_RULE_TAC 7310 (Calc_derivative.rational_ineq_rule);
+HASH_UNDISCH_TAC 7435 ;
+SIMP_TAC [REAL_LT_MUL_EQ];
+MP_TAC (REAL_ARITH `&0 < x ==> ~(x = &0)`);
+REAL_ARITH_TAC ;
+REAL_ARITH_TAC ;
+DISCH_THEN (fun t-> MP_TAC (SPEC `r/ norm (a:real^2)` t));
+ANTS_TAC;
+REWRITE_TAC [REAL_ARITH `x <= x`];
+REWRITE_TAC [Calc_derivative.invert_den_le];
+MATCH_MP_TAC REAL_LE_MUL;
+ASM_REAL_ARITH_TAC;
+DISCH_THEN (MP_TAC o Calc_derivative.rational_ineq_rule);
+DISCH_TAC ;
+MATCH_MP_TAC (REAL_ARITH `((x < y) ==> F) ==> (y <= x)`);
+DISCH_THEN (MP_TAC o Calc_derivative.rational_ineq_rule);
+HASH_UNDISCH_TAC 5880 ;
+SUBGOAL_THEN `~(norm (a:real^2) = &0)` ASSUME_TAC;
+ASM_REAL_ARITH_TAC;
+ASM_REWRITE_TAC [];
+REWRITE_TAC [REAL_ARITH `~(&0 < (x - y) * b) <=> (&0 <= (y - x)*b)`];
+REWRITE_TAC [REAL_RING `(b * norm (a:real^2) - norm a pow 2 * r) = (b - r * norm a) * norm a`];
+HASH_UNDISCH_TAC 7435 ;
+REWRITE_TAC [REAL_MUL_POS_LE;REAL_MUL_POS_LT;REAL_ENTIRE;REAL_ARITH `a * b < &0 <=> ~(&0 <= a * b)`];
+REAL_ARITH_TAC
+]);;
+  (* }}} *)
+
+
+let facet_rep_uniq = prove_by_refinement(
+  `!(P:real^2 -> bool) a b1 b2. polyhedron P /\ 
+    c1 facet_of P  /\ c2 facet_of P /\
+    P SUBSET {x | a dot x <= b1} /\
+    P SUBSET {x | a dot x <= b2} /\
+    c1 = P INTER {x | a dot x = b1} /\
+    c2 = P INTER {x | a dot x = b2} ==>
+    (b1 = b2) /\ (c1 = c2)`,
+  (* {{{ proof *)
+[
+REPEAT GEN_TAC ;
+REWRITE_TAC [facet_of;face_of;SUBSET;GSYM MEMBER_NOT_EMPTY;IN;IN_ELIM_THM;INTER];
+STRIP_TAC ;
+SUBGOAL_THEN `a dot x = b1 /\ (a:real^2) dot x' = b2` ASSUME_TAC;
+HASH_UNDISCH_TAC 4776 ;
+HASH_UNDISCH_TAC 6239 ;
+ASM_REWRITE_TAC [IN_ELIM_THM];
+MESON_TAC [];
+ASM_MESON_TAC [REAL_ARITH `b1 <= b2 /\ b2 <= b1 ==> (b1 = b2)`]
+]
+);;
+  (* }}} *)
+
+let facet_rep_spec = prove_by_refinement(
+  `?a b. !(P:real^2 -> bool) c. polyhedron P /\ c facet_of P
+   ==>
+     (  (norm (a P c) = &1) /\ 
+     (!r. (&0 < r) /\ (!p. norm p < r ==> P p) ==> (r <= (b P c))) /\
+     P SUBSET {x | (a P c) dot x <= (b P c)} /\
+     c = P INTER {x | (a P c) dot x = (b P c)})`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [GSYM SKOLEM_THM;RIGHT_EXISTS_IMP_THM];
+MESON_TAC [eus1]
+  ]);;
+  (* }}} *)
+
+let facet_rep_def = new_specification ["facet_rep_a";"facet_rep_b"] facet_rep_spec;;
+
+let facet_rep_uniq_c = prove_by_refinement(
+  `!(P:real^2 -> bool) c1 c2. polyhedron P /\ c1 facet_of P /\ c2 facet_of P /\
+    (facet_rep_a P c1 = facet_rep_a P c2) ==> (c1 = c2)`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL[`P:real^2->bool`;`facet_rep_a P c1`;`facet_rep_b P c1`;`facet_rep_b P c2`] facet_rep_uniq);
+ASM_REWRITE_TAC [];
+MP_TAC (SPECL[`P:real^2->bool`;`c1:real^2->bool`] facet_rep_def);
+MP_TAC (SPECL[`P:real^2->bool`;`c2:real^2->bool`] facet_rep_def);
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+ASM_MESON_TAC []
+  ]);;
+  (* }}} *)
+
+let norm1_cauchy_eq = prove_by_refinement(
+  `!(x:real^N) y. norm x = &1 /\ norm y = &1 /\ x dot y = &1 ==> (x = y)`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL [`x:real^N`;`y:real^N`] NORM_CAUCHY_SCHWARZ_EQ);
+ASM_REWRITE_TAC [REAL_ARITH `&1 * &1 = &1`;VECTOR_MUL_LID];
+MESON_TAC []
+  ]);;
+  (* }}} *)
+
+let facet_rep_in_facet = prove_by_refinement(
+  `!(P:real^2->bool) c1 c2 r. polyhedron P /\ c1 facet_of P /\ c2 facet_of P /\ 
+  (&0 < r) /\ (!p. norm p < r ==> P p) /\ 
+  (facet_rep_b P c1 <= facet_rep_a P c1 dot (r % facet_rep_a P c2)) ==>
+   (c1 = c2)`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [DOT_RMUL];
+REPEAT STRIP_TAC ;
+MATCH_MP_TAC facet_rep_uniq_c;
+EXISTS_TAC `P:real^2->bool`;
+ASM_REWRITE_TAC [];
+MATCH_MP_TAC (norm1_cauchy_eq);
+SUBGOAL_THEN `norm (facet_rep_a (P:real^2->bool) c1) = &1 /\  norm (facet_rep_a P c2) = &1 /\  facet_rep_a P c1 dot facet_rep_a P c2 <= &1` (MP_TAC);
+ASM_MESON_TAC [facet_rep_def;REAL_ARITH `&1 * &1 = &1`;NORM_CAUCHY_SCHWARZ];
+REPEAT STRIP_TAC  THEN ASM_REWRITE_TAC[];
+SUBGOAL_THEN `r <= facet_rep_b P c1` MP_TAC;
+ASM_MESON_TAC [facet_rep_def];
+DISCH_TAC ;
+HASH_UNDISCH_TAC 4642 ;
+REWRITE_TAC [REAL_ARITH `x <= &1 <=> (x = &1) \/ (x < &1)`];
+DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+ABBREV_TAC `d = facet_rep_a P c1 dot facet_rep_a P c2 `;
+SUBGOAL_THEN `&0 < (r * (&1 - d))` ASSUME_TAC;
+MATCH_MP_TAC REAL_LT_MUL;
+ASM_REAL_ARITH_TAC ;
+ASM_REAL_ARITH_TAC 
+  ]);;
+  (* }}} *)
+
+let facet_rep_refl = prove_by_refinement(
+  `!(P:real^2->bool) c r. polyhedron P /\ c facet_of P /\ 
+  (&0 < r) /\ (!p. norm p < r ==> P p)  ==>
+   (facet_rep_a P c dot (r % facet_rep_a P c) <= facet_rep_b P c)`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [DOT_RMUL;Collect_geom.X_DOT_X_EQ];
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL[`P:real^2->bool`;`c:real^2->bool`] facet_rep_def);
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+ASM_REWRITE_TAC [Trigonometry2.POW2_1;REAL_ARITH ` r * &1 = r`];
+ASM_MESON_TAC []
+  ]);;
+  (* }}} *)
+
+
+let NORM1_NZ = prove_by_refinement(
+  `!(a:real^N). norm a = &1 ==> ~(a = vec 0)`,
+  (* {{{ proof *)
+  [
+MESON_TAC [NORM_0;REAL_ARITH `~(&1 = &0)`]
+  ]);;
+  (* }}} *)
+
+let norm_normalize = prove_by_refinement(
+ `! (v:real^N). ~(v = vec 0) ==> norm (normalize v) = &1 `,
+[
+(GEN_TAC THEN STRIP_TAC);
+(PURE_REWRITE_TAC[normalize;NORM_MUL;REAL_ABS_INV;REAL_ABS_NORM]);
+(MATCH_MP_TAC REAL_MUL_LINV);
+(ASM_MESON_TAC[NORM_EQ_0]);
+]);;
+
+let NZ_IMP_NORM1 = prove_by_refinement(
+  `!(a:real^N) b. ~(a = vec 0) ==> 
+   (?a' b'. (norm a' = &1) /\ 
+      (!x. (a dot x <= b) <=>  (a' dot x <= b') ) /\
+      (!x. (a dot x = b) <=> (a' dot x = b') ))`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+EXISTS_TAC `normalize (a:real^N)`;
+EXISTS_TAC `inv(norm (a:real^N)) * b`;
+ASM_SIMP_TAC [norm_normalize];
+ASM_SIMP_TAC [norm_normalize];
+REWRITE_TAC [normalize;DOT_LMUL];
+FIRST_X_ASSUM (ASSUME_TAC o (REWRITE_RULE[GSYM NORM_POS_LT]));
+FIRST_X_ASSUM (ASSUME_TAC o (ONCE_REWRITE_RULE[GSYM REAL_LT_INV_EQ]));
+ASM_SIMP_TAC [REAL_LE_LMUL_EQ];
+ASM_MESON_TAC [REAL_EQ_MUL_LCANCEL;REAL_ARITH `&0 < u ==> ~(u= &0)`]
+  ]);;
+  (* }}} *)
+
+let DOT_EQ_IMP_INEQ_LEMMA = prove_by_refinement(
+  `!(a:real^N) b a' b'.
+    (!x. a dot x = b <=> a' dot x = b') /\ (&0 <  b) /\ (&0 < b') ==>
+   (!x. ~(a dot x = &0) ==> (a dot x <= b <=> a' dot x <= b'))`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+HASH_RULE_TAC 2720 (SPEC `((b/(a dot x)) % (x:real^N))`);
+REWRITE_TAC [DOT_RMUL];
+SUBGOAL_THEN `b / (a dot x) * (a dot (x:real^N)) = b` SUBST1_TAC;
+HASH_UNDISCH_TAC 5506 ;
+BY(CONV_TAC REAL_FIELD);
+REWRITE_TAC [REAL_FIELD `b/ (a dot x) * (a' dot x) = b * ((a' dot x) / (a dot (x:real^N)))`];
+  DISCH_THEN (fun t-> ASSUME_TAC(GSYM t));
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `&0 < (a' dot (x:real^N)) / (a dot x) ` ASSUME_TAC;
+HASH_UNDISCH_TAC 9752 ;
+ASM_REWRITE_TAC [REAL_MUL_POS_LT];
+ASM_REAL_ARITH_TAC;
+SUBGOAL_THEN `a dot (x:real^N) <= b <=> (a dot x) * ((a' dot x)/(a dot x)) <= b * (a' dot x)/(a dot x)` SUBST1_TAC;
+ASM_SIMP_TAC [REAL_LE_RMUL_EQ];
+SUBGOAL_THEN  `(a dot (x:real^N)) * (a' dot x)/ (a dot x) = a' dot x` SUBST1_TAC;
+HASH_UNDISCH_TAC 5506 ;
+BY (CONV_TAC REAL_FIELD);
+BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let DOT_EQ_IMP_INEQ = prove_by_refinement(
+  `!(a:real^N) b a' b'.
+    (!x. a dot x = b <=> a' dot x = b') /\ (&0 <= b) /\ (&0 < b') ==>
+   (!x. (a dot x <= b) <=> a' dot x <= b')`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+SUBGOAL_THEN `&0 < b` ASSUME_TAC;
+HASH_RULE_TAC 2720 (fun t -> (REWRITE_RULE[DOT_RZERO] (SPEC `(vec 0):real^N` t)));
+ASM_REAL_ARITH_TAC ;
+ASM_CASES_TAC `~(a dot (x:real^N) = &0)`;
+ASM_MESON_TAC [DOT_EQ_IMP_INEQ_LEMMA];
+ASM_CASES_TAC `~(a' dot (x:real^N) = &0)`;
+ASM_MESON_TAC [DOT_EQ_IMP_INEQ_LEMMA];
+ASM_REAL_ARITH_TAC 
+  ]);;
+  (* }}} *)
+
+(*
+let POLYHEDRON_INTER_AFFINE_MINIMAL_NORM = prove_by_refinement(
+  `!(s:real^N->bool). polyhedron s <=>
+         (?f. FINITE f /\
+              s = affine hull s INTER INTERS f /\
+              (!h. h IN f ==> (?a b. (norm a = &1) /\ h = {x | a dot x <= b})) /\
+              (!f'. f' PSUBSET f ==> s PSUBSET affine hull s INTER INTERS f'))`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL[`(s:real^N->bool)`] POLYHEDRON_INTER_AFFINE_MINIMAL);
+DISCH_TAC ;
+ASM_REWRITE_TAC [];
+ONCE_REWRITE_TAC[MESON [] `(x = y) <=> (y = x)`];
+MATCH_MP_TAC (MESON[] `(!(f:A). (P f <=> Q f)) ==> ((?f. P f) <=> (?f. Q f))`);
+GEN_TAC ;
+REWRITE_TAC [TAUT `(x /\ y <=> x /\ z) <=> (~x \/ (y <=> z))`;TAUT `(x /\ y <=> z /\ y) <=> (~y \/ (x <=>z))`];
+REPEAT DISJ2_TAC;
+MATCH_MP_TAC (MESON[] `(!h:A. (P h <=> Q h)) ==> ((!h. P h) <=> (!h. Q h))`);
+GEN_TAC ;
+MATCH_MP_TAC (TAUT  ` (q = r) ==> ((p ==> q) <=> (p ==> r))`);
+EQ_TAC;
+MESON_TAC [NORM1_NZ];
+ONCE_REWRITE_TAC[FUN_EQ_THM];
+REWRITE_TAC [IN_ELIM_THM];
+REPEAT STRIP_TAC ;
+HASH_KILL_TAC 230 ;
+MP_TAC (SPECL [`a:real^N`;`b:real`] NZ_IMP_NORM1);
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+HASH_KILL_TAC 6572 ;
+ASM_MESON_TAC []
+  ]);;
+  (* }}} *)
+*)
+
+
+FACET_OF_POLYHEDRON_EXPLICIT;;
+FACET_OF_POLYHEDRON;;
+POLYHEDRON_INTER_AFFINE_MINIMAL;;
+suggest();;
+
+search [`facet_of`];;
+
+let facet_rep_in_poly = prove_by_refinement(
+  `!(P:real^2->bool) c r. polyhedron P /\ (c facet_of P) /\ 
+  (&0 < r) /\ (!p. norm p < r ==> P p) ==>
+  P (r % facet_ref_a P c)
+`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+let facet_rep_a_uniq = prove_by_refinement(
+  `!(P:real^2->bool) c1 c2. polyhedron P /\ c1 facet_of P /\ c2 facet_of P /\
+    (?s. (&0 < s) /\ facet_rep_a P c1 = s % facet_rep_a P c2) ==> (c1 = c2)
+      `,
+  (* {{{ proof *)
+  [
+st/r,
+  ]);;
+  (* }}} *)
+
+
+
 
 let REAL_SORT  = prove_by_refinement(
   `!n s. s HAS_SIZE n /\ (1 <= n) ==>
@@ -429,31 +773,7 @@ ARITH_TAC
 );;
   (* }}} *)
 
-
-let facet_rep_uniq = prove_by_refinement(
-  `!(P:real^2 -> bool) a b1 b2. polyhedron P /\ bounded P /\
-    c1 facet_of P  /\ c2 facet_of P /\
-    P SUBSET {x | a dot x <= b1} /\
-    P SUBSET {x | a dot x <= b2} /\
-    c1 = P INTER {x | a dot x = b1} /\
-    c2 = P INTER {x | a dot x = b2} ==>
-    (b1 = b2) /\ (c1 = c2)`,
-  (* {{{ proof *)
-[
-REPEAT GEN_TAC ;
-REWRITE_TAC [facet_of;face_of;SUBSET;GSYM MEMBER_NOT_EMPTY;IN;IN_ELIM_THM;INTER];
-STRIP_TAC ;
-SUBGOAL_THEN `a dot x = b1 /\ (a:real^2) dot x' = b2` ASSUME_TAC;
-HASH_UNDISCH_TAC 4776 ;
-HASH_UNDISCH_TAC 6239 ;
-ASM_REWRITE_TAC [IN_ELIM_THM];
-MESON_TAC [];
-ASM_MESON_TAC [REAL_ARITH `b1 <= b2 /\ b2 <= b1 ==> (b1 = b2)`]
-]
-);;
-  (* }}} *)
-
-
+(* ------------------------------------------------------------ *)
 (* later *)
 
 let eus_cos  = prove_by_refinement(
@@ -519,3 +839,14 @@ let convex_fn_ineq = prove_by_refinement(
   ]);;
   (* }}} *)
 *)
+
+def_of_regexp "wedge";;
+def_of_regexp "cyclic_set";;
+search [`wedge_ge`;];;
+search [`azim v1 v2 x y + azim v1 v2 y z`;name "sum"];;
+search [`wedge_ge`];;
+search [`cwedge`];;
+search [`cw_dart_fan`];;
+search [`cwedge`];;
+search [`fan`];;
+search [`FAN`];;

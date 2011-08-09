@@ -3,12 +3,6 @@
 ;
 ; C-x C-e to evaluate
 
-(replace-regexp-in-string "a"  "Q" "abc")
-(replace-regexp-in-string "\\\\" "\\\\\\\\" "\\abc")
-(replace-regexp-in-string "\"" "\\\\\"" "\"abc")
-(string-to-char "\\\\")
-(string-to-char "\"")
-
 (load "hol-light.el")
 (hol-light-run-process-if-needed)
 
@@ -61,3 +55,9 @@
 
 ; (setq xxxx yank-menu) 
 
+; scratch
+(replace-regexp-in-string "a"  "Q" "abc")
+(replace-regexp-in-string "\\\\" "\\\\\\\\" "\\abc")
+(replace-regexp-in-string "\"" "\\\\\"" "\"abc")
+(string-to-char "\\\\")
+(string-to-char "\"")

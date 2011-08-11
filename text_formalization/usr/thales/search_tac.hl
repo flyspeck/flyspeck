@@ -365,6 +365,37 @@ let thm_depth = tm_depth o concl;;
 
 
 (* ========================================================================== *)
+(* New version of TYPE_THEN. *)
+
+let frees_of_goal (asl,w) = 
+  let tms = w::(map (concl o snd) asl)  in
+  let varl = List.flatten (map frees tms) in
+    map (fun t -> (fst (dest_var t), t)) varl;;
+
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let gtype_g (asl,w) tm = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify(frees tm)) in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     (instantiate ([],[],tyassoc)) tm ;;
+
+let gtyp (ttac:term->tactic) tm (asl,w) = ttac (gtype_g (asl,w) tm) (asl,w);;
+
+let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
+   ttacl (map (gtype_g (asl,w)) tml) (asl,w);;
+
+let GEXISTS_TAC = gtyp EXISTS_TAC;;
+
+let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (gtype_g (asl,w) t) ttac (asl,w);;
+
+
+(* ========================================================================== *)
 (* TACTIC                                              *)
 
 let FORCE_EQ = REPEAT (CHANGED_TAC (AP_TERM_TAC ORELSE AP_THM_TAC ORELSE BINOP_TAC)) ;;

@@ -963,6 +963,46 @@ ASM_REWRITE_TAC [GSYM VECTOR_SUB]
   ]);;
   (* }}} *)
 
+let abs_1_prod = prove_by_refinement(
+  `!x y. abs x <= &1 /\ abs y <= &1 ==> abs (x * y) <= &1`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [REAL_ABS_MUL;REAL_ARITH `(x * y <= &1 <=> &0 <= &1 - x * y) /\ (&1 - x * y) = y * (&1-x) + x * (&1-y) + (&1 - x) * (&1-y)` ];
+REPEAT STRIP_TAC ;
+MATCH_MP_TAC (REAL_ARITH `&0 <= a /\ &0 <= b /\ &0 <= c ==> &0 <= a + b + c`);
+REPEAT ((TRY CONJ_TAC) THEN (TRY (MATCH_MP_TAC REAL_LE_MUL)) THEN (TRY ASM_REAL_ARITH_TAC))
+  ]);;
+  (* }}} *)
+
+let sloc2_ortho = prove_by_refinement(
+  `!(va:real^3) vb vc.  ~(coplanar {vec 0, va,vb,vc}) /\ (dihV (vec 0) vc va vb = pi / &2) 
+   ==>
+    (let bet = dihV (vec 0) vb vc va in
+     let alp = dihV (vec 0) va vb vc in
+     let t = cos (arcV (vec 0) vb vc) in
+       (cos alp = sin bet * t))`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+MP_TAC (SPECL [`(vec 0):real^3`;`vc:real^3`;`vb:real^3`;`va:real^3`] (INST_TYPE [(`:3`,`:N`)] Trigonometry2.NLVWBBW));
+REPEAT    LET_TAC;
+SUBGOAL_THEN  `~collinear {((vec 0):real^3), va , vc } /\  ~collinear {vec 0, va, vb} /\  ~collinear {vec 0, vc, vb}` ASSUME_TAC;
+ASM_MESON_TAC [NOT_COPLANAR_NOT_COLLINEAR;SET_RULE `{vec 0, (va:real^3),vb,vc } = {vec 0 ,va,vc,vb} /\ {vec 0,va,vb,vc } =  {vec 0 ,va,vb,vc}  /\  {vec 0,va,vb,vc } =  {vec 0 ,vc,vb,va}`  ];
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `al = pi/ &2` SUBST1_TAC;
+ASM_MESON_TAC [DIHV_SYM];
+REWRITE_TAC [SIN_PI2;COS_PI2;REAL_ARITH `&1 * x = x /\ &0 * x = &0 /\ x + &0 = x`];
+SUBGOAL_THEN `ga = alp:real` SUBST1_TAC;
+ASM_MESON_TAC [DIHV_SYM];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+SUBGOAL_THEN `be = bet:real` SUBST1_TAC;
+ASM_MESON_TAC [DIHV_SYM];
+SUBGOAL_THEN `t = cos c` SUBST1_TAC;
+ASM_MESON_TAC [Trigonometry2.ARC_SYM];
+REAL_ARITH_TAC 
+  ]);;
+  (* }}} *)
+
 let vol_solid_triangle_ortho = prove_by_refinement(
   `!(u:real^3) v w. ~(coplanar {vec 0, u , v, w}) /\
   ((w- u) dot v = &0) /\ ((w - u) dot u = &0) ==>
@@ -972,37 +1012,351 @@ let vol_solid_triangle_ortho = prove_by_refinement(
   `,
   (* {{{ proof *)
   [
-st/r,
-r,[vol_solid_triangle]
-REPEAT    LET_TAC
-r,[REAL_ARITH `&3 * x * &1 pow 3 / &3 = x`]
-sgth,`a231 = bet:real` SUBST1_TAC
-exp,"bet"
-exp,"a231"
-r,[DIHV_SYM]
-sgth,`~((u:real^3) = vec 0)` ASSUME_TAC
-st,
-elu0,
-r/a,[INSERT_INSERT;COPLANAR_3]
-sgth,`a123 = pi / &2` SUBST1_TAC
-exp,"a123"
-mmp,dih_dot
-r/a,[]
-
-XXD
-sgth,`asn (sin bet * t) = pi / & - acs( sin bet * t)` SUBST1_TAC
-  #
+REPEAT STRIP_TAC ;
+REWRITE_TAC [vol_solid_triangle];
+REPEAT    LET_TAC;
+REWRITE_TAC [REAL_ARITH `&3 * x * &1 pow 3 / &3 = x`];
+SUBGOAL_THEN `a231 = bet:real` SUBST1_TAC;
+EXPAND_TAC "bet";
+EXPAND_TAC "a231";
+REWRITE_TAC [DIHV_SYM];
+SUBGOAL_THEN `abs(sin bet * t) <= &1` ASSUME_TAC;
+MATCH_MP_TAC abs_1_prod;
+EXPAND_TAC "t";
+REWRITE_TAC [COS_BOUND;SIN_BOUND];
+SUBGOAL_THEN `~((u:real^3) = vec 0)` ASSUME_TAC;
+STRIP_TAC ;
+HASH_UNDISCH_TAC 5227 ;
+ASM_REWRITE_TAC [INSERT_INSERT;COPLANAR_3];
+SUBGOAL_THEN `a123 = pi / &2` SUBST1_TAC;
+EXPAND_TAC "a123";
+MATCH_MP_TAC dih_dot;
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `asn (sin bet * t) = pi / &2 - acs( sin bet * t)` SUBST1_TAC;
+MATCH_MP_TAC ASN_ACS;
+ASM_REWRITE_TAC [REAL_ARITH `-- &1 <= x /\ x <= &1 <=> abs x <= &1`];
+SUBGOAL_THEN `a312 = acs (sin bet * t)` (fun t -> SUBST1_TAC t THEN REAL_ARITH_TAC);
+EXPAND_TAC "a312";
+MATCH_MP_TAC COS_INJ_PI;
+ASM_SIMP_TAC [COS_ACS;ACS_BOUNDS;DIHV_RANGE;REAL_ARITH `abs y <= &1 ==> -- &1 <= y /\ y <= &1`];
+EXPAND_TAC "a312";
+MP_TAC (SPECL [`u:real^3`;`v:real^3`;`w:real^3`] dih_dot);
+ASM_REWRITE_TAC [];
+DISCH_TAC ;
+MP_TAC (SPECL [`w:real^3`;`v:real^3`;`u:real^3`] sloc2_ortho);
+ANTS_TAC;
+ASM_MESON_TAC [SET_RULE `{vec 0, (w:real^3), v ,u} = {vec 0,u,v,w}`;DIHV_SYM];
+REPEAT  LET_TAC;
+ASM_REWRITE_TAC [];
+ASM_MESON_TAC [DIHV_SYM]
   ]);;
   (* }}} *)
 
-searcht 5 [`pi`;`acs`;`asn`];; (* ASN_ACS *)
-type_of `INSERT`;;
-searcht 5 [`x INSERT (x INSERT y)`];;
-searcht 5 [`coplanar {a,b,c}`];;
-searcht 5 [`dihV a b c d = dihV a b d c`];;
-searcht 5 [`sol`;`x`];;
-searcht 3 [`vol_solid_triangle`];;
+
+(*
+(* Copied from  FATUGPD  *)
+let annulus_packing_finite = prove_by_refinement(
+ `! (S:real^3->bool). packing S /\ S SUBSET ball_annulus ==> FINITE S`,
+[
+(REPEAT STRIP_TAC);
+(SUBGOAL_THEN ` (S:real^3->bool) = S INTER ball (vec 0,&3 * h0)` ASSUME_TAC);
+(MATCH_MP_TAC (SET_RULE `! U V. U SUBSET ball_annulus /\ ball_annulus SUBSET V ==> (U = U INTER V)`));
+(ASM_SIMP_TAC[Pack_defs.ball_annulus;ball;cball;IN_DIFF;SUBSET;IN_ELIM_THM;Sphere.h0]);
+(REPEAT STRIP_TAC );
+(MATCH_MP_TAC (ARITH_RULE ` u <= &2 * #1.26 ==> u < &3 * #1.26`));
+(ASM_SIMP_TAC[]);
+(ONCE_ASM_REWRITE_TAC[]);
+(ASM_SIMP_TAC[Pack2.KIUMVTC]);]);;
+*)
+
+let inj_int_ball = Pack1.inj_map3;;
+
+let INJ_IMAGE = prove_by_refinement(
+  `!a b. INJ (f:A->B) a b ==> IMAGE f a SUBSET b`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [INJ;IMAGE;SUBSET;IN_ELIM_THM;IN];
+MESON_TAC []
+  ]);;
+  (* }}} *)
+
+let INJ_CARD = prove_by_refinement(
+  `!a b f. FINITE b /\ INJ (f:A->B) a b ==> (FINITE a /\ CARD a <= CARD b)`,
+  (* {{{ proof *)
+  [
+REPEAT GEN_TAC;
+STRIP_TAC ;
+SUBGOAL_THEN `FINITE (a:A->bool)` ASSUME_TAC;
+MATCH_MP_TAC (INST_TYPE [(`:B`,`:B`)]Misc_defs_and_lemmas.FINITE_INJ);
+ASM_MESON_TAC [];
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `CARD (IMAGE (f:A->B) a) <= CARD (b:B->bool)` ASSUME_TAC;
+MATCH_MP_TAC CARD_SUBSET;
+ASM_SIMP_TAC [INJ_IMAGE];
+SUBGOAL_THEN `CARD a = CARD (IMAGE (f:A->B) a)` (fun t->SUBST1_TAC t THEN ASM_REWRITE_TAC[]);
+MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+EXISTS_TAC `f:A->B`;
+ASM_REWRITE_TAC [BIJ;Misc_defs_and_lemmas.IMAGE_SURJ];
+HASH_UNDISCH_TAC 4678 ;
+REWRITE_TAC [INJ;IMAGE];
+SET_TAC[]
+  ]);;
+  (* }}} *)
+
+let card_packing_ball = prove_by_refinement(
+  `!r. (&0 <= r) ==> ?n. !(S:real^3->bool). 
+   packing S /\ S SUBSET (ball ((vec 0),r)) ==> (FINITE S /\ (CARD S) <= n)`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+ABBREV_TAC `r_int_ball = (sqrt (&8 * r pow 2 + &6))`;
+ABBREV_TAC `b = &4 / &3 * pi * (r_int_ball + sqrt (&3)) pow 3`;
+MP_TAC (SPEC `b:real` REAL_ARCH_SIMPLE);
+STRIP_TAC;
+EXISTS_TAC `n:num`;
+GEN_TAC ;
+STRIP_TAC ;
+MATCH_MP_TAC (MESON[REAL_LE_TRANS;REAL_OF_NUM_LE] `a /\ (&c <= b) /\ (b <= &n) ==> a /\ (c <= n)`);
+ASM_REWRITE_TAC[];
+MP_TAC (SPECL [`(vec 0):real^3`;`r:real`;`S:real^3->bool`] inj_int_ball);
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `S INTER ball (vec 0,r) = (S:real^3->bool)` SUBST1_TAC;
+HASH_UNDISCH_TAC 3742 ;
+BY(SET_TAC[]);
+MP_TAC (SPECL [`(vec 0):real^3`;`r_int_ball:real`] Vol1.WQZISRI);
+ANTS_TAC;
+EXPAND_TAC "r_int_ball";
+MATCH_MP_TAC SQRT_POS_LE;
+MATCH_MP_TAC (REAL_ARITH `&0 <= a ==> &0 <= &8 * a + &6`);
+REWRITE_TAC [REAL_LE_POW_2];
+REPEAT DISCH_TAC;
+SUBGOAL_THEN `FINITE (S:real^3->bool) /\ CARD S <= CARD (int_ball (vec 0) r_int_ball)` ASSUME_TAC;
+MATCH_MP_TAC INJ_CARD;
+EXISTS_TAC `map3 (vec 0)`;
+ASM_REWRITE_TAC [];
+ASM_REWRITE_TAC [];
+ASM_MESON_TAC [REAL_LE_TRANS;REAL_OF_NUM_LE]
+  ]);;
+  (* }}} *)
+
+let card_packing_annulus = prove_by_refinement(
+  `?n. !(S:real^3->bool). 
+   packing S /\ S SUBSET ball_annulus ==> (FINITE S /\ (CARD S) <= n)`,
+  (* {{{ proof *)
+  [
+SUBGOAL_THEN `ball_annulus SUBSET ball((vec 0),(&2 * h0 + &1))` ASSUME_TAC;
+REWRITE_TAC [Pack_defs.ball_annulus;cball;ball;SUBSET;DIFF;IN_ELIM_THM];
+REAL_ARITH_TAC ;
+MP_TAC (SPEC `&2 * h0 + &1` card_packing_ball);
+ANTS_TAC;
+REWRITE_TAC [Sphere.h0];
+REAL_ARITH_TAC ;
+REPEAT STRIP_TAC ;
+EXISTS_TAC `n:num`;
+GEN_TAC ;
+STRIP_TAC ;
+FIRST_X_ASSUM (MATCH_MP_TAC);
+ASM_MESON_TAC [SUBSET_TRANS]
+  ]);;
+  (* }}} *)
+
+let FINITE_MAX_EXISTS = prove_by_refinement(
+  `!(s:num->bool). ~(s = {}) /\ FINITE s ==>
+    (?a. (s a) /\ (!b. s b ==> (b <= a)))`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+MP_TAC (SPEC `(<):num->num->bool` (INST_TYPE [(`:num`,`:A`)]TOPOLOGICAL_SORT));
+ANTS_TAC;
+ARITH_TAC;
+REWRITE_TAC [HAS_SIZE];
+DISCH_THEN (MP_TAC o (SPECL [`CARD (s:num->bool)`;`(s:num->bool)`]));
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+EXISTS_TAC `(f:num->num) (CARD (s:num->bool))`;
+HASH_UNDISCH_TAC 3729 ;
+ABBREV_TAC `c = CARD (s:num->bool)`;
+      DISCH_THEN SUBST1_TAC;
+REWRITE_TAC [IMAGE;IN_ELIM_THM];
+CONJ_TAC;
+EXISTS_TAC `c:num`;
+REWRITE_TAC [IN_NUMSEG];
+ASM_MESON_TAC [ARITH_RULE `~(c = 0) ==> (1 <= c) /\ (c <= c)`;CARD_EQ_0];
+REPEAT STRIP_TAC ;
+HASH_RULE_TAC 6034 (REWRITE_RULE[ARITH_RULE `~((a:num) < b) <=> (b <= a)`]);
+ASM_REWRITE_TAC [];
+ASM_CASES_TAC `(x = c:num)`;
+ASM_REWRITE_TAC [];
+ARITH_TAC;
+  DISCH_THEN MATCH_MP_TAC;
+HASH_UNDISCH_TAC 3080 ;
+HASH_UNDISCH_TAC 2978 ;
+HASH_UNDISCH_TAC 8866 ;
+REWRITE_TAC [IN_NUMSEG];
+ASM_MESON_TAC [ARITH_RULE `~(c = 0) ==> (1 <= c) /\ (c <= c) /\ (~(x=c) /\ (x <= c) ==> x < c)`;CARD_EQ_0]
+  ]);;
+  (* }}} *)
+
+let NOT_EMPTY_IMAGE = prove
+( ` !(S:A -> bool) (f:A->B). ~( S = {}) ==> ~( IMAGE f S = {})`, SET_TAC[]);;
+
+let PACKING_INSERT = prove_by_refinement(
+  `!v S. packing S /\ ~(S v) /\ (!w. S w ==> (&2 <= dist(v,w))) ==> (packing (v INSERT S))`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC [Sphere.packing;INSERT;IN;IN_ELIM_THM];
+MESON_TAC [DIST_SYM]
+  ]);;
+  (* }}} *)
+
+let weak_saturation = prove_by_refinement(
+  `!W S r. &2 <= r /\ r <= &2 * h0 /\ S SUBSET W /\ packing W /\ W SUBSET ball_annulus 
+    /\ (!v w. S v /\ W w /\ dist(v,w) < r ==> (v = w)  ) ==>
+    (?V. V SUBSET ball_annulus /\ packing V /\ 
+      weakly_saturated V r (&2 * h0) /\ FINITE V /\ (W SUBSET V) /\
+       (!v w. S v /\ V w /\ dist(v,w)< r ==> (v = w)))
+       `,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC ;
+ABBREV_TAC `WW = { V | W SUBSET V /\ packing V /\ V SUBSET ball_annulus /\ (!v w. S v /\ V w /\ dist(v,w) < r ==> (v = w) ) }`;
+SUBGOAL_THEN `(WW (W:real^3->bool)):bool` ASSUME_TAC;
+EXPAND_TAC "WW";
+REWRITE_TAC [IN_ELIM_THM];
+ASM_REWRITE_TAC [SUBSET_REFL];
+SUBGOAL_THEN `?n. !V. ((WW (V:real^3->bool)):bool) ==> FINITE V /\  CARD V <= n` (fun t -> MP_TAC t THEN STRIP_TAC);
+EXPAND_TAC "WW";
+REWRITE_TAC [IN_ELIM_THM];
+MP_TAC card_packing_annulus;
+STRIP_TAC ;
+EXISTS_TAC `n:num`;
+GEN_TAC ;
+ASM_MESON_TAC [];
+SUBGOAL_THEN `FINITE (IMAGE CARD (WW:(real^3->bool)->bool))` (MP_TAC);
+MATCH_MP_TAC FINITE_SUBSET;
+EXISTS_TAC `{ k | k <= (n:num)}`;
+REWRITE_TAC [FINITE_NUMSEG_LE];
+REWRITE_TAC [IMAGE;SUBSET;IN_ELIM_THM;IN];
+ASM_MESON_TAC [];
+DISCH_TAC ;
+SUBGOAL_THEN `~(IMAGE CARD (WW:(real^3->bool)->bool) = {})` ASSUME_TAC;
+MATCH_MP_TAC NOT_EMPTY_IMAGE;
+REWRITE_TAC [GSYM MEMBER_NOT_EMPTY;IN];
+ASM_MESON_TAC [];
+SUBGOAL_THEN `(?a. ((IMAGE CARD (WW:(real^3->bool)->bool)) a) /\ (!b. (IMAGE CARD WW) b ==> (b <= a)))` MP_TAC;
+MATCH_MP_TAC FINITE_MAX_EXISTS;
+ASM_REWRITE_TAC [ETA_AX];
+REWRITE_TAC [IMAGE;IN_ELIM_THM;IN];
+REPEAT STRIP_TAC ;
+EXISTS_TAC `x:real^3->bool`;
+SUBGOAL_THEN `W SUBSET x /\ x SUBSET ball_annulus /\ packing x /\ FINITE x /\ (!(v:real^3) w. S v /\ x w /\ dist (v,w) < r ==> v = w)` (fun t -> MP_TAC t THEN STRIP_TAC);
+ASM_SIMP_TAC [];
+HASH_UNDISCH_TAC 2672 ;
+EXPAND_TAC "WW";
+REWRITE_TAC [IN_ELIM_THM;IN];
+MESON_TAC [];
+ASM_REWRITE_TAC [Tarjjuw.weakly_saturated];
+REPEAT STRIP_TAC ;
+REWRITE_TAC [IN];
+ASM_CASES_TAC `(x (v:real^3)):bool`;
+EXISTS_TAC `v:real^3`;
+ASM_REWRITE_TAC [];
+CONJ_TAC ;
+DISCH_TAC ;
+HASH_UNDISCH_TAC 7486 ;
+ASM_REWRITE_TAC [DIST_REFL];
+REAL_ARITH_TAC ;
+ASM_REWRITE_TAC [DIST_REFL];
+ASM_REAL_ARITH_TAC;
+MATCH_MP_TAC (MESON[] `( (!u. x u ==> ~(b u)) ==> F) ==> (?u. x u /\ b u)`);
+DISCH_TAC ;
+ABBREV_TAC `y = (v:real^3) INSERT x`;
+SUBGOAL_THEN `!u. x (u:real^3) ==> r <= dist (u,v)` ASSUME_TAC;
+REPEAT STRIP_TAC ;
+HASH_RULE_TAC 3271 (SPEC `u:real^3`);
+ASM_REWRITE_TAC [DE_MORGAN_THM];
+DISCH_THEN DISJ_CASES_TAC;
+HASH_UNDISCH_TAC 1666 ;
+HASH_UNDISCH_TAC 7625 ;
+EXPAND_TAC "u";
+REWRITE_TAC [SUBSET;Pack_defs.ball_annulus;DIFF;IN;ball;IN_ELIM_THM];
+MESON_TAC [DIST_REFL;REAL_ARITH `(&0 < &2)`];
+ASM_REAL_ARITH_TAC ;
+ASM_CASES_TAC `CARD (y:(real^3->bool)) <= CARD (x:(real^3->bool))`;
+HASH_UNDISCH_TAC 3148 ;
+HASH_UNDISCH_TAC 7827 ;
+EXPAND_TAC "y";
+HASH_UNDISCH_TAC 4093 ;
+SIMP_TAC [CARD_CLAUSES;IN];
+STRIP_TAC ;
+STRIP_TAC ;
+MESON_TAC [Hypermap.LT_PLUS;ARITH_RULE `~(x <= y) <=> y < (x:num)`];
+HASH_UNDISCH_TAC 9017 ;
+HASH_UNDISCH_TAC 5378 ;
+ASM_REWRITE_TAC [];
+DISCH_THEN (MATCH_MP_TAC);
+EXISTS_TAC `y:real^3->bool`;
+REWRITE_TAC [];
+EXPAND_TAC "WW";
+REWRITE_TAC [IN_ELIM_THM];
+SUBGOAL_THEN `!w. (y w <=> (x w \/ (w = (v:real^3))))` ASSUME_TAC;
+GEN_TAC ;
+HASH_UNDISCH_TAC 3490 ;
+ONCE_REWRITE_TAC [FUN_EQ_THM];
+REWRITE_TAC [INSERT;IN_ELIM_THM;IN];
+MESON_TAC [];
+SUBGOAL_THEN `W SUBSET (y:real^3->bool)` ASSUME_TAC;
+HASH_UNDISCH_TAC 7323 ;
+HASH_UNDISCH_TAC 646 ;
+REWRITE_TAC [SUBSET;IN];
+MESON_TAC [];
+ASM_REWRITE_TAC [];
+SUBGOAL_THEN `packing (y:real^3->bool)` ASSUME_TAC;
+EXPAND_TAC "y";
+MATCH_MP_TAC PACKING_INSERT;
+ASM_REWRITE_TAC [];
+REPEAT STRIP_TAC ;
+MATCH_MP_TAC REAL_LE_TRANS;
+EXISTS_TAC `r:real`;
+ASM_SIMP_TAC [];
+ONCE_REWRITE_TAC [DIST_SYM];
+ASM_SIMP_TAC [];
+ASM_REWRITE_TAC [];
+CONJ_TAC ;
+EXPAND_TAC "y";
+ASM_REWRITE_TAC [INSERT_SUBSET];
+ASM_REWRITE_TAC [Pack_defs.ball_annulus;IN;DIFF;cball;ball;IN_ELIM_THM];
+ASM_REAL_ARITH_TAC ;
+REPEAT STRIP_TAC ;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC [];
+HASH_UNDISCH_TAC 8971 ;
+ASM_REWRITE_TAC [];
+HASH_RULE_TAC 7974 (SPEC `v':real^3`);
+REWRITE_TAC [REAL_ARITH `x <= y <=> ~(y < x)`];
+HASH_UNDISCH_TAC 7323 ;
+HASH_UNDISCH_TAC 5872 ;
+HASH_UNDISCH_TAC 5644 ;
+REWRITE_TAC [SUBSET;IN;IN_ELIM_THM];
+MESON_TAC []
+  ]);;
+  (* }}} *)
+
+
+
 (* TARJJUW *)
+searcht 5 [`packing`;`FINITE`];;
+searcht 15 [`ball_annulus`];;
+searcht 5 [`sup`;`FINITE`];;
+weakly_saturated;;
+ball_annulus;;
+searcht 5 [`weakly_saturated`];;
+type_of `ball_annulus`;;
+def_of_regexp "ball_annulus";;
+constant_of_regexp "ball_annulus";;
+def_of_regexp "ball_annul";;
+Tarjjuw.TARJJUW;;
+search [name "TARJ"];;
 apropos();;
 constant_of_regexp "TRI";;
 def_of_regexp "sol$";;

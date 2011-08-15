@@ -1,0 +1,286 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Counting Spheres                                                             *)
+(* Chapter: packing                                                           *)
+(* Author: Thomas C. Hales                                  *)
+(* Date: 2011-06-18                                                           *)
+(* ========================================================================== *)
+
+(* YSSKQOY *)
+
+(* YSSKQOY *)
+
+module Ysskqoy = struct
+
+(* great study example. It is an obvious conseq. of 
+  Trigonometry1.ACS_ARCLENGTH, but a direct match doesn't work *)
+
+let arclength2 = prove_by_refinement(
+  `!h.  (&1 <= h /\ h <= h0) ==> arclength (&2) (&2 * h) (&2) = acs(h / &2)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  MP_TAC (SPECL [`&2`;`&2 * h`;`&2`] Trigonometry1.ACS_ARCLENGTH);
+  BRANCH_A [
+    ANTS_TAC ;
+    MP_TAC Sphere.h0;
+    ASM_REAL_ARITH_TAC;
+  ];
+  DISCH_THEN SUBST1_TAC;
+  AP_TERM_TAC;
+  UNDISCH_TAC `&1 <= h`;
+  BY (CONV_TAC REAL_FIELD);
+  ]);;
+  (* }}} *)
+
+let yssk_reduction = prove_by_refinement(
+  `(!a1 a2 b1 b2. (&2 <= a1) /\ (a1 <= a2) /\ (a2 <= &2 * h0) /\
+      (&2 <= b1 /\ b1 <= b2 /\ b2 <= &2 * h0) ==>
+     (&0 <= arclength a2 b2 (&2) - arclength a1 b2 (&2) - arclength a2 b1 (&2) +
+     arclength a1 b1 (&2))) ==>  
+    (!h h'. (&1 <= h) /\ (h <= h0) /\ (&1 <= h') /\ (h' <= h0) ==>
+    acs (h/ &2) + acs (h'/ &2) - pi/ &3 <= arclength (&2 * h) (&2 * h') (&2))`,
+  (* {{{ proof *)
+  [
+    REPEAT STRIP_TAC;
+    FIRST_X_ASSUM (fun t -> MP_TAC(SPECL[`&2`;`&2 * h`;`&2`;`&2 * h'`] t));
+    BRANCH_A [
+      ANTS_TAC ;
+      MP_TAC Sphere.h0;
+      ASM_REAL_ARITH_TAC;
+    ];
+    MATCH_MP_TAC (REAL_ARITH ` (b = b') /\ (c = c') /\ (d = d') ==> ((&0 <= a - b - c +d) ==> c' + b' - d' <= a)`);
+    SUBST1_TAC (SPECL[`&2 * h`;`&2`;`&2`] Arc_properties.arc_sym);
+    ASM_SIMP_TAC [arclength2;Arc_properties.arc_sym;];
+    MP_TAC (SPEC `&1` arclength2);
+    BY(REWRITE_TAC[REAL_ARITH `&2 * &1 = &2`;Nonlinear_lemma.ACS_2;Sphere.h0;REAL_ARITH `&1 <= &1 /\ &1 <= #1.26`]);
+]);;
+  (* }}} *)
+
+ let TRI_UPS_X_STRICT_POS = prove
+   (`!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c < a + b) /\ (a < b + c) /\ (b < c + a) ==>
+     &0 < ups_x (a * a) (b * b) (c * c)`,
+    REPEAT STRIP_TAC THEN 
+      REWRITE_TAC [Trigonometry1.UPS_X_SQUARES] THEN
+      BY(REPEAT (MATCH_MP_TAC REAL_LT_MUL ORELSE CONJ_TAC ORELSE 
+		ASM_REAL_ARITH_TAC)));;
+
+ let ups_x_pos = prove_by_refinement(
+  `!a b. &2 <= a /\ a <= #2.52 /\ &2 <= b /\ b <= #2.52 ==> &0 < ups_x (a pow 2) (b pow 2) (&4)`,
+  (* {{{ proof *)
+  [
+    REPEAT STRIP_TAC;
+    REWRITE_TAC[REAL_ARITH `&4 = &2 * &2 /\ a pow 2 = a*a`];
+    MATCH_MP_TAC TRI_UPS_X_STRICT_POS;
+    BY(ASM_REAL_ARITH_TAC);
+  ]);;
+  (* }}} *)
+
+(*
+  let expand_poly_tac = REWRITE_TAC[REAL_ADD_LDISTRIB;REAL_ADD_RDISTRIB;REAL_ARITH `-- -- x = x /\ -- (x + y ) = -- x - y /\ -- (x - y) = y - x /\ (a * b) * c = a * b * c /\ x - (u - v) = x + v - u /\ (x - y) - z = x - y - z /\ (x - y) * z = x * z - y * z /\ (-- (a * b) = (-- a) * b) /\ (a + b) + c = a + b + c /\ x*(y-z) = x * y - x * z `;REAL_POW_MUL];;
+*)
+
+
+
+let arc_derivative = prove_by_refinement(
+  `!a b.  (&2 <= a /\ a <= #2.52) /\ &2 <= b /\ b <= #2.52
+         ==>( ((\x. arclength x b (&2)) has_real_derivative
+              (-- (&4 + a pow 2 - b pow 2) / (a * sqrt(ups_x (a pow 2) (b pow 2) (&4)) )))
+             (atreal a within real_interval [&2,#2.52]))`,
+  (* {{{ proof *)
+  [
+    REPEAT STRIP_TAC;
+    MP_TAC (SPECL [`a:real`;`b:real`] Arc_properties.arc_derivative);
+    ASM_REWRITE_TAC[];
+    FORCE_MATCH;
+    BRANCH_A [
+      (   SUBGOAL_THEN `(&0 < a) /\ (&0 < b) /\ &0 < ups_x (a pow 2) (b pow 2) (&4)` ASSUME_TAC) ;
+      (   REPEAT (CONJ_TAC ORELSE MATCH_MP_TAC ups_x_pos ORELSE ASM_REAL_ARITH_TAC));
+    ];
+    SUBGOAL_THEN `(&1 - ((a * a + b * b - &2 * &2) / (&2 * a * b)) pow 2) = (inv (&2 * a * b)) pow 2 * (ups_x (a pow 2) (b pow 2) (&4)) ` SUBST1_TAC;
+    REWRITE_TAC[Sphere.ups_x];
+    FIRST_X_ASSUM MP_TAC;
+    BY(CONV_TAC REAL_FIELD);
+    BRANCH_A [
+      SUBGOAL_THEN `((a + a) * &2 * a * b - (a * a + b * b - &2 * &2) * &2 * b) = ( &2 * b * (&4 + a pow 2 - b pow 2))` SUBST1_TAC;
+      BY (   CONV_TAC REAL_FIELD);
+    ];
+    MP_TAC (SPECL[`inv(&2 * a * b)`;`ups_x (a pow 2) (b pow 2) (&4)`] (GSYM Trigonometry1.SQRT_MUL_L));
+    BRANCH_A [
+      ANTS_TAC;
+      REWRITE_TAC[REAL_LE_INV_EQ] THEN 
+	   BY(REPEAT (CONJ_TAC ORELSE MATCH_MP_TAC REAL_LE_MUL ORELSE ASM_REAL_ARITH_TAC));
+    ];
+    DISCH_THEN SUBST1_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    BY(CONV_TAC REAL_FIELD);
+  ]);;
+  (* }}} *)
+
+
+(*  implement a derivative tactic that automates most of arc_derivative2 proof:
+
+snd(top_realgoal());;
+let (h1,[f;f';r]) = strip_comb (snd(top_realgoal()));;
+let _ = (h1 = `(has_real_derivative)`) or 
+  failwith "form 'f has_real_derivative f' atreal b within s' expected." ;;
+let (h2,[atb;s1]) = strip_comb r;;
+let (h3,b) = dest_comb atb;;
+
+let HAS_REAL_DERIVATIVE_WITHIN_TAC =
+  fun (asl,w) ->;;
+
+*)
+
+let arc_derivative2 = prove_by_refinement(
+  `!a b.  (&2 <= a /\ a <= #2.52) /\ &2 <= b /\ b <= #2.52
+  ==>( ((\x. -- (&4 + a pow 2 - x pow 2)/(a * sqrt(ups_x (a pow 2) (x pow 2) (&4)))) 
+	  has_real_derivative
+              (&32 * a * b /( (sqrt (ups_x (a pow 2) (b pow 2) (&4))) pow 3)))
+             (atreal b within real_interval [&2,#2.52]))`,
+  (* {{{ proof *)
+  [
+    REPEAT STRIP_TAC;
+    REWRITE_TAC[Sphere.ups_x];
+    MP_TAC (REWRITE_RULE[Calc_derivative.derived_form] (Calc_derivative.differentiate `(\x. --(&4 + a pow 2 - x pow 2) /       (a *        sqrt        (--(a pow 2) * a pow 2 - x pow 2 * x pow 2 - &4 * &4 +         &2 * a pow 2 * &4 +         &2 * a pow 2 * x pow 2 +         &2 * x pow 2 * &4)))` `b:real` `real_interval [&2,#2.52]`));
+    REWRITE_TAC[GSYM Sphere.ups_x];
+    BRANCH_A [
+      SUBGOAL_THEN `&0 < ups_x (a pow 2) (b pow 2) (&4) ` ASSUME_TAC;
+      REWRITE_TAC[REAL_ARITH `a pow 2 = a * a /\ &4 = &2 * &2`];
+      MATCH_MP_TAC TRI_UPS_X_STRICT_POS;
+      BY(ASM_REAL_ARITH_TAC);
+    ];
+    ASM_REWRITE_TAC[REAL_ENTIRE;TAUT `~(a\/b) <=> ~a /\ ~b`];
+    BRANCH_A [
+      SUBGOAL_THEN `~(sqrt( ups_x (a pow 2) (b pow 2) (&4)) = &0) ` ASSUME_TAC;
+      ASM_SIMP_TAC[SQRT_EQ_0;REAL_ARITH `&0 < u ==> &0 <= u`];
+      BY(ASM_REAL_ARITH_TAC);
+    ];
+    ASM_REWRITE_TAC[];
+    BRANCH_A [
+      ANTS_TAC;
+      (FIRST_X_ASSUM (fun t -> MP_TAC t THEN REAL_ARITH_TAC));
+    ];
+    FORCE_MATCH;    
+    ABBREV_TAC `c = ups_x (a pow 2) (b pow 2) (&4)`;  
+    (fun (asl,w) -> MATCH_MP_TAC (Calc_derivative.rational_identity w) (asl,w));
+    ASM_SIMP_TAC[REAL_ARITH `~(&2 = &0) /\ (&2 <= a ==> ~(a = &0))`];
+    BRANCH_A [
+      SUBGOAL_THEN `sqrt c pow 2 = ups_x (a pow 2) (b pow 2) (&4)` MP_TAC;
+      EXPAND_TAC "c";
+      MATCH_MP_TAC SQRT_POW_2;
+      BY(ASM_MESON_TAC[REAL_ARITH `&0 < c ==> &0 <= c`])
+    ];
+    ABBREV_TAC `d = sqrt c`;
+    REWRITE_TAC[Sphere.ups_x];
+    BY(CONV_TAC REAL_RING);
+  ]);;
+  (* }}} *)
+
+(* This is a good candidate for automation, long but trivial *)
+
+let arc_length2_increasing = prove_by_refinement(
+  `!a b1 b2.   (&2 <= a /\ a <= #2.52) /\ &2 <= b1 /\ b1 <= #2.52 /\ &2 <= b2 /\ b2 <= #2.52 /\ b1 <= b2 ==> 
+  let fa = (\x. -- (&4 + a pow 2 - x pow 2)/(a * sqrt(ups_x (a pow 2) (x pow 2) (&4))))  in
+    (
+      fa b1 <= fa b2
+    )`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+    LET_TAC;
+    ABBREV_TAC `fa' =  \x. (&32 * a * x /( (sqrt (ups_x (a pow 2) (x pow 2) (&4))) pow 3))`;
+  MP_TAC (SPECL[`fa:real->real`;`fa':real->real`;`b1:real`;`b2:real`] REAL_MVT_VERY_SIMPLE);
+  ASM_REWRITE_TAC[IN_ELIM_THM;IN;];
+  ANTS_TAC;
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_WITHIN_SUBSET;
+  EXISTS_TAC `real_interval [&2, #2.52]`;
+  CONJ_TAC;
+  EXPAND_TAC "fa";
+  EXPAND_TAC "fa'";
+  MATCH_MP_TAC arc_derivative2;
+  REPEAT (POP_ASSUM MP_TAC) THEN REWRITE_TAC[real_interval;IN_ELIM_THM];
+  REAL_ARITH_TAC;
+  REWRITE_TAC[real_interval;SUBSET;IN_ELIM_THM];
+  GEN_TAC;
+  ASM_REAL_ARITH_TAC;
+  REWRITE_TAC[real_interval;IN_ELIM_THM];
+  REPEAT STRIP_TAC;
+  ONCE_REWRITE_TAC[REAL_ARITH `(x <= y) = (&0 <= y - x)`];
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LE_MUL;
+  CONJ_TAC THENL [ALL_TAC;ASM_MESON_TAC[REAL_ARITH `x <= y ==> &0 <= y -x`]];
+  EXPAND_TAC "fa'";
+  REWRITE_TAC [real_div];
+  REPEAT ((MATCH_MP_TAC REAL_LE_MUL) ORELSE CONJ_TAC ORELSE ASM_REAL_ARITH_TAC);
+  REWRITE_TAC[REAL_LE_INV_EQ];
+  MATCH_MP_TAC REAL_POW_LE;
+  MATCH_MP_TAC SQRT_POS_LE;
+  REWRITE_TAC[REAL_ARITH `a pow 2 = a*a /\ &4 = &2 * &2`];
+  MATCH_MP_TAC Trigonometry1.TRI_UPS_X_POS;
+  ASM_REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let arc_length1_increasing = prove_by_refinement(
+  `!a1 a2 b1 b2. (&2 <= a1) /\ (a1 <= a2) /\ (a2 <= #2.52) /\
+      (&2 <= b1 /\ b1 <= b2 /\ b2 <= #2.52) ==>
+    (let f = \x. arclength x b2 (&2) - arclength x b1 (&2) in
+    (f a1 <= f a2))`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+    LET_TAC;
+    ABBREV_TAC `fa = \b a.  (-- (&4 + a pow 2 - b pow 2) / (a * sqrt(ups_x (a pow 2) (b pow 2) (&4)) ))`;
+    MP_TAC (SPECL [`f:real->real`;`\(a:real). (((fa:real->real->real) b2 a - fa b1 a):real)`;`a1:real`;`a2:real`] REAL_MVT_VERY_SIMPLE);
+    ASM_REWRITE_TAC[IN;IN_ELIM_THM];
+    (* BRANCH will go 3 deep *)
+    ANTS_TAC;
+    REPEAT STRIP_TAC;
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_WITHIN_SUBSET;
+  EXISTS_TAC `real_interval [&2, #2.52]`;
+  CONJ_TAC;
+  EXPAND_TAC "f";
+    MATCH_MP_TAC HAS_REAL_DERIVATIVE_SUB;
+    EXPAND_TAC "fa";
+    CONJ_TAC THEN MATCH_MP_TAC arc_derivative THEN FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[IN_ELIM_THM;real_interval] THEN (ASM_REAL_ARITH_TAC);
+    REWRITE_TAC[SUBSET;real_interval;IN_ELIM_THM];
+    ASM_REAL_ARITH_TAC;
+   REWRITE_TAC[SUBSET;real_interval;IN_ELIM_THM];
+   REPEAT STRIP_TAC;
+   ONCE_REWRITE_TAC[REAL_ARITH `x <= y <=> &0 <= y - x`];
+   ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LE_MUL;
+  CONJ_TAC THENL[ALL_TAC;UNDISCH_TAC `a1 <= a2` THEN REAL_ARITH_TAC];
+  MP_TAC (SPECL[`x:real`;`b1:real`;`b2:real`] arc_length2_increasing);
+  LET_TAC;
+  EXPAND_TAC "fa'";
+  EXPAND_TAC "fa";
+  ANTS_TAC;
+  ASM_REAL_ARITH_TAC;
+ REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let YSSKQOY= prove_by_refinement(
+  `  (!h h'. (&1 <= h) /\ (h <= h0) /\ (&1 <= h') /\ (h' <= h0) ==>
+    acs (h/ &2) + acs (h'/ &2) - pi/ &3 <= arclength (&2 * h) (&2 * h') (&2))`,
+  (* {{{ proof *)
+  [
+    MATCH_MP_TAC yssk_reduction;
+    REPEAT STRIP_TAC;
+    MP_TAC (SPECL[`a1:real`;`a2:real`;`b1:real`;`b2:real` ] arc_length1_increasing);
+    LET_TAC;
+    EXPAND_TAC "f";
+    ASM_REWRITE_TAC[];
+    BRANCH_A [
+      ANTS_TAC;    
+      MP_TAC Sphere.h0;
+      ASM_REAL_ARITH_TAC;
+    ];
+    REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+ end;;

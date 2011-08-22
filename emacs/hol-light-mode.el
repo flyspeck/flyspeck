@@ -318,6 +318,11 @@
 	   (replace-regexp-in-string "\\\\" "\\\\\\\\"   
 				     (hol-light-get-line))) "\")")))
 
+(defun hol-light-abbrev-tactic-newline()
+  (interactive)
+  (hol-light-abbrev-tactic-line)
+  (forward-line 1))
+
 
 
 (defun hol-light-tactic-newline()
@@ -403,7 +408,7 @@
     (local-set-key [(meta return)] 'hol-light-seval-line)
     (local-set-key [(control return)] 'hol-light-seval-region)
     (local-set-key [(control meta return)] 'hol-light-seval-newline)
-    (local-set-key [(shift return)] 'hol-light-abbrev-tactic-line)
+    (local-set-key [(shift return)] 'hol-light-abbrev-tactic-newline)
    
     (local-set-key "\C-fl" 'folding-toggle-enter-exit)
     (local-set-key "\C-f\C-l" 'folding-toggle-show-hide)

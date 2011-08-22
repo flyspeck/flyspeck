@@ -236,8 +236,10 @@ let tactic_list =  (help_grep "TAC$");;
 
 let then_list =  (help_grep "THEN");;
 
+let tactic_wordlist = ref ["REPEAT";"POP_ASSUM";"FIRST_X_ASSUM";"FIRST_ASSUM";"fun";"REAL_ARITH";"ARITH_RULE";"TAUT"] ;;
+
 let tactic_counts = sort (fun (_,a) (_,b) -> (a > b)) 
-  (filter (fun (a,_) -> mem a  (["REPEAT";"POP_ASSUM";"FIRST_X_ASSUM";"FIRST_ASSUM"] @ tactic_list @ then_list)) word_count_list);;
+  (filter (fun (a,_) -> mem a  (!tactic_wordlist @ tactic_list @ then_list)) word_count_list);;
 
 
 (* ========================================================================== *)
@@ -290,9 +292,19 @@ let eval_tactic  =
     let _ = proof_record := Tax (s,t)::!proof_record in
       v;;
 
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let string_of_frees t = 
+  let u =  (map (fst o dest_var) o frees) t in
+    (unsplit " " I) u;;
+
 let eval_goal t = 
-  let _ = proof_record := Gax t::!proof_record in
-    print_goalstack (Hol_pervasives.g(t));;
+  let _ = print_goalstack (Hol_pervasives.g(t));
+    proof_record := Gax t::!proof_record;
+    warn (has_stv t)  "?type in goal" in
+    ();;
 
 let eval_back () = 
   let _ = proof_record := Bax::!proof_record in Hol_pervasives.b();;
@@ -314,7 +326,16 @@ let rec strs_of_proof_records skip buf  = function
 
 let string_of_proof () = 
   let ss = strs_of_proof_records 0 [] !proof_record in
-    "\n[\n"^unsplit ";\n" I (ss) ^"\n]\n";;
+    "\n[\n  "^unsplit ";\n  " I (ss) ^"\n]\n";;
+
+let rec split_proof_record acc cur = function
+  | [] -> if (List.length cur > 0) then acc @[cur] else acc
+  | Gax t as a :: xs -> 
+      let acc' = if (List.length cur > 0) then  acc @ [cur] else acc in
+	split_proof_record acc' [a] xs
+  | a :: xs -> split_proof_record acc (cur @ [a]) xs;;
+
+split_proof_record [] [] (!proof_record);;
 
 (*
 print_string (string_of_proof());;
@@ -372,11 +393,7 @@ let frees_of_goal (asl,w) =
   let varl = List.flatten (map frees tms) in
     map (fun t -> (fst (dest_var t), t)) varl;;
 
-let has_stv t =
-  let typ = (type_vars_in_term t) in
-  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
-
-let gtype_g (asl,w) tm = 
+let env (asl,w) tm = 
   let gls = frees_of_goal (asl,w) in
   let varl = filter has_stv (setify(frees tm)) in
   let svarl = map (fun t-> (fst(dest_var t),t)) varl in
@@ -385,15 +402,24 @@ let gtype_g (asl,w) tm =
   let tyassoc = List.fold_left fn [] svarl in
      (instantiate ([],[],tyassoc)) tm ;;
 
-let gtyp (ttac:term->tactic) tm (asl,w) = ttac (gtype_g (asl,w) tm) (asl,w);;
+let envl (asl,w) tml = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify (List.flatten(map frees tml))) in
+  let svarl = setify(map (fun t-> (fst(dest_var t),t)) varl) in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     map (instantiate ([],[],tyassoc)) tml ;;
+
+let gtyp (ttac:term->tactic) tm (asl,w) = ttac (env (asl,w) tm) (asl,w);;
 
 let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
-   ttacl (map (gtype_g (asl,w)) tml) (asl,w);;
+   ttacl (map (env (asl,w)) tml) (asl,w);;
+
 
 let GEXISTS_TAC = gtyp EXISTS_TAC;;
 
-let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (gtype_g (asl,w) t) ttac (asl,w);;
-
+let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (env (asl,w) t) ttac (asl,w);;
 
 (* ========================================================================== *)
 (* TACTIC                                              *)
@@ -448,7 +474,18 @@ let TYPE_THEN = Tactics_jordan.TYPE_THEN;;
 
 let TYPEL_THEN = Tactics_jordan.TYPEL_THEN;;
 
+let (EXISTSv_TAC :string -> tactic) = 
+   fun s (asl,g) ->
+     let (v,_) = dest_binder "?" g in 
+     let (_,ty) = dest_var v in
+       EXISTS_TAC (mk_var(s,ty)) (asl,g);;
 
+(* weak version doesn't do conj *)
+
+let (WEAK_STRIP_TAC: tactic) =
+  fun g ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) STRIP_ASSUME_TAC g
+    with Failure _ -> failwith "STRIP_TAC";;
 
 
 (* working with hashed assumptions *)
@@ -610,12 +647,18 @@ let rewrites _ =
 
 
 let tactic_abbreviations = ref [
+  ("fun","fun");
+  ("then","THEN");
+  ("real","REAL_ARITH_TAC");
   ("se","SELECT_TAC");
-  ("@","SELECT_TAC");
   ("if","COND_CASES_TAC");
   ("cc","COND_CASES_TAC");
   ("r","REWRITE_TAC");
   ("mp","MP_TAC");
+("ra","REAL_ARITH");
+("aru","ARITH_RULE");
+("field","REAL_FIELD");
+("fieldt","(CONV_TAC REAL_FIELD)");
 ("ar","ASM_REWRITE_TAC");
 ("hc","HYP_CONJ_TAC");
 ("rt/a","ASM_REWRITE_TAC");
@@ -623,8 +666,10 @@ let tactic_abbreviations = ref [
 ("r/o","ONCE_REWRITE_TAC");
 ("rt/o","ONCE_REWRITE_TAC");
 ("mmp","MATCH_MP_TAC");
-("st","STRIP_TAC");
-("st/r","REPEAT STRIP_TAC");
+("st","WEAK_STRIP_TAC");
+("st/r","REPEAT WEAK_STRIP_TAC");
+("str","STRIP_TAC");
+("str/r","REPEAT STRIP_TAC");
 ("e","EXISTS_TAC");
 ("m","MESON_TAC");
 ("mt/a","ASM_MESON_TAC");
@@ -634,9 +679,6 @@ let tactic_abbreviations = ref [
 ("a","ASSUME_TAC");
 ("g","GEN_TAC");
 ("g/r","REPEAT GEN_TAC");
-("!","GEN_TAC");
-("?","EXISTS_TAC");
-("/\\","CONJ_TAC");
 ("sc","SUBCONJ_TAC");
 ("su","SUBST1_TAC");
 ("si","SIMP_TAC");
@@ -647,15 +689,93 @@ let tactic_abbreviations = ref [
 ("an","ANTS_TAC");
 ("le","LET_TAC");
 ("l","LET_TAC");
-("ra","REAL_ARITH_TAC");
+("rat","REAL_ARITH_TAC");
 ("p","POP_ASSUM");
 ("p/r","REPEAT POP_ASSUM");
+  ("@","SELECT_TAC");
+("?","EXISTS_TAC");
+("?v","EXISTSv_TAC");
+("/\\","CONJ_TAC");
+("!","GEN_TAC");
 ];;
+
+let abbrev u = (tactic_abbreviations:= (u::!tactic_abbreviations));;
+
+let unnabrev s = (tactic_abbreviations:= (filter (fun (s',_) ->  (s <> s')) !tactic_abbreviations));;
+
+abbrev ("by","BY");;
+
+type mtoken =
+       | M_comment
+       | M_string of string
+       | M_hol_term of string
+        | M_semicolon
+	| M_white of string
+	| M_text of string
+	| M_lparen
+	| M_rparen
+       | M_env of int
+	    (* not implemented : *)
+      | M_local of string
+       | M_asm of int ;; 
+
+let some_look p =
+  function
+      [] -> raise Noparse
+    | [_] -> raise Noparse
+    | (h1::h2::t) -> if p (h1,h2) then (h1,h2::t) else raise Noparse;;
+
+let rec m_lex  = 
+  let stringchar =
+      some (fun i -> i <> "\"") in
+  let string = a "\"" ++ many stringchar ++ a "\"" >>
+        (fun ((_,s),_) -> M_string (implode s)) in
+  let hol_term_char =
+      some (fun i -> i <> "`") in
+  let hol_term = a "`" ++ many hol_term_char ++ a "`" >>
+        (fun ((_,s),_) -> M_hol_term (implode s)) in
+  let nonendcomment = (some_look (fun (h1,h2) -> h1 <> "*" or h2 <> ")")) in  (* comment nesting unrecognized *)
+  let comment = a "(" ++ (a "*") ++ many nonendcomment ++ a "*" ++ a ")" 
+    >> (fun _ -> M_comment) in
+  let semi = a ";" >> (fun _ -> M_semicolon) in
+  let textchar = some (fun i -> not (mem i (explode " %\t\n;()`\""))) in
+  let text = atleast 1 (textchar) >> (fun s -> M_text (implode s)) in
+  let numerical =  (some (fun i -> (mem i (explode "0123456789")))) in
+  let asm = a "_" ++ atleast 1 numerical >> (fun (_,s) -> M_asm (int_of_string (implode s))) in
+  let local = a "_" ++ atleast 1 (textchar) >> (fun (_,s) -> M_local (implode s)) in
+  let lparen = a "(" >> (fun _ -> M_lparen) in
+  let rparen = a ")" >> (fun _ -> M_rparen) in
+  let menv = atleast 1 (a "%") >> (fun s -> M_env (List.length s)) in
+  let white = atleast 1 (some isspace) >> (fun s -> M_white (implode s)) in
+    many (some isspace) ++ 
+    many(comment || string || hol_term || semi || menv || lparen || rparen || asm || local || text || white) ;;
+
+let rec strip_space = function
+  | M_comment :: xs -> strip_space xs
+  | M_white _ :: xs -> strip_space xs
+  | M_semicolon :: xs -> strip_space xs
+  | xs -> xs;;
+  
+let end_strip_space = List.rev o strip_space o List.rev o strip_space;; 
+
+(*
+
+let test1 = " (* note *) _t _44 __33 `1 /\\ [3] (* 42` (* hi *) ; [lade] da(%% (\"quote\";))  then (* c *) \t\n ";;
+let test2 = " (* hi *) (*  (* hi again *)  *) \"quote\" `&1 + &1`;; (* there *) ;; ";;
+(end_strip_space o snd o fst o m_lex o explode) test1;;
+implode;;
+many (some isspace);;
+test1;;
+unabbrev test1;;
+
+*)
 
 let break_init init s = 
   let l_init = String.length init  in
+  let _ = (l_init <= String.length s) or failwith "length mismatch break_init" in
   let _ = (String.sub s 0 l_init = init) or failwith "mismatch break_init" in
     String.sub s (l_init) (String.length s - l_init);;
+
 
 let el_to_hash s i = 
   let el_assoc = [
@@ -668,6 +788,11 @@ let el_to_hash s i =
   let tac = assoc s el_assoc in
   let h = el_hash i (top_realgoal()) in
     tac ^ " " ^ (string_of_int h);;
+
+
+(* DEPRECATED *)
+
+(*
 
 let unabbrev_tactic  = 
   let alpha_num = Str.regexp "[a-z_A-Z]+" in
@@ -696,6 +821,60 @@ let unabbrev_tactic  =
     let rest = break_init "-l" s in
       rest in
     tryfind (fun f -> f s) [assoc_u;assoc_ut;sg;hash;literal;tachit];; 
+*)
+
+
+let unabbrev_string s  =
+  let abbreviable s = (subset (explode s) (explode "_abcdefghijklmnopqrstuvwxyz0123456789'_/\\!?@")) in
+  let unabbrev s = 
+    let _ = not(abbreviable s) or failwith "abbrev" in s in
+  let assoct s = Hol_pervasives.assoc s !tactic_abbreviations in
+  let assoc_sans_t s = 
+    let len = String.length s in
+    let _ = (len > 1) or failwith "too short" in
+    let _ = (s.[len-1]= 't') or failwith "final char t" in
+      assoct (String.sub s 0 (len -1)) in
+  let hash s = 
+    let rest = break_init "el" s in
+    let c = String.sub rest 0 1 in
+    let n = int_of_string (String.sub rest 1 (String.length rest - 1)) in
+      el_to_hash c n in
+  let tac s = 
+    let v = tachy s in
+      if (List.length v > 0) then hd v else s in
+    tryfind (fun f -> f s) [unabbrev;assoct;assoc_sans_t;hash;hash;tac;];; 
+
+
+let unabbrev_token = function
+  | M_comment -> ""
+  | M_string s -> "\""^s^"\""
+  | M_hol_term s -> "`"^s^"`"
+  | M_semicolon -> ";"
+  | M_white s -> " "
+  | M_text s -> unabbrev_string s
+  | M_lparen -> "("
+  | M_rparen -> ")"
+  | M_env level -> if (level <=1) then " env (asl,w)" else " envl (asl,w)"
+  | M_local s -> ("loc_"^s)
+  | M_asm i -> ("asm_"^(string_of_int i));;
+
+let which_asms  = mapfilter (function | M_asm i -> i | _ -> failwith "");;
+
+let has_env = can (find (function M_env _ -> true | _ -> false));;
+
+
+let really_expand s  = 
+  let ((_,r),rest) = m_lex (explode s) in
+  let _ = (rest=[]) or (failwith ("unparsed data : " ^ (implode rest))) in
+  let r = end_strip_space r in
+  let rs = map unabbrev_token r in
+  let u =   unsplit "" I rs in
+  let which = setify( which_asms r) in
+  let gets = map (fun i ->Printf.sprintf " let asm_%d = snd(List.nth asl %d) in " i i) which in
+  let v = unsplit "" I gets in
+  let envA,envB = if (has_env r) or (List.length which > 0) then "fun (asl,w) -> (",")" else "","" in
+    (envA^v^u^envB);;
+
 
 (*
 let escape s = 
@@ -714,8 +893,8 @@ let p() =
       let _ = print_goalstack (!current_goalstack) in
 	();;
 
+(*
 let eval_tactic_abbrev s = 
-  let expand_s = 
     try(
       let i = String.index s ',' in
       let pre = String.sub s 0 i in
@@ -726,8 +905,11 @@ let eval_tactic_abbrev s =
  (* let _ = print_string (String.escaped expand_s) in *)
   let _ = eval_tactic (expand_s) in
     p();;
+*)
 
-let e_abbrev = eval_tactic_abbrev;;
+let eval_tactic_abbrev2 s = let _ = eval_tactic (really_expand s) in p();;
+
+let e_abbrev = eval_tactic_abbrev2;;
 
 let g = eval_goal;;
 

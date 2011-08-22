@@ -3,7 +3,8 @@
 ;
 ; C-x C-e to evaluate
 
-(load "hol-light.el")
+(load "hol-light-mode.el") ; to reload when changes are made.
+
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
@@ -49,6 +50,7 @@
 ;(remove-hook 'comint-output-filter-functions
 ;          'comint-truncate-buffer)
 
+
 (global-set-key "\C-cy" '(lambda ()
    (interactive)
    (popup-menu 'yank-menu)))
@@ -61,3 +63,17 @@
 (replace-regexp-in-string "\"" "\\\\\"" "\"abc")
 (string-to-char "\\\\")
 (string-to-char "\"")
+(info "(elisp) Clickable Text") 
+
+(defun f (button)
+    (call-interactively 'find-file))
+
+(defun myfun (button)
+  (message (format "Button [%s]" (button-label button))))
+
+(define-button-type 'my-button
+  'action 'myfun
+  'follow-link t
+  'help-echo "Click button")
+
+(insert-text-button "xyz" :type 'my-button)  xyz

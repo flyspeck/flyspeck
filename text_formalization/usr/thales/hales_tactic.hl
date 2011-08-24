@@ -1,0 +1,182 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2011-06-18                                                           *)
+(* ========================================================================== *)
+
+
+(* Tactics used by Hales.  Warning: These are subject to change.   *)
+
+module Hales_tactic = struct
+
+let frees_of_goal (asl,w) = 
+  let tms = w::(map (concl o snd) asl)  in
+  let varl = List.flatten (map frees tms) in
+    map (fun t -> (fst (dest_var t), t)) varl;;
+
+let env (asl,w) tm = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify(frees tm)) in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     (instantiate ([],[],tyassoc)) tm ;;
+
+let envl (asl,w) tml = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify (List.flatten(map frees tml))) in
+  let svarl = setify(map (fun t-> (fst(dest_var t),t)) varl) in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     map (instantiate ([],[],tyassoc)) tml ;;
+
+let gtyp (ttac:term->tactic) tm (asl,w) = ttac (env (asl,w) tm) (asl,w);;
+
+let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
+   ttacl (map (env (asl,w)) tml) (asl,w);;
+
+
+let GEXISTS_TAC = gtyp EXISTS_TAC;;
+
+let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (env (asl,w) t) ttac (asl,w);;
+
+let argthen ttac tac t = (ttac t) THEN tac;;
+
+let unlist tac t = tac [t];;
+
+let CONJ2_TAC = let t = (TAUT `a /\ b ==> b /\ a`) in MATCH_MP_TAC t THEN CONJ_TAC;;
+
+
+(* ========================================================================== *)
+(* TACTIC                                              *)
+
+let FORCE_EQ = REPEAT (CHANGED_TAC (AP_TERM_TAC ORELSE AP_THM_TAC ORELSE BINOP_TAC)) ;;
+
+let FORCE_MATCH = (MATCH_MP_TAC (TAUT `(a = b) ==> (a ==> b)`)) THEN FORCE_EQ ;;
+
+let FORCE_MATCH_MP_TAC th = 
+  MP_TAC th THEN ANTS_TAC THENL[ALL_TAC;FORCE_MATCH
+      ];;
+
+let HYP_CONJ_TAC = 
+  let th = TAUT `(a ==> b==> c) ==> (a /\ b ==> c)`  in
+    FIRST_X_ASSUM (fun t-> MP_TAC t THEN MATCH_MP_TAC th THEN DISCH_TAC THEN DISCH_TAC);;
+
+let SELECT_TAC = Tactics.SELECT_TAC;;
+
+
+(*
+let ASM_REAL_ARITH_TAC t = 
+  REPEAT (POP_ASSUM MP_TAC) THEN MP_TAC (itlist CONJ t TRUTH) THEN
+    REAL_ARITH_TAC;;
+
+let MP_LIST t = EVERY (map MP_TAC t);;
+*)
+
+
+
+(* Gonthier's script organizational tactics. *)
+
+let BY (t:tactic) (asl,w) = 
+  let (a,b,c)  = t (asl,w) in
+  let _ = (b = []) or failwith "by failed to finish goal" in
+    (a,b,c);;
+
+let BRANCH_A (t::tl) = t THENL [EVERY tl;ALL_TAC];;
+
+let BRANCH_B (t::tl) = t THENL [ALL_TAC;EVERY tl];;
+
+(* a few from Jordan *)
+
+let X_IN = Tactics_jordan.un;;
+
+let SUBCONJ_TAC = Tactics_jordan.SUBCONJ_TAC;;
+
+let PROOF_BY_CONTR_TAC = Tactics_jordan.PROOF_BY_CONTR_TAC;;
+
+let UNDISCH_FIND_TAC = Tactics_jordan.UNDISCH_FIND_TAC;;
+
+let TYPE_THEN = Tactics_jordan.TYPE_THEN;;
+
+let TYPEL_THEN = Tactics_jordan.TYPEL_THEN;;
+
+let (EXISTSv_TAC :string -> tactic) = 
+   fun s (asl,g) ->
+     let (v,_) = dest_binder "?" g in 
+     let (_,ty) = dest_var v in
+       EXISTS_TAC (mk_var(s,ty)) (asl,g);;
+
+let (X_GENv_TAC:string ->tactic) = 
+   fun s (asl,g) ->
+     let (v,_) = dest_binder "!" g in 
+     let (_,ty) = dest_var v in
+       X_GEN_TAC (mk_var(s,ty)) (asl,g);;
+
+(* weak version doesn't do conj *)
+
+let (WEAK_STRIP_TAC: tactic) =
+  fun g ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) STRIP_ASSUME_TAC g
+    with Failure _ -> failwith "STRIP_TAC";;
+
+
+(* working with hashed assumptions *)
+
+let hash_of_term = Hash_term.hash_of_term;;
+
+let HASH_UNDISCH_TAC h = 
+  FIRST_X_ASSUM (fun t-> 
+		   let _ = (hash_of_term  (concl t) = h) or failwith "bad hash" in
+		     MP_TAC t);;
+
+let HASH_COPY_TAC h = HASH_UNDISCH_TAC h THEN (DISCH_THEN (fun t -> ASSUME_TAC t THEN ASSUME_TAC t));;
+
+let HASH_RULE_TAC h r = HASH_UNDISCH_TAC h THEN DISCH_THEN (fun t -> MP_TAC (r t));;
+
+let HASH_KILL_TAC h = HASH_UNDISCH_TAC h THEN (DISCH_THEN (fun t -> ALL_TAC));;
+
+let HASH_CHOOSE_TAC h = HASH_UNDISCH_TAC h THEN (DISCH_THEN CHOOSE_TAC);;
+
+let HASH_X_CHOOSE_TAC h t = HASH_UNDISCH_TAC h THEN (DISCH_THEN (X_CHOOSE_TAC t));;
+   
+let HASH_ASM_REWRITE_TAC h (asl,w)  = 
+  let (asl2) = filter (fun t -> not(hash_of_term (concl (snd t)) = h)) asl in
+    (HASH_UNDISCH_TAC h THEN 
+       DISCH_THEN (fun t-> ASSUME_TAC(REWRITE_RULE (map snd asl2) t))) (asl,w);;
+
+(* working with numbered assumptions, 
+    Follow HOL Light's reverse numbering convention on assumptions. *)
+
+let el_hash  i  (asl,w)   = 
+   hash_of_term (el i (map (concl o snd) (List.rev asl)));;
+
+let use_el i ttac (asl,w) = 
+  let h = el_hash i (asl,w) in
+    (HASH_UNDISCH_TAC h THEN (DISCH_THEN ttac)) (asl,w);;
+
+(*
+
+let hashify0 i f  (asl,w) = f (el_hash i (asl,w)) (asl,w);;
+
+let hashify1 i f r  (asl,w) = f (el_hash i (asl,w)) r (asl,w);;
+
+let EL_UNDISCH_TAC i = hashify0 i HASH_UNDISCH_TAC;;
+
+let EL_RULE_TAC i r =hashify1 i r HASH_RULE_TAC;;
+
+let EL_KILL_TAC i = hashify0 i HASH_KILL_TAC;;
+
+let EL_CHOOSE_TAC i =  hashify0 i HASH_CHOOSE_TAC;;
+
+let EL_X_CHOOSE_TAC i t = hashify1 i t HASH_X_CHOOSE_TAC;;
+
+let EL_ASM_REWRITE_TAC i = hashify0 i HASH_ASM_REWRITE_TAC;;
+
+*)
+
+
+
+
+end;;

@@ -270,13 +270,25 @@ let search_thml term_matcher =
       Comb(Var("<omit this pattern>",_),t) -> not o filterpred t
     | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
     | Comb(Var("<regexp>",_),Var(pat,_)) -> name_matches_regexp pat
+    | Comb(Var("<search_or>",_),t) -> 
+	let (pat1,pat2) = dest_pair t in
+	(fun (n,th) -> exists_subterm_satisfying (can (term_matcher pat1)) (n,th) or 
+	   exists_subterm_satisfying (can (term_matcher pat2)) (n,th))
     | Comb(Var("<rewrite>",_),t) -> is_rewrite t
     | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
     | Comb(Var("<full term>",_),pat) -> exists_fullterm_satisfying (can (term_matcher pat)) 
     | pat -> exists_subterm_satisfying (can (term_matcher pat)) in
   fun pats thml -> update_database ();
-    if (pats = []) then failwith "keywords: omit (term), name (string), regexp (string), exactly (term), full (term), rewrite (term constant)" else
+    if (pats = []) then failwith ("keywords: omit (term), name (string),"^
+				    " disjunct (term,term), "^
+      " regexp (string), exactly (term), full (term), rewrite (term constant)") else
         (itlist (filter o filterpred) pats thml);;
+
+let disjunct pr = 
+  let u = mk_pair pr in
+  let ty = type_of u in
+  let h = mk_var ("<search_or>",(mk_type("fun",[ty;aty]))) in 
+    mk_comb (h,u);;
 
 let search pat = search_thml (term_match [])  pat (!theorems);;
 

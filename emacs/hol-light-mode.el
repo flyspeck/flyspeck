@@ -304,6 +304,14 @@
   (interactive "r")
   (hol-light-seval-string (concat "e (" (hol-light-de-then (buffer-substring beg end)) ")")))
 
+(defun hol-light-tactic-replay (beg end)
+  (interactive "r")
+  (hol-light-seval-string 
+   (concat "eval_tactic_lines (\""   
+       (replace-regexp-in-string "\"" "\\\\\"" 
+	  (replace-regexp-in-string "\\\\" "\\\\\\\\" 
+             (buffer-substring beg end))) "\")")))
+
 (defun hol-light-tactic-line()
   (interactive)
   (hol-light-seval-string (concat "e (" (hol-light-de-bracket
@@ -317,6 +325,7 @@
 	   (replace-regexp-in-string "\"" "\\\\\"" 
 	   (replace-regexp-in-string "\\\\" "\\\\\\\\"   
 				     (hol-light-get-line))) "\")")))
+
 
 (defun hol-light-abbrev-tactic-newline()
   (interactive)
@@ -466,7 +475,7 @@
     (local-set-key "\C-cq" 'hol-light-quote-seval-region)
 
     ;; r
-    (local-set-key "\C-c\C-r" 'hol-light-tactic-region)
+    (local-set-key "\C-c\C-r" 'hol-light-tactic-replay)
     (local-set-key "\C-cr" 'hol-light-eval-region)
     ;(local-set-key "\C-cr" 'hol-light-restart-goal)
 

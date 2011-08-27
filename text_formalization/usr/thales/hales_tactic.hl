@@ -180,7 +180,26 @@ let EL_ASM_REWRITE_TAC i = hashify0 i HASH_ASM_REWRITE_TAC;;
 
 *)
 
+let hold_def = new_definition `(hold:A->A) = I`;;
 
+let hold = MATCH_MP_TAC (prove_by_refinement(
+  `!a. hold a ==> a`,  [REWRITE_TAC [hold_def;I_DEF]  ]));;
 
+let unhold = MATCH_MP_TAC (prove_by_refinement(
+  `!a. a ==> hold a`,  [REWRITE_TAC [hold_def;I_DEF]  ]));;
 
+let MP_ASM_THEN = 
+  fun tac -> hold THEN 
+    (REPEAT (POP_ASSUM MP_TAC)) THEN 
+    tac THEN REPEAT DISCH_TAC 
+    THEN unhold;;
+
+let FULL_EXPAND_TAC s = FIRST_ASSUM (fun t -> 
+  let _ = (s = fst(dest_var(rhs(concl t)))) or failwith "" in
+    (MP_ASM_THEN (SUBST1_TAC (SYM t) THEN BETA_TAC)));;
+
+let RENAME_VAR (t,s) = 
+  let svar = mk_var (s,snd(dest_var t)) in
+    MP_ASM_THEN (SPEC_TAC (t,svar) THEN GEN_TAC);;
+  
 end;;

@@ -160,7 +160,7 @@ let (srch,more,less,retrieve_search)  =
 
   let sub_range tg a b xs = 
     let b' = min b (List.length xs - 1) in
-    let _ = (a < b') or failwith "bad range" in
+    let _ = (a <= b') or failwith "bad range" in
     let _ = (0 <= a) or failwith "bad neg index" in
     let bs = fst (chop_list (b'+1) xs) in
      ziptg tg a (snd (chop_list a bs)) in 
@@ -610,7 +610,9 @@ let abbrev u = (tactic_abbreviations:= (u::!tactic_abbreviations));;
 
 let unnabrev s = (tactic_abbreviations:= (filter (fun (s',_) ->  (s <> s')) !tactic_abbreviations));;
 
-
+abbrev ("fexp","FULL_EXPAND_TAC");;
+abbrev ("ispecl","ISPECL");;
+abbrev ("ispec","ISPEC");;
 
 type mtoken =
        | M_comment
@@ -806,14 +808,16 @@ let escape s =
   let s = unsplit "\\\\ " I ss in
     s;;
 *)
+List.length (!current_goalstack);;
+hd (!current_goalstack);;
 
 let p() = 
   let _ = print_string (string_of_proof()) in
-    if (!current_goalstack=[]) then print_string "There is no current goal." 
-    else 
-      let _ = Print_types.print_goal_var_overload() in
-      let _ = print_goalstack (!current_goalstack) in
-	();;
+  if ((!current_goalstack=[])) then print_string "There is no current goal." 
+  else 
+    let (_,gl,_) = hd !current_goalstack in
+      if (gl = []) then print_string "\nNo subgoal"
+      else  (Print_types.print_goal_var_overload() ; print_goalstack (!current_goalstack));;
 
 (*
 let eval_tactic_abbrev s = 
@@ -829,7 +833,11 @@ let eval_tactic_abbrev s =
     p();;
 *)
 
-let eval_tactic_abbrev2 s = let _ = eval_tactic (really_expand s) in p();;
+let eval_tactic_abbrev2 s = 
+  let sexp = really_expand s in
+  let _ = report sexp in
+  let _ = eval_tactic (sexp) in
+   p();;
 
 let blank_line = Str.regexp ("^ *$");;
 

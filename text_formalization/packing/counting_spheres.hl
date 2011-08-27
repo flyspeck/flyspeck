@@ -7,223 +7,79 @@
 (* ========================================================================== *)
 
 
+open Counting_spheres;;
 
-(* statement of hypotheses *)
+(* ========================================================================== *)
+(* EUSOTYP Lemmas *)
 
-let pack_ineq_tml = 
-  let has_packid = (fun t -> not(intersect ["UKBRPFE";"WAZLDCD";"BIEFJHU"] (Ineq.flypaper_ids t) = [])) in
-  let idl = (filter has_packid !Ineq.ineqs) in
-  let tml = map (fun t -> t.ineq) idl in
-    end_itlist (curry mk_conj) tml;;
+(* 
+   The lemma is phrased in terms of Arg rather than polar cycle, because of
+   a lack of good supporting libraries for polar cycle.
 
-let pack_ineq_def_a = 
-  new_definition (mk_eq (`pack_ineq_def_a:bool`,pack_ineq_tml));;
+   The orthogonality conclusion (4) has been put into separate lemmas:
+   COS_ARG_VECTOR_ANGLE relating Arg to vector_angle,
+   SEC_DOT the orthogonality statement in terms of vector_angle.
+*)
+(* ========================================================================== *)
 
-(* -------------------- *)
+let EUSOTYP_concl_old =  `!(P:real^2 -> bool) s n r c0 u. polyhedron P /\ bounded P /\
+    s = { c | c facet_of P } /\
+    c0 facet_of P /\
+    u = facet_rep_a P c0 /\ 
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+  (!p. norm p < r ==> P p) ==>
+    (?(g:num->real^2). 
+       (!i. i IN 1..(2 * n) ==> (P (g i)) /\ ~(g i = vec 0)) /\
+       (!j k. j IN 1..(2 * n) /\ k IN 1..(2*n) /\ (j < k) ==> 
+	  Arg ( g j/ u) < Arg (g k /  u)) /\
+       (!l i j k psi. (l IN 1..n /\ i = 2 * l -1 /\ j = 2 *l /\ k = (2 * l +1) MOD (2*n)
+	   /\ psi = Arg( (g k)/(g i) ) / &2)
+	   ==> (norm (g i) = r) /\ 
+            norm (g j) = r * inv (cos (psi)) /\
+	   Arg (g j/ g i) = psi /\
+	   Arg (g k/ g j) = psi /\
+	       psi < pi/ &2 ))
+	`;;
 
-
-
-search [`Arg`;`cexp`];;
-
-let DOT_COMPLEX = prove_by_refinement(
-  `!x y x' y'. (complex (x,y)) dot (complex (x',y')) = x * x' + y * y'`,
-  (* {{{ proof *)
-  [
-  SIMP_TAC [ complex;dot; DIMINDEX_2; SUM_2; VECTOR_2 ]
-  ]);;
-  (* }}} *)
-
-let DOT_RE = prove_by_refinement(
-  `!z1 z2. z1 dot z2 = Re (z1 * cnj z2)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC [ FORALL_COMPLEX;DOT_COMPLEX;complex_mul;RE;IM;RE_CNJ;IM_CNJ ];
-  REAL_ARITH_TAC
-  ]);;
-  (* }}} *)
-
-let ARG_CNJ = prove_by_refinement(
-  `!z w. ~(w = Cx (&0)) ==> Arg (z / w) = Arg (z * cnj w)`,
-  (* {{{ proof *)
-  [
-  ONCE_REWRITE_TAC [ COMPLEX_DIV_CNJ ];
-  REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC [ complex_div; GSYM CX_INV ; COMPLEX_POW_2;COMPLEX_INV_MUL ];
-  (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w) `&0 < inv (norm w)`) ASSUME_TAC) (asl,w));
-  MATCH_MP_TAC REAL_LT_INV;
-  REWRITE_TAC [ NORM_POS_LT ];
-  BY(ASM_MESON_TAC [COMPLEX_VEC_0]);
-  ONCE_REWRITE_TAC [ COMPLEX_MUL_ASSOC ];
-  ASM_SIMP_TAC [ ONCE_REWRITE_RULE [ COMPLEX_MUL_SYM ] ARG_MUL_CX ]
-  ]);;
-  (* }}} *)
-
-let ARG_0_DIV = prove_by_refinement(
-  `!u v. ( (u/v) = Cx (&0)) <=> (u = Cx (&0) \/ v = Cx (&0))`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC [ COMPLEX_ENTIRE;complex_div;COMPLEX_INV_EQ_0 ]);
-  ]);;
-  (* }}} *)
-
-let CARD_UNION_EQ = prove
- (`!(s:B->bool) t u. FINITE u /\ (s INTER t = {}) /\ (s UNION t = u)
-           ==> (CARD s + CARD t = CARD u)`,
-  MESON_TAC[CARD_UNION; FINITE_SUBSET; SUBSET_UNION]);;
-
-let INJ_SURJ = prove_by_refinement(
-  `!a b (f:A->B).  FINITE a /\ FINITE b /\ (CARD a = CARD b) ==> 
-    (INJ f a b ==> SURJ f a b)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ABBREV_TAC `s = IMAGE (f:A->B) a`;
-  ABBREV_TAC `t = { r | b r /\ ~(?k. a k /\ r = (f:A->B) k) }`;
-  (fun (asl,w) -> (MP_TAC (SPECL ( envl (asl,w) [`s`;`t`;`b`]) CARD_UNION_EQ)) (asl,w));
-  ANTS_TAC;
-  ASM_REWRITE_TAC [];
-  ONCE_REWRITE_TAC [ FUN_EQ_THM ];
-  EXPAND_TAC "s";
-  EXPAND_TAC "t";
-  HASH_UNDISCH_TAC 4678;
-  REWRITE_TAC [IMAGE;INTER;UNION;IN_ELIM_THM;INJ];
-  REWRITE_TAC [ IN;IN_ELIM_THM;X_IN NOT_IN_EMPTY ];
-  BY(MESON_TAC []);
-  SUBGOAL_THEN `BIJ (f:A->B) a (IMAGE f a)` ASSUME_TAC;
-  REWRITE_TAC [ BIJ ; Misc_defs_and_lemmas.IMAGE_SURJ ];
-  HASH_UNDISCH_TAC 4678;
-  REWRITE_TAC [ INJ;IMAGE;IN_ELIM_THM ];
-  BY(MESON_TAC []);
-  SUBGOAL_THEN `CARD (a:A->bool) = CARD (s:B->bool)` ASSUME_TAC;
-  ASM_MESON_TAC [ Misc_defs_and_lemmas.BIJ_CARD ];
-  DISCH_TAC;
-  SUBGOAL_THEN ` (t:B->bool) HAS_SIZE 0` ASSUME_TAC;
-  REWRITE_TAC [HAS_SIZE];
-  CONJ_TAC;
-  MATCH_MP_TAC FINITE_SUBSET;
-  EXISTSv_TAC "b";
-  ASM_REWRITE_TAC [];
-  EXPAND_TAC "t";
-  SET_TAC[];
-  BY(ASM_MESON_TAC [ ARITH_RULE `x + (t:num) = x ==> (t = 0)` ]);
-  HASH_RULE_TAC 526 (REWRITE_RULE [ HAS_SIZE_0 ]);
-  EXPAND_TAC "t";
-  HASH_UNDISCH_TAC 4678;
-  REWRITE_TAC [ SURJ;INJ;IN_ELIM_THM;IN ];
-  ONCE_REWRITE_TAC [ FUN_EQ_THM ];
-  REWRITE_TAC [ SURJ;INJ;IN_ELIM_THM;IN;X_IN NOT_IN_EMPTY ];
-  BY(MESON_TAC [])
-  ]);;
-  (* }}} *)
-
-let INJ_IFF_SURJ = prove_by_refinement(
-  `!a b (f:A->B).  FINITE a /\ FINITE b /\ (CARD a = CARD b) ==> 
-    (INJ f a b <=> SURJ f a b)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  EQ_TAC;
-  MATCH_MP_TAC INJ_SURJ;
-  BY(ASM_MESON_TAC []);
-  DISCH_TAC;
-  HASH_COPY_TAC 6181;
-  HASH_UNDISCH_TAC 6181;
-  DISCH_THEN (MP_TAC o (MATCH_MP Misc_defs_and_lemmas.INVERSE_DEF));
-  REPEAT WEAK_STRIP_TAC;
-  (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w) `SURJ (INVERSE f a b) b a`) MP_TAC) (asl,w));
-  HASH_UNDISCH_TAC 7518;
-  MATCH_MP_TAC INJ_SURJ;
-  BY(ASM_REWRITE_TAC []);
-  DISCH_TAC;
-  REWRITE_TAC [ INJ ];
-  SUBCONJ_TAC;
-  ASM_MESON_TAC [ SURJ ];
-  DISCH_TAC;
-  REPEAT WEAK_STRIP_TAC;
-  SUBGOAL_THEN `(?r1 r2. r1 IN b /\ r2 IN b /\ x = (INVERSE (f:A->B) a b r1) /\ (y = (INVERSE f a b r2)))` MP_TAC;
-  ASM_MESON_TAC [SURJ];
-  REPEAT WEAK_STRIP_TAC;
-  ASM_MESON_TAC []
-  ]);;
-  (* }}} *)
-
-let NORM1_NZ = prove_by_refinement(
-  `!(a:real^N). norm a = &1 ==> ~(a = vec 0)`,
-  (* {{{ proof *)
-  [
-MESON_TAC [NORM_0;REAL_ARITH `~(&1 = &0)`]
-  ]);;
-  (* }}} *)
-
-(* from tame *)
-
-let normalize = new_definition `!(v:real^N). normalize v = inv (norm v) % v`;;
-
-let norm_normalize = prove_by_refinement(
- `! (v:real^N). ~(v = vec 0) ==> norm (normalize v) = &1 `,
-[
-(GEN_TAC THEN STRIP_TAC);
-(PURE_REWRITE_TAC[normalize;NORM_MUL;REAL_ABS_INV;REAL_ABS_NORM]);
-(MATCH_MP_TAC REAL_MUL_LINV);
-(ASM_MESON_TAC[NORM_EQ_0]);
-]);;
-
-let NZ_IMP_NORM1 = prove_by_refinement(
-  `!(a:real^N) b. ~(a = vec 0) ==> 
-   (?a' b'. (norm a' = &1) /\ 
-      (!x. (a dot x <= b) <=>  (a' dot x <= b') ) /\
-      (!x. (a dot x = b) <=> (a' dot x = b') ))`,
-  (* {{{ proof *)
-  [
-REPEAT STRIP_TAC ;
-EXISTS_TAC `normalize (a:real^N)`;
-EXISTS_TAC `inv(norm (a:real^N)) * b`;
-ASM_SIMP_TAC [norm_normalize];
-ASM_SIMP_TAC [norm_normalize];
-REWRITE_TAC [normalize;DOT_LMUL];
-FIRST_X_ASSUM (ASSUME_TAC o (REWRITE_RULE[GSYM NORM_POS_LT]));
-FIRST_X_ASSUM (ASSUME_TAC o (ONCE_REWRITE_RULE[GSYM REAL_LT_INV_EQ]));
-ASM_SIMP_TAC [REAL_LE_LMUL_EQ];
-ASM_MESON_TAC [REAL_EQ_MUL_LCANCEL;REAL_ARITH `&0 < u ==> ~(u= &0)`]
-  ]);;
-  (* }}} *)
+(* -------------- *)
 
 let lemma = prove_by_refinement(
   `!a2 b c. (&0 < a2)  /\ (&0 < c) /\ (!t. &0 <= t /\ t < c ==> a2*t <= b) ==> (!t. &0 <= t /\ t <= c ==> a2*t <= b)`,
   (* {{{ proof *)
 [
-REPEAT STRIP_TAC ;
-DISJ_CASES_TAC (REAL_ARITH `t < c \/  ~(t <= c) \/ t=c `);
-BY(ASM_MESON_TAC []);
-HASH_UNDISCH_TAC 9516 ;
-ASM_REWRITE_TAC [];
+  REPEAT STRIP_TAC;
+  DISJ_CASES_TAC (REAL_ARITH `t < c \/  ~(t <= c) \/ t=c `);
+    BY(ASM_MESON_TAC []);
+  HASH_UNDISCH_TAC 9516;
+  ASM_REWRITE_TAC [];
   DISCH_THEN SUBST1_TAC;
-HASH_UNDISCH_TAC 6171  ;
-  DISCH_THEN (fun t -> ASSUME_TAC t THEN ASSUME_TAC t);
-HASH_RULE_TAC 6171   (SPEC `(b/(&2 * a2) + c/(&2))`);
-HASH_RULE_TAC 6171  (SPEC `&0`);
-ANTS_TAC;
-ASM_REAL_ARITH_TAC;
-REWRITE_TAC [REAL_ARITH`x* &0= &0`];
-DISCH_TAC ;
-SUBGOAL_THEN  `(&0 <= b / (&2 * a2) + c / &2)=T` SUBST1_TAC;
-ASM_REWRITE_TAC [];
-MATCH_MP_TAC (REAL_ARITH `&0 <= x /\( &0 < y) ==> &0 <= x + y/ &2`);
-ASM_REWRITE_TAC [];
-MATCH_MP_TAC REAL_LE_DIV;
-ASM_REAL_ARITH_TAC;
-REWRITE_TAC [];
-ONCE_REWRITE_TAC [REAL_ARITH `((x < y) = (x - y < &0)) /\((x <= y) = (x - y <= &0))`];
-MP_TAC (Calc_derivative.rational_identity `(b / (&2 * a2) + c / &2) - c = -- (a2*c - b)/(&2 * a2)`);
-MP_TAC (Calc_derivative.rational_identity `(a2 * (b/ (&2 * a2) + c / &2) - b) = (a2 * c - b) /(&2)`);
-ASM_SIMP_TAC [REAL_ARITH `~(&2 = &0) /\( &0 < a2 ==> ~(a2 = &0))`];
+  HASH_UNDISCH_TAC 6171;
+  DISCH_THEN (fun loc_t -> ASSUME_TAC loc_t THEN ASSUME_TAC loc_t);
+  HASH_RULE_TAC 6171 (SPEC `(b/(&2 * a2) + c/(&2))`);
+  HASH_RULE_TAC 6171 (SPEC `&0`);
+  ANTS_TAC;
+    BY(ASM_REAL_ARITH_TAC);
+  REWRITE_TAC [REAL_ARITH`x* &0= &0`];
+  DISCH_TAC;
+  SUBGOAL_THEN `(&0 <= b / (&2 * a2) + c / &2)=T` SUBST1_TAC;
+    ASM_REWRITE_TAC [];
+    MATCH_MP_TAC (REAL_ARITH `&0 <= x /\( &0 < y) ==> &0 <= x + y/ &2`);
+    ASM_REWRITE_TAC [];
+    MATCH_MP_TAC REAL_LE_DIV;
+    BY(ASM_REAL_ARITH_TAC);
+  REWRITE_TAC [];
+  ONCE_REWRITE_TAC [REAL_ARITH `((x < y) = (x - y < &0)) /\((x <= y) = (x - y <= &0))`];
+  MP_TAC (Calc_derivative.rational_identity `(b / (&2 * a2) + c / &2) - c = -- (a2*c - b)/(&2 * a2)`);
+  MP_TAC (Calc_derivative.rational_identity `(a2 * (b/ (&2 * a2) + c / &2) - b) = (a2 * c - b) /(&2)`);
+  ASM_SIMP_TAC [REAL_ARITH `~(&2 = &0) /\( &0 < a2 ==> ~(a2 = &0))`];
   DISCH_THEN SUBST1_TAC;
   DISCH_THEN SUBST1_TAC;
-ABBREV_TAC `u = a2 * c - b `;
-HASH_UNDISCH_TAC 3659 ;
-REWRITE_TAC[REAL_ARITH `--x / a < &0 <=> &0 < x / a`];
-SIMP_TAC [REAL_ARITH`&0 < x ==> &0 < &2 * x`;Trigonometry2.REAL_LT_DIV_0];
-REAL_ARITH_TAC 
+  ABBREV_TAC `u = a2 * c - b `;
+  HASH_UNDISCH_TAC 3659;
+  REWRITE_TAC[REAL_ARITH `--x / a < &0 <=> &0 < x / a`];
+  SIMP_TAC [REAL_ARITH`&0 < x ==> &0 < &2 * x`;Trigonometry2.REAL_LT_DIV_0];
+  BY(REAL_ARITH_TAC )
 ]
 );;
   (* }}} *)
@@ -740,23 +596,6 @@ let facet_rep_not_in_facet = prove_by_refinement(
   (* }}} *)
 
 
-(*
-searcht 5 [`Arg (Cx (&0))`];;
-ARG;;
-def_of_regexp "cos";;
-searcht 15 [`cexp`;`ccos`];;
-searcht 15 [`cexp`;` (Arg z)`];;
-searcht 15 [`cos (vector_angle z w)`];;
-searcht 15 [`Re (cnj z)`];;
-searcht 15 [`Re (complex u)`];;
-searcht 15 [`Re`;`complex`];;
-searcht 15 [`Re (a * b)`];;
-searcht 5 [`vector`;`dot`];;
-searcht 45 [`(z:complex) * b`];;
-searcht 15 [`complex`;`dot`];;
-searcht 15 [`complex`];;
-searcht 15 [`Re`];;
-*)
 
 let facet_arg_lt_pi = prove_by_refinement(
   `!(P:real^2->bool) c r. polyhedron P /\ bounded P /\ c facet_of P /\
@@ -813,53 +652,7 @@ let facet_arg_lt_pi = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(*
-searcht 5 [`norm (facet_rep_a P c)`];;
-searcht 5 [`norm (Cx u)`];;
-searcht 5 [`norm ((z:complex) * b)`];;
-searcht 5 [`Im`;`cnj`];;
-searcht 5 [`&0 <= x * y`];;
-searcht 5 [`Re (Cx * u)`];;
-help_grep "COMP";;
-searcht 5 [`Im`;`Arg`];;
-searcht 5 [`cnj (ii)`];;
-searcht 5 [`cnj (ii * u )`];;
-facet_rep_def;;
-searcht 5 [`Arg`;`&2 * pi`];;
-searcht 5 [`~(?x. P)`];;
-    type_of `Cx`;;
-searcht 5 [`complex_mul`;`Arg`];;
-POLYHEDRON_MEMBER;;
-search [`Arg (a / b)`];;
-constant_of_regexp "arg";;
-def_of_regexp "arg";;
-searcht 5 [`ARG`];;
-searcht 5 [`facet_of`;`dot`;`facet_rep_b`];;
-facet_rep_in_facet;;
-facet_rep_refl;;
-*)
 
-
-(*
-POLYTOPE_FACET_EXISTS;;
-
-search [`norm (vec 0)`];;
-search [`SUBSET`;`aff_dim x <= aff_dim y`;];;
-search [`affine`;`a dot x`];;
-type_of `facet_rep_a`;;
-search [`hull`;`(:real^N)`;`int`];;
-search [`facet_of`;`hull`;`affine`];;
-search [`facet_of`;`aff_dim`];;
-searcht 5 [`facet_rep_a`];;
-search [`aff_dim`;`a dot x`];;
-polyhedron;;
-FACET_OF_POLYHEDRON_EXPLICIT;;
-FACET_OF_POLYHEDRON;;
-POLYHEDRON_INTER_AFFINE_MINIMAL;;
-AFF_DIM_EQ_HYPERPLANE;;
-suggest();;
-search [`facet_rep_a`];;
-*)
 
 
 let eus_cos  = prove_by_refinement(
@@ -990,23 +783,6 @@ let insert_v = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(*
-searcht 5 [`&0 < cos psi`;`pi`];;
-searcht 5 [`&0 <= a * b`];;
-searcht 5 [`&0 < a / b`];;
-searcht 5 [`norm (vec 0)`];;
-type_of `arcV`;;
-searcht 5 [`vector_angle`;`Arg`];;
-searcht 15 [`angle`];;
-searcht 25 [`vector_angle`];;
-searcht 5 [`vector_angle`;`arcV`];;
-searcht 5 [`Arg`;`vector_angle`];;
-searcht 5 [`Arg`;`arcV`];;
-searcht 5 [`x dot y = norm x * c`];;
-searcht 5 [`inv (cos x)`];;
-TOPOLOGICAL_SORT;;
-*)
-
 let facet_rep_a_uniq = prove_by_refinement(
   `!(P:real^2->bool) c1 c2 r. polyhedron P /\ c1 facet_of P /\ c2 facet_of P /\
     (&0 < r ) /\  (!p. norm p < r ==> P p) /\
@@ -1045,18 +821,6 @@ let facet_rep_a_uniq = prove_by_refinement(
   ASM_REWRITE_TAC []
   ]);;
   (* }}} *)
-
-(*
-help "ACCEPT_TAC";;
-facet_rep_def;;
-facet_rep_uniq;;
-facet_rep_in_facet;;
-searcht 5 [`&1 % u`];;
-search [`norm (s % u)`];;
-facet_rep_refl;;
-search [name "NEHR"];;
-POLYHEDRON_COLLINEAR_FACES;;
-*)
 
 let poly_sort_fn = new_definition `poly_sort_fn P u c1 c2 = 
   ((c1 facet_of P) /\ (c2 facet_of P) /\
@@ -1123,19 +887,6 @@ let POLY_SORT_LEMMA = prove_by_refinement(
   ASM_MESON_TAC []
   ]);;
   (* }}} *)
-
-(*
-facet_rep_a_uniq;;
-facet_rep_refl;;
-facet_rep_in_facet;;
-facet_rep_not_in_facet;;
-searcht 5 [`inv (x:complex) = Cx (&0)`];;
-searcht 5 [`x * (z:complex) = y * z`];;
-searcht 5 [`vec 0`;`Cx (&0)`];;
-COMPLEX_CMUL;;
-searcht 5 [`Arg x = Arg y`];; ARG_EQ;;
-    type_of `poly_sort_fn P u`;;
-*)
 
 
 (*
@@ -1246,10 +997,16 @@ let POLY_SORT_BIJ = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let facet_rep_nz = prove_by_refinement(
+  `!P c. polyhedron P /\ c facet_of P ==> ~(facet_rep_a P c = Cx (&0))`,
+  (* {{{ proof *)
+  [
+  MESON_TAC [ COMPLEX_VEC_0; NORM_0 ; REAL_ARITH `~(&0= &1)`; facet_rep_def]
+  ]);;
+  (* }}} *)
 
-
-let bisector_point = prove_by_refinement(
-  ` !P c c'. ?v. !psi. (polyhedron P /\ c facet_of P /\ c' facet_of P /\ &0 < r /\
+let bisector_point_exists = prove_by_refinement(
+  ` !P c c' r. ?v. !psi. (polyhedron P /\ c facet_of P /\ c' facet_of P /\ &0 < r /\
     (!p. norm p < r ==> P p) /\ 
     psi = Arg (facet_rep_a P c' / facet_rep_a P c) / &2 /\
     (!c''. c'' facet_of P /\
@@ -1260,160 +1017,345 @@ let bisector_point = prove_by_refinement(
     Arg (facet_rep_a P c' / v) = psi)`,
   (* {{{ proof *)
   [
-st/r
-abbrev (% `psi = Arg (facet_rep_a P c' / facet_rep_a P c) / &2`)
-abbrev (% `(u:real^2) = facet_rep_a P c`)
-abbrev (% `(v:real^2) = Cx (r * inv (cos (psi))) * cexp (ii * (Cx psi)) * u`)
-exv "v"
-st/r
-mmp (taut `b /\ (b ==> c) /\ ( b /\ c ==> d) /\ ( b /\ c /\ d ==> a) ==> a /\ b /\ c /\ d `)
-sgth `&0 <= psi` assume
-elk8
-exp "psi"
-by(m [ ARG ; ra `&0 <= x ==> &0 <= x/ &2`])
-
-conj (*--*)
-exp "v"
-r [COMPLEX_NORM_MUL;COMPLEX_NORM_CX;NORM_CEXP_II;REAL_ABS_MUL]
-exp "u"
-si/a [facet_rep_def; Trigonometry2.LT_IMP_ABS_REFL ]
-sgt `abs(inv(cos psi)) = inv (cos psi)` subst1
-r [ ( Trigonometry2.ABS_REFL);REAL_LE_INV_EQ]
-mmp Trigonometry.ZSKECZV
-mp PI_POS
-by(asmreal)
-by(real)
-
-sgth `&0 < r * inv (cos psi)` assume
-mmp REAL_LT_MUL
-r/a [ REAL_LT_INV_EQ ]
-mmp COS_POS_PI
-mp PI_POS
-asmreal
-
-conj 
-d
-exp "v"
-r [ complex_div;GSYM COMPLEX_MUL_ASSOC ]
-sgth ( `u * inv u = Cx (&1)` ) subst1
-mmp COMPLEX_MUL_RINV
-by(m/a [ facet_rep_def ; NORM_0 ; COMPLEX_VEC_0 ; ra `~(&0 = &1)` ])
-si/a [ARG_MUL_CX]
-r [COMPLEX_MUL_RID]
-mmp ARG_UNIQUE
-ex `&1`
-r/a [COMPLEX_MUL_LID;ra `&0 < &1`]
-mp PI_POS
-by(asreal)
-
-conj
-d
-mp (specl (%% [`(v:complex) / u`;`facet_rep_a P c' / (u:complex)`]) ARG_LE_DIV_SUM)
-ants
-r [ ARG_0_DIV ]
-mmp (taut `(a /\ b) /\ c ==> a /\ b /\ c`)
-conj
-m/a [ NORM_0; ra `~(&0 < &0)`; facet_rep_def; ra `~(&0 = &1)` ; COMPLEX_VEC_0 ]
-by(asmreal)
-sgth (% `facet_rep_a P c' / u / (v/ u) = facet_rep_a P c' / v`) (argthen subst1 asmreal)
-r [ complex_div ; sym COMPLEX_MUL_ASSOC ]
-apterm
-r [ COMPLEX_INV_MUL;COMPLEX_INV_INV]
-sgth `(inv u * u = Cx (&1)) ==> (inv (u:complex) * inv v * u = inv v) ` mmp
- SIMPLE_COMPLEX_ARITH_TAC 
-mmp COMPLEX_MUL_LINV
-by(m/a [ facet_rep_def; NORM_0 ; COMPLEX_VEC_0 ; ra `~(&0 = &1)` ])
-
-
-(* to here *)
-(* insert (rep a not = 0) *)
-
-st/r
-mmp insert_v
-exv "c"
-exv "c'"
-exv "r"
-exv "psi"
-r/a []
-sc
-si/a [ (ra `&0 <= psi ==> (&0 < psi <=> ~(psi = &0))`)]
-d
-elu0
-r/a []
-exp "u"
-r [ (ra `x / &2 = &0 <=> x = &0`)]
-
-
-XXD (* to here *)
+  REPEAT WEAK_STRIP_TAC;
+  (fun (asl,w) -> (ABBREV_TAC ( env (asl,w) `psi = Arg (facet_rep_a P c' / facet_rep_a P c) / &2`)) (asl,w));
+  (fun (asl,w) -> (ABBREV_TAC ( env (asl,w) `(u:real^2) = facet_rep_a P c`)) (asl,w));
+  (fun (asl,w) -> (ABBREV_TAC ( env (asl,w) `(v:real^2) = Cx (r * inv (cos (psi))) * cexp (ii * (Cx psi)) * u`)) (asl,w));
+  EXISTSv_TAC "v";
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (TAUT `b /\ (b ==> c) /\ ( b /\ c ==> d) /\ ( b /\ c /\ d ==> a) ==> a /\ b /\ c /\ d `);
+  SUBGOAL_THEN `&0 <= psi` ASSUME_TAC;
+    HASH_KILL_TAC 8647;
+    EXPAND_TAC "psi";
+    BY(MESON_TAC [ ARG ; REAL_ARITH `&0 <= x ==> &0 <= x/ &2`]);
+  CONJ_TAC;
+    EXPAND_TAC "v";
+    REWRITE_TAC [COMPLEX_NORM_MUL;COMPLEX_NORM_CX;NORM_CEXP_II;REAL_ABS_MUL];
+    EXPAND_TAC "u";
+    ASM_SIMP_TAC [facet_rep_def; Trigonometry2.LT_IMP_ABS_REFL ];
+    SUBGOAL_THEN `abs(inv(cos psi)) = inv (cos psi)` SUBST1_TAC;
+      REWRITE_TAC [ ( Trigonometry2.ABS_REFL);REAL_LE_INV_EQ];
+      MATCH_MP_TAC Trigonometry.ZSKECZV;
+      MP_TAC PI_POS;
+      BY(ASM_REAL_ARITH_TAC);
+    BY(REAL_ARITH_TAC);
+  SUBGOAL_THEN `&0 < r * inv (cos psi)` ASSUME_TAC;
+    MATCH_MP_TAC REAL_LT_MUL;
+    ASM_REWRITE_TAC [ REAL_LT_INV_EQ ];
+    MATCH_MP_TAC COS_POS_PI;
+    MP_TAC PI_POS;
+    ASM_REAL_ARITH_TAC;
+  CONJ_TAC;
+    DISCH_TAC;
+    EXPAND_TAC "v";
+    REWRITE_TAC [ complex_div;GSYM COMPLEX_MUL_ASSOC ];
+    SUBGOAL_THEN ( `u * inv u = Cx (&1)` ) SUBST1_TAC;
+      MATCH_MP_TAC COMPLEX_MUL_RINV;
+      BY(ASM_MESON_TAC [ facet_rep_def ; NORM_0 ; COMPLEX_VEC_0 ; REAL_ARITH `~(&0 = &1)` ]);
+    ASM_SIMP_TAC [ARG_MUL_CX];
+    REWRITE_TAC [COMPLEX_MUL_RID];
+    MATCH_MP_TAC ARG_UNIQUE;
+    EXISTS_TAC `&1`;
+    ASM_REWRITE_TAC [COMPLEX_MUL_LID;REAL_ARITH `&0 < &1`];
+    MP_TAC PI_POS;
+    BY(ASM_REAL_ARITH_TAC);
+  CONJ_TAC;
+    DISCH_TAC;
+    (fun (asl,w) -> (MP_TAC (SPECL ( envl (asl,w) [`(v:complex) / u`;`facet_rep_a P c' / (u:complex)`]) ARG_LE_DIV_SUM)) (asl,w));
+    ANTS_TAC;
+      REWRITE_TAC [ ARG_0_DIV ];
+      MATCH_MP_TAC (TAUT `(a /\ b) /\ c ==> a /\ b /\ c`);
+      CONJ_TAC;
+        ASM_MESON_TAC [ NORM_0; REAL_ARITH `~(&0 < &0)`; facet_rep_def; REAL_ARITH `~(&0 = &1)` ; COMPLEX_VEC_0 ];
+      BY(ASM_REAL_ARITH_TAC);
+    (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w) `facet_rep_a P c' / u / (v/ u) = facet_rep_a P c' / v`) (argthen SUBST1_TAC ASM_REAL_ARITH_TAC)) (asl,w));
+    REWRITE_TAC [ complex_div ; GSYM COMPLEX_MUL_ASSOC ];
+    AP_TERM_TAC;
+    REWRITE_TAC [ COMPLEX_INV_MUL;COMPLEX_INV_INV];
+    SUBGOAL_THEN `(inv u * u = Cx (&1)) ==> (inv (u:complex) * inv v * u = inv v) ` MATCH_MP_TAC;
+      SIMPLE_COMPLEX_ARITH_TAC;
+    MATCH_MP_TAC COMPLEX_MUL_LINV;
+    BY(ASM_MESON_TAC [ facet_rep_def; NORM_0 ; COMPLEX_VEC_0 ; REAL_ARITH `~(&0 = &1)` ]);
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC insert_v;
+  EXISTSv_TAC "c";
+  EXISTSv_TAC "c'";
+  EXISTSv_TAC "r";
+  EXISTSv_TAC "psi";
+  ASM_REWRITE_TAC [];
+  SUBCONJ_TAC;
+    ASM_SIMP_TAC [ (REAL_ARITH `&0 <= psi ==> (&0 < psi <=> ~(psi = &0))`)];
+    DISCH_TAC;
+    HASH_UNDISCH_TAC 1934;
+    ASM_REWRITE_TAC [];
+    EXPAND_TAC "u";
+    REWRITE_TAC [ (REAL_ARITH `x / &2 = &0 <=> x = &0`)];
+    REWRITE_TAC [ ARG_EQ_0; REAL_EXISTS;DE_MORGAN_THM;NOT_EXISTS_THM ];
+    MATCH_MP_TAC (TAUT `(b ==> a) ==> (a \/ ~b)`);
+    REPEAT WEAK_STRIP_TAC;
+    HASH_UNDISCH_TAC 2684;
+    ASM_REWRITE_TAC [];
+    DISCH_TAC;
+    SUBGOAL_THEN `!u v. u = v ==> (u * facet_rep_a P c = v * facet_rep_a P c)` MP_TAC;
+      REWRITE_TAC [ COMPLEX_EQ_MUL_RCANCEL ];
+      BY(MESON_TAC []);
+    DISCH_THEN (fun loc_u -> FIRST_X_ASSUM (fun loc_t -> MP_TAC (MATCH_MP loc_u loc_t)));
+    REWRITE_TAC [ complex_div ; GSYM COMPLEX_MUL_ASSOC ];
+    ASM_SIMP_TAC [ COMPLEX_MUL_LINV ; facet_rep_nz; COMPLEX_MUL_RID ];
+    EXPAND_TAC "u";
+    REWRITE_TAC [GSYM COMPLEX_CMUL];
+    HASH_RULE_TAC 8014 ( REWRITE_RULE[ RE_CX]);
+    DISCH_TAC;
+    DISCH_TAC;
+    SUBGOAL_THEN `&0 < x` ASSUME_TAC;
+      ASM_SIMP_TAC [(REAL_ARITH `&0 <= x ==> (&0 < x <=> ~(x = &0))`)];
+      DISCH_TAC;
+      HASH_UNDISCH_TAC 487;
+      ASM_REWRITE_TAC [ VECTOR_MUL_LZERO; COMPLEX_VEC_0 ];
+      BY(ASM_MESON_TAC [ facet_rep_nz ]);
+    BY(ASM_MESON_TAC [ facet_rep_a_uniq]);
+  FULL_EXPAND_TAC "u";
+  FULL_EXPAND_TAC "psi";
+  ASM_REWRITE_TAC [ real_div ];
+  ASM_REAL_ARITH_TAC
   ]);;
   (* }}} *)
 
+let bisector_point = new_specification ["bisector_point"] (REWRITE_RULE[SKOLEM_THM] bisector_point_exists);;
 
-searcht 5 [`Arg x = Arg y`];;  ARG_EQ;;
-searcht 5 [`Arg (x/y) `];;
-searcht 8 [`real`;`&0 <= Re x`];;
-searcht 15 [`Arg x = &0`];;
-searcht 5 [`inv u * u = Cx t `];;
-searcht 5 [`inv (inv x)`];;
-searcht 5 [`vec 0`;`Cx (&0)`];;
-NORM_0;;
-search [`x / y = Cx (&0)`];;
-type_of_thm ARG_LE_DIV_SUM;;
-searcht 5 [`Arg x + Arg y`];;
-ARG;;
-searcht 5 [`Arg (cexp u)`];;
-searcht 5 [`x * Cx (&1)`];;
-searcht 5 [`Arg (Cx u * v)`];;
-searcht 5 [`&0 < cos x`];;
-searcht 5 [`Arg (Cx
-searcht 5 [`Cx (&0)`;`vec 0`];;
-searcht 5 [`u * inv (u:complex)`];;
-ARG;;
-
- Trigonometry2.ABS_REFL;;
-facet_rep_def;;
-searcht 15 [`abs(x)=x`];;
-searcht 15 [`&0 <= cos x`];;
-
-(* next, need dot product lemma *)
+let 
 
 (*
-
-let EUSOTYP = prove_by_refinement(
-  `!(P:real^2 -> bool) s n r c0 u. polyhedron P /\ bounded P /\
-    s = { c | c facet_of P } /\
-    c0 facet_of P /\
-    u = facet_rep_a P c0 /\ 
-    s HAS_SIZE n /\
-    (&0 < r ) /\
-  (!p. norm p < r ==> P p) ==>
-    (?(g:num->real^2). 
-       (!i. i IN 1..(2 * n) ==> (P (g i)) /\ ~(g i = vec 0)) /\
-       (!j k. j IN 1..(2 * n) /\ k IN 1..(2*n) /\ (j < k) ==> 
-	  Arg ( g j/ u) < Arg (g k /  u)) /\
-       (!l i j k psi. (l IN 1..n /\ i = 2 * l -1 /\ j = 2 *l /\ k = (2 * l +1) MOD (2*n)
-	   /\ psi = Arg( (g k)/(g i) ) / &2)
-	   ==> (norm (g i) = r) /\ 
-            norm (g j) = r * inv (cos (psi)) /\
-	   Arg (g j/ g i) = psi /\
-	   Arg (g k/ g j) = psi /\
-	       psi < pi/ &2 /\
-	   (g k dot (g j - g k)  = &0) /\
-	   (g i dot (g j - g i) = &0)))
-	`,
+g EUSOTYP_concl;;
+let EUSOTYP = prove_by_refinement(EUSOTYP_concl,
+,
   (* {{{ proof *)
   [
 st/r
+mp (specl (%% [`P`;`n`;`s`;`r`;`u`]) POLY_SORT_BIJ)
+ants
+by(si/a [facet_rep_nz])
+st/r
+abbrev `g = \m. if (ODD m) then 
+  (
   ]);;
   (* }}} *)
-*)
+
+facet_rep_nz;;
+POLY_SORT_BIJ;;
+bisector_point;;
+facet_arg_lt_pi;;
+1;;
 constant_of_regexp "mod";;
 def_of_regexp "mod";;
 searcht 5 [`num_mod`];;
 searcht 5 [`MOD`];;
+*)
+
 (* ------------------------------------------------------------ *)
 (* later *)
 
+(* let *) lin_inv_backup = !invariant_under_linear;;
+
+let GOTCJAH_concl = `!v b P r c  WF h n. 
+    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> P p) /\ 
+    c facet_of P /\ 
+    fchanged c = WF /\
+    (&0 < h /\ h < &1) /\
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
+    ( {u | u extreme_point_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= sol (vec 0) WF`;;
+
+let GOTCJAH_works_so_far = `!(v:real^3) (P:real^3->bool) r c  WF h n. 
+    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
+    c facet_of P /\ 
+     fchanged c = WF /\
+   (&0 < h /\ h < &1) /\ 
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
+    ( {u | u facet_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= (measure:(real^3->bool)->real) WF`;;
+
+GEOM_BASIS_MULTIPLE_TAC 3`v:real^3`
+
+let RCONE_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^M->real^N) v a.  
+   linear f /\ (!y. ?x. f x = y) /\ (!x. norm (f x) = norm x) 
+  ==>   rcone_gt (vec 0) (f v) a    = IMAGE f (rcone_gt (vec 0) v a)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC [rcone_gt;rconesgn; VECTOR_SUB_RZERO; DIST_0];
+  ONCE_REWRITE_TAC [FUN_EQ_THM];
+  REWRITE_TAC [IMAGE;IN_ELIM_THM;IN];
+  MESON_TAC[ PRESERVES_NORM_PRESERVES_DOT ]
+  ]);;
+  (* }}} *)
+
+let FCHANGED_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^M->real^N) c. linear f /\ (!x y. (f x = f y) ==> x = y)
+    ==> fchanged (IMAGE f c) = IMAGE f (fchanged c)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC [Polyhedron.fchanged];
+  ONCE_REWRITE_TAC [FUN_EQ_THM];
+  REWRITE_TAC[ IN_ELIM_THM];
+  (fun (asl,w) -> (MP_TAC (ISPECL ( envl (asl,w) [`f`;`c`]) RELATIVE_INTERIOR_INJECTIVE_LINEAR_IMAGE )) (asl,w));
+  ASM_REWRITE_TAC [];
+  DISCH_THEN SUBST1_TAC;
+  GEN_TAC;
+  EQ_TAC;
+    REWRITE_TAC [IN_ELIM_THM;IN;IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    EXISTS_TAC `(t % x'):real^M`;
+    ASM_SIMP_TAC [ LINEAR_CMUL ];
+    BY(ASM_MESON_TAC []);
+  REWRITE_TAC [ X_IN IN_IMAGE ];
+  DISCH_THEN (MP_TAC o (REWRITE_RULE [IN_ELIM_THM]));
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `(f:real^M->real^N) v1`;
+  EXISTSv_TAC "t";
+  ASM_SIMP_TAC [ LINEAR_CMUL ];
+  ASM_MESON_TAC [IN_IMAGE;IN_ELIM_THM;IN]
+  ]);;
+  (* }}} *)
+
+
+let solvec0 = new_definition `solvec0 X = 
+  (let r = selectd { r | r > &0 /\ measurable (X INTER normball (vec 0) r) /\
+			radial_norm r (vec 0) (X INTER normball (vec 0) r) } (&0) in
+     &3 * vol (X INTER normball (vec 0) r) / (r pow 3))`;;
+
+let solvec0_sol = prove_by_refinement(
+  `!X. (let P = { r | r > &0 /\ measurable (X INTER normball (vec 0) r) /\
+			radial_norm r (vec 0) (X INTER normball (vec 0) r)} in
+    (?r. P r)
+    ==> solvec0 X = sol (vec 0) X)`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  LET_TAC;
+  REWRITE_TAC[solvec0];
+  DISCH_TAC;
+  ASM_REWRITE_TAC [];
+  LET_TAC;
+  (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w) `P r`) ASSUME_TAC) (asl,w));
+    EXPAND_TAC "r";
+    MATCH_MP_TAC selectd_exists;
+    BY(ASM_REWRITE_TAC []);
+  HASH_KILL_TAC 4320;
+  HASH_KILL_TAC 1124;
+  FULL_EXPAND_TAC "P";
+  HASH_KILL_TAC 2770;
+  HASH_UNDISCH_TAC 8402;
+  REWRITE_TAC [IN_ELIM_THM];
+  MESON_TAC[Vol1.sol]
+  ]);;
+  (* }}} *)
+
+let solvec0_d = prove_by_refinement(
+  `!X. (let P = { r | r > &0 /\ measurable (X INTER normball (vec 0) r) /\
+			radial_norm r (vec 0) (X INTER normball (vec 0) r)} in
+    ~(?r. P r)
+    ==> solvec0 X = &0)`,
+  (* {{{ proof *)
+  [
+GEN_TAC;
+  LET_TAC;
+  REWRITE_TAC[solvec0];
+  DISCH_TAC;
+  ASM_REWRITE_TAC [];
+  LET_TAC;
+  (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w) `r = &0`) ASSUME_TAC) (asl,w));
+    EXPAND_TAC "r";
+    (fun (asl,w) -> (DISJ_CASES_TAC (ISPECL ( envl (asl,w) [`P`;`(&0)`]) selectd_cases)) (asl,w));
+      BY (ASM_MESON_TAC []);
+    BY (ASM_MESON_TAC []);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[REAL_POW_ZERO;ARITH_RULE `~(3=0)`;REAL_ARITH `x / &0 = &0 /\ u * &0 = &0`]
+  ]);;
+  (* }}} *)
+
+let BALL_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^M->real^M)  r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
+    ==> IMAGE f (ball (vec 0,r)) = (ball (vec 0,r))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC [FUN_EQ_THM];
+  REWRITE_TAC[ X_IN IN_IMAGE; X_IN IN_BALL_0 ];
+  ASM_MESON_TAC []
+  ]);;
+  (* }}} *)
+
+let RADIAL_NORM_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
+    ==> radial r (vec 0) (IMAGE f s) = radial r (vec 0) s`,
+  (* {{{ proof *)
+  [
+r[Sphere.radial; ?w0 ]
+  ]);;
+  (* }}} *)
+
+srch [`IMAGE f x SUBSET IMAGE f t`];;
+srch [`vec 0 + x`];;
+type_of `radial_norm`;;
+
+let SOLVEC0_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^3->real^3) s. linear f /\ (!x. norm (f x) = norm x) 
+    ==> solvec0 (IMAGE f s) = solvec0 s`,
+  (* {{{ proof *)
+  [
+r[solvec0; ?q1 ]
+abbrev `P  = \X. {r | r > &0 /\   measurable (X INTER normball (vec 0) r) /\ radial_norm r (vec 0) (X INTER normball (vec 0) r)}`
+g/r
+LET_TAC
+LET_TAC
+sg
+st/r
+r [ sol ]
+  XXD
+  ]);;
+  (* }}} *)
+
+def_of_regexp "radial$";;
+def_of_regexp "radial_norm";;
+def_of_regexp "radial$";;
+srch [`eventually_radial`];;
+srch [`radial_norm`];;
+more();;
+srch [`normball`;`ball`];;
+search [`sol`];; 
+Vol1.sol;;
+type_of `sol`;;
+type_of_thm LINEAR_CMUL;;
+type_of_goal();;
+linear;;
+srch [`f (t % u)`;`linear`];;
+help "ISPECL";;
+ RELATIVE_INTERIOR_INJECTIVE_LINEAR_IMAGE;;
+srch [`relative_interior (IMAGE f c)`];;
+Polyhedron.fchanged;;
+search_thml (term_match []) [`sol`] (map (fun s -> ("",s)) (!invariant_under_linear));;
+srch [`fchanged`];;
+
+add_linear_invariants;;
+(* add_linear_invariants [FCHANGED_LINEAR_INVARIANT ; LINEAR_0;RCONE_LINEAR_INVARIANT ];; *)
+
+let GOTCJAH = prove_by_refinement(
+  `#`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+searcht 15 [`rcone_gt`];;
+more();;
+def_of_regexp "rconesgn";;
+help_grep "without";;
+searcht 5 [`dropout`];;
+searcht 5 [`azim`;`Arg`];;
+type_of `hypermap_of_fanx`;;
 (*
 def_of_regexp "wedge";;
 def_of_regexp "cyclic_set";;

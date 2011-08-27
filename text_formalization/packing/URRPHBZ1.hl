@@ -1,0 +1,669 @@
+(* emailed from Ky to Hales, July 14, 2011 *)
+
+module Urrphbz1 = struct
+
+let INTER_RCONE_GE_IMP_BETWEEN_PROJ_POINT = prove_by_refinement (
+ `!a:real^3 b p r. 
+    ~(a = b) /\ &0 <= r /\ p IN rcone_ge a b r INTER rcone_ge b a r  ==> 
+    between (proj_point (b - a) (p - a) + a) (a, b)`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_TAC[between;PRO_EXP] THEN ONCE_REWRITE_TAC[DIST_SYM]);
+ (REWRITE_TAC[dist; VECTOR_ARITH `(k % x + a) - a = k % x /\ 
+  m - (h % (m - n) + n) = (&1 - h) % (m - n)`]);
+ (ABBREV_TAC `h = ((p - a) dot (b - a)) / ((b - a) dot (b - a:real^3))`);
+ (REWRITE_TAC[NORM_MUL]);
+ (REWRITE_WITH `abs h = h /\ abs (&1 - h) = &1 - h`);
+ (REWRITE_TAC[REAL_ABS_REFL]);
+ (STRIP_TAC);
+ (EXPAND_TAC "h" THEN MATCH_MP_TAC REAL_LE_DIV);
+ (REWRITE_TAC[GSYM NORM_POW_2; REAL_LE_POW_2]);
+ (SUBGOAL_THEN `p IN rcone_ge a (b:real^3) r` MP_TAC);
+ (ASM_SET_TAC[]);
+ (REWRITE_TAC[rcone_ge;rconesgn;IN;IN_ELIM_THM]);
+ (STRIP_TAC);
+ (NEW_GOAL `&0 <= dist (p,a) * dist (b,a:real^3) * r`);
+ (ASM_SIMP_TAC[REAL_LE_MUL;DIST_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+ (EXPAND_TAC "h" THEN REWRITE_TAC[REAL_ARITH `&0 <= a - b <=> b <= a`]);
+ (SUBGOAL_THEN `p IN rcone_ge b (a:real^3) r` MP_TAC);
+ (ASM_SET_TAC[]);
+ (REWRITE_TAC[rcone_ge;rconesgn;IN;IN_ELIM_THM]);
+ (STRIP_TAC);
+ (REWRITE_WITH `((p - a) dot (b - a)) / ((b - a) dot (b - a)) <= &1 
+  <=> ((p - a) dot (b - a)) <= &1 * ((b - a) dot (b - a:real^3))`);
+ (MATCH_MP_TAC REAL_LE_LDIV_EQ);
+ (REWRITE_TAC[GSYM NORM_POW_2; GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT;   
+   NORM_EQ_0; VECTOR_ARITH `b - a = vec 0 <=> a = b`]);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC [REAL_MUL_LID; REAL_ARITH `a <= b <=> ~(b < a)`]);
+ (STRIP_TAC);
+ (NEW_GOAL `(p - b) dot (a - b) + (p - a) dot (b - a) >
+             dist (p,b) * dist (a,b) * r + (b - a) dot (b - a:real^3)`);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[VECTOR_ARITH `(p - b) dot (a - b) + 
+ (p - a) dot (b - a) = (b - a) dot (b - a)`; 
+  REAL_ARITH `~(x > y + x) <=> &0 <= y`]);
+ (ASM_SIMP_TAC[REAL_LE_MUL;DIST_POS_LE]);
+ (REAL_ARITH_TAC)]);;
+
+(* ================================================================== *)
+
+let INTER_RCONE_GE_LE_lemma = prove_by_refinement(
+ `!a:real^3 b p s h r. 
+    ~(a = b) /\ s = midpoint (a, b) /\ &0 < r /\ ~(p = a) /\ ~(p = b) /\
+    inv (&2) <= r pow 2 /\ 
+    between (proj_point (b - a) (p - a) + a) (a, s) /\
+    p IN rcone_ge a b r INTER rcone_ge b a r  ==> dist (s, p) <=  dist (s, a)`,
+[(REPEAT STRIP_TAC);
+ (NEW_GOAL `&0 <= r`);
+ (ASM_REAL_ARITH_TAC);
+ (ABBREV_TAC `p' = proj_point (b - a) (p - a) + a:real^3`);
+ (ABBREV_TAC `x = a + (dist (a, s) / dist (a, p':real^3)) % (p - a)`);
+ (NEW_GOAL `(p - a) dot (b - a:real^3) >= dist (p,a) * dist (b,a) * r`);
+ (SUBGOAL_THEN `p IN rcone_ge a (b:real^3) r` MP_TAC);
+ (ASM_SET_TAC[]);
+ (REWRITE_TAC[rcone_ge;rconesgn;IN;IN_ELIM_THM]);
+
+ (NEW_GOAL `between p (a, x:real^3)`);
+ (EXPAND_TAC "x" THEN REWRITE_TAC[between]);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (REWRITE_TAC[dist; VECTOR_ARITH `(a + x) - a = x:real^3 /\ 
+  ((a + k % (p - a) ) - p = (k - &1) % (p - a))`; NORM_MUL]);
+ (REWRITE_WITH `abs (norm (a - s) / norm (a - p':real^3)) = 
+   norm (a - s) / norm (a - p')`);
+ (REWRITE_TAC[REAL_ABS_REFL]);
+ (SIMP_TAC[REAL_LE_DIV; NORM_POS_LE]);
+ (REWRITE_WITH `abs (norm (a - s) / norm (a - p':real^3) - &1) = 
+   norm (a - s) / norm (a - p') - &1`);
+ (REWRITE_TAC[REAL_ABS_REFL]);
+ (ONCE_REWRITE_TAC[NORM_ARITH `norm (a - b) = norm (b - a)`]);
+ (EXPAND_TAC "p'" THEN SIMP_TAC[VECTOR_ARITH `(k % s + a) - a = k % s`;   
+   PRO_EXP; NORM_MUL;REAL_ABS_DIV; GSYM NORM_POW_2; REAL_LE_POW_2]);
+ (REWRITE_WITH `abs ((p - a) dot (b - a:real^3))  = (p - a) dot (b - a) /\ 
+   abs (norm (b - a) pow 2) = norm (b - a) pow 2`);
+ (REWRITE_TAC[REAL_ABS_REFL; REAL_LE_POW_2]);
+ (NEW_GOAL `&0 <= dist (p,a) * dist (b,a:real^3) * r`);
+ (ASM_SIMP_TAC[REAL_LE_MUL;DIST_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_ARITH `&0 <= x - &1 <=> &1 <= x`]);
+ (REWRITE_WITH `b = &2 % s - a:real^3`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (REWRITE_TAC[VECTOR_ARITH `&2 % s - a - a = &2 % (s - a)`; NORM_MUL; 
+   DOT_RMUL; MESON[REAL_ABS_REFL; REAL_ARITH `&0 <= &2`] `abs (&2) = &2`]);
+ (REWRITE_TAC[real_div; REAL_INV_MUL; REAL_INV_INV]);
+
+ (REWRITE_TAC[REAL_ARITH `x * ((inv (&2) * inv (y)) * (&2 * x) pow 2) *
+ inv (&2) * inv (x) = (x * inv (x)) * (x pow 2) *  inv (y)`]);
+ (REWRITE_WITH `norm (s - a:real^3) * inv (norm (s - a)) = &1`);
+ (MATCH_MP_TAC REAL_MUL_RINV);
+ (REWRITE_TAC[NORM_EQ_0]);
+ (ASM_REWRITE_TAC[midpoint; VECTOR_ARITH `inv (&2) % (a + b) - a = 
+   inv (&2) % (b - a)`; VECTOR_MUL_EQ_0]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `b -a = vec 0 <=> a = b`]);
+ (REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_MUL_LID; GSYM real_div]);
+
+
+ (NEW_GOAL `&0 < (p - a) dot (s - a:real^3)`);
+ (REWRITE_WITH `(p - a) dot (s - a:real^3) = inv (&2) * (p - a) dot (b - a)`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (MATCH_MP_TAC REAL_LT_MUL);
+ (REWRITE_TAC[REAL_ARITH `&0 < inv (&2)`]);
+ (NEW_GOAL `&0 < dist (p,a) * dist (b,a:real^3) * r`);
+ (ASM_SIMP_TAC[REAL_LT_MUL;DIST_POS_LT]);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_WITH `&1 <= norm (s - a) pow 2 / ((p - a) dot (s - a)) 
+  <=> &1 * ((p - a) dot (s - a:real^3)) <= norm (s - a) pow 2 `);
+ (ASM_SIMP_TAC[REAL_LE_RDIV_EQ]);
+ (REWRITE_TAC[REAL_MUL_LID]);
+ (ONCE_REWRITE_TAC[VECTOR_ARITH `(p - a) dot (s - a) = 
+  (p - a - (p' - a)) dot (s - a) + (p' - a) dot (s - a:real^3)`]);
+ (EXPAND_TAC "p'" THEN REWRITE_TAC[VECTOR_ARITH `(x + a) - a = x:real^3`]);
+ (REWRITE_TAC[GSYM projection_proj_point]);
+ (REWRITE_WITH `s - a:real^3 = inv (&2) % (b - a)`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (REWRITE_TAC[DOT_RMUL;Packing3.PROJECTION_ORTHOGONAL;REAL_MUL_RZERO;
+   REAL_ADD_LID]);
+ (REWRITE_WITH `proj_point (b - a) (p - a:real^3) = p' - a`);
+ (EXPAND_TAC "p'" THEN VECTOR_ARITH_TAC);
+ (REWRITE_WITH `(p' - a) dot (b - a) = norm (p'- a) * norm (b - a:real^3)`);
+ (REWRITE_TAC[NORM_CAUCHY_SCHWARZ_EQ]);
+ (SUBGOAL_THEN `between p' (a, b:real^3)` MP_TAC);
+ (EXPAND_TAC "p'" THEN MATCH_MP_TAC INTER_RCONE_GE_IMP_BETWEEN_PROJ_POINT);
+ (EXISTS_TAC `r:real` THEN ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[BETWEEN_IN_CONVEX_HULL; CONVEX_HULL_2; IN; IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (FIRST_ASSUM REWRITE_ONLY_TAC);
+ (REWRITE_WITH `(u % a + v % b) - a = (u % a + v % b) - (u + v) % a:real^3`);
+ (ASM_REWRITE_TAC[VECTOR_MUL_LID]);
+ (REWRITE_TAC[VECTOR_ARITH `(u % a + v % b) - (u + v) % a = v % (b - a)`;
+   NORM_MUL; VECTOR_MUL_ASSOC]);
+ (REWRITE_WITH `abs v = v`);
+ (ASM_SIMP_TAC[REAL_ABS_REFL]);
+ (VECTOR_ARITH_TAC);
+
+ (NEW_GOAL `inv (&2) * norm (p' - a) * norm (b - a:real^3) <= 
+             inv (&2) * norm (s - a) * norm (b - a)`);
+ (REWRITE_TAC[REAL_ARITH `a * x * b <= a * y * b <=> &0 <= (a * b) * (y - x)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[NORM_POS_LE; REAL_ARITH `&0 <= inv (&2)`]);
+ (REWRITE_TAC[GSYM dist]);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (UNDISCH_TAC `between p' (a,s:real^3)` THEN REWRITE_TAC[between]);
+ (DISCH_TAC THEN FIRST_ASSUM REWRITE_ONLY_TAC);
+ (REWRITE_TAC[REAL_ARITH `(a + b) - a = b`; DIST_POS_LE]);
+
+ (NEW_GOAL `norm (inv (&2) % (b - a:real^3)) pow 2 = 
+             inv (&2) * norm (s - a) * norm (b - a)`);
+ (REWRITE_TAC[NORM_MUL; REAL_POW_2; REAL_ARITH `abs (inv (&2)) = inv (&2)`]);
+ (REWRITE_TAC[REAL_ARITH 
+  `(z * x) * z * x = z * y * x <=> (y - z * x) * x * z = &0`]);
+ (REWRITE_WITH `s - a:real^3 = inv (&2) % (b - a)`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (REWRITE_TAC[NORM_MUL; REAL_ARITH `abs (inv (&2)) = inv (&2)`]);
+ (REAL_ARITH_TAC);
+ (ASM_REAL_ARITH_TAC);
+ (REAL_ARITH_TAC);
+
+ (NEW_GOAL `x IN rcone_ge (a:real^3) b r`);
+ (EXPAND_TAC "x");
+ (MATCH_MP_TAC RCONE_GE_TRANS);
+ (STRIP_TAC);
+ (SIMP_TAC[REAL_LE_DIV;DIST_POS_LE]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `(a:real^3) + p - a = p`]);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `(p' - a) dot (b - a) = norm (p'- a) * norm (b - a:real^3)`);
+ (REWRITE_TAC[NORM_CAUCHY_SCHWARZ_EQ]);
+ (SUBGOAL_THEN `between p' (a, b:real^3)` MP_TAC);
+ (EXPAND_TAC "p'" THEN MATCH_MP_TAC INTER_RCONE_GE_IMP_BETWEEN_PROJ_POINT);
+ (EXISTS_TAC `r:real` THEN ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[BETWEEN_IN_CONVEX_HULL; CONVEX_HULL_2; IN; IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (FIRST_ASSUM REWRITE_ONLY_TAC);
+ (REWRITE_WITH `(u % a + v % b) - a = (u % a + v % b) - (u + v) % a:real^3`);
+ (ASM_REWRITE_TAC[VECTOR_MUL_LID]);
+ (REWRITE_TAC[VECTOR_ARITH `(u % a + v % b) - (u + v) % a = v % (b - a)`;
+   NORM_MUL; VECTOR_MUL_ASSOC]);
+ (REWRITE_WITH `abs v = v`);
+ (ASM_SIMP_TAC[REAL_ABS_REFL]);
+ (VECTOR_ARITH_TAC);
+
+ (NEW_GOAL `(x - s:real^3) dot (a - s) = &0`);
+ (EXPAND_TAC "x");
+ (REWRITE_TAC[VECTOR_ARITH `((a + m % x) - s) dot (a - s) = (s - a) dot (s - a) - m * (x dot (s - a))`]);
+
+ (ONCE_REWRITE_TAC[DIST_SYM] THEN REWRITE_TAC[dist]);
+ (REWRITE_WITH `(p - a) dot (s - a) = 
+  (p - a - (p' - a)) dot (s - a) + (p' - a) dot (s - a:real^3)`);
+ (VECTOR_ARITH_TAC);
+
+ (EXPAND_TAC "p'" THEN REWRITE_TAC[VECTOR_ARITH `(x + a) - a = x:real^3`]);
+ (REWRITE_TAC[GSYM projection_proj_point]);
+ (REWRITE_WITH `s - a:real^3 = inv (&2) % (b - a)`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (REWRITE_TAC[DOT_RMUL;Packing3.PROJECTION_ORTHOGONAL;REAL_MUL_RZERO;
+   REAL_ADD_LID]);
+ (REWRITE_WITH `proj_point (b - a) (p - a:real^3) = p' - a`);
+ (EXPAND_TAC "p'" THEN VECTOR_ARITH_TAC);
+ (FIRST_ASSUM REWRITE_ONLY_TAC);
+ (REWRITE_TAC[DOT_LMUL; NORM_MUL; REAL_ARITH `abs (inv (&2)) = inv (&2)`;
+   GSYM NORM_POW_2]);
+ (REWRITE_TAC [REAL_ARITH `m * m * (x pow 2) - (m * x) / y * m * y * x = &0
+  <=> m * m * x * x * (y / y - &1) = &0 `]);
+ (REWRITE_WITH `norm (p' - a) / norm (p' - a:real^3) = &1`);
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (REWRITE_TAC[NORM_EQ_0]);
+ (EXPAND_TAC "p'" THEN REWRITE_TAC[VECTOR_ARITH `(x + a:real^3) - a = x`]);
+ (REWRITE_TAC[PRO_EXP;VECTOR_MUL_EQ_0]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `b - a = vec 0 <=> a = b`]);
+ (ONCE_REWRITE_TAC [REAL_ARITH `a / b = a * (&1 / b)`]);
+ (REWRITE_TAC[REAL_ENTIRE]);
+ (NEW_GOAL `~((p - a) dot (b - a:real^3) = &0)`);
+ (NEW_GOAL `&0 < dist (p,a) * dist (b,a:real^3) * r`);
+ (ASM_SIMP_TAC[REAL_LT_MUL; DIST_POS_LT]);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Trigonometry2.NOT_EQ0_IMP_NEITHER_INVERT);
+ (REWRITE_TAC[GSYM NORM_POW_2; Trigonometry2.POW2_EQ_0; NORM_EQ_0]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `b - a = vec 0 <=> a = b`]);
+ (REAL_ARITH_TAC);
+ (NEW_GOAL `dist (s, x) <= dist (s, a:real^3)`);
+ (NEW_GOAL `norm (a - x:real^3) pow 2 = norm (s - x) pow 2 + norm (a - s) pow 2`);
+ (MATCH_MP_TAC PYTHAGORAS);
+ (ASM_REWRITE_TAC[orthogonal]);
+ (NEW_GOAL `norm (a - s) pow 2 >= inv (&2) * norm (a - x:real^3) pow 2`);
+ (ONCE_REWRITE_TAC[NORM_ARITH `norm (x - y) = norm (y - x)`]);
+ (EXPAND_TAC "x" THEN REWRITE_TAC[VECTOR_ARITH `(x + y:real^3) - x = y`]);
+ (REWRITE_TAC[NORM_MUL]);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (REWRITE_TAC[dist]);
+ (REWRITE_WITH `abs (norm (s - a) / norm (p' - a:real^3)) = 
+                      norm (s - a) / norm (p' - a)`);
+ (REWRITE_TAC[REAL_ABS_REFL]);
+ (SIMP_TAC[REAL_LE_DIV;NORM_POS_LE]);
+ (REWRITE_TAC[REAL_ARITH `(x / y * z) pow 2 = x pow 2 * (z / y) pow 2`]);
+ (REWRITE_TAC[REAL_ARITH 
+   `x pow 2 >= a *  x pow 2 * b <=> &0 <= x pow 2 * (&1 - a * b)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+
+ (REWRITE_TAC[REAL_LE_POW_2]);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &1 - a <=> a <= &1`]);
+ (NEW_GOAL `norm (p' - a) >= r * norm (p - a:real^3)`);
+ (EXPAND_TAC "p'" THEN REWRITE_TAC[VECTOR_ARITH `(x + y:real^3) - y = x`]);
+ (REWRITE_TAC[PRO_EXP]);
+ (SUBGOAL_THEN `p IN rcone_ge (a:real^3) b r` MP_TAC);
+ (ASM_SET_TAC[]);
+ (REWRITE_TAC[rcone_ge;rconesgn;IN;IN_ELIM_THM; dist]);
+ (STRIP_TAC);
+ (REWRITE_TAC[NORM_MUL;REAL_ABS_DIV;GSYM NORM_POW_2]);
+ (REWRITE_WITH `abs ((p - a) dot (b - a)) = (p - a) dot (b - a:real^3) /\ 
+                 abs (norm (b - a) pow 2) = norm (b - a) pow 2`);
+ (REWRITE_TAC[REAL_ABS_REFL;REAL_LE_POW_2]);
+ (NEW_GOAL `&0 <= norm (p - a) * norm (b - a:real^3) * r`);
+ (ASM_SIMP_TAC[REAL_LE_MUL; NORM_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_ARITH `a / x * y >= b <=> b <= (a * y) / x`]);
+ (REWRITE_WITH `r * norm (p - a) <=
+   (((p - a) dot (b - a)) * norm (b - a)) / norm (b - a) pow 2
+   <=> (r * norm (p - a)) * norm (b - a) pow 2 <=
+   (((p - a) dot (b - a)) * norm (b - a:real^3))`);
+ (MATCH_MP_TAC REAL_LE_RDIV_EQ);
+ (REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT; NORM_EQ_0]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `b - a = vec 0 <=> a = b`]);
+ (REWRITE_TAC[REAL_ARITH 
+   `(a * b) * x pow 2 <= m * x  <=> &0 <= x * (m - b * x * a)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[NORM_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+
+ (REWRITE_TAC[REAL_POW_DIV;REAL_ARITH `a * b / c = (a * b) / c`]);
+ (REWRITE_WITH `(inv (&2) * norm (p - a) pow 2) / norm (p' - a) pow 2 <= &1
+ <=> (inv (&2) * norm (p - a) pow 2) <= &1 * norm (p' - a:real^3) pow 2`);
+ (MATCH_MP_TAC REAL_LE_LDIV_EQ);
+ (REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT]);
+ (STRIP_TAC);
+ (NEW_GOAL `norm (p - a:real^3) = &0`);
+ (NEW_GOAL `r * norm (p - a:real^3) = &0`);
+ (NEW_GOAL `&0 <= r * norm (p - a:real^3)`);
+ (ASM_SIMP_TAC[REAL_LE_MUL;NORM_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[REAL_ENTIRE]);
+ (REWRITE_WITH `~(r = &0)`);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[NORM_EQ_0]);
+ (ASM_REWRITE_TAC[NORM_EQ_0; VECTOR_ARITH `a - b = vec 0 <=> a = b`]);
+ (REWRITE_TAC[REAL_MUL_LID]);
+ (NEW_GOAL `(r * norm (p - a)) pow 2 <= norm (p' - a:real^3) pow 2`);
+ (REWRITE_WITH `(r * norm (p - a)) pow 2 <= norm (p' - a:real^3) pow 2 
+                <=> r * norm (p - a) <= norm (p' - a)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC Trigonometry2.POW2_COND);
+ (ASM_SIMP_TAC[REAL_LE_MUL;NORM_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+ (NEW_GOAL `inv (&2) * norm (p - a:real^3) pow 2 <= (r * norm (p - a)) pow 2`);
+ (REWRITE_TAC[REAL_ARITH 
+  `a * x pow 2 <= (m * x) pow 2 <=> &0 <= (m pow 2 - a) * (x pow 2)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_LE_POW_2]);
+ (ASM_REAL_ARITH_TAC);
+
+ (NEW_GOAL `norm (s - x) pow 2 <= norm (a - s:real^3) pow 2`);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_WITH `dist (s,x) <= dist (s,a:real^3) 
+   <=> dist (s,x) pow 2 <= dist (s,a) pow 2`);
+ (MATCH_MP_TAC Trigonometry2.POW2_COND);
+ (REWRITE_TAC[DIST_POS_LE]);
+ (UP_ASM_TAC THEN REWRITE_TAC[GSYM dist] THEN MESON_TAC[DIST_SYM]);
+
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (REWRITE_TAC[dist]);
+ (NEW_GOAL `?y. y IN {a, x:real^3} /\
+                  (!m. m IN convex hull {a,x} ==> norm (m - s) <= norm (y - s))`);
+ (MATCH_MP_TAC SIMPLEX_FURTHEST_LE);
+ (REWRITE_TAC[Geomdetail.FINITE6]);
+ (SET_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `a IN {x,y} <=> a = x \/ a = y`] 
+   THEN STRIP_TAC);
+ (UP_ASM_TAC THEN FIRST_ASSUM REWRITE_ONLY_TAC);
+ (DISCH_TAC THEN FIRST_ASSUM MATCH_MP_TAC);
+ (REWRITE_TAC[GSYM BETWEEN_IN_CONVEX_HULL] THEN ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN FIRST_ASSUM REWRITE_ONLY_TAC);
+ (DISCH_TAC);
+ (NEW_GOAL `norm (p - s) <= norm (x - s:real^3)`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (REWRITE_TAC[GSYM BETWEEN_IN_CONVEX_HULL] THEN ASM_REWRITE_TAC[]);
+ (NEW_GOAL `norm (x - s) <= norm (a - s:real^3)`);
+ (REWRITE_TAC[GSYM dist]);
+ (ASM_MESON_TAC[DIST_SYM]);
+ (ASM_REAL_ARITH_TAC)]);;
+
+(* ================================================================== *)
+let MCELL_2_PROPERTIES_lemma1 = prove_by_refinement (
+ `!V ul k p. 
+     saturated V /\
+     packing V /\
+     barV V 3 ul /\
+     p IN mcell2 V ul 
+     ==> dist (midpoint (HD ul, HD (TL ul)), p) <= 
+         hl (truncate_simplex 1 ul)`,
+[(REPEAT STRIP_TAC);
+
+ (NEW_GOAL `?u0 u1 u2 u3. (ul:(real^3)list) = [u0:real^3;u1;u2;u3]`);
+ (MP_TAC (ASSUME `barV V 3 ul`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (ASM_REWRITE_TAC[HD;TL;TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (UNDISCH_TAC `p IN mcell2 V ul` THEN REWRITE_TAC[mcell2]);
+ (COND_CASES_TAC);
+ (LET_TAC);
+ (REWRITE_TAC[IN_INTER] THEN DISCH_TAC);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[HD;TL] THEN STRIP_TAC);
+
+ (NEW_GOAL `barV V 1 [u0;u1:real^3]`);
+ (REWRITE_WITH `[u0;u1:real^3] = truncate_simplex 1 ul`);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (MATCH_MP_TAC Packing3.TRUNCATE_SIMPLEX_BARV);
+ (EXISTS_TAC `3` THEN REWRITE_TAC[ARITH_RULE `1 <= 3`]);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `LENGTH (ul:(real^3)list) = 3 + 1 /\ CARD (set_of_list ul) = 3 + 1`);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool`);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `~ (u0 = u1:real^3)`);
+ (STRIP_TAC);
+ (NEW_GOAL `CARD (set_of_list (ul:(real^3)list)) <= 3`);
+ (REWRITE_TAC[ASSUME `ul = [u0;u1;u2;u3:real^3]`; set_of_list]);
+ (ASM_REWRITE_TAC[SET_RULE `{x,x,a,b} = {x,a,b}`;Geomdetail.CARD3]);
+ (ASM_ARITH_TAC);
+
+ (ABBREV_TAC `s1 = omega_list_n V ul 1`);
+ (NEW_GOAL `s1 = midpoint (u0,u1:real^3)`);
+ (EXPAND_TAC "s1");
+ (REWRITE_WITH `omega_list_n V ul 1 = 
+                 omega_list V [u0; u1:real^3]`);
+ (REWRITE_TAC [ASSUME `ul = [u0;u1;u2;u3:real^3]`]);
+ (REWRITE_TAC[OMEGA_LIST_TRUNCATE_1]);
+ (REWRITE_WITH `omega_list V [u0; u1:real^3] = 
+   circumcenter (set_of_list [u0;u1])`);
+ (MATCH_MP_TAC XNHPWAB1);
+ (EXISTS_TAC `1`);
+ (ASM_REWRITE_TAC[IN]);
+ (REWRITE_WITH `[u0;u1:real^3] = truncate_simplex 1 ul`);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[set_of_list;Rogers.CIRCUMCENTER_2]);
+
+ (NEW_GOAL `s1 = omega_list V [u0; u1:real^3]`);
+ (EXPAND_TAC "s1" THEN REWRITE_TAC [ASSUME `ul = [u0;u1;u2;u3:real^3]`]);
+ (REWRITE_TAC[OMEGA_LIST_TRUNCATE_1]);
+
+ (NEW_GOAL `hl [u0;u1] = dist (s1, u0:real^3)`);
+ (REWRITE_WITH `dist (s1, u0:real^3) = dist (omega_list V [u0;u1],HD [u0;u1])`);
+ (REWRITE_TAC[HD; ASSUME `s1 = omega_list V [u0; u1:real^3]`]);
+ (MATCH_MP_TAC Rogers.WAUFCHE2);
+ (EXISTS_TAC `1`);
+ (ASM_REWRITE_TAC[IN]);
+ (REWRITE_WITH `[u0;u1:real^3] = truncate_simplex 1 ul`);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (ASM_REWRITE_TAC[]);
+
+ (ASM_CASES_TAC `p = u0:real^3`);
+ (ASM_REWRITE_TAC[]);
+ (REAL_ARITH_TAC);
+ (ASM_CASES_TAC `p = u1:real^3`);
+ (ASM_REWRITE_TAC[midpoint; dist]);
+ (NORM_ARITH_TAC);
+
+ (NEW_GOAL `between (proj_point (u1 - u0) (p - u0) + u0) (u0,u1:real^3)`);
+ (MATCH_MP_TAC INTER_RCONE_GE_IMP_BETWEEN_PROJ_POINT);
+ (EXISTS_TAC `a:real`);
+ (REPEAT STRIP_TAC);
+ (ASM_MESON_TAC[]);
+ (EXPAND_TAC "a");
+ (MATCH_MP_TAC REAL_LE_DIV);
+ (REWRITE_TAC[ASSUME `ul = [u0;u1;u2;u3:real^3]`;TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (ASM_REWRITE_TAC[DIST_POS_LE]);
+ (MATCH_MP_TAC SQRT_POS_LE);
+ (REAL_ARITH_TAC);
+ (REWRITE_TAC[IN_INTER]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_CASES_TAC `between (proj_point (u1 - u0) (p - u0) + u0) (u0,s1:real^3)`);
+
+ (REWRITE_TAC[GSYM (ASSUME `s1 = midpoint (u0,u1:real^3)`)]);
+ (REWRITE_TAC[ASSUME `hl [u0; u1] = dist (s1,u0:real^3)`]);
+ (MATCH_MP_TAC INTER_RCONE_GE_LE_lemma);
+ (EXISTS_TAC `u1:real^3` THEN EXISTS_TAC `a:real`);
+ (ASM_REWRITE_TAC[IN_INTER]);
+ (EXPAND_TAC "a");
+ (REPEAT STRIP_TAC);
+ (MATCH_MP_TAC REAL_LT_DIV);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (STRIP_TAC);
+ (MATCH_MP_TAC DIST_POS_LT);
+ (REWRITE_TAC[midpoint; VECTOR_ARITH `inv (&2) % (u0 + u1) = u0 <=> inv (&2) %
+  (u0 - u1) = vec 0`; VECTOR_MUL_EQ_0; REAL_ARITH `~(inv (&2) = &0)`]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `a - b = vec 0 <=> a = b`]);
+ (ASM_SIMP_TAC[SQRT_POS_LT; REAL_ARITH `&0 < &2`]);
+
+ (REWRITE_TAC[Trigonometry2.DIV_POW2]);
+ (REWRITE_WITH `sqrt (&2) pow 2 = &2`);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (REAL_ARITH_TAC);
+ (ASM_REWRITE_TAC[REAL_ARITH `inv (&2) <= a / &2 <=> &1 <= a`]);
+ (ASM_REWRITE_TAC [TRUNCATE_SIMPLEX_EXPLICIT_1; ASSUME `hl [u0; u1] = 
+  dist (s1,u0:real^3)`; midpoint; dist; VECTOR_ARITH `inv (&2) % (u0 + u1) - 
+  u0 = inv (&2) % (u1 - u0)`; NORM_MUL; REAL_ABS_INV; MESON[REAL_ABS_REFL;
+  REAL_ARITH `&0 <= &2`]`abs (&2) = (&2)`]);
+ (NEW_GOAL `&1 <= inv (&2) * norm (u1 - u0:real^3)`);
+ (REWRITE_TAC[REAL_ARITH `&1 <= inv (&2) * a <=> &2 <= a`; GSYM dist]);
+ (UNDISCH_TAC `packing V`);
+ (REWRITE_TAC[packing] THEN DISCH_TAC THEN FIRST_ASSUM MATCH_MP_TAC);
+ (NEW_GOAL `set_of_list ul SUBSET V:real^3->bool`);
+ (MATCH_MP_TAC Packing3.BARV_SUBSET);
+ (EXISTS_TAC `3`);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[set_of_list]);
+ (SET_TAC[GSYM IN]);
+ (NEW_GOAL `&1 pow 2 <= (inv (&2) * norm (u1 - u0:real^3)) pow 2`);
+ (REWRITE_WITH `&1 pow 2 <= (inv (&2) * norm (u1 - u0:real^3)) pow 2 
+                <=> &1 <= (inv (&2) * norm (u1 - u0:real^3))`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC Trigonometry2.POW2_COND);
+ (ASM_SIMP_TAC[REAL_LE_MUL; REAL_ARITH `&0 <= &1 /\ &0 <= inv (&2)`; 
+   NORM_POS_LE]);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[REAL_ARITH `&1 pow 2 = &1`]);
+
+
+ (ASM_CASES_TAC `between (proj_point (u1 - u0) (p - u0) + u0) (s1,u1:real^3)`);
+
+ (NEW_GOAL `hl [u0;u1] = dist (s1, u1:real^3)`);
+ (REWRITE_WITH `dist (s1, u1) = dist (s1, u0:real^3)`);
+ (ASM_REWRITE_TAC[midpoint;dist]);
+ (NORM_ARITH_TAC);
+ (ASM_REWRITE_TAC[]);
+
+ (REWRITE_TAC[GSYM (ASSUME `s1 = midpoint (u0,u1:real^3)`)]);
+ (REWRITE_TAC[ASSUME `hl [u0; u1] = dist (s1,u1:real^3)`]);
+ (MATCH_MP_TAC INTER_RCONE_GE_LE_lemma);
+ (EXISTS_TAC `u0:real^3` THEN EXISTS_TAC `a:real`);
+ (ASM_REWRITE_TAC[IN_INTER]);
+ (EXPAND_TAC "a");
+ (REPEAT STRIP_TAC);
+ (REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (MATCH_MP_TAC REAL_LT_DIV);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_1]);
+ (STRIP_TAC);
+ (MATCH_MP_TAC DIST_POS_LT);
+ (REWRITE_TAC[midpoint; VECTOR_ARITH `inv (&2) % (u0 + u1) = u0 <=> inv (&2) %
+  (u0 - u1) = vec 0`; VECTOR_MUL_EQ_0; REAL_ARITH `~(inv (&2) = &0)`]);
+ (ASM_REWRITE_TAC[VECTOR_ARITH `a - b = vec 0 <=> a = b`]);
+ (ASM_SIMP_TAC[SQRT_POS_LT; REAL_ARITH `&0 < &2`]);
+ (REWRITE_TAC[Trigonometry2.DIV_POW2]);
+ (REWRITE_WITH `sqrt (&2) pow 2 = &2`);
+ (MATCH_MP_TAC SQRT_POW_2);
+ (REAL_ARITH_TAC);
+ (ASM_REWRITE_TAC[REAL_ARITH `inv (&2) <= a / &2 <=> &1 <= a`]);
+ (ASM_REWRITE_TAC [TRUNCATE_SIMPLEX_EXPLICIT_1; ASSUME `hl [u0; u1] = 
+  dist (s1,u0:real^3)`; midpoint; dist; VECTOR_ARITH `inv (&2) % (u0 + u1) - 
+  u0 = inv (&2) % (u1 - u0)`; NORM_MUL; REAL_ABS_INV; MESON[REAL_ABS_REFL;
+  REAL_ARITH `&0 <= &2`]`abs (&2) = (&2)`]);
+ (NEW_GOAL `&1 <= inv (&2) * norm (u1 - u0:real^3)`);
+ (REWRITE_TAC[REAL_ARITH `&1 <= inv (&2) * a <=> &2 <= a`; GSYM dist]);
+ (UNDISCH_TAC `packing V`);
+ (REWRITE_TAC[packing] THEN DISCH_TAC THEN FIRST_ASSUM MATCH_MP_TAC);
+ (NEW_GOAL `set_of_list ul SUBSET V:real^3->bool`);
+ (MATCH_MP_TAC Packing3.BARV_SUBSET);
+ (EXISTS_TAC `3`);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[set_of_list]);
+ (SET_TAC[GSYM IN]);
+ (NEW_GOAL `&1 pow 2 <= (inv (&2) * norm (u1 - u0:real^3)) pow 2`);
+ (REWRITE_WITH `&1 pow 2 <= (inv (&2) * norm (u1 - u0:real^3)) pow 2 
+                <=> &1 <= (inv (&2) * norm (u1 - u0:real^3))`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC Trigonometry2.POW2_COND);
+ (ASM_SIMP_TAC[REAL_LE_MUL; REAL_ARITH `&0 <= &1 /\ &0 <= inv (&2)`; 
+   NORM_POS_LE]);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[REAL_ARITH `&1 pow 2 = &1`]);
+ (REWRITE_WITH `midpoint (u0,u1) = s1:real^3`);
+ (ASM_REWRITE_TAC[midpoint] THEN VECTOR_ARITH_TAC);
+ (ONCE_REWRITE_TAC[BETWEEN_SYM]);
+
+ (REWRITE_WITH `proj_point (u0 - u1) (p - u1) + u1:real^3 = 
+                 proj_point (u1 - u0) (p - u0) + u0`);
+ (REWRITE_TAC[PRO_EXP; GSYM NORM_POW_2; GSYM dist; DIST_SYM]);
+ (REWRITE_TAC[VECTOR_ARITH 
+  `(a / x) % (m - n) + n = (b / x) % (n - m) + m 
+   <=> ((a + b) / x - &1) % (m - n) = vec 0`]);
+ (REWRITE_TAC[VECTOR_ARITH `(p - u1) dot (u0 - u1) + (p - u0) dot (u1 - u0) 
+  = (u0 - u1) dot (u0 - u1)`]);
+ (REWRITE_TAC[GSYM NORM_POW_2; GSYM dist]);
+ (REWRITE_WITH `dist (u0,u1) pow 2 / dist (u0,u1:real^3) pow 2 = &1`);
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (REWRITE_TAC[Trigonometry2.POW2_EQ_0; DIST_EQ_0]);
+ (ASM_REWRITE_TAC[]);
+ (VECTOR_ARITH_TAC);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `between (proj_point (u1 - u0) (p - u0) + u0) (u0,s1) \/          
+             between (proj_point (u1 - u0) (p - u0) + u0) (s1, u1:real^3)`);
+ (MATCH_MP_TAC BETWEEN_TRANS_3_CASES);
+ (ASM_REWRITE_TAC[BETWEEN_MIDPOINT]);
+ (NEW_GOAL `F`);
+ (ASM_MESON_TAC[]);
+ (ASM_MESON_TAC[]);
+ (STRIP_TAC);
+ (NEW_GOAL `F`);
+ (ASM_SET_TAC[]);
+ (ASM_MESON_TAC[])]);;
+
+(* ==================================================================== *)
+
+let BOUNDED_MCELL = prove_by_refinement (
+ `!V ul k. 
+     saturated V /\
+     packing V /\
+     barV V 3 ul
+     ==> bounded (mcell k V ul)`,
+[(REPEAT STRIP_TAC);
+ (ASM_CASES_TAC `k = 0`);
+ (ASM_REWRITE_TAC[]);
+ (REPEAT STRIP_TAC THEN REWRITE_TAC[MCELL_EXPLICIT; mcell0]);
+ (MATCH_MP_TAC BOUNDED_DIFF);
+ (ASM_SIMP_TAC[ROGERS_EXPLICIT]);
+ (MATCH_MP_TAC FINITE_IMP_BOUNDED_CONVEX_HULL);
+ (REWRITE_TAC[Geomdetail.FINITE6]);
+
+ (ASM_CASES_TAC `k = 1`);
+ (MATCH_MP_TAC BOUNDED_SUBSET);
+ (EXISTS_TAC `rogers V ul`);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[ROGERS_EXPLICIT]);
+ (MATCH_MP_TAC FINITE_IMP_BOUNDED_CONVEX_HULL);
+ (REWRITE_TAC[Geomdetail.FINITE6]);
+ (ASM_REWRITE_TAC[MCELL_EXPLICIT;mcell1]);
+ (COND_CASES_TAC);
+ (SET_TAC[]);
+ (SET_TAC[]);
+
+ (ASM_CASES_TAC `k = 2`);
+ (ASM_REWRITE_TAC[]);
+ (REPEAT STRIP_TAC THEN REWRITE_TAC[MCELL_EXPLICIT]);
+ (REWRITE_TAC[bounded]);
+ (EXISTS_TAC `norm (midpoint (HD ul,HD (TL ul))) + 
+               hl (truncate_simplex 1 (ul:(real^3)list))`);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `norm (x:real^3) <= norm (x - midpoint (HD ul,HD (TL ul))) + 
+   norm (midpoint (HD ul,HD (TL ul)))`);
+ (NORM_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[GSYM dist]);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (NEW_GOAL `dist (midpoint (HD ul,HD (TL ul)),x:real^3) <=
+             hl (truncate_simplex 1 ul)`);
+ (MATCH_MP_TAC MCELL_2_PROPERTIES_lemma1);
+ (EXISTS_TAC `V:real^3->bool`);
+ (ASM_REWRITE_TAC[]);
+ (DISCH_TAC);
+ (ASM_REAL_ARITH_TAC);
+
+ (ASM_CASES_TAC `k = 3`);
+ (ASM_REWRITE_TAC[]);
+ (REPEAT STRIP_TAC THEN REWRITE_TAC[MCELL_EXPLICIT;mcell3]);
+ (COND_CASES_TAC);
+ (MATCH_MP_TAC FINITE_IMP_BOUNDED_CONVEX_HULL);
+ (NEW_GOAL `?u0 u1 u2 u3. (ul:(real^3)list) = [u0:real^3;u1;u2;u3]`);
+ (MP_TAC (ASSUME `barV V 3 ul`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_2; set_of_list; 
+   SET_RULE `{a,b,c} UNION {d} = {a,b,c,d}`; Geomdetail.FINITE6]);
+ (REWRITE_TAC[BOUNDED_EMPTY]);
+
+ (NEW_GOAL `k >= 4`);
+ (ASM_ARITH_TAC);
+ (ASM_SIMP_TAC[MCELL_EXPLICIT;mcell4]);
+ (COND_CASES_TAC);
+ (MATCH_MP_TAC FINITE_IMP_BOUNDED_CONVEX_HULL);
+ (NEW_GOAL `?u0 u1 u2 u3. (ul:(real^3)list) = [u0:real^3;u1;u2;u3]`);
+ (MP_TAC (ASSUME `barV V 3 ul`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (ASM_REWRITE_TAC[set_of_list; Geomdetail.FINITE6]);
+ (REWRITE_TAC[BOUNDED_EMPTY])]);;
+
+(* ================================================================== *)
+
+let MEASURABLE_MCELL = prove (
+ `!V ul k. 
+     saturated V /\
+     packing V /\
+     barV V 3 ul
+     ==> measurable (mcell k V ul)`,
+ (REPEAT STRIP_TAC) THEN
+ (MATCH_MP_TAC MEASURABLE_COMPACT) THEN 
+ (REWRITE_TAC[COMPACT_EQ_BOUNDED_CLOSED]) THEN
+ (ASM_SIMP_TAC[CLOSED_MCELL;BOUNDED_MCELL]));;
+
+(* MEASURABLE_MCELL = URRPHBZ1 *)
+
+let URRPHBZ1 = prove (URRPHBZ1_concl, REWRITE_TAC[MEASURABLE_MCELL]);;
+
+end;;

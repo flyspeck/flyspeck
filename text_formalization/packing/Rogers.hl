@@ -1248,8 +1248,1852 @@ let GLTVHUM = prove(`!V (u0:real^3) p. packing V /\ saturated V /\ (u0 IN V) ==>
      EXISTS_TAC `vl:(real^3)list` THEN
      ASM_SIMP_TAC[]);;
 
+(***************************************************)
 
-	 
+(* DUUNHOR *)
+(*************************)
+
+let VORONOI_CLOSED_EQ_LEMMA = prove(`!V u v. packing V /\ u IN V /\ v IN V /\
+				      voronoi_closed V u = voronoi_closed V v
+    ==> u = v`,
+  REWRITE_TAC[voronoi_closed; EXTENSION] THEN REPEAT STRIP_TAC THEN
+    FIRST_ASSUM (MP_TAC o SPEC `v : real^3`) THEN REWRITE_TAC[IN_ELIM_THM] THEN
+    REWRITE_TAC[DIST_REFL; DIST_POS_LE] THEN
+    DISCH_THEN (MP_TAC o SPEC `v : real^3`) THEN
+    UNDISCH_TAC `v : real^3 IN V` THEN REWRITE_TAC[IN] THEN DISCH_TAC THEN
+    ANTS_TAC THEN ASM_REWRITE_TAC[DIST_REFL; DIST_LE_0; EQ_SYM_EQ]);;
+
+
+let ODIGPXU_lemma = prove(`!P f f' p0 p (q : real^N) t s.
+		      polyhedron P /\ p0 IN P /\ ~(p0 IN f UNION f') /\
+		      f facet_of P /\ f' facet_of P /\
+		      p IN f /\ q IN f' /\
+		      &0 < t /\ &0 < s /\
+		      (&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s <= t`,
+  REPEAT STRIP_TAC THEN
+    POP_ASSUM MP_TAC THEN
+    REWRITE_TAC[VECTOR_SUB_RDISTRIB] THEN
+    REWRITE_TAC[VECTOR_ARITH `a - t % (p0 : real^N) + t % p = a - s % p0 + s % q <=> t % (p - p0) = s % (q - p0)`] THEN
+    MP_TAC (REAL_ARITH `s <= t \/ t < s`) THEN
+    STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+    DISCH_THEN (MP_TAC o AP_TERM `\x : real^N. inv t % x`) THEN REWRITE_TAC[VECTOR_MUL_ASSOC] THEN
+    ASM_SIMP_TAC[REAL_ARITH `&0 < t ==> ~(t = &0)`; REAL_MUL_LINV; VECTOR_MUL_LID] THEN
+    ABBREV_TAC `r = inv t * s` THEN
+    SUBGOAL_THEN `&1 < r` ASSUME_TAC THENL
+    [
+      MP_TAC (SPECL [`&1`; `r : real`; `t : real`] REAL_LT_LMUL_EQ) THEN
+	ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+	POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	REWRITE_TAC[REAL_MUL_ASSOC] THEN
+	ASM_SIMP_TAC[REAL_MUL_RID; REAL_ARITH `&0 < t ==> ~(t = &0)`; REAL_MUL_RINV; REAL_MUL_LID];
+      ALL_TAC
+    ] THEN
+
+    MP_TAC (SPECL[`P : real^N -> bool`; `f' : real^N -> bool`] FACET_OF_POLYHEDRON) THEN
+    ASM_REWRITE_TAC[] THEN
+    REPEAT (DISCH_THEN (CHOOSE_THEN MP_TAC)) THEN REWRITE_TAC[SUBSET] THEN
+    STRIP_TAC THEN
+    SUBGOAL_THEN `(a : real^N) dot p0 < b` ASSUME_TAC THENL
+    [
+      REWRITE_TAC[REAL_ARITH `x < y <=> x <= y /\ ~(x = y)`] THEN
+	FIRST_X_ASSUM (MP_TAC o SPEC `p0 : real^N`) THEN
+	ASM_REWRITE_TAC[IN_ELIM_THM] THEN SIMP_TAC[] THEN DISCH_THEN (fun th -> ALL_TAC) THEN
+	UNDISCH_TAC `~(p0 : real^N IN f UNION f')` THEN
+	ASM_REWRITE_TAC[CONTRAPOS_THM; IN_UNION] THEN DISCH_TAC THEN
+	DISJ2_TAC THEN ASM_REWRITE_TAC[IN_INTER; IN_ELIM_THM];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[VECTOR_ARITH `p - p0 = x <=> p = p0 + x : real^N`] THEN DISCH_TAC THEN
+    MP_TAC (ISPECL[`f : real^N -> bool`; `P : real^N -> bool`] FACET_OF_IMP_SUBSET) THEN
+    ASM_REWRITE_TAC[SUBSET] THEN DISCH_THEN (MP_TAC o SPEC `p : real^N`) THEN
+    ASM_REWRITE_TAC[] THEN
+    DISCH_THEN (fun th -> FIRST_X_ASSUM (MP_TAC o (fun th2 -> MATCH_MP th2 th))) THEN
+    REWRITE_TAC[IN_ELIM_THM; DOT_RADD; DOT_RMUL; DOT_RSUB] THEN
+    REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN REWRITE_TAC[EXTENSION] THEN
+    DISCH_THEN (MP_TAC o SPEC `q : real^N`) THEN ASM_REWRITE_TAC[IN_INTER; IN_ELIM_THM] THEN
+    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN DISCH_TAC THEN DISCH_THEN (fun th -> ALL_TAC) THEN
+    REWRITE_TAC[REAL_ARITH `x + r * (b - x) <= b <=> (r - &1) * b <= (r - &1) * x`] THEN
+    ASM_SIMP_TAC[REAL_ARITH `&1 < r ==> &0 < r - &1`; REAL_LE_LMUL_EQ] THEN
+    POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+
+(* ODIGPXU *)
+let ODIGPXU = prove(`!P f f' p0 p (q : real^N) t s.
+		      polyhedron P /\ p0 IN P /\ ~(p0 IN f UNION f') /\
+		      f facet_of P /\ f' facet_of P /\
+		      p IN f /\ q IN f' /\
+		      &0 < t /\ &0 < s /\
+		      (&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q
+    ==> s = t`,
+  REPEAT STRIP_TAC THEN
+    REWRITE_TAC[REAL_ARITH `s = t <=> s <= t /\ t <= s`] THEN
+    STRIP_TAC THEN MATCH_MP_TAC ODIGPXU_lemma THENL
+    [
+      MAP_EVERY EXISTS_TAC [`P : real^N -> bool`; `f : real^N -> bool`; `f' : real^N -> bool`] THEN
+	MAP_EVERY EXISTS_TAC [`p0 : real^N`; `p : real^N`; `q : real^N`] THEN
+	ASM_REWRITE_TAC[];
+      MAP_EVERY EXISTS_TAC [`P : real^N -> bool`; `f' : real^N -> bool`; `f : real^N -> bool`] THEN
+	MAP_EVERY EXISTS_TAC [`p0 : real^N`; `q : real^N`; `p : real^N`] THEN
+	ASM_REWRITE_TAC[UNION_COMM]
+    ]);;
+
+
+
+let OMEGA_LIST_N_EQ = prove(`!V ul i j. omega_list_n V ul i IN voronoi_list V (truncate_simplex (SUC i) ul)
+			      ==> omega_list_n V ul (SUC i) = omega_list_n V ul i`,
+  REPEAT GEN_TAC THEN ABBREV_TAC `X = voronoi_list V (truncate_simplex (SUC i) ul)` THEN
+    ASM_REWRITE_TAC[OMEGA_LIST_N] THEN DISCH_TAC THEN
+    MP_TAC (ISPECL[`X:real^3 -> bool`; `omega_list_n V ul i`] CLOSEST_POINT_EXISTS) THEN
+    ANTS_TAC THENL
+    [
+      REWRITE_TAC[GSYM MEMBER_NOT_EMPTY] THEN
+	EXPAND_TAC "X" THEN REWRITE_TAC[CLOSED_VORONOI_LIST] THEN
+	EXISTS_TAC `omega_list_n V ul i` THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+    STRIP_TAC THEN
+    POP_ASSUM (MP_TAC o SPEC `omega_list_n V ul i`) THEN 
+    ASM_REWRITE_TAC[DIST_REFL; DIST_LE_0] THEN
+    DISCH_THEN (fun th -> REWRITE_TAC[SYM th]));;
+
+
+let OMEGA_LIST_N_IN_FACET = prove(`!V ul k i. packing V /\ saturated V /\ barV V k ul /\ i < k
+				  ==> ?F. F facet_of voronoi_list V (truncate_simplex i ul) /\
+				     voronoi_list V (truncate_simplex (i + 1) ul) = F /\
+				     (!j. i < j /\ j <= k ==> omega_list_n V ul j IN F)`,
+  REPEAT STRIP_TAC THEN
+    ABBREV_TAC `FF = voronoi_list V (truncate_simplex (i + 1) ul)` THEN
+    EXISTS_TAC `FF : real^3 -> bool` THEN REWRITE_TAC[] THEN
+    CONJ_TAC THENL
+    [
+      MP_TAC (SPECL[`V:real^3->bool`; `truncate_simplex i ul : (real^3)list`; `i:num`; `FF:real^3->bool`] IDBEZAL) THEN
+	ANTS_TAC THENL
+	[
+	  ASM_REWRITE_TAC[] THEN
+	    MP_TAC (SPEC_ALL BARV_IMP_K_LE_3) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	    MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i < 3`) THEN ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+	    MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+	    EXISTS_TAC `k:num` THEN ASM_SIMP_TAC[LT_IMP_LE];
+	  ALL_TAC
+	] THEN
+	
+	DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	EXISTS_TAC `truncate_simplex (i + 1) ul : (real^3)list` THEN
+	ASM_REWRITE_TAC[] THEN CONJ_TAC THENL
+	[
+	  MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+	    EXISTS_TAC `k:num` THEN ASM_SIMP_TAC[ARITH_RULE `i < k ==> i + 1 <= k`];
+	  MP_TAC (ISPECL[`ul:(real^3)list`; `i:num`; `i + 1`] TRUNCATE_TRUNCATE_SIMPLEX) THEN
+	    DISCH_THEN MATCH_MP_TAC THEN
+	    REWRITE_TAC[ARITH_RULE `i <= i + 1`] THEN
+	    UNDISCH_TAC `barV V k ul` THEN REWRITE_TAC[BARV] THEN DISCH_TAC THEN
+	    ASM_SIMP_TAC[ARITH_RULE `i < k ==> (i + 1) + 1 <= k + 1`]
+	];
+      ALL_TAC
+    ] THEN
+    REPEAT STRIP_TAC THEN
+    MP_TAC (SPECL[`V:real^3->bool`; `ul:(real^3)list`; `k:num`; `j:num`] OMEGA_LIST_N_IN_VORONOI_LIST) THEN
+    ASM_REWRITE_TAC[] THEN
+    SUBGOAL_THEN `voronoi_list V (truncate_simplex j ul) SUBSET FF` ASSUME_TAC THENL
+    [
+      EXPAND_TAC "FF" THEN REWRITE_TAC[VORONOI_LIST; VORONOI_SET] THEN
+	REWRITE_TAC[SUBSET; IN_INTERS; IN_ELIM_THM] THEN
+	REPEAT STRIP_TAC THEN
+	FIRST_X_ASSUM MATCH_MP_TAC THEN
+	EXISTS_TAC `v:real^3` THEN ASM_REWRITE_TAC[] THEN
+	POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN
+	REWRITE_TAC[IN_SET_OF_LIST; MEM_EXISTS_EL] THEN
+
+	UNDISCH_TAC `barV V k ul` THEN REWRITE_TAC[BARV] THEN DISCH_TAC THEN
+	MP_TAC (ISPECL[`i + 1`; `ul:(real^3)list`] LENGTH_TRUNCATE_SIMPLEX) THEN
+	MP_TAC (ISPECL[`j:num`; `ul:(real^3)list`] LENGTH_TRUNCATE_SIMPLEX) THEN
+	ASM_REWRITE_TAC[ARITH_RULE `j + 1 <= k + 1 <=> j <= k`] THEN
+	ASM_SIMP_TAC[ARITH_RULE `i < k ==> i + 1 <= k`] THEN
+	REPLICATE_TAC 2 (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
+	DISCH_THEN (X_CHOOSE_THEN `r:num` MP_TAC) THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+
+	MP_TAC (ISPECL[`ul:(real^3)list`; `i + 1`; `r:num`] EL_TRUNCATE_SIMPLEX) THEN
+	ASM_SIMP_TAC[ARITH_RULE `i < k ==> (i + 1) + 1 <= k + 1`] THEN
+	ASM_SIMP_TAC[ARITH_RULE `r < (i + 1) + 1 ==> r <= i + 1`] THEN
+	REPEAT DISCH_TAC THEN
+	EXISTS_TAC `r:num` THEN
+	MP_TAC (ARITH_RULE `j <= k /\ i < j /\ r < (i + 1) + 1 ==> r < j + 1`) THEN
+	ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+	MP_TAC (ISPECL[`ul:(real^3)list`; `j:num`; `r:num`] EL_TRUNCATE_SIMPLEX) THEN
+	ASM_REWRITE_TAC[ARITH_RULE `j + 1 <= k + 1 <=> j <= k`] THEN
+	ASM_SIMP_TAC[ARITH_RULE `r < j + 1 ==> r <= j`];
+      ALL_TAC
+    ] THEN
+    DISCH_TAC THEN
+    MATCH_MP_TAC IN_TRANS THEN
+    EXISTS_TAC `voronoi_list V (truncate_simplex j ul)` THEN
+    ASM_REWRITE_TAC[]);;
+
+
+let OMEGA_LIST_N_IN_VORONOI_LIST_GEN = prove(`!V ul k i j. packing V /\ saturated V /\ barV V k ul /\ 
+					       i <= j /\ j <= k ==>
+				       omega_list_n V ul j IN voronoi_list V (truncate_simplex i ul)`,
+  REPEAT STRIP_TAC THEN
+    UNDISCH_TAC `i <= j:num` THEN REWRITE_TAC[LE_LT] THEN STRIP_TAC THENL
+    [
+      MP_TAC (SPEC_ALL OMEGA_LIST_N_IN_FACET) THEN
+	ASM_REWRITE_TAC[] THEN
+	ANTS_TAC THENL
+	[
+	  MATCH_MP_TAC (ARITH_RULE `i < j /\ j <= k ==> i < k : num`) THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	STRIP_TAC THEN
+	MATCH_MP_TAC IN_TRANS THEN
+	EXISTS_TAC `F':real^3->bool` THEN
+        CONJ_TAC THENL
+        [
+	  FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+        MATCH_MP_TAC FACET_OF_IMP_SUBSET THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+    ASM_REWRITE_TAC[] THEN
+    MATCH_MP_TAC OMEGA_LIST_N_IN_VORONOI_LIST THEN
+    EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[]);;
+
+
+let VORONOI_SET_SUBSET = prove(`!V s t. s SUBSET t ==> voronoi_set V t SUBSET voronoi_set V s`,
+  REWRITE_TAC[VORONOI_SET] THEN SET_TAC[]);;
+
+
+
+
+let TRUNCATE_SIMPLEX_SUBSET = prove(`!(ul:(A)list) i j. j <= i /\ i + 1 <= LENGTH ul ==>
+		      set_of_list (truncate_simplex j ul) SUBSET set_of_list (truncate_simplex i ul)`,
+  REWRITE_TAC[SUBSET; IN_SET_OF_LIST; MEM_EXISTS_EL] THEN REPEAT STRIP_TAC THEN
+    EXISTS_TAC `i':num` THEN ASM_REWRITE_TAC[] THEN
+    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+    MP_TAC (SPECL[`i:num`; `ul:(A)list`] LENGTH_TRUNCATE_SIMPLEX) THEN
+    MP_TAC (SPECL[`j:num`; `ul:(A)list`] LENGTH_TRUNCATE_SIMPLEX) THEN
+    MP_TAC (ARITH_RULE `!x. j <= i /\ i + 1 <= x ==> j + 1 <= x`) THEN
+    MP_TAC (ARITH_RULE `i' < j + 1 /\ j <= i ==> i' < i + 1`) THEN
+    ASM_SIMP_TAC[] THEN REPEAT DISCH_TAC THEN
+    MP_TAC (SPECL[`ul:(A)list`; `i:num`; `i':num`] EL_TRUNCATE_SIMPLEX) THEN
+    ASM_SIMP_TAC[ARITH_RULE `i' < i + 1 ==> i' <= i`] THEN DISCH_TAC THEN
+    MP_TAC (SPECL[`ul:(A)list`; `j:num`; `i':num`] EL_TRUNCATE_SIMPLEX) THEN
+    ASM_SIMP_TAC[ARITH_RULE `i' < j + 1 ==> i' <= j`]);;
+
+
+let OMEGA_LIST_N_EQ_GEN = prove(`!V ul k i j. packing V /\ saturated V /\ barV V k ul /\ 
+		  i < j /\ j <= k /\ omega_list_n V ul i IN voronoi_list V (truncate_simplex j ul)
+		  ==> omega_list_n V ul (SUC i) = omega_list_n V ul i`,
+  REPEAT STRIP_TAC THEN
+    MATCH_MP_TAC OMEGA_LIST_N_EQ THEN
+    MATCH_MP_TAC IN_TRANS THEN EXISTS_TAC `voronoi_list V (truncate_simplex j ul)` THEN
+    ASM_REWRITE_TAC[VORONOI_LIST] THEN
+    MATCH_MP_TAC VORONOI_SET_SUBSET THEN
+    MATCH_MP_TAC TRUNCATE_SIMPLEX_SUBSET THEN
+    ASM_SIMP_TAC[ARITH_RULE `i < j ==> SUC i <= j`] THEN
+    UNDISCH_TAC `barV V k ul` THEN REWRITE_TAC[BARV] THEN
+    ASM_SIMP_TAC[ARITH_RULE `j <= k ==> j + 1 <= k + 1`]);;
+
+
+
+let CARD_LE_3 = prove(`!s. ~(s = {}) /\ FINITE s /\ CARD s <= 3 ==> ?x y z : A. s = {x, y, z}`,
+  REPEAT STRIP_TAC THEN
+    MP_TAC (ARITH_RULE `!n. n <= 3 ==> n = 0 \/ n = 1 \/ n = 2 \/ n = 3`) THEN
+    DISCH_THEN (MP_TAC o SPEC `CARD (s:A->bool)`) THEN ASM_REWRITE_TAC[] THEN
+    STRIP_TAC THEN POP_ASSUM MP_TAC THEN UNDISCH_TAC `FINITE (s:A->bool)` THEN REWRITE_TAC[IMP_IMP; GSYM HAS_SIZE; num_CONV `3`; num_CONV `2`; num_CONV `1`; HAS_SIZE_CLAUSES] THENL
+    [
+      DISCH_TAC THEN UNDISCH_TAC `~((s:A->bool) = {})` THEN ASM_REWRITE_TAC[];
+      STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+	REPLICATE_TAC 3 (EXISTS_TAC `a:A`) THEN SET_TAC[];
+      REPEAT (DISCH_THEN (CHOOSE_THEN MP_TAC)) THEN 
+	DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "A")) THEN
+	STRIP_TAC THEN REMOVE_THEN "A" MP_TAC THEN ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+	EXISTS_TAC `a:A` THEN EXISTS_TAC `a':A` THEN EXISTS_TAC `a':A` THEN SET_TAC[];
+      REPEAT (DISCH_THEN (CHOOSE_THEN MP_TAC)) THEN
+	DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (LABEL_TAC "A")) THEN
+	REPEAT (DISCH_THEN (CHOOSE_THEN MP_TAC)) THEN
+	DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
+	STRIP_TAC THEN REMOVE_THEN "A" MP_TAC THEN ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+	EXISTS_TAC `a:A` THEN EXISTS_TAC `a':A` THEN EXISTS_TAC `a'':A` THEN REWRITE_TAC[]
+    ]);;
+
+
+let AFF_DIM_LE_2_IMP_COPLANAR = prove(`!s : real^N -> bool. aff_dim s <= &2 ==> coplanar s`,
+  REPEAT STRIP_TAC THEN REWRITE_TAC[coplanar] THEN
+    MP_TAC (ISPEC `s:real^N->bool` AFF_DIM) THEN
+    STRIP_TAC THEN
+    SUBGOAL_THEN `CARD (b:real^N -> bool) <= 3` ASSUME_TAC THENL
+    [
+      REWRITE_TAC[GSYM INT_OF_NUM_LE] THEN
+	REWRITE_TAC[INT_ARITH `a <= int_of_num 3 <=> a - &1 <= &2`] THEN
+	POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+      ALL_TAC
+    ] THEN
+    ASM_CASES_TAC `(b:real^N -> bool) = {}` THENL
+    [
+      REPLICATE_TAC 3 (EXISTS_TAC `vec 0 : real^N`) THEN
+	MATCH_MP_TAC SUBSET_TRANS THEN
+	EXISTS_TAC `affine hull b : real^N -> bool` THEN
+        CONJ_TAC THENL [ ASM_REWRITE_TAC[HULL_SUBSET]; ALL_TAC ] THEN
+        POP_ASSUM (fun th -> REWRITE_TAC[th; AFFINE_HULL_EMPTY; EMPTY_SUBSET]);
+      ALL_TAC
+    ] THEN
+    MP_TAC (ISPEC `b:real^N->bool` CARD_LE_3) THEN
+    ASM_SIMP_TAC[AFFINE_INDEPENDENT_IMP_FINITE] THEN
+    STRIP_TAC THEN
+    MAP_EVERY EXISTS_TAC [`x:real^N`; `y:real^N`; `z:real^N`] THEN
+    MATCH_MP_TAC SUBSET_TRANS THEN
+    EXISTS_TAC `affine hull b : real^N -> bool` THEN
+    CONJ_TAC THENL [ ASM_REWRITE_TAC[HULL_SUBSET]; ALL_TAC ] THEN
+    POP_ASSUM (fun th -> REWRITE_TAC[th; SUBSET_REFL]));;
+
+
+let SET_OF_LIST_TRUNCATE_SIMPLEX_SUBSET = prove(`!(ul:(A)list) k. k + 1 <= LENGTH ul ==> set_of_list (truncate_simplex k ul) SUBSET set_of_list ul`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC SET_OF_LIST_INITIAL_SUBLIST_SUBSET THEN
+     MP_TAC (SPECL [`k:num`; `truncate_simplex k (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
+     ASM_REWRITE_TAC[] THEN SIMP_TAC[]);;
+
+
+
+let ROGERS_AFF_DIM_FULL = prove(`!V ul. barV V 3 ul /\ aff_dim (rogers V ul) = &3
+    ==> !i j. i < 4 /\ j < 4 /\ ~(i = j) ==> ~(omega_list_n V ul i = omega_list_n V ul j)`,
+  REWRITE_TAC[ROGERS; AFF_DIM_CONVEX_HULL; BARV; ARITH] THEN REPEAT GEN_TAC THEN
+    REWRITE_TAC[GSYM IMP_IMP] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+    DISCH_THEN (fun th -> ALL_TAC) THEN REPEAT STRIP_TAC THEN
+    ABBREV_TAC `S = IMAGE (omega_list_n V ul) {j | j < 4}` THEN
+    ABBREV_TAC `a = omega_list_n V ul i` THEN
+    ABBREV_TAC `b = omega_list_n V ul j` THEN
+    SUBGOAL_THEN `S DELETE a DELETE b SUBSET IMAGE (omega_list_n V ul) {k | k < 4 /\ ~(k = i) /\ ~(k = j)}` MP_TAC THENL
+    [
+      REPLICATE_TAC 3 (POP_ASSUM (fun th -> REWRITE_TAC[SYM th])) THEN
+	REWRITE_TAC[SUBSET; IN_DELETE; IN_IMAGE; IN_ELIM_THM] THEN
+	REPEAT STRIP_TAC THEN
+	EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[] THEN
+	CONJ_TAC THENL
+	[
+	  POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[CONTRAPOS_THM];
+	  POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[CONTRAPOS_THM]
+	];
+      ALL_TAC
+    ] THEN
+    
+    SUBGOAL_THEN `FINITE (S:real^3->bool)` ASSUME_TAC THENL
+    [
+      EXPAND_TAC "S" THEN
+	MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LT];
+      ALL_TAC
+    ] THEN
+
+    DISCH_TAC THEN
+    SUBGOAL_THEN `CARD (S DELETE a DELETE (b:real^3)) <= 2` MP_TAC THENL
+    [
+      MATCH_MP_TAC LE_TRANS THEN
+	EXISTS_TAC `CARD (IMAGE (omega_list_n V ul) {k | k < 4 /\ ~(k = i) /\ ~(k = j)})` THEN
+	SUBGOAL_THEN `{k | k < 4 /\ ~(k = i) /\ ~(k = j)} HAS_SIZE 2` MP_TAC THENL
+	[
+	  SUBGOAL_THEN `{k | k < 4 /\ ~(k = i) /\ ~(k = j)} = {k | k < 4} DELETE i DELETE j` ASSUME_TAC THENL
+	    [
+	      REWRITE_TAC[EXTENSION; IN_ELIM_THM; IN_DELETE; CONJ_ACI];
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[HAS_SIZE; FINITE_DELETE; FINITE_NUMSEG_LT] THEN
+	    MP_TAC (ISPECL[`j:num`; `{k | k < 4} DELETE i`] CARD_DELETE) THEN
+	    ASM_REWRITE_TAC[FINITE_DELETE; FINITE_NUMSEG_LT; IN_DELETE; IN_ELIM_THM] THEN
+	    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	    MP_TAC (ISPECL[`i:num`; `{k | k < 4}`] CARD_DELETE) THEN
+	    ASM_REWRITE_TAC[FINITE_NUMSEG_LT; IN_ELIM_THM] THEN
+	    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	    REWRITE_TAC[CARD_NUMSEG_LT] THEN ARITH_TAC;
+	  ALL_TAC
+	] THEN
+
+	REWRITE_TAC[HAS_SIZE] THEN STRIP_TAC THEN
+
+	CONJ_TAC THENL
+	[
+	  MATCH_MP_TAC CARD_SUBSET THEN ASM_REWRITE_TAC[] THEN
+	    MATCH_MP_TAC FINITE_IMAGE THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+
+	POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	MATCH_MP_TAC CARD_IMAGE_LE THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    MP_TAC (ISPECL[`S:real^3->bool`; `a:real^3`] FINITE_DELETE) THEN ASM_REWRITE_TAC[] THEN
+    DISCH_TAC THEN ASM_SIMP_TAC[CARD_DELETE; IN_DELETE] THEN
+    SUBGOAL_THEN `b:real^3 IN S` ASSUME_TAC THENL
+    [
+      EXPAND_TAC "S" THEN EXPAND_TAC "b" THEN
+	REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN EXISTS_TAC `j:num` THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    MP_TAC (ISPECL[`S:real^3->bool`; `b:real^3`] Hypermap.CARD_ATLEAST_1) THEN
+    ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+    ASM_SIMP_TAC[GSYM INT_OF_NUM_LE; GSYM INT_OF_NUM_SUB] THEN
+    MP_TAC (ISPEC `S:real^3->bool` AFF_DIM_LE_CARD) THEN ASM_REWRITE_TAC[] THEN
+    INT_ARITH_TAC);;
+    
+
+let VORONOI_LIST_AFF_DIM = prove(`!V ul k i. barV V k ul /\ i <= k
+				   ==> aff_dim (voronoi_list V (truncate_simplex i ul)) = &3 - &i`,
+  REPEAT STRIP_TAC THEN
+    SUBGOAL_THEN `barV V i (truncate_simplex i ul)` MP_TAC THENL
+    [
+      MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+	EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[BARV; VORONOI_NONDG] THEN STRIP_TAC THEN
+    FIRST_X_ASSUM (MP_TAC o SPEC `truncate_simplex i ul : (real^3)list`) THEN
+    ASM_REWRITE_TAC[INITIAL_SUBLIST_REFL; ARITH_RULE `0 < i + 1`] THEN
+    REWRITE_TAC[GSYM INT_OF_NUM_ADD] THEN
+    INT_ARITH_TAC);;
+
+
+let AFF_DIM_FINITE_UNION_LE = prove(`!s (t:real^N->bool). FINITE s ==>
+				      aff_dim (s UNION t) <= &(CARD s) + aff_dim t`,
+  REPEAT STRIP_TAC THEN
+    ABBREV_TAC `n = CARD (s:real^N->bool)` THEN
+    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+    SPEC_TAC (`s:real^N->bool`, `s:real^N->bool`) THEN
+    SPEC_TAC (`n:num`, `n:num`) THEN
+    INDUCT_TAC THEN REPEAT STRIP_TAC THENL
+    [
+      MP_TAC (ISPEC `s:real^N->bool` CARD_EQ_0) THEN
+	ASM_SIMP_TAC[UNION_EMPTY; INT_ADD_LID; INT_LE_REFL];
+      ALL_TAC
+    ] THEN
+    SUBGOAL_THEN `s:real^N->bool HAS_SIZE (SUC n)` MP_TAC THENL
+    [
+      ASM_REWRITE_TAC[HAS_SIZE];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[HAS_SIZE_CLAUSES; HAS_SIZE] THEN
+    STRIP_TAC THEN ASM_REWRITE_TAC[INSERT_UNION_EQ; AFF_DIM_INSERT] THEN
+    FIRST_X_ASSUM (MP_TAC o SPEC `t':real^N->bool`) THEN
+    ASM_REWRITE_TAC[ARITH_RULE `SUC n = n + 1`; GSYM INT_OF_NUM_ADD] THEN 
+    INT_ARITH_TAC);;
+
+(* DUUNHOR *)
+let DUUNHOR = prove(`!V ul vl. packing V /\ saturated V /\ 
+		      ul IN barV V 3 /\ vl IN barV V 3 /\
+		      ~(rogers V ul = rogers V vl) ==>
+		      coplanar (rogers V ul INTER rogers V vl)`,
+  REWRITE_TAC[IN] THEN REPEAT STRIP_TAC THEN
+    SUBGOAL_THEN `LENGTH (ul : (real^3)list) = 4 /\ LENGTH (vl : (real^3)list) = 4` ASSUME_TAC THENL
+    [
+      REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN SIMP_TAC[BARV; ARITH];
+      ALL_TAC
+    ] THEN
+
+    ASM_CASES_TAC `~(aff_dim (rogers V ul) = &3)` THENL
+    [
+      MATCH_MP_TAC COPLANAR_SUBSET THEN
+	EXISTS_TAC `rogers V ul` THEN REWRITE_TAC[INTER_SUBSET] THEN
+	MATCH_MP_TAC AFF_DIM_LE_2_IMP_COPLANAR THEN
+	MP_TAC (ISPEC `rogers V ul` AFF_DIM_LE_UNIV) THEN REWRITE_TAC[DIMINDEX_3] THEN
+	POP_ASSUM MP_TAC THEN INT_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    POP_ASSUM MP_TAC THEN REWRITE_TAC[NOT_CLAUSES] THEN
+
+    ASM_CASES_TAC `~(aff_dim (rogers V vl) = &3)` THENL
+    [
+      DISCH_THEN (fun th -> ALL_TAC) THEN MATCH_MP_TAC COPLANAR_SUBSET THEN
+	EXISTS_TAC `rogers V vl` THEN REWRITE_TAC[INTER_SUBSET] THEN
+	MATCH_MP_TAC AFF_DIM_LE_2_IMP_COPLANAR THEN
+	MP_TAC (ISPEC `rogers V vl` AFF_DIM_LE_UNIV) THEN REWRITE_TAC[DIMINDEX_3] THEN
+	POP_ASSUM MP_TAC THEN INT_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    POP_ASSUM MP_TAC THEN REWRITE_TAC[NOT_CLAUSES] THEN
+
+    SUBGOAL_THEN `?k. k <= 3 /\ (!i. i < k ==> omega_list_n V ul i = omega_list_n V vl i /\
+		     voronoi_list V (truncate_simplex i ul) = voronoi_list V (truncate_simplex i vl)) /\
+                     ~(voronoi_list V (truncate_simplex k ul) = voronoi_list V (truncate_simplex k vl))` MP_TAC THENL 
+    [
+      ONCE_REWRITE_TAC[GSYM NOT_CLAUSES] THEN UNDISCH_TAC `~(rogers V ul = rogers V vl)` THEN
+	REWRITE_TAC[CONTRAPOS_THM; NOT_EXISTS_THM; DE_MORGAN_THM; NOT_FORALL_THM; NOT_IMP] THEN
+	REWRITE_TAC[ROGERS] THEN DISCH_TAC THEN
+	AP_TERM_TAC THEN
+	SUBGOAL_THEN `!i. i < 4 ==> omega_list_n V ul i = omega_list_n V vl i /\ voronoi_list V (truncate_simplex i ul) = voronoi_list V (truncate_simplex i vl)` ASSUME_TAC THENL
+	[
+	  MATCH_MP_TAC num_WF THEN INDUCT_TAC THEN ASM_REWRITE_TAC[OMEGA_LIST_N] THENL
+	    [
+	      REPLICATE_TAC 2 (DISCH_THEN (fun th -> ALL_TAC)) THEN
+		POP_ASSUM (MP_TAC o SPEC `0`) THEN
+		REWRITE_TAC[ARITH_RULE `~(0 <= 3) <=> F`; ARITH_RULE `i < 0 <=> F`; ARITH_RULE `0 < 4`] THEN
+		REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
+		DISCH_THEN (LABEL_TAC "A") THEN DISCH_THEN (LABEL_TAC "B") THEN DISCH_TAC THEN
+		USE_THEN "A" (MP_TAC o MATCH_MP BARV_SUBSET) THEN 
+		USE_THEN "B" (MP_TAC o MATCH_MP BARV_SUBSET) THEN
+		REWRITE_TAC[SUBSET] THEN
+		USE_THEN "A" (MP_TAC o MATCH_MP BARV_IMP_HD_IN_SET_OF_LIST) THEN DISCH_TAC THEN
+		USE_THEN "B" (MP_TAC o MATCH_MP BARV_IMP_HD_IN_SET_OF_LIST) THEN DISCH_TAC THEN
+		DISCH_THEN (MP_TAC o SPEC `HD vl : real^3`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+		DISCH_THEN (MP_TAC o SPEC `HD ul : real^3`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+		MP_TAC (ISPEC `ul:(real^3)list` TRUNCATE_0_EQ_HEAD) THEN
+		MP_TAC (ISPEC `vl:(real^3)list` TRUNCATE_0_EQ_HEAD) THEN
+		ASM_REWRITE_TAC[ARITH] THEN
+		REPLICATE_TAC 2 (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
+		REWRITE_TAC[VORONOI_LIST_SING] THEN DISCH_TAC THEN
+		ASM_REWRITE_TAC[] THEN
+		MATCH_MP_TAC VORONOI_CLOSED_EQ_LEMMA THEN
+		EXISTS_TAC `V : real^3 -> bool` THEN
+                ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    POP_ASSUM (fun th -> ALL_TAC) THEN
+	    DISCH_THEN (LABEL_TAC "A") THEN DISCH_TAC THEN
+	    REMOVE_THEN "A" MP_TAC THEN
+	    FIRST_X_ASSUM (MP_TAC o SPEC `SUC i`) THEN
+	    ASM_SIMP_TAC[ARITH_RULE `SUC i < 4 ==> SUC i <= 3`] THEN
+	    STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+	    [
+	      DISCH_THEN (MP_TAC o SPEC `i':num`) THEN
+		MP_TAC (ARITH_RULE `SUC i < 4 /\ i' < SUC i ==> i' < 4`) THEN
+		ASM_SIMP_TAC[];
+	      DISCH_THEN (MP_TAC o SPEC `i':num`) THEN
+		MP_TAC (ARITH_RULE `SUC i < 4 /\ i' < SUC i ==> i' < 4`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    DISCH_THEN (MP_TAC o SPEC `i:num`) THEN
+	    ASM_SIMP_TAC[ARITH_RULE `i < SUC i`; ARITH_RULE `SUC i < 4 ==> i < 4`];
+	  ALL_TAC
+	] THEN
+
+	ASM_REWRITE_TAC[EXTENSION] THEN GEN_TAC THEN
+	REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN EQ_TAC THENL
+	[
+	  DISCH_THEN (CHOOSE_THEN ASSUME_TAC) THEN
+	    EXISTS_TAC `x' : num` THEN ASM_REWRITE_TAC[] THEN
+	    FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN ASM_SIMP_TAC[];
+	  DISCH_THEN (CHOOSE_THEN ASSUME_TAC) THEN
+	    EXISTS_TAC `x' : num` THEN ASM_REWRITE_TAC[] THEN
+	    FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN ASM_SIMP_TAC[];
+	];
+      ALL_TAC
+    ] THEN
+    
+    DISCH_THEN (CHOOSE_THEN STRIP_ASSUME_TAC) THEN
+    DISCH_TAC THEN DISCH_TAC THEN
+    ABBREV_TAC `X = voronoi_list V (truncate_simplex k ul) INTER voronoi_list V (truncate_simplex k vl)` THEN
+    ABBREV_TAC `Y = IMAGE (omega_list_n V ul) {j | j < k}` THEN
+    SUBGOAL_THEN `rogers V ul INTER rogers V vl SUBSET convex hull (Y UNION X)` MP_TAC THENL
+    [
+      REWRITE_TAC[SUBSET; IN_INTER] THEN X_GEN_TAC `w:real^3` THEN
+	ABBREV_TAC `YX = convex hull (Y UNION X) : real^3->bool` THEN
+	ASM_REWRITE_TAC[ROGERS; CONVEX_HULL_FINITE] THEN
+	ABBREV_TAC `L1 = IMAGE (omega_list_n V ul) {j | j < 4}` THEN
+	ABBREV_TAC `L2 = IMAGE (omega_list_n V vl) {j | j < 4}` THEN
+	REWRITE_TAC[GSYM IMP_IMP; IN_ELIM_THM] THEN
+	DISCH_THEN (X_CHOOSE_THEN `ss : real^3 -> real` STRIP_ASSUME_TAC) THEN
+	DISCH_THEN (X_CHOOSE_THEN `tt : real^3 -> real` STRIP_ASSUME_TAC) THEN
+
+	SUBGOAL_THEN `FINITE (L1:real^3->bool) /\ FINITE (L2:real^3->bool)` ASSUME_TAC THENL
+	[
+	  CONJ_TAC THEN EXPAND_TAC "L1" THEN EXPAND_TAC "L2" THEN MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LT];
+	  ALL_TAC
+	] THEN
+
+	SUBGOAL_THEN `Y SUBSET (L1 : real^3->bool) /\ Y SUBSET (L2 : real^3->bool)` ASSUME_TAC THENL
+	[
+	  MAP_EVERY EXPAND_TAC ["L1"; "Y"; "L2"] THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+	    REPEAT STRIP_TAC THEN EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN ASM_SIMP_TAC[];
+	  ALL_TAC
+	] THEN
+
+	ASM_CASES_TAC `?i. i < k /\ (sum (IMAGE (omega_list_n V ul) {j | j <= i}) ss = &1 \/ sum (IMAGE (omega_list_n V vl) {j | j <= i}) tt = &1)` THENL
+	[
+	  EXPAND_TAC "YX" THEN
+	    MATCH_MP_TAC IN_TRANS THEN EXISTS_TAC `convex hull Y UNION convex hull X : real^3->bool` THEN
+	    REWRITE_TAC[HULL_UNION_SUBSET; IN_UNION] THEN DISJ1_TAC THEN
+	    REWRITE_TAC[CONVEX_HULL_FINITE; IN_ELIM_THM] THEN
+	    POP_ASSUM MP_TAC THEN STRIP_TAC THENL
+	    [
+	      ABBREV_TAC `Li = IMAGE (omega_list_n V ul) {j | j <= i}` THEN
+		EXISTS_TAC `ss : real^3->real` THEN
+	        MP_TAC (ISPECL[`ss:real^3->real`; `Li:real^3->bool`; `L1 DIFF Li:real^3->bool`; `L1:real^3->bool`] (GEN_ALL SUM_UNION_EQ)) THEN
+	        ANTS_TAC THENL
+	        [
+		  ASM_REWRITE_TAC[] THEN CONJ_TAC THENL
+		    [
+		      REWRITE_TAC[EXTENSION; IN_INTER; IN_DIFF] THEN REPEAT STRIP_TAC THEN SET_TAC[];
+		      EXPAND_TAC "L1" THEN EXPAND_TAC "Li" THEN
+			REWRITE_TAC[EXTENSION; IN_DIFF; IN_UNION; IN_IMAGE; IN_ELIM_THM] THEN GEN_TAC THEN
+			EQ_TAC THEN REPEAT STRIP_TAC THENL
+			[
+			  EXISTS_TAC `x':num` THEN 
+			    MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+			    ASM_SIMP_TAC[];
+			  EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+			  REWRITE_TAC[TAUT `A \/ B /\ ~A <=> A \/ B`] THEN DISJ2_TAC THEN
+			    EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[]
+			];
+		    ];
+		  ALL_TAC
+		] THEN
+
+	        ASM_REWRITE_TAC[REAL_ARITH `&1 + a = &1 <=> a = &0`] THEN
+	        DISCH_TAC THEN
+	        MP_TAC (ISPECL[`ss:real^3->real`; `L1 DIFF Li:real^3->bool`] SUM_POS_EQ_0) THEN
+	        ANTS_TAC THENL
+	        [
+		  REPEAT CONJ_TAC THENL
+		    [
+		      MATCH_MP_TAC FINITE_DIFF THEN ASM_REWRITE_TAC[];
+		      REWRITE_TAC[IN_DIFF] THEN
+			REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+
+	        DISCH_TAC THEN
+	        REPEAT CONJ_TAC THENL
+	        [
+		  EXPAND_TAC "Y" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    EXPAND_TAC "L1" THEN ASM_REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  UNDISCH_TAC `sum Li (ss:real^3->real) = &1` THEN 
+		    DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		    MATCH_MP_TAC SUM_SUPERSET THEN
+		    CONJ_TAC THENL
+		    [
+		      EXPAND_TAC "Li" THEN EXPAND_TAC "Y" THEN 
+			REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+			EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k:num`) THEN
+			ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    EXPAND_TAC "Y" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		    FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    ASM_REWRITE_TAC[IN_DIFF] THEN EXPAND_TAC "L1" THEN
+		    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+
+	        UNDISCH_TAC `vsum L1 (\x:real^3. ss x % x) = w` THEN
+		DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		MATCH_MP_TAC EQ_SYM THEN
+		MATCH_MP_TAC VSUM_SUPERSET THEN
+		ASM_REWRITE_TAC[] THEN
+		EXPAND_TAC "Y" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		REWRITE_TAC[VECTOR_MUL_EQ_0] THEN DISJ1_TAC THEN
+		FIRST_X_ASSUM MATCH_MP_TAC THEN
+		POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[IN_DIFF; CONTRAPOS_THM] THEN
+		EXPAND_TAC "Li" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		REPEAT STRIP_TAC THEN
+		EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    (* The second case *)
+	    ABBREV_TAC `Li = IMAGE (omega_list_n V vl) {j | j <= i}` THEN
+	    EXISTS_TAC `tt : real^3->real` THEN
+	    MP_TAC (ISPECL[`tt:real^3->real`; `Li:real^3->bool`; `L2 DIFF Li:real^3->bool`; `L2:real^3->bool`] (GEN_ALL SUM_UNION_EQ)) THEN
+	    ANTS_TAC THENL
+	    [
+	      ASM_REWRITE_TAC[] THEN CONJ_TAC THENL
+		[
+		  REWRITE_TAC[EXTENSION; IN_INTER; IN_DIFF] THEN REPEAT STRIP_TAC THEN SET_TAC[];
+		  EXPAND_TAC "L2" THEN EXPAND_TAC "Li" THEN
+		    REWRITE_TAC[EXTENSION; IN_DIFF; IN_UNION; IN_IMAGE; IN_ELIM_THM] THEN GEN_TAC THEN
+		    EQ_TAC THEN REPEAT STRIP_TAC THENL
+		    [
+		      EXISTS_TAC `x':num` THEN 
+			MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+			ASM_SIMP_TAC[];
+		      EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		      REWRITE_TAC[TAUT `A \/ B /\ ~A <=> A \/ B`] THEN DISJ2_TAC THEN
+			EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[]
+		    ];
+		];
+	      ALL_TAC
+	    ] THEN
+
+	    ASM_REWRITE_TAC[REAL_ARITH `&1 + a = &1 <=> a = &0`] THEN
+	    DISCH_TAC THEN
+	    MP_TAC (ISPECL[`tt:real^3->real`; `L2 DIFF Li:real^3->bool`] SUM_POS_EQ_0) THEN
+	    ANTS_TAC THENL
+	    [
+	      REPEAT CONJ_TAC THENL
+		[
+		  MATCH_MP_TAC FINITE_DIFF THEN ASM_REWRITE_TAC[];
+		  REWRITE_TAC[IN_DIFF] THEN
+		    REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    DISCH_TAC THEN
+	    SUBGOAL_THEN `Li SUBSET (Y : real^3->bool)` ASSUME_TAC THENL
+	    [
+	      EXPAND_TAC "Li" THEN EXPAND_TAC "Y" THEN
+		REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k:num`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+	  
+            REPEAT CONJ_TAC THENL
+	    [
+	      REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+		MATCH_MP_TAC IN_TRANS THEN EXISTS_TAC `Y:real^3->bool` THEN ASM_REWRITE_TAC[];
+	      UNDISCH_TAC `sum Li (tt:real^3->real) = &1` THEN 
+		DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		MATCH_MP_TAC SUM_SUPERSET THEN ASM_REWRITE_TAC[] THEN
+		REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+		ASM_REWRITE_TAC[IN_DIFF] THEN
+		MATCH_MP_TAC IN_TRANS THEN EXISTS_TAC `Y:real^3->bool` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    UNDISCH_TAC `vsum L2(\x:real^3. tt x % x) = w` THEN
+	    DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+	    MATCH_MP_TAC EQ_SYM THEN
+	    MATCH_MP_TAC VSUM_SUPERSET THEN
+
+	    ASM_REWRITE_TAC[] THEN
+	    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+	    REWRITE_TAC[VECTOR_MUL_EQ_0] THEN DISJ1_TAC THEN
+	    FIRST_X_ASSUM MATCH_MP_TAC THEN
+	    POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[IN_DIFF; CONTRAPOS_THM] THEN
+	    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN SIMP_TAC[SUBSET];
+	  ALL_TAC
+	] THEN
+
+	POP_ASSUM MP_TAC THEN REWRITE_TAC[NOT_EXISTS_THM; DE_MORGAN_THM] THEN 
+	DISCH_THEN (LABEL_TAC "not1") THEN
+
+	(* ss i = tt i for i < k *)
+	SUBGOAL_THEN `!i. i < k ==> ss (omega_list_n V ul i) : real = tt (omega_list_n V vl i : real^3)` MP_TAC THENL
+	[
+	  MATCH_MP_TAC num_WF THEN REPEAT STRIP_TAC THEN
+	    ASM_SIMP_TAC[] THEN
+	    REMOVE_THEN "not1" (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	    ABBREV_TAC `a = sum (IMAGE (omega_list_n V ul) {j | j <= i}) ss` THEN
+	    ABBREV_TAC `b = sum (IMAGE (omega_list_n V vl) {j | j <= i}) tt` THEN
+	    ABBREV_TAC `Lu = IMAGE (omega_list_n V ul) {j | i < j /\ j < 4}` THEN
+	    ABBREV_TAC `Lv = IMAGE (omega_list_n V vl) {j | i < j /\ j < 4}` THEN
+
+	    (* sum Lu ss = 1 - a *)
+	    SUBGOAL_THEN `sum Lu (ss:real^3->real) = &1 - a` ASSUME_TAC THENL
+	    [
+	      UNDISCH_TAC `sum (L1:real^3->bool) ss = &1` THEN 
+		DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		REWRITE_TAC[REAL_ARITH `a = b - c <=> a + c = b : real`] THEN
+		EXPAND_TAC "a" THEN
+		MATCH_MP_TAC SUM_UNION_EQ THEN ASM_REWRITE_TAC[] THEN
+		EXPAND_TAC "Lu" THEN REWRITE_TAC[EXTENSION; IN_INTER; IN_UNION; IN_IMAGE; IN_ELIM_THM] THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  REWRITE_TAC[NOT_IN_EMPTY] THEN STRIP_TAC THEN
+    		    MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		    ASM_REWRITE_TAC[] THEN
+		    DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+		    ANTS_TAC THENL
+		    [
+		      MP_TAC (ARITH_RULE `x'' <= i /\ i < k /\ k <= 3 ==> x'' < 4`) THEN
+			MP_TAC (ARITH_RULE `x'' <= i /\ i < x' ==> ~(x' = x'':num)`) THEN
+			ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		EXPAND_TAC "L1" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN EQ_TAC THEN STRIP_TAC THENL
+		[
+		  EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+		ASM_CASES_TAC `x' <= i : num` THENL
+		[
+		  DISJ2_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		DISJ1_TAC THEN
+		EXISTS_TAC `x':num` THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LE];
+	      ALL_TAC
+	    ] THEN
+
+	    (* sum Lv tt = 1 - b *)
+	    SUBGOAL_THEN `sum Lv (tt:real^3->real) = &1 - b` ASSUME_TAC THENL
+	    [
+	      UNDISCH_TAC `sum (L2:real^3->bool) tt = &1` THEN 
+		DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		REWRITE_TAC[REAL_ARITH `a = b - c <=> a + c = b : real`] THEN
+		EXPAND_TAC "b" THEN
+		MATCH_MP_TAC SUM_UNION_EQ THEN ASM_REWRITE_TAC[] THEN
+		EXPAND_TAC "Lv" THEN REWRITE_TAC[EXTENSION; IN_INTER; IN_UNION; IN_IMAGE; IN_ELIM_THM] THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  REWRITE_TAC[NOT_IN_EMPTY] THEN STRIP_TAC THEN
+    		    MP_TAC (SPECL [`V:real^3->bool`; `vl:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		    ASM_REWRITE_TAC[] THEN
+		    DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+		    ANTS_TAC THENL
+		    [
+		      MP_TAC (ARITH_RULE `x'' <= i /\ i < k /\ k <= 3 ==> x'' < 4`) THEN
+			MP_TAC (ARITH_RULE `x'' <= i /\ i < x' ==> ~(x' = x'':num)`) THEN
+			ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		EXPAND_TAC "L2" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN EQ_TAC THEN STRIP_TAC THENL
+		[
+		  EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+		ASM_CASES_TAC `x' <= i : num` THENL
+		[
+		  DISJ2_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		DISJ1_TAC THEN
+		EXISTS_TAC `x':num` THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LE];
+	      ALL_TAC
+	    ] THEN
+
+	    (* a < 1 /\ b < 1 *)
+	    SUBGOAL_THEN `&0 < &1 - a /\ &0 < &1 - b` ASSUME_TAC THENL
+	    [
+	      ASM_REWRITE_TAC[REAL_ARITH `&0 < &1 - a <=> a <= &1 /\ ~(a = &1)`] THEN
+		REPLICATE_TAC 6 (POP_ASSUM (fun th -> REWRITE_TAC[SYM th])) THEN
+		CONJ_TAC THENL
+		[
+		  UNDISCH_TAC `sum (L1:real^3->bool) ss = &1` THEN
+		    DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		    MATCH_MP_TAC SUM_SUBSET_SIMPLE THEN ASM_REWRITE_TAC[] THEN
+		    CONJ_TAC THENL
+		    [
+		      EXPAND_TAC "L1" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+			REPEAT STRIP_TAC THEN
+			EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+			ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+
+		    REWRITE_TAC[IN_DIFF] THEN REPEAT STRIP_TAC THEN
+		    FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		UNDISCH_TAC `sum (L2:real^3->bool) tt = &1` THEN
+		DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		MATCH_MP_TAC SUM_SUBSET_SIMPLE THEN ASM_REWRITE_TAC[] THEN
+		CONJ_TAC THENL
+		[
+		  EXPAND_TAC "L2" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+		    REPEAT STRIP_TAC THEN
+		    EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+
+		REWRITE_TAC[IN_DIFF] THEN REPEAT STRIP_TAC THEN
+		FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    (* Abbreviations *)
+	    ABBREV_TAC `p0 = omega_list_n V vl i` THEN
+	    ABBREV_TAC `p = inv (&1 - a) % vsum Lu (\x : real^3. ss x % x)` THEN
+	    ABBREV_TAC `p' = inv (&1 - b) % vsum Lv (\x : real^3. tt x % x)` THEN
+
+	    ABBREV_TAC `Lu_le = IMAGE (omega_list_n V ul) {j | j <= i}` THEN
+	    ABBREV_TAC `Lv_le = IMAGE (omega_list_n V vl) {j | j <= i}` THEN
+
+	    (* a = sum {j < i} ss + ss p0 *)
+	    SUBGOAL_THEN `a = sum (Lu_le DELETE p0 : real^3) ss + ss p0` ASSUME_TAC THENL
+	    [
+	      MP_TAC (ISPECL[`ss:real^3->real`; `Lu_le:real^3->bool`; `p0:real^3`] SUM_DELETE) THEN
+		ANTS_TAC THEN EXPAND_TAC "Lu_le" THENL
+		[
+		  CONJ_TAC THENL
+		    [
+		      MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LE];
+		      ALL_TAC
+		    ] THEN
+		    EXPAND_TAC "p0" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `i:num` THEN ASM_SIMP_TAC[LE_REFL];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    (* b = sum {j < i} tt + tt p0 *)
+	    SUBGOAL_THEN `b = sum (Lv_le DELETE p0 : real^3) tt + tt p0` ASSUME_TAC THENL
+	    [
+	      MP_TAC (ISPECL[`tt:real^3->real`; `Lv_le:real^3->bool`; `p0:real^3`] SUM_DELETE) THEN
+		ANTS_TAC THEN EXPAND_TAC "Lv_le" THENL
+		[
+		  CONJ_TAC THENL
+		    [
+		      MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LE];
+		      ALL_TAC
+		    ] THEN
+		    EXPAND_TAC "p0" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `i:num` THEN ASM_SIMP_TAC[LE_REFL];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    (* Lu_le = Lv_le *)
+	    SUBGOAL_THEN `Lu_le = Lv_le : real^3->bool` (LABEL_TAC "L_eq") THENL
+	    [
+	      EXPAND_TAC "Lu_le" THEN EXPAND_TAC "Lv_le" THEN
+		REWRITE_TAC[EXTENSION; IN_IMAGE; IN_ELIM_THM] THEN GEN_TAC THEN
+		EQ_TAC THEN STRIP_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[] THENL
+		[
+		  MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN ASM_REWRITE_TAC[] THEN
+		    DISCH_TAC THEN ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+		MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN ASM_REWRITE_TAC[] THEN
+		DISCH_TAC THEN ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    (* sum {j < i} ss = sum {j < i} tt *)
+	    SUBGOAL_THEN `sum (Lv_le DELETE p0 : real^3) ss = sum (Lv_le DELETE p0) tt` ASSUME_TAC THENL
+	    [
+	      MATCH_MP_TAC SUM_EQ THEN POP_ASSUM (fun th -> ALL_TAC) THEN EXPAND_TAC "Lv_le" THEN
+		REWRITE_TAC[IN_IMAGE; IN_ELIM_THM; IN_DELETE] THEN REPEAT STRIP_TAC THEN
+		ASM_REWRITE_TAC[] THEN
+		FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN
+		SUBGOAL_THEN `~(x' = i:num)` ASSUME_TAC THENL
+		[
+		  POP_ASSUM MP_TAC THEN REWRITE_TAC[CONTRAPOS_THM] THEN
+		    EXPAND_TAC "p0" THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		
+		ASM_REWRITE_TAC[LT_LE] THEN REWRITE_TAC[GSYM LT_LE] THEN
+		ANTS_TAC THENL
+		[
+		  MATCH_MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		
+		MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    SUBGOAL_THEN `&1 - a = &1 - b ==> (ss:real^3->real) p0 = tt p0` MATCH_MP_TAC THENL
+	    [
+	      ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    MATCH_MP_TAC (ISPEC `voronoi_list V (truncate_simplex i ul)` ODIGPXU) THEN
+	    EXISTS_TAC `voronoi_list V (truncate_simplex (i + 1) vl)` THEN
+	    EXISTS_TAC `voronoi_list V (truncate_simplex (i + 1) ul)` THEN
+	    MAP_EVERY EXISTS_TAC [`p0:real^3`; `p':real^3`; `p:real^3`] THEN
+	    REPEAT STRIP_TAC THENL
+	    [
+	      (* polyhedron *)
+	      MATCH_MP_TAC POLYHEDRON_VORONOI_LIST THEN ASM_REWRITE_TAC[] THEN
+		MATCH_MP_TAC SUBSET_TRANS THEN EXISTS_TAC `set_of_list ul : real^3->bool` THEN
+	        CONJ_TAC THENL
+	        [
+		  MATCH_MP_TAC SET_OF_LIST_TRUNCATE_SIMPLEX_SUBSET THEN
+		    ASM_REWRITE_TAC[] THEN MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i + 1 <= 4`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+	        MATCH_MP_TAC BARV_SUBSET THEN EXISTS_TAC `3` THEN ASM_REWRITE_TAC[];
+
+	      (* p0 IN polyhedron *)
+	      ASM_SIMP_TAC[] THEN EXPAND_TAC "p0" THEN
+		MATCH_MP_TAC OMEGA_LIST_N_IN_VORONOI_LIST THEN
+		EXISTS_TAC `3` THEN MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i <= 3`) THEN
+		ASM_SIMP_TAC[];
+
+	      (* ~(p0 IN F UNION F') *)
+	      POP_ASSUM MP_TAC THEN REWRITE_TAC[IN_UNION] THEN STRIP_TAC THENL
+		[
+		  POP_ASSUM MP_TAC THEN EXPAND_TAC "p0" THEN
+		    REWRITE_TAC[ARITH_RULE `i + 1 = SUC i`] THEN
+		    DISCH_THEN (MP_TAC o MATCH_MP OMEGA_LIST_N_EQ) THEN
+		    REWRITE_TAC[] THEN
+		    MP_TAC (SPECL [`V:real^3->bool`; `vl:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		    ASM_REWRITE_TAC[] THEN EXPAND_TAC "p0" THEN DISCH_THEN MATCH_MP_TAC THEN
+		    ASM_REWRITE_TAC[ARITH_RULE `~(SUC i = i)`] THEN
+		    MATCH_MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> SUC i < 4 /\ i < 4`) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		POP_ASSUM MP_TAC THEN
+		REPLICATE_TAC 2 (FIRST_X_ASSUM (MP_TAC o SPEC `i:num`)) THEN ASM_REWRITE_TAC[] THEN
+		DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN DISCH_TAC THEN
+		REWRITE_TAC[ARITH_RULE `i + 1 = SUC i`] THEN
+		DISCH_THEN (MP_TAC o MATCH_MP OMEGA_LIST_N_EQ) THEN
+		REWRITE_TAC[] THEN
+		MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		ASM_REWRITE_TAC[] THEN EXPAND_TAC "p0" THEN DISCH_THEN MATCH_MP_TAC THEN
+		ASM_REWRITE_TAC[ARITH_RULE `~(SUC i = i)`] THEN
+		MATCH_MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> SUC i < 4 /\ i < 4`) THEN
+		ASM_REWRITE_TAC[];
+
+	      (* F facet_of polyhedron *)
+	      MP_TAC (SPECL[`V:real^3->bool`; `vl:(real^3)list`; `3`; `i:num`] OMEGA_LIST_N_IN_FACET) THEN
+		ASM_SIMP_TAC[] THEN MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i < 3`) THEN
+		ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+		STRIP_TAC THEN ASM_REWRITE_TAC[];
+
+	      (* F' facet_of polyhedron *)
+	      MP_TAC (SPECL[`V:real^3->bool`; `ul:(real^3)list`; `3`; `i:num`] OMEGA_LIST_N_IN_FACET) THEN
+		ASM_REWRITE_TAC[] THEN MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i < 3`) THEN
+		ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+		STRIP_TAC THEN ASM_REWRITE_TAC[];
+	      
+	      (* p' IN F *)
+	      MP_TAC (ISPEC `voronoi_list V (truncate_simplex (i + 1) vl)` CONVEX_HULL_EQ) THEN
+		REWRITE_TAC[CONVEX_VORONOI_LIST] THEN
+		DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
+		REWRITE_TAC[CONVEX_HULL_EXPLICIT; IN_ELIM_THM] THEN
+		EXISTS_TAC `Lv : real^3->bool` THEN
+		EXISTS_TAC `\x:real^3. inv (&1 - b) * tt x` THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  EXPAND_TAC "Lv" THEN MATCH_MP_TAC FINITE_IMAGE THEN
+		    MATCH_MP_TAC FINITE_SUBSET THEN
+		    EXISTS_TAC `{j | j < 4}` THEN REWRITE_TAC[FINITE_NUMSEG_LT] THEN
+		    SIMP_TAC[SUBSET; IN_ELIM_THM];
+		  EXPAND_TAC "Lv" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+		    REPEAT STRIP_TAC THEN
+		    MP_TAC (SPECL[`V:real^3->bool`; `vl:(real^3)list`; `3`; `i:num`] OMEGA_LIST_N_IN_FACET) THEN
+		    ANTS_TAC THEN ASM_REWRITE_TAC[] THENL 
+		    [
+		      MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i < 3`) THEN ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+		    FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    ASM_REWRITE_TAC[ARITH_RULE `x' <= 3 <=> x' < 4`];
+		  REWRITE_TAC[] THEN
+		    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_LE_LT] THEN
+		    REWRITE_TAC[GSYM REAL_LE_LT] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    POP_ASSUM MP_TAC THEN EXPAND_TAC "Lv" THEN EXPAND_TAC "L2" THEN
+		    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		    EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ASM_REWRITE_TAC[SUM_LMUL] THEN
+		    MP_TAC (REAL_ARITH `~(b = &1) ==> ~(&1 - b = &0)`) THEN
+		    ASM_SIMP_TAC[REAL_MUL_LINV];
+		  ALL_TAC
+		] THEN
+		REPLICATE_TAC 4 (POP_ASSUM (fun th -> ALL_TAC)) THEN
+		ASM_REWRITE_TAC[GSYM VECTOR_MUL_ASSOC; VSUM_LMUL];
+
+	      (* p IN F' *)
+	      REPLICATE_TAC 4 (POP_ASSUM (fun th -> ALL_TAC)) THEN
+		MP_TAC (ISPEC `voronoi_list V (truncate_simplex (i + 1) ul)` CONVEX_HULL_EQ) THEN
+		REWRITE_TAC[CONVEX_VORONOI_LIST] THEN
+		DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
+		REWRITE_TAC[CONVEX_HULL_EXPLICIT; IN_ELIM_THM] THEN
+		EXISTS_TAC `Lu : real^3->bool` THEN
+		EXISTS_TAC `\x:real^3. inv (&1 - a) * ss x` THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  EXPAND_TAC "Lu" THEN MATCH_MP_TAC FINITE_IMAGE THEN
+		    MATCH_MP_TAC FINITE_SUBSET THEN
+		    EXISTS_TAC `{j | j < 4}` THEN REWRITE_TAC[FINITE_NUMSEG_LT] THEN
+		    SIMP_TAC[SUBSET; IN_ELIM_THM];
+		  EXPAND_TAC "Lu" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+		    REPEAT STRIP_TAC THEN
+		    MP_TAC (SPECL[`V:real^3->bool`; `ul:(real^3)list`; `3`; `i:num`] OMEGA_LIST_N_IN_FACET) THEN
+		    ANTS_TAC THEN ASM_REWRITE_TAC[] THENL 
+		    [
+		      MP_TAC (ARITH_RULE `i < k /\ k <= 3 ==> i < 3`) THEN ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+		    FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    ASM_REWRITE_TAC[ARITH_RULE `x' <= 3 <=> x' < 4`];
+		  REWRITE_TAC[] THEN
+		    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_LE_LT] THEN
+		    REWRITE_TAC[GSYM REAL_LE_LT] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    POP_ASSUM MP_TAC THEN EXPAND_TAC "Lu" THEN EXPAND_TAC "L1" THEN
+		    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		    EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ASM_REWRITE_TAC[SUM_LMUL] THEN
+		    ASM_SIMP_TAC[REAL_ARITH `~(a = &1) ==> ~(&1 - a = &0)`; REAL_MUL_LINV];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[GSYM VECTOR_MUL_ASSOC; VSUM_LMUL];
+
+	      (* &0 < &1 - b *)
+	      ASM_REWRITE_TAC[];
+
+	      (* &0 < &1 - a *)
+	      ASM_REWRITE_TAC[];
+
+	      ALL_TAC
+	    ] THEN
+	    (* b * p0 + (1 - b) * p' = a * p0 + (1 - a) * p *)
+	    REWRITE_TAC[REAL_ARITH `&1 - (&1 - b) = b`] THEN
+	    EXPAND_TAC "p" THEN EXPAND_TAC "p'" THEN
+	    REWRITE_TAC[VECTOR_MUL_ASSOC] THEN
+	    SUBGOAL_THEN `(&1 - b) * inv (&1 - b) = &1 /\ (&1 - a) * inv (&1 - a) = &1` (fun th -> REWRITE_TAC[th]) THENL
+            [
+	      CONJ_TAC THEN MATCH_MP_TAC REAL_MUL_RINV THEN ASM_REWRITE_TAC[REAL_ARITH `~(&1 - b = &0) <=> ~(b = &1)`];
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[VECTOR_MUL_LID; VECTOR_ADD_RDISTRIB] THEN
+	    REWRITE_TAC[VECTOR_ARITH `(a + b) + c = (a + d) + e <=> b + c = d + e : real^3`] THEN
+	    
+	    (* vsum (Lv_le DELETE p0) ss = vsum (Lv_le DELETE p0) tt *)
+	    SUBGOAL_THEN `vsum (Lv_le DELETE p0) (\x:real^3. tt x % x) = vsum (Lv_le DELETE p0) (\x. ss x % x)` ASSUME_TAC THENL
+	    [
+	      MATCH_MP_TAC VSUM_EQ THEN UNDISCH_TAC `Lu_le = Lv_le : real^3->bool` THEN
+	        DISCH_THEN (fun th -> ALL_TAC) THEN EXPAND_TAC "Lv_le" THEN
+		REWRITE_TAC[IN_IMAGE; IN_ELIM_THM; IN_DELETE] THEN REPEAT STRIP_TAC THEN
+		ASM_REWRITE_TAC[VECTOR_MUL_RCANCEL] THEN DISJ1_TAC THEN
+		FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN
+		SUBGOAL_THEN `~(x' = i:num)` ASSUME_TAC THENL
+		[
+		  POP_ASSUM MP_TAC THEN REWRITE_TAC[CONTRAPOS_THM] THEN
+		    EXPAND_TAC "p0" THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		
+		ASM_REWRITE_TAC[LT_LE] THEN REWRITE_TAC[GSYM LT_LE] THEN
+		ANTS_TAC THENL
+		[
+		  MATCH_MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN
+		    ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		
+		MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k : num`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    ONCE_REWRITE_TAC[SPEC `vsum (Lv_le DELETE p0:real^3) (\x. tt x % x)` (VECTOR_ARITH `!x y z:real^3. y = z <=> x + y = x + z`)] THEN
+	    ONCE_REWRITE_TAC[VECTOR_ADD_ASSOC] THEN
+
+	    (* vsum {j < i} + vsum i = vsum {j <= i} *)
+	    SUBGOAL_THEN `vsum (Lv_le DELETE p0) (\x:real^3. tt x % x) + tt p0 % p0 = vsum Lv_le (\x. tt x % x)` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      MP_TAC (ISPECL[`\x:real^3. tt x % x`; `Lv_le:real^3->bool`; `p0:real^3`] VSUM_DELETE) THEN
+		ANTS_TAC THEN EXPAND_TAC "Lv_le" THEN EXPAND_TAC "Lu_le" THENL
+		[
+		  CONJ_TAC THENL
+		    [
+		      MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LE];
+		      ALL_TAC
+		    ] THEN
+		    EXPAND_TAC "p0" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `i:num` THEN ASM_SIMP_TAC[LE_REFL];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[] THEN VECTOR_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    (* vsum {j < i} + vsum i = vsum {j <= i} *)
+	    SUBGOAL_THEN `vsum (Lv_le DELETE p0) (\x:real^3. tt x % x) + ss p0 % p0 = vsum Lv_le (\x. ss x % x)` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      MP_TAC (ISPECL[`\x:real^3. ss x % x`; `Lv_le:real^3->bool`; `p0:real^3`] VSUM_DELETE) THEN
+		ANTS_TAC THEN EXPAND_TAC "Lv_le" THEN EXPAND_TAC "Lu_le" THENL
+		[
+		  CONJ_TAC THENL
+		    [
+		      MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LE];
+		      ALL_TAC
+		    ] THEN
+		    EXPAND_TAC "p0" THEN REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN
+		    EXISTS_TAC `i:num` THEN ASM_SIMP_TAC[LE_REFL];
+		  ALL_TAC
+		] THEN
+		ASM_REWRITE_TAC[] THEN VECTOR_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    SUBGOAL_THEN `FINITE (Lv_le:real^3->bool) /\ FINITE (Lv:real^3->bool) /\ FINITE (Lu:real^3->bool)` ASSUME_TAC THENL
+	    [
+	      MAP_EVERY EXPAND_TAC ["Lv_le"; "Lu_le"; "Lv"; "Lu"] THEN
+		REPEAT CONJ_TAC THEN MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LE] THENL
+		[
+		  MATCH_MP_TAC FINITE_SUBSET THEN EXISTS_TAC `{j | j < 4}` THEN
+		    SIMP_TAC[FINITE_NUMSEG_LT; SUBSET; IN_ELIM_THM];
+		  MATCH_MP_TAC FINITE_SUBSET THEN EXISTS_TAC `{j | j < 4}` THEN
+		    SIMP_TAC[FINITE_NUMSEG_LT; SUBSET; IN_ELIM_THM];
+		];
+	      ALL_TAC
+	    ] THEN
+
+	    SUBGOAL_THEN `DISJOINT (Lv_le:real^3->bool) Lv /\ DISJOINT (Lu_le:real^3->bool) Lu` ASSUME_TAC THENL
+	    [
+	      MAP_EVERY EXPAND_TAC ["Lv_le"; "Lu_le"; "Lv"; "Lu"] THEN
+		REWRITE_TAC[DISJOINT; EXTENSION; NOT_IN_EMPTY; IN_INTER; IN_IMAGE; IN_ELIM_THM] THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  MP_TAC (SPECL [`V:real^3->bool`; `vl:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		    ASM_REWRITE_TAC[] THEN
+		    DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+		    ANTS_TAC THENL
+		    [
+		      MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+			MP_TAC (ARITH_RULE `x' <= i /\ i < x'' ==> ~(x' = x'':num)`) THEN
+			ASM_SIMP_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		    MP_TAC (ARITH_RULE `x' <= i /\ i < k ==> x' < k:num`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+
+		MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		ASM_REWRITE_TAC[] THEN
+		DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+		ANTS_TAC THENL
+		[
+		  MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+		    MP_TAC (ARITH_RULE `x' <= i /\ i < x'' ==> ~(x' = x'':num)`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+		POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    MP_TAC (ISPECL[`\x:real^3. tt x % x`; `Lv_le:real^3->bool`; `Lv:real^3->bool`] VSUM_UNION) THEN
+	    ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+	    POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+	    MP_TAC (ISPECL[`\x:real^3. ss x % x`; `Lv_le:real^3->bool`; `Lu:real^3->bool`] VSUM_UNION) THEN
+	    ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+	    (* Lv_le UNION Lv = L2 *)
+	    SUBGOAL_THEN `Lv_le UNION Lv = L2 /\ Lv_le UNION Lu = L1 : real^3->bool` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      CONJ_TAC THENL
+		[
+		  REMOVE_THEN "L_eq" (fun th -> ALL_TAC) THEN
+		    EXPAND_TAC "Lv_le" THEN EXPAND_TAC "L2" THEN EXPAND_TAC "Lv" THEN
+		    REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNION; IN_ELIM_THM] THEN GEN_TAC THEN
+		    EQ_TAC THEN REPEAT STRIP_TAC THENL
+		    [
+		      EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+			ASM_SIMP_TAC[];
+		      EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    ASM_CASES_TAC `x' <= i : num` THENL
+		    [
+		      DISJ1_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		      ALL_TAC
+		    ] THEN
+		    DISJ2_TAC THEN EXISTS_TAC `x':num` THEN
+		    POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LE];
+		  ALL_TAC
+		] THEN
+		EXPAND_TAC "Lv_le" THEN EXPAND_TAC "L1" THEN EXPAND_TAC "Lu" THEN EXPAND_TAC "Lu_le" THEN
+		REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNION; IN_ELIM_THM] THEN GEN_TAC THEN
+		EQ_TAC THEN REPEAT STRIP_TAC THENL
+		[
+		  EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' <= i /\ i < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		ASM_CASES_TAC `x' <= i : num` THENL
+		[
+		  DISJ1_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		DISJ2_TAC THEN EXISTS_TAC `x':num` THEN
+		POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LE];
+	      ALL_TAC
+	    ] THEN
+
+	    ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+
+	DISCH_THEN (LABEL_TAC "ss_tt") THEN
+	(* Continue the second step *)
+
+	ABBREV_TAC `Lu_lt = IMAGE (omega_list_n V ul) {j | j < k}` THEN
+	ABBREV_TAC `Lv_lt = IMAGE (omega_list_n V vl) {j | j < k}` THEN
+	ABBREV_TAC `Lu_ge = IMAGE (omega_list_n V ul) {j | k <= j /\ j < 4}` THEN
+	ABBREV_TAC `Lv_ge = IMAGE (omega_list_n V vl) {j | k <= j /\ j < 4}` THEN
+	ABBREV_TAC `a = sum Lv_lt (ss:real^3->real)` THEN
+
+	(* Lu_lt = Lv_lt *)
+        SUBGOAL_THEN `Lu_lt = Lv_lt : real^3->bool` (LABEL_TAC "l_eq") THENL
+        [
+	  EXPAND_TAC "Lu_lt" THEN EXPAND_TAC "Lv_lt" THEN
+	    REWRITE_TAC[EXTENSION; IN_IMAGE; IN_ELIM_THM] THEN GEN_TAC THEN
+	    EQ_TAC THEN STRIP_TAC THEN EXISTS_TAC `x':num` THEN ASM_SIMP_TAC[];
+	  ALL_TAC
+	] THEN
+
+        (* Unions *)
+        SUBGOAL_THEN `Lv_lt UNION Lv_ge = L2 : real^3->bool /\ Lv_lt UNION Lu_ge = L1` ASSUME_TAC THENL
+	[
+	  CONJ_TAC THENL
+	    [
+	      REMOVE_THEN "l_eq" (fun th -> ALL_TAC) THEN
+		EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "L2" THEN EXPAND_TAC "Lv_ge" THEN
+		REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNION; IN_ELIM_THM] THEN GEN_TAC THEN
+		EQ_TAC THEN REPEAT STRIP_TAC THENL
+		[
+		  EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		    ASM_SIMP_TAC[];
+		  EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		ASM_CASES_TAC `x' < k : num` THENL
+		[
+		  DISJ1_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		DISJ2_TAC THEN EXISTS_TAC `x':num` THEN
+		POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LT];
+	      ALL_TAC	  
+	    ] THEN
+
+	    EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "L1" THEN EXPAND_TAC "Lu_ge" THEN EXPAND_TAC "Lu_lt" THEN
+	    REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNION; IN_ELIM_THM] THEN GEN_TAC THEN
+	    EQ_TAC THEN REPEAT STRIP_TAC THENL
+	    [
+	      EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		ASM_SIMP_TAC[];
+	      EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    ASM_CASES_TAC `x' < k : num` THENL
+	    [
+	      DISJ1_TAC THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    DISJ2_TAC THEN EXISTS_TAC `x':num` THEN
+	    POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[NOT_LT];
+	  ALL_TAC
+	] THEN
+
+	(* Disjoint sets *)
+	SUBGOAL_THEN `DISJOINT (Lv_lt:real^3->bool) Lv_ge /\ DISJOINT (Lv_lt:real^3->bool) Lu_ge` ASSUME_TAC THENL
+	[
+	  MAP_EVERY EXPAND_TAC ["Lv_lt"; "Lu_lt"; "Lv_ge"; "Lu_ge"] THEN
+	    REWRITE_TAC[DISJOINT; EXTENSION; NOT_IN_EMPTY; IN_INTER; IN_IMAGE; IN_ELIM_THM] THEN
+	    REPEAT STRIP_TAC THENL
+	    [
+	      MP_TAC (SPECL [`V:real^3->bool`; `vl:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+		ASM_REWRITE_TAC[] THEN
+		DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+		ANTS_TAC THENL
+		[
+		  MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		    MP_TAC (ARITH_RULE `x' < k /\ k <= x'' ==> ~(x' = x'':num)`) THEN
+		    ASM_SIMP_TAC[];
+		  ALL_TAC
+		] THEN
+		POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    MP_TAC (SPECL [`V:real^3->bool`; `ul:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+	    ASM_REWRITE_TAC[] THEN
+	    DISCH_THEN (MP_TAC o SPECL [`x':num`; `x'':num`]) THEN
+	    ANTS_TAC THENL
+	    [
+	      MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		MP_TAC (ARITH_RULE `x' < k /\ k <= x'' ==> ~(x' = x'':num)`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	    ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+
+	(* Finite sets *)
+        SUBGOAL_THEN `FINITE (Lv_lt:real^3->bool) /\ FINITE (Lv_ge:real^3->bool) /\ FINITE (Lu_ge:real^3->bool)` ASSUME_TAC THENL
+	[
+	  MAP_EVERY EXPAND_TAC ["Lv_lt"; "Lv_ge"; "Lu_ge"; "Lu_lt"] THEN
+	    REPEAT CONJ_TAC THEN MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LT] THENL
+	    [
+	      MATCH_MP_TAC FINITE_SUBSET THEN EXISTS_TAC `{j | j < 4}` THEN
+		SIMP_TAC[FINITE_NUMSEG_LT; SUBSET; IN_ELIM_THM];
+	      ALL_TAC
+	    ] THEN
+	    MATCH_MP_TAC FINITE_SUBSET THEN EXISTS_TAC `{j | j < 4}` THEN
+	    SIMP_TAC[FINITE_NUMSEG_LT; SUBSET; IN_ELIM_THM];
+	  ALL_TAC
+	] THEN
+
+	(* vsum Lv_lt ss = vsum Lv_lt tt *)
+	SUBGOAL_THEN `vsum Lv_lt (\x:real^3. ss x % x) = vsum Lv_lt (\x:real^3. tt x % x)` ASSUME_TAC THENL
+	[
+	  MATCH_MP_TAC VSUM_EQ THEN EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "Lu_lt" THEN
+	    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+	    REWRITE_TAC[VECTOR_MUL_RCANCEL] THEN DISJ1_TAC THEN
+	    ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN
+	    ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	    ASM_SIMP_TAC[];
+	  ALL_TAC
+	] THEN
+
+	(* sum Lv_lt tt = a *)
+	SUBGOAL_THEN `sum Lv_lt (tt:real^3->real) = a` ASSUME_TAC THENL
+	[
+	  EXPAND_TAC "a" THEN EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "Lu_lt" THEN
+	    MATCH_MP_TAC SUM_EQ THEN
+	    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+	    FIRST_X_ASSUM (MP_TAC o SPEC `x':num`) THEN
+	    ASM_SIMP_TAC[];
+	  ALL_TAC
+	] THEN
+
+	(* w = w_lt + w_ge *)
+	MP_TAC (ISPECL[`\x:real^3. ss x % x`; `Lv_lt:real^3->bool`; `Lu_ge:real^3->bool`] VSUM_UNION) THEN
+	ASM_REWRITE_TAC[] THEN DISCH_THEN (LABEL_TAC "wu" o SYM) THEN
+	MP_TAC (ISPECL[`\x:real^3. tt x % x`; `Lv_lt:real^3->bool`; `Lv_ge:real^3->bool`] VSUM_UNION) THEN
+	ASM_REWRITE_TAC[] THEN DISCH_THEN (LABEL_TAC "wv" o SYM) THEN
+
+	(* 1 = a + (1 - a) *)
+	MP_TAC (ISPECL[`ss:real^3->real`; `Lv_lt:real^3->bool`; `Lu_ge:real^3->bool`] SUM_UNION) THEN
+	MP_TAC (ISPECL[`tt:real^3->real`; `Lv_lt:real^3->bool`; `Lv_ge:real^3->bool`] SUM_UNION) THEN
+	ASM_REWRITE_TAC[REAL_ARITH `&1 = a + x <=> x = &1 - a`] THEN
+	DISCH_TAC THEN DISCH_TAC THEN
+
+	(* &1 - a != 0 *)
+	SUBGOAL_THEN `~(&1 - a = &0)` ASSUME_TAC THENL
+	[
+	  ASM_CASES_TAC `?p:real^3. p IN Lv_lt` THENL
+	    [
+	      POP_ASSUM MP_TAC THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+		EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "Lu_lt" THEN
+		REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN STRIP_TAC THEN
+		REMOVE_THEN "not1" (MP_TAC o SPEC `k - 1`) THEN
+		MP_TAC (ARITH_RULE `x < k ==> k - 1 < k`) THEN ASM_SIMP_TAC[] THEN DISCH_TAC THEN
+		ASM_SIMP_TAC[ARITH_RULE `k - 1 < k ==> (j <= k - 1 <=> j < k)`] THEN
+		SIMP_TAC[ARITH_RULE `~(a = &1) ==> ~(&1 - a = &0)`];
+	      ALL_TAC
+	    ] THEN
+	    
+	    EXPAND_TAC "a" THEN
+            SUBGOAL_THEN `Lv_lt = {} : real^3->bool` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      ASM_REWRITE_TAC[EXTENSION; NOT_IN_EMPTY; GSYM NOT_EXISTS_THM];
+	      ALL_TAC
+	    ] THEN
+	    REWRITE_TAC[SUM_CLAUSES; REAL_SUB_RZERO] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+
+	(* &0 < &1 - a *)
+	SUBGOAL_THEN `&0 < &1 - a` ASSUME_TAC THENL
+	[
+	  ASM_REWRITE_TAC[REAL_LT_LE] THEN
+	    POP_ASSUM (fun th -> ALL_TAC) THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	    MATCH_MP_TAC SUM_POS_LE THEN ASM_REWRITE_TAC[] THEN REPEAT STRIP_TAC THEN
+	    FIRST_X_ASSUM MATCH_MP_TAC THEN
+	    POP_ASSUM MP_TAC THEN EXPAND_TAC "Lu_ge" THEN EXPAND_TAC "L1" THEN
+	    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+	    EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+
+	ABBREV_TAC `p:real^3 = inv (&1 - a) % vsum Lv_ge (\x. tt x % x)` THEN
+	EXPAND_TAC "YX" THEN
+	REWRITE_TAC[CONVEX_HULL_EXPLICIT; IN_ELIM_THM] THEN
+	EXISTS_TAC `Lv_lt UNION {p:real^3}` THEN
+	EXISTS_TAC `\x:real^3. if x = p then (&1 - a) else tt x` THEN
+
+	(* p IN X *)
+        SUBGOAL_THEN `p:real^3 IN X` ASSUME_TAC THENL
+	[
+	  EXPAND_TAC "X" THEN REWRITE_TAC[IN_INTER] THEN
+	    MP_TAC (ISPEC `voronoi_list V (truncate_simplex k vl)` CONVEX_HULL_EQ) THEN
+	    MP_TAC (ISPEC `voronoi_list V (truncate_simplex k ul)` CONVEX_HULL_EQ) THEN
+	    REWRITE_TAC[CONVEX_VORONOI_LIST] THEN
+	    REPEAT (DISCH_THEN (fun th -> ONCE_REWRITE_TAC[SYM th])) THEN
+	    REWRITE_TAC[CONVEX_HULL_EXPLICIT; IN_ELIM_THM] THEN
+	    CONJ_TAC THENL
+	    [
+	      EXISTS_TAC `Lu_ge : real^3->bool` THEN
+	        EXISTS_TAC `\x:real^3. inv (&1 - a) * ss x` THEN
+	        ASM_REWRITE_TAC[] THEN
+		REPEAT STRIP_TAC THENL
+		[
+		  EXPAND_TAC "Lu_ge" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+		    REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+		    MATCH_MP_TAC OMEGA_LIST_N_IN_VORONOI_LIST_GEN THEN
+		    EXISTS_TAC `3` THEN ASM_REWRITE_TAC[ARITH_RULE `x' <= 3 <=> x' < 4`];
+		  MATCH_MP_TAC REAL_LE_MUL THEN
+		    ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_LE_LT] THEN REWRITE_TAC[GSYM REAL_LE_LT] THEN
+		    FIRST_X_ASSUM MATCH_MP_TAC THEN
+		    POP_ASSUM MP_TAC THEN EXPAND_TAC "Lu_ge" THEN EXPAND_TAC "L1" THEN
+		    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		    EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+		  ASM_SIMP_TAC[SUM_LMUL; REAL_MUL_LINV];
+		  ALL_TAC
+		] THEN
+	        REWRITE_TAC[GSYM VECTOR_MUL_ASSOC; VSUM_LMUL] THEN
+	        POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	        REWRITE_TAC[VECTOR_MUL_LCANCEL] THEN DISJ2_TAC THEN
+	        REMOVE_THEN "wu" MP_TAC THEN REMOVE_THEN "wv" (fun th -> REWRITE_TAC[SYM th]) THEN
+	        REWRITE_TAC[VECTOR_ARITH `x + a = x + b <=> a = b:real^3`];
+	      ALL_TAC
+	    ] THEN
+	    EXISTS_TAC `Lv_ge : real^3->bool` THEN
+	    EXISTS_TAC `\x:real^3. inv (&1 - a) * tt x` THEN
+	    ASM_REWRITE_TAC[] THEN
+	    REPEAT STRIP_TAC THENL
+	    [
+	      EXPAND_TAC "Lv_ge" THEN REWRITE_TAC[SUBSET; IN_IMAGE; IN_ELIM_THM] THEN
+		REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN
+		MATCH_MP_TAC OMEGA_LIST_N_IN_VORONOI_LIST_GEN THEN
+		EXISTS_TAC `3` THEN ASM_REWRITE_TAC[ARITH_RULE `x' <= 3 <=> x' < 4`];
+	      MATCH_MP_TAC REAL_LE_MUL THEN
+		ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_LE_LT] THEN REWRITE_TAC[GSYM REAL_LE_LT] THEN
+		FIRST_X_ASSUM MATCH_MP_TAC THEN
+		POP_ASSUM MP_TAC THEN EXPAND_TAC "Lv_ge" THEN EXPAND_TAC "L2" THEN
+		REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+	      ASM_SIMP_TAC[SUM_LMUL; REAL_MUL_LINV];
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[GSYM VECTOR_MUL_ASSOC; VSUM_LMUL];
+	  ALL_TAC
+	] THEN
+
+	(* ~(p IN Lv_lt) *)
+	SUBGOAL_THEN `~(p:real^3 IN Lv_lt)` ASSUME_TAC THENL
+	[
+	  EXPAND_TAC "Lv_lt" THEN EXPAND_TAC "Lu_lt" THEN
+	    REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+	    MP_TAC (SPECL[`V:real^3->bool`; `ul:(real^3)list`] ROGERS_AFF_DIM_FULL) THEN
+	    ASM_REWRITE_TAC[] THEN
+	    DISCH_THEN (MP_TAC o SPECL[`x:num`; `SUC x`]) THEN
+	    ANTS_TAC THENL
+	    [
+	      MP_TAC (ARITH_RULE `x < k /\ k <= 3 ==> x < 4 /\ SUC x < 4`) THEN
+		ASM_SIMP_TAC[ARITH_RULE `~(x = SUC x)`];
+	      ALL_TAC
+	    ] THEN
+	    REWRITE_TAC[] THEN
+	    MATCH_MP_TAC EQ_SYM THEN
+	    MATCH_MP_TAC OMEGA_LIST_N_EQ_GEN THEN
+	    EXISTS_TAC `3` THEN EXISTS_TAC `k:num` THEN
+	    ASM_REWRITE_TAC[] THEN POP_ASSUM (fun th -> ALL_TAC) THEN
+	    POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+	    POP_ASSUM MP_TAC THEN EXPAND_TAC "X" THEN
+	    SIMP_TAC[IN_INTER];
+	  ALL_TAC
+	] THEN
+
+	REPEAT CONJ_TAC THENL
+	[
+	  (* FINITE (Lv_lt UNION {p}) *)
+	  ASM_REWRITE_TAC[FINITE_UNION; FINITE_SING];
+	  
+	  (* Lv_lt UNION {p} SUBSET Y UNION X *)
+	  EXPAND_TAC "Y" THEN REMOVE_THEN "l_eq" (fun th -> REWRITE_TAC[th]) THEN
+	    REWRITE_TAC[SUBSET; IN_UNION; IN_SING] THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[];
+	  
+	  (* &0 <= f x *)
+	  REWRITE_TAC[IN_UNION; IN_SING] THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+	    [
+	      COND_CASES_TAC THENL
+		[
+		  UNDISCH_TAC `~(p:real^3 IN Lv_lt)` THEN
+		    POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+		  ALL_TAC
+		] THEN
+		FIRST_X_ASSUM MATCH_MP_TAC THEN
+		POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN EXPAND_TAC "L2" THEN
+		REMOVE_THEN "l_eq" (fun th -> ALL_TAC) THEN EXPAND_TAC "Lv_lt" THEN
+		REWRITE_TAC[IN_IMAGE; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+		EXISTS_TAC `x':num` THEN MP_TAC (ARITH_RULE `x' < k /\ k <= 3 ==> x' < 4`) THEN
+		ASM_SIMP_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[REAL_LE_LT];
+
+	  (* sum = &1 *)
+	  MP_TAC (ISPECL[`\x:real^3. if x = p then &1 - a else tt x`; `Lv_lt:real^3->bool`; `{p:real^3}`] SUM_UNION) THEN
+	    ASM_REWRITE_TAC[FINITE_SING; DISJOINT; EXTENSION; NOT_IN_EMPTY; IN_INTER; IN_SING] THEN
+	    ANTS_TAC THENL
+	    [
+	      GEN_TAC THEN REWRITE_TAC[DE_MORGAN_THM] THEN
+		ASM_CASES_TAC `x = p:real^3` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    DISCH_THEN (fun th -> REWRITE_TAC[th; SUM_SING]) THEN
+	    SUBGOAL_THEN `sum Lv_lt (\x:real^3. if x = p then &1 - a else tt x) = sum Lv_lt tt` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      MATCH_MP_TAC SUM_EQ THEN REPEAT STRIP_TAC THEN BETA_TAC THEN
+		COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+		UNDISCH_TAC `~(p:real^3 IN Lv_lt)` THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	(* vsum = w *)
+	REWRITE_TAC[] THEN
+	MP_TAC (ISPECL[`\v:real^3. (if v = p then &1 - a else tt v) % v`; `Lv_lt:real^3->bool`; `{p:real^3}`] VSUM_UNION) THEN
+	ASM_REWRITE_TAC[FINITE_SING; DISJOINT; EXTENSION; NOT_IN_EMPTY; IN_INTER; IN_SING] THEN
+	ANTS_TAC THENL
+	[
+	  GEN_TAC THEN REWRITE_TAC[DE_MORGAN_THM] THEN
+	    ASM_CASES_TAC `x = p:real^3` THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	DISCH_THEN (fun th -> REWRITE_TAC[th; VSUM_SING]) THEN
+	SUBGOAL_THEN `vsum Lv_lt (\v:real^3. (if v = p then &1 - a else tt v) % v) = vsum Lv_lt (\v. tt v % v)` (fun th -> REWRITE_TAC[th]) THENL
+	[
+	  MATCH_MP_TAC VSUM_EQ THEN REPEAT STRIP_TAC THEN BETA_TAC THEN
+	    COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	    UNDISCH_TAC `~(p:real^3 IN Lv_lt)` THEN POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
+	  ALL_TAC
+	] THEN
+	EXPAND_TAC "p" THEN REMOVE_THEN "wv" (fun th -> REWRITE_TAC[SYM th]) THEN
+	ASM_SIMP_TAC[VECTOR_MUL_ASSOC; REAL_MUL_RINV; VECTOR_MUL_LID];
+      ALL_TAC
+    ] THEN
+    
+    (* The third step *)
+    DISCH_THEN (LABEL_TAC "conv") THEN
+    MATCH_MP_TAC AFF_DIM_LE_2_IMP_COPLANAR THEN
+    MATCH_MP_TAC INT_LE_TRANS THEN
+    EXISTS_TAC `aff_dim (convex hull (Y UNION X:real^3->bool))` THEN
+    POP_ASSUM (fun th -> SIMP_TAC[MATCH_MP AFF_DIM_SUBSET th]) THEN
+    REWRITE_TAC[AFF_DIM_CONVEX_HULL] THEN
+    SUBGOAL_THEN `FINITE (Y:real^3->bool)` ASSUME_TAC THENL
+    [
+      EXPAND_TAC "Y" THEN MATCH_MP_TAC FINITE_IMAGE THEN REWRITE_TAC[FINITE_NUMSEG_LT];
+      ALL_TAC
+    ] THEN
+
+    (* CARD Y <= k *)
+    SUBGOAL_THEN `CARD (Y:real^3->bool) <= k` ASSUME_TAC THENL
+    [
+      MATCH_MP_TAC LE_TRANS THEN EXISTS_TAC `CARD {j | j < k : num}` THEN
+	CONJ_TAC THENL
+	[
+	  EXPAND_TAC "Y" THEN
+	    MP_TAC (ISPECL[`omega_list_n V ul`; `{j | j < k : num}`] CARD_IMAGE_LE) THEN
+	    SIMP_TAC[FINITE_NUMSEG_LT];
+	  ALL_TAC
+	] THEN
+	REWRITE_TAC[CARD_NUMSEG_LT; LE_REFL];
+      ALL_TAC
+    ] THEN
+
+    MATCH_MP_TAC INT_LE_TRANS THEN
+    EXISTS_TAC `&(CARD (Y:real^3->bool)) + aff_dim (X:real^3->bool)` THEN
+    CONJ_TAC THENL
+    [
+      MATCH_MP_TAC AFF_DIM_FINITE_UNION_LE THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    (* aff dim X <= 2 - k *)
+    SUBGOAL_THEN `aff_dim (X:real^3->bool) <= &2 - &k` MP_TAC THENL
+    [
+      ABBREV_TAC `Fu = voronoi_list V (truncate_simplex k ul)` THEN
+	ABBREV_TAC `Fv = voronoi_list V (truncate_simplex k vl)` THEN
+	(* k = 0 \/ 0 < k *)
+	DISJ_CASES_TAC (ARITH_RULE `k = 0 \/ 0 < k`) THENL
+	[
+	  UNDISCH_TAC `~(Fu = Fv : real^3->bool)` THEN
+	    MP_TAC (ISPEC `ul:(real^3)list` TRUNCATE_0_EQ_HEAD) THEN
+	    MP_TAC (ISPEC `vl:(real^3)list` TRUNCATE_0_EQ_HEAD) THEN
+	    ASM_REWRITE_TAC[ARITH] THEN
+	    MAP_EVERY EXPAND_TAC ["X"; "Fu"; "Fv"] THEN
+	    POP_ASSUM (fun th -> REWRITE_TAC[th]) THEN
+	    REPLICATE_TAC 2 (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
+	    REWRITE_TAC[VORONOI_LIST_SING] THEN DISCH_TAC THEN
+	    MATCH_MP_TAC INT_LE_TRANS THEN
+	    EXISTS_TAC `aff_dim ({x : real^3 | &2 % (HD ul - HD vl) dot x = norm (HD ul) pow 2 - norm (HD vl) pow 2})` THEN
+
+	    SUBGOAL_THEN `!l:(real^3)list. barV V 3 l ==> HD l IN V` ASSUME_TAC THENL
+	    [
+	      REPEAT STRIP_TAC THEN
+		MATCH_MP_TAC IN_TRANS THEN
+		EXISTS_TAC `set_of_list l : real^3->bool` THEN
+	        CONJ_TAC THENL
+	        [ 
+		  MATCH_MP_TAC BARV_IMP_HD_IN_SET_OF_LIST THEN
+		    MAP_EVERY EXISTS_TAC [`V:real^3->bool`; `3`] THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+	        MATCH_MP_TAC BARV_SUBSET THEN
+	        EXISTS_TAC `3` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    FIRST_ASSUM (MP_TAC o SPEC `ul:(real^3)list`) THEN
+	    FIRST_X_ASSUM (MP_TAC o SPEC `vl:(real^3)list`) THEN
+	    ASM_REWRITE_TAC[] THEN REPEAT DISCH_TAC THEN
+
+	    CONJ_TAC THENL
+	    [
+	      MATCH_MP_TAC AFF_DIM_SUBSET THEN
+		MATCH_MP_TAC Pack2.INTER_VORONOI_SUBSET_BISECTOR THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+
+	    SUBGOAL_THEN `int_of_num 2 - &0 = &(dimindex (:3)) - &1` (fun th -> REWRITE_TAC[th]) THENL
+	    [
+	      REWRITE_TAC[DIMINDEX_3] THEN INT_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+
+	    MATCH_MP_TAC (INT_ARITH `a = b ==> a <= b : int`) THEN
+	    MATCH_MP_TAC AFF_DIM_HYPERPLANE THEN
+	    REWRITE_TAC[VECTOR_MUL_EQ_0; INT_ARITH `~(&2 = &0)`; VECTOR_SUB_EQ] THEN
+	    DISCH_TAC THEN UNDISCH_TAC `~(voronoi_closed V (HD ul) = voronoi_closed V (HD vl):real^3->bool)` THEN
+	    ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	
+	(* 0 < k *)
+	ABBREV_TAC `P = voronoi_list V (truncate_simplex (k - 1) vl) : real^3->bool` THEN
+        (* Fu facet_of P /\ Fv facet_of P *)
+	SUBGOAL_THEN `Fu facet_of P /\ Fv facet_of P : real^3->bool` STRIP_ASSUME_TAC THENL
+        [
+	  CONJ_TAC THENL
+	    [
+	      MP_TAC (SPECL[`V:real^3->bool`; `truncate_simplex (k - 1) ul:(real^3)list`; `k - 1`; `Fu:real^3->bool`] IDBEZAL) THEN
+		ANTS_TAC THENL
+		[
+		  ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k - 1 < 3`] THEN
+		    MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+		    EXISTS_TAC `3` THEN ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k - 1 <= 3`];
+		  ALL_TAC
+		] THEN
+		SUBGOAL_THEN `voronoi_list V (truncate_simplex (k - 1) ul) = P : real^3->bool` MP_TAC THENL
+	        [
+		  FIRST_X_ASSUM (MP_TAC o SPEC `k - 1`) THEN
+		    ASM_SIMP_TAC[ARITH_RULE `0 < k ==> k - 1 < k`];
+		  ALL_TAC
+		] THEN
+	        REPEAT (DISCH_THEN (fun th -> REWRITE_TAC[th])) THEN
+	        EXISTS_TAC `truncate_simplex k ul:(real^3)list` THEN
+	        ASM_REWRITE_TAC[] THEN
+	        CONJ_TAC THENL
+	        [
+		  ASM_SIMP_TAC[ARITH_RULE `0 < k ==> k - 1 + 1 = k`] THEN
+		    MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+		    EXISTS_TAC `3` THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+	        MATCH_MP_TAC TRUNCATE_TRUNCATE_SIMPLEX THEN
+	        ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k + 1 <= 4`; ARITH_RULE `k - 1 <= k`];
+	      ALL_TAC
+	    ] THEN
+	    MP_TAC (SPECL[`V:real^3->bool`; `truncate_simplex (k - 1) vl:(real^3)list`; `k - 1`; `Fv:real^3->bool`] IDBEZAL) THEN
+	    ANTS_TAC THENL
+	    [
+	      ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k - 1 < 3`] THEN
+		MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+		EXISTS_TAC `3` THEN ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k - 1 <= 3`];
+	      ALL_TAC
+	    ] THEN
+	    ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	    EXISTS_TAC `truncate_simplex k vl:(real^3)list` THEN
+	    ASM_REWRITE_TAC[] THEN
+	    CONJ_TAC THENL
+	    [
+	      ASM_SIMP_TAC[ARITH_RULE `0 < k ==> k - 1 + 1 = k`] THEN
+		MATCH_MP_TAC TRUNCATE_SIMPLEX_BARV THEN
+		EXISTS_TAC `3` THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    MATCH_MP_TAC TRUNCATE_TRUNCATE_SIMPLEX THEN
+	    ASM_SIMP_TAC[ARITH_RULE `k <= 3 ==> k + 1 <= 4`; ARITH_RULE `k - 1 <= k`];
+	  ALL_TAC
+	] THEN
+
+        FIRST_ASSUM (MP_TAC o MATCH_MP FACET_OF_IMP_FACE_OF) THEN POP_ASSUM MP_TAC THEN
+        FIRST_ASSUM (MP_TAC o MATCH_MP FACET_OF_IMP_FACE_OF) THEN POP_ASSUM (LABEL_TAC "Fu_facet") THEN
+        MAP_EVERY (fun s -> DISCH_THEN (LABEL_TAC s)) ["Fu_face"; "Fv_facet"; "Fv_face"] THEN
+
+        MP_TAC (ISPECL[`Fu:real^3->bool`; `P:real^3->bool`; `Fv:real^3->bool`; `P:real^3->bool`] FACE_OF_INTER_INTER) THEN
+        ASM_REWRITE_TAC[INTER_ACI] THEN DISCH_TAC THEN
+
+        REMOVE_THEN "Fu_face" (MP_TAC o SPEC `X:real^3->bool` o MATCH_MP FACE_OF_FACE) THEN
+        REMOVE_THEN "Fv_face" (MP_TAC o SPEC `X:real^3->bool` o MATCH_MP FACE_OF_FACE) THEN
+        SUBGOAL_THEN `X SUBSET Fv /\ X SUBSET Fu:real^3->bool` (fun th -> ASM_REWRITE_TAC[th]) THENL
+        [
+	  MAP_EVERY EXPAND_TAC ["X"; "Fv"; "Fu"] THEN
+	    REWRITE_TAC[INTER_SUBSET];
+	  ALL_TAC
+	] THEN
+
+        ASM_CASES_TAC `X = Fv : real^3->bool /\ X = Fu : real^3->bool` THENL
+        [
+	  UNDISCH_TAC `~(Fu = Fv:real^3->bool)` THEN
+	    POP_ASSUM (fun th -> REWRITE_TAC[GSYM th]);
+	  ALL_TAC
+	] THEN
+        POP_ASSUM MP_TAC THEN REWRITE_TAC[DE_MORGAN_THM] THEN REPEAT STRIP_TAC THENL
+        [
+          MP_TAC (ISPECL[`X:real^3->bool`; `Fv:real^3->bool`] FACE_OF_AFF_DIM_LT) THEN
+	    ANTS_TAC THENL
+	    [
+	      ASM_REWRITE_TAC[] THEN EXPAND_TAC "Fv" THEN REWRITE_TAC[CONVEX_VORONOI_LIST];
+	      ALL_TAC
+	    ] THEN
+	    MP_TAC (SPECL[`V:real^3->bool`; `vl:(real^3)list`; `3`; `k:num`] VORONOI_LIST_AFF_DIM) THEN
+	    ASM_SIMP_TAC[] THEN INT_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+        MP_TAC (ISPECL[`X:real^3->bool`; `Fu:real^3->bool`] FACE_OF_AFF_DIM_LT) THEN
+        ANTS_TAC THENL
+        [
+	  ASM_REWRITE_TAC[] THEN EXPAND_TAC "Fu" THEN REWRITE_TAC[CONVEX_VORONOI_LIST];
+	  ALL_TAC
+	] THEN
+        MP_TAC (SPECL[`V:real^3->bool`; `ul:(real^3)list`; `3`; `k:num`] VORONOI_LIST_AFF_DIM) THEN
+        ASM_SIMP_TAC[] THEN INT_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+
+    POP_ASSUM MP_TAC THEN REWRITE_TAC[GSYM INT_OF_NUM_LE] THEN
+    INT_ARITH_TAC);;
+
+
+ 
 (***************************************************)
 
 (****************)
@@ -5230,11 +7074,6 @@ let BARV_CIRCUMCENTER_EXISTS = prove(`!V ul k. packing V /\ barV V k ul ==>
 
 
 
-let SET_OF_LIST_TRUNCATE_SIMPLEX_SUBSET = prove(`!(ul:(A)list) k. k + 1 <= LENGTH ul ==> set_of_list (truncate_simplex k ul) SUBSET set_of_list ul`,
-   REPEAT STRIP_TAC THEN
-     MATCH_MP_TAC SET_OF_LIST_INITIAL_SUBLIST_SUBSET THEN
-     MP_TAC (SPECL [`k:num`; `truncate_simplex k (ul:(A)list)`; `ul:(A)list`] TRUNCATE_SIMPLEX_INITIAL_SUBLIST) THEN
-     ASM_REWRITE_TAC[] THEN SIMP_TAC[]);;
 
 
 

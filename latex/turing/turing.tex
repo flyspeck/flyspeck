@@ -998,7 +998,15 @@ $n=140,894,092,055,857,794$.
 Proof assistants represent the best effort of logicians, computer
 scientists, and mathematicians to obtain complete mathematical rigor
 by computer.  This section gives a brief introduction to proof
-assistants and describes various recent projects.
+assistants and describes various recent projects that use them.
+
+The first section was all about the work of mathematicians who have
+used computers calculations in their proofs.  This section is about
+doing the proofs themselves by computer.  I have never been able to
+get used to it being mathematicians who use computers for calculation
+and the computers scientists who use computers for proofs.  I hope the
+situation will change in the future as proof assistants move towards
+widespread adoption!
 
 
 \subsection{The design of proof assistants}
@@ -1102,6 +1110,25 @@ statement about $\sqrt{\phantom X}$~
 Without going into full detail, I will make a few comments about what
 some of the features mean.
 
+\subsubsection{automating calculations.} Mathematical argument
+involves both calculation and proof.  The foundations of logic often
+specify in detail what constitutes a mathematical proof (a sequence of
+logical inferences from the axioms), but downgrade calculation to
+second-class status, requiring every single calculation to undergo a
+cumbersome translation into logic.  Poincar\'e has drawn a distinction
+between verification of individual facts such as $2+2=4$ (which he
+says ``leads to nothing'') and ``real proofs''~\cite[p.~4]{HPSH}.
+This distinction has come to mean the distinction between the
+algorithmically solvable and the rest.  If a proof assistant
+admits as proof the output from a verified algorithm (bypassing the
+separate translation into logic of each separate execution of the
+algorithm), then we say that the {\it Poincar\'e principle} holds for
+that algorithm.  The closely related principle of {\it reflection}
+is proof based on the syntactic form of a term, rather than the
+term itself~\cite{BFM}.
+
+
+
 \subsubsection{constructive logic.} The
 law of excluded middle $\phi\lor\lnot \phi$ is accepted in classical
 logic, but rejected in constructive logic.  A proof assistant
@@ -1114,32 +1141,89 @@ proof assistants the logic is fixed. Other proof assistants are more
 flexible, allowing different logics to be plugged in and played with.
 The more flexible systems implement a meta-language, a {\it logical
   framework}, that gives support for the implementation of multiple
-logics.  In a logical framework, the logic and axioms of proof
-assistant can themselves be formalized, and machine
-translations\footnote{I find this particularly useful in light of my
-  Flyspeck project to formalize the proof of the Kepler conjecture,
-  because different parts of that proof have been formalized in
-  different proof assistants.  This technology gives hope of an
-  automated tool to bring all the different parts of the proof into a
-  single proof assistant.} can be constructed between different
-foundations of mathematics~\cite{IRFF}.
+logics.  Within a logical framework,
+the logic and axioms of a proof assistant can themselves be formalized,
+and machine translations\footnote{I find this particularly useful in
+  light of my Flyspeck project to formalize the proof of the Kepler
+  conjecture, because different parts of that proof have been
+  formalized in different proof assistants.  This technology gives
+  hope of an automated tool to bring all the different parts of the
+  proof into a single proof assistant.} can be constructed between
+different foundations of mathematics~\cite{IRFF}.
 
 \subsubsection{type theory.}
 
 Approaching the subject of formal proofs as a mathematician whose
 practise was shaped by Zermelo-Fraenkel set theory, I first treated
-types as nothing more than convenient labels (such real number,
-natural number, list of integers, boolean) attached to terms that
-identified what was what, much like PLU stickers on fruit that get
-peeled away before consumption.  I recognized that they saved higher-order
-logic from Russell's paradox, since one cannot form a well-typed term
-asserting $X \not\in X$, because $X$ and its members have different
-types.
+types as nothing more than convenient identifying labels (such real
+number, natural number, list of integers, or boolean) attached to terms,
+like the 
+%hash tags on tweets or the 
+PLU stickers on fruit that get peeled
+away before consumption.  Types are familiar from programming
+languages as a way of identifying what data structure is what.  In the
+simple type system of HOL Light, to each term is affixed a unique
+type, which is either a primitive type (such as the boolean type
+$\op{\it bool}$), a type variable ($A,B,C,\ldots$), or inductively
+constructed from other types with the arrow constructor
+($A\rightarrow B$, $A\rightarrow (\op{\it bool} \rightarrow C)$,
+etc.).  If the types are interpreted naively as sets, then $x:A$
+asserts that the term $x$ is a member of $A$, and $f:A\rightarrow B$
+asserts that $f$ is a member of $A\rightarrow B$, the set of functions
+from $A$ to $B$.
 
-Only gradually have I come to appreciate the signficance of {\it
-  theory of types}.  The type system used by a proof assistant
-determines to a large degree how much of a proof the user must
-contribute and how much the computer automates behind the scenes.  For
+In untyped set theory, it is possible to ask ridiculous questions such
+as whether the real number $\pi=3.14\ldots$, when viewed as a raw set,
+is a finite group.  In fact, in a random exploration of set theory,
+like a monkey composing sonnets at the keyboard, the ridiculous
+completely overwhelms all serious content.  Types organize data on the
+computer in meaningful ways to cut down on the static noise in the
+system.  The question about $\pi$ and groups is not well-typed and
+cannot be asked.  Russell's paradox also disappears: $X \not\in X$ is
+not well-typed.  For historical reasons, this is not surprising:
+Russell and Whitehead first introduced types to overcome the paradoxes of
+set theory, and from there, through Church, they passed into computer
+science.
+
+
+Only gradually have I come to appreciate the signficance of a
+comprehensive {\it theory of types}.  The type system used by a proof
+assistant determines to a large degree how much of a proof the user
+must contribute and how much the computer automates behind the scenes.
+The type system is {\it decidable} if there is a decision procedure to
+determine the type of each term.
+
+A type system is {\it dependent} if a type can depend on a value of
+another type.  For example, Euclidean space $\ring{R}^n$, depends on
+its dimension $n$.  For this reason, Euclidean space is most naturally
+implemented in a proof assistant as a dependent type.  
+In a proof assistant such as HOL Light that does not have dependent types,
+extra work is required to implement Euclidean space.
+
+
+\subsection{propositions as types}
+
+I mentioned the standard naive interpretation of each type $A$ as a
+set and a term $x:A$ as a member of the set.  A quite different
+interpretation of types has had considerable influence in the design
+of proof assistants.  In this view, a type $A$ represents a
+proposition and a term $x:A$ represents a proof of the proposition
+$A$.  A term with an arrow type, $f:A\rightarrow B$, can be used to to
+construct a proof $f(x)$ of $B$ from a proof $x$ of $A$.  In this
+interpretation, the arrow is logical implication. For example,  the most fundamental rule of logic,
+\[
+\frac{A,\quad A\Rightarrow B}{B},  \qquad \text{\it(modus ponens)}
+\]
+(from $A$ and $A\text{-implies-}B$ follows $B$) is identified with
+the function application; from $x:A$ and $f:A\rightarrow B$ we get $f(x):B$.
+
+
+
+
+
+\subsection{homotopy type theory}
+
+For
 example, the simple type theory of HOL Light is adequate for real
 analysis, where relatively few types are needed -- one can go quite
 far with natural numbers, real numbers, booleans, functions between

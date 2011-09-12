@@ -10,6 +10,7 @@ import javax.swing.JTextPane;
  class HOLStream extends java.io.PushbackInputStream {
 
 
+@SuppressWarnings("unused")
 private JTextPane textPane;	
 	
 	protected HOLStream(InputStream arg0, JTextPane textPane) {

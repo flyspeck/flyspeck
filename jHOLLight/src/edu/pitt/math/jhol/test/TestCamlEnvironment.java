@@ -12,6 +12,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	public TestCamlEnvironment() throws Exception {
 		caml = new HOLLightWrapper("hol_light");
 		caml.runCommand("needs \"caml/raw_printer.hl\";;");
+		caml.runCommand("needs \"caml/ssreflect.hl\";;");
 	}
 	
 	

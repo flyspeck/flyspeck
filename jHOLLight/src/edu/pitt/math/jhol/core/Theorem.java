@@ -1,5 +1,6 @@
 package edu.pitt.math.jhol.core;
 
+import edu.pitt.math.jhol.caml.CamlFunction;
 import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 
@@ -117,6 +118,89 @@ public abstract class Theorem extends CamlObject {
 			
 			return str.toString();
 		}
+	}
+	
+	
+	/**
+	 * Represents an assumption of a goal
+	 */
+	public static class AssumptionTheorem extends Theorem {
+		private final String label;
+		private final Term concl;
+		private final boolean hyps;
+		private final CamlObject.CamlApplication command;
+
+		// For creating assumptions from terms
+		private final static CamlFunction ASSUME = new CamlFunction("ASSUME", CamlType.mk_function(CamlType.TERM, CamlType.THM));
+		
+		/**
+		 * Creates an assumption
+		 */
+		public AssumptionTheorem(Term concl, boolean hyps, String label) throws Exception {
+			this.concl = concl;
+			this.hyps = hyps;
+			this.label = label;
+			this.command = (CamlObject.CamlApplication) ASSUME.apply(concl);
+		}
+		
+		
+		@Override
+		public String name() {
+			return label;
+		}
+		
+		@Override
+		public Term concl() {
+			return concl;
+		}
+		
+		@Override
+		public boolean hyp() {
+			return hyps;
+		}
+		
+		@Override
+		public String makeCamlCommand() {
+			return command.makeCamlCommand();
+		}
+		
+		@Override
+		public String toCommandString() {
+			return command.toCommandString();
+		}
+		
+		/* Object methods */
+		
+		@Override
+		public int hashCode() {
+			return command.hashCode() + 59 * concl.hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof AssumptionTheorem))
+				return false;
+			
+			AssumptionTheorem obj2 = (AssumptionTheorem) obj;
+			return concl.equals(obj2.concl);
+		}
+		
+		
+		@Override
+		public String toString() {
+			StringBuilder str = new StringBuilder();
+			str.append(label);
+			str.append(" = ");
+			str.append("|- ");
+			str.append(concl);
+			
+			return str.toString();
+		}		
+		
 	}
 	
 	

@@ -25,6 +25,7 @@ public class HOLBot extends PircBot implements  Runnable {
 	private Process proc;
 	private BufferedWriter bin;
 	private BufferedReader bout;
+	@SuppressWarnings("unused")
 	private int holPid;
 	private ProcessBuilder interrupt;
 	private String homeChannel;

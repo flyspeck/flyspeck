@@ -5,7 +5,7 @@ package edu.pitt.math.jhol.core.parser;
  * Token
  * @author Alexey
  */
-public class Token {
+class Token {
 	// Type
 	public final TokenType type;
 	

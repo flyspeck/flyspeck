@@ -191,17 +191,19 @@ public class Parser {
 		// Convert the CamlList into a Java list 
 		ArrayList<Pair<String, Theorem>> assumptionList = new ArrayList<Pair<String,Theorem>>();
 		
-		CamlFunction ASSUME = new CamlFunction("ASSUME", CamlType.mk_function(CamlType.TERM, CamlType.THM));
+//		CamlFunction ASSUME = new CamlFunction("ASSUME", CamlType.mk_function(CamlType.TERM, CamlType.THM));
 		
 		for (int i = 0; i < assumptions.size(); i++) {
 			CamlPair p = (CamlPair) assumptions.get(i);
 			CamlString name = (CamlString) p.first();
 			Theorem.TempTheorem th = (Theorem.TempTheorem) p.second();
-
-			CamlObject.CamlApplication assumption = (CamlObject.CamlApplication) ASSUME.apply(th.concl());
-			th.setCommand(assumption);
 			
-			assumptionList.add(new Pair<String, Theorem>(name.str, th));
+			Theorem.AssumptionTheorem ath = new Theorem.AssumptionTheorem(th.concl(), true, name.str);
+
+//			CamlObject.CamlApplication assumption = (CamlObject.CamlApplication) ASSUME.apply(th.concl());
+//			th.setCommand(assumption);
+			
+			assumptionList.add(new Pair<String, Theorem>(name.str, ath));
 		}
 		
 		return new Goal(assumptionList, goalTerm);

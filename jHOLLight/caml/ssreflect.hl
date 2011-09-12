@@ -1,0 +1,152 @@
+(* Returns all free variables in the goal *)
+let get_context_vars (g : goal) =
+  let list, g_tm = g in
+  let tms = g_tm :: map (concl o snd) list in
+  let f_vars = setify (flat (map frees tms)) in
+    map (fun v -> ((fst o dest_var) v, v)) f_vars;;
+
+
+
+(* DISCH_THEN (LABEL_TAC name) for assumptions and X_GEN_TAC name for variables *)
+let move labels (g:goal) =
+  let g_tm = snd g in
+  let move_name name g_tm =
+    if is_forall g_tm then
+      let tm0, g_tm1 = dest_forall g_tm in
+      let tm = mk_var (name, type_of tm0) in
+	(X_GEN_TAC tm, g_tm1)
+    else
+      if is_imp g_tm then
+	(DISCH_THEN (LABEL_TAC name), (snd o dest_imp) g_tm)
+      else
+	failwith "move: not (!) or (==>)" in
+  let rec build labels g_tm = 
+    match labels with
+      | [] -> ALL_TAC
+      | l :: ls ->
+	  let tac, tm = move_name l g_tm in
+	    tac THEN (build ls tm) in
+    (build labels g_tm) g;;
+
+
+(* Returns paths to all subterms satisfying p *)
+let find_all_paths p tm =
+  let rec find_path p tm path =
+    let paths =
+      match tm with
+	| Abs(_, b_tm) ->
+	    find_path p b_tm (path ^ "b")
+	| Comb(l_tm, r_tm) ->
+	    (find_path p l_tm (path ^ "l")) @ (find_path p r_tm (path ^ "r"))
+	| _ -> [] in
+      if p tm then path :: paths else paths in
+    find_path p tm "";;
+
+
+
+
+
+(* Rewrite tactic for usual and conditional theorems *)
+let rewrite occ th g =
+  let rec match_theorem ffun th tm str =
+    try (PART_MATCH ffun th tm, true, str)
+    with Failure _ ->
+      match tm with
+	| Comb(l_tm, r_tm) ->
+	    let r_th, flag, s = match_theorem ffun th l_tm (str ^ "l") in
+	      if flag then (r_th, flag, s)
+	      else
+		match_theorem ffun th r_tm (str ^ "r")
+	| Abs(_, b_tm) ->
+	    match_theorem ffun th b_tm (str ^ "b")
+	| _ -> (th, false, str) in
+
+  let goal_tm = snd g in
+  let th0 = REWRITE_RULE[IMP_IMP] th in
+  let concl_th = concl (SPEC_ALL th0) in
+  let cond_flag = is_imp concl_th in
+  let eq_tm = if cond_flag then rand concl_th else concl_th in
+  let match_fun = (if is_eq eq_tm then lhand else I) o (if cond_flag then rand else I) in
+  let matched_th, flag, path = match_theorem match_fun th0 goal_tm "" in
+  if not flag then
+	failwith "lhs does not match any term in the goal"
+  else
+	let matched_tm = (match_fun o concl) matched_th in
+	let paths = find_all_paths (fun x -> x = matched_tm) goal_tm in
+	let paths = if occ = [] then paths else
+	  map (fun i -> List.nth paths (i - 1)) occ in
+	let tm_frees = frees matched_tm in
+	let th_frees = frees (concl th0) in
+	let mth_frees = frees (concl matched_th) in
+	let vars = subtract mth_frees (union th_frees tm_frees) in
+	  if vars = [] then
+	    let r_tac = fun th -> MAP_EVERY (fun path -> GEN_REWRITE_TAC (PATH_CONV path) [th]) paths in
+	      if cond_flag then
+		(MP_TAC matched_th THEN ANTS_TAC THENL [ALL_TAC; DISCH_THEN r_tac]) g
+	      else
+		(r_tac matched_th) g
+	  else
+	    let rec gen_vars vars th =
+	      match vars with
+		| v :: vs -> gen_vars vs (GEN v th)
+		| [] -> th in
+	    let th2 = gen_vars vars matched_th in
+	      (MP_TAC th2 THEN REWRITE_TAC[LEFT_IMP_FORALL_THM]) g;;
+
+
+(* Trivial simplification *)
+let triv = ASM_REWRITE_TAC[];;
+
+
+(* Specializes the theorem using the given set of variables *)
+let spec0 names vars = 
+  let find name =
+    try (assoc name vars, true)
+    with Failure _ -> (parse_term name, false) in
+  let find_type var =
+    let name, ty = dest_var var in
+    let t, flag = find name in
+      if flag then
+	(ty, type_of t)
+      else 
+	(`:bool`, `:bool`) in
+  let inst_term tm =
+    let ty_src, ty_dst = unzip (map find_type (frees tm)) in
+    let ty_inst = itlist2 type_match ty_src ty_dst [] in
+      inst ty_inst tm in
+  let list = map find names in
+  let tm_list = map (fun tm, flag -> if flag then tm else inst_term tm) list in
+    ISPECL tm_list;;
+
+
+let spec names = spec0 names (get_context_vars (top_realgoal()));;
+
+
+let spec_mp names th g = MP_TAC (spec0 names (get_context_vars g) th) g;;
+
+(* case: now works only for (A /\ B) -> C and for (?x. P) -> Q *)
+let case (g:goal) = 
+  let goal_tm = snd g in
+    if not (is_imp goal_tm) then
+      failwith "case works for implications only"
+    else
+      let tm = lhand goal_tm in
+	(* A /\ B *)
+	if is_conj tm then
+	  (DISCH_THEN (CONJUNCTS_THEN MP_TAC)) g
+        (* ?x. P *)
+	else if is_exists tm then
+	  (ONCE_REWRITE_TAC[GSYM LEFT_FORALL_IMP_THM]) g
+	else
+	  failwith "case: not implemented";;
+	  
+	  
+(* Instantiates the first type variable in the given theorem *)
+let inst_first_type ty th =
+  let ty_vars = type_vars_in_term (concl th) in
+  if ty_vars = [] then
+    failwith "inst_first_type: no type variables in the theorem"
+  else
+    INST_TYPE [(ty, hd ty_vars)] th;;
+
+

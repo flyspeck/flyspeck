@@ -2,6 +2,7 @@ package edu.pitt.math.jhol.gui;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Shape;
@@ -79,6 +80,9 @@ public class CamlObjectComponent extends JPanel {
 	// If true then the text layout is changed automatically
 	private boolean autoResize;
 	
+	// Indicates whether the selection should be drawn
+	private boolean drawSelection;
+	
 	// The width of the text
 	// If 0 then the width of the component is used
 	private int textWidth;
@@ -126,16 +130,18 @@ public class CamlObjectComponent extends JPanel {
 	 */
 	static {
 		map = new Hashtable<TextAttribute, Object>();
-		map.put(TextAttribute.SIZE, new Float(20.0));
+		map.put(TextAttribute.FAMILY, Font.MONOSPACED);
+		map.put(TextAttribute.SIZE, new Float(14.0));
 	}
 	
 	
 	/**
 	 * Default constructor
 	 */
-	public CamlObjectComponent(boolean wordWrapFlag, boolean autoResizeFlag) {
+	public CamlObjectComponent(boolean wordWrapFlag, boolean autoResizeFlag, boolean drawSelection) {
 		this.wordWrap = wordWrapFlag;
 		this.autoResize = autoResizeFlag;
+		this.drawSelection = drawSelection;
 		
 		// Add a mouse listener
 		TestMouseListener m = new TestMouseListener();
@@ -369,47 +375,49 @@ public class CamlObjectComponent extends JPanel {
 		for (TextRow row : rows) {
 			TextLayout layout = row.layout;
 
-			// Draw the secondary selection
-			if (end1 > start1) {
-				int first = start1, last = end1;
+			if (drawSelection) {
+				// Draw the secondary selection
+				if (end1 > start1) {
+					int first = start1, last = end1;
 
-				if (first <= row.lastIndex && row.firstIndex <= last) {
-					first -= row.firstIndex;
-					if (first < 0)
-						first = 0;
+					if (first <= row.lastIndex && row.firstIndex <= last) {
+						first -= row.firstIndex;
+						if (first < 0)
+							first = 0;
 
-					last -= row.firstIndex;
-					if (last > row.lastIndex - row.firstIndex + 1)
-						last = row.lastIndex - row.firstIndex + 1;
+						last -= row.firstIndex;
+						if (last > row.lastIndex - row.firstIndex + 1)
+							last = row.lastIndex - row.firstIndex + 1;
 
-					Shape highlight = layout.getLogicalHighlightShape(first,
-							last);
-					g2.setColor(new Color(184, 255, 183));
-					g2.translate(0, row.y);
-					g2.fill(highlight);
-					g2.translate(0, -row.y);
+						Shape highlight = layout.getLogicalHighlightShape(
+								first, last);
+						g2.setColor(new Color(184, 255, 183));
+						g2.translate(0, row.y);
+						g2.fill(highlight);
+						g2.translate(0, -row.y);
+					}
 				}
-			}
-			
-			// Draw the main selection
-			if (end0 > start0) {
-				int first = start0, last = end0;
 
-				if (first <= row.lastIndex && row.firstIndex <= last) {
-					first -= row.firstIndex;
-					if (first < 0)
-						first = 0;
+				// Draw the main selection
+				if (end0 > start0) {
+					int first = start0, last = end0;
 
-					last -= row.firstIndex;
-					if (last > row.lastIndex - row.firstIndex + 1)
-						last = row.lastIndex - row.firstIndex + 1;
+					if (first <= row.lastIndex && row.firstIndex <= last) {
+						first -= row.firstIndex;
+						if (first < 0)
+							first = 0;
 
-					Shape highlight = layout.getLogicalHighlightShape(first,
-							last);
-					g2.setColor(Color.red);
-					g2.translate(0, row.y);
-					g2.draw(highlight);
-					g2.translate(0, -row.y);
+						last -= row.firstIndex;
+						if (last > row.lastIndex - row.firstIndex + 1)
+							last = row.lastIndex - row.firstIndex + 1;
+
+						Shape highlight = layout.getLogicalHighlightShape(
+								first, last);
+						g2.setColor(Color.red);
+						g2.translate(0, row.y);
+						g2.draw(highlight);
+						g2.translate(0, -row.y);
+					}
 				}
 			}
 

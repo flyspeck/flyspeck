@@ -3,7 +3,7 @@ package edu.pitt.math.jhol.core.parser;
 /**
  * Token type
  */
-public enum TokenType {
+enum TokenType {
 	EOF,
 	STRING, IDENTIFIER, INTEGER,
 	LPAR, RPAR,

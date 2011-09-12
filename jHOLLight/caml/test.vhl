@@ -1,0 +1,86 @@
+Lemma append_nil : "`!a:(B)list. APPEND a [] = a`".
+apply: (list_INDUCT "`:B`"); split.
+  rewrite "CONJUNCT1 APPEND" //.
+move => h t IH.
+rewr APPEND IH //.
+Qed.
+
+Lemma test : "`!a (b:(A)list). LENGTH (APPEND a b) = LENGTH a + LENGTH b`".
+apply: list_INDUCT.
+split.
+  move => b.
+  rewr APPEND LENGTH ADD //.
+move => h t IH.
+apply: list_INDUCT.
+split.
+  rewr APPEND_NIL LENGTH ADD_0 //.
+move => h2 t2 IH2.
+rewr APPEND LENGTH IH LENGTH.
+"ARITH_TAC".
+Qed.
+
+
+Lemma VORONOI_CLOSED_EQ_LEMMA : "`!V u v. packing V /\ u IN V /\ v IN V /\	voronoi_closed V u = voronoi_closed V v ==> u = v`".
+rewr voronoi_closed EXTENSION => V u v.
+case. case. case => eq vV uV pack.
+move: (eq v). 
+rewr IN_ELIM_THM DIST_REFL DIST_POS_LE //.
+move/(_ v).
+move: vV. rewrite IN => Vv.
+move/(_ Vv).
+rewrite DIST_REFL DIST_LE_0 EQ_SYM_EQ //.
+Qed.
+
+
+Lemma ODIGPXU_lemma : "`!P f f2 p0 p (q : real^N) t s.
+	polyhedron P /\ p0 IN P /\ ~(p0 IN f UNION f2) /\
+	f facet_of P /\ f2 facet_of P /\
+	p IN f /\ q IN f2 /\
+	&0 < t /\ &0 < s /\
+	(&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s <= t`".
+"REWRITE_TAC[GSYM IMP_IMP]".
+move => P f f2 p0 p q t s polyP p0P p0_ff2 fP f2P pf qf2 t0 s0 eq.
+move: eq. rewr VECTOR_SUB_RDISTRIB.
+rewrite "VECTOR_ARITH `a - t % (p0 : real^N) + t % p = a - s % p0 + s % q <=>
+	t % (p - p0) = s % (q - p0)`".
+move: "REAL_ARITH `s <= t \/ t < s`". 
+"STRIP_TAC THEN POP_ASSUM MP_TAC" => cond //.
+move => eq.
+have: "`inv t % t % (p - p0) = inv t % s % (q - p0:real^N)`".
+  rewrite eq //.
+rewr VECTOR_MUL_ASSOC.
+have tn0: "`~(t = &0)`".
+  apply: "REAL_ARITH `&0 < t ==> ~(t = &0)`" => //.
+rewrite REAL_MUL_LINV // VECTOR_MUL_LID.
+"ABBREV_TAC `r = inv t * s` THEN POP_ASSUM MP_TAC" => r_def.
+have lt_1r: "`&1 < r`".
+  rewrite -(REAL_LT_LMUL_EQ "`&1`" r t) // -r_def REAL_MUL_ASSOC REAL_MUL_RID.
+  rewrite REAL_MUL_RINV // REAL_MUL_LID //.
+move: (FACET_OF_POLYHEDRON P f2) => //.
+case => a. case => b.
+rewrite SUBSET. case. case => f2_eq H an0 eq2.
+have dot_lt_b: "`a dot (p0:real^N) < b`".
+  rewrite "REAL_ARITH `x < y <=> x <= y /\ ~(x = y)`".
+  move: (H p0). rewrite p0P //.
+  rewr IN_ELIM_THM. "SIMP_TAC[]" => tmp.
+  move: p0_ff2.
+  rewrite CONTRAPOS_THM IN_UNION f2_eq => a_dot_p0.
+  right.
+  rewr IN_INTER IN_ELIM_THM //.
+move: eq2.
+rewrite "VECTOR_ARITH `p - p0 = x <=> p = p0 + x : real^N`" => p_eq.
+move: (FACET_OF_IMP_SUBSET f P fP).
+rewrite SUBSET. move/(_ p). move/(_ pf).
+rewrite p_eq. 
+move/H.
+rewr IN_ELIM_THM DOT_RADD DOT_RMUL DOT_RSUB.
+move: f2_eq.
+rewr EXTENSION.
+move/(_ q) => //.
+rewr IN_INTER IN_ELIM_THM. case => a_dot_eq qP.
+rewrite a_dot_eq.
+rewrite "REAL_ARITH `x + r * (b - x) <= b <=> (r - &1) * b <= (r - &1) * x`".
+rewrite REAL_LE_LMUL_EQ.
+  move: lt_1r. "REAL_ARITH_TAC".
+move: dot_lt_b. "REAL_ARITH_TAC".
+Qed.

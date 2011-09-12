@@ -34,6 +34,22 @@ public class Goal extends CamlObject {
 	
 	
 	/**
+	 * Returns all free variables in the goal
+	 */
+	public ArrayList<Term> getContextVariables() {
+		ArrayList<Term> frees = goalTerm.frees();
+		
+		for (int i = 0; i < assumptions.size(); i++) {
+			ArrayList<Term> frees1 = assumptions.get(i).getSecond().concl().frees();
+			frees.removeAll(frees1);
+			frees.addAll(frees1);
+		}
+		
+		return frees;
+	}
+	
+	
+	/**
 	 * Returns the number of assumptions
 	 */
 	public int numberOfAssumptions() {
@@ -46,6 +62,15 @@ public class Goal extends CamlObject {
 	 */
 	public Pair<String, Theorem> getAssumptions(int i) {
 		return assumptions.get(i);
+	}
+	
+	
+	/**
+	 * Returns the assumption with the given name
+	 * @return null if no assumption with the given name exists
+	 */
+	public Theorem getAssumptions(String name) {
+		return Utils.assoc(name, assumptions);
 	}
 
 

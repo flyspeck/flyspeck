@@ -32,7 +32,7 @@ public class CamlObjectTable extends JTable {
 	static class CamlObjectRenderer extends CamlObjectComponent implements 
 			TableCellRenderer {
 		public CamlObjectRenderer() {
-			super(true, false);
+			super(true, false, false);
 			setOpaque(true);
 		}
 
@@ -72,7 +72,7 @@ public class CamlObjectTable extends JTable {
 	 */
 	static class CamlObjectEditor extends AbstractCellEditor implements TableCellEditor {
 		protected static final String EDIT = "edit";
-		private CamlObjectComponent comp = new CamlObjectComponent(true, false);
+		private CamlObjectComponent comp = new CamlObjectComponent(true, false, true);
 
 		public CamlObjectEditor() {
 		}

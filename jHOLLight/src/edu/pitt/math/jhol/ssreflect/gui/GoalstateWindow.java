@@ -180,12 +180,13 @@ public class GoalstateWindow extends JDialog {
 		if (n > 0) {
 			Goal g = state.getGoal(0);
 			activeGoal.init(g.goalTerm());
-			activeGoal.invalidate();
 			
 			int k = g.numberOfAssumptions();
 			for (int i = 0; i < k; i++) {
 				activeGoalAssumptions.add(g.getAssumptions(i).getSecond());
 			}
+			
+			pack();
 		}
 	}
 	

@@ -168,10 +168,17 @@ public class TreeBuilder {
 		while (true) {
 			TacticNode simp = tryParseSimp();
 			chain.add(simp);
-			
+
 			ObjectNode obj = null;
 			
 			Token t = scanner.peekToken();
+			if (t.type == TokenType.LBRACK) {
+				// []-pattern
+				TacticNode tac = parseDischCasePattern();
+				chain.add(tac);
+				continue;
+			}
+			
 			if (t.type == TokenType.UNDERSCORE) {
 				// _
 				scanner.nextToken();
@@ -192,6 +199,61 @@ public class TreeBuilder {
 		
 		if (chain.isEmpty())
 			return null;
+		
+		return chain;
+	}
+	
+	
+	/**
+	 * Parses expression of the form move => [a b [c d]]
+	 * @return
+	 */
+	private TacticNode parseDischCasePattern() throws Exception {
+		TacticChainNode chain = new TacticChainNode();
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.LBRACK)
+			throw new Exception("[ expected: " + t);
+		
+		// Immediately add one case command
+		chain.add(new CaseElimNode(false));
+		
+		ArrayList<TacticNode> tactics = new ArrayList<TacticNode>();
+		
+		while (true) {
+			// Parse Id's and other []-patterns only
+			// Id or [ or ]
+			t = scanner.peekToken();
+			
+			if (t.type == TokenType.RBRACK) {
+				// ]
+				scanner.nextToken();
+				break;
+			}
+			
+			if (t.type == TokenType.LBRACK) {
+				// [
+				TacticNode tac = parseDischCasePattern();
+				tactics.add(tac);
+				continue;
+			}
+			
+			if (t.type != TokenType.IDENTIFIER)
+				throw new Exception("IDENTIFIER or ] expected: " + t);
+			
+			// Id
+			scanner.nextToken();
+			
+			IdNode id = new IdNode(t.value);
+			DischNode disch = new DischNode(id);
+			tactics.add(disch);
+		}
+		
+		int n = tactics.size();
+		for (int i = 0; i < n; i++) {
+			chain.add(tactics.get(i));
+			if (i < n - 2)
+				chain.add(new CaseElimNode(false));
+		}
 		
 		return chain;
 	}

@@ -2,17 +2,22 @@ package edu.pitt.math.jhol.ssreflect.parser.tree;
 
 
 /**
- * case 
+ * case or elim
  */
-public class CaseNode extends TacticNode {
+public class CaseElimNode extends TacticNode {
+	private final boolean elimFlag;
+	
 	/**
 	 * Default constructor
 	 */
-	public CaseNode() {
+	public CaseElimNode(boolean elimFlag) {
+		this.elimFlag = elimFlag;
 	}
 	
 	@Override
 	protected String getString() {
+		if (elimFlag)
+			return "elim";
 		return "case";
 	}
 
@@ -26,7 +31,10 @@ public class CaseNode extends TacticNode {
 
 	@Override
 	protected void translate(StringBuffer buffer) {
-		buffer.append("case");
+		if (elimFlag)
+			buffer.append("elim");
+		else
+			buffer.append("case");
 	}
 	
 }

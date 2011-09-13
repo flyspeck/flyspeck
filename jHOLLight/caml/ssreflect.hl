@@ -6,7 +6,6 @@ let get_context_vars (g : goal) =
     map (fun v -> ((fst o dest_var) v, v)) f_vars;;
 
 
-
 (* DISCH_THEN (LABEL_TAC name) for assumptions and X_GEN_TAC name for variables *)
 let move labels (g:goal) =
   let g_tm = snd g in
@@ -14,10 +13,17 @@ let move labels (g:goal) =
     if is_forall g_tm then
       let tm0, g_tm1 = dest_forall g_tm in
       let tm = mk_var (name, type_of tm0) in
-	(X_GEN_TAC tm, g_tm1)
+	if Pervasives.compare name "_" = 0 then
+	  (GEN_TAC, g_tm1)
+	else
+	  (X_GEN_TAC tm, g_tm1)
     else
       if is_imp g_tm then
-	(DISCH_THEN (LABEL_TAC name), (snd o dest_imp) g_tm)
+	let tm = rand g_tm in
+	  if Pervasives.compare name "_" = 0 then
+	    (DISCH_THEN (fun th -> ALL_TAC), tm)
+	  else
+	    (DISCH_THEN (LABEL_TAC name), tm)
       else
 	failwith "move: not (!) or (==>)" in
   let rec build labels g_tm = 
@@ -27,6 +33,12 @@ let move labels (g:goal) =
 	  let tac, tm = move_name l g_tm in
 	    tac THEN (build ls tm) in
     (build labels g_tm) g;;
+
+
+(* Creates an abbreviation for the given term with the given name *)
+let set_tac name tm =
+  let abbrev_tm = mk_eq (mk_var (name, type_of tm), tm) in
+    ABBREV_TAC abbrev_tm THEN POP_ASSUM (LABEL_TAC (name ^ "_def"));;
 
 
 (* Returns paths to all subterms satisfying p *)
@@ -180,5 +192,3 @@ let repeat_tactic n m tac =
   let rec replicate_at_most m tac =
     if m <= 0 then ALL_TAC else (tac THEN replicate_at_most (m - 1) tac) ORELSE ALL_TAC in
   REPLICATE_TAC n tac THEN replicate_at_most m tac;;
-
-

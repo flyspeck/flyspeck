@@ -12,6 +12,9 @@ class Token {
 	// Value
 	public final String value;
 	
+	// Integer value
+	public final int intValue;
+	
 	// Describe the position of the token in the input stream
 	// (ch is the absolute position)
 	public final int ch, line, col;
@@ -29,6 +32,13 @@ class Token {
 		this.ch = ch;
 		this.line = line;
 		this.col = col;
+		
+		if (type == TokenType.INTEGER) {
+			intValue = Integer.parseInt(value);
+		}
+		else {
+			intValue = 0;
+		}
 	}
 	
 	public Token(TokenType type, int ch, int line, int col) {

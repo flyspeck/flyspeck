@@ -169,14 +169,24 @@ public class TreeBuilder {
 			TacticNode simp = tryParseSimp();
 			chain.add(simp);
 			
+			ObjectNode obj = null;
+			
 			Token t = scanner.peekToken();
-			if (t.type != TokenType.IDENTIFIER)
+			if (t.type == TokenType.UNDERSCORE) {
+				// _
+				scanner.nextToken();
+				obj = new WildObjectNode();
+			}
+			else if (t.type == TokenType.IDENTIFIER) {
+				// Id
+				scanner.nextToken();
+				obj = new IdNode(t.value);
+			}
+			
+			if (obj == null)
 				break;
 			
-			// Id
-			scanner.nextToken();
-			IdNode id = new IdNode(t.value);
-			DischNode disch = new DischNode(id);
+			DischNode disch = new DischNode(obj);
 			chain.add(disch);
 		}
 		
@@ -196,6 +206,13 @@ public class TreeBuilder {
 		
 		// Simp
 		if (t.type == TokenType.SIMP) {
+			// /=
+			scanner.nextToken();
+			return new RawTactic("SIMP_TAC[]");
+		}
+		
+		// TrivSimp
+		if (t.type == TokenType.TRIV_SIMP) {
 			// //=
 			scanner.nextToken();
 			return new RawTactic("ASM_SIMP_TAC[]");
@@ -203,7 +220,7 @@ public class TreeBuilder {
 		
 		// Triv
 		if (t.type == TokenType.TRIV) {
-			// //=
+			// //
 			scanner.nextToken();
 			return new RawTactic("ASM_REWRITE_TAC[]");
 		}
@@ -216,7 +233,7 @@ public class TreeBuilder {
 	 * Parses a raw expression in the form "..." or "`...`"
 	 * Returns null if nothing is parsed
 	 */
-	private String tryParseRawExpr() throws Exception {
+	public String tryParseRawExpr() throws Exception {
 /*		// ` or {
 		Token t = scanner.peekToken();
 		boolean termFlag = false;
@@ -284,7 +301,10 @@ public class TreeBuilder {
 				tactic = null;
 			// case
 			else if (t.value == "case")
-				tactic = new CaseNode();
+				tactic = new CaseElimNode(false);
+			// elim
+			else if (t.value == "elim")
+				tactic = new CaseElimNode(true);
 			// apply
 			else if (t.value == "apply")
 				tactic = new ApplyNode();
@@ -297,6 +317,9 @@ public class TreeBuilder {
 			// have
 			else if (t.value == "have")
 				tactic = parseHaveBody();
+			// set
+			else if (t.value == "set")
+				tactic = parseSetBody();
 			// exists
 			else if (t.value == "exists")
 				tactic = parseExistsBody();
@@ -366,23 +389,66 @@ public class TreeBuilder {
 		return chain;
 	}
 	
+
+	/**
+	 * Parses the body of a "set" expression
+	 */
+	private TacticNode parseSetBody() throws Exception {
+		// Id
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("IDENTIFIER expected: " + t);
+		
+		IdNode id = new IdNode(t.value);
+		
+		// :=
+		t = scanner.nextToken();
+		if (t.type != TokenType.ASSIGN)
+			throw new Exception(":= expected: " + t);
+		
+		// term
+		ObjectNode obj = tryParseObject();
+		if (obj == null)
+			throw new Exception("OBJECT expected: " + t);
+		
+		SetNode set = new SetNode(id, obj);
+		return set;
+	}
+	
 	
 	/**
 	 * Parses the body of a "have" expression
 	 */
 	private TacticNode parseHaveBody() throws Exception {
 		TacticNode disch = tryParseDisch();
+
+		boolean assignFlag;
 		
-		// :
+		// : or :=
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.COLON)
-			throw new Exception(": expected: " + t);
+		if (t.type == TokenType.ASSIGN) {
+			assignFlag = true;
+		}
+		else if (t.type == TokenType.COLON) {
+			assignFlag = false;
+		}
+		else  {
+			throw new Exception(": or := expected: " + t);
+		}
 		
-		String raw = tryParseRawExpr();
-		if (raw == null)
-			throw new Exception("`term` expected: " + t);
+		ObjectNode obj = null;
 		
-		HaveNode have = new HaveNode(disch, new RawObjectNode(raw));
+		if (assignFlag) {
+			obj = parseApplicationBody();
+		}
+		else {
+			obj = tryParseObject();
+		}
+		
+		if (obj == null)
+			throw new Exception("OBJECT expected: " + t);
+		
+		HaveNode have = new HaveNode(disch, obj, assignFlag);
 		return have;
 	} 
 	
@@ -395,6 +461,9 @@ public class TreeBuilder {
 		
 		while (true) {
 			boolean revFlag = false;
+			boolean exactFlag = true;
+			boolean repeatFlag = false;
+			int rewrites = -1;
 			
 			TacticNode simp = tryParseSimp();
 			chain.add(simp);
@@ -407,6 +476,40 @@ public class TreeBuilder {
 				revFlag = true;
 			}
 			
+			// Number of rewrites
+			t = scanner.peekToken();
+			if (t.type == TokenType.INTEGER) {
+				// number
+				scanner.nextToken();
+				rewrites = t.intValue;
+
+				// -3 <=> - 3
+				if (rewrites < 0) {
+					revFlag = true;
+					rewrites = -rewrites;
+				}
+					
+				if (rewrites < 1)
+					throw new Exception("The number of rewrites should be >= 1: " + t);
+				
+				t = scanner.peekToken();
+				if (t.type != TokenType.EXCLAMATION && t.type != TokenType.QUESTION)
+					throw new Exception("! or ? expected: " + t);
+			}
+			
+			// ! or ?
+			t = scanner.peekToken();
+			if (t.type == TokenType.EXCLAMATION || t.type == TokenType.QUESTION) {
+				// ! or ?
+				scanner.nextToken();
+				exactFlag = (t.type == TokenType.EXCLAMATION);
+				if (rewrites <= 0)
+					repeatFlag = true;
+			}
+			
+			if (rewrites <= 0)
+				rewrites = 1;
+				
 			// Theorem
 			ObjectNode thm = tryParseObject();
 			if (thm == null) {
@@ -415,7 +518,7 @@ public class TreeBuilder {
 				break;
 			}
 			
-			RewriteNode r = new RewriteNode(thm, useHolRewrite, revFlag);
+			RewriteNode r = new RewriteNode(thm, useHolRewrite, revFlag, rewrites, repeatFlag, exactFlag);
 			chain.add(r);
 		}
 		
@@ -450,7 +553,13 @@ public class TreeBuilder {
 		
 		if (t.type == TokenType.LPAR) {
 			// Application
-			obj = parseApplication();
+			// (
+			scanner.nextToken();
+			obj = parseApplicationBody();
+			// )
+			t = scanner.nextToken();
+			if (t.type != TokenType.RPAR)
+				throw new Exception(") expected: " + t);
 		}
 		else if (t.type == TokenType.UNDERSCORE) {
 			// _
@@ -474,27 +583,18 @@ public class TreeBuilder {
 		
 		return new GetTypeNode(obj);
 	}
-	
+
 	
 	/**
-	 * Parses an application
+	 * Parses an application body
 	 */
-	private ApplicationNode parseApplication() throws Exception {
-		Token t = scanner.nextToken();
-		if (t.type != TokenType.LPAR)
-			throw new Exception("( expected: " + t);
-		
+	private ApplicationNode parseApplicationBody() throws Exception {
 		ArrayList<ObjectNode> objs = new ArrayList<ObjectNode>();
 		
 		// Read in all objects
 		while (true) {
 			ObjectNode obj = tryParseObject();
 			if (obj == null) {
-				// )
-				t = scanner.nextToken();
-				if (t.type != TokenType.RPAR)
-					throw new Exception(") expected: " + t);
-				
 				break;
 			}
 			
@@ -502,7 +602,7 @@ public class TreeBuilder {
 		}
 		
 		if (objs.size() == 0)
-			throw new Exception("() null application: " + t);
+			throw new Exception("null application: " + scanner.peekToken());
 		
 		// Create an application node
 		ObjectNode first = objs.remove(0);
@@ -520,4 +620,5 @@ public class TreeBuilder {
 		
 		return app;
 	}
+
 }

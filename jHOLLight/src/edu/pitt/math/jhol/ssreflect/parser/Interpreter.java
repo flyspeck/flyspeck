@@ -63,11 +63,14 @@ public class Interpreter {
 	
 	// A command in the "lemma" mode
 	private class LemmaCommand extends CommandInfo {
+		// The name of the lemma
+		final String lemmaName;
 		// If true, then the proof of the lemma has been completed
 		boolean completeFlag;
 		
 		LemmaCommand(String lemmaName) {
-			completeFlag = false;
+			this.lemmaName = lemmaName;
+			this.completeFlag = false;
 		}
 		
 		boolean revert() {
@@ -191,15 +194,20 @@ public class Interpreter {
 	 * The command will be not executed if there is no '.' after the command
 	 * in the text.
 	 */
-	private void runCommand(String rawCmd) throws Exception {
+	private void runCommand(String rawCmd, boolean rawFlag) throws Exception {
 		// .
 		Token t = scanner.nextToken();
 		if (t.type != TokenType.PERIOD)
 			throw new Exception(". expected: " + t);
 		
 		// Run the command
-		Goalstate newState = (Goalstate) caml.execute(rawCmd, CamlType.GOAL_STATE);
-		updateState(newState);
+		if (rawFlag) {
+			caml.runCommand(rawCmd);
+		}
+		else {
+			Goalstate newState = (Goalstate) caml.execute(rawCmd, CamlType.GOAL_STATE);
+			updateState(newState);
+		}
 		
 		// Save the command in one of two stacks
 		CommandInfo cmd = null;
@@ -271,7 +279,11 @@ public class Interpreter {
 			
 			LemmaCommand lemma = lemmaCommands.peek();
 			lemma.completeFlag = true;
-			lemma.endTextPosition = baseTextPosition + t.ch + 1; 
+			lemma.endTextPosition = baseTextPosition + t.ch + 1;
+			
+			// TODO: do not save the result if the proof is aborted
+			String saveCmd = "let " + lemma.lemmaName + " = top_thm();;";
+			caml.runCommand(saveCmd);
 
 			// Switch the mode
 			mode = LEMMA_MODE;
@@ -281,7 +293,7 @@ public class Interpreter {
 		// Translate the command
 		String cmd = node.toHOLCommand(getContext());
 		String rawCmd = "(hd o e)(" + cmd + ")";
-		runCommand(rawCmd);
+		runCommand(rawCmd, false);
 	}
 	
 	
@@ -289,9 +301,17 @@ public class Interpreter {
 	 * Interprets commands in the "lemma" mode
 	 */
 	private void processLemmaMode(TreeBuilder builder) throws Exception {
+		String raw = builder.tryParseRawExpr();
+		if (raw != null) {
+			// Raw OCaml command
+			runCommand(raw, true);
+			return;
+		}
+		
 		LemmaNode lemma = builder.parseLemma();
+		currentLemma = lemma.getName();
 		String rawCmd = "(hd o g)(" + lemma.getGoalText() + ")";
-		runCommand(rawCmd);
+		runCommand(rawCmd, false);
 		
 		// Switch the mode
 		mode = PROOF_MODE;

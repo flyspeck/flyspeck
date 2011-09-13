@@ -46,10 +46,12 @@ InputCharacter = [^\r\n]
 WhiteSpace = [ \t\f]
 
 IdentifierSymbol = [a-zA-Z]
+IdentifierSymbol2 = {IdentifierSymbol} | [_'0-9]
 
-Identifier = {IdentifierSymbol} ({IdentifierSymbol} | [_0-9\'])*
+Identifier = {IdentifierSymbol} {IdentifierSymbol2}*
+FullIdentifier = {Identifier} ([.]{Identifier}+)*
 
-Integer = [-]? [1-9] [0-9]*
+Integer = [-]? [0-9]+
 
 RawEndChars = [`]
 
@@ -77,13 +79,17 @@ StringCharacter = [^\"]
 		"=>" { return new Token(TokenType.ARROW, yychar, yyline, yycolumn); }
 		"/" { return new Token(TokenType.SLASH, yychar, yyline, yycolumn); }
 		"-" { return new Token(TokenType.DASH, yychar, yyline, yycolumn); }
+		":=" { return new Token(TokenType.ASSIGN, yychar, yyline, yycolumn); }
 		
 		/* keywords */
 		"//" { return new Token(TokenType.TRIV, yychar, yyline, yycolumn); }
-		"//=" { return new Token(TokenType.SIMP, yychar, yyline, yycolumn); }
+		"/=" { return new Token(TokenType.SIMP, yychar, yyline, yycolumn); }
+		"//=" { return new Token(TokenType.TRIV_SIMP, yychar, yyline, yycolumn); }
 		"_" { return new Token(TokenType.UNDERSCORE, yychar, yyline, yycolumn); }
 		"." { return new Token(TokenType.PERIOD, yychar, yyline, yycolumn); }
 		"@" { return new Token(TokenType.AT, yychar, yyline, yycolumn); }
+		"!" { return new Token(TokenType.EXCLAMATION, yychar, yyline, yycolumn); }
+		"?" { return new Token(TokenType.QUESTION, yychar, yyline, yycolumn); }
 
         /* string literal */
         \"    { yybegin(STRING); string.setLength(0); }
@@ -92,7 +98,7 @@ StringCharacter = [^\"]
         {LineTerminator}        {}
 
 		{Integer} { return new Token(TokenType.INTEGER, yytext(), yychar, yyline, yycolumn); }
-        {Identifier} { return new Token(TokenType.IDENTIFIER, yytext(), yychar, yyline, yycolumn); }
+        {FullIdentifier} { return new Token(TokenType.IDENTIFIER, yytext(), yychar, yyline, yycolumn); }
 }
 
 <STRING> 

@@ -32,19 +32,32 @@ public class IntroNode extends TacticNode {
 
 	@Override
 	protected void translate(StringBuffer buffer) {
-		if (obj.getType() == ObjectNode.TERM)
-			throw new RuntimeException("Introducing variables is not implemented: " + obj);
+		buffer.append('(');
 		
-		buffer.append("(MP_TAC ");
-		obj.translate(buffer);
+		int type = obj.getType();
+		if (type == ObjectNode.TERM) {
+			// SPEC_TAC
+			StringBuffer varBuffer = new StringBuffer();
+			obj.translate(varBuffer);
+			buffer.append("SPEC_TAC (");
+			buffer.append(varBuffer);
+			buffer.append(',');
+			buffer.append(varBuffer);
+			buffer.append(')');
+		}
+		else {
+			// MP_TAC
+			buffer.append("MP_TAC ");
+			obj.translate(buffer);
 		
-		// Remove assumptions
-		if (obj instanceof IdNode) {
-			IdNode idObj = (IdNode) obj;
-			if (idObj.isAssumption())
-				buffer.append(" THEN REMOVE_THEN \"" + idObj.getId() + "\" (fun th -> ALL_TAC)"); 
+			// Remove assumptions
+			if (obj instanceof IdNode) {
+				IdNode idObj = (IdNode) obj;
+				if (idObj.isAssumption())
+					buffer.append(" THEN REMOVE_THEN \"" + idObj.getId() + "\" (fun th -> ALL_TAC)"); 
+			}
 		}
 		
-		buffer.append(")");
+		buffer.append(')');
 	}
 }

@@ -22,16 +22,21 @@ public class ExistsNode extends TacticNode {
 
 	@Override
 	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		throw new RuntimeException("Unimplemented");
+		obj.beginTranslation(buffer, context);
+		if (obj.getType() != ObjectNode.TERM && obj.getType() != ObjectNode.UNKNOWN)
+			throw new RuntimeException("ExistsNode: the argument must be TERM (or UNKNOWN)");
 	}
 
 	@Override
 	protected void endTranslation(StringBuffer buffer) {
-		throw new RuntimeException("Unimplemented");
+		obj.endTranslation(buffer);
 	}
 
 	@Override
 	protected void translate(StringBuffer buffer) {
-		throw new RuntimeException("Unimplemented");
+		buffer.append('(');
+		buffer.append("EXISTS_TAC ");
+		obj.translate(buffer);
+		buffer.append(')');
 	}
 }

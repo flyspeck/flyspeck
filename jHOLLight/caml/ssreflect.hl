@@ -124,22 +124,47 @@ let spec names = spec0 names (get_context_vars (top_realgoal()));;
 
 let spec_mp names th g = MP_TAC (spec0 names (get_context_vars g) th) g;;
 
-(* case: now works only for (A /\ B) -> C and for (?x. P) -> Q *)
+(* case: works only for (A /\ B) -> C; (A \/ B) -> C; (?x. P) -> Q; !(n:num). P; !(l:list(A)). P *)
 let case (g:goal) = 
   let goal_tm = snd g in
     if not (is_imp goal_tm) then
-      failwith "case works for implications only"
+      (* !a. P *)
+      if is_forall goal_tm then
+	let var, tm = dest_forall goal_tm in
+	let ty = type_of var in
+	let case_th = if ty = `:num` then num_CASES else list_CASES in
+	  (GEN_TAC THEN MP_TAC (ISPEC var case_th) THEN DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g
+      else
+	failwith "case: not imp or forall"
     else
       let tm = lhand goal_tm in
 	(* A /\ B *)
 	if is_conj tm then
-	  (DISCH_THEN (CONJUNCTS_THEN MP_TAC)) g
+	  (DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC) THEN POP_ASSUM MP_TAC) g
+	(* A \/ B *)
+	else if is_disj tm then
+	  (DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g
         (* ?x. P *)
 	else if is_exists tm then
 	  (ONCE_REWRITE_TAC[GSYM LEFT_FORALL_IMP_THM]) g
 	else
 	  failwith "case: not implemented";;
-	  
+
+
+
+(* elim: works only for num and list *)
+let elim (g:goal) = 
+  let goal_tm = snd g in
+    (* !a. P *)
+    if is_forall goal_tm then
+      let var, tm = dest_forall goal_tm in
+      let ty = type_of var in
+      let induct_th = if ty = `:num` then num_INDUCTION else list_INDUCT in
+	(MATCH_MP_TAC induct_th THEN CONJ_TAC) g
+    else
+      failwith "elim: not forall";;
+
+
 	  
 (* Instantiates the first type variable in the given theorem *)
 let inst_first_type ty th =
@@ -148,5 +173,12 @@ let inst_first_type ty th =
     failwith "inst_first_type: no type variables in the theorem"
   else
     INST_TYPE [(ty, hd ty_vars)] th;;
+
+
+(* Repeats the given tactic exactly n times and then repeats the same tactic at most m times *)
+let repeat_tactic n m tac =
+  let rec replicate_at_most m tac =
+    if m <= 0 then ALL_TAC else (tac THEN replicate_at_most (m - 1) tac) ORELSE ALL_TAC in
+  REPLICATE_TAC n tac THEN replicate_at_most m tac;;
 
 

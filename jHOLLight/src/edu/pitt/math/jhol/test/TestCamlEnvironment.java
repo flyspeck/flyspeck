@@ -13,6 +13,10 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		caml = new HOLLightWrapper("hol_light");
 		caml.runCommand("needs \"caml/raw_printer.hl\";;");
 		caml.runCommand("needs \"caml/ssreflect.hl\";;");
+		caml.runCommand("open Pack_defs;;");
+		caml.runCommand("open Packing3;;");
+		caml.runCommand("open Sphere;;");
+		
 	}
 	
 	

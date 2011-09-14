@@ -131,7 +131,8 @@ public class CamlObjectComponent extends JPanel {
 	static {
 		map = new Hashtable<TextAttribute, Object>();
 		map.put(TextAttribute.FAMILY, Font.MONOSPACED);
-		map.put(TextAttribute.SIZE, new Float(14.0));
+		map.put(TextAttribute.SIZE, new Float(16.0));
+		map.put(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD);
 	}
 	
 	

@@ -25,17 +25,18 @@ public class TheoremPrinter {
 	 * Prints a theorem
 	 */
 	public static SelectionTree print(Theorem th) {
-		SelectionTree tree = new SelectionTree(th, null);
+/*		SelectionTree tree = new SelectionTree(th, null);
 		
 		if (th.hyp()) {
 			tree.addBranch(new SelectionTree(th, "A "));
 		}
 		
 		tree.addBranch(new SelectionTree(null, "|- "));
-
+*/
 		SelectionTree concl = TermPrinter.print(th.concl());
-		tree.addBranch(concl);
+//		tree.addBranch(concl);
 		
-		return tree;
+//		return tree;
+		return concl;
 	}
 }

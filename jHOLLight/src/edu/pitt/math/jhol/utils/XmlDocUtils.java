@@ -3,7 +3,13 @@ package edu.pitt.math.jhol.utils;
 import java.io.File;
 import java.util.ArrayList;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -50,6 +56,42 @@ public class XmlDocUtils {
 		
 		return null;
 	}
+	
+	
+    /**
+     * Creates a new document
+     */
+    public static Document createNewDocument(String rootName, int version) throws Exception {
+            DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = db.newDocument();
+            Node root = doc.createElement(rootName);
+            addAttr(doc, root, "version", version);
+            doc.appendChild(root);
+
+            return doc;
+    }
+    
+
+    /**
+     * Saves the document in the given file
+     * @param modelDoc
+     * @param fileName
+     * @throws Exception
+     */
+    public static void saveDocument(Document doc, File file) throws Exception {
+        if (doc == null || file == null)
+                return;
+
+        TransformerFactory tFactory = TransformerFactory.newInstance();
+        Transformer transformer = tFactory.newTransformer();
+
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(file);
+        transformer.transform(source, result);
+    }
 	
 	
 	/**

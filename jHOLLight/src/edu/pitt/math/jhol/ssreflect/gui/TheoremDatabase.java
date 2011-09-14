@@ -2,7 +2,6 @@ package edu.pitt.math.jhol.ssreflect.gui;
 
 import java.util.ArrayList;
 
-
 import edu.pitt.math.jhol.caml.CamlEnvironment;
 import edu.pitt.math.jhol.caml.CamlList;
 import edu.pitt.math.jhol.caml.CamlObject;
@@ -67,21 +66,73 @@ public class TheoremDatabase {
 	
 	
 	/**
-	 * Finds all theorems name of which contains the given string
+	 * Finds all theorems using the string of mixed names and terms
 	 */
 	public ArrayList<Theorem> find(String str) {
 		ArrayList<Theorem> result = new ArrayList<Theorem>();
+
+		if (str == null)
+			return result;
+
+		// Prepare the search command
+		StringBuffer cmd = new StringBuffer("search [");
+
+		int index = 0;
+		boolean firstFlag = true;
 		
-		// Prepare a command
-		String cmd = "search[name \"" + str + "\"]";
+		while (true) {
+			// Get name
+			int i = str.indexOf('`', index);
+			String name = null;
+			
+			if (i < 0)
+				name = str.substring(index).trim();
+			else if (i > index)
+				name = str.substring(index, i).trim();
+			
+			if (name != null && name.length() > 0) {
+				if (!firstFlag)
+					cmd.append("; ");
+				cmd.append("name \"" + name + "\"");
+				firstFlag = false;
+			}
+			
+			if (i < 0)
+				break;
+			
+			index = i + 1; 
+			
+			// Get term
+			i = str.indexOf('`', index);
+			String term = null;
+			
+			if (i < 0)
+				term = str.substring(index);
+			else if (i > index)
+				term = str.substring(index, i);
+			
+			if (term != null && term.length() > 0) {
+				if (!firstFlag)
+					cmd.append("; ");
+				cmd.append("`" + term + "`");
+				firstFlag = false;
+			}
+			
+			if (i < 0)
+				break;
+			
+			index = i + 1;
+		}
 		
-		CamlType pairType = new CamlType.PairType(CamlType.STRING, CamlType.THM);
-		CamlType returnType = new CamlType.ListType(pairType);
+		cmd.append("]");
 		
 		// Execute the command
+		CamlType pairType = new CamlType.PairType(CamlType.STRING, CamlType.THM);
+		CamlType returnType = new CamlType.ListType(pairType);
 		CamlObject obj;
+
 		try {
-			obj = caml.execute(cmd, returnType);
+			obj = caml.execute(cmd.toString(), returnType);
 		}
 		catch (Exception e) {
 			e.printStackTrace();

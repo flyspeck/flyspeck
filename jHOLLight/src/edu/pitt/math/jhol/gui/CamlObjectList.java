@@ -27,6 +27,10 @@ public class CamlObjectList extends AbstractTableModel {
 	// If true then only one column is used
 	private final boolean oneColumn;
 	
+	// Names of columns
+	private String firstColumnName = "Concl/Term";
+	private String secondColumnName = "Name/Type";
+	
 	
 	/**
 	 * Constructor
@@ -39,6 +43,20 @@ public class CamlObjectList extends AbstractTableModel {
 	
 	public CamlObjectList() {
 		this(false, false);
+	}
+	
+	
+	/**
+	 * Sets the names of columns
+	 */
+	public void setColumnNames(String firstName, String secondName) {
+		if (firstName == null)
+			firstName = "";
+		if (secondName == null)
+			secondName = "";
+		
+		this.firstColumnName = firstName;
+		this.secondColumnName = secondName;
 	}
 	
 	
@@ -243,9 +261,9 @@ public class CamlObjectList extends AbstractTableModel {
 	public String getColumnName(int column) {
 		switch (column) {
 		case 0:
-			return "Concl/Term";
+			return firstColumnName;
 		case 1:
-			return "Name/Type";
+			return secondColumnName;
 		}
 		
 		return null;

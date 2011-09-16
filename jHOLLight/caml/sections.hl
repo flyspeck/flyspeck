@@ -1,0 +1,147 @@
+(* Section variables and hypotheses (with labels) *)
+type section_info = term list * (string * term) list;;
+
+let empty_section : section_info = [], [];;
+
+let section_stack = ref ([] : (string * section_info) list);;
+
+
+(* Begins a new section *)
+let begin_section name =
+  let sections = !section_stack in
+    if can (C assoc sections) name then
+      failwith ("Section " ^ name ^ " is already active")
+    else
+      let sections = (name, empty_section) :: sections in
+      section_stack := sections;;
+
+
+(* Ends the active section *)
+let end_section name =
+  let sections = !section_stack in
+    if sections = [] then
+      failwith "No open sections"
+    else
+      let last_name, _ = hd sections in
+	if Pervasives.compare last_name name <> 0 then
+	  failwith ("The last open section is " ^ last_name)
+	else
+	  section_stack := tl sections;;
+
+
+(* Returns all section variables from all sections *)
+let section_vars () : term list =
+  let vars = map (fun (_, (v, _)) -> v) !section_stack in
+    List.concat vars;;
+
+
+(* Returns all hypotheses from all sections *)
+let section_hyps () : (string * term) list =
+  let hyps = map (fun (_, (_, h)) -> h) !section_stack in
+    List.concat hyps;;
+
+
+(* Adds the given variable to the active section *)
+let add_section_var var =
+  let sections = !section_stack in
+    if sections = [] then
+      failwith "No open sections"
+    else
+      let name, (vars, hyps) = hd sections in
+      let s_var = section_vars() in
+      let var_name, _ = dest_var var in
+	if can (C assoc (map dest_var s_var)) var_name then
+	  failwith ("A variable with the name "^var_name^" is already defined")
+	else
+	  section_stack := (name, (var :: vars, hyps)) :: tl sections;;
+
+
+
+(* Instantiates types of section variables in the term *)
+let inst_section_vars tm =
+  let s_vars = map dest_var (section_vars()) in
+  let find_var (name, ty) =
+    try (assoc name s_vars, ty)
+    with Failure _ -> (bool_ty, bool_ty) in
+  let inst_var (name, ty) tm =
+    let ty_dst, ty_src = find_var (name, ty) in
+      try (inst (type_match ty_src ty_dst []) tm)
+      with Failure _ -> 
+	failwith ("Section variable " ^ name ^ 
+		    " has type " ^ string_of_type ty_dst) in
+  let f_vars = map dest_var (frees tm) in
+    itlist inst_var f_vars tm;;
+
+
+(* Adds the given hypothesis (term) to the active section *)
+let add_section_hyp label hyp =
+  let sections = !section_stack in
+    if sections = [] then
+      failwith "No open sections"
+    else
+      let hyp0 = inst_section_vars hyp in
+      let name, (vars, hyps) = hd sections in
+      let hyp_names = map fst (section_hyps()) in
+	if can (find (fun x -> Pervasives.compare label x = 0)) hyp_names then
+	  failwith ("A hypothesis with the name "^label^" is already defined")
+	else
+	  section_stack := (name, (vars, (label, hyp0) :: hyps)) :: tl sections;;
+    
+
+
+(* Checks if the term contains any free variables 
+   which are not section variables *)
+let check_section_term tm =
+  let f_vars = frees tm in
+  if !section_stack = [] then
+    if f_vars <> [] then
+      let str = String.concat ", " (map string_of_term f_vars) in
+	failwith ("Free variables: " ^ str)
+    else ()
+  else
+    let s_vars = section_vars() in
+    let vars = subtract f_vars s_vars in
+      if vars <> [] then
+	let str = String.concat ", " (map string_of_term vars) in
+	  failwith ("Free variables: " ^ str)
+      else ();;
+      
+    
+
+
+(* Prepares a goal term *)
+let prepare_goal_term tm =
+  if !section_stack = [] then tm
+  else
+    let tm0 = inst_section_vars tm in
+    let s_hyps = map snd (section_hyps()) in
+    let tm1 = itlist (curry mk_imp) s_hyps tm0 in
+      check_section_term tm1; tm1;;
+
+
+let start_goal tm =
+  let tm0 = prepare_goal_term tm in
+  let n_hyps = map fst (section_hyps()) in
+  let goal = g tm0 in
+    e (itlist (fun name tac -> DISCH_THEN (LABEL_TAC name) THEN tac) n_hyps ALL_TAC);;
+    
+  
+
+(* Tests *)
+    
+
+!section_stack;;
+
+begin_section "First";;
+
+add_section_var `a : num`;;
+add_section_var `b : (num)list`;;
+add_section_hyp "b_eq" `b = [1; 2]`;;
+add_section_hyp "a_eq" `a = 2`;;
+!section_stack;;
+
+type_of (inst_section_vars `a, CONS c b`);;
+let tm = `!d c. b = [] /\ c = 0 /\ d + c = 1`;;
+prepare_goal_term tm;;
+start_goal tm;;
+end_section "First";;

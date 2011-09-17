@@ -33,13 +33,43 @@ public class TreeBuilder {
 	}
 	
 	/**
-	 * Parses an expression in the "lemma" mode
+	 * Parses an expression in the "global" mode
 	 * @return
 	 * @throws Exception
 	 */
-	public LemmaNode parseLemma() throws Exception {
+	public Node parseGlobal() throws Exception {
 		switchMode = false;
 		
+		// Raw command
+		String rawStr = tryParseRawExpr();
+		if (rawStr != null)
+			return new RawNode(rawStr);
+		
+		// Lemma
+		Token t = scanner.peekToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("IDENTIFIER expected: " + t);
+
+		if (t.value == "Lemma")
+			return parseLemma();
+		
+		if (t.value == "Section" || t.value == "End")
+			return parseSection();
+		
+		if (t.value == "Variable")
+			return parseVariable();
+		
+		if (t.value == "Hypothesis")
+			return parseHypothesis();
+		
+		throw new Exception("Unknown command: " + t);
+	}
+	
+	
+	/**
+	 * Parses a lemma description
+	 */
+	private LemmaNode parseLemma() throws Exception {
 		// Lemma
 		Token t = scanner.nextToken();
 		if (t.type != TokenType.IDENTIFIER || t.value != "Lemma")
@@ -64,6 +94,94 @@ public class TreeBuilder {
 		
 		RawObjectNode goal = new RawObjectNode(raw);
 		return new LemmaNode(name, goal);
+	}
+	
+	
+	/**
+	 * Parses a section variable
+	 */
+	private SectionVariableNode parseVariable() throws Exception {
+		// Lemma
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER || t.value != "Variable")
+			throw new Exception("'Variable' expected: " + t);
+		
+		// name
+		t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("Variable name expected: " + t);
+		
+		String name = t.value;
+		
+		// :
+		t = scanner.nextToken();
+		if (t.type != TokenType.COLON)
+			throw new Exception(": expected: " + t);
+		
+		// type
+		String raw = tryParseRawExpr();
+		if (raw == null)
+			throw new Exception("type expected: " + t);
+		
+		RawObjectNode type = new RawObjectNode(raw);
+		return new SectionVariableNode(name, type);
+	}
+	
+	
+	/**
+	 * Parses a section hypothesis
+	 */
+	private SectionHypothesisNode parseHypothesis() throws Exception {
+		// Lemma
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER || t.value != "Hypothesis")
+			throw new Exception("'Hypothesis' expected: " + t);
+		
+		// name
+		t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("Hypothesis name expected: " + t);
+		
+		String name = t.value;
+		
+		// :
+		t = scanner.nextToken();
+		if (t.type != TokenType.COLON)
+			throw new Exception(": expected: " + t);
+		
+		// term
+		ObjectNode term = tryParseObject();
+		if (term == null)
+			throw new Exception("OBJECT expected: " + t);
+		
+		return new SectionHypothesisNode(name, term);
+	}
+	
+	
+	/**
+	 * Section "Name" or End "Name"
+	 */
+	private SectionNode parseSection() throws Exception {
+		boolean startFlag = false;
+		
+		// Section or End
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("Section or End expected: " + t);
+		
+		if (t.value == "Section")
+			startFlag = true;
+		else if (t.value == "End")
+			startFlag = false;
+		else
+			throw new Exception("Section or End expected: " + t);
+		
+		// Name
+		t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("IDENTIFIER expected: " + t);
+
+		return new SectionNode(startFlag, t.value);
 	}
 	
 	

@@ -35,10 +35,12 @@ public class LemmaNode extends Node {
 	
 	@Override
 	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
+		goal.beginTranslation(buffer, context);
 	}
 
 	@Override
 	protected void endTranslation(StringBuffer buffer) {
+		goal.endTranslation(buffer);
 	}
 
 	@Override
@@ -48,5 +50,9 @@ public class LemmaNode extends Node {
 
 	@Override
 	protected void translate(StringBuffer buffer) {
+		buffer.append('(');
+		buffer.append("start_section_proof ");
+		goal.translate(buffer);
+		buffer.append(')');
 	}
 }

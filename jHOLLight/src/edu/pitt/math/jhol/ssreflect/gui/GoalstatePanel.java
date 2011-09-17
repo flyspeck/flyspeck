@@ -197,6 +197,9 @@ public class GoalstatePanel extends JPanel implements Configuration.Saver {
 	 */
 	public void update(Goalstate state) {
 		tabs.removeAll();
+		if (state == null)
+			return;
+		
 		int n = state.numberOfGoals();
 		
 		for (int i = 0; i < n; i++) {

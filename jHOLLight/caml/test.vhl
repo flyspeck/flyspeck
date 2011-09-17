@@ -1,6 +1,10 @@
-"open Packing3;;".
-"open Pack_defs;;".
-"open Sphere;;".
+"open Packing3".
+"open Pack_defs".
+"open Sphere".
+
+Section ListTest.
+
+Variable c : "`:(B)list`".
 
 Lemma append_nil : "`!a:(B)list. APPEND a [] = a`".
 apply: (list_INDUCT "`:B`"); split.
@@ -8,6 +12,10 @@ apply: (list_INDUCT "`:B`"); split.
 move => _ _ IH.
 rewr APPEND IH //.
 Qed.
+
+Section Test2.
+
+Hypothesis test : "`LENGTH c = 2`".
 
 Lemma test : "`!a (b:(A)list). LENGTH (APPEND a b) = LENGTH a + LENGTH b`".
 move => a b.
@@ -21,6 +29,10 @@ move => h2 t2 _.
 rewr APPEND LENGTH IH LENGTH.
 "ARITH_TAC".
 Qed.
+
+End Test2.
+
+End ListTest.
 
 Lemma VORONOI_CLOSED_EQ_LEMMA : "`!V u v. packing V /\ u IN V /\ v IN V /\ 
 			voronoi_closed V u = voronoi_closed V v ==> u = v`".
@@ -96,6 +108,84 @@ move => P f f' p0 p q t s [polyP p0P p0_ff' fP f'P pf qf' t0 s0 eq].
 apply: "REAL_ARITH `s <= t /\ t <= s ==> s = (t:real)`".
 split.
   apply: (ODIGPXU_lemma P f f' p0 p q t s) => //.
+apply: (ODIGPXU_lemma P f' f p0 q p s t) => //.
+rewr UNION_COMM p0_ff' //.
+Qed.
+
+
+
+Section ODIGPXU.
+
+Variable P : "`:real^N -> bool`".
+Variable f : "`:real^N -> bool`".
+Variable f' : "`:real^N -> bool`".
+Variable p0 : "`:real^N`".
+Variable p : "`:real^N`".
+Variable q : "`:real^N`".
+Variable t : "`:real`".
+Variable s : "`:real`".
+Hypothesis polyP : "`polyhedron P`".
+Hypothesis p0P : "`p0 IN P`".
+Hypothesis p0_ff' : "`~(p0 IN f UNION f')`".
+Hypothesis fP : "`f facet_of P`".
+Hypothesis f'P : "`f' facet_of P`".
+Hypothesis pf : "`p IN f`".
+Hypothesis qf' : "`q IN f'`".
+Hypothesis t0 : "`&0 < t`".
+Hypothesis s0 : "`&0 < s`".
+
+
+Lemma ODIGPXU_lemma : "`(&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s <= t`".
+rewrite !VECTOR_SUB_RDISTRIB.
+rewrite "VECTOR_ARITH `a - t % (p0 : real^N) + t % p = a - s % p0 + s % q <=>
+	t % (p - p0) = s % (q - p0)`".
+case: "REAL_ARITH `s <= t \/ t < s`" => cond //.
+have ap_term: "`!(f:real^N->real^N) x y. (x = y) ==> (f x = f y)`".
+  move => /=.
+move/(ap_term "`\x:real^N. inv t % x`") => //; rewrite !VECTOR_MUL_ASSOC.
+have tn0: "`~(t = &0)`".
+  apply: "REAL_ARITH `&0 < t ==> ~(t = &0)`" => //.
+rewrite REAL_MUL_LINV // VECTOR_MUL_LID.
+set r := "`inv t * s`".
+have lt_1r: "`&1 < r`".
+  rewrite -(REAL_LT_LMUL_EQ "`&1`" r t) // -r_def REAL_MUL_ASSOC REAL_MUL_RID.
+  rewrite REAL_MUL_RINV // REAL_MUL_LID //.
+move: (FACET_OF_POLYHEDRON P f') => //.
+rewrite SUBSET => [a] [b] [an0 H f2_eq] eq2.
+have dot_lt_b: "`a dot (p0:real^N) < b`".
+  rewrite "REAL_ARITH `x < y <=> x <= y /\ ~(x = y)`".
+  move: (H p0); rewrite p0P //.
+  rewr IN_ELIM_THM /= => _.
+  move: p0_ff'.
+  rewrite CONTRAPOS_THM IN_UNION f2_eq => a_dot_p0.
+  right.
+  rewr IN_INTER IN_ELIM_THM //.
+move: eq2.
+rewrite "VECTOR_ARITH `p - p0 = x <=> p = p0 + x : real^N`" => p_eq.
+move: (FACET_OF_IMP_SUBSET fP).
+rewrite SUBSET.
+move/(_ p); move/(_ pf).
+rewrite p_eq.
+move/H.
+rewr IN_ELIM_THM DOT_RADD DOT_RMUL DOT_RSUB.
+move: f2_eq.
+rewrite EXTENSION.
+move/(_ q) => //.
+rewr IN_INTER IN_ELIM_THM.
+case => _ a_dot_eq.
+rewrite a_dot_eq.
+rewrite "REAL_ARITH `x + r * (b - x) <= b <=> (r - &1) * b <= (r - &1) * x`".
+rewrite REAL_LE_LMUL_EQ.
+  move: lt_1r; "REAL_ARITH_TAC".
+move: dot_lt_b; "REAL_ARITH_TAC".
+Qed.
+
+Lemma ODIGPXU : "`(&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s = t`".
+move => eq.
+apply: "REAL_ARITH `s <= t /\ t <= s ==> s = (t:real)`".
+split.
+  apply: ODIGPXU_lemma => //.
+apply: ODIGPXU_lemma.
 apply: (ODIGPXU_lemma P f' f p0 q p s t) => //.
 rewr UNION_COMM p0_ff' //.
 Qed.

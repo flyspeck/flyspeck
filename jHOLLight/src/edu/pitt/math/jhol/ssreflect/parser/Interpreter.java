@@ -5,10 +5,16 @@ import java.util.ArrayList;
 import java.util.Stack;
 
 import edu.pitt.math.jhol.caml.CamlEnvironment;
+import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Goalstate;
 import edu.pitt.math.jhol.ssreflect.parser.tree.GoalContext;
 import edu.pitt.math.jhol.ssreflect.parser.tree.LemmaNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.Node;
+import edu.pitt.math.jhol.ssreflect.parser.tree.RawNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.SectionHypothesisNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.SectionNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.SectionVariableNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.TacticNode;
 
 /**
@@ -30,15 +36,13 @@ public class Interpreter {
 	
 	// The active mode
 	private int mode;
-	// The name of the active lemma
-	private String currentLemma;
 	
 	// Mode constants
 	private final static int PROOF_MODE = 1;
-	private final static int LEMMA_MODE = 2;
+	private final static int GLOBAL_MODE = 2;
 	
 	// Information about all executed commands
-	private final Stack<LemmaCommand> lemmaCommands;
+	private final Stack<GlobalCommand> globalCommands;
 	private final Stack<ProofCommand> proofCommands;
 
 	// Listen for goal state updates
@@ -53,24 +57,86 @@ public class Interpreter {
 	
 	// Describes a command
 	private abstract class CommandInfo {
+		// The command itself
+		public final Node command;
+		
 		// The position of the last character of the command in the script text
-		int endTextPosition;
+		public int endTextPosition;
+		
+		/**
+		 * Protected constructor
+		 */
+		protected CommandInfo(Node command, int endTextPosition) {
+			assert(command != null);
+			this.command = command;
+			this.endTextPosition = endTextPosition;
+		}
 		
 		// Reverts the command
 		// Returns true on success
-		abstract boolean revert(); 
+		abstract boolean revert();
+		
+		@Override
+		public String toString() {
+			return command.toString() + "[" + endTextPosition + "]";
+		}
 	}
 	
-	// A command in the "lemma" mode
-	private class LemmaCommand extends CommandInfo {
-		// The name of the lemma
-		final String lemmaName;
-		// If true, then the proof of the lemma has been completed
-		boolean completeFlag;
+	// A command in the "global" mode
+	private class GlobalCommand extends CommandInfo {
+		GlobalCommand(Node command, int endTextPosition) {
+			super(command, endTextPosition);
+		}
 		
-		LemmaCommand(String lemmaName) {
-			this.lemmaName = lemmaName;
+		@Override
+		boolean revert() {
+			// By default, do nothing
+			return true;
+		}
+	}
+	
+	// A command for starting and ending a section
+	private class SectionCommand extends GlobalCommand {
+		private final SectionNode section;
+		
+		SectionCommand(SectionNode section, int endTextPosition) {
+			super(section, endTextPosition);
+			this.section = section;
+		}
+		
+		@Override
+		boolean revert() {
+			if (!section.isStartSection())
+				return true;
+			
+			// Close the started section
+			try {
+				caml.runCommand("end_section \"" + section.getName() + "\";;");
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+			
+			return true;
+		}
+	}
+	
+	// A lemma description command
+	private class LemmaCommand extends GlobalCommand {
+		// The lemma description
+		private final LemmaNode lemma;
+		// If true, then the proof of the lemma has been completed
+		public boolean completeFlag;
+		
+		LemmaCommand(LemmaNode lemma, int endTextPosition) {
+			super(lemma, endTextPosition);
+			this.lemma = lemma;
 			this.completeFlag = false;
+		}
+		
+		public String getLemmaName() {
+			return lemma.getName();
 		}
 		
 		boolean revert() {
@@ -81,7 +147,8 @@ public class Interpreter {
 	
 	// A command in the "proof" mode
 	private class ProofCommand extends CommandInfo {
-		public ProofCommand() {
+		ProofCommand(Node command, int endTextPosition) {
+			super(command, endTextPosition);
 		}
 		
 		public boolean revert() {
@@ -103,10 +170,10 @@ public class Interpreter {
 	public Interpreter(CamlEnvironment caml) {
 		assert(caml != null);
 		this.caml = caml;
-		this.mode = LEMMA_MODE;
+		this.mode = GLOBAL_MODE;
 		this.state = null;
 		
-		this.lemmaCommands = new Stack<LemmaCommand>();
+		this.globalCommands = new Stack<GlobalCommand>();
 		this.proofCommands = new Stack<ProofCommand>();
 	}
 	
@@ -149,9 +216,9 @@ public class Interpreter {
 	/**
 	 * Returns the active goal context
 	 */
-	private GoalContext getContext() throws Exception {
+	private GoalContext getContext() {
 		if (state == null || state.numberOfGoals() == 0)
-			throw new Exception("Empty goal");
+			return null;
 		
 		GoalContext context = new GoalContext(state.getGoal(0));
 		return context;
@@ -163,8 +230,14 @@ public class Interpreter {
 	 * @throws Exception
 	 */
 	private void updateState(Goalstate newState) {
-		if (newState.equals(state))
-			return;
+		if (newState == null) {
+			if (state == null)
+				return;
+		}
+		else {
+			if (newState.equals(state))
+				return;
+		}
 		
 		state = newState;
 		
@@ -190,42 +263,59 @@ public class Interpreter {
 	
 	
 	/**
-	 * Runs the given command.
+	 * Runs the command given by the syntax tree node and saves it in an appropriate stack.
 	 * The command will be not executed if there is no '.' after the command
 	 * in the text.
 	 */
-	private void runCommand(String rawCmd, boolean rawFlag) throws Exception {
+	private void runCommand(Node nodeCmd) throws Exception {
 		// .
 		Token t = scanner.nextToken();
 		if (t.type != TokenType.PERIOD)
 			throw new Exception(". expected: " + t);
 		
-		// Run the command
-		if (rawFlag) {
-			caml.runCommand(rawCmd);
+		String rawCmd = nodeCmd.toHOLCommand(getContext());
+		if (mode == PROOF_MODE) {
+			rawCmd = "(hd o e) (" + rawCmd + ")";
+			CamlObject result = caml.execute(rawCmd, CamlType.GOAL_STATE);
+			if (result == null)
+				throw new Exception("Null result");
 		}
 		else {
-			Goalstate newState = (Goalstate) caml.execute(rawCmd, CamlType.GOAL_STATE);
-			updateState(newState);
+			rawCmd += ";;";
+			// FIXME: If the command fails, then no error message will be reported
+			caml.runCommand(rawCmd);
 		}
 		
 		// Save the command in one of two stacks
-		CommandInfo cmd = null;
+		
+		// Compute the end position of the command in the script text
+		int end = baseTextPosition + t.ch + 1;
 		
 		switch (mode) {
 		// Proof
 		case PROOF_MODE:
-			cmd = proofCommands.push(new ProofCommand());
+			proofCommands.push(new ProofCommand(nodeCmd, end));
 			break;
 			
-		// Lemma
-		case LEMMA_MODE:
-			cmd = lemmaCommands.push(new LemmaCommand(currentLemma));
+		// Global
+		case GLOBAL_MODE:
+			GlobalCommand cmd = null;
+			// Lemma
+			if (nodeCmd instanceof LemmaNode)
+				cmd = new LemmaCommand((LemmaNode) nodeCmd, end);
+			// Section
+			else if (nodeCmd instanceof SectionNode)
+				cmd = new SectionCommand((SectionNode) nodeCmd, end);
+			else if (nodeCmd instanceof RawNode || 
+					nodeCmd instanceof SectionHypothesisNode ||
+					nodeCmd instanceof SectionVariableNode)
+				cmd = new GlobalCommand(nodeCmd, end);
+			else
+				throw new Exception("Unexpected global command: " + nodeCmd);
+			
+			globalCommands.push(cmd);
 			break;
 		}
-		
-		// +1 for the period
-		cmd.endTextPosition = baseTextPosition + t.ch + 1;
 	}
 	
 	
@@ -236,8 +326,8 @@ public class Interpreter {
 		if (proofCommands.size() > 0)
 			return proofCommands.peek();
 
-		if (lemmaCommands.size() > 0)
-			return lemmaCommands.peek();
+		if (globalCommands.size() > 0)
+			return globalCommands.peek();
 		
 		return null;
 	}
@@ -267,9 +357,9 @@ public class Interpreter {
 		
 		// Qed or Abort?
 		if (builder.getSwitchModeFlag()) {
-			// Remove all proof commands and modify the previois lemma command
+			// Remove all proof commands and modify the previous lemma command
 			proofCommands.clear();
-			if (lemmaCommands.size() == 0)
+			if (globalCommands.size() == 0)
 				throw new Exception("No lemma corresponding to the proof");
 			
 			// Should be .
@@ -277,44 +367,38 @@ public class Interpreter {
 			if (t.type != TokenType.PERIOD)
 				throw new Exception(". expected: " + t);
 			
-			LemmaCommand lemma = lemmaCommands.peek();
+			// This conversion should succeed
+			LemmaCommand lemma = (LemmaCommand) globalCommands.peek();
 			lemma.completeFlag = true;
 			lemma.endTextPosition = baseTextPosition + t.ch + 1;
 			
 			// TODO: do not save the result if the proof is aborted
-			String saveCmd = "let " + lemma.lemmaName + " = top_thm();;";
+			String saveCmd = "let " + lemma.getLemmaName() + " = end_section_proof();;";
 			caml.runCommand(saveCmd);
 
 			// Switch the mode
-			mode = LEMMA_MODE;
+			mode = GLOBAL_MODE;
 			return;
 		}
 		
 		// Translate the command
-		String cmd = node.toHOLCommand(getContext());
-		String rawCmd = "(hd o e)(" + cmd + ")";
-		runCommand(rawCmd, false);
+		runCommand(node);
+		getAndUpdateState();
 	}
 	
 	
 	/**
-	 * Interprets commands in the "lemma" mode
+	 * Interprets commands in the "global" mode
 	 */
-	private void processLemmaMode(TreeBuilder builder) throws Exception {
-		String raw = builder.tryParseRawExpr();
-		if (raw != null) {
-			// Raw OCaml command
-			runCommand(raw, true);
-			return;
+	private void processGlobalMode(TreeBuilder builder) throws Exception {
+		Node node = builder.parseGlobal();
+		runCommand(node);
+		
+		// Switch the mode after the lemma 
+		if (node instanceof LemmaNode) {
+			getAndUpdateState();
+			mode = PROOF_MODE;
 		}
-		
-		LemmaNode lemma = builder.parseLemma();
-		currentLemma = lemma.getName();
-		String rawCmd = "(hd o g)(" + lemma.getGoalText() + ")";
-		runCommand(rawCmd, false);
-		
-		// Switch the mode
-		mode = PROOF_MODE;
 	}
 	
 	/**
@@ -340,13 +424,13 @@ public class Interpreter {
 			lastCmd = proofCommands.pop(); 
 		}
 		else {
-			if (lemmaCommands.size() > 0) {
-				LemmaCommand lemma = lemmaCommands.pop();
+			if (globalCommands.size() > 0) {
+				GlobalCommand cmd = globalCommands.pop();
 				// Switch the mode if necessary
-				if (!lemma.completeFlag)
-					mode = LEMMA_MODE;
+				if (cmd instanceof LemmaCommand && !((LemmaCommand) cmd).completeFlag)
+					mode = GLOBAL_MODE;
 				
-				lastCmd = lemma;
+				lastCmd = cmd;
 			}
 		}
 		
@@ -383,8 +467,8 @@ public class Interpreter {
 		}
 		
 		// Iterate through lemma commands next
-		while (lemmaCommands.size() > 0) {
-			CommandInfo cmd = lemmaCommands.peek();
+		while (globalCommands.size() > 0) {
+			CommandInfo cmd = globalCommands.peek();
 			if (cmd.endTextPosition < pos)
 				break;
 			
@@ -422,9 +506,9 @@ public class Interpreter {
 					processProofMode(builder);
 					break;
 			
-				// Lemma
-				case LEMMA_MODE:
-					processLemmaMode(builder);
+				// Global
+				case GLOBAL_MODE:
+					processGlobalMode(builder);
 					break;
 				}
 			}

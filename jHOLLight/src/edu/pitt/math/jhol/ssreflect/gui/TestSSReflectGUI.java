@@ -3,6 +3,9 @@ package edu.pitt.math.jhol.ssreflect.gui;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
@@ -13,10 +16,14 @@ import java.io.FileWriter;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import edu.pitt.math.jhol.caml.CamlEnvironment;
@@ -34,7 +41,7 @@ import edu.pitt.math.jhol.test.TestCamlEnvironment;
  *
  */
 @SuppressWarnings("serial")
-public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
+public class TestSSReflectGUI extends JFrame implements Configuration.Saver, ActionListener {
 	// Interprets the script
 	private Interpreter interpreter;
 	
@@ -44,6 +51,12 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
 	// Configuration group of this frame
 	private static final String CONF_GROUP = "main-window";
 	private static final String CONF_GROUP2 = "main-window.components";
+	
+	// Commands
+	private static final String CMD_FILE_OPEN = "file-open";
+	private static final String CMD_FILE_SAVE = "file-save";
+	private static final String CMD_FILE_SAVE_AS = "file-save-as";
+	private static final String CMD_FILE_EXIT = "file-exit";
 	
 	// Splitter
 	private JSplitPane splitter1, splitter2, splitter3;
@@ -72,26 +85,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
 
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				int result = JOptionPane.showConfirmDialog(TestSSReflectGUI.this, "Save the text?", "Save", JOptionPane.YES_NO_CANCEL_OPTION);
-				switch (result) {
-				case JOptionPane.YES_OPTION:
-					saveText(fname, editor.getText());
-					break;
-					
-				case JOptionPane.CANCEL_OPTION:
-					return;
-				}
-
-				// Save the configuration
-				try {
-					configuration.updateAndSave();
-				}
-				catch (Exception ex) {
-					ex.printStackTrace();
-				}
-				
-				// Exit
-				System.exit(0);
+				exit();
 			}			
 		});
 		
@@ -110,12 +104,14 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
 		String text = readText(fname);
 		
 		// Create the text editor
-		editor = new TextEditor(interpreter, text);
+		editor = new TextEditor(interpreter);
+		editor.initText(text);
 		// Create the theorem panel
 		theorems = new TheoremPanel(configuration, caml);
 
 		
 		initComponents();
+		createMenu();
 
 		// Finish the initialization
 		pack();
@@ -241,6 +237,107 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
         
         add(splitter2);
     }
+    
+    
+    /**
+     * Creates the main menu
+     */
+    private void createMenu() {
+    	JMenuBar menuBar;
+    	JMenu menu;
+    	JMenuItem menuItem;
+
+    	// Create the menu bar.
+    	menuBar = new JMenuBar();
+
+    	// Build the File menu.
+    	menu = new JMenu("File");
+    	menu.setMnemonic(KeyEvent.VK_F);
+    	menuBar.add(menu);
+
+    	// Menu items
+    	// Open
+    	menuItem = new JMenuItem("Open...",
+    	                         KeyEvent.VK_O);
+    	menuItem.setActionCommand(CMD_FILE_OPEN);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
+
+    	// Save
+    	menuItem = new JMenuItem("Save", KeyEvent.VK_S);
+    	menuItem.setAccelerator(KeyStroke.getKeyStroke(
+    	        KeyEvent.VK_S, ActionEvent.CTRL_MASK));
+    	menuItem.setActionCommand(CMD_FILE_SAVE);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
+
+    	// Save as
+    	menuItem = new JMenuItem("Save as...");
+    	menuItem.setAccelerator(KeyStroke.getKeyStroke(
+    	        KeyEvent.VK_S, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK));
+    	menuItem.setActionCommand(CMD_FILE_SAVE_AS);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
+    	
+    	// Exit
+    	menu.addSeparator();
+    	
+    	menuItem = new JMenuItem("Exit", KeyEvent.VK_X);
+    	menuItem.setActionCommand(CMD_FILE_EXIT);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
+
+    	menuBar.add(menu);
+    	this.setJMenuBar(menuBar);    	
+    }
+    
+    
+
+    @Override
+	public void actionPerformed(ActionEvent e) {
+		String cmd = e.getActionCommand();
+		if (cmd == null)
+			return;
+		
+		cmd = cmd.intern();
+		
+		// Exit
+		if (cmd == CMD_FILE_EXIT) {
+			exit();
+			return;
+		}
+	}
+    
+    
+    
+    /**
+     * Exits the program
+     */
+    private void exit() {
+		if (editor.isModified()) {
+			int result = JOptionPane.showConfirmDialog(TestSSReflectGUI.this, "Save the text?", "Save", JOptionPane.YES_NO_CANCEL_OPTION);
+			switch (result) {
+			case JOptionPane.YES_OPTION:
+				saveText(fname, editor.getText());
+				break;
+			
+			case JOptionPane.CANCEL_OPTION:
+				return;
+			}
+		}
+
+		// Save the configuration
+		try {
+			configuration.updateAndSave();
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
+		// Exit
+		System.exit(0);
+    }
+
    
     
     

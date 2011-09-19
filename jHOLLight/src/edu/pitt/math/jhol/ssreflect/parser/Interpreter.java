@@ -65,15 +65,27 @@ public class Interpreter {
 		private final CamlEnvironment caml;
 		
 		// For logging executed commands;
-		private final PrintWriter commandLog;
+		private PrintWriter commandLog;
 		
 		/**
 		 * Constructor
 		 */
-		public CommandExecutor(CamlEnvironment caml, String logName) {
+		public CommandExecutor(CamlEnvironment caml) {
 			assert(caml != null);
 			
 			this.caml = caml;
+			this.commandLog = null;
+		}
+	
+	
+		/**
+		 * Initializes the log file
+		 */
+		public void initLog(String logName) {
+			if (commandLog != null) {
+				commandLog.flush();
+				commandLog.close();
+			}
 			
 			if (logName != null) {
 				PrintWriter writer = null;
@@ -237,12 +249,27 @@ public class Interpreter {
 	 */
 	public Interpreter(CamlEnvironment caml, String logName) {
 		assert(caml != null);
-		this.executor = new CommandExecutor(caml, logName);
+		this.executor = new CommandExecutor(caml);
+		this.executor.initLog(logName);
 		this.mode = GLOBAL_MODE;
 		this.state = null;
 		
 		this.globalCommands = new Stack<GlobalCommand>();
 		this.proofCommands = new Stack<ProofCommand>();
+	}
+	
+	
+	/**
+	 * Clears the interpreter state and changes the log file
+	 * @param logName
+	 */
+	public void clearAndInit(String logName) {
+		executor.initLog(logName);
+		this.mode = GLOBAL_MODE;
+		this.state = null;
+		this.globalCommands.clear();
+		this.proofCommands.clear();
+		this.error = null;
 	}
 	
 	

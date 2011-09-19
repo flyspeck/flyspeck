@@ -36,26 +36,26 @@ public class TextEditor extends JTextPane implements DocumentListener {
     private static final String REVERT_ONE_ACTION = "REVERT_ONE";
     private static final String REVERT_ACTION = "REVERT";
     
+    // True if the initial text is modified
+    private boolean modifiedFlag;
+    
     // Position of the first writable character
     private int writePosition;
     
 	/**
 	 * Constructor
 	 */
-	public TextEditor(Interpreter interpreter, String text) {
+	public TextEditor(Interpreter interpreter) {
 		this.interpreter = interpreter;
+		this.modifiedFlag = false;
 		
-		// Set the document initial text
-		if (text != null)
-			setText(text);
+		this.writePosition = 0;
 		
 		StyledDocument doc = getStyledDocument();
 		
 		// doc must be isntance of AbstractDocument
 		AbstractDocument adoc = (AbstractDocument) doc;
 		adoc.setDocumentFilter(new WritableFilter());
-		
-		writePosition = 0;
 		
 		// Initialize the text area event listeners
         doc.addDocumentListener(this);
@@ -83,7 +83,28 @@ public class TextEditor extends JTextPane implements DocumentListener {
         key = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK);
         im.put(key, REVERT_ACTION);
         am.put(REVERT_ACTION, new RevertAction());
-
+	}
+	
+	
+	/**
+	 * Clears the editor and sets the new text
+	 */
+	public void initText(String text) {
+		this.writePosition = 0;
+		
+		// Set the document initial text
+		if (text != null)
+			setText(text);
+		
+		this.modifiedFlag = false;
+	}
+	
+	
+	/**
+	 * Returns true if the initial text is modified
+	 */
+	public boolean isModified() {
+		return modifiedFlag;
 	}
 	
 
@@ -150,9 +171,11 @@ public class TextEditor extends JTextPane implements DocumentListener {
     }
     
     public void removeUpdate(DocumentEvent ev) {
+    	modifiedFlag = true;
     }
     
     public void insertUpdate(DocumentEvent ev) {
+    	modifiedFlag = true;
     }
 
     

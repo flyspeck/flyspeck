@@ -66,7 +66,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
 	 * Constructor
 	 */
 	public TestSSReflectGUI(CamlEnvironment caml) {
-		this.interpreter = new Interpreter(caml);
+		this.interpreter = new Interpreter(caml, "caml/test.log");
 		this.configuration = new Configuration("gui.xml");
 		configuration.addSaver(this);
 
@@ -121,11 +121,6 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
 		pack();
 		setBounds(conf.getIntVal("x", 0), conf.getIntVal("y", 0), conf.getIntVal("w", 1200), conf.getIntVal("h", 850));
 		setVisible(true);
-		
-/*		TheoremWindow search = new TheoremWindow(caml, this);
-		search.setLocation(1200, 0);
-		search.setSize(500, 700);
-		search.setVisible(true);*/
 	}
 	
 	
@@ -279,8 +274,9 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver {
     	}
 
     	@Override
-    	public void runCommand(String rawCommand) throws Exception {
+    	public String runCommand(String rawCommand) throws Exception {
     		System.out.println("Executing: " + rawCommand);
+    		return "";
     	}
     	
     }

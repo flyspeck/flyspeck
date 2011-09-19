@@ -13,6 +13,11 @@ public abstract class ObjectNode extends Node {
 	// Interpretation for a wild card
 	protected String wildCardInterpretation;
 	
+	@Override
+	public String getRevertCommand() {
+		throw new RuntimeException("ObjectsNode: cannot be reverted");
+	}
+	
 	/**
 	 * Returns true if the object itself or the first object in an application
 	 * is a wild card

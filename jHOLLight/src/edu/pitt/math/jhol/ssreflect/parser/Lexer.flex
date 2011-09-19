@@ -56,6 +56,7 @@ Integer = [-]? [0-9]+
 RawEndChars = [`]
 
 //StringCharacter = [^\r\n\"\\]
+//StringCharacter = [^\"\\]
 StringCharacter = [^\"]
 
 %state STRING
@@ -103,9 +104,6 @@ StringCharacter = [^\"]
 
 <STRING> 
 {
-  \"  { yybegin(YYINITIAL); return new Token(TokenType.STRING, string.toString(), yychar, yyline, yycolumn); }
-  {StringCharacter}+   { string.append( yytext() ); }
-
   /* escape sequences */
 /*  "\\b"                          { string.append( '\b' ); }
   "\\t"                          { string.append( '\t' ); }
@@ -114,7 +112,11 @@ StringCharacter = [^\"]
   "\\r"                          { string.append( '\r' ); }
   "\\\""                         { string.append( '\"' ); }
   "\\'"                          { string.append( '\'' ); }
-  "\\\\"                         { string.append( '\\' ); } */
+  "\\\\"                         { string.append( '\\' ); }*/ 
+
+  \"  { yybegin(YYINITIAL); return new Token(TokenType.STRING, string.toString(), yychar, yyline, yycolumn); }
+
+  {StringCharacter}+   { string.append( yytext() ); }
 }
 
 <RAW>

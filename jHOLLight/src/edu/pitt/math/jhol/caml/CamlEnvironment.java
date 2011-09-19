@@ -12,7 +12,7 @@ public abstract class CamlEnvironment {
 	public abstract CamlObject execute(String command, CamlType returnType) throws Exception;
 	
 	/**
-	 * Executes the given (raw) command
+	 * Executes the given (raw) command and returns the raw output
 	 */
-	public abstract void runCommand(String rawCommand) throws Exception;
+	public abstract String runCommand(String rawCommand) throws Exception;
 }

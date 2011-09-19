@@ -42,7 +42,7 @@ public class EmptyCamlEnvironment extends CamlEnvironment {
 	}
 
 	@Override
-	public void runCommand(String rawCommand) throws Exception {
+	public String runCommand(String rawCommand) throws Exception {
 		throw new Exception("Not implemented");
 	}
 	

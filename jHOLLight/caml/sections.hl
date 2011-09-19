@@ -1,3 +1,8 @@
+(* Basic commands for working with the goal stack *)
+let revert_proof_step = b;;
+let begin_goal = g;;
+
+
 (* Section variables and hypotheses (with labels) *)
 type section_info = term list * (string * term) list;;
 
@@ -70,6 +75,17 @@ let add_section_var var =
 	  section_stack := (name, (var :: vars, hyps)) :: tl sections;;
 
 
+(* Removes the given variable from the active section *)
+let remove_section_var var_name =
+  let sections = !section_stack in
+  let name, (vars, hyps) = hd sections in
+  let ty = assoc var_name (map dest_var vars) in
+  let var = mk_var (var_name, ty) in
+  let new_vars = subtract vars [var] in
+    section_stack := (name, (new_vars, hyps)) :: tl sections;;
+
+
+
 
 (* Instantiates types of section variables in the term *)
 let inst_section_vars tm =
@@ -122,6 +138,16 @@ let add_section_hyp label hyp =
 	else
 	  check_section_term hyp0;
 	  section_stack := (name, (vars, (label, hyp0) :: hyps)) :: tl sections;;
+
+
+(* Removes the given assumption from the active section *)
+let remove_section_hyp label =
+  let sections = !section_stack in
+  let name, (vars, hyps) = hd sections in
+  let hyp = assoc label hyps in
+  let new_hyps = subtract hyps [(label, hyp)] in
+    section_stack := (name, (vars, new_hyps)) :: tl sections;;
+
     
 
 (* Prepares a goal term *)
@@ -200,6 +226,7 @@ add_section_var `c:A`;;
 add_section_hyp "b_not_nil" `~(b = [])`;;
 
 !section_stack;;
+
 start_section_proof `1 <= LENGTH (APPEND a b)`;;
 e (MP_TAC (ISPEC `a:(A)list` list_CASES));;
 e (MP_TAC (ISPEC `b:(A)list` list_CASES));;

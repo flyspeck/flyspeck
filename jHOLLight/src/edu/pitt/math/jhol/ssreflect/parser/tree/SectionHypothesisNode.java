@@ -47,5 +47,11 @@ public class SectionHypothesisNode extends Node {
 		
 		buffer.append(')');
 	}
+	
+	
+	@Override
+	public String getRevertCommand() {
+		return "remove_section_hyp " + '"' + label + '"';
+	}
 
 }

@@ -53,6 +53,12 @@ public abstract class Node {
 	}
 	
 
+	/**
+	 * Returns a command for reversing the effect of the main command
+	 */
+	public abstract String getRevertCommand();
+	
+	
 	@Override
 	public final String toString() {
 		return getString();

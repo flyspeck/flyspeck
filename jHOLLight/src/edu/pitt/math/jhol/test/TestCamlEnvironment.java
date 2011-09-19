@@ -24,10 +24,12 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	
 	
 	@Override
-	public void runCommand(String rawCommand) throws Exception {
+	public String runCommand(String rawCommand) throws Exception {
 		System.out.println("Executing: " + rawCommand);
 		String output = caml.runCommand(rawCommand);
 		System.out.println("Output: " + output);
+		
+		return output;
 	}
 	
 
@@ -51,7 +53,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		
 		output = strip(output);
 		if (output == null) {
-			System.err.println("Null result");
+//			System.err.println("Null result");
 			return null;
 		}
 		

@@ -66,5 +66,14 @@ public class SectionNode extends Node {
 		buffer.append('"');
 		buffer.append(')');
 	}
+	
+	
+	@Override
+	public String getRevertCommand() {
+		if (startFlag)
+			return "end_section " + '"' + sectionName + '"';
+		else
+			return null;
+	}
 
 }

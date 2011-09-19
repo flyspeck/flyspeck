@@ -11,25 +11,12 @@ public class TreeBuilder {
 	// The scanner
 	private final Scanner scanner;
 
-	// Indicates if the mode should be switched (after Qed or Abort commands)
-	private boolean switchMode;
-	
 	/**
 	 * Initializes a builder using the provided scanner
 	 */
 	public TreeBuilder(Scanner scanner) {
 		assert(scanner != null);
 		this.scanner = scanner;
-
-		switchMode = false;
-	}
-	
-	/**
-	 * TODO: make a special class Result which contains the result
-	 * of the parsing operation, or return a special node for commands 'Qed', 'Abort', etc.
-	 */
-	public boolean getSwitchModeFlag() {
-		return switchMode;
 	}
 	
 	/**
@@ -38,8 +25,6 @@ public class TreeBuilder {
 	 * @throws Exception
 	 */
 	public Node parseGlobal() throws Exception {
-		switchMode = false;
-		
 		// Raw command
 		String rawStr = tryParseRawExpr();
 		if (rawStr != null)
@@ -56,8 +41,8 @@ public class TreeBuilder {
 		if (t.value == "Section" || t.value == "End")
 			return parseSection();
 		
-		if (t.value == "Variable")
-			return parseVariable();
+		if (t.value == "Variable" || t.value == "Variables")
+			return parseVariables();
 		
 		if (t.value == "Hypothesis")
 			return parseHypothesis();
@@ -98,20 +83,29 @@ public class TreeBuilder {
 	
 	
 	/**
-	 * Parses a section variable
+	 * Parses section variables
 	 */
-	private SectionVariableNode parseVariable() throws Exception {
+	private SectionVariableNode parseVariables() throws Exception {
 		// Lemma
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || t.value != "Variable")
+		if (t.type != TokenType.IDENTIFIER || (t.value != "Variable" && t.value != "Variables"))
 			throw new Exception("'Variable' expected: " + t);
 		
-		// name
-		t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER)
-			throw new Exception("Variable name expected: " + t);
+		// Names
+		ArrayList<String> names = new ArrayList<String>();
 		
-		String name = t.value;
+		while (true) {
+			t = scanner.peekToken();
+			if (t.type != TokenType.IDENTIFIER)
+				break;
+			
+			// Name
+			scanner.nextToken();
+			names.add(t.value);
+		}
+		
+		if (names.size() == 0)
+			throw new Exception("Name(s) expected: " + t);
 		
 		// :
 		t = scanner.nextToken();
@@ -124,7 +118,7 @@ public class TreeBuilder {
 			throw new Exception("type expected: " + t);
 		
 		RawObjectNode type = new RawObjectNode(raw);
-		return new SectionVariableNode(name, type);
+		return new SectionVariableNode(names, type);
 	}
 	
 	
@@ -189,15 +183,11 @@ public class TreeBuilder {
 	 * Parses an expression in the "proof" mode
 	 */
 	public TacticNode parseProof() throws Exception {
-		switchMode = false;
 		TacticChainNode chain = new TacticChainNode();
 		
 		while (true) {
 			TacticNode tactic = parseProofExpression();
 			chain.add(tactic);
-			
-			if (switchMode)
-				return null;
 			
 			Token t = scanner.peekToken();
 			if (t.type == TokenType.SEMICOLON) {
@@ -248,7 +238,7 @@ public class TreeBuilder {
 		chain.add(tactic);
 		chain.add(disch);
 		
-		if (chain.isEmpty() && !switchMode)
+		if (chain.isEmpty())
 			throw new Exception("Empty tactic");
 		
 		return chain;
@@ -469,12 +459,6 @@ public class TreeBuilder {
 			t = scanner.nextToken();
 			if (t.type != TokenType.IDENTIFIER)
 				throw new Exception("IDENTIFIER expected: " + t);
-			
-			// Special commands
-			if (t.value == "Abort" || t.value == "Qed") {
-				switchMode = true;
-				return null;
-			}
 			
 			// move
 			if (t.value == "move")

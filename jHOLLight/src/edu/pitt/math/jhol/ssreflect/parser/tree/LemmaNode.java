@@ -55,4 +55,11 @@ public class LemmaNode extends Node {
 		goal.translate(buffer);
 		buffer.append(')');
 	}
+	
+	
+	@Override
+	public String getRevertCommand() {
+		// TODO: undefine the theorem if possible
+		return null;
+	}
 }

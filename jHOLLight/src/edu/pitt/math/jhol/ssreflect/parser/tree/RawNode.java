@@ -3,7 +3,7 @@ package edu.pitt.math.jhol.ssreflect.parser.tree;
 /**
  * Purely raw command
  */
-public class RawNode extends TacticNode {
+public class RawNode extends Node {
 	// Raw text
 	private final String rawText;
 	
@@ -31,6 +31,11 @@ public class RawNode extends TacticNode {
 	@Override
 	protected void translate(StringBuffer buffer) {
 		buffer.append(rawText);
+	}
+
+	@Override
+	public String getRevertCommand() {
+		return null;
 	}
 	
 }

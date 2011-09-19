@@ -225,11 +225,14 @@ public class Interpreter {
 		private final LemmaNode lemma;
 		// If true, then the proof of the lemma has been completed
 		public boolean completeFlag;
+		// True, if the lemma is proved
+		public boolean provedFlag;
 		
 		LemmaCommand(LemmaNode lemma, int endTextPosition) {
 			super(lemma, endTextPosition);
 			this.lemma = lemma;
 			this.completeFlag = false;
+			this.provedFlag = false;
 		}
 		
 		public String getLemmaName() {
@@ -462,6 +465,7 @@ public class Interpreter {
 				// Finish the proof
 				String saveCmd = "let " + lemma.getLemmaName() + " = end_section_proof();;";
 				executor.runCommand(saveCmd);
+				lemma.provedFlag = true;
 			}
 			
 			// Remove all proof commands and modify the previous lemma command
@@ -528,8 +532,11 @@ public class Interpreter {
 				if (cmd == start)
 					break;
 				
-				if (cmd instanceof LemmaCommand)
-					lemmas.add((LemmaCommand) cmd);
+				if (cmd instanceof LemmaCommand) {
+					LemmaCommand lemmaCmd = (LemmaCommand) cmd;
+					if (lemmaCmd.provedFlag)
+						lemmas.add(lemmaCmd);
+				}
 				
 				// Get theorems from another (closed) section
 				if (cmd instanceof SectionCommand) {

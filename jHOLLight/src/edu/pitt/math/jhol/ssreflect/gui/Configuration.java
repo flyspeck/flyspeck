@@ -115,7 +115,8 @@ public class Configuration {
 		}
 		
 		/**
-		 * Sets the value of the given attribute
+		 * Sets the value of the given attribute.
+		 * If the value is null, then the corresponding attribute is removed.
 		 */
 		public void setVal(String name, Object value) {
 			// A special treatment for dimensions
@@ -124,8 +125,12 @@ public class Configuration {
 				value = "" + dim.width + "," + dim.height;
 			}
 			
-			if (node != null)
-				addAttr(node.getOwnerDocument(), node, name, value); 
+			if (node != null) {
+				if (value == null)
+					removeAttr(node, name);
+				else 
+					addAttr(node.getOwnerDocument(), node, name, value);
+			}
 		}
 		
 	}

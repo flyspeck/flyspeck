@@ -102,6 +102,24 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 
 		// Create the text editor
 		editor = new TextEditor(interpreter);
+		
+		editor.addListener(new TextEditor.Listener() {
+			@Override
+			public void modified(boolean modifiedFlag) {
+				String title = getTitle();
+				if (title == null || title.length() == 0)
+					title = "New";
+				
+				if (title.charAt(title.length() - 1) == '*')
+					title = title.substring(0, title.length() - 1);
+				
+				if (modifiedFlag)
+					title += "*";
+				
+				setTitle(title);
+			}
+		});
+		
 		// Create the theorem panel
 		theorems = new TheoremPanel(configuration, caml);
 
@@ -324,13 +342,15 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		
 		// Save
 		if (cmd == CMD_FILE_SAVE) {
-			fileManager.saveCurrent(editor.getText());
+			if (fileManager.saveCurrent(editor.getText()))
+				editor.setModified(false);
 			return;
 		}
 		
 		// Save as
 		if (cmd == CMD_FILE_SAVE_AS) {
-			fileManager.saveAs(editor.getText());
+			if (fileManager.saveAs(editor.getText()))
+				editor.setModified(false);
 			return;
 		}
 		

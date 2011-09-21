@@ -4,12 +4,14 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
@@ -20,6 +22,7 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.StyleConstants.ColorConstants;
 
+import edu.pitt.math.jhol.ssreflect.parser.Highlighter;
 import edu.pitt.math.jhol.ssreflect.parser.Interpreter;
 
 /**
@@ -29,6 +32,9 @@ import edu.pitt.math.jhol.ssreflect.parser.Interpreter;
 public class TextEditor extends JTextPane implements DocumentListener {
 	// A script interpreter
 	private final Interpreter interpreter;
+	
+	// Highlights the text
+	private final Highlighter highlighter;
 	
 	// Actions
     private static final String PERIOD_ACTION = "PERIOD";
@@ -42,11 +48,24 @@ public class TextEditor extends JTextPane implements DocumentListener {
     // Position of the first writable character
     private int writePosition;
     
+    
+    /**
+     * Listener for all events in the text editor 
+     */
+    public interface Listener {
+    	public void modified(boolean modifiedFlag);
+    }
+    
+    // All listeners
+    private final ArrayList<Listener> listeners = new ArrayList<Listener>();
+    
+    
 	/**
 	 * Constructor
 	 */
 	public TextEditor(Interpreter interpreter) {
 		this.interpreter = interpreter;
+		this.highlighter = new Highlighter();
 		this.modifiedFlag = false;
 		
 		this.writePosition = 0;
@@ -87,16 +106,38 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	
 	
 	/**
+	 * Adds the given listener
+	 */
+	public void addListener(Listener listener) {
+		if (listener != null)
+			listeners.add(listener);
+	}
+	
+	
+	/**
 	 * Clears the editor and sets the new text
 	 */
 	public void initText(String text) {
 		this.writePosition = 0;
 		
 		// Set the document initial text
-		if (text != null)
+		if (text != null) {
 			setText(text);
+			highlight(0, getDocument().getLength());
+		}
 		
 		this.modifiedFlag = false;
+		notifyModified();
+	}
+	
+	
+	/**
+	 * Notifies listeners that the text has been modified
+	 */
+	private void notifyModified() {
+		for (Listener listener : listeners) {
+			listener.modified(modifiedFlag);
+		}
 	}
 	
 	
@@ -105,6 +146,57 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	 */
 	public boolean isModified() {
 		return modifiedFlag;
+	}
+	
+	
+	/**
+	 * Sets the modification flag
+	 */
+	public void setModified(boolean modifiedFlag) {
+		this.modifiedFlag = modifiedFlag;
+		notifyModified();
+	}
+
+	
+	/**
+	 * Converts the given style into a set of attributes
+	 */
+	private SimpleAttributeSet styleToAttributes(Highlighter.Style style) {
+		SimpleAttributeSet attrs = new SimpleAttributeSet();
+
+		// Bold
+		attrs.addAttribute(ColorConstants.Bold, style.isBold());
+		
+		// Italic
+		attrs.addAttribute(ColorConstants.Italic, style.isItalic());
+
+		// Color
+		attrs.addAttribute(ColorConstants.Foreground, new Color(style.getColor()));
+   		
+   		return attrs;
+	}
+	
+	
+	/**
+	 * Highlights the text in the interval [start, end)
+	 */
+	private void highlight(int start, int end) {
+		try {
+			String text = getText(start, end - start);
+			ArrayList<Highlighter.Segment> segments = highlighter.highlight(text);
+			StyledDocument doc = getStyledDocument();
+
+			for (int i = 0; i < segments.size(); i++) {
+				Highlighter.Segment s = segments.get(i);
+				AttributeSet attrs = styleToAttributes(s.style);
+
+				// TODO: do not change the background
+				doc.setCharacterAttributes(start + s.start, s.length, attrs, true);
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 
@@ -172,10 +264,24 @@ public class TextEditor extends JTextPane implements DocumentListener {
     
     public void removeUpdate(DocumentEvent ev) {
     	modifiedFlag = true;
+    	
+    	SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				notifyModified();
+			}
+		});
     }
     
     public void insertUpdate(DocumentEvent ev) {
     	modifiedFlag = true;
+
+    	SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				notifyModified();
+			}
+		});
     }
 
     

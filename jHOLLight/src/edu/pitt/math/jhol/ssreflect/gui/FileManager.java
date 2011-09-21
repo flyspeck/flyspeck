@@ -160,7 +160,7 @@ public class FileManager implements Configuration.Saver {
 				System.err.println("File does not exist: " + file);
 				return;
 			}
-		
+			
 			this.currentFile = file;
 			addRecentProject(file);
 		}
@@ -225,34 +225,36 @@ public class FileManager implements Configuration.Saver {
 	
 	/**
 	 * Saves the given text in the current file.
-	 * If there is no current file, then a file save dialog will be shown
+	 * If there is no current file, then a file save dialog will be shown.
+	 * Returns true if the text is saved.
 	 */
-	public void saveCurrent(String text) {
+	public boolean saveCurrent(String text) {
 		if (currentFile == null) {
-			saveAs(text);
-			return;
+			return saveAs(text);
 		}
 		
-		saveAs(currentFile, text);
+		return saveAs(currentFile, text);
 	}
 	
 	
 	/**
-	 * Shows a file save dialog and saves the text in a selected file
+	 * Shows a file save dialog and saves the text in a selected file.
+	 * Returns true if the text is saved.
 	 */
-	public void saveAs(String text) {
+	public boolean saveAs(String text) {
 		File file = FileUtils.saveFileDialog(getCurrentDir(), "vhl", null);
 		if (file == null)
-			return;
+			return false;
 		
-		saveAs(file, text);
+		return saveAs(file, text);
 	}
 	
 	
 	/**
-	 * Saves the given text in the given file and changes the current file
+	 * Saves the given text in the given file and changes the current file.
+	 * Returns true if the text is saved.
 	 */
-	private void saveAs(File file, String text) {
+	private boolean saveAs(File file, String text) {
 		assert(file != null);
 		
 		try {
@@ -263,7 +265,10 @@ public class FileManager implements Configuration.Saver {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
+			return false;
 		}
+		
+		return true;
 	}
 	
 

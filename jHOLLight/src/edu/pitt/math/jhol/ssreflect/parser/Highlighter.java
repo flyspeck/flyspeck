@@ -136,6 +136,9 @@ public class Highlighter {
 	
 	// The table containing all keywords and associated styles
 	private final Hashtable<Keyword, Style> keywords = new Hashtable<Keyword, Style>();
+	
+	// The style for a plain text
+	public static final Style plainStyle = new Style(0);
 
 	
 	/**
@@ -155,7 +158,8 @@ public class Highlighter {
 			keywords.put(new Keyword(key), style1);
 		}
 		
-		keys = new String[] {"Section", "Variable", "Hypothesis", "Lemma", "Qed", "Abort"};
+		keys = new String[] {"Section", "Variable", "Hypothesis", "Lemma", 
+				"Qed", "Abort", "End"};
 		for (String key : keys) {
 			keywords.put(new Keyword(key), style2);
 		}
@@ -193,7 +197,7 @@ public class Highlighter {
 			
 			Style style = keywords.get(key);
 			if (style == null) {
-				continue;
+				style = plainStyle;
 			}
 			
 			Segment s = new Segment(start, end - start, style);

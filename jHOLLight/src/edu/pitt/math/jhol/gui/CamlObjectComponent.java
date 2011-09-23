@@ -61,7 +61,11 @@ public class CamlObjectComponent extends JPanel {
 		
 		@Override
 		public boolean equals(Object obj) {
-			return object.equals(obj);
+			if (!(obj instanceof Element))
+				return false;
+		
+			Element el2 = (Element) obj;
+			return object.equals(el2.object);
 		}
 		
 		@Override

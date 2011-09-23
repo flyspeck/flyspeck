@@ -25,6 +25,8 @@ import edu.pitt.math.jhol.ssreflect.parser.tree.TacticNode;
 public class Interpreter {
 	// Describes the last error
 	private Exception error;
+	// Contains the most recent output
+	private String recentOutput;
 	
 	// A command executor
 	private CommandExecutor executor;
@@ -49,12 +51,34 @@ public class Interpreter {
 
 	// Listen for goal state updates
 	private ArrayList<GoalListener> goalListeners = new ArrayList<GoalListener>();
+	// Listen for messages
+	private ArrayList<MessageListener> messageListeners = new ArrayList<MessageListener>();
 	
 	/**
 	 * Listens for goal state updates
 	 */
 	public interface GoalListener {
 		public void updateGoal(Goalstate state);
+	}
+	
+	/**
+	 * Listens for important messages
+	 */
+	public interface MessageListener {
+		/**
+		 * Called when the interpretation begins
+		 */
+		public void begin();
+		
+		/**
+		 * An error message
+		 */
+		public void error(String msg);
+		
+		/**
+		 * An info message
+		 */
+		public void info(String msg);
 	}
 	
 	/**
@@ -124,9 +148,11 @@ public class Interpreter {
 		 */
 		public String runCommand(String rawCommand) throws Exception {
 			String out = caml.runCommand(rawCommand);
+			recentOutput = out;
 
 			// Check the output
-			if (out.indexOf("^^^") != -1 || 
+			if (out == null ||
+				out.indexOf("^^^") != -1 || 
 				out.indexOf("Unbound value") != -1 ||
 				out.indexOf("Exception:") != -1) {
 				throw new Exception("Command failed: " + out);
@@ -280,7 +306,7 @@ public class Interpreter {
 	 * Adds a listener for goal updates
 	 */
 	public void addGoalListener(GoalListener listener) {
-		if (goalListeners.contains(listener))
+		if (listener == null || goalListeners.contains(listener))
 			return;
 		
 		goalListeners.add(listener);
@@ -292,6 +318,25 @@ public class Interpreter {
 	 */
 	public void removeGoalListener(GoalListener listener) {
 		goalListeners.remove(listener);
+	}
+	
+	
+	/**
+	 * Adds a listener for goal updates
+	 */
+	public void addMessageListener(MessageListener listener) {
+		if (listener == null || messageListeners.contains(listener))
+			return;
+		
+		messageListeners.add(listener);
+	}
+	
+	
+	/**
+	 * Removes the given listener
+	 */
+	public void removeMessageListener(MessageListener listener) {
+		messageListeners.remove(listener);
 	}
 	
 	
@@ -327,8 +372,20 @@ public class Interpreter {
 	 * Updates the listeners
 	 */
 	private void updateListeners() {
+		// Update goal listeners
 		for (GoalListener listener : goalListeners) {
 			listener.updateGoal(state);
+		}
+		
+		// Update message listeners
+		for (MessageListener listener : messageListeners) {
+			if (recentOutput != null) {
+				listener.info(recentOutput);
+			}
+			
+			if (error != null) {
+				listener.error(error.getMessage());
+			}
 		}
 	}
 	
@@ -373,7 +430,6 @@ public class Interpreter {
 		}
 		else {
 			rawCmd += ";;";
-			// FIXME: If the command fails, then no error message will be reported
 			executor.runCommand(rawCmd);
 		}
 		
@@ -698,8 +754,14 @@ public class Interpreter {
 	 * Returns the number of characters interpreted before the first error (if any)
 	 */
 	public int interpret(String text) {
-		// Reset the error
+		// Reset the error and the most recent output
 		error = null;
+		recentOutput = null;
+		
+		// Begin the interpretation
+		for (MessageListener listener : messageListeners) {
+			listener.begin();
+		}
 		
 		// Initialize the scanner first
 		scanner = new Scanner(new StringReader(text));

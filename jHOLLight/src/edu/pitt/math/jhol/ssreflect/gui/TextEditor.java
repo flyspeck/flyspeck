@@ -45,6 +45,9 @@ public class TextEditor extends JTextPane implements DocumentListener {
     // True if the initial text is modified
     private boolean modifiedFlag;
     
+    // True when new text is initialized
+    private boolean initFlag;
+    
     // Position of the first writable character
     private int writePosition;
     
@@ -119,6 +122,7 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	 */
 	public void initText(String text) {
 		this.writePosition = 0;
+		this.initFlag = true;
 		
 		// Set the document initial text
 		if (text != null) {
@@ -127,6 +131,7 @@ public class TextEditor extends JTextPane implements DocumentListener {
 		}
 		
 		this.modifiedFlag = false;
+		this.initFlag = false;
 		notifyModified();
 	}
 	
@@ -181,6 +186,9 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	 * Highlights the text in the interval [start, end)
 	 */
 	private void highlight(int start, int end) {
+		if (end <= start)
+			return;
+		
 		try {
 			String text = getText(start, end - start);
 			ArrayList<Highlighter.Segment> segments = highlighter.highlight(text);
@@ -190,13 +198,20 @@ public class TextEditor extends JTextPane implements DocumentListener {
 				Highlighter.Segment s = segments.get(i);
 				AttributeSet attrs = styleToAttributes(s.style);
 
-				// TODO: do not change the background
-				doc.setCharacterAttributes(start + s.start, s.length, attrs, true);
+				doc.setCharacterAttributes(start + s.start, s.length, attrs, false);
 			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	
+	/**
+	 * Highlights all editable text
+	 */
+	private void highlightAll() {
+		highlight(writePosition, getDocument().getLength());
 	}
 	
 
@@ -215,11 +230,13 @@ public class TextEditor extends JTextPane implements DocumentListener {
 		
 		if (newWritePosition > writePosition) {
     		attrs.addAttribute(ColorConstants.Background, Color.CYAN);
-    		getStyledDocument().setCharacterAttributes(writePosition, newWritePosition - writePosition, attrs, true);
+    		getStyledDocument().setCharacterAttributes(writePosition, 
+    				newWritePosition - writePosition, attrs, false);
 		}
 		else {
     		attrs.addAttribute(ColorConstants.Background, Color.WHITE);
-    		getStyledDocument().setCharacterAttributes(newWritePosition, writePosition - newWritePosition, attrs, true);
+    		getStyledDocument().setCharacterAttributes(newWritePosition, 
+    				writePosition - newWritePosition, attrs, false);
 		}
 		
 		writePosition = newWritePosition;
@@ -263,25 +280,33 @@ public class TextEditor extends JTextPane implements DocumentListener {
     }
     
     public void removeUpdate(DocumentEvent ev) {
-    	modifiedFlag = true;
+    	if (!initFlag) {
+    		modifiedFlag = true;
     	
-    	SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				notifyModified();
-			}
-		});
+    		SwingUtilities.invokeLater(new Runnable() {
+    			@Override
+    			public void run() {
+    				// FIXME: a better solution is required
+    				highlightAll();
+    				notifyModified();
+    			}
+    		});
+    	}
     }
     
     public void insertUpdate(DocumentEvent ev) {
-    	modifiedFlag = true;
-
-    	SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				notifyModified();
-			}
-		});
+    	if (!initFlag) {
+    		modifiedFlag = true;
+    	
+    		SwingUtilities.invokeLater(new Runnable() {
+    			@Override
+    			public void run() {
+    				// FIXME: a better solution is required
+    				highlightAll();
+    				notifyModified();
+    			}
+    		});
+    	}
     }
 
     

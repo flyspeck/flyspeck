@@ -1,5 +1,6 @@
 package edu.pitt.math.jhol.ssreflect.gui;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Point;
@@ -18,9 +19,11 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants.ColorConstants;
 
 import edu.pitt.math.jhol.caml.CamlEnvironment;
 import edu.pitt.math.jhol.caml.CamlObject;
@@ -73,7 +76,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	// The main script editor
 	private TextEditor editor;
 	
-    private JTextArea logArea;
+    private JTextPane logArea;
 	
 	/**
 	 * Constructor
@@ -83,48 +86,16 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		this.configuration = new Configuration("gui.xml");
 		configuration.addSaver(this);
 
-		addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				exit();
-			}			
-		});
+		// Initialize all components
+		initMainWindow();
+		initEditor();
+		initLog();
+		initGoalPanel();
+		initTheoremPanel(caml);
 		
-		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		initSplitters();
 		
-		// Set up the size of the window
-		Configuration.Group conf = configuration.getGroup(CONF_GROUP);
-		
-		setPreferredSize(conf.getDimensionVal("preferred-size", 1200, 850));
-		setMinimumSize(new Dimension(400, 300));
-
-		this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
-		setBounds(conf.getIntVal("x", 0), conf.getIntVal("y", 0), conf.getIntVal("w", 1200), conf.getIntVal("h", 850));
-
-		// Create the text editor
-		editor = new TextEditor(interpreter);
-		
-		editor.addListener(new TextEditor.Listener() {
-			@Override
-			public void modified(boolean modifiedFlag) {
-				String title = getTitle();
-				if (title == null || title.length() == 0)
-					title = "New";
-				
-				if (title.charAt(title.length() - 1) == '*')
-					title = title.substring(0, title.length() - 1);
-				
-				if (modifiedFlag)
-					title += "*";
-				
-				setTitle(title);
-			}
-		});
-		
-		// Create the theorem panel
-		theorems = new TheoremPanel(configuration, caml);
-
-		
-		initComponents();
+		// Create the main menu
 		createMenu();
 		
 		// Create the file manager
@@ -149,6 +120,131 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 
 		// Finish the initialization
 		setVisible(true);
+	}
+	
+
+	/**
+	 * Initializes the main window
+	 */
+	private void initMainWindow() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				exit();
+			}			
+		});
+		
+		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		
+		// Set up the size of the window
+		Configuration.Group conf = configuration.getGroup(CONF_GROUP);
+		
+		setPreferredSize(conf.getDimensionVal("preferred-size", 1200, 850));
+		setMinimumSize(new Dimension(400, 300));
+
+		setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
+		setBounds(conf.getIntVal("x", 0), conf.getIntVal("y", 0), conf.getIntVal("w", 1200), conf.getIntVal("h", 850));
+	}
+	
+
+	/**
+	 * Initializes the editor
+	 */
+	private void initEditor() {
+		// Create the text editor
+		editor = new TextEditor(interpreter);
+		
+		editor.addListener(new TextEditor.Listener() {
+			@Override
+			public void modified(boolean modifiedFlag) {
+				String title = getTitle();
+				if (title == null || title.length() == 0)
+					title = "New";
+				
+				if (title.charAt(title.length() - 1) == '*')
+					title = title.substring(0, title.length() - 1);
+				
+				if (modifiedFlag)
+					title += "*";
+				
+				setTitle(title);
+			}
+		});
+
+		// Set up the font parameters
+		editor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+	}
+	
+
+	/**
+	 * Initializes the log area
+	 */
+	private void initLog() {
+        logArea = new JTextPane();
+        logArea.setEditable(false);
+//        logArea.setColumns(80);
+//        logArea.setLineWrap(true);
+//        logArea.setRows(100);
+        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 16));
+
+        final SimpleAttributeSet redAttrs = new SimpleAttributeSet();
+		redAttrs.addAttribute(ColorConstants.Foreground, Color.red);
+        
+        // Create a message listener
+        interpreter.addMessageListener(new Interpreter.MessageListener() {
+			@Override
+			public void info(String msg) {
+				try {
+					logArea.getStyledDocument().insertString(0, msg, null);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			@Override
+			public void error(String msg) {
+				if (msg == null)
+					return;
+
+				try {
+					logArea.getStyledDocument().insertString(0, msg, redAttrs);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			@Override
+			public void begin() {
+				// Clear the log area
+				logArea.setText("");
+			}
+		});
+	}
+	
+	
+	/**
+	 * Initialize the theorem panel
+	 */
+	private void initTheoremPanel(CamlEnvironment caml) {
+		// Create the theorem panel
+		theorems = new TheoremPanel(configuration, caml);
+	}
+	
+	
+	/**
+	 * Initializes the goal panel
+	 */
+	private void initGoalPanel() {
+        goals = new GoalstatePanel(configuration);
+
+        // Add a goal update listener
+		interpreter.addGoalListener(new Interpreter.GoalListener() {
+			@Override
+			public void updateGoal(Goalstate state) {
+				goals.update(state);
+			}
+		});
 	}
 	
 	
@@ -194,31 +290,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	/**
 	 * Initializes components
 	 */
-    private void initComponents() {
-    	// Initialize the text editor
-        editor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
-        
-        // Initialize the log area
-        logArea = new JTextArea();
-        logArea.setEditable(false);
-        logArea.setColumns(80);
-        logArea.setLineWrap(true);
-        logArea.setRows(100);
-        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 16));
-
-        // Initialize the goal panel
-        goals = new GoalstatePanel(configuration);
-		// Add a goal update listener
-		interpreter.addGoalListener(new Interpreter.GoalListener() {
-			@Override
-			public void updateGoal(Goalstate state) {
-				goals.update(state);
-			}
-		});
-		
-		// Initialize the theorem panel
-
-        
+    private void initSplitters() {
         // Finish the initialization
         JScrollPane textScroll = new JScrollPane(editor);
         textScroll.setPreferredSize(new Dimension(700, 600));
@@ -419,10 +491,18 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
      *
      */
     static class DebugCamlEnvironment extends CamlEnvironment {
+    	private final static String searchResultString = "List(Pair(String,Theorem),[Pair(\"facet_of\",Theorem(List(Term,[]),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"f\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])),Comb(Const(\"!\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])),Abs(Var(\"s\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])),Comb(Comb(Const(\"=\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"bool\"[])])])),Comb(Comb(Const(\"facet_of\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])])),Var(\"f\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]))),Var(\"s\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])))),Comb(Comb(Const(\"/\\\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"bool\"[])])])),Comb(Comb(Const(\"face_of\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])])),Var(\"f\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]))),Var(\"s\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])))),Comb(Comb(Const(\"/\\\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"bool\"[])])])),Comb(Const(\"~\",Tyapp(\"fun\"[Tyapp(\"bool\"[]),Tyapp(\"bool\"[])])),Comb(Comb(Const(\"=\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"bool\"[])])])),Var(\"f\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]))),Const(\"EMPTY\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]))))),Comb(Comb(Const(\"=\",Tyapp(\"fun\"[Tyapp(\"int\"[]),Tyapp(\"fun\"[Tyapp(\"int\"[]),Tyapp(\"bool\"[])])])),Comb(Const(\"aff_dim\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"int\"[])])),Var(\"f\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])))),Comb(Comb(Const(\"int_sub\",Tyapp(\"fun\"[Tyapp(\"int\"[]),Tyapp(\"fun\"[Tyapp(\"int\"[]),Tyapp(\"int\"[])])])),Comb(Const(\"aff_dim\",Tyapp(\"fun\"[Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])]),Tyapp(\"int\"[])])),Var(\"s\",Tyapp(\"fun\"[Tyapp(\"cart\"[Tyapp(\"real\"[]),Tyvar(\"?292583\")]),Tyapp(\"bool\"[])])))),Comb(Const(\"int_of_num\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"int\"[])])),Comb(Const(\"NUMERAL\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])])),Comb(Const(\"BIT1\",Tyapp(\"fun\"[Tyapp(\"num\"[]),Tyapp(\"num\"[])])),Const(\"_0\",Tyapp(\"num\"[]))))))))))))))))])"; 
+    	private CamlObject searchResult;
     	private final Goalstate testGoalstate;
     	
     	public DebugCamlEnvironment(Goalstate test) {
     		this.testGoalstate = test;
+    		try {
+    			this.searchResult = Parser.parse(searchResultString);
+    		}
+    		catch (Exception e) {
+    			e.printStackTrace();
+    		}
     	}
     	
     	@Override
@@ -437,6 +517,11 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     		
     		if (returnType.equals(CamlType.GOAL_STATE)) {
     			return testGoalstate;
+    		}
+    		
+    		// Search
+    		if (searchResult != null && returnType.equals(searchResult.camlType())) {
+    			return searchResult;
     		}
     		
     		return null;

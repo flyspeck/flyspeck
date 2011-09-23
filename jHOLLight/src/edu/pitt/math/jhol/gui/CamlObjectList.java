@@ -165,6 +165,19 @@ public class CamlObjectList extends AbstractTableModel {
 	
 	
 	/**
+	 * Removes the given objects from the list
+	 */
+	public void remove(Collection<? extends CamlObject> objs) {
+		if (objs == null)
+			return;
+		
+		for (CamlObject obj : objs) {
+			remove(obj);
+		}
+	}
+	
+	
+	/**
 	 * Clears the list
 	 */
 	public void clear() {

@@ -341,40 +341,5 @@ public class FileManager implements Configuration.Saver {
 	    	item.addActionListener(fileActionListener);
 	    	fileMenu.add(item);
 		}
-		
-/*		if (fileMenu == null)
-			return;
-		
-		// Remove all recent projects from the menu
-		fileMenu.rem
-		
-		.removeGroup(100);
-
-		// Insert all current components
-		for (int i = 0; i < recentProjects.size(); i++) {
-			final File project = recentProjects.get(i);
-			String name = project.getName();
-			
-			SparkMenuItem item = SparkMenuFactory.getFactory().createItem(name, 100);
-			item.setActionListener(new ISparkMenuListener() {
-				
-				public void onClick(SparkMenuItem item) {
-					Coordinator c = Coordinator.getInstance();
-					if (c == null)
-						return;
-					
-					try {
-						c.loadModel(project);
-						c.startLoadedModel(Long.MAX_VALUE, true);
-					}
-					catch (Exception e) {
-						logger.error(e);
-						e.printStackTrace();
-					}
-				}
-			});
-			
-			fileMenu.addItem(item);
-		}*/
 	}	
 }

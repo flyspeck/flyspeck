@@ -140,6 +140,7 @@ public class Interpreter {
 					commandLog.println(command + ";;");
 			}
 			
+			recentOutput = caml.getRawOutput();
 			return result;
 		}
 

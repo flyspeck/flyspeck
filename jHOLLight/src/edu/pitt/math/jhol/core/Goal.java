@@ -2,7 +2,10 @@ package edu.pitt.math.jhol.core;
 
 import java.util.ArrayList;
 
+import edu.pitt.math.jhol.caml.CamlList;
 import edu.pitt.math.jhol.caml.CamlObject;
+import edu.pitt.math.jhol.caml.CamlPair;
+import edu.pitt.math.jhol.caml.CamlString;
 import edu.pitt.math.jhol.caml.CamlType;
 
 /**
@@ -132,6 +135,27 @@ public class Goal extends CamlObject {
 		
 		str.append("],");
 		str.append(goalTerm);
+		str.append(')');
+		
+		return str.toString();
+	}
+
+
+	@Override
+	public String toRawString() {
+		StringBuffer str = new StringBuffer("Goal(");
+
+		ArrayList<CamlPair> objs = new ArrayList<CamlPair>();
+		for (int i = 0; i < assumptions.size(); i++) {
+			Pair<String, Theorem> p = assumptions.get(i);
+			CamlPair pair = new CamlPair(new CamlString(p.getFirst()), p.getSecond());
+			objs.add(pair);
+		}
+		
+		CamlList list = new CamlList(new CamlType.PairType(CamlType.STRING, CamlType.THM), objs);
+		str.append(list.toRawString());
+		str.append(',');
+		str.append(goalTerm.toRawString());
 		str.append(')');
 		
 		return str.toString();

@@ -8,6 +8,7 @@ import edu.pitt.math.jhol.core.parser.Parser;
 
 public class TestCamlEnvironment extends CamlEnvironment {
 	private HOLLightWrapper caml;
+	private String output;
 	
 	public TestCamlEnvironment() throws Exception {
 		caml = new HOLLightWrapper("hol_light");
@@ -26,7 +27,7 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	@Override
 	public String runCommand(String rawCommand) throws Exception {
 		System.out.println("Executing: " + rawCommand);
-		String output = caml.runCommand(rawCommand);
+		output = caml.runCommand(rawCommand);
 		System.out.println("Output: " + output);
 		
 		return output;
@@ -35,8 +36,6 @@ public class TestCamlEnvironment extends CamlEnvironment {
 
 	@Override
 	public CamlObject execute(String command, CamlType returnType) throws Exception {
-		String output;
-		
 		String printCmd = returnType.getPrintCommand();
 		command = "raw_print_string(" + printCmd + "(" + command + "));;";
 		
@@ -51,13 +50,13 @@ public class TestCamlEnvironment extends CamlEnvironment {
 		}
 		System.out.println("Out: " + testString);
 		
-		output = strip(output);
-		if (output == null) {
-//			System.err.println("Null result");
+		String result = strip(output);
+		if (result == null) {
+			System.err.println("Null result");
 			return null;
 		}
 		
-		return Parser.parse(output);
+		return Parser.parse(result);
 	}
 	
 	
@@ -86,17 +85,12 @@ public class TestCamlEnvironment extends CamlEnvironment {
 			return null;
 		
 		return str.substring(i1 + "$begin".length() + 1, i2);
-		
-		
-/*		String[] els = str.split("\n");
-		
-		for (int i = 1; i < els.length; i++) {
-			String tmp = els[i].trim();
-			if (tmp.startsWith("val it"))
-				return els[i - 1];
-		}
-		
-		return els[0];*/
+	}
+
+
+	@Override
+	public String getRawOutput() {
+		return output;
 	}
 	
 }

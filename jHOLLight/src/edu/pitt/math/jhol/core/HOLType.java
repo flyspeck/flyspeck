@@ -209,6 +209,15 @@ public abstract class HOLType extends CamlObject {
 		public String toString() {
 			return name;
 		}
+
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Tyvar(");
+			str.append('"' + name + '"');
+			str.append(')');
+			
+			return str.toString();
+		}
 	}
 	
 	
@@ -347,6 +356,23 @@ public abstract class HOLType extends CamlObject {
 			
 			return str.toString();*/
 			return TypePrinter.printType(this);
+		}
+
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Tyapp(");
+			str.append('"' + constructorName + '"');
+			str.append('[');
+			
+			int n = args.size();
+			for (int i = 0; i < n ; i++) {
+				str.append(args.get(i).toRawString());
+				if (i < n - 1)
+					str.append(',');
+			}
+			
+			str.append("])");
+			return str.toString();
 		}
 	}
 }

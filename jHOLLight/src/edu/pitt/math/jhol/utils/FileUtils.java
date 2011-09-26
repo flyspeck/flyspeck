@@ -1,7 +1,9 @@
 package edu.pitt.math.jhol.utils;
 
 import java.awt.Window;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,6 +29,14 @@ public class FileUtils {
 		}
 		
 		FileUtils.baseDir = baseDir;
+	}
+	
+	
+	/**
+	 * Returns teh base directory
+	 */
+	public static File getBaseDir() {
+		return baseDir;
 	}
 	
 	
@@ -310,6 +320,42 @@ public class FileUtils {
 		});
 
 		return fc;
+	}
+	
+	
+	/**
+	 * Reads all rows from the given file
+	 */
+	public static ArrayList<String> readFile(File file) {
+		ArrayList<String> result = new ArrayList<String>();
+		
+		if (file == null || !file.exists())
+			return result;
+		
+		// Do not open too big files
+		if (file.length() > 50000000) {
+			System.err.println("File is too big: " + file);
+			return result;
+		}
+
+		try {
+			BufferedReader r = new BufferedReader(new FileReader(file));
+		
+			while (true) {
+				String str = r.readLine();
+				if (str == null)
+					break;
+
+				result.add(str);
+			}
+			
+			r.close();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return result;
 	}
 	
 	

@@ -93,4 +93,16 @@ public class CamlPair extends CamlObject {
 		
 		return str.toString();	
 	}
+
+
+	@Override
+	public String toRawString() {
+		StringBuffer str = new StringBuffer("Pair(");
+		str.append(a.toRawString());
+		str.append(',');
+		str.append(b.toRawString());
+		str.append(')');
+		
+		return str.toString();
+	}
 }

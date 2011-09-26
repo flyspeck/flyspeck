@@ -3,6 +3,7 @@ package edu.pitt.math.jhol.core;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import edu.pitt.math.jhol.caml.CamlList;
 import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 
@@ -91,6 +92,18 @@ public class Goalstate extends CamlObject {
 			if (i < goals.size() - 1)
 				str.append(',');
 		}
+		str.append(')');
+		
+		return str.toString();
+	}
+
+
+	@Override
+	public String toRawString() {
+		StringBuffer str = new StringBuffer("Goalstate(");
+		
+		CamlList list = new CamlList(CamlType.GOAL, goals);
+		str.append(list.toRawString());
 		str.append(')');
 		
 		return str.toString();

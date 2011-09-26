@@ -287,6 +287,18 @@ public abstract class Term extends CamlObject {
 			
 			return str.toString();
 		}
+
+
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Var(");
+			str.append('"' + name + '"');
+			str.append(',');
+			str.append(type.toRawString());
+			str.append(')');
+			
+			return str.toString();
+		}
 	}
 
 
@@ -378,6 +390,17 @@ public abstract class Term extends CamlObject {
 			str.append('"');
 			str.append(" : ");
 			str.append(type);
+			str.append(')');
+			
+			return str.toString();
+		}
+
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Const(");
+			str.append('"' + name + '"');
+			str.append(',');
+			str.append(type.toRawString());
 			str.append(')');
 			
 			return str.toString();
@@ -484,6 +507,17 @@ public abstract class Term extends CamlObject {
 			
 			return str.toString();
 		}
+		
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Comb(");
+			str.append(rator.toRawString());
+			str.append(',');
+			str.append(rand.toRawString());
+			str.append(')');
+			
+			return str.toString();
+		}
 	}
 
 
@@ -586,11 +620,20 @@ public abstract class Term extends CamlObject {
 			
 			return str.toString();
 		}
+
+		
+		@Override
+		public String toRawString() {
+			StringBuffer str = new StringBuffer("Abs(");
+			str.append(var.toRawString());
+			str.append(',');
+			str.append(body.toRawString());
+			str.append(')');
+			
+			return str.toString();
+		}
 	}
 
-
-
-	
 }
 
 

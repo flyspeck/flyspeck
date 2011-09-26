@@ -45,5 +45,10 @@ public class EmptyCamlEnvironment extends CamlEnvironment {
 	public String runCommand(String rawCommand) throws Exception {
 		throw new Exception("Not implemented");
 	}
+
+	@Override
+	public String getRawOutput() {
+		return null;
+	}
 	
 }

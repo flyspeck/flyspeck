@@ -1,6 +1,7 @@
 package edu.pitt.math.jhol.core;
 
 import edu.pitt.math.jhol.caml.CamlFunction;
+import edu.pitt.math.jhol.caml.CamlList;
 import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 
@@ -41,6 +42,22 @@ public abstract class Theorem extends CamlObject {
 	 * Returns true if the theorem has assumptions
 	 */
 	public abstract boolean hyp();
+	
+	
+	@Override
+	public String toRawString() {
+		StringBuffer str = new StringBuffer("Theorem(");
+		
+		// Ignore assumptions
+		CamlList hyps = new CamlList(CamlType.TERM, new Term[] {});
+
+		str.append(hyps.toRawString());
+		str.append(',');
+		str.append(concl().toRawString());
+		str.append(')');
+		
+		return str.toString();
+	}
 	
 	
 	/**

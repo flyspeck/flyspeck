@@ -54,6 +54,11 @@ public class CamlString extends CamlObject {
 	public String toString() {
 		return '"' + str + '"';
 	}
+
+	@Override
+	public String toRawString() {
+		return '"' + str + '"';
+	}
 	
 	
 }

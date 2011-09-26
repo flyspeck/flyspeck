@@ -45,6 +45,9 @@ InputCharacter = [^\r\n]
 
 WhiteSpace = [ \t\f]
 
+EndOfLineComment = "--" {InputCharacter}* {LineTerminator}
+Comment = {EndOfLineComment}
+
 IdentifierSymbol = [a-zA-Z]
 IdentifierSymbol2 = {IdentifierSymbol} | [_'0-9]
 
@@ -60,7 +63,7 @@ RawEndChars = [`]
 StringCharacter = [^\"]
 
 %state STRING
-%state RAW
+%state RAW, STRING_RAW
 
 %%
 
@@ -72,7 +75,6 @@ StringCharacter = [^\"]
         "]" { return new Token(TokenType.RBRACK, yychar, yyline, yycolumn); }
         "{" { return new Token(TokenType.LBRACE, yychar, yyline, yycolumn); }
         "}" { return new Token(TokenType.RBRACE, yychar, yyline, yycolumn); }
-		"`" { return new Token(TokenType.BACK_QUOTE, yychar, yyline, yycolumn); }
         "," { return new Token(TokenType.COMMA, yychar, yyline, yycolumn); }
 		";" { return new Token(TokenType.SEMICOLON, yychar, yyline, yycolumn); }
 		"*" { return new Token(TokenType.STAR, yychar, yyline, yycolumn); }
@@ -95,8 +97,11 @@ StringCharacter = [^\"]
         /* string literal */
         \"    { yybegin(STRING); string.setLength(0); }
 
+		"`"	{ yybegin(RAW); string.setLength(0); string.append('`'); }
+		
+		{Comment}			{}
         {WhiteSpace}        {}
-        {LineTerminator}        {}
+        {LineTerminator}    {}
 
 		{Integer} { return new Token(TokenType.INTEGER, yytext(), yychar, yyline, yycolumn); }
         {FullIdentifier} { return new Token(TokenType.IDENTIFIER, yytext(), yychar, yyline, yycolumn); }
@@ -110,19 +115,28 @@ StringCharacter = [^\"]
   "\\n"                          { string.append( '\n' ); }
   "\\f"                          { string.append( '\f' ); }
   "\\r"                          { string.append( '\r' ); }
-  "\\\""                         { string.append( '\"' ); }
-  "\\'"                          { string.append( '\'' ); }
-  "\\\\"                         { string.append( '\\' ); }*/ 
+  "\\'"                          { string.append( '\'' ); } */
 
   \"  { yybegin(YYINITIAL); return new Token(TokenType.STRING, string.toString(), yychar, yyline, yycolumn); }
+  "`" { string.append('`'); yybegin(STRING_RAW); }
 
-  {StringCharacter}+   { string.append( yytext() ); }
+  [^`\"\\]+ { string.append(yytext()); }
+
+  \\\"  { string.append( '\"' ); }
+  \\\\  { string.append( '\\' ); }
 }
 
 <RAW>
 {
-	{RawEndChars}	{ yybegin(YYINITIAL); return new Token(TokenType.STRING, string.toString(), yychar, yyline, yycolumn); }
-	{StringCharacter}+	{ string.append( yytext() ); }
+	"`"	{ string.append('`'); yybegin(YYINITIAL); return new Token(TokenType.STRING, string.toString(), yychar, yyline, yycolumn); }
+	[^`]+ { string.append(yytext()); }
+}
+
+
+<STRING_RAW>
+{
+	"`"	{ string.append('`'); yybegin(STRING); }
+	[^`]+ { string.append(yytext()); }
 }
 
 . { System.err.println("Illegal character: "+yytext()); }

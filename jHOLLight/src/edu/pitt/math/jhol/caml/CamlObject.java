@@ -65,6 +65,13 @@ public abstract class CamlObject {
 	
 	
 	/**
+	 * Converts the object into a simple textual representation
+	 * which can be parsed by core.parser.Parser
+	 */
+	public abstract String toRawString();
+	
+	
+	/**
 	 * Application of a function to an argument
 	 */
 	public static class CamlApplication extends CamlObject {
@@ -180,6 +187,11 @@ public abstract class CamlObject {
 			str.append(')');
 			
 			return str.toString();
+		}
+
+		@Override
+		public String toRawString() {
+			throw new RuntimeException("CamlApplication.toRawString()");
 		}
 	}
 }

@@ -63,4 +63,10 @@ public class CamlFunction extends CamlObject {
 	public String toString() {
 		return "(" + name + " : " + type + ")";
 	}
+
+
+	@Override
+	public String toRawString() {
+		throw new RuntimeException("CamlFunction.toRawString()");
+	}
 }

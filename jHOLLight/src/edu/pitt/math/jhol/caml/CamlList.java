@@ -18,7 +18,7 @@ public class CamlList extends CamlObject {
 	/**
 	 * Constructor
 	 */
-	public CamlList(CamlType elementType, Collection<CamlObject> objs) {
+	public CamlList(CamlType elementType, Collection<? extends CamlObject> objs) {
 		this.elements = new CamlObject[objs.size()];
 		objs.toArray(elements);
 		this.elementType = elementType;
@@ -148,5 +148,24 @@ public class CamlList extends CamlObject {
 		str.append(']');
 		
 		return str.toString();	
+	}
+
+
+	@Override
+	public String toRawString() {
+		StringBuffer str = new StringBuffer("List(");
+		
+		str.append(elementType.toString());
+		str.append(",[");
+		
+		int n = elements.length;
+		for (int i = 0; i < n; i++) {
+			str.append(elements[i].toRawString());
+			if (i < n - 1)
+				str.append(';');
+		}
+		
+		str.append("])");
+		return str.toString();
 	}
 }

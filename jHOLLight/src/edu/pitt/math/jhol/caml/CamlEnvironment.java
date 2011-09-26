@@ -15,4 +15,9 @@ public abstract class CamlEnvironment {
 	 * Executes the given (raw) command and returns the raw output
 	 */
 	public abstract String runCommand(String rawCommand) throws Exception;
+	
+	/**
+	 * Returns the output of the last command
+	 */
+	public abstract String getRawOutput();
 }

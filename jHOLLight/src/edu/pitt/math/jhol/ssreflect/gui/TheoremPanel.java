@@ -5,6 +5,8 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
@@ -17,10 +19,15 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 
 import edu.pitt.math.jhol.caml.CamlEnvironment;
+import edu.pitt.math.jhol.caml.CamlList;
 import edu.pitt.math.jhol.caml.CamlObject;
+import edu.pitt.math.jhol.caml.CamlPair;
+import edu.pitt.math.jhol.caml.CamlString;
+import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Theorem;
 import edu.pitt.math.jhol.gui.CamlObjectList;
 import edu.pitt.math.jhol.gui.CamlObjectTable;
+import edu.pitt.math.jhol.utils.FileUtils;
 
 /**
  * A panel for searching theorems and saving search results
@@ -29,6 +36,8 @@ import edu.pitt.math.jhol.gui.CamlObjectTable;
 public class TheoremPanel extends JPanel implements Configuration.Saver, ActionListener {
 	// For searching theorems
 	private final TheoremDatabase database;
+	// For working with files
+	private final FileManager fileManager;
 	
 	// A panel with control buttons
 	private JPanel controlPanel;
@@ -36,7 +45,7 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 	// Main tabs
 	private JTabbedPane tabs;
 	// The tab for displaying search results
-	private TabPanel searchTab = new TabPanel();
+	private TabPanel searchTab = new TabPanel("Search");
 	
 	// A field for search inputs
 	private JTextField searchField;
@@ -51,7 +60,9 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 	private final static String ADD_TAB = "add-tab";
 	private final static String REMOVE_TAB = "remove-tab";
 	private final static String ACTIVATE_TAB = "activate-tab";
-	private final static String MOVE_THM = "move-theorem"; 
+	private final static String MOVE_THM = "move-theorem";
+	private final static String SAVE = "save";
+	private final static String LOAD = "load";
 	private final static String SEARCH = "search";
 	
 	
@@ -67,8 +78,9 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 		/**
 		 * Constructor
 		 */
-		public TabPanel() {
+		public TabPanel(String name) {
 			setLayout(new BorderLayout());
+			setName(name);
 			
 			theorems = new CamlObjectList();
 			theorems.setColumnNames("Theorem", "Name");
@@ -120,15 +132,38 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 			
 			return result;
 		}
+		
+		
+		/**
+		 * Converts the content into a raw CAML list
+		 */
+		public CamlList toCamlList() {
+			ArrayList<CamlPair> objs = new ArrayList<CamlPair>();
+			int n = theorems.size();
+
+			for (int i = 0; i < n; i++) {
+				CamlObject obj = theorems.get(i);
+				if (!(obj instanceof Theorem))
+					continue;
+				
+				Theorem thm = (Theorem) obj;
+				String name = thm.name();
+				
+				objs.add(new CamlPair(new CamlString(name), thm));
+			}
+			
+			return new CamlList(new CamlType.PairType(CamlType.STRING, CamlType.THM), objs);
+		}
 	}
 	
 	
 	/**
 	 * Constructor
 	 */
-	public TheoremPanel(Configuration configuration, CamlEnvironment caml) {
+	public TheoremPanel(Configuration configuration, CamlEnvironment caml, FileManager fileManager) {
 		Configuration.Group conf = configuration.getGroup(CONF_GROUP);
 		this.database = new TheoremDatabase(caml);
+		this.fileManager = fileManager;
 		init(conf);
 	}
 	
@@ -151,6 +186,18 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 		
 		// Control buttons
 		Dimension max = new Dimension(1000, 30);
+		
+		// Save
+		JButton save = new JButton("Save");
+		save.setActionCommand(SAVE);
+		save.addActionListener(this);
+		save.setMaximumSize(max);
+
+		// Load
+		JButton load = new JButton("Load");
+		load.setActionCommand(LOAD);
+		load.addActionListener(this);
+		load.setMaximumSize(max);
 		
 		// Add tab
 		JButton addTab = new JButton("+");
@@ -176,7 +223,8 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 		moveThm.addActionListener(this);
 		moveThm.setMaximumSize(max);
 		
-		
+		controlPanel.add(save);
+		controlPanel.add(load);
 		controlPanel.add(addTab);
 		controlPanel.add(removeTab);
 		controlPanel.add(activateTab);
@@ -256,6 +304,86 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 		selectedTab.removeItems(items);
 	}
 	
+	
+	/**
+	 * Saves the content of tabs in a file
+	 */
+	private void saveTabs() {
+		// Select a file first
+		File file = FileUtils.saveFileDialog(fileManager.getCurrentDir(), "txt", null);
+		if (file == null)
+			return;
+
+		try {
+			PrintStream out = new PrintStream(file);
+			
+			// Save all tabs (except the search tab)
+			for (int i = 1; i < tabs.getTabCount(); i++) {
+				Component c = tabs.getComponentAt(i);
+				if (!(c instanceof TabPanel))
+					continue;
+				
+				TabPanel tab = (TabPanel) c;
+			
+				// Save the tab name
+				out.println("Tab: " + tab.getName());
+				
+				// Save the tab content
+				out.println(tab.toCamlList().toRawString());
+			}
+			
+			out.close();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	/**
+	 * Loads tabs
+	 */
+	private void loadTabs() {
+		// Select a file
+		File file = FileUtils.saveFileDialog(fileManager.getCurrentDir(), "txt", null);
+		if (file == null)
+			return;
+		
+		// Remove all tabs
+		tabs.removeAll();
+		tabs.addTab(searchTab.getName(), searchTab);
+		activeTab = null;
+		
+		ArrayList<String> rows = FileUtils.readFile(file);
+		int n = rows.size();
+		
+		for (int i = 0; i < n; i++) {
+			String row = rows.get(i);
+			if (row == null)
+				continue;
+			
+			// Tab
+			if (row.startsWith("Tab: ")) {
+				String name = row.substring("Tab: ".length());
+				String content = null;
+				
+				if (i < n - 1) {
+					i += 1;
+					content = rows.get(i);
+				}
+				
+				TabPanel tab = new TabPanel(name);
+				
+				if (content != null) {
+					ArrayList<Theorem> thms = database.parse(content);
+					tab.setItems(thms);
+				}
+				
+				tabs.addTab(tab.getName(), tab);
+			}
+		}
+	}
+	
 
 	@Override
 	public void actionPerformed(ActionEvent arg) {
@@ -264,6 +392,18 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 			return;
 		
 		cmd = cmd.intern();
+		
+		// Save
+		if (cmd == SAVE) {
+			saveTabs();
+			return;
+		}
+		
+		// Load
+		if (cmd == LOAD) {
+			loadTabs();
+			return;
+		}
 		
 		// Add tab
 		if (cmd == ADD_TAB) {
@@ -275,8 +415,7 @@ public class TheoremPanel extends JPanel implements Configuration.Saver, ActionL
 			if (name.length() == 0)
 				name = "Tab " + tabs.getTabCount();
 			
-			JPanel panel = new TabPanel();
-			panel.setName(name);
+			JPanel panel = new TabPanel(name);
 			tabs.addTab(name, panel);
 			return;
 		}

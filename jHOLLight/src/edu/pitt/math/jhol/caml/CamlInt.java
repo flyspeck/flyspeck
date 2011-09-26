@@ -53,6 +53,11 @@ public class CamlInt extends CamlObject {
 	public String toString() {
 		return String.valueOf(val);
 	}
+
+	@Override
+	public String toRawString() {
+		return String.valueOf(val);
+	}
 	
 	
 }

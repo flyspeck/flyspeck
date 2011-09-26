@@ -10,6 +10,7 @@ import edu.pitt.math.jhol.caml.CamlString;
 import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Term;
 import edu.pitt.math.jhol.core.Theorem;
+import edu.pitt.math.jhol.core.parser.Parser;
 
 /**
  * A database of theorems
@@ -141,6 +142,35 @@ public class TheoremDatabase {
 		
 		// Process the result
 		CamlList list = (CamlList) obj;
+		if (list == null)
+			return result;
+
+		for (int i = 0; i < list.size(); i++) {
+			CamlPair pair = (CamlPair) list.get(i);
+			CamlString name = (CamlString) pair.first();
+			Theorem th = (Theorem) pair.second();
+			
+			result.add(Theorem.mk_theorem(name.str, th.concl()));
+		}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * Parses the given string containing theorems and their names
+	 */
+	public ArrayList<Theorem> parse(String str) {
+		ArrayList<Theorem> result = new ArrayList<Theorem>();
+		CamlList list = null;
+		
+		try {
+			list = (CamlList) Parser.parse(str);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		if (list == null)
 			return result;
 

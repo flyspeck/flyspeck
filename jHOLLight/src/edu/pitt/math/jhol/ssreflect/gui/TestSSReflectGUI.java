@@ -86,6 +86,13 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		this.configuration = new Configuration("gui.xml");
 		configuration.addSaver(this);
 
+		// Create the main menu
+		createMenu();
+
+		// Create the file manager
+		this.fileManager = new FileManager(configuration, fileMenu, this);
+		configuration.addSaver(fileManager);
+
 		// Initialize all components
 		initMainWindow();
 		initEditor();
@@ -95,13 +102,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		
 		initSplitters();
 		
-		// Create the main menu
-		createMenu();
-		
-		// Create the file manager
-		this.fileManager = new FileManager(configuration, fileMenu, this);
-		configuration.addSaver(fileManager);
-		
+		// Configure the file manager
 		fileManager.addCurrentFileListener(new FileManager.CurrentFileListener() {
 			@Override
 			public void currentFileChanged(File currentFile) {
@@ -228,7 +229,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	 */
 	private void initTheoremPanel(CamlEnvironment caml) {
 		// Create the theorem panel
-		theorems = new TheoremPanel(configuration, caml);
+		theorems = new TheoremPanel(configuration, caml, fileManager);
 	}
 	
 	
@@ -532,6 +533,11 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     		System.out.println("Executing: " + rawCommand);
     		return "";
     	}
+
+		@Override
+		public String getRawOutput() {
+			return null;
+		}
     	
     }
     

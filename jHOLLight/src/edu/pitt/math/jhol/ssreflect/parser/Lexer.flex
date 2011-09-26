@@ -83,6 +83,7 @@ StringCharacter = [^\"]
 		"/" { return new Token(TokenType.SLASH, yychar, yyline, yycolumn); }
 		"-" { return new Token(TokenType.DASH, yychar, yyline, yycolumn); }
 		":=" { return new Token(TokenType.ASSIGN, yychar, yyline, yycolumn); }
+		\| { return new Token(TokenType.BAR, yychar, yyline, yycolumn); }
 		
 		/* keywords */
 		"//" { return new Token(TokenType.TRIV, yychar, yyline, yycolumn); }
@@ -93,6 +94,8 @@ StringCharacter = [^\"]
 		"@" { return new Token(TokenType.AT, yychar, yyline, yycolumn); }
 		"!" { return new Token(TokenType.EXCLAMATION, yychar, yyline, yycolumn); }
 		"?" { return new Token(TokenType.QUESTION, yychar, yyline, yycolumn); }
+		"->" { return new Token(TokenType.RIGHT_ARROW, yychar, yyline, yycolumn); }
+		"<-" { return new Token(TokenType.LEFT_ARROW, yychar, yyline, yycolumn); }
 
         /* string literal */
         \"    { yybegin(STRING); string.setLength(0); }

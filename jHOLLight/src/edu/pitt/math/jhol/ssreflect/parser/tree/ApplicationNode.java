@@ -63,9 +63,11 @@ public class ApplicationNode extends ObjectNode {
 	private void translateFirst(StringBuffer buffer) {
 		if (firstObject instanceof WildObjectNode) {
 			// WildCard
-			if (wildCardInterpretation == null)
-				throw new RuntimeException("Undefined wildcard");
-			buffer.append(wildCardInterpretation);
+			WildObjectNode wildCard = (WildObjectNode) firstObject;
+			String interpretation = wildCard.getInterpretation();
+			if (interpretation == null)
+				throw new RuntimeException("Wildcard without interpretation");
+			buffer.append(interpretation);
 		}
 		else {
 			// Normal object
@@ -113,4 +115,10 @@ public class ApplicationNode extends ObjectNode {
 	protected boolean isWildCard() {
 		return firstObject.isWildCard();
 	}
+
+	@Override
+	protected void setWildCardInterpretation(String interpretation) {
+		firstObject.setWildCardInterpretation(interpretation);
+	}
+	
 }

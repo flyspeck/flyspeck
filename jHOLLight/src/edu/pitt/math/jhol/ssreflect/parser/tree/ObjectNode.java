@@ -10,9 +10,6 @@ public abstract class ObjectNode extends Node {
 	protected static final int THEOREM = 2;
 	protected static final int TYPE = 3;
 	
-	// Interpretation for a wild card
-	protected String wildCardInterpretation;
-	
 	@Override
 	public String getRevertCommand() {
 		throw new RuntimeException("ObjectsNode: cannot be reverted");
@@ -28,4 +25,11 @@ public abstract class ObjectNode extends Node {
 	 * Returns object's type
 	 */
 	protected abstract int getType();
+	
+	/**
+	 * Sets the interpretation of a wild card
+	 */
+	protected void setWildCardInterpretation(String interpretation) {
+		throw new RuntimeException("Not a wild card");
+	}
 }

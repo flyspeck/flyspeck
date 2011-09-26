@@ -49,6 +49,21 @@ public class TacticChainNode extends TacticNode {
 		
 		return true;
 	}
+	
+	@Override
+	public boolean isParallel() {
+		if (tactics.size() > 0)
+			return tactics.get(0).isParallel();
+		
+		return false;
+	}
+	
+	/**
+	 * Returns the i-th tactic in the chain
+	 */
+	public TacticNode get(int i) {
+		return tactics.get(i);
+	}
 
 	@Override
 	protected String getString() {
@@ -102,7 +117,10 @@ public class TacticChainNode extends TacticNode {
 		for (int i = 0; i < n; i++) {
 			tactics.get(i).translate(buffer);
 			if (i < n - 1) {
-				buffer.append(" THEN ");
+				if (tactics.get(i + 1).isParallel())
+					buffer.append(" THENL ");
+				else
+					buffer.append(" THEN ");
 			}
 		}
 		

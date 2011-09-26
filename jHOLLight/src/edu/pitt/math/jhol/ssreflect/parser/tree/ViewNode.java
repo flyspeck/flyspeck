@@ -36,11 +36,11 @@ public class ViewNode extends TacticNode {
 		buffer.append('(');
 		buffer.append("DISCH_THEN (MP_TAC o (fun " + name + " -> ");
 		
-		// TODO: search for a better solution 
+		// TODO: find a better solution 
 		if (obj.isWildCard()) {
-			obj.wildCardInterpretation = name;
+			obj.setWildCardInterpretation(name);
 			obj.translate(buffer);
-			obj.wildCardInterpretation = null;
+			obj.setWildCardInterpretation(null);
 		}
 		else {
 			buffer.append("MATCH_MP ");

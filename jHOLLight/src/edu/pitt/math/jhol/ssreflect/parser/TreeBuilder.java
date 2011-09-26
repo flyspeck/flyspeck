@@ -212,7 +212,7 @@ public class TreeBuilder {
 	private TacticNode parseProofExpression() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 		
-		TacticNode tactic = parseFirstTactic();
+		TacticChainNode tactic = parseFirstTactic();
 		TacticNode disch = null;
 		TacticNode intro = null;
 
@@ -229,7 +229,14 @@ public class TreeBuilder {
 		if (t.type == TokenType.ARROW) {
 			// =>
 			scanner.nextToken();
-			disch = tryParseDisch();
+			
+			// Indicates if the first [] is a destructive pattern
+			boolean firstDestructive = false;
+			if (tactic.size() > 0 && tactic.get(tactic.size() - 1) instanceof MoveNode) {
+				firstDestructive = true;
+			}
+			
+			disch = tryParseDisch(firstDestructive);
 			if (disch == null)
 				throw new Exception("null disch: " + t);
 		}
@@ -270,8 +277,9 @@ public class TreeBuilder {
 	 * Parses the discharge expressions
 	 * Returns null if nothing can be parsed
 	 */
-	private TacticNode tryParseDisch() throws Exception {
+	private TacticNode tryParseDisch(boolean firstDestructive) throws Exception {
 		TacticChainNode chain = new TacticChainNode();
+		boolean destructiveFlag = firstDestructive;
 		
 		while (true) {
 			TacticNode simp = tryParseSimp();
@@ -282,8 +290,9 @@ public class TreeBuilder {
 			Token t = scanner.peekToken();
 			if (t.type == TokenType.LBRACK) {
 				// []-pattern
-				TacticNode tac = parseDischCasePattern();
+				TacticNode tac = parseDischCasePattern(destructiveFlag);
 				chain.add(tac);
+				destructiveFlag = true;
 				continue;
 			}
 			
@@ -316,54 +325,49 @@ public class TreeBuilder {
 	 * Parses expression of the form move => [a b [c d]]
 	 * @return
 	 */
-	private TacticNode parseDischCasePattern() throws Exception {
+	private TacticNode parseDischCasePattern(boolean destructiveFlag) throws Exception {
+		TacticChainNode result = new TacticChainNode();
+		TacticParallelNode chains = new TacticParallelNode();
 		TacticChainNode chain = new TacticChainNode();
+		
+		if (destructiveFlag)
+			result.add(new CaseElimNode(false));
+		
 		Token t = scanner.nextToken();
 		if (t.type != TokenType.LBRACK)
 			throw new Exception("[ expected: " + t);
 		
-		// Immediately add one case command
-		chain.add(new CaseElimNode(false));
-		
-		ArrayList<TacticNode> tactics = new ArrayList<TacticNode>();
-		
 		while (true) {
-			// Parse Id's and other []-patterns only
-			// Id or [ or ]
-			t = scanner.peekToken();
+			TacticNode tactic = tryParseDisch(true);
+			chain.add(tactic);
+
+			// ] or |
+			t = scanner.nextToken();
 			
+			// ]
 			if (t.type == TokenType.RBRACK) {
-				// ]
-				scanner.nextToken();
 				break;
 			}
 			
-			if (t.type == TokenType.LBRACK) {
-				// [
-				TacticNode tac = parseDischCasePattern();
-				tactics.add(tac);
+			// |
+			if (t.type == TokenType.BAR) {
+				chains.add(chain);
+				chain = new TacticChainNode();
 				continue;
 			}
 			
-			if (t.type != TokenType.IDENTIFIER)
-				throw new Exception("IDENTIFIER or ] expected: " + t);
-			
-			// Id
-			scanner.nextToken();
-			
-			IdNode id = new IdNode(t.value);
-			DischNode disch = new DischNode(id);
-			tactics.add(disch);
+			throw new Exception("| or ] expected: " + t);
+		}
+
+		if (chains.size() == 0) {
+			result.add(chain);
+		}
+		else {
+			chains.add(chain);
+			result.add(chains);
 		}
 		
-		int n = tactics.size();
-		for (int i = 0; i < n; i++) {
-			chain.add(tactics.get(i));
-			if (i < n - 2)
-				chain.add(new CaseElimNode(false));
-		}
-		
-		return chain;
+		return result;
 	}
 	
 	
@@ -445,7 +449,7 @@ public class TreeBuilder {
 	/**
 	 * Parses a tactics
 	 */
-	private TacticNode parseFirstTactic() throws Exception {
+	private TacticChainNode parseFirstTactic() throws Exception {
 		TacticNode tactic = null;
 		TacticNode view = null;
 		Token t;
@@ -462,7 +466,7 @@ public class TreeBuilder {
 			
 			// move
 			if (t.value == "move")
-				tactic = null;
+				tactic = new MoveNode();
 			// case
 			else if (t.value == "case")
 				tactic = new CaseElimNode(false);
@@ -584,7 +588,7 @@ public class TreeBuilder {
 	 * Parses the body of a "have" expression
 	 */
 	private TacticNode parseHaveBody() throws Exception {
-		TacticNode disch = tryParseDisch();
+		TacticNode disch = tryParseDisch(false);
 
 		boolean assignFlag;
 		

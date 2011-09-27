@@ -104,6 +104,7 @@ double tau_m(double y1,double y2,double y3,double y4,double y5,double y6);
 double tau_m_alt(double y1,double y2,double y3,double y4,double y5,double y6);
 double lfun(double h);
 double lmfun(double h);
+double ell_uvx(double x1,double x2,double x3,double x4,double x5,double x6);
 
 // approximations for y1 derivatives.
 double tau_m_diff_quotient(double y1,double y2,double y3,double y4,double y5,double y6);

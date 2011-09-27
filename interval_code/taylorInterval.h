@@ -368,6 +368,7 @@ class taylorSimplex
 	  taum_x,
 	  halfbump_x1, halfbump_x4;
 
+
 	//////////
 	// functions on an upright,flat,or quasiregular:
 	// circumradius squared of the four faces of a simplex:
@@ -466,7 +467,8 @@ class taylorSimplex
 	  taum_2flat_x,
 	  taum_1flat_x,
 	  delta_pent_x,
-
+          ell_uvx, // sep 2011.
+	  ell_vx2,
 	  ;
 
 	// construct x1^n1 .. x6^n6;

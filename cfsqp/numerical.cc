@@ -413,6 +413,12 @@ double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6) 
 
 double machine_eps() { return 2.0e-8; } // is 0 in formal text.
 
+// 2D hexagon perimter problem (sep 21, 2011):
+
+double ell_uvx(double x1,double x2,double x3,double x4,double x5,double x6) {
+  double et2 = eta2 (x1,x2,x3);
+  return sqrt(et2- (x1/4.0)) + sqrt (et2 - (x2/4.0));
+}
 
 // Material added May 19, 2011 for y1 derivatives of tau.
 

@@ -1425,6 +1425,7 @@ namespace local {
   return g;
  }
 
+
  taylorFunction rotate345(const taylorFunction& f) {
   taylorFunction g = taylorFunction::compose
     (f,
@@ -2351,7 +2352,6 @@ let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
 
 
 
-
   // implement taum_hexall_x.
   /*
   `taum_hexall_x  x14 x12 x23  x1 x2 x3 x4 x5 (x6:real) = 
@@ -2474,10 +2474,24 @@ static const taylorFunction num2 =
 
   const taylorFunction rat2 = num2 * uni(univariate::i_inv,den2);
 
+  const taylorFunction eta2_123 = taylorFunction::compose(
+							  taylorSimplex::eta2_126,x1,x2,unit,unit,unit,x3);
+
+
+  const taylorFunction ell_uvx  = 
+    uni(univariate::i_sqrt, (eta2_123 - x1 * quarter) ) + 
+    uni(univariate::i_sqrt, (eta2_123 - x2 * quarter) )
+   ;
+
+  const taylorFunction ell_vx2  = 
+    uni(univariate::i_sqrt, (eta2_123 - x2 * quarter) )
+   ;
 
 
 }; // end local scope
 
+const taylorFunction taylorSimplex::ell_uvx = local::ell_uvx;
+const taylorFunction taylorSimplex::ell_vx2 = local::ell_vx2;
 
 const taylorFunction taylorSimplex::vol3_x_sqrt = local::vol3_x_sqrt;
 

@@ -5,6 +5,7 @@
 (* Chapter: Further Results                                                               *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2010-05-19                                                           *)
+(* Guid: JKJNYAA (flypaper reference) *)
 (* ========================================================================== *)
 
 (*

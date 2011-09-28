@@ -16,6 +16,8 @@ public class RewriteNode extends TacticNode {
 	private final int rewrites;
 	// If true then the number of rewrites indicates the number of exact rewrites
 	private final boolean exactFlag;
+	// Special flag for -> and <- behavior
+	private final boolean dischRewriteFlag;
 	// Theorem
 	private final ObjectNode theorem;
 	
@@ -23,7 +25,8 @@ public class RewriteNode extends TacticNode {
 	 * Default constructor
 	 */
 	public RewriteNode(ObjectNode theorem, boolean useHolRewrite, 
-				boolean revFlag, int rewrites, boolean repeatFlag, boolean exactFlag) {
+				boolean revFlag, int rewrites, boolean repeatFlag, 
+				boolean exactFlag, boolean dischRewriteFlag) {
 		assert(theorem != null);
 		assert(rewrites > 0);
 		this.theorem = theorem;
@@ -32,6 +35,7 @@ public class RewriteNode extends TacticNode {
 		this.repeatFlag = repeatFlag;
 		this.rewrites = rewrites;
 		this.exactFlag = exactFlag;
+		this.dischRewriteFlag = dischRewriteFlag;
 	}
 	
 	@Override
@@ -54,12 +58,14 @@ public class RewriteNode extends TacticNode {
 
 	@Override
 	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		theorem.beginTranslation(buffer, context);
+		if (!dischRewriteFlag)
+			theorem.beginTranslation(buffer, context);
 	}
 
 	@Override
 	protected void endTranslation(StringBuffer buffer) {
-		theorem.endTranslation(buffer);
+		if (!dischRewriteFlag)
+			theorem.endTranslation(buffer);
 	}
 
 	@Override
@@ -69,7 +75,16 @@ public class RewriteNode extends TacticNode {
 		String beginRepeat = "";
 		String endRepeat = "";
 		
+		// ->
+		String name = "";
+		if (dischRewriteFlag) {
+			name = getUniqTheoremName();
+			buffer.append("DISCH_THEN (fun " + name + " -> (");
+		}
+		
+		// ? or !
 		if (!exactFlag) {
+			// ?
 			int r = rewrites;
 			if (repeatFlag)
 				r = 10;
@@ -78,6 +93,7 @@ public class RewriteNode extends TacticNode {
 			endRepeat = ")";
 		}
 		else {
+			// !
 			if (repeatFlag)
 				beginRepeat = "repeat_tactic 1 9 (";
 			else
@@ -87,21 +103,38 @@ public class RewriteNode extends TacticNode {
 		
 		buffer.append(beginRepeat);
 		
+		// rewrite or rewr
 		if (useHolRewrite)
 			buffer.append("ONCE_REWRITE_TAC[");
 		else
 			buffer.append("rewrite [] (");
 		
+		// -
 		if (revFlag)
 			buffer.append("GSYM ");
-		theorem.translate(buffer);
 		
+		// Theorem
+		if (dischRewriteFlag) {
+			buffer.append(name);
+		}
+		else {
+			theorem.translate(buffer);
+		}
+		
+		// rewrite or rewr
 		if (useHolRewrite)
 			buffer.append("]");
 		else
 			buffer.append(")");
 		
-		buffer.append(endRepeat);		
+		// ? or !
+		buffer.append(endRepeat);
+		
+		// ->
+		if (dischRewriteFlag) {
+			buffer.append("))");
+		}
+		
 		buffer.append(')');
 	}
 	

@@ -17,6 +17,9 @@ public class IdNode extends ObjectNode {
 	// If true, then this node corresponds to an assumption
 	private boolean assumptionFlag;
 	
+	// Constant Id
+	public static final IdNode TMP_ID = new IdNode("_tmp_");
+	
 	/**
 	 * Default constructor
 	 */

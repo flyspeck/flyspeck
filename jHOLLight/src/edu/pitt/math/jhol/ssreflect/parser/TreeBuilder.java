@@ -288,6 +288,18 @@ public class TreeBuilder {
 			ObjectNode obj = null;
 			
 			Token t = scanner.peekToken();
+			
+			// <- or ->
+			if (t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW) {
+				// <- or ->
+				scanner.nextToken();
+				boolean revFlag = t.type == TokenType.LEFT_ARROW;
+				TacticNode rewrite = new RewriteNode(IdNode.TMP_ID, 
+						false, revFlag, 1, false, true, true);
+				chain.add(rewrite);
+				continue;
+			}
+			
 			if (t.type == TokenType.LBRACK) {
 				// []-pattern
 				TacticNode tac = parseDischCasePattern(destructiveFlag);
@@ -322,7 +334,7 @@ public class TreeBuilder {
 	
 	
 	/**
-	 * Parses expression of the form move => [a b [c d]]
+	 * Parses expression of the form move => [a b [c | d]]
 	 * @return
 	 */
 	private TacticNode parseDischCasePattern(boolean destructiveFlag) throws Exception {
@@ -686,7 +698,8 @@ public class TreeBuilder {
 				break;
 			}
 			
-			RewriteNode r = new RewriteNode(thm, useHolRewrite, revFlag, rewrites, repeatFlag, exactFlag);
+			RewriteNode r = new RewriteNode(thm, useHolRewrite, revFlag, 
+					rewrites, repeatFlag, exactFlag, false);
 			chain.add(r);
 		}
 		

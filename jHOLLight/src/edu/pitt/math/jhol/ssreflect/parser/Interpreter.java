@@ -133,14 +133,17 @@ public class Interpreter {
 		/**
 		 * Executes a command and logs it if the result is not null
 		 */
-		public CamlObject execute(String command, CamlType type, boolean logFlag) throws Exception {
+		public CamlObject execute(String command, CamlType type, boolean outFlag, boolean logFlag) throws Exception {
 			CamlObject result = caml.execute(command, type);
 			if (logFlag) {
 				if (result != null && commandLog != null)
 					commandLog.println(command + ";;");
 			}
 			
-			recentOutput = caml.getRawOutput();
+			if (outFlag) {
+				recentOutput = caml.getRawOutput();
+			}
+
 			return result;
 		}
 
@@ -397,10 +400,10 @@ public class Interpreter {
 	 */
 	private void getAndUpdateState() {
 		try {
-			CamlObject obj = executor.execute("(hd o p)()", CamlType.GOAL_STATE, false);
+			CamlObject obj = executor.execute("top_goalstate()", CamlType.GOAL_STATE, false, false);
 			if (obj == null) {
 				System.err.println("Unexpected null result");
-				obj = executor.execute("(hd o p)()", CamlType.GOAL_STATE, false);
+				obj = executor.execute("top_goalstate()", CamlType.GOAL_STATE, false, false);
 			}
 			Goalstate newState = (Goalstate) obj;
 			state = newState;
@@ -424,10 +427,12 @@ public class Interpreter {
 		
 		String rawCmd = nodeCmd.toHOLCommand(getContext());
 		if (mode == PROOF_MODE) {
-			rawCmd = "(hd o e) (" + rawCmd + ")";
-			CamlObject result = executor.execute(rawCmd, CamlType.GOAL_STATE, true);
-			if (result == null)
-				throw new Exception("Null result");
+//			rawCmd = "(hd o e) (" + rawCmd + ")";
+//			CamlObject result = executor.execute(rawCmd, CamlType.GOAL_STATE, true);
+//			if (result == null)
+//				throw new Exception("Null result");
+			rawCmd = "refine (by (VALID (" + rawCmd + ")));;";
+			executor.runCommand(rawCmd);
 		}
 		else {
 			rawCmd += ";;";
@@ -524,6 +529,11 @@ public class Interpreter {
 				executor.runCommand(saveCmd);
 				lemma.provedFlag = true;
 			}
+			else {
+				// Abort the proof
+				executor.runCommand("clear_goalstack();;");
+			}
+			
 			
 			// Remove all proof commands and modify the previous lemma command
 			proofCommands.clear();
@@ -790,6 +800,7 @@ public class Interpreter {
 			}
 		}
 		catch (Exception e) {
+//			e.printStackTrace();
 			System.err.println(e.getMessage());
 			error = e;
 		}

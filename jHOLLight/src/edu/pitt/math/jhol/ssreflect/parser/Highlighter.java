@@ -146,25 +146,34 @@ public class Highlighter {
 	 */
 	public Highlighter() {
 		// Test styles and keywords
-		Style style1 = new Style(true, false, 0x0000A0);
-		Style style2 = new Style(true, false, 0x000000);
-		Style style3 = new Style(false, false, 0x008000);
-		
+		Style red_style = new Style(true, false, 0xA00000);
+		Style blue_style = new Style(true, false, 0x0000A0);
+		Style black_style = new Style(true, false, 0x000000);
+		Style green_style = new Style(false, false, 0x008000);
+
+		// Standard tactics
 		String[] keys = new String[] {"rewrite", "move", "case", 
 							"elim", "rewr", "have", "set",
 							"right", "apply", "split", "left"};
 
 		for (String key : keys) {
-			keywords.put(new Keyword(key), style1);
+			keywords.put(new Keyword(key), blue_style);
 		}
 		
+		// Final tactics
+		keys = new String[] {"done", "by", "first", "last"};
+		for (String key : keys) {
+			keywords.put(new Keyword(key), red_style);
+		}
+
+		// Global commands
 		keys = new String[] {"Section", "Variable", "Hypothesis", "Lemma", 
 				"Qed", "Abort", "End"};
 		for (String key : keys) {
-			keywords.put(new Keyword(key), style2);
+			keywords.put(new Keyword(key), black_style);
 		}
 		
-		keywords.put(new Keyword(TokenType.STRING, null), style3);
+		keywords.put(new Keyword(TokenType.STRING, null), green_style);
 	}
 	
 	

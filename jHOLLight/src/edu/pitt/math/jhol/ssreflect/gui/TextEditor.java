@@ -36,6 +36,9 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	// Highlights the text
 	private final Highlighter highlighter;
 	
+	// If true then the text is highlighted
+	private boolean highlightFlag;
+	
 	// Actions
     private static final String PERIOD_ACTION = "PERIOD";
     private static final String INSERT_PERIOD_ACTION = "INSERT_PERIOD";
@@ -70,6 +73,7 @@ public class TextEditor extends JTextPane implements DocumentListener {
 		this.interpreter = interpreter;
 		this.highlighter = new Highlighter();
 		this.modifiedFlag = false;
+		this.highlightFlag = false;
 		
 		this.writePosition = 0;
 		
@@ -96,8 +100,8 @@ public class TextEditor extends JTextPane implements DocumentListener {
         am.put(INSERT_PERIOD_ACTION, new InsertPeriodAction());
 
         
-        // Ctrl + Z
-        key = KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK);
+        // Ctrl + Space
+        key = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK);
         im.put(key, REVERT_ONE_ACTION);
         am.put(REVERT_ONE_ACTION, new RevertOneAction());
 
@@ -164,6 +168,34 @@ public class TextEditor extends JTextPane implements DocumentListener {
 
 	
 	/**
+	 * Returns the highlight flag value
+	 */
+	public boolean getHighlightFlag() {
+		return highlightFlag;
+	}
+	
+	
+	/**
+	 * Sets the highlight flag
+	 */
+	public void setHighlightFlag(boolean value) {
+		if (this.highlightFlag == value)
+			return;
+	
+		this.highlightFlag = value;
+		int n = getDocument().getLength();
+		
+		if (value) {
+			highlight(0, n);
+		}
+		else {
+			AttributeSet attrs = styleToAttributes(Highlighter.PLAIN_STYLE);
+			getStyledDocument().setCharacterAttributes(0, n, attrs, false);
+		}
+	}
+	
+	
+	/**
 	 * Converts the given style into a set of attributes
 	 */
 	private SimpleAttributeSet styleToAttributes(Highlighter.Style style) {
@@ -187,6 +219,10 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	 */
 	private void highlight(int start, int end) {
 		if (end <= start)
+			return;
+		
+		// Turn off highlighting
+		if (!highlightFlag)
 			return;
 		
 		try {

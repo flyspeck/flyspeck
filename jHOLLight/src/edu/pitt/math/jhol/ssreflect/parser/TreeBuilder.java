@@ -3,6 +3,7 @@ package edu.pitt.math.jhol.ssreflect.parser;
 import java.util.ArrayList;
 
 import edu.pitt.math.jhol.ssreflect.parser.tree.*;
+import edu.pitt.math.jhol.ssreflect.parser.tree.RewriteNode.RewriteParameters;
 
 /**
  * Builds a syntactic tree
@@ -373,22 +374,29 @@ public class TreeBuilder {
 	private TacticNode tryParseDisch(boolean firstDestructive) throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 		boolean destructiveFlag = firstDestructive;
+		Token t;
 		
 		while (true) {
 			TacticNode simp = tryParseSimp();
 			chain.add(simp);
 
 			ObjectNode obj = null;
+			// TODO: parsing of rewrite parameters requires look ahead operations
+//			RewriteParameters params = tryParseRewriteParameters();
+			RewriteParameters params = new RewriteParameters();
+			t = scanner.peekToken();
 			
-			Token t = scanner.peekToken();
+			boolean arrowFlag = t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW;
 			
+			if (params.modifiedFlag && !arrowFlag)
+				throw new Exception("<- or -> expected: " + t);
+
 			// <- or ->
-			if (t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW) {
+			if (arrowFlag) {
 				// <- or ->
 				scanner.nextToken();
-				boolean revFlag = t.type == TokenType.LEFT_ARROW;
-				TacticNode rewrite = new RewriteNode(IdNode.TMP_ID, 
-						false, revFlag, 1, false, true, true);
+				params.revFlag = t.type == TokenType.LEFT_ARROW;
+				TacticNode rewrite = new RewriteNode(params, IdNode.TMP_ID, true, false);
 				chain.add(rewrite);
 				continue;
 			}
@@ -543,8 +551,11 @@ public class TreeBuilder {
 			if (t.type != TokenType.IDENTIFIER)
 				throw new Exception("IDENTIFIER expected: " + t);
 			
+			// exact
+			if (t.value == "exact")
+				tactic = new RawTactic("exact_tac");
 			// done
-			if (t.value == "done")
+			else if (t.value == "done")
 				tactic = new RawTactic("done_tac");
 			// move
 			else if (t.value == "move")
@@ -700,7 +711,128 @@ public class TreeBuilder {
 		
 		HaveNode have = new HaveNode(disch, obj, assignFlag);
 		return have;
-	} 
+	}
+	
+	
+	/**
+	 * Parses the occ-switch: {1 2 -3}
+	 * @return null if nothing can be parsed
+	 */
+	private ArrayList<Integer> tryParseOccSwitch() throws Exception {
+		ArrayList<Integer> result = new ArrayList<Integer>();
+		Token t = scanner.peekToken();
+		if (t.type != TokenType.LBRACE)
+			return null;
+
+		// {
+		scanner.nextToken();
+		
+		while (true) {
+			// } or an integer
+			t = scanner.nextToken();
+			if (t.type == TokenType.RBRACE)
+				break;
+			
+			if (t.type != TokenType.INTEGER)
+				throw new Exception("} or an integer expected: " + t);
+			
+			result.add(t.intValue);
+		}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * Parses a pattern expression [term]
+	 * @return null if nothing can be parsed
+	 */
+	private ObjectNode tryParsePattern() throws Exception {
+		Token t = scanner.peekToken();
+		if (t.type != TokenType.LBRACK)
+			return null;
+		
+		// [
+		scanner.nextToken();
+		
+		ObjectNode obj = tryParseObject();
+		if (obj == null)
+			throw new Exception("Pattern expected: " + scanner.peekToken());
+		
+		// ]
+		t = scanner.nextToken();
+		if (t.type != TokenType.RBRACK)
+			throw new Exception("] expected: " + t);
+		
+		return obj;
+	}
+	
+	
+	/**
+	 * Parses the parameters of a rewrite operation
+	 * @return default parameters if nothing can be parsed
+	 */
+	private RewriteNode.RewriteParameters tryParseRewriteParameters() throws Exception {
+		RewriteNode.RewriteParameters params = new RewriteNode.RewriteParameters();
+		params.rewrites = -1;
+		
+		Token t = scanner.peekToken();
+		// RevFlag
+		if (t.type == TokenType.DASH) {
+			// -
+			scanner.nextToken();
+			params.modifiedFlag = true;
+			params.revFlag = true;
+		}
+
+		// Number of rewrites
+		t = scanner.peekToken();
+		if (t.type == TokenType.INTEGER) {
+			// number
+			scanner.nextToken();
+			params.modifiedFlag = true;
+			params.rewrites = t.intValue;
+
+			// -3 <=> - 3
+			if (params.rewrites < 0) {
+				params.revFlag = true;
+				params.rewrites = -params.rewrites;
+			}
+				
+			if (params.rewrites < 1)
+				throw new Exception("The number of rewrites should be >= 1: " + t);
+			
+			t = scanner.peekToken();
+			if (t.type != TokenType.EXCLAMATION && t.type != TokenType.QUESTION)
+				throw new Exception("! or ? expected: " + t);
+		}
+		
+		// ! or ?
+		t = scanner.peekToken();
+		if (t.type == TokenType.EXCLAMATION || t.type == TokenType.QUESTION) {
+			// ! or ?
+			scanner.nextToken();
+			params.modifiedFlag = true;
+			params.exactFlag = (t.type == TokenType.EXCLAMATION);
+			if (params.rewrites <= 0)
+				params.repeatFlag = true;
+		}
+
+		if (params.rewrites <= 0)
+			params.rewrites = 1;
+		
+		// occ-switch {...}
+		params.occ = tryParseOccSwitch();
+		if (params.occ != null)
+			params.modifiedFlag = true;
+		
+		// pattern [...]
+		params.pattern = tryParsePattern();
+		if (params.pattern != null)
+			params.modifiedFlag = true;
+		
+		return params;
+	}
 	
 	
 	/**
@@ -710,66 +842,20 @@ public class TreeBuilder {
 		TacticChainNode chain = new TacticChainNode();
 		
 		while (true) {
-			boolean revFlag = false;
-			boolean exactFlag = true;
-			boolean repeatFlag = false;
-			int rewrites = -1;
-			
 			TacticNode simp = tryParseSimp();
 			chain.add(simp);
-			
-			Token t = scanner.peekToken();
-			// RevFlag
-			if (t.type == TokenType.DASH) {
-				// -
-				scanner.nextToken();
-				revFlag = true;
-			}
-			
-			// Number of rewrites
-			t = scanner.peekToken();
-			if (t.type == TokenType.INTEGER) {
-				// number
-				scanner.nextToken();
-				rewrites = t.intValue;
 
-				// -3 <=> - 3
-				if (rewrites < 0) {
-					revFlag = true;
-					rewrites = -rewrites;
-				}
-					
-				if (rewrites < 1)
-					throw new Exception("The number of rewrites should be >= 1: " + t);
-				
-				t = scanner.peekToken();
-				if (t.type != TokenType.EXCLAMATION && t.type != TokenType.QUESTION)
-					throw new Exception("! or ? expected: " + t);
-			}
-			
-			// ! or ?
-			t = scanner.peekToken();
-			if (t.type == TokenType.EXCLAMATION || t.type == TokenType.QUESTION) {
-				// ! or ?
-				scanner.nextToken();
-				exactFlag = (t.type == TokenType.EXCLAMATION);
-				if (rewrites <= 0)
-					repeatFlag = true;
-			}
-			
-			if (rewrites <= 0)
-				rewrites = 1;
-				
+			RewriteNode.RewriteParameters params = tryParseRewriteParameters();
+
 			// Theorem
 			ObjectNode thm = tryParseObject();
 			if (thm == null) {
-				if (revFlag)
-					throw new Exception("THEOREM expected: " + t);
+				if (params.modifiedFlag)
+					throw new Exception("THEOREM expected: " + scanner.peekToken());
 				break;
 			}
 			
-			RewriteNode r = new RewriteNode(thm, useHolRewrite, revFlag, 
-					rewrites, repeatFlag, exactFlag, false);
+			RewriteNode r = new RewriteNode(params, thm, false, useHolRewrite);
 			chain.add(r);
 		}
 		

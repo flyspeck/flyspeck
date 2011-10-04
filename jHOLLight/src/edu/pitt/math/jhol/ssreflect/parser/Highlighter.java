@@ -138,7 +138,7 @@ public class Highlighter {
 	private final Hashtable<Keyword, Style> keywords = new Hashtable<Keyword, Style>();
 	
 	// The style for a plain text
-	public static final Style plainStyle = new Style(0);
+	public static final Style PLAIN_STYLE = new Style(0);
 
 	
 	/**
@@ -161,7 +161,7 @@ public class Highlighter {
 		}
 		
 		// Final tactics
-		keys = new String[] {"done", "by", "first", "last"};
+		keys = new String[] {"done", "by", "first", "last", "exact"};
 		for (String key : keys) {
 			keywords.put(new Keyword(key), red_style);
 		}
@@ -206,7 +206,7 @@ public class Highlighter {
 			
 			Style style = keywords.get(key);
 			if (style == null) {
-				style = plainStyle;
+				style = PLAIN_STYLE;
 			}
 			
 			Segment s = new Segment(start, end - start, style);

@@ -85,10 +85,29 @@ let move labels (g:goal) =
     (build labels g_tm) g;;
 
 
-(* Creates an abbreviation for the given term with the given name *)
-let set_tac name tm =
-  let abbrev_tm = mk_eq (mk_var (name, type_of tm), tm) in
-    ABBREV_TAC abbrev_tm THEN POP_ASSUM (LABEL_TAC (name ^ "_def"));;
+
+
+(* Finds a subterm in the given term which matches agains the given
+   pattern; local_consts is a list of variable which must be fixed in 
+   the pattern.
+   This function returns a path to the first matched subterm *)
+let match_subterm local_consts pat tm =
+  let rec find tm path =
+    try
+      let inst = term_match local_consts pat tm in
+	if instantiate inst pat = tm then path else failwith "Bad instantiation"
+    with x ->
+      try 
+	match tm with
+	  | Abs(_, b_tm) -> find b_tm (path^"b")
+	  | Comb(l_tm, r_tm) ->
+	      try find l_tm (path^"l")
+	      with Failure _ -> find r_tm (path^"r")
+  	  | _ -> failwith "match_subterm: no match"
+      with x ->
+	failwith ("match_subterm: no match: "^string_of_term pat) in
+    find tm "";;
+
 
 
 (* Returns paths to all subterms satisfying p *)
@@ -105,11 +124,31 @@ let find_all_paths p tm =
     find_path p tm "";;
 
 
+(* Instantiates types of the given context variables in the given term.*)
+let inst_context_vars vars tm_vars tm = 
+  let find_type var =
+    let name, ty = dest_var var in
+      try
+	(ty, type_of (assoc name vars))
+      with Failure _ -> 
+	failwith (name^" is free in the term `"^(string_of_term tm)^"` and in the context") in
+  let ty_src, ty_dst = unzip (map find_type tm_vars) in
+  let ty_inst = itlist2 type_match ty_src ty_dst [] in
+    inst ty_inst tm;;
 
+
+(* Find a subterm corresponding to the given pattern.
+   Before matching, the term types are instantiated in the given context. *)
+let match_subterm_in_context pat tm (g : goal) =
+  let context_vars = get_context_vars g in
+  let f0_vars = filter (fun tm -> ((fst o dest_var) tm).[0] <> '_') (frees pat) in
+  let pattern = inst_context_vars context_vars f0_vars pat in
+  let f1_vars = filter (fun tm -> ((fst o dest_var) tm).[0] <> '_') (frees pattern) in
+    match_subterm f1_vars pattern tm;;
 
 
 (* Rewrite tactic for usual and conditional theorems *)
-let rewrite occ th g =
+let rewrite occ pat th g =
   let rec match_theorem ffun th tm str =
     try (PART_MATCH ffun th tm, true, str)
     with Failure _ ->
@@ -122,46 +161,76 @@ let rewrite occ th g =
 	| Abs(_, b_tm) ->
 	    match_theorem ffun th b_tm (str ^ "b")
 	| _ -> (th, false, str) in
-
+  (* Initialize auxiliary variables *)
   let goal_tm = snd g in
   let th0 = REWRITE_RULE[IMP_IMP] th in
   let concl_th = concl (SPEC_ALL th0) in
   let cond_flag = is_imp concl_th in
   let eq_tm = if cond_flag then rand concl_th else concl_th in
   let match_fun = (if is_eq eq_tm then lhand else I) o (if cond_flag then rand else I) in
-  let matched_th, flag, path = match_theorem match_fun th0 goal_tm "" in
-  if not flag then
-	failwith "lhs does not match any term in the goal"
-  else
-	let matched_tm = (match_fun o concl) matched_th in
-	let paths = find_all_paths (fun x -> x = matched_tm) goal_tm in
-	let paths = if occ = [] then paths else
-	  map (fun i -> List.nth paths (i - 1)) occ in
-	let tm_frees = frees matched_tm in
-	let th_frees = frees (concl th0) in
-	let mth_frees = frees (concl matched_th) in
-	let vars = subtract mth_frees (union th_frees tm_frees) in
-	  if vars = [] then
-	    let r_tac = fun th -> MAP_EVERY (fun path -> GEN_REWRITE_TAC (PATH_CONV path) [th]) paths in
-	      if cond_flag then
-		(MP_TAC matched_th THEN ANTS_TAC THENL [ALL_TAC; DISCH_THEN r_tac]) g
-	      else
-		(r_tac matched_th) g
-	  else
-	    let rec gen_vars vars th =
-	      match vars with
-		| v :: vs -> gen_vars vs (GEN v th)
-		| [] -> th in
-	    let th2 = gen_vars vars matched_th in
-	      (MP_TAC th2 THEN REWRITE_TAC[LEFT_IMP_FORALL_THM]) g;;
 
+  (* Apply the pattern *)
+  let goal_subterm_path = 
+    if pat = [] then "" else match_subterm_in_context (hd pat) goal_tm g in
+  let goal_subterm = follow_path goal_subterm_path goal_tm in
+
+  (* Match the theorem *)
+  let matched_th, flag, path = match_theorem match_fun th0 goal_subterm goal_subterm_path in
+  if not flag then
+    failwith "lhs does not match any term in the goal"
+  else
+    let matched_tm = (match_fun o concl) matched_th in
+    (* Find all matched subterms *)
+    let paths = find_all_paths (fun x -> x = matched_tm) goal_tm in
+    let paths = if occ = [] then paths else
+      map (fun i -> List.nth paths (i - 1)) occ in
+    (* Find all free variables in the matched theorem which do not correspond to free variables in
+       the matched subterm *)
+    let tm_frees = frees matched_tm in
+    let th_frees = frees (concl th0) in
+    let mth_frees = frees (concl matched_th) in
+    let vars = subtract mth_frees (union th_frees tm_frees) in
+      if vars = [] then
+	let r_tac = fun th -> MAP_EVERY (fun path -> GEN_REWRITE_TAC (PATH_CONV path) [th]) paths in
+	  if cond_flag then
+	    (MP_TAC matched_th THEN ANTS_TAC THENL [ALL_TAC; DISCH_THEN r_tac]) g
+	  else
+	    (r_tac matched_th) g
+      else
+	let rec gen_vars vars th =
+	  match vars with
+	    | v :: vs -> gen_vars vs (GEN v th)
+	    | [] -> th in
+	let th2 = gen_vars vars matched_th in
+	  (MP_TAC th2 THEN REWRITE_TAC[LEFT_IMP_FORALL_THM]) g;;
+
+
+
+
+(* Analogue of the "done" tactic in SSReflect *)
+let done_tac = ASM_REWRITE_TAC[] THEN FAIL_TAC "done: not all subgoals are proved";;
 
 (* Trivial simplification *)
-let triv = ASM_REWRITE_TAC[];;
+let triv = TRY done_tac;;
+
+(* The 'exact' tactic *)
+(* TODO: do [done | by move => top; apply top], here apply top 
+   works as ACCEPT_TAC with matching (rewriting) in some cases *)
+let exact_tac = FIRST [done_tac; 
+		       move ["_tmp_"] THEN USE_THEN "_tmp_" (fun th -> MATCH_MP_TAC th) THEN done_tac];;
 
 
-(* Analogue of "done" tactic in SSReflect *)
-let done_tac = triv THEN FAIL_TAC "done: not all subgoals are proved";;
+
+(* Creates an abbreviation for the given term with the given name *)
+let set_tac name tm (g : goal) =
+  let goal_tm = snd g in
+  let tm0 = 
+    try 
+      follow_path (match_subterm_in_context tm goal_tm g) goal_tm
+    with Failure _ -> tm in
+  let abbrev_tm = mk_eq (mk_var (name, type_of tm0), tm0) in
+    (ABBREV_TAC abbrev_tm THEN POP_ASSUM (LABEL_TAC (name ^ "_def"))) g;;
+
 
 
 (* Specializes the theorem using the given set of variables *)

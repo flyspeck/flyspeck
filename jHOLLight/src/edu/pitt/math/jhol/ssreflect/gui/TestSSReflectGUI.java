@@ -12,6 +12,7 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 
 import javax.swing.BoxLayout;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -53,6 +54,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	// Configuration group of this frame
 	private static final String CONF_GROUP = "main-window";
 	private static final String CONF_GROUP2 = "main-window.components";
+	private static final String CONF_GROUP_EDIT = "editor";
 	
 	// Commands
 	private static final String CMD_FILE_NEW = "file-new";
@@ -60,9 +62,12 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	private static final String CMD_FILE_SAVE = "file-save";
 	private static final String CMD_FILE_SAVE_AS = "file-save-as";
 	private static final String CMD_FILE_EXIT = "file-exit";
+	private static final String CMD_EDIT_HIGHLIGHT = "edit-highlight";
 	
 	// File menu
 	private JMenu fileMenu;
+	// Highlight switch
+	private JCheckBoxMenuItem highlightMenu;
 	
 	// Splitter
 	private JSplitPane splitter1, splitter2, splitter3;
@@ -153,6 +158,11 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	private void initEditor() {
 		// Create the text editor
 		editor = new TextEditor(interpreter);
+		
+		Configuration.Group conf = configuration.getGroup(CONF_GROUP_EDIT);
+		boolean highlight = conf.getBoolVal("highlight", false);
+		highlightMenu.setSelected(highlight);
+		editor.setHighlightFlag(highlight);
 		
 		editor.addListener(new TextEditor.Listener() {
 			@Override
@@ -268,6 +278,10 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		group.setVal("split1", splitter1.getDividerLocation());
 		group.setVal("split2", splitter2.getDividerLocation());
 		group.setVal("split3", splitter3.getDividerLocation());
+		
+		// Editor
+		group = conf.getGroup(CONF_GROUP_EDIT);
+		group.setVal("highlight", editor.getHighlightFlag());
 	}
 	
 	
@@ -278,7 +292,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		String logName = "caml/test.log";
 		
 		if (fileManager.getCurrentFile() != null) {
-			logName = fileManager.getCurrentFile().getName() + ".log";
+			logName = fileManager.getCurrentFile().getAbsolutePath() + ".log";
 		}
 
 		if (text != null) {
@@ -369,9 +383,20 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     	menu.add(menuItem);
 
     	this.fileMenu = menu;
+
+    	/////////////////////
+    	// Edit
+    	menu = new JMenu("Edit");
+    	menu.setMnemonic(KeyEvent.VK_E);
+    	menuBar.add(menu);
+    	
+    	highlightMenu = new JCheckBoxMenuItem("Highlight");
+    	menuItem = highlightMenu;
+    	menuItem.setActionCommand(CMD_EDIT_HIGHLIGHT);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
     	
     	// Finish the menu initialization
-    	menuBar.add(menu);
     	this.setJMenuBar(menuBar);    	
     }
     
@@ -384,6 +409,13 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 			return;
 		
 		cmd = cmd.intern();
+		
+		// Highlight
+		if (cmd == CMD_EDIT_HIGHLIGHT) {
+			boolean flag = highlightMenu.isSelected();
+			editor.setHighlightFlag(flag);
+			return;
+		}
 		
 		// Exit
 		if (cmd == CMD_FILE_EXIT) {

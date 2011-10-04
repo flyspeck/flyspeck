@@ -15,6 +15,10 @@ public class TacticParallelNode extends TacticNode {
 	public TacticParallelNode() {
 	}
 	
+	public TacticParallelNode(TacticNode tac) {
+		add(tac);
+	}
+	
 	/**
 	 * Adds a tactics to the set
 	 * @param tactic

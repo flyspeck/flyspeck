@@ -153,7 +153,7 @@ public class Highlighter {
 
 		// Standard tactics
 		String[] keys = new String[] {"rewrite", "move", "case", 
-							"elim", "rewr", "have", "set",
+							"elim", "rewr", "have", "set", "suff",
 							"right", "apply", "split", "left"};
 
 		for (String key : keys) {
@@ -161,7 +161,7 @@ public class Highlighter {
 		}
 		
 		// Final tactics
-		keys = new String[] {"done", "by", "first", "last", "exact"};
+		keys = new String[] {"done", "by", "first", "last", "exact", "do"};
 		for (String key : keys) {
 			keywords.put(new Keyword(key), red_style);
 		}

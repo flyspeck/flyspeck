@@ -207,8 +207,13 @@ public class TreeBuilder {
 			Token t = scanner.peekToken();
 			TacticChainNode ts;
 		
+			// [tac1 | ... ]
+			if (t.type == TokenType.LBRACK) {
+				chain.add(parseParallelTactics());
+				processedFlag = true;
+			}
 			// by, first, last
-			if (t.type == TokenType.IDENTIFIER) {
+			else if (t.type == TokenType.IDENTIFIER) {
 				// by
 				if (t.value == "by") {
 					// by
@@ -296,6 +301,36 @@ public class TreeBuilder {
 		}
 		
 		return chain;
+	}
+	
+	
+	/**
+	 * Parses expressions of the form [tac1 | tac2 | ... ]
+	 * @return
+	 * @throws Exception
+	 */
+	private TacticParallelNode parseParallelTactics() throws Exception {
+		TacticParallelNode ts = new TacticParallelNode();
+		
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.LBRACK)
+			throw new Exception("[ expected: " + t);
+		
+		// Parse all tactics
+		while (true) {
+			TacticChainNode chain = parseTacticChain();
+			ts.add(chain);
+		
+			// ] or |
+			t = scanner.nextToken();
+			if (t.type == TokenType.RBRACK)
+				break;
+			
+			if (t.type != TokenType.BAR)
+				throw new Exception("] or | expected: " + t);
+		}
+		
+		return ts;
 	}
 	
 	
@@ -509,7 +544,7 @@ public class TreeBuilder {
 		if (t.type == TokenType.TRIV) {
 			// //
 			scanner.nextToken();
-			return new RawTactic("ASM_REWRITE_TAC[]");
+			return new RawTactic("triv_tac");
 		}
 
 		return null;
@@ -550,9 +585,12 @@ public class TreeBuilder {
 			t = scanner.nextToken();
 			if (t.type != TokenType.IDENTIFIER)
 				throw new Exception("IDENTIFIER expected: " + t);
-			
+
+			// do
+			if (t.value == "do")
+				tactic = parseDoBody();
 			// exact
-			if (t.value == "exact")
+			else if (t.value == "exact")
 				tactic = new RawTactic("exact_tac");
 			// done
 			else if (t.value == "done")
@@ -577,7 +615,9 @@ public class TreeBuilder {
 				tactic = parseRewriteBody(true);
 			// have
 			else if (t.value == "have")
-				tactic = parseHaveBody();
+				tactic = parseHaveBody(false);
+			else if (t.value == "suff")
+				tactic = parseHaveBody(true);
 			// set
 			else if (t.value == "set")
 				tactic = parseSetBody();
@@ -680,7 +720,7 @@ public class TreeBuilder {
 	/**
 	 * Parses the body of a "have" expression
 	 */
-	private TacticNode parseHaveBody() throws Exception {
+	private TacticNode parseHaveBody(boolean suffFlag) throws Exception {
 		TacticNode disch = tryParseDisch(false);
 
 		boolean assignFlag;
@@ -710,6 +750,12 @@ public class TreeBuilder {
 			throw new Exception("OBJECT expected: " + t);
 		
 		HaveNode have = new HaveNode(disch, obj, assignFlag);
+		if (suffFlag) {
+			TacticNode rot_tac = new RawTactic("(THENL_ROT 1)");
+			BinaryNode bin = new BinaryNode(rot_tac, have, null);
+			return bin;
+		}
+		
 		return have;
 	}
 	
@@ -836,6 +882,54 @@ public class TreeBuilder {
 	
 	
 	/**
+	 * Parses a 'do'-expression
+	 */
+	private RepeatNode parseDoBody() throws Exception {
+		int iterations = -1;
+		boolean exactFlag = true;
+		boolean repeatFlag = false;
+		
+		// Number of rewrites
+		Token t = scanner.peekToken();
+		if (t.type == TokenType.INTEGER) {
+			// number
+			scanner.nextToken();
+			iterations = t.intValue;
+			
+			if (iterations < 0)
+				throw new Exception("The number of iterations should be >= 0: " + t);
+		}
+		
+		// ! or ?
+		t = scanner.peekToken();
+		if (t.type == TokenType.EXCLAMATION || t.type == TokenType.QUESTION) {
+			// ! or ?
+			scanner.nextToken();
+			exactFlag = (t.type == TokenType.EXCLAMATION);
+			if (iterations <= 0)
+				repeatFlag = true;
+		}
+
+		if (iterations <= 0)
+			iterations = 1;
+
+		// Parse a tactic
+		TacticParallelNode ts; 
+		
+		t = scanner.peekToken();
+		if (t.type == TokenType.LBRACK) {
+			ts = parseParallelTactics();
+		}
+		else {
+			TacticNode tac = parseProofExpression();
+			ts = new TacticParallelNode(tac);
+		}
+		
+		return new RepeatNode(ts, iterations, repeatFlag, exactFlag);
+	}
+	
+	
+	/**
 	 * Parses the body of a "rewrite" expression
 	 */
 	private TacticNode parseRewriteBody(boolean useHolRewrite) throws Exception {
@@ -856,7 +950,8 @@ public class TreeBuilder {
 			}
 			
 			RewriteNode r = new RewriteNode(params, thm, false, useHolRewrite);
-			chain.add(r);
+			RepeatNode repeat = new RepeatNode(r, params);
+			chain.add(repeat);
 		}
 		
 		if (chain.isEmpty())

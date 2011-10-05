@@ -350,7 +350,7 @@ public class TreeBuilder {
 		if (t.type == TokenType.COLON) {
 			// :
 			scanner.nextToken();
-			intro = parseIntro();
+			intro = parseDisch();
 		}
 
 		// =>
@@ -365,7 +365,7 @@ public class TreeBuilder {
 				firstDestructive = true;
 			}
 			
-			disch = tryParseDisch(firstDestructive);
+			disch = tryParseIntro(firstDestructive);
 			if (disch == null)
 				throw new Exception("null disch: " + t);
 		}
@@ -382,31 +382,38 @@ public class TreeBuilder {
 	
 	
 	/**
-	 * Parses the introduction expressions
+	 * Parses discharging expressions
 	 */
-	private TacticNode parseIntro() throws Exception {
+	private TacticNode parseDisch() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
+		ArrayList<DischNode> dischs = new ArrayList<DischNode>();
 		
 		while (true) {
 			ObjectNode obj = tryParseObject();
 			if (obj == null)
 				break;
-			
-			chain.add(new IntroNode(obj));
+		
+			dischs.add(new DischNode(obj));
 		}
 		
-		if (chain.isEmpty())
-			throw new Exception("empty intro: " + scanner.peekToken());
+		int n = dischs.size();
+		if (n == 0)
+			throw new Exception("empty disch: " + scanner.peekToken());
+		
+		// Revert the order of discharges
+		for (int i = n - 1; i >= 0; i--) {
+			chain.add(dischs.get(i));
+		}
 		
 		return chain;
 	}
 	
 	
 	/**
-	 * Parses the discharge expressions
+	 * Parses introduction expressions
 	 * Returns null if nothing can be parsed
 	 */
-	private TacticNode tryParseDisch(boolean firstDestructive) throws Exception {
+	private TacticNode tryParseIntro(boolean firstDestructive) throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 		boolean destructiveFlag = firstDestructive;
 		Token t;
@@ -438,7 +445,7 @@ public class TreeBuilder {
 			
 			if (t.type == TokenType.LBRACK) {
 				// []-pattern
-				TacticNode tac = parseDischCasePattern(destructiveFlag);
+				TacticNode tac = parseIntroCasePattern(destructiveFlag);
 				chain.add(tac);
 				destructiveFlag = true;
 				continue;
@@ -458,7 +465,7 @@ public class TreeBuilder {
 			if (obj == null)
 				break;
 			
-			DischNode disch = new DischNode(obj);
+			IntroductionNode disch = new IntroductionNode(obj);
 			chain.add(disch);
 		}
 		
@@ -473,7 +480,7 @@ public class TreeBuilder {
 	 * Parses expression of the form move => [a b [c | d]]
 	 * @return
 	 */
-	private TacticNode parseDischCasePattern(boolean destructiveFlag) throws Exception {
+	private TacticNode parseIntroCasePattern(boolean destructiveFlag) throws Exception {
 		TacticChainNode result = new TacticChainNode();
 		TacticParallelNode chains = new TacticParallelNode();
 		TacticChainNode chain = new TacticChainNode();
@@ -486,7 +493,7 @@ public class TreeBuilder {
 			throw new Exception("[ expected: " + t);
 		
 		while (true) {
-			TacticNode tactic = tryParseDisch(true);
+			TacticNode tactic = tryParseIntro(true);
 			chain.add(tactic);
 
 			// ] or |
@@ -724,7 +731,7 @@ public class TreeBuilder {
 	 * Parses the body of a "have" expression
 	 */
 	private TacticNode parseHaveBody(boolean suffFlag) throws Exception {
-		TacticNode disch = tryParseDisch(false);
+		TacticNode disch = tryParseIntro(false);
 
 		boolean assignFlag;
 		

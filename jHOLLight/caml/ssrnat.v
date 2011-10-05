@@ -186,12 +186,12 @@ Lemma implyNb : `!a b. (~a ==> b) <=> a \/ b`. "MESON_TAC[]". Qed.
 -- move => H.
 -- rewrite H. --FIXME: fails for no particular reason
 
-Lemma gtE : `!m n. m >= n <=> n <= m`. by arith. Qed.
+Lemma geqE : `!m n. m >= n <=> n <= m`. by arith. Qed.
 
 Lemma leq_total : `!m n. (m <= n) \/ (m >= n)`.
 --Proof. by rewrite -implyNb -ltnNge; apply/implyP; exact: ltnW. Qed.
 move => m n.
-rewrite -implyNb -ltnNge gtE => lt_nm; exact: ltnW. Qed.
+rewrite -implyNb -ltnNge geqE => lt_nm; exact: ltnW. Qed.
 
 
 --(* Monotonicity lemmas *)
@@ -312,75 +312,99 @@ by apply: leq_trans; rewrite -leq_sub_add leqnn.
 Qed.
 
 
-Lemma leq_sub2 m1 m2 n1 n2 : m1 <= m2 -> n2 <= n1 -> m1 - n1 <= m2 - n2.
-Proof.
-by move/(leq_sub2r n1)=> le_m12; move/(leq_sub2l m2); exact: leq_trans.
+Lemma leq_sub2 : `!m1 m2 n1 n2. m1 <= m2 ==> n2 <= n1 ==> m1 - n1 <= m2 - n2`.
+-- by move/(leq_sub2r n1)=> le_m12; move/(leq_sub2l m2); exact: leq_trans.
+move => m1 m2 n1 n2.
+move/(leq_sub2r n1) => le_m12; move/(leq_sub2l m2); exact: leq_trans. Qed.
+
+Lemma ltn_sub2r : `!p m n. p < n ==> m < n ==> m - p < n - p`.
+--Proof. by move/ltn_subS->; exact: (@leq_sub2r p.+1). Qed.
+move => p m n.
+move/ltn_subS => ->; rewrite !ltE leqSS.
+by move/(leq_sub2r `SUC p`); rewrite subSS.
 Qed.
 
-Lemma ltn_sub2r p m n : p < n -> m < n -> m - p < n - p.
-Proof. by move/ltn_subS->; exact: (@leq_sub2r p.+1). Qed.
-
-Lemma ltn_sub2l p m n : m < p -> m < n -> p - n < p - m.
-Proof. by move/ltn_subS->; exact: leq_sub2l. Qed.
-
-Lemma ltn_add_sub m n p : (m + n < p) = (n < p - m).
-Proof. by rewrite !ltnNge leq_sub_add. Qed.
-
-(* Eliminating the idiom for structurally decreasing compare and subtract. *)
-Lemma subn_if_gt T m n F (E : T) :
-  (if m.+1 - n is m'.+1 then F m' else E) = (if n <= m then F (m - n) else E).
-Proof.
-by case: leqP => [le_nm | /eqnP-> //]; rewrite -{1}(subnK le_nm) -addSn addnK.
+Lemma ltn_sub2l : `!p m n. m < p ==> m < n ==> p - n < p - m`.
+--Proof. by move/ltn_subS->; exact: leq_sub2l. Qed.
+move => p m n.
+move/ltn_subS => ->; rewrite !ltE leqSS.
+by move/(leq_sub2l p).
 Qed.
 
-(* Max and min *)
+Lemma ltn_add_sub : `!m n p. (m + n < p) = (n < p - m)`.
+--Proof. by rewrite !ltnNge leq_sub_add. Qed.
+move => m n p.
+by rewrite !ltnNge leq_sub_add. Qed.
 
-Definition maxn m n := if m < n then n else m.
+--(* Eliminating the idiom for structurally decreasing compare and subtract. *)
+--Lemma subn_if_gt T m n F (E : T) :
+--  (if m.+1 - n is m'.+1 then F m' else E) = (if n <= m then F (m - n) else E).
+--Proof.
+--by case: leqP => [le_nm | /eqnP-> //]; rewrite -{1}(subnK le_nm) -addSn addnK.
+--Qed.
 
-Definition minn m n := if m < n then m else n.
+--(* Max and min *)
 
-Lemma max0n : left_id 0 maxn.  Proof. by case. Qed.
-Lemma maxn0 : right_id 0 maxn. Proof. by []. Qed.
+--Definition maxn m n := if m < n then n else m.
 
-Lemma maxnC : commutative maxn.
-Proof. by move=> m n; rewrite /maxn; case ltngtP. Qed.
+--Definition minn m n := if m < n then m else n.
+"let maxn = new_definition `maxn m n = if m < n then n else m`".
+"let minn = new_definition `minn m n = if m < n then m else n`".
 
-Lemma maxnl m n : m >= n -> maxn m n = m.
-Proof. by rewrite /maxn; case leqP. Qed.
+Lemma max0n : `!n. maxn 0 n = n`. by rewrite maxn; arith. Qed.
+Lemma maxn0 : `!n. maxn n 0 = n`. by rewrite maxn; arith. Qed.
 
-Lemma maxnr m n : m <= n -> maxn m n = n.
-Proof. by move/maxnl; rewrite maxnC. Qed.
+Lemma maxnC : `!m n. maxn m n = maxn n m`. by rewrite !maxn; arith. Qed.
 
-Lemma add_sub_maxn m n : m + (n - m) = maxn m n.
-Proof. by rewrite /maxn addnC; case: leqP => [/eqnP-> | /ltnW/subnK]. Qed.
+Lemma maxnl : `!m n. m >= n ==> maxn m n = m`.
+--Proof. by rewrite /maxn; case leqP. Qed.
+by rewrite maxn; arith. Qed.
 
-Lemma maxnAC : right_commutative maxn.
-Proof.
-by move=> m n p; rewrite -!add_sub_maxn -!addnA -!subn_sub !add_sub_maxn maxnC.
+Lemma maxnr : `!m n. m <= n ==> maxn m n = n`. by rewrite maxn; arith. Qed.
+
+Lemma add_sub_maxn : `!m n. m + (n - m) = maxn m n`.
+--Proof. by rewrite /maxn addnC; case: leqP => [/eqnP-> | /ltnW/subnK]. Qed.
+by rewrite maxn; arith. Qed.
+
+Lemma maxnAC : `!m n p. maxn (maxn m n) p = maxn (maxn m p) n`.
+--by move=> m n p; rewrite -!add_sub_maxn -!addnA -!subn_sub !add_sub_maxn maxnC.
+move => m n p.
+by rewrite -!add_sub_maxn -!addnA -!subn_sub !add_sub_maxn maxnC.
 Qed.
 
-Lemma maxnA : associative maxn.
-Proof. by move=> m n p; rewrite !(maxnC m) maxnAC. Qed.
+Lemma maxnA : `!m n p. maxn m (maxn n p) = maxn (maxn m n) p`.
+--Proof. by move=> m n p; rewrite !(maxnC m) maxnAC. Qed.
+move => m n p.
+by rewrite ![`maxn m _1`]maxnC maxnAC. Qed.
 
-Lemma maxnCA : left_commutative maxn.
-Proof. by move=> m n p; rewrite !maxnA (maxnC m). Qed.
+Lemma maxnCA : `!m n p. maxn m (maxn n p) = maxn n (maxn m p)`.
+--Proof. by move=> m n p; rewrite !maxnA (maxnC m). Qed.
+by move => m n p; rewrite !maxnA [`maxn m _1`]maxnC. Qed.
 
-Lemma eqn_maxr m n : (maxn m n == n) = (m <= n).
-Proof. by rewrite maxnC -{2}[n]addn0 -add_sub_maxn eqn_addl. Qed.
+Lemma eqn_maxr : `!m n. (maxn m n = n) = (m <= n)`.
+--Proof. by rewrite maxnC -{2}[n]addn0 -add_sub_maxn eqn_addl. Qed.
+move => m n.
+by rewrite maxnC -{2}[`n`]addn0 -add_sub_maxn eqn_addl leqE. Qed.
 
-Lemma eqn_maxl m n : (maxn m n == m) = (m >= n).
-Proof. by rewrite -{2}[m]addn0 -add_sub_maxn eqn_addl. Qed.
+Lemma eqn_maxl : `!m n. (maxn m n = m) = (m >= n)`.
+--Proof. by rewrite -{2}[m]addn0 -add_sub_maxn eqn_addl. Qed.
+move => m n.
+by rewrite -{2}[`m`]addn0 -add_sub_maxn eqn_addl geqE leqE. Qed.
 
-Lemma maxnn : idempotent maxn.
-Proof. by move=> n; rewrite maxnl. Qed.
+Lemma maxnn : `!n. maxn n n = n`.
+--Proof. by move=> n; rewrite maxnl. Qed.
+move => n.
+by rewrite maxnl // geqE leqnn. Qed.
 
-Lemma leq_maxr m n1 n2 : (m <= maxn n1 n2) = (m <= n1) || (m <= n2).
-Proof.
-wlog le_n21: n1 n2 / n2 <= n1.
-  by case/orP: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; auto.
-rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
-by rewrite leqNgt (leq_trans _ lt_m_n1).
-Qed.
+Lemma leq_maxr : `!m n1 n2. (m <= maxn n1 n2) <=> (m <= n1) \/ (m <= n2)`.
+--Proof.
+--wlog le_n21: n1 n2 / n2 <= n1.
+--  by case/orP: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; auto.
+--rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
+--by rewrite leqNgt (leq_trans _ lt_m_n1).
+--Qed.
+move => m n1 n2.
+Abort.
 
 Lemma leq_maxl m n1 n2 : (maxn n1 n2 <= m) = (n1 <= m) && (n2 <= m).
 Proof. by rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.

@@ -161,7 +161,7 @@ public class Highlighter {
 		}
 		
 		// Final tactics
-		keys = new String[] {"done", "by", "first", "last", "exact", "do"};
+		keys = new String[] {"done", "by", "first", "last", "exact", "do", "arith"};
 		for (String key : keys) {
 			keywords.put(new Keyword(key), red_style);
 		}

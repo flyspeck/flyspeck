@@ -595,6 +595,9 @@ public class TreeBuilder {
 			// done
 			else if (t.value == "done")
 				tactic = new RawTactic("done_tac");
+			// arith
+			else if (t.value == "arith")
+				tactic = new RawTactic("arith_tac");
 			// move
 			else if (t.value == "move")
 				tactic = new MoveNode();

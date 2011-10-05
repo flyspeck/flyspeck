@@ -156,6 +156,7 @@ public class Interpreter {
 
 			// Check the output
 			if (out == null ||
+				out.indexOf("Characters ") != -1 ||
 				out.indexOf("^^^") != -1 || 
 				out.indexOf("Unbound value") != -1 ||
 				out.indexOf("Exception:") != -1) {

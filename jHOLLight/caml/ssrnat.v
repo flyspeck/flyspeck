@@ -1,39 +1,38 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+
 "prioritize_num()".
 
-Lemma succnK : `!n. SUC n - 1 = n`. by arith. Qed.
-Lemma succn_inj : `!n m. SUC n = SUC m ==> n = m`. by arith. Qed.
+Lemma succnK n : `SUC n - 1 = n`. by arith. Qed.
+Lemma succn_inj n m: `SUC n = SUC m ==> n = m`. by arith. Qed.
 
-Lemma eqSS : `!m n. (SUC m = SUC n) = (m = n)`. by arith. Qed.
+Lemma eqSS m n: `(SUC m = SUC n) = (m = n)`. by arith. Qed.
 
-Lemma add0n : `!n. 0 + n = n`. by arith. Qed.
-Lemma addSn : `!m n. SUC m + n = SUC (m + n)`. by arith. Qed.
-Lemma add1n : `!n. 1 + n = SUC n`. by arith. Qed.
-Lemma addn0 : `!n. n + 0 = n`. by arith. Qed.
-Lemma addnS : `!m n. m + SUC n = SUC (m + n)`. by arith. Qed.
-Lemma addSnnS : `!m n. SUC m + n = m + SUC n`. by arith. Qed.
-Lemma addnCA : `!m n p. m + (n + p) = n + (m + p)`. by arith. Qed.
-Lemma addnC : `!m n. m + n = n + m`.
-by move => m n; rewrite -{1}[`n`]addn0 addnCA addn0. Qed.
-Lemma addn1 : `!n. n + 1 = SUC n`. by rewrite addnC add1n. Qed.
-Lemma addnA : `!n m p. n + (m + p) = (n + m) + p`.
-by move => m n p; rewrite [`n + p`]addnC addnCA addnC. Qed.
-Lemma addnAC : `!n m p. (n + m) + p = (n + p) + m`.
-by move => m n p; rewrite -!addnA [`n + p`]addnC. Qed.
-Lemma addn_eq0 : `!m n. (m + n = 0) <=> (m = 0) /\ (n = 0)`. by arith. Qed.
-Lemma eqn_addl : `!p m n. (p + m = p + n) <=> (m = n)`. by arith. Qed.
-Lemma eqn_addr : `!p m n. (m + p = n + p) = (m = n)`. by arith. Qed.
-Lemma addnI : `!m n1 n2. m + n1 = m + n2 ==> n1 = n2`.
-move => p m n Heq. 
-by rewrite -(eqn_addl p).
-Qed.
-Lemma addIn : `!m n1 n2. n1 + m = n2 + m ==> n1 = n2`.
-move => p m n.
-rewrite -![`_1 + p`]addnC => Heq.
+Lemma add0n n : `0 + n = n`. by arith. Qed.
+Lemma addSn m n : `SUC m + n = SUC (m + n)`. by arith. Qed.
+Lemma add1n n : `1 + n = SUC n`. by arith. Qed.
+Lemma addn0 n : `n + 0 = n`. by arith. Qed.
+Lemma addnS m n : `m + SUC n = SUC (m + n)`. by arith. Qed.
+Lemma addSnnS m n : `SUC m + n = m + SUC n`. by arith. Qed.
+Lemma addnCA m n p : `m + (n + p) = n + (m + p)`. by arith. Qed.
+Lemma addnC m n : `m + n = n + m`.
+by rewrite -{1}[`n`]addn0 addnCA addn0. Qed.
+Lemma addn1 n : `n + 1 = SUC n`. by rewrite addnC add1n. Qed.
+Lemma addnA n m p : `n + (m + p) = (n + m) + p`.
+by rewrite [`m + p`]addnC addnCA addnC. Qed.
+Lemma addnAC m n p: `(n + m) + p = (n + p) + m`.
+by rewrite -!addnA [`p + m`]addnC. Qed.
+Lemma addn_eq0 m n : `(m + n = 0) <=> (m = 0) /\ (n = 0)`. by arith. Qed.
+Lemma eqn_addl p m n: `(p + m = p + n) <=> (m = n)`. by arith. Qed.
+Lemma eqn_addr p m n: `(m + p = n + p) = (m = n)`. by arith. Qed.
+Lemma addnI m n1 n2: `m + n1 = m + n2 ==> n1 = n2`.
+by move => Heq; rewrite -(eqn_addl m). Qed.
+Lemma addIn m n1 n2: `n1 + m = n2 + m ==> n1 = n2`.
+rewrite -![`_1 + m`]addnC => Heq.
 by move: (addnI Heq).
 Qed.
 
-Lemma sub0n : `!n. 0 - n = 0`. by arith. Qed.
-Lemma subn0 : `!n. n - 0 = n`. by arith. Qed.
+Lemma sub0n n: `0 - n = 0`. by arith. Qed.
+Lemma subn0 n: `n - 0 = n`. by arith. Qed.
 Lemma subnn : `!n. n - n = 0`. by arith. Qed.
 
 Lemma subSS : `!n m. SUC m - SUC n = m - n`. by arith. Qed.
@@ -396,143 +395,169 @@ Lemma maxnn : `!n. maxn n n = n`.
 move => n.
 by rewrite maxnl // geqE leqnn. Qed.
 
-Lemma leq_maxr : `!m n1 n2. (m <= maxn n1 n2) <=> (m <= n1) \/ (m <= n2)`.
+Lemma leq_maxr m n1 n2: `(m <= maxn n1 n2) <=> (m <= n1) \/ (m <= n2)`.
 --Proof.
 --wlog le_n21: n1 n2 / n2 <= n1.
 --  by case/orP: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; auto.
 --rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
 --by rewrite leqNgt (leq_trans _ lt_m_n1).
 --Qed.
-move => m n1 n2.
-Abort.
+(*
+have wlog: `!P G. (P ==> G) /\ ((P ==> G) ==> G) ==> G`.
+  by "MESON_TAC[]".
+apply: (wlog `n2 <= n1`); split.
+  case: (leq_total n2 n1) => le_n12.
+*)
+by rewrite maxn; arith. Qed.
 
-Lemma leq_maxl m n1 n2 : (maxn n1 n2 <= m) = (n1 <= m) && (n2 <= m).
-Proof. by rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.
 
-Lemma addn_maxl : left_distributive addn maxn.
-Proof. by move=> m1 m2 n; rewrite -!add_sub_maxn subn_add2r addnAC. Qed.
+Lemma leq_maxl m n1 n2 : `(maxn n1 n2 <= m) <=> (n1 <= m) /\ (n2 <= m)`.
+--Proof. by rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.
+by rewrite leqNgt ltE leq_maxr negb_or -!ltE -!leqNgt. Qed.
 
-Lemma addn_maxr : right_distributive addn maxn.
-Proof. by move=> m n1 n2; rewrite !(addnC m) addn_maxl. Qed.
+Lemma addn_maxl : `!m1 m2 n. (maxn m1 m2) + n = maxn (m1 + n) (m2 + n)`.
+--Proof. by move=> m1 m2 n; rewrite -!add_sub_maxn subn_add2r addnAC. Qed.
+by move => m1 m2 n; rewrite -!add_sub_maxn subn_add2r addnAC. Qed.
 
-Lemma min0n : left_zero 0 minn. Proof. by case. Qed.
-Lemma minn0 : right_zero 0 minn. Proof. by []. Qed.
+Lemma addn_maxr : `!m n1 n2. m + maxn n1 n2 = maxn (m + n1) (m + n2)`.
+by move=> m n1 n2; rewrite ![`m + _1`]addnC addn_maxl. Qed.
 
-Lemma minnC : commutative minn.
-Proof. by move=> m n; rewrite /minn; case ltngtP. Qed.
+Lemma min0n n: `minn 0 n = 0`. by rewrite minn; arith. Qed.
+Lemma minn0 n: `minn n 0 = 0`. by rewrite minn; arith. Qed.
 
-Lemma minnr m n : m >= n -> minn m n = n.
-Proof. by rewrite /minn; case leqP. Qed.
+Lemma minnC m n: `minn m n = minn n m`.
+by rewrite !minn; arith. Qed.
 
-Lemma minnl m n : m <= n -> minn m n = m.
-Proof. by move/minnr; rewrite minnC. Qed.
+Lemma minnr m n : `m >= n ==> minn m n = n`. by rewrite minn; arith. Qed.
 
-Lemma addn_min_max m n : minn m n + maxn m n = m + n.
-Proof. by rewrite /minn /maxn; case: ltngtP => // [_|->] //; exact: addnC. Qed.
+Lemma minnl m n : `m <= n ==> minn m n = m`. 
+--Proof. by move/minnr; rewrite minnC. Qed.
+by rewrite -geqE; move/minnr; rewrite minnC. Qed.
 
-Remark minn_to_maxn m n : minn m n = m + n - maxn m n.
-Proof. by rewrite -addn_min_max addnK. Qed.
+Lemma addn_min_max m n : `minn m n + maxn m n = m + n`.
+--Proof. by rewrite /minn /maxn; case: ltngtP => // [_|->] //; exact: addnC. Qed.
+by rewrite minn maxn; arith. Qed.
 
-Lemma sub_sub_minn m n : m - (m - n) = minn m n.
-Proof. by rewrite minnC minn_to_maxn -add_sub_maxn subn_add2l. Qed.
+Lemma minn_to_maxn m n : `minn m n = (m + n) - maxn m n`.
+by rewrite -addn_min_max addnK. Qed.
 
-Lemma minnCA : left_commutative minn.
-Proof.
-move=> m1 m2 m3; rewrite !(minn_to_maxn _ (minn _ _)).
-rewrite -(subn_add2r (maxn m2 m3)) -(subn_add2r (maxn m1 m3) (m2 + _)) -!addnA.
-by rewrite !addn_maxl !addn_min_max !addn_maxr addnCA maxnAC (addnC m2 m1).
+Lemma sub_sub_minn m n : `m - (m - n) = minn m n`.
+by rewrite minnC minn_to_maxn -add_sub_maxn subn_add2l. Qed.
+
+Lemma minnCA : `!m1 m2 m3. minn m1 (minn m2 m3) = minn m2 (minn m1 m3)`.
+--Proof.
+--move=> m1 m2 m3; rewrite !(minn_to_maxn _ (minn _ _)).
+--rewrite -(subn_add2r (maxn m2 m3)) -(subn_add2r (maxn m1 m3) (m2 + _)) -!addnA.
+--by rewrite !addn_maxl !addn_min_max !addn_maxr addnCA maxnAC (addnC m2 m1).
+--Qed.
+move => m1 m2 m3; rewrite ![`minn _1 (minn _2 _3)`]minn_to_maxn.
+rewrite -(subn_add2r `maxn m2 m3`) -[`(m2 + _1) - _2`](subn_add2r `maxn m1 m3`) -!addnA.
+by rewrite !addn_maxl !addn_min_max !addn_maxr addnCA maxnAC [`m2 + m1`]addnC.
 Qed.
 
-Lemma minnA : associative minn.
-Proof. by move=> m1 m2 m3; rewrite (minnC m2) minnCA minnC. Qed.
+Lemma minnA : `!m1 m2 m3. minn m1 (minn m2 m3) = minn (minn m1 m2) m3`.
+move=> m1 m2 m3.
+by rewrite [`minn m2 _1`]minnC minnCA minnC. Qed.
 
-Lemma minnAC : right_commutative minn.
-Proof. by move=> m1 m2 m3; rewrite minnC minnCA minnA. Qed.
+Lemma minnAC m1 m2 m3: `minn (minn m1 m2) m3 = minn (minn m1 m3) m2`.
+by rewrite minnC minnCA minnA. Qed.
 
-Lemma eqn_minr m n : (minn m n == n) = (n <= m).
-Proof.
-by rewrite -(eqn_addr m) eq_sym addnC -addn_min_max eqn_addl eqn_maxl.
-Qed.
+Lemma eqn_minr m n : `(minn m n = n) = (n <= m)`.
+--by rewrite -(eqn_addr m) eq_sym addnC -addn_min_max eqn_addl eqn_maxl.
+rewrite -(eqn_addr m).
+by rewrite -[`n + m`]addn_min_max minnC eqn_addl [`m = _1`]eq_sym maxnC eqn_maxl geqE. Qed.
 
-Lemma eqn_minl m n : (minn m n == m) = (m <= n).
-Proof. by rewrite -(eqn_addr n) eq_sym -addn_min_max eqn_addl eqn_maxr. Qed.
+Lemma eqn_minl m n : `(minn m n = m) = (m <= n)`.
+--by rewrite -(eqn_addr n) eq_sym -addn_min_max eqn_addl eqn_maxr. Qed.
+by rewrite -(eqn_addr n) [`_1 = m + n`]eq_sym -addn_min_max eqn_addl eqn_maxr. Qed.
 
-Lemma minnn : idempotent minn.
-Proof. by move=> n; exact: minnr. Qed.
+Lemma minnn n: `minn n n = n`.
+by rewrite minnr // geqE leqnn. Qed.
 
-Lemma leq_minr m n1 n2 : (m <= minn n1 n2) = (m <= n1) && (m <= n2).
-Proof.
-wlog le_n21: n1 n2 / n2 <= n1.
-  by case/orP: (leq_total n2 n1) => ?; last rewrite minnC andbC; auto.
-by rewrite /minn ltnNge le_n21 /= andbC; case: leqP => // /leq_trans->.
-Qed.
+Lemma leq_minr m n1 n2 : `(m <= minn n1 n2) <=> (m <= n1) /\ (m <= n2)`.
+--Proof.
+--wlog le_n21: n1 n2 / n2 <= n1.
+--  by case/orP: (leq_total n2 n1) => ?; last rewrite minnC andbC; auto.
+--by rewrite /minn ltnNge le_n21 /= andbC; case: leqP => // /leq_trans->.
+--Qed.
+by rewrite minn; arith. Qed.
 
-Lemma leq_minl m n1 n2 : (minn n1 n2 <= m) = (n1 <= m) || (n2 <= m).
-Proof. by rewrite leqNgt leq_minr negb_and -!leqNgt. Qed.
+Lemma leq_minl m n1 n2 : `(minn n1 n2 <= m) <=> (n1 <= m) \/ (n2 <= m)`.
+--by rewrite leqNgt leq_minr negb_and -!leqNgt. Qed.
+by rewrite leqNgt ltE leq_minr -!ltE negb_and -!leqNgt. Qed.
 
-Lemma addn_minl : left_distributive addn minn.
-Proof.
+Lemma addn_minl : `!m1 m2 n. (minn m1 m2) + n = minn (m1 + n) (m2 + n)`.
 move=> m1 m2 n; rewrite !minn_to_maxn -addn_maxl addnA subn_add2r addnAC.
-by rewrite -!(addnC n) addn_subA // -addn_min_max leq_addl.
+by rewrite -![`_1 + n`](addnC n) addn_subA // -addn_min_max leq_addl.
 Qed.
 
-Lemma addn_minr : right_distributive addn minn.
-Proof. by move=> m n1 n2; rewrite !(addnC m) addn_minl. Qed.
+Lemma addn_minr : `!m n1 n2. m + minn n1 n2 = minn (m + n1) (m + n2)`.
+move=> m n1 n2.
+by rewrite ![`m + _1`](addnC m) addn_minl. Qed.
 
 (* Quasi-cancellation (really, absorption) lemmas *)
-Lemma maxnK m n : minn (maxn m n) m = m.
-Proof. by rewrite minnr // leq_maxr leqnn. Qed.
+Lemma maxnK m n : `minn (maxn m n) m = m`.
+--by rewrite minnr // leq_maxr leqnn. Qed.
+by rewrite minnr // geqE leq_maxr leqnn. Qed.
 
-Lemma maxKn m n : minn n (maxn m n) = n.
+Lemma maxKn m n : `minn n (maxn m n) = n`.
 Proof. by rewrite minnC maxnC maxnK. Qed.
 
-Lemma minnK m n : maxn (minn m n) m = m.
+Lemma minnK m n : `maxn (minn m n) m = m`.
 Proof. by rewrite maxnr // leq_minl leqnn. Qed.
 
-Lemma minKn m n : maxn n (minn m n) = n.
+Lemma minKn m n : `maxn n (minn m n) = n`.
 Proof. by rewrite minnC maxnC minnK. Qed.
 
 (* Distributivity. *)
 
-Lemma maxn_minl : left_distributive maxn minn.
-Proof.
-move=> m1 m2 n; wlog le_m21: m1 m2 / m2 <= m1.
-  move=> IH; case/orP: (leq_total m2 m1) => /IH //.
-  by rewrite minnC [in R in _ = R]minnC.
-apply/eqP; rewrite /minn ltnNge le_m21 eq_sym eqn_minr leq_maxr !leq_maxl.
-by rewrite le_m21 leqnn andbT; case: leqP => // /ltnW/(leq_trans le_m21)->.
+Lemma maxn_minl m1 m2 n: `maxn (minn m1 m2) n = minn (maxn m1 n) (maxn m2 n)`.
+--Proof.
+--move=> m1 m2 n; wlog le_m21: m1 m2 / m2 <= m1.
+--  move=> IH; case/orP: (leq_total m2 m1) => /IH //.
+--  by rewrite minnC [in R in _ = R]minnC.
+--apply/eqP; rewrite /minn ltnNge le_m21 eq_sym eqn_minr leq_maxr !leq_maxl.
+--by rewrite le_m21 leqnn andbT; case: leqP => // /ltnW/(leq_trans le_m21)->.
+--Qed.
+(*have wlog: `!P G. (P ==> G) /\ ((P ==> G) ==> G) ==> G`; first by "MESON_TAC[]".
+apply: (wlog `m2 <= m1`); split; first last.
+  move => IH; case: (leq_total m2 m1); rewrite ?geqE.
+	by move/IH.*)
+rewrite !maxn !minn; arith. Qed.
+  
+
+Lemma maxn_minr m n1 n2: `maxn m (minn n1 n2) = minn (maxn m n1) (maxn m n2)`.
+Proof. by rewrite ![`maxn m _1`](maxnC m) maxn_minl. Qed.
+
+Lemma minn_maxl : `!m1 m2 n. minn (maxn m1 m2) n = maxn (minn m1 n) (minn m2 n)`.
+by move => m1 m2 n; rewrite maxn_minr !maxn_minl -minnA maxnn [`maxn _1 n`]maxnC !maxnK.
 Qed.
 
-Lemma maxn_minr : right_distributive maxn minn.
-Proof. by move=> m n1 n2; rewrite !(maxnC m) maxn_minl. Qed.
-
-Lemma minn_maxl : left_distributive minn maxn.
-Proof.
-by move=> m1 m2 n; rewrite maxn_minr !maxn_minl -minnA maxnn (maxnC _ n) !maxnK.
-Qed.
-
-Lemma minn_maxr : right_distributive minn maxn.
-Proof. by move=> m n1 n2; rewrite !(minnC m) minn_maxl. Qed.
+Lemma minn_maxr : `!m n1 n2. minn m (maxn n1 n2) = maxn (minn m n1) (minn m n2)`.
+move=> m n1 n2.
+by rewrite ![`minn m _1`](minnC m) minn_maxl. Qed.
 
 (* Getting a concrete value from an abstract existence proof. *)
-
+(*
 Section ExMinn.
 
-Variable P : pred nat.
-Hypothesis exP : exists n, P n.
+Variable P : `:num -> bool`.
+Hypothesis exP : `?n. P n`.
 
-Inductive acc_nat i : Prop := AccNat0 of P i | AccNatS of acc_nat i.+1.
+Lemma find_ex_minn : `?m. P m /\ !n. P n ==> n >= m`.
+--{m | P m & forall n, P n -> n >= m}.
+--Proof.
+--have: forall n, P n -> n >= 0 by [].
+--have: acc_nat 0.
+--  case exP => n; rewrite -(addn0 n); elim: n 0 => [|n IHn] j; first by left.
+--  rewrite addSnnS; right; exact: IHn.
+--move: 0; fix 2 => m IHm m_lb; case Pm: (P m); first by exists m.
+--apply: find_ex_minn m.+1 _ _ => [|n Pn]; first by case: IHm; rewrite ?Pm.
+--by rewrite ltn_neqAle m_lb //; case: eqP Pm => // -> /idP[].
+--Qed.
+have: `!n. P n ==> n >= 0`; first by arith.
+move: exP.
 
-Lemma find_ex_minn : {m | P m & forall n, P n -> n >= m}.
-Proof.
-have: forall n, P n -> n >= 0 by [].
-have: acc_nat 0.
-  case exP => n; rewrite -(addn0 n); elim: n 0 => [|n IHn] j; first by left.
-  rewrite addSnnS; right; exact: IHn.
-move: 0; fix 2 => m IHm m_lb; case Pm: (P m); first by exists m.
-apply: find_ex_minn m.+1 _ _ => [|n Pn]; first by case: IHm; rewrite ?Pm.
-by rewrite ltn_neqAle m_lb //; case: eqP Pm => // -> /idP[].
-Qed.
 
 Definition ex_minn := s2val find_ex_minn.
 
@@ -579,91 +604,104 @@ Proof.
 move=> eqPQ; case: ex_maxnP => i Pi max_i; case: ex_maxnP => j Pj max_j.
 by apply/eqP; rewrite eqn_leq max_i ?eqPQ // max_j -?eqPQ.
 Qed.
+*)
 
 Section Iteration.
 
-Variable T : Type.
-Implicit Types m n : nat.
-Implicit Types x y : T.
+Variables m n : `:num`.
+Variables x y : `:A`.
 
-Definition iter n f x :=
-  let fix loop m := if m is i.+1 then f (loop i) else x in loop n.
+--Definition iter n f x :=
+--  let fix loop m := if m is i.+1 then f (loop i) else x in loop n.
+"let iter = define `iter (SUC n) f (x:A) = f (iter n f x) /\ iter 0 f x = x`".
 
-Definition iteri n f x :=
-  let fix loop m := if m is i.+1 then f i (loop i) else x in loop n.
+--Definition iteri n f x :=
+--  let fix loop m := if m is i.+1 then f i (loop i) else x in loop n.
+"let iteri = define `iteri (SUC n) f (x:A) = f n (iteri n f x) /\ iteri 0 f x = x`".
 
-Definition iterop n op x :=
-  let f i y := if i is 0 then x else op x y in iteri n f.
+--Definition iterop n op x :=
+--  let f i y := if i is 0 then x else op x y in iteri n f.
 
-Lemma iterSr n f x : iter n.+1 f x = iter n f (f x).
-Proof. by elim: n => //= n <-. Qed.
+Lemma iterSr n f x : `iter (SUC n) f (x : A) = iter n f (f x)`.
+--Proof. by elim: n => //= n <-. Qed.
+by elim: n; rewr !iter => n <-. Qed.
 
-Lemma iterS n f x : iter n.+1 f x = f (iter n f x). Proof. by []. Qed.
+Lemma iterS n f x : `iter (SUC n) f (x:A) = f (iter n f x)`.
+by rewr iter. Qed.
 
-Lemma iter_add n m f x : iter (n + m) f x = iter n f (iter m f x).
-Proof. by elim: n => //= n ->. Qed.
+Lemma iter_add n m f x : `iter (n + m) f (x:A) = iter n f (iter m f x)`.
+--Proof. by elim: n => //= n ->. Qed.
+by elim: n; rewr !iter add0n // addSn => n <-; rewrite iterS. Qed.
 
-Lemma iteriS n f x : iteri n.+1 f x = f n (iteri n f x).
-Proof. by []. Qed.
+Lemma iteriS n f x : `iteri (SUC n) f x = f n (iteri n f (x:A))`.
+--Proof. by []. Qed.
+by rewr iteri. Qed.
 
-Lemma iteropS idx n op x : iterop n.+1 op x idx = iter n (op x) x.
-Proof. by elim: n => //= n ->. Qed.
+--Lemma iteropS idx n op x : iterop n.+1 op x idx = iter n (op x) x.
+--Proof. by elim: n => //= n ->. Qed.
 
-Lemma eq_iter f f' : f =1 f' -> forall n, iter n f =1 iter n f'.
-Proof. by move=> eq_f n x; elim: n => //= n ->; rewrite eq_f. Qed.
+--Lemma eq_iter f f' : f =1 f' -> forall n, iter n f =1 iter n f'.
+--Proof. by move=> eq_f n x; elim: n => //= n ->; rewrite eq_f. Qed.
 
-Lemma eq_iteri f f' : f =2 f' -> forall n, iteri n f =1 iteri n f'.
-Proof. by move=> eq_f n x; elim: n => //= n ->; rewrite eq_f. Qed.
+--Lemma eq_iteri f f' : f =2 f' -> forall n, iteri n f =1 iteri n f'.
+--Proof. by move=> eq_f n x; elim: n => //= n ->; rewrite eq_f. Qed.
 
-Lemma eq_iterop n op op' : op =2 op' -> iterop n op =2 iterop n op'.
-Proof. by move=> eq_op x; apply: eq_iteri; case. Qed.
+--Lemma eq_iterop n op op' : op =2 op' -> iterop n op =2 iterop n op'.
+--Proof. by move=> eq_op x; apply: eq_iteri; case. Qed.
 
 End Iteration.
 
+
 (* Multiplication. *)
 
-Definition muln_rec := mult.
-Notation "m * n" := (muln_rec m n) : nat_rec_scope.
+Lemma mul0n n: `0 * n = 0`. Proof. by arith. Qed.
+Lemma muln0 n: `n * 0 = 0`. Proof. by arith. Qed.
+Lemma mul1n n: `1 * n = n`. by arith. Qed.
+Lemma mulSn m n : `SUC m * n = n + m * n`. arith. Qed.
+Lemma mulSnr m n : `SUC m * n = m * n + n`. arith. Qed.
 
-Definition muln := nosimpl muln_rec.
-Notation "m * n" := (muln m n) : nat_scope.
+Lemma mulnS m n : `m * SUC n = m + m * n`.
+--Proof. by elim: m => // m; rewrite !mulSn !addSn addnCA => ->. Qed.
+elim: m; rewrite ?mul0n ?addn0 // => m.
+by rewrite !mulSn !addSn addnCA => ->. Qed.
 
-Lemma multE : mult = muln.     Proof. by []. Qed.
-Lemma mulnE : muln = muln_rec. Proof. by []. Qed.
-
-Lemma mul0n : left_zero 0 muln.          Proof. by []. Qed.
-Lemma muln0 : right_zero 0 muln.         Proof. by elim. Qed.
-Lemma mul1n : left_id 1 muln.            Proof. exact: addn0. Qed.
-Lemma mulSn m n : m.+1 * n = n + m * n.  Proof. by []. Qed.
-Lemma mulSnr m n : m.+1 * n = m * n + n. Proof. exact: addnC. Qed.
-
-Lemma mulnS m n : m * n.+1 = m + m * n.
-Proof. by elim: m => // m; rewrite !mulSn !addSn addnCA => ->. Qed.
-Lemma mulnSr m n : m * n.+1 = m * n + m.
+Lemma mulnSr m n : `m * SUC n = m * n + m`.
 Proof. by rewrite addnC mulnS. Qed.
 
-Lemma muln1 : right_id 1 muln.
-Proof. by move=> n; rewrite mulnSr muln0. Qed.
+Lemma muln1 n: `n * 1 = n`.
+--Proof. by rewrite mulnSr muln0. Qed.
+by rewrite "ARITH_RULE `1 = SUC 0`" mulnSr muln0 add0n. Qed.
 
-Lemma mulnC : commutative muln.
-Proof.
-by move=> m n; elim: m => [|m]; rewrite (muln0, mulnS) // mulSn => ->.
+Lemma mulnC : `!m n. m * n = n * m`.
+--by move=> m n; elim: m => [|m]; rewrite (muln0, mulnS) // mulSn => ->.
+move => m n.
+by elim: m => [|m]; rewrite ?muln0 ?mulnS ?mul0n // mulSn => ->.
 Qed.
 
-Lemma muln_addl : left_distributive muln addn.
-Proof. by move=> m1 m2 n; elim: m1 => //= m1 IHm; rewrite -addnA -IHm. Qed.
 
-Lemma muln_addr : right_distributive muln addn.
-Proof. by move=> m n1 n2; rewrite !(mulnC m) muln_addl. Qed.
+Lemma muln_addl m1 m2 n: `(m1 + m2) * n = m1 * n + m2 * n`.
+--Proof. by move=> m1 m2 n; elim: m1 => //= m1 IHm; rewrite -addnA -IHm. Qed.
+elim: m1 => [|m1 IHm]; first by rewrite mul0n !add0n.
+by rewrite mulSn -addnA -IHm -mulSn addSn. Qed.
 
-Lemma muln_subl : left_distributive muln subn.
+Lemma muln_addr m n1 n2: `m * (n1 + n2) = m * n1 + m * n2`.
+--Proof. by move=> m n1 n2; rewrite !(mulnC m) muln_addl. Qed.
+by rewrite ![`m * _1`]mulnC muln_addl. Qed.
+
+Lemma muln_subl : `!m n p. (m - n) * p = m * p - n * p`.
 Proof.
-move=> m n [|p]; first by rewrite !muln0.
-by elim: m n => // [m IHm] [|n] //; rewrite mulSn subn_add2l -IHm.
+move=> m n [->|[n' pH]]; first by rewrite !muln0 subn0.
+--by elim: m n => // [m IHm] [|n] //; rewrite mulSn subn_add2l -IHm.
+elim: m n; first by rewrite mul0n !sub0n mul0n.
+move => [m IHm] [|[n2 nH]].
+  by move => ->; rewrite mul0n !subn0 mulSn.
+  by rewrite nH subSS !mulSn IHm subn_add2l.
+  by move => ->; rewrite mul0n !subn0.
+by rewrite nH subSS !mulSn IHm subn_add2l.
 Qed.
 
-Lemma muln_subr : right_distributive muln subn.
-Proof. by move=> m n p; rewrite !(mulnC m) muln_subl. Qed.
+Lemma muln_subr : `!m n p. m * (n - p) = m * n - m * p`.
+Proof. by move=> m n p; rewrite ![`m * _1`]mulnC muln_subl. Qed.
 
 Lemma mulnA : associative muln.
 Proof. by move=> m n p; elim: m => //= m; rewrite mulSn muln_addl => ->. Qed.

@@ -616,16 +616,13 @@ public class Interpreter {
 			}
 			
 			// Finalize theorems
-			StringBuffer bufferCmd = new StringBuffer();
 			int n = lemmas.size();
 			for (int i = 0; i < n; i++) {
+				StringBuffer bufferCmd = new StringBuffer();
 				LemmaCommand lemma = lemmas.get(i);
 				String lemmaName = lemma.getLemmaName();
 				bufferCmd.append("let " + lemmaName + " = finalize_theorem " + lemmaName);
-				bufferCmd.append(";;\n");
-			}
-			
-			if (n > 0) {
+				bufferCmd.append(";;");
 				executor.runCommand(bufferCmd.toString());
 			}
 			

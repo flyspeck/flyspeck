@@ -61,12 +61,15 @@ public class TreeBuilder {
 		if (t.type != TokenType.IDENTIFIER || t.value != "Lemma")
 			throw new Exception("'Lemma' expected: " + t);
 		
-		// name
-		t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER)
+		// name and parameters
+		ArrayList<String> ids = parseIdList();
+		if (ids.size() == 0)
 			throw new Exception("Lemma name expected: " + t);
 		
-		String name = t.value;
+		String name = ids.get(0);
+		String[] params = new String[ids.size() - 1];
+		for (int i = 0; i < params.length; i++)
+			params[i] = ids.get(i + 1);
 		
 		// :
 		t = scanner.nextToken();
@@ -79,7 +82,27 @@ public class TreeBuilder {
 			throw new Exception("goal expected: " + t);
 		
 		RawObjectNode goal = new RawObjectNode(raw);
-		return new LemmaNode(name, goal);
+		return new LemmaNode(name, params, goal);
+	}
+	
+	
+	/**
+	 * Parses a list of identifiers and returns their names (the result could be empty)
+	 */
+	private ArrayList<String> parseIdList() throws Exception {
+		ArrayList<String> ids = new ArrayList<String>();
+		
+		while (true) {
+			Token t = scanner.peekToken();
+			if (t.type != TokenType.IDENTIFIER)
+				break;
+			
+			// id
+			scanner.nextToken();
+			ids.add(t.value);
+		}
+		
+		return ids;
 	}
 	
 	
@@ -184,10 +207,20 @@ public class TreeBuilder {
 	 * Parses an expression in the "proof" mode
 	 */
 	public TacticNode parseProof() throws Exception {
+		Token t = scanner.peekToken();
+		if (t.type == TokenType.IDENTIFIER && t.value == "Proof") {
+			// Silently ignore the Proof command
+			scanner.nextToken();
+			// Should be .
+			t = scanner.nextToken();
+			if (t.type != TokenType.PERIOD)
+				throw new Exception(". expected: " + t);
+		}
+		
 		TacticChainNode chain = parseTacticChain();
 		
 		// . (do not consume it here)		
-		Token t = scanner.peekToken();
+		t = scanner.peekToken();
 		if (t.type != TokenType.PERIOD)
 			throw new Exception(". expected: " + t);
 		
@@ -205,26 +238,14 @@ public class TreeBuilder {
 		while (true) {
 			boolean processedFlag = false;
 			Token t = scanner.peekToken();
-			TacticChainNode ts;
 		
 			// [tac1 | ... ]
 			if (t.type == TokenType.LBRACK) {
 				chain.add(parseParallelTactics());
 				processedFlag = true;
 			}
-			// by, first, last
+			// first, last
 			else if (t.type == TokenType.IDENTIFIER) {
-				// by
-				if (t.value == "by") {
-					// by
-					scanner.nextToken();
-					ts = parseTacticChain();
-					ts.add(new RawTactic("done_tac"));
-					chain.add(ts);
-
-					break;
-				}
-				
 				// first or last
 				if (t.value == "first" || t.value == "last") {
 					boolean firstFlag = t.value == "first";
@@ -232,16 +253,46 @@ public class TreeBuilder {
 					// first or last
 					scanner.nextToken();
 					
-					// last, first, by, or integer
-					t = scanner.nextToken();
-					if (t.type == TokenType.IDENTIFIER && t.value == "by") {
-						// first by or last by
+					t = scanner.peekToken();
+					if (t.type == TokenType.INTEGER ||
+							(t.type == TokenType.IDENTIFIER && (t.value == "last" || t.value == "first"))) {
+						// integer, last, first
+						scanner.nextToken();
+						
+						// first [n] last or last [n] first
+						if (t.type == TokenType.INTEGER) {
+							rot = t.intValue;
+							// Should be last or first
+							t = scanner.nextToken();
+						}
+
+						if (t.type != TokenType.IDENTIFIER)
+							throw new Exception("'last' or 'first' expected: " + t);
+
+						TacticNode rot_tac;
+						
+						if (firstFlag) {
+							if (t.value != "last")
+								throw new Exception("'last' expected: " + t);
+							rot_tac = new RawTactic("THENL_ROT (" + rot + ')');
+						}
+						else {
+							if (t.value != "first")
+								throw new Exception("'first' expected: " + t);
+							rot_tac = new RawTactic("THENL_ROT (" + (-rot) + ')');
+						}
+						
+						TacticNode left = chain;
+						chain = new TacticChainNode();
+						
+						chain.add(new BinaryNode(rot_tac, left, null));
+						processedFlag = true;
+					}
+					else {
 						if (chain.isEmpty())
-							throw new Exception("first by or last by: empty left hand side " + t);
+							throw new Exception("first, last: empty left hand side " + t);
 						
-						TacticChainNode right = parseTacticChain();
-						right.add(new RawTactic("done_tac"));
-						
+						TacticNode right = parseProofExpression();
 						TacticNode left = chain;
 						chain = new TacticChainNode();
 						
@@ -249,37 +300,8 @@ public class TreeBuilder {
 						BinaryNode bin = new BinaryNode(tac, left, right);
 						chain.add(bin);
 						
-						break;
+						processedFlag = true;
 					}
-
-					// first [n] last or last [n] first
-					if (t.type == TokenType.INTEGER) {
-						rot = t.intValue;
-						// Should be last or first
-						t = scanner.nextToken();
-					}
-					
-					if (t.type != TokenType.IDENTIFIER)
-						throw new Exception("'last' or 'first' expected: " + t);
-					
-					TacticNode rot_tac;
-					
-					if (firstFlag) {
-						if (t.value != "last")
-							throw new Exception("'last' expected: " + t);
-						rot_tac = new RawTactic("THENL_ROT (" + rot + ')');
-					}
-					else {
-						if (t.value != "first")
-							throw new Exception("'first' expected: " + t);
-						rot_tac = new RawTactic("THENL_ROT (" + (-rot) + ')');
-					}
-					
-					TacticNode left = chain;
-					chain = new TacticChainNode();
-					
-					chain.add(new BinaryNode(rot_tac, left, null));
-					processedFlag = true;
 				}
 			}
 
@@ -340,13 +362,23 @@ public class TreeBuilder {
 	 */
 	private TacticNode parseProofExpression() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
+
+		Token t = scanner.peekToken();
+		// by
+		if (t.value == "by") {
+			// by
+			scanner.nextToken();
+			chain = parseTacticChain();
+			chain.add(new RawTactic("done_tac"));
+			return chain;
+		}
 		
 		TacticChainNode tactic = parseFirstTactic();
 		TacticNode disch = null;
 		TacticNode intro = null;
 
 		// : or =>
-		Token t = scanner.peekToken();
+		t = scanner.peekToken();
 		if (t.type == TokenType.COLON) {
 			// :
 			scanner.nextToken();

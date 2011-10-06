@@ -161,11 +161,18 @@ let prepare_goal_term tm =
 
 
 (* Starts a proof of the goal using section hypotheses *)
-let start_section_proof tm =
-  let tm0 = prepare_goal_term tm in
+let start_section_proof names tm =
+  let f_vars = map dest_var (frees tm) in
+  let find var_name = 
+    try assoc var_name f_vars with Failure _ -> failwith ("Unused variable: "^var_name) in
+  let g_vars = map (fun name -> mk_var (name, find name)) names in
+  let g_tm = list_mk_forall (g_vars, tm) in
+  let tm0 = prepare_goal_term g_tm in
   let n_hyps = map fst (section_hyps()) in
-  let _ = g tm0 in
-    e (itlist (fun name tac -> DISCH_THEN (LABEL_TAC name) THEN tac) n_hyps ALL_TAC);;
+  let _ = set_goal([], tm0) in
+  let gen_tac = REPLICATE_TAC (length g_vars) GEN_TAC in
+  let disch_tac = itlist (fun name tac -> DISCH_THEN (LABEL_TAC name) THEN tac) n_hyps ALL_TAC in
+    refine (by (VALID (disch_tac THEN gen_tac)));;
 
 
 

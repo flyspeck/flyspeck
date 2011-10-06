@@ -46,7 +46,8 @@ InputCharacter = [^\r\n]
 WhiteSpace = [ \t\f]
 
 EndOfLineComment = "--" {InputCharacter}* {LineTerminator}
-Comment = {EndOfLineComment}
+TraditionalComment   = "(*" [^*] ~"*)" | "(*" "*"+ ")"
+Comment = {EndOfLineComment} | {TraditionalComment}
 
 IdentifierSymbol = [a-zA-Z]
 IdentifierSymbol2 = {IdentifierSymbol} | [_'0-9]

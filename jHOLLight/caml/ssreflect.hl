@@ -150,7 +150,24 @@ let match_subterm_in_context pat tm (g : goal) =
 
 (* Returns the number of explicit assumptions and the subterm for matching *)
 let prepare_theorem th =
-  let concl_tm = concl th in
+  (* Convert P ==> (!x. Q x) to !x. P ==> Q x *)
+  let th1 = PURE_REWRITE_RULE[GSYM RIGHT_FORALL_IMP_THM] th in
+  let th_tm = concl th1 in
+  let bound_vars, body_tm = strip_forall th_tm in
+  (* Returns the final conclusion and the number of assumptions *)
+  let rec find_concl tm =
+    if is_imp tm then
+      let _, c_tm = dest_imp tm in
+      let c_tm2, n = find_concl c_tm in
+	(c_tm2, n + 1)
+    else
+      (tm, 0) in
+  let concl_tm, n = find_concl body_tm in
+  (* Ensure that the conclusion is an equation; make an equation if necessary *)
+  concl_tm;;
+
+
+(*
   let rec strip_tm tm =
     let bound_vars, body = strip_forall tm in
     (* Rename bound variables *)
@@ -163,11 +180,48 @@ let prepare_theorem th =
     else
       ([], tm0) in
     strip_tm concl_tm;;
+*)
 
 
+let path_rewrite path th tm =
+  let rec build path tm =
+    let n = String.length path in
+      if n = 0 then
+	th
+      else
+	let ch = path.[0] in
+	let path' = String.sub path 1 (n - 1) in
+	  if ch = 'l' then
+	    let lhs, rhs = dest_comb tm in
+	    let th0 = build path' lhs in
+	      AP_THM th0 rhs
+	  else if ch = 'r' then
+	    let lhs, rhs = dest_comb tm in
+	    let th0 = build path' rhs in
+	      AP_TERM lhs th0
+	  else if ch = 'a' then
+	    let var, body = dest_abs tm in
+	    let th0 = build path' body in
+	      ABS var th0
+	  else
+	    failwith ("Bad path symbol: "^path) in
+  let res = build path tm in
+  let lhs = (lhand o concl) res in
+    if lhs <> tm then failwith ("path_rewrite: incorrect result [required: "^
+				  (string_of_term tm)^"; obtained: "^
+				  (string_of_term lhs))
+    else
+      res;;
+
+  
+
+  
+
+(*let th = ASSUME `!x. x ==> (!x. x = ~x ==> (!y. y = 2))`;;
+PURE_REWRITE_RULE[GSYM RIGHT_FORALL_IMP_THM] th;;
 (* prepare_theorem ITERATE_UNION;; *)
     
-
+*)
 
 (* Rewrite tactic for usual and conditional theorems *)
 let rewrite occ pat th g =

@@ -56,6 +56,7 @@ let get_context_vars (g : goal) =
     map (fun v -> ((fst o dest_var) v, v)) f_vars;;
 
 
+
 (* DISCH_THEN (LABEL_TAC name) for assumptions and X_GEN_TAC name for variables *)
 let move labels (g:goal) =
   let g_tm = snd g in
@@ -63,14 +64,14 @@ let move labels (g:goal) =
     if is_forall g_tm then
       let tm0, g_tm1 = dest_forall g_tm in
       let tm = mk_var (name, type_of tm0) in
-	if Pervasives.compare name "_" = 0 then
+	if name = "_" then
 	  (GEN_TAC, g_tm1)
 	else
 	  (X_GEN_TAC tm, g_tm1)
     else
       if is_imp g_tm then
 	let tm = rand g_tm in
-	  if Pervasives.compare name "_" = 0 then
+	  if name = "_" then
 	    (DISCH_THEN (fun th -> ALL_TAC), tm)
 	  else
 	    (DISCH_THEN (LABEL_TAC name), tm)
@@ -87,10 +88,10 @@ let move labels (g:goal) =
 
 
 
-(* Finds a subterm in the given term which matches agains the given
+(* Finds a subterm in the given term which matches against the given
    pattern; local_consts is a list of variable which must be fixed in 
    the pattern.
-   This function returns a path to the first matched subterm *)
+   This function returns the path to the first matched subterm *)
 let match_subterm local_consts pat tm =
   let rec find tm path =
     try
@@ -137,7 +138,7 @@ let inst_context_vars vars tm_vars tm =
     inst ty_inst tm;;
 
 
-(* Find a subterm corresponding to the given pattern.
+(* Finds a subterm corresponding to the given pattern.
    Before matching, the term types are instantiated in the given context. *)
 let match_subterm_in_context pat tm (g : goal) =
   let context_vars = get_context_vars g in
@@ -145,6 +146,27 @@ let match_subterm_in_context pat tm (g : goal) =
   let pattern = inst_context_vars context_vars f0_vars pat in
   let f1_vars = filter (fun tm -> ((fst o dest_var) tm).[0] <> '_') (frees pattern) in
     match_subterm f1_vars pattern tm;;
+
+
+(* Returns the number of explicit assumptions and the subterm for matching *)
+let prepare_theorem th =
+  let concl_tm = concl th in
+  let rec strip_tm tm =
+    let bound_vars, body = strip_forall tm in
+    (* Rename bound variables *)
+    let vars = map (fun var -> let name, ty = dest_var var in mk_var("$"^name, ty)) bound_vars in
+    let tm0 = subst (zip vars bound_vars) body in
+    if is_imp tm0 then
+      let assumption, tm1 = dest_imp tm0 in
+      let assumptions, conclusion = strip_tm tm1 in
+	(assumption :: assumptions, conclusion)
+    else
+      ([], tm0) in
+    strip_tm concl_tm;;
+
+
+(* prepare_theorem ITERATE_UNION;; *)
+    
 
 
 (* Rewrite tactic for usual and conditional theorems *)
@@ -163,7 +185,7 @@ let rewrite occ pat th g =
 	| _ -> (th, false, str) in
   (* Initialize auxiliary variables *)
   let goal_tm = snd g in
-  let th0 = REWRITE_RULE[IMP_IMP] th in
+  let th0 = PURE_REWRITE_RULE[IMP_IMP] th in
   let concl_th = concl (SPEC_ALL th0) in
   let cond_flag = is_imp concl_th in
   let eq_tm = if cond_flag then rand concl_th else concl_th in
@@ -210,8 +232,8 @@ let rewrite occ pat th g =
 (* Analogue of the "done" tactic in SSReflect *)
 let done_tac = ASM_REWRITE_TAC[] THEN FAIL_TAC "done: not all subgoals are proved";;
 
-(* Trivial simplification *)
-let triv_tac = ASM_REWRITE_TAC[];;
+(* Simplification: /= *)
+let simp_tac = SIMP_TAC[];;
 
 (* The 'exact' tactic *)
 (* TODO: do [done | by move => top; apply top], here apply top 
@@ -222,6 +244,10 @@ let exact_tac = FIRST [done_tac;
 
 (* Linear arithmetic simplification *)
 let arith_tac = FIRST [ARITH_TAC; REAL_ARITH_TAC; INT_ARITH_TAC];;
+
+
+(* split *)
+let split_tac = FIRST [CONJ_TAC; EQ_TAC];;
 
 
 
@@ -271,7 +297,9 @@ let case (g:goal) =
       if is_forall goal_tm then
 	let var, tm = dest_forall goal_tm in
 	let ty = type_of var in
-	let case_th = if ty = `:num` then num_CASES else list_CASES in
+	let case_th = if ty = `:num` then num_CASES 
+	else if ty = `:bool` then BOOL_CASES_AX 
+	else list_CASES in
 	  (GEN_TAC THEN MP_TAC (ISPEC var case_th) THEN DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g
       else
 	failwith "case: not imp or forall"

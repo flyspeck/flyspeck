@@ -35,14 +35,14 @@ public class TreeBuilder {
 		Token t = scanner.peekToken();
 		if (t.type != TokenType.IDENTIFIER)
 			throw new Exception("IDENTIFIER expected: " + t);
-
+		
 		if (t.value == "Lemma")
 			return parseLemma();
 		
 		if (t.value == "Section" || t.value == "End")
 			return parseSection();
 		
-		if (t.value == "Variable" || t.value == "Variables")
+		if (t.value == "Variable" || t.value == "Variables" || t.value == "Implicit")
 			return parseVariables();
 		
 		if (t.value == "Hypothesis")
@@ -110,10 +110,24 @@ public class TreeBuilder {
 	 * Parses section variables
 	 */
 	private SectionVariableNode parseVariables() throws Exception {
-		// Lemma
+		boolean implicitType = false;
+		
+		// Variable or Implicit
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || (t.value != "Variable" && t.value != "Variables"))
-			throw new Exception("'Variable' expected: " + t);
+		if (t.type != TokenType.IDENTIFIER || 
+				(t.value != "Variable" && t.value != "Variables" && t.value != "Implicit"))
+			throw new Exception("'Variable or Implicit Type' expected: " + t);
+		
+		// Implicit [Type] or Implicit [Types] 
+		if (t.value == "Implicit") {
+			t = scanner.peekToken();
+			if (t.type == TokenType.IDENTIFIER && (t.value == "Type" || t.value == "Types"))
+				// Type or Types
+				scanner.nextToken();
+			
+			implicitType = true;
+		}
+		
 		
 		// Names
 		ArrayList<String> names = new ArrayList<String>();
@@ -142,7 +156,7 @@ public class TreeBuilder {
 			throw new Exception("type expected: " + t);
 		
 		RawObjectNode type = new RawObjectNode(raw);
-		return new SectionVariableNode(names, type);
+		return new SectionVariableNode(names, type, implicitType);
 	}
 	
 	
@@ -569,21 +583,21 @@ public class TreeBuilder {
 		if (t.type == TokenType.SIMP) {
 			// /=
 			scanner.nextToken();
-			return new RawTactic("SIMP_TAC[]");
+			return new RawTactic("simp_tac");
 		}
 		
 		// TrivSimp
 		if (t.type == TokenType.TRIV_SIMP) {
 			// //=
 			scanner.nextToken();
-			return new RawTactic("ASM_SIMP_TAC[]");
+			return new RawTactic("(simp_tac THEN TRY done_tac)"); 
 		}
 		
 		// Triv
 		if (t.type == TokenType.TRIV) {
 			// //
 			scanner.nextToken();
-			return new RawTactic("triv_tac");
+			return new RawTactic("(TRY done_tac)");
 		}
 
 		return null;
@@ -674,7 +688,7 @@ public class TreeBuilder {
 				tactic = new RawTactic("DISJ2_TAC");
 			// split
 			else if (t.value == "split")
-				tactic = new RawTactic("CONJ_TAC");
+				tactic = new RawTactic("split_tac");
 			else
 				throw new Exception("Unknown tactic: " + t);
 		}

@@ -10,21 +10,25 @@ public class SectionVariableNode extends Node {
 	private final ArrayList<String> names;
 	// The type
 	private final RawObjectNode type;
+	// Implicit type (not a variable)
+	private final boolean implicitTypeFlag;
 
 	/**
 	 * Constructor
 	 */
-	public SectionVariableNode(ArrayList<String> names, RawObjectNode type) {
+	public SectionVariableNode(ArrayList<String> names, RawObjectNode type, boolean implicitType) {
 		assert(names != null);
 		assert(type != null);
 		this.names = names;
 		this.type = type;
+		this.implicitTypeFlag = implicitType;
 	}
 	
 	@Override
 	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
 		type.beginTranslation(buffer, context);
-		if (type.getType() != ObjectNode.TYPE)
+		int ty = type.getType();
+		if (ty != ObjectNode.TYPE && ty != ObjectNode.UNKNOWN)
 			throw new RuntimeException("TYPE expected: " + type);
 	}
 
@@ -35,7 +39,12 @@ public class SectionVariableNode extends Node {
 
 	@Override
 	protected String getString() {
-		StringBuffer str = new StringBuffer("Variable ");
+		StringBuffer str = new StringBuffer();
+		if (implicitTypeFlag)
+			str.append("Implicit Type ");
+		else
+			str.append("Variable ");
+		
 		for (String name : names) {
 			str.append(name);
 			str.append(' ');
@@ -54,7 +63,10 @@ public class SectionVariableNode extends Node {
 		
 		for (int i = 0; i < n; i++) {
 			String name = names.get(i);
-			buffer.append("add_section_var ");
+			if (implicitTypeFlag)
+				buffer.append("add_section_type ");
+			else
+				buffer.append("add_section_var ");
 
 			buffer.append("(mk_var (\"");
 			buffer.append(name);
@@ -76,7 +88,10 @@ public class SectionVariableNode extends Node {
 		
 		for (int i = 0; i < n; i++) {
 			String name = names.get(i);
-			str.append("remove_section_var ");
+			if (implicitTypeFlag)
+				str.append("remove_section_type ");
+			else
+				str.append("remove_section_var ");
 			str.append('"' + name + '"');
 			
 			if (i < n - 1)

@@ -22,7 +22,8 @@ public class SectionHypothesisNode extends Node {
 	@Override
 	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
 		term.beginTranslation(buffer, context);
-		if (term.getType() != ObjectNode.TERM)
+		int type = term.getType();
+		if (type != ObjectNode.TERM && type != ObjectNode.UNKNOWN)
 			throw new RuntimeException("TERM expected: " + term);
 	}
 

@@ -298,13 +298,11 @@ Lemma last_ind P :
 --by rewrite -cat_rcons; auto.
 move => Hnil Hlast s.
 rewrite -(cat0s s).
-elim: s => [|x s2 IHs]; first by rewr cat Hnil.
-rewrite lastI -rcons_cat.
-apply: Hlast.
---case: s2 IHs => [->|[h [t] ->] IH2]; first by rewrite !cats0; move => _
---rewrite lastI -rcons_cat.
-Abort.
-
+move: Hnil; set e := `[]`.
+move: e_def => _.
+elim: s e => [|x s2 IHs]; move => s1 Hs1; first by rewrite cats0.
+by rewrite -cat_rcons; apply: IHs; exact: Hlast.
+Qed.
 
 
 (* Sequence indexing. *)
@@ -994,7 +992,14 @@ rewrite rev_rcons size_rcons ltnS subSS -cats1 nth_cat /=.
 case: n => [|n] lt_n_s; first by rewrite subn0 ltnn subnn.
 by rewrite -{2}(subnK lt_n_s) -addSnnS leq_addr /= -IHs.
 *)
-Abort.
+move: s n; apply: "REWRITE_RULE[IMP_IMP] last_ind".
+rewrite size_nil ltn0 /= => s x IHs n.
+rewrite rev_rcons size_rcons ltnS subSS -cats1 nth_cat.
+elim: n => [|n _]; first by rewrite subn0 ltnn /= subnn !nth0; rewr head.
+move => lt_n_s.
+rewrite -{2}(subnK lt_n_s) -addSnnS ltE leq_addr /= -IHs ?ltE //.
+by rewr nth.
+Qed.
 
 End Rev.
 
@@ -1070,144 +1075,190 @@ by split => [| ->]; rewrite ?size_nil //; move/size0nil. Qed.
 (* mem_seq and index. *)
 (* mem_seq defines a predType for seq. *)
 
-Fixpoint mem_seq (s : seq T) :=
-  if s is y :: s' then xpredU1 y (mem_seq s') else xpred0.
-
-Definition eqseq_class := seq T.
-Identity Coercion seq_of_eqseq : eqseq_class >-> seq.
-
-Coercion pred_of_eq_seq (s : eqseq_class) : pred_class := [eta mem_seq s].
-
-Canonical seq_predType := @mkPredType T (seq T) pred_of_eq_seq.
+--Fixpoint mem_seq (s : seq T) :=
+--  if s is y :: s' then xpredU1 y (mem_seq s') else xpred0.
+--Definition eqseq_class := seq T.
+--Identity Coercion seq_of_eqseq : eqseq_class >-> seq.
+--Coercion pred_of_eq_seq (s : eqseq_class) : pred_class := [eta mem_seq s].
+--Canonical seq_predType := @mkPredType T (seq T) pred_of_eq_seq.
 (* The line below makes mem_seq a canonical instance of topred. *)
-Canonical mem_seq_predType := mkPredType mem_seq.
+--Canonical mem_seq_predType := mkPredType mem_seq.
 
-Lemma in_cons y s x : (x \in y :: s) = (x == y) || (x \in s).
-Proof. by []. Qed.
+"parse_as_infix(\"<-\", (11, \"right\"))".
+"override_interface(\"<-\", `MEM`)".
 
-Lemma in_nil x : (x \in [::]) = false.
-Proof. by []. Qed.
+Lemma in_cons y s x : `(x <- y :: s) <=> (x = y \/ x <- s)`. by rewr !MEM. Qed.
 
-Lemma mem_seq1 x y : (x \in [:: y]) = (x == y).
-Proof. by rewrite in_cons orbF. Qed.
+Lemma in_nil x : `(x <- []) = F`. by rewr !MEM. Qed.
+
+Lemma mem_seq1 x y : `(x <- [y]) <=> (x = y)`.
+by rewrite in_cons in_nil orbF. Qed.
 
  (* to be repeated after the Section discharge. *)
-Let inE := (mem_seq1, in_cons, inE).
+--Let inE := (mem_seq1, in_cons, inE).
 
-Lemma mem_seq2 x y1 y2 : (x \in [:: y1; y2]) = xpred2 y1 y2 x.
-Proof. by rewrite !inE. Qed.
+Lemma mem_seq2 x y1 y2 : `(x <- [y1; y2]) <=> (x = y1 \/ x = y2)`.
+by rewrite !in_cons in_nil orbF. Qed.
 
-Lemma mem_seq3  x y1 y2 y3 : (x \in [:: y1; y2; y3]) = xpred3 y1 y2 y3 x.
-Proof. by rewrite !inE. Qed.
+Lemma mem_seq3  x y1 y2 y3 : `(x <- [y1; y2; y3]) <=> (x = y1 \/ x = y2 \/ x = y3)`.
+--Proof. by rewrite !inE. Qed.
+by rewrite !in_cons in_nil orbF. Qed.
 
 Lemma mem_seq4  x y1 y2 y3 y4 :
-  (x \in [:: y1; y2; y3; y4]) = xpred4 y1 y2 y3 y4 x.
-Proof. by rewrite !inE. Qed.
+  `(x <- [y1; y2; y3; y4]) <=> (x = y1 \/ x = y2 \/ x = y3 \/ x = y4)`.
+Proof. by rewrite !in_cons in_nil orbF. Qed.
 
-Lemma mem_cat x s1 s2 : (x \in s1 ++ s2) = (x \in s1) || (x \in s2).
-Proof. by elim: s1 => //= y s1 IHs; rewrite !inE /= -orbA -IHs. Qed.
+Lemma mem_cat x s1 s2 : `(x <- s1 ++ s2) <=> (x <- s1 \/ x <- s2)`.
+--Proof. by elim: s1 => //= y s1 IHs; rewrite !inE /= -orbA -IHs. Qed.
+elim: s1 => [|y s1 IHs]; first by rewrite cat0s in_nil orFb.
+by rewrite cat_cons !in_cons IHs -orbA. Qed.
 
-Lemma mem_rcons s y : rcons s y =i y :: s.
+Lemma mem_rcons s y : `!x. x <- rcons s y <=> x <- y :: s`.
 Proof. by move=> x; rewrite -cats1 /= mem_cat mem_seq1 orbC in_cons. Qed.
 
-Lemma mem_head x s : x \in x :: s.
-Proof. exact: predU1l. Qed.
+Lemma mem_head x s : `x <- x :: s`.
+--Proof. exact: predU1l. Qed.
+by rewrite in_cons /=. Qed.
 
-Lemma mem_last x s : last x s \in x :: s.
+Lemma mem_last x s : `last x s <- x :: s`.
 Proof. by rewrite lastI mem_rcons mem_head. Qed.
 
-Lemma mem_behead s : {subset behead s <= s}.
-Proof. by case: s => // y s x; exact: predU1r. Qed.
+Lemma mem_behead s : `!x. x <- behead s ==> x <- s`.
+--Proof. by case: s => // y s x; exact: predU1r. Qed.
+by elim: s => [|y s _ x]; rewr behead in_nil // in_cons /=. Qed.
 
-Lemma mem_belast s y : {subset belast y s <= y :: s}.
-Proof. by move=> x ys'x; rewrite lastI mem_rcons mem_behead. Qed.
+Lemma mem_belast s y : `!x. x <- belast y s ==> x <- y :: s`.
+--Proof. by move=> x ys'x; rewrite lastI mem_rcons mem_behead. Qed.
+by move => x ys'x; rewrite lastI mem_rcons mem_behead; rewr behead. Qed.
 
-Lemma mem_nth s n : n < size s -> nth s n \in s.
-Proof.
-by elim: s n => [|x s IHs] // [_|n sz_s]; rewrite ?mem_head // mem_behead ?IHs.
+Lemma mem_nth s n : `n < sizel s ==> nth x0 s n <- s`.
+--by elim: s n => [|x s IHs] // [_|n sz_s]; rewrite ?mem_head // mem_behead ?IHs.
+elim: s n => [|x s IHs]; elim => [|n _]; rewr size_nil ltnn ltS0 /= nth mem_head /=.
+rewrite size_cons ltSS => sz_s.
+by rewrite mem_behead; rewr behead; rewrite IHs.
 Qed.
 
-Lemma mem_take s x : x \in take n0 s -> x \in s.
-Proof. by move=> s0x; rewrite -(cat_take_drop n0 s) mem_cat /= s0x. Qed.
+Lemma mem_take s x : `x <- take n0 s ==> x <- s`.
+--Proof. by move=> s0x; rewrite -(cat_take_drop n0 s) mem_cat /= s0x. Qed.
+by move => s0x; rewrite -(cat_take_drop n0 s) mem_cat. Qed.
 
-Lemma mem_drop s x : x \in drop n0 s -> x \in s.
-Proof. by move=> s0'x; rewrite -(cat_take_drop n0 s) mem_cat /= s0'x orbT. Qed.
+Lemma mem_drop s x : `x <- dropl n0 s ==> x <- s`.
+--Proof. by move=> s0'x; rewrite -(cat_take_drop n0 s) mem_cat /= s0'x orbT. Qed.
+by move => s0'x; rewrite -(cat_take_drop n0 s) mem_cat. Qed.
 
-Lemma mem_rev s : rev s =i s.
-Proof.
-by move=> y; elim: s => // x s IHs; rewrite rev_cons /= mem_rcons in_cons IHs.
-Qed.
+Lemma mem_rev s : `!x. x <- rev s <=> x <- s`.
+--by move=> y; elim: s => // x s IHs; rewrite rev_cons /= mem_rcons in_cons IHs.
+move => y; elim: s => [|x s IHs]; first by rewr rev catrev /=.
+by rewrite rev_cons mem_rcons !in_cons IHs. Qed.
 
 Section Filters.
 
-Variable a : pred T.
+Variable a : `:A -> bool`.
 
-Lemma hasP s : reflect (exists2 x, x \in s & a x) (has a s).
-Proof.
-elim: s => [|y s IHs] /=; first by right; case.
-case ay: (a y); first by left; exists y; rewrite ?mem_head.
-apply: (iffP IHs) => [] [x ysx ax]; exists x => //; first exact: mem_behead.
-by case: (predU1P ysx) ax => [->|//]; rewrite ay.
+Lemma hasP s : `(?x. x <- s /\ a x) <=> has a s`.
+--elim: s => [|y s IHs] /=; first by right; case.
+--case ay: (a y); first by left; exists y; rewrite ?mem_head.
+--apply: (iffP IHs) => [] [x ysx ax]; exists x => //; first exact: mem_behead.
+--by case: (predU1P ysx) ax => [->|//]; rewrite ay.
+elim: s => [|y s IHs]; rewr has !in_nil.
+case: (EXCLUDED_MIDDLE `(a:A->bool) y`) => /= ay; first by exists y; rewrite mem_head.
+rewrite -IHs; split => [] [x [ysx ax]]; last first.
+  by exists x; rewrite mem_behead //; rewr behead.
+exists x; move: ysx; rewrite in_cons.
+case: (EXCLUDED_MIDDLE `x = y:A`) => //= xy.
+by move: ax; rewr xy ay.
 Qed.
 
-Lemma hasPn s : reflect (forall x, x \in s -> ~~ a x) (~~ has a s).
-Proof.
-apply: (iffP idP) => not_a_s => [x s_x|].
-  by apply: contra not_a_s => a_x; apply/hasP; exists x.
-by apply/hasP=> [[x s_x]]; apply/negP; exact: not_a_s.
+Lemma hasPn s : `(!x. x <- s ==> ~(a x)) <=> ~has a s`.
+--apply: (iffP idP) => not_a_s => [x s_x|].
+--  by apply: contra not_a_s => a_x; apply/hasP; exists x.
+--by apply/hasP=> [[x s_x]]; apply/negP; exact: not_a_s.
+split => not_a_s; first last.
+  move => x s_x; apply: contra not_a_s => a_x.
+  by rewrite -hasP; exists x.
+by rewrite -hasP -implybF => [[x [s_x]]]; rewrite implybF; exact: not_a_s.
 Qed.
 
-Lemma allP s : reflect (forall x, x \in s -> a x) (all a s).
-Proof.
-elim: s => [|x s IHs]; first by left.
-rewrite /= andbC; case: IHs => IHs /=.
-  apply: (iffP idP) => [Hx y|]; last by apply; exact: mem_head.
-  by case/predU1P=> [->|Hy]; auto.
-by right=> H; case IHs => y Hy; apply H; exact: mem_behead.
+Lemma allP s : `(!x. x <- s ==> a x) <=> (all a s)`.
+--elim: s => [|x s IHs]; first by left.
+--rewrite /= andbC; case: IHs => IHs /=.
+--  apply: (iffP idP) => [Hx y|]; last by apply; exact: mem_head.
+--  by case/predU1P=> [->|Hy]; auto.
+--by right=> H; case IHs => y Hy; apply H; exact: mem_behead.
+elim: s => [|x s IHs]; rewr in_nil all //.
+rewrite andbC -IHs in_cons; split; last first.
+  move => [h ax] y [-> //|ys].
+  exact: h.
+move => h.
+case: (EXCLUDED_MIDDLE `(a:A->bool) x`) => /=; first move => ax.
+  by rewr ax /= => y ys; exact: h.
+exact: h.
 Qed.
 
-Lemma allPn s : reflect (exists2 x, x \in s & ~~ a x) (~~ all a s).
-Proof.
-elim: s => [|x s IHs]; first by right=> [[x Hx _]].
-rewrite /= andbC negb_and; case: IHs => IHs /=.
-  by left; case: IHs => y Hy Hay; exists y; first exact: mem_behead.
-apply: (iffP idP) => [|[y]]; first by exists x; rewrite ?mem_head.
-by case/predU1P=> [-> // | s_y not_a_y]; case: IHs; exists y.
+
+Lemma allPn s : `(?x. x <- s /\ ~a x) <=> ~all a s`.
+--elim: s => [|x s IHs]; first by right=> [[x Hx _]].
+--rewrite /= andbC negb_and; case: IHs => IHs /=.
+--  by left; case: IHs => y Hy Hay; exists y; first exact: mem_behead.
+--apply: (iffP idP) => [|[y]]; first by exists x; rewrite ?mem_head.
+--by case/predU1P=> [-> // | s_y not_a_y]; case: IHs; exists y.
+elim: s => [|x s IHs]; rewr all in_nil // in_cons.
+rewrite andbC negb_and -IHs; split.
+  move => [y [ay [eq | mem]]].
+    by move: ay; rewrite eq /=.
+  by right; exists y.
+case => [nax |[y [ys nay]]]; first by exists x => /=.
+by exists y.
 Qed.
 
-Lemma mem_filter x s : (x \in filter a s) = a x && (x \in s).
-Proof.
-rewrite andbC; elim: s => //= y s IHs.
-rewrite (fun_if (fun s' : seq T => x \in s')) !in_cons {}IHs.
-by case: eqP => [->|_]; case (a y); rewrite /= ?andbF.
+
+Lemma mem_filter x s : `(x <- filter a s) <=> (a x /\ x <- s)`.
+--rewrite andbC; elim: s => //= y s IHs.
+--rewrite (fun_if (fun s' : seq T => x \in s')) !in_cons {}IHs.
+--by case: eqP => [->|_]; case (a y); rewrite /= ?andbF.
+rewrite andbC; elim: s => [|y s IHs]; rewr filter MEM //.
+rewrite fun_if !in_cons IHs.
+by case: (EXCLUDED_MIDDLE `(a:A->bool) y`) => /= ay;
+  case: (EXCLUDED_MIDDLE `x = y:A`) => //=.
 Qed.
 
 End Filters.
 
-Lemma eq_in_filter (a1 a2 : pred T) s :
-  {in s, a1 =1 a2} -> filter a1 s = filter a2 s.
-Proof.
-elim: s => //= x s IHs eq_a.
-rewrite eq_a ?mem_head ?IHs // => y s_y; apply: eq_a; exact: mem_behead.
+Lemma eq_in_filter a1 a2 s :
+  `(!x. x <- s ==> a1 x = a2 x) ==> filter a1 s = filter a2 s`.
+--elim: s => //= x s IHs eq_a.
+--rewrite eq_a ?mem_head ?IHs // => y s_y; apply: eq_a; exact: mem_behead.
+elim: s => [|x s IHs]; rewr filter // => eq_a.
+rewrite eq_a ?mem_head ?IHs // => y s_y.
+by apply: eq_a; rewrite mem_behead; rewr behead.
 Qed.
 
-Lemma eq_has_r s1 s2 : s1 =i s2 -> has^~ s1 =1 has^~ s2.
-Proof.
-move=> Es12 a; apply/(hasP a s1)/(hasP a s2) => [] [x Hx Hax];
- by exists x; rewrite // ?Es12 // -Es12.
+Lemma eq_has_r s1 s2 : `(!x. x <- s1 <=> x <- s2) ==> (!a. has a s1 <=> has a s2)`.
+--move=> Es12 a; apply/(hasP a s1)/(hasP a s2) => [] [x Hx Hax];
+-- by exists x; rewrite // ?Es12 // -Es12.
+move => Es12 a.
+split; rewrite -!hasP => [] [x [Hx Hax]].
+  by exists x; rewrite -Es12.
+by exists x; rewrite Es12.
 Qed.
 
-Lemma eq_all_r s1 s2 : s1 =i s2 -> all^~ s1 =1 all^~ s2.
-Proof.
-by move=> Es12 a; apply/(allP a s1)/(allP a s2) => Hs x Hx;
-  apply: Hs; rewrite Es12 in Hx *.
+Lemma eq_all_r s1 s2 : `(!x. x <- s1 <=> x <- s2) ==> (!a. all a s1 = all a s2)`.
+--by move=> Es12 a; apply/(allP a s1)/(allP a s2) => Hs x Hx;
+--  apply: Hs; rewrite Es12 in Hx *.
+move => Es12 a; rewrite -!allP; split => Hs x Hx.
+  by apply: Hs; rewrite Es12.
+by apply: Hs; rewrite -Es12.
 Qed.
 
-Lemma has_sym s1 s2 : has (mem s1) s2 = has (mem s2) s1.
-Proof. by apply/(hasP _ s2)/(hasP _ s1) => [] [x]; exists x. Qed.
+Lemma has_sym s1 s2 : `has (\x. x <- s1) s2 = has (\x. x <- s2) s1`.
+--Proof. by apply/(hasP _ s2)/(hasP _ s1) => [] [x]; exists x. Qed.
+by rewrite -!hasP /= andbC. Qed.
 
-Lemma has_pred1 x s : has (pred1 x) s = (x \in s).
-Proof. by rewrite -(eq_has (mem_seq1^~ x)) (has_sym [:: x]) /= orbF. Qed.
+Lemma has_pred1 x s : `has (pred1 x) s <=> x <- s`.
+--Proof. by rewrite -(eq_has (mem_seq1^~ x)) (has_sym [:: x]) /= orbF. Qed.
+rewrite -hasP pred1 /=; split => [[y [ys <-]] // | xs].
+by exists x.
+Qed.
 
 (* Constant sequences, i.e., the image of nseq. *)
 

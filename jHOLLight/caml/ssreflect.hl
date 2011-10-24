@@ -138,6 +138,13 @@ let inst_context_vars vars tm_vars tm =
     inst ty_inst tm;;
 
 
+(* Instantiates types of all free variables in the term using the context *)
+let inst_all_free_vars tm (g : goal) =
+  let context_vars = get_context_vars g in
+  let f_vars = frees tm in
+    inst_context_vars context_vars f_vars tm;;
+
+
 (* Finds a subterm corresponding to the given pattern.
    Before matching, the term types are instantiated in the given context. *)
 let match_subterm_in_context pat tm (g : goal) =
@@ -315,6 +322,11 @@ let set_tac name tm (g : goal) =
   let abbrev_tm = mk_eq (mk_var (name, type_of tm0), tm0) in
     (ABBREV_TAC abbrev_tm THEN POP_ASSUM (LABEL_TAC (name ^ "_def"))) g;;
 
+
+(* Introduces a subgoal *)
+let have_tac then_tac tm (g : goal) =
+  let tm0 = inst_all_free_vars tm g in
+    (SUBGOAL_THEN tm0 (fun th -> MP_TAC th THEN then_tac)) g;;
 
 
 (* Specializes the theorem using the given set of variables *)

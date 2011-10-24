@@ -64,11 +64,10 @@ public class HaveNode extends TacticNode {
 			thenTactic.translate(buffer);
 		}
 		else {
-			buffer.append("SUBGOAL_THEN ");
-			obj.translate(buffer);
-			buffer.append("(fun th -> MP_TAC th THEN ");
+			buffer.append("have_tac ");
 			thenTactic.translate(buffer);
-			buffer.append(")");
+			buffer.append(' ');
+			obj.translate(buffer);
 		}
 		
 		buffer.append(')');

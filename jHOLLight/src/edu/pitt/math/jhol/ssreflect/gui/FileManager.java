@@ -24,10 +24,10 @@ public class FileManager implements Configuration.Saver {
 	private final ActionListener fileActionListener;
 	
 	/* List of all recent files */
-	private final ArrayList<File> recentFiles;
+	private final ArrayList<FileInfo> recentFiles;
 	
 	// Currently open file
-	private File currentFile;
+	private FileInfo currentFile;
 	
 	// The maximum number of recent files in the menu
 	private static final int MAX_RECENT_FILES = 10;
@@ -37,6 +37,52 @@ public class FileManager implements Configuration.Saver {
 	
 	public static final String CMD_FILE_RECENT = "file-recent:";
 	
+	/**
+	 * Describes a recently open file
+	 */
+	static class FileInfo {
+		// File
+		public final File file;
+		// Position of the caret inside the file
+		private int position;
+		
+		public FileInfo(File file, int position) {
+			assert(file != null);
+			this.file = file;
+			this.position = position;
+		}
+		
+		public FileInfo(String name, int position) {
+			this(new File(name), position);
+		}
+		
+		public int getPosition() {
+			return position;
+		}
+		
+		@Override
+		public int hashCode() {
+			return file.hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			
+			if (!(obj instanceof FileInfo))
+				return false;
+			
+			// Compare files only
+			FileInfo info2 = (FileInfo) obj;
+			return file.equals(info2.file);
+		}
+		
+		@Override
+		public String toString() {
+			return file.toString();
+		}
+	}
 
 	/**
 	 * Listens for changes of the current file
@@ -57,7 +103,7 @@ public class FileManager implements Configuration.Saver {
 	public FileManager(Configuration conf, JMenu fileMenu, ActionListener actionListener) {
 		this.fileMenu = fileMenu;
 		this.fileActionListener = actionListener;
-		this.recentFiles = new ArrayList<File>();
+		this.recentFiles = new ArrayList<FileInfo>();
 		this.currentFileListeners = new ArrayList<CurrentFileListener>();
 		this.currentFile = null;
 		readConfiguration(conf);
@@ -76,7 +122,7 @@ public class FileManager implements Configuration.Saver {
 	/**
 	 * Returns the currently open file
 	 */
-	public File getCurrentFile() {
+	public FileInfo getCurrentFile() {
 		return currentFile;
 	}
 	
@@ -88,7 +134,7 @@ public class FileManager implements Configuration.Saver {
 	 */
 	public File getCurrentDir() {
 		if (currentFile != null) {
-			return currentFile.getParentFile();
+			return currentFile.file.getParentFile();
 		}
 		
 		return new File(".");
@@ -101,14 +147,16 @@ public class FileManager implements Configuration.Saver {
 	private void readConfiguration(Configuration conf) {
 		// Load recently open files
 		Configuration.Group group = conf.getGroup(CONF_RECENT_GROUP);
-		String names = group.getVal("names", null);
+		String info = group.getVal("names", null);
 		
-		if (names != null) {
-			String[] els = names.split(";");
+		if (info != null) {
+			String[] els = info.split(";");
 			if (els != null) {
-				for (int i = 0; i < els.length; i++) {
-					if (els[i] != null && els[i].length() > 0)
-						addRecentProject(new File(els[i]));
+				for (int i = 0; i < els.length; i += 2) {
+					if (els[i] != null && els[i].length() > 0) {
+						int pos = Integer.parseInt(els[i + 1]);
+						addRecentProject(new FileInfo(els[i], pos));
+					}
 				}
 			}
 		}
@@ -116,8 +164,9 @@ public class FileManager implements Configuration.Saver {
 		// Load currently open file
 		group = conf.getGroup(CONF_CURRENT_GROUP);
 		String name = group.getVal("name", null);
+		int pos = group.getIntVal("position", 0);
 		if (name != null) {
-			setCurrentFile(new File(name));
+			setCurrentFile(new FileInfo(name, pos));
 		}
 	}
 	
@@ -129,8 +178,10 @@ public class FileManager implements Configuration.Saver {
 		StringBuilder str = new StringBuilder();
 
 		for (int i = recentFiles.size() - 1; i >= 0; i--) {
-			File file = recentFiles.get(i);
-			str.append(file.getAbsolutePath());
+			FileInfo file = recentFiles.get(i);
+			str.append(file.file.getAbsolutePath());
+			str.append(';');
+			str.append(file.position);
 			str.append(';');
 		}
 		
@@ -140,7 +191,8 @@ public class FileManager implements Configuration.Saver {
 		group = conf.getGroup(CONF_CURRENT_GROUP);
 		
 		if (currentFile != null) {
-			group.setVal("name", currentFile.getAbsolutePath());
+			group.setVal("name", currentFile.file.getAbsolutePath());
+			group.setVal("position", currentFile.position);
 		}
 		else {
 			group.setVal("name", null);
@@ -151,13 +203,20 @@ public class FileManager implements Configuration.Saver {
 	/**
 	 * Sets the current file
 	 */
-	public void setCurrentFile(File file) {
+	public void setCurrentFile(File file, int pos) {
+		setCurrentFile(new FileInfo(file, pos));
+	}
+	
+	/**
+	 * Sets the current file
+	 */
+	public void setCurrentFile(FileInfo file) {
 		if (file == null) {
 			this.currentFile = null;
 		}
 		else {
-			if (!file.exists()) {
-				System.err.println("File does not exist: " + file);
+			if (!file.file.exists()) {
+				System.err.println("File does not exist: " + file.file);
 				return;
 			}
 			
@@ -167,7 +226,7 @@ public class FileManager implements Configuration.Saver {
 
 		// Inform listeners about the change
 		for (CurrentFileListener listener : currentFileListeners) {
-			listener.currentFileChanged(currentFile);
+			listener.currentFileChanged(currentFile.file);
 		}
 	}
 	
@@ -180,7 +239,7 @@ public class FileManager implements Configuration.Saver {
 		if (file == null)
 			return null;
 		
-		setCurrentFile(file);
+		setCurrentFile(new FileInfo(file, 0));
 		return readCurrent();
 	}
 	
@@ -193,7 +252,7 @@ public class FileManager implements Configuration.Saver {
 			return null;
 		
 		// Do not open too big files
-		if (currentFile.length() > 50000000) {
+		if (currentFile.file.length() > 50000000) {
 			System.err.println("File is too big: " + currentFile);
 			return null;
 		}
@@ -201,7 +260,7 @@ public class FileManager implements Configuration.Saver {
 		StringBuffer text = new StringBuffer();
 		BufferedReader r = null;
 		try {
-			r = new BufferedReader(new FileReader(currentFile));
+			r = new BufferedReader(new FileReader(currentFile.file));
 			String separator = System.getProperty("line.separator");
 		
 			while (true) {
@@ -228,11 +287,12 @@ public class FileManager implements Configuration.Saver {
 	 * If there is no current file, then a file save dialog will be shown.
 	 * Returns true if the text is saved.
 	 */
-	public boolean saveCurrent(String text) {
+	public boolean saveCurrent(String text, int position) {
 		if (currentFile == null) {
-			return saveAs(text);
+			return saveAs(text, position);
 		}
 		
+		currentFile.position = position;
 		return saveAs(currentFile, text);
 	}
 	
@@ -241,12 +301,12 @@ public class FileManager implements Configuration.Saver {
 	 * Shows a file save dialog and saves the text in a selected file.
 	 * Returns true if the text is saved.
 	 */
-	public boolean saveAs(String text) {
+	public boolean saveAs(String text, int position) {
 		File file = FileUtils.saveFileDialog(getCurrentDir(), "vhl", null);
 		if (file == null)
 			return false;
 		
-		return saveAs(file, text);
+		return saveAs(new FileInfo(file, position), text);
 	}
 	
 	
@@ -254,11 +314,11 @@ public class FileManager implements Configuration.Saver {
 	 * Saves the given text in the given file and changes the current file.
 	 * Returns true if the text is saved.
 	 */
-	private boolean saveAs(File file, String text) {
+	private boolean saveAs(FileInfo file, String text) {
 		assert(file != null);
 		
 		try {
-			BufferedWriter w = new BufferedWriter(new FileWriter(file));
+			BufferedWriter w = new BufferedWriter(new FileWriter(file.file));
 			w.write(text);
 			w.close();
 			setCurrentFile(file);
@@ -276,20 +336,20 @@ public class FileManager implements Configuration.Saver {
 	/**
 	 * Adds a file to the recent projects list
 	 */
-	private void addRecentProject(File file) {
-		if (file == null || !file.exists())
+	private void addRecentProject(FileInfo file) {
+		if (file == null || !file.file.exists())
 			return;
 
 		// Check duplicates
 		for (int i = 0; i < recentFiles.size(); i++) {
-			File f = recentFiles.get(i);
+			FileInfo f = recentFiles.get(i);
 			if (f.equals(file)) {
 				if (i == 0)
 					return;
 
 				// Move this project to the top
 				recentFiles.remove(i);
-				recentFiles.add(0, f);
+				recentFiles.add(0, file);
 				updateRecentMenu();
 				return;
 			}
@@ -334,10 +394,10 @@ public class FileManager implements Configuration.Saver {
 		fileMenu.addSeparator();
 		
 		// Add recent files
-		for (File file : recentFiles) {
-			String name = file.getAbsolutePath();
+		for (FileInfo file : recentFiles) {
+			String name = file.file.getAbsolutePath();
 	    	JMenuItem item = new JMenuItem(name);
-	    	item.setActionCommand(CMD_FILE_RECENT + name);
+	    	item.setActionCommand(CMD_FILE_RECENT + name + ";" + file.position);
 	    	item.addActionListener(fileActionListener);
 	    	fileMenu.add(item);
 		}

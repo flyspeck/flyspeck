@@ -124,13 +124,18 @@ public class TextEditor extends JTextPane implements DocumentListener {
 	/**
 	 * Clears the editor and sets the new text
 	 */
-	public void initText(String text) {
+	public void initText(String text, int initialPosition) {
 		this.writePosition = 0;
 		this.initFlag = true;
 		
 		// Set the document initial text
 		if (text != null) {
 			setText(text);
+			
+			int n = getDocument().getLength();
+			if (initialPosition >= 0 && initialPosition <= n)
+				setCaretPosition(initialPosition);
+			
 			highlight(0, getDocument().getLength());
 		}
 		

@@ -35,7 +35,7 @@ public class ExistsNode extends TacticNode {
 	@Override
 	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
-		buffer.append("EXISTS_TAC ");
+		buffer.append("exists_tac ");
 		obj.translate(buffer);
 		buffer.append(')');
 	}

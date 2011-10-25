@@ -147,7 +147,7 @@ public class FileManager implements Configuration.Saver {
 	private void readConfiguration(Configuration conf) {
 		// Load recently open files
 		Configuration.Group group = conf.getGroup(CONF_RECENT_GROUP);
-		String info = group.getVal("names", null);
+		String info = group.getVal("info", null);
 		
 		if (info != null) {
 			String[] els = info.split(";");
@@ -185,7 +185,7 @@ public class FileManager implements Configuration.Saver {
 			str.append(';');
 		}
 		
-		group.setVal("names", str.toString());
+		group.setVal("info", str.toString());
 
 		// Currently open file
 		group = conf.getGroup(CONF_CURRENT_GROUP);
@@ -344,9 +344,6 @@ public class FileManager implements Configuration.Saver {
 		for (int i = 0; i < recentFiles.size(); i++) {
 			FileInfo f = recentFiles.get(i);
 			if (f.equals(file)) {
-				if (i == 0)
-					return;
-
 				// Move this project to the top
 				recentFiles.remove(i);
 				recentFiles.add(0, file);

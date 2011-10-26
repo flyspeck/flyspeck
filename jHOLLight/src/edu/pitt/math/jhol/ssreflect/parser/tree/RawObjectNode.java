@@ -48,21 +48,22 @@ public class RawObjectNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType() {
+	protected int getType(GoalContext context) {
 		return type;
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
-		buffer.append("(" + rawText + ")");
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		buffer.append('(');
+		
+		if (type == TERM || type == TYPE) {
+			buffer.append(rawText);
+		}
+		else {
+			buffer.append("USE_THM_THEN (" + rawText + ")");
+		}
+		
+		buffer.append(')');
 	}
 
 	@Override

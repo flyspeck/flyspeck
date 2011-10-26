@@ -8,10 +8,10 @@ public abstract class Node {
 	private static int sharedCounter = 0;
 
 	/**
-	 * Returns a name for a theorem
+	 * Returns a unique name with the given prefix
 	 */
-	protected final String getUniqTheoremName() {
-		return "th_" + (sharedCounter++);
+	protected final String getUniqName(String prefix) {
+		return prefix + "_" + (sharedCounter++);
 	}
 	
 	/**
@@ -21,19 +21,9 @@ public abstract class Node {
 	protected abstract String getString();
 	
 	/**
-	 * Called before the main translation method
-	 */
-	protected abstract void beginTranslation(StringBuffer buffer, GoalContext context);
-	
-	/**
-	 * Called after the main translation method
-	 */
-	protected abstract void endTranslation(StringBuffer buffer);
-	
-	/**
 	 * The main translation method
 	 */
-	protected abstract void translate(StringBuffer buffer);
+	protected abstract void translate(StringBuffer buffer, GoalContext context);
 	
 	/**
 	 * Converts the tree into a HOL Light command
@@ -44,10 +34,7 @@ public abstract class Node {
 		sharedCounter = 0;
 		
 		StringBuffer buffer = new StringBuffer(100);
-		
-		beginTranslation(buffer, context);
-		translate(buffer);
-		endTranslation(buffer);
+		translate(buffer, context);
 		
 		return buffer.toString();
 	}

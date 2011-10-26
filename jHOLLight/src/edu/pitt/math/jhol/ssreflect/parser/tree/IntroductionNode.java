@@ -21,17 +21,7 @@ public class IntroductionNode extends TacticNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		// TODO: check if the id is not defined in the context
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		// Do nothing here
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		String name = null;
 		// IdNode
 		if (id instanceof IdNode) {

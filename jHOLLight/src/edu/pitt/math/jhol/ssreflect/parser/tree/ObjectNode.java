@@ -1,10 +1,13 @@
 package edu.pitt.math.jhol.ssreflect.parser.tree;
 
 /**
- * Object node: a term or a theorem
+ * Object node: a term, a theorem, or a type.
+ * Terms and types are translated as is.
+ * Theorems are translated into a tactic which takes one theorem-tactic as the argument.
  */
 public abstract class ObjectNode extends Node {
 	// Type constants
+	// UNKNOWN = THEOREM when the object is translated
 	protected static final int UNKNOWN = 0;
 	protected static final int TERM = 1;
 	protected static final int THEOREM = 2;
@@ -24,7 +27,7 @@ public abstract class ObjectNode extends Node {
 	/**
 	 * Returns object's type
 	 */
-	protected abstract int getType();
+	protected abstract int getType(GoalContext context);
 	
 	/**
 	 * Sets the interpretation of a wild card

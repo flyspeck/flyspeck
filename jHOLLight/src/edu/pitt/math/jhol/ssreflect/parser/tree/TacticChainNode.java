@@ -84,22 +84,7 @@ public class TacticChainNode extends TacticNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		for (TacticNode tac : tactics) {
-			tac.beginTranslation(buffer, context);
-		}
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		int n = size();
-		for (int i = n - 1; i >= 0; i--) {
-			tactics.get(i).endTranslation(buffer);
-		}
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		int n = size();
 		if (n == 0) {
 			buffer.append("ALL_TAC");
@@ -115,7 +100,7 @@ public class TacticChainNode extends TacticNode {
 		if (parFlag)
 			buffer.append('(');
 		for (int i = 0; i < n; i++) {
-			tactics.get(i).translate(buffer);
+			tactics.get(i).translate(buffer, context);
 			if (i < n - 1) {
 				if (tactics.get(i + 1).isParallel())
 					buffer.append(" THENL ");

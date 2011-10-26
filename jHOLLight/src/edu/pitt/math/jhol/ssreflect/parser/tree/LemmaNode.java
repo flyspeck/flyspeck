@@ -37,16 +37,6 @@ public class LemmaNode extends Node {
 	}
 	
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		goal.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		goal.endTranslation(buffer);
-	}
-
-	@Override
 	protected String getString() {
 		StringBuffer str = new StringBuffer("Lemma ");
 		str.append(name + ' ');
@@ -63,7 +53,7 @@ public class LemmaNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
 		buffer.append("start_section_proof ");
 		
@@ -75,7 +65,7 @@ public class LemmaNode extends Node {
 		}
 		buffer.append(']');
 		
-		goal.translate(buffer);
+		goal.translate(buffer, context);
 		buffer.append(')');
 	}
 	

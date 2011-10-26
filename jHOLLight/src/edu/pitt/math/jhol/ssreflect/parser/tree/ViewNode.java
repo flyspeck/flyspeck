@@ -21,35 +21,21 @@ public class ViewNode extends TacticNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		obj.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		obj.endTranslation(buffer);
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
-		String name = getUniqTheoremName();
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
-		buffer.append("DISCH_THEN (MP_TAC o (fun " + name + " -> ");
 		
-		// TODO: find a better solution 
 		if (obj.isWildCard()) {
-			obj.setWildCardInterpretation(name);
-			obj.translate(buffer);
-			obj.setWildCardInterpretation(null);
+			// Translate a wild card directly
+			obj.translate(buffer, context);
+			buffer.append("MP_TAC");
 		}
 		else {
-			buffer.append("MATCH_MP ");
-			obj.translate(buffer);
-			buffer.append(' ');
-			buffer.append(name);
+			buffer.append("DISCH_THEN (fun snd_th -> ");
+			obj.translate(buffer, context);
+			buffer.append("(MATCH_MP_THEN snd_th MP_TAC)");
+			buffer.append(')');
 		}
-
-		buffer.append("))");
+		
 		buffer.append(')');
 	}
 }

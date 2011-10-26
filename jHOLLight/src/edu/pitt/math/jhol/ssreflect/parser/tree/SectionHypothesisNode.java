@@ -20,31 +20,22 @@ public class SectionHypothesisNode extends Node {
 	}
 	
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		term.beginTranslation(buffer, context);
-		int type = term.getType();
-		if (type != ObjectNode.TERM && type != ObjectNode.UNKNOWN)
-			throw new RuntimeException("TERM expected: " + term);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		term.endTranslation(buffer);
-	}
-
-	@Override
 	protected String getString() {
 		return "Hypothesis " + label + " : " + term;
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		int type = term.getType(context);
+		if (type != ObjectNode.TERM)
+			throw new RuntimeException("TERM expected: " + term);
+
 		buffer.append('(');
 		buffer.append("add_section_hyp ");
 		
 		buffer.append('"' + label + '"');
 		buffer.append(' ');
-		term.translate(buffer);
+		term.translate(buffer, context);
 		
 		buffer.append(')');
 	}

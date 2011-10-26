@@ -38,16 +38,6 @@ public class RepeatNode extends TacticNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		tactics.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		tactics.endTranslation(buffer);
-	}
-
-	@Override
 	protected String getString() {
 		StringBuffer str = new StringBuffer("do ");
 		
@@ -62,7 +52,7 @@ public class RepeatNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		String beginRepeat;
 		String endRepeat;
 		
@@ -96,7 +86,7 @@ public class RepeatNode extends TacticNode {
 		}
 		
 		// If tactics.size() > 1 then the square brackets will be added automatically
-		tactics.translate(buffer);
+		tactics.translate(buffer, context);
 		
 		buffer.append(endRepeat);
 	}

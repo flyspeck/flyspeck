@@ -22,21 +22,6 @@ public class BinaryNode extends TacticNode {
 		this.right = right;
 	}
 	
-	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		tactic.beginTranslation(buffer, context);
-		left.beginTranslation(buffer, context);
-		if (right != null)
-			right.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		if (right != null)
-			right.endTranslation(buffer);
-		left.endTranslation(buffer);
-		tactic.endTranslation(buffer);
-	}
 
 	@Override
 	protected String getString() {
@@ -44,15 +29,15 @@ public class BinaryNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
-		tactic.translate(buffer);
+		tactic.translate(buffer, context);
 		buffer.append(' ');
-		left.translate(buffer);
+		left.translate(buffer, context);
 		
 		if (right != null) {
 			buffer.append(' ');
-			right.translate(buffer);
+			right.translate(buffer, context);
 		}
 		
 		buffer.append(')');

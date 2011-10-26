@@ -8,7 +8,7 @@ import edu.pitt.math.jhol.core.Term;
 public class IdNode extends ObjectNode {
 	// The identifier
 	private final String id;
-	
+
 	// Type is defined by the context
 	private int type;
 	
@@ -26,6 +26,7 @@ public class IdNode extends ObjectNode {
 	public IdNode(String id) {
 		assert(id != null);
 		this.id = id;
+		this.type = -1;
 	}
 	
 	/**
@@ -41,7 +42,17 @@ public class IdNode extends ObjectNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		getType(context);
+		assert(translationString != null);
+		
+		
+		buffer.append(translationString);
+	}
+	
+	
+	@Override
+	protected int getType(GoalContext context) {
 		// Set default values first
 		type = THEOREM;
 		translationString = id;
@@ -58,36 +69,22 @@ public class IdNode extends ObjectNode {
 		else {
 			assumptionFlag = context.isAssumptionName(id);
 			if (assumptionFlag) {
-				// Generate name
-				translationString = getUniqTheoremName();
-				// Modify the buffer
-				buffer.append("USE_THEN \"" + id + "\" (fun " + translationString + " -> ");
+				translationString = "(USE_THEN \"" + id + "\")";
+			}
+			else {
+				translationString = "(USE_THM_THEN " + id + ")";
 			}
 		}
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		if (assumptionFlag) {
-			buffer.append(")");
-		}
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
-		assert(translationString != null);
-		buffer.append(translationString);
-	}
-
-	@Override
-	protected int getType() {
+		
 		return type;
 	}
 
 	/**
 	 * Returns true if the object represents an assumption
 	 */
+	// FIXME: this function must be called after getType() 
 	protected boolean isAssumption() {
+		assert(type >= 0);
 		return assumptionFlag;
 	}
 

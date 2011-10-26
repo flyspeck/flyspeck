@@ -1,7 +1,7 @@
 package edu.pitt.math.jhol.ssreflect.parser.tree;
 
 /**
- * A node for a tactics
+ * A node for a tactic
  */
 public abstract class TacticNode extends Node {
 	@Override

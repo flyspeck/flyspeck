@@ -21,24 +21,14 @@ public class DischNode extends TacticNode {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		obj.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		obj.endTranslation(buffer);
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
 		
-		int type = obj.getType();
+		int type = obj.getType(context);
 		if (type == ObjectNode.TERM) {
-			// SPEC_TAC
+			// term: SPEC_TAC
 			StringBuffer varBuffer = new StringBuffer();
-			obj.translate(varBuffer);
+			obj.translate(varBuffer, context);
 			buffer.append("SPEC_TAC (");
 			buffer.append(varBuffer);
 			buffer.append(',');
@@ -46,10 +36,10 @@ public class DischNode extends TacticNode {
 			buffer.append(')');
 		}
 		else {
-			// MP_TAC
-			buffer.append("MP_TAC ");
-			obj.translate(buffer);
-		
+			// theorem: MP_TAC
+			obj.translate(buffer, context);
+			buffer.append("MP_TAC");
+			
 			// Remove assumptions
 			if (obj instanceof IdNode) {
 				IdNode idObj = (IdNode) obj;

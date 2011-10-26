@@ -25,19 +25,6 @@ public class SectionVariableNode extends Node {
 	}
 	
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		type.beginTranslation(buffer, context);
-		int ty = type.getType();
-		if (ty != ObjectNode.TYPE && ty != ObjectNode.UNKNOWN)
-			throw new RuntimeException("TYPE expected: " + type);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		type.endTranslation(buffer);
-	}
-
-	@Override
 	protected String getString() {
 		StringBuffer str = new StringBuffer();
 		if (implicitTypeFlag)
@@ -57,7 +44,11 @@ public class SectionVariableNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		int ty = type.getType(context);
+		if (ty != ObjectNode.TYPE)
+			throw new RuntimeException("TYPE expected: " + type);
+
 		buffer.append('(');
 		int n = names.size();
 		
@@ -71,7 +62,7 @@ public class SectionVariableNode extends Node {
 			buffer.append("(mk_var (\"");
 			buffer.append(name);
 			buffer.append("\", ");
-			type.translate(buffer);
+			type.translate(buffer, context);
 			buffer.append("))");
 			
 			if (i < n - 1)

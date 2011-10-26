@@ -21,15 +21,7 @@ public class RawNode extends Node {
 	}
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append(rawText);
 	}
 

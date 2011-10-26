@@ -5,16 +5,8 @@ package edu.pitt.math.jhol.ssreflect.parser.tree;
  */
 public class ApplyNode extends TacticNode {
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
-		buffer.append("(DISCH_THEN MATCH_MP_TAC)");
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		buffer.append("apply_tac");
 	}
 	
 	@Override

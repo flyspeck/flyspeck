@@ -94,32 +94,28 @@ public class RewriteNode extends TacticNode {
 		return str.toString();
 	}
 
-	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		if (!dischRewriteFlag)
-			theorem.beginTranslation(buffer, context);
-	}
 
 	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		if (!dischRewriteFlag)
-			theorem.endTranslation(buffer);
-	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
 		
-		// ->
-		String name = "";
 		if (dischRewriteFlag) {
-			name = getUniqTheoremName();
-			buffer.append("DISCH_THEN (fun " + name + " -> (");
+			// ->
+			buffer.append("DISCH_THEN");
+		}
+		else {
+			theorem.translate(buffer, context);
+		}
+		
+		buffer.append('(');
+		// -
+		if (revFlag) {
+			buffer.append("GSYM_THEN (");
 		}
 		
 		// rewrite or rewr
 		if (useHolRewrite) {
-			buffer.append("ONCE_REWRITE_TAC[");
+			buffer.append("fun th -> ONCE_REWRITE_TAC[th]");
 		}
 		else {
 			buffer.append("rewrite ");
@@ -137,33 +133,15 @@ public class RewriteNode extends TacticNode {
 			// pattern
 			buffer.append('[');
 			if (pattern != null)
-				pattern.translate(buffer);
-			buffer.append("] (");
+				pattern.translate(buffer, context);
+			buffer.append("]");
 		}
 		
 		// -
 		if (revFlag)
-			buffer.append("GSYM ");
-		
-		// Theorem
-		if (dischRewriteFlag) {
-			buffer.append(name);
-		}
-		else {
-			theorem.translate(buffer);
-		}
-		
-		// rewrite or rewr
-		if (useHolRewrite)
-			buffer.append("]");
-		else
 			buffer.append(")");
 		
-		// ->
-		if (dischRewriteFlag) {
-			buffer.append("))");
-		}
-		
+		buffer.append(')');
 		buffer.append(')');
 	}
 	

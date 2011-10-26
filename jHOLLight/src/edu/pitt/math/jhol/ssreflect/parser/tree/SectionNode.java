@@ -38,14 +38,6 @@ public class SectionNode extends Node {
 	
 
 	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-	}
-
-	@Override
 	protected String getString() {
 		if (startFlag)
 			return "Section " + sectionName;
@@ -54,7 +46,7 @@ public class SectionNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
+	protected void translate(StringBuffer buffer, GoalContext context) {
 		buffer.append('(');
 		if (startFlag)
 			buffer.append("begin_section ");

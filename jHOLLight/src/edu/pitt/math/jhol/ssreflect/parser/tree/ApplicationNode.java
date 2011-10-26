@@ -15,7 +15,8 @@ public class ApplicationNode extends ObjectNode {
 	 */
 	public ApplicationNode(ObjectNode firstObject, ObjectNode argument) {
 		assert(firstObject != null);
-		// Argument could be null
+		assert(argument != null);
+
 		this.firstObject = firstObject;
 		this.argument = argument;
 	}
@@ -26,10 +27,8 @@ public class ApplicationNode extends ObjectNode {
 		str.append("(");
 		str.append(firstObject);
 		
-		if (argument != null) {
-			str.append(" ");
-			str.append(argument);
-		}
+		str.append(" ");
+		str.append(argument);
 		
 		str.append(")");
 		
@@ -37,78 +36,57 @@ public class ApplicationNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType() {
-		// Applications with arguments are considered to be theorems
-		if (argument != null)
-			return THEOREM;
-		
-		return firstObject.getType();
+	protected int getType(GoalContext context) {
+		return THEOREM;
 	}
 
-	@Override
-	protected void beginTranslation(StringBuffer buffer, GoalContext context) {
-		firstObject.beginTranslation(buffer, context);
-		if (argument != null)
-			argument.beginTranslation(buffer, context);
-	}
-
-	@Override
-	protected void endTranslation(StringBuffer buffer) {
-		if (argument != null)
-			argument.endTranslation(buffer);
-		firstObject.endTranslation(buffer);
-	}
-	
 	// Translates the first object
-	private void translateFirst(StringBuffer buffer) {
+	private void translateFirst(StringBuffer buffer, GoalContext context) {
 		if (firstObject instanceof WildObjectNode) {
 			// WildCard
-			WildObjectNode wildCard = (WildObjectNode) firstObject;
-			String interpretation = wildCard.getInterpretation();
-			if (interpretation == null)
-				throw new RuntimeException("Wildcard without interpretation");
-			buffer.append(interpretation);
+			buffer.append("DISCH_THEN ");
 		}
 		else {
 			// Normal object
-			firstObject.translate(buffer);
+			firstObject.translate(buffer, context);
 		}
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer) {
-		if (argument == null) {
-			translateFirst(buffer);
-			return;
-		}
+	protected void translate(StringBuffer buffer, GoalContext context) {
+		int firstType = firstObject.getType(context);
+		if (firstType != THEOREM && firstType != UNKNOWN)
+			throw new RuntimeException("Applications work for theorems only: " + firstObject);
 		
-		buffer.append("(");
-		// argument != null
-		int argType = argument.getType();
+		buffer.append('(');
+		buffer.append("fun thm_tac -> ");
+		translateFirst(buffer, context);
+		
+		buffer.append('(');
+		int argType = argument.getType(context);
 		
 		if (argType == TERM) {
-			// ISPEC
-			buffer.append("ISPEC ");
-			argument.translate(buffer);
-			buffer.append(' ');
-			translateFirst(buffer);
+			// ISPEC_THEN
+			buffer.append("ISPEC_THEN ");
+			argument.translate(buffer, context);
+			buffer.append(" thm_tac");
 		}
 		else if (argType == TYPE) {
 			// inst_first_type
-			buffer.append("inst_first_type ");
-			argument.translate(buffer);
-			buffer.append(' ');
-			translateFirst(buffer);
+			buffer.append("INST_FIRST_TYPE_THEN ");
+			argument.translate(buffer, context);
+			buffer.append(" thm_tac");
 		}
 		else {
-			// MATCH_MP
-			buffer.append("MATCH_MP ");
-			translateFirst(buffer);
-			buffer.append(" ");
-			argument.translate(buffer);
+			// MATCH_MP_THEN
+			buffer.append("fun fst_th ->");
+			argument.translate(buffer, context);
+			buffer.append("(fun th -> MATCH_MP_THEN th thm_tac fst_th)");
 		}
 		
-		buffer.append(")");
+		buffer.append(')');
+		
+		buffer.append(')');
 	}
 
 	@Override

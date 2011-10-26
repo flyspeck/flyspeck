@@ -296,11 +296,6 @@ let done_tac = ASM_REWRITE_TAC[] THEN FAIL_TAC "done: not all subgoals are prove
 (* Simplification: /= *)
 let simp_tac = SIMP_TAC[];;
 
-(* The 'exact' tactic *)
-(* TODO: do [done | by move => top; apply top], here apply top 
-   works as ACCEPT_TAC with matching (rewriting) in some cases *)
-let exact_tac = FIRST [done_tac; 
-		       move ["_tmp_"] THEN USE_THEN "_tmp_" (fun th -> MATCH_MP_TAC th) THEN done_tac];;
 
 
 (* Linear arithmetic simplification *)
@@ -335,13 +330,32 @@ let exists_tac tm (g : goal) =
 
 
 (* Specializes a variable and applies the next tactic *)
-let SPEC_THEN tm th (tac : thm_tactic) (g : goal) =
+let ISPEC_THEN tm (tac : thm_tactic) th (g : goal) =
   let tm0 = inst_all_free_vars tm g in
     tac (ISPEC tm0 th) g;;
 
 
-let MATCH_MP_THEN th1 th2 (tac : thm_tactic) =
+let USE_THM_THEN th (tac : thm_tactic) =
+  tac th;;
+
+
+let MATCH_MP_THEN th2 (tac : thm_tactic) th1 =
     tac (MATCH_MP th1 th2);;
+
+
+let GSYM_THEN tac th =
+  tac (GSYM th);;
+
+
+(* The 'apply' tactic *)
+let apply_tac = DISCH_THEN (fun th -> FIRST [MATCH_ACCEPT_TAC th; MATCH_MP_TAC th]);;
+
+(* The 'exact' tactic *)
+(* TODO: do [done | by move => top; apply top], here apply top 
+   works as ACCEPT_TAC with matching (rewriting) in some cases *)
+let exact_tac = FIRST [done_tac; 
+		       move ["_tmp_"] THEN USE_THEN "_tmp_" (fun th -> MATCH_MP_TAC th) THEN done_tac];;
+
 
 
 (* Specializes the theorem using the given set of variables *)
@@ -415,12 +429,12 @@ let elim (g:goal) =
 
 	  
 (* Instantiates the first type variable in the given theorem *)
-let inst_first_type ty th =
+let INST_FIRST_TYPE_THEN ty (then_tac:thm_tactic) th =
   let ty_vars = type_vars_in_term (concl th) in
   if ty_vars = [] then
     failwith "inst_first_type: no type variables in the theorem"
   else
-    INST_TYPE [(ty, hd ty_vars)] th;;
+    then_tac (INST_TYPE [(ty, hd ty_vars)] th);;
 
 
 (* Repeats the given tactic exactly n times and then repeats the same tactic at most m times *)

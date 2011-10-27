@@ -159,7 +159,8 @@ public class Interpreter {
 				out.indexOf("Characters ") != -1 ||
 				out.indexOf("^^^") != -1 || 
 				out.indexOf("Unbound value") != -1 ||
-				out.indexOf("Exception:") != -1) {
+				out.indexOf("Exception:") != -1 || 
+				out.indexOf("Parse error") != -1) {
 				throw new Exception("Command failed: " + out);
 			}
 			

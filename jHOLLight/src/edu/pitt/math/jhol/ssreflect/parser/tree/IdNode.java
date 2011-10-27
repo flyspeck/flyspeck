@@ -16,6 +16,10 @@ public class IdNode extends ObjectNode {
 	private String translationString;
 	// If true, then this node corresponds to an assumption
 	private boolean assumptionFlag;
+
+	// Indicates if the object should be cleared from the assumption list
+	public boolean clearFlag;
+
 	
 	// Constant Id
 	public static final IdNode TMP_ID = new IdNode("_tmp_");

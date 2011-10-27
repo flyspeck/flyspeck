@@ -1262,162 +1262,222 @@ Qed.
 
 (* Constant sequences, i.e., the image of nseq. *)
 
-Definition constant s := if s is x :: s' then all (pred1 x) s' else true.
+--Definition constant s := if s is x :: s' then all (pred1 x) s' else true.
+"let constant = define `constant [] = T /\ constant (CONS x s') = all (pred1 x) s'`".
 
-Lemma all_pred1P x s : reflect (s = nseq (size s) x) (all (pred1 x) s).
-Proof.
-elim: s => [|y s IHs] /=; first by left.
-case: eqP => [->{y} | ne_xy]; last by right=> [] [? _]; case ne_xy.
-by apply: (iffP IHs) => [<- //| []].
+Lemma all_pred1P x s : `(s = nseq (sizel s) x) <=> (all (pred1 x) s)`.
+--elim: s => [|y s IHs] /=; first by left.
+--case: eqP => [->{y} | ne_xy]; last by right=> [] [? _]; case ne_xy.
+--by apply: (iffP IHs) => [<- //| []].
+elim: s => [| y s IHs]; rewr nseq ncons size_nil size_cons iter all // eqseq_cons.
+case: (EXCLUDED_MIDDLE `x = y`) => [<- | ne_xy]; last first.
+  by rewrite pred1 /=; rewr ne_xy andFb.
+by rewrite {1}pred1 /= -IHs nseq ncons.
 Qed.
 
-Lemma all_pred1_constant x s : all (pred1 x) s -> constant s.
-Proof. by case: s => //= y s /andP[/eqP->]. Qed.
+Lemma all_pred1_constant x s : `all (pred1 x) s ==> constant s`.
+--Proof. by case: s => //= y s /andP[/eqP->]. Qed.
+by elim: s; rewr constant all pred1 /=. Qed.
 
-Lemma all_pred1_nseq x y n : all (pred1 x) (nseq n y) = (n == 0) || (x == y).
-Proof.
-case: n => //= n; rewrite eq_sym; apply: andb_idr => /eqP->{x}.
-by elim: n => //= n ->; rewrite eqxx.
+Lemma all_pred1_nseq x y n : `all (pred1 x) (nseq n y) <=> (n = 0 \/ x = y)`.
+--case: n => //= n; rewrite eq_sym; apply: andb_idr => /eqP->{x}.
+--by elim: n => //= n ->; rewrite eqxx.
+elim: n => [|n _]; rewr pred1 nseq !ncons iter all //=.
+rewrite [`y = x`]eq_sym eqS0 orFb; apply: andb_idr => ->.
+by elim: n => [|n IHn]; rewr iter all /=.
 Qed.
 
-Lemma constant_nseq n x : constant (nseq n x).
-Proof. by case: n => //= n; rewrite all_pred1_nseq eqxx orbT. Qed.
+Lemma constant_nseq n x : `constant (nseq n x)`.
+--Proof. by case: n => //= n; rewrite all_pred1_nseq eqxx orbT. Qed.
+elim: n => [|n _]; rewr nseq ncons iter constant //.
+by rewrite -ncons -nseq all_pred1_nseq.
+Qed.
 
 (* Uses x0 *)
-Lemma constantP s : reflect (exists x, s = nseq (size s) x) (constant s).
-Proof.
-apply: (iffP idP) => [| [x ->]]; last exact: constant_nseq.
-case: s => [|x s] /=; first by exists x0.
-by move/all_pred1P=> def_s; exists x; rewrite -def_s.
+Lemma constantP s : `(?x. s = nseq (sizel s) x) <=> (constant s)`.
+--apply: (iffP idP) => [| [x ->]]; last exact: constant_nseq.
+--case: s => [|x s] /=; first by exists x0.
+--by move/all_pred1P=> def_s; exists x; rewrite -def_s.
+split => [[x ->]|]; first by rewrite constant_nseq.
+elim: s => [|x s _]; rewr constant /=; first by "EXISTS_TAC `x0:A`"; rewr nseq ncons size_nil iter.
+rewrite -all_pred1P => def_s; exists x.
+by rewrite {1}def_s; rewr nseq ncons size_cons iter.
 Qed.
+
 
 (* Duplicate-freenes. *)
 
-Fixpoint uniq s := if s is x :: s' then (x \notin s') && uniq s' else true.
+--Fixpoint uniq s := if s is x :: s' then (x \notin s') && uniq s' else true.
+"let uniq = define `uniq [] = T /\ (uniq (x :: s') <=> ~(MEM x s') /\ uniq s')`".
 
-Lemma cons_uniq x s : uniq (x :: s) = (x \notin s) && uniq s.
-Proof. by []. Qed.
+Lemma nil_uniq : `uniq ([]:(A)list)`. by rewr uniq. Qed.
+
+Lemma cons_uniq x s : `uniq (x :: s) <=> ~(x <- s) /\ uniq s`.
+Proof. by rewr uniq. Qed.
 
 Lemma cat_uniq s1 s2 :
-  uniq (s1 ++ s2) = [&& uniq s1, ~~ has (mem s1) s2 & uniq s2].
-Proof.
-elim: s1 => [|x s1 IHs]; first by rewrite /= has_pred0.
-by rewrite has_sym /= mem_cat !negb_or has_sym IHs -!andbA; do !bool_congr.
+  `uniq (s1 ++ s2) <=> uniq s1 /\ ~ has (\x. x <- s1) s2 /\ uniq s2`.
+--elim: s1 => [|x s1 IHs]; first by rewrite /= has_pred0.
+--by rewrite has_sym /= mem_cat !negb_or has_sym IHs -!andbA; do !bool_congr.
+elim: s1 => [|x s1 IHs]; first by rewrite in_nil -pred0 has_pred0 cat0s nil_uniq.
+rewrite has_sym cat_cons cons_uniq mem_cat has_cons !negb_or has_sym IHs cons_uniq !andbA /=.
+by rewrite [`_ /\ uniq s1`]andbAC.
 Qed.
 
-Lemma uniq_catC s1 s2 : uniq (s1 ++ s2) = uniq (s2 ++ s1).
+Lemma uniq_catC s1 s2 : `uniq (s1 ++ s2) = uniq (s2 ++ s1)`.
 Proof. by rewrite !cat_uniq has_sym andbCA andbA andbC. Qed.
 
-Lemma uniq_catCA s1 s2 s3 : uniq (s1 ++ s2 ++ s3) = uniq (s2 ++ s1 ++ s3).
-Proof.
-by rewrite !catA -!(uniq_catC s3) !(cat_uniq s3) uniq_catC !has_cat orbC.
+Lemma uniq_catCA s1 s2 s3 : `uniq (s1 ++ s2 ++ s3) = uniq (s2 ++ s1 ++ s3)`.
+--by rewrite !catA -!(uniq_catC s3) !(cat_uniq s3) uniq_catC !has_cat orbC.
+rewrite !catA.
+by rewrite -![`uniq (cat _ s3)`]uniq_catC ![`uniq (cat s3 _)`]cat_uniq uniq_catC !has_cat orbC.
 Qed.
 
-Lemma rcons_uniq s x : uniq (rcons s x) = (x \notin s) && uniq s.
-Proof. by rewrite -cats1 uniq_catC. Qed.
+Lemma rcons_uniq s x : `uniq (rcons s x) <=> (~(x <- s) /\ uniq s)`.
+by rewrite -cats1 uniq_catC cat_cons cons_uniq cat0s. Qed.
+--Proof. by rewrite -cats1 uniq_catC. Qed.
 
-Lemma filter_uniq s a : uniq s -> uniq (filter a s).
-Proof.
-elim: s => [|x s IHs] //= /andP[Hx Hs]; case (a x); auto.
-by rewrite /= mem_filter /= (negbTE Hx) andbF; auto.
+Lemma filter_uniq s a : `uniq s ==> uniq (filter a s)`.
+--elim: s => [|x s IHs] //= /andP[Hx Hs]; case (a x); auto.
+--by rewrite /= mem_filter /= (negbTE Hx) andbF; auto.
+elim: s => [|x s IHs]; rewr filter uniq //.
+case: (EXCLUDED_MIDDLE `a x`) => [-> /= | nax]; move => [Hx Hs]; last first.
+  by rewr nax /=; exact: IHs.
+by rewr uniq; rewrite mem_filter (negbTE Hx) andbF IHs.
 Qed.
 
-Lemma rot_uniq s : uniq (rot n0 s) = uniq s.
-Proof. by rewrite /rot uniq_catC cat_take_drop. Qed.
+Lemma rot_uniq s : `uniq (rot n0 s) = uniq s`.
+Proof. by rewrite rot uniq_catC cat_take_drop. Qed.
 
-Lemma rev_uniq s : uniq (rev s) = uniq s.
-Proof.
-elim: s => // x s IHs.
-by rewrite rev_cons -cats1 cat_uniq /= andbT andbC mem_rev orbF IHs.
+Lemma rev_uniq s : `uniq (rev s) = uniq s`.
+--elim: s => // x s IHs.
+elim:s => [| x s IHs]; first by rewr rev catrev //.
+by rewrite rev_cons -cats1 cat_uniq !cons_uniq has_cons in_nil nil_uniq has_nil negb_or /= andbC IHs mem_rev.
 Qed.
 
-Lemma count_uniq_mem s x : uniq s -> count (pred1 x) s = (x \in s).
-Proof.
-elim: s => //= [y s IHs] /andP[/negbTE Hy /IHs-> {IHs}].
-by rewrite in_cons eq_sym; case: eqP => // ->; rewrite Hy.
+Lemma count_uniq_mem s x : `uniq s ==> count (pred1 x) s = if (x <- s) then 1 else 0`.
+--elim: s => //= [y s IHs] /andP[/negbTE Hy /IHs-> {IHs}].
+--by rewrite in_cons eq_sym; case: eqP => // ->; rewrite Hy.
+elim: s => [|y s IHs]; rewr count in_nil /=.
+rewrite in_cons cons_uniq => [] [Hy]; move/IHs => ->.
+rewrite pred1 /= [`y = x`]eq_sym.
+case: (EXCLUDED_MIDDLE `x = y`) => [-> /=| ]; rewr Hy /= addn0 //.
+by rewrite add0n.
 Qed.
 
 (* Removing duplicates *)
 
-Fixpoint undup s :=
-  if s is x :: s' then if x \in s' then undup s' else x :: undup s' else [::].
+--Fixpoint undup s :=
+--  if s is x :: s' then if x \in s' then undup s' else x :: undup s' else [::].
+"let undup = define `undup [] = [] /\ 
+	undup (x :: s') = if x <- s' then undup s' else x :: undup s'`".
 
-Lemma size_undup s : size (undup s) <= size s.
-Proof. by elim: s => //= x s IHs; case: (x \in s) => //=; exact: ltnW. Qed.
-
-Lemma mem_undup s : undup s =i s.
-Proof.
-move=> x; elim: s => //= y s IHs.
-by case Hy: (y \in s); rewrite in_cons IHs //; case: eqP => // ->.
+Lemma size_undup s : `sizel (undup s) <= sizel s`.
+--Proof. by elim: s => //= x s IHs; case: (x \in s) => //=; exact: ltnW. Qed.
+elim: s => [|x s IHs]; rewr undup leqnn //.
+by case: (EXCLUDED_MIDDLE `x <- s`) => /=; rewrite !size_cons ?leqSS // ltnW // ltE leqSS.
 Qed.
 
-Lemma undup_uniq s : uniq (undup s).
-Proof.
-by elim: s => //= x s IHs; case s_x: (x \in s); rewrite //= mem_undup s_x.
+Lemma mem_undup s : `!x. x <- undup s <=> x <- s`.
+--move=> x; elim: s => //= y s IHs.
+--by case Hy: (y \in s); rewrite in_cons IHs //; case: eqP => // ->.
+move => x; elim: s => [|y s IHs]; rewr undup //.
+case: (EXCLUDED_MIDDLE `y <- s`) => /= Hy; rewrite in_cons IHs; rewr MEM //.
+by case: (EXCLUDED_MIDDLE `x = y`) => /=.
 Qed.
 
-Lemma undup_id s : uniq s -> undup s = s.
-Proof. by elim: s => //= x s IHs /andP[/negbTE-> /IHs->]. Qed.
+Lemma undup_uniq s : `uniq (undup s)`.
+--by elim: s => //= x s IHs; case s_x: (x \in s); rewrite //= mem_undup s_x.
+elim: s => [|x s IHs]; rewr undup uniq //.
+by case: (EXCLUDED_MIDDLE `x <- s`); rewrite //= cons_uniq mem_undup /=.
+Qed.
 
-Lemma ltn_size_undup s : (size (undup s) < size s) = ~~ uniq s.
-Proof.
-by elim: s => //= x s IHs; case Hx: (x \in s); rewrite //= ltnS size_undup.
+Lemma undup_id s : `uniq s ==> undup s = s`.
+--Proof. by elim: s => //= x s IHs /andP[/negbTE-> /IHs->]. Qed.
+elim: s => [|x s IHs]; rewr undup uniq //= => [] [Hx Hs].
+by rewrite IHs.
+Qed.
+
+Lemma ltn_size_undup s : `(sizel (undup s) < sizel s) <=> ~ uniq s`.
+--by elim: s => //= x s IHs; case Hx: (x \in s); rewrite //= ltnS size_undup.
+elim: s => [|x s IHs]; rewr undup uniq ltnn //.
+by case: (EXCLUDED_MIDDLE `x <- s`); rewrite //= !size_cons ?ltSS // ltnS size_undup.
 Qed.
 
 (* Lookup *)
 
-Definition index x := find (pred1 x).
+--Definition index x := find (pred1 x).
+"let index = new_definition `indexl x = find (pred1 x)`".
 
-Lemma index_size x s : index x s <= size s.
-Proof. by rewrite /index find_size. Qed.
+Lemma index_size x s : `indexl x s <= sizel s`.
+Proof. by rewrite index find_size. Qed.
 
-Lemma index_mem x s : (index x s < size s) = (x \in s).
-Proof. by rewrite -has_pred1 has_find. Qed.
+Lemma index_mem x s : `(indexl x s < sizel s) <=> (x <- s)`.
+by rewrite -has_pred1 index has_find. Qed.
 
-Lemma nth_index x s : x \in s -> nth s (index x s) = x.
-Proof. by rewrite -has_pred1 => /(nth_find x0)/eqP. Qed.
+Lemma nth_index x s : `x <- s ==> nth x0 s (indexl x s) = x`.
+--Proof. by rewrite -has_pred1 => /(nth_find x0)/eqP. Qed.
+by rewrite -has_pred1; move/(nth_find x0); rewrite index pred1 /=. Qed.
 
 Lemma index_cat x s1 s2 :
- index x (s1 ++ s2) = if x \in s1 then index x s1 else size s1 + index x s2.
-Proof. by rewrite /index find_cat has_pred1. Qed.
+ `indexl x (s1 ++ s2) = if x <- s1 then indexl x s1 else sizel s1 + indexl x s2`.
+Proof. by rewrite index find_cat has_pred1. Qed.
 
-Lemma index_uniq i s : i < size s -> uniq s -> index (nth s i) s = i.
-Proof.
-elim: s i => [|x s IHs] //= [|i]; rewrite /= ?eqxx // ltnS => lt_i_s.
-case/andP=> not_s_x /(IHs i)-> {IHs}//.
-by case: eqP not_s_x => // ->; rewrite mem_nth.
+Lemma index_uniq i s : `i < sizel s ==> uniq s ==> indexl (nth x0 s i) s = i`.
+--elim: s i => [|x s IHs] //= [|i]; rewrite /= ?eqxx // ltnS => lt_i_s.
+--case/andP=> not_s_x /(IHs i)-> {IHs}//.
+--by case: eqP not_s_x => // ->; rewrite mem_nth.
+elim: s i => [|x s IHs]; rewr size_nil ltn0 //; elim => [|i _].
+  by rewr nth index find pred1 /=.
+rewrite size_cons ltnS -ltE cons_uniq => lt_i_s [] [not_s_x].
+move/(IHs i lt_i_s); rewr nth index find pred1 => -> /=.
+case: (EXCLUDED_MIDDLE `x = nth x0 s i`) => /= x_eq.
+by have := mem_nth lt_i_s; rewrite -x_eq (negbTE not_s_x).
 Qed.
 
-Lemma index_head x s : index x (x :: s) = 0.
-Proof. by rewrite /= eqxx. Qed.
+Lemma index_head x s : `indexl x (x :: s) = 0`.
+Proof. by rewr index find pred1 /=. Qed.
 
-Lemma index_last x s : uniq (x :: s) -> index (last x s) (x :: s) = size s.
-Proof.
+Lemma index_last x s : `uniq (x :: s) ==> indexl (last x s) (x :: s) = sizel s`.
 rewrite lastI rcons_uniq -cats1 index_cat size_belast.
-by case: ifP => //=; rewrite eqxx addn0.
+--by case: ifP => //=; rewrite eqxx addn0.
+case: (EXCLUDED_MIDDLE `last x s <- belast x s`) => /=.
+by rewr index find pred1 /= addn0.
 Qed.
 
 Lemma nth_uniq s i j :
-  i < size s -> j < size s -> uniq s -> (nth s i == nth s j) = (i == j).
-Proof.
-move=> lt_i_s lt_j_s Us; apply/eqP/eqP=> [eq_sij|-> //].
+  `i < sizel s ==> j < sizel s ==> uniq s ==> (nth x0 s i = nth x0 s j) = (i = j)`.
+--move=> lt_i_s lt_j_s Us; apply/eqP/eqP=> [eq_sij|-> //].
+--by rewrite -(index_uniq lt_i_s Us) eq_sij index_uniq.
+move => lt_i_s lt_j_s Us; split => [eq_sij| -> //].
 by rewrite -(index_uniq lt_i_s Us) eq_sij index_uniq.
 Qed.
 
-Lemma mem_rot s : rot n0 s =i s.
-Proof. by move=> x; rewrite -{2}(cat_take_drop n0 s) !mem_cat /= orbC. Qed.
+Lemma mem_rot s : `!x. x <- rot n0 s <=> x <- s`.
+--Proof. by move=> x; rewrite -{2}(cat_take_drop n0 s) !mem_cat /= orbC. Qed.
+by move => x; rewrite -{2}[`s`](cat_take_drop n0 s) rot !mem_cat orbC. Qed.
 
-Lemma eqseq_rot s1 s2 : (rot n0 s1 == rot n0 s2) = (s1 == s2).
-Proof. by apply: inj_eq; exact: rot_inj. Qed.
+Lemma eqseq_rot s1 s2 : `(rot n0 s1 = rot n0 s2) <=> (s1 = s2)`.
+--Proof. by apply: inj_eq; exact: rot_inj. Qed.
+by split => [| -> //]; move/rot_inj. Qed.
 
-CoInductive rot_to_spec s x := RotToSpec i s' of rot i s = x :: s'.
+--CoInductive rot_to_spec s x := RotToSpec i s' of rot i s = x :: s'.
+--x \in s -> rot_to_spec s x.
 
-Lemma rot_to s x : x \in s -> rot_to_spec s x.
-Proof.
-move=> s_x; pose i := index x s; exists i (drop i.+1 s ++ take i s).
-rewrite -cat_cons {}/i; congr cat; elim: s s_x => //= y s IHs.
-by rewrite eq_sym in_cons; case: eqP => // -> _; rewrite drop0.
+Lemma rot_to s x : `x <- s ==> ?i s'. rot i s = x :: s'`.
+--move=> s_x; pose i := index x s; exists i (drop i.+1 s ++ take i s).
+--rewrite -cat_cons {}/i; congr cat; elim: s s_x => //= y s IHs.
+--by rewrite eq_sym in_cons; case: eqP => // -> _; rewrite drop0.
+move => s_x; set i := `indexl (x:A) s`.
+exists i `dropl (SUC i) s ++ take i s`.
+rewrite -cat_cons rot -i_def; set r := `take _1 _2`.
+move: i_def r_def => _ _.
+elim: s s_x => [|y s IHs]; rewrite ?in_nil //.
+rewrite in_cons; case: (EXCLUDED_MIDDLE `x = y`) => /=.
+  rewrite index_head drop0 drop_cons drop0 //.
+by rewr index find pred1 /= -pred1 -index drop_cons => _; move/IHs => ->.
 Qed.
+
 
 End EqSeq.
 

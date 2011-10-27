@@ -432,23 +432,30 @@ public class TreeBuilder {
 	 */
 	private TacticNode parseDisch() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
-		ArrayList<DischNode> dischs = new ArrayList<DischNode>();
+		ArrayList<ObjectNode> objs = new ArrayList<ObjectNode>();
 		
 		while (true) {
 			ObjectNode obj = tryParseObject();
 			if (obj == null)
 				break;
 		
-			dischs.add(new DischNode(obj));
+			objs.add(obj);
 		}
 		
-		int n = dischs.size();
+		int n = objs.size();
 		if (n == 0)
 			throw new Exception("empty disch: " + scanner.peekToken());
 		
 		// Revert the order of discharges
 		for (int i = n - 1; i >= 0; i--) {
-			chain.add(dischs.get(i));
+			ObjectNode obj = objs.get(i);
+			chain.add(new DischNode(obj));
+
+			if (obj instanceof IdNode) {
+				IdNode id = (IdNode) obj;
+				if (id.clearFlag)
+					chain.add(new ClearNode(id));
+			}
 		}
 		
 		return chain;
@@ -662,7 +669,7 @@ public class TreeBuilder {
 				tactic = new CaseElimNode(true);
 			// apply
 			else if (t.value == "apply")
-				tactic = new ApplyNode();
+				tactic = parseApplyBody();
 			// rewrite
 			else if (t.value == "rewrite")
 				tactic = parseRewriteBody(false);
@@ -672,8 +679,12 @@ public class TreeBuilder {
 			// have
 			else if (t.value == "have")
 				tactic = parseHaveBody(false);
+			// suff
 			else if (t.value == "suff")
 				tactic = parseHaveBody(true);
+			// wlog
+			else if (t.value == "wlog")
+				tactic = parseWlogBody();
 			// set
 			else if (t.value == "set")
 				tactic = parseSetBody();
@@ -709,6 +720,17 @@ public class TreeBuilder {
 		chain.add(tactic);
 		
 		return chain;
+	}
+	
+	
+	/**
+	 * "apply th"
+	 */
+	private TacticNode parseApplyBody() throws Exception {
+		ObjectNode obj = tryParseObject();
+		
+		// The argument could be null
+		return new ApplyNode(obj);
 	}
 	
 	
@@ -784,6 +806,8 @@ public class TreeBuilder {
 		// : or :=
 		Token t = scanner.nextToken();
 		if (t.type == TokenType.ASSIGN) {
+			if (suffFlag)
+				throw new Exception("The constructrion 'suff := thm' is not permitted");
 			assignFlag = true;
 		}
 		else if (t.type == TokenType.COLON) {
@@ -815,6 +839,40 @@ public class TreeBuilder {
 		return have;
 	}
 	
+	
+	/**
+	 * Parses the body of a "wlog" expression
+	 */
+	private TacticNode parseWlogBody() throws Exception {
+		TacticNode disch = tryParseIntro(false);
+
+		// :
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.COLON)
+			throw new Exception(": expected: " + t);
+		
+		// Variables
+		ArrayList<IdNode> vars = new ArrayList<IdNode>();
+		while (true) {
+			// id or /
+			t = scanner.nextToken();
+			if (t.type == TokenType.SLASH)
+				break;
+			
+			if (t.type != TokenType.IDENTIFIER)
+				throw new Exception("IDENTIFIER or / expected: " + t);
+			
+			vars.add(new IdNode(t.value));
+		}
+		
+		// Subgoal
+		ObjectNode obj = tryParseObject();
+		if (obj == null)
+			throw new Exception("OBJECT expected: " + t);
+		
+		WlogNode wlog = new WlogNode(disch, obj, vars);
+		return wlog;
+	}
 	
 	/**
 	 * Parses the occ-switch: {1 2 -3}
@@ -1048,6 +1106,9 @@ public class TreeBuilder {
 			t = scanner.nextToken();
 			if (t.type != TokenType.RPAR)
 				throw new Exception(") expected: " + t);
+			
+			if (obj instanceof IdNode)
+				((IdNode) obj).clearFlag = false;
 		}
 		else if (t.type == TokenType.UNDERSCORE) {
 			// _
@@ -1057,7 +1118,9 @@ public class TreeBuilder {
 		else if (t.type == TokenType.IDENTIFIER) {
 			// Id
 			scanner.nextToken();
-			obj = new IdNode(t.value);
+			IdNode id = new IdNode(t.value);
+			id.clearFlag = true;
+			obj = id;
 		}
 
 		if (obj == null) {
@@ -1076,7 +1139,7 @@ public class TreeBuilder {
 	/**
 	 * Parses an application body
 	 */
-	private ApplicationNode parseApplicationBody() throws Exception {
+	private ObjectNode parseApplicationBody() throws Exception {
 		ArrayList<ObjectNode> objs = new ArrayList<ObjectNode>();
 		
 		// Read in all objects
@@ -1094,6 +1157,11 @@ public class TreeBuilder {
 		
 		// Create an application node
 		ObjectNode first = objs.remove(0);
+		
+		// An application with one object is not a real application
+		if (objs.size() == 0)
+			return first;
+		
 		ObjectNode arg = null;
 		if (objs.size() > 0) {
 			arg = objs.remove(0);

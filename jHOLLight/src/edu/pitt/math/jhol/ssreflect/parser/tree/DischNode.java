@@ -39,13 +39,6 @@ public class DischNode extends TacticNode {
 			// theorem: MP_TAC
 			obj.translate(buffer, context);
 			buffer.append("MP_TAC");
-			
-			// Remove assumptions
-			if (obj instanceof IdNode) {
-				IdNode idObj = (IdNode) obj;
-				if (idObj.isAssumption())
-					buffer.append(" THEN REMOVE_THEN \"" + idObj.getId() + "\" (fun th -> ALL_TAC)"); 
-			}
 		}
 		
 		buffer.append(')');

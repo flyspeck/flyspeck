@@ -49,8 +49,10 @@ public class HaveNode extends TacticNode {
 		buffer.append('(');
 		
 		if (assignFlag) {
-			buffer.append("MP_TAC ");
+			buffer.append('(');
 			obj.translate(buffer, context);
+			buffer.append(" MP_TAC");
+			buffer.append(')');
 			buffer.append(" THEN ");
 			thenTactic.translate(buffer, context);
 		}

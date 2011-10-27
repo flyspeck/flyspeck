@@ -56,6 +56,11 @@ let get_context_vars (g : goal) =
     map (fun v -> ((fst o dest_var) v, v)) f_vars;;
 
 
+(* Clears the given assumption *)
+let clear_assumption name =
+  TRY (REMOVE_THEN name (fun th -> ALL_TAC));;
+
+
 
 (* DISCH_THEN (LABEL_TAC name) for assumptions and X_GEN_TAC name for variables *)
 let move labels (g:goal) =
@@ -297,7 +302,6 @@ let done_tac = ASM_REWRITE_TAC[] THEN FAIL_TAC "done: not all subgoals are prove
 let simp_tac = SIMP_TAC[];;
 
 
-
 (* Linear arithmetic simplification *)
 let arith_tac = FIRST [ARITH_TAC; REAL_ARITH_TAC; INT_ARITH_TAC];;
 
@@ -322,6 +326,15 @@ let set_tac name tm (g : goal) =
 let have_tac then_tac tm (g : goal) =
   let tm0 = inst_all_free_vars tm g in
     (SUBGOAL_THEN tm0 (fun th -> MP_TAC th THEN then_tac)) g;;
+
+(* 'wlog' tactic *)
+let wlog_tac then_tac vars tm (g : goal) =
+  let tm0 = inst_all_free_vars tm g in
+  let g_tm = snd g in
+  let imp = list_mk_forall (vars, mk_imp (tm0, g_tm)) in
+    (THENL_ROT 1 (SUBGOAL_THEN imp (fun th -> MP_TAC th THEN then_tac) THENL
+       [REPLICATE_TAC (length vars) GEN_TAC; ALL_TAC])) g;;
+
 
 (* Provides a witness for an existance goal *)
 let exists_tac tm (g : goal) =
@@ -348,7 +361,9 @@ let GSYM_THEN tac th =
 
 
 (* The 'apply' tactic *)
-let apply_tac = DISCH_THEN (fun th -> FIRST [MATCH_ACCEPT_TAC th; MATCH_MP_TAC th]);;
+let apply_tac th = 
+  FIRST [MATCH_ACCEPT_TAC th; MATCH_MP_TAC th];;
+
 
 (* The 'exact' tactic *)
 (* TODO: do [done | by move => top; apply top], here apply top 

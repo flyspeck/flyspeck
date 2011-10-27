@@ -1338,12 +1338,12 @@ Lemma nat_Cauchy m n : `leqif (2 * (m * n)) (m ^ 2 + n ^ 2) (m = n)`.
 --  by case: (leqP m n); auto; rewrite eq_sym addnC (mulnC m); auto.
 --apply/leqifP; case: ifP => [/eqP-> | ne_mn]; first by rewrite mulnn addnn mul2n.
 --by rewrite -subn_gt0 -sqrn_sub // sqrn_gt0 subn_gt0 ltn_neqAle eq_sym ne_mn.
-suff cond: `!m n. n <= m ==> leqif (2 * (m * n)) (m ^ 2 + n ^ 2) (m = n)`.
+wlog le_nm: m n / `n <= m`.
   case: (leqP n m) => //; rewrite eq_sym addnC [`m * _1`]mulnC => mn.
-  by apply: cond; move: (ltnW mn).
-move => m n le_nm.
+  by apply: le_nm; move: (ltnW mn).
+move => le_nm.
 rewrite leqifP.
-case: (EXCLUDED_MIDDLE `m = n:num`) => [-> | ne_mn]; first by rewrite mulnn addnn mul2n.
+case: (EXCLUDED_MIDDLE `m = n`) => [-> | ne_mn]; first by rewrite mulnn addnn mul2n.
 by rewr ne_mn /=; rewrite -subn_gt0 -sqrn_sub // sqrn_gt0 subn_gt0 ltn_neqAle eq_sym.
 Qed.
 

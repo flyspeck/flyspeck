@@ -1481,100 +1481,147 @@ Qed.
 
 End EqSeq.
 
-Definition inE := (mem_seq1, in_cons, inE).
+--Definition inE := (mem_seq1, in_cons, inE).
 
-Prenex Implicits mem_seq1 uniq undup index.
+--Prenex Implicits mem_seq1 uniq undup index.
 
-Implicit Arguments eqseqP [T x y].
-Implicit Arguments hasP [T a s].
-Implicit Arguments hasPn [T a s].
-Implicit Arguments allP [T a s].
-Implicit Arguments allPn [T a s].
-Prenex Implicits eqseqP hasP hasPn allP allPn.
+--Implicit Arguments eqseqP [T x y].
+--Implicit Arguments hasP [T a s].
+--Implicit Arguments hasPn [T a s].
+--Implicit Arguments allP [T a s].
+--Implicit Arguments allPn [T a s].
+--Prenex Implicits eqseqP hasP hasPn allP allPn.
 
 Section NseqthTheory.
 
-Lemma nthP (T : eqType) (s : seq T) x x0 :
-  reflect (exists2 i, i < size s & nth x0 s i = x) (x \in s).
-Proof.
-apply: (iffP idP) => [|[n Hn <-]]; last by apply mem_nth.
-by exists (index x s); [rewrite index_mem | apply nth_index].
+Implicit Type s : `:(A)list`.
+
+Lemma nthP s x x0 :
+  `(?i. i < sizel s /\ nth x0 s i = x) <=> (x <- s)`.
+--apply: (iffP idP) => [|[n Hn <-]]; last by apply mem_nth.
+--by exists (index x s); [rewrite index_mem | apply nth_index].
+split => [[n [Hn <-]] | Hx]; first by apply: mem_nth.
+by exists `indexl x s`; rewrite index_mem Hx andTb; apply: nth_index.
 Qed.
 
-Variable T : Type.
-
-Lemma has_nthP (a : pred T) s x0 :
-  reflect (exists2 i, i < size s & a (nth x0 s i)) (has a s).
-Proof.
-elim: s => [|x s IHs] /=; first by right; case.
-case nax: (a x); first by left; exists 0.
-by apply: (iffP IHs) => [[i]|[[|i]]]; [exists i.+1 | rewrite nax | exists i].
+Lemma has_nthP a s x0 :
+  `(?i. i < sizel s /\ a (nth x0 s i)) <=> (has a s)`.
+--elim: s => [|x s IHs] /=; first by right; case.
+--case nax: (a x); first by left; exists 0.
+--by apply: (iffP IHs) => [[i]|[[|i]]]; [exists i.+1 | rewrite nax | exists i].
+elim: s => [|x s IHs]; rewr has !size_nil ltn0 andFb //.
+case: (EXCLUDED_MIDDLE `a x`) => /= ax.
+  by exists `0`; rewr nth size_cons ltn0Sn.
+rewrite -IHs; split => [[] | [i]]; last first.
+  by move => [i_s anth]; exists `SUC i`; rewr nth size_cons ltSS.
+elim => [|i _]; rewr nth; first by rewr ax.
+by rewrite size_cons ltSS => [] [i_s anth]; exists i.
 Qed.
 
-Lemma all_nthP (a : pred T) s x0 :
-  reflect (forall i, i < size s -> a (nth x0 s i)) (all a s).
-Proof.
-rewrite -(eq_all (fun x => negbK (a x))) all_predC.
-case: (has_nthP _ _ x0) => [na_s | a_s]; [right=> a_s | left=> i lti].
-  by case: na_s => i lti; rewrite a_s.
-by apply/idPn=> na_si; case: a_s; exists i.
+Lemma all_nthP a s x0 :
+  `(!i. i < sizel s ==> a (nth x0 s i)) <=> (all a s)`.
+--rewrite -(eq_all (fun x => negbK (a x))) all_predC.
+--case: (has_nthP _ _ x0) => [na_s | a_s]; [right=> a_s | left=> i lti].
+--  by case: na_s => i lti; rewrite a_s.
+--by apply/idPn=> na_si; case: a_s; exists i.
+elim: s => [|x s IHs]; rewr size_nil all !ltn0 //.
+case: (EXCLUDED_MIDDLE `a x`) => /= ax; last first.
+  by rewrite NOT_FORALL_THM; exists `0`; rewrite size_cons ltn0Sn; rewr !nth.
+rewrite -IHs; split => IH i i_s.
+  by move: (IH `SUC i`); rewrite size_cons ltSS; rewr nth; exact.
+elim: i i_s => [|i _]; rewr nth //.
+by rewrite size_cons ltSS; apply: IH.
 Qed.
+
 
 End NseqthTheory.
 
-Lemma set_nth_default T s (y0 x0 : T) n : n < size s -> nth x0 s n = nth y0 s n.
-Proof. by elim: s n => [|y s' IHs] [|n] /=; auto. Qed.
+Lemma set_nth_default s y0 x0 n : `n < sizel s ==> nth (x0:A) s n = nth y0 s n`.
+--Proof. by elim: s n => [|y s' IHs] [|n] /=; auto. Qed.
+elim: s n => [|y s' IHs]; elim => [|n _]; rewr nth size_nil ltnn ltn0 //.
+by rewrite size_cons ltSS; move/IHs.
+Qed.
 
-Lemma headI T s (x : T) : rcons s x = head x s :: behead (rcons s x).
-Proof. by case: s. Qed.
+Lemma headI s x : `rcons s x = headl x s :: behead (rcons s (x:A))`.
+by elim: s => [|s x _]; rewr rcons head behead. Qed.
 
-Implicit Arguments nthP [T s x].
-Implicit Arguments has_nthP [T a s].
-Implicit Arguments all_nthP [T a s].
-Prenex Implicits nthP has_nthP all_nthP.
+--Implicit Arguments nthP [T s x].
+--Implicit Arguments has_nthP [T a s].
+--Implicit Arguments all_nthP [T a s].
+--Prenex Implicits nthP has_nthP all_nthP.
 
-Definition bitseq := seq bool.
-Canonical bitseq_eqType := Eval hnf in [eqType of bitseq].
-Canonical bitseq_predType := Eval hnf in [predType of bitseq].
+--Definition bitseq := seq bool.
+--Canonical bitseq_eqType := Eval hnf in [eqType of bitseq].
+--Canonical bitseq_predType := Eval hnf in [predType of bitseq].
 
 (* Incrementing the ith nat in a seq nat, padding with 0's if needed. This  *)
 (* allows us to use nat seqs as bags of nats.                               *)
 
-Fixpoint incr_nth v i {struct i} :=
-  if v is n :: v' then if i is i'.+1 then n :: incr_nth v' i' else n.+1 :: v'
-  else ncons i 0 [:: 1].
+--Fixpoint incr_nth v i {struct i} :=
+--  if v is n :: v' then if i is i'.+1 then n :: incr_nth v' i' else n.+1 :: v'
+--  else ncons i 0 [:: 1].
+"let incr_nth = define `incr_nth (n :: v') (SUC i) = n :: incr_nth v' i /\
+	incr_nth (n :: v') 0 = SUC n :: v' /\
+	incr_nth [] i = ncons i 0 [1]`".
 
-Lemma nth_incr_nth v i j : nth 0 (incr_nth v i) j = (i == j) + nth 0 v j.
-Proof.
-elim: v i j => [|n v IHv] [|i] [|j] //=; rewrite ?eqSS ?addn0 //; try by case j.
-elim: i j => [|i IHv] [|j] //=; rewrite ?eqSS //; by case j.
+Lemma nth_incr_nth v i j : `nth 0 (incr_nth v i) j = (if (i = j) then 1 else 0) + nth 0 v j`. 
+--elim: v i j => [|n v IHv] [|i] [|j] //=; rewrite ?eqSS ?addn0 //; try by case j.
+--elim: i j => [|i IHv] [|j] //=; rewrite ?eqSS //; by case j.
+elim: v i j => [|n v IHv]; elim => [|i _]; elim => [|j _];
+  rewr incr_nth nth ncons iter !nth addn0 // eqS0 /= add0n add1n //.
+  arith.
+  elim: i j => [|i IHv]; elim => [|j _]; rewr iter !nth //.
+    arith. arith.
+  by rewrite IHv !eqSS.
+  by rewrite [`0 = SUC j`]eq_sym eqS0 /= add0n.
+by rewrite IHv eqSS.
 Qed.
+
 
 Lemma size_incr_nth v i :
-  size (incr_nth v i) = if i < size v then size v else i.+1.
-Proof.
-elim: v i => [|n v IHv] [|i] //=; first by rewrite size_ncons /= addn1.
-rewrite IHv; exact: fun_if.
+  `sizel (incr_nth v i) = if i < sizel v then sizel v else SUC i`.
+--elim: v i => [|n v IHv] [|i] //=; first by rewrite size_ncons /= addn1.
+--rewrite IHv; exact: fun_if.
+elim: v i => [|n v IHv]; elim => [|i _];
+	rewr incr_nth size_ncons size_nil ltnn size_cons size_nil add0n // ltS0 /=.
+  by rewrite -ONE addn1.
+  by rewrite ltn0Sn.
+by rewrite IHv ltSS [`SUC _`]fun_if.
 Qed.
+
 
 (* equality up to permutation *)
 
 Section PermSeq.
 
-Variable T : eqType.
-Implicit Type s : seq T.
+Implicit Type s s1 : `:(A)list`.
 
-Definition same_count1 s1 s2 x := count (pred1 x) s1 == count (pred1 x) s2.
+--Definition same_count1 s1 s2 x := count (pred1 x) s1 == count (pred1 x) s2.
+--Definition perm_eq s1 s2 := all (same_count1 s1 s2) (s1 ++ s2).
 
-Definition perm_eq s1 s2 := all (same_count1 s1 s2) (s1 ++ s2).
+"let same_count1 = new_definition `same_count1 s1 s2 x <=> (count (pred1 x) s1 = count (pred1 x) s2)`".
+"let perm_eq = new_definition `perm_eq s1 s2 = all (same_count1 s1 s2) (s1 ++ s2)`".
 
-Lemma perm_eqP s1 s2 : reflect (count^~ s1 =1 count^~ s2) (perm_eq s1 s2).
-Proof.
-apply: (iffP allP) => [eq_cnt1 a | eq_cnt x _]; last exact/eqP.
-elim: {a}_.+1 {-2}a (ltnSn (count a (s1 ++ s2))) => // n IHn a le_an.
-case: (posnP (count a (s1 ++ s2))).
-  by move/eqP; rewrite count_cat addn_eq0; do 2!case: eqP => // ->.
-rewrite -has_count => /hasP[x s12x a_x]; pose a' := predD1 a x.
+Lemma perm_eqP s1 s2 : `perm_eq s1 s2 <=> (!a. count a s1 = count a s2)`.
+--reflect (count^~ s1 =1 count^~ s2) (perm_eq s1 s2).
+--Proof.
+--apply: (iffP allP) => [eq_cnt1 a | eq_cnt x _]; last exact/eqP.
+rewrite perm_eq -allP same_count1; split => [eq_cnt1 a | eq_cnt x _]; last exact.
+--elim: {a}_.+1 {-2}a (ltnSn (count a (s1 ++ s2))) => // n IHn a le_an.
+move: (ltnSn `count a (s1 ++ s2)`).
+  -- Emulate the behavior of move: {-2}a
+  set a2 := `a`.
+  rewrite -{2}a2_def; move: a2_def => _; move: a2.
+
+  set n := `SUC _`.
+  move: n_def => _.
+elim: n => [|n IHn a le_an]; first by rewrite ltn0.
+--case: (posnP (count a (s1 ++ s2))).
+case: (posnP `count a (s1 ++ s2)`).
+--  by move/eqP; rewrite count_cat addn_eq0; do 2!case: eqP => // ->.
+  by rewrite count_cat addn_eq0 => [] [] -> ->.
+--rewrite -has_count => /hasP[x s12x a_x]; pose a' := predD1 a x.
+rewrite -has_count -hasP => [] [x] [s12x a_x]; set a' := `predD1 a (x:A)`.
 have cnt_a' s : count a s = count (pred1 x) s + count a' s.
   rewrite count_filter -(count_predC (pred1 x)) 2!count_filter.
   rewrite -!filter_predI -!count_filter; congr (_ + _).

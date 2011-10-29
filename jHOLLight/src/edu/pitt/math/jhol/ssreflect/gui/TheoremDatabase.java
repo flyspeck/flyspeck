@@ -92,10 +92,18 @@ public class TheoremDatabase {
 				name = str.substring(index, i).trim();
 			
 			if (name != null && name.length() > 0) {
-				if (!firstFlag)
-					cmd.append("; ");
-				cmd.append("name \"" + name + "\"");
-				firstFlag = false;
+				// The names could be separated by a space
+				String[] names = name.split(" ");
+				for (String name0 : names) {
+					if (name0 == null || name0.length() == 0)
+						continue;
+					
+					if (!firstFlag)
+						cmd.append("; ");
+					cmd.append("name \"" + name0 + '"');
+					
+					firstFlag = false;
+				}
 			}
 			
 			if (i < 0)

@@ -47,6 +47,13 @@ let (THENL_ROT: int -> tactic -> tactic) =
       rotate n gstate;;
 
 
+(* Repeats the given tactic exactly n times and then repeats the same tactic at most m times *)
+let repeat_tactic n m tac =
+  let rec replicate_at_most m tac =
+    if m <= 0 then ALL_TAC else (tac THEN replicate_at_most (m - 1) tac) ORELSE ALL_TAC in
+  REPLICATE_TAC n tac THEN replicate_at_most m tac;;
+
+
 
 (* Returns all free variables in the goal *)
 let get_context_vars (g : goal) =
@@ -318,8 +325,47 @@ let set_tac name tm (g : goal) =
     try 
       follow_path (match_subterm_in_context tm goal_tm g) goal_tm
     with Failure _ -> tm in
-  let abbrev_tm = mk_eq (mk_var (name, type_of tm0), tm0) in
+  let tm1 = inst_all_free_vars tm0 g in
+  let abbrev_tm = mk_eq (mk_var (name, type_of tm1), tm1) in
     (ABBREV_TAC abbrev_tm THEN POP_ASSUM (LABEL_TAC (name ^ "_def"))) g;;
+
+(* Generates a fresh name for the given term *)
+(* taking into account names of the provided variables *)
+let generate_fresh_name names tm =
+  let rec find_name prefix n =  
+    let name = prefix ^ (if n = 0 then "" else string_of_int n) in
+    if can (find (fun str -> str = name)) names then
+      find_name prefix (n + 1)
+    else
+      name in
+  let prefix = if is_var tm then (fst o dest_var) tm else "x" in
+    find_name prefix 0;;
+
+
+(* Matches all wild cards in the term and *)
+(* instantinates all type variables in the given context *)
+let prepare_term tm (g : goal) =
+  let goal_tm = snd g in
+  let tm0 =
+    try follow_path (match_subterm_in_context tm goal_tm g) goal_tm
+    with Failure _ -> tm in
+    inst_all_free_vars tm0 g;;
+
+(* Discharges a term by generalizing all occurences of this term first *)
+let disch_tm_tac occs tm (g : goal) =
+  let tm0 = prepare_term tm g in
+  let name = generate_fresh_name ((fst o unzip) (get_context_vars g)) tm in
+  let new_tm = mk_var (name, type_of tm0) in
+  let new_tm1 = 
+    if occs = [] && is_var tm then 
+      mk_var ((fst o dest_var) tm, type_of tm0)
+    else new_tm in 
+  let abbrev_tm = mk_eq (new_tm, tm0) in
+    (ABBREV_TAC abbrev_tm THEN 
+       EXPAND_TAC name THEN
+       POP_ASSUM (fun th -> (rewrite occs [] th)) THEN
+       SPEC_TAC (new_tm, new_tm1)) g;;
+       
 
 
 (* Introduces a subgoal *)
@@ -452,8 +498,3 @@ let INST_FIRST_TYPE_THEN ty (then_tac:thm_tactic) th =
     then_tac (INST_TYPE [(ty, hd ty_vars)] th);;
 
 
-(* Repeats the given tactic exactly n times and then repeats the same tactic at most m times *)
-let repeat_tactic n m tac =
-  let rec replicate_at_most m tac =
-    if m <= 0 then ALL_TAC else (tac THEN replicate_at_most (m - 1) tac) ORELSE ALL_TAC in
-  REPLICATE_TAC n tac THEN replicate_at_most m tac;;

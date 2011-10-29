@@ -131,7 +131,7 @@ Lemma neq_ltn : `!m n. ~(m = n) <=> (m < n) \/ (n < m)`.
 move => m n.
 by rewrite eqn_leq negb_and orbC -!ltnNge. Qed.
 
-Lemma leq_eqVlt : `!m n. (m <= n) <=> (m = n) \/ (m < n)`.
+Lemma leq_eqVlt m n: `(m <= n) <=> (m = n) \/ (m < n)`.
 --Proof. elim: m n => [|m IHm] [|n] //; exact: IHm n. Qed.
 by arith. Qed.
 

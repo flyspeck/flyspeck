@@ -22,8 +22,18 @@ public class TacticChainNode extends TacticNode {
 	public void add(TacticNode tactic) {
 		if (tactic == null)
 			return;
-
+		
 		tactics.add(tactic);
+	}
+	
+	/**
+	 * Appends the given chain to this chain
+	 */
+	public void addChain(TacticChainNode chain) {
+		if (chain == null)
+			return;
+		
+		tactics.addAll(chain.tactics);
 	}
 	
 	/**
@@ -92,10 +102,8 @@ public class TacticChainNode extends TacticNode {
 		}
 		
 		boolean parFlag = true;
-		if (n == 1) {
-			if (tactics.get(0) instanceof TacticChainNode)
-				parFlag = false;
-		}
+		if (n == 1)
+			parFlag = false;
 		
 		if (parFlag)
 			buffer.append('(');

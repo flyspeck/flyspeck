@@ -486,9 +486,6 @@ public class TreeBuilder {
 			chain.add(simp);
 
 			ObjectNode obj = null;
-			// TODO: parsing of rewrite parameters requires look ahead operations
-			
-//			RewriteParameters params = tryParseRewriteParameters();
 			RewriteParameters params = null;
 			t = scanner.peekToken();
 			
@@ -1201,11 +1198,7 @@ public class TreeBuilder {
 		if (objs.size() == 0)
 			return first;
 		
-		ObjectNode arg = null;
-		if (objs.size() > 0) {
-			arg = objs.remove(0);
-		}
-		
+		ObjectNode arg = objs.remove(0);
 		ApplicationNode app = new ApplicationNode(first, arg);
 
 		for (int i = 0; i < objs.size(); i++) {

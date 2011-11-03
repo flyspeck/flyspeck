@@ -2397,67 +2397,109 @@ Qed.
 
 Section FilterSubseq.
 
-Variable T : eqType.
-Implicit Types (s : seq T) (a : pred T).
+--Variable T : eqType.
+--Implicit Types (s : seq T) (a : pred T).
+Implicit Type s s1 : `:(A)list`.
+Implicit Type a : `:A -> bool`.
 
-Lemma filter_subseq a s : subseq (filter a s) s.
-Proof. by apply/subseqP; exists (map a s); rewrite ?size_map ?filter_mask. Qed.
+Lemma filter_subseq a s : `subseq (filter a s) s`.
+--Proof. by apply/subseqP; exists (map a s); rewrite ?size_map ?filter_mask. Qed.
+by rewrite subseqP; exists `map a s`; rewrite size_map filter_mask. Qed.
 
 Lemma subseq_filter s1 s2 a :
-  subseq s1 (filter a s2) = all a s1 && subseq s1 s2.
-Proof.
-elim: s2 s1 => [|x s2 IHs] [|y s1] //=; rewrite ?andbF ?sub0seq //.
-by case a_x: (a x); rewrite /= !IHs /=; case: eqP => // ->; rewrite a_x.
+  `subseq s1 (filter a s2) <=> all a s1 /\ subseq s1 s2`.
+--elim: s2 s1 => [|x s2 IHs] [|y s1] //=; rewrite ?andbF ?sub0seq //.
+--by case a_x: (a x); rewrite /= !IHs /=; case: eqP => // ->; rewrite a_x.
+elim: s2 s1 => [|x s2 IHs]; elim => [|y s1 _]; rewr filter subseq !all //.
+by case: (EXCLUDED_MIDDLE `a x`) => /= ax; rewr subseq; 
+	case: (EXCLUDED_MIDDLE `y = x`) => /= yx; rewrite IHs ?all_cons.
 Qed.
 
+
 Lemma subseq_uniqP s1 s2 :
-  uniq s2 -> reflect (s1 = filter (mem s1) s2) (subseq s1 s2).
-Proof.
-move=> uniq_s2; apply: (iffP idP) => [ss12 | ->]; last exact: filter_subseq.
-apply/eqP; rewrite -size_subseq_leqif ?subseq_filter ?(introT allP) //.
-apply/eqP/esym/perm_eq_size.
-rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
-by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
+  `uniq s2 ==> (subseq s1 s2 <=> s1 = filter (\x. x <- s1) s2)`.
+--move=> uniq_s2; apply: (iffP idP) => [ss12 | ->]; last exact: filter_subseq.
+--apply/eqP; rewrite -size_subseq_leqif ?subseq_filter ?(introT allP) //.
+--apply/eqP/esym/perm_eq_size.
+--rewrite uniq_perm_eq ?filter_uniq ?(subseq_uniq ss12) // => x.
+--by rewrite mem_filter; apply: andb_idr; exact: (mem_subseq ss12).
+move => uniq_s2; split => [ss12 | ->]; last by rewrite filter_subseq.
+have: `subseq s1 (filter (\x. x <- s1) s2)`.
+  by rewrite subseq_filter -allP.
+move/size_subseq_leqif; move/leqif_imp_eq => <-.
+rewrite eq_sym; apply: perm_eq_size.
+rewrite uniq_perm_eq filter_uniq // (subseq_uniq ss12) //.
+by rewrite mem_filter /= => x; rewrite andb_idr //; apply: (mem_subseq ss12).
 Qed.
 
 End FilterSubseq.
 
-Implicit Arguments subseq_uniqP [T s1 s2].
+--Implicit Arguments subseq_uniqP [T s1 s2].
 
 Section EqMap.
 
-Variables (n0 : nat) (T1 : eqType) (x1 : T1).
-Variables (T2 : eqType) (x2 : T2) (f : T1 -> T2).
-Implicit Type s : seq T1.
+--Variables (n0 : nat) (T1 : eqType) (x1 : T1).
+--Variables (T2 : eqType) (x2 : T2) (f : T1 -> T2).
+--Implicit Type s : seq T1.
+Variable n0 : `:num`.
+Variable x1 : `:A`.
+Variable x2 : `:B`.
+Variable f : `:A -> B`.
+Implicit Type s : `:(A)list`.
 
-Lemma map_f s x : x \in s -> f x \in map f s.
-Proof.
-elim: s => [|y s IHs] //=.
-by case/predU1P=> [->|Hx]; [exact: predU1l | apply: predU1r; auto].
+Lemma map_f s x : `x <- s ==> f x <- map f s`.
+--elim: s => [|y s IHs] //=.
+--by case/predU1P=> [->|Hx]; [exact: predU1l | apply: predU1r; auto].
+elim: s => [|y s IHs]; rewr map in_nil in_cons //.
+by case => [-> //| Hx]; right; apply: IHs.
 Qed.
 
-Lemma mapP s y : reflect (exists2 x, x \in s & y = f x) (y \in map f s).
-Proof.
-elim: s => [|x s IHs]; first by right; case.
-rewrite /= in_cons eq_sym; case Hxy: (f x == y).
-  by left; exists x; [rewrite mem_head | rewrite (eqP Hxy)].
-apply: (iffP IHs) => [[x' Hx' ->]|[x' Hx' Dy]].
-  by exists x'; first exact: predU1r.
-by case: Dy Hxy => ->; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
+Lemma mapP s y : `(y <- map f s) <=> (?x. x <- s /\ y = f x)`.
+--elim: s => [|x s IHs]; first by right; case.
+--rewrite /= in_cons eq_sym; case Hxy: (f x == y).
+--  by left; exists x; [rewrite mem_head | rewrite (eqP Hxy)].
+--apply: (iffP IHs) => [[x' Hx' ->]|[x' Hx' Dy]].
+--  by exists x'; first exact: predU1r.
+--by case: Dy Hxy => ->; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
+elim: s => [|x s IHs]; rewr map in_nil andFb.
+  by rewrite NOT_EXISTS_THM => x.
+rewrite !in_cons; case: (EXCLUDED_MIDDLE `y = f x`) => /= Hxy.
+  by exists x.
+rewrite IHs; split => [[x' [Hx' ->]] | [x' [Hx' Dy]]].
+  by exists x'.
+case: Hx' => Hx'; [move | exists x' => //].
+by move: Hxy; rewrite Dy Hx'.
 Qed.
 
-Lemma map_uniq s : uniq (map f s) -> uniq s.
-Proof.
-elim: s => //= x s IHs /andP[not_sfx /IHs->]; rewrite andbT.
-by apply: contra not_sfx => sx; apply/mapP; exists x.
+
+Lemma map_uniq s : `uniq (map f s) ==> uniq s`.
+--elim: s => //= x s IHs /andP[not_sfx /IHs->]; rewrite andbT.
+--by apply: contra not_sfx => sx; apply/mapP; exists x.
+elim: s => [|x s IHs]; rewr map uniq // => [] [not_sfx].
+move/IHs => ->; rewrite andbT.
+by apply: contra not_sfx => sx; rewrite mapP; exists x.
 Qed.
 
-Lemma map_inj_in_uniq s : {in s &, injective f} -> uniq (map f s) = uniq s.
+Lemma map_inj_in_uniq s : `(!x y. x <- s ==> y <- s ==> (f x = f y ==> x = y)) ==>
+	uniq (map f s) = uniq s`.
+--{in s &, injective f} -> uniq (map f s) = uniq s.
 Proof.
-elim: s => //= x s IHs //= injf; congr (~~ _ && _).
-  apply/mapP/idP=> [[y sy /injf] | ]; last by exists x.
-  by rewrite mem_head mem_behead // => ->.
-apply: IHs => y z sy sz; apply: injf => //; exact: predU1r.
+--elim: s => //= x s IHs //= injf; congr (~~ _ && _).
+--  apply/mapP/idP=> [[y sy /injf] | ]; last by exists x.
+--  by rewrite mem_head mem_behead // => ->.
+--apply: IHs => y z sy sz; apply: injf => //; exact: predU1r.
+elim: s => [|x s IHs]; rewr in_nil /= map uniq // => injf.
+rewrite IHs.
+  move => a b [[Ha Hb] fab].
+  by move: (injf a b); rewrite !in_cons Ha Hb fab.
+"AP_THM_TAC THEN AP_TERM_TAC".
+rewrite mapP NOT_EXISTS_THM negb_and; split.
+  by move/(_ x) => /=.
+move => Hx y.
+case: (EXCLUDED_MIDDLE `y <- s`) => /= Hy.
+move: (injf x y); rewrite !in_cons Hy /=.
+
+
 Qed.
 
 Lemma map_subseq s1 s2 : subseq s1 s2 -> subseq (map f s1) (map f s2).

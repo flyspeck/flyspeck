@@ -2497,70 +2497,107 @@ rewrite mapP NOT_EXISTS_THM negb_and; split.
   by move/(_ x) => /=.
 move => Hx y.
 case: (EXCLUDED_MIDDLE `y <- s`) => /= Hy.
-move: (injf x y); rewrite !in_cons Hy /=.
-
-
+rewr "TAUT `~A <=> (A ==> F)`" => fxy.
+move: (injf x y); rewrite !in_cons Hy fxy /=.
+case: (EXCLUDED_MIDDLE `x = y`) => // xy.
+by move: Hy Hx; rewrite xy.
 Qed.
 
-Lemma map_subseq s1 s2 : subseq s1 s2 -> subseq (map f s1) (map f s2).
-Proof.
-case/subseqP=> m sz_m ->; apply/subseqP.
-by exists m; rewrite ?size_map ?map_mask.
+
+Lemma map_subseq s1 s2 : `subseq s1 s2 ==> subseq (map f s1) (map f s2)`.
+--case/subseqP=> m sz_m ->; apply/subseqP.
+--by exists m; rewrite ?size_map ?map_mask.
+rewrite !subseqP => [] [m] [sz_m ->].
+by exists m; rewrite size_map map_mask.
 Qed.
-
-Hypothesis Hf : injective f.
-
-Lemma mem_map s x : (f x \in map f s) = (x \in s).
-Proof. by apply/mapP/idP=> [[y Hy /Hf->] //|]; exists x. Qed.
-
-Lemma index_map s x : index (f x) (map f s) = index x s.
-Proof. by rewrite /index; elim: s => //= y s IHs; rewrite (inj_eq Hf) IHs. Qed.
-
-Lemma map_inj_uniq s : uniq (map f s) = uniq s.
-Proof. apply: map_inj_in_uniq; exact: in2W. Qed.
 
 End EqMap.
 
-Implicit Arguments mapP [T1 T2 f s y].
-Prenex Implicits mapP.
+Section EqMap2.
+
+Variable n0 : `:num`.
+Variable x1 : `:A`.
+Variable x2 : `:B`.
+Variable f : `:A -> B`.
+Implicit Type s : `:(A)list`.
+Hypothesis Hf : `!x y. f x = f y ==> x = y`.
+
+Lemma inj_eq x y: `(f x = f y <=> x = y)`.
+Proof. by split => [/Hf | -> ]. Qed.
+
+Lemma mem_map s x : `(f x <- map f s) = (x <- s)`.
+--Proof. by apply/mapP/idP=> [[y Hy /Hf->] //|]; exists x. Qed.
+by rewrite mapP; split => [[y [Hy /Hf ->]] // | Hx]; exists x. Qed.
+
+Lemma index_map s x : `indexl (f x) (map f s) = indexl x s`.
+--Proof. by rewrite /index; elim: s => //= y s IHs; rewrite (inj_eq Hf) IHs. Qed.
+rewrite !index; elim: s => [|y s IHs]; rewr map find // pred1 /=.
+by rewrite -[`y = x`]inj_eq -!pred1 IHs.
+Qed.
+
+
+Lemma map_inj_uniq s : `uniq (map f s) = uniq s`.
+--Proof. apply: map_inj_in_uniq; exact: in2W. Qed.
+by apply: map_inj_in_uniq => x y _ _ /Hf. Qed.
+
+End EqMap2.
+
+--Implicit Arguments mapP [T1 T2 f s y].
+--Prenex Implicits mapP.
 
 
 Section MapComp.
 
-Variable T1 T2 T3 : Type.
+--Variable T1 T2 T3 : Type.
 
-Lemma map_id (s : seq T1) : map id s = s.
-Proof. by elim: s => //= x s ->. Qed.
+Lemma map_id s : `map I (s:(A)list) = s`.
+--Proof. by elim: s => //= x s ->. Qed.
+by elim: s => [|x s IHs]; rewr map // I_THM. Qed.
 
-Lemma eq_map (f1 f2 : T1 -> T2) : f1 =1 f2 -> map f1 =1 map f2.
-Proof. by move=> Ef; elim=> //= x s ->; rewrite Ef. Qed.
+Lemma eq_map f1 f2 : `(!x. (f1:A->B) x = f2 x) ==> map f1 = map f2`.
+--Proof. by move=> Ef; elim=> //= x s ->; rewrite Ef. Qed.
+by rewrite eq_ext => ->. Qed.
 
-Lemma map_comp (f1 : T2 -> T3) (f2 : T1 -> T2) s :
-  map (f1 \o f2) s = map f1 (map f2 s).
-Proof. by elim: s => //= x s ->. Qed.
+Lemma map_comp f1 f2 s :
+  `map (f1 o f2) s = map (f1:B->C) (map (f2:A->B) s)`.
+--Proof. by elim: s => //= x s ->. Qed.
+elim: s => [|x s IHs]; rewr !map.
+by rewrite IHs o_THM.
+Qed.
 
-Lemma mapK (f1 : T1 -> T2) (f2 : T2 -> T1) :
-  cancel f1 f2 -> cancel (map f1) (map f2).
-Proof. by move=> eq_f12; elim=> //= x s ->; rewrite eq_f12. Qed.
+Lemma mapK f1 f2 :
+--  cancel f1 f2 -> cancel (map f1) (map f2).
+`(!x. (f2:B->A) ((f1:A->B) x) = x) ==> (!s. map f2 (map f1 s) = s)`.
+--Proof. by move=> eq_f12; elim=> //= x s ->; rewrite eq_f12. Qed.
+by move => eq_f12; elim => [|x s IHs]; rewr !map. Qed.
 
 End MapComp.
 
-Lemma eq_in_map (T1 : eqType) T2 (f1 f2 : T1 -> T2) (s : seq T1) :
-  {in s, f1 =1 f2} -> map f1 s = map f2 s.
-Proof.
-elim: s => //= x s IHs eqf12.
-rewrite eqf12 ?inE /= (eqxx, IHs) // => y sy.
-by rewrite eqf12 ?inE //= predU1r.
+Lemma eq_in_map f1 f2 s :
+  `(!x. x <- s ==> (f1:A->B) x = f2 x) ==> map f1 s = map f2 s`.
+--  {in s, f1 =1 f2} -> map f1 s = map f2 s.
+--elim: s => //= x s IHs eqf12.
+--rewrite eqf12 ?inE /= (eqxx, IHs) // => y sy.
+--by rewrite eqf12 ?inE //= predU1r.
+elim: s => [|x s IHs eqf12]; rewr map //.
+rewrite eqf12 ?in_cons // IHs // => y sy.
+by rewrite eqf12 ?in_cons.
 Qed.
 
-Lemma map_id_in (T : eqType) f (s : seq T) : {in s, f =1 id} -> map f s = s.
-Proof. by move/eq_in_map->; exact: map_id. Qed.
+Lemma map_id_in f s : `(!x. x <- s ==> f x = (x:A)) ==> map f s = s`.
+--Proof. by move/eq_in_map->; exact: map_id. Qed.
+move/eq_in_map => ->.
+rewrite -{2}[`s`]map_id.
+by rewrite (eq_map `(\x. x)` `I`) //= I_THM.
+Qed.
 
 (* Map a partial function *)
 
+(*
 Section Pmap.
 
-Variables (aT rT : Type) (f : aT -> option rT) (g : rT -> aT).
+--Variables (aT rT : Type) (f : aT -> option rT) (g : rT -> aT).
+Variable f : `
 
 Fixpoint pmap s :=
   if s is x :: s' then oapp (cons^~ (pmap s')) (pmap s') (f x) else [::].
@@ -2628,262 +2665,406 @@ Lemma pmap_sub_uniq s : uniq s -> uniq (pmap insT s).
 Proof. exact: (pmap_uniq (insubK _)). Qed.
 
 End EqPmapSub.
+*)
 
 (* Index sequence *)
 
-Fixpoint iota m n := if n is n'.+1 then m :: iota m.+1 n' else [::].
+--Fixpoint iota m n := if n is n'.+1 then m :: iota m.+1 n' else [::].
+"let iota = define `iota m (SUC n) = m :: iota (SUC m) n /\ iota m 0 = []`".
 
-Lemma size_iota m n : size (iota m n) = n.
-Proof. by elim: n m => //= n IHn m; rewrite IHn. Qed.
-
-Lemma iota_add m n1 n2 : iota m (n1 + n2) = iota m n1 ++ iota (m + n1) n2.
-Proof.
-by elim: n1 m => //= [|n1 IHn1] m; rewrite ?addn0 // -addSnnS -IHn1.
+Lemma size_iota m n : `sizel (iota m n) = n`.
+--Proof. by elim: n m => //= n IHn m; rewrite IHn. Qed.
+elim: n m => [|n IHn m]; rewr iota !size_nil size_cons.
+by rewrite IHn.
 Qed.
 
-Lemma iota_addl m1 m2 n : iota (m1 + m2) n = map (addn m1) (iota m2 n).
-Proof. by elim: n m2 => //= n IHn m2; rewrite -addnS IHn. Qed.
-
-Lemma nth_iota m n i : i < n -> nth 0 (iota m n) i = m + i.
-Proof.
-by move/subnKC <-; rewrite addSnnS iota_add nth_cat size_iota ltnn subnn.
+Lemma iota_add m n1 n2 : `iota m (n1 + n2) = iota m n1 ++ iota (m + n1) n2`.
+--by elim: n1 m => //= [|n1 IHn1] m; rewrite ?addn0 // -addSnnS -IHn1.
+elim: n1 m => [|n1 IHn1]; rewr addn0 add0n iota cat0s //.
+by rewr -addSnnS addSn iota IHn1 addSn cat_cons.
 Qed.
 
-Lemma mem_iota m n i : (i \in iota m n) = (m <= i) && (i < m + n).
-Proof.
-elim: n m => [|n IHn] /= m; first by rewrite addn0 ltnNge andbN.
-rewrite -addSnnS leq_eqVlt in_cons eq_sym.
-by case: eqP => [->|_]; [rewrite leq_addr | exact: IHn].
+Lemma iota_addl m1 m2 n : `iota (m1 + m2) n = map ((+) m1) (iota m2 n)`.
+--Proof. by elim: n m2 => //= n IHn m2; rewrite -addnS IHn. Qed.
+elim: n m2 => [|n IHn m2]; rewr iota !map //.
+by rewrite -addnS IHn.
 Qed.
 
-Lemma iota_uniq m n : uniq (iota m n).
-Proof. by elim: n m => //= n IHn m; rewrite mem_iota ltnn /=. Qed.
+Lemma nth_iota m n i : `i < n ==> nth 0 (iota m n) i = m + i`.
+--by move/subnKC <-; rewrite addSnnS iota_add nth_cat size_iota ltnn subnn.
+rewrite ltE => /subnKC <-; rewrite addSnnS iota_add nth_cat size_iota ltnn /= subnn.
+by rewr iota nth.
+Qed.
+
+Lemma mem_iota m n i : `(i <- iota m n) <=> (m <= i) /\ (i < m + n)`.
+--elim: n m => [|n IHn] /= m; first by rewrite addn0 ltnNge andbN.
+--rewrite -addSnnS leq_eqVlt in_cons eq_sym.
+--by case: eqP => [->|_]; [rewrite leq_addr | exact: IHn].
+elim: n m => [|n IHn] m; rewr iota in_nil.
+  by rewrite addn0 ltnNge andbN.
+rewrite -addSnnS leq_eqVlt in_cons [`i = m`]eq_sym.
+case: (EXCLUDED_MIDDLE `m = i`) => /=.
+  by rewrite ltE addSn leqSS leq_addr.
+by rewrite IHn -ltE.
+Qed.
+
+Lemma iota_uniq m n : `uniq (iota m n)`.
+--Proof. by elim: n m => //= n IHn m; rewrite mem_iota ltnn /=. Qed.
+elim: n m => [|n IHn m]; rewr iota !uniq //.
+by rewrite mem_iota IHn -ltE ltnn andFb.
+Qed.
 
 (* Making a sequence of a specific length, using indexes to compute items. *)
 
 Section MakeSeq.
 
-Variables (T : Type) (x0 : T).
+--Variables (T : Type) (x0 : T).
+Variable x0 : `:A`.
 
-Definition mkseq f n : seq T := map f (iota 0 n).
+--Definition mkseq f n : seq T := map f (iota 0 n).
+"let mkseq = new_definition `mkseq f n = map f (iota 0 n)`".
 
-Lemma size_mkseq f n : size (mkseq f n) = n.
-Proof. by rewrite size_map size_iota. Qed.
+Lemma size_mkseq f n : `sizel (mkseq f n) = n`.
+Proof. by rewrite mkseq size_map size_iota. Qed.
 
-Lemma eq_mkseq f g : f =1 g -> mkseq f =1 mkseq g.
-Proof. by move=> Efg n; exact: eq_map Efg _. Qed.
+Lemma eq_mkseq f g : `(!x. f x = g x) ==> mkseq f = mkseq g`.
+--Proof. by move=> Efg n; exact: eq_map Efg _. Qed.
+by rewrite -eq_ext !mkseq => /eq_map ->. Qed.
 
-Lemma nth_mkseq f n i : i < n -> nth x0 (mkseq f n) i = f i.
-Proof. by move=> Hi; rewrite (nth_map 0) ?nth_iota ?size_iota. Qed.
+Lemma nth_mkseq f n i : `i < n ==> nth x0 (mkseq f n) i = f i`.
+--Proof. by move=> Hi; rewrite (nth_map 0) ?nth_iota ?size_iota. Qed.
+move => Hi; rewrite mkseq.
+rewrite nth_map; exists `0`; rewrite size_iota Hi /= => _.
+by rewrite nth_iota ?add0n.
+Qed.
 
-Lemma mkseq_nth s : mkseq (nth x0 s) (size s) = s.
-Proof.
-by apply: (@eq_from_nth _ x0); rewrite size_mkseq // => i Hi; rewrite nth_mkseq.
+Lemma mkseq_nth s : `mkseq (nth x0 s) (sizel s) = s`.
+--by apply: (@eq_from_nth _ x0); rewrite size_mkseq // => i Hi; rewrite nth_mkseq.
+apply "REWRITE_RULE[IMP_IMP] eq_from_nth".
+exists x0; rewrite size_mkseq /= => i Hi.
+by rewrite nth_mkseq.
 Qed.
 
 End MakeSeq.
 
-Lemma mkseq_uniq (T : eqType) (f : nat -> T) n :
-  injective f -> uniq (mkseq f n).
-Proof. by move=> injf; rewrite map_inj_uniq // iota_uniq. Qed.
+Lemma mkseq_uniq f n :
+  `(!x y. f x = f y ==> x = y) ==> uniq (mkseq f n)`.
+--Proof. by move=> injf; rewrite map_inj_uniq // iota_uniq. Qed.
+move/map_inj_uniq => Hs.
+by rewrite mkseq Hs iota_uniq.
+Qed.
 
 Section FoldRight.
 
-Variables (T R : Type) (f : T -> R -> R) (z0 : R).
+--Variables (T R : Type) (f : T -> R -> R) (z0 : R).
+Variable f : `:A -> B -> B`.
+Variable z0: `:B`.
 
-Fixpoint foldr s := if s is x :: s' then f x (foldr s') else z0.
+--Fixpoint foldr s := if s is x :: s' then f x (foldr s') else z0.
+"let foldr = define `foldr f z0 (x :: s) = f x (foldr f z0 s) /\ foldr f z0 [] = z0`".
 
 End FoldRight.
 
 Section FoldRightComp.
 
-Variables (T1 T2 : Type) (h : T1 -> T2).
-Variables (R : Type) (f : T2 -> R -> R) (z0 : R).
+--Variables (T1 T2 : Type) (h : T1 -> T2).
+--Variables (R : Type) (f : T2 -> R -> R) (z0 : R).
+Variable h : `:A->B`.
+Variable f : `:B->R->R`.
+Variable z0 : `:R`.
 
-Lemma foldr_cat s1 s2 : foldr f z0 (s1 ++ s2) = foldr f (foldr f z0 s2) s1.
-Proof. by elim: s1 => //= x s1 ->. Qed.
+Lemma foldr_cat s1 s2 : `foldr f z0 (s1 ++ s2) = foldr f (foldr f z0 s2) s1`.
+--Proof. by elim: s1 => //= x s1 ->. Qed.
+by elim: s1 => [|x s1 IHs]; rewr cat foldr. Qed.
 
-Lemma foldr_map s : foldr f z0 (map h s) = foldr (fun x z => f (h x) z) z0 s.
-Proof. by elim: s => //= x s ->. Qed.
+Lemma foldr_map s : `foldr f z0 (map h s) = foldr (\x z. f (h x) z) z0 s`.
+--Proof. by elim: s => //= x s ->. Qed.
+by elim: s => [|x s IHs]; rewr map foldr. Qed.
 
 End FoldRightComp.
 
 (* Quick characterization of the null sequence. *)
 
-Definition sumn := foldr addn 0.
+--Definition sumn := foldr addn 0.
+"let sumn = new_definition `sumn = foldr (+) 0`".
 
-Lemma sumn_nseq x n : sumn (nseq n x) = x * n.
-Proof. by rewrite mulnC; elim: n => //= n ->. Qed.
+Lemma sumn0 : `sumn [] = 0`. by rewr sumn foldr. Qed.
 
-Lemma sumn_cat s1 s2 : sumn (s1 ++ s2) = sumn s1 + sumn s2.
-Proof. by elim: s1 => //= x s1 ->; rewrite addnA. Qed.
+Lemma sumn_nseq x n : `sumn (nseq n x) = x * n`.
+--Proof. by rewrite mulnC; elim: n => //= n ->. Qed.
+rewrite mulnC; elim: n => [|n IHn]; rewr nseq ncons iter sumn foldr mul0n //.
+by rewrite -sumn -ncons -nseq IHn mulSn.
+Qed.
 
-Lemma natnseq0P s : reflect (s = nseq (size s) 0) (sumn s == 0).
-Proof.
-apply: (iffP idP) => [|->]; last by rewrite sumn_nseq.
-by elim: s => //= x s IHs; rewrite addn_eq0 => /andP[/eqP-> /IHs <-].
+Lemma sumn_cat s1 s2 : `sumn (s1 ++ s2) = sumn s1 + sumn s2`.
+--Proof. by elim: s1 => //= x s1 ->; rewrite addnA. Qed.
+elim: s1 => [|x s1 IHs]; rewr cat sumn0 add0n //.
+by rewr sumn foldr -sumn IHs addnA.
+Qed.
+
+Lemma natnseq0P s : `sumn s = 0 <=> s = nseq (sizel s) 0`.
+--apply: (iffP idP) => [|->]; last by rewrite sumn_nseq.
+--by elim: s => //= x s IHs; rewrite addn_eq0 => /andP[/eqP-> /IHs <-].
+split => [| ->]; last by rewrite sumn_nseq mul0n.
+elim: s => [|x s IHs]; first by rewr size_nil nseq ncons iter.
+by rewr sumn foldr -sumn addn_eq0 size_cons nseq ncons iter -ncons -nseq => [] [-> /IHs <-].
 Qed.
 
 Section FoldLeft.
 
-Variables (T R : Type) (f : R -> T -> R).
+--Variables (T R : Type) (f : R -> T -> R).
+Variable f : `:R->A->R`.
 
-Fixpoint foldl z s := if s is x :: s' then foldl (f z x) s' else z.
+--Fixpoint foldl z s := if s is x :: s' then foldl (f z x) s' else z.
+"let foldl = define `foldl f z (x :: s) = foldl f (f z x) s /\ foldl f z [] = z`".
 
-Lemma foldl_rev z s : foldl z (rev s) = foldr (fun x z => f z x) z s.
-Proof.
-elim/last_ind: s z => [|s x IHs] z //=.
-by rewrite rev_rcons -cats1 foldr_cat -IHs.
+Lemma foldl_rev z s : `foldl f z (rev s) = foldr (\x z0. f z0 x) z s`.
+--elim/last_ind: s z => [|s x IHs] z //=.
+--by rewrite rev_rcons -cats1 foldr_cat -IHs.
+apply: "REWRITE_RULE[IMP_IMP] last_ind" s z; split => [|s x IHs] z.
+  by rewr rev catrev foldl foldr.
+rewrite rev_rcons -cats1 foldr_cat -IHs.
+by rewr !foldr foldl.
 Qed.
 
-Lemma foldl_cat z s1 s2 : foldl z (s1 ++ s2) = foldl (foldl z s1) s2.
-Proof.
-by rewrite -(revK (s1 ++ s2)) foldl_rev rev_cat foldr_cat -!foldl_rev !revK.
-Qed.
+Lemma foldl_cat z s1 s2 : `foldl f z (s1 ++ s2) = foldl f (foldl f z s1) s2`.
+--by rewrite -(revK (s1 ++ s2)) foldl_rev rev_cat foldr_cat -!foldl_rev !revK.
+by rewrite -(revK `s1 ++ s2`) foldl_rev rev_cat foldr_cat -!foldl_rev !revK. Qed.
 
 End FoldLeft.
 
 Section Scan.
 
-Variables (T1 : Type) (x1 : T1) (T2 : Type) (x2 : T2).
-Variables (f : T1 -> T1 -> T2) (g : T1 -> T2 -> T1).
+--Variables (T1 : Type) (x1 : T1) (T2 : Type) (x2 : T2).
+--Variables (f : T1 -> T1 -> T2) (g : T1 -> T2 -> T1).
+Variable x1 : `:A`.
+Variable x2 : `:B`.
+Variable f : `:A -> A -> B`.
+Variable g : `:A -> B -> A`.
 
-Fixpoint pairmap x s := if s is y :: s' then f x y :: pairmap y s' else [::].
+--Fixpoint pairmap x s := if s is y :: s' then f x y :: pairmap y s' else [::].
+"let pairmap = define `pairmap f x (y :: s) = f x y :: pairmap f y s /\ pairmap f x [] = []`".
 
-Lemma size_pairmap x s : size (pairmap x s) = size s.
-Proof. by elim: s x => //= y s IHs x; rewrite IHs. Qed.
+Lemma size_pairmap x s : `sizel (pairmap f x s) = sizel s`.
+--Proof. by elim: s x => //= y s IHs x; rewrite IHs. Qed.
+elim: s x => [|y s IHs] x; rewr pairmap size_nil //.
+by rewrite !size_cons IHs.
+Qed.
 
 Lemma pairmap_cat x s1 s2 :
-  pairmap x (s1 ++ s2) = pairmap x s1 ++ pairmap (last x s1) s2.
-Proof. by elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
+  `pairmap f x (s1 ++ s2) = pairmap f x s1 ++ pairmap f (last x s1) s2`.
+--Proof. by elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
+elim: s1 x => [|y s1 IHs1] x; rewr pairmap cat last // pairmap.
+by rewrite IHs1.
+Qed.
 
-Lemma nth_pairmap s n : n < size s ->
-  forall x, nth x2 (pairmap x s) n = f (nth x1 (x :: s) n) (nth x1 s n).
-Proof. by elim: s n => [|y s IHs] [|n] //= Hn x; apply: IHs. Qed.
+Lemma nth_pairmap s n : `n < sizel s ==>
+  !x. nth x2 (pairmap f x s) n = f (nth x1 (x :: s) n) (nth x1 s n)`.
+--Proof. by elim: s n => [|y s IHs] [|n] //= Hn x; apply: IHs. Qed.
+elim: s n => [|y s IHs]; elim => [|n _]; rewr size_nil ltnn ltS0 // pairmap nth //.
+by rewrite size_cons ltSS => /IHs Hn x.
+Qed.
 
-Fixpoint scanl x s :=
-  if s is y :: s' then let x' := g x y in x' :: scanl x' s' else [::].
+--Fixpoint scanl x s :=
+--  if s is y :: s' then let x' := g x y in x' :: scanl x' s' else [::].
+"let scanl = define `scanl g x (y :: s) = g x y :: scanl g (g x y) s /\ scanl g x [] = []`".
 
-Lemma size_scanl x s : size (scanl x s) = size s.
-Proof. by elim: s x => //= y s IHs x; rewrite IHs. Qed.
+Lemma size_scanl x s : `sizel (scanl g x s) = sizel s`.
+--Proof. by elim: s x => //= y s IHs x; rewrite IHs. Qed.
+elim: s x => [|y s IHs] x; rewr scanl size_nil // size_cons.
+by rewrite IHs.
+Qed.
 
 Lemma scanl_cat x s1 s2 :
-  scanl x (s1 ++ s2) = scanl x s1 ++ scanl (foldl g x s1) s2.
-Proof. by elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
+  `scanl g x (s1 ++ s2) = scanl g x s1 ++ scanl g (foldl g x s1) s2`.
+--Proof. by elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
+by elim: s1 x => [|y s1 IHs1] x; rewr cat scanl cat foldl. Qed.
 
-Lemma nth_scanl s n : n < size s ->
-  forall x, nth x1 (scanl x s) n = foldl g x (take n.+1 s).
-Proof. by elim: s n => [|y s IHs] [|n] Hn x //=; rewrite ?take0 ?IHs. Qed.
+Lemma nth_scanl s n : `n < sizel s ==>
+  !x. nth x1 (scanl g x s) n = foldl g x (take (SUC n) s)`.
+--Proof. by elim: s n => [|y s IHs] [|n] Hn x //=; rewrite ?take0 ?IHs. Qed.
+elim: s n => [|y s IHs]; elim => [|n _]; rewr size_nil ltnn ltS0 // scanl nth !take !foldl //.
+by rewrite size_cons ltSS => /IHs Hn.
+Qed.
 
 Lemma scanlK :
-  (forall x, cancel (g x) (f x)) -> forall x, cancel (scanl x) (pairmap x).
-Proof. by move=> Hfg x s; elim: s x => //= y s IHs x; rewrite Hfg IHs. Qed.
+  --(forall x, cancel (g x) (f x)) -> forall x, cancel (scanl x) (pairmap x).
+  `(!x y. f x (g x y) = y) ==> (!x s. pairmap f x (scanl g x s) = s)`.
+--Proof. by move=> Hfg x s; elim: s x => //= y s IHs x; rewrite Hfg IHs. Qed.
+move => Hfg x s.
+by elim: s x => [|y s IHs] x; rewr scanl pairmap.
+Qed.
 
 Lemma pairmapK :
-  (forall x, cancel (f x) (g x)) -> forall x, cancel (pairmap x) (scanl x).
-Proof. by move=> Hgf x s; elim: s x => //= y s IHs x; rewrite Hgf IHs. Qed.
+  --(forall x, cancel (f x) (g x)) -> forall x, cancel (pairmap x) (scanl x).
+  `(!x y. g x (f x y) = y) ==> (!x s. scanl g x (pairmap f x s) = s)`.
+--Proof. by move=> Hgf x s; elim: s x => //= y s IHs x; rewrite Hgf IHs. Qed.
+move => Hgf x s.
+by elim: s x => [|y s IHs] x; rewr pairmap scanl.
+Qed.
 
 End Scan.
 
-Prenex Implicits mask map pmap foldr foldl scanl pairmap.
+--Prenex Implicits mask map pmap foldr foldl scanl pairmap.
 
 Section Zip.
 
-Variables S T : Type.
+--Variables S T : Type.
 
-Fixpoint zip (s : seq S) (t : seq T) {struct t} :=
-  match s, t with
-  | x :: s', y :: t' => (x, y) :: zip s' t'
-  | _, _ => [::]
-  end.
+--Fixpoint zip (s : seq S) (t : seq T) {struct t} :=
+--  match s, t with
+--  | x :: s', y :: t' => (x, y) :: zip s' t'
+--  | _, _ => [::]
+--  end.
+"let zip = define `zip (x :: s) (y :: t) = (x, y) :: zip s t /\
+	zip [] t = [] /\ zip s [] = []`".
 
-Definition unzip1 := map (@fst S T).
-Definition unzip2 := map (@snd S T).
+--Definition unzip1 := map (@fst S T).
+--Definition unzip2 := map (@snd S T).
+"let unzip1 = new_definition `unzip1 = map FST`".
+"let unzip2 = new_definition `unzip2 = map SND`".
 
-Lemma zip_unzip s : zip (unzip1 s) (unzip2 s) = s.
-Proof. by elim: s => [|[x y] s /= ->]. Qed.
+Lemma zip_unzip s : `zip (unzip1 s) (unzip2 s) = s`.
+--Proof. by elim: s => [|[x y] s /= ->]. Qed.
+elim: s => [|x s IHs]; rewr unzip1 unzip2 map zip // PAIR.
+by rewrite -unzip1 -unzip2 IHs.
+Qed.
 
-Lemma unzip1_zip s t : size s <= size t -> unzip1 (zip s t) = s.
-Proof. by elim: s t => [|x s IHs] [|y t] //= le_s_t; rewrite IHs. Qed.
+Lemma unzip1_zip s t : `sizel s <= sizel t ==> unzip1 (zip s t) = s`.
+--Proof. by elim: s t => [|x s IHs] [|y t] //= le_s_t; rewrite IHs. Qed.
+elim: s t => [|x s IHs]; elim => [|y t _]; rewr size_nil size_cons -ltE ltn0 zip unzip1 map //.
+by rewrite ltE leqSS /= -unzip1 => /IHs ->.
+Qed.
 
-Lemma unzip2_zip s t : size t <= size s -> unzip2 (zip s t) = t.
-Proof. by elim: s t => [|x s IHs] [|y t] //= le_t_s; rewrite IHs. Qed.
+Lemma unzip2_zip s t : `sizel t <= sizel s ==> unzip2 (zip s t) = t`.
+--Proof. by elim: s t => [|x s IHs] [|y t] //= le_t_s; rewrite IHs. Qed.
+elim: s t => [|x s IHs]; elim => [|y t _]; rewr size_nil size_cons -ltE ltn0 zip unzip2 map //.
+by rewrite ltE leqSS /= -unzip2 => /IHs ->.
+Qed.
 
-Lemma size1_zip s t : size s <= size t -> size (zip s t) = size s.
-Proof. by elim: s t => [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
+Lemma size1_zip s t : `sizel s <= sizel t ==> sizel (zip s t) = sizel s`.
+--Proof. by elim: s t => [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
+elim: s t => [|x s IHs]; elim => [|y t _]; rewr !size_nil size_cons -ltE ltn0 zip size_nil //.
+by rewrite ltE leqSS size_cons => /IHs ->.
+Qed.
 
-Lemma size2_zip s t : size t <= size s -> size (zip s t) = size t.
-Proof. by elim: s t => [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
+Lemma size2_zip s t : `sizel t <= sizel s ==> sizel (zip s t) = sizel t`.
+--Proof. by elim: s t => [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
+elim: s t => [|x s IHs]; elim => [|y t _]; rewr size_nil size_cons -ltE ltn0 zip size_nil //.
+by rewrite ltE leqSS size_cons => /IHs ->.
+Qed.
 
-Lemma size_zip s t : size (zip s t) = minn (size s) (size t).
-Proof.
-by elim: s t => [|x s IHs] [|t2 t] //=; rewrite IHs -add1n addn_minr.
+Lemma size_zip s t : `sizel (zip s t) = minn (sizel s) (sizel t)`.
+--by elim: s t => [|x s IHs] [|t2 t] //=; rewrite IHs -add1n addn_minr.
+elim: s t => [|x s IHs]; elim => [|t2 t _]; rewr zip size_nil minn ltnn /= size_cons gtS0 ltS0 //.
+by rewrite -minn -add1n IHs addn_minr !add1n.
 Qed.
 
 Lemma zip_cat s1 s2 t1 t2 :
-  size s1 = size t1 -> zip (s1 ++ s2) (t1 ++ t2) = zip s1 t1 ++ zip s2 t2.
-Proof. by move/eqP; elim: s1 t1 => [|x s IHs] [|y t] //= /IHs->. Qed.
+  `sizel s1 = sizel t1 ==> zip (s1 ++ s2) (t1 ++ t2) = zip s1 t1 ++ zip s2 t2`.
+--Proof. by move/eqP; elim: s1 t1 => [|x s IHs] [|y t] //= /IHs->. Qed.
+elim: s1 t1 => [|x s IHs]; elim => [|y t _]; rewr cat zip cat // size_nil size_cons;
+		rewrite ?[`0 = _`]eq_sym ?eqS0 //.
+by rewrite eqSS => /IHs ->.
+Qed.
 
 Lemma nth_zip x y s t i :
-  size s = size t -> nth (x, y) (zip s t) i = (nth x s i, nth y t i).
-Proof. by move/eqP; elim: i s t => [|i IHi] [|y1 s1] [|y2 t] //= /IHi->. Qed.
+  `sizel s = sizel t ==> nth (x, y) (zip s t) i = (nth x s i, nth y t i)`.
+--Proof. by move/eqP; elim: i s t => [|i IHi] [|y1 s1] [|y2 t] //= /IHi->. Qed.
+elim: i s t => [|i IHi]; elim => [|y1 s1 _]; elim => [|y2 t _]; rewr zip nth //; 
+	rewrite ?size_nil ?size_cons ?[`0 = _`]eq_sym ?eqS0 //.
+by rewrite eqSS => /IHi ->.
+Qed.
 
 Lemma nth_zip_cond p s t i :
-   nth p (zip s t) i
-     = (if i < size (zip s t) then (nth p.1 s i, nth p.2 t i) else p).
-Proof.
+   `nth p (zip s t) i
+     = (if i < sizel (zip s t) then (nth (FST p) s i, nth (SND p) t i) else p)`.
 rewrite size_zip ltnNge leq_minl.
-by elim: s t i => [|x s IHs] [|y t] [|i] //=; rewrite ?orbT -?IHs.
+--by elim: s t i => [|x s IHs] [|y t] [|i] //=; rewrite ?orbT -?IHs.
+elim: s t i => [|x s IHs]; elim => [|y t _]; elim => [|i _]; rewr nth size_nil !leqnn zip nth leq0n // size_cons -ltE ltn0 //.
+by rewrite IHs !ltE !leqSS.
 Qed.
 
 Lemma zip_rcons s1 s2 z1 z2 :
-    size s1 = size s2 ->
-  zip (rcons s1 z1) (rcons s2 z2) = rcons (zip s1 s2) (z1, z2).
-Proof. by move=> eq_sz; rewrite -!cats1 zip_cat //= eq_sz. Qed.
+    `sizel s1 = sizel s2 ==>
+  zip (rcons s1 z1) (rcons s2 z2) = rcons (zip s1 s2) (z1, z2)`.
+--Proof. by move=> eq_sz; rewrite -!cats1 zip_cat //= eq_sz. Qed.
+by move => eq_sz; rewrite -!cats1 zip_cat //; rewr !zip. Qed.
 
 Lemma rev_zip s1 s2 :
-  size s1 = size s2 -> rev (zip s1 s2) = zip (rev s1) (rev s2).
-Proof.
-elim: s1 s2 => [|x s1 IHs] [|y s2] //= [eq_sz].
-by rewrite !rev_cons zip_rcons ?IHs ?size_rev.
+  `sizel s1 = sizel s2 ==> rev (zip s1 s2) = zip (rev s1) (rev s2)`.
+--elim: s1 s2 => [|x s1 IHs] [|y s2] //= [eq_sz].
+--by rewrite !rev_cons zip_rcons ?IHs ?size_rev.
+elim: s1 s2 => [|x s1 IHs]; elim => [|y s2 _]; last first.
+  rewrite !size_cons eqSS => eq_sz.
+  by rewrite !rev_cons zip_rcons ?size_rev //; rewr zip rev_cons; rewrite IHs.
+by rewr rev catrev zip catrev.
+by rewr rev catrev zip catrev.
+by rewr rev catrev zip catrev.
 Qed.
 
 End Zip.
 
-Prenex Implicits zip unzip1 unzip2.
+--Prenex Implicits zip unzip1 unzip2.
 
 Section Flatten.
 
-Variable T : Type.
-Implicit Types (s : seq T) (ss : seq (seq T)).
+--Variable T : Type.
+--Implicit Types (s : seq T) (ss : seq (seq T)).
+Implicit Type s : `:(A)list`.
+Implicit Type ss : `:((A)list)list`.
 
-Definition flatten := foldr cat (Nil T).
-Definition shape := map (@size T).
-Fixpoint reshape sh s :=
-  if sh is n :: sh' then take n s :: reshape sh' (drop n s) else [::].
+--Definition flatten := foldr cat (Nil T).
+--Definition shape := map (@size T).
+--Fixpoint reshape sh s :=
+--  if sh is n :: sh' then take n s :: reshape sh' (drop n s) else [::].
+"let flatten = new_definition `flatten = foldr cat []`".
+"let shape = new_definition `shape = map sizel`".
+"let reshape = define `reshape (n :: sh) s = take n s :: reshape sh (dropl n s) /\
+	reshape [] s = []`".
 
-Lemma size_flatten ss : size (flatten ss) = sumn (shape ss).
-Proof. by elim: ss => //= s ss <-; rewrite size_cat. Qed.
+Lemma flatten0 : `flatten [] = []`. by rewr flatten foldr. Qed.
+Lemma flatten_cons s ss : `flatten (s :: ss) = s ++ flatten ss`.
+by rewr flatten foldr. Qed.
+
+Lemma size_flatten ss : `sizel (flatten ss) = sumn (shape ss)`.
+--Proof. by elim: ss => //= s ss <-; rewrite size_cat. Qed.
+elim: ss => [|s ss IHs]; rewr flatten foldr shape map size_nil sumn0 //.
+by rewrite -flatten size_cat IHs -shape; rewr sumn foldr.
+Qed.
 
 Lemma flatten_cat ss1 ss2 :
-  flatten (ss1 ++ ss2) = flatten ss1 ++ flatten ss2.
-Proof. by elim: ss1 => //= s ss1 ->; rewrite catA. Qed.
-
-Lemma flattenK ss : reshape (shape ss) (flatten ss) = ss.
-Proof.
-by elim: ss => //= s ss IHss; rewrite take_size_cat ?drop_size_cat ?IHss.
+  `flatten (ss1 ++ ss2) = flatten ss1 ++ flatten ss2`.
+--Proof. by elim: ss1 => //= s ss1 ->; rewrite catA. Qed.
+elim: ss1 => [|s ss1 IHs]; rewr flatten0 cat // flatten_cons.
+by rewrite IHs catA.
 Qed.
 
-Lemma reshapeKr sh s : size s <= sumn sh -> flatten (reshape sh s) = s.
-Proof.
-elim: sh s => [[]|n sh IHsh] //= s sz_s; rewrite IHsh ?cat_take_drop //.
-by rewrite size_drop leq_sub_add.
+Lemma flattenK ss : `reshape (shape ss) (flatten ss) = ss`.
+--by elim: ss => //= s ss IHss; rewrite take_size_cat ?drop_size_cat ?IHss.
+elim: ss => [|s ss IHss]; rewr flatten shape foldr map reshape //.
+by rewrite take_size_cat // drop_size_cat // -flatten -shape IHss.
 Qed.
 
-Lemma reshapeKl sh s : size s >= sumn sh -> shape (reshape sh s) = sh.
-Proof.
-elim: sh s => [[]|n sh IHsh] //= s sz_s.
-rewrite size_takel; last exact: leq_trans (leq_addr _ _) sz_s.
+Lemma reshapeKr sh s : `sizel s <= sumn sh ==> flatten (reshape sh s) = s`.
+--elim: sh s => [[]|n sh IHsh] //= s sz_s; rewrite IHsh ?cat_take_drop //.
+--by rewrite size_drop leq_sub_add.
+elim: sh s => [|n sh IHsh s sz_s].
+  by elim => [|x s _]; rewr reshape cat flatten0 // sumn0 size_cons -ltE ltn0.
+rewr reshape flatten foldr -flatten.
+rewrite IHsh ?cat_take_drop // size_drop leq_sub_add; move: sz_s.
+by rewr sumn foldr.
+Qed.
+
+Lemma reshapeKl sh s : `sumn sh <= sizel s ==> shape (reshape sh s) = sh`.
+--elim: sh s => [[]|n sh IHsh] //= s sz_s.
+--rewrite size_takel; last exact: leq_trans (leq_addr _ _) sz_s.
+--by rewrite IHsh // -(leq_add2l n) size_drop add_sub_maxn leq_maxr sz_s orbT.
+elim: sh s => [|n sh IHsh s sz_s].
+  by elim => [|x s _]; rewr reshape shape map.
+move: sz_s; rewr sumn foldr -sumn => sz_s.
+rewr reshape shape map -shape; rewrite size_takel.
+  by apply: leq_trans sz_s; rewrite leq_addr.
 by rewrite IHsh // -(leq_add2l n) size_drop add_sub_maxn leq_maxr sz_s orbT.
 Qed.
 
@@ -2891,55 +3072,86 @@ End Flatten.
 
 Section AllPairs.
 
-Variables (S T R : Type) (f : S -> T -> R).
-Implicit Types (s : seq S) (t : seq T).
+--Variables (S T R : Type) (f : S -> T -> R).
+--Implicit Types (s : seq S) (t : seq T).
+Variable f : `:S->T->R`.
+Implicit Type s : `:(S)list`.
+Implicit Type t : `:(T)list`.
 
-Definition allpairs s t := foldr (fun x => cat (map (f x) t)) [::] s.
+--Definition allpairs s t := foldr (fun x => cat (map (f x) t)) [::] s.
+"let allpairs = new_definition `allpairs f s t = foldr (\x. cat (map (f x) t)) [] s`".
 
-Lemma size_allpairs s t : size (allpairs s t) = size s * size t.
-Proof. by elim: s => //= x s IHs; rewrite size_cat size_map IHs. Qed.
+Lemma size_allpairs s t : `sizel (allpairs f s t) = sizel s * sizel t`.
+--Proof. by elim: s => //= x s IHs; rewrite size_cat size_map IHs. Qed.
+elim: s => [|x s IHs]; rewr allpairs foldr size_nil mul0n //.
+by rewrite size_cat -allpairs IHs size_map size_cons mulSn.
+Qed.
 
 Lemma allpairs_cat s1 s2 t :
-  allpairs (s1 ++ s2) t = allpairs s1 t ++ allpairs s2 t.
-Proof. by elim: s1 => //= x s1 ->; rewrite catA. Qed.
+  `allpairs f (s1 ++ s2) t = allpairs f s1 t ++ allpairs f s2 t`.
+--Proof. by elim: s1 => //= x s1 ->; rewrite catA. Qed.
+elim: s1 => [|x s1 IHs]; rewr cat allpairs foldr cat //.
+by rewrite -!allpairs IHs catA.
+Qed.
 
 End AllPairs.
 
 Section EqAllPairs.
 
-Variables (S T R : eqType) (f : S -> T -> R).
-Implicit Types (s : seq S) (t : seq T).
+--Variables (S T R : eqType) (f : S -> T -> R).
+--Implicit Types (s : seq S) (t : seq T).
+Variable f : `:S->T->R`.
+Implicit Type s : `:(S)list`.
+Implicit Type t : `:(T)list`.
 
 Lemma allpairsP s t z :
-  reflect (exists p, [/\ p.1 \in s, p.2 \in t & z = f p.1 p.2])
-          (z \in allpairs f s t).
-Proof.
-elim: s => [|x s IHs /=]; first by right=> [[p []]].
-rewrite mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
-  by left; have [y t_y ->] := fxt_z; exists (x, y); rewrite mem_head.
-apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
-  by rewrite !inE predU1r.
-by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
+--  reflect (exists p, [/\ p.1 \in s, p.2 \in t & z = f p.1 p.2])
+--          (z \in allpairs f s t).
+`(z <- allpairs f s t) <=> (?p. FST p <- s /\ SND p <- t /\ z = f (FST p) (SND p))`.
+--elim: s => [|x s IHs /=]; first by right=> [[p []]].
+--rewrite mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
+--  by left; have [y t_y ->] := fxt_z; exists (x, y); rewrite mem_head.
+--apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
+--  by rewrite !inE predU1r.
+--by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
+--Qed.
+elim: s => [|x s IHs]; rewr allpairs foldr in_nil //.
+rewrite -allpairs mem_cat mapP IHs; split.
+  case => [[y] [Hy ->]|[p] [p1 [p2 ->]]]; first by exists `(x, y)` => /=; rewrite in_cons.
+  by exists p; rewrite in_cons.
+rewrite in_cons; move => [p] [[p_s]] [p_t ->].
+  by left; exists `SND p`.
+by right; exists p.
 Qed.
 
+ 
+
 Lemma mem_allpairs s1 t1 s2 t2 :
-  s1 =i s2 -> t1 =i t2 -> allpairs f s1 t1 =i allpairs f s2 t2.
-Proof.
+  `(!x. x <- s1 <=> x <- s2) ==> (!y. y <- t1 <=> y <- t2) 
+	==> (!p. p <- allpairs f s1 t1 <=> p <- allpairs f s2 t2)`.
 move=> eq_s eq_t z.
-by apply/allpairsP/allpairsP=> [] [p fpz]; exists p; rewrite eq_s eq_t in fpz *.
+--by apply/allpairsP/allpairsP=> [] [p fpz]; exists p; rewrite eq_s eq_t in fpz *.
+rewrite !allpairsP; split => [] [p]; rewrite eq_s eq_t => fpz.
+  by exists p.
+by exists p.
 Qed.
 
 Lemma allpairs_catr s t1 t2 :
-  allpairs f s (t1 ++ t2) =i allpairs f s t1 ++ allpairs f s t2.
-Proof.
+  `!p. p <- allpairs f s (t1 ++ t2) <=> p <- allpairs f s t1 ++ allpairs f s t2`.
 move=> z; rewrite mem_cat.
-apply/allpairsP/orP=> [[p [sP1]]|].
-  by rewrite mem_cat; case/orP; [left | right]; apply/allpairsP; exists p.
-by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
+--apply/allpairsP/orP=> [[p [sP1]]|].
+--  by rewrite mem_cat; case/orP; [left | right]; apply/allpairsP; exists p.
+--by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
+rewrite allpairsP; split => [[p [sP1]]|].
+  by rewrite mem_cat => [] [[H] ->]; [left | right]; rewrite allpairsP; exists p.
+case; rewrite allpairsP => [[p]] [sp1] [sp2 ->].
+  by exists p; rewrite mem_cat sp2.
+by exists p; rewrite mem_cat sp2.
 Qed.
 
 End EqAllPairs.
 
+(*
 Prenex Implicits flatten shape reshape allpairs.
 
 Notation "[ 'seq' E | i <- s ]" := (map (fun i => E) s)
@@ -2956,5 +3168,5 @@ Notation "[ 'seq' E | i <- s , C ]" :=
   (at level 0, i ident,
    format "[ '[hv' 'seq'  E '/ '  |   i  <-  s , '/ '  C ] ']'")
    : form_scope.
-
+*)
 

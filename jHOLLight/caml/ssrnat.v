@@ -17,7 +17,7 @@ Lemma addnS m n : `m + SUC n = SUC (m + n)`. by arith. Qed.
 Lemma addSnnS m n : `SUC m + n = m + SUC n`. by arith. Qed.
 Lemma addnCA m n p : `m + (n + p) = n + (m + p)`. by arith. Qed.
 Lemma addnC m n : `m + n = n + m`.
-by rewrite -{1}[`n`]addn0 addnCA addn0. Qed.
+by rewrite -{1}(addn0 n) addnCA addn0. Qed.
 Lemma addn1 n : `n + 1 = SUC n`. by rewrite addnC add1n. Qed.
 Lemma addnA n m p : `n + (m + p) = (n + m) + p`.
 by rewrite [`m + p`]addnC addnCA addnC. Qed.
@@ -57,10 +57,9 @@ by move => n m; rewrite addnC addKn. Qed.
 Lemma subSnn : `!n. SUC n - n = 1`.
 -- Proof. exact (addnK n 1). Qed.
 move => n.
-by move: (addnK n `1`); rewrite add1n.
-Qed.
+by rewrite -add1n addnK. Qed.
 
-Lemma subn_sub : `!m n p. (n - m) - p = n - (m + p)`.
+Lemma subn_sub m n p: `(n - m) - p = n - (m + p)`.
 -- Proof. by elim: m n => [|m IHm] [|n]; try exact (IHm n). Qed.
 --move => m n p.
 --elim: n m => [|m IHm]; case; arith.
@@ -399,13 +398,12 @@ Lemma leq_maxr m n1 n2: `(m <= maxn n1 n2) <=> (m <= n1) \/ (m <= n2)`.
 --rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
 --by rewrite leqNgt (leq_trans _ lt_m_n1).
 --Qed.
-(*
-have wlog: `!P G. (P ==> G) /\ ((P ==> G) ==> G) ==> G`.
-  by "MESON_TAC[]".
-apply: (wlog `n2 <= n1`); split.
-  case: (leq_total n2 n1) => le_n12.
-*)
-by rewrite maxn; arith. Qed.
+wlog le_n21: n1 n2 / `n2 <= n1`.
+  by case: (leq_total n2 n1) => le_n12; last rewrite maxnC orbC; rewrite le_n21.
+move => le_n21.
+rewrite maxn ltnNge le_n21 /=; case: (EXCLUDED_MIDDLE `m <= n1`) => /=.
+by apply: contra; move/leq_trans => /(_ n1).
+Qed.
 
 
 Lemma leq_maxl m n1 n2 : `(maxn n1 n2 <= m) <=> (n1 <= m) /\ (n2 <= m)`.
@@ -1137,9 +1135,9 @@ Lemma odd_double_half n : `(if odd n then 1 else 0) + double (half n) = n`.
 --by elim: n => //= n {3}<-; rewrite uphalf_half double_add; case (odd n).
 elim: n => [|n IHn]; first by rewrite odd0 half0 double0 /= addn0.
 rewrite -{3}IHn halfS uphalf_half double_add oddS.
-set b := `odd n`.
-move: b_def IHn => _ _; case: b => -> /=; first by rewrite add0n ONE doubleS double0 -addSn.
-by rewrite double0 add0n ONE addSn add0n.
+move: IHn => _.
+case: `odd n` => /=; first by rewrite add0n ONE doubleS double0 -addSn.
+by rewrite double0 add0n add1n.
 Qed.
 
 

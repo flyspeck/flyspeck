@@ -40,7 +40,7 @@ let (THENL_FIRST),(THENL_LAST) =
     thenl_first, thenl_last;;
 
 
-
+(* Rotates the goalstack *)
 let (THENL_ROT: int -> tactic -> tactic) =
   fun n tac g ->
     let gstate = tac g in
@@ -167,41 +167,52 @@ let match_subterm_in_context pat tm (g : goal) =
     match_subterm f1_vars pattern tm;;
 
 
-(* Returns the number of explicit assumptions and the subterm for matching *)
-let prepare_theorem th =
-  (* Convert P ==> (!x. Q x) to !x. P ==> Q x *)
-  let th1 = PURE_REWRITE_RULE[GSYM RIGHT_FORALL_IMP_THM] th in
-  let th_tm = concl th1 in
-  let bound_vars, body_tm = strip_forall th_tm in
-  (* Returns the final conclusion and the number of assumptions *)
-  let rec find_concl tm =
-    if is_imp tm then
-      let _, c_tm = dest_imp tm in
-      let c_tm2, n = find_concl c_tm in
-	(c_tm2, n + 1)
+(*************************)
+(*       Rewriting       *)
+(*************************)
+
+(* Breaks conjunctions and does other misc stuff *)
+let rec break_conjuncts th : thm list =
+  (* Convert P ==> (!x. Q x) to !x. P ==> Q x and P ==> Q ==> R to P /\ Q ==> R *)
+  let th0 = PURE_REWRITE_RULE[GSYM RIGHT_FORALL_IMP_THM; IMP_IMP] th in
+  let th1 = SPEC_ALL th0 in  
+  (* Break top level conjunctions *)
+  let th_list = CONJUNCTS th1 in
+    if length th_list > 1 then
+      List.concat (map break_conjuncts th_list)
     else
-      (tm, 0) in
-  let concl_tm, n = find_concl body_tm in
-  (* Ensure that the conclusion is an equation; make an equation if necessary *)
-  concl_tm;;
+      let th_tm = concl th1 in
+	(* Deal with assumptions *)
+	if is_imp th_tm then
+	  let a_tm = lhand th_tm in
+	  let th_list = break_conjuncts (UNDISCH th1) in
+	    map (DISCH a_tm) th_list
+	else
+	  if is_eq th_tm then [th1]
+	  else
+	    if is_neg th_tm then
+	      [PURE_ONCE_REWRITE_RULE[TAUT `~P <=> (P <=> F)`] th1]
+	    else
+	      [EQT_INTRO th1];;
+	    
+
+(* Finds an instantination for the given term inside another term *)
+let rec find_term_inst local_consts tm src_tm path =
+  try (term_match local_consts tm src_tm, true, path)
+  with Failure _ ->
+    match src_tm with
+      | Comb(l_tm, r_tm) ->
+	  let r_inst, flag, s = find_term_inst local_consts tm l_tm (path ^ "l") in
+	    if flag then (r_inst, flag, s)
+	    else
+	      find_term_inst local_consts tm r_tm (path ^ "r")
+      | Abs(_, b_tm) ->
+	  find_term_inst local_consts tm b_tm (path ^ "b")
+      | _ -> (([],[],[]), false, path);;
 
 
-(*
-  let rec strip_tm tm =
-    let bound_vars, body = strip_forall tm in
-    (* Rename bound variables *)
-    let vars = map (fun var -> let name, ty = dest_var var in mk_var("$"^name, ty)) bound_vars in
-    let tm0 = subst (zip vars bound_vars) body in
-    if is_imp tm0 then
-      let assumption, tm1 = dest_imp tm0 in
-      let assumptions, conclusion = strip_tm tm1 in
-	(assumption :: assumptions, conclusion)
-    else
-      ([], tm0) in
-    strip_tm concl_tm;;
-*)
 
-
+(* Rewrites the subterm at the given path using the given equation theorem *)
 let path_rewrite path th tm =
   let rec build path tm =
     let n = String.length path in
@@ -218,29 +229,103 @@ let path_rewrite path th tm =
 	    let lhs, rhs = dest_comb tm in
 	    let th0 = build path' rhs in
 	      AP_TERM lhs th0
-	  else if ch = 'a' then
+	  else if ch = 'b' then
 	    let var, body = dest_abs tm in
 	    let th0 = build path' body in
-	      ABS var th0
+	      try ABS var th0
+	      with Failure _ -> failwith ("ABS failed: (" ^ string_of_term var ^ ", " ^ string_of_thm th0)
 	  else
 	    failwith ("Bad path symbol: "^path) in
   let res = build path tm in
   let lhs = (lhand o concl) res in
-    if lhs <> tm then failwith ("path_rewrite: incorrect result [required: "^
+    if not (aconv lhs tm) then failwith ("path_rewrite: incorrect result [required: "^
 				  (string_of_term tm)^"; obtained: "^
 				  (string_of_term lhs))
     else
       res;;
 
-  
 
-  
+let new_rewrite occ pat th g =
+  let goal_tm = snd g in
+  (* Free variables in the given theorem will not be matched *)
+  let local_consts = frees (concl th) in
+  (* Apply the pattern *)
+  let goal_subterm_path = 
+    if pat = [] then "" else match_subterm_in_context (hd pat) goal_tm g in
+  let goal_subterm = follow_path goal_subterm_path goal_tm in
 
-(*let th = ASSUME `!x. x ==> (!x. x = ~x ==> (!y. y = 2))`;;
-PURE_REWRITE_RULE[GSYM RIGHT_FORALL_IMP_THM] th;;
-(* prepare_theorem ITERATE_UNION;; *)
-    
+  (* Local rewrite function *)
+  let rewrite th =
+    let concl_th = concl th in
+    let cond_flag = is_imp concl_th in
+    let match_fun = lhs o (if cond_flag then rand else I) in
+
+    (* Match the theorem *)
+    let lhs_tm = match_fun concl_th in
+    let ii, flag, path = find_term_inst local_consts lhs_tm goal_subterm goal_subterm_path in
+      if not flag then
+	failwith (string_of_term lhs_tm ^ " does not match any subterm in the goal")
+      else
+	let matched_th = INSTANTIATE ii th in
+	let matched_tm = (match_fun o concl) matched_th in
+	
+	(* Find all matched subterms *)
+	let paths = find_all_paths (fun x -> aconv x matched_tm) goal_tm in
+	let paths = if occ = [] then paths else
+	  map (fun i -> List.nth paths (i - 1)) occ in
+
+	(* Find all free variables in the matched theorem which do not correspond to free variables in
+	   the matched subterm *)
+	let tm_frees = frees matched_tm in
+	let mth_frees = frees (concl matched_th) in
+	let vars = subtract mth_frees (union local_consts tm_frees) in
+	  if vars = [] then
+	    (* Construct the tactic for rewriting *)
+	    let r_tac = fun th -> MAP_EVERY (fun path -> CONV_TAC (path_rewrite path th)) paths in
+	      if cond_flag then
+		MP_TAC matched_th THEN ANTS_TAC THENL [ALL_TAC; DISCH_THEN r_tac]
+	      else
+		r_tac matched_th
+	  else
+	    let rec gen_vars vars th =
+	      match vars with
+		| v :: vs -> gen_vars vs (GEN v th)
+		| [] -> th in
+	    let th2 = gen_vars vars matched_th in
+	      MP_TAC th2 THEN PURE_REWRITE_TAC[LEFT_IMP_FORALL_THM] in
+
+  (* Try to rewrite with all given theorems *)
+  let th_list = break_conjuncts th in
+  let rec my_first th_list = 
+    if length th_list = 1 then
+      rewrite (hd th_list) g
+    else
+      try rewrite (hd th_list) g
+      with Failure _ -> my_first (tl th_list) in
+    my_first th_list;;
+
+
+(*
+let th = ARITH_RULE `!n. n * 0 <= 1`;;
+let tm = `m * 0 <= 1 <=> T`;;
+g tm;;
+e(new_rewrite [] [] th);;
+
+let th = CONJ REAL_MUL_RINV REAL_MUL_LINV;;
+let tm = `inv (x - y) * (x - y) + &1 = &1 + inv (x - y) * (x - y) + x * inv x`;;
+let tm0 = `!x. inv (x - y) * (x - y) = &1`;;
+
+
+g tm0;;
+e(new_rewrite [] [] (th));;
+e(new_rewrite [] [] (GSYM th));;
+e(new_rewrite [] [`_ + &1`] th);;
+
+g(`x < 2`);;
+e(new_rewrite [] [] (ARITH_RULE `!x. x > 2 ==> (!n. n = 2 ==> ~(x < n))`));;
+
 *)
+
 
 (* Rewrite tactic for usual and conditional theorems *)
 let rewrite occ pat th g =
@@ -363,7 +448,7 @@ let disch_tm_tac occs tm (g : goal) =
   let abbrev_tm = mk_eq (new_tm, tm0) in
     (ABBREV_TAC abbrev_tm THEN 
        EXPAND_TAC name THEN
-       POP_ASSUM (fun th -> (rewrite occs [] th)) THEN
+       POP_ASSUM (fun th -> (new_rewrite occs [] th)) THEN
        SPEC_TAC (new_tm, new_tm1)) g;;
        
 

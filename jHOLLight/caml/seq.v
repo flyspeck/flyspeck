@@ -158,7 +158,7 @@ by case: s => [->|[h [t] ->]]; move => //; rewr size LENGTH; arith. Qed.
 "let nilp = new_definition `!(s:(A)list). nilp s <=> (sizel s = 0)`".
 
 Lemma nilP s : `s = [] <=> nilp s`.
-by case: s => [->|[h [t ->]]]; rewrite nilp size; rewr LENGTH // NOT_CONS_NIL; arith. Qed.
+by case: s => [->|[h [t ->]]]; rewrite nilp size LENGTH // NOT_CONS_NIL NOT_SUC. Qed.
 
 --Definition ohead s := if s is x :: _ then Some x else None.
 --Definition head s := if s is x :: _ then x else x0.
@@ -709,7 +709,7 @@ by rewrite IHs negb_or predC. Qed.
 
 Lemma can_inj f g : `(!x. g (f x) = x) ==> (!x y. f x = f y ==> x = y)`.
 move => h x y f_eq.
-by rewrite -h -[`y`]h f_eq.
+by rewrite -(h x) -(h y) f_eq.
 Qed.
 
 Lemma all_predI a1 a2 s : `all (predI a1 a2) s <=> all a1 s /\ all a2 s`.
@@ -729,7 +729,7 @@ by apply: (can_inj negbK); rewrite negb_and -!has_predC -has_predU predU predI !
 	dropl n [] = [] /\ dropl 0 s = s`".
 
 Lemma eq_ext f g: `(!x. f x = g x) <=> f = g`.
-"EQ_TAC" => h; first by "MATCH_MP_TAC EQ_EXT".
+split => h; first by "MATCH_MP_TAC EQ_EXT".
 by rewrite h.
 Qed.
 
@@ -936,7 +936,7 @@ Lemma rot_inj s1 s2: `rot n0 (s1:(A)list) = rot n0 s2 ==> s1 = s2`.
 by move: ((can_inj rotK) s1 s2). Qed.
 
 Lemma rot1_cons x s : `rot 1 (x :: s) = rcons s x`.
-Proof. by rewrite rot ONE drop_cons take_cons take0 drop0 -cats1. Qed.
+Proof. by rewrite rot ONE drop_cons take take0 drop0 -cats1. Qed.
 
 (* (efficient) reversal *)
 
@@ -1730,13 +1730,10 @@ Lemma perm_filterC a s : `!s2. perm_eq (filter a s ++ filter (predC a) s) s2 = p
 --apply/perm_eqlP; elim: s => //= x s IHs.
 --by case: (a x); last rewrite /= -cat1s perm_catCA; rewrite perm_cons.
 rewrite -perm_eqlP; elim: s => [|x s IHs]; rewr filter cat perm_eq_refl //.
-rewrite predC /=.
-(* FIXME: implement rewrite which works with negations *)
-(* move: `a x`. *)
-set r := `a x`.
-by case: r r_def => -> _ /=; 
-	last rewrite -cat1s perm_catCA; rewrite cat_cons perm_cons -predC ?cat0s.
+rewrite predC /= -predC.
+by case: `a x` => -> /=; last rewrite -cat1s perm_catCA; rewrite !cat perm_cons.
 Qed.
+
 
 Lemma perm_eq_mem s1 s2 : `perm_eq s1 s2 ==> (!x. x <- s1 <=> x <- s2)`.
 --Proof. by move/perm_eqP=> eq12 x; rewrite -!has_pred1 !has_count eq12. Qed.
@@ -2149,7 +2146,7 @@ have def_m_i: `take i n = nseq (sizel (take i n)) F`.
 --  rewrite ltnNge; apply/negP=> le_m_i; rewrite take_oversize // in def_m_i.
 --  by rewrite def_m_i mask_false in def_s1.
 have lt_i_m: `i < sizel n`.
-  rewrite ltnNge; rewrite -"TAUT `(P ==> F) <=> ~P`" => le_m_i.
+  rewrite ltnNge; rewrite -"TAUT `!P. (P ==> F) <=> ~P`" => le_m_i.
   by move: def_m_i def_s1; rewrite take_oversize // => ->; rewrite mask_false; rewr !NOT_CONS_NIL.
 --rewrite size_take lt_i_m in def_m_i.
 move: def_m_i; rewrite size_take lt_i_m /= => def_m_i.
@@ -2250,9 +2247,7 @@ Proof. by rewrite -{1}[`s`]cats0 -cats1 subseq_cat; rewr subseq !subseq_refl. Qe
 
 Lemma subseq_uniq s1 s2 : `subseq s1 s2 ==> uniq s2 ==> uniq s1`.
 --Proof. by case/subseqP=> m _ -> Us2; exact: mask_uniq. Qed.
-rewrite subseqP => [] [m] [_ ->] Us2. 
-by move: (mask_uniq Us2 m).
-Qed.
+by rewrite subseqP => [] [m] [_ ->] Us2; rewrite mask_uniq. Qed.
 
 End Subseq.
 
@@ -2465,10 +2460,10 @@ elim: s => [|x s IHs]; rewr map in_nil andFb.
   by rewrite NOT_EXISTS_THM => x.
 rewrite !in_cons; case: (EXCLUDED_MIDDLE `y = f x`) => /= Hxy.
   by exists x.
-rewrite IHs; split => [[x' [Hx' ->]] | [x' [Hx' Dy]]].
+rewrite IHs; split => [[x' [Hx' eq]] | [x' [Hx' Dy]]].
   by exists x'.
 case: Hx' => Hx'; [move | exists x' => //].
-by move: Hxy; rewrite Dy Hx'.
+by exists x; move: Hxy; rewrite Dy Hx'.
 Qed.
 
 
@@ -2507,8 +2502,8 @@ Qed.
 Lemma map_subseq s1 s2 : `subseq s1 s2 ==> subseq (map f s1) (map f s2)`.
 --case/subseqP=> m sz_m ->; apply/subseqP.
 --by exists m; rewrite ?size_map ?map_mask.
-rewrite !subseqP => [] [m] [sz_m ->].
-by exists m; rewrite size_map map_mask.
+rewrite !subseqP => [] [m] [sz_m eq].
+by exists m; rewrite eq size_map map_mask.
 Qed.
 
 End EqMap.
@@ -3117,9 +3112,9 @@ Lemma allpairsP s t z :
 --Qed.
 elim: s => [|x s IHs]; rewr allpairs foldr in_nil //.
 rewrite -allpairs mem_cat mapP IHs; split.
-  case => [[y] [Hy ->]|[p] [p1 [p2 ->]]]; first by exists `(x, y)` => /=; rewrite in_cons.
+  case => [[y] [Hy eq]|[p] [p1 [p2 eq]]]; first by exists `(x, y)` => /=; rewrite in_cons.
   by exists p; rewrite in_cons.
-rewrite in_cons; move => [p] [[p_s]] [p_t ->].
+rewrite in_cons; move => [p] [[p_s]] [p_t eq].
   by left; exists `SND p`.
 by right; exists p.
 Qed.
@@ -3144,7 +3139,7 @@ move=> z; rewrite mem_cat.
 --by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
 rewrite allpairsP; split => [[p [sP1]]|].
   by rewrite mem_cat => [] [[H] ->]; [left | right]; rewrite allpairsP; exists p.
-case; rewrite allpairsP => [[p]] [sp1] [sp2 ->].
+case; rewrite allpairsP => [[p]] [sp1] [sp2 eq].
   by exists p; rewrite mem_cat sp2.
 by exists p; rewrite mem_cat sp2.
 Qed.

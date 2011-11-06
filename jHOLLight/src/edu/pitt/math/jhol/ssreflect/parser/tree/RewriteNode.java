@@ -118,7 +118,7 @@ public class RewriteNode extends TacticNode {
 			buffer.append("fun th -> ONCE_REWRITE_TAC[th]");
 		}
 		else {
-			buffer.append("rewrite ");
+			buffer.append("new_rewrite ");
 
 			// occ-switch
 			buffer.append('[');

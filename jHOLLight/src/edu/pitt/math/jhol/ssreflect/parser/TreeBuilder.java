@@ -1112,9 +1112,31 @@ public class TreeBuilder {
 	
 	
 	/**
-	 * Parses an object (theorem, term, application)
+	 * Parses an object (theorem, term, application, conjunction)
 	 */
 	private ObjectNode tryParseObject() throws Exception {
+		ObjectNode obj = tryParseObject1();
+		if (obj == null)
+			return null;
+		
+		Token t = scanner.peekToken();
+		if (t.type != TokenType.COMMA)
+			return obj;
+		
+		// ,
+		scanner.nextToken();
+		ObjectNode obj2 = tryParseObject();
+		if (obj2 == null)
+			throw new Exception("OBJECT expected: " + t);
+		
+		return new ConjNode(obj, obj2);
+	}
+	
+	
+	/**
+	 * Parses an object (theorem, term, application)
+	 */
+	private ObjectNode tryParseObject1() throws Exception {
 		// Raw expression
 		String raw = tryParseRawExpr();
 		if (raw != null) {

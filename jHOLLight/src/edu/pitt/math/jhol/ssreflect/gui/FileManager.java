@@ -224,9 +224,11 @@ public class FileManager implements Configuration.Saver {
 			addRecentProject(file);
 		}
 
+		File curFile = (currentFile == null) ? null : currentFile.file; 
+
 		// Inform listeners about the change
 		for (CurrentFileListener listener : currentFileListeners) {
-			listener.currentFileChanged(currentFile.file);
+			listener.currentFileChanged(curFile);
 		}
 	}
 	

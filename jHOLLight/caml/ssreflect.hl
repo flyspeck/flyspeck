@@ -530,18 +530,61 @@ let spec names = spec0 names (get_context_vars (top_realgoal()));;
 
 let spec_mp names th g = MP_TAC (spec0 names (get_context_vars g) th) g;;
 
+
+(* Case theorems *)
+let bool_cases = ONCE_REWRITE_RULE[CONJ_ACI] bool_INDUCT;;
+let list_cases = prove(`!P. P [] /\ (!(h:A) t. P (CONS h t)) ==> (!l. P l)`,
+  REPEAT STRIP_TAC THEN 
+    MP_TAC (SPEC `l:(A)list` list_CASES) THEN DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+    FIRST_X_ASSUM (CHOOSE_THEN MP_TAC) THEN DISCH_THEN (CHOOSE_THEN MP_TAC) THEN
+    DISCH_THEN (fun th -> ASM_REWRITE_TAC[th]));;
+let pair_cases = pair_INDUCT;;
+let num_cases = prove(`!P. P 0 /\ (!n. P (SUC n)) ==> (!m. P m)`,
+  REPEAT STRIP_TAC THEN  
+    MP_TAC (SPEC `m:num` num_CASES) THEN DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+    FIRST_X_ASSUM (CHOOSE_THEN (fun th -> ASM_REWRITE_TAC[th])));;
+let option_cases = option_INDUCT;;
+
+
+let cases_table = Hashtbl.create 10;;
+Hashtbl.add cases_table "bool" bool_cases;;
+Hashtbl.add cases_table "list" list_cases;;
+Hashtbl.add cases_table "prod" pair_cases;;
+Hashtbl.add cases_table "num" num_cases;;
+Hashtbl.add cases_table "option" option_cases;;
+
+
+(* Induction theorems *)
+let bool_elim = bool_cases;;
+let list_elim = list_INDUCT;;
+let pair_elim = pair_INDUCT;;
+let num_elim = num_INDUCTION;;
+let option_elim = option_INDUCT;;
+
+let elim_table = Hashtbl.create 10;;
+Hashtbl.add elim_table "bool" bool_elim;;
+Hashtbl.add elim_table "list" list_elim;;
+Hashtbl.add elim_table "prod" pair_elim;;
+Hashtbl.add elim_table "num" num_elim;;
+Hashtbl.add elim_table "option" option_elim;;
+
+
+
 (* case: works only for (A /\ B) -> C; (A \/ B) -> C; (?x. P) -> Q; !(n:num). P; !(l:list(A)). P *)
 let case (g:goal) = 
   let goal_tm = snd g in
     if not (is_imp goal_tm) then
       (* !a. P *)
       if is_forall goal_tm then
-	let var, tm = dest_forall goal_tm in
-	let ty = type_of var in
+	let var, _ = dest_forall goal_tm in
+	let ty_name = (fst o dest_type o type_of) var in
+	let case_th = Hashtbl.find cases_table ty_name in
+	  (MATCH_MP_TAC case_th THEN REPEAT CONJ_TAC) g
+(*
 	let case_th = if ty = `:num` then num_CASES 
 	else if ty = `:bool` then BOOL_CASES_AX 
 	else list_CASES in
-	  (GEN_TAC THEN MP_TAC (ISPEC var case_th) THEN DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g
+	  (GEN_TAC THEN MP_TAC (ISPEC var case_th) THEN DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g *)
       else
 	failwith "case: not imp or forall"
     else
@@ -565,10 +608,10 @@ let elim (g:goal) =
   let goal_tm = snd g in
     (* !a. P *)
     if is_forall goal_tm then
-      let var, tm = dest_forall goal_tm in
-      let ty = type_of var in
-      let induct_th = if ty = `:num` then num_INDUCTION else list_INDUCT in
-	(MATCH_MP_TAC induct_th THEN CONJ_TAC) g
+      let var, _ = dest_forall goal_tm in
+      let ty_name = (fst o dest_type o type_of) var in
+      let induct_th = Hashtbl.find elim_table ty_name in
+	(MATCH_MP_TAC induct_th THEN REPEAT CONJ_TAC) g
     else
       failwith "elim: not forall";;
 

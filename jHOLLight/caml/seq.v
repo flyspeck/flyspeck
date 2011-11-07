@@ -152,13 +152,13 @@ Implicit Type s : `:(A)list`.
 "let size = new_definition `sizel = LENGTH`".
 
 Lemma size0nil s: `sizel s = 0 ==> s = []`.
-by case: s => [->|[h [t] ->]]; move => //; rewr size LENGTH; arith. Qed.
+by case: s => [|h t]; move => //; rewr size LENGTH; arith. Qed.
 
 --Definition nilp s := size s == 0.
 "let nilp = new_definition `!(s:(A)list). nilp s <=> (sizel s = 0)`".
 
 Lemma nilP s : `s = [] <=> nilp s`.
-by case: s => [->|[h [t ->]]]; rewrite nilp size LENGTH // NOT_CONS_NIL NOT_SUC. Qed.
+by case: s => [|h t]; rewrite nilp size LENGTH // NOT_CONS_NIL NOT_SUC. Qed.
 
 --Definition ohead s := if s is x :: _ then Some x else None.
 --Definition head s := if s is x :: _ then x else x0.
@@ -168,7 +168,7 @@ by case: s => [->|[h [t ->]]]; rewrite nilp size LENGTH // NOT_CONS_NIL NOT_SUC.
 "let behead = define `!(h:A) t. behead [] = [] /\ behead (CONS h t) = t`".
 
 Lemma size_behead s : `sizel (behead s) = (sizel s) - 1`.
-by case: s => [->|[h [t ->]]]; rewr behead size LENGTH SUC_SUB1 sub0n. Qed.
+by case: s => [|h t]; rewr behead size LENGTH SUC_SUB1 sub0n. Qed.
 
 (* Factories *)
 
@@ -556,7 +556,7 @@ Lemma has_nil : `has a [] = F`. by rewr !has. Qed.
 Lemma has_seq1 x : `has a [x] = a x`. by rewr !has. Qed.
 
 Lemma has_seqb b x : `has a (nseq (if b then 1 else 0) x) <=> (b /\ a x)`.
-by case: b => -> /=; rewr nseq ncons ONE !iter has_nil // has_seq1. Qed.
+by case: b => /=; rewr nseq ncons ONE !iter has_nil // has_seq1. Qed.
 
 Lemma all_nil : `all a [] = T`. by rewr !all. Qed.
 
@@ -610,13 +610,7 @@ Proof. by rewrite -cats1 all_cat all_seq1 andbC. Qed.
 
 End SeqFind.
 
-"let pred0 = new_basic_definition `pred0 = (\(x:A). F)`".
 "let pred1 = new_definition `pred1 (a:A) = (\x. x = a)`".
-"let predT = new_basic_definition `predT = (\(x:A). T)`".
-"let predI = new_definition `predI p1 p2 = (\(x:A). p1 x /\ p2 x)`".
-"let predU = new_definition `predU p1 p2 = (\(x:A). p1 x \/ p2 x)`".
-"let predC = new_definition `predC p = (\(x:A). ~(p x))`".
-"let predD = new_definition `predD p1 p2 = predI (predC p2) p1`".
 "let predD1 = new_definition `predD1 a x = predD a (pred1 x)`".
 
 Lemma eq_find a1 a2 : `(!x:A. a1 x = a2 x) ==> (!s. find a1 s = find a2 s)`.
@@ -1304,7 +1298,7 @@ Qed.
 
 Lemma constant_nseq n x : `constant (nseq n x)`.
 --Proof. by case: n => //= n; rewrite all_pred1_nseq eqxx orbT. Qed.
-elim: n => [|n _]; rewr nseq ncons iter constant //.
+case: n => [|n]; rewr nseq ncons iter constant //.
 by rewrite -ncons -nseq all_pred1_nseq.
 Qed.
 
@@ -1314,7 +1308,7 @@ Lemma constantP s : `(?x. s = nseq (sizel s) x) <=> (constant s)`.
 --case: s => [|x s] /=; first by exists x0.
 --by move/all_pred1P=> def_s; exists x; rewrite -def_s.
 split => [[x ->]|]; first by rewrite constant_nseq.
-elim: s => [|x s _]; rewr constant /=; first by "EXISTS_TAC `x0:A`"; rewr nseq ncons size_nil iter.
+case: s => [|x s]; rewr constant /=; first by "EXISTS_TAC `x0:A`"; rewr nseq ncons size_nil iter.
 rewrite -all_pred1P => def_s; exists x.
 by rewrite {1}def_s; rewr nseq ncons size_cons iter.
 Qed.
@@ -1616,8 +1610,6 @@ Implicit Type s s1 : `:(A)list`.
 
 "let same_count1 = new_definition `same_count1 s1 s2 x <=> (count (pred1 x) s1 = count (pred1 x) s2)`".
 "let perm_eq = new_definition `perm_eq s1 s2 = all (same_count1 s1 s2) (s1 ++ s2)`".
-"let predD = new_definition `predD p1 p2 = predI (predC p2) p1`".
-"let predD1 = new_definition `predD1 a x = predD a (pred1 x)`".
 
 Lemma perm_eqP s1 s2 : `perm_eq s1 s2 <=> (!a. count a s1 = count a s2)`.
 --reflect (count^~ s1 =1 count^~ s2) (perm_eq s1 s2).
@@ -1643,7 +1635,10 @@ rewrite -has_count -hasP => [] [x] [s12x a_x]; set a' := `predD1 a x`.
 have cnt_a' : `!s. count a s = count (pred1 x) s + count a' s`.
   move => s.
   rewrite count_filter -(count_predC `pred1 x`) 2!count_filter.
-  rewrite -!filter_predI -!count_filter -predD -predD1 a'_def eqn_addr.
+  rewrite -!filter_predI -!count_filter predC.
+  have -> :`predI (\x'. ~pred1 x x') a = predD1 a x`.
+    by rewrite predI predD1 predD /=.
+  rewrite a'_def eqn_addr.
   by apply: eq_count s => y; rewrite predI pred1 /=; split => [[-> //] | -> ].
 rewrite !cnt_a' (eq_cnt1 s12x) (IHn a') // ltE -ltnS.
 move: le_an; rewrite !ltE; apply: leq_trans.
@@ -1731,9 +1726,8 @@ Lemma perm_filterC a s : `!s2. perm_eq (filter a s ++ filter (predC a) s) s2 = p
 --by case: (a x); last rewrite /= -cat1s perm_catCA; rewrite perm_cons.
 rewrite -perm_eqlP; elim: s => [|x s IHs]; rewr filter cat perm_eq_refl //.
 rewrite predC /= -predC.
-by case: `a x` => -> /=; last rewrite -cat1s perm_catCA; rewrite !cat perm_cons.
+by case: `a x` => /=; last rewrite -cat1s perm_catCA; rewrite !cat perm_cons.
 Qed.
-
 
 Lemma perm_eq_mem s1 s2 : `perm_eq s1 s2 ==> (!x. x <- s1 <=> x <- s2)`.
 --Proof. by move/perm_eqP=> eq12 x; rewrite -!has_pred1 !has_count eq12. Qed.
@@ -2013,16 +2007,16 @@ by elim: m => [|m _]; rewr mask. Qed.
 
 Lemma mask1 b x : `mask [b] [x] = nseq (if b then 1 else 0) x`.
 --Proof. by case: b. Qed.
-by case: b => -> /=; rewr mask /= nseq ncons ONE !iter mask. Qed.
+by case: b => /=; rewr mask /= nseq ncons ONE !iter mask. Qed.
 
 Lemma mask_cons b m x s : `mask (b :: m) (x :: s) = nseq (if b then 1 else 0) x ++ mask m s`.
 --Proof. by case: b. Qed.
-by case: b => ->; rewr mask /= nseq ncons ONE !iter cat1s cat0s. Qed.
+by case: b; rewr mask /= nseq ncons ONE !iter cat1s cat0s. Qed.
 
 Lemma size_mask m s : `sizel m = sizel s ==> sizel (mask m s) = count I m`.
 --Proof. by elim: m s => [|b m IHm] [|x s] //= [Hs]; case: b; rewrite /= IHm. Qed.
 elim: m s => [|b m IHm]; elim => [|x s _]; rewr mask count size_nil // size_cons eqS0 // eqSS.
-by rewrite I_THM; case: b => -> /= /IHm <-; rewrite ?size_cons ?add1n // add0n. Qed.
+by rewrite I_THM; case: b => /= /IHm <-; rewrite ?size_cons ?add1n // add0n. Qed.
 
 Lemma mask_cat m1 s1 m2 s2 :
     `sizel m1 = sizel s1 ==>
@@ -2032,12 +2026,12 @@ Lemma mask_cat m1 s1 m2 s2 :
 move => Hm1.
 elim: m1 s1 Hm1 => [|b1 m1 IHm]; elim => [|x1 s1 _]; 
 	rewrite ?mask0 ?cat0s // ?size_nil ?size_cons ?[`0 = _`]eq_sym ?eqS0 //.
-by rewrite eqSS !cat_cons => /IHm; rewr mask => ->; case: b1 => -> /=; rewrite cat_cons. Qed.
+by rewrite eqSS !cat_cons => /IHm; rewr mask => ->; case: b1 => /=; rewrite cat_cons. Qed.
 
 Lemma has_mask_cons a b m x s :
   `has a (mask (b :: m) (x :: s)) <=> b /\ a x \/ has a (mask m s)`.
 --Proof. by case: b. Qed.
-by case: b => ->; rewr mask /= has. Qed.
+by case: b; rewr mask /= has. Qed.
 
 Lemma mask_rot m s : `sizel m = sizel s ==>
    mask (rot n0 m) (rot n0 s) = rot (count I (take n0 m)) (mask m s)`.
@@ -2065,13 +2059,13 @@ Implicit Type m : `:(bool)list`.
 Lemma mem_mask_cons x b m y s :
   `(x <- mask (b :: m) (y :: s)) <=> b /\ (x = y) \/ (x <- mask m s)`.
 --Proof. by case: b. Qed.
-by case: b => ->; rewr mask /= in_cons. Qed.
+by case: b; rewr mask /= in_cons. Qed.
 
 Lemma mem_mask x m s : `x <- mask m s ==> x <- s`.
 --by elim: s m => [|y p IHs] [|[|] m] //=; rewrite !in_cons;
 --  case (x == y) => /=; eauto.
 elim: s m => [|y p IHs]; elim => [|m _]; rewr mask in_nil // !in_cons.
-by case: m => -> /=; rewrite ?in_cons; case: `x = y` => -> /= _; apply: IHs.
+by case: m => /=; rewrite ?in_cons; case: `x = y` => /= _; apply: IHs.
 Qed.
 
 Lemma mask_uniq s : `uniq s ==> !m. uniq (mask m s)`.
@@ -2080,7 +2074,7 @@ Lemma mask_uniq s : `uniq s ==> !m. uniq (mask m s)`.
 --apply/negP => [Hmx]; case/negP: Hx; exact (mem_mask Hmx).
 elim: s => [|x s IHs]; rewrite ?mask0 ?nil_uniq // cons_uniq => [] [Hx Hs]; elim => [|b m _].
   by rewr mask nil_uniq.
-case: b => ->; rewr mask /= uniq; move: (IHs Hs m) => -> //=.
+case: b; rewr mask /= uniq; move: (IHs Hs m) => -> //=.
 by move: Hx; apply: contra => /mem_mask.
 Qed.
 
@@ -2127,7 +2121,7 @@ rewrite IHs2; split => [] [n] [sz_m def_s1]; move: IHs2 => _.
 --case: eqP => [_ | ne_xy]; last first.
 --  by case: m def_s1 sz_m => [|[] m] // [] // -> [<-]; exists m. 
 case: (EXCLUDED_MIDDLE `x = y`) => /=; [move => _ | move => ne_xy]; last first.
-  elim: n def_s1 sz_m => [|[] -> m IHm]; rewr mask NOT_CONS_NIL // size_cons eqSS => eq seq.
+  case: n def_s1 sz_m => [|[] m]; rewr mask NOT_CONS_NIL // size_cons eqSS => eq seq.
     by move: eq; rewrite eqseq_cons //.
   by exists m.
 --pose i := index true m; have def_m_i: take i m = nseq (size (take i m)) false.
@@ -2182,8 +2176,8 @@ Lemma subseq_trans s1 s2 s3: `subseq s1 s2 ==> subseq s2 s3 ==> subseq s1 s3`.
 rewrite subseqP => [] [m2] [_ ->]; rewrite subseqP => [] [m1] [_ ->].
 elim: s3 m2 m1 => [|x s IHs]; first by rewrite !mask0 subseq0.
 move => m2 m1.
-elim: m1 => [|[] -> m1 _]; rewr mask mask0 subseq //.
-  elim: m2 => [|[] -> m2 _]; rewr mask !subseq IHs //.
+case: m1 => [|[] m1]; rewr mask mask0 subseq //.
+  case: m2 => [|[] m2]; rewr mask !subseq IHs //.
   move: (IHs m2 m1); rewrite !subseqP => [] [m] [sz_m def_s].
   by exists `F :: m`; rewrite !size_cons sz_m def_s; rewr mask /=.
 move: (IHs m2 m1); rewrite !subseqP => [] [m] [sz_m def_s].
@@ -2371,7 +2365,7 @@ by elim: s => [|x s IHs]; rewr map rev_cons map_rcons // rev catrev map. Qed.
 
 Lemma map_mask m s : `map f (mask m s) = mask m (map f s)`.
 --Proof. by elim: m s => [|[|] m IHm] [|x p] //=; rewrite IHm. Qed.
-elim: m s => [|[] -> m IHm]; elim => [|x p _]; rewr mask map // mask //.
+elim: m s => [|[] m IHm]; elim => [|x p _]; rewr mask map // mask //.
 by rewrite map_cons /= IHm.
 Qed.
 
@@ -2587,15 +2581,17 @@ by rewrite (eq_map `(\x. x)` `I`) //= I_THM.
 Qed.
 
 (* Map a partial function *)
-
 (*
+
 Section Pmap.
 
 --Variables (aT rT : Type) (f : aT -> option rT) (g : rT -> aT).
-Variable f : `
+Variable f : `:A -> (R)option`.
+Variable g : `:R -> A`.
 
-Fixpoint pmap s :=
-  if s is x :: s' then oapp (cons^~ (pmap s')) (pmap s') (f x) else [::].
+--Fixpoint pmap s :=
+--  if s is x :: s' then oapp (cons^~ (pmap s')) (pmap s') (f x) else [::].
+"let pmap = define `pmap 
 
 Lemma map_pK : pcancel g f -> cancel (map g) pmap.
 Proof. by move=> gK; elim=> //= x s ->; rewrite gK. Qed.

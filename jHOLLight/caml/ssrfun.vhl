@@ -1,0 +1,213 @@
+(* Options *)
+
+"let oapp = define `!f x y. oapp f x (SOME y) = f y /\ oapp f x NONE = x`".
+"let odflt = new_definition `odflt = oapp I`".
+"let obind = new_definition `obind f = oapp f NONE`".
+"let omap = new_definition `omap f = obind (\x. SOME (f x))`".
+"let pcomp = new_definition `pcomp f g x = obind f (g x)`".
+
+Lemma odflt_alt x : `(!y. odflt x (SOME y) = y) /\ odflt x NONE = x`.
+by rewrite odflt !oapp I_THM. Qed.
+
+Lemma obind_alt f : `obind f NONE = NONE /\ (!x. obind f (SOME x) = f x)`.
+by rewrite obind !oapp. Qed.
+
+Lemma omap_alt f : `omap f NONE = NONE /\ (!x. omap f (SOME x) = SOME (f x))`.
+by rewrite omap obind !oapp. Qed.
+
+
+Lemma eq_sym x y : `x = y ==> y = x`. by move => ->. Qed.
+Lemma eq_trans x y z : `x = y ==> y = z ==> x = z`. by move => -> ->. Qed.
+Lemma f_equal f x y : `x = y ==> f x = f y`. by move => ->. Qed.
+Lemma f_equal2 f x1 y1 x2 y2 : `x1 = y1 ==> x2 = y2 ==> f x1 x2 = f y1 y2`. by move => -> ->. Qed.
+
+"let erefl = eq_sym".
+"let esym = eq_sym".
+"let etrans = eq_trans".
+"let congr1 = f_equal".
+"let congr2 = f_equal2".
+
+Lemma eq_ext f g : `(!x. f x = g x) <=> f = g`. by split => [/EQ_EXT | ->]. Qed.
+
+
+Section Injections.
+
+Variable f : `:A -> R`.
+
+"let injective = new_definition `injective f <=> (!x1 x2. f x1 = f x2 ==> x1 = x2)`".
+"let cancel = new_definition `cancel f g <=> !x. g (f x) = x`".
+"let pcancel = new_definition `pcancel f g <=> !x. g (f x) = SOME x`".
+"let ocancel = new_definition `ocancel g h <=> !x. oapp h x (g x) = x`".
+
+Lemma can_pcan g : `cancel f g ==> pcancel f (\y. SOME (g y))`.
+by rewrite cancel pcancel /=. Qed.
+
+Lemma pcan_inj g : `pcancel f g ==> injective f`.
+rewrite pcancel injective => can x1 x2 f_eq.
+by move: (can x1) (can x2); rewrite f_eq => ->; rewrite "injectivity \"option\"". Qed.
+
+Lemma can_inj g : `cancel f g ==> injective f`.
+rewrite cancel injective => can x1 x2 f_eq.
+by rewrite -(can x1) -(can x2) f_eq.
+Qed.
+
+Lemma canLR g x y : `cancel f g ==> x = f y ==> g x = y`.
+by rewrite cancel => can ->. Qed.
+
+Lemma canRL g x y : `cancel f g ==> f x = y ==> x = g y`.
+by rewrite cancel => can <-. Qed.
+
+End Injections.
+
+
+Lemma some_inj : `injective SOME`.
+by rewrite injective "injectivity \"option\"". Qed.
+
+
+Section InjectionsTheory.
+
+Variables f g : `:B -> A`.
+Variable h : `:C -> B`.
+
+Lemma inj_id : `injective I`. by rewrite injective !I_THM. Qed.
+
+Lemma inj_can_sym f' : `cancel f f' ==> injective f' ==> cancel f' f`.
+rewrite 2!cancel injective => can1 inj x.
+by apply: inj; rewrite can1. Qed.
+
+Lemma inj_comp : `injective f ==> injective h ==> injective (f o h)`.
+rewrite 3!injective 2!o_THM => inj_f inj_h x1 x2.
+by move => /inj_f /inj_h.
+Qed.
+
+Lemma can_comp f' h' : `cancel f f' ==> cancel h h' ==> cancel (f o h) (h' o f')`.
+by rewrite 3!cancel 2!o_THM => f_can h_can x. Qed.
+
+Lemma pcan_pcomp f' h' : 
+	`pcancel f f' ==> pcancel h h' ==> pcancel (f o h) (pcomp h' f')`.
+by rewrite 3!pcancel pcomp o_THM => ->; rewrite obind oapp. Qed.
+
+Lemma eq_inj : `injective f ==> (!x. f x = g x) ==> injective g`.
+by rewrite eq_ext => inj <-. Qed.
+
+Lemma eq_can f' g' : `cancel f f' ==> (!x. f x = g x) ==> (!x. f' x = g' x) ==> cancel g g'`.
+by rewrite !eq_ext => can <- <-. Qed.
+
+Lemma inj_can_eq f' : `cancel f f' ==> injective f' ==> cancel g f' ==> f = g`.
+rewrite 2!cancel injective => f_can inj g_can; rewrite -eq_ext => x.
+by apply: inj.
+Qed.
+
+End InjectionsTheory.
+
+Section Bijections.
+
+Variable f : `:B -> A`.
+
+"let bijective = new_definition `bijective f <=> ?g. cancel f g /\ cancel g f`".
+
+Hypothesis bijf : `bijective f`.
+
+Lemma bij_inj : `injective f`.
+by move: bijf; rewrite bijective => [] [g] [/can_inj ->]. Qed.
+
+Lemma bij_can_sym f' : `cancel f' f <=> cancel f f'`.
+split; first by move/inj_can_sym => /(_ bij_inj).
+move: bijf; rewrite bijective => [] [g] []; rewrite !cancel => gf fg f'f x.
+by rewrite -(fg x) f'f.
+Qed.
+
+Lemma bij_can_eq f' f'' : `cancel f f' ==> cancel f f'' ==> f' = f''`.
+rewrite -(bij_can_sym f'') -bij_can_sym => can1 can2.
+by move: (inj_can_eq can1 bij_inj can2).
+Qed.
+
+End Bijections.
+
+Section BijectionsTheory.
+
+Variable f : `:BB -> AA`.
+Variable h : `:CC -> BB`.
+
+Lemma eq_bij : `bijective f ==> !g. (!x. f x = g x) ==> bijective g`.
+by rewrite eq_ext => bij g <-. Qed.
+
+Lemma bij_comp : `bijective f ==> bijective h ==> bijective (f o h)`.
+rewrite 3!bijective => [] [g] [can_fg can_gf] [r [can_hr can_rh]].
+exists `r o g`; split.
+  move: (can_comp f h g r).
+  by move/(_ can_fg); apply.
+move: (can_comp r g h f).
+by move/(_ can_rh); apply.
+Qed.
+
+Lemma bij_can_bij : `bijective f ==> !f'. cancel f f' ==> bijective f'`.
+move/bij_can_sym => can_sym f' can_ff'; rewrite bijective.
+by exists f; rewrite can_sym.
+Qed.
+
+End BijectionsTheory.
+
+
+Section Involutions.
+
+Variable f : `:A -> A`.
+
+"let involutive = new_definition `involutive f <=> cancel f f`".
+
+Hypothesis Hf : `involutive f`.
+
+Lemma inv_inj : `injective f`.
+by move: Hf; rewrite involutive => /can_inj. Qed.
+
+Lemma inv_bij : `bijective f`.
+by rewrite bijective; exists f; move: Hf; rewrite involutive. Qed.
+
+End Involutions.
+
+Section OperationProperties.
+
+Section SopTisR.
+"let left_inverse = new_definition `left_inverse e inv op = !x. op (inv x) x = e`".
+"let right_inverse = new_definition `right_inverse e inv op = !x. op x (inv x) = e`".
+"let left_injective = new_definition `left_injective op = !x. injective (\y. op y x)`".
+"let right_injective = new_definition `right_injective op = !y. injective (op y)`".
+End SopTisR.
+
+Section SopTisS.
+"let right_id = new_definition `right_id e op = !x. op x e = x`".
+"let left_zero = new_definition `left_zero z op = !x. op z x = z`".
+"let right_commutative = new_definition 
+	`right_commutative op = !x y z. op (op x y) z = op (op x z) y`".
+"let left_distributive = new_definition
+	`left_distributive op add = !x y z. op (add x y) z = add (op x z) (op y z)`".
+"let right_loop = new_definition
+	`right_loop inv op = !y. cancel (\x. op x y) (\x. op x (inv y))`".
+"let rev_right_loop = new_definition
+	`rev_right_loop inv op = !y. cancel (\x. op x (inv y)) (\x. op x y)`".
+End SopTisS.
+
+Section SopTisT.
+"let left_id = new_definition `left_id e op = !x. op e x = x`".
+"let right_zero = new_definition `right_zero z op = !x. op x z = z`".
+"let left_commutative = new_definition 
+	`left_commutative op = !x y z. op x (op y z) = op y (op x z)`".
+"let right_distributive = new_definition
+	`right_distributive op add = !x y z. op x (add y z) = add (op x y) (op x z)`".
+"let left_loop = new_definition 
+	`left_loop inv op = !x. cancel (op x) (op (inv x))`".
+"let rev_left_loop = new_definition 
+	`rev_left_loop inv op = !x. cancel (op (inv x)) (op x)`".
+End SopTisT.
+
+Section SopSisT.
+"let self_inverse = new_definition `self_inverse e op = !x. op x x = e`".
+"let commutative = new_definition `commutative op = !x y. op x y = op y x`".
+End SopSisT.
+
+Section SopSisS.
+"let idempotent = new_definition `idempotent op = !x. op x x = x`".
+"let associative = new_definition `associative op = !x y z. op x (op y z) = op (op x y) z`".
+End SopSisS.
+
+End OperationProperties.

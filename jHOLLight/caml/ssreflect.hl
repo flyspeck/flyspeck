@@ -492,15 +492,25 @@ let GSYM_THEN tac th =
 
 
 (* The 'apply' tactic *)
-let apply_tac th = 
-  FIRST [MATCH_ACCEPT_TAC th; MATCH_MP_TAC th];;
+let apply_tac th g =
+  let rec try_match th =
+    try MATCH_MP_TAC th g with Failure _ ->
+      let th0 = PURE_ONCE_REWRITE_RULE[IMP_IMP] th in
+      if th = th0 then failwith "apply_tac: no match"
+      else
+	try_match th0 in
+      
+      try MATCH_ACCEPT_TAC th g with Failure _ ->
+	try_match th;;
+
+(*let apply_tac th = 
+  FIRST [MATCH_ACCEPT_TAC th; MATCH_MP_TAC th];; *)
 
 
 (* The 'exact' tactic *)
 (* TODO: do [done | by move => top; apply top], here apply top 
    works as ACCEPT_TAC with matching (rewriting) in some cases *)
-let exact_tac = FIRST [done_tac; 
-		       move ["_tmp_"] THEN USE_THEN "_tmp_" (fun th -> MATCH_MP_TAC th) THEN done_tac];;
+let exact_tac = FIRST [done_tac; DISCH_THEN (fun th -> apply_tac th) THEN done_tac];;
 
 
 
@@ -580,11 +590,6 @@ let case (g:goal) =
 	let ty_name = (fst o dest_type o type_of) var in
 	let case_th = Hashtbl.find cases_table ty_name in
 	  (MATCH_MP_TAC case_th THEN REPEAT CONJ_TAC) g
-(*
-	let case_th = if ty = `:num` then num_CASES 
-	else if ty = `:bool` then BOOL_CASES_AX 
-	else list_CASES in
-	  (GEN_TAC THEN MP_TAC (ISPEC var case_th) THEN DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC) g *)
       else
 	failwith "case: not imp or forall"
     else

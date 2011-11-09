@@ -322,8 +322,9 @@ by elim: s => [|h t _]; rewr nth head. Qed.
 
 Lemma nth_default s n : `sizel s <= n ==> nth x0 s n = x0`.
 --Proof. by elim: s n => [|x s IHs] [|n]; try exact (IHs n). Qed.
-elim: s n => [| x s IHs]; elim => [|n _]; rewr nth size_cons //; first by arith.
-by rewrite leqSS; move/IHs. Qed.
+elim: s n => [|x s IHs] [|n]; rewr nth size_cons -ltE ltn0 //.
+by rewrite ltE leqSS; exact: IHs.
+Qed.
 
 Lemma nth_nil n : `nth x0 [] n = x0`.
 --Proof. by case: n. Qed.
@@ -362,14 +363,14 @@ Qed.
 Lemma nth_ncons m x s n :
   `nth x0 (ncons m x s) n = if n < m then x else nth x0 s (n - m)`.
 --Proof. by elim: m n => [|m IHm] [|n] //=; exact: IHm. Qed.
-elim: m n => [|m IHm]; elim => [|n _]; 
-	rewr ncons iter ltnn /= subn0 // -ncons nth; [arith | arith | move].
+elim: m n => [|m IHm] [|n]; 
+	rewr ncons iter ltnn /= subn0 // -ncons nth; try arith.
 by rewrite IHm !ltE leqSS subSS.
 Qed.
 
 Lemma nth_nseq m x n : `nth x0 (nseq m x) n = (if n < m then x else x0)`.
 --Proof. by elim: m n => [|m IHm] [|n] //=; exact: IHm. Qed.
-elim: m n => [|m IHm]; elim => [|n _]; rewr nseq ncons iter nth ltnn /=; [arith| arith | move].
+elim: m n => [|m IHm] [|n]; rewr nseq ncons iter nth ltnn /=; try arith.
 by rewrite -ncons -nseq IHm !ltE leqSS.
 Qed.
 
@@ -378,13 +379,12 @@ Lemma eq_from_nth s1 s2 :
   s1 = s2`.
 --elim: s1 s2 => [|x1 s1 IHs1] [|x2 s2] //= [eq_sz] eq_s12.
 --rewrite [x1](eq_s12 0) // (IHs1 s2) // => i; exact: (eq_s12 i.+1).
-elim: s1 s2 => [|x1 s1 IHs1]; elim => [|x2 s2 _]; rewr size_cons size_nil NOT_SUC //.
+elim: s1 s2 => [|x1 s1 IHs1] [|x2 s2]; rewr size_cons size_nil NOT_SUC //.
 rewrite eqSS => eq_sz eq_s12.
-move: (eq_s12 `0`); rewrite ltn0Sn /= (IHs1 s2) //; last by rewr nth => ->.
-rewrite -eq_sz /= => i c; move: (eq_s12 `SUC i`).
-rewrite ltE leqSS -ltE => h.
-by move: (h c); rewr nth.
+move: (eq_s12 `0`); rewrite ltn0Sn 2!nth /= => _; rewrite (IHs1 s2) // -eq_sz /= => i.
+by move: (eq_s12 `SUC i`); rewrite ltE leqSS -ltE 2!nth.
 Qed.
+
 
 Lemma size_set_nth s n y : `sizel (set_nth x0 s n y) = maxn (SUC n) (sizel s)`.
 --elim: s n => [|x s IHs] [|n] //=.
@@ -493,14 +493,13 @@ Qed.
 
 Lemma has_count s : `has a s = (0 < count a s)`.
 --Proof. by elim: s => //= x s ->; case (a x). Qed.
-elim: s => [| x s]; rewr has !count ltnn // => ->.
-by case: (EXCLUDED_MIDDLE `(a:A->bool) x`) => [-> /=|nax //=]; arith.
-Qed.
+Proof. by elim: s => [|x s]; rewrite has count ?ltnn // => ->; case: `a x` => /=; arith. Qed.
+
 
 Lemma count_size s : `count a s <= sizel s`.
 --Proof. by elim: s => //= x s; case: (a x); last exact: leqW. Qed.
 elim: s => [|x s]; rewr count size_nil leqnn.
-case: (EXCLUDED_MIDDLE `(a:A->bool) x`) => //= _; rewrite size_cons; arith.
+case: `a x` => /=; rewrite (add1n, add0n) size_cons ?leqSS //; exact: leqW. 
 Qed.
 
 Lemma all_count s : `all a s = (count a s = sizel s)`.
@@ -1595,9 +1594,9 @@ elim: v i => [|n v IHv]; elim => [|i _];
 	rewr incr_nth size_ncons size_nil ltnn size_cons size_nil add0n // ltS0 /=.
   by rewrite -ONE addn1.
   by rewrite ltn0Sn.
-by rewrite IHv ltSS [`SUC _`]fun_if.
+rewrite IHv ltSS.
+by apply fun_if.
 Qed.
-
 
 (* equality up to permutation *)
 
@@ -1789,8 +1788,9 @@ move=> Us1 Es12.
 --by apply: leq_size_uniq => // y; rewrite /= Es12.
 rewrite eqn_leq andbC uniq_leq_size ?Us1 ?Es12 //=.
 split => [Hs2|]; first by rewrite uniq_leq_size Es12 /=.
-by apply: (leq_size_uniq Us1) => y; rewrite Es12.
+by apply: leq_size_uniq; rewrite Us1 Es12.
 Qed.
+
 
 Lemma leq_size_perm s1 s2 :
     `uniq s1 ==> (!x. x <- s1 ==> x <- s2) ==> sizel s2 <= sizel s1 ==>
@@ -1808,8 +1808,8 @@ split => [|Hxs2]; [by apply: Hs1 | case: (EXCLUDED_MIDDLE `x <- s1`) => // Hxs1]
 --case/predU1P=> [-> //|]; exact: Hs1.
 suff: `sizel (x :: s1) <= sizel s2`.
   by rewrite size_cons -ltE ltnNge Hs12.
-rewrite uniq_leq_size; split => [|y]; first by rewrite cons_uniq.
-by rewrite in_cons; case => [-> //| Hy]; exact: Hs1.
+apply: uniq_leq_size; split => [|y]; first by rewrite cons_uniq.
+rewrite in_cons; case => [-> //|Hy]; exact: Hs1.
 Qed.
 
 
@@ -1824,8 +1824,7 @@ Qed.
 
 Lemma perm_eq_uniq s1 s2 : `perm_eq s1 s2 ==> uniq s1 = uniq s2`.
 --move=> eq_s12; apply: perm_uniq; [exact: perm_eq_mem | exact: perm_eq_size].
-move => eq_s12; rewrite (perm_uniq s1 s2) //; split; [exact: perm_eq_mem | exact: perm_eq_size].
-Qed.
+by move => eq_s12; apply: perm_uniq; split; [ exact: perm_eq_mem | exact: perm_eq_size]. Qed.
 
 Lemma uniq_perm_eq s1 s2 : `uniq s1 ==> uniq s2 ==> 
 	(!x. x <- s1 <=> x <- s2) ==> perm_eq s1 s2`.

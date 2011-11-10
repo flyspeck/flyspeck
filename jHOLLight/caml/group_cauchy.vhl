@@ -651,6 +651,28 @@ Lemma inE : `(!p x. x IN {y | p y} <=> p x) /\
 by rewr !IN_ELIM_THM. Qed.
 
 
+Lemma BIJ_SYM f V U : `BIJ f V U ==> ?g. BIJ g U V`.
+rewrite !BIJ INJ SURJ => [] [[f_on f_inj] [_ f_surj]].
+move: (BIJECTIVE_ON_LEFT_RIGHT_INVERSE f_on).
+rewr f_inj f_surj /= => [] [g] [g_on] [fg gf].
+exists g; rewrite INJ SURJ; rewr g_on /=; split.
+  move => x y [xU] [yU] g_eq.
+  by rewrite -(fg yU) -(fg xU) g_eq.
+move => x xV.
+by exists `f x`; rewrite f_on // gf.
+Qed.
+
+
+Lemma BIJ_CARD_EQ V U f : `FINITE V ==> BIJ f V U ==> CARD U = CARD V`.
+move => finV bij_f.
+move: (Hypermap.BIJ_INVERSE bij_f) => [g] [gf] [fg] bij_g.
+apply BIJECTIONS_CARD_EQ; exists g f; rewrite finV /=; split => x x_in.
+  by rewrite fg //; move: bij_g; rewrite BIJ INJ => [] [] [/(_ x_in)] /=.
+by rewrite gf //; move: bij_f; rewrite BIJ INJ => [] [] [/(_ x_in)] /=.
+Qed.
+
+
+
 Section Action.
 
 "let acts = new_definition `acts (G, op, e) S a <=> 
@@ -812,17 +834,6 @@ rewrite (coset_equiv subS) // stab inE (in_group grG) ?(i_in_group grG) // andTb
 by rewrite -{2}(acts1 xS) -(mulIg grG h) // -!acts_op ?(i_in_group grG).
 Qed.
 
-Lemma BIJ_SYM f V U : `BIJ f V U ==> ?g. BIJ g U V`.
-rewrite !BIJ INJ SURJ => [] [[f_on f_inj] [_ f_surj]].
-move: (BIJECTIVE_ON_LEFT_RIGHT_INVERSE f_on).
-rewr f_inj f_surj /= => [] [g] [g_on] [fg gf].
-exists g; rewrite INJ SURJ; rewr g_on /=; split.
-  move => x y [xU] [yU] g_eq.
-  by rewrite -(fg yU) -(fg xU) g_eq.
-move => x xV.
-by exists `f x`; rewrite f_on // gf.
-Qed.
-
 
 
 Lemma card_orbit x : `FINITE S ==> x IN S ==> 
@@ -830,7 +841,7 @@ Lemma card_orbit x : `FINITE S ==> x IN S ==>
 move => finS xS.
 move: (bij_orbit_cosets xS) => [f] /BIJ_SYM [g] bij.
 move: (finite_orbit finS xS) => finO.
-by move: (Fatugpd.BIJ_CARD_EQ (finO, bij)) => ->.
+by move: (BIJ_CARD_EQ finO bij) => ->.
 Qed.
 
 
@@ -989,105 +1000,8 @@ Lemma finite_tuples s n :
 	`FINITE s ==> FINITE {t | sizel t = n /\ (!x. x <- t ==> x IN s)}`.
 by move/has_size_tuples; rewrite HAS_SIZE /=. Qed.
 
-Section Cauchy.
-
-Variable p : `:num`.
-Variable G : `:A->bool`.
-Variable op : `:A->A->A`.
-Variable i : `:A->A`.
-Variable e : `:A`.
-
-Hypothesis grG : `group (G, op, i, e)`.
-Hypothesis finG : `FINITE G`.
-
-Hypothesis prime_p : `prime p`.
-
-Lemma prod_in t : `(!g. g <- t ==> g IN G) ==> foldr op e t IN G`.
-elim: t => [|a t IHt]; rewr foldr; first by rewrite (e_in_group grG).
-move => memG; rewrite (in_group grG).
-by rewrite memG ?in_cons // andTb IHt => g mem_g; apply: memG; rewrite !in_cons.
-Qed.
-
-
-Lemma has_size_group_tuples : 
-  `{t | sizel t = p /\ (!g. g <- t ==> g IN G) /\ foldr op e t = e} HAS_SIZE CARD G EXP (p - 1)`.
-set l := `GSPEC _`.
-have ->: `l = IMAGE (\y. i (foldr op e y) :: y) {t | sizel t = p - 1 /\ (!g. g <- t ==> g IN G)}`.
-  rewrite -l_def EXTENSION IN_IMAGE !inE => t.
-  case: t => [|h t].
-    rewrite size_nil [`0 = p`]eq_sym [`[] = _`]eq_sym NOT_CONS_NIL /= negb_and; left.
-    rewrite "TAUT `!P. ~P <=> (P ==> F)`" => p_eq; move: prime_p.
-    by rewrite p_eq PRIME_0.
-  rewrite size_cons; split.
-    move => [size_t] [inG]; rewr foldr => prod_eq.
-    exists t; rewrite eqseq_cons eqxx andbT -size_t -addn1 addnK eqxx andTb; split; last first.
-      by move => g mem_g; rewrite inG in_cons.
-    by move: prod_eq; rewrite (mulg_left grG) ?(mul1g grG) ?(i_in_group grG) ?prod_in //;
-	rewrite ?(e_in_group grG); try move => g mem_g; rewrite inG ?in_cons.
-  move => [t2]; rewrite eqseq_cons => [] [[-> ->]] [-> inG].
-  rewrite prednK ?lt0n ?PRIME_IMP_NZ // eqxx andTb.
-  rewr foldr; rewrite (mulIg grG) ?prod_in // eqxx andbT in_cons => g; case => [->|//].
-  by rewrite (i_in_group grG) prod_in.
-apply HAS_SIZE_IMAGE_INJ; split; last by rewrite has_size_tuples.
-by move => x y; rewrite eqseq_cons /=.
-Qed.
-
-
-Lemma prod_cat t1 t2 : `(!g. g <- t1 \/ g <- t2 ==> g IN G) ==>
-	foldr op e (t1 ++ t2) = op (foldr op e t1) (foldr op e t2)`.
-elim: t1 t2 => [t2 inG | a t IHt t2 inG]; rewr cat foldr.
-  by rewrite (mul1g grG) // prod_in => g mem_g; rewrite inG.
-rewrite -(mulgA grG) ?prod_in; try move => g mem_g; rewrite ?inG ?in_cons //.
-by rewrite IHt // => g; case => h; rewrite inG in_cons.
-Qed.
-
-
-Lemma add_mod_alt n m : `n < p ==> m < p ==> 
-	add_mod p n m = if n + m < p then n + m else (n + m) - p`.
-move => np mp; rewrite add_mod.
-case: (ltnP `n + m` p) => [|le] /=; first by move/MOD_LT.
-rewrite ltnNge le /= -{1}(subnK le) addnC -{1}(mul1n p) MOD_MULT_ADD MOD_LT //.
-by move: mp np; arith.
-Qed.
-
-
-Lemma actsZ : `acts ({k | k < p}, add_mod p, 0) 
-	{t | sizel t = p /\ (!g. g <- t ==> g IN G) /\ foldr op e t = e} rot`.
-rewrite acts; do 2?split; last by rewrite rot0.
-  move => k t; rewrite !inE => [] [k_p] [size_t] [inG].
-  rewrite size_rot size_t mem_rot; rewr inG /=.
-  rewrite -{1}(cat_take_drop k t) rot !prod_cat => [g|g|]; try case;
-	try move/mem_drop; try move/mem_take; try done.
-  rewrite (mulg_left grG) ?prod_in ?(e_in_group grG) // => [g|g|->];
-	try move/mem_drop; try move/mem_take; try done.
-  by rewrite (mul1g grG) ?(mulgI grG) ?(i_in_group grG) ?prod_in // => g; move/mem_drop.
-move => k1 k2 t; rewrite !inE => [] [[k1_p k2_p]] [size_t _].
-rewrite rot_add_mod ?[`k1 <= _`]ltnW ?[`k2 <= _`]ltnW //.
-case: (leqP `k1 + k2` `sizel t`) => /=.
-  rewrite leq_eqVlt; case => [eq|ineq].
-    by rewrite eq rot_size add_mod_alt // eq size_t ltnn /= subnn rot0.
-  by rewrite add_mod_alt // -size_t ineq.
-move => ineq.
-rewrite leqNgt add_mod_alt // ineq /= -size_t.
-by move: (ltnW ineq); rewrite leqNgt => -> /=.
-Qed.
-
-
-"let expg = GEN_ALL (define `expg (op, e) g 0 = e /\ 
-			  expg (op, e) g (SUC n) = op g (expg (op, e) g n)`)".
-
-
-Lemma expg_prod g n : `expg (op, e) g n = foldr op e (nseq n g)`.
-elim: n => [|n IHn]; rewrite expg nseq ncons; rewr iter foldr //.
-by rewrite -ncons -nseq IHn.
-Qed.
-
-
-Lemma expg1 n : `expg (op, e) e n = e`.
-elim: n => [|n IHn]; rewrite expg //.
-by rewrite IHn (mul1g grG) ?(e_in_group grG).
-Qed.
-
+(* More sequences *)
+Section MoreSeq.
 
 Lemma rot_nseq n x k : `rot k (nseq n x) = nseq n x`.
 apply (eq_from_nth x).
@@ -1101,6 +1015,9 @@ rewrite nth_take; first by move: jn; arith.
 by rewrite nth_nseq if_same.
 Qed.
 
+
+Lemma in_nseq_imp n x y : `y <- nseq n x ==> y = x`.
+by elim: n => [|n IHn]; rewr nseq ncons !iter in_nil // in_cons -ncons -nseq; case. Qed.
 
 Lemma in_nseq n x y : `~(n = 0) ==> (y <- nseq n x <=> y = x)`.
 elim: n => [//= | n IHn _].
@@ -1127,6 +1044,171 @@ have: `?n. sizel l - j = SUC n`.
   by exists `sizel l - j - 1`; move: j_size; arith.
 by move => [n ->]; rewrite -l_def take head.
 Qed.
+
+
+Lemma cat_nseq_nseq n m x : `cat (nseq n x) (nseq m x) = nseq (n + m) x`.
+elim: n => [| n IHn]; rewr nseq ncons iter add0n cat0s // -ncons -nseq.
+by rewrite addSn eq_sym nseq ncons; rewr iter -ncons -nseq -IHn cat.
+Qed.
+
+
+End MoreSeq.
+
+
+(* Products and exponents *)
+Section ProdExp.
+
+"let expg = GEN_ALL (define `expg (op, e) g 0 = e /\ 
+			  expg (op, e) g (SUC n) = op g (expg (op, e) g n)`)".
+
+Lemma expg_prod op e g n : `expg (op, e) g n = foldr op e (nseq n g)`.
+elim: n => [|n IHn]; rewrite expg nseq ncons; rewr iter foldr //.
+by rewrite -ncons -nseq IHn.
+Qed.
+
+
+Variable G : `:A->bool`.
+Variable op : `:A->A->A`.
+Variable i : `:A->A`.
+Variable e : `:A`.
+
+Hypothesis grG : `group (G, op, i, e)`.
+
+Lemma exp1g n : `expg (op, e) e n = e`.
+elim: n => [|n IHn]; rewrite expg //.
+by rewrite IHn (mul1g grG) ?(e_in_group grG).
+Qed.
+
+Lemma expg1 g : `g IN G ==> expg (op, e) g 1 = g`.
+by move => gG; rewrite ONE 2!expg (mulg1 grG). Qed.
+
+
+Lemma prod_in t : `(!g. g <- t ==> g IN G) ==> foldr op e t IN G`.
+elim: t => [|a t IHt]; rewr foldr; first by rewrite (e_in_group grG).
+move => memG; rewrite (in_group grG).
+by rewrite memG ?in_cons // andTb IHt => g mem_g; apply: memG; rewrite !in_cons.
+Qed.
+
+
+Lemma prod_cat t1 t2 : `(!g. g <- t1 \/ g <- t2 ==> g IN G) ==>
+	foldr op e (t1 ++ t2) = op (foldr op e t1) (foldr op e t2)`.
+elim: t1 t2 => [t2 inG | a t IHt t2 inG]; rewr cat foldr.
+  by rewrite (mul1g grG) // prod_in => g mem_g; rewrite inG.
+rewrite -(mulgA grG) ?prod_in; try move => g mem_g; rewrite ?inG ?in_cons //.
+by rewrite IHt // => g; case => h; rewrite inG in_cons.
+Qed.
+
+
+Lemma expg_add g n m : `g IN G ==> 
+	expg (op, e) g (n + m) = op (expg (op, e) g n) (expg (op, e) g m)`.
+move => inG; rewrite !expg_prod -prod_cat -?cat_nseq_nseq //.
+by move => x; case => /in_nseq_imp ->.
+Qed.
+
+
+End ProdExp.
+
+
+Section Cyclic.
+
+"let orderg = new_definition `orderg (op, e) g = 
+  @n. ~(n = 0) /\ expg (op, e) g n = e /\ (!m. ~(m = 0) /\ expg (op, e) g m = e ==> n <= m)`".
+
+Variable G : `:A->bool`.
+Variable op : `:A->A->A`.
+Variable i : `:A->A`.
+Variable e : `:A`.
+
+Hypothesis grG : `group (G, op, i, e)`.
+
+Lemma order_e : `orderg (op, e) e = 1`.
+rewrite orderg; apply SELECT_UNIQUE => /= n; split; last first.
+  by move => ->; rewrite (expg1 grG) ?(e_in_group grG) ONE eqS0 /= => m; arith.
+move => [n0] [_] /(_ `1`).
+by rewrite (expg1 grG) ?(e_in_group grG) ONE eqS0 /=; move: n0; arith.
+Qed.
+
+
+Hypothesis finG : `FINITE G`.
+
+
+Lemma order_exists g : `g IN G ==> ?n. ~(n = 0) /\ expg (op, e) g n = e`.
+move => gG.
+Abort.
+
+
+
+End Cyclic.
+
+
+
+Section Cauchy.
+
+Variable p : `:num`.
+Variable G : `:A->bool`.
+Variable op : `:A->A->A`.
+Variable i : `:A->A`.
+Variable e : `:A`.
+
+Hypothesis grG : `group (G, op, i, e)`.
+Hypothesis finG : `FINITE G`.
+Hypothesis prime_p : `prime p`.
+
+
+Lemma has_size_group_tuples : 
+  `{t | sizel t = p /\ (!g. g <- t ==> g IN G) /\ foldr op e t = e} HAS_SIZE CARD G EXP (p - 1)`.
+set l := `GSPEC _`.
+have ->: `l = IMAGE (\y. i (foldr op e y) :: y) {t | sizel t = p - 1 /\ (!g. g <- t ==> g IN G)}`.
+  rewrite -l_def EXTENSION IN_IMAGE !inE => t.
+  case: t => [|h t].
+    rewrite size_nil [`0 = p`]eq_sym [`[] = _`]eq_sym NOT_CONS_NIL /= negb_and; left.
+    rewrite "TAUT `!P. ~P <=> (P ==> F)`" => p_eq; move: prime_p.
+    by rewrite p_eq PRIME_0.
+  rewrite size_cons; split.
+    move => [size_t] [inG]; rewr foldr => prod_eq.
+    exists t; rewrite eqseq_cons eqxx andbT -size_t -addn1 addnK eqxx andTb; split; last first.
+      by move => g mem_g; rewrite inG in_cons.
+    by move: prod_eq; rewrite (mulg_left grG) ?(mul1g grG) ?(i_in_group grG) ?(prod_in grG) //;
+	rewrite ?(e_in_group grG); try move => g mem_g; rewrite inG ?in_cons.
+  move => [t2]; rewrite eqseq_cons => [] [[-> ->]] [-> inG].
+  rewrite prednK ?lt0n ?PRIME_IMP_NZ // eqxx andTb.
+  rewr foldr; rewrite (mulIg grG) ?(prod_in grG) // eqxx andbT in_cons => g; case => [->|//].
+  by rewrite (i_in_group grG) (prod_in grG).
+apply HAS_SIZE_IMAGE_INJ; split; last by rewrite has_size_tuples.
+by move => x y; rewrite eqseq_cons /=.
+Qed.
+
+
+Lemma add_mod_alt n m : `n < p ==> m < p ==> 
+	add_mod p n m = if n + m < p then n + m else (n + m) - p`.
+move => np mp; rewrite add_mod.
+case: (ltnP `n + m` p) => [|le] /=; first by move/MOD_LT.
+rewrite ltnNge le /= -{1}(subnK le) addnC -{1}(mul1n p) MOD_MULT_ADD MOD_LT //.
+by move: mp np; arith.
+Qed.
+
+
+Lemma actsZ : `acts ({k | k < p}, add_mod p, 0) 
+	{t | sizel t = p /\ (!g. g <- t ==> g IN G) /\ foldr op e t = e} rot`.
+rewrite acts; do 2?split; last by rewrite rot0.
+  move => k t; rewrite !inE => [] [k_p] [size_t] [inG].
+  rewrite size_rot size_t mem_rot; rewr inG /=.
+  rewrite -{1}(cat_take_drop k t) rot !(prod_cat grG) => [g|g|]; try case;
+	try move/mem_drop; try move/mem_take; try done.
+  rewrite (mulg_left grG) ?(prod_in grG) ?(e_in_group grG) // => [g|g|->];
+	try move/mem_drop; try move/mem_take; try done.
+  by rewrite (mul1g grG) ?(mulgI grG) ?(i_in_group grG) ?(prod_in grG) // => g; move/mem_drop.
+move => k1 k2 t; rewrite !inE => [] [[k1_p k2_p]] [size_t _].
+rewrite rot_add_mod ?[`k1 <= _`]ltnW ?[`k2 <= _`]ltnW //.
+case: (leqP `k1 + k2` `sizel t`) => /=.
+  rewrite leq_eqVlt; case => [eq|ineq].
+    by rewrite eq rot_size add_mod_alt // eq size_t ltnn /= subnn rot0.
+  by rewrite add_mod_alt // -size_t ineq.
+move => ineq.
+rewrite leqNgt add_mod_alt // ineq /= -size_t.
+by move: (ltnW ineq); rewrite leqNgt => -> /=.
+Qed.
+
 
 
 Lemma fix_order : 
@@ -1176,7 +1258,7 @@ move: fix_finite; rewrite -S_def fix_order => fix_finite /PRIME_DIVIDES.
 case.
   rewrite (CARD_EQ_0 fix_finite); apply: contraLR => _.
   rewrite -MEMBER_NOT_EMPTY; exists `nseq p e`.
-  by rewrite inE /=; exists e; rewrite (e_in_group grG) expg1.
+  by rewrite inE /=; exists e; rewrite (e_in_group grG) (exp1g grG).
 set fix := `GSPEC _` => fix2.
 have: `?n. fix HAS_SIZE (SUC (SUC n))`.
   by exists `CARD fix - 2`; rewrite -!addn1 -addnA add1n -TWO subnK // -FINITE_HAS_SIZE.

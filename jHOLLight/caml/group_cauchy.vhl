@@ -117,6 +117,25 @@ by rewrite mulgA ?mulgI ?i_in_group ?mul1g.
 Qed.
 
 
+Lemma invg_e : `i e = e`.
+by rewrite eq_sym; apply: i_uniq; rewrite mul1g e_in_group. Qed.
+
+
+Lemma subgroup_alt H : `subgroup op i H G <=> 
+	H SUBSET G /\ ~(H = {}) /\ (!x y. x IN H ==> y IN H ==> op x y IN H) /\
+	(!x. x IN H ==> i x IN H)`.
+rewrite subgroup SUBSET; split => [] [subHG] [->] //=.
+rewr subHG /=; move => h.
+have ixH : `!x. x IN H ==> i x IN H`.
+  move => x xH.
+  have xG := subHG xH.
+  by rewrite -(mul1g `i x`) ?i_in_group // h xH andbT -(mulgI x) // h.
+rewr ixH /= => x y xH yH.
+have xG := subHG xH; have yG := subHG yH.
+by rewrite -(invgK y) // h xH ixH.
+Qed.
+
+
 Lemma subgroup_group H : `subgroup op i H G ==> group (H, op, i, e)`.
 move: (grG).
 rewrite subgroup 2!group SUBSET => [] [opG] [iG] [eG] [idG] [invG aG] [sHG] [nH op_iH].
@@ -1066,6 +1085,8 @@ elim: n => [|n IHn]; rewrite expg nseq ncons; rewr iter foldr //.
 by rewrite -ncons -nseq IHn.
 Qed.
 
+Lemma expg0 op e g : `expg (op, e) g 0 = e`. by rewrite expg. Qed.
+Lemma expgS op e g n : `expg (op, e) g (SUC n) = op g (expg (op, e) g n)`. by rewrite expg. Qed.
 
 Variable G : `:A->bool`.
 Variable op : `:A->A->A`.
@@ -1090,6 +1111,10 @@ by rewrite memG ?in_cons // andTb IHt => g mem_g; apply: memG; rewrite !in_cons.
 Qed.
 
 
+Lemma expg_in n g : `g IN G ==> expg (op, e) g n IN G`.
+by move => gG; rewrite expg_prod prod_in => x /in_nseq_imp ->. Qed.
+
+
 Lemma prod_cat t1 t2 : `(!g. g <- t1 \/ g <- t2 ==> g IN G) ==>
 	foldr op e (t1 ++ t2) = op (foldr op e t1) (foldr op e t2)`.
 elim: t1 t2 => [t2 inG | a t IHt t2 inG]; rewr cat foldr.
@@ -1104,6 +1129,19 @@ Lemma expg_add g n m : `g IN G ==>
 move => inG; rewrite !expg_prod -prod_cat -?cat_nseq_nseq //.
 by move => x; case => /in_nseq_imp ->.
 Qed.
+
+Lemma expg_expg g n m : `g IN G ==>
+	expg (op, e) (expg (op, e) g n) m = expg (op, e) g (n * m)`.
+move => gG; elim: m => [|m IHm].
+  by rewrite muln0 !expg.
+by rewrite expg IHm mulnS expg_add.
+Qed.
+
+Lemma expg_inv n g : `g IN G ==> i (expg (op, e) g n) = expg (op, e) (i g) n`.
+move => gG; elim: n => [|n IHn]; first by rewrite !expg (invg_e grG).
+by rewrite -{1}addn1 expg_add // (mulI grG) ?expg_in // IHn expg1 // expg.
+Qed.
+
 
 
 End ProdExp.
@@ -1129,13 +1167,61 @@ by rewrite (expg1 grG) ?(e_in_group grG) ONE eqS0 /=; move: n0; arith.
 Qed.
 
 
+Lemma INFINITE_SUBSET s t : `INFINITE s ==> s SUBSET t ==> INFINITE t`.
+rewrite !INFINITE => hs hst.
+apply: contra hs => fin_t.
+by apply FINITE_SUBSET; exists t.
+Qed.
+
+
 Hypothesis finG : `FINITE G`.
 
 
 Lemma order_exists g : `g IN G ==> ?n. ~(n = 0) /\ expg (op, e) g n = e`.
 move => gG.
-Abort.
+apply: contraLR finG; rewrite NOT_EXISTS_THM -INFINITE negb_and negbK => Hexp.
+apply INFINITE_SUBSET.
+exists `IMAGE (expg (op, e) g) UNIV`; split; last first.
+  by rewrite SUBSET IN_IMAGE => h [n] [-> _]; rewrite (expg_in grG).
+rewrite INFINITE_IMAGE_INJ num_INFINITE andbT => n m.
+wlog: n m / `n <= m`.
+  move => h.
+  by case: (leq_total n m); last rewrite eq_sym; move => /h /=.
+move => n_le_m.
+case: (ltngtP m n); first by rewrite ltnNge n_le_m.
+case => [n_lt_m exp_eq | -> //].
+move: (Hexp `m - n`).
+rewrite subn_eq0 leqNgt n_lt_m /=.
+apply: contraR => _.
+apply: (mulg_rightI grG `expg (op, e) g n`).
+rewrite !(expg_in grG) // (e_in_group grG) !andTb (mul1g grG) ?(expg_in grG) //.
+by rewrite -(expg_add grG) // subnK.
+Qed.
 
+
+Lemma fin_inv_expg g : `g IN G ==> ?k. i g = expg (op, e) g k`.
+move => gG.
+move: (order_exists gG); rewrite -lt0n => [] [n] [/prednK n_eq exp1].
+exists `n - 1`.
+apply: (mulg_leftI grG g); rewrite (i_in_group grG) ?(expg_in grG) // gG !andTb.
+by rewrite -expgS n_eq exp1 (mulgI grG).
+Qed.
+
+
+Lemma cyclic_subgroup g : `g IN G ==> subgroup op i (IMAGE (expg (op, e) g) UNIV) G`.
+move => gG; rewrite subgroup SUBSET !IN_IMAGE !IN_UNIV !andbT; split.
+  by move => x [n] ->; rewrite (expg_in grG).
+rewrite IMAGE_EQ_EMPTY UNIV_NOT_EMPTY /= => x y [] [n ->] [m ->].
+have := fin_inv_expg `expg (op, e) g m`.
+rewrite (expg_in grG) //= => [] [k] ->.
+exists `n + m * k`.
+by rewrite (expg_expg grG) // -(expg_add grG).
+Qed.
+
+
+Lemma cyclic_group g : `g IN G ==> group (IMAGE (expg (op, e) g) UNIV, op, i, e)`.
+by move/cyclic_subgroup => /(subgroup_group grG).
+Qed.
 
 
 End Cyclic.

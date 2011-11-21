@@ -758,6 +758,481 @@ let derived_form_generic = prove_by_refinement(
     REWRITE_TAC[derived_form];
   ]);;
 
+
+(* START OF NICK VOLKER'S CODE *)
+
+
+let region_conv = prove_by_refinement(
+  `!(x:real) (y:real). ~(y = &0 /\ x <= &0) ==> (x > &0) \/ (y < &0) \/ (y > &0)`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+
+ let x2notless0 = prove_by_refinement(`!x:real. ~(x pow 2 < &0)`,
+				       [
+STRIP_TAC;
+SUBGOAL_THEN `x = &0 ==> ~(x pow 2 < &0)` MP_TAC;
+STRIP_TAC;
+MP_TAC (SPECL[`x:real`] Trigonometry2.POW2_EQ_0);
+ASM_REWRITE_TAC[];
+REAL_ARITH_TAC;
+SUBGOAL_THEN `~(x = &0) ==> ~(x pow 2 < &0)` MP_TAC;
+STRIP_TAC;
+MP_TAC (SPECL[`x:real`] (GENL[`a:real`] Trigonometry2.NOT_ZERO_EQ_POW2_LT));
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_FIELD `&0 < x pow 2 ==> ~(x pow 2 < &0)`);
+ASM_MESON_TAC[];
+ASM_MESON_TAC[];
+				       ]);;
+
+  let x2notlesseq0 = prove_by_refinement(`!x:real. ~(x = &0) ==> ~(x pow 2 <= &0)`,
+					 [
+STRIP_TAC;
+STRIP_TAC;
+MP_TAC (SPECL[`x:real`] (GENL[`a:real`] Trigonometry2.NOT_ZERO_EQ_POW2_LT));
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_FIELD `&0 < x pow 2 ==> ~(x pow 2 <= &0)`);
+ASM_MESON_TAC[];
+					 ]);;
+
+  let sumsquaresnot0 = prove_by_refinement(`!x:real y:real. ~(x = &0) ==> ~(x pow 2 + y pow 2 <= &0)`,
+					   [
+STRIP_TAC;
+STRIP_TAC;
+STRIP_TAC;
+MP_TAC (SPECL[`x:real`] x2notlesseq0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`y:real`] x2notless0);
+STRIP_TAC;
+MP_TAC (REAL_ARITH `~(x pow 2 <= &0) /\ ~(y pow 2 < &0) ==> ~(x pow 2 + y pow 2 <= &0)`);
+ASM_MESON_TAC[];
+					   ]);;
+
+ let notzerodenom = prove_by_refinement(`!a:real b:real c:real d:real. (~(b = &0) ==> (a*b - c*d)/(b pow 2) * inv (&1 + (c/b) pow 2) = (a*b - c*d)/(b pow 2 + c pow 2))`,
+					 [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL [`b:real`;`c:real`] sumsquaresnot0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_FIELD `~(b = &0) /\ ~(b pow 2 + c pow 2 <= &0) ==> (a*b - c*d)/(b pow 2) * inv (&1 + (c/b) pow 2) = (a*b - c*d)/(b pow 2 + c pow 2)`);
+ASM_MESON_TAC[];
+					 ]);;
+
+ let notzerodenom2 = prove_by_refinement(`!a:real b:real c:real d:real. (~(c = &0) ==> (a*b - c*d)/(c pow 2) * inv (&1 + (b/c) pow 2) = (a*b - c*d)/(b pow 2 + c pow 2))`,
+					 [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL [`c:real`;`b:real`] sumsquaresnot0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_FIELD `~(c = &0) /\ ~(c pow 2 + b pow 2 <= &0) ==> (a*b - c*d)/(c pow 2) * inv (&1 + (b/c) pow 2) = (a*b - c*d)/(b pow 2 + c pow 2)`);
+ASM_MESON_TAC[];
+					 ]);;
+
+
+let derived_imp_pos_open = prove_by_refinement(
+  `!p f f' x s.  p /\ derived_form p f f' x s /\ &0 < f x ==>
+     (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==> &0 < f x'))`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC[derived_form];
+REWRITE_TAC[TAUT `(a /\ (a ==> b) /\ c) <=> (a /\ b /\ c)`];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (  MATCH_MP HAS_REAL_DERIVATIVE_IMP_CONTINUOUS_WITHINREAL ));
+REWRITE_TAC[real_continuous_withinreal];
+DISCH_THEN (MP_TAC o (SPEC `(f:real->real) x`));
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+EXISTS_TAC `d:real`;
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC `x':real`));
+ASM_REWRITE_TAC[];
+ASM_REAL_ARITH_TAC;
+  ]);;
+
+let derived_imp_pos_open_2 = prove_by_refinement(
+  `!p g g' x s.  p /\ derived_form p g g' x s /\ &0 < g x ==>
+     (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==> &0 < g x'))`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC[derived_form];
+REWRITE_TAC[TAUT `(a /\ (a ==> b) /\ c) <=> (a /\ b /\ c)`];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (  MATCH_MP HAS_REAL_DERIVATIVE_IMP_CONTINUOUS_WITHINREAL ));
+REWRITE_TAC[real_continuous_withinreal];
+DISCH_THEN (MP_TAC o (SPEC `(g:real->real) x`));
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+EXISTS_TAC `d:real`;
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC `x':real`));
+ASM_REWRITE_TAC[];
+ASM_REAL_ARITH_TAC;
+  ]);;
+
+let derived_imp_pos_open_3 = prove_by_refinement(
+  `!p g g' x s.  p /\ derived_form p g g' x s /\ &0 > g x==>
+     (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==> &0 > g x' ))`,
+  (* {{{ proof *)
+  [
+REWRITE_TAC[REAL_ARITH ` &0 > g x <=> &0 < --(g x)`];
+REWRITE_TAC[derived_form];
+REWRITE_TAC[TAUT `(a /\ (a ==> b) /\ c) <=> (a /\ b /\ c)`];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (  MATCH_MP HAS_REAL_DERIVATIVE_IMP_CONTINUOUS_WITHINREAL ));
+REWRITE_TAC[real_continuous_withinreal];
+DISCH_THEN (MP_TAC o (SPEC `--(g:real->real) x`));
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+EXISTS_TAC `d:real`;
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC `x':real`));
+ASM_REWRITE_TAC[];
+ASM_REAL_ARITH_TAC;
+  ]);;
+
+let deriv_pi = prove_by_refinement(
+  `!(x:real) s. derived_form T (\x. (pi / &2)) (&0) x s`,
+  [
+    MP_TAC (SPECL [`(pi / &2)`] derived_form_const);
+    ASM_MESON_TAC[];
+  ]);;
+
+let deriv_pi_minus = prove_by_refinement(
+  `!(x:real) pf f f' s. derived_form pf f f' x s ==> derived_form (T /\pf) (\x. (pi / &2) - f x) (&0 - f') x s`,
+  [
+    REPEAT GEN_TAC;
+    MP_TAC (SPECL[`x:real`;`s:real->bool`] deriv_pi);
+    REPEAT STRIP_TAC;
+    MATCH_MP_TAC derived_form_sub;
+    ASM_MESON_TAC[];
+]);;
+
+let deriv_minus_pi = prove_by_refinement(
+  `!(x:real) s. derived_form T (\x. --(pi / &2)) (&0) x s`,
+  [
+    MP_TAC (SPECL [`--(pi / &2)`] derived_form_const);
+    ASM_MESON_TAC[];
+  ]);;
+
+let deriv_minus_pi_minus = prove_by_refinement(
+  `!(x:real) pf f f' s. derived_form pf f f' x s ==> derived_form (T /\pf) (\x. --(pi / &2) - f x) (&0 - f') x s`,
+  [
+    REPEAT GEN_TAC;
+    MP_TAC (SPECL[`x:real`;`s:real->bool`] deriv_minus_pi);
+    REPEAT STRIP_TAC;
+    MATCH_MP_TAC derived_form_sub;
+    ASM_MESON_TAC[];
+]);;
+
+let derived_form_chain_simple = prove_by_refinement(
+  `!x s g g' f f' p p'.
+         derived_form p g g' (f x) (:real) /\
+         derived_form p' f f' x s
+         ==> derived_form (p /\ p') (\x. g (f x)) (f' * g') x s`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[derived_form_chain]
+  ]);;
+
+let atn_lemma = prove_by_refinement(
+  `!x pf f f' pg g g' s.  (&0 < f x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form (T /\ (pg /\ pf)) (\x. atn( g x / f x)) ((g' * f x - g x * f')/(f x pow 2) *inv (&1 + (g x / f x) pow 2)) x s`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC;
+MATCH_MP_TAC derived_form_chain_simple;
+REWRITE_TAC[derived_form_atn];
+MP_TAC (REAL_ARITH `&0 < (f:real->real) x ==> ~(f x = &0)`);
+SUBGOAL_THEN `derived_form (pg /\ pf /\ ~(f x = &0)) (\x. g x / f x)      ((g' * f x - g x * f') / f x pow 2)      x      s` MP_TAC;
+MATCH_MP_TAC derived_form_div;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[derived_form];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[]
+  ]);;
+
+let atn_notpi_lemma = prove_by_refinement(
+  `!x pf f f' pg g g' s.  (&0 < g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form (T /\ (pf /\ pg)) (\x. atn( f x / g x)) ((f' * g x - f x * g')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC;
+MATCH_MP_TAC derived_form_chain_simple;
+REWRITE_TAC[derived_form_atn];
+MP_TAC (REAL_ARITH `&0 < (g:real->real) x ==> ~(g x = &0)`);
+SUBGOAL_THEN `derived_form (pf /\ pg /\ ~(g x = &0)) (\x. f x / g x)      ((f' * g x - f x * g') / g x pow 2)      x      s` MP_TAC;
+MATCH_MP_TAC derived_form_div;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[derived_form];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[]
+  ]);;
+
+let atn_notnegpi_lemma = prove_by_refinement(
+  `!x pf f f' pg g g' s.  (&0 > g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form (T /\ (pf /\ pg)) (\x. atn( f x / g x)) ((f' * g x - f x * g')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  (* {{{ proof *)
+  [
+REPEAT STRIP_TAC;
+MATCH_MP_TAC derived_form_chain_simple;
+REWRITE_TAC[derived_form_atn];
+MP_TAC (REAL_ARITH `&0 > (g:real->real) x ==> ~(g x = &0)`);
+SUBGOAL_THEN `derived_form (pf /\ pg /\ ~(g x = &0)) (\x. f x / g x)      ((f' * g x - f x * g') / g x pow 2)      x      s` MP_TAC;
+MATCH_MP_TAC derived_form_div;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[derived_form];
+REPEAT STRIP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[]
+  ]);;
+      
+let atn_lemma_2 = prove_by_refinement (
+  `!x pf f f' pg g g' s.  (&0 < g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form (T /\ (pf /\ pg)) (\x. (pi / &2) - atn( f x / g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  [
+    REPEAT STRIP_TAC;
+    MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn_notpi_lemma);
+    ASM_REWRITE_TAC[];
+    REPEAT STRIP_TAC;
+    UNDISCH_THEN `derived_form (pf /\ pg) (\x. atn (f x / g x)) ((f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2)) x s` (MP_TAC o (MATCH_MP deriv_pi_minus));
+(*REWRITE_TAC[REAL_ARITH `(&0 - (a*d -b*c))/u*v = (c*b - d*a)/u*v`]; *)
+    UNDISCH_TAC `derived_form pf f f' x s`;
+    UNDISCH_TAC `derived_form pg g g' x s`;
+    REWRITE_TAC[derived_form];
+    REPEAT STRIP_TAC;
+    SUBGOAL_THEN `((\x. pi / &2 - atn (f x / g x)) has_real_derivative
+           &0 -
+           (f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2))
+          (atreal x within s)` MP_TAC;
+    ASM_MESON_TAC[];
+    SUBGOAL_THEN `!(f:real->real) (g:real->real). (&0 - (f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2)) = ((g' * f x - g x * f') / g x pow 2 * inv (&1 + (f x / g x) pow 2))` MP_TAC;
+    REPEAT STRIP_TAC;
+    REAL_ARITH_TAC;
+    STRIP_TAC;
+    ASM_MESON_TAC[];
+  ]);;
+
+let atn_lemma_3 = prove_by_refinement (
+  `!x pf f f' pg g g' s.  (&0 > g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form (T /\ (pf /\ pg)) (\x. --(pi / &2) - atn( f x / g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  [
+    REPEAT STRIP_TAC;
+    MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn_notnegpi_lemma);
+    ASM_REWRITE_TAC[];
+    REPEAT STRIP_TAC;
+    UNDISCH_THEN `derived_form (pf /\ pg) (\x. atn (f x / g x)) ((f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2)) x s` (MP_TAC o (MATCH_MP deriv_minus_pi_minus));
+(*REWRITE_TAC[REAL_ARITH `(&0 - (a*d -b*c))/u*v = (c*b - d*a)/u*v`]; *)
+    UNDISCH_TAC `derived_form pf f f' x s`;
+    UNDISCH_TAC `derived_form pg g g' x s`;
+    REWRITE_TAC[derived_form];
+    REPEAT STRIP_TAC;
+    SUBGOAL_THEN `((\x. --(pi / &2) - atn (f x / g x)) has_real_derivative
+           &0 -
+           (f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2))
+          (atreal x within s)` MP_TAC;
+    ASM_MESON_TAC[];
+    SUBGOAL_THEN `!(f:real->real) (g:real->real). (&0 - (f' * g x - f x * g') / g x pow 2 * inv (&1 + (f x / g x) pow 2)) = ((g' * f x - g x * f') / g x pow 2 * inv (&1 + (f x / g x) pow 2))` MP_TAC;
+    REPEAT STRIP_TAC;
+    REAL_ARITH_TAC;
+    STRIP_TAC;
+    ASM_MESON_TAC[];
+  ]);;
+
+let atn2_atn_open = prove_by_refinement(
+  `!p f f' g x s.  p /\ derived_form p f f' x s /\ (&0 < f x)==>
+    (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==>
+        atn2 (f x', g x') = atn(g x' / f x')))`,
+  (* {{{ proof *)
+  [
+(REPEAT GEN_TAC);
+(DISCH_THEN (MP_TAC o (MATCH_MP derived_imp_pos_open)));
+(REPEAT STRIP_TAC);
+(EXISTS_TAC `d:real`);
+(ASM_REWRITE_TAC[]);
+(REPEAT STRIP_TAC);
+(SUBGOAL_THEN `&0 < ((f:real->real) x')` MP_TAC);
+(ASM_MESON_TAC[]);
+(MP_TAC (MATCH_MP (TAUT `a /\ b /\ c /\ d ==> a`)  (SPECL [`((f:real->real) x')`;`((g:real->real) x')`] Trigonometry1.ATN2_BREAKDOWN)));
+(REPEAT STRIP_TAC);
+  ]);;
+
+let atn2_atn_open_2 = prove_by_refinement(
+  `!p g g' f x s.  p /\ derived_form p g g' x s /\ (&0 < g x)==>
+    (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==>
+        atn2 (f x', g x') = (pi / &2 - atn(f x' / g x'))))`,
+  (* {{{ proof *)
+  [
+(REPEAT GEN_TAC);
+(DISCH_THEN (MP_TAC o (MATCH_MP derived_imp_pos_open)));
+(REPEAT STRIP_TAC);
+(EXISTS_TAC `d:real`);
+(ASM_REWRITE_TAC[]);
+(REPEAT STRIP_TAC);
+(SUBGOAL_THEN `&0 < ((g:real->real) x')` MP_TAC);
+(ASM_MESON_TAC[]);
+(MP_TAC (MATCH_MP (TAUT `a /\ b /\ c /\ d ==> b`)  (SPECL [`((f:real->real) x')`;`((g:real->real) x')`] Trigonometry1.ATN2_BREAKDOWN)));
+(REPEAT STRIP_TAC);
+  ]);;
+
+let atn2_atn_open_3 = prove_by_refinement(
+  `!p g g' f x s.  p /\ derived_form p g g' x s /\ (&0 > g x)==>
+    (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==>
+        atn2 (f x', g x') = (--(pi / &2) - atn(f x' / g x'))))`,
+  (* {{{ proof *)
+  [
+(REPEAT GEN_TAC);
+(DISCH_THEN (MP_TAC o (MATCH_MP derived_imp_pos_open_3)));
+(REPEAT STRIP_TAC);
+(EXISTS_TAC `d:real`);
+(ASM_REWRITE_TAC[]);
+(REPEAT STRIP_TAC);
+(SUBGOAL_THEN `&0 > ((g:real->real) x')` MP_TAC);
+(ASM_MESON_TAC[]);
+(REWRITE_TAC[REAL_ARITH `a > b <=> b < a`]);
+(MP_TAC (MATCH_MP (TAUT `a /\ b /\ c /\ d ==> c`)  (SPECL [`((f:real->real) x')`;`((g:real->real) x')`] Trigonometry1.ATN2_BREAKDOWN)));
+(REPEAT STRIP_TAC);
+  ]);;
+
+(*//////////////////////////////////*)
+
+let atn2_final_1 =  prove_by_refinement( `!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 < f x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(f x pow 2) *inv (&1 + (g x / f x) pow 2)) x s`,
+  (* {{{ proof *)
+  [
+ REPEAT GEN_TAC;
+ REWRITE_TAC[derived_form];
+ REPEAT STRIP_TAC;
+ SUBGOAL_THEN `pf /\ derived_form pf f f' x s /\ (&0 < (f:real->real) x)` MP_TAC;
+ REWRITE_TAC[derived_form];
+ ASM_MESON_TAC[];
+ DISCH_THEN (MP_TAC o (MATCH_MP atn2_atn_open));
+ STRIP_TAC;
+ SUBGOAL_THEN `derived_form (T /\ (pg /\ pf)) (\x. atn( g x / f x)) ((g' * f x - g x * f')/(f x pow 2) *inv (&1 + (g x / f x) pow 2)) x s` MP_TAC;
+ MP_TAC atn_lemma;
+ REWRITE_TAC[derived_form];
+ REPEAT STRIP_TAC;
+ ASM_MESON_TAC[];
+ REWRITE_TAC[derived_form]; 
+ STRIP_TAC;
+ MATCH_MP_TAC HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN;
+ ASM_MESON_TAC[];
+  ]);;
+
+let atn2_final_2 = prove_by_refinement (
+  `!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 < g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  [
+	REPEAT GEN_TAC;
+	REWRITE_TAC[derived_form];
+	REPEAT STRIP_TAC;
+	SUBGOAL_THEN `pg /\ derived_form pg g g' x s /\ (&0 < (g:real->real) x)` MP_TAC;
+	REWRITE_TAC[derived_form];
+	ASM_MESON_TAC[];
+	DISCH_THEN (MP_TAC o (MATCH_MP atn2_atn_open_2));
+	STRIP_TAC;
+	SUBGOAL_THEN `derived_form (T /\ (pg /\ pf)) (\x. (pi / &2) - atn( f x / g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s` MP_TAC;
+	MP_TAC atn_lemma_2;
+	REWRITE_TAC[derived_form];
+	REPEAT STRIP_TAC;
+	ASM_MESON_TAC[];
+	REWRITE_TAC[derived_form];
+	STRIP_TAC;
+	MATCH_MP_TAC HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN;
+	ASM_MESON_TAC[];
+  ]);;
+
+let atn2_final_3 = prove_by_refinement (
+  `!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 > g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s`,
+  [
+	REPEAT GEN_TAC;
+	REWRITE_TAC[derived_form];
+	REPEAT STRIP_TAC;
+	SUBGOAL_THEN `pg /\ derived_form pg g g' x s /\ (&0 > (g:real->real) x)` MP_TAC;
+	REWRITE_TAC[derived_form];
+	ASM_MESON_TAC[];
+	DISCH_THEN (MP_TAC o (MATCH_MP atn2_atn_open_3));
+	STRIP_TAC;
+	SUBGOAL_THEN `derived_form (T /\ (pg /\ pf)) (\x. --(pi / &2) - atn( f x / g x)) ((g' * f x - g x * f')/(g x pow 2) *inv (&1 + (f x / g x) pow 2)) x s` MP_TAC;
+	MP_TAC atn_lemma_3;
+	REWRITE_TAC[derived_form];
+	REPEAT STRIP_TAC;
+	ASM_MESON_TAC[];
+	REWRITE_TAC[derived_form];
+	STRIP_TAC;
+	MATCH_MP_TAC HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN;
+	ASM_MESON_TAC[];
+  ]);;
+
+let atn2_deriv_simple1 = prove_by_refinement(`!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 < f x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(f x pow 2 + g x pow 2)) x s`,
+					     [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_final_1);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_ARITH `&0 < (f:real->real) x ==> ~(f x = &0)`);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`(f:real->real) x`;`(g:real->real) x`;] sumsquaresnot0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`g':real`;`(f:real->real) x`;`(g:real->real) x`;`f':real`] notzerodenom);
+ASM_REWRITE_TAC[];
+ASM_MESON_TAC[];
+					     ]);;
+
+let atn2_deriv_simple2 = prove_by_refinement(`!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 < g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(f x pow 2 + g x pow 2)) x s`,
+					     [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_final_2);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_ARITH `&0 < (g:real->real) x ==> ~(g x = &0)`);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`(f:real->real) x`;`(g:real->real) x`;] sumsquaresnot0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`g':real`;`(f:real->real) x`;`(g:real->real) x`;`f':real`] notzerodenom2);
+ASM_REWRITE_TAC[];
+ASM_MESON_TAC[];
+					     ]);;
+
+let atn2_deriv_simple3 = prove_by_refinement(`!x pf (f:real->real) f' pg (g:real->real) g' s.  (&0 > g x) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(f x pow 2 + g x pow 2)) x s`,
+					     [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_final_3);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (REAL_ARITH `&0 > (g:real->real) x ==> ~(g x = &0)`);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`(f:real->real) x`;`(g:real->real) x`;] sumsquaresnot0);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+MP_TAC (SPECL[`g':real`;`(f:real->real) x`;`(g:real->real) x`;`f':real`] notzerodenom2);
+ASM_REWRITE_TAC[];
+ASM_MESON_TAC[];
+					     ]);;
+
+let atn2_derivative = prove_by_refinement(`!x pf (f:real->real) f' pg (g:real->real) g' s.  (~((g x = &0) /\ (f x <= &0))) /\ derived_form pf f f' x s /\ derived_form pg g g' x s ==> derived_form ((x IN s) /\ (pg /\ pf)) (\x. atn2( f x , g x)) ((g' * f x - g x * f')/(f x pow 2 + g x pow 2)) x s`,
+					 [
+REPEAT GEN_TAC;
+REWRITE_TAC[REAL_ARITH `(~((y = &0) /\ (x <= &0)) <=> (&0 < x) \/ (&0 < y) \/ (&0 > y))`];
+REPEAT STRIP_TAC;
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_deriv_simple1);
+ASM_MESON_TAC[];
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_deriv_simple2);
+ASM_MESON_TAC[];
+MP_TAC (SPECL[`x:real`;`pf:bool`;`f:real->real`;`f':real`;`pg:bool`;`g:real->real`;`g':real`;`s:real->bool`] atn2_deriv_simple3);
+ASM_MESON_TAC[]; 
+					 ]);;
+
+
+(* END OF NICK VOLKER'S ATAN2 CODE *)
+
+
 (* apply chain only when head is a named constant, sqrt, cos, sin,... *)
 
   let differentiate =

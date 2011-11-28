@@ -1,8 +1,9 @@
-needs "arith_hash2.hl";;
+needs "../formal_lp/arith/arith_hash2.hl";;
 
 
 open Arith_hash2;;
 
+prioritize_real();;
 
 (* The main parameter (should be even for the square root operation) *)
 let min_exp = 50;;
@@ -59,7 +60,8 @@ let le_op_num = `(<=):num->num->bool` and
     mul_op_real = `( * ):real->real->real` and
     plus_op_real = `(+):real->real->real` and
     minus_op_real = `(-):real->real->real` and
-    neg_op_real = `(--):real->real`;;
+    neg_op_real = `(--):real->real` and
+    le_op_real = `(<=):real->real->bool`;;
 
 
 
@@ -73,7 +75,9 @@ let x_var_real = `x:real` and
     a_var_real = `a:real` and
     b_var_real = `b:real` and
     lo_var_real = `lo:real` and
-    hi_var_real = `hi:real`;;
+    hi_var_real = `hi:real` and
+    f1_var_real = `f1:real` and
+    f2_var_real = `f2:real`;;
 
 
 
@@ -1183,6 +1187,7 @@ num_exp_op_hi_lt 1 num_exp_div tm1 tm2;;
 
 (******************************************)
 
+
 (* float *)
 
 
@@ -1424,6 +1429,199 @@ let f2 = `float F (D1 _0) (D3 _0)`;;
 float_lt f1 f2;;
 *)
 
+
+(**********************************)
+
+(* FLOAT_LE *)
+
+let FLOAT_LE_FF = prove(`float F n1 e1 <= float F n2 e2 <=> num_exp n1 e1 <= num_exp n2 e2`,
+			REWRITE_TAC[float; GSYM REAL_OF_NUM_LE; REAL_MUL_LID; real_div] THEN
+			  MATCH_MP_TAC REAL_LE_RMUL_EQ THEN
+			  MATCH_MP_TAC REAL_LT_INV THEN
+			  REWRITE_TAC[REAL_OF_NUM_LT; LT_NZ; NUM_EXP_EQ_0] THEN
+			  ARITH_TAC);;
+
+let FLOAT_LE_TT = prove(`float T n1 e1 <= float T n2 e2 <=> num_exp n2 e2 <= num_exp n1 e1`,
+			REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--a <= --b <=> b <= a`] THEN
+			  REWRITE_TAC[FLOAT_LE_FF]);;
+
+
+let FLOAT_LE_TF = prove(`float T n1 e1 <= float F n2 e2 <=> T`,
+			MP_TAC (SPECL [`n1:num`; `e1:num`] FLOAT_T_NEG) THEN
+			  MP_TAC (SPECL [`n2:num`; `e2:num`] FLOAT_F_POS) THEN
+			  REAL_ARITH_TAC);;
+			
+
+
+let FLOAT_LE_FT = prove(`float F n1 e1 <= float T n2 e2 <=> n1 = 0 /\ n2 = 0`,
+			REWRITE_TAC[REAL_LE_LT; FLOAT_LT_FT] THEN EQ_TAC THENL
+			  [
+			    DISCH_TAC THEN SUBGOAL_THEN `float F n1 e1 = &0 /\ float T n2 e2 = &0` MP_TAC THENL
+			      [
+				MP_TAC (SPECL [`n2:num`; `e2:num`] FLOAT_T_NEG) THEN
+				  MP_TAC (SPECL [`n1:num`; `e1:num`] FLOAT_F_POS) THEN
+				  ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+				ALL_TAC
+			      ] THEN
+			      REWRITE_TAC[FLOAT_EQ_0];
+			    DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+			      REWRITE_TAC[float; NUM_EXP_n0; real_div; REAL_MUL_LZERO; REAL_MUL_RZERO]
+			  ]);;
+			
+
+let FLOAT_LE_FT_00 = (PURE_REWRITE_RULE[NUMERAL] o prove)
+  (`float F 0 e1 <= float T 0 e2 <=> T`, REWRITE_TAC[FLOAT_LE_FT]);;
+
+let FLOAT_LE_FT_1 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
+  (`(n1 = 0 <=> F) ==> (float F n1 e1 <= float T n2 e2 <=> F)`,
+   DISCH_TAC THEN ASM_REWRITE_TAC[FLOAT_LE_FT]);;
+
+let FLOAT_LE_FT_2 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
+  (`(n2 = 0 <=> F) ==> (float F n1 e1 <= float T n2 e2 <=> F)`,
+   DISCH_TAC THEN ASM_REWRITE_TAC[FLOAT_LE_FT]);;
+
+
+let FLOAT_F_LE_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
+  (`float F n e <= &0 <=> n = 0`,
+   REWRITE_TAC[GSYM (SPEC `F` FLOAT_EQ_0)] THEN
+     MP_TAC (SPEC_ALL FLOAT_F_POS) THEN
+     REAL_ARITH_TAC);;
+
+let FLOAT_T_LE_0 = prove(`float T n e <= &0 <=> T`, REWRITE_TAC[FLOAT_T_NEG]);;
+
+
+let FLOAT_F_GE_0 = prove(`&0 <= float F n e <=> T`, REWRITE_TAC[FLOAT_F_POS]);;
+
+let FLOAT_T_GE_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
+  (`&0 <= float T n e <=> n = 0`,
+   REWRITE_TAC[GSYM (SPEC `T` FLOAT_EQ_0)] THEN
+     MP_TAC (SPEC_ALL FLOAT_T_NEG) THEN
+     REAL_ARITH_TAC);;
+
+
+(* float_le0, float_ge0 *)
+
+let float_le0 f1 = 
+  let s, n_tm, e_tm = dest_float f1 in
+  let inst = INST[n_tm, n_var_num; e_tm, e_var_num] in
+    if s = "T" then
+      inst FLOAT_T_LE_0
+    else
+      let eq_th = raw_eq0_hash_conv n_tm in
+	TRANS (inst FLOAT_F_LE_0) eq_th;;
+
+
+let float_ge0 f1 =
+  let s, n_tm, e_tm = dest_float f1 in
+  let inst = INST[n_tm, n_var_num; e_tm, e_var_num] in
+    if s = "T" then
+      let eq_th = raw_eq0_hash_conv n_tm in
+	TRANS (inst FLOAT_T_GE_0) eq_th
+    else
+      inst FLOAT_F_GE_0;;
+
+
+(* float_le *)
+
+let float_le f1 f2 = 
+  let s1, n1, e1 = dest_float f1 in
+  let s2, n2, e2 = dest_float f2 in
+  let inst = INST[n1, n1_var_num; e1, e1_var_num;
+		  n2, n2_var_num; e2, e2_var_num] in
+    if s2 = "F" then
+      if s1 = "F" then
+	(* FF *)
+	let th0 = inst FLOAT_LE_FF in
+	let ltm, tm2 = dest_comb (rand (concl th0)) in
+	let le_th = num_exp_le (rand ltm) tm2 in
+	  TRANS th0 le_th
+      else
+	(* TF *)
+	inst FLOAT_LE_TF
+    else
+      if s1 = "F" then
+	(* FT *)
+	if (is_const n1 && is_const n2) then
+	  (* n1 = _0 and n2 = _0 *)
+	  inst FLOAT_LE_FT_00
+	else
+	  let n1_0 = raw_eq0_hash_conv n1 in
+	    if (fst o dest_const o rand o concl) n1_0 = "F" then
+	      (* n1 <> _0 *)
+	      MY_PROVE_HYP n1_0 (inst FLOAT_LE_FT_1)
+	    else
+	      let n2_0 = raw_eq0_hash_conv n2 in
+		if (fst o dest_const o rand o concl) n2_0 = "F" then 
+		  (* n2 <> _0 *)
+		  MY_PROVE_HYP n2_0 (inst FLOAT_LE_FT_2)
+		else
+		  failwith "float_lt: D0 _0 exception"
+      else
+	(* TT *)
+	let th0 = inst FLOAT_LE_TT in
+	let ltm, tm2 = dest_comb (rand (concl th0)) in
+	let le_th = num_exp_le (rand ltm) tm2 in
+	  TRANS th0 le_th;;
+
+
+(*
+let f1 = `float F (D1 _0) (D5 _0)`;;
+let f2 = `float T (D2 _0) (D3 _0)`;;
+float_le f1 f2;;
+*)
+
+
+(*************************************)
+(* float_max, float_min *)
+
+let FLOAT_MIN_1 = (UNDISCH_ALL o prove)(`(f1 <= f2 <=> T) ==> min f1 f2 = f1`, REAL_ARITH_TAC);;
+let FLOAT_MIN_2 = (UNDISCH_ALL o prove)(`(f1 <= f2 <=> F) ==> min f1 f2 = f2`, REAL_ARITH_TAC);;
+
+let FLOAT_MAX_1 = (UNDISCH_ALL o prove)(`(f1 <= f2 <=> T) ==> max f1 f2 = f2`, REAL_ARITH_TAC);;
+let FLOAT_MAX_2 = (UNDISCH_ALL o prove)(`(f1 <= f2 <=> F) ==> max f1 f2 = f1`, REAL_ARITH_TAC);;
+
+
+let float_min f1 f2 =
+  let inst = INST[f1, f1_var_real; f2, f2_var_real] in
+  let le_th = float_le f1 f2 in
+  let th0 =
+    if (fst o dest_const o rand o concl) le_th = "T" then
+      inst FLOAT_MIN_1
+    else
+      inst FLOAT_MIN_2 in
+    MY_PROVE_HYP le_th th0;;
+
+
+let float_max f1 f2 =
+  let inst = INST[f1, f1_var_real; f2, f2_var_real] in
+  let le_th = float_le f1 f2 in
+  let th0 =
+    if (fst o dest_const o rand o concl) le_th = "T" then
+      inst FLOAT_MAX_1
+    else
+      inst FLOAT_MAX_2 in
+    MY_PROVE_HYP le_th th0;;
+
+
+let float_min_max f1 f2 =
+  let inst = INST[f1, f1_var_real; f2, f2_var_real] in
+  let le_th = float_le f1 f2 in
+  let th_min, th_max =
+    if (fst o dest_const o rand o concl) le_th = "T" then
+      inst FLOAT_MIN_1, inst FLOAT_MAX_1
+    else
+      inst FLOAT_MIN_2, inst FLOAT_MAX_2 in
+    MY_PROVE_HYP le_th th_min, MY_PROVE_HYP le_th th_max;;
+      
+
+(*
+let f1 = `float F (D1 _0) (D5 _0)`;;
+let f2 = `float T (D2 _0) (D3 _0)`;;
+float_min f1 f2;;
+float_max f1 f2;;
+float_min_max f1 f2;;
+*)
+
 (*************************************)
 
 (* FLOAT_MUL *)
@@ -1457,10 +1655,19 @@ let FLOAT_MUL = prove(`!s1 s2. min_exp <= e /\ num_exp n1 e1 * num_exp n2 e2 = n
 
 
 
-let FLOAT_MUL_FF = (REWRITE_RULE[mod_plus] o SPECL[`F`; `F`]) FLOAT_MUL;;
-let FLOAT_MUL_FT = (REWRITE_RULE[mod_plus] o SPECL[`F`; `T`]) FLOAT_MUL;;
-let FLOAT_MUL_TF = (REWRITE_RULE[mod_plus] o SPECL[`T`; `F`]) FLOAT_MUL;;
-let FLOAT_MUL_TT = (REWRITE_RULE[mod_plus] o SPECL[`T`; `T`]) FLOAT_MUL;;
+let FLOAT_MUL_FF = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
+			     float F n1 e1 * float F n2 e2 = float F n r`,
+			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
+let FLOAT_MUL_FT = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
+			     float F n1 e1 * float T n2 e2 = float T n r`,
+			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
+let FLOAT_MUL_TF = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
+			     float T n1 e1 * float F n2 e2 = float T n r`,
+			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
+let FLOAT_MUL_TT = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
+			     float T n1 e1 * float T n2 e2 = float F n r`,
+			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
+
 
 
 let FLOAT_MUL_FF_hi, FLOAT_MUL_FF_lo =
@@ -1545,6 +1752,36 @@ let FLOAT_MUL_FF_hi' = transform FLOAT_MUL_FF_hi and
     FLOAT_MUL_TF_hi' = transform FLOAT_MUL_TF_hi and
     FLOAT_MUL_TF_lo' = transform FLOAT_MUL_TF_lo;;
 
+let FLOAT_MUL_FF' = transform FLOAT_MUL_FF and
+    FLOAT_MUL_TT' = transform FLOAT_MUL_TT and
+    FLOAT_MUL_FT' = transform FLOAT_MUL_FT and
+    FLOAT_MUL_TF' = transform FLOAT_MUL_TF;;
+
+
+let float_mul_eq f1 f2 =
+  let s1, n1, e1 = dest_float f1 and
+      s2, n2, e2 = dest_float f2 in
+  let flag = s1 = s2 in
+  let num_exp1 = mk_num_exp n1 e1 and
+      num_exp2 = mk_num_exp n2 e2 in
+
+  let mul_th = num_exp_mul num_exp1 num_exp2 in
+  let n_tm, e_tm = dest_num_exp (rand (concl mul_th)) in
+
+  let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
+    if (rand(concl le_th) <> e_tm) then
+      failwith "float_mul_lo: underflow"
+    else
+      let r_tm = rand(concl sub_th) in
+      let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
+		      n1, n1_var_num; e1, e1_var_num; n2, n2_var_num; e2, e2_var_num] in
+      let th0 = inst
+	(if flag then
+	   if s1 = "F" then FLOAT_MUL_FF' else FLOAT_MUL_TT'
+	 else
+	   if s1 = "F" then FLOAT_MUL_FT' else FLOAT_MUL_TF') in
+	MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
+
 
 
 let float_mul_lo pp f1 f2 =
@@ -1577,8 +1814,6 @@ let float_mul_lo pp f1 f2 =
 	 else
 	   if s1 = "F" then FLOAT_MUL_FT_lo' else FLOAT_MUL_TF_lo') in
 	MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
-
-
 
 
 
@@ -2285,7 +2520,7 @@ let s1_var_bool = `s1:bool` and
 let FLOAT_SUB_F_EQ_ADD = (SYM o prove)(`f1 - float F n2 e2 = f1 + float T n2 e2`,
 				       REWRITE_TAC[FLOAT_NEG_T] THEN REAL_ARITH_TAC);;
 
-let FLOAT_SUB_T_EQ_ADD = (SYM o prove)(`f1- float T n2 e2 = f1+ float F n2 e2`,
+let FLOAT_SUB_T_EQ_ADD = (SYM o prove)(`f1 - float T n2 e2 = f1 + float F n2 e2`,
 				       REWRITE_TAC[FLOAT_NEG_T] THEN REAL_ARITH_TAC);;
 
 
@@ -2501,9 +2736,15 @@ let float_interval_neg th =
 
 
 let f1_var_real = `f1:real` and
-    f2_var_real = `f2:real`;;
+    f2_var_real = `f2:real` and
+    f1_1_var = `f1_1:real` and
+    f1_2_var = `f1_2:real` and
+    f2_1_var = `f2_1:real` and
+    f2_2_var = `f2_2:real`;;
 
 
+
+(* FF_FF *)
 let FLOAT_INTERVAL_MUL_FF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
   `interval_arith x (float F n1 e1, float F n2 e2) /\
     interval_arith y (float F m1 r1, float F m2 r2) /\
@@ -2540,7 +2781,7 @@ let FLOAT_INTERVAL_MUL_FF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 
 
-
+(* TT_TT *)
 let FLOAT_INTERVAL_MUL_TT_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
   `interval_arith x (float T n1 e1, float T n2 e2) /\
     interval_arith y (float T m1 r1, float T m2 r2) /\
@@ -2583,7 +2824,7 @@ let FLOAT_INTERVAL_MUL_TT_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 
 
-
+(* FF_TT *)
 let FLOAT_INTERVAL_MUL_FF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
   `interval_arith x (float F n1 e1, float F n2 e2) /\
     interval_arith y (float T m1 r1, float T m2 r2) /\
@@ -2627,7 +2868,7 @@ let FLOAT_INTERVAL_MUL_FF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
     ]);;
 
 
-
+(* TT_FF *)
 let FLOAT_INTERVAL_MUL_TT_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
   `interval_arith x (float T n1 e1, float T n2 e2) /\
     interval_arith y (float F m1 r1, float F m2 r2) /\
@@ -2643,6 +2884,291 @@ let FLOAT_INTERVAL_MUL_TT_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 
 
+(* TF_FF *)
+let FLOAT_INTERVAL_MUL_TF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
+  `interval_arith x (float T n1 e1, float F n2 e2) /\
+    interval_arith y (float F m1 r1, float F m2 r2) /\
+    f1 <= float T n1 e1 * float F m2 r2 /\
+    float F n2 e2 * float F m2 r2 <= f2
+    ==> interval_arith (x * y) (f1, f2)`,
+  REWRITE_TAC[FLOAT_NEG_T] THEN
+    REWRITE_TAC[interval_arith] THEN
+    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    STRIP_TAC THEN
+    SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
+    [
+      MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
+	REWRITE_TAC[FLOAT_F_POS];
+      ALL_TAC
+    ] THEN
+
+    SUBGOAL_THEN `&0 <= y` ASSUME_TAC THENL
+    [
+      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `c:real` THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    CONJ_TAC THENL
+    [
+      DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ &0 <= --x`) THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	    CONJ_TAC THENL
+	    [
+	      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * d` THEN
+		ASM_REWRITE_TAC[REAL_ARITH `--a * d <= &0 <=> &0 <= a * d`] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	      MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[]
+	    ];
+	  ALL_TAC
+	] THEN
+
+	MATCH_MP_TAC REAL_LE_TRANS THEN	EXISTS_TAC `--a * d` THEN ASM_REWRITE_TAC[] THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `--a * d <= x * y <=> --x * y <= a * d`] THEN
+	MATCH_MP_TAC REAL_LE_MUL2 THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `--x <= a <=> --a <= x`] THEN ASM_REWRITE_TAC[];
+
+      DISJ_CASES_TAC (REAL_ARITH `&0 <= --x \/ &0 <= x`) THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	    CONJ_TAC THENL
+	    [
+	      REWRITE_TAC[REAL_ARITH `x * y <= &0 <=> &0 <= --x * y`] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * d` THEN ASM_REWRITE_TAC[] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[]
+	    ];
+	  ALL_TAC
+	] THEN
+
+	MATCH_MP_TAC REAL_LE_TRANS THEN	EXISTS_TAC `b * d` THEN ASM_REWRITE_TAC[] THEN
+	MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[]
+    ]);;
+
+
+(* TF_TT *)
+let FLOAT_INTERVAL_MUL_TF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
+  `interval_arith x (float T n1 e1, float F n2 e2) /\
+    interval_arith y (float T m1 r1, float T m2 r2) /\
+    f1 <= float F n2 e2 * float T m1 r1 /\
+    float T n1 e1 * float T m1 r1 <= f2
+    ==> interval_arith (x * y) (f1, f2)`,
+  REWRITE_TAC[FLOAT_NEG_T] THEN
+    REWRITE_TAC[interval_arith] THEN
+    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    STRIP_TAC THEN
+    SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
+    [
+      MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
+	REWRITE_TAC[FLOAT_F_POS];
+      ALL_TAC
+    ] THEN
+
+    SUBGOAL_THEN `&0 <= --y` ASSUME_TAC THENL
+    [
+      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `d:real` THEN 
+	ONCE_REWRITE_TAC[REAL_ARITH `d <= --y <=> y <= --d`] THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    CONJ_TAC THENL
+    [
+      DISJ_CASES_TAC (REAL_ARITH `&0 <= --x \/ &0 <= x`) THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	    CONJ_TAC THENL
+	    [
+	      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * --c` THEN
+		ASM_REWRITE_TAC[REAL_ARITH `b * --c <= &0 <=> &0 <= b * c`] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	      ONCE_REWRITE_TAC[REAL_ARITH `x * y = --x * --y`] THEN
+	      MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[]
+	    ];
+	  ALL_TAC
+	] THEN
+
+	MATCH_MP_TAC REAL_LE_TRANS THEN	EXISTS_TAC `b * --c` THEN ASM_REWRITE_TAC[] THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `b * --c <= x * y <=> x * --y <= b * c`] THEN
+	MATCH_MP_TAC REAL_LE_MUL2 THEN ONCE_REWRITE_TAC[REAL_ARITH `--y <= c <=> --c <= y`] THEN
+	ASM_REWRITE_TAC[];
+
+      DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ &0 <= --x`) THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	    CONJ_TAC THENL
+	    [
+	      REWRITE_TAC[REAL_ARITH `x * y <= &0 <=> &0 <= x * --y`] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * --c` THEN ASM_REWRITE_TAC[REAL_NEG_MUL2] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[]
+	    ];
+	  ALL_TAC
+	] THEN
+
+	MATCH_MP_TAC REAL_LE_TRANS THEN	EXISTS_TAC `--a * --c` THEN ASM_REWRITE_TAC[REAL_NEG_MUL2] THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `x * y <= a * c <=> --x * --y <= a * c`] THEN
+	MATCH_MP_TAC REAL_LE_MUL2 THEN ONCE_REWRITE_TAC[REAL_ARITH `--x <= a <=> --a <= x`] THEN
+	ASM_REWRITE_TAC[]
+    ]);;
+
+(* FF_TF *)
+let FLOAT_INTERVAL_MUL_FF_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
+  `interval_arith x (float F n1 e1, float F n2 e2) /\
+    interval_arith y (float T m1 r1, float F m2 r2) /\
+    f1 <= float F n2 e2 * float T m1 r1 /\
+    float F n2 e2 * float F m2 r2 <= f2
+    ==> interval_arith (x * y) (f1, f2)`,
+  STRIP_TAC THEN
+    MP_TAC ((SPECL [`n1:num`; `e1:num`; `n2:num`; `e2:num`; `m1:num`; `r1:num`; `m2:num`; `r2:num`; `y:real`; `x:real`; `f1:real`; `f2:real`] o GEN_ALL o DISCH_ALL) FLOAT_INTERVAL_MUL_TF_FF) THEN
+    ASM_REWRITE_TAC[REAL_MUL_SYM] THEN DISCH_THEN MATCH_MP_TAC THEN
+    POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+(* TT_TF *)
+let FLOAT_INTERVAL_MUL_TT_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
+  `interval_arith x (float T n1 e1, float T n2 e2) /\
+    interval_arith y (float T m1 r1, float F m2 r2) /\
+    f1 <= float T n1 e1 * float F m2 r2 /\
+    float T n1 e1 * float T m1 r1 <= f2
+    ==> interval_arith (x * y) (f1, f2)`,
+  STRIP_TAC THEN
+    MP_TAC ((SPECL [`n1:num`; `e1:num`; `n2:num`; `e2:num`; `m1:num`; `r1:num`; `m2:num`; `r2:num`; `y:real`; `x:real`; `f1:real`; `f2:real`] o GEN_ALL o DISCH_ALL) FLOAT_INTERVAL_MUL_TF_TT) THEN
+    ASM_REWRITE_TAC[REAL_MUL_SYM] THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+    SIMP_TAC[REAL_MUL_SYM]);;
+
+
+(* TF_TF *)
+let FLOAT_INTERVAL_MUL_TF_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
+  `interval_arith x (float T n1 e1, float F n2 e2) /\
+    interval_arith y (float T m1 r1, float F m2 r2) /\
+    f1_1 <= float T n1 e1 * float F m2 r2 /\
+    f1_2 <= float F n2 e2 * float T m1 r1 /\
+    min f1_1 f1_2 = f1 /\
+    float T n1 e1 * float T m1 r1 <= f2_1 /\
+    float F n2 e2 * float F m2 r2 <= f2_2 /\
+    max f2_1 f2_2 = f2
+    ==> interval_arith (x * y) (f1, f2)`,
+  REWRITE_TAC[EQ_SYM_EQ; FLOAT_NEG_T] THEN
+    REWRITE_TAC[interval_arith] THEN
+    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    STRIP_TAC THEN
+    SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
+    [
+      MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
+	REWRITE_TAC[FLOAT_F_POS];
+      ALL_TAC
+    ] THEN
+
+    DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ &0 <= --x`) THENL 
+    [
+      DISJ_CASES_TAC (REAL_ARITH `&0 <= y \/ &0 <= --y`) THENL 
+	[
+	  CONJ_TAC THENL 
+	    [
+	      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+		CONJ_TAC THENL 
+		[
+		  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f1_1:real` THEN
+		    ASM_REWRITE_TAC[REAL_MIN_MIN] THEN
+		    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * d` THEN
+		    ASM_REWRITE_TAC[REAL_ARITH `--a * d <= &0 <=> &0 <= a * d`] THEN
+		    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+		  ALL_TAC
+		] THEN
+		MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    
+	    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * d` THEN
+	    CONJ_TAC THENL
+	    [
+	      MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[];
+	      ALL_TAC
+	    ] THEN
+	    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f2_2:real` THEN
+	    ASM_REWRITE_TAC[REAL_MAX_MAX];
+	  ALL_TAC
+	] THEN
+
+	CONJ_TAC THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f1_2:real` THEN
+	    ASM_REWRITE_TAC[REAL_MIN_MIN] THEN
+	    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * --c` THEN
+	    ONCE_REWRITE_TAC[REAL_ARITH `b * --c <= x * y <=> x * --y <= b * c`] THEN ASM_REWRITE_TAC[] THEN
+	    MATCH_MP_TAC REAL_LE_MUL2 THEN ONCE_REWRITE_TAC[REAL_ARITH `--y <= c <=> --c <= y`] THEN
+	    ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	CONJ_TAC THENL
+	[
+	  REWRITE_TAC[REAL_ARITH `x * y <= &0 <=> &0 <= x * --y`] THEN
+	    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f2_2:real` THEN
+	ASM_REWRITE_TAC[REAL_MAX_MAX] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * d` THEN ASM_REWRITE_TAC[] THEN
+	MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    DISJ_CASES_TAC (REAL_ARITH `&0 <= y \/ &0 <= --y`) THENL
+    [
+      CONJ_TAC THENL
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f1_1:real` THEN
+	    ASM_REWRITE_TAC[REAL_MIN_MIN] THEN
+	    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * d` THEN
+	    ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[REAL_ARITH `--a * d <= x * y <=> --x * y <= a * d`] THEN
+	    MATCH_MP_TAC REAL_LE_MUL2 THEN ONCE_REWRITE_TAC[REAL_ARITH `--x <= a <=> --a <= x`] THEN
+	    ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	CONJ_TAC THENL
+	[
+	  REWRITE_TAC[REAL_ARITH `x * y <= &0 <=> &0 <= --x * y`] THEN
+	    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f2_2:real` THEN
+	ASM_REWRITE_TAC[REAL_MAX_MAX] THEN
+	MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b * d` THEN ASM_REWRITE_TAC[] THEN
+	MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+
+    CONJ_TAC THENL 
+    [
+      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&0` THEN
+	CONJ_TAC THENL 
+	[
+	  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f1_1:real` THEN
+	    ASM_REWRITE_TAC[REAL_MIN_MIN] THEN
+	    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * d` THEN
+	    ASM_REWRITE_TAC[REAL_ARITH `--a * d <= &0 <=> &0 <= a * d`] THEN
+	    MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+	  ALL_TAC
+	] THEN
+	ONCE_REWRITE_TAC[GSYM REAL_NEG_MUL2] THEN
+	MATCH_MP_TAC REAL_LE_MUL THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+	    
+    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--a * --c` THEN
+    CONJ_TAC THENL
+    [
+      ONCE_REWRITE_TAC[GSYM REAL_NEG_MUL2] THEN REWRITE_TAC[REAL_NEG_NEG] THEN
+	MATCH_MP_TAC REAL_LE_MUL2 THEN ONCE_REWRITE_TAC[REAL_ARITH `--x <= a <=> --a <= x`] THEN
+	ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+    MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f2_1:real` THEN
+    ASM_REWRITE_TAC[REAL_MAX_MAX]);;
+
+
+(****************************)
 
 let float_interval_mul pp th1 th2 =
   let x, l_lo, l_hi = dest_float_interval (concl th1) and
@@ -2652,6 +3178,82 @@ let float_interval_mul pp th1 th2 =
       s3, m1, r1 = dest_float r_lo and
       s4, m2, r2 = dest_float r_hi in
 
+    (* Special case *)
+    if s1 <> s2 && s3 <> s4 then
+      if s1 = "F" or s3 = "F" then
+	failwith "float_interval_mul: FT interval"
+      else
+	let lo1, lo2 = float_mul_lo pp l_lo r_hi, float_mul_lo pp l_hi r_lo and
+	    hi1, hi2 = float_mul_hi pp l_lo r_lo, float_mul_hi pp l_hi r_hi in
+	let f1_1 = (lhand o concl) lo1 and
+	    f1_2 = (lhand o concl) lo2 and
+	    f2_1 = (rand o concl) hi1 and
+	    f2_2 = (rand o concl) hi2 in
+	let min_th = float_min f1_1 f1_2 and
+	    max_th = float_max f2_1 f2_2 in
+	let f1_tm = (rand o concl) min_th and
+	    f2_tm = (rand o concl) max_th in
+	let th0 = INST[x, x_var_real; n1, n1_var_num; e1, e1_var_num;
+		    y, y_var_real; n2, n2_var_num; e2, e2_var_num;
+		    m1, m1_var_num; r1, r1_var_num;
+		    m2, m2_var_num; r2, r2_var_num;
+		    f1_tm, f1_var_real; f2_tm, f2_var_real;
+		    f1_1, f1_1_var; f1_2, f1_2_var; 
+		    f2_1, f2_1_var; f2_2, f2_2_var] FLOAT_INTERVAL_MUL_TF_TF in
+	  (MY_PROVE_HYP min_th o MY_PROVE_HYP max_th o MY_PROVE_HYP lo1 o MY_PROVE_HYP lo2 o 
+	     MY_PROVE_HYP hi1 o MY_PROVE_HYP hi2 o MY_PROVE_HYP th1 o MY_PROVE_HYP th2) th0
+    else
+      let lo_th, hi_th, th0 =
+	if s1 <> s2 then
+	  if s1 = "F" then
+	    failwith "float_interval_mul: FT interval"
+	  else
+	    if s3 = "F" then
+	      float_mul_lo pp l_lo r_hi, float_mul_hi pp l_hi r_hi, FLOAT_INTERVAL_MUL_TF_FF
+	    else
+	      float_mul_lo pp l_hi r_lo, float_mul_hi pp l_lo r_lo, FLOAT_INTERVAL_MUL_TF_TT
+	else
+	  if s3 <> s4 then
+	    if s3 = "F" then
+	      failwith "float_interval_mul: FT interval"
+	    else
+	      if s1 = "F" then
+		float_mul_lo pp l_hi r_lo, float_mul_hi pp l_hi r_hi, FLOAT_INTERVAL_MUL_FF_TF
+	      else
+		float_mul_lo pp l_lo r_hi, float_mul_hi pp l_lo r_lo, FLOAT_INTERVAL_MUL_TT_TF
+	  else
+	    if s1 = "F" then
+	      if s3 = "F" then
+		float_mul_lo pp l_lo r_lo, float_mul_hi pp l_hi r_hi, FLOAT_INTERVAL_MUL_FF_FF
+	      else
+		float_mul_lo pp l_hi r_lo, float_mul_hi pp l_lo r_hi, FLOAT_INTERVAL_MUL_FF_TT
+	    else
+	      if s3 = "F" then
+		float_mul_lo pp l_lo r_hi, float_mul_hi pp l_hi r_lo, FLOAT_INTERVAL_MUL_TT_FF
+	      else
+		float_mul_lo pp l_hi r_hi, float_mul_hi pp l_lo r_lo, FLOAT_INTERVAL_MUL_TT_TT in
+
+      let f1_tm = lhand(concl lo_th) and
+	  f2_tm = rand(concl hi_th) in
+
+      let th = INST[x, x_var_real; n1, n1_var_num; e1, e1_var_num;
+		    y, y_var_real; n2, n2_var_num; e2, e2_var_num;
+		    m1, m1_var_num; r1, r1_var_num;
+		    m2, m2_var_num; r2, r2_var_num;
+		    f1_tm, f1_var_real; f2_tm, f2_var_real] th0 in
+	MY_PROVE_HYP lo_th (MY_PROVE_HYP hi_th (MY_PROVE_HYP th1 (MY_PROVE_HYP th2 th)));;
+
+
+
+let float_interval_mul_old pp th1 th2 =
+  let x, l_lo, l_hi = dest_float_interval (concl th1) and
+      y, r_lo, r_hi = dest_float_interval (concl th2) in
+  let s1, n1, e1 = dest_float l_lo and
+      s2, n2, e2 = dest_float l_hi and
+      s3, m1, r1 = dest_float r_lo and
+      s4, m2, r2 = dest_float r_hi in
+
+    (* Special case *)
     if s1 <> s2 or s3 <> s4 then
       failwith "float_interval_mul: not implemented"
     else
@@ -2679,26 +3281,54 @@ let float_interval_mul pp th1 th2 =
 
 
 
+
 (*
 let th1 = mk_float_interval_small_num 135;;
 let th2 = mk_float_interval_small_num 34;;
 let th1' = float_interval_neg th1;;
 let th2' = float_interval_neg th2;;
 
+float_interval_mul_old 2 th1 th2;;
+float_interval_mul_old 2 th1 th2';;
+float_interval_mul_old 2 th1' th2;;
+float_interval_mul_old 2 th1' th2';;
+
 float_interval_mul 2 th1 th2;;
 float_interval_mul 2 th1 th2';;
 float_interval_mul 2 th1' th2;;
 float_interval_mul 2 th1' th2';;
-*)
+
+let th3 = (NUMERALS_TO_NUM o REWRITE_RULE[FLOAT_OF_NUM; min_exp_def; GSYM FLOAT_NEG_T] o prove)
+  (`interval_arith (&0) (-- &5, &10)`, REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+let th4 = (NUMERALS_TO_NUM o REWRITE_RULE[FLOAT_OF_NUM; min_exp_def; GSYM FLOAT_NEG_T] o prove)
+  (`interval_arith (&0) (-- &10, &5)`, REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+float_interval_mul_old 2 th3 th1;;
+float_interval_mul 2 th3 th1;;
+float_interval_mul 2 th1 th3;;
+float_interval_mul 2 th3 th1';;
+float_interval_mul 2 th1' th3;;
+float_interval_mul 2 th3 th3;;
+float_interval_mul 2 th3 th4;;
 
 
-(*
+(* 10: 0.708 *)
+test 1000 (float_interval_mul_old 2 th1) th2;;
+(* 10: 0.712 *)
+test 1000 (float_interval_mul 2 th1) th2;;
+
+(* 10: 0.504 *)
+test 1000 (float_interval_mul 2 th3) th2;;
+(* 10: 1.096 *)
+test 1000 (float_interval_mul 2 th3) th4;;
+
+
 let th1 = mk_float_interval_small_num 123456781;;
 let th2 = mk_float_interval_small_num 514553443;;
 (* 4: 0.340 *)
-test 100 (float_interval_mul 5 th1) th2;;
+test 100 (float_interval_mul_old 5 th1) th2;;
 (* 4: 0.368 *)
-test 100 (float_interval_mul 1 th1) th2;;
+test 100 (float_interval_mul_old 1 th1) th2;;
 
 
 let tm1 = mk_small_numeral_array 123456781;;
@@ -2713,7 +3343,7 @@ let th1' = float_interval_round 5 th1;;
 let th2' = float_interval_round 5 th2;;
 
 (* 4: 0.176 *)
-test 100 (float_interval_mul 5 th1') th2';;
+test 100 (float_interval_mul_old 5 th1') th2';;
 *)
 
 

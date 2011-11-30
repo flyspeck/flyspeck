@@ -61,10 +61,117 @@ let eval_lin_approx_atn pp x_tm =
   let th0 = INST[x_tm, x_var_real; f_bounds, f_bounds_var; df_bounds, df_bounds_var] MK_LIN_APPROX_ATN' in
     MY_PROVE_HYP d_th (MY_PROVE_HYP atn_th th0);;
 
-(*
-let x_tm = mk_float_small 2;;
-eval_lin_approx_atn 10 x_tm;;
+
+(**************************************)
+(* f(x) = inv x *)
+
+let MK_LIN_APPROX_INV' = (UNDISCH_ALL o prove)
+  (`(x = &0 <=> F) ==> 
+     interval_arith (inv x) f_bounds ==>
+     interval_arith (--(inv x * inv x)) df_bounds ==>
+     lin_approx inv x f_bounds df_bounds`,
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[lin_approx_eq] THEN
+    ASM_SIMP_TAC[derivative_inv; REAL_DIFFERENTIABLE_AT_INV; REAL_INV_MUL]);;
+
+let eval_lin_approx_inv pp x_tm =
+  let x_th = mk_const_interval x_tm in
+  let inv_th = float_interval_inv pp x_th in
+  let d_th =
+    let neg = float_interval_neg and
+	( * ) = float_interval_mul pp in
+      neg (inv_th * inv_th) in
+  let f_bounds = (rand o concl) inv_th and
+      df_bounds = (rand o concl) d_th in
+  let xn0_th = float_eq0 x_tm in
+    (MY_PROVE_HYP xn0_th o MY_PROVE_HYP inv_th o MY_PROVE_HYP d_th o
+       INST[x_tm, x_var_real; f_bounds, f_bounds_var; df_bounds, df_bounds_var])
+      MK_LIN_APPROX_INV';;
+      
+
+
+(**************************************)
+(* f(x) = sqrt x *)
+
+let MK_LIN_APPROX_SQRT' = (UNDISCH_ALL o prove)
+  (`(&0 < x <=> T) ==> 
+     interval_arith (sqrt x) f_bounds ==>
+     interval_arith (inv(&2 * sqrt x)) df_bounds ==>
+     lin_approx sqrt x f_bounds df_bounds`,
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[lin_approx_eq] THEN
+    ASM_SIMP_TAC[derivative_sqrt; REAL_DIFFERENTIABLE_AT_SQRT]);;
+
+
+let eval_lin_approx_sqrt pp x_tm =
+  let x_th = mk_const_interval x_tm in
+  let sqrt_th = float_interval_sqrt pp x_th in
+  let d_th =
+    let ( * ) = float_interval_mul pp and
+	inv = float_interval_inv pp in
+      inv (two_interval * sqrt_th) in
+  let f_bounds = (rand o concl) sqrt_th and
+      df_bounds = (rand o concl) d_th in
+  let x_pos_th = float_gt0 x_tm in
+    (MY_PROVE_HYP x_pos_th o MY_PROVE_HYP sqrt_th o MY_PROVE_HYP d_th o
+       INST[x_tm, x_var_real; f_bounds, f_bounds_var; df_bounds, df_bounds_var])
+      MK_LIN_APPROX_SQRT';;
+
+(*      
+eval_lin_approx_sqrt 5 two_float;;
+let x = 2;;
 *)
+
+
+(**************************************)
+(* f(x) = acs x *)
+
+let MK_LIN_APPROX_ACS' = (UNDISCH_ALL o GEN_REWRITE_RULE (LAND_CONV o LAND_CONV o RAND_CONV) [(SYM o FLOAT_TO_NUM_CONV) one_float] o prove)
+  (`(abs x < &1 <=> T) ==> 
+     interval_arith (acs x) f_bounds ==>
+     interval_arith (--inv (sqrt (&1 - x * x))) df_bounds ==>
+     lin_approx acs x f_bounds df_bounds`,
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[lin_approx_eq] THEN
+    ASM_SIMP_TAC[derivative_acs; REAL_DIFFERENTIABLE_AT_ACS]);;
+
+let abs_tm = `abs`;;
+let check_abs_lt_1 x_tm =
+  let abs_eq = float_abs (mk_comb (abs_tm, x_tm)) in
+  let lt_th = float_lt (rand (concl abs_eq)) one_float in
+    if (fst o dest_const o rand o concl) lt_th <> "T" then
+      failwith "check_abs_lt_1: abs < 1 <=> F"
+    else
+      let th0 = AP_THM (AP_TERM lt_op_real abs_eq) x_tm in
+	th0, lt_th;;
+	TRANS th0 lt_th;;
+
+
+let x_tm =mk_float 5 49;;
+check_abs_lt_1 x_tm;;
+
+
+let eval_lin_approx_acs pp x_tm =
+  let x_th = mk_const_interval x_tm in
+  let acs_th = float_interval_acs pp x_th in
+  let d_th =
+    let ( * ) = float_interval_mul pp and
+	inv = float_interval_inv pp and
+	sqrt = float_interval_sqrt pp and
+	neg = float_interval_neg and
+	(-) = float_interval_sub pp in
+      neg (inv (sqrt (one_interval - x_th * x_th))) in
+  let f_bounds = (rand o concl) acs_th and
+      df_bounds = (rand o concl) d_th in
+  let x_pos_th = float_gt0 x_tm in
+    (MY_PROVE_HYP x_pos_th o MY_PROVE_HYP acs_th o MY_PROVE_HYP d_th o
+       INST[x_tm, x_var_real; f_bounds, f_bounds_var; df_bounds, df_bounds_var])
+      MK_LIN_APPROX_ACS';;
+
+
+eval_lin_approx_acs 5 (mk_float 5 49);;
+let x = 2;;
+*)
+
+
+
 
 (********************************)
 (* lin_approx_components *)

@@ -1,4 +1,24 @@
+needs "tame/ArcProperties.hl";;
 needs "../formal_lp/arith/float_atn.hl";;
+
+let REAL_LE_POW_2 = prove(`!x. &0 <= x pow 2`,
+  REWRITE_TAC[REAL_POW_2; REAL_LE_SQUARE]);;
+
+let REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT = 
+  prove(`!f s. real_open s ==>
+	  (f real_continuous_on s <=> (!x. x IN s ==> f real_continuous atreal x))`,
+  REWRITE_TAC[REAL_OPEN; REAL_CONTINUOUS_ON; REAL_CONTINUOUS_CONTINUOUS_ATREAL] THEN
+    REPEAT STRIP_TAC THEN
+    MP_TAC (ISPECL[`lift o f o drop`; `IMAGE lift s`] CONTINUOUS_ON_EQ_CONTINUOUS_AT) THEN
+    ASM_REWRITE_TAC[] THEN DISCH_THEN (fun th -> REWRITE_TAC[th; IN_IMAGE_LIFT_DROP]) THEN
+    EQ_TAC THEN REPEAT STRIP_TAC THENL
+    [
+      FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[LIFT_DROP];
+      FIRST_X_ASSUM (MP_TAC o SPEC `drop x`) THEN ASM_REWRITE_TAC[LIFT_DROP]
+    ]);;
+					
+
+section_stack := [];;
 needs "../formal_lp/formal_interval/theory/taylor_interval.hl";;
 
 
@@ -28,11 +48,30 @@ let add_op_real = `(+):real->real->real` and
     div_op_real = `(/):real->real->real` and
     inv_op_real = `inv` and
     neg_op_real = `--` and
-    eq_op_real = `(=):real->real->bool`;;
+    eq_op_real = `(=):real->real->bool` and
+    lt_op_real = `(<):real->real->bool`;;
+
+let w1_var_real = `w1 : real` and
+    w2_var_real = `w2 : real` and
+    t_var_real = `t : real` and
+    g_bounds_var = `g_bounds : real#real` and
+    dg_bounds_var = `dg_bounds : real#real` and
+    d_bounds_var = `d_bounds : real#real` and
+    x0_var_real = `x0 : real` and
+    z0_var_real = `z0 : real` and
+    w0_var_real = `w0 : real`;;
 
 	
 (*************************************)
 (* More float *)
+
+
+let mk_float n e =
+  let n, s = if n < 0 then -n, `T` else n, `F` in
+  let n_tm = rand (mk_small_numeral_array n) in
+  let e_tm = rand (mk_small_numeral_array e) in
+    mk_comb(mk_comb(mk_comb (`float`, s), n_tm), e_tm);;
+
 
 let interval_tm = `interval_arith`;;
 
@@ -59,6 +98,23 @@ let two_float = mk_float_small 2;;
 let one_interval = mk_float_interval_small_num 1;;
 let two_interval = mk_float_interval_small_num 2;;
 let neg_two_interval = float_interval_neg two_interval;;
+
+
+(***********************************)
+(* float_eq0 *)
+
+let FLOAT_EQ_0' = (GEN_REWRITE_RULE (RAND_CONV o RAND_CONV) [NUMERAL] o SPEC_ALL) 
+  FLOAT_EQ_0;;
+
+
+let float_eq0 f_tm =
+  let lhs, e_tm = dest_comb f_tm in
+  let lhs2, n_tm = dest_comb lhs in
+  let th0 = INST[rand lhs2, s_var_bool; n_tm, n_var_num; e_tm, e_var_num] FLOAT_EQ_0' in
+  let eq_th = raw_eq0_hash_conv n_tm in
+    TRANS th0 eq_th;;
+
+
 
 
 (***********************************)
@@ -124,7 +180,75 @@ let FLOAT_IABS_TT = prove(`iabs (float T n1 e1, float T n2 e2) = float F n1 e1`,
 (* let FLOAT_IABS_FT = prove(`iabs (float F n1 e1, float T n2 e2)  *)
 
 
+(****************************)
+(* interval_not_zero *)
 
+let INTERVAL_NOT_ZERO1' = (UNDISCH_ALL o prove)
+  (`(&0 < lo <=> T) ==> interval_not_zero (lo, hi)`, SIMP_TAC[interval_not_zero]);;
+let INTERVAL_NOT_ZERO2' = (UNDISCH_ALL o prove)
+  (`(hi < &0 <=> T) ==> interval_not_zero (lo, hi)`, SIMP_TAC[interval_not_zero]);;
+
+let check_interval_not_zero int_tm =
+  let lo, hi = dest_pair int_tm in
+  let inst = INST[lo, lo_var_real; hi, hi_var_real] in
+  let s1, _, _ = dest_float lo in
+    if s1 = "F" then
+      let gt_th = float_gt0 lo in
+	if (fst o dest_const o rand o concl) gt_th <> "T" then
+	  failwith "check_interval_not_zero: &0 < lo <=> F"
+	else
+	  (MY_PROVE_HYP gt_th o inst) INTERVAL_NOT_ZERO1'
+    else
+      let lt_th = float_lt0 hi in
+	if (fst o dest_const o rand o concl) lt_th <> "T" then
+	  failwith "check_interval_not_zero: hi < &0 <=> F"
+	else
+	  (MY_PROVE_HYP lt_th o inst) INTERVAL_NOT_ZERO2';;
+
+
+
+
+let int1 = mk_pair (mk_float 3 50, mk_float 4 50);;
+let int2 = mk_pair (mk_float (-4) 50, mk_float (-3) 50);;
+
+check_interval_not_zero int1;;
+check_interval_not_zero int2;;
+
+(*************************************)
+(* interval_pos *)
+
+let INTERVAL_POS' = (UNDISCH_ALL o prove)
+  (`(&0 < lo <=> T) ==> interval_pos (lo, hi:real)`, SIMP_TAC[interval_pos]);;
+
+
+let check_interval_pos int_tm =
+  let lo, hi = dest_pair int_tm in
+  let gt_th = float_gt0 lo in
+    if (fst o dest_const o rand o concl) gt_th <> "T" then
+      failwith "check_interval_pos: &0 < lo <=> F"
+    else
+      (MY_PROVE_HYP gt_th o INST[lo, lo_var_real; hi, hi_var_real]) INTERVAL_POS';;
+
+
+check_interval_pos int1;;
+check_interval_pos int2;;
+
+(************************************)
+(* check_interval_iabs *)
+
+
+(* proves iabs int < rhs *)
+let check_interval_iabs int_tm rhs_tm =
+  let iabs_eq = float_iabs int_tm in
+  let lt_th = float_lt (rand (concl iabs_eq)) rhs_tm in
+    if (fst o dest_const o rand o concl) lt_th <> "T" then
+      failwith "check_interval_iabs: iabs < rhs <=> F"
+    else
+      let th0 = AP_THM (AP_TERM lt_op_real iabs_eq) rhs_tm in
+	TRANS th0 lt_th;;
+      
+
+check_interval_iabs int2 (mk_float 41 49);;
 
 
 (****************************)

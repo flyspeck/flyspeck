@@ -1,0 +1,218 @@
+needs "../formal_lp/formal_interval/second_approx.hl";;
+
+
+(***********************************)
+
+let cell_pass = new_definition `cell_pass f int <=> !x. interval_arith x int ==> f x < &0`;;
+
+let dest_cell_pass tm =
+  let lhs, int_tm = dest_comb tm in
+    rand lhs, int_tm;;
+
+let CELL_PASS_GLUE = prove(`!f x t z. cell_pass f (x, t) /\ cell_pass f (t, z) ==> cell_pass f (x, z)`,
+			   REWRITE_TAC[cell_domain; cell_pass; interval_arith] THEN
+			     REPEAT STRIP_TAC THEN
+			     DISJ_CASES_TAC (REAL_ARITH `x' <= t \/ t <= x'`) THENL
+			     [
+			       FIRST_X_ASSUM ((fun th -> ALL_TAC) o SPEC `x':real`) THEN
+				 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+			       FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]
+			     ]);;
+
+let CELL_PASS_GLUE' = RULE CELL_PASS_GLUE;;
+
+let cell_pass_glue pass1 pass2 =
+  let f_tm, int1 = dest_cell_pass (concl pass1) and
+      int2 = rand (concl pass2) in
+  let x_tm, t_tm = dest_pair int1 and
+      z_tm = rand int2 in
+  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; t_tm, t_var_real; z_tm, z_var_real] CELL_PASS_GLUE' in
+    (MY_PROVE_HYP pass1 o MY_PROVE_HYP pass2) th0;;
+  
+
+
+
+let CELL_PASS_LEMMA' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
+  (`bounded_on_int f int (f_lo, f_hi) /\ (f_hi < &0 <=> T) ==> cell_pass f int`,
+   REWRITE_TAC[bounded_on_int; cell_pass; interval_arith] THEN
+     REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LET_TRANS THEN
+     EXISTS_TAC `f_hi:real` THEN ASM_REWRITE_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `x:real`) THEN ASM_SIMP_TAC[]);;
+
+
+let taylor_cell_pass pp taylor_int_th =
+  let bound_th = eval_taylor_f_bounds pp taylor_int_th in
+  let lhs, f_bounds = dest_comb (concl bound_th) in
+  let lhs2, int_tm = dest_comb lhs in
+  let f_tm = rand lhs2 in
+  let f_lo, f_hi = dest_pair f_bounds in
+  let f_hi_lt0 = float_lt0 f_hi in
+    if (fst o dest_const o rand o concl) f_hi_lt0 <> "T" then
+      failwith "taylor_cell_pass: f_hi >= 0"
+    else
+      let th0 = INST[f_tm, f_var_fun; int_tm, int_var; f_lo, f_lo_var; f_hi, f_hi_var] CELL_PASS_LEMMA' in
+	(MY_PROVE_HYP bound_th o MY_PROVE_HYP f_hi_lt0) th0;;
+
+
+
+
+(*******************************************************************)
+(* Example 1: f(x) = x * x - atn x; f(x) < 0 when 0.01 <= x <= 0.8 *)
+(*******************************************************************)
+
+let x_tm = mk_float 1 48;;
+let z_tm = mk_float 8 49;;
+
+let domain_th = mk_center_domain 5 x_tm z_tm;;
+let _, y_tm, _, _ = dest_cell_domain (concl domain_th);;
+
+
+let domain1_th = mk_center_domain 5 x_tm y_tm;;
+let _, y1_tm, _, _ = dest_cell_domain (concl domain1_th);;
+let domain11_th = mk_center_domain 5 x_tm y1_tm;;
+let domain12_th = mk_center_domain 5 y1_tm y_tm;;
+
+let domain2_th = mk_center_domain 5 y_tm z_tm;;
+
+
+let eval_f pp domain_th =
+  let int_x = eval_taylor_x domain_th in
+  let int_atn = eval_taylor_atn pp domain_th in
+  let int_x2 = taylor_interval_mul pp int_x int_x in
+    taylor_interval_sub pp int_x2 int_atn;;
+
+
+let int_th = eval_f 5 domain_th;;
+let int_th11 = eval_f 5 domain11_th;;
+let int_th12 = eval_f 5 domain12_th;;
+let int_th2 = eval_f 5 domain2_th;;
+
+taylor_cell_pass 5 int_th;;
+let pass11 = taylor_cell_pass 5 int_th11;;
+let pass12 = taylor_cell_pass 5 int_th12;;
+let pass2 = taylor_cell_pass 5 int_th2;;
+
+let pass1 = cell_pass_glue pass11 pass12;;
+let pass = cell_pass_glue pass1 pass2;;
+
+
+
+(****************************************************************************)
+(* Example 2: f(x) = x * x * x - atn (x * x); f(x) < 0 when 0.1 <= x <= 0.8 *)
+(****************************************************************************)
+
+let x_tm = mk_float 1 49;;
+let z_tm = mk_float 8 49;;
+
+let domain_th = mk_center_domain 5 x_tm z_tm;;
+let _, y_tm, _, _ = dest_cell_domain (concl domain_th);;
+
+let domain1_th = mk_center_domain 5 x_tm y_tm;;
+let _, y1_tm, _, _ = dest_cell_domain (concl domain1_th);;
+
+let domain11_th = mk_center_domain 5 x_tm y1_tm;;
+let _, y11_tm, _, _ = dest_cell_domain (concl domain11_th);;
+
+let domain111_th = mk_center_domain 5 x_tm y11_tm;;
+let domain112_th = mk_center_domain 5 y11_tm y1_tm;;
+
+let domain12_th = mk_center_domain 5 y1_tm y_tm;;
+let domain2_th = mk_center_domain 5 y_tm z_tm;;
+
+let eval_sqr pp domain_th =
+  let x_th = eval_taylor_x domain_th in
+    taylor_interval_mul pp x_th x_th;;
+
+
+let eval_f pp domain_th =
+  let int_x = eval_taylor_x domain_th in
+  let int_x2 = taylor_interval_mul pp int_x int_x in
+  let int_x3 = taylor_interval_mul pp int_x int_x2 in
+  let atn_x2 = taylor_interval_compose pp eval_taylor_atn eval_sqr domain_th in
+    taylor_interval_sub pp int_x3 atn_x2;;
+
+let int_th = eval_f 5 domain_th;;
+let int_th111 = eval_f 5 domain111_th;;
+let int_th112 = eval_f 5 domain112_th;;
+let int_th12 = eval_f 5 domain12_th;;
+let int_th2 = eval_f 5 domain2_th;;
+
+taylor_cell_pass 5 int_th;;
+let pass111 = taylor_cell_pass 5 int_th111;;
+let pass112 = taylor_cell_pass 5 int_th112;;
+let pass12 = taylor_cell_pass 5 int_th12;;
+let pass2 = taylor_cell_pass 5 int_th2;;
+
+let pass11 = cell_pass_glue pass111 pass112;;
+let pass1 = cell_pass_glue pass11 pass12;;
+let pass = cell_pass_glue pass1 pass2;;
+
+let th0 = REWRITE_RULE[cell_pass; interval_arith] pass;;
+CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV) th0;;
+
+
+
+(*************************)
+
+
+
+(***************************)
+
+let x_tm = mk_float 20 48;;
+let z_tm = mk_float 99 48;;
+
+let domain_th = mk_center_domain 5 x_tm z_tm;;
+test 1000 (mk_center_domain 5 x_tm) z_tm;;
+
+let int_x = eval_taylor_x domain_th;;
+let int_atn = eval_taylor_atn 5 domain_th;;
+let int_x2 = taylor_interval_mul 5 int_x int_x;;
+let int_x_atn = taylor_interval_mul 5 int_x int_atn;;
+
+let int_th1 = taylor_interval_sub 5 int_x2 int_x;;
+let int_th2 = taylor_interval_sub 5 int_x_atn int_x;;
+
+eval_taylor_f_bounds 5 int_th1;;
+eval_taylor_f_bounds 5 int_th2;;
+
+let x_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+    (mk_bounded_on_int o ASSUME) (mk_interval x_var_real (mk_pair (x_tm, z_tm)));;
+
+
+let b_x2 = bounded_on_int_mul 5 x_th x_th;;
+bounded_on_int_sub 5 b_x2 x_th;;
+
+
+
+
+
+
+(*******************************************)
+(* arclength #2.52 #2.52 (&2) >= #0.816 *)
+(* arclength (&2) #2.52 (&2) - arclength #2.52 #2.52 (&2) >= #0.073 *)
+(* arclength a b c = acs ((a * a + b * b - c * c) / (&2 * a * b)) *)
+
+let two_tm = mk_float 2 50;;
+let h_tm = mk_float 252 48;;
+let pp = 6;;
+
+
+let arclength_int pp a b c = 
+  let ( * ) = float_interval_mul pp and
+      (+) = float_interval_add pp and
+      (/) = float_interval_div pp and
+      (-) = float_interval_sub pp and
+      acs = float_interval_acs pp in
+    acs ((a * a + b * b - c * c) / (two_interval * a * b));;
+
+let result =
+  let (!) = mk_const_interval and
+      (-) = float_interval_sub pp in
+    arclength_int pp !h_tm !h_tm !two_tm,
+  arclength_int pp !two_tm !h_tm !two_tm - arclength_int pp !h_tm !h_tm !two_tm;;
+  
+
+(CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV)) (fst result);;
+(CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV)) (snd result);;

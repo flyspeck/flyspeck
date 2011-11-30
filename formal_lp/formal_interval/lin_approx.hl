@@ -1,0 +1,230 @@
+needs "../formal_lp/formal_interval/more_float.hl";;
+
+
+(*****************************************)
+(* mk_lin_approx, dest_lin_approx *)
+
+
+let MK_LIN_APPROX' = (RULE o MATCH_MP EQ_IMP o SYM o SPEC_ALL) lin_approx_eq;;
+let DEST_LIN_APPROX' = (RULE o MATCH_MP EQ_IMP o SPEC_ALL) lin_approx_eq;;
+
+
+let dest_lin_approx approx_tm =
+  let lhs, df_bounds = dest_comb approx_tm in
+  let lhs2, f_bounds = dest_comb lhs in
+  let lhs3, x_tm = dest_comb lhs2 in
+  let f_tm = rand lhs3 in
+    f_tm, x_tm, f_bounds, df_bounds;;
+
+
+let lin_approx_components approx_th =
+  let f_tm, x_tm, f_bounds, df_bounds = dest_lin_approx (concl approx_th) in
+  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; 
+		 f_bounds, f_bounds_var; df_bounds, df_bounds_var] DEST_LIN_APPROX' in
+  let th1 = MY_PROVE_HYP approx_th th0 in
+  let [r1; r2; r3] = CONJUNCTS th1 in
+    (r1, r2, r3);;
+    
+    
+
+(***************************)
+(* f(x) = x *)
+let LIN_APPROX_X' = RULE lin_approx_x;;
+
+let eval_lin_approx_x x_tm =
+  INST[x_tm, x_var_real] LIN_APPROX_X';;
+
+
+(***************************)
+(* f(x) = c *)
+let LIN_APPROX_CONST' = RULE lin_approx_const;;
+
+
+let eval_lin_approx_const c_tm x_tm =
+  INST[c_tm, c_var_real; x_tm, x_var_real] LIN_APPROX_CONST';;
+
+
+(*******************************)
+(* f(x) = atn x *)
+
+let MK_LIN_APPROX_ATN' = (UNDISCH_ALL o REWRITE_RULE[derivative_atn] o DISCH_ALL o
+			    MY_PROVE_HYP (SPEC_ALL REAL_DIFFERENTIABLE_AT_ATN) o 
+			    INST[`atn`, `f:real->real`]) MK_LIN_APPROX';;
+
+
+let eval_lin_approx_atn pp x_tm =
+  let x_th = mk_const_interval x_tm in
+  let d_th = float_interval_inv pp (float_interval_add pp one_interval (float_interval_mul pp x_th x_th)) in
+  let atn_th = float_interval_atn pp x_th in
+  let f_bounds = (rand o concl) atn_th in
+  let df_bounds = (rand o concl) d_th in
+  let th0 = INST[x_tm, x_var_real; f_bounds, f_bounds_var; df_bounds, df_bounds_var] MK_LIN_APPROX_ATN' in
+    MY_PROVE_HYP d_th (MY_PROVE_HYP atn_th th0);;
+
+(*
+let x_tm = mk_float_small 2;;
+eval_lin_approx_atn 10 x_tm;;
+*)
+
+(********************************)
+(* lin_approx_components *)
+
+
+(********************************)
+(* lin_approx add *)
+
+let DERIVATIVE_ADD' = RULE derivative_add;;
+let DIFF_ADD' = (INST[`atreal x`, `net:(real)net`] o RULE) REAL_DIFFERENTIABLE_ADD;;
+
+let DERIVATIVE_ADD2' = CONJ DERIVATIVE_ADD' DIFF_ADD';;
+
+
+let eval_lin_approx_add pp approx1 approx2 =
+  let diff1_th, f1_th, df1_th = lin_approx_components approx1 in
+  let diff2_th, f2_th, df2_th = lin_approx_components approx2 in
+  let f1_tm = (lhand o concl) diff1_th in
+  let f2_tm = (lhand o concl) diff2_th in
+  let x_tm = (rand o rand o concl) diff1_th in
+
+  let beta_tm1, beta_tm2 = mk_comb (f1_tm, x_var_real), mk_comb (f2_tm, x_var_real) in
+  let beta_th1 = if is_abs f1_tm then BETA beta_tm1 else REFL beta_tm1 in
+  let beta_th2 = if is_abs f2_tm then BETA beta_tm2 else REFL beta_tm2 in
+  let add_th = ABS x_var_real (MK_COMB (AP_TERM add_op_real beta_th1, beta_th2)) in
+  let add_th_0 = AP_THM add_th x_tm in
+  let beta_th = BETA_CONV ((lhand o concl) add_th_0) in
+  let add_th2 = TRANS (SYM beta_th) add_th_0 in
+  let f_tm = (rand o concl) add_th in
+
+  let d_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DERIVATIVE_ADD' in
+  let d_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th d_th0) in
+  let diff_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DIFF_ADD' in
+  let diff_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th diff_th0) in
+  let d_th = norm_derivative d_th1 add_th in
+  let diff_th = norm_diff diff_th1 add_th in
+
+  let f_th0 = float_interval_add pp f1_th f2_th in
+  let f_th = norm_interval f_th0 (SYM add_th2) in
+  let df_th0 = float_interval_add pp df1_th df2_th in
+  let df_th = norm_interval df_th0 d_th in
+
+  let f_bounds = (rand o concl) f_th0 in
+  let df_bounds = (rand o concl) df_th0 in
+
+  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; f_bounds, f_bounds_var;
+		 df_bounds, df_bounds_var] MK_LIN_APPROX' in
+    MY_PROVE_HYP diff_th (MY_PROVE_HYP f_th (MY_PROVE_HYP df_th th0));;
+
+
+(*
+let pp = 5;;
+
+let approx1 = eval_lin_approx_atn pp one_float;;
+let approx2 = eval_lin_approx_x one_float;;
+eval_lin_approx_add pp (eval_lin_approx_add pp approx2 approx2) approx1;;
+*)
+
+(********************************)
+(* lin_approx sub *)
+
+let DERIVATIVE_SUB' = RULE derivative_sub;;
+let DIFF_SUB' = (INST[`atreal x`, `net:(real)net`] o RULE) REAL_DIFFERENTIABLE_SUB;;
+
+
+let eval_lin_approx_sub pp approx1 approx2 =
+  let diff1_th, f1_th, df1_th = lin_approx_components approx1 in
+  let diff2_th, f2_th, df2_th = lin_approx_components approx2 in
+  let f1_tm = (lhand o concl) diff1_th in
+  let f2_tm = (lhand o concl) diff2_th in
+  let x_tm = (rand o rand o concl) diff1_th in
+
+  let beta_tm1, beta_tm2 = mk_comb (f1_tm, x_var_real), mk_comb (f2_tm, x_var_real) in
+  let beta_th1 = if is_abs f1_tm then BETA beta_tm1 else REFL beta_tm1 in
+  let beta_th2 = if is_abs f2_tm then BETA beta_tm2 else REFL beta_tm2 in
+  let sub_th = ABS x_var_real (MK_COMB (AP_TERM sub_op_real beta_th1, beta_th2)) in
+  let sub_th_0 = AP_THM sub_th x_tm in
+  let beta_th = BETA_CONV ((lhand o concl) sub_th_0) in
+  let sub_th2 = TRANS (SYM beta_th) sub_th_0 in
+  let f_tm = (rand o concl) sub_th in
+
+  let d_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DERIVATIVE_SUB' in
+  let d_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th d_th0) in
+  let diff_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DIFF_SUB' in
+  let diff_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th diff_th0) in
+  let d_th = norm_derivative d_th1 sub_th in
+  let diff_th = norm_diff diff_th1 sub_th in
+
+  let f_th0 = float_interval_sub pp f1_th f2_th in
+  let f_th = norm_interval f_th0 (SYM sub_th2) in
+  let df_th0 = float_interval_sub pp df1_th df2_th in
+  let df_th = norm_interval df_th0 d_th in
+
+  let f_bounds = (rand o concl) f_th0 in
+  let df_bounds = (rand o concl) df_th0 in
+
+  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; f_bounds, f_bounds_var;
+		 df_bounds, df_bounds_var] MK_LIN_APPROX' in
+    MY_PROVE_HYP diff_th (MY_PROVE_HYP f_th (MY_PROVE_HYP df_th th0));;
+
+
+(*
+let pp = 5;;
+
+let approx1 = eval_lin_approx_atn pp one_float;;
+let approx2 = eval_lin_approx_x one_float;;
+eval_lin_approx_sub pp approx1 approx2;;
+*)
+
+
+
+(********************************)
+(* lin_approx mul *)
+
+let DERIVATIVE_MUL' = RULE derivative_mul;;
+let DIFF_MUL' = (INST[x_var_real, `z:real`] o RULE) REAL_DIFFERENTIABLE_MUL_ATREAL;;
+
+
+let eval_lin_approx_mul pp approx1 approx2 =
+  let diff1_th, f1_th, df1_th = lin_approx_components approx1 in
+  let diff2_th, f2_th, df2_th = lin_approx_components approx2 in
+  let f1_tm = (lhand o concl) diff1_th in
+  let f2_tm = (lhand o concl) diff2_th in
+  let x_tm = (rand o rand o concl) diff1_th in
+
+  let beta_tm1, beta_tm2 = mk_comb (f1_tm, x_var_real), mk_comb (f2_tm, x_var_real) in
+  let beta_th1 = if is_abs f1_tm then BETA beta_tm1 else REFL beta_tm1 in
+  let beta_th2 = if is_abs f2_tm then BETA beta_tm2 else REFL beta_tm2 in
+  let mul_th = ABS x_var_real (MK_COMB (AP_TERM mul_op_real beta_th1, beta_th2)) in
+  let mul_th_0 = AP_THM mul_th x_tm in
+  let beta_th = BETA_CONV ((lhand o concl) mul_th_0) in
+  let mul_th2 = TRANS (SYM beta_th) mul_th_0 in
+  let f_tm = (rand o concl) mul_th in
+
+  let d_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DERIVATIVE_MUL' in
+  let d_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th d_th0) in
+  let diff_th0 = INST[f1_tm, f_var_fun; f2_tm, g_var_fun; x_tm, x_var_real] DIFF_MUL' in
+  let diff_th1 = MY_PROVE_HYP diff1_th (MY_PROVE_HYP diff2_th diff_th0) in
+  let d_th = norm_derivative d_th1 mul_th in
+  let diff_th = norm_diff diff_th1 mul_th in
+
+  let f_th0 = float_interval_mul pp f1_th f2_th in
+  let f_th = norm_interval f_th0 (SYM mul_th2) in
+  let df_th0 = float_interval_add pp (float_interval_mul pp f1_th df2_th)
+    (float_interval_mul pp df1_th f2_th) in
+  let df_th = norm_interval df_th0 d_th in
+
+  let f_bounds = (rand o concl) f_th0 in
+  let df_bounds = (rand o concl) df_th0 in
+
+  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; f_bounds, f_bounds_var;
+		 df_bounds, df_bounds_var] MK_LIN_APPROX' in
+    MY_PROVE_HYP diff_th (MY_PROVE_HYP f_th (MY_PROVE_HYP df_th th0));;
+
+
+(*
+let pp = 5;;
+
+let approx1 = eval_lin_approx_atn (pp + 2) one_float;;
+let approx2 = eval_lin_approx_x one_float;;
+eval_lin_approx_sub pp approx2 (eval_lin_approx_mul pp approx1 approx1);;
+*)
+

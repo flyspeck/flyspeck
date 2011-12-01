@@ -153,7 +153,125 @@ CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV) th0;;
 
 
 
-(*************************)
+(********************************************)
+(* Example 3:                                                          *)
+(* !x. &2 <= x /\ x <= #2.52                                           *)
+(*   ==> arclength (&2) x (&2) - arclength (#2.52) x (&2) >= #0.073`   *)
+
+let eval_arc1 pp domain_th =
+  let two = eval_taylor_const domain_th two_float and
+      ( * ) = taylor_interval_mul pp and
+      (+) = taylor_interval_add pp and
+      (-) = taylor_interval_sub pp in
+  let b = (fun pp domain_th ->
+	     let x = eval_taylor_x domain_th in
+	       two * two * x) in
+  let a = (fun pp domain_th -> 
+	     let x = eval_taylor_x domain_th in
+	     let rhs = taylor_interval_compose pp eval_taylor_inv b domain_th in
+	       (two * two + x * x - two * two) * rhs) in
+    taylor_interval_compose pp eval_taylor_acs a domain_th;;
+
+
+let h_float = mk_float 252 48;;
+let eval_arc2 pp domain_th =
+  let two = eval_taylor_const domain_th two_float and
+      h = eval_taylor_const domain_th h_float and
+      ( * ) = taylor_interval_mul pp and
+      (+) = taylor_interval_add pp and
+      (-) = taylor_interval_sub pp in
+  let b = (fun pp domain_th ->
+	     let x = eval_taylor_x domain_th in
+	       two * h * x) in
+  let a = (fun pp domain_th -> 
+	     let x = eval_taylor_x domain_th in
+	     let rhs = taylor_interval_compose pp eval_taylor_inv b domain_th in
+	       (h * h + x * x - two * two) * rhs) in
+    taylor_interval_compose pp eval_taylor_acs a domain_th;;
+
+
+let t_float = mk_float 73 47;;
+let eval_f pp domain_th =
+  let t = eval_taylor_const domain_th t_float and
+      (+) = taylor_interval_add pp and
+      (-) = taylor_interval_sub pp and
+      arc1 = eval_arc1 pp domain_th and
+      arc2 = eval_arc2 pp domain_th in
+    t + arc2 - arc1;;
+
+let pp = 6;;  
+let domain0 = mk_center_domain pp two_float h_float;;
+
+let _, y1_tm, _, _ = dest_cell_domain (concl domain0);;
+let domain1 = mk_center_domain pp two_float y1_tm and
+    domain2 = mk_center_domain pp y1_tm h_float;;
+
+let _, y12_tm, _, _ = dest_cell_domain (concl domain2);;
+let domain21 = mk_center_domain pp y1_tm y12_tm and
+    domain22 = mk_center_domain pp y12_tm h_float;;
+
+let _, y122_tm, _, _ = dest_cell_domain (concl domain22);;
+let domain221 = mk_center_domain pp y12_tm y122_tm and
+    domain222 = mk_center_domain pp y122_tm h_float;;
+
+let int1 = eval_f pp domain1;;
+let int21 = eval_f pp domain21;;
+let int221 = eval_f pp domain221;;
+let int222 = eval_f pp domain222;;
+
+let pass1 = taylor_cell_pass pp int1;;
+let pass21 = taylor_cell_pass pp int21;;
+
+let pass221 = taylor_cell_pass pp int221;;
+let pass222 = taylor_cell_pass pp int222;;
+
+let pass22 = cell_pass_glue pass221 pass222;;
+let pass2 = cell_pass_glue pass21 pass22;;
+
+let pass = cell_pass_glue pass1 pass2;;
+
+let th0 = REWRITE_RULE[cell_pass; interval_arith] pass;;
+CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV) th0;;
+
+
+let ineq_test pp =
+  let domain0 = mk_center_domain pp two_float h_float in
+  let _, y1_tm, _, _ = dest_cell_domain (concl domain0) in
+  let domain1 = mk_center_domain pp two_float y1_tm and
+      domain2 = mk_center_domain pp y1_tm h_float in
+  let _, y12_tm, _, _ = dest_cell_domain (concl domain2) in
+  let domain21 = mk_center_domain pp y1_tm y12_tm and
+      domain22 = mk_center_domain pp y12_tm h_float in
+  let _, y122_tm, _, _ = dest_cell_domain (concl domain22) in
+  let domain221 = mk_center_domain pp y12_tm y122_tm and
+      domain222 = mk_center_domain pp y122_tm h_float in
+
+  let int1 = eval_f pp domain1 and
+      int21 = eval_f pp domain21 and
+      int221 = eval_f pp domain221 and
+      int222 = eval_f pp domain222 in
+
+  let pass1 = taylor_cell_pass pp int1 in
+  let pass21 = taylor_cell_pass pp int21 in
+  let pass221 = taylor_cell_pass pp int221 in
+  let pass222 = taylor_cell_pass pp int222 in
+  let pass22 = cell_pass_glue pass221 pass222 in
+  let pass2 = cell_pass_glue pass21 pass22 in
+    cell_pass_glue pass1 pass2;;
+
+
+ineq_test 5;;
+ineq_test 6;;
+ineq_test 7;;
+ineq_test 10;;
+
+(* 10: 10.500 *)
+test 5 ineq_test 6;;
+(* 10: 11.713 *)
+test 5 ineq_test 7;;
+(* 10: 17.405 *)
+test 5 ineq_test 10;;
+
 
 
 

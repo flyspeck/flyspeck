@@ -1,120 +1,6 @@
 needs "../formal_lp/formal_interval/lin_approx.hl";;
 
 
-(***********************************)
-(* bounds on the second derivative *)
-
-
-(**********************************)
-(* f(x) = x *)
-
-
-
-(***********************************)
-(* taylor_interval *)
-
-(*****************************)
-(* cell_domain *)
-
-let dest_cell_domain tm =
-  let lhs, w_tm = dest_comb tm in
-  let lhs2, z_tm = dest_comb lhs in
-  let lhs3, y_tm = dest_comb lhs2 in
-    rand lhs3, y_tm, z_tm, w_tm;;
-
-
-(*****************************)
-(* f(x) = x *)
-
-
-let TAYLOR_X' = RULE taylor_x;;
-
-
-let eval_taylor_x domain_th =
-  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
-  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real] TAYLOR_X' in
-    MY_PROVE_HYP domain_th th0;;
-
- 
-let domain_th = prove(`cell_domain (&1) (&2) (&4) (&2)`,
-		      REWRITE_TAC[cell_domain] THEN REAL_ARITH_TAC);;
-
-(*			  
-eval_taylor_x domain_th;;
-*)
-
-(********************************)
-(* f(x) = const *)
-
-let TAYLOR_CONST' = RULE taylor_const;;
-let eval_taylor_const domain_th c_tm =
-  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
-    INST[c_tm, c_var_real; x_tm, x_var_real; y_tm, y_var_real; 
-	 z_tm, z_var_real; w_tm, w_var_real] TAYLOR_CONST';;
-
-(*
-eval_taylor_const domain_th `&3`;;
-*)
-
-(***********************************)
-(* f(x) = atn x *)
-
-let taylor_atn = prove(`cell_domain x y z w ==>
-			 bounded_on_int (\x. (-- &2 * x) * inv (&1 + x pow 2) pow 2) (x,z) dd_bounds ==>
-			 lin_approx atn y f_bounds df_bounds ==>
-			 taylor_interval atn x y z w f_bounds df_bounds dd_bounds`,
-  REWRITE_TAC[cell_domain; taylor_interval] THEN REPEAT DISCH_TAC THEN ASM_REWRITE_TAC[] THEN
-    MATCH_MP_TAC second_derivative_atn_bound THEN ASM_REWRITE_TAC[]);;
-
-let TAYLOR_ATN' = (UNDISCH_ALL o REWRITE_RULE[REAL_POW_2]) taylor_atn;;
-
-
-let eval_taylor_atn pp domain_th =
-  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
-
-  let atn_lin = eval_lin_approx_atn pp y_tm in
-  let lhs, df_bounds = (dest_comb o concl) atn_lin in
-  let f_bounds = rand lhs in
-
-  let x_th = ASSUME (mk_interval x_var_real (mk_pair (x_tm, z_tm))) in
-  let neg2x = float_interval_mul pp neg_two_interval x_th in
-  let xx1 = float_interval_add pp one_interval (float_interval_mul pp x_th x_th) in
-  let inv_xx1 = float_interval_inv pp xx1 in
-  let r_th = float_interval_mul pp neg2x (float_interval_mul pp inv_xx1 inv_xx1) in
-  let ddf = mk_bounded_on_int r_th in
-  let dd_bounds = rand (concl ddf) in
-
-  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real;
-		 dd_bounds, dd_bounds_var; f_bounds, f_bounds_var; df_bounds, df_bounds_var] TAYLOR_ATN' in
-    MY_PROVE_HYP domain_th (MY_PROVE_HYP atn_lin (MY_PROVE_HYP ddf th0));;
-
-
-let domain_th = RULE domain_th;;
-(*
-let pp = 5;;
-eval_taylor_atn pp domain_th;;
-*)
-
-
-
-(***********************************)
-(* Taylor bounds *)
-
-
-let dest_taylor_interval tm =
-  let lhs, dd_bounds = dest_comb tm in
-  let lhs, df_bounds = dest_comb lhs in
-  let lhs, f_bounds = dest_comb lhs in
-  let lhs, w_tm = dest_comb lhs in
-  let lhs, z_tm = dest_comb lhs in
-  let lhs, y_tm = dest_comb lhs in
-  let lhs, x_tm = dest_comb lhs in
-    rand lhs, x_tm, y_tm, z_tm, w_tm, f_bounds, df_bounds, dd_bounds;;
-
-
-(****************************)
-(* f_bounds *)
-
 let float_inv2_th =
   let one_float_eq_one = FLOAT_TO_NUM_CONV one_float in
   let inv2_eq_lemma = prove(`interval_arith (&2 * x) (&1, &1) ==> inv (&2) = x`,
@@ -135,6 +21,328 @@ let interval_imp_hi int_th =
   let x_tm, (lo_tm, hi_tm) = rand lhs, dest_pair bounds in
   let th0 = INST[x_tm, x_var_real; lo_tm, lo_var_real; hi_tm, hi_var_real] INTERVAL_IMP_HI in
     MY_PROVE_HYP int_th th0;;
+
+
+(*****************************)
+(* cell_domain *)
+
+let dest_cell_domain tm =
+  let lhs, w_tm = dest_comb tm in
+  let lhs2, z_tm = dest_comb lhs in
+  let lhs3, y_tm = dest_comb lhs2 in
+    rand lhs3, y_tm, z_tm, w_tm;;
+
+
+(******************************************)
+
+let CELL_DOMAIN_IMP_INTERVAL_ARITH = prove(`cell_domain x y z w ==> interval_arith y (x, z)`,
+					   REWRITE_TAC[cell_domain; interval_arith] THEN REAL_ARITH_TAC);;
+
+
+let MK_CELL_DOMAIN_0' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
+  (`(x <= y <=> T) /\ (y <= z <=> T) /\ y - x <= w1 /\ z - y <= w2 /\ (w1 <= w <=> T) /\ (w2 <= w <=> T) ==> 
+     cell_domain x y z w`,
+   SIMP_TAC[cell_domain] THEN REAL_ARITH_TAC);;
+
+
+let MK_CELL_DOMAIN' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
+  (`(x <= y <=> T) /\ (y <= z <=> T) /\ y - x <= w1 /\ z - y <= w2 /\ max w1 w2 = w ==>
+				       cell_domain x y z w`, REWRITE_TAC[cell_domain] THEN REAL_ARITH_TAC);;
+
+
+let mk_cell_domain0 pp x_tm y_tm z_tm w_tm =
+  let xy_th = float_le x_tm y_tm and
+      yz_th = float_le y_tm z_tm in
+  let yx_w1 = float_sub_hi pp y_tm x_tm and
+      zy_w2 = float_sub_hi pp z_tm y_tm in
+  let w1_tm = (rand o concl) yx_w1 and
+      w2_tm = (rand o concl) zy_w2 in
+  let w1w = float_le w1_tm w_tm and
+      w2w = float_le w2_tm w_tm in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; 
+		 w_tm, w_var_real; w1_tm, w1_var_real; w2_tm, w2_var_real] MK_CELL_DOMAIN_0' in
+    (MY_PROVE_HYP xy_th o MY_PROVE_HYP yz_th o MY_PROVE_HYP yx_w1 o MY_PROVE_HYP zy_w2 o
+       MY_PROVE_HYP w1w o MY_PROVE_HYP w2w) th0;;
+
+
+let mk_cell_domain pp x_tm y_tm z_tm =
+  let w1_th = float_sub_hi pp y_tm x_tm and
+      w2_th = float_sub_hi pp z_tm y_tm in
+  let w1_tm = (rand o concl) w1_th and
+      w2_tm = (rand o concl) w2_th in
+  let max_th = float_max w1_tm w2_tm in
+  let w_tm = (rand o concl) max_th in
+  let x_le_y = float_le x_tm y_tm and
+      y_le_z = float_le y_tm z_tm in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real;
+		 w_tm, w_var_real; w1_tm, w1_var_real; w2_tm, w2_var_real] MK_CELL_DOMAIN' in
+    (MY_PROVE_HYP x_le_y o MY_PROVE_HYP y_le_z o 
+       MY_PROVE_HYP w1_th o MY_PROVE_HYP w2_th o MY_PROVE_HYP max_th) th0;;
+  
+
+
+
+(* TODO: remove formal computation of y *)
+let mk_center_domain pp x_tm z_tm =
+  let y0_tm = (rand o concl) (float_add_hi pp x_tm z_tm) in
+  let y_tm = (rand o concl) (float_mul_eq float_inv2 y0_tm) in
+    mk_cell_domain pp x_tm y_tm z_tm;;
+
+
+(*
+let x_tm = mk_float 1 50;;
+let z_tm = mk_float 4 50;;
+
+let domain_th = mk_center_domain 2 x_tm z_tm;;
+
+let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th);;
+mk_cell_domain 2 x_tm y_tm z_tm;;
+mk_cell_domain0 2 x_tm y_tm z_tm w_tm;;
+*)
+
+
+(***************************************************)
+(* Elementary functions and their taylor intervals *)
+(***************************************************)
+
+
+(*****************************)
+(* f(x) = x *)
+
+let TAYLOR_X' = RULE taylor_x;;
+
+
+let eval_taylor_x domain_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real] TAYLOR_X' in
+    MY_PROVE_HYP domain_th th0;;
+
+ 
+(*			  
+eval_taylor_x domain_th;;
+*)
+
+(********************************)
+(* f(x) = const *)
+
+let TAYLOR_CONST' = RULE taylor_const;;
+let eval_taylor_const domain_th c_tm =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+    (MY_PROVE_HYP domain_th o
+       INST[c_tm, c_var_real; x_tm, x_var_real; y_tm, y_var_real; 
+	    z_tm, z_var_real; w_tm, w_var_real]) TAYLOR_CONST';;
+
+(*
+eval_taylor_const domain_th `&3`;;
+*)
+
+(***********************************)
+(* f(x) = atn x *)
+
+let taylor_atn = prove(`cell_domain x y z w ==>
+			 bounded_on_int (\x. (-- &2 * x) / (&1 + x pow 2) pow 2) (x,z) dd_bounds ==>
+			 lin_approx atn y f_bounds df_bounds ==>
+			 taylor_interval atn x y z w f_bounds df_bounds dd_bounds`,
+  REWRITE_TAC[cell_domain; taylor_interval; real_div; REAL_INV_POW] THEN REPEAT DISCH_TAC THEN 
+    ASM_REWRITE_TAC[] THEN
+    MATCH_MP_TAC second_derivative_atn_bound THEN ASM_REWRITE_TAC[]);;
+
+let TAYLOR_ATN' = (UNDISCH_ALL o REWRITE_RULE[REAL_POW_2]) taylor_atn;;
+
+
+let eval_taylor_atn pp domain_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+  let atn_lin = eval_lin_approx_atn pp y_tm in
+  let _, _, f_bounds, df_bounds = dest_lin_approx (concl atn_lin) in
+
+  let ddf_th = 
+    let x_th = ASSUME (mk_interval x_var_real (mk_pair (x_tm, z_tm))) and
+	( * ) = float_interval_mul pp and
+	(+) = float_interval_add pp and
+	(/) = float_interval_div pp in
+    let x2_1 = one_interval + x_th * x_th in
+      mk_bounded_on_int ((neg_two_interval * x_th) / (x2_1 * x2_1)) in
+ 
+  let dd_bounds = rand (concl ddf_th) in
+    (MY_PROVE_HYP domain_th o MY_PROVE_HYP atn_lin o MY_PROVE_HYP ddf_th o
+       INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real;
+	    dd_bounds, dd_bounds_var; f_bounds, f_bounds_var; df_bounds, df_bounds_var]) TAYLOR_ATN';;
+
+
+
+(*
+let domain_th = mk_center_domain 5 (mk_float 1 50) (mk_float 4 50);;
+let pp = 5;;
+eval_taylor_atn pp domain_th;;
+*)
+
+
+
+(***********************************)
+(* f(x) = inv x *)
+
+let taylor_inv = prove(`cell_domain x y z w ==>
+			 interval_not_zero (x,z) ==>
+			 bounded_on_int (\x. &2 * inv (x pow 3)) (x,z) dd_bounds ==>
+			 lin_approx inv y f_bounds df_bounds ==>
+			 taylor_interval inv x y z w f_bounds df_bounds dd_bounds`,
+  REWRITE_TAC[cell_domain; taylor_interval] THEN REPEAT DISCH_TAC THEN 
+    ASM_REWRITE_TAC[] THEN
+    MATCH_MP_TAC (REWRITE_RULE[IMP_IMP] second_derivative_inv_bound) THEN ASM_REWRITE_TAC[]);;
+
+let TAYLOR_INV' = (UNDISCH_ALL o REWRITE_RULE[GSYM real_div; REAL_ARITH `x pow 3 = x * x * x`]) taylor_inv;;
+
+
+let eval_taylor_inv pp domain_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+  let int_tm = mk_pair (x_tm, z_tm) in
+  let lin_th = eval_lin_approx_inv pp y_tm in
+  let _, _, f_bounds, df_bounds = dest_lin_approx (concl lin_th) in
+  let cond_th = check_interval_not_zero int_tm in
+
+  let ddf_th = 
+    let x_th = ASSUME (mk_interval x_var_real (mk_pair (x_tm, z_tm))) and
+	( * ) = float_interval_mul pp and
+	(/) = float_interval_div pp in
+      mk_bounded_on_int (two_interval / (x_th * (x_th * x_th))) in
+ 
+  let dd_bounds = rand (concl ddf_th) in
+    (MY_PROVE_HYP domain_th o MY_PROVE_HYP lin_th o MY_PROVE_HYP ddf_th o MY_PROVE_HYP cond_th o
+       INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real;
+	    dd_bounds, dd_bounds_var; f_bounds, f_bounds_var; df_bounds, df_bounds_var]) TAYLOR_INV';;
+
+
+
+(*
+let domain_th = mk_center_domain 5 (mk_float 1 50) (mk_float 4 50);;
+let pp = 5;;
+eval_taylor_inv pp domain_th;;
+*)
+
+
+(***********************************)
+(* f(x) = sqrt x *)
+
+let taylor_sqrt = prove(`cell_domain x y z w ==>
+			 interval_pos (x,z) ==>
+			 bounded_on_int (\x. --inv (&4 * sqrt (x pow 3))) (x,z) dd_bounds ==>
+			 lin_approx sqrt y f_bounds df_bounds ==>
+			 taylor_interval sqrt x y z w f_bounds df_bounds dd_bounds`,
+  REWRITE_TAC[cell_domain; taylor_interval] THEN REPEAT DISCH_TAC THEN 
+    ASM_REWRITE_TAC[] THEN
+    MATCH_MP_TAC (REWRITE_RULE[IMP_IMP] second_derivative_sqrt_bound) THEN ASM_REWRITE_TAC[]);;
+
+let TAYLOR_SQRT' = (UNDISCH_ALL o REWRITE_RULE[REAL_ARITH `x pow 3 = x * x * x`]) taylor_sqrt;;
+let four_interval = mk_float_interval_small_num 4;;
+
+
+let eval_taylor_sqrt pp domain_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+  let int_tm = mk_pair (x_tm, z_tm) in
+  let lin_th = eval_lin_approx_sqrt pp y_tm in
+  let _, _, f_bounds, df_bounds = dest_lin_approx (concl lin_th) in
+  let cond_th = check_interval_pos int_tm in
+
+  let ddf_th = 
+    let x_th = ASSUME (mk_interval x_var_real (mk_pair (x_tm, z_tm))) and
+	( * ) = float_interval_mul pp and
+	sqrt = float_interval_sqrt pp and
+	inv = float_interval_inv pp and
+	neg = float_interval_neg in
+      mk_bounded_on_int (neg (inv (four_interval * sqrt (x_th * (x_th * x_th))))) in
+ 
+  let dd_bounds = rand (concl ddf_th) in
+    (MY_PROVE_HYP domain_th o MY_PROVE_HYP lin_th o MY_PROVE_HYP ddf_th o MY_PROVE_HYP cond_th o
+       INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real;
+	    dd_bounds, dd_bounds_var; f_bounds, f_bounds_var; df_bounds, df_bounds_var]) TAYLOR_SQRT';;
+
+
+
+(*
+let domain_th = mk_center_domain 5 (mk_float 1 50) (mk_float 4 50);;
+let pp = 5;;
+eval_taylor_sqrt pp domain_th;;
+*)
+
+
+(***********************************)
+(* f(x) = acs x *)
+
+let taylor_acs = prove(`cell_domain x y z w ==>
+			 (iabs (x,z) < &1 <=> T) ==>
+			 bounded_on_int (\x. --(x / sqrt ((&1 - x * x) pow 3))) (x,z) dd_bounds ==>
+			 lin_approx acs y f_bounds df_bounds ==>
+			 taylor_interval acs x y z w f_bounds df_bounds dd_bounds`,
+  REWRITE_TAC[cell_domain; taylor_interval] THEN REPEAT DISCH_TAC THEN 
+    ASM_REWRITE_TAC[] THEN
+    MATCH_MP_TAC (REWRITE_RULE[IMP_IMP] second_derivative_acs_bound) THEN ASM_REWRITE_TAC[]);;
+
+let TAYLOR_ACS' = 
+  (UNDISCH_ALL o 
+     GEN_REWRITE_RULE (RAND_CONV o LAND_CONV o LAND_CONV o RAND_CONV) [GSYM (FLOAT_TO_NUM_CONV one_float)] o
+     PURE_REWRITE_RULE[REAL_ARITH `x pow 3 = x * x * x`]) taylor_acs;;
+
+
+let eval_taylor_acs pp domain_th =
+  let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th) in
+  let int_tm = mk_pair (x_tm, z_tm) in
+  let lin_th = eval_lin_approx_acs pp y_tm in
+  let _, _, f_bounds, df_bounds = dest_lin_approx (concl lin_th) in
+  let cond_th = check_interval_iabs int_tm one_float in
+
+  let ddf_th = 
+    let x_th = ASSUME (mk_interval x_var_real (mk_pair (x_tm, z_tm))) and
+	( * ) = float_interval_mul pp and
+	(-) = float_interval_sub pp and
+	(/) = float_interval_div pp and
+	sqrt = float_interval_sqrt pp and
+	neg = float_interval_neg in
+    let x2_1 = one_interval - x_th * x_th in
+      mk_bounded_on_int (neg (x_th / sqrt (x2_1 * (x2_1 * x2_1)))) in
+ 
+  let dd_bounds = rand (concl ddf_th) in
+    (MY_PROVE_HYP domain_th o MY_PROVE_HYP lin_th o MY_PROVE_HYP ddf_th o MY_PROVE_HYP cond_th o
+       INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; w_tm, w_var_real;
+	    dd_bounds, dd_bounds_var; f_bounds, f_bounds_var; df_bounds, df_bounds_var]) TAYLOR_ACS';;
+
+
+
+(*
+let domain_th1 = mk_center_domain 5 (mk_float 1 49) (mk_float 8 49);;
+let domain_th2 = mk_center_domain 5 (mk_float (-5) 49) (mk_float 1 49);;
+let pp = 5;;
+eval_taylor_acs pp domain_th1;;
+eval_taylor_atn pp domain_th1;;
+eval_taylor_inv pp domain_th1;;
+eval_taylor_sqrt pp domain_th1;;
+
+eval_taylor_acs pp domain_th2;;
+eval_taylor_atn pp domain_th2;;
+eval_taylor_inv pp domain_th2;;
+eval_taylor_sqrt pp domain_th2;;
+*)
+
+
+(***********************************************************)
+
+
+(***********************************)
+(* Taylor bounds *)
+
+
+let dest_taylor_interval tm =
+  let lhs, dd_bounds = dest_comb tm in
+  let lhs, df_bounds = dest_comb lhs in
+  let lhs, f_bounds = dest_comb lhs in
+  let lhs, w_tm = dest_comb lhs in
+  let lhs, z_tm = dest_comb lhs in
+  let lhs, y_tm = dest_comb lhs in
+  let lhs, x_tm = dest_comb lhs in
+    rand lhs, x_tm, y_tm, z_tm, w_tm, f_bounds, df_bounds, dd_bounds;;
+
+
+(****************************)
+(* f_bounds *)
 
 
 let TAYLOR_F_BOUNDS' = (RULE o REWRITE_RULE[float_inv2_th]) taylor_f_bounds;;
@@ -284,23 +492,7 @@ let diff_th, bounded_th = dest_has_bounded_second_derivative_th second_th;;
 let SECOND_DERIVATIVE_ADD' = (UNDISCH_ALL o SPEC_ALL) has_bounded_second_derivative_add;;
 
 
-let norm_second_derivative th eq_th =
-  let lhs, dd_bounds = dest_comb (concl th) in
-  let lhs2, int_tm = dest_comb lhs in
-  let th0 = AP_THM (AP_THM (AP_TERM (rator lhs2) eq_th) int_tm) dd_bounds in
-    EQ_MP th0 th;;
-
-
-let norm_lin_approx th eq_th =
-  let lhs, df_bounds = dest_comb (concl th) in
-  let lhs2, f_bounds = dest_comb lhs in
-  let lhs3, x_tm = dest_comb lhs2 in
-  let th0 = AP_THM (AP_THM (AP_THM (AP_TERM (rator lhs3) eq_th) x_tm) f_bounds) df_bounds in
-    EQ_MP th0 th;;
-
-
-
-let has_bounded_second_derivative_add pp th1 th2 =
+let bounded_second_derivative_add pp th1 th2 =
   let diff1_th, bounded1_th = dest_has_bounded_second_derivative_th th1 and
       diff2_th, bounded2_th = dest_has_bounded_second_derivative_th th2 in
   let bounded_add_th = bounded_on_int_add pp bounded1_th bounded2_th in
@@ -332,7 +524,7 @@ has_bounded_second_derivative_add pp th3 th3;;
 let SECOND_DERIVATIVE_SUB' = (UNDISCH_ALL o SPEC_ALL) has_bounded_second_derivative_sub;;
 
 
-let has_bounded_second_derivative_sub pp th1 th2 =
+let bounded_second_derivative_sub pp th1 th2 =
   let diff1_th, bounded1_th = dest_has_bounded_second_derivative_th th1 and
       diff2_th, bounded2_th = dest_has_bounded_second_derivative_th th2 in
   let bounded_sub_th = bounded_on_int_sub pp bounded1_th bounded2_th in
@@ -363,7 +555,7 @@ let SECOND_DERIVATIVE_MUL' = (UNDISCH_ALL o REWRITE_RULE[GSYM (FLOAT_TO_NUM_CONV
   has_bounded_second_derivative_mul;;
 
 
-let has_bounded_second_derivative_mul pp th1 th2 f_bounded_th df_bounded_th g_bounded_th dg_bounded_th =
+let bounded_second_derivative_mul pp th1 th2 f_bounded_th df_bounded_th g_bounded_th dg_bounded_th =
   let diff1_th, bounded1_th = dest_has_bounded_second_derivative_th th1 and
       diff2_th, bounded2_th = dest_has_bounded_second_derivative_th th2 in
   let expr1 = bounded_on_int_mul_without_norm pp f_bounded_th bounded2_th and
@@ -394,8 +586,8 @@ let has_bounded_second_derivative_mul pp th1 th2 f_bounded_th df_bounded_th g_bo
 let taylor_interval_add pp th1 th2 =
   let domain_th, approx1_th, second1_th = dest_taylor_interval_th th1 and
       _, approx2_th, second2_th = dest_taylor_interval_th th2 in
-  let add_approx_th = eval_lin_approx_add pp approx1_th approx2_th in
-  let add_second_th = has_bounded_second_derivative_add pp second1_th second2_th in
+  let add_approx_th = lin_approx_add pp approx1_th approx2_th in
+  let add_second_th = bounded_second_derivative_add pp second1_th second2_th in
     mk_taylor_interval_th domain_th add_approx_th add_second_th;;
 
 
@@ -403,8 +595,8 @@ let taylor_interval_add pp th1 th2 =
 let taylor_interval_sub pp th1 th2 =
   let domain_th, approx1_th, second1_th = dest_taylor_interval_th th1 and
       _, approx2_th, second2_th = dest_taylor_interval_th th2 in
-  let sub_approx_th = eval_lin_approx_sub pp approx1_th approx2_th in
-  let sub_second_th = has_bounded_second_derivative_sub pp second1_th second2_th in
+  let sub_approx_th = lin_approx_sub pp approx1_th approx2_th in
+  let sub_second_th = bounded_second_derivative_sub pp second1_th second2_th in
     mk_taylor_interval_th domain_th sub_approx_th sub_second_th;;
 
 (*
@@ -419,12 +611,12 @@ taylor_interval_sub pp th (taylor_interval_add pp th th);;
 let taylor_interval_mul pp th1 th2 =
   let domain_th, approx1_th, second1_th = dest_taylor_interval_th th1 and
       _, approx2_th, second2_th = dest_taylor_interval_th th2 in
-  let mul_approx_th = eval_lin_approx_mul pp approx1_th approx2_th in
+  let mul_approx_th = lin_approx_mul pp approx1_th approx2_th in
   let f_bounds_th = eval_taylor_f_bounds pp th1 and
       g_bounds_th = eval_taylor_f_bounds pp th2 in
   let df_bounds_th = eval_taylor_df_bounds pp th1 and
       dg_bounds_th = eval_taylor_df_bounds pp th2 in
-  let mul_second_th = has_bounded_second_derivative_mul pp second1_th second2_th 
+  let mul_second_th = bounded_second_derivative_mul pp second1_th second2_th 
     f_bounds_th df_bounds_th g_bounds_th dg_bounds_th in
     mk_taylor_interval_th domain_th mul_approx_th mul_second_th;;
 
@@ -470,74 +662,6 @@ test 1000 (has_bounded_second_derivative_mul pp second1_th second2_th f_bounds_t
 test 1000 (mk_taylor_interval_th domain_th mul_approx_th) mul_second_th;;
 *)
 
-(******************************************)
-
-
-
-let CELL_DOMAIN_IMP_INTERVAL_ARITH = prove(`cell_domain x y z w ==> interval_arith y (x, z)`,
-					   REWRITE_TAC[cell_domain; interval_arith] THEN REAL_ARITH_TAC);;
-
-
-let MK_CELL_DOMAIN_0' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
-  (`(x <= y <=> T) /\ (y <= z <=> T) /\ y - x <= w1 /\ z - y <= w2 /\ (w1 <= w <=> T) /\ (w2 <= w <=> T) ==> 
-     cell_domain x y z w`,
-   SIMP_TAC[cell_domain] THEN REAL_ARITH_TAC);;
-
-
-let MK_CELL_DOMAIN' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
-  (`(x <= y <=> T) /\ (y <= z <=> T) /\ y - x <= w1 /\ z - y <= w2 /\ max w1 w2 = w ==>
-				       cell_domain x y z w`, REWRITE_TAC[cell_domain] THEN REAL_ARITH_TAC);;
-
-
-let mk_cell_domain0 pp x_tm y_tm z_tm w_tm =
-  let xy_th = float_le x_tm y_tm and
-      yz_th = float_le y_tm z_tm in
-  let yx_w1 = float_sub_hi pp y_tm x_tm and
-      zy_w2 = float_sub_hi pp z_tm y_tm in
-  let w1_tm = (rand o concl) yx_w1 and
-      w2_tm = (rand o concl) zy_w2 in
-  let w1w = float_le w1_tm w_tm and
-      w2w = float_le w2_tm w_tm in
-  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real; 
-		 w_tm, w_var_real; w1_tm, w1_var_real; w2_tm, w2_var_real] MK_CELL_DOMAIN_0' in
-    (MY_PROVE_HYP xy_th o MY_PROVE_HYP yz_th o MY_PROVE_HYP yx_w1 o MY_PROVE_HYP zy_w2 o
-       MY_PROVE_HYP w1w o MY_PROVE_HYP w2w) th0;;
-
-
-let mk_cell_domain pp x_tm y_tm z_tm =
-  let w1_th = float_sub_hi pp y_tm x_tm and
-      w2_th = float_sub_hi pp z_tm y_tm in
-  let w1_tm = (rand o concl) w1_th and
-      w2_tm = (rand o concl) w2_th in
-  let max_th = float_max w1_tm w2_tm in
-  let w_tm = (rand o concl) max_th in
-  let x_le_y = float_le x_tm y_tm and
-      y_le_z = float_le y_tm z_tm in
-  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; z_tm, z_var_real;
-		 w_tm, w_var_real; w1_tm, w1_var_real; w2_tm, w2_var_real] MK_CELL_DOMAIN' in
-    (MY_PROVE_HYP x_le_y o MY_PROVE_HYP y_le_z o 
-       MY_PROVE_HYP w1_th o MY_PROVE_HYP w2_th o MY_PROVE_HYP max_th) th0;;
-  
-
-
-
-(* TODO: remove formal computation of y *)
-let mk_center_domain pp x_tm z_tm =
-  let y0_tm = (rand o concl) (float_add_hi pp x_tm z_tm) in
-  let y_tm = (rand o concl) (float_mul_eq float_inv2 y0_tm) in
-    mk_cell_domain pp x_tm y_tm z_tm;;
-
-
-(*
-let x_tm = mk_float 1 50;;
-let z_tm = mk_float 4 50;;
-
-let domain_th = mk_center_domain 2 x_tm z_tm;;
-
-let x_tm, y_tm, z_tm, w_tm = dest_cell_domain (concl domain_th);;
-mk_cell_domain 2 x_tm y_tm z_tm;;
-mk_cell_domain0 2 x_tm y_tm z_tm w_tm;;
-*)
 
 
 (****************************************)
@@ -786,6 +910,10 @@ taylor_interval_compose pp eval_f eval_f domain_th;;
 taylor_interval_compose pp eval_g eval_g domain_th;;
 taylor_interval_compose pp eval_f eval_g domain_th;;
 taylor_interval_compose pp eval_g eval_f domain_th;;
+
+eval_taylor_f_bounds pp (eval_f pp domain_th);;
+taylor_interval_compose pp eval_taylor_sqrt eval_f domain_th;;
+taylor_interval_compose pp eval_taylor_inv eval_f domain_th;;
 
 let th1 = taylor_interval_compose pp eval_f eval_g domain_th;;
 let th2 = taylor_interval_mul pp (eval_f pp domain_th) (eval_f pp domain_th);;

@@ -33,6 +33,7 @@ let join_space  = unsplit " " (fun x-> x);;
 
 let cos = Pervasives.cos;;
 let sin = Pervasives.sin;;
+let cot x = cos x /. sin x;;
 let sqrt = Pervasives.sqrt;;
 let pi = 4.0 *. atan(1.0);;
 let nth = List.nth;;
@@ -43,6 +44,15 @@ let arg x y = if (y<0.0) then atan2 y x +. 2.0 *. pi else atan2 y x;;
 
 let degree x = 180.0 *. x /. pi;;
 
+let radian x = pi *. x /. 180.0;;
+
+let eta x y z =
+  let s = (x +. y +. z)/. 2.0 in
+   x *. y *. z /. ( 4. *. sqrt(s *. (s -. x) *. ( s -. y) *. (s -. z)));;
+
+let orig3 = (0.0,0.0,0.0);;
+
+let orig2 = (0.0,0.0);;
 
 (* vector sum, difference, scalar product, dot product *)
 
@@ -75,6 +85,8 @@ let cross (x1,x2,x3) (y1,y2,y3) =
 
 let det3 x y z = x *... (cross y z);;
 
+let det2 (x1,y1) (x2,y2) = (x1 *. y2 -. y1 *. x2);;
+
 let conj (x,y) = (x,-. y);;
 
 let cmul (x1,y1) (x2,y2) = (x1 *. x2 -. y1 *. y2, x1 *. y2 +. x2 *. y1);;
@@ -82,7 +94,8 @@ let cmul (x1,y1) (x2,y2) = (x1 *. x2 -. y1 *. y2, x1 *. y2 +. x2 *. y1);;
 let cinv v = (1.0/. (v *.. v)) %.. (conj v);;
 
 let cdiv u v = cmul u (cinv v);;
-   
+
+
 
 let delta1 = (1.0,0.0,0.0);;
 
@@ -96,6 +109,8 @@ let perp p x  =  x -... (((x *... p) /. (p *... p)) $... p) ;; (* ortho to p *)
 
 let transpose ((a11,a12,a13),(a21,a22,a23),(a31,a32,a33)) = 
   ((a11,a21,a31),(a12,a22,a32),(a13,a23,a33));;
+
+let transpose2 ((x1,y1),(x2,y2)) = ((x1,x2),(y1,y2));;
 
 let mul3 (e1,e2,e3) x = 
      (e1 *... x,  e2 *... x, e3 *... x);;
@@ -128,10 +143,21 @@ let solve33 (m1,m2,m3) c =    (* solve m.x ==c for x by Cramer *)
   let (t1,t2,t3) = transpose (m1,m2,m3) in
    map3 (fun t -> t/. d) (det3 c t2 t3, det3 t1 c t3, det3 t1 t2 c);;
 
+let solve22 (m1,m2) c = 
+  let d = det2 m1 m2 in
+  let (t1,t2) = transpose2 (m1,m2) in
+   map2 (fun t -> t/. d) (det2 c t2, det2 t1 c);;
+
 let extreme_point M = 
   solve33 M (map3 (fun m -> 0.5 *. (m *... m)) M);;
 
 let lex3 (i,j,k) (i',j',k') = (i<i') or ((i=i') &&(j<j')) or ((i=i')&&(j=j')&&(k<k'));;
+
+let etaV u v w = 
+  let x = dist2 (u -.. v) orig2 in
+  let y = dist2 (v -.. w) orig2 in
+  let z = dist2 (u -.. w) orig2 in
+   eta x y z;;
 
 
 let frame_of v1 v2 = 
@@ -159,9 +185,110 @@ let plet s y =
 
 (* specific cases *)
 
-let orig3 = (0.0,0.0,0.0);;
 
-let orig2 = (0.0,0.0);;
+
+(* PACKING CHAPTER FIGURES *)
+
+(* figDEQCVQL *)
+
+let rec mindist2 r w = function 
+  | [] -> r
+  | l::ls -> if (dist2 l w < r) then mindist2 (dist2 l w) w ls else mindist2 r w ls;;
+
+let randompacking = 
+  let _ = Random.init 5 in
+  let radius = 0.15 in
+  let v () = (Random.float 2.0,Random.float 2.0) in
+  let add len ls = 
+    let w = v() in
+      if (mindist2 100.0 w ls < 2.0 *. radius) or List.length ls > len then ls else w::ls in
+  let unsat = funpow 40 (add 15) [] in
+  let sat = funpow 100000 (add 20000) unsat in
+   (unsat,sat);;
+
+let print_satunsat = 
+  let (unsat,sat) = randompacking in
+  let line d (x,y)  = Printf.sprintf "\draw[gray,fill=black!%d] (%f,%f) circle (0.15);\n" d x y in
+  let punsat = map (line 30) unsat in
+  let psat = map (line 10) sat in
+    join_lines (["\\begin{scope}[shift={(0,0)}]"] @ punsat @
+      ["\\end{scope}\\begin{scope}[shift={(3.0,0)}]"] @ psat @ punsat @ ["\\end{scope}"]);;
+
+(* \figXOHAZWO Voronoi cells of a random saturated packing. Start with Delaunay triangles. *)
+
+let center2 s (i,j,k) = 
+  let si = s i -.. s k in
+  let sj = s j -.. s k in
+    s k +.. (0.5 %.. (solve22 (si,sj) (si *.. si, sj *.. sj)));;
+
+let sat_triples =
+  let radius = 0.15 in
+  let (_,sat) = randompacking in
+  let r = List.length sat in
+  let s = nth sat in
+  let rr = 0--(r-1) in
+  let allt = outer rr (outer rr rr) in
+  let triple =  (map (fun (i,(j,k))->(i,j,k)) (filter(fun (i,(j,k))->(i<j && j<k))  allt)) in
+  let allpair = filter (fun (i,j) -> i< j) (outer rr rr) in
+  let shortpair = filter (fun i,j -> dist2 (s i) (s j) < 4.0 *. radius +. 1.0e-5) allpair in
+  let ftriple = filter (fun i,j,k -> mem (i,j) shortpair && mem(i,k) shortpair && mem(j,k) shortpair) triple in
+  let fit (i,j,k) = 
+    let c = center2 s (i,j,k) in
+    let rad = dist2 c (s k) in
+    let rest = subtract sat [s i;s j;s k] in
+    let vals = filter (fun v -> dist2 v c < rad) rest in
+      List.length vals = 0 in
+    filter fit ftriple;;
+
+let satst = sat_triples;;
+
+let print_satst = 
+  let (_,sat) =  randompacking in
+  let s = nth sat in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let pp = map (fun (t, t') -> 
+		  let (x,y) = center2 s t in
+		  let (x',y') = center2 s t' in
+		    Printf.sprintf "\draw (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let line d (x,y)  = Printf.sprintf "\draw[gray,fill=black!%d] (%f,%f) circle (0.15);" d x y in
+  let psat = map (line 10) sat in
+    join_lines (psat @ pp);;
+
+ 
+
+
+(* figYAHDBVO *)
+
+let vv i = (72.0*.i +. (-.40.0) +. Random.float 80.0,Random.float 1.5 +. 1.0);;
+map (vv o float_of_int) [0;1;2;3;4];;
+
+let vout =[ (-1.40573615605411817, 2.43152527011496122);
+   (62.2310998421659392, 1.50101500229540341);
+   (166.419445012932584, 1.80579527399678152);
+   (206.27916875919712, 1.73501080990908485);
+   (293.766402309343221, 1.59228179599956721)];;
+
+let midangles = 
+  let mm = map fst vout in
+  let suc i = ((i+1) mod 5) in
+  let mm1 i = nth mm (suc i) +. if (nth mm i < nth mm (suc i)) then 0.0 else 360. in
+  let mm' i = 0.5 *. (nth  mm i  +. mm1 i ) in
+  let f =   map mm' (0--4) in
+  let mm' i = 1.0/. cos( (pi /. 180.0) *.(0.5 *. (mm1 i -. nth mm i))) in
+  let g = map mm' (0--4) in
+   zip f g;;
+
+let poly2_extreme = 
+  let m = map (fun (theta,r)-> (r *. cos (radian theta), r*. sin (radian theta))) vout in
+  let v i = nth m i in
+  let suc i = v ((i+1) mod 5) in
+  let inter i = solve22 (v i, suc i) (v i *.. v i, suc i *.. suc i) in
+    map inter (0--4);;
+
+(* figZXEVDCA *)
+
 
 let fix_SO3 =  (*  random_SO3 () ;;  *)
   ((-0.623709278332764572, -0.768294961660169751, -0.143908262477248777),
@@ -337,14 +464,20 @@ let print_dodec_ellipse =
      print_ellipse R q h k psi in
     map one_ellipse vs;;
 
-let outstring = ref "";;
-
-let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s';;
-
-outstring := !outstring ^ 
-  wrap "autoZXEVDCA"   (join_lines (print_cycles @ print_dodec_face @ print_dodec_ellipse))
- ;;
 
 
-output_filestring "/tmp/x.txt" (!outstring);;
-  
+
+
+(* output *)
+
+
+let gen_out = 
+  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
+  let outstring = ref "" in
+  let add name s = outstring:= !outstring ^ wrap name s in
+  let _ =  add "autoZXEVDCA"   (join_lines (print_cycles @ print_dodec_face @ print_dodec_ellipse)) in
+  let _ = add "autoDEQCVQL" print_satunsat in
+  let _ = add "autoXOHAZWO" print_satst in
+    output_filestring "/tmp/x.txt" (!outstring);;
+
+

@@ -56,6 +56,7 @@ let w1_var_real = `w1 : real` and
     t_var_real = `t : real` and
     g_bounds_var = `g_bounds : real#real` and
     dg_bounds_var = `dg_bounds : real#real` and
+    bounds_var = `bounds : real#real` and
     d_bounds_var = `d_bounds : real#real` and
     x0_var_real = `x0 : real` and
     z0_var_real = `z0 : real` and
@@ -350,7 +351,7 @@ let dest_bounded_on_int th =
       th1;;
 
 
-let dest_bounded_on_int_without_norm th =
+let dest_bounded_on_int_raw th =
   let lhs, f_bounds = dest_comb (concl th) in
   let lhs2, int_tm = dest_comb lhs in
   let f_tm = rand lhs2 in
@@ -375,6 +376,12 @@ let bounded_on_int_scale pp c_tm th =
     mk_bounded_on_int th0;;
 
 
+let bounded_on_int_mul_int pp int_th th =
+  let i_th = dest_bounded_on_int th in
+  let th0 = float_interval_mul pp int_th i_th in
+    mk_bounded_on_int th0;;
+
+
 let bounded_on_int_add pp th1 th2 =
   let i_th1, i_th2 = dest_bounded_on_int th1, dest_bounded_on_int th2 in
   let th0 = float_interval_add pp i_th1 i_th2 in
@@ -393,8 +400,8 @@ let bounded_on_int_mul pp th1 th2 =
     mk_bounded_on_int th0;;
 
 
-let bounded_on_int_mul_without_norm pp th1 th2 =
-  let i_th1, i_th2 = dest_bounded_on_int_without_norm th1, dest_bounded_on_int_without_norm th2 in
+let bounded_on_int_mul_raw pp th1 th2 =
+  let i_th1, i_th2 = dest_bounded_on_int_raw th1, dest_bounded_on_int_raw th2 in
   let th0 = float_interval_mul pp i_th1 i_th2 in
     mk_bounded_on_int th0;;
 
@@ -422,7 +429,13 @@ let MUL_INEQ_HI = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)
   DISCH_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THEN
     EXISTS_TAC `y1 * y2` THEN ASM_REWRITE_TAC[] THEN
     MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[]);;
-    
+
+let MUL_INEQ_POS_CONST_HI = (UNDISCH_ALL o prove)
+  (`(&0 <= x <=> T) ==> y1 <= y2 ==> x * y2 <= z ==> x * y1 <= z`, 
+   REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `x * y2` THEN
+     ASM_REWRITE_TAC[] THEN MATCH_MP_TAC REAL_LE_LMUL THEN ASM_REWRITE_TAC[]);;
+
+
 let REAL_LE_REFL' = RULE REAL_LE_REFL;;
 
 
@@ -430,6 +443,16 @@ let mk_refl_ineq tm = INST[tm, x_var_real] REAL_LE_REFL';;
 
 let dest_le_op ineq =
   let lhs, y_tm = dest_comb ineq in (rand lhs, y_tm);;
+
+
+let mul_ineq_pos_const_hi pp c_tm ineq =
+  let y1_tm, y2_tm = dest_le_op (concl ineq) in
+  let ge0_th = float_ge0 c_tm in
+  let mul_hi_th = float_mul_hi pp c_tm y2_tm in
+  let z_tm = (rand o concl) mul_hi_th in
+    (MY_PROVE_HYP ge0_th o MY_PROVE_HYP ineq o MY_PROVE_HYP mul_hi_th o
+       INST[c_tm, x_var_real; y1_tm, y1_var_real; y2_tm, y2_var_real; z_tm, z_var_real])
+      MUL_INEQ_POS_CONST_HI;;
 
 
 let mul_ineq_hi pp ineq1 ineq2 =

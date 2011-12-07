@@ -1,0 +1,170 @@
+(* port of recurse.cc *)
+
+(*
+This is the code that verifies a disjunct of nonlinear inequalities.
+The are given as a list   (tf:tfunction list).  If tf = [f1;....;fk], then
+the list represents the inequality (f1 < 0 \/ f2 < 0 .... fk < 0).
+
+The end user should only need to define a cell option,
+and then call recursive_verifier, which recursively bisects the domain
+until a partition of the domain is found on which verifier_cell gives
+a pass on each piece of the partition.
+
+*)
+
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/types.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/report.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/interval.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/univariate.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/line_interval.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_1d/taylor.hl";;
+
+module Recurse = struct
+
+open Interval;;
+open Univariate;;
+open Line_interval;;
+open Taylor;;
+
+type cellOption = {
+  allow_sharp : bool;
+  mutable iteration_count : int;
+  iteration_limit : int;
+  recursion_depth : int;
+};;
+
+(* cell verification is complex, and we use exceptions to
+    exit as soon as the status has been determined.   *)
+
+type cell_status = 
+  | Cell_pass 
+  | Cell_counterexample 
+  | Cell_inconclusive of (float * float * tfunction);;
+
+type result_tree =
+	| Result_false
+	| Result_pass of (float * float)
+	| Result_glue of result_tree * result_tree;;
+   
+
+exception Return of  cell_status;;
+
+
+let return c = raise (Return c);;
+
+
+(* error checking and reporting functions *)
+
+let boolify _ = true;;
+
+let string_of_domain x =
+  Printf.sprintf "{%f}" x;;
+
+let string3 (x,z,s) =  (string_of_domain x ^"\n"^ string_of_domain z ^ "\n" ^ s);;
+
+let report_current = boolify o Report.report_timed o string3;;
+
+let report_error = boolify o Report.report_error o string3;;
+
+let report_fatal = boolify o Report.report_fatal o string3;;
+
+
+(* let t = [0.1;0.2;0.3;0.4;0.5;0.6] in report_error (t,t,"ok");; *)
+
+let periodic_count = 
+  let end_count = ref 0 in
+    fun () ->
+      let _ = end_count := !end_count + 1 in
+	(0 = ( !end_count mod 80000));;
+
+let check_limit opt depth = 
+  let _ = opt.iteration_count <- opt.iteration_count + 1 in
+   ( opt.iteration_count < opt.iteration_limit or opt.iteration_limit = 0 ) &&
+     (depth < opt.recursion_depth);;
+
+let sgn x = if (x.lo > 0.0) then 1 else if (x.hi < 0.0) then -1 else 0;;
+
+
+(* a bit tricky because unstable exceptions are common early on,
+    and evaluations are very expensive. 
+   We don't want a single unstable disjunct to ruin everything.
+
+   When boxes are small, then we throw away unstable disjuncts and continue w/o them.
+   When the boxes are still big, we return inconclusive to force a bisection.
+
+   Starting with this procedure, we can throw an exception to return early,
+   as soon as we are able to determine the cell_status.  All these exceptions
+   get caught at the last line of verify_cell.
+*)
+
+let rec set_targets (x,z,tf) =
+    try (
+		let target = evalf tf x z in
+		let _ =  upper_bound target >= 0.0 or return Cell_pass in
+			[target, tf]
+    )
+    with Unstable -> (
+(*		let _ = (2.0 *. maxwidth <= opt.width_cutoff) or return (Cell_inconclusive (x, z, x0, z0, tf)) in []*)
+      return (Cell_inconclusive (x, z, tf))
+    );
+;;
+
+
+let rec delete_false acc tis =
+  if (tis=[]) then List.rev acc 
+  else if (lower_bound (fst (hd tis)) > 0.0) then delete_false acc (tl tis) 
+  else delete_false (hd tis::acc) (tl tis);;
+
+
+
+(* loop as long as monotonicity keeps making progress.  *)
+
+let rec going_strong(x,z,tf,opt) =
+  let (y,w) = center_form (x,z) in
+  let maxwidth = w in
+  let tis = set_targets(x,z,tf) in
+  let epsilon_width = 1.0e-8 in
+  let _ = (maxwidth >= epsilon_width) or return
+	(if (opt.allow_sharp) then (Report.inc_corner_count(); Cell_pass) 
+				   else Cell_counterexample) in
+  let tis = delete_false [] tis in
+  let _ = (List.length tis > 0) or return Cell_counterexample in
+	(x, z, maxwidth, tis);;
+
+(*
+This procedure is mostly guided by heuristics that don't require formal
+verification. In particular, no justification is required for tossing out inequalities
+(since they appear as disjuncts, we can choose which one to prove).
+
+Formal verification is required whenever a Cell_passes is issued,
+and whenever the domain (x,z) is restricted.
+
+The record (x0,z0) of the current outer boundary must be restricted to (x,z)
+whenever an inequality is tossed out.
+*)
+
+let rec verify_cell (x,z,tf,opt) =
+  try (
+  let _ = not(periodic_count ()) or report_current (x,z,"periodic report") in
+  let (x,z,maxwidth,tis) = going_strong(x,z,tf,opt) in
+    Cell_inconclusive (x,z,hd (map snd tis));
+  )
+  with Return c -> c;;
+
+let rec recursive_verifier (depth,x,z,tf,opt) = 
+  let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "check_limit: depth %d" depth) in
+    match verify_cell(x,z,tf,opt)  with
+      | Cell_counterexample -> Result_false
+      | Cell_pass -> Result_pass(x,z)
+      | Cell_inconclusive(x,z,tf) ->
+	  (let ( ++ ), ( / ) = up(); upadd, updiv in
+	   let yj = (x ++ z) / 2.0 in
+	   let r1 = recursive_verifier(depth + 1, x, yj, tf, opt) in
+	     if r1 = Result_false then Result_false else
+	       let r2 = recursive_verifier(depth + 1, yj, z, tf, opt) in
+		 if r2 = Result_false then Result_false else
+		   Result_glue (r1, r2)
+	  );;
+	       
+
+ end;;

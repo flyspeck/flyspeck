@@ -1,67 +1,90 @@
-needs "../formal_lp/formal_interval/second_approx.hl";;
+needs "../formal_lp/formal_interval/verifier.hl";;
+
+
+(************)
+(* Examples *)
+(************)
+
+(* f(x) = x * x - atn x; f(x) < 0 when 0.01 <= x <= 0.8 *)
+prove_ineq1d 5 `x * x - atn x` `#0.01` `#0.8`;;
+
+(* f(x) = x * x * x - atn (x * x); f(x) < 0 when 0.01 <= x <= 0.8 *)
+prove_ineq1d 5 `x * x * x - atn (x * x)` `#0.01` `#0.8`;;
+
+(* f(x) = atn x - x; f(x) < 0 when 0.001 <= x <= 1 *)
+prove_ineq1d 10 `atn x - x` `#0.001` `&1`;;
+
+
+(***********************************************)
+(* |atn x - x / (1 + 0.28 * x * x)| < 0.005 when x IN [0, 1] *)
+
+
+let abs_lemma = prove(`f - eps < &0 ==> -- eps - f < &0 ==> abs f < eps`, REAL_ARITH_TAC);;
+
+let tm = `atn x - x / (&1 + #0.28 * x * x)`;;
+let eps = `#0.005`;;
+let hi_tm = mk_binop sub_op_real tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 5 hi_tm `&0` `&1`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 6 lo_tm `&0` `&1`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
+
 
 
 (***********************************)
-
-let cell_pass = new_definition `cell_pass f int <=> !x. interval_arith x int ==> f x < &0`;;
-
-let dest_cell_pass tm =
-  let lhs, int_tm = dest_comb tm in
-    rand lhs, int_tm;;
-
-let CELL_PASS_GLUE = prove(`!f x t z. cell_pass f (x, t) /\ cell_pass f (t, z) ==> cell_pass f (x, z)`,
-			   REWRITE_TAC[cell_domain; cell_pass; interval_arith] THEN
-			     REPEAT STRIP_TAC THEN
-			     DISJ_CASES_TAC (REAL_ARITH `x' <= t \/ t <= x'`) THENL
-			     [
-			       FIRST_X_ASSUM ((fun th -> ALL_TAC) o SPEC `x':real`) THEN
-				 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
-			       FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]
-			     ]);;
-
-let CELL_PASS_GLUE' = RULE CELL_PASS_GLUE;;
-
-let cell_pass_glue pass1 pass2 =
-  let f_tm, int1 = dest_cell_pass (concl pass1) and
-      int2 = rand (concl pass2) in
-  let x_tm, t_tm = dest_pair int1 and
-      z_tm = rand int2 in
-  let th0 = INST[f_tm, f_var_fun; x_tm, x_var_real; t_tm, t_var_real; z_tm, z_var_real] CELL_PASS_GLUE' in
-    (MY_PROVE_HYP pass1 o MY_PROVE_HYP pass2) th0;;
-  
+(* A rational approximation of atn *)
 
 
+let atan1 = `let P00, P01, P02 = #4.26665376811246382, #3.291955407318148, #0.281939359003812 in
+  let Q00, Q01 = #4.26665376811354027, #4.714173328637605 in
+  let x1 = x * x in
+  let x2 = x1 * x1 in
+    x * (x1 * P01 + x2 * P02 + P00) / (x1 * Q01 + x2 + Q00) - atn x`;;
+let atan1_tm = (rand o concl o REPEATC let_CONV) atan1;;
 
-let CELL_PASS_LEMMA' = (UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o prove)
-  (`bounded_on_int f int (f_lo, f_hi) /\ (f_hi < &0 <=> T) ==> cell_pass f int`,
-   REWRITE_TAC[bounded_on_int; cell_pass; interval_arith] THEN
-     REPEAT STRIP_TAC THEN
-     MATCH_MP_TAC REAL_LET_TRANS THEN
-     EXISTS_TAC `f_hi:real` THEN ASM_REWRITE_TAC[] THEN
-     FIRST_X_ASSUM (MP_TAC o SPEC `x:real`) THEN ASM_SIMP_TAC[]);;
+let eps = `#0.00001`;;
+let hi_tm = mk_binop sub_op_real atan1_tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) atan1_tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 hi_tm `&0` `#0.2`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 lo_tm `&0` `#0.2`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
 
 
-let taylor_cell_pass pp taylor_int_th =
-  let bound_th = eval_taylor_f_bounds pp taylor_int_th in
-  let lhs, f_bounds = dest_comb (concl bound_th) in
-  let lhs2, int_tm = dest_comb lhs in
-  let f_tm = rand lhs2 in
-  let f_lo, f_hi = dest_pair f_bounds in
-  let f_hi_lt0 = float_lt0 f_hi in
-    if (fst o dest_const o rand o concl) f_hi_lt0 <> "T" then
-      failwith "taylor_cell_pass: f_hi >= 0"
-    else
-      let th0 = INST[f_tm, f_var_fun; int_tm, int_var; f_lo, f_lo_var; f_hi, f_hi_var] CELL_PASS_LEMMA' in
-	(MY_PROVE_HYP bound_th o MY_PROVE_HYP f_hi_lt0) th0;;
+(*
+(* A higher precision approximation *)
+let eps = `#0.0000000001`;;
+let hi_tm = mk_binop sub_op_real atan1_tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) atan1_tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 15 hi_tm `&0` `#0.2`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 15 lo_tm `&0` `#0.2`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
+*)
 
 
 
+(****************************************************************)
+(* Test 1: f(x) = x * x - atn x; f(x) < 0 when 0.01 <= x <= 0.8 *)
+(****************************************************************)
 
-(*******************************************************************)
-(* Example 1: f(x) = x * x - atn x; f(x) < 0 when 0.01 <= x <= 0.8 *)
-(*******************************************************************)
-
-let x_tm = mk_float 1 48;;
+llet eps = `#0.00001`;;
+let hi_tm = mk_binop sub_op_real atan1_tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) atan1_tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 hi_tm `&0` `#0.2`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 lo_tm `&0` `#0.2`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
+let eps = `#0.00001`;;
+let hi_tm = mk_binop sub_op_real atan1_tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) atan1_tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 hi_tm `&0` `#0.2`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 lo_tm `&0` `#0.2`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
+let eps = `#0.00001`;;
+let hi_tm = mk_binop sub_op_real atan1_tm eps;;
+let lo_tm = mk_binop sub_op_real (mk_comb (neg_op_real, eps)) atan1_tm;;
+let hi_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 hi_tm `&0` `#0.2`);;
+let lo_th = (UNDISCH_ALL o SPEC_ALL) (prove_ineq1d 10 lo_tm `&0` `#0.2`);;
+(GEN_ALL o DISCH_ALL) (MATCH_MP (MATCH_MP abs_lemma hi_th) lo_th);;
+et x_tm = mk_float 1 48;;
 let z_tm = mk_float 8 49;;
 
 let domain_th = mk_center_domain 5 x_tm z_tm;;
@@ -98,9 +121,9 @@ let pass = cell_pass_glue pass1 pass2;;
 
 
 
-(****************************************************************************)
-(* Example 2: f(x) = x * x * x - atn (x * x); f(x) < 0 when 0.1 <= x <= 0.8 *)
-(****************************************************************************)
+(*************************************************************************)
+(* Test 2: f(x) = x * x * x - atn (x * x); f(x) < 0 when 0.1 <= x <= 0.8 *)
+(*************************************************************************)
 
 let x_tm = mk_float 1 49;;
 let z_tm = mk_float 8 49;;
@@ -154,7 +177,7 @@ CONV_RULE (DEPTH_CONV FLOAT_TO_NUM_CONV) th0;;
 
 
 (********************************************)
-(* Example 3:                                                          *)
+(* Test 3:                                                             *)
 (* !x. &2 <= x /\ x <= #2.52                                           *)
 (*   ==> arclength (&2) x (&2) - arclength (#2.52) x (&2) >= #0.073`   *)
 

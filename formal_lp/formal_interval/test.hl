@@ -11,14 +11,57 @@ prove_ineq1d 5 `x * x - atn x` `#0.01` `#0.8`;;
 (* f(x) = x * x * x - atn (x * x); f(x) < 0 when 0.01 <= x <= 0.8 *)
 prove_ineq1d 5 `x * x * x - atn (x * x)` `#0.01` `#0.8`;;
 
-(* f(x) = atn x - x; f(x) < 0 when 0.001 <= x <= 1 *)
-prove_ineq1d 10 `atn x - x` `#0.001` `&1`;;
+(* f(x) = atn x - x; f(x) < 0 when 0.001 <= x <= sqrt(2) *)
+prove_ineq1d 10 `atn x - x` `#0.001` `sqrt (&2) + pi`;;
+
+
+(****************************************)
+(* arclength #2.52 #2.52 (&2) >= #0.816 *)
+(* arclength (&2) #2.52 (&2) - arclength #2.52 #2.52 (&2) >= #0.073 *)
+(* arclength a b c = acs ((a * a + b * b - c * c) / (&2 * a * b)) *)
+
+let arclength_tm = `acs ((a * a + b * b - c * c) / (&2 * a * b))`;;
+let tm1 = subst[`#2.52`, `a:real`; `#2.52`, `b:real`; `&2`, `c:real`] arclength_tm and
+    tm2 = subst[`&2`, `a:real`; `#2.52`, `b:real`; `&2`, `c:real`] arclength_tm;;
+
+let ineq1, ineq2 =
+  let (-) = mk_binop sub_op_real in
+    `#0.816` - tm1, `#0.073` - (tm2 - tm1);;
+
+prove_ineq1d 6 ineq1 `&0` `&0`;;
+prove_ineq1d 6 ineq2 `&0` `&0`;;
+
+
+(********************************************)
+(* !x. &2 <= x /\ x <= #2.52                                           *)
+(*   ==> arclength (&2) x (&2) - arclength (#2.52) x (&2) >= #0.073`   *)
+
+let ineq =
+  let tm1 = subst[`&2`, `a:real`; `x:real`, `b:real`; `&2`, `c:real`] arclength_tm and
+      tm2 = subst[`#2.52`, `a:real`; `x:real`, `b:real`; `&2`, `c:real`] arclength_tm and
+      (-) = mk_binop sub_op_real in
+    `#0.073` - (tm1 - tm2);;
+
+prove_ineq1d 7 ineq `&2` `#2.52`;;
+
+
+(***********************)
+(* !x. &2 <= x /\ x <= #2.52  ==> &1 / &4 * --inv (sqrt (&1 - (x / &4) pow 2)) <= -- #0.28 *)
+
+prove_ineq1d 4 `#0.28 + &1 / &4 * --inv (sqrt (&1 - (x * inv(&4)) * (x * inv(&4))))` `&2` `#2.52`;;
+
+(* !x. &2 <= x /\ x <= #2.52 ==>
+	inv (sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2)) <= &2 *)
+
+let ineq = (rand o concl o REWRITE_CONV[REAL_POW_2])
+  `inv (sqrt (&1 - ((&3969 / &625 + x * x - &4) / (&2 * #2.52 * x)) pow 2)) - &2`;;
+
+prove_ineq1d 3 ineq `&2` `#2.52`;;
+
 
 
 (***********************************************)
 (* |atn x - x / (1 + 0.28 * x * x)| < 0.005 when x IN [0, 1] *)
-
-
 let abs_lemma = prove(`f - eps < &0 ==> -- eps - f < &0 ==> abs f < eps`, REAL_ARITH_TAC);;
 
 let tm = `atn x - x / (&1 + #0.28 * x * x)`;;

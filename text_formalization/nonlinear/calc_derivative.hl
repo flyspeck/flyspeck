@@ -1235,7 +1235,23 @@ ASM_MESON_TAC[];
 
 (* apply chain only when head is a named constant, sqrt, cos, sin,... *)
 
-  let differentiate =
+let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
+
+  let derived_form_atn2curry = prove_by_refinement(
+  `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s ==> derived_form (p1 /\ p2 /\ (~((f2 x = &0) /\ (f1 x <= &0))) /\ (x IN s))  (\x. atn2curry (f1 x)  (f2 x))   ( (f2' * f1 x - f2 x * f1')/ (f1 x pow 2 + f2 x pow 2)) x s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[atan2curry];
+  REPEAT STRIP_TAC;
+  MP_TAC (SPECL [`x:real`;`p1:bool`;`f1:real->real`;`f1':real`;`p2:bool`;`f2:real->real`;`f2':real`;`s:real->bool`] atn2_derivative);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[derived_form];
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+      
+
+  let differentiate_prelim =
     let real_univ = `(:real)` in
     let real_ty = `:real` in
     let pow  = `(pow)` in
@@ -1244,7 +1260,8 @@ ASM_MESON_TAC[];
       let _ = (c:= !c+1) in 
 	mk_var("F"^(string_of_int !c),real_ty) in
     let binop = [(`( / )`,derived_form_div);(`( * )`,derived_form_mul);
-		 (`( + )`,derived_form_add); (`( - )`,derived_form_sub)] in
+		 (`( + )`,derived_form_add); (`( - )`,derived_form_sub);
+		(`atn2curry`,derived_form_atn2curry)] in
     let unop = [] in
     let fns = [((` -- `), derived_form_neg);
 	       (`sin`,derived_form_sin);
@@ -1358,6 +1375,15 @@ ASM_MESON_TAC[];
 	tryfind (fun t ->  check(t tm))  [d_fns;d_const;d_id;d_pow;d_op;d_chain;d_hyp] in
       
       fun tm x s -> cleanup_derived_form  (derivative' tm x s) tm s;;
+
+
+  let differentiate tm x s =
+    let th =  (REWRITE_CONV [GSYM atn2curry] tm) in
+    let tm1 = rhs (concl th) in
+    let d = differentiate_prelim tm1 x s in
+    let ans = REWRITE_RULE[SYM th] d in
+      ans;;
+
 
 
 (* Examples *)

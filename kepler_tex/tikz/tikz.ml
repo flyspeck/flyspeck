@@ -123,6 +123,10 @@ let tuple2 [v1;v2] = (v1,v2);;
 
 let list2 (v1,v2) = [v1;v2];;
 
+let norm2 x = sqrt(x *.. x);;
+
+let norm3 x = sqrt(x *... x);;
+
 let normalize3 x = (1.0 /. sqrt(x *... x)) %... x;;
 
 let normalize2 x = (1.0 /. sqrt(x *.. x)) %.. x;;
@@ -159,6 +163,22 @@ let etaV u v w =
   let z = dist2 (u -.. w) orig2 in
    eta x y z;;
 
+(* BUGGED SOMEHOW.
+let circum3 (a,b,c) = 
+  let [a';b';c']= map norm3 [a;b;c] in
+  let e = eta a' b' c' in
+  let u = a -... c in
+  let v = b -... c in
+  let w = (cross u v) in
+  let n = normalize3 (cross w u) in
+  let t = sqrt (e *. e -. a' *. a' /. 4.0) in
+    c +... (0.5 %... u) +... (t %... n);;
+*)
+
+let circumcenter (a,b,c) = 
+  let a' = a -.. c in
+  let b' = b -.. c in
+  c +.. (0.5 %.. (solve22 (a',b') (a' *.. a', b' *.. b')));;
 
 let frame_of v1 v2 = 
   let e1 = normalize3 (v1) in
@@ -166,7 +186,8 @@ let frame_of v1 v2 =
   let e3 = cross e1 e2 in
     (e1,e2,e3);;
   
-let random_SO3 () = 
+let random_SO3 seed = 
+  let _ = Random.init seed in
   let v3 () = tuple3 (map (fun _ -> -1.0 +. Random.float 2.0) [0;0;0]) in
     frame_of (v3()) (v3());;
 
@@ -195,10 +216,10 @@ let rec mindist2 r w = function
   | [] -> r
   | l::ls -> if (dist2 l w < r) then mindist2 (dist2 l w) w ls else mindist2 r w ls;;
 
-let randompacking = 
-  let _ = Random.init 5 in
-  let radius = 0.15 in
-  let v () = (Random.float 2.0,Random.float 2.0) in
+let randompacking radius seed xdim ydim = (* seed=5 works well *)
+  let _ = Random.init seed in 
+(*  let radius = 0.15 in *)
+  let v () = (Random.float xdim,Random.float ydim) in
   let add len ls = 
     let w = v() in
       if (mindist2 100.0 w ls < 2.0 *. radius) or List.length ls > len then ls else w::ls in
@@ -206,8 +227,9 @@ let randompacking =
   let sat = funpow 100000 (add 20000) unsat in
    (unsat,sat);;
 
-let print_satunsat = 
-  let (unsat,sat) = randompacking in
+let print_satunsat seed =
+  let radius = 0.15 in
+  let (unsat,sat) = randompacking radius seed 2.0 2.0 in
   let line d (x,y)  = Printf.sprintf "\draw[gray,fill=black!%d] (%f,%f) circle (0.15);\n" d x y in
   let punsat = map (line 30) unsat in
   let psat = map (line 10) sat in
@@ -216,14 +238,17 @@ let print_satunsat =
 
 (* \figXOHAZWO Voronoi cells of a random saturated packing. Start with Delaunay triangles. *)
 
-let center2 s (i,j,k) = 
+
+
+let center2 s (i,j,k) =  circumcenter (s i , s j , s k);; 
+(*
   let si = s i -.. s k in
   let sj = s j -.. s k in
     s k +.. (0.5 %.. (solve22 (si,sj) (si *.. si, sj *.. sj)));;
+*)
 
-let sat_triples =
+let sat_triples sat =
   let radius = 0.15 in
-  let (_,sat) = randompacking in
   let r = List.length sat in
   let s = nth sat in
   let rr = 0--(r-1) in
@@ -240,10 +265,10 @@ let sat_triples =
       List.length vals = 0 in
     filter fit ftriple;;
 
-let satst = sat_triples;;
-
-let print_satst = 
-  let (_,sat) =  randompacking in
+let print_satst seed= 
+  let radius = 0.15 in
+  let (_,sat) =  randompacking radius seed 5.0 2.0 in
+  let satst = sat_triples sat in
   let s = nth sat in
   let prs = filter (fun (i,j,k),(i',j',k') -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
@@ -252,12 +277,161 @@ let print_satst =
 		  let (x,y) = center2 s t in
 		  let (x',y') = center2 s t' in
 		    Printf.sprintf "\draw (%f,%f) -- (%f,%f) ;" x y x' y') prs in
-  let line d (x,y)  = Printf.sprintf "\draw[gray,fill=black!%d] (%f,%f) circle (0.15);" d x y in
-  let psat = map (line 10) sat in
+  let line (x,y)  = Printf.sprintf "%c\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\smalldot{%f,%f};" '%' x y x y in
+  let psat = map (line) sat in
     join_lines (psat @ pp);;
 
- 
+(* autoBUGZBTW *)
 
+let print_rogers seed=
+  let radius = 0.15 in
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let satst = sat_triples sat in
+  let s = nth sat in
+  let coord_triple t = center2 (nth sat) t in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let pp = map (fun (t, t') -> 
+		  let (x,y) = coord_triple t in
+		  let (x',y') = coord_triple t' in
+		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let line (x,y)  = Printf.sprintf "%c\\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\\smalldot{%f,%f};" '%' x y x y in
+  let psat = map (line) sat in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy)=	
+      Printf.sprintf "\\draw[fill=gray] (%f,%f)--(%f,%f)--(%f,%f)--(%f,%f)--cycle;" ax ay bx by cx cy dx dy in
+  let draw_radial (i,j,k) = 
+    let c = coord_triple (i,j,k) in
+    let (u1,u2,u3)=(s i,s j,s k) in
+    let vv = map draw  [(c,u1);(c,u2);(c,u3);] in
+      join_lines vv in
+  let radial = map draw_radial satst in
+  let draw_dedge (t,t') =
+    let c = coord_triple t in
+    let c'= coord_triple t' in
+    let (i,j) = tuple2 (intersect (list3 t) (list3 t')) in
+    let u1 = s i in
+    let u2 = s j in
+    let w = u2 -.. u1 in
+    let d = c -.. u1 in
+    let d' = c' -.. u1 in
+      if (det2 d w  *. det2 w d' > 0.0) then draw (u1, u2) else drawc u1 c u2 c' in
+  let dedge = map draw_dedge prs in
+    join_lines (psat @ radial @ dedge @ pp);;
+
+
+(* figYAJOTSL *)
+
+let mk_tetrahedron seed = 
+  let rot v = mul3 (random_SO3 seed) ( sqrt(3.0 /. 2.0) %... v) in
+  let v1 = rot (0.0,0.0,1.0) in
+  let v2 = rot (sqrt(8.0)/. 3.0,0.0,-. 1.0/. 3.0) in
+  let v3 = rot (-. sqrt(8.0)/. 6.0, sqrt(2.0/. 3.0), -. 1.0/. 3.0) in
+  let v4 = rot (-. sqrt(8.0)/. 6.0,-. sqrt(2.0 /. 3.0),-. 1.0/. 3.0) in
+     (v1,v2,v3,v4);;
+
+let print_tetra  = 
+  let (v1,v2,v3,v4) = (mk_tetrahedron 50) in
+  let [w1;w2;w3;w4]= map (proj delta1 delta2) [v1;v2;v3;v4] in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let drawv ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw[very thick] (%f,%f)--(%f,%f);" ux uy vx vy in
+  let face (s, (ux,uy),(vx,vy),(wx,wy)) = 
+    Printf.sprintf "\\draw[fill=black!%s] (%f,%f)--(%f,%f)--(%f,%f)--cycle;" s ux uy vx vy wx wy in
+  let vertex (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y in
+  let vertices = map vertex [w1;w2;w3;w4] in
+  let vv = map draw [(w1,w2);(w1,w3);(w1,w4);(w2,w3);(w3,w4);(w2,w4)] in
+  let shade = join_lines (map face [("45",w1,w2,w4); ("30",w1,w2,w3);("10",w2,w3,w4)]) in 
+  let edges=  join_lines vv in
+  let triangulate (u,v,w) = 
+    let c = proj delta1 delta2 (0.3333 %... (u +... v +... w)) in 
+    let [muv;mvw;muw] = map (fun (u,v)-> proj delta1 delta2 (0.5 %... (u +... v))) 
+      [(u,v);(v,w);(u,w)] in
+    let [pu;pv;pw] = map (proj delta1 delta2) [u;v;w] in
+    let vv = map draw [(c,pu);(c,pv);(c,pw)] in
+    let ww = map drawv [(c,muv);(c,mvw);(c,muw)] in
+      join_lines (vv @ ww) in
+    join_lines (edges :: shade :: (map triangulate [(v1,v2,v4);(v1,v2,v3);(v2,v3,v4)]) @ vertices);;
+
+(* autoBWEYURN *)
+
+let print_marchal seed=
+  let radius = 0.15 in 
+  let radius_sqrt2 = 0.212 in 
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let satst = sat_triples sat in
+  let rr = 0-- (List.length sat - 1) in
+  let allpair = (outer rr rr) in
+  let s = nth sat in
+  let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < 2.0 *. radius_sqrt2 -. 1.0e-4)  
+    allpair in
+  let coord_triple t = center2 (nth sat) t in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let pp = map (fun (t, t') -> 
+		  let (x,y) = coord_triple t in
+		  let (x',y') = coord_triple t' in
+		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let line (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
+    x y radius_sqrt2  in
+  let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
+  let psat = map (line) sat in
+  let dot = map (dot_line) sat in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let draw_radial (i,j,k) = 
+    let c = coord_triple (i,j,k) in
+    let (u1,u2,u3)=(s i,s j,s k) in
+    let vv = map draw  [(c,u1);(c,u2);(c,u3);] in
+      join_lines vv in
+  let radial = map draw_radial satst in
+  let draw_dedge (t,t') =
+    let c = coord_triple t in
+    let c'= coord_triple t' in
+    let (i,j) = tuple2 (intersect (list3 t) (list3 t')) in
+    let u1 = s i in
+    let u2 = s j in
+    let w = u2 -.. u1 in
+    let d = c -.. u1 in
+    let d' = c' -.. u1 in
+      if (det2 d w  *. det2 w d' > 0.0) then draw (u1, u2) else "%" in
+  let dedge = map draw_dedge prs in
+  let fill_tri (s,(ux,uy),(vx,vy),(wx,wy)) = 
+    Printf.sprintf "\\draw[black,fill=black!%s] (%f,%f)--(%f,%f)--(%f,%f)--cycle;" 
+      s ux uy vx vy wx wy in
+  let rotate u v x = 
+    v +.. cmul (normalize2 (u -.. v)) x in
+  let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy) =	
+      Printf.sprintf "\\draw[fill=black!35] (%f,%f)--(%f,%f)--(%f,%f)--(%f,%f)--cycle;\n\\draw (%f,%f)--(%f,%f);" 
+	ax ay bx by cx cy dx dy ax ay cx cy in
+  let draw_cell2 (i,j) = 
+    let u1 = s i in
+    let u2 = s j in
+    let r = dist2 u1 u2 in
+    let h2 = radius_sqrt2 *. radius_sqrt2 -. r *. r /. 4.0 in
+    let _ = (h2 >= 0.0) or failwith (Printf.sprintf "expected pos %d %d %f" i j h2) in
+    let h = sqrt(h2) in
+    let c = rotate u1 u2 (r /. 2.0,h) in
+    let c' = rotate u1 u2 (r /. 2.0, -. h) in
+      drawc u1 c u2 c' in
+  let cell2 = map draw_cell2 shortpair in
+  let draw_cell3 (i,j,k) = 
+    let (u,v,w) = (s i,s j,s k) in fill_tri ("60",u,v,w) in
+  let cell3filter (i,j,k) = 
+    etaV (s i) (s j) (s k) < radius *. sqrt(2.0) in
+  let cell3 = map draw_cell3 (filter cell3filter satst) in
+    join_lines (psat @ pp @ radial @ dedge @ cell2 @ cell3 @ dot);;
+
+
+    
+let genz_out  = 
+  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
+  let outstring = ref "" in
+  let add name s = outstring:= !outstring ^ wrap name s in
+  let _ =  add "autoBWEYURN" (print_marchal 45) in
+    output_filestring "/tmp/z.txt" (!outstring);;
+
+genz_out 50;;
 
 (* figYAHDBVO *)
 
@@ -476,8 +650,18 @@ let gen_out =
   let outstring = ref "" in
   let add name s = outstring:= !outstring ^ wrap name s in
   let _ =  add "autoZXEVDCA"   (join_lines (print_cycles @ print_dodec_face @ print_dodec_ellipse)) in
-  let _ = add "autoDEQCVQL" print_satunsat in
-  let _ = add "autoXOHAZWO" print_satst in
+  let voronoi_seed = 12345678 in (* 50, 300 good, *)
+  let _ = add "autoDEQCVQL" (print_satunsat 5) in
+  let _ = add "autoXOHAZWO" (print_satst voronoi_seed) in
+  let _ = add "autoBUGZBTW" (print_rogers voronoi_seed) in
     output_filestring "/tmp/x.txt" (!outstring);;
+
+let gen2_out = 
+  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
+  let outstring = ref "" in
+  let add name s = outstring:= !outstring ^ wrap name s in
+  let _ =  add "autoYAJOTSL" (print_tetra) in
+  let _ =  add "autoBWEYURN" (print_marchal 45) in
+    output_filestring "/tmp/y.txt" (!outstring);;
 
 

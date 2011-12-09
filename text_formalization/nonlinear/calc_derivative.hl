@@ -1233,9 +1233,8 @@ ASM_MESON_TAC[];
 (* END OF NICK VOLKER'S ATAN2 CODE *)
 
 
-(* apply chain only when head is a named constant, sqrt, cos, sin,... *)
 
-let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
+  let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
 
   let derived_form_atn2curry = prove_by_refinement(
   `!x s. derived_form p1 f1 f1' x s /\ derived_form p2 f2 f2' x s ==> derived_form (p1 /\ p2 /\ (~((f2 x = &0) /\ (f1 x <= &0))) /\ (x IN s))  (\x. atn2curry (f1 x)  (f2 x))   ( (f2' * f1 x - f2 x * f1')/ (f1 x pow 2 + f2 x pow 2)) x s`,
@@ -1250,8 +1249,10 @@ let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
   ]);;
   (* }}} *)
       
+(* apply chain only when head is a named constant, sqrt, cos, sin,... *)
 
-  let differentiate_prelim =
+
+  let differentiate =
     let real_univ = `(:real)` in
     let real_ty = `:real` in
     let pow  = `(pow)` in
@@ -1259,6 +1260,9 @@ let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
     let get_var() =  
       let _ = (c:= !c+1) in 
 	mk_var("F"^(string_of_int !c),real_ty) in
+    let curryl = [atn2curry] in
+    let uncurry = REWRITE_CONV curryl in
+    let curry = REWRITE_CONV (map GSYM curryl) in
     let binop = [(`( / )`,derived_form_div);(`( * )`,derived_form_mul);
 		 (`( + )`,derived_form_add); (`( - )`,derived_form_sub);
 		(`atn2curry`,derived_form_atn2curry)] in
@@ -1289,9 +1293,9 @@ let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
     let cleanup_derived_form th tm s = 
       let (_,[p;f;f';x;s']) = strip_comb (concl th) in
       let p' = rc p in
-      let f'' = rc f' in
-      let tm1 = REDEPTH_CONV BETA_CONV tm in
-      let f1 = REDEPTH_CONV BETA_CONV f in
+      let f'' = (rc THENC uncurry) f' in
+      let tm1 = ((REDEPTH_CONV BETA_CONV) THENC curry) tm in
+      let f1 = ((REDEPTH_CONV BETA_CONV) THENC curry) f in
       let u = try (prove(mk_eq (f,tm),REWRITE_TAC[tm1;f1] THEN MESON_TAC[])) 
       with _ -> 
 	(print_term tm; print_string" "; print_thm tm1; print_thm f1; failwith "cdfm")  in
@@ -1374,16 +1378,19 @@ let atn2curry = new_definition `atn2curry x y = atn2(x,y)`;;
 
 	tryfind (fun t ->  check(t tm))  [d_fns;d_const;d_id;d_pow;d_op;d_chain;d_hyp] in
       
-      fun tm x s -> cleanup_derived_form  (derivative' tm x s) tm s;;
+      fun tm x s -> 
+	let tm' = rhs (concl (curry tm)) in
+	  cleanup_derived_form  (derivative' tm' x s) tm s;;
 
 
+(*
   let differentiate tm x s =
     let th =  (REWRITE_CONV [GSYM atn2curry] tm) in
     let tm1 = rhs (concl th) in
     let d = differentiate_prelim tm1 x s in
     let ans = REWRITE_RULE[SYM th] d in
       ans;;
-
+*)
 
 
 (* Examples *)

@@ -105,7 +105,7 @@ let delta3 = (0.0,0.0,1.0);;
 
 let proj e1 e2 x = (x *... e1) , (x *... e2);;
 
-let perp p x  =  x -... (((x *... p) /. (p *... p)) $... p) ;; (* ortho to p *)
+let perp p x  =  x -... (((x *... p) /. (p *... p)) %... p) ;; (* ortho to p *)
 
 let transpose ((a11,a12,a13),(a21,a22,a23),(a31,a32,a33)) = 
   ((a11,a21,a31),(a12,a22,a32),(a13,a23,a33));;
@@ -431,7 +431,7 @@ let genz_out  =
   let _ =  add "autoBWEYURN" (print_marchal 45) in
     output_filestring "/tmp/z.txt" (!outstring);;
 
-genz_out 50;;
+(* genz_out 50;; *)
 
 (* figYAHDBVO *)
 

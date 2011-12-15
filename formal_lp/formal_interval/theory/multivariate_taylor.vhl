@@ -4,8 +4,10 @@
 "needs \"caml/ssrnat.hl\"".
 "needs \"../formal_lp/formal_interval/theory/taylor_interval.hl\"".
 
---"let partial = new_definition `partial i f x = drop (frechet_derivative (lift o f) (at x) (basis i))`".
-"let partial = new_definition `partial i f x = derivative (f o (\t. x + t % basis i)) (&0)`".
+"prioritize_overload `:real^N`".
+"prioritize_real()".
+
+"let partial = new_definition `partial i f x = derivative (f o (\t. (x:real^N) + t % basis i)) (&0)`".
 
 "let all_n = define `(all_n n [] s <=> T) /\ (all_n n (CONS h t) s <=> s n h /\ all_n (SUC n) t s)`".
 
@@ -1383,6 +1385,44 @@ Hypothesis domainH : `m_cell_domain domain y w`.
 (* Unary operations *)
 Hypothesis d2f : `diff2_domain domain f`.
 
+(* inv *)
+Lemma m_taylor_inv_compose :
+	`m_bounded_on_int f domain f_bounds ==> interval_not_zero f_bounds ==>
+	m_lin_approx (inv o f) y bounds d_bounds_list ==>
+	second_bounded (inv o f) domain dd_bounds_list ==>
+	m_taylor_interval (inv o f) domain y w bounds d_bounds_list dd_bounds_list`.
+move => bf fn0 lin second; rewrite m_taylor_interval.
+by rewrite (diff2_domain_inv_compose d2f bf).
+Qed.
+
+(* sqrt *)
+Lemma m_taylor_sqrt_compose :
+	`m_bounded_on_int f domain f_bounds ==> interval_pos f_bounds ==>
+	m_lin_approx (sqrt o f) y bounds d_bounds_list ==>
+	second_bounded (sqrt o f) domain dd_bounds_list ==>
+	m_taylor_interval (sqrt o f) domain y w bounds d_bounds_list dd_bounds_list`.
+move => bf fn0 lin second; rewrite m_taylor_interval.
+by rewrite (diff2_domain_sqrt_compose d2f bf).
+Qed.
+
+(* atn *)
+Lemma m_taylor_atn_compose :
+	`m_lin_approx (atn o f) y bounds d_bounds_list ==>
+	second_bounded (atn o f) domain dd_bounds_list ==>
+	m_taylor_interval (atn o f) domain y w bounds d_bounds_list dd_bounds_list`.
+by move => lin second; rewrite m_taylor_interval diff2_domain_atn_compose. Qed.
+
+(* acs *)
+Lemma m_taylor_acs_compose :
+	`m_bounded_on_int f domain f_bounds ==> iabs f_bounds < &1 ==>
+	m_lin_approx (acs o f) y bounds d_bounds_list ==>
+	second_bounded (acs o f) domain dd_bounds_list ==>
+	m_taylor_interval (acs o f) domain y w bounds d_bounds_list dd_bounds_list`.
+move => bf fn0 lin second; rewrite m_taylor_interval.
+by rewrite (diff2_domain_acs_compose d2f bf).
+Qed.
+
+
 (* neg *)
 Lemma m_taylor_neg :
 	`m_lin_approx (\x. --f x) y bounds d_bounds_list ==>
@@ -1424,3 +1464,64 @@ Proof. by move => lin second; rewrite m_taylor_interval diff2_domain_mul. Qed.
 
 
 End M_TaylorIntervalArith.
+
+
+(* Elementary functions and their taylor intervals *)
+Section ElementaryFunctions.
+
+Lemma f_lift_const c : `lift o (\x. c) = (\x. lift c)`.
+by rewrite -eq_ext o_THM. Qed.
+
+Lemma f_lift_unary f : `lift o (\x. f x) = (\x. lift (f x))`.
+by rewrite -eq_ext o_THM. Qed.
+
+
+(* const *)
+Lemma partial_const i c : `partial i (\x:real^N. c) = (\x. &0)`.
+rewrite -eq_ext partial => x /=.
+suff ->: `(\x. c) o (\t. x + t % basis i) = (\x. c)`.
+  by rewrite derivative_const.
+by rewrite -eq_ext o_THM.
+Qed.
+
+
+Lemma diff2_const c x : `diff2 (\x:real^N. c) x`.
+rewrite diff2; exists `(:real^N)`; rewrite OPEN_UNIV IN_UNIV !andTb => y _.
+by rewrite partial_const !f_lift_const !DIFFERENTIABLE_CONST.
+Qed.
+
+Lemma diff2_domain_const c domain : `diff2_domain domain (\x:real^N. c)`.
+by rewrite diff2_domain diff2_const. Qed.
+
+Lemma partial2_const i j c : `partial2 i j (\x:real^N. c) = (\x. &0)`.
+by rewrite partial2 !partial_const. Qed.
+
+(* x$k *)
+Lemma partial_x_lemma k i : `partial i (\x:real^N. x$k) = (\x. (basis i:real^N)$k)`.
+rewrite -eq_ext partial => x /=.
+have ->: `(\x. x$k) o (\t. x + t % basis i) = (\t. x$k + t * (basis i:real^N)$k)`.
+  by rewrite -eq_ext o_THM /= VECTOR_ADD_COMPONENT VECTOR_MUL_COMPONENT.
+rewrite derivative_add ?REAL_DIFFERENTIABLE_MUL_ATREAL ?REAL_DIFFERENTIABLE_CONST //.
+  by rewrite REAL_DIFFERENTIABLE_ID REAL_DIFFERENTIABLE_CONST.
+rewrite derivative_const /= derivative_mul ?REAL_DIFFERENTIABLE_ID ?REAL_DIFFERENTIABLE_CONST //.
+by rewrite derivative_x derivative_const; arith.
+Qed.
+
+Lemma partial_x k i : `k IN 1..dimindex (:N) ==> 
+	partial i (\x:real^N. x$k) = (\x. if i = k then &1 else &0)`.
+by move => k_ineq; rewrite partial_x_lemma BASIS_COMPONENT -?IN_NUMSEG //; arith. Qed.
+
+Lemma partial2_x k i j : `partial2 i j (\x:real^N. x$k) = (\x. &0)`.
+by rewrite partial2 partial_x_lemma partial_const. Qed.
+
+Lemma diff2_x k x : `k IN 1..dimindex (:N) ==> diff2 (\x:real^N. x$k) x`.
+move => k_ineq; rewrite diff2; exists `(:real^N)`; rewrite OPEN_UNIV IN_UNIV !andTb => y _.
+by rewrite projection_diff // partial_x_lemma !f_lift_unary DIFFERENTIABLE_CONST.
+Qed.
+
+Lemma diff2_domain_x k domain : `k IN 1..dimindex (:N) ==> diff2_domain domain (\x:real^N. x$k)`.
+by move/diff2_x; rewrite diff2_domain => ->. Qed.
+
+End ElementaryFunctions.
+
+

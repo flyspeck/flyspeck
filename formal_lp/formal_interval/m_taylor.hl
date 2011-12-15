@@ -1,0 +1,308 @@
+needs "../formal_lp/formal_interval/theory/multivariate_taylor.hl";;
+needs "../formal_lp/formal_interval/second_approx.hl";;
+
+let max_dim = 8;;
+
+
+let real_ty = `:real`;;
+
+let has_size_array = Array.init (max_dim + 1) 
+  (fun i -> match i with
+     | 0 -> TRUTH
+     | 1 -> HAS_SIZE_1
+     | _ -> define_finite_type i);;
+
+let dimindex_array = Array.init (max_dim + 1) 
+  (fun i -> if i < 1 then TRUTH else MATCH_MP DIMINDEX_UNIQUE has_size_array.(i));;
+
+
+(********************)
+(* List conversions *)
+(********************)
+
+(**********************)
+(* raw_compute_length *)
+let suc_const = `SUC`;;
+
+let LENGTH_0' = (RULE o prove)(`LENGTH ([]:(A)list) = 0`, REWRITE_TAC[LENGTH]);;
+let LENGTH_CONS' = (RULE o prove)(`LENGTH (CONS (h:A) t) = SUC (LENGTH t)`, REWRITE_TAC[LENGTH]);;
+
+
+let raw_compute_length list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let length_empty, length_cons = inst_t LENGTH_0', inst_t LENGTH_CONS' in
+  let h_var, t_var = mk_var("h", ty), mk_var("t", list_ty) in
+
+  let rec length_conv_raw = fun list_tm ->
+    if (is_comb list_tm) then
+      let ltm, t_tm = dest_comb list_tm in
+      let h_tm = rand ltm in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] length_cons in
+      let th1' = length_conv_raw t_tm in
+      let th1 = AP_TERM suc_const th1' in
+      let th2 = raw_suc_conv_hash (rand(concl th1)) in
+	TRANS (TRANS th0 th1) th2
+    else
+      length_empty in
+    length_conv_raw list_tm;;
+
+
+(***************)
+(* compute_zip *)
+
+let ZIP_0' = prove(`ZIP ([]:(A)list) ([]:(B)list) = []`, REWRITE_TAC[ZIP]);;
+let ZIP_CONS' = prove(`ZIP (CONS (h1:A) t1) (CONS (h2:B) t2) = CONS (h1, h2) (ZIP t1 t2)`,
+		      REWRITE_TAC[ZIP]);;
+
+let compute_zip list1_tm list2_tm =
+  let list1_ty = type_of list1_tm and
+      list2_ty = type_of list2_tm in
+  let ty1 = (hd o snd o dest_type) list1_ty and
+      ty2 = (hd o snd o dest_type) list2_ty in
+  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
+  let zip0, zip_cons = inst_t ZIP_0', inst_t ZIP_CONS' in
+  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
+      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) in
+
+  let rec zip_conv_rec = fun list1_tm list2_tm ->
+    if (is_comb list1_tm) then
+      let ltm1, t1_tm = dest_comb list1_tm and
+	  ltm2, t2_tm = dest_comb list2_tm in
+      let h1_tm, h2_tm = rand ltm1, rand ltm2 in
+      let th0 = INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var] zip_cons in
+      let cons_tm = (rator o rand o concl) th0 in
+      let th1' = zip_conv_rec t1_tm t2_tm in
+      let th1 = AP_TERM cons_tm th1' in
+	TRANS th0 th1
+    else
+      zip0 in
+    zip_conv_rec list1_tm list2_tm;;
+
+
+(****************)
+(* compute_all2 *)
+
+let ALL2_0' = prove(`ALL2 P ([]:(A)list) ([]:(B)list)`, REWRITE_TAC[ALL2]);;
+let ALL2_CONS' = (RULE o prove)(`P h1 h2 /\ ALL2 P t1 t2 ==> ALL2 P (CONS (h1:A) t1) (CONS (h2:B) t2)`,
+				REWRITE_TAC[ALL2]);;
+
+(* Does not work for empty lists *)
+let compute_all2 p_conv list1_tm list2_tm =
+  let list1_ty = type_of list1_tm and
+      list2_ty = type_of list2_tm in
+  let ty1 = (hd o snd o dest_type) list1_ty and
+      ty2 = (hd o snd o dest_type) list2_ty in
+  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
+  let all2_0, all2_cons = inst_t ALL2_0', inst_t ALL2_CONS' in
+  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
+      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) and
+      p_var = mk_var("P", mk_fun_ty ty1 (mk_fun_ty ty2 bool_ty)) in
+
+  let rec all2_conv_rec = fun list1_tm list2_tm ->
+    let ltm1, t1_tm = dest_comb list1_tm and
+	ltm2, t2_tm = dest_comb list2_tm in
+    let h1_tm, h2_tm = rand ltm1, rand ltm2 in
+    let p_th = p_conv h1_tm h2_tm in
+    let p_tm = (rator o rator o concl) p_th in
+    let all2_th = if is_comb t1_tm then all2_conv_rec t1_tm t2_tm else INST[p_tm, p_var] all2_0 in
+	(MY_PROVE_HYP all2_th o MY_PROVE_HYP p_th o 
+	   INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var; p_tm, p_var]) all2_cons in
+    
+    all2_conv_rec list1_tm list2_tm;;
+
+
+let p_conv = (fun t1 t2 -> (EQT_ELIM o NUM_LT_CONV) (mk_binop lt_op_num t1 t2));;
+let list1_tm = `[1;3;4;2;4]` and list2_tm = `[2;343;454;454;454]`;;
+
+compute_all2 p_conv list1_tm list2_tm;;
+
+
+
+
+
+(************************************)
+(* m_cell_domain *)
+
+let ALL2_ALL_ZIP = prove(`!(P:A->B->bool) l1 l2. LENGTH l1 = LENGTH l2 ==> 
+    (ALL2 P l1 l2 <=> ALL (\p. P (FST p) (SND p)) (ZIP l1 l2))`,
+  GEN_TAC THEN LIST_INDUCT_TAC THENL
+    [
+      GEN_TAC THEN REWRITE_TAC[LENGTH; EQ_SYM_EQ; LENGTH_EQ_NIL] THEN 
+	DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	REWRITE_TAC[ZIP; ALL2; ALL];
+      ALL_TAC
+    ] THEN
+
+    LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH] THENL [ARITH_TAC; ALL_TAC] THEN
+    REWRITE_TAC[eqSS] THEN DISCH_TAC THEN
+    REWRITE_TAC[ALL2; ZIP; ALL] THEN
+    FIRST_X_ASSUM (rewrite [] []) THEN ASM_REWRITE_TAC[]);;
+
+let EL_ZIP = prove(`!(l1:(A)list) (l2:(B)list) i. LENGTH l1 = LENGTH l2 /\ i < LENGTH l1 ==> 
+    EL i (ZIP l1 l2) = (EL i l1, EL i l2)`,
+  LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ZIP; LENGTH] THEN TRY ARITH_TAC THEN
+    case THEN REWRITE_TAC[EL; HD; TL] THEN GEN_TAC THEN
+    REWRITE_TAC[eqSS; ARITH_RULE `SUC n < SUC x <=> n < x`] THEN STRIP_TAC THEN
+    FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+
+let LENGTH_ZIP = prove(`!l1 l2. LENGTH l1 = LENGTH l2 ==> LENGTH (ZIP l1 l2) = LENGTH l1`,
+  LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[ZIP; LENGTH] THEN TRY ARITH_TAC THEN
+    REWRITE_TAC[eqSS] THEN DISCH_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+
+    
+
+let VECTOR_COMPONENT = prove(`!l i. i IN 1..dimindex (:N) ==>
+			       (vector l:A^N)$i = EL (i - 1) l`,
+REWRITE_TAC[IN_NUMSEG] THEN REPEAT GEN_TAC THEN DISCH_TAC THEN REWRITE_TAC[vector] THEN
+  MATCH_MP_TAC LAMBDA_BETA THEN ASM_REWRITE_TAC[]);;
+
+
+let test_domain_xi = new_definition
+  `test_domain_xi xz yw <=> FST xz <= FST yw /\ FST yw <= SND xz /\ 
+  FST yw - FST xz <= SND yw /\ SND xz - FST yw <= SND yw`;;
+
+let MK_CELL_DOMAIN = prove(`!xz (yw:(real#real)list) x z y w.
+    LENGTH x = dimindex (:N) /\ LENGTH z = dimindex (:N) /\
+    LENGTH y = dimindex (:N) /\ LENGTH w = dimindex (:N) /\
+    ZIP y w = yw /\ ZIP x z = xz /\
+    ALL2 test_domain_xi xz yw ==>
+    m_cell_domain (vector x, vector z:real^N) (vector y) (vector w)`,
+  REPEAT GEN_TAC THEN STRIP_TAC THEN POP_ASSUM MP_TAC THEN
+    SUBGOAL_THEN `LENGTH (xz:(real#real)list) = dimindex (:N) /\ LENGTH (yw:(real#real)list) = dimindex (:N)` ASSUME_TAC THENL
+    [
+      EXPAND_TAC "yw" THEN EXPAND_TAC "xz" THEN
+	REPEAT (rewrite [] [] LENGTH_ZIP) THEN ASM_REWRITE_TAC[];
+      ALL_TAC
+    ] THEN
+    rewrite [] [] ALL2_ALL_ZIP THEN ASM_REWRITE_TAC[m_cell_domain; GSYM ALL_EL] THEN DISCH_TAC THEN
+    REWRITE_TAC[m_cell_domain] THEN GEN_TAC THEN DISCH_TAC THEN
+    REPEAT (rewrite [] [] VECTOR_COMPONENT) THEN ASM_REWRITE_TAC[] THEN
+    ABBREV_TAC `j = i - 1` THEN
+    SUBGOAL_THEN `j < dimindex (:N)` ASSUME_TAC THENL
+    [
+      POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    FIRST_X_ASSUM (MP_TAC o SPEC `j:num`) THEN REWRITE_TAC[test_domain_xi] THEN
+    rewrite [] [] LENGTH_ZIP THEN ASM_REWRITE_TAC[] THEN
+    rewrite [] [] EL_ZIP THEN ASM_REWRITE_TAC[] THEN
+    EXPAND_TAC "xz" THEN EXPAND_TAC "yw" THEN
+    REPEAT (rewrite [] [] EL_ZIP) THEN ASM_REWRITE_TAC[] THEN
+    ARITH_TAC);;
+
+
+
+
+let float0_eq = FLOAT_TO_NUM_CONV (mk_float 0 min_exp);;
+     
+
+(* array of theorems *)
+let mk_m_domain_array =
+  let mk_m_domain n =
+    let dimindex_th = dimindex_array.(n) in
+    let n_ty = (hd o snd o dest_type o snd o dest_const o rand o lhand o concl) dimindex_th in
+    let nty = `:N` in
+      (UNDISCH_ALL o REWRITE_RULE[float0_eq] o DISCH_ALL o RULE o 
+	 REWRITE_RULE[dimindex_th] o INST_TYPE[n_ty, nty]) MK_CELL_DOMAIN in
+    Array.init (max_dim + 1) (fun i -> if i < 1 then TRUTH else mk_m_domain i);;
+
+
+
+let x_var_real_list = `x:(real)list` and
+    y_var_real_list = `y:(real)list` and
+    z_var_real_list = `z:(real)list` and
+    w_var_real_list = `w:(real)list` and
+    yw_var = `yw:(real#real)list` and
+    xz_var = `xz:(real#real)list` and
+    xz_pair_var = `xz:real#real` and
+    yw_pair_var = `yw:real#real`;;
+
+
+
+
+let TEST_DOMAIN_XI' = (RULE o prove)(`xz = (x,z) /\ yw = (y,w) /\
+    x <= y /\ y <= z /\ y - x <= w1 /\ z - y <= w2 /\ w1 <= w /\ w2 <= w ==> test_domain_xi xz yw`,
+  SIMP_TAC[test_domain_xi] THEN REAL_ARITH_TAC);;
+
+
+let eval_test_domain_xi xz yw =
+  let x, z = dest_pair xz and
+      y, w = dest_pair yw in
+  let (<=) = (fun t1 t2 -> EQT_ELIM (float_le t1 t2)) and
+      (-) = float_sub_hi pp in
+  let x_le_y = x <= y and
+      y_le_z = y <= z and
+      yx_le_w1 = y - x and
+      zy_le_w2 = z - y in
+  let w1 = (rand o concl) yx_le_w1 and
+      w2 = (rand o concl) zy_le_w2 in
+  let w1_le_w = w1 <= w and
+      w2_le_w = w2 <= w in
+    (MY_PROVE_HYP (REFL xz) o MY_PROVE_HYP (REFL yw) o
+      MY_PROVE_HYP x_le_y o MY_PROVE_HYP y_le_z o 
+       MY_PROVE_HYP yx_le_w1 o MY_PROVE_HYP zy_le_w2 o
+       MY_PROVE_HYP w1_le_w o MY_PROVE_HYP w2_le_w o
+       INST[x, x_var_real; y, y_var_real; z, z_var_real; w, w_var_real;
+	    w1, w1_var_real; w2, w2_var_real; 
+	    xz, xz_pair_var; yw, yw_pair_var]) TEST_DOMAIN_XI';;
+    
+
+(* mk_m_center_domain *)
+let mk_m_center_domain n pp x_list_tm z_list_tm =
+  let x_list = dest_list x_list_tm and
+      z_list = dest_list z_list_tm in
+  let y_list =
+    let ( * ) = (fun t1 t2 -> (rand o concl) (float_mul_eq t1 t2)) and
+	(+) = (fun t1 t2 -> (rand o concl) (float_add_hi pp t1 t2)) in
+      map2 (fun x y -> float_inv2 * (x + y)) x_list z_list in
+
+  let w_list =
+    let (-) = (fun t1 t2 -> (rand o concl) (float_sub_hi pp t1 t2)) and
+	max = (fun t1 t2 -> (rand o concl) (float_max t1 t2)) in
+    let w1 = map2 (-) y_list x_list and
+	w2 = map2 (-) z_list y_list in
+      map2 max w1 w2 in
+
+  let y_list_tm = mk_list (y_list, real_ty) and
+      w_list_tm = mk_list (w_list, real_ty) in
+
+  let yw_zip_th = compute_zip y_list_tm w_list_tm and
+      xz_zip_th = compute_zip x_list_tm z_list_tm in
+
+  let yw_list_tm = (rand o concl) yw_zip_th and
+      xz_list_tm = (rand o concl) xz_zip_th in
+
+  let len_x_th = raw_compute_length x_list_tm and
+      len_z_th = raw_compute_length z_list_tm and
+      len_y_th = raw_compute_length y_list_tm and
+      len_w_th = raw_compute_length w_list_tm in
+
+  let all_th = compute_all2 eval_test_domain_xi xz_list_tm yw_list_tm in
+    (MY_PROVE_HYP all_th o
+       MY_PROVE_HYP len_x_th o MY_PROVE_HYP len_z_th o
+       MY_PROVE_HYP len_y_th o MY_PROVE_HYP len_w_th o
+       MY_PROVE_HYP yw_zip_th o MY_PROVE_HYP xz_zip_th o
+       INST[x_list_tm, x_var_real_list; z_list_tm, z_var_real_list;
+	    y_list_tm, y_var_real_list; w_list_tm, w_var_real_list;
+	    yw_list_tm, yw_var; xz_list_tm, xz_var]) mk_m_domain_array.(n);;
+  
+
+
+
+let n = 8;;
+let pp = 5;;
+
+
+let x_list_tm = mk_list (replicate one_float n, real_ty) and
+    z_list_tm = mk_list (replicate two_float n, real_ty);;
+
+mk_m_center_domain n pp x_list_tm z_list_tm;;
+
+test 100 (mk_m_center_domain n pp x_list_tm) z_list_tm;;
+
+
+let x = 2;;
+
+

@@ -397,6 +397,12 @@ eval_m_taylor_const_int const_th domain_th;;
 test 1000 (eval_m_taylor_const_int const_th) domain_th;;
 
 
+(**************************************************)
+
+(* Given a variable of the type `:real^N` returns the number N *)
+let get_dim = int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of;;
+
+
 (**********************)
 (* eval_m_taylor_poly *)
 
@@ -450,29 +456,39 @@ let diff2_domain_pow = prove(`!f n domain. diff2_domain domain f ==>
   REWRITE_TAC[diff2_domain] THEN REPEAT STRIP_TAC THEN ASM_SIMP_TAC[diff2_pow]);;
 
 
+let diff2_domain_tm = `diff2_domain domain`;;
+
 let rec gen_diff2_domain_poly poly_tm =
   let x_var, expr = dest_abs poly_tm in
-  let diff2_tm = mk_icomb (`diff2_domain domain`, poly_tm) in
+  let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
+  let diff2_tm = mk_icomb (diff2_domain_tm, poly_tm) in
     if frees expr = [] then
-      SPEC_ALL (ISPEC expr diff2_domain_const)
+      (* const *)
+      (SPEC_ALL o ISPEC expr o inst_first_type_var (n_type_array.(n))) diff2_domain_const
     else
       let lhs, r_tm = dest_comb expr in
-      let op, l_tm = dest_comb lhs in
-      let name = (fst o dest_const) op in
-      if name = "$" then
-	let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
-	let dim_th = dimindex_array.(n) in
-	  prove(diff2_tm, MATCH_MP_TAC diff2_domain_x THEN
-		  REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC)
-      else
-	let l_th = gen_diff2_domain_poly (mk_abs (x_var, l_tm)) in
-	  if name = "real_pow" then
-	    prove(diff2_tm, MATCH_MP_TAC diff2_domain_pow THEN REWRITE_TAC[l_th])
-	  else
-	    let r_th = gen_diff2_domain_poly (mk_abs (x_var, r_tm)) in
-	      prove(diff2_tm,
-		    MAP_FIRST apply_tac [diff2_domain_add; diff2_domain_sub; diff2_domain_mul] THEN
-		      REWRITE_TAC[l_th; r_th]);;
+	if lhs = neg_op_real then
+	  (* -- *)
+	  let r_th = gen_diff2_domain_poly (mk_abs (x_var, r_tm)) in
+	    prove(diff2_tm, MATCH_MP_TAC diff2_domain_neg THEN REWRITE_TAC[r_th])
+	else
+	  let op, l_tm = dest_comb lhs in
+	  let name = (fst o dest_const) op in
+	    if name = "$" then
+	      (* x$k *)
+	      let dim_th = dimindex_array.(n) in
+		prove(diff2_tm, MATCH_MP_TAC diff2_domain_x THEN
+			REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC)
+	    else
+	      let l_th = gen_diff2_domain_poly (mk_abs (x_var, l_tm)) in
+		if name = "real_pow" then
+		  (* f pow n *)
+		  prove(diff2_tm, MATCH_MP_TAC diff2_domain_pow THEN REWRITE_TAC[l_th])
+		else
+		  let r_th = gen_diff2_domain_poly (mk_abs (x_var, r_tm)) in
+		    prove(diff2_tm,
+			  MAP_FIRST apply_tac [diff2_domain_add; diff2_domain_sub; diff2_domain_mul] THEN
+			    REWRITE_TAC[l_th; r_th])
 
 
 let gen_diff2_poly =
@@ -493,44 +509,58 @@ let gen_diff_poly =
       (MATCH_MP th_imp o GEN_ALL o gen_diff2_domain_poly) poly_tm;;
 
 
+
+let in_tm = `IN`;;
+
 let gen_partial_poly i poly_tm =
   let i_tm = mk_small_numeral i in
   let rec gen_rec poly_tm =
     let x_var, expr = dest_abs poly_tm in
+    let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
       if frees expr = [] then
-	ISPECL [i_tm; expr] partial_const
+	(* const *)
+	(SPECL [i_tm; expr] o inst_first_type_var (n_type_array.(n))) partial_const
       else
 	let lhs, r_tm = dest_comb expr in
-	let op, l_tm = dest_comb lhs in
-	let name = (fst o dest_const) op in
-	  if name = "$" then
-	    let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
-	    let dim_th = dimindex_array.(n) in
-	    let dim_tm = (lhand o concl) dim_th in
-	    let i_eq_k = NUM_EQ_CONV (mk_eq (i_tm, r_tm)) in
-	    let int_tm = mk_binop `..` `1` dim_tm in
-	    let k_in_dim = prove(mk_comb (mk_icomb(`IN`, r_tm), int_tm),
-				 REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC) in
-	      (REWRITE_RULE[i_eq_k] o MATCH_MP (SPECL [r_tm; i_tm] partial_x)) k_in_dim
-	  else
-	    let l_poly = mk_abs (x_var, l_tm) in
-	    let l_partial = gen_rec l_poly in
-	    let l_diff = (SPEC_ALL o gen_diff_poly) l_poly in
-	      if name = "real_pow" then
-		let th0 = SPECL [i_tm; r_tm] (MATCH_MP partial_pow l_diff) in
-		  REWRITE_RULE[l_partial] th0
-	      else
-		let r_poly = mk_abs (x_var, r_tm) in
-		let r_partial = gen_rec r_poly in
-		let r_diff = (SPEC_ALL o gen_diff_poly) r_poly in
-		let imp_th = assoc op [add_op_real, partial_add; 
-				       sub_op_real, partial_sub;
-				       mul_op_real, partial_mul] in
-		let th0 = SPEC i_tm (MATCH_MP (MATCH_MP imp_th l_diff) r_diff) in
-		  REWRITE_RULE[l_partial; r_partial] th0 in
-
+	  if lhs = neg_op_real then
+	    (* -- *)
+	    let r_poly = mk_abs (x_var, r_tm) in
+	    let r_diff = (SPEC_ALL o gen_diff_poly) r_poly and
+		r_partial = gen_rec r_poly in
+	    let th0 = SPEC i_tm (MATCH_MP partial_neg r_diff) in 
+	      REWRITE_RULE[r_partial] th0
+	    else
+	      let op, l_tm = dest_comb lhs in
+	      let name = (fst o dest_const) op in
+		if name = "$" then
+		  (* comp *)
+		  let dim_th = dimindex_array.(n) in
+		  let dim_tm = (lhand o concl) dim_th in
+		  let i_eq_k = NUM_EQ_CONV (mk_eq (i_tm, r_tm)) in
+		  let int_tm = mk_binop `..` `1` dim_tm in
+		  let k_in_dim = prove(mk_comb (mk_icomb(in_tm, r_tm), int_tm),
+				       REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC) in
+		    (REWRITE_RULE[i_eq_k] o MATCH_MP (SPECL [r_tm; i_tm] partial_x)) k_in_dim
+		else
+		  let l_poly = mk_abs (x_var, l_tm) in
+		  let l_partial = gen_rec l_poly in
+		  let l_diff = (SPEC_ALL o gen_diff_poly) l_poly in
+		    if name = "real_pow" then
+		      (* f pow n *)
+		      let th0 = SPECL [i_tm; r_tm] (MATCH_MP partial_pow l_diff) in
+			REWRITE_RULE[l_partial] th0
+		    else
+		      let r_poly = mk_abs (x_var, r_tm) in
+		      let r_partial = gen_rec r_poly in
+		      let r_diff = (SPEC_ALL o gen_diff_poly) r_poly in
+		      let imp_th = assoc op [add_op_real, partial_add; 
+					     sub_op_real, partial_sub;
+					     mul_op_real, partial_mul] in
+		      let th0 = SPEC i_tm (MATCH_MP (MATCH_MP imp_th l_diff) r_diff) in
+			REWRITE_RULE[l_partial; r_partial] th0 in
+    
   let th1 = gen_rec poly_tm in
-  let th2 = (REAL_POLY_CONV o rand o concl) th1 in
+  let th2 = ((NUM_REDUCE_CONV THENC REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV) o rand o concl) th1 in
     (REWRITE_RULE[ETA_AX] o ONCE_REWRITE_RULE[eq_ext] o GEN_ALL) (TRANS th1 th2);;
 
 
@@ -541,5 +571,147 @@ let gen_partial2_poly i j poly_tm =
     REWRITE_RULE[GSYM partial2] (TRANS (AP_TERM pi partial_j) partial_ij);;
 
 
-let poly_tm = `\x:real^2. (x$1 - x$2) * (x$1 - x$2) * x$1 pow 2`;;
-gen_partial2_poly 1 1 poly_tm;;
+let poly_tm = `\x:real^2. (x$1 - x$2) pow 3 * (x$1 - x$2) * x$1 pow 2`;;
+gen_partial2_poly 2 2 poly_tm;;
+
+
+
+let expr_to_vector_fun =
+  let comp_op = `$` in
+    fun expr_tm ->
+      let vars = sort (<) (frees expr_tm) in
+      let n = length vars in
+      let x_var = mk_var ("x", n_vector_type_array.(n)) in
+      let x_tm = mk_icomb (comp_op, x_var) in
+      let vars2 = map (fun i -> mk_comb (x_tm, mk_small_numeral i)) (1--n) in
+	mk_abs (x_var, subst (zip vars2 vars) expr_tm);;
+
+
+let delta_x4_poly = expr_to_vector_fun ((rand o concl o SPEC_ALL) Sphere.delta_x4);;
+gen_partial2_poly 2 3 delta_x4_poly;;
+(*
+map (fun i -> map (fun j -> gen_partial2_poly i j poly_delta_x4) (1--6)) (1--6);;
+*)
+
+
+
+(**************************)
+(* Examples *)
+let schwefel_poly = expr_to_vector_fun `(x1 - x2 pow 2) pow 2 + (x2 - &1) pow 2 + 
+  (x1 - x3 pow 2) pow 2 + (x3 - &1) pow 2`;;
+let rd_poly = expr_to_vector_fun `-- x1 + &2 * x2 - x3 - #0.835634534 * x2 * (&1 + x2)`;;
+let caprasse_poly = expr_to_vector_fun `-- x1 * x3 pow 3 + &4 * x2 * x3 pow 2 * x4 + 
+  &4 * x1 * x3 * x4 pow 2 + &2 * x2 * x4 pow 3 + &4 * x1 * x3 + &4 * x3 pow 2 - 
+  &10 * x2 * x4 - &10 * x4 pow 2 + &2`;;
+let lv_poly = expr_to_vector_fun `x1 * x2 pow 2 + x1 * x3 pow 2 + x1 * x4 pow 2 - #1.1 * x1 + &1`;;
+let butcher_poly = expr_to_vector_fun `x6 * x2 pow 2 + x5 * x3 pow 2 - x1 * x4 pow 2 + x4 pow 2 -
+  &1 / &3 * x1 + &4 / &3 * x4`;;
+let magnetism_poly = expr_to_vector_fun `x1 pow 2 + &2 * x2 pow 2 + &2 * x3 pow 2 + &2 * x4 pow 2 +
+  &2 * x5 pow 2 + &2 * x6 pow 2 + &2 * x7 pow 2 - x1`;;
+let heart_poly = expr_to_vector_fun `-- x1 * x6 pow 3 + &3 * x1 * x6 * x7 pow 2 - x3 * x7 pow 3 +
+  &3 * x3 * x7 * x6 pow 2 - x2 * x5 pow 3 + &3 * x2 * x5 * x8 pow 2 - x4 * x8 pow 3 + 
+  &3 * x3 * x8 * x5 pow 2 - #0.9563453`;;
+
+
+let schwefel_min = `-- #0.00000000058806` and
+    ld_min = `-- #36.7126907` and
+    caprasse_min = `-- #3.1801` and
+    lv_min = `-- #20.801` and
+    butcher_min = `-- #1.44` and
+    magnetism_min = `-- #0.25001` and
+    heart_min = `-- #1.7435`;;
+
+
+gen_partial2_poly 3 3 schwefel_poly;;
+gen_partial2_poly 1 7 heart_poly;;
+
+
+(********************************************)
+
+let x_vars_array = Array.init (max_dim + 1) (fun i -> mk_var ("x"^(string_of_int i), real_ty));;
+let df_vars_array = Array.init (max_dim + 1) (fun i -> mk_var ("df"^(string_of_int i), real_pair_ty));;
+let dd_vars_array = Array.init (max_dim + 1) (fun i ->
+   Array.init (max_dim + 1) (fun j -> mk_var ("dd"^(string_of_int i)^(string_of_int j), real_pair_ty)));;
+
+
+let el_thms_array =
+  let el_tm = `EL : num->(A)list->A` in
+  let gen0 n =
+    let e_list = mk_list (map (fun i -> mk_var ("e"^(string_of_int i), aty)) (1--n), aty) in
+    let el0_th = REWRITE_CONV[EL; HD] (mk_binop el_tm `0` e_list) in
+      Array.create n el0_th in
+  let array = Array.init (max_dim + 1) gen0 in
+  let gen_i n i =
+    let e_list = (rand o lhand o concl) array.(n).(i) in
+    let prev_thm = array.(n - 1).(i - 1) in
+    let i_tm = mk_small_numeral i in
+    let prev_i = num_CONV i_tm in
+    let el_th = REWRITE_CONV[prev_i; EL; HD; TL; prev_thm] (mk_binop el_tm i_tm e_list) in
+      array.(n).(i) <- el_th in
+  let _ = map (fun n -> map (fun i -> gen_i n i) (1--(n - 1))) (2--max_dim) in
+    array;;
+
+
+let gen_comp_thm n i =
+  let i_tm = mk_small_numeral i and
+      x_list = mk_list (map (fun i -> mk_var("x"^(string_of_int i), aty)) (1--n), aty) in
+  let th0 = (ISPECL [x_list; i_tm] o inst_first_type_var (n_type_array.(n))) VECTOR_COMPONENT in
+  let th1 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[IN_NUMSEG; dimindex_array.(n)]) th0 in
+    REWRITE_RULE[el_thms_array.(n).(i - 1)] th1;;
+
+let comp_thms_array = Array.init (max_dim + 1)
+  (fun n -> Array.init (n + 1)
+       (fun i -> if i < 1 or n < 1 then TRUTH else gen_comp_thm n i));;
+
+
+
+
+let gen_lin_approx_eq_thm n =
+  let ty = n_type_array.(n) in
+  let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
+  let df_bounds_list = mk_list (df_vars, real_pair_ty) in
+  let th0 = (SPECL[f_bounds_var; df_bounds_list] o inst_first_type_var ty) m_lin_approx in
+  let th1 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th0 in
+    th1;;
+
+
+let gen_lin_approx_poly_thm poly_tm =
+  let x_var, _ = dest_abs poly_tm in
+  let n = get_dim x_var in
+  let diff_th = gen_diff_poly poly_tm in
+  let partials = map (fun i -> gen_partial_poly i poly_tm) (1--n) in
+  let lin_eq = (REWRITE_RULE partials o SPECL [poly_tm]) (gen_lin_approx_eq_thm n) in
+  let x_vec = (inst[real_ty, aty] o rand o rator o lhand o concl) comp_thms_array.(n).(1) in
+  let th1 = (REWRITE_RULE (Array.to_list comp_thms_array.(n)) o SPEC x_vec o REWRITE_RULE[diff_th]) lin_eq in
+(*    (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL) th1;; *)
+    th1;;
+
+
+gen_lin_approx_poly_thm lv_poly;;
+gen_lin_approx_poly_thm rd_poly;;
+
+
+(*************************************)
+
+let gen_second_bounded_eq_thm n =
+  let ty, _, x_var, _, _, _, domain_var = get_types_and_vars n in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(j).(i)) (1--n)) (1--n) in
+  let dd_bounds_list = mk_list (map (fun l -> mk_list (l, real_pair_ty)) dd_vars, real_pair_list_ty) in
+  let th0 = (SPECL[domain_var; dd_bounds_list] o inst_first_type_var ty) second_bounded in
+  let th1 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th0 in
+    th1;;
+
+let gen_second_bounded_poly_thm poly_tm =
+  let x_var, _ = dest_abs poly_tm in
+  let n = get_dim x_var in
+  let partials = map (fun i -> gen_partial_poly i poly_tm) (1--n) in
+  let get_partial i eq_th = 
+    let partial_i = gen_partial_poly i (rand (concl eq_th)) in
+    let pi = (rator o lhand o concl) partial_i in
+      REWRITE_RULE[GSYM partial2] (TRANS (AP_TERM pi eq_th) partial_i) in
+  let partials2 = List.flatten (map (fun th -> map (fun i -> get_partial i th) (1--n)) partials) in
+  let second_th = (REWRITE_RULE partials2 o SPECL [poly_tm]) (gen_second_bounded_eq_thm n) in
+  let eq_th = TAUT `(P ==> Q /\ R) <=> ((P ==> Q) /\ (P ==> R))` in
+    REWRITE_RULE[eq_th; FORALL_AND_THM; GSYM m_bounded_on_int] second_th;;
+
+gen_second_bounded_poly_thm lv_poly;;

@@ -1,5 +1,6 @@
 needs "../formal_lp/formal_interval/theory/multivariate_taylor.hl";;
 needs "../formal_lp/formal_interval/second_approx.hl";;
+needs "../formal_lp/formal_interval/eval_interval.hl";;
 
 let max_dim = 8;;
 
@@ -628,10 +629,28 @@ gen_partial2_poly 1 7 heart_poly;;
 
 (********************************************)
 
-let x_vars_array = Array.init (max_dim + 1) (fun i -> mk_var ("x"^(string_of_int i), real_ty));;
+let x_var_names = Array.init (max_dim + 1) (fun i -> "x"^(string_of_int i)) and
+    y_var_names = Array.init (max_dim + 1) (fun i -> "y"^(string_of_int i)) and
+    z_var_names = Array.init (max_dim + 1) (fun i -> "z"^(string_of_int i));;
+
+let x_vars_array = Array.init (max_dim + 1) (fun i -> mk_var(x_var_names.(i), real_ty)) and
+    y_vars_array = Array.init (max_dim + 1) (fun i -> mk_var(y_var_names.(i), real_ty)) and
+    z_vars_array = Array.init (max_dim + 1) (fun i -> mk_var(z_var_names.(i), real_ty));;    
+
 let df_vars_array = Array.init (max_dim + 1) (fun i -> mk_var ("df"^(string_of_int i), real_pair_ty));;
 let dd_vars_array = Array.init (max_dim + 1) (fun i ->
    Array.init (max_dim + 1) (fun j -> mk_var ("dd"^(string_of_int i)^(string_of_int j), real_pair_ty)));;
+
+let dest_vector = dest_list o rand;;
+
+let mk_vector list_tm =
+  let n = (length o dest_list) list_tm in
+  let ty = (hd o snd o dest_type o type_of) list_tm in
+  let vec = mk_const ("vector", [ty, aty; n_type_array.(n), nty]) in
+    mk_comb (vec, list_tm);;
+
+let mk_vector_list list =
+    mk_vector (mk_list (list, type_of (hd list)));;
 
 
 let el_thms_array =
@@ -681,17 +700,117 @@ let gen_lin_approx_poly_thm poly_tm =
   let diff_th = gen_diff_poly poly_tm in
   let partials = map (fun i -> gen_partial_poly i poly_tm) (1--n) in
   let lin_eq = (REWRITE_RULE partials o SPECL [poly_tm]) (gen_lin_approx_eq_thm n) in
-  let x_vec = (inst[real_ty, aty] o rand o rator o lhand o concl) comp_thms_array.(n).(1) in
+  let x_vec = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) in
   let th1 = (REWRITE_RULE (Array.to_list comp_thms_array.(n)) o SPEC x_vec o REWRITE_RULE[diff_th]) lin_eq in
-(*    (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL) th1;; *)
     th1;;
 
 
-gen_lin_approx_poly_thm lv_poly;;
+
+  
+
+let eval_lin_approx_poly pp poly_tm =
+  let x_var, _ = dest_abs poly_tm in
+  let n = get_dim x_var in
+  let th0 = gen_lin_approx_poly_thm poly_tm in
+  let th1 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL) th0 in
+  let build_eval int_hyp =
+    let expr, b_var = dest_binary "interval_arith" int_hyp in
+      (eval_constants pp o build_interval_fun) expr, b_var in
+  let int_fs = map build_eval (hyp th1) in
+    
+  let rec gen_rules i_list =
+    match i_list with
+      | [] -> (I, fun vars -> I)
+      | ((i_fun, var_tm) :: es) -> 
+	  let (r1, r2) = gen_rules es in
+	  let r int_th =
+	    let b_tm = rand (concl int_th) in
+	      MY_PROVE_HYP int_th o INST[b_tm, var_tm] in
+	    match i_fun with
+	      | Int_const th -> (r th o r1, r2)
+	      | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1, r2)
+	      | _ -> (r1, fun vars -> r (eval_interval_fun pp i_fun vars) o r2 vars) in
+
+  let r1, r2 = gen_rules int_fs in
+  let th2 = r1 th1 in
+    fun vector_tm ->
+      let x_vals = dest_vector vector_tm in
+      if length x_vals <> n then failwith (sprintf "Wrong vector size; expected size: %d" n)
+      else
+	let x_ints = map mk_const_interval x_vals in
+	let vars = map (fun i -> x_vars_array.(i)) (1--n) in
+	let eval_vars = zip vars x_ints in
+	let th3 = INST (zip x_vals vars) th2 in
+	  r2 eval_vars th3;;
+
+
+let pp = 5;;
+let test_poly = `\x:real^2. x$1 * x$2`;;
+gen_lin_approx_poly_thm test_poly;;
+let eval_test = eval_lin_approx_poly pp test_poly;;
+let y_list = mk_list (replicate pi5 2, real_ty);;
+eval_test (mk_vector y_list);;
+
+
+
+(*******************************)
+
+let pp = 5;;
+let eval_rd = eval_lin_approx_poly pp rd_poly;;
+let pi5 = (fst o dest_pair o rand o concl) pi_approx_array.(5);;
+let y_list = mk_list (replicate pi5 3, real_ty);;
+eval_rd (mk_vector y_list);;
+
+let eval_schwefel = eval_lin_approx_poly pp schwefel_poly;;
+let y_list = mk_list (replicate pi5 3, real_ty);;
+eval_schwefel (mk_vector y_list);;
+
+
+let eval_heart = eval_lin_approx_poly pp heart_poly;;
+let y_list = mk_list (replicate pi5 8, real_ty);;
+eval_heart (mk_vector y_list);;
+
+let eval_magnetism = eval_lin_approx_poly pp magnetism_poly;;
+let y_list = mk_list (replicate pi5 7, real_ty);;
+eval_magnetism (mk_vector y_list);;
+
+
+
+gen_lin_approx_poly_thm magnetism_poly;;
 gen_lin_approx_poly_thm rd_poly;;
 
 
 (*************************************)
+
+
+(* 1 <= i /\ i <= n <=> i = 1 \/ i = 2 \/ ... \/ i = n *)
+let i_int_array =
+  let i_tm = `i:num` in
+  let i_th0 = prove(`1 <= i /\ i <= SUC n <=> (1 <= i /\ i <= n) \/ i = SUC n`, ARITH_TAC) in
+  let th1 = prove(`1 <= i /\ i <= 1 <=> i = 1`, ARITH_TAC) in
+  let array = Array.create (max_dim + 1) th1 in
+  let prove_next n =
+    let n_tm = mk_small_numeral n in
+    let prev_n = num_CONV n_tm in
+    let tm = mk_conj (`1 <= i`, mk_binop le_op_num i_tm n_tm) in
+    let th = REWRITE_CONV[prev_n; i_th0; array.(n - 1)] tm in
+      array.(n) <- REWRITE_RULE[SYM prev_n; DISJ_ACI] th in
+  let _ = map prove_next (2--max_dim) in
+    array;;
+
+
+
+(* (!i. 1 <= i /\ i <= n ==> P i) <=> P 1 /\ P 2 /\ ... /\ P n *)
+let gen_in_interval =
+  let th0 = prove(`(!i:num. (i = k \/ Q i) ==> P i) <=> (P k /\ (!i. Q i ==> P i))`, MESON_TAC[]) in
+  let th1 = prove(`(!i:num. (i = k ==> P i)) <=> P k`, MESON_TAC[]) in
+    fun n ->
+      let n_tm = mk_small_numeral n and
+	  i_tm = `i:num` in
+      let lhs1 = mk_conj (`1 <= i`, mk_binop le_op_num i_tm n_tm) in
+      let lhs = mk_forall (i_tm, mk_imp (lhs1, `(P:num->bool) i`)) in
+	REWRITE_CONV[i_int_array.(n); th0; th1] lhs;;
+
 
 let gen_second_bounded_eq_thm n =
   let ty, _, x_var, _, _, _, domain_var = get_types_and_vars n in
@@ -711,7 +830,58 @@ let gen_second_bounded_poly_thm poly_tm =
       REWRITE_RULE[GSYM partial2] (TRANS (AP_TERM pi eq_th) partial_i) in
   let partials2 = List.flatten (map (fun th -> map (fun i -> get_partial i th) (1--n)) partials) in
   let second_th = (REWRITE_RULE partials2 o SPECL [poly_tm]) (gen_second_bounded_eq_thm n) in
-  let eq_th = TAUT `(P ==> Q /\ R) <=> ((P ==> Q) /\ (P ==> R))` in
-    REWRITE_RULE[eq_th; FORALL_AND_THM; GSYM m_bounded_on_int] second_th;;
+    second_th;;
+
+(*  let eq_th = TAUT `(P ==> Q /\ R) <=> ((P ==> Q) /\ (P ==> R))` in
+    REWRITE_RULE[eq_th; FORALL_AND_THM; GSYM m_bounded_on_int] second_th;;*)
+
 
 gen_second_bounded_poly_thm lv_poly;;
+let poly_tm = schwefel_poly;;
+let poly_tm = delta_x4_poly;;
+let poly_tm = lv_poly;;
+let poly_tm = rd_poly;;
+let poly_tm = `\x:real^3. x$1 * x$2 * x$3`;;
+let th0 = gen_second_bounded_poly_thm poly_tm;;
+
+let n = (get_dim o fst o dest_abs) poly_tm;;
+let x_vector = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) and
+    z_vector = mk_vector_list (map (fun i -> z_vars_array.(i)) (1--n));;
+let _, _, _, _, _, _, domain_var = get_types_and_vars n;;
+let th1 = INST[mk_pair (x_vector, z_vector), domain_var] th0;;
+let th2 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n)] th1;;
+let th3 = REWRITE_RULE[gen_in_interval n; GSYM interval_arith] th2;;
+let th4 = REWRITE_RULE (Array.to_list comp_thms_array.(n)) th3;;
+
+let final_th0 = (UNDISCH_ALL o MATCH_MP iffRL) th4;;
+
+let x_var, h_tm = (dest_forall o hd o hyp) final_th0;;
+let h1, h2 = dest_imp h_tm;;
+let assum_ints = striplist dest_conj h1;;
+let concl_ints = striplist dest_conj h2;;
+
+let i_funs = map (fun int -> 
+		    let expr, var = dest_interval_arith int in
+		      (eval_constants pp o build_interval_fun) expr, var) concl_ints;;
+
+let rec gen_rules i_list =
+  match i_list with
+    | [] -> (I, fun vars -> [])
+    | ((i_fun, var_tm) :: es) -> 
+	let r1, r2 = gen_rules es in
+	let r int_th =
+	  let b_tm = rand (concl int_th) in
+	    REWRITE_RULE[int_th] o INST[b_tm, var_tm] in
+	  match i_fun with
+	    | Int_const th -> (r th o r1, r2)
+(*	    | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1) *)
+	    | _ -> (r1, fun vars -> (var_tm, eval_interval_fun pp i_fun vars) :: r2 vars);;
+
+
+let r1, r2 = gen_rules i_funs;;
+let final_th = r1 (SYM th4);;
+
+
+
+let vars = [`(x:real^3)$1`, two_interval; `(x:real^3)$2`, two_interval; `(x:real^3)$3`, one_interval];;
+r2 vars;;

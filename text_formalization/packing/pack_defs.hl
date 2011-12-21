@@ -90,13 +90,29 @@ let mcell_set = new_definition `mcell_set V =
 let cell_params = new_definition `!V X. cell_params V X = @(k,ul).
     (k <= 4) /\ (ul IN barV V 3) /\ (X = mcell k V ul)`;;
 
+(* VX modified Dec 21, 2011 to add k=0 case, error detected by Ky *)
+
 let VX = new_definition `!V X.   VX V X = 
     if (NULLSET X) then {} else
-        (let (k,ul) = cell_params V X in set_of_list (truncate_simplex (k-1) ul))`;;
+        (let (k,ul) = cell_params V X in
+        (if (k=0) then {} else set_of_list (truncate_simplex (k-1) ul)))`;;
 
 let VX_alt = prove_by_refinement(
-  `!V X k ul.      ~(NULLSET X) /\ ( (k,ul) = cell_params V X) ==>
+  `!V X k ul.      ~(NULLSET X) /\ ~(k=0) /\ ( (k,ul) = cell_params V X) ==>
       VX V X = set_of_list (truncate_simplex (k-1) ul)`,
+  (* {{{ proof *)
+  [ 
+  REWRITE_TAC[VX];
+  REPEAT STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  LET_TAC;
+  ASM_MESON_TAC[PAIR_EQ];
+  ]);;
+  (* }}} *)
+
+let VX0_alt = prove_by_refinement(
+  `!V X ul.       ( (0,ul) = cell_params V X) ==>
+      (VX V X = {})`,
   (* {{{ proof *)
   [ 
   REWRITE_TAC[VX];

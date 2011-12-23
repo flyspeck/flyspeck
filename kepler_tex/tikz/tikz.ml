@@ -423,15 +423,115 @@ let print_marchal seed=
     join_lines (psat @ pp @ radial @ dedge @ cell2 @ cell3 @ dot);;
 
 
-    
+(* figKVIVUOT *)
+
+let kv_inter u v = 
+  let r2 = 2.0 in
+  let nu = norm3 u in
+  let nvu = norm3 (v-...u) in 
+  let t = sqrt ( (r2 -. nu *. nu) /. (nvu *. nvu)) in
+    u +... t %... (v-... u);;
+
+(*
+let kv_interp s u v1 v2 = 
+  let r2 = 2.0 in
+  let v = (s %... v2) +... ((1.0 -. s) %... v1) in
+  let nu = norm3 u in
+  let nvu = norm3 (v-...u) in 
+  let t = sqrt ( (r2 -. nu *. nu) /. (nvu *. nvu)) in
+    u +... t %... (v-... u)
+  ;;
+*)
+
+let kv_interp s u v1 v2 = 
+  let v = (s %... v2) +... ((1.0 -. s) %... v1) in
+    kv_inter u v;;
+
+
+let kv_proj rho (x,y,z) =  x %.. (1.0,0.0) +.. y %.. (0.0,1.0) +.. z %.. rho;;
+
+let rx u1 u2 label = 
+  let rho = (0.33,0.66) in
+  let null3 = (0.0,0.0,0.0) in
+  let p1 = map (fun s -> kv_interp (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
+  let q1 = map (kv_proj rho) p1 in
+  let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
+    Printf.sprintf "\def\kv%s{%s}" label w1 ;;
+
+let col1 = 
+  let a = 1.5 in
+  let b = 2.0 in
+  let c = b +. 0.2 in
+  let bb = sqrt(b*.b -. a*.a) in
+  let cc = sqrt(c*.c -. b*.b) in
+  let r2 = 2.0 in
+  let r = sqrt(r2) in
+  let omega1 = a %... delta2 in 
+  let omega2 = omega1 +... bb %... delta1 in
+  let omega3 = omega2 +... cc %... delta3 in
+  let v1 = r %... normalize3 omega1 in
+  let v2 = r %... normalize3 omega2 in
+  let v3 = r %... normalize3 omega3 in
+  let w12 = rx v1 v2 "oneab" in
+  let w13 = rx v1 v3 "oneac" in
+  let w32 = rx v3 v2 "onecb" in
+    join_lines [w12;w13;w32];;
+
+let col2 = 
+  let a = 1.0 in
+  let b = 2.0 in
+  let c = b +. 0.2 in
+  let bb = sqrt(b*.b -. a*.a) in
+  let cc = sqrt(c*.c -. b*.b) in
+  let r2 = 2.0 in
+  let r = sqrt(r2) in
+  let U = (0.0,0.0) in
+  let omega1 = a %... delta2 in 
+  let omega2 = omega1 +... bb %... delta1 in
+  let omega3 = omega2 +... cc %... delta3 in
+  let v13 = kv_inter omega1 omega3 in
+  let v12 = kv_inter omega1 omega2 in
+  let v3 = r %... normalize3 omega3 in
+  let v2 = r %... normalize3 omega2 in
+  let wab = rx v13 v3 "Bab" in
+  let wbc = rx v3 v2 "Bbc" in
+  let wcd = rx v2 v12 "Bcd" in
+  let wda = rx v12 v13 "Bda" in
+    join_lines [wab;wbc;wcd;wda];;
+
+
+let col3 = 
+  let a = 1.0 in
+  let b = 1.35 in
+  let c = 2.0 in
+  let bb = sqrt(b*.b -. a*.a) in
+  let cc = sqrt(c*.c -. b*.b) in
+  let r2 = 2.0 in
+  let r = sqrt(r2) in
+  let U = (0.0,0.0) in
+  let omega1 = a %... delta2 in 
+  let omega2 = omega1 +... bb %... delta1 in
+  let omega3 = omega2 +... cc %... delta3 in
+  let v13 = kv_inter omega1 omega3 in
+  let v23 = kv_inter omega2 omega3 in
+  let v3 = r %... normalize3 omega3 in
+  let wab = rx v13 v3 "Cab" in
+  let wbc = rx v3 v23 "Cbc" in
+  let wca = rx v23 v13 "Cca" in
+    join_lines [wab;wbc;wca];;
+
+
+
+(*
+*)
+
 let genz_out  = 
   let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
   let outstring = ref "" in
   let add name s = outstring:= !outstring ^ wrap name s in
-  let _ =  add "autoBWEYURN" (print_marchal 45) in
+  let _ =  add "autoKVIVUOT" (join_lines[col1;col2;col3]) in
     output_filestring "/tmp/z.txt" (!outstring);;
 
-(* genz_out 50;; *)
 
 (* figYAHDBVO *)
 

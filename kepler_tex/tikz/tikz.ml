@@ -425,8 +425,7 @@ let print_marchal seed=
 
 (* figKVIVUOT *)
 
-let kv_inter u v = 
-  let r2 = 2.0 in
+let kv_inter r2 u v = 
   let nu = norm3 u in
   let nvu = norm3 (v-...u) in 
   let t = sqrt ( (r2 -. nu *. nu) /. (nvu *. nvu)) in
@@ -443,17 +442,18 @@ let kv_interp s u v1 v2 =
   ;;
 *)
 
-let kv_interp s u v1 v2 = 
+let kv_interp r2 s u v1 v2 = 
   let v = (s %... v2) +... ((1.0 -. s) %... v1) in
-    kv_inter u v;;
+    kv_inter r2 u v;;
 
 
 let kv_proj rho (x,y,z) =  x %.. (1.0,0.0) +.. y %.. (0.0,1.0) +.. z %.. rho;;
 
 let rx u1 u2 label = 
+  let r2 = 2.0 in
   let rho = (0.33,0.66) in
   let null3 = (0.0,0.0,0.0) in
-  let p1 = map (fun s -> kv_interp (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
+  let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
   let q1 = map (kv_proj rho) p1 in
   let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
     Printf.sprintf "\def\kv%s{%s}" label w1 ;;
@@ -523,13 +523,135 @@ let col3 =
 
 
 (*
+figDEJKNQK
+
+v0 = {0, 0, 1};
+null = {0, 0, 0};
+v1 = {0, 0.85, Sqrt[1 - 0.85^2]};
+v2 = FarFrom[{1, 0, 0}, Vertex[{v0, 1}, {v1, 1}, {null, 1}]]
+v3 = FarFrom[{0, 0, -1}, Vertex[{null, 1}, {v1, 1}, {v2, 1.26}]]
+v4 = FarFrom[v1, Vertex[{null, 1}, {v2, 1}, {v3, 1.26}]]
+v5 = FarFrom[v2, Vertex[{null, 1}, {v4, 1}, {v3, 1.26}]]
+w4 = FarFrom[v1, Vertex[{null, 1}, {v2, 1}, {v3, 1}]]
+w5 = FarFrom[v2, Vertex[{null, 1}, {v4, 1}, {v3, 1}]]
+w6 = FarFrom[v4, Vertex[{null, 1}, {v3, 1}, {v5, 1}]]
 *)
+
+
+let vws = 
+  let v1=( 0.0, 0.85, 0.526783) in
+  let v2=( -0.820069, 0.278363, 0.5) in
+  let v3=( 0.32578, 0.00230249, 0.945443) in
+  let  v4=( -0.586928, -0.690949, 0.422025) in
+  let v5=( 0.329363, -0.938133, 0.106892) in
+  let w4=( -0.409791, -0.617314, 0.671562) in
+  let w5=(0.40333, -0.826891, 0.391887) in
+  let  w6=(0.965333, -0.171655, 0.196637) in
+		       (v1,v2,v3,v4,v5,w4,w5,w6);;
+
+let rxdej(u1,u2,label) = 
+  let r2 = 1.0 in
+  let rho = (0.0,0.0) in
+  let null3 = (0.0,0.0,0.0) in
+  let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
+  let q1 = map (kv_proj rho) p1 in
+  let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
+    Printf.sprintf "\def\dejk%s{%s}" label w1 ;;
+
+let mkdejA = 
+  let rho = (0.0,0.0) in
+  let (v1,v2,v3,v4,v5,w4,w5,w6) = vws in
+  let vv = join_lines (map rxdej 
+      [(v1,v2,"a");(v2,v4,"b");(v4,v5,"c");(v5,w6,"d");(w6,v3,"e");(v3,v1,"f");
+       (v2,v3,"g");(v4,v3,"h");(v5,v3,"i");(v4,w5,"j");(w5,v3,"k");(v2,w4,"l");
+      (w4,v3,"m")]) in 
+    vv;;
+
+let mkdejB = 
+  let rho = (0.0,0.0) in
+  let (v1,v2,v3,v4,v5,w4,w5,w6) = vws in
+  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
+     [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(v5,"v5");(w4,"w4");(w5,"w5");(w6,"w6")]) in
+    ww;;
+
+
+(* QTICQYN
+
+Mathematica:
+v0 = {0, 0, 1};
+null = {0, 0, 0};
+v1 = {0, 0.85, Sqrt[1 - 0.85^2]};
+v2 = FarFrom[{1, 0, 0}, Vertex[{v0, 1}, {v1, 1}, {null, 1}]];
+v3 = FarFrom[{0, 0, -1}, Vertex[{null, 1}, {v1, 1}, {v2, 1.5}]];
+v4 = FarFrom[v1, Vertex[{null, 1}, {v2, 1}, {v3, 1.5}]];
+v5 = FarFrom[v2, Vertex[{null, 1}, {v4, 1}, {v3, 1}]];
+*)
+
+let qtvv = 
+  let v1=(0.0, 0.85, 0.526783) in 
+  let v2=(-0.820069, 0.278363,   0.5) in 
+  let v3=(0.651104, 0.124197,       0.748758) in 
+  let v4=(-0.572254, -0.688878, 0.444941) in 
+  let v5=(0.421862, -0.796553, 0.433055) in
+    (v1,v2,v3,v4,v5);;
+
+
+let rxqt(u1,u2,label) = 
+  let r2 = 1.0 in
+  let rho = (0.0,0.0) in
+  let null3 = (0.0,0.0,0.0) in
+  let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
+  let q1 = map (kv_proj rho) p1 in
+  let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
+    Printf.sprintf "\def\qt%s{%s}" label w1 ;;
+
+let mkqtA = 
+  let (v1,v2,v3,v4,v5) = qtvv in
+  let vv = join_lines (map rxqt
+      [(v1,v2,"a");(v2,v4,"b");(v4,v5,"c");(v5,v3,"d");(v3,v1,"e");(v2,v3,"f");
+       (v4,v3,"g")]) in
+    vv;;
+
+let mkqtB = 
+  let rho = (0.0,0.0) in
+  let (v1,v2,v3,v4,v5) = qtvv in
+  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
+     [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(v5,"v5")]) in
+    ww;;
+
+(*
+HEABLRG
+*)
+
+let vvhe = 
+  let (a,b,c) = (0.45,0.6,0.4) in
+    map normalize3 [(a,b,c);(-. a,b,c);(-.a,-.b,c);(a,-.b,c)];;
+
+let dualhe = 
+  let [v1;v2;v3;v4] = vvhe in 
+  let nc (u,v) = normalize3 (cross u v) in
+   map nc [(v1,v2);(v2,v3);(v3,v4);(v4,v1)];;
+
+let mkhe = 
+  let rho = (0.0,0.0) in
+  let [v1;v2;v3;v4] = vvhe in
+  let [w1;w2;w3;w4] = dualhe in 
+  let vv = join_lines (map rxqt
+      [(v1,v2,"a");(v2,v3,"b");(v3,v4,"c");(v4,v1,"d");(w1,w2,"e");(w2,w3,"f");
+       (w3,w4,"g");(w4,w1,"h")]) in
+  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
+     [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(w1,"w1");(w2,"w2");(w3,"w3");
+      (w4,"w4")]) in
+    join_lines [ww;vv];;
 
 let genz_out  = 
   let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
   let outstring = ref "" in
   let add name s = outstring:= !outstring ^ wrap name s in
-  let _ =  add "autoKVIVUOT" (join_lines[col1;col2;col3]) in
+  let _ =  add "autoHEABLRG" (mkhe) in 
     output_filestring "/tmp/z.txt" (!outstring);;
 
 
@@ -762,6 +884,10 @@ let gen2_out =
   let add name s = outstring:= !outstring ^ wrap name s in
   let _ =  add "autoYAJOTSL" (print_tetra) in
   let _ =  add "autoBWEYURN" (print_marchal 45) in
+  let _ =  add "autoKVIVUOT" (join_lines[col1;col2;col3]) in
+  let _ =  add "autoDEJKNQK" (mkdejA) in
+  let _ =  add "autocDEJKNQK" (mkdejB) in
+  let _ =  add "autoQTICQYN" (join_lines [mkqtA;mkqtB]) in 
     output_filestring "/tmp/y.txt" (!outstring);;
 
 

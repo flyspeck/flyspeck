@@ -1,0 +1,645 @@
+let t_const = `T` and
+    f_const = `F`;;
+
+let MY_PROVE_HYP hyp th = EQ_MP (DEDUCT_ANTISYM_RULE hyp th) hyp;;
+let MY_RULE = UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
+let MY_RULE_NUM = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
+
+
+
+
+(******************************)
+
+(* HD conversions *)
+
+let HD_A_CONS = prove(`HD (CONS (h:A) t) = h`, REWRITE_TAC[HD]);;
+
+(* Takes a term `[a;...]` and returns the theorem |- HD [a;...] = a *)
+let eval_hd list_tm =
+  let ltm, t_tm = dest_comb list_tm in
+  let h_tm = rand ltm in
+  let list_ty = type_of t_tm and
+      ty = type_of h_tm in
+  let h_var = mk_var("h", ty) and
+      t_var = mk_var("t", list_ty) in
+    (INST[h_tm, h_var; t_tm, t_var] o INST_TYPE[ty, aty]) HD_A_CONS;;
+
+(* Takes a term `HD [a;...]` and returns the theorem |- HD [a;...] = a *)
+let hd_conv hd_tm =
+  if (fst o dest_const o rator) hd_tm <> "HD" then failwith "hd_conv"
+  else eval_hd (rand hd_tm);;
+
+
+(*
+let tm = `HD [1;2;3;4]`;;
+hd_conv tm;;
+(* 0.072 *)
+test 1000 (REWRITE_CONV[HD]) tm;;
+(* 0.016 *)
+test 1000 hd_conv tm;;
+let tm = `[1;2;3;4]`;;
+eval_hd tm;;
+test 1000 eval_hd tm;;
+*)
+
+
+
+(*******************************)
+
+(* FST, SND conversions *)
+
+let FST' = ISPECL[`x:A`; `y:B`] FST;;
+let SND' = ISPECL[`x:A`; `y:B`] SND;;
+
+
+let fst_conv tm =
+  let x_tm, y_tm = dest_pair (rand tm) in
+  let x_ty, y_ty = type_of x_tm, type_of y_tm in
+  let x_var, y_var = mk_var("x", x_ty), mk_var("y", y_ty) in
+    (INST[x_tm, x_var; y_tm, y_var] o INST_TYPE[x_ty, aty; y_ty, bty]) FST';;
+
+let snd_conv tm =
+  let x_tm, y_tm = dest_pair (rand tm) in
+  let x_ty, y_ty = type_of x_tm, type_of y_tm in
+  let x_var, y_var = mk_var("x", x_ty), mk_var("y", y_ty) in
+    (INST[x_tm, x_var; y_tm, y_var] o INST_TYPE[x_ty, aty; y_ty, bty]) SND';;
+
+
+(*
+let tm = `FST (1,2)`;;    
+fst_conv tm;;
+
+(* 0.688 *)
+test 10000 (REWRITE_CONV[]) tm;;
+(* 0.100 *)
+test 10000 fst_conv tm;;
+*)
+
+
+(******************************)
+
+(* LENGTH conversions *)
+
+let LENGTH_0' = (MY_RULE_NUM o prove) (`LENGTH ([]:(A)list) = 0`, REWRITE_TAC[LENGTH]) and
+    LENGTH_CONS' = prove(`LENGTH (CONS (h:A) t) = SUC (LENGTH t)`, REWRITE_TAC[LENGTH]);;
+
+let suc_const = `SUC`;;
+
+(* Takes a term `[...]` and returns the theorem |- LENGTH [...] = n *)
+let eval_length list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let length_empty, length_cons = inst_t LENGTH_0', inst_t LENGTH_CONS' in
+  let h_var, t_var = mk_var("h", ty), mk_var("t", list_ty) in
+
+  let rec length_conv_raw = fun list_tm ->
+    if (is_comb list_tm) then
+      let ltm, t_tm = dest_comb list_tm in
+      let h_tm = rand ltm in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] length_cons in
+      let th1' = length_conv_raw t_tm in
+      let th1 = AP_TERM suc_const th1' in
+      let th2 = raw_suc_conv_hash (rand(concl th1)) in
+	TRANS (TRANS th0 th1) th2
+    else
+      length_empty in
+    length_conv_raw list_tm;;
+
+
+(* Takes a term `LENGTH [...]` and returns the theorem |- LENGTH [...] = n *)
+let length_conv length_tm =
+  if (fst o dest_const o rator) length_tm <> "LENGTH" then failwith "length_conv"
+  else eval_length (rand length_tm);;
+
+
+(*
+let tm = `LENGTH [&1;&4;&4;&6;&7 * &8]`;;
+length_conv tm;;
+test 1000 (REWRITE_CONV[LENGTH; ARITH_SUC]) tm;; (* 0.792 *)
+test 1000 length_conv tm;; (* 0.076 *)
+*)
+
+
+(***************)
+(* eval_zip *)
+
+let ZIP_0' = prove(`ZIP ([]:(A)list) ([]:(B)list) = []`, REWRITE_TAC[ZIP]) and
+    ZIP_CONS' = prove(`ZIP (CONS (h1:A) t1) (CONS (h2:B) t2) = CONS (h1, h2) (ZIP t1 t2)`,
+		      REWRITE_TAC[ZIP]);;
+
+let eval_zip list1_tm list2_tm =
+  let list1_ty = type_of list1_tm and
+      list2_ty = type_of list2_tm in
+  let ty1 = (hd o snd o dest_type) list1_ty and
+      ty2 = (hd o snd o dest_type) list2_ty in
+  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
+  let zip0, zip_cons = inst_t ZIP_0', inst_t ZIP_CONS' in
+  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
+      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) in
+
+  let rec zip_conv_rec = fun list1_tm list2_tm ->
+    if (is_comb list1_tm) then
+      let ltm1, t1_tm = dest_comb list1_tm and
+	  ltm2, t2_tm = dest_comb list2_tm in
+      let h1_tm, h2_tm = rand ltm1, rand ltm2 in
+      let th0 = INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var] zip_cons in
+      let cons_tm = (rator o rand o concl) th0 in
+      let th1' = zip_conv_rec t1_tm t2_tm in
+      let th1 = AP_TERM cons_tm th1' in
+	TRANS th0 th1
+    else
+      zip0 in
+    zip_conv_rec list1_tm list2_tm;;
+
+
+(******************)
+(* ALL conversion *)
+(******************)
+
+let ALL_0' = prove(`ALL P ([]:(A)list) <=> T`, REWRITE_TAC[ALL]) and
+    ALL_CONS_T' = (MY_RULE o prove)(`(P h <=> T) /\ (ALL P t <=> T) ==> (ALL P (CONS (h:A) t) <=> T)`, 
+				    REWRITE_TAC[ALL]) and
+    ALL_CONS_F2' = (MY_RULE o prove)(`(ALL P t <=> F) ==> (ALL P (CONS (h:A) t) <=> F)`,
+				     SIMP_TAC[ALL]) and
+    ALL_CONS_F1' = (MY_RULE o prove)(`(P h <=> F) ==> (ALL P (CONS (h:A) t) <=> F)`,
+				     SIMP_TAC[ALL]);;
+
+
+(* Note: p_conv should return theorems of the form |- P a b <=> T *)
+let all_conv_univ p_conv tm =
+  let ltm, list_tm = dest_comb tm in
+  let p_tm = rand ltm in
+
+  let list_ty = type_of list_tm and
+      p_ty = type_of p_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+
+  let all_0, all_t, all_f1, all_f2 = inst_t ALL_0', inst_t ALL_CONS_T', 
+    inst_t ALL_CONS_F1', inst_t ALL_CONS_F2' in
+  let h_var, t_var = mk_var("h", ty), mk_var("t", list_ty) and
+      p_var = mk_var("P", p_ty) in
+
+  let rec all_conv_rec = fun list_tm ->
+    if is_comb list_tm then
+      let ltm, t_tm = dest_comb list_tm in
+      let h_tm = rand ltm in
+      let p_th = p_conv (mk_comb (p_tm, h_tm)) in
+      let inst = INST[h_tm, h_var; t_tm, t_var; p_tm, p_var] in
+	if (rand o concl) p_th = t_const then
+	  let all_th = all_conv_rec t_tm in
+	    if (rand o concl) all_th = t_const then
+	      (MY_PROVE_HYP all_th o MY_PROVE_HYP p_th o inst) all_t
+	    else
+	      (MY_PROVE_HYP all_th o inst) all_f2
+	else
+	  (MY_PROVE_HYP p_th o inst) all_f1
+    else
+      INST[p_tm, p_var] all_0 in
+    all_conv_rec list_tm;;
+
+
+(*
+let tm = `ALL ((<) 0) [1;3;4;2;4]`;;
+all_conv_univ NUM_LT_CONV tm;;
+let test_conv = REWRITE_CONV[ALL] THENC ONCE_DEPTH_CONV NUM_LT_CONV;;
+test_conv tm;;
+(* 0.504 *)
+test 1000 (all_conv_univ NUM_LT_CONV) tm;;
+(* 1.056 *)
+test 1000 test_conv test_tm;;
+*)
+
+
+
+(*******************)
+(* ALL2 conversion *)
+(*******************)
+
+let ALL2_0' = prove(`ALL2 P ([]:(A)list) ([]:(B)list) <=> T`, REWRITE_TAC[ALL2]) and
+    ALL2_CONS_T' = (MY_RULE o prove)(`(P h1 h2 <=> T) /\ (ALL2 P t1 t2 <=> T) ==> 
+				       (ALL2 P (CONS (h1:A) t1) (CONS (h2:B) t2) <=> T)`,
+				     REWRITE_TAC[ALL2]) and
+    ALL2_CONS_F2' = (MY_RULE o prove)(`(ALL2 P t1 t2 <=> F) ==> 
+					(ALL2 P (CONS (h1:A) t1) (CONS (h2:B) t2) <=> F)`,
+				      SIMP_TAC[ALL2]) and
+    ALL2_CONS_F1' = (MY_RULE o prove)(`(P h1 h2 <=> F) ==> 
+					(ALL2 P (CONS (h1:A) t1) (CONS (h2:B) t2) <=> F)`,
+				      SIMP_TAC[ALL2]);;
+
+
+(* Note: p_conv should return theorems of the form |- P a b <=> T *)
+let all2_conv_univ p_conv tm =
+  let ltm, list2_tm = dest_comb tm in
+  let ltm2, list1_tm = dest_comb ltm in
+  let p_tm = rand ltm2 in
+
+  let list1_ty = type_of list1_tm and
+      list2_ty = type_of list2_tm and
+      p_ty = type_of p_tm in
+  let ty1 = (hd o snd o dest_type) list1_ty and
+      ty2 = (hd o snd o dest_type) list2_ty in
+  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
+
+  let all2_0, all2_t, all2_f1, all2_f2 = inst_t ALL2_0', inst_t ALL2_CONS_T', 
+    inst_t ALL2_CONS_F1', inst_t ALL2_CONS_F2' in
+  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
+      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) and
+      p_var = mk_var("P", p_ty) in
+
+  let rec all2_conv_rec = fun list1_tm list2_tm ->
+    if is_comb list1_tm then
+      let ltm1, t1_tm = dest_comb list1_tm and
+	  ltm2, t2_tm = dest_comb list2_tm in
+      let h1_tm, h2_tm = rand ltm1, rand ltm2 in
+      let p_th = p_conv (mk_binop p_tm h1_tm h2_tm) in
+      let inst = INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var; p_tm, p_var] in
+	if (rand o concl) p_th = t_const then
+	  let all2_th = all2_conv_rec t1_tm t2_tm in
+	    if (rand o concl) all2_th = t_const then
+	      (MY_PROVE_HYP all2_th o MY_PROVE_HYP p_th o inst) all2_t
+	    else
+	      (MY_PROVE_HYP all2_th o inst) all2_f2
+	else
+	  (MY_PROVE_HYP p_th o inst) all2_f1
+    else
+      if is_comb list2_tm then failwith ("all2_conv_univ: l1 = []; l2 = "^string_of_term list2_tm) else
+	INST[p_tm, p_var] all2_0 in
+    all2_conv_rec list1_tm list2_tm;;
+
+
+(*
+let tm = `ALL2 (<) [1;3;4;2;4] [3;343;454;454;5]`;;
+all2_conv_univ NUM_LT_CONV tm;;
+let test_conv = REWRITE_CONV[ALL2] THENC ONCE_DEPTH_CONV NUM_LT_CONV;;
+test_conv tm;;
+(* 0.744 *)
+test 1000 (all2_conv_univ NUM_LT_CONV) tm;;
+(* 2.280 *)
+test 1000 test_conv test_tm;;
+*)
+
+
+
+(******************************)
+
+(* MEM conversions *)
+
+let MEM_A_EMPTY = prove(`MEM (x:A) [] <=> F`, REWRITE_TAC[MEM]) and
+    MEM_A_HD = MY_RULE (prove(`(x = h <=> T) ==> (MEM (x:A) (CONS h t) <=> T)`,SIMP_TAC[MEM])) and
+    MEM_A_TL = MY_RULE (prove(`(x = h <=> F) ==> (MEM (x:A) (CONS h t) <=> MEM x t)`, SIMP_TAC[MEM]));;
+
+
+let rec eval_mem_univ eq_conv x_tm list_tm =
+  let ty = type_of x_tm in
+  let inst_t = INST_TYPE[ty, aty] in
+  let mem_empty, mem_hd, mem_tl = inst_t MEM_A_EMPTY, inst_t MEM_A_HD, inst_t MEM_A_TL in
+  let x_var, h_var = mk_var("x", ty), mk_var("h", ty) and
+      t_var = mk_var("t", mk_type("list", [ty])) in
+
+  let rec mem_conv_raw list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let eq_th = eq_conv (mk_eq(x_tm, h_tm)) in
+	if (rand(concl eq_th) = t_const) then
+	  let th0' = INST[x_tm, x_var; h_tm, h_var; t_tm, t_var] mem_hd in
+	    MY_PROVE_HYP eq_th th0'
+	else
+	  let th0' = INST[x_tm, x_var; h_tm, h_var; t_tm, t_var] mem_tl in
+	  let th0 = MY_PROVE_HYP eq_th th0' in
+	  let th1 = mem_conv_raw t_tm in
+	    TRANS th0 th1
+    else
+      INST[x_tm, x_var] mem_empty in
+
+    mem_conv_raw list_tm;;
+
+
+let mem_conv_univ eq_conv mem_tm =
+  let ltm, list_tm = dest_comb mem_tm in
+  let c_tm, x_tm = dest_comb ltm in
+    if (fst o dest_const) c_tm <> "MEM" then failwith "mem_conv_univ" else
+      eval_mem_univ eq_conv x_tm list_tm;;
+
+
+(*
+let tm = `MEM 11 [1;2;3;4;5;6;4;5;6;7;3;4;4;6;8;9;10]`;;
+mem_conv_univ (PURE_REWRITE_CONV[ARITH_EQ]) tm;;
+
+test 100 (mem_conv_univ (REWRITE_CONV[ARITH_EQ])) tm;; (* 0.176 *)
+test 100 (REWRITE_CONV[MEM; ARITH_EQ]) tm;; (* 0.352 *)
+*)
+
+
+(**********************************)
+
+(* FILTER conversions *)
+
+let FILTER_A_EMPTY = prove(`FILTER (P:A->bool) [] = []`, REWRITE_TAC[FILTER]) and
+    FILTER_A_HD = (MY_RULE o prove)(`(P h <=> T) ==> FILTER (P:A->bool) (CONS h t) = CONS h (FILTER P t)`, 
+				    SIMP_TAC[FILTER]) and
+    FILTER_A_TL = (MY_RULE o prove)(`(P h <=> F) ==> FILTER (P:A->bool) (CONS h t) = FILTER P t`, 
+				    SIMP_TAC[FILTER]);;
+
+
+
+let filter_conv_univ p_conv tm =
+  let ltm, list_tm = dest_comb tm in
+  let p_tm = rand ltm in
+  let p_ty = type_of p_tm in
+  let ty = (hd o snd o dest_type) p_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let filter_empty, filter_hd, filter_tl = 
+    inst_t FILTER_A_EMPTY, inst_t FILTER_A_HD, inst_t FILTER_A_TL in
+  let p_var = mk_var("P", p_ty) in
+  let h_var = mk_var("h", ty) in
+  let t_var = mk_var("t", mk_type("list",[ty])) in
+    
+  let rec filter_conv_raw = fun list_tm ->
+    if (is_comb list_tm) then
+      let ltm, t_tm = dest_comb list_tm in
+      let h_tm = rand ltm in
+      let p_th = p_conv (mk_comb(p_tm, h_tm)) in
+	if (rand(concl p_th) = t_const) then
+	  let th0' = INST[p_tm, p_var; h_tm, h_var; t_tm, t_var] filter_hd in
+	  let th0 = MY_PROVE_HYP p_th th0' in
+	  let ltm = rator(rand(concl th0)) in
+	  let th1 = filter_conv_raw t_tm in
+	    TRANS th0 (AP_TERM ltm th1)
+	else
+	  let th0' = INST[p_tm, p_var; h_tm, h_var; t_tm, t_var] filter_tl in
+	  let th0 = MY_PROVE_HYP p_th th0' in
+	  let th1 = filter_conv_raw t_tm in
+	    TRANS th0 th1
+    else
+      INST[p_tm, p_var] filter_empty in
+
+    filter_conv_raw list_tm;;
+	  
+    
+    
+
+(*
+let tm = `FILTER (\n. n = 2 \/ n = 3) [1;2;3;4;2;3;1]`;;
+
+REWRITE_CONV[FILTER; ARITH_EQ] tm;;
+filter_conv_univ (REWRITE_CONV[ARITH_EQ]) tm;;
+
+test 100 (REWRITE_CONV[FILTER; ARITH_EQ]) tm;; (* 7.596 *)
+test 100 (filter_conv_univ (REWRITE_CONV[ARITH_EQ])) tm;; (* 0.236 *)
+*)
+
+(***************************)
+
+(* MAP conversions *)
+
+
+let MAP_AB_EMPTY = prove(`MAP (f:A->B) [] = []`, REWRITE_TAC[MAP]) and
+    MAP_AB_CONS = prove(`MAP (f:A->B) (CONS h t) = CONS (f h) (MAP f t)`, REWRITE_TAC[MAP]);;
+
+
+let map_conv_univ f_conv tm =
+  let ltm, list_tm = dest_comb tm in
+  let ftm = rand ltm in
+  let ftm_ty = type_of ftm in
+  let f_var = mk_var("f", ftm_ty) in
+  let [a_type; b_type] = snd(dest_type ftm_ty) in
+  let h_var = mk_var("h", a_type) in
+  let t_var = mk_var("t", mk_type("list", [a_type])) in
+  let inst_t = INST[ftm, f_var] o INST_TYPE[a_type, aty; b_type, bty] in
+  let map_empty, map_cons =
+    inst_t MAP_AB_EMPTY, inst_t MAP_AB_CONS in
+
+  let rec map_conv_raw list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] map_cons in
+      let ltm, rtm = dest_comb (rand(concl th0)) in
+      let cons_tm, f_h_tm = dest_comb ltm in
+      let f_h_th = f_conv f_h_tm in
+      let map_t_th = map_conv_raw t_tm in
+	TRANS th0 (MK_COMB (AP_TERM cons_tm f_h_th, map_t_th))
+    else
+      map_empty in
+
+    map_conv_raw list_tm;;
+
+
+(*
+let tm = `MAP (\x. x + 1) [1;2;3;4;5;6;7;8;9;10;11]`;;
+
+REWRITE_CONV[MAP] tm;;
+map_conv_univ BETA_CONV tm;;
+map_conv_univ (BETA_CONV THENC NUM_ADD_CONV) tm;;
+
+test 100 (REWRITE_CONV[MAP]) tm;; (* 0.464 *)
+test 100 (map_conv_univ BETA_CONV) tm;; (* 0.04 *)
+
+test 100 (map_conv_univ (BETA_CONV THENC NUM_ADD_CONV)) tm;; (* 0.096 *)
+*)
+
+
+(*****************************************)
+
+(* ALL rules *)
+
+
+let ALL_A_HD = UNDISCH_ALL(prove(`ALL (P:A->bool) (CONS h t) ==> P h`, SIMP_TAC[ALL])) and
+    ALL_A_TL = UNDISCH_ALL(prove(`ALL (P:A->bool) (CONS h t) ==> ALL P t`, SIMP_TAC[ALL]));;
+
+
+(* Given a theorem `ALL P list` returns the list of theorems (P x1),...,(P xn) *)
+let get_all th =
+  let ltm, list_tm = dest_comb (concl th) in
+  let p_tm = rand ltm in
+  let list_ty = type_of list_tm in
+  let p_ty = type_of p_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let p_var = mk_var("P", p_ty) in
+  let h_var = mk_var("h", ty) in
+  let t_var = mk_var("t", list_ty) in
+
+  let inst_t = INST[p_tm, p_var] o INST_TYPE[ty, aty] in
+  let all_hd, all_tl = inst_t ALL_A_HD, inst_t ALL_A_TL in
+
+  let rec get_all_raw all_th list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let inst_t = INST[h_tm, h_var; t_tm, t_var] in
+      let th_tl = MY_PROVE_HYP all_th (inst_t all_tl) in
+      let th_hd = MY_PROVE_HYP all_th (inst_t all_hd) in
+	th_hd :: get_all_raw th_tl t_tm
+    else
+      [] in
+    
+    get_all_raw th list_tm;;
+	    
+
+
+(* Given a theorem `ALL P list`, returns (P x_i1),..., (P x_in)
+   where i1,...,in are given indices.
+   The list of indices should be sorted *)
+let select_all th indices =
+  let ltm, list_tm = dest_comb (concl th) in
+  let p_tm = rand ltm in
+  let list_ty = type_of list_tm in
+  let p_ty = type_of p_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let p_var = mk_var("P", p_ty) in
+  let h_var = mk_var("h", ty) in
+  let t_var = mk_var("t", list_ty) in
+
+  let inst_t = INST[p_tm, p_var] o INST_TYPE[ty, aty] in
+  let all_hd, all_tl = inst_t ALL_A_HD, inst_t ALL_A_TL in
+
+  let rec get_all_raw all_th list_tm indices n =
+    match indices with
+	[] -> []
+      | i::is ->
+	  let h_tm', t_tm = dest_comb list_tm in
+	  let h_tm = rand h_tm' in
+	  let inst_t = INST[h_tm, h_var; t_tm, t_var] in
+	  let th_tl = MY_PROVE_HYP all_th (inst_t all_tl) in
+
+	  if (i - n = 0) then
+	    let th_hd = MY_PROVE_HYP all_th (inst_t all_hd) in
+	      th_hd :: get_all_raw th_tl t_tm is (n + 1)
+	  else
+	    get_all_raw th_tl t_tm (i::is) (n + 1) in
+    
+    get_all_raw th list_tm indices 0;;
+	    
+
+(*      
+let tm = `ALL (\x. x > 3) [4; 5; 8; 10; 5; 4]`;;
+let th = (EQT_ELIM o REWRITE_CONV[ALL; ARITH]) tm;;
+get_all th;;
+select_all th [2;3;4];;
+
+(* 0.192 *)
+test 100 (CONJUNCTS o REWRITE_RULE[ALL]) th;;
+(* 0.016 *)
+test 100 (get_all) th;;
+(* 0.012 *)
+test 100 (select_all th) [2;3;4];;
+*)
+
+
+(*****************************************)
+
+(* set_of_list conversions *)
+
+let SET_OF_LIST_A_EMPTY = prove(`set_of_list ([]:(A)list) = {}`, REWRITE_TAC[set_of_list]) and
+    SET_OF_LIST_A_H = prove(`set_of_list [h:A] = {h}`, REWRITE_TAC[set_of_list]) and
+    SET_OF_LIST_A_CONS = prove(`set_of_list (CONS (h:A) t) = h INSERT set_of_list t`, REWRITE_TAC[set_of_list]);;
+
+
+
+let set_of_list_conv tm =
+  let list_tm = rand tm in
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let h_var = mk_var("h", ty) in
+  let t_var = mk_var("t", list_ty) in
+  let inst_t = INST_TYPE[ty, aty] in
+  let set_of_list_h, set_of_list_cons = inst_t SET_OF_LIST_A_H, inst_t SET_OF_LIST_A_CONS in
+
+  let rec set_of_list_conv_raw = fun h_tm t_tm ->
+    if (is_comb t_tm) then
+      let h_tm', t_tm' = dest_comb t_tm in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] set_of_list_cons in
+      let ltm, rtm = dest_comb(rand(concl th0)) in
+	TRANS th0 (AP_TERM ltm (set_of_list_conv_raw (rand h_tm') t_tm'))
+    else
+      INST[h_tm, h_var] set_of_list_h in
+
+    if (is_comb list_tm) then
+      let h_tm, t_tm = dest_comb list_tm in
+	set_of_list_conv_raw (rand h_tm) t_tm
+    else
+      inst_t SET_OF_LIST_A_EMPTY;;
+
+
+
+(*
+let tm = `set_of_list [&1; &5; &6; &3; &5; &8; &9]`;;
+set_of_list_conv tm;;
+(* 0.872 *)
+test 1000 (REWRITE_CONV[set_of_list]) tm;;
+(* 0.076 *)
+test 1000 set_of_list_conv tm;;
+*)
+
+
+
+
+(*************************************)
+
+(* list_sum conversions *)
+
+let list_sum = new_definition `list_sum list f = ITLIST (\t1 t2. f t1 + t2) list (&0)`;;
+
+let LIST_SUM_A_EMPTY = prove(`list_sum [] (f:A->real) = &0`, REWRITE_TAC[list_sum; ITLIST]) and
+    LIST_SUM_A_H = prove(`list_sum [h:A] f = f h`, REWRITE_TAC[list_sum; ITLIST; REAL_ADD_RID]) and
+    LIST_SUM_A_CONS = prove(`list_sum (CONS (h:A) t) f = f h + list_sum t f`, REWRITE_TAC[list_sum; ITLIST]);;
+
+
+let list_sum_conv f_conv tm =
+  let ltm, f_tm = dest_comb tm in
+  let list_tm = rand ltm in
+  let list_ty = type_of list_tm in
+  let f_ty = type_of f_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let f_var = mk_var("f", f_ty) and
+      h_var = mk_var("h", ty) and
+      t_var = mk_var("t", list_ty) in
+  let inst_t = INST[f_tm, f_var] o INST_TYPE[ty, aty] in
+  let list_sum_h = inst_t LIST_SUM_A_H and
+      list_sum_cons = inst_t LIST_SUM_A_CONS in
+
+  let rec list_sum_conv_raw = fun h_tm t_tm ->
+    if (is_comb t_tm) then
+      let h_tm', t_tm' = dest_comb t_tm in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] list_sum_cons in
+      let ltm, rtm = dest_comb(rand(concl th0)) in
+      let plus_op, fh_tm = dest_comb ltm in
+      let f_th = f_conv fh_tm in
+      let th1 = list_sum_conv_raw (rand h_tm') t_tm' in
+      let th2 = MK_COMB(AP_TERM plus_op f_th, th1) in
+	TRANS th0 th2
+    else
+      let th0 = INST[h_tm, h_var] list_sum_h in
+      let f_th = f_conv (rand(concl th0)) in
+	TRANS th0 f_th in
+
+    if (is_comb list_tm) then
+      let h_tm, t_tm = dest_comb list_tm in
+	list_sum_conv_raw (rand h_tm) t_tm
+    else
+      inst_t LIST_SUM_A_EMPTY;;
+
+    
+
+
+(*
+let tm = `list_sum [&1; &3; &4; pi; #0.1] cos`;;
+
+list_sum_conv ALL_CONV tm;;
+
+(* 2.812 *)
+test 1000 (REWRITE_CONV[list_sum; ITLIST; REAL_ADD_RID]) tm;;
+(* 0.076 *)
+test 1000 (list_sum_conv ALL_CONV) tm;;
+
+
+let tm = `list_sum [&1; &3; &4; pi; #0.1] (\x. cos x)`;;
+(* 0.104 *)
+test 1000 (list_sum_conv BETA_CONV) tm;;
+*)
+
+
+

@@ -1,6 +1,7 @@
 needs "../formal_lp/formal_interval/theory/multivariate_taylor.hl";;
 needs "../formal_lp/formal_interval/second_approx.hl";;
 needs "../formal_lp/formal_interval/eval_interval.hl";;
+needs "../formal_lp/list/list_conversions.hl";;
 
 let max_dim = 8;;
 
@@ -40,112 +41,6 @@ let n_type_array = Array.init (max_dim + 1)
 
 let n_vector_type_array = Array.init (max_dim + 1)
   (fun i -> if i < 1 then bool_ty else mk_type ("cart", [real_ty; n_type_array.(i)]));;
-
-
-
-(********************)
-(* List conversions *)
-(********************)
-
-(**********************)
-(* raw_compute_length *)
-let suc_const = `SUC`;;
-
-let LENGTH_0' = (RULE o prove)(`LENGTH ([]:(A)list) = 0`, REWRITE_TAC[LENGTH]);;
-let LENGTH_CONS' = (RULE o prove)(`LENGTH (CONS (h:A) t) = SUC (LENGTH t)`, REWRITE_TAC[LENGTH]);;
-
-
-let raw_compute_length list_tm =
-  let list_ty = type_of list_tm in
-  let ty = (hd o snd o dest_type) list_ty in
-  let inst_t = INST_TYPE[ty, aty] in
-  let length_empty, length_cons = inst_t LENGTH_0', inst_t LENGTH_CONS' in
-  let h_var, t_var = mk_var("h", ty), mk_var("t", list_ty) in
-
-  let rec length_conv_raw = fun list_tm ->
-    if (is_comb list_tm) then
-      let ltm, t_tm = dest_comb list_tm in
-      let h_tm = rand ltm in
-      let th0 = INST[h_tm, h_var; t_tm, t_var] length_cons in
-      let th1' = length_conv_raw t_tm in
-      let th1 = AP_TERM suc_const th1' in
-      let th2 = raw_suc_conv_hash (rand(concl th1)) in
-	TRANS (TRANS th0 th1) th2
-    else
-      length_empty in
-    length_conv_raw list_tm;;
-
-
-(***************)
-(* compute_zip *)
-
-let ZIP_0' = prove(`ZIP ([]:(A)list) ([]:(B)list) = []`, REWRITE_TAC[ZIP]);;
-let ZIP_CONS' = prove(`ZIP (CONS (h1:A) t1) (CONS (h2:B) t2) = CONS (h1, h2) (ZIP t1 t2)`,
-		      REWRITE_TAC[ZIP]);;
-
-let compute_zip list1_tm list2_tm =
-  let list1_ty = type_of list1_tm and
-      list2_ty = type_of list2_tm in
-  let ty1 = (hd o snd o dest_type) list1_ty and
-      ty2 = (hd o snd o dest_type) list2_ty in
-  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
-  let zip0, zip_cons = inst_t ZIP_0', inst_t ZIP_CONS' in
-  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
-      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) in
-
-  let rec zip_conv_rec = fun list1_tm list2_tm ->
-    if (is_comb list1_tm) then
-      let ltm1, t1_tm = dest_comb list1_tm and
-	  ltm2, t2_tm = dest_comb list2_tm in
-      let h1_tm, h2_tm = rand ltm1, rand ltm2 in
-      let th0 = INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var] zip_cons in
-      let cons_tm = (rator o rand o concl) th0 in
-      let th1' = zip_conv_rec t1_tm t2_tm in
-      let th1 = AP_TERM cons_tm th1' in
-	TRANS th0 th1
-    else
-      zip0 in
-    zip_conv_rec list1_tm list2_tm;;
-
-
-(****************)
-(* compute_all2 *)
-
-let ALL2_0' = prove(`ALL2 P ([]:(A)list) ([]:(B)list)`, REWRITE_TAC[ALL2]);;
-let ALL2_CONS' = (RULE o prove)(`P h1 h2 /\ ALL2 P t1 t2 ==> ALL2 P (CONS (h1:A) t1) (CONS (h2:B) t2)`,
-				REWRITE_TAC[ALL2]);;
-
-(* Does not work for empty lists *)
-let compute_all2 p_conv list1_tm list2_tm =
-  let list1_ty = type_of list1_tm and
-      list2_ty = type_of list2_tm in
-  let ty1 = (hd o snd o dest_type) list1_ty and
-      ty2 = (hd o snd o dest_type) list2_ty in
-  let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
-  let all2_0, all2_cons = inst_t ALL2_0', inst_t ALL2_CONS' in
-  let h1_var, t1_var = mk_var("h1", ty1), mk_var("t1", list1_ty) and
-      h2_var, t2_var = mk_var("h2", ty2), mk_var("t2", list2_ty) and
-      p_var = mk_var("P", mk_fun_ty ty1 (mk_fun_ty ty2 bool_ty)) in
-
-  let rec all2_conv_rec = fun list1_tm list2_tm ->
-    let ltm1, t1_tm = dest_comb list1_tm and
-	ltm2, t2_tm = dest_comb list2_tm in
-    let h1_tm, h2_tm = rand ltm1, rand ltm2 in
-    let p_th = p_conv h1_tm h2_tm in
-    let p_tm = (rator o rator o concl) p_th in
-    let all2_th = if is_comb t1_tm then all2_conv_rec t1_tm t2_tm else INST[p_tm, p_var] all2_0 in
-	(MY_PROVE_HYP all2_th o MY_PROVE_HYP p_th o 
-	   INST[h1_tm, h1_var; t1_tm, t1_var; h2_tm, h2_var; t2_tm, t2_var; p_tm, p_var]) all2_cons in
-    
-    all2_conv_rec list1_tm list2_tm;;
-
-
-let p_conv = (fun t1 t2 -> (EQT_ELIM o NUM_LT_CONV) (mk_binop lt_op_num t1 t2));;
-let list1_tm = `[1;3;4;2;4]` and list2_tm = `[2;343;454;454;454]`;;
-
-compute_all2 p_conv list1_tm list2_tm;;
-
-
 
 
 
@@ -249,12 +144,14 @@ let x_var_real_list = `x:(real)list` and
 
 
 
-let TEST_DOMAIN_XI' = (RULE o prove)(`xz = (x,z) /\ yw = (y,w) /\
+let TEST_DOMAIN_XI' = (EQT_INTRO o RULE o prove)(`xz = (x,z) /\ yw = (y,w) /\
     x <= y /\ y <= z /\ y - x <= w1 /\ z - y <= w2 /\ w1 <= w /\ w2 <= w ==> test_domain_xi xz yw`,
   SIMP_TAC[test_domain_xi] THEN REAL_ARITH_TAC);;
 
 
-let eval_test_domain_xi xz yw =
+let eval_test_domain_xi test_domain_tm =
+  let ltm, yw = dest_comb test_domain_tm in
+  let xz = rand ltm in
   let x, z = dest_pair xz and
       y, w = dest_pair yw in
   let (<=) = (fun t1 t2 -> EQT_ELIM (float_le t1 t2)) and
@@ -295,26 +192,24 @@ let mk_m_center_domain n pp x_list_tm z_list_tm =
   let y_list_tm = mk_list (y_list, real_ty) and
       w_list_tm = mk_list (w_list, real_ty) in
 
-  let yw_zip_th = compute_zip y_list_tm w_list_tm and
-      xz_zip_th = compute_zip x_list_tm z_list_tm in
+  let yw_zip_th = eval_zip y_list_tm w_list_tm and
+      xz_zip_th = eval_zip x_list_tm z_list_tm in
 
   let yw_list_tm = (rand o concl) yw_zip_th and
       xz_list_tm = (rand o concl) xz_zip_th in
 
-  let len_x_th = raw_compute_length x_list_tm and
-      len_z_th = raw_compute_length z_list_tm and
-      len_y_th = raw_compute_length y_list_tm and
-      len_w_th = raw_compute_length w_list_tm in
-
-  let all_th = compute_all2 eval_test_domain_xi xz_list_tm yw_list_tm in
-    (MY_PROVE_HYP all_th o
-       MY_PROVE_HYP len_x_th o MY_PROVE_HYP len_z_th o
-       MY_PROVE_HYP len_y_th o MY_PROVE_HYP len_w_th o
-       MY_PROVE_HYP yw_zip_th o MY_PROVE_HYP xz_zip_th o
-       INST[x_list_tm, x_var_real_list; z_list_tm, z_var_real_list;
-	    y_list_tm, y_var_real_list; w_list_tm, w_var_real_list;
-	    yw_list_tm, yw_var; xz_list_tm, xz_var]) mk_m_domain_array.(n);;
-  
+  let len_x_th = eval_length x_list_tm and
+      len_z_th = eval_length z_list_tm and
+      len_y_th = eval_length y_list_tm and
+      len_w_th = eval_length w_list_tm in
+  let th0 = (MY_PROVE_HYP len_x_th o MY_PROVE_HYP len_z_th o
+	       MY_PROVE_HYP len_y_th o MY_PROVE_HYP len_w_th o
+	       MY_PROVE_HYP yw_zip_th o MY_PROVE_HYP xz_zip_th o
+	       INST[x_list_tm, x_var_real_list; z_list_tm, z_var_real_list;
+		    y_list_tm, y_var_real_list; w_list_tm, w_var_real_list;
+		    yw_list_tm, yw_var; xz_list_tm, xz_var]) mk_m_domain_array.(n) in
+  let all_th = (EQT_ELIM o all2_conv_univ eval_test_domain_xi o hd o hyp) th0 in
+    MY_PROVE_HYP all_th th0;;
 
 
 
@@ -326,7 +221,9 @@ let x_list_tm = mk_list (replicate one_float n, real_ty) and
 
 mk_m_center_domain n pp x_list_tm z_list_tm;;
 
+(* 10: 1.572 *)
 test 100 (mk_m_center_domain n pp x_list_tm) z_list_tm;;
+
 
 
 (***********************)
@@ -746,6 +643,7 @@ let eval_lin_approx_poly pp poly_tm =
 
 let pp = 5;;
 let test_poly = `\x:real^2. x$1 * x$2`;;
+let test_poly = `\x:real^2. &1`;;
 gen_lin_approx_poly_thm test_poly;;
 let eval_test = eval_lin_approx_poly pp test_poly;;
 let y_list = mk_list (replicate pi5 2, real_ty);;
@@ -837,51 +735,403 @@ let gen_second_bounded_poly_thm poly_tm =
 
 
 gen_second_bounded_poly_thm lv_poly;;
-let poly_tm = schwefel_poly;;
-let poly_tm = delta_x4_poly;;
-let poly_tm = lv_poly;;
+
+
+let eval_second_bounded_poly pp poly_tm =
+  let th0 = gen_second_bounded_poly_thm poly_tm in
+  let n = (get_dim o fst o dest_abs) poly_tm in
+  let x_vector = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) and
+      z_vector = mk_vector_list (map (fun i -> z_vars_array.(i)) (1--n)) in
+  let _, _, _, _, _, _, domain_var = get_types_and_vars n in
+
+  let th1 = INST[mk_pair (x_vector, z_vector), domain_var] th0 in
+  let th2 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n)] th1 in
+  let th3 = REWRITE_RULE[gen_in_interval n; GSYM interval_arith] th2 in
+  let th4 = (REWRITE_RULE[CONJ_ACI] o REWRITE_RULE (Array.to_list comp_thms_array.(n))) th3 in
+  let final_th0 = (UNDISCH_ALL o MATCH_MP iffRL) th4 in
+
+  let x_var, h_tm = (dest_forall o hd o hyp) final_th0 in
+  let _, h2 = dest_imp h_tm in
+  let concl_ints = striplist dest_conj h2 in
+
+  let i_funs = map (fun int -> 
+		      let expr, var = dest_interval_arith int in
+			(eval_constants pp o build_interval_fun) expr, var) concl_ints in
+
+  let rec gen_rules i_list =
+    match i_list with
+      | [] -> (I, fun vars -> [])
+      | ((i_fun, var_tm) :: es) -> 
+	  let r1, r2 = gen_rules es in
+	  let r int_th =
+	    let b_tm = rand (concl int_th) in
+	      REWRITE_RULE[int_th] o INST[b_tm, var_tm] in
+	    match i_fun with
+	      | Int_const th -> (r th o r1, r2)
+		  (*	    | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1) *)
+	      | _ -> (r1, fun vars -> (var_tm, eval_interval_fun pp i_fun vars) :: r2 vars) in
+
+  let r1, r2 = gen_rules i_funs in
+  let final_th = (REWRITE_RULE[GSYM IMP_IMP] o r1) (SYM th4) in
+
+    fun x_vector_tm z_vector_tm ->
+      let x_vals = dest_vector x_vector_tm and
+	  z_vals = dest_vector z_vector_tm in
+	if length x_vals <> n or length z_vals <> n then 
+	  failwith (sprintf "Wrong vector size; expected size: %d" n)
+	else
+	  let x_vars = map (fun i -> x_vars_array.(i)) (1--n) and
+	      z_vars = map (fun i -> z_vars_array.(i)) (1--n) in
+
+	  let inst_th = (INST (zip x_vals x_vars) o INST (zip z_vals z_vars)) final_th in
+	    if (not o is_eq) (concl inst_th) then inst_th 
+	    else
+	      let x_var, lhs = (dest_forall o lhand o concl) inst_th in
+	      let hs = (butlast o striplist dest_imp) lhs in
+	      let vars = map (rand o rator) hs in
+	      let int_vars = zip vars (map ASSUME hs) in
+
+	      let dd_ints = r2 int_vars in
+	      let inst_dd = map (fun var, th -> (rand o concl) th, var) dd_ints in
+	      let inst_th2 = INST inst_dd inst_th in
+
+	      let conj_th = end_itlist CONJ (map snd dd_ints) in
+	      let lhs_th = GEN x_var (itlist DISCH hs conj_th) in
+		EQ_MP inst_th2 lhs_th;;
+
+
+(****************************)
+
+let pp = 5;;
+
+(* n = 3 *)
+
+let n = 3;;
+let x_tm = mk_vector_list (replicate one_float n) and
+    z_tm = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp schwefel_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 0.928 *)
+test 100 (eval_poly x_tm) z_tm;;
+
+
+let eval_poly = eval_second_bounded_poly pp rd_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 0.08 *)
+test 1000 (eval_poly x_tm) z_tm;;
+
+
+(* n = 4 *)
+let n = 4;;
+let x_tm = mk_vector_list (replicate one_float n) and
+    z_tm = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp lv_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 0.460 *)
+test 100 (eval_poly x_tm) z_tm;;
+
+
+(* n = 6 *)
+let n = 6;;
+let x_tm = mk_vector_list (replicate one_float n) and
+    z_tm = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp delta_x4_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 0.168 *)
+test 1000 (eval_poly x_tm) z_tm;;
+
+(* n = 7 *)
+let n = 7;;
+let x_tm = mk_vector_list (replicate one_float n) and
+    z_tm = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp magnetism_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 0.212 *)
+test 1000 (eval_poly x_tm) z_tm;;
+
+
+(* n = 8 *)
+let n = 8;;
+let x_tm = mk_vector_list (replicate one_float n) and
+    z_tm = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp heart_poly;;
+eval_poly x_tm z_tm;;
+(* 10: 7.03 *)
+test 100 (eval_poly x_tm) z_tm;;
+
+
+(*************************************)
+
+
+let eval_m_taylor_poly pp poly_tm =
+  let n = (get_dim o fst o dest_abs) poly_tm in
+  let diff2_th = gen_diff2_domain_poly poly_tm in
+  let eval_lin = eval_lin_approx_poly pp poly_tm and
+      eval_second = eval_second_bounded_poly pp poly_tm in
+
+  let ty, _, x_var, f_var, y_var, w_var, domain_var = get_types_and_vars n in
+  let th0 = (SPEC_ALL o inst_first_type_var ty) m_taylor_interval in
+  let th1 = INST[poly_tm, f_var] th0 in
+  let th2 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL o REWRITE_RULE[diff2_th]) th1 in
+
+    fun domain_th ->
+      let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+      let x_tm, z_tm = dest_pair domain_tm in
+
+      let lin_th = eval_lin y_tm and
+	  second_th = eval_second x_tm z_tm in
+
+      let _, _, f_bounds, df_bounds_list = dest_lin_approx (concl lin_th) in
+      let dd_bounds_list = (rand o concl) second_th in
+      let df_var = mk_var ("d_bounds_list", type_of df_bounds_list) and
+	  dd_var = mk_var ("dd_bounds_list", type_of dd_bounds_list) in
+
+	(MY_PROVE_HYP domain_th o MY_PROVE_HYP lin_th o MY_PROVE_HYP second_th o
+	   INST[domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		f_bounds, f_bounds_var; df_bounds_list, df_var; dd_bounds_list, dd_var]) th2;;
+
+
+(**************************)
+
+let pp = 5;;    
+let n = 3;;
+
+let x_list = mk_list (replicate one_float n, real_ty) and
+    z_list = mk_list (replicate pi5 n, real_ty);;
+let domain_th = mk_m_center_domain n pp x_list z_list;;
+
 let poly_tm = rd_poly;;
-let poly_tm = `\x:real^3. x$1 * x$2 * x$3`;;
-let th0 = gen_second_bounded_poly_thm poly_tm;;
+let eval_poly = eval_m_taylor_poly pp poly_tm;;
+eval_poly domain_th;;
+(* 10: 1.004 *)
+test 100 eval_poly domain_th;;
 
-let n = (get_dim o fst o dest_abs) poly_tm;;
-let x_vector = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) and
-    z_vector = mk_vector_list (map (fun i -> z_vars_array.(i)) (1--n));;
-let _, _, _, _, _, _, domain_var = get_types_and_vars n;;
-let th1 = INST[mk_pair (x_vector, z_vector), domain_var] th0;;
-let th2 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n)] th1;;
-let th3 = REWRITE_RULE[gen_in_interval n; GSYM interval_arith] th2;;
-let th4 = REWRITE_RULE (Array.to_list comp_thms_array.(n)) th3;;
+(* n = 6 *)
+let n = 6;;
 
-let final_th0 = (UNDISCH_ALL o MATCH_MP iffRL) th4;;
+let x_list = mk_list (replicate one_float n, real_ty) and
+    z_list = mk_list (replicate pi5 n, real_ty);;
+let domain_th = mk_m_center_domain n pp x_list z_list;;
 
-let x_var, h_tm = (dest_forall o hd o hyp) final_th0;;
-let h1, h2 = dest_imp h_tm;;
-let assum_ints = striplist dest_conj h1;;
-let concl_ints = striplist dest_conj h2;;
-
-let i_funs = map (fun int -> 
-		    let expr, var = dest_interval_arith int in
-		      (eval_constants pp o build_interval_fun) expr, var) concl_ints;;
-
-let rec gen_rules i_list =
-  match i_list with
-    | [] -> (I, fun vars -> [])
-    | ((i_fun, var_tm) :: es) -> 
-	let r1, r2 = gen_rules es in
-	let r int_th =
-	  let b_tm = rand (concl int_th) in
-	    REWRITE_RULE[int_th] o INST[b_tm, var_tm] in
-	  match i_fun with
-	    | Int_const th -> (r th o r1, r2)
-(*	    | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1) *)
-	    | _ -> (r1, fun vars -> (var_tm, eval_interval_fun pp i_fun vars) :: r2 vars);;
-
-
-let r1, r2 = gen_rules i_funs;;
-let final_th = r1 (SYM th4);;
+let poly_tm = delta_x4_poly;;
+let eval_poly = eval_m_taylor_poly pp poly_tm;;
+eval_poly domain_th;;
+(* 10: 2.672 *)
+test 100 eval_poly domain_th;;
 
 
 
-let vars = [`(x:real^3)$1`, two_interval; `(x:real^3)$2`, two_interval; `(x:real^3)$3`, one_interval];;
-r2 vars;;
+(* n = 8 *)
+let n = 8;;
+
+let x_list = mk_list (replicate one_float n, real_ty) and
+    z_list = mk_list (replicate pi5 n, real_ty);;
+let domain_th = mk_m_center_domain n pp x_list z_list;;
+
+let poly_tm = heart_poly;;
+let eval_poly = eval_m_taylor_poly pp poly_tm;;
+eval_poly domain_th;;
+(* 10: 2.208  *)
+test 10 eval_poly domain_th;;
+
+
+(******************************************)
+
+
+(********************************)
+(* m_taylor_error *)
+
+
+(* n = 4 *)
+let n = 4;;
+let x_list = mk_list (replicate one_float n, real_ty) and
+    z_list = mk_list (replicate pi5 n, real_ty);;
+let domain_th = mk_m_center_domain n pp x_list z_list;;
+
+let eval_poly = eval_m_taylor_poly pp lv_poly;;
+eval_poly domain_th;;
+
+
+(**********)
+
+m_taylor_upper_bound;;
+m_taylor_error;;
+
+
+(* Sum of the list elements *)
+let list_sum = new_definition `list_sum list f = ITLIST (\t1 t2. f t1 + t2) list (&0)`;;
+
+let ITLIST2_EQ_SUM = prove(`!(f:A->real) l1 l2. LENGTH l1 = LENGTH l2 ==>
+			       ITLIST2 (\x y z. x * f y + z) l1 l2 (&0) =
+			       sum (1..(LENGTH l1)) (\i. EL (i - 1) l1 * f (EL (i - 1) l2))`,
+   GEN_TAC THEN
+     LIST_INDUCT_TAC THEN LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; ITLIST2] THEN TRY ARITH_TAC THENL
+     [
+       REWRITE_TAC[SUM_CLAUSES_NUMSEG; ARITH];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[eqSS] THEN DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `t':(A)list`) THEN ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     REWRITE_TAC[GSYM add1n] THEN
+     new_rewrite [] [] SUM_ADD_SPLIT THEN REWRITE_TAC[ARITH] THEN
+     REWRITE_TAC[TWO; add1n; SUM_SING_NUMSEG; subnn; EL; HD] THEN
+     REWRITE_TAC[GSYM addn1; SUM_OFFSET; REAL_EQ_ADD_LCANCEL] THEN
+     MATCH_MP_TAC SUM_EQ THEN move ["i"] THEN REWRITE_TAC[IN_NUMSEG] THEN DISCH_TAC THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= i ==> (i + 1) - 1 = SUC (i - 1)`; EL; TL]);;
+
+
+let interval_arith_abs_le = prove(`!x int y. interval_arith x int ==> iabs int <= y ==> abs x <= y`,
+   GEN_TAC THEN case THEN REWRITE_TAC[interval_arith; iabs] THEN REAL_ARITH_TAC);;
+
+let l_seq = new_definition `l_seq n m = TABLE (\i. n + i) ((m + 1) - n)`;;
+
+let LENGTH_L_SEQ = prove(`LENGTH (l_seq n m) = (m + 1) - n`, REWRITE_TAC[l_seq; LENGTH_TABLE]);;
+let EL_L_SEQ = prove(`!i m n. i < (m + 1) - n ==> EL i (l_seq n m) = n + i`,
+  REWRITE_TAC[l_seq] THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC Packing3.EL_TABLE THEN ASM_REWRITE_TAC[]);;
+let L_SEQ_NIL = prove(`!n m. l_seq n m = [] <=> (m < n)`,
+  GEN_TAC THEN GEN_TAC THEN REWRITE_TAC[GSYM LENGTH_EQ_NIL; LENGTH_L_SEQ] THEN ARITH_TAC);;
+let L_SEQ_NN = prove(`!n. l_seq n n = [n]`,
+  GEN_TAC THEN REWRITE_TAC[l_seq; ARITH_RULE `(n + 1) - n = 1`; ONE; TABLE; REVERSE_TABLE; REVERSE] THEN
+    REWRITE_TAC[APPEND; ADD_0]);;
+
+let L_SEQ_CONS = prove(`!n m. n <= m ==> l_seq n m = CONS n (l_seq (n + 1) m)`,
+  REPEAT STRIP_TAC THEN
+    REWRITE_TAC[Packing3.LIST_EL_EQ; LENGTH_L_SEQ; LENGTH] THEN CONJ_TAC THENL
+    [
+      ASM_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    case THENL
+    [
+      DISCH_TAC THEN new_rewrite [] [] EL_LIST_SEQ THEN ASM_REWRITE_TAC[EL; HD; addn0];
+      move ["i"; "lt"] THEN
+	new_rewrite [] [] EL_LIST_SEQ THEN ASM_REWRITE_TAC[EL; TL] THEN
+	new_rewrite [] [] EL_LIST_SEQ THEN ASM_ARITH_TAC
+    ]);;
+
+
+
+let ALL_N_ALL2 = prove(`!P (l:(A)list) i0.
+			 (all_n i0 l P <=> if l = [] then T else ALL2 P (l_seq i0 ((i0 + LENGTH l) - 1)) l)`,
+  GEN_TAC THEN LIST_INDUCT_TAC THEN GEN_TAC THEN REWRITE_TAC[all_n; NOT_CONS_NIL] THEN
+    new_rewrite [] [] L_SEQ_CONS THEN REWRITE_TAC[LENGTH; ALL2] THEN TRY ARITH_TAC THEN
+    FIRST_X_ASSUM (new_rewrite [] []) THEN TRY ARITH_TAC THEN
+    REWRITE_TAC[addSn; addnS; addn1] THEN
+    SPEC_TAC (`t:(A)list`, `t:(A)list`) THEN case THEN SIMP_TAC[NOT_CONS_NIL] THEN
+    REWRITE_TAC[LENGTH; addn0] THEN
+    MP_TAC (SPECL [`SUC i0`; `SUC i0 - 1`] L_SEQ_NIL) THEN
+    REWRITE_TAC[ARITH_RULE `SUC i0 - 1 < SUC i0`] THEN DISCH_THEN (fun th -> REWRITE_TAC[th; ALL2]));;
+    
+
+let ALL_N_EL = prove(`!P (l:(A)list) i0. all_n i0 l P <=> (!i. i < LENGTH l ==> P (i0 + i) (EL i l))`,
+   REPEAT GEN_TAC THEN REWRITE_TAC[ALL_N_ALL2] THEN
+     SPEC_TAC (`l:(A)list`, `l:(A)list`) THEN case THEN SIMP_TAC[NOT_CONS_NIL; LENGTH; ltn0] THEN
+     REPEAT GEN_TAC THEN
+     new_rewrite [] [] ALL2_ALL_ZIP THENL
+     [
+       REWRITE_TAC[LENGTH_L_SEQ; LENGTH] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GSYM ALL_EL] THEN
+     new_rewrite [] [] LENGTH_ZIP THENL
+     [
+       REWRITE_TAC[LENGTH_L_SEQ; LENGTH] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[LENGTH_L_SEQ; ARITH_RULE `((i0 + SUC a) - 1 + 1) - i0 = SUC a`] THEN
+     EQ_TAC THEN REPEAT STRIP_TAC THENL
+     [
+       FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	 new_rewrite [] [] EL_ZIP THENL
+	 [
+	   REWRITE_TAC[LENGTH_L_SEQ; LENGTH] THEN ASM_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[] THEN new_rewrite [] [] EL_L_SEQ THEN ASM_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     new_rewrite [] [] EL_ZIP THENL
+     [
+       REWRITE_TAC[LENGTH_L_SEQ; LENGTH] THEN ASM_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[] THEN new_rewrite [] [] EL_L_SEQ THEN TRY ASM_ARITH_TAC THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+     
+
+
+
+let M_TAYLOR_ERROR_ITLIST2 = prove(`!f domain y w dd_bounds_list error. 
+	     m_cell_domain domain y (vector w) ==>
+	     second_bounded (f:real^N->real) domain dd_bounds_list ==>
+	     LENGTH w = dimindex (:N) ==>
+		 LENGTH dd_bounds_list = dimindex (:N) ==>
+		 ALL (\list. LENGTH list = dimindex (:N)) dd_bounds_list ==>
+		 ITLIST2 (\x list z. x * ITLIST2 (\a b c. a * iabs b + c) w list (&0) + z) 
+		 w dd_bounds_list (&0) <= error ==>
+		 m_taylor_error f domain (vector w) error`,
+   REWRITE_TAC[second_bounded; m_taylor_error] THEN REPEAT GEN_TAC THEN
+     set_tac "s" `ITLIST2 _1 _2 _3 _4` THEN
+     move ["domain"; "second"; "lw"; "ldd"; "ldd_all"; "s_le"; "x"; "x_in"] THEN
+     SUBGOAL_THEN `!i. i IN 1..dimindex (:N) ==> &0 <= EL (i - 1) w` (LABEL_TAC "w_ge0") THENL
+     [
+       GEN_TAC THEN DISCH_TAC THEN REMOVE_THEN "domain" MP_TAC THEN new_rewrite [] [] pair_eq THEN
+	 REWRITE_TAC[m_cell_domain] THEN
+	 DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	 ASM_SIMP_TAC[VECTOR_COMPONENT] THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `s:real` THEN ASM_REWRITE_TAC[] THEN
+     EXPAND_TAC "s" THEN
+     new_rewrite [] [] ITLIST2_EQ_SUM THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC SUM_LE THEN REWRITE_TAC[FINITE_NUMSEG] THEN
+     move ["i"; "i_in"] THEN ASM_SIMP_TAC[VECTOR_COMPONENT] THEN
+     USE_THEN "i_in" (ASSUME_TAC o REWRITE_RULE[IN_NUMSEG]) THEN
+     MATCH_MP_TAC REAL_LE_LMUL THEN ASM_SIMP_TAC[] THEN
+     new_rewrite [] [] ITLIST2_EQ_SUM THEN ASM_REWRITE_TAC[] THENL
+     [
+       REMOVE_THEN "ldd_all" MP_TAC THEN REWRITE_TAC[GSYM ALL_EL] THEN
+	 DISCH_THEN (MP_TAC o SPEC `i - 1`) THEN
+	 ANTS_TAC THENL
+	 [
+	   ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[th]);
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC SUM_LE THEN REWRITE_TAC[FINITE_NUMSEG] THEN
+     move ["j"; "j_in"] THEN ASM_SIMP_TAC[VECTOR_COMPONENT] THEN
+     USE_THEN "j_in" (ASSUME_TAC o REWRITE_RULE[IN_NUMSEG]) THEN
+     MATCH_MP_TAC REAL_LE_LMUL THEN ASM_SIMP_TAC[] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `x:real^N`) THEN ASM_REWRITE_TAC[ALL_N_EL] THEN
+     DISCH_THEN (MP_TAC o SPEC `i - 1`) THEN ANTS_TAC THENL
+     [
+       REMOVE_THEN "i_in" MP_TAC THEN REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o SPEC `j - 1`) THEN ANTS_TAC THENL
+     [
+       REMOVE_THEN "ldd_all" MP_TAC THEN REWRITE_TAC[GSYM ALL_EL] THEN
+	 DISCH_THEN (new_rewrite [] []) THEN ASM_REWRITE_TAC[] THENL
+	 [
+	   REMOVE_THEN "i_in" MP_TAC THEN REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REMOVE_THEN "j_in" MP_TAC THEN REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `1 + j - 1 = j /\ 1 + i - 1 = i` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[partial2] THEN
+     DISCH_THEN (MP_TAC o MATCH_MP interval_arith_abs_le) THEN
+     DISCH_THEN MATCH_MP_TAC THEN REWRITE_TAC[REAL_LE_REFL]);;

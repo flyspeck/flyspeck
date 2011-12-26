@@ -206,6 +206,189 @@ let plet s y =
 
 (* specific cases *)
 
+(* CLOSE PACKING CHAPTER FIGURES *)
+
+(* SEYIMIE *)
+
+let fcc_fun_domain = 
+  let v1 = (1.0,0.0,0.0) in
+  let v2 = (0.5,sqrt(3.0)/.2.0,0.0) in
+  let v3 = (0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
+  let v12 = v1 +... v2 in
+  let v23 = v2 +... v3 in
+  let v13 = v1 +... v3 in
+  let v123 = v1 +... v2 +... v3 in
+  let f = frame_of (1.0,0.1,0.1) (0.3,0.5,1.0) in (* 0.3 0.5 1.0 *)
+  let p v = proj delta1 delta2 (mul3 f v) in
+  let [w1;w2;w3;w12;w23;w13;w123] = map p [v1;v2;v3;v12;v23;v13;v123] in
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+    join_lines (map coord [("w1",w1);("w2",w2);("w3",w3);("w12",w12);("w23",w23);("w13",w13);("w123",w123)]);;
+
+(*  figAZGXQWC *)
+
+let tet_oct_ratio = 
+  let v0 = (0.0,0.0,0.0) in
+  let v1 = (1.0,0.0,0.0) in
+  let v2 = (0.5,sqrt(3.0)/.2.0,0.0) in
+  let v3 = (0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
+  let v12 = 0.5 %... (v1 +... v2) in
+  let v02 = 0.5 %...( v0 +... v2) in
+  let v01 = 0.5 %... v1 in
+  let v03 = 0.5 %... v3 in
+  let v13 = 0.5 %... (v1 +... v3) in
+  let v23 = 0.5 %... (v2 +... v3) in
+  let f = frame_of (1.0,0.1,0.1) (0.3,0.5,1.0) in (* 0.3 0.5 1.0 *)
+  let p v = proj delta1 delta2 (mul3 f v) in
+  let  [w0;w1;w2;w3;w12;w02;w01;w03;w13;w23] = map p [v0;v1;v2;v3;v12;v02;v01;v03;v13;v23] in 
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3);("w12",w12);("w02",w02);("w01",w01);("w03",w03);("w13",w13);("w23",w23)]);;
+
+(* SGIWBEN *)
+
+let fcc_hcp_pattern = 
+  let f = frame_of 
+(*     (0.3,0.4,0.1) (-0.1,0.1,0.4) in *)
+     (0.4,0.3,0.1) (-0.2,0.1,0.4) in 
+  let g = mul3 f in
+  let u = g delta3 in
+  let v0 = (0.0,0.0,0.0) in
+  let v1 = g(1.0,0.0,0.0) in
+  let v2 = g(0.5,sqrt(3.0)/.2.0,0.0) in
+  let v3 = g(0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
+  let v4 = v2 -... v1 in
+  let v5 = v0 -... v1 in
+  let v6 = v0 -... v2 in
+  let v7 = v0 -... v4 in
+  let v8 = v3 +... v5 in
+  let v9 = v3 +... v6 in
+  let v10 = v0 -... v3 in
+  let v11 = v0 -... v8 in
+  let v12 = v0 -...  v9 in
+  let n v = v -... (2.0 *. (u *... v) ) %... u in
+  let v13 = v0 -... n v3 in
+  let v14 = v0 -... n v8 in
+  let v15 = v0 -... n v9 in
+  let p v = proj delta1 delta2 (v) in
+  let  [w0;w1;w2;w3;w4;w5;w6;w7;w8;w9;w10;w11;w12;w13;w14;w15] = map p 
+    [v0;v1;v2;v3;v4;v5;v6;v7;v8;v9;v10;v11;v12;v13;v14;v15] in
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3);
+     ("w4",w4);("w5",w5);("w6",w6);("w7",w7);("w8",w8);("w9",w9);("w10",w10);("w11",w11);("w12",w12);("w13",w13);("w14",w14);("w15",w15)]);;
+
+
+let fcc_packing = 
+  let f = frame_of 
+(*     (0.4,0.3,0.1) (-0.2,0.1,0.4) in  *)
+     (0.5,0.4,0.) (-0.0,0.1,0.4) in 
+  let g = mul3 f in
+  let u = g delta3 in
+  let v0 = (0.0,0.0,0.0) in
+  let v1 = g(1.0,0.0,0.0) in
+  let v2 = g(0.5,sqrt(3.0)/.2.0,0.0) in
+  let v3 = g(0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
+  let p v = proj delta1 delta2 (v) in
+  let  [w0;w1;w2;w3] = map p [v0;v1;v2;v3] in
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3);]);;
+
+let genz_out  = 
+  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
+  let outstring = ref "" in
+  let add name s = outstring:= !outstring ^ wrap name s in
+  let _ =  add "autoDHQRILO" (fcc_packing) in 
+    output_filestring "/tmp/z.txt" (!outstring);;
+
+
+(* TCFVGTS % fig:face-centered-cubic *)
+
+let circle_point r u v = 
+    u +... r %... normalize3 (v -... u);;
+
+let circle_interpolate r s u v1 v2 = 
+  let v = (s %... v2) +... ((1.0 -. s) %... v1) in
+    circle_point r u v;;
+
+let pcircle r n v u1 u2 label = 
+  let p1 = map (fun s -> circle_interpolate r (float_of_int s /. float_of_int n) v u1 u2) (0--n) in
+  let q1 = map (proj delta1 delta2) p1 in
+  let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
+    Printf.sprintf "\def\%s{%s}" label w1 ;;
+
+let cubic_layers = 
+  let f = frame_of (1.0,0.1,0.4) (-0.5,1.0,0.0) in 
+  let g = mul3 f in
+  let r = sqrt(8.0) in
+  let v0 =  (0.0,0.0,0.0) in
+  let v1 = g(r %... delta1) in
+  let v2 = g(r %... delta2) in 
+  let v3 = g(r %... delta3) in 
+  let v12 = (v1 +... v2) in
+  let v13 = ( v1 +... v3) in
+  let v23 = (v2+... v3) in
+  let v123 = (v1 +... v2 +... v3) in
+  let vfront = (0.5 %... (v12)) in
+  let vtop = (0.5 %... (v2 +... v123)) in
+  let vright = (0.5 %... (v1 +... v123)) in
+  let p v = proj delta1 delta2 v in
+  let   [w0;w1;w2;w3;w12;w13;w23;w123;wfront;wtop;wright]  = map p 
+    [v0;v1;v2;v3;v12;v13;v23;v123;vfront;vtop;vright] in 
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+  let cc =   (map coord 
+			  [("w0",w0);("w1",w1);("w2",w2);("w3",w3);("w12",w12);("w13",w13);
+			   ("w23",w23);("w123",w123);("wfront",wfront);("wtop",wtop);
+			   ("wright",wright)]) in
+  let b s = "tcf"^s in
+  let paths = [(v0,v1,v2,b "a");(v1,v12,v0,b "b");(v12,v2,v1,b "c");
+	      (v2,v0,v12,b "d");
+	      (vfront,v12,v2,b"e");(vfront,v2,v0,b"f");(vfront,v0,v1,b"g");
+              (vfront,v1,v12,b"h");
+	      (v1,v13,v12,b"i");(v13,v123,v1,b"j");(v123,v12,v13,b"k");
+	      (v12,v1,v123,b"l");
+	      (vright,v123,v12,b"m");(vright,v12,v1,b"n");(vright,v1,v13,b"o");
+	      (vright,v13,v123,b"p");
+	      (v2,v12,v23,b"q");(v12,v123,v2,b"r");(v123,v12,v23,b"s");
+	      (v23,v123,v2,b"t");
+	      (vtop,v12,v123,b"u");(vtop,v123,v23,b"v");(vtop,v23,v2,b"w");
+	      (vtop,v2,v12,b"x");] in
+  let pc = map (fun (u,v1,v2,s)-> pcircle 1.0 5 u v1 v2 s) paths in
+    join_lines (cc @ pc);;
+
+
+(* PQJIJGE *)
+
+let rhombic_dodec = 
+  let f = frame_of (1.0,0.1,0.4) (-0.5,1.0,0.0) in 
+  let g = mul3 f in
+  let r = 2.0 in 
+  let v0 =  (0.0,0.0,0.0) in
+  let v1 = g(r %... delta1) in
+  let v2 = g(r %... delta2) in 
+  let v3 = g(r %... delta3) in 
+  let v12 = (v1 +... v2) in
+  let v13 = ( v1 +... v3) in
+  let v23 = (v2+... v3) in
+  let v123 = (v1 +... v2 +... v3) in
+  let center = 0.5 %... v123 in
+  let vfront = (0.5 %... (v12 -... v3)) in
+  let vtop = (0.5 %... (v2 +... v123)) +... 0.5 %... v2 in
+  let vright = (0.5 %... (v1 +... v123)) +... 0.5 %... v1 in
+  let vback = vfront +... 2.0 %... v3 in
+  let vleft = vright -... 2.0 %... v1 in
+  let vbottom = vtop -... 2.0 %... v2 in
+  let p v = proj delta1 delta2 v in
+  let   [w0;w1;w2;w3;w12;w13;w23;w123;wfront;wtop;wright;wback;wleft;wbottom;wcenter]  = map p 
+    [v0;v1;v2;v3;v12;v13;v23;v123;vfront;vtop;vright;vback;vleft;vbottom;center] in 
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+  let cc =   (map coord 
+			  [("w0",w0);("w1",w1);("w2",w2);("w3",w3);("w12",w12);("w13",w13);
+			   ("w23",w23);("w123",w123);("wfront",wfront);("wtop",wtop);
+			   ("wright",wright);
+			    ("wback",wback);("wleft",wleft);("wbottom",wbottom);
+			  ("wcenter",wcenter)]) in
+    join_lines cc;;
+
+
+    
 
 
 (* PACKING CHAPTER FIGURES *)
@@ -277,9 +460,9 @@ let print_satst seed=
 		  let (x,y) = center2 s t in
 		  let (x',y') = center2 s t' in
 		    Printf.sprintf "\draw (%f,%f) -- (%f,%f) ;" x y x' y') prs in
-  let line (x,y)  = Printf.sprintf "%c\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\smalldot{%f,%f};" '%' x y x y in
-  let psat = map (line) sat in
-    join_lines (psat @ pp);;
+  let smalldot (x,y)  = Printf.sprintf "%c\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\smalldot{%f,%f};" '%' x y x y in
+  let psmalldot = map (smalldot) sat in
+    join_lines (psmalldot @ pp);;
 
 (* autoBUGZBTW *)
 
@@ -296,8 +479,8 @@ let print_rogers seed=
 		  let (x,y) = coord_triple t in
 		  let (x',y') = coord_triple t' in
 		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
-  let line (x,y)  = Printf.sprintf "%c\\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\\smalldot{%f,%f};" '%' x y x y in
-  let psat = map (line) sat in
+  let smalldot (x,y)  = Printf.sprintf "%c\\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\\smalldot{%f,%f};" '%' x y x y in
+  let psmalldot = map (smalldot) sat in
   let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
   let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy)=	
       Printf.sprintf "\\draw[fill=gray] (%f,%f)--(%f,%f)--(%f,%f)--(%f,%f)--cycle;" ax ay bx by cx cy dx dy in
@@ -318,7 +501,42 @@ let print_rogers seed=
     let d' = c' -.. u1 in
       if (det2 d w  *. det2 w d' > 0.0) then draw (u1, u2) else drawc u1 c u2 c' in
   let dedge = map draw_dedge prs in
-    join_lines (psat @ radial @ dedge @ pp);;
+    join_lines (psmalldot @ radial @ dedge @ pp);;
+
+(* EVIAIQP
+*)
+let print_voronoi seed=
+  let radius = 0.15 in
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let satst = sat_triples sat in
+  let s = nth sat in
+  let coord_triple t = center2 (nth sat) t in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let pp = map (fun (t, t') -> 
+		  let (x,y) = coord_triple t in
+		  let (x',y') = coord_triple t' in
+		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let dot (x,y)  = Printf.sprintf "\\smalldot{%f,%f};" x y  in
+  let psmalldot = map (dot) sat in
+    join_lines (psmalldot @  pp);;
+
+(* ANNTKZP *)
+
+let print_delaunay seed=
+  let radius = 0.15 in
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let satst = sat_triples sat in
+  let delaunay_edge = List.flatten (map (fun (i,j,k) -> [(i,j);(j,k);(k,i)]) satst) in
+    
+  let s = nth sat in
+  let smalldot (x,y)  = Printf.sprintf "\\smalldot{%f,%f};"  x y  in
+  let psmalldot = map (smalldot) sat in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let pdraw = map (fun (i,j) -> draw (s i,s j)) delaunay_edge in
+    join_lines ( psmalldot @ (* radial @ dedge @  pp @ *) pdraw);;
+
 
 
 (* figYAJOTSL *)
@@ -376,7 +594,7 @@ let print_marchal seed=
   let line (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
     x y radius_sqrt2  in
   let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
-  let psat = map (line) sat in
+  let psmalldot = map (line) sat in
   let dot = map (dot_line) sat in
   let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
   let draw_radial (i,j,k) = 
@@ -420,7 +638,126 @@ let print_marchal seed=
   let cell3filter (i,j,k) = 
     etaV (s i) (s j) (s k) < radius *. sqrt(2.0) in
   let cell3 = map draw_cell3 (filter cell3filter satst) in
-    join_lines (psat @ pp @ radial @ dedge @ cell2 @ cell3 @ dot);;
+    join_lines (psmalldot @ pp @ radial @ dedge @ cell2 @ cell3 @ dot);;
+
+(* FIFJALK *)
+
+let print_ferguson_hales seed=
+  let radius = 0.15 in 
+  let radius_h = 1.255 *. radius  in 
+  let radius_h2 = 2.51 *. radius  in 
+  let radius_s = sqrt(8.0) *. radius in
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let s = nth sat in
+  let satst = sat_triples sat in
+  let qrtet = filter (fun (i,j,k) -> dist2 (s i) (s j) <  radius_h2 &&
+		     dist2 (s j) (s k) < radius_h2 &&
+		     dist2 (s i) (s k) < radius_h2) satst in
+  let quarter = filter (fun (i,j,k) ->
+			  let [a;b;c] = 
+			    sort (<) [dist2 (s i) (s j);dist2 (s j) (s k);dist2 (s i) (s k)] in
+			  (a < radius_h2 && b < radius_h2 && c < radius_s)) satst in
+  let satst = sat_triples sat in
+  let rr = 0-- (List.length sat - 1) in
+  let allpair = (outer rr rr) in
+  let coord_triple t = center2 (nth sat) t in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let pp = map (fun (t, t') -> 
+		  let (x,y) = coord_triple t in
+		  let (x',y') = coord_triple t' in
+		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < radius_h2 -. 1.0e-4)  
+    allpair in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let circle (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
+    x y radius_h  in
+  let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
+  let pcircle = map (circle) sat in
+  let dot = map (dot_line) sat in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let fill_tri (s,(ux,uy),(vx,vy),(wx,wy)) = 
+    Printf.sprintf "\\draw[black,fill=black!%s] (%f,%f)--(%f,%f)--(%f,%f)--cycle;" 
+      s ux uy vx vy wx wy in
+  let rotate u v x = 
+    v +.. cmul (normalize2 (u -.. v)) x in
+  let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy) =	
+      Printf.sprintf "\\draw[fill=black!35] (%f,%f)--(%f,%f)--(%f,%f)--(%f,%f)--cycle;\n\\draw (%f,%f)--(%f,%f) (%f,%f)--(%f,%f);" 
+	ax ay bx by cx cy dx dy ax ay cx cy bx by dx dy in
+  let draw_cell2 (i,j) = 
+    let u1 = s i in
+    let u2 = s j in
+    let r = dist2 u1 u2 in
+    let h2 = radius_h *. radius_h -. r *. r /. 4.0 in
+    let _ = (h2 >= 0.0) or failwith (Printf.sprintf "expected pos %d %d %f" i j h2) in
+    let h = sqrt(h2) in
+    let c = rotate u1 u2 (r /. 2.0,h) in
+    let c' = rotate u1 u2 (r /. 2.0, -. h) in
+      drawc u1 c u2 c' in
+  let cell2 = map draw_cell2 shortpair in
+  let draw_cell3 (i,j,k) = 
+    let (u,v,w) = (s i,s j,s k) in fill_tri ("60",u,v,w) in
+  let cell3 = map draw_cell3 (qrtet @ quarter) in
+    join_lines (pp @ pcircle  @ cell2 @ cell3 @ dot);;
+
+
+
+(*
+SENQMWT
+*)
+
+let print_thue seed=
+  let radius = 0.15 in 
+  let radius_2_div_sqrt3 = radius *. 2.0 /. sqrt(3.0) in 
+  let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
+  let satst = sat_triples sat in
+  let rr = 0-- (List.length sat - 1) in
+  let allpair = (outer rr rr) in
+  let s = nth sat in
+  let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < 2.0 *. radius_2_div_sqrt3 -. 1.0e-4)  
+    allpair in
+  let coord_triple t = center2 (nth sat) t in
+  let prs = filter (fun (i,j,k),(i',j',k') -> 
+		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
+    (outer satst satst) in
+  let line (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
+    x y radius_2_div_sqrt3  in
+  let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
+  let psmalldot = map (line) sat in
+  let dot = map (dot_line) sat in
+  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
+  let draw_dedge (t,t') =
+    let c = coord_triple t in
+    let c'= coord_triple t' in
+    let (i,j) = tuple2 (intersect (list3 t) (list3 t')) in
+    let u1 = s i in
+    let u2 = s j in
+    let w = u2 -.. u1 in
+    let d = c -.. u1 in
+    let d' = c' -.. u1 in
+      if (det2 d w  *. det2 w d' > 0.0) then draw (u1, u2) else "%" in
+  let dedge = map draw_dedge prs in
+  let rotate u v x = 
+    v +.. cmul (normalize2 (u -.. v)) x in
+  let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy) =	
+      Printf.sprintf "\\draw[fill=black!35] (%f,%f)--(%f,%f)--(%f,%f)--(%f,%f)--cycle;\n\\draw (%f,%f)--(%f,%f);" 
+	ax ay bx by cx cy dx dy bx by dx dy in
+  let draw_cell2 (i,j) = 
+    let u1 = s i in
+    let u2 = s j in
+    let r = dist2 u1 u2 in
+    let h2 = radius_2_div_sqrt3 *. radius_2_div_sqrt3 -. r *. r /. 4.0 in
+    let _ = (h2 >= 0.0) or failwith (Printf.sprintf "expected pos %d %d %f" i j h2) in
+    let h = sqrt(h2) in
+    let c = rotate u1 u2 (r /. 2.0,h) in
+    let c' = rotate u1 u2 (r /. 2.0, -. h) in
+      drawc u1 c u2 c' in
+  let cell2 = map draw_cell2 shortpair in
+    join_lines (psmalldot  (* @  dedge *) @ cell2  @ dot);;
+
 
 
 (* figKVIVUOT *)
@@ -647,12 +984,6 @@ let mkhe =
       (w4,"w4")]) in
     join_lines [ww;vv];;
 
-let genz_out  = 
-  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
-  let outstring = ref "" in
-  let add name s = outstring:= !outstring ^ wrap name s in
-  let _ =  add "autoHEABLRG" (mkhe) in 
-    output_filestring "/tmp/z.txt" (!outstring);;
 
 
 (* figYAHDBVO *)
@@ -876,6 +1207,12 @@ let gen_out =
   let _ = add "autoDEQCVQL" (print_satunsat 5) in
   let _ = add "autoXOHAZWO" (print_satst voronoi_seed) in
   let _ = add "autoBUGZBTW" (print_rogers voronoi_seed) in
+  let _ = add "autoORQISJR" (print_rogers 45) in
+  let _ =  add "autoSENQMWT" (print_thue 45) in 
+  let _ =  add "autoEVIAIQP" (print_voronoi 45) in 
+  let _ =  add "autoANNTKZP" (print_delaunay 45) in 
+  let _ =  add "autoFIFJALK" (print_ferguson_hales 45) in 
+  let _ =  add "autoBWEYURN" (print_marchal 45) in
     output_filestring "/tmp/x.txt" (!outstring);;
 
 let gen2_out = 
@@ -883,11 +1220,16 @@ let gen2_out =
   let outstring = ref "" in
   let add name s = outstring:= !outstring ^ wrap name s in
   let _ =  add "autoYAJOTSL" (print_tetra) in
-  let _ =  add "autoBWEYURN" (print_marchal 45) in
   let _ =  add "autoKVIVUOT" (join_lines[col1;col2;col3]) in
   let _ =  add "autoDEJKNQK" (mkdejA) in
   let _ =  add "autocDEJKNQK" (mkdejB) in
   let _ =  add "autoQTICQYN" (join_lines [mkqtA;mkqtB]) in 
+  let _ =  add "autoHEABLRG" (mkhe) in 
+  let _ =  add "autoSEYIMIE" (fcc_fun_domain) in 
+  let _ =  add "autoAZGXQWC" (tet_oct_ratio) in 
+  let _ =  add "autoTCFVGTS" (cubic_layers) in 
+  let _ =  add "autoPQJIJGE" (rhombic_dodec) in 
+  let _ =  add "autoSGIWBEN" (fcc_hcp_pattern) in 
     output_filestring "/tmp/y.txt" (!outstring);;
 
 

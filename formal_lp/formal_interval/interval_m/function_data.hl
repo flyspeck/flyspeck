@@ -378,6 +378,29 @@ result_size sample4;;
 
 (***********************************)
 
+let run_test f x z min_flag min_max allow_d =
+  let pad = replicate 0.0 (8 - length x) in
+  let xx = x @ pad and zz = z @ pad in
+  let mone = mk_interval(-1.0,-1.0) in
+  let neg_f = Scale(f, mone) in
+  let ff = if min_flag then
+    Plus(neg_f, Scale(unit,mk_interval(min_max, min_max)))
+  else 
+    Plus(f, Scale(unit, ineg (mk_interval(min_max, min_max)))) in
+  let opt =  {
+    only_check_deriv1_negative = false;
+    is_using_dihmax =false;
+    is_using_bigface126 =false;
+    width_cutoff =0.05;
+    allow_sharp =false;
+    allow_derivatives =allow_d;
+    iteration_count =0;
+    iteration_limit =0;
+    recursion_depth =200;
+  } in
+    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
+
+
 let four_y1_delta_y_poly = 
   let x_var, tm = dest_abs delta_y_poly in
     mk_abs (x_var, mk_binop mul_op_real `&4` (mk_binop mul_op_real `(x:real^6)$1 * x$1` tm));;
@@ -388,43 +411,131 @@ let neg_delta_y4_poly =
 
 let four_y1_delta_y = build_taylor pp four_y1_delta_y_poly;;
 let neg_delta_y4 = build_taylor pp neg_delta_y4_poly;;
+dih_y_taylor;;
+
+let pi_taylor = build_taylor 10 `\x:real^1. pi`;;
+let neg_pi_taylor = build_taylor 10 `\x:real^1. --pi`;;
+let pi2_taylor = build_taylor 10 `\x:real^1. pi / &2`;;
 
 
+(* dih_y *)
 let dih_y_taylor =
   let denom = Uni_compose (uinv, Uni_compose (usqrt, four_y1_delta_y)) in
-    Uni_compose (uatan, tf_product neg_delta_y4 denom);;
+    Plus (pi2_taylor, Uni_compose (uatan, tf_product neg_delta_y4 denom));;
+
+(* sol_y *)
+
+Sphere.sol_y;;
+let sol_y_taylor =
+  let dih1 = dih_y_taylor and
+      dih2 = Composite (dih_y_taylor, x2, x3, x1, x5, x6, x4, unit, unit) and
+      dih3 = Composite (dih_y_taylor, x3, x1, x2, x6, x4, x5, unit, unit) in
+    Plus (dih1, Plus (dih2, Plus (dih3, neg_pi_taylor)));;
+
+
+let pi_val= 3.1415926535897932;;
+let sol0_val = 0.5512855984325308;;
+let const1_val = sol0_val /. pi_val;;
+let const1_plus1 = const1_val +. 1.0;;
+
+
+let ly_taylor = build_taylor pp `\x:real^1. #2.52 / #0.52 - x$1 * inv(#0.52)`;;
+let lnazim_y_taylor =
+  tf_product ly_taylor dih_y_taylor;;
+
+Sphere.taum;;
+let taum_taylor =
+  let azim1 = lnazim_y_taylor and
+      azim2 = Composite (lnazim_y_taylor, x2, x3, x1, x5, x6, x4, unit, unit) and
+      azim3 = Composite (lnazim_y_taylor, x3, x1, x2, x6, x4, x5, unit, unit) in
+  let f1 = Scale (sol_y_taylor, mk_interval (const1_plus1, const1_plus1)) and
+      f2 = Plus (azim1, Plus (azim2, azim3)) in
+    Plus (f1, Scale (f2, mk_interval (~-.const1_val, ~-.const1_val)));;
+
+(*********************)
+let x = [2.0001; 2.0001; 2.0001; 2.0; 2.0; 2.0; 0.0; 0.0] and
+    z = [2.52; 2.52; 2.52; 2.0; 2.0; 2.0; 0.0; 0.0];;
+
+let taum_test1 = run_test taum_taylor x z true 0.0 false;;
+result_size taum_test1;;
+
+(***)
+let x = [2.0; 2.0; 2.0; 2.0; 2.0; 2.52; 0.0; 0.0] and
+    z = [2.52; 2.52; 2.52; 2.0; 2.0; 2.52; 0.0; 0.0];;
+
+(CONV_RULE (NUM_REDUCE_CONV THENC REAL_RAT_REDUCE_CONV) o SPECL[`2`; `1`]) Sphere.tame_table_d;;
+
+let taum_test2 = run_test taum_taylor x z true 0.103 false;;
+result_size taum_test2;;
+
+(***)
+let x = [2.0; 2.0; 2.0; 2.1771; 2.0; 2.0; 0.0; 0.0] and
+    z = [2.52; 2.52; 2.52; 2.52; 2.52; 2.52; 0.0; 0.0];;
+
+let taum_test3 = run_test taum_taylor x z true 0.04 false;;
+result_size taum_test3;;
+
+
+(***)
+let x, z =
+  replicate 2.0 6 @ [0.;0.], 
+  replicate 2.52 6 @ [0.;0.];;
+let ineq = Plus (taum_taylor, Scale (dih_y_taylor, mk_interval (0.626, 0.626)));;
+let taum_test4 = run_test ineq x z true 0.77 false;;
+(* 52540 *)
+result_size taum_test4;;
+
+
+let ineq = Plus (taum_taylor, Scale (dih_y_taylor, mk_interval (-0.259, -0.259)));;
+let taum_test5 = run_test ineq x z true (-0.32) false;;
+(* 37737 *)
+result_size taum_test5;;
+
+
+(*********************)
 
 
 let x, z =
-  let t = 2.0 and h = 2.52 in
-  let x = [t; h; h; h; h; h;0.;0.] and
-      z = [2.26; h; h; h; h; h;0.;0.] in
-    x, z;;
-let y, w = center_form (x,z);;
+  replicate 2.0 6 @ [0.;0.], 
+  replicate 2.52 6 @ [0.;0.];;
+
+let ineq1_test = run_test dih_y_taylor x z true 0.852 false;;
+(* 10298 *)
+result_size ineq1_test;;    
+
+let ineq2_test = run_test dih_y_taylor x z false 1.893 true;;
+(* 4905 (4886 with derivatives) *)
+result_size ineq2_test;;
 
 
-let sample5 = 
-  let xx = [2.0; 2.0; 2.0; 2.0; 2.0; 2.0; 0.; 0.] and
-      zz = [2.52; 2.52; 2.52; 2.52; 2.52; 2.52; 0.; 0.] in
-  let mone = mk_interval(-1.0,-1.0) in
-  let mdelta_x4 = Scale(dih_y_taylor,mone) in
-  let pi = 3.14159265 in
-  let testmaxat = 0.852 -. pi *. 0.5 in
-  let ff = Plus(mdelta_x4,Scale(unit,mk_interval(testmaxat,testmaxat))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =false;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
+let rec pass_intervals r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (_,r1,r2) -> pass_intervals r1 @ pass_intervals r2
+    | Result_pass (x,z) -> [x,z];;
 
-result_size sample5;;
+
+let intersect_results r1 r2 =
+  let i1 = pass_intervals r1 and
+      i2 = pass_intervals r2 in
+  let i = intersect i1 i2 in
+    length i, i;;
+
+(* 1683 *)
+let n1, i1 = intersect_results ineq1_test ineq2_test;;
+(* 583 *)
+let n2, i2 = intersect_results ineq1_test taum_test4;;
+(* 5 *)
+let n3, i3 = intersect_results ineq2_test taum_test4;;
+
+(* 14486 *)
+let n4, i4 = intersect_results taum_test4 taum_test5;;
+maxl (map (maxl o filter (fun x -> x <> 0.) o snd o center_form) (pass_intervals taum_test4));;
+
+let x = 2;;
+
+
+(*****************************)
 
 
 (*
@@ -454,90 +565,89 @@ Ineq.getexact "4491491732";;
 
 (**********************************)
 
-let run_test f x z min allow_d =
-  let pad = replicate 0.0 (8 - length x) in
-  let xx = x @ pad and zz = z @ pad in
-  let mone = mk_interval(-1.0,-1.0) in
-  let neg_f = Scale(f, mone) in
-  let ff = Plus(neg_f, Scale(unit,mk_interval(min, min))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =allow_d;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
 
 
 
 let eval_poly = build_taylor pp schwefel_poly;;
-let sample = run_test eval_poly [-10.;-10.;-10.] [10.;10.;10.] (-0.01) false;;
+let sample = run_test eval_poly [-10.;-10.;-10.] [10.;10.;10.] true (-0.01) false;;
 (* 6813 *)
 result_size sample;;
+let sample = run_test eval_poly [-10.;-10.;-10.] [10.;10.;10.] true (-0.0000000001) true;;
+(* 2987 *)
+result_size sample;;
+
+let pp = 10;;
+let schwefel_eval = eval_m_taylor_poly pp schwefel_poly;;
+let x_list = mk_list (replicate one_float 3, real_ty) and
+    z_list = mk_list (replicate pi5 3, real_ty);;
+
+let domain3_th = mk_m_center_domain 3 pp x_list z_list;;
+
+(* 10: 187.73 (pp = 10) *)
+test 3000 schwefel_eval domain3_th;;
+
+
 
 let eval_poly = build_taylor pp rd_poly;;
-let sample = run_test eval_poly [-5.;-5.;-5.] [5.;5.;5.] (-36.7126907) false;;
+let sample = run_test eval_poly [-5.;-5.;-5.] [5.;5.;5.] true (-36.7126907) false;;
 (* 1 *)
 result_size sample;;
 
 
 let eval_poly = build_taylor pp caprasse_poly;;
-let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] (-3.1801) false;;
+let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] true (-3.1801) false;;
 (* 428 *)
 result_size sample;;
-let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] (-3.1801) true;;
-(* Error *)
+let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] true (-3.1801) true;;
+(* 100 *)
 result_size sample;;
 
 
 let eval_poly = build_taylor pp lv_poly;;
-let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] (-20.801) false;;
+let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] true (-20.801) false;;
 (* 160 *)
 result_size sample;;
-let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] (-20.801) true;;
+let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] true (-20.801) true;;
 (* 48 *)
 result_size sample;;
 
 
 let eval_poly = build_taylor pp butcher_poly;;
-let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] (-1.44) false;;
+let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] true (-1.44) false;;
 (* 2 *)
 result_size sample;;
-let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] (-1.44) true;;
+let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] true (-1.44) true;;
 (* 2 *)
 result_size sample;;
 
 
 let eval_poly = build_taylor pp magnetism_poly;;
-let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) (-0.25001) false;;
+let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) false;;
 (* 759936 *)
 result_size sample;;
-let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) (-0.25001) true;;
-(* Error *)
+let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) true;;
+(* 77 *)
 result_size sample;;
 
 
 let eval_poly = build_taylor pp heart_poly;;
 (* Error (w = 10^(-9), depth = 400), Fatal (depth = 200) *)
 let sample = run_test eval_poly [-0.1; 0.4; -0.7; -0.7; 0.1; -0.1; -0.3; -1.1]
-  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] (-1.7435) false;;
-
-let x, z = match sample with
-  | Result_false (x,z) -> x, z;;
-upper_bound (evalf eval_poly x z);;
-
-
-let sample = run_test eval_poly [-0.1; 0.4; -0.7; -0.7; 0.1; -0.1; -0.3; -1.1]
-  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] (-1.748) false;;
-(* 6087 *)
+  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] true (-1.7435) false;;
+(* 5973 *)
 result_size sample;;
 
-
-(* Error *)
 let sample = run_test eval_poly [-0.1; 0.4; -0.7; -0.7; 0.1; -0.1; -0.3; -1.1]
-  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] (-1.7435) true;;
+  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] true (-1.7435) true;;
+(* 190 *)
+result_size sample;;
+
+let pp = 10;;
+let heart_eval = eval_m_taylor_poly pp heart_poly;;
+let x_list = mk_list (replicate one_float 8, real_ty) and
+    z_list = mk_list (replicate pi5 8, real_ty);;
+
+let domain8_th = mk_m_center_domain 8 5 x_list z_list;;
+
+(* 51.291 *)
+test 200 heart_eval domain8_th;;

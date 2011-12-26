@@ -2,6 +2,7 @@ needs "../formal_lp/formal_interval/theory/multivariate_taylor.hl";;
 needs "../formal_lp/formal_interval/second_approx.hl";;
 needs "../formal_lp/formal_interval/eval_interval.hl";;
 needs "../formal_lp/list/list_conversions.hl";;
+needs "../formal_lp/list/list_float.hl";;
 
 let max_dim = 8;;
 
@@ -23,7 +24,8 @@ let real_ty = `:real` and
     nty = `:N`;;
 
 let d_bounds_list_var = `d_bounds_list : (real#real)list` and
-    dd_bounds_list_var = `dd_bounds_list : ((real#real)list)list`;;
+    dd_bounds_list_var = `dd_bounds_list : ((real#real)list)list` and
+    error_var = `error : real`;;
 
 let has_size_array = Array.init (max_dim + 1) 
   (fun i -> match i with
@@ -508,7 +510,7 @@ let magnetism_poly = expr_to_vector_fun `x1 pow 2 + &2 * x2 pow 2 + &2 * x3 pow 
   &2 * x5 pow 2 + &2 * x6 pow 2 + &2 * x7 pow 2 - x1`;;
 let heart_poly = expr_to_vector_fun `-- x1 * x6 pow 3 + &3 * x1 * x6 * x7 pow 2 - x3 * x7 pow 3 +
   &3 * x3 * x7 * x6 pow 2 - x2 * x5 pow 3 + &3 * x2 * x5 * x8 pow 2 - x4 * x8 pow 3 + 
-  &3 * x3 * x8 * x5 pow 2 - #0.9563453`;;
+  &3 * x4 * x8 * x5 pow 2 - #0.9563453`;;
 
 
 let schwefel_min = `-- #0.00000000058806` and
@@ -1135,3 +1137,94 @@ let M_TAYLOR_ERROR_ITLIST2 = prove(`!f domain y w dd_bounds_list error.
      REWRITE_TAC[partial2] THEN
      DISCH_THEN (MP_TAC o MATCH_MP interval_arith_abs_le) THEN
      DISCH_THEN MATCH_MP_TAC THEN REWRITE_TAC[REAL_LE_REFL]);;
+
+
+let M_TAYLOR_ERROR_LIST_SUM2 = prove(`!f domain y w dd_bounds_list error. 
+	     m_cell_domain domain y (vector w) ==>
+	     second_bounded (f:real^N->real) domain dd_bounds_list ==>
+	     LENGTH w = dimindex (:N) ==>
+		 LENGTH dd_bounds_list = dimindex (:N) ==>
+		 ALL (\list. LENGTH list = dimindex (:N)) dd_bounds_list ==>
+		 list_sum2 (error_mul_f1 w) w dd_bounds_list <= error ==>
+		 m_taylor_error f domain (vector w) error`,
+  REWRITE_TAC[list_sum2; error_mul_f1; error_mul_f2; M_TAYLOR_ERROR_ITLIST2]);;
+
+
+
+(**********************************)
+let pp = 5;;
+let eval_poly = eval_m_taylor_poly pp lv_poly;;
+
+let n = 4;;
+let xx = mk_vector_list (replicate one_float 4) and
+    zz = mk_vector_list (replicate two_float 4);;
+
+let domain4_th = mk_m_center_domain n pp (rand xx) (rand zz);;
+
+let m_taylor_th = eval_poly domain4_th;;
+
+(****************************)
+
+let M_TAYLOR_INTERVAL' = MY_RULE m_taylor_interval;;
+
+let dest_m_taylor m_taylor_tm =
+  let ltm1, dd_bounds_list = dest_comb m_taylor_tm in
+  let ltm2, d_bounds_list = dest_comb ltm1 in
+  let ltm3, f_bounds = dest_comb ltm2 in
+  let ltm4, w = dest_comb ltm3 in
+  let ltm5, y = dest_comb ltm4 in
+  let ltm6, domain = dest_comb ltm5 in
+    rand ltm6, domain, y, w, f_bounds, d_bounds_list, dd_bounds_list;;
+
+let dest_m_taylor_thms n =
+  let ty, xty, x_var, f_var, y_var, w_var, domain_var = get_types_and_vars n in
+    fun m_taylor_th ->
+      let f, domain, y, w, f_bounds, d_bounds_list, dd_bounds_list = dest_m_taylor (concl m_taylor_th) in
+      let th0 = (INST[f, f_var; domain, domain_var; y, y_var; w, w_var; f_bounds, f_bounds_var;
+		      d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] o
+		   inst_first_type_var ty) M_TAYLOR_INTERVAL' in
+      let th1 = EQ_MP th0 m_taylor_th in
+      let [domain_th; d2_th; lin_th; second_th] = CONJUNCTS th1 in
+	domain_th, d2_th, lin_th, second_th;;
+  
+
+
+let m_taylor_error_array = Array.init (max_dim + 1)
+  (fun i -> if i < 1 then TRUTH else
+     (MY_RULE_NUM o REWRITE_RULE[dimindex_array.(i)] o inst_first_type_var (n_type_array.(i)))
+       M_TAYLOR_ERROR_LIST_SUM2);;
+
+
+let REFL_CONV tm = 
+  let rhs = rand tm in
+  let th0 = EQT_INTRO (REFL rhs) in
+    th0;;
+
+let eval_m_taylor_error n pp m_taylor_th =
+  let domain_th, _, _, second_th = dest_m_taylor_thms n m_taylor_th in
+  let f_tm = (rand o rator o rator o concl) second_th in
+  let domain_tm, y_tm, w_tm = (dest_m_cell_domain o concl) domain_th in
+  let dd_bounds_list = (rand o concl) second_th in
+  let w_list = rand w_tm in
+  let y_var = mk_var ("y", type_of y_tm) and
+      f_var = mk_var ("f", type_of f_tm) in
+
+  let th0 = (MY_PROVE_HYP domain_th o MY_PROVE_HYP second_th o 
+	       INST[dd_bounds_list, dd_bounds_list_var; w_list, w_var_list;
+		    domain_tm, domain_var; y_tm, y_var; f_tm, f_var]) m_taylor_error_array.(n) in
+
+  let len_dd = eval_length dd_bounds_list in
+  let len_w = eval_length w_list in
+
+  let th1 = (MY_PROVE_HYP len_dd o MY_PROVE_HYP len_w) th0 in
+  let [all_tm; sum2_tm] = hyp th1 in
+  let l_conv = (BETA_CONV THENC LAND_CONV length_conv THENC REFL_CONV) in
+  let all_len = EQT_ELIM (all_conv_univ l_conv all_tm) in
+  let sum2_le_th = list_sum2_le_conv pp (error_mul_f1_le_conv w_list) (lhand sum2_tm) in
+  let error_tm = (rand o concl) sum2_le_th in
+    (MY_PROVE_HYP all_len o MY_PROVE_HYP sum2_le_th o INST[error_tm, error_var]) th1;;
+
+
+eval_m_taylor_error n pp m_taylor_th;;
+(* 0.956 *)
+test 100 (eval_m_taylor_error n pp) m_taylor_th;;

@@ -114,6 +114,7 @@ let error_mul_f2_le_conv2 pp tm1 tm2 =
        INST[tm2, int_var; tm1, a_var_real; x_tm, x_var_real; y_tm, y_var_real]) ERROR_MUL_F2_LEMMA';;
 
 
+(*
 let pp = 5;;
 let tm1 = pi_approx and tm2 = (rand o concl) pi2_approx_array.(pp);;
 error_mul_f2_le_conv pp tm1 tm2;;
@@ -132,5 +133,61 @@ let tm = mk_comb (mk_comb (`list_sum2 error_mul_f2`, l1), l2);;
 list_sum2_le_conv pp error_mul_f2_le_conv2 tm;;
 (* 10: 5.920 *)
 test 1000 (list_sum2_le_conv pp error_mul_f2_le_conv2) tm;;
+*)
 
 
+(**************************)
+(* \a b c. a * iabs b + c *)
+
+let error_mul_f1 = new_definition `error_mul_f1 w x list = x * list_sum2 error_mul_f2 w list`;;
+
+let ERROR_MUL_F1_LEMMA' = (MY_RULE o prove)(`x * list_sum2 error_mul_f2 w list <= z ==>
+					      error_mul_f1 w x list <= z`, REWRITE_TAC[error_mul_f1]);;
+
+let list_sum2_error2_const = `list_sum2 error_mul_f2` and
+    w_var_list = `w:(real)list` and
+    list_var = `list:(real#real)list`;;
+
+let error_mul_f1_le_conv w_tm pp x_tm list_tm =
+  (* TODO: if x = 0 then do not need to compute the sum *)
+  let sum2_tm = mk_binop list_sum2_error2_const w_tm list_tm in
+  let sum2_le_th = list_sum2_le_conv pp error_mul_f2_le_conv2 sum2_tm in
+  let ineq_th = mul_ineq_pos_const_hi pp x_tm sum2_le_th in
+  let z_tm = (rand o concl) ineq_th in
+    (MY_PROVE_HYP ineq_th o
+       INST[x_tm, x_var_real; z_tm, z_var_real; w_tm, w_var_list; list_tm, list_var]) ERROR_MUL_F1_LEMMA';;
+
+(*
+let pp = 5;;
+let w_tm = mk_list (replicate pi5 6, real_ty) and
+    x_tm = pi5;;
+let list_tm = mk_list (replicate (mk_pair (two_float, two_float)) 6, `:real#real`);;
+
+error_mul_f1_le_conv w_tm pp x_tm list_tm;;
+
+(* 10: 3.672  *)
+test 1000 (error_mul_f1_le_conv w_tm pp x_tm) list_tm;;
+*)
+
+(***********************)
+
+(*
+let n = 6;;
+let pp = 5;;
+
+let xx = mk_vector_list (replicate two_float n) and
+    zz = mk_vector_list (replicate pi5 n);;
+
+let eval_poly = eval_second_bounded_poly pp delta_x_poly;;
+let th = eval_poly xx zz;;
+let domain6_th = mk_m_center_domain n pp (rand xx) (rand zz);;
+let w_tm = (rand o rand o concl) domain6_th;;
+let dd_tm = (rand o concl) th;;
+
+let op = mk_icomb (`list_sum2`, mk_comb (`error_mul_f1`, w_tm));;
+let tm = mk_binop op w_tm dd_tm;;
+
+list_sum2_le_conv pp (error_mul_f1_le_conv w_tm) tm;;
+(* 10: 4.236 *)
+test 100 (list_sum2_le_conv pp (error_mul_f1_le_conv w_tm)) tm;;
+*)

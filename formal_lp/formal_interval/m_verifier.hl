@@ -1,0 +1,39 @@
+needs "../formal_lp/formal_interval/m_taylor.hl";;
+
+
+let m_cell_pass = new_definition `m_cell_pass f domain <=> (!x. x IN interval [domain] ==> f x < &0)`;;
+
+
+(*********************************)
+
+let M_CELL_PASS_LEMMA' = (MY_RULE o prove)(`(!x. x IN interval [domain] ==> f x <= hi) /\ (hi < &0 <=> T) ==>
+					     m_cell_pass f domain`,
+					   REWRITE_TAC[m_cell_pass] THEN REPEAT STRIP_TAC THEN
+					     MATCH_MP_TAC REAL_LET_TRANS THEN
+					     EXISTS_TAC `hi:real` THEN ASM_REWRITE_TAC[] THEN
+					     FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+
+let m_taylor_cell_pass n pp m_taylor_th =
+  let upper_th = eval_m_taylor_upper_bound n pp m_taylor_th in
+  let tm0 = (snd o dest_forall o concl) upper_th in
+  let int_tm, concl_tm = dest_comb tm0 in
+  let domain_tm = (rand o rator o rand o rand o rand) int_tm in
+  let ltm, hi_tm = dest_comb concl_tm in
+  let f_tm = (rator o rand) ltm in
+  let f_var = mk_var ("f", type_of f_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let hi_lt0_th = float_lt0 hi_tm in
+    if (fst o dest_const o rand o concl) hi_lt0_th = "F" then
+      failwith "m_taylor_cell_pass: hi < &0 <=> F"
+    else
+      (MY_PROVE_HYP upper_th o MY_PROVE_HYP hi_lt0_th o
+	 INST[f_tm, f_var; domain_tm, domain_var; hi_tm, hi_var_real] o 
+	 inst_first_type_var n_type_array.(n)) M_CELL_PASS_LEMMA';;
+
+
+(******************************)
+
+let M_CELL_PASS_GLUE' = prove(`m_cell_pass f (x,y) /\ m_cell_pass f (y,z) ==> m_cell_pass f (x,z:real^N)`,
+   REWRITE_TAC[m_cell_pass; IN_INTERVAL] THEN REPEAT STRIP_TAC THEN
+     ASM_

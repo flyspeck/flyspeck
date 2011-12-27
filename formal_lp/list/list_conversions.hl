@@ -1,6 +1,7 @@
 let t_const = `T` and
     f_const = `F`;;
 
+
 let MY_PROVE_HYP hyp th = EQ_MP (DEDUCT_ANTISYM_RULE hyp th) hyp;;
 let MY_RULE = UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
 let MY_RULE_NUM = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
@@ -40,6 +41,66 @@ test 1000 hd_conv tm;;
 let tm = `[1;2;3;4]`;;
 eval_hd tm;;
 test 1000 eval_hd tm;;
+*)
+
+
+(*********************************)
+(* EL conversion *)
+
+let EL_0' = (MY_RULE_NUM o prove)(`EL 0 (CONS (h:A) t) = h`, REWRITE_TAC[EL; HD]);;
+let EL_n' = (MY_RULE_NUM o prove)(`0 < n /\ PRE n = m ==> EL n (CONS (h:A) t) = EL m t`,
+   STRIP_TAC THEN SUBGOAL_THEN `n = SUC m` ASSUME_TAC THENL 
+     [ REPEAT (POP_ASSUM MP_TAC) THEN ARITH_TAC; ALL_TAC ] THEN ASM_REWRITE_TAC[EL; TL]);;
+
+
+(* Takes a raw numeral term and a list term and returns the theorem |- EL n [...] = x *)
+let eval_el n_tm list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let el_0, el_n = inst_t EL_0', inst_t EL_n' in
+  let h_var, t_var = mk_var("h", ty), mk_var("t", list_ty) in
+
+  let rec el_conv_raw = fun n_tm list_tm ->
+    let h_tm, t_tm = dest_cons list_tm in
+    let inst0 = INST[h_tm, h_var; t_tm, t_var] in
+    if n_tm = zero_const then
+      inst0 el_0
+    else
+      let n_gt0 = (EQT_ELIM o raw_gt0_hash_conv) n_tm in
+      let pre_n = raw_pre_hash_conv (mk_comb (pre_const, n_tm)) in
+      let m_tm = (rand o concl) pre_n in
+      let th0 = (MY_PROVE_HYP pre_n o MY_PROVE_HYP n_gt0 o 
+		   INST[n_tm, n_var_num; m_tm, m_var_num] o inst0) el_n in
+      let th1 = el_conv_raw m_tm t_tm in
+	TRANS th0 th1 in
+    el_conv_raw n_tm list_tm;;
+
+
+
+(* Takes a term `EL n [...]` and returns the theorem |- EL n [...] = x *)
+(* Note: n must be a raw numeral term Dx (Dy ... _0) *)
+let el_conv el_tm =
+  let ltm, list_tm = dest_comb el_tm in
+  let el, n_tm = dest_comb ltm in
+  if (fst o dest_const) el <> "EL" then failwith "el_conv"
+  else eval_el n_tm list_tm;;
+
+(*
+let n0_tm = `_0` and
+    n_tm = `D3 _0` and
+    list_tm = `[1; 2; 3; 4; 5]`;;
+
+eval_el n0_tm list_tm;;
+(* 0.24 *)
+test 10000 (eval_el n0_tm) list_tm;;
+
+eval_el n_tm list_tm;;
+(* 1.22 *)
+test 10000 (eval_el n_tm) list_tm;;
+
+let tm = mk_icomb (mk_comb (`EL`, n_tm), list_tm);;
+el_conv tm;;
 *)
 
 

@@ -8,8 +8,22 @@
 
 (* 
 Some procedures to facilitate the generation of tikz graphics.
-Output in fig.tex.
+Tikz.gen_out produces output in /tmp/x.txt
+Read in by fig.tex to produce graphics.
+
+This is mostly independent of the flyspeck .hl files, but it might make
+light use of HOL's lib.ml functions, such as sort.
+
+Lessons learned:
+
+Tikz is almost totally unusable for 3D graphics.
+Generate 3D coordinates with OCAML, then project to 2D at the very end.
+Use --plot[smooth] coordinates { ... } rather than try to use tikz elliptical
+arc routines.
+
 *)
+
+module Tikz = struct
 
 let output_filestring tmpfile a = 
   let outs = open_out tmpfile in
@@ -285,18 +299,35 @@ let fcc_packing =
   let v0 = (0.0,0.0,0.0) in
   let v1 = g(1.0,0.0,0.0) in
   let v2 = g(0.5,sqrt(3.0)/.2.0,0.0) in
+  let e1 = g delta1 in
+  let e2 = g delta2 in
+  let e3 = u in
+  let v3 = g(0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
+  let e12 = e1 +... e2 in
+  let e13 = e1 +... e3 in
+  let e23 = e2 +... e3 in
+  let e123 = e1 +... e2 +... e3 in
+  let p v = proj delta1 delta2 (v) in
+  let  [w0;w1;w2;w3;e1;e2;e3;e12;e13;e23;e123] = map p [v0;v1;v2;v3;e1;e2;u;e12;e13;e23;e123] in
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3);("e1",e1);("e2",e2);("e3",e3);("e12",e12);("e13",e13);("e23",e23);("e123",e123)]);;
+
+let pascal_packing = 
+  let f = frame_of 
+(*     (0.5,0.4,0.0) (-0.0,0.1,0.4) in  *)
+     (0.5,0.4,0.) (-0.2,0.1,0.4) in 
+  let g = mul3 f in
+  let u = g delta3 in
+  let v0 = (0.0,0.0,0.0) in
+  let v1 = g(1.0,0.0,0.0) in
+  let v2 = g(0.5,sqrt(3.0)/.2.0,0.0) in
   let v3 = g(0.5,1.0 /. sqrt(12.0),sqrt(2.0/.3.0)) in
   let p v = proj delta1 delta2 (v) in
   let  [w0;w1;w2;w3] = map p [v0;v1;v2;v3] in
   let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
-    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3);]);;
+    join_lines (map coord [("w0",w0);("w1",w1);("w2",w2);("w3",w3)]);;
 
-let genz_out  = 
-  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
-  let outstring = ref "" in
-  let add name s = outstring:= !outstring ^ wrap name s in
-  let _ =  add "autoDHQRILO" (fcc_packing) in 
-    output_filestring "/tmp/z.txt" (!outstring);;
+
 
 
 (* TCFVGTS % fig:face-centered-cubic *)
@@ -352,6 +383,23 @@ let cubic_layers =
 	      (vtop,v2,v12,b"x");] in
   let pc = map (fun (u,v1,v2,s)-> pcircle 1.0 5 u v1 v2 s) paths in
     join_lines (cc @ pc);;
+
+
+(* NTNKMGO *)
+
+let square_layers = 
+  let f = frame_of (1.0,0.1,0.4) (-0.5,1.0,0.0) in 
+  let g = mul3 f in
+  let v0 =  (0.0,0.0,0.0) in
+  let v1 = g( delta1) in
+  let v2 = g( delta2) in 
+  let v3 = g( delta3) in 
+  let p v = proj delta1 delta2 v in
+  let   [w0;w1;w2;w3]  = map p   [v0;v1;v2;v3] in 
+  let coord (s,u) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s (fst u) (snd u) in
+  let cc = map coord  [("w0",w0);("w1",w1);("w2",w2);("w3",w3)] in
+    join_lines (cc);;
+
 
 
 (* PQJIJGE *)
@@ -1198,7 +1246,7 @@ let print_dodec_ellipse =
 (* output *)
 
 
-let gen_out = 
+let gen_out() = 
   let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
   let outstring = ref "" in
   let add name s = outstring:= !outstring ^ wrap name s in
@@ -1213,8 +1261,23 @@ let gen_out =
   let _ =  add "autoANNTKZP" (print_delaunay 45) in 
   let _ =  add "autoFIFJALK" (print_ferguson_hales 45) in 
   let _ =  add "autoBWEYURN" (print_marchal 45) in
+  let _ =  add "autoYAJOTSL" (print_tetra) in
+  let _ =  add "autoKVIVUOT" (join_lines[col1;col2;col3]) in
+  let _ =  add "autoDEJKNQK" (mkdejA) in
+  let _ =  add "autocDEJKNQK" (mkdejB) in
+  let _ =  add "autoQTICQYN" (join_lines [mkqtA;mkqtB]) in 
+  let _ =  add "autoHEABLRG" (mkhe) in 
+  let _ =  add "autoSEYIMIE" (fcc_fun_domain) in 
+  let _ =  add "autoAZGXQWC" (tet_oct_ratio) in 
+  let _ =  add "autoTCFVGTS" (cubic_layers) in 
+  let _ =  add "autoPQJIJGE" (rhombic_dodec) in 
+  let _ =  add "autoSGIWBEN" (fcc_hcp_pattern) in 
+  let _ =  add "autoDHQRILO" (fcc_packing) in 
+  let _ =  add "autoBDCABIA" (pascal_packing) in 
+  let _ =  add "autoNTNKMGO" (square_layers) in 
     output_filestring "/tmp/x.txt" (!outstring);;
 
+(*
 let gen2_out = 
   let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
   let outstring = ref "" in
@@ -1230,6 +1293,17 @@ let gen2_out =
   let _ =  add "autoTCFVGTS" (cubic_layers) in 
   let _ =  add "autoPQJIJGE" (rhombic_dodec) in 
   let _ =  add "autoSGIWBEN" (fcc_hcp_pattern) in 
+  let _ =  add "autoDHQRILO" (fcc_packing) in 
+  let _ =  add "autoBDCABIA" (pascal_packing) in 
+  let _ =  add "autoNTNKMGO" (square_layers) in 
     output_filestring "/tmp/y.txt" (!outstring);;
 
+let genz_out  = 
+  let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
+  let outstring = ref "" in
+  let add name s = outstring:= !outstring ^ wrap name s in
+  let _ =  add "autoNTNKMGO" (square_layers) in 
+    output_filestring "/tmp/z.txt" (!outstring);;
+*)
 
+end;;

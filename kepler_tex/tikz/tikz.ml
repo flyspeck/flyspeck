@@ -20,10 +20,76 @@ Tikz is almost totally unusable for 3D graphics.
 Generate 3D coordinates with OCAML, then project to 2D at the very end.
 Use --plot[smooth] coordinates { ... } rather than try to use tikz elliptical
 arc routines.
+At the beginning, I used Mathematica to generate tikz files, but eventually almost everything was done with Ocaml rather than Math'ca.
 
 *)
 
 module Tikz = struct
+
+let map = List.map;;
+
+let filter= List.filter;;
+
+let hd = List.hd;;
+
+(* from HOL LIGHT lib.ml . *)
+
+(* let (o) = fun f g x -> f(g x);; *)
+
+let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);;
+
+let rec funpow n f x =
+  if n < 1 then x else funpow (n-1) f (f x);;
+
+let rec forall p l =
+  match l with
+    [] -> true
+  | h::t -> p(h) & forall p t;;
+
+let rec mem x lis =
+  match lis with
+    [] -> false
+  | (h::t) -> Pervasives.compare x h = 0 or mem x t;;
+
+let subtract l1 l2 = filter (fun x -> not (mem x l2)) l1;;
+
+let intersect l1 l2 = filter (fun x -> mem x l2) l1;;
+
+let subset l1 l2 = forall (fun t -> mem t l2) l1;;
+
+let rec partition p l =
+  match l with
+    [] -> [],l
+  | h::t -> let yes,no = partition p t in
+            if p(h) then (if yes == t then l,[] else h::yes,no)
+            else (if no == t then [],l else yes,h::no);;
+
+let rec sort cmp lis =
+  match lis with
+    [] -> []
+  | piv::rest ->
+      let r,l = partition (cmp piv) rest in
+      (sort cmp l) @ (piv::(sort cmp r));;
+
+let rec zip l1 l2 =
+  match (l1,l2) with
+        ([],[]) -> []
+      | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
+      | _ -> failwith "zip";;
+
+let rec end_itlist f l =
+  match l with
+        []     -> failwith "end_itlist"
+      | [x]    -> x
+      | (h::t) -> f h (end_itlist f t);;
+
+let rec assoc a l =
+  match l with
+    (x,y)::t -> if Pervasives.compare x a = 0 then y else assoc a t
+  | [] -> failwith "find";;
+
+
+(* I/O *)
 
 let output_filestring tmpfile a = 
   let outs = open_out tmpfile in
@@ -166,8 +232,8 @@ let solve22 (m1,m2) c =
   let (t1,t2) = transpose2 (m1,m2) in
    map2 (fun t -> t/. d) (det2 c t2, det2 t1 c);;
 
-let extreme_point M = 
-  solve33 M (map3 (fun m -> 0.5 *. (m *... m)) M);;
+let extreme_point m' = 
+  solve33 m' (map3 (fun m -> 0.5 *. (m *... m)) m');;
 
 let lex3 (i,j,k) (i',j',k') = (i<i') or ((i=i') &&(j<j')) or ((i=i')&&(j=j')&&(k<k'));;
 
@@ -211,10 +277,10 @@ let random_SO3 seed =
 let ppair (x,y) = Printf.sprintf "(%f,%f)" x y;;
 
 let pcoord s (x,y) = 
-  Printf.sprintf "\coordinate (%s) at (%f,%f) " s x y;;
+  Printf.sprintf "\\coordinate (%s) at (%f,%f) " s x y;;
 
 let plet s y = 
-  Printf.sprintf "\pgfmathsetmacro\%s{%s}" s y;;
+  Printf.sprintf "\\pgfmathsetmacro\\%s{%s}" s y;;
 
 
 
@@ -317,7 +383,6 @@ let pascal_packing =
 (*     (0.5,0.4,0.0) (-0.0,0.1,0.4) in  *)
      (0.5,0.4,0.) (-0.2,0.1,0.4) in 
   let g = mul3 f in
-  let u = g delta3 in
   let v0 = (0.0,0.0,0.0) in
   let v1 = g(1.0,0.0,0.0) in
   let v2 = g(0.5,sqrt(3.0)/.2.0,0.0) in
@@ -343,7 +408,7 @@ let pcircle r n v u1 u2 label =
   let p1 = map (fun s -> circle_interpolate r (float_of_int s /. float_of_int n) v u1 u2) (0--n) in
   let q1 = map (proj delta1 delta2) p1 in
   let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
-    Printf.sprintf "\def\%s{%s}" label w1 ;;
+    Printf.sprintf "\\def\\%s{%s}" label w1 ;;
 
 let cubic_layers = 
   let f = frame_of (1.0,0.1,0.4) (-0.5,1.0,0.0) in 
@@ -461,7 +526,7 @@ let randompacking radius seed xdim ydim = (* seed=5 works well *)
 let print_satunsat seed =
   let radius = 0.15 in
   let (unsat,sat) = randompacking radius seed 2.0 2.0 in
-  let line d (x,y)  = Printf.sprintf "\draw[gray,fill=black!%d] (%f,%f) circle (0.15);\n" d x y in
+  let line d (x,y)  = Printf.sprintf "\\draw[gray,fill=black!%d] (%f,%f) circle (0.15);" d x y in
   let punsat = map (line 30) unsat in
   let psat = map (line 10) sat in
     join_lines (["\\begin{scope}[shift={(0,0)}]"] @ punsat @
@@ -486,8 +551,8 @@ let sat_triples sat =
   let allt = outer rr (outer rr rr) in
   let triple =  (map (fun (i,(j,k))->(i,j,k)) (filter(fun (i,(j,k))->(i<j && j<k))  allt)) in
   let allpair = filter (fun (i,j) -> i< j) (outer rr rr) in
-  let shortpair = filter (fun i,j -> dist2 (s i) (s j) < 4.0 *. radius +. 1.0e-5) allpair in
-  let ftriple = filter (fun i,j,k -> mem (i,j) shortpair && mem(i,k) shortpair && mem(j,k) shortpair) triple in
+  let shortpair = filter (fun (i,j) -> dist2 (s i) (s j) < 4.0 *. radius +. 1.0e-5) allpair in
+  let ftriple = filter (fun (i,j,k) -> mem (i,j) shortpair && mem(i,k) shortpair && mem(j,k) shortpair) triple in
   let fit (i,j,k) = 
     let c = center2 s (i,j,k) in
     let rad = dist2 c (s k) in
@@ -501,14 +566,14 @@ let print_satst seed=
   let (_,sat) =  randompacking radius seed 5.0 2.0 in
   let satst = sat_triples sat in
   let s = nth sat in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
+  let prs = filter (fun ((i,j,k),(i',j',k')) -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
     (outer satst satst) in
   let pp = map (fun (t, t') -> 
 		  let (x,y) = center2 s t in
 		  let (x',y') = center2 s t' in
-		    Printf.sprintf "\draw (%f,%f) -- (%f,%f) ;" x y x' y') prs in
-  let smalldot (x,y)  = Printf.sprintf "%c\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\smalldot{%f,%f};" '%' x y x y in
+		    Printf.sprintf "\\draw (%f,%f) -- (%f,%f) ;" x y x' y') prs in
+  let smalldot (x,y)  = Printf.sprintf "%c\\draw[gray!10,fill=gray!30] (%f,%f) circle (0.15);\n\\smalldot{%f,%f};" '%' x y x y in
   let psmalldot = map (smalldot) sat in
     join_lines (psmalldot @ pp);;
 
@@ -520,7 +585,7 @@ let print_rogers seed=
   let satst = sat_triples sat in
   let s = nth sat in
   let coord_triple t = center2 (nth sat) t in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
+  let prs = filter (fun ((i,j,k),(i',j',k')) -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
     (outer satst satst) in
   let pp = map (fun (t, t') -> 
@@ -557,9 +622,8 @@ let print_voronoi seed=
   let radius = 0.15 in
   let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
   let satst = sat_triples sat in
-  let s = nth sat in
   let coord_triple t = center2 (nth sat) t in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
+  let prs = filter (fun ((i,j,k),(i',j',k')) -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
     (outer satst satst) in
   let pp = map (fun (t, t') -> 
@@ -632,7 +696,7 @@ let print_marchal seed=
   let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < 2.0 *. radius_sqrt2 -. 1.0e-4)  
     allpair in
   let coord_triple t = center2 (nth sat) t in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
+  let prs = filter (fun ((i,j,k),(i',j',k')) -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
     (outer satst satst) in
   let pp = map (fun (t, t') -> 
@@ -709,7 +773,7 @@ let print_ferguson_hales seed=
   let rr = 0-- (List.length sat - 1) in
   let allpair = (outer rr rr) in
   let coord_triple t = center2 (nth sat) t in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
+  let prs = filter (fun ((i,j,k),(i',j',k')) -> 
 		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
     (outer satst satst) in
   let pp = map (fun (t, t') -> 
@@ -718,15 +782,11 @@ let print_ferguson_hales seed=
 		    Printf.sprintf "\\draw[very thick] (%f,%f) -- (%f,%f) ;" x y x' y') prs in
   let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < radius_h2 -. 1.0e-4)  
     allpair in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
-		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
-    (outer satst satst) in
   let circle (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
     x y radius_h  in
   let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
   let pcircle = map (circle) sat in
   let dot = map (dot_line) sat in
-  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
   let fill_tri (s,(ux,uy),(vx,vy),(wx,wy)) = 
     Printf.sprintf "\\draw[black,fill=black!%s] (%f,%f)--(%f,%f)--(%f,%f)--cycle;" 
       s ux uy vx vy wx wy in
@@ -761,33 +821,16 @@ let print_thue seed=
   let radius = 0.15 in 
   let radius_2_div_sqrt3 = radius *. 2.0 /. sqrt(3.0) in 
   let (_,sat) = randompacking radius seed 3.0 1.4 in (* 3,1.4 *)
-  let satst = sat_triples sat in
   let rr = 0-- (List.length sat - 1) in
   let allpair = (outer rr rr) in
   let s = nth sat in
   let shortpair =filter(fun (i,j)-> (i<j)&& dist2 (s i) (s j) < 2.0 *. radius_2_div_sqrt3 -. 1.0e-4)  
     allpair in
-  let coord_triple t = center2 (nth sat) t in
-  let prs = filter (fun (i,j,k),(i',j',k') -> 
-		      List.length (intersect [i;j;k] [i';j';k'])=2 && lex3 (i,j,k) (i',j',k'))   
-    (outer satst satst) in
   let line (x,y)  = Printf.sprintf "\\draw[black,fill=black!20] (%f,%f) circle (%f);" 
     x y radius_2_div_sqrt3  in
   let dot_line (x,y) = Printf.sprintf "\\smalldot{%f,%f};" x y  in
   let psmalldot = map (line) sat in
   let dot = map (dot_line) sat in
-  let draw ((ux,uy),(vx,vy)) = Printf.sprintf "\\draw (%f,%f)--(%f,%f);" ux uy vx vy in
-  let draw_dedge (t,t') =
-    let c = coord_triple t in
-    let c'= coord_triple t' in
-    let (i,j) = tuple2 (intersect (list3 t) (list3 t')) in
-    let u1 = s i in
-    let u2 = s j in
-    let w = u2 -.. u1 in
-    let d = c -.. u1 in
-    let d' = c' -.. u1 in
-      if (det2 d w  *. det2 w d' > 0.0) then draw (u1, u2) else "%" in
-  let dedge = map draw_dedge prs in
   let rotate u v x = 
     v +.. cmul (normalize2 (u -.. v)) x in
   let drawc (ax,ay) (bx,by) (cx,cy) (dx,dy) =	
@@ -841,7 +884,7 @@ let rx u1 u2 label =
   let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
   let q1 = map (kv_proj rho) p1 in
   let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
-    Printf.sprintf "\def\kv%s{%s}" label w1 ;;
+    Printf.sprintf "\\def\\kv%s{%s}" label w1 ;;
 
 let col1 = 
   let a = 1.5 in
@@ -870,12 +913,11 @@ let col2 =
   let cc = sqrt(c*.c -. b*.b) in
   let r2 = 2.0 in
   let r = sqrt(r2) in
-  let U = (0.0,0.0) in
   let omega1 = a %... delta2 in 
   let omega2 = omega1 +... bb %... delta1 in
   let omega3 = omega2 +... cc %... delta3 in
-  let v13 = kv_inter omega1 omega3 in
-  let v12 = kv_inter omega1 omega2 in
+  let v13 = kv_inter r2 omega1 omega3 in
+  let v12 = kv_inter r2 omega1 omega2 in
   let v3 = r %... normalize3 omega3 in
   let v2 = r %... normalize3 omega2 in
   let wab = rx v13 v3 "Bab" in
@@ -893,12 +935,11 @@ let col3 =
   let cc = sqrt(c*.c -. b*.b) in
   let r2 = 2.0 in
   let r = sqrt(r2) in
-  let U = (0.0,0.0) in
   let omega1 = a %... delta2 in 
   let omega2 = omega1 +... bb %... delta1 in
   let omega3 = omega2 +... cc %... delta3 in
-  let v13 = kv_inter omega1 omega3 in
-  let v23 = kv_inter omega2 omega3 in
+  let v13 = kv_inter r2 omega1 omega3 in
+  let v23 = kv_inter r2 omega2 omega3 in
   let v3 = r %... normalize3 omega3 in
   let wab = rx v13 v3 "Cab" in
   let wbc = rx v3 v23 "Cbc" in
@@ -941,10 +982,9 @@ let rxdej(u1,u2,label) =
   let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
   let q1 = map (kv_proj rho) p1 in
   let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
-    Printf.sprintf "\def\dejk%s{%s}" label w1 ;;
+    Printf.sprintf "\\def\\dejk%s{%s}" label w1 ;;
 
 let mkdejA = 
-  let rho = (0.0,0.0) in
   let (v1,v2,v3,v4,v5,w4,w5,w6) = vws in
   let vv = join_lines (map rxdej 
       [(v1,v2,"a");(v2,v4,"b");(v4,v5,"c");(v5,w6,"d");(w6,v3,"e");(v3,v1,"f");
@@ -955,7 +995,7 @@ let mkdejA =
 let mkdejB = 
   let rho = (0.0,0.0) in
   let (v1,v2,v3,v4,v5,w4,w5,w6) = vws in
-  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let a ((x,y),s) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s x y in
   let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
      [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(v5,"v5");(w4,"w4");(w5,"w5");(w6,"w6")]) in
     ww;;
@@ -989,7 +1029,7 @@ let rxqt(u1,u2,label) =
   let p1 = map (fun s -> kv_interp r2 (float_of_int s /. 5.0) null3 u1 u2) (0--5) in
   let q1 = map (kv_proj rho) p1 in
   let w1 = join_space (map (fun (x,y)-> Printf.sprintf "(%f,%f) " x y) q1) in
-    Printf.sprintf "\def\qt%s{%s}" label w1 ;;
+    Printf.sprintf "\\def\\qt%s{%s}" label w1 ;;
 
 let mkqtA = 
   let (v1,v2,v3,v4,v5) = qtvv in
@@ -1001,7 +1041,7 @@ let mkqtA =
 let mkqtB = 
   let rho = (0.0,0.0) in
   let (v1,v2,v3,v4,v5) = qtvv in
-  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let a ((x,y),s) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s x y in
   let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
      [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(v5,"v5")]) in
     ww;;
@@ -1026,7 +1066,7 @@ let mkhe =
   let vv = join_lines (map rxqt
       [(v1,v2,"a");(v2,v3,"b");(v3,v4,"c");(v4,v1,"d");(w1,w2,"e");(w2,w3,"f");
        (w3,w4,"g");(w4,w1,"h")]) in
-  let a ((x,y),s) = Printf.sprintf "\coordinate (%s) at (%f,%f);" s x y in
+  let a ((x,y),s) = Printf.sprintf "\\coordinate (%s) at (%f,%f);" s x y in
   let ww = join_lines (map (fun (v,s) -> a ((kv_proj rho v),s))
      [(v1,"v1");(v2,"v2");(v3,"v3");(v4,"v4");(w1,"w1");(w2,"w2");(w3,"w3");
       (w4,"w4")]) in
@@ -1037,7 +1077,8 @@ let mkhe =
 (* figYAHDBVO *)
 
 let vv i = (72.0*.i +. (-.40.0) +. Random.float 80.0,Random.float 1.5 +. 1.0);;
-map (vv o float_of_int) [0;1;2;3;4];;
+
+(* map (vv o float_of_int) [0;1;2;3;4];; *)
 
 let vout =[ (-1.40573615605411817, 2.43152527011496122);
    (62.2310998421659392, 1.50101500229540341);
@@ -1076,7 +1117,7 @@ let fix_SO3 =  (*  random_SO3 () ;;  *)
 let icos_vertex =
   let sqrt3 = sqrt(3.0) in
   let v = sqrt3 %... (1.0,0.0,0.0) in
-  let d0 = 2.10292 in  (* 20 Solid[2,2,2,d0,d0,d0] = 4 Pi *)
+(*  let d0 = 2.10292 in *)  (* 20 Solid[2,2,2,d0,d0,d0] = 4 Pi *)
   let theta = 1.10715 in (* arc[2,2,d0] = theta *)
   let ct = cos theta in
   let st = sin theta in 
@@ -1116,7 +1157,6 @@ let next_icos_face (a,b,u3)=  (* input flag: [a] subset u2 subset u3 *)
   let c = hd cx in
   let w2x = filter (fun (i,j)->(i<j)) [(a,c);(c,a)] in
   let _ = List.length w2x = 1 or failwith "next_dodec_face e" in
-  let w2 = nth w2x 0 in
     (a,c,w3);;
 
 let icos_vertex_cycle a = 
@@ -1150,12 +1190,12 @@ let pname (i,j,k) = Printf.sprintf "V%d-%d-%d" i j k;;
 
 let print_cycles = 
   let lookup = zip icos_face (map (proj delta1 delta2) dodec_vertex) in
-    map (fun r,(x,y) -> Printf.sprintf "\coordinate (%s) at (%f,%f);" (pname r) x y) lookup;;
+    map (fun (r,(x,y)) -> Printf.sprintf "\\coordinate (%s) at (%f,%f);" (pname r) x y) lookup;;
 
 let print_dodec_face = 
   let opt = "fill=white" in
-  let pdraw = Printf.sprintf "\draw[%s] " opt in
-  let cycle m = join_space (map ((Printf.sprintf "(%s)--") o pname) m) in
+  let pdraw = Printf.sprintf "\\draw[%s] " opt in
+  let cycle m = join_space (map (fun s -> Printf.sprintf "(%s)--" ( pname s)) m) in
   let s m = pdraw ^ (cycle m) ^ "cycle;" in 
     map s sort_dodec_face;;
 
@@ -1179,14 +1219,14 @@ let frame_cap v =
   let w = normalize3 (-. y,x,0.0) in
   frame_of v w;;
     
-let ellipse_param v R theta = 
+let ellipse_param v rad theta = 
   let (v,w,u) = frame_cap v in
-  let q = (R *. cos theta) %... v in
+  let q = (rad *. cos theta) %... v in
   let qbar = proj delta1 delta2 q in
-  let p = ((R *. cos theta) %... v) +... ((R *. sin theta) %... u) in
+  let p = ((rad *. cos theta) %... v) +... ((rad *. sin theta) %... u) in
   let pbar = proj delta1 delta2 p in
   let h = dist2 qbar pbar in
-  let k = R *. sin theta in
+  let k = rad *. sin theta in
     (qbar,h,k);;
 
 let calc_psi theta v = 
@@ -1194,9 +1234,9 @@ let calc_psi theta v =
   let cospsi = cos theta /. sqrt( x *. x +. y *. y) in
     if (abs_float cospsi <= 1.0) then acos cospsi else 0.0;;
 
-let calc_alpha R psi qbar =
+let calc_alpha rad psi qbar =
   let nqbar = normalize2 qbar in 
-  let rtrue = cmul (R *. cos psi, R *. sin psi) nqbar in
+  let rtrue = cmul (rad *. cos psi, rad *. sin psi) nqbar in
   let a = normalize2 (rtrue -.. qbar) in
     acos (a *.. nqbar);;
 
@@ -1206,13 +1246,13 @@ let adjust_alpha h k alpha =  (* compensate for TIKZ BUG in arc specs *)
   let t = 1.0 /. sqrt(ca *. ca /. (h *. h) +. sa *. sa /. (k *. k)) in
     acos (t *. ca /. h);;
 
-let print_ellipse R qbar h k psi = 
+let print_ellipse rad qbar h k psi = 
   let nqbar = normalize2 qbar in
-  let r = (R *. cos psi, R *. sin psi) in
+  let r = (rad *. cos psi, rad *. sin psi) in
   let (qbx,qby) = qbar in
   let (px,py) = cmul r nqbar in
   let (px',py') = cmul (conj r) nqbar in
-  let alpha = adjust_alpha h k (calc_alpha R psi qbar) in
+  let alpha = adjust_alpha h k (calc_alpha rad psi qbar) in
   let endangle = 2.0 *. pi -. alpha in
   let rotateAngle = degree (arg qbx qby) in
   let cstart = degree (arg px' py') in
@@ -1224,7 +1264,7 @@ let print_ellipse R qbar h k psi =
 	qbx qby h k rotateAngle s
     else
       Printf.sprintf 
-	"\\begin{scope}\\clip (%f,%f) arc[x radius=%f,y radius = %f,start angle=%f,end angle=%f,rotate=%f] arc[radius=1.0,start angle=%f,delta angle=%f];\pgfpathclose;\n%s"
+	"\\begin{scope}\\clip (%f,%f) arc[x radius=%f,y radius = %f,start angle=%f,end angle=%f,rotate=%f] arc[radius=1.0,start angle=%f,delta angle=%f];\\pgfpathclose;\n%s"
 	px py h k  (degree alpha) (degree endangle) rotateAngle
         cstart (degree delta)
 	s;;
@@ -1232,11 +1272,11 @@ let print_ellipse R qbar h k psi =
 let print_dodec_ellipse = 
   let vs = map center_face sort_dodec_face in
   let theta = pi /. 6.0 in
-  let R = 1.0 in
+  let rad = 1.0 in
   let one_ellipse v = 
-    let (q,h,k) = ellipse_param v R theta in
+    let (q,h,k) = ellipse_param v rad theta in
     let psi = calc_psi theta v in
-     print_ellipse R q h k psi in
+     print_ellipse rad q h k psi in
     map one_ellipse vs;;
 
 
@@ -1245,14 +1285,20 @@ let print_dodec_ellipse =
 
 (* output *)
 
+let outfilestring = "/tmp/x.txt";;
 
 let gen_out() = 
+  let outs = open_out outfilestring in
+  let write_out s = try (Printf.fprintf outs "%s" s) 
+  with _ as t -> (close_out outs; raise t) in
+  let _ = write_out  "% AUTO GENERATED BY tikz.ml. Do not edit.\n" in
   let wrap s s' = Printf.sprintf "\\def\\%s{%s}\n\n\n" s s' in
-  let outstring = ref "" in
-  let add name s = outstring:= !outstring ^ wrap name s in
-  let _ =  add "autoZXEVDCA"   (join_lines (print_cycles @ print_dodec_face @ print_dodec_ellipse)) in
+  let add name s = write_out (wrap name s) in 
+  let _ =  add "autoZXEVDCA"   
+    (join_lines (print_cycles @ print_dodec_face @ print_dodec_ellipse)) in
   let voronoi_seed = 12345678 in (* 50, 300 good, *)
   let _ = add "autoDEQCVQL" (print_satunsat 5) in
+(* ok to here. In ML mode next line causes stack overflow. *)
   let _ = add "autoXOHAZWO" (print_satst voronoi_seed) in
   let _ = add "autoBUGZBTW" (print_rogers voronoi_seed) in
   let _ = add "autoORQISJR" (print_rogers 45) in
@@ -1275,7 +1321,7 @@ let gen_out() =
   let _ =  add "autoDHQRILO" (fcc_packing) in 
   let _ =  add "autoBDCABIA" (pascal_packing) in 
   let _ =  add "autoNTNKMGO" (square_layers) in 
-    output_filestring "/tmp/x.txt" (!outstring);;
+       close_out outs ;;
 
 (*
 let gen2_out = 

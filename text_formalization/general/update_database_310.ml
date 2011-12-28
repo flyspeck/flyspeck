@@ -212,10 +212,26 @@ let update_database =
 (* Search (automatically updates)                                            *)
 (* ------------------------------------------------------------------------- *)
 
+let omit t = mk_comb(mk_var("<omit this pattern>",W mk_fun_ty (type_of t)),t);;
+
+let exactly t = mk_comb(mk_var("<match aconv>",W mk_fun_ty (type_of t)),t);;
+
+let name s = mk_comb(mk_var("<match theorem name>",W mk_fun_ty aty),
+                     mk_var(s,aty));;
+
 let full t = mk_comb(mk_var("<full term>",W mk_fun_ty (type_of t)),t);;
+
 let rewrite t = mk_comb(mk_var("<rewrite>",W mk_fun_ty (type_of t)),t);;
+
 let regexp s = mk_comb(mk_var("<regexp>",W mk_fun_ty aty),
                      mk_var(s,aty));;
+
+let disjunct pr = 
+  let u = mk_pair pr in
+  let ty = type_of u in
+  let h = mk_var ("<search_or>",(mk_type("fun",[ty;aty]))) in 
+    mk_comb (h,u);;
+
 
 (* very rough measure of the size of a printed term *)
 let rec term_length = 
@@ -232,6 +248,9 @@ let sortlength_thml thml =
    (function (s,t) as r -> (term_length (concl t),r)) thml in
   let stml = sort (fun (a,_) (b,_) -> (a < b)) ltml in
     map snd stml;;
+
+
+(* main search function *)
 
 let search_thml term_matcher =
   let rec immediatesublist l1 l2 =
@@ -284,11 +303,6 @@ let search_thml term_matcher =
       " regexp (string), exactly (term), full (term), rewrite (term constant)") else
         (itlist (filter o filterpred) pats thml);;
 
-let disjunct pr = 
-  let u = mk_pair pr in
-  let ty = type_of u in
-  let h = mk_var ("<search_or>",(mk_type("fun",[ty;aty]))) in 
-    mk_comb (h,u);;
 
 let search pat = search_thml (term_match [])  pat (!theorems);;
 

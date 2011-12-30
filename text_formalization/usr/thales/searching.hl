@@ -15,16 +15,9 @@ module Searching = struct
   open Hales_tactic;;
 
 (* 
-
-    Different search results.
-   search: Theorem list
-   constant list
-   index: Help index list
-   help: help doc.
-
-   All the searches with the same return type should be combined.
-
-
+TODO: 
+ -Combine different search mechanisms with the same return type.
+ -Make a log of all searches, all bookmarked items, with context, for data mining purposes.
 *)
 
 
@@ -39,6 +32,17 @@ let match_sparse s u =
   let re = Str.regexp_case_fold (".*"^(unsplit ".*" I (   explode s))) in
     Str.string_match re u 0;;
 
+let maxl0 xs = try (end_itlist max xs) with _ -> 0;;
+
+
+(* ========================================================================== *)
+(* TYPES *)
+
+
+let types_of = Print_types.print_term_types;;
+let type_of_thm = Print_types.print_thm_types;;
+let type_of_goal = Print_types.print_goal_types;;
+
 
 (* ========================================================================== *)
 (* HELP                                              *)
@@ -47,50 +51,46 @@ let match_sparse s u =
 let hollight_dir = 
   (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
 
-(* hol-light help path *)
+let local_help_dir =   Filename.concat flyspeck_dir "../help";;
 
 let helpdirs = ref [
-  Filename.concat flyspeck_dir "../help";
+  local_help_dir;
   Filename.concat hollight_dir "Help"
  ];;
 
 help_path := !helpdirs @ (!help_path);; (* hol-light help *)
 
-(* let help_h = ref [];; *)
-let help_grep_h = ref[];;
-let search_h = ref[];;
-
-let update i h = (h:= i:: !h);;
-let history n h = fst(chop_list n h);;
-
 let help_grep pat = 
-  let _ = update pat help_grep_h in
   let split =   Str.split (Str.regexp "\n") in
   let cmd s = process_to_string ("(cd "  ^s^  "; ls | grep -v '~' | sed 's/.doc$//g' | grep '" ^pat^ "')") in
   List.flatten (map ( split o cmd ) (!helpdirs));;
 
 (*
-if pat starts with - then it should be taken as a flags command.
+todo: if pat starts with regexp "-[a-z]+ " then it should be taken as a flags command.
+Also make help_grep_local a flag, say -l for local.
 *)
 
-let help_grep_flags pat flags = 
-  let _ = update pat help_grep_h in
+let help_flag flag pat  = 
+  let constant_of_regexp ss = 
+    let re = Str.regexp_case_fold (".*"^ss) in
+    let c = map fst (constants()) in
+      filter (fun s -> Str.string_match re s 0) c in
+  let help_grep_local pat =
+    let backup = !helpdirs in
+    let _ = helpdirs := [local_help_dir] in 
+    let out = help_grep pat in
+    let _ = helpdirs := backup in
+      out in
   let split =   Str.split (Str.regexp "\n") in
-  let cmd s = process_to_string ("(cd "  ^s^  "; ls | sed 's/.doc$//g' | grep -"^flags^" '" ^pat^ "')") in
-  List.flatten (map ( split o cmd ) (!helpdirs));;
+  let grep_s s = Printf.sprintf "(cd %s; ls | sed 's/.doc$//g' | grep -i '%s')" s pat in 
+  let cmd s = process_to_string (grep_s s) in
+    match flag with
+      | 'i' ->  List.flatten (map ( split o cmd ) (!helpdirs))
+      | 'd' -> constant_of_regexp pat
+      | 'l' -> help_grep_local pat
+      | 'g' -> help_grep pat
+      | _ -> [" 'd' search constants";"'g' help_grep"; "'i' ignore case"; "'l' help_grep local dir"];;
 
-help_grep_flags "r.*w" "i";;
-
-let help_grep_local pat =
-      let backup = !helpdirs in
-      let _ = helpdirs := [Filename.concat flyspeck_dir "../help"] in
-      let out = help_grep pat in
-      let _ = helpdirs := backup in
-	out;;
-
-(* apropos has been merged with help *)
-
-let apropos() = help_grep "apropos";;
 
 (*  
 Example:
@@ -101,6 +101,15 @@ help_grep "RULE";;
 help_grep "ARITH";;
 help_grep "_TAC$";;
 List.length (help_grep ".*");;
+
+help_flag '?' "";;
+
+help_flag 'd'  ".*contin";;
+help_flag 'd'  ".*integr";;
+help_flag 'd'  ".*auchy";;
+help_flag 'd'  "at.*[ng]$";;
+help_flag 'd' "cos" ;;
+
 *)
 
 
@@ -108,35 +117,31 @@ List.length (help_grep ".*");;
 (* ========================================================================== *)
 (* SEARCH *)
 
-(* grab a definition, or anything vaguely similar to a definition. *)
-
-let constant_of_regexp ss = 
-  let re = Str.regexp_case_fold (".*"^ss) in
-  let c = map fst (constants()) in
-   filter (fun s -> Str.string_match re s 0) c;;
-
-(* examples:
-
-constant_of_regexp ".*contin";;
-constant_of_regexp ".*integr";;
-constant_of_regexp ".*auchy";;
-constant_of_regexp "at.*[ng]$";;
-
-*)
-
-let def_of_regexp ss = 
-  let c = constant_of_regexp ss in
-  let strip d =   (fst o dest_const o fst o dest_eq o concl) d in
-  let def_assoc = map (fun t -> (strip t,t)) (definitions()) in
-    map (fun s -> assoc s def_assoc) c;;
+let def s = mk_comb(mk_var("<match constant def>",W mk_fun_ty aty),
+                     mk_var(s,aty));;
 
 let searcht n pat = 
-  let raw = search pat in
+  let def_of_regexp ss = 
+    let c = help_flag 'd'  ss in
+    let strip d =   (fst o dest_const o fst o dest_eq o concl) d in
+    let def_assoc = map (fun t -> (strip t,t)) (definitions()) in
+      map (fun s -> (s,assoc s def_assoc)) c in
+  let raw = match pat with
+    | Comb(Var("<match constant def>",_),Var(ss,_))::_ -> def_of_regexp ss
+    | _ -> search pat in
   let m = min n (List.length raw) in
   let s = sortlength_thml raw in
   let r = fst (chop_list m s) in
   let z = zip (0--(List.length r - 1)) r in
     z;;
+
+let searchl ls pat = search_thml (term_match [])  pat ls;;
+
+(* 
+Example: searcht 5 [def "cos"];;
+searcht 5 [def "mul"];;
+*)
+
 
 let (srch,more,less,retrieve_search)  =
   let allsearch = ref [] in
@@ -184,23 +189,9 @@ let (srch,more,less,retrieve_search)  =
 
     (srch,more,less,retrieve_search);;
 
-(*
-let nsearch,select  = 
-  let selection = ref [] in
-  let nsearch v = 
-    let u = search v in
-    let _ = selection := u in
-    let r = List.length u in
-      map (fun (n,(s,th)) -> (n,s,th)) (zip (0--(r-1)) u) in
-  let select n = fst(List.nth !selection n) in
-    nsearch,select;;
-*)
-
 (* ========================================================================== *)
-(* STATS *)
+(* STATS of WORD COUNTS, indexing all words in  HOL LIGHT and FLYSPECK  *)
 
-
-(* get all word counts in HOL LIGHT and FLYSPECK *)
 
 let wc_tmpfile = Filename.temp_file "tmp_" ".txt";;
 
@@ -215,7 +206,8 @@ let int_tmpfile =
     ();;
 
 let word_counts() = 
-  let sout = Str.split (Str.regexp "\n") (process_to_string("cat "^wc_tmpfile^" | tr -C 'A-Z:a-z0-9_' '\n' | sort | uniq -c | sed 's/^ *//'")) in
+  let sout = Str.split (Str.regexp "\n") 
+    (process_to_string("cat "^wc_tmpfile^" | tr -C 'A-Z:a-z0-9_' '\n' | sort | uniq -c | sed 's/^ *//'")) in
   let sout1 = map (Str.split (Str.regexp " ")) sout in
   let sout2 = filter (fun t -> List.length t = 2) sout1 in
   let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
@@ -223,18 +215,9 @@ let word_counts() =
 
 let word_count_list = word_counts();;
 
-
-(* word counts of theorems *)
-
-(* word counts of tactic following repeat.
-
-grep -r "\bREPEAT\b" . | grep -v svn | sed 's/^.*REPEAT *//' | sed 's/^[^a-zA-Z].*$//g' | sed 's/ .*$//g' | tr -C 'A-Za-z_' '\n' | sed 's/ //g' | sort | uniq -c | sed 's/^ *//'
-
-
-
-*)
-
-(* stats of the word immediately following another word *)
+(* stats of the word immediately following another word.
+   This can be useful in determining, for example, which theorems are used
+   with MATCH_MP_TAC.  Or which tactics are used with REPEAT. *)
 
 let word_successor_counts word_successor = 
   let sed_pipe = Printf.sprintf "grep '%s ' %s | sed 's/^.*%s *//'  | sed 's/^[^a-z.A-Z]*//g' | sed 's/ .*$//g' | tr -C 'A-Z.a-z_0-9' '\n' | sed 's/ //g' | sort | uniq -c | sed 's/^ *//'" 
@@ -246,26 +229,9 @@ let word_successor_counts word_successor =
   let sout3 = map (function | [a;b]-> (b,int_of_string a) | _ -> ("?",0)) sout2 in
     sort (fun (_,a) (_,b) -> (a > b)) sout3;;
 
-(*
-map (fun s -> (s,word_successor_counts s)) ["REPEAT";"GSYM";"MATCH_MP_TAC";" MP_TAC";"REWRITE_TAC"];;
-
-map (fun s -> (s,word_successor_counts s)) ["POP_ASSUM";"ALL_THEN"; "ANTE_RES_THEN"; 
-   " CHOOSE_THEN"; "CONJUNCTS_THEN";
-   "CONJUNCTS_THEN2"; "DISCH_THEN"; "DISJ_CASES_THEN"; "DISJ_CASES_THEN2";
-   "FREEZE_THEN"; "IMP_RES_THEN"; "NO_THEN"; "REFUTE_THEN"; "REMOVE_THEN";
-   "STRIP_GOAL_THEN"; "STRIP_THM_THEN"; "SUBGOAL_THEN"; "THEN"; "THENC";
-   "THENL"; "THEN_TCL"; "UNDISCH_THEN"; "USE_THEN"; "X_CHOOSE_THEN"];;
-
-word_successor_counts "MATCH_MP_TAC";;
-word_successor_counts "REWRITE_RULE";;
-word_successor_counts " CHOOSE_THEN";;
-word_successor_counts " POP_ASSUM";;
-help "X_CHOOSE_THEN";;
-*)
-
 (* inaccurate because constants and theorems with the same name are overcounted *)
 
-let thm_count_list = 
+let thm_counts = 
   let alpha_thm = sort (<) (map fst !theorems) in
   let rec build buff ats bts = match (ats,bts) with
     | ([],_) -> buff
@@ -274,18 +240,115 @@ let thm_count_list =
       else if (a>b) then build buff ats btss else build buff atss bts in
   sort (fun (_,a) (_,b) -> (a > b)) (build [] (alpha_thm) word_count_list);;
 
-let tactic_list =  (help_grep "TAC$");;
-
-let then_list =  (help_grep "THEN");;
-
-let tactic_wordlist = ref ["REPEAT";"POP_ASSUM";"FIRST_X_ASSUM";"FIRST_ASSUM";"fun";"REAL_ARITH";"ARITH_RULE";"TAUT"] ;;
+let quasi_tactic_list = 
+  let tactic_wordlist =  
+    ["REPEAT";"POP_ASSUM";
+     "FIRST_X_ASSUM";"FIRST_ASSUM";
+     "fun";"REAL_ARITH";"ARITH_RULE";"TAUT"] in
+  let tactic_list =  (help_grep "TAC$") in
+  let then_list =  (help_grep "THEN") in
+    tactic_wordlist @ tactic_list @ then_list;;
 
 let tactic_counts = sort (fun (_,a) (_,b) -> (a > b)) 
-  (filter (fun (a,_) -> mem a  (!tactic_wordlist @ tactic_list @ then_list)) word_count_list);;
+  (filter (fun (a,_) -> mem a  (quasi_tactic_list)) word_count_list);;
 
 
 (* ========================================================================== *)
-(* EVAL *)
+(* DEPTH FUNCTIONS *)
+(* each constant is defined in terms of other constants.
+   The depth of a constant is the length of its longest chain down to the primitives *)
+
+let nub = Parse_ineq.nub;;
+
+let rec c_of buf = function
+  | Const _ as t  -> nub (t:: buf)
+  | Comb (r,s)  -> c_of (c_of buf r) s
+  | Abs (x,t) -> c_of buf t
+  | _ -> nub buf;;
+
+let def_assoc = 
+  let r =  (map (dest_eq o concl) (definitions())) in
+  let s = fst o dest_const in 
+    map (fun (x,y) -> ( s x,nub (map s (c_of [] y)))) r;;
+
+let stm_depth = 
+  let cache = ref [] in
+  let rec s_depth t = 
+    try (assoc t !cache)
+    with _ -> 
+      let rs = try (assoc t def_assoc)
+      with _ -> [] in
+      let _ = not(mem t rs) or failwith t in
+      let u = 1 + maxl0 (map s_depth rs) in
+      let _ = cache:= (t,u)::!cache in
+	u in
+    s_depth;;
+
+let sdef_assoc = map (fun (t,ul) -> ((t,stm_depth t),(map (fun u -> (u,stm_depth u)) ul)))
+  def_assoc;;
+
+let tm_depth t =
+  let c = map (fst o dest_const )(c_of [] t) in
+  let u = map (fun x -> (x,stm_depth x)) c in
+  let s = nub (sort (fun (_,a) (_,b) -> a > b) u) in
+    s;;
+
+
+(* fails on depth 0 *)
+
+let drop_depth_once ul = 
+  List.flatten (map  (fun u -> assoc u sdef_assoc) ul);;
+
+let rec drop_depth_to d ul =
+  let (hi,lo) = partition (fun (_,h) -> (h>d)) ul in
+    if hi = [] then ul else
+      let hi' = drop_depth_once hi in
+	(nub ((drop_depth_to d hi') @ lo));;
+
+(* metric symbol distance, an estimate of the distance between two lists of symbols.
+    dsofar = distance so far.
+    common = list of symbols and their shallowings that the two lists have already in common.
+    depth_weight is a heuristic weighting: matches should increase distance less than mismatches.
+*)
+
+let rec msd dsofar common  al bl = 
+  if (al=[]) && (bl=[]) then dsofar else
+    let depth_weight = 10 in
+    let d = maxl0 (map snd (al @ bl)) in 
+    let c =  ( drop_depth_to d common) @ (intersect al  bl) in
+    let al' = subtract al c in
+    let bl' = subtract bl c in
+    let dsofar' = dsofar +.  float_of_int( List.length ((intersect al  c) @ (intersect bl  c)) +
+					     depth_weight *  List.length (al' @ bl')) in
+      if (d <=1) then dsofar'  else
+	let al'' = drop_depth_to (d-1) al' in
+	let bl'' = drop_depth_to (d-1) bl' in
+	  msd dsofar' c al'' bl'';;
+
+let metric_symbol_distance bl cl = 
+  let tt tl = List.flatten (map tm_depth tl) in
+  if (List.length bl = 1)&&(List.length cl=1)&& (aconv (hd bl) (hd cl)) then 0.0
+  else msd 10.0 [] (tt bl) (tt cl);;
+
+let nearest_thm_to_goal (asl,w) = 
+  let tt tl = List.flatten (map (tm_depth o concl) tl) in
+  let common = tt (map snd asl) in
+  let thl = map (fun (s,t) -> ((tm_depth o snd o strip_forall o concl )t,s,t) ) (!theorems) in
+  let r = map (fun (tl,s,t) -> (tl,s,t,msd 0.0 common (tm_depth w) tl)) thl in
+    (sort (<) r);;
+
+
+let thm_depth = tm_depth o concl;;
+
+let search_depth  = 
+  let dthm = map (fun (s,t) -> (maxl0 (map snd(thm_depth t)),(s,t))) !theorems in
+  let m tml = maxl0 (map snd (List.flatten (map (tm_depth) tml))) in
+  let fthm tml = map snd (filter (fun (x,(_,_)) -> (x <=m tml)) dthm) in    
+    fun tml -> searchl (fthm tml) tml;;
+
+
+(* ========================================================================== *)
+(* EVAL AND PROOF STACK *)
 
 (*
 eval_command comes from
@@ -359,17 +422,20 @@ eval_tactic "ARITH_TAC";;
 eval_tactic "REWRITE_TAC[TRUTH]";;
 *)
 
-let rec strs_of_proof_records skip buf  = function
-    [] -> buf
-  | Gax _ :: xs -> buf
-  | Tax (s,i,_) :: xs -> 
-      let indent = String.make (2*i) ' ' in
-	if (skip=0) then strs_of_proof_records skip ((indent^s)::buf) xs
-	else strs_of_proof_records (skip-1) buf xs
-  | Bax :: xs -> strs_of_proof_records (skip+1) buf xs;;
+
+let rec strs_of_proof_records ind skip buf  =   
+  let by t s = if t then "BY("^s^")" else s in
+    function
+	[] -> buf
+      | Gax _ :: xs -> buf
+      | Tax (s,i,_) :: xs -> 
+	  let indent = String.make (2*i) ' ' in
+	    if (skip=0) then strs_of_proof_records i skip ((indent^(by (i>ind) s))::buf) xs
+	    else strs_of_proof_records ind (skip-1) buf xs
+      | Bax :: xs -> strs_of_proof_records ind (skip+1) buf xs;;
 
 let string_of_proof () = 
-  let ss = strs_of_proof_records 0 [] !proof_record in
+  let ss = strs_of_proof_records 0 0 [] !proof_record in
     "\n[\n"^unsplit ";\n" I (ss) ^"\n]\n";;
 
 let rec split_proof_record acc cur = function
@@ -386,56 +452,9 @@ print_string (string_of_proof());;
 *)   
 
 
-
 (* ========================================================================== *)
-(* DEPTH FUNCTIONS *)
-(* each constant is defined in terms of other constants.
-   The depth of a constant is the length of its longest chain down to the primitives *)
+(* SUGGEST TACTIC                                              *)
 
-let rec c_of buf = function
-  | Const _ as t  -> t:: buf
-  | Comb (r,s)  -> c_of (c_of buf r) s
-  | Abs (x,t) -> c_of buf t
-  | _ -> buf;;
-
-let nub = Parse_ineq.nub;;
-
-let def_assoc = 
-  let r =  (map (dest_eq o concl) (definitions())) in
-  let s = fst o dest_const in 
-    map (fun (x,y) -> ( s x,nub (map s (c_of [] y)))) r;;
-
-let stm_depth = 
-  let cache = ref [] in
-  let maxl0 xs = try (end_itlist max xs) with _ -> 0 in
-  let rec s_depth t = 
-    try (assoc t !cache)
-    with _ -> 
-      let rs = try (assoc t def_assoc)
-      with _ -> [] in
-      let _ = not(mem t rs) or failwith t in
-      let u = 1 + maxl0 (map s_depth rs) in
-      let _ = cache:= (t,u)::!cache in
-	u in
-    s_depth;;
-
-let tm_depth t =
-  let c = map (fst o dest_const )(c_of [] t) in
-  let u = map (fun x -> (x,stm_depth x)) c in
-  let s = nub (sort (fun (_,a) (_,b) -> a > b) u) in
-    s;;
-
-let thm_depth = tm_depth o concl;;
-
-
-(* ========================================================================== *)
-(* TACTIC                                              *)
-
-(* searching for relevant tactics *)
-
-
-let tachy  s = 
-  filter (match_sparse s) (map fst tactic_counts);;
 
 
 (* term matching without higher order matches *)
@@ -451,9 +470,6 @@ let match_g_no_ho pat (_,w) = not(search_thml term_match_no_ho pat [("", ASSUME 
 let match_g pat (_,w) = not(search_thml (term_match[]) pat [("", ASSUME w)] = []);;
 
 let match_asm pat (asl,_) = not(search_thml term_match_no_ho pat asl = []);;
-
-
-
 
 (* let assum t = mk_comb(mk_var("<assum>",W mk_fun_ty (type_of t)),t);; *)
 
@@ -527,9 +543,10 @@ let rewrites _ =
 
 
 (* ========================================================================== *)
-(* TACTIC ABBREVIATIONS                                              *)
+(* ABBREVIATIONS                                              *)
 
-
+let matching_tactics  s = 
+  filter (match_sparse s) (map fst tactic_counts);;
 
 let tactic_abbreviations = ref [
   ("fun","fun");
@@ -606,6 +623,46 @@ abbrev ("fexp","FULL_EXPAND_TAC");;
 abbrev ("ispecl","ISPECL");;
 abbrev ("ispec","ISPEC");;
 abbrev ("t","t");;
+
+let el_to_hash s i = 
+  let el_assoc = [
+    ("u","HASH_UNDISCH_TAC");
+    ("r","HASH_RULE_TAC");
+    ("k","HASH_KILL_TAC");
+    ("p","HASH_COPY_TAC");
+    ("c","HASH_CHOOSE_TAC");
+    ("x","HASH_X_CHOOSE_TAC");
+    ("a","HASH_ASM_REWRITE_TAC")] in
+  let tac = assoc s el_assoc in
+  let h = el_hash i (top_realgoal()) in
+    tac ^ " " ^ (string_of_int h);;
+
+let unabbrev_string  =
+  let charset = (explode "abcdefghijklmnopqrstuvwxyz0123456789'_/\\!?@") in
+  let abbreviable s = (subset (explode s) charset) in 
+  let unabbrev s = 
+    let _ = not(abbreviable s) or failwith "abbrev" in s in
+  let assoc_thm s = (ignore (Hol_pervasives.assoc s !theorems); s) in
+  let assoct s = Hol_pervasives.assoc s !tactic_abbreviations in
+  let assoc_sans_t s = 
+    let len = String.length s in
+    let _ = (len > 1) or failwith "too short" in
+    let _ = (s.[len-1]= 't') or failwith "final char t" in
+      assoct (String.sub s 0 (len -1)) in
+  let hash s = 
+    let rest = break_init "el" s in
+    let c = String.sub rest 0 1 in
+    let n = int_of_string (String.sub rest 1 (String.length rest - 1)) in
+      el_to_hash c n in
+  let tac s = 
+    let v = matching_tactics s in
+      if (List.length v > 0) then hd v else s in
+   fun s->  tryfind (fun f -> f s) [unabbrev;assoc_thm;assoct;assoc_sans_t;hash;hash;tac;];; 
+
+
+
+(* ========================================================================== *)
+(* PARSING INPUT *)
 
 type mtoken =
        | M_comment
@@ -686,74 +743,7 @@ let break_init init s =
     String.sub s (l_init) (String.length s - l_init);;
 
 
-let el_to_hash s i = 
-  let el_assoc = [
-    ("u","HASH_UNDISCH_TAC");
-    ("r","HASH_RULE_TAC");
-    ("k","HASH_KILL_TAC");
-    ("p","HASH_COPY_TAC");
-    ("c","HASH_CHOOSE_TAC");
-    ("x","HASH_X_CHOOSE_TAC");
-    ("a","HASH_ASM_REWRITE_TAC")] in
-  let tac = assoc s el_assoc in
-  let h = el_hash i (top_realgoal()) in
-    tac ^ " " ^ (string_of_int h);;
 
-
-(* DEPRECATED *)
-
-(*
-
-let unabbrev_tactic  = 
-  let alpha_num = Str.regexp "[a-z_A-Z]+" in
-  fun s->
-  let assoc_u s = assoc s !tactic_abbreviations in
-  let assoc_ut s = 
-    let len = String.length s in
-    let _ = (s.[len-1]= 't') or failwith "final char t" in
-      assoc_u (String.sub s 0 (len -1)) in
-  let sg s = 
-    let n = int_of_string (break_init "sg" s) in 
-    let (_,(_,u,_,_)) = el n (suggest()) in
-      u in
-  let hash s = 
-    let rest = break_init "el" s in
-    let c = String.sub rest 0 1 in
-    let n = int_of_string (String.sub rest 1 (String.length rest - 1)) in
-      el_to_hash c n in
-  let tachit s = 
-    let _ = Str.string_match alpha_num s 0 or failwith "tachit" in
-    let m = Str.matched_string s in
-    let br =  (break_init m s) in
-    let n = if (String.length br > 0) then int_of_string br else 0 in
-      el n (tachy m)   in
-  let literal s = 
-    let rest = break_init "-l" s in
-      rest in
-    tryfind (fun f -> f s) [assoc_u;assoc_ut;sg;hash;literal;tachit];; 
-*)
-
-
-let unabbrev_string s  =
-  let abbreviable s = (subset (explode s) (explode "_abcdefghijklmnopqrstuvwxyz0123456789'_/\\!?@")) in
-  let unabbrev s = 
-    let _ = not(abbreviable s) or failwith "abbrev" in s in
-  let assoc_thm s = (ignore (Hol_pervasives.assoc s !theorems); s) in
-  let assoct s = Hol_pervasives.assoc s !tactic_abbreviations in
-  let assoc_sans_t s = 
-    let len = String.length s in
-    let _ = (len > 1) or failwith "too short" in
-    let _ = (s.[len-1]= 't') or failwith "final char t" in
-      assoct (String.sub s 0 (len -1)) in
-  let hash s = 
-    let rest = break_init "el" s in
-    let c = String.sub rest 0 1 in
-    let n = int_of_string (String.sub rest 1 (String.length rest - 1)) in
-      el_to_hash c n in
-  let tac s = 
-    let v = tachy s in
-      if (List.length v > 0) then hd v else s in
-    tryfind (fun f -> f s) [unabbrev;assoc_thm;assoct;assoc_sans_t;hash;hash;tac;];; 
 
 let unabbrev_thm s = 
   let tg = String.sub s 0 1 in
@@ -861,13 +851,6 @@ let directive_abbreviations= ref[
 *)
 
 
-(* ========================================================================== *)
-(* TYPES *)
-
-
-let types_of = Print_types.print_term_types;;
-let type_of_thm = Print_types.print_thm_types;;
-let type_of_goal = Print_types.print_goal_types;;
 
 
 end;;  

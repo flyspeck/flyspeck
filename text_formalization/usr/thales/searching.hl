@@ -293,6 +293,50 @@ let tm_depth t =
   let s = nub (sort (fun (_,a) (_,b) -> a > b) u) in
     s;;
 
+(* ball park distance of goal *)
+
+let rec rec_hash n acc = function
+  |  [] -> acc
+  |  (a,_)::b -> if (n<=0) then acc else rec_hash (n-1) (Hashtbl.hash a ::acc) b;;
+
+let hash_depths = sort (<) o (rec_hash 3 []);;
+
+let rec sorted_meet k al bl = if (k<1) then true else  (* look for at least k matches *)
+  (match bl with
+  | [] -> false
+  | b::bl' -> match al with
+      | [] -> false
+      | a::al' -> if (a = b) then 
+	  (sorted_meet (k-1) al' bl')
+	else 
+	  (if (a<b) then sorted_meet k al' bl else sorted_meet k al bl'));;
+
+let strip_imp = striplist dest_imp;;
+
+let preprocess_theorems thml = 
+  let get_tm_depth = (tm_depth o last o strip_imp o snd o strip_forall o concl ) in
+  let de = function | [] -> 0 | ((_,d)::_) -> d in
+  let data r = (de r,hash_depths r) in
+  let thl = map (fun (s,t) -> ((data o get_tm_depth) t,s,t) ) thml in
+    thl;;
+
+let depth_encoded_theorems = preprocess_theorems (!theorems);;
+
+let rec ballpark i j  thml (d,hd) = 
+  if (List.length thml < 80) then thml else
+    let k = max i j in
+    let (thml',i',j') = 
+      if (k=i) then (filter (fun ((d',_),_,_)-> abs(d-d') < 1+k) thml,i-1,j) else
+	(filter (fun ((_,hd'),_,_) -> (sorted_meet (3-k) hd hd')) thml,i,j-1) in
+      if (List.length thml' < 20) then thml else ballpark i' j' thml' (d,hd);;
+
+let  ballpark_theorems (_,w) = 
+  let thml = depth_encoded_theorems in
+  let get_tm_depth = (tm_depth o last o strip_imp o snd o strip_forall ) in
+  let de = function | [] -> 0 | ((_,d)::_) -> d in
+  let data r = (de r,hash_depths r) in
+    map (fun (_,s,t)->(s,t))  (ballpark 3 3 thml (data (get_tm_depth w)));;
+
 
 (* fails on depth 0 *)
 

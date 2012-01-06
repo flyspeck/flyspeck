@@ -359,7 +359,7 @@ let fcc_hcp_pattern =
 let fcc_packing = 
   let f = frame_of 
 (*     (0.4,0.3,0.1) (-0.2,0.1,0.4) in  *)
-     (0.5,0.4,0.) (-0.0,0.1,0.4) in 
+     (0.5,0.4,0.) (-. 0.0,0.1,0.4) in 
   let g = mul3 f in
   let u = g delta3 in
   let v0 = (0.0,0.0,0.0) in

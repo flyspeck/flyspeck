@@ -55,6 +55,11 @@ Qed.
 Lemma frechet_const z : `frechet_derivative (\x. y) (at z) = (\x. vec 0)`.
 by rewrite EQ_SYM_EQ; apply FRECHET_DERIVATIVE_AT; rewrite HAS_DERIVATIVE_CONST. Qed.
 
+
+Lemma frechet_id : `frechet_derivative (\x. x) (at y) = (\x. x)`.
+by rewrite EQ_SYM_EQ; apply FRECHET_DERIVATIVE_AT; rewrite HAS_DERIVATIVE_ID. Qed.
+
+
 Lemma frechet_vmul z : `frechet_derivative (\x. drop x % y) (at z) = (\x. drop x % y)`.
 rewrite EQ_SYM_EQ; apply FRECHET_DERIVATIVE_AT; apply HAS_DERIVATIVE_VMUL_DROP.
 rewrite HAS_DERIVATIVE_ID.
@@ -549,6 +554,162 @@ Qed.
 
 
 End Partial.
+
+
+Section PartialMonotone.
+
+Lemma derivative_translation f x : 
+	`f real_differentiable atreal x ==>
+	derivative f x = derivative (f o (\t. x + t)) (&0)`.
+move => diff_f.
+rewrite derivative_compose /= ?REAL_ADD_RID ?diff_f.
+  by rewrite REAL_DIFFERENTIABLE_ADD ?REAL_DIFFERENTIABLE_CONST ?REAL_DIFFERENTIABLE_ID.
+rewrite derivative_add ?REAL_DIFFERENTIABLE_CONST ?REAL_DIFFERENTIABLE_ID //.
+by rewrite derivative_const derivative_x /=; arith.
+Qed.
+
+Implicit Type f : `:real^N->real`.
+
+Lemma partial_increasing_left f j u x z lo : 
+	`(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = z$i) ==>
+	u$j = x$j ==>
+	(!y. y IN interval [x,z] ==> (lift o f) differentiable at y) ==>
+	(!y. y IN interval [x,z] ==> &0 <= partial j f y) ==>
+	(!y. y IN interval [x,u] ==> lo <= f y) ==>
+	(!y. y IN interval [x,z] ==> lo <= f y)`.
+rewrite IN_NUMSEG !"GEN_ALL IN_INTERVAL" => uz_eq ux_eq diff_f partial_pos f_bound y y_in.
+move: diff_f partial_pos; rewrite -!"GEN_ALL IN_INTERVAL" => diff_f partial_pos.
+set y' := `(lambda i. if i = j then x$j else y$i):real^N`.
+suff: `f y' <= f y`.
+  apply: "REWRITE_RULE[GSYM IMP_IMP] REAL_LE_TRANS"; apply: f_bound => i i_in.
+  rewrite -y'_def "GEN_ALL LAMBDA_BETA" //=.
+  case: (EXCLUDED_MIDDLE `i = j`) => /= ij; first by rewrite ux_eq REAL_LE_REFL.
+  by rewrite uz_eq // !y_in.
+case: (EXCLUDED_MIDDLE `j IN 1..dimindex (:N)`); last first; rewrite IN_NUMSEG => j_in.
+  suff: `y' = y`; first by move => ->; rewrite REAL_LE_REFL.
+  rewrite CART_EQ => i i_in.
+  have inj: `~(i = j)`; first by move: j_in i_in; arith.
+  by rewrite -y'_def "GEN_ALL LAMBDA_BETA".
+set g := `f o (\t. y' + t % basis j)`.
+have ->: `f y' = g (&0)`.
+  by rewrite -g_def o_THM /= VECTOR_MUL_LZERO VECTOR_ADD_RID.
+have ->: `f y = g (y$j - x$j)`.
+  rewrite -g_def o_THM /=; "AP_TERM_TAC".
+  rewrite CART_EQ => i i_in.
+  rewrite VECTOR_ADD_COMPONENT VECTOR_MUL_COMPONENT BASIS_COMPONENT //.
+  case: (EXCLUDED_MIDDLE `i = j`) => /= ij; rewrite -y'_def "GEN_ALL LAMBDA_BETA" //.
+    by arith.
+  by rewrite /= ij /=; arith.
+set s := `real_interval [&0, y$j - x$j]`.
+have in_s : `!t. t IN s ==> y' + t % basis j IN interval [x,z]`.
+  rewrite -s_def IN_REAL_INTERVAL "GEN_ALL IN_INTERVAL" => t t_ineq i i_ineq.
+  rewrite !VECTOR_ADD_COMPONENT VECTOR_MUL_COMPONENT BASIS_COMPONENT //.
+  rewrite -y'_def "GEN_ALL LAMBDA_BETA" //=.
+  case: (EXCLUDED_MIDDLE `i = j`) => /= ij; last first.
+    by rewrite REAL_MUL_RZERO REAL_ADD_RID !y_in.
+  by move: (y_in i_ineq) t_ineq; rewrite ij; arith.
+have ds : `!t. t IN s ==> (g has_real_derivative (partial j f (y' + t % basis j))) (atreal t within s)`.
+  move => t /in_s p_in; apply: HAS_REAL_DERIVATIVE_ATREAL_WITHIN; rewrite partial.
+  set h := `f o _`.
+  have ->: `h = g o (\t'. t + t')`.
+    rewrite -eq_ext -h_def -g_def => r; rewrite !o_THM /=.
+    by rewrite "GEN_ALL VECTOR_ADD_RDISTRIB" "GEN_ALL VECTOR_ADD_ASSOC".
+  by rewrite -derivative_translation ?has_derivative_alt -g_def diff_imp_real_diff;
+  	rewrite diff_f //= diff_direction.
+have pos: `&0 <= y$j - x$j`; first by move: (y_in j_in); arith.
+have := HAS_REAL_DERIVATIVE_INCREASING_IMP 
+	g `\t. partial j f (y' + t % basis j)` s `&0` `y$j - x$j`.
+rewrite -{1}s_def IS_REALINTERVAL_INTERVAL /=; rewr ds /=; apply.
+rewrite -{2 3}s_def !IN_REAL_INTERVAL pos !REAL_LE_REFL /=.
+by move => t /in_s /partial_pos.
+Qed.
+
+
+Lemma partial_decreasing_left f j u x z hi : 
+	`(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = z$i) ==>
+	u$j = x$j ==>
+	(!y. y IN interval [x,z] ==> (lift o f) differentiable at y) ==>
+	(!y. y IN interval [x,z] ==> partial j f y <= &0) ==>
+	(!y. y IN interval [x,u] ==> f y <= hi) ==>
+	(!y. y IN interval [x,z] ==> f y <= hi)`.
+move => u_eq_i u_eq_j diff_f partial_f f_bound y y_in.
+have := partial_increasing_left `(\p. -- f p)` j u x z `--hi` u_eq_i u_eq_j.
+"ANTS_TAC"; first by move => p /diff_f /DIFFERENTIABLE_NEG; rewrite f_lift_neg.
+"ANTS_TAC".
+  by move => p p_in; rewrite partial_neg ?diff_f // REAL_NEG_GE0 partial_f.
+"ANTS_TAC"; first by move => p /f_bound; arith.
+by move/(_ y_in); arith.
+Qed.
+
+
+Lemma partial_translation f i p y: `lift o f differentiable at (p + y) ==>
+	partial i (f o (\x. p + x)) y = partial i f (p + y)`.
+move => diff.
+have diff_p : `!net. (\x. p + x) differentiable net`.
+  by move => net; rewrite DIFFERENTIABLE_ADD DIFFERENTIABLE_CONST DIFFERENTIABLE_ID.
+rewrite partial_eq_frechet 1?o_ASSOC ?DIFFERENTIABLE_CHAIN_AT //.
+rewrite frechet_compose // frechet_add ?DIFFERENTIABLE_ID ?DIFFERENTIABLE_CONST //.
+rewrite frechet_const frechet_id /= VECTOR_ADD_LID -I_DEF I_O_ID.
+by rewrite partial_eq_frechet.
+Qed.
+
+Lemma partial_rev_translation f i p y : `lift o f differentiable at (p - y) ==>
+	partial i (f o (\x. p - x)) y = --partial i f (p - y)`.
+move => diff.
+have diff_p : `!net. (\x. p - x) differentiable net`.
+  by move => net; rewrite DIFFERENTIABLE_SUB DIFFERENTIABLE_CONST DIFFERENTIABLE_ID.
+rewrite partial_eq_frechet 1?o_ASSOC ?DIFFERENTIABLE_CHAIN_AT //.
+rewrite frechet_compose // frechet_sub ?DIFFERENTIABLE_ID ?DIFFERENTIABLE_CONST //.
+rewrite frechet_const frechet_id /= "GEN_ALL VECTOR_SUB_LZERO".
+rewrite partial_eq_frechet // !o_THM /=.
+by rewrite LINEAR_NEG ?LINEAR_FRECHET_DERIVATIVE // DROP_NEG.
+Qed.
+
+
+Lemma partial_increasing_right f j u x z hi : 
+	`(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = x$i) ==>
+	u$j = z$j ==>
+	(!y. y IN interval [x,z] ==> (lift o f) differentiable at y) ==>
+	(!y. y IN interval [x,z] ==> &0 <= partial j f y) ==>
+	(!y. y IN interval [u,z] ==> f y <= hi) ==>
+	(!y. y IN interval [x,z] ==> f y <= hi)`.
+move => u_eq_i u_eq_j diff_f partial_f f_bound y y_in.
+case: (EXCLUDED_MIDDLE `j IN 1..dimindex (:N)`); last first; rewrite IN_NUMSEG => j_in.
+  apply: f_bound; move: y_in; rewrite !"GEN_ALL IN_INTERVAL" => y_ineq i i_in.
+  have inj: `~(i = j)`; first by move: j_in i_in; arith.
+  by rewrite u_eq_i ?IN_NUMSEG // !y_ineq.
+have := partial_decreasing_left `f o (\p:real^N. x + (z - p))` j `x + (z - u):real^N` x z hi.
+"ANTS_TAC".
+  move => i /u_eq_i eq1 inj; rewrite VECTOR_ADD_COMPONENT VECTOR_SUB_COMPONENT.
+  by rewrite eq1 //; arith.
+"ANTS_TAC"; first by rewrite VECTOR_ADD_COMPONENT VECTOR_SUB_COMPONENT u_eq_j; arith.
+have Hp : `!p. p IN interval [x,z] ==> x + (z - p) IN interval [x,z]`.
+  move => p; rewrite !"GEN_ALL IN_INTERVAL" => p_in i ineq.
+  by move: (p_in ineq); rewrite VECTOR_ADD_COMPONENT VECTOR_SUB_COMPONENT; arith.
+set dP := `!y. _ y`.
+have P: dP.
+  rewrite -dP_def; move => p p_in.
+  by rewrite o_ASSOC DIFFERENTIABLE_CHAIN_AT DIFFERENTIABLE_ADD ?DIFFERENTIABLE_SUB;
+	rewrite ?DIFFERENTIABLE_ID ?DIFFERENTIABLE_CONST // diff_f //= Hp.
+move: P => /=; rewrite -dP_def => diff.
+"ANTS_TAC".
+  move => p p_in.
+  have assoc := "VECTOR_ARITH `!x z p. x + z - p = (x + z) - p:real^N`".
+  rewrite assoc partial_rev_translation -assoc ?diff_f ?Hp //.
+  by rewrite REAL_NEG_LE0 partial_f Hp.
+"ANTS_TAC".
+  move => p p_in; rewrite o_THM /= f_bound.
+  move: p_in; rewrite !"GEN_ALL IN_INTERVAL" => ineq i i_ineq.
+  by move: (ineq i_ineq); rewrite !VECTOR_ADD_COMPONENT !VECTOR_SUB_COMPONENT; arith.
+move/(_ `x + z - y:real^N`); rewrite o_THM /=.
+rewrite "VECTOR_ARITH `!x z y:real^N. x + z - (x + z - y) = y`"; apply.
+by rewrite Hp.
+Qed.
+
+
+
+End PartialMonotone.
+
 
 
 (* Taylor *)

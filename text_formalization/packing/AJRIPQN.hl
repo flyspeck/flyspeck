@@ -1,0 +1,1063 @@
+(* ========================================================================= *)
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*                                                                           *)
+(*      Authour   : VU KHAC KY                                               *)
+(*      Book lemma: AJRIPQN                                                  *)
+(*      Chaper    : Packing                                                  *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+(* ========================================================================= *)
+(*                     FILES NEED TO BE LOADED                               *)
+(*     
+
+ flyspeck_needs "packing/marchal_cells_2.hl";
+ flyspeck_needs "packing/SLTSTLO.hl";
+ flyspeck_needs "packing/URRPHBZ1.hl";
+ flyspeck_needs "packing/RVFXZBU.hl";
+ flyspeck_needs "packing/QZKSYKG.hl";
+ flyspeck_needs "packing/DDZUPHJ.hl";
+ 
+*)
+
+module Ajripqn = struct
+
+open Rogers;;
+open Vukhacky_tactics;;
+open Pack_defs;;
+open Pack_concl;; 
+open Pack1;;
+open Sphere;; 
+open Marchal_cells;;
+open Emnwuus;;
+open Marchal_cells_2_new;;
+open Lepjbdj;;
+open Hdtfnfz;;
+open Urrphbz1;;
+open Sltstlo;;
+open Qzksykg;;
+open Rvfxzbu;;
+open Ddzuphj;;
+
+(* ========================================================================= *)
+
+let AJRIPQN_concl = 
+`!V ul vl i j. 
+    saturated V /\ packing V /\ barV V 3 ul /\ barV V 3 vl /\
+    i IN {0,1,2,3,4} /\ j IN {0,1,2,3,4} /\ 
+    ~NULLSET (mcell i V ul INTER mcell j V vl) ==>
+    i = j /\ mcell i V ul = mcell j V vl`;;
+
+(* ========================================================================= *)
+(*     Supported lemmas                                                      *)
+
+let VOL_POS_LT_AFF_DIM_3 = prove_by_refinement (
+ `!S:real^3->bool. measurable S /\ &0 < vol S ==> aff_dim S = &3`,
+[(REPEAT STRIP_TAC);
+ (NEW_GOAL `aff_dim (S:real^3->bool) <= &(dimindex (:3))`);
+ (ASM_REWRITE_TAC[AFF_DIM_LE_UNIV]);
+ (UP_ASM_TAC THEN REWRITE_TAC[DIMINDEX_3] THEN STRIP_TAC);
+ (ASM_CASES_TAC `aff_dim (S:real^3->bool) <= &2`);
+ (NEW_GOAL `negligible (S:real^3->bool)`);
+ (MATCH_MP_TAC COPLANAR_IMP_NEGLIGIBLE);
+ (MATCH_MP_TAC Rogers.AFF_DIM_LE_2_IMP_COPLANAR);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `vol (S:real^3->bool) = &0`);
+ (NEW_GOAL `(!Z:real^3->bool. NULLSET Z ==> vol Z = &0)`);
+ (MESON_TAC[volume_props]);
+ (ASM_MESON_TAC[]);
+ (NEW_GOAL `F`);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_MESON_TAC[]);
+ (ASM_ARITH_TAC)]);;
+
+let UP_TO_4_KY_LEMMA = prove (`!i. i <= 4 <=> i IN {0,1,2,3,4}`,
+ REWRITE_TAC[SET_RULE `i IN {0,1,2,3,4} <=> 
+            (i = 0 \/ i = 1 \/ i = 2 \/ i = 3 \/i= 4)`] THEN ARITH_TAC);;
+
+let FINITE_SET_LIST_LEMMA = prove
+ (`!s:A->bool.
+       FINITE s
+       ==> FINITE
+        {y | ?u0 u1 u2 u3.
+               u0 IN s /\
+               u1 IN s /\
+               u2 IN s /\
+               u3 IN s /\
+               y = [u0; u1; u2; u3]}`,
+ REWRITE_TAC[SET_RULE
+  `{y | ?u0 u1 u2 u3. u0 IN s /\ u1 IN s /\ u2 IN s /\ u3 IN s /\
+                      y = [u0; u1; u2; u3]} =
+   {CONS u0 y1 | u0 IN s /\
+                 y1 IN {CONS u1 y2 | u1 IN s /\
+                                     y2 IN {[u2;u3] | u2 IN s /\
+                                                      u3 IN s}}}`] THEN
+  REPEAT(GEN_TAC THEN DISCH_TAC THEN
+        MATCH_MP_TAC FINITE_PRODUCT_DEPENDENT THEN ASM_REWRITE_TAC[]));;
+
+(* ========================================================================= *)
+(* Main theorem *)
+
+let AJRIPQN = prove_by_refinement (AJRIPQN_concl,
+
+[(REPEAT GEN_TAC THEN STRIP_TAC);
+
+ (ABBREV_TAC `S = mcell i V ul INTER mcell j V vl`);
+ (UNDISCH_TAC `~NULLSET (S:real^3->bool)`);
+ (REWRITE_WITH `~NULLSET (S:real^3->bool) <=> &0 < measure S`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (EXPAND_TAC "S" THEN MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC[MEASURABLE_MCELL]); 
+
+ (DISCH_TAC);
+ (NEW_GOAL `bounded (S:real^3->bool)`);
+ (EXPAND_TAC "S" THEN MATCH_MP_TAC BOUNDED_INTER);
+ (ASM_SIMP_TAC[BOUNDED_MCELL]);
+ (UP_ASM_TAC THEN REWRITE_TAC[bounded]);
+ (STRIP_TAC);
+
+ (NEW_GOAL `?(v:real^3) S1.  
+    v IN V /\ S1 SUBSET S /\ measurable S1 /\ &0 < measure S1 /\
+    S1 SUBSET (voronoi_closed V v)`);
+ (ABBREV_TAC `SP = {v:real^3 | v IN V /\ 
+                                ~(voronoi_closed V v INTER S = {})}`);
+ (NEW_GOAL `FINITE (SP:(real^3->bool))`);
+ (NEW_GOAL `SP SUBSET (V INTER ball ((vec 0):real^3, a + &2))`);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[SUBSET;IN_INTER;IN;IN_ELIM_THM; ball]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `~(A = {}) <=> (?z. z IN A)`]);
+ (REWRITE_TAC[IN_INTER]);
+ (REPEAT STRIP_TAC);
+ (REWRITE_TAC[dist; NORM_ARITH `norm (vec 0 - a) = norm a`]);
+ (NEW_GOAL `norm x <= norm z + dist (x , z:real^3)`);
+ (REWRITE_TAC[dist] THEN NORM_ARITH_TAC);
+ (NEW_GOAL `norm (z:real^3) <= a`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `dist (x, z:real^3) < &2`);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (MATCH_MP_TAC Pack2.voronoi_in_ball);
+ (EXISTS_TAC `V:real^3->bool`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `V INTER ball ((vec 0):real^3,a + &2)`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC KIUMVTC);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `~((S:real^3->bool) = {})`);
+ (STRIP_TAC);
+ (UNDISCH_TAC `&0 < vol (S:real^3->bool)`);
+ (ASM_REWRITE_TAC[MEASURE_EMPTY]);
+ (REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `~(A = {}) <=> (?z. z IN A)`]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `norm (z:real^3) <= a`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `&0 <= norm (z:real^3)`);
+ (REWRITE_TAC[NORM_POS_LE]);
+ (ASM_REAL_ARITH_TAC);
+
+ (ABBREV_TAC `f = (\v:real^3. voronoi_closed V v INTER S)`);
+ (ABBREV_TAC `SPP = IMAGE (f:(real^3->real^3->bool)) (SP:real^3->bool)`);
+ (NEW_GOAL `FINITE (SPP:(real^3->bool)->bool)`);
+ (EXPAND_TAC "SPP" THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_REWRITE_TAC[]);
+ (NEW_GOAL `(S:real^3->bool) = (UNIONS SPP)`);
+ (EXPAND_TAC "SPP" THEN REWRITE_TAC[SET_EQ_LEMMA; UNIONS_IMAGE;IN;IN_ELIM_THM] 
+   THEN REPEAT STRIP_TAC);
+ (EXPAND_TAC "f");
+ (NEW_GOAL `?v:real^3. v IN V /\ x IN voronoi_closed V v`);
+ (MATCH_MP_TAC Packing3.TIWWFYQ);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REPEAT STRIP_TAC);
+ (EXISTS_TAC `v:real^3`);
+ (STRIP_TAC);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN_ELIM_THM]);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[SET_RULE `~(A = {}) <=> (?z. z IN A)`]);
+ (EXISTS_TAC `x:real^3`);
+ (REWRITE_TAC[IN_INTER]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (ONCE_REWRITE_TAC[GSYM IN]);
+ (REWRITE_TAC[IN_INTER]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN EXPAND_TAC "f");
+ (REWRITE_WITH `(voronoi_closed V x' INTER S) (x:real^3) 
+   <=> x IN (voronoi_closed V x' INTER S)`);
+ (MESON_TAC[GSYM IN]);
+ (REWRITE_TAC[IN_INTER]);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `!s1. s1 IN SPP ==> measurable (s1:(real^3->bool))`);
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "f" THEN REWRITE_TAC[IMAGE;IN;
+   IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[Packing3.DRUQUFE]);
+ (EXPAND_TAC "S");
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC[MEASURABLE_MCELL]);
+
+
+ (NEW_GOAL `?S1:real^3->bool. S1 IN SPP /\ ~(negligible S1)`);
+ (ONCE_REWRITE_TAC[MESON[] `S <=> ~S ==> F`]);
+ (STRIP_TAC);
+ (NEW_GOAL `!S1:real^3->bool. S1 IN SPP ==> negligible S1`);
+ (UP_ASM_TAC THEN MESON_TAC[]);
+ (NEW_GOAL `negligible (UNIONS (SPP:(real^3->bool)->bool))`);
+ (MATCH_MP_TAC NEGLIGIBLE_UNIONS);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[GSYM (ASSUME `S:real^3->bool = UNIONS SPP`)]);
+ (REWRITE_WITH `~NULLSET S <=> &0 < measure (S:real^3->bool)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (EXPAND_TAC "S");
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC[MEASURABLE_MCELL]);
+ (ASM_REWRITE_TAC[]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+
+ (UP_ASM_TAC THEN EXPAND_TAC "SPP" THEN EXPAND_TAC "f" THEN
+   REWRITE_TAC[IMAGE;IN;IN_ELIM_THM]);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN;IN_ELIM_THM; 
+   SET_RULE `~(s = {}) <=> (?x. x IN s)`]);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `x:real^3`);
+ (EXISTS_TAC `S1:real^3->bool`);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[Packing3.DRUQUFE]);
+ (EXPAND_TAC "S");
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC[MEASURABLE_MCELL]);
+
+ (REWRITE_WITH `&0 < measure (S1:real^3->bool) <=> ~NULLSET S1`);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[Packing3.DRUQUFE]);
+ (EXPAND_TAC "S");
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC[MEASURABLE_MCELL]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+(* ======================================================================== *)
+(* OK here *)
+
+ (NEW_GOAL `?wl:(real^3)list S2.  
+    barV V 3 wl /\ S2 SUBSET S1 /\ measurable S2 /\ 
+   &0 < measure S2 /\ S2 SUBSET (rogers V wl)`);
+
+ (ABBREV_TAC  
+  `SP = {wl| wl IN barV V 3 /\ HD wl = v /\ ~(rogers V wl INTER S1 = {})}`);
+ (NEW_GOAL `FINITE (SP:((real^3)list->bool))`);
+ (ABBREV_TAC `H = {u:real^3| u IN V /\ dist (u,v) <= &4}`);
+ (NEW_GOAL `SP SUBSET 
+   {wl | ?u0 u1 u2 u3. 
+   u0 IN H /\ u1 IN H /\ u2 IN H /\ u3 IN H /\ wl = [u0;u1;u2;u3:real^3]}`);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[SUBSET;IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `?u0 u1 u2 u3. x = [u0:real^3;u1;u2;u3]`);
+ (MP_TAC (ASSUME `barV V 3 x`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (EXISTS_TAC `u0:real^3` THEN EXISTS_TAC `u1:real^3`);
+ (EXISTS_TAC `u2:real^3` THEN EXISTS_TAC `u3:real^3`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `omega_list V x IN voronoi_list V x`);
+ (MATCH_MP_TAC Packing3.OMEGA_LIST_IN_VORONOI_LIST);
+ (EXISTS_TAC `3`);
+ (ASM_REWRITE_TAC[]);
+ (ABBREV_TAC `u = omega_list V x`);
+ (UNDISCH_TAC `(u:real^3) IN voronoi_list V x` THEN ASM_REWRITE_TAC[]);
+ (NEW_GOAL `u0 = v:real^3`);
+ (EXPAND_TAC "v" THEN REWRITE_TAC[ASSUME `x = [u0;u1;u2;u3:real^3]`;HD]);
+ (DISCH_TAC THEN EXPAND_TAC "H" THEN REWRITE_TAC[IN; IN_ELIM_THM]);
+ (NEW_GOAL `set_of_list (x:(real^3)list) SUBSET V`);
+ (MATCH_MP_TAC Packing3.BARV_SUBSET);
+ (EXISTS_TAC `3`);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[set_of_list]);
+ (DISCH_TAC);
+ (REWRITE_WITH `V v /\ (V:real^3->bool) u1 /\ V u2 /\ V (u3:real^3)`);
+ (UP_ASM_TAC THEN SET_TAC[]);
+ (NEW_GOAL `!z. z IN {v, u1, u2, u3:real^3} ==> dist (z,v) <= &4`);
+ (NEW_GOAL `!z. z IN {v, u1, u2, u3:real^3} ==> dist (z,u) <= &2`);
+ (REPEAT STRIP_TAC);
+ (ASM_CASES_TAC `dist (z,u:real^3) <= &2`);
+ (ASM_REWRITE_TAC[]);
+ (UNDISCH_TAC `saturated (V:real^3->bool)`);
+ (REWRITE_TAC[saturated]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `?y. y IN V /\ dist (u, y:real^3) < &2`);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (NEW_GOAL `u IN voronoi_closed V (z:real^3)`);
+ (UNDISCH_TAC `u IN voronoi_list V [u0; u1; u2; u3:real^3]`);
+ (REWRITE_TAC[VORONOI_LIST;VORONOI_SET; set_of_list; IN_INTERS]);
+ (STRIP_TAC);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_SET_TAC[]);
+ (ONCE_REWRITE_TAC[DIST_SYM]);
+ (UP_ASM_TAC THEN REWRITE_TAC[voronoi_closed; IN;IN_ELIM_THM]);
+ (STRIP_TAC);
+ (NEW_GOAL `dist (u,z:real^3) <= dist (u,y)`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_SET_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `dist (z, v) <= dist (z, u) + dist (v, u:real^3)`);
+ (NORM_ARITH_TAC);
+ (NEW_GOAL `dist (z,u:real^3) <= &2`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `dist (v,u:real^3) <= &2`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (SET_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_SIMP_TAC[SET_RULE 
+  `a IN {a,b,c,d} /\ b IN {a,b,c,d} /\ c IN {a,b,c,d} /\ d IN {a,b,c,d}`]);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `{wl | ?a b c d. 
+   a IN H /\ b IN H /\ c IN H /\ d IN H /\ wl = [a;b;c;d:real^3]}`);
+ (ASM_REWRITE_TAC[]);
+
+ (MATCH_MP_TAC FINITE_SET_LIST_LEMMA);
+ (EXPAND_TAC "H");
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `V INTER ball (v:real^3, &5)`);
+ (ASM_SIMP_TAC[KIUMVTC; REAL_ARITH `&0 <= &5`]);
+ (EXPAND_TAC "H" THEN REWRITE_TAC[SUBSET; ball; IN_INTER; IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[DIST_SYM] THEN ASM_REAL_ARITH_TAC);
+ (ABBREV_TAC `f = (\wl:(real^3)list. rogers V wl INTER S1)`);
+ (ABBREV_TAC `SPP = IMAGE (f:((real^3)list->real^3->bool)) 
+  (SP:(real^3)list->bool)`);
+ (NEW_GOAL `FINITE (SPP:(real^3->bool)->bool)`);
+ (EXPAND_TAC "SPP" THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `(S1:real^3->bool) = (UNIONS SPP)`);
+ (EXPAND_TAC "SPP" THEN REWRITE_TAC[SET_EQ_LEMMA; UNIONS_IMAGE;IN;IN_ELIM_THM] 
+   THEN REPEAT STRIP_TAC);
+ (EXPAND_TAC "f");
+ (NEW_GOAL `?vl. vl IN barV V 3 /\
+                    x IN rogers V vl /\
+                    truncate_simplex 0 vl = [v]`);
+ (REWRITE_WITH `(?vl. vl IN barV V 3 /\ x IN rogers V vl /\
+   truncate_simplex 0 vl = [v]) <=>  x IN voronoi_closed V v`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC Rogers.GLTVHUM);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (EXISTS_TAC `vl':(real^3)list`);
+ (STRIP_TAC);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN_ELIM_THM]);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `?u0 u1 u2 u3. vl' = [u0:real^3;u1;u2;u3]`);
+ (SUBGOAL_THEN `barV V 3 vl'` MP_TAC);
+ (ASM_SET_TAC[]);
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (NEW_GOAL `v = u0:real^3`);
+ (UNDISCH_TAC `truncate_simplex 0 vl' = [v:real^3]`);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_0]);
+ (STRIP_TAC);
+ (NEW_GOAL `v = HD [v:real^3] /\ u0 = HD [u0:real^3]`);
+ (REWRITE_TAC[HD]);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (AP_TERM_TAC THEN ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[HD]);
+ (REWRITE_TAC[SET_RULE `~(x = {}) <=> (?y. y IN x)`]);
+ (EXISTS_TAC `x:real^3`);
+ (REWRITE_TAC[IN_INTER]);
+ (ASM_REWRITE_TAC[IN]);
+ (REWRITE_WITH `(rogers V vl' INTER S1) x <=> x IN rogers V vl'/\ x IN S1`);
+ (REWRITE_TAC[IN; GSYM IN_INTER]);
+ (ASM_REWRITE_TAC[IN]);
+ (UNDISCH_TAC `(f:(real^3)list->real^3->bool) x' x`);
+ (EXPAND_TAC "f");
+ (REWRITE_WITH `(rogers V x' INTER S1) x <=> x IN rogers V x'/\ x IN S1`);
+ (REWRITE_TAC[IN; GSYM IN_INTER]);
+ (SET_TAC[]);
+
+
+ (NEW_GOAL `!s1. s1 IN SPP ==> measurable (s1:(real^3->bool))`);
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "f" THEN REWRITE_TAC[IMAGE;IN;
+   IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_ROGERS);
+ (ASM_REWRITE_TAC[]);
+ (UNDISCH_TAC `(SP:(real^3)list->bool) x`);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN_ELIM_THM] THEN STRIP_TAC);
+ (ASM_SET_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `?S2:real^3->bool. S2 IN SPP /\ ~(negligible S2)`);
+ (ONCE_REWRITE_TAC[MESON[] `S <=> ~S ==> F`]);
+ (STRIP_TAC);
+ (NEW_GOAL `!S2:real^3->bool. S2 IN SPP ==> negligible S2`);
+ (UP_ASM_TAC THEN MESON_TAC[]);
+ (NEW_GOAL `negligible (UNIONS (SPP:(real^3->bool)->bool))`);
+ (MATCH_MP_TAC NEGLIGIBLE_UNIONS);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[GSYM (ASSUME `S1:real^3->bool = UNIONS SPP`)]);
+ (REWRITE_WITH `~NULLSET S1 <=> &0 < measure (S1:real^3->bool)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (UP_ASM_TAC THEN EXPAND_TAC "SPP" THEN EXPAND_TAC "f" THEN
+   REWRITE_TAC[IMAGE;IN;IN_ELIM_THM]);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN;IN_ELIM_THM; 
+   SET_RULE `~(s = {}) <=> (?x. x IN s)`]);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `x:(real^3)list`);
+ (EXISTS_TAC `S2:real^3->bool`);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_ROGERS);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_WITH `&0 < measure (S2:real^3->bool) <=> ~NULLSET S2`);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_ROGERS);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+
+(* ======================================================================== *)
+(* ----------------------------- *)
+(* OK here *)
+
+ (NEW_GOAL 
+  `?S3. S3 SUBSET S2 /\
+        measurable S3 /\
+        &0 < vol S3 /\
+       (!kl. barV V 3 kl /\ ~(rogers V kl = rogers V wl) ==> S3 INTER rogers V kl = {})`);
+ (ABBREV_TAC  
+  `SP = {kl| kl IN barV V 3 /\ ~(rogers V kl INTER S2 = {})}`);
+ (NEW_GOAL `FINITE (SP:((real^3)list->bool))`);
+ (ABBREV_TAC `H = {u:real^3| u IN V /\ dist (u,HD wl) <= &12}`);
+ (NEW_GOAL `SP SUBSET 
+   {kl | ?u0 u1 u2 u3. 
+   u0 IN H /\ u1 IN H /\ u2 IN H /\ u3 IN H /\ kl = [u0;u1;u2;u3:real^3]}`);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[SUBSET;IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `?u0 u1 u2 u3. x = [u0:real^3;u1;u2;u3]`);
+ (MP_TAC (ASSUME `barV V 3 x`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (EXISTS_TAC `u0:real^3` THEN EXISTS_TAC `u1:real^3`);
+ (EXISTS_TAC `u2:real^3` THEN EXISTS_TAC `u3:real^3`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `set_of_list x SUBSET (V:real^3 ->bool)`);
+ (MATCH_MP_TAC Packing3.BARV_SUBSET);
+ (EXISTS_TAC `3` THEN ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[set_of_list]);
+  DISCH_TAC;
+ (NEW_GOAL `!u. u IN {u0,u1,u2,u3} ==> dist (u, u0:real^3) <= &4`);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `aff_dim (voronoi_list V (x:(real^3)list)) + &(LENGTH x) = &4`);
+ (UNDISCH_TAC `barV V 3 x` THEN REWRITE_TAC[BARV;VORONOI_NONDG]);
+ (STRIP_TAC);
+ (MATCH_MP_TAC (MESON[] `
+   LENGTH x < 5 /\ set_of_list x SUBSET (V:real^3->bool) /\ A ==> A`));
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (REWRITE_TAC[Packing3.INITIAL_SUBLIST_REFL]);
+ (ASM_REWRITE_TAC[]);
+ (ARITH_TAC);
+ (NEW_GOAL `LENGTH (x:(real^3)list) = 4`);
+ (MATCH_MP_TAC (MESON[] `A /\ CARD (set_of_list (x:(real^3)list)) = 3 + 1 ==> A`));
+ (REWRITE_TAC[ARITH_RULE `4 = 3 + 1`]);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool`);
+ (ASM_REWRITE_TAC[]);
+ (SWITCH_TAC THEN UP_ASM_TAC THEN ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[ARITH_RULE `(a:int) + &4 = &4 <=> a = &0`; AFF_DIM_EQ_0]);
+ (REPEAT STRIP_TAC);
+
+ (NEW_GOAL `!p. p IN {u0, u1, u2, u3:real^3} ==> dist (a', p) <= &2`);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `a' IN voronoi_closed V (p:real^3)`);
+ (SWITCH_TAC THEN UP_ASM_TAC THEN REWRITE_TAC[VORONOI_LIST;VORONOI_SET; set_of_list; INTERS]);
+ (MATCH_MP_TAC (SET_RULE `(s IN A ==> B) ==> (A = {s} ==> B)`));
+ (REWRITE_TAC[IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (EXISTS_TAC `p:real^3`);
+ (STRIP_TAC);
+ (ASM_MESON_TAC[IN]);
+ (REWRITE_TAC[ETA_AX]);
+ (UP_ASM_TAC THEN REWRITE_TAC[voronoi_closed;IN;IN_ELIM_THM] THEN DISCH_TAC);
+ (NEW_GOAL `?y. y IN V /\ dist (a',y:real^3) < &2`);
+ (ASM_MESON_TAC[saturated]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (MATCH_MP_TAC (REAL_ARITH `m <= dist (a', y:real^3) /\ 
+                             dist (a', y:real^3) < b ==> m <= b`));
+ (ASM_REWRITE_TAC[]);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_MESON_TAC[IN]);
+ (NEW_GOAL `dist (u, u0) <= dist (a', u) + dist (a', u0:real^3)`);
+ (NORM_ARITH_TAC);
+ (NEW_GOAL `dist (a', u) <= &2 /\ dist (a', u0:real^3) <= &2`);
+ (ASM_SIMP_TAC[]);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (SET_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+ (NEW_GOAL `u0 IN {u0, u1, u2, u3:real^3} /\ u1 IN {u0, u1, u2, u3} /\ 
+             u2 IN {u0, u1, u2, u3} /\ u3 IN {u0, u1, u2, u3}`);
+ (SET_TAC[]);
+ (EXPAND_TAC "H");
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (REWRITE_WITH `(u0:real^3) IN V /\ u1 IN V /\ u2 IN V /\ u3 IN V`);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `!u. u IN {u0,u1,u2,u3} ==> dist (u:real^3, HD wl) <= &12`);
+ (UNDISCH_TAC `~(rogers V x INTER S2 = {})`);
+ (REWRITE_TAC[SET_RULE `~(s = {}) <=> (?p. p IN s)`]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `dist (u,HD wl) <= dist (u,u0:real^3) + dist (u0, p) + dist (p, HD wl)`);
+ (NORM_ARITH_TAC);
+ (NEW_GOAL `dist (u,u0:real^3) <= &4 /\ dist (u0,p) <= &4 /\ dist (p,HD wl) <= &4`);
+ (ASM_SIMP_TAC[]);
+ (STRIP_TAC);
+ (SUBGOAL_THEN `p IN rogers V x` ASSUME_TAC);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `p IN voronoi_closed V (u0:real^3)`);
+ (REWRITE_WITH `p IN voronoi_closed V u0 <=>
+                   (?vl. vl IN barV V 3 /\
+                    p IN rogers V vl /\
+                    truncate_simplex 0 vl = [u0])`);
+ (MATCH_MP_TAC Rogers.GLTVHUM);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (EXISTS_TAC `x:(real^3)list`);
+ (ASM_REWRITE_TAC[TRUNCATE_SIMPLEX_EXPLICIT_0]);
+ (ASM_MESON_TAC[IN]);
+ (UP_ASM_TAC THEN REWRITE_TAC[voronoi_closed; IN;IN_ELIM_THM] THEN DISCH_TAC);
+
+ (NEW_GOAL `?y. y IN V /\ dist (p,y:real^3) < &2`);
+ (ASM_MESON_TAC[saturated]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+
+ (MATCH_MP_TAC (REAL_ARITH `m <= dist (p, y:real^3) /\ 
+                             dist (p, y:real^3) < &2 ==> m <= &4`));
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_WITH `dist (u0,p) = dist (p,u0:real^3)`);
+ (MESON_TAC[DIST_SYM]);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_MESON_TAC[IN]);
+
+ (SUBGOAL_THEN `p IN rogers V wl` ASSUME_TAC);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `?w0 w1 w2 w3. wl = [w0:real^3;w1;w2;w3]`);
+ (MP_TAC (ASSUME `barV V 3 wl`));
+ (REWRITE_TAC[BARV_3_EXPLICIT]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+ (ASM_REWRITE_TAC[HD]);
+
+ (NEW_GOAL `p IN voronoi_closed V (w0:real^3)`);
+ (REWRITE_WITH `p IN voronoi_closed V w0 <=>
+                   (?vl. vl IN barV V 3 /\
+                    p IN rogers V vl /\
+                    truncate_simplex 0 vl = [w0])`);
+ (MATCH_MP_TAC Rogers.GLTVHUM);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `set_of_list wl SUBSET (V:real^3->bool)`);
+ (MATCH_MP_TAC Packing3.BARV_SUBSET);
+ (EXISTS_TAC `3` THEN ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[set_of_list] THEN SET_TAC[]);
+ (EXISTS_TAC `wl:(real^3)list`);
+ (ASM_MESON_TAC[IN;TRUNCATE_SIMPLEX_EXPLICIT_0]);
+ (UP_ASM_TAC THEN REWRITE_TAC[voronoi_closed; IN;IN_ELIM_THM] THEN DISCH_TAC);
+
+ (NEW_GOAL `?y. y IN V /\ dist (p,y:real^3) < &2`);
+ (ASM_MESON_TAC[saturated]);
+ (FIRST_X_ASSUM CHOOSE_TAC);
+
+ (MATCH_MP_TAC (REAL_ARITH `m <= dist (p, y:real^3) /\ 
+                             dist (p, y:real^3) < &2 ==> m <= &4`));
+ (ASM_REWRITE_TAC[]);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_MESON_TAC[IN]);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_SIMP_TAC[]);
+
+
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `{kl | ?u0 u1 u2 u3:real^3.
+                u0 IN H /\ u1 IN H /\ u2 IN H /\ u3 IN H /\
+                kl = [u0; u1; u2; u3]}`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC FINITE_SET_LIST_LEMMA);
+ (EXPAND_TAC "H");
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `V INTER ball ((HD wl):real^3, &15)`);
+ (ASM_SIMP_TAC[KIUMVTC; REAL_ARITH `&0 <= &15`]);
+ (EXPAND_TAC "H" THEN REWRITE_TAC[SUBSET; ball; IN_INTER; IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[DIST_SYM] THEN ASM_REAL_ARITH_TAC);
+
+(* ======================================================================== *)
+(* Ok here *)
+
+ (ABBREV_TAC `f = (\kl:(real^3)list. rogers V kl INTER rogers V wl)`);
+ (ABBREV_TAC `SPP = IMAGE (f:((real^3)list->real^3->bool)) 
+  ((SP:(real^3)list->bool) DIFF {zl| rogers V zl = rogers V wl})`);
+
+ (NEW_GOAL `FINITE (SPP:(real^3->bool)->bool)`);
+ (EXPAND_TAC "SPP" THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `SP:(real^3)list->bool`);
+ (ASM_REWRITE_TAC[]);
+ (SET_TAC[]);
+
+ (EXISTS_TAC `(S2:real^3->bool) DIFF (rogers V wl INTER UNIONS SPP)`);
+ (REWRITE_TAC[SET_RULE `A DIFF B SUBSET A`]);
+ (REPEAT STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_DIFF);
+ (ASM_REWRITE_TAC[MEASURABLE_INTER]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_ROGERS);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_UNIONS);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "SPP");
+ (EXPAND_TAC "f");
+ (REWRITE_TAC[BETA_THM; IMAGE;IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_SIMP_TAC [MEASURABLE_ROGERS]);
+ (MATCH_MP_TAC MEASURABLE_ROGERS);
+ (ASM_REWRITE_TAC[]);
+ (UNDISCH_TAC `(SP DIFF {zl | rogers V zl = rogers V wl}) x`);
+ (REWRITE_WITH `(SP DIFF {zl | rogers V zl = rogers V wl}) x <=>
+  x IN (SP DIFF {zl | rogers V zl = rogers V wl})`);
+ (MESON_TAC[IN]);
+ (REWRITE_TAC[IN_DIFF]);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN_ELIM_THM]);
+ (MESON_TAC[IN]);
+ (REWRITE_WITH `measure (S2 DIFF rogers V wl INTER UNIONS SPP) = measure S2`);
+ (MATCH_MP_TAC MEASURE_NEGLIGIBLE_SYMDIFF);
+ (REWRITE_TAC[SET_RULE `(A DIFF B) DIFF A UNION A DIFF (A DIFF B) = A INTER B`]);
+ (MATCH_MP_TAC NEGLIGIBLE_SUBSET);
+ (EXISTS_TAC `rogers V wl INTER UNIONS SPP`);
+ (REWRITE_TAC[SET_RULE `A INTER B SUBSET B`]);
+ (REWRITE_TAC[INTER_UNIONS]);
+ (MATCH_MP_TAC NEGLIGIBLE_UNIONS);
+ (STRIP_TAC);
+ (REWRITE_WITH `{rogers V wl INTER x | x IN SPP} = IMAGE (\x. rogers V wl INTER x) SPP`);
+ (REWRITE_TAC[IMAGE; SET_EQ_LEMMA; IN;IN_ELIM_THM]);
+ (MATCH_MP_TAC FINITE_IMAGE);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "SP" THEN EXPAND_TAC "f");
+ (REWRITE_TAC[IMAGE;IN;IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[SET_RULE `a INTER b INTER a = a INTER b`]);
+ (MATCH_MP_TAC COPLANAR_IMP_NEGLIGIBLE);
+ (MATCH_MP_TAC DUUNHOR);
+ (UNDISCH_TAC `({kl | barV V 3 kl /\ ~(rogers V kl INTER S2 = {})} DIFF 
+                 {zl | rogers V zl = rogers V wl}) x'`);
+ (REWRITE_WITH 
+  `({kl | barV V 3 kl /\ ~(rogers V kl INTER S2 = {})} DIFF 
+    {zl | rogers V zl = rogers V wl}) x' <=>
+    x' IN ({kl | barV V 3 kl /\ ~(rogers V kl INTER S2 = {})} DIFF 
+           {zl | rogers V zl = rogers V wl})`);
+ (MESON_TAC[IN]);
+ (REWRITE_TAC[IN_DIFF]);
+ (REWRITE_TAC[IN; IN_ELIM_THM]);
+ (DISCH_TAC THEN ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "SP" THEN EXPAND_TAC "f");
+ (REWRITE_TAC[IMAGE;IN;IN_ELIM_THM]);
+ (REWRITE_TAC[MESON[IN; IN_DIFF] `(S DIFF P) x <=> x IN S /\ ~(x IN P)`]);
+ (REWRITE_TAC[IN;IN_ELIM_THM]);
+ (MATCH_MP_TAC (SET_RULE `(!p. p IN S ==> ~(p IN P)) ==> (S INTER P = {})`));
+ (REWRITE_TAC[IN_DIFF; IN_INTER;IN_UNIONS; MESON[] `~(A /\ B) <=> ~A \/ ~ B`]);
+
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `p IN rogers V wl`);
+ (ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+ (NEW_GOAL `?t. t IN
+            {y | ?x. ((barV V 3 x /\ ~(rogers V x INTER S2 = {})) /\
+                      ~(rogers V x = rogers V wl)) /\
+                     y = rogers V x INTER rogers V wl} /\
+            p IN t`);
+ (EXISTS_TAC `rogers V kl INTER rogers V wl`);
+ (ASM_REWRITE_TAC[IN_INTER]);
+ (STRIP_TAC);
+ (REWRITE_TAC[IN;IN_ELIM_THM]);
+ (EXISTS_TAC `kl:(real^3)list`);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[SET_RULE `~(A INTER B = {}) <=> (?z. z IN A /\ z IN B)`]);
+ (EXISTS_TAC `p:real^3`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+
+(* ========================================================================= *)
+(* OK here *)
+
+ (NEW_GOAL `?k:num S4. k <= 4 /\
+   S4 SUBSET S3 /\ measurable S4 /\ &0 < measure S4 /\ 
+   S4 SUBSET (mcell k V wl)`);
+
+ (ABBREV_TAC  
+  `SP = {k:num| ~(mcell k V wl INTER S3 = {}) /\ k <= 4}`);
+ (NEW_GOAL `FINITE (SP:(num ->bool))`);
+ (MATCH_MP_TAC FINITE_SUBSET); 
+ (EXISTS_TAC `{k | k <= 4}`);
+ (EXPAND_TAC "SP");
+ (SET_TAC[FINITE_NUMSEG_LE]);
+
+ (ABBREV_TAC `f = (\k:num. mcell k V wl INTER S3)`);
+ (ABBREV_TAC `SPP = IMAGE (f:(num->real^3->bool)) 
+  (SP:num->bool)`);
+ (NEW_GOAL `FINITE (SPP:(real^3->bool)->bool)`);
+ (EXPAND_TAC "SPP" THEN MATCH_MP_TAC FINITE_IMAGE THEN ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `(S3:real^3->bool) = (UNIONS SPP)`);
+ (EXPAND_TAC "SPP" THEN REWRITE_TAC[SET_EQ_LEMMA; UNIONS_IMAGE;IN;IN_ELIM_THM] 
+   THEN REPEAT STRIP_TAC);
+ (EXPAND_TAC "f");
+
+ (NEW_GOAL `?j. j <= 4 /\ x IN mcell j V wl`);
+ (MATCH_MP_TAC SLTSTLO1);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC (SET_RULE `(x:real^3) IN S3 /\ S3 SUBSET B ==> x IN B`));
+ (STRIP_TAC);
+ (UP_ASM_TAC THEN SIMP_TAC[IN]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (EXISTS_TAC `j':num`);
+ (STRIP_TAC);
+ (EXPAND_TAC "SP");
+ (REWRITE_TAC[IN_ELIM_THM]);
+ (ASM_REWRITE_TAC[INTER]);
+ (ASM_SET_TAC[]);
+ (ONCE_REWRITE_TAC[GSYM IN]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN EXPAND_TAC "f");
+ (ONCE_REWRITE_TAC
+  [MESON[IN] `(mcell x' V wl INTER S3) x <=> x IN (mcell x' V wl INTER S3)`]);
+ (REWRITE_TAC[IN_INTER; IN]);
+ (MESON_TAC[]);
+
+ (NEW_GOAL `!s1. s1 IN SPP ==> measurable (s1:(real^3->bool))`);
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "f" THEN REWRITE_TAC[IMAGE;IN;
+   IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `?k. k <= 4 /\ ~negligible (mcell k V wl INTER S3)`);
+ (REWRITE_WITH `(?k. k <= 4 /\ ~negligible (mcell k V wl INTER S3)) <=>   
+                ~(!k. (k <= 4) ==> negligible (mcell k V wl INTER S3))`);
+ (MESON_TAC[]);
+ (STRIP_TAC);
+ (NEW_GOAL `negligible (UNIONS (SPP:(real^3->bool)->bool))`);
+ (MATCH_MP_TAC NEGLIGIBLE_UNIONS);
+ (ASM_REWRITE_TAC[]);
+ (EXPAND_TAC "SPP" THEN EXPAND_TAC "f");
+ (REWRITE_TAC[IMAGE]);
+ (REWRITE_TAC[IN; IN_ELIM_THM]);
+ (REPEAT STRIP_TAC);
+ (ONCE_ASM_REWRITE_TAC[]);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (UNDISCH_TAC `(SP:num->bool) x`);
+ (EXPAND_TAC "SP" THEN REWRITE_TAC[IN_ELIM_THM]);
+ (MESON_TAC[]);
+
+ (UP_ASM_TAC THEN REWRITE_TAC[GSYM 
+  (ASSUME `S3 = UNIONS (SPP:(real^3->bool)->bool)`)]);
+ (REWRITE_WITH `~NULLSET S3 <=> &0 < measure (S3:real^3->bool)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC THEN EXISTS_TAC `k:num`
+   THEN EXISTS_TAC `mcell k V wl INTER S3`);
+ (REPEAT STRIP_TAC);
+
+ (ASM_REWRITE_TAC[]);
+ (SET_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_WITH `&0 < measure (mcell k V wl INTER S3) <=> 
+                ~negligible (mcell k V wl INTER S3)`);
+ (MATCH_MP_TAC MEASURABLE_MEASURE_POS_LT);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+
+(* -------------------------------------------------------------------------- *)
+(* OK here *)
+
+ (NEW_GOAL `?S5. S5 SUBSET S4 /\ measurable S5 /\ &0 < measure S5 /\ 
+                 (!h. ~(h = k) /\ h <= 4 ==> (S5 INTER mcell h V wl = {}))`);
+ (NEW_GOAL `?Z. !p. saturated V /\ packing V /\ barV V 3 wl
+                 ==> NULLSET Z /\
+                     (p IN rogers V wl DIFF Z
+                      ==> (?!i. i <= 4 /\ p IN mcell i V wl))`);
+ (ASM_REWRITE_TAC[SLTSTLO2]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (NEW_GOAL `NULLSET Z /\ !p. (p IN rogers V wl DIFF Z
+               ==> (?!i. i <= 4 /\ p IN mcell i V wl))`);
+ (NEW_GOAL `!p. NULLSET Z /\ (p IN rogers V wl DIFF Z
+               ==> (?!i. i <= 4 /\ p IN mcell i V wl))`);
+ (GEN_TAC THEN FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN MESON_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[EXISTS_UNIQUE] THEN STRIP_TAC); 
+
+ (EXISTS_TAC `S4 DIFF (Z:real^3->bool)`);
+ (REPEAT STRIP_TAC);
+ (SET_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_DIFF);
+ (ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[MEASURABLE_RULES]);
+ (REWRITE_WITH `measure (S4 DIFF Z) = measure (S4:real^3->bool)`);
+ (MATCH_MP_TAC MEASURE_NEGLIGIBLE_SYMDIFF);
+ (MATCH_MP_TAC NEGLIGIBLE_SUBSET);
+ (EXISTS_TAC `Z:real^3->bool`);
+ (ASM_REWRITE_TAC[]);
+ (SET_TAC[]);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[SET_RULE `A = {} <=> (!x. x IN A ==> F)`]);
+ (GEN_TAC THEN STRIP_TAC);
+ (NEW_GOAL `x IN mcell k V wl`);
+ (MATCH_MP_TAC (SET_RULE `x IN (S4 DIFF Z) INTER mcell h V wl /\ 
+  (S4 DIFF Z) INTER mcell h V wl SUBSET A ==> x IN A`));
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `x IN rogers V wl DIFF Z`);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `(?i. (i <= 4 /\ x IN mcell i V wl) /\
+                   (!y. y <= 4 /\ x IN mcell y V wl ==> y = i))`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+
+ (NEW_GOAL `k = i':num`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `h = i':num`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+
+(* -------------------------------------------------------------------------- *)
+(* OK here *)
+ (NEW_GOAL `mcell i V ul SUBSET
+             UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}`);
+ (MATCH_MP_TAC QZKSYKG2);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `~(S5 = {}:real^3->bool)`);
+ (STRIP_TAC);
+ (NEW_GOAL `negligible (S5:real^3->bool)`);
+ (ASM_REWRITE_TAC[NEGLIGIBLE_EMPTY]);
+ (NEW_GOAL `vol (S5) = &0`);
+ (ASM_SIMP_TAC[volume_props]);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `~(S = {}) <=> (?x. x IN S)`]);
+ (STRIP_TAC);
+
+ (NEW_GOAL `S5 SUBSET mcell i V ul /\ S5 SUBSET mcell j V vl`);
+ (ASM_SET_TAC[]);
+ (NEW_GOAL `S5 SUBSET 
+             UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}`);
+ (UP_ASM_TAC THEN DEL_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+ (NEW_GOAL `x IN UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}`);
+ (UP_ASM_TAC THEN DEL_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[IN_UNIONS; IN; IN_ELIM_THM] THEN STRIP_TAC);
+ (ABBREV_TAC `kl:(real^3)list = left_action_list p ul`);
+ (NEW_GOAL `barV V 3 kl`);
+ (MATCH_MP_TAC QZKSYKG1);
+ (EXISTS_TAC `ul:(real^3)list`);
+ (EXISTS_TAC `i:num` THEN EXISTS_TAC `p:num->num`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `x IN mcell i V ul`);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN SET_TAC[]);
+
+ (NEW_GOAL `rogers V kl = rogers V wl`);
+ (ASM_CASES_TAC `rogers V kl = rogers V wl`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `F`);
+ (NEW_GOAL `S3 INTER rogers V kl = {}`);
+ (ASM_SIMP_TAC[]);
+ (UP_ASM_TAC THEN ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+
+ (NEW_GOAL `mcell i V kl = mcell i V ul`);
+ (EXPAND_TAC "kl");
+ (MATCH_MP_TAC RVFXZBU);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `mcell i V kl = mcell i V wl`);
+ (MATCH_MP_TAC DDZUPHJ);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+ (MATCH_MP_TAC VOL_POS_LT_AFF_DIM_3);
+ (ASM_SIMP_TAC[MEASURABLE_ROGERS]);
+ (NEW_GOAL `vol S5 <= vol (rogers V wl)`);
+ (MATCH_MP_TAC MEASURE_SUBSET);
+ (ASM_SIMP_TAC[MEASURABLE_ROGERS]);
+ (ASM_SET_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `mcell j V vl SUBSET
+             UNIONS {rogers V (left_action_list q vl) | q permutes 0..j - 1}`);
+ (MATCH_MP_TAC QZKSYKG2);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `~(S5 = {}:real^3->bool)`);
+ (STRIP_TAC);
+ (NEW_GOAL `negligible (S5:real^3->bool)`);
+ (ASM_REWRITE_TAC[NEGLIGIBLE_EMPTY]);
+ (NEW_GOAL `vol (S5) = &0`);
+ (ASM_SIMP_TAC[volume_props]);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `~(S = {}) <=> (?x. x IN S)`]);
+ (STRIP_TAC);
+
+ (NEW_GOAL `S5 SUBSET 
+             UNIONS {rogers V (left_action_list q vl) | q permutes 0..j - 1}`);
+ (SET_TAC[ASSUME `S5 SUBSET mcell i V ul /\ S5 SUBSET mcell j V vl`; ASSUME    
+   `mcell j V vl SUBSET
+      UNIONS {rogers V (left_action_list q vl) | q permutes 0..j - 1}`]);
+ (NEW_GOAL `x' IN UNIONS {rogers V (left_action_list q vl) | q permutes 0..j - 1}`);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+
+ (UP_ASM_TAC THEN REWRITE_TAC[IN_UNIONS; IN; IN_ELIM_THM] THEN STRIP_TAC);
+ (ABBREV_TAC `sl:(real^3)list = left_action_list q vl`);
+ (NEW_GOAL `barV V 3 sl`);
+ (MATCH_MP_TAC QZKSYKG1);
+ (EXISTS_TAC `vl:(real^3)list`);
+ (EXISTS_TAC `j:num` THEN EXISTS_TAC `q:num->num`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `rogers V sl = rogers V wl`);
+ (ASM_CASES_TAC `rogers V sl = rogers V wl`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `F`);
+ (NEW_GOAL `S3 INTER rogers V sl = {}`);
+ (ASM_SIMP_TAC[]);
+ (ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+
+ (NEW_GOAL `mcell j V sl = mcell j V vl`);
+ (EXPAND_TAC "sl");
+ (MATCH_MP_TAC RVFXZBU);
+ (ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `mcell j V sl = mcell j V wl`);
+ (MATCH_MP_TAC DDZUPHJ);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+
+ (MATCH_MP_TAC VOL_POS_LT_AFF_DIM_3);
+ (ASM_SIMP_TAC[MEASURABLE_ROGERS]);
+ (NEW_GOAL `vol S5 <= vol (rogers V wl)`);
+ (MATCH_MP_TAC MEASURE_SUBSET);
+ (ASM_SIMP_TAC[MEASURABLE_ROGERS]);
+ (ASM_SET_TAC[]);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_SET_TAC[]);
+
+ (NEW_GOAL `S5 SUBSET (mcell i V ul INTER mcell j V vl)`);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_WITH 
+   `mcell i V ul = mcell i V wl /\ mcell j V vl = mcell j V wl`);
+ (ASM_MESON_TAC[]);
+ (STRIP_TAC);
+
+ (NEW_GOAL `i = k:num`);
+ (ASM_CASES_TAC `i = k:num`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `S5 INTER mcell i V wl = {}`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[UP_TO_4_KY_LEMMA]);
+ (NEW_GOAL `F`);
+ (UP_ASM_TAC THEN ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+
+ (NEW_GOAL `j = k:num`);
+ (ASM_CASES_TAC `j = k:num`);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `S5 INTER mcell j V wl = {}`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[UP_TO_4_KY_LEMMA]);
+ (NEW_GOAL `F`);
+ (UP_ASM_TAC THEN ASM_SET_TAC[]);
+ (ASM_MESON_TAC[]);
+
+ (ASM_REWRITE_TAC[])]);;
+
+
+end;;

@@ -1,4 +1,5 @@
 needs "../formal_lp/formal_interval/m_taylor.hl";;
+needs "../formal_lp/formal_interval/interval_m/verifier.hl";;
 
 
 let m_cell_pass = new_definition `m_cell_pass f domain <=> (!x. x IN interval [domain] ==> f x < &0)`;;
@@ -351,47 +352,317 @@ let m_decr_pass n pp j m_taylor_th pass_th0 =
 (***********************)
 
 
+let mk_verification_functions pp poly_tm min_flag value_tm =
+  let x_tm, body_tm = dest_abs poly_tm in
+  let new_expr =
+    uncurry (mk_binop sub_op_real) (if min_flag then value_tm, body_tm else body_tm, value_tm) in
+  let new_f = mk_abs (x_tm, new_expr) in
+  let eval_f = eval_m_taylor_poly pp new_f and
+      taylor_f = build_taylor pp new_f in
+    eval_f, taylor_f;;
+
+
+
+let split_domain n pp j domain_th = 
+  let domain_tm, y_tm, _ = dest_m_cell_domain (concl domain_th) in
+  let x_tm, z_tm = dest_pair domain_tm in
+  let xs = dest_vector x_tm and
+      zs = dest_vector z_tm and
+      t = List.nth (dest_vector y_tm) (j - 1) in
+
+  let vv = map (fun i -> if i = j then t else List.nth zs (i - 1)) (1--n) and
+      uu = map (fun i -> if i = j then t else List.nth xs (i - 1)) (1--n) in
+
+  let domain1_th = mk_m_center_domain n pp (rand x_tm) (mk_list (vv, real_ty)) and
+      domain2_th = mk_m_center_domain n pp (mk_list (uu, real_ty)) (rand z_tm) in
+    domain1_th, domain2_th;;
+
+
+let restrict_domain n pp j left_flag domain_th = 
+  let domain_tm, _, _ = dest_m_cell_domain (concl domain_th) in
+  let x_tm, z_tm = dest_pair domain_tm in
+  let xs = dest_vector x_tm and
+      zs = dest_vector z_tm in
+
+  let a, b = if left_flag then xs, zs else zs, xs in
+  let uu = map (fun i -> List.nth (if i = j then a else b) (i - 1)) (1--n) in
+    if left_flag then
+      mk_m_center_domain n pp (rand x_tm) (mk_list (uu, real_ty))
+    else
+      mk_m_center_domain n pp (mk_list (uu, real_ty)) (rand z_tm);;
+
+
+let convert_to_float_list pp lo_flag list_tm =
+  let tms = dest_list list_tm in
+  let i_funs = map build_interval_fun tms in
+  let ints = map (fun f -> eval_interval_fun pp f []) i_funs in
+  let extract = (if lo_flag then fst else snd) o dest_pair o rand o concl in
+    mk_list (map extract ints, real_ty);;
+
+
+
+
+
+(*****************************)
+let m_verify_raw n pp eval_taylor certificate xx zz =
+  let r_size = result_size certificate in
+  let k = ref 0 in
+  let domain_th = mk_m_center_domain n pp xx zz in
+
+  let rec rec_verify pp domain_th certificate =
+    match certificate with
+      | Result_pass (mono, xx, zz) -> 
+	  let taylor_th = eval_taylor domain_th in
+	    if mono = [] then
+	      let _ = k := !k + 1 in
+	      let _ = report (sprintf "Verifying: %d/%d" !k r_size) in
+		m_taylor_cell_pass n pp taylor_th	    
+	    else
+	      let j = hd mono in
+	      let _ = report (sprintf "Mono: %d" j) in
+	      let j, left_flag = if j < 0 then -j, true else j, false in
+	      let domain1_th = restrict_domain n pp j left_flag domain_th in
+	      let r1 = Result_pass (tl mono, xx, zz) in
+	      let th1 = rec_verify pp domain1_th r1 in
+	      let pass_f = if left_flag then m_decr_pass else m_incr_pass in
+		pass_f n pp j taylor_th th1
+
+      | Result_glue (mono, i, r1, r2) ->
+	  if mono = [] then
+	    let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
+	    let th1 = rec_verify pp domain1_th r1 and
+		th2 = rec_verify pp domain2_th r2 in
+	      m_glue_cells n (i + 1) th1 th2
+	  else
+	    let taylor_th = eval_taylor domain_th in
+	    let j = hd mono in
+	    let _ = report (sprintf "GlueMono: %d" j) in
+	    let j, left_flag = if j < 0 then -j, true else j, false in
+	    let domain1_th = restrict_domain n pp j left_flag domain_th in
+	    let r = Result_glue (tl mono, i, r1, r2) in
+	    let th1 = rec_verify pp domain1_th r in
+	    let pass_f = if left_flag then m_decr_pass else m_incr_pass in
+	      pass_f n pp j taylor_th th1
+
+      | _ -> failwith "False result" in
+
+    rec_verify pp domain_th certificate;;
+
+
+
+
+(******)
+
 let pp = 5;;
 
-let poly_tm = expr_to_vector_fun `x1 pow 1 + x2 pow 3 - &100`;;
-let poly2_tm = expr_to_vector_fun `-- x1 + x2 pow 3 - &100`;;
-let eval_poly = eval_m_taylor_poly pp poly_tm and
-    eval_poly2 = eval_m_taylor_poly pp poly2_tm;;
-
 let n = 2;;
-let three_float = mk_float 3 min_exp;;
-let xx1 = mk_vector_list (replicate one_float n) and
-    zz1 = mk_vector_list (replicate two_float n) and
-    xx2 = mk_vector_list [two_float; one_float] and
-    zz2 = mk_vector_list [three_float; two_float] and
-    uu = mk_vector_list [three_float; one_float] and
-    uu2 = mk_vector_list [one_float; two_float];;
+let poly_tm = expr_to_vector_fun `x1 pow 1 + x2 pow 3 - &100`;;
+
+let xx = `[&1; &1]` and zz = `[&3; &2]`;;
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp poly_tm false `-- #88.9`;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
 
 
-let domain_th1 = mk_m_center_domain n pp (rand xx1) (rand zz1) and
-    domain_th2 = mk_m_center_domain n pp (rand xx2) (rand zz2) and
-    domain_th = mk_m_center_domain n pp (rand xx1) (rand zz2) and
-    domain_th0 = mk_m_center_domain n pp (rand uu) (rand zz2) and
-    domain2_th0 = mk_m_center_domain n pp (rand xx1) (rand uu2);;
+(****)
+(* delta_x4 *)
+let pp = 10;;
+let n = 6;;
+let xx = `[&4;&4;&4;&4;&4;&8]` and
+    zz = `[#6.3504;#6.3504;#6.3504;#6.3504;#6.3504;#25.4016]`;;
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
 
-let m_taylor_th1 = eval_poly domain_th1 and
-    m_taylor_th2 = eval_poly domain_th2 and
-    m_taylor_th = eval_poly domain_th and
-    m_taylor_th0 = eval_poly domain_th0 and
-    m_taylor2_th = eval_poly2 domain_th and
-    m_taylor2_th0 = eval_poly2 domain2_th0;;
-
-let pass_th1 = m_taylor_cell_pass n pp m_taylor_th1 and
-    pass_th2 = m_taylor_cell_pass n pp m_taylor_th2 and
-    pass_th0 = m_taylor_cell_pass n pp m_taylor_th0 and
-    pass2_th0 = m_taylor_cell_pass n pp m_taylor2_th0;;
-
-let j = 1;;
-m_glue_cells n j pass_th1 pass_th2;;
-m_incr_pass n pp j m_taylor_th pass_th0;;
-m_decr_pass n pp j m_taylor2_th pass2_th0;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
 
 
+let eval_taylor, tf = mk_verification_functions pp delta_x4_poly true `#6.02525`;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
 
 
+(***)
+(* delta_x *)
+
+let pp = 10;;
+let n = 6;;
+let xx = `[&4;&4;&4;&4;&4;&4]` and
+    zz = `[#6.3504;#6.3504;#6.3504;#6.3504;#6.3504;#6.3504]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp delta_x_poly true `#127.999`;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+(***)
+(* delta_y *)
+let pp = 10;;
+let n = 6;;
+let xx = `[&2;&2;&2;&2;&2;&2]` and
+    zz = `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp delta_y_poly true `#127.999`;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+
+(***)
+(* schwefel *)
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &10; -- &10; -- &10]` and
+    zz = `[&10; &10; &10]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp schwefel_poly true schwefel_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+(***)
+(* rd *)
+
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &5; -- &5; -- &5]` and
+    zz = `[&5; &5; &5]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp rd_poly true rd_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+(***)
+(* caprasse *)
+
+let pp = 8;;
+let n = 4;;
+let xx = `[-- #0.5; -- #0.5; -- #0.5; -- #0.5]` and
+    zz = `[#0.5; #0.5; #0.5; #0.5]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp caprasse_poly true caprasse_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+(***)
+(* lv *)
+
+let pp = 5;;
+let n = 4;;
+let xx = `[-- &2; -- &2; -- &2; -- &2]` and
+    zz = `[&2; &2; &2; &2]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp lv_poly true lv_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+(***)
+(* butcher *)
+
+let pp = 5;;
+let n = 6;;
+let xx = `[-- &1; -- #0.1; -- #0.1; -- &1; -- #0.1; -- #0.1]` and
+    zz = `[&0; #0.9; #0.5; -- #0.1; -- #0.05; -- #0.03]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp butcher_poly true butcher_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 false;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+(***)
+(* magnetism *)
+
+let pp = 8;;
+let n = 7;;
+let xx = `[-- &1; -- &1; -- &1; -- &1; -- &1; -- &1; -- &1]` and
+    zz = `[&1; &1; &1; &1; &1; &1; &1]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp magnetism_poly true magnetism_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
+
+
+let eval_poly = build_taylor pp magnetism_poly;;
+let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) false;;
+(* 759936 *)
+result_size sample;;
+let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) true;;
+(* 77 *)
+result_size sample;;
+
+
+(***)
+(* heart *)
+
+let pp = 10;;
+let n = 8;;
+let xx = `[-- #0.1; #0.4; -- #0.7; -- #0.7; #0.1; -- #0.1; -- #0.3; -- #1.1]` and
+    zz = `[#0.4; &1; -- #0.4; #0.4; #0.2; #0.2; #1.1; -- #0.3]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_taylor, tf = mk_verification_functions pp heart_poly true heart_min;;
+let certificate = run_test tf xx_float zz_float false 0.0 true;;
+result_size certificate;;
+m_verify_raw n pp eval_taylor certificate xx1 zz1;;
 

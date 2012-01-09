@@ -45,21 +45,21 @@ type cellOption = {
     exit as soon as the status has been determined.   *)
 
 type  cell_status = 
-  | Cell_pass 
+  | Cell_pass of int list
   | Cell_counterexample 
-  | Cell_inconclusive of (float list * float list * float list * float list * tfunction list);;
+  | Cell_inconclusive of (int list * float list * float list);;
 
 exception Return of  cell_status;;
 
 type result_tree =
 	| Result_false of (float list * float list)
-	| Result_pass of (float list * float list)
-	| Result_glue of int * result_tree * result_tree;;
+	| Result_pass of (int list * float list * float list)
+	| Result_glue of (int list * int * result_tree * result_tree);;
 
 let rec result_size r =
   match r with
     | Result_false _ -> failwith "False result detected"
-    | Result_glue (_, r1, r2) -> result_size r1 + result_size r2
+    | Result_glue (_, _, r1, r2) -> result_size r1 + result_size r2
     | Result_pass _ -> 1;;
 
 	
@@ -100,147 +100,42 @@ let sgn x = if (x.lo > 0.0) then 1 else if (x.hi < 0.0) then -1 else 0;;
 let rec same_sgn x y = (x = []) or (sgn (hd x) = sgn (hd y) && same_sgn (tl x) (tl y));;
 
 
-(* a bit tricky because unstable exceptions are common early on,
-    and evaluations are very expensive. 
-   We don't want a single unstable disjunct to ruin everything.
+(* has_monotone *)
 
-   When boxes are small, then we throw away unstable disjuncts and continue w/o them.
-   When the boxes are still big, we return inconclusive to force a bisection.
-
-   Starting with this procedure, we can throw an exception to return early,
-   as soon as we are able to determine the cell_status.  All these exceptions
-   get caught at the last line of verify_cell.
-*)
-
-
-let rec set_targets (x,z,x0,z0,tf,tis,opt,maxwidth,has_unstable) =
-    try (
-      if (tf = []) then
-	let _ = not(has_unstable) or return (Cell_inconclusive (x,z,x0,z0,map snd tis)) in
-	  List.rev tis
-      else (
-	let target = evalf (hd tf)  x z in
-
-	let _ =  not( opt.only_check_deriv1_negative) or return
-	  (if upper_partial target 0 < 0.0 then   Cell_pass
-	   else if  lower_partial target 0 > 0.0 then Cell_counterexample
-	   else Cell_inconclusive(x,z,x0,z0,tf)) in
-	  
-	let _ =  upper_bound target >= 0.0 or return Cell_pass in
-	  
-	  set_targets(x,z,x0,z0,tl tf,(target,hd tf)::tis,opt,maxwidth,has_unstable));	
-    )
-    with Unstable -> (
-      if (2.0 *. maxwidth > opt.width_cutoff) 
-(*      then set_targets(x,z,x0,z0,tl tf,tis,opt,maxwidth,true)  (* proclaim unstable *) *)
-	then return (Cell_inconclusive (x,z,x0,z0,tf))
-      else set_targets(x,z,x0,z0,tl tf,tis,opt,maxwidth,has_unstable) (* drop silently *);
-    );
-;;
-
-let rec delete_false acc tis =
-  if (tis=[]) then List.rev acc 
-  else if (lower_bound (fst (hd tis)) > 0.0) then delete_false acc (tl tis) 
-  else delete_false (hd tis::acc) (tl tis);;
-
-(* If the function is monotone, then we can push the calculation to the boundary.
-    There is a theorem that justifies the return Cell_pass steps. Here's a sketch.
-     We are doing a verification on a large box x0 z0 and 
-   x z represents on of many cells in the box.
-   Suppose that there is a counterexample in the large box x0 z0.
-   The set of c/e is a compact set.
-   Write the inequalities as f1 < 0 \/ ... \/ fk < 0.
-   So at a c/e all f1 >= 0 && ... && fk >=0.
-   Pick out a particular counterexample by maximizing f1+...+fk over the
-   set of c/e's, then among this set pick a c/e with largest y1 coordinate,
-   then lexicographically continuing until the largest y6 coordinate.
-   This fixes a particular point y in the domain x0 z0.
-
-   I claim that has_monotone will detect y, so that if the inequality is false,
-   we find out about it.
-
-   In the partition of x0 z0 (of which x z is one rectangle), pick the rectangle
-   containing y
-   whose lower endpoint x1 is as large as possible, then continue lexicographically
-   through to x6.
-
-   I claim that has_monotone will detect y, when it comes to this box x z.
-   This is clear by construction.  If we have monotonic increasing, then y is at the
-   right edge of the box.  By construction the box x z is the rightmost containing y
-   so the box x z meets the right edge of the large containing box x0 z0.
-   Thus, it is enough to recursively search over the right edge of the box. Etc.
-
- *)
-
-let rec has_monotone tis x z x0 z0 is found  = match is with
-  | [] -> (x,z,x0,z0,found)
+ let rec has_monotone ti x z is found = match is with
+  | [] -> (x,z,List.rev found)
   | j::js when (mth x j >= mth z j) ->
-      has_monotone tis x z x0 z0 js found
+      has_monotone ti x z js found
   | j::js -> 
-    let allpos = List.fold_left (fun a ti -> a && lower_partial (fst ti) j >= 0.0) true tis in
-    let allneg = List.fold_left (fun a ti -> a && upper_partial (fst ti) j < 0.0) true tis in
+    let allpos = lower_partial ti j >= 0.0 in
+    let allneg = upper_partial ti j < 0.0 in
     if (allpos) then
-      let _ = (mth z j >= mth z0 j) or return Cell_pass in
-      let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
-	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
+     let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
+	has_monotone ti  (setj x) (setj z) js ((j + 1) :: found)
     else if (allneg) then
-      let _ = (mth x j <= mth x0 j) or  return Cell_pass in
       let setj u = table (fun i -> (if i=j then mth x j else mth u i))  in
-	has_monotone tis  (setj x) (setj z) (setj x0) (setj z0) js true
-    else has_monotone tis x z x0 z0 js found;;
+	has_monotone ti  (setj x) (setj z) js (-(j + 1) :: found)
+    else has_monotone ti x z js found;;
 
 (* loop as long as monotonicity keeps making progress.  *)
 
-let rec going_strong(x,z,x0,z0,tf,opt) =
+let rec going_strong(x,z,tf,opt,mono) =
   let (y,w) = center_form (x,z) in
   let maxwidth = maxl w in
-  let tis = set_targets(x,z,x0,z0,tf,[],opt,maxwidth,false) in
+  let target = 
+	try evalf tf x z with Unstable -> return (Cell_inconclusive (mono,x,z)) in
+  let _ = upper_bound target >= 0.0 or return (Cell_pass mono) in
+  let _ = lower_bound target < 0.0 or return Cell_counterexample in
   let epsilon_width = 1.0e-8 in
-  let _ = (maxwidth >= epsilon_width) or return
-	(if (opt.allow_sharp) then (Report.inc_corner_count(); Cell_pass) 
-				   else Cell_counterexample) in
-  let tis = delete_false [] tis in
-  let _ = (List.length tis > 0) or return Cell_counterexample in
-  let (x0,z0) = if (List.length tis < List.length tf) then (x,z)  else (x0,z0) in
-  let (x,z,x0,z0,strong) = 
-    if (opt.allow_derivatives) then has_monotone tis  x z x0 z0 iter8 false 
-    else (x,z,x0,z0,false) in
-    if (strong) then going_strong(x,z,x0,z0,map snd tis,opt) else (x,z,x0,z0,maxwidth,tis);;
+  let _ = (maxwidth >= epsilon_width) or return Cell_counterexample in
+  let (x,z,strong) = 
+    if (opt.allow_derivatives) then has_monotone target x z iter8 []
+    else (x,z,[]) in
+    if (strong <> []) then 
+		going_strong(x,z,tf,opt,mono @ strong) 
+	else 
+		(x,z,maxwidth,mono);;
 
-let guess_optimal_corners (x,z,ti,tf) = 
-  let mixedsign = List.fold_left (fun a i -> a or (sgn(mth ti.l.df i)=0)) false iter8 in
-  let yyn = table (fun i-> mth (if sgn (mth  ti.l.df i) >0 then x else z) i)  in
-  let yyu = table (fun i-> mth (if sgn (mth  ti.l.df i) >0 then z else x) i)  in
-  let cn = line_estimate tf yyn in
-  let cu = line_estimate tf yyu in
-    (mixedsign,yyn,yyu,cn,cu);;
-
-let rec drop_numerically_false acc (x,z,x0,z0,tis) =
-    match tis with 
-      | [] -> (x0,z0,List.rev acc)
-      | (ti,tf) :: tiss -> 
-	  if (ti.l.f.lo <= 0.0) then drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss)
-	  else 
-	    let (mixedsign,yyn,yyu,cn,cu)= guess_optimal_corners(x,z,ti,tf) in
-	      if (mixedsign) then drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss)
-	      else if (min cn.f.lo cu.f.lo > 0.0 && 
-			 same_sgn ti.l.df cn.df && same_sgn ti.l.df cu.df) 
-	      then drop_numerically_false acc (x,z,x,z,tiss)
-	      else drop_numerically_false ((ti,tf)::acc) (x,z,x0,z0,tiss);;
-
-let rec keep_numerically_true best (x,z,x0,z0,tis,evalue) = match tis with
-  | [] -> 
-       if (evalue < 0.0 && List.length best >0) then (x,z,best)
-       else (x0,z0,tis)
-  | (ti,tf)::tiss ->
-      if (ti.l.f.hi > 0.0) then keep_numerically_true best (x,z,x0,z0,tiss,evalue)
-      else
-	let (mixedsign,yyn,yyu,cn,cu) = guess_optimal_corners(x,z,ti,tf) in
-	let evalue' = max cn.f.hi cu.f.hi  in
-	  if ((evalue' < evalue) &&
-		same_sgn ti.l.df cn.df && same_sgn ti.l.df cu.df && not(mixedsign)) then
-	    keep_numerically_true [(ti,tf)] (x,z,x0,z0,tiss,evalue')
-	  else keep_numerically_true best (x,z,x0,z0,tiss,evalue);;    
 
 (*
 This procedure is mostly guided by heuristics that don't require formal
@@ -254,29 +149,20 @@ The record (x0,z0) of the current outer boundary must be restricted to (x,z)
 whenever an inequality is tossed out.
 *)
 
-let rec verify_cell (x,z,x0,z0,tf,opt) =
+let rec verify_cell (x,z,tf,opt) =
   try (
   let _ = not(periodic_count ()) or report_current (x,z,"periodic report") in
-  let _ = not(opt.only_check_deriv1_negative) or (List.length tf <= 1) or 
-	     failwith "verify_cell: incompatible options" in
-	(* XX skip the implementation of rad2, delta126, delta135, for now. *)
-  let (x,z,x0,z0,maxwidth,tis) = going_strong(x,z,x0,z0,tf,opt) in
-  let (x0,z0,tis) =   if (maxwidth < opt.width_cutoff && opt.allow_derivatives)  
-  then  drop_numerically_false [] (x,z,x0,z0,tis)   else (x0,z0,tis) in
-  let _ = (List.length tis >0) or return Cell_counterexample in
-  let (x0,z0,tis) = 
-    if ((maxwidth<opt.width_cutoff)&&(List.length tis >1) && opt.allow_derivatives) 
-    then keep_numerically_true [] (x,z,x0,z0,tis,0.0) else (x0,z0,tis) in
-    Cell_inconclusive (x,z,x0,z0,map snd tis);
+  let (x,z,maxwidth,mono) = going_strong(x,z,tf,opt,[]) in
+    Cell_inconclusive (mono,x,z);
   )
   with Return c -> c;;
 
-let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) = 
+let rec recursive_verifier (depth,x,z,tf,opt) = 
   let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "depth %d" depth) in
-    match verify_cell(x,z,x0,z0,tf,opt)  with
+    match verify_cell(x,z,tf,opt)  with
       | Cell_counterexample -> Result_false (x,z)
-      | Cell_pass -> Result_pass (x,z)
-      | Cell_inconclusive(x,z,x0,z0,tf) ->
+      | Cell_pass mono -> Result_pass (mono,x,z)
+      | Cell_inconclusive(mono,x,z) ->
 	  let ( ++ ), ( / ) = up(); upadd, updiv in
 	  let w2 = List.map2 upsub z x in 
 	  let maxwidth2 = maxl w2 in
@@ -284,14 +170,14 @@ let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) =
 	    | _ -> failwith "recursive_verifier find" in
 	  let yj = (mth x j_wide ++  mth z j_wide) / 2.0 in
 	  let delta b v =table (fun i-> if (i=j_wide && b) then yj else mth v i) in
-	  let r1 = recursive_verifier(depth+1, delta false x ,delta true z ,x0,z0,tf,opt) in
+	  let r1 = recursive_verifier(depth+1, delta false x ,delta true z,tf,opt) in
 		match r1 with
 			| Result_false t -> Result_false t
 			| _ ->
-              (let r2 = recursive_verifier(depth+1, delta true x ,delta false z ,x0,z0,tf,opt) in
+              (let r2 = recursive_verifier(depth+1, delta true x ,delta false z,tf,opt) in
 				match r2 with
 					| Result_false t -> Result_false t
-					| _ -> Result_glue (j_wide, r1, r2));;
+					| _ -> Result_glue (mono, j_wide, r1, r2));;
 
 
 

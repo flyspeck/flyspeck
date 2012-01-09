@@ -1,0 +1,182 @@
+flyspeck_needs "../formal_lp/formal_interval/interval_m/recurse.hl";;
+
+
+open Interval;;
+open Univariate;;
+open Line_interval;;
+open Taylor;;
+open Recurse;;
+
+
+(****************************)
+(* Automatic conversion of formal interval functions into functions *)
+
+type int_fun =
+  | F_int_var of int
+  | F_int_const of interval
+  | F_int_pow of int * int_fun
+  | F_int_neg of int_fun
+  | F_int_add of int_fun * int_fun
+  | F_int_sub of int_fun * int_fun
+  | F_int_mul of int_fun * int_fun;;
+
+let rec build_fun i_fun =
+  match i_fun with
+    | Int_var tm -> 
+	(try F_int_var (dest_small_numeral (rand tm))
+	 with Failure _ ->
+	   let name = (fst o dest_var) tm in
+	     F_int_var (int_of_string (String.sub name 1 (String.length name - 1))))
+    | Int_const th ->
+	let f1, f2 = (dest_pair o rand o concl) th in
+	let int = mk_interval (float_of_float_tm f1, float_of_float_tm f2) in
+	  F_int_const int
+    | Int_pow (n, f) -> F_int_pow (n, build_fun f)
+    | Int_unary (op, f) ->
+	let f' = build_fun f in
+	  if op = neg_op_real then F_int_neg f' else failwith ("Unsupported operator: "^string_of_term op)
+    | Int_binary (op, f1, f2) ->
+	let f1', f2' = build_fun f1, build_fun f2 in
+	  if op = add_op_real then F_int_add (f1',f2')
+	  else if op = sub_op_real then F_int_sub (f1',f2')
+	  else if op = mul_op_real then F_int_mul (f1',f2') 
+	  else failwith ("Unsupported operator: "^string_of_term op)
+    | _ -> failwith "Unsupported function";;
+
+
+let gen_pow op id n x =
+  let ( * ) = op in
+  let rec pow n =
+    if n <= 0 then id
+    else if n = 1 then x
+    else if n land 1 = 1 then
+      x * pow (n - 1)
+    else
+      let t = pow (n lsr 1) in
+	t * t in
+    pow n;;
+
+
+let ipow = gen_pow imul Interval.one;;    
+
+
+
+let eval_int_fun i_fun =
+  fun x ->
+    let rec eval_rec f =
+      match f with
+	| F_int_var i -> List.nth x (i - 1)
+	| F_int_const int -> int
+	| F_int_neg f1 -> ineg (eval_rec f1)
+	| F_int_pow (n,f1) -> ipow n (eval_rec f1)
+	| F_int_add (f1,f2) -> iadd (eval_rec f1) (eval_rec f2)
+	| F_int_sub (f1,f2) -> isub (eval_rec f1) (eval_rec f2)
+	| F_int_mul (f1,f2) -> imul (eval_rec f1) (eval_rec f2) in
+      eval_rec i_fun;;
+
+
+
+let buildL pp poly_tm =
+  let lin_th = gen_lin_approx_poly_thm poly_tm in
+  let funs = map (fst o dest_interval_arith) ((striplist dest_conj o rand o concl) lin_th) in
+  let i_funs = map (eval_constants pp o build_interval_fun) funs in
+  let fs = map build_fun i_funs @ (replicate (F_int_const zero) (8 - length funs + 1)) in
+  let eval_fs = map eval_int_fun fs in
+  let f, df = hd eval_fs, tl eval_fs in
+    fun x ->
+      let vars = map (fun x -> mk_interval (x,x)) x in
+	mk_line (f vars, map (fun df -> df vars) df);;
+
+
+let rec shape_list n list =
+  if length list <= n then [list]
+  else 
+    let l1, l2 = chop_list n list in
+      l1 :: shape_list n l2;;
+
+
+let buildDD pp poly_tm =
+  let n = (get_dim o fst o dest_abs) poly_tm in
+  let second_th = gen_second_bounded_poly_thm poly_tm in
+  let funs = (striplist dest_conj o rand o snd o dest_forall o rand o concl) second_th in
+  let i_funs = map (eval_constants pp o build_interval_fun o fst o dest_interval_arith) funs in
+  let fs0 = map build_fun i_funs in
+  let pad1 = replicate (F_int_const zero) (8 - n) and
+      pad2 = replicate (F_int_const zero) 8 in
+  let pad3 = replicate pad2 (8 - n) in
+  let fs = (map (fun l -> l @ pad1) (shape_list n fs0)) @ pad3 in
+  let eval_fs = map (map eval_int_fun) fs in
+    fun x z ->
+      let ints = map2 (curry mk_interval) x z in
+	map (map (fun f -> f ints)) eval_fs;;
+
+
+let build_taylor pp poly_tm =
+  let lin = buildL pp poly_tm and
+      dd = buildDD pp poly_tm in
+    Prim_a (make_primitiveA ( lin, dd));;
+
+
+(**********************************************)
+
+
+(**********************************)
+let run_test f x z min_flag min_max allow_d =
+  let pad = replicate 0.0 (8 - length x) in
+  let xx = x @ pad and zz = z @ pad in
+  let mone = mk_interval(-1.0,-1.0) in
+  let neg_f = Scale(f, mone) in
+  let ff = if min_flag then
+    Plus(neg_f, Scale(unit,mk_interval(min_max, min_max)))
+  else 
+    Plus(f, Scale(unit, ineg (mk_interval(min_max, min_max)))) in
+  let opt =  {
+    only_check_deriv1_negative = false;
+    is_using_dihmax =false;
+    is_using_bigface126 =false;
+    width_cutoff =0.05;
+    allow_sharp =false;
+    allow_derivatives =allow_d;
+    iteration_count =0;
+    iteration_limit =0;
+    recursion_depth =200;
+  } in
+    recursive_verifier(0,xx,zz,ff,opt);;
+
+
+(*
+let delta_x4_poly =
+  let tm = (rand o concl o SPEC_ALL) Sphere.delta_x4 in
+    expr_to_vector_fun tm;;
+
+let delta_x4 = build_taylor pp delta_x4_poly;;
+
+
+
+(***)
+let xx = [4.0;4.0;4.0;4.0;4.0;8.0;0.;0.] and
+    zz = let h02 = 6.3504 in [h02;h02;h02;h02;h02;25.4016;0.;0.];;
+
+let sample = run_test delta_x4 xx zz true 6.02525 false;;
+(* 75 *)
+result_size sample;;
+
+let sample2 = run_test delta_x4 xx zz true 6.02525 true;;
+(* 1 *)
+result_size sample2;;
+
+(***)
+let xx = replicate 4.0 6 @ [0.; 0.] and
+    zz = replicate 6.3504 6 @ [0.; 0.];;
+let sample3 = run_test delta_x xx zz true 127.9999 true;;
+(* 46 *)
+result_size sample3;;
+
+(***)
+let xx = replicate 2.0 6 @ [0.; 0.] and
+    zz = replicate 2.52 6 @ [0.; 0.];;
+let sample4 = run_test delta_y xx zz true 127.9999 true;;
+(* 155 *)
+result_size sample4;;
+*)
+

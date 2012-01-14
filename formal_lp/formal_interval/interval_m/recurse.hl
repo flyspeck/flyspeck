@@ -39,27 +39,31 @@ type cellOption = {
   mutable iteration_count : int;
   iteration_limit : int;
   recursion_depth : int;
+  mono_pass : bool;
 };;
 
 (* cell verification is complex, and we use exceptions to
     exit as soon as the status has been determined.   *)
 
 type  cell_status = 
-  | Cell_pass of int list
+  | Cell_pass of int list list * bool
+  | Cell_pass_mono of int
   | Cell_counterexample 
-  | Cell_inconclusive of (int list * float list * float list);;
+  | Cell_inconclusive of (int list list * float list * float list * float list * float list);;
 
 exception Return of  cell_status;;
 
 type result_tree =
 	| Result_false of (float list * float list)
-	| Result_pass of (int list * float list * float list)
-	| Result_glue of (int list * int * result_tree * result_tree);;
+	| Result_pass of (int list list * bool * float list * float list)
+	| Result_pass_mono of int
+	| Result_glue of (int list list * int * result_tree * result_tree);;
 
 let rec result_size r =
   match r with
     | Result_false _ -> failwith "False result detected"
     | Result_glue (_, _, r1, r2) -> result_size r1 + result_size r2
+    | Result_pass_mono _ -> 1
     | Result_pass _ -> 1;;
 
 	
@@ -102,39 +106,45 @@ let rec same_sgn x y = (x = []) or (sgn (hd x) = sgn (hd y) && same_sgn (tl x) (
 
 (* has_monotone *)
 
- let rec has_monotone ti x z is found = match is with
-  | [] -> (x,z,List.rev found)
+ let rec has_monotone opt ti x z x0 z0 is found = match is with
+  | [] -> (x,z,x0,z0,List.rev found)
   | j::js when (mth x j >= mth z j) ->
-      has_monotone ti x z js found
+      has_monotone opt ti x z x0 z0 js found
   | j::js -> 
     let allpos = lower_partial ti j >= 0.0 in
     let allneg = upper_partial ti j < 0.0 in
     if (allpos) then
-     let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
-	has_monotone ti  (setj x) (setj z) js ((j + 1) :: found)
+     if opt.mono_pass && mth z j < mth z0 j then return (Cell_pass_mono (j + 1))
+     else
+       let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
+	 has_monotone opt ti  (setj x) (setj z) (setj x0) (setj z0) js ((j + 1) :: found)
     else if (allneg) then
-      let setj u = table (fun i -> (if i=j then mth x j else mth u i))  in
-	has_monotone ti  (setj x) (setj z) js (-(j + 1) :: found)
-    else has_monotone ti x z js found;;
+      if opt.mono_pass && mth x j > mth x0 j then return (Cell_pass_mono (-(j + 1)))
+      else
+	let setj u = table (fun i -> (if i=j then mth x j else mth u i))  in
+	  has_monotone opt ti  (setj x) (setj z) (setj x0) (setj z0) js (-(j + 1) :: found)
+    else has_monotone opt ti x z x0 z0 js found;;
 
 (* loop as long as monotonicity keeps making progress.  *)
 
-let rec going_strong(x,z,tf,opt,mono) =
+let rec going_strong(x,z,x0,z0,tf,opt,mono) =
   let (y,w) = center_form (x,z) in
   let maxwidth = maxl w in
+  let target0 = try evalf0 tf x z with Unstable -> one in
+  let _ = target0.hi >= 0.0 or return (Cell_pass (mono, true)) in
   let target = 
-	try evalf tf x z with Unstable -> return (Cell_inconclusive (mono,x,z)) in
-  let _ = upper_bound target >= 0.0 or return (Cell_pass mono) in
+	try evalf tf x z with Unstable -> return (Cell_inconclusive (mono,x,z,x0,z0)) in
+  let _ = upper_bound target >= 0.0 or return (Cell_pass (mono, false)) in
   let _ = lower_bound target < 0.0 or return Cell_counterexample in
   let epsilon_width = 1.0e-8 in
   let _ = (maxwidth >= epsilon_width) or return Cell_counterexample in
-  let (x,z,strong) = 
-    if (opt.allow_derivatives) then has_monotone target x z iter8 []
-    else (x,z,[]) in
+  let (x,z,x0,z0,strong) = 
+    if (opt.allow_derivatives) then has_monotone opt target x z x0 z0 iter8 []
+    else (x,z,x0,z0,[]) in
     if (strong <> []) then 
-		going_strong(x,z,tf,opt,mono @ strong) 
+		going_strong(x,z,x0,z0,tf,opt,mono @ [strong]) 
 	else 
-		(x,z,maxwidth,mono);;
+		(x,z,x0,z0,maxwidth,mono);;
 
 
 (*
@@ -149,20 +159,21 @@ The record (x0,z0) of the current outer boundary must be restricted to (x,z)
 whenever an inequality is tossed out.
 *)
 
-let rec verify_cell (x,z,tf,opt) =
+let rec verify_cell (x,z,x0,z0,tf,opt) =
   try (
   let _ = not(periodic_count ()) or report_current (x,z,"periodic report") in
-  let (x,z,maxwidth,mono) = going_strong(x,z,tf,opt,[]) in
-    Cell_inconclusive (mono,x,z);
+  let (x,z,x0,z0,maxwidth,mono) = going_strong(x,z,x0,z0,tf,opt,[]) in
+    Cell_inconclusive (mono,x,z,x0,z0);
   )
   with Return c -> c;;
 
-let rec recursive_verifier (depth,x,z,tf,opt) = 
+let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) = 
   let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "depth %d" depth) in
-    match verify_cell(x,z,tf,opt)  with
+    match verify_cell(x,z,x0,z0,tf,opt)  with
       | Cell_counterexample -> Result_false (x,z)
-      | Cell_pass mono -> Result_pass (mono,x,z)
-      | Cell_inconclusive(mono,x,z) ->
+      | Cell_pass (mono, f0_flag) -> Result_pass (mono,f0_flag,x,z)
+      | Cell_pass_mono j -> Result_pass_mono j
+      | Cell_inconclusive(mono,x,z,x0,z0) ->
 	  let ( ++ ), ( / ) = up(); upadd, updiv in
 	  let w2 = List.map2 upsub z x in 
 	  let maxwidth2 = maxl w2 in
@@ -170,11 +181,11 @@ let rec recursive_verifier (depth,x,z,tf,opt) =
 	    | _ -> failwith "recursive_verifier find" in
 	  let yj = (mth x j_wide ++  mth z j_wide) / 2.0 in
 	  let delta b v =table (fun i-> if (i=j_wide && b) then yj else mth v i) in
-	  let r1 = recursive_verifier(depth+1, delta false x ,delta true z,tf,opt) in
+	  let r1 = recursive_verifier(depth+1,delta false x,delta true z,x0,z0,tf,opt) in
 		match r1 with
 			| Result_false t -> Result_false t
 			| _ ->
-              (let r2 = recursive_verifier(depth+1, delta true x ,delta false z,tf,opt) in
+              (let r2 = recursive_verifier(depth+1,delta true x,delta false z,x0,z0,tf,opt) in
 				match r2 with
 					| Result_false t -> Result_false t
 					| _ -> Result_glue (mono, j_wide, r1, r2));;

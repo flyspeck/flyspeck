@@ -83,9 +83,12 @@ let buildL pp poly_tm =
   let fs = map build_fun i_funs @ (replicate (F_int_const zero) (8 - length funs + 1)) in
   let eval_fs = map eval_int_fun fs in
   let f, df = hd eval_fs, tl eval_fs in
-    fun x ->
+    (fun x z ->
+      let vars = map2 (curry mk_interval) x z in
+	f vars),
+    (fun x ->
       let vars = map (fun x -> mk_interval (x,x)) x in
-	mk_line (f vars, map (fun df -> df vars) df);;
+	mk_line (f vars, map (fun df -> df vars) df));;
 
 
 let rec shape_list n list =
@@ -112,16 +115,16 @@ let buildDD pp poly_tm =
 
 
 let build_taylor pp poly_tm =
-  let lin = buildL pp poly_tm and
+  let f0, lin = buildL pp poly_tm and
       dd = buildDD pp poly_tm in
-    Prim_a (make_primitiveA ( lin, dd));;
+    Prim_a (make_primitiveA (f0, lin, dd));;
 
 
 (**********************************************)
 
 
 (**********************************)
-let run_test f x z min_flag min_max allow_d =
+let run_test f x z min_flag min_max allow_d mono_pass_flag =
   let pad = replicate 0.0 (8 - length x) in
   let xx = x @ pad and zz = z @ pad in
   let mone = mk_interval(-1.0,-1.0) in
@@ -140,8 +143,9 @@ let run_test f x z min_flag min_max allow_d =
     iteration_count =0;
     iteration_limit =0;
     recursion_depth =200;
+    mono_pass = mono_pass_flag;
   } in
-    recursive_verifier(0,xx,zz,ff,opt);;
+    recursive_verifier(0,xx,zz,xx,zz,ff,opt);;
 
 
 (*

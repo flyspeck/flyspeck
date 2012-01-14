@@ -81,15 +81,17 @@ let lower_partial ti i =
 (* primitive A *)
 
 type primitiveA = {
+  f0 : float list -> float list -> interval;
   hfn : float list -> line;
   second : float list -> float list -> interval list list;
 };;
 
-let make_primitiveA (h1,s1) = {hfn = h1; second = s1; };;
+let make_primitiveA (f,h1,s1) = {f0 = f; hfn = h1; second = s1; };;
 
 let unitA = 
   let zero2 = table2 (fun i j -> zero) in
     make_primitiveA (
+      (fun x z -> one),
       (fun y -> line_unit),
       (fun x z -> zero2)
 );;
@@ -155,16 +157,20 @@ let x6 = Uni (mk_primitiveU 5 ux1);;
 let x1x2 = 
   let tab2 = table2 (fun i j -> if (i+j=1) then one else zero) in
     Prim_a (make_primitiveA(
-		     (fun y -> 
-			let u1 = mth y 0 in 
-			let u2 = mth y 1 in
-			let x1 = mk_interval(u1,u1) in
-			let x2 = mk_interval(u2,u2) in
-			  mk_line(
-			    imul x1 x2,
-			    table (fun i -> if i=0 then x2 else if i=1 then x1 else zero)
-			  )),
-		     (fun x z -> tab2)));;
+	      (fun x z -> 
+		 let x1 = mk_interval (mth x 0, mth z 0) in
+		 let x2 = mk_interval (mth x 1, mth z 1) in
+		   imul x1 x2),
+	      (fun y -> 
+		 let u1 = mth y 0 in 
+		 let u2 = mth y 1 in
+		 let x1 = mk_interval(u1,u1) in
+		 let x2 = mk_interval(u2,u2) in
+		   mk_line(
+		     imul x1 x2,
+		     table (fun i -> if i=0 then x2 else if i=1 then x1 else zero)
+		   )),
+	      (fun x z -> tab2)));;
 
 let tf_product tf1 tf2 = Composite(x1x2,tf1,tf2,unit,unit,unit,unit,unit,unit);;
   
@@ -254,6 +260,24 @@ let evalf tf x z =
   let (y,w) = center_form (x,z) in
     evalf4 tf w x y z;;
 
+
+let rec evalf0 tf x z = match tf with
+  | Prim_a p -> p.f0 x z
+  | Uni p -> 
+      let i = mk_interval (mth x p.slot, mth z p.slot) in
+	eval p.uv i 0
+  | Plus (tf1, tf2) -> iadd (evalf0 tf1 x z) (evalf0 tf2 x z)
+  | Scale (tf, t) -> imul (evalf0 tf x z) t
+  | Uni_compose (uf, tf) ->
+      let itf = evalf0 tf x z in
+	eval uf itf 0
+  | Composite (h,g1,g2,g3,g4,g5,g6,g7,g8) ->
+      let ps = map (fun t -> let i = evalf0 t x z in i.lo, i.hi) [g1;g2;g3;g4;g5;g6;g7;g8] in
+      let x', z' = unzip ps in
+	evalf0 h x' z';;
+
+	
+	
 let line_estimate_composite =
   let ( + ) = iadd in
   let ( * ) = imul in

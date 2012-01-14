@@ -784,7 +784,6 @@ let eval_second_bounded_poly pp poly_tm =
 
   let r1, r2 = gen_rules i_funs in
   let final_th = (REWRITE_RULE[GSYM IMP_IMP] o r1) (SYM th4) in
-
     fun x_vector_tm z_vector_tm ->
       let x_vals = dest_vector x_vector_tm and
 	  z_vals = dest_vector z_vector_tm in
@@ -814,6 +813,7 @@ let eval_second_bounded_poly pp poly_tm =
 (****************************)
 
 (*
+let pi5 = (fst o dest_pair o rand o concl) pi_approx_array.(5);;
 let pp = 5;;
 
 (* n = 3 *)
@@ -956,6 +956,48 @@ test 10 eval_poly domain_th;;
 
 
 (******************************************)
+
+(* mk_eval_function *)
+let expr_tm = poly_tm;;
+
+let mk_eval_function pp expr_tm =
+  let tm0 = `!x:real^N. x IN interval [domain] ==> interval_arith (f x) f_bounds` in
+  let n = (get_dim o fst o dest_abs) expr_tm in
+  let x_vector = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) and
+      z_vector = mk_vector_list (map (fun i -> z_vars_array.(i)) (1--n)) in
+  let ty, _, _, _, _, _, domain_var = get_types_and_vars n and
+      f_var = mk_var ("f", type_of expr_tm) in
+  let th1 = (REWRITE_CONV[IN_INTERVAL] o subst[mk_pair(x_vector,z_vector), domain_var] o inst[ty, nty]) tm0 in
+  let th2 = REWRITE_RULE [dimindex_array.(n)] th1 in
+  let th3 = REWRITE_RULE [gen_in_interval n; GSYM interval_arith] th2 in
+  let th4 = (REWRITE_RULE[GSYM IMP_IMP; CONJ_ACI] o REWRITE_RULE (Array.to_list comp_thms_array.(n))) th3 in
+  let final_th0 = (CONV_RULE ((RAND_CONV o ONCE_DEPTH_CONV) BETA_CONV) o INST[expr_tm, f_var]) th4 in
+  let x_var, h_tm = (dest_forall o rand o concl) final_th0 in
+  let f_tm = (fst o dest_interval_arith o last o striplist dest_imp) h_tm in
+  let i_fun = (eval_constants pp o build_interval_fun) f_tm in
+  let final_th = SYM final_th0 in
+
+    fun x_vector_tm z_vector_tm ->
+      let x_vals = dest_vector x_vector_tm and
+	  z_vals = dest_vector z_vector_tm in
+	if length x_vals <> n or length z_vals <> n then 
+	  failwith (sprintf "Wrong vector size; expected size: %d" n)
+	else
+	  let x_vars = map (fun i -> x_vars_array.(i)) (1--n) and
+	      z_vars = map (fun i -> z_vars_array.(i)) (1--n) in
+
+	  let inst_th = (INST (zip x_vals x_vars) o INST (zip z_vals z_vars)) final_th in
+	  let x_var, lhs = (dest_forall o lhand o concl) inst_th in
+	  let hs = (butlast o striplist dest_imp) lhs in
+	  let vars = map (rand o rator) hs in
+	  let int_vars = zip vars (map ASSUME hs) in
+	  let eval_th = eval_interval_fun pp i_fun int_vars in
+	  let f_bounds = (rand o concl) eval_th in
+	  let inst_th2 = INST[f_bounds, f_bounds_var] inst_th in
+	  let lhs_th = GEN x_var (itlist DISCH hs eval_th) in
+	    EQ_MP inst_th2 lhs_th;;
+
+
 
 
 (********************************)

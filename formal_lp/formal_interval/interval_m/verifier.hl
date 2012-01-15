@@ -1,4 +1,5 @@
 flyspeck_needs "../formal_lp/formal_interval/interval_m/recurse.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_m/recurse0.hl";;
 
 
 open Interval;;
@@ -6,6 +7,7 @@ open Univariate;;
 open Line_interval;;
 open Taylor;;
 open Recurse;;
+
 
 
 (****************************)
@@ -75,7 +77,6 @@ let eval_int_fun i_fun =
       eval_rec i_fun;;
 
 
-
 let buildL pp poly_tm =
   let lin_th = gen_lin_approx_poly_thm poly_tm in
   let funs = map (fst o dest_interval_arith) ((striplist dest_conj o rand o concl) lin_th) in
@@ -83,9 +84,9 @@ let buildL pp poly_tm =
   let fs = map build_fun i_funs @ (replicate (F_int_const zero) (8 - length funs + 1)) in
   let eval_fs = map eval_int_fun fs in
   let f, df = hd eval_fs, tl eval_fs in
-    (fun x z ->
+    (fun i x z ->
       let vars = map2 (curry mk_interval) x z in
-	f vars),
+	if i = 0 then f vars else (List.nth df (i - 1)) vars),
     (fun x ->
       let vars = map (fun x -> mk_interval (x,x)) x in
 	mk_line (f vars, map (fun df -> df vars) df));;
@@ -115,16 +116,16 @@ let buildDD pp poly_tm =
 
 
 let build_taylor pp poly_tm =
-  let f0, lin = buildL pp poly_tm and
+  let f_df, lin = buildL pp poly_tm and
       dd = buildDD pp poly_tm in
-    Prim_a (make_primitiveA (f0, lin, dd));;
+    Prim_a (make_primitiveA (f_df, lin, dd));;
 
 
 (**********************************************)
 
 
 (**********************************)
-let run_test f x z min_flag min_max allow_d mono_pass_flag =
+let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag=
   let pad = replicate 0.0 (8 - length x) in
   let xx = x @ pad and zz = z @ pad in
   let mone = mk_interval(-1.0,-1.0) in
@@ -144,8 +145,39 @@ let run_test f x z min_flag min_max allow_d mono_pass_flag =
     iteration_limit =0;
     recursion_depth =200;
     mono_pass = mono_pass_flag;
+    convex_flag = convex_flag;
   } in
     recursive_verifier(0,xx,zz,xx,zz,ff,opt);;
+
+
+
+open Recurse0;;
+
+
+let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag=
+  let pad = replicate 0.0 (8 - length x) in
+  let xx = x @ pad and zz = z @ pad in
+  let mone = mk_interval(-1.0,-1.0) in
+  let neg_f = Scale(f, mone) in
+  let ff = if min_flag then
+    Plus(neg_f, Scale(unit,mk_interval(min_max, min_max)))
+  else 
+    Plus(f, Scale(unit, ineg (mk_interval(min_max, min_max)))) in
+  let opt =  {
+    only_check_deriv1_negative = false;
+    is_using_dihmax =false;
+    is_using_bigface126 =false;
+    width_cutoff =0.05;
+    allow_sharp =false;
+    allow_derivatives =allow_d;
+    iteration_count =0;
+    iteration_limit =0;
+    recursion_depth =200;
+    mono_pass = mono_pass_flag;
+    convex_flag = convex_flag;
+  } in
+    recursive_verifier0(0,xx,zz,xx,zz,ff,opt);;
+
 
 
 (*

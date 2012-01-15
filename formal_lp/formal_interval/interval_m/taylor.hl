@@ -81,17 +81,17 @@ let lower_partial ti i =
 (* primitive A *)
 
 type primitiveA = {
-  f0 : float list -> float list -> interval;
+  f_df : int -> float list -> float list -> interval;
   hfn : float list -> line;
   second : float list -> float list -> interval list list;
 };;
 
-let make_primitiveA (f,h1,s1) = {f0 = f; hfn = h1; second = s1; };;
+let make_primitiveA (f,h1,s1) = {f_df = f; hfn = h1; second = s1; };;
 
 let unitA = 
   let zero2 = table2 (fun i j -> zero) in
     make_primitiveA (
-      (fun x z -> one),
+      (fun i x z -> if i = 0 then one else zero),
       (fun y -> line_unit),
       (fun x z -> zero2)
 );;
@@ -157,10 +157,13 @@ let x6 = Uni (mk_primitiveU 5 ux1);;
 let x1x2 = 
   let tab2 = table2 (fun i j -> if (i+j=1) then one else zero) in
     Prim_a (make_primitiveA(
-	      (fun x z -> 
+	      (fun i x z -> 
 		 let x1 = mk_interval (mth x 0, mth z 0) in
 		 let x2 = mk_interval (mth x 1, mth z 1) in
-		   imul x1 x2),
+		   if i = 0 then imul x1 x2
+		   else if i = 1 then x2
+		   else if i = 2 then x1
+		   else zero),
 	      (fun y -> 
 		 let u1 = mth y 0 in 
 		 let u2 = mth y 1 in
@@ -260,21 +263,33 @@ let evalf tf x z =
   let (y,w) = center_form (x,z) in
     evalf4 tf w x y z;;
 
-
-let rec evalf0 tf x z = match tf with
-  | Prim_a p -> p.f0 x z
+itlist2;;
+(* Evaluates a function (i = 0) and its first derivatives (i = 1, 2, ...) at the given interval *)
+let rec evalf0 tf i x z = match tf with
+  | Prim_a p -> p.f_df i x z
   | Uni p -> 
-      let i = mk_interval (mth x p.slot, mth z p.slot) in
-	eval p.uv i 0
-  | Plus (tf1, tf2) -> iadd (evalf0 tf1 x z) (evalf0 tf2 x z)
-  | Scale (tf, t) -> imul (evalf0 tf x z) t
+      let int = mk_interval (mth x p.slot, mth z p.slot) in
+	if i = 0 then eval p.uv int 0
+	else if i = p.slot + 1 then eval p.uv int 1
+	else zero
+  | Plus (tf1, tf2) -> iadd (evalf0 tf1 i x z) (evalf0 tf2 i x z)
+  | Scale (tf, t) -> imul (evalf0 tf i x z) t
   | Uni_compose (uf, tf) ->
-      let itf = evalf0 tf x z in
-	eval uf itf 0
+      let itf = evalf0 tf 0 x z in
+	if i = 0 then eval uf itf 0
+	else
+	  let i_df = evalf0 tf i x z in
+	    imul (eval uf itf 1) i_df
   | Composite (h,g1,g2,g3,g4,g5,g6,g7,g8) ->
-      let ps = map (fun t -> let i = evalf0 t x z in i.lo, i.hi) [g1;g2;g3;g4;g5;g6;g7;g8] in
+      let gs = [g1;g2;g3;g4;g5;g6;g7;g8] in
+      let ps = map (fun t -> let int = evalf0 t 0 x z in int.lo, int.hi) gs in
       let x', z' = unzip ps in
-	evalf0 h x' z';;
+	if i = 0 then evalf0 h 0 x' z'
+	else
+	  let dhs = table (fun j -> evalf0 h (j + 1) x' z') in
+	  let dgs = map (fun t -> evalf0 t i x z) gs in
+	  let ( + ), ( * ) = iadd, imul in
+	    itlist2 (fun a b c -> a * b + c) dhs dgs zero;;
 
 	
 	

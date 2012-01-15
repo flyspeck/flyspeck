@@ -8,6 +8,7 @@ This gives the verification of a sample inequality drawn from ineq.hl.
 
 
 flyspeck_needs "../formal_lp/formal_interval/interval_m/recurse.hl";;
+flyspeck_needs "../formal_lp/formal_interval/interval_m/verifier.hl";;
 
 
 open Interval;;
@@ -16,279 +17,7 @@ open Line_interval;;
 open Taylor;;
 open Recurse;;
 
-(* This was found  in recurse.cc, but doesn't belong there. *)
-
-let deltainf = 
-  let ( * ) =  downmul in
-  let ( + ) = downadd  in
-  let  ( - ) = downsub in
-  let ( ~- ) = ( ~-. ) in
-    fun x1 x2 x3 x4 x5 x6 ->
-      (down();
-         ((~- x2)*x3)*x4 +((~-  x1)*x3)*x5 +((~-  x1)*x2)*x6 +((~-  x4)*x5)*x6 +
-   x3*(x1 + x2 + x4 + x5)*x6 +  (x3*(~- x3- x6))*x6 +
-   x2*x5*(x1 + x3 + x4 + x6) + x2*(x5*(~- x2-x5)) +
-        x1*x4*(x2 + x3 + x5 + x6)+ x1*(x4*(~- x1-x4)));;
-
-
-let tupl x = let n = List.nth x in (n 0,n 1,n 2,n 3,n 4,n 5,n 6,n 7);;
-let tupl_int x = let n = (fun i -> mk_interval (List.nth x i, List.nth x i)) in (n 0,n 1,n 2,n 3,n 4,n 5,n 6,n 7);;
-
-let delta_x4L =   
-  fun x ->
-    let (x1,x2,x3,x4,x5,x6,_,_) = tupl x in
-    let ( + ),( * ) = up(); (upadd,upmul) in
-    let fhi,tdhi=
-    ( (~-.  x2)*x3 +(~-.  x1)*x4 + x2*x5 + x3*x6 +(~-.  x5)*x6 +
-                x1*(~-. x1) + x1*(~-. x4) + x1*(x2 + x3 + x5 + x6),
-        [ (~-. 2.0)* x1 + x2 + x3 + (~-.  2.0)* x4 + x5 + x6;
-	 x1 + (~-.  1.0) * x3 + x5;
-	 x1 + (~-.  1.0) * x2 + x6;
-	 (~-. 2.0) * x1;
-	 x1 + x2 + (~-. 1.0) * x6;
-	 x1 + x3 + (~-. 1.0)* x5; 0.; 0.]) in
-    let ( + ),( * ) = down(); (downadd,downmul) in
-    let flo,tdlo = 
-	 (~-. x2)*x3 +(~-.  x1)*x4 + x2*x5 + x3*x6 +(~-.  x5)*x6 +
-                x1*(~-. x1) + x1*(~-. x4) + x1*(x2 + x3 + x5 + x6),
-        [ (~-. 2.0)* x1 + x2 + x3 + (~-.  2.0)* x4 + x5 + x6;
-	 x1 + (~-.  1.0) * x3 + x5;
-	 x1 + (~-.  1.0) * x2 + x6;
-	 (~-. 2.0) * x1;
-	 x1 + x2 + (~-. 1.0) * x6;
-	 x1 + x3 + (~-.  1.0)* x5; 0.; 0.] in
-      mk_line (mk_interval(flo,fhi),map (fun (x,y)->mk_interval(x,y)) (zip tdlo tdhi));;
-
-let delta_x4DD = 
-  let m i = let r = float_of_int i in mk_interval(r,r) in
-  let intdata = [[-2; 1; 1; -2; 1; 1;0;0]; [1; 0; -1; 0; 1; 0;0;0]; [1; -1; 0; 0; 0; 1;0;0]; 
-		 [-2; 0; 0; 0; 0; 0;0;0]; [1; 1; 0; 0; 0; -1;0;0]; [1; 0; 1; 0; -1; 0;0;0];
-		[0;0;0;0;0;0;0;0]; [0;0;0;0;0;0;0;0]] in
-    table2 (fun i j -> m (mth2 intdata i j));;
-
-let delta_x4 = Prim_a (make_primitiveA ( delta_x4L, (fun x z -> delta_x4DD)));;
-
-
-(*********************)
-let delta_x4L' =   
-  fun x ->
-    let (x1,x2,x3,x4,x5,x6,_,_) = tupl_int x in
-    let ( + ),( * ),( - ), (!) = iadd, imul, isub, (fun x -> mk_interval (x,x)) in
-    let f = ineg x2 * x3 - x1 * x4 + x2 * x5 + x3 * x6 - x5 * x6 - x1 * x1 - x1 * x4 +
-	x1 * (x2 + x3 + x5 + x6) in
-    let df = [!(-2.0) * x1 + x2 + x3 - !2.0 * x4 + x5 + x6;
-	      x1 - x3 + x5;
-	      x1 - x2 + x6;
-	      !(-2.0) * x1;
-	      x1 + x2 - x6;
-	      x1 + x3 - x5;
-	     zero; zero] in
-      mk_line (f, df);;
-	
-
-let delta_x4' = Prim_a (make_primitiveA ( delta_x4L', (fun x z -> delta_x4DD)));;
-
-
-let rd_poly = expr_to_vector_fun `-- x1 + &2 * x2 - x3 - #0.835634534 * x2 * (&1 + x2)`;;
-
-
-let rd_polyL =   
-  fun x ->
-    let (x1,x2,x3,_,_,_,_,_) = tupl_int x in
-    let ( + ), ( * ), ( - ), (!) = iadd, imul, isub, (fun x -> mk_interval (x,x)) in
-    let f = ineg x1 + !2.0 * x2 - x3 - !0.835634534 * x2 * (!1.0 + x2) in
-    let df = [!(-1.0);
-	      !(2.0) - !0.835634534 * (!1.0 + x2 + x2);
-	      !(-1.0); zero; zero; zero; zero; zero] in
-      mk_line (f, df);;
-
-
-let rd_polyDD = 
-  let m r = mk_interval(r,r) in
-    table2 (fun i j -> if i = 1 && j = 1 then m (-0.835634534 *. 2.0) else zero);;
-
-
-let rd_poly' = Prim_a (make_primitiveA ( rd_polyL, (fun x z -> rd_polyDD)));;
-
-
-
-(* sample based on ineq.hl "JNTEFVP 1"; *)
-
-let sample = 
-  let xx = [4.0;4.0;4.0;4.0;4.0;8.0;0.;0.] in
-  let zz = let h02 = 6.3504 in [h02;h02;h02;h02;h02;25.4016;0.;0.] in
-  let mone = mk_interval(-1.0,-1.0) in
-  let mdelta_x4 = Scale(delta_x4,mone) in
-  let testmaxat = 6.02525 in
-  let ff = Plus(mdelta_x4,Scale(unit,mk_interval(testmaxat,testmaxat))) in
-  let truemaxat = 6.02525951999999165 in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =true;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
-
-
-result_size sample;;
-
-
-(***********)
-
-let sample2 = 
-  let xx = [-5.0;-5.0;-5.0;0.0;0.0;0.0;0.0;0.0] in
-  let zz = [5.0;5.0;5.0;0.0;0.0;0.0;0.0;0.0] in
-  let mone = mk_interval(-1.0,-1.0) in
-  let mdelta_x4 = Scale(rd_poly',mone) in
-  let testmaxat = -36.7126907 in
-  let ff = Plus(mdelta_x4,Scale(unit,mk_interval(testmaxat,testmaxat))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =false;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
-
-
-(***************************)
-
-
-(****************************)
-(* Automatic conversion of formal interval functions into functions *)
-
-
-
-
-type int_fun =
-  | F_int_var of int
-  | F_int_const of interval
-  | F_int_pow of int * int_fun
-  | F_int_neg of int_fun
-  | F_int_add of int_fun * int_fun
-  | F_int_sub of int_fun * int_fun
-  | F_int_mul of int_fun * int_fun;;
-
-let rec build_fun i_fun =
-  match i_fun with
-    | Int_var tm -> 
-	(try F_int_var (dest_small_numeral (rand tm))
-	 with Failure _ ->
-	   let name = (fst o dest_var) tm in
-	     F_int_var (int_of_string (String.sub name 1 (String.length name - 1))))
-    | Int_const th ->
-	let f1, f2 = (dest_pair o rand o concl) th in
-	let int = mk_interval (float_of_float_tm f1, float_of_float_tm f2) in
-	  F_int_const int
-    | Int_pow (n, f) -> F_int_pow (n, build_fun f)
-    | Int_unary (op, f) ->
-	let f' = build_fun f in
-	  if op = neg_op_real then F_int_neg f' else failwith ("Unsupported operator: "^string_of_term op)
-    | Int_binary (op, f1, f2) ->
-	let f1', f2' = build_fun f1, build_fun f2 in
-	  if op = add_op_real then F_int_add (f1',f2')
-	  else if op = sub_op_real then F_int_sub (f1',f2')
-	  else if op = mul_op_real then F_int_mul (f1',f2') 
-	  else failwith ("Unsupported operator: "^string_of_term op)
-    | _ -> failwith "Unsupported function";;
-
-
-let gen_pow op id n x =
-  let ( * ) = op in
-  let rec pow n =
-    if n <= 0 then id
-    else if n = 1 then x
-    else if n land 1 = 1 then
-      x * pow (n - 1)
-    else
-      let t = pow (n lsr 1) in
-	t * t in
-    pow n;;
-
-
-let ipow = gen_pow imul Interval.one;;    
-
-
-
-let eval_int_fun i_fun =
-  fun x ->
-    let rec eval_rec f =
-      match f with
-	| F_int_var i -> List.nth x (i - 1)
-	| F_int_const int -> int
-	| F_int_neg f1 -> ineg (eval_rec f1)
-	| F_int_pow (n,f1) -> ipow n (eval_rec f1)
-	| F_int_add (f1,f2) -> iadd (eval_rec f1) (eval_rec f2)
-	| F_int_sub (f1,f2) -> isub (eval_rec f1) (eval_rec f2)
-	| F_int_mul (f1,f2) -> imul (eval_rec f1) (eval_rec f2) in
-      eval_rec i_fun;;
-
-
-
-
-let buildL pp poly_tm =
-  let lin_th = gen_lin_approx_poly_thm poly_tm in
-  let funs = map (fst o dest_interval_arith) ((striplist dest_conj o rand o concl) lin_th) in
-  let i_funs = map (eval_constants pp o build_interval_fun) funs in
-  let fs = map build_fun i_funs @ (replicate (F_int_const zero) (8 - length funs + 1)) in
-  let eval_fs = map eval_int_fun fs in
-  let f, df = hd eval_fs, tl eval_fs in
-    fun x ->
-      let vars = map (fun x -> mk_interval (x,x)) x in
-	mk_line (f vars, map (fun df -> df vars) df);;
-
-
-let rec shape_list n list =
-  if length list <= n then [list]
-  else 
-    let l1, l2 = chop_list n list in
-      l1 :: shape_list n l2;;
-
-
-let buildDD pp poly_tm =
-  let n = (get_dim o fst o dest_abs) poly_tm in
-  let second_th = gen_second_bounded_poly_thm poly_tm in
-  let funs = (striplist dest_conj o rand o snd o dest_forall o rand o concl) second_th in
-  let i_funs = map (eval_constants pp o build_interval_fun o fst o dest_interval_arith) funs in
-  let fs0 = map build_fun i_funs in
-  let pad1 = replicate (F_int_const zero) (8 - n) and
-      pad2 = replicate (F_int_const zero) 8 in
-  let pad3 = replicate pad2 (8 - n) in
-  let fs = (map (fun l -> l @ pad1) (shape_list n fs0)) @ pad3 in
-  let eval_fs = map (map eval_int_fun) fs in
-    fun x z ->
-      let ints = map2 (curry mk_interval) x z in
-	map (map (fun f -> f ints)) eval_fs;;
-
-
-let build_taylor pp poly_tm =
-  let lin = buildL pp poly_tm and
-      dd = buildDD pp poly_tm in
-    Prim_a (make_primitiveA ( lin, dd));;
-
-
-
-let pp = 10;;
-let i_fun = (eval_constants pp o build_interval_fun) (body rd_poly);;
-let i_fun2 = build_fun i_fun;;
-
-let rd_polyL' = buildL pp rd_poly;;
-let rd_polyDD' = buildDD pp rd_poly;;
-let rd_taylor = build_taylor pp rd_poly;;
-
 (********************************)
-
 
 let delta_x_poly = 
   let tm = (rand o concl o SPEC_ALL) Sphere.delta_x in
@@ -307,98 +36,22 @@ let delta_y4_poly =
     expr_to_vector_fun tm;;
 
 
-let delta_x = build_taylor pp delta_x_poly;;
-let delta_y = build_taylor pp delta_y_poly;;
-let delta_x4' = build_taylor pp delta_x4_poly;;
-let delta_y4 = build_taylor pp delta_y4_poly;;
-
-let lin = buildL pp delta_x_poly;;
-lin x;;
-
+let tf_delta_x = build_taylor pp delta_x_poly;;
+let tf_delta_y = build_taylor pp delta_y_poly;;
+let tf_delta_x4 = build_taylor pp delta_x4_poly;;
+let tf_delta_y4 = build_taylor pp delta_y4_poly;;
 
 let x = replicate 1.0 8 and
     y = replicate 2.0 8 and
     z = replicate 3.0 8 and
     w = replicate 1.0 8;;
 
-evalf4 delta_x w x y z;;
-evalf4 delta_y w x y z;;
-evalf4 delta_x4 w x y z;;
-evalf4 delta_x4' w x y z;;
+evalf4 tf_delta_x w x y z;;
+evalf4 tf_delta_y w x y z;;
+evalf4 tf_delta_x4 w x y z;;
 
 
-(* delta_x >= 128.0 *)
-let sample3 = 
-  let xx = replicate 4.0 6 @ [0.; 0.] and
-      zz = replicate 6.3504 6 @ [0.; 0.] in
-  let mone = mk_interval(-1.0,-1.0) in
-  let mdelta_x4 = Scale(delta_x,mone) in
-  let testmaxat = 127.9999 in
-  let ff = Plus(mdelta_x4,Scale(unit,mk_interval(testmaxat,testmaxat))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =false;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
-
-
-result_size sample3;;
-
-(* delta_y >= 128 *)
-
-let sample4 = 
-  let xx = replicate 2.0 6 @ [0.; 0.] and
-      zz = replicate 2.52 6 @ [0.; 0.] in
-  let mone = mk_interval(-1.0,-1.0) in
-  let mdelta_x4 = Scale(delta_y,mone) in
-  let testmaxat = 127.9999 in
-  let ff = Plus(mdelta_x4,Scale(unit,mk_interval(testmaxat,testmaxat))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =false;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
-
-result_size sample4;;
-
-
-(***********************************)
-
-let run_test f x z min_flag min_max allow_d =
-  let pad = replicate 0.0 (8 - length x) in
-  let xx = x @ pad and zz = z @ pad in
-  let mone = mk_interval(-1.0,-1.0) in
-  let neg_f = Scale(f, mone) in
-  let ff = if min_flag then
-    Plus(neg_f, Scale(unit,mk_interval(min_max, min_max)))
-  else 
-    Plus(f, Scale(unit, ineg (mk_interval(min_max, min_max)))) in
-  let opt =  {
-    only_check_deriv1_negative = false;
-    is_using_dihmax =false;
-    is_using_bigface126 =false;
-    width_cutoff =0.05;
-    allow_sharp =false;
-    allow_derivatives =allow_d;
-    iteration_count =0;
-    iteration_limit =0;
-    recursion_depth =200;
-  } in
-    recursive_verifier(0,xx,zz,xx,zz,[ff],opt);;
+(************************************)
 
 
 let four_y1_delta_y_poly = 
@@ -418,10 +71,16 @@ let neg_pi_taylor = build_taylor 10 `\x:real^1. --pi`;;
 let pi2_taylor = build_taylor 10 `\x:real^1. pi / &2`;;
 
 
+let f = tf_product x1 (tf_product x1 x3);;
+let f = Uni_compose (uinv, x2);;
+evalf0 f 0 x y;;
+evalf0 f 2 x y;;
+
 (* dih_y *)
 let dih_y_taylor =
   let denom = Uni_compose (uinv, Uni_compose (usqrt, four_y1_delta_y)) in
     Plus (pi2_taylor, Uni_compose (uatan, tf_product neg_delta_y4 denom));;
+
 
 (* sol_y *)
 
@@ -481,9 +140,14 @@ let x, z =
   replicate 2.0 6 @ [0.;0.], 
   replicate 2.52 6 @ [0.;0.];;
 let ineq = Plus (taum_taylor, Scale (dih_y_taylor, mk_interval (0.626, 0.626)));;
-let taum_test4 = run_test ineq x z true 0.77 false;;
-(* 52540 *)
+let taum_test4 = run_test ineq x z true 0.77 true true true;;
+(* 52540 (48014) *)
 result_size taum_test4;;
+
+count_f0_flags taum_test4;;
+length (all_mono taum_test4);;
+count_pass_mono taum_test4;;
+count_convex taum_test4;;
 
 
 let ineq = Plus (taum_taylor, Scale (dih_y_taylor, mk_interval (-0.259, -0.259)));;
@@ -494,18 +158,91 @@ result_size taum_test5;;
 
 (*********************)
 
+let rec count_f0_flags r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (_,_,_,r1,r2) -> count_f0_flags r1 + count_f0_flags r2
+    | Result_pass (_,flag,_,_) -> if flag then 1 else 0
+    | Result_pass_mono _ -> 0;;
+
+let rec all_mono r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (mono,_,_,r1,r2) -> List.concat mono @ all_mono r1 @ all_mono r2
+    | Result_pass (mono,_,_,_) -> List.concat mono
+    | Result_pass_mono _ -> [];;
+
+let rec all_pass r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (_,_,_,r1,r2) -> all_pass r1 @ all_pass r2
+    | Result_pass (_,_,x,z) -> [x,z]
+    | Result_pass_mono _ -> [];;
+
+
+let rec count_pass_mono r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (_,_,_,r1,r2) -> count_pass_mono r1 + count_pass_mono r2
+    | Result_pass (_,_,_,_) -> 0
+    | Result_pass_mono _ -> 1;;
+
+let rec count_convex r =
+  match r with
+    | Result_false _ -> failwith "False result"
+    | Result_glue (_,_,flag,r1,r2) -> (if flag then 1 else 0) + count_convex r1 + count_convex r2
+    | _ -> 0;;
+
+
+
+
+
+(*********************)
+
 
 let x, z =
   replicate 2.0 6 @ [0.;0.], 
   replicate 2.52 6 @ [0.;0.];;
 
-let ineq1_test = run_test dih_y_taylor x z true 0.852 false;;
-(* 10298 *)
+let ineq1_test = run_test dih_y_taylor x z true 0.852 true true true;;
+(* 10298 (10142) *)
 result_size ineq1_test;;    
 
-let ineq2_test = run_test dih_y_taylor x z false 1.893 true;;
+count_f0_flags ineq1_test;;
+all_mono ineq1_test;;
+count_pass_mono ineq1_test;;
+count_convex ineq1_test;;
+
+let pp = 10;;
+let n = 6;;
+let xx = `[&2;&2;&2;&2;&2;&2]` and
+    zz = `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+
+m_verify_domain_test n pp eval_delta_x4 ineq1_test xx1 zz1;;
+
+ineq1_test;;
+
+let dd = (evalf dih_y_taylor x x).dd;;
+map (fun i -> mth (mth dd i) i) iter8;;
+
+
+let ineq2_test = run_test dih_y_taylor x z false 1.893 true true false;;
 (* 4905 (4886 with derivatives) *)
 result_size ineq2_test;;
+
+let all_p = all_pass ineq2_test;;
+let xx, zz = List.nth all_p 134;;
+let dd = (evalf dih_y_taylor xx zz).dd;;
+map (fun i -> mth (mth dd i) i) iter8;;
+
+
+
+count_f0_flags ineq2_test;;
+all_mono ineq2_test;;
+count_pass_mono ineq2_test;;
+count_convex ineq2_test;;
 
 
 let rec pass_intervals r =
@@ -566,88 +303,3 @@ Ineq.getexact "4491491732";;
 (**********************************)
 
 
-
-
-let eval_poly = build_taylor pp schwefel_poly;;
-let sample = run_test eval_poly [-10.;-10.;-10.] [10.;10.;10.] true (-0.01) false;;
-(* 6813 *)
-result_size sample;;
-let sample = run_test eval_poly [-10.;-10.;-10.] [10.;10.;10.] true (-0.0000000001) true;;
-(* 2987 *)
-result_size sample;;
-
-let pp = 10;;
-let schwefel_eval = eval_m_taylor_poly pp schwefel_poly;;
-let x_list = mk_list (replicate one_float 3, real_ty) and
-    z_list = mk_list (replicate pi5 3, real_ty);;
-
-let domain3_th = mk_m_center_domain 3 pp x_list z_list;;
-
-(* 10: 187.73 (pp = 10) *)
-test 3000 schwefel_eval domain3_th;;
-
-
-
-let eval_poly = build_taylor pp rd_poly;;
-let sample = run_test eval_poly [-5.;-5.;-5.] [5.;5.;5.] true (-36.7126907) false;;
-(* 1 *)
-result_size sample;;
-
-
-let eval_poly = build_taylor pp caprasse_poly;;
-let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] true (-3.1801) false;;
-(* 428 *)
-result_size sample;;
-let sample = run_test eval_poly [-0.5;-0.5;-0.5;-0.5] [0.5;0.5;0.5;0.5] true (-3.1801) true;;
-(* 100 *)
-result_size sample;;
-
-
-let eval_poly = build_taylor pp lv_poly;;
-let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] true (-20.801) false;;
-(* 160 *)
-result_size sample;;
-let sample = run_test eval_poly [-2.0;-2.0;-2.0;-2.0] [2.0;2.0;2.0;2.0] true (-20.801) true;;
-(* 48 *)
-result_size sample;;
-
-
-let eval_poly = build_taylor pp butcher_poly;;
-let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] true (-1.44) false;;
-(* 2 *)
-result_size sample;;
-let sample = run_test eval_poly [-1.0;-0.1;-0.1;-1.0;-0.1;-0.1] [0.0;0.9;0.5;-0.1;-0.05;-0.03] true (-1.44) true;;
-(* 2 *)
-result_size sample;;
-
-
-let eval_poly = build_taylor pp magnetism_poly;;
-let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) false;;
-(* 759936 *)
-result_size sample;;
-let sample = run_test eval_poly (replicate (-1.0) 7) (replicate 1.0 7) true (-0.25001) true;;
-(* 77 *)
-result_size sample;;
-
-
-let eval_poly = build_taylor pp heart_poly;;
-(* Error (w = 10^(-9), depth = 400), Fatal (depth = 200) *)
-let sample = run_test eval_poly [-0.1; 0.4; -0.7; -0.7; 0.1; -0.1; -0.3; -1.1]
-  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] true (-1.7435) false;;
-(* 5973 *)
-result_size sample;;
-
-let sample = run_test eval_poly [-0.1; 0.4; -0.7; -0.7; 0.1; -0.1; -0.3; -1.1]
-  [0.4; 1.0; -0.4; 0.4; 0.2; 0.2; 1.1; -0.3] true (-1.7435) true;;
-(* 190 *)
-result_size sample;;
-
-let pp = 10;;
-let heart_eval = eval_m_taylor_poly pp heart_poly;;
-let x_list = mk_list (replicate one_float 8, real_ty) and
-    z_list = mk_list (replicate pi5 8, real_ty);;
-
-let domain8_th = mk_m_center_domain 8 5 x_list z_list;;
-
-(* 51.291 *)
-test 200 heart_eval domain8_th;;

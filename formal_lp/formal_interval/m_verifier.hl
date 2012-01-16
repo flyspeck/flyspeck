@@ -739,6 +739,7 @@ let convert_to_float_list pp lo_flag list_tm =
 
 (*****************************)
 
+(*
 let m_verify_raw_old n pp eval_taylor certificate xx zz =
   let r_size = result_size certificate in
   let k = ref 0 in
@@ -784,6 +785,7 @@ let m_verify_raw_old n pp eval_taylor certificate xx zz =
       | _ -> failwith "False result" in
 
     rec_verify pp domain_th certificate;;
+*)
 
 
 (***************************)
@@ -846,36 +848,29 @@ let m_verify_raw n pp eval_f eval_taylor certificate xx zz =
 
       fun domain_th certificate ->
 	match certificate with
-	  | Result_pass (mono, f0_flag, xx, zz) -> 
-		if mono = [] then
-		  let _ = k := !k + 1 in
-		  let _ = report (sprintf "Verifying: %d/%d (f0_flag = %b)" !k r_size f0_flag) in
-		    if f0_flag then
-		      let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
-		      let xx, zz = dest_pair domain in
-			m_taylor_cell_pass0 n (eval_f 0 xx zz)
-		    else
-		      let taylor_th = eval_taylor domain_th in
-			m_taylor_cell_pass n pp taylor_th  
+	  | Result_mono (mono, r1) ->
+	      let mono_strs = 
+		map (fun m -> sprintf "%s%d (%b)" (if m.decr_flag then "-" else "") 
+		       m.variable m.df0_flag) mono in
+	      let _ = report (sprintf "Mono: [%s]" (String.concat ";" mono_strs)) in
+		verify_mono mono domain_th r1
+
+	  | Result_pass (f0_flag, xx, zz) -> 
+	      let _ = k := !k + 1 in
+	      let _ = report (sprintf "Verifying: %d/%d (f0_flag = %b)" !k r_size f0_flag) in
+		if f0_flag then
+		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		  let xx, zz = dest_pair domain in
+		    m_taylor_cell_pass0 n (eval_f 0 xx zz)
 		else
-		  let mono_strs = 
-		    map (fun m -> sprintf "%s%d (%b)" (if m.decr_flag then "-" else "") m.variable m.df0_flag)
-		      (hd mono) in
-		  let _ = report (sprintf "Mono: [%s]" (String.concat ";" mono_strs)) in
-		    verify_mono (hd mono) domain_th (Result_pass (tl mono, f0_flag, xx, zz))
+		  let taylor_th = eval_taylor domain_th in
+		    m_taylor_cell_pass n pp taylor_th  
 		  
-	  | Result_glue (mono, i, convex_flag, r1, r2) ->
-	      if mono = [] then
-		let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
-		let th1 = rec_verify domain1_th r1 and
-		    th2 = rec_verify domain2_th r2 in
-		  m_glue_cells n (i + 1) th1 th2
-	      else
-		let mono_strs = 
-		  map (fun m -> sprintf "%s%d (%b)" (if m.decr_flag then "-" else "") m.variable m.df0_flag)
-		    (hd mono) in
-		let _ = report (sprintf "GlueMono: [%s]" (String.concat ";" mono_strs)) in
-		  verify_mono (hd mono) domain_th (Result_glue (tl mono, i, convex_flag, r1, r2))
+	  | Result_glue (i, convex_flag, r1, r2) ->
+	      let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
+	      let th1 = rec_verify domain1_th r1 and
+		  th2 = rec_verify domain2_th r2 in
+		m_glue_cells n (i + 1) th1 th2
 		    
 	  | _ -> failwith "False result" in
     
@@ -890,38 +885,28 @@ let m_verify_domain_test n pp eval_taylor certificate xx zz =
   let k = ref 0 in
   let domain_th = mk_m_center_domain n pp xx zz in
 
-  let rec rec_verify pp domain_th certificate =
+  let rec rec_verify domain_th certificate =
     match certificate with
-      | Result_pass (mono, f0_flag, xx, zz) -> 
-	  let mono = List.concat mono in
-	    if mono = [] then
-	      let _ = k := !k + 1 in
-	      let _ = report (sprintf "Verifying: %d/%d" !k r_size) in ()
-	    else
-	      let m = hd mono in
-	      let _ = report (sprintf "Mono: %d (%b)" m.variable m.decr_flag) in
-	      let j, left_flag = m.variable, m.decr_flag in
-	      let domain1_th, _ = restrict_domain n j left_flag domain_th in
-	      let r1 = Result_pass ([tl mono], f0_flag, xx, zz) in
-	      let _ = rec_verify pp domain1_th r1 in ()
+      | Result_mono (mono, r1) ->
+	  let m = hd mono in
+	  let _ = report (sprintf "Mono: %d (%b)" m.variable m.decr_flag) in
+	  let j, left_flag = m.variable, m.decr_flag in
+	  let domain1_th, _ = restrict_domain n j left_flag domain_th in
+	  let r = if tl mono = [] then r1 else Result_mono (tl mono, r1) in
+	    rec_verify domain1_th r
 
-      | Result_glue (mono, i, convex_flag, r1, r2) ->
-	  let mono = List.concat mono in
-	    if mono = [] then
-	      let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
-	      let _ = rec_verify pp domain1_th r1 and
-		  _ = rec_verify pp domain2_th r2 in ()
-	    else
-	      let m = hd mono in
-	      let j, left_flag = m.variable, m.decr_flag in
-	      let _ = report (sprintf "GlueMono: %d (%b)" j left_flag) in
-	      let domain1_th, _ = restrict_domain n j left_flag domain_th in
-	      let r = Result_glue ([tl mono], i, convex_flag, r1, r2) in
-	      let _ = rec_verify pp domain1_th r in ()
+      | Result_pass (f0_flag, xx, zz) -> 
+	  let _ = k := !k + 1 in
+	  let _ = report (sprintf "Verifying: %d/%d" !k r_size) in ()
+
+      | Result_glue (i, convex_flag, r1, r2) ->
+	  let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
+	  let _ = rec_verify domain1_th r1 and
+	      _ = rec_verify domain2_th r2 in ()
 
       | _ -> failwith "False result" in
 
-    rec_verify pp domain_th certificate;;
+    rec_verify domain_th certificate;;
 
 
 
@@ -981,7 +966,7 @@ m_verify_raw n pp eval0_delta_x4 eval_delta_x4 certificate xx1 zz1;;
 result_size certificate;;
 
 let c0 = run_test0 tf_delta_x4 xx_float zz_float false 0.0 true false false;;
-(* 12 *)
+(* 12 (true false false) 2 (true true false) *)
 result_size c0;;
 m_verify_raw n pp eval0_delta_x4 eval_delta_x4 c0 xx1 zz1;;
 
@@ -1039,11 +1024,12 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
 
 let eval0_delta_x, eval_delta_x, tf_delta_x = mk_verification_functions pp delta_x_poly true `#127.999`;;
 let certificate = run_test tf_delta_x xx_float zz_float false 0.0 true true false;;
+(* 46 (true false false) 10 (true true false) *)
 result_size certificate;;
 m_verify_raw n pp eval0_delta_x eval_delta_x certificate xx1 zz1;;
 
-let c0 = run_test0 tf_delta_x xx_float zz_float false 0.0 true false true;;
-(* 4873 *)
+let c0 = run_test0 tf_delta_x xx_float zz_float false 0.0 true true true;;
+(* 4873 (true false true) 32 (true true true) *)
 result_size c0;;
 
 
@@ -1072,14 +1058,15 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
 
 let eval0_delta_y, eval_delta_y, tf_delta_y = mk_verification_functions pp delta_y_poly true `#127.999`;;
 let certificate = run_test tf_delta_y xx_float zz_float false 0.0 true true false;;
+(* 134 (true true false) *)
 result_size certificate;;
 m_verify_raw n pp eval0_delta_y eval_delta_y certificate xx1 zz1;;
 (* 10: 494 *)
 test 1 (m_verify_raw n pp eval0_delta_y eval_delta_y certificate xx1) zz1;;
 
 
-let c0 = run_test0 tf_delta_y xx_float zz_float false 0.0 true false true;;
-(* 24671 *)
+let c0 = run_test0 tf_delta_y xx_float zz_float false 0.0 true true true;;
+(* 24671 (true false true) 1785 (true true true) *)
 result_size c0;;
 
 
@@ -1098,10 +1085,16 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
 
 let eval0_schwefel,eval_schwefel,tf_schwefel = mk_verification_functions pp schwefel_poly true schwefel_min;;
 let certificate = run_test tf_schwefel xx_float zz_float false 0.0 true false false;;
+(* 1922 *)
 result_size certificate;;
 m_verify_raw n pp eval0_schwefel eval_schwefel certificate xx1 zz1;;
 (* 10: 698 (f0_flag: 133) *)
 test 1 (m_verify_raw n pp eval0_schwefel eval_schwefel certificate xx1) zz1;;
+
+let c0 = run_test0 tf_schwefel xx_float zz_float false 0.0 true false false;;
+(* 2152 *)
+result_size c0;;
+
 
 
 (***)
@@ -1136,11 +1129,17 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
 let eval0_caprasse,eval_caprasse,tf_caprasse = mk_verification_functions pp caprasse_poly true caprasse_min;;
-let certificate = run_test tf_caprasse xx_float zz_float false 0.0 true true false;;
+let certificate = run_test tf_caprasse xx_float zz_float false 0.0 true false false;;
+(* 48 (true true false) 80 (true false false) *)
 result_size certificate;;
 m_verify_raw n pp eval0_caprasse eval_caprasse certificate xx1 zz1;;
 (* 10: 30.826 (f0_flag: 17.625) *)
 test 1 (m_verify_raw n pp eval0_caprasse eval_caprasse certificate xx1) zz1;;
+
+let c0 = run_test0 tf_caprasse xx_float zz_float false 0.0 true false false;;
+(* 128 (true false false) 88 (true true false) *)
+result_size c0;;
+m_verify_raw n pp eval0_caprasse eval_caprasse c0 xx1 zz1;;
 
 
 (***)
@@ -1157,12 +1156,17 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
 let eval0_lv, eval_lv, tf_lv = mk_verification_functions pp lv_poly true lv_min;;
-let certificate = run_test tf_lv xx_float zz_float false 0.0 true true false;;
+let certificate = run_test tf_lv xx_float zz_float false 0.0 true false false;;
+(* 3 (true true false) 11 (true false false) *)
 result_size certificate;;
 m_verify_raw n pp eval0_lv eval_lv certificate xx1 zz1;;
 (* 10: 2.688 (f0_flag: 1.216) (df0_flag: 0.564) *)
 test 1 (m_verify_raw n pp eval0_lv eval_lv certificate xx1) zz1;;
 
+
+let c0 = run_test0 tf_lv xx_float zz_float false 0.0 true true false;;
+(* 11 (true false false) 3 (true true false) *)
+result_size c0;;
 
 (***)
 (* butcher *)
@@ -1199,8 +1203,14 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
 let eval0_magnetism, eval_magnetism, tf_magnetism = 
   mk_verification_functions pp magnetism_poly true magnetism_min;;
 let certificate = run_test tf_magnetism xx_float zz_float false 0.0 true false false;;
+(* 8732 (true false false) 77 (true false true) *)
 result_size certificate;;
 m_verify_raw n pp eval0_magnetism eval_magnetism certificate xx1 zz1;;
+
+let c0 = run_test0 tf_magnetism xx_float zz_float false 0.0 true false true;;
+(* 121 (true false true) *)
+result_size c0;;
+
 
 
 let rec n_mono res =
@@ -1240,9 +1250,16 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
 let eval0_heart, eval_heart, tf_heart = mk_verification_functions pp heart_poly true heart_min;;
-let certificate = run_test tf_heart xx_float zz_float false 0.0 true true false;;
+let certificate = run_test tf_heart xx_float zz_float false 0.0 true false false;;
+(* 42 (true true false) 50 (true false false) 42 (true true true) *)
 result_size certificate;;
 m_verify_raw n pp eval0_heart eval_heart certificate xx1 zz1;;
+
+let c0 = run_test0 tf_heart xx_float zz_float false 0.0 true false false;;
+(* 50 (true true false) 61 (true false false) 50 (true true true) *)
+result_size c0;;
+m_verify_raw n pp eval0_heart eval_heart c0 xx1 zz1;;
+
 
 (* 10: 109 *)
 test 1 (m_verify_raw_old n pp eval_heart certificate xx1) zz1;;

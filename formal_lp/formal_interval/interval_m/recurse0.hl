@@ -23,19 +23,21 @@ let rec has_monotone0 opt tf domain0 x z x0 z0 is found = match is with
       let allpos_df0 = df_int.lo >= 0.0 in
       let allneg_df0 = df_int.hi < 0.0 in
 	if allpos_df0 then
-	  if opt.mono_pass && mth z j < mth z0 j then return (Cell_pass_mono ([], j + 1))
-	  else
-	    let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
-	    let status = 
-	      {variable = j + 1; decr_flag = false; df0_flag = allpos_df0; ti_flag = false} in
-	      has_monotone0 opt tf domain0 (setj x) (setj z) (setj x0) (setj z0) js (status :: found)
+	  let status = 
+	    {variable = j + 1; decr_flag = false; df0_flag = allpos_df0; ti_flag = false} in
+	    if opt.mono_pass && mth z j < mth z0 j then return (Cell_pass_mono ([], status))
+	    else
+	      let setj u = table (fun i -> (if i=j then mth z j else mth u i))  in
+		has_monotone0 opt tf domain0 (setj x) (setj z) 
+		  (setj x0) (setj z0) js (status :: found)
 	else if allneg_df0 then
-	  if opt.mono_pass && mth x j > mth x0 j then return (Cell_pass_mono ([], -(j + 1)))
-	  else
-	    let setj u = table (fun i -> (if i=j then mth x j else mth u i)) in
-	    let status = 
-	      {variable = j + 1; decr_flag = true; df0_flag = allneg_df0; ti_flag = false} in
-	      has_monotone0 opt tf domain0 (setj x) (setj z) (setj x0) (setj z0) js (status :: found)
+	  let status = 
+	    {variable = j + 1; decr_flag = true; df0_flag = allneg_df0; ti_flag = false} in
+	    if opt.mono_pass && mth x j > mth x0 j then return (Cell_pass_mono ([], status))
+	    else
+	      let setj u = table (fun i -> (if i=j then mth x j else mth u i)) in
+		has_monotone0 opt tf domain0 (setj x) (setj z) 
+		  (setj x0) (setj z0) js (status :: found)
 	else has_monotone0 opt tf domain0 x z x0 z0 js found;;
 
 (* loop as long as monotonicity keeps making progress.  *)
@@ -51,7 +53,7 @@ let rec going_strong0(x,z,x0,z0,tf,opt,mono) =
     if (opt.allow_derivatives) then 
       try
 	has_monotone0 opt tf (x,z) x z x0 z0 iter8 []
-      with Return (Cell_pass_mono (_, j)) -> return (Cell_pass_mono (mono, j))
+      with Return (Cell_pass_mono (_, status)) -> return (Cell_pass_mono (mono, status))
     else (x,z,x0,z0,[]) in
     if (strong <> []) then 
       going_strong0(x,z,x0,z0,tf,opt,mono @ [strong]) 
@@ -115,7 +117,7 @@ let rec recursive_verifier0 (depth,x,z,x0,z0,tf,opt) =
     match verify_cell0(x,z,x0,z0,tf,opt)  with
       | Cell_counterexample -> Result_false (x,z)
       | Cell_pass (mono, f0_flag) -> add_mono mono (Result_pass (f0_flag,x,z))
-      | Cell_pass_mono (mono, j) -> add_mono mono (Result_pass_mono j)
+      | Cell_pass_mono (mono, status) -> add_mono mono (Result_pass_mono status)
       | Cell_inconclusive_ti(mono,ti,x,z,x0,z0) ->
 	  let dds = map (fun i -> mth (mth ti.dd i) i, i) iter8 in
 	  let convex_dds = filter (fun dd, i -> dd.lo >= 0.0 && mth x i < mth z i) dds in

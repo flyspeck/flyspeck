@@ -182,6 +182,159 @@ let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag=
 
 (****************************************)
 
+
+
+
+(*************)
+
+let domain_str x z =
+  let s1 = map string_of_float x and
+      s2 = map string_of_float z in
+    sprintf "[%s], [%s]" (String.concat "; " s1) (String.concat "; " s2);;
+
+let path_str p =
+  String.concat "," (map (fun s, j -> sprintf "%s(%d)" s j) p);;
+
+
+(* get_results0 *)
+(* This function finds all subtrees of the given solution tree which can be
+   veified immediately (no Result_pass_mono). These subtrees are added to
+   the accumulator. Paths to the roots of all subtrees are also saved in
+   the accumulator. The third returned value is a solution tree where all
+   found subtrees are replaced with Result_pass_ref j, with j = #of the corresponding
+   subtree in the accumulator (1-based) *)
+
+
+let get_results0 path r acc =
+  let dummy_tree = Result_false ([], []) in
+  let is_ref r = match r with Result_pass_ref _ -> true | _ -> false in
+
+  let rec get_rec path r acc =
+    match r with
+      | Result_mono (mono, r1) ->
+	  let get_m m = (if m.decr_flag then "ml" else "mr"), m.variable in
+	  let path' = rev_itlist (fun m l -> get_m m :: l) mono path in
+	  let flag, acc', tree = get_rec path' r1 acc in
+	    if flag then true, acc', dummy_tree
+	    else false, acc', Result_mono (mono, tree)
+      | Result_glue (j, convex_flag, r1, r2) ->
+	  let s1, s2 = if convex_flag then "ml", "mr" else "l", "r" in
+	  let p1, p2 = ((s1, j + 1) :: path), ((s2, j + 1) :: path) in
+	  let flag1, acc1, tree1 = get_rec p1 r1 acc in
+	  let flag2, acc', tree2 = get_rec p2 r2 acc1 in
+	  let n = (length acc' + 1) in
+	    if flag1 then
+	      if flag2 then
+		true, acc', dummy_tree
+	      else if is_ref r1 then
+		false, acc', Result_glue (j, convex_flag, r1, tree2)
+	      else
+		false, acc' @ [rev p1, r1], Result_glue (j, convex_flag, Result_pass_ref n, tree2)
+	    else
+	      if flag2 then
+		if is_ref r2 then
+		  false, acc', Result_glue (j, convex_flag, tree1, r2)
+		else
+		  false, acc' @ [rev p2, r2], Result_glue (j, convex_flag, tree1, Result_pass_ref n)
+	      else
+		false, acc', Result_glue (j, convex_flag, tree1, tree2)
+
+      | Result_pass_mono _ -> false, acc, r
+      | _ -> true, acc, dummy_tree in
+
+    get_rec path r acc;;
+
+
+(* get_domain *)
+(* Subdivides the given domain (x,z) according to the given path *)
+
+let get_domain x z path =
+  let n = length x in
+  let table f = map f (0--(n - 1)) in
+  let rec rec_domain x z path =
+    match path with
+      | [] -> x, z
+      | (s, j) :: ps ->
+	  let j = j - 1 in
+	  let x', z' =
+	    if s = "l" or s = "r" then
+	      let ( ++ ), ( / ) = up(); upadd, updiv in
+	      let yj = (mth x j ++ mth z j) / 2.0 in
+	      let delta b v = table (fun i -> if i = j && b then yj else mth v i) in
+		if s = "l" then 
+		  delta false x, delta true z
+		else
+		  delta true x, delta false z
+	    else
+	      if s = "ml" then
+		x, table (fun i -> if i = j then mth x i else mth z i)
+	      else
+		table (fun i -> if i = j then mth z i else mth x i), z in
+	    rec_domain x' z' ps in
+    rec_domain x z path;;
+
+(* sub_domain *)
+(* Verifies if interval [x',z'] SUBSET interval [x,z] *)
+
+let sub_domain (x',z') (x,z) =
+  let le a b = itlist2 (fun a b c -> c & (a <= b)) a b true in
+    le x x' & le z' z;;
+
+
+(* transform_pass_mono *)
+(* Replaces all (Result_pass_mono m) with (Result_mono [m] (Result_ref j)) where
+   j is the reference to the corresponding domain *)
+
+let transform_pass_mono x z domains r =
+  let domains_i = zip domains (1--length domains) in
+
+  let find_domain x' z' =
+    try find (fun d, _ -> sub_domain (x', z') d) domains_i with Failure _ -> (x,z), -1 in
+
+  let get_m m = (if m.decr_flag then "ml" else "mr"), m.variable in
+
+  let rec rec_transform path r =
+    match r with
+      | Result_mono (mono, r1) ->
+	  let path' = rev_itlist (fun m l -> get_m m :: l) mono path in
+	    Result_mono (mono, rec_transform path' r1)
+      | Result_glue (j, convex_flag, r1, r2) ->
+	  let s1, s2 = if convex_flag then "ml", "mr" else "l", "r" in
+	  let p1, p2 = ((s1, j + 1) :: path), ((s2, j + 1) :: path) in
+	  let t1 = rec_transform p1 r1 in
+	  let t2 = rec_transform p2 r2 in
+	    Result_glue (j, convex_flag, t1, t2)
+      | Result_pass_mono m -> 
+	  let path' = rev (get_m m :: path) in
+	  let x', z' = get_domain x z path' in
+	  let _, i = find_domain x' z' in
+(*	  let _ = report (sprintf "p = %s, d = %s, found: %d" 
+			    (domain_str x' z') (path_str path') i) in *)
+	    if i >= 0 then Result_mono ([m], Result_pass_ref (-i)) else r
+      | _ -> r in
+
+    rec_transform [] r;;
+    
+
+(* transform_result *)
+
+let transform_result x z r =
+  let rec transform acc r =
+    let flag, rs, r' = get_results0 [] r acc in
+      if flag then (rs @ [[], r])
+      else
+	let domains = map (fun p, _ -> get_domain x z p) rs in
+	let r_next = transform_pass_mono x z domains r' in
+	let _ = r_next <> r' or failwith "transform_result: deadlock" in
+	  transform rs r_next in
+    transform [] r;;
+
+
+(*
+
+
+
+
 let pp = 8;;
 let n = 7;;
 let xx = `[-- &1; -- &1; -- &1; -- &1; -- &1; -- &1; -- &1]` and
@@ -201,36 +354,86 @@ result_size c1;;
 (* 121 *)
 result_size c0;;
 
+let r = transform_result xx_float zz_float c1;;
+r;;
+length r;;
+let x = map (fun _, r ->
+       match r with | Result_pass_ref j -> 1 | _ -> 0) r;;
+itlist (+) x 0;;
 
-rev (rev_itlist (fun i l -> i :: l) [3;4;5] [2;1]);;
+map (fun _, r ->
+       match r with 
+	 | Result_pass _ -> "pass"
+	 | Result_mono _ -> "mono"
+	 | Result_glue _ -> "glue"
+	 | Result_false _ -> "_|_"
+	 | Result_pass_mono _ -> "pass_mono"
+	 | Result_pass_ref _ -> "ref"
+    ) r;;
 
 
-let rec get_results0 path r acc =
-  match r with
-    | Result_mono (mono, r1) ->
-	let get_m m = (if m.decr_flag then "ml" else "mr"), m.variable in
-	let path' = rev_itlist (fun m l -> get_m m :: l) mono path in
-	let flag, acc' = get_results0 path' r1 [] in
-	  if flag then true, acc'
-	  else false, acc'
-    | Result_glue (j, convex_flag, r1, r2) ->
-	let s1, s2 = if convex_flag then "cl", "cr" else "l", "r" in
-	let p1, p2 = ((s1, j + 1) :: path), ((s2, j + 1) :: path) in
-	let flag1, acc1 = get_results0 p1 r1 [] in
-	let flag2, acc2 = get_results0 p2 r2 [] in
-	let acc' = acc1 @ acc2 in
-	  if flag1 then
-	    if flag2 then
-	      true, acc'
-	    else
-	      false, (rev p1, r1) :: acc'
-	  else
-	    if flag2 then
-	      false, (rev p2, r2) :: acc'
-	    else
-	      false, acc'
+length it;;
+transform_result xx_float zz_float c0;;
 
-    | Result_pass_mono _ -> false, acc
-    | _ -> true, acc;;
+let pp = 5;;
+let n = 2;;
 
-get_results0 [] c1 [];;
+let poly_tm = expr_to_vector_fun `x1 pow 2 + x2 pow 2`;;
+
+let xx = `[-- &6; -- &6]` and
+    zz = `[&1; &2]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval0_poly, eval_poly, tf_poly = mk_verification_functions pp poly_tm true `-- &1`;;
+let c1 = run_test tf_poly xx_float zz_float false 0.0 true false true;;
+
+transform_result xx_float zz_float c1;;
+
+let c0 = run_test0 tf_poly xx_float zz_float false 0.0 true false true;;
+(* 22 *)
+result_size c1;;
+(* 38 *)
+result_size c0;;
+m_verify_raw n pp eval0_poly eval_poly c1 xx1 zz1;;
+m_verify_raw n pp eval0_poly eval_poly c1 xx1 zz1;;
+
+
+
+transform_result xx_float zz_float c1;;
+
+let flag, rs1, r1 = get_results0 [] c1 [];;
+rs1;;
+r1;;
+let domains = map (fun p, _ -> get_domain xx_float zz_float p) rs1;;
+let r2 = transform_pass_mono xx_float zz_float domains r1;;
+
+let flag, rs3, r3 = get_results0 [] r2 rs1;;
+rs3;;
+r3;;
+let domains = map (fun p, _ -> get_domain xx_float zz_float p) rs3;;	
+let r4 = transform_pass_mono xx_float zz_float domains r3;;
+
+let flag, rs5, r5 = get_results0 [] r4 rs3;;	
+rs5;;
+r5;;
+
+
+
+test 1000 (get_results0 [] c1) [];;
+test 1000 (map (fun p, _ -> get_domain xx_float zz_float p)) rs1;;
+test 1000 (transform_pass_mono xx_float zz_float domains) r1;;
+
+let flag, rs3, r3 = get_results0 [] r2 rs1;;
+let domains = map (fun p, _ -> get_domain xx_float zz_float p) rs3;;	
+let r4 = transform_pass_mono xx_float zz_float domains r3;;
+
+let flag, rs5, r5 = get_results0 [] r4 rs3;;	
+*)
+	
+
+
+

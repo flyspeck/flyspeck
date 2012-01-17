@@ -812,12 +812,46 @@ let m_verify_raw_old n pp eval_taylor certificate xx zz =
 *)
 
 
-(***************************)
+(****************************************)
 
-let m_verify_raw n pp eval_f eval_taylor certificate xx zz =
+(* time test for domain computations *)
+let m_verify_domain_test n pp eval_taylor certificate xx zz =
   let r_size = result_size certificate in
   let k = ref 0 in
   let domain_th = mk_m_center_domain n pp xx zz in
+
+  let rec rec_verify domain_th certificate =
+    match certificate with
+      | Result_mono (mono, r1) ->
+	  let m = hd mono in
+	  let _ = report (sprintf "Mono: %d (%b)" m.variable m.decr_flag) in
+	  let j, left_flag = m.variable, m.decr_flag in
+	  let domain1_th, _ = restrict_domain n j left_flag domain_th in
+	  let r = if tl mono = [] then r1 else Result_mono (tl mono, r1) in
+	    rec_verify domain1_th r
+
+      | Result_pass (f0_flag, xx, zz) -> 
+	  let _ = k := !k + 1 in
+	  let _ = report (sprintf "Verifying: %d/%d" !k r_size) in ()
+
+      | Result_glue (i, convex_flag, r1, r2) ->
+	  let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
+	  let _ = rec_verify domain1_th r1 and
+	      _ = rec_verify domain2_th r2 in ()
+
+      | _ -> failwith "False result" in
+
+    rec_verify domain_th certificate;;
+
+
+
+
+
+(***************************)
+
+let m_verify_raw n pp eval_f eval_taylor certificate domain_th0 th_list =
+  let r_size = result_size certificate in
+  let k = ref 0 in
 
   let rec rec_verify =
     let rec apply_trans sub_ths th0 acc =
@@ -895,42 +929,101 @@ let m_verify_raw n pp eval_f eval_taylor certificate xx zz =
 	      let th1 = rec_verify domain1_th r1 and
 		  th2 = rec_verify domain2_th r2 in
 		m_glue_cells n (i + 1) th1 th2
+
+	  | Result_pass_ref i ->
+	      let _ = report (sprintf "Ref: %d" i) in
+		if i > 0 then 
+		  List.nth th_list (i - 1)
+		else
+		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		  let pass_th = List.nth th_list (-i - 1) in
+		    m_cell_pass_subdomain domain pass_th
 		    
 	  | _ -> failwith "False result" in
     
-    rec_verify domain_th certificate;;
+    rec_verify domain_th0 certificate;;
 
 
+(*****************)
 
 
-(* time test for domain computations *)
-let m_verify_domain_test n pp eval_taylor certificate xx zz =
-  let r_size = result_size certificate in
+let m_verify_raw0 n pp eval_f eval_taylor certificate xx zz =
+  m_verify_raw n pp eval_f eval_taylor certificate (mk_m_center_domain n pp xx zz) [];;
+
+Hashtbl.create;;
+Hashtbl.add;;
+Hashtbl.find;;
+
+
+	    
+
+let m_verify_list n pp eval_f eval_taylor certificate_list xx zz =
+  let domain_hash = Hashtbl.create (length certificate_list * 10) in
+  let mem, find, add = Hashtbl.mem domain_hash, 
+    Hashtbl.find domain_hash, Hashtbl.add domain_hash in
+
+  let get_m_cell_domain n pp domain0 path =
+    let rec get_rec domain_th path hash =
+      match path with
+	| [] -> domain_th
+	| (s, j) :: ps ->
+	    let hash' = hash^s^(string_of_int j) in
+	      if mem hash' then 
+		get_rec (find hash') ps hash'
+	      else
+		if s = "l" or s = "r" then
+		  let domain1_th, domain2_th = split_domain n pp j domain_th in
+		  let hash1 = hash^"l"^(string_of_int j) and
+		      hash2 = hash^"r"^(string_of_int j) in
+		  let _ = add hash1 domain1_th; add hash2 domain2_th in
+		    if s = "l" then
+		      get_rec domain1_th ps hash'
+		    else
+		      get_rec domain2_th ps hash'
+		else
+		  let l_flag = (s = "ml") in
+		  let domain_th', _ = restrict_domain n j l_flag domain_th in
+		  let _ = add hash' domain_th' in
+		    get_rec domain_th' ps hash' in
+      get_rec domain0 path "" in
+
+  let domain_th0 = mk_m_center_domain n pp xx zz in
+  let size = length certificate_list in
   let k = ref 0 in
-  let domain_th = mk_m_center_domain n pp xx zz in
+  let rec rec_verify certificate_list th_list =
+    match certificate_list with
+      | [] -> last th_list
+      | (path, certificate) :: cs ->
+	  let _ = k := !k + 1; report (sprintf "List: %d/%d" !k size) in
+	  let domain_th = get_m_cell_domain n pp domain_th0 path in
+	  let th = m_verify_raw n pp eval_f eval_taylor certificate domain_th th_list in
+	    rec_verify cs (th_list @ [th]) in
+    rec_verify certificate_list [];;
 
-  let rec rec_verify domain_th certificate =
-    match certificate with
-      | Result_mono (mono, r1) ->
-	  let m = hd mono in
-	  let _ = report (sprintf "Mono: %d (%b)" m.variable m.decr_flag) in
-	  let j, left_flag = m.variable, m.decr_flag in
-	  let domain1_th, _ = restrict_domain n j left_flag domain_th in
-	  let r = if tl mono = [] then r1 else Result_mono (tl mono, r1) in
-	    rec_verify domain1_th r
 
-      | Result_pass (f0_flag, xx, zz) -> 
-	  let _ = k := !k + 1 in
-	  let _ = report (sprintf "Verifying: %d/%d" !k r_size) in ()
+(*
+let domain_th0 = mk_m_center_domain n pp xx1 zz1;;
+let th_list = [];;
 
-      | Result_glue (i, convex_flag, r1, r2) ->
-	  let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
-	  let _ = rec_verify domain1_th r1 and
-	      _ = rec_verify domain2_th r2 in ()
+let p, r = List.nth c1 0;;
+let domain = get_m_cell_domain n pp domain_th0 p;;
+let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
+let th_list = th_list @ [th];;
 
-      | _ -> failwith "False result" in
+let p, r = List.nth c1 1;;
+let domain = get_m_cell_domain n pp domain_th0 p;;
+let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
+let th_list = th_list @ [th];;
 
-    rec_verify domain_th certificate;;
+let p, r = List.nth c1 2;;
+let domain = get_m_cell_domain n pp domain_th0 p;;
+let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
+let th_list = th_list @ [th];;
 
+let p, r = List.nth c1 3;;
+let domain = get_m_cell_domain n pp domain_th0 p;;
+let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
+let th_list = th_list @ [th];;
+*)
 
 

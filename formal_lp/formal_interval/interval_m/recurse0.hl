@@ -20,8 +20,8 @@ let rec has_monotone0 opt tf domain0 x z x0 z0 is found = match is with
       has_monotone0 opt tf domain0 x z x0 z0 js found
   | j::js -> 
       let df_int = try evalf0 tf (j + 1) (fst domain0) (snd domain0) with Unstable -> mk_interval (-1.0,1.0) in
-      let allpos_df0 = df_int.lo >= 0.0 in
-      let allneg_df0 = df_int.hi < 0.0 in
+      let allpos_df0 = df_int.lo >= opt.eps in
+      let allneg_df0 = df_int.hi < ~-.(opt.eps) in
 	if allpos_df0 then
 	  let status = 
 	    {variable = j + 1; decr_flag = false; df0_flag = allpos_df0; ti_flag = false} in
@@ -46,7 +46,7 @@ let rec going_strong0(x,z,x0,z0,tf,opt,mono) =
   let (y,w) = center_form (x,z) in
   let maxwidth = maxl w in
   let target0 = try evalf0 tf 0 x z with Unstable -> return (Cell_inconclusive (mono,x,z,x0,z0)) in
-  let _ = target0.hi >= 0.0 or return (Cell_pass (mono, true)) in
+  let _ = target0.hi >= ~-.(opt.eps) or return (Cell_pass (mono, true)) in
   let epsilon_width = 1.0e-8 in
   let _ = (maxwidth >= epsilon_width) or return Cell_counterexample in
   let (x,z,x0,z0,strong) = 
@@ -120,7 +120,7 @@ let rec recursive_verifier0 (depth,x,z,x0,z0,tf,opt) =
       | Cell_pass_mono (mono, status) -> add_mono mono (Result_pass_mono status)
       | Cell_inconclusive_ti(mono,ti,x,z,x0,z0) ->
 	  let dds = map (fun i -> mth (mth ti.dd i) i, i) iter8 in
-	  let convex_dds = filter (fun dd, i -> dd.lo >= 0.0 && mth x i < mth z i) dds in
+	  let convex_dds = filter (fun dd, i -> dd.lo >= opt.eps && mth x i < mth z i) dds in
 	  let convex_i = map snd convex_dds in
 	  let w2 = List.map2 upsub z x in
 	  let convex_flag, ws, ws_i = 

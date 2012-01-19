@@ -733,7 +733,8 @@ let m_mono_pass_gen n j decr_flag diff2_th partial_mono_th sub_th pass_th =
       bound_var = mk_var ((if decr_flag then "hi" else "lo"), real_ty) in
 
   let le_th0 = (if decr_flag then float_le0 else float_ge0) bound_tm in
-  let le_th = try EQT_ELIM le_th0 with Failure _ -> failwith ("Wrong inequality: "^string_of_thm le_th0) in
+  let le_th = try EQT_ELIM le_th0 with Failure _ -> 
+    failwith (sprintf "m_mono_pass_gen: j = %d, th = %s" j (string_of_thm le_th0)) in
 
   let th0 = (INST[f_tm, f_var; bound_tm, bound_var; domain, domain_var] o
 	  INST (zip xs x_vars) o INST (zip zs z_vars)) 
@@ -1033,12 +1034,19 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
 	      mk_domains ms (fst ths) (ths :: acc) in
 
     let verify_mono mono domain_th certificate =
-      let taylor_th = eval_taylor domain_th in
-      let _, diff2_th, _, _ = dest_m_taylor_thms n taylor_th in
-      let domain_ths = mk_domains mono domain_th [] in
       let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
       let xx, zz = dest_pair domain in
+      let df0_flags = itlist (fun m b -> m.df0_flag & b) mono true in
+      let _ = report (sprintf "df0_flags = %b" df0_flags) in
+      let taylor_th, diff2_th = 
+	if df0_flags then
+	  TRUTH, diff2_f xx zz
+	else
+	  let t_th = eval_taylor domain_th in
+	  let _, d_th, _, _ = dest_m_taylor_thms n t_th in
+	    t_th, d_th in
 
+      let domain_ths = mk_domains mono domain_th [] in
 (*      let domains = domain_th :: map fst (butlast domain_ths) in *)
 
 (*      let gen_mono (m, domain_th) = *)
@@ -1099,10 +1107,9 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
 	      let th2 = rec_verify domain2_th r2 in
 		if convex_flag then
 		  let _ = report (sprintf "GlueConvex: %d" (i + 1)) in
-		  let taylor_th = eval_taylor domain_th in
-		  let _, diff2_th, _, _ = dest_m_taylor_thms n taylor_th in
 		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
 		  let xx, zz = dest_pair domain in
+		  let diff2_th = diff2_f xx zz in
 		  let partial2_th = eval2_f (i + 1) (i + 1) xx zz in
 		  let lo_partial2_th = eval_interval_arith_lo n partial2_th in
 		    m_convex_pass n (i + 1) diff2_th lo_partial2_th th1 th2

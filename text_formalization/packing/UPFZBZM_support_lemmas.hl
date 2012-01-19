@@ -1,4 +1,5 @@
 
+
 (* ========================================================================= *)
 (*                FLYSPECK - BOOK FORMALIZATION                              *)
 (*                                                                           *)
@@ -19,18 +20,30 @@
 (*                     FILES NEED TO BE LOADED                               *)
 (* ========================================================================= *)
 
+flyspeck_needs "jordan/refinement.hl";;
+flyspeck_needs "jordan/hash_term.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+flyspeck_needs "jordan/real_ext.hl";;
+flyspeck_needs "jordan/lib_ext.hl";;
+flyspeck_needs "jordan/tactics_jordan.hl";;
+flyspeck_needs "jordan/num_ext_nabs.hl";;
+flyspeck_needs "jordan/taylor_atn.hl";;
+flyspeck_needs "jordan/float.hl";;
+flyspeck_needs "jordan/flyspeck_constants.hl";;
+(* flyspeck_needs "packing/lemma_negligible.hl";; *)
+
 flyspeck_needs "nonlinear/vukhacky_tactics.hl";;
 flyspeck_needs "packing/pack_defs.hl";;
 flyspeck_needs "packing/pack_concl.hl";;
 (* flyspeck_needs "packing/beta_pair_thm.hl";; *)
-flyspeck_needs "packing/UPFZBZM_axioms.hl";;
 
 module Upfzbzm_support_lemmas = struct 
 
+open Flyspeck_constants;;
 open Pack_defs;;
 open Pack_concl;;
 open Vukhacky_tactics;;
-open Upfzbzm_axioms ;;
+
 
 let CHANGED_SET_TAC =
 let basicthms =
@@ -60,10 +73,51 @@ let CHANGED_SET_RULE tm = prove(tm,CHANGED_SET_TAC[]);;
 
 (* ------------------------------------------------------------------------- *)
 
+let lmfun_vs_marchal_concl =  
+  `!h. ~(hminus <= h /\ h <= hplus)  ==> lmfun (h) >= marchal (h)`;;
+
+let FINITE_MCELL_SET_LEMMA_concl = 
+   `!V r. packing V /\ saturated V ==> FINITE {X | X SUBSET ball (vec 0,r) /\ mcell_set V X}`;;
+
+let DIHX_SYM_concl = `!u v V X. dihX V X (u,v) = dihX V X (v,u)`;; 
+
+let SUM_GAMMAX_LMFUM_ESTIMATE_concl = 
+  `!V. ?c. !r. saturated V /\ packing V /\ &1 <= r /\ 
+               cell_cluster_estimate V /\ marchal_inequality /\
+               lmfun_inequality V ==> 
+    c * r pow 2 <=  sum {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X} 
+    (\X. gammaX V X lmfun)`;;
 
 (* ========================================================================= *)
 (*                 SOME COMPLEMENTARY LEMMAS                                 *)
 (* ========================================================================= *)
+(* ========================================================================= *)
+
+let tau0_not_zero = prove_by_refinement (
+ `~(tau0 = &0)`,
+[(SUBGOAL_THEN `#1.54065 < tau0` ASSUME_TAC);
+ (REWRITE_TAC[bounds]);
+ (STRIP_TAC);
+ (ASM_MESON_TAC[REAL_ARITH `~(#1.54065 < &0)`])]);;
+
+(* ========================================================================= *)
+
+let ZERO_LT_MM2_LEMMA = prove_by_refinement ( `&0 < mm2`,
+[(SUBGOAL_THEN `#0.02541 < mm2` ASSUME_TAC);
+ (REWRITE_TAC[bounds]);
+ (ASM_REAL_ARITH_TAC)]);;
+
+(* ========================================================================= *)
+
+let FINITE_PACK_LEMMA = Packing3.KIUMVTC;;
+
+let FINITE_PERMUTE_3 = prove_by_refinement 
+  (`FINITE {p | p permutes {0, 1, 2}}`, 
+  [MATCH_MP_TAC FINITE_PERMUTATIONS THEN MESON_TAC[FINITE_RULES]]);;
+let FINITE_PERMUTE_4 = prove_by_refinement 
+  (`FINITE {p | p permutes {0, 1, 2, 3}}`, 
+  [MATCH_MP_TAC FINITE_PERMUTATIONS THEN MESON_TAC[FINITE_RULES]]);;
+
 (* Lemma 1 *)
 
  let john_harrison_lemma1 = prove
@@ -274,142 +328,19 @@ let DIHV_SYM = prove_by_refinement (
 (* ------------------------------------------------------------------------- *)
 (* Lemma 9 *)
 
-(* removed by tchales, Jan 16, 2012 
 let DIHX_POS = prove_by_refinement ( 
  `!u v V X. &0 <= dihX V X (u,v)`,
-[(REPEAT GEN_TAC THEN REWRITE_TAC[dihX]);
+[(REPEAT STRIP_TAC THEN REWRITE_TAC[dihX; dihu2; dihu3;dihu4]);
+ (LET_TAC);
  (COND_CASES_TAC);
- REAL_ARITH_TAC;
- (LET_TAC THEN COND_CASES_TAC);
- (REWRITE_TAC[dihX2] THEN LET_TAC THEN REWRITE_TAC[DIHV_LE_0]);
+ (REAL_ARITH_TAC);
  (COND_CASES_TAC);
- (REWRITE_TAC[dihX3] THEN LET_TAC THEN MATCH_MP_TAC (SUM_POS_LE));
- STRIP_TAC;
-
- (REWRITE_TAC[left_action_list;TABLE]);
- (ABBREV_TAC `P = {p | p permutes {0, 1, 2}}`);
- (ABBREV_TAC 
-`VL = {vl:(real^3)list | ?p. p permutes {0, 1, 2} /\
-                vl = REVERSE (REVERSE_TABLE (\i. EL (inverse p i) ul') 
-                    (LENGTH ul')) /\
-                u = EL 0 vl /\
-                v = EL 1 vl}`);
- (MATCH_MP_TAC FINITE_SUBSET);
- (EXISTS_TAC `(VL:(real^3)list->bool) CROSS (P: (num->num)->bool)`);
- STRIP_TAC;
- (MATCH_MP_TAC FINITE_CROSS);
- (NEW_GOAL `FINITE (P:(num->num)->bool)`);
- (EXPAND_TAC "P");
- (REWRITE_TAC[FINITE_PERMUTE_3]);
- (ASM_REWRITE_TAC[]);
- (EXPAND_TAC "VL");
- (MATCH_MP_TAC FINITE_SUBSET);
- (ABBREV_TAC 
-  `f = (\(p:num->num). REVERSE (REVERSE_TABLE (\i. EL (inverse p i)
-                       (ul':(real^3)list)) (LENGTH ul')))`);
- (EXISTS_TAC `{vl:(real^3)list | ?p:num->num. p IN P /\ vl = f p}`);
- (STRIP_TAC);
- (MATCH_MP_TAC FINITE_IMAGE_EXPAND);
- (ASM_REWRITE_TAC[]);
- (EXPAND_TAC "P" THEN EXPAND_TAC "f");
- (REWRITE_TAC[SUBSET;IN;IN_ELIM_THM;BETA_THM]);
- (MESON_TAC[]);
-
- (EXPAND_TAC "VL");
- (EXPAND_TAC "P");
- (REWRITE_TAC[CROSS;IN;IN_ELIM_THM;SUBSET]);
- (REPEAT STRIP_TAC);
- (EXISTS_TAC `vl:(real^3)list`);
- (EXISTS_TAC `p:(num->num)`);
- (REPEAT STRIP_TAC);
- (EXISTS_TAC `p:(num->num)`);
- (ASM_REWRITE_TAC[]);
- (ASM_REWRITE_TAC[]);
- (ASM_REWRITE_TAC[]);
-
- GEN_TAC;
- (REWRITE_TAC[IN_ELIM_THM]);
- (DISCH_TAC);
- (CHOOSE_TAC (ASSUME `?vl p.
-         (p permutes {0, 1, 2} /\
-           vl = left_action_list p ul' /\
-           u:real^3 = EL 0 vl /\
-           v = EL 1 vl) /\
-          x = vl,p`)) ;
- (CHOOSE_TAC (ASSUME `?p.
-          (p permutes {0, 1, 2} /\
-           vl = left_action_list p ul' /\
-           u:real^3 = EL 0 vl /\
-           v = EL 1 vl) /\
-          x = vl,p`)) ;
- (UP_ASM_TAC THEN (REPEAT STRIP_TAC));
- (REWRITE_ONLY_TAC (ASSUME `x:(real^3)list#(num->num) = vl,p`));
- (REWRITE_TAC[DIHV_LE_0]);
+ (REWRITE_TAC[DIHV_RANGE]);
  (COND_CASES_TAC);
- (REWRITE_TAC[dihX4]);
- LET_TAC;
- (MATCH_MP_TAC REAL_LE_MUL THEN REWRITE_TAC[REAL_ARITH `&0 <= &1 / &2`]);
- (MATCH_MP_TAC SUM_POS_LE);
- STRIP_TAC;
-
- (ABBREV_TAC `P = {p | p permutes {0, 1, 2, 3}}`);
- (ABBREV_TAC 
-`VL = {vl:(real^3)list | ?p. p permutes {0, 1, 2, 3} /\
-                vl = left_action_list p ul' /\
-                u = EL 0 vl /\
-                v = EL 1 vl}`);
- (MATCH_MP_TAC FINITE_SUBSET);
- (EXISTS_TAC `(VL:(real^3)list->bool) CROSS (P: (num->num)->bool)`);
- STRIP_TAC;
- (MATCH_MP_TAC FINITE_CROSS);
- (NEW_GOAL `FINITE (P:(num->num)->bool)`);
- (EXPAND_TAC "P");
- (REWRITE_TAC[FINITE_PERMUTE_4]);
- (ASM_REWRITE_TAC[]);
- (EXPAND_TAC "VL");
- (MATCH_MP_TAC FINITE_SUBSET);
- (ABBREV_TAC 
-  `f = (\(p:num->num). left_action_list p (ul':(real^3)list))`);
- (EXISTS_TAC `{vl:(real^3)list | ?p:num->num. p IN P /\ vl = f p}`);
- (STRIP_TAC);
- (MATCH_MP_TAC FINITE_IMAGE_EXPAND);
- (ASM_REWRITE_TAC[]);
- (EXPAND_TAC "P" THEN EXPAND_TAC "f");
- (REWRITE_TAC[SUBSET;IN;IN_ELIM_THM;BETA_THM]);
- (MESON_TAC[]);
-
- (EXPAND_TAC "VL");
- (EXPAND_TAC "P");
- (REWRITE_TAC[CROSS;IN;IN_ELIM_THM;SUBSET]);
- (REPEAT STRIP_TAC);
- (EXISTS_TAC `vl:(real^3)list`);
- (EXISTS_TAC `p:(num->num)`);
- (REPEAT STRIP_TAC);
- (EXISTS_TAC `p:(num->num)`);
- (ASM_REWRITE_TAC[]);
- (ASM_REWRITE_TAC[]);
- (ASM_REWRITE_TAC[]);
-
- GEN_TAC;
- (REWRITE_TAC[IN_ELIM_THM]);
- (DISCH_TAC);
- (CHOOSE_TAC (ASSUME `?vl p.
-          (p permutes {0, 1, 2, 3} /\
-           vl = left_action_list p ul' /\
-           u:real^3 = EL 0 vl /\
-           v = EL 1 vl) /\
-          x = vl,p`)) ;
- (CHOOSE_TAC (ASSUME `?p.
-          (p permutes {0, 1, 2, 3} /\
-           vl = left_action_list p ul' /\
-           u:real^3 = EL 0 vl /\
-           v = EL 1 vl) /\
-          x = vl,p`)) ;
- (UP_ASM_TAC THEN (REPEAT STRIP_TAC));
- (REWRITE_ONLY_TAC (ASSUME `x:(real^3)list#(num->num) = vl,p`));
- (REWRITE_TAC[DIHV_LE_0]);
- REAL_ARITH_TAC ]);;
-*)
+ (REWRITE_TAC[DIHV_RANGE]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[DIHV_RANGE]);
+ (REAL_ARITH_TAC)]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Lemma 10 *)
@@ -427,3 +358,6 @@ let SUM_SET_OF_2_ELEMENTS = prove_by_refinement (
 
 
 end;;
+
+
+

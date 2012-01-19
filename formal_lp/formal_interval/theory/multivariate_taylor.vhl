@@ -712,6 +712,8 @@ End PartialMonotone.
 
 
 
+
+
 (* Taylor *)
 Section Taylor.
 
@@ -1625,6 +1627,124 @@ Proof. by move => lin second; rewrite m_taylor_interval diff2_domain_mul. Qed.
 
 
 End M_TaylorIntervalArith.
+
+
+(* Partial convex *)
+Section PartialConvex.
+
+
+Implicit Type f : `:real^N->real`.
+
+Lemma partial_convex_max f j x z u v hi :
+	`(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = z$i /\ v$i = x$i) ==>
+	u$j = x$j ==> v$j = z$j ==>
+	diff2_domain (x,z) f ==>
+	(!y. y IN interval [x,z] ==> &0 <= partial2 j j f y) ==>
+	(!y. y IN interval [x,u] ==> f y <= hi) ==>
+	(!y. y IN interval [v,z] ==> f y <= hi) ==>
+	(!y. y IN interval [x,z] ==> f y <= hi)`.
+rewrite IN_NUMSEG => uv_eq ux_eq vz_eq.
+rewrite diff2_domain => diff2_f partial2_pos bound1 bound2 y y_in.
+set y1 := `(lambda i. if i = j then x$j else y$i):real^N`.
+set y2 := `(lambda i. if i = j then z$j else y$i):real^N`.
+move: y_in; rewrite "GEN_ALL IN_INTERVAL" => y_in.
+have [] [y1_in y2_in] :`y1 IN interval [x,u] /\ y2 IN interval [v,z]`.
+  rewrite -y1_def -y2_def !"GEN_ALL IN_INTERVAL".
+  by split => i i_ineq; rewrite "GEN_ALL LAMBDA_BETA" //;
+    case: (EXCLUDED_MIDDLE `i = j`) => /= ij; rewrite ?(ux_eq, vz_eq) ?REAL_LE_REFL //;
+    rewrite uv_eq // !y_in.
+case: (EXCLUDED_MIDDLE `j IN 1..dimindex (:N)`); last first; rewrite IN_NUMSEG => j_in.
+  suff: `y1 = y`; first by move => <-; apply: bound1.
+  rewrite CART_EQ => i i_in.
+  have inj: `~(i = j)`; first by move: j_in i_in; arith.
+  by rewrite -y1_def "GEN_ALL LAMBDA_BETA".
+suff: `f y <= max (f y1) (f y2)`.
+  move => cond.
+  apply: ("REWRITE_RULE[GSYM IMP_IMP] REAL_LE_TRANS" cond).
+  by move: (bound1 y1_in) (bound2 y2_in); arith.
+set g := `f o (\t. y1 + t % basis j)`.
+have ->: `f y1 = g (&0)`.
+  by rewrite -g_def o_THM /= VECTOR_MUL_LZERO VECTOR_ADD_RID.
+have y_eq : `y = y1 + (y$j - x$j) % basis j /\ y2 = y1 + (z$j - x$j) % basis j`.
+  rewrite !CART_EQ; split => i i_in;
+    rewrite VECTOR_ADD_COMPONENT VECTOR_MUL_COMPONENT BASIS_COMPONENT //;
+    case: (EXCLUDED_MIDDLE `i = j`) => /= ij; 
+    rewrite -?(y1_def, y2_def) !"GEN_ALL LAMBDA_BETA" //= ?REAL_MUL_RID ?REAL_SUB_ADD2 //.
+	by rewrite ij /=; arith.
+    by rewrite ij /=; arith.
+have ->: `f y = g (y$j - x$j)`; first by rewrite -g_def o_THM /= -y_eq.
+have ->: `f y2 = g (z$j - x$j)`; first by rewrite -g_def o_THM /= -y_eq.
+case: (EXCLUDED_MIDDLE `z$j = x$j`) => zx_j.
+  suff: `y$j = x$j`; first by move => ->; rewrite zx_j REAL_SUB_REFL; arith.
+  by move: (y_in j_in); rewrite zx_j; arith.
+set t := `(y$j - x$j) / (z$j - x$j)`.
+have zx_pos : `&0 < z$j - x$j`.
+  rewrite "REAL_ARITH `!a b. &0 < a - b <=> ~(a = b) /\ b <= a`" zx_j /=.
+  by apply: REAL_LE_TRANS; exists `y$j`; rewrite !y_in.
+have t_props : `&0 <= t /\ t <= &1 /\ y$j - x$j = (&1 - t) * &0 + t * (z$j - x$j)`.
+  rewrite -t_def Packing3.REAL_DIV_LE_1 // REAL_MUL_RZERO REAL_ADD_LID.
+  rewrite real_div -"GEN_ALL REAL_MUL_ASSOC".
+  rewrite REAL_MUL_LINV ?REAL_SUB_0 // REAL_MUL_RID /=.
+  rewrite !real_sub REAL_LE_RADD y_in // andbT -!real_sub.
+  rewrite REAL_LE_MUL REAL_LE_INV; first by rewrite "REAL_ARITH `!a. &0 < a ==> &0 <= a`".
+  by rewrite REAL_SUB_LE y_in.
+rewrite t_props; apply: "GEN_ALL REAL_CONVEX_LOWER".
+exists `real_interval [&0, z$j - x$j]`.
+rewrite REAL_SUB_ADD REAL_SUB_LE !t_props !IN_REAL_INTERVAL !REAL_LE_REFL /=.
+rewrite "REAL_ARITH `!a. &0 < a ==> &0 <= a`" // andbT.
+set s := `real_interval _`; move: t_def t_props => _ _.
+have in_s : `!t. t IN s ==> y1 + t % basis j IN interval [x,z]`.
+  rewrite -s_def IN_REAL_INTERVAL "GEN_ALL IN_INTERVAL" => t t_ineq i i_ineq.
+  rewrite !VECTOR_ADD_COMPONENT VECTOR_MUL_COMPONENT BASIS_COMPONENT //.
+  rewrite -y1_def "GEN_ALL LAMBDA_BETA" //=.
+  case: (EXCLUDED_MIDDLE `i = j`) => /= ij; last first.
+    by rewrite REAL_MUL_RZERO REAL_ADD_RID !y_in.
+  by move: (y_in i_ineq) t_ineq; rewrite ij; arith.
+have diff2_g : `!t. t IN s ==> nth_diff_strong 2 g t`.
+  by move => t ts; rewrite -g_def; rewrite diff2_dir diff2_f in_s.
+have dg : `!t. t IN s ==> derivative g t = partial j f (y1 + t % basis j)`.
+  move => t ts; rewrite partial.
+  move: (in_s ts) => p_in; set h := `f o _`.
+  have ->: `h = g o (\t'. t + t')`.
+    rewrite -eq_ext -h_def -g_def => r; rewrite !o_THM /=.
+    by rewrite "GEN_ALL VECTOR_ADD_RDISTRIB" "GEN_ALL VECTOR_ADD_ASSOC".
+  rewrite -derivative_translation //.
+  by move: (diff2_g ts); rewrite nth_diff_strong2_eq => [] [e] [_] [te] ->.
+have d2g : `!t. t IN s ==> nth_derivative 2 g t = partial2 j j f (y1 + t % basis j)`.
+  move => t ts; rewrite -g_def diff2_dir_derivative2 ?diff2_f ?in_s //.
+  have s_eq: `1..dimindex (:N) = ((1..dimindex (:N)) DELETE j) UNION {j}`.
+    rewrite EXTENSION IN_UNION IN_SING IN_DELETE => i; split.
+      by move => ->; rewrite andTb orNb.
+    by case => /=; rewrite IN_NUMSEG.
+  have disj: `DISJOINT ((1..dimindex (:N)) DELETE j) {j}`.
+    rewrite DISJOINT EXTENSION IN_INTER IN_SING NOT_IN_EMPTY IN_DELETE => i.
+    by rewrite -andbA andNb andbF.
+  rewrite {1}s_eq SUM_UNION ?FINITE_DELETE ?FINITE_NUMSEG ?FINITE_SING // SUM_SING /=.
+  rewrite SUM_EQ_0 ?IN_DELETE ?REAL_ADD_LID.
+    move => i i_in; apply SUM_EQ_0 => k k_in /=.
+    by rewrite BASIS_COMPONENT -?IN_NUMSEG // i_in /= REAL_MUL_LZERO.
+  rewrite s_eq SUM_UNION ?FINITE_DELETE ?FINITE_NUMSEG ?FINITE_SING // SUM_SING /=.
+  rewrite SUM_EQ_0 ?IN_DELETE ?REAL_ADD_LID.
+    move => i i_in /=; rewrite REAL_ENTIRE; right.
+    by rewrite BASIS_COMPONENT -?IN_NUMSEG // i_in /= REAL_MUL_LZERO.
+  by rewrite BASIS_COMPONENT ?j_in //= !REAL_MUL_LID partial2 o_THM.
+have := REAL_CONVEX_ON_SECOND_DERIVATIVE g `derivative g` `nth_derivative 2 g` s.
+rewrite -{1 2}s_def IS_REALINTERVAL_INTERVAL andTb NOT_EXISTS_THM => ->; last first.
+  by move => t ts; rewrite d2g // partial2_pos in_s.
+split.
+  move => t; apply: contraT; rewrite negbK EXTENSION IN_SING => eq.
+  move: (eq `&0`) (eq `z$j - x$j`) zx_pos; rewrite !IN_REAL_INTERVAL !REAL_LE_REFL.
+  by arith.
+split => t ts.
+  move: (diff2_g ts); rewrite nth_diff_strong2_eq_alt => [] [e] [_] [te] H.
+  by rewrite HAS_REAL_DERIVATIVE_ATREAL_WITHIN H.
+move: (diff2_g ts); rewrite nth_diff_strong2_eq_alt => [] [e] [_] [te] H.
+by rewrite HAS_REAL_DERIVATIVE_ATREAL_WITHIN H.
+Qed.
+
+
+End PartialConvex.
+
 
 
 (* Elementary functions and their taylor intervals *)

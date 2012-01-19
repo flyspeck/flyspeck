@@ -77,8 +77,7 @@ let eval_int_fun i_fun =
       eval_rec i_fun;;
 
 
-let buildL pp poly_tm =
-  let lin_th = gen_lin_approx_poly_thm poly_tm in
+let buildL pp lin_th =
   let funs = map (fst o dest_interval_arith) ((striplist dest_conj o rand o concl) lin_th) in
   let i_funs = map (eval_constants pp o build_interval_fun) funs in
   let fs = map build_fun i_funs @ (replicate (F_int_const zero) (8 - length funs + 1)) in
@@ -92,6 +91,11 @@ let buildL pp poly_tm =
 	mk_line (f vars, map (fun df -> df vars) df));;
 
 
+let buildL0 pp poly_tm =
+  let lin_th = gen_lin_approx_poly_thm0 poly_tm in
+    buildL pp lin_th;;
+
+
 let rec shape_list n list =
   if length list <= n then [list]
   else 
@@ -99,9 +103,9 @@ let rec shape_list n list =
       l1 :: shape_list n l2;;
 
 
-let buildDD pp poly_tm =
+let buildDD pp second_th =
+  let poly_tm = (lhand o rator o lhand o concl) second_th in
   let n = (get_dim o fst o dest_abs) poly_tm in
-  let second_th = gen_second_bounded_poly_thm poly_tm in
   let funs = (striplist dest_conj o rand o snd o dest_forall o rand o concl) second_th in
   let i_funs = map (eval_constants pp o build_interval_fun o fst o dest_interval_arith) funs in
   let fs0 = map build_fun i_funs in
@@ -114,18 +118,25 @@ let buildDD pp poly_tm =
       let ints = map2 (curry mk_interval) x z in
 	map (map (fun f -> f ints)) eval_fs;;
 
+let buildDD0 pp poly_tm =
+  let second_th = gen_second_bounded_poly_thm0 poly_tm in
+    buildDD pp second_th;;
 
-let build_taylor pp poly_tm =
-  let f_df, lin = buildL pp poly_tm and
-      dd = buildDD pp poly_tm in
+
+let build_taylor pp lin_th second_th =
+  let f_df, lin = buildL pp lin_th and
+      dd = buildDD pp second_th in
     Prim_a (make_primitiveA (f_df, lin, dd));;
+
+let build_taylor0 pp poly_tm =
+  build_taylor pp (gen_lin_approx_poly_thm0 poly_tm) (gen_second_bounded_poly_thm0 poly_tm);;
 
 
 (**********************************************)
 
 
 (**********************************)
-let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag=
+let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag =
   let pad = replicate 0.0 (8 - length x) in
   let xx = x @ pad and zz = z @ pad in
   let mone = mk_interval(-1.0,-1.0) in
@@ -154,7 +165,7 @@ let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag=
 open Recurse0;;
 
 
-let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag=
+let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag =
   let pad = replicate 0.0 (8 - length x) in
   let xx = x @ pad and zz = z @ pad in
   let mone = mk_interval(-1.0,-1.0) in

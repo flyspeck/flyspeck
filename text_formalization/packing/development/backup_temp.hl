@@ -1,0 +1,306 @@
+(* ========================================================================== *)
+(*               Continue back up of complementary lemmas                     *)
+(* ========================================================================== *)
+
+let SUM_GAMMAX_LMFUM_ESTIMATE_concl = 
+  `!V. ?c. !r. saturated V /\ packing V /\ &1 <= r /\ 
+               cell_cluster_estimate V /\ marchal_inequality /\
+               lmfun_inequality V ==> 
+    c * r pow 2 <=  sum {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X} 
+    (\X. gammaX V X lmfun)`;;
+
+(* ----------------------  We prove it below ------------------------------- *)
+
+g SUM_GAMMAX_LMFUM_ESTIMATE_concl;;
+e (GEN_TAC);;
+e (EXISTS_TAC `c:real`);;
+e (REPEAT STRIP_TAC);;
+
+e (SUBGOAL_THEN `!X. (critical_edgeX V X  = {}) ==> 
+     (!u v:real^3. {u, v} IN edgeX V X ==> 
+     lmfun (hl [u; v]) >= marchal (hl [u ; v]))`  ASSUME_TAC);;
+e (REPEAT STRIP_TAC);;
+e (SUBGOAL_THEN `~(hminus <= hl [u:real^3; v] /\ hl [u; v] <= hplus)`   
+   ASSUME_TAC);;
+e STRIP_TAC;;
+e (SUBGOAL_THEN `critical_edgeX V X {u, v}` ASSUME_TAC);;
+e (REWRITE_TAC[critical_edgeX]);;
+e (REWRITE_TAC[IN_ELIM_THM]);;
+e (EXISTS_TAC `u:real^3`);;
+e (EXISTS_TAC `v:real^3`);;
+e (ASM_REWRITE_TAC[]);;
+e (SUBGOAL_THEN `~ (critical_edgeX V X = {})` ASSUME_TAC);;
+e (UP_ASM_TAC);;
+e (SET_TAC[]);;
+e (ASM_MESON_TAC[]);;
+e (ASM_SIMP_TAC[lmfun_vs_marchal]);;
+
+(*  We have already proved that :
+
+!X. critical_edgeX V X = {}
+          ==> (!u v.
+                   {u, v} IN edgeX V X
+                   ==> lmfun (hl [u; v]) >= marchal (hl [u; v]))
+*)
+
+e (SUBGOAL_THEN 
+  `!X. mcell_set V X /\ (critical_edgeX V X  = {}) ==> gammaX V X lmfun >= &0` ASSUME_TAC);;
+e (REPEAT STRIP_TAC);;
+e (MATCH_MP_TAC (REAL_ARITH 
+  `a >= gammaX V X marchal /\ gammaX V X marchal >= &0 ==> a >= &0`));;
+e CONJ_TAC;;
+
+  (* break into 2 small part *)
+ 
+e (REWRITE_TAC[gammaX]);;
+e (MATCH_MP_TAC (REAL_ARITH `a <= b ==> x - y + b >= x - y + a`));;
+e (MATCH_MP_TAC REAL_LE_LMUL);;
+e STRIP_TAC;;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e CONJ_TAC;;
+e REAL_ARITH_TAC;;
+e (MATCH_MP_TAC (REAL_ARITH `&0 < a ==> &0 <= a`));;
+e (MATCH_MP_TAC REAL_LT_DIV);;
+e (REWRITE_TAC[PI_POS;ZERO_LT_MM2_LEMMA]);;
+
+e (MATCH_MP_TAC SUM_LE);;
+e (REWRITE_TAC[FINITE_edgeX]);;
+e (REWRITE_TAC[edgeX;IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);; 
+e (REWRITE_TAC[ASSUME `x = {u:real^3, v}`;BETA_THM]);;
+
+e (REWRITE_WITH `(\({u, v}). dihX V X (u,v) * marchal (hl [u; v])) {u, v} = 
+                 dihX V X (u,v) * marchal (hl [u; v])`);;
+e (MATCH_MP_TAC BETA_PAIR_THM);;
+
+e (REWRITE_TAC[HL;DIHX_SYM]);;
+e (REPEAT GEN_TAC);;
+e (REWRITE_WITH `set_of_list [u':real^3; v'] = set_of_list [v'; u']`);;
+e (REWRITE_TAC[set_of_list]);;
+e (SET_TAC[]);;
+
+e (REWRITE_WITH `(\({u, v}). dihX V X (u,v) * lmfun (hl [u; v])) {u, v} = 
+                 dihX V X (u,v) * lmfun (hl [u; v])`);;
+e (MATCH_MP_TAC BETA_PAIR_THM);;
+
+e (REWRITE_TAC[HL;DIHX_SYM]);;
+e (REPEAT GEN_TAC);;
+e (REWRITE_WITH `set_of_list [u':real^3; v'] = set_of_list [v'; u']`);;
+e (REWRITE_TAC[set_of_list]);;
+e (SET_TAC[]);;
+
+e (MATCH_MP_TAC (REAL_ARITH `&0 <= a * ( y - x) ==> a * x <= a * y`));;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e STRIP_TAC;;
+e (REWRITE_TAC[DIHX_POS]);;
+e (MATCH_MP_TAC (REAL_ARITH `a >= b ==> &0 <= a - b`));;
+e (NEW_GOAL `{u, v} IN edgeX V X`);;
+e (ASM_REWRITE_TAC[edgeX]);;
+e (DEL_TAC THEN REPLICATE_TAC 3 UP_ASM_TAC THEN SET_TAC[]);;
+e (ASM_MESON_TAC[]);;
+
+e (MP_TAC (ASSUME `marchal_inequality`));;
+e (REWRITE_TAC[marchal_inequality]);;
+e (DISCH_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+(* ------------------------------------------------------------------------ *)
+
+e (ABBREV_TAC `B_0_r = {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X}`);;
+e (ABBREV_TAC `B_0_r_empty = B_0_r INTER {X| critical_edgeX V X = {}}`);;
+e (ABBREV_TAC `B_0_r_no_empty = B_0_r INTER {X| ~(critical_edgeX V X = {})}`);;
+
+e (SUBGOAL_THEN 
+  `B_0_r:(real^3->bool)->bool = B_0_r_empty UNION B_0_r_no_empty` ASSUME_TAC);;
+e (EXPAND_TAC "B_0_r_empty");;
+e (EXPAND_TAC "B_0_r_no_empty");;
+e (EXPAND_TAC "B_0_r");;
+e (SET_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN `FINITE (B_0_r:(real^3->bool)->bool)` ASSUME_TAC);;
+e (EXPAND_TAC "B_0_r");;
+e (REWRITE_TAC[FINITE_MCELL_SET_LEMMA]);;
+
+e (SUBGOAL_THEN `FINITE (B_0_r_empty:(real^3->bool)->bool)` ASSUME_TAC);;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `(B_0_r:(real^3->bool)->bool)`);;
+e (ASM_REWRITE_TAC[]);;
+e (SET_TAC[]);;
+
+e (SUBGOAL_THEN `FINITE (B_0_r_no_empty:(real^3->bool)->bool)` ASSUME_TAC);;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `(B_0_r:(real^3->bool)->bool)`);;
+e (ASM_REWRITE_TAC[]);;
+e (SET_TAC[]);;
+
+e (SUBGOAL_THEN `DISJOINT B_0_r_empty (B_0_r_no_empty:(real^3->bool)->bool)` ASSUME_TAC);;
+e (REWRITE_TAC[IN_DISJOINT]);;
+e (EXPAND_TAC "B_0_r_empty" THEN EXPAND_TAC "B_0_r_no_empty");;
+e (STRIP_TAC);;
+e (SUBGOAL_THEN `x IN {X | critical_edgeX V X = {}}` ASSUME_TAC);;
+e (DEL_TAC THEN UP_ASM_TAC THEN SET_TAC[]);;
+e (SUBGOAL_THEN `x IN {X | ~(critical_edgeX V X = {})}` ASSUME_TAC);;
+e (DEL_TAC THEN UP_ASM_TAC THEN SET_TAC[]);;
+e (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);;
+
+e (REWRITE_WITH 
+  `sum (B_0_r_empty UNION B_0_r_no_empty) (\X. gammaX V X lmfun) = 
+   sum (B_0_r_empty) (\X. gammaX V X lmfun) + 
+   sum (B_0_r_no_empty) (\X. gammaX V X lmfun)`);;
+e (MATCH_MP_TAC SUM_UNION);;
+e (ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN `&0 <= sum B_0_r_empty (\X. gammaX V X lmfun)` ASSUME_TAC);;
+e (MATCH_MP_TAC SUM_POS_LE);;
+e STRIP_TAC;;
+
+    e (ASM_REWRITE_TAC[]);;
+    e (EXPAND_TAC "B_0_r_empty");;  
+    e (EXPAND_TAC "B_0_r");;  
+    e (REWRITE_TAC[REAL_ARITH `&0 <= x <=> x >= &0`]);;  
+    e (MP_TAC (ASSUME
+      `!X. mcell_set V X /\ critical_edgeX V X = {} ==> 
+        gammaX V X lmfun >= &0`));;
+    e (SET_TAC[]);;
+
+e (MATCH_MP_TAC (REAL_ARITH `x <= a /\ &0 <= b ==> x <= b + a`));;
+e (ASM_REWRITE_TAC[]);;     
+
+e (REWRITE_WITH 
+  `sum B_0_r_no_empty (\X. gammaX V X lmfun) = 
+   sum B_0_r (\X. (gammaX V X lmfun) * 
+   sum (critical_edgeX V X) (\e. critical_weight V X))`);;
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_WITH 
+`sum (B_0_r_empty UNION B_0_r_no_empty)
+ (\X. gammaX V X lmfun * sum (critical_edgeX V X) (\e. critical_weight V X)) =
+ sum B_0_r_empty
+ (\X. gammaX V X lmfun * sum (critical_edgeX V X) (\e. critical_weight V X)) +
+ sum B_0_r_no_empty
+ (\X. gammaX V X lmfun * sum (critical_edgeX V X) (\e. critical_weight V X))`
+);;
+e (MATCH_MP_TAC SUM_UNION);;
+e (ASM_REWRITE_TAC[]);;
+
+e (SUBGOAL_THEN 
+ `sum B_0_r_empty
+  (\X. gammaX V X lmfun * sum (critical_edgeX V X) 
+  (\e. critical_weight V X)) = &0` ASSUME_TAC);;
+e (MATCH_MP_TAC SUM_EQ_0);;
+e (EXPAND_TAC "B_0_r_empty");;
+e (GEN_TAC THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM]);;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC (MESON[REAL_MUL_RZERO] `x = &0 ==> y * x = &0`));;
+e (MATCH_MP_TAC (MESON[SUM_CLAUSES] `x = {} ==> sum x f = &0`));;
+e (ASM_REWRITE_TAC[]);;
+
+
+e (ASM_REWRITE_TAC[REAL_ADD_LID]);;
+e (MATCH_MP_TAC (SUM_EQ));;
+e GEN_TAC;;
+e (EXPAND_TAC "B_0_r_no_empty" THEN EXPAND_TAC "B_0_r");;
+e (REWRITE_TAC[IN_INTER;IN_ELIM_THM]);;
+e DISCH_TAC;;
+e (MATCH_MP_TAC (MESON[REAL_MUL_RID] `x = &1 ==> y = y * x`));;
+e (REWRITE_TAC[critical_weight]);;
+e (SUBGOAL_THEN )
+e (SIMP_TAC[SUM_CONST]);;
+e (NEW_GOAL `FINITE (critical_edgeX V x)`);;
+e (ASM_SIMP_TAC[FINITE_critical_edgeX]);;
+e (ASM_SIMP_TAC[SUM_CONST]);;
+e (REWRITE_TAC[REAL_ARITH `a * &1 / a = (a * &1) / a`; REAL_MUL_RID]);;
+e (MATCH_MP_TAC REAL_DIV_REFL);;
+e (MATCH_MP_TAC (MESON[REAL_OF_NUM_EQ] `~(x = 0) ==> ~ (&x = &0)`));;
+e (UP_ASM_TAC THEN UP_ASM_TAC);;
+e (MESON_TAC[CARD_EQ_0]);;
+
+(* ------------------------------------------------------------------------- *)
+
+e (ABBREV_TAC 
+ `temp_set = {e:real^3->bool | (?X. X IN B_0_r /\ e IN critical_edgeX V X)}`);;
+e (SUBGOAL_THEN `FINITE (temp_set:(real^3->bool)->bool)` ASSUME_TAC);;
+e CHEAT_TAC;;
+
+  (* Used CHEAT_TAC here. But it seems to be easy *)
+
+e (REWRITE_WITH 
+ `sum B_0_r
+ (\X. gammaX V X lmfun * 
+      sum (critical_edgeX V X) (\e. critical_weight V X)) = 
+  sum B_0_r
+ (\X. sum (critical_edgeX V X) (\e. gammaX V X lmfun * critical_weight V X))`);;
+e (REWRITE_TAC[GSYM SUM_LMUL]);;
+
+e (REWRITE_WITH 
+ `sum B_0_r
+ (\X. sum (critical_edgeX V X) (\e. gammaX V X lmfun * critical_weight V X)) =
+  sum B_0_r
+ (\X. sum {e | e IN temp_set /\ critical_edgeX V X e} 
+ (\e. gammaX V X lmfun * critical_weight V X))`);;
+e (MATCH_MP_TAC SUM_EQ);;
+e (GEN_TAC THEN DISCH_TAC THEN REWRITE_TAC[IN_ELIM_THM]);;
+e (MATCH_MP_TAC (MESON[] `(s = r) ==> sum s f = sum r f`));;
+e (REWRITE_TAC[SET_RULE 
+ `(X = Y) <=> (!x. (x IN X ==> x IN Y) /\ (x IN Y ==> x IN X))`]);;
+e (GEN_TAC THEN STRIP_TAC);;
+e (REWRITE_TAC[IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (EXPAND_TAC "temp_set" THEN REWRITE_TAC[IN_ELIM_THM]);;
+e (EXISTS_TAC `x:real^3 -> bool`);;
+e (ASM_REWRITE_TAC[]);;
+e (UP_ASM_TAC THEN SET_TAC[]);;
+e (REWRITE_TAC[IN_ELIM_THM]);;
+e (SET_TAC[]);;
+e (REWRITE_WITH 
+ `sum B_0_r
+  (\X. sum {e | e IN temp_set /\ critical_edgeX V X e}
+      (\e. gammaX V X lmfun * critical_weight V X)) = 
+  sum temp_set
+ (\e. sum {X | X IN B_0_r /\ critical_edgeX V X e}
+      (\X. gammaX V X lmfun * critical_weight V X))`);;
+e (MATCH_MP_TAC SUM_SUM_RESTRICT);;
+e (ASM_REWRITE_TAC[]);;
+
+
+(* need to continue *)
+
+
+
+
+
+
+(* ========================================================================== *)
+
+
+flyspeck_needs "jordan/refinement.hl";;
+flyspeck_needs "jordan/hash_term.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+flyspeck_needs "jordan/real_ext.hl";;
+flyspeck_needs "jordan/lib_ext.hl";;
+flyspeck_needs "jordan/tactics_jordan.hl";;
+flyspeck_needs "jordan/num_ext_nabs.hl";;
+flyspeck_needs "jordan/taylor_atn.hl";;
+flyspeck_needs "jordan/float.hl";;
+flyspeck_needs "jordan/flyspeck_constants.hl";;
+open Flyspeck_constants;;
+
+(* ========================================================================= *)
+
+
+(* ========================================================================= *)
+
+
+g   `!h. ~(hminus <= h /\ h <= hplus)  ==> lmfun (h) >= marchal (h)`;;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[marchal]);;
+e (REPEAT COND_CASES_TAC);;
+e (REWRITE_TAC[marchal_quartic]);;
+e (MATCH_MP_TAC (REAL_ARITH `&0 <= a /\ &0 >= b ==> a >=b`));;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC REAL_LE_DIV);;
+e (STRIP_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_TAC[h0] THEN REAL_ARITH_TAC);;
+

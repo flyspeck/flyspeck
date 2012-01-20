@@ -1,0 +1,200 @@
+(* ========================================================================= *)
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*                                                                           *)
+(*      Authour   : VU KHAC KY                                               *)
+(*      Book lemma: UPFZBZM                                                  *)
+(*      Chaper    : Packing (Clusters)                                       *)
+(*      Date      : October 3, 2010                                          *)
+(*                                                                           *)
+(* ========================================================================= *)
+(*           Latest revision on 20 Jan 2012                                  *)
+
+(* ========================================================================= *)
+(*                     FILES NEED TO BE LOADED                               *)
+(* ========================================================================= *)
+(*                      Conclusions                                          *)
+  
+let UPFZBZM_concl = 
+   `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+         marchal_inequality /\
+         lmfun_inequality V ==>
+    (?G. negligible_fun_0 G V /\ fcc_compatible G V)`;;
+
+let FCC_COMPATABILITY_FUNC_concl =  
+ `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+   marchal_inequality /\
+   lmfun_inequality V /\ G = (\u. --vol(voronoi_open V u) + 
+   &8 * mm1 - &8 * mm2 * sum { v | v IN V /\ ~(u=v) /\ dist(u,v) <= &2*h0 } 
+   (\v. lmfun (hl [u;v]))) 
+   ==> fcc_compatible G V`;;
+
+let NEGLIGIBLE_FUNC_concl = 
+  `!V. saturated V /\
+       packing V /\
+       cell_cluster_estimate V /\
+       marchal_inequality /\
+       lmfun_inequality V /\
+       G =
+       (\u. --vol (voronoi_open V u) +
+            &8 * mm1 -
+            &8 *
+            mm2 *
+            sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+            (\v. lmfun (hl [u; v])))
+       ==> negligible_fun_0 G V`;;
+
+
+(* ======================================================================= *)
+(*
+#use "/home/vu/flyspeck/working/marchal_cells_3.hl";;
+#use "/home/vu/flyspeck/working/KIZHLTL.hl";;
+*)
+(* ======================================================================= *)
+(* Axioms *)
+
+let KY_CHEAT_TAC = MP_TAC (mk_thm([],`F`)) THEN SET_TAC[];;
+let KIZHLTL2 = prove (KIZHLTL2_concl, KY_CHEAT_TAC);;
+let KIZHLTL3 = prove (KIZHLTL3_new_concl, KY_CHEAT_TAC);;
+let SUM_GAMMAX_LMFUM_ESTIMATE = prove (SUM_GAMMAX_LMFUM_ESTIMATE_concl, KY_CHEAT_TAC);;
+
+(* ========================================================================= *)
+(*                            THE THEOREM                                    *)
+(* ========================================================================= *)
+
+(* PART 1 OF THE LEMMA *)
+
+let FCC_COMPATABILITY_FUNC = prove_by_refinement (FCC_COMPATABILITY_FUNC_concl,
+[(REWRITE_TAC[lmfun_inequality;fcc_compatible]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[REAL_ARITH `a + --a + b - c = b - c`]);
+ (MATCH_MP_TAC (REAL_ARITH 
+  `x = &8 * mm1 - &8 * (&12 * mm2) /\ y <= &8 * (&12 * mm2) ==> 
+   x <= &8 * mm1 - y`));
+ STRIP_TAC;
+ (REWRITE_TAC[SQRT_OF_32_lemma]);
+ (REWRITE_TAC[REAL_ARITH `a * b - a * c = a * (b - c)`]);
+ (REWRITE_TAC[m1_minus_12m2]);
+ (MATCH_MP_TAC REAL_LE_LMUL);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &8`]);
+ (REWRITE_TAC[REAL_ARITH `&12 * mm2 = mm2 * &12`]);
+ (MATCH_MP_TAC REAL_LE_LMUL);
+ (REWRITE_TAC[ZERO_LE_MM2_LEMMA]);
+ (ASM_MESON_TAC[])]);;
+
+
+(* ========================================================================= *)
+(* PART 2 OF THE LEMMA *)
+(* ========================================================================= *)
+
+g NEGLIGIBLE_FUNC_concl;;
+e (REWRITE_TAC[negligible_fun_0; negligible_fun_any_C]);;
+e (REPEAT STRIP_TAC);;
+
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL1));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL2));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL3));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool` SUM_GAMMAX_LMFUM_ESTIMATE));;
+e (STRIP_TAC);;
+e (EXISTS_TAC `--c''' - c - c' - c''`);;
+e (REPEAT STRIP_TAC);;
+
+e (ABBREV_TAC `f1 =  (\u:real^3. --vol (voronoi_open V u))`);;
+e (ABBREV_TAC `f2 =  (\u:real^3.  &8 * mm1 -  &8 * mm2 *
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (REWRITE_WITH `sum ((V:real^3->bool) INTER ball (vec 0,r)) G = 
+                 sum (V INTER ball (vec 0,r)) f1 + 
+                 sum (V INTER ball (vec 0,r)) f2`);;
+e (ASM_REWRITE_TAC[] THEN EXPAND_TAC "f1" THEN EXPAND_TAC "f2");;
+e (MATCH_MP_TAC SUM_ADD);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (ABBREV_TAC `f3 =  (\u:real^3.  &8 * mm1)`);;
+e (ABBREV_TAC `f4 =  (\u:real^3.  &8 * mm2 *
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (REWRITE_WITH `sum ((V:real^3->bool) INTER ball (vec 0,r)) f2 = 
+                 sum (V INTER ball (vec 0,r)) f3 - 
+                 sum (V INTER ball (vec 0,r)) f4`);;
+e (EXPAND_TAC "f2" THEN EXPAND_TAC "f3" THEN EXPAND_TAC "f4");;
+e (MATCH_MP_TAC SUM_SUB);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (EXPAND_TAC "f4" THEN DEL_TAC THEN 
+   ASM_SIMP_TAC[SUM_NEG;SUM_CONST;SUM_LMUL;FINITE_PACK_LEMMA]);;
+e (ABBREV_TAC `f5 =  (\u:real^3.  
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (ABBREV_TAC `B = {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X}`);;
+e (ABBREV_TAC `T1 = sum B vol`);;
+e (ABBREV_TAC `T2 = --(&2 * mm1 / pi) * sum B (total_solid V)`);;
+e (ABBREV_TAC `T3 = (&8 * mm2 / pi) * sum B (\X. sum (edgeX V X)
+                (\({u, v}). dihX V X (u,v) * lmfun (hl [u; v])))`);;
+
+(* ======================================================================== *)
+
+e (NEW_GOAL `sum (V:real^3->bool INTER ball (vec 0,r)) f1 <= --T1 - c * r pow 2`);;
+e (EXPAND_TAC "T1" THEN EXPAND_TAC "B");;
+e (EXPAND_TAC "f1");;
+e (REWRITE_TAC[SUM_NEG; REAL_ARITH `-- a <= --b - c <=> b + c <= a`]);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL 
+  `sum (V:real^3->bool INTER ball (vec 0,r)) f3 <= --T2 - c' * r pow 2`);;
+e (EXPAND_TAC "T2" THEN EXPAND_TAC "B");;
+e (EXPAND_TAC "f3");;
+e (REWRITE_TAC[SUM_NEG; REAL_ARITH `a <= --(-- b * d) - c<=> a + c <= b * d`]);;
+e (REWRITE_WITH `sum (V INTER ball (vec 0,r)) (\u:real^3. &8 * mm1) = 
+   &(CARD (V INTER ball (vec 0,r))) * (&8 * mm1)`);;
+e (MATCH_MP_TAC SUM_CONST);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL `T3 + c'' * r pow 2 <= 
+   &8 * mm2 * sum (V:real^3->bool INTER ball (vec 0,r)) f5`);;
+e (EXPAND_TAC "T3" THEN EXPAND_TAC "B");;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (MATCH_MP_TAC (REAL_ARITH `(?s. A <= s /\ s <= b) ==> A <= b`));;
+e (EXISTS_TAC `--T1 + --T2 + --T3  - (c + c' + c'') * r pow 2`);;
+e (STRIP_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_TAC[REAL_ARITH 
+   `--T1 + --T2 + --T3 - (c + c' + c'') * r pow 2 <=
+   (--c''' - c - c' - c'') * r pow 2 
+   <=> c''' * r pow 2 <= T1 + T2 + T3`]);;
+e (REWRITE_WITH `T1 + T2 + T3 = 
+                 sum {X | X SUBSET ball (vec 0,r) /\ mcell_set V X}
+                 (\X. gammaX V X lmfun)`);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[gammaX]);;
+e (NEW_GOAL `FINITE (B:(real^3->bool)->bool)`);;
+e (EXPAND_TAC "B");;
+e (ASM_SIMP_TAC [FINITE_MCELL_SET_LEMMA]);;
+e (ASM_SIMP_TAC[SUM_ADD; SUM_SUB; SUM_LMUL; ETA_AX]);;
+e (EXPAND_TAC "T2");;
+e (REAL_ARITH_TAC);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+ 
+let NEGLIGIBLE_FUNC = top_thm();;
+
+(* ========================================================================= *)
+(*             Main theorm                                                   *)
+(* ========================================================================= *)
+
+let UPFZBZM = prove (UPFZBZM_concl,
+ (REPEAT STRIP_TAC) THEN (ABBREV_TAC `G = (\u. --vol (voronoi_open V u) +
+              &8 * mm1 -
+              &8 *
+              mm2 *
+              sum {v:real^3 | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+              (\v. lmfun (hl [u; v])))`) THEN
+ (EXISTS_TAC `G:real^3->real`) THEN 
+ (ASM_MESON_TAC[NEGLIGIBLE_FUNC;FCC_COMPATABILITY_FUNC]));;
+
+

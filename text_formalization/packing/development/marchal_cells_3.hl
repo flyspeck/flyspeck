@@ -6,6 +6,7 @@
 (*      Chaper    : Packing (Marchal Cells 3)                                *)
 (*                                                                           *)
 (* ========================================================================= *)
+let TAKE_TAC = UP_ASM_TAC THEN REPEAT STRIP_TAC;;
 
 let HD_IN_ROGERS = prove (
  `!V ul. saturated V /\ packing V /\ barV V 3 ul ==> HD ul IN rogers V ul`,
@@ -285,6 +286,10 @@ let FINITE_MCELL_SET_lemma1 = top_thm();;
 
 (* ==================================================================== *)
 
+let FINITE_MCELL_SET_LEMMA_concl = 
+   `!V r. packing V /\ saturated V ==> 
+          FINITE {X | X SUBSET ball (vec 0,r) /\ mcell_set V X}`;;
+
 g FINITE_MCELL_SET_LEMMA_concl;;
 e (REPEAT STRIP_TAC);;
 
@@ -391,5 +396,406 @@ e (MATCH_MP_TAC Packing3.KIUMVTC);;
 e (ASM_REWRITE_TAC[]);;
 
 let FINITE_MCELL_SET_LEMMA = top_thm();;
+
+(* =========================================================================== *)
+
+g `!x k1 k2. &0 < k1 /\ &0 < k2 ==>
+  (?C. !r. &1 <= r ==>
+      &(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= C * r pow 2)`;;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `?C. !r. k2 + sqrt (&3) <= r
+                      ==> &(CARD
+                           (int_ball x (r + k1) DIFF int_ball x (r - k2))) <=
+                          C * r pow 2`);;
+e (MATCH_MP_TAC Vol1.bdt5_finiteness);;
+e (ASM_REWRITE_TAC[]);;
+e (TAKE_TAC);;
+e (ABBREV_TAC `D = &(CARD (int_ball x ((k2 + sqrt (&3)) + k1)))`);;
+e (EXISTS_TAC `max C D`);;
+e (REPEAT STRIP_TAC);;
+e (ASM_CASES_TAC `k2 + sqrt (&3) <= r`);;
+e (NEW_GOAL 
+  `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= C * r pow 2`);;
+e (ASM_SIMP_TAC[]);;
+e (NEW_GOAL `C * r pow 2 <= max C D * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a * b <= c * b <=> &0 <= (c - a) * b`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_LE_POW_2]);;
+e (REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= 
+   &(CARD (int_ball x (r + k1)))`);;
+e (REWRITE_TAC[REAL_OF_NUM_LE]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (STRIP_TAC);;
+e (SET_TAC[]);;
+e (REWRITE_TAC[Vol1.finite_int_ball]);;
+
+e (NEW_GOAL `&(CARD (int_ball x (r + k1))) <= D * r pow 2`);;
+e (NEW_GOAL `&(CARD (int_ball x (r + k1))) <= D`);;
+e (EXPAND_TAC "D");;
+e (REWRITE_TAC[REAL_OF_NUM_LE]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (REWRITE_TAC[Vol1.finite_int_ball; int_ball; Pack1.hinhcau_ball; SUBSET;    
+   IN_INTER; IN_BALL]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+e (NEW_GOAL `r + k1 <= (k2 + sqrt (&3)) + k1`);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `D <= D * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a <= a * b <=> &0 <= a * (b - &1)`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (STRIP_TAC);;
+e (EXPAND_TAC "D" THEN REWRITE_TAC[REAL_OF_NUM_LE; LE_0]);;
+e (REWRITE_TAC[REAL_ARITH `&0 <= a - b <=> b <= a`]);;
+e (ONCE_REWRITE_TAC[REAL_ARITH `&1 = (&1) pow 2`]);;
+e (REWRITE_WITH `(&1) pow 2 <= r pow 2 <=> &1 <= r`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN MATCH_MP_TAC Collect_geom.POW2_COND_LT);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `D * r pow 2 <= max C D * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a * b <= c * b <=> &0 <= (c - a) * b`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_LE_POW_2]);;
+e (REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+let CARD_BOUNDARY_INT_BALL_BOUND_1 = top_thm();;
+
+(* The following is a simplified version of Vol1.bdt5_finiteness, Vol1.bdt7_finiteness *)
+
+g `!x k1 k2. 
+  (?C. !r. &1 <= r ==>
+      &(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= C * r pow 2)`;;
+e (REPEAT STRIP_TAC);;
+e (ASM_CASES_TAC `&0 < k1 /\ &0 < k2`);;
+e (ASM_MESON_TAC[CARD_BOUNDARY_INT_BALL_BOUND_1]);;
+e (ASM_CASES_TAC `&0 < k2`);;
+e (NEW_GOAL 
+  `(?C. !r. &1 <= r ==>
+      &(CARD (int_ball x (r + &1) DIFF int_ball x (r - k2))) <= C * r pow 2)`);;
+e (MATCH_MP_TAC CARD_BOUNDARY_INT_BALL_BOUND_1);;
+e (ASM_REAL_ARITH_TAC);;
+e (TAKE_TAC);;
+e (EXISTS_TAC `C:real`);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= 
+  &(CARD (int_ball x (r + &1) DIFF int_ball x (r - k2)))`);;
+e (REWRITE_TAC[REAL_OF_NUM_LE]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (SIMP_TAC[FINITE_DIFF; Vol1.finite_int_ball]);;
+e (MATCH_MP_TAC (SET_RULE `A SUBSET B ==> A DIFF C SUBSET B DIFF C`));;
+e (REWRITE_TAC[int_ball; Pack1.hinhcau_ball; SUBSET; IN_INTER; IN_BALL]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+e (NEW_GOAL `r + k1 <= r + &1`);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `&(CARD (int_ball x (r + &1) DIFF int_ball x (r - k2))) <=
+              C * r pow 2`);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (ASM_CASES_TAC `&0 < k1`);;
+e (NEW_GOAL 
+  `(?C. !r. &1 <= r ==>
+      &(CARD (int_ball x (r + k1) DIFF int_ball x (r - &1))) <= C * r pow 2)`);;
+e (MATCH_MP_TAC CARD_BOUNDARY_INT_BALL_BOUND_1);;
+e (ASM_REAL_ARITH_TAC);;
+e (TAKE_TAC);;
+e (EXISTS_TAC `C:real`);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= 
+  &(CARD (int_ball x (r + k1) DIFF int_ball x (r - &1)))`);;
+e (REWRITE_TAC[REAL_OF_NUM_LE]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (SIMP_TAC[FINITE_DIFF; Vol1.finite_int_ball]);;
+e (MATCH_MP_TAC (SET_RULE `B SUBSET A ==> C DIFF A SUBSET C DIFF B`));;
+e (REWRITE_TAC[int_ball; Pack1.hinhcau_ball; SUBSET; IN_INTER; IN_BALL]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+e (NEW_GOAL `r - &1 <= r - k2`);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - &1))) <=
+              C * r pow 2`);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL 
+  `(?C. !r. &1 <= r ==>
+      &(CARD (int_ball x (r + &1) DIFF int_ball x (r - &1))) <= C * r pow 2)`);;
+e (MATCH_MP_TAC CARD_BOUNDARY_INT_BALL_BOUND_1);;
+e (ASM_REAL_ARITH_TAC);;
+e (TAKE_TAC);;
+e (EXISTS_TAC `C:real`);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `&(CARD (int_ball x (r + k1) DIFF int_ball x (r - k2))) <= 
+  &(CARD (int_ball x (r + &1) DIFF int_ball x (r - &1)))`);;
+e (REWRITE_TAC[REAL_OF_NUM_LE]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (SIMP_TAC[FINITE_DIFF; Vol1.finite_int_ball]);;
+e (REWRITE_TAC[IN_DIFF; int_ball; Pack1.hinhcau_ball; SUBSET; IN_INTER; IN_BALL]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `(!i. 1 <= i /\i <= 3 ==>integer (x'$i)) /\ 
+                 dist (x:real^3,x') < r - k2`);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_MESON_TAC[]);;
+e (NEW_GOAL `&(CARD (int_ball x (r + &1) DIFF int_ball x (r - &1))) <=
+              C * r pow 2`);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+
+let CARD_BOUNDARY_INT_BALL_BOUND = top_thm();;
+
+(* ============================================================ *)
+
+g `!s t f. FINITE s /\ FINITE t /\ INJ (f:A->B) s t ==>
+            CARD s <= CARD t`;;
+e (REWRITE_TAC[INJ] THEN REPEAT STRIP_TAC);;
+e (REWRITE_WITH `CARD s = CARD (IMAGE (f:A->B) s)`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN MATCH_MP_TAC CARD_IMAGE_INJ);;
+e (ASM_REWRITE_TAC[]);;
+e (MATCH_MP_TAC CARD_SUBSET);;
+e (ASM_REWRITE_TAC[IMAGE; SUBSET]);;
+e (UNDISCH_TAC `!x. x IN s ==> (f:A->B) x IN t`);;
+e (REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (SET_TAC[]);;
+
+let CARD_INJ_LE = top_thm();;
+
+(* ============================================================ *)
+
+g `!p:real^3 k1 k2. 
+       ?C. (!r. &1 <= r ==> 
+        vol (ball (p:real^3,r + k1) DIFF ball (p,r - k2)) <= C * r pow 2)`;;
+e (REPEAT STRIP_TAC);;
+
+e (ABBREV_TAC 
+  `C = &4 / &3 * pi * (&3 * abs (k1 + k2) + &3 * k1 pow 2 + abs (k1 pow 3 + k2 pow 3))`);;
+e (ABBREV_TAC `D = vol (ball (p:real^3, abs (k1 + k2)))`);;
+e (ABBREV_TAC `E = max C (D:real)`);;
+e (EXISTS_TAC `max (E:real) (&0)`);;
+e (REPEAT STRIP_TAC);;
+e (ASM_CASES_TAC `r + k1 <= r - k2`);;
+e (REWRITE_WITH `ball (p,r + k1) DIFF ball (p:real^3,r - k2) = {}`);;
+e (MATCH_MP_TAC (SET_RULE `A SUBSET B ==> A DIFF B = {}`));;
+e (REWRITE_TAC[SUBSET; IN_BALL] THEN REPEAT STRIP_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_TAC[MEASURE_EMPTY]);;
+e (NEW_GOAL `&0 * r pow 2 <= max E (&0) * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a * x <= b * x <=> &0 <= (b - a) * x`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (ASM_REWRITE_TAC[REAL_LE_POW_2] THEN REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (REWRITE_WITH `vol (ball (p,r + k1) DIFF ball (p,r - k2)) = 
+                 vol (ball (p,r + k1)) - vol (ball (p,r - k2))`);;
+e (MATCH_MP_TAC MEASURE_DIFF_SUBSET);;
+e (REWRITE_TAC[MEASURABLE_BALL; SUBSET; IN_BALL] THEN ASM_REAL_ARITH_TAC);;
+e (REWRITE_TAC[VOLUME_BALL]);;
+e (ASM_CASES_TAC `&0 <= r - k2`);;
+e (NEW_GOAL `&0 <= r + k1`);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `vol (ball (p,r + k1)) - vol (ball (p,r - k2)) <= C * r pow 2`);;
+e (ASM_SIMP_TAC [VOLUME_BALL]);;
+e (EXPAND_TAC "C");;
+e (REWRITE_TAC[REAL_ARITH 
+   `x * pi * a - x * pi * b <=  (x *  pi *  c) * d <=> 
+    &0 <= (x * pi) * (c * d - (a - b))`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (ASM_SIMP_TAC[REAL_LE_MUL; REAL_LE_DIV; PI_POS_LE; REAL_ARITH `&0 <= &3 /\ &0 <= &4`]);;
+e (REWRITE_TAC[REAL_ARITH `(r + k1) pow 3 - (r - k2) pow 3 = &3 * (k1 + k2) * 
+   r pow 2 + &3 * (k1 pow 2  - k2 pow 2) * r + (k1 pow 3 + k2 pow 3)`]);;
+e (REWRITE_TAC[REAL_ADD_RDISTRIB]);;
+e (NEW_GOAL `(&3 * abs (k1 + k2)) * r pow 2 >= 
+             &3 * (k1 * r pow 2 + k2 * r pow 2)`);;
+e (REWRITE_TAC[REAL_ARITH
+  `(&3 * abs (k1 + k2)) * r pow 2 >= &3 * (k1 * r pow 2 + k2 * r pow 2) <=> 
+   &0 <= &3 * r pow 2 * (abs (k1 + k2) - (k1 + k2))`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_ARITH `&0 <= &3`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_LE_POW_2]);;
+e (REAL_ARITH_TAC);;
+
+e (NEW_GOAL `(&3 * k1 pow 2) * r pow 2 >= &3 * (k1 pow 2 - k2 pow 2) * r`);;
+e (NEW_GOAL `(&3 * k1 pow 2) * r pow 2 >= (&3 * k1 pow 2) * r`);;
+e (REWRITE_TAC[REAL_ARITH `x * y pow 2 >= x * y <=> &0 <= x * y * (y - &1)`]);;
+e (ASM_SIMP_TAC[REAL_LE_MUL; REAL_LE_POW_2; REAL_ARITH `&1 <= a ==> &0 <= a`;
+   REAL_ARITH `&1 <= a ==> &0 <= (a - &1)`; REAL_ARITH `&0 <= &3`]);;
+e (NEW_GOAL `(&3 * k1 pow 2) * r >= &3 * (k1 pow 2 - k2 pow 2) * r`);;
+e (REWRITE_TAC[REAL_ARITH `(&3 * x) * r >= &3 * (x - y) * r <=> &0 <= y * r`]);;
+e (ASM_SIMP_TAC[REAL_LE_MUL; REAL_LE_POW_2; REAL_ARITH `&1 <= a ==> &0 <= a`]);;
+e (ASM_REAL_ARITH_TAC);;
+
+
+e (NEW_GOAL `abs (k1 pow 3 + k2 pow 3) * r pow 2 >= k1 pow 3 + k2 pow 3`);;
+e (NEW_GOAL `abs (k1 pow 3 + k2 pow 3) * r pow 2 >= 
+             abs (k1 pow 3 + k2 pow 3)`);;
+e (REWRITE_TAC[REAL_ARITH `x * y pow 2 >= x <=> &0 <= x * (y pow 2 - &1)`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_ABS_POS]);;
+e (REWRITE_TAC[REAL_ARITH `&0 <= a - &1 <=> &1 pow 2 <= a`]);;
+e (REWRITE_WITH `&1 pow 2 <= r pow 2 <=> &1 <= r`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (MATCH_MP_TAC Collect_geom.POW2_COND_LT);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+
+e (NEW_GOAL `C * r pow 2 <= max E (&0) * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a * x <= b * x <=> &0 <= (b - a) * x`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (ASM_REWRITE_TAC[REAL_LE_POW_2] THEN ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `r < k2`);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `vol (ball (p,r + k1)) - vol (ball (p,r - k2)) <= D * r pow 2`);;
+e (REWRITE_WITH `ball (p:real^3,r - k2) = {}`);;
+e (REWRITE_TAC[SET_RULE `s = {} <=> (!x. x IN s ==> F)`]);;
+e (REWRITE_TAC[IN_BALL] THEN GEN_TAC);;
+e (MP_TAC (MESON[DIST_POS_LE] `&0 <= dist (p, x:real^3)`));;
+e (ASM_REAL_ARITH_TAC);;
+
+e (REWRITE_TAC[MEASURE_EMPTY; REAL_ARITH `a - &0 = a`]);;
+e (NEW_GOAL `vol (ball (p,r + k1)) <= D`);;
+e (EXPAND_TAC "D" THEN MATCH_MP_TAC MEASURE_SUBSET);;
+e (REWRITE_TAC[MEASURABLE_BALL; SUBSET; IN_BALL]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `D <= D * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `x <= x * y pow 2 <=> &0 <= x * (y pow 2 - &1)`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (EXPAND_TAC "D");;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC MEASURE_POS_LE);;
+e (REWRITE_TAC[MEASURABLE_BALL]);;
+e (REWRITE_TAC[REAL_ARITH `&0 <= a - &1 <=> &1 pow 2 <= a`]);;
+e (REWRITE_WITH `&1 pow 2 <= r pow 2 <=> &1 <= r`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (MATCH_MP_TAC Collect_geom.POW2_COND_LT);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `D * r pow 2 <= max E (&0) * r pow 2`);;
+e (REWRITE_TAC[REAL_ARITH `a * x <= b * x <=> &0 <= (b - a) * x`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (ASM_REWRITE_TAC[REAL_LE_POW_2] THEN ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+let BOUNDARY_VOLUME = top_thm();;
+
+(* ===================================================================== *)
+
+
+g `!V p:real^3 k1 k2. packing V ==>
+      ?C. !r. &1 <= r
+       ==> &(CARD (V INTER ball (p,r + k1) DIFF V INTER ball (p,r - k2))) 
+           <= C * r pow 2`;;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `?C. (!r. &1 <= r  ==> 
+             vol (ball (p:real^3,r + k1 + &1) DIFF ball (p,r - (k2 + &1))) <= 
+             C * r pow 2)`);;
+e (REWRITE_TAC[BOUNDARY_VOLUME]);;
+e (UP_ASM_TAC THEN STRIP_TAC);;
+e (EXISTS_TAC `C:real`);;
+e (REPEAT STRIP_TAC);;
+e (ABBREV_TAC
+  `B = V INTER ball (p,r + k1) DIFF V INTER ball (p:real^3,r - k2)`);;
+e (ABBREV_TAC `f = (\u:real^3. ball (u, &1))`);;
+e (NEW_GOAL `FINITE (B:real^3->bool)`);;
+e (EXPAND_TAC "B");;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `V INTER ball (p:real^3,r + k1)`);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA] THEN ASM_SET_TAC[]);;
+
+e (NEW_GOAL `sum B (\u:real^3. vol (f u)) = &(CARD B) * &4 / &3 * pi`);;
+e (EXPAND_TAC "f");;
+e (SIMP_TAC[VOLUME_BALL; REAL_ARITH `&0 <= &1`]);;
+e (ASM_SIMP_TAC [SUM_CONST]);;
+e (REAL_ARITH_TAC);;
+
+e (NEW_GOAL `sum B (\u:real^3. vol (f u)) = vol (UNIONS (IMAGE f B))`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (MATCH_MP_TAC MEASURE_DISJOINT_UNIONS_IMAGE);;
+e (EXPAND_TAC "f" THEN REWRITE_TAC[MEASURABLE_BALL] THEN ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[SET_RULE `DISJOINT s t <=> !x. ~(x IN s /\ x IN t)`]);;
+e (REWRITE_TAC[IN_BALL]);;
+e (REPEAT STRIP_TAC);;
+e (UP_ASM_TAC THEN REWRITE_TAC[] THEN ONCE_REWRITE_TAC[DIST_SYM] THEN STRIP_TAC);;
+e (NEW_GOAL `dist (u, y) <= dist (u, x) + dist (x, y:real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `&2 <= dist (u, y:real^3)`);;
+e (UNDISCH_TAC `packing V` THEN REWRITE_TAC[packing] THEN STRIP_TAC);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_SET_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `vol (UNIONS (IMAGE f (B:real^3->bool))) <= 
+             vol (ball (p,r + k1 + &1) DIFF ball (p,r - (k2 + &1)))`);;
+e (EXPAND_TAC "f" THEN REWRITE_TAC[IMAGE]);;
+e (MATCH_MP_TAC MEASURE_SUBSET);;
+e (REPEAT STRIP_TAC);;
+e (MATCH_MP_TAC MEASURABLE_UNIONS);;
+e (STRIP_TAC);;
+
+e (MATCH_MP_TAC FINITE_IMAGE_EXPAND);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM] THEN REPEAT STRIP_TAC);;
+e (ASM_REWRITE_TAC[MEASURABLE_BALL]);;
+
+e (ASM_SIMP_TAC[MEASURABLE_DIFF; MEASURABLE_BALL]);;
+e (EXPAND_TAC "B");;
+e (REWRITE_TAC[SUBSET; IN_UNIONS; IN_BALL; IN_DIFF; IN_INTER]);;
+e (REWRITE_TAC[IN_ELIM_THM; IN]);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `dist (p, x) <= dist (p, x') + dist (x', x:real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x',x:real^3) < &1`);;
+e (UNDISCH_TAC `(t:real^3->bool) x`);;
+e (ASM_REWRITE_TAC[ball; IN_ELIM_THM]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `dist (p, x':real^3) < r - k2`);;
+e (NEW_GOAL `dist (p, x') <= dist (p, x) + dist (x, x':real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x,x':real^3) < &1`);;
+e (ONCE_REWRITE_TAC[DIST_SYM]);;
+e (UNDISCH_TAC `(t:real^3->bool) x`);;
+e (ASM_REWRITE_TAC[ball; IN_ELIM_THM]);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_MESON_TAC[]);;
+
+e (NEW_GOAL `&(CARD (B:real^3->bool)) <= &(CARD B) * &4 / &3 * pi`);;
+e (REWRITE_TAC [REAL_ARITH `a <= a * b <=> &0 <= a * (b - &1)`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (REWRITE_TAC[REAL_OF_NUM_LE; LE_0]);;
+e (NEW_GOAL `#3.14159 < pi`);;
+e (REWRITE_TAC[Flyspeck_constants.bounds]);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `vol (ball (p:real^3,r + k1 + &1) DIFF ball (p,r - (k2 + &1))) <= 
+   C * r pow 2`);;
+e (ASM_SIMP_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+
+let PACKING_BALL_BOUNDARY = top_thm();;
+
 
 

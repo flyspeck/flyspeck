@@ -598,7 +598,7 @@ let gen_lin_approx_poly_thm0 poly_tm =
 
 
 
-let eval_lin_approx pp lin_approx_th =
+let eval_lin_approx_old pp lin_approx_th =
   let poly_tm, _, _, _ = (dest_lin_approx o lhand o concl) lin_approx_th in
   let x_var, _ = dest_abs poly_tm in
   let n = get_dim x_var in
@@ -620,7 +620,7 @@ let eval_lin_approx pp lin_approx_th =
 	    match i_fun with
 	      | Int_const th -> (r th o r1, r2)
 	      | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1, r2)
-	      | _ -> (r1, fun vars -> r (eval_interval_fun pp i_fun vars) o r2 vars) in
+	      | _ -> (r1, fun vars -> r (eval_interval_fun pp i_fun vars []) o r2 vars) in
 
   let r1, r2 = gen_rules int_fs in
   let th2 = r1 th1 in
@@ -635,9 +635,86 @@ let eval_lin_approx pp lin_approx_th =
 	  r2 eval_vars th3;;
 
 
+
+let eval_lin_approx pp lin_approx_th =
+  let poly_tm, _, _, _ = (dest_lin_approx o lhand o concl) lin_approx_th in
+  let x_var, _ = dest_abs poly_tm in
+  let n = get_dim x_var in
+  let th0 = lin_approx_th in
+  let th1 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL) th0 in
+  let build_eval int_hyp =
+    let expr, b_var = dest_binary "interval_arith" int_hyp in
+      (eval_constants pp o build_interval_fun) expr, b_var in
+  let int_fs = map build_eval (hyp th1) in
+    
+  let rec split_rules i_list =
+    match i_list with
+      | [] -> ([], [])
+      | ((i_fun, var_tm) :: es) -> 
+	  let th_list, i_list' = split_rules es in
+	    match i_fun with
+	      | Int_const th -> (var_tm, th) :: th_list, i_list'
+	      | Int_var v -> (var_tm, INST[v, x_var_real] CONST_INTERVAL') :: th_list, i_list'
+	      | _ -> th_list, (var_tm, i_fun) :: i_list' in
+
+  let const_th_list, i_list0 = split_rules int_fs in
+  let th2 = itlist (fun (var_tm, th) th0 -> 
+		      let b_tm = rand (concl th) in
+			(MY_PROVE_HYP th o INST[b_tm, var_tm]) th0) const_th_list th1 in
+  let v_list, i_list' = unzip i_list0 in
+  let i_list = find_and_replace_all i_list' [] in
+    fun vector_tm ->
+      let x_vals = dest_vector vector_tm in
+      if length x_vals <> n then failwith (sprintf "Wrong vector size; expected size: %d" n)
+      else
+	let x_ints = map mk_const_interval x_vals in
+	let vars = map (fun i -> x_vars_array.(i)) (1--n) in
+	let th3 = INST (zip x_vals vars) th2 in
+	let i_vals = eval_interval_fun_list pp i_list (zip vars x_ints) in
+	  itlist2 (fun var_tm th th0 ->
+		     let b_tm = rand (concl th) in
+		       (MY_PROVE_HYP th o INST[b_tm, var_tm]) th0) v_list i_vals th3;;
+
+
 let eval_lin_approx_poly0 pp poly_tm =
   eval_lin_approx pp (gen_lin_approx_poly_thm0 poly_tm);;
 
+
+let eval_lin_approx_poly0_old pp poly_tm =
+  eval_lin_approx_old pp (gen_lin_approx_poly_thm0 poly_tm);;
+
+
+(*
+let pp = 10;;
+let eval_rd = eval_lin_approx_poly0 pp rd_poly;;
+let eval_rd_old = eval_lin_approx_poly0_old pp rd_poly;;
+let pi5 = (fst o dest_pair o rand o concl) pi_approx_array.(5);;
+let y_list = mk_list (replicate pi5 3, real_ty);;
+let th1 = eval_rd (mk_vector y_list);;
+let th2 = eval_rd_old (mk_vector y_list);;
+th1 = th2;;
+
+(* 1.216 (rd) *)
+test 100 eval_rd (mk_vector y_list);;
+(* 1.180 *)
+test 100 eval_rd_old (mk_vector y_list);;
+
+
+let pp = 10;;
+let eval_rd = eval_lin_approx_poly0 pp delta_y_poly;;
+let eval_rd_old = eval_lin_approx_poly0_old pp delta_y_poly;;
+let pi5 = (fst o dest_pair o rand o concl) pi_approx_array.(5);;
+let y_list = mk_list (replicate pi5 6, real_ty);;
+let th1 = eval_rd (mk_vector y_list);;
+let th2 = eval_rd_old (mk_vector y_list);;
+th1 = th2;;
+
+(* 4.888 *)
+test 10 eval_rd (mk_vector y_list);;
+(* 6.972 *)
+test 10 eval_rd_old (mk_vector y_list);;
+th1 = th2;;
+*)
 
 
 (*
@@ -745,7 +822,9 @@ let gen_second_bounded_poly_thm0 poly_tm =
     REWRITE_RULE[eq_th; FORALL_AND_THM; GSYM m_bounded_on_int] second_th;;*)
 
 
-let eval_second_bounded pp second_bounded_th =
+(* eval_second_bounded_old *)
+
+let eval_second_bounded_old pp second_bounded_th =
   let poly_tm = (lhand o rator o lhand o concl) second_bounded_th in
   let th0 = second_bounded_th in
   let n = (get_dim o fst o dest_abs) poly_tm in
@@ -778,7 +857,7 @@ let eval_second_bounded pp second_bounded_th =
 	    match i_fun with
 	      | Int_const th -> (r th o r1, r2)
 		  (*	    | Int_var var_tm -> (r (INST[var_tm, x_var_real] CONST_INTERVAL') o r1) *)
-	      | _ -> (r1, fun vars -> (var_tm, eval_interval_fun pp i_fun vars) :: r2 vars) in
+	      | _ -> (r1, fun vars -> (var_tm, eval_interval_fun pp i_fun vars []) :: r2 vars) in
 
   let r1, r2 = gen_rules i_funs in
   let final_th = (REWRITE_RULE[GSYM IMP_IMP] o r1) (SYM th4) in
@@ -808,8 +887,82 @@ let eval_second_bounded pp second_bounded_th =
 		EQ_MP inst_th2 lhs_th;;
 
 
+(* eval_second_bounded *)
+
+let eval_second_bounded pp second_bounded_th =
+  let poly_tm = (lhand o rator o lhand o concl) second_bounded_th in
+  let th0 = second_bounded_th in
+  let n = (get_dim o fst o dest_abs) poly_tm in
+  let x_vector = mk_vector_list (map (fun i -> x_vars_array.(i)) (1--n)) and
+      z_vector = mk_vector_list (map (fun i -> z_vars_array.(i)) (1--n)) in
+  let _, _, _, _, _, _, domain_var = get_types_and_vars n in
+
+  let th1 = INST[mk_pair (x_vector, z_vector), domain_var] th0 in
+  let th2 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n)] th1 in
+  let th3 = REWRITE_RULE[gen_in_interval n; GSYM interval_arith] th2 in
+  let th4 = (REWRITE_RULE[CONJ_ACI] o REWRITE_RULE (Array.to_list comp_thms_array.(n))) th3 in
+  let final_th0 = (UNDISCH_ALL o MATCH_MP iffRL) th4 in
+
+  let x_var, h_tm = (dest_forall o hd o hyp) final_th0 in
+  let _, h2 = dest_imp h_tm in
+  let concl_ints = striplist dest_conj h2 in
+
+  let i_funs = map (fun int -> 
+		      let expr, var = dest_interval_arith int in
+			(eval_constants pp o build_interval_fun) expr, var) concl_ints in
+
+  let rec split_rules i_list =
+    match i_list with
+      | [] -> ([], [])
+      | ((i_fun, var_tm) :: es) -> 
+	  let th_list, i_list' = split_rules es in
+	    match i_fun with
+	      | Int_const th -> (var_tm, th) :: th_list, i_list'
+(*	      | Int_var v -> (var_tm, INST[v, x_var_real] CONST_INTERVAL') :: th_list, i_list' *)
+	      | _ -> th_list, (var_tm, i_fun) :: i_list' in
+
+  let const_th_list, i_list0 = split_rules i_funs in
+  let th5 = itlist (fun (var_tm, th) th0 -> 
+		      let b_tm = rand (concl th) in
+			(REWRITE_RULE[th] o INST[b_tm, var_tm]) th0) const_th_list (SYM th4) in
+  let final_th = REWRITE_RULE[GSYM IMP_IMP] th5 in
+  let v_list, i_list' = unzip i_list0 in
+  let i_list = find_and_replace_all i_list' [] in
+
+    fun x_vector_tm z_vector_tm ->
+      let x_vals = dest_vector x_vector_tm and
+	  z_vals = dest_vector z_vector_tm in
+	if length x_vals <> n or length z_vals <> n then 
+	  failwith (sprintf "Wrong vector size; expected size: %d" n)
+	else
+	  let x_vars = map (fun i -> x_vars_array.(i)) (1--n) and
+	      z_vars = map (fun i -> z_vars_array.(i)) (1--n) in
+
+	  let inst_th = (INST (zip x_vals x_vars) o INST (zip z_vals z_vars)) final_th in
+	    if (not o is_eq) (concl inst_th) then inst_th 
+	    else
+	      let x_var, lhs = (dest_forall o lhand o concl) inst_th in
+	      let hs = (butlast o striplist dest_imp) lhs in
+	      let vars = map (rand o rator) hs in
+	      let int_vars = zip vars (map ASSUME hs) in
+
+	      let dd_ints = eval_interval_fun_list pp i_list int_vars in
+	      let inst_dd = map2 (fun var th -> (rand o concl) th, var) v_list dd_ints in
+	      let inst_th2 = INST inst_dd inst_th in
+
+	      let conj_th = end_itlist CONJ dd_ints in
+	      let lhs_th = GEN x_var (itlist DISCH hs conj_th) in
+		EQ_MP inst_th2 lhs_th;;
+
+
+
+
 let eval_second_bounded_poly0 pp poly_tm =
   eval_second_bounded pp (gen_second_bounded_poly_thm0 poly_tm);;
+
+
+let eval_second_bounded_poly0_old pp poly_tm =
+  eval_second_bounded_old pp (gen_second_bounded_poly_thm0 poly_tm);;
 
 
 
@@ -827,7 +980,7 @@ let x_tm = mk_vector_list (replicate one_float n) and
 
 let eval_poly = eval_second_bounded_poly0 pp schwefel_poly;;
 eval_poly x_tm z_tm;;
-(* 10: 0.928 *)
+(* 10: 0.928 (0.688 after find_and_replace_all) *)
 test 100 (eval_poly x_tm) z_tm;;
 
 
@@ -842,9 +995,9 @@ let n = 4;;
 let x_tm = mk_vector_list (replicate one_float n) and
     z_tm = mk_vector_list (replicate pi5 n);;
 
-let eval_poly = eval_second_bounded_poly pp lv_poly;;
+let eval_poly = eval_second_bounded_poly0 pp lv_poly;;
 eval_poly x_tm z_tm;;
-(* 10: 0.460 *)
+(* 10: 0.460 (0.232 after find_and_replace_all) *)
 test 100 (eval_poly x_tm) z_tm;;
 
 
@@ -853,7 +1006,7 @@ let n = 6;;
 let x_tm = mk_vector_list (replicate one_float n) and
     z_tm = mk_vector_list (replicate pi5 n);;
 
-let eval_poly = eval_second_bounded_poly pp delta_x4_poly;;
+let eval_poly = eval_second_bounded_poly0 pp delta_x4_poly;;
 eval_poly x_tm z_tm;;
 (* 10: 0.168 *)
 test 1000 (eval_poly x_tm) z_tm;;
@@ -863,7 +1016,7 @@ let n = 7;;
 let x_tm = mk_vector_list (replicate one_float n) and
     z_tm = mk_vector_list (replicate pi5 n);;
 
-let eval_poly = eval_second_bounded_poly pp magnetism_poly;;
+let eval_poly = eval_second_bounded_poly0 pp magnetism_poly;;
 eval_poly x_tm z_tm;;
 (* 10: 0.212 *)
 test 1000 (eval_poly x_tm) z_tm;;
@@ -874,9 +1027,9 @@ let n = 8;;
 let x_tm = mk_vector_list (replicate one_float n) and
     z_tm = mk_vector_list (replicate pi5 n);;
 
-let eval_poly = eval_second_bounded_poly pp heart_poly;;
+let eval_poly = eval_second_bounded_poly0 pp heart_poly;;
 eval_poly x_tm z_tm;;
-(* 10: 7.03 *)
+(* 10: 7.03 (3.272 after find_and_replace_all) *)
 test 100 (eval_poly x_tm) z_tm;;
 *)
 
@@ -993,6 +1146,7 @@ let mk_eval_function_eq pp eq_th =
   let x_var, h_tm = (dest_forall o rand o concl) final_th0 in
   let f_tm = (fst o dest_interval_arith o last o striplist dest_imp) h_tm in
   let i_fun = (eval_constants pp o build_interval_fun) f_tm in
+  let i_list = find_and_replace_all [i_fun] [] in
   let final_th = (PURE_REWRITE_RULE[SYM eq_th] o SYM) final_th0 in
     fun x_vector_tm z_vector_tm ->
       let x_vals = dest_vector x_vector_tm and
@@ -1008,7 +1162,7 @@ let mk_eval_function_eq pp eq_th =
 	  let hs = (butlast o striplist dest_imp) lhs in
 	  let vars = map (rand o rator) hs in
 	  let int_vars = zip vars (map ASSUME hs) in
-	  let eval_th = eval_interval_fun pp i_fun int_vars in
+	  let eval_th = hd (eval_interval_fun_list pp i_list int_vars) in
 	  let f_bounds = (rand o concl) eval_th in
 	  let inst_th2 = INST[f_bounds, f_bounds_var] inst_th in
 	  let lhs_th = GEN x_var (itlist DISCH hs eval_th) in

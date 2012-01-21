@@ -60,12 +60,16 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
 let eval_fs, tf = mk_verification_functions pp poly_tm true `-- &1`;;
 let certificate = run_test tf xx_float zz_float false 0.0 true true true 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
+(* 5 *)
+result_size certificate;;
 
 m_verify_list n pp eval_fs c1 xx1 zz1;;
 m_verify_raw0 n pp eval_fs certificate xx1 zz1;;
 
-let c0 = run_test0 tf xx_float zz_float false 0.0 false false false;;
+let c0 = run_test0 tf xx_float zz_float false 0.0 false false false 0.0;;
+(* 7 *)
 result_size c0;;
+m_verify_raw0 n pp eval_fs c0 xx1 zz1;;
 
 
 
@@ -127,7 +131,7 @@ result_size certificate;;
 m_verify_raw0 n pp eval_delta_x certificate xx1 zz1;;
 m_verify_list n pp eval_delta_x c1 xx1 zz1;;
 
-let c0 = run_test0 tf_delta_x xx_float zz_float false 0.0 true true true;;
+let c0 = run_test0 tf_delta_x xx_float zz_float false 0.0 true true true 0.0;;
 (* 4873 (true false true) 32 (true true true) *)
 result_size c0;;
 m_verify_raw0 n pp eval_delta_x c0 xx1 zz1;;
@@ -136,7 +140,7 @@ m_verify_raw0 n pp eval_delta_x c0 xx1 zz1;;
 test 1 (m_verify_raw_old n pp eval_delta_x certificate xx1) zz1;;
 (* 10: 38.642 *)
 test 1 (m_verify_raw0 n pp eval0_delta_x eval2_delta_x eval_delta_x certificate xx1) zz1;;
-(* 10: 40.187; 5.140 (convexity) *)
+(* 10: 40.187; 5.140 (convexity) 3.104 (find_and_replace_all) *)
 test 1 (m_verify_list n pp eval_delta_x c1 xx1) zz1;;
 (* 10: 1.860 *)
 test 1 (m_verify_raw0 n pp eval_delta_x c0 xx1) zz1;;
@@ -153,7 +157,7 @@ let xx = `[&2;&2;&2;&2;&2;&2]` and
     zz = `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
 
 let xx1 = convert_to_float_list pp true xx and
-    zz1 = convert_to_float_list pp false zz;;
+    zz1 = convert_to_float_list 4 false zz;;
 let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
@@ -162,24 +166,68 @@ let certificate = run_test tf_delta_y xx_float zz_float false 0.0 true true true
 let c1 = transform_result xx_float zz_float certificate;;
 (* 17 *)
 length c1;;
-(* 134 (true true false) 133 (true true true) *)
+(* 134 (true true false) 133 (128) (true true true) *)
 result_size certificate;;
 
 m_verify_list n pp eval_delta_y c1 xx1 zz1;;
-m_verify_raw0 n pp eval0_delta_y eval_delta_y certificate xx1 zz1;;
 (* 10: 494 *)
 test 1 (m_verify_raw n pp eval0_delta_y eval_delta_y certificate xx1) zz1;;
 
+(* 10: 362; 165 (find_and_replace_all) *)
 test 1 (m_verify_list n pp eval_delta_y c1 xx1) zz1;;
 
-let c00 = run_test0 tf_delta_y xx_float zz_float false 0.0 true true true;;
-(* 24671 (true false true) 1785 (true true true) *)
+let c00 = run_test0 tf_delta_y xx_float zz_float false 0.0 true true true 0.0;;
+(* 24671 (true false true) 1785 (1862) (true true true) *)
 result_size c00;;
 let c0 = transform_result xx_float zz_float c00;;
-(* 431 *)
+(* 431 (460) *)
 length c0;;
 
-m_verify_list n pp eval_delta_y c0 xx1 zz1;;
+(* 10: 406; 263 (find_and_replace_all) *)
+test 1 (m_verify_list n pp eval_delta_y c0 xx1) zz1;;
+
+
+(***)
+let eval_delta_y0, tf_delta_y0 = mk_verification_functions pp delta_y_poly true `&0`;;
+let certificate = run_test tf_delta_y0 xx_float zz_float false 0.0 true true true 0.0;;
+(* 25 (27) *)
+result_size certificate;;
+let c1 = transform_result xx_float zz_float certificate;;
+(* 1 *)
+length c1;;
+m_verify_list n pp eval_delta_y0 c1 xx1 zz1;;
+
+
+(***)
+let poly1 = `x2 + x3 + x5 + x6 - #7.99 - #0.00385 * delta_y x1 x2 x3 x4 x5 x6 - 
+  #2.75 * ((x1 + x4) * #0.5 - sqrt (&8))`;;
+let poly_ineq = (expr_to_vector_fun o rand o concl o 
+		   REWRITE_CONV[Sphere.delta_y; Sphere.delta_x]) poly1;;
+
+let pp = 10;;
+let n = 6;;
+
+let xx = `[sqrt (&8); &2; &2; sqrt (&8); &2; &2]` and
+    zz = `[&3; #2.07; #2.07; &4 * #1.26; #2.07; #2.07]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_ineq, tf_ineq = mk_verification_functions pp poly_ineq true `&0`;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true 0.0;;
+(* 51 (true true true) 54 (true false/true false) 439 (false false false) *)
+result_size certificate;;
+let c1 = transform_result xx_float zz_float certificate;;
+(* 30 *)
+length c1;;
+
+m_verify_list n pp eval_ineq c1 xx1 zz1;;
+
+
+
+
 
 
 (***)
@@ -204,13 +252,12 @@ result_size certificate;;
 
 m_verify_list n pp eval_schwefel c1 xx1 zz1;;
 
-m_verify_raw0 n pp eval0_schwefel eval_schwefel certificate xx1 zz1;;
 (* 10: 698 (f0_flag: 133) *)
 test 1 (m_verify_raw0 n pp eval0_schwefel eval_schwefel certificate xx1) zz1;;
-(* 10: 103 (diff2_f: 94.381) *)
+(* 10: 103 (diff2_f: 100) (find_and_replace_all: 91) *)
 test 1 (m_verify_list n pp eval_schwefel c1 xx1) zz1;;
 
-let c0 = run_test0 tf_schwefel xx_float zz_float false 0.0 true false false;;
+let c0 = run_test0 tf_schwefel xx_float zz_float false 0.0 true false false 0.0;;
 (* 2152 (true false false) *)
 result_size c0;;
 
@@ -259,7 +306,7 @@ m_verify_list n pp eval_caprasse c1 xx1 zz1;;
 
 (* 10: 30.826 (f0_flag: 16.497) (diff2_f: 10.1172, true false false) *)
 test 1 (m_verify_raw0 n pp eval_caprasse certificate xx1) zz1;;
-(* 10: 6.332 (8.912, eps = 1e-10) *)
+(* 10: 6.332 (8.912, eps = 1e-10); 4.848 (find_and_replace_all) *)
 test 1 (m_verify_list n pp eval_caprasse c1 xx1) zz1;;
 
 let c00 = run_test0 tf_caprasse xx_float zz_float false 0.0 true true true 0.0;;
@@ -405,7 +452,7 @@ test 1 (m_verify_raw_old n pp eval_heart certificate xx1) zz1;;
 (* 10: 94 (f0_flag: 22.929) (df0_flag: 13.229) *)
 test 1 (m_verify_raw0 n pp eval0_heart eval_heart certificate xx1) zz1;;
 
-(* 10: 13.689 (diff2_f: 7.080 (true false true)) 4.868 (true true true) *)
+(* 10: 13.689 (diff2_f: 7.080 (true false true)) 4.868 (true true true) 4.448 (find_and_replace_all) *)
 test 1 (m_verify_list n pp eval_heart c1 xx1) zz1;;
 (* 10: 4.048 *)
 test 1 (m_verify_raw0 n pp eval_heart c00 xx1) zz1;;

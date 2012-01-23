@@ -27,6 +27,18 @@ let schwefel_min = `-- #0.00000000058806` and
     magnetism_min = `-- #0.25001` and
     heart_min = `-- #1.7435`;;
 
+let schwefel_dom = `[-- &10; -- &10; -- &10]`, `[&10; &10; &10]`;;
+let rd_dom = `[-- &5; -- &5; -- &5]`, `[&5; &5; &5]`;;
+let caprasse_dom = `[-- #0.5; -- #0.5; -- #0.5; -- #0.5]`, `[#0.5; #0.5; #0.5; #0.5]`;;
+let lv_dom = `[-- &2; -- &2; -- &2; -- &2]`, `[&2; &2; &2; &2]`;;
+let butcher_dom = `[-- &1; -- #0.1; -- #0.1; -- &1; -- #0.1; -- #0.1]`,
+  `[&0; #0.9; #0.5; -- #0.1; -- #0.05; -- #0.03]`;;
+let magnetism_dom = `[-- &1; -- &1; -- &1; -- &1; -- &1; -- &1; -- &1]`,
+  `[&1; &1; &1; &1; &1; &1; &1]`;;
+let heart_dom = `[-- #0.1; #0.4; -- #0.7; -- #0.7; #0.1; -- #0.1; -- #0.3; -- #1.1]`,
+  `[#0.4; &1; -- #0.4; #0.4; #0.2; #0.2; #1.1; -- #0.3]`;;
+
+
 
 (****************)
 let delta_x_poly = 
@@ -41,6 +53,31 @@ let delta_x4_poly =
   let tm = (rand o concl o SPEC_ALL) Sphere.delta_x4 in
     expr_to_vector_fun tm;;
 
+
+let delta_x4_dom = `[&4;&4;&4;&4;&4;&8]`, `[#6.3504;#6.3504;#6.3504;#6.3504;#6.3504;#25.4016]`;;
+let delta_x_dom = `[&4;&4;&4;&4;&4;&4]`, `[#6.3504;#6.3504;#6.3504;#6.3504;#6.3504;#6.3504]`;;
+let delta_y_dom = `[&2;&2;&2;&2;&2;&2]`, `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
+
+
+
+(***********************************)
+
+let test_verify pp poly_tm min_flag val_tm (xx,zz) eps =
+  let total_start = Sys.time() in
+  let n = (get_dim o fst o dest_abs) poly_tm in
+  let xx1 = convert_to_float_list pp true xx and
+      zz1 = convert_to_float_list pp false zz in
+  let xx_float = map float_of_float_tm (dest_list xx1) and
+      zz_float = map float_of_float_tm (dest_list zz1) in
+  let eval_fs, tf = mk_verification_functions pp poly_tm min_flag val_tm in
+  let certificate = run_test tf xx_float zz_float false 0.0 true true true eps in
+  let c1 = transform_result xx_float zz_float certificate in
+  let start = Sys.time() in
+  let result = m_verify_list n pp eval_fs c1 xx1 zz1 in
+  let finish = Sys.time() in
+  let _ = report 
+    (sprintf "Total time: %f; Verification time: %f" (finish -. total_start) (finish -. start)) in
+    result;;
 
 
 (******)
@@ -64,13 +101,13 @@ let c1 = transform_result xx_float zz_float certificate;;
 result_size certificate;;
 
 m_verify_list n pp eval_fs c1 xx1 zz1;;
-m_verify_raw0 n pp eval_fs certificate xx1 zz1;;
 
 let c0 = run_test0 tf xx_float zz_float false 0.0 false false false 0.0;;
 (* 7 *)
 result_size c0;;
 m_verify_raw0 n pp eval_fs c0 xx1 zz1;;
 
+test_verify pp poly_tm true `-- &1` (xx,zz) 0.0;;
 
 
 (****)
@@ -463,3 +500,31 @@ test 1 (m_verify_list n pp eval_heart c0 xx1) zz1;;
 
 (* 10: 13 (10.625, new restrict_domain) (f0_flag: 5.3) (df0_flag: 2.264) *)
 test 1 (m_verify_domain_test n pp certificate xx1) zz1;;
+
+
+
+
+(************************************)
+(* full time tests *)
+(* Bernstein PVS time in parentheses *)
+
+(* 10: 93.717; 89.042 (10.23; 3.18) *)
+test_verify 12 schwefel_poly true schwefel_min schwefel_dom 0.0;;
+
+(* 10: 1.860; 0.024 (3.11; 0.17) *)
+test_verify 11 rd_poly true rd_min rd_dom 0.0;;
+
+(* 10: 11.829; 4.856 (11.44; 1.2) *)
+test_verify 8 caprasse_poly true caprasse_min caprasse_dom 0.0;;
+
+(* 10: 2.204; 0.048 (4.75; 0.23) *)
+test_verify 5 lv_poly true lv_min lv_dom 0.0;;
+
+(* 10: 4.164; 0.024 (19.83; 0.47)*)
+test_verify 5 butcher_poly true butcher_min butcher_dom 0.0;;
+
+(* 10: 11.965; 5.600 (160.44; 82.87) *)
+test_verify 8 magnetism_poly true magnetism_min magnetism_dom 0.0;;
+
+(* 10: 23.205; 4.376 (79.68; 26.14) *)
+test_verify 10 heart_poly true heart_min heart_dom 1e-10;;

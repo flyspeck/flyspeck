@@ -258,96 +258,103 @@ let get_results0 path r acc =
     get_rec path r acc;;
 
 
-(* get_domain *)
-(* Subdivides the given domain (x,z) according to the given path *)
-
-let get_domain x z path =
-  let n = length x in
-  let table f = map f (0--(n - 1)) in
-  let rec rec_domain x z path =
-    match path with
-      | [] -> x, z
-      | (s, j) :: ps ->
-	  let j = j - 1 in
-	  let x', z' =
-	    if s = "l" or s = "r" then
-	      let ( ++ ), ( / ) = up(); upadd, updiv in
-	      let yj = (mth x j ++ mth z j) / 2.0 in
-	      let delta b v = table (fun i -> if i = j && b then yj else mth v i) in
-		if s = "l" then 
-		  delta false x, delta true z
-		else
-		  delta true x, delta false z
-	    else
-	      if s = "ml" then
-		x, table (fun i -> if i = j then mth x i else mth z i)
-	      else
-		table (fun i -> if i = j then mth z i else mth x i), z in
-	    rec_domain x' z' ps in
-    rec_domain x z path;;
-
-(* sub_domain *)
-(* Verifies if interval [x',z'] SUBSET interval [x,z] *)
-
-let sub_domain (x',z') (x,z) =
-  let le a b = itlist2 (fun a b c -> c & (a <= b)) a b true in
-    le x x' & le z' z;;
-
-
-(* transform_pass_mono *)
-(* Replaces all (Result_pass_mono m) with (Result_mono [m] (Result_ref j)) where
-   j is the reference to the corresponding domain *)
-
-let transform_pass_mono x z domains r =
-  let domains_i = zip domains (1--length domains) in
-
-  let find_domain x' z' =
-    try find (fun d, _ -> sub_domain (x', z') d) domains_i with Failure _ -> (x,z), -1 in
-
-  let get_m m = (if m.decr_flag then "ml" else "mr"), m.variable in
-
-  let rec rec_transform path r =
-    match r with
-      | Result_mono (mono, r1) ->
-	  let path' = rev_itlist (fun m l -> get_m m :: l) mono path in
-	    Result_mono (mono, rec_transform path' r1)
-      | Result_glue (j, convex_flag, r1, r2) ->
-	  let s1, s2 = if convex_flag then "ml", "mr" else "l", "r" in
-	  let p1, p2 = ((s1, j + 1) :: path), ((s2, j + 1) :: path) in
-	  let t1 = rec_transform p1 r1 in
-	  let t2 = rec_transform p2 r2 in
-	    Result_glue (j, convex_flag, t1, t2)
-      | Result_pass_mono m -> 
-	  let path' = rev (get_m m :: path) in
-	  let x', z' = get_domain x z path' in
-	  let _, i = find_domain x' z' in
-(*	  let _ = report (sprintf "p = %s, d = %s, found: %d" 
-			    (domain_str x' z') (path_str path') i) in *)
-	    if i >= 0 then Result_mono ([m], Result_pass_ref (-i)) else r
-      | _ -> r in
-
-    rec_transform [] r;;
     
 
 (* transform_result *)
 
+
 let transform_result x z r =
+  (* get_domain *)
+  (* Subdivides the given domain (x,z) according to the given path *)
+  let domain_hash = Hashtbl.create 1000 in
+  let find_hash, mem_hash, add_hash = 
+    Hashtbl.find domain_hash, Hashtbl.mem domain_hash, Hashtbl.add domain_hash in
+
+  let get_domain path =
+    let n = length x in
+    let table f = map f (0--(n - 1)) in
+    let rec rec_domain (x, z) path hash =
+      match path with
+	| [] -> x, z
+	| (s, j) :: ps ->
+	    let hash' = hash^s^(string_of_int j) in
+	      if mem_hash hash' then
+		rec_domain (find_hash hash') ps hash'
+	      else
+		let j = j - 1 in
+		let domain' =
+		  if s = "l" or s = "r" then
+		    let ( ++ ), ( / ) = up(); upadd, updiv in
+		    let yj = (mth x j ++ mth z j) / 2.0 in
+		    let delta b v = table (fun i -> if i = j && b then yj else mth v i) in
+		      if s = "l" then 
+			delta false x, delta true z
+		      else
+			delta true x, delta false z
+		  else
+		    if s = "ml" then
+		      x, table (fun i -> if i = j then mth x i else mth z i)
+		    else
+		      table (fun i -> if i = j then mth z i else mth x i), z in
+		let _ = add_hash hash' domain' in
+		  rec_domain domain' ps hash' in
+      rec_domain (x,z) path "" in
+
+  (* sub_domain *)
+  (* Verifies if interval [x',z'] SUBSET interval [x,z] *)
+  let sub_domain (x',z') (x,z) =
+    let le a b = itlist2 (fun a b c -> c & (a <= b)) a b true in
+      le x x' & le z' z in
+
+  (* transform_pass_mono *)
+  (* Replaces all (Result_pass_mono m) with (Result_mono [m] (Result_ref j)) where
+     j is the reference to the corresponding domain *)
+  let transform_pass_mono x z domains r =
+    let domains_i = zip domains (1--length domains) in
+
+    let find_domain x' z' =
+      try find (fun d, _ -> sub_domain (x', z') d) domains_i with Failure _ -> (x,z), -1 in
+
+    let get_m m = (if m.decr_flag then "ml" else "mr"), m.variable in
+
+    let rec rec_transform path r =
+      match r with
+	| Result_mono (mono, r1) ->
+	    let path' = rev_itlist (fun m l -> get_m m :: l) mono path in
+	      Result_mono (mono, rec_transform path' r1)
+	| Result_glue (j, convex_flag, r1, r2) ->
+	    let s1, s2 = if convex_flag then "ml", "mr" else "l", "r" in
+	    let p1, p2 = ((s1, j + 1) :: path), ((s2, j + 1) :: path) in
+	    let t1 = rec_transform p1 r1 in
+	    let t2 = rec_transform p2 r2 in
+	      Result_glue (j, convex_flag, t1, t2)
+	| Result_pass_mono m -> 
+	    let path' = rev (get_m m :: path) in
+	    let x', z' = get_domain path' in
+	    let _, i = find_domain x' z' in
+	      (*	  let _ = report (sprintf "p = %s, d = %s, found: %d" 
+			  (domain_str x' z') (path_str path') i) in *)
+	      if i >= 0 then Result_mono ([m], Result_pass_ref (-i)) else r
+	| _ -> r in
+
+      rec_transform [] r in
+
   let rec transform acc r =
     let flag, rs, r' = get_results0 [] r acc in
       if flag then (rs @ [[], r])
       else
-	let domains = map (fun p, _ -> get_domain x z p) rs in
+	let domains = map (fun p, _ -> get_domain p) rs in
 	let r_next = transform_pass_mono x z domains r' in
 	let _ = r_next <> r' or failwith "transform_result: deadlock" in
 	  transform rs r_next in
     transform [] r;;
 
 
+
+
+
+
 (*
-
-
-
-
 let pp = 8;;
 let n = 7;;
 let xx = `[-- &1; -- &1; -- &1; -- &1; -- &1; -- &1; -- &1]` and

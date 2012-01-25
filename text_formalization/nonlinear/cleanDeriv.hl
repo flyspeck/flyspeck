@@ -1,0 +1,360 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Nonlinear                                                  *)
+(* Author: Nicholas Volker                                                    *)
+(* Date: 2012-01-18                                                           *)
+(* ========================================================================== *)
+
+
+(*
+
+Module for automatic differentiation of functions in the flyspeck project.
+These functions resulted from Volker's 2011 undergraduate research project at Pitt.
+
+
+Key stuff:
+  DIFF_TAC
+  derived_goal (interactive goal-based differentiation)
+  nonstack_goal (fully automated)
+
+See cleanDeriv_examples.hl for examples of use.
+
+*)
+
+module Clean_deriv = struct
+
+
+
+open Sphere;;
+open Calc_derivative;;
+
+(* Begin various useful identities about derived_form *)
+
+let derived_form_equivalence = prove_by_refinement(`!t1 t2 f1 f2 f1' f2' x s. (t1 = t2) /\ (f1' = f2') /\ (f1 = f2) ==> (derived_form t1 f1 f1' x s ==> derived_form t2 f2 f2' x s)`,
+[
+MESON_TAC[];
+]);;
+
+let extra_assum_derived_form = prove_by_refinement(`!t1 t2 f1 f2 f1' f2' x s.(f1' = f2') /\ (f2 = f1) ==> (derived_form t1 f1 f1' x s ==> derived_form (t1 /\ t2) f2 f2' x s)`,
+[
+REWRITE_TAC[derived_form];
+MESON_TAC[];
+]);;
+
+let retrieve_assum = prove_by_refinement(`!p q f f' x s. (q ==> derived_form (p /\ q) f f' x s) ==> derived_form (p /\ q) f f' x s`,
+					 [
+REPEAT GEN_TAC;
+REWRITE_TAC[derived_form];
+ASM_MESON_TAC[];
+					 ]);;
+
+(* End derived_form identities *)
+
+(* Begin theorems in order to rewrite function definitions. Currently working on eta2_126. Will probably need to rework these in order to use HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN. *)
+
+let zero_lemma = prove_by_refinement(`!x:real. &0 <= x ==> &0 pow 2 <= x`,
+				     [
+				       CONV_TAC REAL_FIELD;
+				     ]);;
+
+let sqrt_squared = prove_by_refinement(`!x:real. &0 < x ==> x = sqrt x * sqrt x`,
+				       [
+					 REPEAT STRIP_TAC;
+					 SUBGOAL_THEN `&0 < x ==> &0 <= x` MP_TAC;
+					 ASM_REAL_ARITH_TAC;
+					 ASM_REWRITE_TAC[];
+					ASM_MESON_TAC[(SPECL[`x:real`] zero_lemma); (SPECL[`&0`;`x:real`] Nonlinear_lemma.sq_pow2)];
+				       ]);;
+
+let eta2_assum = prove_by_refinement (`!x1 x2 x3 x4 x5 x6. (&0 < x1) /\ (&0 < x2) /\ (&0 < x6) ==> eta2_126 x1 x2 x3 x4 x5 x6 = eta_x x1 x2 x6 pow 2`,
+				      [
+REPEAT STRIP_TAC;
+MP_TAC (SPEC_ALL eta2_126);
+REWRITE_TAC[eta_y];
+REPEAT LET_TAC;
+ASM_MESON_TAC[(SPECL[`x1:real`] sqrt_squared);(SPECL[`x2:real`] sqrt_squared);(SPECL[`x6:real`] sqrt_squared)];
+				      ]);;
+
+let x_greater_lemma = prove_by_refinement (`!x:real (s:real->bool). &0 < x ==> (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x) < d ==> &0 < x'))`,
+					   [
+REPEAT STRIP_TAC;
+EXISTS_TAC `x:real`;
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+ASM_REAL_ARITH_TAC;
+					   ]);;
+
+let eta2_126_eta_x_open = prove_by_refinement (`!x1:real x2:real x3:real x4:real x5:real x6:real (s:real->bool). &0 < x1 /\ &0 < x2 /\ &0 < x6 ==> 
+     (?d. &0 < d /\ (!x'. x' IN s /\ abs (x' - x1) < d ==>
+		    ((\x'. eta_x x' x2 x6 pow 2) x') = ((\x'. eta2_126 x' x2 x3 x4 x5 x6) x')))`,
+					       [
+REPEAT STRIP_TAC;
+MP_TAC (SPECL [`x1:real`;`s:real->bool`] x_greater_lemma);
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+EXISTS_TAC `d:real`;
+ASM_REWRITE_TAC[];
+REPEAT STRIP_TAC;
+SUBGOAL_THEN `&0 < x'` MP_TAC;
+ASM_MESON_TAC[];
+MP_TAC (SPECL [`x':real`;`x2:real`;`x3:real`;`x4:real`;`x5:real`;`x6:real`] eta2_assum);
+REPEAT STRIP_TAC;
+ASM_MESON_TAC[];
+					       ]);;
+
+(* End theorems needed to rewrite function defns. *)
+
+
+
+(* A list of the function names and their associated rewrite theorems. If a function requires assumptions in order to rewrite it into a form differentiate understands, it goes here. *)
+
+let thms_rew = [(`eta2_126`, eta2_assum)];;
+
+(* A list of functions that require no assumptions in order to rewrite. *)
+
+let fn_defs_matching = [(`dih_x`, dih_x); (`ups_x`, ups_x); (`delta_x`, delta_x); (`delta_x4`, delta_x4); (`eta_x`, eta_x)];;
+
+let fn_defs = [dih_x;ups_x;delta_x;delta_x4;eta_x;chi_x;rho_x];;
+
+(* Basic rewrite methods. *)
+
+let fn_rewrite (f:term) = rhs (concl (REWRITE_CONV fn_defs f));; 
+let full_rewrite  (f:term) =  rhs (concl (REPEATC let_CONV (rhs (concl (REWRITE_CONV fn_defs f)))));;
+
+(* From here until the notes section I wrote for myself, the first attempt at writing the automatic differentiation and cleanup methods, for first derivatives. Works fine for polynomials and functions that require no assumptions to rewrite for differentiate. *)
+
+(* Reduces the goal set by the next 2 methods to a series of three statements of equivalence, that of the assumptions, function and derivative each of which can then be solved using ARITH methods and other identities needed for simplifying the output of differentiate. *)
+
+let DIFF_TAC (asl,goal) =
+ let (_,[t;f;f';x;s]) = strip_comb goal in
+ let fr = full_rewrite f in
+   (MATCH_MP_TAC retrieve_assum THEN
+      REPEAT STRIP_TAC THEN
+      MP_TAC (Calc_derivative.differentiate fr x s) THEN
+      MATCH_MP_TAC derived_form_equivalence THEN
+      REWRITE_TAC fn_defs) (asl,goal);; 
+
+(* Produces a goal for the interactive goal stack *)
+
+let derived_goal (f,var,final_deriv) = 
+  let expanded = full_rewrite f in
+  let lambda = mk_abs(var, expanded) in
+  let (_,[p;f;f';x;s]) = strip_comb (concl (Calc_derivative.differentiate lambda var `(:real)`)) in
+    let goal_term = list_mk_comb(`derived_form`, [p;lambda;final_deriv;var;`(:real)`]) in
+	(set_goal([], goal_term));;
+
+(* Produces a term for use with prove_by_refinement *)
+
+let nonstack_goal (f,var,final_deriv) = 
+  let expanded = full_rewrite f in
+  let lambda = mk_abs(var, expanded) in
+  let (_,[p;f;f';x;s]) = strip_comb (concl (Calc_derivative.differentiate lambda var `(:real)`)) in
+    list_mk_comb(`derived_form`, [p;lambda;final_deriv;var;`(:real)`]);;
+
+(* Encapsulates the above for Polynomial functions, since the simplification of the derivative is just collection of terms, so REAL_ARITH can handle it. *)
+
+let clean_differentiate (f,var,final_deriv) =
+  prove_by_refinement(nonstack_goal (f,var,final_deriv),
+	[
+	  DIFF_TAC;
+	  (* REPEAT try MATCH_MP_TAC fn_identities *)
+	  REAL_ARITH_TAC;
+	]);;
+
+(* <<<<<<<<<<<<<<<<<<<NOTES>>>>>>>>>>>>>>>>>> *)
+(* Do rewrites in order to differentiate. Collect assumptions from differentiate and the rewrites and apply to the goal of derived_form (pdiff /\ prew) fun simpderiv var universe. Throw extra assumptions into returned value from differentiate to get matching assumption lists. The rewrite assumptions allow you to get fun = f where f is pattern matched from differentiate. Then use all assumptions to apply identities to get derivatives to match. *)
+
+(* A list where the desired first derivatives will be put, if there are any. *)
+
+let deriv_list = [(`\x1:real. ups_x`,`-- &2 * x1 + &2 * x3 + &2 * x2`)];;
+
+(* A method to lookup the theorem needed to rewrite a function name. What I wanted to use to prove equivalence of lambda-abstracted functions. *)
+
+let get_rw_thm tm = 
+  let (var,f) = dest_abs tm in
+  let (name,_) = strip_comb f in
+    try REWRITE_TAC[(assoc name thms_rew)]
+    with DNE -> REWRITE_TAC[(assoc name fn_defs_matching)];;
+
+(* Methods to grab the assumptions needed to do a rewrite on the original function. These assumptions will be added to those from the differentiate method and put in as the full assumption list in the final goal that we set. *)
+
+let needs_assum tm = 
+  let (var,f) = dest_abs tm in
+  let (name,_) = strip_comb f in
+  let rw =  assoc name thms_rew in
+  let (_,[assum;concl]) = strip_comb (concl (SPEC_ALL rw)) in
+    (assum, mk_abs (var, (full_rewrite (rhs concl))));;
+
+let case_handle tm = 
+  try needs_assum tm
+  with DNE -> 
+    let (var,fn) = dest_abs(tm) in
+      (`T`, mk_abs (var, full_rewrite(fn)));;
+
+(* Method to search the list of set first derivatives and find a matching one for the function and variable we are differentiating over. If one does not exist, it simply returns what the differentiate method would give you. *)
+
+let find_deriv tm = 
+  let (var,fn) = dest_abs tm in 
+  let (name,_) = strip_comb fn in
+  let searchtm = mk_abs (var, name) in
+    try assoc searchtm deriv_list
+  with DNE ->
+    let (var,_) = dest_abs (tm) in
+    let (assum, lambda) = case_handle tm in
+    let (_,[p;f;f';x;s]) = strip_comb (concl (Calc_derivative.differentiate lambda var `(:real)`)) in
+      f';;
+
+(* Methods to set the final goal. derived_goal2 gives a goalstack, nonstack_goal2 returns a term which can be used in a prove_by_refinement. Each take a starting lambda-abstracted term, see if the term needs assumptions in order to be rewritten into a form that differentiate will understand and searches the first derivative list to see if there's a particular form we want. It then applies differentiate to the rewritten function, adds the gathered assumptions together, and sets the final derived_form goal. *)
+
+let derived_goal2 tm = 
+  let (assum,lambda) = case_handle tm in 
+  let final_deriv = find_deriv tm in 
+  let (var,_) = dest_abs (lambda) in
+  let (_,[p;f;f';x;s]) = strip_comb (concl (Calc_derivative.differentiate lambda var `(:real)`)) in
+  let all_assum = list_mk_comb(`/\`, [p;assum]) in
+    let goal_term = list_mk_comb(`derived_form`, [all_assum;tm;final_deriv;var;`(:real)`]) in
+	(set_goal([], goal_term));;
+
+let nonstack_goal2 tm = 
+  let (assum,lambda) = case_handle tm in 
+  let final_deriv = find_deriv tm in 
+  let (var,_) = dest_abs (lambda) in
+  let (_,[p;f;f';x;s]) = strip_comb (concl (Calc_derivative.differentiate lambda var `(:real)`)) in
+  let all_assum = list_mk_comb(`/\`, [p;assum]) in
+    list_mk_comb(`derived_form`, [all_assum;tm;final_deriv;var;`(:real)`]);;
+
+(* A tactic to reduce the above goals to a set of equivalence statements about the assumptions, f and f'. Has been reworked to use HAS_REAL_DERIVATIVE_TRANFORM_WITHIN. A method still needs to be written that will produce the assumption "xi IN s" for each i and add it to the assumption list in order to apply that sequence of reasoning. See the proof of atn2 for more detail. Each method will need an "openness lemma" as well.*)
+
+let DIFF_TAC2 (asl,goal) =
+ let (_,[t;f;f';x;s]) = strip_comb goal in
+ let (_,rw) = case_handle f in
+   (REWRITE_TAC[derived_form] THEN
+      REPEAT STRIP_TAC THEN
+      MP_TAC (Calc_derivative.differentiate rw x s) THEN
+      REWRITE_TAC[derived_form]) (asl,goal);;
+
+(* The below sequence will not work yet because the assumptions "xi IN s" are not in the assumption list. list_mk_comb did not work when applied to IN, but is_comb returns true on the term `x IN s`. *)
+
+(*
+derived_goal2 `\x1:real. eta2_126 x1 x2 x3 x4 x5 x6`;;
+
+e (DIFF_TAC2);;
+e (ASM_REWRITE_TAC[]);;
+e (MP_TAC (SPEC_ALL eta2_126_eta_x_open));;
+e (ASM_REWRITE_TAC[]);;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN);; 
+*)
+
+(* Begin cheating in order to test.  Calls mk_fthm.  *)
+
+
+let f = `\x1:real. eta2_126 x1 x2 x3 x4 x5 x6`;;
+
+let x1_eta2 = mk_fthm([],`derived_form
+   ((&0 <
+     (x1 * x2 * x6) /
+     (--x1 * x1 - x2 * x2 - x6 * x6 +
+      &2 * x1 * x6 +
+      &2 * x1 * x2 +
+      &2 * x2 * x6) /\
+     ~(--x1 * x1 - x2 * x2 - x6 * x6 +
+       &2 * x1 * x6 +
+       &2 * x1 * x2 +
+       &2 * x2 * x6 =
+       &0)) /\
+    &0 <= x1 /\
+    &0 <= x2 /\
+    &0 <= x6)
+   (\x1. eta2_126 x1 x2 x3 x4 x5 x6)
+   (&2 *
+    sqrt
+    ((x1 * x2 * x6) /
+     (--x1 * x1 - x2 * x2 - x6 * x6 +
+      &2 * x1 * x6 +
+      &2 * x1 * x2 +
+      &2 * x2 * x6)) pow
+    1 *
+    ((x2 * x6) *
+     (--x1 * x1 - x2 * x2 - x6 * x6 +
+      &2 * x1 * x6 +
+      &2 * x1 * x2 +
+      &2 * x2 * x6) -
+     (x1 * x2 * x6) * ((--x1 + -- &1 * x1) + &2 * x6 + &2 * x2)) /
+    (--x1 * x1 - x2 * x2 - x6 * x6 +
+     &2 * x1 * x6 +
+     &2 * x1 * x2 +
+     &2 * x2 * x6) pow
+    2 *
+    inv
+    (&2 *
+     sqrt
+     ((x1 * x2 * x6) /
+      (--x1 * x1 - x2 * x2 - x6 * x6 +
+       &2 * x1 * x6 +
+       &2 * x1 * x2 +
+       &2 * x2 * x6))))
+   x1
+   (:real)`);;
+
+let first_derivs = [(`\x1:real. eta2_126`, x1_eta2)];;
+
+
+ (* End cheating. Cheated in in order to test second derivative stuff. This list will be where all the first derivatives will be put *)
+
+(* Translated from C code, what the final 2nd derivative should be. Is this correct? *)
+
+let x1x2_eta2_126 = `(x6 * (x1 pow 4 + &2 * x1 pow 3 * x2 - &6 * x1 pow 2 * x2 pow 2 + &2 * x1 * x2 pow 3 + x2 pow 4 - &2 * x1 pow 3 * x6 + &6 * x1 pow 2 * x2 * x6 + &6 * x1 * x2 pow 2 * x6 - &2 * x2 pow 3 * x6 - &10 * x1 * x2 * x6 pow 2 + &2 * x1 * x6 pow 3 + &2 * x2 * x6 pow 3 - x6 pow 4))/((ups_x x1 x2 x6) pow 3)`;;
+
+let goal_2deriv = full_rewrite x1x2_eta2_126;;
+
+let final_second_deriv = [(`\x2:real. \x1:real. eta2_126`, x1x2_eta2_126)];;
+
+(* A method to find the first derivative we are looking for. *)
+
+let find_deriv_thm tm = 
+  let (var,fn) = dest_abs tm in 
+  let (name,_) = strip_comb fn in
+  let searchtm = mk_abs (var, name) in
+    assoc searchtm first_derivs;;
+
+(* A method to find the desired second derivative. *)
+
+let find_wanted_second_deriv y tm = 
+  let (var,fn) = dest_abs tm in 
+  let (name,_) = strip_comb fn in
+  let firstabs = mk_abs (var, name) in
+  let secondabs = mk_abs (y, firstabs) in
+    assoc secondabs final_second_deriv;;
+
+(* Similar to the first derivative case, makes a goal using the f' from the first derivative and carries with it all the assumptions. *)
+
+let mk_xy_deriv_goal y tm =  
+  let (_,[p;f;f';x;s]) = strip_comb (concl (find_deriv_thm tm)) in
+  let (x,_) = dest_abs(f) in
+  let deriv_abs = mk_abs(y,f') in
+  let (_,[q;g;g';y;s]) = strip_comb (concl (differentiate deriv_abs y `(:real)`)) in 
+  let all_assum = list_mk_comb(`/\`,[q;p]) in
+  let goal_deriv = find_wanted_second_deriv y tm in
+    set_goal([], list_mk_comb(`derived_form`,[all_assum;deriv_abs;goal_deriv;y;s]));;
+
+(* A similar reduction tactic. Should work better in the second derivative case, since the equivalence of the lambda-abstracted function is immediate. Since has_real_derivative handles nth derivatives in a curried fashion, we don't need to worry about directly associating any function name (such as eta2_126) directly with its second derivative, as long as its first derivative is associated with its second derivative. *)
+
+let SECOND_DIFF_TAC (asl,goal) =
+ let (_,[t;f;f';x;s]) = strip_comb goal in
+    (MATCH_MP_TAC retrieve_assum THEN
+      REPEAT STRIP_TAC THEN
+      MP_TAC (Calc_derivative.differentiate f x s) THEN
+      MATCH_MP_TAC extra_assum_derived_form THEN 
+      ASM_REWRITE_TAC[]) (asl,goal);;
+
+   
+
+end;;
+
+
+
+
+
+

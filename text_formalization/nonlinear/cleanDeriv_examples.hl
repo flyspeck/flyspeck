@@ -1,0 +1,83 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Nonlinear                                                  *)
+(* Author: Nicholas Volker                                                    *)
+(* Date: 2012-01-18                                                           *)
+(* ========================================================================== *)
+
+
+(*
+
+Module for automatic differentiation of functions in the flyspeck project.
+These functions resulted from Volker's 2011 undergraduate research project at Pitt.
+
+
+Key stuff:
+  DIFF_TAC
+  derived_goal (interactive goal-based differentiation)
+  nonstack_goal (fully automated)
+
+See cleanDeriv_examples.hl for examples of use.
+
+*)
+
+module Clean_deriv_examples = struct
+(* Examples of all the major methods in the cleanDeriv.hl file *)
+
+  open Clean_deriv;;
+
+
+
+
+
+(* the original derived_goal and nonstack_goal methods are deprecated. You may use derived_goal2 and nonstack_goal2 to set the goal term as follows *)
+
+derived_goal2 `\x1:real. ups_x x1 x2 x3`;;
+
+(* This begins an interactive goalstack with the appropriate derived_form as the goal. *)
+
+nonstack_goal2 `\x1:real. ups_x x1 x2 x3`;; 
+
+(* This is for use with prove_by_refinement *)
+
+(* Produces the same thing as the previous method, but instead of returning it as a goal returns it as a term. *)
+
+(* These methods attempt to rewrite the term by looking up an associated theorem in a list using the function name, e.g. ups_x or eta2_126. This is done automatically. If a theorem is not found, it does a normal set of rewrites on the term using a list of function definitions. *)
+
+(* DIFF_TAC will reduce a derived_form goal to a set of equivalences with the results of differentiate. *)
+
+derived_goal2 `\x1:real. ups_x x1 x2 x3`;;
+e (DIFF_TAC);;
+e (REAL_ARITH_TAC);;
+
+let thm = prove_by_refinement ( nonstack_goal2 `\x1:real. ups_x x1 x2 x3`,
+				[
+				  DIFF_TAC;
+				  REAL_ARITH_TAC;
+				]);;
+ 
+(* This will only work for terms that do not require a theorem with extra assumptions to rewrite. For example, does not work for eta2_126. Use DIFF_TAC2. *)
+
+(* The below sequence will not work yet because the assumptions "xi IN s" are not in the assumption list. list_mk_comb did not work when applied to IN, but is_comb returns true on the term `x IN s`. *)
+
+(*
+derived_goal2 `\x1:real. eta2_126 x1 x2 x3 x4 x5 x6`;;
+
+e (DIFF_TAC2);;
+e (ASM_REWRITE_TAC[]);;
+e (MP_TAC (SPEC_ALL eta2_126_eta_x_open));;
+e (ASM_REWRITE_TAC[]);;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC HAS_REAL_DERIVATIVE_TRANSFORM_WITHIN);; 
+*)
+
+(* This set of tactics should nearly complete the goal once those assumptions are added. See the proof of atn2 for an example to this process. Each such function will need a theorem proving its equivalence to something differentiate can handle, and an "openness" theorem. *)
+
+(* mk_xy_derived_goal works as the first methods do, but you must pass it a variable as well as a term. The variable is what will be differentiated with respect to. *)
+
+mk_xy_deriv_goal `x2:real` `\x1:real. eta2_126 x1 x2 x3 x4 x5 x6`;;
+
+(* The final thing that needs to be done is a completion of the lists that these methods reference, and a full automation of creating the lambda abstracted terms. i.e. a method that will loop through all variables on a function and pass the terms to the *_goal2 methods etc. *)
+
+end;;

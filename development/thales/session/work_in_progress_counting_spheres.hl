@@ -1,0 +1,247 @@
+open Counting_spheres;;
+open Hales_tactic;;
+
+let RADIAL_NORM_LINEAR_INVARIANT = prove_by_refinement(
+   `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
+     ==> radial r (vec 0) (IMAGE f s) = radial r (vec 0) s`,
+   (* {{{ proof *)
+  [
+  REWRITE_TAC [Sphere.radial; VECTOR_ADD_LID ];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (TAUT `(a <=> b) /\( (a <=> b) ==> (c <=>d)) ==> (a /\ c <=> b /\ d)`);
+  STRIP_TAC;
+    REWRITE_TAC [Trigonometry1.DIST_L_ZERO;ball;SUBSET;IMAGE;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    HASH_RULE_TAC 7266 (SPEC `(f:real^M->real^N) u`);
+    REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[IN]);
+    STRIP_TAC;
+    HASH_RULE_TAC 503 (SPEC `(t:real)`);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `x = t % (u:real^M)` MP_TAC;
+      BY(ASM_MESON_TAC[linear;PRESERVES_NORM_INJECTIVE;IN]);
+    BY(ASM_MESON_TAC[IN]);
+  REPEAT WEAK_STRIP_TAC;
+  HASH_UNDISCH_TAC 662;
+  REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
+  WEAK_STRIP_TAC;
+  BY(ASM_MESON_TAC[IN;linear])
+  ] );;
+  (* }}} *)
+
+let linear_inter_normball = prove_by_refinement(
+  `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) ==>
+   ( IMAGE f s INTER normball (vec 0) r = IMAGE f (s INTER normball (vec 0) r))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  GEN_TAC;
+  REWRITE_TAC[IMAGE;INTER;normball;DIST_0;IN;IN_ELIM_THM];
+  Tactics_jordan.NAME_CONFLICT_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let solvec0_sold = prove_by_refinement(
+  `!(s:real^3->bool).  solvec0 s = 
+     if (?r. r > &0 /\ measurable (s INTER normball (vec 0) r) /\
+	   radial r (vec 0) (s INTER normball (vec 0) r)) 
+     then  sol (vec 0) s else &0`,
+  (* {{{ proof *)
+[
+  WEAK_STRIP_TAC;
+  MP_TAC (SPECL [`s:real^3->bool`] Counting_spheres.solvec0_d );
+  LET_TAC;
+  MP_TAC (SPECL [`s:real^3->bool`] Counting_spheres.solvec0_sol);
+  LET_TAC;
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "P";
+  EXPAND_TAC "P'";
+  REWRITE_TAC[IN_ELIM_THM;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let sol0_linear = prove_by_refinement(
+  `!(f:real^3->real^3) s.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y)==>
+    ( (?r. r > &0 /\
+         measurable (IMAGE f s INTER normball (vec 0) r) /\
+         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
+   (?r. r > &0 /\
+         measurable (s INTER normball (vec 0) r) /\
+         radial r (vec 0) (s INTER normball (vec 0) r)))`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
+  ]);;
+  (* }}} *)
+
+let sol0_linear_r = prove_by_refinement(
+  `!(f:real^3->real^3) s r.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (r > &0) ==>
+    (( 
+         measurable (IMAGE f s INTER normball (vec 0) r) /\
+         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
+   ( 
+         measurable (s INTER normball (vec 0) r) /\
+         radial r (vec 0) (s INTER normball (vec 0) r)))`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
+  ]);;
+  (* }}} *)
+
+(*
+let SOLVEC0_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^3->real^3) s. linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (abs (det (matrix f)) = &1)
+    ==> solvec0 (IMAGE f s) = solvec0 s`,
+  (* {{{ proof *)
+[
+  REWRITE_TAC[DIMINDEX_3;solvec0_sold;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`] sol0_linear);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  COND_CASES_TAC;
+    HASH_UNDISCH_TAC 4360;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    HASH_KILL_TAC 6649;
+    HASH_CHOOSE_TAC 7595;
+    MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`;`r:real`] sol0_linear_r);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[MEASURE_LINEAR_IMAGE_SAME;Vol1.sol;sol0_linear_r;linear_inter_normball;Marchal_cells_2.RADIAL_VS_RADIAL_NORM]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let SOLVEC0_LINEAR_INVARIANT_3 = prove_by_refinement(
+  `!(f:real^3->real^3) s. linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (2 <= dimindex(:3) ==>  (det (matrix f)) = &1)
+    ==> solvec0 (IMAGE f s) = solvec0 s`,
+  (* {{{ proof *)
+[
+  REWRITE_TAC[DIMINDEX_3;solvec0_sold;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`] sol0_linear);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  COND_CASES_TAC;
+    HASH_UNDISCH_TAC 4360;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    HASH_KILL_TAC 6649;
+    HASH_CHOOSE_TAC 7595;
+    MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`;`r:real`] sol0_linear_r);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `abs(det (matrix (f:real^3->real^3))) = &1` ASSUME_TAC;
+      BY(ASM_MESON_TAC[REAL_ABS_1;ARITH_RULE`2 <= 3`]);
+    BY(ASM_MESON_TAC[MEASURE_LINEAR_IMAGE_SAME;Vol1.sol;sol0_linear_r;linear_inter_normball;Marchal_cells_2.RADIAL_VS_RADIAL_NORM]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let GOTCJAH_concl = `!v b P r c  WF h n. 
+    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
+    c facet_of P /\ 
+    fchanged c = WF /\
+    (&0 < h /\ h < &1) /\
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
+    ( {u | u extreme_point_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= solvec0  WF`;;
+
+(*
+let GOTCJAH_works_so_far = `!(v:real^3) (P:real^3->bool) r c  WF h n. 
+    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
+    c facet_of P /\ 
+     fchanged c = WF /\
+   (&0 < h /\ h < &1) /\ 
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
+    ( {u | u facet_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= (volume:(real^3->bool)->real) WF`;;
+*)
+
+ GEOM_BASIS_MULTIPLE_TAC 3`v:real^3` 
+
+
+(* add_linear_invariants [FCHANGED_LINEAR_INVARIANT ; LINEAR_0;RCONE_LINEAR_INVARIANT ];;  *)
+(* let backup_invariant_under_linear = !invariant_under_linear;; *)
+let restore _ = 
+  invariant_under_linear := backup_invariant_under_linear;;
+restore();;
+(* add_linear_invariants [SOLVEC0_LINEAR_INVARIANT_3];;  *)
+
+
+(* ========================================================================== *)
+(* WORK IN PROGRESS ON FINAL LEMMAS OF COUNTING_SPHERES .  There are many useful partial results here.   *)
+(* ========================================================================== *)
+searcht 15 [`facet_rep_a`];;
+POLY_SORT_BIJ;;
+searcht 15 [`plane`];;
+
+let EUSOTYP_general = prove_by_refinement(
+  `!P A n s r u0 u1 u2. 
+    polyhedron P /\ bounded P /\ P SUBSET A /\ plane A /\
+    s = { c | c facet_of P } /\
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+    ~(u2= u0) /\ 
+    ~(u1 = u0) /\
+    (P u0) /\  (A u2) /\
+    (!v. A v ==> (v - u0) dot (u1 - u0) = &0) /\
+    (!p. dist (p, u0) < r /\ A p ==> P p) ==>
+    (?g h.
+       (!i. i IN 1..( n) ==> (P (g i)) /\ dist(g i , u0) = r) /\
+       (g (n+1) = g 1) /\
+       (!i. i IN 1..( n) ==> (P (h i)) /\ norm(h i - u0) = r* inv(cos ((azim u0 u1 (g i) (g (i+1)))/ &2))) /\     
+       (!j k. j IN 1..(n) /\ k IN 1..(n+1) /\ (j < k) ==>  
+	  azim u0 u1 u2 (g j) < azim u0 u1 u2 (g k)) /\ 
+       (!i psi. i IN 1..(n) /\ (psi = azim u0 u1 (g i) (g (i+1))) ==>
+	   azim u0 u1 (g i) (h i) = psi  /\
+	    azim u0 u1 (h i) (g (i+1)) = psi))`,
+  (* {{{ proof *)
+  [
+ GEOM_HORIZONTAL_PLANE_TAC `A:real^3->bool`
+  #
+  ]);;
+  (* }}} *)
+let gg _ =  GEOM_HORIZONTAL_PLANE_TAC `A:real^3->bool`;;
+
+let works_so_far = 
+`!(P:real^3->bool) (A:real^3->bool) (s:(real^3->bool)->bool) n r (u0:real^3) u1 u2.
+    polyhedron P /\ bounded P /\ P SUBSET A /\ plane A /\
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+    ~(u2= u0) /\ 
+    ~(u1 = u0) /\
+   ( u0 IN P) /\  ( u2 IN A) /\
+    (!v. v IN A  ==> (v - u0) dot (u1 - u0) = &0) /\
+    (!p. dist (p, u0) < r /\ p IN A  ==> p IN P ) 
+  ==> 
+      (?g . (\g1.  ( (!i. i IN 1..( n) ==> ((g1 i) IN P) /\ dist(g1 i , u0) = r))) g
+)
+  `
+;;
+
+type_of_goal();;
+type_of `azim`;;
+type_of `plane`;;
+
+(*
+let _ = [`ball`;`half_spaces`;`weakly_saturated`;`lmfun_ineq_center`];;
+
+let _ = [ball;Tarjjuw.half_spaces;Tarjjuw.weakly_saturated;Pack_defs.lmfun_ineq_center];;
+
+let _ = [Tarjjuw.TARJJUW;Ysskqoy.YSSKQOY];;
+*)

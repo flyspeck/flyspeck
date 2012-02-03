@@ -7,10 +7,26 @@
 (* Feb 2, 2012, patch of a file not yet committed to SVN.
     Sent by email by Harrison.  Delete in a few weeks after Harrison commits changes *)
 
+
+overload_interface ("--",`(matrix_neg):real^N^M->real^N^M`);;
+overload_interface ("+",`(matrix_add):real^N^M->real^N^M->real^N^M`);;
+overload_interface ("-",`(matrix_sub):real^N^M->real^N^M->real^N^M`);;
+
+make_overloadable "**" `:A->B->C`;;
+
+overload_interface ("**",`(matrix_mul):real^N^M->real^P^N->real^P^M`);;
+overload_interface ("**",`(matrix_vector_mul):real^N^M->real^N->real^M`);;
+overload_interface ("**",`(vector_matrix_mul):real^M->real^N^M->real^N`);;
+
+parse_as_infix("%%",(21,"right"));;
+
+
 needs "Multivariate/vectors.ml";;
 needs "Library/permutations.ml";;
 needs "Library/floor.ml";;
 needs "Library/products.ml";;
+
+
 
 prioritize_real();;
 

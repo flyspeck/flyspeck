@@ -178,9 +178,11 @@ let GOTCJAH_works_so_far = `!(v:real^3) (P:real^3->bool) r c  WF h n.
 
 (* add_linear_invariants [FCHANGED_LINEAR_INVARIANT ; LINEAR_0;RCONE_LINEAR_INVARIANT ];;  *)
 (* let backup_invariant_under_linear = !invariant_under_linear;; *)
+(*
 let restore _ = 
   invariant_under_linear := backup_invariant_under_linear;;
 restore();;
+*)
 (* add_linear_invariants [SOLVEC0_LINEAR_INVARIANT_3];;  *)
 
 
@@ -197,38 +199,113 @@ let dropout_pad2d3d = prove_by_refinement(
   `!x. dropout 3 (pad2d3d x) = x`,
   (* {{{ proof *)
   [
-  rt[dropout;pad2d3d]
-    st
-  COND_CASES_TAC
-   #
+  ONCE_REWRITE_TAC[CART_EQ];
+  REWRITE_TAC[dropout;pad2d3d];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  ASSUME_TAC (ARITH_RULE `i <= 2==> i<3` );
+  SUBGOAL_THEN `i + 1 <= dimindex(:3) /\ i <= dimindex(:3)` ASSUME_TAC;
+    BY(ASM_MESON_TAC[DIMINDEX_3;DIMINDEX_2;ARITH_RULE `i<=2 ==> i+1 <= 3 /\ i <= 3`]);
+  COND_CASES_TAC THEN ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  BY(ASM_MESON_TAC[DIMINDEX_3;DIMINDEX_2])
   ]);;
   (* }}} *)
 
-search[`dropout`];;
 
+
+let pad2d3d_dropout = prove_by_refinement(
+  `!x . (x$3= &0) ==> (pad2d3d (dropout 3 x) = x)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[CART_EQ];
+  REWRITE_TAC[dropout;pad2d3d];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  COND_CASES_TAC;
+    BY(ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3;ARITH_RULE `i < 3 ==> i<= 2`]);
+  BY(ASM_MESON_TAC[DIMINDEX_3;ARITH_RULE `~(i<3) /\ (i <= 3) ==> (i=3)`])
+  ]);;
+  (* }}} *)
+
+let pad2d3d_dropout_lemma = prove_by_refinement(
+  `!(A:A->bool) P h . (!x.  x IN A ==> P x) /\ (!x. P x ==> h x = x) ==> 
+    (IMAGE h A = A)`,
+  (* {{{ proof *)
+  [
+    SET_TAC[]
+  ]);;
+  (* }}} *)
+
+let pad2d3d_dot = prove_by_refinement(
+  `!x . (x$3= &0) ==> (pad2d3d x dot pad2d3d y = x dot y`,
+  (* {{{ proof *)
+  [
+  BY(ASM_SIMP_TAC[GSYM LINEAR_SUB;LINEAR_PAD2D3D;DOT_NORM_NEG;NORM_PAD2D3D])
+  ]);;
+  (* }}} *)
+
+let pad_in = prove_by_refinement(
+  `!x A. (!u. u IN A ==> u$3 = &0) ==> ((pad2d3d x IN A) <=> (x IN (IMAGE (dropout 3) A)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[IN;IN_ELIM_THM;IMAGE];
+  BY(ASM_MESON_TAC[dropout_pad2d3d;pad2d3d_dropout;IN])
+  ]);;
+  (* }}} *)
+
+let pad2d3d_facet = prove_by_refinement(
+  `!P n. polyhedron (P:real^3->bool) /\ 
+    (!u. u IN P ==> u$3 = &0) /\ { c | c facet_of P } HAS_SIZE n ==>
+    {d | (d:real^2->bool) facet_of (IMAGE (dropout 3) P) } HAS_SIZE n`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (ISPEC `{c | c facet_of (P:real^3->bool)}` BIJECTIONS_HAS_SIZE);
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  EXISTS_TAC `(IMAGE (dropout 3)): (real^3->bool)->real^2->bool`;
+  EXISTS_TAC `(IMAGE (pad2d3d)): (real^2->bool)->real^3->bool`;
+  REWRITE_TAC[GSYM IMAGE_o];
+  SUBGOAL_THEN `!(A:real^3->bool). (A SUBSET P) ==> IMAGE(pad2d3d o dropout 3) A = A` ASSUME_TAC;
+    HASH_UNDISCH_TAC 5723;
+    REWRITE_TAC[IMAGE;IMAGE_o;SUBSET;IN_ELIM_THM];
+    BY(SET_TAC[pad2d3d_dropout]);
+  SUBGOAL_THEN `!(B:real^2->bool). IMAGE (dropout 3 o pad2d3d) B = B` ASSUME_TAC;
+    REWRITE_TAC[IMAGE;IMAGE_o;SUBSET;IN_ELIM_THM];
+    BY(SET_TAC[dropout_pad2d3d]);
+  REPEAT STRIP_TAC;
+        SUBGOAL_THEN `IMAGE pad2d3d (IMAGE (dropout 3) (x:real^3->bool)) facet_of (IMAGE pad2d3d (IMAGE (dropout 3) (P:real^3->bool)))` MP_TAC;
+          REWRITE_TAC[GSYM IMAGE_o];
+          BY(ASM_MESON_TAC[FACET_OF_IMP_SUBSET;SUBSET_REFL]);
+        BY(ASM_MESON_TAC[FACET_OF_LINEAR_IMAGE;PRESERVES_NORM_INJECTIVE;LINEAR_PAD2D3D;NORM_PAD2D3D]);
+      BY(ASM_MESON_TAC[FACET_OF_IMP_SUBSET]);
+    BY(ASM_MESON_TAC[SUBSET_REFL;IMAGE_o;FACET_OF_LINEAR_IMAGE;PRESERVES_NORM_INJECTIVE;LINEAR_PAD2D3D;NORM_PAD2D3D]);
+  BY(ASM_MESON_TAC[])
+   ]);;
+  (* }}} *)
 
 let EUSOTYP_general = prove_by_refinement(
   `!P A n s r u0 u1 u2. 
-    polyhedron P /\ bounded P /\ P SUBSET A /\ plane A /\
+    polyhedron P /\ bounded P /\ P SUBSET A /\ 
     s = { c | c facet_of P } /\
     s HAS_SIZE n /\
     (&0 < r ) /\
     ~(u2= u0) /\ 
     ~(u1 = u0) /\
     (u0 IN P) /\  (u2 IN A) /\
-    (!v. v IN A ==> (v - u0) dot (u1 - u0) = &0) /\
+    (!v. v IN A  <=> (v - u0) dot (u1 - u0) = &0) /\
     (!p. dist (p, u0) < r /\ p IN A ==> p IN P) ==>
     (?g h.
-       (!i. i IN 1..( n) ==> ((g i ) IN P) /\ dist(g i , u0) = r) /\
+       (!i. i IN 1..n ==> ((g i ) IN P) /\ dist(g i , u0) = r) /\
        (g (n+1) = g 1) /\
-       (!i. i IN 1..( n) ==> ((h i) IN P) /\ 
+       (!i. i IN 1..n ==> ((h i) IN P) /\ 
 	  norm(h i - u0) = r* inv(cos ((azim u0 u1 (g i) (g (i+1)))/ &2))) /\     
-       (!j k. j IN 1..(n) /\ k IN 1..(n+1) /\ (j < k) ==>  
+       (!j k. j IN 1..n /\ k IN 1..n /\ (j < k) ==>  
 	  azim u0 u1 u2 (g j) < azim u0 u1 u2 (g k)) /\ 
-       (!i. i IN 1..(n)  ==>
+       (!i. i IN 1..n  ==>
 	   azim u0 u1 (g i) (h i) = (azim u0 u1 (g i) (g (i+1)))/ &2  /\
 	    azim u0 u1 (h i) (g (i+1)) = (azim u0 u1 (g i) (g (i+1)))/ &2) /\
-      (!i. i IN 1..(n) ==> (((g i - u0) dot (h i - g i) = &0) /\ ((g (i+1) - u0) dot (h i - g (i+1)) = &0)))
+      (!i. i IN 1..n ==> (((g i - u0) dot (h i - g i) = &0) /\ ((g (i+1) - u0) dot (h i - g (i+1)) = &0)))
       )`,
   (* {{{ proof *)
   [
@@ -247,17 +324,217 @@ ASM_SIMP_TAC[AZIM_SPECIAL_SCALE; VECTOR_SUB_RZERO; DIST_0]
       amt[]
       SPEC_TAC (`u2:real^3`,`u2:real^3`)
   PAD2D3D_TAC
+  g
+  st/r
+      subgoalthen `!v. (v:real^3) IN P ==> v$3 = &0` ASSUME_TAC
+	  elu2
+	  elu8
+SET_TAC[]
+      abbrev `(A':real^2->bool) = IMAGE(dropout 3) (A:real^3->bool)`
+      abbrev `(P':real^2->bool) = IMAGE(dropout 3) (P:real^3->bool)`
+	  subgoalth `linear ((dropout 3):real^3->real^2)` ASSUME_TAC
+    mmp LINEAR_DROPOUT
+   rt[DIMINDEX_2;DIMINDEX_3]
+   ARITH_TAC
+	  subgoalth `polyhedron P' /\ bounded P' /\ (!p2. norm (p2:real^2) < r ==> p2 IN P')` MP_TAC
+	  expan "P'"
+	  conj
+   mmp POLYHEDRON_LINEAR_IMAGE 
+	  art[]
+	  conj
+   mmp BOUNDED_LINEAR_IMAGE 
+	  art[]
+	  st/r
+   asimp [sym pad_in]
+   firstassum mmp
+   art[NORM_PAD2D3D]
+   spectac (`p2:real^2`,`p2:real^2`)
+  rt[sym QUANTIFY_PAD2D3D_THM]
+	  st/r
+   MP_TAC (SPECL [`P':real^2->bool`;`n:num`;`{ d | (d:real^2->bool) facet_of P'}`;`r:real`;`u2:real^2`] Counting_spheres.POLY_SORT_BIJ)
+art[sym COMPLEX_VEC_0]
+ants
+   conj
+(*  expand "P'"
+   mmp POLYHEDRON_LINEAR_IMAGE 
+   art[]
+   mmp LINEAR_DROPOUT
+   rt[DIMINDEX_2;DIMINDEX_3]
+   ARITH_TAC
+   expan "P'"
+   elk13
+   conj
+   xgen `p2:real^2`
+   st/r *)
+	  amt[IN]
+(*
+   ort[GSYM IN]
+   asimp [sym pad_in]
+   firstassum mmp
+   art[NORM_PAD2D3D]
+   spectac (`p2:real^2`,`p2:real^2`)
+  rt[sym QUANTIFY_PAD2D3D_THM]
+*)
+	  expand "P'"
+  mmp pad2d3d_facet
+   amt[]
+   COMMENT "back to 1 goal"
+   st/r
+   exist `\i. pad2d3d (if (i IN 1..n) then (facet_rep_a P' (f i)) else (facet_rep_a P' (f 1)))`
+   beta
+  rt[dropout_pad2d3d]
   #
   ]);;
   (* }}} *)
 
 
-search[`pad2d3d`];;
-help "SPEC_TAC";;
-POP_ASSUM;;
+
+let ARG_SCALE = prove_by_refinement(
+  `!u w r. (&0 < r) ==> (Arg ((Cx r * u)/w) = Arg (u/w)) /\ (Arg (u/ (Cx r * w)) = Arg (u/w)) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC `w = Cx (&0)`;
+    BY(ASM_REWRITE_TAC[complex_div;COMPLEX_MUL_RZERO;COMPLEX_MUL_LZERO;COMPLEX_INV_0]);
+  SUBGOAL_THEN `~(Cx r * w = Cx(&0))` ASSUME_TAC;
+    BY(ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;REAL_ARITH `&0 < r ==> ~(r = &0)`]);
+  ASM_SIMP_TAC [Ysskqoy.ARG_CNJ;CNJ_CX;CNJ_MUL];
+  BY(ASM_MESON_TAC[ARG_MUL_CX;COMPLEX_MUL_AC])
+  ]);;
+  (* }}} *)
+
+(*
+searcht 5 [`(z:complex) * u = u * z`];;
+searcht 5 [`Arg (Cx r * u)`];;
+searcht 5 [`cnj (x * y)`];;
+searcht 5[ `cnj`;`Cx`];;
+searcht 5 [`Cx x = Cx y`];;
+searcht 5 [`z * u = Cx(&0)`];;
+ASM_CASES_TAC;;
+searcht 5 [`inv( Cx (&0))`];;
+*)
+
+let EUSOTYP_simple = prove_by_refinement(
+  `!(P:real^2->bool) s r n u2.
+     (polyhedron P) /\ (bounded P) /\ (s = {c | c facet_of P}) /\ s HAS_SIZE n /\ 
+    (&0 < r) /\ ~(u2 = vec 0) /\ (!p2. norm p2 < r ==> p2 IN P) ==> 
+   (?g h.  (!i. i IN 1..n ==> g i IN P /\ norm (g i) = r) /\
+     g (n + 1) = g 1 /\
+     (!j k.           j IN 1..n /\ k IN 1..n /\ j < k
+          ==> Arg ( (g j) / u2) < Arg ( (g k) / u2)) /\
+    (!i. i IN 1..n ==> h i IN P /\
+              norm (h i) = r * inv (cos (Arg ( (g (i + 1)) /  (g i)) / &2))) /\
+     (!i. i IN 1..n
+          ==> Arg ( (h i) /  (g i)) = Arg ( (g (i + 1)) /  (g i)) / &2 /\
+              Arg ( (g (i + 1)) /  (h i)) = Arg ( (g (i + 1)) /  (g i)) / &2) /\
+     (!i. i IN 1..n
+          ==> g i dot (h i - g i) = &0 /\ g (i + 1) dot (h i - g (i + 1)) = &0))`,
+  (* {{{ proof *)
+  [
+
+    st/r
+   MP_TAC (SPECL [`P:real^2->bool`;`n:num`;`{ c | (c:real^2->bool) facet_of P}`;`r:real`;`u2:real^2`] POLY_SORT_BIJ)
+art[sym COMPLEX_VEC_0]
+ants
+amt[IN]
+st/r
+      abbrev `f1 = \(i:num). if (i IN 1..n) then f i else (f 1):(real^2->bool)`
+   exist `\(i:num).  r % facet_rep_a P (f1 i)`
+beta
+   exist `\(i:num).  bisector_point P (f1 i) (f1 (i+1)) r`
+subgoalthen `!i. i IN 1..n ==> (f1 i) facet_of (P:real^2->bool)` ASSUME_TAC
+elu7
+expand "f1"
+SET_TAC[]
+subconj
+asimp[Trigonometry2.LT_IMP_ABS_REFL;NORM_MUL]
+str/r
+rt[IN]
+mmp Counting_spheres.facet_rep_in_poly
+amt[IN]
+amt[Counting_spheres.facet_rep_def;REAL_ARITH `r * &1 = r`]
+dt
+subgoalthen `facet_rep_a P (f1 (n+1)) = facet_rep_a P (f1 1)` ASSUME_TAC
+expand "f1"
+rt[prove( `~(n+1 IN 1..n)`,REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC)]
+mt[]
+art[]
+rt[COMPLEX_CMUL]
+subgoalth `!i. (i IN 1..n ==> ~(facet_rep_a P (f1 i) = Cx (&0)))` ASSUME_TAC
+amt[Trigonometry2.LT_IMP_ABS_REFL;NORM_MUL;COMPLEX_NORM_0;REAL_ARITH `abs(r) * &0 = r ==> ~(&0 < r)`]
+subgoalth `!j k.     j IN 1..n /\ k IN 1..n /\ j < k     ==> Arg ( facet_rep_a P (f1 j) / u2) <  Arg ((facet_rep_a P (f1 k)) / u2)` ASSUME_TAC
+st/r
+expand "f1"
+art[]
+amt[]
+conj
+st/r
+amt[ARG_SCALE]
+assume (SPEC `P:real^2->bool` bisector_point)
+subgoalth `!i. (i IN 1..n) ==> Arg(facet_rep_a P (f1 (i+1))/ facet_rep_a P (f1 i)) < pi` assume
+st/r
+mpt (SPECL [`P:real^2->bool`;`(f1:num->(real^2->bool)) i`;`r:real`] facet_arg_lt_pi)
+asimp[IN]
+ants
+amt[IN]
+st/r
+  #
+  ]);;
+  (* }}} *)
+
+searcht 20 [`wedge`];;
+searcht 10 [`Arg (z) + Arg (w) `];;
+facet_arg_lt_pi;;
+searcht 10 [`bisector_point`];;
+searcht 10 [`norm (Cx (&0))`];;
+searcht 10 [`Arg`;`Cx`];;
+searcht 10 [`( * ):real^2->real^2->real^2`;`(%)`];;
+searcht 10 [`Arg`;`(%)`];;
+    dest_const `(..)`;;
+searcht 10 [`(..)`;`IN`];;
+searcht 5 [`&0 < r`;`abs r = r`];;
+searcht 5 [`norm (a % v)`];;
+type_of `facet_rep_a`;;
+searchn 3 [`facet_rep_a`] "Counting_spheres.facet_rep_in_poly";;
+searchn 9 [`facet_rep_a`] "Counting_spheres.facet_arg_lt_pi",;;
+searchn 10 [`facet_rep_a`] "Counting_spheres.facet_rep_def";;  (* rep has norm 1 *)
+POLYHEDRON_LINEAR_IMAGE;;
+Ysskqoy.COS_ARG_VECTOR_ANGLE;;
+bisector_point;;
+Ysskqoy.SEC_DOT;;
+searcht 10 [`pad2d3d`];;
+searcht 10 [`aff_dim`;`plane`];;
+searcht 10 [`affine`;`SUBSET`];;
+pad_in;;
+searcht 15 [`IN`;`SUBSET`];;
+searcht 15 [`pad2d3d`];;
+searchn 0 [`Cx (&0)`;`vec 0`] "COMPLEX_VEC_0";;
+searcht 5 [`x SUBSET x`];;
+searcht 5 [`SUBSET`;`facet_of`];;
+searcht 5 [`IMAGE h x = x`];;
+searcht 5 [`IMAGE f (IMAGE g x)`];;
+BIJECTIONS_HAS_SIZE;;
+searchn 0 [`linear`;`facet_of`] "FACET_OF_LINEAR_IMAGE" ;;
+searcht 5 [`dropout`;`(f x = f y) ==> (x  =y)`] (* none *);; 
+searchn 0 [`dropout`;`linear`] "LINEAR_DROPOUT";;
+searcht 15 [`dropout`;`face_of`] ;;
+PRESERVES_NORM_INJECTIVE;;
+searcht 5 [`dropout`;`norm`];; (* none *)
+searcht 15  [`(f x = f y) ==> (x = y)`;`HAS_SIZE`];;
+searchn 0 [`BIJ`;`HAS_SIZE`] "Counting_spheres.POLY_SORT_BIJ";;
+searchn 0 [`pad2d3d`;`linear`] "LINEAR_PAD2D3D";;
 AZIM_SPECIAL_SCALE;;
 
-let EUSOTYP_simple = 
+PRESERVES_NORM_INJECTIVE;;
+NORM_PAD2D3D;;
+
+searchn 0 [`linear`;`polyhedron`] "POLYHEDRON_LINEAR_IMAGE";;
+searchn 0 [`linear`;`bounded`] "BOUNDED_LINEAR_IMAGE";;
+searchn 0 [`pad2d3d`;`linear`] "LINEAR_PAD2D3D";;
+type_of_goal();;
+
+(*
+let EUSOTYP_fake = 
 `!(P:real^3->bool) (A:real^3->bool) (s:(real^3->bool)->bool) n (u0:real^3) u1 u2.
     polyhedron P /\ bounded P /\ P SUBSET A /\ plane A /\
     ~(u2= u0) /\ 
@@ -273,7 +550,7 @@ let EUSOTYP_simple =
 )
   `
 ;;
-
+*)
 type_of_goal();;
 type_of `azim`;;
 type_of `plane`;;

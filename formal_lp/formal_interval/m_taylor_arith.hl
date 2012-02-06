@@ -1,0 +1,294 @@
+needs "../formal_lp/formal_interval/m_taylor.hl";;
+
+
+let i_var_num = `i:num` and
+    df_bounds_list_var = `df_bounds_list : (real#real)list`;;
+
+let pp = 4;;
+let n = 3;;
+
+let f1 = expr_to_vector_fun `x1 + x2 * x3`;;
+let f2 = `\x:real^3. x$2 * x$2`;;
+
+let xx = mk_vector_list [mk_float 2718281 44; mk_float 2 50; mk_float 1 50];;
+
+
+let lin1_th = eval_lin_approx_poly0 pp f1 xx;;
+let lin2_th = eval_lin_approx_poly0 pp f2 xx;;
+
+
+(*****************************************)
+(* dest_m_lin_approx *)
+
+
+let MK_M_LIN_APPROX' = (RULE o MATCH_MP EQ_IMP o SYM o SPEC_ALL) m_lin_approx;;
+let DEST_M_LIN_APPROX' = MY_RULE_NUM m_lin_approx;;
+
+
+
+let m_lin_approx_components n m_lin_th =
+  let f_tm, x_tm, f_bounds, d_bounds_list = dest_lin_approx (concl m_lin_th) in
+  let ty = n_type_array.(n) in
+  let f_var = mk_var ("f", type_of f_tm) in
+  let x_var = mk_var ("x", type_of x_tm) in
+  let th0 = (INST[f_tm, f_var; x_tm, x_var; f_bounds, f_bounds_var; 
+		  d_bounds_list, df_bounds_list_var] o inst_first_type_var ty) DEST_M_LIN_APPROX' in
+  let th1 = EQ_MP th0 m_lin_th in
+  let [r1; r2; r3] = CONJUNCTS th1 in
+    r1, r2, r3;;
+
+
+(********************************)
+(* all_n manipulations *)
+
+let ALL_N_EMPTY' = prove(`all_n n [] (s:num->A->bool)`, REWRITE_TAC[all_n]);;
+let ALL_N_CONS_IMP' = (MY_RULE o prove)(`SUC n = m /\ s n (x:A) ==> 
+    (all_n m t s <=> all_n n (CONS x t) s)`, SIMP_TAC[all_n]);;
+let ALL_N_CONS_EQ' = (MY_RULE o prove)(`SUC n = m ==> 
+    (all_n n (CONS x t) s <=> (s n (x:A) /\ all_n m t s))`, SIMP_TAC[all_n]);;
+
+let dest_all_n all_n_tm =
+  let ltm, s_tm = dest_comb all_n_tm in
+  let ltm2, list_tm = dest_comb ltm in
+    rand ltm2, list_tm, s_tm;;
+
+
+(* Splits `|- all_n n list s` into separate components.
+   Also returns the list of SUC n = m theorems *)
+let all_n_components all_n_th =
+  let n_tm, list_tm, s_tm = dest_all_n (concl all_n_th) in
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let s_var = mk_var ("s", type_of s_tm) and
+      x_var = mk_var ("x", ty) and
+      t_var = mk_var ("t", list_ty) in
+  let all_n_cons_th = (INST[s_tm, s_var] o INST_TYPE[ty, aty]) ALL_N_CONS_EQ' in
+
+  let rec get_components n_tm list_tm all_n_th =
+    if is_const list_tm then [], []
+    else
+      let x_tm, t_tm = dest_cons list_tm in
+      let suc_th = raw_suc_conv_hash (mk_comb (suc_const, n_tm)) in
+      let m_tm = rand (concl suc_th) in
+      let th0 = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] all_n_cons_th in
+      let th1 = MY_PROVE_HYP suc_th th0 in
+      let th2 = EQ_MP th1 all_n_th in
+      let snx_th, all_m_th = CONJUNCT1 th2, CONJUNCT2 th2 in
+      let comps, suc_list = get_components m_tm t_tm all_m_th in
+	snx_th :: comps, suc_th :: suc_list in
+    get_components n_tm list_tm all_n_th;;
+
+
+
+(* Constructs all_n n (map2 s list1 list2) *)
+let eval_all_n2 all_n1_th all_n2_th beta_flag s =
+  let ths1', suc_ths = all_n_components all_n1_th in
+  let ths2', _ = all_n_components all_n2_th in
+  let ths1, ths2 = 
+    if beta_flag then map BETA_RULE ths1', map BETA_RULE ths2' else ths1', ths2' in
+
+  let ths1, ths2, suc_ths = List.rev ths1, List.rev ths2, List.rev suc_ths in
+  let ths = map2 s ths1 ths2 in
+
+  (* The list ths should be not empty *)
+  let tm0 = (concl o hd) ths in
+  let lhs, rhs = dest_comb tm0 in
+  let s_tm = rator lhs in
+  let ty = type_of rhs in
+  let list_ty = mk_type ("list", [ty]) in
+  let s_var = mk_var ("s", type_of s_tm) and
+      x_var = mk_var ("x", ty) and
+      t_var = mk_var ("t", list_ty) in
+  let m_tm = (rand o concl o hd) suc_ths in
+
+  let empty_th = (INST[s_tm, s_var; m_tm, n_var_num] o INST_TYPE[ty, aty]) ALL_N_EMPTY' in
+  let cons_th = (INST[s_tm, s_var] o INST_TYPE[ty, aty]) ALL_N_CONS_IMP' in
+
+  let build suc_th s_th th =
+    let t_tm = (rand o rator o concl) th in
+    let x_tm = rand (concl s_th) in
+    let lhs, m_tm = dest_eq (concl suc_th) in
+    let n_tm = rand lhs in
+    let th' = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] cons_th in
+      EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th')) th in
+
+    rev_itlist2 build suc_ths ths empty_th;;
+
+
+
+
+(********************************)
+(* m_lin_approx_add *)
+
+
+let MK_M_LIN_APPROX_ADD' = (MY_RULE_NUM o prove)
+  (`lift o f differentiable at x ==> lift o g differentiable at (x:real^N) ==>
+     interval_arith (f x + g x) f_bounds ==>
+     all_n 1 d_bounds_list (\i int. interval_arith (partial i f x + partial i g x) int) ==>
+     m_lin_approx (\x. f x + g x) x f_bounds d_bounds_list`,
+   REWRITE_TAC[m_lin_approx] THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       REWRITE_TAC[f_lift_add] THEN
+	 new_rewrite [] [] DIFFERENTIABLE_ADD THEN
+	 ASM_REWRITE_TAC[ETA_AX];
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[partial_add]);;
+
+
+
+let add_partial_lemma' = prove(`interval_arith (partial i f (x:real^N) + partial i g x) int <=>
+				 (\i int. interval_arith (partial i f x + partial i g x) int) i int`,
+			       REWRITE_TAC[]);;
+
+
+
+
+let eval_m_lin_approx_add n pp lin1_th lin2_th =
+  let diff1_th, f1_th, df1_th = m_lin_approx_components n lin1_th and
+      diff2_th, f2_th, df2_th = m_lin_approx_components n lin2_th in
+  let f1_tm = (rand o lhand o concl) diff1_th and
+      f2_tm = (rand o lhand o concl) diff2_th and
+      x_tm = (rand o rand o concl) diff1_th in
+  let x_var = mk_var ("x", type_of x_tm) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      g_var = mk_var ("g", type_of f2_tm) in
+
+  let f_th = float_interval_add pp f1_th f2_th in
+  let f_bounds = (rand o concl) f_th in
+
+  let lemma0 = (INST[f1_tm, f_var; f2_tm, g_var; x_tm, x_var] o 
+		  INST_TYPE[n_type_array.(n), nty]) add_partial_lemma' in
+
+  let add th1 th2 =
+    let add_th = float_interval_add pp th1 th2 in
+    let int_tm = rand (concl add_th) and
+	i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] lemma0 in
+      EQ_MP th0 add_th in
+
+  let df_th = eval_all_n2 df1_th df2_th true add in
+  let df_bounds_list = (rand o rator o concl) df_th in
+
+    (MY_PROVE_HYP diff1_th o MY_PROVE_HYP diff2_th o MY_PROVE_HYP f_th o MY_PROVE_HYP df_th o
+       INST[f1_tm, f_var; f2_tm, g_var; x_tm, x_var;
+	    f_bounds, f_bounds_var; df_bounds_list, d_bounds_list_var] o
+       INST_TYPE[n_type_array.(n), nty]) MK_M_LIN_APPROX_ADD';;
+
+
+
+
+m_lin_approx_add n pp lin1_th lin2_th;;
+
+(* 10: 3.888 *)
+test 1000 (m_lin_approx_add n pp lin2_th) lin1_th;;
+
+
+
+(***************************************)
+(* eval_m_taylor_add *)
+
+let MK_M_TAYLOR_ADD' = (MY_RULE_NUM o prove)
+  (`m_cell_domain domain (y:real^N) w ==>
+     diff2_domain domain f ==>
+     diff2_domain domain g ==>
+     interval_arith (f y + g y) bounds ==>
+     all_n 1 d_bounds_list (\i int. interval_arith (partial i f y + partial i g y) int) ==>
+     (!x. x IN interval [domain] ==> all_n 1 dd_bounds_list (\i list_i. all_n 1 list_i 
+			       (\j int. interval_arith (partial2 j i f x + partial2 j i g x) int))) ==>
+     m_taylor_interval (\x. f x + g x) domain y w bounds d_bounds_list dd_bounds_list`,
+   REWRITE_TAC[m_taylor_interval; m_lin_approx; second_bounded] THEN 
+     REPEAT DISCH_TAC THEN
+     SUBGOAL_THEN `lift o f differentiable at (y:real^N) /\ lift o g differentiable at y` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2_domain domain (f:real^N->real)` THEN
+	 UNDISCH_TAC `diff2_domain domain (g:real^N->real)` THEN
+	 REWRITE_TAC[diff2_domain] THEN DISCH_TAC THEN DISCH_TAC THEN
+	 REPEAT (new_rewrite [] [] diff2_imp_diff) THEN REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       new_rewrite [] [] diff2_domain_add THEN ASM_REWRITE_TAC[];
+       REWRITE_TAC[f_lift_add] THEN
+	 new_rewrite [] [] DIFFERENTIABLE_ADD THEN
+	 ASM_REWRITE_TAC[ETA_AX];
+       ASM_SIMP_TAC[partial_add];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `diff2_domain domain (f:real^N->real)` THEN
+     UNDISCH_TAC `diff2_domain domain (g:real^N->real)` THEN
+     REWRITE_TAC[diff2_domain] THEN
+     REPEAT (DISCH_THEN (MP_TAC o SPEC `x:real^N`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC) THEN
+     ASM_SIMP_TAC[second_partial_add]);;
+
+
+(*************************)
+
+let xx = mk_vector_list [one_float; one_float; one_float];;
+let r = mk_float 27182 46;;
+let r = mk_float 3 50;;
+let zz = mk_vector_list [r; r; r];;
+
+let domain_th = mk_m_center_domain n pp (rand xx) (rand zz);;
+let taylor1 = eval_m_taylor_poly0 pp f1 domain_th;;
+let taylor2 = eval_m_taylor_poly0 pp f2 domain_th;;
+
+
+
+let add_partial_lemma' = prove(`interval_arith (partial i f (x:real^N) + partial i g x) int <=>
+				 (\i int. interval_arith (partial i f x + partial i g x) int) i int`,
+			       REWRITE_TAC[]);;
+
+
+
+let taylor1_th = taylor1 and
+    taylor2_th = taylor2;;
+
+
+
+let eval_m_taylor_add n pp taylor1_th taylor2_th = 0;;
+let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th;;
+let _, diff2_f2_th, lin2_th, second2_th = dest_m_taylor_thms n taylor2_th;;
+let f1_tm = (rand o concl) diff2_f1_th and
+    f2_tm = (rand o concl) diff2_f2_th;;
+let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th);;
+let ty = type_of y_tm;;
+
+let x_var = mk_var ("x", ty) and
+    y_var = mk_var ("y", ty) and
+    w_var = mk_var ("w", ty) and
+    f_var = mk_var ("f", type_of f1_tm) and
+    g_var = mk_var ("g", type_of f2_tm) and
+    domain_var = mk_var ("domain", type_of domain_tm);;
+
+let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th and
+    _, bounds2_th, df2_th = m_lin_approx_components n lin2_th;;
+
+let bounds_th = float_interval_add pp bounds1_th bounds2_th;;
+let bounds_tm = (rand o concl) bounds_th;;
+
+let add_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var; y_tm, x_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) add_partial_lemma';;
+
+let add th1 th2 =
+  let add_th = float_interval_add pp th1 th2 in
+  let int_tm = rand (concl add_th) and
+      i_tm = (rand o rator o rator o lhand) (concl th1) in
+  let th0 = INST[i_tm, i_var_num; int_tm, int_var] add_lemma0 in
+    EQ_MP th0 add_th;;
+
+let df_th = eval_all_n2 df1_th df2_th true add;;
+let d_bounds_list = (rand o rator o concl) df_th;;
+
+
+(MY_PROVE_HYP diff2_f1_th o MY_PROVE_HYP diff2_f2_th o 
+   MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+   INST[f1_tm, f_var; f2_tm, g_var; domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+	    bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var] o
+       INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ADD';;
+

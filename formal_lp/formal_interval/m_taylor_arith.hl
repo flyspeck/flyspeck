@@ -463,7 +463,7 @@ let mul_second_lemma' =
 
 let mul_second_lemma'' = (NUMERALS_TO_NUM o prove)
   (`all_n 1 list (\j int. interval_arith ((partial2 j i f x * g x + partial i f x * partial j g x) +
-				partial j f x * partial i g x + f x * partial2 j i g x) int) <=>
+		partial j f x * partial i g x + f (x:real^N) * partial2 j i g x) int) <=>
      (\i list. all_n 1 list 
 	(\j int. interval_arith ((partial2 j i f x * g x + partial i f x * partial j g x) +
 				   partial j f x * partial i g x + f x * partial2 j i g x) int)) i list`,
@@ -472,81 +472,93 @@ let mul_second_lemma'' = (NUMERALS_TO_NUM o prove)
 
 
 
-let eval_m_taylor_mul n pp taylor1_th taylor2_th = 0;;
-let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th and
-    _, diff2_f2_th, lin2_th, second2_th = dest_m_taylor_thms n taylor2_th;;
-let f1_tm = (rand o concl) diff2_f1_th and
-    f2_tm = (rand o concl) diff2_f2_th;;
-let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th);;
-let ty = type_of y_tm;;
+let eval_m_taylor_mul n pp taylor1_th taylor2_th =
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th and
+      _, diff2_f2_th, lin2_th, second2_th = dest_m_taylor_thms n taylor2_th in
+  let f1_tm = (rand o concl) diff2_f1_th and
+      f2_tm = (rand o concl) diff2_f2_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+  let ty = type_of y_tm in
 
-let x_var = mk_var ("x", ty) and
-    y_var = mk_var ("y", ty) and
-    w_var = mk_var ("w", ty) and
-    f_var = mk_var ("f", type_of f1_tm) and
-    g_var = mk_var ("g", type_of f2_tm) and
-    domain_var = mk_var ("domain", type_of domain_tm);;
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      g_var = mk_var ("g", type_of f2_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
 
-let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th and
-    _, bounds2_th, df2_th = m_lin_approx_components n lin2_th;;
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th and
+      _, bounds2_th, df2_th = m_lin_approx_components n lin2_th in
 
-let bounds_th = float_interval_mul pp bounds1_th bounds2_th;;
-let bounds_tm = (rand o concl) bounds_th;;
+  let bounds_th = float_interval_mul pp bounds1_th bounds2_th in
+  let bounds_tm = (rand o concl) bounds_th in
 
-let mul_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var; y_tm, y_var] o 
-		    INST_TYPE[n_type_array.(n), nty]) mul_partial_lemma';;
+  let mul_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var; y_tm, y_var] o 
+		      INST_TYPE[n_type_array.(n), nty]) mul_partial_lemma' in
 
-let mul th1 th2 =
-  let mul_th =
-    let ( * ), ( + ) = float_interval_mul pp, float_interval_add pp in
-      th1 * bounds2_th + bounds1_th * th2 in
-  let int_tm = rand (concl mul_th) and
-      i_tm = (rand o rator o rator o lhand) (concl th1) in
-  let th0 = INST[i_tm, i_var_num; int_tm, int_var] mul_lemma0 in
-      EQ_MP th0 mul_th;;
+  let mul th1 th2 =
+    let mul_th =
+      let ( * ), ( + ) = float_interval_mul pp, float_interval_add pp in
+	th1 * bounds2_th + bounds1_th * th2 in
+    let int_tm = rand (concl mul_th) in
+    let i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] mul_lemma0 in
+      EQ_MP th0 mul_th in
 
-let df_th = eval_all_n2 df1_th df2_th true mul;;
-let d_bounds_list = (rand o rator o concl) df_th;;
-
-
-let dd1 = second_bounded_components n second1_th;;
-let dd2 = second_bounded_components n second2_th;;
-
-let mul_second_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var] o 
-			   INST_TYPE[n_type_array.(n), nty]) mul_second_lemma';;
-
-let mul_second_lemma1 = (INST[f1_tm, f_var; f2_tm, g_var] o 
-			   INST_TYPE[n_type_array.(n), nty]) add_second_lemma'';;
-
-let partial1_intervals = map (fun i -> 
-				let th0 = eval_m_taylor_interval_partial n pp i taylor1_th in
-			     (UNDISCH o SPEC x_var) th0) (1--n);;
-
-let partial2_intervals = map (fun i -> 
-				let th0 = eval_m_taylor_interval_partial n pp i taylor2_th in
-			     (UNDISCH o SPEC x_var) th0) (1--n);;
+  let df_th = eval_all_n2 df1_th df2_th true mul in
+  let d_bounds_list = (rand o rator o concl) df_th in
 
 
-eval_m_taylor_bounds n pp 3 taylor1_th;;
+  let dd1 = second_bounded_components n second1_th in
+  let dd2 = second_bounded_components n second2_th in
+    
+  let mul_second_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var] o 
+			     INST_TYPE[n_type_array.(n), nty]) mul_second_lemma' in
 
+  let mul_second_lemma1 = (INST[f1_tm, f_var; f2_tm, g_var] o 
+			     INST_TYPE[n_type_array.(n), nty]) mul_second_lemma'' in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_interval_partial n pp i taylor1_th in
+			   undisch th0) (1--n) in
+
+  let d2_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_interval_partial n pp i taylor2_th in
+			   undisch th0) (1--n) in
+
+  let f1_bound = undisch (eval_m_taylor_bound n pp taylor1_th) and
+      f2_bound = undisch (eval_m_taylor_bound n pp taylor2_th) in
 
   let mul_second2 th1 th2 =
     let i_tm = (rand o rator o concl) th1 in
+    let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
+    let di1 = List.nth d1_bounds (i_int - 1) and
+	di2 = List.nth d2_bounds (i_int - 1) in
     let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
     let lemma = INST[i_tm, i_var_num] mul_second_lemma0 in
     let mul_second th1 th2 =
-      let mul_th = float_interval_add pp th1 th2 in
-      let int_tm = rand (concl add_th) and
-	  j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
+      let dj1 = List.nth d1_bounds (j_int - 1) and
+	  dj2 = List.nth d2_bounds (j_int - 1) in
+	
+      let mul_th = 
+	let ( * ), ( + ) = float_interval_mul pp, float_interval_add pp in
+	  (th1 * f2_bound + di1 * dj2) + (dj1 * di2 + f1_bound * th2) in
+	
+      let int_tm = rand (concl mul_th) in
       let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
 	EQ_MP th0 mul_th in
+      
     let mul_th = eval_all_n2 th1 th2 true mul_second in
     let list_tm = (rand o rator o concl) mul_th in
     let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] mul_second_lemma1 in
-      EQ_MP lemma1 mul_th;;
+      EQ_MP lemma1 mul_th in
 
 
-  let dd_th0 = eval_all_n2 dd1 dd2 false add_second2 in
+  let dd_th0 = eval_all_n2 dd1 dd2 false mul_second2 in
   let dd_list = (rand o rator o concl) dd_th0 in
   let dd_th = GEN x_var (DISCH_ALL dd_th0) in
 
@@ -556,8 +568,8 @@ eval_m_taylor_bounds n pp 3 taylor1_th;;
 		   domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
 		   bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
 		   dd_list, dd_bounds_list_var] o
-	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ADD' in
-  let eq_th = binary_beta_gen_eq f1_tm f2_tm x_var add_op_real in
+	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_MUL' in
+  let eq_th = binary_beta_gen_eq f1_tm f2_tm x_var mul_op_real in
     m_taylor_interval_norm th eq_th;;
 
 
@@ -577,6 +589,19 @@ let th = eval_m_taylor_add n pp taylor1 taylor2;;
 
 (* 10: 1.408 *)
 test 100 (eval_m_taylor_add n pp taylor1) taylor2;;
+
+let th = eval_m_taylor_mul n pp taylor1 taylor2;;
+
+(* 10: 5.976 *)
+test 100 (eval_m_taylor_mul n pp taylor1) taylor2;;
+
+
+let eval_poly = eval_m_taylor_poly0 pp `\x:real^3. (x$1 + x$2 * x$3) * x$2 * x$2`;;
+eval_poly domain_th;;
+(* 10: 0.808 *)
+test 100 eval_poly domain_th;;
+
+
 
 
 (******************************)

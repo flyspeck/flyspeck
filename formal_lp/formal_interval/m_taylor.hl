@@ -1471,9 +1471,9 @@ let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 				    diff2_domain domain f /\
 				    m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
 				    m_taylor_error f domain (vector w) error /\
-				    f_hi + inv(&2) * error <= a /\
 				    list_sum2 error_mul_f2 w d_bounds_list <= b /\
-				    a + b <= hi /\
+				    b + inv(&2) * error <= a /\
+				    f_hi + a <= hi /\
 				    LENGTH w = dimindex (:N) /\ LENGTH d_bounds_list = dimindex (:N) ==>
 				    (!p. p IN interval [domain] ==> f p <= hi)`,
    REWRITE_TAC[m_lin_approx; interval_arith; list_sum2; error_mul_f2; ALL_N_EL] THEN
@@ -1481,10 +1481,12 @@ let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
      apply_tac m_taylor_upper_bound THEN
      MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `f_hi:real`] THEN
      ASM_REWRITE_TAC[] THEN 
-     ONCE_REWRITE_TAC[REAL_ARITH `a + b + c = (a + c) + b`] THEN
-     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `a + b:real` THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f_hi + a:real` THEN
      ASM_REWRITE_TAC[real_div] THEN MATCH_MP_TAC REAL_LE_ADD2 THEN
-     ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN ASM_REWRITE_TAC[] THEN
+     ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b + inv (&2) * error` THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC REAL_LE_ADD2 THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `s:real` THEN ASM_REWRITE_TAC[] THEN
      EXPAND_TAC "s" THEN new_rewrite [] [] ITLIST2_EQ_SUM THEN ASM_REWRITE_TAC[] THEN
      MATCH_MP_TAC SUM_LE THEN REWRITE_TAC[FINITE_NUMSEG] THEN REPEAT STRIP_TAC THEN
@@ -1512,28 +1514,29 @@ let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
      ] THEN
      DISCH_THEN MATCH_MP_TAC THEN REWRITE_TAC[REAL_LE_REFL]);;
 
-m_taylor_upper_bound;;
-m_taylor_lower_bound;;
 
 (* lower *)
 let M_TAYLOR_LOWER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 				    diff2_domain domain f /\
 				    m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
 				    m_taylor_error f domain (vector w) error /\
-				    a <= f_lo - inv(&2) * error /\
 				    list_sum2 error_mul_f2 w d_bounds_list <= b /\
-				    lo <= a - b /\
+				    b + inv(&2) * error <= a /\
+				    lo <= f_lo - a /\
 				    LENGTH w = dimindex (:N) /\ LENGTH d_bounds_list = dimindex (:N) ==>
-				    (!p. p IN interval [domain] ==> f p <= hi)`,
+				    (!p. p IN interval [domain] ==> lo <= f p)`,
    REWRITE_TAC[m_lin_approx; interval_arith; list_sum2; error_mul_f2; ALL_N_EL] THEN
      set_tac "s" `ITLIST2 _1 _2 _3 _4` THEN STRIP_TAC THEN
-     apply_tac m_taylor_upper_bound THEN
-     MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `f_hi:real`] THEN
+     apply_tac m_taylor_lower_bound THEN
+     MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `f_lo:real`] THEN
      ASM_REWRITE_TAC[] THEN 
-     ONCE_REWRITE_TAC[REAL_ARITH `a + b + c = (a + c) + b`] THEN
-     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `a + b:real` THEN
-     ASM_REWRITE_TAC[real_div] THEN MATCH_MP_TAC REAL_LE_ADD2 THEN
-     ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `f_lo - a:real` THEN
+     ASM_REWRITE_TAC[real_div; real_sub] THEN MATCH_MP_TAC REAL_LE_ADD2 THEN
+     ASM_REWRITE_TAC[REAL_LE_REFL; REAL_LE_NEG] THEN
+     ONCE_REWRITE_TAC[REAL_MUL_SYM] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `b + inv (&2) * error` THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC REAL_LE_ADD2 THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `s:real` THEN ASM_REWRITE_TAC[] THEN
      EXPAND_TAC "s" THEN new_rewrite [] [] ITLIST2_EQ_SUM THEN ASM_REWRITE_TAC[] THEN
      MATCH_MP_TAC SUM_LE THEN REWRITE_TAC[FINITE_NUMSEG] THEN REPEAT STRIP_TAC THEN
@@ -1562,6 +1565,27 @@ let M_TAYLOR_LOWER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
      DISCH_THEN MATCH_MP_TAC THEN REWRITE_TAC[REAL_LE_REFL]);;
 
 
+(* bound *)
+let M_TAYLOR_BOUND' = 
+  prove(`m_cell_domain domain (y:real^N) (vector w) /\
+	  diff2_domain domain f /\
+	  m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
+	  m_taylor_error f domain (vector w) error /\
+	  list_sum2 error_mul_f2 w d_bounds_list <= b /\
+	  b + inv(&2) * error <= a /\
+	  lo <= f_lo - a /\
+	  f_hi + a <= hi /\
+	  LENGTH w = dimindex (:N) /\ LENGTH d_bounds_list = dimindex (:N) ==>
+	      (!x. x IN interval [domain] ==> interval_arith (f x) (lo, hi))`,
+	REPEAT STRIP_TAC THEN REWRITE_TAC[interval_arith] THEN
+	  MP_TAC M_TAYLOR_UPPER_BOUND' THEN
+	  MP_TAC M_TAYLOR_LOWER_BOUND' THEN
+	  ASM_REWRITE_TAC[] THEN
+	  REPEAT (DISCH_THEN (MP_TAC o SPEC `x:real^N`) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC));;
+
+
+
+(* arrays *)
 
 let m_taylor_upper_array = Array.init (max_dim + 1)
   (fun i -> if i < 1 then TRUTH else
@@ -1569,7 +1593,20 @@ let m_taylor_upper_array = Array.init (max_dim + 1)
        M_TAYLOR_UPPER_BOUND');;
 
 
+let m_taylor_lower_array = Array.init (max_dim + 1)
+  (fun i -> if i < 1 then TRUTH else
+     (MY_RULE_NUM o REWRITE_RULE[dimindex_array.(i); float_inv2_th] o inst_first_type_var (n_type_array.(i)))
+       M_TAYLOR_LOWER_BOUND');;
 
+
+let m_taylor_bound_array = Array.init (max_dim + 1)
+  (fun i -> if i < 1 then TRUTH else
+     (MY_RULE_NUM o REWRITE_RULE[dimindex_array.(i); float_inv2_th] o inst_first_type_var (n_type_array.(i)))
+       M_TAYLOR_BOUND');;
+
+
+
+(* upper *)
 let eval_m_taylor_upper_bound n pp m_taylor_th =
   let domain_th, diff_th, lin_th, _ = dest_m_taylor_thms n m_taylor_th in
   let error_th = eval_m_taylor_error n pp m_taylor_th in
@@ -1596,18 +1633,105 @@ let eval_m_taylor_upper_bound n pp m_taylor_th =
 
   let sum2_tm = (C List.nth 2 o hyp) th1 in
   let sum2_le_th = list_sum2_le_conv pp error_mul_f2_le_conv2 (lhand sum2_tm) in
+  let b_tm = (rand o concl) sum2_le_th in
 
   let ineq1_th = 
     let ( * ), ( + ) = float_mul_hi pp, add_ineq_hi pp in
-      mk_refl_ineq f_hi + float_inv2 * error_tm in
+      mk_refl_ineq b_tm + float_inv2 * error_tm in
 
-  let a_tm = (rand o concl) ineq1_th and
-      b_tm = (rand o concl) sum2_le_th in
-
-  let ineq2_th = float_add_hi pp a_tm b_tm in
+  let a_tm = (rand o concl) ineq1_th in
+  let ineq2_th = float_add_hi pp f_hi a_tm in
   let hi_tm = (rand o concl) ineq2_th in
     (MY_PROVE_HYP ineq2_th o MY_PROVE_HYP ineq1_th o MY_PROVE_HYP sum2_le_th o
        INST[a_tm, a_var_real; b_tm, b_var_real; hi_tm, hi_var_real]) th1;;
+
+
+(* lower *)
+let eval_m_taylor_lower_bound n pp m_taylor_th =
+  let domain_th, diff_th, lin_th, _ = dest_m_taylor_thms n m_taylor_th in
+  let error_th = eval_m_taylor_error n pp m_taylor_th in
+
+  let f_tm, _, f_bounds, d_bounds_list = dest_lin_approx (concl lin_th) and
+      domain_tm, y_tm, w_tm = (dest_m_cell_domain o concl) domain_th and
+      error_tm = (rand o concl) error_th in
+  let w_list = rand w_tm and
+      f_lo, f_hi = dest_pair f_bounds in
+  
+  let y_var = mk_var ("y", type_of y_tm) and
+      f_var = mk_var ("f", type_of f_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let th0 = (MY_PROVE_HYP domain_th o MY_PROVE_HYP diff_th o 
+	       MY_PROVE_HYP lin_th o MY_PROVE_HYP error_th o
+	       INST[d_bounds_list, d_bounds_list_var; w_list, w_var_list;
+		    f_lo, f_lo_var; f_hi, f_hi_var; error_tm, error_var;
+		    domain_tm, domain_var; y_tm, y_var; f_tm, f_var]) m_taylor_lower_array.(n) in
+
+  let len_d_th = eval_length d_bounds_list and
+      len_w_th = eval_length w_list in
+  let th1 = (MY_PROVE_HYP len_d_th o MY_PROVE_HYP len_w_th) th0 in
+
+  let sum2_tm = (C List.nth 2 o hyp) th1 in
+  let sum2_le_th = list_sum2_le_conv pp error_mul_f2_le_conv2 (lhand sum2_tm) in
+  let b_tm = (rand o concl) sum2_le_th in
+
+  let ineq1_th = 
+    let ( * ), ( + ) = float_mul_hi pp, add_ineq_hi pp in
+      mk_refl_ineq b_tm + float_inv2 * error_tm in
+
+  let a_tm = (rand o concl) ineq1_th in
+  let ineq2_th = float_sub_lo pp f_lo a_tm in
+  let lo_tm = (lhand o concl) ineq2_th in
+
+    (MY_PROVE_HYP ineq2_th o MY_PROVE_HYP ineq1_th o MY_PROVE_HYP sum2_le_th o
+       INST[a_tm, a_var_real; b_tm, b_var_real; lo_tm, lo_var_real]) th1;;
+
+
+
+(* bound *)
+let eval_m_taylor_bound n pp m_taylor_th =
+  let domain_th, diff_th, lin_th, _ = dest_m_taylor_thms n m_taylor_th in
+  let error_th = eval_m_taylor_error n pp m_taylor_th in
+
+  let f_tm, _, f_bounds, d_bounds_list = dest_lin_approx (concl lin_th) and
+      domain_tm, y_tm, w_tm = (dest_m_cell_domain o concl) domain_th and
+      error_tm = (rand o concl) error_th in
+  let w_list = rand w_tm and
+      f_lo, f_hi = dest_pair f_bounds in
+  
+  let y_var = mk_var ("y", type_of y_tm) and
+      f_var = mk_var ("f", type_of f_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let th0 = (MY_PROVE_HYP domain_th o MY_PROVE_HYP diff_th o 
+	       MY_PROVE_HYP lin_th o MY_PROVE_HYP error_th o
+	       INST[d_bounds_list, d_bounds_list_var; w_list, w_var_list;
+		    f_lo, f_lo_var; f_hi, f_hi_var; error_tm, error_var;
+		    domain_tm, domain_var; y_tm, y_var; f_tm, f_var]) m_taylor_bound_array.(n) in
+
+  let len_d_th = eval_length d_bounds_list and
+      len_w_th = eval_length w_list in
+  let th1 = (MY_PROVE_HYP len_d_th o MY_PROVE_HYP len_w_th) th0 in
+
+  let sum2_tm = (C List.nth 3 o hyp) th1 in
+  let sum2_le_th = list_sum2_le_conv pp error_mul_f2_le_conv2 (lhand sum2_tm) in
+  let b_tm = (rand o concl) sum2_le_th in
+
+  let ineq1_th = 
+    let ( * ), ( + ) = float_mul_hi pp, add_ineq_hi pp in
+      mk_refl_ineq b_tm + float_inv2 * error_tm in
+
+  let a_tm = (rand o concl) ineq1_th in
+  let ineq2_th = float_add_hi pp f_hi a_tm in
+  let hi_tm = (rand o concl) ineq2_th in
+
+  let ineq3_th = float_sub_lo pp f_lo a_tm in
+  let lo_tm = (lhand o concl) ineq3_th in
+
+    (MY_PROVE_HYP ineq3_th o MY_PROVE_HYP ineq2_th o 
+       MY_PROVE_HYP ineq1_th o MY_PROVE_HYP sum2_le_th o
+       INST[a_tm, a_var_real; b_tm, b_var_real; hi_tm, hi_var_real; lo_tm, lo_var_real]) th1;;
+
 
 
 (*

@@ -41,6 +41,7 @@ type cellOption = {
   recursion_depth : int;
   mono_pass : bool;
   convex_flag : bool;
+  raw_int_flag : bool;
   eps : float;
 };;
 
@@ -128,8 +129,11 @@ let rec has_monotone opt tf ti domain0 x z x0 z0 is found = match is with
       has_monotone opt tf ti domain0 x z x0 z0 js found
   | j::js -> 
       let df_int = 
-	try evalf0 tf (j + 1) (fst domain0) (snd domain0) 
-	with Unstable -> mk_interval (-1.0,1.0) in
+	if opt.raw_int_flag then
+	  try evalf0 tf (j + 1) (fst domain0) (snd domain0) 
+	  with Unstable -> mk_interval (-1.0,1.0)
+	else
+	  mk_interval (-1.0, 1.0) in
       let allpos_df0, allpos_ti = df_int.lo >= opt.eps, lower_partial ti j >= opt.eps in
       let allneg_df0, allneg_ti = df_int.hi < ~-.(opt.eps), upper_partial ti j < ~-.(opt.eps) in
 	if (allpos_df0 or allpos_ti) then
@@ -155,7 +159,11 @@ let rec has_monotone opt tf ti domain0 x z x0 z0 is found = match is with
 let rec going_strong(x,z,x0,z0,tf,opt,mono) =
   let (y,w) = center_form (x,z) in
   let maxwidth = maxl w in
-  let target0 = try evalf0 tf 0 x z with Unstable -> one in
+  let target0 = 
+    if opt.raw_int_flag then
+      try evalf0 tf 0 x z with Unstable -> one
+    else
+      one in
   let _ = target0.hi >= ~-.(opt.eps) or return (Cell_pass (mono, true)) in
   let target = 
 	try evalf tf x z with Unstable -> return (Cell_inconclusive (mono,x,z,x0,z0)) in

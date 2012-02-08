@@ -41,10 +41,12 @@ let make_taylor_interval (l1,w1,dd1) = {l = l1; w = w1; dd=dd1;};;
 
 let ti_add (ti1,ti2) =
   let _ = (ti1.w = ti2.w) or failwith ("width mismatch in ti") in
-   make_taylor_interval( ladd ti1.l ti2.l,ti1.w, m8_sum ti1.dd ti2.dd);;
+    make_taylor_interval( ladd ti1.l ti2.l,ti1.w, m8_sum ti1.dd ti2.dd);;
 
 let ti_scale (ti,t) =
    make_taylor_interval( smul ti.l t,ti.w,  table2 (fun i j ->  imul (mth2 ti.dd i j) t));;
+
+
 
 let taylor_error ti =
   let ( + ), ( * ) , ( / )= up(); upadd, upmul, updiv in
@@ -76,6 +78,23 @@ let lower_partial ti i =
     let err = List.fold_left2 (fun a b c -> a + b * min c.lo (~-. (c.hi))) 
       0.0 ti.w (mth ti.dd i) in
       Interval.inf ( mth ti.l.df i) + err;;
+
+
+let ti_mul (ti1,ti2) =
+  let _ = (ti1.w = ti2.w) or failwith ("ti_mul: width mismatch in ti") in
+  let line = lmul ti1.l ti2.l in
+  let f1_int =
+    let lo, hi = lower_bound ti1, upper_bound ti1 in mk_interval (lo, hi) in
+  let f2_int =
+    let lo, hi = lower_bound ti2, upper_bound ti2 in mk_interval (lo, hi) in
+  let d1_ints = table (fun i -> mk_interval (lower_partial ti1 i, upper_partial ti1 i)) in
+  let d2_ints = table (fun i -> mk_interval (lower_partial ti2 i, upper_partial ti2 i)) in
+  let dd = table2 (fun i j ->
+		     let ( + ), ( * ) = iadd, imul in
+		       mth2 ti1.dd i j * f2_int + mth d1_ints i * mth d2_ints j +
+			 mth d1_ints j * mth d2_ints i + f1_int * mth2 ti2.dd i j) in
+    make_taylor_interval(line, ti1.w, dd);;
+    
 
 
 (* primitive A *)
@@ -135,15 +154,16 @@ let evalf4U =
       );;
 
 type tfunction = 
-  |  Prim_a of primitiveA
-  |  Uni of primitiveU
-  |  Plus of tfunction * tfunction
-  |  Scale of tfunction * interval
-  |  Uni_compose of univariate * tfunction
-  |  Composite of tfunction *  (* F(g1,g2,g3,g4,g5,g6,g7,g8) *)
-       tfunction *tfunction *tfunction *
-       tfunction *tfunction *tfunction *
-	   tfunction *tfunction;;
+  | Prim_a of primitiveA
+  | Uni of primitiveU
+  | Plus of tfunction * tfunction
+  | Product of tfunction * tfunction
+  | Scale of tfunction * interval
+  | Uni_compose of univariate * tfunction
+  | Composite of tfunction *  (* F(g1,g2,g3,g4,g5,g6,g7,g8) *)
+      tfunction *tfunction *tfunction *
+      tfunction *tfunction *tfunction *
+      tfunction *tfunction;;
 
 let unit = Prim_a unitA;;
 
@@ -153,6 +173,7 @@ let x3 = Uni (mk_primitiveU 2 ux1);;
 let x4 = Uni (mk_primitiveU 3 ux1);;
 let x5 = Uni (mk_primitiveU 4 ux1);;
 let x6 = Uni (mk_primitiveU 5 ux1);;
+
 
 let x1x2 = 
   let tab2 = table2 (fun i j -> if (i+j=1) then one else zero) in
@@ -252,18 +273,37 @@ let rec evalf4 tf w x y z = match tf with
   | Prim_a p -> evalf4A p w x y z
   | Uni p -> evalf4U p w x y z
   | Plus (tf1,tf2) -> ti_add(evalf4 tf1 w x y z, evalf4 tf2 w x y z)
+  | Product (tf1,tf2) -> ti_mul(evalf4 tf1 w x y z, evalf4 tf2 w x y z)
   | Composite(h,g1,g2,g3,g4,g5,g6,g7,g8) ->
       let [p1;p2;p3;p4;p5;p6;p7;p8] = map (fun t-> evalf4 t w x y z) [g1;g2;g3;g4;g5;g6;g7;g8] in
 	eval_composite (evalf4 h) p1 p2 p3 p4 p5 p6 p7 p8 w
   | Scale (tf,t) -> ti_scale ((evalf4 tf w x y z),t)
   | Uni_compose (uf,tf) -> 
-      evalf4 (Composite(Uni (mk_primitiveU 0 uf),tf,unit,unit,unit,unit,unit,unit,unit)) w x y z;;
+      let ti = evalf4 tf w x y z in
+      let fy = ti.l.f in
+      let u_fy = uf.u fy in
+      let du_fy = uf.du fy in
+      let line = 
+	let ( * ) = imul in
+	  mk_line (u_fy, table (fun i -> du_fy * mth ti.l.df i)) in
+      let fx = mk_interval (lower_bound ti, upper_bound ti) in
+      let dfx = table (fun i -> mk_interval (lower_partial ti i, upper_partial ti i)) in
+      let du_fx = uf.du fx in
+      let ddu_fx = uf.ddu fx in
+      let dd = table2 (fun i j ->
+			 let ( + ), ( * ) = iadd, imul in
+			   (ddu_fx * mth dfx j) * mth dfx i + du_fx * mth2 ti.dd j i) in
+	make_taylor_interval(line, w, dd);;
+	
+      
+
+(*      evalf4 (Composite(Uni (mk_primitiveU 0 uf),tf,unit,unit,unit,unit,unit,unit,unit)) w x y z;; *)
 
 let evalf tf x z = 
   let (y,w) = center_form (x,z) in
     evalf4 tf w x y z;;
 
-itlist2;;
+
 (* Evaluates a function (i = 0) and its first derivatives (i = 1, 2, ...) at the given interval *)
 let rec evalf0 tf i x z = match tf with
   | Prim_a p -> p.f_df i x z
@@ -273,6 +313,12 @@ let rec evalf0 tf i x z = match tf with
 	else if i = p.slot + 1 then eval p.uv int 1
 	else zero
   | Plus (tf1, tf2) -> iadd (evalf0 tf1 i x z) (evalf0 tf2 i x z)
+  | Product (tf1, tf2) -> 
+      let itf1, itf2 = evalf0 tf1 0 x z, evalf0 tf2 0 x z in
+	if i = 0 then imul itf1 itf2
+	else
+	  let i_df1, i_df2 = evalf0 tf1 i x z, evalf0 tf2 i x z in
+	    iadd (imul i_df1 itf2) (imul itf1 i_df2)
   | Scale (tf, t) -> imul (evalf0 tf i x z) t
   | Uni_compose (uf, tf) ->
       let itf = evalf0 tf 0 x z in
@@ -292,7 +338,7 @@ let rec evalf0 tf i x z = match tf with
 	    itlist2 (fun a b c -> a * b + c) dhs dgs zero;;
 
 	
-	
+(*	
 let line_estimate_composite =
   let ( + ) = iadd in
   let ( * ) = imul in
@@ -316,5 +362,6 @@ let rec line_estimate tf y = match tf with
   | Composite(h,g1,g2,g3,g4,g5,g6,g7,g8) ->
       let [p1;p2;p3;p4;p5;p6;p7;p8] = map (fun t-> line_estimate t y) [g1;g2;g3;g4;g5;g6;g7;g8] in
 	line_estimate_composite h p1 p2 p3 p4 p5 p6 p7 p8;;
+*)
 
 end;;

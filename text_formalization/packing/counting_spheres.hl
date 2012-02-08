@@ -2138,8 +2138,18 @@ let pad2d3d_dropout_lemma = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(*
 let pad2d3d_dot = prove_by_refinement(
   `!x . (x$3= &0) ==> (pad2d3d x dot pad2d3d y = x dot y)`,
+  (* {{{ proof *)
+  [
+  BY(ASM_SIMP_TAC[GSYM LINEAR_SUB;LINEAR_PAD2D3D;DOT_NORM_NEG;NORM_PAD2D3D])
+  ]);;
+  (* }}} *)
+*)
+
+let pad2d3d_dot_v = prove_by_refinement(
+  `!x y.  (pad2d3d x dot pad2d3d y = x dot y)`,
   (* {{{ proof *)
   [
   BY(ASM_SIMP_TAC[GSYM LINEAR_SUB;LINEAR_PAD2D3D;DOT_NORM_NEG;NORM_PAD2D3D])
@@ -2710,6 +2720,94 @@ let pad2d3d_SUB = prove_by_refinement(
  REPEAT GEN_TAC;
   REWRITE_TAC[VECTOR_ARITH `(u:real^A) - (v:real^A) = (u + (-- &1) % v)`];
   BY(MESON_TAC[LINEAR_PAD2D3D;linear])
+  ]);;
+  (* }}} *)
+
+
+let EUSOTYP_general = prove_by_refinement(
+  `!P A n s r u0 u1 u2. 
+    polyhedron P /\ bounded P /\ P SUBSET A /\ 
+    s = { c | c facet_of P } /\
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+    ~(u2= u0) /\ 
+    ~(u1 = u0) /\
+    (u0 IN P) /\  (u2 IN A) /\
+    (!v. v IN A  <=> (v - u0) dot (u1 - u0) = &0) /\
+    (!p. dist (p, u0) < r /\ p IN A ==> p IN P) ==>
+    (?g h.
+       (!i. i IN 1..n ==> ((g i ) IN P) /\ dist(g i , u0) = r) /\
+       (g (n+1) = g 1) /\
+       (!i. i IN 1..n ==> ((h i) IN P) /\ 
+	  norm(h i - u0) = r* inv(cos ((azim u0 u1 (g i) (g (i+1)))/ &2))) /\     
+       (!j k. j IN 1..n /\ k IN 1..n /\ (j < k) ==>  
+	  azim u0 u1 u2 (g j) < azim u0 u1 u2 (g k)) /\ 
+       (!i. i IN 1..n  ==>
+	   azim u0 u1 (g i) (h i) = (azim u0 u1 (g i) (g (i+1)))/ &2  /\
+	    azim u0 u1 (h i) (g (i+1)) = (azim u0 u1 (g i) (g (i+1)))/ &2) /\
+      (!i. i IN 1..n ==> (((g i - u0) dot (h i - g i) = &0) /\ ((g (i+1) - u0) dot (h i - g (i+1)) = &0)))
+      )`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC THEN GEOM_ORIGIN_TAC `u0:real^3`;
+  REPEAT GEN_TAC THEN GEOM_BASIS_MULTIPLE_TAC 3 `u1:real^3`;
+  X_GEN_TAC `u1:real`;
+  GEN_REWRITE_TAC LAND_CONV [REAL_ARITH `&0 <= x <=> x = &0 \/ &0 < x`];
+  STRIP_TAC THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO];
+  ASM_SIMP_TAC[AZIM_SPECIAL_SCALE; VECTOR_SUB_RZERO; DIST_0];
+  ASM_SIMP_TAC[VECTOR_MUL_EQ_0; DOT_BASIS; DOT_RMUL; REAL_ENTIRE;BASIS_NONZERO; REAL_LT_IMP_NZ; DIMINDEX_3; ARITH];
+  POP_ASSUM(K ALL_TAC);
+  REWRITE_TAC[AZIM_ARG];
+  REPEAT GEN_TAC;
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `(u2:real^3)$3 = &0` (fun t-> (REPEAT (POP_ASSUM MP_TAC)) THEN MP_TAC t);
+    BY(ASM_MESON_TAC[]);
+  SPEC_TAC (`u2:real^3`,`u2:real^3`);
+  PAD2D3D_TAC;
+  GEN_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `!v. (v:real^3) IN P ==> v$3 = &0` ASSUME_TAC;
+    HASH_UNDISCH_TAC 6277;
+    HASH_UNDISCH_TAC 4709;
+    BY(SET_TAC[]);
+  ABBREV_TAC `(A':real^2->bool) = IMAGE(dropout 3) (A:real^3->bool)`;
+  ABBREV_TAC `(P':real^2->bool) = IMAGE(dropout 3) (P:real^3->bool)`;
+  SUBGOAL_THEN `linear ((dropout 3):real^3->real^2)` ASSUME_TAC;
+    MATCH_MP_TAC LINEAR_DROPOUT;
+    REWRITE_TAC[DIMINDEX_2;DIMINDEX_3];
+    BY(ARITH_TAC);
+  SUBGOAL_THEN `polyhedron P' /\ bounded P' /\ (!p2. norm (p2:real^2) < r ==> p2 IN P')` MP_TAC;
+    EXPAND_TAC "P'";
+    CONJ_TAC;
+      MATCH_MP_TAC POLYHEDRON_LINEAR_IMAGE;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      MATCH_MP_TAC BOUNDED_LINEAR_IMAGE;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC [GSYM pad_in];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[NORM_PAD2D3D];
+    SPEC_TAC (`p2:real^2`,`p2:real^2`);
+    BY(REWRITE_TAC[GSYM QUANTIFY_PAD2D3D_THM]);
+  COMMENT "1 goal";
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `{d | (d:real^2->bool) facet_of P'} HAS_SIZE n` ASSUME_TAC;
+    EXPAND_TAC "P'";
+    MATCH_MP_TAC pad2d3d_facet;
+    BY(ASM_MESON_TAC[]);
+  COMMENT "A";
+  MP_TAC (SPECL [`P':real^2->bool`;`{d | d facet_of (P':real^2->bool)}`;`r:real`;`n:num`;`u2:real^2`] EUSOTYP_simple);
+  ASM_SIMP_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `\(i:num). pad2d3d (g i)`;
+  EXISTS_TAC `\(i:num). pad2d3d (h i)`;
+  BETA_TAC;
+  ASM_SIMP_TAC[dropout_pad2d3d;NORM_PAD2D3D;pad2d3d_dot_v;pad2d3d_SUB];
+  SUBGOAL_THEN `!w. pad2d3d w IN P <=> w IN P'` ASSUME_TAC;
+    GEN_TAC;
+    BY(ASM_MESON_TAC[pad_in]);
+  BY(ASM_MESON_TAC[IN])
   ]);;
   (* }}} *)
 

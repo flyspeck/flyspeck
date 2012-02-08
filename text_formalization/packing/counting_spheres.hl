@@ -10,44 +10,7 @@ module Counting_spheres = struct
 
 open Ysskqoy;;
 open Hales_tactic;;
-(* WORK IN PROGRESS!
-   Not ready to be added to the build.
 
-
-*)
-
-(* ========================================================================== *)
-(* EUSOTYP Lemmas *)
-
-(* 
-   The lemma is phrased in terms of Arg rather than polar cycle, because of
-   a lack of good supporting libraries for polar cycle.
-
-   The orthogonality conclusion (4) has been put into separate lemmas:
-   COS_ARG_VECTOR_ANGLE relating Arg to vector_angle,
-   SEC_DOT the orthogonality statement in terms of vector_angle.
-*)
-(* ========================================================================== *)
-
-let EUSOTYP_concl_old =  `!(P:real^2 -> bool) s n r c0 u. polyhedron P /\ bounded P /\
-    s = { c | c facet_of P } /\
-    c0 facet_of P /\
-    u = facet_rep_a P c0 /\ 
-    s HAS_SIZE n /\
-    (&0 < r ) /\
-  (!p. norm p < r ==> P p) ==>
-    (?(g:num->real^2). 
-       (!i. i IN 1..(2 * n) ==> (P (g i)) /\ ~(g i = vec 0)) /\
-       (!j k. j IN 1..(2 * n) /\ k IN 1..(2*n) /\ (j < k) ==> 
-	  Arg ( g j/ u) < Arg (g k /  u)) /\
-       (!l i j k psi. (l IN 1..n /\ i = 2 * l -1 /\ j = 2 *l /\ k = (2 * l +1) MOD (2*n)
-	   /\ psi = Arg( (g k)/(g i) ) / &2)
-	   ==> (norm (g i) = r) /\ 
-            norm (g j) = r * inv (cos (psi)) /\
-	   Arg (g j/ g i) = psi /\
-	   Arg (g k/ g j) = psi /\
-	       psi < pi/ &2 ))
-	`;;
 
 (* -------------- *)
 
@@ -1136,7 +1099,6 @@ let bisector_point = new_specification ["bisector_point"] (REWRITE_RULE[SKOLEM_T
 
 (* ========================================================================== *)
 (* WORK IN PROGRESS ON GOTCJAH
-    XXD.
    August 27, 2011.
     I am setting up the use of GEOM_BASIS_MULTIPLE_TAC 3`v:real^3` to reduce to the the case v = third basis vector.
     The rotational invariance of sol (solvec0) still needs to be checked.
@@ -1986,53 +1948,770 @@ MESON_TAC []
   ]);;
   (* }}} *)
 
+let RADIAL_NORM_LINEAR_INVARIANT = prove_by_refinement(
+   `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
+     ==> radial r (vec 0) (IMAGE f s) = radial r (vec 0) s`,
+   (* {{{ proof *)
+  [
+  REWRITE_TAC [Sphere.radial; VECTOR_ADD_LID ];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (TAUT `(a <=> b) /\( (a <=> b) ==> (c <=>d)) ==> (a /\ c <=> b /\ d)`);
+  STRIP_TAC;
+    REWRITE_TAC [Trigonometry1.DIST_L_ZERO;ball;SUBSET;IMAGE;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    HASH_RULE_TAC 7266 (SPEC `(f:real^M->real^N) u`);
+    REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[IN]);
+    STRIP_TAC;
+    HASH_RULE_TAC 503 (SPEC `(t:real)`);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `x = t % (u:real^M)` MP_TAC;
+      BY(ASM_MESON_TAC[linear;PRESERVES_NORM_INJECTIVE;IN]);
+    BY(ASM_MESON_TAC[IN]);
+  REPEAT WEAK_STRIP_TAC;
+  HASH_UNDISCH_TAC 662;
+  REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
+  WEAK_STRIP_TAC;
+  BY(ASM_MESON_TAC[IN;linear])
+  ] );;
+  (* }}} *)
 
+let linear_inter_normball = prove_by_refinement(
+  `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) ==>
+   ( IMAGE f s INTER normball (vec 0) r = IMAGE f (s INTER normball (vec 0) r))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  GEN_TAC;
+  REWRITE_TAC[IMAGE;INTER;normball;DIST_0;IN;IN_ELIM_THM];
+  Tactics_jordan.NAME_CONFLICT_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
 
-(* TARJJUW *)
+let solvec0_sold = prove_by_refinement(
+  `!(s:real^3->bool).  solvec0 s = 
+     if (?r. r > &0 /\ measurable (s INTER normball (vec 0) r) /\
+	   radial r (vec 0) (s INTER normball (vec 0) r)) 
+     then  sol (vec 0) s else &0`,
+  (* {{{ proof *)
+[
+  WEAK_STRIP_TAC;
+  MP_TAC (SPECL [`s:real^3->bool`] Counting_spheres.solvec0_d );
+  LET_TAC;
+  MP_TAC (SPECL [`s:real^3->bool`] Counting_spheres.solvec0_sol);
+  LET_TAC;
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "P";
+  EXPAND_TAC "P'";
+  REWRITE_TAC[IN_ELIM_THM;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let sol0_linear = prove_by_refinement(
+  `!(f:real^3->real^3) s.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y)==>
+    ( (?r. r > &0 /\
+         measurable (IMAGE f s INTER normball (vec 0) r) /\
+         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
+   (?r. r > &0 /\
+         measurable (s INTER normball (vec 0) r) /\
+         radial r (vec 0) (s INTER normball (vec 0) r)))`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
+  ]);;
+  (* }}} *)
+
+let sol0_linear_r = prove_by_refinement(
+  `!(f:real^3->real^3) s r.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (r > &0) ==>
+    (( 
+         measurable (IMAGE f s INTER normball (vec 0) r) /\
+         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
+   ( 
+         measurable (s INTER normball (vec 0) r) /\
+         radial r (vec 0) (s INTER normball (vec 0) r)))`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
+  ]);;
+  (* }}} *)
+
 (*
-searcht 5 [`packing`;`FINITE`];;
-searcht 15 [`ball_annulus`];;
-searcht 5 [`sup`;`FINITE`];;
-weakly_saturated;;
-ball_annulus;;
-searcht 5 [`weakly_saturated`];;
-type_of `ball_annulus`;;
-def_of_regexp "ball_annulus";;
-constant_of_regexp "ball_annulus";;
-def_of_regexp "ball_annul";;
-Tarjjuw.TARJJUW;;
-search [name "TARJ"];;
-apropos();;
-constant_of_regexp "TRI";;
-def_of_regexp "sol$";;
-def_of_regexp "solid_triangle";;
-help "apropos_searching";;
-constant_of_regexp "satur";; ["weakly_saturated"; "saturated"];;
-def_of_regexp "weakly_saturated";;
-def_of_regexp "max";;
-constant_of_regexp "inter";;
-def_of_regexp "closed_real_interval";;
-search [`weakly_saturated`];; (* "Tarjjuw.TARJJUW" *)
-Tarjjuw.TARJJUW;;
-def_of_regexp "ball";; (* open *)
-def_of_regexp "half_spaces";;
-def_of_regexp "ineq_cen";;
-searcht 5 [`weakly_saturated`];;
-let ineq693 =  `~lmfun_ineq_center V`;;
-type_of `sum`;;
-searcht 5 [`..`];;
-type_of `lmfun`;;
-searcht 5 [`lmfn_ineq_center`];;
+let SOLVEC0_LINEAR_INVARIANT = prove_by_refinement(
+  `!(f:real^3->real^3) s. linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (abs (det (matrix f)) = &1)
+    ==> solvec0 (IMAGE f s) = solvec0 s`,
+  (* {{{ proof *)
+[
+  REWRITE_TAC[DIMINDEX_3;solvec0_sold;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`] sol0_linear);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  COND_CASES_TAC;
+    HASH_UNDISCH_TAC 4360;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    HASH_KILL_TAC 6649;
+    HASH_CHOOSE_TAC 7595;
+    MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`;`r:real`] sol0_linear_r);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[MEASURE_LINEAR_IMAGE_SAME;Vol1.sol;sol0_linear_r;linear_inter_normball;Marchal_cells_2.RADIAL_VS_RADIAL_NORM]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
 *)
 
-let DLWCHEM_concl = `!V. packing V /\ packing_ineq_def_a /\
-  V SUBSET ball_annulus /\ ~(lmfun_ineq_center V) ==>
-   (CARD V = 13 \/ CARD V = 14 \/ CARD V = 15)`;;
+let SOLVEC0_LINEAR_INVARIANT_3 = prove_by_refinement(
+  `!(f:real^3->real^3) s. linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (2 <= dimindex(:3) ==>  (det (matrix f)) = &1)
+    ==> solvec0 (IMAGE f s) = solvec0 s`,
+  (* {{{ proof *)
+[
+  REWRITE_TAC[DIMINDEX_3;solvec0_sold;GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM];
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`] sol0_linear);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  COND_CASES_TAC;
+    HASH_UNDISCH_TAC 4360;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    HASH_KILL_TAC 6649;
+    HASH_CHOOSE_TAC 7595;
+    MP_TAC (ISPECL [`(f:real^3->real^3)`;`s:real^3->bool`;`r:real`] sol0_linear_r);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `abs(det (matrix (f:real^3->real^3))) = &1` ASSUME_TAC;
+      BY(ASM_MESON_TAC[REAL_ABS_1;ARITH_RULE`2 <= 3`]);
+    BY(ASM_MESON_TAC[MEASURE_LINEAR_IMAGE_SAME;Vol1.sol;sol0_linear_r;linear_inter_normball;Marchal_cells_2.RADIAL_VS_RADIAL_NORM]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
 
 
-let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ packing_ineq_def_a /\
- (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
-==> (lmfun_ineq_center V)`;;
+let dropout_pad2d3d = prove_by_refinement(
+  `!x. dropout 3 (pad2d3d x) = x`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[CART_EQ];
+  REWRITE_TAC[dropout;pad2d3d];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  ASSUME_TAC (ARITH_RULE `i <= 2==> i<3` );
+  SUBGOAL_THEN `i + 1 <= dimindex(:3) /\ i <= dimindex(:3)` ASSUME_TAC;
+    BY(ASM_MESON_TAC[DIMINDEX_3;DIMINDEX_2;ARITH_RULE `i<=2 ==> i+1 <= 3 /\ i <= 3`]);
+  COND_CASES_TAC THEN ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  BY(ASM_MESON_TAC[DIMINDEX_3;DIMINDEX_2])
+  ]);;
+  (* }}} *)
+
+let pad2d3d_dropout = prove_by_refinement(
+  `!x . (x$3= &0) ==> (pad2d3d (dropout 3 x) = x)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[CART_EQ];
+  REWRITE_TAC[dropout;pad2d3d];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3];
+  COND_CASES_TAC;
+    BY(ASM_SIMP_TAC[LAMBDA_BETA;DIMINDEX_2;DIMINDEX_3;ARITH_RULE `i < 3 ==> i<= 2`]);
+  BY(ASM_MESON_TAC[DIMINDEX_3;ARITH_RULE `~(i<3) /\ (i <= 3) ==> (i=3)`])
+  ]);;
+  (* }}} *)
+
+let pad2d3d_dropout_lemma = prove_by_refinement(
+  `!(A:A->bool) P h . (!x.  x IN A ==> P x) /\ (!x. P x ==> h x = x) ==> 
+    (IMAGE h A = A)`,
+  (* {{{ proof *)
+  [
+    SET_TAC[]
+  ]);;
+  (* }}} *)
+
+let pad2d3d_dot = prove_by_refinement(
+  `!x . (x$3= &0) ==> (pad2d3d x dot pad2d3d y = x dot y)`,
+  (* {{{ proof *)
+  [
+  BY(ASM_SIMP_TAC[GSYM LINEAR_SUB;LINEAR_PAD2D3D;DOT_NORM_NEG;NORM_PAD2D3D])
+  ]);;
+  (* }}} *)
+
+let pad_in = prove_by_refinement(
+  `!x A. (!u. u IN A ==> u$3 = &0) ==> ((pad2d3d x IN A) <=> (x IN (IMAGE (dropout 3) A)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[IN;IN_ELIM_THM;IMAGE];
+  BY(ASM_MESON_TAC[dropout_pad2d3d;pad2d3d_dropout;IN])
+  ]);;
+  (* }}} *)
+
+let pad2d3d_facet = prove_by_refinement(
+  `!P n. polyhedron (P:real^3->bool) /\ 
+    (!u. u IN P ==> u$3 = &0) /\ { c | c facet_of P } HAS_SIZE n ==>
+    {d | (d:real^2->bool) facet_of (IMAGE (dropout 3) P) } HAS_SIZE n`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (ISPEC `{c | c facet_of (P:real^3->bool)}` BIJECTIONS_HAS_SIZE);
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  EXISTS_TAC `(IMAGE (dropout 3)): (real^3->bool)->real^2->bool`;
+  EXISTS_TAC `(IMAGE (pad2d3d)): (real^2->bool)->real^3->bool`;
+  REWRITE_TAC[GSYM IMAGE_o];
+  SUBGOAL_THEN `!(A:real^3->bool). (A SUBSET P) ==> IMAGE(pad2d3d o dropout 3) A = A` ASSUME_TAC;
+    HASH_UNDISCH_TAC 5723;
+    REWRITE_TAC[IMAGE;IMAGE_o;SUBSET;IN_ELIM_THM];
+    BY(SET_TAC[pad2d3d_dropout]);
+  SUBGOAL_THEN `!(B:real^2->bool). IMAGE (dropout 3 o pad2d3d) B = B` ASSUME_TAC;
+    REWRITE_TAC[IMAGE;IMAGE_o;SUBSET;IN_ELIM_THM];
+    BY(SET_TAC[dropout_pad2d3d]);
+  REPEAT STRIP_TAC;
+        SUBGOAL_THEN `IMAGE pad2d3d (IMAGE (dropout 3) (x:real^3->bool)) facet_of (IMAGE pad2d3d (IMAGE (dropout 3) (P:real^3->bool)))` MP_TAC;
+          REWRITE_TAC[GSYM IMAGE_o];
+          BY(ASM_MESON_TAC[FACET_OF_IMP_SUBSET;SUBSET_REFL]);
+        BY(ASM_MESON_TAC[FACET_OF_LINEAR_IMAGE;PRESERVES_NORM_INJECTIVE;LINEAR_PAD2D3D;NORM_PAD2D3D]);
+      BY(ASM_MESON_TAC[FACET_OF_IMP_SUBSET]);
+    BY(ASM_MESON_TAC[SUBSET_REFL;IMAGE_o;FACET_OF_LINEAR_IMAGE;PRESERVES_NORM_INJECTIVE;LINEAR_PAD2D3D;NORM_PAD2D3D]);
+  BY(ASM_MESON_TAC[])
+   ]);;
+  (* }}} *)
+
+let ARG_SCALE = prove_by_refinement(
+  `!u w r. (&0 < r) ==> (Arg ((Cx r * u)/w) = Arg (u/w)) /\ (Arg (u/ (Cx r * w)) = Arg (u/w)) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC `w = Cx (&0)`;
+    BY(ASM_REWRITE_TAC[complex_div;COMPLEX_MUL_RZERO;COMPLEX_MUL_LZERO;COMPLEX_INV_0]);
+  SUBGOAL_THEN `~(Cx r * w = Cx(&0))` ASSUME_TAC;
+    BY(ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;REAL_ARITH `&0 < r ==> ~(r = &0)`]);
+  ASM_SIMP_TAC [Ysskqoy.ARG_CNJ;CNJ_CX;CNJ_MUL];
+  BY(ASM_MESON_TAC[ARG_MUL_CX;COMPLEX_MUL_AC])
+  ]);;
+  (* }}} *)
+
+let complex_frac_cancel = prove_by_refinement(
+  `!a b (c:complex).  ~(b = Cx (&0)) ==> (a/b)/(c/b) = a / c`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[ complex_div];
+  REWRITE_TAC[COMPLEX_INV_DIV];
+  REWRITE_TAC[complex_div];
+  MATCH_MP_TAC (prove(`(b' * b) *(a * (c:complex)) = d ==> (a * b' ) * (b * c) = d`,SIMPLE_COMPLEX_ARITH_TAC));
+  BY(ASM_SIMP_TAC[COMPLEX_MUL_LINV;COMPLEX_MUL_LID])
+  ]);;
+  (* }}} *)
+
+
+let REAL_CX0 = prove_by_refinement(
+  `!z. real z /\ Re z = &0 ==> (z = Cx (&0))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  BY(ASM_MESON_TAC[COMPLEX_NORM_ZERO;REAL_NORM;REAL_ARITH `abs (&0) = &0`])
+  ]);;
+  (* }}} *)
+
+
+let ARG_INV_ALT = prove_by_refinement(
+  `!u x y. ~(u = Cx (&0)) /\ ~(x = Cx(&0)) /\ ~(y = Cx(&0)) /\ ~(Arg (x/u) = Arg(y/u)) 
+  ==> (Arg(x/y) = &2*pi - Arg(y/x))`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  MP_TAC (SPEC `(y/(x:complex))` ARG_INV);
+  REWRITE_TAC[COMPLEX_INV_DIV];
+  DISCH_THEN MATCH_MP_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  HASH_UNDISCH_TAC 5488;
+  REWRITE_TAC[];
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  ASM_SIMP_TAC[ARG_EQ;Ysskqoy.ARG_0_DIV];
+  EXISTS_TAC `Re (y/x)`;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC (REAL_ARITH `&0 <= x /\ ~(x = &0) ==> &0 < x`);
+    REPEAT STRIP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    MP_TAC (SPEC `(y:complex/x)` REAL_CX0);
+    BY(ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV]);
+  HASH_RULE_TAC 3423 (REWRITE_RULE[REAL]);
+  DISCH_THEN SUBST1_TAC;
+  DISCH_TAC;
+  REWRITE_TAC[ complex_div];
+  MATCH_MP_TAC (prove(`d=(b' *b)*(a*c) ==> d = (a *b')*b * (c:complex)`,SIMPLE_COMPLEX_ARITH_TAC));
+  BY(ASM_SIMP_TAC[COMPLEX_MUL_LINV;COMPLEX_MUL_LID])
+  ]);;
+  (* }}} *)
+
+let ARG_ORDER = prove_by_refinement(
+  `!u h n. 
+    ~(u = Cx (&0)) /\
+    (!i. (i IN 1..n) ==> ~(h i = Cx (&0))) /\
+     (!i j. (i IN 1..n) /\ (j IN 1..n) /\ (i < j) ==> Arg (h i/ u) < Arg (h j/ u)) /\ (h (n+1) = h 1) ==>
+    (!i j. (i IN 1..n) /\ (j IN 1..n) /\ ~(i=j) ==> Arg (h (i+1) / h i) <= Arg (h j/ h i))
+     `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ARITH_RULE `~(i = j) <=> (i < j) \/ (j < (i:num))`];
+  REPEAT GEN_TAC;
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `!i. i IN 1..n ==> ~(h (i+1) = Cx (&0))` ASSUME_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    ASM_CASES_TAC `i=(n:num)`;
+      BY(ASM_MESON_TAC[IN_NUMSEG;ARITH_RULE `((n=0) ==> ~(1 <= n)) /\ (~(n=0) ==> (1 <= 1 /\ 1 <= n))`]);
+    BY(ASM_MESON_TAC[IN_NUMSEG;ARITH_RULE `~(i=n) /\ (i <= n) /\ (1 <= i) ==> (1 <= (i+1) /\ (i+1) <= n)`]);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REPEAT WEAK_STRIP_TAC;
+    FIRST_ASSUM (fun t -> MP_TAC (SPECL [`i+1`;`j:num`] t));
+    FIRST_X_ASSUM (fun t -> MP_TAC (SPECL [`i:num`;`(i+1):num`] t));
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[IN_NUMSEG;ARITH_RULE `i < i + 1`;ARITH_RULE `(i < j /\ j <=n ==> i+1 <=n)/\ (1 <= i+1)`]);
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    SUBGOAL_THEN `Arg (h (i+1) / u) <= Arg (h j / u)` ASSUME_TAC;
+      ASM_CASES_TAC `i+1 < j`;
+        BY(ASM_MESON_TAC [REAL_ARITH `a  < (b:real) ==> a <= b`;IN_NUMSEG;ARITH_RULE `1 <= i+1 /\ (i+1 < j /\ j<= n ==> i+1 <= n)`]);
+      BY(ASM_MESON_TAC[ARITH_RULE `i < j /\ ~(i+1 < j) ==> (i+1=j)`;REAL_ARITH `a <= a`]);
+    SUBGOAL_THEN `Arg (h (i+1)/ u) = Arg (h i/ u) + Arg ((h(i+1)/u)/(h (i:num)/u))` MP_TAC;
+      MATCH_MP_TAC ARG_LE_DIV_SUM;
+      ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+      HASH_UNDISCH_TAC 6821;
+      BY(REAL_ARITH_TAC);
+    ASM_SIMP_TAC [complex_frac_cancel];
+    DISCH_TAC;
+    SUBGOAL_THEN `Arg (h (j:num)/u) = Arg (h i/u) + Arg( (h j/u)/(h i/u))` MP_TAC;
+      MATCH_MP_TAC ARG_LE_DIV_SUM;
+      ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+      REPEAT (FIRST_X_ASSUM MP_TAC);
+      BY(REAL_ARITH_TAC);
+    ASM_SIMP_TAC [complex_frac_cancel];
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    BY(REAL_ARITH_TAC);
+  COMMENT "1 goal: case j<i";
+  ASM_CASES_TAC `i = (n:num)`;
+    SUBGOAL_THEN `Arg (h i/ u) = Arg (h 1 / u) + Arg ((h i/u)/(h 1 /u))` MP_TAC;
+      MATCH_MP_TAC ARG_LE_DIV_SUM;
+      ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      ASM_CASES_TAC `n=1`;
+        ASM_REWRITE_TAC[];
+        BY(REAL_ARITH_TAC);
+      MATCH_MP_TAC (arith `a:real < b ==> a <= b`);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      HASH_UNDISCH_TAC 88;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[IN_NUMSEG];
+      HASH_UNDISCH_TAC 4;
+      BY(ARITH_TAC);
+    ASM_SIMP_TAC [complex_frac_cancel];
+    SUBGOAL_THEN `Arg (h (i:num)/u) = Arg( h j/u) + (Arg ((h i/u)/(h j/u)))` MP_TAC;
+      MATCH_MP_TAC ARG_LE_DIV_SUM;
+      ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+      BY(ASM_MESON_TAC[arith `(a:real < b) ==> (a <= b)`]);
+    ASM_SIMP_TAC [complex_frac_cancel];
+    DISCH_TAC;
+    SUBGOAL_THEN `Arg (h 1/u) <= Arg (h j /u)` MP_TAC;
+      ASM_CASES_TAC `j = 1`;
+        ASM_REWRITE_TAC[];
+        BY(REAL_ARITH_TAC);
+      MATCH_MP_TAC (arith `a:real < b ==> a <= b`);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[IN_NUMSEG;arith `1 <=1`;arith `1 <=j /\ ~(j=1)==> (1 < j)`]);
+    REPEAT WEAK_STRIP_TAC;
+    MP_TAC (SPECL [`u:complex`;`(h 1):complex`;`(h:num->complex) n`] ARG_INV_ALT);
+    ANTS_TAC;
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      MATCH_MP_TAC (arith `(a:real < b) ==> ~(a = b)`);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      REPEAT (FIRST_X_ASSUM MP_TAC);
+      REWRITE_TAC[IN_NUMSEG];
+      BY(ARITH_TAC);
+    DISCH_TAC;
+    MP_TAC (SPECL [`u:complex`;`(h (j:num)):complex`;`(h:num->complex) i`] ARG_INV_ALT);
+    ANTS_TAC;
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[]);
+      MATCH_MP_TAC (arith `(a:real < b) ==> ~(a = b)`);
+      BY(ASM_SIMP_TAC[]);
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    REPLICATE_TAC 8 (DISCH_TAC);
+    DISCH_THEN SUBST1_TAC;
+    BY(REAL_ARITH_TAC);
+  COMMENT "last case";
+  SUBGOAL_THEN `i+1 <=n /\ i+1 IN 1..n` MP_TAC;
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[IN_NUMSEG];
+    BY(ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (SPECL [`u:complex`;`(h (i:num)):complex`;`(h:num->complex) j`] ARG_INV_ALT);
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    MATCH_MP_TAC (arith `(b:real < a) ==> ~(a = b)`);
+    BY(ASM_SIMP_TAC[]);
+  SUBGOAL_THEN `Arg (h (i+1)/u) = Arg (h i /u) + Arg ((h (i+1)/u)/(h i /u))` MP_TAC;
+    MATCH_MP_TAC ARG_LE_DIV_SUM;
+    ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+    MATCH_MP_TAC (arith `a:real < b ==> a <= b`);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  ASM_SIMP_TAC [complex_frac_cancel];
+  SUBGOAL_THEN `Arg (h i/u) = Arg (h (j:num) /u) + Arg ((h i/u)/(h j /u))` MP_TAC;
+    MATCH_MP_TAC ARG_LE_DIV_SUM;
+    ASM_SIMP_TAC[Ysskqoy.ARG_0_DIV];
+    MATCH_MP_TAC (arith `a:real < b ==> a <= b`);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_SIMP_TAC [complex_frac_cancel];
+  MP_TAC (ISPEC `(h:num->complex) j/ u` ARG);
+  MP_TAC (ISPEC `(h:num->complex) (i+1)/ u` ARG);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let POLYSORT_BIJ2 = prove_by_refinement(
+  `!P n s r u.
+          s = {c | c facet_of P} /\
+          bounded P /\
+          polyhedron P /\
+          &0 < r /\
+          (!p. norm p < r ==> P p) /\
+          ~(u = Cx (&0)) /\
+          s HAS_SIZE n
+          ==> (?f. s = IMAGE f (1..n) /\
+                   BIJ f (1..n) s /\
+                   (!i k. (i IN 1..n) /\ (k IN 1..n) /\ ~(i=k) ==> 
+			 (Arg (facet_rep_a P (f (i+1))/facet_rep_a P (f i))) <=
+	        (Arg (facet_rep_a P (f k)/ facet_rep_a P (f i)))) /\
+		   (!i. i IN 1..n ==> Arg (facet_rep_a P (f (i+1)) / facet_rep_a P (f i)) < pi) /\
+		   (f (n+1) = f 1) /\ 
+                   (!j k.
+                        j IN 1..n /\ k IN 1..n /\ j < k
+                        ==> Arg (facet_rep_a P (f j) / u) <
+                            Arg (facet_rep_a P (f k) / u)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (SPECL[`P:real^2->bool`;`n:num`;`s:(real^2->bool)->bool`;`r:real`;`u:real^2`] POLY_SORT_BIJ);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `\i. if (i IN 1..n) then (f i) else ((f:num->(real^2->bool)) 1)`;
+  BETA_TAC;
+  SUBCONJ_TAC;
+    HASH_UNDISCH_TAC 8348;
+    REWRITE_TAC[IMAGE];
+    DISCH_THEN SUBST1_TAC;
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(MESON_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    HASH_UNDISCH_TAC 8330;
+    REWRITE_TAC[BIJ;INJ;SURJ;IN;IN_ELIM_THM];
+    BY(MESON_TAC[]);
+  DISCH_TAC;
+  MATCH_MP_TAC (TAUT `c /\ d /\ a /\ b ==> a /\ b /\ c /\ d`);
+  SUBGOAL_THEN `~(n+1 IN 1..n)` ASSUME_TAC;
+    BY(REWRITE_TAC[IN_NUMSEG] THEN ARITH_TAC);
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    MP_TAC (SPECL [`u:real^2`;`\(i:num). facet_rep_a P (if i IN 1..n then f i else f 1)`;`n:num`] ARG_ORDER);
+    ANTS_TAC;
+      ASM_SIMP_TAC[];
+      REPEAT WEAK_STRIP_TAC;
+      FIRST_X_ASSUM MP_TAC;
+      REWRITE_TAC[];
+      MATCH_MP_TAC Counting_spheres.facet_rep_nz;
+      ASM_REWRITE_TAC[];
+      HASH_UNDISCH_TAC 8330;
+      REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM];
+      HASH_UNDISCH_TAC 6240;
+      BY(MESON_TAC[]);
+    BETA_TAC;
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  COMMENT "down to last subgoal";
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC(SPECL [`P:real^2->bool`;`if (i IN 1..n) then ((f i):real^2->bool) else f 1`;`r:real`] facet_arg_lt_pi);
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    HASH_UNDISCH_TAC 8348;
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IMAGE;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `?j. j IN 1..n /\ c' = (f j):real^2->bool` MP_TAC;
+    HASH_RULE_TAC 8348 (REWRITE_RULE[FUN_EQ_THM]);
+    REWRITE_TAC[IMAGE;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (fun t -> MP_TAC (SPECL [`i:num`;`j:num`] t));
+  ASM_REWRITE_TAC[];
+  ASM_CASES_TAC `i=j:num`;
+    ASM_REWRITE_TAC[];
+    HASH_UNDISCH_TAC 9883;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `(b = &0) ==> (&0 < b ==> a)`);
+    REWRITE_TAC[GSYM (SPEC `1` ARG_NUM)];
+    AP_TERM_TAC;
+    MATCH_MP_TAC COMPLEX_DIV_REFL;
+    MATCH_MP_TAC Counting_spheres.facet_rep_nz;
+    ASM_REWRITE_TAC[];
+    HASH_UNDISCH_TAC 8330;
+    REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM];
+    HASH_UNDISCH_TAC 7957;
+    BY(MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  HASH_UNDISCH_TAC 3495;
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+(* ========================================================================== *)
+(* EUSOTYP Lemmas *)
+
+(* 
+   The lemma is phrased in terms of Arg rather than polar cycle, because of
+   a lack of good supporting libraries for polar cycle.
+
+   The orthogonality conclusion (4) has been put into separate lemmas:
+   COS_ARG_VECTOR_ANGLE relating Arg to vector_angle,
+   SEC_DOT the orthogonality statement in terms of vector_angle.
+*)
+(* ========================================================================== *)
+
+let EUSOTYP_concl_old =  `!(P:real^2 -> bool) s n r c0 u. polyhedron P /\ bounded P /\
+    s = { c | c facet_of P } /\
+    c0 facet_of P /\
+    u = facet_rep_a P c0 /\ 
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+  (!p. norm p < r ==> P p) ==>
+    (?(g:num->real^2). 
+       (!i. i IN 1..(2 * n) ==> (P (g i)) /\ ~(g i = vec 0)) /\
+       (!j k. j IN 1..(2 * n) /\ k IN 1..(2*n) /\ (j < k) ==> 
+	  Arg ( g j/ u) < Arg (g k /  u)) /\
+       (!l i j k psi. (l IN 1..n /\ i = 2 * l -1 /\ j = 2 *l /\ k = (2 * l +1) MOD (2*n)
+	   /\ psi = Arg( (g k)/(g i) ) / &2)
+	   ==> (norm (g i) = r) /\ 
+            norm (g j) = r * inv (cos (psi)) /\
+	   Arg (g j/ g i) = psi /\
+	   Arg (g k/ g j) = psi /\
+	       psi < pi/ &2 ))
+	`;;
+
+
+let EUSOTYP_simple = prove_by_refinement(
+  `!(P:real^2->bool) s r n u2.
+     (polyhedron P) /\ (bounded P) /\ (s = {c | c facet_of P}) /\ s HAS_SIZE n /\ 
+    (&0 < r) /\ ~(u2 = vec 0) /\ (!p2. norm p2 < r ==> p2 IN P) ==> 
+   (?g h.  (!i. i IN 1..n ==> g i IN P /\ norm (g i) = r) /\
+     g (n + 1) = g 1 /\
+     (!j k.           j IN 1..n /\ k IN 1..n /\ j < k
+          ==> Arg ( (g j) / u2) < Arg ( (g k) / u2)) /\
+    (!i. i IN 1..n ==> h i IN P /\
+              norm (h i) = r * inv (cos (Arg ( (g (i + 1)) /  (g i)) / &2))) /\
+     (!i. i IN 1..n
+          ==> Arg ( (h i) /  (g i)) = Arg ( (g (i + 1)) /  (g i)) / &2 /\
+              Arg ( (g (i + 1)) /  (h i)) = Arg ( (g (i + 1)) /  (g i)) / &2) /\
+     (!i. i IN 1..n
+          ==> g i dot (h i - g i) = &0 /\ g (i + 1) dot (h i - g (i + 1)) = &0))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (SPECL [`P:real^2->bool`;`n:num`;`{ c | (c:real^2->bool) facet_of P}`;`r:real`;`u2:real^2`] POLYSORT_BIJ2);
+  ASM_REWRITE_TAC[GSYM COMPLEX_VEC_0];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[IN]);
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `\(i:num).  r % facet_rep_a P (f i)`;
+  BETA_TAC;
+  EXISTS_TAC `\(i:num).  bisector_point P (f i) (f (i+1)) r`;
+  SUBGOAL_THEN `!i. i IN 1..n ==> (f i) facet_of (P:real^2->bool)` ASSUME_TAC;
+    HASH_UNDISCH_TAC 8348;
+    BY(SET_TAC[]);
+  SUBCONJ_TAC;
+    ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;NORM_MUL];
+    REPEAT STRIP_TAC;
+      REWRITE_TAC[IN];
+      MATCH_MP_TAC Counting_spheres.facet_rep_in_poly;
+      BY(ASM_MESON_TAC[IN]);
+    BY(ASM_MESON_TAC[Counting_spheres.facet_rep_def;REAL_ARITH `r * &1 = r`]);
+  DISCH_TAC;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  BETA_TAC;
+  SUBGOAL_THEN `!i. (i IN 1..n ==> ~(facet_rep_a P (f i) = Cx (&0)))` ASSUME_TAC;
+    GEN_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC Counting_spheres.facet_rep_nz;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[COMPLEX_CMUL];
+  SUBGOAL_THEN `!v u. Arg(((Cx r)*v)/u) = Arg (v/u)` ASSUME_TAC;
+    REPEAT GEN_TAC;
+    BY(ASM_SIMP_TAC[complex_div;ARG_MUL_CX;arith `((a:complex)*b) * c = a * b * c`]);
+  ASM_SIMP_TAC[];
+  SUBGOAL_THEN `!v u. Arg(v/(Cx r * u)) = Arg (v/u)` ASSUME_TAC;
+    REPEAT GEN_TAC;
+    ASM_SIMP_TAC[complex_div;COMPLEX_INV_MUL];
+    BY(ASM_SIMP_TAC[arith `(a:complex)*(inv (Cx t) * c) = (a * c)/(Cx t)`;ARG_DIV_CX]);
+  ASM_SIMP_TAC[];
+  COMMENT "three conjuncts left";
+  SUBGOAL_THEN `!i. (i IN 1..n) ==> (P (bisector_point P (f i) (f (i + 1)) r) /\       norm (bisector_point P (f i) (f (i + 1)) r) =      r *      inv (cos (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)) /\      Arg (bisector_point P (f i) (f (i + 1)) r / facet_rep_a P (f i)) =      Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2 /\      Arg (facet_rep_a P (f (i + 1)) / bisector_point P (f i) (f (i + 1)) r) =      Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)` ASSUME_TAC;
+    GEN_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC bisector_point;
+    ASM_REWRITE_TAC[];
+    SUBCONJ_TAC;
+      BY(ASM_SIMP_TAC[]);
+    DISCH_TAC;
+    SUBCONJ_TAC;
+      ASM_CASES_TAC `i+1 IN 1..n`;
+        BY(ASM_SIMP_TAC[]);
+      MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+      ASM_REWRITE_TAC[];
+      REPEAT WEAK_STRIP_TAC;
+      ASM_REWRITE_TAC[];
+      BY(ASM_SIMP_TAC[]);
+    DISCH_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[IN]);
+    REWRITE_TAC[arith `&2 * x / &2 = x`;arith `x / &2 < y / &2 <=> x < y`];
+    ASM_SIMP_TAC[];
+    SUBCONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      SUBGOAL_THEN `(?k. k IN 1..n /\ (c'' = (f:num->real^2->bool) k))` MP_TAC;
+        HASH_UNDISCH_TAC 3856;
+        HASH_UNDISCH_TAC 8330;
+        REWRITE_TAC[BIJ;INJ;SURJ];
+        BY(SET_TAC[]);
+      REPEAT WEAK_STRIP_TAC;
+      BY(ASM_MESON_TAC[arith `(a:real < b) ==> ~(b <= a)`]);
+    DISCH_TAC;
+    ASM_CASES_TAC `(i+1) IN 1..n`;
+      BY(ASM_MESON_TAC[arith `i < i+1`;arith `(a:real < b) ==> ~(a = b)`]);
+    MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_CASES_TAC `1 < n`;
+      BY(ASM_MESON_TAC[arith `i < i+1`;arith `(a:real < b) ==> ~(a = b)`]);
+    SUBGOAL_THEN `{ c | (c:real^2->bool) facet_of P} HAS_SIZE 1` MP_TAC;
+      BY(ASM_MESON_TAC[arith `~(1 < n) /\ (1 <= n) ==> (n = 1)`;prove (`i IN 1..n ==> 1 <= n`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC)]);
+    REWRITE_TAC[HAS_SIZE_1_EXISTS];
+    REWRITE_TAC[EXISTS_UNIQUE;IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    MP_TAC (SPECL [`P:real^2->bool`;`(f:num->real^2->bool) i`;`r:real`] facet_arg_lt_pi);
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(ASM_MESON_TAC[IN]);
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `c' = (f:num->real^2->bool) i` MP_TAC;
+      BY(ASM_MESON_TAC[]);
+    DISCH_TAC;
+    HASH_UNDISCH_TAC 9883;
+    ASM_REWRITE_TAC[];
+    HASH_UNDISCH_TAC 4050;
+    HASH_UNDISCH_TAC 88;
+    ASM_REWRITE_TAC[];
+    SIMP_TAC[COMPLEX_DIV_REFL];
+    REWRITE_TAC[ARG_NUM];
+    BY(REAL_ARITH_TAC);
+  COMMENT "1 goal, 3 conjuncts, bisector point now read in ";
+  ASM_SIMP_TAC[];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[IN]);
+  GEN_TAC;
+  DISCH_TAC;
+  SUBGOAL_THEN `~(norm (bisector_point P (f i) (f (i+1)) r)  = &0)` MP_TAC;
+    ASM_SIMP_TAC[REAL_ENTIRE;arith `&0 < r ==> ~(r = &0)`];
+    REWRITE_TAC[REAL_INV_EQ_0];
+    MATCH_MP_TAC Taylor_atn.cos_nz;
+    MATCH_MP_TAC (arith `&0 <= x /\ x < pi /\ (&0 < pi) ==>abs(x/ &2) < pi/ &2`);
+    REWRITE_TAC[ARG;PI_POS];
+    BY(ASM_SIMP_TAC[]);
+  REWRITE_TAC[COMPLEX_NORM_ZERO];
+  DISCH_TAC;
+  CONJ_TAC THEN MATCH_MP_TAC Ysskqoy.SEC_DOT THEN EXISTS_TAC `r:real`;
+    EXISTS_TAC ` (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)`;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[ARG;arith `&0 <= x/ &2 <=> &0 <= x`;COMPLEX_NORM_MUL;COMPLEX_NORM_CX;arith `x/ &2 < y/ &2 <=> x < y`];
+    ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;facet_rep_def;arith `r * &1 = r`];
+    ONCE_REWRITE_TAC[VECTOR_ANGLE_SYM];
+    SUBGOAL_THEN `cos (Arg ( (bisector_point P (f i) (f (i + 1)) r)/ (Cx r * facet_rep_a P (f i))))= cos  (vector_angle (bisector_point P (f i) (f (i + 1)) r)  (Cx r * facet_rep_a P (f i)))` (SUBST1_TAC o GSYM);
+      MATCH_MP_TAC Ysskqoy.COS_ARG_VECTOR_ANGLE;
+      BY(ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;arith `&0 < r ==> ~(r = &0)`]);
+    AP_TERM_TAC;
+    BY(ASM_MESON_TAC[]);
+  EXISTS_TAC ` (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)`;
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[ARG;arith `&0 <= x/ &2 <=> &0 <= x`;COMPLEX_NORM_MUL;COMPLEX_NORM_CX;arith `x/ &2 < y/ &2 <=> x < y`];
+  SUBGOAL_THEN `(f (i+1)) facet_of (P:real^2->bool)` ASSUME_TAC;
+    ASM_CASES_TAC `i+1 IN 1..n`;
+      BY(ASM_MESON_TAC[]);
+    MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[]);
+  ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;facet_rep_def;arith `r * &1 = r`];
+  SUBGOAL_THEN `cos (Arg ( ( (Cx r * facet_rep_a P (f (i + 1)))/ (bisector_point P (f i) (f (i + 1)) r)) ) ) =     cos (vector_angle (Cx r * facet_rep_a P (f (i + 1))) (bisector_point P (f i) (f (i + 1)) r))` (SUBST1_TAC o GSYM);
+    MATCH_MP_TAC Ysskqoy.COS_ARG_VECTOR_ANGLE;
+    ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;arith `&0 < r ==> ~(r = &0)`];
+    ASM_CASES_TAC `i+1 IN 1..n`;
+      BY(ASM_SIMP_TAC[]);
+    MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+    BY(ASM_MESON_TAC[]);
+  AP_TERM_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let pad2d3d_SUB = prove_by_refinement(
+  `!x y. pad2d3d x - pad2d3d y = pad2d3d (x - y)`,
+  (* {{{ proof *)
+  [
+ REPEAT GEN_TAC;
+  REWRITE_TAC[VECTOR_ARITH `(u:real^A) - (v:real^A) = (u + (-- &1) % v)`];
+  BY(MESON_TAC[LINEAR_PAD2D3D;linear])
+  ]);;
+  (* }}} *)
 
 
 end;;

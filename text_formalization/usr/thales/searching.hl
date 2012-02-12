@@ -14,6 +14,14 @@ module Searching = struct
 
   open Hales_tactic;;
 
+(*
+
+? forces interpretation as a theorem.
+%`x` performs type matching
+%%[`x`;`y`] performs type matching.
+
+*)
+
 (* 
 TODO: 
  -Combine different search mechanisms with the same return type.
@@ -42,6 +50,7 @@ let maxl0 xs = try (end_itlist max xs) with _ -> 0;;
 let types_of = Print_types.print_term_types;;
 let type_of_thm = Print_types.print_thm_types;;
 let type_of_goal = Print_types.print_goal_types;;
+let goal_types = Print_types.print_goal_types;;
 
 
 (* ========================================================================== *)
@@ -120,7 +129,10 @@ help_flag 'd' "cos" ;;
 let def s = mk_comb(mk_var("<match constant def>",W mk_fun_ty aty),
                      mk_var(s,aty));;
 
+let searches = ref[];;
+
 let searcht n pat = 
+  let _ = searches := (n,pat)::!searches in
   let def_of_regexp ss = 
     let c = help_flag 'd'  ss in
     let strip d =   (fst o dest_const o fst o dest_eq o concl) d in
@@ -143,6 +155,40 @@ let searchn n f s = snd(List.nth (searcht (n+1) f) n);;  (* used for write-up of
 Example: searcht 5 [def "cos"];;
 searcht 5 [def "mul"];;
 *)
+
+let research m = 
+  let (n,pat) = hd (!searches) in
+    searcht (m) pat;;
+
+let search_results = ref [];;
+
+let mark = 
+  let counter = ref 0 in 
+  fun m->
+  let (n,pat) = hd (!searches) in
+  let (s,th) =   snd(List.nth (searcht (1 + min n m) pat) m)  in
+  let v = (!counter,s,th,pat) in
+  let _ = counter:= !counter+1 in
+  let _ = search_results := v::(!search_results) in
+    v;;
+
+let result n pat = 
+  let ls = map (fun (_,s,th,_) -> (s,th)) !search_results in
+  let a = zip ls !search_results in
+  let sl = if pat = [] then ls else searchl ls pat in
+  let n' = min n (List.length sl) in
+  let a' =   fst(chop_list n' (sl)) in
+    map (fun t -> assoc t a) a';;
+
+let results pat = 
+  let n = List.length (!search_results) in 
+    result n pat;;
+
+let retrieve_search_number n = 
+  let (_,s,_,_) = find (fun (c,_,_,_) -> (c=n)) !search_results in
+    s;;
+
+(*
 
 
 let (srch,more,less,retrieve_search)  =
@@ -190,6 +236,7 @@ let (srch,more,less,retrieve_search)  =
     fst ( List.nth (Hol_pervasives.assoc tag !allsearch)  item) in
 
     (srch,more,less,retrieve_search);;
+*)
 
 (* ========================================================================== *)
 (* STATS of WORD COUNTS, indexing all words in  HOL LIGHT and FLYSPECK  *)
@@ -426,7 +473,7 @@ let eval_command ?(silent=false) command =
 
 (* eval_command ~silent:false "g `x=y`";; *)
 
-type proof_record = Tax of string*int*tactic | Bax | Gax of term;;
+type proof_record = Tax of string*int*tactic | Bax | Gax of term*string;;
 
 let proof_record  =ref [];;
 let tactic_cache = ref (fun () -> ALL_TAC);;
@@ -453,7 +500,7 @@ let string_of_frees t =
 
 let eval_goal t = 
   let _ = print_goalstack (Hol_pervasives.g(t));
-    proof_record := Gax t::!proof_record;
+    proof_record := Gax (t,process_to_string "date")::!proof_record;
     warn (has_stv t)  "?type in goal" in
     ();;
 
@@ -486,10 +533,17 @@ let string_of_proof () =
 
 let rec split_proof_record acc cur = function
   | [] -> if (List.length cur > 0) then acc @[cur] else acc
-  | Gax t as a :: xs -> 
-      let acc' = if (List.length cur > 0) then  acc @ [cur] else acc in
-	split_proof_record acc' [a] xs
+  | Gax (_,_) as a :: xs -> 
+      let acc' =  acc @ [cur @ [a]]  in
+	split_proof_record acc' [] xs
   | a :: xs -> split_proof_record acc (cur @ [a]) xs;;
+
+let gax() =
+  let u = split_proof_record [] [] (!proof_record) in
+  let j = zip u (0-- (List.length u - 1)) in
+  let k = map (fun (u,z) -> (z,List.length u,last u)) j in
+     k;;
+
 
 split_proof_record [] [] (!proof_record);;
 
@@ -675,12 +729,44 @@ abbrev ("fassum","FIRST_ASSUM");;
 abbrev ("fa","FIRST_ASSUM");;
 abbrev ("d/r","REPEAT DISCH_TAC");;
 abbrev ("comment","COMMENT");;
+abbrev ("name","NAME");;
+abbrev ("rot","ROT_TAC");;
 unabbrev ("rau");;
 abbrev ("arith","arith");;
 abbrev ("aa","ARITH_TAC");;
 abbrev ("rep","REPLICATE_TAC");;
 abbrev ("simp","SIMP_TAC");;
+abbrev ("contr","PROOF_BY_CONTR_TAC");;
 
+let thm_abbreviations = ref[("elim","IN_ELIM_THM");("morgan","DE_MORGAN_THM")];;
+
+let thm_abbrev s = (let _ = thm_abbreviations:= s::!thm_abbreviations in s);;
+
+thm_abbrev ("empty","EMPTY");;
+
+let expansive_thms   = 
+  let  full =  (map fst thm_counts) in
+    fun op s ->
+      let searches = map (fun (_,s,_,_) -> s) !search_results in
+	op (match_sparse s) (searches @ full);;
+
+let expand_thm  =
+  let charset = (explode "abcdefghijklmnopqrstuvwxyz0123456789'_.") in
+  let number s = 
+    let n = int_of_string s in
+      retrieve_search_number n in
+  let abbreviable s = (subset (explode s) charset) in 
+  let unabbrev s = 
+    let _ = not(abbreviable s) or failwith "abbrev" in s in
+  let assoc_thm s = (ignore (Hol_pervasives.assoc s !theorems); s) in
+  let assoct s = Hol_pervasives.assoc s !thm_abbreviations in
+  let match_t = expansive_thms find in
+   fun s->  tryfind (fun f -> f s) [unabbrev;number;assoct;assoc_thm;match_t;I];; 
+
+(*
+%`x` to expand types of term
+%%[`x`;`y`] to expand types of term list.
+*)
 
 let el_to_hash s i = 
   let el_assoc = [
@@ -803,11 +889,12 @@ unabbrev test1;;
 
 
 
-
+(*
 let unabbrev_thm s = 
   let tg = String.sub s 0 1 in
   let item = int_of_string (String.sub s 1 (String.length s - 1)) in
     retrieve_search tg item;;
+*)
 
 let unabbrev_token = function
   | M_comment -> ""
@@ -820,7 +907,7 @@ let unabbrev_token = function
   | M_rparen -> ")"
   | M_lbracket -> "["
   | M_rbracket -> "]"
-  | M_query s -> unabbrev_thm s
+  | M_query s -> expand_thm s
   | M_env level -> if (level <=1) then " env (asl,w)" else " envl (asl,w)"
   | M_local s -> ("loc_"^s)
   | M_asm i -> ("asm_"^(string_of_int i));;
@@ -892,6 +979,7 @@ let eval_tactic_lines s =
 	with _ -> failwith ("tactic failure : "^s1^" >>> "^sepx) in
   let _ = do_list one_line ss in
     p();;
+(* emacs: hol-light-tactic-replay  "\C-c\C-r" *)
 
 let e_abbrev = eval_tactic_abbrev2;;
 
@@ -909,6 +997,15 @@ let directive_abbreviations= ref[
 ];;
 *)
 
+(* EMACS BINDINGS:
+see hol-light-mode.el
+
+eval_tactic_lines -> hol-light-tactic-replay  "\C-c\C-r" 
+(local-set-key "\C-ct" 'hol-light-goal-types)
+(local-set-key "\C-c\C-y" 'hol-light-type-region)
+ (local-set-key "\C-cr" 'hol-light-eval-region)
+
+*)
 
 
 

@@ -50,6 +50,14 @@ let AZIM_SUM_LE = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let AZIM_NN = prove_by_refinement(
+  `!x y z u. &0 <= azim x y z u`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[azim]
+  ]);;
+  (* }}} *)
+
 
 let AZIM_BASE_SHIFT_LT = prove_by_refinement(
   `!x y z z' w1 w2 w3.
@@ -76,7 +84,7 @@ let AZIM_BASE_SHIFT_LT = prove_by_refinement(
       ASM_REWRITE_TAC[];
       BY((REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC));
     SUBGOAL_THEN `azim x y w1 w2 = &0 /\ azim x y w2 w1 = &0` (MP_TAC);
-      BY(ASM_MESON_TAC[Local_lemmas.AZIM_RANGE;arith `a = b + c /\ c = e + a /\ &0 <= b /\ &0 <= e ==> (b = &0 /\ e = &0)`]);
+      BY(ASM_MESON_TAC[AZIM_NN;arith `a = b + c /\ c = e + a /\ &0 <= b /\ &0 <= e ==> (b = &0 /\ e = &0)`]);
     STRIP_TAC;
     SUBGOAL_THEN `azim x y z w2 = azim x y z w1 + azim x y w1 w2` ASSUME_TAC;
       MATCH_MP_TAC Fan.sum4_azim_fan;
@@ -90,7 +98,7 @@ let AZIM_BASE_SHIFT_LT = prove_by_refinement(
     ASM_REWRITE_TAC[];
     BY((REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC));
   SUBGOAL_THEN `azim x y w2 w3 = &0 /\ azim x y w3 w2 = &0` (MP_TAC);
-    BY(ASM_MESON_TAC[Local_lemmas.AZIM_RANGE;arith `a = b + c /\ b = a + c' /\ &0 <= c /\ &0 <= c' ==> (c = &0 /\ c' = &0)`]);
+    BY(ASM_MESON_TAC[AZIM_NN;arith `a = b + c /\ b = a + c' /\ &0 <= c /\ &0 <= c' ==> (c = &0 /\ c' = &0)`]);
   STRIP_TAC;
   SUBGOAL_THEN `azim x y z w3 = azim x y z w2 + azim x y w2 w3` ASSUME_TAC;
     MATCH_MP_TAC Fan.sum4_azim_fan;
@@ -243,11 +251,68 @@ let WEDGE_ORDER_DISJOINT = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let ORDER_AZIM_SUM2Pi = prove_by_refinement(
+   `!x y z n g.
+     ~(collinear {x,y,z}) /\
+    (!i. i IN 1..n ==> ~(collinear {x,y, g i})) /\
+     (g (n+1) = g 1) /\ (1 < n) /\
+        (!j k. j IN 1..n /\ k IN 1..n /\ (j < k) ==>  
+	  azim x y z (g j) < azim x y z (g k))
+    ==>
+     sum (1..n) (\i. azim x y (g i) (g (i+1))) = &2 * pi`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `!i. i IN 1..(n-1) /\ 1 < n ==> (i < i+1 /\ i IN 1..n /\ (i+1) IN 1..n)` MP_TAC;
+    REWRITE_TAC[IN_NUMSEG];
+    BY(ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `!i. i IN 1..(n-1) ==> azim x y (g i) (g(i+1)) = azim x y z (g(i+1)) - azim x y z (g i)` ASSUME_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[arith `a = b - c <=> b = c + a`];
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC (arith `a < b ==> a <= b`);
+    BY(ASM_MESON_TAC[arith `i < i+1`]);
+  SUBGOAL_THEN `sum (1..n) (\i. azim x y (g i) (g (i+1))) = sum (1..(n-1)) (\i. azim x y (g i) (g (i+1))) + sum (n..n) (\i. azim x y (g i) (g (i+1)))` SUBST1_TAC;
+    BY(ASM_MESON_TAC[arith `1 <= (n-1)+1 /\ ((1<n) ==>(n-1)+1 = n)`;SUM_ADD_SPLIT]);
+  REWRITE_TAC[SUM_SING_NUMSEG];
+  SUBGOAL_THEN `sum (1..(n-1)) (\i. azim x y (g i) (g(i+1))) = sum(1..(n-1)) (\i. azim x y z (g (i+1)) - azim x y z (g i))` SUBST1_TAC;
+    BY(ASM_MESON_TAC[SUM_EQ]);
+  SIMP_TAC[SUM_DIFFS_ALT];
+  ASM_SIMP_TAC[arith `1< n ==> 1 <= n-1`;arith `1 < n==> (n-1)+1 = n`];
+  MATCH_MP_TAC (arith `  a = b + azim x y (g 1) (g n)  /\ c = &2 * pi - azim x y (g 1) (g n) ==> a - b + c = &2 * pi`);
+  SUBGOAL_THEN `1 IN 1..n /\ n IN 1..n` MP_TAC;
+    REWRITE_TAC[IN_NUMSEG];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    BY(ASM_SIMP_TAC[arith `a< b ==> a<=b`]);
+  DISCH_TAC;
+  (fun (asl,w) -> (REWRITE_TAC[SPECL ( envl (asl,w)[`x`;`y`;`g (1)`;`g(n:num)`]) Rogers.AZIM_COMPL_EXT]) (asl,w));
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[arith `x = y + &0 ==> ~(y<x)`]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
 
 (* ========================================================================== *)
 (* WORK IN PROGRESS *)
 (* ========================================================================== *)
 
+
+
+searcht 5 [`sum (n..n)`];;
+searchn 2 [`sum X f = sum X g`] "SUM_EQ";;
+SUM_ADD_SPLIT;;
+SUM_PAIR;;
+searcht 15 [`sum`;`(a..( n+m))`];;
+searcht 15 [name "SUM_DIFF"];;
+searchn 0 [`sum`;`\i. (f (i+1) - f (i))`] "SUM_DIFFS_ALT";;
+searcht 15 [name "TELE"];;
+searcht 15 [`azim`;`sum`];;
 AZIM;;
 searcht 5 [`&0 <= azim x y z w`];;
 AZIM_BASE_SHIFT_LT;;

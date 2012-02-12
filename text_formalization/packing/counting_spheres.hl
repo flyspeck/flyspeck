@@ -2534,7 +2534,229 @@ let EUSOTYP_concl_old =  `!(P:real^2 -> bool) s n r c0 u. polyhedron P /\ bounde
 	`;;
 
 
+let EMPTY_NOT_EXISTS_IN = prove_by_refinement(
+  `(a:A->bool) = {} <=> ~(?x. x IN a)`,
+  (* {{{ proof *)
+  [
+  SET_TAC[]
+  ]);;
+  (* }}} *)
+
+
 let EUSOTYP_simple = prove_by_refinement(
+  `!(P:real^2->bool) s r n u2.
+     (polyhedron P) /\ (bounded P) /\ (s = {c | c facet_of P}) /\ s HAS_SIZE n /\ 
+    (&0 < r) /\ ~(u2 = vec 0) /\ (!p2. norm p2 < r ==> p2 IN P) ==> 
+   (?g h.  (!i. i IN 1..n ==> g i IN P /\ norm (g i) = r) /\
+          g (n + 1) = g 1 /\
+     (!j k.           j IN 1..n /\ k IN 1..n /\ j < k
+          ==> Arg ( (g j) / u2) < Arg ( (g k) / u2)) /\
+    (!i. i IN 1..n ==> h i IN P /\
+              norm (h i) = r * inv (cos (Arg ( (g (i + 1)) /  (g i)) / &2))) /\
+     (!i. i IN 1..n
+          ==> Arg ( (h i) /  (g i)) = Arg ( (g (i + 1)) /  (g i)) / &2 /\
+              Arg ( (g (i + 1)) /  (h i)) = Arg ( (g (i + 1)) /  (g i)) / &2) /\
+     (!i. i IN 1..n
+          ==> g i dot (h i - g i) = &0 /\ g (i + 1) dot (h i - g (i + 1)) = &0) /\
+      (1 < n) /\
+     (!i. i IN 1..n ==> ~(g i = Cx(&0)))  /\
+     (!i. i IN 1..n ==> ~(h i = Cx(&0))) /\
+      (!i. (i IN 1..n ==> Arg ( g(i+1)/ g(i)) < pi)) )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MP_TAC (SPECL [`P:real^2->bool`;`n:num`;`{ c | (c:real^2->bool) facet_of P}`;`r:real`;`u2:real^2`] POLYSORT_BIJ2);
+  ASM_REWRITE_TAC[GSYM COMPLEX_VEC_0];
+  ANTS_TAC;
+    BY(BY(ASM_MESON_TAC[IN]));
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `\(i:num).  r % facet_rep_a P (f i)`;
+  BETA_TAC;
+  EXISTS_TAC `\(i:num).  bisector_point P (f i) (f (i+1)) r`;
+  SUBGOAL_THEN `!i. i IN 1..n ==> (f i) facet_of (P:real^2->bool)` ASSUME_TAC;
+    HASH_UNDISCH_TAC 8348;
+    BY(BY(SET_TAC[]));
+  SUBCONJ_TAC;
+    ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;NORM_MUL];
+    REPEAT STRIP_TAC;
+      REWRITE_TAC[IN];
+      MATCH_MP_TAC Counting_spheres.facet_rep_in_poly;
+      BY(BY(ASM_MESON_TAC[IN]));
+    BY(BY(ASM_MESON_TAC[Counting_spheres.facet_rep_def;REAL_ARITH `r * &1 = r`]));
+  DISCH_TAC;
+  CONJ_TAC;
+    BY(BY(ASM_REWRITE_TAC[]));
+  BETA_TAC;
+  SUBGOAL_THEN `!i. (i IN 1..n ==> ~(facet_rep_a P (f i) = Cx (&0)))` ASSUME_TAC;
+    GEN_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC Counting_spheres.facet_rep_nz;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(BY(ASM_REWRITE_TAC[]));
+  REWRITE_TAC[COMPLEX_CMUL];
+  SUBGOAL_THEN `!v u. Arg(((Cx r)*v)/u) = Arg (v/u)` ASSUME_TAC;
+    REPEAT GEN_TAC;
+    BY(BY(ASM_SIMP_TAC[complex_div;ARG_MUL_CX;arith `((a:complex)*b) * c = a * b * c`]));
+  ASM_SIMP_TAC[];
+  SUBGOAL_THEN `!v u. Arg(v/(Cx r * u)) = Arg (v/u)` ASSUME_TAC;
+    REPEAT GEN_TAC;
+    ASM_SIMP_TAC[complex_div;COMPLEX_INV_MUL];
+    BY(BY(ASM_SIMP_TAC[arith `(a:complex)*(inv (Cx t) * c) = (a * c)/(Cx t)`;ARG_DIV_CX]));
+  ASM_SIMP_TAC[];
+  COMMENT "three conjuncts left + 3 new ones";
+  SUBGOAL_THEN `?x''. x'' facet_of (P:real^2->bool)` MP_TAC;
+    COMMENT "new insert";
+    SUBGOAL_THEN `?c. ~(c = {}) /\ ~(c = (P:real^2->bool)) /\ (c face_of P)` ASSUME_TAC;
+      MP_TAC (ISPEC `P:real^2->bool` (REWRITE_RULE [GSYM FACE_OF_SING ] EXTREME_POINT_EXISTS_CONVEX ));
+      ANTS_TAC;
+        REWRITE_TAC[EMPTY_NOT_EXISTS_IN];
+        BY(ASM_MESON_TAC[NORM_0; POLYTOPE_IMP_CONVEX ; POLYTOPE_IMP_COMPACT; POLYTOPE_EQ_BOUNDED_POLYHEDRON ]);
+      REPEAT WEAK_STRIP_TAC;
+      (fun (asl,w) -> (EXISTS_TAC ( env (asl,w)`{x}`)) (asl,w));
+      ASM_REWRITE_TAC[];
+      CONJ_TAC;
+        BY(SET_TAC[]);
+      HASH_COPY_TAC 1412;
+      FIRST_X_ASSUM (MP_TAC o (SPEC `Cx (r/ &2)`));
+      FIRST_X_ASSUM (MP_TAC o (SPEC `Cx (&0)`));
+      ASM_SIMP_TAC [ COMPLEX_NORM_CX; arith `&0 < r ==> abs(r/ &2) < r`;arith `&0 < r ==> abs(&0)<r`];
+      HASH_UNDISCH_TAC 6412;
+      BY(SET_TAC[ CX_INJ; arith `&0 < r ==> ~(&0 = r/ &2)`]);
+    FIRST_X_ASSUM (MP_TAC);
+    BY(ASM_MESON_TAC[FACE_OF_POLYHEDRON_SUBSET_FACET]);
+  WEAK_STRIP_TAC;
+  COMMENT "1 < n";
+  SUBGOAL_THEN `1<n` ASSUME_TAC;
+    PROOF_BY_CONTR_TAC;
+    SUBGOAL_THEN `{ c | (c:real^2->bool) facet_of P} HAS_SIZE 1 \/ { c | (c:real^2->bool) facet_of P} HAS_SIZE 0` MP_TAC;
+      BY(BY(ASM_MESON_TAC[arith `~(1 < n) ==> (n=0) \/ (n = 1)`]));
+    REWRITE_TAC[HAS_SIZE_1_EXISTS;HAS_SIZE_0];
+    REWRITE_TAC[EXISTS_UNIQUE;IN_ELIM_THM;EMPTY_NOT_EXISTS_IN];
+    REWRITE_TAC[DE_MORGAN_THM];
+    ROT_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    MP_TAC (SPECL [`P:real^2->bool`;`(x'':real^2->bool)`;`r:real`] facet_arg_lt_pi);
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(BY(ASM_MESON_TAC[IN]));
+    REPEAT WEAK_STRIP_TAC;
+    (fun (asl,w) -> (SUBGOAL_THEN ( env (asl,w)`c' =x''`) MP_TAC) (asl,w));
+      BY(BY(ASM_MESON_TAC[]));
+    DISCH_TAC;
+    HASH_UNDISCH_TAC 9078;
+    ASM_REWRITE_TAC[];
+    SUBGOAL_THEN `~(facet_rep_a P x'' = Cx (&0))` MP_TAC;
+      DISCH_TAC;
+      BY(ASM_MESON_TAC[ Counting_spheres.facet_rep_def; COMPLEX_NORM_CX; arith `~(abs(&0) = &1)`]);
+    SIMP_TAC[COMPLEX_DIV_REFL];
+    REWRITE_TAC[ARG_NUM];
+    BY(BY(REAL_ARITH_TAC));
+  COMMENT "end 1 < n";
+  ASM_REWRITE_TAC[];
+  COMMENT "end 1 < n";
+  COMMENT "end insert";
+  SUBGOAL_THEN `!i. (i IN 1..n) ==> (P (bisector_point P (f i) (f (i + 1)) r) /\       norm (bisector_point P (f i) (f (i + 1)) r) =      r *      inv (cos (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)) /\      Arg (bisector_point P (f i) (f (i + 1)) r / facet_rep_a P (f i)) =      Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2 /\      Arg (facet_rep_a P (f (i + 1)) / bisector_point P (f i) (f (i + 1)) r) =      Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)` ASSUME_TAC;
+    GEN_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC bisector_point;
+    ASM_REWRITE_TAC[];
+    SUBCONJ_TAC;
+      BY(BY(ASM_SIMP_TAC[]));
+    DISCH_TAC;
+    SUBCONJ_TAC;
+      ASM_CASES_TAC `i+1 IN 1..n`;
+        BY(BY(ASM_SIMP_TAC[]));
+      MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+      ASM_REWRITE_TAC[];
+      REPEAT WEAK_STRIP_TAC;
+      ASM_REWRITE_TAC[];
+      BY(BY(ASM_SIMP_TAC[]));
+    DISCH_TAC;
+    CONJ_TAC;
+      BY(BY(ASM_MESON_TAC[IN]));
+    REWRITE_TAC[arith `&2 * x / &2 = x`;arith `x / &2 < y / &2 <=> x < y`];
+    ASM_SIMP_TAC[];
+    SUBCONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      SUBGOAL_THEN `(?k. k IN 1..n /\ (c'' = (f:num->real^2->bool) k))` MP_TAC;
+        HASH_UNDISCH_TAC 3856;
+        HASH_UNDISCH_TAC 8330;
+        REWRITE_TAC[BIJ;INJ;SURJ];
+        BY(BY(SET_TAC[]));
+      REPEAT WEAK_STRIP_TAC;
+      BY(BY(ASM_MESON_TAC[arith `(a:real < b) ==> ~(b <= a)`]));
+    DISCH_TAC;
+    ASM_CASES_TAC `(i+1) IN 1..n`;
+      BY(BY(ASM_MESON_TAC[arith `i < i+1`;arith `(a:real < b) ==> ~(a = b)`]));
+    MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    COMMENT "1 < n";
+    BY(BY(ASM_MESON_TAC[arith `i < i+1`;arith `(a:real < b) ==> ~(a = b)`]));
+  COMMENT "1 goal, 5 conjuncts, bisector point now read in ";
+  ASM_SIMP_TAC[];
+  CONJ_TAC;
+    BY(BY(ASM_MESON_TAC[IN]));
+  COMMENT "nonzero bisector";
+  SUBGOAL_THEN `!i. (i IN 1..n) ==> ~(norm (bisector_point P (f i) (f (i+1)) r)  = &0)` MP_TAC;
+    ASM_SIMP_TAC[REAL_ENTIRE;arith `&0 < r ==> ~(r = &0)`];
+    REWRITE_TAC[REAL_INV_EQ_0];
+    GEN_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC Taylor_atn.cos_nz;
+    MATCH_MP_TAC (arith `&0 <= x /\ x < pi /\ (&0 < pi) ==>abs(x/ &2) < pi/ &2`);
+    REWRITE_TAC[ARG;PI_POS];
+    BY(BY(ASM_SIMP_TAC[]));
+  REWRITE_TAC[COMPLEX_NORM_ZERO];
+  DISCH_TAC;
+  COMMENT "nonzero bisector";
+  CONJ_TAC;
+    GEN_TAC;
+    DISCH_TAC;
+    COMMENT "nonzero bisector was here";
+    CONJ_TAC THEN MATCH_MP_TAC Ysskqoy.SEC_DOT THEN EXISTS_TAC `r:real`;
+      EXISTS_TAC ` (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)`;
+      ASM_SIMP_TAC[];
+      REWRITE_TAC[ARG;arith `&0 <= x/ &2 <=> &0 <= x`;COMPLEX_NORM_MUL;COMPLEX_NORM_CX;arith `x/ &2 < y/ &2 <=> x < y`];
+      ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;facet_rep_def;arith `r * &1 = r`];
+      ONCE_REWRITE_TAC[VECTOR_ANGLE_SYM];
+      SUBGOAL_THEN `cos (Arg ( (bisector_point P (f i) (f (i + 1)) r)/ (Cx r * facet_rep_a P (f i))))= cos  (vector_angle (bisector_point P (f i) (f (i + 1)) r)  (Cx r * facet_rep_a P (f i)))` (SUBST1_TAC o GSYM);
+        MATCH_MP_TAC Ysskqoy.COS_ARG_VECTOR_ANGLE;
+        BY(BY(ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;arith `&0 < r ==> ~(r = &0)`]));
+      AP_TERM_TAC;
+      BY(BY(ASM_MESON_TAC[]));
+    EXISTS_TAC ` (Arg (facet_rep_a P (f (i + 1)) / facet_rep_a P (f i)) / &2)`;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[ARG;arith `&0 <= x/ &2 <=> &0 <= x`;COMPLEX_NORM_MUL;COMPLEX_NORM_CX;arith `x/ &2 < y/ &2 <=> x < y`];
+    SUBGOAL_THEN `(f (i+1)) facet_of (P:real^2->bool)` ASSUME_TAC;
+      ASM_CASES_TAC `i+1 IN 1..n`;
+        BY(BY(ASM_MESON_TAC[]));
+      MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+      ASM_REWRITE_TAC[];
+      BY(BY(ASM_MESON_TAC[]));
+    ASM_SIMP_TAC[Trigonometry2.LT_IMP_ABS_REFL;facet_rep_def;arith `r * &1 = r`];
+    SUBGOAL_THEN `cos (Arg ( ( (Cx r * facet_rep_a P (f (i + 1)))/ (bisector_point P (f i) (f (i + 1)) r)) ) ) =     cos (vector_angle (Cx r * facet_rep_a P (f (i + 1))) (bisector_point P (f i) (f (i + 1)) r))` (SUBST1_TAC o GSYM);
+      MATCH_MP_TAC Ysskqoy.COS_ARG_VECTOR_ANGLE;
+      ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;arith `&0 < r ==> ~(r = &0)`];
+      ASM_CASES_TAC `i+1 IN 1..n`;
+        BY(BY(ASM_SIMP_TAC[]));
+      MP_TAC (prove(`i IN 1..n /\ (~(i+1 IN 1..n)) ==> ((i=n) /\ (1 IN 1..n))`, REWRITE_TAC [IN_NUMSEG] THEN ARITH_TAC));
+      BY(BY(ASM_MESON_TAC[]));
+    AP_TERM_TAC;
+    BY(BY(ASM_MESON_TAC[]));
+  ROT_TAC;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[ COMPLEX_VEC_0 ]);
+  GEN_TAC;
+  DISCH_TAC;
+  BY(ASM_SIMP_TAC[ COMPLEX_VEC_0 ; COMPLEX_ENTIRE ; CX_INJ ;arith `&0 < r ==> ~(r = &0)`])
+  ]);;
+  (* }}} *)
+
+(*
+let EUSOTYP_simple_deprecated = prove_by_refinement(
   `!(P:real^2->bool) s r n u2.
      (polyhedron P) /\ (bounded P) /\ (s = {c | c facet_of P}) /\ s HAS_SIZE n /\ 
     (&0 < r) /\ ~(u2 = vec 0) /\ (!p2. norm p2 < r ==> p2 IN P) ==> 
@@ -2698,7 +2920,7 @@ let EUSOTYP_simple = prove_by_refinement(
   BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
-
+*)
 
 let pad2d3d_SUB = prove_by_refinement(
   `!x y. pad2d3d x - pad2d3d y = pad2d3d (x - y)`,
@@ -2712,6 +2934,98 @@ let pad2d3d_SUB = prove_by_refinement(
 
 
 let EUSOTYP_general = prove_by_refinement(
+  `!P A n s r u0 u1 u2. 
+    polyhedron P /\ bounded P /\ P SUBSET A /\ 
+    s = { c | c facet_of P } /\
+    s HAS_SIZE n /\
+    (&0 < r ) /\
+    ~(u2= u0) /\ 
+    ~(u1 = u0) /\
+    (u0 IN P) /\  (u2 IN A) /\
+    (!v. v IN A  <=> (v - u0) dot (u1 - u0) = &0) /\
+    (!p. dist (p, u0) < r /\ p IN A ==> p IN P) ==>
+    (?g h.
+       (!i. i IN 1..n ==> ((g i ) IN P) /\ dist(g i , u0) = r) /\
+       (g (n+1) = g 1) /\
+       (!i. i IN 1..n ==> ((h i) IN P) /\ 
+	  norm(h i - u0) = r* inv(cos ((azim u0 u1 (g i) (g (i+1)))/ &2))) /\     
+       (!j k. j IN 1..n /\ k IN 1..n /\ (j < k) ==>  
+	  azim u0 u1 u2 (g j) < azim u0 u1 u2 (g k)) /\ 
+       (!i. i IN 1..n  ==>
+	   azim u0 u1 (g i) (h i) = (azim u0 u1 (g i) (g (i+1)))/ &2  /\
+	    azim u0 u1 (h i) (g (i+1)) = (azim u0 u1 (g i) (g (i+1)))/ &2) /\
+      (!i. i IN 1..n ==> (((g i - u0) dot (h i - g i) = &0) /\ ((g (i+1) - u0) dot (h i - g (i+1)) = &0))) /\
+            (1 < n) /\
+     (!i. i IN 1..n ==> ~(g i = u0))  /\
+     (!i. i IN 1..n ==> ~(h i = u0)) /\
+      (!i. (i IN 1..n ==> azim u0 u1 (g i) (g (i+1)) < pi)) 
+      )`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC THEN GEOM_ORIGIN_TAC `u0:real^3`;
+  REPEAT GEN_TAC THEN GEOM_BASIS_MULTIPLE_TAC 3 `u1:real^3`;
+  X_GEN_TAC `u1:real`;
+  GEN_REWRITE_TAC LAND_CONV [REAL_ARITH `&0 <= x <=> x = &0 \/ &0 < x`];
+  STRIP_TAC THEN ASM_REWRITE_TAC[VECTOR_MUL_LZERO];
+  ASM_SIMP_TAC[AZIM_SPECIAL_SCALE; VECTOR_SUB_RZERO; DIST_0];
+  ASM_SIMP_TAC[VECTOR_MUL_EQ_0; DOT_BASIS; DOT_RMUL; REAL_ENTIRE;BASIS_NONZERO; REAL_LT_IMP_NZ; DIMINDEX_3; ARITH];
+  POP_ASSUM(K ALL_TAC);
+  REWRITE_TAC[AZIM_ARG];
+  REPEAT GEN_TAC;
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `(u2:real^3)$3 = &0` (fun t-> (REPEAT (POP_ASSUM MP_TAC)) THEN MP_TAC t);
+    BY(BY(ASM_MESON_TAC[]));
+  SPEC_TAC (`u2:real^3`,`u2:real^3`);
+  PAD2D3D_TAC;
+  GEN_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `!v. (v:real^3) IN P ==> v$3 = &0` ASSUME_TAC;
+    HASH_UNDISCH_TAC 6277;
+    HASH_UNDISCH_TAC 4709;
+    BY(BY(SET_TAC[]));
+  ABBREV_TAC `(A':real^2->bool) = IMAGE(dropout 3) (A:real^3->bool)`;
+  ABBREV_TAC `(P':real^2->bool) = IMAGE(dropout 3) (P:real^3->bool)`;
+  SUBGOAL_THEN `linear ((dropout 3):real^3->real^2)` ASSUME_TAC;
+    MATCH_MP_TAC LINEAR_DROPOUT;
+    REWRITE_TAC[DIMINDEX_2;DIMINDEX_3];
+    BY(BY(ARITH_TAC));
+  SUBGOAL_THEN `polyhedron P' /\ bounded P' /\ (!p2. norm (p2:real^2) < r ==> p2 IN P')` MP_TAC;
+    EXPAND_TAC "P'";
+    CONJ_TAC;
+      MATCH_MP_TAC POLYHEDRON_LINEAR_IMAGE;
+      BY(BY(ASM_REWRITE_TAC[]));
+    CONJ_TAC;
+      MATCH_MP_TAC BOUNDED_LINEAR_IMAGE;
+      BY(BY(ASM_REWRITE_TAC[]));
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC [GSYM pad_in];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[NORM_PAD2D3D];
+    SPEC_TAC (`p2:real^2`,`p2:real^2`);
+    BY(BY(REWRITE_TAC[GSYM QUANTIFY_PAD2D3D_THM]));
+  COMMENT "1 goal";
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `{d | (d:real^2->bool) facet_of P'} HAS_SIZE n` ASSUME_TAC;
+    EXPAND_TAC "P'";
+    MATCH_MP_TAC pad2d3d_facet;
+    BY(BY(ASM_MESON_TAC[]));
+  COMMENT "A";
+  MP_TAC (SPECL [`P':real^2->bool`;`{d | d facet_of (P':real^2->bool)}`;`r:real`;`n:num`;`u2:real^2`] EUSOTYP_simple);
+  ASM_SIMP_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `\(i:num). pad2d3d (g i)`;
+  EXISTS_TAC `\(i:num). pad2d3d (h i)`;
+  BETA_TAC;
+  ASM_SIMP_TAC[dropout_pad2d3d;NORM_PAD2D3D;pad2d3d_dot_v;pad2d3d_SUB];
+  SUBGOAL_THEN `!w. pad2d3d w IN P <=> w IN P'` ASSUME_TAC;
+    GEN_TAC;
+    BY(BY(ASM_MESON_TAC[pad_in]));
+  BY(BY(ASM_MESON_TAC[pad_in; INJECTIVE_PAD2D3D ; COMPLEX_VEC_0 ]))
+  ]);;
+  (* }}} *)
+
+(*
+let EUSOTYP_general_deprecated = prove_by_refinement(
   `!P A n s r u0 u1 u2. 
     polyhedron P /\ bounded P /\ P SUBSET A /\ 
     s = { c | c facet_of P } /\
@@ -2797,6 +3111,6 @@ let EUSOTYP_general = prove_by_refinement(
   BY(ASM_MESON_TAC[IN])
   ]);;
   (* }}} *)
-
+*)
 
 end;;

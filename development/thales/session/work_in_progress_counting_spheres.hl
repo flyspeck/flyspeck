@@ -20,49 +20,290 @@ let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ packing_ineq_def_
  (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
 ==> (lmfun_ineq_center V)`;;
 
-(*
-let GOTCJAH_works_so_far = `!(v:real^3) (P:real^3->bool) r c  WF h n. 
-    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
-    c facet_of P /\ 
-     fchanged c = WF /\
-   (&0 < h /\ h < &1) /\ 
-    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
-    ( {u | u facet_of c } HAS_SIZE n) 
-   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= (volume:(real^3->bool)->real) WF`;;
-*)
-
-(*
- GEOM_BASIS_MULTIPLE_TAC 3`v:real^3` 
-*)
-
-(* add_linear_invariants [FCHANGED_LINEAR_INVARIANT ; LINEAR_0;RCONE_LINEAR_INVARIANT ];;  *)
-(* let backup_invariant_under_linear = !invariant_under_linear;; *)
-(*
-let restore _ = 
-  invariant_under_linear := backup_invariant_under_linear;;
-restore();;
-*)
-(* add_linear_invariants [SOLVEC0_LINEAR_INVARIANT_3];;  *)
-
-
-(* ========================================================================== *)
-(* WORK IN PROGRESS ON FINAL LEMMAS OF COUNTING_SPHERES .  There are many useful partial results here.   *)
-(* ========================================================================== *)
-(*
-searcht 15 [`facet_rep_a`];;
-POLY_SORT_BIJ;;
-searcht 15 [`plane`];;
-*)
-
 
 (* ========================================================================== *)
 (* COMPLETED LEMMAS  *)
 (* ========================================================================== *)
 
+
+let AZIM_SUM_LE = prove_by_refinement(
+  `!x y z w1 w2 w3.
+    ~(collinear {x,y,z}) /\ ~(collinear {x,y,w1}) /\ ~(collinear {x,y,w2}) /\
+   ~(collinear {x,y,w3}) /\
+    azim x y z w1 <= azim x y z w2 /\
+    azim x y z w2 <= azim x y z w3 ==>
+   (azim x y w1 w3 = azim x y w1 w2 + azim x y w2 w3)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `azim x y z w3 = azim x y z w1 + azim x y w1 w3` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  SUBGOAL_THEN `azim x y z w2 = azim x y z w1 + azim x y w1 w2` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    BY(ASM_REWRITE_TAC[]);
+  SUBGOAL_THEN `azim x y z w3 = azim x y z w2 + azim x y w2 w3` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    BY(ASM_REWRITE_TAC[]);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let AZIM_BASE_SHIFT_LT = prove_by_refinement(
+  `!x y z z' w1 w2 w3.
+    ~(collinear {x,y,z}) /\ ~(collinear {x,y,z'}) /\ ~(collinear {x,y,w1}) /\
+    ~(collinear {x,y,w2}) /\ ~(collinear {x,y,w3}) /\
+    azim x y z w1 < azim x y z w2 /\
+    azim x y z w2 < azim x y z w3 /\
+    azim x y z' w1 < azim x y z' w3 ==>
+   (azim x y z' w1 < azim x y z' w2 /\ azim x y z' w2 < azim x y z' w3)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `azim x y w1 w3 = azim x y w1 w2 + azim x y w2 w3` ASSUME_TAC;
+    MATCH_MP_TAC AZIM_SUM_LE;
+    EXISTS_TAC `z:real^3`;
+    ASM_REWRITE_TAC[];
+    BY((REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC));
+  REWRITE_TAC[arith `a < b <=> ~(b <= a)`];
+  CONJ_TAC THEN WEAK_STRIP_TAC;
+    SUBGOAL_THEN `azim x y w2 w3 = azim x y w2 w1 + azim x y w1 w3` ASSUME_TAC;
+      MATCH_MP_TAC AZIM_SUM_LE;
+      EXISTS_TAC `z':real^3`;
+      ASM_REWRITE_TAC[];
+      BY((REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC));
+    SUBGOAL_THEN `azim x y w1 w2 = &0 /\ azim x y w2 w1 = &0` (MP_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas.AZIM_RANGE;arith `a = b + c /\ c = e + a /\ &0 <= b /\ &0 <= e ==> (b = &0 /\ e = &0)`]);
+    STRIP_TAC;
+    SUBGOAL_THEN `azim x y z w2 = azim x y z w1 + azim x y w1 w2` ASSUME_TAC;
+      MATCH_MP_TAC Fan.sum4_azim_fan;
+      ASM_REWRITE_TAC[];
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "1 left";
+  SUBGOAL_THEN `azim x y w1 w2 = azim x y w1 w3 + azim x y w3 w2` ASSUME_TAC;
+    MATCH_MP_TAC AZIM_SUM_LE;
+    EXISTS_TAC `z':real^3`;
+    ASM_REWRITE_TAC[];
+    BY((REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC));
+  SUBGOAL_THEN `azim x y w2 w3 = &0 /\ azim x y w3 w2 = &0` (MP_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.AZIM_RANGE;arith `a = b + c /\ b = a + c' /\ &0 <= c /\ &0 <= c' ==> (c = &0 /\ c' = &0)`]);
+  STRIP_TAC;
+  SUBGOAL_THEN `azim x y z w3 = azim x y z w2 + azim x y w2 w3` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let AZIM_COMP_LT = prove_by_refinement(
+  `!x y z u v. &0 < azim x y z u /\  azim x y z u < azim x y z v ==>
+     azim x y v z < azim x y u z `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
+  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let AZIM_COMP_LE = prove_by_refinement(
+  `!x y z u v. &0 < azim x y z u /\  azim x y z u <= azim x y z v ==>
+     azim x y v z <= azim x y u z `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
+  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let AZIM_COMP2_LE = prove_by_refinement(
+  `!x y z u v. &0 < azim x y u z /\  &0 < azim x y v z /\ azim x y u z <= azim x y v z ==>
+     azim x y z v <= azim x y z u `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
+  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let AZIM_COMP2_LT = prove_by_refinement(
+  `!x y z u v. &0 < azim x y u z /\  &0 < azim x y v z /\ azim x y u z < azim x y v z ==>
+     azim x y z v < azim x y z u `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
+  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let WEDGE_ORDER_DISJOINT = prove_by_refinement(
+  `!x y z n g.
+     ~(collinear {x,y,z}) /\
+    (!i. i IN 1..n ==> ~(collinear {x,y, g i})) /\
+     (g (n+1) = g 1) /\
+        (!j k. j IN 1..n /\ k IN 1..n /\ (j < k) ==>  
+	  azim x y z (g j) < azim x y z (g k))
+    ==>
+    (!j k. j IN 1..n /\ k IN 1..n /\ ~(j = k) ==>
+       wedge x y (g j) (g (j+1)) INTER wedge x y (g k) (g (k+1)) = {})
+	 `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  DISCH_TAC;
+  MATCH_MP_TAC WLOG_LT;
+  REWRITE_TAC[];
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  GEN_TAC;
+  X_GEN_TAC `k:num`;
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[FUN_EQ_THM];
+  X_GEN_TAC `p:real^3`;
+  REWRITE_TAC[INTER;IN_ELIM_THM;wedge;X_IN NOT_IN_EMPTY];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `j + 1 IN 1..n` ASSUME_TAC;
+    REPEAT (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[IN_NUMSEG];
+    BY(ARITH_TAC);
+  SUBGOAL_THEN `(azim x y z (g (j:num)) < azim x y z p)` ASSUME_TAC;
+    REWRITE_TAC [arith `a <  b <=> ~(b <= a)`];
+    WEAK_STRIP_TAC;
+    (fun (asl,w) -> (MP_TAC (SPECL ( envl (asl,w)[`x`;`y`;`g j`;`z`;`g j`;`p`;`g (j+1)` ]) AZIM_BASE_SHIFT_LT)) (asl,w));
+    ASM_SIMP_TAC[AZIM_REFL;arith `j < j+1`];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "A";
+  SUBGOAL_THEN `azim x y z p < azim x y z (g (j+1))` ASSUME_TAC;
+    REWRITE_TAC[arith `a < b <=> ~(b <= a)`];
+    WEAK_STRIP_TAC;
+    (fun (asl,w) -> (MP_TAC (SPECL ( envl (asl,w)[`x`;`y`;`g j`;`z`;`g j`;`p`;`g (j+1)` ]) AZIM_BASE_SHIFT_LT)) (asl,w));
+    ASM_SIMP_TAC[AZIM_REFL;arith `j < j+1`];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "B";
+  SUBGOAL_THEN `k = (n:num) /\ 1 IN 1..n` ASSUME_TAC;
+    MATCH_MP_TAC (prove (`k IN 1..n /\ ~(k+1 IN 1..n) ==> ((k = n) /\ 1 IN 1..n)`, REWRITE_TAC [ IN_NUMSEG ] THEN ARITH_TAC ));
+    ASM_SIMP_TAC[];
+    WEAK_STRIP_TAC;
+    FIRST_ASSUM (MP_TAC o (SPECL[`k:num`;`k+1`]));
+    FIRST_X_ASSUM (MP_TAC o (SPECL[`j+1`;`k:num`]));
+    ASM_SIMP_TAC[arith `k < k+1`];
+    REPEAT WEAK_STRIP_TAC;
+    (fun (asl,w) -> (MP_TAC (SPECL ( envl (asl,w)[`x`;`y`;`g k`;`z`;`g k`;`p`;`g (k+1)`]) AZIM_BASE_SHIFT_LT)) (asl,w));
+    ASM_SIMP_TAC[AZIM_REFL];
+    SUBGOAL_THEN `azim x y z (g (j+1)) <= azim x y z (g (k:num))` ASSUME_TAC;
+      BY(ASM_MESON_TAC[arith `a <= b <=> (a<b \/ a = b)`;arith `j<k ==> (j+1=k)\/ (j+1<k)`]);
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    BY(REAL_ARITH_TAC);
+  COMMENT "C";
+  SUBGOAL_THEN `azim x y (g 1) (g n) < azim x y p (g (n:num))` ASSUME_TAC;
+    MATCH_MP_TAC AZIM_COMP_LT;
+    BY(ASM_MESON_TAC[]);
+  SUBGOAL_THEN `1 < n` ASSUME_TAC;
+    BY(ASM_MESON_TAC[IN_NUMSEG;arith `1 <= j /\ j < k /\ k <= n ==> 1 < n`]);
+  SUBGOAL_THEN `azim x y z (g n) = azim x y z (g 1) + azim x y (g 1) (g n)` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    BY(ASM_MESON_TAC[arith `a<b ==> a <= b`]);
+  SUBGOAL_THEN `azim x y z p = azim x y z (g 1) + azim x y (g 1) p` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC (arith `a<b ==> a <= b`);
+    ASM_CASES_TAC `(1=j)`;
+      BY(ASM_SIMP_TAC[]);
+    MATCH_MP_TAC (arith `a < azim x y z (g (j:num)) /\ azim x y z (g j) < c ==> a < c`);
+    ASM_SIMP_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_SIMP_TAC[];
+    BY(ASM_MESON_TAC[IN_NUMSEG; arith `1 <= j ==> ((1=j) \/ (1 < j))`]);
+  FIRST_X_ASSUM MP_TAC;
+  SUBGOAL_THEN `azim x y z (g n) = azim x y z p + azim x y p (g (n:num))` ASSUME_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan;
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC (TAUT `a /\ b ==> b /\ a`);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    MATCH_MP_TAC (arith `a<b ==> a <= b`);
+    ASM_CASES_TAC `(j+1=n)`;
+      BY(ASM_MESON_TAC[]);
+    MATCH_MP_TAC (arith `a < azim x y z (g (j+1)) /\ azim x y z (g (j+1)) < c ==> a < c`);
+    ASM_SIMP_TAC[];
+    BY(ASM_MESON_TAC[IN_NUMSEG; arith `~(j+1=n) /\ ~(j=n) /\ (j<=n) ==> (j+1 < n)`]);
+  DISCH_TAC;
+  SUBGOAL_THEN `azim x y (g 1) p < &0` ASSUME_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(ASM_MESON_TAC[azim;arith `x < &0 ==> ~(&0 <= x)`])
+  ]);;
+  (* }}} *)
+
+
 (* ========================================================================== *)
-(*  LEMMAS IN PROGRESS *)
+(* WORK IN PROGRESS *)
 (* ========================================================================== *)
 
+AZIM;;
+searcht 5 [`&0 <= azim x y z w`];;
+AZIM_BASE_SHIFT_LT;;
+X_IN;;
+X_GEN_TAC;;
+help_grep "GEN";;
+search [`p IN {}`];;
+REAL_WLOG_LE;;
+AZIM_BASE_SHIFT_LT;;
+search[`cyclic_set`];;
+Fan.sum4_azim_fan;; (* lower ineq *)
+Fan.sum5_azim_fan;; (* upper ineq *)
+Counting_spheres.EUSOTYP_general;;
+searcht 5 [`azim a b c d < azim a b c' d'`];;
+searcht 5 [`&0 <= azim a b c d`];;
+searchn 1 [`azim`;`&2 * pi`] "Local_lemmas.AZIM_RANGE";;
+searchn 2 [`azim`;`&2 * pi`] "Rogers.AZIM_COMPL_EXT";;
+searcht 10 [`azim`;`&2 * pi`];;
+searcht 25 [`wedge`];;
+searcht 5 [`sum`;`azim`];;
+searchn 3 [`azim a b c d + azim a b c' d'`] "Fan.sum5_azim_fan";;
+searcht 50 [`azim a b c d + azim a b c' d'`;omit `cyclic_set`];;
+vol_solid_triangle_ortho;;
+vol_solid_triangle;;
+searcht 5 [`vol_solid_triangle`];;
+searcht 5 [name "solid_triangle"];;
+searcht 5 [name "cone0"];;
+searcht 5 [name "normball"];;
+searcht 5 [`ball`;`( < )`];;
+1;;
+
+(*
+    st/r
+      sgth `azim u0 u1 u2 w3 = azim u0 u1 u2 w1 + azim u0 u1 w1 w3` assume
+      mmp Fan.sum4_azim_fan
+      art[]
+      repeat (fxa mpt) then rat
+      sgth `azim u0 u1 u2 w2 = azim u0 u1 u2 w1 + azim u0 u1 w1 w2` assume
+      mmp Fan.sum4_azim_fan
+      art[]
+      repeat (fxa mpt) then rat
+      sgth `azim u0 u1 v2 w3 = azim u0 u1 v2 w1 + azim u0 u1 w1 w3` assume
+      mmp Fan.sum4_azim_fan
+      art[]
+      repeat (fxa mpt) then rat
+      sgth `azim u0 u1 u2 w3 = azim u0 u1 u2 w2 + azim u0 u1 w2 w3` assume
+      mmp Fan.sum4_azim_fan
+      art[]
+      repeat (fxa mpt) then rat
+	sgth `azim u0 u1 w1 w3 = azim u0 u1 w1 w2 + azim u0 u1 w2 w3` assume
+      repeat (fxa mpt) then rat
+	rt[arith `(a < b) = ~(b <= a)`]
+	comment "first case"
+	conj then st
+
+	  *)
 
 searcht 5 [`x IN IMAGE (dropout 3) U`];;
 pad2d3d_dot;;
@@ -77,38 +318,6 @@ searcht 5 [`pad2d3d`;`dot`];;
 types_of (concl pad2d3d_dot);;
 
 EUSOTYP_simple;;
-
-(*
-
-   MP_TAC (SPECL [`P':real^2->bool`;`n:num`;`{ d | (d:real^2->bool) facet_of P'}`;`r:real`;`u2:real^2`] Counting_spheres.POLY_SORT_BIJ)
-art[sym COMPLEX_VEC_0]
-	  ants
-  amt[IN]
-   COMMENT "back to 1 goal"
-   st/r
-   exist `\i. pad2d3d (if (i IN 1..n) then (facet_rep_a P' (f i)) else (facet_rep_a P' (f 1)))`
-   beta
-  rt[dropout_pad2d3d]
-
-*)
-(*  expand "P'"
-   mmp POLYHEDRON_LINEAR_IMAGE 
-   art[]
-   mmp LINEAR_DROPOUT
-   rt[DIMINDEX_2;DIMINDEX_3]
-   ARITH_TAC
-   expan "P'"
-   elk13
-   conj
-   xgen `p2:real^2`
-   st/r 
-   ort[GSYM IN]
-   asimp [sym pad_in]
-   firstassum mmp
-   art[NORM_PAD2D3D]
-   spectac (`p2:real^2`,`p2:real^2`)
-  rt[sym QUANTIFY_PAD2D3D_THM]
-*)
 
 (*
 searcht 5 [`(z:complex) * u = u * z`];;
@@ -245,29 +454,46 @@ searcht 15 [`Arg`;`real`];;
 
 help "LAND_CONV";;
 searchn 6 [`Arg (x)`;`pi`] "ARG_INV";;
-
-
-(*
-let EUSOTYP_fake = 
-`!(P:real^3->bool) (A:real^3->bool) (s:(real^3->bool)->bool) n (u0:real^3) u1 u2.
-    polyhedron P /\ bounded P /\ P SUBSET A /\ plane A /\
-    ~(u2= u0) /\ 
-    ~(u1 = u0) /\
-   ( u0 IN P) /\  ( u2 IN A) /\
-    (!v. v IN A  ==> (v - u0) dot (u1 - u0) = &0) 
-  ==> 
-    (?g .
-       (!i. i IN 1..( n) ==> ((g i ) IN P) /\ dist(g i , u0) = r) /\
-       (g (n+1) = g 1) /\
-       (!j k. j IN 1..(n) /\ k IN 1..(n+1) /\ (j < k) ==>  
-	  azim u0 u1 u2 (g j) < azim u0 u1 u2 (g k))
-)
-  `
-;;
-*)
 type_of_goal();;
 type_of `azim`;;
 type_of `plane`;;
+
+
+(*
+let GOTCJAH_works_so_far = `!(v:real^3) (P:real^3->bool) r c  WF h n. 
+    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
+    c facet_of P /\ 
+     fchanged c = WF /\
+   (&0 < h /\ h < &1) /\ 
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
+    ( {u | u facet_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= (volume:(real^3->bool)->real) WF`;;
+*)
+
+(*
+ GEOM_BASIS_MULTIPLE_TAC 3`v:real^3` 
+*)
+
+(* add_linear_invariants [FCHANGED_LINEAR_INVARIANT ; LINEAR_0;RCONE_LINEAR_INVARIANT ];;  *)
+(* let backup_invariant_under_linear = !invariant_under_linear;; *)
+(*
+let restore _ = 
+  invariant_under_linear := backup_invariant_under_linear;;
+restore();;
+*)
+(* add_linear_invariants [SOLVEC0_LINEAR_INVARIANT_3];;  *)
+
+(*
+searcht 15 [`facet_rep_a`];;
+POLY_SORT_BIJ;;
+searcht 15 [`plane`];;
+*)
+
+
+(* ========================================================================== *)
+(*  LEMMAS IN PROGRESS *)
+(* ========================================================================== *)
+
 
 (*
 let _ = [`ball`;`half_spaces`;`weakly_saturated`;`lmfun_ineq_center`];;

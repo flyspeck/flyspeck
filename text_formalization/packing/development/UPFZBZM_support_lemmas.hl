@@ -1,0 +1,395 @@
+
+
+(* ========================================================================= *)
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*                                                                           *)
+(*      Authour   : VU KHAC KY                                               *)
+(*      Book lemma: UPFZBZM                                                  *)
+(*      Chaper    : Packing (Clusters)                                       *)
+(*      Date      : October 3, 2010                                          *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+(* ========================================================================= *)
+(*      Supporting lemmas for UPFZBZM                                        *)
+(*      Chaper    : Packing (Clusters)                                       *)
+(*                                                                           *)
+(* ========================================================================= *)
+
+(* ========================================================================= *)
+(*                     FILES NEED TO BE LOADED                               *)
+(* ========================================================================= *)
+
+flyspeck_needs "jordan/refinement.hl";;
+flyspeck_needs "jordan/hash_term.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+flyspeck_needs "jordan/real_ext.hl";;
+flyspeck_needs "jordan/lib_ext.hl";;
+flyspeck_needs "jordan/tactics_jordan.hl";;
+flyspeck_needs "jordan/num_ext_nabs.hl";;
+flyspeck_needs "jordan/taylor_atn.hl";;
+flyspeck_needs "jordan/float.hl";;
+flyspeck_needs "jordan/flyspeck_constants.hl";;
+(* flyspeck_needs "packing/lemma_negligible.hl";; *)
+
+flyspeck_needs "nonlinear/vukhacky_tactics.hl";;
+flyspeck_needs "packing/pack_defs.hl";;
+flyspeck_needs "packing/pack_concl.hl";;
+(* flyspeck_needs "packing/beta_pair_thm.hl";; *)
+
+module Upfzbzm_support_lemmas = struct 
+
+open Flyspeck_constants;;
+open Pack_defs;;
+open Pack_concl;;
+open Vukhacky_tactics;;
+
+
+let CHANGED_SET_TAC =
+let basicthms =
+[NOT_IN_EMPTY; IN_UNIV; IN_UNION; IN_INTER; IN_DIFF; IN_INSERT;
+IN_DELETE; IN_REST; IN_INTERS; IN_UNIONS; IN_IMAGE] in
+let allthms = basicthms @ map (REWRITE_RULE[IN]) basicthms @
+[IN_ELIM_THM; IN] in
+let PRESET_TAC =
+TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ)) THEN
+REPEAT COND_CASES_TAC THEN
+REWRITE_TAC[EXTENSION; SUBSET; PSUBSET; DISJOINT; SING] THEN
+REWRITE_TAC allthms in
+fun ths ->
+PRESET_TAC THEN
+(if ths = [] then ALL_TAC else MP_TAC(end_itlist CONJ ths)) THEN
+MESON_TAC[];;
+
+let CHANGED_SET_RULE tm = prove(tm,CHANGED_SET_TAC[]);;
+
+(*-------------------------------------------------------------------------- *) 
+  
+ let UPFZBZM_concl = 
+   `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+         marchal_inequality /\
+         lmfun_inequality V ==>
+    (?G. negligible_fun_0 G V /\ fcc_compatible G V)`;;
+
+(* ------------------------------------------------------------------------- *)
+
+let SUM_GAMMAX_LMFUN_ESTIMATE_concl = 
+  `!V. ?c. !r. saturated V /\ packing V /\ &1 <= r /\ 
+               cell_cluster_estimate V /\ marchal_inequality /\
+               lmfun_inequality V ==> 
+    c * r pow 2 <=  sum {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X} 
+    (\X. gammaX V X lmfun)`;;
+
+let KIZHLTL3_new_concl = 
+  `!V. ?c. !r. saturated V /\
+               packing V /\
+               &1 <= r
+               ==> (&8 * mm2 / pi) *
+                   sum {X | X SUBSET ball (vec 0,r) /\ mcell_set V X}
+                   (\X. sum (edgeX V X)
+                        (\({u, v}). dihX V X (u,v) * lmfun (hl [u; v]))) +
+                   c * r pow 2 <=
+                   &8 * mm2 *
+                   sum (V INTER ball (vec 0,r))
+                   (\u. sum
+                        {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0 }
+                        (\v. lmfun (hl [u; v])))`;;
+
+(* ========================================================================= *)
+(*                 SOME COMPLEMENTARY LEMMAS                                 *)
+(* ========================================================================= *)
+(* ========================================================================= *)
+
+let tau0_not_zero = prove_by_refinement (
+ `~(tau0 = &0)`,
+[(SUBGOAL_THEN `#1.54065 < tau0` ASSUME_TAC);
+ (REWRITE_TAC[bounds]);
+ (STRIP_TAC);
+ (ASM_MESON_TAC[REAL_ARITH `~(#1.54065 < &0)`])]);;
+
+(* ========================================================================= *)
+
+let ZERO_LT_MM2_LEMMA = prove_by_refinement ( `&0 < mm2`,
+[(SUBGOAL_THEN `#0.02541 < mm2` ASSUME_TAC);
+ (REWRITE_TAC[bounds]);
+ (ASM_REAL_ARITH_TAC)]);;
+
+(* ========================================================================= *)
+
+let FINITE_PACK_LEMMA = Packing3.KIUMVTC;;
+
+let FINITE_PERMUTE_3 = prove_by_refinement 
+  (`FINITE {p | p permutes {0, 1, 2}}`, 
+  [MATCH_MP_TAC FINITE_PERMUTATIONS THEN MESON_TAC[FINITE_RULES]]);;
+let FINITE_PERMUTE_4 = prove_by_refinement 
+  (`FINITE {p | p permutes {0, 1, 2, 3}}`, 
+  [MATCH_MP_TAC FINITE_PERMUTATIONS THEN MESON_TAC[FINITE_RULES]]);;
+
+(* Lemma 1 *)
+
+ let john_harrison_lemma1 = prove
+  (`(\(x,y). P x y) = (\p. P (FST p) (SND p))`,
+   REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM]);;
+
+ let john_harrison_lemma2 = MESON[] `(?x. P x) /\ (@x. P x) = a ==> P a`;;
+
+ let JOHN_SELECT_THM = prove
+  (`(?x y. P x /\ Q y /\ R x y) /\
+    (@(x,y). P x /\ Q y /\ R x y) = (a,b)
+    ==> P a /\ Q b /\ R a b`,
+   REWRITE_TAC[GSYM EXISTS_PAIRED_THM] THEN
+   REWRITE_TAC[john_harrison_lemma1] THEN
+   DISCH_THEN(MP_TAC o MATCH_MP john_harrison_lemma2) THEN
+   REWRITE_TAC[FST; SND]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 2 *)
+
+let SQRT_RULE_Euler_lemma = prove 
+ (`!x y. x pow 2 = y /\ &0 <= x ==> x = sqrt y`,
+ REPEAT STRIP_TAC THEN 
+ REWRITE_TAC[GSYM (ASSUME `x pow 2 = y`);REAL_POW_2] THEN   
+ ASM_SIMP_TAC[SQRT_MUL] THEN
+ ASM_MESON_TAC[GSYM REAL_POW_2;SQRT_POW_2]);;
+
+let  SQRT_OF_32_lemma = prove_by_refinement (
+ `sqrt (&32) = &8 * sqrt (&1 / &2)`,
+  [ (REWRITE_WITH `&8 = sqrt (&64)`);
+   (MATCH_MP_TAC SQRT_RULE_Euler_lemma);
+   (REAL_ARITH_TAC);
+   (REWRITE_TAC[REAL_ARITH `&32 = &64 * (&1 / &2)`]);
+   (MATCH_MP_TAC SQRT_MUL);
+   (REAL_ARITH_TAC)]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 3 *)
+
+let m1_minus_12m2 = prove_by_refinement (
+ `mm1 - &12 * mm2 = sqrt (&1 / &2)`,
+
+[ (REWRITE_TAC[mm1;mm2]);
+ (REWRITE_TAC [REAL_ARITH `a * (b / c) = (a * b) / c`]);
+ (REWRITE_WITH 
+ `&12 * (&6 * sol0 - pi) * sqrt (&2) = ((&6 * sol0 - pi) * sqrt (&8)) * &6`);
+ (REWRITE_TAC[REAL_ARITH`&12 * a * b = (a * &2 * b) * &6`]);
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_RCANCEL] `a = b ==> a * x = b * x`));
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_LCANCEL] `a = b ==> x * a = x * b`));
+
+ (REWRITE_TAC[REAL_ARITH `&8 = &4 * &2`]);
+ (REWRITE_WITH `sqrt (&4 * &2) = sqrt (&4) * sqrt (&2)`);
+ (MATCH_MP_TAC SQRT_MUL);
+ (REAL_ARITH_TAC);
+ (MATCH_MP_TAC (MESON[REAL_EQ_MUL_RCANCEL] `a = b ==> a * x = b * x`));
+ (MATCH_MP_TAC SQRT_RULE_Euler_lemma);
+ (REAL_ARITH_TAC);
+ (REWRITE_TAC[REAL_ARITH `(m * &6) / (&6 * tau0) = m * &6 / (tau0 * &6)`]);
+ (REWRITE_WITH `((&6 * sol0 - pi) * sqrt (&8)) * &6 / (tau0 * &6) = 
+ ((&6 * sol0 - pi) * sqrt (&8)) / tau0`);
+ (MATCH_MP_TAC REDUCE_WITH_DIV_Euler_lemma);
+ (REWRITE_TAC[REAL_ARITH `~(&6 = &0)`;tau0_not_zero]);
+
+ (REWRITE_TAC[REAL_ARITH `a / b - c / b = (a - c) / b`]);
+ (REWRITE_TAC[REAL_ARITH `a * x - b * x = (a - b) * x`]);
+ (REWRITE_WITH `sol0 - (&6 * sol0 - pi) = tau0 / &4`);
+ (REWRITE_TAC[tau0]);
+ (REAL_ARITH_TAC);
+
+ (REWRITE_TAC[REAL_ARITH 
+  `(tau0 / &4 * x) / tau0 = (tau0 / tau0) * (x / &4)`]);
+ (REWRITE_WITH `sqrt (&8) / &4 = sqrt (&1 / &2)`);
+ (REWRITE_TAC[REAL_ARITH `&1 / &2 = &8 / &16`]);
+ (REWRITE_WITH `sqrt (&8 / &16) = sqrt (&8) / sqrt (&16)`);
+ (MATCH_MP_TAC SQRT_DIV THEN REAL_ARITH_TAC);
+ (REWRITE_WITH `sqrt (&16) = &4`);
+
+ (MATCH_MP_TAC (MESON[] `a = b ==> b = a`));
+ (MATCH_MP_TAC SQRT_RULE_Euler_lemma THEN REAL_ARITH_TAC);
+ (MATCH_MP_TAC (MESON[REAL_MUL_LID] `x = &1 ==> x * y = y`));
+ (MATCH_MP_TAC REAL_DIV_REFL);
+ (REWRITE_TAC[tau0_not_zero])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 4 *)
+
+let ZERO_LE_MM2_LEMMA = 
+   MATCH_MP (REAL_ARITH `&0 < x ==> &0 <= x`) ZERO_LT_MM2_LEMMA;;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 5 *)
+
+let FINITE_edgeX = prove_by_refinement (
+ `!V X. FINITE (edgeX V X)`,
+[(REPEAT GEN_TAC THEN REWRITE_TAC[edgeX;VX]);
+ (COND_CASES_TAC);
+(* Break into 2 subgoal *)
+
+(REWRITE_WITH `{{u:real^3, v} | {} u /\ {} v /\ ~(u = v)} = {}`);
+(* New Subgoal 1.1 *)
+(CHANGED_SET_TAC[]);  (*  End subgoal 1.1 *)
+(MESON_TAC[FINITE_CASES]);  (* End Subgoal 1 *)
+(REPEAT LET_TAC);
+(SUBGOAL_THEN 
+   `FINITE (set_of_list (truncate_simplex (k - 1) (ul:(real^3)list)))`
+   ASSUME_TAC);
+(REWRITE_TAC[FINITE_SET_OF_LIST]);
+(ABBREV_TAC `S = set_of_list (truncate_simplex (k - 1) (ul:(real^3)list))`);
+(MATCH_MP_TAC FINITE_SUBSET);
+(EXISTS_TAC `{t:real^3->bool | t SUBSET S}`);
+(STRIP_TAC);
+(ASM_MESON_TAC[FINITE_POWERSET]);
+(REWRITE_TAC[SUBSET;IN_ELIM_THM]);
+(REPEAT STRIP_TAC);
+(REPLICATE_TAC 5 UP_ASM_TAC);
+(CHANGED_SET_TAC[])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 6 *)
+
+let FINITE_critical_edgeX = prove_by_refinement (
+ `!V X. FINITE (critical_edgeX V X)`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_TAC[critical_edgeX]);
+ (REWRITE_WITH 
+  `{{u:real^3, v} | {u, v} IN edgeX V X /\ hminus <= hl [u; v] /\ 
+                     hl [u; v] <= hplus} = 
+   {{u, v} | hminus <= hl [u; v] /\ hl [u; v] <= hplus} INTER (edgeX V X)`);
+ (REPEAT GEN_TAC THEN SET_TAC[]);
+ (MESON_TAC[FINITE_edgeX;FINITE_INTER])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 7 *)
+
+let DIHV_LE_0 = prove_by_refinement (
+ `!x:real^N y z t.  &0 <= dihV x y z t`,
+[ (REPEAT GEN_TAC THEN REWRITE_TAC[dihV]);
+ (REPEAT LET_TAC THEN REWRITE_TAC[arcV]);
+ (MATCH_MP_TAC (MESON[] `&0 <= acs y /\ acs y <= pi ==> &0 <= acs y`));
+ (MATCH_MP_TAC ACS_BOUNDS);
+ (REWRITE_TAC[GSYM REAL_ABS_BOUNDS; NORM_CAUCHY_SCHWARZ_DIV])]);;
+
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 8 *)
+
+let DIHV_SYM = prove_by_refinement (
+ `!(x:real^N) y z t. dihV x y z t = dihV y x z t`,
+[ (REPEAT GEN_TAC);
+ (REWRITE_TAC[dihV] THEN REPEAT LET_TAC);
+ (MATCH_MP_TAC (MESON[]
+  `!a b c d x. (a = b) /\ (c = d) ==> arcV x a c = arcV x b d`));
+ (REPEAT STRIP_TAC);
+  (* Break into 2 subgoals with similar proofs *)
+   
+  (* Subgoal 1 *)
+   (EXPAND_TAC "vap'" THEN EXPAND_TAC "vap");
+
+     (REWRITE_WITH `(va':real^N) = va - vc`);
+     (EXPAND_TAC "va'" THEN EXPAND_TAC "va" THEN EXPAND_TAC "vc");
+     (VECTOR_ARITH_TAC);
+
+     (REWRITE_WITH `(vc':real^N) = --vc`);
+     (EXPAND_TAC "vc'" THEN EXPAND_TAC "vc");
+     (VECTOR_ARITH_TAC);
+
+     (REWRITE_WITH 
+   `(--vc dot --vc) % (va:real^N - vc) = (vc dot vc) % va - (vc dot vc) % vc`);
+    (REWRITE_TAC[DOT_RNEG;DOT_LNEG;REAL_ARITH `-- --x = x `]);
+    (VECTOR_ARITH_TAC);
+
+  (MATCH_MP_TAC (VECTOR_ARITH `a = b + c ==> x:real^N - b - c = x - a `));
+  (REWRITE_WITH `((va:real^N - vc) dot --vc) % --vc = 
+                 (va dot vc) % vc - (vc dot vc) % vc`);
+ (REWRITE_TAC[DOT_RNEG;DOT_LNEG;VECTOR_MUL_LNEG; VECTOR_MUL_RNEG]);
+ (REWRITE_TAC[VECTOR_NEG_MINUS1;VECTOR_MUL_ASSOC]);
+ (REWRITE_TAC[REAL_ARITH `-- &1 * -- &1 * x = x`;
+               DOT_LSUB;VECTOR_SUB_RDISTRIB]);
+ (VECTOR_ARITH_TAC);
+
+   (* Subgoal 2 *)
+ (EXPAND_TAC "vbp'" THEN EXPAND_TAC "vbp");
+ (REWRITE_WITH `(vb':real^N) = vb - vc`);
+ (EXPAND_TAC "vb'" THEN EXPAND_TAC "vb" THEN EXPAND_TAC "vc");
+ (VECTOR_ARITH_TAC);
+
+   (REWRITE_WITH `(vc':real^N) = --vc`);
+   (EXPAND_TAC "vc'" THEN EXPAND_TAC "vc");
+   (VECTOR_ARITH_TAC);
+
+   (REWRITE_WITH 
+  `(--vc dot --vc) % (vb:real^N - vc) = (vc dot vc) % vb - (vc dot vc) % vc`);
+   (REWRITE_TAC[DOT_RNEG;DOT_LNEG;REAL_ARITH `-- --x = x `]);
+   (VECTOR_ARITH_TAC);
+ 
+   (MATCH_MP_TAC (VECTOR_ARITH `a = b + c ==> x:real^N - b - c = x - a `));
+   (REWRITE_WITH `((vb:real^N - vc) dot --vc) % --vc = 
+                 (vb dot vc) % vc - (vc dot vc) % vc`);
+   (REWRITE_TAC[DOT_RNEG;DOT_LNEG;VECTOR_MUL_LNEG; VECTOR_MUL_RNEG]);
+   (REWRITE_TAC[VECTOR_NEG_MINUS1;VECTOR_MUL_ASSOC]);
+   (REWRITE_TAC[REAL_ARITH `-- &1 * -- &1 * x = x`;
+               DOT_LSUB;VECTOR_SUB_RDISTRIB]);
+   (VECTOR_ARITH_TAC)]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 9 *)
+
+let DIHX_POS = prove_by_refinement ( 
+ `!u v V X. &0 <= dihX V X (u,v)`,
+[(REPEAT STRIP_TAC THEN REWRITE_TAC[dihX; dihu2; dihu3;dihu4]);
+ (LET_TAC);
+ (COND_CASES_TAC);
+ (REAL_ARITH_TAC);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[DIHV_RANGE]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[DIHV_RANGE]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[DIHV_RANGE]);
+ (REAL_ARITH_TAC)]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Lemma 10 *)
+
+let SUM_SET_OF_2_ELEMENTS = prove_by_refinement (
+ `!s t f. ~(s = t) ==> sum {s:A,t} f = f s + f t`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_WITH `!s t f. f s = sum{s:A} f /\ f t = sum{t} f`);
+ (MESON_TAC[SUM_SING]);
+ (REWRITE_WITH `{s:A, t} = {s} UNION {t}`);
+ (SET_TAC[]);
+ (MATCH_MP_TAC SUM_UNION);
+ (REWRITE_TAC[FINITE_SING]);
+ (UP_ASM_TAC THEN SET_TAC[])]);;
+
+let pos_lemma = prove_by_refinement(
+   `!Q. (?C. (&0 <= C /\  (!r. &1 <= r ==> Q r <= C * r pow 2))) <=> 
+    (?C. (  (!r. &1 <= r ==> Q r <= C * r pow 2)))`,
+[(GEN_TAC);
+  EQ_TAC;
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `C:real`);
+ (ASM_REWRITE_TAC[]);
+ (REPEAT STRIP_TAC);
+ (EXISTS_TAC `abs(C)`);
+ (REWRITE_TAC[REAL_ARITH `&0 <= abs C`]);
+ (REPEAT STRIP_TAC);
+ (ASSUME_TAC (REAL_ARITH `C <= abs C`));
+ (MATCH_MP_TAC REAL_LE_TRANS);
+ (EXISTS_TAC `C * r pow 2`);
+ (CONJ_TAC);
+ (ASM_SIMP_TAC[]);
+ (REWRITE_TAC[REAL_ARITH `a * b <= c * b <=> &0 <= (c - a) * b`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[REAL_LE_POW_2] THEN ASM_REAL_ARITH_TAC)]);;
+
+let negligible_fun_any_C = prove(
+   `!f S. negligible_fun_0 f S <=> 
+    (?C.  (!r. &1 <= r ==> sum (S INTER ball ((vec 0),r)) f <= C * r pow 2))`,
+REWRITE_TAC[Pack_defs.negligible_fun_0;Pack_defs.negligible_fun_p;pos_lemma]);;
+
+end;;
+
+
+

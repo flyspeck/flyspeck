@@ -1,7 +1,10 @@
 
-let KY_CHEAT_TAC = MP_TAC (mk_thm([],`F`)) THEN SET_TAC[];;
-let UNBOUNDED_HYPERPLANE = prove (
- `!a b. ~(a = vec 0) ==> ~(bounded {x:real^3 | a dot x = b})`, KY_CHEAT_TAC);;
+
+let aff_ge_alt = new_definition
+ `aff_ge_alt s t (v:real^3) <=>
+         (?f q. FINITE q /\ q SUBSET t /\ v = lin_combo (s UNION q) f /\
+              (!w. q w ==> &0 <= f w) /\
+              sum (s UNION q) f = &1)`;;
 
 #use "/home/vu/flyspeck/working/marchal_cells_3.hl";;
 (* back up for the proof *)
@@ -122,7 +125,6 @@ e (SET_TAC[]);;
 e (STRIP_TAC);;
 
 (* ======================================================================= *)
-
 
 e (ABBREV_TAC `p = circumcenter {u0, u1:real^3}`);;
 e (NEW_GOAL `aff_dim (u0 INSERT voronoi_list V [u0;u1]) = &3`);;
@@ -367,14 +369,265 @@ e (NEW_GOAL `~(z:real^3 IN S2)`);;
 e (REWRITE_TAC[ASSUME `z = p:real^3`]);;
 e (EXPAND_TAC "S2");;
 e (NEW_GOAL `p:real^3 IN relative_interior S`);;
-e (KY_CHEAT_TAC);;  (* gonna deal with later *)
 
+
+
+e (ABBREV_TAC `B = V INTER ball (p:real^3, &8)`);;
+e (ABBREV_TAC `A = B DIFF {u0, u1:real^3}`);;
+e (NEW_GOAL `FINITE (A:real^3->bool)`);;
+e (EXPAND_TAC "A");;
+e (MATCH_MP_TAC FINITE_DIFF);;
+e (EXPAND_TAC "B");;
+e (MATCH_MP_TAC Packing3.KIUMVTC THEN ASM_REWRITE_TAC[]);;
+e (NEW_GOAL `?y. dist (p,y:real^3) = &4`);;
+e (MATCH_MP_TAC VECTOR_CHOOSE_DIST);;
+e (REAL_ARITH_TAC);;
+e (UP_ASM_TAC THEN STRIP_TAC);;
+e (UNDISCH_TAC `saturated (V:real^3->bool)`);;
+e (REWRITE_TAC[saturated] THEN STRIP_TAC);;
+e (NEW_GOAL `?z. z IN V /\ dist (y:real^3, z) < &2`);;
+e (ASM_REWRITE_TAC[]);;
+e (UP_ASM_TAC THEN STRIP_TAC);;
+
+e (NEW_GOAL `z':real^3 IN A`);;
+e (EXPAND_TAC "A" THEN EXPAND_TAC "B");;
+e (REWRITE_TAC[IN_DIFF; IN_INTER; IN_BALL]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL `dist (p,z') <= dist (p, y) + dist (y, z':real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `dist (p, y) <= dist (p, z') + dist (z', y:real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (UP_ASM_TAC THEN ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[DIST_SYM]);;
+e (STRIP_TAC);;
+e (NEW_GOAL `&2 < dist (z', p:real^3)`);;
+e (ASM_REAL_ARITH_TAC);;
+e (UP_ASM_TAC THEN REWRITE_TAC[] THEN ONCE_REWRITE_TAC[DIST_SYM]);;
+e (REWRITE_WITH `p = circumcenter (set_of_list [u0;u1:real^3])`);;
+e (ASM_MESON_TAC[set_of_list]);;
+e (NEW_GOAL `(!w. w IN set_of_list [u0;u1:real^3]
+               ==> dist (circumcenter (set_of_list [u0;u1]),w) = hl [u0;u1])`);;
+e (MATCH_MP_TAC Rogers.HL_PROPERTIES);;
+e (EXISTS_TAC `V:real^3->bool` THEN EXISTS_TAC `1`);;
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_WITH `dist (circumcenter (set_of_list [u0; u1:real^3]),z') = 
+   hl [u0; u1]`);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[set_of_list]);;
+e (NEW_GOAL `sqrt (&2) <= &2`);;
+e (MATCH_MP_TAC Tactics_jordan.REAL_POW_2_LE);;
+e (SIMP_TAC[REAL_ARITH `&0 <= &2`; SQRT_POS_LE; SQRT_POW_2]);;
+e (REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `?a:real^3. a IN A /\ (!x. x IN A ==> dist (p,a) <= dist (p,x))`);;
+e (MATCH_MP_TAC Packing3.REAL_FINITE_ARGMIN);;
+e (ASM_REWRITE_TAC[]);;
+e (UP_ASM_TAC THEN SET_TAC[]);;
+e (UP_ASM_TAC THEN STRIP_TAC);;
+
+
+
+
+
+e (ABBREV_TAC `d = inv (&4) * (dist (p, a') - dist (p, u0:real^3))`);;
+e (NEW_GOAL `&0 < d`);;
+e (EXPAND_TAC "d");;
+e (MATCH_MP_TAC REAL_LT_MUL);;
+e (STRIP_TAC);;
+e (REAL_ARITH_TAC);;
+e (REWRITE_TAC[REAL_ARITH `&0 < a - b <=> a > b`]);;
+e (ONCE_REWRITE_TAC[DIST_SYM]);;
+e (NEW_GOAL `!u v. u IN {u0,u1} /\ v IN V DIFF {u0,u1} ==> 
+                   dist (v,p) > dist (u,p:real^3)`);;
+e (MATCH_MP_TAC Rogers.XYOFCGX);;
+e (REPEAT STRIP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+e (ASM_SET_TAC[]);;
+e (UP_ASM_TAC THEN REWRITE_TAC[AFFINE_INDEPENDENT_2]);;
+e (ASM_MESON_TAC[set_of_list]);;
+e (REWRITE_WITH `radV {u0, u1:real^3} = hl [u0;u1]`);;
+e (REWRITE_TAC[HL;set_of_list]);;
+e (ASM_REWRITE_TAC[]);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_SET_TAC[]);;
+
+e (REWRITE_TAC[relative_interior; IN; IN_ELIM_THM]);;
+e (ABBREV_TAC `St = S INTER ball (p:real^3, d)`);;
+e (EXISTS_TAC `St:real^3->bool`);;
+e (REPEAT STRIP_TAC);;
+
+e (REWRITE_TAC[open_in]);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `S SUBSET affine hull (S:real^3->bool)`);;
+e (REWRITE_TAC[Qzksykg.SET_SUBSET_AFFINE_HULL]);;
+e (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);;
+e (EXISTS_TAC `d - dist (p:real^3, x)`);;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[REAL_ARITH `&0 < a - b <=> b < a`]);;
+e (REWRITE_TAC[GSYM IN_BALL]);;
+e (ASM_SET_TAC[]);;
+e (EXPAND_TAC "St");;
+e (REWRITE_TAC[IN_INTER]);;
+e (STRIP_TAC);;
+
+
+e (NEW_GOAL `dist (x',x:real^3) < d`);;
+e (NEW_GOAL `&0 <= dist (p,x:real^3)`);;
+e (REWRITE_TAC[DIST_POS_LE]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `x' IN voronoi_closed V (u0:real^3)`);;
+e (REWRITE_TAC[voronoi_closed; IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+
+e (ASM_CASES_TAC `w IN {u0, u1:real^3}`);;
+e (ASM_CASES_TAC `w = u0:real^3`);;
+e (REWRITE_TAC[ASSUME `w = u0:real^3`]);;
+e (REAL_ARITH_TAC);;
+e (NEW_GOAL `w = u1:real^3`);;
+e (ASM_SET_TAC[]);;
+e (REWRITE_TAC[ASSUME `w = u1:real^3`]);;
+e (MATCH_MP_TAC (REAL_ARITH `a = b ==> a <= b`));;
+
+
+
+
+
+
+e (NEW_GOAL `x':real^3 IN S1`);;
+e (NEW_GOAL `affine hull S SUBSET affine hull (S1:real^3->bool)`);;
+e (MATCH_MP_TAC Marchal_cells_2_new.AFFINE_SUBSET_KY_LEMMA);;
+e (EXPAND_TAC "S1" THEN REWRITE_TAC[GSYM 
+  (ASSUME `voronoi_list V [u0; u1] = S`); VORONOI_LIST; VORONOI_SET; 
+  set_of_list; SET_RULE `INTERS {f v | v IN {a, b}} = f a INTER f b`]);;
+e (MATCH_MP_TAC Pack2.INTER_VORONOI_SUBSET_BISECTOR);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_WITH `x' IN S1 <=> x':real^3 IN affine hull S1`);;
+e (REWRITE_WITH `affine hull S1 = S1:real^3->bool`);;
+e (REWRITE_TAC[AFFINE_HULL_EQ]);;
+e (EXPAND_TAC "S1" THEN REWRITE_TAC[AFFINE_HYPERPLANE]);;
+e (ASM_SET_TAC[]);;
+
+e (UP_ASM_TAC THEN EXPAND_TAC "S1" THEN REWRITE_TAC[IN_ELIM_THM; NORM_POW_2]);;
+e (ONCE_REWRITE_TAC[REAL_ARITH `a = b <=> a - b = &0`]);;
+e (REWRITE_TAC[
+   VECTOR_ARITH `&2 % (u0 - u1) dot x - (u0 dot u0 - u1 dot u1) = 
+                (u1 - x) dot (u1 - x) - (u0 - x) dot (u0 - x)`]);;
+e (REWRITE_TAC[REAL_ARITH `a - b = &0 <=> a = b`; GSYM NORM_POW_2; GSYM dist]);;
+e (STRIP_TAC);;
+e (REWRITE_TAC[DIST_EQ]);;
+e (ONCE_REWRITE_TAC[DIST_SYM]);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL `dist (x', u0:real^3) <= dist (x', x) + dist (x, u0)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x, u0:real^3) <= dist (x, p:real^3) + dist (p, u0)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x,p:real^3) < d`);;
+e (NEW_GOAL `x IN ball (p:real^3, d)`);;
+e (ASM_SET_TAC[]);;
+e (UP_ASM_TAC THEN REWRITE_TAC[IN_BALL]);;
+e (REWRITE_TAC[DIST_SYM]);;
+e (NEW_GOAL `dist (x',u0) < &2 * d + dist (p:real^3,u0)`);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `dist (p, w:real^3)- &2 * d <= dist (x',w)`);;
+e (NEW_GOAL `dist (x, w:real^3) <= dist (x, x') + dist (x', w)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (p, w:real^3) <= dist (p, x) + dist (x, w)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x, x':real^3) < d /\ dist (p, x:real^3) < d`);;
+e (ONCE_REWRITE_TAC[DIST_SYM] THEN ASM_REWRITE_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+e (NEW_GOAL `dist (p, u0) + &4 * d <= dist (p, w:real^3)`);;
+e (EXPAND_TAC "d");;
+e (REWRITE_TAC[REAL_ARITH `&4 * inv (&4) * a = a`]);;
+e (REWRITE_TAC[REAL_ARITH `a + b - a = b`]);;
+
+e (ASM_CASES_TAC `w:real^3 IN B`);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_SET_TAC[]);;
+e (NEW_GOAL `~(dist (p,w:real^3) < &8)`);;
+e (REWRITE_TAC[GSYM IN_BALL]);;
+e (ASM_SET_TAC[]);;
+e (NEW_GOAL `dist (p,a':real^3) < &8`);;
+e (REWRITE_TAC[GSYM IN_BALL]);;
+e (ASM_SET_TAC[]);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+
+
+
+e (NEW_GOAL `x' IN voronoi_closed V (u1:real^3)`);;
+e (NEW_GOAL `x':real^3 IN S1`);;
+e (NEW_GOAL `affine hull S SUBSET affine hull (S1:real^3->bool)`);;
+e (MATCH_MP_TAC Marchal_cells_2_new.AFFINE_SUBSET_KY_LEMMA);;
+e (EXPAND_TAC "S1" THEN REWRITE_TAC[GSYM 
+  (ASSUME `voronoi_list V [u0; u1] = S`); VORONOI_LIST; VORONOI_SET; 
+  set_of_list; SET_RULE `INTERS {f v | v IN {a, b}} = f a INTER f b`]);;
+e (MATCH_MP_TAC Pack2.INTER_VORONOI_SUBSET_BISECTOR);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_WITH `x' IN S1 <=> x':real^3 IN affine hull S1`);;
+e (REWRITE_WITH `affine hull S1 = S1:real^3->bool`);;
+e (REWRITE_TAC[AFFINE_HULL_EQ]);;
+e (EXPAND_TAC "S1" THEN REWRITE_TAC[AFFINE_HYPERPLANE]);;
+e (ASM_SET_TAC[]);;
+
+e (UP_ASM_TAC THEN EXPAND_TAC "S1" THEN REWRITE_TAC[IN_ELIM_THM; NORM_POW_2]);;
+e (ONCE_REWRITE_TAC[REAL_ARITH `a = b <=> a - b = &0`]);;
+e (REWRITE_TAC[
+   VECTOR_ARITH `&2 % (u0 - u1) dot x - (u0 dot u0 - u1 dot u1) = 
+                (u1 - x) dot (u1 - x) - (u0 - x) dot (u0 - x)`]);;
+e (REWRITE_TAC[REAL_ARITH `a - b = &0 <=> a = b`; GSYM NORM_POW_2; GSYM dist]);;
+e (STRIP_TAC);;
+e (UNDISCH_TAC `x' IN voronoi_closed V (u0:real^3)`);;
+e (REWRITE_TAC[voronoi_closed; IN_ELIM_THM; IN]);;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_WITH `dist (x', u1)= dist (x', u0:real^3)`);;
+e (ONCE_REWRITE_TAC[DIST_SYM]);;
+e (ASM_REWRITE_TAC[DIST_EQ]);;
+e (ASM_SIMP_TAC[]);;
+
+e (REWRITE_TAC[GSYM 
+  (ASSUME `voronoi_list V [u0; u1] = S`); VORONOI_LIST; VORONOI_SET; 
+  set_of_list; SET_RULE `INTERS {f v | v IN {a, b}} = f a INTER f b`]);;
+e (ASM_REWRITE_TAC[IN_INTER]);;
+
+e (REWRITE_TAC[IN_BALL]);;
+e (NEW_GOAL `dist (p,x':real^3) <= dist (p,x) + dist (x, x':real^3)`);;
+e (REWRITE_TAC[DIST_TRIANGLE]);;
+e (NEW_GOAL `dist (x,x':real^3) = dist (x',x)`);;
+e (REWRITE_TAC[DIST_SYM]);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_WITH `St p <=> p:real^3 IN St`);;
+e (REWRITE_TAC[IN]);;
+e (EXPAND_TAC "St" THEN REWRITE_TAC[IN_INTER; IN_BALL; DIST_REFL]);;
+e (STRIP_TAC);;
+e (REWRITE_WITH `p = omega_list V [u0; u1]`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (REWRITE_WITH `p = circumcenter (set_of_list [u0;u1:real^3])`);;
+e (ASM_MESON_TAC[set_of_list]);;
+e (MATCH_MP_TAC Rogers.XNHPWAB1);;
+e (EXISTS_TAC `1`);;
+e (ASM_REWRITE_TAC[IN]);;
+e (REWRITE_TAC[GSYM (ASSUME `voronoi_list V [u0;u1] = S`)]);;
+e (MATCH_MP_TAC Packing3.OMEGA_LIST_IN_VORONOI_LIST);;
+e (EXISTS_TAC `1` THEN ASM_REWRITE_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+e (UP_ASM_TAC THEN SET_TAC[]);;
 e (UP_ASM_TAC THEN SET_TAC[]);;
 e (ASM_MESON_TAC[]);;
+
 (* ======================================================================== *)
 
 e (NEW_GOAL `?b. &0 < b /\ b < &1 /\ 
-                  rcone_gt u0 u1 b SUBSET aff_ge {u0:real^3} S`);;
+                  rcone_gt u0 u1 b SUBSET aff_ge_alt {u0:real^3} S`);;
+
 e (EXISTS_TAC `a:real`);;
 e (REPEAT STRIP_TAC);;
 e (ASM_REWRITE_TAC[]);;
@@ -540,30 +793,19 @@ e (UP_ASM_TAC THEN STRIP_TAC);;
 
 e (NEW_GOAL `~(y:real^3 IN S)`);;
 e (STRIP_TAC);;
-e (NEW_GOAL `x IN aff_ge {u0:real^3} S`);;
-e (REWRITE_TAC[IN; aff_ge_def; affsign; sgn_ge; lin_combo]);;
+e (NEW_GOAL `x IN aff_ge_alt {u0:real^3} S`);;
+e (REWRITE_TAC[IN; aff_ge_alt; lin_combo]);;
 
 e (ABBREV_TAC `f = (\v:real^3. if v = u0 then t 
                                 else if v = y then h else &0)`);;
 e (EXISTS_TAC `f:real^3->real`);;
-e (REPEAT STRIP_TAC);;
-e (REWRITE_WITH `vsum ({u0} UNION S) (\v. f v % v) = 
-                 vsum (u0 INSERT {y}) (\v:real^3. f v % v)`);;
-e (MATCH_MP_TAC VSUM_SUPERSET);;
-e (STRIP_TAC);;
-e (ASM_SET_TAC[]);;
-e (REPEAT STRIP_TAC);;
-e (EXPAND_TAC "f" THEN REWRITE_TAC[]);;
-e (COND_CASES_TAC);;
-e (NEW_GOAL `F`);;
-e (ASM_SET_TAC[]);;
-e (ASM_MESON_TAC[]);;
-e (COND_CASES_TAC);;
-e (NEW_GOAL `F`);;
-e (ASM_SET_TAC[]);;
-e (ASM_MESON_TAC[]);;
-e (VECTOR_ARITH_TAC);;
+e (EXISTS_TAC `{y:real^3}`);;
 
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[FINITE_SING]);;
+e (ASM_SET_TAC[]);;
+
+e (REWRITE_TAC[SET_RULE `{a} UNION {b} = {a, b}`]);;
 e (REWRITE_WITH `vsum {u0:real^3, y} (\v. f v % v) = 
                 (\v. f v % v) u0 + (\v. f v % v) y`);;
 e (MATCH_MP_TAC Geomdetail.VSUM_DIS2);;
@@ -621,13 +863,16 @@ e (ASM_MESON_TAC[]);;
 e (ASM_MESON_TAC[]);;
 e (ASM_REWRITE_TAC[]);;
 
-
 e (EXPAND_TAC "f");;
 e (COND_CASES_TAC);;
 e (NEW_GOAL `F`);;
-e (NEW_GOAL `~((S:real^3->bool) u0)`);;
-e (REWRITE_WITH `S u0 <=> u0:real^3 IN S`);;
+e (NEW_GOAL `~({y:real^3} u0)`);;
+e (REWRITE_WITH `~({y} u0) <=> ~(u0:real^3 IN {y})`);;
 e (MESON_TAC[IN]);;
+e (REWRITE_TAC[IN_SING]);;
+e (STRIP_TAC);;
+
+e (NEW_GOAL `~(u0:real^3 IN S)`);;
 e (EXPAND_TAC "S");;
 e (REWRITE_TAC[VORONOI_LIST; VORONOI_SET; set_of_list; 
    SET_RULE `v IN {a,b} <=> v = a \/ v = b`]);;
@@ -645,27 +890,13 @@ e (MATCH_MP_TAC DIST_POS_LT);;
 e (ASM_REWRITE_TAC[]);;
 e (ASM_MESON_TAC[]);;
 e (ASM_MESON_TAC[]);;
+e (ASM_MESON_TAC[]);;
+
 e (COND_CASES_TAC);;
 e (ASM_REAL_ARITH_TAC);;
 e (REAL_ARITH_TAC);;
 
-
-e (REWRITE_WITH `sum ({u0:real^3} UNION S) (f:real^3->real) = sum {u0, y} f`);;
-e (MATCH_MP_TAC SUM_SUPERSET);;
-e (STRIP_TAC);;
-e (ASM_SET_TAC[]);;
-e (REPEAT STRIP_TAC);;
-e (EXPAND_TAC "f" THEN REWRITE_TAC[]);;
-e (COND_CASES_TAC);;
-e (NEW_GOAL `F`);;
-e (ASM_SET_TAC[]);;
-e (ASM_MESON_TAC[]);;
-e (COND_CASES_TAC);;
-e (NEW_GOAL `F`);;
-e (ASM_SET_TAC[]);;
-e (ASM_MESON_TAC[]);;
-e (REAL_ARITH_TAC);;
-
+e (REWRITE_TAC[SET_RULE `{a} UNION {b} = {a,b}`]);;
 e (REWRITE_WITH `sum {u0:real^3, y} f = f u0 + f y`);;
 e (MATCH_MP_TAC Geomdetail.SUM_DIS2);;
 e (STRIP_TAC);;
@@ -715,6 +946,7 @@ e (MATCH_MP_TAC DIST_POS_LT);;
 e (ASM_REWRITE_TAC[]);;
 e (ASM_MESON_TAC[]);;
 e (ASM_MESON_TAC[]);;
+
 e (COND_CASES_TAC);;
 e (REFL_TAC);;
 e (NEW_GOAL `F`);;
@@ -722,7 +954,6 @@ e (ASM_MESON_TAC[]);;
 e (ASM_MESON_TAC[]);;
 e (ASM_REWRITE_TAC[]);;
 e (ASM_MESON_TAC[]);;
-
 
 e (NEW_GOAL `y:real^3 IN S2`);;
 e (EXPAND_TAC "S2");;
@@ -813,4 +1044,230 @@ e (ASM_REAL_ARITH_TAC);;
 e (ASM_REAL_ARITH_TAC);;
 
 e (UP_ASM_TAC THEN STRIP_TAC);;
+
+e (ABBREV_TAC `W = aff_ge_alt {u0:real^3} S`);;
+e (ABBREV_TAC `c = max b (hl[u0;u1:real^3] / sqrt (&2))`);;
+e (NEW_GOAL `&0 < c /\ c < &1`);;
+e (EXPAND_TAC "c" THEN REWRITE_TAC[REAL_LT_MAX]);;
+e (ASM_REWRITE_TAC[]);;
+e (EXPAND_TAC "c" THEN REWRITE_TAC[REAL_MAX_LT]);;
+e (STRIP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_WITH `hl [u0; u1:real^3] / sqrt (&2) < &1 <=> 
+                 hl [u0; u1] < &1 * sqrt (&2)`);;
+e (MATCH_MP_TAC REAL_LT_LDIV_EQ);;
+e (ASM_SIMP_TAC[SQRT_POS_LT; REAL_ARITH `&0 < &2`]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `rcone_gt u0 u1 c SUBSET 
+             W INTER (rcone_gt u0 u1 (hl [u0; u1:real^3] / sqrt (&2)))`);;
+e (REWRITE_TAC[SUBSET_INTER]);;
+e (STRIP_TAC);;
+e (NEW_GOAL `rcone_gt (u0:real^3) u1 c SUBSET rcone_gt u0 u1 b`);;
+e (MATCH_MP_TAC RCONE_GT_SUBSET);;
+e (EXPAND_TAC "c" THEN REAL_ARITH_TAC);;
+e (ASM_SET_TAC[]);;
+e (MATCH_MP_TAC RCONE_GT_SUBSET);;
+e (EXPAND_TAC "c" THEN REAL_ARITH_TAC);;
+e (ABBREV_TAC `r = &1`);;
+
+e (ABBREV_TAC `C = ball (u0:real^3,r) INTER rcone_gt u0 u1 c`);;
+e (NEW_GOAL `C SUBSET 
+      UNIONS
+      {rogers V vl | vl | barV V 3 vl /\ truncate_simplex 1 vl = [u0; u1]}`);;
+e (REWRITE_TAC[SUBSET]);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `x IN ball (u0:real^3,r)  /\ x IN aff_ge_alt {u0} S`);;
+e (ASM_SET_TAC[]);;
+e (UP_ASM_TAC THEN STRIP_TAC);;
+
+(* OK until here *)
+(* ===========================================================================*)
+
+e (NEW_GOAL `(x:real^3) IN convex hull (u0 INSERT S)`);;
+e (REWRITE_TAC[CONVEX_HULL_EXPLICIT; IN; IN_ELIM_THM]);;
+
+e (UP_ASM_TAC THEN REWRITE_TAC[IN; aff_ge_alt; lin_combo]);;
+e (REPEAT STRIP_TAC);;
+e (EXISTS_TAC `{u0:real^3} UNION q`);;
+e (EXISTS_TAC `f:real^3->real`);;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[SET_RULE `{a} UNION b = a INSERT b`; FINITE_INSERT]);;
+e (ASM_REWRITE_TAC[]);;
+e (ASM_SET_TAC[]);;
+e (ASM_CASES_TAC `x':real^3 IN q`);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (UP_ASM_TAC THEN MESON_TAC[IN]);;
+e (REWRITE_WITH `x' = u0:real^3`);;
+e (NEW_GOAL `x' IN ({u0:real^3} UNION q)`);;
+e (ASM_REWRITE_TAC[IN]);;
+e (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);;
+e (REWRITE_TAC[REAL_ARITH `&0 <= x <=> ~(x < &0)`]);;
+e (STRIP_TAC);;
+e (UNDISCH_TAC `x IN ball (u0:real^3,r)`);;
+e (ASM_REWRITE_TAC[IN_BALL; SET_RULE `{u} UNION q = u INSERT (q DELETE u)`]);;
+e (REWRITE_WITH `vsum (u0 INSERT (q DELETE u0:real^3)) (\v. f v % v) = 
+  (if u0 IN (q DELETE u0) then vsum (q DELETE u0) (\v. f v % v)
+   else (\v. f v % v) u0 + vsum (q DELETE u0) (\v. f v % v))`);;
+e (MATCH_MP_TAC Marchal_cells_2_new.VSUM_CLAUSES_alt);;
+e (ASM_REWRITE_TAC[FINITE_DELETE]);;
+e (COND_CASES_TAC);;
+e (NEW_GOAL `F`);;
+e (UP_ASM_TAC THEN SET_TAC[]);;
+e (ASM_MESON_TAC[]);;
+e (ONCE_REWRITE_TAC[DIST_SYM]);;
+e (REWRITE_TAC[dist]);;
+e (REWRITE_WITH `!a. a - u0 = a - (sum ({u0:real^3} UNION q) f) % u0`);;
+e (ASM_REWRITE_TAC[]);;
+e (EXPAND_TAC "r");;
+e (VECTOR_ARITH_TAC);;
+
+
+e (NEW_GOAL `sum ({u0} UNION q) f = f u0 + sum (q DELETE u0:real^3) f`);;
+e (REWRITE_TAC[SET_RULE `{u} UNION q = u INSERT (q DELETE u)`]);;
+e (REWRITE_WITH `sum (u0 INSERT (q DELETE u0:real^3)) f = 
+  (if u0 IN (q DELETE u0) then sum (q DELETE u0) f
+   else f u0 + sum (q DELETE u0) f)`);;
+e (MATCH_MP_TAC Marchal_cells_2_new.SUM_CLAUSES_alt);;
+e (ASM_REWRITE_TAC[FINITE_DELETE]);;
+e (COND_CASES_TAC);;
+e (NEW_GOAL `F`);;
+e (UP_ASM_TAC THEN SET_TAC[]);;
+e (ASM_MESON_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[VECTOR_ADD_RDISTRIB;
+   VECTOR_ARITH `(a + b) - (a + c:real^3) = b - c`;
+   ASSUME `sum ({u0} UNION q) f = f u0 + sum (q DELETE u0:real^3) f`; ]);;
+e (ABBREV_TAC `h = sum (q DELETE u0:real^3) f`);;
+e (ABBREV_TAC `y = inv (h) % vsum (q DELETE u0) (\v:real^3. f v % v)`);;
+e (NEW_GOAL `h > &1`);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_WITH `vsum (q DELETE u0) (\v. f v % v) = h % y:real^3`);;
+e (EXPAND_TAC "y");;
+e (REWRITE_TAC[VECTOR_MUL_ASSOC]);;
+e (REWRITE_WITH `h * inv h = &1`);;
+e (ASM_SIMP_TAC [Trigonometry2.REAL_MUL_LRINV; REAL_ARITH `h > &1 ==> ~(h = &0)`]);;
+e (VECTOR_ARITH_TAC);;
+e (REWRITE_TAC[VECTOR_ARITH `h % a - h % b = h % (a - b)`; NORM_MUL]);;
+e (REWRITE_TAC[REAL_ARITH `~(a < b) <=> b <= a`]);;
+
+e (NEW_GOAL `norm (p - u0) <= norm (y - u0:real^3)`);;
+e (MATCH_MP_TAC Tactics_jordan.REAL_POW_2_LE);;
+e (REWRITE_TAC[NORM_POS_LE]);;
+e (REWRITE_WITH 
+  `norm (y - u0) pow 2 = norm (p - u0) pow 2 + norm (y - p:real^3) pow 2`);;
+e (MATCH_MP_TAC PYTHAGORAS);;
+e (REWRITE_TAC[orthogonal]);;
+e (REWRITE_WITH `p = circumcenter (set_of_list [u0;u1:real^3])`);;
+e (ASM_REWRITE_TAC[set_of_list]);;
+e (ONCE_REWRITE_TAC[DOT_SYM]);;
+e (MATCH_MP_TAC Rogers.MHFTTZN4);;
+e (EXISTS_TAC `V:real^3->bool` THEN EXISTS_TAC `1`);;
+e (REPEAT STRIP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ASSUME `voronoi_list V [u0; u1] = S`]);;
+e (REWRITE_TAC[AFFINE_HULL_EXPLICIT_ALT; IN; IN_ELIM_THM]);;
+e (EXISTS_TAC `q DELETE u0:real^3`);;
+e (EXISTS_TAC `(\v:real^3. inv h * f v)`);;
+e (REPEAT STRIP_TAC);;
+e (ASM_REWRITE_TAC[FINITE_DELETE]);;
+e (ASM_SET_TAC[]);;
+e (ASM_REWRITE_TAC[SUM_LMUL]);;
+e (EXPAND_TAC "r");;
+e (ASM_SIMP_TAC [Trigonometry2.REAL_MUL_LRINV; REAL_ARITH `h > &1 ==> ~(h = &0)`]);;
+e (REWRITE_TAC[GSYM VECTOR_MUL_ASSOC]);;
+e (ASM_REWRITE_TAC[VSUM_LMUL]);;
+
+e (REWRITE_TAC[set_of_list]);;
+e (NEW_GOAL `{u0, u1:real^3} SUBSET affine hull {u0, u1}`);;
+e (REWRITE_TAC[Qzksykg.SET_SUBSET_AFFINE_HULL]);;
+e (ASM_SET_TAC[]);;
+e (REWRITE_TAC[REAL_ARITH `a <= a + b <=> &0 <= b`; NORM_POW_2; DOT_POS_LE]);;
+
+e (NEW_GOAL `&1 <= norm (p - u0:real^3)`);;
+e (EXPAND_TAC "p");;
+e (REWRITE_TAC[CIRCUMCENTER_2; midpoint; 
+   VECTOR_ARITH `inv (&2) % (u0 + u1) - u0 = inv (&2) % (u1 - u0)`; 
+   NORM_MUL; REAL_ARITH `abs (inv(&2)) = inv (&2)`]);;
+e (REWRITE_TAC[GSYM dist]);;
+e (REWRITE_WITH `&1 = inv (&2) * &2`);;
+e (REAL_ARITH_TAC);;
+e (REWRITE_TAC[REAL_ARITH `inv (&2) * &2 <= inv (&2) * a <=> &2 <= a`]);;
+e (MP_TAC (ASSUME `packing (V:real^3->bool)`));;
+e (REWRITE_TAC[packing] THEN STRIP_TAC);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[] THEN ASM_SET_TAC[]);;
+e (REWRITE_WITH `abs h = h`);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (NEW_GOAL `h <= h * norm (y - u0:real^3)`);;
+e (REWRITE_TAC[REAL_ARITH `h <= h * a <=> &0 <= h * (a - &1)`]);;
+e (MATCH_MP_TAC REAL_LE_MUL);;
+e (ASM_REAL_ARITH_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (ASM_REWRITE_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+
+(* ========================================================================== *)
+e (NEW_GOAL `~(S:real^3->bool = {})`);;
+e (STRIP_TAC);;
+e (NEW_GOAL `~(aff_dim (u0:real^3 INSERT S) = &3)`);;
+e (REWRITE_TAC[ASSUME `S:real^3->bool = {}`; AFF_DIM_SING]);;
+e (ARITH_TAC);;
+e (ASM_MESON_TAC[]);;
+e (SWITCH_TAC);;
+e (UP_ASM_TAC THEN SIMP_TAC[CONVEX_HULL_INSERT; 
+   ASSUME `~(S:real^3->bool = {})`]);;
+e (REWRITE_WITH `convex hull S = S:real^3->bool`);;
+e (REWRITE_TAC[CONVEX_HULL_EQ]);;
+e (EXPAND_TAC "S" THEN REWRITE_TAC[Packing3.CONVEX_VORONOI_LIST]);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[IN_UNIONS; IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+
+e (EXISTS_TAC `rogers V vl`);;
+e (REPEAT STRIP_TAC);;
+e (EXISTS_TAC `vl:(real^3)list`);;
+e (ASM_REWRITE_TAC[]);;
+
+e (ASM_SIMP_TAC[Marchal_cells_2.ROGERS_EXPLICIT]);;
+e (REWRITE_TAC[CONVEX_HULL_4; IN_ELIM_THM]);;
+
+e (UNDISCH_TAC `(t:real^3->bool) b'`);;
+e (ASM_REWRITE_TAC[CONVEX_HULL_3; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+
+e (EXISTS_TAC `u:real`);;
+e (EXISTS_TAC `v * u'`);;
+e (EXISTS_TAC `v * v'`);;
+e (EXISTS_TAC `v * w`);;
+e (ASM_SIMP_TAC[REAL_LE_MUL]);;
+e (STRIP_TAC);;
+
+e (REWRITE_TAC[REAL_ARITH `u + v * u' + v * v' + v * w = u + v * (u' + v' +w)`]);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC [GSYM (ASSUME `&1 = r`)]);;
+e (ASM_REAL_ARITH_TAC);;
+
+e (REWRITE_WITH `(HD vl):real^3 = HD (truncate_simplex 1 vl)`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (MATCH_MP_TAC Packing3.HD_TRUNCATE_SIMPLEX);;
+e (REWRITE_WITH `LENGTH (vl:(real^3)list) = 3 + 1 /\ CARD (set_of_list vl) = 3 + 1`);;
+e (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);;
+e (EXISTS_TAC `V:real^3->bool`);;
+e (ASM_REWRITE_TAC[]);;
+e (ARITH_TAC);;
+
+e (ASM_REWRITE_TAC[HD]);;
+e (VECTOR_ARITH_TAC);;
+
+(* ========================================================================= *)
+(* ========================================================================= *)
+
+
+
+
 

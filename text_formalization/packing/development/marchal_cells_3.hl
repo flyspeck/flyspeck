@@ -1138,7 +1138,63 @@ let RCONE_GT_SUBSET = prove_by_refinement (
  (REWRITE_TAC[DIST_POS_LE]);
  (ASM_REAL_ARITH_TAC);
  (ASM_REAL_ARITH_TAC)]);;
+
 (* ===================================================================== *)
+(*     The following lemmas are in the svn 126 of HOL                    *)
+(*     To be done by John Harrison                                       *)
+(* ===================================================================== *)
+let BOUNDED_SING = prove 
+ (`!a. bounded {a}`, 
+    REWRITE_TAC[BOUNDED_INSERT; BOUNDED_EMPTY]);;
+
+let SUBSPACE_BOUNDED_EQ_TRIVIAL = prove
+  (`!s:real^N->bool. subspace s ==> (bounded s <=> s = {vec 0})`,
+   REPEAT STRIP_TAC THEN EQ_TAC THEN SIMP_TAC[BOUNDED_SING] THEN
+   ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] THEN
+   DISCH_THEN(MP_TAC o MATCH_MP (SET_RULE
+    `~(s = {a}) ==> a IN s ==> ?b. b IN s /\ ~(b = a)`)) THEN
+   ASM_SIMP_TAC[SUBSPACE_0] THEN
+   DISCH_THEN(X_CHOOSE_THEN `v:real^N` STRIP_ASSUME_TAC) THEN
+   REWRITE_TAC[bounded; NOT_EXISTS_THM] THEN X_GEN_TAC `B:real` THEN
+   DISCH_THEN(MP_TAC o SPEC `(B + &1) / norm v % v:real^N`) THEN
+   ASM_SIMP_TAC[SUBSPACE_MUL; NORM_MUL; REAL_ABS_DIV; REAL_ABS_NORM] THEN
+   ASM_SIMP_TAC[REAL_DIV_RMUL; NORM_EQ_0] THEN REAL_ARITH_TAC);;
+
+ let AFFINE_BOUNDED_EQ_TRIVIAL = prove
+  (`!s:real^N->bool.
+         affine s ==> (bounded s <=> s = {} \/ ?a. s = {a})`,
+   GEN_TAC THEN ASM_CASES_TAC `s:real^N->bool = {}` THEN
+   ASM_REWRITE_TAC[BOUNDED_EMPTY] THEN
+   FIRST_X_ASSUM(MP_TAC o GEN_REWRITE_RULE I [GSYM MEMBER_NOT_EMPTY]) THEN
+   DISCH_THEN(X_CHOOSE_THEN `b:real^N` MP_TAC) THEN
+   GEOM_ORIGIN_TAC `b:real^N` THEN SIMP_TAC[AFFINE_EQ_SUBSPACE] THEN
+   REPEAT STRIP_TAC THEN ASM_SIMP_TAC[SUBSPACE_BOUNDED_EQ_TRIVIAL] THEN
+   FIRST_ASSUM(MP_TAC o MATCH_MP SUBSPACE_0) THEN SET_TAC[]);;
+
+ let AFFINE_BOUNDED_EQ_LOWDIM = prove
+  (`!s:real^N->bool.
+         affine s ==> (bounded s <=> aff_dim s <= &0)`,
+   SIMP_TAC[AFF_DIM_GE; INT_ARITH
+    `--(&1):int <= x ==> (x <= &0 <=> x = --(&1) \/ x = &0)`] THEN
+   SIMP_TAC[AFF_DIM_EQ_0; AFF_DIM_EQ_MINUS1; AFFINE_BOUNDED_EQ_TRIVIAL]);;
+
+ let BOUNDED_HYPERPLANE_EQ_TRIVIAL = prove
+  (`!a b. bounded {x:real^N | a dot x = b} <=>
+          if a = vec 0 then ~(b = &0) else dimindex(:N) = 1`,
+   REPEAT GEN_TAC THEN ASM_CASES_TAC `a:real^N = vec 0` THEN
+   ASM_REWRITE_TAC[DOT_LZERO] THENL
+    [ASM_CASES_TAC `b = &0` THEN
+     ASM_REWRITE_TAC[EMPTY_GSPEC; BOUNDED_EMPTY] THEN
+     REWRITE_TAC[NOT_BOUNDED_UNIV; SET_RULE `{x | T} = UNIV`];
+     ASM_SIMP_TAC[AFFINE_BOUNDED_EQ_LOWDIM; AFF_DIM_HYPERPLANE;
+                  AFFINE_HYPERPLANE] THEN
+     REWRITE_TAC[INT_ARITH `a - &1:int <= &0 <=> a <= &1`; INT_OF_NUM_LE] THEN
+     MATCH_MP_TAC(ARITH_RULE `1 <= n ==> (n <= 1 <=> n = 1)`) THEN
+     REWRITE_TAC[DIMINDEX_GE_1]]);;
+
+ let UNBOUNDED_HYPERPLANE = prove
+  (`!a b. ~(a = vec 0) ==> ~(bounded {x:real^3 | a dot x = b})`,
+   SIMP_TAC[BOUNDED_HYPERPLANE_EQ_TRIVIAL; DIMINDEX_3; ARITH]);;
 (* ===================================================================== *)
 (* ===================================================================== *)
 

@@ -59,8 +59,8 @@ numerical.o : numerical.h numerical.cc
 maytest.o : maytest.cc  $(DEPS) numerical.cc
 	$(CC) $(CCOPTS1) maytest.cc $(DOTS)  -o maytest.o
 
-feb1_tetrahedral_angle_test.o : feb1_tetrahedral_angle_test.cc  $(DEPS) numerical.cc
-	$(CC) $(CCOPTS1) feb1_tetrahedral_angle_test.cc $(DOTS)  -o feb1_tetrahedral_angle_test.o
+feb16_phelan_weaire_text.o : feb16_phelan_weaire_text.cc  $(DEPS) numerical.cc
+	$(CC) $(CCOPTS1) feb16_phelan_weaire_text.cc $(DOTS)  -o feb16_phelan_weaire_text.o
 
 
 #tame_hypermap.o : tame_hypermap.cc  $(DEPS)

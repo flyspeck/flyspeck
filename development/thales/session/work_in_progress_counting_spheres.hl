@@ -1,16 +1,6 @@
 open Counting_spheres;;
 open Hales_tactic;;
 
-
-let GOTCJAH_concl = `!v b P r c  WF h n. 
-    polyhedron P /\ bounded P /\ (&0 < r) /\ (!p. norm p < r ==> p IN P) /\ 
-    c facet_of P /\ 
-    fchanged c = WF /\
-    (&0 < h /\ h < &1) /\
-    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v h SUBSET WF) /\
-    ( {u | u extreme_point_of c } HAS_SIZE n) 
-   ==> &2 * pi - &2* &n * asn (h* sin(pi/ &n)) <= solvec0  WF`;;
-
 let DLWCHEM_concl = `!V. packing V /\ packing_ineq_def_a /\
   V SUBSET ball_annulus /\ ~(lmfun_ineq_center V) ==>
    (CARD V = 13 \/ CARD V = 14 \/ CARD V = 15)`;;
@@ -303,10 +293,79 @@ let ORDER_AZIM_SUM2Pi = prove_by_refinement(
 (* WORK IN PROGRESS *)
 (* ========================================================================== *)
 
+(*
+ (!p. norm p < r ==> p IN P) /\ 
+*)
+
+let GOTCJAH_concl = `!c v b P  WF t n. 
+    polyhedron P /\ bounded P /\  (&0 < b) /\
+    c facet_of P /\ 
+    fchanged c = WF /\
+    (&0 < t /\ t < &1) /\
+    (c = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v t SUBSET WF) /\
+    ( {u | u facet_of c } HAS_SIZE n) 
+   ==> &2 * pi - &2* &n * asn (t* sin(pi/ &n)) <= sol (vec 0)  WF`;;
+
+let GOTCJAH = prove_by_refinement(
+  GOTCJAH_concl,
+  (* {{{ proof *)
+  [
+gv "c3"
+st/r
+abbrev (`A = { (p:real^3) | p dot v = b}`)
+abbrev `u0 = (b / (v dot v)) % (v:real^3)`
+sgth `~((v:real^3) = vec 0)` assume
+dt
+elu10
+ast[?17];
+rt[ ?fun ;?elim]
+dt
+sgth (%`A = {}`) assume
+repeat (fxa mpt) then set[arith `&0 < b ==> ~(&0 = b)`]
+sgth (%`c3 = {}`) assume
+repeat (fxa mpt) then set[]
+amt[ ?16 ]
+comment "v dot v"
+sgth `&0 < (v:real^3) dot v` assume
+art[?18]
+comment "u0"
+sgth `(u0:real^3) IN c3` assume
+art[IN_INTER]
+rot
+subconj
+expand "A"
+rt[?elim]
+expand "u0"
+rt[?15]
+fun (asl,t) -> (mmt (Calc_derivative.rational_identity t) (asl,t))
+fxa mpt
+rat
+dt
+(* XXD to here, u0 in WF' , A splits according to P and not P. Use ?19. POLY..COLL..FACES *)
+
+sgth `?u2. u2 IN A /\ (!t. ~((u2:real^3) =  t % v))` mpt
+
+mpt  (specl [`v:real^3`] ?14 )
+st/r
 
 
+assume (specl %%[`c3`;`A`;`n`;`{c | c facet_of c3}`;`b * sqrt(&1 - t pow 2)/(t * norm v)`;`(b / norm v) % v`;`v`;`
+  ]);;
+  (* }}} *)
 
+results[];;
+mark 0;;
 
+Calc_derivative.rational_identity `b / a * a = b`;;
+searcht 5 [`face_of`;`t % v`];;
+searcht 5 [`v dot v`;`&0`];;
+searcht 5 [`a dot (vec 0)`];;
+searcht 15 [`facet_of`;`{}`];;
+searcht 5 [`(a % b) dot c`];;
+searcht 15 [`rcone_gt`];;
+mark 1;;
+searcht 5 [`x:real^3`;`x dot y = &0`];;
+EUSOTYP_general;;
 1;;
 searcht 5 [`pad2d3d x = pad2d3d y`];;
 mark 0;;

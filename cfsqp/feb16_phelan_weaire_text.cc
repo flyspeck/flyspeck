@@ -26,7 +26,7 @@ public:
 void printv(double* v,int n) {
   cout << "{";
   for (int i =0;i<n;i++) {
-    cout << v[i] << (i==n-1 ? "}" : ",");
+    cout << v[i] << (i==n-1 ? "};" : ",");
   }
 }
 
@@ -67,8 +67,8 @@ double dist2(double x[3],double y[3]) {
 }
 
 double RvolAn(double x1, double x2, double x3,double x4,double x5, double x6) {
-  return x1 * (x2 + x6 - x1) * chi(x4,x5,x3,x1,x2,x6)/ 
-    (48.0 * U(x1,x2,x6) * sqrt (delta_x (x1,x2,x3,x4,x5,x6)));
+  return (x1 * (x2 + x6 - x1) * chi(x4,x5,x3,x1,x2,x6)/ 
+	  (48.0 * U(x1,x2,x6) * sqrt (delta_x (x1,x2,x3,x4,x5,x6))));
 }
 
 double RsurfAn(double x1,double x2,double x3,double x4,double x5, double x6) {
@@ -77,19 +77,27 @@ double RsurfAn(double x1,double x2,double x3,double x4,double x5, double x6) {
 }
 
 double vol6(double x1,double x2,double x3, double x4, double x5,double x6) {
-  return RvolAn(x1,x2,x3,x4,x5,x6) + RvolAn(x1,x3,x2,x4,x6,x5) +
+  return (RvolAn(x1,x2,x3,x4,x5,x6) + RvolAn(x1,x3,x2,x4,x6,x5) +
     RvolAn(x2,x3,x1,x5,x6,x4) + RvolAn(x2,x1,x3,x5,x4,x6) +
-    RvolAn(x3,x1,x2,x6,x4,x5) + RvolAn(x3,x2,x1,x6,x5,x4);
+	  RvolAn(x3,x1,x2,x6,x4,x5) + RvolAn(x3,x2,x1,x6,x5,x4));
 }
 
 double surf6(double x1,double x2,double x3,double x4,double x5,double x6) {
-   return RsurfAn(x1,x2,x3,x4,x5,x6) + RsurfAn(x1,x3,x2,x4,x6,x5) +
+  return (RsurfAn(x1,x2,x3,x4,x5,x6) + RsurfAn(x1,x3,x2,x4,x6,x5) +
     RsurfAn(x2,x3,x1,x5,x6,x4) + RsurfAn(x2,x1,x3,x5,x4,x6) +
-    RsurfAn(x3,x1,x2,x6,x4,x5) + RsurfAn(x3,x2,x1,x6,x5,x4);
+	  RsurfAn(x3,x1,x2,x6,x4,x5) + RsurfAn(x3,x2,x1,x6,x5,x4));
 }
 
 double xp(double x1,double x2,double x6,double rho1,double rho2) {
   return (x1 * rho1 * rho1 + x2*rho2*rho2 - (x1 + x2 - x6) * rho1 * rho2);
+}
+
+double triangleArea(double x1,double x2,double x3) {
+  return sqrt(U(x1,x2,x3))/4.0;
+}
+
+double Rarea(double x1,double x2,double x3) {
+  return x1*(x2+x3-x1)/ (8.0 * U(x1,x2,x3));
 }
 
 // Analytic volume of the part of a  scaled Voronoi cell, inside a tetrahedron.
@@ -102,6 +110,47 @@ double vol6rho(double x1,double x2,double x3,double x4,double x5,double x6,
   double x5p = xp(x1,x3,x5,rho1,rho3);
   double x6p = xp(x1,x2,x6,rho1,rho2);
   return vol6(x1p,x2p,x3p,x4p,x5p,x6p);
+}
+
+double rhop(double r) {
+  //  return   1.0/r;   // old rule
+  return   (2.0 - r);  // correct rule.
+}
+
+double mk() {
+  return (0.9 + 0.2*myrand());
+}
+//
+void testvol6rho() {
+  double x[6];
+  for (int i=0;i<6;i++) { x[i] = 4.0* mk(); }
+  cout << "simplex vol random: " << sqrt(delta_x(x[0],x[1],x[2],x[3],x[4],x[5]))/12.0 << endl;
+  double v = vol6rho(x[0],x[1],x[2],x[3],x[4],x[5],1,1,1) +
+    vol6rho(x[0],x[4],x[5],x[3],x[1],x[2],1,1,1)+
+    vol6rho(x[2],x[3],x[4],x[5],x[0],x[1],1,1,1)+
+    vol6rho(x[1],x[3],x[5],x[4],x[0],x[2],1,1,1);
+  cout <<  "simplex sum rogers random: "<<  v << endl;
+  double r12 = mk();
+  double r21 = rhop(r12);
+  double r13 = mk();
+  double r31 = rhop(r13);
+  double r14 = mk();
+  double r41 = rhop(r14);
+  double r23 = mk();
+  double r32 = rhop(r23);
+  double r24 = mk();
+  double r42 = rhop(r24);
+  double r34 = mk();
+  double r43 = rhop(r34);
+  double vv = vol6rho(4,4,4,4,4,4,1,1,1) * 4.0;
+  cout.precision(4);
+  cout <<  r12 << " " << r13 << " " << r14 << " " << r23 << " " << r24 << " " << r34 << endl;
+  cout << " vol reg simplex: " << vv << endl;
+  double ww = vol6rho(4,4,4,4,4,4,r12,r13,r14)+
+    vol6rho(4,4,4,4,4,4,r21,r23,r24)+
+    vol6rho(4,4,4,4,4,4,r31,r32,r34)+
+    vol6rho(4,4,4,4,4,4,r41,r42,r43);
+  cout << "vol reg simplex, random rho: " << ww << endl;
 }
 
 // Analytic external surface of the part of a  scaled Voronoi cell, inside a tetrahedron.
@@ -146,7 +195,7 @@ double surf6rho(double x1,double x2,double x3,double x4,double x5,double x6,
 double getrho(double rho[54],int rr[54*2][2], int c,int j) {
   for (int i=0;i<54*2;i++) {
     if (rr[i][0]==c && rr[i][1] ==j)  
-      return  (i % 2 == 0 ? rho[i/2] : (1.0/ rho[(i-1)/2])) ;
+      return  (i % 2 == 0 ? rho[i/2] : rhop(rho[(i-1)/2]));  // XX was 1/rho.
   }
   cout << "no match found " << c << " " << j << " " << (j % 8) << endl;
   for (int i=0;i<54*2;i++)  {
@@ -190,7 +239,7 @@ double surfcell(int c,double w0[3],double wr[27*8][3],double rho[54],int rr[54*2
 // 0.55 ==> volcell0 = 1.03, volcell1 = 0.92.
 // 0.5 ==> volcell0 = 0.9765, volcell1 = 0.9765.
 
-/*
+
  double a = 0.5; // just rough initial guess, based on golden ratio of icos.
  double v0[3]={0,0,0};
  double v1[3]={1,1,1};
@@ -204,23 +253,37 @@ double surfcell(int c,double w0[3],double wr[27*8][3],double rho[54],int rr[54*2
  double e1[3]={2,0,0};
  double e2[3]={0,2,0};
  double e3[3]={0,0,2};
+double rhodata[54];
+
+/*
+double v0[3]= {1.2636783e-29,1.2045686e-30,-1.0347183e-29};
+double v1[3]= {0.95784609,0.99577094,0.95634404};
+double v2[3]= {0.89680352,0.050193764,0.4993136};
+double v3[3]= {0.94723366,0.024297626,-0.45703026};
+double v4[3]= {0.54009954,0.99867927,-0.029991868};
+double v5[3]= {-0.4177464,0.98541406,-0.042731882};
+double v6[3]= {-0.061042457,0.49483768,0.92635215};
+double v7[3]= {-0.084961997,-0.46280176,0.91361228};
+double e1[3]= {1.9156921,-2.8573286e-29,2.564198e-29};
+double e2[3]= {0.074349574,1.9142493,5.7088693e-29};
+double e3[3]= {-0.074349553,0.077292997,1.9126882};
+double rhodata[54]={1.522,1.103,0.6575,0.9346,1.103,1.522,0.6575,0.9346,1.103,1.522,0.9346,0.6575,0.9346,1.522,1.103,1.103,0.6575,1.522,1.522,0.9346,0.6575,0.9346,0.6575,1.103,1.061,0.8667,1.563,1.467,1.181,0.9427,1.154,0.8466,0.6817,0.64,1.467,1.154,1.061,0.8667,0.8466,0.6817,1.181,0.9427,1.154,1.467,1.563,0.8667,0.6399,1.061,0.9427,1.181,0.6817,0.8466,0.64,1.563};
 */
 
-// restart using numerical data from Ex10.
-double v0[3]={3.32463046565594386e-31,1.13071491418928732e-30,1.36081683235910404e-30};
-double v1[3]={0.999051115854998173,0.994596804663589129,0.966978075224307676};
-double v2[3]={0.926427395381585694,0.0472955802039116413,0.506715705090871604};
-double v3[3] = {0.935333171042378675,0.0253386857624800926,-0.461390986432040517};
-double v4[3]={0.539614146986469256,1.00249974182614432,-0.0331459182626294355};
-double v5[3]={-0.427177273120571521,0.99143929520656171,-0.0410868883618149203};
-double v6[3]={-0.0270200998587204443,0.493907916765477017,0.936833355672711199};
-double v7[3]={-0.0445201687349273331,-0.461485873582513861,0.927616642945689129};
-
-double e1[3]={1.93374988681604743,-6.57389459969765301e-31,-2.32241161902254319e-31};
-double e2[3]={0.0648757951738884592,1.92439245824388205,-1.39641537806812864e-30};
-double e3[3]={1.84266964531742485e-31,0.0639952253948175148,1.93366450406431345};
-
-double rhodata[54]={1.461,1.081,0.6728,0.9228,1.09,1.429,0.6988,0.9478,1.115,1.488,0.957,0.6867,0.9211,1.427,1.074,1.087,0.6829,1.487,1.464,0.9563,0.6739,0.9509,0.7002,1.117,1.038,0.8675,1.5,1.417,1.168,0.9422,1.152,0.8748,0.7187,0.6672,1.387,1.122,1.069,0.8774,0.8463,0.7058,1.184,0.9638,1.113,1.389,1.5,0.8762,0.6638,1.071,0.9362,1.166,0.7162,0.8765,0.6553,1.5};
+/*
+double v0[3]= {1.249546520487602e-29,1.363073130469286e-30,-8.652534462582352e-30};
+double v1[3]= {0.9578462891065259,0.9957710839131031,0.9563439339803133};
+double v2[3]= {0.8968040179717008,0.05019411997166183,0.4993136387484596};
+double v3[3]= {0.9472338915338402,0.02429779796335755,-0.4570303303005401};
+double v4[3]= {0.5400996129991386,0.9986793566845534,-0.0299918637193601};
+double v5[3]= {-0.4177467752696629,0.9854141663434376,-0.04273181793038935};
+double v6[3]= {-0.06104236310613127,0.4948379308445401,0.9263520393343948};
+double v7[3]= {-0.084961856115506,-0.4628012966896211,0.9136119966107727};
+double e1[3]= {1.915692718410936,-2.857712033821256e-29,2.546648003386885e-29};
+double e2[3]= {0.07434921093376495,1.914249101803869,5.608859526891218e-29};
+double e3[3]= {-0.07434937112448044,0.0772933170308116,1.912687849240745};
+double rhodata[54]={1.521799421490913,1.102518705102681,0.6575403449391205,0.9345989592975497,1.102517253748096,1.521797962370194,0.6575404811489994,0.9346000125813198,1.102518322654512,1.521798085883209,0.9345987909999612,0.6575398715447847,0.9345993440807393,1.521798998086637,1.102517402985437,1.102519027365123,0.6575405295469843,1.521798866408924,1.521797505670897,0.9346000659387569,0.6575399314110395,0.9345986007446667,0.6575400312204724,1.102518056328621,1.060802780167991,0.8667336557143136,1.56262219894083,1.466930201283263,1.181179763481318,0.9426816988110812,1.153757902155466,0.8466107929528783,0.6816959273109794,0.6399499436053115,1.466929870971007,1.153757068120664,1.060803345457239,0.8667338852263513,0.8466102029907957,0.6816956417254598,1.181180072818313,0.9426823133909306,1.153757621050262,1.466930502642801,1.562620470203279,0.8667327899041465,0.6399506860472779,1.060802129115654,0.9426828995122184,1.181181467307026,0.6816954567518102,0.8466103933221443,0.6399502179583719,1.562621424165735};
+*/
 
 // init once.  24=max number of dual triangles.
  int kk[8][24][3];   // kk[i][j] is a triple of indices of dual triangle face j of cell i. <=> vertex of sc.Vor.
@@ -252,6 +315,7 @@ double rhof[54]; // number of shared faces in fundamental domain (2 x 12 + 6 x 1
        case 7 : wi[i][j] = v7[j]; break;
        default : cout << "out of bounds " << endl; break;
      }
+       for (int i =0;i<54;i++) { rhodata[i]=1.0 + 0.2*myrand(); }
        for (int i=0;i<54;i++) { rhof[i]=rhodata[i];  }
  }
  }
@@ -276,7 +340,7 @@ double ww[27*8][3];  // coordinates of 8 centers, and their lattice translates b
  }
 
 int isnbr(double v[3],double w[3]) {
-    double x1 = abs(v[0]-w[0]), x2 = abs(v[1]-w[1]), x3 = abs(v[2]-w[2]);
+    double x1 = mabs(v[0]-w[0]), x2 = mabs(v[1]-w[1]), x3 = mabs(v[2]-w[2]);
      return ((x1 < 1.1) && (x2 < 1.1 ) &&(x3 < 1.1) &&(dist2(v,w) > 0.01) &&
 	     (dist2(v,w) < 2.1));
 }
@@ -286,7 +350,7 @@ int isneg(double v1[3],double v2[3],double w1[3],double w2[3]) {
   sub3(v1,v2,z1);
   sub3(w1,w2,z2);
   add3(z1,z2,s);
-  return (abs(dot(s,s)) < 0.01);
+  return (mabs(dot(s,s)) < 0.01);
 }
 
 int nr[8]; // number of nearest nbrs.
@@ -408,22 +472,52 @@ void cc(int numargs,int whichFn,double* x, double* ret,void*) {
 
 
 void printglobal() {
-  cout << "wi (coordinates)" << endl;
+  cout << "printing ww,f,rhof: " << endl;
   for (int i=0;i<8;i++) {
+    cout << "double v" << (i) << "[3]= ";
     printv(wi[i],3);
     cout << endl;
     }
-  cout << endl << "f (lattice)" << endl;
   for (int i=0;i<3;i++) {
+    cout << "double e" << (i+1) << "[3]= ";
     printv(f[i],3);
     cout << endl;
   }
-  cout << endl << "rho " << endl;
-  cout.precision(4);
+  cout << "double rhodata[54]=";
+  cout.precision(16);
   printv(rhof,54);
 }
 
-//double rho_init[] = {1.1,1.029,0.9918,0.9202,0.9189,0.9946,1.025,1.1,1.1,1.03,0.9927,0.9203,0.9921,1.026,0.919,1.1,1.025,1.1,0.9948,1.1,0.9203,0.9188,0.994,1.029,0.9705,1.015,1.1,1.031,0.9669,0.9278,1.083,1.034,0.9876,0.9022,1.012,0.9712,1.078,1.03,0.924,0.966,0.9852,1.035,0.9861,1.036,0.9023,0.9251,1.1,0.9682,1.027,1.08,0.968,1.013,0.902,1.1};
+int nearf(double xm,double x,double xM) {
+  return (min (mabs(x-xm) , mabs(x-xM) )< 1.0e-8);
+}
+
+int report_near(double* xmin,double* x,double* xmax) {
+  int offset=0;
+  cout << "boundaries : " << endl;
+  for (int i=1;i<8;i++) for (int j=0;j<3;j++) {
+      int u = offset+i+8*j;
+      double a = xmin[u], b = x[u], c = xmax[u];
+      if (nearf(a,b,c)) { cout << " w:"<< i <<"," <<j; 
+	cout << " " << a << " " << b << " " << c << endl; 
+    }
+    }
+  cout << endl;
+  offset += 8*3;
+  for (int i=0;i<3;i++) for (int j=0;j<3;j++) {
+      int u = offset + i + 3*j;
+      double a = xmin[u], b = x[u], c = xmax[u];
+      if (nearf(a,b,c) &&(j<=i))  { cout << " f:"<< i <<"," <<j; 	cout << " " << a << " " << b << " " << c << endl; }
+    }
+  cout << endl;
+  offset += 3*3;
+    for (int i=0;i<54;i++) { 
+      int u = offset + i;
+      double a = xmin[u], b = x[u], c = xmax[u];
+      if (nearf(a,b,c)) { cout << " rh:"<< i; 	cout << " " << a << " " << b << " " << c << endl; }
+    }
+  cout << endl;
+}
 
 int main() {
     initwif();
@@ -437,7 +531,7 @@ int main() {
     double x[sz];
     int offset = 0;
     // set ww
-    double wslack = 0.05;
+    double wslack = 0.1;
     for (int i=0;i<8;i++) for (int j=0;j<3;j++) {
 	xmin[offset + i + 8*j] = wi[i][j] - wslack;
 	xmax[offset + i + 8*j] = wi[i][j] + wslack;
@@ -452,7 +546,7 @@ int main() {
     }
     offset += 8*3;
     // set f
-    double fslack = 0.01;
+    double fslack = 0.1;
     for (int i=0;i<3;i++) for (int j=0;j<3;j++) {
 	int u = offset + i + 3 * j;
 	x[u] = (i==0 ? e1[j]  : (i==1 ? e2[j] : e3[j]));
@@ -461,7 +555,7 @@ int main() {
       }
     offset += 3*3;
     // set rho.
-    double rhoslack = 1.05;
+    double rhoslack = 1.1;
     for (int i=0;i<54;i++) { 
       xmin[offset + i] = rhodata[i]/rhoslack;
 	xmax[offset + i] = rhodata[i]*rhoslack;
@@ -471,17 +565,15 @@ int main() {
     int trialcount=5;
     assert(offset ==sz);
 
-
     double e[1];
     t1(0,0,x,e,0);
-    cout << "t1 = " << e[0] << endl;
 
     // do minimization
     Minimizer M(trialcount,offset,9,xmin,xmax);
     M.func = t1;
     M.cFunc = cc;
-    trialdata d21(M,"xxx");
-    for (int i=0;i<offset;i++) { x[i] = M.x[i]; }
+    // trialdata d21(M,"xxx");
+    //for (int i=0;i<offset;i++) { x[i] = M.x[i]; }
 
     for (int i=0;i<9;i++) {
       double r[1];
@@ -491,27 +583,37 @@ int main() {
     }
 
     std::cout << std::endl << std::endl;
-    std::cout.precision(18);
+    std::cout.precision(6);
+    cout << "// NEW PASS ON PHELAN-WEAIRE: " << endl;
+    cout << "t1 value before optimization = " << e[0] << endl;
     mkglobal(x);
     printglobal();
-    cout.precision(24);
     cout << endl << endl << "mu " << mu() << endl;
     double totvol = 0.0;
     double totsurf = 0.0;
     for (int i=0;i<8;i++) {
       mkglobal(x);
       double lvol = volcell(i,wi[i],ww,rhof,rr,kk[i],nn[i]);
-      double lsurf = surfcell(i,wi[i],ww,rhof,rr,kk[i],nn[i]);
       totvol += lvol;
-      totsurf += lsurf;
       cout << "volcell " << i << " = " << lvol << endl;
-      cout << "surfcell " << i << " = " << lsurf << endl;
     }
     cout << "total vol " << totvol << endl;
+    for (int i=0;i<8;i++) {
+      mkglobal(x);
+      double lsurf = surfcell(i,wi[i],ww,rhof,rr,kk[i],nn[i]);
+      totsurf += lsurf;
+      cout << "surfcell " << i << " = " << lsurf << endl;
+    }
     cout << "weightedmu " << weightedmu(x) << endl;
     cout << "fslack = " << fslack << endl;
    cout << "wslack = " << wslack << endl;
     cout << "rhoslack = " << rhoslack << endl;
+    report_near(xmin,x,xmax);
+    cout.precision(24);
     cout << "mu " << mu() << endl;
+    for (int i=0;i<30;i++) { cout << "//"; }
+    cout << endl << endl;
+
+    testvol6rho();
   }
 

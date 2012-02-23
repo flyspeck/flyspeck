@@ -215,6 +215,7 @@ DATA AND INITIALIZATION
 
 // fourth coordinate is c(i): b(i,j) = c(i) - c(j);
 
+
 double v0[4]={0,0,0,0};
  double v1[4]={1,1,1};
  double v2[4]={1,0,a};
@@ -224,9 +225,12 @@ double v0[4]={0,0,0,0};
  double v6[4]={0,a,1};
  double v7[4]={0,-a,1};
 
-double e1[4]={2,0,0,0};
-double e2[4]={0,2,0,0};
-double e3[4]={0,0,2,0};
+double e0[4]={2,0,0,0};
+double e1[4]={0,2,0,0};
+double e2[4]={0,0,2,0};
+
+
+
 
 // global dynamic data
 
@@ -240,13 +244,12 @@ double ww[27*8][4];  // coordinates of 8 centers, and their lattice translates b
 int kk[8][24][3];   // kk[i][j] is a triple of indices of dual triangle face j of cell i. <=> vertex of sc.Vor.
 int nn[8]; // nn[i] is number of dual triangles (i.e. scVor vertices) on cell i.  (12 faces=>(nn=20, etc.)).
 
-// set combinatorics once
 int nr[8]; // number of nearest nbrs.
 int nbr[8][27*8]; // nearest nbrs
  
  void init_wi_f() {
    for (int i =0;i<3;i++) for (int j=0;j<4;j++) {
-       f[i][j] = (i==0 ?e1[j] : (i==1 ? e2 [j] : e3[j]));
+       f[i][j] = (i==0 ?e0[j] : (i==1 ? e1 [j] : e2[j]));
      }
    for (int i=0;i<8;i++) for (int j=0;j<4;j++) {
        switch (i) {
@@ -260,9 +263,6 @@ int nbr[8][27*8]; // nearest nbrs
        case 7 : wi[i][j] = v7[j]; break;
        default : cout << "out of bounds " << endl; break;
        }
-       //for (int i =0;i<8;i++) { wi[i][3]= 0.2 * myrand(); } // debug XX
-       //       for (int i =0;i<54;i++) { rhodata[i]=1.0 + 0.0*0.2*myrand(); } // debug.
-       //       for (int i=0;i<54;i++) { rhof[i]=rhodata[i];  }
  }
  }
 
@@ -368,7 +368,7 @@ void printglobal() {
     cout << endl;
     }
   for (int i=0;i<3;i++) {
-    cout << "double e" << (i+1) << "[4]= ";
+    cout << "double e" << (i) << "[4]= ";
     printv(f[i],4);
     cout << endl;
   }
@@ -381,19 +381,21 @@ int nearf(double xm,double x,double xM) {
 int report_near(double* xmin,double* x,double* xmax) {
   int offset=0;
   cout << "boundaries : " << endl;
-  for (int i=1;i<8;i++) for (int j=0;j<3;j++) {
-      int u = offset+i+8*j;
+  for (int i=1;i<7;i++) for (int j=0;j<4;j++) {
+      int u = offset+(i-1)+8*j;
       double a = xmin[u], b = x[u], c = xmax[u];
       if (nearf(a,b,c)) { cout << " w:"<< i <<"," <<j; 
 	cout << " " << a << " " << b << " " << c << endl; 
     }
     }
   cout << endl;
-  offset += 8*3;
-  for (int i=0;i<3;i++) for (int j=0;j<3;j++) {
-      int u = offset + i + 3*j;
-      double a = xmin[u], b = x[u], c = xmax[u];
-      if (nearf(a,b,c) &&(j<=i))  { cout << " f:"<< i <<"," <<j; 	cout << " " << a << " " << b << " " << c << endl; }
+  offset += 7*4;
+  for (int i=0;i<9;i++) {
+    int u = offset + i;
+    double a = xmin[u], b = x[u], c = xmax[u];
+    if (nearf(a,b,c))  { cout << " f:"<< i ;
+      cout << " " << a << " " << b << " " << c << endl; 
+    }
     }
   cout << endl;
   //offset += 3*3;
@@ -409,20 +411,56 @@ int report_near(double* xmin,double* x,double* xmax) {
 NONLINEAR OPTIMIZATION HELP FUNCTIONS AND MAIN
 *******************************/
 
-void mkglobal(double* x) {
-    for (int i=0;i<8;i++) for (int j=0;j<4;j++) {
-      wi[i][j] = x[i + 8*j];
+void globalize_x(double* x) {
+  // wi[0] fixed at origin.
+    for (int i=1;i<8;i++) for (int j=0;j<4;j++) {
+	wi[i][j] = x[(i-1) + 7*j];
     }
-  int offset = 8*4;
-  for (int i=0;i<3;i++) for (int j=0;j<4;j++) {
-      f[i][j] = x[offset+ i + 3 * j];
-    }
-  offset += 3*4;
+  int offset = 7*4;
+  // f lower triangular with det=8.
+  f[0][0]= x[offset+0];
+  f[1][0]= x[offset+1];
+  f[1][1]= x[offset+2];
+  f[2][0]= x[offset+3];
+  f[2][1]= x[offset+4];
+  f[2][2] = x[offset+5];  //8.0 / (f[0][0] * f[1][1] );
+  f[0][3] =x[offset+6];
+  f[1][3] = x[offset+7];
+  f[2][3] = x[offset +8];
+  offset += 9;
   setww();
 }
 
+void set_x(double* xmin,double* x,double* xmax,double wslack,double fslack) {
+    // set ww
+  int offset=0;
+    for (int i=1;i<8;i++) for (int j=0;j<4;j++) {
+	xmin[offset + (i-1) + 7*j] = wi[i][j] - wslack;
+	xmax[offset + (i-1) + 7*j] = wi[i][j] + wslack;
+	x[offset + (i-1) + 7*j] = wi[i][j] ;
+      }
+    offset += 7*4;
+    // set f
+   x[offset+0] = e0[0];
+  x[offset+1] = e1[0];
+  x[offset+2] = e1[1];
+  x[offset+3] = e2[0];
+  x[offset+4] = e2[1];
+  x[offset+5] = e2[2];
+  x[offset+6] = e0[3];
+  x[offset+7] = e1[3];
+  x[offset +8] = e2[3];
+  for (int i=0;i<9;i++) { 
+    int u = offset + i;
+    xmin[u] = x[u] - fslack;
+    xmax[u] = x[u] + fslack;
+  }
+    offset += 9;
+}
+
+
 double weightedmu(double* x) {
-  mkglobal(x);
+  globalize_x(x);
   double xf = 0.0; 
   //  xf =  1000.0;
   double m = mu();
@@ -430,8 +468,8 @@ double weightedmu(double* x) {
     double t = 1.0- volcell(wi[i],ww,kk[i],nn[i]);
     m += xf * t*t;
   }
-  double t = det3(f[0],f[1],f[2]) - 8.0; 
-  m+= xf * t * t;
+  //double t = det3(f[0],f[1],f[2]) - 8.0; 
+  //m+= xf * t * t;
   return m;
 }
 
@@ -440,48 +478,25 @@ void t1(int numargs,int whichFn,double* x,double* ret,void*) {
   *ret =  weightedmu(x);
 };
 
-// constraints 8 vol, + det3.
+// constraints 8 vol
 
 void cc(int numargs,int whichFn,double* x, double* ret,void*) {
-  mkglobal(x);
+  globalize_x(x);
   if (whichFn <= 8) {
     int i = whichFn - 1;
     *ret = 1.0- volcell(wi[i],ww,kk[i],nn[i]);
   }
-  else if (whichFn ==9) { *ret = det3(f[0],f[1],f[2]) - 8.0; }
+  else if (whichFn <= 16) {
+    int i = whichFn - 1 - 8;
+    *ret = volcell(wi[i],ww,kk[i],nn[i]) - 1.2;
+  }
+  //else if (whichFn ==9) { *ret = det3(f[0],f[1],f[2]) - 8.0; }
   else {
     cout << "cc out of range ";
     abort();
     //    int i = whichFn - 9;
     //  *ret = triangle_constraint(i);
   }
-}
-
-void init_x(double* xmin,double* x,double* xmax,double wslack,double fslack) {
-  int sz = 11*4;
-    // set ww
-  int offset=0;
-    for (int i=0;i<8;i++) for (int j=0;j<4;j++) {
-	xmin[offset + i + 8*j] = wi[i][j] - wslack;
-	xmax[offset + i + 8*j] = wi[i][j] + wslack;
-	x[offset + i + 8*j] = wi[i][j] ;
-      }
-    {
-      int i=0;
-      for (int j=0;j<4;j++) {
-	xmin[offset+ i + 8*j] = wi[i][j];
-	xmax[offset+ i + 8*j] = wi[i][j];
-      }
-    }
-    offset += 8*4;
-    // set f
-    for (int i=0;i<3;i++) for (int j=0;j<4;j++) {
-	int u = offset + i + 3 * j;
-	x[u] = (i==0 ? e1[j]  : (i==1 ? e2[j] : e3[j]));
-	xmin[u] = (j <= i ? x[u] - fslack : x[u]);
-	xmax[u] = (j <= i ? x[u] + fslack: x[u]);
-      }
-    offset += 3*4;
 }
 
 int main() {
@@ -493,51 +508,49 @@ int main() {
   }
   testvol6rho();
 
-    // initialize xmin,x,xmax:
-    int sz = 8*4+3*4;
-    double xmin[sz];
-    double xmax[sz];
-    double x[sz];
-    double wslack = 0.1;
-    double fslack = 0.1;
-    init_x(xmin,x,xmax,wslack,fslack);
+  // initialize xmin,x,xmax:
+  int sz = 7*4+9;
+  double xmin[sz];
+  double xmax[sz];
+  double x[sz];
+  double wslack = 0.1;
+  double fslack = 0.1;
+  set_x(xmin,x,xmax,wslack,fslack);
 
-    // do minimization
-    int trialcount=5;
-    int Nconstraint = 9;
-    double e[1];
-    t1(0,0,x,e,0);
-    Minimizer M(trialcount,sz,Nconstraint,xmin,xmax);
-    M.func = t1;
-    M.cFunc = cc;
-    trialdata d21(M,"PHELAN-WEAIRE OPTIMIZATION");
+  // do minimization
+  int trialcount=5;
+  int Nconstraint = 16;
+  double e[1];
+  t1(0,0,x,e,0);
+  Minimizer M(trialcount,sz,Nconstraint,xmin,xmax);
+  M.func = t1;
+  M.cFunc = cc;
+  trialdata d21(M,"PHELAN-WEAIRE OPTIMIZATION");
 
     // report results
-    for (int i=0;i<sz;i++) { x[i] = M.x[i]; }
+  for (int i=0;i<sz;i++) { x[i] = M.x[i]; }
+  globalize_x(x);
     for (int i=0;i<Nconstraint;i++) {
       double r[1];
       cc(sz,i+1,x,r,0);
-      mkglobal(x);
       cout << "constraint " << i << " is " << r[0] << endl;
     }
-    std::cout << std::endl << std::endl;
+    cout << endl << endl;
     std::cout.precision(6);
     cout << "// NEW PASS ON PHELAN-WEAIRE: " << endl;
     cout << "t1 value before optimization = " << e[0] << endl;
-    mkglobal(x);
     printglobal();
     cout << endl << endl << "mu " << mu() << endl;
     double totvol = 0.0;
     double totsurf = 0.0;
     for (int i=0;i<8;i++) {
-      mkglobal(x);
       double lvol = volcell(wi[i],ww,kk[i],nn[i]);
       totvol += lvol;
       cout << "volcell " << i << " = " << lvol << endl;
     }
     cout << "total vol " << totvol << endl;
+    cout << "det3 " << det3(f[0],f[1],f[2]) << endl;
     for (int i=0;i<8;i++) {
-      mkglobal(x);
       double lsurf = surfcell(wi[i],ww,kk[i],nn[i]);
       totsurf += lsurf;
       cout << "surfcell " << i << " = " << lsurf << endl;

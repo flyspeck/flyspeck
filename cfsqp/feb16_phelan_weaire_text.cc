@@ -211,7 +211,7 @@ DATA AND INITIALIZATION
 // 0.5 ==> volcell0 = 0.9765, volcell1 = 0.9765.
 
 
- double a = 0.5; // just rough initial guess, based on golden ratio of icos.
+ double a = 0.5; // this guess turned out to hit the optimal value.
 
 // fourth coordinate is c(i): b(i,j) = c(i) - c(j);
 
@@ -263,6 +263,7 @@ int nbr[8][27*8]; // nearest nbrs
        case 7 : wi[i][j] = v7[j]; break;
        default : cout << "out of bounds " << endl; break;
        }
+       //if (i>0) { wi[i][j] += 0.02 * myrand(); } // debug.
  }
  }
 
@@ -408,6 +409,26 @@ int report_near(double* xmin,double* x,double* xmax) {
 }
 
 /*******************************
+DEHN INVARIANT
+*******************************/
+
+void print_one_reduced_dih(double w0[3],double w1[3],double w2[3]) {
+  double y1 = sqrt(dist2_3D(w0,w1));
+  double y2 = sqrt(dist2_3D(w0,w2));
+  double y6 = sqrt(dist2_3D(w1,w2));
+  cout << "dih : " << (pi()/3.0 - arc(y1,y2,y6)) << endl;
+}
+
+void print_reduced_dih() {
+  for (int i=2;i<3;i++) for (int j=0;j<nn[i];j++) {
+      print_one_reduced_dih(wi[i],ww[kk[i][j][0]],ww[kk[i][j][1]]);
+      print_one_reduced_dih(wi[i],ww[kk[i][j][1]],ww[kk[i][j][2]]);
+      print_one_reduced_dih(wi[i],ww[kk[i][j][0]],ww[kk[i][j][2]]);
+    }
+}
+
+
+/*******************************
 NONLINEAR OPTIMIZATION HELP FUNCTIONS AND MAIN
 *******************************/
 
@@ -424,7 +445,7 @@ void globalize_x(double* x) {
   f[2][0]= x[offset+3];
   f[2][1]= x[offset+4];
   f[2][2] = x[offset+5];  //8.0 / (f[0][0] * f[1][1] );
-  f[0][3] =x[offset+6];
+  f[0][3] = x[offset+6];
   f[1][3] = x[offset+7];
   f[2][3] = x[offset +8];
   offset += 9;
@@ -452,8 +473,9 @@ void set_x(double* xmin,double* x,double* xmax,double wslack,double fslack) {
   x[offset +8] = e2[3];
   for (int i=0;i<9;i++) { 
     int u = offset + i;
-    xmin[u] = x[u] - fslack;
-    xmax[u] = x[u] + fslack;
+    double fs = (i>=6 ? 0.0 : fslack); // debug. no global lattice shift.
+    xmin[u] = x[u] - fs;
+    xmax[u] = x[u] + fs;
   }
     offset += 9;
 }
@@ -490,7 +512,6 @@ void cc(int numargs,int whichFn,double* x, double* ret,void*) {
     int i = whichFn - 1 - 8;
     *ret = volcell(wi[i],ww,kk[i],nn[i]) - 1.2;
   }
-  //else if (whichFn ==9) { *ret = det3(f[0],f[1],f[2]) - 8.0; }
   else {
     cout << "cc out of range ";
     abort();
@@ -499,8 +520,14 @@ void cc(int numargs,int whichFn,double* x, double* ret,void*) {
   }
 }
 
+
+void pseudoseed(int i) {
+  for (int j=0;j<i;j++) { myrand(); }
+}
+
 int main() {
   // initialization.
+  pseudoseed(8);
   init_wi_f();
   setww();
   for (int i=0;i<8;i++) {
@@ -513,12 +540,12 @@ int main() {
   double xmin[sz];
   double xmax[sz];
   double x[sz];
-  double wslack = 0.1;
-  double fslack = 0.1;
+  double wslack = 0.2;
+  double fslack = 0.2;
   set_x(xmin,x,xmax,wslack,fslack);
 
   // do minimization
-  int trialcount=5;
+  int trialcount=2;
   int Nconstraint = 16;
   double e[1];
   t1(0,0,x,e,0);
@@ -526,6 +553,24 @@ int main() {
   M.func = t1;
   M.cFunc = cc;
   trialdata d21(M,"PHELAN-WEAIRE OPTIMIZATION");
+
+  // experiment of f.
+  /*
+  for (int i=0;i<100;i++) {
+    set_x(xmin,x,xmax,wslack,fslack);
+    Minimizer N(trialcount,sz,Nconstraint,xmin,xmax);
+    N.func = t1;
+    N.cFunc = cc;
+    N.optimize();
+  for (int j=0;j<sz;j++) { x[j] = N.x[j]; }
+    globalize_x(x);
+    cout << "*** new trial " << endl;
+    cout << "f[2][3] = " << f[2][3] << endl;
+    cout << "f[1][3] = " << f[1][3] << endl;
+    cout << "mu = " << mu() << endl << flush;
+    //N.coutReport("ss");
+  }
+  */
 
     // report results
   for (int i=0;i<sz;i++) { x[i] = M.x[i]; }
@@ -564,7 +609,7 @@ int main() {
     cout << "mu " << mu() << endl;
     for (int i=0;i<30;i++) { cout << "//"; }
     cout << endl << endl;
-
+    print_reduced_dih();
     // done
   }
 

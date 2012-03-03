@@ -30,6 +30,99 @@ void printv(double* v,int n) {
   }
 }
 
+
+
+/*******************************
+2D example.
+*******************************/
+
+namespace local2D {
+  /* 
+     {{mu1 -> -((a1*el12*el13 - a2*el13*el21 - a3*el12*el31)/(el12*el23*el31 + el13*el21*el32)), 
+  mu2 -> -((-(a1*el12*el23) + a2*el21*el23 - a3*el21*el32)/(el12*el23*el31 + el13*el21*el32)), 
+  mu3 -> -((-(a2*el23*el31) - a1*el13*el32 + a3*el31*el32)/(el12*el23*el31 + el13*el21*el32))}} */
+  double a1 = 0.3;
+  double a2 = 0.44;
+  double a3 = 1.0 - a1 - a2;
+  double v1[2] = {0,0};
+  double v2[2] = {1,0};
+  double v3[2] = {0.23,0.79};
+
+  double mu1(double el12,double el23, double el31) {
+    double el21 = 1.0 - el12;
+    double el32 = 1.0 - el23;
+    double el13 = 1.0 - el31;
+    return  -((a1*el12*el13 - a2*el13*el21 - a3*el12*el31)/(el12*el23*el31 + el13*el21*el32));
+  }
+
+  double mu2(double el12,double el23,double el31) {
+   double el21 = 1.0 - el12;
+    double el32 = 1.0 - el23;
+    double el13 = 1.0 - el31;
+    return -((-(a1*el12*el23) + a2*el21*el23 - a3*el21*el32)/(el12*el23*el31 + el13*el21*el32));
+  }
+
+  double mu3(double el12,double el23,double el31) {
+   double el21 = 1.0 - el12;
+    double el32 = 1.0 - el23;
+    double el13 = 1.0 - el31;
+    return -((-(a2*el23*el31) - a1*el13*el32 + a3*el31*el32)/(el12*el23*el31 + el13*el21*el32));
+  }
+
+  double dist2D(double u[2],double v[2]) {
+    double x = u[0]-v[0];
+    double y = u[1]-v[1];
+    return sqrt(x * x + y*y);
+  }
+
+  double p[2];
+  double q12[2];
+  double q23[2];
+  double q13[2];
+
+  double obj2d(double el12,double el23,double el31) {
+   double el21 = 1.0 - el12;
+    double el32 = 1.0 - el23;
+    double el13 = 1.0 - el31;
+    double m1 = mu1(el12,el23,el31);
+    double m2 = mu2(el12,el23,el31);
+    double m3 = mu3(el12,el23,el31);
+    for (int i=0;i<2;i++) {
+      p[i] = m1 * v1[i] + m2 * v2[i] + m3 * v3[i];
+      q12[i] = el12 * v1[i] + el21 * v2[i];
+      q23[i] = el23 * v2[i] + el32 * v3[i];
+      q13[i] = el13 * v1[i] + el31 * v3[i];
+    }
+    return dist2D(p,q12)+dist2D(p,q23)+dist2D(p,q13);
+  }
+
+  void t_obj2d(int numargs,int whichFn,double* x,double* ret,void*) {
+    *ret =  obj2d(x[0],x[1],x[2]);
+  };
+
+
+  void run_obj() {
+  int trialcount=10;
+  int Nconstraint = 0;
+  int sz =3;
+  double x[3],xmin[3],xmax[3];
+  for (int i=0;i<3;i++) {
+    xmin[i]=0; xmax[i]=1.0;
+  }
+  Minimizer M(trialcount,sz,Nconstraint,xmin,xmax);
+  M.func = t_obj2d;
+  trialdata d21(M,"2D triangle optimization");
+  M.optimize();
+  for (int j=0;j<sz;j++) { x[j] = M.x[j]; }
+  double r = obj2d(x[0],x[1],x[2]);
+  cout << "r = " << r << endl;
+  cout << "p = " << p[0] << "," << p[1] << endl;
+  cout << "q12 = " << q12[0] << "," << q12[1] << endl;
+}
+}
+  
+
+
 /*******************************
 GENERAL VECTOR ROUTINES
 *******************************/
@@ -611,5 +704,7 @@ int main() {
     cout << endl << endl;
     print_reduced_dih();
     // done
+
+    local2D::run_obj();
   }
 

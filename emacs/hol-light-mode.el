@@ -318,6 +318,11 @@
 				     (hol-light-de-then 
 				      (hol-light-get-line))) ")")))
 
+(defun hol-light-suggest()
+  (interactive)
+  (hol-light-eval-string (concat "suggest()")))
+
+
 (defun hol-light-abbrev-tactic-line()
   (interactive)
   (hol-light-seval-string 
@@ -423,10 +428,7 @@
     (local-set-key "\C-f\C-l" 'folding-toggle-show-hide)
     (local-set-key "\C-g" 'keyboard-quit)
 
-
-
     ;;; c bindings
-
 
     ;; a
     (local-set-key "\C-c\C-a" 'hol-light-type-assum)
@@ -481,6 +483,7 @@
 
     ;; s
     (local-set-key "\C-c\C-s" 'hol-light-frees)
+    (local-set-key "\C-cs" 'hol-light-suggest)
 
     ;; t
     (local-set-key "\C-ct" 'hol-light-goal-types)

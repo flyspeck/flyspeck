@@ -17,6 +17,7 @@ module Searching = struct
 (*
 
 ? forces interpretation as a theorem.
+?-n follows suggestion n.
 %`x` performs type matching
 %%[`x`;`y`] performs type matching.
 
@@ -26,6 +27,7 @@ module Searching = struct
 TODO: 
  -Combine different search mechanisms with the same return type.
  -Make a log of all searches, all bookmarked items, with context, for data mining purposes.
+ -integrate suggest.
 *)
 
 
@@ -149,6 +151,8 @@ let searcht n pat =
 
 let searchl ls pat = search_thml (term_match [])  pat ls;;
 
+(* tactics that search assumption list for match *)
+
 let SEARCH_THEN pat ttac (asl,w) =
   let thl = map snd (searchl asl pat) in
     ttac thl (asl,w);;
@@ -170,13 +174,20 @@ let research m =
 
 let search_results = ref [];;
 
-let mark = 
-  let counter = ref 0 in 
-  fun m->
+(* add stored searches to list *)
+let augment_search_results ss = 
+  let get s = try (Lib.assoc s !theorems) with _ -> failwith s in
+  let cs = map (fun (_,s,_,_) -> s) !search_results in
+  let ss = Lib.subtract ss cs in
+  let ns = List.length cs in
+  let ss = Lib.zip (ns -- (ns+List.length ss - 1)) ss in
+  let ss =   map (fun (i,s) -> (i,s,get s,[])) ss in
+    !search_results @ ss;;
+
+let mark m = 
   let (n,pat) = hd (!searches) in
   let (s,th) =   snd(List.nth (searcht (1 + min n m) pat) m)  in
-  let v = (!counter,s,th,pat) in
-  let _ = counter:= !counter+1 in
+  let v = (List.length !search_results,s,th,pat) in
   let _ = search_results := v::(!search_results) in
     v;;
 
@@ -185,8 +196,8 @@ let result n pat =
   let a = zip ls !search_results in
   let sl = if pat = [] then ls else searchl ls pat in
   let n' = min n (List.length sl) in
-  let a' =   fst(chop_list n' (sl)) in
-    map (fun t -> assoc t a) a';;
+  let ts =   fst(chop_list n' (sl)) in
+    map (fun t -> assoc t a) ts;;
 
 let results pat = 
   let n = List.length (!search_results) in 
@@ -592,9 +603,9 @@ tactic;
 
 let rrrrr = (match_g[`let x = (y:A) in (z:B)`],"LET_TAC","let elimination",fun t -> LET_TAC);;
 
+let tactic_patterns = ref [];;
 
-
-let tactic_patterns  = [
+ tactic_patterns  := [
 (match_g[`(@):(A->bool)->A`],"SELECT_ELIM_TAC","remove @",fun t-> SELECT_ELIM_TAC);
 (match_g[`(@):(A->bool)->A`],"SELECT_TAC","remove @ with subgoals depending satisfiability",fun t-> SELECT_TAC);
 (match_g[full `(\x. f x = \x. g x)`],"ABS_TAC","strip abstractions from equality",fun t-> ABS_TAC);
@@ -627,8 +638,46 @@ let tactic_patterns  = [
 rrrrr
 ];;
 
+let add_tactic_pattern t = (tactic_patterns := t::!tactic_patterns);;
+
+add_tactic_pattern (match_g[full `(a:A->bool) = b`],"MATCH_MP_TAC SUBSET_ANTISYM",
+		    "subset conjunction",fun t -> MATCH_MP_TAC SUBSET_ANTISYM);; 
+
+add_tactic_pattern (match_g[`(a SUBSET b INTER c)`],"REWRITE_TAC[SUBSET_INTER]",
+		    "split inter into conjuncts",fun t -> REWRITE_TAC[SUBSET_INTER]);;
+
+add_tactic_pattern (match_g[`( a % vec 0):real^A`],"REWRITE_TAC[VECTOR_MUL_RZERO]",
+		    "c % vec  0",fun t -> REWRITE_TAC[VECTOR_MUL_RZERO]);;
+
+add_tactic_pattern (match_g[`( u+ vec 0):real^A`],
+ "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
+		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
+   fun t -> REWRITE_TAC[
+   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
+
+add_tactic_pattern (match_g[`( u- vec 0):real^A`],
+ "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
+		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
+   fun t -> REWRITE_TAC[
+   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
+
+add_tactic_pattern (match_g[`( vec 0 + u):real^A`],
+ "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
+		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
+   fun t -> REWRITE_TAC[
+   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
+
+add_tactic_pattern (match_g[`( vec 0 - u):real^A`],
+ "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
+		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
+   fun t -> REWRITE_TAC[
+   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
+
+add_tactic_pattern (match_g[` x IN (:A)`],"REWRITE_TAC[IN_UNIV]","x IN (:A)",
+		    fun t -> REWRITE_TAC[IN_UNIV]);;
+
 let suggest _ = 
-  let s = filter (fun (a,_,_,_) -> a (top_realgoal())) tactic_patterns in
+  let s = filter (fun (a,_,_,_) -> a (top_realgoal())) !tactic_patterns in
   zip (0-- (List.length s  -1) ) s;;
 
 let print_suggest sg = 
@@ -637,9 +686,15 @@ let print_suggest sg =
 
 let s () = let sg = suggest() in Pervasives.ignore(print_suggest sg);;
 
+let expand_suggest s = 
+  let sg = suggest() in
+  let n = (int_of_string s) in
+  let r = Lib.assoc n sg in
+    (fun (_,s,_,_) -> s) r;;
 
 let eh n = let (_,(_,_,_,tac)) = List.nth (suggest()) n in e(tac());;
 
+(* let follow n = let (_,(_,_,_,tac)) = List.nth (suggest()) n in tac();; *)
 
 let rewrite_suggest = [
  ([`x IN {y}`],"IN_SING",IN_SING);
@@ -760,6 +815,11 @@ let expansive_thms   =
     fun op s ->
       let searches = map (fun (_,s,_,_) -> s) !search_results in
 	op (match_sparse s) (searches @ full);;
+
+(*
+?n to get marked theorem n.
+?abbrev to abbreviate.
+*)
 
 let expand_thm  =
   let charset = (explode "abcdefghijklmnopqrstuvwxyz0123456789'_.") in
@@ -918,7 +978,8 @@ let unabbrev_token = function
   | M_rparen -> ")"
   | M_lbracket -> "["
   | M_rbracket -> "]"
-  | M_query s -> expand_thm s
+  | M_query s -> if (s.[0]='-') then expand_suggest (String.sub s 1 (String.length s - 1)) 
+    else expand_thm s
   | M_env level -> if (level <=1) then " env (asl,w)" else " envl (asl,w)"
   | M_local s -> ("loc_"^s)
   | M_asm i -> ("asm_"^(string_of_int i));;

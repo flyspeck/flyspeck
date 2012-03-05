@@ -676,6 +676,15 @@ add_tactic_pattern (match_g[`( vec 0 - u):real^A`],
 add_tactic_pattern (match_g[` x IN (:A)`],"REWRITE_TAC[IN_UNIV]","x IN (:A)",
 		    fun t -> REWRITE_TAC[IN_UNIV]);;
 
+add_tactic_pattern (match_g [`~(a = {})`],"REWRITE_TAC[Local_lemmas.EXISTS_IN]","~(a = {}) <=> (?x. x IN a)",fun t-> REWRITE_TAC[Local_lemmas.EXISTS_IN]);;
+
+add_tactic_pattern (match_g [`x IN {a,b}`],"REWRITE_TAC[Collect_geom.IN_SET2]","x IN {a,b}",fun t-> REWRITE_TAC[Collect_geom.IN_SET2]);;
+
+add_tactic_pattern (match_g [`x dot c % y`],"REWRITE_TAC[DOT_RMUL]","x dot c % y",fun t-> REWRITE_TAC[DOT_RMUL]);;
+
+add_tactic_pattern (match_g [`c % x dot y`],"REWRITE_TAC[DOT_LMUL]","c % x dot y",fun t-> REWRITE_TAC[DOT_LMUL]);;
+
+
 let suggest _ = 
   let s = filter (fun (a,_,_,_) -> a (top_realgoal())) !tactic_patterns in
   zip (0-- (List.length s  -1) ) s;;
@@ -803,6 +812,9 @@ abbrev ("contr","PROOF_BY_CONTR_TAC");;
 abbrev ("set","SET_TAC");;
 abbrev ("sth","SEARCH_THEN");;
 abbrev ("fsth","FIRST_SEARCH_THEN");;
+abbrev ("ets","ENOUGH_TO_SHOW_TAC");;
+abbrev ("mm","MATCH_MP");;
+abbrev ("calc","CALC_ID_TAC");;
 
 let thm_abbreviations = ref[("elim","IN_ELIM_THM");("morgan","DE_MORGAN_THM")];;
 
@@ -980,7 +992,7 @@ let unabbrev_token = function
   | M_rbracket -> "]"
   | M_query s -> if (s.[0]='-') then expand_suggest (String.sub s 1 (String.length s - 1)) 
     else expand_thm s
-  | M_env level -> if (level <=1) then " env (asl,w)" else " envl (asl,w)"
+  | M_env level -> if (level <=1) then " env w" else " envl w"
   | M_local s -> ("loc_"^s)
   | M_asm i -> ("asm_"^(string_of_int i));;
 
@@ -998,7 +1010,8 @@ let really_expand s  =
   let which = setify( which_asms r) in
   let gets = map (fun i ->Printf.sprintf " let asm_%d = snd(List.nth (List.rev asl) %d ) in " i i) which in
   let v = unsplit "" I gets in
-  let envA,envB = if (has_env r) or (List.length which > 0) then "(fun (asl,w) -> (",") (asl,w))" else "","" in
+  let envA,envB = if (has_env r) or (List.length which > 0) then 
+    "GOAL_TERM (fun w -> (","))" else "","" in
     (envA^v^u^envB);;
 
 

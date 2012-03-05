@@ -537,11 +537,6 @@ let RCONE_DISK = prove_by_refinement(
   (* }}} *)
 
 
-
-(* ========================================================================== *)
-(* WORK IN PROGRESS *)
-(* ========================================================================== *)
-
 let RDISK_R = prove_by_refinement(
     `! (v:real^3) u0 b  t.
     &0 < b /\ ~(v = vec 0) /\ (&0 < v dot v) /\     (&0 < t ) /\ (t < &1) /\ 
@@ -620,6 +615,97 @@ let RDISK_R = prove_by_refinement(
   BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
+
+let FCHANGED_MEASURABLE = prove_by_refinement(
+  `!(p:real^3->bool) f r.
+    bounded p /\ polyhedron p /\ vec 0 IN interior p /\ f facet_of p ==>
+    measurable ( fchanged f  INTER normball (vec 0) r)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Conforming.MEASURABLE_TOPOLOGICAL_COMPONENT_YFAN_INTER_BALL;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `vertices p`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `edges p`)));
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Polyhedron.POLYHEDRON_FAN;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Conforming.PIIJBJK;
+    ASM_REWRITE_TAC[];
+    ROT_TAC;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC Polyhedron.POLYTOPE_FAN80;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    BY(ASM_MESON_TAC [ Polyhedron.CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON ]);
+  DISCH_TAC;
+  BY(ASM_MESON_TAC [ Polyhedron.FCHANGED_IN_COMPONENT ])
+  ]);;
+  (* }}} *)
+
+let RADIAL_NORMBALL = prove_by_refinement(
+  `!(p:real^3) r. (radial r p (normball p r))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ Sphere.radial ];
+  REWRITE_TAC[ NORMBALL_BALL ];
+  REWRITE_TAC[ IN_BALL ];
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  REWRITE_TAC[ dist ];
+  REWRITE_TAC[VECTOR_ARITH `(p - (p + u)) = (-- (u:real^3))`];
+  REWRITE_TAC[ NORM_NEG ];
+  REWRITE_TAC [ NORM_MUL ];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let FCHANGED_RADIAL = prove_by_refinement(
+  `!(p:real^3->bool) f r.
+    bounded p /\ polyhedron p /\ vec 0 IN interior p /\ f facet_of p ==>
+    radial r (vec 0) ( fchanged f INTER normball (vec 0) r)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ Sphere.radial ];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ NORMBALL_BALL ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  HASH_UNDISCH_TAC 7645;
+  REWRITE_TAC[IN_INTER];
+  REWRITE_TAC[ Polyhedron.fchanged ];
+  REWRITE_TAC[ IN_ELIM_THM ];
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `v1`)));
+    ASM_REWRITE_TAC[];
+    EXISTS_TAC ( `t * t'`);
+    REWRITE_TAC [ VECTOR_MUL_ASSOC ];
+    ALL_SEARCH [`a > b`];
+    REWRITE_TAC [arith `a > b <=> b < a`];
+    BY(MESON_TAC[ REAL_LT_MUL ]);
+  MP_TAC (ISPECL ( [`(vec 0):real^3`;`r:real`]) RADIAL_NORMBALL);
+  REWRITE_TAC[ NORMBALL_BALL ];
+  REWRITE_TAC[ Sphere.radial ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ IN_BALL ];
+  REWRITE_TAC[ dist ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  REWRITE_TAC[ NORM_NEG ];
+  BY(ASM_MESON_TAC[SUBSET])
+]
+);;
+  (* }}} *)
+
+
+(* ========================================================================== *)
+(* WORK IN PROGRESS *)
+(* ========================================================================== *)
 
 
 

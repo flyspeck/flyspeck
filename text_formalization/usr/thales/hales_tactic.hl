@@ -9,6 +9,11 @@
 
 module Hales_tactic = struct
 
+(* GSYM theorems explicit *)
+
+let GSYM_EXISTS_PAIRED_THM = GSYM EXISTS_PAIRED_THM;;
+
+
 let has_stv t =
   let typ = (type_vars_in_term t) in
   can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
@@ -90,6 +95,32 @@ let ENOUGH_TO_SHOW_TAC t =
 let CALC_ID_TAC (asl,t) =  (MATCH_MP_TAC (Calc_derivative.rational_identity t) (asl,t));;
 
 let GOAL_TERM ttac g = (ttac g) g;;
+
+
+(* puts the hypotheses of a conditional rewrite as a conjunct, rather than 
+   trying to prove them 
+  thm should have the form a ==> (b = c)  or the form  a ==> b.
+   Doesn't do matching on bound variables.
+  *)
+
+let GMATCH_SIMP_TAC thm (asl,w) = 
+  let lift_eq_thm = MESON[]   `! a b c. (a ==> ((b:B) = c)) ==> (!P. a /\ P c ==> P b)` in
+  let lift_eq thm = GEN_ALL (MATCH_MP lift_eq_thm (SPEC_ALL thm)) in
+  let thm' = hd (mk_rewrites true thm []) in
+  let t1 = fst (dest_eq(snd (dest_imp(concl(thm'))))) in
+  let matcher u t = 
+    let m = term_match [] t1 t in
+    let _ = subset (frees t) (frees u) or failwith "" in
+      m in
+  let w' = find_term (can (matcher w)) w in
+  let var1 = mk_var("v",type_of w') in
+  let vv = variant (frees w) var1 in
+  let athm = REWRITE_CONV[ ASSUME (mk_eq (w',vv))] w in
+  let bthm = (ISPECL [mk_abs(vv,rhs (concl athm));w'] BETA_THM) in
+  let betx = SYM(TRANS bthm (BETA_CONV (rhs (concl bthm)))) in
+   (ONCE_REWRITE_TAC[betx] THEN MATCH_MP_TAC (lift_eq thm') THEN 
+      BETA_TAC THEN REWRITE_TAC[]) (asl,w);;
+
 
 (*
 let ASM_REAL_ARITH_TAC t = 

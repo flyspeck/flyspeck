@@ -590,6 +590,53 @@ let match_g pat (_,w) = not(search_thml (term_match[]) pat [("", ASSUME w)] = []
 
 let match_asm pat (asl,_) = not(search_thml term_match_no_ho pat asl = []);;
 
+(* new version, march 2012 *)
+
+let rewrite_tags = ref [];;
+let remove_rewrite_tag s =
+  rewrite_tags:= filter (fun (_,_,s',_) -> not (s =s')) !rewrite_tags;;
+
+let st_of tm = map (fst o dest_const) (c_of [] tm);;
+let add_rewrite_tag (s,th) = 
+  let thl = mk_rewrites true th [] in
+  let tml = map concl thl in
+  let wd tm = if (is_imp ( tm)) then (snd(dest_imp( tm))) else tm in
+  let tml = map (fst o dest_eq  o wd) tml in
+  let stl = map st_of tml in
+  let zl = map (fun (a,b)-> (a,b,s,th)) (zip tml stl) in
+  let _ =     rewrite_tags := zl @ !rewrite_tags in
+    ();;
+
+let add_rewrite_stag s = 
+  let _ = (can (assoc s) !theorems) or failwith (s ^ " not found ") in
+  add_rewrite_tag (s,assoc s !theorems);;
+
+let refresh_rewrite_stag s = 
+  let _ = remove_rewrite_tag s in
+    add_rewrite_stag s;;
+
+let refresh() = 
+  let _ = map (fun (_,s,_,_) -> refresh_rewrite_stag s) !search_results in
+    ();;
+
+let write m = 
+  let u = mark m in
+  let (_,s,_,_) = u in
+  let _ =     refresh_rewrite_stag s in
+    u;;
+  
+let lookup_rewrite_tags (asl,w) = 
+  let sw = st_of w in
+  let f1 = filter (fun (_,sl,_,_) -> (subset sl sw)) !rewrite_tags in
+  let ml = filter (fun (pat,_,_,_) -> match_g [pat] (asl,w)) f1 in
+    ml;;
+
+let rewrite_suggest() = 
+  let rawl =  lookup_rewrite_tags (top_realgoal()) in
+    zip (0--(List.length rawl - 1)) (map (fun (_,_,s,th) -> (s,th)) rawl);;
+
+let suggest = rewrite_suggest;;
+
 (* let assum t = mk_comb(mk_var("<assum>",W mk_fun_ty (type_of t)),t);; *)
 
 (* 
@@ -601,91 +648,11 @@ tactic;
 
 *)
 
-let rrrrr = (match_g[`let x = (y:A) in (z:B)`],"LET_TAC","let elimination",fun t -> LET_TAC);;
-
 let tactic_patterns = ref [];;
-
- tactic_patterns  := [
-(match_g[`(@):(A->bool)->A`],"SELECT_ELIM_TAC","remove @",fun t-> SELECT_ELIM_TAC);
-(match_g[`(@):(A->bool)->A`],"SELECT_TAC","remove @ with subgoals depending satisfiability",fun t-> SELECT_TAC);
-(match_g[full `(\x. f x = \x. g x)`],"ABS_TAC","strip abstractions from equality",fun t-> ABS_TAC);
-(match_g[full ` ((p ==> q) ==> r)`],"ANTS_TAC","split off the antecdent of the antecedent",fun t-> ANTS_TAC);
-(match_g_no_ho[full ` (f x = g x)`],"AP_THM_TAC","drop the function argument",fun t-> AP_THM_TAC);
-(match_g_no_ho[full ` (f x y = f x' y)`],"AP_THM_TAC THEN AP_TERM_TAC","show first args of a binary function are equal",fun t-> AP_THM_TAC THEN AP_TERM_TAC);
-(match_g[`(\x. f) y`],"BETA_TAC","beta reduce",fun t-> BETA_TAC);
-(match_g[full ` (f x y = f x' y')`],"BINOP_TAC","show binary function args equal",fun t-> BINOP_TAC);
-(match_g[full ` (f x  = f x' )`],"AP_TERM_TAC","show function args equal",fun t-> AP_TERM_TAC);
-(match_g[full `(a /\ b)`],"CONJ_TAC","split into two subgoals",fun t-> CONJ_TAC);
-(match_g[full `(a ==>b)`],"DISCH_TAC","discharge antecedent",fun t -> DISCH_TAC);
-(match_g[full `(a <=> b)`],"EQ_TAC","split <=> into two conditionals",fun t -> EQ_TAC);
-(match_g[full `(?x. t)`],"EXISTS_TAC","specify existence",fun t -> failwith "syntax: EXISTS_TAC `u`");
-(match_g[full `(!x. t)`],"GEN_TAC","remove universal",fun t-> GEN_TAC);
-(match_g[full `((f:A->B) = g)`],"MATCH_MP_TAC EQ_EXT","apply to arg",fun t-> MATCH_MP_TAC EQ_EXT);  
-(* was ONCE_REWRITE_TAC[FUN_EQ_THM] *)
-(match_g[full `(!(x:num). t)`],"INDUCT_TAC","induction",fun t->INDUCT_TAC);
-(match_g[full `(!(n:A list). P)`],"LIST_INDUCT_TAC","structure induction on lists",fun t->LIST_INDUCT_TAC);
-(match_g[full `(f x = g y)`],"MK_COMB_TAC","show equality of functions and args",fun t->MK_COMB_TAC);
-(* (match_g[full `(u:bool)`],"REFUTE_THEN ASSUME_TAC","proof by contradiction",fun t-> REFUTE_THEN ASSUME_TAC); *)
-(match_g[`!(p:A#B). P p`],"REWRITE_TAC[FORALL_PAIR_THM]","unpair",fun t->REWRITE_TAC[FORALL_PAIR_THM]);
-(match_g[`(?(x,y). P x y)`],"REWRITE_TAC[ EXISTS_PAIRED_THM]"," ",fun t->REWRITE_TAC[ EXISTS_PAIRED_THM]);
-(match_g[`(?x y. P x y)`],"REWRITE_TAC[GSYM EXISTS_PAIRED_THM]"," ",fun t->REWRITE_TAC[GSYM EXISTS_PAIRED_THM]);
-(match_g[full`x <= (z:real)`],"MATCH_MP_TAC REAL_LE_TRANS","x <= y /\ y <= z ",fun t -> MATCH_MP_TAC REAL_LE_TRANS);
-(match_g[full`x < (z:real)`],"MATCH_MP_TAC REAL_LET_TRANS","x <= y /\ y < z ",fun t -> MATCH_MP_TAC REAL_LET_TRANS);
-(match_g[full`x < (z:real)`],"MATCH_MP_TAC REAL_LTE_TRANS","x < y /\ y <= z",fun t -> MATCH_MP_TAC REAL_LTE_TRANS);
-(match_asm[ full `x \/ y`],"FIRST_X_ASSUM DISJ_CASES_TAC","split x \/ y assumption",fun t -> FIRST_X_ASSUM DISJ_CASES_TAC);
-(match_asm[full `?(x:A). y`],"FIRST_X_ASSUM CHOOSE_TAC","choose existential quant in assumption list",fun t-> FIRST_X_ASSUM CHOOSE_TAC);
-(match_asm[full `x /\ y`],"FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC)","split asumption conjunction",fun t->FIRST_X_ASSUM (CONJUNCTS_THEN ASSUME_TAC));
-rrrrr
-];;
 
 let add_tactic_pattern t = (tactic_patterns := t::!tactic_patterns);;
 
-add_tactic_pattern (match_g[full `(a:A->bool) = b`],"MATCH_MP_TAC SUBSET_ANTISYM",
-		    "subset conjunction",fun t -> MATCH_MP_TAC SUBSET_ANTISYM);; 
-
-add_tactic_pattern (match_g[`(a SUBSET b INTER c)`],"REWRITE_TAC[SUBSET_INTER]",
-		    "split inter into conjuncts",fun t -> REWRITE_TAC[SUBSET_INTER]);;
-
-add_tactic_pattern (match_g[`( a % vec 0):real^A`],"REWRITE_TAC[VECTOR_MUL_RZERO]",
-		    "c % vec  0",fun t -> REWRITE_TAC[VECTOR_MUL_RZERO]);;
-
-add_tactic_pattern (match_g[`( u+ vec 0):real^A`],
- "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
-		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
-   fun t -> REWRITE_TAC[
-   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
-
-add_tactic_pattern (match_g[`( u- vec 0):real^A`],
- "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
-		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
-   fun t -> REWRITE_TAC[
-   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
-
-add_tactic_pattern (match_g[`( vec 0 + u):real^A`],
- "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
-		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
-   fun t -> REWRITE_TAC[
-   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
-
-add_tactic_pattern (match_g[`( vec 0 - u):real^A`],
- "REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]",
-		    "u + vec  0, u - vec 0, vec 0 + u, vec 0 - u",
-   fun t -> REWRITE_TAC[
-   VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO]);;
-
-add_tactic_pattern (match_g[` x IN (:A)`],"REWRITE_TAC[IN_UNIV]","x IN (:A)",
-		    fun t -> REWRITE_TAC[IN_UNIV]);;
-
-add_tactic_pattern (match_g [`~(a = {})`],"REWRITE_TAC[Local_lemmas.EXISTS_IN]","~(a = {}) <=> (?x. x IN a)",fun t-> REWRITE_TAC[Local_lemmas.EXISTS_IN]);;
-
-add_tactic_pattern (match_g [`x IN {a,b}`],"REWRITE_TAC[Collect_geom.IN_SET2]","x IN {a,b}",fun t-> REWRITE_TAC[Collect_geom.IN_SET2]);;
-
-add_tactic_pattern (match_g [`x dot c % y`],"REWRITE_TAC[DOT_RMUL]","x dot c % y",fun t-> REWRITE_TAC[DOT_RMUL]);;
-
-add_tactic_pattern (match_g [`c % x dot y`],"REWRITE_TAC[DOT_LMUL]","c % x dot y",fun t-> REWRITE_TAC[DOT_LMUL]);;
-
-
-let suggest _ = 
+let tactic_suggest _ = 
   let s = filter (fun (a,_,_,_) -> a (top_realgoal())) !tactic_patterns in
   zip (0-- (List.length s  -1) ) s;;
 
@@ -693,18 +660,23 @@ let print_suggest sg =
   let print_one (i,(_,_,s,_)) = (print_int i; print_string (": "^s)) in
   map (print_one) sg;;
 
+(*
 let s () = let sg = suggest() in Pervasives.ignore(print_suggest sg);;
+*)
 
 let expand_suggest s = 
-  let sg = suggest() in
+  let sg = tactic_suggest() in
   let n = (int_of_string s) in
   let r = Lib.assoc n sg in
     (fun (_,s,_,_) -> s) r;;
 
+(*
 let eh n = let (_,(_,_,_,tac)) = List.nth (suggest()) n in e(tac());;
+*)
 
 (* let follow n = let (_,(_,_,_,tac)) = List.nth (suggest()) n in tac();; *)
 
+(*
 let rewrite_suggest = [
  ([`x IN {y}`],"IN_SING",IN_SING);
 ];;
@@ -712,7 +684,7 @@ let rewrite_suggest = [
 let rewrites _ =
   let s = filter (fun (a,_,_) -> match_g a (top_realgoal())) rewrite_suggest in
     zip (0-- (List.length s  -1) ) s;;
-
+*)
 
 (* ========================================================================== *)
 (* ABBREVIATIONS                                              *)
@@ -720,102 +692,11 @@ let rewrites _ =
 let matching_tactics  s = 
   filter (match_sparse s) (map fst tactic_counts);;
 
-let tactic_abbreviations = ref [
-  ("fun","fun");
-  ("then","THEN");
-  ("real","REAL_ARITH_TAC");
-  ("se","SELECT_TAC");
-  ("if","COND_CASES_TAC");
-  ("cc","COND_CASES_TAC");
-  ("r","REWRITE_TAC");
-  ("mp","MP_TAC");
-("ra","REAL_ARITH");
-("aru","ARITH_RULE");
-("field","REAL_FIELD");
-("fieldt","(CONV_TAC REAL_FIELD)");
-("ar","ASM_REWRITE_TAC");
-("hc","HYP_CONJ_TAC");
-("rt/a","ASM_REWRITE_TAC");
-("r/a","ASM_REWRITE_TAC");
-("r/o","ONCE_REWRITE_TAC");
-("rt/o","ONCE_REWRITE_TAC");
-("mmp","MATCH_MP_TAC");
-("st","WEAK_STRIP_TAC");
-("st/r","REPEAT WEAK_STRIP_TAC");
-("str","STRIP_TAC");
-("str/r","REPEAT STRIP_TAC");
-("e","EXISTS_TAC");
-("m","MESON_TAC");
-("mt/a","ASM_MESON_TAC");
-("m/a","ASM_MESON_TAC");
-("am","ASM_MESON_TAC");
-("c","CONJ_TAC");
-("a","ASSUME_TAC");
-("g","GEN_TAC");
-("g/r","REPEAT GEN_TAC");
-("sc","SUBCONJ_TAC");
-("su","SUBST1_TAC");
-("si","SIMP_TAC");
-("si/a","ASM_SIMP_TAC");
-("asi","ASM_SIMP_TAC");
-("sg","SUBGOAL_THEN");
-("d","DISCH_TAC");
-("an","ANTS_TAC");
-("le","LET_TAC");
-("l","LET_TAC");
-("rat","REAL_ARITH_TAC");
-("p","POP_ASSUM");
-("p/r","REPEAT POP_ASSUM");
-("by","BY");
-("exv","EXISTSv_TAC");
-("mu", "MESON");
-("gv","X_GENv_TAC");
-("sym","GSYM");
-("specl","ISPECL");
-("spec","ISPEC");
-("o","o");
-("rr","REWRITE_RULE");
-("orr","ONCE_REWRITE_RULE");
-("pbc","PROOF_BY_CONTR_TAC");
-("taut","TAUT");
-("snd","snd");
-("asl","asl");
-("let","let");
-("in","in");
-("@","SELECT_TAC");
-("/\\","CONJ_TAC");
-("!","GEN_TAC");
-];;
+let tactic_abbreviations = ref [];;
 
 let abbrev u = (tactic_abbreviations:= (u::!tactic_abbreviations));;
 
 let unabbrev s = (tactic_abbreviations:= (filter (fun (s',_) ->  (s <> s')) !tactic_abbreviations));;
-
-abbrev ("fexp","FULL_EXPAND_TAC");;
-abbrev ("ispecl","ISPECL");;
-abbrev ("ispec","ISPEC");;
-abbrev ("t","t");;
-abbrev ("beta","BETA_TAC");;
-abbrev ("subconj","SUBCONJ_TAC");;
-abbrev ("fassum","FIRST_ASSUM");;
-abbrev ("fa","FIRST_ASSUM");;
-abbrev ("d/r","REPEAT DISCH_TAC");;
-abbrev ("comment","COMMENT");;
-abbrev ("name","NAME");;
-abbrev ("rot","ROT_TAC");;
-unabbrev ("rau");;
-abbrev ("arith","arith");;
-abbrev ("aa","ARITH_TAC");;
-abbrev ("rep","REPLICATE_TAC");;
-abbrev ("simp","SIMP_TAC");;
-abbrev ("contr","PROOF_BY_CONTR_TAC");;
-abbrev ("set","SET_TAC");;
-abbrev ("sth","SEARCH_THEN");;
-abbrev ("fsth","FIRST_SEARCH_THEN");;
-abbrev ("alls","ALL_SEARCH");;
-abbrev ("ets","ENOUGH_TO_SHOW_TAC");;
-abbrev ("mm","MATCH_MP");;
-abbrev ("calc","CALC_ID_TAC");;
 
 let thm_abbreviations = ref[("elim","IN_ELIM_THM");("morgan","DE_MORGAN_THM")];;
 

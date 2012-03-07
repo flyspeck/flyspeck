@@ -31,6 +31,8 @@
 ; insert date no time
 (insert (format-time-string "%D %T %a" (current-time)))
 
+; M-x customize-face RET mode-line, foreground blue, background #E3e889
+
 ; was 1024.
 ; .emacs suggestions:
 ;(setq comint-buffer-maximum-size 5000)

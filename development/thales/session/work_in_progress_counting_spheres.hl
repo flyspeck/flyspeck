@@ -850,6 +850,19 @@ let NOT_COLLINEAR_AFF_DIM_2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let FACET_AFF_DIM_2 = prove_by_refinement(
+  `!(p:real^3->bool) f .
+     polyhedron p /\  (vec 0 IN interior p) /\
+    f facet_of p 
+    ==> aff_dim f = &2 `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_ASSUM (fun t -> ASSUME_TAC (MATCH_MP (Polyhedron.AFF_DIM_INTERIOR_EQ_3) t));
+  BY(BY(ASM_MESON_TAC[ facet_of ; arith `&3 - &1 = (&2):int` ;arith `(x:int <= x)`]))
+]
+);;
+  (* }}} *)
 
 let CONE0_RELATIVE_INTERIOR_FACET = prove_by_refinement(
   `!p f (u0:real^3) u1 u2.
@@ -993,12 +1006,6 @@ let CONE0_FCHANGED_AFF_GT = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-(* ========================================================================== *)
-(* WORK IN PROGRESS *)
-(* ========================================================================== *)
-
-
 let CONE0_FCHANGED = prove_by_refinement(
   `!p f (u0:real^3) u1 u2. 
     polyhedron p /\ bounded p /\ (vec 0 IN interior p) /\
@@ -1007,16 +1014,158 @@ let CONE0_FCHANGED = prove_by_refinement(
     cone0 (vec 0) {u0,u1,u2} SUBSET fchanged f`,
   (* {{{ proof *)
   [
-st/r
-rt[ ?85 ]
-rt[ ?96 ]
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC SUBSET_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `fchanged (convex hull {u0,u1,u2})`)));
+  SUBCONJ_TAC;
+    MATCH_MP_TAC CONE0_FCHANGED_AFF_GT;
+    SUBCONJ_TAC;
+      BY(REWRITE_TAC[ FINITE_INSERT; FINITE_EMPTY ]);
+    DISCH_TAC;
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[ COLLINEAR_UNEQUAL; TWO_IMP_HAS_SIZE_GE_2; IN_INSERT ]);
+    DISCH_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `~(vec 0 IN f)`)));
+      ALL_SEARCH [`SUBSET`];
+      BY(SET_TAC[]);
+    BY(ASM_MESON_TAC [ FACE_OF_DISJOINT_INTERIOR ; Hypermap.lemma_in_disjoint ; facet_of ; arith `~(x = x - (&1):int)`]);
+  DISCH_TAC;
+  REWRITE_TAC[ Polyhedron.fchanged ];
+  REWRITE_TAC[ SUBSET ; IN_ELIM_THM ];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w`relative_interior (convex hull {u0,u1,u2}) SUBSET relative_interior f`)));
+    REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC);
+    BY(SET_TAC[]);
+  MATCH_MP_TAC SUBSET_RELATIVE_INTERIOR;
+  SUBCONJ_TAC;
+    BY(BY(ASM_MESON_TAC[ FACE_OF_IMP_CONVEX; Marchal_cells.CONVEX_HULL_SUBSET; CONVEX_HULL_EQ ; facet_of ]));
+  DISCH_TAC;
+  MATCH_MP_TAC AFF_DIM_EQ_AFFINE_HULL;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (arith `a = &2 /\ b = &2 ==> (a:int) <= b`);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[ FACET_AFF_DIM_2]);
+  BY(ASM_MESON_TAC[ AFF_DIM_CONVEX_HULL; NOT_COLLINEAR_AFF_DIM_2 ])
   ]);;
   (* }}} *)
 
 
-(*
- (!p. norm p < r ==> p IN P) /\ 
-*)
+let COLLINEAR_ORTHO_PLANE = prove_by_refinement(
+  `!p v u0 b (u1:real^N).
+    ~(v = vec 0) /\
+    ~(u0 = u1) /\
+    u0 dot v = b /\
+    p dot v = b /\
+    (u1 = u0 + v) /\
+    collinear {u0,u1,p } ==>
+    (p = u0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ALL_SEARCH [`collinear`];
+  ASM_SIMP_TAC [ COLLINEAR_3_AFFINE_HULL ];
+  REWRITE_TAC [ AFFINE_HULL_2_ALT ];
+  REWRITE_TAC[ IN_ELIM_THM ; IN_UNIV];
+  SUBST1_TAC ( VECTOR_ARITH ( `(u0 + (v:real^N) ) - u0 = v`));
+  REPEAT WEAK_STRIP_TAC;
+  ALL_SEARCH [`dot`];
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun t -> (REWRITE_TAC[ VECTOR_ARITH ( env t`(u0 + u % (v)) dot v = u0 dot v + u * (v dot v)`)]));
+  DISCH_THEN SUBST1_TAC;
+  GOAL_TERM (fun t -> (REWRITE_TAC[ VECTOR_ARITH ( env t` (u0 + u % v = u0) <=> u % v = vec 0`); arith `b + c = b <=> c = &0`;REAL_ENTIRE; VECTOR_MUL_EQ_0 ]));
+  BY(REWRITE_TAC[ DOT_EQ_0 ])
+  ]);;
+  (* }}} *)
+
+
+(* ========================================================================== *)
+(* WORK IN PROGRESS *)
+(* ========================================================================== *)
+
+let azim_axis = prove_by_refinement(
+  `!u0 u1 u w.
+    ~(collinear {u0,u1,u}) /\
+    ~(collinear {u0,u1,w}) /\
+   (collinear {vec 0 ,u0,u1 }) ==>
+    ~(collinear {vec 0, u1-u0,u}) /\
+    ~(collinear {vec 0,u1-u0,w}) /\
+    azim u0 u1 u w = azim (vec 0) (u1-u0) u w`,
+  (* {{{ proof *)
+  [
+ort[ ?153 ]
+st/r
+  ]);;
+  (* }}} *)
+
+
+let CONE0_SUBSET_WEDGE = prove_by_refinement(
+  `!u0 u1 u w.
+    (collinear {vec0,u0,u1}) /\
+    ~(u0 u1) ==>
+    cone0 (vec 0) {u0,u,w} SUBSET azim u0 u1 u w`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+(* mixed up u0 u1 and vec 0 *)
+
+let gotcjah_sol_lemma = prove_by_refinement(
+  `!c3 v b P W t rho bet u u0 u1 u2 w.
+    polyhedron P /\ bounded P /\ (&0 < b) /\
+    (vec 0 IN interior P) /\
+    (c3 facet_of P) /\
+    (fchanged c3 = W) /\
+    (&0 < t /\ t < &1 ) /\
+    (&0 < rho) /\
+    (c3 = P INTER { p | p dot v = b } /\ rcone_gt (vec 0) v t SUBSET W) /\
+    (b / (v dot v ) % v = u0) /\
+    ~(v = vec 0) /\
+    ~(u1 = u0) /\
+    ~(u2 = u0) /\
+    &0 < v dot v /\
+    u0 IN rcone_gt (vec 0 ) v t /\
+    u0 IN c3 /\
+    cos (arcV(vec 0) u0 w) = t /\
+    cos (arcV(vec 0) u0 w) = t /\
+    u IN c3 /\
+    v IN c3 /\
+    w IN c3 /\
+    azim u0 u1 u w / &2 = bet /\
+    &0 < azim u0 u1 u w /\
+    azim u0 u1 u w < pi /\
+    azim u0 u1 u2 u < azim u0 u1 u2 w /\
+    azim u0 u1 u v = bet /\
+    azim u0 u1 v w = bet /\
+    (u - u0) dot (v - u) = &0 /\
+    (w - u0) dot (v - w) = &0 /\
+    ~(u = u0) /\
+    ~(v = u0) /\
+    ~(w = u0) /\
+    azim u0 u1 u w < pi ==>
+    (?X.  X SUBSET (wedge u0 u1 u w INTER W) /\
+       measurable (X INTER normball (vec 0) rho) /\
+       radial_norm rho (vec 0) (X INTER normball (vec 0) rho) /\
+       &2 * (bet - asn (sin bet * t)) <= sol (vec 0) X)
+`,
+  (* {{{ proof *)
+  [
+str/r
+exist (% `cone0 (vec 0) {u0,u,v} UNION cone0 (vec 0) {u0,v,w}`)
+comment "cone0 subset ... "
+sgth (%` cone0 (vec 0) {u0,u,v} SUBSET wedge u0 u1 u v`) assume
+
+
+subconj 
+rt [ UNION_SUBSET ; SUBSET_INTER]
+mmp (taut `(a /\ c) /\ (b /\ d) ==> (a /\ b) /\ c /\ d`)
+conj
+
+  ]);;
+  (* }}} *)
+
 
 let GOTCJAH_concl = `!c v b P  WF t n. 
     polyhedron P /\ bounded P /\  (&0 < b) /\
@@ -1071,31 +1220,46 @@ let GOTCJAH = prove_by_refinement(
       BY(ASM_MESON_TAC [ REAL_LT_DIV ]);
     REWRITE_TAC[ arith `a * t < a <=> &0 < a * (&1 - t)`];
     BY(ASM_MESON_TAC [ REAL_LT_MUL ; arith `t < &1 <=> &0 < &1 - t`])
-(* to here *)
-comment "u0"
-sgth `(u0:real^3) IN c3` assume
-ets `(u0:real^3) IN fchanged c3 /\ (u0 IN affine hull c3)` 
-rt[ GSYM IN_INTER]
-amt[FCHANGED_AFFINE; SUBSET; IN;  ?44 ] 
-conj
-amt[SUBSET; IN]
-mptac (specl (%%[`P`;`c3`;`v`;`b`]) ?45 )
-ants
-art[]
-conj
-mmp ?46
-amt[]
-AP_TERM_TAC
-expand "A"
-?-2
-rt[ ?elim ]
-mt[ ?47 ]
-dthen subst1
-rt[ ?elim ]
-expand "u0"
-rt [ DOT_RMUL ]
-fun (asl,t) -> (mmt (Calc_derivative.rational_identity t) (asl,t))
-repeat (fxa mptac ) then rat 
+  COMMENT "u0";
+  SUBGOAL_THEN `(u0:real^3) IN c3` ASSUME_TAC;
+    ENOUGH_TO_SHOW_TAC `(u0:real^3) IN fchanged c3 /\ (u0 IN affine hull c3)`;
+      REWRITE_TAC[ GSYM IN_INTER];
+      BY(ASM_MESON_TAC[FCHANGED_AFFINE; SUBSET; IN; RELATIVE_INTERIOR_SUBSET ]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[SUBSET; IN]);
+    GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w[`P`;`c3`;`v`;`b`]) Counting_spheres.affine_facet_hyper )));
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      CONJ_TAC;
+        MATCH_MP_TAC Polyhedron.INTERIOR_AFFINIE_HUL_EQ_UNIV;
+        BY(ASM_MESON_TAC[]);
+      AP_TERM_TAC;
+      EXPAND_TAC "A";
+      MATCH_MP_TAC EQ_EXT;
+      REWRITE_TAC[ IN_ELIM_THM ];
+      BY(MESON_TAC[ DOT_SYM ]);
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[ IN_ELIM_THM ];
+    EXPAND_TAC "u0";
+    REWRITE_TAC [ DOT_RMUL ];
+    CALC_ID_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC ) THEN REAL_ARITH_TAC)
+      comment "1"
+      mptac (specl (%% [`v`;`u0`;`b`;`t`]) RDISK_R)
+      art[]
+      st/r
+      abbrev (`(s:(real^3->bool)->bool) = {u | u facet_of c3}`)
+      (* to here *)
+   sgth  `?uperp. ~(uperp = vec 0) /\ ((v:real^3) dot uperp = &0)` mptac
+      amt[ ?5 ]
+   st/r
+      abbrev (`(u2:real^3) = u0 + uperp`)
+      abbrev (`(u1:real^3) = u0 + v`)
+      mptac (specl (%% [`c3`;`A`;`n`;`s`;`r`;`u0`;`u1`;`u2`]) EUSOTYP_general)
+      art[]
+      alls [`INTER`]
+      dthen (fun t -> assume (sym  t))
+      art[]
 (* XXD to here *)
 
 
@@ -1103,3 +1267,4 @@ repeat (fxa mptac ) then rat
   ]);;
   (* }}} *)
 
+RDISK_R;;

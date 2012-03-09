@@ -2356,27 +2356,6 @@ let LIFT_NORM_CONTINUOUS_ON = prove
  ASM_SIMP_TAC[CONTINUOUS_ON_SUB; CONTINUOUS_ON_CONST; CONTINUOUS_ON_ID]);;
 
 (* =============================================================== *)
-
-let aff_ge_alt = new_definition
- `aff_ge_alt s t (v:real^3) <=>
-         (?f q. FINITE q /\ q SUBSET t /\ v = lin_combo (s UNION q) f /\
-              (!w. q w ==> &0 <= f w) /\
-              sum (s UNION q) f = &1)`;;
-
-let smallest_angle_set = new_definition 
- `!u0:real^3 u1 s. 
-  smallest_angle_set s u0 u1 =
-  (@x. x IN s /\ (!y. y IN s ==> 
-                         ((y - u0) dot (u1 - u0)) / 
-                         (norm (y - u0) * norm (u1 - u0)) <=
-                         ((x - u0) dot (u1 - u0)) / 
-                         (norm (x - u0) * norm (u1 - u0))))`;;
-
-let smallest_angle_line = new_definition 
- `!a b c d:real^3. 
-  smallest_angle_line a b c d = smallest_angle_set (convex hull {a, b}) c d`;;
-
-
 let SMALLEST_ANGLE_LINE_EXISTS = prove_by_refinement (
  `!a b u0 u1. ~(u0 = u1) /\ ~(u0 IN convex hull {a, b}) ==> 
               (?x.  (x IN convex hull {a, b:real^3} /\ 
@@ -2423,21 +2402,247 @@ let SMALLEST_ANGLE_LINE_EXISTS = prove_by_refinement (
  (ASM_MESON_TAC[])]);;
 
 
+(* ======================================================================== *)
 
-let SMALLEST_ANGLE_IN_CONVEX_HULL = prove_by_refinement (
-  `!m n p q x. 
-    ~(p = q) /\ ~(p IN convex hull {m,n}) /\ x = smallest_angle_line m n p q 
-       ==> x IN convex hull {m, n}`, 
+let MCELL_SUBSET_BALL8_1 = prove_by_refinement (
+ `!v:real^3 ul i V. 
+       i<= 4 /\ packing V /\ saturated V /\ barV V 3 ul /\ v IN mcell i V ul ==>
+       mcell i V ul SUBSET ball (v, &8)`,
 [(REPEAT STRIP_TAC);
- (UP_ASM_TAC THEN REWRITE_TAC[smallest_angle_line; smallest_angle_set]);
+ (NEW_GOAL `mcell i V ul SUBSET
+             UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}`);
+ (MATCH_MP_TAC Qzksykg.QZKSYKG2);
+ (ASM_REWRITE_TAC[SET_RULE `i IN {0,1,2,3,4}<=> i =0\/i=1\/i=2\/i=3\/i=4`]);
+ (ASM_ARITH_TAC);
+ (NEW_GOAL `UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}
+      SUBSET UNIONS {voronoi_closed V s | s IN set_of_list ul}`);
+ (REWRITE_TAC[SUBSET; IN_UNIONS; IN;IN_ELIM_THM] THEN REPEAT STRIP_TAC);
+ (EXISTS_TAC `voronoi_closed V ((HD (left_action_list p ul)):real^3)`);
  (STRIP_TAC);
- (ABBREV_TAC `X = (\x:real^3. x IN convex hull {m, n} /\
-           (!y. y IN convex hull {m, n}
-                ==> ((y - p) dot (q - p)) / (norm (y - p) * norm (q - p)) <=
-                    ((x - p) dot (q - p)) / (norm (x - p) * norm (q - p))))`);
- (NEW_GOAL `(X:real^3->bool) x`);
- (ASM_REWRITE_TAC[] THEN MATCH_MP_TAC SELECT_AX);
- (EXPAND_TAC "X" THEN ASM_SIMP_TAC[SMALLEST_ANGLE_LINE_EXISTS]);
- (UP_ASM_TAC THEN EXPAND_TAC "X" THEN MESON_TAC[])]);;
+ (EXISTS_TAC `(HD (left_action_list p ul)):real^3`);
+ (REWRITE_TAC[MESON[IN] `(a:real^3->bool) s <=> s IN a`]);
+ (REWRITE_WITH 
+  `set_of_list (ul:(real^3)list) = set_of_list (left_action_list p ul)`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ]);
+ (ASM_CASES_TAC `i = 4`);
+ (MATCH_MP_TAC Packing3.SET_OF_LIST_LEFT_ACTION_LIST);
+ (REWRITE_WITH `LENGTH (ul:(real^3)list) = 3 + 1 /\ 
+                 CARD (set_of_list ul) = 3 + 1`);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[ARITH_RULE `3 + 1 = 4`]);
 
+ (ASM_CASES_TAC `i = 3`);
+ (MATCH_MP_TAC Marchal_cells_2_new.SET_OF_LIST_LEFT_ACTION_LIST_2);
+ (REWRITE_WITH `LENGTH (ul:(real^3)list) = 3 + 1 /\ 
+                 CARD (set_of_list ul) = 3 + 1`);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[ARITH_RULE `(3 + 1) - 2 = 3 - 1 /\ 2 <= 3 + 1`]);
+
+ (ASM_CASES_TAC `i = 2`);
+ (MATCH_MP_TAC Marchal_cells_2_new.SET_OF_LIST_LEFT_ACTION_LIST_3);
+ (REWRITE_WITH `LENGTH (ul:(real^3)list) = 3 + 1 /\ 
+                 CARD (set_of_list ul) = 3 + 1`);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[ARITH_RULE `(3 + 1) - 3 = 2 - 1 /\ 3 <= 3 + 1`]);
+
+ (NEW_GOAL `i <= 1`);
+ (ASM_ARITH_TAC);
+ (NEW_GOAL `p permutes 0..0`);
+ (ASM_MESON_TAC[ARITH_RULE `i <= 1 ==> i - 1 = 0`]);
+ (UP_ASM_TAC THEN REWRITE_TAC[Packing3.PERMUTES_TRIVIAL] THEN STRIP_TAC);
+ (ASM_REWRITE_TAC[Packing3.LEFT_ACTION_LIST_I]);
+ (MATCH_MP_TAC Packing3.HD_IN_SET_OF_LIST);
+ (REWRITE_TAC[Packing3.LENGTH_LEFT_ACTION_LIST]);
+ (REWRITE_WITH `LENGTH (ul:(real^3)list) = 3 + 1 /\ 
+                 CARD (set_of_list ul) = 3 + 1`);
+ (MATCH_MP_TAC Rogers.BARV_IMP_LENGTH_EQ_CARD);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (ARITH_TAC);
+
+ (UP_ASM_TAC THEN REWRITE_TAC[MESON[IN] `(a:real^3->bool) s <=> s IN a`]);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `rogers V (left_action_list p ul) SUBSET
+             voronoi_closed V (HD (left_action_list p ul))`);
+ (MATCH_MP_TAC ROGERS_SUBSET_VORONOI_CLOSED);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Qzksykg.QZKSYKG1);
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num` THEN 
+   EXISTS_TAC `p:num->num`);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+ (REWRITE_TAC[SET_RULE `i IN {0,1,2,3,4} <=> i=0\/i=1\/i=2\/i=3\/i=4`]);
+ (ASM_ARITH_TAC);
+ (UNDISCH_TAC `v IN mcell i V ul` THEN SET_TAC[]);
+ (UP_ASM_TAC THEN SET_TAC[]);
+
+ (NEW_GOAL `UNIONS {voronoi_closed V s | s IN set_of_list ul} SUBSET 
+             UNIONS {ball (s:real^3, &2) | s IN set_of_list ul}`);
+ (NEW_GOAL `!s:real^3. voronoi_closed V s  SUBSET ball (s, &2)`);
+ (ASM_SIMP_TAC[Packing3.VORONOI_BALL2]);
+ (UP_ASM_TAC THEN SET_TAC[]);
+
+ (NEW_GOAL `mcell i V ul SUBSET UNIONS {ball (s,&2) | s IN set_of_list ul}`);
+ (ABBREV_TAC `s1 = 
+   UNIONS {rogers V (left_action_list p ul) | p permutes 0..i - 1}`);
+ (ABBREV_TAC `s2 = 
+   UNIONS {voronoi_closed V (s:real^3) | s IN set_of_list ul}`);
+ (ABBREV_TAC `s3 = UNIONS {ball (s:real^3,&2) | s IN set_of_list ul}`);
+ (DEL_TAC THEN DEL_TAC THEN DEL_TAC);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[SUBSET; IN_UNIONS; IN; IN_ELIM_THM; IN_BALL]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `?t. (?s. set_of_list ul s /\ t = ball (s:real^3,&2)) /\ t x`);
+ (ASM_SIMP_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (NEW_GOAL `dist (s, x:real^3) < &2`);
+ (REWRITE_TAC[GSYM IN_BALL]);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+
+ (NEW_GOAL `?t. (?s. set_of_list ul s /\ t = ball (s:real^3,&2)) /\ t v`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (NEW_GOAL `dist (s', v:real^3) < &2`);
+ (REWRITE_TAC[GSYM IN_BALL]);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN SET_TAC[]);
+
+ (NEW_GOAL `dist (v, x:real^3) <= dist (s', v) + dist (s', s) + dist (s, x)`);
+ (NORM_ARITH_TAC);
+ (NEW_GOAL `dist (s', s:real^3) < &4`);
+ (REWRITE_TAC[GSYM IN_BALL]);
+
+ (NEW_GOAL `set_of_list ul SUBSET ball (s':real^3,&4)`);
+ (MATCH_MP_TAC Qzyzmjc.BARV_3_IMP_FINITE_lemma2);
+ (EXISTS_TAC `V:real^3->bool`);
+ (ASM_REWRITE_TAC[IN]);
+ (ASM_SET_TAC[]);
+ (ASM_REAL_ARITH_TAC)]);;
+
+
+let MCELL_SUBSET_BALL8 = prove_by_refinement (
+ `!v:real^3 ul i V. 
+       packing V /\ saturated V /\ barV V 3 ul /\ v IN mcell i V ul ==>
+       mcell i V ul SUBSET ball (v, &8)`,
+[(REPEAT STRIP_TAC);
+ (ASM_CASES_TAC `i <= 4`);
+ (ASM_SIMP_TAC[MCELL_SUBSET_BALL8_1]);
+ (UNDISCH_TAC `v IN mcell i V ul`);
+ (REWRITE_WITH `mcell i V ul = mcell 4 V ul`);
+ (ASM_SIMP_TAC[MCELL_EXPLICIT; ARITH_RULE `4 >= 4`; 
+   ARITH_RULE `~(i <= 4)==>i >= 4`]);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[MCELL_SUBSET_BALL8_1; ARITH_RULE `4 <= 4`])]);;
+
+(* ======================================================================== *)
+
+let FINITE_MCELL_SET_LEMMA_2 = prove_by_refinement (
+ `!V r s:real^3.
+           packing V /\ saturated V
+           ==> FINITE {X | X SUBSET ball (s,r) /\ mcell_set V X}`,
+[(REPEAT STRIP_TAC);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `{X | X SUBSET ball (vec 0,norm (s:real^3) + r) /\ 
+                    mcell_set V X}`);
+ (STRIP_TAC);
+ (ASM_SIMP_TAC[FINITE_MCELL_SET_LEMMA]);
+ (REWRITE_TAC[IN; SUBSET; IN_BALL; IN_ELIM_THM] THEN REPEAT STRIP_TAC);
+ (NEW_GOAL `dist (vec 0, x') <= norm s + dist (s, x':real^3)`);
+ (NORM_ARITH_TAC);
+ (NEW_GOAL `dist (s, x':real^3) < r`);
+ (ASM_SIMP_TAC[]);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN REAL_ARITH_TAC);
+ (ASM_REWRITE_TAC[])]);;
+
+(* ======================================================================== *)
+
+let CONIC_CAP_WEDGE_EQ_0 =prove_by_refinement (
+ `!v0 v1 a r w1 w2. a < &1 /\ &0 < r /\
+       vol (conic_cap v0 v1 r a INTER wedge v0 v1 w1 w2) = &0 ==>
+       coplanar {v0,v1,w1, w2:real^3}`,
+[(REPEAT STRIP_TAC);
+ (MATCH_MP_TAC (MESON[] `(~A==> F) ==> A`) THEN STRIP_TAC);
+ (NEW_GOAL `~collinear {v0, v1, w1:real^3}`);
+ (MATCH_MP_TAC NOT_COPLANAR_NOT_COLLINEAR);
+ (EXISTS_TAC `w2:real^3` THEN ASM_REWRITE_TAC[]);
+ (NEW_GOAL `~collinear {v0, v1, w2:real^3}`);
+ (MATCH_MP_TAC NOT_COPLANAR_NOT_COLLINEAR);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b,c,d} = {a,b,d,c}`] THEN 
+   EXISTS_TAC `w1:real^3` THEN ASM_REWRITE_TAC[]);
+
+ (NEW_GOAL `vol (conic_cap v0 v1 r a INTER wedge v0 v1 w1 (w2:real^3)) =
+             (if &1 < a \/ r < &0
+              then &0
+              else azim v0 v1 w1 w2 / &3 * (&1 - max a (-- &1)) * r pow 3)`);
+ (ASM_MESON_TAC[VOLUME_CONIC_CAP_WEDGE]);
+ (UP_ASM_TAC THEN COND_CASES_TAC);
+ (STRIP_TAC THEN ASM_REAL_ARITH_TAC);
+ (ASM_REWRITE_TAC[REAL_ARITH `&0 = a <=> a = &0`; 
+   REAL_ENTIRE; REAL_ARITH `a / &3 = &0 <=> a = &0`]);
+ (REWRITE_TAC[REAL_ARITH `&1 - max a (-- &1) = &0 <=> a = &1`]);
+ (REPEAT STRIP_TAC);
+ (UNDISCH_TAC `~coplanar {v0, v1, w1, w2:real^3}`);
+ (ASM_SIMP_TAC[AZIM_EQ_0_PI_IMP_COPLANAR]);
+ (ASM_REAL_ARITH_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[] THEN MATCH_MP_TAC REAL_POW_NZ);
+ (ASM_REAL_ARITH_TAC)]);;
+
+(* ======================================================================== *)
+
+let CONIC_CAP_AFF_GT_EQ_0 =prove_by_refinement (
+ `!v0 v1 a r w1 w2. a < &1 /\ &0 < r /\
+       vol (conic_cap v0 v1 r a INTER aff_gt {v0, v1} {w1, w2}) = &0 ==>
+       coplanar {v0,v1,w1, w2:real^3}`,
+[(REPEAT STRIP_TAC);
+ (MATCH_MP_TAC (MESON[] `(~A==> F) ==> A`) THEN STRIP_TAC);
+ (NEW_GOAL `~collinear {v0, v1, w1:real^3}`);
+ (MATCH_MP_TAC NOT_COPLANAR_NOT_COLLINEAR);
+ (EXISTS_TAC `w2:real^3` THEN ASM_REWRITE_TAC[]);
+ (NEW_GOAL `~collinear {v0, v1, w2:real^3}`);
+ (MATCH_MP_TAC NOT_COPLANAR_NOT_COLLINEAR);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b,c,d} = {a,b,d,c}`] THEN 
+   EXISTS_TAC `w1:real^3` THEN ASM_REWRITE_TAC[]);
+ (ASM_CASES_TAC `azim v0 v1 w1 (w2:real^3) < pi`);
+ (NEW_GOAL `wedge v0 v1 w1 w2 = aff_gt {v0, v1} {w1, w2:real^3}`);
+ (ASM_MESON_TAC[WEDGE_LUNE]);
+ (ASM_MESON_TAC[ CONIC_CAP_WEDGE_EQ_0]);
+
+ (ASM_CASES_TAC `azim v0 v1 w1 (w2:real^3) > pi`);
+ (NEW_GOAL `azim v0 v1 w2 (w1:real^3) =
+        (if azim v0 v1 w1 w2 = &0 then &0 else &2 * pi - azim v0 v1 w1 w2)`);
+ (MATCH_MP_TAC AZIM_COMPL);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN COND_CASES_TAC);
+ (UNDISCH_TAC `azim v0 v1 w1 (w2:real^3) > pi` THEN ASM_REWRITE_TAC[]);
+ (MESON_TAC[PI_POS_LE; REAL_ARITH `&0 > a <=> ~(&0 <= a)`]);
+ (STRIP_TAC);
+ (NEW_GOAL `azim v0 v1 w2 (w1:real^3) < pi`);
+ (ASM_REAL_ARITH_TAC);
+
+ (NEW_GOAL `wedge v0 v1 w2 w1 = aff_gt {v0, v1} {w1, w2:real^3}`);
+ (REWRITE_WITH `{w1, w2:real^3} = {w2, w1}`);
+ (SET_TAC[]);
+
+ (UNDISCH_TAC `~coplanar {v0, v1, w1, w2:real^3}`);
+ (REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b,c,d} = {a,b,d,c}`]);
+ (ASM_MESON_TAC[WEDGE_LUNE]);
+
+ (UNDISCH_TAC `~coplanar {v0, v1, w1, w2:real^3}`);
+ (REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b,c,d} = {a,b,d,c}`]);
+ (ASM_MESON_TAC[ CONIC_CAP_WEDGE_EQ_0]);
+
+ (NEW_GOAL `azim v0 v1 w1 (w2:real^3) = pi`);
+ (ASM_REAL_ARITH_TAC);
+ (ASM_MESON_TAC[AZIM_EQ_0_PI_IMP_COPLANAR])]);;
+
+(* ======================================================================== *)
+(* ======================================================================== *)
+(* ======================================================================== *)
+(* ======================================================================== *)
+(* ======================================================================== *)
+(* ======================================================================== *)
 

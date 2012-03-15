@@ -3613,9 +3613,138 @@ let MEASURABLE_BALL_AFF_GE = prove
   MESON_TAC[MEASURABLE_CONVEX; CONVEX_INTER; CONVEX_AFF_GE; CONVEX_BALL;
             BOUNDED_INTER; BOUNDED_BALL]);;
 
-(* ======================================================================== *)
-(* ======================================================================== *)
-(* ======================================================================== *)
-(* ======================================================================== *)
-(* ======================================================================== *)
+(* ==================================================================== *)
+(* Currently added lemmas *)
+(* Lemma 37 *)
+
+let FINITE_LIST_KY_LEMMA_2 = prove
+ (`!s:A->bool.
+       FINITE s
+       ==> FINITE
+        {y | ?u0 u1.
+               u0 IN s /\
+               u1 IN s /\
+               y = [u0; u1]}`,
+ REWRITE_TAC[SET_RULE 
+                `{y | ?u0 u1. u0 IN s /\ u1 IN s /\ y = [u0; u1]} =
+                 {[u0;u1] | u0 IN s /\ u1 IN s}`] THEN
+ REPEAT
+ (GEN_TAC THEN DISCH_TAC THEN 
+  MATCH_MP_TAC FINITE_PRODUCT_DEPENDENT THEN ASM_REWRITE_TAC[]));;
+
+let FINITE_SET_PRODUCT_KY_LEMMA = prove (
+ `!s:A->bool.
+       FINITE s ==> FINITE {{u0, u1:A} | u0 IN s /\ u1 IN s}`,
+ REPEAT
+ (GEN_TAC THEN DISCH_TAC THEN 
+  MATCH_MP_TAC FINITE_PRODUCT_DEPENDENT THEN ASM_REWRITE_TAC[]));;
+
+
+(* ==================================================================== *)
+(* Lemma 38: BETA_PAIR_THM - formal proof by TCHales *)
+
+let pre_beta = prove_by_refinement
+(`!g u' v'. (?f. (!u v. f { u, v } = (g:A->A->B) u v)) ==>
+    ((\ { u, v}. g u v) {u',v'} = g u' v')`,
+[REWRITE_TAC[GABS_DEF;GEQ_DEF];
+ SELECT_ELIM_TAC;
+ MESON_TAC[]]);;
+
+let WELLDEFINED_FUNCTION_2 = prove_by_refinement(
+`(?f:C->D. (!x:A y:B.  f(s x y) = t x y)) <=>
+   (!x x' y y'.  (s x y = s x' y') ==> t x y = t x' y')`,
+[ MATCH_MP_TAC EQ_TRANS ;
+  EXISTS_TAC  `?f:C->D. !z. !x:A y:B. (s x y = z) ==> f z = t x y`;
+  CONJ_TAC;
+  MESON_TAC[];
+  REWRITE_TAC[GSYM SKOLEM_THM];
+  MESON_TAC[]]);;
+
+let well_defined_unordered_pair = prove_by_refinement
+(`(?f. (!u v. f { u, v} = (g:A->A->B) u v)) <=>
+   (! u v. g u v = g v u)`,
+[REWRITE_TAC[WELLDEFINED_FUNCTION_2];
+ NEW_GOAL `!u v x' y'. 
+              {u,v} = {x',y'} <=> (u:A = x' /\ v = y')\/ (u = y' /\ v = x')`;
+ SET_TAC[];
+ ASM_REWRITE_TAC[];
+ MESON_TAC[]]);;
+
+let BETA_PAIR_THM = prove_by_refinement(
+`!g u' v'. (!u v. (g:A->A->B) u v = g v u) ==>
+    ((\ { u, v}. g u v) {u',v'} = g u' v')`,
+[REPEAT STRIP_TAC;
+ MATCH_MP_TAC pre_beta;
+ REWRITE_TAC[well_defined_unordered_pair];
+ ASM_REWRITE_TAC[]]);;
+
+(* ==================================================================== *)
+(* Lemma 39 *)
+
+let DIHX_RANGE = prove_by_refinement (
+ `!V X u v. &0 <= dihX V X (u,v) /\ dihX V X (u,v) <= pi`,
+[(REWRITE_TAC[dihX] THEN REPEAT GEN_TAC);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[PI_POS_LE; REAL_ARITH `a <= a`]);
+ (REPEAT LET_TAC THEN COND_CASES_TAC);
+ (REWRITE_TAC[dihu2; DIHV_RANGE]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[dihu3; DIHV_RANGE]);
+ (COND_CASES_TAC);
+ (REWRITE_TAC[dihu4; DIHV_RANGE]);
+ (REWRITE_TAC[PI_POS_LE; REAL_ARITH `a <= a`])]);;
+
+let DIHX_LE_PI = prove (`!V X u v. dihX V X (u,v) <= pi`, 
+                 MESON_TAC[DIHX_RANGE]);;
+
+(* ==================================================================== *)
+(* Lemma 40 *)
+
+let BOUNDED_VOLUME_MCELL = prove_by_refinement (
+ `!V. ?c. !X. saturated V /\ packing V /\ mcell_set V X ==> vol X <= c`,
+[(GEN_TAC);
+ (ASM_CASES_TAC `saturated V /\ packing V`);
+ (EXISTS_TAC `&4 / &3 * pi * &8 pow 3`);
+ (REPEAT STRIP_TAC);
+ (UP_ASM_TAC THEN REWRITE_TAC[mcell_set_2; IN_ELIM_THM; IN]);
+ (STRIP_TAC);
+ (ASM_CASES_TAC `X:real^3->bool = {}`);
+ (REWRITE_TAC[MEASURE_EMPTY; ASSUME `X:real^3->bool = {}`]);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &4 / &3 * pi * &8 pow 3 <=> &0 <= pi`]);
+ (REWRITE_TAC[PI_POS_LE]);
+ (UP_ASM_TAC THEN REWRITE_TAC[SET_RULE `~(x = {}) <=> (?v. v IN x)`]);
+ (STRIP_TAC);
+ (NEW_GOAL `vol X <= vol (ball (v, &8))`);
+ (MATCH_MP_TAC MEASURE_SUBSET);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[] THEN MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[MEASURABLE_BALL]);
+ (ASM_REWRITE_TAC[] THEN MATCH_MP_TAC MCELL_SUBSET_BALL8);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN SIMP_TAC[VOLUME_BALL; REAL_ARITH `&0 <= &8`]);
+ (EXISTS_TAC `&0`);
+ (REPEAT STRIP_TAC THEN ASM_MESON_TAC[])]);;
+
+(* ==================================================================== *)
+(* Lemma 41 *)
+(* ==================================================================== *)
+(* Lemma 42 *)
+(* ==================================================================== *)
+(* Lemma 43 *)
+(* ==================================================================== *)
+(* Lemma 44 *)
+(* ==================================================================== *)
+(* Lemma 45 *)
+(* ==================================================================== *)
+(* Lemma 46 *)
+(* ==================================================================== *)
+(* Lemma 47 *)
+(* ==================================================================== *)
+(* Lemma 48 *)
+(* ==================================================================== *)
+(* Lemma 49 *)
+(* ==================================================================== *)
+(* Lemma 50 *)
 

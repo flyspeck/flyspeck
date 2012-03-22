@@ -189,6 +189,14 @@ interval interMath::sqrt(interval a)
 	return a;
 	}
 
+interval interMath::cuberoot(interval a)  
+	{
+	  interMath::up(); a.hi = pow(a.hi, 0.333333333334);
+	  interMath::down(); a.lo= pow(a.lo,0.333333333333);
+	return a;
+	}
+
+
 /*
    Now compute the arctangent.  Here there is no IEEE standard to fall back on.
    We use "Computer Approximations", John F. Hart et al. page 125 (s=4)

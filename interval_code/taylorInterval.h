@@ -469,6 +469,14 @@ class taylorSimplex
 	  delta_pent_x,
           ell_uvx, // sep 2011.
 	  ell_vx2,
+
+
+	  // mar 2012, local optimality of bcc lattice
+	  selling_volume2,
+	  selling_surface_nn,
+	  selling_surface_nn2_013,
+	  selling_surface_nn01_23,
+	  selling_homog,
 	  ;
 
 	// construct x1^n1 .. x6^n6;

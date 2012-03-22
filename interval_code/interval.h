@@ -236,6 +236,8 @@ public:
 		// 
 	static interval sqrt(interval);  // negative values return 0
 
+	static interval cuberoot(interval);  
+
 		//////////
 		// An interval atan function.  The IEEE standard does not specify
 		// the performance of the math.h atan library function.  As a result,

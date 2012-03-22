@@ -276,6 +276,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
       }
       
       /*delete false inequalities */{
+	int oldcount=count;
 	int i=0; while (i<count)
 		   {
 		     if (T[i]->lowerBound() > 0.0)
@@ -289,6 +290,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 	  {
 	    if (cellOption::verbose==opt.printingMode)  {
 	      report_failure(x,z,"current inequalities are false");
+	      cout << "number just deleted = " << oldcount << endl;
 	    }
 	    return cellOption::counterexample;
 	  }

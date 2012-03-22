@@ -30,7 +30,114 @@ void printv(double* v,int n) {
   }
 }
 
+/*******************************
+Kelvin lattice example.
+*******************************/
 
+double selling_volume2 (double p01, double p02, double p03,
+		       double p12, double p13, double p23) {
+return p01*p02*p03 + p01*p03*p12 + p02*p03*p12 +
+  p01*p02*p13 + p02*p03*p13 + 
+ p01*p12*p13 + p02*p12*p13 + p03*p12*p13 + 
+  p01*p02*p23 + p01*p03*p23 + 
+  p01*p12*p23 + p02*p12*p23 + p03*p12*p23 + 
+  p01*p13*p23 + p02*p13*p23 + p03*p13*p23;;
+}
+
+double selling_surface_num(double p01, double p02, double p03,
+			   double p12, double p13, double p23) {
+  double p0_123 = p01 + p02 + p03;
+  double p1_023 = p01 + p12 + p13;
+  double p2_013 = p02 + p12 + p23;
+  double p3_012 = p03 + p13 + p23;
+  double p01_23 = p02 + p03 + p12 + p13;
+  double p02_13 = p01 + p03 + p12 + p23;
+  double p03_12 = p01 + p02 + p13 + p23;
+  double F01_23 = p01 * p23 * sqrt(p01_23);
+  double F02_13 = p02 * p13 * sqrt(p02_13);
+  double F03_12 = p03 * p12 * sqrt(p03_12);
+  double F0_123 = (p12*p13+p12*p23+p13*p23)*sqrt(p0_123);
+  double F1_023 = (p02*p03+p02*p23+p03*p23)*sqrt(p1_023);
+  double F2_013 = (p01*p03+p01*p13+p03*p13)*sqrt(p2_013);
+  double F3_012 = (p01*p02+p01*p12+p02*p12)*sqrt(p3_012);
+  return 2.0*(F01_23+F02_13+F03_12+F0_123+F1_023+F2_013+F3_012);
+}
+
+// sqrt lower secant bound on [0,0.1]
+double sqrt_approx(double t) {
+  return t * sqrt(0.1)/0.1;
+}
+
+double selling_surface_num_lower_approx(double p01, double p02, double p03,
+			   double p12, double p13, double p23) {
+  double p0_123 = p01 + p02 + p03;
+  double p1_023 = p01 + p12 + p13;
+  double p2_013 = p02 + p12 + p23;
+  double p3_012 = p03 + p13 + p23;
+  double p01_23 = p02 + p03 + p12 + p13;
+  double p02_13 = p01 + p03 + p12 + p23;
+  double p03_12 = p01 + p02 + p13 + p23;
+  double F01_23 = p01 * p23 * sqrt(p01_23);
+  double F02_13 = p02 * p13 * sqrt(p02_13);
+  double F03_12 = p03 * p12 * sqrt(p03_12);
+  double F0_123 = (p12*p13+p12*p23+p13*p23)*sqrt(p0_123);
+  double F1_023 = (p02*p03+p02*p23+p03*p23)*sqrt(p1_023);
+  double F2_013 = (p01*p03+p01*p13+p03*p13)*sqrt(p2_013);
+  double F3_012 = (p01*p02+p01*p12+p02*p12)*sqrt(p3_012);
+  return 2.0*(F01_23+F02_13+F03_12+F0_123+F1_023+F2_013+F3_012);
+}
+
+
+  void kelvin_surf(int numargs,int whichFn,double* x,double* ret,void*) {
+    *ret =  selling_surface_num_lower_approx(x[0],x[1],x[2],x[3],x[4],x[5]);
+  };
+
+void kelvin_deg(int numargs,int whichFn,double* x,double* ret,void*) {
+  double p01 = x[0];
+  double p02 = x[1];
+  double p03 = x[2];
+  double p12 = x[3];
+  double p13 = x[4];
+  double p23 = x[5];
+  double p0_123 = p01 + p02 + p03;
+  double p1_023 = p01 + p12 + p13;
+  double p2_013 = p02 + p12 + p23;
+  double p3_012 = p03 + p13 + p23;
+  double p01_23 = p02 + p03 + p12 + p13;
+  double p02_13 = p01 + p03 + p12 + p23;
+  double p03_12 = p01 + p02 + p13 + p23;
+  *ret = p3_012;
+};
+
+void kelvin_c(int numargs,int whichFn,double* x,double* ret,void*) {
+  double p01 = x[0];
+  double p02 = x[1];
+  double p03 = x[2];
+  double p12 = x[3];
+  double p13 = x[4];
+  double p23 = x[5];
+  double p0_123 = p01 + p02 + p03;
+  double p1_023 = p01 + p12 + p13;
+  double p2_013 = p02 + p12 + p23;
+  double p3_012 = p03 + p13 + p23;
+  double p01_23 = p02 + p03 + p12 + p13;
+  double p02_13 = p01 + p03 + p12 + p23;
+  double p03_12 = p01 + p02 + p13 + p23;
+  *ret = 1.0 - selling_volume2(x[0],x[1],x[2],x[3],x[4],x[5]);
+  if (whichFn==2) { *ret = p2_013 - 0.1; };
+};
+
+
+void compute_kelvin() {
+  double x[6];
+  double xmin[6] = {5,0,0,0,0,0};
+  double xmax[6]={81,81,81,81,81,81};
+  //double xmax[6]={5,5,5,5,5,5};
+  Minimizer M(500,6,2,xmin,xmax);
+  M.func = kelvin_surf;
+  M.cFunc = kelvin_c;
+  trialdata kelvin(M,"Kelvin lattice");
+}
 
 /*******************************
 2D example.
@@ -618,7 +725,8 @@ void pseudoseed(int i) {
   for (int j=0;j<i;j++) { myrand(); }
 }
 
-int main() {
+
+void kelvin_main() {
   // initialization.
   pseudoseed(8);
   init_wi_f();
@@ -706,5 +814,10 @@ int main() {
     // done
 
     local2D::run_obj();
+
+}
+
+int main() {
+    compute_kelvin();
   }
 

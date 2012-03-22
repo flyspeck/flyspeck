@@ -1851,6 +1851,42 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
     rhazim2_x_div_sqrtdelta_posbranch +
     rhazim3_x_div_sqrtdelta_posbranch;
 
+  // selling functions
+  static const interval bcc_value("5.31473969997195748521421682011");
+  //static const interval bcc_value_pow_6("23631533612.86479722208849");
+  static const interval sqrt01("3.162277660168379331998893544"); // sqrt(0.1)/0.1;
+  static const taylorFunction selling_volume2 = 
+    x1*x2*x3 + x1*x3*x4 + x2*x3*x4 + x1*x2*x5 + 
+    x2*x3*x5 + x1*x4*x5 + x2*x4*x5 + 
+    x3*x4*x5 + x1*x2*x6 + x1*x3*x6 + x1*x4*x6 + 
+    x2*x4*x6 + x3*x4*x6 + x1*x5*x6 + 
+    x2*x5*x6 + x3*x5*x6;
+  static const taylorFunction selling_surface_num = 
+    2*(x1*uni(univariate::i_sqrt,x2 + x3 + x4 + x5)*x6 + (x1*x3 + x1*x5 + x3*x5)*uni(univariate::i_sqrt,x2 + x4 + x6) + 
+       x2*x5*uni(univariate::i_sqrt,x1 + x3 + x4 + x6) + x3*x4*uni(univariate::i_sqrt,x1 + x2 + x5 + x6) + 
+       (x1*x2 + x1*x4 + x2*x4)*uni(univariate::i_sqrt,x3 + x5 + x6) + 
+       uni(univariate::i_sqrt,x1 + x4 + x5)*(x2*x3 + x2*x6 + x3*x6) + 
+       uni(univariate::i_sqrt,x1 + x2 + x3)*(x4*x5 + x4*x6 + x5*x6));
+  static const taylorFunction selling_surface_nn = 
+    selling_surface_num - unit * bcc_value;
+  static const taylorFunction selling_surface_nn2_013 = 
+    2*(x1*uni(univariate::i_sqrt,x2 + x3 + x4 + x5)*x6 + 
+       (x1*x3 + x1*x5 + x3*x5)*(x2 + x4 + x6)*sqrt01 + 
+       x2*x5*uni(univariate::i_sqrt,x1 + x3 + x4 + x6) + x3*x4*uni(univariate::i_sqrt,x1 + x2 + x5 + x6) + 
+       (x1*x2 + x1*x4 + x2*x4)*uni(univariate::i_sqrt,x3 + x5 + x6) + 
+       uni(univariate::i_sqrt,x1 + x4 + x5)*(x2*x3 + x2*x6 + x3*x6) + 
+       uni(univariate::i_sqrt,x1 + x2 + x3)*(x4*x5 + x4*x6 + x5*x6)) - unit * bcc_value;
+  static const taylorFunction selling_surface_nn01_23 = 
+    2*(x1*(x2 + x3 + x4 + x5)*x6*sqrt01 + 
+       (x1*x3 + x1*x5 + x3*x5)*uni(univariate::i_sqrt,x2 + x4 + x6) + 
+       x2*x5*uni(univariate::i_sqrt,x1 + x3 + x4 + x6) + x3*x4*uni(univariate::i_sqrt,x1 + x2 + x5 + x6) + 
+       (x1*x2 + x1*x4 + x2*x4)*uni(univariate::i_sqrt,x3 + x5 + x6) + 
+       uni(univariate::i_sqrt,x1 + x4 + x5)*(x2*x3 + x2*x6 + x3*x6) + 
+       uni(univariate::i_sqrt,x1 + x2 + x3)*(x4*x5 + x4*x6 + x5*x6)) - unit * bcc_value;
+  static const taylorFunction selling_homog = 
+    selling_surface_num - 
+    uni(univariate::i_pow5h6,selling_volume2)*bcc_value;
+    
     
 
   // gamma3f_vLR_lfun
@@ -2528,6 +2564,13 @@ const taylorFunction taylorSimplex::delta_x_135_s2 = local::mk_135(taylorSimplex
 const taylorFunction taylorSimplex::tau_lowform_x = local::tau_lowform_x;
 
 const taylorFunction taylorSimplex::tau_residual_x = local::tau_residual_x;
+
+const taylorFunction taylorSimplex::selling_homog = local::selling_homog;
+const taylorFunction taylorSimplex::selling_volume2 = local::selling_volume2;
+const taylorFunction taylorSimplex::selling_surface_nn = local::selling_surface_nn;
+const taylorFunction taylorSimplex::selling_surface_nn2_013 = local::selling_surface_nn2_013;
+const taylorFunction taylorSimplex::selling_surface_nn01_23 = local::selling_surface_nn01_23;
+
 
 //
 const taylorFunction taylorSimplex::ldih_x_126_n = local::ldih_x_126_n;
@@ -3936,6 +3979,33 @@ void taylorFunction::selfTest()
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
 	cout << "tau_residual_x D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+  /* test selling_volume2 */   {
+      domain x(4.1,4.2,4.3,13.0,4.5,4.6);
+      double mValue= 2608.486;
+      double mathValueD[6]={270.96,269.18999999999994,301.88,150.35,257.03999999999996,255.35};
+      taylorInterval at = taylorSimplex::selling_volume2.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "selling_volume2  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "selling_volume2 D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+  /* test selling_surface_nn */   {
+      domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+      double mValue= 2107.160938158643;
+      double mathValueD[6]={207.31409519500576,205.376230567524,203.50058898761495,201.4052168868247,199.5613135015172,197.68692136039425};
+      taylorInterval at = taylorSimplex::selling_surface_nn.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "selling_surface_nn  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-7))
+	cout << "selling_surface_nn D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
 

@@ -22,6 +22,7 @@ double max(double a,double b);
 double real_max(double a,double b);
 double min(double a,double b);
 double real_pow(double a,double b);
+double root(double n,double x);
 double atn2(double x,double y);  // = atan(y/x) in first quadrant.
 double matan(double); // atan(sqrt(x))/(sqrt(x)), and analytic continuation
 double asn(double x);

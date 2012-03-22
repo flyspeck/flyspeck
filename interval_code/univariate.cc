@@ -259,6 +259,32 @@ static interval DDpow3h2(const interval& x) {
 
 static uniprimitive ppow3h2(upow3h2,Dpow3h2,DDpow3h2);
 
+//pow5h26
+
+static interval upow5h6(const interval& x) {
+  interval t = interMath::cuberoot(x);
+  interval s = interMath::sqrt(t);
+  return x / s;
+}
+
+static interval Dpow5h6(const interval& x) {
+  static const interval o("0.833333333333333333333333333333");
+  interval t = interMath::cuberoot(x);
+  interval s = interMath::sqrt(t);
+  return o / s;
+}
+
+static interval DDpow5h6(const interval& x) {
+  static const interval o("-0.13888888888888888888888888888");
+  interval t = interMath::cuberoot(x);
+  interval s = interMath::sqrt(t);
+  return o / (s*x);
+}
+
+static uniprimitive ppow5h6(upow5h6,Dpow5h6,DDpow5h6);
+
+
+
 //inv
 
 static interval uinv(const interval& x) {
@@ -592,6 +618,9 @@ static interval DDpow4(const interval& x) {
 
  static uniprimitive ppow4(pow4,Dpow4,DDpow4);
 
+// pow5
+
+
 // IMPLEMENT UNIVARIATE CLASS
 
 
@@ -661,6 +690,7 @@ const univariate univariate::i_sqrt(&psqrt);
 const univariate univariate::i_sqp(&psqp);
 const univariate univariate::i_sqn(&psqn);
 const univariate univariate::i_pow3h2(&ppow3h2);
+const univariate univariate::i_pow5h6(&ppow5h6);
 const univariate univariate::i_inv(&pinv);
 const univariate univariate::i_atan(&patan);
 const univariate univariate::i_matan(&pmatan);

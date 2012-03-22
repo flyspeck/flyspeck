@@ -23,6 +23,7 @@ double max(double a,double b) { return (a>b? a : b); }
 double real_max(double a,double b) { return max(a,b); }
 double min(double a,double b) { return (a<b? a : b); }
 double real_pow(double a,double b) { return  pow(a,b);}
+double root(double n,double x) { return pow(x, (1.0/ n)); }
 
 double atn2(double x,double y) { return atan2(y,x); } // NB: variable ordering!
 double asn(double x) { return asin(x); }

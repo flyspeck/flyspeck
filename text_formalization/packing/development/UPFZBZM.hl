@@ -1,0 +1,642 @@
+(* ========================================================================= *)
+(* ========================================================================= *)
+(*                   The working file of KIZHLTL3 lemma                      *)
+(* ========================================================================= *)
+(*                   Axioms and loads                                        *)
+(* ========================================================================= *)
+
+let KY_CHEAT_TAC = MP_TAC (mk_fthm([],`F`)) THEN MESON_TAC[];;
+
+let gammaX_2 = prove (
+ `!V X f.
+         gammaX V X f =
+         vol X - (&2 * mm1 / pi) * total_solid V X +
+         (&8 * mm2 / pi) * sum (edgeX V X) (gammaY V X f)`,
+    REWRITE_TAC[gammaX; gammaY]);;
+
+#use "/home/vu/flyspeck/working/marchal_cells_3.hl";;
+#use "/home/vu/flyspeck/working/KIZHLTL.hl";;
+
+let SUM_GAMMAX_LMFUN_ESTIMATE_concl = 
+  `!V. ?c. !r. saturated V /\ packing V /\ &1 <= r /\ 
+               cell_cluster_estimate V /\ marchal_inequality /\
+               lmfun_inequality V ==> 
+    c * r pow 2 <=  sum {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X} 
+    (\X. gammaX V X lmfun)`;;
+
+let TSKAJXY_concl = 
+`!V X. saturated V /\ packing V /\ mcell_set V X /\ critical_edgeX V X  = {} 
+   ==> gammaX V X lmfun >= &0`;;
+
+let TSKAJXY = prove (TSKAJXY_concl, KY_CHEAT_TAC);;
+let OXLZLEZ = prove (OXLZLEZ_concl, KY_CHEAT_TAC);;
+
+let SUM_PAIR_2_SET = prove (
+ `!f s:A->bool. FINITE s /\ FINITE t ==>
+     sum {m,n | m IN s /\ n IN s /\ ~(m = n)} (\(m,n). f {m, n}) =
+     &2 * sum {{m, n} | m IN s /\ n IN s /\ CARD {m,n} = 2} f`, KY_CHEAT_TAC);;
+
+(* ========================================================================= *)
+(*      The above lemmas are to be proved by computer calculations           *)
+(* ========================================================================= *)
+(*               Continue back up of complementary lemmas                    *)
+(* ========================================================================= *)
+
+g SUM_GAMMAX_LMFUN_ESTIMATE_concl;;
+e (GEN_TAC);;
+e (EXISTS_TAC `c:real`);;
+e (REPEAT STRIP_TAC);;
+e (NEW_GOAL `!X. mcell_set V X /\ critical_edgeX V X  = {} ==> 
+                 gammaX V X lmfun >= &0`);;
+e (ASM_MESON_TAC[TSKAJXY]);;
+
+(* ------------------------------------------------------------------------ *)
+
+e (ABBREV_TAC `B = {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X}`);;
+e (ABBREV_TAC `B0 = {X | X SUBSET ball (vec 0,r) /\ mcell_set V X /\
+                         critical_edgeX V X = {}}`);;
+e (ABBREV_TAC `B1 = {X | X SUBSET ball (vec 0,r) /\ mcell_set V X /\
+                         ~(critical_edgeX V X = {})}`);;
+e (NEW_GOAL `FINITE (B1:(real^3->bool)->bool)`);;
+e (EXPAND_TAC "B1");;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `{X | X SUBSET ball (vec 0,r) /\ mcell_set V X}`);;
+e (STRIP_TAC);;
+e (ASM_SIMP_TAC[FINITE_MCELL_SET_LEMMA]);;
+e (SET_TAC[]);;
+
+e (REWRITE_WITH `B = B0 UNION B1:(real^3->bool)->bool`);;
+e (EXPAND_TAC "B" THEN EXPAND_TAC "B1" THEN EXPAND_TAC "B0");;
+e (SET_TAC[]);;
+e (REWRITE_WITH `sum (B0 UNION B1) (\X. gammaX V X lmfun) = 
+   sum B0 (\X. gammaX V X lmfun) + sum B1 (\X. gammaX V X lmfun)`);;
+e (MATCH_MP_TAC SUM_UNION);;
+e (REPEAT STRIP_TAC);;
+e (EXPAND_TAC "B0");;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `{X | X SUBSET ball (vec 0,r) /\ mcell_set V X}`);;
+e (STRIP_TAC);;
+e (ASM_SIMP_TAC[FINITE_MCELL_SET_LEMMA]);;
+e (SET_TAC[]);;
+e (ASM_REWRITE_TAC[]);;
+e (EXPAND_TAC "B1" THEN EXPAND_TAC "B0");;
+e (SET_TAC[]);;
+e (MATCH_MP_TAC (REAL_ARITH `&0 <= b /\ a <= c ==> a <= b + c`));;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC SUM_POS_LE);;
+e (STRIP_TAC);;
+e (EXPAND_TAC "B0");;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `{X | X SUBSET ball (vec 0,r) /\ mcell_set V X}`);;
+e (STRIP_TAC);;
+e (ASM_SIMP_TAC[FINITE_MCELL_SET_LEMMA]);;
+e (SET_TAC[]);;
+e (REWRITE_TAC[BETA_THM; REAL_ARITH `&0 <= a <=> a >= &0`]);;
+e (EXPAND_TAC "B0" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (ASM_SIMP_TAC[]);;
+
+e (REWRITE_WITH 
+  `sum B1 (\X. gammaX V X lmfun) = 
+   sum B1 (\X. (gammaX V X lmfun) * 
+                sum (critical_edgeX V X) (\e. critical_weight V X))`);;
+e (MATCH_MP_TAC SUM_EQ);;
+e (EXPAND_TAC "B1" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC[critical_weight]);;
+e (REWRITE_WITH 
+  `sum (critical_edgeX V x) (\e. &1 / &(CARD (critical_edgeX V x))) = 
+   &(CARD (critical_edgeX V x)) * (&1 / &(CARD (critical_edgeX V x)))`);;
+e (MATCH_MP_TAC SUM_CONST);;
+e (REWRITE_TAC[FINITE_critical_edgeX]);;
+e (REWRITE_TAC[REAL_ARITH `a * &1 / a = a / a`]);;
+e (REWRITE_WITH `&(CARD (critical_edgeX V x)) / &(CARD (critical_edgeX V x)) = &1`);;
+e (MATCH_MP_TAC REAL_DIV_REFL);;
+e (REWRITE_TAC[REAL_OF_NUM_EQ]);;
+e (REWRITE_WITH `CARD (critical_edgeX V x) = 0 <=> critical_edgeX V x = {}`);;
+e (MATCH_MP_TAC CARD_EQ_0);;
+e (REWRITE_TAC[FINITE_critical_edgeX]);;
+e (ASM_REWRITE_TAC[]);;
+e (REAL_ARITH_TAC);;
+
+(* ------------------------------------------------------------------------- *)
+(* Hint:      - See proofs of KIZHLTL1; KIZHLTL2 to adapt                    *)
+(* ------------------------------------------------------------------------- *)
+
+e (REWRITE_TAC[GSYM SUM_LMUL]);;
+e (ABBREV_TAC `T1:real^3->bool = V INTER ball (vec 0, r)`);;
+e (ABBREV_TAC `T2 = {{u0, u1:real^3} | u0 IN T1 /\ u1 IN T1}`);;
+e (NEW_GOAL `FINITE (T2:(real^3->bool)->bool)`);;
+e (EXPAND_TAC "T2" THEN MATCH_MP_TAC FINITE_SET_PRODUCT_KY_LEMMA);;
+e (EXPAND_TAC "T1" THEN MATCH_MP_TAC Pack2.KIUMVTC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (REWRITE_WITH 
+ `sum B1 (\X. sum (critical_edgeX V X) 
+                   (\x. gammaX V X lmfun * critical_weight V X)) =
+  sum B1 (\X. sum {y:real^3->bool| y IN T2 /\ critical_edgeX V X y} 
+                   (\x. gammaX V X lmfun * critical_weight V X))`);;
+e (MATCH_MP_TAC SUM_EQ);;
+e (EXPAND_TAC "B1" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (REPEAT STRIP_TAC);;
+e (AP_THM_TAC THEN AP_TERM_TAC);;
+e (REWRITE_TAC[SET_RULE `a = b <=> b SUBSET a /\ a SUBSET b`]);;
+e (STRIP_TAC);;
+e (SET_TAC[]);;
+e (REWRITE_TAC[SET_RULE `A SUBSET {y | T2 y /\ A y} <=> A SUBSET T2`]);;
+e (EXPAND_TAC "T2" THEN REWRITE_TAC[SUBSET; critical_edgeX; IN; IN_ELIM_THM; edgeX]);;
+e (REPEAT STRIP_TAC);;
+e (EXPAND_TAC "T1" THEN REWRITE_TAC[IN_ELIM_THM]);;
+e (EXISTS_TAC `u':real^3` THEN EXISTS_TAC `v':real^3`);;
+e (REWRITE_TAC[ASSUME `x' = {u, v:real^3}`; MESON[IN] `V (x:real^3) <=> x IN V`;
+               GSYM (ASSUME `{u, v} = {u', v':real^3}`); IN_INTER]);;
+e (NEW_GOAL `VX V x = V INTER x`);;
+e (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);;
+e (UNDISCH_TAC `mcell_set V x` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);;
+e (STRIP_TAC);;
+e (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num`);;
+e (ASM_REWRITE_TAC[]);;
+e (STRIP_TAC);;
+e (NEW_GOAL `VX V x = {}`);;
+e (REWRITE_TAC[VX]);;
+e (ASM_REWRITE_TAC[]);;
+e (UNDISCH_TAC `VX V x u'` THEN ASM_REWRITE_TAC[MESON[IN] `{} x <=> x IN {}`]);;
+e (SET_TAC[]);;
+e (ASM_SET_TAC[]);;
+
+e (ABBREV_TAC `f = (\X. (\x:real^3->bool. 
+                            gammaX V X lmfun * critical_weight V X))`);;
+e (REWRITE_WITH 
+ `sum B1 (\X. sum {y | y IN T2 /\ critical_edgeX V X y}
+                  (\x:real^3->bool. gammaX V X lmfun * critical_weight V X)) = 
+  sum B1 (\X. sum {y | y IN T2 /\ critical_edgeX V X y}
+                  (\x:real^3->bool. f X x))`);;
+e (EXPAND_TAC "f" THEN REFL_TAC);;
+e (REWRITE_WITH 
+  `sum B1 (\X. sum {y | y IN T2 /\ critical_edgeX V X y} (\x. f X x)) = 
+   sum T2 (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x))`);;
+e (ASM_SIMP_TAC[SUM_SUM_RESTRICT]);;
+
+e (EXPAND_TAC "T2");;
+e (REWRITE_WITH `sum {{u0, u1} | u0 IN T1 /\ u1 IN T1}
+ (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x)) = 
+  sum {{u0, u1} | u0 IN T1 /\ u1 IN T1 /\ CARD {u0, u1} = 2 /\ }
+ (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x))`);;
+e (MATCH_MP_TAC SUM_SUPERSET);;
+e (STRIP_TAC);;
+e (SET_TAC[]);;
+
+e (REWRITE_TAC[IN; IN_ELIM_THM] THEN REPEAT STRIP_TAC);;
+e (REWRITE_WITH `{X | B1 X /\ critical_edgeX V X x} = {}`);;
+e (REWRITE_TAC[SET_RULE `A = {} <=> ~(?x. x IN A)`]);;
+e (REWRITE_TAC[IN; IN_ELIM_THM; critical_edgeX; edgeX] THEN REPEAT STRIP_TAC);;
+
+e (NEW_GOAL `~(CARD {u', v':real^3} = 2)`);;
+e (ASM_MESON_TAC[]);;
+e (UP_ASM_TAC THEN ASM_REWRITE_TAC[Geomdetail.CARD_SET2]);;
+e (REWRITE_TAC[SUM_CLAUSES]);;
+e (ABBREV_TAC 
+  `g = (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x))`);;
+e (REWRITE_WITH 
+   `sum {{u0:real^3, u1} | u0 IN T1 /\ u1 IN T1 /\ CARD {u0, u1} = 2} g =
+    &1 / &2 * sum {m,n | m IN T1 /\ n IN T1 /\ ~(m = n)} (\(m,n). g {m, n})`);;
+e (REWRITE_TAC[REAL_ARITH `a = &1 / &2 * b <=> b = &2 * a`]);;
+e (MATCH_MP_TAC SUM_PAIR_2_SET);;
+e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_WITH `{m,n | m IN T1 /\ n IN T1 /\ ~(m = n:real^3)} = 
+                 {m,n | m IN T1 /\ n IN (T1 DELETE m)}`);;
+e (SET_TAC[]);;
+
+e (REWRITE_WITH 
+   `sum {m,n | m IN T1 /\ n IN T1 DELETE m} (\(m,n:real^3). g {m, n}) =
+    sum T1 (\m. sum (T1 DELETE m) (\n. g {m, n}))`);;
+e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
+e (ABBREV_TAC `F3 = (\x:real^3. T1 DELETE x)`);;
+e (REWRITE_WITH `sum T1 (\m:real^3. sum (T1 DELETE m) (\n. g {m, n})) = 
+                 sum T1 (\m. sum (F3 m) (\n. g {m, n}))`);;
+e (EXPAND_TAC "F3" THEN REFL_TAC);;
+e (REWRITE_WITH 
+  `sum {m:real^3,n | m IN T1 /\ n IN T1 DELETE m} (\(m,n). g {m, n}) = 
+   sum {m,n:real^3 | m IN T1 /\ n IN F3 m} (\(m,n). g {m, n})`);;
+e (EXPAND_TAC "F3" THEN REFL_TAC);;
+
+e (ABBREV_TAC `g1 = (\x. (\y. (g:(real^3->bool)->real) {x, y}))`);;
+e (REWRITE_WITH `!m n. (g:(real^3->bool)->real) {m, n} = g1 m n`);;
+e (EXPAND_TAC "g1" THEN REWRITE_TAC[]);;
+
+e (REWRITE_TAC[ETA_AX]);;
+e (MATCH_MP_TAC SUM_SUM_PRODUCT);;
+e (REPEAT STRIP_TAC);;
+e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
+e (ASM_REWRITE_TAC[]);;
+e (EXPAND_TAC "F3" THEN REWRITE_TAC[FINITE_DELETE]);;
+e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
+e (ASM_REWRITE_TAC[]);;
+
+
+
+
+
+search [`(\x. f x) = f`];;
+
+
+SUM_SUM_PRODUCT;;
+
+search [`sum {m,n | m IN T1 /\ n IN T2} f`];;
+
+
+search [`FINITE (V INTER ball (a,v))`];;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+search [`sum {} f`];;
+
+b();;
+
+seans_fn();;
+
+search [`sum s f = sum t f`];;
+
+
+
+
+
+search [`FINITE (V INTER ball (c,r))`];;
+
+e (REWRITE_WITH ``
+gammaX;;
+
+sum
+seans_fn();;
+
+
+
+e (EXPAND_TAC "f");;
+e (EXPAND_TAC "B1" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
+
+b();;
+
+ THEN EXPAND_TAC "T1");;
+
+
+b();;
+
+
+search [`{x,y | P } t`];;
+
+
+search [`sum s (g o f)`];;
+
+0.
+SUM_LE_INCLUDED;;
+
+p();;
+
+seans_fn();;
+
+
+e (REPEAT STRIP_TAC);;
+
+
+search [`ball (a, b) DIFF ball (c, d)`];;
+
+search []
+gammaX;;
+edgeX;;
+
+
+
+VOLUME_BALL;;
+
+b();;
+
+seans_fn();;
+
+search [`mcell`; `ball`];;
+
+
+b();;
+
+
+g `!V. ?c. (!X.
+           saturated V /\
+           packing V /\
+           mcell_set V X /\
+           critical_edgeX V X = {}
+           ==> gammaX V X lmfun <= c)`;;
+e (GEN_TAC);;
+e (ASM_CASES_TAC `saturated V /\ packing V`);;
+e (EXISTS_TAC `c:real`);;
+e (REPEAT STRIP_TAC);;
+
+e (REWRITE_TAC[gammaX]);;
+
+
+
+p();;
+
+
+total_solid;;
+
+type_of `packing`;;
+sol;;
+p();;
+edgeX;;
+
+search [`sol`];;
+
+search [``]
+search [`gammaX`];;
+
+critical_edgeX;;
+critical_weight;;
+
+
+let OXLZLEZ_cl = new_definition
+ `OXLZLEZ_cl = !V. saturated V /\ packing V ==> cell_cluster_estimate V`;;
+
+g `OXLZLEZ_cl`;;
+e (REWRITE_TAC[OXLZLEZ_cl]);;
+
+
+search [`&0 <= dihX a b (c,d)`];;
+
+search [`dihV a b c d <= e`];;
+
+b();;
+
+e (NEW_GOAL ``
+gammaX;;
+
+
+p();;
+
+search [`CARD {}`];;
+gammaX;;
+
+
+search [`gammaX`];;
+p();;
+b();;
+
+arcV;;
+acs;;
+search [`acs x <= t`];;
+
+critical_weight;;
+critical_edgeX;;
+gammaX;;
+dihX;;
+dihu3;;
+dihV;;
+search [`dihV`];;
+
+lmfun;;
+p();;
+
+g `[a;b] = list_of_set {a,b}`;;
+e (REWRITE_TAC[list_of_set]);;
+
+seans_fn();;
+b();;
+
+=sum B1 (\X. sum {y | y IN T2 /\ critical_edgeX V X y} (\x. f X x))
+seans_fn();;
+
+SUM_SUM_RESTRICT;;
+
+search [`sum s (\x. f x * g x)`];;
+
+
+search [``]
+
+SUM_LMUL;;
+
+
+
+mk_thm;;
+p();;
+
+
+cell_cluster;;
+
+cell_cluster_estimate;;
+
+cluster_gammaX;;
+
+
+
+
+
+(*                FLYSPECK - BOOK FORMALIZATION                              *)
+(*                                                                           *)
+(*      Authour   : VU KHAC KY                                               *)
+(*      Book lemma: UPFZBZM                                                  *)
+(*      Chaper    : Packing (Clusters)                                       *)
+(*      Date      : October 3, 2010                                          *)
+(*                                                                           *)
+(* ========================================================================= *)
+(*           Latest revision on 20 Jan 2012                                  *)
+
+(* ========================================================================= *)
+(*                     FILES NEED TO BE LOADED                               *)
+(* ========================================================================= *)
+(*                      Conclusions                                          *)
+  
+let UPFZBZM_concl = 
+   `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+         marchal_inequality /\
+         lmfun_inequality V ==>
+    (?G. negligible_fun_0 G V /\ fcc_compatible G V)`;;
+
+let FCC_COMPATABILITY_FUNC_concl =  
+ `!V.  saturated V /\ packing V /\ cell_cluster_estimate V /\ 
+   marchal_inequality /\
+   lmfun_inequality V /\ G = (\u. --vol(voronoi_open V u) + 
+   &8 * mm1 - &8 * mm2 * sum { v | v IN V /\ ~(u=v) /\ dist(u,v) <= &2*h0 } 
+   (\v. lmfun (hl [u;v]))) 
+   ==> fcc_compatible G V`;;
+
+let NEGLIGIBLE_FUNC_concl = 
+  `!V. saturated V /\
+       packing V /\
+       cell_cluster_estimate V /\
+       marchal_inequality /\
+       lmfun_inequality V /\
+       G =
+       (\u. --vol (voronoi_open V u) +
+            &8 * mm1 -
+            &8 *
+            mm2 *
+            sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+            (\v. lmfun (hl [u; v])))
+       ==> negligible_fun_0 G V`;;
+
+
+(* ======================================================================= *)
+(*
+#use "/home/vu/flyspeck/working/marchal_cells_3.hl";;
+#use "/home/vu/flyspeck/working/KIZHLTL.hl";;
+*)
+(* ======================================================================= *)
+(* Axioms *)
+
+let KY_CHEAT_TAC = MP_TAC (mk_fthm([],`F`)) THEN SET_TAC[];;
+let KIZHLTL4 = prove (KIZHLTL4_concl, KY_CHEAT_TAC);;
+let SUM_GAMMAX_LMFUN_ESTIMATE = prove (SUM_GAMMAX_LMFUN_ESTIMATE_concl, KY_CHEAT_TAC);;
+
+(* ========================================================================= *)
+(*                            THE THEOREM                                    *)
+(* ========================================================================= *)
+
+(* PART 1 OF THE LEMMA *)
+
+let FCC_COMPATABILITY_FUNC = prove_by_refinement (FCC_COMPATABILITY_FUNC_concl,
+[(REWRITE_TAC[lmfun_inequality;fcc_compatible]);
+ (REPEAT STRIP_TAC);
+ (ASM_REWRITE_TAC[REAL_ARITH `a + --a + b - c = b - c`]);
+ (MATCH_MP_TAC (REAL_ARITH 
+  `x = &8 * mm1 - &8 * (&12 * mm2) /\ y <= &8 * (&12 * mm2) ==> 
+   x <= &8 * mm1 - y`));
+ STRIP_TAC;
+ (REWRITE_TAC[SQRT_OF_32_lemma]);
+ (REWRITE_TAC[REAL_ARITH `a * b - a * c = a * (b - c)`]);
+ (REWRITE_TAC[m1_minus_12m2]);
+ (MATCH_MP_TAC REAL_LE_LMUL);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &8`]);
+ (REWRITE_TAC[REAL_ARITH `&12 * mm2 = mm2 * &12`]);
+ (MATCH_MP_TAC REAL_LE_LMUL);
+ (REWRITE_TAC[ZERO_LE_MM2_LEMMA]);
+ (ASM_MESON_TAC[])]);;
+
+
+(* ========================================================================= *)
+(* PART 2 OF THE LEMMA *)
+(* ========================================================================= *)
+
+g NEGLIGIBLE_FUNC_concl;;
+e (REWRITE_TAC[negligible_fun_0; negligible_fun_any_C]);;
+e (REPEAT STRIP_TAC);;
+
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL1));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL2));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool`  KIZHLTL4));;
+e (STRIP_TAC);;
+e (MP_TAC (SPEC `V:real^3->bool` SUM_GAMMAX_LMFUN_ESTIMATE));;
+e (STRIP_TAC);;
+e (EXISTS_TAC `--c''' - c - c' - c''`);;
+e (REPEAT STRIP_TAC);;
+
+e (ABBREV_TAC `f1 =  (\u:real^3. --vol (voronoi_open V u))`);;
+e (ABBREV_TAC `f2 =  (\u:real^3.  &8 * mm1 -  &8 * mm2 *
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (REWRITE_WITH `sum ((V:real^3->bool) INTER ball (vec 0,r)) G = 
+                 sum (V INTER ball (vec 0,r)) f1 + 
+                 sum (V INTER ball (vec 0,r)) f2`);;
+e (ASM_REWRITE_TAC[] THEN EXPAND_TAC "f1" THEN EXPAND_TAC "f2");;
+e (MATCH_MP_TAC SUM_ADD);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (ABBREV_TAC `f3 =  (\u:real^3.  &8 * mm1)`);;
+e (ABBREV_TAC `f4 =  (\u:real^3.  &8 * mm2 *
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (REWRITE_WITH `sum ((V:real^3->bool) INTER ball (vec 0,r)) f2 = 
+                 sum (V INTER ball (vec 0,r)) f3 - 
+                 sum (V INTER ball (vec 0,r)) f4`);;
+e (EXPAND_TAC "f2" THEN EXPAND_TAC "f3" THEN EXPAND_TAC "f4");;
+e (MATCH_MP_TAC SUM_SUB);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (EXPAND_TAC "f4" THEN DEL_TAC THEN 
+   ASM_SIMP_TAC[SUM_NEG;SUM_CONST;SUM_LMUL;FINITE_PACK_LEMMA]);;
+e (ABBREV_TAC `f5 =  (\u:real^3.  
+                     sum {v | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+                     (\v. lmfun (hl [u; v])))`);;
+e (ABBREV_TAC `B = {X | X SUBSET ball (vec 0, r)  /\ mcell_set V X}`);;
+e (ABBREV_TAC `T1 = sum B vol`);;
+e (ABBREV_TAC `T2 = --(&2 * mm1 / pi) * sum B (total_solid V)`);;
+e (ABBREV_TAC `T3 = (&8 * mm2 / pi) * sum B (\X. sum (edgeX V X)
+                (\({u, v}). dihX V X (u,v) * lmfun (hl [u; v])))`);;
+
+(* ======================================================================== *)
+
+e (NEW_GOAL `sum (V:real^3->bool INTER ball (vec 0,r)) f1 <= --T1 - c * r pow 2`);;
+e (EXPAND_TAC "T1" THEN EXPAND_TAC "B");;
+e (EXPAND_TAC "f1");;
+e (REWRITE_TAC[SUM_NEG; REAL_ARITH `-- a <= --b - c <=> b + c <= a`]);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL 
+  `sum (V:real^3->bool INTER ball (vec 0,r)) f3 <= --T2 - c' * r pow 2`);;
+e (EXPAND_TAC "T2" THEN EXPAND_TAC "B");;
+e (EXPAND_TAC "f3");;
+e (REWRITE_TAC[SUM_NEG; REAL_ARITH `a <= --(-- b * d) - c<=> a + c <= b * d`]);;
+e (REWRITE_WITH `sum (V INTER ball (vec 0,r)) (\u:real^3. &8 * mm1) = 
+   &(CARD (V INTER ball (vec 0,r))) * (&8 * mm1)`);;
+e (MATCH_MP_TAC SUM_CONST);;
+e (ASM_SIMP_TAC[FINITE_PACK_LEMMA]);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (NEW_GOAL `T3 + c'' * r pow 2 <= 
+   &8 * mm2 * sum (V:real^3->bool INTER ball (vec 0,r)) f5`);;
+e (EXPAND_TAC "T3" THEN EXPAND_TAC "B");;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+
+e (MATCH_MP_TAC (REAL_ARITH `(?s. A <= s /\ s <= b) ==> A <= b`));;
+e (EXISTS_TAC `--T1 + --T2 + --T3  - (c + c' + c'') * r pow 2`);;
+e (STRIP_TAC);;
+e (ASM_REAL_ARITH_TAC);;
+e (REWRITE_TAC[REAL_ARITH 
+   `--T1 + --T2 + --T3 - (c + c' + c'') * r pow 2 <=
+   (--c''' - c - c' - c'') * r pow 2 
+   <=> c''' * r pow 2 <= T1 + T2 + T3`]);;
+e (REWRITE_WITH `T1 + T2 + T3 = 
+                 sum {X | X SUBSET ball (vec 0,r) /\ mcell_set V X}
+                 (\X. gammaX V X lmfun)`);;
+e (ASM_REWRITE_TAC[]);;
+e (REWRITE_TAC[gammaX]);;
+e (NEW_GOAL `FINITE (B:(real^3->bool)->bool)`);;
+e (EXPAND_TAC "B");;
+e (ASM_SIMP_TAC [FINITE_MCELL_SET_LEMMA]);;
+e (ASM_SIMP_TAC[SUM_ADD; SUM_SUB; SUM_LMUL; ETA_AX]);;
+e (EXPAND_TAC "T2");;
+e (REAL_ARITH_TAC);;
+e (FIRST_ASSUM MATCH_MP_TAC);;
+e (ASM_REWRITE_TAC[]);;
+ 
+let NEGLIGIBLE_FUNC = top_thm();;
+
+(* ========================================================================= *)
+(*             Main theorm                                                   *)
+(* ========================================================================= *)
+
+let UPFZBZM = prove (UPFZBZM_concl,
+ (REPEAT STRIP_TAC) THEN (ABBREV_TAC `G = (\u. --vol (voronoi_open V u) +
+              &8 * mm1 -
+              &8 *
+              mm2 *
+              sum {v:real^3 | v IN V /\ ~(u = v) /\ dist (u,v) <= &2 * h0}
+              (\v. lmfun (hl [u; v])))`) THEN
+ (EXISTS_TAC `G:real^3->real`) THEN 
+ (ASM_MESON_TAC[NEGLIGIBLE_FUNC;FCC_COMPATABILITY_FUNC]));;
+
+

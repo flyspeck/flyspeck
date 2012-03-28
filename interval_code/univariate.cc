@@ -74,8 +74,8 @@ static interval DDsqrt(const interval& x) {
 	static const interval four("4");
 	if (interMath::boundedFromZero(x))
 	  {	return - one/(four * x * interMath::sqrt(x)); }
-	error::printTime ("D2 sqrt at 0 ");
-	cout << x.lo << " " << x.hi << endl << flush;
+	//error::printTime ("D2 sqrt at 0 ");
+	//cout << x.lo << " " << x.hi << endl << flush;
 	throw unstable::x;
 }
 

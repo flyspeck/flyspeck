@@ -1853,6 +1853,7 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
 
   // selling functions
   static const interval bcc_value("5.31473969997195748521421682011");
+  static const interval fcc_sc("16.9705627484771405856202");
   //static const interval bcc_value_pow_6("23631533612.86479722208849");
   static const interval sqrt01("3.162277660168379331998893544"); // sqrt(0.1)/0.1;
   static const taylorFunction selling_volume2 = 
@@ -1886,6 +1887,8 @@ static const taylorFunction dih_x_135_s2 = mk_135(taylorSimplex::dih);
   static const taylorFunction selling_homog = 
     selling_surface_num - 
     uni(univariate::i_pow5h6,selling_volume2)*bcc_value;
+  static const taylorFunction fcc_ineq = 
+    selling_surface_num - uni(univariate::i_sqrt,selling_volume2) * fcc_sc;
     
     
 
@@ -2566,6 +2569,7 @@ const taylorFunction taylorSimplex::tau_lowform_x = local::tau_lowform_x;
 const taylorFunction taylorSimplex::tau_residual_x = local::tau_residual_x;
 
 const taylorFunction taylorSimplex::selling_homog = local::selling_homog;
+const taylorFunction taylorSimplex::fcc_ineq = local::fcc_ineq;
 const taylorFunction taylorSimplex::selling_volume2 = local::selling_volume2;
 const taylorFunction taylorSimplex::selling_surface_nn = local::selling_surface_nn;
 const taylorFunction taylorSimplex::selling_surface_nn2_013 = local::selling_surface_nn2_013;

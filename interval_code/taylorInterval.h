@@ -477,6 +477,7 @@ class taylorSimplex
 	  selling_surface_nn2_013,
 	  selling_surface_nn01_23,
 	  selling_homog,
+	  fcc_ineq,
 	  ;
 
 	// construct x1^n1 .. x6^n6;

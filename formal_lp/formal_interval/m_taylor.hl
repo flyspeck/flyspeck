@@ -19,7 +19,7 @@ let inst_first_type_var ty th =
     else
       INST_TYPE [ty, hd ty_vars] th;;
 
-let float0 = mk_float 0 min_exp and
+let float0 = mk_float 0 Arith_options.min_exp and
     interval0 = mk_float_interval_small_num 0;;
 
 
@@ -126,7 +126,7 @@ let MK_CELL_DOMAIN = prove(`!xz (yw:(real#real)list) x z y w.
 
 
 
-let float0_eq = FLOAT_TO_NUM_CONV (mk_float 0 min_exp);;
+let float0_eq = FLOAT_TO_NUM_CONV (mk_float 0 Arith_options.min_exp);;
      
 
 (* array of theorems *)
@@ -760,6 +760,8 @@ gen_lin_approx_poly_thm rd_poly;;
 (*************************************)
 
 
+let le_op_num = `(<=):num->num->bool`;;
+
 (* 1 <= i /\ i <= n <=> i = 1 \/ i = 2 \/ ... \/ i = n *)
 let i_int_array =
   let i_tm = `i:num` in
@@ -1220,6 +1222,30 @@ let interval_arith_abs_le = prove(`!x int y. interval_arith x int ==> iabs int <
 
 let l_seq = new_definition `l_seq n m = TABLE (\i. n + i) ((m + 1) - n)`;;
 
+(* TODO: create a file containing theorems about tables *)
+
+let REVERSE_TABLE  = define `(REVERSE_TABLE (f:num->A) 0 = []) /\
+   (REVERSE_TABLE f (SUC i) = CONS (f i)  ( REVERSE_TABLE f i))`;; 
+
+  
+let TABLE = new_definition `!(f:num->A) k. TABLE f k = REVERSE (REVERSE_TABLE f k)`;;
+
+
+let LENGTH_REVERSE_TABLE = prove(`!(f:num->A) n. LENGTH (REVERSE_TABLE f n) = n`,
+   GEN_TAC THEN INDUCT_TAC THEN ASM_REWRITE_TAC[REVERSE_TABLE; LENGTH]);;
+
+
+let LENGTH_REVERSE = prove(`!(l:(A)list). LENGTH (REVERSE l) = LENGTH l`,
+   MATCH_MP_TAC list_INDUCT THEN REWRITE_TAC[REVERSE] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
+     ARITH_TAC);;
+
+
+let LENGTH_TABLE = prove(`!(f:num->A) n. LENGTH (TABLE f n) = n`,
+   REWRITE_TAC[TABLE; LENGTH_REVERSE; LENGTH_REVERSE_TABLE]);;
+
+
 let LENGTH_L_SEQ = prove(`LENGTH (l_seq n m) = (m + 1) - n`, REWRITE_TAC[l_seq; LENGTH_TABLE]);;
 let EL_L_SEQ = prove(`!i m n. i < (m + 1) - n ==> EL i (l_seq n m) = n + i`,
   REWRITE_TAC[l_seq] THEN REPEAT STRIP_TAC THEN MATCH_MP_TAC Packing3.EL_TABLE THEN ASM_REWRITE_TAC[]);;
@@ -1607,6 +1633,8 @@ let m_taylor_bound_array = Array.init (max_dim + 1)
 
 
 (* upper *)
+let b_var_real = `b:real`;;
+
 let eval_m_taylor_upper_bound n pp m_taylor_th =
   let domain_th, diff_th, lin_th, _ = dest_m_taylor_thms n m_taylor_th in
   let error_th = eval_m_taylor_error n pp m_taylor_th in

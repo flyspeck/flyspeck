@@ -85,17 +85,17 @@ let test_verify pp poly_tm min_flag val_tm (xx,zz) eps =
 let pp = 5;;
 
 let n = 2;;
-let poly_tm = expr_to_vector_fun `x1 pow 2 + x2 pow 2`;;
+let poly_tm = expr_to_vector_fun `x1 pow 3 + x2`;;
 
-let xx = `[-- &6; -- &6]` and zz = `[&1; &2]`;;
+let xx = `[-- &1; &0]` and zz = `[&1; &1]`;;
 let xx1 = convert_to_float_list pp true xx and
     zz1 = convert_to_float_list pp false zz;;
 
 let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
-let eval_fs, tf = mk_verification_functions pp poly_tm true `-- &1`;;
-let certificate = run_test tf xx_float zz_float false 0.0 true true true true 0.0;;
+let eval_fs, tf = mk_verification_functions pp poly_tm true `-- #1.1`;;
+let certificate = run_test tf xx_float zz_float false 0.0 true false false false 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
 (* 5 *)
 result_size certificate;;
@@ -108,6 +108,29 @@ result_size c0;;
 m_verify_raw0 n pp eval_fs c0 xx1 zz1;;
 
 test_verify pp poly_tm true `-- &1` (xx,zz) 0.0;;
+
+
+
+let domain0 = mk_m_center_domain n pp xx1 zz1;;
+let domain1, _ = restrict_domain n 2 true domain0;;
+let domain11, domain12 = split_domain n pp 1 domain1;;
+let domain111, domain112 = split_domain n pp 1 domain11;;
+
+let eval_taylor =
+  match eval_fs with (_, _, _, f) -> f;;
+
+let taylor0 = eval_taylor domain0;;
+eval_m_taylor_upper_partial n pp 2 taylor0;;
+
+let taylor111 = eval_taylor domain111;;
+eval_m_taylor_upper_bound n pp taylor111;;
+let taylor112 = eval_taylor domain112;;
+eval_m_taylor_upper_bound n pp taylor112;;
+
+let taylor12 = eval_taylor domain12;;
+eval_m_taylor_upper_bound n pp taylor12;;
+
+
 
 
 (****)
@@ -227,13 +250,15 @@ test 1 (m_verify_list n pp eval_delta_y c0 xx1) zz1;;
 
 (***)
 let eval_delta_y0, tf_delta_y0 = mk_verification_functions pp delta_y_poly true `&0`;;
-let certificate = run_test tf_delta_y0 xx_float zz_float false 0.0 true true true 0.0;;
+let certificate = run_test tf_delta_y0 xx_float zz_float false 0.0 true true true true 0.0;;
+result_stat certificate;;
 (* 25 (27) *)
 result_size certificate;;
 let c1 = transform_result xx_float zz_float certificate;;
 (* 1 *)
 length c1;;
 m_verify_list n pp eval_delta_y0 c1 xx1 zz1;;
+test 1 (m_verify_list n pp eval_delta_y0 c1 xx1) zz1;;
 
 
 (***)
@@ -254,7 +279,7 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
 let eval_ineq, tf_ineq = mk_verification_functions pp poly_ineq true `&0`;;
-let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true 0.0;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true true 0.0;;
 (* 51 (true true true) 54 (true false/true false) 439 (false false false) *)
 result_size certificate;;
 let c1 = transform_result xx_float zz_float certificate;;

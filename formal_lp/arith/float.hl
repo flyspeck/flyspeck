@@ -36,6 +36,18 @@ module type Arith_float_sig =
     val float_sub_lo : int -> term -> term -> thm
     val float_sub_hi : int -> term -> term -> thm
 
+    val reset_stat : unit -> unit
+    val reset_cache : unit -> unit
+    val print_stat : unit -> unit
+    val mul_lo_list : (int * term * term) list ref
+    val mul_hi_list : (int * term * term) list ref
+    val div_lo_list : (int * term * term) list ref
+    val div_hi_list : (int * term * term) list ref
+    val add_lo_list : (int * term * term) list ref
+    val add_hi_list : (int * term * term) list ref
+    val sub_lo_list : (int * term * term) list ref
+    val sub_hi_list : (int * term * term) list ref
+
     val dest_float_interval : term -> term * term * term
     val mk_float_interval_small_num : int -> thm
     val mk_float_interval_num : num -> thm
@@ -1056,6 +1068,14 @@ let NUM_EXP_SUB_lemma = prove(`!n e1 e2. e2 <= e1 ==> &(num_exp n (e1 - e2)) =
      ] THEN
      DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
      REAL_ARITH_TAC);;
+
+
+(********************)
+(* Float operations *)
+(********************)
+
+module Float_ops = struct
+
 
 (**********************************)
 
@@ -2326,6 +2346,315 @@ let f2 = `float F (D3 (D2 _0)) (D9 _0)`;;
 float_sub_hi 1 f2 f1;;
 *)
 
+
+end;; (* Float_ops module *)
+
+(************************************)
+(* Cached floating point operations *)
+(************************************)
+
+(* Counters for collecting stats *)
+let lt0_c = ref 0 and
+    gt0_c = ref 0 and
+    lt_c = ref 0 and
+    le0_c = ref 0 and
+    ge0_c = ref 0 and
+    le_c = ref 0 and
+    min_c = ref 0 and
+    max_c = ref 0 and
+    min_max_c = ref 0 and
+    mul_lo_c = ref 0 and
+    mul_hi_c = ref 0 and
+    div_lo_c = ref 0 and
+    div_hi_c = ref 0 and
+    add_lo_c = ref 0 and
+    add_hi_c = ref 0 and
+    sub_lo_c = ref 0 and
+    sub_hi_c = ref 0;;
+
+let mul_lo_list = ref [] and
+    mul_hi_list = ref [] and
+    div_lo_list = ref [] and
+    div_hi_list = ref [] and
+    add_lo_list = ref [] and
+    add_hi_list = ref [] and
+    sub_lo_list = ref [] and
+    sub_hi_list = ref [];;
+
+let cache_size = if Arith_options.float_cached then 100000 else 1;;
+
+let mul_table = Hashtbl.create cache_size and
+    div_table = Hashtbl.create cache_size and
+    add_table = Hashtbl.create cache_size and
+    sub_table = Hashtbl.create cache_size;;
+
+let reset_cache () =
+  mul_lo_list := [];
+  mul_hi_list := [];
+  div_lo_list := [];
+  div_hi_list := [];
+  add_lo_list := [];
+  add_hi_list := [];
+  sub_lo_list := [];
+  sub_hi_list := [];
+  Hashtbl.clear mul_table;
+  Hashtbl.clear div_table;
+  Hashtbl.clear add_table;
+  Hashtbl.clear sub_table;;
+
+let reset_stat () =
+  lt0_c := 0;
+  gt0_c := 0;
+  lt_c := 0;
+  le0_c := 0;
+  ge0_c := 0;
+  le_c := 0;
+  min_c := 0;
+  max_c := 0;
+  min_max_c := 0;
+  mul_lo_c := 0;
+  mul_hi_c := 0;
+  div_lo_c := 0;
+  div_hi_c := 0;
+  add_lo_c := 0;
+  add_hi_c := 0;
+  sub_lo_c := 0;
+  sub_hi_c := 0;;
+
+let print_stat () =
+  let cmp_str1 = sprintf "lt0 = %d\ngt0 = %d\nlt = %d\n" !lt0_c !gt0_c !lt_c and
+      cmp_str2 = sprintf "le0 = %d\nge0 = %d\nle = %d\n" !le0_c !ge0_c !le_c and
+      cmp_str3 = sprintf "min = %d\nmax = %d\nmin_max = %d\n" !min_c !max_c !min_max_c and
+      mul_str = sprintf "mul_lo = %d\nmul_hi = %d\n" !mul_lo_c !mul_hi_c and
+      div_str = sprintf "div_lo = %d\ndiv_hi = %d\n" !div_lo_c !div_hi_c and
+      add_str = sprintf "add_lo = %d\nadd_hi = %d\n" !add_lo_c !add_hi_c and
+      sub_str = sprintf "sub_lo = %d\nsub_hi = %d\n" !sub_lo_c !sub_hi_c in
+    print_string (cmp_str1 ^ cmp_str2 ^ cmp_str3 ^ mul_str ^ div_str ^ add_str ^ sub_str);;
+
+
+(* lt0 *)
+let float_lt0 =
+  if float_cached then
+    fun tm ->
+      let _ = lt0_c := !lt0_c + 1 in
+	Float_ops.float_lt0 tm
+  else
+    Float_ops.float_lt0;;
+
+(* gt0 *)
+let float_gt0 =
+  if float_cached then
+    fun tm ->
+      let _ = gt0_c := !gt0_c + 1 in
+	Float_ops.float_gt0 tm
+  else
+    Float_ops.float_gt0;;
+
+(* lt *)
+let float_lt =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = lt_c := !lt_c + 1 in
+	Float_ops.float_lt tm1 tm2
+  else
+    Float_ops.float_lt;;
+
+(* le0 *)
+let float_le0 =
+  if float_cached then
+    fun tm ->
+      let _ = le0_c := !le0_c + 1 in
+	Float_ops.float_le0 tm
+  else
+    Float_ops.float_le0;;
+
+(* ge0 *)
+let float_ge0 =
+  if float_cached then
+    fun tm ->
+      let _ = ge0_c := !ge0_c + 1 in
+	Float_ops.float_ge0 tm
+  else
+    Float_ops.float_ge0;;
+
+(* le *)
+let float_le =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = le_c := !le_c + 1 in
+	Float_ops.float_le tm1 tm2
+  else
+    Float_ops.float_le;;
+
+(* min *)
+let float_min =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = min_c := !min_c + 1 in
+	Float_ops.float_min tm1 tm2
+  else
+    Float_ops.float_min;;
+
+(* max *)
+let float_max =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = max_c := !max_c + 1 in
+	Float_ops.float_max tm1 tm2
+  else
+    Float_ops.float_max;;
+
+(* min_max *)
+let float_min_max =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = min_max_c := !min_max_c + 1 in
+	Float_ops.float_min_max tm1 tm2
+  else
+    Float_ops.float_min_max;;
+
+
+(***************)
+let float_hash tm =
+  let s, n_tm, e_tm = dest_float tm in
+    s ^ (Arith_cache.num_tm_hash n_tm) ^ "e" ^ (Arith_cache.num_tm_hash e_tm);;
+
+
+let float_op_hash pp tm1 tm2 =
+  string_of_int pp ^ float_hash tm1 ^ "x" ^ float_hash tm2;;
+
+(* mul_eq *)
+let float_mul_eq = Float_ops.float_mul_eq;;
+
+(* mul_lo *)
+let float_mul_lo =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = mul_lo_c := !mul_lo_c + 1 in
+      let _ = mul_lo_list := (pp,tm1,tm2) :: !mul_lo_list in
+      let hash = "lo" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find mul_table hash
+	with Not_found ->
+	  let result = Float_ops.float_mul_lo pp tm1 tm2 in
+	  let _ = Hashtbl.add mul_table hash result in
+	    result
+  else
+    Float_ops.float_mul_lo;;
+
+(* mul_hi *)
+let float_mul_hi =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = mul_hi_c := !mul_hi_c + 1 in
+      let _ = mul_hi_list := (pp,tm1,tm2) :: !mul_hi_list in
+      let hash = "hi" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find mul_table hash
+	with Not_found ->
+	  let result = Float_ops.float_mul_hi pp tm1 tm2 in
+	  let _ = Hashtbl.add mul_table hash result in
+	    result
+  else
+    Float_ops.float_mul_hi;;
+
+(* div_lo *)
+let float_div_lo =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = div_lo_c := !div_lo_c + 1 in
+      let _ = div_lo_list := (pp,tm1,tm2) :: !div_lo_list in
+      let hash = "lo" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find div_table hash
+	with Not_found ->
+	  let result = Float_ops.float_div_lo pp tm1 tm2 in
+	  let _ = Hashtbl.add div_table hash result in
+	    result
+  else
+    Float_ops.float_div_lo;;
+
+(* div_hi *)
+let float_div_hi =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = div_hi_c := !div_hi_c + 1 in
+      let _ = div_hi_list := (pp,tm1,tm2) :: !div_hi_list in
+      let hash = "hi" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find div_table hash
+	with Not_found ->
+	  let result = Float_ops.float_div_hi pp tm1 tm2 in
+	  let _ = Hashtbl.add div_table hash result in
+	    result
+  else
+    Float_ops.float_div_hi;;
+
+(* add_lo *)
+let float_add_lo =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = add_lo_c := !add_lo_c + 1 in
+      let _ = add_lo_list := (pp,tm1,tm2) :: !add_lo_list in
+      let hash = "lo" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find add_table hash
+	with Not_found ->
+	  let result = Float_ops.float_add_lo pp tm1 tm2 in
+	  let _ = Hashtbl.add add_table hash result in
+	    result
+  else
+    Float_ops.float_add_lo;;
+
+(* add_hi *)
+let float_add_hi =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = add_hi_c := !add_hi_c + 1 in
+      let _ = add_hi_list := (pp,tm1,tm2) :: !add_hi_list in
+      let hash = "hi" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find add_table hash
+	with Not_found ->
+	  let result = Float_ops.float_add_hi pp tm1 tm2 in
+	  let _ = Hashtbl.add add_table hash result in
+	    result
+  else
+    Float_ops.float_add_hi;;
+
+(* sub_lo *)
+let float_sub_lo =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = sub_lo_c := !sub_lo_c + 1 in
+      let _ = sub_lo_list := (pp,tm1,tm2) :: !sub_lo_list in
+      let hash = "lo" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find sub_table hash
+	with Not_found ->
+	  let result = Float_ops.float_sub_lo pp tm1 tm2 in
+	  let _ = Hashtbl.add sub_table hash result in
+	    result
+  else
+    Float_ops.float_sub_lo;;
+
+(* sub_hi *)
+let float_sub_hi =
+  if float_cached then
+    fun pp tm1 tm2 ->
+      let _ = sub_hi_c := !sub_hi_c + 1 in
+      let _ = sub_hi_list := (pp,tm1,tm2) :: !sub_hi_list in
+      let hash = "hi" ^ float_op_hash pp tm1 tm2 in
+	try
+	  Hashtbl.find sub_table hash
+	with Not_found ->
+	  let result = Float_ops.float_sub_hi pp tm1 tm2 in
+	  let _ = Hashtbl.add sub_table hash result in
+	    result
+  else
+    Float_ops.float_sub_hi;;
+
+    
 
 
 (******************************************)

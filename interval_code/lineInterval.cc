@@ -1048,7 +1048,8 @@ double edgeBound::x4_lower_from_rad2(double z[6]) {
     Solve[numrad2 == 0, x4] // Last // InputForm */
   interMath::up();
   double aup =  (8*x1  + (- x1) * x1);
-  double bup =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+  assert (aup > 0.0);
+  double bup =    (8*x1*x1  + (- 8*x1)*x2 + (- 8*x1)*x3 + 8*x2*x3 
 		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
 		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
   double cup =  ((-8*x1)*x2)*x5 + 8*x2*x2*x5 + 
@@ -1058,7 +1059,7 @@ double edgeBound::x4_lower_from_rad2(double z[6]) {
     2*x2*x3*x5*x6 + 8*x3*x6*x6 + (((- x3)*x3)*x6)*x6; 
 
   interMath::down();
-  double bdown =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+  double bdown =    (8*x1*x1  + (- 8*x1)*x2 + (- 8*x1)*x3 + 8*x2*x3 
 		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
 		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
   if (bdown * bup < 0.0)  { throw unstable::x; }
@@ -1074,7 +1075,7 @@ double edgeBound::x4_upper_from_rad2(double x[6]) {
   /* reverse rounding from x4_lower... */
   interMath::down();
   double adown =  (8*x1  + (- x1) * x1);
-  double bdown =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+  double bdown =    (8*x1*x1  + (- 8*x1)*x2 + (- 8*x1)*x3 + 8*x2*x3 
 		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
 		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
   double cdown =  ((-8*x1)*x2)*x5 + 8*x2*x2*x5 + 
@@ -1084,7 +1085,7 @@ double edgeBound::x4_upper_from_rad2(double x[6]) {
     2*x2*x3*x5*x6 + 8*x3*x6*x6 + (((- x3)*x3)*x6)*x6; 
 
   interMath::up();
-  double bup =    (8*x1*x1  + (- 8*x1)*x2 - 8*x1*x3 + 8*x2*x3 
+  double bup =    (8*x1*x1  + (- 8*x1)*x2 + (- 8*x1) *x3 + 8*x2*x3 
 		     + (-        8*x1)*x5 + (- 8*x2)*x5 + 2*x1*x2*x5 + (- 8*x1)*x6 
 		     + (-      8*x3)*x6 + 2*x1*x3*x6 + 8*x5*x6);
   if (bdown * bup < 0.0)  { throw unstable::x; }
@@ -1093,7 +1094,7 @@ double edgeBound::x4_upper_from_rad2(double x[6]) {
   if (discr < 0.0) { throw unstable::x; };
   return   (- bdown +  sqrt( discr ))/(2.0 * adown );
 
-}
+} 
 
 
 

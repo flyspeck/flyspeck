@@ -5066,14 +5066,14 @@ tauHexall[y1_, y2_, y3_, y4_, y5_, y6_] :=
     taylorInterval t = cD.evalf4(w,x,x,x); //dih2alt
     taylorInterval u = taylorSimplex::dih2.evalf4(w,x,x,x);
     if (!epsilonClose(t.upperBound(),u.tangentVectorOf().f,1.0e-8))
-      cout << "cD  fails " << t.upperBound() << endl;
+      cout << "cD1  fails " << t.upperBound() << endl;
     if (!epsilonClose(t.lowerBound(),u.tangentVectorOf().f,1.0e-8))
-      cout << "cD fails lB "  << t.lowerBound() << endl;
+      cout << "cD1 fails lB "  << t.lowerBound() << endl;
     for (int i=0;i<6;i++) {
-      if (!epsilonClose(t.upperPartial(i),u.tangentVectorOf().Df[i],1.0e-15))
-	cout << "cD " << i << "++ fails " << t.upperPartial(i) << endl;
-      if (!epsilonClose(t.lowerPartial(i),u.tangentVectorOf().Df[i],1.0e-15))
-	cout << "cDl fails " << i 	<< " " << t.lowerPartial(i) << endl;
+      if (!epsilonClose(t.upperPartial(i),u.tangentVectorOf().Df[i],1.0e-14))
+	cout << "cD1 " << i << "++ fails " << t.upperPartial(i) << endl;
+      if (!epsilonClose(t.lowerPartial(i),u.tangentVectorOf().Df[i],1.0e-14))
+	cout << "cDl1 fails " << i 	<< " " << t.lowerPartial(i) << endl;
     }
   }
   

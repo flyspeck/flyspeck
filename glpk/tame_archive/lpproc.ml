@@ -29,6 +29,8 @@ Execution instructions.
 2- make body.mod (using Parse_ineq.lpstring) if it doesn't exist already
      and place it in the directory glpk/tame_archive/
 
+  (* Update: 2012-4-8, This is part of the svn repository now.  It doesn't need to be regenerated. *)
+
 3- Load this module and execute the following command.
 
 let  (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();;

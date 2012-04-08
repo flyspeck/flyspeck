@@ -6,6 +6,7 @@
 #include "Minimizer.h"
 #include <math.h>
 #include "numerical.h"
+#include "assert.h"
 
 double myrand();
 

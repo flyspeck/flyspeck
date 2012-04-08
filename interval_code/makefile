@@ -10,6 +10,7 @@ CCOPTS1 = -g
 CCOPTS_NONE = -O0
 CCOPTS_NORM= -O1
 CCOPTS2 = -O2
+CCLINOPT = -O0
 
 error.o : error.h interval.h error.cc #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c error.cc
@@ -25,8 +26,8 @@ secondDerive.o : secondDerive.cc secondDerive.h error.h \
 	$(CC) $(CCOPTS1) $(CCOPTS_NORM) -c secondDerive.cc 
 
 lineInterval.o : lineInterval.h lineInterval.cc interval.h \
-	error.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS2) -c lineInterval.cc 
+	error.h #Can be opt. in level2. # 4/2012 MacBook Air requires -O0
+	$(CC) $(CCOPTS1) $(CCOPTS_NONE) -c lineInterval.cc 
 
 wide.o : wide.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c wide.cc

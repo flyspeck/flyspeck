@@ -35,6 +35,8 @@ module type Arith_float_sig =
     val float_add_hi : int -> term -> term -> thm
     val float_sub_lo : int -> term -> term -> thm
     val float_sub_hi : int -> term -> term -> thm
+    val float_sqrt_lo : int -> term -> thm
+    val float_sqrt_hi : int -> term -> thm
 
     val reset_stat : unit -> unit
     val reset_cache : unit -> unit
@@ -62,12 +64,10 @@ module type Arith_float_sig =
     val float_interval_div : int -> thm -> thm -> thm
     val float_interval_add : int -> thm -> thm -> thm
     val float_interval_sub : int -> thm -> thm -> thm
+    val float_interval_sqrt : int -> thm -> thm
 
     val float_abs : term -> thm
 	
-    val float_sqrt_lo : int -> term -> thm
-    val float_sqrt_hi : int -> term -> thm
-    val float_interval_sqrt : int -> thm -> thm
 
     val FLOAT_TO_NUM_CONV : term -> thm
 end;;
@@ -2347,6 +2347,480 @@ float_sub_hi 1 f2 f1;;
 *)
 
 
+(*******************************************)
+
+(* FLOAT_SQRT *)
+
+
+(* float F m e = float F (B0 m) (PRE e) *)
+let FLOAT_PRE_EXP = prove(mk_imp(`~(e = 0) /\ PRE e = e1`,
+				 mk_eq(`float F m e`,
+				       mk_comb(mk_comb(`float F`, mk_comb(b0_const, m_var_num)), `e1:num`))),
+   STRIP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
+     REWRITE_TAC[float; REAL_MUL_LID; real_div; REAL_EQ_MUL_RCANCEL] THEN
+     DISJ1_TAC THEN
+     REWRITE_TAC[num_exp; b0_thm; REAL_OF_NUM_EQ] THEN
+     SUBGOAL_THEN `e = SUC (PRE e)` MP_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> CONV_TAC (LAND_CONV (ONCE_REWRITE_CONV[th]))) THEN
+     REWRITE_TAC[EXP] THEN
+     ARITH_TAC);;
+
+	
+
+
+
+let DIV2_EVEN_lemma = prove(`!n. EVEN n ==> 2 * (n DIV 2) = n`,
+   GEN_TAC THEN
+     REWRITE_TAC[EVEN_EXISTS] THEN
+     STRIP_TAC THEN
+     ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC (ARITH_RULE `x = y ==> 2 * x = 2 * y`) THEN
+     MATCH_MP_TAC DIV_MULT THEN
+     ARITH_TAC);;
+
+
+
+let FLOAT_SQRT_EVEN_lo = prove(`f1 * f1 = f2 /\ f2 <= x /\
+                                num_exp m (2 * p) = x /\ f1 = num_exp n1 e1
+ 				   /\ EVEN e /\ e DIV 2 = e2 /\
+				   e1 + e2 + (min_exp DIV 2) = r /\ 
+				   p <= r /\ r - p = r2 
+				       ==> float F n1 r2 <= sqrt (float F m e)`,
+   STRIP_TAC THEN
+     UNDISCH_TAC `f2 <= x:num` THEN
+     UNDISCH_TAC `num_exp m (2 * p) = x` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `f1 * f1 = f2:num` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `e1 + e2 + min_exp DIV 2 = r` THEN
+     UNDISCH_TAC `e DIV 2 = e2` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REWRITE_TAC[num_exp; float; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL] THEN
+     REPEAT STRIP_TAC THEN
+     UNDISCH_TAC `r - p = r2:num` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+     MATCH_MP_TAC REAL_LE_RSQRT THEN
+     REWRITE_TAC[GSYM REAL_OF_NUM_POW; REAL_POW_DIV] THEN
+     REWRITE_TAC[REAL_POW_2; real_div; REAL_INV_MUL] THEN
+     REWRITE_TAC[REAL_MUL_ASSOC] THEN
+     MATCH_MP_TAC REAL_LE_RMUL THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `(((a * b) * a) * b) * c = (a * a) * (b * b) * c:real`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_ADD] THEN
+	 REWRITE_TAC[ARITH_RULE `r - p + r - p = 2 * r - 2 * p`] THEN
+	 MP_TAC (SPECL[mk_comb(amp_op_real, base_const); `2 * r`; `2 * p`] REAL_DIV_POW2) THEN
+	 ANTS_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+	 ASM_SIMP_TAC[ARITH_RULE `p <= r ==> 2 * p <= 2 * r`] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; real_div]) THEN
+
+	 SUBGOAL_THEN `2 * r = (e1 + e1) + min_exp + e` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   EXPAND_TAC "r" THEN
+	     REWRITE_TAC[ARITH_RULE `2 * (e1 + b + c) = (e1 + e1) + 2 * c + 2 * b`] THEN
+	     MATCH_MP_TAC (ARITH_RULE `b1 = b2 /\ c1 = c2 ==> a + b1 + c1 = a + b2 + c2:num`) THEN
+	     SUBGOAL_THEN `EVEN min_exp` ASSUME_TAC THENL
+	     [
+	       REWRITE_TAC[min_exp_def] THEN ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     ASM_SIMP_TAC[DIV2_EVEN_lemma];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[REAL_POW_ADD] THEN
+	 REWRITE_TAC[REAL_ARITH `(n * n) * (((e * e) * x * y) * z) * u = (n * e) * (n * e) * (x * u) * z * y:real`] THEN
+	 SUBGOAL_THEN `~(&(num_exp 1 min_exp) = &0)` MP_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_OF_NUM_EQ; NUM_EXP_EQ_0] THEN ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_POW; GSYM REAL_OF_NUM_MUL] THEN
+	 DISCH_THEN (fun th -> SIMP_TAC[th; REAL_MUL_RINV; REAL_MUL_LID]) THEN
+	 FIRST_X_ASSUM (MP_TAC o check(fun th -> (fst o dest_var o lhand o concl) th = "f1")) THEN
+	 REWRITE_TAC[GSYM REAL_OF_NUM_EQ; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+	 REWRITE_TAC[REAL_MUL_ASSOC] THEN
+	 MATCH_MP_TAC REAL_LE_RMUL THEN
+	 CONJ_TAC THENL
+	 [
+	   SUBGOAL_THEN `!x y z. &0 < x /\ y <= z * x ==> y * inv x <= z` MP_TAC THENL
+	     [
+	       REPEAT STRIP_TAC THEN
+		 MP_TAC (SPECL [`y * inv x`; `z:real`; `x:real`] REAL_LE_RMUL_EQ) THEN
+		 ASM_REWRITE_TAC[] THEN
+		 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; GSYM REAL_MUL_ASSOC]) THEN
+		 ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> ~(x = &0)`; REAL_MUL_LINV; REAL_MUL_RID];
+	       ALL_TAC
+	     ] THEN
+
+	     DISCH_THEN (MP_TAC o SPECL[`&(num_exp 1 (2 * p))`; `&(f1 * f1)`; `&m`]) THEN
+	     REWRITE_TAC[num_exp; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; REAL_MUL_LID] THEN
+	     DISCH_THEN MATCH_MP_TAC THEN
+	     ASM_REWRITE_TAC[REAL_OF_NUM_MUL; REAL_OF_NUM_POW; REAL_OF_NUM_LE] THEN
+	     REWRITE_TAC[REAL_OF_NUM_LT; EXP_LT_0] THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 MATCH_MP_TAC REAL_POW_LE THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_INV THEN
+     MATCH_MP_TAC REAL_POW_LE THEN
+     ARITH_TAC);;
+
+
+let FLOAT_SQRT_EVEN_hi = prove(`f1 * f1 = f2 /\ x <= f2 /\
+                                num_exp m (2 * p) = x /\ f1 = num_exp n1 e1
+ 				   /\ EVEN e /\ e DIV 2 = e2 /\
+				   e1 + e2 + (min_exp DIV 2) = r /\ 
+				   p <= r /\ r - p = r2 
+				       ==> sqrt (float F m e) <= float F n1 r2`,
+   STRIP_TAC THEN
+     UNDISCH_TAC `x <= f2:num` THEN
+     UNDISCH_TAC `num_exp m (2 * p) = x` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `f1 * f1 = f2:num` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `e1 + e2 + min_exp DIV 2 = r` THEN
+     UNDISCH_TAC `e DIV 2 = e2` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN
+     REWRITE_TAC[num_exp; float; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL] THEN
+     REPEAT STRIP_TAC THEN
+     UNDISCH_TAC `r - p = r2:num` THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+     MATCH_MP_TAC REAL_LE_LSQRT THEN
+     REPEAT CONJ_TAC THENL
+     [
+       REWRITE_TAC[REAL_OF_NUM_MUL; real_div] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REWRITE_TAC[REAL_POS] THEN
+	 MATCH_MP_TAC REAL_LE_INV THEN
+	 REWRITE_TAC[REAL_POS];
+       REWRITE_TAC[REAL_OF_NUM_MUL; real_div] THEN
+	 MATCH_MP_TAC REAL_LE_MUL THEN
+	 REWRITE_TAC[REAL_POS] THEN
+	 MATCH_MP_TAC REAL_LE_INV THEN
+	 REWRITE_TAC[REAL_POS];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[GSYM REAL_OF_NUM_POW; REAL_POW_DIV] THEN
+     REWRITE_TAC[REAL_POW_2; real_div; REAL_INV_MUL] THEN
+     REWRITE_TAC[REAL_MUL_ASSOC] THEN
+     MATCH_MP_TAC REAL_LE_RMUL THEN
+     CONJ_TAC THENL
+     [
+       REWRITE_TAC[REAL_ARITH `(((a * b) * a) * b) * c = (a * a) * (b * b) * c:real`] THEN
+	 REWRITE_TAC[GSYM REAL_POW_ADD] THEN
+	 REWRITE_TAC[ARITH_RULE `r - p + r - p = 2 * r - 2 * p`] THEN
+	 MP_TAC (SPECL[mk_comb(amp_op_real, base_const); `2 * r`; `2 * p`] REAL_DIV_POW2) THEN
+	 ANTS_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+	 ASM_SIMP_TAC[ARITH_RULE `p <= r ==> 2 * p <= 2 * r`] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; real_div]) THEN
+
+	 SUBGOAL_THEN `2 * r = (e1 + e1) + min_exp + e` (fun th -> REWRITE_TAC[th]) THENL
+	 [
+	   EXPAND_TAC "r" THEN
+	     REWRITE_TAC[ARITH_RULE `2 * (e1 + b + c) = (e1 + e1) + 2 * c + 2 * b`] THEN
+	     MATCH_MP_TAC (ARITH_RULE `b1 = b2 /\ c1 = c2 ==> a + b1 + c1 = a + b2 + c2:num`) THEN
+	     SUBGOAL_THEN `EVEN min_exp` ASSUME_TAC THENL
+	     [
+	       REWRITE_TAC[min_exp_def] THEN ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     ASM_SIMP_TAC[DIV2_EVEN_lemma];
+	   ALL_TAC
+	 ] THEN
+
+	 REWRITE_TAC[REAL_POW_ADD] THEN
+	 REWRITE_TAC[REAL_ARITH `(n * n) * (((e * e) * x * y) * z) * u = (n * e) * (n * e) * (x * u) * z * y:real`] THEN
+	 SUBGOAL_THEN `~(&(num_exp 1 min_exp) = &0)` MP_TAC THENL
+	 [
+	   REWRITE_TAC[REAL_OF_NUM_EQ; NUM_EXP_EQ_0] THEN ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_POW; GSYM REAL_OF_NUM_MUL] THEN
+	 DISCH_THEN (fun th -> SIMP_TAC[th; REAL_MUL_RINV; REAL_MUL_LID]) THEN
+	 FIRST_X_ASSUM (MP_TAC o check(fun th -> (fst o dest_var o lhand o concl) th = "f1")) THEN
+	 REWRITE_TAC[GSYM REAL_OF_NUM_EQ; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW] THEN
+	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+
+	 REWRITE_TAC[REAL_MUL_ASSOC] THEN
+	 MATCH_MP_TAC REAL_LE_RMUL THEN
+	 CONJ_TAC THENL
+	 [
+	   SUBGOAL_THEN `!x y z. &0 < x /\ z * x <= y ==> z <= y * inv x` MP_TAC THENL
+	     [
+	       REPEAT STRIP_TAC THEN
+		 MP_TAC (SPECL [`z:real`; `y * inv x`; `x:real`] REAL_LE_RMUL_EQ) THEN
+		 ASM_REWRITE_TAC[] THEN
+		 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; GSYM REAL_MUL_ASSOC]) THEN
+		 ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> ~(x = &0)`; REAL_MUL_LINV; REAL_MUL_RID];
+	       ALL_TAC
+	     ] THEN
+
+	     DISCH_THEN (MP_TAC o SPECL[`&(num_exp 1 (2 * p))`; `&(f1 * f1)`; `&m`]) THEN
+	     REWRITE_TAC[num_exp; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; REAL_MUL_LID] THEN
+	     DISCH_THEN MATCH_MP_TAC THEN
+	     ASM_REWRITE_TAC[REAL_OF_NUM_MUL; REAL_OF_NUM_POW; REAL_OF_NUM_LE] THEN
+	     REWRITE_TAC[REAL_OF_NUM_LT; EXP_LT_0] THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+
+	 MATCH_MP_TAC REAL_POW_LE THEN
+	 ARITH_TAC;
+       ALL_TAC
+     ] THEN
+
+     MATCH_MP_TAC REAL_LE_INV THEN
+     MATCH_MP_TAC REAL_POW_LE THEN
+     ARITH_TAC);;
+
+
+
+
+
+let transform = UNDISCH_ALL o
+  PURE_ONCE_REWRITE_RULE[TAUT `EVEN e <=> (EVEN e <=> T)`] o
+  NUMERALS_TO_NUM o
+  CONV_RULE (DEPTH_CONV NUM_DIV_CONV) o
+  REWRITE_RULE[GSYM IMP_IMP; min_exp_def];;
+
+
+let FLOAT_SQRT_EVEN_lo' = transform FLOAT_SQRT_EVEN_lo and
+    FLOAT_SQRT_EVEN_hi' = transform FLOAT_SQRT_EVEN_hi and
+    FLOAT_PRE_EXP' = (UNDISCH_ALL o 
+			PURE_ONCE_REWRITE_RULE[TAUT `~(e = _0) <=> ((e = _0) <=> F)`] o
+			REWRITE_RULE[GSYM IMP_IMP; NUMERAL]) FLOAT_PRE_EXP;;
+
+
+let even_const = `EVEN` and
+    pre_const = `PRE` and
+    two_num = rand(mk_small_numeral_array 2) and
+    min_exp_div2 = rand(mk_small_numeral_array (min_exp / 2)) and
+    f2_var_num = `f2:num` and
+    f1_var_num = `f1:num` and
+    p_var_num = `p:num`;;
+
+
+(* Returns the list of digits of the given Big_int n in the base b *)
+let rec get_big_int_digits b n =
+  let bb = big_int_of_int b in
+  if le_big_int n zero_big_int then []
+  else
+    let q, r = quomod_big_int n bb in
+      r :: get_big_int_digits b q;;
+
+
+(* [1;2;3] -> 123 (base = 10) *)
+let rec big_int_from_list b list =
+  let rec proc acc list =
+    match list with
+	[] -> acc
+      | h::t -> proc (add_big_int h (mult_int_big_int b acc)) t in
+    proc zero_big_int list;;
+
+
+(* Returns n first elements of the list *)
+let rec take n list =
+  match list with
+      x :: xs -> if n > 0 then x :: take (n - 1) xs else []
+    |	[] -> [];;
+
+
+
+(* Returns an integer number that contains at most pp "significant" digits
+   in the given base b *)
+let big_int_round_lo base pp n =
+  let digits = rev (get_big_int_digits base n) in
+  let n_digits = length digits in
+    if n_digits <= pp then
+      n
+    else
+      let m = big_int_from_list base (take pp digits) in
+	mult_big_int (power_int_positive_int base (n_digits - pp)) m;;
+
+
+
+let big_int_round_hi base pp n =
+  let digits = rev (get_big_int_digits base n) in
+  let n_digits = length digits in
+    if n_digits <= pp then n
+    else
+      let l1, l2 = chop_list pp digits in
+	if forall (eq_big_int zero_big_int) l2 then n
+	else
+	  let m = succ_big_int (big_int_from_list base l1) in
+	    mult_big_int (power_int_positive_int base (n_digits - pp)) m;;
+	    
+	
+
+(******************)
+
+let rec float_sqrt_lo pp tm =
+  let s, m_tm, e_tm = dest_float tm in
+  let p_tm = rand (mk_small_numeral_array pp) in
+    if s <> "F" then
+      failwith "float_sqrt_lo: negative argument"
+    else
+      let even_th = raw_even_hash_conv (mk_comb (even_const, e_tm)) in
+	if (fst o dest_const o rand o concl) even_th <> "T" then
+	  (* ODD e *)
+	  let pre_e = raw_pre_hash_conv (mk_comb (pre_const, e_tm)) in
+	  let e_neq_0 = raw_eq0_hash_conv e_tm in
+	  let e1_tm = rand (concl pre_e) in
+	  let th0 = INST[e1_tm, e1_var_num; e_tm, e_var_num; m_tm, m_var_num] FLOAT_PRE_EXP' in
+	  let th1 = MY_PROVE_HYP pre_e (MY_PROVE_HYP e_neq_0 th0) in
+	  let th2 = float_sqrt_lo pp (rand(concl th1)) in
+	  let ltm, rtm = dest_comb (concl th2) in
+	    EQ_MP (SYM (AP_TERM ltm (AP_TERM (rator rtm) th1))) th2
+	else
+	  (* EVEN e *)
+	  let p2_tm = mk_binop mul_op_num two_num p_tm in
+	  let p2_th = raw_mul_conv_hash p2_tm in
+	  let f1_1 = AP_TERM (mk_comb(num_exp_const, m_tm)) p2_th in
+	  let f1_2 = TRANS f1_1 (denormalize (rand (concl f1_1))) in
+
+	  let x_tm = rand(concl f1_2) in
+	  let x = raw_dest_hash x_tm in
+	  let f1' = Big_int.sqrt_big_int (big_int_of_num x) in
+	  let f1 = num_of_big_int (big_int_round_lo base pp f1') in
+	  let f1_tm = rand(mk_numeral_array f1) in
+	  let f1_num_exp = to_num_exp f1_tm in
+
+	  let n1_tm, e1_tm = dest_num_exp (rand (concl f1_num_exp)) in
+	  let f1f1_eq_f2 = raw_mul_conv_hash (mk_binop mul_op_num f1_tm f1_tm) in
+	  let f2_tm = rand(concl f1f1_eq_f2) in
+	  let f2_le_x = EQT_ELIM (raw_le_hash_conv (mk_binop le_op_num f2_tm x_tm)) in
+
+	  let e_div2_eq_e2 = raw_div_hash_conv (mk_binop div_op_num e_tm two_num) in
+	  let e2_tm = rand(concl e_div2_eq_e2) in
+	  let r_th1 = raw_add_conv_hash (mk_binop plus_op_num e2_tm min_exp_div2) in
+	  let r_th2 = AP_TERM (mk_comb(plus_op_num, e1_tm)) r_th1 in
+	  let r_th = TRANS r_th2 (raw_add_conv_hash (rand (concl r_th2))) in
+
+	  let r_tm = rand(concl r_th) in
+	  let r_sub_p, p_le_r = raw_sub_and_le_hash_conv p_tm r_tm in
+	  let r2_tm = rand(concl r_sub_p) in
+	    if (rand(concl p_le_r) <> r_tm) then
+	      failwith "float_sqrt_lo: underflow"
+	    else
+	      let th0 = INST[f2_tm, f2_var_num; x_tm, x_var_num; p_tm, p_var_num; r_tm, r_var_num;
+			     f1_tm, f1_var_num; n1_tm, n1_var_num; e1_tm, e1_var_num; e2_tm, e2_var_num;
+			     e_tm, e_var_num; m_tm, m_var_num; r2_tm, r2_var_num] 
+            		FLOAT_SQRT_EVEN_lo' in
+		MY_PROVE_HYP f1_2 (
+		  MY_PROVE_HYP e_div2_eq_e2 (
+		    MY_PROVE_HYP r_sub_p (
+		      MY_PROVE_HYP r_th (
+			MY_PROVE_HYP f1f1_eq_f2 (
+			  MY_PROVE_HYP f1_num_exp (
+			    MY_PROVE_HYP even_th (
+			      MY_PROVE_HYP f2_le_x (
+				MY_PROVE_HYP p_le_r th0
+			      ))))))));;
+
+
+
+
+
+let rec float_sqrt_hi pp tm =
+  let s, m_tm, e_tm = dest_float tm in
+  let p_tm = rand (mk_small_numeral_array pp) in
+    if s <> "F" then
+      failwith "float_sqrt_lo: negative argument"
+    else
+      let even_th = raw_even_hash_conv (mk_comb (even_const, e_tm)) in
+	if (fst o dest_const o rand o concl) even_th <> "T" then
+	  (* ODD e *)
+	  let pre_e = raw_pre_hash_conv (mk_comb (pre_const, e_tm)) in
+	  let e_neq_0 = raw_eq0_hash_conv e_tm in
+	  let e1_tm = rand (concl pre_e) in
+	  let th0 = INST[e1_tm, e1_var_num; e_tm, e_var_num; m_tm, m_var_num] FLOAT_PRE_EXP' in
+	  let th1 = MY_PROVE_HYP pre_e (MY_PROVE_HYP e_neq_0 th0) in
+	  let th2 = float_sqrt_hi pp (rand(concl th1)) in
+	  let ltm, rtm = dest_comb (concl th2) in
+	  let ltm2, rtm2 = dest_comb ltm in
+	  let th3 = AP_THM (AP_TERM ltm2 (AP_TERM (rator rtm2) th1)) rtm in
+	    EQ_MP (SYM th3) th2
+	else
+	  (* EVEN e *)
+	  let p2_tm = mk_binop mul_op_num two_num p_tm in
+	  let p2_th = raw_mul_conv_hash p2_tm in
+	  let f1_1 = AP_TERM (mk_comb(num_exp_const, m_tm)) p2_th in
+	  let f1_2 = TRANS f1_1 (denormalize (rand (concl f1_1))) in
+
+	  let x_tm = rand(concl f1_2) in
+	  let x = raw_dest_hash x_tm in
+	  let x' = big_int_of_num x in
+	  let f1' = sqrt_big_int x' in
+	  let f1 = (num_of_big_int o big_int_round_hi base pp)
+	    (if eq_big_int (mult_big_int f1' f1') x' then f1' else succ_big_int f1') in
+	      
+	  let f1_tm = rand(mk_numeral_array f1) in
+	  let f1_num_exp = to_num_exp f1_tm in
+
+	  let n1_tm, e1_tm = dest_num_exp (rand (concl f1_num_exp)) in
+	  let f1f1_eq_f2 = raw_mul_conv_hash (mk_binop mul_op_num f1_tm f1_tm) in
+	  let f2_tm = rand(concl f1f1_eq_f2) in
+	  let x_le_f2 = EQT_ELIM (raw_le_hash_conv (mk_binop le_op_num x_tm f2_tm)) in
+
+	  let e_div2_eq_e2 = raw_div_hash_conv (mk_binop div_op_num e_tm two_num) in
+	  let e2_tm = rand(concl e_div2_eq_e2) in
+	  let r_th1 = raw_add_conv_hash (mk_binop plus_op_num e2_tm min_exp_div2) in
+	  let r_th2 = AP_TERM (mk_comb(plus_op_num, e1_tm)) r_th1 in
+	  let r_th = TRANS r_th2 (raw_add_conv_hash (rand (concl r_th2))) in
+
+	  let r_tm = rand(concl r_th) in
+	  let r_sub_p, p_le_r = raw_sub_and_le_hash_conv p_tm r_tm in
+	  let r2_tm = rand(concl r_sub_p) in
+	    if (rand(concl p_le_r) <> r_tm) then
+	      failwith "float_sqrt_lo: underflow"
+	    else
+	      let th0 = INST[f2_tm, f2_var_num; x_tm, x_var_num; p_tm, p_var_num; r_tm, r_var_num;
+			     f1_tm, f1_var_num; n1_tm, n1_var_num; e1_tm, e1_var_num; e2_tm, e2_var_num;
+			     e_tm, e_var_num; m_tm, m_var_num; r2_tm, r2_var_num] 
+            		FLOAT_SQRT_EVEN_hi' in
+		MY_PROVE_HYP f1_2 (
+		  MY_PROVE_HYP e_div2_eq_e2 (
+		    MY_PROVE_HYP r_sub_p (
+		      MY_PROVE_HYP r_th (
+			MY_PROVE_HYP f1f1_eq_f2 (
+			  MY_PROVE_HYP f1_num_exp (
+			    MY_PROVE_HYP even_th (
+			      MY_PROVE_HYP x_le_f2 (
+				MY_PROVE_HYP p_le_r th0
+			      ))))))));;
+
+
+
+(*
+float_sqrt_lo 3 `float F (D2 _0) (D0 (D2 _0))`;;
+float_sqrt_hi 3 `float F (D2 _0) (D0 (D2 _0))`;;
+
+let tm = `float F (D2 _0) (D0 (D2 _0))`;;
+(* 10: 1.092 *)
+test 1000 (float_sqrt_lo 5) tm;;
+(* 10: 1.128 *)
+test 1000 (float_sqrt_hi 5) tm;;
+*)
+
+
+
 end;; (* Float_ops module *)
 
 (************************************)
@@ -2370,7 +2844,9 @@ let lt0_c = ref 0 and
     add_lo_c = ref 0 and
     add_hi_c = ref 0 and
     sub_lo_c = ref 0 and
-    sub_hi_c = ref 0;;
+    sub_hi_c = ref 0 and
+	sqrt_lo_c = ref 0 and
+	sqrt_hi_c = ref 0;;
 
 let mul_lo_list = ref [] and
     mul_hi_list = ref [] and
@@ -2381,12 +2857,16 @@ let mul_lo_list = ref [] and
     sub_lo_list = ref [] and
     sub_hi_list = ref [];;
 
-let cache_size = if Arith_options.float_cached then 100000 else 1;;
+(* Hash tables *)
+let cache_size = if Arith_options.float_cached then 10000 else 1;;
 
 let mul_table = Hashtbl.create cache_size and
     div_table = Hashtbl.create cache_size and
     add_table = Hashtbl.create cache_size and
-    sub_table = Hashtbl.create cache_size;;
+    sub_table = Hashtbl.create cache_size and
+    sqrt_table = Hashtbl.create cache_size and
+    le_table = Hashtbl.create cache_size and
+    max_table = Hashtbl.create cache_size;;
 
 let reset_cache () =
   mul_lo_list := [];
@@ -2400,7 +2880,10 @@ let reset_cache () =
   Hashtbl.clear mul_table;
   Hashtbl.clear div_table;
   Hashtbl.clear add_table;
-  Hashtbl.clear sub_table;;
+  Hashtbl.clear sub_table;
+  Hashtbl.clear sqrt_table;
+  Hashtbl.clear le_table;
+  Hashtbl.clear max_table;;
 
 let reset_stat () =
   lt0_c := 0;
@@ -2419,17 +2902,24 @@ let reset_stat () =
   add_lo_c := 0;
   add_hi_c := 0;
   sub_lo_c := 0;
-  sub_hi_c := 0;;
+  sub_hi_c := 0;
+  sqrt_lo_c := 0;
+  sqrt_hi_c := 0;;
 
 let print_stat () =
+  let len = Hashtbl.length in
   let cmp_str1 = sprintf "lt0 = %d\ngt0 = %d\nlt = %d\n" !lt0_c !gt0_c !lt_c and
-      cmp_str2 = sprintf "le0 = %d\nge0 = %d\nle = %d\n" !le0_c !ge0_c !le_c and
-      cmp_str3 = sprintf "min = %d\nmax = %d\nmin_max = %d\n" !min_c !max_c !min_max_c and
-      mul_str = sprintf "mul_lo = %d\nmul_hi = %d\n" !mul_lo_c !mul_hi_c and
-      div_str = sprintf "div_lo = %d\ndiv_hi = %d\n" !div_lo_c !div_hi_c and
-      add_str = sprintf "add_lo = %d\nadd_hi = %d\n" !add_lo_c !add_hi_c and
-      sub_str = sprintf "sub_lo = %d\nsub_hi = %d\n" !sub_lo_c !sub_hi_c in
-    print_string (cmp_str1 ^ cmp_str2 ^ cmp_str3 ^ mul_str ^ div_str ^ add_str ^ sub_str);;
+      cmp_str2 = sprintf "le0 = %d\nge0 = %d\n" !le0_c !ge0_c and
+      cmp_str3 = sprintf "min = %d\nmin_max = %d\n" !min_c !min_max_c and
+      le_str = sprintf "le = %d (le_hash = %d)\n" !le_c (len le_table) and
+      max_str = sprintf "max = %d (max_hash = %d)\n" !max_c (len max_table) and
+      mul_str = sprintf "mul_lo = %d, mul_hi = %d (mul_hash = %d)\n" !mul_lo_c !mul_hi_c (len mul_table) and
+      div_str = sprintf "div_lo = %d, div_hi = %d (div_hash = %d)\n" !div_lo_c !div_hi_c (len div_table) and
+      add_str = sprintf "add_lo = %d, add_hi = %d (add_hash = %d)\n" !add_lo_c !add_hi_c (len add_table) and
+      sub_str = sprintf "sub_lo = %d, sub_hi = %d (sub_hash = %d)\n" !sub_lo_c !sub_hi_c (len sub_table) and
+      sqrt_str = sprintf "sqrt_lo = %d, sqrt_hi = %d (sqrt_hash = %d)\n" !sqrt_lo_c !sqrt_hi_c (len sqrt_table) in
+    print_string (cmp_str1 ^ cmp_str2 ^ cmp_str3 ^ 
+		    le_str ^ max_str ^ mul_str ^ div_str ^ add_str ^ sub_str ^ sqrt_str);;
 
 
 (* lt0 *)
@@ -2477,15 +2967,6 @@ let float_ge0 =
   else
     Float_ops.float_ge0;;
 
-(* le *)
-let float_le =
-  if float_cached then
-    fun tm1 tm2 ->
-      let _ = le_c := !le_c + 1 in
-	Float_ops.float_le tm1 tm2
-  else
-    Float_ops.float_le;;
-
 (* min *)
 let float_min =
   if float_cached then
@@ -2494,15 +2975,6 @@ let float_min =
 	Float_ops.float_min tm1 tm2
   else
     Float_ops.float_min;;
-
-(* max *)
-let float_max =
-  if float_cached then
-    fun tm1 tm2 ->
-      let _ = max_c := !max_c + 1 in
-	Float_ops.float_max tm1 tm2
-  else
-    Float_ops.float_max;;
 
 (* min_max *)
 let float_min_max =
@@ -2519,9 +2991,42 @@ let float_hash tm =
   let s, n_tm, e_tm = dest_float tm in
     s ^ (Arith_cache.num_tm_hash n_tm) ^ "e" ^ (Arith_cache.num_tm_hash e_tm);;
 
-
 let float_op_hash pp tm1 tm2 =
   string_of_int pp ^ float_hash tm1 ^ "x" ^ float_hash tm2;;
+  
+let float_op_hash1 pp tm =
+	string_of_int pp ^ float_hash tm;;
+
+  
+(* le *)
+let float_le =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = le_c := !le_c + 1 in
+      let hash = float_op_hash 0 tm1 tm2 in
+	try
+	  Hashtbl.find le_table hash
+	with Not_found ->
+	  let result = Float_ops.float_le tm1 tm2 in
+	  let _ = Hashtbl.add le_table hash result in
+	    result
+  else
+    Float_ops.float_le;;
+
+(* max *)
+let float_max =
+  if float_cached then
+    fun tm1 tm2 ->
+      let _ = max_c := !max_c + 1 in
+      let hash = float_op_hash 0 tm1 tm2 in
+	try
+	  Hashtbl.find max_table hash
+	with Not_found ->
+	  let result = Float_ops.float_max tm1 tm2 in
+	  let _ = Hashtbl.add max_table hash result in
+	    result
+  else
+    Float_ops.float_max;;
 
 (* mul_eq *)
 let float_mul_eq = Float_ops.float_mul_eq;;
@@ -2531,7 +3036,7 @@ let float_mul_lo =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = mul_lo_c := !mul_lo_c + 1 in
-      let _ = mul_lo_list := (pp,tm1,tm2) :: !mul_lo_list in
+(*      let _ = mul_lo_list := (pp,tm1,tm2) :: !mul_lo_list in *)
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find mul_table hash
@@ -2547,7 +3052,7 @@ let float_mul_hi =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = mul_hi_c := !mul_hi_c + 1 in
-      let _ = mul_hi_list := (pp,tm1,tm2) :: !mul_hi_list in
+(*      let _ = mul_hi_list := (pp,tm1,tm2) :: !mul_hi_list in *)
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find mul_table hash
@@ -2563,7 +3068,7 @@ let float_div_lo =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = div_lo_c := !div_lo_c + 1 in
-      let _ = div_lo_list := (pp,tm1,tm2) :: !div_lo_list in
+(*      let _ = div_lo_list := (pp,tm1,tm2) :: !div_lo_list in *)
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find div_table hash
@@ -2579,7 +3084,7 @@ let float_div_hi =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = div_hi_c := !div_hi_c + 1 in
-      let _ = div_hi_list := (pp,tm1,tm2) :: !div_hi_list in
+(*      let _ = div_hi_list := (pp,tm1,tm2) :: !div_hi_list in *)
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find div_table hash
@@ -2595,7 +3100,7 @@ let float_add_lo =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = add_lo_c := !add_lo_c + 1 in
-      let _ = add_lo_list := (pp,tm1,tm2) :: !add_lo_list in
+(*      let _ = add_lo_list := (pp,tm1,tm2) :: !add_lo_list in *)
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find add_table hash
@@ -2611,7 +3116,7 @@ let float_add_hi =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = add_hi_c := !add_hi_c + 1 in
-      let _ = add_hi_list := (pp,tm1,tm2) :: !add_hi_list in
+(*      let _ = add_hi_list := (pp,tm1,tm2) :: !add_hi_list in *)
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find add_table hash
@@ -2627,7 +3132,7 @@ let float_sub_lo =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = sub_lo_c := !sub_lo_c + 1 in
-      let _ = sub_lo_list := (pp,tm1,tm2) :: !sub_lo_list in
+(*      let _ = sub_lo_list := (pp,tm1,tm2) :: !sub_lo_list in *)
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find sub_table hash
@@ -2643,7 +3148,7 @@ let float_sub_hi =
   if float_cached then
     fun pp tm1 tm2 ->
       let _ = sub_hi_c := !sub_hi_c + 1 in
-      let _ = sub_hi_list := (pp,tm1,tm2) :: !sub_hi_list in
+(*      let _ = sub_hi_list := (pp,tm1,tm2) :: !sub_hi_list in *)
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
 	try
 	  Hashtbl.find sub_table hash
@@ -2654,6 +3159,36 @@ let float_sub_hi =
   else
     Float_ops.float_sub_hi;;
 
+	
+(* sqrt_lo *)
+let float_sqrt_lo =
+  if float_cached then
+    fun pp tm ->
+      let _ = sqrt_lo_c := !sqrt_lo_c + 1 in
+      let hash = "lo" ^ float_op_hash1 pp tm in
+	try
+	  Hashtbl.find sqrt_table hash
+	with Not_found ->
+	  let result = Float_ops.float_sqrt_lo pp tm in
+	  let _ = Hashtbl.add sqrt_table hash result in
+	    result
+  else
+    Float_ops.float_sqrt_lo;;
+
+(* sqrt_hi *)
+let float_sqrt_hi =
+  if float_cached then
+    fun pp tm ->
+      let _ = sqrt_hi_c := !sqrt_hi_c + 1 in
+      let hash = "hi" ^ float_op_hash1 pp tm in
+	try
+	  Hashtbl.find sqrt_table hash
+	with Not_found ->
+	  let result = Float_ops.float_sqrt_hi pp tm in
+	  let _ = Hashtbl.add sqrt_table hash result in
+	    result
+  else
+    Float_ops.float_sqrt_hi;;
     
 
 
@@ -3956,477 +4491,6 @@ let float_abs tm =
   
 
 
-(*******************************************)
-
-(* FLOAT_SQRT *)
-
-
-(* float F m e = float F (B0 m) (PRE e) *)
-let FLOAT_PRE_EXP = prove(mk_imp(`~(e = 0) /\ PRE e = e1`,
-				 mk_eq(`float F m e`,
-				       mk_comb(mk_comb(`float F`, mk_comb(b0_const, m_var_num)), `e1:num`))),
-   STRIP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-     REWRITE_TAC[float; REAL_MUL_LID; real_div; REAL_EQ_MUL_RCANCEL] THEN
-     DISJ1_TAC THEN
-     REWRITE_TAC[num_exp; b0_thm; REAL_OF_NUM_EQ] THEN
-     SUBGOAL_THEN `e = SUC (PRE e)` MP_TAC THENL
-     [
-       POP_ASSUM MP_TAC THEN ARITH_TAC;
-       ALL_TAC
-     ] THEN
-     DISCH_THEN (fun th -> CONV_TAC (LAND_CONV (ONCE_REWRITE_CONV[th]))) THEN
-     REWRITE_TAC[EXP] THEN
-     ARITH_TAC);;
-
-	
-
-
-
-let DIV2_EVEN_lemma = prove(`!n. EVEN n ==> 2 * (n DIV 2) = n`,
-   GEN_TAC THEN
-     REWRITE_TAC[EVEN_EXISTS] THEN
-     STRIP_TAC THEN
-     ASM_REWRITE_TAC[] THEN
-     MATCH_MP_TAC (ARITH_RULE `x = y ==> 2 * x = 2 * y`) THEN
-     MATCH_MP_TAC DIV_MULT THEN
-     ARITH_TAC);;
-
-
-
-let FLOAT_SQRT_EVEN_lo = prove(`f1 * f1 = f2 /\ f2 <= x /\
-                                num_exp m (2 * p) = x /\ f1 = num_exp n1 e1
- 				   /\ EVEN e /\ e DIV 2 = e2 /\
-				   e1 + e2 + (min_exp DIV 2) = r /\ 
-				   p <= r /\ r - p = r2 
-				       ==> float F n1 r2 <= sqrt (float F m e)`,
-   STRIP_TAC THEN
-     UNDISCH_TAC `f2 <= x:num` THEN
-     UNDISCH_TAC `num_exp m (2 * p) = x` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     UNDISCH_TAC `f1 * f1 = f2:num` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     UNDISCH_TAC `e1 + e2 + min_exp DIV 2 = r` THEN
-     UNDISCH_TAC `e DIV 2 = e2` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     REPEAT (POP_ASSUM MP_TAC) THEN
-     REWRITE_TAC[num_exp; float; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL] THEN
-     REPEAT STRIP_TAC THEN
-     UNDISCH_TAC `r - p = r2:num` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-
-     MATCH_MP_TAC REAL_LE_RSQRT THEN
-     REWRITE_TAC[GSYM REAL_OF_NUM_POW; REAL_POW_DIV] THEN
-     REWRITE_TAC[REAL_POW_2; real_div; REAL_INV_MUL] THEN
-     REWRITE_TAC[REAL_MUL_ASSOC] THEN
-     MATCH_MP_TAC REAL_LE_RMUL THEN
-     CONJ_TAC THENL
-     [
-       REWRITE_TAC[REAL_ARITH `(((a * b) * a) * b) * c = (a * a) * (b * b) * c:real`] THEN
-	 REWRITE_TAC[GSYM REAL_POW_ADD] THEN
-	 REWRITE_TAC[ARITH_RULE `r - p + r - p = 2 * r - 2 * p`] THEN
-	 MP_TAC (SPECL[mk_comb(amp_op_real, base_const); `2 * r`; `2 * p`] REAL_DIV_POW2) THEN
-	 ANTS_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
-	 ASM_SIMP_TAC[ARITH_RULE `p <= r ==> 2 * p <= 2 * r`] THEN
-	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; real_div]) THEN
-
-	 SUBGOAL_THEN `2 * r = (e1 + e1) + min_exp + e` (fun th -> REWRITE_TAC[th]) THENL
-	 [
-	   EXPAND_TAC "r" THEN
-	     REWRITE_TAC[ARITH_RULE `2 * (e1 + b + c) = (e1 + e1) + 2 * c + 2 * b`] THEN
-	     MATCH_MP_TAC (ARITH_RULE `b1 = b2 /\ c1 = c2 ==> a + b1 + c1 = a + b2 + c2:num`) THEN
-	     SUBGOAL_THEN `EVEN min_exp` ASSUME_TAC THENL
-	     [
-	       REWRITE_TAC[min_exp_def] THEN ARITH_TAC;
-	       ALL_TAC
-	     ] THEN
-	     ASM_SIMP_TAC[DIV2_EVEN_lemma];
-	   ALL_TAC
-	 ] THEN
-
-	 REWRITE_TAC[REAL_POW_ADD] THEN
-	 REWRITE_TAC[REAL_ARITH `(n * n) * (((e * e) * x * y) * z) * u = (n * e) * (n * e) * (x * u) * z * y:real`] THEN
-	 SUBGOAL_THEN `~(&(num_exp 1 min_exp) = &0)` MP_TAC THENL
-	 [
-	   REWRITE_TAC[REAL_OF_NUM_EQ; NUM_EXP_EQ_0] THEN ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-	 REWRITE_TAC[num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_POW; GSYM REAL_OF_NUM_MUL] THEN
-	 DISCH_THEN (fun th -> SIMP_TAC[th; REAL_MUL_RINV; REAL_MUL_LID]) THEN
-	 FIRST_X_ASSUM (MP_TAC o check(fun th -> (fst o dest_var o lhand o concl) th = "f1")) THEN
-	 REWRITE_TAC[GSYM REAL_OF_NUM_EQ; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW] THEN
-	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-
-	 REWRITE_TAC[REAL_MUL_ASSOC] THEN
-	 MATCH_MP_TAC REAL_LE_RMUL THEN
-	 CONJ_TAC THENL
-	 [
-	   SUBGOAL_THEN `!x y z. &0 < x /\ y <= z * x ==> y * inv x <= z` MP_TAC THENL
-	     [
-	       REPEAT STRIP_TAC THEN
-		 MP_TAC (SPECL [`y * inv x`; `z:real`; `x:real`] REAL_LE_RMUL_EQ) THEN
-		 ASM_REWRITE_TAC[] THEN
-		 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; GSYM REAL_MUL_ASSOC]) THEN
-		 ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> ~(x = &0)`; REAL_MUL_LINV; REAL_MUL_RID];
-	       ALL_TAC
-	     ] THEN
-
-	     DISCH_THEN (MP_TAC o SPECL[`&(num_exp 1 (2 * p))`; `&(f1 * f1)`; `&m`]) THEN
-	     REWRITE_TAC[num_exp; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; REAL_MUL_LID] THEN
-	     DISCH_THEN MATCH_MP_TAC THEN
-	     ASM_REWRITE_TAC[REAL_OF_NUM_MUL; REAL_OF_NUM_POW; REAL_OF_NUM_LE] THEN
-	     REWRITE_TAC[REAL_OF_NUM_LT; EXP_LT_0] THEN
-	     ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-
-	 MATCH_MP_TAC REAL_POW_LE THEN
-	 ARITH_TAC;
-       ALL_TAC
-     ] THEN
-
-     MATCH_MP_TAC REAL_LE_INV THEN
-     MATCH_MP_TAC REAL_POW_LE THEN
-     ARITH_TAC);;
-
-
-let FLOAT_SQRT_EVEN_hi = prove(`f1 * f1 = f2 /\ x <= f2 /\
-                                num_exp m (2 * p) = x /\ f1 = num_exp n1 e1
- 				   /\ EVEN e /\ e DIV 2 = e2 /\
-				   e1 + e2 + (min_exp DIV 2) = r /\ 
-				   p <= r /\ r - p = r2 
-				       ==> sqrt (float F m e) <= float F n1 r2`,
-   STRIP_TAC THEN
-     UNDISCH_TAC `x <= f2:num` THEN
-     UNDISCH_TAC `num_exp m (2 * p) = x` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     UNDISCH_TAC `f1 * f1 = f2:num` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     UNDISCH_TAC `e1 + e2 + min_exp DIV 2 = r` THEN
-     UNDISCH_TAC `e DIV 2 = e2` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     REPEAT (POP_ASSUM MP_TAC) THEN
-     REWRITE_TAC[num_exp; float; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL] THEN
-     REPEAT STRIP_TAC THEN
-     UNDISCH_TAC `r - p = r2:num` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-
-     MATCH_MP_TAC REAL_LE_LSQRT THEN
-     REPEAT CONJ_TAC THENL
-     [
-       REWRITE_TAC[REAL_OF_NUM_MUL; real_div] THEN
-	 MATCH_MP_TAC REAL_LE_MUL THEN
-	 REWRITE_TAC[REAL_POS] THEN
-	 MATCH_MP_TAC REAL_LE_INV THEN
-	 REWRITE_TAC[REAL_POS];
-       REWRITE_TAC[REAL_OF_NUM_MUL; real_div] THEN
-	 MATCH_MP_TAC REAL_LE_MUL THEN
-	 REWRITE_TAC[REAL_POS] THEN
-	 MATCH_MP_TAC REAL_LE_INV THEN
-	 REWRITE_TAC[REAL_POS];
-       ALL_TAC
-     ] THEN
-
-     REWRITE_TAC[GSYM REAL_OF_NUM_POW; REAL_POW_DIV] THEN
-     REWRITE_TAC[REAL_POW_2; real_div; REAL_INV_MUL] THEN
-     REWRITE_TAC[REAL_MUL_ASSOC] THEN
-     MATCH_MP_TAC REAL_LE_RMUL THEN
-     CONJ_TAC THENL
-     [
-       REWRITE_TAC[REAL_ARITH `(((a * b) * a) * b) * c = (a * a) * (b * b) * c:real`] THEN
-	 REWRITE_TAC[GSYM REAL_POW_ADD] THEN
-	 REWRITE_TAC[ARITH_RULE `r - p + r - p = 2 * r - 2 * p`] THEN
-	 MP_TAC (SPECL[mk_comb(amp_op_real, base_const); `2 * r`; `2 * p`] REAL_DIV_POW2) THEN
-	 ANTS_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
-	 ASM_SIMP_TAC[ARITH_RULE `p <= r ==> 2 * p <= 2 * r`] THEN
-	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; real_div]) THEN
-
-	 SUBGOAL_THEN `2 * r = (e1 + e1) + min_exp + e` (fun th -> REWRITE_TAC[th]) THENL
-	 [
-	   EXPAND_TAC "r" THEN
-	     REWRITE_TAC[ARITH_RULE `2 * (e1 + b + c) = (e1 + e1) + 2 * c + 2 * b`] THEN
-	     MATCH_MP_TAC (ARITH_RULE `b1 = b2 /\ c1 = c2 ==> a + b1 + c1 = a + b2 + c2:num`) THEN
-	     SUBGOAL_THEN `EVEN min_exp` ASSUME_TAC THENL
-	     [
-	       REWRITE_TAC[min_exp_def] THEN ARITH_TAC;
-	       ALL_TAC
-	     ] THEN
-	     ASM_SIMP_TAC[DIV2_EVEN_lemma];
-	   ALL_TAC
-	 ] THEN
-
-	 REWRITE_TAC[REAL_POW_ADD] THEN
-	 REWRITE_TAC[REAL_ARITH `(n * n) * (((e * e) * x * y) * z) * u = (n * e) * (n * e) * (x * u) * z * y:real`] THEN
-	 SUBGOAL_THEN `~(&(num_exp 1 min_exp) = &0)` MP_TAC THENL
-	 [
-	   REWRITE_TAC[REAL_OF_NUM_EQ; NUM_EXP_EQ_0] THEN ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-	 REWRITE_TAC[num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_POW; GSYM REAL_OF_NUM_MUL] THEN
-	 DISCH_THEN (fun th -> SIMP_TAC[th; REAL_MUL_RINV; REAL_MUL_LID]) THEN
-	 FIRST_X_ASSUM (MP_TAC o check(fun th -> (fst o dest_var o lhand o concl) th = "f1")) THEN
-	 REWRITE_TAC[GSYM REAL_OF_NUM_EQ; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW] THEN
-	 DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-
-	 REWRITE_TAC[REAL_MUL_ASSOC] THEN
-	 MATCH_MP_TAC REAL_LE_RMUL THEN
-	 CONJ_TAC THENL
-	 [
-	   SUBGOAL_THEN `!x y z. &0 < x /\ z * x <= y ==> z <= y * inv x` MP_TAC THENL
-	     [
-	       REPEAT STRIP_TAC THEN
-		 MP_TAC (SPECL [`z:real`; `y * inv x`; `x:real`] REAL_LE_RMUL_EQ) THEN
-		 ASM_REWRITE_TAC[] THEN
-		 DISCH_THEN (fun th -> REWRITE_TAC[SYM th; GSYM REAL_MUL_ASSOC]) THEN
-		 ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> ~(x = &0)`; REAL_MUL_LINV; REAL_MUL_RID];
-	       ALL_TAC
-	     ] THEN
-
-	     DISCH_THEN (MP_TAC o SPECL[`&(num_exp 1 (2 * p))`; `&(f1 * f1)`; `&m`]) THEN
-	     REWRITE_TAC[num_exp; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; REAL_MUL_LID] THEN
-	     DISCH_THEN MATCH_MP_TAC THEN
-	     ASM_REWRITE_TAC[REAL_OF_NUM_MUL; REAL_OF_NUM_POW; REAL_OF_NUM_LE] THEN
-	     REWRITE_TAC[REAL_OF_NUM_LT; EXP_LT_0] THEN
-	     ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-
-	 MATCH_MP_TAC REAL_POW_LE THEN
-	 ARITH_TAC;
-       ALL_TAC
-     ] THEN
-
-     MATCH_MP_TAC REAL_LE_INV THEN
-     MATCH_MP_TAC REAL_POW_LE THEN
-     ARITH_TAC);;
-
-
-
-
-
-let transform = UNDISCH_ALL o
-  PURE_ONCE_REWRITE_RULE[TAUT `EVEN e <=> (EVEN e <=> T)`] o
-  NUMERALS_TO_NUM o
-  CONV_RULE (DEPTH_CONV NUM_DIV_CONV) o
-  REWRITE_RULE[GSYM IMP_IMP; min_exp_def];;
-
-
-let FLOAT_SQRT_EVEN_lo' = transform FLOAT_SQRT_EVEN_lo and
-    FLOAT_SQRT_EVEN_hi' = transform FLOAT_SQRT_EVEN_hi and
-    FLOAT_PRE_EXP' = (UNDISCH_ALL o 
-			PURE_ONCE_REWRITE_RULE[TAUT `~(e = _0) <=> ((e = _0) <=> F)`] o
-			REWRITE_RULE[GSYM IMP_IMP; NUMERAL]) FLOAT_PRE_EXP;;
-
-
-let even_const = `EVEN` and
-    pre_const = `PRE` and
-    two_num = rand(mk_small_numeral_array 2) and
-    min_exp_div2 = rand(mk_small_numeral_array (min_exp / 2)) and
-    f2_var_num = `f2:num` and
-    f1_var_num = `f1:num` and
-    p_var_num = `p:num`;;
-
-
-(* Returns the list of digits of the given Big_int n in the base b *)
-let rec get_big_int_digits b n =
-  let bb = big_int_of_int b in
-  if le_big_int n zero_big_int then []
-  else
-    let q, r = quomod_big_int n bb in
-      r :: get_big_int_digits b q;;
-
-
-(* [1;2;3] -> 123 (base = 10) *)
-let rec big_int_from_list b list =
-  let rec proc acc list =
-    match list with
-	[] -> acc
-      | h::t -> proc (add_big_int h (mult_int_big_int b acc)) t in
-    proc zero_big_int list;;
-
-
-(* Returns n first elements of the list *)
-let rec take n list =
-  match list with
-      x :: xs -> if n > 0 then x :: take (n - 1) xs else []
-    |	[] -> [];;
-
-
-
-(* Returns an integer number that contains at most pp "significant" digits
-   in the given base b *)
-let big_int_round_lo base pp n =
-  let digits = rev (get_big_int_digits base n) in
-  let n_digits = length digits in
-    if n_digits <= pp then
-      n
-    else
-      let m = big_int_from_list base (take pp digits) in
-	mult_big_int (power_int_positive_int base (n_digits - pp)) m;;
-
-
-
-let big_int_round_hi base pp n =
-  let digits = rev (get_big_int_digits base n) in
-  let n_digits = length digits in
-    if n_digits <= pp then n
-    else
-      let l1, l2 = chop_list pp digits in
-	if forall (eq_big_int zero_big_int) l2 then n
-	else
-	  let m = succ_big_int (big_int_from_list base l1) in
-	    mult_big_int (power_int_positive_int base (n_digits - pp)) m;;
-	    
-	
-
-(******************)
-
-let rec float_sqrt_lo pp tm =
-  let s, m_tm, e_tm = dest_float tm in
-  let p_tm = rand (mk_small_numeral_array pp) in
-    if s <> "F" then
-      failwith "float_sqrt_lo: negative argument"
-    else
-      let even_th = raw_even_hash_conv (mk_comb (even_const, e_tm)) in
-	if (fst o dest_const o rand o concl) even_th <> "T" then
-	  (* ODD e *)
-	  let pre_e = raw_pre_hash_conv (mk_comb (pre_const, e_tm)) in
-	  let e_neq_0 = raw_eq0_hash_conv e_tm in
-	  let e1_tm = rand (concl pre_e) in
-	  let th0 = INST[e1_tm, e1_var_num; e_tm, e_var_num; m_tm, m_var_num] FLOAT_PRE_EXP' in
-	  let th1 = MY_PROVE_HYP pre_e (MY_PROVE_HYP e_neq_0 th0) in
-	  let th2 = float_sqrt_lo pp (rand(concl th1)) in
-	  let ltm, rtm = dest_comb (concl th2) in
-	    EQ_MP (SYM (AP_TERM ltm (AP_TERM (rator rtm) th1))) th2
-	else
-	  (* EVEN e *)
-	  let p2_tm = mk_binop mul_op_num two_num p_tm in
-	  let p2_th = raw_mul_conv_hash p2_tm in
-	  let f1_1 = AP_TERM (mk_comb(num_exp_const, m_tm)) p2_th in
-	  let f1_2 = TRANS f1_1 (denormalize (rand (concl f1_1))) in
-
-	  let x_tm = rand(concl f1_2) in
-	  let x = raw_dest_hash x_tm in
-	  let f1' = Big_int.sqrt_big_int (big_int_of_num x) in
-	  let f1 = num_of_big_int (big_int_round_lo base pp f1') in
-	  let f1_tm = rand(mk_numeral_array f1) in
-	  let f1_num_exp = to_num_exp f1_tm in
-
-	  let n1_tm, e1_tm = dest_num_exp (rand (concl f1_num_exp)) in
-	  let f1f1_eq_f2 = raw_mul_conv_hash (mk_binop mul_op_num f1_tm f1_tm) in
-	  let f2_tm = rand(concl f1f1_eq_f2) in
-	  let f2_le_x = EQT_ELIM (raw_le_hash_conv (mk_binop le_op_num f2_tm x_tm)) in
-
-	  let e_div2_eq_e2 = raw_div_hash_conv (mk_binop div_op_num e_tm two_num) in
-	  let e2_tm = rand(concl e_div2_eq_e2) in
-	  let r_th1 = raw_add_conv_hash (mk_binop plus_op_num e2_tm min_exp_div2) in
-	  let r_th2 = AP_TERM (mk_comb(plus_op_num, e1_tm)) r_th1 in
-	  let r_th = TRANS r_th2 (raw_add_conv_hash (rand (concl r_th2))) in
-
-	  let r_tm = rand(concl r_th) in
-	  let r_sub_p, p_le_r = raw_sub_and_le_hash_conv p_tm r_tm in
-	  let r2_tm = rand(concl r_sub_p) in
-	    if (rand(concl p_le_r) <> r_tm) then
-	      failwith "float_sqrt_lo: underflow"
-	    else
-	      let th0 = INST[f2_tm, f2_var_num; x_tm, x_var_num; p_tm, p_var_num; r_tm, r_var_num;
-			     f1_tm, f1_var_num; n1_tm, n1_var_num; e1_tm, e1_var_num; e2_tm, e2_var_num;
-			     e_tm, e_var_num; m_tm, m_var_num; r2_tm, r2_var_num] 
-            		FLOAT_SQRT_EVEN_lo' in
-		MY_PROVE_HYP f1_2 (
-		  MY_PROVE_HYP e_div2_eq_e2 (
-		    MY_PROVE_HYP r_sub_p (
-		      MY_PROVE_HYP r_th (
-			MY_PROVE_HYP f1f1_eq_f2 (
-			  MY_PROVE_HYP f1_num_exp (
-			    MY_PROVE_HYP even_th (
-			      MY_PROVE_HYP f2_le_x (
-				MY_PROVE_HYP p_le_r th0
-			      ))))))));;
-
-
-
-
-
-let rec float_sqrt_hi pp tm =
-  let s, m_tm, e_tm = dest_float tm in
-  let p_tm = rand (mk_small_numeral_array pp) in
-    if s <> "F" then
-      failwith "float_sqrt_lo: negative argument"
-    else
-      let even_th = raw_even_hash_conv (mk_comb (even_const, e_tm)) in
-	if (fst o dest_const o rand o concl) even_th <> "T" then
-	  (* ODD e *)
-	  let pre_e = raw_pre_hash_conv (mk_comb (pre_const, e_tm)) in
-	  let e_neq_0 = raw_eq0_hash_conv e_tm in
-	  let e1_tm = rand (concl pre_e) in
-	  let th0 = INST[e1_tm, e1_var_num; e_tm, e_var_num; m_tm, m_var_num] FLOAT_PRE_EXP' in
-	  let th1 = MY_PROVE_HYP pre_e (MY_PROVE_HYP e_neq_0 th0) in
-	  let th2 = float_sqrt_hi pp (rand(concl th1)) in
-	  let ltm, rtm = dest_comb (concl th2) in
-	  let ltm2, rtm2 = dest_comb ltm in
-	  let th3 = AP_THM (AP_TERM ltm2 (AP_TERM (rator rtm2) th1)) rtm in
-	    EQ_MP (SYM th3) th2
-	else
-	  (* EVEN e *)
-	  let p2_tm = mk_binop mul_op_num two_num p_tm in
-	  let p2_th = raw_mul_conv_hash p2_tm in
-	  let f1_1 = AP_TERM (mk_comb(num_exp_const, m_tm)) p2_th in
-	  let f1_2 = TRANS f1_1 (denormalize (rand (concl f1_1))) in
-
-	  let x_tm = rand(concl f1_2) in
-	  let x = raw_dest_hash x_tm in
-	  let x' = big_int_of_num x in
-	  let f1' = sqrt_big_int x' in
-	  let f1 = (num_of_big_int o big_int_round_hi base pp)
-	    (if eq_big_int (mult_big_int f1' f1') x' then f1' else succ_big_int f1') in
-	      
-	  let f1_tm = rand(mk_numeral_array f1) in
-	  let f1_num_exp = to_num_exp f1_tm in
-
-	  let n1_tm, e1_tm = dest_num_exp (rand (concl f1_num_exp)) in
-	  let f1f1_eq_f2 = raw_mul_conv_hash (mk_binop mul_op_num f1_tm f1_tm) in
-	  let f2_tm = rand(concl f1f1_eq_f2) in
-	  let x_le_f2 = EQT_ELIM (raw_le_hash_conv (mk_binop le_op_num x_tm f2_tm)) in
-
-	  let e_div2_eq_e2 = raw_div_hash_conv (mk_binop div_op_num e_tm two_num) in
-	  let e2_tm = rand(concl e_div2_eq_e2) in
-	  let r_th1 = raw_add_conv_hash (mk_binop plus_op_num e2_tm min_exp_div2) in
-	  let r_th2 = AP_TERM (mk_comb(plus_op_num, e1_tm)) r_th1 in
-	  let r_th = TRANS r_th2 (raw_add_conv_hash (rand (concl r_th2))) in
-
-	  let r_tm = rand(concl r_th) in
-	  let r_sub_p, p_le_r = raw_sub_and_le_hash_conv p_tm r_tm in
-	  let r2_tm = rand(concl r_sub_p) in
-	    if (rand(concl p_le_r) <> r_tm) then
-	      failwith "float_sqrt_lo: underflow"
-	    else
-	      let th0 = INST[f2_tm, f2_var_num; x_tm, x_var_num; p_tm, p_var_num; r_tm, r_var_num;
-			     f1_tm, f1_var_num; n1_tm, n1_var_num; e1_tm, e1_var_num; e2_tm, e2_var_num;
-			     e_tm, e_var_num; m_tm, m_var_num; r2_tm, r2_var_num] 
-            		FLOAT_SQRT_EVEN_hi' in
-		MY_PROVE_HYP f1_2 (
-		  MY_PROVE_HYP e_div2_eq_e2 (
-		    MY_PROVE_HYP r_sub_p (
-		      MY_PROVE_HYP r_th (
-			MY_PROVE_HYP f1f1_eq_f2 (
-			  MY_PROVE_HYP f1_num_exp (
-			    MY_PROVE_HYP even_th (
-			      MY_PROVE_HYP x_le_f2 (
-				MY_PROVE_HYP p_le_r th0
-			      ))))))));;
-
-
-
-(*
-float_sqrt_lo 3 `float F (D2 _0) (D0 (D2 _0))`;;
-float_sqrt_hi 3 `float F (D2 _0) (D0 (D2 _0))`;;
-
-let tm = `float F (D2 _0) (D0 (D2 _0))`;;
-(* 10: 1.092 *)
-test 1000 (float_sqrt_lo 5) tm;;
-(* 10: 1.128 *)
-test 1000 (float_sqrt_hi 5) tm;;
-*)
 
 
 

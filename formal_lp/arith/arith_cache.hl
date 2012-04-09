@@ -9,6 +9,79 @@ needs ("../formal_lp/arith/"^(if Arith_options.binary then "arith_hash.hl" else 
 
 module Arith_cache = struct
 
+(* Hash tables *)
+let cache_size = if Arith_options.cached then 10000 else 1;;
+
+let le_table = Hashtbl.create cache_size and
+    add_table = Hashtbl.create cache_size and
+    sub_table = Hashtbl.create cache_size and
+    sub_le_table = Hashtbl.create cache_size and
+    mul_table = Hashtbl.create cache_size and
+    div_table = Hashtbl.create cache_size;;
+
+(* Counters for collecting stats *)
+let suc_counter = ref 0 and
+    eq0_counter = ref 0 and
+    pre_counter = ref 0 and
+    gt0_counter = ref 0 and
+    lt_counter = ref 0 and
+    le_counter = ref 0 and
+    add_counter = ref 0 and
+    sub_counter = ref 0 and
+    sub_le_counter = ref 0 and
+    mul_counter = ref 0 and
+    div_counter = ref 0 and
+    even_counter = ref 0 and
+    odd_counter = ref 0;;
+
+
+let suc_list = ref [];;
+
+(* Clears all cached results *)	
+let reset_cache () =
+  let clear = Hashtbl.clear in
+    clear le_table;
+    clear add_table;
+    clear sub_table;
+    clear sub_le_table;
+    clear mul_table;
+    clear div_table;
+    suc_list := [];;
+
+	
+(* Resets all counters *)
+let reset_stat () =
+  suc_counter := 0;
+  eq0_counter := 0;
+  pre_counter := 0;
+  gt0_counter := 0;
+  lt_counter := 0;
+  le_counter := 0;
+  add_counter := 0;
+  sub_counter := 0;
+  sub_le_counter := 0;
+  mul_counter := 0;
+  div_counter := 0;
+  even_counter := 0;
+  odd_counter := 0;;
+
+(* Prints stats *)
+let print_stat () =
+  let len = Hashtbl.length in
+  let suc_pre_str = sprintf "suc = %d\npre = %d\n" !suc_counter !pre_counter in
+  let cmp0_str = sprintf "eq0 = %d\ngt0 = %d\n" !eq0_counter !gt0_counter in
+  let lt_str = sprintf "lt = %d\n" !lt_counter in
+  let even_odd_str = sprintf "even = %d\nodd = %d\n" !even_counter !odd_counter in
+  let le_str = sprintf "le = %d (le_hash = %d)\n" !le_counter (len le_table) in
+  let add_str = sprintf "add = %d (add_hash = %d)\n" !add_counter (len add_table) in
+  let sub_str = sprintf "sub = %d (sub_hash = %d)\n" !sub_counter (len sub_table) in
+  let sub_le_str = sprintf "sub_le = %d (sub_le_hash = %d)\n" !sub_le_counter (len sub_le_table) in
+  let mul_str = sprintf "mul = %d (mul_hash = %d)\n" !mul_counter (len mul_table) in
+  let div_str = sprintf "div = %d (div_hash = %d)\n" !div_counter (len div_table) in
+    print_string (suc_pre_str ^ cmp0_str ^ lt_str ^ even_odd_str ^
+		    le_str ^ add_str ^ sub_str ^ sub_le_str ^ mul_str ^ div_str);;
+
+	
 (* Note: the standard Hashtbl.hash function works very purely on terms *)
 let rec num_tm_hash tm =
   if is_comb tm then
@@ -29,131 +102,60 @@ let tm1_tm2_hash tm1 tm2 =
 
 
 (* SUC *)
-let suc_list = ref [];;
-
-let suc_counter = ref 0;;
 let raw_suc_conv_hash tm = 
   let _ = suc_counter := !suc_counter + 1 in
-  let _ = suc_list := tm :: !suc_list in
+(*  let _ = suc_list := tm :: !suc_list in *)
     Arith_hash.raw_suc_conv_hash tm;;
 
-let num_suc_counter = ref 0;;
-let NUM_SUC_HASH_CONV tm = 
-  let _ = num_suc_counter := !num_suc_counter + 1 in
-    Arith_hash.NUM_SUC_HASH_CONV tm;;
-
 (* x = 0 *)
-let eq0_list = ref [];;
-
-let eq0_counter = ref 0;;
 let raw_eq0_hash_conv tm = 
   let _ = eq0_counter := !eq0_counter + 1 in
-  let _ = eq0_list := tm :: !eq0_list in
+(*  let _ = eq0_list := tm :: !eq0_list in *)
     Arith_hash.raw_eq0_hash_conv tm;;
 
-let num_eq0_counter = ref 0;;
-let NUM_EQ0_HASH_CONV tm = 
-  let _ = num_eq0_counter := !num_eq0_counter + 1 in
-    Arith_hash.NUM_EQ0_HASH_CONV tm;;
-
 (* PRE *)
-let pre_counter = ref 0;;
 let raw_pre_hash_conv tm = 
   let _ = pre_counter := !pre_counter + 1 in
     Arith_hash.raw_pre_hash_conv tm;;
 
-let num_pre_counter = ref 0;;
-let NUM_PRE_HASH_CONV tm = 
-  let _ = num_pre_counter := !num_pre_counter + 1 in
-    Arith_hash.NUM_PRE_HASH_CONV tm;;
-
 (* x > 0 *)
-let gt0_counter = ref 0;;
 let raw_gt0_hash_conv tm = 
   let _ = gt0_counter := !gt0_counter + 1 in
     Arith_hash.raw_gt0_hash_conv tm;;
 
-let num_gt0_counter = ref 0;;
-let NUM_GT0_HASH_CONV tm = 
-  let _ = num_gt0_counter := !num_gt0_counter + 1 in
-    Arith_hash.NUM_GT0_HASH_CONV tm;;
-
-(* x < y, x <= y *)
-let lt_counter = ref 0 and
-    le_counter = ref 0;;
-
+(* x < y *)
 let raw_lt_hash_conv tm = 
   let _ = lt_counter := !lt_counter + 1 in
     Arith_hash.raw_lt_hash_conv tm;;
 
+(* x <= y *)
 let raw_le_hash_conv tm = 
   let _ = le_counter := !le_counter + 1 in
-    Arith_hash.raw_le_hash_conv tm;;
-
-let num_lt_counter = ref 0 and
-    num_le_counter = ref 0;;
-
-let NUM_LT_HASH_CONV tm = 
-  let _ = num_lt_counter := !num_lt_counter + 1 in
-    Arith_hash.NUM_LT_HASH_CONV tm;;
-
-let NUM_LE_HASH_CONV tm = 
-  let _ = num_le_counter := !num_le_counter + 1 in
-    Arith_hash.NUM_LE_HASH_CONV tm;;
-
-(* x + y *)
-let add_table = Hashtbl.create 100000;;
-let add_list = ref [];;
-
-let add_counter = ref 0 and
-    add_cache = ref 0 and
-    num_add_counter = ref 0;;
-
-let raw_add_conv_hash tm = 
-  let _ = add_counter := !add_counter + 1 in
-  let _ = add_list := tm :: !add_list in
   let hash = op_tm_hash tm in
     try
-      let result = Hashtbl.find add_table hash in
-      let _ = add_cache := !add_cache + 1 in
-	result
+      Hashtbl.find le_table hash
+    with Not_found ->
+      let result = Arith_hash.raw_le_hash_conv tm in
+      let _ = Hashtbl.add le_table hash result in
+	result;;
+
+(* x + y *)
+let raw_add_conv_hash tm = 
+  let _ = add_counter := !add_counter + 1 in
+  let hash = op_tm_hash tm in
+    try
+      Hashtbl.find add_table hash
     with Not_found ->
       let result = Arith_hash.raw_add_conv_hash tm in
       let _ = Hashtbl.add add_table hash result in
 	result;;
 
-(***)
-
-(*
-let raw_add_conv_hash tm =
-  let _ = add_counter := !add_counter + 1 in
-  let _ = add_list := tm :: !add_list in
-    Arith_hash.raw_add_conv_hash tm;;
-*)
-
-let NUM_ADD_HASH_CONV tm = 
-  let _ = num_add_counter := !num_add_counter + 1 in
-    Arith_hash.NUM_ADD_HASH_CONV tm;;
-
 (* x - y *)
-let sub_table = Hashtbl.create 100000 and
-    sub_le_table = Hashtbl.create 100000;;
-
-let sub_le_list = ref [];;
-
-let sub_counter = ref 0 and
-    sub_cache = ref 0 and
-    sub_le_counter = ref 0 and
-    sub_le_cache = ref 0 and
-    num_sub_counter = ref 0;;
-
 let raw_sub_hash_conv tm = 
   let _ = sub_counter := !sub_counter + 1 in
   let hash = op_tm_hash tm in
     try
-      let result = Hashtbl.find sub_table hash in
-      let _ = sub_cache := !sub_cache + 1 in
-	result
+      Hashtbl.find sub_table hash
     with Not_found ->
       let result = Arith_hash.raw_sub_hash_conv tm in
       let _ = Hashtbl.add sub_table hash result in
@@ -161,91 +163,37 @@ let raw_sub_hash_conv tm =
 
 let raw_sub_and_le_hash_conv tm1 tm2 = 
   let _ = sub_le_counter := !sub_le_counter + 1 in
-  let _ = sub_le_list := (tm1, tm2) :: !sub_le_list in
   let hash = tm1_tm2_hash tm1 tm2 in
     try
-      let result = Hashtbl.find sub_le_table hash in
-      let _ = sub_le_cache := !sub_le_cache + 1 in
-	result
+      Hashtbl.find sub_le_table hash
     with Not_found ->
       let result = Arith_hash.raw_sub_and_le_hash_conv tm1 tm2 in
       let _ = Hashtbl.add sub_le_table hash result in
 	result;;
 
-(***)
-
-(*
-let raw_sub_hash_conv tm =
-  let _ = sub_counter := !sub_counter + 1 in
-    Arith_hash.raw_sub_hash_conv tm;;
-
-let raw_sub_and_le_hash_conv tm1 tm2 =
-  let _ = sub_le_counter := !sub_le_counter + 1 in
-  let _ = sub_le_list := (tm1, tm2) :: !sub_le_list in
-    Arith_hash.raw_sub_and_le_hash_conv tm1 tm2;;
-*)
-
-let NUM_SUB_HASH_CONV tm = 
-  let _ = num_sub_counter := !num_sub_counter + 1 in
-    Arith_hash.NUM_SUB_HASH_CONV tm;;
-
 (* x * y *)
-let mul_table = Hashtbl.create 100000;;
-let mul_list = ref [];;
-
-let mul_counter = ref 0 and
-    mul_cache = ref 0 and
-    num_mul_counter = ref 0;;
-
 let raw_mul_conv_hash tm = 
   let _ = mul_counter := !mul_counter + 1 in
-  let _ = mul_list := tm :: !mul_list in
   let hash = op_tm_hash tm in
     try
-      let result = Hashtbl.find mul_table hash in
-      let _ = mul_cache := !mul_cache + 1 in
-	result
+      Hashtbl.find mul_table hash
     with Not_found ->
       let result = Arith_hash.raw_mul_conv_hash tm in
       let _ = Hashtbl.add mul_table hash result in
 	result;;
 
-
-(***)
-
-(*
-let raw_mul_conv_hash tm =
-  let _ = mul_counter := !mul_counter + 1 in
-  let _ = mul_list := tm :: !mul_list in
-    Arith_hash.raw_mul_conv_hash tm;;
-*)
-
-
-let NUM_MULT_HASH_CONV tm = 
-  let _ = num_mul_counter := !num_mul_counter + 1 in
-    Arith_hash.NUM_MULT_HASH_CONV tm;;
-
 (* x / y *)
-let div_list = ref [];;
-
-let div_counter = ref 0 and
-    num_div_counter = ref 0;;
-
 let raw_div_hash_conv tm = 
   let _ = div_counter := !div_counter + 1 in
-  let _ = div_list := tm :: !div_list in
-    Arith_hash.raw_div_hash_conv tm;;
-
-let NUM_DIV_HASH_CONV tm = 
-  let _ = num_div_counter := !num_div_counter + 1 in
-    Arith_hash.NUM_DIV_HASH_CONV tm;;
+  let hash = op_tm_hash tm in
+    try
+      Hashtbl.find div_table hash
+    with Not_found ->
+      let result = Arith_hash.raw_div_hash_conv tm in
+      let _ = Hashtbl.add div_table hash result in
+	result;;
 
 (* EVEN, ODD *)
-let even_counter = ref 0 and
-    odd_counter = ref 0 and
-    num_even_counter = ref 0 and
-    num_odd_counter = ref 0;;
-
 let raw_even_hash_conv tm = 
   let _ = even_counter := !even_counter + 1 in
     Arith_hash.raw_even_hash_conv tm;;
@@ -253,80 +201,5 @@ let raw_even_hash_conv tm =
 let raw_odd_hash_conv tm = 
   let _ = odd_counter := !odd_counter + 1 in
     Arith_hash.raw_odd_hash_conv tm;;
-
-let NUM_EVEN_HASH_CONV tm = 
-  let _ = num_even_counter := !num_even_counter + 1 in
-    Arith_hash.NUM_EVEN_HASH_CONV tm;;
-
-let NUM_ODD_HASH_CONV tm = 
-  let _ = num_odd_counter := !num_odd_counter + 1 in
-    Arith_hash.NUM_ODD_HASH_CONV tm;;
-
-
-let reset_cache () =
-  let clear = Hashtbl.clear in
-    clear mul_table;
-    clear sub_table;
-    clear sub_le_table;
-    clear add_table;
-    add_list := [];
-    sub_le_list := [];
-    mul_list := [];
-    suc_list := [];
-    eq0_list := [];
-    div_list := [];;
-
-
-let reset_stat () =
-  suc_counter := 0;
-  num_suc_counter := 0;
-  eq0_counter := 0;
-  num_eq0_counter := 0;
-  pre_counter := 0;
-  num_pre_counter := 0;
-  gt0_counter := 0;
-  num_gt0_counter := 0;
-  lt_counter := 0;
-  le_counter := 0;
-  num_lt_counter := 0;
-  num_le_counter := 0;
-  add_counter := 0;
-  add_cache := 0;
-  num_add_counter := 0;
-  sub_counter := 0;
-  sub_cache := 0;
-  sub_le_counter := 0;
-  sub_le_cache := 0;
-  num_sub_counter := 0;
-  mul_counter := 0;
-  mul_cache := 0;
-  num_mul_counter := 0;
-  div_counter := 0;
-  num_div_counter := 0;
-  even_counter := 0;
-  odd_counter := 0;
-  num_even_counter := 0;
-  num_odd_counter := 0;;
-
-
-let print_stat () =
-  let suc_str = sprintf "suc = %d\nnum_suc = %d\n" !suc_counter !num_suc_counter in
-  let eq0_str = sprintf "eq0 = %d\nnum_eq0 = %d\n" !eq0_counter !num_eq0_counter in
-  let pre_str = sprintf "pre = %d\nnum_pre = %d\n" !pre_counter !num_pre_counter in
-  let gt0_str = sprintf "gt0 = %d\nnum_gt0 = %d\n" !gt0_counter !num_gt0_counter in
-  let lt_str = sprintf "lt = %d\nnum_lt = %d\n" !lt_counter !num_lt_counter in
-  let le_str = sprintf "le = %d\nnum_le = %d\n" !le_counter !num_le_counter in
-  let add_str = sprintf "add = %d\nadd_c = %d\nnum_add = %d\n" !add_counter !add_cache !num_add_counter in
-  let sub1_str = sprintf "sub = %d\nsub_c = %d\n" !sub_counter !sub_cache in
-  let sub2_str = sprintf "sub_le = %d\nsub_le_c = %d\n" !sub_le_counter !sub_le_cache in
-  let sub3_str = sprintf "num_sub = %d\n" !num_sub_counter in
-  let mul_str = sprintf "mul = %d\nmul_c = %d\nnum_mul = %d\n" !mul_counter !mul_cache !num_mul_counter in
-  let div_str = sprintf "div = %d\nnum_div = %d\n" !div_counter !num_div_counter in
-  let even_str = sprintf "even = %d\nnum_even = %d\n" !even_counter !num_even_counter in
-  let odd_str = sprintf "odd = %d\nnum_odd = %d\n" !odd_counter !num_odd_counter in
-    print_string (suc_str ^ eq0_str ^ pre_str ^ gt0_str ^
-		    lt_str ^ le_str ^ even_str ^ odd_str ^
-		    add_str ^ sub1_str ^ sub2_str ^ sub3_str ^ mul_str ^ div_str);;
-
 
 end;;

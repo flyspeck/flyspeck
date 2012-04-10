@@ -41,6 +41,7 @@ module type Arith_float_sig =
     val reset_stat : unit -> unit
     val reset_cache : unit -> unit
     val print_stat : unit -> unit
+(*
     val mul_lo_list : (int * term * term) list ref
     val mul_hi_list : (int * term * term) list ref
     val div_lo_list : (int * term * term) list ref
@@ -49,6 +50,7 @@ module type Arith_float_sig =
     val add_hi_list : (int * term * term) list ref
     val sub_lo_list : (int * term * term) list ref
     val sub_hi_list : (int * term * term) list ref
+*)
 
     val dest_float_interval : term -> term * term * term
     val mk_float_interval_small_num : int -> thm
@@ -2848,6 +2850,7 @@ let lt0_c = ref 0 and
 	sqrt_lo_c = ref 0 and
 	sqrt_hi_c = ref 0;;
 
+(*
 let mul_lo_list = ref [] and
     mul_hi_list = ref [] and
     div_lo_list = ref [] and
@@ -2856,10 +2859,21 @@ let mul_lo_list = ref [] and
     add_hi_list = ref [] and
     sub_lo_list = ref [] and
     sub_hi_list = ref [];;
-
+*)
+	
 (* Hash tables *)
-let cache_size = if Arith_options.float_cached then 10000 else 1;;
+let cache_size = if Arith_options.cached then 10000 else 1;;
+let max_cache_size = cache_size * 2;;
 
+let my_add h key v =
+  if Hashtbl.length h >= max_cache_size then
+    let _ = Hashtbl.clear h in
+      print_string "Clearing a float hash table"
+  else 
+    ();
+  Hashtbl.add h key v;;
+  
+  
 let mul_table = Hashtbl.create cache_size and
     div_table = Hashtbl.create cache_size and
     add_table = Hashtbl.create cache_size and
@@ -2869,14 +2883,6 @@ let mul_table = Hashtbl.create cache_size and
     max_table = Hashtbl.create cache_size;;
 
 let reset_cache () =
-  mul_lo_list := [];
-  mul_hi_list := [];
-  div_lo_list := [];
-  div_hi_list := [];
-  add_lo_list := [];
-  add_hi_list := [];
-  sub_lo_list := [];
-  sub_hi_list := [];
   Hashtbl.clear mul_table;
   Hashtbl.clear div_table;
   Hashtbl.clear add_table;
@@ -3008,7 +3014,7 @@ let float_le =
 	  Hashtbl.find le_table hash
 	with Not_found ->
 	  let result = Float_ops.float_le tm1 tm2 in
-	  let _ = Hashtbl.add le_table hash result in
+	  let _ = my_add le_table hash result in
 	    result
   else
     Float_ops.float_le;;
@@ -3023,7 +3029,7 @@ let float_max =
 	  Hashtbl.find max_table hash
 	with Not_found ->
 	  let result = Float_ops.float_max tm1 tm2 in
-	  let _ = Hashtbl.add max_table hash result in
+	  let _ = my_add max_table hash result in
 	    result
   else
     Float_ops.float_max;;
@@ -3042,7 +3048,7 @@ let float_mul_lo =
 	  Hashtbl.find mul_table hash
 	with Not_found ->
 	  let result = Float_ops.float_mul_lo pp tm1 tm2 in
-	  let _ = Hashtbl.add mul_table hash result in
+	  let _ = my_add mul_table hash result in
 	    result
   else
     Float_ops.float_mul_lo;;
@@ -3058,7 +3064,7 @@ let float_mul_hi =
 	  Hashtbl.find mul_table hash
 	with Not_found ->
 	  let result = Float_ops.float_mul_hi pp tm1 tm2 in
-	  let _ = Hashtbl.add mul_table hash result in
+	  let _ = my_add mul_table hash result in
 	    result
   else
     Float_ops.float_mul_hi;;
@@ -3074,7 +3080,7 @@ let float_div_lo =
 	  Hashtbl.find div_table hash
 	with Not_found ->
 	  let result = Float_ops.float_div_lo pp tm1 tm2 in
-	  let _ = Hashtbl.add div_table hash result in
+	  let _ = my_add div_table hash result in
 	    result
   else
     Float_ops.float_div_lo;;
@@ -3090,7 +3096,7 @@ let float_div_hi =
 	  Hashtbl.find div_table hash
 	with Not_found ->
 	  let result = Float_ops.float_div_hi pp tm1 tm2 in
-	  let _ = Hashtbl.add div_table hash result in
+	  let _ = my_add div_table hash result in
 	    result
   else
     Float_ops.float_div_hi;;
@@ -3106,7 +3112,7 @@ let float_add_lo =
 	  Hashtbl.find add_table hash
 	with Not_found ->
 	  let result = Float_ops.float_add_lo pp tm1 tm2 in
-	  let _ = Hashtbl.add add_table hash result in
+	  let _ = my_add add_table hash result in
 	    result
   else
     Float_ops.float_add_lo;;
@@ -3122,7 +3128,7 @@ let float_add_hi =
 	  Hashtbl.find add_table hash
 	with Not_found ->
 	  let result = Float_ops.float_add_hi pp tm1 tm2 in
-	  let _ = Hashtbl.add add_table hash result in
+	  let _ = my_add add_table hash result in
 	    result
   else
     Float_ops.float_add_hi;;
@@ -3138,7 +3144,7 @@ let float_sub_lo =
 	  Hashtbl.find sub_table hash
 	with Not_found ->
 	  let result = Float_ops.float_sub_lo pp tm1 tm2 in
-	  let _ = Hashtbl.add sub_table hash result in
+	  let _ = my_add sub_table hash result in
 	    result
   else
     Float_ops.float_sub_lo;;
@@ -3154,7 +3160,7 @@ let float_sub_hi =
 	  Hashtbl.find sub_table hash
 	with Not_found ->
 	  let result = Float_ops.float_sub_hi pp tm1 tm2 in
-	  let _ = Hashtbl.add sub_table hash result in
+	  let _ = my_add sub_table hash result in
 	    result
   else
     Float_ops.float_sub_hi;;
@@ -3170,7 +3176,7 @@ let float_sqrt_lo =
 	  Hashtbl.find sqrt_table hash
 	with Not_found ->
 	  let result = Float_ops.float_sqrt_lo pp tm in
-	  let _ = Hashtbl.add sqrt_table hash result in
+	  let _ = my_add sqrt_table hash result in
 	    result
   else
     Float_ops.float_sqrt_lo;;
@@ -3185,7 +3191,7 @@ let float_sqrt_hi =
 	  Hashtbl.find sqrt_table hash
 	with Not_found ->
 	  let result = Float_ops.float_sqrt_hi pp tm in
-	  let _ = Hashtbl.add sqrt_table hash result in
+	  let _ = my_add sqrt_table hash result in
 	    result
   else
     Float_ops.float_sqrt_hi;;

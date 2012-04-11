@@ -1,0 +1,489 @@
+(* Dependencies *)
+needs "../formal_lp/arith/misc.hl";;
+needs "../formal_lp/arith/arith_options.hl";;
+
+
+(* Natural numbers *)
+
+module type Informal_nat_sig =
+  sig
+    type nat
+    val mk_nat : num -> nat
+    val mk_small_nat : int -> nat
+    val dest_nat : nat -> num
+    val suc_nat : nat -> nat
+    val pre_nat : nat -> nat
+    val eq0_nat : nat -> bool
+    val gt0_nat : nat -> bool
+    val lt_nat : nat -> nat -> bool
+    val le_nat : nat -> nat -> bool
+    val add_nat : nat -> nat -> nat
+    val sub_nat : nat -> nat -> nat
+    (* If sub_and_le_nat m n = (m - n, true) if n <= m; (n - m, false) if m < n *)
+    val sub_and_le_nat : nat -> nat -> nat * bool
+    val mul_nat : nat -> nat -> nat
+    val div_nat : nat -> nat -> nat
+    val even_nat : nat -> bool
+    val odd_nat : nat -> bool
+
+    (* normalize_nat m = (n, e) s.t. m = n * base^e, e >= 0 *)
+    val normalize_nat : nat -> nat * int
+    val denormalize_nat : nat * int -> nat
+    (* hi_nat p m = (n, e) s.t. m <= n * base^e and n contains at most p "digits" *)
+    val hi_nat : int -> nat -> nat * int
+    val hi_lt_nat : int -> nat -> nat * int
+    (* lo_nat p m = (n, e) s.t. n * base^e <= m and n contains at most p "digits" *)
+    val lo_nat : int -> nat -> nat * int
+  end;;
+
+
+
+module Informal_nat : Informal_nat_sig = struct
+
+open Arith_misc;;
+open Arith_options;;
+open Big_int;;
+
+type nat = big_int;;
+
+let mk_nat n = 
+  let result = big_int_of_num n in
+    if sign_big_int result < 0 then zero_big_int else result;;
+
+let mk_small_nat n = 
+  if n < 0 then zero_big_int else big_int_of_int n;;
+
+let dest_nat = num_of_big_int;;
+
+let suc_nat = succ_big_int;;
+
+let pre_nat n = 
+  let result = pred_big_int n in
+    if sign_big_int result < 0 then zero_big_int else result;;
+
+let eq0_nat n = sign_big_int n = 0;;
+
+let gt0_nat n = sign_big_int n > 0;;
+
+let lt_nat = lt_big_int;;
+
+let le_nat = le_big_int;;
+
+let add_nat = add_big_int;;
+
+let sub_nat m n =
+  let result = sub_big_int m n in
+    if sign_big_int result < 0 then zero_big_int else result;;
+
+let sub_and_le_nat m n =
+  let result = sub_big_int m n in
+    if sign_big_int result >= 0 then (result, true) else (abs_big_int result, false);;
+
+let mul_nat = mult_big_int;;
+
+let div_nat = div_big_int;;
+
+let two_big_int = big_int_of_int 2;;
+
+let even_nat n = sign_big_int (mod_big_int n two_big_int) = 0;;
+
+let odd_nat n = sign_big_int (mod_big_int n two_big_int) > 0;;
+
+(*******************************)
+(* num_exp *)
+
+let base_nat = mk_small_nat base;;
+
+(* normalize_nat m = (n, e) s.t. m = n * base^e, e >= 0 *)
+let normalize_nat =
+  let rec normalize n e =
+    let q, r = quomod_big_int n base_nat in
+    if sign_big_int r > 0 then
+      (n, e)
+    else
+      normalize q (succ e) in
+    fun n -> 
+      normalize n 0;;
+
+
+let denormalize_nat (n, e) =
+  mult_big_int n (power_int_positive_int base e);;
+
+
+let lo_nat pp =
+  let max = power_int_positive_int base pp in
+  let rec lo m e =
+    if sign_big_int m = 0 then
+      (m, e)
+    else
+      let q, r = quomod_big_int m base_nat in
+	if sign_big_int r = 0 then
+	  lo q (succ e)
+	else
+	  if lt_big_int m max then 
+	    (m, e)
+	  else
+	    if lt_big_int q max then
+	      (q, succ e)
+	    else
+	      lo q (succ e) in
+    fun m ->
+      lo m 0;;
+
+
+let hi_nat pp =
+  if pp <= 0 then failwith "hi_nat: pp <= 0" else
+    let max = power_int_positive_int base pp in
+    let rec hi m e =
+      if sign_big_int m = 0 then
+	(m, e)
+      else
+	let q, r = quomod_big_int m base_nat in
+	  if sign_big_int r = 0 then
+	    hi q (succ e)
+	  else
+	    if lt_big_int m max then 
+	      (m, e)
+	    else
+	      hi (succ_big_int q) (succ e) in
+      fun m ->
+	hi m 0;;
+
+
+let hi_lt_nat pp m =
+  hi_nat pp (succ_big_int m);;
+
+
+end;;
+
+
+
+(* Floating point numbers *)
+
+module type Informal_float_sig =
+  sig
+    type ifloat
+    val mk_float : num -> int -> ifloat
+    val dest_float : ifloat -> bool * num * int
+    val neg_float : ifloat -> ifloat
+    val lt0_float : ifloat -> bool
+    val gt0_float : ifloat -> bool
+    val le0_float : ifloat -> bool
+    val ge0_float : ifloat -> bool
+    val lt_float : ifloat -> ifloat -> bool
+    val le_float : ifloat -> ifloat -> bool
+    val mul_float_eq : ifloat -> ifloat -> ifloat
+    val mul_float_lo : int -> ifloat -> ifloat -> ifloat
+    val mul_float_hi : int -> ifloat -> ifloat -> ifloat
+    val div_float_lo : int -> ifloat -> ifloat -> ifloat
+    val div_float_hi : int -> ifloat -> ifloat -> ifloat
+    val add_float_lo : int -> ifloat -> ifloat -> ifloat
+    val add_float_hi : int -> ifloat -> ifloat -> ifloat
+    val sub_float_lo : int -> ifloat -> ifloat -> ifloat
+    val sub_float_hi : int -> ifloat -> ifloat -> ifloat
+  end;;
+
+module Informal_float : Informal_float_sig = struct
+
+open Arith_options;;
+open Informal_nat;;
+
+type ifloat = bool * nat * int;;
+
+(* Creates a non-negative float *)
+let mk_float n e : ifloat = false, mk_nat n, e;;
+
+let dest_float ((s, n, e) : ifloat) = s, dest_nat n, e;;
+
+
+
+(* Auxiliary num_exp functions *)
+
+let num_exp_add =
+  let (+) = add_nat in
+    fun (n1,e1) (n2,e2) ->
+      if e1 <= e2 then
+	n1 + denormalize_nat (n2, e2 - e1), e1
+      else
+	n2 + denormalize_nat (n1, e1 - e2), e2;;
+
+
+(* Returns (n,e),true if (n1,e1) >= (n2,e2) and (n,e) = (n1,e1) - (n2,e2)
+   Returns (n,e),false if (n1,e1) <= (n2,e2) and (n,e) = (n2,e2) - (n1,e1) *)
+let num_exp_sub =
+  let (--) = sub_and_le_nat in
+    fun (n1,e1) (n2,e2) ->
+      if e2 <= e1 then
+	let a = denormalize_nat (n1, e1 - e2) and
+	    b = n2 in
+	let sub, flag = a -- b in
+	  (sub, e2), flag
+      else
+	let a = n1 and
+	    b = denormalize_nat (n2, e2 - e1) in
+	let sub, flag = a -- b in
+	  (sub, e1), flag;;
+
+
+let num_exp_le =
+  let (<=/) = le_nat in
+    fun (n1,e1) (n2,e2) ->
+      if e1 <= e2 then
+	n1 <=/ denormalize_nat (n2, e2 - e1)
+      else
+	denormalize_nat (n1, e1 - e2) <=/ n2;;
+
+
+let num_exp_lt =
+  let (</) = lt_nat in
+    fun (n1,e1) (n2,e2) ->
+      if e1 <= e2 then
+	n1 </ denormalize_nat (n2, e2 - e1)
+      else
+	denormalize_nat (n1, e1 - e2) </ n2;;
+
+
+
+(* neg *)
+
+let neg_float : ifloat -> ifloat = function
+  | (true, n, e) -> false, n, e
+  | (false, n, e) -> true, n, e;;
+
+
+(* lt0, gt0 *)
+
+let lt0_float (s,n,e) =
+  if not s then false else gt0_nat n;;
+
+let gt0_float (s,n,e) =
+  if s then false else gt0_nat n;;
+
+
+(* le0, ge0 *)
+
+let le0_float (s,n,e) =
+  if s then true else eq0_nat n;;
+
+let ge0_float (s,n,e) =
+  if s then eq0_nat n else true;;
+
+
+(* lt *)
+
+let lt_float (s1,n1,e1) (s2,n2,e2) =
+  if not s1 then
+    if s2 then false else num_exp_lt (n1,e1) (n2,e2)
+  else
+    if s2 then num_exp_lt (n2,e2) (n1,e1) 
+    else
+      (* TF *)
+      if eq0_nat n1 then gt0_nat n2 else true;;
+
+
+let le_float (s1,n1,e1) (s2,n2,e2) =
+  if s1 then
+    if s2 then num_exp_le (n2,e2) (n1,e1) else true
+  else
+    if not s2 then num_exp_le (n1,e1) (n2,e2)
+    else
+      (* FT *)
+      if eq0_nat n2 then eq0_nat n1 else false;;
+	
+      
+    
+
+
+
+(* mul *)
+
+let badd b1 b2 =
+  if b1 then not b2 else b2;;
+
+
+let mul_float_eq (s1,n1,e1) (s2,n2,e2) =
+  let s = badd s1 s2 in
+  let n = mul_nat n1 n2 in
+  let e = e1 + e2 - min_exp in
+    if e < 0 then
+      failwith "mul_float_eq: underflow"
+    else
+      (s, n, e);;
+
+
+let mul_float_lo pp (s1,n1,e1) (s2,n2,e2) =
+  let s = badd s1 s2 in
+  let n' = mul_nat n1 n2 in
+  let n, e' = if s1 = s2 then lo_nat pp n' else hi_nat pp n' in
+  let e = e1 + e2 + e' - min_exp in
+    if e < 0 then
+      failwith "mul_float_lo: underflow"
+    else
+      (s, n, e);;
+
+
+let mul_float_hi pp (s1,n1,e1) (s2,n2,e2) =
+  let s = badd s1 s2 in
+  let n' = mul_nat n1 n2 in
+  let n, e' = if s1 = s2 then hi_nat pp n' else lo_nat pp n' in
+  let e = e1 + e2 + e' - min_exp in
+    if e < 0 then
+      failwith "mul_float_hi: underflow"
+    else
+      (s, n, e);;
+
+
+(* div *)
+
+let div_float_lo pp (s1,n1,e1) (s2,n2,e2) =
+  let s = badd s1 s2 in
+  let k = 2 * pp in
+  let nn1 = denormalize_nat (n1, k) in
+  let n' = div_nat nn1 n2 in
+  let n, e' = if s1 = s2 then lo_nat pp n' else hi_lt_nat pp n' in
+  let e = min_exp + e' + e1 - e2 - k in
+    if e < 0 then
+      failwith "div_float_lo: underflow"
+    else
+      (s, n, e);;
+
+
+let div_float_hi pp (s1,n1,e1) (s2,n2,e2) =
+  let s = badd s1 s2 in
+  let k = 2 * pp in
+  let nn1 = denormalize_nat (n1, k) in
+  let n' = div_nat nn1 n2 in
+  let n, e' = if s1 = s2 then hi_lt_nat pp n' else lo_nat pp n' in
+  let e = min_exp + e' + e1 - e2 - k in
+    if e < 0 then
+      failwith "div_float_hi: underflow"
+    else
+      (s, n, e);;
+
+
+(* add *)
+
+let add_float_lo pp (s1,n1,e1) (s2,n2,e2) =
+  if s1 = s2 then
+    let n', e' = num_exp_add (n1,e1) (n2,e2) in
+    let n, e'' = if s1 then hi_nat pp n' else lo_nat pp n' in
+      (s1, n, e' + e'')
+  else
+    if s1 then
+      let (n', e'), flag = num_exp_sub (n2,e2) (n1,e1) in
+	if flag then
+	  let n, e'' = lo_nat pp n' in
+	    (false, n, e' + e'')
+	else
+	  let n, e'' = hi_nat pp n' in
+	    (true, n, e' + e'')
+    else
+      let (n', e'), flag = num_exp_sub (n1,e1) (n2,e2) in
+	if flag then
+	  let n, e'' = lo_nat pp n' in
+	    (false, n, e' + e'')
+	else
+	  let n, e'' = hi_nat pp n' in
+	    (true, n, e' + e'');;
+
+
+let add_float_hi pp (s1,n1,e1) (s2,n2,e2) =
+  if s1 = s2 then
+    let n', e' = num_exp_add (n1,e1) (n2,e2) in
+    let n, e'' = if s1 then lo_nat pp n' else hi_nat pp n' in
+      (s1, n, e' + e'')
+  else
+    if s1 then
+      let (n', e'), flag = num_exp_sub (n2,e2) (n1,e1) in
+	if flag then
+	  let n, e'' = hi_nat pp n' in
+	    (false, n, e' + e'')
+	else
+	  let n, e'' = lo_nat pp n' in
+	    (true, n, e' + e'')
+    else
+      let (n', e'), flag = num_exp_sub (n1,e1) (n2,e2) in
+	if flag then
+	  let n, e'' = hi_nat pp n' in
+	    (false, n, e' + e'')
+	else
+	  let n, e'' = lo_nat pp n' in
+	    (true, n, e' + e'');;
+      
+
+(* sub *)
+
+let sub_float_lo pp f1 f2 = add_float_lo pp f1 (neg_float f2);;
+let sub_float_hi pp f1 f2 = add_float_hi pp f1 (neg_float f2);;
+  
+
+end;;
+
+
+needs "../formal_lp/arith/float.hl";;
+
+open Arith_float;;
+open Informal_float;;
+
+let mk_f = (fst o dest_pair o rand o concl o mk_float_interval_small_num);;
+let mk_neg_f = (fst o dest_pair o rand o concl o float_interval_neg o mk_float_interval_small_num);;
+let mk_if n = mk_float (Num.num_of_int n) Arith_options.min_exp;;
+
+let n1 = 120 and
+    n2 = 10;;
+
+let f1_tm = mk_neg_f n1 and
+    f2_tm = mk_f n2;;
+
+
+let f1 = neg_float (mk_if n1) and
+    f2 = (mk_if n2);;
+
+float_le0 f1_tm;;
+le0_float f1;;
+float_le0 f2_tm;;
+le0_float f2;;
+
+float_lt f2_tm f1_tm;;
+lt_float f2 f1;;
+
+float_le f2_tm f1_tm;;
+le_float f2 f1;;
+
+
+float_mul_eq f1_tm f2_tm;;
+dest_float (mul_float_eq f1 f2);;
+
+let pp = 2;;
+
+float_add_lo pp f1_tm f2_tm;;
+dest_float (add_float_lo pp f1 f2);;
+
+float_add_hi pp f1_tm f2_tm;;
+dest_float (add_float_hi pp f1 f2);;
+
+float_sub_lo pp f1_tm f2_tm;;
+dest_float (sub_float_lo pp f1 f2);;
+
+float_sub_hi pp f1_tm f2_tm;;
+dest_float (sub_float_hi pp f1 f2);;
+
+float_mul_lo pp f1_tm f2_tm;;
+dest_float (mul_float_lo pp f1 f2);;
+
+float_mul_hi pp f1_tm f2_tm;;
+dest_float (mul_float_hi pp f1 f2);;
+
+float_div_lo pp f1_tm f2_tm;;
+dest_float (div_float_lo pp f1 f2);;
+
+float_div_hi pp f1_tm f2_tm;;
+dest_float (div_float_hi pp f1 f2);;
+
+open Arith_misc;;
+
+test 1000 (float_div_lo pp f1_tm) f2_tm;;
+test 1000 (div_float_lo pp f1) f2;;
+
+
+

@@ -1,0 +1,62 @@
+(* Dependencies *)
+needs "../formal_lp/arith/informal/informal_arith.hl";;
+
+
+module Informal_taylor = struct
+
+open Informal_interval;;
+open Informal_float;;
+
+
+type m_cell_domain = 
+{
+  lo : ifloat list;
+  hi : ifloat list;
+  y : ifloat list;
+  w : ifloat list;
+};;
+
+
+type m_taylor_interval =
+{
+  domain : m_cell_domain;
+  f : interval;
+  df : interval list;
+  ddf : interval list list;
+};;
+
+
+let float_1 = mk_small_num_float 1 and
+    float_2 = mk_small_num_float 2;;
+
+let float_inv2 = div_float_lo 1 float_1 float_2;;
+
+
+(* mk_m_center_domain *)
+let mk_m_center_domain pp x_list z_list =
+  let y_list =
+    let ( * ), (+) = mul_float_eq, add_float_hi pp in
+      map2 (fun x z -> if eq_float x z then x else float_inv2 * (x + z)) x_list z_list in
+
+  (* test: x <= y <= z *)
+  let flag1 = itlist2 (fun x y a -> le_float x y && a) x_list y_list true and
+      flag2 = itlist2 (fun y z a -> le_float y z && a) y_list z_list true in
+    if not flag1 or not flag2 then
+      failwith "mk_m_center_domain: ~(x <= y <= z)"
+    else
+      let w_list =
+	let (-) = sub_float_hi pp in
+	let w1 = map2 (-) y_list x_list in
+	let w2 = map2 (-) z_list y_list in
+	  map2 max_float w1 w2 in
+	{lo = x_list; hi = z_list; y = y_list; w = w_list};;
+
+
+let x_list = replicate float_1 6 and
+    z_list = replicate float_2 6;;
+
+let dom = mk_m_center_domain 3 x_list z_list;;
+map dest_float (dom.w);;
+
+
+end;;

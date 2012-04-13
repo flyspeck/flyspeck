@@ -32,9 +32,11 @@ let TSKAJXY = prove (TSKAJXY_concl, KY_CHEAT_TAC);;
 let OXLZLEZ = prove (OXLZLEZ_concl, KY_CHEAT_TAC);;
 
 let SUM_PAIR_2_SET = prove (
- `!f s:A->bool. FINITE s /\ FINITE t ==>
-     sum {m,n | m IN s /\ n IN s /\ ~(m = n)} (\(m,n). f {m, n}) =
-     &2 * sum {{m, n} | m IN s /\ n IN s /\ CARD {m,n} = 2} f`, KY_CHEAT_TAC);;
+ `!f s:real^N->bool d. FINITE s ==>
+     sum {m,n | m IN s /\ n IN s /\ ~(m = n) /\ hl [m; n] <= d}
+   (\(m,n). f {m, n}) =
+     &2 * sum {{m, n} | m IN s /\ n IN t /\ ~(m = n) /\ hl [m; n] <= d} f`,    
+   KY_CHEAT_TAC);;
 
 (* ========================================================================= *)
 (*      The above lemmas are to be proved by computer calculations           *)
@@ -124,12 +126,18 @@ e (REAL_ARITH_TAC);;
 (* ------------------------------------------------------------------------- *)
 
 e (REWRITE_TAC[GSYM SUM_LMUL]);;
+
 e (ABBREV_TAC `T1:real^3->bool = V INTER ball (vec 0, r)`);;
-e (ABBREV_TAC `T2 = {{u0, u1:real^3} | u0 IN T1 /\ u1 IN T1}`);;
+e (ABBREV_TAC `T2 = {{u0, u1:real^3} | u0 IN T1 /\ u1 IN T1 /\ ~(u0 = u1) /\   
+                                       hl [u0; u1] <= hplus}`);;
 e (NEW_GOAL `FINITE (T2:(real^3->bool)->bool)`);;
-e (EXPAND_TAC "T2" THEN MATCH_MP_TAC FINITE_SET_PRODUCT_KY_LEMMA);;
+e (EXPAND_TAC "T2" THEN MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `{{u0, u1:real^3} | u0 IN T1 /\ u1 IN T1}`);;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC FINITE_SET_PRODUCT_KY_LEMMA);;
 e (EXPAND_TAC "T1" THEN MATCH_MP_TAC Pack2.KIUMVTC);;
 e (ASM_REWRITE_TAC[]);;
+e (SET_TAC[]);;
 
 e (REWRITE_WITH 
  `sum B1 (\X. sum (critical_edgeX V X) 
@@ -148,8 +156,11 @@ e (EXPAND_TAC "T2" THEN REWRITE_TAC[SUBSET; critical_edgeX; IN; IN_ELIM_THM; edg
 e (REPEAT STRIP_TAC);;
 e (EXPAND_TAC "T1" THEN REWRITE_TAC[IN_ELIM_THM]);;
 e (EXISTS_TAC `u':real^3` THEN EXISTS_TAC `v':real^3`);;
+e (REWRITE_TAC[ASSUME `~(u' = v':real^3)`]);;
+
 e (REWRITE_TAC[ASSUME `x' = {u, v:real^3}`; MESON[IN] `V (x:real^3) <=> x IN V`;
                GSYM (ASSUME `{u, v} = {u', v':real^3}`); IN_INTER]);;
+
 e (NEW_GOAL `VX V x = V INTER x`);;
 e (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);;
 e (UNDISCH_TAC `mcell_set V x` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);;
@@ -162,7 +173,14 @@ e (REWRITE_TAC[VX]);;
 e (ASM_REWRITE_TAC[]);;
 e (UNDISCH_TAC `VX V x u'` THEN ASM_REWRITE_TAC[MESON[IN] `{} x <=> x IN {}`]);;
 e (SET_TAC[]);;
+
+e (STRIP_TAC);;
 e (ASM_SET_TAC[]);;
+e (STRIP_TAC);;
+e (ASM_SET_TAC[]);;
+e (REWRITE_WITH `hl [u'; v':real^3] = hl [u; v:real^3]`);;
+e (ASM_REWRITE_TAC[HL; set_of_list]);;
+e (ASM_REWRITE_TAC[]);;
 
 e (ABBREV_TAC `f = (\X. (\x:real^3->bool. 
                             gammaX V X lmfun * critical_weight V X))`);;
@@ -178,269 +196,54 @@ e (REWRITE_WITH
 e (ASM_SIMP_TAC[SUM_SUM_RESTRICT]);;
 
 e (EXPAND_TAC "T2");;
-e (REWRITE_WITH `sum {{u0, u1} | u0 IN T1 /\ u1 IN T1}
- (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x)) = 
-  sum {{u0, u1} | u0 IN T1 /\ u1 IN T1 /\ CARD {u0, u1} = 2 /\ }
- (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x))`);;
-e (MATCH_MP_TAC SUM_SUPERSET);;
-e (STRIP_TAC);;
-e (SET_TAC[]);;
-
-e (REWRITE_TAC[IN; IN_ELIM_THM] THEN REPEAT STRIP_TAC);;
-e (REWRITE_WITH `{X | B1 X /\ critical_edgeX V X x} = {}`);;
-e (REWRITE_TAC[SET_RULE `A = {} <=> ~(?x. x IN A)`]);;
-e (REWRITE_TAC[IN; IN_ELIM_THM; critical_edgeX; edgeX] THEN REPEAT STRIP_TAC);;
-
-e (NEW_GOAL `~(CARD {u', v':real^3} = 2)`);;
-e (ASM_MESON_TAC[]);;
-e (UP_ASM_TAC THEN ASM_REWRITE_TAC[Geomdetail.CARD_SET2]);;
-e (REWRITE_TAC[SUM_CLAUSES]);;
 e (ABBREV_TAC 
   `g = (\x. sum {X | X IN B1 /\ critical_edgeX V X x} (\X. f X x))`);;
+
 e (REWRITE_WITH 
-   `sum {{u0:real^3, u1} | u0 IN T1 /\ u1 IN T1 /\ CARD {u0, u1} = 2} g =
-    &1 / &2 * sum {m,n | m IN T1 /\ n IN T1 /\ ~(m = n)} (\(m,n). g {m, n})`);;
+   `sum {{u0:real^3, u1} | u0 IN T1 /\ u1 IN T1 /\ 
+                          ~(u0 = u1) /\ hl [u0; u1] <= hplus} g =
+    &1 / &2 * 
+    sum {m,(n:real^3) | m IN T1 /\ n IN T1 /\ 
+                       ~(m = n) /\ hl [m; n] <= hplus} (\(m,n). g {m, n})`);;
 e (REWRITE_TAC[REAL_ARITH `a = &1 / &2 * b <=> b = &2 * a`]);;
 e (MATCH_MP_TAC SUM_PAIR_2_SET);;
 e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
 e (ASM_REWRITE_TAC[]);;
-e (REWRITE_WITH `{m,n | m IN T1 /\ n IN T1 /\ ~(m = n:real^3)} = 
-                 {m,n | m IN T1 /\ n IN (T1 DELETE m)}`);;
-e (SET_TAC[]);;
+
+
+e (ABBREV_TAC `t = (\m:real^3. 
+                       {n | n IN T1 /\ ~(m = n) /\ hl [m; n] <= hplus})`);;
+e (REWRITE_WITH 
+  `sum {m:real^3,n | m IN T1 /\ n IN T1 /\ ~(m = n) /\ hl [m; n] <= hplus}
+   (\(m,n). g {m, n}) =  
+   sum {m,n | m IN T1 /\ n IN t m} (\(m,n). g {m, n})`);;
+e (EXPAND_TAC "t" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
+e (ABBREV_TAC `h = (\m n:real^3. (g:(real^3->bool)->real) {m,n})`);;
+e (REWRITE_WITH `sum {m,n:real^3 | m IN T1 /\ n IN t m} (\(m,n). g {m, n}) = 
+                 sum {m,n | m IN T1 /\ n IN t m} (\(m,n). h m n)`);;
+e (EXPAND_TAC "h");;
+e (REWRITE_TAC[]);;
 
 e (REWRITE_WITH 
-   `sum {m,n | m IN T1 /\ n IN T1 DELETE m} (\(m,n:real^3). g {m, n}) =
-    sum T1 (\m. sum (T1 DELETE m) (\n. g {m, n}))`);;
+   `sum {m:real^3,n:real^3 | m IN T1 /\ n IN t m} (\(m,n). h m n) = 
+    sum T1 (\m. sum (t m) (h m))`);;
 e (ONCE_REWRITE_TAC[EQ_SYM_EQ]);;
-e (ABBREV_TAC `F3 = (\x:real^3. T1 DELETE x)`);;
-e (REWRITE_WITH `sum T1 (\m:real^3. sum (T1 DELETE m) (\n. g {m, n})) = 
-                 sum T1 (\m. sum (F3 m) (\n. g {m, n}))`);;
-e (EXPAND_TAC "F3" THEN REFL_TAC);;
-e (REWRITE_WITH 
-  `sum {m:real^3,n | m IN T1 /\ n IN T1 DELETE m} (\(m,n). g {m, n}) = 
-   sum {m,n:real^3 | m IN T1 /\ n IN F3 m} (\(m,n). g {m, n})`);;
-e (EXPAND_TAC "F3" THEN REFL_TAC);;
-
-e (ABBREV_TAC `g1 = (\x. (\y. (g:(real^3->bool)->real) {x, y}))`);;
-e (REWRITE_WITH `!m n. (g:(real^3->bool)->real) {m, n} = g1 m n`);;
-e (EXPAND_TAC "g1" THEN REWRITE_TAC[]);;
-
-e (REWRITE_TAC[ETA_AX]);;
 e (MATCH_MP_TAC SUM_SUM_PRODUCT);;
 e (REPEAT STRIP_TAC);;
 e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
 e (ASM_REWRITE_TAC[]);;
-e (EXPAND_TAC "F3" THEN REWRITE_TAC[FINITE_DELETE]);;
+e (EXPAND_TAC "t");;
+e (MATCH_MP_TAC FINITE_SUBSET);;
+e (EXISTS_TAC `T1:real^3->bool`);;
+e (STRIP_TAC);;
 e (EXPAND_TAC "T1" THEN MATCH_MP_TAC FINITE_PACK_LEMMA);;
 e (ASM_REWRITE_TAC[]);;
+e (SET_TAC[]);;
 
 
 
 
-
-search [`(\x. f x) = f`];;
-
-
-SUM_SUM_PRODUCT;;
-
-search [`sum {m,n | m IN T1 /\ n IN T2} f`];;
-
-
-search [`FINITE (V INTER ball (a,v))`];;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-search [`sum {} f`];;
-
-b();;
-
-seans_fn();;
-
-search [`sum s f = sum t f`];;
-
-
-
-
-
-search [`FINITE (V INTER ball (c,r))`];;
-
-e (REWRITE_WITH ``
-gammaX;;
-
-sum
-seans_fn();;
-
-
-
-e (EXPAND_TAC "f");;
-e (EXPAND_TAC "B1" THEN REWRITE_TAC[IN; IN_ELIM_THM]);;
-
-b();;
-
- THEN EXPAND_TAC "T1");;
-
-
-b();;
-
-
-search [`{x,y | P } t`];;
-
-
-search [`sum s (g o f)`];;
-
-0.
-SUM_LE_INCLUDED;;
-
-p();;
-
-seans_fn();;
-
-
-e (REPEAT STRIP_TAC);;
-
-
-search [`ball (a, b) DIFF ball (c, d)`];;
-
-search []
-gammaX;;
-edgeX;;
-
-
-
-VOLUME_BALL;;
-
-b();;
-
-seans_fn();;
-
-search [`mcell`; `ball`];;
-
-
-b();;
-
-
-g `!V. ?c. (!X.
-           saturated V /\
-           packing V /\
-           mcell_set V X /\
-           critical_edgeX V X = {}
-           ==> gammaX V X lmfun <= c)`;;
-e (GEN_TAC);;
-e (ASM_CASES_TAC `saturated V /\ packing V`);;
-e (EXISTS_TAC `c:real`);;
-e (REPEAT STRIP_TAC);;
-
-e (REWRITE_TAC[gammaX]);;
-
-
-
-p();;
-
-
-total_solid;;
-
-type_of `packing`;;
-sol;;
-p();;
-edgeX;;
-
-search [`sol`];;
-
-search [``]
-search [`gammaX`];;
-
-critical_edgeX;;
-critical_weight;;
-
-
-let OXLZLEZ_cl = new_definition
- `OXLZLEZ_cl = !V. saturated V /\ packing V ==> cell_cluster_estimate V`;;
-
-g `OXLZLEZ_cl`;;
-e (REWRITE_TAC[OXLZLEZ_cl]);;
-
-
-search [`&0 <= dihX a b (c,d)`];;
-
-search [`dihV a b c d <= e`];;
-
-b();;
-
-e (NEW_GOAL ``
-gammaX;;
-
-
-p();;
-
-search [`CARD {}`];;
-gammaX;;
-
-
-search [`gammaX`];;
-p();;
-b();;
-
-arcV;;
-acs;;
-search [`acs x <= t`];;
-
-critical_weight;;
-critical_edgeX;;
-gammaX;;
-dihX;;
-dihu3;;
-dihV;;
-search [`dihV`];;
-
-lmfun;;
-p();;
-
-g `[a;b] = list_of_set {a,b}`;;
-e (REWRITE_TAC[list_of_set]);;
-
-seans_fn();;
-b();;
-
-=sum B1 (\X. sum {y | y IN T2 /\ critical_edgeX V X y} (\x. f X x))
-seans_fn();;
-
-SUM_SUM_RESTRICT;;
-
-search [`sum s (\x. f x * g x)`];;
-
-
-search [``]
-
-SUM_LMUL;;
-
-
-
-mk_thm;;
-p();;
-
-
-cell_cluster;;
-
-cell_cluster_estimate;;
-
-cluster_gammaX;;
-
-
-
-
+(* ========================================================================= *)
 
 (*                FLYSPECK - BOOK FORMALIZATION                              *)
 (*                                                                           *)

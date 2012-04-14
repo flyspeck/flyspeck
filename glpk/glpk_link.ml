@@ -165,14 +165,19 @@ let display_ampl ampl_datafile ampl_of_bb bb = (* for debugging *)
 let solve_counter=ref 0;;
 
 let solve_branch_f model glpk_outfile varname ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/%s = //' "  model glpk_outfile varname varname in 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
   let _ = (solve_counter := !solve_counter + 1) in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-    inp;;
+  (* test for no feasible solution *)
+  let com2 = sprintf "grep \"PROBLEM HAS NO FEASIBLE SOLUTION\" %s" glpk_outfile in
+  let (ic,oc)  =Unix.open_process(com2) in
+  let inp2 = load_and_close_channel false ic in
+  let _ = Unix.close_process(ic,oc) in
+    (inp2,inp);;
 
 let display_lp model ampl_datafile glpk_outfile ampl_of_bb bb = 
   let oc = open_out ampl_datafile in

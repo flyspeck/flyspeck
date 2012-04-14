@@ -21,11 +21,6 @@ let hardidref = ref Lpproc.hardid;;
 let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 let glpk_dir = 
  Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "glpk";;
-(* 
-#use "glpk_link.ml";;
-#use "tame_archive/lpproc.ml";;
-#use "sphere.ml";;
-*)
 
 open Str;;
 open List;;
@@ -200,16 +195,18 @@ let add_hints_include_flat bb =
 (* ------------------------ *)
 
 let is_none bb = match bb.lpvalue with (* for debugging *)
-    None -> true
-  | Some _ -> false;;
+  | Lp_value _ -> false
+  | _ -> true;;
+
 
 let calc_max bbs = fold_right 
   (fun bb x -> match bb.lpvalue with
-     |None -> x
-     |Some y -> max x y) bbs 0.0;;
+    |Lp_value y -> max x y
+    |_  -> x)   
+  bbs 0.0 ;;
 
 let find_max bbs = 
-  let r = Some (calc_max bbs) in
+  let r = Lp_value (calc_max bbs) in
     find (fun bb -> r = bb.lpvalue) bbs;;
 
 let findid s  = find (fun t -> s = t.hypermap_id);;
@@ -334,7 +331,7 @@ let switch_hint bb =
 let onepass_backup = ref [];;  
 
 let sortbb bbs = 
-  let eval bb = (match bb.lpvalue with None -> 0.0 | Some r -> r) in
+  let eval bb = (match bb.lpvalue with Lp_value r -> r | _ -> 0.0) in
   let v = List.sort (fun a b -> - compare (eval a) (eval b)) bbs in
    v;;
 

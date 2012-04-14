@@ -17,30 +17,230 @@ let graph_classes = graph_dir ^ "/classes";;
 let graph_out =  "/tmp/graph_out.txt";;
 let render_out = "/tmp/render_out.txt";;
 
-let set_properties s = 
-    Sys.command(Printf.sprintf "cd %s; cp %s /tmp/graph.properties" graph_dir s);;
+(* duplicated code *)
+let unsplit d f = function
+  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
+  | [] -> "";;
+
+let join_comma  = unsplit "," (fun x-> x);;
+
+let join_lines  = unsplit "\n" (fun x-> x);;
+
+let join_space  = unsplit " " (fun x-> x);;
+
+let output_filestring tmpfile a = 
+  let outs = open_out tmpfile in
+  let _ = try (Printf.fprintf outs "%s" a) 
+  with _ as t -> (close_out outs; raise t) in
+   close_out outs ;;
+
+(* duplicated code *)
+
+
+
+type graph_generator_properties = 
+  { 
+    properties_id : string;
+    ignore_archive : bool;
+    exclude_degree2 : bool;
+    exclude_pent_qrtet : bool;
+    exclude_2_in_quad : bool;
+    exclude_1_in_tri : bool;
+    vertex_count_min : int;
+    vertex_count_max : int;
+    node_card_max : int;
+    node_card_max_at_exceptional_vertex : int;
+    squander_target : int;
+    score_target : int;
+    table_weight_d : int list;
+    table_weight_a : (int*int) list;
+    table_weight_b : (int*int*int) list;
+  };;  
+
+let string_of_properties (x:graph_generator_properties) =
+  let p = Printf.sprintf in
+  let b t = if t then "true" else "false" in
+  let weightd = zip (0-- (List.length x.table_weight_d -1)) (x.table_weight_d) in
+    join_lines 
+      ([
+	 p"#This properties files is machine generated";
+	 p"#Graph Generator %s" (flyspeck_version());
+	 p"#Properties file: %s" (x.properties_id);
+	 p"ignoreArchive=%s" (b x.ignore_archive);
+	 p"excludeDegree2=%s" (b x.exclude_degree2);
+	 p"excludePentQRTet=%s" (b x.exclude_pent_qrtet);
+	 p"exclude2inQuad=%s" (b x.exclude_2_in_quad);
+	 p"exclude1inTri=%s" (b x.exclude_1_in_tri);
+	 p"vertexCountMin=%d" x.vertex_count_min;
+	 p"vertexCountMax=%d" x.vertex_count_max;
+	 p"nodeCardMax=%d" x.node_card_max;
+	 p"nodeCardMaxAtExceptionalVertex=%d" x.node_card_max_at_exceptional_vertex;
+	 p"squanderTarget=%d" x.squander_target;
+	 p"scoreTarget=%d" x.score_target;
+	 (join_lines (map (fun (m,n) -> p"tableWeightD%d=%d" m n) weightd));
+	 (join_lines (map (fun (m,n) -> p"tableWeightA%d=%d" m n) x.table_weight_a));
+	 (join_lines (map (fun (a,b,v) -> p"tableWeightB%d%d=%d" a b v) x.table_weight_b))
+       ]);;
+
+let flyspeck_properties = 
+  {
+    properties_id = "flyspeck properties";
+    ignore_archive=true;
+    exclude_degree2=true;
+    exclude_pent_qrtet=true; (* because degrees must be at least 2 *)
+    exclude_2_in_quad=false;
+    exclude_1_in_tri=false;
+    vertex_count_min=13;
+    vertex_count_max=15;
+    node_card_max=7;
+    node_card_max_at_exceptional_vertex=6;
+    squander_target=15410;
+    score_target= -1;
+    table_weight_d = [0;0;0;0;2060;4819;7120;15410;15410];
+    table_weight_a = [(5,6300)];
+    (* exclude b02 because degrees are at least 3.  b50 is a special calculation *)
+    table_weight_b = [(0,3,6180);(0,4,9700);(1,2,6560);(1,3,6180);
+		      (2,1,7970);(2,2,4120);(2,3,12851);
+		      (3,1,3110);(3,2,8170);(4,0,3470);(4,1,3660);
+		      (5,0,400);(5,1,11360);(6,0,6860);(7,0,14500);];
+  };;
+
+let bauer_nipkow_deprecated_properties = 
+  {
+    properties_id = "flyspeck properties from the Bauer Nipkow Isabelle classification Fall 2010."^
+      " table_weight_d is out of date in the 7578 entry." ^
+      " This should produce (9,1105,15991,1657) graphs in the pass with n=3,4,5,6, respectively";
+    ignore_archive=true;
+    exclude_degree2=true;
+    exclude_pent_qrtet=true; (* because degrees must be at least 2 *)
+    exclude_2_in_quad=false;
+    exclude_1_in_tri=false;
+    vertex_count_min=13;
+    vertex_count_max=15;
+    node_card_max=7;
+    node_card_max_at_exceptional_vertex=6;
+    squander_target=15410;
+    score_target= -1;
+    table_weight_d = [0;0;0;0;2060;4819;7578;15410;15410];
+    table_weight_a = [(5,6300)];
+    (* exclude b02 because degrees are at least 3.  b50 is a special calculation *)
+    table_weight_b = [(0,3,6180);(0,4,9700);(1,2,6560);(1,3,6180);
+		      (2,1,7970);(2,2,4120);(2,3,12851);
+		      (3,1,3110);(3,2,8170);(4,0,3470);(4,1,3660);
+		      (5,0,400);(5,1,11360);(6,0,6860);(7,0,14500);];
+  };;
+
+let kepler98_deprecated_properties = 
+  {
+    properties_id = "values from the original 1998 proof of the Kepler conjecture, but relaxed to eliminate score";
+    ignore_archive=true;
+    exclude_degree2=true;
+    exclude_pent_qrtet=true; 
+    exclude_2_in_quad=true;
+    exclude_1_in_tri=true;
+    vertex_count_min=10;
+    vertex_count_max=100;
+    node_card_max=6;
+    node_card_max_at_exceptional_vertex=5;
+    squander_target=14800;
+    score_target= -1;
+    table_weight_d = [0;0;0;0;2378;4896;7414;9932;10916];
+    table_weight_a = [(3,1400);(4,1500)];
+    table_weight_b = [(0,3,7135);(0,4,10649);(1,2,6950);(1,3,7135);
+		      (2,1,8500);(2,2,4756);(2,3,12981);
+		      (3,1,3642);(3,2,8334);(4,0,4139);(4,1,3781);
+		      (5,0,550);(5,1,11220);(6,0,6339)];
+  };;
+
+let fejes_toth_contact_conjecture_properties = 
+  {
+    properties_id = "Fejes Toth's Contact Conjecture";
+    ignore_archive=true;
+    exclude_degree2=false;
+    exclude_pent_qrtet=true; 
+    exclude_2_in_quad=true;
+    exclude_1_in_tri=true;
+    vertex_count_min=12;
+    vertex_count_max=12;
+    node_card_max=4;
+    node_card_max_at_exceptional_vertex=4;
+    squander_target=1541;
+    score_target= -1;
+    table_weight_d = [0;0;0;0;206;480;756;1031;1306];
+    table_weight_a = [(0,0);(1,0);(2,0);(3,0)];
+    table_weight_b = [(0,3,618);(1,3,618);(2,2,412)];
+  };;
+
+let mclaughlin_dodecaheral_conjecture_properties=
+{
+  properties_id="McLaughlin's Dodecahedral Theorem";
+  ignore_archive=true;
+  exclude_degree2=false;
+  exclude_pent_qrtet=true;
+  exclude_2_in_quad=true;
+  exclude_1_in_tri=true;
+  vertex_count_min=13;
+  vertex_count_max=100;
+  node_card_max=6;
+  node_card_max_at_exceptional_vertex=5;
+  squander_target=178;
+  score_target= -1;
+  table_weight_d = [0;0;0;0;31;76;121;166;200];
+  table_weight_a = [(3,0);(4,16)];
+  table_weight_b = [(0,3,93);(0,4,125);(1,2,91);(1,3,93);
+		    (2,1,133);(2,2,62);(3,1,43);(3,2,118);(4,0,53);(4,1,31);(5,0,4)];
+};;
+
+(* deprecated 
+let set_properties file_name = 
+    Sys.command(Printf.sprintf "cd %s; cp %s /tmp/graph.properties" graph_dir file_name);;
+*)
+
+let set_prop_file (x:graph_generator_properties) =
+  output_filestring "/tmp/graph.properties" (string_of_properties x);;
 
 let compile () = 
   Sys.command(Printf.sprintf "cd %s; javac -d ../classes graph/Generator.java " graph_src);;
 
 let execute () = 
-  Sys.command(Printf.sprintf "cd %s; java -Xms300m -Xmx1g graph/Generator > %s" graph_classes graph_out);;
+  Sys.command(Printf.sprintf "cd %s; java -Xms300m -Xmx1g graph/Generator | tee %s" graph_classes graph_out);;
 
-let run() = 
-  let _ = set_properties (graph_dir ^"/properties/KeplerFlyspeck.properties") in
+let run(x:graph_generator_properties)=
+  let _ = set_prop_file (flyspeck_properties) in 
   let _ = compile() in
-    execute();;
+  let _ = execute() in
+    "execution complete.  Results tee'd to " ^ graph_out;;
 
-(* run();;   *)
+let run_flyspeck() = run(flyspeck_properties);;
 
 (* rendering *)
 
 let compile_render () = 
   Sys.command(Printf.sprintf "cd %s; javac -d ../classes render/Gendot.java " graph_src);;
 
-let execute_render s = 
-  Sys.command(Printf.sprintf "cd %s; java render/Gendot %s > %s" graph_classes s render_out);;
+let compile_gentikz () = 
+  Sys.command(Printf.sprintf "cd %s; javac -d ../classes render/Gentikz.java " graph_src);;
 
-execute_render "0 24 3 0 1 2 3 0 2 3 3 3 2 4 3 4 2 1 3 4 1 5 3 5 1 0 3 5 0 6 3 6 0 7 3 7 0 3 3 7 3 8 3 8 3 9 3 9 3 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 13 3 13 8 9 3 11 12 13 3 10 11 13 3 13 9 10 ";;
+let execute_render s = 
+  let _ = Sys.command(Printf.sprintf "cd %s; java render/Gendot \"%s\" |tee %s" graph_classes s render_out) in
+    "execution complete. Results tee'd to " ^ render_out;;
+
+let execute_g prm s = 
+  let _ = Sys.command(Printf.sprintf "cd %s; java render/%s \"%s\" |tee %s" graph_classes prm s render_out) in
+    "execution complete. Results tee'd to " ^ render_out;;
+
+let execute_gendot = execute_g "Gendot";;
+
+let execute_gentikz = execute_g "Gentikz";;
+
+let example_graph = "0 24 3 0 1 2 3 0 2 3 3 3 2 4 3 4 2 1 3 4 1 5 3 5 1 0 3 5 0 6 3 6 0 7 3 7 0 3 3 7 3 8 3 8 3 9 3 9 3 4 3 9 4 10 3 10 4 5 3 10 5 11 3 11 5 6 3 11 6 12 3 12 6 7 3 12 7 8 3 12 8 13 3 13 8 9 3 11 12 13 3 10 11 13 3 13 9 10 ";;
+
+let example_render() = 
+  let _ = compile_render() in
+    execute_render example_graph;;
+
+let example_gentikz() = 
+  let _ = compile_gentikz() in
+    execute_gentikz example_graph;;
 
 end;;

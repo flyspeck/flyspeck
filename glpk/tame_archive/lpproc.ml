@@ -111,6 +111,14 @@ type init = No_data
             | File of string*Digest.t
 	    | Hash_tables of (((int,float) Hashtbl.t) * (((int*int),float) Hashtbl.t) * (((int*int),float) Hashtbl.t));;
 
+(* change 4/2012 to make compatible with latest version of GLPK ( >= 4.47). 
+   New versions abort when problem is infeasible, rather than printing value 0.
+*)
+
+type lptype = Lp_unset
+	      | Lp_infeasible
+	      | Lp_value of float;;
+
 (* type for holding the parameters for a linear program.
     Many of the parameters are not needed for the easy cases that are treated
     in this module.  They will only be needed for the hard cases (hardid). *)
@@ -122,7 +130,7 @@ type init = No_data
 type branchnbound = 
   { 
     hypermap_id : string;
-    mutable lpvalue : float option;
+    mutable lpvalue : lptype;
     mutable hints : hint list;  (* hints about branching *) 
     mutable diagnostic : init;
     string_rep : string;
@@ -153,7 +161,7 @@ type branchnbound =
 let mk_bb s = 
   let (h,face1) = convert_to_ordered_list s in
  {hypermap_id= h;
-  lpvalue = None;
+  lpvalue = Lp_unset;
   diagnostic = No_data;
   hints = [];
   string_rep=s;
@@ -192,7 +200,7 @@ let modify_bb bb drop1std fields vfields =
   let jump_queue_std = jump_queue "jq" fields std in 
 {
 hypermap_id = bb.hypermap_id;
-lpvalue = None;
+lpvalue = Lp_unset;
 diagnostic = No_data;
 hints = bb.hints;
 string_rep = bb.string_rep;
@@ -311,20 +319,22 @@ let ampl_of_bb outs bb =
 
 let solve_branch_verbose addhints bb = 
   let set_some bb r = (* side effects *)
-    if (length r = 1) then bb.lpvalue <- Some (float_of_string(hd r)) else () in
-  let inp = solve_branch_f model glpk_outfile "lnsum" ampl_of_bb bb in
-  let _ = set_some bb inp in
+    if (length r = 1) then bb.lpvalue <- Lp_value (float_of_string(hd r)) else () in
+  let (f,inp) = solve_branch_f model glpk_outfile "lnsum" ampl_of_bb bb in
+  let _ = if (List.length f =0) then (set_some bb inp) else bb.lpvalue <- Lp_infeasible in
   let _ = bb.diagnostic <- File (glpk_outfile,Digest.file glpk_outfile) in
   let _ = addhints bb in (* hints for control flow *)
   let r = match bb.lpvalue with
-    | None -> -1.0
-    | Some r -> r in
+    | Lp_unset -> 0.0
+    | Lp_infeasible -> -1.0
+    | Lp_value r -> r in
   let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermap_id r) in 
     bb;;
 
 let solve_f f bb = match bb.lpvalue with
-  | None -> solve_branch_verbose f bb
-  | Some _ -> bb;;
+  | Lp_unset -> solve_branch_verbose f bb
+  | Lp_value _ -> bb
+  | Lp_infeasible -> bb;;
 
 let solve bb = solve_f (fun t -> t) bb;;
 
@@ -333,8 +343,9 @@ let solve bb = solve_f (fun t -> t) bb;;
 let is_feas bb = 
   let feasible r = (r > 11.9999) in (* relax a bit from 12.0 *)
   match bb.lpvalue with
-	None -> true
-      | Some r -> feasible r;;
+    | Lp_unset -> failwith "unexpected unset LP"
+    | Lp_infeasible -> false
+    | Lp_value r -> feasible r;;
 
 let filter_feas_f f bbs = 
   filter is_feas (map (solve_f f) bbs);;
@@ -455,7 +466,7 @@ and this didn't terminate in reasonable time.)
 
 let execute() = 
   let _ = make_model() in
-  let _ = Glpk_link.resetc() in
+  let _ = resetc() in
   let tame = strip_archive (!archiveraw) in
   let tame_bb = map mk_bb tame in
   let feasible_bb =  filter_feas (map solve tame_bb) in

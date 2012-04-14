@@ -11,6 +11,7 @@
 (setq hol-light-interactive-buffer-name "*hol-jun3*")
 (setq hol-light-interactive-buffer-name "*jun4*")
 
+(system-name)
 ; thackmac
 
 (print hol-light-interactive-buffer-name)

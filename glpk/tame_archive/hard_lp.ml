@@ -67,7 +67,7 @@ let init_hash_verified_glpk_outfile glpk_outfile bb =
   let _ = Hashtbl.clear (ynhash bb) in
   let _ = Hashtbl.clear (yehash bb) in
   let _ = Hashtbl.clear (azimhash bb) in
-  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" glpk_outfile in
+  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/.val//' | sed 's/\( [0-9]*\)$/\1.0/g'" glpk_outfile in
   let is = int_of_string in
   let fs = float_of_string in
   let (ic,oc) = Unix.open_process(com) in

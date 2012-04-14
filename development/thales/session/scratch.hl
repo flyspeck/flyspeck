@@ -19,13 +19,70 @@ open Hard_lp;;
 215863975889: 12.159
 34970074286: 12.437
 100126458338: 12.301
-75641658977: 12.412
+75641658977: 12.412;;
+
 Lpproc.make_model();;
 hard_bb();;
 execute();;
 
-let r = map mk_bb (hard_string_rep());;
-let r0 = List.nth r 0;;
+  let r = map mk_bb (hard_string_rep()) ;;
+  
+let hard_bb' i =  
+  resolve_with_hints_include_flat (List.nth r i);;
+
+hard_bb' 10;;
+
+
+let hh = hard_string_rep();;
+let r0 =  mk_bb (List.nth (hh) 0);;
+let t =  resolve r0;;
+let bb = t;;
+
+
+  let _ = (bb.diagnostic <- Hash_tables (new_tables())) ;;
+  let _ = Hashtbl.clear (ynhash bb);;
+  let _ = Hashtbl.clear (yehash bb) ;;
+  let _ = Hashtbl.clear (azimhash bb);;
+  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" glpk_outfile;;
+  let is = int_of_string ;;
+  let fs = float_of_string ;;
+  let (ic,oc) = Unix.open_process(com) ;;
+  let _  = close_out oc ;;
+  let inp = load_and_close_channel false ic ;;
+  let _ = Unix.close_process(ic,oc) ;;
+  let split_sp=  Str.split (Str.regexp " +") ;;
+  let inpa = map split_sp inp;;
+  let ynproc [a;b;c] = Hashtbl.add (ynhash bb) (is b) (fs c);;
+  let yeproc [a;b;c;d] = Hashtbl.add (yehash bb) ( (is b), (is c)) (fs d) ;;
+  let azimproc [a;b;c;d] = Hashtbl.add (azimhash bb) ( (is b), (is c)) (fs d) ;;
+  let proc1 xs = 
+    begin
+      let a = hd xs in
+      if (a = "yn") then ynproc xs
+      else if (a = "ye") then yeproc xs
+      else if (a = "azim") then azimproc xs
+     end ;;
+inpa;;
+  let _ = try (map proc1 inpa) with Failure _ -> failwith "init_has_v" in ();;
+
+(* init_hash_verified_glpk_outfile glpk_outfile bb;; fail *)
+(* fail init_hash *)
+    let _ = init_hash bb ;;
+    let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri_and_flats bb)) ;;
+    let f = face_of_dart dart bb ;;
+      if (mem f (rotation bb.std_faces_not_super)) then add_hints_force bb else
+	let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
+	  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
+	    let f2 = intersect (highish bb) f in
+	      if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else 
+		add_hints_force bb
+  ) with | Failure s -> failwith ( s^" in add_hints_force_include_flat")
+    | Not_found -> failwith ( " Not_found in add_hints_force_include_flat");;
+
+
+add_hints_force_include_flat t;; (* fail *)
+
+
 
   let _ = Lpproc.make_model();;
   let _ = resetc();;
@@ -34,7 +91,7 @@ let r0 = List.nth r 0;;
 let exec i = 
    (fun t-> allpass_hint_include_flat 20000 [t]) (List.nth hr i);;
 
-exec 15;;
+exec 12;;
 
 type_of theorems;;
 follow;;

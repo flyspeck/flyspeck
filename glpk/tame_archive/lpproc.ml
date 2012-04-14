@@ -325,10 +325,10 @@ let solve_branch_verbose addhints bb =
   let _ = bb.diagnostic <- File (glpk_outfile,Digest.file glpk_outfile) in
   let _ = addhints bb in (* hints for control flow *)
   let r = match bb.lpvalue with
-    | Lp_unset -> 0.0
-    | Lp_infeasible -> -1.0
-    | Lp_value r -> r in
-  let _ = Sys.command(sprintf "echo %s: %3.3f\n" bb.hypermap_id r) in 
+    | Lp_unset -> "not set"
+    | Lp_infeasible -> "infeasible"
+    | Lp_value r -> sprintf "%3.3f" r in
+  let _ = Sys.command(sprintf "echo %s: %s\n" bb.hypermap_id r) in 
     bb;;
 
 let solve_f f bb = match bb.lpvalue with

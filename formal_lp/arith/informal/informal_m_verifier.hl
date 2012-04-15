@@ -2,7 +2,7 @@
 needs "../formal_lp/arith/informal/informal_m_taylor.hl";;
 needs "../formal_lp/formal_interval/interval_m/verifier.hl";;
 
-(*module Informal_verifier = struct*)
+module Informal_verifier = struct
 
 open Informal_float;;
 open Informal_interval;;
@@ -18,7 +18,7 @@ type verification_funs =
   ddf : int -> int -> ifloat list -> ifloat list -> interval;
 };;
 
-itlist2;;
+
 (* m_subset_interval *)
 let m_subset_interval a b c d =
   let n = length a in
@@ -49,6 +49,10 @@ let m_incr_pass pp j ti =
 let m_decr_pass pp j ti =
   let partial_bound = eval_m_taylor_upper_partial pp j ti in
     le0_float partial_bound;;
+
+(* m_mono_pass_gen *)
+let m_mono_pass_gen decr_flag bound =
+  (if decr_flag then le0_float else ge0_float) bound;;
 
 (* m_convex_pass *)
 let m_convex_pass int =
@@ -100,7 +104,40 @@ let m_verify_raw pp fs certificate domain0 ref_list =
   let k = ref 0 in
 
   let rec rec_verify =
-    let verify_mono mono domain c1 = true in
+    let rec mk_domains mono dom0 acc =
+      match mono with
+	| [] -> rev acc
+	| m :: ms ->
+	    let j, flag = m.variable, m.decr_flag in
+	    let dom = restrict_domain j flag dom0 in
+	      mk_domains ms dom (dom :: acc) in
+
+    let verify_mono mono domain certificate =
+      let xx, zz = domain.lo, domain.hi in
+      let taylor = fs.taylor domain in
+      let domains = mk_domains mono domain [] in
+      let gen_mono m =
+	if m.df0_flag then
+	  if m.decr_flag then
+	    (snd o dest_interval) (fs.df m.variable xx zz)
+	  else
+	    (fst o dest_interval) (fs.df m.variable xx zz)
+	else
+	  if m.decr_flag then
+	    eval_m_taylor_upper_partial pp m.variable taylor
+	  else
+	    eval_m_taylor_lower_partial pp m.variable taylor in
+
+      let monos = map gen_mono mono in
+      let pass0 = rec_verify (last domains) certificate in
+      let pass_flag = rev_itlist (fun (m, bound) pass -> 
+				    let flag = m.decr_flag in
+				      m_mono_pass_gen flag bound && pass) (rev (zip mono monos)) pass0 in
+	if not pass_flag then
+	  failwith "mono: failed"
+	else
+	  pass_flag in
+
       fun domain certificate ->
 	match certificate with
 	  | Result_mono (mono, r1) ->
@@ -164,66 +201,6 @@ let m_verify_raw pp fs certificate domain0 ref_list =
 
 
 
-(*
-    let rec apply_trans sub_ths th0 acc =
-      match sub_ths with
-	| [] -> rev acc
-	| th :: ths -> 
-	    let th' = eval_subset_trans th th0 in
-	      apply_trans ths th' (th' :: acc) in
-
-    let rec mk_domains mono th0 acc =
-      match mono with
-	| [] -> rev acc
-	| m :: ms ->
-	    let j, flag = m.variable, m.decr_flag in
-	    let ths = restrict_domain n j flag th0 in
-	      mk_domains ms (fst ths) (ths :: acc) in
-
-    let verify_mono mono domain_th certificate =
-      let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
-      let xx, zz = dest_pair domain in
-      let df0_flags = itlist (fun m b -> m.df0_flag & b) mono true in
-      let _ = report (sprintf "df0_flags = %b" df0_flags) in
-      let taylor_th, diff2_th = 
-	if df0_flags then
-	  TRUTH, diff2_f xx zz
-	else
-	  let t_th = eval_taylor domain_th in
-	  let _, d_th, _, _ = dest_m_taylor_thms n t_th in
-	    t_th, d_th in
-
-      let domain_ths = mk_domains mono domain_th [] in
-(*      let domains = domain_th :: map fst (butlast domain_ths) in *)
-
-(*      let gen_mono (m, domain_th) = *)
-      let gen_mono m =
-	if m.df0_flag then
-	  if m.decr_flag then
-	    eval_interval_arith_hi n (eval_f m.variable xx zz)
-	  else
-	    eval_interval_arith_lo n (eval_f m.variable xx zz)
-	else
-	  if m.decr_flag then
-	    eval_m_taylor_upper_partial n pp m.variable taylor_th
-	  else
-	    eval_m_taylor_lower_partial n pp m.variable taylor_th in
-
-(*      let mono_ths = map gen_mono (zip mono domains) in *)
-      let mono_ths = map gen_mono mono in
-      let pass_th0 = rec_verify ((fst o last) domain_ths) certificate in
-      let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths in
-      let sub_ths = apply_trans (sub_th0 :: map snd (butlast domain_ths)) sub_th0 [] in
-      let th = rev_itlist (fun ((m, mono_th), sub_th) pass_th ->
-			     let j, flag = m.variable, m.decr_flag in
-			       m_mono_pass_gen n j flag diff2_th mono_th sub_th pass_th)
-	(rev (zip (zip mono mono_ths) sub_ths)) pass_th0 in
-	if hyp th <> [] then failwith ("hyp <> []: "^string_of_thm th) else th in
-*)
-	
-
-
-
 (*****************)
 
 (* m_verify_raw0 *)
@@ -275,3 +252,175 @@ let m_verify_list pp fs certificate_list xx zz =
 	    rec_verify cs (ref_list @ [domain]) in
     rec_verify certificate_list [];;
 
+end;;
+
+
+(* Tests *)
+needs "../formal_lp/formal_interval/m_verifier.hl";;
+
+let reset_all () =
+  Arith_cache.reset_stat();
+  Arith_cache.reset_cache();
+  Arith_float.reset_stat();
+  Arith_float.reset_cache();;
+
+let dest_int int =
+  let f1, f2 = Informal_interval.dest_interval int in
+    Informal_float.dest_float f1, Informal_float.dest_float f2;;
+
+let dest_f = Informal_float.dest_float;;
+
+let dest_dom dom =
+  map dest_f dom.Informal_taylor.lo,
+  map dest_f dom.Informal_taylor.hi,
+  map dest_f dom.Informal_taylor.y,
+  map dest_f dom.Informal_taylor.w;;
+
+let dest_ti ti =
+  dest_int ti.Informal_taylor.f, 
+  map dest_int ti.Informal_taylor.df, 
+  map (map dest_int) ti.Informal_taylor.ddf;;
+
+
+
+
+
+(* mk_verification_functions *)
+let mk_verification_functions pp poly_tm min_flag value_tm =
+  let x_tm, body_tm = dest_abs poly_tm in
+  let new_expr =
+    uncurry (mk_binop sub_op_real) (if min_flag then value_tm, body_tm else body_tm, value_tm) in
+  let new_f = mk_abs (x_tm, new_expr) in
+  let n = get_dim x_tm in
+
+  let partials = map (fun i -> 
+			let _ = report (sprintf "Partial %d/%d" i n) in
+			  gen_partial_poly i new_f) (1--n) in
+  let get_partial i eq_th = 
+    let partial_i = gen_partial_poly i (rand (concl eq_th)) in
+    let pi = (rator o lhand o concl) partial_i in
+      REWRITE_RULE[GSYM partial2] (TRANS (AP_TERM pi eq_th) partial_i) in
+  let partials2 = map (fun j -> 
+			 let th = List.nth partials (j - 1) in
+			 let _ = report (sprintf "Partial2 %d/%d" j n) in
+			   map (fun i -> get_partial i th) (1--n)) (1--n) in
+
+  let diff_th = gen_diff_poly new_f in
+  let lin_th = gen_lin_approx_poly_thm new_f diff_th partials in
+  let diff2_th = gen_diff2_domain_poly new_f in
+  let second_th = gen_second_bounded_poly_thm new_f partials2 in
+
+  let replace_numeral i th =
+    let num_eq = (REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) (mk_small_numeral i) in
+      GEN_REWRITE_RULE (LAND_CONV o RATOR_CONV o DEPTH_CONV) [num_eq] th in
+
+  let eval0 = map (fun i -> 
+		     if i = 0 then mk_eval_function pp new_f
+		     else 
+		       let d_th = List.nth partials (i - 1) in
+		       let eq_th = replace_numeral i d_th in
+			 mk_eval_function_eq pp eq_th) (0--n) in
+
+  let eval2 = map (fun i ->
+		     map (fun j ->
+			    let d2_th = List.nth (List.nth partials2 (i - 1)) (j - 1) in
+			    let eq_th' = replace_numeral i d2_th in
+			    let eq_th = replace_numeral j eq_th' in
+			      mk_eval_function_eq pp eq_th) (1--n)) (1--n) in
+
+  let diff2_f = eval_diff2_poly diff2_th in
+  let eval_f = eval_m_taylor pp diff2_th lin_th second_th in
+  let taylor_f = build_taylor pp lin_th second_th in
+    ((fun i -> List.nth eval0 i), 
+     (fun i j -> List.nth (List.nth eval2 (j - 1)) (i - 1)),
+     diff2_f,
+     eval_f), taylor_f, Informal_verifier.mk_verification_functions pp new_f partials partials2;;
+
+
+
+needs "../formal_lp/formal_interval/m_examples_poly.hl";;
+
+
+
+
+
+(***)
+(* schwefel *)
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &10; -- &10; -- &10]` and
+    zz = `[&10; &10; &10]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_schwefel, tf_schwefel, i_schwefel = mk_verification_functions pp schwefel_poly true schwefel_min;;
+let c00 = run_test tf_schwefel xx_float zz_float false 0.0 true true false false 0.0;;
+let c0 = run_test tf_schwefel xx_float zz_float false 0.0 true true false true 0.0;;
+result_stat c0;;
+let c1' = run_test tf_schwefel xx_float zz_float false 0.0 true true true true 0.0;;
+let c1 = transform_result xx_float zz_float c1';;
+(* 641 (661 after eps = 1e-10)*)
+length c1;;
+
+(* 138.377 *)
+reset_all();;
+test 1 (m_verify_raw0 n pp eval_schwefel c00 xx1) zz1;;
+
+Informal_verifier.m_verify_raw0 pp i_schwefel c00 xx2 zz2;;
+
+
+(* 27.486 *)
+reset_all();;
+test 1 (m_verify_raw0 n pp eval_schwefel c0 xx1) zz1;;
+
+Informal_verifier.m_verify_raw0 pp i_schwefel c0 xx2 zz2;;
+
+Arith_float.print_stat();;
+Arith_cache.print_stat();;
+
+(* 24.194 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_schwefel c1 xx1) zz1;;
+
+Informal_verifier.m_verify_list pp i_schwefel c1 xx2 zz2;;
+
+
+(***)
+(* rd *)
+
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &5; -- &5; -- &5]` and
+    zz = `[&5; &5; &5]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_rd, tf_rd, i_rd = mk_verification_functions pp rd_poly true rd_min;;
+let certificate = run_test tf_rd xx_float zz_float false 0.0 true true true false 0.0;;
+(* 1 *)
+result_size certificate;;
+m_verify_raw0 n pp eval_rd certificate xx1 zz1;;
+
+Informal_verifier.m_verify_raw0 12 i_rd certificate xx2 zz2;;
+
+
+let dom_th = mk_m_center_domain n pp xx1 zz1;;
+let dom = Informal_taylor.mk_m_center_domain pp xx2 zz2;;
+
+let _, _, _, rd_taylor = eval_rd;;
+let taylor_th = rd_taylor dom_th;;
+let taylor = i_rd.Informal_verifier.taylor dom;;
+dest_ti taylor;;
+
+let upper_th = eval_m_taylor_upper_bound n pp taylor_th;;
+dest_f (Informal_taylor.eval_m_taylor_upper_bound pp taylor);;

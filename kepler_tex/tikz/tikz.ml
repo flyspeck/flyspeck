@@ -8,7 +8,7 @@
 
 (* 
 Some procedures to facilitate the generation of tikz graphics.
-Tikz.gen_out produces output in /tmp/x.txt
+Tikz.execute produces output in /tmp/x.txt
 Read in by fig.tex to produce graphics.
 
 This is mostly independent of the flyspeck .hl files, but it might make
@@ -20,7 +20,9 @@ Tikz is almost totally unusable for 3D graphics.
 Generate 3D coordinates with OCAML, then project to 2D at the very end.
 Use --plot[smooth] coordinates { ... } rather than try to use tikz elliptical
 arc routines.
-At the beginning, I used Mathematica to generate tikz files, but eventually almost everything was done with Ocaml rather than Math'ca.
+
+   At the beginning, I used Mathematica to generate tikz files, but
+   eventually almost everything was done with Ocaml rather than Math'ca.
 
 *)
 
@@ -1287,7 +1289,7 @@ let print_dodec_ellipse =
 
 let outfilestring = "/tmp/x.txt";;
 
-let gen_out() = 
+let execute() = 
   let outs = open_out outfilestring in
   let write_out s = try (Printf.fprintf outs "%s" s) 
   with _ as t -> (close_out outs; raise t) in
@@ -1321,7 +1323,9 @@ let gen_out() =
   let _ =  add "autoDHQRILO" (fcc_packing) in 
   let _ =  add "autoBDCABIA" (pascal_packing) in 
   let _ =  add "autoNTNKMGO" (square_layers) in 
-       close_out outs ;;
+  let _ = close_out outs in
+  "to save results move /tmp/x.txt to kepler_tex/x.txt"
+    ;;
 
 (*
 let gen2_out = 

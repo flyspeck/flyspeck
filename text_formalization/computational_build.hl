@@ -10,57 +10,53 @@
 (* Build of the computational parts of the Flyspeck Project *)
 
 flyspeck_needs "strictbuild.hl";;
+flyspeck_needs "general/flyspeck_lib.hl";;
 
-(* duplicated code *)
-let unsplit d f = function
-  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
+(* Tikz *)
+flyspeck_needs  "../kepler_tex/tikz/tikz.ml";;
 
-let join_comma  = unsplit "," (fun x-> x);;
-
-let join_lines  = unsplit "\n" (fun x-> x);;
-
-let join_space  = unsplit " " (fun x-> x);;
-(* duplicated code *)
-
-let print_string_as_text  = (* for debugging *)
-  let datafile = Filename.temp_file "print_buffer" ".txt" in
-    fun s -> 
-      let outs = open_out datafile in
-      let _ = Printf.fprintf outs "%s" s in
-      let _ = close_out outs in
-	Sys.command(sprintf "cat %s" datafile);;
-
-let example_print_string_as_text() = print_string_as_text "1\n2\n\n3";;
-
-let exists_pgm s = 
-  let com = "command -v " ^ s in 
-    not(process_to_string com = "");;
-
-let java_found = exists_pgm "java";;
-
-(* Build of Graph Generator -- java version *)
-
+(* graph generator *)
 flyspeck_needs ("/../graph_generator/graph_control.hl");;
 
-let example() = 
-  let _ = Graph_control.example_render() in
-  let _ = Graph_control.example_gentikz() in
-    ();;
+(* glpk *)
+flyspeck_needs "../glpk/glpk_link.ml";;
+flyspeck_needs "../glpk/minorlp/tame_table.ml";;
+flyspeck_needs "../glpk/minorlp/OXLZLEZ.ml";;
+flyspeck_needs "../glpk/tame_archive/build_lp.hl";;
 
-(*
-    Graph_control.run_flyspeck();;
+(* nonlinear inequalities *)
+
+module Computational_build = struct
+
+  open Flyspeck_lib;;
+
+(* tex generation Tikz figures. /tmp/x.txt *)
+
+  let tikz_out = Tikz.execute();;
+
+(* graph generator (informal java) *)
+
+  let java_found = exists_pgm "java";;
+
+  let graph_control_out =    Graph_control.execute();;
   (* run on April 13, 2012.  Output saved to string_archive.txt *)
-*)
 
-(* End of Graph Generator -- java version *)
+(* glpk (informal) *)
+
+  let glpsol_found = exists_pgm "glpsol";;
+
+(* tests consistency of lp computed b table with values in graph_control.flyspeck_properties *)
+  let tame_table_out = Tame_table.execute();;  
+  let oxlzlez_informal_out = Oxlzlez_informal.execute();;
+  let build_lp_out = Build_lp.execute();;
+
+(* cfsqp (informal) *)
+
+(* returns list that fail to compile or that are negative *)
+  let cfsqp_out = Scripts.execute_cfsqp();;  
+
+(* nonlinear (informal) *)
 
 
-(* Build of Linear Programs (informal glpk version) *)
 
-let glpsol_found = exists_pgm "glpsol";;
-
-
-
-
-
+ end;;

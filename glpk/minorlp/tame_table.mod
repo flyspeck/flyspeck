@@ -14,6 +14,7 @@
 The model considers nodes of type (p,q,0) and computes
 the tame table constants b(p,q) and a(5,0,1).
 
+Inequalities checked against ineq.hl on April 15, 2012.
 */
 
 # data provides the following.
@@ -29,7 +30,7 @@ var azimp  >= 0.852, <= 1.9;  #5735387903, 5490182221
 var azimq >= 1.15, <= pi; #2570626711, convexity
 var azimr >= 1.15, <= pi; 
 var taup >=0;
-var tauq >= 0.206;  # tameTableD[4,0].
+var tauq >= 0.206;  # tameTableD[4,0]. # `d_tame 4`
 
 
 #report variables

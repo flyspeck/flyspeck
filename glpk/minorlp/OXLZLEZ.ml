@@ -10,10 +10,12 @@
 
 (*
 
-This file generates the linear programming part of the cluster inequality (OXLZLEZ).
+This file generates the informal linear programming part of the cluster inequality (OXLZLEZ).
 These linear programs reduce the 3 and 4 blade cases to a single case:
    4 blades with 3 quarters and 1 4-cell of weight 0.5.
 This final case is handled separately.
+
+
 
 needs new mktop on platforms that do not support dynamic loading of Str.
 
@@ -23,34 +25,42 @@ ocamlmktop unix.cma str.cma -o ocampl
 *)
 
 
-module Cluster = struct
+flyspeck_needs "../glpk/glpk_link.ml";;
+
+module Oxlzlez_informal = struct
 
 open Str;;
 open List;;
+open Glpk_link;;
+
 let sprintf = Printf.sprintf;;
 
-let flyspeck_dir = 
-  (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
 let glpk_dir = flyspeck_dir ^ "/../glpk";;
 
 (* external files *)
-let model = "/tmp/OXLZLEZ.mod";;
-let tmpfile = "/tmp/cluster.dat";;
-let dumpfile = "/tmp/tmp.out";;
+let model = glpk_dir^ "/minorlp/OXLZLEZ.mod";;
+let tmpfile = "/tmp/OXLZLEZ_informal.dat";;
+let dumpfile = "/tmp/OXLZLEZ_informal.out";;
 
-let use_file_b s =
-  (Toploop.use_file Format.std_formatter s) or 
-  (Format.print_string("Error in included file "^s);Format.print_newline(); false);;
+type lptype = Lp_unset
+	      | Lp_infeasible
+	      | Lp_value of float;;
 
-let linkfile = glpk_dir ^ "/glpk_link.ml";;
 
-use_file_b linkfile;;
+let string_of_lptype t = match t with
+    | Lp_infeasible -> "infeasible"
+    | Lp_unset -> "unset"
+    | Lp_value u -> Printf.sprintf "%3.3f" u;;
 
-open Glpk_link;;
+
+(* fields of bladerunner are documented in OXLZLEZ.mod.
+   See CBLADE,SBLADE,NONSBLADE,QU,QX,QY,QXD,NONQXD,NEGQU,POSQU,
+   HALFWT,FULLWT,SHORTY4,LONGY4
+*)
 
 type bladerunner = 
   { 
-    mutable lpvalue : float option;
+    mutable lpvalue : lptype;
     cblade : int; (* number of blades *)
     sblade : int list;
     nonsblade : int list;
@@ -85,7 +95,7 @@ let mk_br n =
   fullwt = [];
   shorty4=[];
   longy4=[];
-  lpvalue = None;
+  lpvalue = Lp_unset;
  };;
 
 let modify_br br fields  = 
@@ -105,7 +115,7 @@ halfwt = add "halfwt" br. halfwt;
 fullwt = add "fullwt" br.fullwt;
 shorty4 = add "shorty4" br.shorty4;  (* y4 <= 2.1 *)
 longy4 = add "longy4" br.longy4;   (* y4 >= 2.1 *)
-lpvalue = None;
+lpvalue = Lp_unset;
 }
 ;;
 
@@ -142,35 +152,44 @@ let test() =
 
 (* running of branch in glpsol *)
 
-let set_some br r = (* side effects *)
-   if (length r = 1) then br.lpvalue <- Some (float_of_string(hd r)) else ();;
+let set_lpvalue nt (f,r) = (* side effects *)
+  let _ = 
+    if (List.length f > 0) then nt.lpvalue <- Lp_infeasible
+    else if (List.length r = 1) then nt.lpvalue <- Lp_value  (float_of_string(hd r))
+    else nt.lpvalue <- Lp_unset in
+    nt;;
 
-let set_lpvalue br = match br.lpvalue with
-  | None -> (set_some br (solve_branch_f model dumpfile "gammasum" ampl_of_br br))
-  |  _ -> ();;
+let init_lpvalue br = 
+  let _ = match br.lpvalue with
+    | Lp_unset -> (set_lpvalue br (solve_branch_f model dumpfile "gammasum" ampl_of_br br))
+    |  _ -> br in
+  let _ = report (string_of_lptype br.lpvalue) in
+    br;;
 
 (* selects None and those satisfying f *)
 
 let select_notdone f brs = 
-  let _ = map set_lpvalue brs in
+  let _ = map init_lpvalue brs in
     let fil ro = match ro.lpvalue with
-	None -> true
-      | Some r -> f r in 
+	Lp_unset -> true
+      | Lp_infeasible -> false
+      | Lp_value r -> f r in 
       filter fil brs;;
 
-let notdone r = (r < 0.0);; (* if infeasible, returns 0. if infeasible then done *)
+let notdone r = (r < 0.0);;
 
-let is_none br = match br.lpvalue with
-    None -> true
-  | Some _ -> false;;
+let is_unset br = match br.lpvalue with
+    Lp_unset -> true
+  | _ -> false;;
 
 let calc_min brs = fold_right
   (fun br x -> match br.lpvalue with
-     |None -> x
-     |Some y -> min x y) brs 10.0;;
+     |Lp_value y -> min x y
+     |_ -> x
+  ) brs 10.0;;
 
 let find_min brs = 
-  let r = Some (calc_min brs) in
+  let r = Lp_value (calc_min brs) in
     find (fun br -> r = br.lpvalue) brs;;
 
 (* 
@@ -233,7 +252,7 @@ let top brancher i (br::rest) = (ex brancher i [br]) @ rest;;
 let delay (x::xs) = xs @ [x];;
 
 (* case of 3 blades: *)
-let blade3 = 
+let blade3() = 
   let br = mk_br 3 in
   let br1 = ex branch_qu 2 (branch_qu 1 br) in
   let br2 = ex branch_negqu 0 br1 in
@@ -242,7 +261,7 @@ let blade3 =
    br4;;
 
 (* case of 4 blades *)
-let blade4 = 
+let blade4() = 
   let cr = mk_br 4 in 
   let cr1 = ex branch_qu 3 (ex0 branch_qu 2 (branch_qu 1 cr)) in 
   let cr2 = delay (top branch_wt 3 cr1) in 
@@ -259,6 +278,7 @@ let blade4 =
   let cr10 = top branch_y4 1 cr10' in 
   let cr11 = top branch_sblade 2 cr10 in 
    cr11;;
+
 (* three cases remain, all related by symmetry. 4 blades, 3 quarters, 1 4-cell with weight 0.5 *)
 
 let test_structure br = 
@@ -267,6 +287,16 @@ let test_structure br =
   let _ = (length br.qu = 3) or failwith "qu" in
    true;;
 
-nub (map test_structure blade4);;
+
+let execute() = 
+  let b3 = blade3() in
+  let b3_info = if (List.length b3 = 0) then "blade 3 passes" else failwith "blade 3 fails in OXLZLEZ" in
+  let b4 = blade4() in
+  let t0 = nub (map test_structure (b4)) in
+  let b4_info =  if (t0=[true]) then "blade 4 passes (ignoring cases with 4 blades, 3 quarters, 1 4-cell with wt 0.5)"
+  else failwith "blade 4 fails in OXLZLEZ" in
+  let s =     join_lines [b3_info;b4_info] in
+  let _ = report s in
+    s;;
 
 end;;

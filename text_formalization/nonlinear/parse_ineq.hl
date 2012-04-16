@@ -336,7 +336,9 @@ let native_c = [
 
 let autogen = ref[];;
 
-autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
+let prep_autogen = (function b -> snd(strip_forall (concl (strip_let b))));;
+
+autogen := map prep_autogen
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;sqrt3;rho_x;
    rad2_x;ups_x;eta_x;eta_y;volR; (* solRy;dihRy; *)
    norm2hh;arclength;regular_spherical_polygon_area;
@@ -354,14 +356,10 @@ autogen :=map (function b -> snd(strip_forall (concl (strip_let b))))
    flat_term_x; 
    upper_dih_x; 
    eulerA_x;
-   (* selling parameters *)
+   Mdtau.dua;
+   Mdtau.mdtau_y;
+   Mdtau.mdtau2_y;
    ];;
-
-(*
-let macro_expand = ref [];; 
-*)
-
-
 
 
 let get_macro_expand() = (
@@ -424,6 +422,10 @@ let get_macro_expand() = (
    euler_3flat_x_alt;
    euler_2flat_x_alt;
    euler_1flat_x_alt;
+   (* 2012 *)
+   Mdtau.mdtau_y_LC;
+   Mdtau.mdtau2_y_LC;
+   Sphere.delta_y_LC;
    ] @ (!Ineq.dart_classes));;
    (* dart categories 
    Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
@@ -509,7 +511,7 @@ let move_first i ls =
   b::(a @ xs);;
 
 let cc_main =  
-"int main(){
+"\n\nint main(){
   //Mathematica generated test data
   assert(near (pi(),4.0*atan(1.0)));
   assert(near (sqrt2(),1.41421356237309));
@@ -544,6 +546,8 @@ let cc_main =
   assert(near(flat_term(2.1),-0.4452691371955056));
   assert(near(enclosed(2.02,2.04,2.06,2.08,2.1,2.12,2.14,2.16,2.18), 
     3.426676872737882));
+  assert(near(mdtau_y (2.1,2.2,2.3,2.4,2.5,2.6),mdtau (2.1,2.2,2.3,2.4,2.5,2.6)));
+  assert(near(mdtau2_y (2.1,2.2,2.3,2.4,2.5,2.6),mdtau2 (2.1,2.2,2.3,2.4,2.5,2.6)));
 }\n\n";;
 
 let cc_code outs iqd = 
@@ -595,19 +599,44 @@ let mk_cc tmpfile iqd =
 let compile () = 
   let err = "/tmp/cfsqp_err.txt" in
   let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o >& "^err) in
-  let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error") in
+  let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error ") in
     ();;
 
  let execute_cfsqp idq = 
   let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
   let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
-  let _ = compile() in 
-  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o")) or failwith "execution error" in
+  let _ = try (compile()) with Failure s -> failwith (s^idq.idv) in 
+  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or failwith ("execution error "^idq.idv) in
+  let s = process_to_string "grep 'NEGATIVE' /tmp/cfsqp.out" in
+  let _ =  (s="") or failwith ("NEGATIVE "^idq.idv) in
     ();;
 
  let execute_cfsqp_list xs = 
-      for i=0 to (List.length xs - 1) 
-      do  execute_cfsqp (List.nth xs i); Sys.command("date") done;;
+   let fails = ref [] in
+   let _ = for i=0 to (List.length xs - 1) 
+      do 
+	try  (execute_cfsqp (List.nth xs i); Sys.command("date"); ())
+	with Failure s -> (fails := s :: (!fails)) done in
+     fails;;
+
+(*
+ let execute_cfsqp idq = 
+  let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
+  let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
+  let _ = compile() in 
+  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or failwith "execution error "^idq in
+  let s = process_to_string "grep 'NEGATIVE' /tmp/cfsqp.out" in
+  let _ =  (s="") or failwith ("NEGATIVE "^idq) in
+    ();;
+
+ let execute_cfsqp_list xs = 
+   let fails = ref [] in
+   let _ = for i=0 to (List.length xs - 1) 
+      do 
+	try  (execute_cfsqp (List.nth xs i); Sys.command("date") )
+	with Failure s -> fails := s :: (!fails) done in
+     fails;;
+*)
 
 (* new section glpk code generation *)
 

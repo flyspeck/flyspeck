@@ -1,5 +1,6 @@
 needs "../formal_lp/formal_interval/m_taylor.hl";;
 needs "../formal_lp/formal_interval/m_verifier0.hl";;
+needs "../formal_lp/arith/informal/informal_m_verifier.hl";;
 
 let mk_real_vars n name = map (fun i -> mk_var (sprintf "%s%d" name i, real_ty)) (1--n);;
 
@@ -824,7 +825,22 @@ let m_convex_pass n j diff2_th partial2_bound_th pass1_th pass2_th =
 
 (* mk_verification_functions *)
 
-let mk_verification_functions pp poly_tm min_flag value_tm =
+type verification_funs =
+{
+  (* p_lin -> p_second -> domain_th -> taylor_th *)
+  taylor : int -> int -> thm -> thm;
+  (* pp -> lo -> hi -> interval_th *)
+  f : int -> term -> term -> thm;
+  (* i -> pp -> lo -> hi -> interval_th *)
+  df : int -> int -> term -> term -> thm;
+  (* i -> j -> pp -> lo -> hi -> interval_th *)
+  ddf : int -> int -> int -> term -> term -> thm;
+  (* lo -> hi -> diff2_th *)
+  diff2_f : term -> term -> thm;
+};;
+
+
+let mk_verification_functions pp0 poly_tm min_flag value_tm =
   let x_tm, body_tm = dest_abs poly_tm in
   let new_expr =
     uncurry (mk_binop sub_op_real) (if min_flag then value_tm, body_tm else body_tm, value_tm) in
@@ -852,28 +868,28 @@ let mk_verification_functions pp poly_tm min_flag value_tm =
     let num_eq = (REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) (mk_small_numeral i) in
       GEN_REWRITE_RULE (LAND_CONV o RATOR_CONV o DEPTH_CONV) [num_eq] th in
 
-  let eval0 = map (fun i -> 
-		     if i = 0 then mk_eval_function pp new_f
-		     else 
-		       let d_th = List.nth partials (i - 1) in
-		       let eq_th = replace_numeral i d_th in
-			 mk_eval_function_eq pp eq_th) (0--n) in
+  let eval0 = mk_eval_function pp0 new_f in
+  let eval1 = map (fun i -> 
+		     let d_th = List.nth partials (i - 1) in
+		     let eq_th = replace_numeral i d_th in
+		       mk_eval_function_eq pp0 eq_th) (1--n) in
 
   let eval2 = map (fun i ->
 		     map (fun j ->
 			    let d2_th = List.nth (List.nth partials2 (i - 1)) (j - 1) in
 			    let eq_th' = replace_numeral i d2_th in
 			    let eq_th = replace_numeral j eq_th' in
-			      mk_eval_function_eq pp eq_th) (1--n)) (1--n) in
+			      mk_eval_function_eq pp0 eq_th) (1--n)) (1--n) in
 
   let diff2_f = eval_diff2_poly diff2_th in
-  let eval_f = eval_m_taylor pp diff2_th lin_th second_th in
-  let taylor_f = build_taylor pp lin_th second_th in
-    ((fun i -> List.nth eval0 i), 
-     (fun i j -> List.nth (List.nth eval2 (j - 1)) (i - 1)),
-     diff2_f,
-     eval_f), taylor_f;;
-
+  let eval_f = eval_m_taylor pp0 diff2_th lin_th second_th in
+  let taylor_f = build_taylor pp0 lin_th second_th in
+    {taylor = eval_f;
+     f = eval0;
+     df = (fun i -> List.nth eval1 (i - 1));
+     ddf = (fun i j -> List.nth (List.nth eval2 (j - 1)) (i - 1));
+     diff2_f = diff2_f;
+    }, taylor_f, Informal_verifier.mk_verification_functions pp0 new_f partials partials2;;
 
 
 (* split_domain *)
@@ -1015,7 +1031,7 @@ let m_verify_domain_test n pp certificate xx zz =
 
 (***************************)
 
-let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain_th0 th_list =
+let m_verify_raw n pp fs certificate domain_th0 th_list =
   let r_size = result_size certificate in
   let k = ref 0 in
 
@@ -1042,9 +1058,9 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
       let _ = report (sprintf "df0_flags = %b" df0_flags) in
       let taylor_th, diff2_th = 
 	if df0_flags then
-	  TRUTH, diff2_f xx zz
+	  TRUTH, fs.diff2_f xx zz
 	else
-	  let t_th = eval_taylor domain_th in
+	  let t_th = fs.taylor pp pp domain_th in
 	  let _, d_th, _, _ = dest_m_taylor_thms n t_th in
 	    t_th, d_th in
 
@@ -1055,9 +1071,9 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
       let gen_mono m =
 	if m.df0_flag then
 	  if m.decr_flag then
-	    eval_interval_arith_hi n (eval_f m.variable xx zz)
+	    eval_interval_arith_hi n (fs.df m.variable pp xx zz)
 	  else
-	    eval_interval_arith_lo n (eval_f m.variable xx zz)
+	    eval_interval_arith_lo n (fs.df m.variable pp xx zz)
 	else
 	  if m.decr_flag then
 	    eval_m_taylor_upper_partial n pp m.variable taylor_th
@@ -1092,9 +1108,9 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
 		if f0_flag then
 		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
 		  let xx, zz = dest_pair domain in
-		    m_taylor_cell_pass0 n (eval_f 0 xx zz)
+		    m_taylor_cell_pass0 n (fs.f pp xx zz)
 		else
-		  let taylor_th = eval_taylor domain_th in
+		  let taylor_th = fs.taylor pp pp domain_th in
 		    m_taylor_cell_pass n pp taylor_th  
 		  
 	  | Result_glue (i, convex_flag, r1, r2) ->
@@ -1111,8 +1127,8 @@ let m_verify_raw n pp (eval_f, eval2_f, diff2_f, eval_taylor) certificate domain
 		  let _ = report (sprintf "GlueConvex: %d" (i + 1)) in
 		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
 		  let xx, zz = dest_pair domain in
-		  let diff2_th = diff2_f xx zz in
-		  let partial2_th = eval2_f (i + 1) (i + 1) xx zz in
+		  let diff2_th = fs.diff2_f xx zz in
+		  let partial2_th = fs.ddf (i + 1) (i + 1) pp xx zz in
 		  let lo_partial2_th = eval_interval_arith_lo n partial2_th in
 		    m_convex_pass n (i + 1) diff2_th lo_partial2_th th1 th2
 		else
@@ -1184,29 +1200,164 @@ let m_verify_list n pp fs certificate_list xx zz =
     rec_verify certificate_list [];;
 
 
-(*
-let domain_th0 = mk_m_center_domain n pp xx1 zz1;;
-let th_list = [];;
+(***************************)
+(* Verification based on a p_result_tree *)
 
-let p, r = List.nth c1 0;;
-let domain = get_m_cell_domain n pp domain_th0 p;;
-let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
-let th_list = th_list @ [th];;
+let m_p_verify_raw n p_split fs certificate domain_th0 th_list =
+  let r_size = p_result_size certificate in
+  let k = ref 0 in
 
-let p, r = List.nth c1 1;;
-let domain = get_m_cell_domain n pp domain_th0 p;;
-let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
-let th_list = th_list @ [th];;
+  let rec rec_verify =
+    let rec apply_trans sub_ths th0 acc =
+      match sub_ths with
+	| [] -> rev acc
+	| th :: ths -> 
+	    let th' = eval_subset_trans th th0 in
+	      apply_trans ths th' (th' :: acc) in
 
-let p, r = List.nth c1 2;;
-let domain = get_m_cell_domain n pp domain_th0 p;;
-let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
-let th_list = th_list @ [th];;
+    let rec mk_domains mono th0 acc =
+      match mono with
+	| [] -> rev acc
+	| m :: ms ->
+	    let j, flag = m.variable, m.decr_flag in
+	    let ths = restrict_domain n j flag th0 in
+	      mk_domains ms (fst ths) (ths :: acc) in
 
-let p, r = List.nth c1 3;;
-let domain = get_m_cell_domain n pp domain_th0 p;;
-let th = m_verify_raw n pp eval_f eval_taylor r domain th_list;;
-let th_list = th_list @ [th];;
-*)
+    let verify_mono p_stat mono domain_th certificate =
+      let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+      let xx, zz = dest_pair domain in
+      let df0_flags = itlist (fun m b -> m.df0_flag & b) mono true in
+      let _ = report (sprintf "df0_flags = %b" df0_flags) in
+      let taylor_th, diff2_th = 
+	if df0_flags then
+	  TRUTH, fs.diff2_f xx zz
+	else
+	  let t_th = fs.taylor p_stat.pp p_stat.pp domain_th in
+	  let _, d_th, _, _ = dest_m_taylor_thms n t_th in
+	    t_th, d_th in
 
+      let domain_ths = mk_domains mono domain_th [] in
+      let gen_mono m =
+	if m.df0_flag then
+	  if m.decr_flag then
+	    eval_interval_arith_hi n (fs.df m.variable p_stat.pp xx zz)
+	  else
+	    eval_interval_arith_lo n (fs.df m.variable p_stat.pp xx zz)
+	else
+	  if m.decr_flag then
+	    eval_m_taylor_upper_partial n p_stat.pp m.variable taylor_th
+	  else
+	    eval_m_taylor_lower_partial n p_stat.pp m.variable taylor_th in
+      let mono_ths = map gen_mono mono in
+      let pass_th0 = rec_verify ((fst o last) domain_ths) certificate in
+      let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths in
+      let sub_ths = apply_trans (sub_th0 :: map snd (butlast domain_ths)) sub_th0 [] in
+      let th = rev_itlist (fun ((m, mono_th), sub_th) pass_th ->
+			     let j, flag = m.variable, m.decr_flag in
+			       m_mono_pass_gen n j flag diff2_th mono_th sub_th pass_th)
+	(rev (zip (zip mono mono_ths) sub_ths)) pass_th0 in
+	if hyp th <> [] then failwith ("hyp <> []: "^string_of_thm th) else th in
 
+	
+
+      fun domain_th certificate ->
+	match certificate with
+	  | P_result_mono (p_stat, mono, r1) ->
+	      let mono_strs = 
+		map (fun m -> sprintf "%s%d (%b)" (if m.decr_flag then "-" else "") 
+		       m.variable m.df0_flag) mono in
+	      let _ = report (sprintf "Mono: [%s]" (String.concat ";" mono_strs)) in
+		verify_mono p_stat mono domain_th r1
+
+	  | P_result_pass (p_stat, f0_flag) ->
+	      let _ = k := !k + 1 in
+	      let _ = report (sprintf "Verifying: %d/%d (f0_flag = %b)" !k r_size f0_flag) in
+		if f0_flag then
+		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		  let xx, zz = dest_pair domain in
+		    m_taylor_cell_pass0 n (fs.f p_stat.pp xx zz)
+		else
+		  let taylor_th = fs.taylor p_stat.pp p_stat.pp domain_th in
+		    m_taylor_cell_pass n p_stat.pp taylor_th  
+		  
+	  | P_result_glue (p_stat, i, convex_flag, r1, r2) ->
+	      let domain1_th, domain2_th =
+		if convex_flag then
+		  let d1, _ = restrict_domain n (i + 1) true domain_th in
+		  let d2, _ = restrict_domain n (i + 1) false domain_th in
+		    d1, d2
+		else
+		  split_domain n p_split (i + 1) domain_th in
+	      let th1 = rec_verify domain1_th r1 in
+	      let th2 = rec_verify domain2_th r2 in
+		if convex_flag then
+		  let _ = report (sprintf "GlueConvex: %d" (i + 1)) in
+		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		  let xx, zz = dest_pair domain in
+		  let diff2_th = fs.diff2_f xx zz in
+		  let partial2_th = fs.ddf (i + 1) (i + 1) p_stat.pp xx zz in
+		  let lo_partial2_th = eval_interval_arith_lo n partial2_th in
+		    m_convex_pass n (i + 1) diff2_th lo_partial2_th th1 th2
+		else
+		  m_glue_cells n (i + 1) th1 th2
+
+	  | P_result_ref i ->
+	      let _ = report (sprintf "Ref: %d" i) in
+		if i > 0 then 
+		  List.nth th_list (i - 1)
+		else
+		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		  let pass_th = List.nth th_list (-i - 1) in
+		    m_cell_pass_subdomain domain pass_th in
+    
+    rec_verify domain_th0 certificate;;
+
+(*****************)
+
+let m_p_verify_raw0 n p_split fs certificate xx zz =
+  m_p_verify_raw n p_split fs certificate (mk_m_center_domain n p_split xx zz) [];;
+
+	    
+
+let m_p_verify_list n p_split fs certificate_list xx zz =
+  let domain_hash = Hashtbl.create (length certificate_list * 10) in
+  let mem, find, add = Hashtbl.mem domain_hash, 
+    Hashtbl.find domain_hash, Hashtbl.add domain_hash in
+
+  let get_m_cell_domain n pp domain0 path =
+    let rec get_rec domain_th path hash =
+      match path with
+	| [] -> domain_th
+	| (s, j) :: ps ->
+	    let hash' = hash^s^(string_of_int j) in
+	      if mem hash' then 
+		get_rec (find hash') ps hash'
+	      else
+		if s = "l" or s = "r" then
+		  let domain1_th, domain2_th = split_domain n pp j domain_th in
+		  let hash1 = hash^"l"^(string_of_int j) and
+		      hash2 = hash^"r"^(string_of_int j) in
+		  let _ = add hash1 domain1_th; add hash2 domain2_th in
+		    if s = "l" then
+		      get_rec domain1_th ps hash'
+		    else
+		      get_rec domain2_th ps hash'
+		else
+		  let l_flag = (s = "ml") in
+		  let domain_th', _ = restrict_domain n j l_flag domain_th in
+		  let _ = add hash' domain_th' in
+		    get_rec domain_th' ps hash' in
+      get_rec domain0 path "" in
+
+  let domain_th0 = mk_m_center_domain n p_split xx zz in
+  let size = length certificate_list in
+  let k = ref 0 in
+  let rec rec_verify certificate_list th_list =
+    match certificate_list with
+      | [] -> last th_list
+      | (path, certificate) :: cs ->
+	  let _ = k := !k + 1; report (sprintf "List: %d/%d" !k size) in
+	  let domain_th = get_m_cell_domain n p_split domain_th0 path in
+	  let th = m_p_verify_raw n p_split fs certificate domain_th th_list in
+	    rec_verify cs (th_list @ [th]) in
+    rec_verify certificate_list [];;

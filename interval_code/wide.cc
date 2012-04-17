@@ -127,11 +127,38 @@ interval wide::delta_y(const domain& zn,const domain& zu) {
 }
 
 //debug
-void show(interval y,char* s) {
-  //cout << s << ": " << y.lo << " " << y.hi << endl;
+
+static int counter = 0;
+
+
+void show(const interval y,const char* s) {
+  if (counter % 500000 == 300) {
+  cout << s << ": " << y.lo << " " << y.hi << endl;
+  }
 }
 
-interval mdtau(interval y1,interval y2,interval y3,interval y4,interval y5,interval y6) {
+void showr(const interval y,const char* s) {
+    cout << s << ": " << y.lo << " " << y.hi << endl;
+}
+
+void   report_values(const interval y1,const interval y2,const interval y3,
+		     const interval y4,const interval y5,const interval y6,
+		     const interval mdtau,const interval mdtau2uf) {
+  if (counter++ % 5000000 == 100) {
+    showr(y1,"y1");
+    showr(y2,"y2");
+    showr(y3,"y3");
+    showr(y4,"y4");
+    showr(y5,"y5");
+    showr(y6,"y6");
+    showr(mdtau,"mdtau");
+    showr(mdtau2uf,"mdtau2uf");
+  }
+}
+
+// never called, because version computed and cached in mdtau2uf is used.
+
+interval mdtau(const interval y1,const interval y2,const interval y3,const interval y4,const interval y5,const interval y6) {
   interval x1=y1*y1;
   interval x2 = y2*y2;
   interval x3 = y3*y3;
@@ -150,6 +177,9 @@ interval mdtau(interval y1,interval y2,interval y3,interval y4,interval y5,inter
   interval uf = four*u135*u126*u234*y1*y2*y3;
   interval du135 = DUa(x1,x3,x5);
   interval du126 = DUa(x1,x2,x6);
+  show(y1,"y1"); show(y2,"y2"); 
+  show(y1,"y3"); show(y2,"y4"); 
+  show(y1,"y5"); show(y2,"y6"); 
   show(u135,"u135"); show(u126,"u126"); show(u234,"u234");
 
   if (u234.lo <= 0.0 || u135.lo <= 0.0 || u126.lo <= 0.0) { throw unstable::x; }
@@ -216,8 +246,11 @@ interval mdtau(interval y1,interval y2,interval y3,interval y4,interval y5,inter
   interval term2a = del * t * univariate::matan(t2 *del);
   interval term2 = term2a * Prhoy1;
   interval term3 = rr/uf;
- show(rr,"rr"); show(term1,"term1"); show(t,"t"); show(t2,"t2"); show(term2a,"term2a");
-  show(term2,"term2"); show(term3,"term3");
+  show(rr,"rr"); 
+  show(t,"t"); show(t2,"t2"); show(term2a,"term2a");
+  show(term1,"term1"); 
+  show(term2,"term2"); 
+  show(term3,"term3");
 
   return term1+term2+term3;
 };
@@ -230,12 +263,12 @@ static interval y4b=zero;
 static interval y5b=zero;
 static interval y6b=zero;
 static interval mdtaub=zero;
-static interval mdtau2b=zero;
+static interval mdtau2ufb=zero;
 
 
 // most of the code is identical to mdtau.
 
-interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,interval y6) {
+void set_mdtau2uf(const interval y1,const interval y2,const interval y3,const interval y4,const interval y5,const interval y6) {
   interval x1=y1*y1;
   interval x2 = y2*y2;
   interval x3 = y3*y3;
@@ -254,6 +287,9 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
   interval uf = four*u135*u126*u234*y1*y2*y3;
   interval du135 = DUa(x1,x3,x5);
   interval du126 = DUa(x1,x2,x6);
+  show(y1,"y1"); show(y2,"y2"); 
+  show(y3,"y3"); show(y4,"y4"); 
+  show(y5,"y5"); show(y6,"y6"); 
   show(u135,"u135"); show(u126,"u126"); show(u234,"u234");
 
   if (u234.lo <= 0.0 || u135.lo <= 0.0 || u126.lo <= 0.0) { throw unstable::x; }
@@ -267,23 +303,23 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
   if (del4.hi >= 0.0) { throw unstable::x; }
 
   interval n5 = x1*x3 - x1*x4 + x2*x5 - x3*x6 + x4*x6 - 
-    x2*(x1 - x2 + x3 + x4 - x5 + x6);  // - del5
+    x2*(x1 - x2 + x3 + x4 + (x6- x5) );  // - del5
 
   interval n6 = x1*x2 - x1*x4 - x2*x5 + x4*x5 - 
-    x3*(x1 + x2 - x3 + x4 + x5 - x6) + x3*x6; // - del6
+    x3*(x1 + x2 - x3 + x4 + (x5 - x6)) + x3*x6; // - del6
 
   interval Dn4 = two*x1 - x2 - x3 + two*x4 - x5 - x6;
 
   interval del = delta(x1,x2,x3,x4,x5,x6);
 
-  interval del1 = -(x1*x4) + x2*x5 - x3*x5 - x2*x6 + x3*x6 +
-   x4*(-x1 + x2 + x3 - x4 + x5 + x6);
+  interval del1 = (x2 - x3)*(x5-x6) +
+   x4*(- two*x1 + x2 + x3 - x4 + x5 + x6);
 
   interval del2 = x1*x4 - x3*x4 - x2*x5 - x1*x6 + 
     x3*x6 + x5*(x1 - x2 + x3 + x4 - x5 + x6);
 
-  interval del3 = x1*x4 - x2*x4 - x1*x5 + x2*x5 - 
-    x3*x6 + (x1 + x2 - x3 + x4 + x5 - x6)*x6;
+  interval del3 = x1*x4 - x2*x4 + (x2-x1)*x5 
+     + (x1 + x2 - two*x3 + x4 + x5 - x6)*x6;
 
   interval Pdel = del1 * chain;
 
@@ -298,6 +334,10 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
   interval Dsd4 = four*del + four*x1*del1;
 
   interval m4diff = two*Dn4*sd4 - n4* Dsd4;
+
+  // m4diff1 == m4diff. not used.
+  interval m4diff1 = four * del * (two * x1 * Dn4 - n4) - n4 * four * x1 * del1;
+
   interval m4 = m4diff*chain*u234*y2*y3;
   interval m5 = -four*x2*u234*del3*two*x1*u135*y3;
   interval m6 = -four*x3*u234*del2*two*x1*u126*y2;
@@ -307,13 +347,21 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
   interval rhoy3 = rho(y3);
   interval Prhoy1 = c1/c052;
   show(sd4,"sd4"); show(sd5,"sd5"); show(sd6,"sd6");
-  show(Dsd4,"Dsd4"); show(m4diff,"m4diff"); show(m4,"m4");
+  show(Dsd4,"Dsd4"); show(m4diff,"m4diff"); 
+  show(m4diff1,"m4diff1"); show(m4,"m4");
   show (m5,"m5"); show(m6,"m6"); show(c1,"const1"); show(rhoy1,"rhoy1");
   show(rhoy2,"rhoy2"); show(rhoy3,"rhoy3"); show(Prhoy1,"Prhoy1");
 
-
+  interval rr1 = u234 * y2 *y3 * (rhoy1 * m4diff * chain 
+				  - (four * two * x1 ) * (rhoy2 * y2 * del3 * u135 +
+								 rhoy3 * y3 * del2 * u126));
   interval rr = rhoy1 * m4 + rhoy2 * m5 + rhoy3 * m6;
-  
+  show(rr,"rr"); 
+  show(rr1,"rr1");
+
+  rr.lo = max (rr.lo,rr1.lo); rr.hi = min(rr.hi,rr1.hi);
+  if (rr.lo > rr.hi) { error::message("rr inverted"); }
+  show(rr,"rr");
   // the code is the same as mdtau up to here.
 
   interval term1 = Prhoy1 * pi * interMath::sqrt(del);
@@ -322,13 +370,24 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
   interval term2a = del * t * univariate::matan(t2 *del);
   interval term2 = term2a * Prhoy1;
   interval term3 = rr/uf;
- show(rr,"rr"); show(term1,"term1"); show(t,"t"); show(t2,"t2"); show(term2a,"term2a");
-  show(term2,"term2"); show(term3,"term3");
-
   interval mdtau= term1+term2+term3;
 
+  show(t,"t"); show(t2,"t2"); show(term2a,"term2a");
+  show(term1,"term1"); 
+  show(term2,"term2"); 
+  show(term3,"term3");
+  show(mdtau,"mdtau");
 
   // start variation in code here.
+
+  // WARNING: EMBEDDED ASSUMPTION HERE THAT del is on the domain del>=15.
+  // mdtau2uf is used in just one inequality: 5556646409.
+  static interval ft = "15.0";
+  del.lo  =  max (del.lo,ft.lo);
+  del.hi  =  max (del.hi,ft.hi);
+  // Also uf >= when delta>=0, and we compute mdtau2uf == mdtau2 * uf
+  // END: EMBEDDED ASSUMPTION.
+
     if (del.lo <= 0.0 || uf.lo <= 0.0) { throw unstable::x; }
   interval Ldel = Pdel / del;
   interval D2n4 = two;
@@ -345,18 +404,20 @@ interval mdtau2(interval y1,interval y2,interval y3,interval y4,interval y5,inte
 
   interval PrrC = two * Prhoy1 * m4 + rhoy1 * Pm4 + rhoy2 * Pm5 + rhoy3 * Pm6;
   interval P2tauNum = (PrrC) + (-Luf - half * Ldel) * rr;
-  interval P2tau = P2tauNum/ (uf * interMath::sqrt(del));
+  interval P2tau_uf = P2tauNum/ ( interMath::sqrt(del));
 
   show(Pm4,"Pm4"); show(Pm5,"Pm5"); show(Pm6,"Pm6"); show(PrrC,"Prrc");
-  show(P2tauNum,"P2taunum"); show(P2tau,"P2tau");
+  show(P2tauNum,"P2taunum"); show(P2tau_uf,"P2tau_uf");
 
-  interval mdtau2 = P2tau;
+  interval mdtau2uf = P2tau_uf;
   
   // set stored.
   y1b = y1; y2b = y2; y3b=y3; y4b=y4; y5b=y5; y6b=y6;
-  mdtaub = mdtau; mdtau2b = mdtau2;
+  mdtaub = mdtau; mdtau2ufb = mdtau2uf;
 
-  return P2tau;
+
+  report_values(y1,y2,y3,y4,y5,y6,mdtau,mdtau2uf);
+  //return mdtau2uf;
 
 };
 
@@ -366,26 +427,140 @@ interval wide::mdtau_y(const domain& x,const domain& z) {
   for (int i=0;i<6;i++) { y[i].lo = x.getValue(i); y[i].hi = z.getValue(i); }
   if (y1b==y[0] && y2b==y[1] && y3b==y[2] && y4b==y[3] && y5b==y[4] &&
       y6b== y[5]) { return mdtaub; }
-  mdtau2(y[0],y[1],y[2],y[3],y[4],y[5]);
+  set_mdtau2uf(y[0],y[1],y[2],y[3],y[4],y[5]);
   if (y1b==y[0] && y2b==y[1] && y3b==y[2] && y4b==y[3] && y5b==y[4] &&
       y6b== y[5]) { return mdtaub; }
   else { error::message("stored mdtau failure"); }
 };
 
-interval wide::mdtau2_y(const domain& x,const domain& z) {
+interval wide::mdtau2uf_y(const domain& x,const domain& z) {
   interval y[6];
   for (int i=0;i<6;i++) { y[i].lo = x.getValue(i); y[i].hi = z.getValue(i); }
   if (y1b==y[0] && y2b==y[1] && y3b==y[2] && y4b==y[3] && y5b==y[4] &&
-      y6b== y[5]) { return mdtau2b; }
-  mdtau2(y[0],y[1],y[2],y[3],y[4],y[5]);
+      y6b== y[5]) { return mdtau2ufb; }
+  set_mdtau2uf(y[0],y[1],y[2],y[3],y[4],y[5]);
   if (y1b==y[0] && y2b==y[1] && y3b==y[2] && y4b==y[3] && y5b==y[4] &&
-      y6b== y[5]) { return mdtau2b; }
-  else { error::message("stored mdtau2 failure"); }
+      y6b== y[5]) { return mdtau2ufb; }
+  else { error::message("stored mdtau2uf failure"); }
 
   //  interval y[6];
   //for (int i=0;i<6;i++) { y[i].lo = x.getValue(i); y[i].hi = z.getValue(i); }
-  //return  mdtau2(y[0],y[1],y[2],y[3],y[4],y[5]);
+  //return  set_mdtau2uf(y[0],y[1],y[2],y[3],y[4],y[5]);
 };
+
+/***************************************************
+ ** CODE for bcc_lattice.hl (not part of Flyspeck)
+ ***************************************************/
+
+const interval bcc_value = "5.31473969997195717";
+
+interval selling_volume2_wide (interval p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+return  p01*p02*p03 + p01*p03*p12 + p02*p03*p12 +
+  p01*p02*p13 + p02*p03*p13 + 
+  p01*p12*p13 + p02*p12*p13 + p03*p12*p13 + 
+  p01*p02*p23 + p01*p03*p23 + 
+  p01*p12*p23 + p02*p12*p23 + p03*p12*p23 + 
+    p01*p13*p23 + p02*p13*p23 + p03*p13*p23;
+}
+
+
+interval selling_surface_num_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+  interval  p0_123 = p01 + p02 + p03;
+  interval  p1_023 = p01 + p12 + p13;
+  interval  p2_013 = p02 + p12 + p23;
+  interval  p3_012 = p03 + p13 + p23;
+  interval  p01_23 = p02 + p03 + p12 + p13;
+  interval  p02_13 = p01 + p03 + p12 + p23;
+  interval  p03_12 = p01 + p02 + p13 + p23;
+  interval  F01_23 = p01 * p23 * interMath::sqrt(p01_23);
+  interval  F02_13 = p02 * p13 * interMath::sqrt(p02_13);
+  interval  F03_12 = p03 * p12 * interMath::sqrt(p03_12);
+  interval  F0_123 = (p12*p13+p12*p23+p13*p23)*interMath::sqrt(p0_123);
+  interval  F1_023 = (p02*p03+p02*p23+p03*p23)*interMath::sqrt(p1_023);
+  interval  F2_013 = (p01*p03+p01*p13+p03*p13)*interMath::sqrt(p2_013);
+  interval  F3_012 = (p01*p02+p01*p12+p02*p12)*interMath::sqrt(p3_012);
+   return two*(F01_23+F02_13+F03_12+F0_123+F1_023+F2_013+F3_012);;
+}
+
+interval selling_surface_nn_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+  return selling_surface_num(p01,p02,p03,p12,p13,p23) - bcc_value;
+}
+
+static interval o1 = "0.1";
+interval sqrt01(interval t) {
+  return  t* interMath::sqrt(o1) / (o1);
+}
+
+interval selling_surface_num2_013_approx_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+  interval  p0_123 = p01 + p02 + p03;
+  interval  p1_023 = p01 + p12 + p13;
+  interval  p2_013 = p02 + p12 + p23;
+  interval  p3_012 = p03 + p13 + p23;
+  interval  p01_23 = p02 + p03 + p12 + p13;
+  interval  p02_13 = p01 + p03 + p12 + p23;
+  interval  p03_12 = p01 + p02 + p13 + p23;
+  interval  F01_23 = p01 * p23 * interMath::sqrt(p01_23);
+  interval  F02_13 = p02 * p13 * interMath::sqrt(p02_13);
+  interval  F03_12 = p03 * p12 * interMath::sqrt(p03_12);
+  interval  F0_123 = (p12*p13+p12*p23+p13*p23)*interMath::sqrt(p0_123);
+  interval  F1_023 = (p02*p03+p02*p23+p03*p23)*interMath::sqrt(p1_023);
+  interval  F2_013 = (p01*p03+p01*p13+p03*p13)*interMath::sqrt01(p2_013);
+  interval  F3_012 = (p01*p02+p01*p12+p02*p12)*interMath::sqrt(p3_012);
+    return two*(F01_23+F02_13+F03_12+F0_123+F1_023+F2_013+F3_012);
+}
+
+interval selling_surface_nn2_013_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+ return    selling_surface_num2_013_approx_wide(p01,p02,p03,p12,p13,p23) - bcc_value;
+}
+
+interval selling_surface_num01_23_approx_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+ interval  p0_123 = p01 + p02 + p03;
+  interval  p1_023 = p01 + p12 + p13;
+  interval  p2_013 = p02 + p12 + p23;
+  interval  p3_012 = p03 + p13 + p23;
+  interval  p01_23 = p02 + p03 + p12 + p13;
+  interval  p02_13 = p01 + p03 + p12 + p23;
+  interval  p03_12 = p01 + p02 + p13 + p23;
+  interval  F01_23 = p01 * p23 * sqrt01(p01_23);
+  interval  F02_13 = p02 * p13 * interMath::sqrt(p02_13);
+  interval  F03_12 = p03 * p12 * interMath::sqrt(p03_12);
+  interval  F0_123 = (p12*p13+p12*p23+p13*p23)*interMath::sqrt(p0_123);
+  interval  F1_023 = (p02*p03+p02*p23+p03*p23)*interMath::sqrt(p1_023);
+  interval  F2_013 = (p01*p03+p01*p13+p03*p13)*interMath::sqrt(p2_013);
+  interval  F3_012 = (p01*p02+p01*p12+p02*p12)*interMath::sqrt(p3_012);
+ return   two*(F01_23+F02_13+F03_12+F0_123+F1_023+F2_013+F3_012);
+}
+
+interval selling_surface_nn01_23_wide(interval  p01,interval p02,interval p03,
+			  interval p12, interval p13, interval p23) {
+return   selling_surface_num01_23_approx_wide(p01,p02,p03,p12,p13,p23) - bcc_value;
+}
+
+interval selling_homog_wide(interval  y1,interval y2,interval y3,
+			  interval y4, interval y5, interval y6) {
+return 
+   (selling_surface_num (y1,y2,y3,y4,y5,y6)) -
+  (bcc_value)*(root 6 (selling_volume2_wide (y1,y2,y3,y4,y5,y6) pow 5));
+}
+
+
+
+
+
+
+
+
+
+/***************************************************
+ ** TEST CODE
+ ***************************************************/
+
 
 static int barelyLess(double x,double y,double epsilon)
 {
@@ -439,20 +614,22 @@ void wide::selfTest() {
     }
 
 
-  /* test mdtau2 */  {
+  /* test mdtau2uf */  {
   double eps = 1.0e-6;
   interval y[6] = {"2.1","2.2","2.3","3.4","2.5","2.6"};  
-  interval d = mdtau2(y[0],y[1],y[2],y[3],y[4],y[5]);
+  //interval d = set_mdtau2uf(y[0],y[1],y[2],y[3],y[4],y[5]);
+  /* //no longer accurate.  These were calcs of mdtau2. Now we use mdtau2uf = mdtau2 * uf.
   show(d,"mdtau");
   double v = 0.2804657791758259;
-  if  (barelyLess(d.lo,v,eps) && barelyLess(v,d.hi,eps)) { } else { error::fatal("wide mdtau"); }
-    }
+  if  (barelyLess(d.lo,v,eps) && barelyLess(v,d.hi,eps)) { } else { error::fatal("wide mdtau2uf"); }
+  */
+  }
 
-  /* test mdtau2 */  {
+  /* test set_mdtau2uf */  {
   double eps = 1.0e-6;
   interval y[6] = {"2.1","2.2","2.3","3.4","2.5","2.6"};  
   for (int i=0;i<6;i++) { y[i].hi += 0.01; }
-  interval d = mdtau2(y[0],y[1],y[2],y[3],y[4],y[5]);
+  //interval d = set_mdtau2uf(y[0],y[1],y[2],y[3],y[4],y[5]);
   //cout << endl << d.lo << " " << d.hi << endl;
   // width is about 1, so about 100x magnification.
   // It seems that the second derivative may be more numerically stable than the first!

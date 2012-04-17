@@ -40,90 +40,44 @@ en;;
 flyspeck_needs;;
 Sys.file_exists(fullpath "build.hl");;
 
-Sys.command("Trigonometry2.beta;;
-Hard_lp.execute;;
-fn;;
-  let r = map mk_bb (hard_string_rep()) ;;
-  
-let hard_bb' i =  
-  resolve_with_hints_include_flat (List.nth r i);;
 
-hard_bb' 10;;
+flyspeck_needs  "general/flyspeck_lib.hl";;
+flyspeck_needs  "nonlinear/parse_ineq.hl";;
+let one_cfsqp t = 
+  Parse_ineq.execute_cfsqp (hd(Ineq.getexact t));;
+one_cfsqp "4322269127";; 
 
+let cfsqp ts = 
+  let us = map (hd o Ineq.getexact) ts in
+  !(Parse_ineq.execute_cfsqp_list us);;
 
-let hh = hard_string_rep();;
-let r0 =  mk_bb (List.nth (hh) 0);;
-let t =  resolve r0;;
-let bb = t;;
+cfsqp newcases;;
 
+one_cfsqp "test";;
 
-  let _ = (bb.diagnostic <- Hash_tables (new_tables())) ;;
-  let _ = Hashtbl.clear (ynhash bb);;
-  let _ = Hashtbl.clear (yehash bb) ;;
-  let _ = Hashtbl.clear (azimhash bb);;
-  let com = sprintf "cat %s | grep -v ':'  | grep '=' | tr '[\[\]=,]' ' ' | sed 's/\( [0-9]*\)$/\1.0/g'" glpk_outfile;;
-  let is = int_of_string ;;
-  let fs = float_of_string ;;
-  let (ic,oc) = Unix.open_process(com) ;;
-  let _  = close_out oc ;;
-  let inp = load_and_close_channel false ic ;;
-  let _ = Unix.close_process(ic,oc) ;;
-  let split_sp=  Str.split (Str.regexp " +") ;;
-  let inpa = map split_sp inp;;
-  let ynproc [a;b;c] = Hashtbl.add (ynhash bb) (is b) (fs c);;
-  let yeproc [a;b;c;d] = Hashtbl.add (yehash bb) ( (is b), (is c)) (fs d) ;;
-  let azimproc [a;b;c;d] = Hashtbl.add (azimhash bb) ( (is b), (is c)) (fs d) ;;
-  let proc1 xs = 
-    begin
-      let a = hd xs in
-      if (a = "yn") then ynproc xs
-      else if (a = "ye") then yeproc xs
-      else if (a = "azim") then azimproc xs
-     end ;;
-inpa;;
-  let _ = try (map proc1 inpa) with Failure _ -> failwith "init_has_v" in ();;
-
-(* init_hash_verified_glpk_outfile glpk_outfile bb;; fail *)
-(* fail init_hash *)
-    let _ = init_hash bb ;;
-    let dart = snd(hd(sorted_azim_weighted_diff darts_of_std_tri_and_flats bb)) ;;
-    let f = face_of_dart dart bb ;;
-      if (mem f (rotation bb.std_faces_not_super)) then add_hints_force bb else
-	let f1 = subtract f  (bb.node_200_218 @ bb.node_218_252) in
-	  if not(f1 = []) then bb.hints <- [High_low (hd f1)] else 
-	    let f2 = intersect (highish bb) f in
-	      if not(f2 = []) then  bb.hints <- [High_low (hd f2)] else 
-		add_hints_force bb
-  ) with | Failure s -> failwith ( s^" in add_hints_force_include_flat")
-    | Not_found -> failwith ( " Not_found in add_hints_force_include_flat");;
-
-
- let execute_cfsqp_list xs = 
-   let fails = ref [] in
-   let _ = for i=0 to (List.length xs - 1) 
-      do 
-	try (Pervasives.ignore(Parse_ineq.execute_cfsqp (List.nth xs i)); Sys.command("date") )
-	with Failure s -> fails := s :: (!fails)
-   done in
-     fails;;
-
- module Test = struct 
-   open Ineq;;
-   open Sphere;;
+module Test = struct
+  open Ineq;;
+  open Sphere;;
 add
 {
-  idv =  "FALSE";
-  ineq =  all_forall `ineq
-  [     (sqrt2, r, sqrt2) ]
-   ( &4 * pi * (r pow 3) / (&3)  -  (&2 * mm1 / pi) * &4 * pi >= &4) `;
-  doc = 
-   "INTENTIONAL FALSE INEQ";
-    tags=[Marchal;Tex;Cfsqp];  
+  idv="test";
+  doc="   ";
+  tags=[Flypaper[];Main_estimate;Tex];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (#2.0,y2,#2.52);
+    (&2,y3,#2.52);
+    (#3.01,y4,#3.915);
+    (&2,y5,&2);
+      (&2,y6,&2)
+  ]
+(
+  (ups_x (y1*y1) (y2* y2) (y3*y3) * ups_x (y1*y1) (y2*y2) (y6*y6) * 
+     ups_x (y2*y2) (y3*y3) (y4*y4) > &0) \/
+  (delta_y y1 y2 y3 y4 y5 y6 < &15)
+ )`;
 };;
-
- end;;
-
-
+end;;
 
 add_hints_force_include_flat t;; (* fail *)
 ignore;;

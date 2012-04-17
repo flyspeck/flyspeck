@@ -24,7 +24,7 @@ public:
 	//////////
 	// The calculation of D[taumar,{y1,2}]
 	//
-  static interval mdtau2_y(const domain&,const domain&);
+  static interval mdtau2uf_y(const domain&,const domain&);
 
 
 	//////////

@@ -396,7 +396,7 @@ static uniprimitive pmatan(umatan,Dmatan,DDmatan);
 
 //"ASN_ATN",|- !x. -- &1 < x /\ x < &1 ==> asn x = atn (x / sqrt (&1 - x pow 2))
 
-static void atrig_domain_check(const interval& x,char* ch) {
+static void atrig_domain_check(const interval& x,const char* ch) {
   if (interMath::inf(x) <= -1.0 || interMath::sup(x) >= 1.0) {
     //cout << "bad argument for atrig " << ch << endl << flush;
     //error::printTime("domain error, aborting ");
@@ -449,7 +449,7 @@ static uniprimitive pacos(uacos,Dacos,DDacos);
 
 // sin , cos
 
-static void trig_domain_check(const interval& x,char* ch) {
+static void trig_domain_check(const interval& x,const char* ch) {
   static double pi_minus_eps = 4.5; // needs to be less than 3Pi/2.
   if (interMath::inf(x) <= -pi_minus_eps || interMath::sup(x) >= pi_minus_eps) {
     //cout << "bad argument for trig " << ch << endl << flush;

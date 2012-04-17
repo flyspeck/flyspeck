@@ -979,7 +979,10 @@ let MK_M_TAYLOR_ATN' = (UNDISCH_ALL o PURE_REWRITE_RULE[float1_eq; float2_eq; nu
 
 
 (* acs *)
-let MK_M_TAYLOR_ACS' = (UNDISCH_ALL o PURE_REWRITE_RULE[float1_eq; num3_eq] o DISCH_ALL o 
+let iabs_lemma = GEN_REWRITE_RULE (RAND_CONV o RAND_CONV) [GSYM float1_eq] (REFL `iabs f_bounds < &1`);;
+
+let MK_M_TAYLOR_ACS' = (UNDISCH_ALL o PURE_ONCE_REWRITE_RULE[iabs_lemma] o
+			  PURE_REWRITE_RULE[float1_eq; num3_eq] o DISCH_ALL o 
 			  MY_RULE_FLOAT o prove)
   (`m_cell_domain domain (y:real^N) w ==>
      (!x. x IN interval [domain] ==> interval_arith (f x) f_bounds) ==>
@@ -1486,18 +1489,162 @@ let eval_m_taylor_atn n pp taylor1_th =
 
 
 
+(***************************************)
+(* eval_m_taylor_acs *)
+
+let acs_partial_lemma' = 
+  prove(`interval_arith (--inv (sqrt (&1 - f y * f y)) * partial i f (y:real^N)) int <=>
+	  (\i int. interval_arith (--inv (sqrt (&1 - f y * f y)) * partial i f y) int) i int`,
+	REWRITE_TAC[]);;
+
+
+let acs_second_lemma' = 
+  prove(`interval_arith ((--(f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) - inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int <=>
+
+	  (\j int. interval_arith ((--(f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) - inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int) j int`,
+	REWRITE_TAC[]);;
+
+
+let acs_second_lemma'' = (PURE_REWRITE_RULE[float1_eq; float2_eq; num3_eq; num2_eq] o NUMERALS_TO_NUM o 
+			    PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def] o prove)
+  (`all_n 1 list 
+     (\j int. interval_arith ((--(f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) - inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int) <=>
+     (\i list. all_n 1 list 
+	(\j int. interval_arith ((--(f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) - inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int)) i list`,
+   REWRITE_TAC[]);;
+
+
+let eval_m_taylor_acs n pp taylor1_th =
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th in
+  let f1_tm = (rand o concl) diff2_f1_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+  let ty = type_of y_tm in
+
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let f1_bound0 = eval_m_taylor_bound n pp taylor1_th in
+  let f1_bound = undisch f1_bound0 in
+  let f_bounds_tm = (rand o concl) f1_bound in
+
+  (* cond *)
+  let cond_th = EQT_ELIM (check_interval_iabs f_bounds_tm one_float) in
+
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th in
+    
+  let bounds_th = float_interval_acs pp bounds1_th in
+  let bounds_tm = (rand o concl) bounds_th in
+
+  (* partial_lemma' *)
+  let u_lemma0 = (INST[f1_tm, f_var; y_tm, y_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) acs_partial_lemma' in
+
+  let u_bounds = 
+    let inv, sqrt, neg = float_interval_inv pp, float_interval_sqrt pp, float_interval_neg in
+    let ( * ), (-) = float_interval_mul pp, float_interval_sub pp in
+      neg (inv (sqrt (one_interval - bounds1_th * bounds1_th))) in
+
+  let u_lin th1 =
+    (* partial *)
+    let u_th =
+      let ( * ) = float_interval_mul pp in
+	u_bounds * th1 in
+    let int_tm = rand (concl u_th) in
+    let i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] u_lemma0 in
+      EQ_MP th0 u_th in
+
+  let df_th = eval_all_n df1_th true u_lin in
+  let d_bounds_list = (rand o rator o concl) df_th in
+
+
+  let dd1 = second_bounded_components n second1_th in
+    
+  (* second_lemma', second_lemma'' *)
+  let u_second_lemma0 = (INST[f1_tm, f_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) acs_second_lemma' in
+
+  let u_second_lemma1 = (INST[f1_tm, f_var] o
+			   INST_TYPE[n_type_array.(n), nty]) acs_second_lemma'' in
+
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_interval_partial n pp i taylor1_th in
+			   undisch th0) (1--n) in
+
+  (* u'(f x), u''(f x) *)
+  let d1_th0, d2_th0 =
+    let neg, sqrt, inv = float_interval_neg, float_interval_sqrt pp, float_interval_inv pp in
+    let (-), ( * ), (/) = float_interval_sub pp, float_interval_mul pp, float_interval_div pp in
+    let pow3 = float_interval_pow_simple pp 3 in
+    let ff_1 = one_interval - f1_bound * f1_bound in
+      inv (sqrt ff_1),
+    neg (f1_bound / sqrt (pow3 ff_1)) in
+
+  let u_second2 th1 =
+    let i_tm = (rand o rator o concl) th1 in
+    let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
+    let di1 = List.nth d1_bounds (i_int - 1) in
+    let th1 = BETA_RULE th1 in
+    let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
+    let u_second th1 =
+      let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
+      let dj1 = List.nth d1_bounds (j_int - 1) in
+	
+	(* partial2 *)
+      let u_th = 
+	let ( * ), ( - ) = float_interval_mul pp, float_interval_sub pp in
+	  (d2_th0 * dj1) * di1 - d1_th0 * th1 in
+
+      let int_tm = rand (concl u_th) in
+      let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+	EQ_MP th0 u_th in
+    
+    let u_th = eval_all_n th1 true u_second in
+    let list_tm = (rand o rator o concl) u_th in
+    let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1 in
+      EQ_MP lemma1 u_th in
+
+  let dd_th0 = eval_all_n dd1 false u_second2 in
+  let dd_list = (rand o rator o concl) dd_th0 in
+  let dd_th = GEN x_var (DISCH_ALL dd_th0) in
+
+  let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
+	      MY_PROVE_HYP cond_th o MY_PROVE_HYP f1_bound0 o
+	      MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	      INST[f1_tm, f_var; f_bounds_tm, f_bounds_var; 
+		   domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		   bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		   dd_list, dd_bounds_list_var] o
+	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ACS' in
+  let eq_th = unary_beta_gen_eq f1_tm x_var acs_tm in
+    m_taylor_interval_norm th eq_th;;
+
 
 (******************)
 
 (*
+let n = 3;;
+let pp = 7;;
+
 let xx = mk_vector_list [one_float; one_float; one_float];;
 let r = mk_float 27182 46;;
-let r = mk_float 2 50;;
+let r = mk_float 11 49;;
+let zz = mk_vector_list [r; r; r];;
+
+let r = mk_float 0 50;;
+let xx = mk_vector_list [r; r; r];;
+let r = mk_float 1 49;;
 let zz = mk_vector_list [r; r; r];;
 
 let domain_th = mk_m_center_domain n pp (rand xx) (rand zz);;
-let taylor1 = eval_m_taylor_poly0 pp f1 domain_th;;
-let taylor2 = eval_m_taylor_poly0 pp f2 domain_th;;
+let taylor1 = eval_m_taylor_poly0 pp f1 pp pp domain_th;;
+let taylor2 = eval_m_taylor_poly0 pp f2 pp pp domain_th;;
 
 let th = eval_m_taylor_add n pp taylor1 taylor2;;
 
@@ -1511,7 +1658,12 @@ test 100 (eval_m_taylor_mul n pp taylor1) taylor2;;
 
 
 let eval_poly = eval_m_taylor_poly0 pp `\x:real^3. (x$1 + x$2 * x$3) * x$2 * x$2`;;
-eval_poly domain_th;;
+let th = eval_poly pp pp domain_th;;
 (* 10: 0.808 *)
-test 100 eval_poly domain_th;;
+test 100 (eval_poly pp pp) domain_th;;
+
+eval_m_taylor_bound n pp th;;
+
+eval_m_taylor_atn n pp th;;
+eval_m_taylor_acs n pp th;;
 *)

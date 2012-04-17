@@ -390,5 +390,25 @@ let result_stat result =
     report s;;
 
 
+let result_p_stat glue_flag p_result =
+  let p_table = Hashtbl.create 10 in
+  let add1 p =
+    let c = if Hashtbl.mem p_table p then Hashtbl.find p_table p else 0 in
+      Hashtbl.replace p_table p (succ c) in
+
+  let rec count r =
+    match r with
+      | P_result_ref _ -> ()
+      | P_result_pass (pp, _) -> add1 pp.pp
+      | P_result_mono (pp, _, r1) -> add1 pp.pp; count r1
+      | P_result_glue (pp, _, _, r1, r2) ->
+	  if glue_flag then add1 pp.pp else ();
+	  count r1; count r2 in
+
+  let _ = count p_result in
+  let s = Hashtbl.fold 
+    (fun p c s -> (sprintf "p = %d: %d\n" p c) ^ s) p_table "" in
+    report s;;
+				  
 
 end;;

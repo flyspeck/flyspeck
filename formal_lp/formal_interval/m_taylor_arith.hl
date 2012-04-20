@@ -144,13 +144,48 @@ let build_all_n ths suc_ths =
     rev_itlist2 build suc_ths ths empty_th;;
 
 
+(*************************)
+
+(* Generates |- s D1 a1 /\ ... /\ s D_m a_m <=> all_n D1 [a1; ... ; a_m] s *)
+let gen_all_n_th m =
+  let a_vars = map (fun i -> mk_var ("a"^string_of_int i, aty)) (1--m) in
+  let list_tm = mk_list (a_vars, aty) in
+  let all_tm = mk_comb (mk_binop `all_n : num -> (A)list -> (num -> A -> bool) -> bool` `1` list_tm,
+			  `s : num -> A -> bool`) in
+    (SYM o MY_RULE_NUM o CONV_RULE NUM_REDUCE_CONV) (REWRITE_CONV[all_n] all_tm);;
+
+let all_n_array = Array.init 10 (fun i -> if i = 0 then TRUTH else gen_all_n_th i);;
+
+(***)
+
+let build2 ths =
+  let n = length ths in
+  let th0 = rev_itlist CONJ (tl ths) (hd ths) in
+  let tm0 = (concl o hd) ths in
+  let lhs, rhs = dest_comb tm0 in
+  let a_tms = rev (map (rand o concl) ths) in
+  let s_tm = rator lhs in
+  let ty = type_of rhs in
+  let s_var = mk_var ("s", type_of s_tm) and
+      a_vars0 = map (fun i -> mk_var ("a"^string_of_int i, ty)) (1--n) in
+
+  let th1 = (INST[s_tm, s_var] o INST (zip a_tms a_vars0) o INST_TYPE[ty, aty]) all_n_array.(n) in
+    EQ_MP th1 th0;;
+
+
+
+
+(************************)
+
+
 (* Constructs all_n n (map s list1) *)
 let eval_all_n all_n1_th beta_flag s =
   let ths1', suc_ths = all_n_components all_n1_th in
-  let ths1 = if beta_flag then map BETA_RULE ths1' else ths1' in
+  let ths1 = if beta_flag then map MY_BETA_RULE ths1' else ths1' in
   let ths1, suc_ths = List.rev ths1, List.rev suc_ths in
   let ths = map s ths1 in
-    build_all_n ths suc_ths;;
+(*    build_all_n ths suc_ths;; *)
+    build2 ths;;
 
 
 
@@ -159,11 +194,12 @@ let eval_all_n2 all_n1_th all_n2_th beta_flag s =
   let ths1', suc_ths = all_n_components all_n1_th in
   let ths2', _ = all_n_components all_n2_th in
   let ths1, ths2 = 
-    if beta_flag then map BETA_RULE ths1', map BETA_RULE ths2' else ths1', ths2' in
+    if beta_flag then map MY_BETA_RULE ths1', map MY_BETA_RULE ths2' else ths1', ths2' in
 
   let ths1, ths2, suc_ths = List.rev ths1, List.rev ths2, List.rev suc_ths in
   let ths = map2 s ths1 ths2 in
-    build_all_n ths suc_ths;;
+(*    build_all_n ths suc_ths;; *)
+    build2 ths;;
 
 
 
@@ -369,7 +405,7 @@ let eval_m_taylor_add n p_lin p_second taylor1_th taylor2_th =
 
   let add_second2 th1 th2 =
     let i_tm = (rand o rator o concl) th1 in
-    let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
+    let th1, th2 = MY_BETA_RULE th1, MY_BETA_RULE th2 in
     let lemma = INST[i_tm, i_var_num] add_second_lemma0 in
     let add_second th1 th2 =
       let add_th = float_interval_add p_second th1 th2 in
@@ -511,7 +547,7 @@ let eval_m_taylor_sub n p_lin p_second taylor1_th taylor2_th =
 
   let sub_second2 th1 th2 =
     let i_tm = (rand o rator o concl) th1 in
-    let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
+    let th1, th2 = MY_BETA_RULE th1, MY_BETA_RULE th2 in
     let lemma = INST[i_tm, i_var_num] sub_second_lemma0 in
     let sub_second th1 th2 =
       let sub_th = float_interval_sub p_second th1 th2 in
@@ -676,7 +712,7 @@ let eval_m_taylor_mul n p_lin p_second taylor1_th taylor2_th =
     let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
     let di1 = List.nth d1_bounds (i_int - 1) and
 	di2 = List.nth d2_bounds (i_int - 1) in
-    let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
+    let th1, th2 = MY_BETA_RULE th1, MY_BETA_RULE th2 in
     let lemma = INST[i_tm, i_var_num] mul_second_lemma0 in
     let mul_second th1 th2 =
       let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
@@ -1178,7 +1214,7 @@ let eval_m_taylor_inv n p_lin p_second taylor1_th =
     let i_tm = (rand o rator o concl) th1 in
     let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
     let di1 = List.nth d1_bounds (i_int - 1) in
-    let th1 = BETA_RULE th1 in
+    let th1 = MY_BETA_RULE th1 in
     let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
     let u_second th1 =
       let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
@@ -1315,7 +1351,7 @@ let eval_m_taylor_sqrt n p_lin p_second taylor1_th =
     let i_tm = (rand o rator o concl) th1 in
     let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
     let di1 = List.nth d1_bounds (i_int - 1) in
-    let th1 = BETA_RULE th1 in
+    let th1 = MY_BETA_RULE th1 in
     let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
     let u_second th1 =
       let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
@@ -1452,7 +1488,7 @@ let eval_m_taylor_atn n p_lin p_second taylor1_th =
     let i_tm = (rand o rator o concl) th1 in
     let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
     let di1 = List.nth d1_bounds (i_int - 1) in
-    let th1 = BETA_RULE th1 in
+    let th1 = MY_BETA_RULE th1 in
     let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
     let u_second th1 =
       let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
@@ -1589,7 +1625,7 @@ let eval_m_taylor_acs n p_lin p_second taylor1_th =
     let i_tm = (rand o rator o concl) th1 in
     let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
     let di1 = List.nth d1_bounds (i_int - 1) in
-    let th1 = BETA_RULE th1 in
+    let th1 = MY_BETA_RULE th1 in
     let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
     let u_second th1 =
       let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
@@ -1643,18 +1679,20 @@ let r = mk_float 1 49;;
 let zz = mk_vector_list [r; r; r];;
 
 let domain_th = mk_m_center_domain n pp (rand xx) (rand zz);;
+let f1 = expr_to_vector_fun `x1 + x2 * x3`;;
+let f2 = `\x:real^3. x$2 * x$2`;;
 let taylor1 = eval_m_taylor_poly0 pp f1 pp pp domain_th;;
 let taylor2 = eval_m_taylor_poly0 pp f2 pp pp domain_th;;
 
-let th = eval_m_taylor_add n pp taylor1 taylor2;;
+let th = eval_m_taylor_add n pp pp taylor1 taylor2;;
 
 (* 10: 1.408 *)
-test 100 (eval_m_taylor_add n pp taylor1) taylor2;;
+test 100 (eval_m_taylor_add n pp pp taylor1) taylor2;;
 
-let th = eval_m_taylor_mul n pp taylor1 taylor2;;
+let th = eval_m_taylor_mul n pp pp taylor1 taylor2;;
 
 (* 10: 5.976 *)
-test 100 (eval_m_taylor_mul n pp taylor1) taylor2;;
+test 100 (eval_m_taylor_mul n pp pp taylor1) taylor2;;
 
 
 let eval_poly = eval_m_taylor_poly0 pp `\x:real^3. (x$1 + x$2 * x$3) * x$2 * x$2`;;
@@ -1664,6 +1702,6 @@ test 100 (eval_poly pp pp) domain_th;;
 
 eval_m_taylor_bound n pp th;;
 
-eval_m_taylor_atn n pp th;;
-eval_m_taylor_acs n pp th;;
+eval_m_taylor_atn n pp pp th;;
+eval_m_taylor_acs n pp pp th;;
 *)

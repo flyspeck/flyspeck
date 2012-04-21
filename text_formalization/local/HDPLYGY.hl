@@ -1,0 +1,1853 @@
+
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Local Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2012-04-01                                                           *)
+(* ========================================================================= *)
+
+
+
+
+module   Hdplygy = struct
+
+
+
+
+open Wjscpro;;
+open Polyhedron;;
+open Sphere;;
+open Fan_defs;;
+open Hypermap;;
+open Vol1;;
+open Fan;;
+open Topology;;		
+open Fan_misc;;
+open Planarity;; 
+open Conforming;;
+open Sphere;;
+open Hypermap;;
+open Fan;;
+open Topology;;
+open Prove_by_refinement;;
+open Pack_defs;;
+open Wrgcvdr_cizmrrh;;
+open Local_lemmas;;
+open Collect_geom;;
+open Dih2k_hypermap;;
+open Tecoxbm;;
+
+let a_ear0=new_definition`a_ear0 J (i,j)=( if i  MOD 3=j MOD 3 then &0 else
+ (if {i  MOD 3,j MOD 3} IN J then sqrt(&8) else &2)) `;;
+
+let b_ear0=new_definition`b_ear0 J (i,j)=( if i  MOD 3=j MOD 3 then &0 else
+ (if {i  MOD 3,j MOD 3} IN J then cstab else &2* h0)) `;;
+
+
+let MOD_EQ_MOD1=prove(`!x1 x2 y n. ~(n=0) /\ (y + x1) MOD n = (y + x2) MOD n /\ x2<= x1
+ ==> x1 MOD n = x2 MOD n`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC DIVISION[`y+x1:num`;`n:num`]
+THEN MRESA_TAC DIVISION[`y+x2:num`;`n:num`]
+THEN MP_TAC(ARITH_RULE`y + x2 = (y + x2) DIV n * n + (y + x2) MOD n 
+/\ y + x1 = (y + x1) DIV n * n + (y + x2) MOD n 
+==> x1- x2= (y + x1) DIV n *n- (y + x2) DIV n * n `)
+THEN POP_ASSUM( fun th-> GEN_REWRITE_TAC(  LAND_CONV o LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN REWRITE_TAC[]
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM( fun th-> GEN_REWRITE_TAC( LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN REWRITE_TAC[GSYM RIGHT_SUB_DISTRIB]
+THEN STRIP_TAC
+THEN MRESA_TAC MOD_MULT[`n:num`;`(y + x1) DIV n - (y + x2) DIV n`]
+THEN POP_ASSUM MP_TAC
+THEN ONCE_REWRITE_TAC[ARITH_RULE`n * ((y + x1) DIV n - (y + x2) DIV n) = ((y + x1) DIV n - (y + x2) DIV n) *n`]
+THEN STRIP_TAC
+THEN MP_TAC(ARITH_RULE`x2<= x1 ==> x1= x2 + (x1- x2):num`)
+THEN RESA_TAC
+THEN MRESAL_TAC MOD_ADD_MOD[`x2:num`;`x1-x2:num`;`n:num`][ARITH_RULE` A+0=A/\ (A+B)+C=A+B+C`]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th-> GEN_REWRITE_TAC(LAND_CONV o ONCE_DEPTH_CONV)[SYM th])
+THEN MRESAL_TAC MOD_MOD_REFL[`x2:num`;`n:num`][ARITH_RULE`3*1=3/\ ~(3=0)`]
+THEN RESA_TAC);;
+
+
+
+let MOD_EQ_MOD=prove(`!x1 x2 y n. ~(n=0) /\ (y + x1) MOD n = (y + x2) MOD n 
+ ==> x1 MOD n = x2 MOD n`,
+REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(ARITH_RULE`x2<= x1 \/ x1<= x2:num`)
+THENL[MRESA_TAC MOD_EQ_MOD1[`x1:num`;`x2:num`;`y:num`;`n:num`];
+MRESA_TAC MOD_EQ_MOD1[`x2:num`;`x1:num`;`y:num`;`n:num`]]);;
+
+
+let EAR_STABLE_SYSTEM=prove_by_refinement(`stable_system 3 ((#0.11)) (0..2) (a_ear0 {{1,2}}) (b_ear0 {{1,2}})  ({{1,2}}) (\(i,j). (j + i) MOD 3)`,
+[ MRESAL_TAC HAS_SIZE_NUMSEG[`0`;`2`][ARITH_RULE`(2+1)-0=3`]
+THEN ASM_SIMP_TAC[stable_system;constraint_system;torsor;ARITH_RULE`3<= 3 /\3<=6/\ 1+3<=6/\ (2+1)-0=3`;CARD_NUMSEG;Hypermap.CARD_SINGLETON;]
+THEN REMOVE_ASSUM_TAC
+THEN STRIP_TAC;
+STRIP_TAC;
+REWRITE_TAC[ARITH_RULE`3-1=2`;IN_NUMSEG;ARITH_RULE`0<= A`]
+THEN MRESAL1_TAC Hypermap.LE_MOD_SUC`2`[ARITH_RULE`SUC 2=3`]
+THEN STRIP_TAC;
+REPEAT STRIP_TAC
+THEN MRESAL_TAC MOD_MULT[`3`;`1`][ARITH_RULE`3*1=3/\ ~(3=0)`]
+THEN MRESAL_TAC MOD_MOD_REFL[`y+x:num`;`3`][ARITH_RULE`3*1=3/\ ~(3=0)`]
+THEN MRESAL_TAC MOD_ADD_MOD[`y+x:num`;`3`;`3`][ARITH_RULE`~(3=0)/\ A+0=A/\ (A+B)+C=A+B+C`];
+REPEAT STRIP_TAC
+THEN MP_TAC(ARITH_RULE`x1<= 2/\ x2<= 2==> x1< 3 /\ x2< 3`)
+THEN RESA_TAC
+THEN MRESA_TAC MOD_LT[`x1:num`;`3`]
+THEN MRESA_TAC MOD_LT[`x2:num`;`3`]
+THEN MRESAL_TAC MOD_EQ_MOD[`x1:num`;`x2:num`;`y:num`;`3`][ARITH_RULE`~(3=0)/\ A+0=A/\ (A+B)+C=A+B+C`];
+STRIP_TAC;
+REWRITE_TAC[b_ear0;a_ear0]
+THEN REPEAT GEN_TAC
+THEN DISJ_CASES_TAC(SET_RULE`i MOD 3 =j MOD 3 \/ ~(i  MOD 3 =j MOD 3:num)`);
+ASM_REWRITE_TAC[REAL_ARITH`&0<= &0`];
+ASM_REWRITE_TAC[]
+THEN  DISJ_CASES_TAC(SET_RULE`{i MOD 3,j MOD 3} IN {{1,2}} \/ ~({i MOD 3,j MOD 3} IN {{1,2}})`);
+ASM_REWRITE_TAC[IN_SING]
+THEN ONCE_REWRITE_TAC[SET_RULE`{i  MOD 3,j MOD 3} ={1,2} <=> {j MOD 3,i  MOD 3}= {1,2}`]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_SING;cstab]
+THEN RESA_TAC
+THEN MATCH_MP_TAC REAL_LE_LSQRT
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[IN_SING]
+THEN ONCE_REWRITE_TAC[SET_RULE`{i MOD 3,j MOD 3} ={1,2} <=> {j MOD 3,i MOD 3}= {1,2}`]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_SING;h0]
+THEN RESA_TAC
+THEN REAL_ARITH_TAC;
+STRIP_TAC;
+SIMP_TAC[b_ear0;a_ear0;ARITH_RULE`A+0=A`;MOD_MOD_REFL;ARITH_RULE`~(3=0)`];
+REWRITE_TAC[SUBSET;IN_SING;IN_ELIM_THM;IN_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`1`
+THEN ASM_REWRITE_TAC[ARITH_RULE`0<=1 /\ 1<=2/\ (1 +1 ) MOD 3= 2`];
+STRIP_TAC;
+REWRITE_TAC[a_ear0;IN_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN MP_TAC(ARITH_RULE`i<= 2/\ j<= 2==> i< 3 /\ j< 3`)
+THEN RESA_TAC
+THEN MRESA_TAC MOD_LT[`i:num`;`3`]
+THEN MRESA_TAC MOD_LT[`j:num`;`3`]
+THEN  DISJ_CASES_TAC(SET_RULE`{i,j} IN {{1,2}} \/ ~({i,j} IN {{1,2}})`);
+ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC REAL_LE_RSQRT
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[]
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[IN_SING;cstab]
+THEN MATCH_MP_TAC REAL_LE_LSQRT
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[IN_SING;cstab]
+THEN REAL_ARITH_TAC;
+STRIP_TAC;
+REWRITE_TAC[b_ear0;a_ear0;MOD_MOD_REFL]
+THEN REPEAT STRIP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`i MOD 3 =(i+1) MOD 3 MOD 3\/ ~(i  MOD 3 =(i+1) MOD 3 MOD 3:num)`);
+ASM_REWRITE_TAC[REAL_ARITH`&0<= &0`;cstab]
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[]
+THEN  DISJ_CASES_TAC(SET_RULE`{i MOD 3,(i+1) MOD 3 MOD 3} IN {{1,2}} \/ ~({i MOD 3,(i+1) MOD 3 MOD 3} IN {{1,2}})`);
+ASM_REWRITE_TAC[]
+THEN REAL_ARITH_TAC;
+ASM_REWRITE_TAC[h0;cstab]
+THEN REAL_ARITH_TAC;
+REWRITE_TAC[IN_SING;a_ear0;b_ear0]
+THEN REPEAT STRIP_TAC
+THEN MP_TAC(SET_RULE`{i,j}={1,2} /\ ~(1=2) ==> ~(i=j) /\ (i =1\/ i=2) /\ (j=1\/ j=2)`)
+THEN ASM_REWRITE_TAC[ARITH_RULE`~(1=2)`]
+THEN DISCH_TAC
+THEN MP_TAC(ARITH_RULE`(i =1\/ i=2) /\ (j=1\/ j=2)==> i< 3 /\ j< 3`)
+THEN RESA_TAC
+THEN MRESA_TAC MOD_LT[`i:num`;`3`]
+THEN MRESA_TAC MOD_LT[`j:num`;`3`]]);;
+
+
+
+
+
+
+let exist_stable_system=prove_by_refinement(`?s:(num#real#(num->bool)#(num#num->real)#(num#num->real)#((num->bool)->bool)#(num#num->num)). stable_system (FST s) (FST (SND s)) (FST (SND (SND s))) (FST (SND (SND (SND s)))) (FST(SND (SND (SND (SND s))))) (FST (SND (SND (SND (SND (SND s)))))) 
+(SND(SND (SND (SND (SND (SND s))))))`,
+[EXISTS_TAC`3, (#0.11), (0..2), (a_ear0 {{1,2}}), (b_ear0 {{1,2}}), ({{1,2}}),(\(i,j). (j + i) MOD 3)`
+THEN REWRITE_TAC[EAR_STABLE_SYSTEM]]);;
+
+
+let stable_sy_tybij = (new_type_definition "stable_sy" ("stable_sy", "tuple_stable_sy")exist_stable_system);;
+
+
+let k_sy = new_definition `k_sy (s:stable_sy) = FST (tuple_stable_sy s)`;;
+
+let d_sy = new_definition `d_sy (s:stable_sy) = (FST (SND (tuple_stable_sy s)))`;;
+
+let I_SY = new_definition `I_SY (s:stable_sy) = (FST (SND (SND  (tuple_stable_sy s))))`;;
+
+let a_sy = new_definition `a_sy (s:stable_sy) = (FST (SND (SND (SND (tuple_stable_sy s)))))`;;
+
+let b_sy = new_definition `b_sy (s:stable_sy) = (FST(SND (SND (SND (SND (tuple_stable_sy s)))))) `;;
+
+
+let J_SY = new_definition `J_SY (s:stable_sy) = (FST (SND (SND (SND (SND (SND  (tuple_stable_sy s))))))) `;;
+
+let f_sy = new_definition `f_sy (s:stable_sy) = (SND(SND (SND (SND (SND (SND  (tuple_stable_sy s)))))))`;;
+
+
+
+let stable_sy_lemma=prove(`!s:stable_sy. stable_system (k_sy s) (d_sy s) (I_SY s) (a_sy s) (b_sy s) (J_SY s) (f_sy s)`,
+   ASM_REWRITE_TAC[stable_sy_tybij;k_sy;d_sy;I_SY; a_sy; b_sy; J_SY; f_sy]);;
+
+
+let ear_sy=new_definition `ear_sy (s:stable_sy)<=> CARD(I_SY s)=3 /\ d_sy s= #0.11 /\ CARD (J_SY s)= 1 /\ a_sy (s)= a_ear0 (J_SY s)
+/\  a_sy (s)= b_ear0 (J_SY s) `;;
+
+
+let sigma_sy=new_definition `sigma_sy (s:stable_sy) = (if ear_sy s then &1 else -- &1) `;;
+
+let J1_SY=new_definition `J1_SY (s:stable_sy)= {x| ?i. {i MOD (k_sy s),f_sy s (1,i MOD (k_sy s))} IN J_SY s /\ i IN 1..(k_sy s) /\ x=i,SUC(i MOD (k_sy s))}`;;
+
+let d_fun=new_definition `d_fun (s:stable_sy,l:real^(M,3)finite_product) = (d_sy s) + #0.1 * sigma_sy s * sum (J1_SY s) (\x. cstab -norm (row (FST x) (vecmats l) - row (SND x) (vecmats l) ))`;;
+
+let tau_star=new_definition `tau_star (s:stable_sy) (l:real^(M,3)finite_product)= tau_fun (V_SY (vecmats l)) (E_SY (vecmats l)) (F_SY (vecmats l)) - d_fun (s,l)`;;
+
+
+
+let FINITE_J_SY=prove(`!s:stable_sy . 
+FINITE (J_SY s)`,
+GEN_TAC
+THEN MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num`;]
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[constraint_system;torsor;HAS_SIZE]
+THEN STRIP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN MRESA_TAC FINITE_SUBSET[`J_SY (s:stable_sy)`;`{{i, f_sy s (1,i)} | i | i IN I_SY (s:stable_sy)}`]
+THEN POP_ASSUM MATCH_MP_TAC 
+THEN MRESAL_TAC FINITE_IMAGE[`(\i. {i, f_sy (s:stable_sy) (1,i)})`;`I_SY (s:stable_sy)`][FINITE_NUMSEG;IMAGE]
+THEN SUBGOAL_THEN`{y | ?x. x IN I_SY s /\ y = {x,f_sy s (1,x)}}={{i, f_sy s (1,i)} | i | i IN I_SY (s:stable_sy)}`ASSUME_TAC
+THENL[REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+POP_ASSUM(fun th-> ASM_REWRITE_TAC[SYM th])]);;
+
+
+let FINITE_J1_SY=prove(`!s:stable_sy . 
+FINITE (J1_SY s)`,
+GEN_TAC
+THEN REWRITE_TAC[J1_SY]
+THEN MRESAL_TAC FINITE_IMAGE[`(\i. i, SUC(i MOD (k_sy s)))`;`1..k_sy (s:stable_sy)`][FINITE_NUMSEG;IMAGE]
+THEN MATCH_MP_TAC FINITE_SUBSET
+THEN EXISTS_TAC`{y | ?x. x IN 1..(k_sy (s:stable_sy)) /\ y = x,SUC(x MOD (k_sy s))}`
+THEN ASM_REWRITE_TAC[SUBSET;IN_ELIM_THM]
+THEN REPEAT RESA_TAC
+THEN EXISTS_TAC`i:num`
+THEN ASM_REWRITE_TAC[]);;
+
+
+let CONTINUOUS_ON_ROW=prove(`!i s:real^(M,N)finite_product->bool. 1<= i/\ i<= dimindex(:M) ==>  (\x. row i (vecmats x)) continuous_on s`,
+REWRITE_TAC[continuous_on;]
+THEN REPEAT STRIP_TAC
+THEN EXISTS_TAC`e:real`
+THEN REPEAT RESA_TAC
+THEN POP_ASSUM MP_TAC
+THEN MP_TAC(ARITH_RULE`1<= i/\ i<= dimindex(:M) ==> i-1< dimindex(:M)`)
+THEN RESA_TAC
+THEN MRESAL_TAC (GEN_ALL VECMAT_ROW)[`i-1:num`;`vecmats(x':real^(M,N)finite_product)`][MATVEC_VECMATS_ID]
+THEN MRESAL_TAC (GEN_ALL VECMAT_ROW)[`i-1:num`;`vecmats(x:real^(M,N)finite_product)`][MATVEC_VECMATS_ID]
+THEN MRESA_TAC (GEN_ALL DIST_VECMAT)[`i-1:num`;`x':real^(M,N)finite_product`;`x:real^(M,N)finite_product`]
+THEN MP_TAC(ARITH_RULE`1<= i/\ i<= dimindex(:M) ==> i= SUC(i-1)`)
+THEN ASM_REWRITE_TAC[]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> ONCE_REWRITE_TAC[th])
+THEN POP_ASSUM MP_TAC
+THEN REAL_ARITH_TAC);;
+
+
+let INDEX_J1_SY=prove(`!s:stable_sy . 
+x IN J1_SY s ==> 1 <= FST x /\ FST x <= k_sy s`,
+REWRITE_TAC[J1_SY;IN_ELIM_THM;IN_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN ASM_REWRITE_TAC[]);;
+
+let CONTINUOUS_ON_D_FUN=prove(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k))
+==> lift o(\l:real^(M,3)finite_product. d_fun(s,l)) continuous_on (B_SY1 (a_sy s) (b_sy s))`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[d_fun;LIFT_ADD;o_DEF;]
+THEN MATCH_MP_TAC CONTINUOUS_ON_ADD
+THEN REWRITE_TAC[CONTINUOUS_ON_CONST;LIFT_CMUL;]
+THEN MATCH_MP_TAC CONTINUOUS_ON_CMUL
+THEN MATCH_MP_TAC CONTINUOUS_ON_CMUL
+THEN ASSUME_TAC FINITE_J1_SY
+THEN POP_ASSUM(fun th -> MRESA1_TAC th`s:stable_sy`)
+THEN ASM_SIMP_TAC[LIFT_SUM;o_DEF]
+THEN MATCH_MP_TAC CONTINUOUS_ON_VSUM 
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN REWRITE_TAC[LIFT_SUB]
+THEN MATCH_MP_TAC CONTINUOUS_ON_SUB
+THEN REWRITE_TAC[CONTINUOUS_ON_CONST;LIFT_CMUL;]
+THEN MATCH_MP_TAC CONTINUOUS_ON_LIFT_NORM_COMPOSE
+THEN MATCH_MP_TAC CONTINUOUS_ON_SUB
+THEN STRIP_TAC
+THENL[
+MATCH_MP_TAC CONTINUOUS_ON_ROW
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[J1_SY;IN_ELIM_THM;IN_NUMSEG]
+THEN REPEAT RESA_TAC;
+MATCH_MP_TAC CONTINUOUS_ON_ROW
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[J1_SY;IN_ELIM_THM;IN_NUMSEG]
+THEN REPEAT RESA_TAC
+THEN ASM_REWRITE_TAC[ARITH_RULE`1<= SUC a`]
+THEN MRESAL_TAC DIVISION[`i:num`;`dimindex (:M):num`][DIMINDEX_NONZERO]
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC]);;
+
+
+let INJ_B_SY=prove(`!s:stable_sy x:real^(M,3)finite_product. x IN (B_SY1 (a_sy s) (b_sy s)) /\ k_sy s =k /\ dimindex(:M) =k /\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+==>
+(!i j.
+     i IN 1..k /\
+     j IN 1..k /\
+     row i (vecmats x),row (SUC (i MOD k)) (vecmats x) =
+     row j (vecmats x),row (SUC (j MOD k)) (vecmats x)
+     ==> i = j)`,
+REWRITE_TAC[PAIR_EQ;IN_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN MRESA1_TAC stable_sy_lemma`s:stable_sy`
+THEN MRESA_TAC (GEN_ALL PROPERTIES_OF_FAN_IN_B_SY)[`d_sy (s:stable_sy)`;`J_SY (s:stable_sy)`;`k_sy (s:stable_sy)`;`i:num`;`j:num`;`a_sy (s:stable_sy)`;`b_sy (s:stable_sy)`;`row i (vecmats (x:real^(M,3)finite_product))`;`row j (vecmats (x:real^(M,3)finite_product))`;`x:real^(M,3)finite_product`] 
+THEN POP_ASSUM MP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(i=j) \/ i=j:num`)
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`A-A= vec 0`;NORM_0]
+THEN REAL_ARITH_TAC);;
+
+
+
+
+let INJ_ROW_B_SY=prove(`!s:stable_sy x:real^(M,3)finite_product. x IN (B_SY1 (a_sy s) (b_sy s)) /\ k_sy s =k /\ dimindex(:M) =k /\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+==>
+(!i j.
+     i IN 1..k /\
+     j IN 1..k /\
+     row i (vecmats x) =
+     row j (vecmats x)
+     ==> i = j)`,
+REWRITE_TAC[PAIR_EQ;IN_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN MRESA1_TAC stable_sy_lemma`s:stable_sy`
+THEN MRESA_TAC (GEN_ALL PROPERTIES_OF_FAN_IN_B_SY)[`d_sy (s:stable_sy)`;`J_SY (s:stable_sy)`;`k_sy (s:stable_sy)`;`i:num`;`j:num`;`a_sy (s:stable_sy)`;`b_sy (s:stable_sy)`;`row i (vecmats (x:real^(M,3)finite_product))`;`row j (vecmats (x:real^(M,3)finite_product))`;`x:real^(M,3)finite_product`] 
+THEN POP_ASSUM MP_TAC
+THEN DISJ_CASES_TAC(SET_RULE`~(i=j) \/ i=j:num`)
+THEN ASM_REWRITE_TAC[VECTOR_ARITH`A-A= vec 0`;NORM_0]
+THEN REAL_ARITH_TAC);;
+
+
+
+
+
+
+
+
+
+
+let CHANGE_SUM_TAU_FUN=prove(`!s:stable_sy x:real^(M,3)finite_product.  k_sy s =k /\ dimindex(:M) =k /\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\
+x IN (B_SY1 (a_sy s) (b_sy s)) 
+==>
+(\x. 
+      sum (F_SY (vecmats x))
+      (\e. rho_fun (norm (FST e)) * azim_in_fan e (E_SY (vecmats x)))) x
+= (\x. sum (1..k_sy s)
+      (\i. rho_fun (norm (row i (vecmats x))) * azim_in_fan (row i (vecmats x), row (SUC (i MOD (k_sy s))) (vecmats x)) (E_SY (vecmats x)))) x`,
+ REPEAT STRIP_TAC
+THEN POP_ASSUM(fun th-> MP_TAC th THEN REWRITE_TAC[B_SY1;IN_ELIM_THM]
+THEN STRIP_TAC
+THEN MP_TAC th
+THEN RESA_TAC)
+THEN SUBGOAL_THEN`{y | ?x1. x1 IN 1..dimindex (:M) /\
+                   y =
+                   row x1 (vecmats x),
+                   row (SUC (x1 MOD dimindex (:M))) (vecmats x)}
+={row i (vecmats x),row (SUC (i MOD dimindex (:M))) (vecmats (x:real^(M,3)finite_product)) | 1 <= i /\
+                                                                  i <=
+                                                                  dimindex
+                                                                  (:M)}`ASSUME_TAC
+THENL[
+REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_NUMSEG];
+POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[GSYM F_SY]
+THEN STRIP_TAC
+THEN MRESAL_TAC SUM_IMAGE[`(\i. (row i (vecmats x), row (SUC (i MOD (k_sy s))) (vecmats (x:real^(M,3)finite_product))))`;`(\e. rho_fun (norm (FST e)) * azim_in_fan e (E_SY (vecmats (x:real^(M,3)finite_product))))`;`1..(k_sy (s:stable_sy))`][o_DEF;IMAGE]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN MATCH_MP_TAC INJ_B_SY
+THEN EXISTS_TAC`s:stable_sy`
+THEN ASM_REWRITE_TAC[]]);;
+ 
+let CONTINUOUS_ON_SAME_DOMAIN=prove(`!f g s:real^M->bool. (!x. x IN s==> f x= g x) /\ f continuous_on s ==> g  continuous_on s`,
+SIMP_TAC[continuous_on]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"THYGIANG")
+THEN DISCH_THEN(LABEL_TAC"THY")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "THY"(fun th-> MRESA1_TAC th`x:real^M`)
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`e:real`)
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"THY")
+THEN EXISTS_TAC`d:real`
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN"THYGIANG"(fun th-> MRESA1_TAC th`x':real^M` THEN MRESA1_TAC th`x:real^M`)
+THEN REMOVE_THEN"THY"(fun th-> MRESA1_TAC th`x':real^M`));;
+
+
+let EDGE_IN_F_SY=prove(`!(l:real^(M,3)finite_product). 1<= i /\ i<= dimindex (:M)
+/\ u = row i (vecmats l)
+/\ v= row (SUC (i MOD dimindex (:M))) (vecmats l)
+==> u,v IN F_SY (vecmats l)`,
+REPEAT STRIP_TAC
+THEN REWRITE_TAC[F_SY;IN_ELIM_THM]
+THEN EXISTS_TAC`i:num`
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+let JBDNJJB3=prove(`!u:real^3 v:real^3 w:real^3.
+~collinear {vec 0, u, v} /\ ~collinear {vec 0, u, w} 
+==>
+sin(azim (vec 0) u v w)=inv (sqrt(norm w pow 2 - (inv (norm u) * (u dot w)) pow 2) * norm (u cross v)) *(u cross v) dot w`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC th3[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`]
+THEN MRESA_TAC properties_coordinate[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`]
+THEN MRESA_TAC azim[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`;`(w:real^3)`]
+THEN POP_ASSUM (fun th->MRESA_TAC th [`e1_fan ((vec 0):real^3) (u:real^3) (v:real^3)`;`e2_fan ((vec 0):real^3) (u:real^3) (v:real^3)`;`e3_fan ((vec 0):real^3) (u:real^3) (v:real^3)`])
+THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN (LABEL_TAC"YEU EM")
+THEN DISCH_TAC THEN DISCH_TAC
+THEN SUBGOAL_THEN`sqrt(norm w pow 2 - (inv (norm u) * (u dot (w:real^3))) pow 2) =r2`ASSUME_TAC
+THENL[
+MRESA1_TAC NORM_POW_2`w:real^3`
+THEN POP_ASSUM MP_TAC
+THEN GEN_REWRITE_TAC(LAND_CONV o RAND_CONV o ONCE_DEPTH_CONV)[VECTOR_ARITH`a=a- vec 0`]
+THEN ASM_REWRITE_TAC[DOT_LADD;DOT_RADD;DOT_LMUL;DOT_RMUL;REAL_ARITH`A* &0= &0 /\ &0+ A=A`]
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN ASM_REWRITE_TAC[REAL_ARITH`A* &0= &0 /\ &0+ A=A`]
+THEN FIND_ASSUM MP_TAC`orthonormal (e1_fan (vec 0) u v) (e2_fan (vec 0) u v)
+      (e3_fan (vec 0) u (v:real^3))`
+THEN REWRITE_TAC[orthonormal;]
+THEN RESA_TAC
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN ASM_REWRITE_TAC[REAL_ARITH`A* &0= &0 /\ A+ &0=A/\ &0 +A=A
+/\ (r2 * cos (psi + azim (vec 0) u v w)) *
+ (r2 * cos (psi + azim (vec 0) u v w)) *
+ &1 +
+ (r2 * sin (psi + azim (vec 0) u v w)) *
+ (r2 * sin (psi + azim (vec 0) u v w)) *
+ &1 +
+ h2 * h2 * ((u - vec 0) dot (u - vec 0))
+= (r2 pow 2) * ( (sin (psi + azim (vec 0) u v w)) pow 2 +(cos (psi + azim (vec 0) u v w)) pow 2 ) +
+ h2 * h2 * ((u - vec 0) dot (u - vec 0))`;Trigonometry.WPMXVYZ]
+THEN MP_TAC(VECTOR_ARITH`w dot u= (w- vec 0) dot (u- vec 0:real^3)`)
+THEN ASM_REWRITE_TAC[DOT_LADD;DOT_RADD;DOT_LMUL;DOT_RMUL;REAL_ARITH`A* &0= &0 /\ &0+ A=A`]
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN ASM_REWRITE_TAC[REAL_ARITH`A* &0= &0 /\ &0+ A=A`]
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th] THEN MP_TAC(SYM th) THEN REWRITE_TAC[VECTOR_ARITH`A- vec 0=A`;GSYM NORM_POW_2])
+THEN ONCE_REWRITE_TAC[REAL_ARITH`A *B= B*A`]
+THEN MP_TAC(ISPECL[`u:real^3`;`(vec 0) :real^3`]imp_norm_not_zero_fan)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(norm(u:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`norm u pow 2 * h2 = u dot w
+==> inv (norm u) * inv (norm u) *(norm u pow 2 * h2) = inv (norm u) *inv (norm u) *(u dot (w:real^3))`)
+THEN POP_ASSUM( fun th -> GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN ASM_REWRITE_TAC[REAL_ARITH` inv (norm u) * inv (norm u) * norm u pow 2 * h2 =(inv (norm u) * norm u) pow 2 * h2/\ &1 pow 2 * h2= h2/\ &1 *A=A`]
+THEN RESA_TAC
+THEN REWRITE_TAC[REAL_ARITH`
+(u dot w) * inv (norm u) * inv (norm u) * (u dot w) = (inv (norm u) * (u dot w)) pow 2`]
+THEN ONCE_REWRITE_TAC[REAL_ARITH`
+norm w pow 2 = r2 pow 2 + (inv (norm u) * (u dot w)) pow 2
+<=>  norm w pow 2 - (inv (norm u) * (u dot w)) pow 2= r2 pow 2 `]
+THEN STRIP_TAC
+THEN ONCE_REWRITE_TAC[REAL_ARITH`A*B=B*A`]
+THEN ONCE_REWRITE_TAC[DOT_SYM]
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC POW_2_SQRT
+THEN MATCH_MP_TAC(REAL_ARITH`&0< A==> &0<= A`)
+THEN ASM_REWRITE_TAC[];
+MRESA_TAC sincos1_of_u_fan[`((vec 0):real^3)`;` (u:real^3)`;` (v:real^3)`;`r1:real`; `psi:real`; `h1:real`]
+THEN REMOVE_THEN "YEU EM" MP_TAC
+THEN ASM_REWRITE_TAC[COS_ADD;SIN_ADD;]
+THEN REDUCE_ARITH_TAC
+THEN REDUCE_VECTOR_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`w =
+      (r2 * cos (azim (vec 0) u v w)) % e1_fan (vec 0) u v +
+      (r2 * sin (azim (vec 0) u v w)) % e2_fan (vec 0) u v +
+      h2 % u ==>
+(u cross v) dot w =
+(u cross v) dot ((r2 * cos (azim (vec 0) u v w)) % e1_fan (vec 0) u v +
+      (r2 * sin (azim (vec 0) u v w)) % e2_fan (vec 0) u v +
+      h2 % u)`)
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN REWRITE_TAC[DOT_LADD; DOT_RADD; DOT_LMUL; DOT_RMUL;DOT_CROSS_SELF; e2_fan;e1_fan;e3_fan;
+VECTOR_ARITH`A- vec 0= A`;CROSS_LADD; CROSS_RADD; CROSS_LMUL; CROSS_RMUL;CROSS_REFL;CROSS_RNEG;CROSS_LNEG;]
+THEN REDUCE_ARITH_TAC
+THEN REWRITE_TAC[NORM_MUL;REAL_INV_MUL;REAL_ABS_INV;REAL_INV_INV;REAL_ABS_NORM;DOT_SQUARE_NORM
+;REAL_ARITH`(r2 * sin (azim (vec 0) u v w)) *
+ (norm u * inv (norm (u cross v))) *
+ inv (norm u) *
+ norm (u cross v) pow 2 =(r2* norm(u cross v)) * sin (azim (vec 0) u v w) *
+ ( inv (norm u) * norm u)*
+( inv (norm (u cross v))* norm (u cross (v:real^3)))`
+]
+THEN MP_TAC(ISPECL[`u:real^3`;`(vec 0) :real^3`]imp_norm_not_zero_fan)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(norm(u:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN ASSUME_TAC(ISPEC`u:real^3`NORM_POS_LE)
+THEN MP_TAC(REAL_ARITH`~(&0 =norm(u:real^3)) /\ &0 <= norm(u:real^3)==> &0 <norm(u:real^3)`)
+THEN RESA_TAC
+THEN SUBGOAL_THEN`~(u cross v = vec 0)` ASSUME_TAC
+THENL[ASM_REWRITE_TAC[CROSS_EQ_0];
+MP_TAC(ISPECL[`u cross v :real^3`;`(vec 0) :real^3`]imp_norm_not_zero_fan)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(norm(u cross v:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN ASSUME_TAC(ISPEC`u cross v:real^3`NORM_POS_LE)
+THEN MP_TAC(REAL_ARITH`~(&0 =norm(u cross v:real^3)) /\ &0 <= norm(u cross v:real^3)==> &0 <norm(u cross v:real^3)`)
+THEN RESA_TAC
+THEN MRESA_TAC REAL_LT_MUL[`r2:real`;`norm(u cross v:real^3)`]
+THEN MP_TAC(REAL_ARITH`&0<(r2:real)*norm(u cross v:real^3)==> ~((r2:real)*norm(u cross v:real^3)= &0)`)
+THEN REDUCE_VECTOR_TAC
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(r2 * norm(u cross v:real^3))`REAL_MUL_LINV)
+THEN RESA_TAC
+THEN MP_TAC(ISPEC`(r2 * norm(u cross v:real^3))`REAL_LT_INV)
+THEN RESA_TAC
+THEN REDUCE_ARITH_TAC
+THEN STRIP_TAC
+THEN MP_TAC(SET_RULE`(u cross v) dot w = (r2 * norm (u cross v)) * sin (azim (vec 0) u v w) ==>
+inv (r2 * norm (u cross v))*(r2 * norm (u cross v)) * sin (azim (vec 0) u v w)= inv (r2 * norm (u cross v)) *((u cross v) dot w)`)
+THEN POP_ASSUM (fun th->GEN_REWRITE_TAC(LAND_CONV o LAND_CONV o LAND_CONV o ONCE_DEPTH_CONV)[th])
+THEN ASM_REWRITE_TAC[REAL_ARITH`inv (r2 * norm (u cross v)) * (r2 * norm (u cross v)) *
+ sin (azim (vec 0) u v w)=(inv (r2 * norm (u cross v)) * (r2 * norm (u cross v)))*
+ sin (azim (vec 0) u v w)`]
+THEN REDUCE_ARITH_TAC
+THEN STRIP_TAC
+THEN ASM_REWRITE_TAC[GSYM REAL_INV_MUL]]]);;
+
+
+
+
+let CONTINUOUS_AT_SQRT = prove
+ (`!a. &0 < drop a ==>  (lift o sqrt o drop) continuous (at a)`,
+  REPEAT STRIP_TAC THEN REWRITE_TAC[continuous_at; o_THM; DIST_LIFT] THEN
+  X_GEN_TAC `e:real` THEN DISCH_TAC THEN
+  EXISTS_TAC `min (drop a) (e * sqrt(drop a))` THEN
+  ASM_SIMP_TAC[REAL_LT_MIN; SQRT_POS_LT; REAL_LT_MUL; DIST_REAL] THEN
+  X_GEN_TAC `b:real^1` THEN REWRITE_TAC[GSYM drop] THEN STRIP_TAC THEN
+  FIRST_ASSUM(ASSUME_TAC o MATCH_MP (REAL_ARITH
+   `abs(b - a) < a ==> &0 < b`)) THEN
+  SUBGOAL_THEN
+   `sqrt(drop b) - sqrt(drop a) =
+    (drop b - drop a) / (sqrt(drop a) + sqrt(drop b))`
+  SUBST1_TAC THENL
+   [MATCH_MP_TAC(REAL_FIELD
+     `sa pow 2 = a /\ sb pow 2 = b /\ &0 < sa /\ &0 < sb
+      ==> sb - sa = (b - a) / (sa + sb)`) THEN
+    ASM_SIMP_TAC[SQRT_POS_LT; SQRT_POW_2; REAL_LT_IMP_LE];
+    ASM_SIMP_TAC[REAL_ABS_DIV; SQRT_POS_LT; REAL_LT_ADD; REAL_LT_LDIV_EQ;
+                 REAL_ARITH `&0 < x ==> abs x = x`] THEN
+    FIRST_X_ASSUM(MATCH_MP_TAC o MATCH_MP (REWRITE_RULE[IMP_CONJ]
+        REAL_LTE_TRANS)) THEN
+    ASM_SIMP_TAC[REAL_LE_LMUL_EQ; REAL_LE_ADDR; SQRT_POS_LE;
+                 REAL_LT_IMP_LE]]);;
+
+
+let SEQUENTIALLY_DIVH=prove_by_refinement(`!f:num->real^3 g:num->real^3 h:num->real^3.((\n:num. f n) --> a) sequentially /\ ((\n:num. g n) --> b) sequentially /\ ((\n:num. h n) --> c) sequentially /\ ~(collinear {vec 0, a,b:real^3}) /\ ~(collinear {vec 0, a,c}) /\ (!n. ~(collinear {vec 0, f n, g n}) /\ ~(collinear {vec 0, f n, h n}))
+==> ((lift o (\n:num. dihV (vec 0) (f(n)) (g(n)) (h n)))--> lift ( dihV (vec 0) a b c)) sequentially`,
+[REPEAT STRIP_TAC
+THEN MRESA_TAC Trigonometry2.FOR_LEMMA19[`vec 0:real^3`;`a:real^3`; `b:real^3`;`c:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REPEAT LET_TAC
+THEN RESA_TAC
+THEN ABBREV_TAC`v01n= (\n:num. dist (vec 0:real^3, f n) pow 2)`
+THEN ABBREV_TAC`v02n= (\n:num. dist (vec 0:real^3, g n) pow 2)`
+THEN ABBREV_TAC`v03n= (\n:num. dist (vec 0:real^3, h n) pow 2)`
+THEN ABBREV_TAC`v12n= (\n:num. dist (f n, (g n):real^3) pow 2)`
+THEN ABBREV_TAC`v13n= (\n:num. dist (f n, (h n):real^3) pow 2)`
+THEN ABBREV_TAC`v23n= (\n:num. dist (g n, (h n):real^3) pow 2)`
+THEN SUBGOAL_THEN`(\n. dihV (vec 0) ((f:num->real^3) n) (g n) (h n))
+= (\n:num. acs
+  (delta_x4 (v01n n) (v02n n) (v03n n) (v23n n) (v13n n) (v12n n) /
+   sqrt (ups_x (v01n n) (v02n n) (v12n n) * ups_x (v01n n) (v03n n) (v13n n)
+)
+)
+)`ASSUME_TAC;
+REWRITE_TAC[FUN_EQ_THM]
+THEN STRIP_TAC
+THEN MRESA_TAC Trigonometry2.FOR_LEMMA19[`vec 0:real^3`;`(f (x:num)):real^3`; `(g (x:num)):real^3`;`(h (x:num)):real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REPEAT LET_TAC
+THEN RESA_TAC
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN REWRITE_TAC[]
+THEN ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[]
+THEN MRESAL1_TAC REAL_CONTINUOUS_WITHIN_ACS_STRONG`delta_x4 v01 v02 v03 v23 v13 v12 /
+   sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)`[REAL_CONTINUOUS_CONTINUOUS_WITHINREAL;CONTINUOUS_WITHIN_SEQUENTIALLY]
+THEN POP_ASSUM(fun th-> MRESAL1_TAC th`lift o(\n:num. 
+       (delta_x4 (v01n n) (v02n n) (v03n n) (v23n n) (v13n n) (v12n n) /
+        sqrt
+        (ups_x (v01n n) (v02n n) (v12n n) * ups_x (v01n n) (v03n n) (v13n n))))`[o_DEF;LIFT_DROP])
+THEN POP_ASSUM MATCH_MP_TAC
+THEN STRIP_TAC;
+REWRITE_TAC[ IN_ELIM_THM;IMAGE]
+THEN GEN_TAC
+THEN EXISTS_TAC`delta_x4 (v01n n) (v02n n) (v03n n) (v23n n) (v13n n) (v12n n) /
+      sqrt
+      (ups_x (v01n n) (v02n n) (v12n n) * ups_x (v01n n) (v03n n) (v13n (n:num)))`
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC (GEN_ALL Trigonometry2.PROVE_DELTA_OVER_SQRT_2UPS)[`(f (n:num)):real^3`;`(h (n:num)):real^3`;`(g (n:num)):real^3`;`vec 0:real^3`;`(v23n (n:num)):real`;`(v02n (n:num)):real` ;`(v12n (n:num)):real`;`(v01n (n:num)):real`;`(v03n (n:num)):real`;`(v13n (n:num)):real`]
+THEN POP_ASSUM MP_TAC
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN REWRITE_TAC[]
+THEN REPEAT LET_TAC
+THEN RESA_TAC
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th; NORM_CAUCHY_SCHWARZ_DIV]);
+REWRITE_TAC[real_div;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN STRIP_TAC;
+REWRITE_TAC[o_DEF;delta_x4;LIFT_SUB;LIFT_ADD;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_NEG
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_NEG
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MRESAL_TAC LIM_INV [`sequentially`;`(\x:num. 
+       (sqrt
+       (ups_x (v01n x) (v02n x) (v12n x) * ups_x (v01n x) (v03n x) (v13n x))))`;`sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13)`][o_DEF]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN SUBGOAL_THEN `&0< ups_x v01 v02 v12 * ups_x v01 v03 v13` ASSUME_TAC;
+MATCH_MP_TAC REAL_LT_MUL
+THEN MRESA_TAC (GEN_ALL Trigonometry2.NOT_COLLINEAR_IMP_UPS_LT)[`b:real^3`;`vec 0 :real^3`;`a:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REPEAT LET_TAC
+THEN MRESA_TAC (GEN_ALL Trigonometry2.NOT_COLLINEAR_IMP_UPS_LT)[`c:real^3`;`vec 0 :real^3`;`a:real^3`]
+THEN POP_ASSUM MP_TAC
+THEN REPEAT LET_TAC
+THEN REAL_ARITH_TAC;
+MRESA1_TAC SQRT_POS_LT`ups_x v01 v02 v12 * ups_x v01 v03 v13`
+THEN MP_TAC(REAL_ARITH`
+&0< sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13) 
+==> ~(sqrt (ups_x v01 v02 v12 * ups_x v01 v03 v13) = &0)`)
+THEN RESA_TAC
+THEN MRESAL1_TAC CONTINUOUS_AT_SQRT`lift(ups_x v01 v02 v12 * ups_x v01 v03 (v13:real))`[CONTINUOUS_AT_SEQUENTIALLY;o_DEF;LIFT_DROP]
+THEN POP_ASSUM(fun th-> MRESAL1_TAC th`(\x:num. lift
+       (       (ups_x (v01n x) (v02n x) (v12n x) * ups_x (v01n x) (v03n x) (v13n x))))`[LIFT_DROP])
+THEN POP_ASSUM MATCH_MP_TAC
+THEN REWRITE_TAC[LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[ups_x;o_DEF;LIFT_ADD;LIFT_SUB;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_NEG
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-b:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_SUB
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_NEG
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_ADD
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_CMUL
+THEN MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN EXPAND_TAC"v01n"
+THEN EXPAND_TAC"v02n"
+THEN EXPAND_TAC"v03n"
+THEN EXPAND_TAC"v12n"
+THEN EXPAND_TAC"v23n"
+THEN EXPAND_TAC"v13n"
+THEN EXPAND_TAC"v01"
+THEN EXPAND_TAC"v02"
+THEN EXPAND_TAC"v03"
+THEN EXPAND_TAC"v12"
+THEN EXPAND_TAC"v23"
+THEN EXPAND_TAC"v13"
+THEN REWRITE_TAC[dist;VECTOR_ARITH`vec 0- A= --A`;NORM_NEG;LIFT_NEG;REAL_ARITH`A pow 2= A * A`;LIFT_CMUL]
+THEN STRIP_TAC;
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[];
+MATCH_MP_TAC LIM_MUL
+THEN REWRITE_TAC[LIM_NULL_NORM;o_DEF]
+THEN  MRESA1_TAC CONTINUOUS_AT_LIFT_NORM`a-c:real^3`
+THEN POP_ASSUM MP_TAC
+THEN REWRITE_TAC[CONTINUOUS_AT_SEQUENTIALLY;o_DEF]
+THEN STRIP_TAC
+THEN POP_ASSUM MATCH_MP_TAC
+THEN ASM_REWRITE_TAC[]
+THEN MATCH_MP_TAC LIM_SUB
+THEN ASM_TAC
+THEN REWRITE_TAC[ETA_AX]
+THEN SET_TAC[]]);;
+
+let COLLINEAR_B_SY=prove(`!s:stable_sy l:real^(M,3)finite_product. 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\ l IN B_SY1 (a_sy s) (b_sy s)
+/\ 1<= i /\ i<= k
+==> ~collinear{vec 0, row i (vecmats l),row (SUC (i MOD k_sy s)) (vecmats l)}`,
+REWRITE_TAC[B_SY1;IN_ELIM_THM;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC (GEN_ALL EDGE_IN_E_SY)[`i:num`;`row i (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`;`(l:real^(M,3)finite_product)`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`V_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`;`row i (vecmats (l:real^(M,3)finite_product))`]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN RESA_TAC);;
+
+
+
+
+let COLLINEAR_AZIM_CYCLE_B_SY=prove(`!s:stable_sy l:real^(M,3)finite_product. 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\ l IN B_SY1 (a_sy s) (b_sy s)
+/\ 1<= i /\ i<= k
+==> ~collinear{vec 0, row i (vecmats l),
+azim_cycle (EE (row i (vecmats l)) (E_SY (vecmats l)))
+         (vec 0)
+         (row i (vecmats l))
+        (row (SUC (i MOD k_sy s)) (vecmats l))}`,
+REWRITE_TAC[B_SY1;IN_ELIM_THM;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC (GEN_ALL EDGE_IN_E_SY)[`i:num`;`row i (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`;`(l:real^(M,3)finite_product)`]
+THEN MRESA_TAC remark1_fan[`vec 0:real^3`;`V_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`;`row i (vecmats (l:real^(M,3)finite_product))`]
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN RESA_TAC
+THEN MRESAL_TAC (GEN_ALL Wrgcvdr_cizmrrh.AZIM_CYCLE_EQ_SIGMA_FAN)[`vec 0:real^3`;`V_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`row i (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`][VECMATS_MATVEC_ID]
+THEN MRESAL_TAC Fan.sigma_fan_in_set_of_edge[`vec 0:real^3`;`V_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`row i (vecmats (l:real^(M,3)finite_product))`;`row (SUC (i MOD k_sy s)) (vecmats (l:real^(M,3)finite_product))`][VECMATS_MATVEC_ID]
+THEN MRESAL_TAC remark1_fan[`vec 0:real^3`;`V_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`sigma_fan (vec 0) (V_SY v') (E_SY v') (row i v')
+      (row (SUC (i MOD k)) (v':real^3^M))`;`row i (vecmats (l:real^(M,3)finite_product))`][VECMATS_MATVEC_ID]
+THEN POP_ASSUM MP_TAC
+THEN RESA_TAC);;
+
+
+
+
+let AZIM_EQ_DIHV_IN_B_SY=prove(`!s:stable_sy l:real^(M,3)finite_product i. 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\ 1<= i /\ i<= k
+/\ (row i (vecmats l))= u
+/\ row (SUC (i MOD k_sy s)) (vecmats l)=v
+/\ azim_cycle (EE u (E_SY (vecmats l))) (vec 0) u v=w
+/\ l IN B_SY1 (a_sy s) (b_sy s)
+==> azim (vec 0) u v w= dihV (vec 0) u v w`,
+REPEAT STRIP_TAC
+THEN ASM_TAC
+THEN DISCH_THEN(LABEL_TAC"THYGIANG")
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM( fun th-> ASSUME_TAC th THEN MP_TAC th THEN REWRITE_TAC[B_SY1;IN_ELIM_THM;CONDITION2_SY;CONDITION1_SY] THEN STRIP_TAC)
+THEN MRESA1_TAC (GEN_ALL VECMATS_MATVEC_ID)`v':real^3^M`
+THEN POP_ASSUM MP_TAC 
+THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"THY")
+THEN DISCH_THEN(LABEL_TAC"THY2")
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> MP_TAC th
+THEN REWRITE_TAC[convex_local_fan]
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th1-> MP_TAC th1
+THEN REWRITE_TAC[local_fan]
+THEN LET_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM(fun th2-> ASSUME_TAC (SYM th2))
+THEN STRIP_TAC
+THEN ASSUME_TAC th1)
+THEN DISCH_THEN(LABEL_TAC"THY1")
+THEN ASSUME_TAC th)
+THEN STRIP_TAC
+THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(SYM th))
+THEN REMOVE_THEN"THYGIANG"(fun th-> SUBST_ALL_TAC(th) THEN ASSUME_TAC th)
+THEN MRESA_TAC (GEN_ALL EDGE_IN_F_SY)[`i:num`;`u:real^3`;`v:real^3`;`l:real^(M,3)finite_product`]
+THEN REMOVE_THEN"THY1"(fun th-> MRESA1_TAC th`u:real^3,v:real^3`)
+THEN REMOVE_ASSUM_TAC
+THEN POP_ASSUM MP_TAC
+THEN MRESA_TAC (GEN_ALL Local_lemmas.LOFA_DETERMINE_AZIM_IN_FA)[`V_SY (vecmats (l:real^(M,3)finite_product))`;`F_SY (vecmats (l:real^(M,3)finite_product))`;`E_SY (vecmats (l:real^(M,3)finite_product))`;`((u,v):real^3#real^3)`]
+THEN MRESA_TAC( GEN_ALL COLLINEAR_B_SY)[`k:num`;`i:num`;`s:stable_sy`;`l:real^(M,3)finite_product`]
+THEN MRESA_TAC( GEN_ALL COLLINEAR_AZIM_CYCLE_B_SY)[`k:num`;`i:num`;`s:stable_sy`;`l:real^(M,3)finite_product`]
+THEN MATCH_MP_TAC Local_lemmas.AZIM_LE_PI_EQ_DIHV
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+
+
+
+let CONTINUOUS_ON_RHO_FUN_AND_AZIM=prove_by_refinement(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+==> lift o(\x:real^(M,3)finite_product.  sum (1..k_sy s)
+      (\i. rho_fun (norm (row i (vecmats x))) * azim_in_fan (row i (vecmats x), row (SUC (i MOD (k_sy s))) (vecmats x)) (E_SY (vecmats x)))) 
+continuous_on
+ B_SY1 (a_sy s) (b_sy s)`,
+[REPEAT STRIP_TAC
+THEN SIMP_TAC[o_DEF;LIFT_SUM;FINITE_NUMSEG]
+THEN MATCH_MP_TAC CONTINUOUS_ON_VSUM
+THEN SIMP_TAC[o_DEF;LIFT_CMUL;FINITE_NUMSEG]
+THEN REPEAT STRIP_TAC
+THEN MATCH_MP_TAC CONTINUOUS_ON_MUL
+THEN STRIP_TAC;
+REWRITE_TAC[rho_fun;o_DEF;LIFT_ADD]
+THEN MATCH_MP_TAC CONTINUOUS_ON_ADD
+THEN REWRITE_TAC[CONTINUOUS_ON_CONST;LIFT_CMUL;LIFT_SUB]
+THEN MATCH_MP_TAC CONTINUOUS_ON_CMUL
+THEN MATCH_MP_TAC CONTINUOUS_ON_CMUL
+THEN MATCH_MP_TAC CONTINUOUS_ON_CMUL
+THEN MATCH_MP_TAC CONTINUOUS_ON_SUB
+THEN REWRITE_TAC[CONTINUOUS_ON_CONST;]
+THEN MATCH_MP_TAC CONTINUOUS_ON_LIFT_NORM_COMPOSE
+THEN MATCH_MP_TAC CONTINUOUS_ON_ROW
+THEN POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_NUMSEG];
+MATCH_MP_TAC CONTINUOUS_ON_SAME_DOMAIN
+THEN EXISTS_TAC`(\y:real^(M,3)finite_product. lift(azim (vec 0) (row x (vecmats y)) (row (SUC (x MOD k_sy s)) (vecmats y))
+         (azim_cycle (EE (row x (vecmats y)) (E_SY(vecmats y))) (vec 0) (row x (vecmats y)) (row (SUC (x MOD k_sy s)) (vecmats y)))))`
+THEN STRIP_TAC;
+POP_ASSUM MP_TAC
+THEN ASM_REWRITE_TAC[IN_NUMSEG;IN_ELIM_THM;B_SY1;CONDITION2_SY;convex_local_fan]
+THEN REPEAT STRIP_TAC
+THEN MRESAL_TAC (GEN_ALL EDGE_IN_F_SY)[`x:num`;`row x (v:real^3^M)`;`row (SUC (x MOD k)) (v:real^3^M)`;`(matvec v):real^(M,3)finite_product`][VECMATS_MATVEC_ID]
+THEN MRESAL_TAC (GEN_ALL Local_lemmas.LOFA_DETERMINE_AZIM_IN_FA)[`V_SY ((v:real^3^M) )`;`F_SY ((v:real^3^M))`;`E_SY ( (v:real^3^M))`;`row x (v:real^3^M), 
+  row (SUC (x MOD dimindex (:M))) v`][VECMATS_MATVEC_ID;];
+REWRITE_TAC[CONTINUOUS_ON_SEQUENTIALLY;o_DEF]
+THEN REPEAT STRIP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"THYGIANG1")
+THEN DISCH_THEN(LABEL_TAC"THYGIANG")
+THEN STRIP_TAC
+THEN ABBREV_TAC`u=(azim_cycle (EE (row x (vecmats a)) (E_SY (vecmats a))) (vec 0)
+   (row x (vecmats a))
+  (row (SUC (x MOD k_sy s)) (vecmats (a:real^(M,3)finite_product))))`
+THEN ABBREV_TAC`v= row x (vecmats (a:real^(M,3)finite_product))`
+THEN ABBREV_TAC`w=row (SUC (x MOD k_sy s)) (vecmats (a:real^(M,3)finite_product))`
+THEN ABBREV_TAC`wn=(\n:num. row (SUC (x MOD k_sy s)) (vecmats ((x':num->real^(M,3)finite_product) n)))`
+THEN ABBREV_TAC`vn=(\n. row x (vecmats ((x':num->real^(M,3)finite_product)n)))`
+THEN ABBREV_TAC`un=(\n. azim_cycle (EE (row x (vecmats ((x':num->real^(M,3)finite_product)n)))(E_SY (vecmats ((x':num->real^(M,3)finite_product)n)))) (vec 0) (row x (vecmats ((x':num->real^(M,3)finite_product)n))) (row (SUC (x MOD k_sy s)) (vecmats ((x':num->real^(M,3)finite_product) n))))`
+THEN SUBGOAL_THEN`!n:num. ~collinear{vec 0:real^3, vn n, wn n} /\ ~collinear{vec 0, vn n, un n}` ASSUME_TAC;
+STRIP_TAC
+THEN EXPAND_TAC"wn"
+THEN EXPAND_TAC"vn"
+THEN EXPAND_TAC"un"
+THEN REWRITE_TAC[]
+THEN FIND_ASSUM MP_TAC`x IN 1..k_sy (s:stable_sy)`
+THEN REWRITE_TAC[IN_NUMSEG]
+THEN RESA_TAC
+THEN MRESA_TAC( GEN_ALL COLLINEAR_B_SY)[`k:num`;`x:num`;`s:stable_sy`;`(x':num->real^(M,3)finite_product) n`]
+THEN MRESA_TAC( GEN_ALL COLLINEAR_AZIM_CYCLE_B_SY)[`k:num`;`x:num`;`s:stable_sy`;`(x':num->real^(M,3)finite_product) n`];
+POP_ASSUM MP_TAC
+THEN EXPAND_TAC"vn"
+THEN EXPAND_TAC"wn"
+THEN EXPAND_TAC"un"
+THEN REWRITE_TAC[]
+THEN 
+SUBGOAL_THEN`(\x1. lift
+        (azim (vec 0) (row x (vecmats (x' x1)))
+         (row (SUC (x MOD k_sy s)) (vecmats (x' x1)))
+        (azim_cycle (EE (row x (vecmats (x' x1))) (E_SY (vecmats (x' x1))))
+         (vec 0)
+         (row x (vecmats (x' x1)))
+        (row (SUC (x MOD k_sy s)) (vecmats (x' x1))))))
+= lift o(\x1.
+        (dihV (vec 0) (row x (vecmats (x' x1)))
+         (row (SUC (x MOD k_sy s)) (vecmats (x' x1)))
+        (azim_cycle (EE (row x (vecmats (x' x1))) (E_SY (vecmats (x' x1))))
+         (vec 0)
+         (row x (vecmats (x' x1)))
+        (row (SUC (x MOD k_sy s)) (vecmats ((x':num->real^(M,3)finite_product) x1))))))
+`ASSUME_TAC;
+REWRITE_TAC[FUN_EQ_THM;LIFT_EQ; o_DEF]
+THEN GEN_TAC
+THEN MATCH_MP_TAC AZIM_EQ_DIHV_IN_B_SY
+THEN EXISTS_TAC`s:stable_sy`
+THEN EXISTS_TAC`(x':num->real^(M,3)finite_product)x''`
+THEN EXISTS_TAC`x:num`
+THEN ASM_REWRITE_TAC[]
+THEN FIND_ASSUM MP_TAC`x IN 1..k_sy (s:stable_sy)`
+THEN REWRITE_TAC[IN_NUMSEG]
+THEN RESA_TAC;
+POP_ASSUM(fun th-> REWRITE_TAC[th])
+THEN FIND_ASSUM MP_TAC`x IN 1..k_sy (s:stable_sy)`
+THEN REWRITE_TAC[IN_NUMSEG]
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL AZIM_EQ_DIHV_IN_B_SY)[`k:num`;`v:real^3`;`w:real^3`;`u:real^3`;`s:stable_sy`;`a:real^(M,3)finite_product`;`x:num`]
+THEN RESA_TAC
+THEN MATCH_MP_TAC SEQUENTIALLY_DIVH
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC( GEN_ALL COLLINEAR_B_SY)[`k:num`;`x:num`;`s:stable_sy`;`a:real^(M,3)finite_product`]
+THEN MRESA_TAC( GEN_ALL COLLINEAR_AZIM_CYCLE_B_SY)[`k:num`;`x:num`;`s:stable_sy`;`a:real^(M,3)finite_product`]
+THEN SUBGOAL_THEN`1 <= SUC (x MOD dimindex (:M)) /\
+      SUC (x MOD dimindex (:M)) <= dimindex (:M)` ASSUME_TAC;
+ASM_REWRITE_TAC[ARITH_RULE`1<= SUC a`]
+THEN MRESAL_TAC DIVISION[`x:num`;`dimindex (:M):num`][DIMINDEX_NONZERO]
+THEN POP_ASSUM MP_TAC
+THEN ARITH_TAC;
+POP_ASSUM MP_TAC
+THEN RESA_TAC
+THEN MRESAL_TAC (GEN_ALL LIM_VECMAT)[`(\n:num. vecmats ((x':num->real^(M,3)finite_product) n))`;`vecmats(a:real^(M,3)finite_product)`][MATVEC_VECMATS_ID;ETA_AX]
+THEN POP_ASSUM(fun th-> MRESA1_TAC th`x:num` THEN MRESA1_TAC th`(SUC (x MOD k))` THEN MP_TAC th THEN DISCH_THEN(LABEL_TAC"THY"))
+THEN EXPAND_TAC"w"
+THEN FIND_ASSUM (fun th-> REWRITE_TAC[th])`k_sy (s:stable_sy)=k`
+THEN ASM_REWRITE_TAC[]
+THEN MP_TAC(ARITH_RULE`1<= x ==> x=1 \/ 1<x:num`)
+THEN RESA_TAC;
+SUBGOAL_THEN`(\x1. azim_cycle (EE (row 1 (vecmats (x' x1))) (E_SY (vecmats (x' x1))))
+        (vec 0)
+        (row 1 (vecmats (x' x1)))
+        (row (SUC (1 MOD k)) (vecmats (x' x1))))
+= (\x1. row k (vecmats ((x':num->real^(M,3)finite_product) x1)))` ASSUME_TAC;
+REWRITE_TAC[FUN_EQ_THM]
+THEN GEN_TAC
+THEN MRESAL_TAC MOD_MULT[`dimindex (:M)`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
+THEN MRESA_TAC MOD_LT[`1:num`;`dimindex (:M)`]
+THEN MP_TAC(ARITH_RULE`2<k==> 1< k /\ 1<=k`)
+THEN RESA_TAC
+THEN MRESAL_TAC (GEN_ALL AZIM_CYCLE_EQ1)[`k:num`;`(row 1 (vecmats ((x':num->real^(M,3)finite_product) x'')))`;`(row (SUC (1 MOD k)) (vecmats ((x':num->real^(M,3)finite_product) x'')))`;`row k (vecmats ((x':num->real^(M,3)finite_product) x''))`;`(x':num->real^(M,3)finite_product) x''`][ARITH_RULE`SUC 0=1`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN REMOVE_THEN "THYGIANG"(fun th-> MRESA1_TAC th`x'':num` )
+THEN POP_ASSUM (fun th-> MP_TAC th 
+THEN REWRITE_TAC[IN_ELIM_THM;B_SY1;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN ASSUME_TAC th)
+THEN STRIP_TAC;
+ARITH_TAC;
+MRESAL_TAC(GEN_ALL INJ_ROW_B_SY)[`k:num`;`s:stable_sy`;`(x':num->real^(M,3)finite_product) x''`][IN_NUMSEG;VECMATS_MATVEC_ID]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[];
+POP_ASSUM(fun th-> REWRITE_TAC[th])
+THEN EXPAND_TAC"u"
+THEN EXPAND_TAC"v"
+THEN EXPAND_TAC"w"
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th] THEN ASSUME_TAC th)
+THEN SUBGOAL_THEN`azim_cycle (EE (row 1 (vecmats a)) (E_SY (vecmats a)))
+        (vec 0)
+        (row 1 (vecmats a))
+        (row (SUC (1 MOD k)) (vecmats a))
+=  row k (vecmats ((a:real^(M,3)finite_product) ))` ASSUME_TAC;
+MRESAL_TAC MOD_MULT[`dimindex (:M)`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
+THEN MRESA_TAC MOD_LT[`1:num`;`dimindex (:M)`]
+THEN MP_TAC(ARITH_RULE`2<k==> 1< k /\ 1<=k`)
+THEN RESA_TAC
+THEN MRESAL_TAC (GEN_ALL AZIM_CYCLE_EQ1)[`k:num`;`(row 1 (vecmats ((a:real^(M,3)finite_product) )))`;`(row (SUC (1 MOD k)) (vecmats ((a:real^(M,3)finite_product))))`;`row k (vecmats ((a:real^(M,3)finite_product) ))`;`(a:real^(M,3)finite_product)`][ARITH_RULE`SUC 0=1`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN REMOVE_THEN "THYGIANG1"(fun th-> MP_TAC th 
+THEN REWRITE_TAC[IN_ELIM_THM;B_SY1;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN ASSUME_TAC th)
+THEN STRIP_TAC;
+ARITH_TAC;
+MRESAL_TAC(GEN_ALL INJ_ROW_B_SY)[`k:num`;`s:stable_sy`;`(a:real^(M,3)finite_product) `][IN_NUMSEG;VECMATS_MATVEC_ID]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[];
+POP_ASSUM(fun th-> ASM_REWRITE_TAC[th])
+THEN REMOVE_THEN"THY"(fun th-> MRESA1_TAC th`k:num`)
+THEN POP_ASSUM MATCH_MP_TAC
+THEN MP_TAC(ARITH_RULE`2<k==> 1< k /\ 1<=k`)
+THEN RESA_TAC
+THEN ARITH_TAC;
+SUBGOAL_THEN`(\x1. azim_cycle (EE (row x (vecmats (x' x1))) (E_SY (vecmats (x' x1))))
+        (vec 0)
+        (row x (vecmats (x' x1)))
+        (row (SUC (x MOD k)) (vecmats (x' x1))))
+= (\x1. row (x-1) (vecmats ((x':num->real^(M,3)finite_product) x1)))` ASSUME_TAC;
+REWRITE_TAC[FUN_EQ_THM]
+THEN GEN_TAC
+THEN MRESAL_TAC (GEN_ALL AZIM_CYCLE_EQ1)[`x-1:num`;`(row x (vecmats ((x':num->real^(M,3)finite_product) x'')))`;`(row (SUC (x MOD k)) (vecmats ((x':num->real^(M,3)finite_product) x'')))`;`row (x-1) (vecmats ((x':num->real^(M,3)finite_product) x''))`;`(x':num->real^(M,3)finite_product) x''`][ARITH_RULE`SUC 0=1`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN MP_TAC(ARITH_RULE`2<k /\ 1< x/\ x<= k ==> 1< k /\ 1<=k /\ 1<= x-1 /\ x-1<= k/\ x-1< k`)
+THEN RESA_TAC
+THEN MRESAL_TAC MOD_LT[`x-1:num`;`dimindex (:M):num`][ARITH_RULE`0<1`]
+THEN MP_TAC(ARITH_RULE`1<= x /\ x<= dimindex (:M) ==>   SUC (x-1)=x`)
+THEN RESA_TAC 
+THEN POP_ASSUM(fun th-> ONCE_REWRITE_TAC[th])
+THEN ASM_REWRITE_TAC[]
+THEN REMOVE_THEN "THYGIANG"(fun th-> MRESA1_TAC th`x'':num` )
+THEN POP_ASSUM (fun th-> MP_TAC th 
+THEN REWRITE_TAC[IN_ELIM_THM;B_SY1;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN ASSUME_TAC th)
+THEN MRESAL_TAC(GEN_ALL INJ_ROW_B_SY)[`k:num`;`s:stable_sy`;`(x':num->real^(M,3)finite_product) x''`][IN_NUMSEG;VECMATS_MATVEC_ID]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[];
+POP_ASSUM(fun th-> REWRITE_TAC[th])
+THEN EXPAND_TAC"u"
+THEN EXPAND_TAC"v"
+THEN EXPAND_TAC"w"
+THEN POP_ASSUM(fun th-> REWRITE_TAC[th] THEN ASSUME_TAC th)
+THEN SUBGOAL_THEN`azim_cycle (EE (row x (vecmats a)) (E_SY (vecmats a)))
+        (vec 0)
+        (row x (vecmats a))
+        (row (SUC (x MOD k)) (vecmats a))
+=  row (x-1) (vecmats ((a:real^(M,3)finite_product) ))` ASSUME_TAC;
+MRESAL_TAC (GEN_ALL AZIM_CYCLE_EQ1)[`x-1:num`;`(row x (vecmats ((a:real^(M,3)finite_product) )))`;`(row (SUC (x MOD k)) (vecmats ((a:real^(M,3)finite_product))))`;`row (x-1) (vecmats ((a:real^(M,3)finite_product) ))`;`(a:real^(M,3)finite_product)`][ARITH_RULE`SUC 0=1`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN MP_TAC(ARITH_RULE`2<k /\ 1< x/\ x<= k ==> 1< k /\ 1<=k /\ 1<= x-1 /\ x-1<= k/\ x-1< k`)
+THEN RESA_TAC
+THEN MRESAL_TAC MOD_LT[`x-1:num`;`dimindex (:M):num`][ARITH_RULE`0<1`]
+THEN MP_TAC(ARITH_RULE`1<= x /\ x<= dimindex (:M) ==>   SUC (x-1)=x`)
+THEN RESA_TAC 
+THEN POP_ASSUM(fun th-> ONCE_REWRITE_TAC[th])
+THEN ASM_REWRITE_TAC[]
+THEN REMOVE_THEN "THYGIANG1"(fun th-> MP_TAC th 
+THEN REWRITE_TAC[IN_ELIM_THM;B_SY1;CONDITION2_SY;convex_local_fan;local_fan]
+THEN LET_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID]
+THEN ASSUME_TAC th)
+THEN MRESAL_TAC(GEN_ALL INJ_ROW_B_SY)[`k:num`;`s:stable_sy`;`(a:real^(M,3)finite_product) `][IN_NUMSEG;VECMATS_MATVEC_ID]
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[];
+FIND_ASSUM(fun th-> REWRITE_TAC[th])`k_sy (s:stable_sy)= k`
+THEN POP_ASSUM(fun th-> ASM_REWRITE_TAC[th])
+THEN REMOVE_THEN"THY"(fun th-> MRESA1_TAC th`x-1:num`)
+THEN POP_ASSUM MATCH_MP_TAC
+THEN MP_TAC(ARITH_RULE`1< x /\ x<= dimindex (:M) ==> 1<= x-1 /\ x-1<=dimindex (:M)`)
+THEN RESA_TAC]);;
+
+
+
+let CONTINUOUS_ON_TAU_FUN=prove(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+==> lift o(\l:real^(M,3)finite_product. tau_fun (V_SY (vecmats l)) (E_SY (vecmats l)) (F_SY (vecmats l))) continuous_on (B_SY1 (a_sy s) (b_sy s))`,
+REWRITE_TAC[tau_fun; o_DEF;LIFT_SUB]
+THEN REPEAT STRIP_TAC
+THEN MATCH_MP_TAC CONTINUOUS_ON_SUB
+THEN MRESAL_TAC (GEN_ALL CONTINUOUS_ON_RHO_FUN_AND_AZIM)[`k:num`;`s:stable_sy`][o_DEF]
+THEN STRIP_TAC
+THENL[
+MATCH_MP_TAC CONTINUOUS_ON_SAME_DOMAIN
+THEN EXISTS_TAC`(\x:real^(M,3)finite_product. lift
+           (sum (1..k)
+           (\i. rho_fun (norm (row i (vecmats x))) *
+                azim_in_fan
+                (row i (vecmats x),row (SUC (i MOD k)) (vecmats x))
+                (E_SY (vecmats x)))))`
+THEN ASM_REWRITE_TAC[]
+THEN REPEAT STRIP_TAC
+THEN MRESA_TAC (GEN_ALL CHANGE_SUM_TAU_FUN)[`k:num`;`s:stable_sy`;`x:real^(M,3)finite_product`];
+MATCH_MP_TAC CONTINUOUS_ON_SAME_DOMAIN
+THEN EXISTS_TAC`(\x:real^(M,3)finite_product. lift ((pi + sol0) * &(k-2 )))`
+THEN REWRITE_TAC[CONTINUOUS_ON_CONST]
+THEN REPEAT STRIP_TAC
+THEN MP_TAC(ARITH_RULE`2<k==> 1<k`)
+THEN RESA_TAC
+THEN MRESAL_TAC(GEN_ALL INJ_ROW_B_SY)[`k:num`;`s:stable_sy`;`x:real^(M,3)finite_product`][IN_NUMSEG;VECMATS_MATVEC_ID;SET_RULE`(1 <= i /\ i <= k) /\
+          (1 <= j /\ j <= k) /\
+          row i (vecmats x) = row j (vecmats x)
+<=> 1 <= i /\ i <= k /\
+          1 <= j /\ j <= k /\
+          row i (vecmats x) = row j (vecmats x)`]
+THEN MRESA1_TAC (GEN_ALL CARD_F_SY_EQ)`x:real^(M,3)finite_product`]);;
+
+
+
+let CONTINUOUS_ON_TAU_STAR=prove(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+==> lift o(\l:real^(M,3)finite_product. tau_star s l) continuous_on (B_SY1 (a_sy s) (b_sy s))`,
+REWRITE_TAC[tau_star;o_DEF;LIFT_SUB]
+THEN REPEAT STRIP_TAC
+THEN MATCH_MP_TAC CONTINUOUS_ON_SUB
+THEN MRESAL_TAC (GEN_ALL CONTINUOUS_ON_D_FUN)[`k:num`;`s:stable_sy`][o_DEF]
+THEN MRESAL_TAC (GEN_ALL CONTINUOUS_ON_TAU_FUN)[`k:num`;`s:stable_sy`][o_DEF]);;
+
+
+
+
+let MINIMUM_IN_B_SY=prove(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\ ~(B_SY1 (a_sy s) (b_sy s) = {}:real^(M,3)finite_product->bool)
+==> ?x:real^(M,3)finite_product. x IN  (B_SY1 (a_sy s) (b_sy s))
+/\ (!y:real^(M,3)finite_product. y IN (B_SY1 (a_sy s) (b_sy s))
+==> tau_star s x <= tau_star s y)`,
+REPEAT STRIP_TAC
+THEN MRESA_TAC CONTINUOUS_ATTAINS_INF[`(\l:real^(M,3)finite_product. tau_star (s:stable_sy) l)`;`(B_SY1 (a_sy s) (b_sy (s:stable_sy))):real^(M,3)finite_product->bool`]
+THEN POP_ASSUM MATCH_MP_TAC
+THEN STRIP_TAC
+THENL[
+REWRITE_TAC[B_SY1]
+THEN MRESA_TAC(GEN_ALL WJSCPRO) [`d_sy (s:stable_sy)`;`J_SY(s:stable_sy)`;`k:num`;`a_sy(s:stable_sy)`;`b_sy(s:stable_sy)`;]
+THEN MRESA1_TAC stable_sy_lemma`s:stable_sy`;
+MRESA_TAC (GEN_ALL CONTINUOUS_ON_TAU_STAR)[`k:num`;`s:stable_sy`]]);;
+
+
+let HDPLYGY=prove(`!s:stable_sy . 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k
+/\ ~(B_SY1 (a_sy s) (b_sy s) = {}:real^(M,3)finite_product->bool)
+==> 
+lift o(\l:real^(M,3)finite_product. tau_star s l) continuous_on (B_SY1 (a_sy s) (b_sy s))
+/\(?x:real^(M,3)finite_product. x IN  (B_SY1 (a_sy s) (b_sy s))
+/\ (!y:real^(M,3)finite_product. y IN (B_SY1 (a_sy s) (b_sy s))
+==> tau_star s x <= tau_star s y))`,
+REPEAT STRIP_TAC
+THENL[ 
+MRESA_TAC(GEN_ALL CONTINUOUS_ON_TAU_STAR)[`k:num`;`s:stable_sy`];
+MRESA_TAC (GEN_ALL MINIMUM_IN_B_SY)[`k:num`;`s:stable_sy`]]);;
+
+
+
+
+
+
+
+
+
+
+end;;
+
+

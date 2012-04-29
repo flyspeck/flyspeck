@@ -1498,7 +1498,7 @@ let m_taylor_bound_array = Array.init (max_dim + 1)
 let b_var_real = `b:real`;;
 
 
-let eval_m_taylor_bounds0 mode =
+let eval_m_taylor_bounds0 mode n pp m_taylor_th =
   let bound_th = 
     if mode = "upper" then 
       m_taylor_upper_array.(n)
@@ -1507,71 +1507,70 @@ let eval_m_taylor_bounds0 mode =
     else
       m_taylor_lower_array.(n) in
 
-    fun n pp m_taylor_th ->
-      let f_tm, domain_tm, y_tm, w_tm, f_bounds, d_bounds_list, dd_bounds_list = dest_m_taylor (concl m_taylor_th) in
-      let f_lo, f_hi = dest_pair f_bounds and
-	  ws = dest_list (rand w_tm) and
-	  dfs = dest_list d_bounds_list and
-	  dds = map dest_list (dest_list dd_bounds_list) in
-      let ns = 1--n in
-      let df_vars = map (fun i -> df_vars_array.(i)) ns and
-	  dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) ns and
-	  w_vars = map (fun i -> w_vars_array.(i)) ns and
-	  y_var = mk_var ("y", type_of y_tm) and
-	  f_var = mk_var ("f", type_of f_tm) and
-	  domain_var = mk_var ("domain", type_of domain_tm) in
+  let f_tm, domain_tm, y_tm, w_tm, f_bounds, d_bounds_list, dd_bounds_list = dest_m_taylor (concl m_taylor_th) in
+  let f_lo, f_hi = dest_pair f_bounds and
+      ws = dest_list (rand w_tm) and
+      dfs = dest_list d_bounds_list and
+      dds = map dest_list (dest_list dd_bounds_list) in
+  let ns = 1--n in
+  let df_vars = map (fun i -> df_vars_array.(i)) ns and
+      dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) ns and
+      w_vars = map (fun i -> w_vars_array.(i)) ns and
+      y_var = mk_var ("y", type_of y_tm) and
+      f_var = mk_var ("f", type_of f_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+    
+  (* sum of first partials *)
+  let d_th =
+    let mul_wd = map2 (error_mul_f2_le_conv2 pp) ws dfs in
+      end_itlist (add_ineq_hi pp) mul_wd in
+    
+  let b_tm = (rand o concl) d_th in
+    
+  (* sum of second partials *)
+  let dd_th =
+    let ( * ), ( + ) = mul_ineq_pos_const_hi pp, add_ineq_hi pp in
+    let mul_wdd = map2 (fun list i -> map2 (error_mul_f2_le_conv2 pp) (fst (chop_list i ws)) list) dds ns in
+    let sums1 = map (end_itlist ( + ) o butlast) (tl mul_wdd) in
+    let sums2 = (hd o hd) mul_wdd :: map2 (fun list th1 -> last list + two_float * th1) (tl mul_wdd) sums1 in
+    let sums = map2 ( * ) ws sums2 in
+      end_itlist ( + ) sums in
 
-      (* sum of first partials *)
-      let d_th =
-	let mul_wd = map2 (error_mul_f2_le_conv2 pp) ws dfs in
-	  end_itlist (add_ineq_hi pp) mul_wd in
-	
-      let b_tm = (rand o concl) d_th in
-	
-      (* sum of second partials *)
-      let dd_th =
-	let ( * ), ( + ) = mul_ineq_pos_const_hi pp, add_ineq_hi pp in
-	let mul_wdd = map2 (fun list i -> map2 (error_mul_f2_le_conv2 pp) (fst (chop_list i ws)) list) dds ns in
-	let sums1 = map (end_itlist ( + ) o butlast) (tl mul_wdd) in
-	let sums2 = (hd o hd) mul_wdd :: map2 (fun list th1 -> last list + two_float * th1) (tl mul_wdd) sums1 in
-	let sums = map2 ( * ) ws sums2 in
-	  end_itlist ( + ) sums in
+  let error_tm = (rand o concl) dd_th in
 
-      let error_tm = (rand o concl) dd_th in
+  (* additional inequalities *)
+  let ineq1_th = 
+    let ( * ), ( + ) = float_mul_hi pp, add_ineq_hi pp in
+      mk_refl_ineq b_tm + float_inv2 * error_tm in
 
-      (* additional inequalities *)
-      let ineq1_th = 
-	let ( * ), ( + ) = float_mul_hi pp, add_ineq_hi pp in
-	  mk_refl_ineq b_tm + float_inv2 * error_tm in
+  let a_tm = (rand o concl) ineq1_th in
 
-      let a_tm = (rand o concl) ineq1_th in
+  let prove_ineq2, bounds_inst = 
+    if mode = "upper" then
+      let ineq2 = float_add_hi pp f_hi a_tm in
+	MY_PROVE_HYP ineq2, [(rand o concl) ineq2, hi_var_real]
+    else if mode = "bound" then
+      let ineq2 = float_add_hi pp f_hi a_tm in
+      let ineq3 = float_sub_lo pp f_lo a_tm in
+	MY_PROVE_HYP ineq2 o MY_PROVE_HYP ineq3, 
+    [(rand o concl) ineq2, hi_var_real; (lhand o concl) ineq3, lo_var_real]
+    else
+      let ineq2 = float_sub_lo pp f_lo a_tm in
+	MY_PROVE_HYP ineq2, [(lhand o concl) ineq2, lo_var_real] in
 
-      let prove_ineq2, bounds_inst = 
-	if mode = "upper" then
-	  let ineq2 = float_add_hi pp f_hi a_tm in
-	    MY_PROVE_HYP ineq2, [(rand o concl) ineq2, hi_var_real]
-	else if mode = "bound" then
-	  let ineq2 = float_add_hi pp f_hi a_tm in
-	  let ineq3 = float_sub_lo pp f_lo a_tm in
-	    MY_PROVE_HYP ineq2 o MY_PROVE_HYP ineq3, 
-	[(rand o concl) ineq2, hi_var_real; (lhand o concl) ineq3, lo_var_real]
-	else
-	  let ineq2 = float_sub_lo pp f_lo a_tm in
-	    MY_PROVE_HYP ineq2, [(lhand o concl) ineq2, lo_var_real] in
-
-      (* final step *)
-      let inst_list =
-	let inst1 = zip dfs df_vars in
-	let inst2 = zip (List.flatten dds) (List.flatten dd_vars) in
-	let inst3 = zip ws w_vars in
-	  inst1 @ inst2 @ inst3 in
-
-	(MY_PROVE_HYP m_taylor_th o MY_PROVE_HYP dd_th o MY_PROVE_HYP d_th o 
-	   MY_PROVE_HYP ineq1_th o prove_ineq2 o
-	   INST ([f_hi, f_hi_var; f_lo, f_lo_var; error_tm, error_var; 
-		  a_tm, a_var_real; b_tm, b_var_real;
-		  y_tm, y_var; domain_tm, domain_var;
-		  f_tm, f_var] @ bounds_inst @ inst_list)) bound_th;;
+  (* final step *)
+  let inst_list =
+    let inst1 = zip dfs df_vars in
+    let inst2 = zip (List.flatten dds) (List.flatten dd_vars) in
+    let inst3 = zip ws w_vars in
+      inst1 @ inst2 @ inst3 in
+    
+    (MY_PROVE_HYP m_taylor_th o MY_PROVE_HYP dd_th o MY_PROVE_HYP d_th o 
+       MY_PROVE_HYP ineq1_th o prove_ineq2 o
+       INST ([f_hi, f_hi_var; f_lo, f_lo_var; error_tm, error_var; 
+	      a_tm, a_var_real; b_tm, b_var_real;
+	      y_tm, y_var; domain_tm, domain_var;
+	      f_tm, f_var] @ bounds_inst @ inst_list)) bound_th;;
 
 
 (* upper *)

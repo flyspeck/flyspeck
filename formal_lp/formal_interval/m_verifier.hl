@@ -2,6 +2,7 @@ needs "../formal_lp/formal_interval/m_taylor.hl";;
 needs "../formal_lp/formal_interval/m_verifier0.hl";;
 needs "../formal_lp/arith/informal/informal_m_verifier.hl";;
 
+
 let mk_real_vars n name = map (fun i -> mk_var (sprintf "%s%d" name i, real_ty)) (1--n);;
 
 
@@ -768,7 +769,7 @@ let m_mono_pass_gen n j decr_flag diff2_th partial_mono_th sub_th pass_th =
 (* m_incr_pass *)
 let m_incr_pass n pp j m_taylor_th pass_th0 =
   let _, diff2_th, _, _ = dest_m_taylor_thms n m_taylor_th in
-  let partial_bound = eval_m_taylor_lower_partial n pp j m_taylor_th in
+  let partial_bound = eval_m_taylor_partial_lower n pp j m_taylor_th in
 
   let f_tm, domain0 = dest_m_cell_pass (concl pass_th0) and
       domain = (rand o rator o concl) diff2_th and
@@ -791,7 +792,7 @@ let m_incr_pass n pp j m_taylor_th pass_th0 =
 (* m_decr_pass *)
 let m_decr_pass n pp j m_taylor_th pass_th0 =
   let _, diff2_th, _, _ = dest_m_taylor_thms n m_taylor_th in
-  let partial_bound = eval_m_taylor_upper_partial n pp j m_taylor_th in
+  let partial_bound = eval_m_taylor_partial_upper n pp j m_taylor_th in
 
   let f_tm, domain0 = dest_m_cell_pass (concl pass_th0) and
       domain = (rand o rator o concl) diff2_th and
@@ -955,57 +956,6 @@ let convert_to_float_list pp lo_flag list_tm =
 
 
 
-(*****************************)
-
-(*
-let m_verify_raw_old n pp eval_taylor certificate xx zz =
-  let r_size = result_size certificate in
-  let k = ref 0 in
-  let domain_th = mk_m_center_domain n pp xx zz in
-
-  let rec rec_verify pp domain_th certificate =
-    match certificate with
-      | Result_pass (mono, xx, zz) ->
-	  let mono = List.concat mono in
-	  let taylor_th = eval_taylor domain_th in
-	    if mono = [] then
-	      let _ = k := !k + 1 in
-	      let _ = report (sprintf "Verifying: %d/%d" !k r_size) in
-		m_taylor_cell_pass n pp taylor_th	    
-	    else
-	      let j = hd mono in
-	      let _ = report (sprintf "Mono: %d" j) in
-	      let j, left_flag = if j < 0 then -j, true else j, false in
-	      let domain1_th, _ = restrict_domain n j left_flag domain_th in
-	      let r1 = Result_pass ([tl mono], xx, zz) in
-	      let th1 = rec_verify pp domain1_th r1 in
-	      let pass_f = if left_flag then m_decr_pass else m_incr_pass in
-		pass_f n pp j taylor_th th1
-
-      | Result_glue (mono, i, r1, r2) ->
-	  let mono = List.concat mono in
-	  if mono = [] then
-	    let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
-	    let th1 = rec_verify pp domain1_th r1 and
-		th2 = rec_verify pp domain2_th r2 in
-	      m_glue_cells n (i + 1) th1 th2
-	  else
-	    let taylor_th = eval_taylor domain_th in
-	    let j = hd mono in
-	    let _ = report (sprintf "GlueMono: %d" j) in
-	    let j, left_flag = if j < 0 then -j, true else j, false in
-	    let domain1_th, _ = restrict_domain n j left_flag domain_th in
-	    let r = Result_glue ([tl mono], i, r1, r2) in
-	    let th1 = rec_verify pp domain1_th r in
-	    let pass_f = if left_flag then m_decr_pass else m_incr_pass in
-	      pass_f n pp j taylor_th th1
-
-      | _ -> failwith "False result" in
-
-    rec_verify pp domain_th certificate;;
-*)
-
-
 (****************************************)
 
 (* time test for domain computations *)
@@ -1094,9 +1044,9 @@ let m_verify_raw n pp fs certificate domain_th0 th_list =
 	    eval_interval_arith_lo n (fs.df m.variable pp xx zz)
 	else
 	  if m.decr_flag then
-	    eval_m_taylor_upper_partial n pp m.variable taylor_th
+	    eval_m_taylor_partial_upper n pp m.variable taylor_th
 	  else
-	    eval_m_taylor_lower_partial n pp m.variable taylor_th in
+	    eval_m_taylor_partial_lower n pp m.variable taylor_th in
 
 (*      let mono_ths = map gen_mono (zip mono domains) in *)
       let mono_ths = map gen_mono mono in
@@ -1263,9 +1213,9 @@ let m_p_verify_raw n p_split fs certificate domain_th0 th_list =
 	    eval_interval_arith_lo n (fs.df m.variable p_stat.pp xx zz)
 	else
 	  if m.decr_flag then
-	    eval_m_taylor_upper_partial n p_stat.pp m.variable taylor_th
+	    eval_m_taylor_partial_upper n p_stat.pp m.variable taylor_th
 	  else
-	    eval_m_taylor_lower_partial n p_stat.pp m.variable taylor_th in
+	    eval_m_taylor_partial_lower n p_stat.pp m.variable taylor_th in
       let mono_ths = map gen_mono mono in
       let pass_th0 = rec_verify ((fst o last) domain_ths) certificate in
       let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths in

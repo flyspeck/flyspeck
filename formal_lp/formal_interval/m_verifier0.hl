@@ -54,22 +54,30 @@ let buildL0 pp poly_tm =
 let buildDD pp second_th =
   let poly_tm = (lhand o rator o lhand o concl) second_th in
   let n = (get_dim o fst o dest_abs) poly_tm in
+  let ns = 1--n in
   let funs = (striplist dest_conj o rand o snd o dest_forall o rand o concl) second_th in
   let i_funs = map (eval_constants pp o build_interval_fun o fst o dest_interval_arith) funs in
   let fs0 = map build_fun i_funs in
-  let pad1 = replicate (F_int_const zero) (8 - n) and
-      pad2 = replicate (F_int_const zero) 8 in
+  let pad1 = replicate zero (8 - n) and
+      pad2 = replicate zero 8 in
   let pad3 = replicate pad2 (8 - n) in
-  let fs = (map (fun l -> l @ pad1) (shape_list n fs0)) @ pad3 in
-  let eval_fs = map (map eval_int_fun) fs in
+  let get_el dd i j = 
+    let i', j' = if j <= i then i, j else j, i in
+    let index = (i' - 1) * i' / 2 + (j' - 1) in
+      List.nth dd index in
+  let eval_fs = map eval_int_fun fs0 in
     fun x z ->
       let ints = map2 (curry mk_interval) x z in
-	map (map (fun f -> f ints)) eval_fs;;
+      let vals = map (fun f -> f ints) eval_fs in
+	map (fun i -> map (fun j -> get_el vals i j) ns @ pad1) ns @ pad3;;
+
 
 let buildDD0 pp poly_tm =
   let second_th = gen_second_bounded_poly_thm0 poly_tm in
     buildDD pp second_th;;
 
+
+(******)
 
 let build_taylor pp lin_th second_th =
   let f_df, lin = buildL pp lin_th and

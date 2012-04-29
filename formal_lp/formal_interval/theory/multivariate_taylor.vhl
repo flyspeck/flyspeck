@@ -1215,7 +1215,7 @@ Lemma m_taylor_error_eq f domain w error : `diff2c_domain domain f ==>
 	(m_taylor_error f domain (w:real^N) error <=>
 	(!x. x IN interval [domain] ==> 
 	sum (1..dimindex (:N)) (\i. w$i * (w$i * abs (partial2 i i f x)
-		+ &2 * sum (i + 1..dimindex (:N)) (\j. w$j * abs (partial2 j i f x)))) <= error))`.
+		+ &2 * sum (1..i - 1) (\j. w$j * abs (partial2 j i f x)))) <= error))`.
 Proof.
 rewrite diff2c_domain m_taylor_error => d2f.
 have eq: `!g1 g2. (!x. x IN interval [domain] ==> g1 x = g2 x) ==> 
@@ -1232,13 +1232,14 @@ have s1_eq: `s1 = sum (1..n) (\i. sum (1..n) (\j. g i j))`.
   by rewrite -SUM_LMUL /= -g_def partial2; apply SUM_EQ.
 rewrite REAL_MUL_2 !REAL_ADD_LDISTRIB -SUM_LMUL REAL_ADD_ASSOC SUM_ADD_NUMSEG /=.
 set s2 := `sum _1 _2`.
-have s2_eq: `s2 = sum (1..n) (\i. g i i + sum (i + 1..n) (\j. g i j))`; first by rewrite -s2_def -g_def.
+have s2_eq: `s2 = sum (1..n) (\i. g i i + sum (1..i - 1) (\j. g i j))`; first by rewrite -s2_def -g_def.
 set s3 := `sum _1 _2`.
-have s3_eq: `s3 = sum (1..n) (\i. sum (i + 1..n) (\j. g i j))`; first by rewrite -s3_def -g_def .
+have s3_eq: `s3 = sum (1..n) (\i. sum (1..i - 1) (\j. g i j))`; first by rewrite -s3_def -g_def.
 move: s1_def s2_def s3_def => _ _ _.
-suff ->: `s3 = sum (1..n) (\i. sum (1..i - 1) (\j. g i j))`.
+suff ->: `s3 = sum (1..n) (\i. sum (i + 1..n) (\j. g i j))`.
   rewrite s2_eq -SUM_ADD_NUMSEG /= s1_eq; apply SUM_EQ => i /=; rewrite IN_NUMSEG => i_ineq.
-  rewrite -(SUM_SING_NUMSEG `g i` i); rewr ETA_AX; rewrite SUM_COMBINE_R ?i_ineq; first by arith.
+  rewrite "REAL_ARITH `!a b c. (a + b) + c = (a + c) + b`" -(SUM_SING_NUMSEG `g i` i); rewr ETA_AX.
+  rewrite SUM_COMBINE_R ?i_ineq; first by arith.
   by rewrite "GEN_ALL REAL_ADD_AC" SUM_COMBINE_L //; move: i_ineq; arith.
 rewrite s3_eq sum_swap1; apply SUM_EQ => i _ /=; apply SUM_EQ => j _ /=.
 rewrite -g_def /= "REAL_ARITH `!a b c. a * b * c = b * a * c`" !REAL_EQ_MUL_LCANCEL; right; right.

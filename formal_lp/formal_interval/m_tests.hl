@@ -1,6 +1,13 @@
 flyspeck_needs "../formal_lp/formal_interval/m_verifier.hl";;
 
 
+let reset_all () =
+  Arith_cache.reset_stat();
+  Arith_cache.reset_cache();
+  Arith_float.reset_stat();
+  Arith_float.reset_cache();;
+
+
 (**************************)
 (* Examples *)
 let schwefel_poly = expr_to_vector_fun `(x1 - x2 pow 2) pow 2 + (x2 - &1) pow 2 + 
@@ -67,13 +74,16 @@ let test_verify pp poly_tm min_flag val_tm (xx,zz) eps =
   let n = (get_dim o fst o dest_abs) poly_tm in
   let xx1 = convert_to_float_list pp true xx and
       zz1 = convert_to_float_list pp false zz in
+  let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+      zz2 = Informal_taylor.convert_to_float_list pp false zz in
   let xx_float = map float_of_float_tm (dest_list xx1) and
       zz_float = map float_of_float_tm (dest_list zz1) in
-  let eval_fs, tf = mk_verification_functions pp poly_tm min_flag val_tm in
+  let eval_fs, tf, ti = mk_verification_functions pp poly_tm min_flag val_tm in
   let certificate = run_test tf xx_float zz_float false 0.0 true true true true eps in
   let c1 = transform_result xx_float zz_float certificate in
+  let c1p = Informal_verifier.m_verify_list pp 1 pp ti c1 xx2 zz2 in
   let start = Sys.time() in
-  let result = m_verify_list n pp eval_fs c1 xx1 zz1 in
+  let result = m_p_verify_list n pp eval_fs c1p xx1 zz1 in
   let finish = Sys.time() in
   let _ = report 
     (sprintf "Total time: %f; Verification time: %f" (finish -. total_start) (finish -. start)) in
@@ -94,7 +104,7 @@ let xx1 = convert_to_float_list pp true xx and
 let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
-let eval_fs, tf = mk_verification_functions pp poly_tm true `-- #1.1`;;
+let eval_fs, tf, ti = mk_verification_functions pp poly_tm true `-- #1.1`;;
 let certificate = run_test tf xx_float zz_float false 0.0 true false false false 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
 (* 5 *)
@@ -146,7 +156,7 @@ let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
 
-let eval_delta_x4, tf_delta_x4 = mk_verification_functions pp delta_x4_poly true `#6.02525`;;
+let eval_delta_x4, tf_delta_x4, ti = mk_verification_functions pp delta_x4_poly true `#6.02525`;;
 let certificate = run_test tf_delta_x4 xx_float zz_float false 0.0 true true true false 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
 (* 1 *)
@@ -161,7 +171,7 @@ let c0 = run_test0 tf_delta_x4 xx_float zz_float false 0.0 true true false 0.0;;
 result_size c0;;
 m_verify_raw0 n pp eval_delta_x4 c0 xx1 zz1;;
 
-(* 1. 076 *)
+(* 1.076 *)
 test 10 (m_verify_raw0 n pp eval_delta_x4 certificate xx1) zz1;;
 (* 0.836 *)
 test 10 (m_verify_raw0 n pp eval_delta_x4 c0 xx1) zz1;;
@@ -181,8 +191,8 @@ let xx1 = convert_to_float_list pp true xx and
 let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
-let eval_delta_x, tf_delta_x = mk_verification_functions pp delta_x_poly true `#127.999`;;
-let certificate = run_test tf_delta_x xx_float zz_float false 0.0 true true true 0.0;;
+let eval_delta_x, tf_delta_x, ti = mk_verification_functions pp delta_x_poly true `#127.999`;;
+let certificate = run_test tf_delta_x xx_float zz_float false 0.0 true true true true 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
 (* 1 *)
 length c1;;
@@ -198,33 +208,39 @@ m_verify_raw0 n pp eval_delta_x c0 xx1 zz1;;
 
 (* 10: 65 *)
 test 1 (m_verify_raw_old n pp eval_delta_x certificate xx1) zz1;;
-(* 10: 38.642 *)
-test 1 (m_verify_raw0 n pp eval0_delta_x eval2_delta_x eval_delta_x certificate xx1) zz1;;
+(* 10: 38.642
+ 100 (cached): 0.384
+*)
+reset_all();;
+test 1 (m_verify_raw0 n pp eval_delta_x certificate xx1) zz1;;
 (* 10: 40.187; 5.140 (convexity) 3.104 (find_and_replace_all) *)
+reset_all();;
 test 1 (m_verify_list n pp eval_delta_x c1 xx1) zz1;;
 (* 10: 1.860 *)
 test 1 (m_verify_raw0 n pp eval_delta_x c0 xx1) zz1;;
 (* 10: 4.228 (2.408, new restrict_domain) *)
-test 1 (m_verify_domain_test n pp eval_delta_x certificate xx1) zz1;;
+test 1 (m_verify_domain_test n pp certificate xx1) zz1;;
 
 
 
 (***)
 (* delta_y *)
 let pp = 10;;
-let pp = 3;;
 let n = 6;;
 let xx = `[&2;&2;&2;&2;&2;&2]` and
     zz = `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
 
 let xx1 = convert_to_float_list pp true xx and
     zz1 = convert_to_float_list 4 false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list 4 false zz;;
 let xx_float = map float_of_float_tm (dest_list xx1) and
     zz_float = map float_of_float_tm (dest_list zz1);;
 
-let eval_delta_y, tf_delta_y = mk_verification_functions pp delta_y_poly true `#127.999`;;
+let eval_delta_y, tf_delta_y, ti_delta_y = mk_verification_functions pp delta_y_poly true `#127.999`;;
 let certificate = run_test tf_delta_y xx_float zz_float false 0.0 true true true true 0.0;;
 let c1 = transform_result xx_float zz_float certificate;;
+let c1p = Informal_verifier.m_verify_list pp 1 pp ti_delta_y c1 xx2 zz2;;
 (* 17 *)
 length c1;;
 (* 134 (true true false) 133 (128) (true true true) *)
@@ -234,8 +250,15 @@ m_verify_list n pp eval_delta_y c1 xx1 zz1;;
 (* 10: 494 *)
 test 1 (m_verify_raw n pp eval0_delta_y eval_delta_y certificate xx1) zz1;;
 
-(* 10: 362; 165 (find_and_replace_all); 300: 75 *)
+(* 10: 362; 165 (find_and_replace_all); 300: 75 
+100 (cached, pp = 10): 9.493
+*)
+reset_all();;
 test 1 (m_verify_list n pp eval_delta_y c1 xx1) zz1;;
+
+(* 100: 7.120 *)
+reset_all();;
+test 1 (m_p_verify_list n pp eval_delta_y c1p xx1) zz1;;
 
 let c00 = run_test0 tf_delta_y xx_float zz_float false 0.0 true true true 0.0;;
 (* 24671 (true false true) 1785 (1862) (true true true) *)
@@ -548,6 +571,7 @@ test_verify 12 schwefel_poly true schwefel_min schwefel_dom 0.0;;
 test_verify 11 rd_poly true rd_min rd_dom 0.0;;
 
 (* 10: 11.829; 4.856 (11.44; 1.2) *)
+reset_all();;
 test_verify 8 caprasse_poly true caprasse_min caprasse_dom 0.0;;
 
 (* 10: 2.204; 0.048 (4.75; 0.23) *)

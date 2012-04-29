@@ -270,11 +270,9 @@ let gen_m_taylor_const_thm n const_int =
 		    d_bounds_list, d_bounds_list_var;
 		    dd_bounds_list, dd_bounds_list_var] o 
 	       inst_first_type_var ty) MK_M_TAYLOR_INTERVAL' in
-  let th1 = REWRITE_RULE[diff2_domain_const; second_bounded; 
+  let th1 = REWRITE_RULE[diff2c_domain_const; second_bounded; 
 			 partial2_const; m_lin_approx; partial_const; const_int] th0 in
     UNDISCH_ALL (SIMP_RULE[all_n; interval0; m_lin_approx; diff2_const; diff2_imp_diff] th1);;
-
-
 
 
 let dest_m_cell_domain domain_tm =
@@ -346,76 +344,95 @@ let nth_diff2_pow = prove(`!n y. nth_diff_strong 2 (\x. x pow n) y`,
     ] THEN
     GEN_TAC THEN new_rewrite [] [] derivative_pow THEN REWRITE_TAC[REAL_DIFFERENTIABLE_ID] THEN
     REWRITE_TAC[derivative_x; REAL_MUL_RID]);;
-    
 
 
-let diff2_pow = prove(`!f n (x:real^N). diff2 f x ==> diff2 (\x. f x pow n) x`,
+let diff2c_pow = prove(`!f n (x:real^N). diff2c f x ==> diff2c (\x. f x pow n) x`,
   REPEAT STRIP_TAC THEN
     SUBGOAL_THEN `(\x:real^N. f x pow n) = (\t. t pow n) o f` (fun th -> REWRITE_TAC[th]) THENL
     [
       ONCE_REWRITE_TAC[GSYM eq_ext] THEN REWRITE_TAC[o_THM];
       ALL_TAC
     ] THEN
-    apply_tac diff2_uni_compose THEN ASM_REWRITE_TAC[nth_diff2_pow]);;
+    apply_tac diff2c_uni_compose THEN ASM_REWRITE_TAC[nth_diff2_pow] THEN
+    REWRITE_TAC[nth_derivative2] THEN
+    SUBGOAL_THEN `!n. derivative (\t. t pow n) = (\t. &n * t pow (n - 1))` ASSUME_TAC THENL
+    [
+      GEN_TAC THEN REWRITE_TAC[FUN_EQ_THM] THEN GEN_TAC THEN
+	new_rewrite [] [] derivative_pow THEN REWRITE_TAC[REAL_DIFFERENTIABLE_ID] THEN
+	REWRITE_TAC[derivative_x; REAL_MUL_RID];
+      ALL_TAC
+    ] THEN
+    ASM_REWRITE_TAC[] THEN
+    SUBGOAL_THEN `!n. derivative (\t. &n * t pow (n - 1)) = (\t. &n * derivative (\t. t pow (n - 1)) t)` ASSUME_TAC THENL
+    [
+      GEN_TAC THEN REWRITE_TAC[FUN_EQ_THM] THEN GEN_TAC THEN
+	new_rewrite [] [] derivative_scale THEN REWRITE_TAC[] THEN
+	MATCH_MP_TAC REAL_DIFFERENTIABLE_POW_ATREAL THEN REWRITE_TAC[REAL_DIFFERENTIABLE_ID];
+      ALL_TAC
+    ] THEN
+    ASM_REWRITE_TAC[] THEN
+    REPEAT (MATCH_MP_TAC REAL_CONTINUOUS_LMUL) THEN
+    MATCH_MP_TAC REAL_CONTINUOUS_POW THEN
+    REWRITE_TAC[REAL_CONTINUOUS_AT_ID]);;
 
 
-let diff2_domain_pow = prove(`!f n domain. diff2_domain domain f ==> 
-			       diff2_domain domain (\x. f x pow n)`,
-  REWRITE_TAC[diff2_domain] THEN REPEAT STRIP_TAC THEN ASM_SIMP_TAC[diff2_pow]);;
+let diff2c_domain_pow = prove(`!f n domain. diff2c_domain domain f ==> 
+			       diff2c_domain domain (\x. f x pow n)`,
+  REWRITE_TAC[diff2c_domain] THEN REPEAT STRIP_TAC THEN ASM_SIMP_TAC[diff2c_pow]);;
 
 
-let diff2_domain_tm = `diff2_domain domain`;;
+let diff2c_domain_tm = `diff2c_domain domain`;;
 
-let rec gen_diff2_domain_poly poly_tm =
+let rec gen_diff2c_domain_poly poly_tm =
   let x_var, expr = dest_abs poly_tm in
   let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
-  let diff2_tm = mk_icomb (diff2_domain_tm, poly_tm) in
+  let diff2c_tm = mk_icomb (diff2c_domain_tm, poly_tm) in
     if frees expr = [] then
       (* const *)
-      (SPEC_ALL o ISPEC expr o inst_first_type_var (n_type_array.(n))) diff2_domain_const
+      (SPEC_ALL o ISPEC expr o inst_first_type_var (n_type_array.(n))) diff2c_domain_const
     else
       let lhs, r_tm = dest_comb expr in
 	if lhs = neg_op_real then
 	  (* -- *)
-	  let r_th = gen_diff2_domain_poly (mk_abs (x_var, r_tm)) in
-	    prove(diff2_tm, MATCH_MP_TAC diff2_domain_neg THEN REWRITE_TAC[r_th])
+	  let r_th = gen_diff2c_domain_poly (mk_abs (x_var, r_tm)) in
+	    prove(diff2c_tm, MATCH_MP_TAC diff2c_domain_neg THEN REWRITE_TAC[r_th])
 	else
 	  let op, l_tm = dest_comb lhs in
 	  let name = (fst o dest_const) op in
 	    if name = "$" then
 	      (* x$k *)
 	      let dim_th = dimindex_array.(n) in
-		prove(diff2_tm, MATCH_MP_TAC diff2_domain_x THEN
+		prove(diff2c_tm, MATCH_MP_TAC diff2c_domain_x THEN
 			REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC)
 	    else
-	      let l_th = gen_diff2_domain_poly (mk_abs (x_var, l_tm)) in
+	      let l_th = gen_diff2c_domain_poly (mk_abs (x_var, l_tm)) in
 		if name = "real_pow" then
 		  (* f pow n *)
-		  prove(diff2_tm, MATCH_MP_TAC diff2_domain_pow THEN REWRITE_TAC[l_th])
+		  prove(diff2c_tm, MATCH_MP_TAC diff2c_domain_pow THEN REWRITE_TAC[l_th])
 		else
-		  let r_th = gen_diff2_domain_poly (mk_abs (x_var, r_tm)) in
-		    prove(diff2_tm,
-			  MAP_FIRST apply_tac [diff2_domain_add; diff2_domain_sub; diff2_domain_mul] THEN
-			    REWRITE_TAC[l_th; r_th])
+		  let r_th = gen_diff2c_domain_poly (mk_abs (x_var, r_tm)) in
+		    prove(diff2c_tm,
+			  MAP_FIRST apply_tac [diff2c_domain_add; diff2c_domain_sub; diff2c_domain_mul] THEN
+			    REWRITE_TAC[l_th; r_th]);;
 
 
-let gen_diff2_poly =
-  let th_imp = prove(`!f. (!domain. diff2_domain domain f) ==> !x:real^N. diff2 f x`,
-		     REWRITE_TAC[diff2_domain] THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
+let gen_diff2c_poly =
+  let th_imp = prove(`!f. (!domain. diff2c_domain domain f) ==> !x:real^N. diff2c f x`,
+		     REWRITE_TAC[diff2c_domain] THEN REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN
 		       EXISTS_TAC `(x:real^N, x:real^N)` THEN
 		       REWRITE_TAC[INTERVAL_SING; IN_SING]) in
     fun poly_tm ->
-      (MATCH_MP th_imp o GEN_ALL o gen_diff2_domain_poly) poly_tm;;
+      (MATCH_MP th_imp o GEN_ALL o gen_diff2c_domain_poly) poly_tm;;
+
 
 let gen_diff_poly =
-  let th_imp = prove(`!f. (!domain. diff2_domain domain f) ==> !x:real^N. lift o f differentiable at x`,
-		     REWRITE_TAC[diff2_domain; diff2] THEN REPEAT STRIP_TAC THEN
+  let th_imp = prove(`!f. (!domain. diff2c_domain domain f) ==> !x:real^N. lift o f differentiable at x`,
+		     REWRITE_TAC[diff2c_domain; diff2c; diff2] THEN REPEAT STRIP_TAC THEN
 		       FIRST_X_ASSUM (MP_TAC o SPECL [`x:real^N, x:real^N`; `x:real^N`]) THEN
 		       REWRITE_TAC[INTERVAL_SING; IN_SING] THEN case THEN REPEAT STRIP_TAC THEN
 		       FIRST_X_ASSUM (MP_TAC o SPEC `x:real^N`) THEN ASM_SIMP_TAC[]) in
     fun poly_tm ->
-      (MATCH_MP th_imp o GEN_ALL o gen_diff2_domain_poly) poly_tm;;
-
+      (MATCH_MP th_imp o GEN_ALL o gen_diff2c_domain_poly) poly_tm;;
 
 
 let in_tm = `IN`;;
@@ -924,8 +941,8 @@ test 100 (eval_poly x_tm) z_tm;;
 
 (*************************************)
 
-let eval_m_taylor pp0 diff2_th lin_th second_th =
-  let poly_tm = (rand o concl) diff2_th in
+let eval_m_taylor pp0 diff2c_th lin_th second_th =
+  let poly_tm = (rand o concl) diff2c_th in
   let n = (get_dim o fst o dest_abs) poly_tm in
   let eval_lin = eval_lin_approx pp0 lin_th and
       eval_second = eval_second_bounded pp0 second_th in
@@ -933,7 +950,7 @@ let eval_m_taylor pp0 diff2_th lin_th second_th =
   let ty, _, x_var, f_var, y_var, w_var, domain_var = get_types_and_vars n in
   let th0 = (SPEC_ALL o inst_first_type_var ty) m_taylor_interval in
   let th1 = INST[poly_tm, f_var] th0 in
-  let th2 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL o REWRITE_RULE[diff2_th]) th1 in
+  let th2 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o MATCH_MP iffRL o REWRITE_RULE[diff2c_th]) th1 in
 
     fun p_lin p_second domain_th ->
       let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
@@ -953,7 +970,7 @@ let eval_m_taylor pp0 diff2_th lin_th second_th =
 
 
 let eval_m_taylor_poly0 pp0 poly_tm =
-  let diff2_th = gen_diff2_domain_poly poly_tm in
+  let diff2_th = gen_diff2c_domain_poly poly_tm in
   let x_var, _ = dest_abs poly_tm in
   let n = get_dim x_var in
   let partials = map (fun i -> gen_partial_poly i poly_tm) (1--n) in
@@ -1380,7 +1397,7 @@ test 100 (eval_m_taylor_error n pp) m_taylor_th;;
 
 (* upper *)
 let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
-				    diff2_domain domain f /\
+				    diff2c_domain domain f /\
 				    m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
 				    m_taylor_error f domain (vector w) error /\
 				    list_sum2 error_mul_f2 w d_bounds_list <= b /\
@@ -1390,6 +1407,12 @@ let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 				    (!p. p IN interval [domain] ==> f p <= hi)`,
    REWRITE_TAC[m_lin_approx; interval_arith; list_sum2; error_mul_f2; ALL_N_EL] THEN
      set_tac "s" `ITLIST2 _1 _2 _3 _4` THEN STRIP_TAC THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
+       ALL_TAC
+     ] THEN
      apply_tac m_taylor_upper_bound THEN
      MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `f_hi:real`] THEN
      ASM_REWRITE_TAC[] THEN 
@@ -1429,7 +1452,7 @@ let M_TAYLOR_UPPER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 
 (* lower *)
 let M_TAYLOR_LOWER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
-				    diff2_domain domain f /\
+				    diff2c_domain domain f /\
 				    m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
 				    m_taylor_error f domain (vector w) error /\
 				    list_sum2 error_mul_f2 w d_bounds_list <= b /\
@@ -1439,6 +1462,12 @@ let M_TAYLOR_LOWER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 				    (!p. p IN interval [domain] ==> lo <= f p)`,
    REWRITE_TAC[m_lin_approx; interval_arith; list_sum2; error_mul_f2; ALL_N_EL] THEN
      set_tac "s" `ITLIST2 _1 _2 _3 _4` THEN STRIP_TAC THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
+       ALL_TAC
+     ] THEN
      apply_tac m_taylor_lower_bound THEN
      MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `f_lo:real`] THEN
      ASM_REWRITE_TAC[] THEN 
@@ -1480,7 +1509,7 @@ let M_TAYLOR_LOWER_BOUND' = prove(`m_cell_domain domain (y:real^N) (vector w) /\
 (* bound *)
 let M_TAYLOR_BOUND' = 
   prove(`m_cell_domain domain (y:real^N) (vector w) /\
-	  diff2_domain domain f /\
+	  diff2c_domain domain f /\
 	  m_lin_approx f y (f_lo, f_hi) d_bounds_list /\
 	  m_taylor_error f domain (vector w) error /\
 	  list_sum2 error_mul_f2 w d_bounds_list <= b /\
@@ -1678,6 +1707,12 @@ let M_TAYLOR_UPPER_PARTIAL_BOUND' =
        ASM_REWRITE_TAC[GSYM IN_NUMSEG];
        ALL_TAC
      ] THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
+       ALL_TAC
+     ] THEN
      apply_tac m_taylor_upper_partial_bound THEN
      MAP_EVERY EXISTS_TAC [`y:real^N`; `vector w:real^N`; `error:real`; `df_hi:real`] THEN
      ASM_REWRITE_TAC[] THEN
@@ -1728,6 +1763,12 @@ let M_TAYLOR_LOWER_PARTIAL_BOUND' =
      SUBGOAL_THEN `1 <= i /\ i <= dimindex (:N)` (LABEL_TAC "i_in") THENL
      [
        ASM_REWRITE_TAC[GSYM IN_NUMSEG];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
        ALL_TAC
      ] THEN
      apply_tac m_taylor_lower_partial_bound THEN

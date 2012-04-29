@@ -164,14 +164,14 @@ let th1 = eval_4y1_delta_y.taylor pp pp domain_th;;
 let th2 = eval_neg_delta_y4.taylor pp pp domain_th;;
 let pi2_th = eval_pi2_plus.taylor pp pp domain_th;;
 
-let r1 = eval_m_taylor_sqrt n pp pp th1;;
-let r2 = eval_m_taylor_inv n pp pp r1;;
-let r3 = eval_m_taylor_mul n pp pp th2 r2;;
-let r4 = eval_m_taylor_atn n pp pp r3;;
-let r5 = eval_m_taylor_add n pp pp pi2_th r4;;
-
+let r1 = eval_m_taylor_sqrt2 n pp pp th1;;
+let r2 = eval_m_taylor_inv2 n pp pp r1;;
+let r3 = eval_m_taylor_mul2 n pp pp th2 r2;;
+let r4 = eval_m_taylor_atn2 n pp pp r3;;
+let r5 = eval_m_taylor_add2 n pp pp pi2_th r4;;
 
 reset_all();;
+
 (* 100: 0.264 (second: 0.084) *)
 test 1 (eval_4y1_delta_y.taylor pp pp) domain_th;;
 (* 100: 0.032 (second: 0.020) *)
@@ -181,18 +181,28 @@ test 1 (eval_pi2_plus.taylor pp pp) domain_th;;
 
 (* 100: 0.356 (second: 0.168); 0.300 (0.116) *)
 test 1 (eval_m_taylor_sqrt n pp pp) th1;;
-(* 200: 0.048 *)
+(* 200: 0.220 (second: 0.048) *)
 test 1 (eval_m_taylor_sqrt2 n pp pp) th1;;
+
 (* 100: 0.412 (second: 0.188); 0.316 (0.104) *)
 test 1 (eval_m_taylor_inv n pp pp) r1;;
-(* 200: 0.056 *)
+(* 200: 0.264 (second: 0.056) *)
 test 1 (eval_m_taylor_inv2 n pp pp) r1;;
+
 (* 100: 0.384 (second: 0.212); 0.316 (0.140) *)
 test 1 (eval_m_taylor_mul n pp pp th2) r2;;
-(* 100: 0.616 (second: 0.272); 0.504 (0.132) *)
+(* 200: 0.244 (second: 0.092) *)
+test 1 (eval_m_taylor_mul2 n pp pp th2) r2;;
+
+(* 100: 0.616 (second: 0.272); build2: 0.504 (0.132) *)
 test 1 (eval_m_taylor_atn n pp pp) r3;;
+(* 200: 0.436 (second: 0.060) *)
+test 1 (eval_m_taylor_atn2 n pp pp) r3;;
+
 (* 100: 0.096 (second: 0.072); 0.072 (0.052) *)
 test 1 (eval_m_taylor_add n pp pp pi2_th) r4;;
+(* 200: 0.032 (second: 0.024) *)
+test 1 (eval_m_taylor_add2 n pp pp pi2_th) r4;;
 
 
 
@@ -308,9 +318,9 @@ let _ =
 let cp = Informal_verifier.m_verify_raw0 p_split p_min p_max ti c_dih_y0 xx2 zz2;;
 result_p_stat false cp;;
 
-
 (* 100: 9105 (was 15202)*)
 (* 200 (build2): 4242 *)
+(* 200 (m_taylor_arith2): 3121 *)
 reset_all();;
 let _ =
   let start = Sys.time() in
@@ -321,464 +331,6 @@ let _ =
     result;;
 
 
-
-
-(********************************)
-
-reset_all();;
-(* 100: 0.412 (second: 0.188) *)
-test 1 (eval_m_taylor_inv n pp pp) r1;;
-
-let p_lin = pp and p_second = pp and taylor1_th = r1;;
-
-(***)
-let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th;;
-let f1_tm = (rand o concl) diff2_f1_th;;
-let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th);;
-let ty = type_of y_tm;;
-
-let x_var = mk_var ("x", ty) and
-    y_var = mk_var ("y", ty) and
-    w_var = mk_var ("w", ty) and
-    f_var = mk_var ("f", type_of f1_tm) and
-    domain_var = mk_var ("domain", type_of domain_tm);;
-
-let undisch = UNDISCH o SPEC x_var;;
-
-let f1_bound0 = eval_m_taylor_bound n p_second taylor1_th;;
-let f1_bound = undisch f1_bound0;;
-let f_bounds_tm = (rand o concl) f1_bound;;
-
-let cond_th = check_interval_not_zero f_bounds_tm;;
-
-let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th;;
-    
-let bounds_th = float_interval_inv p_lin bounds1_th;;
-let bounds_tm = (rand o concl) bounds_th;;
-
-let u_lemma0 = (INST[f1_tm, f_var; y_tm, y_var] o 
-		  INST_TYPE[n_type_array.(n), nty]) inv_partial_lemma';;
-
-let u_bounds = 
-  let neg, inv, ( * ) = float_interval_neg, float_interval_inv p_lin, float_interval_mul p_lin in
-    neg (inv (bounds1_th * bounds1_th));;
-
-let u_lin th1 =
-  (* partial *)
-  let u_th =
-    let ( * ) = float_interval_mul p_lin in
-      u_bounds * th1 in
-  let int_tm = rand (concl u_th) in
-  let i_tm = (rand o rator o rator o lhand) (concl th1) in
-  let th0 = INST[i_tm, i_var_num; int_tm, int_var] u_lemma0 in
-    EQ_MP th0 u_th;;
-
-let df_th = eval_all_n df1_th true u_lin;;
-let d_bounds_list = (rand o rator o concl) df_th;;
-
-
-let dd1 = second_bounded_components n second1_th;;
-    
-(* second_lemma', second_lemma'' *)
-let u_second_lemma0 = (INST[f1_tm, f_var] o 
-			 INST_TYPE[n_type_array.(n), nty]) inv_second_lemma';;
-
-let u_second_lemma1 = (INST[f1_tm, f_var] o
-			 INST_TYPE[n_type_array.(n), nty]) inv_second_lemma'';;
-
-
-let d1_bounds = map (fun i -> 
-		       let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
-			 undisch th0) (1--n);;
-
-let d1_th0, d2_th0 =
-  let inv, ( * ) = float_interval_inv p_second, float_interval_mul p_second in
-  let ff = f1_bound * f1_bound in
-    inv ff, 
-  two_interval * inv (f1_bound * ff);;
-
-
-let u_second2 th1 =
-  let i_tm = (rand o rator o concl) th1 in
-  let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
-  let di1 = List.nth d1_bounds (i_int - 1) in
-  let th1 = MY_BETA_RULE th1 in
-  let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
-  let u_second th1 =
-    let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
-    let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
-    let dj1 = List.nth d1_bounds (j_int - 1) in
-      
-    (* partial2 *)
-    let u_th = 
-      let ( * ), ( - ) = float_interval_mul p_second, float_interval_sub p_second in
-	(d2_th0 * dj1) * di1 - d1_th0 * th1 in
-      
-    let int_tm = rand (concl u_th) in
-    let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
-      EQ_MP th0 u_th in
-    
-  let u_th = eval_all_n th1 true u_second in
-  let list_tm = (rand o rator o concl) u_th in
-  let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1 in
-    EQ_MP lemma1 u_th;;
-
-let dd_th0 = eval_all_n dd1 false u_second2;;
-let dd_list = (rand o rator o concl) dd_th0;;
-let dd_th = GEN x_var (DISCH_ALL dd_th0);;
-
-let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
-	    MY_PROVE_HYP cond_th o MY_PROVE_HYP f1_bound0 o
-	    MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
-	    INST[f1_tm, f_var; f_bounds_tm, f_bounds_var; 
-		 domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
-		 bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
-		 dd_list, dd_bounds_list_var] o
-	    INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_INV';;
-let eq_th = unary_beta_gen_eq f1_tm x_var inv_op_real;;
-m_taylor_interval_norm th eq_th;;
-
-
-(***)
-(* 0.004 *)
-test 10 (dest_m_taylor_thms n) taylor1_th;;
-
-(* 0.116 (second 0.096) *)
-test 10 (eval_m_taylor_bound n p_second) taylor1_th;;
-(* 0.000 *)
-test 10 undisch f1_bound0;;
-
-(* 0.000 *)
-test 10 check_interval_not_zero f_bounds_tm;;
-
-(* 0.012 *)
-test 10 (m_lin_approx_components n) lin1_th;;
-
-(* 0.016 *)    
-test 10 (float_interval_inv p_lin) bounds1_th;;
-
-(* 0.000 *)
-test 10 (INST[f1_tm, f_var; y_tm, y_var] o 
-	   INST_TYPE[n_type_array.(n), nty]) inv_partial_lemma';;
-
-let u_bounds () =
-  let neg, inv, ( * ) = float_interval_neg, float_interval_inv p_lin, float_interval_mul p_lin in
-    neg (inv (bounds1_th * bounds1_th));;
-
-(* 0.0200 *)
-test 10 u_bounds ();;
-let u_bounds = u_bounds ();;
-
-(* 0.112 (second 0.096) *)
-test 10 (eval_all_n df1_th true) u_lin;;
-(* 0.008 *)
-test 10 (second_bounded_components n) second1_th;;
-    
-(* 0.012 *)
-test 10 (INST[f1_tm, f_var] o 
-	   INST_TYPE[n_type_array.(n), nty]) inv_second_lemma';;
-
-(* 0.008 *)
-test 10 (INST[f1_tm, f_var] o
-	   INST_TYPE[n_type_array.(n), nty]) inv_second_lemma'';;
-
-
-(* 0.156 *)
-let d1_bounds () = map (fun i -> 
-		       let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
-			 undisch th0) (1--n);;
-test 10 d1_bounds ();;
-let d1_bounds = d1_bounds ();;
-
-(* 0.028 *)
-let f () =
-  let d1_th0, d2_th0 =
-    let inv, ( * ) = float_interval_inv p_second, float_interval_mul p_second in
-    let ff = f1_bound * f1_bound in
-      inv ff, 
-    two_interval * inv (f1_bound * ff) in
-    d1_th0, d2_th0;;
-test 10 f ();;
-
-(* 1.528 (second 1.344) *)
-test 10 (eval_all_n dd1 false) u_second2;;
-(* 0.004 *)
-test 10 (GEN x_var o DISCH_ALL) dd_th0;;
-
-(* 0.100 *)
-test 10 (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
-	    MY_PROVE_HYP cond_th o MY_PROVE_HYP f1_bound0 o
-	    MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
-	    INST[f1_tm, f_var; f_bounds_tm, f_bounds_var; 
-		 domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
-		 bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
-		 dd_list, dd_bounds_list_var] o
-	    INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_INV';;
-
-(* 0.000 *)
-test 10 (unary_beta_gen_eq f1_tm x_var) inv_op_real;;
-(* 0.000 *)
-test 10 (m_taylor_interval_norm th) eq_th;;
-
-
-(***)
-
-let all_n1_th = dd1 and beta_flag = false and s = u_second2;;
-
-let ths1', suc_ths = all_n_components all_n1_th;;
-let ths1 = if beta_flag then map MY_BETA_RULE ths1' else ths1';;
-let ths1, suc_ths = List.rev ths1, List.rev suc_ths;;
-let ths = map s ths1;;
-build_all_n ths suc_ths;;
-
-(* 0.024 *)
-test 10 all_n_components all_n1_th;;
-(* 1.224 *)
-test 10 (map s) ths1;;
-(* 0.116 *)
-test 10 (build_all_n ths) suc_ths;;
-
-
-
-(***)
-let th1 = hd ths1;;
-(* 0.220 *)
-test 10 u_second2 th1;;
-
-
-let i_tm = (rand o rator o concl) th1;;
-let i_int = (Num.int_of_num o raw_dest_hash) i_tm;;
-let di1 = List.nth d1_bounds (i_int - 1);;
-let th1 = MY_BETA_RULE th1;;
-let lemma = INST[i_tm, i_var_num] u_second_lemma0;;
-let u_second th1 =
-  let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
-  let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
-  let dj1 = List.nth d1_bounds (j_int - 1) in
-      
-  (* partial2 *)
-  let u_th = 
-    let ( * ), ( - ) = float_interval_mul p_second, float_interval_sub p_second in
-      (d2_th0 * dj1) * di1 - d1_th0 * th1 in
-      
-  let int_tm = rand (concl u_th) in
-  let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
-    EQ_MP th0 u_th;;
-    
-let u_th = eval_all_n th1 true u_second;;
-let list_tm = (rand o rator o concl) u_th;;
-let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1;;
-EQ_MP lemma1 u_th;;
-
-
-(* 0.000 *)
-test 10 (rand o rator o concl) th1;;
-(* 0.000 *)
-test 10 (Num.int_of_num o raw_dest_hash) i_tm;;
-(* 0.000 *)
-test 10 (List.nth d1_bounds) (i_int - 1);;
-(* 0.004 *)
-test 10 MY_BETA_RULE th1;;
-(* 0.016 *)
-test 10 (INST[i_tm, i_var_num]) u_second_lemma0;;
-
-(* 0.184 *)      
-test 10 (eval_all_n th1 true) u_second;;
-test 10 (rand o rator o concl) u_th;;
-(* 0.020 *)
-test 10 (INST[i_tm, i_var_num; list_tm, list_var_real_pair]) u_second_lemma1;;
-(* 0.000 *)
-test 10 (EQ_MP lemma1) u_th;;
-
-
-
-(***)
-
-let all_n1_th = th1 and beta_flag = true and s = u_second;;
-
-let ths1', suc_ths = all_n_components all_n1_th;;
-let ths1 = if beta_flag then map MY_BETA_RULE ths1' else ths1';;
-let ths1, suc_ths = List.rev ths1, List.rev suc_ths;;
-let ths = map s ths1;;
-build_all_n ths suc_ths;;
-
-(* 0.024 *)
-test 10 all_n_components all_n1_th;;
-(* 0.052 *)
-test 10 (map s) ths1;;
-(* 0.120 *)
-test 10 (build_all_n ths) suc_ths;;
-(* 0.004 *)
-test 10 build2 ths;;
-
-
-(***)
-
-let tm0 = (concl o hd) ths;;
-let lhs, rhs = dest_comb tm0;;
-let s_tm = rator lhs;;
-let ty = type_of rhs;;
-let list_ty = mk_type ("list", [ty]);;
-let s_var = mk_var ("s", type_of s_tm) and
-    x_var = mk_var ("x", ty) and
-    t_var = mk_var ("t", list_ty);;
-let m_tm = (rand o concl o hd) suc_ths;;
-
-let empty_th = (INST[s_tm, s_var; m_tm, n_var_num] o INST_TYPE[ty, aty]) ALL_N_EMPTY';;
-let cons_th = (INST[s_tm, s_var] o INST_TYPE[ty, aty]) ALL_N_CONS_IMP';;
-
-suc_ths;;
-hd suc_ths;;
-empty_th;;
-m_tm;;
-mk_list;;
-mk_var;;
-let a_vars = map (fun i -> mk_var ("a"^string_of_int i, aty)) (1--6);;
-let list_tm = mk_list (a_vars, aty);;
-
-type_of `all_n`;;
-let all_tm = mk_comb (mk_binop `all_n : num -> (A)list -> (num -> A -> bool) -> bool` `1` list_tm,
-			`s : num -> A -> bool`);;
-let all6_th = (SYM o MY_RULE_NUM o CONV_RULE NUM_REDUCE_CONV) (REWRITE_CONV[all_n] all_tm);;
-let all_th = MATCH_MP EQ_IMP all6_th;;
-
-(***)
-
-let th0 = rev_itlist CONJ (tl ths) (hd ths);;
-let tm0 = (concl o hd) ths;;
-let lhs, rhs = dest_comb tm0;;
-let a_tms = rev (map (rand o concl) ths);;
-let s_tm = rator lhs;;
-let ty = type_of rhs;;
-let s_var = mk_var ("s", type_of s_tm) and
-    a_vars0 = map (fun i -> mk_var ("a"^string_of_int i, ty)) (1--6);;
-
-let th1 = (INST[s_tm, s_var] o INST (zip a_tms a_vars0) o INST_TYPE[ty, aty]) all6_th;;
-EQ_MP th1 th0;;
-
-
-let build2 ths =
-  let th0 = rev_itlist CONJ (tl ths) (hd ths) in
-  let tm0 = (concl o hd) ths in
-  let lhs, rhs = dest_comb tm0 in
-  let a_tms = rev (map (rand o concl) ths) in
-  let s_tm = rator lhs in
-  let ty = type_of rhs in
-  let s_var = mk_var ("s", type_of s_tm) and
-      a_vars0 = map (fun i -> mk_var ("a"^string_of_int i, ty)) (1--6) in
-
-  let th1 = (INST[s_tm, s_var] o INST (zip a_tms a_vars0) o INST_TYPE[ty, aty]) all6_th in
-    EQ_MP th1 th0;;
-
-
-
-
-
-
-MATCH_MP all_th th0;;
-
-all_n;;
-
-
-let x = 2;;
-
-let build suc_th s_th th =
-  let t_tm = (rand o rator o concl) th in
-  let x_tm = rand (concl s_th) in
-  let lhs, m_tm = dest_eq (concl suc_th) in
-  let n_tm = rand lhs in
-  let th' = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] cons_th in
-    EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th')) th;;
-
-rev_itlist2 build suc_ths ths empty_th;;
-
-
-let build suc_th s_th th =
-  let t_tm = (rand o rator o concl) th in
-  let x_tm = rand (concl s_th) in
-  let lhs, m_tm = dest_eq (concl suc_th) in
-  let n_tm = rand lhs in
-  let th' = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] cons_th in
-    EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th')) th;;
-
-(* 0.124 *)
-test 10 (rev_itlist2 build suc_ths ths) empty_th;;
-
-
-(***)
-
-let suc_th = hd suc_ths and s_th = hd ths and th = empty_th;;
-
-let t_tm = (rand o rator o concl) th;;
-let x_tm = rand (concl s_th);;
-let lhs, m_tm = dest_eq (concl suc_th);;
-let n_tm = rand lhs;;
-let th' = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] cons_th;;
-EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th')) th;;
-
-
-test 10 (rand o rator o concl) th;;
-test 10 rand (concl s_th);;
-test 10 dest_eq (concl suc_th);;
-test 10 rand lhs;;
-(* 0.024 *)
-test 10 (INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var]) cons_th;;
-(* 0.000 *)
-test 10 (EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th'))) th;;
-
-
-
-(***)
-
-let all_n_components all_n_th =
-  let n_tm, list_tm, s_tm = dest_all_n (concl all_n_th) in
-  let list_ty = type_of list_tm in
-  let ty = (hd o snd o dest_type) list_ty in
-  let s_var = mk_var ("s", type_of s_tm) and
-      x_var = mk_var ("x", ty) and
-      t_var = mk_var ("t", list_ty) in
-  let all_n_cons_th = (INST[s_tm, s_var] o INST_TYPE[ty, aty]) ALL_N_CONS_EQ' in
-
-  let rec get_components n_tm list_tm all_n_th =
-    if is_const list_tm then [], []
-    else
-      let x_tm, t_tm = dest_cons list_tm in
-      let suc_th = raw_suc_conv_hash (mk_comb (suc_const, n_tm)) in
-      let m_tm = rand (concl suc_th) in
-      let th0 = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] all_n_cons_th in
-      let th1 = MY_PROVE_HYP suc_th th0 in
-      let th2 = EQ_MP th1 all_n_th in
-      let snx_th, all_m_th = CONJUNCT1 th2, CONJUNCT2 th2 in
-      let comps, suc_list = get_components m_tm t_tm all_m_th in
-	snx_th :: comps, suc_th :: suc_list in
-    get_components n_tm list_tm all_n_th;;
-
-
-(* Builds all_n from the given theorems and SUC n = m results *)
-let build_all_n ths suc_ths =
-  (* The list ths should be not empty *)
-  let tm0 = (concl o hd) ths in
-  let lhs, rhs = dest_comb tm0 in
-  let s_tm = rator lhs in
-  let ty = type_of rhs in
-  let list_ty = mk_type ("list", [ty]) in
-  let s_var = mk_var ("s", type_of s_tm) and
-      x_var = mk_var ("x", ty) and
-      t_var = mk_var ("t", list_ty) in
-  let m_tm = (rand o concl o hd) suc_ths in
-
-  let empty_th = (INST[s_tm, s_var; m_tm, n_var_num] o INST_TYPE[ty, aty]) ALL_N_EMPTY' in
-  let cons_th = (INST[s_tm, s_var] o INST_TYPE[ty, aty]) ALL_N_CONS_IMP' in
-
-  let build suc_th s_th th =
-    let t_tm = (rand o rator o concl) th in
-    let x_tm = rand (concl s_th) in
-    let lhs, m_tm = dest_eq (concl suc_th) in
-    let n_tm = rand lhs in
-    let th' = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var; t_tm, t_var] cons_th in
-      EQ_MP (MY_PROVE_HYP s_th (MY_PROVE_HYP suc_th th')) th in
-
-    rev_itlist2 build suc_ths ths empty_th;;
 
 
 

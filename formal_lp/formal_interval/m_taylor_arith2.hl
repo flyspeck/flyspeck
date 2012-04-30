@@ -24,125 +24,52 @@ let all_n_components2 n all_n_th =
 
 (***************************************)
 
-let gen_add_thm n =
+let gen_taylor_arith_thm arith_th final_rule n =
   let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ADD' in
+  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) arith_th in
   let pty = `:real#real` in
   let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
+  let ddfs' = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
+  let ddfs = map (fun list -> mk_list (list, pty)) ddfs' in
   let d_bounds_list = mk_list (dfs, pty) in
   let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
   let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
   let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
-
-let gen_sub_thm n =
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_SUB' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
-
-let gen_mul_thm n =
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_MUL' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[GSYM CONJ_ASSOC] o 
+    (UNDISCH_ALL o final_rule o REWRITE_RULE[GSYM CONJ_ASSOC] o 
        NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
 
 
-let gen_inv_thm n =
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_INV' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[float2_eq; GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
+let gen_add_thm = gen_taylor_arith_thm MK_M_TAYLOR_ADD' (CONV_RULE ALL_CONV);;
+let gen_sub_thm = gen_taylor_arith_thm MK_M_TAYLOR_SUB' (CONV_RULE ALL_CONV);;
+let gen_mul_thm = gen_taylor_arith_thm MK_M_TAYLOR_MUL' (CONV_RULE ALL_CONV);;
+let gen_inv_thm = gen_taylor_arith_thm MK_M_TAYLOR_INV' (REWRITE_RULE[float2_eq]);;
+let gen_sqrt_thm = gen_taylor_arith_thm MK_M_TAYLOR_SQRT' (REWRITE_RULE[float2_eq]);;
 
-let gen_sqrt_thm n =
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_SQRT' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[float2_eq; GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
-
-let gen_atn_thm n =
+let gen_atn_thm = 
   let pow2_th = (SYM o REWRITE_CONV[SYM num2_eq]) `x pow 2` in
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ATN' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[float1_eq; float2_eq; pow2_th; GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
+    gen_taylor_arith_thm MK_M_TAYLOR_ATN' (REWRITE_RULE[float2_eq; float1_eq; pow2_th]);;
 
-let gen_acs_thm n =
+let gen_acs_thm =
   let iabs_lemma = REWRITE_CONV[SYM float1_eq] `iabs f_bounds < &1` in
   let pow3_lemma = (SYM o REWRITE_CONV[SYM num3_eq]) `x pow 3` in
-  let num1_th = (SYM o REWRITE_RULE[Arith_hash.NUM_THM] o NUMERAL_TO_NUM_CONV) `1` in
-  let th0 = (REWRITE_RULE[num1_th] o DISCH_ALL o INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ACS' in
-  let pty = `:real#real` in
-  let dfs = mk_vars n "df" pty in
-  let ddfs = map (fun i -> mk_list (mk_vars n ("dd"^string_of_int i) pty, pty)) (1--n) in
-  let d_bounds_list = mk_list (dfs, pty) in
-  let dd_bounds_list = mk_list (ddfs, type_of (hd ddfs)) in
-  let th1 = INST[d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] th0 in
-  let th2 = (CONV_RULE NUM_REDUCE_CONV o REWRITE_RULE[all_n]) th1 in
-    (UNDISCH_ALL o REWRITE_RULE[iabs_lemma] o
-       REWRITE_RULE[float1_eq; pow3_lemma; GSYM CONJ_ASSOC] o 
-       NUMERALS_TO_NUM o PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def]) th2;;
+    gen_taylor_arith_thm MK_M_TAYLOR_ACS' (REWRITE_RULE[iabs_lemma] o REWRITE_RULE[float1_eq; pow3_lemma]);;
 
 
-let add_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_add_thm i);;
-
-let sub_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_sub_thm i);;
-
-let mul_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_mul_thm i);;
-
-
-let inv_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_inv_thm i);;
-
-let sqrt_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_sqrt_thm i);;
-
-let atn_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_atn_thm i);;
-
-let acs_ths_array = Array.init (max_dim + 1) 
-  (fun i -> if i = 0 then TRUTH else gen_acs_thm i);;
-
+let add_ths_array,
+  sub_ths_array,
+  mul_ths_array,
+  inv_ths_array,
+  sqrt_ths_array,
+  atn_ths_array,
+  acs_ths_array = 
+  let gen = fun f -> Array.init (max_dim + 1) (fun i -> if i = 0 then TRUTH else f i) in
+    gen gen_add_thm,
+  gen gen_sub_thm,
+  gen gen_mul_thm,
+  gen gen_inv_thm,
+  gen gen_sqrt_thm,
+  gen gen_atn_thm,
+  gen gen_acs_thm;;
 
 
 (*********************)
@@ -179,14 +106,14 @@ let eval_m_taylor_add2 n p_lin p_second taylor1_th taylor2_th =
   let dd_ths =
     let dd1' = all_n_components2 n (second_bounded_components n second1_th) in
     let dd2' = all_n_components2 n (second_bounded_components n second2_th) in
-    let dd1 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd1' in
-    let dd2 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd2' in
-      map2 (map2 (float_interval_add p_lin)) dd1 dd2 in
+    let dd1 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1' in
+    let dd2 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd2' in
+      map2 (map2 (float_interval_add p_second)) dd1 dd2 in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -236,14 +163,14 @@ let eval_m_taylor_sub2 n p_lin p_second taylor1_th taylor2_th =
   let dd_ths =
     let dd1' = all_n_components2 n (second_bounded_components n second1_th) in
     let dd2' = all_n_components2 n (second_bounded_components n second2_th) in
-    let dd1 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd1' in
-    let dd2 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd2' in
-      map2 (map2 (float_interval_sub p_lin)) dd1 dd2 in
+    let dd1 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1' in
+    let dd2 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd2' in
+      map2 (map2 (float_interval_sub p_second)) dd1 dd2 in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -296,18 +223,18 @@ let eval_m_taylor_mul2 n p_lin p_second taylor1_th taylor2_th =
 
   (* second partials *)
   let d1_bounds = map (fun i ->
-			 undisch (eval_m_taylor_interval_partial n p_second i taylor1_th)) (1--n) in
+			 undisch (eval_m_taylor_partial_bound n p_second i taylor1_th)) (1--n) in
   let d2_bounds = map (fun i ->
-			 undisch (eval_m_taylor_interval_partial n p_second i taylor2_th)) (1--n) in
+			 undisch (eval_m_taylor_partial_bound n p_second i taylor2_th)) (1--n) in
   let f1_bound = undisch (eval_m_taylor_bound n p_second taylor1_th) in
   let f2_bound = undisch (eval_m_taylor_bound n p_second taylor2_th) in
 
   let dd_ths =
+    let ns = 1--n in
     let dd1' = all_n_components2 n (second_bounded_components n second1_th) in
     let dd2' = all_n_components2 n (second_bounded_components n second2_th) in
-    let dd1 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd1' in
-    let dd2 = map (map MY_BETA_RULE o all_n_components2 n o MY_BETA_RULE) dd2' in
-    let ns = 1--n in
+    let dd1 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) ns dd1' in
+    let dd2 = map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) ns dd2' in
     let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
       map2 (fun (dd1_list, dd2_list) i ->
 	      let di1 = List.nth d1_bounds (i - 1) in
@@ -316,12 +243,12 @@ let eval_m_taylor_mul2 n p_lin p_second taylor1_th taylor2_th =
 			let dj1 = List.nth d1_bounds (j - 1) in
 			let dj2 = List.nth d2_bounds (j - 1) in
 			  (dd1 * f2_bound + di1 * dj2) + (dj1 * di2 + f1_bound * dd2))
-		  (zip dd1_list dd2_list) ns) (zip dd1 dd2) ns in
+		  (zip dd1_list dd2_list) (1--i)) (zip dd1 dd2) ns in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -384,11 +311,10 @@ let eval_m_taylor_inv2 n p_lin p_second taylor1_th =
   (* second partials *)
   let dd_ths =
     let dd1 = all_n_components2 n (second_bounded_components n second1_th) in
-    let dd2 = map (all_n_components2 n) (map MY_BETA_RULE dd1) in
-      map (map MY_BETA_RULE) dd2 in
+      map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1 in
     
   let d1_bounds = map (fun i -> 
-			 let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
 			   undisch th0) (1--n) in
 
   (* u'(f x), u''(f x) *)
@@ -401,14 +327,14 @@ let eval_m_taylor_inv2 n p_lin p_second taylor1_th =
   let dd_ths =
     let ( * ), ( - ) = float_interval_mul p_second, float_interval_sub p_second in
       map2 (fun dd_list di1 ->
-	      map2 (fun dd dj1 ->
-		      (d2_th0 * dj1) * di1 - d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
+	      my_map2 (fun dd dj1 ->
+			 (d2_th0 * dj1) * di1 - d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   (***)
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -423,7 +349,6 @@ let eval_m_taylor_inv2 n p_lin p_second taylor1_th =
 		  bounds_tm, bounds_var] @ inst_list)) inv_ths_array.(n) in
   let eq_th = unary_beta_gen_eq f1_tm x_var inv_op_real in
     m_taylor_interval_norm th1 eq_th;;
-
 
 
 
@@ -473,11 +398,10 @@ let eval_m_taylor_sqrt2 n p_lin p_second taylor1_th =
   (* second partials *)
   let dd_ths =
     let dd1 = all_n_components2 n (second_bounded_components n second1_th) in
-    let dd2 = map (all_n_components2 n) (map MY_BETA_RULE dd1) in
-      map (map MY_BETA_RULE) dd2 in
+      map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1 in
     
   let d1_bounds = map (fun i -> 
-			 let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
 			   undisch th0) (1--n) in
 
   (* u'(f x), u''(f x) *)
@@ -490,14 +414,14 @@ let eval_m_taylor_sqrt2 n p_lin p_second taylor1_th =
   let dd_ths =
     let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
       map2 (fun dd_list di1 ->
-	      map2 (fun dd dj1 ->
+	      my_map2 (fun dd dj1 ->
 		      (d2_th0 * dj1) * di1 + d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   (***)
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -559,11 +483,10 @@ let eval_m_taylor_atn2 n p_lin p_second taylor1_th =
   (* second partials *)
   let dd_ths =
     let dd1 = all_n_components2 n (second_bounded_components n second1_th) in
-    let dd2 = map (all_n_components2 n) (map MY_BETA_RULE dd1) in
-      map (map MY_BETA_RULE) dd2 in
+      map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1 in
     
   let d1_bounds = map (fun i -> 
-			 let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
 			   undisch th0) (1--n) in
 
   (* u'(f x), u''(f x) *)
@@ -576,14 +499,14 @@ let eval_m_taylor_atn2 n p_lin p_second taylor1_th =
   let dd_ths =
     let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
       map2 (fun dd_list di1 ->
-	      map2 (fun dd dj1 ->
+	      my_map2 (fun dd dj1 ->
 		      (d2_th0 * dj1) * di1 + d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   (***)
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in
@@ -647,11 +570,10 @@ let eval_m_taylor_acs2 n p_lin p_second taylor1_th =
   (* second partials *)
   let dd_ths =
     let dd1 = all_n_components2 n (second_bounded_components n second1_th) in
-    let dd2 = map (all_n_components2 n) (map MY_BETA_RULE dd1) in
-      map (map MY_BETA_RULE) dd2 in
+      map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1 in
     
   let d1_bounds = map (fun i -> 
-			 let th0 = eval_m_taylor_interval_partial n p_second i taylor1_th in
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
 			   undisch th0) (1--n) in
 
   (* u'(f x), u''(f x) *)
@@ -665,14 +587,14 @@ let eval_m_taylor_acs2 n p_lin p_second taylor1_th =
   let dd_ths =
     let ( * ), ( - ) = float_interval_mul p_second, float_interval_sub p_second in
       map2 (fun dd_list di1 ->
-	      map2 (fun dd dj1 ->
-		      (d2_th0 * dj1) * di1 - d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
+	      my_map2 (fun dd dj1 ->
+			 (d2_th0 * dj1) * di1 - d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
 
   let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
 
   (***)
   let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
-  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--n)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
 
   let dfs = map (rand o concl) df_ths in
   let dds = map (map (rand o concl)) dd_ths in

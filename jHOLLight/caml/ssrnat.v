@@ -1148,7 +1148,7 @@ Proof. by rewrite "ARITH_RULE `2 = SUC (SUC 0)`" !expnS expn0 muln1. Qed.
 
 Lemma sqrn_add m n : `(m + n) ^ 2 = (m ^ 2 + n ^ 2) + 2 * (m * n)`.
 Proof.
-rewrite -!mulnn mul2n muln_addr !muln_addl [`n * _1`]mulnC -!addnA.
+rewrite -!mulnn mul2n muln_addr !muln_addl (mulnC n) -!addnA.
 by rewrite EQ_ADD_LCANCEL addnA addnn addnC.
 Qed.
 

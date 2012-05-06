@@ -27,6 +27,9 @@ public class CamlObjectList extends AbstractTableModel {
 	// If true then only one column is used
 	private final boolean oneColumn;
 	
+	// If true then it is possible to select subterms
+	private boolean allowTermSelection;
+	
 	// Names of columns
 	private String firstColumnName = "Concl/Term";
 	private String secondColumnName = "Name/Type";
@@ -39,10 +42,19 @@ public class CamlObjectList extends AbstractTableModel {
 		this.oneColumn = oneColumn;
 		this.allowDuplicates = allowDuplicates;
 		this.objects = new ArrayList<CamlObjectComponent.Element>();
+		this.allowTermSelection = false;
 	}
 	
 	public CamlObjectList() {
 		this(false, false);
+	}
+	
+	
+	/**
+	 * Sets the term selection flag
+	 */
+	public void setTermSelection(boolean termSelection) {
+		this.allowTermSelection = termSelection;
 	}
 	
 	
@@ -200,7 +212,7 @@ public class CamlObjectList extends AbstractTableModel {
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
 		if (columnIndex == 0)
-			return true;
+			return allowTermSelection;
 		
 		return false;
 	}

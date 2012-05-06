@@ -11,7 +11,10 @@ public class TestCamlEnvironment extends CamlEnvironment {
 	private String output;
 	
 	public TestCamlEnvironment() throws Exception {
-		caml = new HOLLightWrapper("hol_light");
+		caml = new HOLLightWrapper("hol_light2");
+//		caml = new HOLLightWrapper("dmtcp_restart", "/home/monad/hol_light_ckpts/cp4_trig_hyp_fan_pack_tame.dmtcp");
+//		caml = new HOLLightWrapper("cr_restart", "--no-restore-pid", "-S", "2", 
+//					"/home/monad/hol_light_ckpts/cr_current.cr");
 		caml.runCommand("needs \"caml/raw_printer.hl\";;");
 		caml.runCommand("needs \"caml/ssreflect.hl\";;");
 		caml.runCommand("needs \"caml/sections.hl\";;");

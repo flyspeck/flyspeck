@@ -33,15 +33,22 @@ public class HOLLightWrapper {
 	
 	private void init(List<String> command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command);
+		Map<String, String> env = pb.environment();
+		env.put("LD_LIBRARY_PATH", "/usr/local/lib");
+		
 		pb.redirectErrorStream(true);
 		evalStr = new StringBuilder();
 
 		Process proc;
-
 		proc = pb.start();
 
+//		String[] env = {"LD_LIBRARY_PATH=/usr/local/lib"};
+//		Process proc = Runtime.getRuntime().exec("cr_restart --no-restore-pid -f /home/monad/hol_light_ckpts/cr_current.cr", env);
+		
 		bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
 		bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		
+//		System.err.println(bout.readLine());
 	}
 	
 
@@ -119,6 +126,38 @@ public class HOLLightWrapper {
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+	
+	
+	/**
+	 * Test method
+	 */
+	public static void main(String[] args) {
+		try {
+//			HOLLightWrapper cmd = new HOLLightWrapper("cr_restart", "--no-restore-pid", "-S", "2",
+//					"/home/monad/hol_light_ckpts/cr_current.cr");
+			
+//			Process proc = Runtime.getRuntime().exec("hol_light");
+			String[] env = {"LD_LIBRARY_PATH=/usr/local/lib"};
+//			Process proc = Runtime.getRuntime().exec("cr_restart --no-restore-pid -f /home/monad/hol_light_ckpts/cr_current.cr", env);
+			Process proc = Runtime.getRuntime().exec("hol_light2");
+			
+			BufferedWriter bin = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+			BufferedReader bout = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+			BufferedReader berr = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+			
+			bin.write("`1 + 1`;;");
+			bin.flush();
+			
+			bin.write("asd;;");
+			bin.flush();
+			
+			System.out.println(berr.readLine());
+			System.out.println(bout.readLine());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 

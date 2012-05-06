@@ -1250,6 +1250,13 @@ have p_div2 := sum_orbit_p_group.
 exact: (DIVIDES_ADD_REVL (p_div2, p_div_sum)).
 Qed.
 
+Lemma fix_mod_p : `CARD (Fix G S a) MOD p = CARD S MOD p`.
+Proof.
+rewrite eq_sym; apply: MOD_EQ.
+move: sum_orbit_p_group; rewrite divides => [] [q] eq.
+by exists q; rewrite card_set_fix // eq mulnC.
+Qed.
+
 
 
 End Action.
@@ -1445,6 +1452,7 @@ Variable G : `:A->bool`.
 Variable op : `:A->A->A`.
 Variable i : `:A->A`.
 Variable e : `:A`.
+Variable g : `:A`.
 
 Hypothesis grG : `group (G, op, i, e)`.
 
@@ -1464,10 +1472,12 @@ Qed.
 
 
 Hypothesis finG : `FINITE G`.
+Hypothesis gG : `g IN G`.
 
 
-Lemma order_exists0 g : `g IN G ==> ?n. ~(n = 0) /\ expg (op, e) g n = e`.
-move => gG.
+
+Lemma order_exists0 : `?n. ~(n = 0) /\ expg (op, e) g n = e`.
+Proof.
 apply: contraLR finG; rewrite NOT_EXISTS_THM -INFINITE negb_and negbK => Hexp.
 apply INFINITE_SUBSET.
 exists `IMAGE (expg (op, e) g) UNIV`; split; last first.
@@ -1488,11 +1498,10 @@ by rewrite -(expg_add grG) // subnK.
 Qed.
 
 
-Lemma order_exists g : `g IN G ==> ~(orderg (op, e) g = 0) /\ 
+Lemma order_exists : `~(orderg (op, e) g = 0) /\ 
 	expg (op, e) g (orderg (op, e) g) = e /\
 	(!m. ~(m = 0) /\ expg (op, e) g m = e ==> orderg (op, e) g <= m)`.
 Proof.
-move => gG.
 set P := `\n. ~(n = 0) /\ expg (op, e) g n = e /\ (!m. ~(m = 0) /\ expg (op, e) g m = e ==> n <= m)`.
 move: (SELECT_AX P).
 rewrite -P_def /= -orderg; apply.
@@ -1501,27 +1510,25 @@ exact: order_exists0.
 Qed.
 
 
-Lemma order1 g : `g IN G ==> (orderg (op, e) g = 1 <=> g = e)`.
+Lemma order1 : `orderg (op, e) g = 1 <=> g = e`.
 Proof.
-move => gG; split; last by move => ->; rewrite order_e.
-move => o1; move: (order_exists gG).
+split; last by move => ->; rewrite order_e.
+move => o1; move: order_exists.
 by rewrite o1 (expg1 grG) // => ->.
 Qed.
 
 
-Lemma fin_inv_expg g : `g IN G ==> ?k. i g = expg (op, e) g k`.
-move => gG.
-move: (order_exists0 gG); rewrite -lt0n => [] [n] [/prednK n_eq exp1].
+Lemma fin_inv_expg : `?k. i g = expg (op, e) g k`.
+move: order_exists0; rewrite -lt0n => [] [n] [/prednK n_eq exp1].
 exists `n - 1`.
 apply: (mulg_leftI grG g); rewrite (i_in_group grG) ?(expg_in grG) // gG !andTb.
 by rewrite -expgS n_eq exp1 (mulgI grG).
 Qed.
 
 
-Lemma expg_inj g n m : `g IN G ==> n < orderg (op, e) g ==> m < orderg (op, e) g ==>
+Lemma expg_inj n m : `n < orderg (op, e) g ==> m < orderg (op, e) g ==>
 	(expg (op, e) g n = expg (op, e) g m <=> n = m)`.
 Proof.
-move => gG.
 wlog: n m / `n <= m` => [h n_lt m_lt | n_le_m n_lt m_lt].
   case: (EXCLUDED_MIDDLE `n <= m`); first by move/h; exact.
   by rewrite (eq_sym `expg (op, e) g n`) (eq_sym n) NOT_LE ltn_neqAle => [] [_] /h; exact.
@@ -1529,17 +1536,16 @@ split; last by move => ->.
 rewrite -{1}(subnK n_le_m) (expg_add grG) //.
 rewrite eq_sym (mulg_left grG) ?(mulgI grG) ?(expg_in grG) // => eq.
 move: n_le_m; rewrite leq_eqVlt; case => // n_lt_m.
-move: (order_exists gG) => [_] [_] /(_ `m - n`); rewrite eq eqxx andbT.
+move: order_exists => [_] [_] /(_ `m - n`); rewrite eq eqxx andbT.
 "ANTS_TAC"; first by move: n_lt_m; arith.
 move: n_lt_m m_lt; arith.
 Qed.
 
 
-Lemma expg_eq_mod g n : `g IN G ==> expg (op, e) g n = expg (op, e) g (n MOD orderg (op, e) g) /\ 
+Lemma expg_eq_mod n : `expg (op, e) g n = expg (op, e) g (n MOD orderg (op, e) g) /\ 
 	n MOD orderg (op, e) g < orderg (op, e) g`.
 Proof.
-move => gG.
-have [] [on0] [] oe _ := order_exists gG.
+have [] [on0] [] oe _ := order_exists.
 move: (DIVMOD_EXIST on0 n) => [q] [r] [n_eq r_lt].
 move: (DIVMOD_UNIQ (n_eq, r_lt)) => ->.
 rewrite r_lt andbT n_eq (expg_add grG) // mulnC -(expg_expg grG) //.
@@ -1547,28 +1553,26 @@ by rewrite oe (exp1g grG) (mul1g grG) // (expg_in grG).
 Qed.
 
 
-Lemma expg_eq g n : `g IN G ==> ?r. r < orderg (op, e) g /\ expg (op, e) g n = expg (op, e) g r`.
+Lemma expg_eq n : `?r. r < orderg (op, e) g /\ expg (op, e) g n = expg (op, e) g r`.
 Proof.
-move => gG; exists `n MOD orderg (op, e) g`.
-by rewrite (expg_eq_mod gG) eqxx (expg_eq_mod gG).
+exists `n MOD orderg (op, e) g`.
+by rewrite expg_eq_mod eqxx expg_eq_mod.
 Qed.
 
 
 
-Lemma cyclic_eq g : `g IN G ==> IMAGE (expg (op, e) g) UNIV = IMAGE (expg (op, e) g) (0..(orderg (op, e) g - 1))`.
+Lemma cyclic_eq : `IMAGE (expg (op, e) g) UNIV = IMAGE (expg (op, e) g) (0..(orderg (op, e) g - 1))`.
 Proof.
-move => gG.
 rewrite EXTENSION !IN_IMAGE IN_UNIV /= => y; split => [[n y_eq] | [n] h]; last first.
   by exists n.
-move: (expg_eq gG n) => [r] [r_lt r_eq].
+move: (expg_eq n) => [r] [r_lt r_eq].
 by exists r; rewrite -r_eq -y_eq IN_NUMSEG; move: r_lt; arith.
 Qed.
 
 
-Lemma cyclic_eq2 g : `g IN G ==> IMAGE (expg (op, e) g) UNIV = IMAGE (expg (op, e) g) (1..orderg (op, e) g)`.
+Lemma cyclic_eq2 : `IMAGE (expg (op, e) g) UNIV = IMAGE (expg (op, e) g) (1..orderg (op, e) g)`.
 Proof.
-move => gG.
-have [] [on0] [] oe _ := order_exists gG.
+have [] [on0] [] oe _ := order_exists.
 rewrite cyclic_eq // EXTENSION !IN_IMAGE !IN_NUMSEG => y; split => [] [n] [y_eq n_in].
   case: (EXCLUDED_MIDDLE `n = 0`) => n_eq.
     by exists `orderg (op, e) g`; rewrite y_eq n_eq expg0 oe eqxx andTb leqnn; move: on0; arith.
@@ -1579,67 +1583,93 @@ by exists n; rewrite y_eq eqxx; move: n_eq n_in; arith.
 Qed.
 
 
-Lemma cyclic_finite g : `g IN G ==> FINITE (IMAGE (expg (op, e) g) UNIV)`.
-Proof. by move => gG; rewrite cyclic_eq2 // FINITE_IMAGE FINITE_NUMSEG. Qed.
+Lemma cyclic_finite : `FINITE (IMAGE (expg (op, e) g) UNIV)`.
+Proof. by rewrite cyclic_eq2 FINITE_IMAGE FINITE_NUMSEG. Qed.
 
 
-Lemma cyclic_card g : `g IN G ==> CARD (IMAGE (expg (op, e) g) UNIV) = orderg (op, e) g`.
+Lemma cyclic_card : `CARD (IMAGE (expg (op, e) g) UNIV) = orderg (op, e) g`.
 Proof.
-move => gG.
-have [] [on0] [] oe _ := order_exists gG.
+have [] [on0] [] oe _ := order_exists.
 rewrite cyclic_eq // CARD_IMAGE_INJ ?CARD_NUMSEG ?FINITE_NUMSEG ?andbT ?IN_NUMSEG.
   move => n m [n_in] [m_in].
-  by rewrite (expg_inj gG) //; move: n_in m_in on0; arith.
+  by rewrite expg_inj //; move: n_in m_in on0; arith.
 by move: on0; arith.
 Qed.
 
 
-Lemma lt_order g n : `g IN G ==> expg (op, e) g n = e ==> n < orderg (op, e) g ==> n = 0`.
+Lemma lt_order n : `expg (op, e) g n = e ==> n < orderg (op, e) g ==> n = 0`.
 Proof.
-move => gG n_eq n_lt.
-have [] [on0] [] oe o_min := order_exists gG.
+move => n_eq n_lt.
+have [] [on0] [] oe o_min := order_exists.
 move: (o_min n); rewrite n_eq eqxx andbT implyNb; case => //.
 by move: n_lt; arith.
 Qed.
 
 
-Lemma order_div g n : `g IN G ==> expg (op, e) g n = e ==> orderg (op, e) g divides n`.
+Lemma order_div n : `expg (op, e) g n = e <=> orderg (op, e) g divides n`.
 Proof.
-move => gG n_eq.
-have [] [on0] _ := order_exists gG.
-rewrite (DIVIDES_MOD on0); apply: (lt_order gG).
-by rewrite -(expg_eq_mod gG) n_eq (expg_eq_mod gG).
+have [] [on0] [oe] _ := order_exists.
+split => [n_eq |].
+  rewrite (DIVIDES_MOD on0); apply: lt_order.
+  by rewrite -expg_eq_mod n_eq expg_eq_mod.
+rewrite divides => [] [q] ->.
+by rewrite -(expg_expg grG) // oe (exp1g grG).
 Qed.
 
 
-Lemma order_prime g p : `g IN G ==> prime p ==> expg (op, e) g p = e ==> g = e \/ orderg (op, e) g = p`.
+Lemma order_prime p : `prime p ==> expg (op, e) g p = e ==> g = e \/ orderg (op, e) g = p`.
 Proof.
-rewrite prime => gG [_] pH p_eq.
-move: (order_div gG p_eq) => /pH.
-by rewrite order1.
+rewrite prime order_div => [] [_] pH.
+by move/pH; rewrite order1.
 Qed.
 
 
-Lemma cyclic_subgroup g : `g IN G ==> subgroup op i (IMAGE (expg (op, e) g) UNIV) G`.
-move => gG; rewrite subgroup SUBSET !IN_IMAGE !IN_UNIV !andbT; split.
+
+
+End Cyclic.
+
+
+Section MoreCyclic.
+
+Variable G : `:A->bool`.
+Variable op : `:A->A->A`.
+Variable i : `:A->A`.
+Variable e : `:A`.
+Variable g : `:A`.
+
+Hypothesis grG : `group (G, op, i, e)`.
+Hypothesis finG : `FINITE G`.
+Hypothesis gG : `g IN G`.
+
+
+Lemma cyclic_subgroup : `subgroup op i (IMAGE (expg (op, e) g) UNIV) G`.
+Proof.
+rewrite subgroup SUBSET !IN_IMAGE !IN_UNIV !andbT; split.
   by move => x [n] ->; rewrite (expg_in grG).
 rewrite IMAGE_EQ_EMPTY UNIV_NOT_EMPTY /= => x y [] [n ->] [m ->].
-have := fin_inv_expg `expg (op, e) g m`.
+have := fin_inv_expg grG `expg (op, e) g m` finG.
 rewrite (expg_in grG) //= => [] [k] ->.
 exists `n + m * k`.
 by rewrite (expg_expg grG) // -(expg_add grG).
 Qed.
 
 
-Lemma cyclic_group g : `g IN G ==> group (IMAGE (expg (op, e) g) UNIV, op, i, e)`.
-by move/cyclic_subgroup => /(subgroup_group grG).
+Lemma cyclic_group : `group (IMAGE (expg (op, e) g) UNIV, op, i, e)`.
+Proof. by apply: (subgroup_group grG); exact: cyclic_subgroup. Qed.
+
+
+Lemma order_div_group : `orderg (op, e) g divides CARD G`.
+Proof.
+rewrite (LaGrange grG cyclic_subgroup) // (cyclic_card grG) //.
+set c := `CARD _`.
+by rewrite divides; exists c; rewrite mulnC.
 Qed.
 
 
-End Cyclic.
+End MoreCyclic.
 
 
-
+(* Cauchy Theorem *)
 Section Cauchy.
 
 Variable p : `:num`.
@@ -1796,7 +1826,7 @@ Variable G : `:A->bool`.
 Variable op : `:A->A->A`.
 Variable i : `:A->A`.
 Variable e : `:A`.
-Variable H : `:A->bool`.
+Variables H : `:A->bool`.
 
 
 Lemma set_op1_left_mul g : `set_op1 (op g) = set_op op {g}`.
@@ -1808,16 +1838,16 @@ move => [x] [y] [] [xg yS] ->.
 by exists y; rewrite yS xg.
 Qed.
 
-Lemma op_in_coset h x : `h IN H ==> op x h IN coset op x H`.
-Proof. by move => hH; rewrite coset inE /=; exists h. Qed.
+Lemma op_in_coset k x K : `k IN K ==> op x k IN coset op x K`.
+Proof. by move => kK; rewrite coset inE /=; exists k. Qed.
 
 Hypothesis grG : `group (G, op, i, e)`.
 
 
-Lemma left_mul_coset g h : `g IN G ==> h IN G ==> H SUBSET G ==> 
-	set_op1 (op g) (coset op h H) = coset op (op g h) H`.
+Lemma left_mul_coset g h K : `g IN G ==> h IN G ==> K SUBSET G ==> 
+	set_op1 (op g) (coset op h K) = coset op (op g h) K`.
 Proof.
-move => gG hG sHG.
+move => gG hG sKG.
 rewrite set_op1_left_mul !coset_op.
 rewrite (set_opA grG) ?SING_SUBSET //.
 apply congr2; rewrite eqxx andbT set_op /= !IN_SING EXTENSION IN_SING inE /= => x; split.
@@ -1826,9 +1856,9 @@ by move => x_eq; exists g h.
 Qed.
 
 
-Lemma group_acts_on_cosets : `H SUBSET G ==> acts (G, op, e) (cosets op G H) (\g. set_op1 (op g))`.
+Lemma group_acts_on_cosets K : `K SUBSET G ==> acts (G, op, e) (cosets op G K) (\g. set_op1 (op g))`.
 Proof.
-move => sHG; rewrite acts; do !split.
+move => sKG; rewrite acts; do !split.
   (* 1 *)
   move => g c; rewrite cosets !IN_ELIM_THM /= => [] [gG] [h] [hG] ->.
   by exists `op g h`; rewrite (in_group grG) // andTb left_mul_coset.
@@ -1840,13 +1870,14 @@ rewrite cosets inE /= => c [g] [gG ->].
 by rewrite left_mul_coset ?(e_in_group grG) // (mul1g grG).
 Qed.
 
-
 Hypothesis subH : `subgroup op i H G`.
 
-Lemma subgroup_acts_on_cosets : `acts (H, op, e) (cosets op G H) (\h. set_op1 (op h))`.
+
+Lemma subgroup_acts_on_cosets K : `K SUBSET G ==> acts (H, op, e) (cosets op G K) (\h. set_op1 (op h))`.
 Proof.
 have sHG := subgroup_subset subH.
-exact: (acts_sub (group_acts_on_cosets sHG)).
+move => sKG.
+exact: (acts_sub (group_acts_on_cosets sKG)).
 Qed.
 
 Hypothesis finG : `FINITE G`.
@@ -1870,7 +1901,7 @@ have h_ex: `!h. h IN H ==> ?h2. h2 IN H /\ op h x = op x h2`.
   exists `op h (i h2)`; rewrite (in_group grH) ?(i_in_group grH) // andTb.
   rewrite (mulgA grG) ?(i_in_group grG) ?xG ?sHG' // eq.
   by rewrite (mulgA grG) ?xG ?sHG' // (mulgK grG) ?(in_group grG) ?xG ?sHG'.
-rewrite (in_normalizer grG) // xG andTb. 
+rewrite (in_normalizer grG) // xG andTb.
 rewrite eq_sym -SUBSET_CARD_EQ.
   split; first by apply FINITE_SUBSET; exists G; rewrite finG (coset_subset grG).
   rewrite SUBSET coset set_op /= !inE /= IN_SING => a.
@@ -1951,14 +1982,59 @@ rewrite -N_def -(subgroup_left_mul_fix grG) //.
 apply p_div_fix; exists op i e n.
 have finH := FINITE_SUBSET (finG, sHG).
 have finGH := finite_index grG subH finG.
-rewrite (subgroup_group grG subH) (subgroup_acts_on_cosets grG subH) prime_p cH eqxx finH finGH !andTb.
+rewrite (subgroup_group grG subH) (subgroup_acts_on_cosets grG) // prime_p cH eqxx finH finGH !andTb.
 apply: DIVIDES_CMUL2; exists `p EXP n`.
 by rewrite mulnC -EXP expn_eq0 negb_and (PRIME_IMP_NZ prime_p) /= -cH mulnC -(LaGrange grG).
 Qed.
 
 
+Lemma sylow2 n H K: `~(p EXP (SUC n) divides CARD G) ==>
+	subgroup op i H G ==> subgroup op i K G ==> CARD H = p EXP n ==> CARD K = p EXP n ==>
+	?g. g IN G /\ set_op op {g} H = set_op op K {g}`.
+Proof.
+move => p_n_div subH subK cH cK.
+have grK := subgroup_group grG subK.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+have sKG := subgroup_subset subK.
+have finK := FINITE_SUBSET (finG, sKG).
+have finGH := finite_index grG subH finG.
+have actsK := subgroup_acts_on_cosets grG subK sHG.
+have := fix_mod_p actsK grK prime_p finK cK finGH; set S := `Fix K _1 _2`.
+move => fix_mod.
+have: `?c. c IN S`.
+  case: (EXCLUDED_MIDDLE `S HAS_SIZE 0`); last by rewrite HAS_SIZE_0 -MEMBER_NOT_EMPTY.
+  rewrite HAS_SIZE => [] [finS cS0].
+  move: fix_mod; rewrite cS0 MOD_0 ?PRIME_IMP_NZ // eq_sym -DIVIDES_MOD 1?eq_sym ?PRIME_IMP_NZ //.
+  apply: contraLR => _; apply: contra p_n_div => p_div.
+  by rewrite (LaGrange grG subH) // cH EXP DIVIDES_MUL_R.
+move => [c]; rewrite -S_def fix inE cosets inE /= => [] [] [x] [xG ->] x_eq.
+exists x; rewrite xG andTb.
+(* Repeating almost the same proof as in subgroup_left_mul_fix *)
+rewrite eq_sym -SUBSET_CARD_EQ; last first.
+  have ->: `set_op op K {x} = IMAGE (\h. op h x) K`.
+    rewrite set_op /= EXTENSION IN_IMAGE IN_ELIM_THM /= IN_SING => a; split => [[z] [y] [[zH ->] ->] | [z] [-> zH]].
+      by exists z.
+    by exists z x.
+  rewrite -coset_op (coset_card grG) // cH -cK.
+  apply CARD_IMAGE_INJ. split; last by apply FINITE_SUBSET; exists G.
+  move => a b [aH] [bH]; apply: (mulg_rightI grG).
+  move: sKG; rewrite SUBSET => sKG.
+  by rewrite xG !sKG.
+rewrite -coset_op; split; first by apply FINITE_SUBSET; exists G; rewrite (coset_subset grG).
+rewrite SUBSET coset set_op /= !inE /= IN_SING => a.
+move => [k] [y] [[kK y_eq] a_eq].
+move: (x_eq kK); rewrite EXTENSION => /(_ `op k x`).
+set R := `set_op1 _1 _2`.
+have -> /=: `op k x IN R`.
+  rewrite -R_def set_op1 coset /= !inE /=.
+  exists x; rewrite eqxx andbT; exists e.
+  by rewrite (e_in_group grH) (mulg1 grG).
+rewrite coset inE /= => [] [h] [hH eq].
+by exists h; rewrite hH a_eq y_eq.
+Qed.
+
 
 End Sylow.
 
-"sylow1".
 

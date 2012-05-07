@@ -26,16 +26,19 @@
 
 "let set_op1 = new_definition `set_op1 (i:A->A) = (\A. {i x | x IN A})`".
 
-"let conjg = new_definition `conjg op i x g = op (i g) (op x g)`".
+"let conjg = new_definition `conjg (op, i) g x = op (i g) (op x g)`".
 
-"let normalizer = new_definition `normalizer op i G H = {g | g IN G /\ (IMAGE (\h. op (i g) (op h g)) H = H)}`".
+"let normalizer = new_definition `normalizer op i G H = {g | g IN G /\ set_op1 (conjg (op, i) g) H = H}`".
 
 Lemma inE : `(!p x. x IN {y | p y} <=> p x) /\
 	(!P x. x IN GSPEC (\v. P (SETSPEC v)) <=> P (\p t. p /\ x = t))`.
-by rewr !IN_ELIM_THM. Qed.
+Proof. by rewr !IN_ELIM_THM. Qed.
 
+Lemma in_trans t A B : `A SUBSET B ==> t IN A ==> t IN B`.
+Proof. by rewrite SUBSET; exact. Qed.
 
 Lemma coset_op op x H : `coset op x H = set_op op {x} H`.
+Proof.
 rewrite coset set_op /= IN_SING EXTENSION => y; rewr IN_ELIM_THM /=; split.
   move => [z [zH ->]].
   by exists x z.
@@ -43,24 +46,42 @@ move => [z] [t] [[-> tH] ->].
 by exists t.
 Qed.
 
-Lemma normal_conj op i G H x y: `normal op i H G ==> x IN G ==> y IN H ==> 
-	op (i x) (op y x) IN H`.
-by rewrite normal /=. Qed.
+Lemma set_op1_sing f x : `set_op1 f {x} = {f x}`.
+Proof.
+rewrite set_op1 /= EXTENSION inE /= !IN_SING => a; split.
+  by move => [b] [-> ->].
+by move => ->; exists x.
+Qed.
 
+Lemma set_op1_lmul g op : `set_op1 (op g) = set_op op {g}`.
+Proof.
+rewrite set_op1 set_op -eq_ext /= IN_SING EXTENSION !IN_ELIM_THM /= => S a; split.
+  move => [x] [xS a_eq].
+  by exists g x.
+move => [x] [y] [] [xg yS] ->.
+by exists y; rewrite yS xg.
+Qed.
+
+Lemma coset_op1 op x H : `coset (op:A->A->A) x H = set_op1 (op x) H`.
+Proof. by rewrite set_op1_lmul coset_op. Qed.
+
+Lemma normal_conj op i G H x y: `normal op i H G ==> x IN G ==> y IN H ==> conjg (op, i) x y IN H`.
+Proof. by rewrite normal conjg /=. Qed.
 
 Lemma normal_subgroup op i H G : `normal op i H G ==> subgroup op i H G`.
-by rewrite normal /=. Qed.
+Proof. by rewrite normal /=. Qed.
 
 Lemma in_subgroup op i H G x: `subgroup op i H G ==> x IN H ==> x IN G`.
-by rewrite subgroup SUBSET /=. Qed.
+Proof. by rewrite subgroup SUBSET /=. Qed.
 
 Lemma subgroup_subset op i H G : `subgroup op i H G ==> H SUBSET G`.
-by rewrite subgroup /=. Qed.
+Proof. by rewrite subgroup /=. Qed.
 
 Lemma subgroup_subset_trans op i H K G : `subgroup op i H G ==> H SUBSET K ==> subgroup op i H K`.
-by rewrite !subgroup /=. Qed.
+Proof. by rewrite !subgroup /=. Qed.
 
 Lemma normal_subset_trans op i H K G : `normal op i H G ==> H SUBSET K ==> K SUBSET G ==> normal op i H K`.
+Proof.
 rewrite !normal [`K SUBSET G`]SUBSET => [] [subHG] nH sHK sKG.
 rewrite (subgroup_subset_trans subHG) // andTb => k h [kK hH].
 by rewrite nH hH sKG.
@@ -70,6 +91,58 @@ Lemma cosets_full_preimage_sub op G H K: `K SUBSET G ==> K SUBSET {g | g IN G /\
 Proof.
 rewrite cosets !SUBSET; move => sKG; rewrite !IN_ELIM_THM /= => k kK.
 by exists k; rewrite sKG //=; exists k.
+Qed.
+
+
+Lemma op_in_coset op k x K : `k IN K ==> op x k IN coset op x K`.
+Proof. by move => kK; rewrite coset inE /=; exists k. Qed.
+
+Lemma eqxx x : `x = x <=> T`. done. Qed.
+
+"let divides = GEN_ALL divides".
+
+Lemma set_op_sing a b op: `set_op op {a} {b} = {op a b}`.
+Proof.
+rewrite set_op /= EXTENSION inE /= !IN_SING => x; split.
+  by move => [z] [y] [[-> ->] ->].
+by move => ->; exists a b.
+Qed.
+
+Lemma in_set_op1 f S x : `x IN set_op1 f S <=> ?s. s IN S /\ x = f s`.
+Proof. by rewrite set_op1 /= inE. Qed.
+
+Lemma in_set_op f S1 S2 x : `x IN set_op f S1 S2 <=> ?s1 s2. s1 IN S1 /\ s2 IN S2 /\ x = f s1 s2`.
+Proof. by rewrite set_op /= !inE /= CONJ_ASSOC. Qed.
+
+Lemma conjg_set_alt op i g S : `set_op1 (conjg (op, i) g) S = set_op1 (op (i g)) (set_op op S {g})`.
+Proof.
+rewrite EXTENSION !in_set_op1 in_set_op conjg IN_SING => x; split.
+  move => [s] [sS] x_eq.
+  by exists `op s g`; rewrite x_eq eqxx andbT; exists s g.
+move => [s] [] [s1] [s2] [s1S] [s2_eq] s_eq x_eq.
+by exists s1; rewrite x_eq s_eq s2_eq.
+Qed.
+
+
+Lemma set_op1_eq_image f S : `set_op1 f S = IMAGE f S`.
+Proof. by rewrite EXTENSION in_set_op1 IN_IMAGE /= "GEN_ALL CONJ_ACI". Qed.
+
+Lemma set_op_eq_union f S1 S2 : `set_op f S1 S2 = UNIONS {IMAGE (f x) S2 | x | x IN S1}`.
+Proof.
+rewrite EXTENSION in_set_op IN_UNIONS inE /= => x; split.
+  move => [s1] [s2] [s1S] [s2S] x_eq.
+  by exists `IMAGE (f s1) S2`; rewrite IN_IMAGE; split; [exists s1 | exists s2].
+move => [t] [] [s1] [s1S] ->; rewrite IN_IMAGE => [] [s2] [x_eq] s2S. 
+by exists s1 s2.
+Qed.
+
+Lemma set_op_eq_image f S y : `set_op f S {y} = IMAGE (\x. f x y) S`.
+Proof.
+rewrite EXTENSION in_set_op IN_IMAGE IN_SING /= => x; split.
+  move => [s1] [s2] [s1S] [->] ->.
+  by exists s1.
+move => [s] [->] sS.
+by exists s y.
 Qed.
 
 
@@ -110,8 +183,11 @@ move => xG; rewrite EQ_SYM_EQ; apply: "REWRITE_RULE[IMP_IMP] i_uniq".
 by rewrite mulIg ?i_in_group.
 Qed.
 
+Lemma invg1 : `i e = e`.
+Proof. by rewrite -(mulg1 `i e`) ?i_in_group ?e_in_group // mulIg // e_in_group. Qed.
 
 Lemma mulI x y : `x IN G ==> y IN G ==> i (op x y) = op (i y) (i x)`.
+Proof.
 move => xG yG.
 rewrite EQ_SYM_EQ.
 apply: "REWRITE_RULE[IMP_IMP] i_uniq".
@@ -119,23 +195,27 @@ by rewrite !in_group // ?i_in_group // !mulgA ?in_group ?i_in_group // mulgK // 
 Qed.
 
 Lemma mulg_leftI x y z: `x IN G ==> y IN G ==> z IN G ==> op x y = op x z ==> y = z`.
+Proof.
 move => xG yG zG eq.
 by rewrite -(mul1g y) // -(mul1g z) // -(mulIg x) // -!mulgA ?i_in_group.
 Qed.
 
 Lemma mulg_rightI x y z: `x IN G ==> y IN G ==> z IN G ==> op y x = op z x ==> y = z`.
+Proof.
 move => xG yG zG eq.
 by rewrite -(mulg1 y) // -[`z`]mulg1 // -(mulgI x) // !mulgA ?i_in_group.
 Qed.
 
 
 Lemma mulg_left x y z : `x IN G ==> y IN G ==> z IN G ==> (op x y = z <=> x = op z (i y))`.
+Proof.
 move => xG yG zG; split => [opxy | ->].
   by rewrite -(mulg1 x) // -(mulgI y) // mulgA ?i_in_group.
 by rewrite -mulgA ?mulIg ?i_in_group ?mulg1.
 Qed.
 
 Lemma mulg_right x y z : `x IN G ==> y IN G ==> z IN G ==> (op x y = z <=> y = op (i x) z)`.
+Proof.
 move => xG yG zG; split => [opxy | ->].
   by rewrite -(mul1g y) // -(mulIg x) // -mulgA ?i_in_group.
 by rewrite mulgA ?mulgI ?i_in_group ?mul1g.
@@ -143,12 +223,13 @@ Qed.
 
 
 Lemma invg_e : `i e = e`.
-by rewrite eq_sym; apply: i_uniq; rewrite mul1g e_in_group. Qed.
+Proof. by rewrite eq_sym; apply: i_uniq; rewrite mul1g e_in_group. Qed.
 
 
 Lemma subgroup_alt H : `subgroup op i H G <=> 
 	H SUBSET G /\ ~(H = {}) /\ (!x y. x IN H ==> y IN H ==> op x y IN H) /\
 	(!x. x IN H ==> i x IN H)`.
+Proof.
 rewrite subgroup SUBSET; split => [] [subHG] [->] //=.
 rewr subHG /=; move => h.
 have ixH : `!x. x IN H ==> i x IN H`.
@@ -162,6 +243,7 @@ Qed.
 
 
 Lemma subgroup_group H : `subgroup op i H G ==> group (H, op, i, e)`.
+Proof.
 move: (grG).
 rewrite subgroup 2!group SUBSET => [] [opG] [iG] [eG] [idG] [invG aG] [sHG] [nH op_iH].
 have eH : `e:A IN H`.
@@ -180,6 +262,15 @@ by apply: aG; rewrite !sHG.
 Qed.
 
 
+Lemma subgroup_e : `subgroup op i {e} G`.
+Proof.
+rewrite subgroup SING_SUBSET -MEMBER_NOT_EMPTY !IN_SING e_in_group andTb; split.
+  by exists e.
+move => x y [-> ->].
+by rewrite mulgI ?e_in_group.
+Qed.
+
+
 Lemma set_opK : `set_op op G G = G`.
 rewrite set_op /= EXTENSION => x; rewr IN_ELIM_THM /=; split.
   move => [x'] [y] [[xG yG] ->].
@@ -189,9 +280,9 @@ by exists e x; rewrite xG e_in_group mul1g.
 Qed.
 
 
-Lemma normal_conj2 H x y: `normal op i H G ==> x IN G ==> y IN H ==> 
+Lemma normal_conj2 H x y: `normal op i H G ==> x IN G ==> y IN H ==>
 	op x (op y (i x)) IN H`.
-move/normal_conj => conj xG yH.
+move/normal_conj; rewrite conjg => conj xG yH.
 move: (conj `(i:A->A) x` y).
 by rewrite i_in_group // yH /= invgK.
 Qed.
@@ -234,12 +325,232 @@ exists `op (i g) g'`.
 by rewrite mulgA ?mulgI ?mul1g ?in_group ?i_in_group.
 Qed.
 
+Lemma left_mul_coset g h S : `g IN G ==> h IN G ==> S SUBSET G ==> 
+	set_op1 (op g) (coset op h S) = coset op (op g h) S`.
+Proof.
+move => gG hG sSG.
+rewrite set_op1_lmul !coset_op.
+rewrite set_opA ?SING_SUBSET //.
+apply congr2; rewrite eqxx andbT set_op /= !IN_SING EXTENSION IN_SING inE /= => x; split.
+  by move => [a] [b] [] [-> ->].
+by move => x_eq; exists g h.
+Qed.
+
+
+Lemma set_lmul_subset g S : `g IN G ==> S SUBSET G ==> set_op1 (op g) S SUBSET G`.
+Proof.
+rewrite !SUBSET in_set_op1 => gG sSG x [s] [sS] ->.
+by rewrite in_group gG sSG.
+Qed.
+
+Lemma set_rmul_subset g S : `g IN G ==> S SUBSET G ==> set_op op S {g} SUBSET G`.
+Proof.
+rewrite !SUBSET in_set_op IN_SING => gG sSG x [s1] [s2] [s1S] [->] ->.
+by rewrite in_group gG sSG.
+Qed.
+
+Lemma set_lmul_has_size g S n : `g IN G ==> S SUBSET G ==> S HAS_SIZE n ==> set_op1 (op g) S HAS_SIZE n`.
+Proof.
+move => gG sSG sizeS.
+rewrite set_op1_eq_image; apply HAS_SIZE_IMAGE_INJ; rewrite sizeS andbT => x y [xS] [yS].
+by apply: mulg_leftI; rewrite gG !(in_trans sSG).
+Qed.
+
+Lemma set_rmul_has_size g S n : `g IN G ==> S SUBSET G ==> S HAS_SIZE n ==> set_op op S {g} HAS_SIZE n`.
+Proof.
+move => gG sSG sizeS.
+rewrite set_op_eq_image; apply HAS_SIZE_IMAGE_INJ; rewrite sizeS andbT => x y [xS] [yS] /=.
+by apply: mulg_rightI; rewrite gG !(in_trans sSG).
+Qed.
+
+Lemma set_lmul_card g S : `g IN G ==> S SUBSET G ==> FINITE S ==> CARD (set_op1 (op g) S) = CARD S`.
+Proof.
+rewrite FINITE_HAS_SIZE => gG sSG sizeS.
+have := set_lmul_has_size gG sSG sizeS.
+by rewrite HAS_SIZE => ->.
+Qed.
+
+Lemma set_rmul_card g S : `g IN G ==> S SUBSET G ==> FINITE S ==> CARD (set_op op S {g}) = CARD S`.
+Proof.
+rewrite FINITE_HAS_SIZE => gG sSG sizeS.
+have := set_rmul_has_size gG sSG sizeS.
+by rewrite HAS_SIZE => ->.
+Qed.
+
+Lemma set_lrmul_card g1 g2 S : `g1 IN G ==> g2 IN G ==> S SUBSET G ==> FINITE S ==>
+	CARD (set_op1 (op g1) S) = CARD (set_op op S {g2})`.
+Proof. by move => g1G g2G sSG finS; rewrite set_lmul_card // set_rmul_card. Qed.
+
+Lemma set_llmul_card g1 g2 S : `g1 IN G ==> g2 IN G ==> S SUBSET G ==> FINITE S ==>
+	CARD (set_op1 (op g1) S) = CARD (set_op1 (op g2) S)`.
+Proof. by move => g1G g2G sSG finS; rewrite !set_lmul_card. Qed.
+
+
+Lemma set_lmul1 S : `S SUBSET G ==> set_op1 (op e) S = S`.
+Proof.
+rewrite SUBSET EXTENSION in_set_op1 => sSG x; split => [[s] [sS ->] | xS].
+  by rewrite mul1g // sSG.
+by exists x; rewrite mul1g // sSG.
+Qed.
+
+Lemma set_rmul1 S : `S SUBSET G ==> set_op op S {e} = S`.
+Proof.
+rewrite SUBSET EXTENSION in_set_op IN_SING => sSG x; split => [[s1] [s2] [s1S] [->] -> | xS].
+  by rewrite mulg1 // sSG.
+by exists x e; rewrite mulg1 // sSG.
+Qed.
+
+
+
+Lemma conjg_in x g : `g IN G ==> x IN G ==> conjg (op, i) g x IN G`.
+Proof. by move => gG xG; rewrite conjg ?in_group ?i_in_group. Qed.
+
+Lemma mul_conjg x g1 g2 : `x IN G ==> g1 IN G ==> g2 IN G ==> 
+	conjg (op, i) (op g1 g2) x = conjg (op, i) g2 (conjg (op, i) g1 x)`.
+Proof. by move => xG g1G g2G; rewrite !conjg mulI // !mulgA ?in_group ?i_in_group. Qed.
+
+
+Lemma conjg_mul x y g : `x IN G ==> y IN G ==> g IN G ==>
+	conjg (op, i) g (op x y) = op (conjg (op, i) g x) (conjg (op, i) g y)`.
+Proof. by move => xG yG gG; rewrite !conjg !mulgA ?mulgK ?in_group ?i_in_group. Qed.
+
+Lemma inv_conjg x g : `g IN G ==> x IN G ==> i (conjg (op, i) g x) = conjg (op, i) g (i x)`.
+Proof. by move => gG xG; rewrite !conjg !mulI ?invgK ?mulgA // ?in_group ?i_in_group. Qed.
+
+Lemma conj1g x : `x IN G ==> conjg (op, i) e x = x`.
+Proof. by move => xG; rewrite conjg invg1 mulg1 // mul1g. Qed.
+
+Lemma conjg1 g : `g IN G ==> conjg (op, i) g e = e`.
+Proof. by move => gG; rewrite conjg mul1g // mulIg. Qed.
+
+Lemma conjg_inj x y g : `x IN G ==> y IN G ==> g IN G ==> 
+	(conjg (op, i) g x = conjg (op, i) g y <=> x = y)`.
+Proof.
+move => xG yG gG; split; last by move => ->.
+by move/(congr1 `conjg (op, i) (i g)`); rewrite -!mul_conjg ?i_in_group // !mulgI // !conj1g.
+Qed.
+
+Lemma conjg_set_subset g S : `g IN G ==> S SUBSET G ==> set_op1 (conjg (op, i) g) S SUBSET G`.
+Proof.
+move => gG sSG.
+by rewrite SUBSET in_set_op1 => x [y] [yS] ->; rewrite conjg_in // gG ?(in_trans sSG).
+Qed.
+
+
+Lemma conj1g_set S : `S SUBSET G ==> set_op1 (conjg (op, i) e) S = S`.
+Proof. by move => sSG; rewrite conjg_set_alt set_rmul1 // invg1 set_lmul1. Qed.
+
+
+Lemma mul_conjg_set S g1 g2 : `g1 IN G ==> g2 IN G ==> S SUBSET G ==>
+	set_op1 (conjg (op, i) (op g1 g2)) S = set_op1 (conjg (op, i) g2) (set_op1 (conjg (op, i) g1) S)`.
+Proof.
+rewrite SUBSET EXTENSION !in_set_op1 => g1G g2G sSG x; split.
+  move => [s] [sS] x_eq.
+  by exists `conjg (op, i) g1 s`; rewrite -mul_conjg ?g1G ?g2G ?sSG // x_eq eqxx andbT; exists s.
+move => [t] [] [s] [sS] -> x_eq.
+by exists s; rewrite mul_conjg ?g1G ?g2G ?sSG.
+Qed.
+
+
+Lemma conjg_set_has_size S g n : `g IN G ==> S SUBSET G ==> S HAS_SIZE n ==>
+	set_op1 (conjg (op, i) g) S HAS_SIZE n`.
+Proof.
+move => gG sSG sizeS.
+by rewrite conjg_set_alt set_lmul_has_size i_in_group // set_rmul_subset // set_rmul_has_size.
+Qed.
+
+Lemma conjg_set_card S g : `g IN G ==> S SUBSET G ==> FINITE S ==>
+	CARD (set_op1 (conjg (op, i) g) S) = CARD S`.
+Proof.
+rewrite FINITE_HAS_SIZE => gG sSG sizeS.
+by move: (conjg_set_has_size gG sSG sizeS); rewrite HAS_SIZE => ->.
+Qed.
+
+
+Lemma conjg_set_card2 S g1 g2 : `g1 IN G ==> g2 IN G ==> S SUBSET G ==> FINITE S ==>
+	CARD (set_op1 (conjg (op, i) g1) S) = CARD (set_op1 (conjg (op, i) g2) S)`.
+Proof. by move => g1G g2G sSG finS; rewrite !conjg_set_card. Qed.
+
+
+Lemma conjg_set_equiv S U g : `g IN G ==> S SUBSET G ==> U SUBSET G ==>
+	((set_op1 (conjg (op, i) g) S) = U <=> set_op op S {g} = set_op1 (op g) U)`.
+Proof.
+move => gG sSG sUG; split.
+  move => <-; rewrite conjg_set_alt !set_op1_lmul set_opA ?SING_SUBSET ?set_rmul_subset ?i_in_group //.
+  by rewrite set_op_sing mulgI // -set_op1_lmul set_lmul1 // set_rmul_subset.
+move/(congr1 `set_op1 (op (i g))`); rewrite -conjg_set_alt => ->.
+by rewrite !set_op1_lmul set_opA ?SING_SUBSET ?i_in_group // set_op_sing mulIg // -set_op1_lmul set_lmul1.
+Qed.
+
+
+Lemma set_mulI S U : `S SUBSET G ==> U SUBSET G ==> 
+	set_op1 i (set_op op S U) = set_op op (set_op1 i U) (set_op1 i S)`.
+Proof.
+rewrite !SUBSET EXTENSION in_set_op !in_set_op1 in_set_op => sSG sUG x; split.
+  move => [t] [] [s] [u] [sS] [uU] -> ->.
+  exists `i u` `i s`; rewrite mulI ?(sUG uU) ?sSG // eqxx andbT.
+  by split; [exists u | exists s].
+move => [t] [y] [] [u] [uU] -> [] [s] [sS] -> x_eq.
+exists `op s u`; rewrite x_eq mulI ?(sUG uU) ?sSG // eqxx andbT.
+by exists s u.
+Qed.
+
+
+Lemma set_invgK S : `S SUBSET G ==> set_op1 i (set_op1 i S) = S`.
+Proof.
+rewrite SUBSET EXTENSION !in_set_op1 => sSG x; split.
+  move => [t] [] [s] [sS] -> ->.
+  by rewrite invgK ?sSG.
+by move => xS; exists `i x`; rewrite invgK ?sSG // eqxx andbT; exists x.
+Qed.
+
+
+Lemma group_invK : `set_op1 i G = G`.
+Proof.
+rewrite EXTENSION in_set_op1 => x; split => [[s] [sG ->] | xG].
+  by rewrite i_in_group.
+by exists `i x`; rewrite i_in_group // invgK.
+Qed.
+
+
+Lemma group_lmulK g : `g IN G ==> set_op1 (op g) G = G`.
+Proof.
+rewrite EXTENSION in_set_op1 => gG x; split => [[s] [sG ->] | xG].
+  by rewrite in_group.
+exists `op (i g) x`.
+by rewrite mulgA ?mulgI ?in_group ?i_in_group // mul1g.
+Qed.
+
+
+Lemma group_rmulK g : `g IN G ==> set_op op G {g} = G`.
+Proof.
+rewrite EXTENSION in_set_op IN_SING => gG x; split => [[a] [b] [aG] [->] -> | xG].
+  by rewrite in_group.
+exists `op x (i g)` g.
+by rewrite -mulgA ?mulIg ?in_group ?i_in_group // mulg1.
+Qed.
+
+
+Lemma group_conjgK g : `g IN G ==> set_op1 (conjg (op, i) g) G = G`.
+Proof. by move => gG; rewrite conjg_set_alt group_rmulK // group_lmulK // i_in_group. Qed.
+
 
 End Groups.
 
 
+Lemma subgroup_alt2 G op i e H : `group (G, op, i, e) ==> 
+	(subgroup op i H G <=> (H SUBSET G /\ group (H, op, i, e)))`.
+Proof.
+move => grG; split => [subHG | [sHG grH]].
+  by rewrite (subgroup_group grG subHG) (subgroup_subset subHG).
+rewrite subgroup sHG andTb -MEMBER_NOT_EMPTY; split.
+  by exists e; rewrite (e_in_group grH).
+move => x y [xH yH].
+by rewrite (in_group grH) xH (i_in_group grH).
+Qed.
 
 
+(* Normal *)
 Section Normal.
 
 Variable G : `:A->bool`.
@@ -249,6 +560,41 @@ Variable e : `:A`.
 Variable H : `:A->bool`.
 
 Hypothesis grG : `group (G,op,i,e)`.
+
+
+Lemma group_subgroup : `subgroup op i G G`.
+Proof. by rewrite (subgroup_alt2 grG) SUBSET_REFL. Qed.
+
+
+Lemma group_normal : `normal op i G G`.
+Proof.
+rewrite normal group_subgroup andTb => x y [xG yG].
+by rewrite !(in_group grG) ?(i_in_group grG).
+Qed.
+
+
+Lemma subgroup_conjg g : `subgroup op i H G ==> g IN G ==> 
+	subgroup op i (set_op1 (conjg (op, i) g) H) G`.
+Proof.
+move => subH gG.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+rewrite subgroup (conjg_set_subset grG) // -MEMBER_NOT_EMPTY andTb; split.
+  by exists e; rewrite in_set_op1; exists e; rewrite (e_in_group grH) (conjg1 grG).
+rewrite !in_set_op1 => x y [] [h1] [h1H] -> [h2] [h2H] ->.
+exists `op h1 (i h2)`; rewrite (in_group grH) ?(i_in_group grH) // andTb.
+by rewrite (inv_conjg grG) ?gG ?(in_trans sHG) // -(conjg_mul grG) ?gG ?(i_in_group grG) // ?(in_trans sHG).
+Qed.
+
+
+Lemma subgroup_trans H K : `subgroup op i H K ==> subgroup op i K G ==> subgroup op i H G`.
+Proof.
+move => subHK.
+rewrite !(subgroup_alt2 grG) => [] [sKG grK].
+move: subHK; rewrite (subgroup_alt2 grK) => [] [sHK ->].
+exact: (SUBSET_TRANS (sHK, sKG)).
+Qed.
+
 
 Lemma cosets_full_preimage0 K: `subgroup op i K G ==> H SUBSET K ==> ~(H = {}) ==> 
 	K = {g | g IN G /\ coset op g H IN (cosets op K H)}`.
@@ -265,6 +611,7 @@ rewrite (mulg_left grG) ?gG ?(in_subgroup subKG) ?(in_group grK) ?xK ?(sHK h) ?(
 by move => ->; rewrite !(in_group grK) ?(i_in_group grK) ?xK ?sHK.
 Qed.
 
+
 Lemma preimages_eq0 K1 K2: `subgroup op i K1 G ==> subgroup op i K2 G ==> 
 	H SUBSET K1 ==> H SUBSET K2 ==> ~(H = {}) ==>
 	(cosets op K1 H = cosets op K2 H <=> K1 = K2)`.
@@ -273,15 +620,20 @@ move => subK1G subK2G sHK1 sHK2 nH0; split => [c_eq | -> //].
 by rewrite (cosets_full_preimage0 K1) // (cosets_full_preimage0 K2).
 Qed.
 
-Lemma subgroup_alt2 H : `subgroup op i H G <=> (H SUBSET G /\ group (H, op, i, e))`.
+
+Lemma normal_alt : `normal op i H G <=> subgroup op i H G /\ (!g. g IN G ==> set_op1 (conjg (op, i) g) H = H)`.
 Proof.
-split => [subHG | [sHG grH]].
-  by rewrite (subgroup_group grG subHG) (subgroup_subset subHG).
-rewrite subgroup sHG andTb -MEMBER_NOT_EMPTY; split.
-  by exists e; rewrite (e_in_group grH).
-move => x y [xH yH].
-by rewrite (in_group grH) xH (i_in_group grH).
+rewrite normal; apply: andb_id2l => subH.
+have grH := subgroup_group grG subH.
+have sHG := in_subgroup subH.
+split => [h1 g gG | h1 x y [xG yH]].
+  rewrite EXTENSION in_set_op1 conjg => h; split => [[s] [sH ->] | hH]; first by apply: h1.
+  exists `conjg (op, i) (i g) h`.
+  rewrite {1}conjg h1 ?(i_in_group grG) // andTb -conjg -(mul_conjg grG) ?(i_in_group grG) ?gG ?sHG //.
+  by rewrite (mulIg grG) // (conj1g grG) // sHG.
+by rewrite -(h1 xG) in_set_op1 conjg; exists y.
 Qed.
+
 
 
 (* H <| G *)
@@ -303,62 +655,46 @@ by move: normH; rewrite normal subgroup sub1 sub2 s1 s2 /=.
 Qed.
 
 
+Lemma normal_conjg g : `g IN G ==> set_op1 (conjg (op, i) g) H = H`.
+Proof.
+have sHG := in_subgroup (normal_subgroup normH).
+rewrite EXTENSION in_set_op1 => gG x; split => [[s] [sH ->] | xH].
+  by rewrite (normal_conj normH).
+exists `conjg (op, i) (i g) x`.
+rewrite (normal_conj normH) ?(i_in_group grG) // -(mul_conjg grG) ?(i_in_group grG) ?gG ?sHG //.
+by rewrite (mulIg grG) // (conj1g grG) // sHG.
+Qed.
+
 
 Lemma left_right_coset x : `x IN G ==> coset op x H = set_op op H {x}`.
-move: (in_subgroup (normal_subgroup normH)) => xHG.
-move => xG; rewrite coset_op set_op /= !IN_SING EXTENSION; rewr IN_ELIM_THM /= => z; split.
-  move => [u] [v] [[-> vH] ->].
-  exists `op (x:A) (op v (i x)):A` x.
-  rewrite (normal_conj2 grG) //= -!(mulgA grG) 
-	?(in_group grG) ?(i_in_group grG) ?xG ?xHG //.
-  by rewrite (mulIg grG) // (mulg1 grG) ?xHG.
-move => [u] [v] [[uH ->] ->].
-exists x `op (i x:A) (op (u:A) (x:A))`.
-rewrite (normal_conj normH) //.
-rewrite (mulgA grG) ?(i_in_group grG) ?(in_group grG) // ?xG ?xHG //.
-by rewrite (mulgI grG) // (mul1g grG) ?(in_group grG) ?xG ?xHG.
+Proof.
+move => xG.
+by rewrite coset_op1 eq_sym -(conjg_set_equiv grG) ?(subgroup_subset (normal_subgroup normH)) // normal_conjg.
 Qed.
 
 
 Lemma coset_mul_normal x y : `x IN G ==> y IN G ==>
 	set_op op (coset op x H) (coset op y H) = coset op (op x y) H`.
+Proof.
 move => xG yG.
-move: (subgroup_subset (normal_subgroup normH)) => sHG.
-rewrite left_right_coset // coset_op.
-rewrite (set_opA grG).
-  by rewrite SING_SUBSET -left_right_coset // yG (coset_subset grG) sHG.
-rewrite -[`set_op op _1 {y}`](set_opA grG) ?sHG ?SING_SUBSET //.
-have ->: `set_op op {x:A} {y:A} = {op x y}`.
-  rewrite set_op /= !IN_SING EXTENSION => z; rewr !IN_ELIM_THM /= IN_SING; split.
-    by move => [u] [v] [[-> ->]].
-  by move => ->; exists x y.
-rewrite -left_right_coset ?(in_group grG) // coset_op -(set_opA grG).
-  by rewrite SING_SUBSET (in_group grG).
-by rewrite (set_opK (subgroup_group grG (normal_subgroup normH))).
+have subH := normal_subgroup normH.
+have sHG := subgroup_subset subH.
+rewrite !coset_op1 !set_op1_lmul (set_opA grG) ?SING_SUBSET -set_op1_lmul ?(set_lmul_subset grG) // set_op1_lmul.
+rewrite -[`set_op op _1 {y}`](set_opA grG) ?SING_SUBSET // -left_right_coset // coset_op1 set_op1_lmul.
+rewrite (set_opA grG) ?SING_SUBSET // set_op_sing -(set_opA grG) ?SING_SUBSET ?(in_group grG) //.
+by rewrite (set_opK (subgroup_group grG subH)).
 Qed.
 
 
 Lemma coset_inv_normal x : `x IN G ==> set_op1 i (coset op x H) = coset op (i x) H`.
+Proof.
 move => xG.
-move: (subgroup_group grG (normal_subgroup normH)) => grH.
-move: (normal_subgroup normH) => subH.
-rewrite set_op1 !coset /= EXTENSION; rewr !IN_ELIM_THM /= => z; split.
-  move => [u] [] [h] [hH ->] ->.
-  exists `(op:A->A->A) x (op (i h) (i x))`.
-  rewrite (normal_conj2 grG) ?(i_in_group grH) //.
-  rewrite (mulI grG) ?xG ?(in_subgroup subH) // 
-	(mulgA grG) ?(in_group grG) ?(i_in_group grG) ?xG ?(in_subgroup subH) //.
-  by rewrite (mulIg grG) // (mul1g grG) ?(in_group grG) ?(i_in_group grG) ?xG ?(in_subgroup subH).
-move => [u] [uH ->].
-exists `i ((op:A->A->A) (i x) u):A`.
-rewrite (invgK grG) ?(in_group grG) ?(i_in_group grG) ?xG ?(in_subgroup subH) //=.
-exists `(op:A->A->A) (i x) (op (i u) x)`.
-rewrite (normal_conj normH) ?xG ?(i_in_group grH) //=.
-by rewrite (mulI grG) ?(mulgA grG) ?(mulgI grG) ?(mul1g grG) ?(invgK grG) ?xG //
-	?(in_group grG) ?(i_in_group grG) ?xG // ?(in_subgroup subH) // (e_in_group grH).
+have subH := normal_subgroup normH.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+rewrite coset_op1 set_op1_lmul (set_mulI grG) ?SING_SUBSET // (group_invK grH) set_op1_sing.
+by rewrite left_right_coset ?(i_in_group grG).
 Qed.
-
-
 
 
 Lemma quotient_group : `group (cosets op G H, set_op op, set_op1 i, H)`.
@@ -451,12 +787,6 @@ move => f g H eq; rewrite EXTENSION !IN_IMAGE => xx; split => [[yy]] [eq2 in_s].
 by exists yy; rewrite eq2 -eq.
 Qed.
 
-Lemma set_op_sing a b: `set_op op {a} {b} = {op a b}`.
-Proof.
-rewrite set_op /= EXTENSION inE /= !IN_SING => x; split.
-  by move => [z] [y] [[-> ->] ->].
-by move => ->; exists a b.
-Qed.
 
 Lemma normalizer_subset : `normalizer op i G H SUBSET G`.
 Proof. by rewrite SUBSET normalizer IN_ELIM_THM /= => x [g] [] [gG] _ ->. Qed.
@@ -470,52 +800,32 @@ rewrite !SUBSET set_op /= inE /= => sAG sBG g [a] [b] [[aA bB] ->].
 by rewrite (in_group grG) (sBG b) // sAG.
 Qed.
 
-Lemma in_normalizer0 g : `g IN normalizer op i G H <=> g IN G /\ H = set_op op {i g} (set_op op H {g})`.
-Proof.
-rewrite normalizer inE; apply: andb_id2l => gG.
-set s1 := `IMAGE _1 _2`.
-set s2 := `set_op op _1 _2`.
-suff ->: `s1 = s2`; first by rewrite [`_ = H`]eq_sym.
-rewrite EXTENSION -s1_def -s2_def IN_IMAGE set_op /= !IN_ELIM_THM /= !IN_SING => y; split.
-  move => [x] [y_eq xH].
-  exists `i g` `op x g`; rewrite -y_eq /=.
-  by exists x g.
-move => [x] [z] [] [x_eq] [a] [b] [[aH ->] ->] ->.
-by exists a; rewrite x_eq.
-Qed.
+Lemma in_normalizer0 g H : `g IN normalizer op i G H <=> g IN G /\ H = set_op1 (conjg (op, i) g) H`.
+Proof. by rewrite normalizer inE; apply: andb_id2l => gG; split => [-> | <-]. Qed.
 
 
 Lemma normalizerK : `normalizer op i G G = G`.
 Proof.
-rewrite normalizer EXTENSION IN_ELIM_THM /= => g; split => [[x] [] [gG] _ -> //| gG].
-exists g; rewrite gG andTb /= EXTENSION IN_IMAGE /= => h; split.
-  by move => [x] [->] xG; rewrite !(in_group grG) ?(i_in_group grG).
-move => hG; exists `op (op g h) (i g)`.
-by rewrite (mulKg grG) ?(mulgA grG) ?(mulIg grG) ?(mul1g grG) ?(in_group grG) ?(i_in_group grG).
+rewrite EXTENSION in_normalizer0 => x; split => [-> //| xG].
+by rewrite (normal_conjg grG) // (group_normal grG).
+Qed.
+
+
+Lemma normalizer_norm : `normal op i H G ==> normalizer op i G H = G`.
+Proof.
+rewrite EXTENSION in_normalizer0 => normH x; split => [-> //| xG].
+by rewrite (normal_conjg grG).
 Qed.
 
 
 Lemma normalizer_subgroup : `H SUBSET G ==> subgroup op i (normalizer op i G H) G`.
 Proof.
-rewrite subgroup SUBSET -MEMBER_NOT_EMPTY => sHG.
-rewrite normalizer_subset andTb normalizer !IN_ELIM_THM /=; split.
-  exists e e; rewrite (e_in_group grG) /= EXTENSION IN_IMAGE /= => h; split.
-    by move => [x] [-> xH]; rewrite (invg_e grG) (mul1g grG) ?(mulg1 grG) ?sHG.
-  by move => hH; exists h; rewrite (invg_e grG) (mul1g grG) ?(mulg1 grG) // ?sHG.
-move => x y [] [g1] [] [g1G eq1] x_eq [g2] [] [g2G eq2] y_eq.
-exists `op g1 (i g2)`; rewrite x_eq y_eq /= (in_group grG) ?(i_in_group grG) // andTb.
-rewrite (mulI grG) ?(invgK grG) ?(i_in_group grG) //.
-move: x_eq y_eq => _ _.
-set lhs := `IMAGE _1 _2`.
-have ->: `lhs = IMAGE (\h. op g2 (op h (i g2))) H`.
-  rewrite -eq1 -IMAGE_o -lhs_def; apply: image_eq => h /sHG hG.
-  by rewrite o_THM /= !(mulgA grG) // ?(in_group grG) ?(i_in_group grG).
-rewrite -{1}eq2 EQ_SYM_EQ -{1}(IMAGE_I H) -IMAGE_o; apply: image_eq => h hH.
-rewrite o_THM I_THM /=.
-rewrite (mulgA grG) ?(in_group grG) ?(i_in_group grG) ?g2G ?sHG //.
-rewrite (mulgA grG) ?(i_in_group grG) ?(in_group grG) ?g2G ?sHG //.
-rewrite (mulgI grG) // (mul1g grG) ?(in_group grG) ?g2G ?sHG //.
-by rewrite (mulgK grG) ?g2G ?sHG.
+rewrite (subgroup_alt grG) -MEMBER_NOT_EMPTY !in_normalizer0 normalizer_subset andTb => sHG; do !split.
+  by exists e; rewrite (e_in_group grG) (conj1g_set grG).
+  move => x y [] [xG] eq_x [yG] eq_y.
+  by rewrite (in_group grG) // andTb (mul_conjg_set grG) // -eq_x -eq_y.
+move => x [xG] /(congr1 `set_op1 (conjg (op, i) (i x))`) ->.
+by rewrite -(mul_conjg_set grG) ?(i_in_group grG) // (mulgI grG) // (conj1g_set grG).
 Qed.
 
 
@@ -525,90 +835,32 @@ Hypothesis subH : `subgroup op i H G`.
 Lemma subset_normalizer : `H SUBSET (normalizer op i G H)`.
 Proof.
 have grH := (subgroup_group grG subH).
-rewrite SUBSET normalizer IN_ELIM_THM /= => h hH.
-exists h; rewrite (in_subgroup subH) //=.
-rewrite EXTENSION IN_IMAGE /= => x; split.
-  move => [g] [-> gH].
-  by rewrite !(in_group grH) ?(i_in_group grH).
-move => xH; exists `op (op h x) (i h)`.
-rewrite !(in_group grH) ?(i_in_group grH) // andbT.
-rewrite !(mulgA grH) ?(in_group grH) ?(i_in_group grH) //.
-by rewrite (mulIg grH) // (mul1g grH) // (mulKg grH).
+rewrite SUBSET in_normalizer0 => h hH.
+by rewrite (group_conjgK grH) // (in_subgroup subH).
 Qed.
 
 
 Lemma normal_in_normalizer : `normal op i H (normalizer op i G H)`.
 Proof.
-have sHG := (subgroup_subset subH).
-have grN := (subgroup_group grG (normalizer_subgroup sHG)).
-have grH := (subgroup_group grG subH).
-rewrite normal (subgroup_alt2 grN) subset_normalizer grH !andTb => x y.
-rewrite normalizer IN_ELIM_THM /= => [] [] [g] [] [gG].
-rewrite EXTENSION IN_IMAGE /= => eq _ yH.
-by rewrite -eq; exists y.
+have sHG := subgroup_subset subH.
+have grN := subgroup_group grG (normalizer_subgroup sHG).
+have grH := subgroup_group grG subH.
+rewrite (normal_alt grN) (subgroup_alt2 grN) subset_normalizer grH !andTb => g.
+by rewrite in_normalizer0 => <-.
 Qed.
 
 
 Lemma in_normalizer g : `g IN normalizer op i G H <=> g IN G /\ coset op g H = set_op op H {g}`.
 Proof.
 have sHG := subgroup_subset subH.
-rewrite in_normalizer0; apply: andb_id2l => gG; split; last first.
-  rewrite coset_op => <-.
-  rewrite (set_opA grG) ?SING_SUBSET ?(i_in_group grG) //.
-  by rewrite set_op_sing (mulIg grG) // -coset_op (coset_e grG).
-move/(congr1 `set_op op {g}`).
-rewrite -coset_op => ->.
-rewrite (set_opA grG) ?SING_SUBSET ?(i_in_group grG) ?set_op_subset // ?SING_SUBSET //.
-by rewrite set_op_sing (mulgI grG) // -coset_op (coset_e grG) ?set_op_subset ?SING_SUBSET.
+rewrite in_normalizer0; apply: andb_id2l => gG.
+by rewrite (eq_sym H) (conjg_set_equiv grG) // coset_op1; split => ->.
 Qed.
-
 
 End Normalizer.
 
 
-
-
-
-(* Morph *)
-Section Morph.
-
-Variable G : `:A->bool`.
-Variable e : `:A`.
-Variable op : `:A -> A -> A`.
-Variable i : `:A -> A`.
-Hypothesis grG : `group (G,op,i,e)`.
-
-Variable H : `:B->bool`.
-Variable hop : `:B->B->B`.
-Variable he : `:B`.
-Variable hi : `:B->B`.
-Hypothesis grH : `group (H, hop, hi, he)`.
-
-Variable f : `:A->B`.
-Hypothesis morph : `morphism f op hop G H`.
-
-Lemma morph_closed x : `x IN G ==> f x IN H`. by move: morph; rewrite morphism /=. Qed.
-Lemma morph_mul x y : `x IN G ==> y IN G ==> f (op x y) = hop (f x) (f y)`.
-by move: morph; rewrite morphism /=. Qed.
-
-Lemma morph_e : `f e = he`.
-have: `f e = hop (f e) (f e)`.
-  by rewrite -{1}(mulg1 grG e) ?morph_mul ?(e_in_group grG).
-rewrite -{1}[`f e`](mul1g grH) ?morph_closed ?(e_in_group grG).
-move: (mulg_rightI grH `f (e:A):B` he `f (e:A):B`).
-by rewrite !morph_closed ?(e_in_group grG) ?(e_in_group grH) /=.
-Qed.
-
-Lemma morph_i x : `x IN G ==> f (i x) = hi (f x)`.
-move => xG.
-apply: ("REWRITE_RULE[IMP_IMP] i_uniq" grH).
-rewrite !morph_closed ?(i_in_group grG) //=.
-by rewrite -morph_mul ?(i_in_group grG) // (mulgI grG) // morph_e.
-Qed.
-
-End Morph.
-
-
+(* Lagrange *)
 Section Lagrange.
 
 Variable G : `:A->bool`.
@@ -622,19 +874,14 @@ Variable H : `:A->bool`.
 Hypothesis subH : `subgroup op i H G`.
 
 Lemma coset_eq h x : `x IN G ==> h IN H ==> coset op (op x h) H = coset op x H`.
-move: (subgroup_group grG subH) => grH.
-move: (subgroup_subset subH); rewrite SUBSET => sHG.
-move => xG hH; rewrite !coset EXTENSION => z; rewr IN_ELIM_THM /=; split.
-  move => [y] [yH eq].
-  by exists `op h y`; rewrite eq ?(mulgA grG) ?(in_group grH) ?xG // ?sHG.
-move => [u] [uH ->].
-exists `op (i (op x h)) (op x u)`.
-rewrite [`op (op x h) _`](mulgA grG) ?(mulgI grG) ?(mul1g grG) 
-	?(i_in_group grG) ?(in_group grG) ?xG ?sHG //.
-rewrite (mulI grG) ?xG ?sHG // (mulgA grG) ?(mulKg grG) ?(i_in_group grG) ?(in_group grG)
-	?(i_in_group grG) ?xG ?sHG //.
-by rewrite (in_group grH) ?(i_in_group grH).
+Proof.
+move => xG hH.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+rewrite !coset_op1 set_op1_lmul -set_op_sing -(set_opA grG) ?SING_SUBSET ?xG ?(in_trans sHG) //.
+by rewrite -!set_op1_lmul (group_lmulK grH).
 Qed.
+
 
 Lemma coset_inter x y : `x IN G ==> y IN G ==> ~(coset op x H = coset op y H) ==>
 	coset op x H INTER coset op y H = {}`.
@@ -675,33 +922,32 @@ Qed.
 
 Lemma coset_equiv g1 g2 : `g1 IN G ==> g2 IN G ==> 
 	(coset op g1 H = coset op g2 H <=> op (i g2) g1 IN H)`.
+Proof.
 move => g1G g2G.
-move: (subgroup_group grG subH) => grH; split; last first.
-  rewrite !coset EXTENSION !inE /= => eq x; split => [[y] [yH x_eq]].
-    exists `op (op (i g2) g1) y`; rewrite (in_group grH) // andTb.
-    rewrite !(mulgA grG) ?(mulgI grG) ?(mul1g grG) ?(in_group grG) ?(i_in_group grG) //.
-    by rewrite g2G (in_subgroup subH).
-  exists `op (op (i g1) g2) y`; rewrite (in_group grH).
-    by move: (i_in_group grH eq); rewrite (mulI grG) ?(invgK grG) ?(i_in_group grG).
-  rewrite andTb !(mulgA grG) ?(mulgI grG) ?(mul1g grG) ?(in_group grG) ?(i_in_group grG) //.
-  by rewrite g1G (in_subgroup subH).
-rewrite EXTENSION => /(_ g1).
-have -> /=: `g1 IN coset op g1 H`.
-  by rewrite coset inE /=; exists e; rewrite (e_in_group grH) (mulg1 grG).
-rewrite coset inE /= => [] [y] [yH].
-rewrite -{1}(mul1g grG g1) // -(mulgI grG g2) //.
-move/(congr1 `op (i g2)`).
-rewrite !(mulgA grG) ?(in_group grG) ?(i_in_group grG) // ?g2G ?(in_subgroup subH) //.
-rewrite !(mulIg grG) ?(mul1g grG) ?(i_in_group grG) // ?(in_subgroup subH) //.
-by move => ->.
+have sHG := subgroup_subset subH.
+have grH := subgroup_group grG subH.
+rewrite !coset_op1 !set_op1_lmul; split.
+  move/(congr1 `set_op op {i g2}`).
+  rewrite !(set_opA grG) ?SING_SUBSET ?(i_in_group grG) // !set_op_sing (mulIg grG) // -!set_op1_lmul.
+  rewrite (set_lmul1 grG) // => <-; rewrite in_set_op1.
+  by exists e; rewrite (e_in_group grH) (mulg1 grG) // (in_group grG) (i_in_group grG).
+rewrite EXTENSION !in_set_op !IN_SING => h1 x; split.
+  move => [g] [h] [->] [hH] ->.
+  exists g2 `op (op (i g2) g1) h`.
+  rewrite (in_group grH) // eqxx !andTb !(mulgA grG) ?(in_group grG) ?(i_in_group grG) ?g2G // ?(in_trans sHG) //.
+  by rewrite (mulgI grG) // !(mul1g grG).
+move => [g] [h] [->] [hH] ->.
+exists g1 `op (i (op (i g2) g1)) h`.
+rewrite (in_group grH) ?(i_in_group grH) // eqxx !andTb (mulI grG) ?(i_in_group grG) // (invgK grG) //.
+by rewrite !(mulgA grG) ?(mulgI grG) ?(mul1g grG) // ?(in_group grG) ?(i_in_group grG) // g1G (in_trans sHG).
 Qed.
+
 
 Lemma coset_not_empty g : `g IN G ==> ~(coset op g H = {})`.
 have grH := subgroup_group grG subH.
 move => gG; rewrite -MEMBER_NOT_EMPTY coset inE /=; exists g.
 by exists e; rewrite (e_in_group grH) (mulg1 grG).
 Qed.
-
 
 
 
@@ -715,15 +961,12 @@ by exists G; rewrite SHG /=.
 Qed.
 
 Lemma coset_card x : `x IN G ==> CARD (coset op x H) = CARD H`.
-move => xG; move: (subgroup_subset subH) => SHG.
-move: (SHG); rewrite SUBSET => sHG.
-have ->: `coset op x H = IMAGE (op x) H`.
-  by rewrite coset IMAGE EXTENSION => z; rewr IN_ELIM_THM.
-rewrite CARD_IMAGE_INJ //; split; last first.
-  by apply: FINITE_SUBSET; exists G.
-move => u v [uH] [vH] op_eq.
-by move: (mulg_leftI grG xG (sHG uH) (sHG vH) op_eq).
+Proof.
+move => xG; rewrite coset_op1 (set_lmul_card grG) //.
+have sHG := subgroup_subset subH.
+by rewrite xG sHG !andTb; apply FINITE_SUBSET; exists G.
 Qed.
+
 
 Lemma finite_index : `FINITE (cosets op G H)`.
 have ->: `cosets op G H = IMAGE (\x. coset op x H) G`.
@@ -749,172 +992,7 @@ Qed.
 End Lagrange.
 
 
-Lemma real_group : `group((:real), (+), (--), &0)`.
-by rewrite group !IN_UNIV /= REAL_ADD_LID REAL_ADD_RID /= REAL_ADD_LINV REAL_ADD_RINV /= REAL_ADD_ASSOC. Qed.
-
-Lemma real_mul_group : `group({x | &0 < x}, (*), inv, &1)`.
-rewrite group; rewr IN_ELIM_THM; rewrite REAL_MUL_LID REAL_MUL_RID REAL_MUL_ASSOC REAL_LT_01 /=. split; first by apply: REAL_LT_MUL.
-split; first by apply: REAL_LT_INV.
-by move => x /REAL_POS_NZ x0; rewrite REAL_MUL_RINV // REAL_MUL_LINV.
-Qed.
-
-Lemma test x y : `&0 < y ==> &0 < x ==> inv (x * y) = inv y * inv x`.
-move => y0 x0.
-by rewrite (mulI real_mul_group) //; rewr IN_ELIM_THM.
-Qed.
-
-
-Section BijGroup.
-
-Implicit Type s t : `:A->bool`.
-
-"let inv_fun = new_definition `inv_fun s t f = 
-	(\y. if y IN t then @x. f x = y /\ x IN s else y)`".
-
-Lemma inv_fun_spec f s t y : `(?x. x IN s /\ f x = y) ==> y IN t ==>
-		inv_fun s t f y IN s /\ f (inv_fun s t f y) = y`.
-rewrite inv_fun /= => [] [z] [zs fzy] yt.
-set P := `\x. f x = y /\ x IN s`.
-have/SELECT_AX: `P z`; first by rewrite -P_def /=.
-by rewrite -P_def /=.
-Qed.
-
-Lemma inv_fun_surj_in f s t y : `SURJ f s t ==> y IN t ==> inv_fun s t f y IN s`.
-rewrite SURJ => [] [_ sf] yt.
-by move: (inv_fun_spec (sf yt) yt) => [H _].
-Qed.
-
-Lemma inv_fun_rid f s t y : `SURJ f s t ==> y IN t ==> f (inv_fun s t f y) = y`.
-rewrite SURJ => [] [_ sf] yt.
-by move: (inv_fun_spec (sf yt) yt) => [_].
-Qed.
-
-Lemma inv_fun_lid f s t x : `INJ f s t ==> x IN s ==> inv_fun s t f (f x) = x`.
-rewrite INJ => [] [f_in f_inj] xs.
-apply: f_inj; rewrite xs /=.
-apply "REWRITE_RULE[IMP_IMP] inv_fun_spec".
-by rewrite f_in //=; exists x.
-Qed.
-
-"let bij_s = new_definition `bij_s f s <=> BIJ f s s /\ (!x. ~(x IN s) ==> f x = x)`".
-
-
-Lemma f_ext f g: `(f = g) <=> (!x. f x = g x)`.
-split => [-> //| eq].
-by rewrite -[`f`]ETA_AX -[`g`]ETA_AX; "ABS_TAC".
-Qed.
-
-
-Lemma bij_ext s t f: `s SUBSET t ==> bij_s f s ==> bij_s f t`.
-rewrite SUBSET !bij_s !BIJ => s_t [[inj_f surj_f] f_out]; split => [|x xnt]; last first.
-  move: (s_t x); rewrite -[`x IN s ==> _`]CONTRAPOS_THM => h; apply: f_out.
-  exact: h.
-move: surj_f inj_f; rewr !INJ !SURJ -!IMP_IMP => fs f_surj _ f_inj.
-do 2!split; move => x; case: (EXCLUDED_MIDDLE `x IN s`) => xs.
-  by move: (fs xs) => /s_t /=.
-  by move: (f_out xs) => ->.
-  move => y; case: (EXCLUDED_MIDDLE `y IN s`) => ys _ _.
-    by move => eq; apply: (f_inj xs ys).
-  rewrite (f_out ys) => eq.
-  by move: (fs xs) ys; rewrite eq /=.
-  move => y; case: (EXCLUDED_MIDDLE `y IN s`) => ys _ _; last by rewrite !f_out.
-  rewrite f_out // => eq; move: (fs ys) xs.
-  by rewrite -eq /=.
-  by move => _; apply: s_t; apply: fs.
-  by rewrite f_out.
-  move => _; move: (f_surj xs) => [y] [/s_t yt eq].
-  by exists y.
-by move => xt; exists x; rewrite f_out.
-Qed.
-    
-
-  
-Lemma inv_fun_ext s t f : `s SUBSET t ==> bij_s f s ==> inv_fun t t f = inv_fun s s f`.
-move => st bs.
-move: st bs (bij_ext st bs).
-rewrite SUBSET !bij_s !BIJ f_ext => s_t [[inj_s surj_s] s_out] [[inj_t surj_t] t_out] x.
-case: (EXCLUDED_MIDDLE `x IN s`) => xs; last first.
-  rewrite -(s_out xs).
-  case: (EXCLUDED_MIDDLE `x IN t`) => xt.
-    by rewrite inv_fun_lid // inv_fun /= (s_out xs).
-  by rewrite !inv_fun /= (s_out xs).
-have xt := s_t xs.
-move: (inj_t); rewrite INJ => [] [_]; apply.
-rewrite !inv_fun_surj_in //= s_t ?inv_fun_surj_in //=.
-by rewrite !inv_fun_rid.
-Qed.
-
-
-Lemma bij_group s t : `s SUBSET t ==> group({f | bij_s f s}, (o), inv_fun t t, I)`.
-move/inv_fun_ext => inv_ext.
-rewr group IN_ELIM_THM bij_s BIJ !o_THM !I_THM; do 8?split.
-
-rewr INJ SURJ -20!IMP_IMP !o_THM.
-move => f g fs f_inj _ f_surj f_out gs g_inj _ g_surj g_out; do 2?split; last first.
-  move => x xns.
-  by rewrite (g_out xns) f_out.
-split => [x /gs /fs //| x y xs ys f_eq].
-  by rewrite (g_inj x y) // xs ys /= (f_inj `g x` `g y`) // !gs //.
-split => [x /gs /fs //| x xs].
-move: (f_surj xs) => [z] [zs <-].
-move: (g_surj zs) => [y] [ys eq].
-by exists y.
-
-move => f [[f_inj f_surj] f_out]; rewrite inv_ext ?bij_s ?BIJ //.
-split; last by move => x xns; rewrite inv_fun.
-split.
-  rewrite INJ; split => [x /(inv_fun_surj_in f_surj) // |].
-  move => x y [xs [ys inv_eq]].
-  have H := inv_fun_rid f_surj.
-  by move: (H xs) (H ys); rewrite inv_eq => ->.
-rewrite SURJ; split => [x /(inv_fun_surj_in f_surj) // |].
-move => x xs.
-exists `f x`; move: (f_inj); rewrite INJ => [] [fs _].
-by rewrite (fs xs) /= (inv_fun_lid f s s) //.
-
-by rewrite INJ !I_THM /=.
-
-rewrite SURJ !I_THM /= => x xs.
-by exists x.
-
-by rewr I_O_ID.
-
-move => f [[f_inj f_surj] f_out]; rewrite inv_ext ?bij_s ?BIJ //.
-rewrite !f_ext !o_THM I_THM; split => x.
-  case: (EXCLUDED_MIDDLE `x IN s`) => xs; first by rewrite inv_fun_rid.
-  by rewr inv_fun /= xs /=; exact: f_out.
-case: (EXCLUDED_MIDDLE `x IN s`) => xs; first by rewrite inv_fun_lid.
-rewr inv_fun /=.
-by move: (f_out xs) => ->; rewr xs.
-
-by rewrite o_ASSOC.
-Qed.
-
-
-Lemma bij_gr s : `group ({f | bij_s f s}, (o), inv_fun s s, I)`.
-by apply: bij_group; rewrite SUBSET_REFL. Qed.
-
-
-Lemma test s f g : `bij_s f s ==> bij_s g s ==> inv_fun s s (f o g) = inv_fun s s g o inv_fun s s f`.
-move => bf bg.
-by rewrite (mulI (bij_gr s)) //; rewr IN_ELIM_THM.
-Qed.
-
-
-Lemma bij_sub s t : `s SUBSET t ==> subgroup (o) (inv_fun t t) {f | bij_s f s} {g | bij_s g t}`.
-move => s_t; rewrite subgroup; split.
-  by rewrite SUBSET; rewr IN_ELIM_THM => f; exact: bij_ext.
-split.
-  rewrite -MEMBER_NOT_EMPTY; exists `I:A->A`.
-  by rewrite (e_in_group (bij_gr s)).
-move => f g [fb gb].
-by rewrite (in_group (bij_gr s)) fb /= (i_in_group (bij_group s_t)).
-Qed.
-
-
-End BijGroup.
-
-
+(* Z_n *)
 Section Z_group.
 
 "let add_mod = new_definition `add_mod p m n = (m + n) MOD p`".
@@ -933,7 +1011,7 @@ move => x y z [xn [yn zn]].
 by rewrite -{1}(MOD_LT xn) -{2}(MOD_LT zn) !MOD_ADD_MOD // addnA.
 Qed.
 
-Lemma test n x y : 
+Lemma testZ n x y : 
 	`0 < n ==> x < n ==> y < n ==> add_mod n (add_mod n x y) (inv_add_mod n y) = x`.
 move => n0 xn yn.
 (*
@@ -960,8 +1038,6 @@ rewrite ONE "GEN_ALL HAS_SIZE_CLAUSES" HAS_SIZE_0 => [] [x] [t] [->] [_ eq].
 by exists x.
 Qed.
 
-
-
 Lemma BIJ_SYM f V U : `BIJ f V U ==> ?g. BIJ g U V`.
 rewrite !BIJ INJ SURJ => [] [[f_on f_inj] [_ f_surj]].
 move: (BIJECTIVE_ON_LEFT_RIGHT_INVERSE f_on).
@@ -974,12 +1050,29 @@ by exists `f x`; rewrite f_on // gf.
 Qed.
 
 
+Lemma bij_alt f s t : `BIJ (f:A->B) s t <=> 
+	(!x. x IN s ==> f x IN t) /\ (!y. y IN t ==> (?!x. x IN s /\ f x = y))`.
+Proof.
+rewrite BIJ INJ SURJ.
+Abort.
+
+Lemma bij_inverse f s t : `BIJ (f:A->B) s t ==> 
+	(?g. (!y. y IN t ==> g y IN s) /\ (!x. x IN s ==> g (f x) = x) /\ (!y. y IN t ==> f (g y) = y))`.
+Proof.
+rewrite BIJ INJ SURJ => [] [] [f_on] f_inj [_] f_surj.
+move: (BIJECTIVE_ON_LEFT_RIGHT_INVERSE f_on); rewr f_inj f_surj /= => [] [g] [g_on] [g1] g2.
+by exists g.
+Qed.
+
+
 Lemma BIJ_CARD_EQ V U f : `FINITE V ==> BIJ f V U ==> CARD U = CARD V`.
+Proof.
 move => finV bij_f.
-move: (Hypermap.BIJ_INVERSE bij_f) => [g] [gf] [fg] bij_g.
+move: (bij_inverse bij_f) => [g] [g_on] [gf] fg.
 apply BIJECTIONS_CARD_EQ; exists g f; rewrite finV /=; split => x x_in.
-  by rewrite fg //; move: bij_g; rewrite BIJ INJ => [] [] [/(_ x_in)] /=.
-by rewrite gf //; move: bij_f; rewrite BIJ INJ => [] [] [/(_ x_in)] /=.
+  by rewrite g_on // fg.
+move: bij_f; rewrite BIJ INJ => [] [] [f_on] _ _.
+by rewrite gf // f_on.
 Qed.
 
 
@@ -1092,9 +1185,6 @@ move => xS; rewrite fix_orbit // HAS_SIZE_1_SING; split => [-> | ]; first by exi
 move => [y eq]; move: (x_in_orbit xS).
 by rewrite eq IN_SING => ->.
 Qed.
-
-
-
 
 
 
@@ -1229,7 +1319,6 @@ by rewrite "GEN_ALL divides"; exists `p EXP n`.
 Qed.
 
 
-"let divides = GEN_ALL divides".
 
 Lemma DIVIDES_NSUM f s q : `(!x. x IN s ==> q divides f x) ==> q divides nsum s f`.
 move => H.
@@ -1257,12 +1346,8 @@ move: sum_orbit_p_group; rewrite divides => [] [q] eq.
 by exists q; rewrite card_set_fix // eq mulnC.
 Qed.
 
-
-
 End Action.
 
-
-Lemma eqxx x : `x = x <=> T`. done. Qed.
 
 
 Lemma has_size_tuples s n : `FINITE (s:T -> bool) ==> 
@@ -1302,6 +1387,7 @@ by move/has_size_tuples; rewrite HAS_SIZE /=. Qed.
 Lemma finite_tuples s n : 
 	`FINITE s ==> FINITE {t | sizel t = n /\ (!x. x <- t ==> x IN s)}`.
 by move/has_size_tuples; rewrite HAS_SIZE /=. Qed.
+
 
 (* More sequences *)
 Section MoreSeq.
@@ -1426,8 +1512,6 @@ move => gG; elim: n => [|n IHn]; first by rewrite !expg (invg_e grG).
 by rewrite -{1}addn1 expg_add // (mulI grG) ?expg_in // IHn expg1 // expg.
 Qed.
 
-
-
 End ProdExp.
 
 
@@ -1443,6 +1527,7 @@ by move: (h m); rewrite Pm NOT_LT.
 Qed.
 
 
+(* Cyclic *)
 Section Cyclic.
 
 "let orderg = new_definition `orderg (op, e) g = 
@@ -1623,9 +1708,6 @@ rewrite prime order_div => [] [_] pH.
 by move/pH; rewrite order1.
 Qed.
 
-
-
-
 End Cyclic.
 
 
@@ -1771,7 +1853,6 @@ Qed.
 
 
 
-
 Lemma cauchy0 : `p divides CARD G ==> ?g. g IN G /\ ~(g = e) /\ expg (op, e) g p = e`.
 move => p_div_G.
 set S := `{t | sizel t = p /\ (!g. g <- t ==> g IN G) /\ foldr op e t = e}`.
@@ -1828,32 +1909,30 @@ Variable i : `:A->A`.
 Variable e : `:A`.
 Variables H : `:A->bool`.
 
-
-Lemma set_op1_left_mul g : `set_op1 (op g) = set_op op {g}`.
-Proof.
-rewrite set_op1 set_op -eq_ext /= IN_SING EXTENSION !IN_ELIM_THM /= => S a; split.
-  move => [x] [xS a_eq].
-  by exists g x.
-move => [x] [y] [] [xg yS] ->.
-by exists y; rewrite yS xg.
-Qed.
-
-Lemma op_in_coset k x K : `k IN K ==> op x k IN coset op x K`.
-Proof. by move => kK; rewrite coset inE /=; exists k. Qed.
-
 Hypothesis grG : `group (G, op, i, e)`.
 
 
-Lemma left_mul_coset g h K : `g IN G ==> h IN G ==> K SUBSET G ==> 
-	set_op1 (op g) (coset op h K) = coset op (op g h) K`.
+Lemma finite_subgroups : `FINITE G ==> FINITE {K | subgroup op i K G}`.
 Proof.
-move => gG hG sKG.
-rewrite set_op1_left_mul !coset_op.
-rewrite (set_opA grG) ?SING_SUBSET //.
-apply congr2; rewrite eqxx andbT set_op /= !IN_SING EXTENSION IN_SING inE /= => x; split.
-  by move => [a] [b] [] [-> ->].
-by move => x_eq; exists g h.
+move => finG; apply FINITE_SUBSET.
+by exists `{t | t SUBSET G}`; rewrite FINITE_POWERSET // andTb SUBSET !inE subgroup /=.
 Qed.
+
+
+Lemma finite_n_subgroups n : `FINITE G ==> FINITE {K | subgroup op i K G /\ K HAS_SIZE n}`.
+Proof.
+move => finG; apply FINITE_SUBSET.
+by exists `{K | subgroup op i K G}`; rewrite finite_subgroups // andTb SUBSET !inE /=.
+Qed.
+
+
+Lemma subgroups_size_eq_card n : `FINITE G ==> 
+	{K | subgroup op i K G /\ K HAS_SIZE n} = {K | subgroup op i K G /\ CARD K = n}`.
+Proof.
+rewrite EXTENSION !inE HAS_SIZE => finG K; apply: andb_id2l => subK.
+by rewrite (FINITE_SUBSET K G) ?(subgroup_subset subK).
+Qed.
+
 
 
 Lemma group_acts_on_cosets K : `K SUBSET G ==> acts (G, op, e) (cosets op G K) (\g. set_op1 (op g))`.
@@ -1861,14 +1940,44 @@ Proof.
 move => sKG; rewrite acts; do !split.
   (* 1 *)
   move => g c; rewrite cosets !IN_ELIM_THM /= => [] [gG] [h] [hG] ->.
-  by exists `op g h`; rewrite (in_group grG) // andTb left_mul_coset.
+  by exists `op g h`; rewrite (in_group grG) // andTb (left_mul_coset grG).
   (* 2 *)
   rewrite cosets /= inE /= => g1 g2 c [] [g1G g2G] [g] [gG] ->.
-  by rewrite !left_mul_coset ?(in_group grG) // (mulgA grG).
+  by rewrite !(left_mul_coset grG) ?(in_group grG) // (mulgA grG).
 (* 3 *)
 rewrite cosets inE /= => c [g] [gG ->].
-by rewrite left_mul_coset ?(e_in_group grG) // (mul1g grG).
+by rewrite (left_mul_coset grG) ?(e_in_group grG) // (mul1g grG).
 Qed.
+
+
+Lemma group_acts_on_subgroups n : `acts (G, op, e) 
+	{K | subgroup op i K G /\ K HAS_SIZE n} (\g. set_op1 (conjg (op, i) (i g)))`.
+Proof.
+rewrite acts !inE /=; do !split.
+  (* 1 *)
+  move => g K [gG] [subK] sizeK.
+  rewrite (subgroup_conjg grG) ?(i_in_group grG) // andTb. 
+  by rewrite (conjg_set_has_size grG) (subgroup_subset subK) (i_in_group grG).
+  (* 2 *)
+  move => g1 g2 K [] [g1G] g2G [subK] sizeK.
+  by rewrite -(mul_conjg_set grG) ?(i_in_group grG) ?(subgroup_subset subK) // (mulI grG).
+(* 3 *)
+move => K [subK] sizeK.
+by rewrite (invg1 grG) (conj1g_set grG) // (subgroup_subset subK).
+Qed.
+
+Lemma conj_subgroup_stab K : `K SUBSET G ==>
+	(Stab G (\g. set_op1 (conjg (op, i) (i g))) K = normalizer op i G K)`.
+Proof.
+move => sKG.
+have subN := normalizer_subgroup grG sKG.
+have grN := subgroup_group grG subN.
+rewrite EXTENSION stab inE /= => x; split => [[xG K_eq] | xN].
+  by rewrite -(invgK grG x) // (i_in_group grN) (in_normalizer0 grG) (i_in_group grG).
+by move: (i_in_group grN xN) (xN); rewrite !(in_normalizer0 grG) => <- ->.
+Qed.
+
+
 
 Hypothesis subH : `subgroup op i H G`.
 
@@ -1880,6 +1989,15 @@ move => sKG.
 exact: (acts_sub (group_acts_on_cosets sKG)).
 Qed.
 
+
+Lemma subgroup_acts_on_subgroups n : `acts (H, op, e) 
+	{K | subgroup op i K G /\ K HAS_SIZE n} (\g. set_op1 (conjg (op, i) (i g)))`.
+Proof.
+have sHG := subgroup_subset subH.
+exact: (acts_sub (group_acts_on_subgroups n)).
+Qed.
+
+
 Hypothesis finG : `FINITE G`.
 
 Lemma subgroup_left_mul_fix : `Fix H (cosets op G H) (\h. set_op1 (op h)) = 
@@ -1887,35 +2005,23 @@ Lemma subgroup_left_mul_fix : `Fix H (cosets op G H) (\h. set_op1 (op h)) =
 Proof.
 have sHG := subgroup_subset subH.
 have grH := subgroup_group grG subH.
+have finH := FINITE_SUBSET (finG, sHG).
 move: (sHG); rewrite SUBSET => sHG'.
 rewrite fix !cosets EXTENSION !IN_ELIM_THM /= => c; split; last first.
   move => [x]; rewrite (in_normalizer grG) // => [] [] [xG] eq ->.
   exists `coset op x H`; rewrite eqxx andbT; split; first by exists x.
-  by move => h hH; rewrite eq set_op1_left_mul (set_opA grG) ?SING_SUBSET ?xG ?sHG' // -coset_op (coset_eq_e grH).
+  by move => h hH; rewrite eq set_op1_lmul (set_opA grG) ?SING_SUBSET ?xG ?sHG' // -coset_op (coset_eq_e grH).
 move => [c1] [] [] [x] [xG c1_eq] h_eq ->.
 exists x; rewrite -c1_eq eqxx andbT.
-have h_ex: `!h. h IN H ==> ?h2. h2 IN H /\ op h x = op x h2`.
-  move => h hH.
-  move: (h_eq hH); rewrite c1_eq EXTENSION => /(_ `op x h`).
-  rewrite op_in_coset //= coset set_op1 /= !inE /= => [] [a] [] [h2] [h2H] -> eq.
-  exists `op h (i h2)`; rewrite (in_group grH) ?(i_in_group grH) // andTb.
-  rewrite (mulgA grG) ?(i_in_group grG) ?xG ?sHG' // eq.
-  by rewrite (mulgA grG) ?xG ?sHG' // (mulgK grG) ?(in_group grG) ?xG ?sHG'.
 rewrite (in_normalizer grG) // xG andTb.
-rewrite eq_sym -SUBSET_CARD_EQ.
-  split; first by apply FINITE_SUBSET; exists G; rewrite finG (coset_subset grG).
-  rewrite SUBSET coset set_op /= !inE /= IN_SING => a.
-  move => [h] [y] [[hH y_eq] a_eq].
-  move: (h_ex hH) => [h2] [h2H eq].
-  by exists h2; rewrite h2H a_eq y_eq.
-rewrite (coset_card grG) //.
-have ->: `set_op op H {x} = IMAGE (\h. op h x) H`.
-  rewrite set_op /= EXTENSION IN_IMAGE IN_ELIM_THM /= IN_SING => a; split => [[z] [y] [[zH ->] ->] | [z] [-> zH]].
-    by exists z.
-  by exists z x.
-apply CARD_IMAGE_INJ; split; last by apply FINITE_SUBSET; exists G.
-move => a b [aH] [bH]; apply: (mulg_rightI grG).
-by rewrite xG !sHG'.
+rewrite eq_sym -SUBSET_CARD_EQ; last first.
+  by rewrite coset_op1 (set_lmul_card grG) // (set_rmul_card grG).
+rewrite coset_op1 {1}set_op1_eq_image FINITE_IMAGE // andTb. 
+rewrite SUBSET in_set_op IN_SING in_set_op1 => a [h] [s2] [hH] [->] ->.
+move: (h_eq hH); rewrite -SUBSET_ANTISYM_EQ c1_eq SUBSET => [] [] /(_ `op h x`); "ANTS_TAC".
+  by rewrite in_set_op1; exists x; rewrite (x_in_coset grG).
+rewrite coset_op1 in_set_op1 => [] [h2] [h2H] op_eq _.
+by exists h2.
 Qed.
 
 
@@ -1927,6 +2033,14 @@ Lemma card_sing a : `CARD {a} = 1`.
 Proof. by apply HAS_SIZE_CARD; rewrite HAS_SIZE_1_SING; exists a. Qed.
 
 
+Lemma max_expn_divides c p n m : `prime p ==> c = (p EXP n) * m ==> coprime (p, m) ==>
+	p EXP n divides c /\ ~(p EXP (SUC n) divides c)`.
+Proof.
+move => prime_p c_eq c_pm; split.
+  by rewrite c_eq divides; exists m.
+by rewrite c_eq EXP mulnC (DIVIDES_LMUL2_EQ) ?expn_eq0 ?negb_and ?PRIME_IMP_NZ // -PRIME_COPRIME_EQ.
+Qed.
+
 
 (* Sylow *)
 Section Sylow.
@@ -1937,32 +2051,15 @@ Variable i : `:A->A`.
 Variable e : `:A`.
 Variable p : `:num`.
 
+
 Hypothesis grG : `group (G,op,i,e)`.
-
-Lemma subgroup_trans H K : `subgroup op i H K ==> subgroup op i K G ==> subgroup op i H G`.
-Proof.
-move => subHK.
-rewrite !(subgroup_alt2 grG) => [] [sKG grK].
-move: subHK; rewrite (subgroup_alt2 grK) => [] [sHK ->].
-exact: (SUBSET_TRANS (sHK, sKG)).
-Qed.
-
-
-Lemma subgroup_e : `subgroup op i {e} G`.
-Proof.
-rewrite subgroup SING_SUBSET -MEMBER_NOT_EMPTY !IN_SING (e_in_group grG) andTb; split.
-  by exists e.
-move => x y [-> ->].
-by rewrite (mulgI grG) ?(e_in_group grG).
-Qed.
-
 
 Hypothesis finG : `FINITE G`.
 Hypothesis prime_p : `prime p`.
 
 Lemma sylow1 : `!n. p EXP n divides CARD G ==> ?H. subgroup op i H G /\ CARD H = p EXP n`.
 Proof.
-elim => [_ | n IH pSn]; first by exists `{e}`; rewrite subgroup_e card_sing EXP.
+elim => [_ | n IH pSn]; first by exists `{e}`; rewrite (subgroup_e grG) card_sing EXP.
 move: (pSn); rewrite EXP => /DIVIDES_LMUL2 /IH [H] [subH cH].
 have sHG := subgroup_subset subH.
 have subN := normalizer_subgroup grG sHG.
@@ -1975,7 +2072,7 @@ set N := `normalizer op i G H`.
 suff: `p divides CARD (cosets op N H)` => [p_div | ].
   move: (cauchy prime_p grNH finNH p_div) => [K1] [subK1 cK1].
   move: (subgroup_of_quotient grN normH K1); rewrite subK1 /= => [] [K] [subK] [normK] K_eq_K1.
-  exists K; rewrite (subgroup_trans subK) // andTb.
+  exists K; rewrite (subgroup_trans grG subK) // andTb.
   rewrite (LaGrange (subgroup_group grN subK) (normal_subgroup normK)) ?cH ?K_eq_K1 ?cK1 //.
   by apply: FINITE_SUBSET; exists N; rewrite finN (subgroup_subset subK).
 rewrite -N_def -(subgroup_left_mul_fix grG) //.
@@ -1990,7 +2087,7 @@ Qed.
 
 Lemma sylow2 n H K: `~(p EXP (SUC n) divides CARD G) ==>
 	subgroup op i H G ==> subgroup op i K G ==> CARD H = p EXP n ==> CARD K = p EXP n ==>
-	?g. g IN G /\ set_op op {g} H = set_op op K {g}`.
+	?g. g IN G /\ H = set_op1 (conjg (op, i) g) K`.
 Proof.
 move => p_n_div subH subK cH cK.
 have grK := subgroup_group grG subK.
@@ -1998,6 +2095,7 @@ have grH := subgroup_group grG subH.
 have sHG := subgroup_subset subH.
 have sKG := subgroup_subset subK.
 have finK := FINITE_SUBSET (finG, sKG).
+have finH := FINITE_SUBSET (finG, sHG).
 have finGH := finite_index grG subH finG.
 have actsK := subgroup_acts_on_cosets grG subK sHG.
 have := fix_mod_p actsK grK prime_p finK cK finGH; set S := `Fix K _1 _2`.
@@ -2010,31 +2108,314 @@ have: `?c. c IN S`.
   by rewrite (LaGrange grG subH) // cH EXP DIVIDES_MUL_R.
 move => [c]; rewrite -S_def fix inE cosets inE /= => [] [] [x] [xG ->] x_eq.
 exists x; rewrite xG andTb.
-(* Repeating almost the same proof as in subgroup_left_mul_fix *)
-rewrite eq_sym -SUBSET_CARD_EQ; last first.
-  have ->: `set_op op K {x} = IMAGE (\h. op h x) K`.
-    rewrite set_op /= EXTENSION IN_IMAGE IN_ELIM_THM /= IN_SING => a; split => [[z] [y] [[zH ->] ->] | [z] [-> zH]].
-      by exists z.
-    by exists z x.
-  rewrite -coset_op (coset_card grG) // cH -cK.
-  apply CARD_IMAGE_INJ. split; last by apply FINITE_SUBSET; exists G.
-  move => a b [aH] [bH]; apply: (mulg_rightI grG).
-  move: sKG; rewrite SUBSET => sKG.
-  by rewrite xG !sKG.
-rewrite -coset_op; split; first by apply FINITE_SUBSET; exists G; rewrite (coset_subset grG).
-rewrite SUBSET coset set_op /= !inE /= IN_SING => a.
-move => [k] [y] [[kK y_eq] a_eq].
-move: (x_eq kK); rewrite EXTENSION => /(_ `op k x`).
-set R := `set_op1 _1 _2`.
-have -> /=: `op k x IN R`.
-  rewrite -R_def set_op1 coset /= !inE /=.
-  exists x; rewrite eqxx andbT; exists e.
-  by rewrite (e_in_group grH) (mulg1 grG).
-rewrite coset inE /= => [] [h] [hH eq].
-by exists h; rewrite hH a_eq y_eq.
+rewrite eq_sym (conjg_set_equiv grG) // -SUBSET_CARD_EQ; last first.
+  by rewrite (set_lmul_card grG) // (set_rmul_card grG).
+rewrite {1}set_op1_eq_image FINITE_IMAGE // andTb.
+rewrite SUBSET in_set_op in_set_op1 IN_SING => a [k] [s2] [kK] [->] ->.
+move: (x_eq kK); rewrite -SUBSET_ANTISYM_EQ SUBSET => [] [] /(_ `op k x`); "ANTS_TAC".
+  by rewrite in_set_op1; exists x; rewrite (x_in_coset grG).
+rewrite coset_op1 in_set_op1 => [] [h] [hH] op_eq _.
+by exists h.
+Qed.
+
+
+Lemma sylow3_1 n H : `~(p EXP (SUC n) divides CARD G) ==> subgroup op i H G ==> CARD H = p EXP n ==>
+	CARD {K | subgroup op i K G /\ CARD K = p EXP n} = CARD (cosets op G (normalizer op i G H))`.
+Proof.
+move => p_n_div subH cH.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+have finH := FINITE_SUBSET (finG, sHG).
+have actsG := group_acts_on_subgroups grG `p EXP n`.
+rewrite -(conj_subgroup_stab grG) // -(card_orbit actsG grG).
+  by rewrite (finite_n_subgroups grG) // inE HAS_SIZE.
+apply congr1; rewrite EXTENSION orbit !inE /= => K; split => [[subK] cK | [g] [gG] ->]; last first.
+  by rewrite (subgroup_conjg grG) ?(conjg_set_card grG) ?(i_in_group grG).
+have := sylow2 p_n_div subK subH cK cH.
+move => [g] [gG] K_eq.
+by exists `i g`; rewrite (i_in_group grG) // (invgK grG).
+Qed.
+
+
+Lemma sylow3_2 n m : `CARD G = (p EXP n) * m ==> coprime (p, m) ==>
+	CARD {K | subgroup op i K G /\ CARD K = p EXP n} divides m`.
+Proof.
+move => cG c_pm.
+have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
+move: (sylow1 p_div) => [H] [subH] cH.
+rewrite (sylow3_1 p_n_div subH cH).
+have sHG := subgroup_subset subH.
+have subN := normalizer_subgroup grG sHG.
+have grN := subgroup_group grG subN.
+have subHN := normal_subgroup (normal_in_normalizer grG subH).
+have finN := FINITE_SUBSET (finG, (subgroup_subset subN)).
+set N := `normalizer op i G H`.
+move: (LaGrange grN subHN finN) (LaGrange grG subN finG) => ->.
+rewrite cG cH mulnC mulnA eqn_mul2r expn_eq0 PRIME_IMP_NZ //; case => [/= | ->].
+by rewrite divides; exists `CARD (cosets op N H)`.
 Qed.
 
 
 End Sylow.
 
+
+Section Sylow3_final.
+
+Variable G : `:A->bool`.
+Variable op : `:A->A->A`.
+Variable i : `:A->A`.
+Variable e : `:A`.
+Variable p : `:num`.
+
+Hypothesis grG : `group (G,op,i,e)`.
+Hypothesis finG : `FINITE G`.
+Hypothesis prime_p : `prime p`.
+
+
+Lemma sylow3_3 n m : `CARD G = (p EXP n) * m ==> coprime (p, m) ==>
+	CARD {K | subgroup op i K G /\ CARD K = p EXP n} MOD p = 1`.
+Proof.
+move => cG c_pm.
+have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
+move: (sylow1 grG finG prime_p p_div) => [H] [subH] cH.
+have actsH := subgroup_acts_on_subgroups grG subH `p EXP n`.
+have grH := subgroup_group grG subH.
+have sHG := subgroup_subset subH.
+have finH := FINITE_SUBSET (finG, sHG).
+rewrite -(subgroups_size_eq_card grG) // -(fix_mod_p actsH grH prime_p finH cH) ?(finite_n_subgroups grG) //.
+set fix_set := `Fix H _1 _2`.
+suff ->: `fix_set = {H}`.
+  by rewrite card_sing MOD_LT //; move: (PRIME_GE_2 prime_p); arith.
+rewrite -fix_set_def fix EXTENSION IN_SING /= !inE => K; split => [| ->]; last first.
+  rewrite subH HAS_SIZE finH cH /= => h hH.
+  by rewrite (group_conjgK grH) // (i_in_group grH).
+rewrite HAS_SIZE => [] [] [subK] [finK] cK k_eq.
+have sKG := subgroup_subset subK.
+have subN := normalizer_subgroup grG sKG.
+have grN := subgroup_group grG subN.
+have normKN := normal_in_normalizer grG subK.
+have finN := FINITE_SUBSET (finG, (subgroup_subset subN)).
+set N := `normalizer op i G K`.
+have subHN: `subgroup op i H N`.
+  rewrite (subgroup_alt2 grN) grH andbT SUBSET -N_def (in_normalizer0 grG) => h hH.
+  by rewrite (in_subgroup subH) // andTb -{1}(k_eq `i h`) ?(i_in_group grH) // (invgK grH).
+have p_n_divN : `~(p EXP (SUC n) divides CARD N)`.
+  by apply: contra p_n_div => div; rewrite (LaGrange grG subN) // DIVIDES_LMUL.
+have := sylow2 grN finN prime_p p_n_divN subHN (normal_subgroup normKN) cH cK.
+by move => [g]; rewrite -N_def (in_normalizer0 grG) => [] [] [_] <- ->.
+Qed.
+
+
+End Sylow3_final.
+
+
+
+
+(* Some experimental sections *)
+
+
+(* Morph *)
+Section Morph.
+
+Variable G : `:A->bool`.
+Variable e : `:A`.
+Variable op : `:A -> A -> A`.
+Variable i : `:A -> A`.
+Hypothesis grG : `group (G,op,i,e)`.
+
+Variable H : `:B->bool`.
+Variable hop : `:B->B->B`.
+Variable he : `:B`.
+Variable hi : `:B->B`.
+Hypothesis grH : `group (H, hop, hi, he)`.
+
+Variable f : `:A->B`.
+Hypothesis morph : `morphism f op hop G H`.
+
+Lemma morph_closed x : `x IN G ==> f x IN H`. by move: morph; rewrite morphism /=. Qed.
+Lemma morph_mul x y : `x IN G ==> y IN G ==> f (op x y) = hop (f x) (f y)`.
+by move: morph; rewrite morphism /=. Qed.
+
+Lemma morph_e : `f e = he`.
+have: `f e = hop (f e) (f e)`.
+  by rewrite -{1}(mulg1 grG e) ?morph_mul ?(e_in_group grG).
+rewrite -{1}[`f e`](mul1g grH) ?morph_closed ?(e_in_group grG).
+move: (mulg_rightI grH `f (e:A):B` he `f (e:A):B`).
+by rewrite !morph_closed ?(e_in_group grG) ?(e_in_group grH) /=.
+Qed.
+
+Lemma morph_i x : `x IN G ==> f (i x) = hi (f x)`.
+move => xG.
+apply: ("REWRITE_RULE[IMP_IMP] i_uniq" grH).
+rewrite !morph_closed ?(i_in_group grG) //=.
+by rewrite -morph_mul ?(i_in_group grG) // (mulgI grG) // morph_e.
+Qed.
+
+End Morph.
+
+
+Lemma real_group : `group((:real), (+), (--), &0)`.
+by rewrite group !IN_UNIV /= REAL_ADD_LID REAL_ADD_RID /= REAL_ADD_LINV REAL_ADD_RINV /= REAL_ADD_ASSOC. Qed.
+
+Lemma real_mul_group : `group({x | &0 < x}, (*), inv, &1)`.
+rewrite group; rewr IN_ELIM_THM; rewrite REAL_MUL_LID REAL_MUL_RID REAL_MUL_ASSOC REAL_LT_01 /=. split; first by apply: REAL_LT_MUL.
+split; first by apply: REAL_LT_INV.
+by move => x /REAL_POS_NZ x0; rewrite REAL_MUL_RINV // REAL_MUL_LINV.
+Qed.
+
+Lemma test x y : `&0 < y ==> &0 < x ==> inv (x * y) = inv y * inv x`.
+move => y0 x0.
+by rewrite (mulI real_mul_group) //; rewr IN_ELIM_THM.
+Qed.
+
+
+Section BijGroup.
+
+Implicit Type s t : `:A->bool`.
+
+"let inv_fun = new_definition `inv_fun s t f = 
+	(\y. if y IN t then @x. f x = y /\ x IN s else y)`".
+
+Lemma inv_fun_spec f s t y : `(?x. x IN s /\ f x = y) ==> y IN t ==>
+		inv_fun s t f y IN s /\ f (inv_fun s t f y) = y`.
+rewrite inv_fun /= => [] [z] [zs fzy] yt.
+set P := `\x. f x = y /\ x IN s`.
+have/SELECT_AX: `P z`; first by rewrite -P_def /=.
+by rewrite -P_def /=.
+Qed.
+
+Lemma inv_fun_surj_in f s t y : `SURJ f s t ==> y IN t ==> inv_fun s t f y IN s`.
+rewrite SURJ => [] [_ sf] yt.
+by move: (inv_fun_spec (sf yt) yt) => [H _].
+Qed.
+
+Lemma inv_fun_rid f s t y : `SURJ f s t ==> y IN t ==> f (inv_fun s t f y) = y`.
+rewrite SURJ => [] [_ sf] yt.
+by move: (inv_fun_spec (sf yt) yt) => [_].
+Qed.
+
+Lemma inv_fun_lid f s t x : `INJ f s t ==> x IN s ==> inv_fun s t f (f x) = x`.
+rewrite INJ => [] [f_in f_inj] xs.
+apply: f_inj; rewrite xs /=.
+apply "REWRITE_RULE[IMP_IMP] inv_fun_spec".
+by rewrite f_in //=; exists x.
+Qed.
+
+"let bij_s = new_definition `bij_s f s <=> BIJ f s s /\ (!x. ~(x IN s) ==> f x = x)`".
+
+
+Lemma f_ext f g: `(f = g) <=> (!x. f x = g x)`.
+split => [-> //| eq].
+by rewrite -[`f`]ETA_AX -[`g`]ETA_AX; "ABS_TAC".
+Qed.
+
+
+Lemma bij_ext s t f: `s SUBSET t ==> bij_s f s ==> bij_s f t`.
+rewrite SUBSET !bij_s !BIJ => s_t [[inj_f surj_f] f_out]; split => [|x xnt]; last first.
+  move: (s_t x); rewrite -[`x IN s ==> _`]CONTRAPOS_THM => h; apply: f_out.
+  exact: h.
+move: surj_f inj_f; rewr !INJ !SURJ -!IMP_IMP => fs f_surj _ f_inj.
+do 2!split; move => x; case: (EXCLUDED_MIDDLE `x IN s`) => xs.
+  by move: (fs xs) => /s_t /=.
+  by move: (f_out xs) => ->.
+  move => y; case: (EXCLUDED_MIDDLE `y IN s`) => ys _ _.
+    by move => eq; apply: (f_inj xs ys).
+  rewrite (f_out ys) => eq.
+  by move: (fs xs) ys; rewrite eq /=.
+  move => y; case: (EXCLUDED_MIDDLE `y IN s`) => ys _ _; last by rewrite !f_out.
+  rewrite f_out // => eq; move: (fs ys) xs.
+  by rewrite -eq /=.
+  by move => _; apply: s_t; apply: fs.
+  by rewrite f_out.
+  move => _; move: (f_surj xs) => [y] [/s_t yt eq].
+  by exists y.
+by move => xt; exists x; rewrite f_out.
+Qed.
+    
+
+  
+Lemma inv_fun_ext s t f : `s SUBSET t ==> bij_s f s ==> inv_fun t t f = inv_fun s s f`.
+move => st bs.
+move: st bs (bij_ext st bs).
+rewrite SUBSET !bij_s !BIJ f_ext => s_t [[inj_s surj_s] s_out] [[inj_t surj_t] t_out] x.
+case: (EXCLUDED_MIDDLE `x IN s`) => xs; last first.
+  rewrite -(s_out xs).
+  case: (EXCLUDED_MIDDLE `x IN t`) => xt.
+    by rewrite inv_fun_lid // inv_fun /= (s_out xs).
+  by rewrite !inv_fun /= (s_out xs).
+have xt := s_t xs.
+move: (inj_t); rewrite INJ => [] [_]; apply.
+rewrite !inv_fun_surj_in //= s_t ?inv_fun_surj_in //=.
+by rewrite !inv_fun_rid.
+Qed.
+
+
+Lemma bij_group s t : `s SUBSET t ==> group({f | bij_s f s}, (o), inv_fun t t, I)`.
+move/inv_fun_ext => inv_ext.
+rewr group IN_ELIM_THM bij_s BIJ !o_THM !I_THM; do 8?split.
+
+rewr INJ SURJ -20!IMP_IMP !o_THM.
+move => f g fs f_inj _ f_surj f_out gs g_inj _ g_surj g_out; do 2?split; last first.
+  move => x xns.
+  by rewrite (g_out xns) f_out.
+split => [x /gs /fs //| x y xs ys f_eq].
+  by rewrite (g_inj x y) // xs ys /= (f_inj `g x` `g y`) // !gs //.
+split => [x /gs /fs //| x xs].
+move: (f_surj xs) => [z] [zs <-].
+move: (g_surj zs) => [y] [ys eq].
+by exists y.
+
+move => f [[f_inj f_surj] f_out]; rewrite inv_ext ?bij_s ?BIJ //.
+split; last by move => x xns; rewrite inv_fun.
+split.
+  rewrite INJ; split => [x /(inv_fun_surj_in f_surj) // |].
+  move => x y [xs [ys inv_eq]].
+  have H := inv_fun_rid f_surj.
+  by move: (H xs) (H ys); rewrite inv_eq => ->.
+rewrite SURJ; split => [x /(inv_fun_surj_in f_surj) // |].
+move => x xs.
+exists `f x`; move: (f_inj); rewrite INJ => [] [fs _].
+by rewrite (fs xs) /= (inv_fun_lid f s s) //.
+
+by rewrite INJ !I_THM /=.
+
+rewrite SURJ !I_THM /= => x xs.
+by exists x.
+
+by rewr I_O_ID.
+
+move => f [[f_inj f_surj] f_out]; rewrite inv_ext ?bij_s ?BIJ //.
+rewrite !f_ext !o_THM I_THM; split => x.
+  case: (EXCLUDED_MIDDLE `x IN s`) => xs; first by rewrite inv_fun_rid.
+  by rewr inv_fun /= xs /=; exact: f_out.
+case: (EXCLUDED_MIDDLE `x IN s`) => xs; first by rewrite inv_fun_lid.
+rewr inv_fun /=.
+by move: (f_out xs) => ->; rewr xs.
+
+by rewrite o_ASSOC.
+Qed.
+
+
+Lemma bij_gr s : `group ({f | bij_s f s}, (o), inv_fun s s, I)`.
+by apply: bij_group; rewrite SUBSET_REFL. Qed.
+
+
+Lemma test s f g : `bij_s f s ==> bij_s g s ==> inv_fun s s (f o g) = inv_fun s s g o inv_fun s s f`.
+move => bf bg.
+by rewrite (mulI (bij_gr s)) //; rewr IN_ELIM_THM.
+Qed.
+
+
+Lemma bij_sub s t : `s SUBSET t ==> subgroup (o) (inv_fun t t) {f | bij_s f s} {g | bij_s g t}`.
+move => s_t; rewrite subgroup; split.
+  by rewrite SUBSET; rewr IN_ELIM_THM => f; exact: bij_ext.
+split.
+  rewrite -MEMBER_NOT_EMPTY; exists `I:A->A`.
+  by rewrite (e_in_group (bij_gr s)).
+move => f g [fb gb].
+by rewrite (in_group (bij_gr s)) fb /= (i_in_group (bij_group s_t)).
+Qed.
+
+
+End BijGroup.
 

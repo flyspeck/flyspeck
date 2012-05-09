@@ -5963,13 +5963,97 @@ let BETA_SET_2_THM = prove
  CONV_TAC SELECT_CONV THEN EXISTS_TAC `g:(A->bool)->B` THEN
  REWRITE_TAC[]);;
 
+
 (* ==================================================================== *)
 (* Lemma 51 *)
 
+let SUM_PAIR_2_SET = prove
+(`!f s:real^N->bool d.
+ FINITE s
+==> sum {(m,n) | m IN s /\ n IN s /\ ~(m = n) /\ dist(m,n) <= d}
+ (\(m,n). f {m, n}) = &2 *
+ sum {{m, n} | m IN s /\ n IN s /\ ~(m = n) /\ dist(m,n) <= d} f`,
+REPEAT STRIP_TAC THEN MP_TAC(ISPECL
+ [`\(m:real^N,n). {m,n}`;`(\(m,n). f {m,n}):real^N#real^N->real`;
+  `{(m,n) | m IN s /\ n IN s /\ ~(m:real^N = n) /\ dist(m,n) <= d}`;
+  `{{m,n} | m IN s /\ n IN s /\ ~(m:real^N = n) /\ dist(m,n) <= d}`]
+  SUM_GROUP) THEN
+  ANTS_TAC THENL
+ [CONJ_TAC THENL
+ [ONCE_REWRITE_TAC[SET_RULE
+ `m IN s /\ n IN s /\ P m n <=>
+  m IN s /\ n IN {n | n IN s /\ P m n}`] THEN
+  MATCH_MP_TAC FINITE_PRODUCT_DEPENDENT THEN
+  ASM_SIMP_TAC[FINITE_RESTRICT];
+  REWRITE_TAC[SUBSET; FORALL_IN_IMAGE; FORALL_IN_GSPEC] THEN SET_TAC[]];
+  DISCH_THEN(SUBST1_TAC o SYM) THEN REWRITE_TAC[GSYM SUM_LMUL] THEN
+  MATCH_MP_TAC SUM_EQ THEN REWRITE_TAC[FORALL_IN_GSPEC] THEN
+  MAP_EVERY X_GEN_TAC [`m:real^N`; `n:real^N`] THEN STRIP_TAC THEN
+  MATCH_MP_TAC EQ_TRANS THEN
+  EXISTS_TAC `sum {(m:real^N,n), (n,m)} (\(m,n). f {m,n})` THEN
+  CONJ_TAC THENL
+  [AP_THM_TAC THEN AP_TERM_TAC THEN GEN_REWRITE_TAC I [EXTENSION] THEN
+  REWRITE_TAC[FORALL_PAIR_THM] THEN
+  REWRITE_TAC[IN_ELIM_THM; PAIR_EQ; IN_INSERT; NOT_IN_EMPTY;
+  SET_RULE `{a,b} = {c,d} <=> a = c /\ b = d \/ a = d /\ b = c`] THEN
+  ASM_MESON_TAC[DIST_SYM];
+  SIMP_TAC[SUM_CLAUSES; FINITE_INSERT; FINITE_EMPTY] THEN
+  ASM_REWRITE_TAC[IN_SING; NOT_IN_EMPTY; PAIR_EQ; REAL_ADD_RID] THEN
+  REWRITE_TAC[INSERT_AC] THEN REAL_ARITH_TAC]]);;
+
 (* ==================================================================== *)
 (* Lemma 52 *)
+
+open Flyspeck_constants;;
+
+let H0_LT_SQRT2 = prove_by_refinement (`h0 < sqrt (&2)`,
+[REWRITE_TAC[h0; GSYM sqrt2]; 
+ NEW_GOAL `#1.414213 < sqrt2`;
+ REWRITE_TAC[bounds];
+ ASM_REAL_ARITH_TAC]);;
+
 (* ==================================================================== *)
 (* Lemma 53 *)
+
+let gamma_y_pos_le = prove_by_refinement (
+ `!V X e. packing V /\ saturated V /\ mcell_set V X /\ edgeX V X e
+                        ==> &0 <= gammaY V X lmfun e`,
+[(REPEAT STRIP_TAC);
+ (REWRITE_TAC[gammaY]);
+ (NEW_GOAL `?u v. (VX V X u /\ VX V X v /\ ~(u = v)) /\ e = {u, v}`);
+ (UP_ASM_TAC THEN REWRITE_TAC[edgeX; IN_ELIM_THM]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (ABBREV_TAC `f = (\u v. if {u, v} IN edgeX V X
+             then dihX V X (u,v) * lmfun (hl [u; v])
+             else &0)`);
+ (REWRITE_WITH `(\({u, v}). if {u, v} IN edgeX V X
+             then dihX V X (u,v) * lmfun (hl [u; v])
+             else &0) = (\({u, v}). f u v)`);
+ (EXPAND_TAC "f" THEN REWRITE_TAC[]);
+ (REWRITE_WITH `(\({u:real^3, v}). f u v) {u, v} = (f:real^3->real^3->real) u v`);
+ (MATCH_MP_TAC BETA_PAIR_THM);
+ (EXPAND_TAC "f" THEN REPEAT STRIP_TAC);
+ (REPEAT COND_CASES_TAC);
+ (REWRITE_TAC[HL; set_of_list; SET_RULE `{a,b} = {b,a}`]);
+ (REWRITE_WITH `dihX V X (u',v') = dihX V X (v',u')`);
+ (MATCH_MP_TAC DIHX_SYM);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `F`);
+ (UP_ASM_TAC THEN REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b} = {b,a}`] THEN ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[]);
+ (NEW_GOAL `F`);
+ (UP_ASM_TAC THEN REWRITE_TAC[]);
+ (ONCE_REWRITE_TAC[SET_RULE `{a,b} = {b,a}`] THEN ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[]);
+ (REFL_TAC);
+ (EXPAND_TAC "f");
+ (COND_CASES_TAC);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[DIHX_POS;lmfun_pos_le]);
+ (REAL_ARITH_TAC)]);;
+
 (* ==================================================================== *)
 (* Lemma 54 *)
 (* ==================================================================== *)

@@ -79,6 +79,8 @@ public class RepeatNode extends TacticNode {
 				endRepeat = ")";
 			}
 		}
+
+		buffer.append('(');
 		
 		buffer.append(beginRepeat);
 		if (tactics.size() > 1) {
@@ -89,6 +91,7 @@ public class RepeatNode extends TacticNode {
 		tactics.translate(buffer, context);
 		
 		buffer.append(endRepeat);
+		buffer.append(')');
 	}
 
 }

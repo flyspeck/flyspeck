@@ -175,7 +175,7 @@ public class Test {
 	 * test5
 	 */
 	public static void test5() throws Exception {
-		CamlEnvironment env = new TestCamlEnvironment();
+		CamlEnvironment env = new TestCamlEnvironment("hol_light2");
 		
 		String cmd1 = "(hd o g)(`p /\\ q ==> (r /\\ x)`)";
 		String cmd2 = "(hd o e)(REPEAT STRIP_TAC)";

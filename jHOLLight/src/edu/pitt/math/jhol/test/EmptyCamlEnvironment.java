@@ -29,7 +29,7 @@ public class EmptyCamlEnvironment extends CamlEnvironment {
 	public CamlObject execute(String command, CamlType returnType)
 			throws Exception {
 		System.out.println("Executing: " + command);
-		
+/*		
 		if (returnType.equals(CamlType.TERM)) {
 			return testTerm;
 		}
@@ -37,7 +37,7 @@ public class EmptyCamlEnvironment extends CamlEnvironment {
 		if (returnType.equals(CamlType.THM)) {
 			return new Theorem.TempTheorem(testTerm, true);
 		}
-		
+*/		
 		return null;
 	}
 

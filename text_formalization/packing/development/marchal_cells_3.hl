@@ -5963,7 +5963,6 @@ let BETA_SET_2_THM = prove
  CONV_TAC SELECT_CONV THEN EXISTS_TAC `g:(A->bool)->B` THEN
  REWRITE_TAC[]);;
 
-
 (* ==================================================================== *)
 (* Lemma 51 *)
 (* Formal proof by John Harrison *)
@@ -6993,12 +6992,193 @@ let BOUND_BETA_BUMP = prove_by_refinement (
 
 (* ==================================================================== *)
 (* Lemma 62 *)
+
+let MCELL_SUBSET_BALL8_2 = prove (
+ `!V X v.  packing V /\ saturated V /\ mcell_set V X /\ v IN X
+             ==> X SUBSET ball (v,&8)`,
+ REWRITE_TAC[mcell_set; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+ UP_ASM_TAC THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN 
+ MATCH_MP_TAC MCELL_SUBSET_BALL8 THEN ASM_REWRITE_TAC[] THEN ASM_SET_TAC[]);;
+
 (* ==================================================================== *)
 (* Lemma 63 *)
+let critical_edge_subset_mcell = prove_by_refinement (
+ `!V X x. packing V /\ saturated V /\ mcell_set V X /\ critical_edgeX V X x
+          ==> x SUBSET X`,
+[(REWRITE_TAC[mcell_set_2; critical_edgeX; edgeX; IN_ELIM_THM; IN]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `VX V X = V INTER X`);
+ (MATCH_MP_TAC Hdtfnfz.HDTFNFZ); 
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num`);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC THEN UNDISCH_TAC `VX V X u'` THEN 
+  ASM_REWRITE_TAC[VX; MESON[IN] `{} u <=> u IN {}`] THEN SET_TAC[]);
+ (ASM_SET_TAC[])]);;
+
 (* ==================================================================== *)
 (* Lemma 64 *)
+
+let EDGEX_SUBSET_MCELL = prove_by_refinement (
+ `!V X e. packing V /\ saturated V /\ mcell_set V X /\ edgeX V X e 
+           ==> e SUBSET X`,
+[(REWRITE_TAC[edgeX; IN; IN_ELIM_THM; mcell_set] THEN REPEAT STRIP_TAC);
+ (NEW_GOAL `VX V X = V INTER X`);
+ (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num` THEN ASM_REWRITE_TAC[]
+  THEN STRIP_TAC THEN UNDISCH_TAC `VX V X u` THEN 
+  ASM_REWRITE_TAC[VX; MESON[IN] `{} x <=> x IN {}`] THEN SET_TAC[]);
+ (ASM_SET_TAC[])]);;
+
+let CRITICAL_EDGEX_SUBSET_MCELL = prove (
+ `!V X e. packing V /\ saturated V /\ mcell_set V X /\ critical_edgeX V X e 
+           ==> e SUBSET X`,
+ (REPEAT STRIP_TAC) THEN 
+ (MATCH_MP_TAC EDGEX_SUBSET_MCELL) THEN 
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]) THEN
+ (UP_ASM_TAC THEN REWRITE_TAC[critical_edgeX] THEN SET_TAC[]));;
+
 (* ==================================================================== *)
 (* Lemma 65 *)
+
+let FINITE_VX = prove_by_refinement (
+ `!V X. packing V /\ saturated V /\ mcell_set V X  ==> FINITE (VX V X)`,
+[(REWRITE_TAC[mcell_set_2; IN; IN_ELIM_THM] THEN REPEAT STRIP_TAC);
+ (ASM_CASES_TAC `VX V X = {}`);
+ (ASM_REWRITE_TAC[FINITE_EMPTY]);
+ (REWRITE_WITH `VX V X = V INTER X`);
+ (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num` THEN ASM_REWRITE_TAC[]
+  THEN STRIP_TAC THEN UNDISCH_TAC `~(VX V X = {})` THEN 
+  ASM_REWRITE_TAC[VX]);
+ (ASM_CASES_TAC `V INTER (X:real^3->bool) = {}`);
+ (ASM_REWRITE_TAC[FINITE_EMPTY]);
+ (REWRITE_WITH 
+  `(V:real^3->bool) INTER X = set_of_list (truncate_simplex (i-1) ul)`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Lepjbdj.LEPJBDJ);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+ (ASM_CASES_TAC `i = 0`);
+ (NEW_GOAL `F`);
+ (UNDISCH_TAC `~(V INTER (X:real^3->bool) = {})`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Lepjbdj.LEPJBDJ_0);
+ (ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[]);
+ (ASM_ARITH_TAC);
+ (STRIP_TAC);
+ (UNDISCH_TAC `~(VX V X = {})` THEN ASM_REWRITE_TAC[VX; NEGLIGIBLE_EMPTY]);
+ (REWRITE_TAC[FINITE_SET_OF_LIST])]);;
+
 (* ==================================================================== *)
 (* Lemma 66 *)
+
+let CARD_EDGEX_LE_16 = prove_by_refinement (
+ `!V X. packing V /\ saturated V /\ mcell_set V X 
+           ==> CARD (edgeX V X) <= 16`,
+[(REWRITE_TAC[edgeX] THEN REPEAT STRIP_TAC);
+ (ABBREV_TAC `S = {u, v | VX V X u /\ VX V X v /\ ~(u = v)}`);
+ (ABBREV_TAC `f = (\(u,v:real^3). {u,v})`);
+ (MATCH_MP_TAC (ARITH_RULE `(?x:num. y <= x /\ x <= z) ==> y <= z`));
+ (EXISTS_TAC `CARD (IMAGE (f:(real^3#real^3)->(real^3->bool)) S)`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC CARD_SUBSET);
+ (STRIP_TAC);
+ (EXPAND_TAC "f" THEN EXPAND_TAC "S" THEN 
+   REWRITE_TAC[IMAGE; SUBSET; IN; IN_ELIM_THM] THEN REPEAT STRIP_TAC);
+ (EXISTS_TAC `u:real^3,v:real^3` THEN ASM_REWRITE_TAC[]);
+ (EXISTS_TAC `u:real^3` THEN EXISTS_TAC `v:real^3` THEN ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC FINITE_IMAGE);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `{u,v | u IN VX V X /\ v IN VX V X}`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC FINITE_PRODUCT);
+ (REWRITE_TAC[] THEN MATCH_MP_TAC FINITE_VX);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+
+ (MATCH_MP_TAC (ARITH_RULE `(?x:num. y <= x /\ x <= z) ==> y <= z`));
+ (EXISTS_TAC `CARD (S:(real^3#real^3)->bool)`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC CARD_IMAGE_LE);
+ (MATCH_MP_TAC FINITE_SUBSET);
+ (EXISTS_TAC `{u,v | u IN VX V X /\ v IN VX V X}`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC FINITE_PRODUCT);
+ (REWRITE_TAC[] THEN MATCH_MP_TAC FINITE_VX);
+ (ASM_REWRITE_TAC[]);
+ (ASM_SET_TAC[]);
+
+ (MATCH_MP_TAC (ARITH_RULE `(?x:num. y <= x /\ x <= z) ==> y <= z`));
+ (EXISTS_TAC `CARD {u,v | u IN VX V X /\ v IN VX V X}`);
+ (STRIP_TAC);
+ (MATCH_MP_TAC CARD_SUBSET);
+ (STRIP_TAC);
+ (ASM_SET_TAC[]);
+ (MATCH_MP_TAC FINITE_PRODUCT);
+ (REWRITE_TAC[] THEN MATCH_MP_TAC FINITE_VX);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_WITH 
+   `CARD {u,v | u IN VX V X /\ v IN VX V X} = CARD (VX V X) * CARD (VX V X)`);
+ (MATCH_MP_TAC CARD_PRODUCT THEN ASM_SIMP_TAC[FINITE_VX]);
+
+ (UNDISCH_TAC `mcell_set V X` THEN REWRITE_TAC[mcell_set_2; IN; IN_ELIM_THM]);
+ (STRIP_TAC);
+
+ (ASM_CASES_TAC `VX V X = {}`);
+ (ASM_REWRITE_TAC[CARD_CLAUSES] THEN ARITH_TAC);
+ (REWRITE_WITH `VX V X = V INTER X`);
+ (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num` THEN ASM_REWRITE_TAC[]
+  THEN STRIP_TAC THEN UNDISCH_TAC `~(VX V X = {})` THEN 
+  ASM_REWRITE_TAC[VX]);
+ (ASM_CASES_TAC `V INTER (X:real^3->bool) = {}`);
+ (ASM_REWRITE_TAC[CARD_CLAUSES] THEN ARITH_TAC);
+ (REWRITE_WITH 
+  `(V:real^3->bool) INTER X = set_of_list (truncate_simplex (i-1) ul)`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Lepjbdj.LEPJBDJ);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC);
+ (ASM_CASES_TAC `i = 0`);
+ (NEW_GOAL `F`);
+ (UNDISCH_TAC `~(V INTER (X:real^3->bool) = {})`);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Lepjbdj.LEPJBDJ_0);
+ (ASM_REWRITE_TAC[]);
+ (ASM_MESON_TAC[]);
+ (ASM_ARITH_TAC);
+ (STRIP_TAC);
+ (UNDISCH_TAC `~(VX V X = {})` THEN ASM_REWRITE_TAC[VX; NEGLIGIBLE_EMPTY]);
+ (NEW_GOAL `CARD (set_of_list (truncate_simplex (i - 1) ul)) <= 
+             LENGTH (truncate_simplex (i - 1) (ul:(real^3)list))`);
+ (REWRITE_TAC[CARD_SET_OF_LIST_LE]);
+ (UP_ASM_TAC THEN REWRITE_WITH 
+   `LENGTH (truncate_simplex (i - 1) (ul:(real^3)list)) = (i - 1 + 1)`);
+ (MATCH_MP_TAC Packing3.LENGTH_TRUNCATE_SIMPLEX);
+ (REWRITE_WITH `LENGTH (ul:(real^3)list) = 3 + 1`);
+ (MATCH_MP_TAC BARV_LENGTH_LEMMA);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (ASM_ARITH_TAC);
+ (STRIP_TAC);
+ (ABBREV_TAC 
+   `s = CARD (set_of_list (truncate_simplex (i - 1) (ul:(real^3)list)))`);
+ (NEW_GOAL `s <= 4`);
+ (ASM_ARITH_TAC);
+ (NEW_GOAL `s * s <= s * 4 /\ s * 4 <= 4 * 4`);
+ (ASM_REWRITE_TAC[LE_MULT_LCANCEL; LE_MULT_RCANCEL]);
+ (ASM_ARITH_TAC)]);;
+
+(* ==================================================================== *)
+(* Lemma 67 *)
+(* ==================================================================== *)
+(* Lemma 68 *)
+(* ==================================================================== *)
+(* Lemma 69 *)
+(* ==================================================================== *)
+(* Lemma 70 *)
+(* ==================================================================== *)
+(* Lemma 71 *)
+
+
 

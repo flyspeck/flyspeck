@@ -7171,8 +7171,190 @@ let CARD_EDGEX_LE_16 = prove_by_refinement (
 
 (* ==================================================================== *)
 (* Lemma 67 *)
+let gamma_y_lmfun_bound2 = prove_by_refinement (
+ `?d. (!V X e. packing V /\ saturated V /\ mcell_set V X /\ edgeX V X e ==> gammaY V X lmfun e <= d)`,
+[
+ (EXISTS_TAC `pi * h0 / (h0 - &1)`);
+ (REPEAT STRIP_TAC);
+ (ABBREV_TAC `f = (\u v. if {u, v} IN edgeX V X
+                             then dihX V X (u,v) * lmfun (hl [u; v])
+                          else &0)`);
+ (REWRITE_WITH `gammaY V X lmfun = (\({u, v}). f u v)`);
+ (EXPAND_TAC "f" THEN REWRITE_TAC[gammaY]);
+
+ (NEW_GOAL `!u v. (f:real^3->real^3->real) u v = f v u`);
+ (EXPAND_TAC "f" THEN REWRITE_TAC[BETA_THM]);
+ (REWRITE_TAC[HL; set_of_list; SET_RULE `{a,b} = {b,a}`]);
+ (REPEAT GEN_TAC THEN COND_CASES_TAC);
+ (COND_CASES_TAC);
+ (REWRITE_WITH `dihX V X (u,v) = dihX V X (v,u)`);
+ (MATCH_MP_TAC DIHX_SYM);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN MESON_TAC[]);
+ (COND_CASES_TAC);
+ (UP_ASM_TAC THEN MESON_TAC[]);
+ (REFL_TAC);
+
+ (UNDISCH_TAC `edgeX V X e` THEN REWRITE_TAC[IN;IN_ELIM_THM; edgeX]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+
+ (REWRITE_WITH `(\({u, v}). f u v) {u, v} = 
+                             (f:real^3->real^3->real) u v`);
+ (MATCH_MP_TAC BETA_PAIR_THM);
+ (ASM_REWRITE_TAC[]);
+
+ (EXPAND_TAC "f");
+ (COND_CASES_TAC);
+
+ (NEW_GOAL `dihX V X (u,v) * lmfun (hl [u;v]) <= pi * lmfun (hl [u;v])`);
+ (REWRITE_TAC[REAL_ARITH `a * x <= b * x <=> &0 <= (b - a) * x`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[lmfun_pos_le; REAL_ARITH `&0 <= a - b <=> b <= a`; DIHX_LE_PI]);
+
+ (NEW_GOAL `pi * lmfun (hl [u:real^3;v]) <= pi * h0 / (h0 - &1)`);
+ (REWRITE_TAC[REAL_ARITH `a * x <= a * y <=> &0 <= (y - x) * a`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[PI_POS_LE; REAL_ARITH `&0 <= a - b <=> b <= a`]);
+ (MATCH_MP_TAC lmfun_bounded);
+ (REWRITE_TAC[HL_2; REAL_ARITH `&0 <= inv (&2) * x <=> &0 <= x`; DIST_POS_LE]);
+ (UP_ASM_TAC THEN UP_ASM_TAC THEN REAL_ARITH_TAC);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (REWRITE_TAC[PI_POS_LE]);
+ (MATCH_MP_TAC REAL_LE_DIV);
+ (REWRITE_TAC[h0] THEN REAL_ARITH_TAC)]);;
+
 (* ==================================================================== *)
 (* Lemma 68 *)
+let BOUND_GAMMA_X_lmfun = prove_by_refinement (
+ `?c. 
+  (!V X. packing V /\ saturated V /\ mcell_set V X ==> gammaX V X lmfun <= c)`,
+[(MP_TAC gamma_y_lmfun_bound2 THEN STRIP_TAC);
+ (ABBREV_TAC `e = max d (&0)`);
+ (EXISTS_TAC `&4 / &3 * pi * (&8) pow 3 + (&8 * mm2 / pi) * &16 * e`);
+ (REPEAT STRIP_TAC);
+ (REWRITE_TAC[gammaX]);
+ (MATCH_MP_TAC (REAL_ARITH 
+  `a <= x /\ &0 <= b /\ c <= y ==> a - b + c <= x + y`));
+ (REPEAT STRIP_TAC);
+ (ASM_CASES_TAC `X:real^3->bool = {}`);
+ (ASM_REWRITE_TAC[MEASURE_EMPTY; 
+   REAL_ARITH `&0 <= &4 / &3 * pi * &8 pow 3 <=> &0 <= pi`]);
+ (REWRITE_TAC[PI_POS_LE]);
+ (NEW_GOAL `?p:real^3. p IN X`);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN STRIP_TAC);
+ (REWRITE_WITH `&4 / &3 * pi * &8 pow 3 = vol (ball (p, &8))`);
+ (ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN MATCH_MP_TAC VOLUME_BALL);
+ (REAL_ARITH_TAC);
+ (MATCH_MP_TAC MEASURE_SUBSET);
+ (REWRITE_TAC[MEASURABLE_BALL]);
+ (STRIP_TAC);
+ (UNDISCH_TAC `mcell_set V X` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MCELL_SUBSET_BALL8_2);
+ (EXISTS_TAC `V:real^3->bool` THEN ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &2 * a <=> &0 <= a`]);
+ (MATCH_MP_TAC REAL_LE_DIV);
+ (STRIP_TAC);
+ (NEW_GOAL `#1.012080 < mm1`);
+ (REWRITE_TAC[Flyspeck_constants.bounds]);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_TAC[PI_POS_LE]);
+ (REWRITE_TAC[total_solid]);
+ (MATCH_MP_TAC SUM_POS_LE);
+ (REPEAT STRIP_TAC);
+ (MATCH_MP_TAC FINITE_VX);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[sol]);
+
+ (NEW_GOAL `eventually_radial (x:real^3) X`);
+ (UNDISCH_TAC `mcell_set V X` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Urrphbz2.URRPHBZ2);
+ (ASM_REWRITE_TAC[]);
+ (NEW_GOAL `VX V X = V INTER X`);
+ (MATCH_MP_TAC Hdtfnfz.HDTFNFZ);
+ (EXISTS_TAC `ul:(real^3)list` THEN EXISTS_TAC `i:num`);
+ (ASM_REWRITE_TAC[]);
+ (STRIP_TAC THEN UNDISCH_TAC `x IN VX V X`);
+ (ASM_REWRITE_TAC[VX] THEN SET_TAC[]);
+ (ASM_SET_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[eventually_radial]);
+ (STRIP_TAC);
+
+ (REWRITE_WITH `sol x X = &3 * vol (X INTER normball x r) / r pow 3`);
+ (MATCH_MP_TAC sol);
+ (REWRITE_TAC[GSYM Marchal_cells_2_new.RADIAL_VS_RADIAL_NORM; NORMBALL_BALL]);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (REWRITE_TAC[MEASURABLE_BALL]);
+ (UNDISCH_TAC `mcell_set V X` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (REWRITE_TAC[REAL_ARITH `&0 <= &3 * a <=> &0 <= a`]);
+ (MATCH_MP_TAC REAL_LE_DIV);
+ (STRIP_TAC);
+ (MATCH_MP_TAC MEASURE_POS_LE);
+ (REWRITE_TAC[NORMBALL_BALL]);
+ (MATCH_MP_TAC MEASURABLE_INTER);
+ (REWRITE_TAC[MEASURABLE_BALL]);
+ (UNDISCH_TAC `mcell_set V X` THEN REWRITE_TAC[mcell_set; IN; IN_ELIM_THM]);
+ (STRIP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC MEASURABLE_MCELL);
+ (ASM_REWRITE_TAC[]);
+ (MATCH_MP_TAC Real_ext.REAL_PROP_NN_POW);
+ (ASM_REAL_ARITH_TAC);
+ (ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> &0 <= b - a`]);
+ (REWRITE_TAC[REAL_ARITH `a * x - a * y = a * (x - y)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+
+ (REWRITE_TAC[REAL_ARITH `&0 <= &8 * a <=> &0 <= a`]);
+ (MATCH_MP_TAC REAL_LE_DIV);
+ (STRIP_TAC);
+ (NEW_GOAL `#0.02541 < mm2`);
+ (REWRITE_TAC[Flyspeck_constants.bounds]);
+ (ASM_REAL_ARITH_TAC);
+ (REWRITE_TAC[PI_POS_LE]);
+ (REWRITE_TAC[GSYM gammaY]);
+ (ONCE_REWRITE_TAC[REAL_ARITH `&0 <= b - a <=> a <= b`]);
+ (NEW_GOAL `sum (edgeX V X) (gammaY V X lmfun) <= 
+             sum (edgeX V X) (\x. e)`);
+ (MATCH_MP_TAC SUM_LE);
+ (REWRITE_TAC[Upfzbzm_support_lemmas.FINITE_edgeX]);
+ (REPEAT STRIP_TAC);
+ (NEW_GOAL `gammaY V X lmfun x <= d`);
+ (FIRST_ASSUM MATCH_MP_TAC);
+ (ASM_REWRITE_TAC[]);
+ (UP_ASM_TAC THEN REWRITE_TAC[IN]);
+ (ASM_REAL_ARITH_TAC);
+
+ (NEW_GOAL `sum (edgeX V X) (\x. e) <= &16 * e`);
+ (REWRITE_WITH `sum (edgeX V X) (\x. e) = &(CARD (edgeX V X)) * e`);
+ (MATCH_MP_TAC SUM_CONST);
+ (REWRITE_TAC[Upfzbzm_support_lemmas.FINITE_edgeX]);
+
+ (ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> &0 <= b - a`]);
+ (REWRITE_TAC[REAL_ARITH `a * x - b * x = x * (a - b)`]);
+ (MATCH_MP_TAC REAL_LE_MUL);
+ (STRIP_TAC);
+ (ASM_REAL_ARITH_TAC);
+ (ONCE_REWRITE_TAC[REAL_ARITH `&0 <= b - a <=> a <= b`]);
+ (REWRITE_TAC[REAL_OF_NUM_LE]);
+ (MATCH_MP_TAC CARD_EDGEX_LE_16);
+ (ASM_REWRITE_TAC[]);
+ (ASM_REAL_ARITH_TAC)]);;
+
 (* ==================================================================== *)
 (* Lemma 69 *)
 (* ==================================================================== *)

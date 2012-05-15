@@ -40,9 +40,8 @@ open Nkezbfc_local;;
 open Flyspeck_constants;;
 
 
-
 let CARD_F_SY_IN_B_SY=prove(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ l IN B_SY1 (a_sy s) (b_sy s)
 ==>  CARD (F_SY (vecmats l))=k`,
 REPEAT STRIP_TAC
@@ -79,7 +78,7 @@ THEN REAL_ARITH_TAC);;
 
 
 let B_SY_LE_CSTAB=prove(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ 1<= i /\ i<= k
 /\ l IN B_SY1 (a_sy s) (b_sy s)
 ==> norm (row i (vecmats l) - row (SUC (i MOD k)) (vecmats l))<= cstab`,
@@ -127,7 +126,11 @@ THEN POP_ASSUM MP_TAC
 THEN MP_TAC(ARITH_RULE`i<=k==> i<= k-1 \/ i=k`)
 THEN RESA_TAC
 THENL[
-MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num`;]
+MP_TAC(ARITH_RULE`2<k ==> 1<=k /\ 1<k`)
+THEN RESA_TAC
+THEN MRESAL_TAC MOD_MULT_ADD[`1`;`k:num`;`i+1`][ARITH_RULE`1*A=A`]
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`i+1:num`;`k:num`]
+THEN MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num`;]
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESA1_TAC th`i:num`)
 THEN POP_ASSUM MP_TAC
@@ -139,6 +142,7 @@ THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`i+1:num`][ARITH_RULE`A+0=A`])
+THEN ONCE_REWRITE_TAC[ARITH_RULE`1+A=A+1`]
 THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
 THEN MP_TAC(ARITH_RULE`i <= k-1 /\ 1<=i ==> i< k`)
 THEN RESA_TAC
@@ -161,9 +165,17 @@ THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`1:num`;`k:num`][ARITH_RULE`A+0=A`])
+THEN MP_TAC(ARITH_RULE`2<k ==> 1<= k/\ 1<k /\ ~(k=0)`)
+THEN RESA_TAC 
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ k+k=k *2`]
 THEN REAL_ARITH_TAC]]);;
 
-let PROPERTIES_EAR_SY=prove(`!s:stable_sy. ear_sy s ==> ?i. J_SY s={{i,f_sy s (1,i)}} /\ i IN I_SY s`,
+
+
+
+
+let PROPERTIES_EAR_SY=prove(`!s:stable_sy. ear_sy s ==> ?i. J_SY s={{i,f_sy s i}} /\ i IN I_SY s`,
 GEN_TAC
 THEN REWRITE_TAC[ear_sy]
 THEN STRIP_TAC
@@ -183,7 +195,11 @@ THEN POP_ASSUM(fun th-> MRESA1_TAC th`x:(num->bool)`)
 THEN EXISTS_TAC`i:num`
 THEN ASM_REWRITE_TAC[]);;
 
-let SING_J1_SY=prove_by_refinement(`!s:stable_sy. ear_sy s /\ I_SY s=0.. k_sy s -1 /\ f_sy s=(\(i,j). ((j+i):num MOD k))/\ k_sy s =k /\ 2<k ==> ?i. J1_SY s= {(i,SUC(i MOD k_sy s))} /\ J_SY s= {{i MOD k,f_sy s (1,i)}} /\ i<=k /\ 1<=i`,
+
+
+
+
+let SING_J1_SY=prove_by_refinement(`!s:stable_sy. ear_sy s /\ I_SY s=0.. k_sy s -1 /\ f_sy s=(\i. ((1+i):num MOD k))/\ k_sy s =k /\ 2<k ==> ?i. J1_SY s= {(i,SUC(i MOD k_sy s))} /\ J_SY s= {{i MOD k,f_sy s i}} /\ i<=k /\ 1<=i`,
 [REPEAT STRIP_TAC
 THEN MRESAL1_TAC PROPERTIES_EAR_SY`s:stable_sy`[IN_NUMSEG]
 THEN DISJ_CASES_TAC(ARITH_RULE`i=0 \/ 1<= i`);
@@ -192,7 +208,7 @@ THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ k<=k /\ 1<=k`)
 THEN RESA_TAC
 THEN MRESA_TAC MOD_LT[`1:num`;`k_sy(s:stable_sy)`]
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN MRESA_TAC MOD_ADD_MOD[`k:num`;`1`;`k:num`]
+THEN MRESA_TAC MOD_ADD_MOD[`1:num`;`k:num`;`k:num`]
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -212,28 +228,28 @@ THEN RESA_TAC;
 MRESA_TAC MOD_LT[`i':num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th])
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(ARITH_RULE`i' < k_sy s==> i' +1 < k_sy s \/ i' +1 = k_sy (s:stable_sy)`)
+THEN MP_TAC(ARITH_RULE`i' < k_sy s==> 1+i' < k_sy s \/ 1+i' = k_sy (s:stable_sy)`)
 THEN RESA_TAC;
-MRESA_TAC MOD_LT[`i'+1:num`;`k_sy(s:stable_sy)`]
+MRESA_TAC MOD_LT[`1+i':num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th])
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(ARITH_RULE`1<= i' ==> ~(i'= 0) /\ ~(i'+1=0)`)
+THEN MP_TAC(ARITH_RULE`1<= i' ==> ~(i'= 0) /\ ~(1+i'=0)`)
 THEN RESA_TAC
-THEN MP_TAC(SET_RULE`~(i'= 0) /\ ~(i'+1=0) ==> ~({i', i' + 1} = {0, (0 + 1) MOD k})`)
+THEN MP_TAC(SET_RULE`~(i'= 0) /\ ~(1+i'=0) ==> ~({i', 1+i'} = {0, (1+ 0) MOD k})`)
 THEN ASM_REWRITE_TAC[];
 POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ ~(1+1=k)`)
 THEN RESA_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`] )
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`] )
 THEN REPEAT DISCH_TAC
 THEN MRESA_TAC MOD_LT[`1:num`;`k_sy(s:stable_sy)`]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`])
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`])
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(SET_RULE`{i', 0} = {0, 1} /\ ~(0=1)==> i'=1`)
 THEN RESA_TAC
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`] )
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`] )
 THEN REPEAT DISCH_TAC
 THEN POP_ASSUM MP_TAC
 THEN RESA_TAC;
@@ -268,14 +284,14 @@ THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ ~(1+1=k)`)
 THEN RESA_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`] )
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`] )
 THEN REPEAT DISCH_TAC
 THEN MRESA_TAC MOD_LT[`1:num`;`k_sy(s:stable_sy)`]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`])
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`])
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`1<= i==> ~(i=0)/\ ~(0=2)`)
 THEN RESA_TAC
-THEN MP_TAC(SET_RULE`{0, 1} = {i, (i + 1) MOD k} /\ ~(i=0)==> i=1`)
+THEN MP_TAC(SET_RULE`{0, 1} = {i, (1+i ) MOD k} /\ ~(i=0)==> i=1`)
 THEN RESA_TAC
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+1=2`] )
 THEN REPEAT DISCH_TAC
@@ -290,51 +306,51 @@ RESA_TAC;
 MRESA_TAC MOD_LT[`i':num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th])
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(ARITH_RULE`i' < k_sy s==> i' +1 = k_sy (s:stable_sy) \/ i' +1 < k_sy s `)
+THEN MP_TAC(ARITH_RULE`i' < k_sy s==> 1+i' = k_sy (s:stable_sy) \/ 1+ i'  < k_sy s `)
 THEN RESA_TAC;
 POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ ~(1+1=k)`)
 THEN RESA_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`] )
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`] )
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`1<= i==> ~(i=0)/\ ~(0=2)`)
 THEN RESA_TAC
-THEN MP_TAC(SET_RULE`{i', 0} = {i, (i + 1) MOD k} /\ ~(i=0)==> i=i'`)
+THEN MP_TAC(SET_RULE`{i', 0} = {i, (1+i) MOD k} /\ ~(i=0)==> i=i'`)
 THEN RESA_TAC
 THEN MRESA_TAC MOD_LT[`i':num`;`k_sy(s:stable_sy)`];
-MP_TAC(ARITH_RULE`i <= k-1 /\ 2< k==> i +1 = k \/ i +1 < k `)
+MP_TAC(ARITH_RULE`i <= k-1 /\ 2< k==> 1+i  = k \/ 1+i < k `)
 THEN RESA_TAC;
 POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
 THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ ~(1+1=k)`)
 THEN RESA_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`0+1=1`] )
+THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+0=1`] )
 THEN REPEAT DISCH_TAC
-THEN MRESA_TAC MOD_LT[`i'+1:num`;`k_sy(s:stable_sy)`]
+THEN MRESA_TAC MOD_LT[`1+i':num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(ARITH_RULE`1<= i' ==> ~(i'= 0) /\ ~(i'+1=0)`)
+THEN MP_TAC(ARITH_RULE`1<= i' ==> ~(i'= 0) /\ ~(1+i'=0)`)
 THEN RESA_TAC
-THEN MP_TAC(SET_RULE`~(i'= 0) /\ ~(i'+1=0) ==> ~({i', i' + 1} = {i, 0})`)
+THEN MP_TAC(SET_RULE`~(i'= 0) /\ ~(1+i'=0) ==> ~({i', 1+i' } = {i, 0})`)
 THEN RESA_TAC;
-MRESA_TAC MOD_LT[`i'+1:num`;`k_sy(s:stable_sy)`]
+MRESA_TAC MOD_LT[`1+i':num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
-THEN MRESA_TAC MOD_LT[`i+1:num`;`k_sy(s:stable_sy)`]
+THEN MRESA_TAC MOD_LT[`1+i:num`;`k_sy(s:stable_sy)`]
 THEN POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN ASSUME_TAC th)
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(SET_RULE`{i', i' + 1} = {i, i + 1} ==> i= i'+1 \/ i=i'`)
+THEN MP_TAC(SET_RULE`{i',1+ i'} = {i,1+ i} ==> i= 1+i' \/ i=i'`)
 THEN RESA_TAC;
-POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`(i+1)+1=i+2`] )
+POP_ASSUM(fun th-> ASM_TAC THEN ONCE_REWRITE_TAC[th] THEN REWRITE_TAC[ARITH_RULE`1+(1+i)=2+i`] )
 THEN REPEAT DISCH_TAC
-THEN MP_TAC(ARITH_RULE`~(i'= i'+2)`)
+THEN MP_TAC(ARITH_RULE`~(i'= 2+i')`)
 THEN RESA_TAC
-THEN SUBGOAL_THEN`~({i', i' + 1} = {i'+1, i'+2})` MP_TAC;
-REWRITE_TAC[EXTENSION;SET_RULE`x IN {A,B}<=> x= A \/ x=B`;]
-THEN POP_ASSUM MP_TAC
+THEN SUBGOAL_THEN`~({i', 1+i'} = {1+i', 2+i'})` MP_TAC;
+POP_ASSUM MP_TAC
+THEN MP_TAC(ARITH_RULE`~(i'= 1+i') /\ ~(1+i'= 2+i')`)
 THEN SET_TAC[];
 RESA_TAC;
 MRESA_TAC MOD_LT[`i:num`;`k_sy(s:stable_sy)`];
@@ -345,8 +361,9 @@ THEN MP_TAC(ARITH_RULE`i<=k-1  /\ 2<k==> i<= k/\ i<k`)
 THEN RESA_TAC
 THEN MRESA_TAC MOD_LT[`i:num`;`k_sy(s:stable_sy)`]]);;
 
+
 let D_FUN_LE=prove_by_refinement(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ d_sy s<= #0.9
 /\ pi<= sol_local (E_SY(vecmats l)) (F_SY(vecmats l))
 /\ l IN B_SY1 (a_sy s) (b_sy s)
@@ -380,11 +397,13 @@ THEN MP_TAC(ARITH_RULE`i<=k==> i=k \/ i< k:num`)
 THEN RESA_TAC;
 MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ 1<=k/\ k<=k `)
 THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ k+k=k *2`]
 THEN MRESA_TAC MOD_LT[`1:num`;`k_sy(s:stable_sy)`]
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][ARITH_RULE`k*1=k`;ARITH_RULE`SUC 0=1`;DIMINDEX_NONZERO]
-THEN MRESA_TAC MOD_ADD_MOD[`k:num`;`1`;`k:num`]
+THEN MRESA_TAC MOD_ADD_MOD[`1:num`;`k:num`;`k:num`]
 THEN POP_ASSUM(fun th-> ASSUME_TAC(SYM th))
-THEN MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num/\ 0+1=1`;IN_SING]
+THEN MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num/\ 1+0=1`;IN_SING]
 THEN POP_ASSUM(fun th-> MRESA_TAC th[`0`;`1`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
@@ -395,7 +414,7 @@ THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`1`;`k:num`][ARITH_RULE`A+0=A`])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`1`;`k:num`][ARITH_RULE`A+0=A/\ k+k= k* 2`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
 THEN FIND_ASSUM MP_TAC`(l:real^(M,3)finite_product) IN B_SY1 (a_sy s) (b_sy (s:stable_sy))`
@@ -406,8 +425,13 @@ THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`k:num`;`1:num`][ARITH_RULE`1<=1`]);
 MRESA_TAC MOD_LT[`i:num`;`k_sy(s:stable_sy)`]
+THEN MP_TAC(ARITH_RULE`2<k==> ~(k=0)/\ 1<k/\ ~(0=1) /\ 1<=k/\ k<=k `)
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`1+i:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ k+k=k *2`]
+THEN MRESAL_TAC MOD_MULT_ADD[`1:num`;`k:num`;`1+i:num`][ARITH_RULE`1*A=A`]
 THEN MRESAL1_TAC stable_sy_lemma`s:stable_sy`[stable_system;IN_NUMSEG;ARITH_RULE`0<= i:num/\ 0+1=1`;IN_SING]
-THEN POP_ASSUM(fun th-> MRESA_TAC th[`i:num`;`(i + 1) MOD k`])
+THEN POP_ASSUM(fun th-> MRESA_TAC th[`i:num`;`(1+i) MOD k`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
 THEN REMOVE_ASSUM_TAC
@@ -417,10 +441,10 @@ THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`i+1:num`][ARITH_RULE`A+0=A`])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`1+i:num`][ARITH_RULE`A+0=A`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
-THEN MP_TAC(ARITH_RULE`i<k==> 1<= i+1 /\ i+1<=k`)
+THEN MP_TAC(ARITH_RULE`i<k==> 1<= 1+i /\ 1+i<=k`)
 THEN RESA_TAC
 THEN FIND_ASSUM MP_TAC`(l:real^(M,3)finite_product) IN B_SY1 (a_sy s) (b_sy (s:stable_sy))`
 THEN REWRITE_TAC[B_SY1;IN_ELIM_THM;CONDITION1_SY]
@@ -428,7 +452,10 @@ THEN STRIP_TAC
 THEN ASM_REWRITE_TAC[VECMATS_MATVEC_ID;ADD1]
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`i+1:num`][ARITH_RULE`1<=1`]);
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`1+i:num`][ARITH_RULE`1<=1`])
+THEN ASM_REWRITE_TAC[ARITH_RULE`1<=1/\ 1+i= SUC i`;ADD1]
+THEN ONCE_REWRITE_TAC[ARITH_RULE`i+1=1+i`]
+THEN ASM_REWRITE_TAC[];
 MATCH_MP_TAC(REAL_ARITH`d_fun (s,l) <= d_sy s + #0.1 * (cstab - sqrt (&8))
 /\ d_sy s <= #0.9 /\ cstab - sqrt (&8)<= #0.2
 ==> d_fun (s,l) <= #0.92`)
@@ -438,7 +465,7 @@ THEN REAL_ARITH_TAC]);;
 
 
 let TAU_FUN_LE=prove_by_refinement(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ pi<= sol_local (E_SY(vecmats l)) (F_SY(vecmats l))
 /\ l IN B_SY1 (a_sy s) (b_sy s)
 ==> #0.92< tau_fun (V_SY(vecmats l)) (E_SY(vecmats l)) (F_SY(vecmats l))`,
@@ -548,10 +575,8 @@ REWRITE_TAC[REAL_ARITH`pi + sol0 * &2 - sol0 * &6= pi - sol0 * &4`;]
 THEN MATCH_MP_TAC(REAL_ARITH`sol0 < #0.551286 /\ #3.14159 < pi ==> #0.92 < pi - sol0 * &4`)
 THEN REWRITE_TAC[Flyspeck_constants.bounds]]);;
 
-
-
 let TAU_STAR_POS=prove(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ d_sy s<= #0.9
 /\ pi<= sol_local (E_SY(vecmats l)) (F_SY(vecmats l))
 /\ l IN B_SY1 (a_sy s) (b_sy s)
@@ -593,9 +618,8 @@ THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESA1_TAC th`FST (x:real^3#real^3)`));;
 
-
 let NOT_CIRCULAR_SY=prove(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ d_sy s<= #0.9
 /\ tau_star s l <= &0
 /\ l IN B_SY1 (a_sy s) (b_sy s)
@@ -643,7 +667,7 @@ THEN ASM_REWRITE_TAC[REAL_ARITH`~(&0< A) <=> A <= &0`]);;
 
 let GBYCPXS
 = prove(`!s:stable_sy l:real^(M,3)finite_product. 
-k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD k)) /\ 2<k 
+k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\i. ((1+i):num MOD k)) /\ 2<k 
 /\ l IN B_SY1 (a_sy s) (b_sy s)
 ==>
 (d_sy s<= #0.9
@@ -656,11 +680,6 @@ k_sy s =k /\ dimindex(:M) =k/\ I_SY s= 0..k-1 /\ f_sy s=(\(i,j). ((j+i):num MOD 
 REPEAT STRIP_TAC
 THEN MRESA_TAC (GEN_ALL TAU_STAR_POS)[`k:num`;`s:stable_sy`;`l:real^(M,3)finite_product`]
 THEN MRESA_TAC (GEN_ALL NOT_CIRCULAR_SY)[`k:num`;`s:stable_sy`;`l:real^(M,3)finite_product`]);;
-
-
-
-
-
 
 
 

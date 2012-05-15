@@ -39,14 +39,33 @@ open Dih2k_hypermap;;
 
 
 
+let POWER_MOD_FUN=prove(`!n. 1<=n /\ 1<k ==> ((\i. ((1+i):num MOD k)) POWER n) i = (\i. ((n+i):num MOD k)) i`,
+INDUCT_TAC
+THENL[ARITH_TAC;
+DISJ_CASES_TAC(ARITH_RULE`n=0 \/ 1<=n`)
+THENL[
+ASM_REWRITE_TAC[POWER;I_DEF;ARITH_RULE`SUC 0=1`;o_DEF];
+POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC"THY")
+THEN STRIP_TAC THEN STRIP_TAC
+THEN REMOVE_THEN "THY" MP_TAC
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[COM_POWER;o_DEF;ADD1;MOD_ADD_MOD]
+THEN MP_TAC(ARITH_RULE`1<k==> ~(k=0)`)
+THEN RESA_TAC
+THEN MRESA_TAC MOD_LT[`1:num`;`k:num`]
+THEN MRESAL_TAC MOD_ADD_MOD[`1`;`n+i:num`;`k:num`][ARITH_RULE`(n + 1) + i=1+n+i`]]]);;
+
+
+
 
 let CLOSED_SY=prove_by_refinement(`
-stable_system k d (0..k-1) a b J (\(i,j). ((j+i):num MOD k)) /\k= dimindex(:M)
+stable_system k d (0..k-1) a b J (\i. ((1+i):num MOD k)) /\k= dimindex(:M)
 /\ 1< k /\ 2<k
 ==> 
 closed {matvec(v:real^3^M) | (!i. 1<=i /\  i <= dimindex(:M)==> row i v IN ball_annulus) /\  CONDITION1_SY a b v /\ CONDITION2_SY v }`,
-[
-REWRITE_TAC[CONDITION2_SY;CONDITION1_SY;stable_system]
+[REWRITE_TAC[CONDITION2_SY;CONDITION1_SY;stable_system]
 THEN  REPEAT GEN_TAC THEN REWRITE_TAC[CLOSED_SEQUENTIAL_LIMITS] THEN  REWRITE_TAC[LIM_SEQUENTIALLY; IN_ELIM_THM; dist] 
 THEN REPEAT STRIP_TAC
 THEN ASM_TAC
@@ -178,16 +197,22 @@ THEN REMOVE_THEN"THYGIANG"MP_TAC
 THEN ASM_SIMP_TAC[IN_NUMSEG]
 THEN STRIP_TAC
 THEN POP_ASSUM  (fun th-> MRESAL_TAC th[`i:num`;`0:num`][ARITH_RULE`0<= i:num`])
+THEN MP_TAC(ARITH_RULE`1<k ==> 1<=k`)
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
-THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`];
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`];
 MP_TAC(ARITH_RULE`j <= dimindex (:M)==> j <= dimindex (:M)-1 \/ j = dimindex (:M)`);
 RESA_TAC;
-MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
+MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
+THEN MP_TAC(ARITH_RULE`1<k ==> 1<=k`)
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
@@ -196,7 +221,7 @@ THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
 THEN STRIP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN MP_TAC(ARITH_RULE`1<= j==> ~(j = 0)`)
 THEN RESA_TAC
 THEN REMOVE_THEN"THYGIANG"MP_TAC
@@ -231,7 +256,13 @@ THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`i+1:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
-THEN POP_ASSUM(fun th-> REWRITE_TAC[SYM th])
+THEN MP_TAC(ARITH_RULE`1<k ==> 1<=k`)
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`i+1:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT_ADD[`1`;`k:num`;`i+1`][ARITH_RULE`1*A=A`]
+THEN STRIP_TAC
+THEN ONCE_REWRITE_TAC[ARITH_RULE`A+1=1+A`]
+THEN POP_ASSUM MP_TAC
 THEN REAL_ARITH_TAC;
 MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ SUC 0=1`]
 THEN REMOVE_THEN "THY3"(fun th-> MRESAL_TAC th[`k:num`;`1:num`][ARITH_RULE`1<= 1/\ dimindex (:M) <= dimindex (:M)`;DIMINDEX_GE_1])
@@ -244,10 +275,7 @@ THEN ASM_SIMP_TAC[IN_NUMSEG]
 THEN STRIP_TAC
 THEN POP_ASSUM  (fun th-> MRESAL1_TAC th`0:num`[ARITH_RULE`0<= 0:num/\ 0+1=1`;])
 THEN POP_ASSUM MP_TAC
-THEN MP_TAC(ARITH_RULE` (1 <= dimindex (:M)) ==> 1 < dimindex (:M)\/ dimindex (:M)= 1` )
-THEN SIMP_TAC[DIMINDEX_GE_1]
-THEN STRIP_TAC;
-MRESAL_TAC MOD_LT[`1:num`;`k:num`][ARITH_RULE`0<1`]
+THEN MRESAL_TAC MOD_LT[`1:num`;`k:num`][ARITH_RULE`0<1`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
@@ -258,18 +286,10 @@ THEN POP_ASSUM(fun th-> MRESAL_TAC th[`k:num`;`1:num`;][IN_NUMSEG;ARITH_RULE`0<=
 MRESAL_TAC th[`0:num`;`1:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
 THEN STRIP_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
-THEN REAL_ARITH_TAC;
-REMOVE_THEN "THYGIANG2" MP_TAC
-THEN REWRITE_TAC[constraint_system]
-THEN STRIP_TAC
-THEN REMOVE_ASSUM_TAC
-THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM MP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`k:num`;`1:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `;MOD_1] THEN
-MRESAL_TAC th[`0:num`;`1:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
-THEN STRIP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `;MOD_1]
-THEN MRESAL_TAC th[`0:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `;MOD_1])
+THEN MP_TAC(ARITH_RULE`1<k ==> 1<=k`)
+THEN RESA_TAC
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REAL_ARITH_TAC;
 SUBGOAL_THEN`(!i. 1 <= i /\ i <= dimindex (:M) ==> row i (vecmats (l:real^(M,3)finite_product)) IN ball_annulus)` ASSUME_TAC;
 MP_TAC COMPACT_BALL_ANNULUS
@@ -400,7 +420,7 @@ THEN DISJ_CASES_TAC(SET_RULE`i=i':num \/ ~(i=i')`);
 POP_ASSUM(fun th-> ASM_TAC THEN REWRITE_TAC[th] THEN SET_TAC[]);
 ASM_SIMP_TAC[];
 REPEAT STRIP_TAC
-THEN ASM_REWRITE_TAC[ENDS_IN_HALFLINE] ;
+THEN ASM_REWRITE_TAC[ENDS_IN_HALFLINE];
 POP_ASSUM MP_TAC
 THEN POP_ASSUM MP_TAC
 THEN POP_ASSUM MP_TAC
@@ -1926,17 +1946,21 @@ THEN MP_TAC(ARITH_RULE`1<= i==> ~(i = 0)`)
 THEN RESA_TAC
 THEN STRIP_TAC
 THEN POP_ASSUM  (fun th-> MRESAL_TAC th[`i:num`;`0:num`][ARITH_RULE`0<= i:num`])
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
 THEN STRIP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -1956,6 +1980,8 @@ POP_ASSUM MP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
 THEN STRIP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
@@ -1964,7 +1990,7 @@ THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
 THEN STRIP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN POP_ASSUM MP_TAC
 THEN MP_TAC(ARITH_RULE`1<= j==> ~(j = 0)`)
 THEN RESA_TAC
@@ -1978,6 +2004,8 @@ THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -2134,17 +2162,21 @@ THEN MP_TAC(ARITH_RULE`1<= i1==> ~(i1 = 0)`)
 THEN RESA_TAC
 THEN STRIP_TAC
 THEN POP_ASSUM  (fun th-> MRESAL_TAC th[`i1:num`;`0:num`][ARITH_RULE`0<= i1:num`])
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
 THEN STRIP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -2167,6 +2199,8 @@ POP_ASSUM MP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
 THEN STRIP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
@@ -2175,7 +2209,7 @@ THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A `])
 THEN STRIP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN POP_ASSUM MP_TAC
 THEN MP_TAC(ARITH_RULE`1<= j==> ~(j = 0)`)
 THEN RESA_TAC
@@ -2192,6 +2226,8 @@ THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -2466,17 +2502,21 @@ THEN MP_TAC(ARITH_RULE`1<= i1==> ~(i1 = 0)`)
 THEN RESA_TAC
 THEN STRIP_TAC
 THEN POP_ASSUM  (fun th-> MRESAL_TAC th[`i1:num`;`0:num`][ARITH_RULE`0<= i1:num`])
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`i1:num`;`k:num`;][IN_NUMSEG;ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
 THEN STRIP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -2499,6 +2539,8 @@ POP_ASSUM MP_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
 THEN STRIP_TAC
 THEN MRESAL_TAC MOD_MULT[`k:num`;`1`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A`]
+THEN MRESA_TAC (GEN_ALL POWER_MOD_FUN)[`k:num`;`k:num`;`k:num`]
+THEN MRESAL_TAC MOD_MULT[`k:num`;`2`][DIMINDEX_NONZERO;ARITH_RULE`A*1=A/\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`]
 THEN REMOVE_THEN "THYGIANG2" MP_TAC
 THEN REWRITE_TAC[constraint_system]
 THEN STRIP_TAC
@@ -2507,7 +2549,7 @@ THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM MP_TAC
 THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j1:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A `])
 THEN STRIP_TAC
-THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j1:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A `])
+THEN POP_ASSUM(fun th-> MRESAL_TAC th[`j1:num`;`k:num`;][ARITH_RULE`0<=a:num/\ A+0=A /\ dimindex (:M) + dimindex (:M)= dimindex (:M) *2`])
 THEN POP_ASSUM MP_TAC
 THEN MP_TAC(ARITH_RULE`1<= j1==> ~(j1 = 0)`)
 THEN RESA_TAC
@@ -2524,6 +2566,8 @@ THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN POP_ASSUM (fun th-> SUBST_ALL_TAC(th))
+THEN REMOVE_ASSUM_TAC
+THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
 THEN REMOVE_ASSUM_TAC
@@ -2806,8 +2850,12 @@ THEN REAL_ARITH_TAC
 
 
 
+
+
+
+
 let BOUNDED_SY=prove(`
-stable_system k d (0..k-1) a b J (\(i,j). ((j+i):num MOD k)) /\k= dimindex(:M)
+stable_system k d (0..k-1) a b J (\i. ((1+i):num MOD k)) /\k= dimindex(:M)
 /\ 1< k /\ 2<k
 ==> 
 bounded {matvec(v:real^3^M) | (!i. 1<=i /\  i <= dimindex(:M)==> row i v IN ball_annulus) /\  CONDITION1_SY a b v /\ CONDITION2_SY v }`,
@@ -2822,7 +2870,7 @@ THEN SET_TAC[]);;
 
 
 let WJSCPRO= prove (`
-stable_system k (d:real) (0..k-1) a b J (\(i,j). ((j+i):num MOD k)) /\k= dimindex(:M)
+stable_system k (d:real) (0..k-1) a b J (\i. ((1+i):num MOD k)) /\k= dimindex(:M)
 /\ 2<k
 ==> 
 compact {matvec(v:real^3^M) | (!i. 1<=i /\  i <= dimindex(:M)==> row i v IN ball_annulus) /\  CONDITION1_SY a b v /\ CONDITION2_SY v }`,
@@ -2832,8 +2880,6 @@ THEN MP_TAC(ARITH_RULE`2<k ==> 1<k`)
 THEN RESA_TAC
 THENL[ MRESA_TAC (GEN_ALL BOUNDED_SY)[`d:real`;`J:(num->bool)->bool`;`k:num`;`a:num#num->real`;`b:num#num->real`;];
 MRESA_TAC (GEN_ALL CLOSED_SY)[`d:real`;`J:(num->bool)->bool`;`k:num`;`a:num#num->real`;`b:num#num->real`;]]);;
-
-
 
 
 

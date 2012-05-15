@@ -1,14 +1,3 @@
-(* ========================================================================== *)
-(* FLYSPECK - BOOK FORMALIZATION                                              *)
-(*                                                                            *)
-(* Chapter: Local Fan                                                         *)
-(* Lemma: NKEZBFC                                                             *)
-(* Author: Hoang Le Truong                                                    *)
-(* Date: 2011-08-21                                                           *)
-(* ========================================================================== *)
-
-
-
 module  Nkezbfc_local = struct
 
 
@@ -1349,7 +1338,7 @@ THEN SET_TAC[]);;
 
 
 
-let order = new_definition ` order f x y = (@n. ITER n f x =y)`;;
+let order = new_definition ` order f x y = (@n. ITER n f x =y /\ (!i. 0< i /\ i< n ==> ~(ITER i f x= y)))`;;
 let slicev = new_definition ` slicev E FF v w = {u| ?n. 0<= n /\ n<= order (rho_node1 FF) v w /\ u= ITER n (rho_node1 FF) v}`;;
 
 let slicee = new_definition ` slicee E FF v w = {e| ?u. u IN (slicev E FF v w) DELETE w /\ e={u,rho_node1 FF u} } UNION {{w,v}}`;;
@@ -1357,7 +1346,58 @@ let slicee = new_definition ` slicee E FF v w = {e| ?u. u IN (slicev E FF v w) D
 let slicef = new_definition ` slicef E FF v w = {f| ?u. u IN (slicev E FF v w) DELETE w /\ f=(u,rho_node1 FF u) } UNION {(w,v)}`;;
 
 
+let rho_fun = new_definition `rho_fun y =  &1 + (inv (&2 * h0 - &2)) * (inv pi) * sol0 * (y - &2)`;;
 
+
+let tau_fun = new_definition `tau_fun V E f =  sum (f) (\e. rho_fun(norm(FST e)) * (azim_in_fan e E)) - (pi + sol0) * &(CARD f -2)`;;
+
+
+
+let ORDER=prove(`(ITER n f x = y /\ (!i. 0 < i /\ i < n ==> ~(ITER i f x = y)))
+==> 
+ITER (order f x y) f x= y /\ (!i. 0 < i /\ i < order f x y ==> ~(ITER i f x = y))`,
+STRIP_TAC 
+THEN ONCE_REWRITE_TAC[order]
+ THEN SELECT_ELIM_TAC
+THEN ASM_REWRITE_TAC[]
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN SET_TAC[]);;
+
+let UNIQUE_ORDER=prove_by_refinement(`!f:A->A. ITER n f x = y /\ (!i. 0 < i /\ i < n ==> ~(ITER i f x = y)) /\ ~(x=y)
+==> 
+order f x y= n`,
+[REPEAT STRIP_TAC
+THEN MRESA_TAC (GEN_ALL ORDER)[`n:num`;`f:A->A`;`x:A`;`y:A`]
+THEN MP_TAC(ARITH_RULE`order (f:A->A) x y =0 \/   0< order (f:A->A) x y `)
+THEN RESA_TAC;
+POP_ASSUM(fun th -> ASM_TAC THEN REWRITE_TAC[th;ITER])
+THEN SET_TAC[];
+MP_TAC(ARITH_RULE`order (f:A->A) x y <n \/   n<= order (f:A->A) x y `)
+THEN RESA_TAC;
+ASM_TAC
+THEN STRIP_TAC
+THEN STRIP_TAC
+THEN POP_ASSUM(fun th-> MRESA1_TAC th `order (f:A->A) x y`)
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC "THY")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "THY" MP_TAC
+THEN RESA_TAC;
+MP_TAC(ARITH_RULE`n<= order (f:A->A) x y ==> n< order (f:A->A) x y  \/  order (f:A->A) x y =n`)
+THEN RESA_TAC;
+MP_TAC(ARITH_RULE`n =0 \/   0< n`)
+THEN RESA_TAC;
+POP_ASSUM(fun th -> ASM_TAC THEN REWRITE_TAC[th;ITER])
+THEN SET_TAC[];
+POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN POP_ASSUM MP_TAC
+THEN DISCH_THEN(LABEL_TAC "THY")
+THEN REPEAT STRIP_TAC
+THEN REMOVE_THEN "THY" (fun th-> MRESA1_TAC th`n:num`)]);;
 
 
 
@@ -1370,6 +1410,7 @@ v IN V /\ w IN V
 /\ (!e. e IN FF ==> aff_gt {vec 0} {v,w} SUBSET  wedge_in_fan_gt e E)
 ==> convex_local_fan(slicev E FF v w, slicee E FF v w, slicef E FF v w) 
 /\ convex_local_fan(slicev E FF w v, slicee E FF w v, slicef E FF  w v)
+/\ tau_fun V E FF >= tau_fun (slicev E FF v w) (slicee E FF v w) (slicef E FF v w) + tau_fun (slicev E FF w v) (slicee E FF w v) (slicef E FF w v)
 /\ sol_local E FF= sol_local (slicee E FF v w) (slicef E FF v w) + sol_local (slicee E FF w v) (slicef E FF w v)
 /\ CARD (slicev E FF v w) < CARD V
 /\ CARD (slicev E FF w v) < CARD V

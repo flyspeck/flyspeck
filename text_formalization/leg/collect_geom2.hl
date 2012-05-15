@@ -10,18 +10,34 @@
 
 
 
-
+(*
 module type Collect_geom2_type = sig
   val CAYLEYR_5POINTS : thm
   val NUHSVLM : thm
 end;;
+*)
 
-(* second half of collect_geom.ml.  It was split in half by thales Feb 2010 *)
+(* second half of collect_geom.ml.  
+It was split in half by thales Feb 2010.
+
+This file was edited by thales on 2012-5-15
+to make it possible to load everything up through lemma GDRQXLG
+giving the formula for the circumradius of a simplex.
+
+Everything dependent on unproved axioms was commented out.
+
+ *)
 
 flyspeck_needs "leg/cayleyR_def.hl";;
 flyspeck_needs "leg/collect_geom.hl";;
 
-module Collect_geom2 : Collect_geom2_type = struct
+module Collect_geom2 (* : Collect_geom2_type *)  = struct
+
+  open Sphere;;
+  open Geomdetail;;
+  open Collect_geom;;
+
+
 
   let cayleyR = Cayleyr.cayleyR;;
 
@@ -29,6 +45,23 @@ module Collect_geom2 : Collect_geom2_type = struct
   let DIST_POW2_DOT = Collect_geom.DIST_POW2_DOT;;
   let UPS_X_POS = Collect_geom.UPS_X_POS;;
   let DELTA_POS_4POINTS = Collect_geom.DELTA_POS_4POINTS;;
+  let REAL_LDISTRIB = REAL_ADD_LDISTRIB;;
+  let POW_2 = REAL_POW_2;;
+  let REAL_POSSQ = REAL_LT_SQUARE;;
+  let REAL_RDISTRIB = REAL_ARITH 
+    `!x y z. (x + y) * z = (x * z) + (y * z)`;;  (* Tactics_jordan *)
+
+
+(* deprecated def from sphere.hl *)  
+  let mk_vec3 = new_definition 
+  `mk_vec3 a b c = vector[a; b; c]`;;
+  let real3_of_triple = new_definition 
+    `real3_of_triple (a,b,c) = (mk_vec3 a b c):real^3`;;
+  let triple_of_real3 = new_definition 
+    `triple_of_real3 (v:real^3) = 
+    (v$1, v$2, v$3)`;;  
+(* deprecated def from sphere.hl *)
+
 
 (* this lemma is proved as below, but it take quite a long time to run it *)
 
@@ -104,11 +137,8 @@ SIMP_TAC[ dist; UPS_X_POS; DELTA_POS_4POINTS]);;
 (* LEMMA 3 *)
 let NUHSVLM = LEMMA3;;
 
-end;;  (* end of module *)
 
-(* I'm not sure if the rest will be needed for Flyspeck.  Comment out for now. *)
-
-(*
+(* OLD END OF MODULE *)
 
 
 let LEMMA52 = prove( `! v1 v2 v3 v4 (v5:real^3).
@@ -274,6 +304,7 @@ let THANG_DEU = prove(` &2 <= x ==> &2 pow 2 <= x pow 2 `,
 NHANH (REAL_ARITH ` &2 <= x ==> &0 <= &2 /\ &0 <= x `) 
 THEN MESON_TAC[POW2_COND]);;
 
+(* removed tch 2012-5-12
 let LEMMA19 = BYOWBDF;;
 
 MESON[BYOWBDF; REAL_ARITH ` a + b = b + a `]` !a b c a' b' c'.
@@ -287,9 +318,6 @@ MESON[BYOWBDF; REAL_ARITH ` a + b = b + a `]` !a b c a' b' c'.
          b' pow 2 <= c pow 2 + a pow 2 /\
          c' pow 2 <= a pow 2 + b pow 2
          ==> eta_y a b c <= eta_y a' b' c' `;;
-
-
-
 
 let LEMMA20 = prove(` ! x y z: real^3.
    &2 <= d3 x y /\
@@ -327,6 +355,8 @@ MESON_TAC[BYOWBDF; ETA_YY_LT_SQRT2 ; REAL_ARITH ` b + c = c + b /\
  ( &2 <= a ==> &0 < a) `]);;
 
 let BFYVLKP = LEMMA20;;
+*)
+
 
 let NGAY23_THANG2_09 = prove(` &2 <= y /\ y <= sqrt (&8) ==>
   &2 pow 2 <= y * y /\ y * y <= &8 `,
@@ -348,6 +378,7 @@ SIMP_TAC[LT_POW2_EQ_LT; REAL_ARITH ` &0 < a ==> &0 <= a `; SQRT_POW_2] THEN
 DISCH_TAC THEN 
 CONV_TAC REAL_FIELD );;
 
+(*
 MESON[BYOWBDF; REAL_ARITH ` a + b = b + a `]` !a b c a' b' c'.
          &0 < a /\
          a <= a' /\
@@ -359,8 +390,9 @@ MESON[BYOWBDF; REAL_ARITH ` a + b = b + a `]` !a b c a' b' c'.
          b' pow 2 <= c pow 2 + a pow 2 /\
          c' pow 2 <= a pow 2 + b pow 2
          ==> eta_y a b c <= eta_y a' b' c' `;;
+*)
 
-
+(*
 (* le 21 *)
 let LEMMA21 = prove(` ! y. &2 <= y /\ y <= sqrt8 ==> eta_y y (&2) #2.51 < #1.453`,
 REWRITE_TAC[sqrt8; GSYM POW_2] THEN 
@@ -377,7 +409,7 @@ MESON_TAC[REAL_ADD_SYM; BYOWBDF; ETA_Y_SQRT8_2_251;
   REAL_ARITH ` a <= b /\ b < c ==> a < c `]);;
 
 let WDOMZXH = LEMMA21;;
-
+*)
 
 
 
@@ -411,46 +443,42 @@ let SUM_UPS_X_1 = prove(`!a b c.
          &1`, REWRITE_TAC[ups_x] THEN CONV_TAC REAL_FIELD);;
 
 
-let LEMMA18 = prove(` !x (y:real^3) z p.
+(* thales removed 2012-5-12.
+let LEMMA18 = prove_by_refinement(` !x (y:real^3) z p.
          d3 x z pow 2 < d3 x y pow 2 + d3 y z pow 2 /\
          ~collinear {x, y, z} /\
          p = circumcenter {x, y, z}
          ==> p IN aff_gt {x, z} {y}  `,
-SIMP_TAC[CIRCUMCENTER_FORMULAR] THEN 
-REWRITE_TAC[ UPS_X_EQ_ZERO_COND; GSYM d3 ] THEN 
-REPEAT GEN_TAC THEN MP_TAC ZERO_LE_UPS_X  THEN 
-IMP_IMP_TAC THEN REWRITE_TAC[LE_EX] THEN 
-REWRITE_TAC[MESON[]`( a \/ b ) /\ c /\ ~a /\ e <=>
-  b /\ c /\ ~a /\ e `] THEN ONCE_REWRITE_TAC[REAL_ARITH
- ` a < b + c <=> &0 < b + c - a `] THEN 
-REWRITE_TAC[d3; GSYM UPS_X_EQ_ZERO_COND] THEN 
-ONCE_REWRITE_TAC[VECTOR_ARITH` (a:real^N) + b + c = a + c + b `] THEN 
-NHANH (MESON[TWO_EQ_IMP_COL3; PER_SET3]`~collinear {x, y, z} ==> ~ ( x = z)`) 
-THEN REWRITE_TAC[DIST_NZ; simp_def2; IN_ELIM_THM] THEN 
-STRIP_TAC THEN SIMP_TAC[DIST_SYM] THEN UNDISCH_TAC 
-` &0 < ups_x (dist (x,y) pow 2)   (dist (x,z) pow 2) 
-(dist ((y:real^3),z) pow 2) ` THEN 
-SIMP_TAC [MESON[UPS_X_SYM]` ups_x x y z = ups_x z y x `] THEN 
-DOWN_TAC THEN 
-ONCE_REWRITE_TAC[MESON[REAL_ARITH `a + b - c = b + a - c `]` ( &0
-  < a + b - c /\ l ==> ll ) <=> ( &0 < b + a - c /\ l ==> ll )`] THEN 
-STRIP_TAC THEN EXISTS_TAC ` (dist ((y:real^3),z) pow 2 *
-      (dist (x,z) pow 2 + dist (x,y) pow 2 - dist (y,z) pow 2)) /
-     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2) ` THEN 
-EXISTS_TAC `(dist ((x:real^3),y) pow 2 *
-      (dist (y,z) pow 2 + dist (x,z) pow 2 - dist (x,y) pow 2)) /
-     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2)` THEN 
-EXISTS_TAC `   (dist ((x:real^3),z) pow 2 *
-      (dist (y,z) pow 2 + dist (x,y) pow 2 - dist (x,z) pow 2)) /
-     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2) ` THEN 
-CONJ_TAC THENL [UNDISCH_TAC `&0 < ups_x (dist (x,y) pow 2)
-   (dist (x,z) pow 2) (dist ((y:real^3),z) pow 2)` THEN 
-REWRITE_TAC[SUM_UPS_X_1]; CONJ_TAC] THENL [DOWN_TAC THEN 
-REWRITE_TAC[MESON[POW_2]` ( a pow 2) * b = ( a * a ) * b `] THEN
-MESON_TAC[REAL_LT_MUL; REAL_LT_DIV]; SIMP_TAC[]]);;
+[
+SIMP_TAC[CIRCUMCENTER_FORMULAR] ;
+REWRITE_TAC[ UPS_X_EQ_ZERO_COND; GSYM d3 ];
+REPEAT GEN_TAC THEN MP_TAC ZERO_LE_UPS_X ;
+IMP_IMP_TAC THEN REWRITE_TAC[LE_EX] ;
+REWRITE_TAC[MESON[]`( a \/ b ) /\ c /\ ~a /\ e <=>   b /\ c /\ ~a /\ e `];
+ ONCE_REWRITE_TAC[REAL_ARITH ` a < b + c <=> &0 < b + c - a `];
+REWRITE_TAC[d3; GSYM UPS_X_EQ_ZERO_COND] ;
+ONCE_REWRITE_TAC[VECTOR_ARITH` (a:real^N) + b + c = a + c + b `] ;
+NHANH (MESON[TWO_EQ_IMP_COL3; PER_SET3]`~collinear {x, y, z} ==> ~ ( x = z)`) ;
+REWRITE_TAC[DIST_NZ; simp_def2; IN_ELIM_THM];
+STRIP_TAC THEN SIMP_TAC[DIST_SYM];
+UNDISCH_TAC ` &0 < ups_x (dist (x,y) pow 2)   (dist (x,z) pow 2) (dist ((y:real^3),z) pow 2) ` ;
+SIMP_TAC [MESON[UPS_X_SYM]` ups_x x y z = ups_x z y x `] ;
+DOWN_TAC ;
+ONCE_REWRITE_TAC[MESON[REAL_ARITH `a + b - c = b + a - c `]` ( &0  < a + b - c /\ l ==> ll ) <=> ( &0 < b + a - c /\ l ==> ll )`] ;
+STRIP_TAC;  
+EXISTS_TAC ` (dist ((y:real^3),z) pow 2 *      (dist (x,z) pow 2 + dist (x,y) pow 2 - dist (y,z) pow 2)) /     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2) ` ;
+EXISTS_TAC `(dist ((x:real^3),y) pow 2 *       (dist (y,z) pow 2 + dist (x,z) pow 2 - dist (x,y) pow 2)) /     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2)` ;
+EXISTS_TAC `   (dist ((x:real^3),z) pow 2 *       (dist (y,z) pow 2 + dist (x,y) pow 2 - dist (x,z) pow 2)) /     ups_x (dist (x,y) pow 2) (dist (x,z) pow 2) (dist (y,z) pow 2) ` ;
+CONJ_TAC THENL [UNDISCH_TAC `&0 < ups_x (dist (x,y) pow 2)    (dist (x,z) pow 2) (dist ((y:real^3),z) pow 2)` ;
+REWRITE_TAC[SUM_UPS_X_1]; CONJ_TAC] THENL [DOWN_TAC THEN REWRITE_TAC[MESON[POW_2]` ( a pow 2) * b = ( a * a ) * b `] ;MESON_TAC[REAL_LT_MUL; REAL_LT_DIV]; SIMP_TAC[]]
+]);;
 
 let WSMRDKN = LEMMA18;;
+*)
+
+(*
 let LEMMA19 = BYOWBDF;; 
+*)
 
 
 
@@ -525,9 +553,10 @@ REWRITE_TAC[REAL_POLY_CONV ` ((-- &1 * x pow 2 + &2401 / &100) * x pow 2) / (&57
      (&63001 / &2500) `] THEN 
 REWRITE_TAC[REAL_ARITH ` a pow 4 = a pow 2 pow 2 `]);;
 
+(*
 REAL_ARITH ` &4650694416 = ( &68196 ) pow 2 `;;
 REAL_ARITH` &4650694416 / &363188227801 = ( &68196 / &602651 ) pow 2 `;;
-
+*)
 
 let PHAN_TICH = prove(  `! x. &4331842500 / &363188227801 *
      (x pow 2 - &488365801 / &44090000) *
@@ -711,6 +740,7 @@ let A_POS_DELTA = prove(` &0 < delta (#3.2 pow 2 ) (sqrt8 pow 2 ) (&2 pow 2) (sq
 (&2 pow 2) (&2 pow 2) `, REWRITE_TAC[delta; sqrt8; SQRT8_POW2] THEN REAL_ARITH_TAC);;
 
 (* le 35. p 22 *)
+(* removed tchales 2012-5
 let THADGSB = new_axiom_removed` !M13 m12 m14 M24 m34 m23 v1 v2 v3 v4.
          (!x. x IN {M13, m12, m14, M24, m34, m23} ==> &0 <= x) /\
          M13 < m12 + m23 /\
@@ -727,6 +757,7 @@ let THADGSB = new_axiom_removed` !M13 m12 m14 M24 m34 m23 v1 v2 v3 v4.
          m14 <= d3 v1 v4 /\
          d3 v1 v3 <= M13 /\
          d3 v2 v4 <= M24 ==> conv {v1,v3} INTER conv {v2,v4} = {} `;;
+*)
 
 let MET_LAM_ROI = prove(` #3.2 < sqrt8 + &2 /\ #3.2 < &2 + &2 /\ sqrt8 < sqrt8 + &2 /\
 sqrt8 < &2 + &2 `,
@@ -754,6 +785,7 @@ REWRITE_TAC[CARD4; packing; GSYM d3; sqrt8] THEN SET_TAC[]);;
 
 (*       THADGSB         *)
 
+(* removed by thales 2012-5
 let JGYWWBX = prove(` ~ (?v1 v2 w1 (w2:real^3).
            CARD {v1, v2, w1, w2} = 4 /\
            packing {v1, v2, w1, w2} /\
@@ -776,8 +808,9 @@ PHA THEN REWRITE_TAC[sqrt8] THEN MP_TAC (SPECL [`M13:real`; `sqrt8`; `&2`;`sqrt8
 ;`&2 `; `&2`;  `v1:real^3` ; `w1:real^3`; `v2:real^3`; `w2:real^3`] THADGSB) THEN 
 SIMP_TAC[D3_SYM; sqrt8]);;
 
-let LEMMA37 = JGYWWBX;;
 
+let LEMMA37 = JGYWWBX;;
+*)
 
 let LEMMA_FOR_PAHFWSI = prove(`! v1 v2 v3 v4. CARD {v1, v2, v3, v4} = 4 /\
          packing {v1, v2, v3, v4} /\
@@ -814,6 +847,7 @@ REWRITE_TAC[SET_RULE ` (!x. x IN {a,b,c,d,e,f} ==> P x ) <=>
 REWRITE_TAC[CARD4; packing; delta; d3] THEN CONV_TAC REAL_RAT_REDUCE_CONV
 THEN SET_TAC[]);;
 
+(*
 let PAHFWSI = prove(` !(v1:real^3) v2 v3 v4.
          CARD {v1, v2, v3, v4} = 4 /\
          packing {v1, v2, v3, v4} /\
@@ -824,6 +858,7 @@ let PAHFWSI = prove(` !(v1:real^3) v2 v3 v4.
 MP_TAC (SPECL [` #3.2 `; `#2.51`;` &2 `; ` #2.51 `;` &2 `; `&2`] THADGSB) THEN 
 NHANH (SPEC_ALL LEMMA_FOR_PAHFWSI ) THEN SIMP_TAC[]);;
 let LEMMA38 = PAHFWSI;;
+*)
 
 let LEMMA_OF_39 = prove(` ! (v1:real^3) v2 w1 w2.
          CARD {v1, v2, w1, w2} = 4 /\
@@ -851,7 +886,7 @@ REAL_RAT_REDUCE_CONV THEN REPEAT GEN_TAC THEN STRIP_TAC THEN CONJ_TAC THENL
 [ASM_MESON_TAC[SET_RULE ` {v1, v2, w1, w2} = {w1, v1, w2, v2}`];DOWN_TAC]
  THEN REWRITE_TAC[CARD4; packing; d3] THEN SET_TAC[]);;
 
-
+(*
 let UVGVIXB = prove(` ! (v1:real^3) v2 w1 w2.
          CARD {v1, v2, w1, w2} = 4 /\
          packing {v1, v2, w1, w2} /\
@@ -862,6 +897,7 @@ let UVGVIXB = prove(` ! (v1:real^3) v2 w1 w2.
 ` w1:real^3 `; ` v1:real^3`;` w2:real^3`; `v2:real^3 `] THADGSB ]);;
 
 let LEMMA39 = UVGVIXB;;
+*)
 
 let LEMMA_OF_LEMMA40 = prove(`! v1 v2 w1 (w2:real^3).  CARD {v1, v2, w1, w2} = 4 /\
          packing {v1, v2, w1, w2} /\
@@ -889,6 +925,7 @@ CONV_TAC REAL_RAT_REDUCE_CONV THEN SIMP_TAC[SET_RULE `
 {v1, v2, w1, w2} = {v1, w1, v2, w2} `; packing] THEN 
 SIMP_TAC[CARD4; GSYM d3] THEN SET_TAC[]);;
 
+(* thales removed 2012-5:
 let PJFAYXI = prove(`! (v1:real^3) v2 w1 w2.
  CARD {v1, v2, w1, w2} = 4 /\  packing {v1, v2, w1, w2} /\
          dist (v1,v2) <= #3.2 /\
@@ -900,7 +937,7 @@ SPECL [ ` #3.2 `; `#2.2 `; `&2 `; `#2.51 `; `&2 `; ` &2 `;
  ` v1:real^3 `; ` w1:real^3`;` v2:real^3`; `w2:real^3 `] THADGSB ]);;
 
 let LEMMA40 = PJFAYXI;;
-
+*)
 
 
 let LEOF41 = prove(
@@ -1062,6 +1099,7 @@ REWRITE_TAC[REAL_ARITH` a < b <=> ~(b <= a ) `] THEN SIMP_TAC[d3]);;
 (* the following lemma are in Multivariate/convex.ml *)
 
 
+(*
 let CONVEX_FINITE = new_axiom_removed `!s:real^N->bool.
         FINITE s
         ==> (convex s <=>
@@ -1080,9 +1118,15 @@ let CONVEX_HULL_FINITE = new_axiom_removed `
 
 let CONVEX_HULL4 = 
 MATCH_MP CONVEX_HULL_FINITE (MESON[ FINITE_RULES]` FINITE {(v1:real^N),v2,v3,v4} `);;
+*)
+
+let CONVEX_NORMBALL = REWRITE_RULE[GSYM NORMBALL_BALL] CONVEX_BALL ;;
+
+let CONVEX_HULL4 = 
+SPEC `{(v1:real^N),v2,v3,v4}` CONVEX_HULL_FINITE;;
 
 
-
+(*
 let CONVEX_EXPLICIT = new_axiom_removed `!s:real^N->bool.
         convex s <=>
         !t u. FINITE t /\ t SUBSET s /\ (!x. x IN t ==> &0 <= u x) /\
@@ -1101,6 +1145,7 @@ let CONVEX_HULL_FINITE_STEP = new_axiom_removed
              ?u. (!x. x IN s ==> &0 <= u x) /\
               sum s u = w - v /\
               vsum s (\x. u(x) % x) = y - v % a))`;;
+*)
 
 let CONVEX_HULL_4_EQUIV = prove(` ! v1 v2 v3 (v4:real^N).
   conv {v1,v2,v3,v4} = { x | ? a b c d. 
@@ -1124,7 +1169,7 @@ ONCE_REWRITE_TAC[SET_RULE ` a s ==> b <=> s IN a ==> b `] THEN
 let TXDIACY = prove(`! (a:real^3) b c d (v0: real^3) r.
  {a, b, c, d} SUBSET normball v0 r
          ==> convex hull {a, b, c, d} SUBSET normball v0 r `,
-REPEAT GEN_TAC THEN MP_TAC (MESON[CONVEX_BALL]` convex (normball (v0:real^3) r)`) THEN 
+REPEAT GEN_TAC THEN MP_TAC (MESON[CONVEX_NORMBALL]` convex (normball (v0:real^3) r)`) THEN 
 NHANH (MESON[FINITE6] ` {a, b, c, d} SUBSET s ==> FINITE {(a:real^3),b,c,d} `) THEN 
 REWRITE_TAC[CONVEX_HULL4; CONVEX_EXPLICIT] THEN 
 IMP_IMP_TAC THEN 
@@ -2042,6 +2087,7 @@ CONV_TAC REAL_RAT_REDUCE_CONV THEN NHANH (BPOW8APOW2CPOW2 ) THEN REAL_ARITH_TAC)
 
 
 
+(* thales removed 2012-5:
 let ZEDIDCF = prove(` ! v0 v1 (v2:real^3).
          &2 <= d3 v0 v1 /\
          d3 v0 v1 <= #2.51 /\
@@ -2066,7 +2112,7 @@ MP_TAC (prove(`  sqrt (&2) < sqrt (&93993025 / &46231104) `,
 SIMP_TAC[SQRT_WORKS; REAL_ARITH ` &0 <= &2 /\
   &0 <= &93993025 / &46231104 `; LT_POW2_COND] THEN REAL_ARITH_TAC)) 
 THEN REAL_ARITH_TAC);;
-
+*)
 
 (* ==================== *)
 
@@ -2080,6 +2126,7 @@ let condC = new_definition ` condC M13 m12 m14 M24 m34 (m23:real) =
    (m23 pow 2 ) )`;;
 
 
+(*
 let CXWOCGN = new_axiom_removed` !M13 m12 m14 M24 m34 m23 (v1:real^3) v2 v3 v4.
          condC M13 m12 m14 M24 m34 m23 /\
   CARD {v1,v2,v3,v4} = 4 /\
@@ -2092,7 +2139,7 @@ let CXWOCGN = new_axiom_removed` !M13 m12 m14 M24 m34 m23 (v1:real^3) v2 v3 v4.
   conv {v1,v3} INTER conv {v2,v4} = {} `;;
 SPECL [` sqrt (&8 ) `; ` &2 `; ` &2 `; ` sqrt (&8) `; ` &2 `;
   ` &2 `; ` u :real^3 `; ` w : real^3 `; ` v :real^3 `; ` u + v - ( w:real^3 )`] CXWOCGN;;
-
+*)
 
 g ` a < sqrt (&8) ==> ~ ( &2 <= &1 / &2 * a ) `;;
 e (ASM_CASES_TAC ` &0 <= a `);;
@@ -2140,6 +2187,7 @@ REWRITE_TAC[VECTOR_ARITH ` ((v:real^N) = u + v - w <=> u = w )`;
   VECTOR_ARITH ` ((u:real^N) = u + v - w <=> v = w ) `] THEN ASM_MESON_TAC[]]; 
 DAO THEN CONJ_TAC THENL [REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN 
 REAL_ARITH_TAC;DOWN_TAC THEN REWRITE_TAC[CARD3] THEN SET_TAC[]]]);;
+
 let MIDDLE_POINT_IN_CONV2 = prove(` &1 / &2 % ( u + v ) IN conv {u,v} `,
 REWRITE_TAC[CONV_SET2; IN_ELIM_THM; VECTOR_ADD_LDISTRIB] THEN 
 MESON_TAC[REAL_ARITH ` &0 <= &1 / &2 `; REAL_ARITH` &1 / &2 + &1 / &2 = &1 `]);;
@@ -2151,6 +2199,7 @@ SET_RULE ` ( a INTER b = {} ) <=> (! x. ~ (x IN a /\ x IN b )) `;;
 (* LEMMA36 *)
 
 (* ================== *)
+(* thales removed 2012-5:
 let ZZSBSIO = prove(` ! (u:real^3) v w. CARD {u,v,w} = 3 /\ packing {u,v,w} /\
   dist (u,v) < sqrt8 ==>  dist (u,v) / &2 < dist (w, &1 / &2 % ( u + v )) `,
 REWRITE_TAC[MESON[]` a ==> b <=> ~ ( a /\ ~ b ) `] THEN 
@@ -2161,7 +2210,7 @@ FIRST_X_ASSUM MP_TAC THEN
 REWRITE_TAC[INTER_DISJONT_EX] THEN 
 MESON_TAC[MIDDLE_POINT_IN_CONV2 ; VECTOR_ARITH ` 
   u + v = w + u + v - (w:real^N) `]);;
-
+*)
 
 
 
@@ -2173,12 +2222,13 @@ let PLANE_IMP_AFFINE = prove(`plane (p:real^N -> bool ) ==> affine p `,
 MESON_TAC[plane; AFFINE_AFFINE_HULL]);;
 
 
+(* removed thales 2012-5
 let AFFINE = new_axiom_removed `!V:real^N->bool.
      affine V <=>
          !(s:real^N->bool) (u:real^N->real).
              FINITE s /\ ~(s = {}) /\ s SUBSET V /\ sum s u = &1
              ==> vsum s (\x. u x % x) IN V`;;
-
+*)
 
 let PLANE_IMP_AFFINE = prove(` plane (p:real^N -> bool ) ==> affine p `,
 REWRITE_TAC[plane; AFFINE_HULL_3; affine; FUN_EQ_THM; IN_ELIM_THM] THEN 
@@ -2205,6 +2255,7 @@ REWRITE_TAC[ GSYM SUBSET] THEN MESON_TAC[AFFINE]);;
 
 
 let SET_EQ_EX = SET_RULE `a = b <=> (! x. x IN a <=> x IN b ) `;;
+
 let SET_EQ_TO_SUBSET = SET_RULE ` a = b <=>  a SUBSET b /\ b SUBSET a `;;
 
 
@@ -2214,15 +2265,15 @@ let OTHORGONAL_QUATER_FOR = prove(` delta x12 ( x12 + x23 ) ( x12 + x24 )  x23 x
   x12 * ups_x x23 x24 x34 `, REWRITE_TAC[delta; ups_x] THEN REAL_ARITH_TAC);;
 
 
-let ORTHOGONAL_CROSS_PRODUCT = prove(` u dot ( cross u v ) = &0 /\
-  v dot ( cross u v ) = &0 `,
+let ORTHOGONAL_CROSS_PRODUCT = prove(` u dot ( u cross v ) = &0 /\
+  v dot ( u cross v ) = &0 `,
 REWRITE_TAC[cross; triple_of_real3; real3_of_triple; mk_vec3] THEN
 LET_TR THEN REWRITE_TAC[DOT_3; VECTOR_3] THEN REAL_ARITH_TAC);;
 
 
 
-let PITHAGOR_CROSS = prove(` dist (a + cross (b - a) (c - a),b) pow 2 = 
-dist (b,a) pow 2 +  norm ( cross (b - a) (c - a) ) pow 2 `,
+let PITHAGOR_CROSS = prove(` dist (a +  (b - a) cross (c - a),b) pow 2 = 
+dist (b,a) pow 2 +  norm (  (b - a) cross (c - a) ) pow 2 `,
 REWRITE_TAC[vector_norm; dist] THEN
 SIMP_TAC[DOT_POS_LE; SQRT_WORKS] THEN 
 REWRITE_TAC[VECTOR_ARITH` ((a:real^N) + b) - c = b - (c - a ) `] THEN 
@@ -2245,12 +2296,12 @@ SIMP_TAC[DOT_LSUB; DOT_RSUB; DOT_SYM] THEN REAL_ARITH_TAC);;
 
 
 
-
+(* thales removed 2012-5:
 prove(` dist ( cross a b, a ) pow 2  = norm (cross a b) pow 2 + 
   norm a pow 2 /\dist ( cross a b, b ) pow 2  = norm (cross a b) pow 2 + 
   norm b pow 2 `, 
 SIMP_TAC[DOT_SYM;ORTHOGONAL_CROSS_PRODUCT ; PITHAGOR_NORM; DIST_SYM]);;
-
+*)
 
 
 
@@ -2264,7 +2315,7 @@ REWRITE_TAC[ARITH_RULE`1 <= i /\ i <= 3 <=>
   i = 1 \/ i = 2 \/ i = 3 `] THEN MESON_TAC[]);;
 
 
-g ` cross (b - a) (c - d) = cross (a - b) (d - c )`;;
+g `  (b - a) cross (c - d) =  (a - b) cross (d - c )`;;
 e (REWRITE_TAC[cross; triple_of_real3; real3_of_triple; mk_vec3]);;
 e (LET_TR);;
 e (REWRITE_TAC[lemma_cm3 ]);;
@@ -2275,7 +2326,7 @@ let CROSS_CONVERT = top_thm();;
 
 
 
-g ` &4 * norm (cross (b - a) (c - a)) pow 2 =
+g ` &4 * norm ( (b - a) cross (c - a)) pow 2 =
   ups_x (dist (a,b) pow 2) (dist (a,c) pow 2) (dist (b,c) pow 2)`;;
 e (REWRITE_TAC[MESON[
 prove(` dist(b,c) pow 2 = (a - c - (a - b)) dot (a - c - (a - b)) `,
@@ -2296,7 +2347,7 @@ let NORM_CROSS_PRODUCT_UPS_X = top_thm();;
 
 
 g ` ! u v (w:real^3). ~ collinear {a,b,c} ==> ~ coplanar_alt {
-  a + cross (b - a ) ( c - a ),a,b,c} `;;
+  a +  (b - a ) cross ( c - a ),a,b,c} `;;
 e (MP_TAC POLFLZY);;
 e (LET_TR);;
 e (SIMP_TAC[]);;
@@ -2304,8 +2355,8 @@ e (DISCH_TAC);;
 e (REWRITE_TAC[NORM_ARITH` dist (a + b ,a) = norm (b ) `]);;
 e (REWRITE_TAC[NORM_ARITH`dist (a + c,b) =
   dist ( c, b - a ) `]);;
-e (SIMP_TAC[prove(` dist ( cross a b, a ) pow 2  = norm (cross a b) pow 2 + 
-  norm a pow 2 /\dist ( cross a b, b ) pow 2  = norm (cross a b) pow 2 + 
+e (SIMP_TAC[prove(` dist (  a cross b, a ) pow 2  = norm ( a cross b) pow 2 + 
+  norm a pow 2 /\dist (  a cross b, b ) pow 2  = norm ( a cross b) pow 2 + 
   norm b pow 2 `, 
 SIMP_TAC[DOT_SYM;ORTHOGONAL_CROSS_PRODUCT ; PITHAGOR_NORM; DIST_SYM])]);;
 e (REWRITE_TAC[GSYM dist]);;
@@ -2439,7 +2490,7 @@ SET_RULE` ~({(x:real^N), y, z} = {} )`;  IMP_AFFINE_HULL_SUBSET]]);;
 let SMWTDMU = LEMMA7;;
 
 
-g ` det_vec3 v1 v2 v3 = ( cross v1 v2 ) dot v3 `;;
+g ` det_vec3 v1 v2 v3 = (  v1 cross v2 ) dot v3 `;;
 e (REWRITE_TAC[det_vec3; cross; triple_of_real3;
   real3_of_triple; mk_vec3; DOT_3; VECTOR_3]);;
 e (LET_TR);;
@@ -2451,7 +2502,7 @@ let DET_VEC3_AS_CROSS_DOT = top_thm();;
 
 
 g ` ! v1 v2 (v3:real^3). collinear {v1,v2,v3} <=>
- norm (cross (v2 - v1) (v3 - v1)) pow 2 = &0 `;;
+ norm ( (v2 - v1) cross (v3 - v1)) pow 2 = &0 `;;
 e (REWRITE_TAC[COL_EQ_UPS_0]);;
 e (REWRITE_TAC[GSYM NORM_CROSS_PRODUCT_UPS_X]);;
 e (REAL_ARITH_TAC);;
@@ -2712,6 +2763,8 @@ REAL_ARITH_TAC);;
 
 
 (* the following lemma is in Multivariate/convex.ml *)
+
+(* removed thales 2012-5
 let AFFINE_HULL_FINITE_STEP = new_axiom_removed
 `((?u. sum {} u = w /\ vsum {} (\x. u(x) % x) = y) <=>
     w = &0 /\ y = vec 0) /\
@@ -2720,6 +2773,7 @@ let AFFINE_HULL_FINITE_STEP = new_axiom_removed
               vsum (a INSERT s) (\x. u(x) % x) = y) <=>
          ?v u.  sum s u = w - v /\
                 vsum s (\x. u(x) % x) = y - v % a))`;;
+*)
 
 let AFFINE_HULL_3 = prove
  (`affine hull {a,b,c} =
@@ -3169,6 +3223,8 @@ let LEMMA83 = TYUNJLA ;;
 
 
 (* This lemma will be proved by Harrison *)
+
+(* removed thales 2012-5
 let NORM_TOWARD_FORTH_POINT = new_axiom_removed`!(v1:real^3) v2 v3 w.
      ~coplanar_alt {v1, v2, v3, w}
      ==> (?nor. norm nor = &1 /\
@@ -3180,7 +3236,7 @@ let NORM_TOWARD_FORTH_POINT = new_axiom_removed`!(v1:real^3) v2 v3 w.
                 (!x y.
                      {x, y} SUBSET affine hull {v1, v2, v3}
                      ==> nor dot (x - y) = &0))`;;
-
+*)
 
 let DELTA_TRIPLE_SUB_H_EXPAND = prove(`
 delta (a01 - h) (a02 - h) (a03 - h) x12 x13 x23 = 
@@ -3208,6 +3264,7 @@ let THREE_GEN_POINTS_IN_AFF3 = MESON[PER_SET3; FIRST_POINT_IN_AFF3 ]` a IN aff {
 
 
 (* LEMMA73 *)
+(*
 let OFGJQUS = prove(` ! v1 v2 v3 (v4:real^3) a01 a02 a03 .
   let x12 = d3 v1 v2 pow 2 in
          let x13 = d3 v1 v3 pow 2 in
@@ -3375,7 +3432,7 @@ UNDISCH_TAC` (v0:real^3) IN aff {v1, v2, v3}` THEN
 SIMP_TAC[]]]);;
 
 (* END *)
-
+*)
 
 
 
@@ -3428,6 +3485,7 @@ SIMP_TAC[REAL_LT_IMP_LE; REAL_LE_MUL]);;
 
 (*   OFGJQUS       *)
 (* LEMMA 74 *)
+(* thales removed 2012-5:
 
 let LFYTDXC = prove(` ? p. ! v1 v2 v3 (v4:real^3) r.
   let s = {v1, v2, v3, v4} in
@@ -3460,8 +3518,9 @@ STRIP_TAC THEN EXISTS_TAC `v0:real^3` THEN ASM_MESON_TAC[D3_POS_LE;
 
 
 let LEMMA74 = LFYTDXC;;
-let point_eq = new_specification ["point_eq"] LFYTDXC;;
 
+let point_eq = new_specification ["point_eq"] LFYTDXC;;
+*)
 
 
 let INSERT_SUBSET = SET_RULE` {} SUBSET s /\
@@ -3494,6 +3553,7 @@ let NOT_COPLANAR_IMP_NOT_COLLINEAR =
 
 
 (* LEMMA 75 *)
+(* thales removed 2012-5:
 let TIEEBHT = prove(` !v1 v2 v3 (v4:real^3) r p p' u. let s = {v1,v2,v3,v4} in
 let x12 = d3 v1 v2  in
 let x13 = d3 v1 v3  in
@@ -3527,7 +3587,7 @@ UNDISCH_TAC` (u:real^3) IN aff {v1, v2, v3}` THEN
 PHA THEN REWRITE_TAC[GSYM SET2_SU_EX] THEN 
 REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN PHA THEN 
 MESON_TAC[IMP_OTHORGONAL_AFF3 ]);;
-
+*)
 
 (* lemma 89 *)
 let PVLJZLA = prove( `! (v1:real^3) v2 v3 v4.
@@ -3638,6 +3698,7 @@ MESON_TAC[REAL_ARITH` a + b + c + d = d + a + b + c `;
 
 
 (* LEMMA 85 *)
+(* thales removed 2012-5
 let VBVYGGT = new_axiom_removed `!(v1:real^3) v2 v3 v4.
          CARD {v1, v2, v3, v4} = 4 /\ ~coplanar_alt {v1, v2, v3, v4}
          ==> circumcenter {v1, v2, v3, v4} IN affine hull {v1, v2, v3, v4} /\
@@ -3659,13 +3720,14 @@ let VBVYGGT = new_axiom_removed `!(v1:real^3) v2 v3 v4.
               circumcenter {v1, v2, v3, v4} =
               &1 / (&2 * delta x12 x13 x14 x23 x24 x34) %
               (chi11 % v1 + chi22 % v2 + chi33 % v3 + chi44 % v4)) `;;
-
+*)
 
 
 
 
 
 (* lemma 88 *)
+(* thales removed 2012-5:
 let VSMPQYO = prove(` ! v1 v2 v3 (v4:real^3).
          CARD {v1, v2, v3, v4} = 4 /\ ~ coplanar_alt {v1,v2,v3,v4} 
          ==> (let s = {v1, v2, v3, v4} in
@@ -3739,7 +3801,7 @@ ABBREV_TAC ` c44 = chi x34 x24 x14 x23 x13 x12 / (&2 * delta x12 x13 x14 x23 x24
 REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC THEN REMOVE_TAC) THEN 
 REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC) THEN UNDISCH_TAC 
 ` (p:real^3) = c11 % v1 + c22 % v2 + c33 % v3 + c44 % v4` THEN MESON_TAC[]);;
-
+*)
 
 
 
@@ -3893,6 +3955,15 @@ ABBREV_TAC ` edl = delta x12 x13 x14 x23 x24 x34 ` THEN UNDISCH_TAC` &0 <= edl `
 SIMP_TAC[REAL_ARITH` &0 <= &4 `; GSYM SQRT_MUL; GSYM SQRT4_EQ2] THEN 
 SIMP_TAC[REAL_ARITH` &0 <= &4 `; REAL_LE_MUL;  GSYM SQRT_DIV] THEN 
 REWRITE_TAC[SQRT4_EQ2] THEN MESON_TAC[REAL_FIELD` &1 / &2 * x34 / (&2 * edl) =  x34 / (&4 * edl)`]);;
+
+
+
+end;;  (* end of module *)
+
+(* I'm not sure if the rest will be needed for Flyspeck.  Comment out for now.
+  thales 2012-5. *)
+
+(*
 
 
 let BAJSVHC =  ` ! v1 v2 v3 v4 (v5:real^3).

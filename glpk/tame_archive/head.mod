@@ -19,7 +19,7 @@ edges along cuts have length 2.52--sqrt8.
 
 The sets std3, std4, std5, std6 index the
 standard regions.  The other faces are faces of (V,E) obtained by
-adding diagonals to E_std.  If a standard region with 5 or 6 darts is
+adding diagonals to E_std.  If a standard region with 5 or 6 darts
 has no flat quarters, then it belongs to std56_flat_free.
 
 The term apex refers to a distinguished dart on a face.

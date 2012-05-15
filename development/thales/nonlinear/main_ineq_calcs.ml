@@ -22,8 +22,16 @@
 
   let length_of_arc theta = 
       binary (fun x -> arc 2. 2. x -. theta) 2.0 4.0 (10.0** -8.0);;
-    
 
+  let tame_table_d r s = 
+    if (r + 2 * s <= 3) then 0.0
+    else
+      let r' = float_of_int r in
+      let s' = float_of_int s in
+	0.103 *. (2.0 -. s') +. 0.2759 *. (r' +. 2.0 *. s' -. 4.0);;
+
+tame_table_d 3 1;;
+tame_table_d 2 2;;
 (* "2065952723 A1" 
 15.53 is the upper bound on the deforming edge.
 Let's check that two adjacent standard edges fit within this bound.

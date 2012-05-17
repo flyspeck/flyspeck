@@ -65,7 +65,7 @@ Qed.
 Lemma coset_op1 op x H : `coset (op:A->A->A) x H = set_op1 (op x) H`.
 Proof. by rewrite set_op1_lmul coset_op. Qed.
 
-Lemma normal_conj op i G H x y: `normal op i H G ==> x IN G ==> y IN H ==> conjg (op, i) x y IN H`.
+Lemma normal_conj op i G H x y: `normal op i H G /\ x IN G /\ y IN H ==> conjg (op, i) x y IN H`.
 Proof. by rewrite normal conjg /=. Qed.
 
 Lemma normal_subgroup op i H G : `normal op i H G ==> subgroup op i H G`.
@@ -283,7 +283,7 @@ Qed.
 Lemma normal_conj2 H x y: `normal op i H G ==> x IN G ==> y IN H ==>
 	op x (op y (i x)) IN H`.
 move/normal_conj; rewrite conjg => conj xG yH.
-move: (conj `(i:A->A) x` y).
+move: (conj `i x` y).
 by rewrite i_in_group // yH /= invgK.
 Qed.
 
@@ -592,7 +592,7 @@ Proof.
 move => subHK.
 rewrite !(subgroup_alt2 grG) => [] [sKG grK].
 move: subHK; rewrite (subgroup_alt2 grK) => [] [sHK ->].
-exact: (SUBSET_TRANS (sHK, sKG)).
+exact: (SUBSET_TRANS sHK sKG).
 Qed.
 
 
@@ -1353,7 +1353,7 @@ Qed.
 Lemma p_div_fix : `p divides CARD S ==> p divides CARD (Fix G S a)`.
 rewrite card_set_fix // => p_div_sum.
 have p_div2 := sum_orbit_p_group.
-exact: (DIVIDES_ADD_REVL (p_div2, p_div_sum)).
+exact: (DIVIDES_ADD_REVL p_div2 p_div_sum).
 Qed.
 
 Lemma fix_mod_p : `CARD (Fix G S a) MOD p = CARD S MOD p`.
@@ -1649,7 +1649,7 @@ Lemma expg_eq_mod n : `expg (op, e) g n = expg (op, e) g (n MOD orderg (op, e) g
 Proof.
 have [] [on0] [] oe _ := order_exists.
 move: (DIVMOD_EXIST on0 n) => [q] [r] [n_eq r_lt].
-move: (DIVMOD_UNIQ (n_eq, r_lt)) => ->.
+move: (DIVMOD_UNIQ n_eq) => -> //.
 rewrite r_lt andbT n_eq (expg_add grG) // mulnC -(expg_expg grG) //.
 by rewrite oe (exp1g grG) (mul1g grG) // (expg_in grG).
 Qed.
@@ -2022,7 +2022,7 @@ Lemma subgroup_left_mul_fix : `Fix H (cosets op G H) (\h. set_op1 (op h)) =
 Proof.
 have sHG := subgroup_subset subH.
 have grH := subgroup_group grG subH.
-have finH := FINITE_SUBSET (finG, sHG).
+have finH := FINITE_SUBSET sHG finG.
 move: (sHG); rewrite SUBSET => sHG'.
 rewrite fix !cosets EXTENSION !IN_ELIM_THM /= => c; split; last first.
   move => [x]; rewrite (in_normalizer grG) // => [] [] [xG] eq ->.
@@ -2080,7 +2080,7 @@ have subN := normalizer_subgroup grG sHG.
 have grN := subgroup_group grG subN.
 have normH := normal_in_normalizer grG subH.
 have grNH := quotient_group grN normH.
-have finN := FINITE_SUBSET (finG, (normalizer_subset op i H G)).
+have finN := FINITE_SUBSET finG (normalizer_subset op i H G).
 have finNH := finite_index grN (normal_subgroup normH) finN.
 set N := `normalizer op i G H`.
 suff: `p divides CARD (cosets op N H)` => [p_div | ].
@@ -2091,7 +2091,7 @@ suff: `p divides CARD (cosets op N H)` => [p_div | ].
   by apply: FINITE_SUBSET; exists N; rewrite finN (subgroup_subset subK).
 rewrite -N_def -(subgroup_left_mul_fix grG) //.
 apply p_div_fix; exists op i e n.
-have finH := FINITE_SUBSET (finG, sHG).
+have finH := FINITE_SUBSET finG sHG.
 have finGH := finite_index grG subH finG.
 rewrite (subgroup_group grG subH) (subgroup_acts_on_cosets grG) // prime_p cH eqxx finH finGH !andTb.
 apply: DIVIDES_CMUL2; exists `p EXP n`.
@@ -2099,17 +2099,17 @@ by rewrite mulnC -EXP expn_eq0 negb_and (PRIME_IMP_NZ prime_p) /= -cH mulnC -(La
 Qed.
 
 
-Lemma sylow2 n H K: `~(p EXP (SUC n) divides CARD G) ==>
-	subgroup op i H G ==> subgroup op i K G ==> CARD H = p EXP n ==> CARD K = p EXP n ==>
+Lemma sylow2 n H K: `~(p EXP (SUC n) divides CARD G) /\
+	subgroup op i H G /\ subgroup op i K G /\ CARD H = p EXP n /\ CARD K = p EXP n ==>
 	?g. g IN G /\ H = set_op1 (conjg (op, i) g) K`.
 Proof.
-move => p_n_div subH subK cH cK.
+move => [p_n_div] [subH] [subK] [cH] cK.
 have grK := subgroup_group grG subK.
 have grH := subgroup_group grG subH.
 have sHG := subgroup_subset subH.
 have sKG := subgroup_subset subK.
-have finK := FINITE_SUBSET (finG, sKG).
-have finH := FINITE_SUBSET (finG, sHG).
+have finK := FINITE_SUBSET finG sKG.
+have finH := FINITE_SUBSET finG sHG.
 have finGH := finite_index grG subH finG.
 have actsK := subgroup_acts_on_cosets grG subK sHG.
 have := fix_mod_p actsK grK prime_p finK cK finGH; set S := `Fix K _1 _2`.
@@ -2133,10 +2133,10 @@ by exists h.
 Qed.
 
 
-Lemma sylow3_1 n H : `~(p EXP (SUC n) divides CARD G) ==> subgroup op i H G ==> CARD H = p EXP n ==>
+Lemma sylow3_1 n H : `~(p EXP (SUC n) divides CARD G) /\ subgroup op i H G /\ CARD H = p EXP n ==>
 	CARD {K | subgroup op i K G /\ CARD K = p EXP n} = CARD (cosets op G (normalizer op i G H))`.
 Proof.
-move => p_n_div subH cH.
+move => [p_n_div] [subH] cH.
 have grH := subgroup_group grG subH.
 have sHG := subgroup_subset subH.
 have finH := FINITE_SUBSET (finG, sHG).
@@ -2145,16 +2145,15 @@ rewrite -(conj_subgroup_stab grG) // -(card_orbit actsG grG).
   by rewrite (finite_n_subgroups grG) // inE HAS_SIZE.
 apply congr1; rewrite EXTENSION orbit !inE /= => K; split => [[subK] cK | [g] [gG] ->]; last first.
   by rewrite (subgroup_conjg grG) ?(conjg_set_card grG) ?(i_in_group grG).
-have := sylow2 p_n_div subK subH cK cH.
-move => [g] [gG] K_eq.
+move: (sylow2 p_n_div subK subH cK cH) => [g] [gG] K_eq.
 by exists `i g`; rewrite (i_in_group grG) // (invgK grG).
 Qed.
 
 
-Lemma sylow3_2 n m : `CARD G = (p EXP n) * m ==> coprime (p, m) ==>
+Lemma sylow3_2 n m : `CARD G = (p EXP n) * m /\ coprime (p, m) ==>
 	CARD {K | subgroup op i K G /\ CARD K = p EXP n} divides m`.
 Proof.
-move => cG c_pm.
+move => [cG c_pm].
 have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
 move: (sylow1 p_div) => [H] [subH] cH.
 rewrite (sylow3_1 p_n_div subH cH).
@@ -2162,7 +2161,7 @@ have sHG := subgroup_subset subH.
 have subN := normalizer_subgroup grG sHG.
 have grN := subgroup_group grG subN.
 have subHN := normal_subgroup (normal_in_normalizer grG subH).
-have finN := FINITE_SUBSET (finG, (subgroup_subset subN)).
+have finN := FINITE_SUBSET finG (subgroup_subset subN).
 set N := `normalizer op i G H`.
 move: (LaGrange grN subHN finN) (LaGrange grG subN finG) => ->.
 rewrite cG cH mulnC mulnA eqn_mul2r expn_eq0 PRIME_IMP_NZ //; case => [/= | ->].
@@ -2186,10 +2185,10 @@ Hypothesis finG : `FINITE G`.
 Hypothesis prime_p : `prime p`.
 
 
-Lemma sylow3_3 n m : `CARD G = (p EXP n) * m ==> coprime (p, m) ==>
+Lemma sylow3_3 n m : `CARD G = (p EXP n) * m /\ coprime (p, m) ==>
 	CARD {K | subgroup op i K G /\ CARD K = p EXP n} MOD p = 1`.
 Proof.
-move => cG c_pm.
+move => [cG c_pm].
 have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
 move: (sylow1 grG finG prime_p p_div) => [H] [subH] cH.
 have actsH := subgroup_acts_on_subgroups grG subH `p EXP n`.

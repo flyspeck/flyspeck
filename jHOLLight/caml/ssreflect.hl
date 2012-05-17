@@ -427,6 +427,12 @@ let generate_fresh_name names tm =
     find_name prefix 0;;
 
 
+(* Returns a variable which name does not conflict with names of given vars *)
+let get_fresh_var var vars =
+  let names = map (fst o dest_var) vars in
+    mk_var (generate_fresh_name names var, type_of var);;
+
+
 (* Matches all wild cards in the term and *)
 (* instantinates all type variables in the given context *)
 let prepare_term tm (g : goal) =
@@ -453,30 +459,151 @@ let disch_tm_tac occs tm (g : goal) =
        
 
 
+
+(* process_thm *)
+let process_thm =
+  let conj_imp = TAUT `(A /\ B ==> C) ==> (A ==> B ==> C)` in
+  let dummy_tm = `F` in
+    fun local_consts ->
+      let rec process th =
+	let ctm = concl th in
+	  (* forall *)
+	  if is_forall ctm then
+	    let (var_tm, _) = dest_forall ctm in
+	    let var = get_fresh_var var_tm (thm_frees th @ local_consts) in
+	    let th1 = SPEC var th in
+	    let list, th0 = process th1 in
+	      ("spec", var) :: list, th0
+		(* P ==> Q *)
+	  else if is_imp ctm then
+	    let ant_tm, _ = dest_imp ctm in
+	      (* P /\ R ==> Q *)
+	      if is_conj ant_tm then
+		let th1 = MATCH_MP conj_imp th in
+		let list, th0 = process th1 in
+		  ("conj", dummy_tm) :: list, th0
+		    (* P ==> Q *)
+	      else
+		let th1 = UNDISCH th in
+		let list, th0 = process th1 in
+		  ("undisch", ant_tm) :: list, th0
+	  else
+	    [], th in
+	process;;
+
+
+
+(* reconstruct_thm *)
+let reconstruct_thm =
+  let imp_conj = TAUT `(A ==> B ==> C) ==> (A /\ B ==> C)` in
+  let triv_ths = TAUT `((T ==> A) <=> A) /\ ((T /\ A) = A) /\ ((A /\ T) = A)` in
+  let rec reconstruct list th =
+    match list with
+      | [] -> th
+      | cmd :: t ->
+	  let th1 =
+	    match cmd with
+	      | ("spec", (_ as tm)) -> GEN tm th
+	      | ("conj", _) -> MATCH_MP imp_conj th
+	      | ("undisch", (_ as tm)) -> DISCH tm th
+	      | _ -> failwith ("Unknown command: " ^ fst cmd) in
+	    reconstruct t th1 in
+
+    fun (cmd_list, th) ->
+      let th1 = reconstruct (rev cmd_list) th in
+	PURE_REWRITE_RULE[triv_ths] th1;;
+
+
+(* spec_var_th *)
+let spec_var_th th n tm =
+  let cmd, th0 = process_thm (frees tm) th in
+  let ty = type_of tm in
+  let rec spec n list head =
+    match list with
+      | ("spec", (_ as var_tm)) :: t ->
+	  (try
+	     let ty_ii = type_match (type_of var_tm) ty [] in
+	       if n <= 1 then
+		 let th1 = reconstruct_thm (list, th0) in
+		 let th2 = ISPEC tm th1 in
+		 let tail, th0 = process_thm [] th2 in
+		 let head1 = map (fun s, tm -> s, inst ty_ii tm) head in
+		   head1 @ tail, th0
+	       else
+		 spec (n - 1) t (head @ [hd list])
+	   with Failure _ ->
+	     spec n t (head @ [hd list]))
+      | h :: t -> spec n t (head @ [h])
+      | [] -> failwith ("spec_var_th") in
+    reconstruct_thm (spec n cmd []);;
+
+
+(* match_mp_th *)
+let match_mp_th ith n th =
+  let lconsts = thm_frees ith in
+  let cmd, th0 = process_thm (thm_frees th) ith in
+  let tm = concl th in
+  let rec rec_match n list head =
+    match list with
+      | ("undisch", (_ as tm0)) :: t ->
+	  (try 
+	     let ii = term_match lconsts tm0 tm in
+	       if n <= 1 then
+		 let th1 = INSTANTIATE_ALL ii th0 in
+		 let th2 = PROVE_HYP th th1 in
+		 let list0 = head @ (("undisch", `T`) :: t) in
+		 let f_vars = frees tm0 in
+		 let list1 = filter 
+		   (fun s, tm -> not (s = "spec" && mem tm f_vars)) list0 in
+		 let list = map (fun s, tm -> s, instantiate ii tm) list1 in
+		   list, th2
+	       else
+		 rec_match (n - 1) t (head @ [hd list])
+	   with Failure _ ->
+	     rec_match n t (head @ [hd list]))
+      | h :: t -> rec_match n t (head @ [h])
+      | [] -> failwith "match_mp_th: no match" in
+  let r = rec_match n cmd [] in
+    reconstruct_thm r;;
+
+
 (* Introduces a subgoal *)
 let have_tac then_tac tm (g : goal) =
-  let tm0 = inst_all_free_vars tm g in
+(*  let tm0 = inst_all_free_vars tm g in *)
+  let tm0 = prepare_term tm g in
     (SUBGOAL_THEN tm0 (fun th -> MP_TAC th THEN then_tac)) g;;
+
 
 (* 'wlog' tactic *)
 let wlog_tac then_tac vars tm (g : goal) =
-  let tm0 = inst_all_free_vars tm g in
+(*  let tm0 = inst_all_free_vars tm g in *)
+  let tm0 = prepare_term tm g in
   let g_tm = snd g in
   let imp = list_mk_forall (vars, mk_imp (tm0, g_tm)) in
     (THENL_ROT 1 (SUBGOAL_THEN imp (fun th -> MP_TAC th THEN then_tac) THENL
        [REPLICATE_TAC (length vars) GEN_TAC; ALL_TAC])) g;;
 
 
-(* Provides a witness for an existance goal *)
+(* Provides a witness for an existential goal *)
 let exists_tac tm (g : goal) =
   let tm0 = inst_all_free_vars tm g in
-    (EXISTS_TAC tm0) g;;
+  let target_ty = (type_of o fst o dest_exists o snd) g in
+  let inst_ty = type_match (type_of tm0) target_ty [] in
+  let tm1 = inst inst_ty tm0 in
+    (EXISTS_TAC tm1) g;;
 
 
 (* Specializes a variable and applies the next tactic *)
+let ispec_then tm (tac : thm_tactic) th (g : goal) =
+  let tm0 = prepare_term tm g in
+  let th0 = try ISPEC tm0 th with Failure _ -> spec_var_th th 1 tm0 in
+    tac th0 g;;
+
+
 let ISPEC_THEN tm (tac : thm_tactic) th (g : goal) =
   let tm0 = inst_all_free_vars tm g in
     tac (ISPEC tm0 th) g;;
+
 
 
 let USE_THM_THEN th (tac : thm_tactic) =
@@ -484,7 +611,11 @@ let USE_THM_THEN th (tac : thm_tactic) =
 
 
 let MATCH_MP_THEN th2 (tac : thm_tactic) th1 =
-    tac (MATCH_MP th1 th2);;
+  tac (MATCH_MP th1 th2);;
+
+let match_mp_then th2 (tac : thm_tactic) th1 =
+  let th0 = try MATCH_MP th1 th2 with Failure _ -> match_mp_th th1 1 th2 in
+    tac th0;;
 
 
 let GSYM_THEN tac th =

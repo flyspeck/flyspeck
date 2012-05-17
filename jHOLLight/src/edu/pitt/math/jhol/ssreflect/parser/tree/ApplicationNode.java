@@ -67,7 +67,7 @@ public class ApplicationNode extends ObjectNode {
 		
 		if (argType == TERM) {
 			// ISPEC_THEN
-			buffer.append("ISPEC_THEN ");
+			buffer.append("ispec_then ");
 			argument.translate(buffer, context);
 			buffer.append(" thm_tac");
 		}
@@ -81,7 +81,7 @@ public class ApplicationNode extends ObjectNode {
 			// MATCH_MP_THEN
 			buffer.append("fun fst_th ->");
 			argument.translate(buffer, context);
-			buffer.append("(fun th -> MATCH_MP_THEN th thm_tac fst_th)");
+			buffer.append("(fun th -> match_mp_then th thm_tac fst_th)");
 		}
 		
 		buffer.append(')');

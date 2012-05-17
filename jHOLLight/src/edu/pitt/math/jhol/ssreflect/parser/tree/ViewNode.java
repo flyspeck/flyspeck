@@ -32,7 +32,7 @@ public class ViewNode extends TacticNode {
 		else {
 			buffer.append("DISCH_THEN (fun snd_th -> ");
 			obj.translate(buffer, context);
-			buffer.append("(MATCH_MP_THEN snd_th MP_TAC)");
+			buffer.append("(match_mp_then snd_th MP_TAC)");
 			buffer.append(')');
 		}
 		

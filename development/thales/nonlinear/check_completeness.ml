@@ -10,7 +10,7 @@
 Check completeness (informally) 
 of case anaysis in proof of Kepler conjecture, Main Estimate.
 
-The purpose is to transform the list ur_cs into terminal_cs
+The purpose is to transform the list init_cs into terminal_cs
 in a finite sequence of regulated moves.
 *)
 
@@ -24,16 +24,33 @@ BASICS
 ****************************************
 *)
 
+let arc = Sphere_math.arclength;;
+
+let false_on_fail b x = try (b x) with _ -> false;;
+
+let filter_some xs = 
+  mapfilter (function Some x -> x ) xs;;
+
+let length = List.length;;
+
 let nub = Lib.uniq;;
+
 let sortuniq xs = uniq (Lib.sort (<) xs);;
+
+let psort (i,j) = (min i j),(max i j);;
 
 let rec cart a b = 
   match a with
     | [] -> []
     | a::rest -> (map (fun x -> (a,x)) b) @ cart rest b;;
 
+let cart2 a = cart a a;;
 
-(* a few constants *)
+(* a few constants.  We do tests of exact equality on floats,
+   but this should work because we never do arithmetic on floats
+   after initialization, so there is no source of roundoff error
+   after initialization. *)
+
 let zero = 0.0;;
 let target = 1.541;;
 let two = 2.0;;
@@ -41,7 +58,9 @@ let twoh0 = 2.52;;
 let sqrt8 = Pervasives.sqrt(8.0);;
 let three = 3.0;;
 let cstab = 3.01;;
-let six = 6.0;;  (* 6.0 > 4 * h0, upper bound on diags in BB *)
+let four = 4.0;;
+let fourh0 = 2.0 *. twoh0;;
+let upperbd = 6.0;;  (* 6.0 > 4 * h0, upper bound on diags in BB *)
 
 let tame_table_d0 i = 
   if (i <= 3) then zero
@@ -64,15 +83,23 @@ and such that tau*(s,v)<=0.
 Let index(v) = the number of edges st |vi-vj|=a(i,j). 
 and such that index(v) is minimized among global minimum points in Bs.
 Call this set MM(s) (index-minimizers).
+
+The semantics that guide us will be counterexample propagation;
+if an augmented constraint system contains a point, does the
+output of the function contain a nonempty augmented constraint system?
+
+Formally, we will prove statements of the form for various 
+f:ACS -> (ACS) list
+|- nonempty_M cs ==> (?cs'. mem cs'(f cs) /\ nonempty_M cs').
 *)
+
+(* DEPRECATED
 
 type attrib_cs =
     Cs_straight of int
   | Cs_lo  of int
   | Cs_hi of int;;
 
-
-(*
   | Cs_generic
   | Cs_lunar
   | Cs_interior_crit;; 
@@ -84,12 +111,12 @@ type attrib_cs =
  Cs_interior_crit means all index-minimizers v 
   st. all diags are strictly between a and b. 
   Not a closed condition, don't use.
-*)
 
 let amap f a = match a with
       | Cs_straight i -> Cs_straight (f i)
       | Cs_lo i -> Cs_lo (f i)
       | Cs_hi i -> Cs_hi (f i);;
+*)
 
 type constraint_system = 
 {
@@ -97,9 +124,61 @@ type constraint_system =
   d_cs : float;
   a_cs : int->int ->float;
   b_cs: int->int->float;
-  jlist_cs : int list;
-  attrib_cs : attrib_cs list;
+  am_cs: int->int->float;
+  bm_cs: int->int->float;
+  js_cs : (int*int) list;
+  lo_cs :int list;
+  hi_cs : int list;
+  str_cs : int list;
 };;
+
+(*
+There are B-fields and M-fields.
+The B-fields define the domain of the constraint system s.
+The M-fields partition the minimizers in B_s.
+
+k,a,b, are the primary B-fields
+d,j are secondary B-fields that define the function tau.
+
+lo,hi,str,ma,mb are M-fields.
+
+js represented as pairs (i,j) with i<j and adjacent.
+a,b are bounds defining BB_s.
+
+ma,mb do not affect the augmented constraint system s.
+The deformation lemmas are all partitioning the M-fields.
+
+Subdivision partitions the B-fields.
+Transfer resets the M-fields and changes the B-field.
+*)
+
+
+let modify_cs cs =
+  fun ?k:(k=cs.k_cs) ?a:(a=cs.a_cs) ?b:(b=cs.b_cs) 
+    ?am:(am=cs.am_cs) ?bm:(bm=cs.bm_cs)
+    ?d:(d=cs.d_cs)
+      ?js:(js=cs.js_cs) ?lo:(lo=cs.lo_cs) ?hi:(hi=cs.hi_cs)
+      ?str:(str=cs.str_cs) () ->
+ {
+  k_cs = k;
+  a_cs = a;
+  b_cs = b;
+  am_cs = am;
+  bm_cs = bm;
+  d_cs = d;
+  js_cs = js;
+  lo_cs = lo;
+  hi_cs = hi;
+  str_cs = str;
+};;
+
+(* usage : modify_cs hex_std_cs ~k:4 ();; *)
+
+let reset_attr cs = 
+  modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~hi:[] ~str:[] ();;
+
+
+let mk_j cs i = psort (i,inc cs i);;
 
 let ink k i = (i+1) mod k;;
 
@@ -110,15 +189,21 @@ let inc cs i = ink cs.k_cs i;;
 let dec cs i = dek cs.k_cs i;;
 
 let inka k a = 
-    amap (ink k) a;;
+    map (ink k) a;;
 
-let in_j cs (i,j) = 
-  ((j = inc cs i) && (mem i cs.jlist_cs)) or
-   ( (i = inc cs j) &&( mem j cs.jlist_cs));;
+let memj cs (i,j) = mem (psort (i,j)) cs.js_cs;;
 
 let ks_cs cs = (0-- (cs.k_cs -1));;
 
-let ks_cart cs = let ks = ks_cs cs in cart ks ks;;
+let ks_cart cs = cart2 (ks_cs cs);;
+
+let compact u = length (sortuniq u) = length u;;
+
+let alldiag cs =   
+  let ks = ks_cs cs in
+  filter (fun (i,j) -> (i<j) && not (inc cs i = j) && not (inc cs j = i))
+    (cart2 ks);;
+
 
 (*
 ****************************************
@@ -131,78 +216,118 @@ let is_cs cs =
   let f (i,j) = 
     (cs.a_cs i j = cs.a_cs j i) &&
       (cs.b_cs i j = cs.b_cs j i) &&
-      (cs.a_cs i j <= cs.b_cs i j) in
+      (cs.a_cs i j <= cs.am_cs i j) &&
+      (cs.am_cs i j <= cs.bm_cs i j) &&
+      (cs.bm_cs i j <= cs.b_cs i j) in
   let ks = ks_cs cs in
-  let rl = cart ks ks in
-  let bm = (uniq (map f rl) = [true]) in 
-  let bs = (cs.k_cs <= 6) && (cs.k_cs >= 3) in
-  let bj = List.length cs.jlist_cs + cs.k_cs <= 6 in
-  let bj' = List.length (uniq cs.jlist_cs) = List.length cs.jlist_cs in
-    bm && bs && bj && bj';;  
+  let k2s = cart2 ks in
+  let bm = forall f k2s or failwith "is_cs: bm" in
+  let bs = ((cs.k_cs <= 6) && (cs.k_cs >= 3)) or failwith "is_cs:bs" in
+  let bj = (length cs.js_cs + cs.k_cs <= 6) or failwith "is_cs:bj" in
+  let bj' = (compact cs.js_cs) or failwith "is_cs:bj'" in 
+  let fj (i,j) = (i < j) && ((inc cs i = j) or (inc cs j = i)) in
+  let bj'' = (forall fj cs.js_cs) or failwith "is_cs:bj''" in 
+  let ls =  cs.lo_cs @ cs.hi_cs @ cs.str_cs in
+    bm && bs && bj && bj' && bj'' && 
+      subset ls ks && subset cs.js_cs k2s ;;  
 
+let attr_free cs = 
+  let f (i,j) = (cs.a_cs i j = cs.am_cs i j) && (cs.b_cs i j = cs.bm_cs i j) in
+  let ks = ks_cs cs in
+  let k2s = cart2 ks in
+  let bm = forall f k2s or failwith "attr_free" in
+    bm && (cs.lo_cs=[]) && (cs.hi_cs=[]) &&(cs.str_cs=[]);;
 
-(* jlist i represents edge {i,i+1}
-   reverse is {r (i+1), r i}
-*)
+let zero_diag a xs = forall (fun i -> ((=) zero) (a i i)) xs;;
 
-let reverse_cs cs = 
-  let r i = (cs.k_cs -(i+1)) in
-  let a' a i j = a (r i) (r j) in
-    {
-      k_cs = cs.k_cs;
-      d_cs = cs.d_cs;
-      a_cs = a' (cs.a_cs);
-      b_cs = a' (cs.b_cs);
-      jlist_cs = map (fun i -> r(inc cs i )) cs.jlist_cs;
-      attrib_cs = map (amap r) cs.attrib_cs;
-    };;
+let is_stable cs =
+  let f (i,j) = 
+    (i = j) or (2.0 <= cs.a_cs i j) in
+  let ks =  ks_cs cs in 
+  let k2s = cart2 ks in
+  let bm = forall f k2s or failwith "is_st:bm" in 
+  let bs = zero_diag cs.a_cs ks or failwith "is_st:bs" in 
+  let g i = (cs.b_cs i (inc cs i) <= cstab) in
+  let bs' = forall g ks or failwith "is_st:bs'" in 
+  let fj (i,j) = not(memj cs (i,j)) or 
+    (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
+  let bj = forall fj k2s or failwith "is_st:bj" in 
+    bm && bs && bs' && bj;;
 
-let rotate_cs cs =
-  let a' = fun i j -> cs.a_cs (inc cs i) (inc cs j) in
-  let b' = fun i j -> cs.b_cs (inc cs i) (inc cs j) in
-  let at' = map (inka cs.k_cs) cs.attrib_cs in
+let is_tri_stable cs = 
+  let bk = (3 = cs.k_cs) or failwith "ts:3" in
+  let  f (i,j) = 
+    (i = j) or (2.0 <= cs.a_cs i j) in
+  let ks =  ks_cs cs in 
+  let k2s = cart2 ks in
+  let bm = forall f k2s or failwith "ts:bm" in 
+  let bs = zero_diag cs.a_cs ks  or failwith "ts:bs" in
+  let g i = (cs.b_cs i (inc cs i) < four) in
+  let bs' = forall g ks or failwith "ts:bs'" in 
+  let fj (i,j) = not(memj cs (i,j)) or 
+    (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
+  let bj = forall fj k2s or failwith "ts:bj" in 
+    bk && bm && bs && bs' && bj;;
+
+let is_aug_cs cs = 
+  let bc = is_cs cs in
+  let bs = false_on_fail is_tri_stable  cs or is_stable  cs in
+  let bd = (cs.d_cs < 0.9) or failwith "aug:bd" in
+  let k2s = ks_cart cs in
+  let edge (i,j) = (j = inc cs i) or (i = inc cs i) in
+  let fm (i,j) = edge(i,j) && (i < j) && (two < cs.a_cs i j or twoh0< cs.b_cs i j) in
+  let m = length (filter fm k2s) in
+  let bm = (m + cs.k_cs <= 6) or failwith "aug:bm" in
+    bc && bs && bd && bm;;
+
+(* f is an edge preserving map *)
+
+let map_cs f cs = 
+  let a' a i j = a (f i) (f j) in
+  let f2 (i,j) = psort (f i , f j ) in
   {
-  k_cs = cs.k_cs;
-  d_cs = cs.d_cs;
-  a_cs = a';
-  b_cs = b';
-  jlist_cs = map  (inc cs) cs.jlist_cs;
-  attrib_cs = at';
+    k_cs = cs.k_cs;
+    d_cs = cs.d_cs;
+    a_cs = a' (cs.a_cs);
+    b_cs = a' (cs.b_cs);
+    am_cs = a' (cs.am_cs);
+    bm_cs = a' (cs.bm_cs);
+    lo_cs = map f cs.lo_cs;
+    hi_cs = map f cs.hi_cs;
+    str_cs = map f cs.str_cs;
+    js_cs = map f2 cs.js_cs;
   };;
+
+let opposite_cs cs = 
+  let r i = (cs.k_cs - (i+1)) in
+    map_cs r cs;;
+
+let rotate_cs cs = map_cs (inc cs) cs;;
 
 let rec rotatek_cs k cs = 
   funpow k rotate_cs cs;;
 
-let iso_strict_cs cs cs' = 
+(* attribute free iso *)
+
+let reset_iso_strict_cs cs cs' = 
+  let cs = reset_attr cs in
+  let cs' = reset_attr cs' in
   let bk = cs.k_cs = cs'.k_cs in
   let bd = cs.d_cs = cs'.d_cs in
-  let m r r' = ( uniq (map (fun (i,j) -> r i j = r' i j) (ks_cart cs)) = [true]) in
+  let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
   let ba = m cs.a_cs cs'.a_cs in
   let bb = m cs.b_cs cs'.b_cs in
-  let bj = (sortuniq cs.jlist_cs = sortuniq cs'.jlist_cs) in
-  let bt = (sortuniq cs.attrib_cs = sortuniq cs'.attrib_cs) in
-    bk && bd && ba && bb && bj && bt;;
+  let bj = set_eq cs.js_cs cs'.js_cs in
+    bk && bd && ba && bb && bj;;
 
-let proper_iso_cs cs cs' = 
-  Lib.exists (fun i -> iso_strict_cs (rotatek_cs i cs) cs') (ks_cs cs);;
+let proper_reset_iso_cs cs cs' = 
+  Lib.exists (fun i -> reset_iso_strict_cs (rotatek_cs i cs) cs') (ks_cs cs);;
 
-let iso_cs cs cs' = 
+let reset_iso_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
- (  proper_iso_cs cs cs' or proper_iso_cs (reverse_cs cs) cs');;
+ (  proper_reset_iso_cs cs cs' or proper_reset_iso_cs (opposite_cs cs) cs');;
 
-let is_stable cs =
-  let f (i,j) = 
-    (i = j) or ((2.0 <= cs.a_cs i j) && (cs.a_cs i j <= cstab)) in
-  let ks =  0 -- (cs.k_cs - 1) in
-  let rl = cart ks ks in
-  let bm = (uniq (map f rl) = [true]) in
-  let bs = (uniq (map (fun i -> ((=) zero) (cs.a_cs i i)) ks) = [true]) in
-  let g i = (cs.b_cs i (inc cs i) <= cstab) in
-  let bs' = (uniq (map g ks) = [true]) in
-  let fj i = not(mem i cs.jlist_cs) or 
-    (sqrt8 = cs.a_cs i (inc cs i) && cs.b_cs i (inc cs i) = cstab) in
-  let bj = (uniq (map fj ks) = [true]) in
-    bm && bs && bs' && bj;;
+
 
 (*
 ****************************************
@@ -211,19 +336,19 @@ FUNCTION BUILDERS
 *)
 
 let cs_adj adj diag k i j = 
-  if (i<0) or (j<0) or (i>=k) or (j>=k) then failwith "out of range"
+  let s t = string_of_int t in
+  if (i<0) or (j<0) or (i>=k) or (j>=k) 
+  then failwith ("adj out of range"^(s k)^(s i)^(s j)) 
   else if (i=j) then zero
   else if (j = ink k i) or (i = ink k j) then adj
   else diag;;
 
 let a_pro pro adj diag k i j = 
-  if (i<0) or (j<0) or (i>k) or (j>k) then failwith "out of range"
+  if (i<0) or (j<0) or (i>=k) or (j>=k) then failwith "pro out of range"
   else if (i=j) then zero
   else if (i=0 && j=1) or (j=0 && i=1) then pro
   else if (j = ink k i) or (i = ink k j) then adj
   else diag ;;
-
-let psort (i,j) = (min i j),(max i j);;
 
 let funlist data d i j = 
   if (i=j) then zero
@@ -237,85 +362,64 @@ let overrides a data i j =
 
 (*
 ****************************************
-TABLES OF CONSTRAINT SYSTEMS
+TABLES OF AUGMENTED CONSTRAINT SYSTEMS
 ****************************************
 *)
 
-let hex_std_cs = {
-  k_cs = 6;
-  d_cs = tame_table_d0 6;
-  a_cs = cs_adj two twoh0 6;
-  b_cs = cs_adj twoh0 six 6;
-  jlist_cs = [];
-  attrib_cs = [];
+let mk_cs (k,d,a,b) = {
+  k_cs = k;
+  d_cs = d;
+  a_cs = a;
+  b_cs = b;
+  am_cs = a;
+  bm_cs = b;
+  js_cs = [];
+  lo_cs = [];
+  hi_cs = [];
+  str_cs = [];
 };;
 
-let pent_std_cs = {
-  k_cs = 5;
-  d_cs = tame_table_d0 5;
-  a_cs = cs_adj two twoh0 5;
-  b_cs = cs_adj twoh0 six 5;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let hex_std_cs = mk_cs (6, tame_table_d0 6,
+  cs_adj two twoh0 6,
+  cs_adj twoh0 upperbd 6);;
 
-let quad_std_cs = {
-  k_cs = 4;
-  d_cs = tame_table_d0 4;
-  a_cs = cs_adj two twoh0 4;
-  b_cs = cs_adj twoh0 six 4;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let pent_std_cs = mk_cs (5,tame_table_d0 5,
+  cs_adj two twoh0 5,
+  cs_adj twoh0 upperbd 5);;
 
-let tri_std_cs = {
-  k_cs = 3;
-  d_cs = tame_table_d0 3;
-  a_cs = cs_adj two twoh0 3;
-  b_cs = cs_adj twoh0 six 3;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let quad_std_cs = mk_cs (4,tame_table_d0 4,
+  cs_adj two twoh0 4,
+  cs_adj twoh0 upperbd 4);;
 
-let pent_diag_cs = {
-  k_cs = 5;
-  d_cs = 0.616;
-  a_cs = cs_adj two sqrt8 5;
-  b_cs = cs_adj twoh0 six 5;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let tri_std_cs = mk_cs (3,tame_table_d0 3,
+  cs_adj two twoh0 3,
+  cs_adj twoh0 upperbd 3);;
 
-let quad_diag_cs = {
-  k_cs = 4;
-  d_cs = 0.467;
-  a_cs = cs_adj two sqrt8 4;
-  b_cs = cs_adj twoh0 six 4;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let pent_diag_cs = mk_cs (
+   5,
+   0.616,
+   cs_adj two sqrt8 5,
+   cs_adj twoh0 upperbd 5);;
 
-let pent_pro_cs = 
-{
-  k_cs = 5;
-  d_cs = 0.616;
-  a_cs = a_pro twoh0 two twoh0 5;
-  b_cs = a_pro sqrt8 twoh0 six 5;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let quad_diag_cs = mk_cs (
+   4,
+   0.467,
+   cs_adj two sqrt8 4,
+   cs_adj twoh0 upperbd 4);;
 
-let quad_pro_cs = 
-{
-  k_cs = 4;
-  d_cs = 0.477;
-  a_cs = a_pro twoh0 two twoh0 4;
-  b_cs = a_pro sqrt8 twoh0 six 4;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let pent_pro_cs = mk_cs (
+   5,
+   0.616,
+   a_pro twoh0 two twoh0 5,
+   a_pro sqrt8 twoh0 upperbd 5);;
 
-let ur_cs = [
+let quad_pro_cs = mk_cs (
+   4,
+   0.477,
+   a_pro twoh0 two twoh0 4,
+   a_pro sqrt8 twoh0 upperbd 4);;
+
+let init_cs = [
   hex_std_cs;
   pent_std_cs;
   quad_std_cs;
@@ -326,131 +430,91 @@ let ur_cs = [
   quad_pro_cs;
 ];;
 
+map is_aug_cs init_cs;;
+map attr_free init_cs;;
+
 (* now for the terminal cases done by interval computer calculation *)
 
 let terminal_hex =
-{
-  k_cs = 6;
-  d_cs = tame_table_d0 6;
-  a_cs = cs_adj two cstab 6;
-  b_cs = cs_adj two six 6;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+mk_cs (
+   6,
+   tame_table_d0 6,
+   cs_adj two cstab 6,
+   cs_adj two upperbd 6);;
 
 let terminal_pent = 
-{
-  k_cs = 5;
-  d_cs = 0.616;
-  a_cs = cs_adj two cstab 5;
-  b_cs = cs_adj two six 5;
-  jlist_cs = [];
-  attrib_cs = [];  
-};;
+mk_cs (
+   5,
+   0.616,
+   cs_adj two cstab 5,
+   cs_adj two upperbd 5);;
 
 (* two cases for the 0.467 bound: all top edges 2 or both diags 3 *)
 
 let terminal_adhoc_quad_9563139965A = 
-{
-  k_cs = 4;
-  d_cs = 0.467;
-  a_cs = cs_adj two three 4;
-  b_cs = cs_adj two six 4;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+mk_cs (
+   4,
+   0.467,
+   cs_adj two three 4,
+   cs_adj two upperbd 4);;
 
 let terminal_adhoc_quad_9563139965B = 
-{
-  k_cs = 4;
-  d_cs = 0.467;
-  a_cs = cs_adj two three 4;
-  b_cs = cs_adj twoh0 three 4;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+mk_cs (
+   4,
+   0.467,
+   cs_adj two three 4,
+   cs_adj twoh0 three 4);;
 
-let terminal_adhoc_quad_4680581274 = 
-{
-  k_cs = 4;
-  d_cs = 0.616 -. 0.11;  (* was 0.696 in interval code *)
-  a_cs = funlist [(0,1),cstab ; (0,2),cstab ; (1,3),cstab ] two;
-  b_cs = funlist [(0,1),cstab ; (0,2),six ; (1,3),six ] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_adhoc_quad_4680581274 = mk_cs(
+ 4,
+ 0.616 -. 0.11,
+ funlist [(0,1),cstab ; (0,2),cstab ; (1,3),cstab ] two,
+ funlist [(0,1),cstab ; (0,2),upperbd ; (1,3),upperbd ] two);;
 
-let terminal_adhoc_quad_7697147739 = 
-{
-  k_cs = 4;
-  d_cs = 0.616 -. 0.11;  (* was 0.696 in interval code *)
-  a_cs = funlist [(0,1),sqrt8 ; (0,2),cstab ; (1,3),cstab ] two;
-  b_cs = funlist [(0,1),sqrt8 ; (0,2),six ; (1,3),six ] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_adhoc_quad_7697147739 = mk_cs(
+ 4,
+ 0.616 -. 0.11,
+ funlist [(0,1),sqrt8 ; (0,2),cstab ; (1,3),cstab ] two,
+ funlist [(0,1),sqrt8 ; (0,2),upperbd ; (1,3),upperbd ] two);;
 
-let terminal_tri_3456082115 = 
-  {
-    k_cs = 3;
-    d_cs = 0.5518 /. 2.0;
-    a_cs = funlist [(0,1), cstab; (0,2),twoh0; (1,2),two] two;
-    b_cs = funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two;
-    jlist_cs = [];
-    attrib_cs = [];
-  };;
+let terminal_tri_3456082115 = mk_cs(
+ 3,
+ 0.5518 /. 2.0,
+ funlist [(0,1), cstab; (0,2),twoh0; (1,2),two] two,
+ funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two);;
 
-let terminal_tri_7720405539 = 
-{
-  k_cs = 3;
-  d_cs = 0.5518 /. 2.0 -. 0.2;
-  a_cs = funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two;
-  b_cs = funlist [(0,1),3.41; (0,2),twoh0; (1,2),two] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_7720405539 = mk_cs(
+ 3,
+ 0.5518 /. 2.0 -. 0.2,
+ funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
+ funlist [(0,1),3.41; (0,2),twoh0; (1,2),two] two);;
 
-let terminal_tri_2739661360 = 
-{
-  k_cs = 3;
-  d_cs = 0.5518 /. 2.0 +. 0.2;
-  a_cs = funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two;
-  b_cs = funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_2739661360 = mk_cs(
+ 3,
+ 0.5518 /. 2.0 +. 0.2,
+ funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
+ funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two);;
 
-let terminal_tri_9269152105 = 
-{
-  k_cs = 3;
-  d_cs = 0.5518 /. 2.0 ;
-  a_cs = funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two;
-  b_cs = funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_9269152105 = mk_cs(
+ 3,
+ 0.5518 /. 2.0 ,
+ funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,
+ funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two);;
 
-let terminal_tri_4922521904 = 
-{
-  k_cs = 3;
-  d_cs = 0.5518 /. 2.0 ;
-  a_cs = funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two;
-  b_cs = funlist [(0,1),3.339; (0,2),twoh0; (1,2),two] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_4922521904 = mk_cs(
+ 3,
+ 0.5518 /. 2.0 ,
+ funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
+ funlist [(0,1),3.339; (0,2),twoh0; (1,2),two] two);;
 
-let terminal_quad_1637868761 = 
-{
-  k_cs = 4;
-  d_cs = 0.5518;
-  a_cs = funlist [(0,1),two; (1,2), cstab; 
-		  (2,3),twoh0; (0,3),two; (0,2),3.41; (1,3),cstab] two;
-  b_cs = funlist [(0,1),two; (1,2), cstab;
-		  (2,3),twoh0; (0,3),two; (0,2),3.634; (1,3),six] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_quad_1637868761 = mk_cs(
+ 4,
+ 0.5518,
+ funlist [(0,1),two; (1,2), cstab; 
+                  (2,3),twoh0; (0,3),two; (0,2),3.41; (1,3),cstab] two,
+ funlist [(0,1),two; (1,2), cstab;
+                  (2,3),twoh0; (0,3),two; (0,2),3.634; (1,3),six] two);;
+
 
 let ear_cs = 
 {
@@ -458,8 +522,12 @@ let ear_cs =
   d_cs = 0.11;
   a_cs = funlist [(0,1),sqrt8] two;
   b_cs = funlist [(0,1),cstab] twoh0;
-  jlist_cs = [0];
-  attrib_cs = [];
+  am_cs = funlist [(0,1),sqrt8] two;
+  bm_cs = funlist [(0,1),cstab] twoh0;
+  js_cs = [0,1];
+  lo_cs = [];
+  hi_cs = [];
+  str_cs = [];
 };;
 
 let terminal_ear_3603097872 = ear_cs;;
@@ -471,8 +539,12 @@ let terminal_tri_5405130650 =
   d_cs =  0.477 -.  0.11;
   a_cs = funlist [(0,1),sqrt8;(0,2),twoh0;(1,2),two] two;
   b_cs = funlist [(0,1),cstab;(0,2),sqrt8;(1,2),twoh0] twoh0;
-  jlist_cs = [0];
-  attrib_cs = [];
+  am_cs = funlist [(0,1),sqrt8;(0,2),twoh0;(1,2),two] two;
+  bm_cs = funlist [(0,1),cstab;(0,2),sqrt8;(1,2),twoh0] twoh0;
+  js_cs = [0,1];
+  lo_cs = [];
+  hi_cs = [];
+  str_cs = [];
 };;
 
 let terminal_tri_5766053833 = 
@@ -481,160 +553,109 @@ let terminal_tri_5766053833 =
   d_cs =  0.696 -. 2.0 *. 0.11; 
   a_cs = funlist [(0,1),sqrt8;(1,2),sqrt8] two;
   b_cs = funlist [(0,1),cstab;(1,2),cstab] two;
-  jlist_cs = [0;1];
-  attrib_cs = [];
+  am_cs = funlist [(0,1),sqrt8;(1,2),sqrt8] two;
+  bm_cs = funlist [(0,1),cstab;(1,2),cstab] two;
+  js_cs = [(0,1);(1,2)];
+  lo_cs = [];
+  hi_cs = [];
+  str_cs = [];
 };;
 
-let terminal_tri_5026777310 = 
-{
-  k_cs = 3;
-  d_cs =  0.6548 -. 2.0 *. 0.11; 
-  a_cs = funlist [(0,1),sqrt8;(1,2),sqrt8] two;
-  b_cs = funlist [(0,1),cstab;(1,2),cstab] twoh0;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_5026777310 = mk_cs(
+ 3,
+  0.6548 -. 2.0 *. 0.11,
+ funlist [(0,1),sqrt8;(1,2),sqrt8] two,
+ funlist [(0,1),cstab;(1,2),cstab] twoh0);;
 
-let terminal_tri_7881254908 = 
-{
-  k_cs = 3;
-  d_cs =  0.696 -. 2.0 *. 0.11; 
-  a_cs = funlist [(0,1),sqrt8;(1,2),sqrt8] twoh0;
-  b_cs = funlist [(0,1),cstab;(1,2),cstab] twoh0;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_tri_7881254908 = mk_cs(
+ 3,
+  0.696 -. 2.0 *. 0.11,
+ funlist [(0,1),sqrt8;(1,2),sqrt8] twoh0,
+ funlist [(0,1),cstab;(1,2),cstab] twoh0);;
 
-let terminal_std_tri_OMKYNLT_2_1  = (* 1107929058 *)
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 2 1;
-  a_cs = funlist [(0,1),twoh0] two;
-  b_cs = funlist [(0,1),twoh0] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+(* 1107929058 *)
+let terminal_std_tri_OMKYNLT_2_1  = mk_cs(
+ 3,
+  tame_table_d 2 1,
+ funlist [(0,1),twoh0] two,
+ funlist [(0,1),twoh0] two);;
 
-let terminal_std_tri_7645170609 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 2 1;
-  a_cs = funlist [(0,1),sqrt8] two;
-  b_cs = funlist [(0,1),sqrt8] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_7645170609 = mk_cs(
+ 3,
+  tame_table_d 2 1,
+ funlist [(0,1),sqrt8] two,
+ funlist [(0,1),sqrt8] two);;
 
-let terminal_std_tri_OMKYNLT_1_2  = (* 1532755966 *)
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2;
-  a_cs = funlist [(0,1),two] twoh0;
-  b_cs = funlist [(0,1),two] twoh0;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+(* 1532755966 *)
+let terminal_std_tri_OMKYNLT_1_2  = mk_cs(
+ 3,
+  tame_table_d 1 2,
+ funlist [(0,1),two] twoh0,
+ funlist [(0,1),two] twoh0);;
 
-let terminal_std_tri_7097350062 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),twoh0;(0,2),sqrt8] two;
-  b_cs = funlist [(0,1),twoh0;(0,2),sqrt8] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_7097350062 = mk_cs(
+ 3,
+  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),twoh0;(0,2),sqrt8] two,
+ funlist [(0,1),twoh0;(0,2),sqrt8] two);;
 
-let terminal_std_tri_2900061606 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),twoh0;(0,2),cstab] two;
-  b_cs = funlist [(0,1),twoh0;(0,2),cstab] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_2900061606 = mk_cs(
+ 3,
+  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),twoh0;(0,2),cstab] two,
+ funlist [(0,1),twoh0;(0,2),cstab] two);;
 
-let terminal_std_tri_2200527225 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),two;] sqrt8;
-  b_cs = funlist [(0,1),two;] sqrt8;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_2200527225 = mk_cs(
+ 3,
+  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),two;] sqrt8,
+ funlist [(0,1),two;] sqrt8);;
 
-let terminal_std_tri_3106201101 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),two;(0,2),cstab] sqrt8;
-  b_cs = funlist [(0,1),two;(0,2),cstab] sqrt8;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_3106201101 = mk_cs(
+ 3,
+  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),two;(0,2),cstab] sqrt8,
+ funlist [(0,1),two;(0,2),cstab] sqrt8);;
 
-let terminal_std_tri_9816718044 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),two] cstab;
-  b_cs = funlist [(0,1),two] cstab;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_9816718044 = mk_cs(
+ 3,
+  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),two] cstab,
+ funlist [(0,1),two] cstab);;
 
-let terminal_std_tri_1080462150 = 
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [] twoh0;
-  b_cs = funlist [] twoh0;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_1080462150 = mk_cs(
+ 3,
+  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+ funlist [] twoh0,
+ funlist [] twoh0);;
 
-let terminal_std_tri_4143829594 =
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),cstab] twoh0;
-  b_cs = funlist [(0,1),cstab] twoh0;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_4143829594 = mk_cs(
+ 3,
+  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),cstab] twoh0,
+ funlist [(0,1),cstab] twoh0);;
 
-let terminal_std_tri_7459553847 =
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [(0,1),twoh0] cstab;
-  b_cs = funlist [(0,1),twoh0] cstab;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_7459553847 = mk_cs(
+ 3,
+  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+ funlist [(0,1),twoh0] cstab,
+ funlist [(0,1),twoh0] cstab);;
 
-let terminal_std_tri_4528012043 =
-{
-  k_cs = 3;
-  d_cs =  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11);
-  a_cs = funlist [] cstab;
-  b_cs = funlist [] cstab;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_4528012043 = mk_cs(
+ 3,
+  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+ funlist [] cstab,
+ funlist [] cstab);;
 
-let terminal_std_tri_OMKYNLT_3336871894 = 
-{
-  k_cs = 3;
-  d_cs = zero;
-  a_cs = funlist [] two;
-  b_cs = funlist [] two;
-  jlist_cs = [];
-  attrib_cs = [];
-};;
+let terminal_std_tri_OMKYNLT_3336871894 = mk_cs(
+ 3,
+ zero,
+ funlist [] two,
+ funlist [] two);;
 
+(* use unit_cs as a default terminal object *)
+
+let unit_cs = terminal_std_tri_OMKYNLT_3336871894;;
 
 let terminal_cs = [
  terminal_hex;
@@ -669,26 +690,12 @@ let terminal_cs = [
  terminal_std_tri_OMKYNLT_3336871894; 
 ];;
 
+map ( is_aug_cs) terminal_cs;;
+map ( attr_free) terminal_cs;;
+
 let is_ear cs = 
-  iso_cs ear_cs cs;;
+  reset_iso_cs cs  ear_cs;;
 
-
-
-
-(*
-let sigma_cs cs = 
-  if is_ear cs then 1.0 else -1.0;;
-
-let slice_filter_attrib k k' p a =
-  let r i = (i + k - p) mod k in
-  let s i' = (i' + p) mod k in
-    match a with
-      | Cs_straight i -> 
-	  let r' = r i in
-	  if (r'= 0 or k' <= r' +1) then None else Some (Cs_straight r')
-      | Cs_lo i -> Some(Cs_lo (r'
-
-*)
 
 (*
 ****************************************
@@ -696,28 +703,36 @@ TRANSFORMATIONS
 ****************************************
 *)
 
+(* transfer move an M-field to a larger 
+   B-fields resetting M-fields. b5 not used *)
 
 let transfer_to = 
   let b1 cs cs' = (cs.k_cs =  cs'.k_cs) in
   let b2 cs cs' = (cs.d_cs <= cs'.d_cs) in
   let c3 cs cs' (i,j) = 
-    cs.a_cs i j >= cs'.a_cs i j  && cs.b_cs i j <= cs'.b_cs i j  in
-  let b3 cs cs' =
-      (uniq (map (c3 cs cs') (ks_cart cs)) = [true]) in
+    cs.am_cs i j >= cs'.a_cs i j  && cs.bm_cs i j <= cs'.b_cs i j  in
+  let b3 cs cs' = forall (c3 cs cs') (ks_cart cs) in 
   let b4 cs cs' = 
-    if is_ear cs then iso_cs cs cs'
-    else Lib.subset cs'.jlist_cs cs.jlist_cs in
+    if is_ear cs then is_ear cs'
+    else subset cs'.js_cs cs.js_cs in
   let b5 cs cs' = 
-    Lib.subset (sortuniq cs'.attrib_cs) (sortuniq  cs.attrib_cs) in
+    subset cs'.lo_cs cs.lo_cs && subset cs'.hi_cs cs.hi_cs &&
+      subset cs'.str_cs cs.str_cs in
     fun cs cs' -> 
-      b1 cs cs' && b2 cs cs' && b3 cs cs' && b4 cs cs' && b5 cs cs';;
+      attr_free cs' && 
+      b1 cs cs' && b2 cs cs' && b3 cs cs' && b4 cs cs' ;;
 
 let proper_transfer_cs cs cs' = 
   Lib.exists (fun i -> transfer_to (rotatek_cs i cs) cs') (ks_cs cs);;
 
-let iso_transfer_cs cs cs' = 
+let equi_transfer_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
- (  proper_transfer_cs cs cs' or proper_transfer_cs (reverse_cs cs) cs');;
+ (  proper_transfer_cs cs cs' or proper_transfer_cs (opposite_cs cs) cs');;
+
+
+(* division acts on B-fields, shrinks domain.
+   The global minima Ms remain global minima on smaller domain.
+   We can keep attributes *)
 
 let divide_cs p q c cs =
   let _ = (0 <= p && p< cs.k_cs) or failwith "p out of range divide_cs" in
@@ -725,142 +740,337 @@ let divide_cs p q c cs =
   let (p,q) = psort(p,q) in
   let a = cs.a_cs p q in
   let b = cs.b_cs p q in
-    if (c <= a  or b <= c) then [cs] 
-    else
-      let cs1 = {
-	k_cs = cs.k_cs;
-	a_cs = cs.a_cs;
-	d_cs = cs.d_cs;
-	b_cs = override cs.b_cs (p,q,c);
-	jlist_cs = cs.jlist_cs;
-	attrib_cs = cs.attrib_cs;
-      } in
-      let cs2 = {
-	k_cs = cs.k_cs;
-	b_cs = cs.b_cs;
-	d_cs = cs.d_cs;
-	a_cs = override cs.a_cs (p,q,c);
-	jlist_cs = cs.jlist_cs;
-	attrib_cs = cs.attrib_cs;
-      } in
-	[cs1;cs2];;
+  let am = cs.am_cs p q in
+  let bm = cs.bm_cs p q in
+  let _ =  (a < c  && c < b) or raise Unchanged in
+  let cs1 = modify_cs cs ~b:(override cs.b_cs (p,q,c)) () in
+  let cs2 = modify_cs cs ~a:(override cs.a_cs (p,q,c)) () in
+    if bm < c then [cs1]
+    else if c < am then [cs2]
+    else (* am <= c <= bm *)
+      let cs1' = modify_cs cs1 ~bm:(override cs.bm_cs (p,q,c)) () in
+      let cs2' = modify_cs cs ~am:(override cs.am_cs (p,q,c)) () in
+	[cs1';cs2'];;
 
+(* deformatin acts on M-fields, keeping the domain fixed. *)
 
 let deform_ODXLSTC_cs p cs = 
   let p0 = dec cs p in
   let p1 = p in
   let p2 = inc cs p in
-  if (mem (Cs_lo p) cs.attrib_cs or
-      (cs.a_cs p1 p2 = cs.b_cs p1 p2) or
-      (cs.a_cs p1 p0 = cs.b_cs p1 p0) or 
-      (mem p1 cs.jlist_cs) or 
-      (mem p0 cs.jlist_cs) or
-      not (is_stable cs) or
-     not (mem Cs_interior_crit cs.attrib_cs))
-  then [cs]
-  else
-    let cs1 = {
-      k_cs = cs.k_cs;
-      a_cs = cs.a_cs;
-      b_cs = cs.b_cs;
-      d_cs = cs.d_cs;
-      jlist_cs = cs.jlist_cs;
-      attrib_cs = (Cs_lo p)::cs.attrib_cs;
-    } in
-    let cs2 = {
-      k_cs = cs.k_cs;
-      a_cs = cs.a_cs;
-      b_cs = override cs.b_cs (p1,p2,cs.a_cs p1 p2);
-      d_cs = cs.d_cs;
-      jlist_cs = cs.jlist_cs;
-      attrib_cs = cs.attrib_cs;
-    } in
-    let cs3 = {
-      k_cs = cs.k_cs;
-      a_cs = cs.a_cs;
-      b_cs = override cs.b_cs (p1,p0,cs.a_cs p1 p0);
-      d_cs = cs.d_cs;
-      jlist_cs = cs.jlist_cs;
-      attrib_cs = cs.attrib_cs;
-    } in
-      [cs1;cs2;cs3];;
+  let ks = ks_cs cs in
+  let ksp = subtract ks [p] in
+  let diag = subtract ks [p0;p1;p2] in
+  let _ = mem p ks or failwith "odx:out of range" in
+  let _ = not(memj cs (p0,p1)) or raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p cs.lo_cs) or raise Unchanged in
+  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
+  let _ = forall (not o m) ksp or raise Unchanged in
+  let n q = (fourh0 < cs.b_cs p1 q) in
+  let _ = forall n diag or raise Unchanged in
+  let cs1 = modify_cs cs ~lo:(sortuniq (p::cs.lo_cs)) () in
+  let csp q = 
+    if (cs.am_cs p q > cs.a_cs p q) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (p,q,cs.a_cs p q)) ()) in 
+    cs1::(filter_some(map csp ksp));;
 
 let deform_IMJXPHR_cs p cs = 
   let p0 = dec cs p in
   let p1 = p in
   let p2 = inc cs p in
-  if (mem (Cs_lo p) cs.attrib_cs or
-      ((cs.a_cs p1 p2 = cs.b_cs p1 p2) and
-      (cs.a_cs p1 p0 = cs.b_cs p1 p0)) or 
-      (mem p1 cs.jlist_cs) or (mem p0 cs.jlist_cs) or
-      not (is_stable cs) or
-      not (mem (Cs_straight p) cs.attrib_cs)
-  then [cs]
-  else
-    let cs1 = {
-      k_cs = cs.k_cs;
-      a_cs = cs.a_cs;
-      b_cs = cs.b_cs;
-      d_cs = cs.d_cs;
-      jlist_cs = cs.jlist_cs;
-      attrib_cs = (Cs_lo p)::cs.attrib_cs;
-    } in
-    let cs2 = {
-      k_cs = cs.k_cs;
-      a_cs = cs.a_cs;
-      b_cs = overrides cs.b_cs [(p1,p2),cs.a_cs p1 p2;(p1,p0),cs.a_cs p1 p0];
-      d_cs = cs.d_cs;
-      jlist_cs = cs.jlist_cs;
-      attrib_cs = cs.attrib_cs;
-    } in
-      [cs1;cs2];;
-    
+  let ks = ks_cs cs in
+  let ksp = subtract ks [p] in
+  let diag = subtract ks [p0;p1;p2] in
+  let _ = mem p cs.str_cs or failwith "imj:out of range" in
+  let _ = not(memj cs (p0,p1)) or raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p cs.lo_cs) or raise Unchanged in
+  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
+  let _ = forall (not o m) diag or raise Unchanged in
+  let _ = (m p0 <> m p2) or raise Unchanged in  (* boolean xor *)
+  let p' = if (m p0) then p0 else p2 in
+  let ksp' = subtract ksp [p'] in
+  let n q = (fourh0 < cs.b_cs p1 q) in
+  let _ = forall n diag or raise Unchanged in
+  let cs1 = modify_cs cs ~lo:(sortuniq (p::cs.lo_cs)) () in
+  let csp q =
+    if (cs.am_cs p q > cs.a_cs p q) then None
+    else Some(modify_cs cs ~bm:(override cs.bm_cs (p,q,cs.a_cs p q)) ()) in 
+    cs1::(filter_some(map csp ksp'));;
 
-(*
-let slice_dcs p q isj isear av bv dv cs = 
+let deform_NUXCOEA_cs p cs =     
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  let ks = ks_cs cs in
+  let ksp = subtract ks [p] in
+  let diag = subtract ks [p0;p1;p2] in
+  let _ = mem p cs.str_cs or failwith "imj:out of range" in
+  let _ = not(memj cs (p0,p1)) or raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p cs.lo_cs) or raise Unchanged in
+  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
+  let _ = forall (not o m) diag or raise Unchanged in
+  let _ = (m p0 <> m p2) or raise Unchanged in  (* boolean xor *)
+  let p' = if (m p0) then p0 else p2 in
+  let ksp' = subtract ksp [p'] in
+  let n q = (fourh0 < cs.b_cs p1 q) in
+  let _ = forall n diag or raise Unchanged in
+  let csp q =
+    if (cs.am_cs p q > cs.a_cs p q) then None
+    else Some(modify_cs cs ~bm:(override cs.bm_cs (p,q,cs.a_cs p q)) ()) in 
+    (filter_some(map csp ksp'));;
+
+(* restrict shrinks to B-field down to the M-field,
+   leaving M-field intact. *)
+
+let restrict_cs cs =
+    modify_cs cs ~a:cs.am_cs ~b:cs.bm_cs ();;
+
+(* slice works on B-fields, resetting M-fields. 
+   This version does not create an ear. 
+   It does just one side. *)
+
+let slice_aux cs p q dv = 
   let k = cs.k_cs in
   let p = p mod k in
   let q = q mod k in
   let q' = if (q<p) then q+k else q in
   let k' = 1+q'-p in
+  let av = cs.am_cs p q in
+  let bv = cs.bm_cs p q in
+  let a = override cs.a_cs (p,q,av) in
+  let b = override cs.b_cs (p,q,bv) in
   let _ = (k' >2) or failwith "slice_dcs underflow" in
   let _ = (k'  <  k) or failwith "slice_dcs overflow" in
-  let _ = (av <= cs.a_cs && cs.b_cs <= bv) or failwith "slice range" in
-  let _ = not(isear) or (av=sqrt8 && bv=cstab) or failwith "slice ear" in
   let r i = (i + k - p) mod k in
   let s i' = (i' + p) mod k in
+  let shift f i' j' = f (s i') (s j') in
+  let cd1 = mk_cs (k',dv,shift a, shift b) in
+  let js = map (fun (i,j) -> (r i,r j)) (intersect (cart2 (p--q)) cs.js_cs) in
+    modify_cs cd1 ~js:js ();;
 
-  let af a d i' j' =      
-    let i = s i' in
-    let j = s j' in
-      if (i'=0 && j'+1=k') or (j'=0 && i'+1=k') then d
-      else if (i' < k') && (j' < k') then a i j 
-      else failwith "out of range a" in
-  let jlist = filter (fun i -> i+1 < k') (map r cs.jlist_cs) in
-  let jlist' = if isear then (k'-1) :: jlist  else jlist in
-   {
-    k_cs = q'-p;
-    d_cs = dv;
-    a_cs = af cs.a_cs av;
-    b_cs = af cs.a_cs bv;
-    jlist_cs =  jlist';
-    attrib_cs = [];
-  } ;;
+let slice_cs cs p q dvpq dvqp mk_ear = 
+  let _ = dvpq +. dvqp >= cs.d_cs or failwith "slice_cs:bad d" in
+  let cpq = slice_aux cs p q dvpq in
+  let cqp = slice_aux cs q p dvqp in
+  let addj cs = modify_cs cs ~js:((0,(cs.k_cs - 1))::cs.js_cs) () in
+  let cpq = if (mk_ear) then addj cpq else cpq in
+  let cqp = if (mk_ear) then addj cqp else cqp in
+  let _ = not(mk_ear) or is_ear cpq or is_ear cqp or failwith "slice_cs:ear" in
+    [cpq;cqp];;
+
+(* 
+apply M-field deformation at (p,p+1)=(p1,p2) 
+This assumes not lunar.
 *)
 
-type vef = {
-  vl : int;
-  ht : int -> float;
-  az : int -> float;
-  ed : int -> int -> float;
-};;
+let deform_2065952723_A1_single p cs =
+  let p1 = p in
+  let p2 = inc cs p in
+  let ks = ks_cs cs in
+  let alldiag = alldiag cs in 
+  let _ = mem p ks or failwith "206:out of range" in
+  let _ = (arc 2. 2. (cs.b_cs p1 p2) < arc 2. 2. 15.53) or
+    raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
+  let _ = forall (not o m) alldiag or raise Unchanged in
+  let _ = not (m (p1,p2)) or raise Unchanged in
+  let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
+  let _ = not (m'(p1,p2)) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n alldiag or raise Unchanged in
+  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq (p,q) = 
+    if (cs.am_cs p q > cs.a_cs p q) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (p,q,cs.a_cs p q)) ()) in 
+  let cspq' (p,q) = 
+    if (cs.bm_cs p q < cs.b_cs p q) then None
+    else Some (modify_cs cs ~am:(override cs.am_cs (p,q,cs.b_cs p q)) ()) in 
+    cs1::cs2::
+      (filter_some(cspq' (p1,p2) :: (cspq (p1,p2)) ::(map cspq alldiag)));;
+
+(* 
+apply M-field deformation at straight p=p1, double edge (p0,p1) (p1,p2) 
+This assumes not lunar.
+*)
+
+let deform_2065952723_A1_double p cs =
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  let ks = ks_cs cs in
+  let alldiag = alldiag cs in
+  let _ = mem p ks or failwith "206-double:out of range" in
+  let _ = (arc 2. 2. (cs.b_cs p1 p2) +. arc 2. 2. (cs.b_cs p0 p1) 
+	   < arc 2. 2. 15.53) or
+    raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(memj cs (p0,p1)) or raise Unchanged in
+  let _ = not(mem p0 cs.str_cs) or raise Unchanged in
+  let _ = mem p1 cs.str_cs or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
+  let _ = forall (not o m) alldiag or raise Unchanged in
+  let _ = not (m (p1,p2)) or raise Unchanged in
+  let _ = not (m (p0,p1)) or raise Unchanged in
+  let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
+  let _ = not (m'(p1,p2)) or raise Unchanged in
+  let _ = not (m'(p0,p1)) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n alldiag or raise Unchanged in
+  let cs1 = modify_cs cs ~str:(sortuniq (p0::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq (p,q) = 
+    if (cs.am_cs p q > cs.a_cs p q) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (p,q,cs.a_cs p q)) ()) in 
+  let csmin =
+    if (cs.am_cs p1 p2 > cs.a_cs p1 p2 or cs.am_cs p0 p1 > cs.a_cs p0 p1)
+    then None
+    else Some (modify_cs cs ~bm:(overrides cs.bm_cs 
+      [(p0,p1),cs.a_cs p0 p1; (p1,p2),cs.a_cs p1 p2]) ()) in
+  let csmax = 
+    if (cs.bm_cs p1 p2 < cs.b_cs p1 p2 or cs.bm_cs p0 p1 < cs.b_cs p0 p1) 
+    then None
+    else Some (modify_cs cs ~am:(overrides cs.am_cs 
+      [(p0,p1),cs.b_cs p0 p1; (p1,p2),cs.b_cs p1 p2]) ()) in
+    cs1::cs2::(filter_some(csmin :: csmax:: (map cspq alldiag)));;
+
+
+(* 
+apply M-field deformation at (p,p+1)=(p1,p2) 
+*)
+
+let deform_4828966562 p0 p1 p2 cs =
+  let ks = ks_cs cs in
+  let diag = subtract ks [p0;p1;p2] in
+  let _ = mem p1 ks or failwith "482:out of range" in
+  let _ = (three <= cs.a_cs p0 p2) or     raise Unchanged in
+  let _ = (cs.b_cs p1 p2 <= twoh0) or raise Unchanged in
+  let _ = (cs.b_cs p0 p1 <= cstab) or raise Unchanged in
+  let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p0 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
+  let _ = forall (not o m) diag or raise Unchanged in
+  let n q = (fourh0 < cs.b_cs p1 q) in
+  let _ = forall n diag or raise Unchanged in
+  let cs0 = modify_cs cs ~str:(sortuniq (p0::cs.str_cs)) () in
+  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq q = 
+    if (cs.am_cs p1 q > cs.a_cs p1 q) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
+    cs0::cs1::cs2::
+      (filter_some( (cspq p2) ::(map cspq diag)));;
+
+let deform_4828966562A p cs =
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  deform_4828966562 p0 p1 p2 cs;;
+
+let deform_4828966562B p cs =
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  deform_4828966562 p2 p1 p0 cs;;
 
 (*
-let dsv cs v = 
-  let f i = (cstab - v.ed i (ink v.vl i)) in
-  let u = end_itlist (+.) (map f 
-  cs.d_cs + 0.1 * 
-    let 
+Use obtuse angle at p1 to avoid node straigtenings.
+Uses "1117202051" and "4559601669" for obtuseness criteria.
+This one could cause infinite looping because we are deleting
+attributes str_cs at p0 p1.
+Only use as a last resort.
 *)
 
+let deform_4828966562_obtuse p0 p1 p2 cs =
+  let ks = ks_cs cs in
+  let diag = subtract ks [p0;p1;p2] in
+  let _ = mem p1 ks or failwith "482:out of range" in
+  let _ = (cstab <= cs.a_cs p0 p2) or     raise Unchanged in
+  let _ = (cs.b_cs p1 p2 <= twoh0) or raise Unchanged in
+  let _ = (cs.b_cs p0 p1 <= twoh0) or raise Unchanged in
+  let obtuse_crit = 
+    ((cs.bm_cs p0 p1= two) && (mem p2 cs.lo_cs)) or
+      (mem p0 cs.lo_cs && mem p2 cs.lo_cs) in
+  let _ = obtuse_crit or raise Unchanged in
+  let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
+  let _ = forall (not o m) diag or raise Unchanged in
+  let n q = (fourh0 < cs.b_cs p1 q) in
+  let _ = forall n diag or raise Unchanged in
+  let cs' = modify_cs cs ~str:(subtract cs.str_cs [p0;p1]) () in
+  let cs1 = modify_cs cs' ~str:(sortuniq (p1::cs'.str_cs)) () in
+  let cspq q = 
+    if (cs.am_cs p1 q > cs.a_cs p1 q) then None
+    else Some (modify_cs cs' ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
+    cs1::
+      (filter_some( (cspq p2) ::(map cspq diag)));;
 
+let deform_4828966562A_obtuse p cs =
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  deform_4828966562_obtuse p0 p1 p2 cs;;
+
+let deform_4828966562B_obtuse p cs =
+  let p0 = dec cs p in
+  let p1 = p in
+  let p2 = inc cs p in
+  deform_4828966562_obtuse p2 p1 p0 cs;;
+
+(* flow on hexagons.
+  hex-std-
+   subdivide all diags at stab.
+   apply deformations,
+     in cyclic repetition.
+      setting aside all cs st ?bm diag <= stab.
+
+   checking they are is_aug_cs.
+      
+*)
+
+let hex_deformations = 
+  map deform_ODXLSTC_cs (0--5) @
+  (map deform_IMJXPHR_cs (0--5)) @
+  (map deform_NUXCOEA_cs (0--5)) @
+  (map deform_2065952723_A1_single (0--5)) @
+  (map deform_2065952723_A1_double (0--5)) @
+  (map deform_4828966562A (0--5)) @
+  (map deform_4828966562B (0--5)) @
+  (map deform_4828966562A_obtuse (0--5)) @
+  (map deform_4828966562B_obtuse (0--5)) ;;
+
+let has_stab_diag cs = 
+    exists (fun (i,j) -> cs.bm_cs i j <= cstab ) (alldiag cs);;
+
+let rec hex_loop c active stab_diags =
+  let h = length hex_deformations in
+    if c <= 0 then (active,stab_diags) 
+    else   (match active with
+	[] -> ([],stab_diags) 
+      | (i,cs)::css -> 
+	  (
+	    let i' = i+1 mod h in
+	      (try (
+		let u = try (nth hex_deformations i cs) in
+		let (r,t) = partition has_stab_diag u in
+		let v = map (fun cs -> (i',cs)) r in
+		  hex_loop (c-1) (v @ css) (r @ stab_diags)
+	      )
+	      with Unchanged -> hex_loop (c-1) ((i',cs)::css) stab_diags)
+	  ));;
+
+
+partition ((=) 3) [0;1;2;3;4];;
+exists;;

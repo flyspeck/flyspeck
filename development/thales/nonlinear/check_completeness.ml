@@ -23,9 +23,6 @@ in a finite sequence of regulated moves.
 BASICS
 ****************************************
 *)
-
-let arc = Sphere_math.arclength;;
-
 let false_on_fail b x = try (b x) with _ -> false;;
 
 let filter_some xs = 
@@ -45,6 +42,35 @@ let rec cart a b =
     | a::rest -> (map (fun x -> (a,x)) b) @ cart rest b;;
 
 let cart2 a = cart a a;;
+
+
+(* from parse_ineq *)
+let unsplit d f = function
+  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
+  | [] -> "";;
+
+let join_comma  = unsplit "," (fun x-> x);;
+let join_semi  = unsplit ";" (fun x-> x);;
+let join_lines  = unsplit "\n" (fun x-> x);;
+let join_space  = unsplit " " (fun x-> x);;
+
+let string_of_list f xs = 
+  let ss = map f xs in
+   "["^(join_semi ss)^"]";;
+
+let string_of_pair (i,j) = 
+    Printf.sprintf "(%d,%d)" i j;;
+
+let string_of_triple (i,j,s) = 
+  Printf.sprintf "(%d,%d,%3.2f)" i j s;;
+
+let string_of_f f k = 
+  let ks = filter (fun (i,j) -> i<j) (cart2 (0--(k-1))) in
+  let g (i,j) = (i,j,f i j) in
+    string_of_list string_of_triple (map g ks);;
+
+let arc = Sphere_math.arclength;;  (* in glpk directory *)
+let sqrt = Pervasives.sqrt;;
 
 (* a few constants.  We do tests of exact equality on floats,
    but this should work because we never do arithmetic on floats
@@ -130,7 +156,32 @@ type constraint_system =
   lo_cs :int list;
   hi_cs : int list;
   str_cs : int list;
+  history_cs : string list;
 };;
+
+let string_of_cs cs =
+  let s = string_of_list string_of_int in
+  let k = string_of_int cs.k_cs in
+  let d = string_of_float cs.d_cs in
+  let a = string_of_f cs.a_cs (cs.k_cs) in
+  let b = string_of_f cs.b_cs (cs.k_cs) in
+  let am = string_of_f cs.am_cs (cs.k_cs) in
+  let bm = string_of_f cs.bm_cs (cs.k_cs) in
+  let js = string_of_list string_of_pair cs.js_cs in
+  let lo = s cs.lo_cs in
+  let hi = s cs.hi_cs in
+  let str = s cs.str_cs in
+    Printf.sprintf 
+      "{\n k=%s;\n d=%s;\n a=%s;\n b=%s;\n am=%s;\n bm=%s;\n js=%s;\n lo=%s;\n hi=%s;\n str=%s;\n}\n"
+      k d a b am bm js lo hi str;;
+
+let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
+
+let report_cs cs = report(string_of_cs cs);;
+
+(* report(string_of_cs quad_std_cs);; *)
+(* #install_printer pp_print_cs;; *)
+
 
 (*
 There are B-fields and M-fields.
@@ -158,7 +209,7 @@ let modify_cs cs =
     ?am:(am=cs.am_cs) ?bm:(bm=cs.bm_cs)
     ?d:(d=cs.d_cs)
       ?js:(js=cs.js_cs) ?lo:(lo=cs.lo_cs) ?hi:(hi=cs.hi_cs)
-      ?str:(str=cs.str_cs) () ->
+      ?str:(str=cs.str_cs) ?h:(history=cs.history_cs) () ->
  {
   k_cs = k;
   a_cs = a;
@@ -170,7 +221,10 @@ let modify_cs cs =
   lo_cs = lo;
   hi_cs = hi;
   str_cs = str;
+  history_cs = history;
 };;
+
+let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 
 (* usage : modify_cs hex_std_cs ~k:4 ();; *)
 
@@ -216,6 +270,8 @@ let is_cs cs =
   let f (i,j) = 
     (cs.a_cs i j = cs.a_cs j i) &&
       (cs.b_cs i j = cs.b_cs j i) &&
+    (cs.am_cs i j = cs.am_cs j i) &&
+      (cs.bm_cs i j = cs.bm_cs j i) &&
       (cs.a_cs i j <= cs.am_cs i j) &&
       (cs.am_cs i j <= cs.bm_cs i j) &&
       (cs.bm_cs i j <= cs.b_cs i j) in
@@ -296,6 +352,7 @@ let map_cs f cs =
     hi_cs = map f cs.hi_cs;
     str_cs = map f cs.str_cs;
     js_cs = map f2 cs.js_cs;
+    history_cs = cs.history_cs;
   };;
 
 let opposite_cs cs = 
@@ -377,6 +434,7 @@ let mk_cs (k,d,a,b) = {
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
+  history_cs = [];
 };;
 
 let hex_std_cs = mk_cs (6, tame_table_d0 6,
@@ -528,6 +586,7 @@ let ear_cs =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
+  history_cs= [];
 };;
 
 let terminal_ear_3603097872 = ear_cs;;
@@ -545,6 +604,7 @@ let terminal_tri_5405130650 =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
+  history_cs=[];
 };;
 
 let terminal_tri_5766053833 = 
@@ -559,6 +619,7 @@ let terminal_tri_5766053833 =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
+  history_cs=[];
 };;
 
 let terminal_tri_5026777310 = mk_cs(
@@ -734,7 +795,7 @@ let equi_transfer_cs cs cs' =
    The global minima Ms remain global minima on smaller domain.
    We can keep attributes *)
 
-let divide_cs p q c cs =
+let subdivide_cs p q c cs =
   let _ = (0 <= p && p< cs.k_cs) or failwith "p out of range divide_cs" in
   let _ = (0 <= q && q< cs.k_cs) or failwith "q out of range divide_cs" in
   let (p,q) = psort(p,q) in
@@ -749,7 +810,7 @@ let divide_cs p q c cs =
     else if c < am then [cs2]
     else (* am <= c <= bm *)
       let cs1' = modify_cs cs1 ~bm:(override cs.bm_cs (p,q,c)) () in
-      let cs2' = modify_cs cs ~am:(override cs.am_cs (p,q,c)) () in
+      let cs2' = modify_cs cs2 ~am:(override cs.am_cs (p,q,c)) () in
 	[cs1';cs2'];;
 
 (* deformatin acts on M-fields, keeping the domain fixed. *)
@@ -782,7 +843,8 @@ let deform_IMJXPHR_cs p cs =
   let ks = ks_cs cs in
   let ksp = subtract ks [p] in
   let diag = subtract ks [p0;p1;p2] in
-  let _ = mem p cs.str_cs or failwith "imj:out of range" in
+  let _ = mem p ks or failwith ("imj:out of range"^(string_of_int p)) in
+  let _ = mem p cs.str_cs or raise Unchanged in 
   let _ = not(memj cs (p0,p1)) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p cs.lo_cs) or raise Unchanged in
@@ -806,7 +868,8 @@ let deform_NUXCOEA_cs p cs =
   let ks = ks_cs cs in
   let ksp = subtract ks [p] in
   let diag = subtract ks [p0;p1;p2] in
-  let _ = mem p cs.str_cs or failwith "imj:out of range" in
+  let _ = mem p ks or failwith ("nux:out of range"^(string_of_int p)) in
+  let _ = mem p cs.str_cs or raise Unchanged in 
   let _ = not(memj cs (p0,p1)) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p cs.lo_cs) or raise Unchanged in
@@ -870,20 +933,20 @@ let deform_2065952723_A1_single p cs =
   let p1 = p in
   let p2 = inc cs p in
   let ks = ks_cs cs in
-  let alldiag = alldiag cs in 
+  let alldiag' = alldiag cs in 
   let _ = mem p ks or failwith "206:out of range" in
-  let _ = (arc 2. 2. (cs.b_cs p1 p2) < arc 2. 2. 15.53) or
+  let _ = (arc 2. 2. (cs.b_cs p1 p2) < arc 2. 2. (sqrt(15.53))) or
     raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
   let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
-  let _ = forall (not o m) alldiag or raise Unchanged in
+  let _ = forall (not o m) alldiag' or raise Unchanged in
   let _ = not (m (p1,p2)) or raise Unchanged in
   let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
   let _ = not (m'(p1,p2)) or raise Unchanged in
   let n (i,j) = (fourh0 < cs.b_cs i j) in
-  let _ = forall n alldiag or raise Unchanged in
+  let _ = forall n alldiag' or raise Unchanged in
   let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
   let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
   let cspq (p,q) = 
@@ -893,7 +956,7 @@ let deform_2065952723_A1_single p cs =
     if (cs.bm_cs p q < cs.b_cs p q) then None
     else Some (modify_cs cs ~am:(override cs.am_cs (p,q,cs.b_cs p q)) ()) in 
     cs1::cs2::
-      (filter_some(cspq' (p1,p2) :: (cspq (p1,p2)) ::(map cspq alldiag)));;
+      (filter_some(cspq' (p1,p2) :: (cspq (p1,p2)) ::(map cspq alldiag')));;
 
 (* 
 apply M-field deformation at straight p=p1, double edge (p0,p1) (p1,p2) 
@@ -908,7 +971,7 @@ let deform_2065952723_A1_double p cs =
   let alldiag = alldiag cs in
   let _ = mem p ks or failwith "206-double:out of range" in
   let _ = (arc 2. 2. (cs.b_cs p1 p2) +. arc 2. 2. (cs.b_cs p0 p1) 
-	   < arc 2. 2. 15.53) or
+	   < arc 2. 2. (sqrt(15.53))) or
     raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(memj cs (p0,p1)) or raise Unchanged in
@@ -1029,6 +1092,22 @@ let deform_4828966562B_obtuse p cs =
   let p2 = inc cs p in
   deform_4828966562_obtuse p2 p1 p0 cs;;
 
+let csbad = ref unit_cs;;
+
+let is_ok cs = 
+  let _ = 
+    try is_aug_cs cs 
+    with Failure s -> report_cs cs; csbad:= cs; failwith s in
+  let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
+  let generic_at i = 
+    let p0 = i in
+    let p1 = inc cs i in
+    let p2 = inc cs p1 in
+    let p3 = inc cs p2 in
+      not (subset[p0;p1;p2;p3] cs.lo_cs && subset[p1;p2] cs.str_cs) in
+  let bg = forall generic_at (ks_cs cs) in
+    bstr && bg;;
+
 (* flow on hexagons.
   hex-std-
    subdivide all diags at stab.
@@ -1041,36 +1120,131 @@ let deform_4828966562B_obtuse p cs =
 *)
 
 let hex_deformations = 
-  map deform_ODXLSTC_cs (0--5) @
-  (map deform_IMJXPHR_cs (0--5)) @
-  (map deform_NUXCOEA_cs (0--5)) @
-  (map deform_2065952723_A1_single (0--5)) @
-  (map deform_2065952723_A1_double (0--5)) @
-  (map deform_4828966562A (0--5)) @
-  (map deform_4828966562B (0--5)) @
-  (map deform_4828966562A_obtuse (0--5)) @
-  (map deform_4828966562B_obtuse (0--5)) ;;
+  let r f p cs = filter is_ok (f p cs) in
+  let m d = map (r d) (0--5) in
+  let u =   [deform_ODXLSTC_cs;
+	     deform_IMJXPHR_cs;
+	     deform_NUXCOEA_cs;
+	     deform_2065952723_A1_single;
+	     deform_2065952723_A1_double;
+	     deform_4828966562A;
+	     deform_4828966562B;
+	     deform_4828966562A_obtuse;
+	     deform_4828966562B_obtuse;] in
+    List.flatten (map m u);;
+
+let names_def = ["odx";"imj";"nux";"206s";"206d";"482a";"482b";"482ao";"482bo"];;
+
+let name_of_def i =
+  let offset = i mod 6 in
+  let s = i/6 in
+    (List.nth names_def s) ^ "-" ^ (string_of_int offset);;
 
 let has_stab_diag cs = 
     exists (fun (i,j) -> cs.bm_cs i j <= cstab ) (alldiag cs);;
 
+let find_sub_diag cs =
+  let diag = alldiag cs in
+  let f (i, j) = ( cs.a_cs i j < cstab && cstab < cs.b_cs i j) in
+  let ind = index true (map f diag) in
+    List.nth diag ind;;
+
+let rec split_stab_diag init term =
+    match init with
+      | [] -> ([],term)
+      | cs::css -> 
+	  try
+	    let (i,j) = find_sub_diag cs in
+	    let kss = subdivide_cs i j cstab cs in
+	    let (u,v) = partition has_stab_diag kss in
+	      split_stab_diag (v @ css) (u @ term)
+	  with Failure _ -> partition (not o has_stab_diag) (cs::css @term);;
+
+let hex_split k = 
+  let (u,v) = split_stab_diag [k] [] in
+  let u' =     map (fun i -> (0,i)) u in
+    (u',v);;
+    
 let rec hex_loop c active stab_diags =
   let h = length hex_deformations in
     if c <= 0 then (active,stab_diags) 
-    else   (match active with
+    else match active with
 	[] -> ([],stab_diags) 
       | (i,cs)::css -> 
-	  (
-	    let i' = i+1 mod h in
-	      (try (
-		let u = try (nth hex_deformations i cs) in
-		let (r,t) = partition has_stab_diag u in
-		let v = map (fun cs -> (i',cs)) r in
-		  hex_loop (c-1) (v @ css) (r @ stab_diags)
-	      )
-	      with Unchanged -> hex_loop (c-1) ((i',cs)::css) stab_diags)
-	  ));;
+	  let i' = (i+1) mod h in
+	    try 
+	      let kss = List.nth hex_deformations i cs in
+	      let (u,v) = partition has_stab_diag kss in
+	      let v' = map (fun cs -> (i'*0,cs)) v in
+		hex_loop (c-1) (v' @ css) (u @ stab_diags)
+	    with Unchanged -> hex_loop (c-1) ((i',cs)::css) stab_diags;;
+
+let hl = 
+  let (u',v) = hex_split cs1  in
+    hex_loop 500 u' v;;
+
+length ( (fst hl));;
+report (string_of_cs (snd(hd (fst hl))));;
+nth hex_deformations 3;;
+is_cs (!csbad);;
+let cs1 = (snd(hd (fst hl)));;
+report_cs cs1;;
+List.nth hex_deformations 4 cs1;;
+length hex_deformations;;
+is_ok cs1;;
+
+let fg cs r = 
+  try List.nth hex_deformations r cs; true
+  with Unchanged -> false;;
+filter (fg cs1) (0--53);;
+map name_of_def it;;
+
+deform_2065952723_A1_double 3 cs1;;
+filter is_ok it;;
+partition has_stab_diag it;;
+name_of_def 52;;
+let cs2 = it;;
+report_cs (hd(snd cs2));;
 
 
-partition ((=) 3) [0;1;2;3;4];;
-exists;;
+52 / 5;;
+let cs1 = !csbad;;
+List.length hex_deformations;;
+
+
+
+let fq cs (i,j) = 
+ (cs.a_cs i j = cs.a_cs j i) &&
+      (cs.b_cs i j = cs.b_cs j i) &&
+      (cs.a_cs i j <= cs.am_cs i j) &&
+      (cs.am_cs i j <= cs.bm_cs i j) &&
+      (cs.bm_cs i j <= cs.b_cs i j);;
+
+map (fun (i,j) -> (i,j,(fq cs1 (i,j)))) (ks_cart cs1);;
+
+report_cs cs1;;
+cs1.a_cs 0 5;;
+cs1.b_cs 0 5;;
+
+
+let p1 = 3;;
+  
+  let p2 = inc cs1 p1;;
+  let ks = ks_cs cs1 ;;
+  let alldiag' = alldiag cs1 ;;
+  let _ = mem p1 ks or failwith "206:out of range" ;;
+  let _ = (arc 2. 2. (cs1.b_cs p1 p2) < arc 2. 2. 15.53) ;;
+    raise Unchanged in
+  let _ = not(memj cs1 (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs1.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs1.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
+  let _ = forall (not o m) alldiag' or raise Unchanged in
+  let _ = not (m (p1,p2)) or raise Unchanged in
+  let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
+  let _ = not (m'(p1,p2)) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n alldiag' or raise Unchanged in
+
+;;
+arc 2. 2. 15.53;;

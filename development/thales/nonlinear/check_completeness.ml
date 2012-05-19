@@ -71,6 +71,7 @@ let string_of_f f k =
 
 let arc = Sphere_math.arclength;;  (* in glpk directory *)
 let sqrt = Pervasives.sqrt;;
+let cos  = Pervasives.cos;;
 
 (* a few constants.  We do tests of exact equality on floats,
    but this should work because we never do arithmetic on floats
@@ -1016,6 +1017,13 @@ let deform_2065952723_A1_double p cs =
 apply M-field deformation at (p,p+1)=(p1,p2) 
 *)
 
+(*
+correction -- originally I had constraints on the straightness
+of p0. By the beta lemma for nonreflexive local fans, the
+azimuth angle is decreasing at p0 as p1 pivots in the direction of p2.
+So cs0 is not used.
+*)
+
 let deform_4828966562 p0 p1 p2 cs =
   let ks = ks_cs cs in
   let diag = subtract ks [p0;p1;p2] in
@@ -1025,20 +1033,20 @@ let deform_4828966562 p0 p1 p2 cs =
   let _ = (cs.b_cs p0 p1 <= cstab) or raise Unchanged in
   let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
-  let _ = not(mem p0 cs.str_cs) or raise Unchanged in
+(*  let _ = not(mem p0 cs.str_cs) or raise Unchanged in *)
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
   let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
   let _ = forall (not o m) diag or raise Unchanged in
   let n q = (fourh0 < cs.b_cs p1 q) in
   let _ = forall n diag or raise Unchanged in
-  let cs0 = modify_cs cs ~str:(sortuniq (p0::cs.str_cs)) () in
+  let cs0 = modify_cs cs ~str:(sortuniq (p0::cs.str_cs)) () in 
   let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
   let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
   let cspq q = 
     if (cs.am_cs p1 q > cs.a_cs p1 q) then None
     else Some (modify_cs cs ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
-    cs0::cs1::cs2::
+    (* cs0:: *)  cs1::cs2::
       (filter_some( (cspq p2) ::(map cspq diag)));;
 
 let deform_4828966562A p cs =
@@ -1054,10 +1062,11 @@ let deform_4828966562B p cs =
   deform_4828966562 p2 p1 p0 cs;;
 
 (*
+Obsolete comment.
 Use obtuse angle at p1 to avoid node straigtenings.
 Uses "1117202051" and "4559601669" for obtuseness criteria.
-This one could cause infinite looping because we are deleting
-attributes str_cs at p0 p1.
+//This one could cause infinite looping because we are deleting
+//attributes str_cs at p0 p1.
 Only use as a last resort.
 
 Update: looping prevented.
@@ -1073,7 +1082,21 @@ has a straight node at p2, then it must also have some other constraint
 that prevents deformation.
 
 So I have modified the code so not to remove p0 p2 from str_cs.
+
 *)
+
+(*
+new condition for obtuseness by spherical law of cosines.
+if p3 p4 are both straight, then the three segments
+give cos(3.0 *. arc 2.52 2.52 2.) < -0.76 < -0.6.
+If there are a total of 3 straights, then we have an effective triangle.
+assume p1 p2 are not straight and the side p1 p2 [2,2.52].
+Then (0.206,0.685)=(cos(arc 2. 2. 2.52),cos(arc 2.52 2.52 2.)).
+By the sloc, cos c - cos a cos b <= cos c + |cos a cos b|
+  < cos c + 0.6 < 0. and we are obtuse.
+p3 is straight if it is an effective triangle p1,p2 not str, p0 p4 str.
+*)
+
 
 let deform_4828966562_obtuse p0 p1 p2 cs =
   let ks = ks_cs cs in
@@ -1086,7 +1109,13 @@ let deform_4828966562_obtuse p0 p1 p2 cs =
     ((cs.bm_cs p0 p1= two) && (mem p2 cs.lo_cs)) or
       (mem p0 cs.lo_cs && mem p2 cs.lo_cs) or 
       ((cs.bm_cs p0 p1=two) && (mem p0 cs.lo_cs) ) in
-  let _ = obtuse_crit or raise Unchanged in
+  let p4 = funpow 3 (inc cs) p1 in
+  let obtuse_sloc = 
+    (cs.k_cs = 6) &&
+    (length (sortuniq cs.str_cs) = 3) && (subset [p0;p4] cs.str_cs) &&
+      (cs.bm_cs p1 p2 <= twoh0) && not (mem p1 cs.str_cs) &&
+      not (mem p2 cs.str_cs) in
+  let _ = obtuse_crit or obtuse_sloc or raise Unchanged in    
   let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
@@ -1182,10 +1211,20 @@ let rec split_stab_diag init term =
 	      split_stab_diag (v @ css) (u @ term)
 	  with Failure _ -> partition (not o has_stab_diag) (cs::css @term);;
 
-let hex_split k = 
-  let (u,v) = split_stab_diag [k] [] in
+let hex_std_preslice = 
+  let c1 = subdivide_cs 0 2 cstab hex_std_cs in
+  let c2 = subdivide_cs 0 3 cstab hex_std_cs in
+    (hd c1) , (hd c2) ;;
+
+let transfer_hex_to_preslice cs = 
+  equi_transfer_cs cs (fst hex_std_preslice) or 
+    equi_transfer_cs cs (snd hex_std_preslice);;
+
+let hex_split = 
+  let (u,v) = split_stab_diag [hex_std_cs] [] in
+  let _ = forall transfer_hex_to_preslice v or failwith "hex_split" in
   let u' =     map (fun i -> (0,i)) u in
-    (u',v);;
+    u';;
     
 let rec hex_loop c active stab_diags =
     if c <= 0 then (active,stab_diags) 
@@ -1195,14 +1234,16 @@ let rec hex_loop c active stab_diags =
 	    try 
 	      let kss = List.nth hex_deformations i cs in
 	      let (u,v) = partition has_stab_diag kss in
+	      let _ = forall transfer_hex_to_preslice v or failwith "pre" in
 	      let v' = map (fun cs -> (0,cs)) v in
 		hex_loop (c-1) (v' @ css) ((* u @ *) stab_diags)
 	    with Unchanged -> hex_loop (c-1) ((i+1,cs)::css) stab_diags
               | Failure s -> ( ((-1,cs)::css,stab_diags));;
 
+(* next fix failure "pre" to store failures and rerun. XXD *)
+
 let hl = 
-  let (u',v) = hex_split hex_std_cs  in
-    hex_loop 100000 u' [];;
+    hex_loop 200000 hex_split [];;
 
 length ( (fst hl));;
 report (string_of_cs (snd(hd (fst hl))));;

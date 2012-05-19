@@ -26,7 +26,7 @@ BASICS
 let false_on_fail b x = try (b x) with _ -> false;;
 
 let filter_some xs = 
-  mapfilter (function Some x -> x ) xs;;
+  mapfilter (function |Some x -> x |None -> failwith "none" ) xs;;
 
 let length = List.length;;
 
@@ -407,15 +407,25 @@ let a_pro pro adj diag k i j =
   else if (j = ink k i) or (i = ink k j) then adj
   else diag ;;
 
+(*  BUGGED IF data not sorted:
 let funlist data d i j = 
   if (i=j) then zero
   else assocd (psort (i,j)) data d;;
+*)
+
+let funlist data = 
+  let data' = map (fun ((i,j),d) -> (psort(i,j),d)) data in
+    fun d i j ->
+      if (i=j) then zero
+      else assocd (psort (i,j)) data' d;;
 
 let override a (p,q,d) i j = 
-  if (p,q) = psort (i,j) then d else a i j;;
+  if psort (p,q) = psort (i,j) then d else a i j;;
 
-let overrides a data i j = 
-  funlist data (a i j) i j;;
+let overrides a data =
+  let fd = funlist data in
+      fun i j ->
+	fd (a i j) i j;;
 
 (*
 ****************************************
@@ -872,7 +882,6 @@ let deform_NUXCOEA_cs p cs =
   let _ = mem p cs.str_cs or raise Unchanged in 
   let _ = not(memj cs (p0,p1)) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
-  let _ = not(mem p cs.lo_cs) or raise Unchanged in
   let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
   let _ = forall (not o m) diag or raise Unchanged in
   let _ = (m p0 <> m p2) or raise Unchanged in  (* boolean xor *)
@@ -980,11 +989,9 @@ let deform_2065952723_A1_double p cs =
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
   let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
   let _ = forall (not o m) alldiag or raise Unchanged in
-  let _ = not (m (p1,p2)) or raise Unchanged in
-  let _ = not (m (p0,p1)) or raise Unchanged in
+  let _ = not (m (p1,p2) && m(p0,p1)) or raise Unchanged in
   let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
-  let _ = not (m'(p1,p2)) or raise Unchanged in
-  let _ = not (m'(p0,p1)) or raise Unchanged in
+  let _ = not (m'(p1,p2) && m'(p0,p1)) or raise Unchanged in
   let n (i,j) = (fourh0 < cs.b_cs i j) in
   let _ = forall n alldiag or raise Unchanged in
   let cs1 = modify_cs cs ~str:(sortuniq (p0::cs.str_cs)) () in
@@ -1052,6 +1059,20 @@ Uses "1117202051" and "4559601669" for obtuseness criteria.
 This one could cause infinite looping because we are deleting
 attributes str_cs at p0 p1.
 Only use as a last resort.
+
+Update: looping prevented.
+Deformation is a bad word to be using, we are not actually
+deforming, we are listing the constraints that prevent deformation.
+The deformation might be a diagonal at its lower bound,
+a straight node at p1, or an edge (p1,p2) at its lower bound.
+
+If there are other conditions in the aug. constraint system, that is ok.
+If mem p2 cs.str_cs, then we don't need to eliminate it, because
+we never deform it.  We are just saying that if an element of M_s
+has a straight node at p2, then it must also have some other constraint
+that prevents deformation.
+
+So I have modified the code so not to remove p0 p2 from str_cs.
 *)
 
 let deform_4828966562_obtuse p0 p1 p2 cs =
@@ -1063,7 +1084,8 @@ let deform_4828966562_obtuse p0 p1 p2 cs =
   let _ = (cs.b_cs p0 p1 <= twoh0) or raise Unchanged in
   let obtuse_crit = 
     ((cs.bm_cs p0 p1= two) && (mem p2 cs.lo_cs)) or
-      (mem p0 cs.lo_cs && mem p2 cs.lo_cs) in
+      (mem p0 cs.lo_cs && mem p2 cs.lo_cs) or 
+      ((cs.bm_cs p0 p1=two) && (mem p0 cs.lo_cs) ) in
   let _ = obtuse_crit or raise Unchanged in
   let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
@@ -1072,13 +1094,12 @@ let deform_4828966562_obtuse p0 p1 p2 cs =
   let _ = forall (not o m) diag or raise Unchanged in
   let n q = (fourh0 < cs.b_cs p1 q) in
   let _ = forall n diag or raise Unchanged in
-  let cs' = modify_cs cs ~str:(subtract cs.str_cs [p0;p1]) () in
+  let cs' = cs in (*modify_cs cs ~str:(subtract cs.str_cs [p0;p2]) () in *)
   let cs1 = modify_cs cs' ~str:(sortuniq (p1::cs'.str_cs)) () in
   let cspq q = 
     if (cs.am_cs p1 q > cs.a_cs p1 q) then None
     else Some (modify_cs cs' ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
-    cs1::
-      (filter_some( (cspq p2) ::(map cspq diag)));;
+    cs1:: filter_some (map cspq (p2::diag));;
 
 let deform_4828966562A_obtuse p cs =
   let p0 = dec cs p in
@@ -1106,7 +1127,8 @@ let is_ok cs =
     let p3 = inc cs p2 in
       not (subset[p0;p1;p2;p3] cs.lo_cs && subset[p1;p2] cs.str_cs) in
   let bg = forall generic_at (ks_cs cs) in
-    bstr && bg;;
+  let bunfinished = not (transfer_to cs terminal_hex) in
+    bstr && bg && bunfinished;;
 
 (* flow on hexagons.
   hex-std-
@@ -1125,15 +1147,15 @@ let hex_deformations =
   let u =   [deform_ODXLSTC_cs;
 	     deform_IMJXPHR_cs;
 	     deform_NUXCOEA_cs;
+	     deform_4828966562A_obtuse;
+	     deform_4828966562B_obtuse;
 	     deform_2065952723_A1_single;
 	     deform_2065952723_A1_double;
 	     deform_4828966562A;
-	     deform_4828966562B;
-	     deform_4828966562A_obtuse;
-	     deform_4828966562B_obtuse;] in
+	     deform_4828966562B;] in
     List.flatten (map m u);;
 
-let names_def = ["odx";"imj";"nux";"206s";"206d";"482a";"482b";"482ao";"482bo"];;
+let names_def = ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";];;
 
 let name_of_def i =
   let offset = i mod 6 in
@@ -1166,22 +1188,21 @@ let hex_split k =
     (u',v);;
     
 let rec hex_loop c active stab_diags =
-  let h = length hex_deformations in
     if c <= 0 then (active,stab_diags) 
     else match active with
 	[] -> ([],stab_diags) 
       | (i,cs)::css -> 
-	  let i' = (i+1) mod h in
 	    try 
 	      let kss = List.nth hex_deformations i cs in
 	      let (u,v) = partition has_stab_diag kss in
-	      let v' = map (fun cs -> (i'*0,cs)) v in
-		hex_loop (c-1) (v' @ css) (u @ stab_diags)
-	    with Unchanged -> hex_loop (c-1) ((i',cs)::css) stab_diags;;
+	      let v' = map (fun cs -> (0,cs)) v in
+		hex_loop (c-1) (v' @ css) ((* u @ *) stab_diags)
+	    with Unchanged -> hex_loop (c-1) ((i+1,cs)::css) stab_diags
+              | Failure s -> ( ((-1,cs)::css,stab_diags));;
 
 let hl = 
-  let (u',v) = hex_split cs1  in
-    hex_loop 500 u' v;;
+  let (u',v) = hex_split hex_std_cs  in
+    hex_loop 100000 u' [];;
 
 length ( (fst hl));;
 report (string_of_cs (snd(hd (fst hl))));;
@@ -1189,9 +1210,9 @@ nth hex_deformations 3;;
 is_cs (!csbad);;
 let cs1 = (snd(hd (fst hl)));;
 report_cs cs1;;
-List.nth hex_deformations 4 cs1;;
-length hex_deformations;;
 is_ok cs1;;
+
+let cs1 = !csbad;;
 
 let fg cs r = 
   try List.nth hex_deformations r cs; true
@@ -1199,9 +1220,11 @@ let fg cs r =
 filter (fg cs1) (0--53);;
 map name_of_def it;;
 
-deform_2065952723_A1_double 3 cs1;;
-filter is_ok it;;
-partition has_stab_diag it;;
+
+let fr r = List.nth hex_deformations r cs1;;
+fr 0;;
+let pp = partition has_stab_diag it;;
+map report_cs (snd pp);;
 name_of_def 52;;
 let cs2 = it;;
 report_cs (hd(snd cs2));;
@@ -1210,9 +1233,13 @@ report_cs (hd(snd cs2));;
 52 / 5;;
 let cs1 = !csbad;;
 List.length hex_deformations;;
+deform_4828966562_obtuse 2 3 4 cs1;;
 
-
-
+deform_NUXCOEA_cs 0 cs1;;
+map report_cs it;;
+partition has_stab_diag it;;
+let cs2 = hd (snd(it));;
+report_cs cs2;;
 let fq cs (i,j) = 
  (cs.a_cs i j = cs.a_cs j i) &&
       (cs.b_cs i j = cs.b_cs j i) &&
@@ -1225,7 +1252,7 @@ map (fun (i,j) -> (i,j,(fq cs1 (i,j)))) (ks_cart cs1);;
 report_cs cs1;;
 cs1.a_cs 0 5;;
 cs1.b_cs 0 5;;
-
+transfer_to cs1 terminal_hex;;
 
 let p1 = 3;;
   

@@ -59,5 +59,11 @@ or protracted pent with two adjacent flats.
 
   let two_flats_arc_min = 2.0 *. arc 2.52 2. 2. +. arc 2. 2. 2.;;
 
-
-
+dihedral;;
+arc 2. 2. 2.52;;
+Pervasives.cos 1.364;;
+Pervasives.cos 2.98;;
+arc 2. 2. 2. +. arc 2. 2. 2. +. arc 2.52 2. 2.;;
+arc 2. 2.52 4.0;;  
+let dih = dih_y;;
+  dih 2.52 2. 2. 

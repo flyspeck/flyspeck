@@ -434,7 +434,7 @@ TABLES OF AUGMENTED CONSTRAINT SYSTEMS
 ****************************************
 *)
 
-let mk_cs (k,d,a,b) = {
+let mk_cs (k,d,a,b,h) = {
   k_cs = k;
   d_cs = d;
   a_cs = a;
@@ -445,58 +445,58 @@ let mk_cs (k,d,a,b) = {
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
-  history_cs = [];
+  history_cs = [h];
 };;
 
 let hex_std_cs = mk_cs (6, tame_table_d0 6,
   cs_adj two twoh0 6,
-  cs_adj twoh0 upperbd 6);;
+  cs_adj twoh0 upperbd 6,"hex std init");;
 
 let pent_std_cs = mk_cs (5,tame_table_d0 5,
   cs_adj two twoh0 5,
-  cs_adj twoh0 upperbd 5);;
+  cs_adj twoh0 upperbd 5,"pent std init");;
 
 let quad_std_cs = mk_cs (4,tame_table_d0 4,
   cs_adj two twoh0 4,
-  cs_adj twoh0 upperbd 4);;
+  cs_adj twoh0 upperbd 4,"quad std init");;
 
 let tri_std_cs = mk_cs (3,tame_table_d0 3,
   cs_adj two twoh0 3,
-  cs_adj twoh0 upperbd 3);;
+  cs_adj twoh0 upperbd 3,"tri std init");;
 
 let pent_diag_cs = mk_cs (
    5,
    0.616,
    cs_adj two sqrt8 5,
-   cs_adj twoh0 upperbd 5);;
+   cs_adj twoh0 upperbd 5,"pent diag init");;
 
 let quad_diag_cs = mk_cs (
    4,
    0.467,
    cs_adj two sqrt8 4,
-   cs_adj twoh0 upperbd 4);;
+   cs_adj twoh0 upperbd 4,"quad diag init");;
 
 let pent_pro_cs = mk_cs (
    5,
    0.616,
    a_pro twoh0 two twoh0 5,
-   a_pro sqrt8 twoh0 upperbd 5);;
+   a_pro sqrt8 twoh0 upperbd 5,"pent pro init");;
 
 let quad_pro_cs = mk_cs (
    4,
    0.477,
    a_pro twoh0 two twoh0 4,
-   a_pro sqrt8 twoh0 upperbd 4);;
+   a_pro sqrt8 twoh0 upperbd 4,"quad pro init");;
 
 let init_cs = [
-  hist hex_std_cs "hex_std init";
-  hist pent_std_cs "pent_std init";
-  hist quad_std_cs "quad_std init";
-  hist tri_std_cs "tri_std init";
-  hist pent_diag_cs "pent_diag init";
-  hist quad_diag_cs "quad_diag init";
-  hist pent_pro_cs "pent_pro init";
-  hist quad_pro_cs "quad_pro init";
+  hex_std_cs ;
+  pent_std_cs ;
+  quad_std_cs ;
+  tri_std_cs ;
+  pent_diag_cs ;
+  quad_diag_cs ;
+  pent_pro_cs ;
+  quad_pro_cs ;
 ];;
 
 map is_aug_cs init_cs;;
@@ -1317,7 +1317,7 @@ let execute_hexagons() =
    to the one terminal hexagon, together with two cases of hex_std_preslice
 *)
 
-execute_hexagons();;
+(* execute_hexagons();; working in svn:2819 *)
 
 (*
 ****************************************
@@ -1344,15 +1344,15 @@ let slice_hex_to_pent_tri =
   let d'= 0.616 in 
   let d = cs.d_cs -. d' in 
   let vv = slice_cs cs 2 0 d' d  false in
-    vv;;
+    map (C hist "slice_hex_to_pent_tri") vv;;
 
 exists (equi_transfer_cs pent_pro_cs) slice_hex_to_pent_tri;;
 
-report_cs pent_pro_cs;;
-map report_cs slice_hex_to_pent_tri;;
+claim_arrow([pent_pro_cs;hex_std_preslice_02],slice_hex_to_pent_tri);;
 
 let pent_init = 
-  [pent_std_cs;pent_diag_cs;pent_pro_cs;hd slice_hex_to_pent_tri];; 
+  [pent_std_cs;pent_diag_cs] @ filter (fun cs -> (5=cs.k_cs)) 
+    slice_hex_to_pent_tri;; 
 
 let pent_composite_cs = mk_cs (
    5,

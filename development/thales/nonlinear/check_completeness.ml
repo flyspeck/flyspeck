@@ -489,14 +489,14 @@ let quad_pro_cs = mk_cs (
    a_pro sqrt8 twoh0 upperbd 4);;
 
 let init_cs = [
-  hex_std_cs;
-  pent_std_cs;
-  quad_std_cs;
-  tri_std_cs;
-  pent_diag_cs;
-  quad_diag_cs;
-  pent_pro_cs;
-  quad_pro_cs;
+  hist hex_std_cs "hex_std init";
+  hist pent_std_cs "pent_std init";
+  hist quad_std_cs "quad_std init";
+  hist tri_std_cs "tri_std init";
+  hist pent_diag_cs "pent_diag init";
+  hist quad_diag_cs "quad_diag init";
+  hist pent_pro_cs "pent_pro init";
+  hist quad_pro_cs "quad_pro init";
 ];;
 
 map is_aug_cs init_cs;;
@@ -762,8 +762,8 @@ let terminal_cs = [
  terminal_std_tri_OMKYNLT_3336871894; 
 ];;
 
-map ( is_aug_cs) terminal_cs;;
-map ( attr_free) terminal_cs;;
+forall ( is_aug_cs) terminal_cs;;
+forall ( attr_free) terminal_cs;;
 
 let is_ear cs = 
   reset_iso_cs cs  ear_cs;;
@@ -797,32 +797,19 @@ let transfer_to =
 let proper_transfer_cs cs cs' = 
   Lib.exists (fun i -> transfer_to (rotatek_cs i cs) cs') (ks_cs cs);;
 
+
 let equi_transfer_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
  (  proper_transfer_cs cs cs' or proper_transfer_cs (opposite_cs cs) cs');;
 
 
-(* division acts on B-fields, shrinks domain.
-   The global minima Ms remain global minima on smaller domain.
-   We can keep attributes *)
-
-let subdivide_cs p q c cs =
-  let _ = (0 <= p && p< cs.k_cs) or failwith "p out of range divide_cs" in
-  let _ = (0 <= q && q< cs.k_cs) or failwith "q out of range divide_cs" in
-  let (p,q) = psort(p,q) in
-  let a = cs.a_cs p q in
-  let b = cs.b_cs p q in
-  let am = cs.am_cs p q in
-  let bm = cs.bm_cs p q in
-  let _ =  (a < c  && c < b) or raise Unchanged in
-  let cs1 = modify_cs cs ~b:(override cs.b_cs (p,q,c)) () in
-  let cs2 = modify_cs cs ~a:(override cs.a_cs (p,q,c)) () in
-    if bm < c then [cs1]
-    else if c < am then [cs2]
-    else (* am <= c <= bm *)
-      let cs1' = modify_cs cs1 ~bm:(override cs.bm_cs (p,q,c)) () in
-      let cs2' = modify_cs cs2 ~am:(override cs.am_cs (p,q,c)) () in
-	[cs1';cs2'];;
+(*
+let equi_transfer_cs  = 
+  let f cs = map (fun i -> rotatek_cs i cs) (ks_cs cs) in
+    fun cs ->
+      let cases = f cs @ f (opposite_cs cs) in
+	fun cs' -> (cs.k_cs = cs'.k_cs) && exists (C transfer_to cs') cases;;
+*)
 
 (* deformatin acts on M-fields, keeping the domain fixed. *)
 
@@ -1142,12 +1129,120 @@ let deform_4828966562B_obtuse p cs =
   let p2 = inc cs p in
   deform_4828966562_obtuse p2 p1 p0 cs;;
 
-let csbad = ref unit_cs;;
+(*
+****************************************
+ cstab subdivison
+****************************************
+*)
 
-let is_ok cs = 
+(* division acts on B-fields, shrinks domain.
+   The global minima Ms remain global minima on smaller domain.
+   We can keep attributes.
+   Avoid Unchanged.  Pass through if c is out of range. 
+   Restricts the domain if possible. *)
+
+let subdivide_cs p q c cs =
+  let _ = (0 <= p && p< cs.k_cs) or failwith "p out of range divide_cs" in
+  let _ = (0 <= q && q< cs.k_cs) or failwith "q out of range divide_cs" in
+  let (p,q) = psort(p,q) in
+  let a = cs.a_cs p q in
+  let b = cs.b_cs p q in
+  let am = cs.am_cs p q in
+  let bm = cs.bm_cs p q in
+(*  let _ =  (a < c  && c < b) or raise Unchanged in *)
+  let cs1 = modify_cs cs ~b:(override cs.b_cs (p,q,c)) () in
+  let cs2 = modify_cs cs ~a:(override cs.a_cs (p,q,c)) () in
+    if not (a < c && c < b) then [cs]
+    else if bm <= c then [cs1]
+    else if c <= am then [cs2]
+    else (* am < c < bm *)
+      let cs1' = modify_cs cs1 ~bm:(override cs.bm_cs (p,q,c)) () in
+      let cs2' = modify_cs cs2 ~am:(override cs.am_cs (p,q,c)) () in
+	[cs1';cs2'];;
+
+let between_cs c cs (i,j) = 
+  (cs.a_cs i j < c && c < cs.b_cs i j );;
+
+let can_subdivide c cs =
+  exists (between_cs c cs) (alldiag cs);;
+
+let find_subdivide_edge c cs =
+  let diag = alldiag cs in
+  let ind = index true (map (between_cs c cs) diag) in
+    List.nth diag ind;;
+
+let subdivide_cstab_diag = 
+  let p = partition (can_subdivide cstab) in
+  let rec sub init term =
+    match init with
+      | [] -> term 
+      | cs::css -> 
+	    let (i,j) = find_subdivide_edge cstab cs in
+	    let kss = subdivide_cs i j cstab cs in
+	    let (u,v) = p kss in
+	      sub (u @ css) (v @ term) in
+    fun init ->
+      let (u,v) = p init in
+	sub u v;;
+
+
+(* claim arrows serve as documentation for
+   how the calculations are progressing from initial cs to terminal cs.
+*)
+
+let remaining = ref [];;
+remaining := init_cs;;
+
+let claim_arrow (a,b) =
+  let et = map equi_transfer_cs a in
+  let p cs = exists (fun f -> f cs) et in
+  let _ = remaining := (filter (not o p) !remaining) in
+  let tt = map equi_transfer_cs terminal_cs in
+  let q cs = exists (fun f -> f cs) tt in
+  let b' = filter (not o q) b in
+  let _ = remaining := b' @ !remaining in
+    !remaining;;
+
+
+  (* reduce remaining if r transfers to a.
+     remove from b those that transfer to terminal.
+     put residual b back in remaining.
+  *)
+
+(*
+****************************************
+HEXAGONS
+****************************************
+*)
+
+(* flow on hexagons.
+  hex-std-
+   subdivide all diags at stab.
+   apply deformations,
+     in cyclic repetition.
+      setting aside all cs st ?bm diag <= stab.
+   checking they are is_aug_cs.
+      
+*)
+
+(* claim  in this section goes as follows *)
+
+hex_std_cs;;
+
+let hex_std_preslice_02,hex_std_preslice_03 = 
+  let c1 = subdivide_cs 0 2 cstab hex_std_cs in
+  let c2 = subdivide_cs 0 3 cstab hex_std_cs in
+    hist (hd c1) "hex_std_preslice 02" , hist (hd c2) "hex_std_preslice 03";;
+
+claim_arrow([hex_std_cs],[hex_std_preslice_02;hex_std_preslice_03]);;
+
+(* end claim *)
+
+
+let ok_for_more_hex cs = 
   let _ = 
     try is_aug_cs cs 
-    with Failure s -> report_cs cs; csbad:= cs; failwith s in
+    with Failure s -> report_cs cs; failwith s in
   let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
   let generic_at i = 
     let p0 = i in
@@ -1159,20 +1254,9 @@ let is_ok cs =
   let bunfinished = not (transfer_to cs terminal_hex) in
     bstr && bg && bunfinished;;
 
-(* flow on hexagons.
-  hex-std-
-   subdivide all diags at stab.
-   apply deformations,
-     in cyclic repetition.
-      setting aside all cs st ?bm diag <= stab.
-
-   checking they are is_aug_cs.
-      
-*)
-
-let hex_deformations = 
-  let r f p cs = filter is_ok (f p cs) in
-  let m d = map (r d) (0--5) in
+let deformations k = 
+  let r f p cs = filter ok_for_more_hex (f p cs) in
+  let m d = map (r d) (0--(k-1)) in
   let u =   [deform_ODXLSTC_cs;
 	     deform_IMJXPHR_cs;
 	     deform_NUXCOEA_cs;
@@ -1184,66 +1268,153 @@ let hex_deformations =
 	     deform_4828966562B;] in
     List.flatten (map m u);;
 
-let names_def = ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";];;
+let hex_deformations = deformations 6;;
 
-let name_of_def i =
-  let offset = i mod 6 in
-  let s = i/6 in
-    (List.nth names_def s) ^ "-" ^ (string_of_int offset);;
+let name_of k i =
+  let names_hex = 
+    ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";] in
+  let offset = i mod k in
+  let s = i/k in
+    (List.nth names_hex s) ^ "-" ^ (string_of_int offset);;
 
-let has_stab_diag cs = 
+let name_of_hex = name_of 6;;
+
+let transfer_hex_to_preslice = 
+  let e02 = C equi_transfer_cs (hex_std_preslice_02) in
+  let e03 = C equi_transfer_cs (hex_std_preslice_03) in
+    fun cs -> e02 cs or e03 cs;;
+
+let subdivide_transfer_preslice transfer init  = 
+  let sub = subdivide_cstab_diag init in
+    filter (not o transfer) sub;;
+
+let hex_subdivide_transfer_preslice = subdivide_transfer_preslice
+ transfer_hex_to_preslice [hex_std_cs];;
+
+let has_cstab_upper_diag cs = 
     exists (fun (i,j) -> cs.bm_cs i j <= cstab ) (alldiag cs);;
-
-let find_sub_diag cs =
-  let diag = alldiag cs in
-  let f (i, j) = ( cs.a_cs i j < cstab && cstab < cs.b_cs i j) in
-  let ind = index true (map f diag) in
-    List.nth diag ind;;
-
-let rec split_stab_diag init term =
-    match init with
-      | [] -> ([],term)
-      | cs::css -> 
-	  try
-	    let (i,j) = find_sub_diag cs in
-	    let kss = subdivide_cs i j cstab cs in
-	    let (u,v) = partition has_stab_diag kss in
-	      split_stab_diag (v @ css) (u @ term)
-	  with Failure _ -> partition (not o has_stab_diag) (cs::css @term);;
-
-let hex_std_preslice = 
-  let c1 = subdivide_cs 0 2 cstab hex_std_cs in
-  let c2 = subdivide_cs 0 3 cstab hex_std_cs in
-    (hd c1) , (hd c2) ;;
-
-let transfer_hex_to_preslice cs = 
-  equi_transfer_cs cs (fst hex_std_preslice) or 
-    equi_transfer_cs cs (snd hex_std_preslice);;
-
-let hex_split = 
-  let (u,v) = split_stab_diag [hex_std_cs] [] in
-  let _ = forall transfer_hex_to_preslice v or failwith "hex_split" in
-  let u' =     map (fun i -> (0,i)) u in
-    u';;
     
 let rec hex_loop c active stab_diags =
-    if c <= 0 then (active,stab_diags) 
+    if (c <= 0) or length stab_diags > 0 then (active,stab_diags) 
     else match active with
 	[] -> ([],stab_diags) 
       | (i,cs)::css -> 
 	    try 
 	      let kss = List.nth hex_deformations i cs in
-	      let (u,v) = partition has_stab_diag kss in
-	      let _ = forall transfer_hex_to_preslice v or failwith "pre" in
+	      let (u,v) = partition has_cstab_upper_diag kss in
+	      let u' = filter (not o transfer_hex_to_preslice) u in
 	      let v' = map (fun cs -> (0,cs)) v in
-		hex_loop (c-1) (v' @ css) ((* u @ *) stab_diags)
+		hex_loop (c-1) (v' @ css) (u' @  stab_diags)
 	    with Unchanged -> hex_loop (c-1) ((i+1,cs)::css) stab_diags
               | Failure s -> ( ((-1,cs)::css,stab_diags));;
 
-(* next fix failure "pre" to store failures and rerun. XXD *)
 
-let hl = 
-    hex_loop 200000 hex_split [];;
+let execute_hexagons() = 
+    hex_loop 200000 
+      (map (fun i->(0,i)) hex_subdivide_transfer_preslice) [];;
+
+(* if hl = ([],[]) successful, it means that all hexagons have been reduced
+   to the one terminal hexagon, together with two cases of hex_std_preslice
+*)
+
+execute_hexagons();;
+
+(*
+****************************************
+PENTAGONS
+****************************************
+*)
+
+(* flow on pentagons is the same as for hexagons *)
+
+let ok_for_more_pent cs = 
+  let _ = 
+    try is_aug_cs cs 
+    with Failure s -> report_cs cs; failwith s in
+  let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
+  let bunfinished = not (transfer_to cs terminal_pent) in
+    bstr && bunfinished;;
+
+let pent_deformations = deformations 5;;
+
+let name_of_pent = name_of 5;;
+
+let slice_hex_to_pent_tri = 
+  let cs = hex_std_preslice_02 in
+  let d'= 0.616 in 
+  let d = cs.d_cs -. d' in 
+  let vv = slice_cs cs 2 0 d' d  false in
+    vv;;
+
+exists (equi_transfer_cs pent_pro_cs) slice_hex_to_pent_tri;;
+
+report_cs pent_pro_cs;;
+map report_cs slice_hex_to_pent_tri;;
+
+let pent_init = 
+  [pent_std_cs;pent_diag_cs;pent_pro_cs;hd slice_hex_to_pent_tri];; 
+
+let pent_composite_cs = mk_cs (
+   5,
+   0.616,
+   a_pro two two cstab 5,
+   a_pro cstab twoh0 upperbd 5);;
+
+let pent_comp_rediag_cs (p,q) = 
+  let cs = pent_composite_cs in
+  modify_cs cs
+    ~b:(override cs.b_cs (p,q,cstab))
+	  ~bm:(override cs.bm_cs (p,q,cstab)) ();;
+
+let rec transfer_union a b = 
+  match a with
+      [] -> b
+    | a::aas -> if exists (equi_transfer_cs a) b 
+      then transfer_union aas b
+      else transfer_union aas (a::b);;
+
+let pent_preslice = 
+  let alld = alldiag pent_std_cs in
+  let ffh ((p,q), cs) = subdivide_cs p q cstab cs in
+  let preslices = List.flatten (map ffh (cart alld pent_init)) in
+  let pent_comb = map pent_comp_rediag_cs [(1,4);(0,3);(4,2)] in
+  let cstab_preslices = filter has_cstab_upper_diag (pent_comb @ preslices) in
+  let union_cstab_preslices = transfer_union cstab_preslices [] in 
+    union_cstab_preslices;;
+
+let transfer_pent_to_preslice = 
+  let f1 = map equi_transfer_cs pent_preslice in
+    fun cs -> exists (fun f -> f cs) f1;;
+
+
+
+map report_cs slice_hex_to_pent_tri;;
+let pent_subdivide_transfer_preslice = subdivide_transfer_preslice transfer_pent_to_preslice pent_init;;
+    
+let rec pent_loop c active stab_diags =
+    if (c <= 0) or length stab_diags > 0 then (active,stab_diags) 
+    else match active with
+	[] -> ([],stab_diags) 
+      | (i,cs)::css -> 
+	    try 
+	      let kss = List.nth pent_deformations i cs in
+	      let (u,v) = partition has_cstab_upper_diag kss in
+	      let u' = filter (not o transfer_pent_to_preslice) u in
+	      let v' = map (fun cs -> (0,cs)) v in
+		pent_loop (c-1) (v' @ css) (u' @  stab_diags)
+	    with Unchanged -> pent_loop (c-1) ((i+1,cs)::css) stab_diags
+              | Failure s -> ( ((-1,cs)::css,stab_diags));;
+
+
+let execute_pentagons() = 
+    pent_loop 200000 pent_subdivide_transfer_preslice [];;
+
+(* if hl = ([],[]) successful, it means that all pentagons have been reduced
+   to the one terminal pentagon, together with two cases of pent_std_preslice
+*)
+
+
+(* scratch area *)
 
 length ( (fst hl));;
 report (string_of_cs (snd(hd (fst hl))));;
@@ -1251,7 +1422,7 @@ nth hex_deformations 3;;
 is_cs (!csbad);;
 let cs1 = (snd(hd (fst hl)));;
 report_cs cs1;;
-is_ok cs1;;
+ok_for_more_hex cs1;;
 
 let cs1 = !csbad;;
 
@@ -1259,14 +1430,14 @@ let fg cs r =
   try List.nth hex_deformations r cs; true
   with Unchanged -> false;;
 filter (fg cs1) (0--53);;
-map name_of_def it;;
+map name_of_hex it;;
 
 
 let fr r = List.nth hex_deformations r cs1;;
 fr 0;;
-let pp = partition has_stab_diag it;;
+let pp = partition has_cstab_upper_diag it;;
 map report_cs (snd pp);;
-name_of_def 52;;
+name_of_hex 52;;
 let cs2 = it;;
 report_cs (hd(snd cs2));;
 
@@ -1278,41 +1449,31 @@ deform_4828966562_obtuse 2 3 4 cs1;;
 
 deform_NUXCOEA_cs 0 cs1;;
 map report_cs it;;
-partition has_stab_diag it;;
+partition has_cstab_upper_diag it;;
 let cs2 = hd (snd(it));;
 report_cs cs2;;
-let fq cs (i,j) = 
- (cs.a_cs i j = cs.a_cs j i) &&
-      (cs.b_cs i j = cs.b_cs j i) &&
-      (cs.a_cs i j <= cs.am_cs i j) &&
-      (cs.am_cs i j <= cs.bm_cs i j) &&
-      (cs.bm_cs i j <= cs.b_cs i j);;
 
-map (fun (i,j) -> (i,j,(fq cs1 (i,j)))) (ks_cart cs1);;
 
-report_cs cs1;;
-cs1.a_cs 0 5;;
-cs1.b_cs 0 5;;
-transfer_to cs1 terminal_hex;;
+let subdivide_transfer_preslice transfer init  = 
+  let sub = subdivide_cstab_diag init in
+    filter (not o transfer) sub;;
 
-let p1 = 3;;
-  
-  let p2 = inc cs1 p1;;
-  let ks = ks_cs cs1 ;;
-  let alldiag' = alldiag cs1 ;;
-  let _ = mem p1 ks or failwith "206:out of range" ;;
-  let _ = (arc 2. 2. (cs1.b_cs p1 p2) < arc 2. 2. 15.53) ;;
-    raise Unchanged in
-  let _ = not(memj cs1 (p1,p2)) or raise Unchanged in
-  let _ = not(mem p1 cs1.str_cs) or raise Unchanged in
-  let _ = not(mem p2 cs1.str_cs) or raise Unchanged in
-  let m (i,j) =  (cs.a_cs i j = cs.bm_cs i j) in
-  let _ = forall (not o m) alldiag' or raise Unchanged in
-  let _ = not (m (p1,p2)) or raise Unchanged in
-  let m' (i,j) = (cs.b_cs i j = cs.am_cs i j) in
-  let _ = not (m'(p1,p2)) or raise Unchanged in
-  let n (i,j) = (fourh0 < cs.b_cs i j) in
-  let _ = forall n alldiag' or raise Unchanged in
+(* XXD broken *)
 
-;;
-arc 2. 2. 15.53;;
+let hex_subdivide_transfer_preslice = subdivide_transfer_preslice
+ transfer_hex_to_preslice [hex_std_cs];;
+
+let hh= subdivide_cstab_diag [hex_std_cs];;
+length hh;;
+let h2 = filter has_cstab_upper_diag hh;;
+length h2;;
+let cs = hd h2;;
+report_cs cs;;
+transfer_hex_to_preslice cs;;
+
+let transfer_hex_to_preslice = 
+  let e02 = equi_transfer_cs (hex_std_preslice_02) in
+  let e03 = equi_transfer_cs (hex_std_preslice_03) in
+    fun cs -> e02 cs or e03 cs;;
+
+equi_transfer_cs cs hex_std_preslice_02;;

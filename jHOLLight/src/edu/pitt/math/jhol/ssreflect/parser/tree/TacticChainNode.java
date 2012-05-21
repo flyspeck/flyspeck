@@ -16,6 +16,20 @@ public class TacticChainNode extends TacticNode {
 	}
 	
 	/**
+	 * Constructs a chain with the given first tactic
+	 */
+	public TacticChainNode(TacticNode tac) {
+		add(tac);
+	}
+	
+	/**
+	 * Copy constructor
+	 */
+	public TacticChainNode(TacticChainNode chain) {
+		addChain(chain);
+	}
+	
+	/**
 	 * Adds a tactics to the chain
 	 * @param tactic
 	 */
@@ -60,14 +74,6 @@ public class TacticChainNode extends TacticNode {
 		return true;
 	}
 	
-	@Override
-	public boolean isParallel() {
-		if (tactics.size() > 0)
-			return tactics.get(0).isParallel();
-		
-		return false;
-	}
-	
 	/**
 	 * Returns the i-th tactic in the chain
 	 */
@@ -85,7 +91,7 @@ public class TacticChainNode extends TacticNode {
 			TacticNode tac = tactics.get(i);
 			str.append(tac);
 			if (i < n - 1)
-				str.append(" THEN ");
+				str.append(" >>> ");
 		}
 		
 		str.append(')');
@@ -101,19 +107,39 @@ public class TacticChainNode extends TacticNode {
 			return;
 		}
 		
-		boolean parFlag = true;
-		if (n == 1)
-			parFlag = false;
+		// Transform all left associative tactics
+		TacticChainNode left = new TacticChainNode();
+		boolean transformFlag = false;
+		
+		for (int i = 0; i < n; i++) {
+			TacticNode tac = tactics.get(i);
+			
+			if (tac instanceof LeftAssociativeTacticNode) {
+				TacticNode newLeft = ((LeftAssociativeTacticNode) tac).transformTactic(left);
+				left = new TacticChainNode(newLeft);
+				transformFlag = true;
+			}
+			else {
+				left.add(tac);
+			}
+		}
+		
+		// If there is a transformation then process the new chain 
+		if (transformFlag) {
+			left.translate(buffer, context);
+			return;
+		}
+		
+		// No transformations (no left associative tactics): continue the translation process
+		boolean parFlag = n > 1;
 		
 		if (parFlag)
 			buffer.append('(');
+
 		for (int i = 0; i < n; i++) {
 			tactics.get(i).translate(buffer, context);
 			if (i < n - 1) {
-				if (tactics.get(i + 1).isParallel())
-					buffer.append(" THENL ");
-				else
-					buffer.append(" THEN ");
+				buffer.append(" THEN ");
 			}
 		}
 		

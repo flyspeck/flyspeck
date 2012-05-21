@@ -221,20 +221,10 @@ public class TreeBuilder {
 	 * Parses an expression in the "proof" mode
 	 */
 	public TacticNode parseProof() throws Exception {
-		Token t = scanner.peekToken();
-		if (t.type == TokenType.IDENTIFIER && t.value == "Proof") {
-			// Silently ignore the Proof command
-			scanner.nextToken();
-			// Should be .
-			t = scanner.nextToken();
-			if (t.type != TokenType.PERIOD)
-				throw new Exception(". expected: " + t);
-		}
-		
 		TacticChainNode chain = parseTacticChain();
 		
 		// . (do not consume it here)		
-		t = scanner.peekToken();
+		Token t = scanner.peekToken();
 		if (t.type != TokenType.PERIOD)
 			throw new Exception(". expected: " + t);
 		
@@ -244,89 +234,17 @@ public class TreeBuilder {
 	
 	/**
 	 * Parses an expression of the form
-	 * tactic; tactic; by tactic
+	 * tactic; ...; tactic
 	 */
 	private TacticChainNode parseTacticChain() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 		
 		while (true) {
-			boolean processedFlag = false;
-			Token t = scanner.peekToken();
-		
-			// [tac1 | ... ]
-			if (t.type == TokenType.LBRACK) {
-				chain.add(parseParallelTactics());
-				processedFlag = true;
-			}
-			// first, last
-			else if (t.type == TokenType.IDENTIFIER) {
-				// first or last
-				if (t.value == "first" || t.value == "last") {
-					boolean firstFlag = t.value == "first";
-					int rot = 1;
-					// first or last
-					scanner.nextToken();
-					
-					t = scanner.peekToken();
-					if (t.type == TokenType.INTEGER ||
-							(t.type == TokenType.IDENTIFIER && (t.value == "last" || t.value == "first"))) {
-						// integer, last, first
-						scanner.nextToken();
-						
-						// first [n] last or last [n] first
-						if (t.type == TokenType.INTEGER) {
-							rot = t.intValue;
-							// Should be last or first
-							t = scanner.nextToken();
-						}
+			TacticNode tac = parseTactic();
+			chain.add(tac);
 
-						if (t.type != TokenType.IDENTIFIER)
-							throw new Exception("'last' or 'first' expected: " + t);
-
-						TacticNode rot_tac;
-						
-						if (firstFlag) {
-							if (t.value != "last")
-								throw new Exception("'last' expected: " + t);
-							rot_tac = new RawTactic("THENL_ROT (" + rot + ')');
-						}
-						else {
-							if (t.value != "first")
-								throw new Exception("'first' expected: " + t);
-							rot_tac = new RawTactic("THENL_ROT (" + (-rot) + ')');
-						}
-						
-						TacticNode left = chain;
-						chain = new TacticChainNode();
-						
-						chain.add(new BinaryNode(rot_tac, left, null));
-						processedFlag = true;
-					}
-					else {
-						if (chain.isEmpty())
-							throw new Exception("first, last: empty left hand side " + t);
-						
-						TacticNode right = parseProofExpression();
-						TacticNode left = chain;
-						chain = new TacticChainNode();
-						
-						TacticNode tac = new RawTactic(firstFlag ? "THENL_FIRST" : "THENL_LAST");
-						BinaryNode bin = new BinaryNode(tac, left, right);
-						chain.add(bin);
-						
-						processedFlag = true;
-					}
-				}
-			}
-
-			// tactic
-			if (!processedFlag) {
-				TacticNode tac = parseProofExpression();
-				chain.add(tac);
-			}
-			
 			// semicolon
-			t = scanner.peekToken();
+			Token t = scanner.peekToken();
 			if (t.type == TokenType.SEMICOLON) {
 				// ;
 				scanner.nextToken();
@@ -339,6 +257,119 @@ public class TreeBuilder {
 		return chain;
 	}
 	
+	
+	/**
+	 * Parses a single tactic (in a broad sense)
+	 */
+	private TacticNode parseTactic() throws Exception {
+		Token t = scanner.peekToken();
+		
+		// (tac_chain)
+		if (t.type == TokenType.LPAR) {
+			// (			
+			scanner.nextToken();
+			
+			TacticChainNode chain = parseTacticChain();
+			
+			// )
+			t = scanner.nextToken();
+			if (t.type != TokenType.RPAR)
+				throw new Exception(") expected: " + t);
+			
+			return chain;
+		}
+
+		// [tac1 | ... ]
+		if (t.type == TokenType.LBRACK) {
+			return parseParallelTactics();
+		}
+		
+		if (t.type == TokenType.IDENTIFIER) {
+			// by
+			if (t.value == "by") {
+				// by
+				scanner.nextToken();
+				
+				TacticChainNode chain = parseTacticChain();
+				return new ByNode(chain);
+			}
+			
+			// try
+			if (t.value == "try") {
+				// try
+				scanner.nextToken();
+				
+				TacticParallelNode tactics = parseParallelTacticsSpecial();
+				return new TryNode(tactics);
+			}
+			
+			// do
+			if (t.value == "do") {
+				// do
+				scanner.nextToken();
+				return parseDoBody();
+			}
+
+			// first or last
+			if (t.value == "first" || t.value == "last") {
+				boolean firstFlag = (t.value == "first");
+				int rot = 1;
+				// first or last
+				scanner.nextToken();
+				
+				t = scanner.peekToken();
+				if (t.type == TokenType.INTEGER ||
+						(t.type == TokenType.IDENTIFIER && (t.value == "last" || t.value == "first"))) {
+					// integer, last, first
+					scanner.nextToken();
+					
+					// first [n] last or last [n] first
+					if (t.type == TokenType.INTEGER) {
+						rot = t.intValue;
+						// Should be last or first
+						t = scanner.nextToken();
+					}
+
+					if (t.type != TokenType.IDENTIFIER)
+						throw new Exception("'first last' or 'last first' expected: " + t);
+
+					if (firstFlag) {
+						if (t.value != "last")
+							throw new Exception("'first last' expected: " + t);
+					}
+					else {
+						if (t.value != "first")
+							throw new Exception("'last first' expected: " + t);
+						rot = -rot;
+					}
+					
+					return new RotateNode(rot);
+				}
+				else {
+					TacticNode tac = parseTactic();
+					return new FirstLastNode(firstFlag, new TacticChainNode(tac));
+				}
+			}
+		}
+		
+		return parseGeneralTactic();
+	}
+
+	
+	/**
+	 * Parses expressions of the form [tac1 | ... | tac_k] and
+	 * treats 'tac' as [tac]
+	 */
+	private TacticParallelNode parseParallelTacticsSpecial() throws Exception {
+		Token t = scanner.peekToken();
+		
+		if (t.type == TokenType.LBRACK) {
+			return parseParallelTactics(); 
+		}
+		
+		TacticNode tac = parseTactic();
+		return new TacticParallelNode(new TacticChainNode(tac));
+	}
 	
 	/**
 	 * Parses expressions of the form [tac1 | tac2 | ... ]
@@ -354,6 +385,21 @@ public class TreeBuilder {
 		
 		// Parse all tactics
 		while (true) {
+			t = scanner.peekToken();
+			if (t.type == TokenType.RBRACK) {
+				// ]
+				scanner.nextToken();
+				ts.add(new TacticChainNode(new RawTactic("ALL_TAC")));
+				break;
+			}
+			
+			if (t.type == TokenType.BAR) {
+				// |				
+				scanner.nextToken();
+				ts.add(new TacticChainNode(new RawTactic("ALL_TAC")));
+				continue;
+			}
+			
 			TacticChainNode chain = parseTacticChain();
 			ts.add(chain);
 		
@@ -372,41 +418,21 @@ public class TreeBuilder {
 	
 	/**
 	 * Parses a proof expression in the form
-	 * tactic[: intro][=> disch]
+	 * tactic[: disch][=> intro]
 	 */
-	private TacticNode parseProofExpression() throws Exception {
+	private TacticNode parseGeneralTactic() throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 
-		Token t = scanner.peekToken();
-		// by
-		if (t.value == "by") {
-			// by
-			scanner.nextToken();
-			chain = parseTacticChain();
-			chain.add(new RawTactic("done_tac"));
-			return chain;
-		}
-		
-		// try
-		if (t.value == "try") {
-			// try
-			scanner.nextToken();
-			TacticNode tac = parseProofExpression();
-			BinaryNode try_tac = new BinaryNode(new RawTactic("TRY"), tac, null);
-			chain.add(try_tac);
-			return chain;
-		}
-		
 		TacticChainNode tactic = parseFirstTactic();
 		TacticChainNode disch = null;
 		TacticChainNode intro = null;
 
 		// : or =>
-		t = scanner.peekToken();
+		Token t = scanner.peekToken();
 		if (t.type == TokenType.COLON) {
 			// :
 			scanner.nextToken();
-			intro = parseDisch();
+			disch = parseDisch();
 		}
 
 		// =>
@@ -421,14 +447,14 @@ public class TreeBuilder {
 				firstDestructive = true;
 			}
 			
-			disch = tryParseIntro(firstDestructive);
-			if (disch == null)
-				throw new Exception("null disch: " + t);
+			intro = tryParseIntro(firstDestructive);
+			if (intro == null)
+				throw new Exception("null intro: " + t);
 		}
 		
-		chain.addChain(intro);
-		chain.addChain(tactic);
 		chain.addChain(disch);
+		chain.addChain(tactic);
+		chain.addChain(intro);
 		
 		return chain;
 	}
@@ -492,12 +518,13 @@ public class TreeBuilder {
 			// Rewrite parameters for <- or ->
 			if (t.type == TokenType.LBRACE ||
 				t.type == TokenType.INTEGER ||
-				t.type == TokenType.EXCLAMATION) {
+				t.type == TokenType.EXCLAMATION ||
+				t.type == TokenType.QUESTION) {
 				params = tryParseRewriteParameters();
 				t = scanner.peekToken();
 			}
 			
-			boolean arrowFlag = t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW;
+			boolean arrowFlag = (t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW);
 			
 			if (params != null && !arrowFlag)
 				throw new Exception("<- or -> expected: " + t);
@@ -511,9 +538,10 @@ public class TreeBuilder {
 				if (params == null)
 					params = new RewriteParameters();
 				
-				params.revFlag = t.type == TokenType.LEFT_ARROW;
-				TacticNode rewrite = new RewriteNode(params, IdNode.TMP_ID, true, false);
-				chain.add(rewrite);
+				params.revFlag = (t.type == TokenType.LEFT_ARROW);
+				RewriteNode rewrite = new RewriteNode(params, IdNode.TMP_ID, true, false);
+				RepeatNode repeat = new RepeatNode(rewrite, params);
+				chain.add(repeat);
 				continue;
 			}
 			
@@ -523,8 +551,11 @@ public class TreeBuilder {
 				if (!chain.isEmpty())
 					destFlag = true;
 				
-				TacticNode tac = parseIntroCasePattern(destFlag);
-				chain.add(tac);
+				TacticChainNode chain2 = parseIntroCasePattern(destFlag);
+				if (destFlag)
+					chain.add(chain2);
+				else
+					chain.addChain(chain2);
 				destFlag = true;
 
 				continue;
@@ -554,8 +585,8 @@ public class TreeBuilder {
 			if (obj == null)
 				break;
 			
-			IntroductionNode disch = new IntroductionNode(obj);
-			chain.add(disch);
+			IntroductionNode intro = new IntroductionNode(obj);
+			chain.add(intro);
 		}
 		
 		if (chain.isEmpty())
@@ -569,7 +600,7 @@ public class TreeBuilder {
 	 * Parses expression of the form move => [a b [c | d]]
 	 * @return
 	 */
-	private TacticNode parseIntroCasePattern(boolean destructiveFlag) throws Exception {
+	private TacticChainNode parseIntroCasePattern(boolean destructiveFlag) throws Exception {
 		TacticChainNode result = new TacticChainNode();
 		TacticParallelNode chains = new TacticParallelNode();
 		TacticChainNode chain = new TacticChainNode();
@@ -682,11 +713,8 @@ public class TreeBuilder {
 			if (t.type != TokenType.IDENTIFIER)
 				throw new Exception("IDENTIFIER expected: " + t);
 
-			// do
-			if (t.value == "do")
-				tactic = parseDoBody();
 			// exact
-			else if (t.value == "exact")
+			if (t.value == "exact")
 				tactic = new RawTactic("exact_tac");
 			// done
 			else if (t.value == "done")
@@ -1064,17 +1092,7 @@ public class TreeBuilder {
 			iterations = 1;
 
 		// Parse a tactic
-		TacticParallelNode ts; 
-		
-		t = scanner.peekToken();
-		if (t.type == TokenType.LBRACK) {
-			ts = parseParallelTactics();
-		}
-		else {
-			TacticNode tac = parseProofExpression();
-			ts = new TacticParallelNode(tac);
-		}
-		
+		TacticParallelNode ts = parseParallelTacticsSpecial(); 
 		return new RepeatNode(ts, iterations, repeatFlag, exactFlag);
 	}
 	

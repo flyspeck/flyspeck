@@ -187,7 +187,6 @@ public class Interpreter {
 		 * Protected constructor
 		 */
 		protected CommandInfo(Node command, int endTextPosition) {
-			assert(command != null);
 			this.command = command;
 			this.endTextPosition = endTextPosition;
 		}
@@ -195,6 +194,9 @@ public class Interpreter {
 		// Reverts the command
 		// Returns true on success
 		public boolean revert() {
+			if (command == null)
+				return true;
+			
 			String cmd = command.getRevertCommand();
 			if (cmd == null)
 				return true;
@@ -212,6 +214,9 @@ public class Interpreter {
 		
 		@Override
 		public String toString() {
+			if (command == null)
+				return "[no command]";
+			
 			return command.toString() + "[" + endTextPosition + "]";
 		}
 	}
@@ -509,6 +514,25 @@ public class Interpreter {
 	 */
 	private void processProofMode(TreeBuilder builder) throws Exception {
 		Token t = scanner.peekToken();
+		
+		// Initial 'Proof' command (optional)
+		if (t.value == "Proof") {
+			// Proof
+			scanner.nextToken();
+			
+			// 'Proof' is allowed only as the first command in a proof
+			if (proofCommands.size() > 0)
+				throw new Exception("'Proof' should be the first proof command: " + t);
+			
+			// Should be .
+			t = scanner.nextToken();
+			if (t.type != TokenType.PERIOD)
+				throw new Exception(". expected: " + t);
+			
+			// Do nothing
+			proofCommands.add(new ProofCommand(null, baseTextPosition + t.ch + 1));
+			return;
+		}
 		
 		// Special commands
 		if (t.value == "Abort" || t.value == "Qed") {

@@ -34,7 +34,7 @@ public class RepeatNode extends TacticNode {
 	 * Constructor for a rewrite expression
 	 */
 	public RepeatNode(RewriteNode r, RewriteParameters params) {
-		this(new TacticParallelNode(r), params.rewrites, params.repeatFlag, params.exactFlag);
+		this(new TacticParallelNode(new TacticChainNode(r)), params.rewrites, params.repeatFlag, params.exactFlag);
 	}
 
 	@Override
@@ -87,7 +87,7 @@ public class RepeatNode extends TacticNode {
 			buffer.append("FIRST ");
 		}
 		
-		// If tactics.size() > 1 then the square brackets will be added automatically
+		// If tactics.size() > 1 then square brackets will be added automatically
 		tactics.translate(buffer, context);
 		
 		buffer.append(endRepeat);

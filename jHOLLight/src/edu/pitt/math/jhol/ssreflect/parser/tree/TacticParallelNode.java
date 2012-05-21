@@ -5,9 +5,9 @@ import java.util.ArrayList;
 /**
  * A set of parallel tactics
  */
-public class TacticParallelNode extends TacticNode {
+public class TacticParallelNode extends LeftAssociativeTacticNode {
 	// A list of all tactics
-	protected ArrayList<TacticNode> tactics = new ArrayList<TacticNode>();
+	private ArrayList<TacticChainNode> tactics = new ArrayList<TacticChainNode>();
 
 	/**
 	 * Default constructor
@@ -15,7 +15,7 @@ public class TacticParallelNode extends TacticNode {
 	public TacticParallelNode() {
 	}
 	
-	public TacticParallelNode(TacticNode tac) {
+	public TacticParallelNode(TacticChainNode tac) {
 		add(tac);
 	}
 	
@@ -23,7 +23,7 @@ public class TacticParallelNode extends TacticNode {
 	 * Adds a tactics to the set
 	 * @param tactic
 	 */
-	public void add(TacticNode tactic) {
+	public void add(TacticChainNode tactic) {
 		if (tactic == null)
 			return;
 
@@ -54,6 +54,20 @@ public class TacticParallelNode extends TacticNode {
 		
 		return str.toString();
 	}
+	
+	@Override
+	public TacticNode transformTactic(TacticChainNode left) {
+		if (size() == 0)
+			return left;
+		
+		if (size() == 1) {
+			left.add(tactics.get(0));
+			return left;
+		}
+		
+		TacticNode thenl = new RawTactic("(THENL)");
+		return new BinaryNode(thenl, left, this);
+	}
 
 	@Override
 	protected void translate(StringBuffer buffer, GoalContext context) {
@@ -69,7 +83,6 @@ public class TacticParallelNode extends TacticNode {
 		}
 
 		buffer.append('[');
-//		buffer.append("ALL_TAC THENL [");
 		
 		for (int i = 0; i < n; i++) {
 			tactics.get(i).translate(buffer, context);
@@ -79,11 +92,5 @@ public class TacticParallelNode extends TacticNode {
 		}
 		
 		buffer.append(']');
-//		buffer.append(')');
-	}
-	
-	@Override
-	public boolean isParallel() {
-		return tactics.size() > 1;
 	}
 }

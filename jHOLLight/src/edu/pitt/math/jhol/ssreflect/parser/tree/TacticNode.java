@@ -8,12 +8,4 @@ public abstract class TacticNode extends Node {
 	public String getRevertCommand() {
 		return "b()";
 	}
-	
-	/**
-	 * Returns true if the tactic is a set of parallel tactics
-	 * @return
-	 */
-	public boolean isParallel() {
-		return false;
-	}
 }

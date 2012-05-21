@@ -235,8 +235,6 @@ let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 let reset_attr cs = 
   modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~hi:[] ~str:[] ();;
 
-
-
 let ink k i = (i+1) mod k;;
 
 let dek k i = (i+k-1) mod k;;
@@ -343,9 +341,12 @@ let is_aug_cs cs =
 
 (* f is an edge preserving map *)
 
-let map_cs f cs = 
+let map_cs f g cs = 
+  let ks = ks_cs cs in
+  let _ = forall (fun i-> f(g i) = i) ks or failwith "map_cs:not inverse" in
+  let _ = forall (fun i-> g(f i) = i) ks or failwith "map_cs:not inverse" in
   let a' a i j = a (f i) (f j) in
-  let f2 (i,j) = psort (f i , f j ) in
+  let g2 (i,j) = psort (g i , g j ) in
   {
     k_cs = cs.k_cs;
     d_cs = cs.d_cs;
@@ -353,18 +354,18 @@ let map_cs f cs =
     b_cs = a' (cs.b_cs);
     am_cs = a' (cs.am_cs);
     bm_cs = a' (cs.bm_cs);
-    lo_cs = map f cs.lo_cs;
-    hi_cs = map f cs.hi_cs;
-    str_cs = map f cs.str_cs;
-    js_cs = map f2 cs.js_cs;
+    lo_cs = map g cs.lo_cs;
+    hi_cs = map g cs.hi_cs;
+    str_cs = map g cs.str_cs;
+    js_cs = map g2 cs.js_cs;
     history_cs = cs.history_cs;
   };;
 
 let opposite_cs cs = 
-  let r i = (cs.k_cs - (i+1)) in
-    map_cs r cs;;
+  let f i = (cs.k_cs - (i+1)) in
+    map_cs f f cs;;
 
-let rotate_cs cs = map_cs (inc cs) cs;;
+let rotate_cs cs = map_cs (inc cs) (dec cs) cs;;
 
 let rec rotatek_cs k cs = 
   funpow k rotate_cs cs;;
@@ -379,8 +380,10 @@ let reset_iso_strict_cs cs cs' =
   let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
   let ba = m cs.a_cs cs'.a_cs in
   let bb = m cs.b_cs cs'.b_cs in
-  let bj = set_eq cs.js_cs cs'.js_cs in
+  let ps js = map psort js in
+  let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
     bk && bd && ba && bb && bj;;
+
 
 let proper_reset_iso_cs cs cs' = 
   Lib.exists (fun i -> reset_iso_strict_cs (rotatek_cs i cs) cs') (ks_cs cs);;
@@ -477,7 +480,7 @@ let pent_diag_cs = mk_cs (
 let quad_diag_cs = mk_cs (
    4,
    0.467,
-   cs_adj two sqrt8 4,
+   cs_adj two three 4,
    cs_adj twoh0 upperbd 4,"quad diag init");;
 
 let pent_pro_cs = mk_cs (
@@ -489,7 +492,7 @@ let pent_pro_cs = mk_cs (
 let quad_pro_cs = mk_cs (
    4,
    0.477,
-   a_pro twoh0 two twoh0 4,
+   a_pro twoh0 two sqrt8 4,
    a_pro sqrt8 twoh0 upperbd 4,"quad pro init");;
 
 let init_cs = [
@@ -542,43 +545,43 @@ let terminal_adhoc_quad_4680581274 = mk_cs(
  4,
  0.616 -. 0.11,
  funlist [(0,1),cstab ; (0,2),cstab ; (1,3),cstab ] two,
- funlist [(0,1),cstab ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal");;
+ funlist [(0,1),cstab ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal 4680581274");;
 
 let terminal_adhoc_quad_7697147739 = mk_cs(
  4,
  0.616 -. 0.11,
  funlist [(0,1),sqrt8 ; (0,2),cstab ; (1,3),cstab ] two,
- funlist [(0,1),sqrt8 ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal");;
+ funlist [(0,1),sqrt8 ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal 7697147739");;
 
 let terminal_tri_3456082115 = mk_cs(
  3,
  0.5518 /. 2.0,
  funlist [(0,1), cstab; (0,2),twoh0; (1,2),two] two,
- funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two,"terminal");;
+ funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two,"terminal 3456082115");;
 
 let terminal_tri_7720405539 = mk_cs(
  3,
  0.5518 /. 2.0 -. 0.2,
  funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
- funlist [(0,1),3.41; (0,2),twoh0; (1,2),two] two,"terminal");;
-
+ funlist [(0,1),3.41; (0,2),twoh0; (1,2),two] two,"terminal 7720405539");;
+ 
 let terminal_tri_2739661360 = mk_cs(
  3,
  0.5518 /. 2.0 +. 0.2,
  funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
- funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,"terminal");;
-
+ funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,"terminal 2739661360");;
+ 
 let terminal_tri_9269152105 = mk_cs(
  3,
  0.5518 /. 2.0 ,
  funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,
- funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two,"terminal");;
+ funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two,"terminal 9269152105");;
 
 let terminal_tri_4922521904 = mk_cs(
  3,
  0.5518 /. 2.0 ,
  funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
- funlist [(0,1),3.339; (0,2),twoh0; (1,2),two] two,"terminal");;
+ funlist [(0,1),3.339; (0,2),twoh0; (1,2),two] two,"terminal 4922521904");;
 
 let terminal_quad_1637868761 = mk_cs(
  4,
@@ -586,7 +589,7 @@ let terminal_quad_1637868761 = mk_cs(
  funlist [(0,1),two; (1,2), cstab; 
                   (2,3),twoh0; (0,3),two; (0,2),3.41; (1,3),cstab] two,
  funlist [(0,1),two; (1,2), cstab;
-                  (2,3),twoh0; (0,3),two; (0,2),3.634; (1,3),upperbd] two,"terminal");;
+                  (2,3),twoh0; (0,3),two; (0,2),3.634; (1,3),upperbd] two,"terminal 1637868761");;
 
 
 let ear_cs = 
@@ -601,7 +604,7 @@ let ear_cs =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
-  history_cs= [];
+  history_cs= ["ear 3603097872"];
 };;
 
 let terminal_ear_3603097872 = ear_cs;;
@@ -619,7 +622,7 @@ let terminal_tri_5405130650 =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
-  history_cs=[];
+  history_cs=["terminal 5405130650"];
 };;
 
 let terminal_tri_5766053833 = 
@@ -634,100 +637,100 @@ let terminal_tri_5766053833 =
   lo_cs = [];
   hi_cs = [];
   str_cs = [];
-  history_cs=[];
+  history_cs=["terminal 5766053833"];
 };;
 
 let terminal_tri_5026777310 = mk_cs(
  3,
   0.6548 -. 2.0 *. 0.11,
  funlist [(0,1),sqrt8;(1,2),sqrt8] two,
- funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal");;
+ funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal 5026777310");;
 
 let terminal_tri_7881254908 = mk_cs(
  3,
   0.696 -. 2.0 *. 0.11,
  funlist [(0,1),sqrt8;(1,2),sqrt8] twoh0,
- funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal");;
+ funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal 7881254908");;
 
 (* 1107929058 *)
 let terminal_std_tri_OMKYNLT_2_1  = mk_cs(
  3,
   tame_table_d 2 1,
  funlist [(0,1),twoh0] two,
- funlist [(0,1),twoh0] two,"terminal");;
+ funlist [(0,1),twoh0] two,"terminal 1107929058");;
 
 let terminal_std_tri_7645170609 = mk_cs(
  3,
   tame_table_d 2 1,
  funlist [(0,1),sqrt8] two,
- funlist [(0,1),sqrt8] two,"terminal");;
+ funlist [(0,1),sqrt8] two,"terminal 7645170609");;
 
 (* 1532755966 *)
 let terminal_std_tri_OMKYNLT_1_2  = mk_cs(
  3,
   tame_table_d 1 2,
  funlist [(0,1),two] twoh0,
- funlist [(0,1),two] twoh0,"terminal");;
+ funlist [(0,1),two] twoh0,"terminal 1532755966");;
 
 let terminal_std_tri_7097350062 = mk_cs(
  3,
   tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
  funlist [(0,1),twoh0;(0,2),sqrt8] two,
- funlist [(0,1),twoh0;(0,2),sqrt8] two,"terminal");;
+ funlist [(0,1),twoh0;(0,2),sqrt8] two,"terminal 7097350062");;
 
 let terminal_std_tri_2900061606 = mk_cs(
  3,
   tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
  funlist [(0,1),twoh0;(0,2),cstab] two,
- funlist [(0,1),twoh0;(0,2),cstab] two,"terminal");;
+ funlist [(0,1),twoh0;(0,2),cstab] two,"terminal 2900061606");;
 
 let terminal_std_tri_2200527225 = mk_cs(
  3,
   tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
  funlist [(0,1),two;] sqrt8,
- funlist [(0,1),two;] sqrt8,"terminal");;
+ funlist [(0,1),two;] sqrt8,"terminal 2200527225");;
 
 let terminal_std_tri_3106201101 = mk_cs(
  3,
   tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
  funlist [(0,1),two;(0,2),cstab] sqrt8,
- funlist [(0,1),two;(0,2),cstab] sqrt8,"terminal");;
+ funlist [(0,1),two;(0,2),cstab] sqrt8,"terminal 3106201101");;
 
 let terminal_std_tri_9816718044 = mk_cs(
  3,
   tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
  funlist [(0,1),two] cstab,
- funlist [(0,1),two] cstab,"terminal");;
+ funlist [(0,1),two] cstab,"terminal 9816718044");;
 
 let terminal_std_tri_1080462150 = mk_cs(
  3,
   tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
  funlist [] twoh0,
- funlist [] twoh0,"terminal");;
+ funlist [] twoh0,"terminal 1080462150");;
 
 let terminal_std_tri_4143829594 = mk_cs(
  3,
   tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
  funlist [(0,1),cstab] twoh0,
- funlist [(0,1),cstab] twoh0,"terminal");;
+ funlist [(0,1),cstab] twoh0,"terminal 4143829594");;
 
 let terminal_std_tri_7459553847 = mk_cs(
  3,
   tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
  funlist [(0,1),twoh0] cstab,
- funlist [(0,1),twoh0] cstab,"terminal");;
+ funlist [(0,1),twoh0] cstab,"terminal 7459553847");;
 
 let terminal_std_tri_4528012043 = mk_cs(
  3,
   tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
  funlist [] cstab,
- funlist [] cstab,"terminal");;
+ funlist [] cstab,"terminal 4528012043");;
 
 let terminal_std_tri_OMKYNLT_3336871894 = mk_cs(
  3,
  zero,
  funlist [] two,
- funlist [] two,"terminal");;
+ funlist [] two,"terminal 3336871894");;
 
 (* use unit_cs as a default terminal object *)
 
@@ -801,10 +804,18 @@ let transfer_to =
 let proper_transfer_cs cs cs' = 
   Lib.exists (fun i -> transfer_to (rotatek_cs i cs) cs') (ks_cs cs);;
 
-
 let equi_transfer_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
  (  proper_transfer_cs cs cs' or proper_transfer_cs (opposite_cs cs) cs');;
+
+let rec transfer_union a b = 
+  match a with
+      [] -> b
+    | a::aas -> if exists (equi_transfer_cs a) b 
+      then transfer_union aas b
+      else 
+	let b' = filter (not o (C equi_transfer_cs a)) b in
+	  transfer_union aas (a::b');;
 
 
 (* restrict shrinks to B-field down to the M-field,
@@ -1243,6 +1254,7 @@ let subdivide_cstab_diag =
 let remaining = ref [];;
 remaining := init_cs;;
 
+(*
 let claim_arrow (a,b) = 
   let et = map equi_transfer_cs a in
   let p cs = exists (fun f -> f cs) et in
@@ -1252,7 +1264,16 @@ let claim_arrow (a,b) =
   let b' = filter (not o q) b in
   let _ = remaining := b' @ !remaining in
     !remaining;;
+*)
 
+let claim_arrow(a,b) = 
+  let r = !remaining in
+  let transfers_to_a cs = exists (equi_transfer_cs cs) a in
+  let r' = filter (not o transfers_to_a) r in
+  let transfers_from_b cs = exists (C equi_transfer_cs cs) b in
+  let r'' = filter (not o transfers_from_b) r' in
+  let _ = remaining := (b @ r'') in
+    !remaining;;
 
   (* reduce remaining if r transfers to a.
      remove from b those that transfer to terminal.
@@ -1342,7 +1363,11 @@ let subdivide_without_preslice transfer init  =
 let hex_subdivide_without_preslice = subdivide_without_preslice
  transfer_hex_to_preslice [hex_std_cs];;
 
-let has_cstab_upper_diag cs = 
+let preslice_ready cs = 
+  if (cs.k_cs=4) && (cs.d_cs=0.467) 
+  then
+    (cs.bm_cs 0 2 = three) && (cs.bm_cs 1 3 = three)
+  else  
     exists (fun (i,j) -> cs.bm_cs i j <= cstab ) (alldiag cs);;
     
 let rec general_loop df tr c active stab_diags =
@@ -1352,7 +1377,7 @@ let rec general_loop df tr c active stab_diags =
       | (i,cs)::css -> 
 	    try 
 	      let kss = List.nth df i cs in
-	      let (u,v) = partition has_cstab_upper_diag kss in
+	      let (u,v) = partition preslice_ready kss in
 	      let u' = filter (not o tr) u in
 	      let v' = map (fun cs -> (0,cs)) v in
 		general_loop df tr (c-1) (v' @ css) (u' @  stab_diags)
@@ -1435,22 +1460,14 @@ let pent_comp_rediag_cs (p,q) =
     ~b:(override cs.b_cs (p,q,cstab))
 	  ~bm:(override cs.bm_cs (p,q,cstab)) ();;
 
-let rec transfer_union a b = 
-  match a with
-      [] -> b
-    | a::aas -> if exists (equi_transfer_cs a) b 
-      then transfer_union aas b
-      else transfer_union aas (a::b);;
-
 let pent_preslice = 
   let alld = alldiag pent_std_cs in
   let ffh ((p,q), cs) = subdivide_cs p q cstab cs in
   let preslices = List.flatten (map ffh (cart alld pent_init)) in
   let pent_comb = map pent_comp_rediag_cs alld (* [(1,4);(0,3);(4,2)] *) in
-  let cstab_preslices = filter has_cstab_upper_diag (pent_comb @ preslices) in
+  let cstab_preslices = filter preslice_ready (pent_comb @ preslices) in
   let union_cstab_preslices = transfer_union cstab_preslices [] in 
     map (C hist "preslice") union_cstab_preslices;;
-
 
 let transfer_pent_to_preslice = 
   let f1 = map (C equi_transfer_cs) pent_preslice in
@@ -1478,6 +1495,127 @@ let hl = execute_pentagons();;
    worked in svn:2821, May 20, 2012.
 *)
 
+(*
+****************************************
+QUADRILATERALS
+****************************************
+*)
+
+
+let transfer_hex_to_preslice = 
+  let e02 = C equi_transfer_cs (hex_std_preslice_02) in
+  let e03 = C equi_transfer_cs (hex_std_preslice_03) in
+    fun cs -> e02 cs or e03 cs;;
+
+let subdivide_without_preslice transfer init  = 
+  let sub = subdivide_cstab_diag init in
+    filter (not o transfer) sub;;
+
+let hex_subdivide_without_preslice = subdivide_without_preslice
+ transfer_hex_to_preslice [hex_std_cs];;
+
+let (quad_477_preslice_short,quad_477_preslice_long) = 
+  let preslices = subdivide_cstab_diag [quad_pro_cs] in
+  let vv =  (map (C hist "preslice pro") preslices) in
+  let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
+    (subdivide_cs 0 2 cstab quad_pro_cs) in
+  let ww = transfer_union (p @ vv) [] in
+    partition preslice_ready ww;;
+
+(*
+;;
+  let alld = alldiag quad_std_cs in
+  let ffh ((p,q), cs) = subdivide_cs p q cstab cs in
+  let preslices = List.flatten (map ffh (cart alld [quad_pro_cs])) in
+  let vv =     transfer_union (map (C hist "preslice pro") preslices) [] in
+    partition preslice_ready vv;;
+*)
+
+
+let handle_quad_477_preslice_short = 
+  let _ = (length quad_477_preslice_short = 1) or failwith "handle 477" in
+  let cs = hd quad_477_preslice_short in
+  let mk_ear = true in
+  let inc2 = funpow 2 (inc cs) in
+  let f i =  slice_cs cs i (inc2 i) (0.11) (0.477 -. 0.11) mk_ear in
+  let ind = filter (can f) (0--3) in
+  let g i = 
+    forall (fun u -> exists (equi_transfer_cs u) terminal_cs) (f i) in
+    exists g ind;;
+
+claim_arrow([quad_pro_cs],quad_477_preslice_long);;
+
+let terminal_quad = 
+  quad_477_preslice_short @ (filter (fun cs -> (4= cs.k_cs)) terminal_cs);;
+
+let ok_for_more_quad cs = 
+  let _ = (cs.k_cs =4) or failwith "quads only" in
+  let b467_2485876245a = 
+    if (cs.d_cs=0.467) && 
+      forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
+      forall (fun (i,j)-> cs.am_cs i j >= three) [(0,2);(1,3)]
+    then ( cs.str_cs = []) else true in
+  let b477 =
+    let b477a =  cs.str_cs = [] in
+    let b477b = Sphere_math.delta_y (* if neg then geometric impossibility *)
+      (cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
+      (cs.bm_cs 2 3) (cs.bm_cs 1 2) (cs.am_cs 1 3) >= 0.0 in
+    let b477c = 
+      not(exists (equi_transfer_cs cs) quad_477_preslice_short) in
+    if (cs.d_cs=0.477) &&
+      forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
+      forall (fun (i,j)-> cs.am_cs i j >= cstab) [(0,2);(1,3)]
+    then (b477a && b477b && b477c) else true in      
+  let _ = 
+    try is_aug_cs cs 
+    with Failure s -> report_cs cs; failwith s in
+  let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
+  let bunfinished = not (exists (transfer_to cs) terminal_quad) in
+    bstr && bunfinished && b467_2485876245a && b477 ;;
+
+let quad_deformations = deformations ok_for_more_quad 4;;
+
+let name_of_quad = name_of 4;;
+
+let slice_hex_to_quad = 
+  let cs = hex_std_preslice_03 in
+  let d = cs.d_cs /. 2.0 in 
+  let vv = slice_cs cs 3 0 d d  false in
+    transfer_union (map (C hist "slice_hex_to_quad") vv) [];;
+
+claim_arrow([hex_std_preslice_03],slice_hex_to_quad);;
+
+(* temporary *)
+let quad_init = 
+  let temporary_condition cs =  (0.467=cs.d_cs) or (0.477=cs.d_cs) in
+    filter (fun cs -> (4=cs.k_cs) && temporary_condition cs) (!remaining);;
+
+let transfer_quad_to_terminal = 
+  let f1 = map (C equi_transfer_cs) terminal_quad in
+    fun cs -> exists (fun f -> f cs) f1;;
+
+(*
+let quad_subdivide_without_preslice = 
+  let pl = subdivide_without_preslice 
+    transfer_quad_to_preslice quad_init in
+    transfer_union pl [quad_composite_cs];;
+*)
+
+
+let quad_loop = general_loop quad_deformations transfer_quad_to_terminal;;
+
+let execute_quads() = 
+    quad_loop 200000 
+      (map (fun i->(0,i)) quad_init) [];;
+
+let hl = execute_quads();;
+
+(* if hl = ([],[]) successful, it means that all quads have been reduced
+   toterminal quads, 
+   worked in svn:2821, May 20, 2012.
+*)
+
+!remaining;;
 
 (* scratch area *)
 
@@ -1486,6 +1624,7 @@ report (string_of_cs (snd(hd (fst hl))));;
 nth hex_deformations 3;;
 is_cs (!csbad);;
 let cs1 = (snd(hd (fst hl)));;
+let cs1 = ((hd (snd hl)));;
 report_cs cs1;;
 ok_for_more_pent cs1;;
 
@@ -1500,7 +1639,7 @@ map name_of_hex it;;
 
 let fr r = List.nth hex_deformations r cs1;;
 fr 0;;
-let pp = partition has_cstab_upper_diag it;;
+let pp = partition preslice_ready it;;
 map report_cs (snd pp);;
 name_of_hex 52;;
 let cs2 = it;;
@@ -1514,7 +1653,7 @@ deform_4828966562_obtuse 2 3 4 cs1;;
 
 deform_NUXCOEA_cs 0 cs1;;
 map report_cs it;;
-partition has_cstab_upper_diag it;;
+partition preslice_ready it;;
 let cs2 = hd (snd(it));;
 report_cs cs2;;
 
@@ -1530,7 +1669,7 @@ let hex_subdivide_without_preslice = subdivide_without_preslice
 
 let hh= subdivide_cstab_diag [hex_std_cs];;
 length hh;;
-let h2 = filter has_cstab_upper_diag hh;;
+let h2 = filter preslice_ready hh;;
 length h2;;
 let cs = hd h2;;
 report_cs cs;;
@@ -1542,3 +1681,5 @@ let transfer_hex_to_preslice =
     fun cs -> e02 cs or e03 cs;;
 
 equi_transfer_cs cs hex_std_preslice_02;;
+
+!remaining;;

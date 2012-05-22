@@ -607,6 +607,9 @@ let ear_cs =
   history_cs= ["ear 3603097872"];
 };;
 
+(* consequence of usual ear *)
+let ear_jnull = modify_cs ear_cs ~js:[] ();;
+
 let terminal_ear_3603097872 = ear_cs;;
 
 
@@ -750,6 +753,7 @@ let terminal_cs = [
  terminal_tri_4922521904; 
  terminal_quad_1637868761; 
  terminal_ear_3603097872; 
+ ear_jnull; 
  terminal_tri_5405130650; 
  terminal_tri_5766053833; 
  terminal_tri_5026777310; 
@@ -848,6 +852,59 @@ let slice_aux cs p q dv =
   let js = map (fun (i,j) -> (r i,r j)) (intersect (cart2 (p--q)) cs.js_cs) in
     modify_cs cd1 ~js:js ();;
 
+(* calculate the value of the new d from the old one,
+   using standard assumptions about the desired terminal inequalities.
+   This does cases where no "ear" is involved.
+   This inequality is to be used when every edge has bounds in
+   one of the three intervals [2,2h0], [2h0,sqrt8], [sqrt8,3.01] *)
+
+let slice_dstd_aux cs p q = 
+  let k = cs.k_cs in
+  let p = p mod k in
+  let q = q mod k in
+  let d = cs.d_cs in
+  let q' = if (q<p) then q+k else q in
+  let k' = 1+q'-p in
+  let _ = (k'=3) or raise Not_found in
+  let av = cs.am_cs p q in
+  let bv = cs.bm_cs p q in
+  let a = override cs.a_cs (p,q,av) in
+  let b = override cs.b_cs (p,q,bv) in
+  let edge1(i,j) = (two <= a i j  && b i j <= twoh0) in
+  let edge2(i,j) = (twoh0 <= a i j && b i j <= sqrt8) && (not (edge1 (i,j))) in
+  let edge3(i,j) = (sqrt8 <= a i j && b i j <= cstab) && (not (edge2 (i,j))) in
+  let edge (i, j) = edge1 (i ,j) or edge2 (i, j) or edge3 (i, j) in
+  let (p1,p2,p3) = (p,inc cs p,funpow 2 (inc cs) p) in
+  let triedge = [(p1,p2);(p2,p3);(p3,p1)] in
+  let _ = forall edge triedge or failwith "slice_dstd" in 
+  let c_edge1 = length (filter (edge1) triedge) in
+  let c_edge2 = length (filter (edge2) triedge) in
+  let c_edge3= length (filter (edge3) triedge) in
+  let eps = tame_table_d 2 1 -. 0.11 in 
+  let d12 = tame_table_d 1 2 in
+  let m3 = eps *. float_of_int (c_edge3) in
+  let flat1 = (c_edge1=2) && (c_edge2=1), tame_table_d 2 1 in
+  let flat2 = (c_edge1=2) && (c_edge3=1), 0.11 in
+  let atype = (c_edge1=1) && (c_edge2+c_edge3 =2), d12 +.  m3 in 
+  let btype = (c_edge1=0) && (c_edge2+c_edge3=3), tame_table_d 0 3 +. m3 in
+  let (_,dpq) = find (fst) [flat1;flat2;atype;btype] in
+    (dpq, d-. dpq);;
+
+     
+let slice_dstd cs p q = 
+  let k = cs.k_cs in
+  let inc3 = funpow 3 (inc cs) in
+    if (k=6) && (inc3 p = q) 
+    then 
+      let d = cs.d_cs /. two in (d,d)
+    else
+      let d = 
+	try slice_dstd_aux cs p q 
+	with Not_found -> 
+	  let (d2,d1) = slice_dstd_aux cs q p in
+	    (d1,d2) in
+	d;;  
+
 let slice_cs cs p q dvpq dvqp mk_ear = 
   let _ = dvpq +. dvqp >= cs.d_cs or failwith "slice_cs:bad d" in
   let cpq = slice_aux cs p q dvpq in
@@ -858,6 +915,10 @@ let slice_cs cs p q dvpq dvqp mk_ear =
   let _ = not(mk_ear) or is_ear cpq or is_ear cqp or failwith "slice_cs:ear" in
     [cpq;cqp];;
 
+let slice_std cs p q =
+  let (dvpq,dvqp) = slice_dstd cs p q in
+  let mk_ear = false in
+    slice_cs cs p q dvpq dvqp mk_ear;;
 
 (*
 let equi_transfer_cs  = 
@@ -1190,7 +1251,7 @@ let deform_6843920790 p1 cs =
 
 (*
 ****************************************
- cstab subdivison
+ subdivison
 ****************************************
 *)
 
@@ -1230,14 +1291,14 @@ let find_subdivide_edge c cs =
   let ind = index true (map (between_cs c cs) diag) in
     List.nth diag ind;;
 
-let subdivide_cstab_diag = 
-  let p = partition (can_subdivide cstab) in
+let subdivide_c_diag c = 
+  let p = partition (can_subdivide c) in
   let rec sub init term =
     match init with
       | [] -> term 
       | cs::css -> 
-	    let (i,j) = find_subdivide_edge cstab cs in
-	    let kss = subdivide_cs i j cstab cs in
+	    let (i,j) = find_subdivide_edge c cs in
+	    let kss = subdivide_cs i j c cs in
 	    let (u,v) = p kss in
 	      sub (u @ css) (v @ term) in
     fun init ->
@@ -1357,7 +1418,7 @@ let transfer_hex_to_preslice =
     fun cs -> e02 cs or e03 cs;;
 
 let subdivide_without_preslice transfer init  = 
-  let sub = subdivide_cstab_diag init in
+  let sub = subdivide_c_diag cstab init in
     filter (not o transfer) sub;;
 
 let hex_subdivide_without_preslice = subdivide_without_preslice
@@ -1501,36 +1562,13 @@ QUADRILATERALS
 ****************************************
 *)
 
-
-let transfer_hex_to_preslice = 
-  let e02 = C equi_transfer_cs (hex_std_preslice_02) in
-  let e03 = C equi_transfer_cs (hex_std_preslice_03) in
-    fun cs -> e02 cs or e03 cs;;
-
-let subdivide_without_preslice transfer init  = 
-  let sub = subdivide_cstab_diag init in
-    filter (not o transfer) sub;;
-
-let hex_subdivide_without_preslice = subdivide_without_preslice
- transfer_hex_to_preslice [hex_std_cs];;
-
 let (quad_477_preslice_short,quad_477_preslice_long) = 
-  let preslices = subdivide_cstab_diag [quad_pro_cs] in
+  let preslices = subdivide_c_diag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
     (subdivide_cs 0 2 cstab quad_pro_cs) in
   let ww = transfer_union (p @ vv) [] in
     partition preslice_ready ww;;
-
-(*
-;;
-  let alld = alldiag quad_std_cs in
-  let ffh ((p,q), cs) = subdivide_cs p q cstab cs in
-  let preslices = List.flatten (map ffh (cart alld [quad_pro_cs])) in
-  let vv =     transfer_union (map (C hist "preslice pro") preslices) [] in
-    partition preslice_ready vv;;
-*)
-
 
 let handle_quad_477_preslice_short = 
   let _ = (length quad_477_preslice_short = 1) or failwith "handle 477" in
@@ -1546,16 +1584,17 @@ let handle_quad_477_preslice_short =
 claim_arrow([quad_pro_cs],quad_477_preslice_long);;
 
 let terminal_quad = 
-  quad_477_preslice_short @ (filter (fun cs -> (4= cs.k_cs)) terminal_cs);;
+  quad_477_preslice_short @ terminal_cs;;
 
-let ok_for_more_quad cs = 
-  let _ = (cs.k_cs =4) or failwith "quads only" in
+let ok_for_more_tri_quad cs = 
+  let _ = (cs.k_cs <=4  && cs.k_cs >= 3) or failwith "tri quads only" in
   let b467_2485876245a = 
-    if (cs.d_cs=0.467) && 
+    if (cs.d_cs=0.467) && (cs.k_cs = 4) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
       forall (fun (i,j)-> cs.am_cs i j >= three) [(0,2);(1,3)]
     then ( cs.str_cs = []) else true in
   let b477 =
+    let b477k = (cs.k_cs = 4) in
     let b477a =  cs.str_cs = [] in
     let b477b = Sphere_math.delta_y (* if neg then geometric impossibility *)
       (cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
@@ -1565,7 +1604,7 @@ let ok_for_more_quad cs =
     if (cs.d_cs=0.477) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
       forall (fun (i,j)-> cs.am_cs i j >= cstab) [(0,2);(1,3)]
-    then (b477a && b477b && b477c) else true in      
+    then (b477k && b477a && b477b && b477c) else true in      
   let _ = 
     try is_aug_cs cs 
     with Failure s -> report_cs cs; failwith s in
@@ -1573,26 +1612,111 @@ let ok_for_more_quad cs =
   let bunfinished = not (exists (transfer_to cs) terminal_quad) in
     bstr && bunfinished && b467_2485876245a && b477 ;;
 
-let quad_deformations = deformations ok_for_more_quad 4;;
+let quad_deformations = deformations ok_for_more_tri_quad 4;;
 
 let name_of_quad = name_of 4;;
 
+let tri_deformations = deformations ok_for_more_tri_quad 3;;
+
+let name_of_tri = name_of 3;;
+
+let transfer_quad_to_terminal = 
+  let f1 = map (C equi_transfer_cs) terminal_quad in
+    fun cs -> exists (fun f -> f cs) f1;;
+
+let quad_loop = general_loop quad_deformations transfer_quad_to_terminal;;
+
+let special_quad_init = 
+  let special_situations cs =  
+    (0.467=cs.d_cs) or (0.477=cs.d_cs) in
+    filter (fun cs -> (4=cs.k_cs) && special_situations cs) (!remaining);;
+
+let execute_special_quads() = 
+    quad_loop 200000 
+      (map (fun i->(0,i)) special_quad_init) [];;
+
+let hl = execute_special_quads();;
+
+claim_arrow(special_quad_init,[]);;
+
+(* if hl = ([],[]) successful, it means that 
+   all special quads have been reduced
+   to terminal quads, 
+   worked in svn:2821, May 20, 2012.
+*)
+
+
+(* now the general case remains
+   policies and procedure:
+   - no more use of js_cs and ears.
+   - determine d by slice_dpq procedure.
+
+   1- if the cs transfers to a terminal or is not "ready" for more, 
+   then were are done with it.
+   2- if stab is between lower and upper bounds of a diag, then subdivide it
+   3- if sqrt8 is between lower and upper bounds of a diag, then 
+   4- if there is a diag [2h0,sqrt8], then slice it.
+   5- if there is a diag [sqrt8,cstab], then slice it.
+   6- if a deformation applies, then apply it.
+   7- do "upper echelon" treatment of quads (subdivisions on edges > 3.01)
+
+*)
+
+XXD;;
+
+let handle_general_case cs = 
+  (* 1- *)
+  if (cs.k_cs = 6) && not(ok_for_more_hex cs) then []
+  else if (cs.k_cs=5) && not(ok_for_more_pent cs) then []
+  else if not(ok_for_more_tri_quad cs) then []
+  else if exists (equi_transfer_cs cs) terminal_quad then []
+    (* 2- *)
+  else if (can_subdivide cstab cs) then (subdivide_c_diag cstab [cs])
+    (* 3- *)
+  else if (can_subdivide sqrt8 cs) then (subdivide_c_diag sqrt8 [cs])
+    (* 4- *)
+  else [];;
+    
+
+(* XXD to here.
+let squiggle1 cs = 
+  if not (ok_for_more_tri_quad cs) then []
+  else if 
+*)
+
+
+
+
+
+
+
+(*
 let slice_hex_to_quad = 
   let cs = hex_std_preslice_03 in
   let d = cs.d_cs /. 2.0 in 
   let vv = slice_cs cs 3 0 d d  false in
     transfer_union (map (C hist "slice_hex_to_quad") vv) [];;
 
+
 claim_arrow([hex_std_preslice_03],slice_hex_to_quad);;
+*)
+
+
+
+
+
+
 
 (* temporary *)
-let quad_init = 
-  let temporary_condition cs =  (0.467=cs.d_cs) or (0.477=cs.d_cs) in
-    filter (fun cs -> (4=cs.k_cs) && temporary_condition cs) (!remaining);;
 
-let transfer_quad_to_terminal = 
-  let f1 = map (C equi_transfer_cs) terminal_quad in
-    fun cs -> exists (fun f -> f cs) f1;;
+
+
+
+
+
+
+
+
 
 (*
 let quad_subdivide_without_preslice = 
@@ -1602,18 +1726,6 @@ let quad_subdivide_without_preslice =
 *)
 
 
-let quad_loop = general_loop quad_deformations transfer_quad_to_terminal;;
-
-let execute_quads() = 
-    quad_loop 200000 
-      (map (fun i->(0,i)) quad_init) [];;
-
-let hl = execute_quads();;
-
-(* if hl = ([],[]) successful, it means that all quads have been reduced
-   toterminal quads, 
-   worked in svn:2821, May 20, 2012.
-*)
 
 !remaining;;
 
@@ -1659,7 +1771,7 @@ report_cs cs2;;
 
 
 let subdivide_without_preslice transfer init  = 
-  let sub = subdivide_cstab_diag init in
+  let sub = subdivide_c_diag cstab init in
     filter (not o transfer) sub;;
 
 (* XXD broken *)
@@ -1667,7 +1779,7 @@ let subdivide_without_preslice transfer init  =
 let hex_subdivide_without_preslice = subdivide_without_preslice
  transfer_hex_to_preslice [hex_std_cs];;
 
-let hh= subdivide_cstab_diag [hex_std_cs];;
+let hh= subdivide_c_diag cstab [hex_std_cs];;
 length hh;;
 let h2 = filter preslice_ready hh;;
 length h2;;
@@ -1683,3 +1795,33 @@ let transfer_hex_to_preslice =
 equi_transfer_cs cs hex_std_preslice_02;;
 
 !remaining;;
+
+
+
+
+(* deal with pent_diag *)
+
+let preslice_pent_diag = 
+  let css = hd (filter (fun cs -> mem"pent diag init" cs.history_cs) 
+		  !remaining) in
+    css;;
+
+let slice_pd_to_quad = 
+  let cs = preslice_pent_diag in
+  let vv = slice_cs cs 0 2 (0.11) (cs.d_cs -. 0.11) false in
+  let vv' = filter (fun v -> not ( exists (equi_transfer_cs v) terminal_cs)) vv in 
+    (map (C hist "slice pent to quad") vv');;
+
+claim_arrow ([preslice_pent_diag],slice_pd_to_quad);;
+
+report_cs slice_pent_diag;;
+equi_transfer_cs;;
+
+
+let (quad_pd_short,quad_pd_long) = 
+  let preslices = subdivide_c_diag cstab [quad_pro_cs] in
+  let vv =  (map (C hist "preslice pro") preslices) in
+  let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
+    (subdivide_cs 0 2 cstab quad_pro_cs) in
+  let ww = transfer_union (p @ vv) [] in
+    partition preslice_ready ww;;

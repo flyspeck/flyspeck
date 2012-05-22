@@ -18,12 +18,20 @@ in a finite sequence of regulated moves.
 #directory "/Users/thomashales/Desktop/googlecode/hol_light";;
 #use "hol.ml";;
 
+let flyspeck_dir = 
+  (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
+
+loadt (flyspeck_dir^"/../glpk/sphere.ml");;
+loadt (flyspeck_dir^"/general/lib.hl");;
+
 flyspeck_needs "../glpk/sphere.ml";;
 (*
 ****************************************
 BASICS
 ****************************************
 *)
+
+
 
 
 let false_on_fail b x = try (b x) with _ -> false;;
@@ -52,10 +60,10 @@ let unsplit d f = function
   | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
   | [] -> "";;
 
-let join_comma  = unsplit "," (fun x-> x);;
+(* let join_comma  = unsplit "," (fun x-> x);;*)
 let join_semi  = unsplit ";" (fun x-> x);;
-let join_lines  = unsplit "\n" (fun x-> x);;
-let join_space  = unsplit " " (fun x-> x);;
+(* let join_lines  = unsplit "\n" (fun x-> x);;
+let join_space  = unsplit " " (fun x-> x);; *)
 
 let string_of_list f xs = 
   let ss = map f xs in
@@ -78,7 +86,8 @@ let cos  = Pervasives.cos;;
 
 (* a few constants.  We do tests of exact equality on floats,
    but this should work because we never do arithmetic on floats
-   after initialization, so there is no source of roundoff error
+   after initialization (except in one spot where a machine_eps
+   is thrown in), so there is no source of roundoff error
    after initialization. *)
 
 let zero = 0.0;;
@@ -121,6 +130,12 @@ output of the function contain a nonempty augmented constraint system?
 Formally, we will prove statements of the form for various 
 f:ACS -> (ACS) list
 |- nonempty_M cs ==> (?cs'. mem cs'(f cs) /\ nonempty_M cs').
+
+Termination of algorithms:
+Every slice decreases k.
+Every subdivision narrows the B-field through a finite set of choices
+  (retaining the M-field)
+Every deformation sets a new M-field constraint.
 *)
 
 (* DEPRECATED
@@ -182,6 +197,12 @@ let string_of_cs cs =
 let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
 
 let report_cs cs = report(string_of_cs cs);;
+
+let debug_cs = ref [];;
+
+let failcs (cs,s) = 
+  report_cs cs; debug_cs:= [cs]; failwith s;;
+
 
 (* report(string_of_cs quad_std_cs);; *)
 (* #install_printer pp_print_cs;; *)
@@ -261,6 +282,12 @@ let alldiag cs =
   filter (fun (i,j) -> (i<j) && not (inc cs i = j) && not (inc cs j = i))
     (cart2 ks);;
 
+let allpair cs = 
+  let ks = ks_cs cs in
+  filter (fun (i,j) -> (i<j)) (cart2 ks);;
+
+
+
 
 (*
 ****************************************
@@ -280,8 +307,8 @@ let is_cs cs =
       (cs.bm_cs i j <= cs.b_cs i j) in
   let ks = ks_cs cs in
   let k2s = cart2 ks in
-  let bm = forall f k2s or failwith "is_cs: bm" in
-  let bs = ((cs.k_cs <= 6) && (cs.k_cs >= 3)) or failwith "is_cs:bs" in
+  let bm = forall f k2s or failcs( cs, "is_cs: bm") in
+  let bs = ((cs.k_cs <= 6) && (cs.k_cs >= 3)) or failcs(cs, "is_cs:bs") in
   let bj = (length cs.js_cs + cs.k_cs <= 6) or failwith "is_cs:bj" in
   let bj' = (compact cs.js_cs) or failwith "is_cs:bj'" in 
   let fj (i,j) = (i < j) && ((inc cs i = j) or (inc cs j = i)) in
@@ -392,6 +419,20 @@ let reset_iso_cs cs cs' =
   (cs.k_cs = cs'.k_cs) && 
  (  proper_reset_iso_cs cs cs' or proper_reset_iso_cs (opposite_cs cs) cs');;
 
+let extensional_equality cs cs' = 
+  let bk = cs.k_cs = cs'.k_cs in
+  let bd = cs.d_cs = cs'.d_cs in
+  let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
+  let ba = m cs.a_cs cs'.a_cs in
+  let bb = m cs.b_cs cs'.b_cs in
+  let bam = m cs.am_cs cs'.am_cs in
+  let bbm = m cs.bm_cs cs'.bm_cs in
+  let ps js = map psort js in
+  let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
+  let bstr = set_eq (cs.str_cs) cs'.str_cs in
+  let blo = set_eq cs.lo_cs cs'.lo_cs in
+  let bhi = set_eq cs.hi_cs cs'.hi_cs in
+    bk && bd && ba && bb && bam && bbm && bstr && blo && bhi && bj;;
 
 
 (*
@@ -776,6 +817,8 @@ let terminal_cs = [
 forall ( is_aug_cs) terminal_cs;;
 forall ( attr_free) terminal_cs;;
 
+let take_terminal f = filter f terminal_cs;;
+
 let is_ear cs = 
   reset_iso_cs cs  ear_cs;;
 
@@ -811,6 +854,10 @@ let proper_transfer_cs cs cs' =
 let equi_transfer_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
  (  proper_transfer_cs cs cs' or proper_transfer_cs (opposite_cs cs) cs');;
+
+let equi_transfer_to_list terminals = 
+  let f1 = map (C equi_transfer_cs) terminals in
+    fun cs -> exists (fun f -> f cs) f1;;
 
 let rec transfer_union a b = 
   match a with
@@ -858,6 +905,7 @@ let slice_aux cs p q dv =
    This inequality is to be used when every edge has bounds in
    one of the three intervals [2,2h0], [2h0,sqrt8], [sqrt8,3.01] *)
 
+
 let slice_dstd_aux cs p q = 
   let k = cs.k_cs in
   let p = p mod k in
@@ -876,7 +924,7 @@ let slice_dstd_aux cs p q =
   let edge (i, j) = edge1 (i ,j) or edge2 (i, j) or edge3 (i, j) in
   let (p1,p2,p3) = (p,inc cs p,funpow 2 (inc cs) p) in
   let triedge = [(p1,p2);(p2,p3);(p3,p1)] in
-  let _ = forall edge triedge or failwith "slice_dstd" in 
+  let _ = forall edge triedge or failcs (cs, "slice_dstd") in 
   let c_edge1 = length (filter (edge1) triedge) in
   let c_edge2 = length (filter (edge2) triedge) in
   let c_edge3= length (filter (edge3) triedge) in
@@ -906,7 +954,8 @@ let slice_dstd cs p q =
 	d;;  
 
 let slice_cs cs p q dvpq dvqp mk_ear = 
-  let _ = dvpq +. dvqp >= cs.d_cs or failwith "slice_cs:bad d" in
+  let machine_eps = 1e-08 in  (* will go away in formalization *)
+  let _ = dvpq +. dvqp +. machine_eps >= cs.d_cs or failwith "slice_cs:bad d" in
   let cpq = slice_aux cs p q dvpq in
   let cqp = slice_aux cs q p dvqp in
   let addj cs = modify_cs cs ~js:((0,(cs.k_cs - 1))::cs.js_cs) () in
@@ -918,7 +967,9 @@ let slice_cs cs p q dvpq dvqp mk_ear =
 let slice_std cs p q =
   let (dvpq,dvqp) = slice_dstd cs p q in
   let mk_ear = false in
-    slice_cs cs p q dvpq dvqp mk_ear;;
+  let rv = slice_cs cs p q dvpq dvqp mk_ear in
+  let _ = forall (fun cs' -> cs'.k_cs < cs.k_cs) rv in
+    rv;;
 
 (*
 let equi_transfer_cs  = 
@@ -1232,12 +1283,13 @@ let deform_6843920790 p1 cs =
   let _ = (cstab <= cs.am_cs p4 p2) or raise Unchanged in
   let f (i,j) = (cs.bm_cs i j <= twoh0) in
   let _ = forall f [(p0,p1);(p2,p3);(p3,p4);(p4,p0)] or raise Unchanged in
-  let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
-  let m q =  (cs.a_cs p1 q = cs.bm_cs p1 q) in
-  let _ = forall (not o m) diag or raise Unchanged in
+  let m q =  (cs.a_cs p1 q < cs.bm_cs p1 q) in
+  let _ = forall m diag or raise Unchanged in
+  let _ = m p2 or raise Unchanged in
+(*  let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in *)
   let n q = (fourh0 < cs.b_cs p1 q) in
   let _ = forall n diag or raise Unchanged in
   let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
@@ -1247,6 +1299,28 @@ let deform_6843920790 p1 cs =
     else Some (modify_cs cs ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
      cs1::cs2::
       (filter_some( (cspq p2) ::(map cspq diag)));;
+
+let deformations postfilter k = 
+  let r f p cs = filter postfilter (f p cs) in
+  let m d = map (r d) (0--(k-1)) in
+  let u =   [deform_ODXLSTC_cs;
+	     deform_IMJXPHR_cs;
+	     deform_NUXCOEA_cs;
+	     deform_4828966562A_obtuse;
+	     deform_4828966562B_obtuse;
+	     deform_2065952723_A1_single;
+	     deform_2065952723_A1_double;
+	     deform_4828966562A;
+	     deform_4828966562B;
+	    deform_6843920790] in
+    List.flatten (map m u);;
+
+let name_of_deformation k i =
+  let names_hex = 
+    ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";"684"] in
+  let offset = i mod k in
+  let s = i/k in
+    (List.nth names_hex s) ^ "-" ^ (string_of_int offset);;
 
 
 (*
@@ -1265,13 +1339,14 @@ let subdivide_cs p q c cs =
   let _ = (0 <= p && p< cs.k_cs) or failwith "p out of range divide_cs" in
   let _ = (0 <= q && q< cs.k_cs) or failwith "q out of range divide_cs" in
   let (p,q) = psort(p,q) in
+  let _ = mem (p,q) (allpair cs) or failwith "subdivide range" in
   let a = cs.a_cs p q in
   let b = cs.b_cs p q in
   let am = cs.am_cs p q in
   let bm = cs.bm_cs p q in
-(*  let _ =  (a < c  && c < b) or raise Unchanged in *)
   let cs1 = modify_cs cs ~b:(override cs.b_cs (p,q,c)) () in
   let cs2 = modify_cs cs ~a:(override cs.a_cs (p,q,c)) () in
+  let _ =  (a < c  && c < b) or (report "warning:unchanged subdivide";true) in 
     if not (a < c && c < b) then [cs]
     else if bm <= c then [cs1]
     else if c <= am then [cs2]
@@ -1283,21 +1358,21 @@ let subdivide_cs p q c cs =
 let between_cs c cs (i,j) = 
   (cs.a_cs i j < c && c < cs.b_cs i j );;
 
-let can_subdivide c cs =
-  exists (between_cs c cs) (alldiag cs);;
+let can_subdivide f_diag c cs =
+  exists (between_cs c cs) (f_diag cs);;
 
-let find_subdivide_edge c cs =
-  let diag = alldiag cs in
-  let ind = index true (map (between_cs c cs) diag) in
+let find_subdivide_edge f_diag c cs =
+  let diag = f_diag cs in
+  let ind = index true (map (between_cs c cs) (diag)) in
     List.nth diag ind;;
 
-let subdivide_c_diag c = 
-  let p = partition (can_subdivide c) in
+let subdivide_c_diag f_diag c = 
+  let p = partition (can_subdivide f_diag c) in
   let rec sub init term =
     match init with
       | [] -> term 
       | cs::css -> 
-	    let (i,j) = find_subdivide_edge c cs in
+	    let (i,j) = find_subdivide_edge f_diag c cs in
 	    let kss = subdivide_cs i j c cs in
 	    let (u,v) = p kss in
 	      sub (u @ css) (v @ term) in
@@ -1308,6 +1383,9 @@ let subdivide_c_diag c =
 
 (* claim arrows serve as documentation for
    how the calculations are progressing from initial cs to terminal cs.
+
+   To do: make this into a formal deductive system.
+   With rules of inference given by deformation rules, etc.
 *)
 (* a = what we assert to prove at that point, 
    b=what we leave for later *)
@@ -1359,70 +1437,62 @@ HEXAGONS
 
 (* claim  in this section goes as follows *)
 
-hex_std_cs;;
-
+(* todo: construct from generic subdivide *)
 let hex_std_preslice_02,hex_std_preslice_03 = 
   let c1 = subdivide_cs 0 2 cstab hex_std_cs in
   let c2 = subdivide_cs 0 3 cstab hex_std_cs in
     hist (hd c1) "hex_std_preslice 02" , hist (hd c2) "hex_std_preslice 03";;
 
-claim_arrow([hex_std_cs],[hex_std_preslice_02;hex_std_preslice_03]);;
+let hex_assumptions = [hex_std_preslice_02;hex_std_preslice_03];;
+
+claim_arrow([hex_std_cs],hex_assumptions);;
 
 (* end claim *)
 
-
-let ok_for_more_hex cs = 
-  let _ = 
-    try is_aug_cs cs 
-    with Failure s -> report_cs cs; failwith s in
-  let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
-  let generic_at i = 
-    let p0 = i in
-    let p1 = inc cs i in
-    let p2 = inc cs p1 in
-    let p3 = inc cs p2 in
-      not (subset[p0;p1;p2;p3] cs.lo_cs && subset[p1;p2] cs.str_cs) in
-  let bg = forall generic_at (ks_cs cs) in
-  let bunfinished = not (transfer_to cs terminal_hex) in
-    bstr && bg && bunfinished;;
-
-let deformations bf k = 
-  let r f p cs = filter bf (f p cs) in
-  let m d = map (r d) (0--(k-1)) in
-  let u =   [deform_ODXLSTC_cs;
-	     deform_IMJXPHR_cs;
-	     deform_NUXCOEA_cs;
-	     deform_4828966562A_obtuse;
-	     deform_4828966562B_obtuse;
-	     deform_2065952723_A1_single;
-	     deform_2065952723_A1_double;
-	     deform_4828966562A;
-	     deform_4828966562B;
-	    deform_6843920790] in
-    List.flatten (map m u);;
+let ok_for_more_hex = 
+  let is_hex cs = (cs.k_cs =6) in
+  let terminals = take_terminal is_hex in
+    fun cs ->
+      let _ = 
+	try is_aug_cs cs 
+	with Failure s -> report_cs cs; failwith s in
+      let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
+      let generic_at i = 
+	let p0 = i in
+	let p1 = inc cs i in
+	let p2 = inc cs p1 in
+	let p3 = inc cs p2 in
+	  not (subset[p0;p1;p2;p3] cs.lo_cs && subset[p1;p2] cs.str_cs) in
+      let bg = forall generic_at (ks_cs cs) in
+      let bunfinished = not (exists (transfer_to cs) terminals) in
+	bstr && bg && bunfinished;;
 
 let hex_deformations = deformations ok_for_more_hex 6;;
 
-let name_of k i =
-  let names_hex = 
-    ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";"684"] in
-  let offset = i mod k in
-  let s = i/k in
-    (List.nth names_hex s) ^ "-" ^ (string_of_int offset);;
+let name_of_deformation_hex = name_of_deformation 6;;
 
-let name_of_hex = name_of 6;;
-
-let transfer_hex_to_preslice = 
+(*
+let transfer_to_hex_assumptions = 
   let e02 = C equi_transfer_cs (hex_std_preslice_02) in
   let e03 = C equi_transfer_cs (hex_std_preslice_03) in
     fun cs -> e02 cs or e03 cs;;
 
-let subdivide_without_preslice transfer init  = 
-  let sub = subdivide_c_diag cstab init in
-    filter (not o transfer) sub;;
+let transfer_to_hex_assumptions = 
+  let f1 = map (C equi_transfer_cs) hex_assumptions in
+    fun cs -> exists (fun f -> f cs) f1;;
+*)
 
-let hex_subdivide_without_preslice = subdivide_without_preslice
- transfer_hex_to_preslice [hex_std_cs];;
+let filtered_subdivide postfilter init  = 
+  let sub = subdivide_c_diag (alldiag) cstab init in
+    filter postfilter sub;;
+
+let rec apply_first_deformation dl cs = 
+  match dl with
+      [] -> (report_cs cs; failwith "all deformations fail")
+    | d::dls ->
+	try
+	  d cs
+	with Unchanged -> apply_first_deformation dls cs;;
 
 let preslice_ready cs = 
   if (cs.k_cs=4) && (cs.d_cs=0.467) 
@@ -1430,7 +1500,8 @@ let preslice_ready cs =
     (cs.bm_cs 0 2 = three) && (cs.bm_cs 1 3 = three)
   else  
     exists (fun (i,j) -> cs.bm_cs i j <= cstab ) (alldiag cs);;
-    
+ 
+(*   
 let rec general_loop df tr c active stab_diags =
     if (c <= 0) or length stab_diags > 0 then (active,stab_diags) 
     else match active with
@@ -1445,18 +1516,33 @@ let rec general_loop df tr c active stab_diags =
 	    with Unchanged -> 
 	      general_loop df tr (c-1) ((i+1,cs)::css) stab_diags
               | Failure s -> ( ((-1,cs)::css,stab_diags));;
+*)
 
-let hex_loop = general_loop hex_deformations transfer_hex_to_preslice;;
+let rec general_loop2 df postfilter c active stab_diags =
+    if (c <= 0) or length stab_diags > 0 then (active,stab_diags) 
+    else match active with
+	[] -> ([],stab_diags) 
+      | cs::css -> 
+	    try 
+	      let kss = apply_first_deformation df cs in
+	      let (u,v) = partition preslice_ready kss in
+	      let u' = filter postfilter u in
+		general_loop2 df postfilter (c-1) (v @ css) (u' @  stab_diags)
+	    with 
+               Failure s -> (active,stab_diags);;
 
 let execute_hexagons() = 
-    hex_loop 200000 
-      (map (fun i->(0,i)) hex_subdivide_without_preslice) [];;
+  let postfilter = not o (equi_transfer_to_list hex_assumptions) in 
+  let hex_ultra = filtered_subdivide postfilter [hex_std_cs] in
+  let hex_loop = general_loop2 hex_deformations postfilter in
+    hex_loop 200000 hex_ultra [];;
 
 (* if hl = ([],[]) successful, it means that all hexagons have been reduced
    to the one terminal hexagon, together with two cases of hex_std_preslice
 *)
 
-(* execute_hexagons();; working in svn:2819 *)
+(* execute_hexagons();; working in svn:2819,2824m *)
+
 
 (*
 ****************************************
@@ -1466,33 +1552,35 @@ PENTAGONS
 
 (* flow on pentagons is the same as for hexagons *)
 
-let ok_for_more_pent cs = 
-  let _ = 
-    try is_aug_cs cs 
-    with Failure s -> report_cs cs; failwith s in
-  let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
-  let sph_tri_ineq i = 
-    let p0 = i in
-    let p1 = inc cs p0 in
-    let p2 = inc cs p1 in
-    let p3 = inc cs p2 in
-    let p4 = inc cs p3 in
-      if not(subset [p1;p2] cs.str_cs) then true
-      else
-	let htmin = two in
-	let htmax p = if mem p cs.lo_cs then two else twoh0 in
-	let e03min = arc (htmax p0) (htmax p1) (cs.am_cs p0 p1) +.
-	  arc (htmax p1) (htmax p2) (cs.am_cs p1 p2) +.
-	  arc (htmax p2) (htmax p3) (cs.am_cs p2 p3) in
-	let e03max = arc (htmin) (htmin) (cs.bm_cs p3 p4) +.
-	  arc (htmin) (htmin) (cs.bm_cs p4 p0) in
-	  e03min <= e03max in
-  let bunfinished = not (transfer_to cs terminal_pent) in
+let ok_for_more_pent =
+  let terminals = take_terminal (extensional_equality terminal_pent) in
+    fun cs ->
+      let _ = 
+	try is_aug_cs cs 
+	with Failure s -> report_cs cs; failwith s in
+      let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
+      let sph_tri_ineq i = 
+	let p0 = i in
+	let p1 = inc cs p0 in
+	let p2 = inc cs p1 in
+	let p3 = inc cs p2 in
+	let p4 = inc cs p3 in
+	  if not(subset [p1;p2] cs.str_cs) then true
+	  else
+	    let htmin = two in
+	    let htmax p = if mem p cs.lo_cs then two else twoh0 in
+	    let e03min = arc (htmax p0) (htmax p1) (cs.am_cs p0 p1) +.
+	      arc (htmax p1) (htmax p2) (cs.am_cs p1 p2) +.
+	      arc (htmax p2) (htmax p3) (cs.am_cs p2 p3) in
+	    let e03max = arc (htmin) (htmin) (cs.bm_cs p3 p4) +.
+	      arc (htmin) (htmin) (cs.bm_cs p4 p0) in
+	      e03min <= e03max in
+  let bunfinished = not (exists (transfer_to cs) terminals) in
     bstr && bunfinished && forall sph_tri_ineq (ks_cs cs);;
 
 let pent_deformations = deformations ok_for_more_pent 5;;
 
-let name_of_pent = name_of 5;;
+let name_of_deformation_pent = name_of_deformation 5;;
 
 let slice_hex_to_pent_tri = 
   let cs = hex_std_preslice_02 in
@@ -1501,60 +1589,74 @@ let slice_hex_to_pent_tri =
   let vv = slice_cs cs 2 0 d' d  false in
     map (C hist "slice_hex_to_pent_tri") vv;;
 
-exists (equi_transfer_cs pent_pro_cs) slice_hex_to_pent_tri;;
+let claim_pent_X = 
+(*  if (exists (equi_transfer_cs pent_pro_cs) slice_hex_to_pent_tri) *)
+  if true 
+  then (ignore
+	(claim_arrow([(* pent_pro_cs; *)
+		       hex_std_preslice_02],slice_hex_to_pent_tri));
+	true)
+  else false;;
 
-claim_arrow([pent_pro_cs;hex_std_preslice_02],slice_hex_to_pent_tri);;
+(* these are the cases handled in the pent section *)
 
 let pent_init = 
-  [pent_std_cs;pent_diag_cs] @ filter (fun cs -> (5=cs.k_cs)) 
+  [pent_std_cs;pent_diag_cs;pent_pro_cs;] @ filter (fun cs -> (5=cs.k_cs)) 
     slice_hex_to_pent_tri;; 
 
+
+(* it doesn't matter how our assumptions are generated,
+   as long as they are eventually discharged. *)
+
 let pent_composite_cs = mk_cs (
-   5,
-   0.616,
-   a_pro two two cstab 5,
-   a_pro cstab twoh0 upperbd 5,"pent composite");;
+  5,
+  0.616,
+  a_pro two two cstab 5,
+  a_pro cstab twoh0 upperbd 5,"pent composite") ;;
 
-let pent_comp_rediag_cs (p,q) = 
-  let cs = pent_composite_cs in
-  modify_cs cs
-    ~b:(override cs.b_cs (p,q,cstab))
-	  ~bm:(override cs.bm_cs (p,q,cstab)) ();;
-
-let pent_preslice = 
+let pent_assumptions = 
+  let pent_comp_rediag_cs (p,q) = 
+    let cs = pent_composite_cs in
+      modify_cs cs
+	~b:(override cs.b_cs (p,q,cstab))
+	~bm:(override cs.bm_cs (p,q,cstab)) () in
   let alld = alldiag pent_std_cs in
   let ffh ((p,q), cs) = subdivide_cs p q cstab cs in
   let preslices = List.flatten (map ffh (cart alld pent_init)) in
-  let pent_comb = map pent_comp_rediag_cs alld (* [(1,4);(0,3);(4,2)] *) in
+  let pent_comb = map pent_comp_rediag_cs alld in
   let cstab_preslices = filter preslice_ready (pent_comb @ preslices) in
   let union_cstab_preslices = transfer_union cstab_preslices [] in 
-    map (C hist "preslice") union_cstab_preslices;;
+  let pa =  map (C hist "preslice") union_cstab_preslices in
+    pa;;
 
-let transfer_pent_to_preslice = 
-  let f1 = map (C equi_transfer_cs) pent_preslice in
-    fun cs -> exists (fun f -> f cs) f1;;
+(* we introduce pent_composite_ultra_cs 
+   which combines all the pent_init cases,
+   then we run execute_pentagons to get rid of it too.
+*)
 
-let pent_subdivide_without_preslice = 
-  let pl = subdivide_without_preslice 
-    transfer_pent_to_preslice pent_init in
-    transfer_union pl [pent_composite_cs];;
+let pent_composite_ultra_cs = 
+  let pl = filtered_subdivide 
+    (not o (equi_transfer_to_list pent_assumptions)) 
+    (pent_composite_cs::pent_init) in
+    transfer_union pl [];;
+
+claim_arrow(pent_init,pent_composite_ultra_cs @pent_assumptions);;
 
 (* pent section main claim *)
 
-claim_arrow(pent_init,pent_subdivide_without_preslice @pent_preslice);;
-
-let pent_loop = general_loop pent_deformations transfer_pent_to_preslice;;
-
 let execute_pentagons() = 
-    pent_loop 200000 
-      (map (fun i->(0,i)) pent_subdivide_without_preslice) [];;
+  let pent_filter = not o (equi_transfer_to_list pent_assumptions) in 
+  let pent_loop = general_loop2 pent_deformations pent_filter in
+    pent_loop 200000 (pent_composite_ultra_cs) [];;
 
 let hl = execute_pentagons();;
 
 (* if hl = ([],[]) successful, it means that all pentagons have been reduced
-   to the one terminal pentagon, together with cases of pent_preslice
+   to the one terminal pentagon, together with cases of pent_assumptions
    worked in svn:2821, May 20, 2012.
 *)
+
+claim_arrow(pent_composite_ultra_cs,pent_assumptions);;
 
 (*
 ****************************************
@@ -1563,7 +1665,7 @@ QUADRILATERALS
 *)
 
 let (quad_477_preslice_short,quad_477_preslice_long) = 
-  let preslices = subdivide_c_diag cstab [quad_pro_cs] in
+  let preslices = subdivide_c_diag alldiag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
     (subdivide_cs 0 2 cstab quad_pro_cs) in
@@ -1614,26 +1716,28 @@ let ok_for_more_tri_quad cs =
 
 let quad_deformations = deformations ok_for_more_tri_quad 4;;
 
-let name_of_quad = name_of 4;;
+let name_of_deformation_quad = name_of_deformation 4;;
 
 let tri_deformations = deformations ok_for_more_tri_quad 3;;
 
-let name_of_tri = name_of 3;;
-
-let transfer_quad_to_terminal = 
-  let f1 = map (C equi_transfer_cs) terminal_quad in
-    fun cs -> exists (fun f -> f cs) f1;;
-
-let quad_loop = general_loop quad_deformations transfer_quad_to_terminal;;
+let name_of_deformation_tri = name_of_deformation 3;;
 
 let special_quad_init = 
+  quad_diag_cs :: quad_477_preslice_long;;
+
+(*
   let special_situations cs =  
     (0.467=cs.d_cs) or (0.477=cs.d_cs) in
     filter (fun cs -> (4=cs.k_cs) && special_situations cs) (!remaining);;
+*)
 
 let execute_special_quads() = 
-    quad_loop 200000 
-      (map (fun i->(0,i)) special_quad_init) [];;
+let transfer_quad_to_terminal = 
+  let f1 = map (C equi_transfer_cs) terminal_quad in
+    fun cs -> exists (fun f -> f cs) f1 in
+  let quad_loop = general_loop2 quad_deformations
+    (not o transfer_quad_to_terminal) in
+quad_loop 200000  special_quad_init [];;
 
 let hl = execute_special_quads();;
 
@@ -1643,6 +1747,7 @@ claim_arrow(special_quad_init,[]);;
    all special quads have been reduced
    to terminal quads, 
    worked in svn:2821, May 20, 2012.
+   svn:2824.
 *)
 
 
@@ -1662,30 +1767,84 @@ claim_arrow(special_quad_init,[]);;
 
 *)
 
-XXD;;
 
 let handle_general_case cs = 
+  let inrange a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
+  let alld = alldiag cs in
   (* 1- *)
   if (cs.k_cs = 6) && not(ok_for_more_hex cs) then []
   else if (cs.k_cs=5) && not(ok_for_more_pent cs) then []
-  else if not(ok_for_more_tri_quad cs) then []
+  else if (mem cs.k_cs [3;4]) && not(ok_for_more_tri_quad cs) then []
   else if exists (equi_transfer_cs cs) terminal_quad then []
-    (* 2- *)
-  else if (can_subdivide cstab cs) then (subdivide_c_diag cstab [cs])
-    (* 3- *)
-  else if (can_subdivide sqrt8 cs) then (subdivide_c_diag sqrt8 [cs])
     (* 4- *)
-  else [];;
-    
+  else if exists (inrange twoh0 sqrt8) alld then
+    let (p,q) = find  (inrange twoh0 sqrt8) alld in
+      slice_std cs p q 
+	(* 5 *)
+  else if exists (inrange sqrt8 cstab) alld 
+  then
+    let (p,q) = find  (inrange sqrt8 cstab) alld in
+      slice_std cs p q 
+    (* 2- *)
+  else if (can_subdivide allpair cstab cs) 
+  then (subdivide_c_diag allpair cstab [cs])
+    (* 3- *)
+  else if (can_subdivide allpair sqrt8 cs) 
+  then (subdivide_c_diag allpair sqrt8 [cs])
+  else if (can_subdivide allpair twoh0 cs) 
+  then (subdivide_c_diag allpair twoh0 [cs])
+    (* 6 *)
+  else 
+    let k = cs.k_cs in
+    let defs = [[];[];[];tri_deformations;quad_deformations;
+		pent_deformations;hex_deformations] in
+    let dl = List.nth defs k in
+      apply_first_deformation dl cs;;
 
-(* XXD to here.
-let squiggle1 cs = 
-  if not (ok_for_more_tri_quad cs) then []
-  else if 
-*)
+let rec handle_loop c ls =
+    if (c<=0) then ls 
+    else match ls with
+      | [] -> []
+      | cs::css -> 
+	  let v = handle_general_case cs in
+	    handle_loop (c-1) ( v @ css);;
 
+let r_init = !remaining;;  
 
+let hl = handle_loop 5000 r_init;;
 
+let hl' = handle_loop 10000 r_init;;
+List.length hl;;
+iso_cs;;
+let rl = List.rev hl;;
+let rl' = List.rev hl';;
+let eq = extensional_equality;;
+let eqn i= eq (List.nth rl i) (List.nth rl' i);;
+eqn 0;;
+index false (map eqn (0--51));;
+eqn 40;;
+eqn 41;;
+let csA =  (List.nth rl 40);;
+index;;
+handle_loop 5000 [csA];;
+
+let run i = handle_loop 20000 [(List.nth hl' i)];;
+List.length hl';;
+let cs1 = List.nth hl' 16;;
+report_cs cs1;;
+
+report_cs (hd !remaining);;
+
+run 16;;
+run 40;;
+
+hd (List.rev hl) = hd (List.rev hl');;
+let cs1 = hd hl;;
+report_cs cs1;;
+let cs2 = handle_general_case cs1;;
+
+!remaining;;
+1;;
 
 
 
@@ -1719,9 +1878,9 @@ claim_arrow([hex_std_preslice_03],slice_hex_to_quad);;
 
 
 (*
-let quad_subdivide_without_preslice = 
-  let pl = subdivide_without_preslice 
-    transfer_quad_to_preslice quad_init in
+let quad_filtered_subdivide = 
+  let pl = filtered_subdivide 
+    (not o transfer_quad_to_preslice) quad_init in
     transfer_union pl [quad_composite_cs];;
 *)
 
@@ -1746,14 +1905,14 @@ let fg cs r =
   try List.nth hex_deformations r cs; true
   with Unchanged -> false;;
 filter (fg cs1) (0--53);;
-map name_of_hex it;;
+map name_of_deformation_hex it;;
 
 
 let fr r = List.nth hex_deformations r cs1;;
 fr 0;;
 let pp = partition preslice_ready it;;
 map report_cs (snd pp);;
-name_of_hex 52;;
+name_of_deformation_hex 52;;
 let cs2 = it;;
 report_cs (hd(snd cs2));;
 
@@ -1770,27 +1929,17 @@ let cs2 = hd (snd(it));;
 report_cs cs2;;
 
 
-let subdivide_without_preslice transfer init  = 
-  let sub = subdivide_c_diag cstab init in
-    filter (not o transfer) sub;;
-
 (* XXD broken *)
 
-let hex_subdivide_without_preslice = subdivide_without_preslice
- transfer_hex_to_preslice [hex_std_cs];;
 
-let hh= subdivide_c_diag cstab [hex_std_cs];;
+let hh= subdivide_c_diag alldiag cstab [hex_std_cs];;
 length hh;;
 let h2 = filter preslice_ready hh;;
 length h2;;
 let cs = hd h2;;
 report_cs cs;;
-transfer_hex_to_preslice cs;;
+(equi_transfer_to_list hex_assumptions) cs;;
 
-let transfer_hex_to_preslice = 
-  let e02 = equi_transfer_cs (hex_std_preslice_02) in
-  let e03 = equi_transfer_cs (hex_std_preslice_03) in
-    fun cs -> e02 cs or e03 cs;;
 
 equi_transfer_cs cs hex_std_preslice_02;;
 
@@ -1819,7 +1968,7 @@ equi_transfer_cs;;
 
 
 let (quad_pd_short,quad_pd_long) = 
-  let preslices = subdivide_c_diag cstab [quad_pro_cs] in
+  let preslices = subdivide_c_diag alldiag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
     (subdivide_cs 0 2 cstab quad_pro_cs) in

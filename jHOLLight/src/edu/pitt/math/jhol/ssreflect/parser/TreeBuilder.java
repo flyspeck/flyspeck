@@ -183,10 +183,10 @@ public class TreeBuilder {
 		
 		// term
 		ObjectNode term = tryParseObject();
-		if (term == null)
-			throw new Exception("OBJECT expected: " + t);
+		if (!(term instanceof RawObjectNode))
+			throw new Exception("TERM expected: " + t);
 		
-		return new SectionHypothesisNode(name, term);
+		return new SectionHypothesisNode(name, (RawObjectNode) term);
 	}
 	
 	
@@ -489,7 +489,7 @@ public class TreeBuilder {
 
 			if (obj instanceof IdNode) {
 				IdNode id = (IdNode) obj;
-				if (id.clearFlag)
+				if (id.getClearFlag())
 					chain.add(new ClearNode(id));
 			}
 		}
@@ -896,7 +896,7 @@ public class TreeBuilder {
 		HaveNode have = new HaveNode(disch, obj, assignFlag);
 		if (suffFlag) {
 			TacticNode rot_tac = new RawTactic("(THENL_ROT 1)");
-			BinaryNode bin = new BinaryNode(rot_tac, have, null);
+			BinaryNode bin = new BinaryNode(false, rot_tac, have, null);
 			return bin;
 		}
 		
@@ -971,7 +971,7 @@ public class TreeBuilder {
 	 * Parses a pattern expression [term]
 	 * @return null if nothing can be parsed
 	 */
-	private ObjectNode tryParsePattern() throws Exception {
+	private RawObjectNode tryParsePattern() throws Exception {
 		Token t = scanner.peekToken();
 		if (t.type != TokenType.LBRACK)
 			return null;
@@ -980,7 +980,7 @@ public class TreeBuilder {
 		scanner.nextToken();
 		
 		ObjectNode obj = tryParseObject();
-		if (obj == null)
+		if (!(obj instanceof RawObjectNode))
 			throw new Exception("Pattern expected: " + scanner.peekToken());
 		
 		// ]
@@ -988,7 +988,7 @@ public class TreeBuilder {
 		if (t.type != TokenType.RBRACK)
 			throw new Exception("] expected: " + t);
 		
-		return obj;
+		return (RawObjectNode) obj;
 	}
 	
 	
@@ -1184,7 +1184,7 @@ public class TreeBuilder {
 				throw new Exception(") expected: " + t);
 			
 			if (obj instanceof IdNode)
-				((IdNode) obj).clearFlag = false;
+				((IdNode) obj).setClearFlag(false);
 		}
 		else if (t.type == TokenType.UNDERSCORE) {
 			// _
@@ -1195,7 +1195,7 @@ public class TreeBuilder {
 			// Id
 			scanner.nextToken();
 			IdNode id = new IdNode(t.value);
-			id.clearFlag = true;
+			id.setClearFlag(true);
 			obj = id;
 		}
 

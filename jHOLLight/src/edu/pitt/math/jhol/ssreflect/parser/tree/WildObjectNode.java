@@ -16,12 +16,12 @@ public class WildObjectNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType(GoalContext context) {
+	protected int getType() {
 		return UNKNOWN;
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		throw new RuntimeException("wildcard.translate(): unimplemented");
 		
 	}

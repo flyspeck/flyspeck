@@ -1,3 +1,33 @@
+(* Combined type of theorems and terms *)
+type arg_type = Arg_theorem of thm | Arg_term of term | Arg_type of hol_type;;
+
+let get_arg_thm arg =
+  match arg with
+    | Arg_theorem th -> th
+    | _ -> failwith "A theorem expected";;
+
+let get_arg_term arg =
+  match arg with
+    | Arg_term tm -> tm
+    | _ -> failwith "A term expected";;
+
+let get_arg_type arg =
+  match arg with
+    | Arg_type ty -> ty
+    | _ -> failwith "A type expected";;
+
+
+(* Converts a theorem tactic into a tactic which accepts thm_term arguments *)
+let thm_tac (ttac : thm_tactic) = ttac o get_arg_thm;;
+let term_tac (ttac : term -> tactic) = ttac o get_arg_term;;
+let type_tac (ttac : hol_type -> tactic) arg = ttac o get_arg_type;;
+
+
+let conv_thm_tac (ttac : thm_tactic->tactic) (arg_tac : arg_type->tactic) =
+  ttac (fun th -> arg_tac (Arg_theorem th));;
+
+
+
 (* Based on the code from tactics.ml *)
 (* Applies the second tactic to either the first subgoal or
    the last subgoal *)
@@ -456,7 +486,14 @@ let disch_tm_tac occs tm (g : goal) =
        EXPAND_TAC name THEN
        POP_ASSUM (fun th -> (new_rewrite occs [] th)) THEN
        SPEC_TAC (new_tm, new_tm1)) g;;
-       
+
+
+(* Discharges a theorem or a term *)
+let disch_tac occs arg =
+  match arg with
+    | Arg_theorem th -> MP_TAC th
+    | Arg_term tm -> disch_tm_tac occs tm
+    | _ -> failwith "disch_tac: a type cannot be discharged";;
 
 
 
@@ -578,8 +615,9 @@ let have_tac then_tac tm (g : goal) =
 let wlog_tac then_tac vars tm (g : goal) =
 (*  let tm0 = inst_all_free_vars tm g in *)
   let tm0 = prepare_term tm g in
+  let vars0 = map (fun tm -> inst_all_free_vars tm g) vars in
   let g_tm = snd g in
-  let imp = list_mk_forall (vars, mk_imp (tm0, g_tm)) in
+  let imp = list_mk_forall (vars0, mk_imp (tm0, g_tm)) in
     (THENL_ROT 1 (SUBGOAL_THEN imp (fun th -> MP_TAC th THEN then_tac) THENL
        [REPLICATE_TAC (length vars) GEN_TAC; ALL_TAC])) g;;
 
@@ -591,6 +629,64 @@ let exists_tac tm (g : goal) =
   let inst_ty = type_match (type_of tm0) target_ty [] in
   let tm1 = inst inst_ty tm0 in
     (EXISTS_TAC tm1) g;;
+
+(* Instantiates the first type variable in the given theorem *)
+let inst_first_type th ty =
+  let ty_vars = type_vars_in_term (concl th) in
+  if ty_vars = [] then
+    failwith "inst_first_type: no type variables in the theorem"
+  else
+    INST_TYPE [(ty, hd ty_vars)] th;;
+
+
+(* The first argument must be a theorem, the second argument is arbitrary *)
+let combine_args arg1 arg2 =
+  let th1 = get_arg_thm arg1 in
+  let th0 =
+    match arg2 with
+      | Arg_theorem th2 -> 
+	  (try MATCH_MP th1 th2 with Failure _ -> match_mp_th th1 1 th2)
+      | Arg_term tm2 ->
+	  (try ISPEC tm2 th1 with Failure _ -> spec_var_th th1 1 tm2)
+      | Arg_type ty2 -> inst_first_type th1 ty2 in
+    Arg_theorem th0;;
+
+
+let use_arg_then_result = ref TRUTH;;
+
+let use_arg_then id (arg_tac:arg_type->tactic) (g:goal) =
+  let list = fst g in
+  let arg =
+    try
+      let assumption = assoc id list in
+	Arg_theorem assumption
+    with Failure _ ->
+      try
+	let vars = get_context_vars g in
+	let var = assoc id vars in
+	  Arg_term var
+      with Failure _ ->
+	let lexbuf = 
+	  Lexing.from_string ("use_arg_then_result := " ^ id ^ ";;") in
+	let ast = (!Toploop.parse_toplevel_phrase) lexbuf in
+	let _ = Toploop.execute_phrase false Format.std_formatter ast in
+	  Arg_theorem !use_arg_then_result in
+    arg_tac arg g;;
+
+
+let combine_args_then (tac:arg_type->tactic) arg1 arg2 (g:goal) =
+  let th1 = get_arg_thm arg1 in
+  let th0 =
+    match arg2 with
+      | Arg_theorem th2 -> 
+	  (try MATCH_MP th1 th2 with Failure _ -> match_mp_th th1 1 th2)
+      | Arg_term tm2 ->
+	  let tm0 = prepare_term tm2 g in
+	    (try ISPEC tm0 th1 with Failure _ -> spec_var_th th1 1 tm0)
+      | Arg_type ty2 -> inst_first_type th1 ty2 in
+    tac (Arg_theorem th0) g;;
+  
+	  
 
 
 (* Specializes a variable and applies the next tactic *)
@@ -618,8 +714,12 @@ let match_mp_then th2 (tac : thm_tactic) th1 =
     tac th0;;
 
 
-let GSYM_THEN tac th =
+let GSYM_THEN (tac : thm -> tactic) th =
   tac (GSYM th);;
+
+
+let gsym_then (tac:arg_type->tactic) arg =
+  tac (Arg_theorem (GSYM (get_arg_thm arg)));;
 
 
 (* The 'apply' tactic *)

@@ -42,25 +42,22 @@ public class HaveNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		if (!assignFlag && obj.getType(context) != ObjectNode.TERM)
+	protected void translate(StringBuffer buffer) {
+		if (!assignFlag && obj.getType() != ObjectNode.TERM)
 			throw new RuntimeException("TERM expected: " + obj);
 		
 		buffer.append('(');
+		obj.translate(buffer);
 		
 		if (assignFlag) {
-			buffer.append('(');
-			obj.translate(buffer, context);
-			buffer.append(" MP_TAC");
+			buffer.append(" (fun arg -> thm_tac MP_TAC arg THEN ");
+			thenTactic.translate(buffer);
 			buffer.append(')');
-			buffer.append(" THEN ");
-			thenTactic.translate(buffer, context);
 		}
 		else {
-			buffer.append("have_tac ");
-			thenTactic.translate(buffer, context);
-			buffer.append(' ');
-			obj.translate(buffer, context);
+			buffer.append(" (term_tac (have_tac ");
+			thenTactic.translate(buffer);
+			buffer.append("))");
 		}
 		
 		buffer.append(')');

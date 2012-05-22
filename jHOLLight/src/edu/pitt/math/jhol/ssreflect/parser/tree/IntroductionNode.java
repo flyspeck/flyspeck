@@ -21,7 +21,7 @@ public class IntroductionNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		String name = null;
 		// IdNode
 		if (id instanceof IdNode) {

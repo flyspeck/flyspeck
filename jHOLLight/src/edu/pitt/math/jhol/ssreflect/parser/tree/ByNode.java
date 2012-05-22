@@ -20,9 +20,9 @@ public class ByNode extends LeftAssociativeTacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		// This method should be never called
-		throw new Error("ByNode.translate()");
+		throw new RuntimeException("ByNode.translate()");
 	}
 	
 	@Override

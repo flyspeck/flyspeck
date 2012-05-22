@@ -10,7 +10,6 @@ import edu.pitt.math.jhol.caml.CamlEnvironment;
 import edu.pitt.math.jhol.caml.CamlObject;
 import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Goalstate;
-import edu.pitt.math.jhol.ssreflect.parser.tree.GoalContext;
 import edu.pitt.math.jhol.ssreflect.parser.tree.LemmaNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.Node;
 import edu.pitt.math.jhol.ssreflect.parser.tree.RawNode;
@@ -368,18 +367,6 @@ public class Interpreter {
 	
 	
 	/**
-	 * Returns the active goal context
-	 */
-	private GoalContext getContext() {
-		if (state == null || state.numberOfGoals() == 0)
-			return null;
-		
-		GoalContext context = new GoalContext(state.getGoal(0));
-		return context;
-	}
-	
-	
-	/**
 	 * Updates the listeners
 	 */
 	private void updateListeners() {
@@ -432,7 +419,7 @@ public class Interpreter {
 		if (t.type != TokenType.PERIOD)
 			throw new Exception(". expected: " + t);
 		
-		String rawCmd = nodeCmd.toHOLCommand(getContext());
+		String rawCmd = nodeCmd.toHOLCommand();
 		if (mode == PROOF_MODE) {
 //			rawCmd = "(hd o e) (" + rawCmd + ")";
 //			CamlObject result = executor.execute(rawCmd, CamlType.GOAL_STATE, true);

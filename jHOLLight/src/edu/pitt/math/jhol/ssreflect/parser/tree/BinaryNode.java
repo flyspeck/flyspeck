@@ -6,6 +6,8 @@ package edu.pitt.math.jhol.ssreflect.parser.tree;
  *
  */
 public class BinaryNode extends TacticNode {
+	// If true then a translated expression will be in the form (left tactic right)
+	private final boolean infix;
 	// The main tactic
 	private final TacticNode tactic;
 	// Arguments
@@ -14,9 +16,10 @@ public class BinaryNode extends TacticNode {
 	/**
 	 * Constructor
 	 */
-	public BinaryNode(TacticNode tactic, TacticNode left, TacticNode right) {
+	public BinaryNode(boolean infix, TacticNode tactic, TacticNode left, TacticNode right) {
 		assert(tactic != null && left != null);
 		
+		this.infix = infix;
 		this.tactic = tactic;
 		this.left = left;
 		this.right = right;
@@ -29,15 +32,27 @@ public class BinaryNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
+		TacticNode first, second;
+		
+		if (infix) {
+			first = left;
+			second = tactic;
+		}
+		else {
+			first = tactic;
+			second = left;
+		}
+		
 		buffer.append('(');
-		tactic.translate(buffer, context);
+
+		first.translate(buffer);
 		buffer.append(' ');
-		left.translate(buffer, context);
+		second.translate(buffer);
 		
 		if (right != null) {
 			buffer.append(' ');
-			right.translate(buffer, context);
+			right.translate(buffer);
 		}
 		
 		buffer.append(')');

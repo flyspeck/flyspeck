@@ -53,7 +53,7 @@ public class LemmaNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		buffer.append("start_section_proof ");
 		
@@ -65,13 +65,14 @@ public class LemmaNode extends Node {
 		}
 		buffer.append(']');
 		
-		goal.translate(buffer, context);
+		goal.directTranslate(buffer);
 		buffer.append(')');
 	}
 	
 	
 	@Override
 	public String getRevertCommand() {
+//		return "let " + name + " = 0"; 
 		// TODO: undefine the theorem if possible
 		return null;
 	}

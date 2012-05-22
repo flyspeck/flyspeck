@@ -23,24 +23,24 @@ public class ConjNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType(GoalContext context) {
+	protected int getType() {
 		return THEOREM;
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		int type1 = th1.getType(context);
-		int type2 = th2.getType(context);
+	protected void translate(StringBuffer buffer) {
+		int type1 = th1.getType();
+		int type2 = th2.getType();
 		if ((type1 != THEOREM && type1 != UNKNOWN) ||
 			(type2 != THEOREM && type2 != UNKNOWN))
 			throw new RuntimeException("ConjNode: THEOREM expected");
 		
-		buffer.append("(fun thm_tac ->");
-		th1.translate(buffer,context);
-		buffer.append("(fun tmp_th1 -> ");
-		th2.translate(buffer, context);
+		buffer.append("(fun arg_tac ->");
+		th1.translate(buffer);
+		buffer.append("(fun tmp_arg1 -> ");
+		th2.translate(buffer);
 		
-		buffer.append("(fun tmp_th2 -> thm_tac (CONJ tmp_th1 tmp_th2))");
+		buffer.append("(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))");
 		buffer.append(')');
 		buffer.append(')');
 	}

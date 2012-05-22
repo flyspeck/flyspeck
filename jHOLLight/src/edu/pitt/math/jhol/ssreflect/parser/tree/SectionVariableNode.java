@@ -44,8 +44,8 @@ public class SectionVariableNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		int ty = type.getType(context);
+	protected void translate(StringBuffer buffer) {
+		int ty = type.getType();
 		if (ty != ObjectNode.TYPE)
 			throw new RuntimeException("TYPE expected: " + type);
 
@@ -62,7 +62,7 @@ public class SectionVariableNode extends Node {
 			buffer.append("(mk_var (\"");
 			buffer.append(name);
 			buffer.append("\", ");
-			type.translate(buffer, context);
+			type.directTranslate(buffer);
 			buffer.append("))");
 			
 			if (i < n - 1)

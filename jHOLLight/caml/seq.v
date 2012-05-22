@@ -3134,9 +3134,7 @@ move=> z; rewrite mem_cat.
 --by case=> /allpairsP[p [sp1 sp2 ->]]; exists p; rewrite mem_cat sp2 ?orbT.
 rewrite allpairsP; split => [[p [sP1]]|].
   by rewrite mem_cat => [] [[H] ->]; [left | right]; rewrite allpairsP; exists p.
-case; rewrite allpairsP => [[p]] [sp1] [sp2 eq].
-  by exists p; rewrite mem_cat sp2.
-by exists p; rewrite mem_cat sp2.
+by case; rewrite allpairsP => [] [p] [sp1] [sp2 eq]; exists p; rewrite mem_cat sp2.
 Qed.
 
 End EqAllPairs.

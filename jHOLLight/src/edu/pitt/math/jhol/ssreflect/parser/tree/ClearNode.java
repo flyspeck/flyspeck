@@ -21,7 +21,7 @@ public class ClearNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		buffer.append("clear_assumption ");
 		buffer.append('"');

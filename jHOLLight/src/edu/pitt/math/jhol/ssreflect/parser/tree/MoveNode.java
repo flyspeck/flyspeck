@@ -17,7 +17,7 @@ public class MoveNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		// Beta normalization
 		buffer.append("BETA_TAC");
 	}

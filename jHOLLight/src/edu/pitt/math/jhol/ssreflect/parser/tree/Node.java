@@ -23,18 +23,18 @@ public abstract class Node {
 	/**
 	 * The main translation method
 	 */
-	protected abstract void translate(StringBuffer buffer, GoalContext context);
+	protected abstract void translate(StringBuffer buffer);
 	
 	/**
 	 * Converts the tree into a HOL Light command
 	 * @return
 	 */
-	public final String toHOLCommand(GoalContext context) {
+	public final String toHOLCommand() {
 		// Reset the name generating counter
 		sharedCounter = 0;
 		
-		StringBuffer buffer = new StringBuffer(100);
-		translate(buffer, context);
+		StringBuffer buffer = new StringBuffer(10000);
+		translate(buffer);
 		
 		return buffer.toString();
 	}

@@ -36,57 +36,34 @@ public class ApplicationNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType(GoalContext context) {
+	protected int getType() {
 		return THEOREM;
 	}
 
 	// Translates the first object
-	private void translateFirst(StringBuffer buffer, GoalContext context) {
+	private void translateFirst(StringBuffer buffer) {
 		if (firstObject instanceof WildObjectNode) {
 			// WildCard
-			buffer.append("DISCH_THEN ");
+			buffer.append(" (conv_thm_tac DISCH_THEN) ");
 		}
 		else {
 			// Normal object
-			firstObject.translate(buffer, context);
+			firstObject.translate(buffer);
 		}
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		int firstType = firstObject.getType(context);
+	protected void translate(StringBuffer buffer) {
+		int firstType = firstObject.getType();
 		if (firstType != THEOREM && firstType != UNKNOWN)
 			throw new RuntimeException("Applications work for theorems only: " + firstObject);
 		
-		buffer.append('(');
-		buffer.append("fun thm_tac -> ");
-		translateFirst(buffer, context);
-		
-		buffer.append('(');
-		int argType = argument.getType(context);
-		
-		if (argType == TERM) {
-			// ISPEC_THEN
-			buffer.append("ispec_then ");
-			argument.translate(buffer, context);
-			buffer.append(" thm_tac");
-		}
-		else if (argType == TYPE) {
-			// inst_first_type
-			buffer.append("INST_FIRST_TYPE_THEN ");
-			argument.translate(buffer, context);
-			buffer.append(" thm_tac");
-		}
-		else {
-			// MATCH_MP_THEN
-			buffer.append("fun fst_th ->");
-			argument.translate(buffer, context);
-			buffer.append("(fun th -> match_mp_then th thm_tac fst_th)");
-		}
-		
-		buffer.append(')');
-		
-		buffer.append(')');
+		buffer.append("(fun arg_tac -> ");
+		translateFirst(buffer);
+		buffer.append(" (fun fst_arg -> ");
+		argument.translate(buffer);
+		buffer.append(" (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)");
+		buffer.append("))");
 	}
 
 	@Override
@@ -94,9 +71,4 @@ public class ApplicationNode extends ObjectNode {
 		return firstObject.isWildCard();
 	}
 
-	@Override
-	protected void setWildCardInterpretation(String interpretation) {
-		firstObject.setWildCardInterpretation(interpretation);
-	}
-	
 }

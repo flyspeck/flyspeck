@@ -16,7 +16,7 @@ public class GetTypeNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType(GoalContext context) {
+	protected int getType() {
 		return TYPE;
 	}
 
@@ -31,13 +31,14 @@ public class GetTypeNode extends ObjectNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		if (tm.getType(context) != TERM)
+	protected void translate(StringBuffer buffer) {
+		if (tm.getType() != TERM && tm.getType() != UNKNOWN)
 			throw new RuntimeException("GetTypeNode.beginTranslation(): tm should be TERM");
 
-		buffer.append("(type_of ");
-		tm.translate(buffer, context);
-		buffer.append(")");
+		buffer.append("(fun arg_tac -> ");
+		tm.translate(buffer);
+		buffer.append("(fun arg -> arg_tac (Arg_type (type_of (get_arg_term arg))))");
+		buffer.append(')');
 	}
 
 }

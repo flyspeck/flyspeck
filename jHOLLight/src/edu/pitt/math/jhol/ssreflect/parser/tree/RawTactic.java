@@ -21,7 +21,7 @@ public class RawTactic extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append("(" + rawText + ")");
 	}
 	

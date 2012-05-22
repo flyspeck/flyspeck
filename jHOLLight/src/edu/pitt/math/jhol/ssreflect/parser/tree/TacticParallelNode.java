@@ -65,12 +65,12 @@ public class TacticParallelNode extends LeftAssociativeTacticNode {
 			return left;
 		}
 		
-		TacticNode thenl = new RawTactic("(THENL)");
-		return new BinaryNode(thenl, left, this);
+		TacticNode thenl = new RawTactic("THENL");
+		return new BinaryNode(false, thenl, left, this);
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		int n = size();
 		if (n == 0) {
 			buffer.append("ALL_TAC");
@@ -78,14 +78,14 @@ public class TacticParallelNode extends LeftAssociativeTacticNode {
 		}
 		
 		if (n == 1) {
-			tactics.get(0).translate(buffer, context);
+			tactics.get(0).translate(buffer);
 			return;
 		}
 
 		buffer.append('[');
 		
 		for (int i = 0; i < n; i++) {
-			tactics.get(i).translate(buffer, context);
+			tactics.get(i).translate(buffer);
 			if (i < n - 1) {
 				buffer.append("; ");
 			}

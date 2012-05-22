@@ -19,15 +19,15 @@ public class RotateNode extends LeftAssociativeTacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		// This method should be never called
-		throw new Error("RotateNode.translate()");
+		throw new RuntimeException("RotateNode.translate()");
 	}
 	
 	@Override
 	public TacticNode transformTactic(TacticChainNode left) {
 		TacticNode rot = new RawTactic("THENL_ROT (" + n + ")");
-		return new BinaryNode(rot, left, null);
+		return new BinaryNode(false, rot, left, null);
 	}
 	
 }

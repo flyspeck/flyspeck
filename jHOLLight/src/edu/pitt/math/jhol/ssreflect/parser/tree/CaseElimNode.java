@@ -22,7 +22,7 @@ public class CaseElimNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		if (elimFlag)
 			buffer.append("elim");
 		else

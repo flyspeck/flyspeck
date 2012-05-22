@@ -21,18 +21,18 @@ public class ViewNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		
 		if (obj.isWildCard()) {
 			// Translate a wild card directly
-			obj.translate(buffer, context);
-			buffer.append("MP_TAC");
+			obj.translate(buffer);
+			buffer.append(" (thm_tac MP_TAC)");
 		}
 		else {
 			buffer.append("DISCH_THEN (fun snd_th -> ");
-			obj.translate(buffer, context);
-			buffer.append("(match_mp_then snd_th MP_TAC)");
+			obj.translate(buffer);
+			buffer.append(" (thm_tac (match_mp_then snd_th MP_TAC))");
 			buffer.append(')');
 		}
 		

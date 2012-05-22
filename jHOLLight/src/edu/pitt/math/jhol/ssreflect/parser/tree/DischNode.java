@@ -29,10 +29,29 @@ public class DischNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
+
+		// object
+		obj.translate(buffer);
+
+		// tactic
+		buffer.append(" (disch_tac ");
 		
-		int type = obj.getType(context);
+		// occs
+		buffer.append('[');
+		int n = occs.size();
+		for (int i = 0; i < n; i++) {
+			buffer.append(occs.get(i));
+			if (i < n - 1)
+				buffer.append("; ");
+		}
+		buffer.append(']');
+		
+		buffer.append(')');
+		
+		
+/*		int type = obj.getType(context);
 		if (type == ObjectNode.TERM) {
 			// term: disch_tm_tac
 			buffer.append("disch_tm_tac ");
@@ -55,7 +74,7 @@ public class DischNode extends TacticNode {
 			obj.translate(buffer, context);
 			buffer.append("MP_TAC");
 		}
-		
+*/		
 		buffer.append(')');
 	}
 }

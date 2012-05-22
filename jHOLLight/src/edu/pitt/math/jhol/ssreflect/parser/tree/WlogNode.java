@@ -48,33 +48,35 @@ public class WlogNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		if (obj.getType(context) != ObjectNode.TERM)
+	protected void translate(StringBuffer buffer) {
+		if (obj.getType() != ObjectNode.TERM)
 			throw new RuntimeException("wlog: TERM expected: " + obj);
-		
+
 		buffer.append('(');
-		buffer.append("wlog_tac ");
 		
+		// subgoal
+		obj.translate(buffer);
+
 		// tactic
-		thenTactic.translate(buffer, context);
+		buffer.append(" (term_tac (wlog_tac ");
+		
+		// then_tactic
+		thenTactic.translate(buffer);
 
 		// variables
 		buffer.append('[');
 		int n = vars.size();
 		for (int i = 0; i < n; i++) {
 			IdNode id = vars.get(i);
-			int type = id.getType(context);
-			if (type != ObjectNode.TERM)
-				throw new RuntimeException("wlog: TERM expected: " + id);
+			buffer.append('`');
+			buffer.append(id.getId());
+			buffer.append('`');
 			
-			id.translate(buffer, context);
 			if (i < n - 1)
 				buffer.append("; ");
 		}
 		buffer.append(']');
-		
-		// subgoal
-		obj.translate(buffer, context);
+		buffer.append("))");
 		
 		buffer.append(')');
 	}

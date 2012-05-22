@@ -100,7 +100,7 @@ public class TacticChainNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		int n = size();
 		if (n == 0) {
 			buffer.append("ALL_TAC");
@@ -126,7 +126,7 @@ public class TacticChainNode extends TacticNode {
 		
 		// If there is a transformation then process the new chain 
 		if (transformFlag) {
-			left.translate(buffer, context);
+			left.translate(buffer);
 			return;
 		}
 		
@@ -137,7 +137,7 @@ public class TacticChainNode extends TacticNode {
 			buffer.append('(');
 
 		for (int i = 0; i < n; i++) {
-			tactics.get(i).translate(buffer, context);
+			tactics.get(i).translate(buffer);
 			if (i < n - 1) {
 				buffer.append(" THEN ");
 			}

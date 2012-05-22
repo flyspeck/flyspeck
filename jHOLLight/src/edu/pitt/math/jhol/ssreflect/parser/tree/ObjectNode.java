@@ -25,14 +25,7 @@ public abstract class ObjectNode extends Node {
 	protected abstract boolean isWildCard(); 
 	
 	/**
-	 * Returns object's type
+	 * Returns object's type (the type is derived from syntax so in many cases the type is UNKNOWN)
 	 */
-	protected abstract int getType(GoalContext context);
-	
-	/**
-	 * Sets the interpretation of a wild card
-	 */
-	protected void setWildCardInterpretation(String interpretation) {
-		throw new RuntimeException("Not a wild card");
-	}
+	protected abstract int getType();
 }

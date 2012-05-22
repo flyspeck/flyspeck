@@ -32,14 +32,15 @@ public class SetNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
+		String name = id.getId();
+
 		buffer.append('(');
 		
-		String name = id.getId();
-		buffer.append("set_tac ");
+		value.translate(buffer);
+		buffer.append(" (term_tac (set_tac ");
 		buffer.append('"' + name + '"');
-		buffer.append(' ');
-		value.translate(buffer, context);
+		buffer.append("))");
 		
 		buffer.append(')');
 	}

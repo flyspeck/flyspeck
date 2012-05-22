@@ -21,7 +21,7 @@ public class RawNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append(rawText);
 	}
 

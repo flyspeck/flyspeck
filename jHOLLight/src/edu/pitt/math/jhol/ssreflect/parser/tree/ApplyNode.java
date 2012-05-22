@@ -17,19 +17,19 @@ public class ApplyNode extends TacticNode {
 	
 	
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		
 		if (obj == null) {
 			buffer.append("DISCH_THEN apply_tac");
 		}
 		else {
-			int type = obj.getType(context);
+			int type = obj.getType();
 			if (type != ObjectNode.THEOREM && type != ObjectNode.UNKNOWN)
 				throw new RuntimeException("Only a theorem could be applied");
 			
-			obj.translate(buffer, context);
-			buffer.append(" apply_tac");
+			obj.translate(buffer);
+			buffer.append(" (thm_tac apply_tac)");
 		}
 		
 		buffer.append(')');

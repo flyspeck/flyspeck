@@ -7,12 +7,12 @@ public class SectionHypothesisNode extends Node {
 	// The label
 	private final String label;
 	// The term
-	private final ObjectNode term;
+	private final RawObjectNode term;
 
 	/**
 	 * Constructor
 	 */
-	public SectionHypothesisNode(String label, ObjectNode term) {
+	public SectionHypothesisNode(String label, RawObjectNode term) {
 		assert(label != null);
 		assert(term != null);
 		this.label = label;
@@ -25,8 +25,8 @@ public class SectionHypothesisNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		int type = term.getType(context);
+	protected void translate(StringBuffer buffer) {
+		int type = term.getType();
 		if (type != ObjectNode.TERM)
 			throw new RuntimeException("TERM expected: " + term);
 
@@ -35,7 +35,7 @@ public class SectionHypothesisNode extends Node {
 		
 		buffer.append('"' + label + '"');
 		buffer.append(' ');
-		term.translate(buffer, context);
+		term.directTranslate(buffer);
 		
 		buffer.append(')');
 	}

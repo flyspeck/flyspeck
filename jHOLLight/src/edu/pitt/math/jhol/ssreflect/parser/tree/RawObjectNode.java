@@ -48,22 +48,32 @@ public class RawObjectNode extends ObjectNode {
 	}
 
 	@Override
-	protected int getType(GoalContext context) {
+	protected int getType() {
 		return type;
+	}
+	
+	/**
+	 * Directly inserts the raw text into the buffer 
+	 */
+	public void directTranslate(StringBuffer buffer) {
+		buffer.append('(');
+		buffer.append(rawText);
+		buffer.append(')');
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
-		buffer.append('(');
+	protected void translate(StringBuffer buffer) {
+		buffer.append("(fun arg_tac -> arg_tac (");
+
+		if (type == TERM)
+			buffer.append("Arg_term (");
+		else if (type == TYPE)
+			buffer.append("Arg_type (");
+		else
+			buffer.append("Arg_theorem (");
 		
-		if (type == TERM || type == TYPE) {
-			buffer.append(rawText);
-		}
-		else {
-			buffer.append("USE_THM_THEN (" + rawText + ")");
-		}
-		
-		buffer.append(')');
+		buffer.append(rawText);
+		buffer.append(")))");
 	}
 
 	@Override

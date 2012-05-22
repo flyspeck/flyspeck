@@ -28,15 +28,15 @@ public class FirstLastNode extends LeftAssociativeTacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		// This method should be never called
-		throw new Error("FirstLastNode.translate()");
+		throw new RuntimeException("FirstLastNode.translate()");
 	}
 	
 	@Override
 	public TacticNode transformTactic(TacticChainNode left) {
 		TacticNode tac = new RawTactic(firstFlag ? "THENL_FIRST" : "THENL_LAST");
-		return new BinaryNode(tac, left, tactic);
+		return new BinaryNode(false, tac, left, tactic);
 	}
 	
 }

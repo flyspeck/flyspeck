@@ -21,7 +21,7 @@ public class TryNode extends TacticNode {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		
 		buffer.append("TRY (");
@@ -30,7 +30,7 @@ public class TryNode extends TacticNode {
 		}
 		
 		// If tactics.size() > 1 then square brackets will be added automatically
-		tactics.translate(buffer, context);
+		tactics.translate(buffer);
 
 		buffer.append(')');
 		buffer.append(')');		

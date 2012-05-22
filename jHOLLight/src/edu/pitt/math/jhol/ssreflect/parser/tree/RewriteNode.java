@@ -16,7 +16,7 @@ public class RewriteNode extends TacticNode {
 	// Occ-switches
 	private final ArrayList<Integer> occ;
 	// Pattern (could be null)
-	private final ObjectNode pattern;
+	private final RawObjectNode pattern;
 	// Theorem
 	private final ObjectNode theorem;
 	
@@ -27,7 +27,7 @@ public class RewriteNode extends TacticNode {
 	public static class RewriteParameters {
 		public boolean revFlag;
 		public ArrayList<Integer> occ;
-		public ObjectNode pattern;
+		public RawObjectNode pattern;
 		
 		public boolean repeatFlag;
 		public int rewrites;
@@ -96,29 +96,29 @@ public class RewriteNode extends TacticNode {
 
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		
 		if (dischRewriteFlag) {
 			// ->
-			buffer.append("DISCH_THEN");
+			buffer.append("(conv_thm_tac DISCH_THEN)");
 		}
 		else {
-			theorem.translate(buffer, context);
+			theorem.translate(buffer);
 		}
 		
 		buffer.append('(');
 		// -
 		if (revFlag) {
-			buffer.append("GSYM_THEN (");
+			buffer.append("gsym_then (");
 		}
 		
 		// rewrite or rewr
 		if (useHolRewrite) {
-			buffer.append("fun th -> ONCE_REWRITE_TAC[th]");
+			buffer.append("fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]");
 		}
 		else {
-			buffer.append("new_rewrite ");
+			buffer.append("thm_tac (new_rewrite ");
 
 			// occ-switch
 			buffer.append('[');
@@ -133,8 +133,9 @@ public class RewriteNode extends TacticNode {
 			// pattern
 			buffer.append('[');
 			if (pattern != null)
-				pattern.translate(buffer, context);
-			buffer.append("]");
+				pattern.directTranslate(buffer);
+			buffer.append(']');
+			buffer.append(')');
 		}
 		
 		// -

@@ -46,7 +46,7 @@ public class SectionNode extends Node {
 	}
 
 	@Override
-	protected void translate(StringBuffer buffer, GoalContext context) {
+	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		if (startFlag)
 			buffer.append("begin_section ");

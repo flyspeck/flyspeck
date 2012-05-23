@@ -72,8 +72,6 @@ public class LemmaNode extends Node {
 	
 	@Override
 	public String getRevertCommand() {
-//		return "let " + name + " = 0"; 
-		// TODO: undefine the theorem if possible
-		return null;
+		return "let " + name + " = 0"; 
 	}
 }

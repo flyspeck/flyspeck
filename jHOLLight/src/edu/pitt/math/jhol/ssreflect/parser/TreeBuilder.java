@@ -893,14 +893,30 @@ public class TreeBuilder {
 		if (obj == null)
 			throw new Exception("OBJECT expected: " + t);
 		
-		HaveNode have = new HaveNode(disch, obj, assignFlag);
+		TacticNode result = new HaveNode(disch, obj, assignFlag);
 		if (suffFlag) {
 			TacticNode rot_tac = new RawTactic("(THENL_ROT 1)");
-			BinaryNode bin = new BinaryNode(false, rot_tac, have, null);
-			return bin;
+			result = new BinaryNode(false, rot_tac, result, null);
+		}
+
+		// by
+		t = scanner.peekToken();
+		if (t.type == TokenType.IDENTIFIER && t.value == "by") {
+			// by
+			scanner.nextToken();
+			
+			if (assignFlag)
+				throw new Exception("'by' after have := thm: " + t);
+
+			// have: `term` by tac <=> have: `term`; first by tac
+			TacticChainNode resultChain = new TacticChainNode(result);
+			ByNode by = new ByNode(parseTacticChain());
+			resultChain.add(new FirstLastNode(true, new TacticChainNode(by)));
+			
+			result = resultChain;
 		}
 		
-		return have;
+		return result;
 	}
 	
 	
@@ -935,6 +951,21 @@ public class TreeBuilder {
 			throw new Exception("OBJECT expected: " + t);
 		
 		WlogNode wlog = new WlogNode(disch, obj, vars);
+
+		// by
+		t = scanner.peekToken();
+		if (t.type == TokenType.IDENTIFIER && t.value == "by") {
+			// by
+			scanner.nextToken();
+			
+			// have: `term` by tac <=> have: `term`; first by tac
+			TacticChainNode resultChain = new TacticChainNode(wlog);
+			ByNode by = new ByNode(parseTacticChain());
+			resultChain.add(new FirstLastNode(true, new TacticChainNode(by)));
+			
+			return resultChain;
+		}
+
 		return wlog;
 	}
 	

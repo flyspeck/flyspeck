@@ -88,7 +88,8 @@ public class HOLLightWrapper {
 	
 			if (str.length() == 2) {
 				if (str.charAt(0) == '#')
-					break;
+					if (!bout.ready())
+						break;
 			}
 		}
 		while (true);
@@ -139,7 +140,7 @@ public class HOLLightWrapper {
 //					"/home/monad/hol_light_ckpts/cr_current.cr");
 			
 //			Process proc = Runtime.getRuntime().exec("hol_light");
-			String[] env = {"LD_LIBRARY_PATH=/usr/local/lib"};
+//			String[] env = {"LD_LIBRARY_PATH=/usr/local/lib"};
 //			Process proc = Runtime.getRuntime().exec("cr_restart --no-restore-pid -f /home/monad/hol_light_ckpts/cr_current.cr", env);
 			Process proc = Runtime.getRuntime().exec("hol_light2");
 			

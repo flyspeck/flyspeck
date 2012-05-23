@@ -43,9 +43,13 @@ let length = List.length;;
 
 let nub = Lib.uniq;;
 
-let sortuniq xs = uniq (Lib.sort (<) xs);;
+let sortuniq = setify;;
 
-let psort (i,j) = (min i j),(max i j);;
+(*
+let sortuniq xs = uniq (Lib.sort (<) xs);;
+*)
+
+let psort u = if fst u <= snd u then u else (snd u,fst u);;
 
 let rec cart a b = 
   match a with
@@ -62,8 +66,8 @@ let unsplit d f = function
 
 (* let join_comma  = unsplit "," (fun x-> x);;*)
 let join_semi  = unsplit ";" (fun x-> x);;
-(* let join_lines  = unsplit "\n" (fun x-> x);;
-let join_space  = unsplit " " (fun x-> x);; *)
+ let join_lines  = unsplit "\n" (fun x-> x);;
+(* let join_space  = unsplit " " (fun x-> x);; *)
 
 let string_of_list f xs = 
   let ss = map f xs in
@@ -133,7 +137,7 @@ f:ACS -> (ACS) list
 
 Termination of algorithms:
 Every slice decreases k.
-Every subdivision narrows the B-field through a finite set of choices
+Every subdivision restricts the B-field through a finite set of choices
   (retaining the M-field)
 Every deformation sets a new M-field constraint.
 *)
@@ -820,7 +824,7 @@ forall ( attr_free) terminal_cs;;
 let take_terminal f = filter f terminal_cs;;
 
 let is_ear cs = 
-  reset_iso_cs cs  ear_cs;;
+  (cs.k_cs = 3) && (length cs.js_cs = 1) && (reset_iso_cs cs  ear_cs);;
 
 
 (*
@@ -833,14 +837,15 @@ TRANSFORMATIONS
    B-fields resetting M-fields. b5 not used *)
 
 let transfer_to = 
+  let machine_eps = 1e-08 in 
   let b1 cs cs' = (cs.k_cs =  cs'.k_cs) in
-  let b2 cs cs' = (cs.d_cs <= cs'.d_cs) in
+  let b2 cs cs' = (cs.d_cs <= cs'.d_cs +. machine_eps) in
   let c3 cs cs' (i,j) = 
     cs.am_cs i j >= cs'.a_cs i j  && cs.bm_cs i j <= cs'.b_cs i j  in
-  let b3 cs cs' = forall (c3 cs cs') (ks_cart cs) in 
+  let b3 cs cs' = forall (c3 cs cs') (allpair cs) in 
   let b4 cs cs' = 
     if is_ear cs then is_ear cs'
-    else subset cs'.js_cs cs.js_cs in
+    else subset (map psort cs'.js_cs) (map psort cs.js_cs) in
   let b5 cs cs' = 
     subset cs'.lo_cs cs.lo_cs && subset cs'.hi_cs cs.hi_cs &&
       subset cs'.str_cs cs.str_cs in
@@ -867,6 +872,33 @@ let rec transfer_union a b =
       else 
 	let b' = filter (not o (C equi_transfer_cs a)) b in
 	  transfer_union aas (a::b');;
+
+(* optimized version of equi_transfer_to_list *)
+
+let x_equi_transfer_to_list terms = 
+  let machine_eps = 1e-08 in
+  let _ = not (can (Lib.find (not o attr_free)) terms) or failwith "eq:attr" in
+  let has_ear = exists is_ear terms in
+  let rotates cs = map (fun i -> rotatek_cs i cs) (ks_cs cs) in
+  let orotates cs = map (fun i -> rotatek_cs i (opposite_cs cs)) (ks_cs cs) in
+  let props = List.flatten (map rotates terms) in
+  let oprops = List.flatten (map orotates terms) in
+  let terms =  (props @ oprops)  in
+  let list_le = forall2 (<=) in 
+  let eval_ls f cs = map (fun(i,j)-> f i j) (allpair cs) in
+  let dump_e cs = (cs.k_cs,cs.d_cs+.machine_eps,		    
+		   eval_ls cs.a_cs cs,eval_ls cs.b_cs cs,
+		   cs.js_cs) in
+  let dump_m cs = (cs.k_cs,cs.d_cs,eval_ls cs.am_cs cs,eval_ls cs.bm_cs cs,
+		   sortuniq (map psort cs.js_cs)) in
+  let dump' = setify (map (dump_e) terms) in
+    fun cs ->
+      if is_ear cs then has_ear
+      else
+	let (k,d,am,bm,js) = dump_m cs in
+	  exists (fun (k',d',a',b',js') ->
+		    (k=k') && (d<=d') && (list_le a' am) &&
+		      (list_le bm b') && (subset (js') (map psort js))) dump';;
 
 
 (* restrict shrinks to B-field down to the M-field,
@@ -895,7 +927,7 @@ let slice_aux cs p q dv =
   let r i = (i + k - p) mod k in
   let s i' = (i' + p) mod k in
   let shift f i' j' = f (s i') (s j') in
-  let cd1 = mk_cs (k',dv,shift a, shift b,"slice") in
+  let cd1 = mk_cs (k',dv,shift a, shift b,"slice:"^(join_semi cs.history_cs)) in
   let js = map (fun (i,j) -> (r i,r j)) (intersect (cart2 (p--q)) cs.js_cs) in
     modify_cs cd1 ~js:js ();;
 
@@ -1466,7 +1498,7 @@ let subdivide_c_diag f_diag c =
 	sub u v;;
 
 
-(* claim arrows serve as documentation for
+(* claims serve as documentation for
    how the calculations are progressing from initial cs to terminal cs.
 
    To do: make this into a formal deductive system.
@@ -1476,7 +1508,7 @@ let subdivide_c_diag f_diag c =
    b=what we leave for later *)
 
 let remaining = ref [];;
-remaining := init_cs;;
+remaining := init_cs;; (* arrow *)
 
 (*
 let claim_arrow (a,b) = 
@@ -1523,14 +1555,31 @@ HEXAGONS
 (* claim  in this section goes as follows *)
 
 (* todo: construct from generic subdivide *)
+
 let hex_std_preslice_02,hex_std_preslice_03 = 
   let c1 = subdivide_cs 0 2 cstab hex_std_cs in
   let c2 = subdivide_cs 0 3 cstab hex_std_cs in
     hist (hd c1) "hex_std_preslice 02" , hist (hd c2) "hex_std_preslice 03";;
 
+let hex_std_postslice = (* slice_hex_to_pent_tri =  *)
+  let cs = hex_std_preslice_02 in
+  let d'= 0.616 in 
+  let d = cs.d_cs -. d' in 
+  let vv = slice_cs cs 2 0 d' d  false in
+  let vv02 = map (C hist "slice_hex_02") vv in
+  let cs = hex_std_preslice_03 in
+  let d' = cs.d_cs /. 2.0 in
+  let vv = slice_cs cs 0 3 d' d' false in
+  let vv03 = transfer_union (map (C hist "slice_hex_03") vv) [] in
+    vv02 @ vv03;;
+
+
 let hex_assumptions = [hex_std_preslice_02;hex_std_preslice_03];;
 
 claim_arrow([hex_std_cs],hex_assumptions);;
+claim_arrow(hex_assumptions,hex_std_postslice);;
+
+
 
 (* end claim *)
 
@@ -1627,7 +1676,7 @@ let execute_hexagons() =
    to the one terminal hexagon, together with two cases of hex_std_preslice
 *)
 
-(* execute_hexagons();; working in svn:2819,2824m *)
+(* time execute_hexagons ();; working in svn:2819,2824m,2829m *)
 
 (*
 ****************************************
@@ -1668,28 +1717,18 @@ let pent_deformations = deformations ok_for_more_pent 5;;
 
 let name_of_deformation_pent = name_of_deformation 5;;
 
-let slice_hex_to_pent_tri = 
-  let cs = hex_std_preslice_02 in
-  let d'= 0.616 in 
-  let d = cs.d_cs -. d' in 
-  let vv = slice_cs cs 2 0 d' d  false in
-    map (C hist "slice_hex_to_pent_tri") vv;;
 
-let claim_pent_X = 
-(*  if (exists (equi_transfer_cs pent_pro_cs) slice_hex_to_pent_tri) *)
-  if true 
-  then (ignore
-	(claim_arrow([(* pent_pro_cs; *)
-		       hex_std_preslice_02],slice_hex_to_pent_tri));
-	true)
-  else false;;
 
 (* these are the cases handled in the pent section *)
 
+(*
 let pent_init = 
   [pent_std_cs;pent_diag_cs;pent_pro_cs;] @ filter (fun cs -> (5=cs.k_cs)) 
-    slice_hex_to_pent_tri;; 
+    hex_std_postslice;; 
+*)
 
+let pent_init = 
+  filter (fun cs ->(5=cs.k_cs)) (init_cs @ hex_std_postslice);;
 
 (* it doesn't matter how our assumptions are generated,
    as long as they are eventually discharged. *)
@@ -1743,6 +1782,9 @@ let hl = execute_pentagons();;
 *)
 
 claim_arrow(pent_composite_ultra_cs,pent_assumptions);;
+
+let cs = hd (filter (fun cs ->mem "slice_hex_03" cs.history_cs) !remaining);;
+report_cs cs;;
 
 (*
 ****************************************
@@ -1803,14 +1845,20 @@ claim_arrow([],triquad_assumption);;
 let terminal_quad = 
   triquad_assumption @ quad_477_preslice_short @ terminal_cs;;
 
-let ok_for_more_tri_quad cs = 
+let ok_for_more_tri_quad  = 
+  let terminal_transfer = x_equi_transfer_to_list terminal_quad in
+  fun cs -> 
   let _ = (mem cs.k_cs [3;4]) or failwith "ok:3,4" in
   let b467_2485876245a = 
     if (cs.d_cs=0.467) && (cs.k_cs = 4) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
       forall (fun (i,j)-> cs.am_cs i j >= three) [(0,2);(1,3)]
     then ( cs.str_cs = []) else true in
+  let deltay cs = Sphere_math.delta_y (* if neg then geometric impossibility *)
+	(cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
+	(cs.bm_cs 2 3) (cs.bm_cs 1 2) (cs.am_cs 1 3) >= 0.0 in
   let b4 = (cs.k_cs = 4) in
+  let b4a = if b4 then deltay cs else true in
   let is_477 = b4 && (cs.d_cs=0.477) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
       forall (fun (i,j)-> cs.am_cs i j >= cstab) [(0,2);(1,3)] in
@@ -1818,20 +1866,16 @@ let ok_for_more_tri_quad cs =
     if is_477
     then
       let b477a =  cs.str_cs = [] in
-      let b477b =  
-	Sphere_math.delta_y (* if neg then geometric impossibility *)
-	(cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
-	(cs.bm_cs 2 3) (cs.bm_cs 1 2) (cs.am_cs 1 3) >= 0.0 in
-      let b477c = 
+       let b477c = 
 	not(exists (equi_transfer_cs cs) quad_477_preslice_short) in
-	(b477a && b477b && b477c) 
+	(b477a && b477c) 
     else true in      
   let _ = 
     try is_aug_cs cs 
     with Failure s -> report_cs cs; failwith s in
   let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
-  let bunfinished = not (exists (transfer_to cs) terminal_quad) in
-    bstr && bunfinished && b467_2485876245a && b477 ;;
+  let bunfinished = not (terminal_transfer cs) in
+    bstr && b4a && bunfinished && b467_2485876245a && b477 ;;
 
 let quad_deformations = deformations ok_for_more_tri_quad 4;;
 
@@ -1850,13 +1894,12 @@ let special_quad_init =
     filter (fun cs -> (4=cs.k_cs) && special_situations cs) (!remaining);;
 *)
 
-let execute_special_quads() = 
-let transfer_quad_to_terminal = 
-  let f1 = map (C equi_transfer_cs) terminal_quad in
-    fun cs -> exists (fun f -> f cs) f1 in
+let execute_special_quads = 
+  let terminal_transfer = x_equi_transfer_to_list terminal_quad in
+    fun () ->
   let quad_loop = general_loop2 quad_deformations
-    (not o transfer_quad_to_terminal) in
-quad_loop 200000  special_quad_init [];;
+    (not o terminal_transfer) in
+    quad_loop 200000  special_quad_init [];;
 
 let hl = execute_special_quads();;
 
@@ -1885,18 +1928,41 @@ claim_arrow(special_quad_init,[]);;
    7- do "upper echelon" treatment of quads (subdivisions on edges > 3.01)
 
 *)
+1;;
+
 let failures = ref triquad_assumption;;
 failures:= [];;
 
+let ok_for_more cs = 
+  ((cs.k_cs = 6) && (ok_for_more_hex cs)) or 
+  ((cs.k_cs=5) && (ok_for_more_pent cs)) or
+  ((mem cs.k_cs [3;4]) && (ok_for_more_tri_quad cs));;
 
-let handle_general_case cs = 
+(* debug *)
+
+let cs = cs1;;
+ok_for_more cs;;
+(* *)
+
+
+
+let handle_general_case = 
+  let dff k = deformations (fun cs -> true) k in
+  let defs = [[];[];[];dff 3;dff 4;dff 5;dff 6] in
+  fun cs -> 
   let inrange a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
   let alld = alldiag cs in
   (* 1- *)
-  if (cs.k_cs = 6) && not(ok_for_more_hex cs) then []
-  else if (cs.k_cs=5) && not(ok_for_more_pent cs) then []
-  else if (mem cs.k_cs [3;4]) && not(ok_for_more_tri_quad cs) then []
-  else if exists (equi_transfer_cs cs) terminal_quad then []
+  if not(ok_for_more cs) then []
+ (*  else if exists (equi_transfer_cs cs) terminal_quad then [] *)
+    (* 2- *)
+  else if (can_subdivide allpair cstab cs) 
+  then (subdivide_c_diag allpair cstab [cs])
+    (* 3- *)
+  else if (can_subdivide allpair sqrt8 cs) 
+  then (subdivide_c_diag allpair sqrt8 [cs])
+  else if (can_subdivide allpair twoh0 cs) 
+  then (subdivide_c_diag allpair twoh0 [cs])
     (* 4- *)
   else if exists (inrange twoh0 sqrt8) alld then
     let (p,q) = find  (inrange twoh0 sqrt8) alld in
@@ -1906,49 +1972,15 @@ let handle_general_case cs =
   then
     let (p,q) = find  (inrange sqrt8 cstab) alld in
       slice_std cs p q 
-    (* 2- *)
-  else if (can_subdivide allpair cstab cs) 
-  then (subdivide_c_diag allpair cstab [cs])
-    (* 3- *)
-  else if (can_subdivide allpair sqrt8 cs) 
-  then (subdivide_c_diag allpair sqrt8 [cs])
-  else if (can_subdivide allpair twoh0 cs) 
-  then (subdivide_c_diag allpair twoh0 [cs])
     (* 6 *)
   else 
     let k = cs.k_cs in
-    let defs = [[];[];[];tri_deformations;quad_deformations;
-		pent_deformations;hex_deformations] in
-    let dl = List.nth defs k in
+     let dl = List.nth defs k in
       try 
 	apply_first_deformation dl cs 
       with
 	  Failure s ->  ((failures:= cs:: !failures); []);;
 
-
-(*
-let handle_general_case_rewrite = 
-  let inrange cs a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
-  let alld = alldiag cs in
-  (* 1- *)
-  let empty cs = [] in
-  let test_ok cs = ((cs.k_cs = 6) && not(ok_for_more_hex cs)) or
-    ((cs.k_cs=5) && not(ok_for_more_pent cs)) or
-    ((mem cs.k_cs [3;4]) && not(ok_for_more_tri_quad cs)) in
-  let act_ok = empty in 
-  let pair_equi = 
-    (fun cs -> exists (equi_transfer_cs cs) terminal_quad,empty) in
-  let pair_4 = 
-    (fun cs -> 
-  let test_act = [(test_ok,act_ok);pair_equi;] in
-  let vv = 
-    (try
-      let (_,act) = Lib.find (fun (t,_) -> t cs) test_act in
-	act cs 
-    with
-	Failure _ -> ((failures:= cs::!failures);  [])) in
-      vv;;
-*)
 
 let rec handle_loop c ls =
     if (c<=0) then ls 
@@ -1960,16 +1992,31 @@ let rec handle_loop c ls =
 
 failures:= [];;
 let r_init = !remaining;;  
-let hl = handle_loop 10000 hl (* r_init *);;
+let hl = time (handle_loop 1600000) hl (* r_init *);;
 length hl;;
 let kl = !failures;;
 length kl;;
 let cs1 = hd kl;;
+handle_general_case cs1;;
 report_cs cs1;;
+handle_general_case cs1;;
+let hl = filter ok_for_more hl;;
+report_cs cs1;;
+index (false) (map (can  handle_general_case) kl);;
+time(map (equi_transfer_to_list terminal_cs)) hl;;
+time (map (x_equi_transfer_to_list terminal_cs)) hl;;
 handle_general_case (hd kl);;
-let kl' = filter (not o ok_for_more_tri_quad) kl;;
+ok_for_more_tri_quad cs1;;
+let kl' = filter (not o ok_for_more) hl;;
+length kl';;
 let hl' = handle_loop 10000 hl;;
 
+let cs1' = modify_cs cs1 ~d:(cs1.d_cs -. 1e-08) ();;
+equi_transfer_cs cs1'  terminal_std_tri_OMKYNLT_1_2;;
+equi_transfer_to_list terminal_quad cs1;;
+ok_for_more_tri_quad cs1;;
+
+ cs1 terminal_std_tri_7097350062a;;
 
 report_cs cs1;;
 deform_684_quadA 0 cs1;;

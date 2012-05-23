@@ -1,3 +1,22 @@
+(* Generalizes given variables in a term *)
+let gen_variables binders tm =
+  if type_of tm <> bool_ty then
+    if length binders = 0 then tm
+    else
+      failwith "gen_variables: bool term is required"
+  else
+    let f_vars = map dest_var (frees tm) in
+    let find_type name = assoc name f_vars in
+    let gen_variable var_name tm =
+      let var =
+	try mk_var (var_name, find_type var_name)
+	with Failure _ ->
+	  failwith ("gen_variables: variable "^var_name
+		    ^" is not free in the term "^(string_of_term tm)) in
+	mk_forall (var, tm) in
+      itlist gen_variable binders tm;;
+
+
 (* Combined type of theorems and terms *)
 type arg_type = Arg_theorem of thm | Arg_term of term | Arg_type of hol_type;;
 
@@ -603,12 +622,20 @@ let match_mp_th ith n th =
   let r = rec_match n cmd [] in
     reconstruct_thm r;;
 
-
 (* Introduces a subgoal *)
+let have_gen_tac binders then_tac tm (g : goal) =
+(*  let tm0 = inst_all_free_vars tm g in *)
+  let tm1 = gen_variables binders tm in
+  let tm2 = prepare_term tm1 g in
+    (THENL_FIRST (SUBGOAL_THEN tm2 (fun th -> MP_TAC th THEN then_tac))
+       (move binders)) g;;
+
+
 let have_tac then_tac tm (g : goal) =
 (*  let tm0 = inst_all_free_vars tm g in *)
   let tm0 = prepare_term tm g in
     (SUBGOAL_THEN tm0 (fun th -> MP_TAC th THEN then_tac)) g;;
+
 
 
 (* 'wlog' tactic *)

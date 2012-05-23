@@ -188,9 +188,7 @@ Proof. by rewrite -(mulg1 `i e`) ?i_in_group ?e_in_group // mulIg // e_in_group.
 
 Lemma mulI x y : `x IN G ==> y IN G ==> i (op x y) = op (i y) (i x)`.
 Proof.
-move => xG yG.
-rewrite EQ_SYM_EQ.
-apply: "REWRITE_RULE[IMP_IMP] i_uniq".
+move => xG yG; rewrite EQ_SYM_EQ; apply: i_uniq.
 by rewrite !in_group // ?i_in_group // !mulgA ?in_group ?i_in_group // mulgK // mulgI.
 Qed.
 
@@ -232,8 +230,8 @@ Lemma subgroup_alt H : `subgroup op i H G <=>
 Proof.
 rewrite subgroup SUBSET; split => [] [subHG] [->] //=.
 rewr subHG /=; move => h.
-have ixH : `!x. x IN H ==> i x IN H`.
-  move => x xH.
+have ixH x : `x IN H ==> i x IN H`.
+  move => xH.
   have xG := subHG xH.
   by rewrite -(mul1g `i x`) ?i_in_group // h xH andbT -(mulgI x) // h.
 rewr ixH /= => x y xH yH.
@@ -246,11 +244,11 @@ Lemma subgroup_group H : `subgroup op i H G ==> group (H, op, i, e)`.
 Proof.
 move: (grG).
 rewrite subgroup 2!group SUBSET => [] [opG] [iG] [eG] [idG] [invG aG] [sHG] [nH op_iH].
-have eH : `e:A IN H`.
+have eH : `e IN H`.
   move: nH; rewrite -MEMBER_NOT_EMPTY => [] [x xH].
   by rewrite -(mulgI x) ?sHG // op_iH.
-have iH : `!y. y IN H ==> i y IN H`.
-  move => y yH.
+have iH y : `y IN H ==> i y IN H`.
+  move => yH.
   by rewrite -(mul1g `i y`) ?i_in_group ?sHG // op_iH.
 
 do 6? split => //.
@@ -975,14 +973,14 @@ by rewrite FINITE_IMAGE.
 Qed.
 
 Lemma LaGrange : `CARD G = CARD (cosets op G H) * CARD H`.
-move: (subgroup_subset subH) => SHG.
+have sHG := subgroup_subset subH.
 rewrite {1}cosets_unions CARD_UNIONS; last first.
   rewrite -NSUM_CONST ?finite_index //.
   apply NSUM_EQ.
-  move => c; rewr cosets IN_ELIM_THM /= => [] [x] [xG ->].
+  move => c; rewrite cosets IN_ELIM_THM /= => [] [x] [xG ->].
   by rewrite coset_card.
 rewrite finite_index /=; split.
-  move => c; rewr cosets IN_ELIM_THM /= => [] [x] [xG ->].
+  move => c; rewrite cosets IN_ELIM_THM /= => [] [x] [xG ->].
   by apply: FINITE_SUBSET; exists G; rewrite (coset_subset grG).
 move => c1 c2; rewr cosets IN_ELIM_THM /= => [] [] [x] [xG ->] [] [y] [yG ->] nc.
 exact: (coset_inter xG yG nc).
@@ -1647,7 +1645,7 @@ Qed.
 Lemma expg_eq_mod n : `expg (op, e) g n = expg (op, e) g (n MOD orderg (op, e) g) /\ 
 	n MOD orderg (op, e) g < orderg (op, e) g`.
 Proof.
-have [] [on0] [] oe _ := order_exists.
+have [on0 [oe _]] := order_exists.
 move: (DIVMOD_EXIST on0 n) => [q] [r] [n_eq r_lt].
 move: (DIVMOD_UNIQ n_eq) => -> //.
 rewrite r_lt andbT n_eq (expg_add grG) // mulnC -(expg_expg grG) //.
@@ -1674,7 +1672,7 @@ Qed.
 
 Lemma cyclic_eq2 : `IMAGE (expg (op, e) g) UNIV = IMAGE (expg (op, e) g) (1..orderg (op, e) g)`.
 Proof.
-have [] [on0] [] oe _ := order_exists.
+have [on0 [oe _]] := order_exists.
 rewrite cyclic_eq // EXTENSION !IN_IMAGE !IN_NUMSEG => y; split => [] [n] [y_eq n_in].
   case: (EXCLUDED_MIDDLE `n = 0`) => n_eq.
     by exists `orderg (op, e) g`; rewrite y_eq n_eq expg0 oe eqxx andTb leqnn; move: on0; arith.
@@ -1691,7 +1689,7 @@ Proof. by rewrite cyclic_eq2 FINITE_IMAGE FINITE_NUMSEG. Qed.
 
 Lemma cyclic_card : `CARD (IMAGE (expg (op, e) g) UNIV) = orderg (op, e) g`.
 Proof.
-have [] [on0] [] oe _ := order_exists.
+have [on0 [oe _]] := order_exists.
 rewrite cyclic_eq // CARD_IMAGE_INJ ?CARD_NUMSEG ?FINITE_NUMSEG ?andbT ?IN_NUMSEG.
   move => n m [n_in] [m_in].
   by rewrite expg_inj //; move: n_in m_in on0; arith.
@@ -1702,7 +1700,7 @@ Qed.
 Lemma lt_order n : `expg (op, e) g n = e ==> n < orderg (op, e) g ==> n = 0`.
 Proof.
 move => n_eq n_lt.
-have [] [on0] [] oe o_min := order_exists.
+have [on0 [oe o_min]] := order_exists.
 move: (o_min n); rewrite n_eq eqxx andbT implyNb; case => //.
 by move: n_lt; arith.
 Qed.
@@ -1710,7 +1708,7 @@ Qed.
 
 Lemma order_div n : `expg (op, e) g n = e <=> orderg (op, e) g divides n`.
 Proof.
-have [] [on0] [oe] _ := order_exists.
+have [on0 [] oe _] := order_exists.
 split => [n_eq |].
   rewrite (DIVIDES_MOD on0); apply: lt_order.
   by rewrite -expg_eq_mod n_eq expg_eq_mod.
@@ -2154,7 +2152,7 @@ Lemma sylow3_2 n m : `CARD G = (p EXP n) * m /\ coprime (p, m) ==>
 	CARD {K | subgroup op i K G /\ CARD K = p EXP n} divides m`.
 Proof.
 move => [cG c_pm].
-have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
+have [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
 move: (sylow1 p_div) => [H] [subH] cH.
 rewrite (sylow3_1 p_n_div subH cH).
 have sHG := subgroup_subset subH.
@@ -2189,7 +2187,7 @@ Lemma sylow3_3 n m : `CARD G = (p EXP n) * m /\ coprime (p, m) ==>
 	CARD {K | subgroup op i K G /\ CARD K = p EXP n} MOD p = 1`.
 Proof.
 move => [cG c_pm].
-have [] [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
+have [p_div p_n_div] := max_expn_divides prime_p cG c_pm.
 move: (sylow1 grG finG prime_p p_div) => [H] [subH] cH.
 have actsH := subgroup_acts_on_subgroups grG subH `p EXP n`.
 have grH := subgroup_group grG subH.

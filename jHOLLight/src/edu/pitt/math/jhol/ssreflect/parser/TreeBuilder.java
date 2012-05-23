@@ -502,91 +502,17 @@ public class TreeBuilder {
 	 * Parses introduction expressions
 	 * Returns null if nothing can be parsed
 	 */
-	private TacticChainNode tryParseIntro(boolean firstDestructive) throws Exception {
+	private TacticChainNode tryParseIntro(final boolean firstDestructive) throws Exception {
 		TacticChainNode chain = new TacticChainNode();
-		Token t;
 		boolean destFlag = firstDestructive;
 		
 		while (true) {
-			TacticNode simp = tryParseSimp();
-			chain.add(simp);
-
-			ObjectNode obj = null;
-			RewriteParameters params = null;
-			t = scanner.peekToken();
-			
-			// Rewrite parameters for <- or ->
-			if (t.type == TokenType.LBRACE ||
-				t.type == TokenType.INTEGER ||
-				t.type == TokenType.EXCLAMATION ||
-				t.type == TokenType.QUESTION) {
-				params = tryParseRewriteParameters();
-				t = scanner.peekToken();
-			}
-			
-			boolean arrowFlag = (t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW);
-			
-			if (params != null && !arrowFlag)
-				throw new Exception("<- or -> expected: " + t);
-
-			// <- or ->
-			if (arrowFlag) {
-				// <- or ->
-				scanner.nextToken();
-				
-				// Create default parameters if necessary
-				if (params == null)
-					params = new RewriteParameters();
-				
-				params.revFlag = (t.type == TokenType.LEFT_ARROW);
-				RewriteNode rewrite = new RewriteNode(params, IdNode.TMP_ID, true, false);
-				RepeatNode repeat = new RepeatNode(rewrite, params);
-				chain.add(repeat);
-				continue;
-			}
-			
-			// [...]
-			if (t.type == TokenType.LBRACK) {
-				// []-pattern
-				if (!chain.isEmpty())
-					destFlag = true;
-				
-				TacticChainNode chain2 = parseIntroCasePattern(destFlag);
-				if (destFlag)
-					chain.add(chain2);
-				else
-					chain.addChain(chain2);
-				destFlag = true;
-
-				continue;
-			}
-			
-			// /view
-			if (t.type == TokenType.SLASH) {
-				// /
-				scanner.nextToken();
-				TacticNode tac = parseViewBody();
-				chain.add(tac);
-				continue;
-			}
-			
-			// _
-			if (t.type == TokenType.UNDERSCORE) {
-				// _
-				scanner.nextToken();
-				obj = new WildObjectNode();
-			}
-			else if (t.type == TokenType.IDENTIFIER) {
-				// Id
-				scanner.nextToken();
-				obj = new IdNode(t.value);
-			}
-			
-			if (obj == null)
+			TacticChainNode item = tryParseIntroItem(destFlag);
+			if (item == null)
 				break;
 			
-			IntroductionNode intro = new IntroductionNode(obj);
-			chain.add(intro);
+			chain.addChain(item);
+			destFlag = true;
 		}
 		
 		if (chain.isEmpty())
@@ -597,10 +523,120 @@ public class TreeBuilder {
 	
 	
 	/**
+	 * i-item = i-pattern | s-item | view
+	 */
+	private TacticChainNode tryParseIntroItem(final boolean destFlag) throws Exception {
+		TacticChainNode chain = new TacticChainNode();
+		Token t;
+		
+		// i-pattern
+		TacticChainNode i_pattern = tryParseIntroPattern(destFlag);
+		if (i_pattern != null) {
+			chain.addChain(i_pattern);
+			return chain;
+		}
+		
+		// s-item
+		TacticNode simp = tryParseSimp();
+		chain.add(simp);
+		
+		if (!chain.isEmpty())
+			return chain;
+
+		// view
+		t = scanner.peekToken();
+
+		if (t.type == TokenType.SLASH) {
+			// /
+			scanner.nextToken();
+			TacticNode tac = parseViewBody();
+			chain.add(tac);
+			
+			return chain;
+		}
+		
+		return null;
+	}
+	
+	
+	/**
+	 * i-pattern = id | _ | {occ}-> | {occ}<- | [...]
+	 */
+	private TacticChainNode tryParseIntroPattern(final boolean destFlag) throws Exception {
+		TacticChainNode chain = new TacticChainNode();
+		Token t;
+		
+		ObjectNode obj = null;
+		RewriteParameters params = null;
+		t = scanner.peekToken();
+			
+		// Rewrite parameters for <- or ->
+		if (t.type == TokenType.LBRACE ||
+			t.type == TokenType.INTEGER ||
+			t.type == TokenType.EXCLAMATION ||
+			t.type == TokenType.QUESTION) {
+			params = tryParseRewriteParameters();
+			t = scanner.peekToken();
+		}
+			
+		boolean arrowFlag = (t.type == TokenType.LEFT_ARROW || t.type == TokenType.RIGHT_ARROW);
+			
+		if (params != null && !arrowFlag)
+			throw new Exception("<- or -> expected: " + t);
+
+		// <- or ->
+		if (arrowFlag) {
+			// <- or ->
+			scanner.nextToken();
+				
+			// Create default parameters if necessary
+			if (params == null)
+				params = new RewriteParameters();
+				
+			params.revFlag = (t.type == TokenType.LEFT_ARROW);
+			RewriteNode rewrite = new RewriteNode(params, IdNode.TMP_ID, true, false);
+			RepeatNode repeat = new RepeatNode(rewrite, params);
+			chain.add(repeat);
+			return chain;
+		}
+			
+		// [...]
+		if (t.type == TokenType.LBRACK) {
+			TacticChainNode chain2 = parseIntroCasePattern(destFlag);
+			if (destFlag)
+				chain.add(chain2);
+			else
+				chain.addChain(chain2);
+			
+			return chain;
+		}
+			
+		// _
+		if (t.type == TokenType.UNDERSCORE) {
+			// _
+			scanner.nextToken();
+			obj = new WildObjectNode();
+		}
+		else if (t.type == TokenType.IDENTIFIER) {
+			// Id
+			scanner.nextToken();
+			obj = new IdNode(t.value);
+		}
+			
+		if (obj == null)
+			return null;
+			
+		IntroductionNode intro = new IntroductionNode(obj);
+		chain.add(intro);
+		
+		return chain;
+	}
+	
+	/**
 	 * Parses expression of the form move => [a b [c | d]]
 	 * @return
 	 */
-	private TacticChainNode parseIntroCasePattern(boolean destructiveFlag) throws Exception {
+	private TacticChainNode parseIntroCasePattern(final boolean destructiveFlag) throws Exception {
 		TacticChainNode result = new TacticChainNode();
 		TacticParallelNode chains = new TacticParallelNode();
 		TacticChainNode chain = new TacticChainNode();
@@ -877,9 +913,38 @@ public class TreeBuilder {
 	
 	/**
 	 * Parses the body of a "have" expression
+	 * have i-item* [i-pattern] [s-item | binder+] [: obj] [:= obj | by tactic_chain]
 	 */
 	private TacticNode parseHaveBody(boolean suffFlag) throws Exception {
-		TacticNode disch = tryParseIntro(false);
+		TacticChainNode intro = new TacticChainNode();
+		ArrayList<String> binders = null;
+		
+		// Parse optional introduction
+		while (true) {
+			// i-pattern
+			TacticChainNode chain = tryParseIntroPattern(true);
+			if (chain != null) {
+				intro.addChain(chain);
+				break;
+			}
+			
+			// i-item
+			chain = tryParseIntroItem(true);
+			if (chain == null)
+				break;
+			
+			intro.addChain(chain);
+		}
+		
+		// s-item
+		TacticNode simp = tryParseSimp();
+		if (simp != null) {
+			intro.add(simp);
+		}
+		else {
+			// binders
+			binders = parseIdList();
+		}
 
 		boolean assignFlag;
 		
@@ -909,7 +974,7 @@ public class TreeBuilder {
 		if (obj == null)
 			throw new Exception("OBJECT expected: " + t);
 		
-		TacticNode result = new HaveNode(disch, obj, assignFlag);
+		TacticNode result = new HaveNode(intro, binders, obj, assignFlag);
 		if (suffFlag) {
 			TacticNode rot_tac = new RawTactic("(THENL_ROT 1)");
 			result = new BinaryNode(false, rot_tac, result, null);
@@ -940,7 +1005,7 @@ public class TreeBuilder {
 	 * Parses the body of a "wlog" expression
 	 */
 	private TacticNode parseWlogBody() throws Exception {
-		TacticNode disch = tryParseIntro(false);
+		TacticNode intro = tryParseIntroItem(true);
 
 		// :
 		Token t = scanner.nextToken();
@@ -966,7 +1031,7 @@ public class TreeBuilder {
 		if (obj == null)
 			throw new Exception("OBJECT expected: " + t);
 		
-		WlogNode wlog = new WlogNode(disch, obj, vars);
+		WlogNode wlog = new WlogNode(intro, obj, vars);
 
 		// by
 		t = scanner.peekToken();

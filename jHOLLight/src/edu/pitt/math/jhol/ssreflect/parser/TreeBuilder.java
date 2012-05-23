@@ -755,6 +755,9 @@ public class TreeBuilder {
 			// exists
 			else if (t.value == "exists")
 				tactic = parseExistsBody();
+			// congr
+			else if (t.value == "congr")
+				tactic = parseCongrBody();
 			// left
 			else if (t.value == "left")
 				tactic = new RawTactic("DISJ1_TAC");
@@ -856,6 +859,19 @@ public class TreeBuilder {
 		
 		SetNode set = new SetNode(id, obj);
 		return set;
+	}
+	
+	
+	/**
+	 * Parses the body of 'congr'
+	 */
+	private TacticNode parseCongrBody() throws Exception {
+		ObjectNode obj = tryParseObject();
+		
+		if (!(obj instanceof RawObjectNode))
+			throw new Exception("`term` expected: " + scanner.peekToken());
+		
+		return new CongrNode((RawObjectNode) obj);
 	}
 	
 	

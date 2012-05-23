@@ -865,3 +865,47 @@ let INST_FIRST_TYPE_THEN ty (then_tac:thm_tactic) th =
     then_tac (INST_TYPE [(ty, hd ty_vars)] th);;
 
 
+(* Replaces all occurrences of distinct '_' with unique variables *)
+let transform_pattern pat_tm =
+  let names = ref (map (fst o dest_var) (frees pat_tm)) in
+  let rec transform tm =
+    match tm with
+      | Abs(x_tm, b_tm) -> 
+	  let _ = names := (fst o dest_var) x_tm :: !names in
+	    mk_abs (x_tm, transform b_tm)
+      | Comb(l_tm, r_tm) -> 
+	  mk_comb (transform l_tm, transform r_tm)
+      | Var ("_", ty) ->
+	  let name = generate_fresh_name !names tm in
+	  let _ = names := name :: !names in
+	    mk_var (name, ty)
+      | _ -> tm in
+    transform pat_tm;;
+
+
+let wild_frees tm =
+  filter (fun tm -> ((fst o dest_var) tm).[0] = '_') (frees tm);;
+
+let nwild_frees tm =
+  filter (fun tm -> ((fst o dest_var) tm).[0] <> '_') (frees tm);;
+
+
+(* congr_tac *)
+let congr_tac pat_tm goal =
+  let goal_tm = snd goal in
+  let context_vars = get_context_vars goal in
+  let pat = transform_pattern pat_tm in
+  let f0_vars = nwild_frees pat in
+  let pattern = inst_context_vars context_vars f0_vars pat in
+  let const_pat = nwild_frees pattern in
+  let wild_pat = wild_frees pattern in
+
+  let lhs, rhs = dest_eq goal_tm in
+  let lm, rm =
+    term_match const_pat pattern lhs, term_match const_pat pattern rhs in
+  let eq_tms = map 
+    (fun tm -> mk_eq (instantiate lm tm, instantiate rm tm)) wild_pat in
+  let eq_tm = itlist (curry mk_imp) eq_tms goal_tm in
+  let eq_thm = EQT_ELIM (SIMP_CONV[] eq_tm) in
+    (apply_tac eq_thm THEN REPEAT CONJ_TAC) goal;;
+

@@ -1,4 +1,4 @@
-(* ========================================================================== *)
+s(* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (* Section: Local Fan Main Estimate                                           *)
 (* Chapter: Local Fan                                                         *)
@@ -456,7 +456,7 @@ let a_pro pro adj diag k i j =
   else if (j = ink k i) or (i = ink k j) then adj
   else diag ;;
 
-(*  BUGGED IF data not sorted:
+(*  OLD BUG IF data not sorted:
 let funlist data d i j = 
   if (i=j) then zero
   else assocd (psort (i,j)) data d;;
@@ -716,11 +716,11 @@ let terminal_std_tri_OMKYNLT_1_2  = mk_cs(
  funlist [(0,1),two] twoh0,
  funlist [(0,1),two] twoh0,"terminal 1532755966");;
 
-let terminal_std_tri_7097350062 = mk_cs(
+let terminal_std_tri_7097350062a = mk_cs(
  3,
-  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
+  tame_table_d 1 2,
  funlist [(0,1),twoh0;(0,2),sqrt8] two,
- funlist [(0,1),twoh0;(0,2),sqrt8] two,"terminal 7097350062");;
+ funlist [(0,1),twoh0;(0,2),sqrt8] two,"terminal 7097350062a");;
 
 let terminal_std_tri_2900061606 = mk_cs(
  3,
@@ -802,7 +802,7 @@ let terminal_cs = [
  terminal_std_tri_OMKYNLT_2_1 ; (* 1107929058 *)
  terminal_std_tri_7645170609; 
  terminal_std_tri_OMKYNLT_1_2 ; (* 1532755966 *)
- terminal_std_tri_7097350062; 
+ terminal_std_tri_7097350062a; 
  terminal_std_tri_2900061606; 
  terminal_std_tri_2200527225; 
  terminal_std_tri_3106201101; 
@@ -1265,6 +1265,12 @@ range calculations for 6843920790.
 2.0 *. arc 2.0 2.0 2.52 < arc 2.0 2.0 (sqrt(15.53));;
 As the documentation for this inequality indicates, it is
 applied to the triangle p4 p1 p2.
+
+This also applies to some quads and triangles, 
+implemented as separate deformations.
+
+Edited: May 23, 2012.
+need to consider more diagonals.  For instance (p1,p3) may bottom out.
 *)
 
 
@@ -1275,7 +1281,6 @@ let deform_6843920790 p1 cs =
   let p2 = inc cs p1  in
   let p3 = inc cs p2  in
   let p4 = inc cs p3  in
-  let diag = subtract ks [p0;p1;p2] in
   let _ = mem p1 ks or failwith "684:out of range" in
   let _ = (cs.am_cs p1 p2 = cstab && cstab = cs.bm_cs p1 p2)
     or raise Unchanged in
@@ -1286,19 +1291,95 @@ let deform_6843920790 p1 cs =
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
-  let m q =  (cs.a_cs p1 q < cs.bm_cs p1 q) in
-  let _ = forall m diag or raise Unchanged in
-  let _ = m p2 or raise Unchanged in
-(*  let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in *)
-  let n q = (fourh0 < cs.b_cs p1 q) in
-  let _ = forall n diag or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j < cs.bm_cs i j) in
+  let _ = forall m (alldiag cs) or raise Unchanged in
+  let _ = m (p1,p2) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n (alldiag cs) or raise Unchanged in
   let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
   let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
-  let cspq q = 
-    if (cs.am_cs p1 q > cs.a_cs p1 q) then None
-    else Some (modify_cs cs ~bm:(override cs.bm_cs (p1,q,cs.a_cs p1 q)) ()) in 
+    (* diags at p4 can be excluded, their lengths are fixed under def. *)
+  let non_p4diag = [(p3,p1);(p3,p0);(p0,p2)] in 
+  let cspq (i,j) = 
+    if (cs.am_cs i j > cs.a_cs i j) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (i,j,cs.a_cs i j)) ()) in 
      cs1::cs2::
-      (filter_some( (cspq p2) ::(map cspq diag)));;
+      (filter_some(map cspq ((p1,p2)::non_p4diag)));;
+
+let deform_6843920790_quad p1 p2 p3 p4 cs =
+  let _ = (cs.k_cs = 4) or raise Unchanged in
+  let ks = ks_cs cs in
+  let adj (i,j) = (inc cs i = j) or (inc cs j = i) in
+  let _ = forall adj [(p1,p2);(p2,p3);(p3,p4);(p4,p1)] or failwith "684q" in
+  let _ = subset [p1;p2;p3;p4] ks or failwith "684:range" in
+  let htmin = two in
+  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
+  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
+  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
+  let arc238 = arc two two 2.38 in
+  let arc1553 = arc two two (sqrt(15.53)) in
+  let a2 = (two <= cs.am_cs p1 p2 && cs.bm_cs p1 p2 <= cstab) in
+  let b2 = (arc238 <= arcmin(p1,p4) && cs.bm_cs p1 p4 <= cstab) in
+  let c2 = (cstab <= cs.am_cs p2 p4 && arcmax(p2,p3)+.arcmax(p3,p4) <= arc1553) in
+  let _ = (a2 && b2 && c2) or  raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j < cs.bm_cs i j) in
+  let _ = forall m (alldiag cs) or raise Unchanged in
+  let _ = m (p1,p2) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n (alldiag cs) or raise Unchanged in
+  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq (i,j) = 
+    if (cs.am_cs i j > cs.a_cs i j) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (i,j,cs.a_cs i j)) ()) in 
+     cs1::cs2::
+      (filter_some( [cspq (p1,p2);cspq (p1,p3)] ));;
+
+let deform_6843920790_tri p1 cs =
+  let p2 = inc cs p1 in
+  let p3 = inc cs p2 in
+  let _ = (cs.k_cs = 3) or raise Unchanged in
+  let ks = ks_cs cs in
+  let _ = mem p1 ks or failwith "684:tri" in
+  let _ = subset [p1;p2;p3] ks or failwith "684:range" in
+  let htmin = two in
+  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
+  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
+  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
+  let arc238 = arc two two 2.38 in
+  let arc1553 = arc two two (sqrt(15.53)) in
+  let a2 = (two <= cs.am_cs p1 p2 && cs.bm_cs p1 p2 <= cstab) in
+  let range(p,q) = (arc238 <= arcmin(p,q) && arcmax (p,q) <= arc1553) in
+  let _ = (a2 && range(p3,p1) && range(p3,p2)) or  raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j < cs.bm_cs i j) in
+  let _ = m (p1,p2) or raise Unchanged in
+  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq (i,j) = 
+    if (cs.am_cs i j > cs.a_cs i j) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (i,j,cs.a_cs i j)) ()) in 
+     cs1::cs2::
+      (filter_some( [cspq (p1,p2)]));;
+
+let deform_684_quadA p1 cs =
+  let f j = funpow j (inc cs) in
+  let p2 = f 1 p1 in
+  let p3 = f 2 p1 in
+  let p4 = f 3 p1 in
+    deform_6843920790_quad p1 p2 p3 p4 cs;;
+
+let deform_684_quadB p1 cs =
+  let f j = funpow j (dec cs) in
+  let p2 = f 1 p1 in
+  let p3 = f 2 p1 in
+  let p4 = f 3 p1 in
+    deform_6843920790_quad p1 p2 p3 p4 cs;;
 
 let deformations postfilter k = 
   let r f p cs = filter postfilter (f p cs) in
@@ -1312,12 +1393,16 @@ let deformations postfilter k =
 	     deform_2065952723_A1_double;
 	     deform_4828966562A;
 	     deform_4828966562B;
-	    deform_6843920790] in
+	    deform_6843920790;
+	    deform_684_quadA;
+	    deform_684_quadB;
+	    deform_6843920790_tri] in
     List.flatten (map m u);;
 
 let name_of_deformation k i =
   let names_hex = 
-    ["odx";"imj";"nux";"482ao";"482bo";"206s";"206d";"482a";"482b";"684"] in
+    ["odx";"imj";"nux";"482ao";"482bo";"206s";
+     "206d";"482a";"482b";"684";"684qA";"684qB";"684t"] in
   let offset = i mod k in
   let s = i/k in
     (List.nth names_hex s) ^ "-" ^ (string_of_int offset);;
@@ -1453,6 +1538,7 @@ let ok_for_more_hex =
   let is_hex cs = (cs.k_cs =6) in
   let terminals = take_terminal is_hex in
     fun cs ->
+      let _ = (cs.k_cs = 6) or failwith "ok:6" in
       let _ = 
 	try is_aug_cs cs 
 	with Failure s -> report_cs cs; failwith s in
@@ -1488,7 +1574,7 @@ let filtered_subdivide postfilter init  =
 
 let rec apply_first_deformation dl cs = 
   match dl with
-      [] -> (report_cs cs; failwith "all deformations fail")
+      [] -> failwith ( "all deformations fail")
     | d::dls ->
 	try
 	  d cs
@@ -1543,7 +1629,6 @@ let execute_hexagons() =
 
 (* execute_hexagons();; working in svn:2819,2824m *)
 
-
 (*
 ****************************************
 PENTAGONS
@@ -1555,6 +1640,7 @@ PENTAGONS
 let ok_for_more_pent =
   let terminals = take_terminal (extensional_equality terminal_pent) in
     fun cs ->
+      let _ = (cs.k_cs = 5) or failwith "ok:5" in
       let _ = 
 	try is_aug_cs cs 
 	with Failure s -> report_cs cs; failwith s in
@@ -1685,28 +1771,61 @@ let handle_quad_477_preslice_short =
 
 claim_arrow([quad_pro_cs],quad_477_preslice_long);;
 
+let triquad_assumption = 
+[
+  mk_cs (
+    3,
+    0.4278,
+    cs_adj twoh0 cstab 3,
+    cs_adj cstab upperbd 3,
+    "tri assumption"
+  );
+  mk_cs (
+    4,
+    0.513,
+    overrides (cs_adj two cstab 4) [((1,2),twoh0);((2,3),twoh0)],
+    overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((2,3),cstab)],
+    "triquad assumption"
+  );
+  mk_cs (
+    4,
+    0.513,
+    overrides (cs_adj two cstab 4) [((1,2),twoh0);((0,3),twoh0)],
+    overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((0,3),cstab)],
+    "triquad assumption"    
+  );
+];;
+
+map report_cs triquad_assumption;;
+
+claim_arrow([],triquad_assumption);;
+
 let terminal_quad = 
-  quad_477_preslice_short @ terminal_cs;;
+  triquad_assumption @ quad_477_preslice_short @ terminal_cs;;
 
 let ok_for_more_tri_quad cs = 
-  let _ = (cs.k_cs <=4  && cs.k_cs >= 3) or failwith "tri quads only" in
+  let _ = (mem cs.k_cs [3;4]) or failwith "ok:3,4" in
   let b467_2485876245a = 
     if (cs.d_cs=0.467) && (cs.k_cs = 4) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
       forall (fun (i,j)-> cs.am_cs i j >= three) [(0,2);(1,3)]
     then ( cs.str_cs = []) else true in
-  let b477 =
-    let b477k = (cs.k_cs = 4) in
-    let b477a =  cs.str_cs = [] in
-    let b477b = Sphere_math.delta_y (* if neg then geometric impossibility *)
-      (cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
-      (cs.bm_cs 2 3) (cs.bm_cs 1 2) (cs.am_cs 1 3) >= 0.0 in
-    let b477c = 
-      not(exists (equi_transfer_cs cs) quad_477_preslice_short) in
-    if (cs.d_cs=0.477) &&
+  let b4 = (cs.k_cs = 4) in
+  let is_477 = b4 && (cs.d_cs=0.477) &&
       forall (fun (i,j)-> cs.bm_cs i j <= twoh0) [(0,1);(1,2);(2,3);(3,0)] &&
-      forall (fun (i,j)-> cs.am_cs i j >= cstab) [(0,2);(1,3)]
-    then (b477k && b477a && b477b && b477c) else true in      
+      forall (fun (i,j)-> cs.am_cs i j >= cstab) [(0,2);(1,3)] in
+  let b477 =
+    if is_477
+    then
+      let b477a =  cs.str_cs = [] in
+      let b477b =  
+	Sphere_math.delta_y (* if neg then geometric impossibility *)
+	(cs.bm_cs 0 1) (cs.bm_cs 0 3) (cs.am_cs 0 2)
+	(cs.bm_cs 2 3) (cs.bm_cs 1 2) (cs.am_cs 1 3) >= 0.0 in
+      let b477c = 
+	not(exists (equi_transfer_cs cs) quad_477_preslice_short) in
+	(b477a && b477b && b477c) 
+    else true in      
   let _ = 
     try is_aug_cs cs 
     with Failure s -> report_cs cs; failwith s in
@@ -1766,6 +1885,8 @@ claim_arrow(special_quad_init,[]);;
    7- do "upper echelon" treatment of quads (subdivisions on edges > 3.01)
 
 *)
+let failures = ref triquad_assumption;;
+failures:= [];;
 
 
 let handle_general_case cs = 
@@ -1799,7 +1920,35 @@ let handle_general_case cs =
     let defs = [[];[];[];tri_deformations;quad_deformations;
 		pent_deformations;hex_deformations] in
     let dl = List.nth defs k in
-      apply_first_deformation dl cs;;
+      try 
+	apply_first_deformation dl cs 
+      with
+	  Failure s ->  ((failures:= cs:: !failures); []);;
+
+
+(*
+let handle_general_case_rewrite = 
+  let inrange cs a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
+  let alld = alldiag cs in
+  (* 1- *)
+  let empty cs = [] in
+  let test_ok cs = ((cs.k_cs = 6) && not(ok_for_more_hex cs)) or
+    ((cs.k_cs=5) && not(ok_for_more_pent cs)) or
+    ((mem cs.k_cs [3;4]) && not(ok_for_more_tri_quad cs)) in
+  let act_ok = empty in 
+  let pair_equi = 
+    (fun cs -> exists (equi_transfer_cs cs) terminal_quad,empty) in
+  let pair_4 = 
+    (fun cs -> 
+  let test_act = [(test_ok,act_ok);pair_equi;] in
+  let vv = 
+    (try
+      let (_,act) = Lib.find (fun (t,_) -> t cs) test_act in
+	act cs 
+    with
+	Failure _ -> ((failures:= cs::!failures);  [])) in
+      vv;;
+*)
 
 let rec handle_loop c ls =
     if (c<=0) then ls 
@@ -1809,9 +1958,26 @@ let rec handle_loop c ls =
 	  let v = handle_general_case cs in
 	    handle_loop (c-1) ( v @ css);;
 
+failures:= [];;
 let r_init = !remaining;;  
+let hl = handle_loop 10000 hl (* r_init *);;
+length hl;;
+let kl = !failures;;
+length kl;;
+let cs1 = hd kl;;
+report_cs cs1;;
+handle_general_case (hd kl);;
+let kl' = filter (not o ok_for_more_tri_quad) kl;;
+let hl' = handle_loop 10000 hl;;
 
-let hl = handle_loop 5000 r_init;;
+
+report_cs cs1;;
+deform_684_quadA 0 cs1;;
+let dy y = Sphere_math.delta_y two two y two twoh0 y;;
+dy 3.01;;
+
+arc two twoh0 sqrt8;;
+arc two two 2.38;;
 
 let hl' = handle_loop 10000 r_init;;
 List.length hl;;
@@ -1974,3 +2140,38 @@ let (quad_pd_short,quad_pd_long) =
     (subdivide_cs 0 2 cstab quad_pro_cs) in
   let ww = transfer_union (p @ vv) [] in
     partition preslice_ready ww;;
+
+
+let (p1,p2,p3,p4) = (0,1,2,3);;
+let cs = cs1;;
+let deform_6843920790_quad p1 p2 p3 p4 cs =
+  let _ = (cs.k_cs = 4) or raise Unchanged in
+  let ks = ks_cs cs in
+  let adj (i,j) = (inc cs i = j) or (inc cs j = i) in
+  let _ = forall adj [(p1,p2);(p2,p3);(p3,p4);(p4,p1)] or failwith "684q" in
+  let _ = subset [p1;p2;p3;p4] ks or failwith "684:range" in
+  let htmin = two in
+  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
+  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
+  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
+  let arc238 = arc two two 2.38 in
+  let arc1553 = arc two two (sqrt(15.53)) in
+  let a2 = (arc238 <= arcmin(p2,p4) && cs.bm_cs p2 p4 <= cstab) in
+  let b2 = (arc238 <= arcmin(p1,p4) && cs.bm_cs p2 p4 <= cstab) in
+  let c2 = (cstab <= cs.am_cs p2 p4 && arcmax(p2,p3)+.arcmax(p3,p4) <= arc1553) in
+  let _ = (a2 && b2 && c2) or  raise Unchanged in
+  let _ = not(memj cs (p1,p2)) or raise Unchanged in
+  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
+  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
+  let m (i,j) =  (cs.a_cs i j < cs.bm_cs i j) in
+  let _ = forall m (alldiag cs) or raise Unchanged in
+  let _ = m (p1,p2) or raise Unchanged in
+  let n (i,j) = (fourh0 < cs.b_cs i j) in
+  let _ = forall n (alldiag cs) or raise Unchanged in
+  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
+  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
+  let cspq (i,j) = 
+    if (cs.am_cs i j > cs.a_cs i j) then None
+    else Some (modify_cs cs ~bm:(override cs.bm_cs (i,j,cs.a_cs i j)) ()) in 
+     cs1::cs2::
+      (filter_some( [cspq (p1,p2);cspq (p1,p3)] ));;

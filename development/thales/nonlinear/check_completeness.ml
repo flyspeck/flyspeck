@@ -95,6 +95,7 @@ let cos  = Pervasives.cos;;
    after initialization. *)
 
 let zero = 0.0;;
+let djz = 0.11 +. 0.1 *.(cstab -. sqrt8);; (* ear-value on cstab edge *)
 let target = 1.541;;
 let two = 2.0;;
 let twoh0 = 2.52;;
@@ -260,6 +261,11 @@ let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 let reset_attr cs = 
   modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~hi:[] ~str:[] ();;
 
+(* changes B-field, M remains a minimizer on smaller domain *)
+
+let restrict_to_low cs = 
+  (modify_cs cs ~b:cs.bm_cs ());;
+
 let ink k i = (i+1) mod k;;
 
 let dek k i = (i+k-1) mod k;;
@@ -290,6 +296,10 @@ let allpair cs =
   let ks = ks_cs cs in
   filter (fun (i,j) -> (i<j)) (cart2 ks);;
 
+let alledge cs = 
+  let ks = ks_cs cs in
+  let ed = map (fun i -> psort(i,inc cs i)) ks in
+    ed;;
 
 
 
@@ -480,6 +490,8 @@ let overrides a data =
       fun i j ->
 	fd (a i j) i j;;
 
+
+
 (*
 ****************************************
 TABLES OF AUGMENTED CONSTRAINT SYSTEMS
@@ -568,7 +580,7 @@ mk_cs (
    5,
    0.616,
    cs_adj two cstab 5,
-   cs_adj two upperbd 5,"terminal");;
+   cs_adj two upperbd 5,"terminal pent");;
 
 (* two cases for the 0.467 bound: all top edges 2 or both diags 3 *)
 
@@ -652,8 +664,16 @@ let ear_cs =
   history_cs= ["ear 3603097872"];
 };;
 
-(* consequence of usual ear *)
+(* two consequences of usual ear *)
 let ear_jnull = modify_cs ear_cs ~js:[] ();;
+
+let ear_stab = mk_cs(
+  3,
+  djz,
+  funlist [(0,2),cstab] two,
+  funlist [(0,2),cstab] twoh0,
+  "ear_stab"
+);;
 
 let terminal_ear_3603097872 = ear_cs;;
 
@@ -799,6 +819,7 @@ let terminal_cs = [
  terminal_quad_1637868761; 
  terminal_ear_3603097872; 
  ear_jnull; 
+ ear_stab;
  terminal_tri_5405130650; 
  terminal_tri_5766053833; 
  terminal_tri_5026777310; 
@@ -938,6 +959,7 @@ let slice_aux cs p q dv =
    one of the three intervals [2,2h0], [2h0,sqrt8], [sqrt8,3.01] *)
 
 
+
 let slice_dstd_aux cs p q = 
   let k = cs.k_cs in
   let p = p mod k in
@@ -950,9 +972,10 @@ let slice_dstd_aux cs p q =
   let bv = cs.bm_cs p q in
   let a = override cs.a_cs (p,q,av) in
   let b = override cs.b_cs (p,q,bv) in
-  let edge1(i,j) = (two <= a i j  && b i j <= twoh0) in
-  let edge2(i,j) = (twoh0 <= a i j && b i j <= sqrt8) && (not (edge1 (i,j))) in
-  let edge3(i,j) = (sqrt8 <= a i j && b i j <= cstab) && (not (edge2 (i,j))) in
+  let edge3(i,j) = (sqrt8 <= a i j && b i j <= cstab)  in
+  let edge2(i,j) = (twoh0 <= a i j && b i j <= sqrt8) && (not(edge3(i,j))) in
+  let edge1(i,j) = (two <= a i j  && b i j <= twoh0) && (not (edge2 (i,j))) in
+  let edge3s(i,j) = (a i j = cstab && b i j = cstab) in
   let edge (i, j) = edge1 (i ,j) or edge2 (i, j) or edge3 (i, j) in
   let (p1,p2,p3) = (p,inc cs p,funpow 2 (inc cs) p) in
   let triedge = [(p1,p2);(p2,p3);(p3,p1)] in
@@ -960,30 +983,43 @@ let slice_dstd_aux cs p q =
   let c_edge1 = length (filter (edge1) triedge) in
   let c_edge2 = length (filter (edge2) triedge) in
   let c_edge3= length (filter (edge3) triedge) in
+  let c_edge3s = length (filter edge3s triedge) in
   let eps = tame_table_d 2 1 -. 0.11 in 
   let d12 = tame_table_d 1 2 in
   let m3 = eps *. float_of_int (c_edge3) in
   let flat1 = (c_edge1=2) && (c_edge2=1), tame_table_d 2 1 in
+  let flat2s = (c_edge1=2) && (c_edge3s=1), djz in
   let flat2 = (c_edge1=2) && (c_edge3=1), 0.11 in
   let atype = (c_edge1=1) && (c_edge2+c_edge3 =2), d12 +.  m3 in 
   let btype = (c_edge1=0) && (c_edge2+c_edge3=3), tame_table_d 0 3 +. m3 in
-  let (_,dpq) = find (fst) [flat1;flat2;atype;btype] in
+  let (_,dpq) = List.find (fst) [flat1;flat2s;flat2;atype;btype] in
     (dpq, d-. dpq);;
 
-     
+let sort_slice_order cs p q = 
+  let inc2 = funpow 2 (inc cs) in
+  let edge1(i,j) = (two <= cs.a_cs i j  && cs.b_cs i j <= twoh0) in
+  if (cs.k_cs > 4) 
+  then 
+    (if (inc2 p = q) then (p,q,false) else (q,p,true))
+  else 
+    let p1 = inc cs p in
+    let _ = (inc cs p1 = q) or  failwith "sso:not a diag" in
+      (if (edge1(p,p1) && edge1(p1,q)) then (p,q,false) else (q,p,true));;
+  
 let slice_dstd cs p q = 
   let k = cs.k_cs in
+  let swap (a,b) = (b,a) in 
   let inc3 = funpow 3 (inc cs) in
     if (k=6) && (inc3 p = q) 
     then 
       let d = cs.d_cs /. two in (d,d)
     else
+      let (p,q,swapped) = sort_slice_order cs p q in
       let d = 
-	try slice_dstd_aux cs p q 
-	with Not_found -> 
-	  let (d2,d1) = slice_dstd_aux cs q p in
-	    (d1,d2) in
-	d;;  
+	try 
+	  slice_dstd_aux cs p q 
+	with Not_found  -> failwith "slice_dstd" in
+	(if swapped then swap d else d);;
 
 let slice_cs cs p q dvpq dvqp mk_ear = 
   let machine_eps = 1e-08 in  (* will go away in formalization *)
@@ -1416,6 +1452,7 @@ let deform_684_quadB p1 cs =
 let deformations postfilter k = 
   let r f p cs = filter postfilter (f p cs) in
   let m d = map (r d) (0--(k-1)) in
+  let rtl d cs = map restrict_to_low (d cs) in 
   let u =   [deform_ODXLSTC_cs;
 	     deform_IMJXPHR_cs;
 	     deform_NUXCOEA_cs;
@@ -1429,7 +1466,7 @@ let deformations postfilter k =
 	    deform_684_quadA;
 	    deform_684_quadB;
 	    deform_6843920790_tri] in
-    List.flatten (map m u);;
+    map rtl (List.flatten (map m u));;
 
 let name_of_deformation k i =
   let names_hex = 
@@ -1573,7 +1610,6 @@ let hex_std_postslice = (* slice_hex_to_pent_tri =  *)
   let vv03 = transfer_union (map (C hist "slice_hex_03") vv) [] in
     vv02 @ vv03;;
 
-
 let hex_assumptions = [hex_std_preslice_02;hex_std_preslice_03];;
 
 claim_arrow([hex_std_cs],hex_assumptions);;
@@ -1676,7 +1712,10 @@ let execute_hexagons() =
    to the one terminal hexagon, together with two cases of hex_std_preslice
 *)
 
-(* time execute_hexagons ();; working in svn:2819,2824m,2829m *)
+(* time execute_hexagons ();; 191secs. 
+   working in svn:2819,2824m,2829m,3830m *)
+
+time execute_hexagons ();;
 
 (*
 ****************************************
@@ -1686,8 +1725,9 @@ PENTAGONS
 
 (* flow on pentagons is the same as for hexagons *)
 
+
 let ok_for_more_pent =
-  let terminals = take_terminal (extensional_equality terminal_pent) in
+  let terminals = take_terminal (fun cs -> cs.k_cs = 5) in
     fun cs ->
       let _ = (cs.k_cs = 5) or failwith "ok:5" in
       let _ = 
@@ -1769,6 +1809,11 @@ claim_arrow(pent_init,pent_composite_ultra_cs @pent_assumptions);;
 
 (* pent section main claim *)
 
+(* 
+let hl = filter (fun cs -> not(mem "pent composite" cs.history_cs) ) pent_assumptions;;
+map report_cs hl;;
+ *)
+
 let execute_pentagons() = 
   let pent_filter = not o (equi_transfer_to_list pent_assumptions) in 
   let pent_loop = general_loop2 pent_deformations pent_filter in
@@ -1811,17 +1856,13 @@ let handle_quad_477_preslice_short =
     forall (fun u -> exists (equi_transfer_cs u) terminal_cs) (f i) in
     exists g ind;;
 
+(* let quad_remaining = !remaining;;
+ *)
+remaining :=quad_remaining;;
 claim_arrow([quad_pro_cs],quad_477_preslice_long);;
 
 let triquad_assumption = 
 [
-  mk_cs (
-    3,
-    0.4278,
-    cs_adj twoh0 cstab 3,
-    cs_adj cstab upperbd 3,
-    "tri assumption"
-  );
   mk_cs (
     4,
     0.513,
@@ -1836,9 +1877,28 @@ let triquad_assumption =
     overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((0,3),cstab)],
     "triquad assumption"    
   );
+(*
+  mk_cs (
+    3,
+    0.103,
+    funlist [(0,1),twoh0] two,
+    funlist [(0,1),sqrt8] twoh0,
+    "td 2 1");
+  mk_cs (
+    3,
+    0.0,
+    cs_adj two cstab 3,
+    cs_adj twoh0 cstab 3,
+    "td 3 0");
+  mk_cs (
+    3,
+    0.4278,
+    cs_adj twoh0 cstab 3,
+    cs_adj cstab upperbd 3,
+    "tri assumption"
+  );
+*)
 ];;
-
-map report_cs triquad_assumption;;
 
 claim_arrow([],triquad_assumption);;
 
@@ -1928,59 +1988,58 @@ claim_arrow(special_quad_init,[]);;
    7- do "upper echelon" treatment of quads (subdivisions on edges > 3.01)
 
 *)
-1;;
+let failures=1;;
 
+(*
 let failures = ref triquad_assumption;;
 failures:= [];;
+*)
 
 let ok_for_more cs = 
   ((cs.k_cs = 6) && (ok_for_more_hex cs)) or 
   ((cs.k_cs=5) && (ok_for_more_pent cs)) or
   ((mem cs.k_cs [3;4]) && (ok_for_more_tri_quad cs));;
 
-(* debug *)
-
-let cs = cs1;;
-ok_for_more cs;;
-(* *)
-
-
 
 let handle_general_case = 
   let dff k = deformations (fun cs -> true) k in
   let defs = [[];[];[];dff 3;dff 4;dff 5;dff 6] in
+  let inrange cs a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
+  let allunderstable cs = 
+    if(cs.k_cs < 4) then []
+    else filter (fun (i,j)-> (cs.b_cs i j <= cstab)) (allpair cs) in
   fun cs -> 
-  let inrange a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
   let alld = alldiag cs in
   (* 1- *)
   if not(ok_for_more cs) then []
  (*  else if exists (equi_transfer_cs cs) terminal_quad then [] *)
-    (* 2- *)
-  else if (can_subdivide allpair cstab cs) 
-  then (subdivide_c_diag allpair cstab [cs])
-    (* 3- *)
-  else if (can_subdivide allpair sqrt8 cs) 
-  then (subdivide_c_diag allpair sqrt8 [cs])
-  else if (can_subdivide allpair twoh0 cs) 
-  then (subdivide_c_diag allpair twoh0 [cs])
-    (* 4- *)
-  else if exists (inrange twoh0 sqrt8) alld then
-    let (p,q) = find  (inrange twoh0 sqrt8) alld in
-      slice_std cs p q 
-	(* 5 *)
-  else if exists (inrange sqrt8 cstab) alld 
-  then
-    let (p,q) = find  (inrange sqrt8 cstab) alld in
-      slice_std cs p q 
-    (* 6 *)
-  else 
-    let k = cs.k_cs in
-     let dl = List.nth defs k in
-      try 
-	apply_first_deformation dl cs 
-      with
-	  Failure s ->  ((failures:= cs:: !failures); []);;
+    (* 2a- *)
+  else if (can_subdivide allunderstable sqrt8 cs) 
+  then (subdivide_c_diag allunderstable sqrt8 [cs])
+  else if (can_subdivide allunderstable twoh0 cs) 
+  then (subdivide_c_diag allunderstable twoh0 [cs])
 
+  else 
+    try (* 4- *)
+      let (p,q) = Lib.find  (inrange cs twoh0 sqrt8) alld in
+	slice_std cs p q 
+    with Failure _ ->
+      try (* 5 *)
+	let (p,q) = Lib.find  (inrange cs sqrt8 cstab) alld in
+	  slice_std cs p q 
+      with Failure _ ->
+	try (* 6 *)
+	  if (can_subdivide alldiag cstab cs) 
+	  then (subdivide_c_diag alldiag cstab [cs])
+	  else
+	    let k = cs.k_cs in
+	    let dl = List.nth defs k in
+	      apply_first_deformation dl cs 
+	with Failure _ -> failcs(cs, "nothing suitable found");;
+
+(*
+	  ((failures:= cs:: !failures); []);;
+*)
 
 let rec handle_loop c ls =
     if (c<=0) then ls 
@@ -1988,20 +2047,60 @@ let rec handle_loop c ls =
       | [] -> []
       | cs::css -> 
 	  let v = handle_general_case cs in
-	    handle_loop (c-1) ( v @ css);;
+	  let (a,b) = partition (fun cs -> cs.k_cs > 4) (v @ css) in
+	  let (b',b'') = partition (fun cs -> cs.k_cs = 3) b in
+	    handle_loop (c-1) ( a @ b' @ b'');;
+
+
+let r_init = !remaining;;  
+let hl = time (handle_loop 50000)  r_init;;
 
 failures:= [];;
-let r_init = !remaining;;  
-let hl = time (handle_loop 1600000) hl (* r_init *);;
+
+let s_init = [
+  mk_cs (
+    3,
+    0.103,
+    funlist [(0,1),twoh0] two,
+    funlist [(0,1),sqrt8] twoh0,
+    "td 2 1");
+  mk_cs (
+    3,
+    0.0,
+    cs_adj two cstab 3,
+    cs_adj twoh0 cstab 3,
+    "td 3 0");
+  mk_cs (
+    3,
+    0.4278,
+    cs_adj twoh0 cstab 3,
+    cs_adj cstab upperbd 3,
+    "tri assumption"
+  );];;
+let hl = time (handle_loop 50000) [List.nth s_init 2];;
+
 length hl;;
 let kl = !failures;;
+let kl = filter (fun cs -> cs.k_cs=3) hl;;
+let kl' = filter (fun cs -> not([]= handle_general_case cs)) kl;;
+
+let cs1 = List.nth hl 25;;
+report_cs cs1;;
+handle_general_case cs1;;
 length kl;;
 let cs1 = hd kl;;
 handle_general_case cs1;;
+!failures;;
 report_cs cs1;;
+cs1;;
 handle_general_case cs1;;
 let hl = filter ok_for_more hl;;
 report_cs cs1;;
+filter (fun cs-> (cs.k_cs>4)) hl;;
+filter (fun cs -> (cs.k_cs =3)&&(cs.d_cs > 0.2)) kl;;
+
+report_cs hex_std_preslice_02;;
+
 index (false) (map (can  handle_general_case) kl);;
 time(map (equi_transfer_to_list terminal_cs)) hl;;
 time (map (x_equi_transfer_to_list terminal_cs)) hl;;

@@ -97,6 +97,7 @@ StringCharacter = [^\"]
 		"?" { return new Token(TokenType.QUESTION, yychar, yyline, yycolumn); }
 		"->" { return new Token(TokenType.RIGHT_ARROW, yychar, yyline, yycolumn); }
 		"<-" { return new Token(TokenType.LEFT_ARROW, yychar, yyline, yycolumn); }
+		"in" { return new Token(TokenType.IN, yychar, yyline, yycolumn); }
 
         /* string literal */
         \"    { yybegin(STRING); string.setLength(0); }
@@ -143,4 +144,4 @@ StringCharacter = [^\"]
 	[^`]+ { string.append(yytext()); }
 }
 
-. { System.err.println("Illegal character: "+yytext()); }
+. { System.err.println("Illegal character: "+yytext()); throw new RuntimeException("Illegal character: "+yytext()); }

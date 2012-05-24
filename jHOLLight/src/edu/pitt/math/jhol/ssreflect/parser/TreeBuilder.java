@@ -452,11 +452,45 @@ public class TreeBuilder {
 				throw new Exception("null intro: " + t);
 		}
 		
+		// in
+		if (disch == null && intro == null) {
+			InNode in_tac = tryParseIn(tactic);
+			if (in_tac != null)
+				return in_tac;
+		}
+
 		chain.addChain(disch);
 		chain.addChain(tactic);
 		chain.addChain(intro);
 		
 		return chain;
+	}
+	
+	/**
+	 * Tries to parse an 'in' expression
+	 */
+	private InNode tryParseIn(TacticNode left) throws Exception {
+		Token t = scanner.peekToken();
+		boolean goalFlag = false;
+		
+		if (t.type != TokenType.IN)
+			return null;
+		
+		// in
+		scanner.nextToken();
+		
+		// ids
+		ArrayList<String> ids = parseIdList();
+		
+		// *
+		t = scanner.peekToken();
+		if (t.type == TokenType.STAR) {
+			// *
+			scanner.nextToken();
+			goalFlag = true;
+		}
+		
+		return new InNode(left, ids, goalFlag);
 	}
 	
 	

@@ -148,6 +148,27 @@ let move labels (g:goal) =
 
 
 
+(* Localization tactical *)
+let in_tac a_list in_goal tac (g:goal) =
+  let goal_tm = snd g in
+  let tmp_goal_name = "$_goal_$" in
+  let tmp_goal_var = mk_var (tmp_goal_name, bool_ty) in
+  let tmp_goal = mk_eq (tmp_goal_var, goal_tm) in
+  let tmp_goal_sym = mk_eq (goal_tm, tmp_goal_var) in
+  let disch_tac = 
+    rev_itlist (fun name tac -> REMOVE_THEN name MP_TAC THEN tac) a_list ALL_TAC in
+  let intro_tac = move a_list in
+  let hide_goal, unfold_goal = 
+    if in_goal then 
+      ALL_TAC, ALL_TAC
+    else
+      ABBREV_TAC tmp_goal, 
+    EXPAND_TAC tmp_goal_name THEN 
+      UNDISCH_TAC tmp_goal_sym THEN DISCH_THEN (fun th -> ALL_TAC)
+  in
+    (hide_goal THEN disch_tac THEN tac THEN TRY intro_tac THEN unfold_goal) g;;
+
+
 
 (* Finds a subterm in the given term which matches against the given
    pattern; local_consts is a list of variable which must be fixed in 

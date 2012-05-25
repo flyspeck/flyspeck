@@ -15,6 +15,12 @@ in a finite sequence of regulated moves.
 *)
 
 
+module Check_completness = struct
+
+(*
+
+We don't need the full flyspeck build, really just lib.ml.
+
 #directory "/Users/thomashales/Desktop/googlecode/hol_light";;
 #use "hol.ml";;
 
@@ -24,6 +30,7 @@ let flyspeck_dir =
 loadt (flyspeck_dir^"/../glpk/sphere.ml");;
 loadt (flyspeck_dir^"/general/lib.hl");;
 
+*)
 
 
 (*
@@ -720,6 +727,7 @@ let terminal_tri_4922521904 = mk_cs(
  funlist [(0,1),3.339; (0,2),twoh0; (1,2),two] two,"terminal 4922521904");;
 
 (*
+Note: May 25, 2012.
 The interval ineq requires bounds on (0,2) of 3.41 3.634,
 but we have Delta[3.634,2,2,3.01,2.52,3.01]<0, so the upper bound 
 always holds.
@@ -727,6 +735,10 @@ In the range 3.01--3.41, we can slice and use
 upper echelon inequalities _772 and _273.
 I haven't implemented this, but it would be an easy extension of
 the upper_echelon procedure.
+
+OK. Implemented as upper_echelonC.
+We no longer need quad_163.
+We use 5512912661 deformation: 3.15/h0 instead
 *)
 
 (*
@@ -739,6 +751,7 @@ let terminal_quad_1637868761 = mk_cs(
                   (2,3),twoh0; (0,3),two; (0,2),3.634; (1,3),upperbd] two,"terminal 1637868761");;
 *)
 
+(*
 let terminal_quad_1637868761 = mk_cs(
  4,
  0.5518,
@@ -746,7 +759,7 @@ let terminal_quad_1637868761 = mk_cs(
                   (2,3),twoh0; (0,3),two; (0,2),cstab; (1,3),cstab] two,
  funlist [(0,1),two; (1,2), cstab;
                   (2,3),twoh0; (0,3),two; (0,2),upperbd; (1,3),upperbd] two,"terminal 1637868761");;
-
+*)
 
 
 let ear_cs = 
@@ -918,7 +931,7 @@ let terminal_cs = [
  terminal_tri_2739661360; 
  terminal_tri_9269152105; 
  terminal_tri_4922521904; 
- terminal_quad_1637868761; 
+(* terminal_quad_1637868761;  *)
  terminal_ear_3603097872; 
  ear_jnull; 
  ear_stab;
@@ -1710,7 +1723,7 @@ let hex_std_preslice_02,hex_std_preslice_03 =
   let c2 = subdivide_cs 0 3 cstab hex_std_cs in
     hist (hd c1) "hex_std_preslice 02" , hist (hd c2) "hex_std_preslice 03";;
 
-let hex_std_postslice = (* slice_hex_to_pent_tri =  *)
+let hex_std_postslice = (* claim A  *)
   let cs = hex_std_preslice_02 in
   let d'= 0.616 in 
   let d = cs.d_cs -. d' in 
@@ -1724,8 +1737,8 @@ let hex_std_postslice = (* slice_hex_to_pent_tri =  *)
 
 let hex_assumptions = [hex_std_preslice_02;hex_std_preslice_03];;
 
-claim_arrow([hex_std_cs],hex_assumptions);;
-claim_arrow(hex_assumptions,hex_std_postslice);;
+claim_arrow([hex_std_cs],hex_assumptions);; (* claim B *)
+claim_arrow(hex_assumptions,hex_std_postslice);; (* claim A *)
 
 
 
@@ -1786,7 +1799,7 @@ let rec general_loop2 df postfilter c active stab_diags =
 	    with 
                Failure s -> (active,stab_diags);;
 
-let execute_hexagons() = 
+let execute_hexagons() =   (* claim B *)
   let postfilter = not o (equi_transfer_to_list hex_assumptions) in 
   let hex_ultra = filtered_subdivide postfilter [hex_std_cs] in
   let hex_loop = general_loop2 hex_deformations postfilter in
@@ -1873,17 +1886,18 @@ let pent_assumptions =
    then we run execute_pentagons to get rid of it too.
 *)
 
-let pent_composite_ultra_cs = 
+let pent_composite_ultra_cs = (* claim C *)
   let pl = filtered_subdivide 
     (not o (equi_transfer_to_list pent_assumptions)) 
     (pent_composite_cs::pent_init) in
     transfer_union pl [];;
 
+(* claim C *)
 claim_arrow(pent_init,pent_composite_ultra_cs @pent_assumptions);;
 
 (* pent section main claim *)
 
-let execute_pentagons() = 
+let execute_pentagons() =  (* claim D *)
   let pent_filter = not o (equi_transfer_to_list pent_assumptions) in 
   let pent_loop = general_loop2 pent_deformations pent_filter in
     (([],[])=pent_loop 200000 (pent_composite_ultra_cs) []);;
@@ -1898,7 +1912,7 @@ let execute_pentagons() =
    svn 2834m.
 *)
 
-claim_arrow(pent_composite_ultra_cs,pent_assumptions);;
+claim_arrow(pent_composite_ultra_cs,pent_assumptions);; (* claim D *)
 
 
 (*
@@ -1947,7 +1961,7 @@ let check_echelon_precondition cs =
   with Failure _ -> false;;
 
 let upper_echelonA =
-  let assumptions = filter_terminal (fun cs -> true) in
+  let assumptions = filter_terminal all in
   let transfer = x_equi_transfer_to_list assumptions in
     fun (p1,(dval,diag)) cs ->
       let _ = check_echelon_precondition cs or raise Unchanged in
@@ -1961,10 +1975,38 @@ let upper_echelonA =
 	(map (fun cs -> slice_cs cs p1 p3 dval dval' false) css) in
       let css'' = filter (not o transfer) css' in
       let _ = (css''=[]) or raise Unchanged in
-	();;
+	[];;
+
+let upper_echelonC = 
+  let assumptions = filter_terminal all in
+  let transfer = x_equi_transfer_to_list assumptions in
+    fun p1 cs ->      
+      let diag341 = 3.41 in
+      let _ = check_echelon_precondition cs or raise Unchanged in
+      let p2 = inc cs p1 in
+      let p3 = inc cs p2 in
+      let p4 = inc cs p3 in
+      let edge_is c (i,j) = (cs.am_cs i j = c) in
+      let rhs = [(p1,p2);(p2,p3)] in
+      let lhs = [(p3,p4);(p4,p1)] in
+      let has_one c e = (length(filter(edge_is c) e) = 1) in
+      let _ = (has_one two rhs) or raise Unchanged in
+      let _ = (has_one two lhs) or raise Unchanged in
+      let _ = (has_one cstab rhs) or raise Unchanged in
+      let _ = (has_one twoh0 lhs) or (has_one cstab lhs) or raise Unchanged in
+      let css = subdivide_cs p1 p3 diag341 cs in
+      let (css1,css2) = partition (fun cs -> cs.bm_cs p1 p3 <= diag341) css in
+      let _ = (length css1 = 1) or failwith "ech:C" in
+      let cs1 = restrict_cs (hd css1) in
+      let dval = 0.4759 in
+      let dval' = cs.d_cs -. dval in
+      let css' = slice_cs cs1 p1 p3 dval dval' false in
+      let css'' = filter (not o transfer) css' in
+      let _ = (css'' =[]) or raise Unchanged in
+	css2;;
 
 let upper_echelonB = 
-  let assumptions = filter_terminal (fun cs -> true) in
+  let assumptions = filter_terminal all in
   let transfer = x_equi_transfer_to_list assumptions in
     fun diag cs ->
       let _ = check_echelon_precondition cs or raise Unchanged in
@@ -1986,7 +2028,7 @@ let upper_echelonB =
 	try
 	  ignore(map (apply_first (map (f(0,2)) dv')) css02);
 	  ignore(map (apply_first (map (f(1,3)) dv')) css13);
-	  ()
+	  []
 	with Failure _ -> raise Unchanged;;
 
 let upper_echelon  = 
@@ -1994,10 +2036,12 @@ let upper_echelon  =
   let dataA = cart (0--3)
     [(0.0759,3.41);(0.4759,3.41);(0.2759,3.339);(0.2759,3.62)] in
   let dataB = [3.41;3.339;3.62] in
-  let cases = map upper_echelonA dataA @ map upper_echelonB dataB in
+  let dataC = (0--3) in
+  let cases = map upper_echelonA dataA @ map upper_echelonB dataB @
+    map upper_echelonC dataC in
     fun cs -> 
-      let _ = apply_first cases cs in
-	[];;
+      apply_first cases cs;;
+
 
 
 (*
@@ -2008,7 +2052,7 @@ QUADRILATERALS
 
 (* this handles quad_pro_cs modulo the return cs's *)
 
-let (quad_477_preslice_short,quad_477_preslice_long) = 
+let (quad_477_preslice_short,quad_477_preslice_long) = (* claim E *)
   let preslices = subdivide_all_c_diag alldiag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
@@ -2018,7 +2062,7 @@ let (quad_477_preslice_short,quad_477_preslice_long) =
 
 (* This is the case where ears are required -- finally! *)
 
-let execute_quad_to_ear() = 
+let execute_quad_to_ear() = (* claim E' *)
   let transfer = x_equi_transfer_to_list (filter_terminal all) in
   let _ = (length quad_477_preslice_short = 1) or failwith "handle 477" in
   let cs = hd quad_477_preslice_short in
@@ -2031,9 +2075,10 @@ let execute_quad_to_ear() =
 
 
 (* let quad_remaining = !remaining;;
- *)
 remaining :=quad_remaining;;
-claim_arrow([quad_pro_cs],quad_477_preslice_long);;
+ *)
+
+claim_arrow([quad_pro_cs],quad_477_preslice_long);;  (* claim E *)
 
 let triquad_assumption = 
 [
@@ -2074,7 +2119,7 @@ let triquad_assumption =
 *)
 ];;
 
-claim_arrow([],triquad_assumption);;
+claim_arrow([],triquad_assumption);;  (* claim - no justification required *)
 
 (* 477 has been handled already. 
   We make the case involving the ear part of the terminal
@@ -2154,7 +2199,7 @@ let ok_for_more_tri_quad assumptions =
 let special_quad_init = 
   quad_diag_cs :: quad_477_preslice_long;;
 
-let execute_special_quads = 
+let execute_special_quads = (* claim F *)
   let quad_deformations = 
     deformations (ok_for_more_tri_quad terminal_quad) 4 in
   let terminal_transfer = x_equi_transfer_to_list terminal_quad in
@@ -2167,7 +2212,7 @@ let execute_special_quads =
 execute_special_quads();;
 *)
 
-claim_arrow(special_quad_init,[]);;
+claim_arrow(special_quad_init,[]);;  (* claim F *)
 
 (* execute_special_quads is true, it means that 
    all special quads have been reduced
@@ -2241,7 +2286,6 @@ let handle_general_case skip8 assumptions =
 	    upper_echelon cs 
 	  with Failure _ -> failcs(cs, "no handler found");;
 
-let handle = handle_general_case false terminal_quad;;
 
 let handle_loop skip8 assumptions = 
   let handle_one = handle_general_case skip8 assumptions in
@@ -2259,30 +2303,44 @@ let handle_loop skip8 assumptions =
 
 let r_init = !remaining;;  
 
-let execute_triquad () = 
+let execute_triquad () =  (* claim G*)
   let b1 = ([] = (handle_loop false terminal_quad 50000)  r_init) in
   let b2 = ([] = (handle_loop true terminalj_cs 50000)  triquad_assumption) in
     b1 && b2;;
+
+claim_arrow(r_init,terminal_quad);; (* claim G *)
+claim_arrow(triquad_assumption,terminalj_cs);; (* claim G *)
+claim_arrow(terminalj_cs,[]);; (* claim E *)
+
+let all_cases_done = (!remaining = []);;
 
 let execute() = 
   (execute_hexagons() &&
     execute_pentagons() &&
     execute_quad_to_ear() &&
     execute_special_quads() &&
-    execute_triquad());;
+    execute_triquad() &&
+    all_cases_done);;
 
-time execute ();;
+
+end;;
 
 
 (* scratch area *)
+
+(*
+let handle = handle_general_case true terminalj_cs;;
 
 debug_cs := [];;
 execute_triquad();;
 let cs1 = (hd !debug_cs);;
 report_cs cs1;;
-
+let cs2 = upper_echelon cs1;;
+report_cs (hd cs2);;
+let cs3 = hd(handle (hd cs2));;
+report_cs cs3;;
 1;;
-(*
+
 let hl = time (handle_loop true terminalj_cs 50000)  tri_cases_left;;
 let cs_term = hd (!debug_cs);;
 let cs_init = List.nth quad_cases_left 1;;

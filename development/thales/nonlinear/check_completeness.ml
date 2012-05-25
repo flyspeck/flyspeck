@@ -25,6 +25,8 @@ loadt (flyspeck_dir^"/../glpk/sphere.ml");;
 loadt (flyspeck_dir^"/general/lib.hl");;
 
 flyspeck_needs "../glpk/sphere.ml";;
+
+
 (*
 ****************************************
 BASICS
@@ -99,12 +101,17 @@ let djz = 0.11 +. 0.1 *.(cstab -. sqrt8);; (* ear-value on cstab edge *)
 let target = 1.541;;
 let two = 2.0;;
 let twoh0 = 2.52;;
+  let arc1553 = arc two two (sqrt1553);;
 let sqrt8 = Pervasives.sqrt(8.0);;
 let three = 3.0;;
 let cstab = 3.01;;
+let sqrt1553 = sqrt(15.53);;
 let four = 4.0;;
 let fourh0 = 2.0 *. twoh0;;
 let upperbd = 6.0;;  (* 6.0 > 4 * h0, upper bound on diags in BB *)
+
+
+
 
 let tame_table_d0 i = 
   if (i <= 3) then zero
@@ -141,6 +148,11 @@ Every slice decreases k.
 Every subdivision restricts the B-field through a finite set of choices
   (retaining the M-field)
 Every deformation sets a new M-field constraint.
+
+As a matter of programming style.
+Procedures that refer to particular cs's should be avoided,
+except the list terminal list.  Pass everything else in by argument.
+Select from terminal list with filter_terminal
 *)
 
 (* DEPRECATED
@@ -183,6 +195,13 @@ type constraint_system =
   history_cs : string list;
 };;
 
+(*
+****************************************
+DEBUG
+****************************************
+*)
+
+
 let string_of_cs cs =
   let s = string_of_list string_of_int in
   let k = string_of_int cs.k_cs in
@@ -201,6 +220,62 @@ let string_of_cs cs =
 
 let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
 
+
+(* report(string_of_cs quad_std_cs);; *)
+(* #install_printer pp_print_cs;; *)
+
+
+let extensional_equality cs cs' = 
+  let bk = cs.k_cs = cs'.k_cs in
+  let bd = cs.d_cs = cs'.d_cs in
+  let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
+  let ba = m cs.a_cs cs'.a_cs in
+  let bb = m cs.b_cs cs'.b_cs in
+  let bam = m cs.am_cs cs'.am_cs in
+  let bbm = m cs.bm_cs cs'.bm_cs in
+  let ps js = map psort js in
+  let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
+  let bstr = set_eq (cs.str_cs) cs'.str_cs in
+  let blo = set_eq cs.lo_cs cs'.lo_cs in
+  let bhi = set_eq cs.hi_cs cs'.hi_cs in
+    bk && bd && ba && bb && bam && bbm && bstr && blo && bhi && bj;;
+
+
+let catch_failure cs_term h = 
+  fun cs ->
+    try
+      h cs
+    with Failure _ -> 
+      if exists (extensional_equality cs_term) !debug_cs 
+      then [cs_term] else [];;
+
+let rec rev_assoc_e e a l =
+  match l with
+    (x,y)::t -> if e a y then x else rev_assoc_e e a t
+  | [] -> failwith "find";;
+
+let rec build_path e dict cs cs' buf = 
+  if (e cs cs') then cs::buf else
+    let v = rev_assoc_e e cs' dict in
+      build_path e dict cs v (cs'::buf);;
+
+build_path (=) [(0,4);(4,9);(9,3);(9,7)] 0 7 [];;
+
+let rec mk_assoc h cs_term dict cs_init = 
+  let e = extensional_equality in
+  if can (Lib.find  (e cs_term)) cs_init then dict
+  else 
+    let out = map h cs_init in
+    let zs = zip cs_init out in
+    let f(z,css) = map (fun cs-> (z,cs)) css in
+    let zss = List.flatten (map f zs) in
+      mk_assoc h cs_term (zss @ dict) (List.flatten out);;
+
+let debug_trace h cs_init cs_term =
+  let dict = mk_assoc h cs_term [] [cs_init] in
+    build_path extensional_equality dict cs_init cs_term [];;
+
+
 let report_cs cs = report(string_of_cs cs);;
 
 let debug_cs = ref [];;
@@ -209,8 +284,12 @@ let failcs (cs,s) =
   report_cs cs; debug_cs:= [cs]; failwith s;;
 
 
-(* report(string_of_cs quad_std_cs);; *)
-(* #install_printer pp_print_cs;; *)
+(*
+****************************************
+MORE BASIC OPERATIONS
+****************************************
+*)
+
 
 
 (*
@@ -301,6 +380,15 @@ let alledge cs =
   let ed = map (fun i -> psort(i,inc cs i)) ks in
     ed;;
 
+let all = (fun t -> true);;
+
+let htmax cs p = if (mem p cs.lo_cs) then two else twoh0;;
+
+let htmin = two;;
+
+let arcmin cs (i,j) = arc (htmax cs i) (htmax cs j) (cs.am_cs i j);;
+
+let arcmax cs (i,j) = arc htmin htmin (cs.bm_cs i j);;
 
 
 (*
@@ -308,7 +396,6 @@ let alledge cs =
 BASIC OPS ON CONSTRAINT SYSTEMS
 ****************************************
 *)
-
 
 let is_cs cs = 
   let f (i,j) = 
@@ -433,20 +520,6 @@ let reset_iso_cs cs cs' =
   (cs.k_cs = cs'.k_cs) && 
  (  proper_reset_iso_cs cs cs' or proper_reset_iso_cs (opposite_cs cs) cs');;
 
-let extensional_equality cs cs' = 
-  let bk = cs.k_cs = cs'.k_cs in
-  let bd = cs.d_cs = cs'.d_cs in
-  let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
-  let ba = m cs.a_cs cs'.a_cs in
-  let bb = m cs.b_cs cs'.b_cs in
-  let bam = m cs.am_cs cs'.am_cs in
-  let bbm = m cs.bm_cs cs'.bm_cs in
-  let ps js = map psort js in
-  let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
-  let bstr = set_eq (cs.str_cs) cs'.str_cs in
-  let blo = set_eq cs.lo_cs cs'.lo_cs in
-  let bhi = set_eq cs.hi_cs cs'.hi_cs in
-    bk && bd && ba && bb && bam && bbm && bstr && blo && bhi && bj;;
 
 
 (*
@@ -610,11 +683,13 @@ let terminal_adhoc_quad_7697147739 = mk_cs(
  funlist [(0,1),sqrt8 ; (0,2),cstab ; (1,3),cstab ] two,
  funlist [(0,1),sqrt8 ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal 7697147739");;
 
+(* special case of tri_492...
 let terminal_tri_3456082115 = mk_cs(
  3,
  0.5518 /. 2.0,
  funlist [(0,1), cstab; (0,2),twoh0; (1,2),two] two,
  funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two,"terminal 3456082115");;
+*)
 
 let terminal_tri_7720405539 = mk_cs(
  3,
@@ -628,10 +703,12 @@ let terminal_tri_2739661360 = mk_cs(
  funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
  funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,"terminal 2739661360");;
  
+(* range increased by combining with previous case *)
+
 let terminal_tri_9269152105 = mk_cs(
  3,
  0.5518 /. 2.0 ,
- funlist [(0,1),3.41; (0,2),cstab; (1,2),two] two,
+ funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
  funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two,"terminal 9269152105");;
 
 let terminal_tri_4922521904 = mk_cs(
@@ -800,9 +877,11 @@ let terminal_std_tri_OMKYNLT_3336871894 = mk_cs(
  funlist [] two,
  funlist [] two,"terminal 3336871894");;
 
-(* use unit_cs as a default terminal object *)
+(* use unit_cs as a default terminal object
 
 let unit_cs = terminal_std_tri_OMKYNLT_3336871894;;
+ *)
+
 
 let terminal_cs = [
  terminal_hex;
@@ -811,7 +890,7 @@ let terminal_cs = [
  terminal_adhoc_quad_9563139965B; 
  terminal_adhoc_quad_4680581274; 
  terminal_adhoc_quad_7697147739; 
- terminal_tri_3456082115; 
+(* terminal_tri_3456082115; special case of tri_492... *)
  terminal_tri_7720405539; 
  terminal_tri_2739661360; 
  terminal_tri_9269152105; 
@@ -839,10 +918,10 @@ let terminal_cs = [
  terminal_std_tri_OMKYNLT_3336871894; 
 ];;
 
-forall ( is_aug_cs) terminal_cs;;
-forall ( attr_free) terminal_cs;;
+let filter_terminal f = filter f terminal_cs;;
 
-let take_terminal f = filter f terminal_cs;;
+forall ( is_aug_cs) (filter_terminal all);;
+forall ( attr_free) (filter_terminal all);;
 
 let is_ear cs = 
   (cs.k_cs = 3) && (length cs.js_cs = 1) && (reset_iso_cs cs  ear_cs);;
@@ -960,6 +1039,7 @@ let slice_aux cs p q dv =
 
 
 
+
 let slice_dstd_aux cs p q = 
   let k = cs.k_cs in
   let p = p mod k in
@@ -976,7 +1056,8 @@ let slice_dstd_aux cs p q =
   let edge2(i,j) = (twoh0 <= a i j && b i j <= sqrt8) && (not(edge3(i,j))) in
   let edge1(i,j) = (two <= a i j  && b i j <= twoh0) && (not (edge2 (i,j))) in
   let edge3s(i,j) = (a i j = cstab && b i j = cstab) in
-  let edge (i, j) = edge1 (i ,j) or edge2 (i, j) or edge3 (i, j) in
+  let edgeL(i,j) = (twoh0 <= a i j && b i j <= cstab) in
+  let edge (i, j) = edge1 (i ,j) or edge2 (i, j) or   edge3 (i, j) or edgeL(i,j) in
   let (p1,p2,p3) = (p,inc cs p,funpow 2 (inc cs) p) in
   let triedge = [(p1,p2);(p2,p3);(p3,p1)] in
   let _ = forall edge triedge or failcs (cs, "slice_dstd") in 
@@ -984,6 +1065,7 @@ let slice_dstd_aux cs p q =
   let c_edge2 = length (filter (edge2) triedge) in
   let c_edge3= length (filter (edge3) triedge) in
   let c_edge3s = length (filter edge3s triedge) in
+  let c_edgeL = length (filter edgeL triedge) in
   let eps = tame_table_d 2 1 -. 0.11 in 
   let d12 = tame_table_d 1 2 in
   let m3 = eps *. float_of_int (c_edge3) in
@@ -991,8 +1073,9 @@ let slice_dstd_aux cs p q =
   let flat2s = (c_edge1=2) && (c_edge3s=1), djz in
   let flat2 = (c_edge1=2) && (c_edge3=1), 0.11 in
   let atype = (c_edge1=1) && (c_edge2+c_edge3 =2), d12 +.  m3 in 
-  let btype = (c_edge1=0) && (c_edge2+c_edge3=3), tame_table_d 0 3 +. m3 in
-  let (_,dpq) = List.find (fst) [flat1;flat2s;flat2;atype;btype] in
+  let btype = (c_edge1=0) && (c_edge2+c_edge3=3), tame_table_d 0 3 +. 3.0 *. eps in
+  let typeL = (c_edge1=1) && (c_edgeL=2),0.2619 in
+  let (_,dpq) = List.find (fst) [flat1;flat2s;flat2;atype;btype;typeL] in
     (dpq, d-. dpq);;
 
 let sort_slice_order cs p q = 
@@ -1005,6 +1088,7 @@ let sort_slice_order cs p q =
     let p1 = inc cs p in
     let _ = (inc cs p1 = q) or  failwith "sso:not a diag" in
       (if (edge1(p,p1) && edge1(p1,q)) then (p,q,false) else (q,p,true));;
+
   
 let slice_dstd cs p q = 
   let k = cs.k_cs in
@@ -1038,6 +1122,14 @@ let slice_std cs p q =
   let rv = slice_cs cs p q dvpq dvqp mk_ear in
   let _ = forall (fun cs' -> cs'.k_cs < cs.k_cs) rv in
     rv;;
+
+(*
+let slice_std cs p q = 
+  try
+    slice_std1 cs p q 
+  with Failure _ ->
+    slice_std1 (restrict_cs cs) p q;;
+*)
 
 (*
 let equi_transfer_cs  = 
@@ -1129,7 +1221,7 @@ let deform_2065952723_A1_single p cs =
   let ks = ks_cs cs in
   let alldiag' = alldiag cs in 
   let _ = mem p ks or failwith "206:out of range" in
-  let _ = (arc 2. 2. (cs.b_cs p1 p2) < arc 2. 2. (sqrt(15.53))) or
+  let _ = arcmax cs (p1, p2) < arc1553 or
     raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
@@ -1164,8 +1256,7 @@ let deform_2065952723_A1_double p cs =
   let ks = ks_cs cs in
   let alldiag = alldiag cs in
   let _ = mem p ks or failwith "206-double:out of range" in
-  let _ = (arc 2. 2. (cs.b_cs p1 p2) +. arc 2. 2. (cs.b_cs p0 p1) 
-	   < arc 2. 2. (sqrt(15.53))) or
+  let _ = (arcmax cs (p1,p2) +. arcmax cs (p0,p1) < arc1553) or
     raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(memj cs (p0,p1)) or raise Unchanged in
@@ -1281,6 +1372,10 @@ By the sloc, cos c - cos a cos b <= cos c + |cos a cos b|
 p3 is straight if it is an effective triangle p1,p2 not str, p0 p4 str.
 *)
 
+let obtuse_crit cs p0 p1 p2 = 
+    ((cs.bm_cs p0 p1= two) && (mem p2 cs.lo_cs)) or
+      (mem p0 cs.lo_cs && mem p2 cs.lo_cs) or 
+      ((cs.bm_cs p0 p1=two) && (mem p0 cs.lo_cs) );;
 
 let deform_4828966562_obtuse p0 p1 p2 cs =
   let ks = ks_cs cs in
@@ -1289,17 +1384,14 @@ let deform_4828966562_obtuse p0 p1 p2 cs =
   let _ = (cstab <= cs.a_cs p0 p2) or     raise Unchanged in
   let _ = (cs.b_cs p1 p2 <= twoh0) or raise Unchanged in
   let _ = (cs.b_cs p0 p1 <= twoh0) or raise Unchanged in
-  let obtuse_crit = 
-    ((cs.bm_cs p0 p1= two) && (mem p2 cs.lo_cs)) or
-      (mem p0 cs.lo_cs && mem p2 cs.lo_cs) or 
-      ((cs.bm_cs p0 p1=two) && (mem p0 cs.lo_cs) ) in
+  let obtuse = obtuse_crit cs p0 p1 p2 in
   let p4 = funpow 3 (inc cs) p1 in
   let obtuse_sloc = 
     (cs.k_cs = 6) &&
     (length (sortuniq cs.str_cs) = 3) && (subset [p0;p4] cs.str_cs) &&
       (cs.bm_cs p1 p2 <= twoh0) && not (mem p1 cs.str_cs) &&
       not (mem p2 cs.str_cs) in
-  let _ = obtuse_crit or obtuse_sloc or raise Unchanged in    
+  let _ = obtuse or obtuse_sloc or raise Unchanged in    
   let _ = (cs.a_cs p1 p2 < cs.bm_cs p1 p2) or raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
@@ -1330,7 +1422,7 @@ let deform_4828966562B_obtuse p cs =
 
 range calculations for 6843920790.
 2.0 *. arc 2.52 2.52 2.0 > arc 2.0 2.0 2.38;;
-2.0 *. arc 2.0 2.0 2.52 < arc 2.0 2.0 (sqrt(15.53));;
+2.0 *. arc 2.0 2.0 2.52 < arc1553;;
 As the documentation for this inequality indicates, it is
 applied to the triangle p4 p1 p2.
 
@@ -1374,22 +1466,31 @@ let deform_6843920790 p1 cs =
      cs1::cs2::
       (filter_some(map cspq ((p1,p2)::non_p4diag)));;
 
+(*
+deformation 5512912661 functions in an almost identical manner
+to 6843920790 on quads.  We take the union of the two deformations
+here.
+*)
+
 let deform_6843920790_quad p1 p2 p3 p4 cs =
   let _ = (cs.k_cs = 4) or raise Unchanged in
   let ks = ks_cs cs in
   let adj (i,j) = (inc cs i = j) or (inc cs j = i) in
   let _ = forall adj [(p1,p2);(p2,p3);(p3,p4);(p4,p1)] or failwith "684q" in
   let _ = subset [p1;p2;p3;p4] ks or failwith "684:range" in
-  let htmin = two in
-  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
-  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
-  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
   let arc238 = arc two two 2.38 in
-  let arc1553 = arc two two (sqrt(15.53)) in
+    (* ineq 684 conditions. *)
   let a2 = (two <= cs.am_cs p1 p2 && cs.bm_cs p1 p2 <= cstab) in
-  let b2 = (arc238 <= arcmin(p1,p4) && cs.bm_cs p1 p4 <= cstab) in
-  let c2 = (cstab <= cs.am_cs p2 p4 && arcmax(p2,p3)+.arcmax(p3,p4) <= arc1553) in
-  let _ = (a2 && b2 && c2) or  raise Unchanged in
+  let b2 = (arc238 <= arcmin cs(p1,p4) && cs.bm_cs p1 p4 <= cstab) in
+  let c2 = (cstab <= cs.am_cs p2 p4 && arcmax cs(p2,p3)+.arcmax cs(p3,p4) <= arc1553) in
+    (* ineq 5512912661 conditions. *)
+  let a2' = (arc238 <= arcmin cs (p1,p2) && cs.bm_cs p1 p2 <= cstab) in
+  let b2' = (two <= cs.bm_cs p1 p4 && cs.bm_cs p1 p4 <= twoh0) in
+  let arc315 = arc two two (3.15/.1.26) in
+  let c2' = (arc315 <= arcmin cs ( p2, p4) && 
+	      ((arcmax cs(p2,p3)+.arcmax cs(p3,p4) <= arc1553) or
+	       (arcmax cs (p2,p1) +.arcmax cs (p1,p4) <= arc1553))) in
+  let _ = (a2 && b2 && c2) or (a2' && b2' && c2') or  raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
   let _ = not(mem p2 cs.str_cs) or raise Unchanged in
@@ -1413,14 +1514,9 @@ let deform_6843920790_tri p1 cs =
   let ks = ks_cs cs in
   let _ = mem p1 ks or failwith "684:tri" in
   let _ = subset [p1;p2;p3] ks or failwith "684:range" in
-  let htmin = two in
-  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
-  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
-  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
   let arc238 = arc two two 2.38 in
-  let arc1553 = arc two two (sqrt(15.53)) in
   let a2 = (two <= cs.am_cs p1 p2 && cs.bm_cs p1 p2 <= cstab) in
-  let range(p,q) = (arc238 <= arcmin(p,q) && arcmax (p,q) <= arc1553) in
+  let range(p,q) = (arc238 <= arcmin cs(p,q) && arcmax cs (p,q) <= arc1553) in
   let _ = (a2 && range(p3,p1) && range(p3,p2)) or  raise Unchanged in
   let _ = not(memj cs (p1,p2)) or raise Unchanged in
   let _ = not(mem p1 cs.str_cs) or raise Unchanged in
@@ -1448,6 +1544,8 @@ let deform_684_quadB p1 cs =
   let p3 = f 2 p1 in
   let p4 = f 3 p1 in
     deform_6843920790_quad p1 p2 p3 p4 cs;;
+
+
 
 let deformations postfilter k = 
   let r f p cs = filter postfilter (f p cs) in
@@ -1520,7 +1618,7 @@ let find_subdivide_edge f_diag c cs =
   let ind = index true (map (between_cs c cs) (diag)) in
     List.nth diag ind;;
 
-let subdivide_c_diag f_diag c = 
+let subdivide_all_c_diag f_diag c = 
   let p = partition (can_subdivide f_diag c) in
   let rec sub init term =
     match init with
@@ -1552,7 +1650,7 @@ let claim_arrow (a,b) =
   let et = map equi_transfer_cs a in
   let p cs = exists (fun f -> f cs) et in
   let _ = remaining := (filter (not o p) !remaining) in
-  let tt = map equi_transfer_cs terminal_cs in
+  let tt = map equi_transfer_cs (filter_terminal all)  in
   let q cs = exists (fun f -> f cs) tt in
   let b' = filter (not o q) b in
   let _ = remaining := b' @ !remaining in
@@ -1621,7 +1719,7 @@ claim_arrow(hex_assumptions,hex_std_postslice);;
 
 let ok_for_more_hex = 
   let is_hex cs = (cs.k_cs =6) in
-  let terminals = take_terminal is_hex in
+  let terminals = filter_terminal is_hex in
     fun cs ->
       let _ = (cs.k_cs = 6) or failwith "ok:6" in
       let _ = 
@@ -1654,16 +1752,16 @@ let transfer_to_hex_assumptions =
 *)
 
 let filtered_subdivide postfilter init  = 
-  let sub = subdivide_c_diag (alldiag) cstab init in
+  let sub = subdivide_all_c_diag (alldiag) cstab init in
     filter postfilter sub;;
 
-let rec apply_first_deformation dl cs = 
+let rec apply_first dl cs = 
   match dl with
       [] -> failwith ( "all deformations fail")
     | d::dls ->
 	try
 	  d cs
-	with Unchanged -> apply_first_deformation dls cs;;
+	with Unchanged -> apply_first dls cs;;
 
 let preslice_ready cs = 
   if (cs.k_cs=4) && (cs.d_cs=0.467) 
@@ -1695,7 +1793,7 @@ let rec general_loop2 df postfilter c active stab_diags =
 	[] -> ([],stab_diags) 
       | cs::css -> 
 	    try 
-	      let kss = apply_first_deformation df cs in
+	      let kss = apply_first df cs in
 	      let (u,v) = partition preslice_ready kss in
 	      let u' = filter postfilter u in
 		general_loop2 df postfilter (c-1) (v @ css) (u' @  stab_diags)
@@ -1727,7 +1825,7 @@ PENTAGONS
 
 
 let ok_for_more_pent =
-  let terminals = take_terminal (fun cs -> cs.k_cs = 5) in
+  let terminals = filter_terminal (fun cs -> cs.k_cs = 5) in
     fun cs ->
       let _ = (cs.k_cs = 5) or failwith "ok:5" in
       let _ = 
@@ -1735,23 +1833,22 @@ let ok_for_more_pent =
 	with Failure s -> report_cs cs; failwith s in
       let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
       let sph_tri_ineq i = 
-	let p0 = i in
-	let p1 = inc cs p0 in
-	let p2 = inc cs p1 in
-	let p3 = inc cs p2 in
-	let p4 = inc cs p3 in
-	  if not(subset [p1;p2] cs.str_cs) then true
-	  else
-	    let htmin = two in
-	    let htmax p = if mem p cs.lo_cs then two else twoh0 in
-	    let e03min = arc (htmax p0) (htmax p1) (cs.am_cs p0 p1) +.
-	      arc (htmax p1) (htmax p2) (cs.am_cs p1 p2) +.
-	      arc (htmax p2) (htmax p3) (cs.am_cs p2 p3) in
-	    let e03max = arc (htmin) (htmin) (cs.bm_cs p3 p4) +.
-	      arc (htmin) (htmin) (cs.bm_cs p4 p0) in
-	      e03min <= e03max in
-  let bunfinished = not (exists (transfer_to cs) terminals) in
-    bstr && bunfinished && forall sph_tri_ineq (ks_cs cs);;
+	if (length cs.str_cs < 2) then true
+	else 
+	  let p0 = i in
+	  let p1 = inc cs p0 in
+	  let p2 = inc cs p1 in
+	  let p3 = inc cs p2 in
+	  let p4 = inc cs p3 in
+	    if not(subset [p1;p2] cs.str_cs) then true
+	    else
+	      let e03min = arcmin cs (p0,p1) +. 
+		arcmin cs (p1,p2) +. arcmin cs (p2,p3) in
+	      let e03max = arcmax cs (p3,p4) +. arcmax cs (p4, p0) in
+		e03min <= e03max in
+      let bunfinished = not (exists (transfer_to cs) terminals) in
+	bstr && bunfinished && forall sph_tri_ineq (ks_cs cs);;
+
 
 let pent_deformations = deformations ok_for_more_pent 5;;
 
@@ -1833,27 +1930,130 @@ report_cs cs;;
 
 (*
 ****************************************
+ECHELON QUADS
+****************************************
+*)
+
+(* These are the quadrilaterals that need subdivision in
+the 'ultra' range of diagonals >= cstab.
+There are two ways of doing this, either by picking the smaller
+diagonal (echelon B) or picking the "better" diagonal, even if
+not the shortest.
+
+This should be used as the last resort on a quadrilateral.
+It fails unless the slice reduces to terminal cases.
+*)
+
+let delta_am_diag2_neg cs d = 
+  let y01 = cs.am_cs 0 1 in
+  let y03 = cs.am_cs 0 3 in
+  let y21 = cs.am_cs 2 1 in
+  let y23 = cs.am_cs 2 3 in
+    Sphere_math.delta_y d y01 y03 d y23 y21 < 0.0;;
+
+let delta_am_diag_neg cs p1 d = (* d from p1 to p3, am from p2 to p4 *)
+  let p2 = inc cs p1 in
+  let p3 = inc cs p2 in
+  let p4 = inc cs p3 in
+  let y12 = cs.am_cs p1 p2 in
+  let y14 = cs.am_cs p1 p4 in
+  let y32 = cs.am_cs p3 p2 in
+  let y34 = cs.am_cs p3 p4 in
+  let am = cs.am_cs p2 p4 in
+    Sphere_math.delta_y d y12 y14 am y34 y32 < 0.0;;
+
+let check_echelon_precondition cs = 
+  try
+    let _ = (cs.k_cs = 4) or failwith "echelon1" in
+    let fixed (i,j) = (cs.am_cs i j = cs.bm_cs i j) in
+    let _ = forall fixed (alledge cs) or failwith "echelon:edge" in
+    let _ = forall (fun(i,j) ->cs.am_cs i j >= cstab) (alldiag cs) or 
+      failwith "ech:diag" in
+    let _ = (cs.js_cs = []) or failwith "ech:j" in 
+      true
+  with Failure _ -> false;;
+
+let upper_echelonA =
+  let assumptions = filter_terminal (fun cs -> true) in
+  let transfer = x_equi_transfer_to_list assumptions in
+    fun (p1,(dval,diag)) cs ->
+      let _ = check_echelon_precondition cs or raise Unchanged in
+      let _ = delta_am_diag_neg cs p1 diag or raise Unchanged in
+      let p2 = inc cs p1 in
+      let p3 = inc cs p2 in
+      let dval' = cs.d_cs -. dval in
+      let css = filter 
+	(fun cs -> cs.bm_cs p1 p3 <= diag) (subdivide_cs p1 p3 diag cs) in
+      let css' = List.flatten 
+	(map (fun cs -> slice_cs cs p1 p3 dval dval' false) css) in
+      let css'' = filter (not o transfer) css' in
+      let _ = (css''=[]) or raise Unchanged in
+	();;
+
+let upper_echelonB = 
+  let assumptions = filter_terminal (fun cs -> true) in
+  let transfer = x_equi_transfer_to_list assumptions in
+    fun diag cs ->
+      let _ = check_echelon_precondition cs or raise Unchanged in
+      let _ = delta_am_diag2_neg cs diag or raise Unchanged in
+      let css = filter 
+	(fun cs -> cs.bm_cs 0 2 <= diag or cs.bm_cs 1 3 <= diag)
+	(subdivide_all_c_diag alldiag diag [cs]) in
+      let css02,css13 = partition 
+	(fun cs -> cs.bm_cs 0 2 <= diag) css in
+      let dcases = if (diag=3.41) then [0.0759;0.4759] else [0.2759] in
+      let op(a,b) = (b,a) in
+      let dv = map (fun d -> (d,cs.d_cs -. d)) dcases in
+      let dv' = (dv @ map op dv) in
+      let f (p,q) (d,d') cs = 
+	let css' = slice_cs cs p q d d' false in
+	let css'' = filter (not o transfer) css' in
+	let _ = (css''=[]) or raise Unchanged in
+	  () in
+	try
+	  ignore(map (apply_first (map (f(0,2)) dv')) css02);
+	  ignore(map (apply_first (map (f(1,3)) dv')) css13);
+	  ()
+	with Failure _ -> raise Unchanged;;
+
+let upper_echelon  = 
+  (* we get the case data from echelon data in terminal_cs. *)
+  let dataA = cart (0--3)
+    [(3.41,0.0759);(3.41,0.4759);(3.339,0.2759);(3.62,0.2759)] in
+  let dataB = [3.41;3.339;3.62] in
+  let cases = map upper_echelonA dataA @ map upper_echelonB dataB in
+    fun cs -> 
+      let _ = apply_first cases cs in
+	[];;
+
+
+(*
+****************************************
 QUADRILATERALS
 ****************************************
 *)
 
+(* this handles quad_pro_cs modulo the return cs's *)
+
 let (quad_477_preslice_short,quad_477_preslice_long) = 
-  let preslices = subdivide_c_diag alldiag cstab [quad_pro_cs] in
+  let preslices = subdivide_all_c_diag alldiag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
     (subdivide_cs 0 2 cstab quad_pro_cs) in
   let ww = transfer_union (p @ vv) [] in
     partition preslice_ready ww;;
 
+(* This is the case where ears are required -- finally! *)
+
 let handle_quad_477_preslice_short = 
+  let transfer = x_equi_transfer_to_list (filter_terminal all) in
   let _ = (length quad_477_preslice_short = 1) or failwith "handle 477" in
   let cs = hd quad_477_preslice_short in
   let mk_ear = true in
   let inc2 = funpow 2 (inc cs) in
   let f i =  slice_cs cs i (inc2 i) (0.11) (0.477 -. 0.11) mk_ear in
   let ind = filter (can f) (0--3) in
-  let g i = 
-    forall (fun u -> exists (equi_transfer_cs u) terminal_cs) (f i) in
+  let g i =  forall (transfer) (f i) in
     exists g ind;;
 
 (* let quad_remaining = !remaining;;
@@ -1877,6 +2077,13 @@ let triquad_assumption =
     overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((0,3),cstab)],
     "triquad assumption"    
   );
+  mk_cs (
+    3,
+    0.4278,
+    cs_adj twoh0 cstab 3,
+    cs_adj cstab upperbd 3,
+    "tri assumption"
+  );
 (*
   mk_cs (
     3,
@@ -1890,23 +2097,37 @@ let triquad_assumption =
     cs_adj two cstab 3,
     cs_adj twoh0 cstab 3,
     "td 3 0");
-  mk_cs (
-    3,
-    0.4278,
-    cs_adj twoh0 cstab 3,
-    cs_adj cstab upperbd 3,
-    "tri assumption"
-  );
 *)
 ];;
 
 claim_arrow([],triquad_assumption);;
 
-let terminal_quad = 
-  triquad_assumption @ quad_477_preslice_short @ terminal_cs;;
+(* 477 has been handled already. 
+  We make the case involving the ear part of the terminal
+   set so that we don't need to deal with ears any further.
+  can make it an assumption *)
 
-let ok_for_more_tri_quad  = 
-  let terminal_transfer = x_equi_transfer_to_list terminal_quad in
+let terminalj_cs = quad_477_preslice_short @ (filter_terminal all);;
+
+let terminal_quad =  
+  triquad_assumption @ terminalj_cs;;
+
+(* see calc in main_estimate.hl. If opposite edges are too short
+   the angle cannot be straight.  *)
+let can_be_straight_2485876245b cs p1 = 
+  if (not (cs.k_cs = 4)) then true
+  else 
+    let p0 = dec cs p1 in
+    let p2 = inc cs p1 in
+    let p3 = inc cs p2 in
+      not (cstab <= cs.am_cs p1 p3 &&
+	     cs.bm_cs p1 p2 <= cstab &&
+	     cs.bm_cs p1 p0 <= cstab &&
+	     cs.bm_cs p2 p3 <= twoh0 &&
+	     cs.bm_cs p3 p0 <= twoh0);;
+
+let ok_for_more_tri_quad assumptions = 
+  let terminal_transfer = x_equi_transfer_to_list assumptions in
   fun cs -> 
   let _ = (mem cs.k_cs [3;4]) or failwith "ok:3,4" in
   let b467_2485876245a = 
@@ -1930,20 +2151,42 @@ let ok_for_more_tri_quad  =
 	not(exists (equi_transfer_cs cs) quad_477_preslice_short) in
 	(b477a && b477c) 
     else true in      
+  let sph_tri_ineq p1 = 
+    let p0 = dec cs p1 in
+    let p2 = inc cs p1 in
+    let p3 = inc cs p2 in
+      if (not (mem p1 cs.str_cs)) then true (* in tri str=[] *)
+      else
+	arcmin cs (p0,p1) +. arcmin cs (p1,p2) <
+	  arcmax cs (p0,p3) +. arcmax cs (p3,p2) in
+  let sph_tri_ineq2 p1 = (* rather ad hoc to kill a case *)
+    let p0 = dec cs p1 in
+    let p2 = inc cs p1 in
+    let p3 = inc cs p2 in
+      if (not (mem p1 (intersect cs.str_cs cs.lo_cs))) then true
+      else
+	cs.am_cs p0 p1 < cs.bm_cs p0 p3 or
+	  cs.am_cs p1 p2 < cs.bm_cs p2 p3 in 
   let _ = 
     try is_aug_cs cs 
     with Failure s -> report_cs cs; failwith s in
   let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
   let bunfinished = not (terminal_transfer cs) in
-    bstr && b4a && bunfinished && b467_2485876245a && b477 ;;
+    bstr && b4a && bunfinished && b467_2485876245a && 
+      b477 && forall sph_tri_ineq (cs.str_cs) &&
+      forall sph_tri_ineq2 (intersect cs.str_cs cs.lo_cs) &&
+     forall (can_be_straight_2485876245b cs) (cs.str_cs);;
 
-let quad_deformations = deformations ok_for_more_tri_quad 4;;
+let quad_deformations = deformations (ok_for_more_tri_quad terminal_quad) 4;;
 
+(*
 let name_of_deformation_quad = name_of_deformation 4;;
 
 let tri_deformations = deformations ok_for_more_tri_quad 3;;
 
 let name_of_deformation_tri = name_of_deformation 3;;
+*)
+
 
 let special_quad_init = 
   quad_diag_cs :: quad_477_preslice_long;;
@@ -1988,20 +2231,23 @@ claim_arrow(special_quad_init,[]);;
    7- do "upper echelon" treatment of quads (subdivisions on edges > 3.01)
 
 *)
-let failures=1;;
+let failures=0;;
 
 (*
 let failures = ref triquad_assumption;;
 failures:= [];;
 *)
 
-let ok_for_more cs = 
+let ok_for_more assumptions = 
+  let ok3 = ok_for_more_tri_quad assumptions in
+    fun cs ->
   ((cs.k_cs = 6) && (ok_for_more_hex cs)) or 
   ((cs.k_cs=5) && (ok_for_more_pent cs)) or
-  ((mem cs.k_cs [3;4]) && (ok_for_more_tri_quad cs));;
+  ((mem cs.k_cs [3;4]) && (ok3 cs));;
 
 
-let handle_general_case = 
+let handle_general_case skip8 assumptions = 
+  let ok = ok_for_more assumptions in
   let dff k = deformations (fun cs -> true) k in
   let defs = [[];[];[];dff 3;dff 4;dff 5;dff 6] in
   let inrange cs a b (p,q) = (a <= cs.am_cs p q && cs.bm_cs p q <= b) in
@@ -2011,13 +2257,13 @@ let handle_general_case =
   fun cs -> 
   let alld = alldiag cs in
   (* 1- *)
-  if not(ok_for_more cs) then []
+  if not(ok cs) then []
  (*  else if exists (equi_transfer_cs cs) terminal_quad then [] *)
     (* 2a- *)
-  else if (can_subdivide allunderstable sqrt8 cs) 
-  then (subdivide_c_diag allunderstable sqrt8 [cs])
+  else if not(skip8) && (can_subdivide allunderstable sqrt8 cs) 
+  then (subdivide_all_c_diag allunderstable sqrt8 [cs])
   else if (can_subdivide allunderstable twoh0 cs) 
-  then (subdivide_c_diag allunderstable twoh0 [cs])
+  then (subdivide_all_c_diag allunderstable twoh0 [cs])
 
   else 
     try (* 4- *)
@@ -2030,61 +2276,97 @@ let handle_general_case =
       with Failure _ ->
 	try (* 6 *)
 	  if (can_subdivide alldiag cstab cs) 
-	  then (subdivide_c_diag alldiag cstab [cs])
+	  then (subdivide_all_c_diag alldiag cstab [cs])
 	  else
 	    let k = cs.k_cs in
 	    let dl = List.nth defs k in
-	      apply_first_deformation dl cs 
-	with Failure _ -> failcs(cs, "nothing suitable found");;
+	      apply_first dl cs 
+	with Failure _ -> 
+	  try (* 7 *)
+	    upper_echelon cs 
+	  with Failure _ -> failcs(cs, "no handler found");;
 
 (*
 	  ((failures:= cs:: !failures); []);;
 *)
+let handle = handle_general_case false terminal_quad;;
 
-let rec handle_loop c ls =
+let handle_loop skip8 assumptions = 
+  let handle_one = handle_general_case skip8 assumptions in
+  let rec handle_loop_rec c ls =
     if (c<=0) then ls 
     else match ls with
       | [] -> []
       | cs::css -> 
-	  let v = handle_general_case cs in
+	  let v = handle_one cs in
 	  let (a,b) = partition (fun cs -> cs.k_cs > 4) (v @ css) in
 	  let (b',b'') = partition (fun cs -> cs.k_cs = 3) b in
-	    handle_loop (c-1) ( a @ b' @ b'');;
+	    handle_loop_rec (c-1) ( a @ b' @ b'') in
+    handle_loop_rec;;
 
 
 let r_init = !remaining;;  
-let hl = time (handle_loop 50000)  r_init;;
+let hl = time (handle_loop false terminal_quad 50000)  r_init;;
+let hl = time (handle_loop true terminalj_cs 50000)  triquad_assumption;;
 
+
+
+(* scratch area *)
+let (quad_cases_left,tri_cases_left) = 
+  partition (fun cs -> (cs.k_cs = 4)) triquad_assumption;;
+
+
+let hl = time (handle_loop true terminalj_cs 50000)  tri_cases_left;;
+
+
+
+(* tracking an error *)
+
+let cs_term = hd (!debug_cs);;
+let cs_init = List.nth quad_cases_left 1;;
+report_cs cs_term;;
+let handle1 = handle_general_case true terminalj_cs;;
+let handle1' =  catch_failure cs_term handle1;;
+let kl = debug_trace handle1' cs_init cs_term;;
+List.length kl;;
+let cs' = List.nth kl 4;;
+report_cs cs';;
+handle1 cs';;
+slice_std cs' 1 3 ;;
+slice_dstd cs' 1 3;;
+
+let kl = handle1 cs1;;
+map report_cs kl;;
+let cases_left = 
+  filter (not o (x_equi_transfer_to_list (filter_terminal all)) terminal_quad;;
+
+let cs1 = debug_cs;;
+
+map report_cs cases_left;;
+
+let handle_loop' = 
+  let handle_one = handle_general_case (filter_terminal (fun cs ->true)) in
+  let rec handle_loop_rec c ls = 
+    if (c <=0) then ls
+     else match ls with 
+       | [] -> []
+       | cs::css -> 
+	   let v = handle_one cs in
+	     handle_loop_rec (c-1) (v @ css) in
+      handle_loop_rec;;
+    
+let hl = time (handle_loop' 500) cases_left;;
+
+cases_left;;
 failures:= [];;
 
-let s_init = [
-  mk_cs (
-    3,
-    0.103,
-    funlist [(0,1),twoh0] two,
-    funlist [(0,1),sqrt8] twoh0,
-    "td 2 1");
-  mk_cs (
-    3,
-    0.0,
-    cs_adj two cstab 3,
-    cs_adj twoh0 cstab 3,
-    "td 3 0");
-  mk_cs (
-    3,
-    0.4278,
-    cs_adj twoh0 cstab 3,
-    cs_adj cstab upperbd 3,
-    "tri assumption"
-  );];;
-let hl = time (handle_loop 50000) [List.nth s_init 2];;
 
 length hl;;
 let kl = !failures;;
 let kl = filter (fun cs -> cs.k_cs=3) hl;;
 let kl' = filter (fun cs -> not([]= handle_general_case cs)) kl;;
 
-let cs1 = List.nth hl 25;;
+let cs1 = hd hl;;
 report_cs cs1;;
 handle_general_case cs1;;
 length kl;;
@@ -2102,8 +2384,8 @@ filter (fun cs -> (cs.k_cs =3)&&(cs.d_cs > 0.2)) kl;;
 report_cs hex_std_preslice_02;;
 
 index (false) (map (can  handle_general_case) kl);;
-time(map (equi_transfer_to_list terminal_cs)) hl;;
-time (map (x_equi_transfer_to_list terminal_cs)) hl;;
+time(map (equi_transfer_to_list (filter_terminal all))) hl;;
+time (map (x_equi_transfer_to_list (filter_terminal all))) hl;;
 handle_general_case (hd kl);;
 ok_for_more_tri_quad cs1;;
 let kl' = filter (not o ok_for_more) hl;;
@@ -2244,7 +2526,7 @@ report_cs cs2;;
 (* XXD broken *)
 
 
-let hh= subdivide_c_diag alldiag cstab [hex_std_cs];;
+let hh= subdivide_all_c_diag alldiag cstab [hex_std_cs];;
 length hh;;
 let h2 = filter preslice_ready hh;;
 length h2;;
@@ -2270,7 +2552,7 @@ let preslice_pent_diag =
 let slice_pd_to_quad = 
   let cs = preslice_pent_diag in
   let vv = slice_cs cs 0 2 (0.11) (cs.d_cs -. 0.11) false in
-  let vv' = filter (fun v -> not ( exists (equi_transfer_cs v) terminal_cs)) vv in 
+  let vv' = filter (fun v -> not ( exists (equi_transfer_cs v) (filter_terminal all))) vv in 
     (map (C hist "slice pent to quad") vv');;
 
 claim_arrow ([preslice_pent_diag],slice_pd_to_quad);;
@@ -2280,44 +2562,9 @@ equi_transfer_cs;;
 
 
 let (quad_pd_short,quad_pd_long) = 
-  let preslices = subdivide_c_diag alldiag cstab [quad_pro_cs] in
+  let preslices = subdivide_all_c_diag alldiag cstab [quad_pro_cs] in
   let vv =  (map (C hist "preslice pro") preslices) in
   let p = filter (fun cs -> cs.b_cs 0 2 = cstab) 
     (subdivide_cs 0 2 cstab quad_pro_cs) in
   let ww = transfer_union (p @ vv) [] in
     partition preslice_ready ww;;
-
-
-let (p1,p2,p3,p4) = (0,1,2,3);;
-let cs = cs1;;
-let deform_6843920790_quad p1 p2 p3 p4 cs =
-  let _ = (cs.k_cs = 4) or raise Unchanged in
-  let ks = ks_cs cs in
-  let adj (i,j) = (inc cs i = j) or (inc cs j = i) in
-  let _ = forall adj [(p1,p2);(p2,p3);(p3,p4);(p4,p1)] or failwith "684q" in
-  let _ = subset [p1;p2;p3;p4] ks or failwith "684:range" in
-  let htmin = two in
-  let htmax p = if (mem p cs.lo_cs) then two else twoh0 in
-  let arcmin (i,j) = arc (htmax i) (htmax j) (cs.am_cs i j) in
-  let arcmax (i,j) = arc htmin htmin (cs.bm_cs i j) in
-  let arc238 = arc two two 2.38 in
-  let arc1553 = arc two two (sqrt(15.53)) in
-  let a2 = (arc238 <= arcmin(p2,p4) && cs.bm_cs p2 p4 <= cstab) in
-  let b2 = (arc238 <= arcmin(p1,p4) && cs.bm_cs p2 p4 <= cstab) in
-  let c2 = (cstab <= cs.am_cs p2 p4 && arcmax(p2,p3)+.arcmax(p3,p4) <= arc1553) in
-  let _ = (a2 && b2 && c2) or  raise Unchanged in
-  let _ = not(memj cs (p1,p2)) or raise Unchanged in
-  let _ = not(mem p1 cs.str_cs) or raise Unchanged in
-  let _ = not(mem p2 cs.str_cs) or raise Unchanged in
-  let m (i,j) =  (cs.a_cs i j < cs.bm_cs i j) in
-  let _ = forall m (alldiag cs) or raise Unchanged in
-  let _ = m (p1,p2) or raise Unchanged in
-  let n (i,j) = (fourh0 < cs.b_cs i j) in
-  let _ = forall n (alldiag cs) or raise Unchanged in
-  let cs1 = modify_cs cs ~str:(sortuniq (p1::cs.str_cs)) () in
-  let cs2 = modify_cs cs ~str:(sortuniq (p2::cs.str_cs)) () in
-  let cspq (i,j) = 
-    if (cs.am_cs i j > cs.a_cs i j) then None
-    else Some (modify_cs cs ~bm:(override cs.bm_cs (i,j,cs.a_cs i j)) ()) in 
-     cs1::cs2::
-      (filter_some( [cspq (p1,p2);cspq (p1,p3)] ));;

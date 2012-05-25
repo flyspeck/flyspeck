@@ -1,3 +1,7 @@
+(* A special definition for introducing equalities with the construction move eq: a => b *)
+let ssreflect_eq_def = new_definition `!v P. ssreflect_eq (v:A) (P:bool) = P`;;
+
+
 (* Generalizes given variables in a term *)
 let gen_variables binders tm =
   if type_of tm <> bool_ty then
@@ -117,35 +121,45 @@ let clear_assumption name =
   TRY (REMOVE_THEN name (fun th -> ALL_TAC));;
 
 
-
 (* DISCH_THEN (LABEL_TAC name) for assumptions and X_GEN_TAC name for variables *)
-let move labels (g:goal) =
-  let g_tm = snd g in
-  let move_name name g_tm =
-    if is_forall g_tm then
-      let tm0, g_tm1 = dest_forall g_tm in
-      let tm = mk_var (name, type_of tm0) in
-	if name = "_" then
-	  (GEN_TAC, g_tm1)
-	else
-	  (X_GEN_TAC tm, g_tm1)
-    else
-      if is_imp g_tm then
-	let tm = rand g_tm in
-	  if name = "_" then
-	    (DISCH_THEN (fun th -> ALL_TAC), tm)
+let move labels =
+  (* Automatically introduces an assumption for a top-level ssreflect_eq *)
+  let move_eq (g:goal) =
+    let g_tm = snd g in
+    let tac =
+      try
+	let eq_tm = (rator o fst o dest_imp) g_tm in
+	  if (fst o dest_const o rator) eq_tm = "ssreflect_eq" then
+	    let label = (fst o dest_var o rand) eq_tm in
+	      DISCH_THEN (LABEL_TAC label o PURE_ONCE_REWRITE_RULE[ssreflect_eq_def])
 	  else
-	    (DISCH_THEN (LABEL_TAC name), tm)
+	    ALL_TAC
+      with Failure _ -> ALL_TAC in
+      tac g in
+    
+  let move1 name (g:goal) =
+    let g_tm = snd g in
+    let tac =
+      if is_forall g_tm then
+	let tm0, g_tm1 = dest_forall g_tm in
+	let tm = mk_var (name, type_of tm0) in
+	  if name = "_" then
+	    GEN_TAC
+	  else
+	    X_GEN_TAC tm
       else
-	failwith "move: not (!) or (==>)" in
-  let rec build labels g_tm = 
-    match labels with
-      | [] -> ALL_TAC
-      | l :: ls ->
-	  let tac, tm = move_name l g_tm in
-	    tac THEN (build ls tm) in
-    (build labels g_tm) g;;
-
+	if is_imp g_tm then
+	  if name = "_" then
+	    DISCH_THEN (fun th -> ALL_TAC)
+	  else
+	    DISCH_THEN (LABEL_TAC name)
+	else
+	  failwith "move: not (!) or (==>)" in
+      tac g in
+    fun g ->
+      let tac = itlist 
+	(fun name tac -> move_eq THEN move1 name THEN move_eq THEN tac) labels ALL_TAC in
+	tac g;;
 
 
 (* Localization tactical *)
@@ -524,7 +538,7 @@ let disch_tm_tac occs tm (g : goal) =
   let abbrev_tm = mk_eq (new_tm, tm0) in
     (ABBREV_TAC abbrev_tm THEN 
        EXPAND_TAC name THEN
-       POP_ASSUM (fun th -> (new_rewrite occs [] th)) THEN
+       POP_ASSUM (fun th -> TRY (new_rewrite occs [] th)) THEN
        SPEC_TAC (new_tm, new_tm1)) g;;
 
 
@@ -957,3 +971,55 @@ let congr_tac pat_tm goal =
   let eq_thm = EQT_ELIM (SIMP_CONV[] eq_tm) in
     (apply_tac eq_thm THEN REPEAT CONJ_TAC) goal;;
 
+
+(* Eliminates the first antecedent of a goal *)
+let elim_fst_ants_tac =
+  let gen_elim_thm tm =
+    let vars, tm1 = strip_forall tm in
+    let ants_tm, concl_tm = dest_imp tm1 in
+    let th1 = ASSUME (itlist (curry mk_forall) vars concl_tm) in
+    let th2 = DISCH ants_tm (SPECL vars th1) in
+      DISCH_ALL (itlist GEN vars th2) in
+    fun (g:goal) ->
+      let goal_tm = snd g in
+      let elim_th = gen_elim_thm goal_tm in
+	MATCH_MP_TAC elim_th g;;
+
+
+(* If a goal has the form ssreflect_eq ==> P then the equality is introduced as
+   an assumption.
+   If a goal has the form !x. ssreflect_eq ==> P then the equality is eliminated *)
+let process_fst_eq_tac (g:goal) =
+  let vars, g_tm = strip_forall (snd g) in
+  let tac =
+    try
+      let eq_tm = (rator o fst o dest_imp) g_tm in
+      let label = (fst o dest_var o rand) eq_tm in
+	if (fst o dest_const o rator) eq_tm = "ssreflect_eq" then
+	  if length vars = 0 then
+	    DISCH_THEN (LABEL_TAC label o PURE_ONCE_REWRITE_RULE[ssreflect_eq_def])
+	  else
+	    elim_fst_ants_tac
+      else
+	ALL_TAC
+    with Failure _ -> ALL_TAC in
+    tac g;;
+
+
+(* Discharges a term by generalizing all occurences of this term first *)
+let disch_tm_eq_tac eq_name occs tm (g : goal) =
+  let tm0 = prepare_term tm g in
+  let name = generate_fresh_name ((fst o unzip) (get_context_vars g)) tm in
+  let eq_var = mk_var (eq_name, aty) in
+  let new_tm = mk_var (name, type_of tm0) in
+  let abbrev_tm = mk_eq (new_tm, tm0) in
+    (ABBREV_TAC abbrev_tm THEN 
+       EXPAND_TAC name THEN
+       FIRST_ASSUM (fun th -> TRY (new_rewrite occs [] th)) THEN
+       POP_ASSUM (MP_TAC o PURE_ONCE_REWRITE_RULE[GSYM (SPEC eq_var ssreflect_eq_def)]) THEN
+       SPEC_TAC (new_tm, new_tm)) g;;
+
+
+(* Discharges a term and generates an equality *)
+let disch_eq_tac eq_name occs arg =
+  disch_tm_eq_tac eq_name occs (get_arg_term arg);;

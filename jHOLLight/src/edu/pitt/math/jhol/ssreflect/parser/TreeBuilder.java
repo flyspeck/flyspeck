@@ -303,13 +303,6 @@ public class TreeBuilder {
 				return new TryNode(tactics);
 			}
 			
-			// do
-			if (t.value == "do") {
-				// do
-				scanner.nextToken();
-				return parseDoBody();
-			}
-
 			// first or last
 			if (t.value == "first" || t.value == "last") {
 				boolean firstFlag = (t.value == "first");
@@ -426,13 +419,30 @@ public class TreeBuilder {
 		TacticChainNode tactic = parseFirstTactic();
 		TacticChainNode disch = null;
 		TacticChainNode intro = null;
+		String eqLabel = null;
+		
+		Token t = scanner.peekToken();
+
+		// Parse an equality generator
+		if (t.type == TokenType.IDENTIFIER) {
+			if (tactic.size() > 0) {
+				TacticNode tac = tactic.get(tactic.size() - 1);
+				if (tac instanceof MoveNode || tac instanceof CaseElimNode) {
+					// id
+					scanner.nextToken();
+					eqLabel = t.value;
+				}
+			}
+		}
 
 		// : or =>
-		Token t = scanner.peekToken();
+		t = scanner.peekToken();
+		
+		// :
 		if (t.type == TokenType.COLON) {
 			// :
 			scanner.nextToken();
-			disch = parseDisch();
+			disch = parseDisch(eqLabel);
 		}
 
 		// =>
@@ -452,6 +462,9 @@ public class TreeBuilder {
 				throw new Exception("null intro: " + t);
 		}
 		
+		if (disch == null && eqLabel != null)
+			throw new Exception("Equality label without discharging: " + t);
+		
 		// in
 		if (disch == null && intro == null) {
 			InNode in_tac = tryParseIn(tactic);
@@ -462,6 +475,8 @@ public class TreeBuilder {
 		chain.addChain(disch);
 		chain.addChain(tactic);
 		chain.addChain(intro);
+		if (eqLabel != null)
+			chain.add(new RawTactic("process_fst_eq_tac"));
 		
 		return chain;
 	}
@@ -497,7 +512,7 @@ public class TreeBuilder {
 	/**
 	 * Parses discharging expressions
 	 */
-	private TacticChainNode parseDisch() throws Exception {
+	private TacticChainNode parseDisch(String eqLabel) throws Exception {
 		TacticChainNode chain = new TacticChainNode();
 		ArrayList<ObjectNode> objs = new ArrayList<ObjectNode>();
 		ArrayList<ArrayList<Integer>> occs = new ArrayList<ArrayList<Integer>>();
@@ -518,8 +533,10 @@ public class TreeBuilder {
 		
 		// Revert the order of discharges
 		for (int i = n - 1; i >= 0; i--) {
+			String eq = (i == 0 ? eqLabel : null);
+			
 			ObjectNode obj = objs.get(i);
-			chain.add(new DischNode(obj, occs.get(i)));
+			chain.add(new DischNode(obj, occs.get(i), eq));
 
 			if (obj instanceof IdNode) {
 				IdNode id = (IdNode) obj;
@@ -783,8 +800,11 @@ public class TreeBuilder {
 			if (t.type != TokenType.IDENTIFIER)
 				throw new Exception("IDENTIFIER expected: " + t);
 
+			// do
+			if (t.value == "do")
+				tactic = parseDoBody();
 			// exact
-			if (t.value == "exact")
+			else if (t.value == "exact")
 				tactic = new RawTactic("exact_tac");
 			// done
 			else if (t.value == "done")

@@ -10,13 +10,17 @@ public class DischNode extends TacticNode {
 	private final ArrayList<Integer> occs;
 	// The object which is discharged
 	private final ObjectNode obj;
+	// Equality label
+	private final String eqLabel;
 	
 	/**
 	 * Default constructor
 	 */
-	public DischNode(ObjectNode obj, ArrayList<Integer> occs) {
+	public DischNode(ObjectNode obj, ArrayList<Integer> occs, String eqLabel) {
 		assert(obj != null);
+		
 		this.obj = obj;
+		this.eqLabel = eqLabel;
 		if (occs == null)
 			this.occs = new ArrayList<Integer>();
 		else
@@ -36,7 +40,16 @@ public class DischNode extends TacticNode {
 		obj.translate(buffer);
 
 		// tactic
-		buffer.append(" (disch_tac ");
+		if (eqLabel == null) {
+			buffer.append(" (disch_tac ");
+		}
+		else {
+			buffer.append(" (disch_eq_tac ");
+			buffer.append('"');
+			buffer.append(eqLabel);
+			buffer.append('"');
+			buffer.append(' ');
+		}
 		
 		// occs
 		buffer.append('[');
@@ -49,32 +62,6 @@ public class DischNode extends TacticNode {
 		buffer.append(']');
 		
 		buffer.append(')');
-		
-		
-/*		int type = obj.getType(context);
-		if (type == ObjectNode.TERM) {
-			// term: disch_tm_tac
-			buffer.append("disch_tm_tac ");
-			
-			// occs
-			buffer.append('[');
-			int n = occs.size();
-			for (int i = 0; i < n; i++) {
-				buffer.append(occs.get(i));
-				if (i < n - 1)
-					buffer.append("; ");
-			}
-			buffer.append(']');
-			
-			// tm
-			obj.translate(buffer, context);
-		}
-		else {
-			// theorem: MP_TAC
-			obj.translate(buffer, context);
-			buffer.append("MP_TAC");
-		}
-*/		
 		buffer.append(')');
 	}
 }

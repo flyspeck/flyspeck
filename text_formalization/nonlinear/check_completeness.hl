@@ -1,4 +1,4 @@
-s(* ========================================================================== *)
+(* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (* Section: Local Fan Main Estimate                                           *)
 (* Chapter: Local Fan                                                         *)
@@ -15,7 +15,7 @@ in a finite sequence of regulated moves.
 *)
 
 
-module Check_completness = struct
+module Check_completeness = struct
 
 (*
 
@@ -162,31 +162,6 @@ except the list terminal list.  Pass everything else in by argument.
 Select from terminal list with filter_terminal
 *)
 
-(* DEPRECATED
-
-type attrib_cs =
-    Cs_straight of int
-  | Cs_lo  of int
-  | Cs_hi of int;;
-
-  | Cs_generic
-  | Cs_lunar
-  | Cs_interior_crit;; 
-
- Generic and lunar not closed conditions.
-
- Cs_hi not needed for initial reductions.
-
- Cs_interior_crit means all index-minimizers v 
-  st. all diags are strictly between a and b. 
-  Not a closed condition, don't use.
-
-let amap f a = match a with
-      | Cs_straight i -> Cs_straight (f i)
-      | Cs_lo i -> Cs_lo (f i)
-      | Cs_hi i -> Cs_hi (f i);;
-*)
-
 type constraint_system = 
 {
   k_cs : int;
@@ -197,7 +172,6 @@ type constraint_system =
   bm_cs: int->int->float;
   js_cs : (int*int) list;
   lo_cs :int list;
-  hi_cs : int list;
   str_cs : int list;
   history_cs : string list;
 };;
@@ -219,11 +193,10 @@ let string_of_cs cs =
   let bm = string_of_f cs.bm_cs (cs.k_cs) in
   let js = string_of_list string_of_pair cs.js_cs in
   let lo = s cs.lo_cs in
-  let hi = s cs.hi_cs in
   let str = s cs.str_cs in
     Printf.sprintf 
-      "{\n k=%s;\n d=%s;\n a=%s;\n b=%s;\n am=%s;\n bm=%s;\n js=%s;\n lo=%s;\n hi=%s;\n str=%s;\n}\n"
-      k d a b am bm js lo hi str;;
+      "{\n k=%s;\n d=%s;\n a=%s;\n b=%s;\n am=%s;\n bm=%s;\n js=%s;\n lo=%s;\n str=%s;\n}\n"
+      k d a b am bm js lo str;;
 
 let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
 
@@ -248,8 +221,7 @@ let extensional_equality cs cs' =
   let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
   let bstr = set_eq (cs.str_cs) cs'.str_cs in
   let blo = set_eq cs.lo_cs cs'.lo_cs in
-  let bhi = set_eq cs.hi_cs cs'.hi_cs in
-    bk && bd && ba && bb && bam && bbm && bstr && blo && bhi && bj;;
+    bk && bd && ba && bb && bam && bbm && bstr && blo && bj;;
 
 let debug_cs = ref [];;
 
@@ -329,7 +301,7 @@ let modify_cs cs =
   fun ?k:(k=cs.k_cs) ?a:(a=cs.a_cs) ?b:(b=cs.b_cs) 
     ?am:(am=cs.am_cs) ?bm:(bm=cs.bm_cs)
     ?d:(d=cs.d_cs)
-      ?js:(js=cs.js_cs) ?lo:(lo=cs.lo_cs) ?hi:(hi=cs.hi_cs)
+      ?js:(js=cs.js_cs) ?lo:(lo=cs.lo_cs) 
       ?str:(str=cs.str_cs) ?h:(history=cs.history_cs) () ->
  {
   k_cs = k;
@@ -340,7 +312,6 @@ let modify_cs cs =
   d_cs = d;
   js_cs = js;
   lo_cs = lo;
-  hi_cs = hi;
   str_cs = str;
   history_cs = history;
 };;
@@ -350,7 +321,7 @@ let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 (* usage : modify_cs hex_std_cs ~k:4 ();; *)
 
 let reset_attr cs = 
-  modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~hi:[] ~str:[] ();;
+  modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~str:[] ();;
 
 (* changes B-field, M remains a minimizer on smaller domain *)
 
@@ -423,7 +394,7 @@ let is_cs cs =
   let bj' = (compact cs.js_cs) or failwith "is_cs:bj'" in 
   let fj (i,j) = (i < j) && ((inc cs i = j) or (inc cs j = i)) in
   let bj'' = (forall fj cs.js_cs) or failwith "is_cs:bj''" in 
-  let ls =  cs.lo_cs @ cs.hi_cs @ cs.str_cs in
+  let ls =  cs.lo_cs @  cs.str_cs in
     bm && bs && bj && bj' && bj'' && 
       subset ls ks && subset cs.js_cs k2s ;;  
 
@@ -432,7 +403,7 @@ let attr_free cs =
   let ks = ks_cs cs in
   let k2s = cart2 ks in
   let bm = forall f k2s or failwith "attr_free" in
-    bm && (cs.lo_cs=[]) && (cs.hi_cs=[]) &&(cs.str_cs=[]);;
+    bm && (cs.lo_cs=[]) && (cs.str_cs=[]);;
 
 let zero_diag a xs = forall (fun i -> ((=) zero) (a i i)) xs;;
 
@@ -492,7 +463,6 @@ let map_cs f g cs =
     am_cs = a' (cs.am_cs);
     bm_cs = a' (cs.bm_cs);
     lo_cs = map g cs.lo_cs;
-    hi_cs = map g cs.hi_cs;
     str_cs = map g cs.str_cs;
     js_cs = map g2 cs.js_cs;
     history_cs = cs.history_cs;
@@ -589,7 +559,6 @@ let mk_cs (k,d,a,b,h) = {
   bm_cs = b;
   js_cs = [];
   lo_cs = [];
-  hi_cs = [];
   str_cs = [];
   history_cs = [h];
 };;
@@ -772,7 +741,6 @@ let ear_cs =
   bm_cs = funlist [(0,1),cstab] twoh0;
   js_cs = [0,1];
   lo_cs = [];
-  hi_cs = [];
   str_cs = [];
   history_cs= ["ear 3603097872"];
 };;
@@ -801,7 +769,6 @@ let terminal_tri_5405130650 =
   bm_cs = funlist [(0,1),cstab;(0,2),sqrt8;(1,2),twoh0] twoh0;
   js_cs = [0,1];
   lo_cs = [];
-  hi_cs = [];
   str_cs = [];
   history_cs=["terminal 5405130650"];
 };;
@@ -816,7 +783,6 @@ let terminal_tri_5766053833 =
   bm_cs = funlist [(0,1),cstab;(1,2),cstab] two;
   js_cs = [(0,1);(1,2)];
   lo_cs = [];
-  hi_cs = [];
   str_cs = [];
   history_cs=["terminal 5766053833"];
 };;
@@ -965,7 +931,7 @@ let is_ear cs =
 
 (*
 ****************************************
-TRANSFORMATIONS
+OPERATIONS AND TRANSFORMATIONS
 ****************************************
 *)
 
@@ -983,7 +949,7 @@ let transfer_to =
     if is_ear cs then is_ear cs'
     else subset (map psort cs'.js_cs) (map psort cs.js_cs) in
   let b5 cs cs' = 
-    subset cs'.lo_cs cs.lo_cs && subset cs'.hi_cs cs.hi_cs &&
+    subset cs'.lo_cs cs.lo_cs && 
       subset cs'.str_cs cs.str_cs in
     fun cs cs' -> 
       attr_free cs' && 
@@ -1159,23 +1125,7 @@ let slice_std cs p q =
   let _ = forall (fun cs' -> cs'.k_cs < cs.k_cs) rv in
     rv;;
 
-(*
-let slice_std cs p q = 
-  try
-    slice_std1 cs p q 
-  with Failure _ ->
-    slice_std1 (restrict_cs cs) p q;;
-*)
-
-(*
-let equi_transfer_cs  = 
-  let f cs = map (fun i -> rotatek_cs i cs) (ks_cs cs) in
-    fun cs ->
-      let cases = f cs @ f (opposite_cs cs) in
-	fun cs' -> (cs.k_cs = cs'.k_cs) && exists (C transfer_to cs') cases;;
-*)
-
-(* deformatin acts on M-fields, keeping the domain fixed. *)
+(* deformation acts on M-fields, keeping the domain fixed. *)
 
 let deform_ODXLSTC_cs p cs = 
   let p0 = dec cs p in
@@ -1672,7 +1622,7 @@ let subdivide_all_c_diag f_diag c =
 
 
 (* claims serve as documentation for
-   how the calculations are progressing from initial cs to terminal cs.
+   how the calculations are progressing from init_cs to terminal_cs.
 
    To do: make this into a formal deductive system.
    With rules of inference given by deformation rules, etc.

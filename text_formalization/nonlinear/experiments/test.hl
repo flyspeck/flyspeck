@@ -1,3 +1,141 @@
+(* MAY 2012 EXPERIMENTS TO SPEED THINGS UP *)
+
+(* use if we know sqrt is bounded away from 0 *)
+
+let truncate_sqrt  = new_definition `
+  truncate_sqrt c x = if (x <= c) then sqrt(c) else sqrt(x)`;;
+
+let truncate_dih_x = new_definition(`truncate_dih_x c x1 x2 x3 x4 x5 x6 =
+       let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+       let d = delta_x x1 x2 x3 x4 x5 x6 in
+       pi/ (&2) +  atn2( (sqrt ((&4) * x1) * truncate_sqrt c d),--  d_x4)`);;
+
+let truncate_dih_y = new_definition `truncate_dih_y c =
+  y_of_x (truncate_dih_x c)`;;
+
+let truncate_vol_x = new_definition(`truncate_vol_x c x1 x2 x3 x4 x5 x6 =
+        (truncate_sqrt c (delta_x x1 x2 x3 x4 x5 x6))/ (&12)`);;
+
+(*
+let truncate_vol_y = new_definition(`truncate_vol_y c =
+    y_of_x (truncate_vol_x c)`);;
+*)
+
+let truncate_sol_x = new_definition(`truncate_sol_x c x1 x2 x3 x4 x5 x6 =
+        (truncate_dih_x c x1 x2 x3 x4 x5 x6) +
+        (truncate_dih_x c x2 x3 x1 x5 x6 x4) +  
+	  (truncate_dih_x c x3 x1 x2 x6 x4 x5) -  pi`);;
+
+(*
+let truncate_sol_y = new_definition(`truncate_sol_y c
+	= y_of_x (truncate_sol_x c)`);;
+
+let truncate_vol3r = new_definition `truncate_vol3r c y1 y2 y3 r = 
+  truncate_vol_y c r r r y1 y2 y3`;;
+*)
+
+let truncate_vol3r_x = new_definition `truncate_vol3r_x c x1 x2 x3 r2 = 
+  truncate_vol_x c r2 r2 r2 x1 x2 x3`;;
+
+(*
+let truncate_vol3f = new_definition `truncate_vol3f c y1 y2 y3 r f = 
+  (&2 * mm1 / pi) * 
+        (truncate_sol_y c y1 y2 r r r y3 +
+	   truncate_sol_y c y2 y3 r r r y1 +
+	   truncate_sol_y c y3 y1 r r r y2)
+    - (&8 * mm2/pi) *
+       (f(y1/ &2)* truncate_dih_y c y1 y2 r r r y3 +
+	  f(y2/ &2)* truncate_dih_y c y2 y3 r r r y1 +
+	  f(y3/ &2)* truncate_dih_y c y3 y1 r r r y2)`;;
+*)
+
+let truncate_vol3f_x = new_definition 
+  `truncate_vol3f_x c x1 x2 x3 r2 f2 = 
+  (&2 * mm1 / pi) * 
+        (truncate_sol_x c x1 x2 r2 r2 r2 x3 +
+	   truncate_sol_x c x2 x3 r2 r2 r2 x1 +
+	   truncate_sol_x c x3 x1 r2 r2 r2 x2)
+    - (&8 * mm2/pi) *
+       (f2(x1/ &2)* truncate_dih_x c x1 x2 r2 r2 r2 x3 +
+	  f2(x2/ &2)* truncate_dih_x c x2 x3 r2 r2 r2 x1 +
+	  f2(x3/ &2)* truncate_dih_x c x3 x1 r2 r2 r2 x2)`;;
+
+(*
+let truncate_gamma3f = new_definition `truncate_gamma3f c y1 y2 y3 r f = 
+  truncate_vol3r c y1 y2 y3 r - truncate_vol3f c y1 y2 y3 r f`;;
+*)
+
+let truncate_gamma3f_x = new_definition 
+  `truncate_gamma3f_x c x1 x2 x3 r2 f2 = 
+  truncate_vol3r_x c x1 x2 x3 r2 - truncate_vol3f_x c x1 x2 x3 r2 f2`;;
+
+(*
+let truncate_gamma23f = new_definition 
+  `truncate_gamma23f c y1 y2 y3 y4 y5 y6 w1 w2 r f =
+      (truncate_gamma3f c y1 y2 y6 r f / &w1 + 
+	 truncate_gamma3f c y1 y3 y5 r f / &w2
+      + (dih_y y1 y2 y3 y4 y5 y6 - 
+	   truncate_dih_y c y1 y2 r r r y6 - 
+	   truncate_dih_y c y1 y3 r r r y5) * 
+	 (vol2r y1 r - vol2f y1 r f)/(&2 * pi)) `;;
+*)
+
+let vol2r_x = new_definition `vol2r_x x r2 = &2 * pi * 
+  (r2 - (x / (&4)))/(&3)`;;
+
+let vol2f_x = new_definition  `vol2f_x x r2 f2 =  
+  (&2 * mm1 / pi) *  &2 *pi* (&1- sqrt (x / r2) / &2)
+    - (&8 * mm2/pi) * &2 * pi * f2 (x/ (&2)) `;;
+
+(* note : f2 (x/ &2) = f(y / &2) when y^2 = x. *)
+
+let lmfun_x = new_definition `lmfun_x x = lmfun  (sqrt (x / &2))`;;
+
+let lfun_x = new_definition `lfun_x x = lfun (sqrt(x / &2))`;;
+
+let truncate_gamma23f_x = new_definition 
+  `truncate_gamma23f_x c x1 x2 x3 x4 x5 x6 w1 w2 r2 f2 =
+      (truncate_gamma3f_x c x1 x2 x6 r2 f2 / &w1 + 
+	 truncate_gamma3f_x c x1 x3 x5 r2 f2 / &w2
+      + (dih_x x1 x2 x3 x4 x5 x6 - 
+	   truncate_dih_x c x1 x2 r2 r2 r2 x6 - 
+	   truncate_dih_x c x1 x3 r2 r2 r2 x5) * 
+	 (vol2r_x x1 r2 - vol2f_x x1 r2 f2)/(&2 * pi)) `;;
+
+let truncate_gamma23_x_sample = new_definition
+ `truncate_gamma23_x_sample x1 x2 x3 x4 x5 x6 = truncate_gamma23f_x (#0.14)
+    x1 x2 x3 x4 x5 x6 1 1 (&2) lmfun_x`;;
+
+Ineq.make_F23 0 0;;
+
+let sample_ineq = 
+ {ineq =
+    `!y1 y2 y3 y4 y5 y6.
+         ineq
+         [&2 * hminus,y1,&2 * hplus; &2,y2,&2 * hminus; &2,y3,&2 * hminus; 
+         &2,
+         y4,
+         sqrt8; &2,y5,&2 * hminus; &2,y6,&2 * hminus]
+         (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 \/
+          delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14 \/
+          y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2 \/
+          y_of_x truncate_gamma23_x_sample y1 y2 y3 y4 y5 y6  >
+          a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)`;
+   idv = "ZTG truncate test/first split";
+   doc = "
+     Test on make_F23 0 0.
+     This is the $2$- and $3$-cell inequality for five or more leaves.";
+   tags =
+    [Tex; Split [0]; Set_rad2; Delta126min 0.139999999999;
+     Delta135min 0.139999999999; Marchal; Cfsqp_branch 3;
+     Flypaper ["OXLZLEZ"]; Penalty (200., 5000.);]};;
+
+
+
+
+
+(* PRE MAY 2012 STARTS HERE *)
+
 CE to hexall 5A1:
 
 {4.0367249999999996746,4.0367249999999996746,4.0367249999999996746,5.9464250000000058449,6.3876093749999940385,1.000000000000000222} {4.0367249999999996746,4.0367249999999996746,4.0367249999999996746,5.9464250000000058449,6.3876093749999940385,1.000000000000000222}  isolated point

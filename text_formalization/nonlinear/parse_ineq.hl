@@ -1,102 +1,119 @@
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
-(* Chapter: nonlinear inequalities                                                             *)
-(* Author:  Thomas Hales starting from Roland Zumkeller's ccform function    *)
-(* Date: 2010-05-09                                                    *)
+(* Chapter: nonlinear inequalities                                            *)
+(* Author:  Thomas Hales starting from Roland Zumkeller's ccform function     *)
+(* Date: 2010-05-09                                                           *)
 (* ========================================================================== *)
 
 (* 
-   code to generate a c++ file to test
-   a nonlinear inequality with cfsqp.
 
-   There are three output files
+   Use HOL Light specifications of functions and inequalities to
+   automatically generate code in other languages.
+
+   ** cfsqp C++ code,
+   ** glpk for linear programming
+   ** Objective Caml export of functions
+   ** LaTeX documentation of inequalities.
+
+   C++ code generation for interval arithmetic is done 
+   separately in optimize.hl.
+   (This file is independent from that one.)
+
+   Executing the cfsqp produces three output files:
    /tmp/cfsqp_err.txt, 
    tmp/t.cc tmp/t.o (in the cfsqp directory)
+   
 *)
 
 (*
 flyspeck_needs "general/flyspeck_lib.hl";;
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineq.hl";;
+flyspeck_needs "nonlinear/lemma.hl";;
 *)
 
 module Parse_ineq = struct 
 
   open Sphere;; 
+  open Nonlinear_lemma;;
 
-let trialcount = ref 500;;
+let cfsqp_trialcount = ref 500;;
 
-let dest_decimal x = match strip_comb x with
-    | (dec,[a;b]) ->                     div_num (dest_numeral a) (dest_numeral b)
-    | _ -> failwith ("dest_decimal: '" ^ string_of_term x ^ "'") ;;
+let dest_decimal = Flyspeck_lib.dest_decimal;;
 
-let string_of_num' x = string_of_float (float_of_num x);; 
+let string_of_num' = Flyspeck_lib.string_of_num';;
 
-let unsplit d f = function
-  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
+let join_comma  = Flyspeck_lib.join_comma;;
 
-let join_comma  = unsplit "," (fun x-> x);;
+let join_lines  = Flyspeck_lib.join_lines;;
 
-let join_lines  = unsplit "\n" (fun x-> x);;
+let join_space  = Flyspeck_lib.join_space;;
 
-let join_space  = unsplit " " (fun x-> x);;
+let paren s =  "("^ s ^")";;
 
+let nub = Flyspeck_lib.nub;;
+
+(* moved to lemmas.hl.
 let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
 
 let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
+*)
 
-let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; 
 (* from HOL Light lib.ml *)
 
-let rec nub = function (* from lpproc.ml *)
-  | [] -> []
-  | x::xs -> x::filter ((<>) x) (nub xs);;
+let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; 
+
 
 (* renamed from output_string to avoid Pervasives module name clash *)
 
 let output_filestring = Flyspeck_lib.output_filestring;;
 
-(*
-let output_filestring tmpfile a = 
-  let outs = open_out tmpfile in
-  let _ = try (Printf.fprintf outs "%s" a) 
-  with _ as t -> (close_out outs; raise t) in
-   close_out outs ;;
-*)
 
-(* start parsing routines *)
+(* ========================================
+cfsqp  generation 
+======================================== *)
 
 let c_string_of_term t = 
- let rec ccform t =
-  let soh = ccform in
-  if is_var t then fst (dest_var t) else
-  let (f,xs) = strip_comb t in
-  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  (if not (is_const f) then failwith ("Non-const function name: " ^ string_of_term f));
-  match fst (dest_const f) with
-  | "real_gt" | "real_ge" | "real_sub" -> ifix "-"
-  | "real_lt" | "real_le" -> ifix_swapped "-"
-  | "real_add" -> ifix "+"
-  | "real_mul" -> ifix "*"
-  | "real_div" -> ifix "/"
-  | "\\/" -> ifix "\\/"
-  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
-  | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
-  | "real_of_num" -> let [a] = xs in soh a  
-  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
-  | "<" -> let [a;b] = xs in "(" ^ soh a ^ " < " ^ soh b ^ ")"
-  | ">" -> let [a;b] = xs in "(" ^ soh a ^ " > " ^ soh b ^ ")"
-  | "+" -> let [a;b] = xs in "(" ^ soh a ^ " + " ^ soh b ^ ")"
-  | "*" -> let [a;b] = xs in "(" ^ soh a ^ " * " ^ soh b ^ ")"
-  | "DECIMAL" ->  string_of_num' (dest_decimal t)
-  | "COND" -> let [a;b;c] = xs in "( "^ soh a ^ " ? " ^ soh b ^ " : " ^ soh c ^ ")" 
-  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
-         "(atn2( " ^ soh a ^ "," ^ soh b ^ "))" 
-  | s -> "(" ^ s ^ "(" ^ join_comma(map soh xs) ^ "))" in
-   try (ccform t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
+  let rec soh t =
+    if is_var t then fst (dest_var t) 
+    else
+      let (f,xs) = strip_comb t in
+      let _ =  (is_const f) or  
+	failwith ("Non-const function name: " ^ string_of_term f) in
+      let ifix i  = 
+	let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in    
+      let ifix_swapped i  = 
+	let [b;a] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+	(* soh: *)
+	match fst (dest_const f) with
+	  | "real_gt" | "real_ge" | "real_sub" -> ifix "-" 
+	  | "real_lt" | "real_le" -> ifix_swapped "-" 
+	  | "real_add" -> ifix "+"
+	  | "real_mul" -> ifix "*"
+	  | "real_div" -> ifix "/"
+	  | "\\/" -> ifix "\\/"
+	  | "real_neg" -> let [a] = xs in paren("-" ^ soh a)
+	  | "acs" -> let [a] = xs in paren ("acos" ^ (paren (soh a)))
+	  | "real_of_num" -> let [a] = xs in soh a  
+	  | "NUMERAL" -> let [_] = xs in string_of_num' (dest_numeral t)
+	  | "<" -> let [a;b] = xs in paren(soh a ^ " < " ^ soh b)
+	  | ">" -> let [a;b] = xs in paren(soh a ^ " > " ^ soh b)
+	  | "+" -> let [a;b] = xs in paren(soh a ^ " + " ^ soh b)
+	  | "*" -> let [a;b] = xs in paren(soh a ^ " * " ^ soh b)
+	  | "DECIMAL" ->  string_of_num' (dest_decimal t)
+	  | "COND" -> 
+	      let [a;b;c] = xs in 
+		paren(soh a ^ " ? " ^ soh b ^ " : " ^ soh c)
+	  | "atn2"      -> 
+	      let [ab] = xs in 
+	      let (a,b) = dest_pair ab in  
+		paren("atn2( " ^ soh a ^ "," ^ soh b ^ ")")
+	  | s -> paren(s ^  "(" ^ join_comma(map soh xs) ^ ")") in
+   (* c_string_of_term: *)
+    try 
+      soh t
+    with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 let constant_names i =
   let rec cn b =function
@@ -110,226 +127,17 @@ let constant_names i =
 (* Rewrite unusual terms to prepare for C++ conversion *)
 
 
-let abc_quadratic = prove (`abc_of_quadratic (\x. a * (x pow 2) + b * x + c) = (a,b,c)`,
- REWRITE_TAC[abc_of_quadratic] THEN
- (REPEAT LET_TAC) THEN
- REWRITE_TAC[PAIR_EQ] THEN
- REPEAT(FIRST_X_ASSUM MP_TAC)THEN
- ARITH_TAC);;
-
-let delta_quadratic = prove( `-- delta_x x1 x2 x3 x4 x5 x6 = 
-  (x1) * (x4 pow 2) + (x1*x1 + (x3 - x5)*(x2 - x6) 
-   - x1*(x2 + x3 + x5 + x6)) * x4 
-   + ( x1*x3*x5 + x1*x2*x6 - x3*(x1 + x2 - x3 + x5 - x6)*x6 
-    - x2*x5*(x1 - x2 + x3 - x5 + x6) ) `,
-REWRITE_TAC[delta_x] THEN
-ARITH_TAC);;
-
-let edge_flat_rewrite = 
- REWRITE_RULE[abc_quadratic;delta_quadratic] edge_flat;;
-
-let enclosed_rewrite = 
-  REWRITE_RULE[abc_quadratic] 
-  (strip_let(REWRITE_RULE[Mur.muRa;Cayleyr.cayleyR_quadratic] Enclosed.enclosed));;
-
-let quadratic_root_plus_curry = 
-  new_definition `quadratic_root_plus_curry a b c = quadratic_root_plus (a,b,c)`;;
-
-let quad_root_plus_curry = 
-  REWRITE_RULE[quadratic_root_plus] quadratic_root_plus_curry;;
-
-let y_of_x_e = prove(`!y1 y2 y3 y4 y5 y6. y_of_x f y1 y2 y3 y4 y5 y6 =
-     f (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)`,
-     REWRITE_TAC[y_of_x]);;
-
-let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 = 
-    y_of_x vol_x y1 y2 y3 y4 y5 y6`,
-    REWRITE_TAC[vol_y]);;
-
-let rad2_y_e = prove(`!y1 y2 y3 y4 y5 y6. rad2_y y1 y2 y3 y4 y5 y6 = 
-    y_of_x rad2_x y1 y2 y3 y4 y5 y6`,
-    REWRITE_TAC[rad2_y]);;
-
-(*
-let taum_template_B_x_alt = prove_by_refinement(
-  `!x1  x12  x15  x2  x3  x34  x4  x45  x5  x6.
-    taum_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
-    taum_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
-      (edge_flat2_x x2 x1 x3 (&0) x12 x12) +
-      flat_term_x x2 +
-      flat_term_x x5 `,
-  (* {{{ proof *)
-
-  [
-  REWRITE_TAC[Sphere.taum_template_B_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-
-  (* }}} *)
-
-let dih_template_B_x_alt = prove_by_refinement(
-  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
-    dih_template_B_x  x15 x45 x34 x12 x25 x1 x2 x3 x4 x5 x6 = 
-   dih_x x1 x2 x5 x25 x15 x12 -
-     dih_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
-     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.dih_template_B_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-let delta_template_B_x_alt = prove_by_refinement(
-  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
-    delta_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
-     delta_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
-     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.delta_template_B_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let tau_lowform_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x5 x6.
-    tau_lowform_x  x1 x2 x3 x4 x5 x6 =
-   rho (sqrt x1) * pi - (pi + sol0) +
-          sqp (delta_x x1 x2 x3 x4 x5 x6) * rhazim_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 +
-          sqn  (delta_x x1 x2 x3 x4 x5 x6) * rhazim2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 +
-          sqn  (delta_x x1 x2 x3 x4 x5 x6) * rhazim3_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[tau_lowform_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-*)
-
-let taum_3flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x23 x13 x12.
-    taum_3flat_x x1 x2 x3 x23 x13 x12 = 
-  (taum_x x1 x2 x3 
-  ( edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) ) 
-  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
-   flat_term_x x12 + flat_term_x x23 + flat_term_x x13)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[taum_3flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let taum_2flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x13 x12.
-    taum_2flat_x x1 x2 x3 x4 x13 x12 = 
-  (taum_x x1 x2 x3 x4
-  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
-   flat_term_x x12 + flat_term_x x13)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[taum_2flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let taum_1flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x5 x12.
-    taum_1flat_x x1 x2 x3 x4 x5 x12 = 
-  (taum_x x1 x2 x3 x4 x5
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
-   flat_term_x x12)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[taum_1flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let euler_3flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x23 x13 x12.
-    euler_3flat_x x1 x2 x3 x23 x13 x12 = 
-  (eulerA_x x1 x2 x3 
-  ( edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) ) 
-  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )  )`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[euler_3flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let euler_2flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x13 x12.
-    euler_2flat_x x1 x2 x3 x4 x13 x12 = 
-  (eulerA_x x1 x2 x3 x4
-  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) ) )`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[euler_2flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let euler_1flat_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x5 x12.
-    euler_1flat_x x1 x2 x3 x4 x5 x12 = 
-  (eulerA_x x1 x2 x3 x4 x5
-  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )  )`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[euler_1flat_x];
-  REPEAT  LET_TAC;
-  ASM_MESON_TAC[];
-  ]);;
-  (* }}} *)
-
-
-let dih_x_alt = prove_by_refinement(
-  `!x1 x2 x3 x4 x5 x6. dih_x x1 x2 x3 x4 x5 x6 = pi / &2 +
-     atn2
-     (sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6),
-      --delta_x4 x1 x2 x3 x4 x5 x6) `,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.dih_x];
-  REPEAT LET_TAC;
-  REWRITE_TAC[];
-  ]);;
-  (* }}} *)
-
 
 (* function calls are dealt with three different ways:
       - native_c: use the native C code definition of the function. 
-      - autogen: automatically generate a C style function from the formal definition.
-      - macro_expand: macro expansion; use rewrites to eliminate the function call entirely.
+      - autogen: automatically generate a C style function 
+      - macro_expand: use rewrites to eliminate the function.
 *)
 
 (* Native is the default case.  There is no need to list them, except
    as documentation. *)
 
-let native_c = [
+let native_c =  [
   ",";"BIT0";"BIT1";"CONS";"DECIMAL"; "NIL"; "NUMERAL"; "_0"; "acs";
   "ineq";  "pi"; "adodec"; "bdodec";"real_add"; "real_div";"real_pow";"cos";
   "real_ge"; "real_mul"; "real_of_num"; "real_sub"; "machine_eps";
@@ -340,6 +148,7 @@ let native_c = [
   (* added May 2011 *)
   (* "taum_m_diff_quotient";"taum_m_diff_quotient2"; *)
   "mdtau";"mdtau2";
+  (* added 2012 *)
   "ell_uvx";
   "root";
    ];;
@@ -352,15 +161,17 @@ let prep_autogen = (function b -> snd(strip_forall (concl (strip_let b))));;
 
 autogen := map prep_autogen
   [sol0;tau0;hplus;mm1;mm2;vol_x;sqrt8;sqrt2;sqrt3;rho_x;
-   rad2_x;ups_x;eta_x;eta_y;volR; (* solRy;dihRy; *)
+   rad2_x;ups_x;eta_x;eta_y;volR; 
    norm2hh;arclength;regular_spherical_polygon_area;
-   beta_bump_force_y;  a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
-   tame_table_d;delta_x4;dih_x_alt;delta4_squared_x;x1_delta_x;quad_root_plus_curry;
+   beta_bump_force_y;  
+   a_spine5;b_spine5;beta_bump_lb;marchal_quartic;vol2r;
+   tame_table_d;delta_x4;dih_x_alt;delta4_squared_x;x1_delta_x;
+   quad_root_plus_curry;
    edge_flat_rewrite;const1;taum;flat_term;
    taum_y1;taum_y2;taum_y1_y2;
    arclength_y1;arclength_y2;arc_hhn;asn797k;asnFnhk;
    lfun_y1;arclength_x_123;
-   (* arclength_x_345; *)
+   (* deprecated: arclength_x_345; solRy;dihRy; *)
    acs_sqrt_x1_d4;acs_sqrt_x2_d4;
    tauq;enclosed_rewrite;
    sol_euler_x_div_sqrtdelta;
@@ -378,53 +189,56 @@ autogen := map prep_autogen
 
 (* cfsqp expansion *)
 
-let get_macro_expand() = (
-   [gamma4f;gamma4fgcy;vol4f;y_of_x_e;vol_y_e;rad2_y_e;vol3f;vol3r;vol2f;delta4_y;delta4_squared_y;x1_delta_y;
+let get_macro_expand() = (   
+  [gamma4f;gamma4fgcy;vol4f;y_of_x_e;vol_y_e;rad2_y_e;
+   vol3f;vol3r;vol2f;delta4_y;delta4_squared_y;x1_delta_y;
    gamma3f;gamma23f;  (* gamma23f_126_w1;gamma23f_red; *)
    gamma23f_red_03;gamma23f_126_03;
    GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
    rhazim2;rhazim3;rhazim_x;rhazim2_x;rhazim3_x;
    rotate2;rotate3;rotate4;rotate5;rotate6;
-		       sol_euler345_x_div_sqrtdelta;
-		       sol_euler156_x_div_sqrtdelta;
-		       sol_euler246_x_div_sqrtdelta;
-		       ldih_x_div_sqrtdelta_posbranch;
-		       ldih2_x_div_sqrtdelta_posbranch;
-		       ldih2_x_div_sqrtdelta_posbranch;
-		      ldih3_x_div_sqrtdelta_posbranch;
-		      ldih5_x_div_sqrtdelta_posbranch;
-		      ldih6_x_div_sqrtdelta_posbranch;
-		      lmdih_x_div_sqrtdelta_posbranch;
-		      lmdih2_x_div_sqrtdelta_posbranch;
-		      lmdih3_x_div_sqrtdelta_posbranch;
-		      lmdih5_x_div_sqrtdelta_posbranch;
-		      lmdih6_x_div_sqrtdelta_posbranch;
-		      taum_x;
-		      edge_flat2_x;
-(*		      delta_template_B_x_alt;
-		      taum_template_B_x_alt;
-		      dih_template_B_x_alt; 
-		      dih_hexall_x; 
-		      dih1_hexall_x;
-		      upper_dih_hexall_x;
-		      delta_hexall_x;
-		      delta4_hexall_x;  
-	deprecated:	      taum_hexall_x; 
-		      eulerA_hexall_x;
-		      factor345_hexall_x;
-		      law_cosines_234_x;
-		      law_cosines_126_x; *)
-		      delta_126_x;
-		      delta_234_x;
-		      delta_135_x;
-		      upper_dih_y; 
+   sol_euler345_x_div_sqrtdelta;
+   sol_euler156_x_div_sqrtdelta;
+   sol_euler246_x_div_sqrtdelta;
+   ldih_x_div_sqrtdelta_posbranch;
+   ldih2_x_div_sqrtdelta_posbranch;
+   ldih2_x_div_sqrtdelta_posbranch;
+   ldih3_x_div_sqrtdelta_posbranch;
+   ldih5_x_div_sqrtdelta_posbranch;
+   ldih6_x_div_sqrtdelta_posbranch;
+   lmdih_x_div_sqrtdelta_posbranch;
+   lmdih2_x_div_sqrtdelta_posbranch;
+   lmdih3_x_div_sqrtdelta_posbranch;
+   lmdih5_x_div_sqrtdelta_posbranch;
+   lmdih6_x_div_sqrtdelta_posbranch;
+   taum_x;
+   edge_flat2_x;
+(* deprecated:		      
+   delta_template_B_x_alt;
+   taum_template_B_x_alt;
+   dih_template_B_x_alt; 
+   dih_hexall_x; 
+   dih1_hexall_x;
+   upper_dih_hexall_x;
+   delta_hexall_x;
+   delta4_hexall_x;  
+   taum_hexall_x; 
+   eulerA_hexall_x;
+   factor345_hexall_x;
+   law_cosines_234_x;
+   law_cosines_126_x; 
+   tau_lowform_x_alt;
+*)
+   delta_126_x;
+   delta_234_x;
+   delta_135_x;
+   upper_dih_y; 
    gamma3f_135_n;gamma3f_126_n;gamma23f_n;gamma23f_126_03_n;
    (* may 2011 additions *)
    rhazim_x_div_sqrtdelta_posbranch;
    rhazim2_x_div_sqrtdelta_posbranch;
    rhazim3_x_div_sqrtdelta_posbranch;
-(*   tau_lowform_x_alt; *)
    tau_residual_x;
    edge_flat_x;
    delta_sub1_x;
@@ -443,10 +257,6 @@ let get_macro_expand() = (
    Mdtau.mdtau2_y_LC;
    Sphere.delta_y_LC;
    ] @ (!Ineq.dart_classes));;
-   (* dart categories 
-   Ineq.dart_std3;Ineq.dartX;Ineq.dartY;Ineq.dart4_diag3;Ineq.apex_flat;
-   Ineq.apexfA;Ineq.apexffA;Ineq.apexf4;Ineq.apexff4;Ineq.apexf5;Ineq.apexff5];;
-   *)
 
 let prep_term t = 
   let t' = REWRITE_CONV (get_macro_expand()) (strip_let_tm t) in
@@ -482,7 +292,8 @@ let c_dest_ineq ineq =
 
 (* generate c++ code of ineq *)
 
-let case p i j = Printf.sprintf "case %d: *ret = (%s) - (%s); break;" j (List.nth i j) p;;
+let case p i j = 
+  Printf.sprintf "case %d: *ret = (%s) - (%s); break;" j (List.nth i j) p;;
 
 let vardecl y vs = 
   let varname = map (fun (a,b,c) -> b) vs in
@@ -503,7 +314,8 @@ let rec geteps =
   | b::bs -> max(getepsf b) (geteps bs);;
 
 let (has_penalty,penalty) = 
-  let penalties iqd =  filter (function Penalty _ -> true | _ -> false) iqd.tags in
+  let penalties iqd =  
+    filter (function Penalty _ -> true | _ -> false) iqd.tags in
   let hasp iqd = (List.length (penalties iqd) >0) in
   let onep iqd = if (hasp iqd) then hd(penalties iqd) else Penalty (0.0,0.0) in
   (hasp,onep);;
@@ -582,8 +394,9 @@ let cc_code outs iqd =
     p"#include <iomanip.h>\n#include <iostream.h>\n#include <math.h>";
     p"#include \"../Minimizer.h\"\n#include \"../numerical.h\"";
     p"#include <assert.h>";
-    p"class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};";
-    p"int trialcount = %d;\n"  (!trialcount);
+    p"class trialdata { public: trialdata(Minimizer M,char* s)";
+    p"{ M.coutReport(s); };};";
+    p"int trialcount = %d;\n"  (!cfsqp_trialcount);
     join_lines(map cc_function (!autogen));
     p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y; 
     vardecl y vs ;
@@ -603,7 +416,8 @@ let cc_code outs iqd =
     p"	return M;";
     p"}";
     p "trialdata d0(m0(),\"%s\");\n\n"  iqd.idv;
-    p"int near(double x,double y) { double eps = 1.0e-8; return (mabs(x-y)<eps); }";
+    p"int near(double x,double y)";
+    p"  { double eps = 1.0e-8; return (mabs(x-y)<eps); }";
     ]) in
   Printf.fprintf outs "%s %s" s cc_main;;  
 
@@ -622,7 +436,8 @@ let compile () =
   let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
   let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
   let _ = try (compile()) with Failure s -> failwith (s^idq.idv) in 
-  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or failwith ("execution error "^idq.idv) in
+  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or
+    failwith ("execution error "^idq.idv) in
   let s = process_to_string "grep 'NEGATIVE' /tmp/cfsqp.out" in
   let _ =  (s="") or failwith ("NEGATIVE "^idq.idv) in
     ();;
@@ -635,36 +450,24 @@ let compile () =
 	with Failure s -> (fails := s :: (!fails)) done in
      fails;;
 
-(*
- let execute_cfsqp idq = 
-  let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
-  let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
-  let _ = compile() in 
-  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or failwith "execution error "^idq in
-  let s = process_to_string "grep 'NEGATIVE' /tmp/cfsqp.out" in
-  let _ =  (s="") or failwith ("NEGATIVE "^idq) in
-    ();;
 
- let execute_cfsqp_list xs = 
-   let fails = ref [] in
-   let _ = for i=0 to (List.length xs - 1) 
-      do 
-	try  (execute_cfsqp (List.nth xs i); Sys.command("date") )
-	with Failure s -> fails := s :: (!fails) done in
-     fails;;
-*)
+(* ========================================
 
-(* new section glpk code generation *)
+glpk  generation 
+======================================== *)
 
-  let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
-  let yy9 = yy6 @ [`y7:real`;`y8:real`;`y9:real`];;
 
-  let  translate =ref 
-     [("dih_y","azim[i,j]");("dih2_y","azim2[i,j]");("dih3_y","azim3[i,j]");("sol_y","sol[j]");
-    ("taum","tau[j]");("tauq","tau[j]");("rhazim","rhazim[i,j]");
-    ("rhazim2","rhazim2[i,j]");("rhazim3","rhazim3[i,j]");("sqrt8","sqrt8")];;
+ let yy6 =  [`y1:real`;`y2:real`;`y3:real`;`y4:real`;`y5:real`;`y6:real`];;
+ let yy9 = yy6 @ [`y7:real`;`y8:real`;`y9:real`];;
 
-  let reverse = 
+ let  glpk_translate =ref 
+     [("dih_y","azim[i,j]");("dih2_y","azim2[i,j]");("dih3_y","azim3[i,j]");
+      ("sol_y","sol[j]");
+      ("taum","tau[j]");("tauq","tau[j]");("rhazim","rhazim[i,j]");
+      ("rhazim2","rhazim2[i,j]");("rhazim3","rhazim3[i,j]");
+      ("sqrt8","sqrt8")];;
+
+ let reverse = 
      let xs =     [("y2","y3");("y5","y6");("rhazim2","rhazim3");
       ("dih2_y","dih3_y");] in
      let f (a,b) = (b,a) in
@@ -673,36 +476,47 @@ let compile () =
 
   let glpk_lookup rev s xs =
     let s' = if rev then reverse s else s in
-    if (xs = yy6) or (xs = yy9) then
-      try (List.assoc s' (!translate)) with Not_found -> failwith ("glpk_lookup translate" ^ s)
-    else if xs = [] then 
-      try (List.assoc s' (!translate)) with Not_found -> (s'^"[i,j]")
-    else  failwith ("glpk_lookup unknown arg list:" ^ s);;
+    if (xs = yy6) or (xs = yy9) 
+    then
+      try 
+	(List.assoc s' (!glpk_translate)) 
+      with Not_found -> failwith ("glpk_lookup translate" ^ s)
+    else if xs = [] 
+    then 
+      try 
+	(List.assoc s' (!glpk_translate)) 
+      with Not_found -> (s'^"[i,j]")
+    else failwith ("glpk_lookup unknown arg list:" ^ s);;
 
  let rec glpk_form rev t =
   let soh = glpk_form rev in
   if is_var t then glpk_lookup rev (fst (dest_var t)) [] else
   let (f,xs) = strip_comb t in
-  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  (if not (is_const f) then failwith ("glpk constant expected: " ^ string_of_term f));
+  let ifix i = let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+  let ifix_swapped i = 
+    let [b;a] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+  let _ = (is_const f) or 
+      failwith ("glpk constant expected: " ^ string_of_term f) in
   match fst (dest_const f) with
   | "real_gt" | "real_ge" | "real_sub" -> ifix "-"
   | "real_lt" | "real_le" -> ifix_swapped "-"
   | "real_add" -> ifix "+"
   | "real_mul" -> ifix "*"
   | "real_div" -> ifix "/"
-  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
+  | "real_neg" -> let [a] = xs in paren("-" ^ soh a)
   | "real_of_num" -> let [a] = xs in soh a  
-  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+  | "NUMERAL" -> let [_] = xs in string_of_num' (dest_numeral t)
   | "DECIMAL" ->  string_of_num' (dest_decimal t)
-  | s -> "(" ^ glpk_lookup rev s xs^ ")" ;;
+  | s -> paren(glpk_lookup rev s xs) ;;
 
 let (counter,counter_reset) = 
       let ineqcounter = ref 0 in
-      ((fun t -> (let u = !ineqcounter in let _ =  ineqcounter := u+1 in u)),
-	 (fun _ -> ineqcounter := 0)
-      );;
+      let counter t = 
+	let u = !ineqcounter in 
+	let _ =  ineqcounter := u+1 in 
+	  u in
+      let counter_reset _ =  (ineqcounter := 0) in
+	(counter,counter_reset);;
 
 let mk_glpk_ineq rev iqd = 
     let ineq = iqd.ineq in
@@ -712,7 +526,8 @@ let mk_glpk_ineq rev iqd =
   let (f,xs) = strip_comb vs in
   let (dart,_) = dest_const f in
   let i' = hd(disjuncts i) in
-  let _ = (xs = yy6) or (xs = yy9) or (print_qterm vs; failwith "dart_class y1 ... y6 expected") in
+  let _ = (xs = yy6) or (xs = yy9) or
+    (print_qterm vs; failwith "dart_class y1 ... y6 expected") in
   let p = Printf.sprintf in
   let s =   p"ineq%d 'ID[%s]' \n  { (i,j) in %s } : \n  %s >= 0.0;\n\n" 
     (counter()) iqd.idv dart (glpk_form rev i') in
@@ -726,69 +541,64 @@ let test_domain_symmetry idq =
   let dart = List.nth (snd(strip_comb (snd(strip_forall ineq)))) 0 in
   let dom = map(fun (a,(b,c)) -> (a,c)) (map (fun (a,b) -> (a,dest_pair b)) 
      (map dest_pair 
-     (dest_list(snd(dest_eq(concl(REWRITE_CONV(!Ineq.dart_classes) dart))))))) in
+     (dest_list(snd(dest_eq(
+		      concl(REWRITE_CONV(!Ineq.dart_classes) dart))))))) in
   let nth = List.nth in
-    ((nth dom 1 = nth dom 2) & (nth dom 4 = nth dom 5)) or failwith "domain asym";;
+    ((nth dom 1 = nth dom 2) & (nth dom 4 = nth dom 5)) or 
+      failwith "domain asym";;
 
 let lpstring() = 
   let _ = counter_reset() in
-(*  let fil r = filter (can (fun t ->  (find ((=) r) t.tags))) (!Ineq.ineqs) in *)
   let _ = map test_domain_symmetry (Ineq.getfield Lpsymmetry) in
   join_lines 
-    ("# File automatically generated from nonlinear inequality list via lpstring().\n\n" ::
+    (("# File automatically generated from nonlinear inequality list "^
+       "via lpstring().\n\n") ::
     (map (mk_glpk_ineq false) (Ineq.getfield Lp)) @
     ["# Symmetry section\n\n"] @ 
     (map (mk_glpk_ineq true) (Ineq.getfield Lpsymmetry)));;
 
-(* Tex Processing of Inequalities *)
-
-let mk_texstring (tm,idv,s) = match tm with
-  | Section -> "\\section{"^idv^" "^s^"}\n" 
-  | Comment -> "\\begin{remark}["^idv^"]\n"^s^"\n\\end{remark}\n"
-  | Ineqdoc -> "\\begin{calculation}["^idv^"]\n"^s^"\n\\end{calculation}\n";;
-
-let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
 
 
-(*
-output_filestring "/tmp/ineqdoc.tex" (texstring());;
-*)
+(* ========================================
 
-(* Objective caml processing from ineq *)
+Objective Caml  generation 
+======================================== *)
 
 
 let ocaml_string_of_term t = 
- let rec ocaml_form t =
-  let soh = ocaml_form in
-  let paren s = "("^ s ^")" in
-  if is_var t then fst (dest_var t) else
-  let (f,xs) = strip_comb t in
-  let ifix i = let [a;b] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  let ifix_swapped i = let [b;a] = xs in "(" ^ soh a ^ " " ^ i ^ " " ^ soh b ^ ")" in
-  (if not (is_const f) then failwith ("Oracle error: " ^ string_of_term f));
-  match fst (dest_const f) with
-  | "real_sub" -> ifix "-. "
-  | "real_add" -> ifix "+."
-  | "real_mul" -> ifix "*."
-  | "real_div" -> ifix "/."
-  | "real_neg" -> let [a] = xs in "(-. " ^ soh a ^ ")"
-  | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
-  | "real_of_num" -> let [a] = xs in soh a  
-  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
-  | "=" -> let [a;b] = xs in soh a ^ " = " ^ soh b
-   | "DECIMAL" ->  string_of_num' (dest_decimal t)
-  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
-         "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  (* note reverse order in ocaml *) 
-  | s -> " " ^ s ^ " " ^ join_space(map (paren o soh) xs) ^ " " in
-   try (ocaml_form t) with Failure s -> failwith (s^" .......   "^string_of_term t);;
+  let rec soh t =
+    if is_var t then fst (dest_var t) else
+      let (f,xs) = strip_comb t in
+      let ifix i = let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+      let _ = (is_const f) or 
+	failwith ("Constant expected: " ^ string_of_term f) in
+	match fst (dest_const f) with
+	  | "real_sub" -> ifix "-. "
+	  | "real_add" -> ifix "+."
+	  | "real_mul" -> ifix "*."
+	  | "real_div" -> ifix "/."
+	  | "real_neg" -> let [a] = xs in paren("-. " ^ soh a)
+	  | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
+	  | "real_of_num" -> let [a] = xs in soh a  
+	  | "NUMERAL" -> let [_] = xs in string_of_num' (dest_numeral t)
+	  | "=" -> let [a;b] = xs in soh a ^ " = " ^ soh b
+	  | "DECIMAL" ->  string_of_num' (dest_decimal t)
+	  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
+              "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  
+	    (* note reverse order atan2 in ocaml *) 
+	  | s -> " " ^ s ^ " " ^ join_space(map (paren o soh) xs) ^ " " in
+    try 
+      (soh t) 
+    with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 let ocaml_function t = 
   "let " ^ ocaml_string_of_term t ^ ";;\n\n";;
 
-let ocaml_autogen = map (function b -> snd(strip_forall (concl (strip_let b))))
-   [sqrt2;sqrt8;delta_x;delta_y;delta_x4;delta_x6;ups_x;eta_x;
-    eta_y;dih_x;dih_y;dih2_y;dih3_y;sol_x;sol_y;interp;ly;const1;rho;rhazim;lnazim;taum;arclength];;
-
+let ocaml_autogen = map 
+  (function b -> snd(strip_forall (concl (strip_let b))))
+  [sqrt2;sqrt8;delta_x;delta_y;delta_x4;delta_x6;ups_x;eta_x;
+  eta_y;dih_x;dih_y;dih2_y;dih3_y;sol_x;sol_y;interp;ly;const1;
+  rho;rhazim;lnazim;taum;arclength];;
 
 let ocaml_code = 
   "(* code automatically generated from Parse_ineq.ocaml_code *)\n\n"^
@@ -800,6 +610,21 @@ let ocaml_code =
 
 output_filestring "/tmp/sphere.ml" ocaml_code;;
 
+(* ========================================
+
+LaTeX  generation 
+======================================== *)
+
+let mk_texstring (tm,idv,s) = match tm with
+  | Section -> "\\section{"^idv^" "^s^"}\n" 
+  | Comment -> "\\begin{remark}["^idv^"]\n"^s^"\n\\end{remark}\n"
+  | Ineqdoc -> "\\begin{calculation}["^idv^"]\n"^s^"\n\\end{calculation}\n";;
+
+let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
+
+(*
+output_filestring "/tmp/ineqdoc.tex" (texstring());;
+*)
 
 
 end;;

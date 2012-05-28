@@ -79,8 +79,37 @@ static interval DDsqrt(const interval& x) {
 	throw unstable::x;
 }
 
-
 static uniprimitive psqrt(usqrt,Dsqrt,DDsqrt);
+
+
+// implement truncated sqrt i_truncate_sqrt;
+// We use 0.14 for now. We can generalize later if needed.
+
+const static interval c14("0.14");;
+
+static interval truncate(const interval&x ) {
+  interval t((c14.lo > x.lo ? c14.lo : x.lo), max(x.hi,c14.hi));
+  return t;
+}
+static interval tsqrt(const interval& x) {
+  return interMath::sqrt(truncate(x));
+}
+
+static interval Dtsqrt(const interval& x) {
+	static const interval one("1");
+	static const interval two("2");
+	return one/(two * tsqrt(x)); 
+}
+
+static interval DDtsqrt(const interval& x) {
+	static const interval one("1");
+	static const interval four("4");
+	interval y = truncate(x);
+	return - one/(four * y * interMath::sqrt(y));
+}
+
+static uniprimitive ptsqrt(tsqrt,Dtsqrt,DDtsqrt);
+
 
 
 //  sqp
@@ -687,6 +716,7 @@ const univariate univariate::i_pow2(&ppow2);
 const univariate univariate::i_pow3(&ppow3);
 const univariate univariate::i_pow4(&ppow4);
 const univariate univariate::i_sqrt(&psqrt);
+const univariate univariate::i_truncate_sqrt(&ptsqrt);
 const univariate univariate::i_sqp(&psqp);
 const univariate univariate::i_sqn(&psqn);
 const univariate univariate::i_pow3h2(&ppow3h2);
@@ -742,6 +772,7 @@ void univariate::selfTest()
         epsilon3(pow4d,univariate::i_pow4);
 	double sqrtd[3]={0.458257569495584,1.0910894511799618,-2.5978320266189567};
         epsilon3(sqrtd,univariate::i_sqrt);
+	epsilon3(sqrtd,univariate::i_truncate_sqrt);
 	double sqpd[3]={0.476204483, 1.23547420, -3.3594400};
         epsilon3(sqpd,univariate::i_sqp);
 	double sqnd[3]={0.4419086901599999,1.33021258,-4.9972680};

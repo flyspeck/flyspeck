@@ -12,6 +12,15 @@
 
 module Flyspeck_lib = struct
 
+(* process_to_string in strictbuild.hl *)
+
+let svn_version() = "svn("^
+  (process_to_string ("svnversion -n " ^ flyspeck_dir))^
+  ","^
+  (process_to_string("svnversion -n " ^ hollight_dir))^
+  ")";;
+
+
 (* duplicated code *)
 let unsplit d f = function
   | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
@@ -37,6 +46,22 @@ let output_filestring tmpfile a =
   with _ as t -> (close_out outs; raise t) in
    close_out outs ;;
 
+(* from glpk_link.ml *)
+
+let load_and_close_channel_true ic = 
+  let rec lf ichan a = 
+    try
+      lf ic (Pervasives.input_line ic::a)
+    with End_of_file -> a | _ as t -> (Pervasives.close_in ic; raise t) in
+    let rs = lf ic [] in
+    let _ = Pervasives.close_in ic in
+      rev rs;;
+
+let load_file filename = 
+  let ic = Pervasives.open_in filename in load_and_close_channel_true ic;;
+
+
+
 (* deprecated
 let print_string_as_text  = report;;
 *)
@@ -44,5 +69,16 @@ let print_string_as_text  = report;;
 let exists_pgm s = 
   let com = "command -v " ^ s in 
     not(process_to_string com = "");;
+
+
+(* numerical *)
+
+let dest_decimal x = match strip_comb x with
+    | (dec,[a;b]) ->                     
+	div_num (dest_numeral a) (dest_numeral b)
+    | _ -> failwith ("dest_decimal: '" ^ string_of_term x ^ "'") ;;
+
+let string_of_num' x = string_of_float (float_of_num x);; 
+
 
 end;;

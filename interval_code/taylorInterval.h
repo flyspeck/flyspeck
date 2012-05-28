@@ -492,45 +492,6 @@ class taylorSimplex
 
 	static const taylorFunction surfR126d(const interval&);
 
-	static const taylorFunction dih_template_B_x(const interval& x15,const interval& x45,
-					const interval& x34,const interval& x12, 
-					     const interval& x25);
-
-	static const taylorFunction delta_template_B_x(const interval& x15,const interval& x45,
-					const interval& x34,const interval& x12);
-
-
-	static const taylorFunction /* taylorSimplex:: */ taum_template_B_x(const interval& x15,
-								     const interval& x45,const interval& x34,const interval& x12   );
-
-	static const taylorFunction /* taylorSimplex:: */ dih_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-	static const taylorFunction /* taylorSimplex:: */ dih1_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-
-	static const taylorFunction /* taylorSimplex:: */ upper_dih_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-	static const taylorFunction /* taylorSimplex:: */ delta_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-	static const taylorFunction /* taylorSimplex:: */ delta4_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-
-	static const taylorFunction /* taylorSimplex:: */ taum_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-	static const taylorFunction /* taylorSimplex:: */ eulerA_hexall_x(const interval& x14, const interval& x12,
-								const interval & x23);
-
-	static const taylorFunction /* taylorSimplex:: */ factor345_hexall_x(const interval& costheta);
-
-	static const taylorFunction /* taylorSimplex:: */ law_cosines_234_x(const interval& costheta);
-
-	static const taylorFunction /* taylorSimplex:: */ law_cosines_126_x(const interval& costheta);
 
 	static const taylorFunction /* taylorSimplex:: */ lindih(const interval& theta);
 

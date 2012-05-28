@@ -23,6 +23,7 @@ flyspeck_needs "nonlinear/mdtau.hl";;
 flyspeck_needs "nonlinear/main_estimate_ineq.hl";;
 flyspeck_needs "nonlinear/strongdodec_ineq.hl";;
 
+flyspeck_needs "nonlinear/lemma.hl";;
 flyspeck_needs  "nonlinear/parse_ineq.hl";;
 flyspeck_needs "nonlinear/optimize.hl";;
 flyspeck_needs "nonlinear/bcc_lattice.hl";;
@@ -63,7 +64,7 @@ let finished_splits =
 
 
 let hassplit =  
-  let a = filter (fun t -> List.length (get_split t) > 0)  !Ineq.ineqs in 
+  let a = filter (fun t -> List.length (get_split_tags t) > 0)  !Ineq.ineqs in 
   let a' = filter (fun t -> mem t.id  unfinished_cases) a in
     map (fun t-> t.id) a';;
 List.length hassplit;;
@@ -86,7 +87,7 @@ List.length !testids;;
 
 (*
 let view nth = hd (Ineq.getexact (List.nth !testids nth));;
-strip_idq(view 0);;
+idq_fields(view 0);;
 view 1;;
 *)
 
@@ -108,7 +109,7 @@ map (Optimize.testsplit true) !testids;;
 *)
 
 let execute_interval() = 
-  map (Optimize.testsplit true) all_cases;;
+  map (Optimize.testsplit true) (subtract all_cases disregard);;
 
 (* goal *)
 
@@ -116,20 +117,24 @@ let execute_interval() =
 
 let process_cases_testid testid = 
   let idq =  (hd(Ineq.getexact testid)) in
-  let (s,tags,ineq) = Optimize.strip_idq idq in
-  let ls = Optimize.get_split idq in
+  let (s,tags,ineq) = Optimize.idq_fields idq in
+  let ls = Optimize.get_split_tags idq in
    if (ls=[]) then (s,tags,ineq) else
      let cases = Optimize.split_all_h0 [(ineq,ls)] in 
        (s^" case-",tags,List.nth cases 1);;
 
 let interactive_debug_stuff testid = 
   let (id,tags,case) = process_cases_testid testid in
+  let ife b t = e(if b then t else ALL_TAC) in
+  let is_xconvert = mem Xconvert tags in
+  let is_branch = mem Branching tags in
   let _ = g (mk_imp (`NONLIN`,case)) in
-  let _ = e(PRELIM_TAC) in
-  let _ = if (is_branch tags ) then e(BRANCH_TAC) else e(ALL_TAC) in
-  let _ = if (is_xconvert tags) then e (X_OF_Y_TAC) else e(ALL_TAC) in
-  let _ = if (is_branch tags && not(is_xconvert tags)) then e(SERIES3Q1H_5D_TAC) else e(ALL_TAC) in
-  let _ e (STYLIZE_TAC) in
+  let _ = e(Optimize.PRELIM_REWRITE_TAC) in
+  let _ = ife (is_branch) Optimize.BRANCH_TAC in
+  let _ = ife (is_xconvert) Optimize.X_OF_Y_TAC in
+  let _ = ife (is_branch && not(is_xconvert))
+    (Optimize.SERIES3Q1H_5D_TAC) in
+  let _ = e (Optimize.STYLIZE_TAC) in
     e (Optimize.WRAPUP_TAC);;
 
 (* TESTING CFSQP *)
@@ -201,8 +206,7 @@ let rec unify_splits = function
   | (s,(_,t)):: _ as ys -> let (st,xs') = partition (fun (s',(_,t')) -> (s'=s & t'=t)) ys in
        (s,Parse_ineq.nub (map (fun (_,(r',_ )) -> r') st),t) ::unify_splits xs';;
 
-  let vv = unify_splits (case_splits (map fst finished_times));;
-  
-filter (fun (_,ls,r) -> not ((0--(r-1)) = sort (<) ls)) vv;;
+let case_splits_execute =   
+      let vv = unify_splits (case_splits (map fst finished_times)) in
+	filter (fun (_,ls,r) -> not ((0--(r-1)) = sort (<) ls)) vv;;
 
- end;;

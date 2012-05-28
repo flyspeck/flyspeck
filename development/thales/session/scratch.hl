@@ -1,5 +1,42 @@
 (* GETTING STARTED *)
 
+let cpp_string_of_term = 
+  let rec soh t = 
+    if is_var t then fst (dest_var t) else
+      let (f,xs) = strip_comb t in
+      let _  = (is_const f) or 
+	failwith ("constant expected:" ^ string_of_term f) in
+      let ifix i = let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+	match fst (dest_const f) with
+	  | "real_add" -> ifix "+"
+	  | "real_mul" -> ifix "*"
+	  | "real_div" -> ifix "/"
+	  | "\\/" -> ifix "\\/"
+	  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
+	  | "real_of_num" -> let [a] = xs in i_mk(soh a)  
+	  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+	  | "<" -> let [a;b] = xs in paren(soh a ^ " < " ^ soh b)
+	  | ">" -> let [a;b] = xs in paren(soh a ^ " > " ^ soh b)
+	  | "+" -> let [a;b] = xs in paren(soh a ^ " + " ^ soh b)
+	  | "*" -> let [a;b] = xs in paren(soh a ^ " * " ^ soh b)
+	  | "DECIMAL" ->  i_mk(string_of_num' (dest_decimal t))
+	  | s -> if (xs = []) 
+	    then "("^cpp_of_constant s^")"  
+	    else paren(cpp_of_fun soh x6list s xs) in
+    fun t -> 
+      try (soh t) 
+      with Failure s -> failwith (s^" .......   "^string_of_term t);;
+
+
+
+flyspeck_needs "general/flyspeck_lib.hl";;
+
+List.nth !Parse_ineq.autogen 9;;
+let RNONLIN = ;;
+Sphere.rho_x;;
+Nonlinear_lemma.rho_x;;
+g `x:bool`;;
+
 module Temp =  struct
   open Sphere;;
   open Ineq;;
@@ -21,7 +58,11 @@ add
 };;
 end;;
 
+one_cfsqp (hd all_cases);;
+execute_cfsqp();;
 Ineq.make_F23 0 0;;
+
+map (Optimize.testsplit false) all_cases;;
 
 loadt (flyspeck_dir^"/nonlinear/check_completeness.hl");;
 Check_completeness.execute();;

@@ -20,6 +20,8 @@ module Nonlinear_lemma = struct
 
 let ineq = Sphere.ineq;;
 
+
+
 let NONLIN = new_definition `NONLIN = T`;;
 
 let mardih_x = new_definition `mardih_x x1 x2 x3 x4 x5 x6 = 
@@ -149,6 +151,11 @@ let ineq_lemma = prove_by_refinement(
 (* ========================================================================== *)
 (*    BASIC LEMMAS                                                            *)
 (* ========================================================================== *)
+
+let strip_let_tm t = snd(dest_eq(concl(REDEPTH_CONV let_CONV t)));;
+
+let strip_let t = REWRITE_RULE[REDEPTH_CONV let_CONV (concl t )] t;;
+
 
 let tame_table_d_values = prove_by_refinement(
   `tame_table_d 2 1 = #0.103 /\ tame_table_d 1 2 = #0.2759 /\ tame_table_d 0 3 = #0.4488 /\ tame_table_d 4 1 = #0.6548  /\
@@ -376,6 +383,49 @@ let basic_constants_nn = [
  sqrt8_nn;sqrt2_nn;
  ];;
 
+(* MATERIAL FROM parse_ineq.hl Moved May 28, 2012 *)
+
+
+let abc_quadratic = prove (`abc_of_quadratic (\x. a * (x pow 2) + b * x + c) = (a,b,c)`,
+ REWRITE_TAC[Sphere.abc_of_quadratic] THEN
+ (REPEAT LET_TAC) THEN
+ REWRITE_TAC[PAIR_EQ] THEN
+ REPEAT(FIRST_X_ASSUM MP_TAC)THEN
+ ARITH_TAC);;
+
+let delta_quadratic = prove( `-- delta_x x1 x2 x3 x4 x5 x6 = 
+  (x1) * (x4 pow 2) + (x1*x1 + (x3 - x5)*(x2 - x6) 
+   - x1*(x2 + x3 + x5 + x6)) * x4 
+   + ( x1*x3*x5 + x1*x2*x6 - x3*(x1 + x2 - x3 + x5 - x6)*x6 
+    - x2*x5*(x1 - x2 + x3 - x5 + x6) ) `,
+REWRITE_TAC[Sphere.delta_x] THEN
+ARITH_TAC);;
+
+let edge_flat_rewrite = 
+ REWRITE_RULE[abc_quadratic;delta_quadratic] Sphere.edge_flat;;
+
+let enclosed_rewrite = 
+  REWRITE_RULE[abc_quadratic] 
+  (strip_let(REWRITE_RULE[Mur.muRa;Cayleyr.cayleyR_quadratic] Enclosed.enclosed));;
+
+let quadratic_root_plus_curry = 
+  new_definition `quadratic_root_plus_curry a b c = quadratic_root_plus (a,b,c)`;;
+
+let quad_root_plus_curry = 
+  REWRITE_RULE[Sphere.quadratic_root_plus] quadratic_root_plus_curry;;
+
+let y_of_x_e = prove(`!y1 y2 y3 y4 y5 y6. y_of_x f y1 y2 y3 y4 y5 y6 =
+     f (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6)`,
+     REWRITE_TAC[Sphere.y_of_x]);;
+
+let vol_y_e = prove(`!y1 y2 y3 y4 y5 y6. vol_y y1 y2 y3 y4 y5 y6 = 
+    y_of_x vol_x y1 y2 y3 y4 y5 y6`,
+    REWRITE_TAC[Sphere.vol_y]);;
+
+let rad2_y_e = prove(`!y1 y2 y3 y4 y5 y6. rad2_y y1 y2 y3 y4 y5 y6 = 
+    y_of_x rad2_x y1 y2 y3 y4 y5 y6`,
+    REWRITE_TAC[Sphere.rad2_y]);;
+
 
 let rad2_x_y = prove_by_refinement(
   `!a1 a2 a3 a4 a5 a6 x1 x2 x3 x4 x5 x6.
@@ -385,7 +435,7 @@ let rad2_x_y = prove_by_refinement(
          rad2_x x1 x2 x3 x4 x5 x6)`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[Sphere.rad2_y;Parse_ineq.y_of_x_e;LET_DEF;LET_END_DEF];
+  REWRITE_TAC[Sphere.rad2_y;y_of_x_e;LET_DEF;LET_END_DEF];
   ASM_MESON_TAC[sq_pow2];
   ]);;
   (* }}} *)
@@ -397,7 +447,7 @@ let delta_x4_delta4_y = prove_by_refinement(
   (delta4_y (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = delta_x4 x1 x2 x3 x4 x5 x6)`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[Sphere.delta4_y;Parse_ineq.y_of_x_e;LET_DEF;LET_END_DEF];
+  REWRITE_TAC[Sphere.delta4_y;y_of_x_e;LET_DEF;LET_END_DEF];
   ASM_MESON_TAC[sq_pow2];
   ]);;
   (* }}} *)
@@ -611,7 +661,9 @@ let rho_alt = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let rho_x = prove_by_refinement(
+(* renamed from rho_x to avoid clash with rho_x in sphere.hl *)
+
+let rho_sqrtx = prove_by_refinement(
   `!x. rho (sqrt x) = &1 + const1 * (sqrt x - &2) / (#0.52)`,
   (* {{{ proof *)
   [
@@ -774,7 +826,7 @@ let edge_flat2_x_rewrite = prove_by_refinement(
   REPEAT STRIP_TAC;
   AP_THM_TAC;
   AP_TERM_TAC;
-  REWRITE_TAC[Parse_ineq.edge_flat_rewrite];
+  REWRITE_TAC[edge_flat_rewrite];
   ASM_SIMP_TAC[REAL_ARITH `sqrt x * sqrt x = (sqrt x) pow 2`;SQRT_POW2;SQRT_WORKS];
   ]);;
   (* }}} *)
@@ -2326,6 +2378,177 @@ let ineq6_of_ineq1 = prove_by_refinement(
   [
   REWRITE_TAC[ineq];
   MESON_TAC[REAL_ARITH `&1 <= &1`];
+  ]);;
+  (* }}} *)
+
+
+
+(*
+let taum_template_B_x_alt = prove_by_refinement(
+  `!x1  x12  x15  x2  x3  x34  x4  x45  x5  x6.
+    taum_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
+    taum_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+      (edge_flat2_x x2 x1 x3 (&0) x12 x12) +
+      flat_term_x x2 +
+      flat_term_x x5 `,
+  (* {{{ proof *)
+
+  [
+  REWRITE_TAC[Sphere.taum_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+
+  (* }}} *)
+
+let dih_template_B_x_alt = prove_by_refinement(
+  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
+    dih_template_B_x  x15 x45 x34 x12 x25 x1 x2 x3 x4 x5 x6 = 
+   dih_x x1 x2 x5 x25 x15 x12 -
+     dih_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+let delta_template_B_x_alt = prove_by_refinement(
+  `!x6 x25 x34 x5 x4 x45 x15 x2 x1 x3 x12.
+    delta_template_B_x  x15 x45 x34 x12 x1 x2 x3 x4 x5 x6 = 
+     delta_x x1 x3 x4 x34 (edge_flat2_x x5 x1 x4 (&0) x45 x15)
+     (edge_flat2_x x2 x1 x3 (&0) x12 x12)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_template_B_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let tau_lowform_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    tau_lowform_x  x1 x2 x3 x4 x5 x6 =
+   rho (sqrt x1) * pi - (pi + sol0) +
+          sqp (delta_x x1 x2 x3 x4 x5 x6) * rhazim_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 +
+          sqn  (delta_x x1 x2 x3 x4 x5 x6) * rhazim2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 +
+          sqn  (delta_x x1 x2 x3 x4 x5 x6) * rhazim3_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tau_lowform_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+*)
+
+let taum_3flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x23 x13 x12.
+    taum_3flat_x x1 x2 x3 x23 x13 x12 = 
+  (taum_x x1 x2 x3 
+  ( edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) ) 
+  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
+   flat_term_x x12 + flat_term_x x23 + flat_term_x x13)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.taum_3flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let taum_2flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x13 x12.
+    taum_2flat_x x1 x2 x3 x4 x13 x12 = 
+  (taum_x x1 x2 x3 x4
+  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
+   flat_term_x x12 + flat_term_x x13)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.taum_2flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let taum_1flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x12.
+    taum_1flat_x x1 x2 x3 x4 x5 x12 = 
+  (taum_x x1 x2 x3 x4 x5
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )   +
+   flat_term_x x12)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.taum_1flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let euler_3flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x23 x13 x12.
+    euler_3flat_x x1 x2 x3 x23 x13 x12 = 
+  (eulerA_x x1 x2 x3 
+  ( edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) ) 
+  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )  )`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.euler_3flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let euler_2flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x13 x12.
+    euler_2flat_x x1 x2 x3 x4 x13 x12 = 
+  (eulerA_x x1 x2 x3 x4
+  ( edge_flat2_x x13 x1 x3 (&0)    (&4) (&4) ) 
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) ) )`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.euler_2flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let euler_1flat_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x12.
+    euler_1flat_x x1 x2 x3 x4 x5 x12 = 
+  (eulerA_x x1 x2 x3 x4 x5
+  (  edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) )  )`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.euler_1flat_x];
+  REPEAT  LET_TAC;
+  ASM_MESON_TAC[];
+  ]);;
+  (* }}} *)
+
+
+let dih_x_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. dih_x x1 x2 x3 x4 x5 x6 = pi / &2 +
+     atn2
+     (sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6),
+      --delta_x4 x1 x2 x3 x4 x5 x6) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_x];
+  REPEAT LET_TAC;
+  REWRITE_TAC[];
   ]);;
   (* }}} *)
 

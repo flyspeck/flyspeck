@@ -1,0 +1,125 @@
+(* May 2012 functional equational definitions of 
+   inequality functions *)
+
+let GMATCH = Hales_tactic.GMATCH_SIMP_TAC;;
+
+let uni = new_definition `uni(f,x) = (f:A->B) x`;;
+
+let univariate = new_definition `univariate (f,x) = (f:A->B) o x`;;
+
+let uni' = new_definition `uni' (f,x) x1 x2 x3 x4 x5 x6 = 
+  (f:A->B) ( x x1 x2 x3 x4 x5 x6)`;;
+
+let constant6 = new_definition `constant6 c x1 x2 x3 x4 x5 x6 = c`;;
+
+let add6 = new_definition `add6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 + g x1 x2 x3 x4 x5 x6`;;
+
+let neg6 = new_definition `neg6 f x1 x2 x3 x4 x5 x6 = 
+  -- (f x1 x2 x3 x4 x5 x6)`;;
+
+let mul6 = new_definition `mul6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 * g x1 x2 x3 x4 x5 x6`;;
+
+let div6 = new_definition `div6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 / g x1 x2 x3 x4 x5 x6`;;
+
+let sub6 = new_definition `sub6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6  -  g x1 x2 x3 x4 x5 x6`;;
+
+let proj_y1 = new_definition `proj_y1 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x1)`;;
+
+let domain6 = new_definition `domain6 h f g = 
+  (!x1 x2 x3 x4 x5 x6. h x1 x2 x3 x4 x5 x6 ==>
+      (f x1 x2 x3 x4 x5 x6 = g x1 x2 x3 x4 x5 x6))`;;
+
+overload_interface ("+",`add6`);;
+overload_interface ("-",`sub6`);;
+overload_interface ("/",`div6`);;
+overload_interface ("*",`mul6`);;
+
+let proj_x1 = Nonlinear_lemma.proj_x1;;
+let proj_x2 = Nonlinear_lemma.proj_x2;;
+let proj_x3 = Nonlinear_lemma.proj_x3;;
+
+let functional_lfun_y1 = prove_by_refinement(
+  `lfun_y1 = (unit6 * constant6 h0 + proj_x1 * constant6 (-- &1))*
+  (unit6 / (constant6 h0 - unit6))`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[add6;mul6;div6;sub6;constant6];
+    REWRITE_TAC[Sphere.lfun_y1;Sphere.lfun;		Nonlinear_lemma.unit6;Nonlinear_lemma.proj_x1];
+REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let functional_ldih_x = prove_by_refinement(
+  `ldih_x = 
+    (unit6 * constant6 h0 + proj_y1 * constant6 ( -- #0.5))*
+    (unit6 / (constant6 h0 - unit6)) * dih_x`,
+  (* {{{ proof *)
+  [
+     REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[add6;mul6;div6;sub6;constant6];
+    REWRITE_TAC[proj_y1;Sphere.ldih_x;Nonlinear_lemma.unit6;Sphere.lfun];
+    REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let functional_ldih2_x = prove_by_refinement(
+  `ldih2_x = rotate2 ldih_x`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[Sphere.rotate2;Sphere.ldih2_x;Sphere.ldih_x;Sphere.dih2_x];
+  MESON_TAC[Nonlinear_lemma.dih_x_sym];
+  ]);;
+  (* }}} *)
+
+let functional_ldih3_x = prove_by_refinement(
+  `ldih3_x = rotate3 ldih_x`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[Sphere.rotate3;Sphere.ldih3_x;Sphere.ldih_x;Sphere.dih3_x];
+  ]);;
+  (* }}} *)
+
+type_of `uni'`;;
+type_of `inv`;;
+(* ldih5_x ldih6_x not in HOL Light*)
+
+let functional_arclength_x_123 = prove_by_refinement(
+  `let al_num = proj_x1 + proj_x2 + proj_x3 * constant6 (-- &1) in
+  let al_den = uni'(sqrt,(proj_x1 * proj_x2) * constant6 ( &4)) in
+  let domain = 
+    (\x1 x2 x3 x4 x5 x6. (&0 < x1 /\ &0 < x2 /\ &0 <= x3) /\
+     (sqrt  x3 <= sqrt x1 + sqrt x2 /\ sqrt x1 <= sqrt x2 + sqrt x3 /\ 
+      sqrt x2 <= sqrt x3 + sqrt x1)) in
+    domain6 domain (arclength_x_123)  ( uni'(acs, al_num / al_den ) )`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[LET_DEF;LET_END_DEF;];
+     REWRITE_TAC[domain6];
+    REWRITE_TAC[add6;mul6;div6;sub6;constant6;uni'];
+    REWRITE_TAC[proj_x1;proj_x2;proj_x3;Sphere.arclength_x_123;];
+    REPEAT STRIP_TAC;
+    Hales_tactic.GMATCH_SIMP_TAC Trigonometry1.ACS_ARCLENGTH;
+   ASM_REWRITE_TAC[];
+   ASM_SIMP_TAC[SQRT_POS_LT;SQRT_POS_LE];
+   AP_TERM_TAC;
+   REPEAT(   Hales_tactic.GMATCH_SIMP_TAC (ISPEC `&0` Nonlinear_lemma.sq_pow2));
+   ASM_SIMP_TAC[REAL_ARITH `&0 pow 2 = &0`;REAL_ARITH `&0 < x ==> &0 <= x`;REAL_ARITH `u + x * -- &1 = u - x`];
+   AP_TERM_TAC;
+   XXD.
+  ]);;
+  (* }}} *)
+
+searcht 5 [`&0 pow 2`];;
+searcht 5 [`sqrt x * sqrt x = x`];;
+searcht 5[`&0 <= sqrt x`];;
+search[`arcV`;`acs`];;
+search[`acs`;`arclength`];;
+search[`arcV`;`arclength`];;

@@ -30,6 +30,13 @@ public class LemmaNode extends Node {
 	}
 	
 	/**
+	 * Returns parameters
+	 */
+	public String[] getParameters() {
+		return params;
+	}
+	
+	/**
 	 * Returns the text description of the goal
 	 */
 	public String getGoalText() {
@@ -51,12 +58,11 @@ public class LemmaNode extends Node {
 		
 		return str.toString();
 	}
-
-	@Override
-	protected void translate(StringBuffer buffer) {
-		buffer.append('(');
-		buffer.append("start_section_proof ");
-		
+	
+	/**
+	 * Translates lemma's parameters
+	 */
+	public void translateParameters(StringBuffer buffer) {
 		buffer.append('[');
 		for (int i = 0; i < params.length; i++) {
 			buffer.append('"' + params[i] + '"');
@@ -64,8 +70,16 @@ public class LemmaNode extends Node {
 				buffer.append(';');
 		}
 		buffer.append(']');
+	}
+
+	@Override
+	protected void translate(StringBuffer buffer) {
+		buffer.append('(');
 		
+		buffer.append("start_section_proof ");
+		translateParameters(buffer);
 		goal.directTranslate(buffer);
+
 		buffer.append(')');
 	}
 	

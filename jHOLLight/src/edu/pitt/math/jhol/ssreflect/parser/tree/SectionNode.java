@@ -47,7 +47,6 @@ public class SectionNode extends Node {
 
 	@Override
 	protected void translate(StringBuffer buffer) {
-		buffer.append('(');
 		if (startFlag)
 			buffer.append("begin_section ");
 		else
@@ -56,7 +55,6 @@ public class SectionNode extends Node {
 		buffer.append('"');
 		buffer.append(sectionName);
 		buffer.append('"');
-		buffer.append(')');
 	}
 	
 	

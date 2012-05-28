@@ -25,7 +25,7 @@ let begin_section name =
 let end_section name =
   let sections = !section_stack in
     if sections = [] then
-      failwith "No open sections"
+      failwith "end_section: No open sections"
     else
       let last_name, _ = hd sections in
 	if Pervasives.compare last_name name <> 0 then
@@ -71,7 +71,7 @@ let section_hyps () : (string * term) list =
 let add_section_var var =
   let sections = !section_stack in
     if sections = [] then
-      failwith "No open sections"
+      failwith "add_section_var: No open sections"
     else
       let name, (vars, hyps, types) = hd sections in
       let s_var = section_vars() in
@@ -85,7 +85,7 @@ let add_section_var var =
 let add_section_type tm =
   let sections = !section_stack in
     if sections = [] then
-      failwith "No open sections"
+      failwith "add_section_type: No open sections"
     else
       let name, (vars, hyps, types) = hd sections in
       let s_types = section_types() in
@@ -172,7 +172,7 @@ let check_section_term tm =
 let add_section_hyp label hyp =
   let sections = !section_stack in
     if sections = [] then
-      failwith "No open sections"
+      failwith "add_section_hyp: No open sections"
     else
       let hyp0 = inst_section_vars hyp in
       let hyp1 = inst_section_types hyp0 in
@@ -206,8 +206,8 @@ let prepare_goal_term tm =
       check_section_term r; r;;
 
 
-(* Starts a proof of the goal using section hypotheses *)
-let start_section_proof names tm =
+(* Prepares a goal term and an initial tactic *)
+let prepare_section_proof names tm =
   let f_vars = map dest_var (frees tm) in
   let find var_name = 
     try assoc var_name f_vars with Failure _ -> failwith ("Unused variable: "^var_name) in
@@ -215,11 +215,16 @@ let start_section_proof names tm =
   let g_tm = list_mk_forall (g_vars, tm) in
   let tm0 = prepare_goal_term g_tm in
   let n_hyps = map fst (section_hyps()) in
-  let _ = set_goal([], tm0) in
   let gen_tac = REPLICATE_TAC (length g_vars) GEN_TAC in
   let disch_tac = itlist (fun name tac -> DISCH_THEN (LABEL_TAC name) THEN tac) n_hyps ALL_TAC in
-    refine (by (VALID (disch_tac THEN gen_tac)));;
+    tm0, disch_tac THEN gen_tac;;
 
+
+(* Starts a proof of the goal using section hypotheses *)
+let start_section_proof names tm =
+  let tm0, tac0 = prepare_section_proof names tm in
+  let _ = set_goal([], tm0) in
+    refine (by (VALID tac0));;
 
 
 (* Returns the final theorem *)
@@ -227,6 +232,18 @@ let end_section_proof () =
   let th = top_thm() in
   let hyps = section_hyps() in
     itlist (fun _ th -> UNDISCH th) hyps th;;
+
+(* Proofs a lemma using section hypotheses and variables *)
+let section_proof names tm tac_list =
+  let tm0, tac0 = prepare_section_proof names tm in
+  let gstate = mk_goalstate ([], tm0) in
+  let _, sgs, just = rev_itlist by (tac0 :: tac_list) gstate in
+  let th0 =
+    if sgs = [] then just null_inst []
+    else failwith "section_proof: unsolved goals" in
+  let hyps = section_hyps() in
+    itlist (fun _ th -> UNDISCH th) hyps th0;;
+
     
 
 (* Discharges all assumptions and generalize all section variables *)
@@ -240,72 +257,3 @@ let finalize_theorem th =
   let vars = intersect f_vars s_vars in
     itlist (fun var th -> GEN var th) vars th1;;
     
-  
-
-(*
-(* Tests *)
-    
-
-!section_stack;;
-
-begin_section "First";;
-
-add_section_var `a : num`;;
-add_section_var `b : (num)list`;;
-add_section_hyp "b_eq" `b = [1; 2]`;;
-add_section_hyp "a_eq" `a = 2`;;
-add_section_type `d : (real)list`;;
-add_section_hyp "d0" `!d. d = []`;;
-!section_stack;;
-
-type_of (inst_section_vars `a, CONS c b`);;
-type_of (inst_section_types `CONS d b`);;
-
-let tm = `!d c. CONS a b = [2;1;2] /\ (c = 0 \/ c > 0) /\ d = []`;;
-prepare_goal_term tm;;
-
-start_section_proof [] tm;;
-e (REWRITE_TAC[] THEN ARITH_TAC);;
-let th = end_section_proof();;
-
-let th0 = finalize_theorem th;;
-
-end_section "First";;
-
-
-(* Bigger test *)
-
-begin_section "List";;
-add_section_var `a:(A)list`;;
-add_section_var `b:(A)list`;;
-add_section_hyp "a_not_nil" `~(a = [])`;;
-
-begin_section "Subsection";;
-add_section_var `c:A`;;
-add_section_hyp "b_not_nil" `~(b = [])`;;
-
-!section_stack;;
-
-start_section_proof `1 <= LENGTH (APPEND a b)`;;
-e (MP_TAC (ISPEC `a:(A)list` list_CASES));;
-e (MP_TAC (ISPEC `b:(A)list` list_CASES));;
-e (ASM_REWRITE_TAC[]);;
-e (REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[APPEND; LENGTH]);;
-e (ARITH_TAC);;
-let th1 = end_section_proof();;
-
-start_section_proof `2 <= LENGTH (CONS c a)`;;
-e (MP_TAC (ISPEC `a:(A)list` list_CASES));;
-e (ASM_REWRITE_TAC[]);;
-e (REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[APPEND; LENGTH]);;
-e (ARITH_TAC);;
-let lemma1 = end_section_proof();;
-
-let th2 = finalize_theorem th1;;
-let lemma2 = finalize_theorem lemma1;;
-end_section "Subsection";;
-
-let th3 = finalize_theorem th2;;
-let lemma3 = finalize_theorem lemma2;;
-end_section "List";;
-*)

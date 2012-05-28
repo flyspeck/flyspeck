@@ -10,6 +10,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.Reader;
+import java.io.StringReader;
 
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBoxMenuItem;
@@ -32,6 +35,7 @@ import edu.pitt.math.jhol.caml.CamlType;
 import edu.pitt.math.jhol.core.Goalstate;
 import edu.pitt.math.jhol.core.parser.Parser;
 import edu.pitt.math.jhol.core.printer.TermPrinterData;
+import edu.pitt.math.jhol.ssreflect.parser.Compiler;
 import edu.pitt.math.jhol.ssreflect.parser.Interpreter;
 import edu.pitt.math.jhol.test.EmptyCamlEnvironment;
 import edu.pitt.math.jhol.test.TestCamlEnvironment;
@@ -64,6 +68,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	private static final String CMD_FILE_SAVE_AS = "file-save-as";
 	private static final String CMD_FILE_EXIT = "file-exit";
 	private static final String CMD_EDIT_HIGHLIGHT = "edit-highlight";
+	private static final String CMD_RUN_COMPILE = "run-compile";
 	
 	// File menu
 	private JMenu fileMenu;
@@ -397,11 +402,75 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     	menuItem.setActionCommand(CMD_EDIT_HIGHLIGHT);
     	menuItem.addActionListener(this);
     	menu.add(menuItem);
+
+    	/////////////////////
+    	// Run
+    	menu = new JMenu("Run");
+    	menu.setMnemonic(KeyEvent.VK_R);
+    	menuBar.add(menu);
+    	
+    	menuItem = new JMenuItem("Compile");
+    	menuItem.setAccelerator(KeyStroke.getKeyStroke(
+    	        KeyEvent.VK_B, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK));
+    	menuItem.setActionCommand(CMD_RUN_COMPILE);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
     	
     	// Finish the menu initialization
     	this.setJMenuBar(menuBar);    	
     }
     
+    
+    /**
+     * Compiles the current text
+     */
+    private void compileText() {
+    	String text = editor.getText();
+    	FileManager.FileInfo currentFile = fileManager.getCurrentFile();
+    	
+    	if (currentFile == null) {
+    		System.err.println("compileText(): null file");
+    		return;
+    	}
+    	
+    	String outName = currentFile.getName();
+    	FileOutputStream out = null;
+    	try {
+    		File outFile = new File(currentFile.file.getParentFile(), outName + "-compiled.hl");
+    		out = new FileOutputStream(outFile);
+    		Reader in = new StringReader(text);
+    		boolean errors = false;
+    		
+    		logArea.setText("");
+    	
+    		try {
+    			Compiler compiler = new Compiler(in, out);
+    			compiler.compile();
+    		}
+    		catch (Exception e) {
+    	        final SimpleAttributeSet redAttrs = new SimpleAttributeSet();
+    			redAttrs.addAttribute(ColorConstants.Foreground, Color.red);
+				logArea.getStyledDocument().insertString(0, e.getMessage(), redAttrs);
+				errors = true;
+    		}
+    		
+    		if (!errors)
+    			logArea.getStyledDocument().insertString(0, "Compile complete", null);
+    	}
+    	catch (Exception e) {
+    		e.printStackTrace();
+    	}
+    	finally {
+    		if (out != null) {
+    			try {
+    				out.close();
+    			}
+    			catch (Exception e) {
+    				e.printStackTrace();
+    			}
+    		}
+    	}
+    }
     
 
     @Override
@@ -411,6 +480,17 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 			return;
 		
 		cmd = cmd.intern();
+		
+		// Compile
+		if (cmd == CMD_RUN_COMPILE) {
+			// Save all modifications first
+			if (fileManager.saveCurrent(editor.getText(), editor.getCaretPosition())) {
+				editor.setModified(false);
+				compileText();
+			}
+			
+			return;
+		}
 		
 		// Highlight
 		if (cmd == CMD_EDIT_HIGHLIGHT) {

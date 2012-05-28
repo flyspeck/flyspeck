@@ -36,7 +36,7 @@ public class TreeBuilder {
 		if (t.type != TokenType.IDENTIFIER)
 			throw new Exception("IDENTIFIER expected: " + t);
 		
-		if (t.value == "Lemma")
+		if (t.value == "Lemma" || t.value == "Theorem")
 			return parseLemma();
 		
 		if (t.value == "Section" || t.value == "End")
@@ -58,8 +58,8 @@ public class TreeBuilder {
 	private LemmaNode parseLemma() throws Exception {
 		// Lemma
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || t.value != "Lemma")
-			throw new Exception("'Lemma' expected: " + t);
+		if (t.type != TokenType.IDENTIFIER || (t.value != "Lemma" && t.value != "Theorem"))
+			throw new Exception("'Lemma' or 'Theorem' expected: " + t);
 		
 		// name and parameters
 		ArrayList<String> ids = parseIdList();

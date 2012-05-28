@@ -56,6 +56,26 @@ public class FileManager implements Configuration.Saver {
 			this(new File(name), position);
 		}
 		
+		/**
+		 * Returns the name of the file without extension
+		 */
+		public String getName() {
+			String name = file.getName();
+			
+			int index;
+			for (index = name.length() - 1; index >= 0; index--) {
+				if (name.charAt(index) == '.')
+					break;
+			}
+			
+			if (index > 0) {
+				return name.substring(0, index);
+			}
+			else {
+				return name;
+			}
+		}
+		
 		public int getPosition() {
 			return position;
 		}

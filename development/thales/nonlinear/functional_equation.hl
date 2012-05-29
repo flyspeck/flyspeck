@@ -1,6 +1,8 @@
 (* May 2012 functional equational definitions of 
    inequality functions *)
 
+open Hales_tactic;;
+
 let GMATCH = Hales_tactic.GMATCH_SIMP_TAC;;
 
 let uni = new_definition `uni(f,x) = (f:A->B) x`;;
@@ -30,9 +32,24 @@ let sub6 = new_definition `sub6 f g x1 x2 x3 x4 x5 x6 =
 let proj_y1 = new_definition `proj_y1 x1 x2 x3 x4 x5 x6 = 
   sqrt(x1)`;;
 
+let proj_y2 = new_definition `proj_y2 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x2)`;;
+
+let proj_y3 = new_definition `proj_y3 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x3)`;;
+
 let domain6 = new_definition `domain6 h f g = 
   (!x1 x2 x3 x4 x5 x6. h x1 x2 x3 x4 x5 x6 ==>
       (f x1 x2 x3 x4 x5 x6 = g x1 x2 x3 x4 x5 x6))`;;
+
+let rotate234 = new_definition `rotate234 f = 
+  compose6 f proj_x2 proj_x3 proj_x4 unit6 unit6 unit6`;;
+
+let rotate126 = new_definition `rotate126 f = 
+  compose6 f proj_x1 proj_x2 proj_x6 unit6 unit6 unit6`;;
+
+let rotate345 = new_definition `rotate345 f = 
+  compose6 f proj_x3 proj_x4 proj_x5 unit6 unit6 unit6`;;
 
 overload_interface ("+",`add6`);;
 overload_interface ("-",`sub6`);;
@@ -42,6 +59,9 @@ overload_interface ("*",`mul6`);;
 let proj_x1 = Nonlinear_lemma.proj_x1;;
 let proj_x2 = Nonlinear_lemma.proj_x2;;
 let proj_x3 = Nonlinear_lemma.proj_x3;;
+let proj_x4 = Nonlinear_lemma.proj_x4;;
+let proj_x5 = Nonlinear_lemma.proj_x5;;
+let proj_x6 = Nonlinear_lemma.proj_x6;;
 
 let functional_lfun_y1 = prove_by_refinement(
   `lfun_y1 = (unit6 * constant6 h0 + proj_x1 * constant6 (-- &1))*
@@ -87,8 +107,7 @@ let functional_ldih3_x = prove_by_refinement(
   ]);;
   (* }}} *)
 
-type_of `uni'`;;
-type_of `inv`;;
+
 (* ldih5_x ldih6_x not in HOL Light*)
 
 let functional_arclength_x_123 = prove_by_refinement(
@@ -113,10 +132,144 @@ let functional_arclength_x_123 = prove_by_refinement(
    REPEAT(   Hales_tactic.GMATCH_SIMP_TAC (ISPEC `&0` Nonlinear_lemma.sq_pow2));
    ASM_SIMP_TAC[REAL_ARITH `&0 pow 2 = &0`;REAL_ARITH `&0 < x ==> &0 <= x`;REAL_ARITH `u + x * -- &1 = u - x`];
    AP_TERM_TAC;
-   XXD.
+   MATCH_MP_TAC EQ_SYM;
+   REWRITE_TAC[REAL_ARITH `(x1 * x2)* &4 = x1 * (x2 * (&2 pow 2))`];
+   REPEAT (GMATCH SQRT_MUL);
+   GMATCH Euler_complement.SQRT_OF_POW_2_LE;
+   REPEAT (GMATCH Real_ext.REAL_PROP_NN_MUL2);
+   ASM_SIMP_TAC[REAL_ARITH `&0 <= &2 pow 2 /\ &0 <= &2`;REAL_ARITH `&0 < x ==> &0 <= x`];
+   REAL_ARITH_TAC;
   ]);;
   (* }}} *)
 
+
+let functional_arclength_234 = prove_by_refinement(
+  `arclength_x_234 = rotate234 arclength_x_123`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[rotate234;Sphere.arclength_x_123];
+    REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[add6;mul6;div6;sub6;constant6;Nonlinear_lemma.compose6;uni';Nonlinear_lemma.arclength_x_234;Sphere.arclength_x_123;];
+    REWRITE_TAC[proj_x1;proj_x2;proj_x3;proj_x4];
+  ]);;
+  (* }}} *)
+
+let functional_arclength_126 = prove_by_refinement(
+  `arclength_x_126 = rotate126 arclength_x_123`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[rotate126];
+    REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[add6;mul6;div6;sub6;constant6;Nonlinear_lemma.compose6;uni';Nonlinear_lemma.arclength_x_126;Sphere.arclength_x_123;];
+    REWRITE_TAC[proj_x1;proj_x2;proj_x3;proj_x6];
+  ]);;
+  (* }}} *)
+
+ 
+(* arclength_x_345 deprecated *)
+
+
+let functional_sol_euler_x_divsqrtdelta = prove_by_refinement(
+  `let a = uni'(sqrt,proj_x1 * proj_x2 * proj_x3) +
+     proj_y1 * (proj_x2 + proj_x3 - proj_x4) * constant6 (#0.5) +
+     proj_y2 * (proj_x1 + proj_x3 - proj_x5) * constant6 (#0.5) +
+     proj_y3 * (proj_x1 + proj_x2 - proj_x6) * constant6 (#0.5) in
+    (sol_euler_x_div_sqrtdelta  =
+	(uni'(matan,(delta_x / (a * a * constant6 (&4))))) / a)`,
+  (* {{{ proof *)
+  [
+    LET_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[uni';Sphere.sol_euler_x_div_sqrtdelta;div6;mul6;add6;sub6;constant6;proj_y1;proj_y2;proj_y3;proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6];
+    REWRITE_TAC[REAL_ARITH `x * #0.5 = x/ &2`;REAL_ARITH `&4 * a pow 2 = a* a * &4`];
+  REPEAT    STRIP_TAC;
+  FIRST_X_ASSUM (ASSUME_TAC o (ISPECL [`x:real`;`x':real`;`x'':real`;`x''':real`;`x'''':real`;`x''''':real`]));
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[LET_DEF;LET_END_DEF];    
+  ]);;
+  (* }}} *)
+
+
+let functional_sol246_euler_x_div_sqrtdelta = prove_by_refinement(
+  `sol_euler246_x_div_sqrtdelta = rotate4 sol_euler_x_div_sqrtdelta`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  BY(REWRITE_TAC[Sphere.rotate4;Sphere.sol_euler246_x_div_sqrtdelta])
+  ]);;
+  (* }}} *)
+
+let functional_sol345_euler_x_div_sqrtdelta = prove_by_refinement(
+  `sol_euler345_x_div_sqrtdelta = rotate5 sol_euler_x_div_sqrtdelta`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  BY(REWRITE_TAC[Sphere.rotate5;Sphere.sol_euler345_x_div_sqrtdelta])
+  ]);;
+  (* }}} *)
+
+let functional_sol156_euler_x_div_sqrtdelta = prove_by_refinement(
+  `sol_euler156_x_div_sqrtdelta = rotate6 sol_euler_x_div_sqrtdelta`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  BY(REWRITE_TAC[Sphere.rotate6;Sphere.sol_euler156_x_div_sqrtdelta])
+  ]);;
+  (* }}} *)
+
+let functional_dih_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `domain6 (\x1 x2 x3 x4 x5 x6. (&0 <= x1))
+    dih_x_div_sqrtdelta_posbranch
+    ((constant6 (&2) * proj_y1) / (delta_x4) *
+      uni'(matan, (constant6 (&4) * proj_x1 * delta_x) / (uni'(pow2,delta_x4))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[domain6];
+  REWRITE_TAC[proj_y1;constant6;proj_x1;uni';mul6;div6;Sphere.dih_x_div_sqrtdelta_posbranch;];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;Nonlinear_lemma.pow2];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[SQRT_MUL;arith `&0 <= &4`];
+  BY(REWRITE_TAC[Collect_geom2.SQRT4_EQ2])
+  ]);;
+  (* }}} *)
+
+(* dih2_x_div_sqrtdelta_posbranch not defined in HOL-Light *)
+
+
+let functional_ldih_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `ldih_x_div_sqrtdelta_posbranch = 
+    ((constant6 h0 - proj_y1 * constant6 ( #0.5))*constant6 ( &1/ (h0 - &1)))
+    * dih_x_div_sqrtdelta_posbranch`,
+  (* {{{ proof *)
+[
+  REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[Sphere.ldih_x_div_sqrtdelta_posbranch];
+  REWRITE_TAC[Sphere.ldih_x_div_sqrtdelta_posbranch;Sphere.lfun];
+  REWRITE_TAC[Sphere.ldih_x_div_sqrtdelta_posbranch;Sphere.lfun;constant6;mul6;sub6;proj_y1;];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let functional_ldih_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `# TO HERE XXD `,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+searcht 5 [`dih2_x_div_sqrtdelta_posbranch`];;
+searcht 5 [`sqrt(&4)`];;
+searcht 5 [`sqrt(x * y) = sqrt(x) * sqrt(y)`];;
+searcht 5 [`pow2`];;
+searcht 5 [`four`];;
+searcht 5 [`sqrt (x pow 2)`];;
+searcht 5 [`&0 <= x * y`];;
+Nonlinear_lemma.sqrtxx;;
+searcht 5 [`a = b ==> b = a`];;
+searcht 5 [`a ==> (sqrt (x * y) = u)`];;
 searcht 5 [`&0 pow 2`];;
 searcht 5 [`sqrt x * sqrt x = x`];;
 searcht 5[`&0 <= sqrt x`];;

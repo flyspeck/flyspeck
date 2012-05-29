@@ -93,7 +93,8 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	 * Constructor
 	 */
 	public TestSSReflectGUI(CamlEnvironment caml) {
-		this.interpreter = new Interpreter(caml, "caml/test.log");
+//		this.interpreter = new Interpreter(caml, "caml/test.log");
+		this.interpreter = new Interpreter(caml, null);
 		this.configuration = new Configuration("gui.xml");
 		configuration.addSaver(this);
 
@@ -296,15 +297,16 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	 * Sets the new text in the editor and resets the interpreter
 	 */
 	private void setNewText(String text, int initPosition) {
-		String logName = "caml/test.log";
+//		String logName = "caml/test.log";
 		
-		if (fileManager.getCurrentFile() != null) {
-			logName = fileManager.getCurrentFile().file.getAbsolutePath() + ".log";
-		}
+//		if (fileManager.getCurrentFile() != null) {
+//			logName = fileManager.getCurrentFile().file.getAbsolutePath() + ".log";
+//		}
 
 		if (text != null) {
 			editor.initText(text, initPosition);
-			interpreter.clearAndInit(logName);
+//			interpreter.clearAndInit(logName);
+			interpreter.clearAndInit(null);
 		}
 	}
 
@@ -316,7 +318,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
         // Finish the initialization
         JScrollPane textScroll = new JScrollPane(editor);
         textScroll.setPreferredSize(new Dimension(700, 600));
-        textScroll.setMinimumSize(new Dimension(500, 500));
+        textScroll.setMinimumSize(new Dimension(300, 300));
         JScrollPane logScroll = new JScrollPane(logArea);
         logScroll.setPreferredSize(new Dimension(500, 200));
         

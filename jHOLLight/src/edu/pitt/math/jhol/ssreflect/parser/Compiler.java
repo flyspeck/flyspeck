@@ -211,6 +211,7 @@ public class Compiler {
 		
 		// Start the section
 		if (currentSection != null) {
+			out.println();
 			out.println("(* Section " + name + " *)");
 			out.println(currentSection.toHOLCommand() + ";;");
 		}

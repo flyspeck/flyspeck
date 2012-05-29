@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
-"needs \"caml/ssrnat.hl\"".
-"#use \"/mnt/HOL Light/update_database.ml\"".
+"needs \"Examples/ssrnat-compiled.hl\"".
 
 
 (* The seq type is the ssreflect type for sequences; it is an alias for the   *)
@@ -1883,7 +1882,7 @@ Lemma rotrK : `!s. rot n0 (rotr n0 s) = s`.
 Proof.
 --move=> s; have [lt_n0s | ge_n0s] := ltnP n0 (size s).
 move => s.
-have [] [lt_n0s | ge_n0s] := ltnP n0 `sizel s`.
+have [lt_n0s | ge_n0s] := ltnP n0 `sizel s`.
 --  by rewrite -{1}(subKn (ltnW lt_n0s)) -{1}[size s]size_rotr; exact: rotK.
   by rewrite -{1}(subKn (ltnW lt_n0s)) -{1}[`sizel s`]size_rotr -rotr [`rotr n0 _`]rotr rotK.
 --by rewrite -{2}(rot_oversize ge_n0s) /rotr (eqnP ge_n0s) rot0.
@@ -2205,7 +2204,7 @@ by rewrite subseqP => [] [m] [_ ->] x; apply: mem_mask. Qed.
 Lemma subseq_seq1 x s : `subseq [x] s <=> x <- s`.
 --by elim: s => //= y s; rewrite inE; case: (x == y); rewrite ?sub0seq.
 elim: s => [|y s IHs]; rewr subseq !MEM.
-by case: (EXCLUDED_MIDDLE `x = y`) => /=; rewr subseq /=.
+by case: (orbN `x = y`) => /=; rewr subseq /=.
 Qed.
 
 Lemma size_subseq s1 s2 : `subseq s1 s2 ==> sizel s1 <= sizel s2`.
@@ -2480,7 +2479,7 @@ elim: s => [|x s IHs]; rewr in_nil /= map uniq // => injf.
 rewrite IHs.
   move => a b [[Ha Hb] fab].
   by move: (injf a b); rewrite !in_cons Ha Hb fab.
-"AP_THM_TAC THEN AP_TERM_TAC".
+congr `_ /\ _` => //.
 rewrite mapP NOT_EXISTS_THM negb_and; split.
   by move/(_ x) => /=.
 move => Hx y.
@@ -2730,10 +2729,7 @@ Qed.
 
 Lemma mkseq_nth s : `mkseq (nth x0 s) (sizel s) = s`.
 --by apply: (@eq_from_nth _ x0); rewrite size_mkseq // => i Hi; rewrite nth_mkseq.
-apply "REWRITE_RULE[IMP_IMP] eq_from_nth".
-exists x0; rewrite size_mkseq /= => i Hi.
-by rewrite nth_mkseq.
-Qed.
+Proof. by apply: (eq_from_nth x0); rewrite size_mkseq /= => i Hi; rewrite nth_mkseq. Qed.
 
 End MakeSeq.
 
@@ -2985,12 +2981,9 @@ Lemma rev_zip s1 s2 :
   `sizel s1 = sizel s2 ==> rev (zip s1 s2) = zip (rev s1) (rev s2)`.
 --elim: s1 s2 => [|x s1 IHs] [|y s2] //= [eq_sz].
 --by rewrite !rev_cons zip_rcons ?IHs ?size_rev.
-elim: s1 s2 => [|x s1 IHs]; elim => [|y s2 _]; last first.
-  rewrite !size_cons eqSS => eq_sz.
-  by rewrite !rev_cons zip_rcons ?size_rev //; rewr zip rev_cons; rewrite IHs.
-by rewr rev catrev zip catrev.
-by rewr rev catrev zip catrev.
-by rewr rev catrev zip catrev.
+elim: s1 s2 => [|x s1 IHs] [|y s2]; try (rewr rev catrev zip catrev; done).
+rewrite !size_cons eqSS => eq_sz.
+by rewrite !rev_cons zip_rcons ?size_rev //; rewr zip rev_cons; rewrite IHs //.
 Qed.
 
 End Zip.

@@ -1,5 +1,5 @@
 "needs \"Library/prime.ml\"".
-"needs \"caml/seq.hl\"".
+"needs \"Examples/seq-compiled.hl\"".
 
 
 "let group = new_definition `group (G,op,i,e) <=> (!x y. x IN G /\ y IN G ==> op x y IN G) /\
@@ -1026,9 +1026,11 @@ Qed.
 End Z_group.
 
 
-
 Lemma SING_HAS_SIZE_1 x : `{x} HAS_SIZE 1`.
-Proof. by rewrite HAS_SIZE_1_EXISTS EXISTS_UNIQUE; exists x; rewrite !IN_SING. Qed.
+Proof.
+rewrite ONE "GEN_ALL HAS_SIZE_CLAUSES".
+by exists x `{}`; rewrite "GEN_ALL HAS_SIZE_CLAUSES" NOT_IN_EMPTY.
+Qed.
 
 Lemma HAS_SIZE_1_SING X : `X HAS_SIZE 1 <=> ?x. X = {x}`.
 split; last by move => [x ->]; rewrite SING_HAS_SIZE_1.
@@ -1047,12 +1049,6 @@ move => x xV.
 by exists `f x`; rewrite f_on // gf.
 Qed.
 
-
-Lemma bij_alt f s t : `BIJ (f:A->B) s t <=> 
-	(!x. x IN s ==> f x IN t) /\ (!y. y IN t ==> (?!x. x IN s /\ f x = y))`.
-Proof.
-rewrite BIJ INJ SURJ.
-Abort.
 
 Lemma bij_inverse f s t : `BIJ (f:A->B) s t ==> 
 	(?g. (!y. y IN t ==> g y IN s) /\ (!x. x IN s ==> g (f x) = x) /\ (!y. y IN t ==> f (g y) = y))`.
@@ -1533,9 +1529,8 @@ End ProdExp.
 Lemma minP_exists P k: `P k ==> ?n. P n /\ (!m. P m ==> n <= m)`.
 Proof.
 move: k; apply: num_WF => k IH Pk.
-case cond: `?m. m < k /\ P m`; move: cond => /=.
-  move => [m] [mk Pm].
-  exact: (IH m).
+case: (orbN `?m. m < k /\ P m`).
+  by move => [m] [mk Pm]; exact: (IH m).
 rewrite NOT_EXISTS_THM negb_and => h.
 exists k; rewrite Pk andTb => m Pm.
 by move: (h m); rewrite Pm NOT_LT.
@@ -1565,8 +1560,7 @@ Qed.
 
 
 Lemma INFINITE_SUBSET s t : `INFINITE s ==> s SUBSET t ==> INFINITE t`.
-rewrite !INFINITE => hs hst.
-apply: contra hs => fin_t.
+rewrite !INFINITE => hs hst; apply: contra hs => fin_t.
 by apply FINITE_SUBSET; exists t.
 Qed.
 

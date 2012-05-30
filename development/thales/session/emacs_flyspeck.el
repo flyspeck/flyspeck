@@ -9,10 +9,14 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*may20-hol*")
+(setq hol-light-interactive-buffer-name "*may30hol*")
 (setq hol-light-interactive-buffer-name "*jun4*")
 
 (system-name)
 ; thackmac
+
+; get fill-column by C-h v fill-column
+; set fill-column by C-u 9999 C-x f
 
 (print hol-light-interactive-buffer-name)
 

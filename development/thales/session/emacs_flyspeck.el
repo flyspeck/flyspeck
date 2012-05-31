@@ -28,6 +28,10 @@
 ; (* custom *)
 (hol-light-display-buffer-on-eval)
 
+(setq-default fill-column 9999) ; don't insert hard lines.
+(setq-default fill-column 70) ; insert hard lines.
+
+
 (defun insert-date()
   "insert the current date into current buffer"
   (interactive)

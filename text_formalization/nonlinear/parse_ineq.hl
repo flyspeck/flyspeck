@@ -570,23 +570,59 @@ let ocaml_string_of_term t =
     if is_var t then fst (dest_var t) else
       let (f,xs) = strip_comb t in
       let ifix i = let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
-      let _ = (is_const f) or 
-	failwith ("Constant expected: " ^ string_of_term f) in
-	match fst (dest_const f) with
+      let fv = 
+	if is_var f 
+	then
+	  let fv = fst(dest_var f) in
+	  let _ = warn true ("variable function name: "^fv) in
+	    fv
+	else if is_const f then fst (dest_const f) 
+	else 
+	  failwith ("var or const expected: " ^ string_of_term f) in
+	match fv with
 	  | "real_sub" -> ifix "-. "
 	  | "real_add" -> ifix "+."
 	  | "real_mul" -> ifix "*."
 	  | "real_div" -> ifix "/."
+	  | "real_lt" -> ifix "<"
+	  | "real_le" -> ifix "<="
+	  | "real_gt" -> ifix ">"
+	  | "real_ge" -> ifix ">="
+	  | "real_pow" -> ifix " ** "
+	  | "/\\" -> ifix "&&"
+	  | "\\/" -> ifix "or"
 	  | "real_neg" -> let [a] = xs in paren("-. " ^ soh a)
-	  | "acs" -> let [a] = xs in "(acos("^soh a^ "))"
+	  | "acs" -> 
+	      (try 
+		let [a] = xs in "(acos("^soh a^ "))" 
+	      with Match_failure _ -> 
+		let _ = (xs=[]) or failwith "ocaml:acs" in
+		  paren "acos")
 	  | "real_of_num" -> let [a] = xs in soh a  
 	  | "NUMERAL" -> let [_] = xs in string_of_num' (dest_numeral t)
 	  | "=" -> let [a;b] = xs in soh a ^ " = " ^ soh b
+	  | "," -> let [a;b] = xs in paren( soh a ^ "," ^ soh b)
 	  | "DECIMAL" ->  string_of_num' (dest_decimal t)
+	  | "COND" -> 
+	      let [a;b;c] = xs in 
+		paren("if "^( paren(soh a)) ^ 
+			" then " ^ (paren (soh b)) ^ 
+			" else " ^ (paren(soh c)) )
 	  | "atn2"      -> let [ab] = xs in let (a,b) = dest_pair ab in  
-              "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  
-	    (* note reverse order atan2 in ocaml *) 
-	  | s -> " " ^ s ^ " " ^ join_space(map (paren o soh) xs) ^ " " in
+	      "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  
+		(* note reverse order atan2 in ocaml *) 
+	  | "domain6" -> let [h;f;g] = xs in domain6 soh h f g
+	  | s -> " " ^ s ^ " " ^ join_space(map (paren o soh) xs) ^ " " 
+  and domain6 soh h f g = 
+    let (v,body) = strip_abs h in
+    let vs = map (fst o dest_var) v in
+    let vars = join_space vs in
+    let bodys = soh body in
+    let fs = fst(dest_const f) in
+    let gs = soh g in
+      (Printf.sprintf 
+	 " %s %s = \n  let _ = ( %s ) or failwith \"domain6:%s\" in \n
+      ( %s ) %s" fs vars bodys fs gs vars) in
     try 
       (soh t) 
     with Failure s -> failwith (s^" .......   "^string_of_term t);;

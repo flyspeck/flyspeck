@@ -48,7 +48,6 @@ static inline double dabs(const interval x) {
   return interMath::sup(interMath::max(x,-x));
 }
 
-
 static void testAbs(double DD[6][6],const char* s) {
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
       if (DD[i][j] < 0) {
@@ -83,8 +82,10 @@ static double taylorError(const domain& w,const double DD[6][6])
   return t;
 }
 
-
 const Function FunctionLibrary::unit(Function::unit);
+
+
+
 
 /*implement x1 */
 static int setZero(const domain& ,const domain& ,double DD[6][6])
@@ -276,7 +277,7 @@ static int setY2(const domain& x,const domain&,double DD[6][6])
 }
 //primitiveA Y2(lineY2,setY2);
 const Function FunctionLibrary::y2= Function::mk_raw(lineY2,setY2); //(&::Y2);
-
+ 
 /*implement y3 */
 static lineInterval lineY3(const domain& x)
 {
@@ -737,7 +738,21 @@ namespace local {
 
  Function operator*(const Function& f,const Function& g) {
    return Function::product(f,g);
- };
+ }
+
+  static const Function operator*(const Function& t,int j) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const Function operator*(int j,const Function& t) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const Function operator-
+  (const Function& u,const Function& t) {
+    return u + t * mone;
+  }
+
 
   Function uni(const univariate& u,const Function& f) {
    return Function::uni_compose(u,f);
@@ -786,18 +801,6 @@ namespace local {
 
   static const Function two_unit = unit * two;
 
-  static const Function operator*(const Function& t,int j) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator*(int j,const Function& t) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator-
-  (const Function& u,const Function& t) {
-    return u + t * mone;
-  }
 
 
    };

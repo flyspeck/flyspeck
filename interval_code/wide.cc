@@ -11,7 +11,7 @@
 /*
 
 By the locally constant approximation of a function f we mean
-the taylorFunction whose derivatives and second derivatives are identically
+the Function whose derivatives and second derivatives are identically
 zero and whose constant term is a fat interval spanning the min and max of f.
 
 When we use the locally constant approximation we are required to

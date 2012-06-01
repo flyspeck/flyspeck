@@ -575,7 +575,7 @@ lineInterval linearization::dih6(const domain& x)
 	return t;
 	}
 
-/*implement y1 copied from taylorSimplex.cc */
+/*implement y1 copied from ?.cc */
 static lineInterval lineSqrt(lineInterval a)
     {
     lineInterval temp;

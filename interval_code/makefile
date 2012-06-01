@@ -32,31 +32,31 @@ lineInterval.o : lineInterval.h lineInterval.cc interval.h \
 wide.o : wide.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c wide.cc
 
-taylorInterval.o : taylorInterval.cc error.h interval.h univariate.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorInterval.cc
+taylorData.o : taylorData.cc error.h interval.h univariate.h #Can be opt. in level2
+	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorData.cc
 
-recurse.o : recurse.h recurse.cc taylorInterval.h error.h \
+recurse.o : recurse.h recurse.cc taylorData.h error.h \
 	interval.h interval_inline.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c recurse.cc 
 
 test: test.cc error.h error.o interval.h interval.o lineInterval.h \
-	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
+	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
 	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) test.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o taylorInterval.o recurse.o -o test -lm $(L)
+	secondDerive.o univariate.o taylorData.o recurse.o -o test -lm $(L)
 
 test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
-	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
+	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
 	recurse.h recurse.o univariate.h univariate.o wide.h wide.o
 	$(CC) $(CCOPTS1) test_auto.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o wide.o  taylorInterval.o recurse.o \
+	secondDerive.o univariate.o wide.o  taylorData.o recurse.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o -o test_auto -lm $(L)
 
 jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \
-	lineInterval.o secondDerive.h secondDerive.o taylorInterval.o \
+	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
 	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) jan4_test.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o taylorInterval.o recurse.o \
+	secondDerive.o univariate.o taylorData.o recurse.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o  -o jan4_test -lm $(L)
 
 

@@ -20,7 +20,7 @@ extern "C"
 }
 #include "error.h"
 #include "interval.h"
-#include "taylorInterval.h"
+#include "taylorData.h"
 
 /* I'm in a verifying frenzy.  I'm not responding to outside noises.
 	It's a heightened state of consciousness. S.McL.
@@ -158,7 +158,7 @@ CLASS
  
 OVERVIEW TEXT
 	This class gathers together a number of routines that
-	take a taylorFunction (or more generally a list of taylorFunctions F)
+	take a Function (or more generally a list of Functions F)
 	and proves that at least one of the functions F is negative
 	on the given domain.
 
@@ -172,7 +172,7 @@ public:
 	//////////
 	// recursiveVerifier is the main inequality verification
 	// procedure for simplices.  
-	// It starts with a list of taylorFunctions I[],
+	// It starts with a list of Functions I[],
 	// and attempts to prove that at every point of the domain
 	// x--z, at least one of the functions is negative.
 	// Start with depth=0.  Each step of the recursion will
@@ -184,14 +184,14 @@ public:
 static int recursiveVerifier(int depth,
 	const domain& x,const domain& z,     /// current cell
 	const domain& x0,const domain& z0,   // boundary
-	const taylorFunction* I[],
+	const Function* I[],
 	int count,cellOption& options);
 
 	//////////
 	// recursiveVerifierQ is the main inequality verification
 	// procedure for quad clusters.
 	// Each quad cluster is divided into two simplices A,B along
-	// the shortest diagonal.  A list of taylorFunctions is
+	// the shortest diagonal.  A list of Functions is
 	// given IA, IB for the two simplices.  The recursiveVerifierQ
 	// procedure attempts to show that at every point in the domain
 	// xA--zA (on A), xB--zB (on B), there is an index for which
@@ -200,7 +200,7 @@ static int recursiveVerifier(int depth,
 	// as long as the sum is negative.  Dimension reduction is
 	// always used in recursiveVerifierQ.  Otherwise the dimensions
 	// are too great to be handled by computer.  This means that
-	// if unreducible taylorFunctions are used, the
+	// if unreducible Functions are used, the
 	// results are unreliable.  
 	//
 	// The depth starts out at 0.
@@ -208,7 +208,7 @@ static int recursiveVerifier(int depth,
 static int recursiveVerifierQ(int depth, 
 	const domain& xA,const domain& xB,
 	const domain& zA,const domain& zB,
-	const taylorFunction* IA[],const taylorFunction* IB[],int Nineq,
+	const Function* IA[],const Function* IB[],int Nineq,
 	cellOption& options);
 
 // static int f298();

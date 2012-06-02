@@ -62,7 +62,7 @@ class FunctionLibrary
 	  upper_dih,
 	  eulerA_x,
 
-	  rhazim,rhazim2,rhazim3,
+	  rhazim_x,rhazim2_x,rhazim3_x,
 	  gchi1_x,gchi2_x,gchi3_x,gchi4_x,gchi5_x,gchi6_x,
 	  //	  marchalDih,marchalDih2,marchalDih3,
 	  //    marchalDih4,marchalDih5,marchalDih6,

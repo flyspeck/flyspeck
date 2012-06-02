@@ -247,67 +247,6 @@ static void half_array_multiply(interval a,const interval Df[6][6],
 		}
 	}
 
-
-/* We use the formula for each third of a Voronoi volume from I.8.6.3:
-	[x1 (x2+x6-x1)+ x2(x1+x6-x2)] chi(x4,x5,x3,x1,x2,x6)/[
-		48 u(x1,x2,x6) delta(x1,..x6)^0.5 ]
-   Write this as a product a/b, a = f1 chi;  b = 48 u delta^0.5
-*/
-
-
-
-static void setF126(const double x[6],const double z[6],
-	interval& f, interval Df[6], interval DDf[6][6])
-	{
-	double vmin, vmax, xmin[6], xmax[6];
-	double xxmin[6][6], xxmax[6][6];
-	double xa[6],za[6];
-	int i,j;
- 
-	for (i=0;i<6;i++) for (j=0;j<6;j++) 
-		{ xxmin[i][j]=0.0; xxmax[i][j]=0.0; }
-	for (i=0;i<6;i++) { xmin[i]=0.0; xmax[i]=0.0; }
-	xxmin[0][0]=xxmax[0][0]=xxmin[1][1]=xxmax[1][1]= -2.0;
-	xxmin[0][1]=xxmax[0][1]=xxmin[1][0]=xxmax[1][0]=  2.0;
-	xxmin[0][5]=xxmax[0][5]=xxmin[1][5]=xxmax[1][5]=  1.0;
-	xxmin[5][0]=xxmax[5][0]=xxmin[5][1]=xxmax[5][1]=  1.0;
- 
-	interMath::down(); 
-	xmin[0]=-2.0*z[0] + 2.0*x[1] + x[5];
-	xmin[1]= 2.0*x[0] - 2.0*z[1] + x[5];
-	xmin[5]= x[0]+x[1];
- 
-	interMath::up();
-	xmax[0]= -2.0*x[0] + 2.0*z[1] + z[5];
-	xmax[1]= 2.0*z[0] - 2.0*x[1] + z[5];
-	xmax[5]= z[0]+z[1];
-	
- 
-	// compute function max;
-	for (i=0;i<6;i++) { xa[i]=x[i]; za[i]=z[i]; 
-		if (xmin[i]>=0.0) xa[i]=za[i];
-		else if (xmax[i]<=0.0) za[i]=xa[i];
-		}
-	// rounding mode is still up.
-	vmax = 2.0*za[0]*za[1] + za[0]*za[5] + za[1]*za[5] 
-		+ (-xa[0])*xa[0] + (-xa[1])*xa[1];
-	for (i=0;i<6;i++) { xa[i]=x[i]; za[i]=z[i]; 
-		if (xmin[i]>=0.0) za[i]=xa[i];
-		else if (xmax[i]<=0.0) xa[i]=za[i];
-		}
-	interMath::down();
-	vmin = 2.0*xa[0]*xa[1] + xa[0]*xa[5] + xa[1]*xa[5]
-			+ (-za[0])*za[0] + (-za[1])*za[1];
- 
-	f = interval(vmin,vmax);
-	for (i=0;i<6;i++) Df[i]=interval(xmin[i],xmax[i]);
-	for (i=0;i<6;i++) for (j=0;j<6;j++)
-		DDf[i][j]=interval(xxmin[i][j],xxmax[i][j]);
-	
-	}
-
-
-
 static void setChi126(const double x[6],const double z[6],
 	interval& f,interval Df[6],interval DDf[6][6])
 	{

@@ -284,7 +284,7 @@ void interMath::selfTest() {
 
 	/*  string constructor */
 	{
-	  char* s = "3.1415926535897932384626433832795";
+	  const char s[] = "3.1415926535897932384626433832795";
 	  interval t = s;
 	  cout.precision(30);
 	  assert(t.lo < t.hi);
@@ -292,7 +292,7 @@ void interMath::selfTest() {
 
 	/* integer string constructor */
 	{
-	  char* s = "1";
+	  const char s[] = "1";
 	  interval t = s;
 	  assert(t.lo == 1);
 	  assert(t.hi == 1);
@@ -301,7 +301,7 @@ void interMath::selfTest() {
 	/* illustrate limitations of string constructor */
 	// test fails on "smash hotel"
 	{
-	  char* s = "10000000000000000";
+	  const char s[] = "10000000000000000";
 	  interval t = s;
 	  interval u( "2147483647"); // overflow value.
 	  //assert(t.lo == u.lo);

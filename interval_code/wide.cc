@@ -581,7 +581,7 @@ static int barelyLess(double x,double y,double epsilon)
 
 
 void wide::selfTest() {
-  cout << " -- loading wide routines " << endl;
+  cout << " -- loading wide routines " << endl << flush;
   /* test delta */ {
   double eps = 1.0e-6;
   interval y[6] = {"2.1","2.2","2.3","3.4","2.5","2.6"};  

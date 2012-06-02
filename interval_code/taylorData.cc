@@ -966,6 +966,46 @@ int Function::hasDeltaDenom() const {
 
 ///////// TESTING.
 
+/* ========================================================================== */
+/*                                                                            */
+/*    Section:TESTING ROUTINES                                                        */
+/*                                                                            */
+/* ========================================================================== */
+
+static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r = secondDerive::setAbsDihedral(X,Z,DD);
+  if (r) { testAbs(DD,"setAbsDihedral"); }
+  return r;
+}
+
+static int epsilonClose(double x,interval y,double epsilon)
+{
+  if (interMath::abs(y-interval(x,x))>epsilon)
+    {
+      cout << "close eps : " << interMath::abs(y-interval(x,x))
+	   << " x: " << x << " y: " << y << endl<< flush;
+      return 0;
+    }
+  return 1;
+}
+
+static int epsilonCloseDoubles(double x,double y,double epsilon)
+{
+  if (abs(y-x)>epsilon)
+    {
+      cout << "close-doubles eps: " << abs(y-x)
+	   << " x: " << x << "  y: " << y << endl<< flush;
+      return 0;
+    }
+  return 1;
+}
+
+
+
 static lineInterval lineX1(const domain& x)
 {
   static const interval one("1");
@@ -994,6 +1034,101 @@ void Function::selfTest()
   */
   Function g = Function::mk_raw(unitI,setZero);
   //cout << g.evalf(d,d).upperBound() << endl << flush;
+
+  /*test unit*/  {
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    domain z(4.11,4.22,4.33,4.44,4.55,4.66);
+    taylorData t = Function::unit.evalf(x,z);
+    if ((!t.upperBound()==1) || (!t.lowerBound()==1))
+      cout << "unit fails = " << t.upperBound()<<" " << t.lowerBound()<<endl;
+    for (int i=0;i<6;i++) if ((t.upperPartial(i)!=0)||(t.lowerPartial(i)!=0))
+			    cout << "unitp fails = " << t.upperPartial(i)<<" " << t.lowerPartial(i)<<endl;
+  }
+
+  /* test monomial */   { 
+    domain x(1.1,1.2,1.3,1.4,1.5,1.6);
+    int m[6] = {7,12,1,0,2,3};
+    //taylorData at = Function::mk_monomial(m).evalf(x,x);
+    taylorData at = Function::mk_monomial(7,12,1,0,2,3).evalf(x,x);
+    double mValue= 208.16588972375973;
+    double mathValueD[6]={1324.692025514837,2081.6588972376016,
+      160.1276074798155,0,277.5545196316802,390.3110432320503};
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "monomial  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "monomial D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }
+  }
+
+
+	/*test monomial DD */ {
+	// constants computed in Mathematica.
+	cout.precision(16);
+	domain x(1.1,1.2,1.3,1.4,1.5,1.6);
+	double DDmf[6][6] = {{
+	    7225.592866444565,13246.920255148372,1018.9938657806439,0,
+	    1766.2560340197826,2483.7975478403196},
+			     {13246.920255148372,19081.87322467802,1601.2760747981552,0,
+			      2775.545196316802,3903.1104323205036},
+			     {1018.9938657806439,1601.2760747981552,0,0,213.50347663975396,
+			      300.23926402465406},{0,0,0,0,0,0},
+			     {1766.2560340197826,2775.545196316802,213.50347663975396,0,
+			      185.0363464211201,520.4147243094003},
+			     {2483.7975478403196,3903.1104323205036,300.23926402465406,0,
+			      520.4147243094003,487.8888040400628}};
+        taylorData g = Function::mk_monomial(7,12,1,0,2,3).evalf(x,x);
+	for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
+	    if (!epsilonCloseDoubles(DDmf[i][j],g.DD[i][j],1.0e-8)) {
+		cout << "monomial DD " << i << " " << j << " " << g.DD[i][j];
+		cout << " eps: " << (DDmf[i][j] - g.DD[i][j]) << endl;
+		error::message("monomial failure");
+	      }
+	  }
+  }
+
+
+  /* test uni_compose */ {
+    Function x2 = 
+      Function::uni_slot(univariate::i_pow1,1);
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.04939015319192;
+    double mathValueD[6]={0,0.24397501823713327,0,0,0,0};
+    Function t = Function::uni_compose(univariate::i_sqrt,x2);
+    taylorData at = t.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "uni  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
+	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }    
+    Function y2= Function::uni_slot(univariate::i_sqrt,1);
+    taylorData at2 = y2.evalf(x,x);
+    if (!epsilonCloseDoubles(at2.upperBound(),mValue,1.0e-8))
+      cout << "uni2  fails " << endl;
+  }
+
+
+  /* test prod */ {
+
+    Function dih = Function::mk_raw(linearization::dih,setAbsDihedral);
+    Function y1 = Function::uni_slot(univariate::i_sqrt,0);
+    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
+    double mValue= 2.4623610348104914;
+    double mathValueD[6]={0.40443775297783785,-0.10690140741833755,
+   -0.11756239286152013,0.32047195412373986,-0.0917206840314374,
+			  -0.10213991072724367};
+    Function t = 
+      Function::product(y1,dih);
+    taylorData at = t.evalf(x,x); 
+    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+      cout << "uni  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }    
+  }
+
 
   cout << " -- done loading taylorData" << endl << flush;
 }

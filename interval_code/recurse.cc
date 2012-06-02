@@ -18,7 +18,7 @@ use #ifdef A206
 Quad part also has mild dependency x2,x3,x4,unit, and ops.
 use #ifdef quad
  */
-
+#define quad
 #include <iomanip>
 #include <float.h>
 
@@ -889,10 +889,13 @@ static int breaksapart(int depth, // all inputs are left unchanged.
       (interMath::sup(tA.f+tB.f)>interMath::sup(tAu.f+tBu.f))
       ) return 0;
   interval iyAu1(yAu[1],yAu[1]),iyAu2(yAu[2],yAu[2]),iyAu3(yAu[3],yAu[3]);
-  Function T = FunctionLibrary::unit*e +
-    (FunctionLibrary::x2+FunctionLibrary::unit*(-iyAu1))*eps[1] +
-    (FunctionLibrary::x3+FunctionLibrary::unit*(-iyAu2))*eps[2] +
-    (FunctionLibrary::x4+FunctionLibrary::unit*(-iyAu3))*eps[3];
+  static const Function x2 = Function::uni_slot(univariate::i_pow1,1);
+  static const Function x3 = Function::uni_slot(univariate::i_pow1,2);
+  static const Function x4 = Function::uni_slot(univariate::i_pow1,3);
+  Function T = Function::unit*e +
+    (x2+Function::unit*(-iyAu1))*eps[1] +
+    (x3+Function::unit*(-iyAu2))*eps[2] +
+    (x4+Function::unit*(-iyAu3))*eps[3];
   
   // split:
   Function A1 = *IA[0]+T*interval("-1");

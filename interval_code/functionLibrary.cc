@@ -584,13 +584,13 @@ static int setRhazim(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 //primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
-const Function FunctionLibrary::rhazim= Function::mk_raw(linearization::rhazim,setRhazim);//(&::rhazimPrimitive);
+const Function FunctionLibrary::rhazim_x= Function::mk_raw(linearization::rhazim,setRhazim);//(&::rhazimPrimitive);
 
 /*implement rhazim2 ... */
-const Function FunctionLibrary::rhazim2 = 
-  FunctionLibrary::rotate2(FunctionLibrary::rhazim);
-const Function FunctionLibrary::rhazim3 = 
-  FunctionLibrary::rotate3(FunctionLibrary::rhazim);
+const Function FunctionLibrary::rhazim2_x = 
+  FunctionLibrary::rotate2(FunctionLibrary::rhazim_x);
+const Function FunctionLibrary::rhazim3_x = 
+  FunctionLibrary::rotate3(FunctionLibrary::rhazim_x);
 
 /*
 static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
@@ -750,6 +750,7 @@ namespace local {
 
   static const Function operator-
   (const Function& u,const Function& t) {
+    static const interval mone("-1");
     return u + t * mone;
   }
 
@@ -1193,15 +1194,16 @@ namespace local {
 
 
 
-
-  static const Function taum = 
-    FunctionLibrary::rhazim + FunctionLibrary::rhazim2 +FunctionLibrary::rhazim3
+  /*
+  static const Function taum_x = 
+    FunctionLibrary::rhazim_x + FunctionLibrary::rhazim2_x +FunctionLibrary::rhazim3_x
     + unit * (pi * mone * (one + const1));
+  */
 
   static const Function taum_x1(const interval& a,const interval& b)
   {
     Function g = Function::compose
-      (taum,
+      (FunctionLibrary::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four  , unit * four, unit * four,
        unit * (a * a) , unit * (b * b) , x1);
     return g;
@@ -1210,7 +1212,7 @@ namespace local {
   static const Function taum_x2(const interval& a,const interval& b)
   {
     Function g = Function::compose
-      (taum,
+      (FunctionLibrary::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four  , unit * four, unit * four,
        unit * (a * a) , unit * (b * b) , x2);
     return g;
@@ -1219,7 +1221,7 @@ namespace local {
   static const Function taum_x1_x2(const interval& a)
   {
     Function g = Function::compose
-      (taum,
+      (FunctionLibrary::taum_x , // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four, unit * four, unit * four,
        unit * (a * a) , x1 , x2);
     return g;
@@ -1591,8 +1593,8 @@ static const Function dih_x_135_s2 = mk_135(FunctionLibrary::dih);
          rhazim2_x x1 x2 x3 x4 x5 x6 +
          rhazim3_x x1 x2 x3 x4 x5 x6 - (&1 + const1) * pi
   */
-  const Function taum_x = FunctionLibrary::rhazim + FunctionLibrary::rhazim2 + 
-    FunctionLibrary::rhazim3 - unit  * pi * (one + const1);
+  const Function taum_x = FunctionLibrary::rhazim_x + FunctionLibrary::rhazim2_x + 
+    FunctionLibrary::rhazim3_x - unit  * pi * (one + const1);
 
   //implement delta4_squared_x
   const Function delta4_squared_x = FunctionLibrary::delta_x4 * FunctionLibrary::delta_x4;
@@ -2123,6 +2125,7 @@ static int epsilonCloseDoubles(double x,double y,double epsilon)
   return 1;
 }
 
+
   /* from univariate.cc */
     static int epsilon3(double* f,const univariate & u) {
       interval x("0.21");
@@ -2270,7 +2273,7 @@ static void testProcedure(Function F,lineInterval (*G)(const domain&),
 
 void FunctionLibrary::selfTest()
 {
-  cout << " -- loading functionLibrary routines " << endl;
+  cout << " -- loading functionLibrary routines " << endl << flush;
 
 
   /* test primitiveA. */
@@ -2435,57 +2438,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-  /*test unit*/  {
-    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
-    domain z(4.11,4.22,4.33,4.44,4.55,4.66);
-    taylorData t = FunctionLibrary::unit.evalf(x,z);
-    if ((!t.upperBound()==1) || (!t.lowerBound()==1))
-      cout << "unit fails = " << t.upperBound()<<" " << t.lowerBound()<<endl;
-    for (int i=0;i<6;i++) if ((t.upperPartial(i)!=0)||(t.lowerPartial(i)!=0))
-			    cout << "unitp fails = " << t.upperPartial(i)<<" " << t.lowerPartial(i)<<endl;
-  }
-
-  /* test monomial */   { 
-    domain x(1.1,1.2,1.3,1.4,1.5,1.6);
-    int m[6] = {7,12,1,0,2,3};
-    //taylorData at = Function::mk_monomial(m).evalf(x,x);
-    taylorData at = Function::mk_monomial(7,12,1,0,2,3).evalf(x,x);
-    double mValue= 208.16588972375973;
-    double mathValueD[6]={1324.692025514837,2081.6588972376016,
-      160.1276074798155,0,277.5545196316802,390.3110432320503};
-    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
-      cout << "monomial  fails " << endl;
-    for (int i=0;i<6;i++) {
-      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
-	cout << "monomial D " << i << "++ fails " << at.upperPartial(i) << endl;
-    }
-  }
-
-	/*test monomial DD */ {
-	// constants computed in Mathematica.
-	cout.precision(16);
-	domain x(1.1,1.2,1.3,1.4,1.5,1.6);
-	double DDmf[6][6] = {{
-	    7225.592866444565,13246.920255148372,1018.9938657806439,0,
-	    1766.2560340197826,2483.7975478403196},
-			     {13246.920255148372,19081.87322467802,1601.2760747981552,0,
-			      2775.545196316802,3903.1104323205036},
-			     {1018.9938657806439,1601.2760747981552,0,0,213.50347663975396,
-			      300.23926402465406},{0,0,0,0,0,0},
-			     {1766.2560340197826,2775.545196316802,213.50347663975396,0,
-			      185.0363464211201,520.4147243094003},
-			     {2483.7975478403196,3903.1104323205036,300.23926402465406,0,
-			      520.4147243094003,487.8888040400628}};
-        taylorData g = Function::mk_monomial(7,12,1,0,2,3).evalf(x,x);
-	for (int i=0;i<6;i++) for (int j=0;j<6;j++) {
-	    if (!epsilonCloseDoubles(DDmf[i][j],g.DD[i][j],1.0e-8)) {
-		cout << "monomial DD " << i << " " << j << " " << g.DD[i][j];
-		cout << " eps: " << (DDmf[i][j] - g.DD[i][j]) << endl;
-		error::message("monomial failure");
-	      }
-	  }
-  }
-
   /* test mdtau_y */   { 
     domain x(2.1,2.2,2.3,3.4,2.5,2.6);
     double mValue= -0.5994620477455596 ;
@@ -2605,37 +2557,6 @@ void FunctionLibrary::selfTest()
     }
     } */
 
-  /* test uni_compose */ {
-    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
-    double mValue= 2.04939015319192;
-    double mathValueD[6]={0,0.24397501823713327,0,0,0,0};
-    Function t = Function::uni_compose(univariate::i_sqrt,FunctionLibrary::x2);
-    taylorData at = t.evalf(x,x); 
-    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
-      cout << "uni  fails " << endl;
-    for (int i=0;i<6;i++) {
-      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
-	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
-    }    
-  }
-
-  /* test prod */ {
-    domain x(4.1,4.2,4.3,4.4,4.5,4.6);
-    double mValue= 2.4623610348104914;
-    double mathValueD[6]={0.40443775297783785,-0.10690140741833755,
-   -0.11756239286152013,0.32047195412373986,-0.0917206840314374,
-			  -0.10213991072724367};
-    Function t = 
-      Function::product(FunctionLibrary::y1,FunctionLibrary::dih);
-    taylorData at = t.evalf(x,x); 
-    if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
-      cout << "uni  fails " << endl;
-    for (int i=0;i<6;i++) {
-      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
-	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
-    }    
-  }
-
   /* test arclength_x_123 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 1.0679029643628666;
@@ -2677,7 +2598,6 @@ void FunctionLibrary::selfTest()
 	cout << "arclength_x_126 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test arclength_x_345 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -2760,8 +2680,6 @@ void FunctionLibrary::selfTest()
 	cout << "asnFnhk D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
-
 
   /* test eta2_126 */   { 
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -2911,7 +2829,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
   /* test x1_delta_x */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue=671.0757000000002;
@@ -2942,14 +2859,13 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
   /* test taum */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue=0.11401488191744286;
       double mathValueD[6]={0.03794036469543799,0.03897627648849593,
    0.04008789744884282,0.060373310393189945,0.05954757563245067,
 			    0.05861887751578681};
-      taylorData at = local::taum.evalf(x,x); 
+      taylorData at = FunctionLibrary::taum_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "taum  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2988,7 +2904,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
   /* test selling_volume2 */   {
       domain x(4.1,4.2,4.3,13.0,4.5,4.6);
       double mValue= 2608.486;
@@ -3015,8 +2930,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
-
   /* test taum_x1 */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue=0.05942793337929775;
@@ -3029,7 +2942,6 @@ void FunctionLibrary::selfTest()
 	cout << "taum_x1 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test sol_x_div_sqrtdelta */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3046,7 +2958,6 @@ void FunctionLibrary::selfTest()
 	cout << "sol_euler D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test dih_x_div_sqrtdelta_posbranch */   {
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3111,7 +3022,6 @@ void FunctionLibrary::selfTest()
   /* test halfbump_x1 */   {
     double halfd[3]={-1.2372909856488465,1.3148592857021388,-3.8264506746765212};
       epsilon3(halfd,::i_halfbump_x);
-
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue= -0.06665321364422902;
       double mathValueD[6]={0.07146660745052882,0,0,0,0,0};
@@ -3136,8 +3046,6 @@ void FunctionLibrary::selfTest()
 	cout << "halfbump_x4 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
-
 
   /* test dih4 */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3183,7 +3091,6 @@ void FunctionLibrary::selfTest()
 	cout << "dih6 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test ldih_x */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3259,8 +3166,6 @@ void FunctionLibrary::selfTest()
     }
     } 
 
-
-
   /* test gamma3f_x_vLR_lfun */  {
     /* fj[y1_, y2_, y3_, y4_, y5_, y6_] :=
     (Dihedral[y1, y2, y3, y4, y5, y6] - 
@@ -3280,8 +3185,6 @@ void FunctionLibrary::selfTest()
 	cout << "gamma3f_x_vLR_lfun D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   } 
-
- 
 
   /* test gamma3f_x_vLR0 */   {
     /* fj[y1_, y2_, y3_, y4_, y5_, y6_] :=
@@ -3317,7 +3220,6 @@ void FunctionLibrary::selfTest()
 	cout << "gamma3f_vLR_x_nlfun D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
     } 
-
 
   /* test gamma3f_vLR_x_n0  */ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3378,7 +3280,6 @@ void FunctionLibrary::selfTest()
 	cout << "gamma3f_x_vL0 D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test gamma3f_vL_x_n0 */    {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3485,7 +3386,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
 /* test edge_flat2_x */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 13.47804480741523;
@@ -3514,7 +3414,6 @@ void FunctionLibrary::selfTest()
 	cout << "edge_flat_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test euler_3flat_x */ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3595,7 +3494,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
   /* test taum_2flat_x */ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 0.44100012571539665;
@@ -3665,7 +3563,6 @@ void FunctionLibrary::selfTest()
     }
     } 
 
-
  /* test delta_234_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 166.4485000000001;
@@ -3680,7 +3577,6 @@ void FunctionLibrary::selfTest()
     }
     } 
 
-
  /* test delta_135_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 166.44249999999994;
@@ -3694,7 +3590,6 @@ void FunctionLibrary::selfTest()
 	cout << "delta_135_x D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
     } 
-
 
  /* test delta_sub1_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3725,7 +3620,6 @@ void FunctionLibrary::selfTest()
     }
     } 
 
-
  /* test taum_sub246_x */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 0.12186337970835324;
@@ -3754,8 +3648,6 @@ void FunctionLibrary::selfTest()
     }
     } 
 
-
-
   /* test upper_dih */  {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 1.2160734358595164;
@@ -3772,7 +3664,6 @@ void FunctionLibrary::selfTest()
     }
   }
 
-
   /* test vol3_x_sqrt */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue=0.4652359019298107;
@@ -3786,7 +3677,6 @@ void FunctionLibrary::selfTest()
 	cout << "vol3_x_sqrt D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
 
   /* test vol3f_x_lfun */   {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -3815,9 +3705,6 @@ void FunctionLibrary::selfTest()
 	cout << "vol3f_x_sqrt2_lmplus D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
   }
-
-
-
   
   /* test hasDeltaDenom */ {
     /*

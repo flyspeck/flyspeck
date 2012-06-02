@@ -759,7 +759,7 @@ testUni[f_] := Module[{},
  */
 void univariate::selfTest() 
 	{
-	cout << " -- loading univariate routines " << endl;
+	  cout << " -- loading univariate routines " << endl << flush;
 	double pow0d[3]={1, 0, 0};
         epsilon3(pow0d,univariate::i_pow0);
 	double pow1d[3]={0.21, 1, 0};

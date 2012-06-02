@@ -28,12 +28,10 @@ extern "C"
 #include "wide.h"
 #include "secondDerive.h"
 #include "taylorData.h"
-#include "functionLibraryB.h"
-
+#include "Lib.h"
+ 
 using namespace std;
 using namespace tr1;
-namespace Lib = FunctionLibrary;
-using Lib;
 
 /* ========================================================================== */
 /*                                                                            */
@@ -91,8 +89,86 @@ static double taylorError(const domain& w,const double DD[6][6])
   return t;
 }
 
-/* implement promote1_to_6 */
 
+/* ========================================================================== */
+/*                                                                            */
+/*   Section:L namespace                                            */
+/*                                                                            */
+/* ========================================================================== */
+
+
+namespace L {
+
+  Function uni(const univariate& u,const Function& f) {
+   return Function::uni_compose(u,f);
+  }
+
+  static const univariate i_inv = univariate::i_inv;
+  static const univariate i_pow2 = univariate::i_pow2;
+  static const univariate i_pow1 = univariate::i_pow1;
+  static const univariate i_pow0 = univariate::i_pow0;
+  static const univariate i_matan = univariate::i_matan;
+  static const univariate i_sqrt = univariate::i_sqrt;
+  static const univariate i_acos = univariate::i_acos;
+  static const univariate i_sin = univariate::i_sin;
+  static const univariate i_asin = univariate::i_asin;
+
+  static const interval h0("1.26");
+  static const interval sqrt3("1.7320508075688772935");
+  static const interval sqrt2("1.4142135623730950488");
+  static const interval quarter("0.25");
+  static const interval half("0.5");
+  static const interval one("1");
+  static const interval mone("-1");
+  static const interval two ("2");
+  static const interval three ("3");
+  static const interval four ("4");
+  static const interval eight ("8");
+  static const interval sixteen ("16");
+  static const interval pi("3.1415926535897932385");
+  static const interval const1 ("0.175479656091821810");
+  static const interval sol0("0.5512855984325308079421");
+  static const interval mm1("1.01208086842065466") ;
+  static const interval mm2("0.0254145072695089280");
+
+  static const interval sqrt8 ("2.8284271247461900976");
+  //static const interval sqrt3 ("1.7320508075688772935");
+  //static const interval pi ("3.141592653589793238");
+  //static const interval const1 ("0.175479656091821810");
+  static const interval hminus("1.2317544220903043901");
+  static const interval arc_hhn("0.81611135460255697143595");
+
+  static const interval yStrongDodec("2.1029244484765344");
+  static const interval aStrongDodec("-0.581169206221610");
+  static const interval bStrongDodec("0.023248513304698");
+
+  };
+
+
+ Function operator*(const Function& f,const Function& g) {
+   return Function::product(f,g);
+ }
+
+ Function operator/(const Function& f,const Function& g) {
+   return Function::product(f,L::uni(L::i_inv,g));
+ }
+
+  static const Function operator*(const Function& t,int j) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const Function operator*(int j,const Function& t) {
+    return t * interval(j * 1.0, j * 1.0);
+  }
+
+  static const Function operator-
+  (const Function& u,const Function& t) {
+    return u + t * L::mone;
+  }
+
+
+
+/* implement promote1_to_6 */
 const Function Lib::promote1_to_6(const univariate& f) {
   return Function::uni_slot(f,0);
 }
@@ -100,23 +176,32 @@ const Function Lib::promote1_to_6(const univariate& f) {
 /* implement unit */
 const Function Lib::unit(Function::unit);
 
-constant Function Lib::constant6(const interval& i) {
+const Function Lib::constant6(const interval& i) {
   return Lib::unit * i;
 }
+/*implement x1,..,x6 */
 
-/*implement proj_x1,..,x6 */
-constant Function Lib::proj_x1 = 
-  Lib::promote1_to_6(i_pow1);
-constant Function Lib::proj_x2 = 
-  Function::uni_slot(i_pow1,1);
-constant Function Lib::proj_x3 = 
-  Function::uni_slot(i_pow1,2);
-constant Function Lib::proj_x4 = 
-  Function::uni_slot(i_pow1,3);
-constant Function Lib::proj_x5 = 
-  Function::uni_slot(i_pow1,4);
-constant Function Lib::proj_x6 = 
-  Function::uni_slot(i_pow1,5);
+
+/* ========================================================================== */
+/*                                                                            */
+/*   Section:L namespace                                            */
+/*                                                                            */
+/* ========================================================================== */
+
+
+const Function Lib::x1 = 
+  Lib::promote1_to_6(L::i_pow1);
+const Function Lib::x2 = 
+  Function::uni_slot(L::i_pow1,1);
+const Function Lib::x3 = 
+  Function::uni_slot(L::i_pow1,2);
+const Function Lib::x4 = 
+  Function::uni_slot(L::i_pow1,3);
+const Function Lib::x5 = 
+  Function::uni_slot(L::i_pow1,4);
+const Function Lib::x6 = 
+  Function::uni_slot(L::i_pow1,5);
+
 
  Function Lib::rotate2(const Function& f) {
   return Function::compose
@@ -147,39 +232,19 @@ constant Function Lib::proj_x6 =
 }
 
  Function Lib::rotate6(const Function& f) {
-   Function::compose
+   return Function::compose
     (f,
      Lib::x6  , Lib::x1, Lib::x5,
      Lib::x3 , Lib::x4, Lib::x2);
 }
 
-/*implement proj_y1,...,y6 */
-const Function Lib::proj_y1= Lib::promote1_to_6(i_sqrt);
-const Function Lib::proj_y2= Lib::rotate2(proj_y1);
-const Function Lib::proj_y3= Lib::rotate3(proj_y1);
-const Function Lib::proj_y4= Lib::rotate4(proj_y1);
-const Function Lib::proj_y5= Lib::rotate5(proj_y1);
-const Function Lib::proj_y6= Lib::rotate6(proj_y1);
-
-/*implement x1*x2 */
-static lineInterval lineX1X2(const domain& x)
-{
-  //static const interval one("1");
-  lineInterval h(interval(x.getValue(0),x.getValue(0)) * 
-		 interval(x.getValue(1),x.getValue(1)));
-  h.Df[0]= interval(x.getValue(1),x.getValue(1));
-  h.Df[1]= interval(x.getValue(0),x.getValue(0));
-  return h;
-}
-static int setX1X2DD(const domain& ,const domain& ,double DD[6][6])
-{
-  for (int i=0;i<6;i++) for (int j=0;j<6;j++) DD[i][j]=0.0;
-  DD[1][0]=1.0;
-  DD[0][1]=1.0;
-  testAbs(DD,"setX1X2DD");
-  return 1;
-}
-static const Function x1x2= Function::mk_raw(lineX1X2,setX1X2DD);
+/*implement y1,...,y6 */
+const Function Lib::y1= Function::uni_slot(univariate::i_sqrt,0);
+const Function Lib::y2= Lib::rotate2(y1);
+const Function Lib::y3= Lib::rotate3(y1);
+const Function Lib::y4= Lib::rotate4(y1);
+const Function Lib::y5= Lib::rotate5(y1);
+const Function Lib::y6= Lib::rotate6(y1);
 
 
 /*implement delta */
@@ -201,7 +266,7 @@ const Function Lib::delta_x= Function::mk_raw(linearization::delta,setAbsDelta);
 static interval one("1");
 static interval twelve("12");
 const Function Lib::vol_x= 
-  Function::uni(i_sqrt,Lib::delta_x) * constant6 (one/twelve);
+  L::uni(L::i_sqrt,Lib::delta_x) * constant6 (one/twelve);
 
 /*implement rad2*/
 static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
@@ -216,7 +281,7 @@ static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
   if (r1+r2) { testAbs(DD,"setAbsRad2"); }
   return r1+r2;
 }
-const Function Lib::rad2= Function::mk_raw(linearization::rad2,setAbsRad2);
+const Function Lib::rad2_x= Function::mk_raw(linearization::rad2,setAbsRad2);
 
 /*implement delta_x4*/
 static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
@@ -239,23 +304,33 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
 
 const Function Lib::dih2_x = 
-  Lib::rotate2(Lib::dih);
+  Lib::rotate2(Lib::dih_x);
 const Function Lib::dih3_x = 
-  Lib::rotate3(Lib::dih);
+  Lib::rotate3(Lib::dih_x);
 const Function Lib::dih4_x = 
-  Lib::rotate4(Lib::dih);
+  Lib::rotate4(Lib::dih_x);
 const Function Lib::dih5_x = 
-  Lib::rotate5(Lib::dih);
+  Lib::rotate5(Lib::dih_x);
 const Function Lib::dih6_x = 
-  Lib::rotate6(Lib::dih);
+  Lib::rotate6(Lib::dih_x);
 
 
 /*implement rhazim_x*/
-const Function Lib:rhazim_x = 
-  uni(i_rho,proj_y1) * dih_x;
-const Function Lib::rhazim2 = 
+/*
+functional1_rho:
+`!y. rho y = y * (const1/(&2 * h0 - &2)) + (&1 + const1/(&1 - h0))`,
+ */
+univariate i_rho = L::i_pow1 * (L::const1/(L::two * L::h0 - L::two)) + 
+  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
+univariate i_rho_sqrt = L::i_sqrt * (L::const1/(L::two * L::h0 - L::two)) + 
+  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
+
+const Function Lib::rhazim_x = 
+  Function::uni_slot(::i_rho_sqrt,0) * Lib::dih_x;
+
+const Function Lib::rhazim2_x = 
   Lib::rotate2(Lib::rhazim_x);
-const Function Lib::rhazim3 = 
+const Function Lib::rhazim3_x = 
   Lib::rotate3(Lib::rhazim_x);
 
 /*implement sol*/
@@ -272,7 +347,7 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
   for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
   return 1;
 }
-const Function Lib::sol= Function::mk_raw(linearization::solid,setSol);
+const Function Lib::sol_x= Function::mk_raw(linearization::solid,setSol);
 
 /* implement halfbump_x (univariate) */
 /*
@@ -289,105 +364,25 @@ static interval a2("-31250");
 static interval b2("106929");
 univariate i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
   univariate::i_sqrt * (a1 / b1) + univariate::i_pow1 * (a2 / b2);
-//static primitive_univariate i_halfbump1P(::i_halfbump_x,0);
-//static primitive_univariate i_halfbump4P(::i_halfbump_x,3);
 const Function Lib::halfbump_x1 = 
-  Function::uni_slot(::i_halfbump_x,0);//(&::i_halfbump1P);
+  Function::uni_slot(::i_halfbump_x,0);
 const Function Lib::halfbump_x4 = 
-  Function::uni_slot(::i_halfbump_x,3);//(&::i_halfbump4P);
-
+  Function::uni_slot(::i_halfbump_x,3);
 
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
 static interval i_gchi_c0("0.974990367692870754241952463595");
 static interval i_gchi_c1("0.124456752559607807811255454313");
-univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
-
+univariate i_gchi = L::i_sqrt* i_gchi_c1 + L::i_pow0 * i_gchi_c0;
 
 const Function Lib::gchi1_x = 
-  uni(::i_gchi,proj_y1) * dih_x;
+  L::uni(::i_gchi,Lib::y1) * Lib::dih_x;
+
+#ifdef skip
+
+#endif
 
 
-
-/* ========================================================================== */
-/*                                                                            */
-/*   Section:Lib local namespace                                            */
-/*                                                                            */
-/* ========================================================================== */
-
-
-namespace local {
-
- Function operator*(const Function& f,const Function& g) {
-   return Function::product(f,g);
- }
-
- Function operator/(const Function& f,const Function& g) {
-   return Function::product(f,uni(i_inv,g));
- }
-
-  static const Function operator*(const Function& t,int j) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator*(int j,const Function& t) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator-
-  (const Function& u,const Function& t) {
-    return u + t * mone;
-  }
-
-
-  Function uni(const univariate& u,const Function& f) {
-   return Function::uni_compose(u,f);
-  };
-
-  Function y1 = Lib::y1;
-  Function y2 = Lib::y2;
-  Function y3 = Lib::y3;
-  Function y4 = Lib::y4;
-
-  Function x1 = Lib::x1;
-  Function x2 = Lib::x2;
-  Function x3 = Lib::x3;
-  Function x4 = Lib::x4;
-  Function x5 = Lib::x5;
-  Function x6 = Lib::x6;
-
-  Function delta_x = Lib::delta_x;
-  Function delta_x4 = Lib::delta_x4;
-  Function dih = Lib::dih;
-  Function unit = Lib::unit;
-
-  static const univariate i_inv = univariate::i_inv;
-  static const univariate i_pow2 = univariate::i_pow2;
-  static const univariate i_matan = univariate::i_matan;
-  static const univariate i_sqrt = univariate::i_sqrt;
-  static const univariate i_acos = univariate::i_acos;
-  static const univariate i_sin = univariate::i_sin;
-  static const univariate i_asin = univariate::i_asin;
-
-  static const interval sqrt3("1.7320508075688772935");
-  static const interval sqrt2("1.4142135623730950488");
-  static const interval quarter("0.25");
-  static const interval half("0.5");
-  static const interval two ("2");
-  static const interval three ("3");
-  static const interval four ("4");
-  static const interval eight ("8");
-  static const interval sixteen ("16");
-  static const interval mone("-1");
-  static const interval pi("3.1415926535897932385");
-  static const interval const1 ("0.175479656091821810");
-  static const interval sol0("0.5512855984325308079421");
-  static const interval mm1("1.01208086842065466") ;
-  static const interval mm2("0.0254145072695089280");
-
-  static const Function two_unit = unit * two;
-
-   };
 
 
 /* ========================================================================== */
@@ -396,66 +391,43 @@ namespace local {
 /*                                                                            */
 /* ========================================================================== */
 
-
-static int epsilonClose(double x,interval y,double epsilon)
-{
-  if (interMath::abs(y-interval(x,x))>epsilon)
-    {
-      cout << "close eps : " << interMath::abs(y-interval(x,x))
-	   << " x: " << x << " y: " << y << endl<< flush;
-      return 0;
-    }
-  return 1;
-}
-
-static int epsilonCloseDoubles(double x,double y,double epsilon)
+static bool epsilonCloseDoubles(const char* s, double x,double y,double epsilon)
 {
   if (abs(y-x)>epsilon)
     {
-      cout << "close-doubles eps: " << abs(y-x)
-	   << " x: " << x << "  y: " << y << endl<< flush;
-      return 0;
+      cout << s << ": " ;
+      cout << "diff: " << abs(y-x)
+	   << " external value: " << x << "  value here: " << y << endl<< flush;
+      error::message("error encountered in loading Lib");
+      return false;
     }
-  return 1;
+  return true;
 }
 
-  /* from univariate.cc */
-    static int epsilon3(double* f,const univariate & u) {
-      interval x("0.21");
-      for (int i=0;i<3;i++) {
-	epsilonCloseDoubles(f[i],interMath::sup(u.eval(x,i)),1.0e-8);
-      }
-    }
-
-static int barelyLess(double x,double y,double epsilon)
-{
-  if ((x>y)||(y>x+epsilon))
-    {
-      cout << "barelyLess " << x << " " << y << endl << flush;
-      return 0;
-    }
-  return 1;
+static void epsValue(const char* s,const Function& f,double x) {
+  double eps = 1.0e-8;
+  domain d(6.36,4.2,4.3,4.4,4.5,4.6);
+  double y = f.evalf(d,d).upperBound();
+  epsilonCloseDoubles(s,x,y,eps);
 }
-
-static double rand01()
-{
-  static int w =0;
-  if (w==0) { srand(time(0)); w = 1; }
-  double u = double(rand());
-  double v = double(/*stdlib.h*/RAND_MAX);
-  return u/v;
-}
-
-static double rand(int i,const domain& x,const domain& z,double t=1)
-{
-  return x.getValue(i) + t*rand01()*(z.getValue(i)-x.getValue(i));
-}
-
-
 
 void Lib::selfTest()
 {
-  cout << " -- loading functionLibrary routines " << endl;
-  cout << " -- done loading functionLibrary" << endl << flush;
+  cout << " -- loading Lib routines " << endl << flush;
+  epsValue("unit",Lib::unit,1.0);
+  epsValue("x1",Lib::x1,6.36);
+  epsValue("x2",Lib::x2,4.2);
+  epsValue("x3",Lib::x3,4.3);
+  epsValue("x4",Lib::x4,4.4);
+  epsValue("x5",Lib::x5,4.5);
+  epsValue("x6",Lib::x6,4.6);
+  epsValue("y1",Lib::y1,sqrt(6.36));
+  epsValue("y2",Lib::y2,sqrt(4.2));
+  epsValue("y3",Lib::y3,sqrt(4.3));
+  epsValue("y4",Lib::y4,sqrt(4.4));
+  epsValue("y5",Lib::y5,sqrt(4.5));
+  epsValue("y6",Lib::y6,sqrt(4.6));
+  cout << " -- done loading Lib" << endl << flush;
   
 }
+

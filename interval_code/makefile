@@ -56,8 +56,7 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	recurse.h recurse.o univariate.h univariate.o wide.h wide.o \
 	Lib.o
 	$(CC) $(CCOPTS1) test_auto.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o wide.o  taylorData.o recurse.o \
-	Lib.o \
+	secondDerive.o univariate.o wide.o  taylorData.o recurse.o Lib.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o -o test_auto -lm $(L)
 
 jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \

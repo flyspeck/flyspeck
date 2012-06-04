@@ -32,7 +32,7 @@ extern "C"
 #include "wide.h"
 #include "secondDerive.h"
 #include "taylorData.h"
-#include "regression.h"
+#include "legacy_simplex.h"
 
 using namespace std;
 using namespace tr1;
@@ -86,7 +86,7 @@ static double taylorError(const domain& w,const double DD[6][6])
   return t;
 }
 
-const Function regression::unit(Function::unit);
+const Function legacy_simplex::unit(Function::unit);
 
 
 
@@ -106,7 +106,7 @@ static lineInterval lineX1(const domain& x)
   return h;
 }
 //primitiveA x1p(lineX1,setZero);
-const Function regression::x1 = Function::mk_raw(lineX1,setZero);
+const Function legacy_simplex::x1 = Function::mk_raw(lineX1,setZero);
 
 
 /*implement x2 */
@@ -118,7 +118,7 @@ static lineInterval lineX2(const domain& x)
   return h;
 }
 //primitiveA x2p(lineX2,setZero);
-const Function regression::x2= Function::mk_raw(lineX2,setZero);
+const Function legacy_simplex::x2= Function::mk_raw(lineX2,setZero);
 
 /*implement x3 */
 static lineInterval lineX3(const domain& x)
@@ -129,7 +129,7 @@ static lineInterval lineX3(const domain& x)
   return h;
 }
 //primitiveA x3p(lineX3,setZero);
-const Function regression::x3= Function::mk_raw(lineX3,setZero);
+const Function legacy_simplex::x3= Function::mk_raw(lineX3,setZero);
 
 /*implement x4 */
 static lineInterval lineX4(const domain& x)
@@ -140,7 +140,7 @@ static lineInterval lineX4(const domain& x)
   return h;
 }
 //primitiveA x4p(lineX4,setZero);
-const Function regression::x4= Function::mk_raw(lineX4,setZero);
+const Function legacy_simplex::x4= Function::mk_raw(lineX4,setZero);
 
 /*implement x5 */
 static lineInterval lineX5(const domain& x)
@@ -151,7 +151,7 @@ static lineInterval lineX5(const domain& x)
   return h;
 }
 //primitiveA x5p(lineX5,setZero);
-const Function regression::x5= Function::mk_raw(lineX5,setZero);
+const Function legacy_simplex::x5= Function::mk_raw(lineX5,setZero);
 
 /*implement x6 */
 static lineInterval lineX6(const domain& x)
@@ -162,61 +162,61 @@ static lineInterval lineX6(const domain& x)
   return h;
 }
 //primitiveA x6p(lineX6,setZero);
-const Function regression::x6= Function::mk_raw(lineX6,setZero);
+const Function legacy_simplex::x6= Function::mk_raw(lineX6,setZero);
 
 
- Function regression::rotate2(const Function& f) {
+ Function legacy_simplex::rotate2(const Function& f) {
   Function g = Function::compose
   (f,
-   regression::x2,regression::x3,regression::x1,
-   regression::x5,regression::x6,regression::x4);
+   legacy_simplex::x2,legacy_simplex::x3,legacy_simplex::x1,
+   legacy_simplex::x5,legacy_simplex::x6,legacy_simplex::x4);
   return g;
 }
 
- Function regression::rotate3(const Function& f) {
+ Function legacy_simplex::rotate3(const Function& f) {
   Function g = Function::compose
   (f,
-   regression::x3,regression::x1,regression::x2,
-   regression::x6,regression::x4,regression::x5);
+   legacy_simplex::x3,legacy_simplex::x1,legacy_simplex::x2,
+   legacy_simplex::x6,legacy_simplex::x4,legacy_simplex::x5);
   return g;
 }
 
- Function regression::rotate4(const Function& f) {
+ Function legacy_simplex::rotate4(const Function& f) {
   Function g = Function::compose
     (f,
-  regression::x4  , regression::x2, regression::x6,
-  regression::x1 , regression::x5,  regression::x3);
+  legacy_simplex::x4  , legacy_simplex::x2, legacy_simplex::x6,
+  legacy_simplex::x1 , legacy_simplex::x5,  legacy_simplex::x3);
   return g;
 }
 
- Function regression::rotate5(const Function& f) {
+ Function legacy_simplex::rotate5(const Function& f) {
   Function g = Function::compose
     (f,
-     regression::x5  , regression::x3, regression::x4,
-     regression::x2 , regression::x6, regression::x1);
+     legacy_simplex::x5  , legacy_simplex::x3, legacy_simplex::x4,
+     legacy_simplex::x2 , legacy_simplex::x6, legacy_simplex::x1);
   return g;
 }
 
- Function regression::rotate6(const Function& f) {
+ Function legacy_simplex::rotate6(const Function& f) {
   Function g = Function::compose
     (f,
-     regression::x6  , regression::x1, regression::x5,
-     regression::x3 , regression::x4, regression::x2);
+     legacy_simplex::x6  , legacy_simplex::x1, legacy_simplex::x5,
+     legacy_simplex::x3 , legacy_simplex::x4, legacy_simplex::x2);
   return g;
 }
 
 
 /*implement deltaLC */
 //primitiveLC deltaLCPrim(wide::delta_y);
-const Function regression::delta_y_LC = Function::mk_LC(wide::delta_y);
+const Function legacy_simplex::delta_y_LC = Function::mk_LC(wide::delta_y);
 
 /*implement mdtau_y_LC */
 //primitiveLC mdtau_y_Prim(wide::mdtau_y);
-const Function regression::mdtau_y_LC= Function::mk_LC(wide::mdtau_y);
+const Function legacy_simplex::mdtau_y_LC= Function::mk_LC(wide::mdtau_y);
 
 /*implement mdtau2uf_y_LC */
 //primitiveLC mdtau2uf_y_Prim(wide::mdtau2uf_y);
-const Function regression::mdtau2uf_y_LC= Function::mk_LC(wide::mdtau2uf_y);
+const Function legacy_simplex::mdtau2uf_y_LC= Function::mk_LC(wide::mdtau2uf_y);
 
 /*implement y1 */
 static lineInterval sqrt(lineInterval a)
@@ -255,7 +255,7 @@ static int setY1(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y1(lineY1,setY1);
-const Function regression::y1= Function::mk_raw(lineY1,setY1); // (&::Y1);
+const Function legacy_simplex::y1= Function::mk_raw(lineY1,setY1); // (&::Y1);
 
 /*implement y2 */
 static lineInterval lineY2(const domain& x)
@@ -280,7 +280,7 @@ static int setY2(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y2(lineY2,setY2);
-const Function regression::y2= Function::mk_raw(lineY2,setY2); //(&::Y2);
+const Function legacy_simplex::y2= Function::mk_raw(lineY2,setY2); //(&::Y2);
  
 /*implement y3 */
 static lineInterval lineY3(const domain& x)
@@ -305,7 +305,7 @@ static int setY3(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y3(lineY3,setY3);
-const Function regression::y3= Function::mk_raw(lineY3,setY3);//(&::Y3);
+const Function legacy_simplex::y3= Function::mk_raw(lineY3,setY3);//(&::Y3);
 
 /*implement y4 */
 static lineInterval lineY4(const domain& x)
@@ -330,7 +330,7 @@ static int setY4(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y4(lineY4,setY4);
-const Function regression::y4= Function::mk_raw(lineY4,setY4);//(&::Y4);
+const Function legacy_simplex::y4= Function::mk_raw(lineY4,setY4);//(&::Y4);
 
 /*implement y5 */
 static lineInterval lineY5(const domain& x)
@@ -355,7 +355,7 @@ static int setY5(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y5(lineY5,setY5);
-const Function regression::y5= Function::mk_raw(lineY5,setY5);//(&::Y5);
+const Function legacy_simplex::y5= Function::mk_raw(lineY5,setY5);//(&::Y5);
 
 /*implement y6 */
 static lineInterval lineY6(const domain& x)
@@ -380,7 +380,7 @@ static int setY6(const domain& x,const domain&,double DD[6][6])
   return 1;
 }
 //primitiveA Y6(lineY6,setY6);
-const Function regression::y6= Function::mk_raw(lineY6,setY6);//(&::Y6);
+const Function legacy_simplex::y6= Function::mk_raw(lineY6,setY6);//(&::Y6);
 
 /*implement x1*x2 */
 static lineInterval lineX1X2(const domain& x)
@@ -417,19 +417,19 @@ static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
   return 1;
 }
 //primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
-const Function regression::delta_x= Function::mk_raw(linearization::delta,setAbsDelta);// (&::deltaPrimitive);
+const Function legacy_simplex::delta_x= Function::mk_raw(linearization::delta,setAbsDelta);// (&::deltaPrimitive);
 
 
 /*implement vol_x */ 
 static interval one("1");
 static interval twelve("12");
-static Function f_twelth = regression::y1 * (one/ twelve);
+static Function f_twelth = legacy_simplex::y1 * (one/ twelve);
 //primitiveC volXPrimitive
-const Function regression::vol_x = Function::compose
+const Function legacy_simplex::vol_x = Function::compose
  (f_twelth,
-  regression::delta_x  , regression::unit, regression::unit,
-  regression::unit  , regression::unit, regression::unit);
-//const Function regression::vol_x(&::volXPrimitive);
+  legacy_simplex::delta_x  , legacy_simplex::unit, legacy_simplex::unit,
+  legacy_simplex::unit  , legacy_simplex::unit, legacy_simplex::unit);
+//const Function legacy_simplex::vol_x(&::volXPrimitive);
 
 
 /*implement chi126 */
@@ -462,7 +462,7 @@ static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
   return r1+r2;
 }
 //primitiveA rad2Primitive(linearization::rad2,setAbsRad2);
-const Function regression::rad2= Function::mk_raw(linearization::rad2,setAbsRad2);//(&::rad2Primitive);
+const Function legacy_simplex::rad2= Function::mk_raw(linearization::rad2,setAbsRad2);//(&::rad2Primitive);
 
 
 
@@ -472,7 +472,7 @@ static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
   // all second partials are pm 0,1,2.  
 }
 //primitiveA deltax4Primitive(linearization::delta_x4,setAbsDeltaX4);
-const Function regression::delta_x4= Function::mk_raw(linearization::delta_x4,setAbsDeltaX4);//(&::deltax4Primitive);
+const Function legacy_simplex::delta_x4= Function::mk_raw(linearization::delta_x4,setAbsDeltaX4);//(&::deltax4Primitive);
 
 
 /*implement dih1*/
@@ -485,13 +485,13 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
   if (r) { testAbs(DD,"setAbsDihedral"); }
   return r;
 }
-const Function regression::dih= Function::mk_raw(linearization::dih,setAbsDihedral);
+const Function legacy_simplex::dih= Function::mk_raw(linearization::dih,setAbsDihedral);
 
-const Function regression::dih2 = regression::rotate2(regression::dih);
-const Function regression::dih3 = regression::rotate3(regression::dih);
-const Function regression::dih4 = regression::rotate4(regression::dih);
-const Function regression::dih5 = regression::rotate5(regression::dih);
-const Function regression::dih6 = regression::rotate6(regression::dih);
+const Function legacy_simplex::dih2 = legacy_simplex::rotate2(legacy_simplex::dih);
+const Function legacy_simplex::dih3 = legacy_simplex::rotate3(legacy_simplex::dih);
+const Function legacy_simplex::dih4 = legacy_simplex::rotate4(legacy_simplex::dih);
+const Function legacy_simplex::dih5 = legacy_simplex::rotate5(legacy_simplex::dih);
+const Function legacy_simplex::dih6 = legacy_simplex::rotate6(legacy_simplex::dih);
 
 
 /*implement dih2*/
@@ -512,7 +512,7 @@ static int setAbsDih2(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 primitiveA dih2Primitive(linearization::dih2,setAbsDih2);
-const Function regression::dih2= Function::mk_raw(&::dih2Primitive);
+const Function legacy_simplex::dih2= Function::mk_raw(&::dih2Primitive);
 */
 
 /*implement dih3*/
@@ -532,34 +532,34 @@ static int setDih3(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 primitiveA dih3Primitive(linearization::dih3,setDih3);
-const Function regression::dih3= Function::mk_raw(&::dih3Primitive);
+const Function legacy_simplex::dih3= Function::mk_raw(&::dih3Primitive);
 */
 
 /*implement dih4 : |- dih4_y y1 y2 y3 y4 y5 y6 = dih_y y4 y2 y6 y1 y5 y3 */ 
 /*
 primitiveC dih4Primitive
-(&regression::dih,
-  &regression::x4  , &regression::x2, &regression::x6,
-  &regression::x1 , &regression::x5, &regression::x3);
-const Function regression::dih4(&::dih4Primitive);
+(&legacy_simplex::dih,
+  &legacy_simplex::x4  , &legacy_simplex::x2, &legacy_simplex::x6,
+  &legacy_simplex::x1 , &legacy_simplex::x5, &legacy_simplex::x3);
+const Function legacy_simplex::dih4(&::dih4Primitive);
 */
 
 /*implement dih5 : |- dih5_y y1 y2 y3 y4 y5 y6 = dih_y y5 y1 y6 y2 y4 y3 */
 /*
 primitiveC dih5Primitive
-(&regression::dih,
-  &regression::x5  , &regression::x1, &regression::x6,
-  &regression::x2 , &regression::x4, &regression::x3);
-const Function regression::dih5(&::dih5Primitive);
+(&legacy_simplex::dih,
+  &legacy_simplex::x5  , &legacy_simplex::x1, &legacy_simplex::x6,
+  &legacy_simplex::x2 , &legacy_simplex::x4, &legacy_simplex::x3);
+const Function legacy_simplex::dih5(&::dih5Primitive);
 */
 
 /*implement dih6 : |- dih6_y y1 y2 y3 y4 y5 y6 = dih_y y6 y1 y5 y3 y4 y2 */
 /*
 primitiveC dih6Primitive
-(&regression::dih,
-  &regression::x6  , &regression::x1, &regression::x5,
-  &regression::x3 , &regression::x4, &regression::x2);
-const Function regression::dih6(&::dih6Primitive);
+(&legacy_simplex::dih,
+  &legacy_simplex::x6  , &legacy_simplex::x1, &legacy_simplex::x5,
+  &legacy_simplex::x3 , &legacy_simplex::x4, &legacy_simplex::x2);
+const Function legacy_simplex::dih6(&::dih6Primitive);
 */
 
 /*implement rhazim*/
@@ -580,7 +580,7 @@ static int setRhazim(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 //primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
-const Function regression::rhazim_x= Function::mk_raw(linearization::rhazim,setRhazim);//(&::rhazimPrimitive);
+const Function legacy_simplex::rhazim_x= Function::mk_raw(linearization::rhazim,setRhazim);//(&::rhazimPrimitive);
 
 /* secondary implementation of rhazim_x*/
 /*
@@ -600,10 +600,10 @@ const Function Lib::rhazim_x =
 
 
 /*implement rhazim2 ... */
-const Function regression::rhazim2_x = 
-  regression::rotate2(regression::rhazim_x);
-const Function regression::rhazim3_x = 
-  regression::rotate3(regression::rhazim_x);
+const Function legacy_simplex::rhazim2_x = 
+  legacy_simplex::rotate2(legacy_simplex::rhazim_x);
+const Function legacy_simplex::rhazim3_x = 
+  legacy_simplex::rotate3(legacy_simplex::rhazim_x);
 
 /*
 static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
@@ -623,7 +623,7 @@ static int setRhazim2(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 primitiveA rhazim2Primitive(linearization::rhazim2,setRhazim2);
-const Function regression::rhazim2= Function::mk_raw(&::rhazim2Primitive);
+const Function legacy_simplex::rhazim2= Function::mk_raw(&::rhazim2Primitive);
 */
 
 /*implement azim3*/
@@ -645,7 +645,7 @@ static int setRhazim3(const domain& x,const domain& z,double DD[6][6])
   return outcome;
 }
 primitiveA rhazim3Primitive(linearization::rhazim3,setRhazim3);
-const Function regression::rhazim3= Function::mk_raw(&::rhazim3Primitive);
+const Function legacy_simplex::rhazim3= Function::mk_raw(&::rhazim3Primitive);
 */
 
 /*implement sol*/
@@ -663,7 +663,7 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
   return 1;
 }
 //primitiveA solPrimitive(linearization::solid,setSol);
-const Function regression::sol= Function::mk_raw(linearization::solid,setSol);//(&::solPrimitive);
+const Function legacy_simplex::sol= Function::mk_raw(linearization::solid,setSol);//(&::solPrimitive);
 
 static int copy(double DD[6][6],const double sec[6][6])
 {
@@ -689,9 +689,9 @@ univariate i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
   univariate::i_sqrt * (a1 / b1) + univariate::i_pow1 * (a2 / b2);
 //static primitive_univariate i_halfbump1P(::i_halfbump_x,0);
 //static primitive_univariate i_halfbump4P(::i_halfbump_x,3);
-const Function regression::halfbump_x1 = 
+const Function legacy_simplex::halfbump_x1 = 
   Function::uni_slot(::i_halfbump_x,0);//(&::i_halfbump1P);
-const Function regression::halfbump_x4 = 
+const Function legacy_simplex::halfbump_x4 = 
   Function::uni_slot(::i_halfbump_x,3);//(&::i_halfbump4P);
 
 /* implement marchalQuartic (univariate) */
@@ -709,12 +709,12 @@ univariate i_marchalQ = univariate::i_pow0 * m0 +
   univariate::i_pow2 * m4;
 static primitive_univariate i_marchalQprim(::i_marchalQ,0);
 static Function marchalQ(&::i_marchalQprim);
-const Function regression::marchalDih = Function::product(marchalQ,regression::dih);
-const Function regression::marchalDih2 = regression::rotate2(regression::marchalDih);
-const Function regression::marchalDih3 = regression::rotate3(regression::marchalDih);
-const Function regression::marchalDih4 = regression::rotate4(regression::marchalDih);
-const Function regression::marchalDih5 = regression::rotate5(regression::marchalDih);
-const Function regression::marchalDih6 = regression::rotate6(regression::marchalDih);
+const Function legacy_simplex::marchalDih = Function::product(marchalQ,legacy_simplex::dih);
+const Function legacy_simplex::marchalDih2 = legacy_simplex::rotate2(legacy_simplex::marchalDih);
+const Function legacy_simplex::marchalDih3 = legacy_simplex::rotate3(legacy_simplex::marchalDih);
+const Function legacy_simplex::marchalDih4 = legacy_simplex::rotate4(legacy_simplex::marchalDih);
+const Function legacy_simplex::marchalDih5 = legacy_simplex::rotate5(legacy_simplex::marchalDih);
+const Function legacy_simplex::marchalDih6 = legacy_simplex::rotate6(legacy_simplex::marchalDih);
 */
 
 
@@ -728,21 +728,21 @@ univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_
 static Function i_gchi1 = Function::uni_slot(::i_gchi, 0 );//(&::i_gchi1P);
 
 
-const Function regression::gchi1_x = Function::compose
+const Function legacy_simplex::gchi1_x = Function::compose
 (::x1x2,
-  ::i_gchi1  , regression::dih, regression::unit,
-  regression::unit , regression::unit, regression::unit);
-//const Function regression::gchi1_x(&::gchi1XPrim);
+  ::i_gchi1  , legacy_simplex::dih, legacy_simplex::unit,
+  legacy_simplex::unit , legacy_simplex::unit, legacy_simplex::unit);
+//const Function legacy_simplex::gchi1_x(&::gchi1XPrim);
 
-const Function regression::gchi2_x = regression::rotate2(regression::gchi1_x);
-const Function regression::gchi3_x = regression::rotate3(regression::gchi1_x);
-const Function regression::gchi4_x = regression::rotate4(regression::gchi1_x);
-const Function regression::gchi5_x = regression::rotate5(regression::gchi1_x);
-const Function regression::gchi6_x = regression::rotate6(regression::gchi1_x);
+const Function legacy_simplex::gchi2_x = legacy_simplex::rotate2(legacy_simplex::gchi1_x);
+const Function legacy_simplex::gchi3_x = legacy_simplex::rotate3(legacy_simplex::gchi1_x);
+const Function legacy_simplex::gchi4_x = legacy_simplex::rotate4(legacy_simplex::gchi1_x);
+const Function legacy_simplex::gchi5_x = legacy_simplex::rotate5(legacy_simplex::gchi1_x);
+const Function legacy_simplex::gchi6_x = legacy_simplex::rotate6(legacy_simplex::gchi1_x);
 
 /* ========================================================================== */
 /*                                                                            */
-/*   Section:regression local namespace                                            */
+/*   Section:legacy_simplex local namespace                                            */
 /*                                                                            */
 /* ========================================================================== */
 
@@ -775,22 +775,22 @@ namespace local {
    return Function::uni_compose(u,f);
   };
 
-  Function y1 = regression::y1;
-  Function y2 = regression::y2;
-  Function y3 = regression::y3;
-  Function y4 = regression::y4;
+  Function y1 = legacy_simplex::y1;
+  Function y2 = legacy_simplex::y2;
+  Function y3 = legacy_simplex::y3;
+  Function y4 = legacy_simplex::y4;
 
-  Function x1 = regression::x1;
-  Function x2 = regression::x2;
-  Function x3 = regression::x3;
-  Function x4 = regression::x4;
-  Function x5 = regression::x5;
-  Function x6 = regression::x6;
+  Function x1 = legacy_simplex::x1;
+  Function x2 = legacy_simplex::x2;
+  Function x3 = legacy_simplex::x3;
+  Function x4 = legacy_simplex::x4;
+  Function x5 = legacy_simplex::x5;
+  Function x6 = legacy_simplex::x6;
 
-  Function delta = regression::delta_x;
-  Function delta_x4 = regression::delta_x4;
-  Function dih = regression::dih;
-  Function unit = regression::unit;
+  Function delta = legacy_simplex::delta_x;
+  Function delta_x4 = legacy_simplex::delta_x4;
+  Function dih = legacy_simplex::dih;
+  Function unit = legacy_simplex::unit;
 
   static const univariate i_inv = univariate::i_inv;
   static const univariate i_pow2 = univariate::i_pow2;
@@ -852,44 +852,44 @@ static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
   return 1;
 }
 //primitiveA eta2Primitive(linearization::eta2_126,setEta2_126);
-const Function regression::eta2_126= Function::mk_raw(linearization::eta2_126,setEta2_126);//(&::eta2Primitive);
+const Function legacy_simplex::eta2_126= Function::mk_raw(linearization::eta2_126,setEta2_126);//(&::eta2Primitive);
 
 /*implement ups_135*/
 static Function ups_135 = Function::compose
 (local::ups_126,
- regression::x1,regression::x3,regression::unit,
- regression::unit,regression::unit,regression::x5);
+ legacy_simplex::x1,legacy_simplex::x3,legacy_simplex::unit,
+ legacy_simplex::unit,legacy_simplex::unit,legacy_simplex::x5);
 //const Function ups_135(&::ups_135_Primitive);
 
 /*implement eta2_135*/
-const Function regression:: eta2_135 = Function::compose
-(regression::eta2_126,
- regression::x1,regression::x3,regression::unit,
- regression::unit,regression::unit,regression::x5);
-//const Function regression::eta2_135(&::eta2_135_Primitive);
+const Function legacy_simplex:: eta2_135 = Function::compose
+(legacy_simplex::eta2_126,
+ legacy_simplex::x1,legacy_simplex::x3,legacy_simplex::unit,
+ legacy_simplex::unit,legacy_simplex::unit,legacy_simplex::x5);
+//const Function legacy_simplex::eta2_135(&::eta2_135_Primitive);
 
 /*implement eta2_234*/
-const Function regression:: eta2_234 = Function::compose
-(regression::eta2_126,
- regression::x2,regression::x3,regression::unit,
- regression::unit,regression::unit,regression::x4);
-//const Function regression::eta2_234(&::eta2_234_Primitive);
+const Function legacy_simplex:: eta2_234 = Function::compose
+(legacy_simplex::eta2_126,
+ legacy_simplex::x2,legacy_simplex::x3,legacy_simplex::unit,
+ legacy_simplex::unit,legacy_simplex::unit,legacy_simplex::x4);
+//const Function legacy_simplex::eta2_234(&::eta2_234_Primitive);
 
 /*implement eta2_456*/
-const Function regression:: eta2_456 = Function::compose
-(regression::eta2_126,
- regression::x4,regression::x5,regression::unit,
- regression::unit,regression::unit,regression::x6);
-//const Function regression::eta2_456(&::eta2_456_Primitive);
+const Function legacy_simplex:: eta2_456 = Function::compose
+(legacy_simplex::eta2_126,
+ legacy_simplex::x4,legacy_simplex::x5,legacy_simplex::unit,
+ legacy_simplex::unit,legacy_simplex::unit,legacy_simplex::x6);
+//const Function legacy_simplex::eta2_456(&::eta2_456_Primitive);
 
 /*implement acs_sqrt_x1_d4 */
-const Function regression::acs_sqrt_x1_d4 = 
+const Function legacy_simplex::acs_sqrt_x1_d4 = 
   Function::uni_compose(univariate::i_acos,
-			      regression::y1 * local::quarter);
+			      legacy_simplex::y1 * local::quarter);
 
 /*implement acs_sqrt_x2_d4 */
-const Function regression::acs_sqrt_x2_d4 = 
-  regression::rotate2(regression::acs_sqrt_x1_d4);
+const Function legacy_simplex::acs_sqrt_x2_d4 = 
+  legacy_simplex::rotate2(legacy_simplex::acs_sqrt_x1_d4);
 
 
 /*implement asn797 */
@@ -900,14 +900,14 @@ namespace local {
   static const Function asn797k =  x1 * uni(i_asin,sinpik * cos0797);
 }
 
-const Function regression::asn797k = local::asn797k;
+const Function legacy_simplex::asn797k = local::asn797k;
 
 /*implement asnFnhk */
 // k * asn (( h * sqrt3 / #4.0 + sqrt(&1 - (h/ &2) pow 2)/ &2) * sin (pi/ k))`;;
 // sinpik as above.
 // x1 = h, x2 = k.
 namespace local {
-static const Function sinpiR2 = regression::rotate2(sinpik);
+static const Function sinpiR2 = legacy_simplex::rotate2(sinpik);
 static const Function asnFh = 
   x1 * (sqrt3 / four) +
   (uni (i_sqrt,unit + 
@@ -917,7 +917,7 @@ static const Function asnFnhka =
 static const Function asnFnhk = x2 * asnFnhka;
 }
 
-const Function regression::asnFnhk = local::asnFnhk;
+const Function legacy_simplex::asnFnhk = local::asnFnhk;
 
 /* implement lfun_y1 */
 /*
@@ -939,16 +939,16 @@ namespace local {
 
 };
 
-const Function regression::lfun_y1 = local::lfun_y1;
+const Function legacy_simplex::lfun_y1 = local::lfun_y1;
 
 
-const Function regression::ldih_x = local::ldih_x;
-const Function regression::ldih2_x = regression::rotate2 (local::ldih_x);
-const Function regression::ldih3_x = regression::rotate3 (local::ldih_x);
-const Function regression::ldih5_x = regression::rotate5 (local::ldih_x);
-const Function regression::ldih6_x = regression::rotate6 (local::ldih_x);
+const Function legacy_simplex::ldih_x = local::ldih_x;
+const Function legacy_simplex::ldih2_x = legacy_simplex::rotate2 (local::ldih_x);
+const Function legacy_simplex::ldih3_x = legacy_simplex::rotate3 (local::ldih_x);
+const Function legacy_simplex::ldih5_x = legacy_simplex::rotate5 (local::ldih_x);
+const Function legacy_simplex::ldih6_x = legacy_simplex::rotate6 (local::ldih_x);
 
-const Function regression::lfun_sqrtx1_div2 = local::lfun_sqrtx1_div2;
+const Function legacy_simplex::lfun_sqrtx1_div2 = local::lfun_sqrtx1_div2;
 
 
 /*implement norm2hh_x */
@@ -966,24 +966,24 @@ static univariate ymmsq =
 //static primitive_univariate ymmsqP(ymmsq,0);
 static Function t_ym2sq = Function::uni_slot(ym2sq,0);//(&ym2sqP);
 static Function t_ymmsq = Function::uni_slot(ymmsq,0);//
-const Function regression::norm2hh_x =
-  t_ymmsq + regression::rotate2(t_ym2sq) +
-   regression::rotate3(t_ym2sq) +
-  regression::rotate4(t_ym2sq) +
-  regression::rotate5(t_ym2sq) +
-  regression::rotate6(t_ym2sq);
+const Function legacy_simplex::norm2hh_x =
+  t_ymmsq + legacy_simplex::rotate2(t_ym2sq) +
+   legacy_simplex::rotate3(t_ym2sq) +
+  legacy_simplex::rotate4(t_ym2sq) +
+  legacy_simplex::rotate5(t_ym2sq) +
+  legacy_simplex::rotate6(t_ym2sq);
  
 
 
 namespace local { 
   static const Function x1cube = x1 * x1 * x1;
 }
-const Function regression::x1cube = local::x1cube;
+const Function legacy_simplex::x1cube = local::x1cube;
 
 namespace local { 
   static const Function x1square = x1  * x1;
 }
-const Function regression::x1square = local::x1square;
+const Function legacy_simplex::x1square = local::x1square;
 
 
 /*implement arclength_x_123*/
@@ -998,16 +998,16 @@ namespace local {
  Function rotate234(const Function& f) {
   Function g = Function::compose
     (f,
-     regression::x2  , regression::x3, regression::x4,
-     regression::unit , regression::unit, regression::unit);
+     legacy_simplex::x2  , legacy_simplex::x3, legacy_simplex::x4,
+     legacy_simplex::unit , legacy_simplex::unit, legacy_simplex::unit);
   return g;
  }
 
  Function rotate126(const Function& f) {
   Function g = Function::compose
     (f,
-     regression::x1  , regression::x2, regression::x6,
-     regression::unit , regression::unit, regression::unit);
+     legacy_simplex::x1  , legacy_simplex::x2, legacy_simplex::x6,
+     legacy_simplex::unit , legacy_simplex::unit, legacy_simplex::unit);
   return g;
  }
 
@@ -1015,8 +1015,8 @@ namespace local {
  Function rotate345(const Function& f) {
   Function g = Function::compose
     (f,
-     regression::x3  , regression::x4, regression::x5,
-     regression::unit , regression::unit, regression::unit);
+     legacy_simplex::x3  , legacy_simplex::x4, legacy_simplex::x5,
+     legacy_simplex::unit , legacy_simplex::unit, legacy_simplex::unit);
   return g;
  }
 
@@ -1030,13 +1030,13 @@ namespace local {
 
 };
 
-const Function regression::arclength_x_123 = local::arclength_x_123;
+const Function legacy_simplex::arclength_x_123 = local::arclength_x_123;
 
-const Function regression::arclength_x_234 = local::arclength_x_234;
+const Function legacy_simplex::arclength_x_234 = local::arclength_x_234;
 
-const Function regression::arclength_x_126 = local::arclength_x_126;
+const Function legacy_simplex::arclength_x_126 = local::arclength_x_126;
 
-const Function regression::arclength_x_345 = local::arclength_x_345;
+const Function legacy_simplex::arclength_x_345 = local::arclength_x_345;
 
 /*
 `sol_euler_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = 
@@ -1056,17 +1056,17 @@ namespace local {
    (uni(i_matan, (delta * uni(i_inv,a * a * four ) )) * uni(i_inv,a));
 };
 
-const Function regression::sol_euler_x_div_sqrtdelta = 
+const Function legacy_simplex::sol_euler_x_div_sqrtdelta = 
 local::sol_euler_x_div_sqrtdelta;
 
-const Function regression::sol_euler246_x_div_sqrtdelta =
- regression::rotate4(regression::sol_euler_x_div_sqrtdelta);
+const Function legacy_simplex::sol_euler246_x_div_sqrtdelta =
+ legacy_simplex::rotate4(legacy_simplex::sol_euler_x_div_sqrtdelta);
 
-const Function regression::sol_euler345_x_div_sqrtdelta = 
-regression::rotate5(regression::sol_euler_x_div_sqrtdelta);
+const Function legacy_simplex::sol_euler345_x_div_sqrtdelta = 
+legacy_simplex::rotate5(legacy_simplex::sol_euler_x_div_sqrtdelta);
 
-const Function regression::sol_euler156_x_div_sqrtdelta = 
-regression::rotate6(regression::sol_euler_x_div_sqrtdelta);
+const Function legacy_simplex::sol_euler156_x_div_sqrtdelta = 
+legacy_simplex::rotate6(legacy_simplex::sol_euler_x_div_sqrtdelta);
 
 /*
  `dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
@@ -1081,23 +1081,23 @@ namespace local {
     uni(i_matan,(x1 * delta *  uni(i_inv,uni(i_pow2,delta_x4)) * four));
 };
 
-const Function regression::dih_x_div_sqrtdelta_posbranch = 
+const Function legacy_simplex::dih_x_div_sqrtdelta_posbranch = 
   local::dih_x_div_sqrtdelta_posbranch;
 
-const Function regression::dih2_x_div_sqrtdelta_posbranch = 
-  regression::rotate2 (regression::dih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::dih2_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate2 (legacy_simplex::dih_x_div_sqrtdelta_posbranch);
 
-const Function regression::dih3_x_div_sqrtdelta_posbranch = 
-  regression::rotate3 (regression::dih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::dih3_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate3 (legacy_simplex::dih_x_div_sqrtdelta_posbranch);
 
-const Function regression::dih4_x_div_sqrtdelta_posbranch = 
-  regression::rotate4 (regression::dih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::dih4_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate4 (legacy_simplex::dih_x_div_sqrtdelta_posbranch);
 
-const Function regression::dih5_x_div_sqrtdelta_posbranch = 
-  regression::rotate5 (regression::dih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::dih5_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate5 (legacy_simplex::dih_x_div_sqrtdelta_posbranch);
 
-const Function regression::dih6_x_div_sqrtdelta_posbranch = 
-  regression::rotate6 (regression::dih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::dih6_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate6 (legacy_simplex::dih_x_div_sqrtdelta_posbranch);
 
 
 
@@ -1123,23 +1123,23 @@ namespace local {
 
 }
 
-const Function regression::ldih_x_div_sqrtdelta_posbranch = 
+const Function legacy_simplex::ldih_x_div_sqrtdelta_posbranch = 
   local::ldih_x_div_sqrtdelta_posbranch;
 
-const Function regression::ldih2_x_div_sqrtdelta_posbranch = 
-  regression::rotate2 (regression::ldih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::ldih2_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate2 (legacy_simplex::ldih_x_div_sqrtdelta_posbranch);
 
-const Function regression::ldih3_x_div_sqrtdelta_posbranch = 
-  regression::rotate3 (regression::ldih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::ldih3_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate3 (legacy_simplex::ldih_x_div_sqrtdelta_posbranch);
 
-const Function regression::ldih4_x_div_sqrtdelta_posbranch = 
-  regression::rotate4 (regression::ldih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::ldih4_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate4 (legacy_simplex::ldih_x_div_sqrtdelta_posbranch);
 
-const Function regression::ldih5_x_div_sqrtdelta_posbranch = 
-  regression::rotate5 (regression::ldih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::ldih5_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate5 (legacy_simplex::ldih_x_div_sqrtdelta_posbranch);
 
-const Function regression::ldih6_x_div_sqrtdelta_posbranch = 
-  regression::rotate6 (regression::ldih_x_div_sqrtdelta_posbranch);
+const Function legacy_simplex::ldih6_x_div_sqrtdelta_posbranch = 
+  legacy_simplex::rotate6 (legacy_simplex::ldih_x_div_sqrtdelta_posbranch);
 
 
 /*
@@ -1212,14 +1212,14 @@ namespace local {
 
   /*
   static const Function taum_x = 
-    regression::rhazim_x + regression::rhazim2_x +regression::rhazim3_x
+    legacy_simplex::rhazim_x + legacy_simplex::rhazim2_x +legacy_simplex::rhazim3_x
     + unit * (pi * mone * (one + const1));
   */
 
   static const Function taum_x1(const interval& a,const interval& b)
   {
     Function g = Function::compose
-      (regression::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
+      (legacy_simplex::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four  , unit * four, unit * four,
        unit * (a * a) , unit * (b * b) , x1);
     return g;
@@ -1228,7 +1228,7 @@ namespace local {
   static const Function taum_x2(const interval& a,const interval& b)
   {
     Function g = Function::compose
-      (regression::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
+      (legacy_simplex::taum_x, // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four  , unit * four, unit * four,
        unit * (a * a) , unit * (b * b) , x2);
     return g;
@@ -1237,7 +1237,7 @@ namespace local {
   static const Function taum_x1_x2(const interval& a)
   {
     Function g = Function::compose
-      (regression::taum_x , // BUG?: replaced taum with taum_x 2012-6-2.
+      (legacy_simplex::taum_x , // BUG?: replaced taum with taum_x 2012-6-2.
        unit * four, unit * four, unit * four,
        unit * (a * a) , x1 , x2);
     return g;
@@ -1246,7 +1246,7 @@ namespace local {
   static const Function arclength_x1
    (const interval& b,const interval& c) {
     Function g = Function::compose
-    (regression::arclength_x_123,
+    (legacy_simplex::arclength_x_123,
      x1, unit * (b * b), unit * (c* c), unit,unit,unit);
     return g;
   }
@@ -1254,7 +1254,7 @@ namespace local {
   static const Function arclength_x2
    (const interval& b,const interval& c) {
     Function g = Function::compose
-    (regression::arclength_x_123,
+    (legacy_simplex::arclength_x_123,
      x2, unit * (b * b), unit * (c* c), unit,unit,unit);
     return g;
   }
@@ -1276,38 +1276,38 @@ namespace local {
 	  local::ups_126 * uni(i_sqrt,delta) * eight);
 
   static const Function surf_x =     local::surfR12_6rad_x +
-    regression::rotate2 (local::surfR12_6rad_x) +
-    regression::rotate3 (local::surfR12_6rad_x);
+    legacy_simplex::rotate2 (local::surfR12_6rad_x) +
+    legacy_simplex::rotate3 (local::surfR12_6rad_x);
 };
 
-const Function regression::surfR126d  (const interval& circumrad)  {
+const Function legacy_simplex::surfR126d  (const interval& circumrad)  {
   return local::surfR126d(circumrad);
 }
 
-const Function regression::surf_x = local::surf_x;
+const Function legacy_simplex::surf_x = local::surf_x;
 
 const Function 
- regression::taum_x1(const interval& a,const interval& b) {
+ legacy_simplex::taum_x1(const interval& a,const interval& b) {
   return local::taum_x1(a,b);
 }
 
 const Function 
- regression::taum_x2(const interval& a,const interval& b) {
+ legacy_simplex::taum_x2(const interval& a,const interval& b) {
   return local::taum_x2(a,b);
 } 
 
 const Function 
- regression::taum_x1_x2(const interval& a) {
+ legacy_simplex::taum_x1_x2(const interval& a) {
   return local::taum_x1_x2(a);
 }  
 
 const Function 
-regression::arclength_x1(const interval& b,const interval& c) {
+legacy_simplex::arclength_x1(const interval& b,const interval& c) {
   return local::arclength_x1(b,c);
 }
 
 const Function 
-regression::arclength_x2(const interval& b,const interval& c) {
+legacy_simplex::arclength_x2(const interval& b,const interval& c) {
   return local::arclength_x2(b,c);
 }  
 
@@ -1319,11 +1319,11 @@ namespace local {
 
 
   static const Function vol3_x_sqrt = 
-    Function::compose(regression::vol_x,
+    Function::compose(legacy_simplex::vol_x,
 			    x1,x2,two_unit,two_unit,two_unit,x6);
 
   static const Function vol3_x_135_s2 = 
-    Function::compose(regression::vol_x,
+    Function::compose(legacy_simplex::vol_x,
 			    x1,two_unit,x3,two_unit,x5,two_unit);
 
 
@@ -1346,18 +1346,18 @@ namespace local {
 
 
   static const Function vol3f_x_lfun_mm1 = 
-    Function::compose(regression::dih,x1,x2,two_unit,two_unit,two_unit,x6) * two+
-    Function::compose(regression::dih2,x1,x2,two_unit,two_unit,two_unit,x6) * two+
-    Function::compose(regression::dih6,x1,x2,two_unit,two_unit,two_unit,x6) * two+
-    Function::compose(regression::dih3,x1,x2,two_unit,two_unit,two_unit,x6) +
-    Function::compose(regression::dih4,x1,x2,two_unit,two_unit,two_unit,x6) +
-    Function::compose(regression::dih5,x1,x2,two_unit,two_unit,two_unit,x6) +
+    Function::compose(legacy_simplex::dih,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    Function::compose(legacy_simplex::dih2,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    Function::compose(legacy_simplex::dih6,x1,x2,two_unit,two_unit,two_unit,x6) * two+
+    Function::compose(legacy_simplex::dih3,x1,x2,two_unit,two_unit,two_unit,x6) +
+    Function::compose(legacy_simplex::dih4,x1,x2,two_unit,two_unit,two_unit,x6) +
+    Function::compose(legacy_simplex::dih5,x1,x2,two_unit,two_unit,two_unit,x6) +
     unit * (pi * mone * three);
  
    static const Function vol3f_x_lfun_mm2 = 
-     Function::compose(regression::ldih_x,x1,x2,two_unit,two_unit,two_unit,x6) +
-     Function::compose(regression::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
-     Function::compose(regression::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
+     Function::compose(legacy_simplex::ldih_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     Function::compose(legacy_simplex::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     Function::compose(legacy_simplex::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
 
   static const Function vol3f_x_lfun = 
     vol3f_x_lfun_mm1 * (two * mm1 / pi) + vol3f_x_lfun_mm2 * (eight * mone * mm2 /pi);
@@ -1391,12 +1391,12 @@ namespace local {
 
 
   static const Function vol3f_x_lfun_mm2_no_dih1 = 
-    mk_126(regression::ldih2_x) + mk_126(regression::ldih6_x);
+    mk_126(legacy_simplex::ldih2_x) + mk_126(legacy_simplex::ldih6_x);
 
   /*
   static const Function vol3f_x_lfun_mm2_no_dih1 = 
-      Function::compose(regression::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
-     Function::compose(regression::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
+      Function::compose(legacy_simplex::ldih2_x,x1,x2,two_unit,two_unit,two_unit,x6) +
+     Function::compose(legacy_simplex::ldih6_x,x1,x2,two_unit,two_unit,two_unit,x6);
   */
 
   static const Function vol3f_x_sqrt2_lmplus = 
@@ -1412,8 +1412,8 @@ namespace local {
   static const Function vv_term_m2 = 
     lfun_sqrtx1_div2 * sixteen * mm2;
 
-static const Function dih_x_126_s2 = mk_126(regression::dih);
-static const Function dih_x_135_s2 = mk_135(regression::dih);
+static const Function dih_x_126_s2 = mk_126(legacy_simplex::dih);
+static const Function dih_x_135_s2 = mk_135(legacy_simplex::dih);
 
 
   // implement upper_dih_x
@@ -1445,10 +1445,10 @@ static const Function dih_x_135_s2 = mk_135(regression::dih);
     rho_y1 * dih_x_div_sqrtdelta_posbranch;
 
   static const Function rhazim2_x_div_sqrtdelta_posbranch =
-    regression::rotate2  (rhazim_x_div_sqrtdelta_posbranch);
+    legacy_simplex::rotate2  (rhazim_x_div_sqrtdelta_posbranch);
 
   static const Function rhazim3_x_div_sqrtdelta_posbranch =
-    regression::rotate3  (rhazim_x_div_sqrtdelta_posbranch);
+    legacy_simplex::rotate3  (rhazim_x_div_sqrtdelta_posbranch);
 
   // 
   static const Function tau_lowform_x =
@@ -1560,11 +1560,11 @@ static const Function dih_x_135_s2 = mk_135(regression::dih);
 
   // gamma3f_135_x_s_n
   static const Function gamma3f_135_x_s_n =
-    sqndelta * (unit * (one/twelve) + (sol_euler_x_div_sqrtdelta + regression::sol_euler156_x_div_sqrtdelta + regression::sol_euler345_x_div_sqrtdelta) * (mone * two * mm1 / pi));
+    sqndelta * (unit * (one/twelve) + (sol_euler_x_div_sqrtdelta + legacy_simplex::sol_euler156_x_div_sqrtdelta + legacy_simplex::sol_euler345_x_div_sqrtdelta) * (mone * two * mm1 / pi));
 
  // gamma3f_126_x_s_n
   static const Function gamma3f_126_x_s_n =
-    sqndelta * (unit * (one/twelve) + (sol_euler_x_div_sqrtdelta + regression::sol_euler246_x_div_sqrtdelta + regression::sol_euler156_x_div_sqrtdelta) * (mone* two * mm1 / pi));
+    sqndelta * (unit * (one/twelve) + (sol_euler_x_div_sqrtdelta + legacy_simplex::sol_euler246_x_div_sqrtdelta + legacy_simplex::sol_euler156_x_div_sqrtdelta) * (mone* two * mm1 / pi));
 
 
   
@@ -1609,14 +1609,14 @@ static const Function dih_x_135_s2 = mk_135(regression::dih);
          rhazim2_x x1 x2 x3 x4 x5 x6 +
          rhazim3_x x1 x2 x3 x4 x5 x6 - (&1 + const1) * pi
   */
-  const Function taum_x = regression::rhazim_x + regression::rhazim2_x + 
-    regression::rhazim3_x - unit  * pi * (one + const1);
+  const Function taum_x = legacy_simplex::rhazim_x + legacy_simplex::rhazim2_x + 
+    legacy_simplex::rhazim3_x - unit  * pi * (one + const1);
 
   //implement delta4_squared_x
-  const Function delta4_squared_x = regression::delta_x4 * regression::delta_x4;
+  const Function delta4_squared_x = legacy_simplex::delta_x4 * legacy_simplex::delta_x4;
 
   //implement x1_delta_x
-  const Function x1_delta_x = regression::x1 * regression::delta_x;
+  const Function x1_delta_x = legacy_simplex::x1 * legacy_simplex::delta_x;
 
   //implement lin_dih
   const Function lindih(const interval& theta) {
@@ -1737,9 +1737,9 @@ let x4 = edge_flat2_x x23 x2 x3 (&0)    (&4) (&4) in
 						 edge_flat2_x,x5,x1,x3,uz,u4,u4);
     static Function x6r = Function::compose(
 						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
-    static Function ft_4 = regression::rotate4(flat_term_x);
-    static Function ft_5 = regression::rotate5(flat_term_x);
-    static Function ft_6 = regression::rotate6(flat_term_x);
+    static Function ft_4 = legacy_simplex::rotate4(flat_term_x);
+    static Function ft_5 = legacy_simplex::rotate5(flat_term_x);
+    static Function ft_6 = legacy_simplex::rotate6(flat_term_x);
     Function d = Function::compose(taum_x,
 						   x1,x2,x3,x4r,x5r,x6r);
     Function e = d + ft_4 + ft_5 + ft_6;
@@ -1765,8 +1765,8 @@ let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
 						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
     Function d = Function::compose(taum_x,
 						   x1,x2,x3,x4,x5r,x6r);
-    static Function ft_5 = regression::rotate5(flat_term_x);
-    static Function ft_6 = regression::rotate6(flat_term_x);
+    static Function ft_5 = legacy_simplex::rotate5(flat_term_x);
+    static Function ft_6 = legacy_simplex::rotate6(flat_term_x);
     Function e = d + ft_5 + ft_6;
     return e;
   };
@@ -1787,7 +1787,7 @@ let x6 = edge_flat2_x x12 x1 x2 (&0)    (&4) (&4) in
 						 edge_flat2_x,x6,x1,x2,uz,u4,u4);
     Function d = Function::compose(taum_x,
 						   x1,x2,x3,x4,x5,x6r);
-    static Function ft_6 = regression::rotate6(flat_term_x);
+    static Function ft_6 = legacy_simplex::rotate6(flat_term_x);
     Function e = d +  ft_6;
     return e;
   };
@@ -1949,7 +1949,7 @@ static const Function num2 =
   const Function rat2 = num2 * uni(univariate::i_inv,den2);
 
   const Function eta2_123 = Function::compose(
-							  regression::eta2_126,x1,x2,unit,unit,unit,x3);
+							  legacy_simplex::eta2_126,x1,x2,unit,unit,unit,x3);
 
 
   const Function ell_uvx  = 
@@ -1964,142 +1964,142 @@ static const Function num2 =
 
 }; // end local scope
 
-const Function regression::ell_uvx = local::ell_uvx;
-const Function regression::ell_vx2 = local::ell_vx2;
+const Function legacy_simplex::ell_uvx = local::ell_uvx;
+const Function legacy_simplex::ell_vx2 = local::ell_vx2;
 
-const Function regression::vol3_x_sqrt = local::vol3_x_sqrt;
+const Function legacy_simplex::vol3_x_sqrt = local::vol3_x_sqrt;
 
-const Function regression::vol3_x_135_s2 = local::vol3_x_135_s2;
+const Function legacy_simplex::vol3_x_135_s2 = local::vol3_x_135_s2;
 
-const Function regression::vol3f_x_lfun = local::vol3f_x_lfun;
+const Function legacy_simplex::vol3f_x_lfun = local::vol3f_x_lfun;
 
-const Function regression::vol3f_x_sqrt2_lmplus = local::vol3f_x_sqrt2_lmplus;
+const Function legacy_simplex::vol3f_x_sqrt2_lmplus = local::vol3f_x_sqrt2_lmplus;
 
-const Function regression::dih_x_126_s2 = local::dih_x_126_s2;
-const Function regression::dih2_x_126_s2 = local::mk_126(regression::dih2);
-const Function regression::dih3_x_126_s2 = local::mk_126(regression::dih3);
-const Function regression::dih4_x_126_s2 = local::mk_126(regression::dih4);
-const Function regression::dih5_x_126_s2 = local::mk_126(regression::dih5);
-const Function regression::dih6_x_126_s2 = local::mk_126(regression::dih6);
+const Function legacy_simplex::dih_x_126_s2 = local::dih_x_126_s2;
+const Function legacy_simplex::dih2_x_126_s2 = local::mk_126(legacy_simplex::dih2);
+const Function legacy_simplex::dih3_x_126_s2 = local::mk_126(legacy_simplex::dih3);
+const Function legacy_simplex::dih4_x_126_s2 = local::mk_126(legacy_simplex::dih4);
+const Function legacy_simplex::dih5_x_126_s2 = local::mk_126(legacy_simplex::dih5);
+const Function legacy_simplex::dih6_x_126_s2 = local::mk_126(legacy_simplex::dih6);
  
-const Function regression::ldih_x_126_s2 = local::mk_126(regression::ldih_x);
-const Function regression::ldih2_x_126_s2 = local::mk_126(regression::ldih2_x);
-const Function regression::ldih6_x_126_s2 = local::mk_126(regression::ldih6_x);
-const Function regression::delta_x_126_s2 = local::mk_126(regression::delta_x);
+const Function legacy_simplex::ldih_x_126_s2 = local::mk_126(legacy_simplex::ldih_x);
+const Function legacy_simplex::ldih2_x_126_s2 = local::mk_126(legacy_simplex::ldih2_x);
+const Function legacy_simplex::ldih6_x_126_s2 = local::mk_126(legacy_simplex::ldih6_x);
+const Function legacy_simplex::delta_x_126_s2 = local::mk_126(legacy_simplex::delta_x);
 
-const Function regression::dih_x_135_s2 = local::dih_x_135_s2;
-const Function regression::dih2_x_135_s2 = local::mk_135(regression::dih2);
-const Function regression::dih3_x_135_s2 = local::mk_135(regression::dih3);
-const Function regression::dih4_x_135_s2 = local::mk_135(regression::dih4);
-const Function regression::dih5_x_135_s2 = local::mk_135(regression::dih5);
-const Function regression::dih6_x_135_s2 = local::mk_135(regression::dih6);
+const Function legacy_simplex::dih_x_135_s2 = local::dih_x_135_s2;
+const Function legacy_simplex::dih2_x_135_s2 = local::mk_135(legacy_simplex::dih2);
+const Function legacy_simplex::dih3_x_135_s2 = local::mk_135(legacy_simplex::dih3);
+const Function legacy_simplex::dih4_x_135_s2 = local::mk_135(legacy_simplex::dih4);
+const Function legacy_simplex::dih5_x_135_s2 = local::mk_135(legacy_simplex::dih5);
+const Function legacy_simplex::dih6_x_135_s2 = local::mk_135(legacy_simplex::dih6);
 
-const Function regression::ldih_x_135_s2 = local::mk_135(regression::ldih_x);
-const Function regression::ldih3_x_135_s2 = local::mk_135(regression::ldih3_x);
-const Function regression::ldih5_x_135_s2 = local::mk_135(regression::ldih5_x);
-const Function regression::delta_x_135_s2 = local::mk_135(regression::delta_x);
+const Function legacy_simplex::ldih_x_135_s2 = local::mk_135(legacy_simplex::ldih_x);
+const Function legacy_simplex::ldih3_x_135_s2 = local::mk_135(legacy_simplex::ldih3_x);
+const Function legacy_simplex::ldih5_x_135_s2 = local::mk_135(legacy_simplex::ldih5_x);
+const Function legacy_simplex::delta_x_135_s2 = local::mk_135(legacy_simplex::delta_x);
 
-const Function regression::tau_lowform_x = local::tau_lowform_x;
+const Function legacy_simplex::tau_lowform_x = local::tau_lowform_x;
 
-const Function regression::tau_residual_x = local::tau_residual_x;
+const Function legacy_simplex::tau_residual_x = local::tau_residual_x;
 
-const Function regression::selling_homog = local::selling_homog;
-const Function regression::fcc_ineq = local::fcc_ineq;
-const Function regression::selling_volume2 = local::selling_volume2;
-const Function regression::selling_surface_nn = local::selling_surface_nn;
-const Function regression::selling_surface_nn2_013 = local::selling_surface_nn2_013;
-const Function regression::selling_surface_nn01_23 = local::selling_surface_nn01_23;
+const Function legacy_simplex::selling_homog = local::selling_homog;
+const Function legacy_simplex::fcc_ineq = local::fcc_ineq;
+const Function legacy_simplex::selling_volume2 = local::selling_volume2;
+const Function legacy_simplex::selling_surface_nn = local::selling_surface_nn;
+const Function legacy_simplex::selling_surface_nn2_013 = local::selling_surface_nn2_013;
+const Function legacy_simplex::selling_surface_nn01_23 = local::selling_surface_nn01_23;
 
 
 //
-const Function regression::ldih_x_126_n = local::ldih_x_126_n;
-const Function regression::ldih2_x_126_n=
-  local::mk_126(regression::rotate2(local::ldih_x_n));
-const Function regression::ldih6_x_126_n= 
-  local::mk_126(regression::rotate6(local::ldih_x_n));
-const Function regression::ldih_x_135_n=local::ldih_x_135_n;
-const Function regression::ldih3_x_135_n= 
-  local::mk_135(regression::rotate3(local::ldih_x_n));
-const Function regression::ldih5_x_135_n= 
-  local::mk_135(regression::rotate5(local::ldih_x_n));
+const Function legacy_simplex::ldih_x_126_n = local::ldih_x_126_n;
+const Function legacy_simplex::ldih2_x_126_n=
+  local::mk_126(legacy_simplex::rotate2(local::ldih_x_n));
+const Function legacy_simplex::ldih6_x_126_n= 
+  local::mk_126(legacy_simplex::rotate6(local::ldih_x_n));
+const Function legacy_simplex::ldih_x_135_n=local::ldih_x_135_n;
+const Function legacy_simplex::ldih3_x_135_n= 
+  local::mk_135(legacy_simplex::rotate3(local::ldih_x_n));
+const Function legacy_simplex::ldih5_x_135_n= 
+  local::mk_135(legacy_simplex::rotate5(local::ldih_x_n));
 
 
-const Function regression::gamma3f_x_vLR_lfun = local::gamma3f_x_vLR_lfun;
-const Function regression::gamma3f_x_vLR0 = local::gamma3f_x_vLR0;
-const Function regression::gamma3f_x_vL_lfun = local::gamma3f_x_vL_lfun;
-const Function regression::gamma3f_x_vL0 = local::gamma3f_x_vL0;
-const Function regression::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
-const Function regression::gamma3f_x_v0 = local::gamma3f_x_v0;
+const Function legacy_simplex::gamma3f_x_vLR_lfun = local::gamma3f_x_vLR_lfun;
+const Function legacy_simplex::gamma3f_x_vLR0 = local::gamma3f_x_vLR0;
+const Function legacy_simplex::gamma3f_x_vL_lfun = local::gamma3f_x_vL_lfun;
+const Function legacy_simplex::gamma3f_x_vL0 = local::gamma3f_x_vL0;
+const Function legacy_simplex::gamma3f_x_v_lfun = local::gamma3f_x_v_lfun;
+const Function legacy_simplex::gamma3f_x_v0 = local::gamma3f_x_v0;
 
-const Function regression::gamma3f_vLR_x_nlfun = local::gamma3f_vLR_x_nlfun;
-const Function regression::gamma3f_vLR_x_n0 = local::gamma3f_vLR_x_n0;
-const Function regression::gamma3f_vL_x_nlfun = local::gamma3f_vL_x_nlfun;
-const Function regression::gamma3f_vL_x_n0 = local::gamma3f_vL_x_n0;
+const Function legacy_simplex::gamma3f_vLR_x_nlfun = local::gamma3f_vLR_x_nlfun;
+const Function legacy_simplex::gamma3f_vLR_x_n0 = local::gamma3f_vLR_x_n0;
+const Function legacy_simplex::gamma3f_vL_x_nlfun = local::gamma3f_vL_x_nlfun;
+const Function legacy_simplex::gamma3f_vL_x_n0 = local::gamma3f_vL_x_n0;
 
-const Function regression::gamma3f_135_x_s_n = local::gamma3f_135_x_s_n;
-const Function regression::gamma3f_126_x_s_n = local::gamma3f_126_x_s_n;
+const Function legacy_simplex::gamma3f_135_x_s_n = local::gamma3f_135_x_s_n;
+const Function legacy_simplex::gamma3f_126_x_s_n = local::gamma3f_126_x_s_n;
 
-const Function regression::upper_dih_x = local::upper_dih_x;
+const Function legacy_simplex::upper_dih_x = local::upper_dih_x;
 
-const Function regression::num1 = local::num1;
-const Function regression::num2 = local::num2;
-const Function regression::rat1 = local::rat1;
-
-
-const Function regression::rat2 = local::rat2;
-const Function regression::den2 = local::den2;
-const Function regression::num_combo1 = local::num_combo1_alt;
+const Function legacy_simplex::num1 = local::num1;
+const Function legacy_simplex::num2 = local::num2;
+const Function legacy_simplex::rat1 = local::rat1;
 
 
+const Function legacy_simplex::rat2 = local::rat2;
+const Function legacy_simplex::den2 = local::den2;
+const Function legacy_simplex::num_combo1 = local::num_combo1_alt;
 
-const Function regression::edge_flat2_x = local::edge_flat2_x;
-const Function regression::edge_flat_x = local::edge_flat_x;
-const Function regression::taum_x = local::taum_x;
-const Function regression::x1_delta_x = local::x1_delta_x;
-const Function regression::delta4_squared_x = local::delta4_squared_x;
 
-const Function regression::flat_term_x = local::flat_term_x;
-const Function regression::eulerA_x = local::eulerA_x;
-const Function regression::euler_3flat_x = local::euler_3flat_x();
-const Function regression::euler_2flat_x = local::euler_2flat_x();
-const Function regression::euler_1flat_x = local::euler_1flat_x();
-const Function regression::taum_3flat_x = local::taum_3flat_x();
-const Function regression::taum_2flat_x = local::taum_2flat_x();
-const Function regression::taum_1flat_x = local::taum_1flat_x();
-const Function regression::delta_pent_x = local::delta_pent_x;
 
-const Function regression::lindih(const interval& theta) {
+const Function legacy_simplex::edge_flat2_x = local::edge_flat2_x;
+const Function legacy_simplex::edge_flat_x = local::edge_flat_x;
+const Function legacy_simplex::taum_x = local::taum_x;
+const Function legacy_simplex::x1_delta_x = local::x1_delta_x;
+const Function legacy_simplex::delta4_squared_x = local::delta4_squared_x;
+
+const Function legacy_simplex::flat_term_x = local::flat_term_x;
+const Function legacy_simplex::eulerA_x = local::eulerA_x;
+const Function legacy_simplex::euler_3flat_x = local::euler_3flat_x();
+const Function legacy_simplex::euler_2flat_x = local::euler_2flat_x();
+const Function legacy_simplex::euler_1flat_x = local::euler_1flat_x();
+const Function legacy_simplex::taum_3flat_x = local::taum_3flat_x();
+const Function legacy_simplex::taum_2flat_x = local::taum_2flat_x();
+const Function legacy_simplex::taum_1flat_x = local::taum_1flat_x();
+const Function legacy_simplex::delta_pent_x = local::delta_pent_x;
+
+const Function legacy_simplex::lindih(const interval& theta) {
   Function F = local::lindih(theta);
   return F;
 }
 
-const Function regression::delta_126_x(const interval& x3s, const interval& x4s,
+const Function legacy_simplex::delta_126_x(const interval& x3s, const interval& x4s,
 						 const interval & x5s) {
   return local::delta_126_x(x3s,x4s,x5s);
 };
 
-const Function regression::delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s) {
+const Function legacy_simplex::delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s) {
   return local::delta_234_x(x1s,x5s,x6s);
 };
 
-const Function regression::delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s) {
+const Function legacy_simplex::delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s) {
   return local::delta_135_x(x2s,x4s,x6s);
 }
 
-const Function regression::delta_sub1_x(const interval& x1s) {
+const Function legacy_simplex::delta_sub1_x(const interval& x1s) {
   return local::delta_sub1_x(x1s);
 };
 
 
-const Function regression::taum_sub1_x(const interval& x1s) {
+const Function legacy_simplex::taum_sub1_x(const interval& x1s) {
   return local::taum_sub1_x(x1s);
 };
 
-const Function regression::taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s)  {
+const Function legacy_simplex::taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s)  {
   return local::taum_sub246_x(x2s,x4s,x6s);
 };
 
-const Function regression::taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s)  {
+const Function legacy_simplex::taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s)  {
   return local::taum_sub345_x(x3s,x4s,x5s);
 };
 
@@ -2287,51 +2287,51 @@ static void testProcedure(Function F,lineInterval (*G)(const domain&),
 }
 
 
-void regression::selfTest()
+void legacy_simplex::selfTest()
 {
-  cout << " -- loading regression testng routines " << endl << flush;
+  cout << " -- loading legacy_simplex testng routines " << endl << flush;
 
 
   /* test primitiveA. */
   domain d(2.0,2.1,2.2,2.3,2.4,2.5);
-  Function x1 = regression::x1;
+  Function x1 = legacy_simplex::x1;
   taylorData td = x1.evalf(d,d);
   
 
   /*test Proc*/{
-    testProcedure(regression::x1,lineX1,domain(2,2,2,2,2,2),
+    testProcedure(legacy_simplex::x1,lineX1,domain(2,2,2,2,2,2),
 		  domain(2.51,2.51,2.51,2.51,2.51,2.51),"x1");
-    testProcedure(regression::dih,linearization::dih,
+    testProcedure(legacy_simplex::dih,linearization::dih,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::dih");
-    testProcedure(regression::dih2,linearization::dih2,
+		  "legacy_simplex::dih");
+    testProcedure(legacy_simplex::dih2,linearization::dih2,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::dih2");
-    testProcedure(regression::dih3,linearization::dih3,
+		  "legacy_simplex::dih2");
+    testProcedure(legacy_simplex::dih3,linearization::dih3,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::dih3");
-    testProcedure(regression::sol,linearization::solid,
+		  "legacy_simplex::dih3");
+    testProcedure(legacy_simplex::sol,linearization::solid,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::sol");
-    testProcedure(regression::eta2_126,linearization::eta2_126,
+		  "legacy_simplex::sol");
+    testProcedure(legacy_simplex::eta2_126,linearization::eta2_126,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::eta2_126",5.0e-6);
-    testProcedure(regression::eta2_135,linearization::eta2_135,
+		  "legacy_simplex::eta2_126",5.0e-6);
+    testProcedure(legacy_simplex::eta2_135,linearization::eta2_135,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::eta2_135",5.0e-6);
-    testProcedure(regression::eta2_234,linearization::eta2_234,
+		  "legacy_simplex::eta2_135",5.0e-6);
+    testProcedure(legacy_simplex::eta2_234,linearization::eta2_234,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::eta2_234",5.0e-6);
-    testProcedure(regression::eta2_456,linearization::eta2_456,
+		  "legacy_simplex::eta2_234",5.0e-6);
+    testProcedure(legacy_simplex::eta2_456,linearization::eta2_456,
 		  domain(4,4,4,4,4,4), domain(6.3001,6.3001,6.3001,6.3001,6.3001,6.3001),
-		  "regression::eta2_456",5.0e-6);
+		  "legacy_simplex::eta2_456",5.0e-6);
     
   }
   
   /*test +,*,evalf,tangentAtEstimate */{
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     domain z(4.11,4.22,4.33,4.44,4.55,4.66);
-    Function f = regression::x1*"17" + regression::x2*"2";
+    Function f = legacy_simplex::x1*"17" + legacy_simplex::x2*"2";
     taylorData t = f.evalf(x,z);
     if (!epsilonClose(t.upperBound(),"78.31",1.0e-13))
       cout << " t.upperBound() = " << t.upperBound() << endl;
@@ -2359,8 +2359,8 @@ void regression::selfTest()
   /*test plus,scale,center,upperBound,lowerBound,&partials*/ {
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     domain z(4.11,4.22,4.33,4.44,4.55,4.66);
-    taylorData t1 = regression::x1.evalf(x,z);
-    taylorData t2 = regression::x2.evalf(x,z);
+    taylorData t1 = legacy_simplex::x1.evalf(x,z);
+    taylorData t2 = legacy_simplex::x2.evalf(x,z);
     taylorData s1 = taylorData::scale(t1,interval("17"));
     taylorData s2 = taylorData::scale(t2,interval("2"));
     taylorData t = taylorData::plus(s1,s2);
@@ -2394,15 +2394,15 @@ void regression::selfTest()
     char zz[6][30]={"4.11","4.22","4.33","4.44","4.55","4.66"};
     char xx[6][30]={"4.1","4.2","4.3","4.4","4.5","4.6"};
     for (j=0;j<6;j++) {
-      taylorData t = regression::x1.evalf(x,z);
+      taylorData t = legacy_simplex::x1.evalf(x,z);
       switch (j)
 	{
-	case 0 : t = regression::x1.evalf(x,z); break;
-	case 1 : t = regression::x2.evalf(x,z); break;
-	case 2 : t = regression::x3.evalf(x,z); break;
-	case 3 : t = regression::x4.evalf(x,z); break;
-	case 4 : t = regression::x5.evalf(x,z); break;
-	case 5 : t = regression::x6.evalf(x,z); break;
+	case 0 : t = legacy_simplex::x1.evalf(x,z); break;
+	case 1 : t = legacy_simplex::x2.evalf(x,z); break;
+	case 2 : t = legacy_simplex::x3.evalf(x,z); break;
+	case 3 : t = legacy_simplex::x4.evalf(x,z); break;
+	case 4 : t = legacy_simplex::x5.evalf(x,z); break;
+	case 5 : t = legacy_simplex::x6.evalf(x,z); break;
 	}
       if (!epsilonClose(t.upperBound(),zz[j],1.0e-14))
 	cout << "x" << j+1 << "+ fails " << t.upperBound() << endl;
@@ -2426,15 +2426,15 @@ void regression::selfTest()
     char zz[6][30]={"4.11","4.22","4.33","4.44","4.55","4.66"};
     char xx[6][30]={"4.1","4.2","4.3","4.4","4.5","4.6"};
     for (j=0;j<6;j++) {
-      taylorData t = regression::x1.evalf(x,z);
+      taylorData t = legacy_simplex::x1.evalf(x,z);
       switch (j)
 	{
-	case 0 : t = regression::y1.evalf(x,z); break;
-	case 1 : t = regression::y2.evalf(x,z); break;
-	case 2 : t = regression::y3.evalf(x,z); break;
-	case 3 : t = regression::y4.evalf(x,z); break;
-	case 4 : t = regression::y5.evalf(x,z); break;
-	case 5 : t = regression::y6.evalf(x,z); break;
+	case 0 : t = legacy_simplex::y1.evalf(x,z); break;
+	case 1 : t = legacy_simplex::y2.evalf(x,z); break;
+	case 2 : t = legacy_simplex::y3.evalf(x,z); break;
+	case 3 : t = legacy_simplex::y4.evalf(x,z); break;
+	case 4 : t = legacy_simplex::y5.evalf(x,z); break;
+	case 5 : t = legacy_simplex::y6.evalf(x,z); break;
 	}
       if (!epsilonClose(t.upperBound(),interMath::sqrt(interval(zz[j])),1.0e-4))
 	cout << "x" << j+1 << "+ fails " << t.upperBound() << endl;
@@ -2458,7 +2458,7 @@ void regression::selfTest()
     domain x(2.1,2.2,2.3,3.4,2.5,2.6);
     double mValue= -0.5994620477455596 ;
     double mathValueD[6]={0,0,0,0,0,0};
-    taylorData at = regression::mdtau_y_LC.evalf(x,x); 
+    taylorData at = legacy_simplex::mdtau_y_LC.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "mdtau_y_LC  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2471,7 +2471,7 @@ void regression::selfTest()
     domain x(2.1,2.2,2.3,3.4,2.5,2.6);
     double mValue= 0.2804657791758259;
     double mathValueD[6]={0,0,0,0,0,0};
-    taylorData at = regression::mdtau2uf_y_LC.evalf(x,x); 
+    taylorData at = legacy_simplex::mdtau2uf_y_LC.evalf(x,x); 
     /* NO LONGER ACCURATE.  THESE ARE CALCS OF mdtau2uf / uf = mdtau2
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "mdtau2uf_y_LC  fails " << endl;
@@ -2486,7 +2486,7 @@ void regression::selfTest()
     domain x(2.1,2.2,2.3,3.4,2.5,2.6);
     double mValue= 339.9384510;
     double mathValueD[6]={0,0,0,0,0,0};
-    taylorData at = regression::delta_y_LC.evalf(x,x); 
+    taylorData at = legacy_simplex::delta_y_LC.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "delta_y_LC  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2501,7 +2501,7 @@ void regression::selfTest()
     double mathValueD[6]={0.0716828019335723,0.06608105639401098,
    0.05995821824611842,0.06249854471173341,0.05728761862842055,
 			       0.05155559993677649};
-    taylorData at = regression::vol_x.evalf(x,x); 
+    taylorData at = legacy_simplex::vol_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "volx  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2532,7 +2532,7 @@ void regression::selfTest()
     double mathValueD[6]={0.057786164807838214,0.05761105521751131,
    0.05741965636296806,0.06701170422099567,0.06721538721254888,
 			  0.06743943850325723};
-    taylorData at = regression::rad2.evalf(x,x); 
+    taylorData at = legacy_simplex::rad2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "rad2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2546,7 +2546,7 @@ void regression::selfTest()
     double mValue=19.19;
     double mathValueD[6]={0.5999999999999996,4.3,4.499999999999999,-8.2,
 			  3.700000000000001,3.8999999999999986};
-    taylorData at = regression::delta_x4.evalf(x,x); 
+    taylorData at = legacy_simplex::delta_x4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "delta_x4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2564,7 +2564,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.7804417742116788,-0.049120282260656074,
    -0.054018913876389546,0.14725412156249917,-0.042144869722190594,
       -0.04693241526153936};
-    taylorData at = regression::marchalDih.evalf(x,x); 
+    taylorData at = legacy_simplex::marchalDih.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "marchalDih  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2578,7 +2578,7 @@ void regression::selfTest()
     double mValue= 1.0679029643628666;
     double mathValueD[6]={-0.07043519394425567,-0.07203236387496442,
 			  0.13751633103402303,0,0,0};
-    taylorData at = regression::arclength_x_123.evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x_123.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x_123  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2592,7 +2592,7 @@ void regression::selfTest()
     double mValue= 1.0674194068234593;
     double mathValueD[6]={0,-0.06875697006122505,
 			  -0.07028159730433495,0.13431594151495124,0,0};
-    taylorData at = regression::arclength_x_234.evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x_234.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x_234  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2606,7 +2606,7 @@ void regression::selfTest()
     double mValue= 1.1087112366844947;
     double mathValueD[6]={-0.07387006214108435,
 			  -0.07531619563273523,0,0,0,0.13460766879042044};
-    taylorData at = regression::arclength_x_126.evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x_126.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x_126  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2620,7 +2620,7 @@ void regression::selfTest()
     double mValue= 1.066957923498952;
     double mathValueD[6]={0,0,-0.06715688186243648,
 			  -0.06861379768796456,0.13126117818567132,0};
-    taylorData at = regression::arclength_x_345.evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x_345.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x_345  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2633,7 +2633,7 @@ void regression::selfTest()
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 1.0965338178368775;
     double mathValueD[6]={-0.07084353197306854,0,0,0,0,0};
-    taylorData at = regression::arclength_x1(interval::interval("2.08"),interval::interval("2.14")).evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x1(interval::interval("2.08"),interval::interval("2.14")).evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x1  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2648,7 +2648,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.262888552950994,0.024099927051466907,
    0.0355143556591757,0.04653741075440776,0.057190958417936553,
 			  0.06749519175968627};
-    taylorData at = regression::norm2hh_x.evalf(x,x); 
+    taylorData at = legacy_simplex::norm2hh_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "norm2hh_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2661,7 +2661,7 @@ void regression::selfTest()
     domain x(0.1,0.2,0.3,0.4,0.5,0.6);
     double mValue= 1.491656801832486;
     double mathValueD[6]={-0.396525792859072,0,0,0,0,0};
-    taylorData at = regression::acs_sqrt_x1_d4.evalf(x,x); 
+    taylorData at = legacy_simplex::acs_sqrt_x1_d4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "acs_sqrt_x1_d4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2674,7 +2674,7 @@ void regression::selfTest()
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 2.0742570836404837;
     double mathValueD[6]={0.0648275015403495,0,0,0,0,0};
-    taylorData at = regression::asn797k.evalf(x,x); 
+    taylorData at = legacy_simplex::asn797k.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "asn797k  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2688,7 +2688,7 @@ void regression::selfTest()
     double mValue= 0.22005326245872275;
     double mathValueD[6]={0.07141922522392495,2.7397148354175482,0,
 			  0,0,0};
-    taylorData at = regression::asnFnhk.evalf(x,x); 
+    taylorData at = legacy_simplex::asnFnhk.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "asnFnhk  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2702,7 +2702,7 @@ void regression::selfTest()
     double mValue= 19.19;
     double mathValueD[6]={0.5999999999999996,4.3,4.499999999999999,-8.2,
 			  3.700000000000001,3.8999999999999986};
-    taylorData at = regression::delta_x4.evalf(x,x); 
+    taylorData at = legacy_simplex::delta_x4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "delta_x4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2716,7 +2716,7 @@ void regression::selfTest()
     double mValue=1.4343699150244082;
     double mathValueD[6]={0.10607345504918758,0,0.11054816002151685,
 			  0,0.11646925805115915,0};
-    taylorData at = regression::eta2_135.evalf(x,x); 
+    taylorData at = legacy_simplex::eta2_135.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "eta2_135  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2730,7 +2730,7 @@ void regression::selfTest()
     double mValue=1.4335919177340792;
     double mathValueD[6]={0,0.10856346275290063,0.11097076506380871,
 			  0.11373888281761776,0,0};
-    taylorData at = regression::eta2_234.evalf(x,x); 
+    taylorData at = legacy_simplex::eta2_234.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "eta2_234  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2744,7 +2744,7 @@ void regression::selfTest()
     double mValue=1.5002470762642062;
     double mathValueD[6]={0,0,0,0.10867530033135317,
 			  0.11098297337542629,0.11362008143844202};
-    taylorData at = regression::eta2_456.evalf(x,x); 
+    taylorData at = legacy_simplex::eta2_456.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "eta2_456  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2761,7 +2761,7 @@ void regression::selfTest()
       double mathValueD[6]={0.10048454642157742,-0.06477906444011666,
 			    -0.07123930364273548,0.19419644576045844,-0.05557999884990159,
 			    -0.06189373946233846};
-    taylorData at = regression::gchi1_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi1_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi1  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2776,7 +2776,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.06572752258736782,0.10500885807170765,
    -0.07824003437923059,-0.056271683063299445,0.19703975945664476,
    -0.06851228454381249};
-    taylorData at = regression::gchi2_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi2_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2791,7 +2791,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.07331727287522762,-0.07936025924977397,
    0.1095205207388263,-0.06342330577935136,-0.06934245768731484,
 			    0.19986093458496015};
-    taylorData at = regression::gchi3_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi3_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi3  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2806,7 +2806,7 @@ void regression::selfTest()
       double mathValueD[6]={0.20266073908760945,-0.05787695290919818,
    -0.06431178785046088,0.09797074520733327,-0.06145584263882206,
 			    -0.06773161581432371};
-    taylorData at = regression::gchi4_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi4_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2821,7 +2821,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.05879793125270706,0.205439897510248,
    -0.07127809859377435,-0.06229860835387361,0.10257294591611826,
 			    -0.07448084572888418};
-    taylorData at = regression::gchi5_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi5_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi5  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2836,7 +2836,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.06635662384100449,-0.07239247365030564,
    0.20819909435958153,-0.06958259964677825,-0.07548117388987628,
 			    0.10720235004689033};
-    taylorData at = regression::gchi6_x.evalf(x,x); 
+    taylorData at = legacy_simplex::gchi6_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gchi6  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2881,7 +2881,7 @@ void regression::selfTest()
       double mathValueD[6]={0.03794036469543799,0.03897627648849593,
    0.04008789744884282,0.060373310393189945,0.05954757563245067,
 			    0.05861887751578681};
-      taylorData at = regression::taum_x.evalf(x,x); 
+      taylorData at = legacy_simplex::taum_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "taum  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2897,7 +2897,7 @@ void regression::selfTest()
    0.38015846387975194,0.38126584517884354,
    -0.3876234171705304,0.44246843996649915,
 			    0.44281661177015513};
-      taylorData at = regression::tau_lowform_x.evalf(x,x); 
+      taylorData at = legacy_simplex::tau_lowform_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "tau_lowform_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2911,7 +2911,7 @@ void regression::selfTest()
       double mValue= 0.08558539613421184;
       double mathValueD[6]={-0.021776254246248725,-0.020882156617352043,-0.0203939881662909,0.009425186655158749,
 			    0.004666274566526227,0.004802448355845701};
-      taylorData at = regression::tau_residual_x.evalf(x,x); 
+      taylorData at = legacy_simplex::tau_residual_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "tau_residual_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2924,7 +2924,7 @@ void regression::selfTest()
       domain x(4.1,4.2,4.3,13.0,4.5,4.6);
       double mValue= 2608.486;
       double mathValueD[6]={270.96,269.18999999999994,301.88,150.35,257.03999999999996,255.35};
-      taylorData at = regression::selling_volume2.evalf(x,x); 
+      taylorData at = legacy_simplex::selling_volume2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "selling_volume2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2937,7 +2937,7 @@ void regression::selfTest()
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue= 2107.160938158643;
       double mathValueD[6]={207.31409519500576,205.376230567524,203.50058898761495,201.4052168868247,199.5613135015172,197.68692136039425};
-      taylorData at = regression::selling_surface_nn.evalf(x,x); 
+      taylorData at = legacy_simplex::selling_surface_nn.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "selling_surface_nn  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2950,7 +2950,7 @@ void regression::selfTest()
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue=0.05942793337929775;
       double mathValueD[6]={0.06745481394227296,0,0,0,0,0};
-      taylorData at = regression::taum_x1("2.08","2.14").evalf(x,x); 
+      taylorData at = legacy_simplex::taum_x1("2.08","2.14").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "taum_x1  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2966,7 +2966,7 @@ void regression::selfTest()
    -0.0078097332943296155,-0.007652473097370668,
    0.0020141581396420677,0.002054235662205097,
 			    0.0020953681436752004};
-    taylorData at = regression::sol_euler_x_div_sqrtdelta.evalf(x,x); 
+    taylorData at = legacy_simplex::sol_euler_x_div_sqrtdelta.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "sol_euler  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2981,7 +2981,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.0023705608269591763,
    -0.010018211153794957,-0.00988385942104016,0.006798828382032002,
 			    -0.008648206061779122,-0.008539365987877277};
-    taylorData at = regression::dih_x_div_sqrtdelta_posbranch.evalf(x,x); 
+    taylorData at = legacy_simplex::dih_x_div_sqrtdelta_posbranch.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "dih_x_div  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -2996,7 +2996,7 @@ void regression::selfTest()
       double mathValueD[6]={-0.04739512815129222,-0.00953953961592741,
    -0.009411607227858571,0.006473979405766214,-0.0082349935598826,
 			    -0.008131353880018816};
-    taylorData at = regression::ldih_x_div_sqrtdelta_posbranch.evalf(x,x); 
+    taylorData at = legacy_simplex::ldih_x_div_sqrtdelta_posbranch.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "ldih_x_div  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3041,7 +3041,7 @@ void regression::selfTest()
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue= -0.06665321364422902;
       double mathValueD[6]={0.07146660745052882,0,0,0,0,0};
-    taylorData at = regression::halfbump_x1.evalf(x,x); 
+    taylorData at = legacy_simplex::halfbump_x1.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "halfbump_x1 fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3054,7 +3054,7 @@ void regression::selfTest()
       domain x(4.1,4.2,4.3,4.4,4.5,4.6);
       double mValue= -0.047139389935398804;
       double mathValueD[6]={0,0,0,0.0588482960800643,0,0};
-    taylorData at = regression::halfbump_x4.evalf(x,x); 
+    taylorData at = legacy_simplex::halfbump_x4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "halfbump_x4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3069,7 +3069,7 @@ void regression::selfTest()
     double mathValueD[6]={0.1639579615001743,-0.04682400379844412,
    -0.05202995747407655,0.050900945512886715,-0.04971942136745523,
 			  -0.0547966898177983};
-    taylorData at = regression::dih4.evalf(x,x); 
+    taylorData at = legacy_simplex::dih4.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "dih4  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3084,7 +3084,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.04745584218563276,0.16581065263975656,
    -0.05752859201151561,-0.050281240571535483,0.0540659685457473,
 			  -0.060113530960320245};
-    taylorData at = regression::dih5.evalf(x,x); 
+    taylorData at = legacy_simplex::dih5.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "dih5  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3099,7 +3099,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.05343065929090237,-0.05829075337080253,
    0.16764287016855614,-0.05602822987514417,-0.06077778903656598,
 			  0.05718408426966532};
-    taylorData at = regression::dih6.evalf(x,x); 
+    taylorData at = legacy_simplex::dih6.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "dih6  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3114,7 +3114,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.5284984757448858,-0.050272297038852574,
    -0.055285815942576776,0.1507076628774728,-0.04313329060478024,
 			  -0.04803311813761087};
-    taylorData at = regression::ldih_x.evalf(x,x); 
+    taylorData at = legacy_simplex::ldih_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "ldih_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3129,7 +3129,7 @@ void regression::selfTest()
     double mValue=0.8978353845717557;
     double mathValueD[6]={-0.11763582712748807,0,0.04693838886383641,
 			  0,-0.1291648084755952,0};
-    taylorData at = regression::dih3_x_135_s2.evalf(x,x); 
+    taylorData at = legacy_simplex::dih3_x_135_s2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "dih3_x_135_s2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3145,7 +3145,7 @@ void regression::selfTest()
     double mValue=0.7968080665440581;
       double mathValueD[6]={-0.10245354865782212,-0.37336749454984774,
 			    0,0,0,-0.11599764292809825};
-    taylorData at = regression::ldih2_x_126_s2.evalf(x,x); 
+    taylorData at = legacy_simplex::ldih2_x_126_s2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "ldih2_x_126_s2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3159,7 +3159,7 @@ void regression::selfTest()
     double mValue=0.8236262990441832;
       double mathValueD[6]={-0.37197051623101446,
 			    -0.1065059467538398,0,0,0,-0.1182704109076129};
-    taylorData at = regression::ldih_x_126_n.evalf(x,x); 
+    taylorData at = legacy_simplex::ldih_x_126_n.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "ldih_x_126_n  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3173,7 +3173,7 @@ void regression::selfTest()
     double mValue=0.7968080665440581;
       double mathValueD[6]={-0.10245354865782212,
 			    -0.37336749454984774,0,0,0,-0.11599764292809825};
-    taylorData at = regression::ldih2_x_126_n.evalf(x,x); 
+    taylorData at = legacy_simplex::ldih2_x_126_n.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "ldih2_x_126_n  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3193,7 +3193,7 @@ void regression::selfTest()
     double mathValueD[6]={0.02370215728957028,0.012021942974373388,
    0.01156437446193877,0.032219123924855125,0.015414868484842895,
 			  0.015015719816071069};
-    taylorData at = regression::gamma3f_x_vLR_lfun.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_vLR_lfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_vLR_lfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3213,7 +3213,7 @@ void regression::selfTest()
     double mathValueD[6]={0.009716449167778748,0.008382641111760384,
    0.00806358847343414,0.022465699044914193,0.010748454768823143,
    0.010470137025369903};
-    taylorData at = regression::gamma3f_x_vLR0.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_vLR0.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_vLR0  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3228,7 +3228,7 @@ void regression::selfTest()
     double mathValueD[6]={0.02370215728957028,0.012021942974373388,
    0.01156437446193877,0.032219123924855125,0.015414868484842895,
 			  0.015015719816071069};
-    taylorData at = regression::gamma3f_vLR_x_nlfun.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_vLR_x_nlfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_vLR_x_nlfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3243,7 +3243,7 @@ void regression::selfTest()
     double mathValueD[6]={0.009716449167778748,0.008382641111760384,
    0.00806358847343414,0.022465699044914193,0.010748454768823143,
    0.010470137025369903};
-    taylorData at = regression::gamma3f_vLR_x_n0.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_vLR_x_n0.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_vLR_x_n0  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3258,7 +3258,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.016383158282497496,0.012021942974373388,
    -0.011819309789103422,0.032219123924855125,-0.009221275207565662,
    0.015015719816071069};
-    taylorData at = regression::gamma3f_x_vL_lfun.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_vL_lfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_vL_lfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3273,7 +3273,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.016383158282497496,0.012021942974373388,
    -0.011819309789103422,0.032219123924855125,-0.009221275207565662,
    0.015015719816071069};
-    taylorData at = regression::gamma3f_vL_x_nlfun.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_vL_x_nlfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_vL_x_nlfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3288,7 +3288,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.007175030424085833,0.008382641111760384,
    -0.008241349369396288,0.022465699044914193,-0.0064297959841076065,
 			  0.010470137025369903};
-    taylorData at = regression::gamma3f_x_vL0.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_vL0.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_vL0  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3303,7 +3303,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.007175030424085833,0.008382641111760384,
    -0.008241349369396288,0.022465699044914193,-0.0064297959841076065,
 			  0.010470137025369903};
-    taylorData at = regression::gamma3f_vL_x_n0.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_vL_x_n0.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_vL_x_n0  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3318,7 +3318,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.05636749908923225,-0.010747491782145005,
    -0.011819309789103422,0.032219123924855125,-0.009221275207565662,
 			  -0.010268787639757223};
-    taylorData at = regression::gamma3f_x_v_lfun.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_v_lfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_v_lfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3333,7 +3333,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.024008337266888214,-0.0074939938288978115,
    -0.008241349369396288,0.022465699044914193,-0.0064297959841076065,
 			  -0.007160203772423269};
-    taylorData at = regression::gamma3f_x_v0.evalf(x,x); 
+    taylorData at = legacy_simplex::gamma3f_x_v0.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "gamma3f_x_v0  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3347,7 +3347,7 @@ void regression::selfTest()
     double mValue=106856.19915775987;
     double mathValueD[6]={129116.82713599993,-36041.29702399999,-39139.13697279997,
 			  3345.7972223999877,48540.89593855997,45449.9555584};
-    taylorData at = regression::num_combo1.evalf(x,x); 
+    taylorData at = legacy_simplex::num_combo1.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "num_combo1  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3361,7 +3361,7 @@ void regression::selfTest()
     double mValue= -400514.3541760006;
     double mathValueD[6]={183303.01440000001,-141693.01760000008,-129522.33472000009,
    -283267.08224000037,92448.90214400007,103929.62816000001};
-    taylorData at = regression::num2.evalf(x,x); 
+    taylorData at = legacy_simplex::num2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "num2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3377,7 +3377,7 @@ void regression::selfTest()
    -0.19482732187952154,-0.210306752932963,
    -0.08624960600633869,0.2017254648627028,
 			  0.1903349863136786};
-    taylorData at = regression::rat1.evalf(x,x); 
+    taylorData at = legacy_simplex::rat1.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "rat1  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3393,7 +3393,7 @@ void regression::selfTest()
    -0.12800997645316778,-0.1170145946391821,
    -0.17562113079076758,0.13988551095572183,
 			  0.1461089273035437};
-    taylorData at = regression::rat2.evalf(x,x); 
+    taylorData at = legacy_simplex::rat2.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "rat2  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3408,7 +3408,7 @@ void regression::selfTest()
     double mathValueD[6]={-0.9946443990172562,
    1.0737670163683373,1.0726015670201678,0,
 			  0.9263130491578268,0.927319546791744};
-    taylorData at = regression::edge_flat2_x.evalf(x,x); 
+    taylorData at = legacy_simplex::edge_flat2_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "edge_flat2_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3422,7 +3422,7 @@ void regression::selfTest()
     double mValue= 3.671245675164661;
     double mathValueD[6]={-0.13546415672286014,0.14624014726557039,0.14608142057560067,0,0.12615786726344322,
 			  0.1262949457543661};
-    taylorData at = regression::edge_flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::edge_flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "edge_flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3441,7 +3441,7 @@ void regression::selfTest()
    1.0091748931784064,
    1.0227533022114286,
 1.0357403437633583};
-    taylorData at = regression::euler_3flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::euler_3flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "euler_3flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3462,7 +3462,7 @@ void regression::selfTest()
    1.0227533022114286,
    1.0357403437633583
 };
-    taylorData at = regression::euler_2flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::euler_2flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "euler_2flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3481,7 +3481,7 @@ void regression::selfTest()
 			  -1.02469507659596,
 1.0357403437633583
 };
-    taylorData at = regression::euler_1flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::euler_1flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "euler_1flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3501,7 +3501,7 @@ void regression::selfTest()
    -0.25312961074090523,
    -0.26174167375093715
       };
-    taylorData at = regression::taum_3flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::taum_3flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_3flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3521,7 +3521,7 @@ void regression::selfTest()
    0.11325504246946491,
    0.10504273307028097
       };
-    taylorData at = regression::taum_2flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::taum_2flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_2flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3542,7 +3542,7 @@ void regression::selfTest()
    0.25286723701958674,
 			 0.40754754381729874
 };
-    taylorData at = regression::taum_1flat_x.evalf(x,x); 
+    taylorData at = legacy_simplex::taum_1flat_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_1flat_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3556,7 +3556,7 @@ void regression::selfTest()
     double mValue= 57.81269350399995;
     double mathValueD[6]={46.989440000000016,46.4392,0,0,0,
 			  -35.66664576000002};
-    taylorData at = regression::delta_pent_x.evalf(x,x); 
+    taylorData at = legacy_simplex::delta_pent_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_pent_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3570,7 +3570,7 @@ void regression::selfTest()
     double mValue= 166.43650000000008;
     double mathValueD[6]={22.480000000000008,
 			  20.73999999999999,0,0,0,16.199999999999996};
-    taylorData at = regression::delta_126_x("4.35","4.45","4.55").evalf(x,x); 
+    taylorData at = legacy_simplex::delta_126_x("4.35","4.45","4.55").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_126_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3584,7 +3584,7 @@ void regression::selfTest()
     double mValue= 166.4485000000001;
     double mathValueD[6]={0,20.74,18.840000000000007,
 			  19.599999999999998,0,0};
-    taylorData at = regression::delta_234_x("4.15","4.55","4.65").evalf(x,x); 
+    taylorData at = legacy_simplex::delta_234_x("4.15","4.55","4.65").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_234_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3598,7 +3598,7 @@ void regression::selfTest()
     double mValue= 166.44249999999994;
     double mathValueD[6]={22.480000000000008,0,
 			  18.839999999999993,0,17.979999999999997,0};
-    taylorData at = regression::delta_135_x("4.25","4.45","4.65").evalf(x,x); 
+    taylorData at = legacy_simplex::delta_135_x("4.25","4.45","4.65").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_135_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3612,7 +3612,7 @@ void regression::selfTest()
     double mValue= 175.299000000000;
     double mathValueD[6]={0,22.869999999999994,21.11,19.19,
 			  20.169999999999995,18.530000000000005};
-    taylorData at = regression::delta_sub1_x("4.7").evalf(x,x); 
+    taylorData at = legacy_simplex::delta_sub1_x("4.7").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "delta_sub1_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3627,7 +3627,7 @@ void regression::selfTest()
     double mathValueD[6]={0,0.04248662450733011,
    0.0433252030616502,0.062007556887295937,
 			  0.053615459466031,0.05285918091664566};
-    taylorData at = regression::taum_sub1_x("4.7").evalf(x,x); 
+    taylorData at = legacy_simplex::taum_sub1_x("4.7").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_sub1_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3641,7 +3641,7 @@ void regression::selfTest()
     double mValue= 0.12186337970835324;
     double mathValueD[6]={0.03790121323409336,0,
 			  0.03997491414775098,0,0.06066512926774336,0};
-    taylorData at = regression::taum_sub246_x("4.25","4.45","4.65").evalf(x,x); 
+    taylorData at = legacy_simplex::taum_sub246_x("4.25","4.45","4.65").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_sub246_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3655,7 +3655,7 @@ void regression::selfTest()
     double mValue= 0.1219653222134757;
     double mathValueD[6]={0.03786131479834624,
 			  0.03886158799158322,0,0,0,0.05974169184110538};
-    taylorData at = regression::taum_sub345_x("4.35","4.45","4.55").evalf(x,x); 
+    taylorData at = legacy_simplex::taum_sub345_x("4.35","4.45","4.55").evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "taum_sub345_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3671,7 +3671,7 @@ void regression::selfTest()
    -0.052794842015294,-0.058059927441134945,
    0.15826981699207354,-0.04529761712139804,
 			  -0.050443306412222735};
-    taylorData at = regression::upper_dih_x.evalf(x,x); 
+    taylorData at = legacy_simplex::upper_dih_x.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-7))
       cout << "upper_dih_x  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3685,7 +3685,7 @@ void regression::selfTest()
     double mValue=0.4652359019298107;
   double mathValueD[6]={-0.0038809463071660254,
 			-0.006418488123389966,0,0,0,-0.01806132704488803};
-    taylorData at = regression::vol3_x_sqrt.evalf(x,x); 
+    taylorData at = legacy_simplex::vol3_x_sqrt.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "vol3_x_sqrt  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3699,7 +3699,7 @@ void regression::selfTest()
     double mValue=0.4457211325536522;
     double mathValueD[6]={-0.02940386658560512,-0.029833252900862778,
 			  0,0,0,-0.03280740250782458};
-    taylorData at = regression::vol3f_x_lfun.evalf(x,x); 
+    taylorData at = legacy_simplex::vol3f_x_lfun.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "vol3f_x_lfun  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3713,7 +3713,7 @@ void regression::selfTest()
     double mValue=0.4990241768945513;
     double mathValueD[6]={-0.05347687268458264,-0.03672605271672298,
       0,0,0,-0.040461569165859704};
-    taylorData at = regression::vol3f_x_sqrt2_lmplus.evalf(x,x); 
+    taylorData at = legacy_simplex::vol3f_x_sqrt2_lmplus.evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "vol3f_x_sqrt2_lmplus  fails " << endl;
     for (int i=0;i<6;i++) {
@@ -3724,23 +3724,23 @@ void regression::selfTest()
   
   /* test hasDeltaDenom */ {
     /*
-    Function F1 = regression::y1 + regression::dih2;
+    Function F1 = legacy_simplex::y1 + legacy_simplex::dih2;
     if (!F1.hasDeltaDenom()) cout << "hasDeltaDenom fails 1" << endl;
-    Function F2 (regression::y2);
+    Function F2 (legacy_simplex::y2);
     if (F2.hasDeltaDenom()) cout << "hasDeltaDenom fails 2" << endl;
-    Function F3( regression::dih);
+    Function F3( legacy_simplex::dih);
     if (!F3.hasDeltaDenom()) cout << "hasDeltaDenom fails 3" << endl;
     */
   }
   
   /* test primitiveC1 */  {
-	  Function cD = Function::compose (regression::dih,
-		   regression::x2,regression::x3,regression::x1,
-		   regression::x5,regression::x6,regression::x4);
+	  Function cD = Function::compose (legacy_simplex::dih,
+		   legacy_simplex::x2,legacy_simplex::x3,legacy_simplex::x1,
+		   legacy_simplex::x5,legacy_simplex::x6,legacy_simplex::x4);
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     domain w(0.0,0.0,0.0,0.0,0.0,0.0);
     taylorData t = cD.evalf4(w,x,x,x); //dih2alt
-    taylorData u = regression::dih2.evalf4(w,x,x,x);
+    taylorData u = legacy_simplex::dih2.evalf4(w,x,x,x);
     if (!epsilonClose(t.upperBound(),u.tangentVectorOf().f,1.0e-8))
       cout << "cD1  fails " << t.upperBound() << endl;
     if (!epsilonClose(t.lowerBound(),u.tangentVectorOf().f,1.0e-8))
@@ -3754,12 +3754,12 @@ void regression::selfTest()
   }
   
   /* test primitiveC sums */   {
-    Function cdih2 = Function::compose (regression::dih,
-		      regression::x2,regression::x3,regression::x1,
-		      regression::x5,regression::x6,regression::x4);
-    Function cdih3 = Function::compose(regression::dih,
-		      regression::x3,regression::x1,regression::x2,
-		      regression::x6,regression::x4,regression::x5);
+    Function cdih2 = Function::compose (legacy_simplex::dih,
+		      legacy_simplex::x2,legacy_simplex::x3,legacy_simplex::x1,
+		      legacy_simplex::x5,legacy_simplex::x6,legacy_simplex::x4);
+    Function cdih3 = Function::compose(legacy_simplex::dih,
+		      legacy_simplex::x3,legacy_simplex::x1,legacy_simplex::x2,
+		      legacy_simplex::x6,legacy_simplex::x4,legacy_simplex::x5);
     Function cD = cdih2 + cdih3 * "5.6";
     //Function::Function(&cdih2) + Function::Function(&cdih3) * "5.6";           
     
@@ -3767,8 +3767,8 @@ void regression::selfTest()
     domain w(0.0,0.0,0.0,0.0,0.0,0.0);
     taylorData t = cD.evalf4(w,x,x,x); // dih2 + 5.6 dih3;
     
-    taylorData udih2 = regression::dih2.evalf4(w,x,x,x);
-    taylorData udih3 = regression::dih3.evalf4(w,x,x,x);
+    taylorData udih2 = legacy_simplex::dih2.evalf4(w,x,x,x);
+    taylorData udih3 = legacy_simplex::dih3.evalf4(w,x,x,x);
     taylorData uD = taylorData::plus(udih2,taylorData::scale(udih3,"5.6"));
     
     if (!epsilonClose(t.upperBound(),uD.tangentVectorOf().f,1.0e-8))
@@ -3784,17 +3784,17 @@ void regression::selfTest()
   }
   
   /* test primitiveC mixed sums */   {
-    Function tdih2 = Function::compose (regression::dih,
-		      regression::x2,regression::x3,regression::x1,
-		      regression::x5,regression::x6,regression::x4);
-    Function tdih3 = Function::compose (regression::dih,
-		      regression::x3,regression::x1,regression::x2,
-		      regression::x6,regression::x4,regression::x5);
+    Function tdih2 = Function::compose (legacy_simplex::dih,
+		      legacy_simplex::x2,legacy_simplex::x3,legacy_simplex::x1,
+		      legacy_simplex::x5,legacy_simplex::x6,legacy_simplex::x4);
+    Function tdih3 = Function::compose (legacy_simplex::dih,
+		      legacy_simplex::x3,legacy_simplex::x1,legacy_simplex::x2,
+		      legacy_simplex::x6,legacy_simplex::x4,legacy_simplex::x5);
     //Function tdih2(&cdih2);
     //Function tdih3(&cdih3);
-    Function a = tdih2 + regression::dih3 * "5.6";           
-    Function b = regression::dih2 + tdih3 * "5.6";
-    Function c = regression::dih2 + regression::dih3 * "5.6";
+    Function a = tdih2 + legacy_simplex::dih3 * "5.6";           
+    Function b = legacy_simplex::dih2 + tdih3 * "5.6";
+    Function c = legacy_simplex::dih2 + legacy_simplex::dih3 * "5.6";
     
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     domain w(0.0,0.0,0.0,0.0,0.0,0.0);
@@ -3841,7 +3841,7 @@ void regression::selfTest()
     }
     
   }
-      Function p(regression::dih);
-	cout << " -- done loading regression" << endl << flush;
+      Function p(legacy_simplex::dih);
+	cout << " -- done loading legacy_simplex" << endl << flush;
   
 }

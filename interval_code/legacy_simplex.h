@@ -13,7 +13,7 @@
 
 /*
 CLASS
-	regression
+	legacy_simplex
 
 	A library of static Functions of six variables.
 
@@ -31,7 +31,7 @@ AUTHOR
 */
 
 
-class regression
+class legacy_simplex
 {
   public:
 	//////////
@@ -201,21 +201,21 @@ class regression
 	static const Function surfR126d(const interval&);
 
 
-	static const Function /* regression:: */ lindih(const interval& theta);
+	static const Function /* legacy_simplex:: */ lindih(const interval& theta);
 
-	static const Function /* regression:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
+	static const Function /* legacy_simplex:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
 
-	static const Function /* regression:: */ delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s);
+	static const Function /* legacy_simplex:: */ delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s);
 
-	static const Function /* regression:: */ delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s);
+	static const Function /* legacy_simplex:: */ delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s);
 
-	static const Function /* regression:: */ taum_sub1_x(const interval& x1s);
+	static const Function /* legacy_simplex:: */ taum_sub1_x(const interval& x1s);
 
-	static const Function /* regression:: */ delta_sub1_x(const interval& x1s);
+	static const Function /* legacy_simplex:: */ delta_sub1_x(const interval& x1s);
 
-	static const Function /* regression:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
+	static const Function /* legacy_simplex:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
 
-	static const Function /* regression:: */ taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s);
+	static const Function /* legacy_simplex:: */ taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s);
 
 	//////////
 	// Check the correctness of  routines.

@@ -10,7 +10,7 @@
 #include "secondDerive.h"
 #include "taylorData.h"
 #include "wide.h"
-#include "regression.h"
+#include "legacy_simplex.h"
 #include "Lib.h"
 #include "recurse.h"
 #include <time.h>
@@ -41,7 +41,7 @@ int testRun()
 	interval tz[6]={"6.3001","6.3001","6.3001","6.3001","6.3001","6.3001"};
 	domain x = domain::lowerD(tx);
 	domain z = domain::upperD(tz);
-	Function F = regression::dih*"-1"+regression::unit*"1.153093";
+	Function F = legacy_simplex::dih*"-1"+legacy_simplex::unit*"1.153093";
 	return generic (x,z,F);
 	}
 
@@ -55,8 +55,8 @@ int testRunQ()
 	interval tzB[6]={"6.3001","6.3001","6.3001","6.3001","6.3001","6.3001"};
 	domain xB = domain::lowerD(txB);
 	domain zB = domain::upperD(tzB);
-	Function FA = regression::dih*"-1"+regression::unit*"1.153093";  // dih > 0.1.
-	Function FB = regression::unit * "0";
+	Function FA = legacy_simplex::dih*"-1"+legacy_simplex::unit*"1.153093";  // dih > 0.1.
+	Function FB = legacy_simplex::unit * "0";
 	const Function* IA[1] = {&FA};
 	const Function* IB[1] = {&FB};
 	cellOption opt;

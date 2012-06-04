@@ -39,9 +39,9 @@ Lib.o : Lib.cc error.h interval.h univariate.h \
 	taylorData.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c Lib.cc
 
-regression.o : regression.cc regression.h error.h interval.h univariate.h \
+legacy_simplex.o : legacy_simplex.cc legacy_simplex.h error.h interval.h univariate.h \
 	taylorData.h
-	$(CC) $(CCOPTS1) $(CCOPTS2) -c regression.cc
+	$(CC) $(CCOPTS1) $(CCOPTS2) -c legacy_simplex.cc
 
 recurse.o : recurse.h recurse.cc taylorData.h Lib.h error.h \
 	interval.h interval_inline.h #Can be opt. in level2
@@ -49,19 +49,19 @@ recurse.o : recurse.h recurse.cc taylorData.h Lib.h error.h \
 
 test: test.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
-	taylorData.h taylorData.o regression.h regression.o \
+	taylorData.h taylorData.o legacy_simplex.h legacy_simplex.o \
 	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) test.cc error.o interval.o lineInterval.o \
-	secondDerive.o univariate.o wide.o taylorData.o Lib.o regression.o \
+	secondDerive.o univariate.o wide.o taylorData.o Lib.o legacy_simplex.o \
 	recurse.o -o test -lm $(L)
 
 test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
 	recurse.h recurse.o univariate.h univariate.o wide.h wide.o \
-	Lib.o regression.o Lib.h regression.h
+	Lib.o legacy_simplex.o Lib.h legacy_simplex.h
 	$(CC) $(CCOPTS1)  error.o interval.o lineInterval.o \
 	secondDerive.o univariate.o wide.o taylorData.o recurse.o Lib.o \
-	regression.o \
+	legacy_simplex.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o \
 	../cfsqp/numerical.o ../cfsqp/sqp/qld.o \
 	../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o test_auto.cc \

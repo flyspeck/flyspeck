@@ -839,6 +839,14 @@ Function Function::product // minor memory leak.
   return prod;
 }
 
+Function Function::quotient
+(const Function& f,const Function& g)
+{
+  return product(f,uni_compose(univariate::i_inv,g));
+}
+
+
+
 Function Function::compose // minor memory leak
 (const Function& f,
  const Function& x1,const Function& x2,const Function& x3,

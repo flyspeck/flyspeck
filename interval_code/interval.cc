@@ -298,6 +298,25 @@ void interMath::selfTest() {
 	  assert(t.hi == 1);
 	}
 
+	/* decimal variant not quite 1.0! */
+	{
+	  const char s[] = "1.";
+	  interval t = s;
+	  assert(t.lo < 1.0);
+	  assert(1.0 < t.hi);
+	  assert(t.hi-t.lo<1.0e-8);
+	}
+
+	/* signed variant */
+	{
+	  const char s[] = "-0.";
+	  interval t = s;
+	  assert(t.lo < 0.0);
+	  assert(0.0 < t.hi);
+	  assert(t.hi-t.lo<1.0e-8);
+	}
+
+
 	/* illustrate limitations of string constructor */
 	// test fails on "smash hotel"
 	{

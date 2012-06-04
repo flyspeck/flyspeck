@@ -32,6 +32,8 @@ class Lib
 {
  public:
 
+  static const univariate i_ghi,i_lfun,i_rho;
+
   static const Function promote1_to_6(const univariate&);
 
   static const Function constant6(const interval&);
@@ -46,6 +48,8 @@ class Lib
  static Function rotate4(const Function&);
  static Function rotate5(const Function&);
  static Function rotate6(const Function&);
+
+ static Function uni(const univariate&,const Function&);
 
 
 	//////////

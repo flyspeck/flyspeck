@@ -194,8 +194,6 @@ public:
 
 public:
 
-
-
  // Add a Function to a given one.
 Function operator+(const Function&) const;
 
@@ -234,6 +232,8 @@ static Function mk_monomial(const int m[6]);
  static Function mk_monomial(int i1,int i2,int i3,int i4,int i5,int i6);
 
  static Function product(const Function&,const Function&);
+
+ static Function quotient(const Function&,const Function&);
 
 	//////////
 	// compose functions f(x1,x2,x3,x4,x5,x6);

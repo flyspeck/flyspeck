@@ -238,6 +238,10 @@ const Function Lib::x6 =
      Lib::x3 , Lib::x4, Lib::x2);
 }
 
+Function uni(const univariate& u,const Function& f) {
+   return Function::uni_compose(u,f);
+  };
+
 /*implement y1,...,y6 */
 const Function Lib::y1= Function::uni_slot(univariate::i_sqrt,0);
 const Function Lib::y2= Lib::rotate2(y1);
@@ -246,6 +250,26 @@ const Function Lib::y4= Lib::rotate4(y1);
 const Function Lib::y5= Lib::rotate5(y1);
 const Function Lib::y6= Lib::rotate6(y1);
 
+
+// univariates:
+
+/* implement gchi (univariate) */ 
+// gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
+static interval i_gchi_c0("0.974990367692870754241952463595");
+static interval i_gchi_c1("0.124456752559607807811255454313");
+univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
+
+/*   `!y. lfun y = ( h0 - y)*rh0` */
+static const interval rh0 = one/(h0 - one);
+univariate i_lfun = (univariate::pow0 * h0 - univariate::pow1)*rh0;
+
+/* `!y. rho y = y * (const1 * rh0 * (#0.5)) + (&1 - const1 * rh0)`*/
+static const Function i_rho = 
+  univariate::i_pow1 * (const1 * rh0 * half) + 
+  univariate::i_pow0 * (one - const1 * rh0);
+
+/*   `!y. flat_term_x y = (sqrt y - &2 * h0) * rh0 * sol0 * (#0.5)` */
+static const Function i_flat_term_x = (univariate::i_sqrt - univariate::i_pow0 * (two * h0)) * ( rh0 * sol0 * half);
 
 /*implement delta */
 static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])

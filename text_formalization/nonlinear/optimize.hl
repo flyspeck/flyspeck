@@ -9,6 +9,7 @@
 
 (*
 Input is a nonlinear inequality.
+preprocess_split_idq generates cases and does general preprocessing.
 Output is executable interval arithmetic code in C++.
 *)
 
@@ -971,6 +972,30 @@ let gamma4f_delta0 = prove_by_refinement(
 
 let idq_fields idq = (idq.idv,idq.tags, idq.ineq);;
 
+let preprocess (s,tags,case) = 
+  let is_xconvert = mem Xconvert tags in
+  let is_branch = mem Branching tags in
+  let strip_let_case = strip_let_tm case in
+  let _ = report ("process and exec: "^s) in
+  let _ = g (strip_let_case) in
+  let _ = e(PRELIM_REWRITE_TAC) in 
+  let NONLIN_INTRO = e(MP_TAC (REWRITE_RULE[] NONLIN)) in
+  let _ = if (is_branch) then e(BRANCH_TAC) else e(ALL_TAC) in
+  let _ = if (is_xconvert) then e (X_OF_Y_TAC) else e(ALL_TAC) in
+  let _ =   if (is_branch && not(is_xconvert)) then
+    e(SERIES3Q1H_5D_TAC) else e(ALL_TAC) in
+  let _ = e (STYLIZE_TAC) in
+  let _ = e (WRAPUP_TAC) in
+  let testineq = snd(top_goal()) in
+    (s,tags,testineq);;
+
+
+let process_and_exec ex (s,tags,case) = 
+  let _ = report ("process and exec: "^s) in
+  let (s,tags,testineq) = preprocess (s,tags,case) in
+    execute_interval ex tags s testineq;;
+
+(*
 let process_and_exec ex (s,tags,case) = 
   let _ = report ("process and exec: "^s) in
   let is_xconvert = mem Xconvert tags in
@@ -988,6 +1013,8 @@ let process_and_exec ex (s,tags,case) =
   let _ = e (WRAPUP_TAC) in
   let testineq = snd(top_goal()) in
     execute_interval ex tags s testineq;;
+*)
+
 
 (*
 
@@ -1003,6 +1030,7 @@ testsplit_idq
   ** ships the cases off to process_and_exec.
 *)
 
+(*
 let testsplit_idq ex idq = 
   let (s,tags,ineq) = idq_fields idq in
   let ineq_strip_let = strip_let_tm ineq in
@@ -1015,6 +1043,24 @@ let testsplit_idq ex idq =
 	  try (process_and_exec ex (suffix i n,tags,(List.nth cases i)))
 	  with Failure s -> failwith (s ^ " case fail: " ^(string_of_int i))
 	done;;
+*)
+
+let preprocess_split_idq idq = 
+  let (s,tags,ineq) = idq_fields idq in
+  let ineq_strip_let = strip_let_tm ineq in
+  let suffix i n = Printf.sprintf "%s split(%d/%d)" s i n in 
+  let ls = get_split_tags idq in
+    if (ls = []) then [preprocess (s,tags,ineq_strip_let)] else
+      let cases = split_all_h0  [(ineq_strip_let, ls)] in
+      let n = length cases in
+	map (fun i ->
+	    try preprocess (suffix i n,tags,List.nth cases i)
+	    with Failure s -> failwith (s^ " case fail: " ^ (string_of_int i))) 
+	  (0--(n-1));;
+
+let testsplit_idq ex idq = 
+  let splits = preprocess_split_idq idq in
+    map (fun (s,tags,testineq) -> execute_interval ex tags s testineq) splits;;
 
 let testsplit ex s = testsplit_idq ex (hd (Ineq.getexact s));;
 

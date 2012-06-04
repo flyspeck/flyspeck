@@ -807,7 +807,7 @@ Function Function::uni_slot // minor memory leak
   }
 
 
-/*implement x1*x2 */
+/*implement product */
 static lineInterval lineX1X2(const domain& x)
 {
   //static const interval one("1");
@@ -845,6 +845,44 @@ Function Function::quotient
   return product(f,uni_compose(univariate::i_inv,g));
 }
 
+const Function Function::operator*(const Function& g) const {
+  Function f(*this);
+  return product(f,g);
+}
+
+const Function Function::operator/(const Function& g) const {
+  return Function::operator*(uni_compose(univariate::i_inv,g));
+ }
+
+ const Function Function::operator-(const Function& t) const {
+  static const interval mone("-1");
+  return Function::operator+(t * mone);
+}
+
+
+/*
+Function Function::operator*(const Function& g) {
+   return Function::product(f,g);
+ }
+
+
+Function Function::operator/(const Function& f,const Function& g) {
+   return Function::quotient(f,g);
+ }
+
+Function Function::operator*(const Function& g) {
+   return Function::product( *this ,g);
+ }
+
+Function Function::operator/(const Function& g) {
+   return Function::quotient( *this ,g);
+ }
+
+Function Function::operator-(const Function& t) {
+  static const interval mone("-1");
+  return *this + t * mone;
+*/
+
 
 
 Function Function::compose // minor memory leak
@@ -876,11 +914,13 @@ Function::Function(void* p) {
   data[p] = one;
 }
 
+/*
 Function& Function::operator=(const Function& ) 
 {
   error::message("assignment not implemented");
   return *this;
 }
+*/
 
 Function::~Function()
 {
@@ -1118,7 +1158,6 @@ void Function::selfTest()
 
 
   /* test prod */ {
-
     Function dih = Function::mk_raw(linearization::dih,setAbsDihedral);
     Function y1 = Function::uni_slot(univariate::i_sqrt,0);
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
@@ -1126,6 +1165,7 @@ void Function::selfTest()
     double mathValueD[6]={0.40443775297783785,-0.10690140741833755,
    -0.11756239286152013,0.32047195412373986,-0.0917206840314374,
 			  -0.10213991072724367};
+    /* product */ {
     Function t = 
       Function::product(y1,dih);
     taylorData at = t.evalf(x,x); 
@@ -1135,6 +1175,31 @@ void Function::selfTest()
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
 	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
     }    
+    }
+    /* operator* */ {
+      Function t = y1 * dih;
+      taylorData at = t.evalf(x,x); 
+      if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+	cout << "uni  fails " << endl;
+    for (int i=0;i<6;i++) {
+      if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+    }    
+    }
+    /* operator- */ {
+      Function t = ((dih + y1) - dih)*dih;
+      taylorData at = t.evalf(x,x); 
+      if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
+	cout << "uni  fails " << endl;
+      for (int i=0;i<6;i++) {
+	if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-10))
+	  cout << "uni D " << i << "++ fails " << at.upperPartial(i) << endl;
+      }    
+    }
+  }
+
+  /* test  */ {
+
   }
 
 

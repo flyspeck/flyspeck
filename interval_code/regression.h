@@ -7,10 +7,13 @@
 /* Date: Moved from taylorData 2012-6-1                                      */
 /* ========================================================================= */
 
+// old version of taylorSimplex functions.
+// used now for regression testing of new implementation.
+// This is legacy code.
 
 /*
 CLASS
-	FunctionLibrary
+	regression
 
 	A library of static Functions of six variables.
 
@@ -28,7 +31,7 @@ AUTHOR
 */
 
 
-class FunctionLibrary
+class regression
 {
   public:
 	//////////
@@ -56,10 +59,10 @@ class FunctionLibrary
 	//
  static const Function unit,x1,x2,x3,x4,x5,x6,
 		y1,y2,y3,y4,y5,y6,
-	  delta,delta_x4,x1_delta_x,delta4_squared_x,vol_x,sol,rad2,
+	  delta_x,delta_x4,x1_delta_x,delta4_squared_x,vol_x,sol,rad2,
 	  dih,dih2,dih3,dih4,dih5,dih6,
 	  ldih_x,ldih2_x,ldih3_x,ldih5_x,ldih6_x,
-	  upper_dih,
+	  upper_dih_x,
 	  eulerA_x,
 
 	  rhazim_x,rhazim2_x,rhazim3_x,
@@ -90,7 +93,7 @@ class FunctionLibrary
 	  arclength_x_234,
 	  arclength_x_126,
 	  arclength_x_345,
-	  norm2hhx,
+	  norm2hh_x,
 	  asn797k,asnFnhk,lfun_y1,
 	  acs_sqrt_x1_d4,	  acs_sqrt_x2_d4;
 
@@ -198,21 +201,21 @@ class FunctionLibrary
 	static const Function surfR126d(const interval&);
 
 
-	static const Function /* FunctionLibrary:: */ lindih(const interval& theta);
+	static const Function /* regression:: */ lindih(const interval& theta);
 
-	static const Function /* FunctionLibrary:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
+	static const Function /* regression:: */ delta_126_x(const interval& x3s, const interval& x4s, const interval& x5s);
 
-	static const Function /* FunctionLibrary:: */ delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s);
+	static const Function /* regression:: */ delta_234_x(const interval& x1s, const interval& x5s, const interval& x6s);
 
-	static const Function /* FunctionLibrary:: */ delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s);
+	static const Function /* regression:: */ delta_135_x(const interval& x2s, const interval& x4s, const interval& x6s);
 
-	static const Function /* FunctionLibrary:: */ taum_sub1_x(const interval& x1s);
+	static const Function /* regression:: */ taum_sub1_x(const interval& x1s);
 
-	static const Function /* FunctionLibrary:: */ delta_sub1_x(const interval& x1s);
+	static const Function /* regression:: */ delta_sub1_x(const interval& x1s);
 
-	static const Function /* FunctionLibrary:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
+	static const Function /* regression:: */ taum_sub246_x(const interval& x2s,const interval& x4s,const interval& x6s);
 
-	static const Function /* FunctionLibrary:: */ taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s);
+	static const Function /* regression:: */ taum_sub345_x(const interval& x3s,const interval& x4s,const interval& x5s);
 
 	//////////
 	// Check the correctness of  routines.

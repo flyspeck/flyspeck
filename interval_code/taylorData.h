@@ -195,9 +195,15 @@ public:
 public:
 
  // Add a Function to a given one.
-Function operator+(const Function&) const;
+ Function operator*(const interval&) const;
 
-Function operator*(const interval&) const;
+ Function operator+(const Function&) const;
+
+ const Function operator*(const Function&) const;
+
+ const Function operator/(const Function&) const;
+
+ const Function operator-(const Function&) const;
 
 	//////////
 	// Functions are built up from certain primitive functions.
@@ -208,7 +214,7 @@ Function(void* p);
 	// create a bitwise copy of a Function
 Function(const Function&);
 
-Function& operator=(const Function& f);
+//Function& operator=(const Function& f);
 
 	// Deallocate memory:
 ~Function();
@@ -234,6 +240,7 @@ static Function mk_monomial(const int m[6]);
  static Function product(const Function&,const Function&);
 
  static Function quotient(const Function&,const Function&);
+
 
 	//////////
 	// compose functions f(x1,x2,x3,x4,x5,x6);

@@ -32,7 +32,7 @@ class Lib
 {
  public:
 
-  static const univariate i_gchi,i_flat_term_x,i_lfun,i_rho;
+  static const univariate i_halfbump_x,i_gchi,i_flat_term_x,i_lfun,i_rho;
 
   static const Function promote1_to_6(const univariate&);
 

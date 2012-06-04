@@ -9,6 +9,9 @@
 #include "lineInterval.h"
 #include "secondDerive.h"
 #include "taylorData.h"
+#include "wide.h"
+#include "regression.h"
+#include "Lib.h"
 #include "recurse.h"
 #include <time.h>
 #include <string.h>
@@ -38,7 +41,7 @@ int testRun()
 	interval tz[6]={"6.3001","6.3001","6.3001","6.3001","6.3001","6.3001"};
 	domain x = domain::lowerD(tx);
 	domain z = domain::upperD(tz);
-	Function F = FunctionLibrary::dih*"-1"+FunctionLibrary::unit*"1.153093";
+	Function F = regression::dih*"-1"+regression::unit*"1.153093";
 	return generic (x,z,F);
 	}
 
@@ -52,8 +55,8 @@ int testRunQ()
 	interval tzB[6]={"6.3001","6.3001","6.3001","6.3001","6.3001","6.3001"};
 	domain xB = domain::lowerD(txB);
 	domain zB = domain::upperD(tzB);
-	Function FA = FunctionLibrary::dih*"-1"+FunctionLibrary::unit*"1.153093";  // dih > 0.1.
-	Function FB = FunctionLibrary::unit * "0";
+	Function FA = regression::dih*"-1"+regression::unit*"1.153093";  // dih > 0.1.
+	Function FB = regression::unit * "0";
 	const Function* IA[1] = {&FA};
 	const Function* IB[1] = {&FB};
 	cellOption opt;

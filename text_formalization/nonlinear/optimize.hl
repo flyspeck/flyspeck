@@ -166,6 +166,51 @@ let dest_nonlin t =
 
  (* these names don't change in cpp interval code *)
 
+let idem_assoc = [];; (* make it the default *)
+
+
+(* these names can change in cpp (hol_name,cpp_name).
+    Don't generated function defs for these.  *)
+
+let native_fun = [
+  ("unit6","Lib::unit");
+  ("two6","Lib::two6");
+  ("proj_x1","Lib::x1");
+  ("proj_x2","Lib::x2");
+  ("proj_x3","Lib::x3");
+  ("proj_x4","Lib::x4");
+  ("proj_x5","Lib::x5");
+  ("proj_x6","Lib::x6");
+  ("proj_y1","Lib::y1");
+  ("sqrt_x1","Lib::y1");
+  ("delta_x","Lib::delta_x");
+  ("sol_x","Lib::sol_x");
+  ("dih_x","Lib::dih_x");
+  ("rad2_x","Lib::dih2_x");
+  ("delta_x4","Lib::delta_x4");
+  ("edge_flat2_x","Lib::edge_flat2_x");
+  ("eta2_126","Lib::eta2_126");
+  ("rho_x","Lib::rho_x");
+  ("compose6","Function::compose");
+  ("constant6","Lib::constant6");
+  ("uni","Lib::uni");
+  ("sqrt","univariate::i_sqrt");
+  ("acs","univariate::i_acos");
+  ("asn","univariate::i_asin");
+  ("atn","univariate::i_atan");
+  ("cos","univariate::i_cos");
+  ("sin","univariate::i_sin");
+  ("pow2","univariate::i_pow2");
+  ("matan","univariate::i_matan");
+  ("gchi","Lib::i_gchi");
+  ("lfun","Lib::i_lfun");
+  ("rho","Lib::i_rho");
+  ("flat_term_x","Lib::i_flat_term_x");
+  ("sqn","univariate::i_sqn");
+];;
+
+(* generate function defs for these. *)
+(*
 let idem_assoc = map (fun a -> (a,a)) [
   "delta_x4";"delta4_squared_x";"x1_delta_x";
   "halfbump_x1";"halfbump_x4";
@@ -247,34 +292,50 @@ let idem_assoc = map (fun a -> (a,a)) [
   "selling_volume2";
   "fcc_ineq";
  ];;
+*)
 
-(* these names can change in cpp (hol_name,cpp_name)  *)
+(* and for these *)
 
 let cpp_assoc = 
-  let pref = "taylorSimplex::" in
+  let pref = "::" in
   let p (a,b) = (a, (pref^b)) in map p 
-  (idem_assoc @ [("unit6","unit");
+  (idem_assoc @ [
+  ("sqrt_x2","proj_y2");
+  ("sqrt_x3","proj_y3");
+  ("sqrt_x4","proj_y4");
+  ("sqrt_x5","proj_y5");
+  ("sqrt_x6","proj_y6");
+
+  ("ldih2_x_126_n","ldih2_x_126_n"); (* was n_ in fst *)
+(*
+  ("unit6","unit");
   ("proj_x1","x1");("proj_x2","x2");("proj_x3","x3");
   ("proj_x4","x4");("proj_x5","x5");("proj_x6","x6");
-  ("ldih2_x_126_n","ldih2_x_126_n"); (* was n_ in fst *)
   ("sqrt_x1","y1");   ("sqrt_x2","y2");   ("sqrt_x3","y3");  
   ("sqrt_x4","y4");   ("sqrt_x5","y5");   ("sqrt_x6","y6");
   ("dih_x","dih"); ("dih2_x","dih2");("dih3_x","dih3");
   ("dih4_x","dih4"); ("dih5_x","dih5");("dih6_x","dih6");
+  ("rad2_x","rad2");
+  ("delta_x","delta");
+  ("rhazim_x","rhazim");("rhazim2_x","rhazim2");
+  ("rhazim3_x","rhazim3");
+*)
   ("upper_dih_x","upper_dih");
   ("mardih_x","marchalDih");  ("mardih2_x","marchalDih2");  
   ("mardih3_x","marchalDih3");
   ("mardih4_x","marchalDih4");  ("mardih5_x","marchalDih5"); 
   ("mardih6_x","marchalDih6");
   ("norm2hh_x","norm2hhx");
-  ("rad2_x","rad2");
-  ("delta_x","delta");
-  ("rhazim_x","rhazim");("rhazim2_x","rhazim2");
-  ("rhazim3_x","rhazim3");
   ("promote_pow2","x1square");
   ("promote_pow3","x1cube");
   ("mdtau2_y_LC","mdtau2uf_y_LC");
  ]);;
+
+let cpp_fn_name s = 
+  try Lib.assoc s native_fun 
+  with Failure _ ->
+    try Lib.assoc s cpp_assoc
+    with Failure _ -> s;;
 
 let cpp0_assoc = 
   [("sqrt8","sqrt8");("pi","pi");("const1","const1");
@@ -292,8 +353,7 @@ let cpp_of_constant s  =
 let cpp_of_fun to_string xlist s xs = 
   let (arg,xss) = chop_list (length xs - length xlist) xs in
   let _ = (xss = xlist) or failwith ("standard x list expected in "^s) in
-  let hd =  try (assoc s cpp_assoc) with 
-      Failure _ -> failwith (s^" not found in cpp_assoc")  in
+  let hd =  (cpp_fn_name s) in
   let arg_s = map (paren o to_string) arg in
   let p = if (length arg > 0) then paren else I in
     (hd ^ " " ^ p(join_comma arg_s));;
@@ -330,7 +390,7 @@ let cpp_string_of_term =
 (* generation of cpp code *)
 
 let cpp_template_taylor c (i,s) = Printf.sprintf 
-"       taylorFunction F%s%d = %s;" c i s;;
+"       Function F%s%d = %s;" c i s;;
 
 let cpp_template_t c iis = 
   join_lines 
@@ -379,7 +439,7 @@ let cpp_template_gen = Printf.sprintf "
         domain x0=x;
         domain z0=z;
         %s
-        const taylorFunction* I[%d] = {%s}; // len ...
+        const Function* I[%d] = {%s}; // len ...
         cellOption opt;
         opt.allowSharp = %d; // sharp
         opt.onlyCheckDeriv1Negative = %d; // checkderiv
@@ -478,8 +538,8 @@ let cppq_template_gen = Printf.sprintf "
         // Declare FA, FB...
         %s
         %s
-	const taylorFunction* IA[%d] = {%s};
-	const taylorFunction* IB[%d] = {%s};
+	const Function* IA[%d] = {%s};
+	const Function* IB[%d] = {%s};
 	cellOption opt;
         %s // options.
 	return prove::recursiveVerifierQ(0,xA,xB,zA,zB,IA,IB,%d,opt);

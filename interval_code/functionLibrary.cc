@@ -586,6 +586,23 @@ static int setRhazim(const domain& x,const domain& z,double DD[6][6])
 //primitiveA rhazimPrimitive(linearization::rhazim,setRhazim);
 const Function FunctionLibrary::rhazim_x= Function::mk_raw(linearization::rhazim,setRhazim);//(&::rhazimPrimitive);
 
+/* secondary implementation of rhazim_x*/
+/*
+functional1_rho:
+`!y. rho y = y * (const1/(&2 * h0 - &2)) + (&1 + const1/(&1 - h0))`,
+ */
+//univariate i_rho = L::i_pow1 * (L::const1/(L::two * L::h0 - L::two)) + 
+//  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
+/*
+univariate i_rho_sqrt = L::i_sqrt * (L::const1/(L::two * L::h0 - L::two)) + 
+  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
+
+const Function Lib::rhazim_x = 
+  Function::uni_slot(::i_rho_sqrt,0) * Lib::dih_x;
+*/
+
+
+
 /*implement rhazim2 ... */
 const Function FunctionLibrary::rhazim2_x = 
   FunctionLibrary::rotate2(FunctionLibrary::rhazim_x);

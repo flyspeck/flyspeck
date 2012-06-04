@@ -132,15 +132,13 @@ namespace L {
   static const interval mm2("0.0254145072695089280");
 
   static const interval sqrt8 ("2.8284271247461900976");
-  //static const interval sqrt3 ("1.7320508075688772935");
-  //static const interval pi ("3.141592653589793238");
-  //static const interval const1 ("0.175479656091821810");
   static const interval hminus("1.2317544220903043901");
   static const interval arc_hhn("0.81611135460255697143595");
 
   static const interval yStrongDodec("2.1029244484765344");
   static const interval aStrongDodec("-0.581169206221610");
   static const interval bStrongDodec("0.023248513304698");
+  static const interval rh0 = one/(h0 - one);
 
   };
 
@@ -176,6 +174,8 @@ const Function Lib::promote1_to_6(const univariate& f) {
 /* implement unit */
 const Function Lib::unit(Function::unit);
 
+const Function Lib::two6 = Lib::unit * L::two;
+
 const Function Lib::constant6(const interval& i) {
   return Lib::unit * i;
 }
@@ -202,7 +202,7 @@ const Function Lib::x5 =
 const Function Lib::x6 = 
   Function::uni_slot(L::i_pow1,5);
 
-
+/*
  Function Lib::rotate2(const Function& f) {
   return Function::compose
   (f,
@@ -237,6 +237,7 @@ const Function Lib::x6 =
      Lib::x6  , Lib::x1, Lib::x5,
      Lib::x3 , Lib::x4, Lib::x2);
 }
+*/
 
 Function uni(const univariate& u,const Function& f) {
    return Function::uni_compose(u,f);
@@ -244,12 +245,13 @@ Function uni(const univariate& u,const Function& f) {
 
 /*implement y1,...,y6 */
 const Function Lib::y1= Function::uni_slot(univariate::i_sqrt,0);
+/*
 const Function Lib::y2= Lib::rotate2(y1);
 const Function Lib::y3= Lib::rotate3(y1);
 const Function Lib::y4= Lib::rotate4(y1);
 const Function Lib::y5= Lib::rotate5(y1);
 const Function Lib::y6= Lib::rotate6(y1);
-
+*/
 
 // univariates:
 
@@ -260,118 +262,17 @@ static interval i_gchi_c1("0.124456752559607807811255454313");
 univariate i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 
 /*   `!y. lfun y = ( h0 - y)*rh0` */
-static const interval rh0 = one/(h0 - one);
-univariate i_lfun = (univariate::pow0 * h0 - univariate::pow1)*rh0;
+univariate i_lfun = 
+  (univariate::i_pow0 * L::h0 + univariate::i_pow1 * L::mone)*L::rh0;
 
 /* `!y. rho y = y * (const1 * rh0 * (#0.5)) + (&1 - const1 * rh0)`*/
-static const Function i_rho = 
-  univariate::i_pow1 * (const1 * rh0 * half) + 
-  univariate::i_pow0 * (one - const1 * rh0);
+static const univariate i_rho = 
+  univariate::i_pow1 * (L::const1 * L::rh0 * L::half) + 
+  univariate::i_pow0 * (L::one - L::const1 * L::rh0);
 
 /*   `!y. flat_term_x y = (sqrt y - &2 * h0) * rh0 * sol0 * (#0.5)` */
-static const Function i_flat_term_x = (univariate::i_sqrt - univariate::i_pow0 * (two * h0)) * ( rh0 * sol0 * half);
+static const univariate i_flat_term_x = (univariate::i_sqrt + univariate::i_pow0 * (L::mone*L::two * L::h0)) * ( L::rh0 * L::sol0 * L::half);
 
-/*implement delta */
-static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
-{
-  double X[6],Z[6];
-  interval DDh[6][6];
-  int i;
-  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-  secondDerive::setDelta(X,Z,DDh);
-  intervalToAbsDouble(DDh,DD);
-  testAbs(DD,"setAbsDelta");
-  return 1;
-}
-//primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
-const Function Lib::delta_x= Function::mk_raw(linearization::delta,setAbsDelta);// (&::deltaPrimitive);
-
-/*implement vol_x */ 
-static interval one("1");
-static interval twelve("12");
-const Function Lib::vol_x= 
-  L::uni(L::i_sqrt,Lib::delta_x) * constant6 (one/twelve);
-
-/*implement rad2*/
-static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
-  double  X[6],Z[6];
-  int i;
-  double DD1[6][6], DD2[6][6];
-  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-  int r1 = secondDerive::setAbsEta2_x_126(X,Z,DD1);
-  int r2 = secondDerive::setChi2over4uDelta(X,Z,DD2);
-  interMath::up();
-  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j] = DD1[i][j] + DD2[i][j]; }
-  if (r1+r2) { testAbs(DD,"setAbsRad2"); }
-  return r1+r2;
-}
-const Function Lib::rad2_x= Function::mk_raw(linearization::rad2,setAbsRad2);
-
-/*implement delta_x4*/
-static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
-  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 2.0; }
-  // all second partials are pm 0,1,2.  
-}
-const Function Lib::delta_x4= 
-  Function::mk_raw(linearization::delta_x4,setAbsDeltaX4);
-
-/*implement dih1*/
-static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
-{
-  double X[6],Z[6];
-  int i;
-  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-  int r = secondDerive::setAbsDihedral(X,Z,DD);
-  if (r) { testAbs(DD,"setAbsDihedral"); }
-  return r;
-}
-const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
-
-const Function Lib::dih2_x = 
-  Lib::rotate2(Lib::dih_x);
-const Function Lib::dih3_x = 
-  Lib::rotate3(Lib::dih_x);
-const Function Lib::dih4_x = 
-  Lib::rotate4(Lib::dih_x);
-const Function Lib::dih5_x = 
-  Lib::rotate5(Lib::dih_x);
-const Function Lib::dih6_x = 
-  Lib::rotate6(Lib::dih_x);
-
-
-/*implement rhazim_x*/
-/*
-functional1_rho:
-`!y. rho y = y * (const1/(&2 * h0 - &2)) + (&1 + const1/(&1 - h0))`,
- */
-univariate i_rho = L::i_pow1 * (L::const1/(L::two * L::h0 - L::two)) + 
-  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
-univariate i_rho_sqrt = L::i_sqrt * (L::const1/(L::two * L::h0 - L::two)) + 
-  L::i_pow0 * (L::one + L::const1/(L::one - L::h0));
-
-const Function Lib::rhazim_x = 
-  Function::uni_slot(::i_rho_sqrt,0) * Lib::dih_x;
-
-const Function Lib::rhazim2_x = 
-  Lib::rotate2(Lib::rhazim_x);
-const Function Lib::rhazim3_x = 
-  Lib::rotate3(Lib::rhazim_x);
-
-/*implement sol*/
-static int setSol(const domain& x,const domain& z,double DD[6][6])
-{
-  double X[6],Z[6];
-  int i,j;
-  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-  interval s,Ds[6],DDs[6][6],DDx[6][6];
-  if (!(secondDerive::setSqrtDelta(X,Z,s,Ds,DDs))) return 0;
-  if (!(secondDerive::setSolid(X,Z,s,Ds,DDs,DDx))) return 0;
-  for (i=0;i<6;i++) for (j=i;j<6;j++)
-		      DD[i][j]=dabs(DDx[i][j]);
-  for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
-  return 1;
-}
-const Function Lib::sol_x= Function::mk_raw(linearization::solid,setSol);
 
 /* implement halfbump_x (univariate) */
 /*
@@ -388,25 +289,119 @@ static interval a2("-31250");
 static interval b2("106929");
 univariate i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
   univariate::i_sqrt * (a1 / b1) + univariate::i_pow1 * (a2 / b2);
-const Function Lib::halfbump_x1 = 
-  Function::uni_slot(::i_halfbump_x,0);
-const Function Lib::halfbump_x4 = 
-  Function::uni_slot(::i_halfbump_x,3);
+//const Function Lib::halfbump_x1 = 
+//  Function::uni_slot(::i_halfbump_x,0);
+//const Function Lib::halfbump_x4 = 
+//  Function::uni_slot(::i_halfbump_x,3);
 
 /* implement gchi (univariate) */ 
 // gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
+/*
 static interval i_gchi_c0("0.974990367692870754241952463595");
 static interval i_gchi_c1("0.124456752559607807811255454313");
 univariate i_gchi = L::i_sqrt* i_gchi_c1 + L::i_pow0 * i_gchi_c0;
+*/
 
+/*
 const Function Lib::gchi1_x = 
   L::uni(::i_gchi,Lib::y1) * Lib::dih_x;
-
-#ifdef skip
-
-#endif
+*/
 
 
+/*implement delta */
+static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  interval DDh[6][6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  secondDerive::setDelta(X,Z,DDh);
+  intervalToAbsDouble(DDh,DD);
+  testAbs(DD,"setAbsDelta");
+  return 1;
+}
+//primitiveA deltaPrimitive(linearization::delta,setAbsDelta);
+const Function Lib::delta_x= Function::mk_raw(linearization::delta,setAbsDelta);// (&::deltaPrimitive);
+
+
+/*implement ups_126*/
+static int setAbsUps(const domain& x,const domain& z,double DD[6][6])
+{
+  double xa[6],za[6];
+  for (int i=0;i<6;i++) {
+    xa[i] = x.getValue(i);
+    za[i] = z.getValue(i);
+  }
+  interval DDi[6][6];
+  secondDerive::setU126(xa,za,DDi);
+  intervalToAbsDouble(DDi,DD);
+  return 1;
+}
+static const Function ups_126= Function::mk_raw(linearization::ups_126,setAbsUps);
+
+static const Function ups_135 = Function::compose
+  (ups_126, Lib::x1,Lib::x3,Lib::unit, Lib::unit,Lib::unit,Lib::x5);
+
+// implement edge_flat2_x.
+const Function bx_neg_quadratic = 
+  Lib::x1*(Lib::x2 + Lib::x3 + Lib::x5 + Lib::x6) -
+  Lib::x1 * Lib::x1 - (Lib::x3 - Lib::x5)*(Lib::x2 - Lib::x6) ;
+const Function disc_quadratic =  uni(L::i_sqrt, ups_126 * ups_135 );
+const Function ax2_inv_quadratic = uni(L::i_inv,Lib::x1 * L::two) ;
+
+
+const Function edge_flat2_x = (bx_neg_quadratic + disc_quadratic) * ax2_inv_quadratic;
+//const Function edge_flat_x = (uni(i_sqrt,edge_flat2_x));
+
+/*implement eta2_126*/
+static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
+{
+  double xa[6],za[6];
+  for (int i=0;i<6;i++) {
+    xa[i] = x.getValue(i);
+    za[i] = z.getValue(i);
+  }
+  secondDerive::setAbsEta2_x_126(xa,za,DD);
+  return 1;
+}
+const Function Lib::eta2_126= 
+  Function::mk_raw(linearization::eta2_126,setEta2_126);
+
+/*implement delta_x4*/
+static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 2.0; }
+  // all second partials are pm 0,1,2.  
+}
+const Function Lib::delta_x4= 
+  Function::mk_raw(linearization::delta_x4,setAbsDeltaX4);
+
+/*implement dih_x */
+static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r = secondDerive::setAbsDihedral(X,Z,DD);
+  if (r) { testAbs(DD,"setAbsDihedral"); }
+  return r;
+}
+const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
+
+/*implement sol_x */
+static int setSol(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  int i,j;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  interval s,Ds[6],DDs[6][6],DDx[6][6];
+  if (!(secondDerive::setSqrtDelta(X,Z,s,Ds,DDs))) return 0;
+  if (!(secondDerive::setSolid(X,Z,s,Ds,DDs,DDx))) return 0;
+  for (i=0;i<6;i++) for (j=i;j<6;j++)
+		      DD[i][j]=dabs(DDx[i][j]);
+  for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
+  return 1;
+}
+const Function Lib::sol_x= Function::mk_raw(linearization::solid,setSol);
 
 
 /* ========================================================================== */
@@ -446,11 +441,6 @@ void Lib::selfTest()
   epsValue("x5",Lib::x5,4.5);
   epsValue("x6",Lib::x6,4.6);
   epsValue("y1",Lib::y1,sqrt(6.36));
-  epsValue("y2",Lib::y2,sqrt(4.2));
-  epsValue("y3",Lib::y3,sqrt(4.3));
-  epsValue("y4",Lib::y4,sqrt(4.4));
-  epsValue("y5",Lib::y5,sqrt(4.5));
-  epsValue("y6",Lib::y6,sqrt(4.6));
   cout << " -- done loading Lib" << endl << flush;
   
 }

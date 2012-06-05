@@ -169,6 +169,9 @@ AUTHOR
 class prove {
 public:
 
+  // count number of cells examined.
+  static int get_cellcount();
+
 	//////////
 	// recursiveVerifier is the main inequality verification
 	// procedure for simplices.  

@@ -412,10 +412,15 @@ static int count(int i,int j)
 
 static long timeout = 0; //  Set with options.  opt.Time out after this many seconds.
 
+static int statcounter=0;
+
+int prove::get_cellcount() {
+  return statcounter;
+}
+
 void stats(int force) {
   static const long starting_time = time(0); //  Time out after this many seconds.
   
-  static int statcounter=0;
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
   if (time(0) - starting_time > timeout) {

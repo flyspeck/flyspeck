@@ -6,33 +6,35 @@
 (* Date: 2012-06-02                                                          *)
 (* ========================================================================= *)
 
+(* 
+   Generates
+     ocaml function module (Sphere2).
+     C++ Functions from HOL-Light specs.
+     C++ Interval code for inequalities from HOL-Light specs.
+
+   It uses many lemmas from functional_equation.hl
+
+*)
+
+
 (* to fix:
    proj_y1 = sqrt_x1 ,etc.
+
+   to reorganize:
+   move optimize.hl material on C++ generation here.
+   Leave optimize.hl as the preprocessing module.
 *)
 
-(* generating ocaml code of the the functions that appear in nonlinear ineqs.
-   Then generating interval arithmetic c++ code for Function definitions. *)
-
-(*
-Generate interval C++ code for various functions
-using lemmas from functional_equation.hl
-
-*)
-
-(*
-let lemma = Functional_equation.functional_rhazim_x;;
-let lemma2 = Functional_equation.functional_rhazim2_x;;
-*)
-
-let join_comma = Flyspeck_lib.join_comma;;
-let join_lines = Flyspeck_lib.join_lines;;
 
 
-
-flyspeck_needs  "../development/thales/nonlinear/functional_equation.hl";;
+flyspeck_needs  "nonlinear/functional_equation.hl";;
 flyspeck_needs "nonlinear/optimize.hl";;
 flyspeck_needs  "nonlinear/parse_ineq.hl";;
 
+module Auto_lib = struct
+
+  let join_comma = Flyspeck_lib.join_comma;;
+  let join_lines = Flyspeck_lib.join_lines;;
 
 let functions() = 
   [
@@ -73,6 +75,12 @@ let functions() =
    Nonlinear_lemma.proj_x4;
    Nonlinear_lemma.proj_x5;
    Nonlinear_lemma.proj_x6;
+   Functional_equation.compose6;
+   Functional_equation.functional_rotate2;
+   Functional_equation.functional_rotate3;
+   Functional_equation.functional_rotate4;
+   Functional_equation.functional_rotate5;
+   Functional_equation.functional_rotate6;
    Functional_equation.proj_y1;
    Functional_equation.functional_proj_y2;
    Functional_equation.functional_proj_y3;
@@ -85,12 +93,12 @@ let functions() =
    Sphere.sol_x;
    Sphere.rho_x;
    Sphere.rad2_x;
-   Functional_equation.compose6;
    Functional_equation.uni;
    Functional_equation.constant6;
    Functional_equation.two6;
    Functional_equation.zero6;
    Functional_equation.four6;
+   Functional_equation.dummy6;
    Functional_equation.add6;
    Functional_equation.sub6;
    Functional_equation.mul6;
@@ -101,11 +109,6 @@ let functions() =
    Functional_equation.rotate234;
    Functional_equation.rotate126;
    Functional_equation.rotate345;
-   Functional_equation.functional_rotate2;
-   Functional_equation.functional_rotate3;
-   Functional_equation.functional_rotate4;
-   Functional_equation.functional_rotate5;
-   Functional_equation.functional_rotate6;
 Functional_equation.functional_eta2_126;
 Functional_equation.functional_x1_delta_x;
 Functional_equation.functional_delta4_squared_x;
@@ -190,6 +193,18 @@ Functional_equation.functional_ldih6_x_126_n;
 Functional_equation.functional_ldih_x_135_n;
 Functional_equation.functional_ldih3_x_135_n;
 Functional_equation.functional_ldih5_x_135_n;
+Functional_equation.functional_taum_x1;
+Functional_equation.functional_taum_x2;
+Functional_equation.functional_taum_x1_x2;
+Functional_equation.functional_arclength_x1;
+Functional_equation.functional_arclength_x2;
+Functional_equation.functional_delta_126_x;
+Functional_equation.functional_delta_234_x;
+Functional_equation.functional_delta_135_x;
+Functional_equation.functional_delta_sub1_x;
+Functional_equation.functional_taum_sub1_x;
+Functional_equation.functional_taum_sub246_x;
+Functional_equation.functional_taum_sub345_x;
    ];;
 
 let ocaml_code() = 
@@ -223,23 +238,31 @@ let break_functional_lemma thm =
 let break_term x = break_functional_lemma (ASSUME x);;
 
 let mk_testing_string thm = 
+  let native = Optimize.native_fun in
   let (name,body') = break_functional_lemma thm in
   let name' = fst (strip_comb name) in
   let name' = fst (dest_const name') in
+  let cname = Lib.assocd name' native name' in
+  let _ = not(cname="NOT_IMPLEMENTED") or failwith "mk_testing:excluded" in
   let evalname = 
     let s = Printf.sprintf "Sphere2.%s 6.36 4.2 4.3 4.4 4.5 4.6" name' in
     let (b,s')=  eval_command s in
     let _ = b or failwith ("evalname: "^name') in
     let split = Str.split (Str.regexp "[ \n]") in
     let r = hd (List.rev  (split s')) in
-      float_of_string r in
+    let f = float_of_string r in
+    let _ = not(0=Pervasives.compare nan f) or failwith "nan" in
+      f in
   let mk_string = 
-    Printf.sprintf "  epsValue(\"%s\",FunctionLibrary::%s,%12.12f);" name' name' evalname in
+    Printf.sprintf "  epsValue(\"%s\",%s,%12.12f);" name' cname evalname in
     mk_string;;
 
 let all_testing_string() = 
   let can_test = filter (can  mk_testing_string) (functions()) in
     Flyspeck_lib.join_lines (map mk_testing_string can_test);;
+
+let testing_code() = 
+  Printf.sprintf "void selfTest() { %s }\n" (all_testing_string());;
 
 let not_tested = filter (not o (can mk_testing_string)) (functions());;
 
@@ -255,6 +278,11 @@ let real_ty = `:real`;;
 let f1_ty = `:real->real`;;
 
 let f6_ty = `:real->real->real->real->real->real->real` ;;
+
+
+let f7_ty = `:real->real->real->real->real->real->real->real` ;;
+let f8_ty = `:real->real->real->real->real->real->real->real->real` ;;
+let f9_ty = `:real->real->real->real->real->real->real->real->real->real` ;;
 
 let f6to6_ty = `:(real->real->real->real->real->real->real) ->
   (real->real->real->real->real->real->real)`;;
@@ -449,6 +477,25 @@ let f6_code() =
       f6_template name' (cpp_string_of_term body') in
     join_lines (map f6_mk f6_auto);;
 
+let fn_code() = 
+  let fn_template = Printf.sprintf
+    "static const Function %s(%s) { %s; }\n" in
+  let fn_arg_template = Printf.sprintf
+    "const interval& %s" in
+  let fn_terms = (terms_with_type f7_ty)@
+    (terms_with_type f8_ty) @ (terms_with_type f9_ty) in
+  let fn_auto = 
+    let b = (fst o dest_const o fst o strip_comb o fst o break_term) in
+    let nat = map fst native_fun in
+      filter (fun t -> not (mem (b t) nat)) fn_terms in
+  let fn_mk tt = 
+    let (name1,body') = break_term tt in
+    let (name',args) =  (strip_comb name1) in
+    let ags = join_comma (map (fn_arg_template o fst o dest_var) args) in
+    let name' = fst (dest_const name') in
+      fn_template name' ags (cpp_string_of_term body') in
+    join_lines (map fn_mk fn_auto);;
+
 (* make 6 to 6 *)
 
 let f6to6_template = Printf.sprintf
@@ -469,11 +516,11 @@ let f6to6_mk tt =
 
 let f6to6_code = join_lines (map f6to6_mk f6to6_terms);;
 
-
 let tmpfile = flyspeck_dir^"/../interval_code/test_auto.cc";;
 
-
-let interval_code() = (f0_code())  ^ f6to6_code ^ (f6_code());;
+let interval_code() =
+  (f0_code())  ^ f6to6_code ^ (f6_code()) ^ (fn_code())^
+  (testing_code());;
 
 (* based on optimize *)
 
@@ -483,6 +530,7 @@ let mkfile_code  t s tags  =
   Flyspeck_lib.output_filestring tmpfile
    (join_lines [cpp_header();interval_code();(Optimize.mk_cpp_proc t s tags);cpp_tail()]);;
 
+
 let testid = "9563139965 d";;
 
 let idq = hd(Ineq.getexact testid);;
@@ -491,12 +539,27 @@ let [(_,tags,post)] = Optimize.preprocess_split_idq idq;;
 
 mkfile_code post testid tags;;
 
+
+(* 
+   This is a simplified version of what is in optimize.hl.
+   It will fail on quad clusters.
+   It uses mkfile_code rather than Optimize.mkfile_cppq.
+*)
+
 let execute_interval ex tags s testineq = 
   let interval_dir = flyspeck_dir^"/../interval_code" in
-  let _ = mkfile_code testineq s tags in
-  let _ = Optimize.compile_cpp() in 
-  let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto")) or failwith "interval execution error" in
-    ();;
+    if (Optimize.is_quad_cluster tags) then () 
+    else 
+      let _ = mkfile_code testineq s tags in
+      let _ = Optimize.compile_cpp() in 
+      let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto")) or 
+	failwith "interval execution error" in
+	();;
 
+let testsplit_idq ex idq = 
+  let splits = Optimize.preprocess_split_idq idq in
+    map (fun (s,tags,testineq) -> execute_interval ex tags s testineq) splits;;
 
-Flyspeck_lib.output_filestring "/tmp/auto_lib.cc" interval_code;;
+let testsplit ex s = testsplit_idq ex (hd (Ineq.getexact s));;
+
+ end;;

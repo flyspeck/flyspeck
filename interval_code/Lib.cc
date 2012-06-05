@@ -35,24 +35,15 @@ using namespace tr1;
 
 /* ========================================================================== */
 /*                                                                            */
-/*   Section:FunctionLibrary                                                            */
+/*   Section: General functions                                               */
 /*                                                                            */
 /* ========================================================================== */
-
-
 
 static inline double max(double x,double y)
 { return (x>y ? x : y); }
 
 static inline double dabs(const interval x) {
   return interMath::sup(interMath::max(x,-x));
-}
-
-static int copy(double DD[6][6],const double sec[6][6])
-{
-  for (int i=0;i<6;i++) for (int j=0;j<6;j++)
-			  DD[i][j]=sec[i][j];
-  return 1;
 }
 
 static void testAbs(double DD[6][6],const char* s) {
@@ -70,34 +61,13 @@ static void intervalToAbsDouble(const interval DDx[6][6],double DD[6][6])
 			  DD[i][j]= dabs(DDx[i][j]);
 }
 
-static double taylorError(const domain& w,const double DD[6][6])
-{
-  interMath::up();
-  double t=0.0;
-  int i,j;
-  for (i=0;i<6;i++) {
-    if (w.getValue(i) < 0.0) { 
-      error::message("negative width"); cout << w.getValue(i); }
-  }
-  for (i=0;i<6;i++) for (j=0;j<6;j++) {
-      if (DD[i][j] < 0.0)  { error::message("negative DD in taylorError"); } 
-    }
-  for (i=0;i<6;i++) t = t + (w.getValue(i)*w.getValue(i))*DD[i][i];
-  t = t/2.0;
-  for (i=0;i<6;i++) for (j=i+1;j<6;j++)
-		      t = t+ (w.getValue(i)*w.getValue(j))*DD[i][j];
-  return t;
-}
-
 /* ========================================================================== */
 /*                                                                            */
 /*   Section:L namespace                                            */
 /*                                                                            */
 /* ========================================================================== */
 
-
 namespace L {
-
 
   static const univariate i_inv = univariate::i_inv;
   static const univariate i_pow2 = univariate::i_pow2;
@@ -135,34 +105,7 @@ namespace L {
   static const interval aStrongDodec("-0.581169206221610");
   static const interval bStrongDodec("0.023248513304698");
   static const interval rh0 = one/(h0 - one);
-
   };
-
-
-/*
- Function operator*(const Function& f,const Function& g) {
-   return Function::product(f,g);
- }
-
- Function operator/(const Function& f,const Function& g) {
-   return Function::quotient(f,g);
- }
-*/
-
-/*
-  static const Function operator*(const Function& t,int j) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator*(int j,const Function& t) {
-    return t * interval(j * 1.0, j * 1.0);
-  }
-
-  static const Function operator-
-  (const Function& u,const Function& t) {
-    return u + t * L::mone;
-  }
-*/
 
 
 /* ========================================================================== */
@@ -174,7 +117,6 @@ namespace L {
   Function Lib::uni(const univariate& u,const Function& f) {
    return Function::uni_compose(u,f);
   }
-
 
 /* implement promote1_to_6 */
 const Function Lib::promote1_to_6(const univariate& f) {
@@ -190,9 +132,6 @@ const Function Lib::constant6(const interval& i) {
   return Lib::unit * i;
 }
 
-
-
-
 /*implement x1,..,x6 */
 const Function Lib::x1 = 
   Lib::promote1_to_6(L::i_pow1);
@@ -207,59 +146,16 @@ const Function Lib::x5 =
 const Function Lib::x6 = 
   Function::uni_slot(L::i_pow1,5);
 
-/*
- Function Lib::rotate2(const Function& f) {
-  return Function::compose
-  (f,
-   Lib::x2,Lib::x3,Lib::x1,
-   Lib::x5,Lib::x6,Lib::x4);
- }
-
- Function Lib::rotate3(const Function& f) {
-  return Function::compose
-  (f,
-   Lib::x3,Lib::x1,Lib::x2,
-   Lib::x6,Lib::x4,Lib::x5);
- }
-
- Function Lib::rotate4(const Function& f) {
-  return Function::compose
-    (f,
-  Lib::x4  , Lib::x2, Lib::x6,
-  Lib::x1 , Lib::x5,  Lib::x3);
-}
-
- Function Lib::rotate5(const Function& f) {
-  return Function::compose
-    (f,
-     Lib::x5  , Lib::x3, Lib::x4,
-     Lib::x2 , Lib::x6, Lib::x1);
-}
-
- Function Lib::rotate6(const Function& f) {
-   return Function::compose
-    (f,
-     Lib::x6  , Lib::x1, Lib::x5,
-     Lib::x3 , Lib::x4, Lib::x2);
-}
-
-Function uni(const univariate& u,const Function& f) {
-   return Function::uni_compose(u,f);
-  };
-*/
-
-/*implement y1,...,y6 */
+/*implement y1 */
 const Function Lib::y1= Function::uni_slot(univariate::i_sqrt,0);
-
 
 // univariates:
 
 /* implement gchi (univariate) */ 
-// XX Why the sqrt?
-// gchi (sqrt x) = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (sqrt x) * mm2 /pi)/ &13
+// gchi x = &4 * mm1 / pi -(&504 * mm2 / pi)/ &13 +(&200 * (x) * mm2 /pi)/ &13
 static interval i_gchi_c0("0.974990367692870754241952463595");
 static interval i_gchi_c1("0.124456752559607807811255454313");
-const univariate Lib::i_gchi = univariate::i_sqrt* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
+const univariate Lib::i_gchi = univariate::i_pow1* i_gchi_c1 + univariate::i_pow0 * i_gchi_c0;
 
 /*   `!y. lfun y = ( h0 - y)*rh0` */
 const univariate Lib::i_lfun = 
@@ -346,6 +242,21 @@ static int setEta2_126(const domain& x,const domain& z,double DD[6][6])
 const Function Lib::eta2_126= 
   Function::mk_raw(linearization::eta2_126,setEta2_126);
 
+/*implement rad2*/
+static int setAbsRad2(const domain& x, const domain& z, double DD[6][6]) {
+  double  X[6],Z[6];
+  int i;
+  double DD1[6][6], DD2[6][6];
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r1 = secondDerive::setAbsEta2_x_126(X,Z,DD1);
+  int r2 = secondDerive::setChi2over4uDelta(X,Z,DD2);
+  interMath::up();
+  for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DD[i][j] = DD1[i][j] + DD2[i][j]; }
+  if (r1+r2) { testAbs(DD,"setAbsRad2"); }
+  return r1+r2;
+}
+const Function Lib::rad2_x= Function::mk_raw(linearization::rad2,setAbsRad2);
+
 /*implement delta_x4*/
 static int setAbsDeltaX4(const domain& x,const domain& z,double DDf[6][6]) {
   for (int i=0;i<6;i++) for (int j=0;j<6;j++) { DDf[i][j]= 2.0; }
@@ -424,4 +335,3 @@ void Lib::selfTest()
   epsValue("y2",y2,sqrt(4.2));
   cout << " -- done loadng LibA" << endl << flush;
 }
-

@@ -53,7 +53,7 @@ class Lib
   static const Function 
     x1,x2,x3,x4,x5,x6,y1;
 
-  static const Function unit,two6,edge_flat2_x,eta2_126,
+  static const Function unit,two6,edge_flat2_x,halfbump_x1,eta2_126,
     delta_x,delta_x4,dih_x,sol_x,rad2_x;
 
    static void selfTest();

@@ -185,6 +185,9 @@ static interval b2("106929");
 const univariate Lib::i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
   univariate::i_sqrt * (a1 / b1) + univariate::i_pow1 * (a2 / b2);
 
+/* implement halfbump_x1 */
+const Function Lib::halfbump_x1 = Lib::promote1_to_6(Lib::i_halfbump_x);
+
 /*implement delta */
 static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
 {

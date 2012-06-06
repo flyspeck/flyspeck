@@ -11,7 +11,6 @@
     ineq.hl, 
 *)
 
-
 (* START NONLINEAR INEQS *)
 (* reneeds "nonlinear/ineqdata3q1h.hl";;  *)
 (* reneeds "nonlinear/strongdodec_ineq.hl";; *)
@@ -30,12 +29,13 @@ flyspeck_needs "nonlinear/optimize.hl";;
 flyspeck_needs "nonlinear/auto_lib.hl";;
 flyspeck_needs "nonlinear/bcc_lattice.hl";;
 
-let all_cases = 
+
+let all_cases() = 
   Parse_ineq.nub (map (fun t -> t.idv) (!Ineq.ineqs));;
 
-List.length  all_cases;;
+List.length  (all_cases());;
 
-let finished_cases = 
+let finished_cases() = 
   let split_sp=  Str.split (Str.regexp "\n") in
   let p = process_to_string ("cat "^flyspeck_dir
 			      ^"/../interval_code/qed_log_2012.txt   "
@@ -46,10 +46,10 @@ let finished_cases =
                              ^"| sed 's/\"//g' "
 			     ^" | sed 's/;//g' ") in
     Parse_ineq.nub (split_sp p);;
-List.length finished_cases;;
+List.length (finished_cases());;
 
-let unfinished_cases = subtract all_cases finished_cases;;
-List.length unfinished_cases;;
+let unfinished_cases() = subtract (all_cases()) (finished_cases());;
+List.length (unfinished_cases());;
 
 
 (*
@@ -102,7 +102,7 @@ let special_concerns = [
 let nocompile = 
   ["2065952723 A1";
   "5556646409";"4322269127"; (* LC functions *)
-  "5512912661"; "6843920790"; (* num1 *)
+  "5512912661"; "6843920790"; "4828966562"; (* num1 *)
 ] @ disregard;;
 
 
@@ -117,9 +117,10 @@ map (Optimize.testsplit true) !testids;;
 (* Warning: Auto_lib only runs on non-quad-cluster cases *)
 
 let execute_interval bool = 
-  map (Auto_lib.testsplit bool) ["4680581274 delta issue"];;
-
-let _ = (subtract unfinished_cases nocompile);;
+  let cases = subtract (unfinished_cases()) nocompile in
+  let isquad s = Optimize.is_quad_cluster (hd(Ineq.getexact s)).tags in
+  let nonquad  = filter (not o isquad) cases in
+  map (Auto_lib.testsplit bool) nonquad;;
 
 execute_interval true;;
 (* goal *)

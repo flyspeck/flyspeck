@@ -29,6 +29,8 @@ flyspeck_needs "nonlinear/optimize.hl";;
 flyspeck_needs "nonlinear/auto_lib.hl";;
 flyspeck_needs "nonlinear/bcc_lattice.hl";;
 
+let idq_of_string s = hd(Ineq.getexact s);;
+let expand_string = map (fun t->t.idv) o Ineq.getprefix;;
 
 let all_cases() = 
   Parse_ineq.nub (map (fun t -> t.idv) (!Ineq.ineqs));;
@@ -38,7 +40,7 @@ List.length  (all_cases());;
 let finished_cases() = 
   let split_sp=  Str.split (Str.regexp "\n") in
   let p = process_to_string ("cat "^flyspeck_dir
-			      ^"/../interval_code/qed_log_2012.txt   "
+			      ^"/../interval_code/qed_log.txt   "
 			     ^"| sed 's!^//.*$!!'"
 			     ^"| sed  's/^.*ineq(/\"/' " 
                              ^"| sed 's/., secs.*$/\";/'   "
@@ -84,16 +86,16 @@ let testids = ref[];;
 testids:= subtract (List.rev unfinished_cases) disregard;;
 testids := ["OXLZLEZ 6346351218 0 22"];;
 testids := ["5556646409"; "4322269127";];;  (* mdtau_y_LC not defined *) 
-
+testids := ["ZTGIJCF23 0 0 0 7907792228 b"];; (* split(1/2) *)
 List.length !testids;;
 
 (*
-let view nth = hd (Ineq.getexact (List.nth !testids nth));;
+let view nth = idq_of_string (List.nth !testids nth);;
 idq_fields(view 0);;
 view 1;;
 *)
 
-let expand_string = map (fun t->t.idv) o Ineq.getprefix;;
+
 
 let special_concerns = [
   "2065952723 A1"; (* requires special code, FAILS ON THACKMAC. *)
@@ -118,7 +120,7 @@ map (Optimize.testsplit true) !testids;;
 
 let execute_interval bool = 
   let cases = subtract (unfinished_cases()) nocompile in
-  let isquad s = Optimize.is_quad_cluster (hd(Ineq.getexact s)).tags in
+  let isquad s = Optimize.is_quad_cluster (idq_of_string s).tags in
   let nonquad  = filter (not o isquad) cases in
   map (Auto_lib.testsplit bool) nonquad;;
 
@@ -128,7 +130,7 @@ execute_interval true;;
 (* open Optimize;; *)
 
 let process_cases_testid testid = 
-  let idq =  (hd(Ineq.getexact testid)) in
+  let idq =  idq_of_string testid in 
   let (s,tags,ineq) = Optimize.idq_fields idq in
   let ls = Optimize.get_split_tags idq in
    if (ls=[]) then (s,tags,ineq) else
@@ -152,11 +154,11 @@ let interactive_debug_stuff testid =
 (* TESTING CFSQP *)
 
 
-let one_cfsqp t = 
-  Parse_ineq.execute_cfsqp (hd(Ineq.getexact t));;
+let one_cfsqp  = 
+  Parse_ineq.execute_cfsqp o idq_of_string;;
 
 let cfsqp ts = 
-  let us = map (hd o Ineq.getexact) ts in
+  let us = map (idq_of_string) ts in
   !(Parse_ineq.execute_cfsqp_list us);;
 
 let execute_cfsqp() = cfsqp all_cases;;
@@ -183,6 +185,7 @@ let finished_times,finished_rejects =
 			      ^"| sed 's!^//.*$!!'"
 			     ^"| sed  's/^.*ineq(//' " 
                              ^"| sed 's/., svn.*$//'   "
+                             ^"| sed 's/., *cell.*$//'   "
 			      ^"| sed 's/., secs./;/' "
                              ) in
   let (accept,rejects) = partition (fun t -> List.length t =2)  
@@ -190,9 +193,10 @@ let finished_times,finished_rejects =
      (map int_s accept,Parse_ineq.nub rejects);;
 
 let times =   
+  let all = all_cases() in
   let ft = finalize finished_times in
   let split = Str.split(Str.regexp " +split") in
-  let fti = filter (fun (x,_) -> mem (hd (split x)) all_cases) ft in
+  let fti = filter (fun (x,_) -> mem (hd (split x)) all) ft in
     sort (fun (_,y) (_,y') -> (y>y')) fti;;
 
 hour (total times);;

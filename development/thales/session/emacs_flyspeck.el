@@ -22,6 +22,9 @@
 
 (hol-light-interactive-get-old-input)
 
+; if option key doesn't work as alt-key:
+(setq mac-option-modifier 'meta)
+
 ; process control 
 (signal-process 6592 9)
 

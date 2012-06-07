@@ -1,0 +1,347 @@
+(* MAY 2012 EXPERIMENTS TO SPEED THINGS UP.
+   Especially ZTG...F23 stuff.
+*)
+
+let truncate_sqrt  = new_definition `
+  truncate_sqrt c x = if (x <= c) then sqrt(c) else sqrt(x)`;;
+
+
+let truncate_dih_x = new_definition(`truncate_dih_x c x1 x2 x3 x4 x5 x6 =
+       let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+       let d = delta_x x1 x2 x3 x4 x5 x6 in
+       pi/ (&2) +  atn2( (sqrt ((&4) * x1) * truncate_sqrt c d),--  d_x4)`);;
+
+let truncate_sol_x = new_definition 
+  `truncate_sol_x c = truncate_dih_x c +
+     (rotate2 (truncate_dih_x c)) +
+     (rotate3 (truncate_dih_x c)) - constant6 (pi)`;;
+
+let truncate_vol_x  =new_definition
+  `truncate_vol_x c = scalar6 (uni((truncate_sqrt c),delta_x)) (&1 / &12)`;;
+
+
+let truncate_vol3r_456 = new_definition `truncate_vol3r_456 c = 
+  mk_456 (truncate_vol_x c)`;;
+
+(* XXD remove primes when it works as expected *)
+
+let truncate_vol3f_456 = new_definition `truncate_vol3f_456''''' c f = 
+    scalar6 ( mk_456 (rotate5 sol_x) +mk_456 (rotate6 sol_x) + 
+		mk_456 (rotate4 sol_x) 
+	       )
+      (&2 * mm1/ pi)    
+    -       scalar6 
+    ((uni(f,(scalar6 proj_y4  #0.5))) * mk_456 (rotate4 (truncate_dih_x c)) +
+    (uni(f,(scalar6 proj_y5  #0.5))) * mk_456 (rotate5 (truncate_dih_x c)) +
+    (uni(f,(scalar6 proj_y6  #0.5))) * mk_456 (rotate6 (truncate_dih_x c)))
+      (&8 * mm2 / pi)`;;
+
+
+(*
+let truncate_vol_x = new_definition(`truncate_vol_x c x1 x2 x3 x4 x5 x6 =
+        (truncate_sqrt c (delta_x x1 x2 x3 x4 x5 x6))/ (&12)`);;
+
+let truncate_sol_x = new_definition(`truncate_sol_x c x1 x2 x3 x4 x5 x6 =
+        (truncate_dih_x c x1 x2 x3 x4 x5 x6) +
+        (truncate_dih_x c x2 x3 x1 x5 x6 x4) +  
+	  (truncate_dih_x c x3 x1 x2 x6 x4 x5) -  pi`);;
+
+let vol3r_123 = new_definition `vol3r_123 = 
+  compose6 vol_x proj_x1 proj_x2 proj_x3 two6 two6 two6`;;
+
+let truncate_vol3r_123 = new_definition `truncate_vol3r_123 c = 
+  compose6 (truncate_vol_x c) proj_x1 proj_x2 proj_x3 two6 two6 two6`;;
+
+let sol_x_123 = new_definition `sol_x_123 = 
+    compose6 sol_x proj_x1 proj_x2 proj_x3 two6 two6 two6`;;
+
+let truncate_vol3f_123 = new_definition `truncate_vol3f_123' c f = 
+    scalar6 (rotate4 sol_x_123 + rotate5 sol_x_123 + rotate6 sol_x_123)
+      (&2 * mm1/ pi)    
+    - 
+      scalar6 
+    ((uni(f,(scalar6 proj_y1  #0.5))) * rotate4 (truncate_dih_x c) +
+    (uni(f,(scalar6 proj_y1  #0.5))) * rotate5 (truncate_dih_x c) +
+    (uni(f,(scalar6 proj_y1  #0.5))) * rotate6 (truncate_dih_x c))
+      (&8 * mm2 / pi)`;;
+
+
+let vol3r_456 = new_definition `vol3r_456 =  mk_456 vol_x`;;
+let sol_x_456 = new_definition `sol_x_456 = mk_456 sol_x`;;
+
+*)
+
+
+let truncate_dih_x_dih_x = prove_by_refinement(
+  `!c. domain6
+    (\x1 x2 x3 x4 x5 x6. &0 <= x1 /\ &0 <= c /\ c <= delta_x x1 x2 x3 x4 x5 x6)
+    (truncate_dih_x c) (dih_x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[domain6;truncate_dih_x;Sphere.dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT STRIP_TAC;
+  ABBREV_TAC `d  =delta_x x1 x2 x3 x4 x5 x6`;
+  REPEAT (AP_THM_TAC ORELSE AP_TERM_TAC);
+  SUBGOAL_THEN `&0 <= d` ASSUME_TAC;
+    BY(ASM_MESON_TAC[REAL_LE_TRANS]);
+  ASM_SIMP_TAC[SQRT_MUL;arith `&0 <= &4`;Real_ext.REAL_PROP_NN_MUL2;];
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[arith `c <= d /\ d <= c ==> (d = c)`;arith `a * b * c = (a*b)*(c:real)`]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+
+let sol_y_sol_x = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. sol_y y1 y2 y3 y4 y5 y6 = sol_x (y1*y1) (y2*y2) (y3*y3) (y4*y4) (y5 * y5) (y6 * y6)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.sol_y;Sphere.sol_x;Sphere.dih_y;LET_DEF;LET_END_DEF]);
+  ]);;
+  (* }}} *)
+
+let sol_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. sol_x x1 x2 x3 x4 x5 x6 = sol_x x1 x3 x2 x4 x6 x5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.sol_x];
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC (arith `(a=a')/\(b=b')/\(c=c')==>((a + b + c - pi) = (a' + c'+b'-pi)) `);
+  BY(MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2])
+  ]);;
+  (* }}} *)
+
+let sol_x_sym2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. sol_x x1 x2 x3 x4 x5 x6 = sol_x x2 x3 x1 x5 x6 x4`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.sol_x];
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC (arith `(a=a')/\(b=b')/\(c=c')==>((a + b + c - pi) = (b' + c'+a'-pi)) `);
+  BY(BY(MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2]))
+  ]);;
+  (* }}} *)
+
+let delta_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. delta_x x1 x2 x3 x4 x5 x6 = delta_x x2 x1 x3 x5 x4 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_x];
+  BY(REAL_ARITH_TAC);
+  ]);;
+  (* }}} *)
+
+let delta_x_sym2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. delta_x x1 x2 x3 x4 x5 x6 = delta_x x2 x3 x1 x5 x6 x4`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_x];
+  BY(REAL_ARITH_TAC);
+  ]);;
+  (* }}} *)
+
+let truncate_sqrt_le = prove_by_refinement(
+  `!c d. (c <= d) ==> (truncate_sqrt c d = sqrt d)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[truncate_sqrt];
+  COND_CASES_TAC;
+    REPEAT (POP_ASSUM MP_TAC);
+    BY(MESON_TAC[arith `c <= d /\ d <= c ==> (c = d)`]);
+  REPEAT (POP_ASSUM MP_TAC);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_dih_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 c. 
+    truncate_dih_x c x1 x2 x3 x4 x5 x6 = truncate_dih_x c x1 x3 x2 x4 x6 x5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[truncate_dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `delta_x x1 x3 x2 x4 x6 x5 = delta_x x1 x2 x3 x4 x5 x6` SUBST1_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(REAL_ARITH_TAC);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[Sphere.delta_x4];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_dih_x_sym2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 c. 
+    truncate_dih_x c x1 x2 x3 x4 x5 x6 = truncate_dih_x c x1 x5 x6 x4 x2 x3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[truncate_dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `delta_x x1 x5 x6 x4 x2 x3 = delta_x x1 x2 x3 x4 x5 x6` SUBST1_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(REAL_ARITH_TAC);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[Sphere.delta_x4];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let gamma3f_lemma = prove_by_refinement(
+  `!f y4 y5 y6 (a:real) (b:real) (c:real) (d:real). 
+    (&0 <= y4 /\ &0 <= y5 /\ &0 <= y6 /\ (&0 <= d) /\
+     d <= delta_y sqrt2 sqrt2 sqrt2 y4 y5 y6) ==>
+    (gamma3f y4 y5 y6 sqrt2 f = 
+	truncate_vol3r_456 d  a b c (y4*y4) (y5*y5) (y6*y6) -
+	truncate_vol3f_456''''' d f a b c (y4*y4) (y5*y5) (y6*y6))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM;Sphere.delta_y;truncate_vol3f_456;truncate_vol3r_456;mk_456;uni;scalar6;proj_y1;Sphere.rotate4;Sphere.rotate5;Sphere.rotate6;compose6;proj_x4;proj_x5;proj_x6;scalar6;add6;mul6;sub6;two6;sol_x_123;Sphere.gamma3f;constant6;Sphere.vol3r;Sphere.vol3f;truncate_vol_x;Nonlinear_lemma.sqrt2_sqrt2;LET_DEF;LET_END_DEF;Sphere.vol_y;Sphere.y_of_x;proj_y4;proj_y5;proj_y6;Sphere.dih_y;sol_y_sol_x];
+  REPEAT STRIP_TAC;
+  ASM_SIMP_TAC[Nonlinear_lemma.sqrtxx;truncate_sqrt_le];
+  BINOP_TAC;
+    REWRITE_TAC[Sphere.vol_x];
+    BY(REAL_ARITH_TAC);
+  BINOP_TAC;
+    REWRITE_TAC[arith `e * a * b/c = (a*b/c)*(e:real)`];
+    AP_TERM_TAC;
+    BY(REPEAT BINOP_TAC THEN MESON_TAC[sol_x_sym;sol_x_sym2]);
+  REWRITE_TAC[arith `a * #0.5 = a/ &2`;arith ` d * a * b/pi= (a * b/pi) * d`];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  MATCH_MP_TAC (arith `(a = a')/\(b = b')/\(c=c') ==> (u*a + v*b +w*c = u*a' + v*b' + w*(c':real))`);
+  SUBGOAL_THEN `d <= delta_x (y4 * y4) (y5 * y5) (&2) (&2) (&2) (y6 * y6) /\ d <= delta_x (y5 * y5) (y6 * y6) (&2) (&2) (&2) (y4 * y4) /\ d <= delta_x (y6 * y6) (y4 * y4) (&2) (&2) (&2) (y5 * y5)` ASSUME_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(REAL_ARITH_TAC);
+  SUBGOAL_THEN `truncate_dih_x (d) (y4 * y4) (&2) (y6 * y6) (&2) (y5 * y5) (&2) = truncate_dih_x (d) (y4 * y4) (y5 * y5) (&2) (&2) (&2) (y6 * y6) ` SUBST1_TAC;
+    BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]);
+  SUBGOAL_THEN `truncate_dih_x (d) (y5 * y5) (&2) (y4 * y4) (&2) (y6 * y6) (&2) = truncate_dih_x (d)  (y5 * y5) (y6 * y6) (&2) (&2) (&2) (y4 * y4)` SUBST1_TAC;
+    BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]);
+  SUBGOAL_THEN ` truncate_dih_x (d) (y6 * y6) (&2) (y5 * y5) (&2) (y4 * y4) (&2) =  truncate_dih_x (d)  (y6 * y6) (y4 * y4) (&2) (&2) (&2) (y5 * y5)` SUBST1_TAC;
+    BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]);
+  BY(REPEAT CONJ_TAC THEN GMATCH_SIMP_TAC (REWRITE_RULE[domain6;] (SPEC `d:real` truncate_dih_x_dih_x)) THEN ASM_REWRITE_TAC[REAL_LE_SQUARE])
+  ]);;
+  (* }}} *)
+
+
+searcht  5[ `&0 <= x*x`];;
+searcht 5 [`delta_x a b c d e f = delta_x a' b' c' d' e' f'`];;
+searcht 5 [`sqrt (x * x)`];;
+sqrt_sqrt;;
+searcht 5 [`sol_y`];;
+searcht 5 [`sol_x`];;
+searcht 5 [`dih_x`;`dih_y`];;
+searcht 5 [`sol_y`;`sol_x`];;
+searcht 5 [`vol_y`;`vol_x`];;  
+
+
+(*
+let truncate_sol_y = new_definition(`truncate_sol_y c
+	= y_of_x (truncate_sol_x c)`);;
+
+let truncate_vol3r = new_definition `truncate_vol3r c y1 y2 y3 r = 
+  truncate_vol_y c r r r y1 y2 y3`;;
+
+let truncate_vol3r_x = new_definition `truncate_vol3r_x c x1 x2 x3 r2 = 
+  truncate_vol_x c r2 r2 r2 x1 x2 x3`;;
+
+let truncate_vol3f = new_definition `truncate_vol3f c y1 y2 y3 r f = 
+  (&2 * mm1 / pi) * 
+        (truncate_sol_y c y1 y2 r r r y3 +
+	   truncate_sol_y c y2 y3 r r r y1 +
+	   truncate_sol_y c y3 y1 r r r y2)
+    - (&8 * mm2/pi) *
+       (f(y1/ &2)* truncate_dih_y c y1 y2 r r r y3 +
+	  f(y2/ &2)* truncate_dih_y c y2 y3 r r r y1 +
+	  f(y3/ &2)* truncate_dih_y c y3 y1 r r r y2)`;;
+
+let truncate_gamma3f = new_definition `truncate_gamma3f c y1 y2 y3 r f = 
+  truncate_vol3r c y1 y2 y3 r - truncate_vol3f c y1 y2 y3 r f`;;
+
+let truncate_gamma3f_x = new_definition 
+  `truncate_gamma3f_x c x1 x2 x3 r2 f2 = 
+  truncate_vol3r_x c x1 x2 x3 r2 - truncate_vol3f_x c x1 x2 x3 r2 f2`;;
+
+
+let truncate_gamma23f = new_definition 
+  `truncate_gamma23f c y1 y2 y3 y4 y5 y6 w1 w2 r f =
+      (truncate_gamma3f c y1 y2 y6 r f / &w1 + 
+	 truncate_gamma3f c y1 y3 y5 r f / &w2
+      + (dih_y y1 y2 y3 y4 y5 y6 - 
+	   truncate_dih_y c y1 y2 r r r y6 - 
+	   truncate_dih_y c y1 y3 r r r y5) * 
+	 (vol2r y1 r - vol2f y1 r f)/(&2 * pi)) `;;
+
+let vol2r_x = new_definition `vol2r_x x r2 = &2 * pi * 
+  (r2 - (x / (&4)))/(&3)`;;
+
+let vol2f_x = new_definition  `vol2f_x x r2 f2 =  
+  (&2 * mm1 / pi) *  &2 *pi* (&1- sqrt (x / r2) / &2)
+    - (&8 * mm2/pi) * &2 * pi * f2 (x/ (&2)) `;;
+
+
+type_of `proj_y1`;;
+
+search[name "FUN_EQ"];;
+suggest();;
+`lfun_y1 = (unit6 * constant6 h0 + proj_x1 * constant6 (-- &1))*
+  (unit6 / (constant6 h0 - unit6))`;;
+
+
+type_of `(--)`;;
+let const;;
+type_of `constant`;;
+type_of `unit6`;;
+
+*)
+
+
+(* use if we know sqrt is bounded away from 0 *)
+
+
+(* note : f2 (x/ &2) = f(y / &2) when y^2 = x.
+rework these definitions.  I don't like the sqrt(x/ &2).
+
+ *)
+
+let lmfun_x = new_definition `lmfun_x x = lmfun  (sqrt (x / &2))`;;
+
+
+(*
+let truncate_gamma23f_x = new_definition 
+  `truncate_gamma23f_x c x1 x2 x3 x4 x5 x6 w1 w2 r2 f2 =
+      (truncate_gamma3f_x c x1 x2 x6 r2 f2 / &w1 + 
+	 truncate_gamma3f_x c x1 x3 x5 r2 f2 / &w2
+      + (dih_x x1 x2 x3 x4 x5 x6 - 
+	   truncate_dih_x c x1 x2 r2 r2 r2 x6 - 
+	   truncate_dih_x c x1 x3 r2 r2 r2 x5) * 
+	 (vol2r_x x1 r2 - vol2f_x x1 r2 f2)/(&2 * pi)) `;;
+
+let truncate_gamma23_x_sample = new_definition
+ `truncate_gamma23_x_sample x1 x2 x3 x4 x5 x6 = truncate_gamma23f_x (#0.14)
+    x1 x2 x3 x4 x5 x6 1 1 (&2) lmfun_x`;;
+
+Ineq.make_F23 0 0;;
+
+let sample_ineq = 
+ {ineq =
+    `!y1 y2 y3 y4 y5 y6.
+         ineq
+         [&2 * hminus,y1,&2 * hplus; &2,y2,&2 * hminus; &2,y3,&2 * hminus; 
+         &2,
+         y4,
+         sqrt8; &2,y5,&2 * hminus; &2,y6,&2 * hminus]
+         (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 \/
+          delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14 \/
+          y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2 \/
+          y_of_x truncate_gamma23_x_sample y1 y2 y3 y4 y5 y6  >
+          a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)`;
+   idv = "ZTG truncate test/first split";
+   doc = "
+     Test on make_F23 0 0.
+     This is the $2$- and $3$-cell inequality for five or more leaves.";
+   tags =
+    [Tex; Split [0]; Set_rad2; Delta126min 0.139999999999;
+     Delta135min 0.139999999999; Marchal; Cfsqp_branch 3;
+     Flypaper ["OXLZLEZ"]; Penalty (200., 5000.);]};;
+*)

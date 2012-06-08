@@ -35,6 +35,9 @@ sig
   val records : irecord list
   val mk_ineq : int -> irecord -> term
   val domain_cover_calculation: bool
+  val combine : (int list*int list*int list*int list*int list)*
+     (int list*int list*int list*int list*int list) ->
+    (bool*int)*(int list*int list*int list*int list*int list)
 end
 
 = struct
@@ -1112,24 +1115,29 @@ let get_cover i =
   let v = List.rev  in
   let r = map (fun t -> (v t.branch1,v t.branch2,v t.branch3,v t.branch4,v t.branch5)) (filter (fun t -> t.caseno =i ) records) in r;;
 
-let check ((r1,r2,r3,r4,r5),(s1,s2,s3,s4,s5)) =
+let check ((r1,r2,r3,r4,r5),(s1,s2,s3,s4,s5)) =  
   not(r1=[]) && not(s1=[]) &&
   not(hd r1 = hd s1) && (tl r1 = tl s1) && 
    (r2 = s2) && (r3 = s3) && (r4=s4) &&(r5=s5);;
 
 let combine 
    ((r1,r2,r3,r4,r5),(s1,s2,s3,s4,s5))=
-      if check((r1,r2,r3,r4,r5),(s1,s2,s3,s4,s5)) then (tl r1,r2,r3,r4,r5)
-      else if check((r2,r1,r3,r4,r5),(s2,s1,s3,s4,s5)) then (r1,tl r2,r3,r4,r5)
-      else if check((r3,r1,r2,r4,r5),(s3,s1,s2,s4,s5)) then (r1,r2,tl r3,r4,r5)
-      else if check((r4,r1,r2,r3,r5),(s4,s1,s2,s3,s5)) then (r1,r2,r3,tl r4,r5)
-      else if check((r5,r1,r2,r3,r4),(s5,s1,s2,s3,s4)) then (r1,r2,r3,r4,tl r5)
+      if check((r1,r2,r3,r4,r5),(s1,s2,s3,s4,s5)) 
+      then (hd r1 < hd s1,0),(tl r1,r2,r3,r4,r5)
+      else if check((r2,r1,r3,r4,r5),(s2,s1,s3,s4,s5)) 
+      then (hd r2 < hd s2,1),(r1,tl r2,r3,r4,r5)
+      else if check((r3,r1,r2,r4,r5),(s3,s1,s2,s4,s5)) 
+      then (hd r3 < hd s3,2),(r1,r2,tl r3,r4,r5)
+      else if check((r4,r1,r2,r3,r5),(s4,s1,s2,s3,s5)) 
+      then (hd r4 < hd s4,3),(r1,r2,r3,tl r4,r5)
+      else if check((r5,r1,r2,r3,r4),(s5,s1,s2,s3,s4)) 
+      then (hd r5 < hd s5,4),(r1,r2,r3,r4,tl r5)
       else failwith "combine";;
 
 let rec combine_l = function
    [] -> []
   | [a] -> [a]
-  | a::b::cs -> try combine (a,b) :: cs with Failure _ -> a:: (combine_l (b::cs));;
+  | a::b::cs -> try (snd(combine (a,b))) :: cs with Failure _ -> a:: (combine_l (b::cs));;
 
 let rec combine_r x= 
   let y = combine_l x in

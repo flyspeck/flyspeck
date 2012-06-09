@@ -24,8 +24,12 @@ QY 2&3 cell combinations.
 param CBLADE 'number of leaves' >= 2, <= 4; 
 
 # constants.
-param pi := 3.1415926535897932;
-param hmin:= 1.2317544220903185;
+#param pi := 3.1415926535897932;
+param piL := 3.14159;
+param piU := 3.1416;
+#param hmin:= 1.2317544220903185;
+param hminL:= 1.2317;
+param hminU:= 1.2318;
 param h0:= 1.26;
 param hmax:= 1.3254;
 param sqrt2:= 1.4142135623730951;
@@ -77,13 +81,13 @@ set I11 := {(i,j) in BLADE : j in (QX inter HASSMALL) and i in QY};
 # (leaves and weights included in gamma variable)
 # gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell. 
 # if gamma > 0.1, then gammasum > 0.1 + 4 *lb > 0.	
-var azim{FACE} >= 0, <= 2*pi;
+var azim{FACE} >= 0, <= 2*piU;
 var gamma{FACE} >= lb, <= 0.1; #lower 9455898160;  
 var gamma3a{QY} >= 0, <= 0.1;  #lower bound in GLFVCVK.
 var gamma3b{QY} >= 0, <= 0.1;
 var gamma2{QY} >= 0, <= 0.1;
 
-var y1 >= 2 * hmin, <= 2*hmax ; #critical edge
+var y1 >= 2 * hminL, <= 2*hmax ; #critical edge
 var y2{FACE} >=2, <= 2*sqrt2;
 var y3{FACE} >=2, <=2*sqrt2;
 var y4{i in QU union QX} >=2, <= 2*sqrt2; 
@@ -98,52 +102,53 @@ minimize objective:  gammasum;
 
 ## equality constraints
 gamma_sum: sum {i in FACE} gamma[i] = gammasum;
-azim_sum:  sum {i in FACE} azim[i] = 2.0*pi;
+azim_sumU:  sum {i in FACE} azim[i] <= 2.0*piU;
+azim_sumL:  sum {i in FACE} azim[i] >= 2.0*piL;
 y2y3{(i1,i2) in BLADE}: y3[i1] = y2[i2];
 y5y6{(i1,i2) in BLADE}: y5[i1]=  y6[i2];
 gamma23{i in QY}: gamma2[i]+gamma3a[i]+gamma3b[i]=gamma[i];
 
 
 ##inequalities by definition of branch.
-y3small {(i,j) in SBLADE}: y3[i] <= 2*hmin;
-y5small {(i,j) in SBLADE}: y5[i] <= 2*hmin;
-y35big {(i,j) in NONSBLADE} : y3[i]+y5[i] >= 2*hmin + 2;
-y4qu {i in QU} : y4[i] <= 2*hmin;
-qxd_azim{i in QXD}: azim[i] >= 2.3;
-nqxd_azim{i in NONQXD}: azim[i] <= 2.3;
-negqu {i in NEGQU} : gamma[i] <= 0;
-posqu{i in POSQU} : gamma[i] >=0;
-halfwt{i in HALFWT}:  y4[i] >= 2*hmin;
-halfwtup{i in HALFWT}: y4[i] <= 2*hmax;
-fullwt{i in FULLWT}: y4[i] >= 2*hmax;
+y3small {(i,j) in SBLADE}: y3[i] <= 2*hminU;
+y5small {(i,j) in SBLADE}: y5[i] <= 2*hminU;
+y35big {(i,j) in NONSBLADE} : y3[i]+y5[i] >= 2*hminL + 2;
+y4qu {i in QU} : y4[i] <= 2*hminU;
+azim_qxd{i in QXD}: azim[i] >= 2.3;
+azim_nqxd{i in NONQXD}: azim[i] <= 2.3;
+g_negqu {i in NEGQU} : gamma[i] <= 0;
+g_posqu{i in POSQU} : gamma[i] >=0;
+y4_hlfwt{i in HALFWT}:  y4[i] >= 2*hminL;
+y4_hlfwtup{i in HALFWT}: y4[i] <= 2*hmax;
+y4_fullwt{i in FULLWT}: y4[i] >= 2*hmax;
 
 
 ## computer generated inequality constraints
 #1,2,3 leaves
-gammaquarter 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
-gammapos{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
-quarter3a{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[FHBVYXZ]
-quarter3b{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[FHBVYXZ]
-quarternegdih{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
-fourcellazim{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
-wtunder1{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
+gamma_qu 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
+gamma_qx{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
+g_quqya{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[FHBVYXZ]
+g_quqyb{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[FHBVYXZ]
+azim_nqu{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
+azim_c4{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
+g_qxd{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
 
 #4leaves
 azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
 azim2 '9939613598' {i in FULLWT}: gamma[i] - 0.00457511 - 0.00609451*azim[i] >= 0;
 
 # corrected June 3, 2010. svn 1761 has the old version.  
-azim3a '4003532128' {i in QY inter HASSMALL inter LONGY4} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
+gaz3a '4003532128' {i in QY inter HASSMALL inter LONGY4} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
 azim3b '3725403817'  {i in QY inter HASSMALL inter SHORTY4}: azim[i] <= 1.56;
 
-azim4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
-azim5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
-azim6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;
-azim7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
-azim8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 
-azim9 'ID[2134082733]' {i in HASSMALL inter QX}: gamma[i] - 0.213849 + 0.119482*azim[i] >= 0;
-ineq10 'ID[5400790175a]' {(i,j) in I10}: gamma[i]+gamma3a[j] >= 0.0057;
-ineq11 'ID[5400790175b]' {(i,j) in I11}:  gamma[j]+gamma3b[i] >= 0.0057;
+gaz4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
+gaz5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
+gaz6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;
+gaz7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
+gamma8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 
+gaz9 'ID[2134082733]' {i in HASSMALL inter QX}: gamma[i] - 0.213849 + 0.119482*azim[i] >= 0;
+gamma10 'ID[5400790175a]' {(i,j) in I10}: gamma[i]+gamma3a[j] >= 0.0057;
+gamma11 'ID[5400790175b]' {(i,j) in I11}:  gamma[j]+gamma3b[i] >= 0.0057;
 
 solve;
 display gammasum;

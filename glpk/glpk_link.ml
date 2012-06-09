@@ -23,6 +23,8 @@ ocamlmktop unix.cma nums.cma str.cma -o ocampl
 ./ocampl
 
 glpk needs to be installed, and glpsol needs to be found in the path.
+
+needs lib.ml from HOL Light and flyspeck_lib.hl from Flyspeck.
 *)
 
 
@@ -43,14 +45,22 @@ let maxlist0 xs = fold_right max xs 0;; (* NB: value is always at least 0 *)
 let get_values key xs = 
   map snd (find_all (function k,_ -> (k=key)) xs);;
 
+(*
 let rec sort cmp lis =  (* from HOL Light lib.ml *)
   match lis with
     [] -> []
   | piv::rest ->
       let r,l = partition (cmp piv) rest in
       (sort cmp l) @ (piv::(sort cmp r));;
+*)
 
+let sort = Lib.sort;;
+
+let (--) = Lib.(--);;
+
+(*
 let rec (--) = fun m n -> if m > n then [] else m::((m + 1) -- n);; (* from HOL Light lib.ml *)
+*)
 
 let up i = 0 -- (i-1);;
 
@@ -72,12 +82,15 @@ let rotation xs =
    List.combine causes a stack overflow :
    let tt = up 30000 in combine tt tt;;
    Stack overflow during evaluation (looping recursion?).
-*)
+
 let rec zip l1 l2 =
   match (l1,l2) with
         ([],[]) -> []
       | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
       | _ -> failwith "zip";;
+*)
+
+let zip = Lib.zip;;
 
 let enumerate xs = zip (up (length xs)) xs;;
 
@@ -92,6 +105,14 @@ let wheremod xs x =
 (* example *)
 wheremod [[0;1;2];[3;4;5];[7;8;9]] [8;9;7];;  (* 2 *)
 
+
+let unsplit = Flyspeck_lib.unsplit;;
+
+let nub = Flyspeck_lib.nub;;
+
+let join_lines = Flyspeck_lib.join_lines;;
+
+(*
 let rec nub = function
   | [] -> []
   | x::xs -> x::filter ((!=) x) (nub xs);;
@@ -101,9 +122,12 @@ let unsplit d f = function
   | [] -> "";;
 
 let join_lines  = unsplit "\n" (fun x-> x);;
+*)
+
 
 (* read and write *)
 
+(*
 let load_and_close_channel do_close ic = 
   let rec lf ichan a = 
     try
@@ -115,6 +139,12 @@ let load_and_close_channel do_close ic =
 
 let load_file filename = 
   let ic = Pervasives.open_in filename in load_and_close_channel true ic;;
+
+*)
+
+let load_and_close_channel = Flyspeck_lib.load_and_close_channel;;
+
+let load_file = Flyspeck_lib.load_file;;
 
 let save_stringarray filename xs = 
   let oc = open_out filename in
@@ -164,8 +194,7 @@ let display_ampl ampl_datafile ampl_of_bb bb = (* for debugging *)
 
 let solve_counter=ref 0;;
 
-let solve_branch_f model glpk_outfile varname ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
+let solve com model glpk_outfile varname ampl_of_bb bb = 
   let (ic,oc) = Unix.open_process(com) in 
   let _ = ampl_of_bb oc bb in
   let _ = close_out oc in
@@ -178,6 +207,14 @@ let solve_branch_f model glpk_outfile varname ampl_of_bb bb =
   let inp2 = load_and_close_channel false ic in
   let _ = Unix.close_process(ic,oc) in
     (inp2,inp);;
+
+let solve_branch_f model glpk_outfile varname ampl_of_bb bb = 
+  let com = sprintf "glpsol -m %s -d /dev/stdin | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
+  solve com model glpk_outfile varname ampl_of_bb bb;;
+
+let solve_dual_f model glpk_outfile varname ampl_of_bb bb = 
+  let com = sprintf "glpsol -m %s -d /dev/stdin --simplex --dual -w /tmp/dual.out --output /tmp/output.out | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
+  solve com model glpk_outfile varname ampl_of_bb bb;;
 
 let display_lp model ampl_datafile glpk_outfile ampl_of_bb bb = 
   let oc = open_out ampl_datafile in

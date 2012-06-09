@@ -1,11 +1,11 @@
 (* ========================================================================== *)
-(* FLYSPECK - GLPK                                              *)
+(* FLYSPECK - GLPK                                                            *)
 (*                                                                            *)
-(* Linear Programming, AMPL format (non-formal)    *)
-(* Chapter: Packing                                                     *)
-(* Lemma: OXLZLEZ *)
+(* Linear Programming, AMPL format (non-formal)                               *)
+(* Chapter: Packing                                                           *)
+(* Lemma: OXLZLEZ                                                             *)
 (* Author: Thomas C. Hales                                                    *)
-(* Date: 2009-09-22, rechecked 2010-06-03                                   *)
+(* Date: 2009-09-22, rechecked 2010-06-03, 2012-06-08                         *)
 (* ========================================================================== *)
 
 (*
@@ -150,7 +150,7 @@ let test() =
   let br =  modify_br br  ["qu",1;"qu",2;"negqu",3] in
     display_ampl tmpfile ampl_of_br br;;
 
-(* running of branch in glpsol *)
+(* manipulations of lpvalue field that don't involve glpsol *)
 
 let set_lpvalue nt (f,r) = (* side effects *)
   let _ = 
@@ -159,24 +159,14 @@ let set_lpvalue nt (f,r) = (* side effects *)
     else nt.lpvalue <- Lp_unset in
     nt;;
 
-let init_lpvalue br = 
-  let _ = match br.lpvalue with
-    | Lp_unset -> (set_lpvalue br (solve_branch_f model dumpfile "gammasum" ampl_of_br br))
-    |  _ -> br in
-  let _ = report (string_of_lptype br.lpvalue) in
-    br;;
+let notdone r = (r < 0.0);;
 
-(* selects None and those satisfying f *)
-
-let select_notdone f brs = 
-  let _ = map init_lpvalue brs in
+let select_notdone f brs = (* selects unset and those satisfying f *)
     let fil ro = match ro.lpvalue with
 	Lp_unset -> true
       | Lp_infeasible -> false
       | Lp_value r -> f r in 
       filter fil brs;;
-
-let notdone r = (r < 0.0);;
 
 let is_unset br = match br.lpvalue with
     Lp_unset -> true
@@ -239,6 +229,18 @@ let br2 = List.nth (branch_sblade 2 br1) 0;;
 branch_wt 1 br2;;
 *)
 
+(* Link in glpsol linear programming package *) 
+
+let solve_lp br = 
+  let _ = match br.lpvalue with
+    | Lp_unset -> 
+      (set_lpvalue br 
+	 (Glpk_link.solve_dual_f model dumpfile "gammasum" ampl_of_br br))
+    |  _ -> br in
+  let _ = report (string_of_lptype br.lpvalue) in
+    br;;
+
+
 (* control flow *)
 
 let ex0 brancher i brs = (flatten (map (brancher i) brs));;
@@ -246,10 +248,11 @@ let ex0 brancher i brs = (flatten (map (brancher i) brs));;
 let ex brancher i brs = 
   let brs' = ex0 brancher i brs in
   let _ = map set_lpvalue brs' in
-   select_notdone notdone brs';;
+   select_notdone notdone (map solve_lp brs');;
 
 let top brancher i (br::rest) = (ex brancher i [br]) @ rest;;
-let delay (x::xs) = xs @ [x];;
+
+let bury (x::xs) = xs @ [x];;
 
 (* case of 3 blades: *)
 let blade3() = 
@@ -264,14 +267,14 @@ let blade3() =
 let blade4() = 
   let cr = mk_br 4 in 
   let cr1 = ex branch_qu 3 (ex0 branch_qu 2 (branch_qu 1 cr)) in 
-  let cr2 = delay (top branch_wt 3 cr1) in 
+  let cr2 = bury (top branch_wt 3 cr1) in 
   let cr2' = top branch_y4 3 cr2 in 
-  let cr3 = delay (top branch_wt 2 cr2') in 
+  let cr3 = bury (top branch_wt 2 cr2') in 
   let cr4 = top branch_sblade 3 cr3 in 
   let cr5' = top branch_sblade 3 cr4 in 
   let cr5 = top branch_y4 2 cr5' in
   let cr6 = top branch_sblade 3 cr5 in 
-  let cr7 = delay(top branch_wt 1 cr6) in 
+  let cr7 = bury(top branch_wt 1 cr6) in 
   let cr8 = top branch_sblade 2 cr7 in 
   let cr9 = top branch_sblade 2 cr8 in 
   let cr10' = top branch_sblade 2 cr9 in 

@@ -213,7 +213,7 @@ let solve_branch_f model glpk_outfile varname ampl_of_bb bb =
   solve com model glpk_outfile varname ampl_of_bb bb;;
 
 let solve_dual_f model glpk_outfile varname ampl_of_bb bb = 
-  let com = sprintf "glpsol -m %s -d /dev/stdin --simplex --dual -w /tmp/dual.out --output /tmp/output.out | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
+  let com = sprintf "glpsol -m %s -d /dev/stdin --simplex --exact --dual -w /tmp/dual.out --output /tmp/output.out | tee %s | grep '^%s' | sed 's/.val//' | sed 's/%s = //' "  model glpk_outfile varname varname in 
   solve com model glpk_outfile varname ampl_of_bb bb;;
 
 let display_lp model ampl_datafile glpk_outfile ampl_of_bb bb = 

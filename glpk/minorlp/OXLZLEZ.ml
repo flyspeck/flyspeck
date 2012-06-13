@@ -44,13 +44,13 @@ let dumpfile = "/tmp/OXLZLEZ_informal.out";;
 
 type lptype = Lp_unset
 	      | Lp_infeasible
-	      | Lp_value of float;;
+	      | Lp_value of (((string * int list) * string * float) list)*float;;
 
 
 let string_of_lptype t = match t with
     | Lp_infeasible -> "infeasible"
     | Lp_unset -> "unset"
-    | Lp_value u -> Printf.sprintf "%3.3f" u;;
+    | Lp_value (_,u) -> Printf.sprintf "%3.3f" u;;
 
 
 (* fields of bladerunner are documented in OXLZLEZ.mod.
@@ -61,6 +61,7 @@ let string_of_lptype t = match t with
 type bladerunner = 
   { 
     mutable lpvalue : lptype;
+    mutable history : string;
     cblade : int; (* number of blades *)
     sblade : int list;
     nonsblade : int list;
@@ -79,8 +80,11 @@ type bladerunner =
 
 let next br i = (i+1) mod br.cblade;;
 
+let backup = ref [];;
+
 (* the initial configuration always has a quarter at 0 *)
 let mk_br n = 
+  let br = 
  {cblade = n;
   sblade = [0;1];   (* quarter at 0.  "raw" blades: face 0 goes with raw blades 0 & 1. *)
   nonsblade = [];
@@ -96,11 +100,15 @@ let mk_br n =
   shorty4=[];
   longy4=[];
   lpvalue = Lp_unset;
- };;
+  history="";
+ } in
+  let _ = (backup := br ::!backup) in
+  br;;
 
-let modify_br br fields  = 
+let modify_br h br fields  = 
+  let _ = (br.history <- h) in
   let add s vs = nub((get_values s fields) @ vs) in
-{
+  let br' = {
 cblade = br.cblade;
 sblade = add "sblade" br.sblade;
 nonsblade = add "nonsblade" br.nonsblade;
@@ -116,12 +124,15 @@ fullwt = add "fullwt" br.fullwt;
 shorty4 = add "shorty4" br.shorty4;  (* y4 <= 2.1 *)
 longy4 = add "longy4" br.longy4;   (* y4 >= 2.1 *)
 lpvalue = Lp_unset;
-}
+history = "";
+} in
+  let _ = (backup:= br':: !backup) in
+  br'
 ;;
 
 (*
 Example: move 1 into halfwt
-let brx = modify_br (mk_br 4)   ["halfwt",1];;
+let brx = modify_br "" (mk_br 4)   ["halfwt",1];;
 *) 
 
 let ampl_of_br outs br = 
@@ -147,17 +158,10 @@ let ampl_of_br outs br =
 
 let test() = 
   let br = mk_br 4 in
-  let br =  modify_br br  ["qu",1;"qu",2;"negqu",3] in
+  let br =  modify_br "test" br  ["qu",1;"qu",2;"negqu",3] in
     display_ampl tmpfile ampl_of_br br;;
 
 (* manipulations of lpvalue field that don't involve glpsol *)
-
-let set_lpvalue nt (f,r) = (* side effects *)
-  let _ = 
-    if (List.length f > 0) then nt.lpvalue <- Lp_infeasible
-    else if (List.length r = 1) then nt.lpvalue <- Lp_value  (float_of_string(hd r))
-    else nt.lpvalue <- Lp_unset in
-    nt;;
 
 let notdone r = (r < 0.0);;
 
@@ -165,7 +169,7 @@ let select_notdone f brs = (* selects unset and those satisfying f *)
     let fil ro = match ro.lpvalue with
 	Lp_unset -> true
       | Lp_infeasible -> false
-      | Lp_value r -> f r in 
+      | Lp_value (_,r) -> f r in 
       filter fil brs;;
 
 let is_unset br = match br.lpvalue with
@@ -174,13 +178,18 @@ let is_unset br = match br.lpvalue with
 
 let calc_min brs = fold_right
   (fun br x -> match br.lpvalue with
-     |Lp_value y -> min x y
+     |Lp_value (_,y) -> min x y
      |_ -> x
   ) brs 10.0;;
 
 let find_min brs = 
-  let r = Lp_value (calc_min brs) in
-    find (fun br -> r = br.lpvalue) brs;;
+  let t = calc_min brs in
+  (* let r = Lp_value (t) in *)
+    find (fun br -> 
+      match br.lpvalue with
+	|  Lp_value (_,y) -> (y=t)
+	| _ -> false) brs;;
+
 
 (* 
 branching. 
@@ -188,39 +197,39 @@ We fail on the branching if the branch has been made already,
  or if the necessary prior branches have not been followed.
 *)
 
-let branch br ss i  = 
-   map (fun s -> modify_br br [s,i]) ss;;
+let branch h br ss i  = 
+   map (fun s -> modify_br h br [s,i]) ss;;
 
 let branch_sblade i br  =
   let _ = not(mem i br.sblade or mem i br.nonsblade) or failwith "sblade" in
-    branch br ["sblade"; "nonsblade"] i;;
+    branch "sblade" br ["sblade"; "nonsblade"] i;;
 
 let branch_qxd i br  = 
   let _ = mem i br.qx or   failwith "qxd1" in
   let _ = not(mem i br.qxd or mem i br.nonqxd) or failwith "qxd2" in
-      branch br ["qxd";"nonqxd"] i;;
+      branch "qxd" br ["qxd";"nonqxd"] i;;
 
 let branch_negqu i br  =
   let _ =  mem i br.qu or failwith "negqu1" in
   let _ =  not(mem i br.negqu or mem i br.posqu) or failwith "negqu2" in
-     branch br ["negqu";"posqu"] i;;
+     branch "negqu" br ["negqu";"posqu"] i;;
 
 let branch_wt i br  = 
   let _ = mem i br.qx or failwith "wt-qx" in
   let _ = (mem i br.sblade && mem (next br i) br.sblade) or failwith "wt-blade" in
   let _ = not(mem i br.halfwt or mem i br.fullwt) or failwith "wt-set" in
-      branch br ["halfwt";"fullwt"] i;;
+      branch "wt" br ["halfwt";"fullwt"] i;;
 
 let branch_y4 i br = 
   let _ = mem i br.qy or failwith "y4-qy" in
   let _ = (mem i br.sblade && mem (next br i) br.sblade) or failwith "y4-blade" in
-    branch br ["shorty4";"longy4"] i;;
+    branch "y4" br ["shorty4";"longy4"] i;;
 
 let branch_qu i br  = 
   let j = next br i in
   let _ = not(mem i br.qu or mem i br.qx or mem i br.qy) or failwith "qu-set" in
   let _ = not(mem i br.nonsblade or mem j br.nonsblade) or failwith "qu-blade" in
-   modify_br br ["sblade",i;"sblade",j;"qu",i] :: branch br ["qx";"qy"] i;;
+   modify_br "qus" br ["sblade",i;"sblade",j;"qu",i] :: branch "qu" br ["qx";"qy"] i;;
 
 (* (* example *)
 let br = mk_br 3;;
@@ -231,14 +240,42 @@ branch_wt 1 br2;;
 
 (* Link in glpsol linear programming package *) 
 
-let solve_lp br = 
+let load_dual() =
+  let outputf = Flyspeck_lib.load_file "/tmp/output.out" in
+  let output_split = map (Str.split (Str.regexp " +")) outputf in
+  let output_active = filter 
+    (fun xs ->
+       if (List.length xs <3) then false else
+	 let n = List.nth xs 0 in
+	 let t = List.nth xs 2 in
+	 let v = hd (List.rev xs) in
+	   (can int_of_string n && t.[0]='N') && not(v="eps")) output_split in
+  let output_format = map
+    (fun xs -> 
+       (strip_id (List.nth xs 1),List.nth xs 2,
+	float_of_string (hd (List.rev xs)))) 
+    output_active in
+    output_format;;
+
+let set_lpvalue nt (dualdata,(f,r)) = (* side effects *)
+  let _ = 
+    if (List.length f > 0) then nt.lpvalue <- Lp_infeasible
+    else if (List.length r = 1) 
+    then 
+      nt.lpvalue <- Lp_value  (dualdata, float_of_string(hd r))
+    else 
+      nt.lpvalue <- Lp_unset in
+    nt;;
+
+let solve_and_set_lp br = 
   let _ = match br.lpvalue with
-    | Lp_unset -> 
-      (set_lpvalue br 
-	 (Glpk_link.solve_dual_f model dumpfile "gammasum" ampl_of_br br))
+    | Lp_unset -> (* generate dual data as soon as lp is solved *)
+      let fr =  (Glpk_link.solve_dual_f model dumpfile "gammasum" ampl_of_br br) in
+      let dualdata = load_dual() in
+      (set_lpvalue br (dualdata,fr))
     |  _ -> br in
   let _ = report (string_of_lptype br.lpvalue) in
-    br;;
+  br;;
 
 
 (* control flow *)
@@ -247,8 +284,8 @@ let ex0 brancher i brs = (flatten (map (brancher i) brs));;
 
 let ex brancher i brs = 
   let brs' = ex0 brancher i brs in
-  let _ = map set_lpvalue brs' in
-   select_notdone notdone (map solve_lp brs');;
+(*  let _ = map set_lpvalue brs' in *)
+   select_notdone notdone (map solve_and_set_lp brs');;
 
 let top brancher i (br::rest) = (ex brancher i [br]) @ rest;;
 

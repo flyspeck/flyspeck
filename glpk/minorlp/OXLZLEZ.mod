@@ -32,7 +32,8 @@ param hminL:= 1.2317;
 param hminU:= 1.2318;
 param h0:= 1.26;
 param hmax:= 1.3254;
-param sqrt2:= 1.4142135623730951;
+#param sqrt2:= 1.4142135623730951;
+param sqrt2U:= 1.4143;
 param lb := -0.00569;  # quarter lower bound.
 
 # sets.
@@ -78,21 +79,21 @@ set I11 := {(i,j) in BLADE : j in (QX inter HASSMALL) and i in QY};
 
 
 # basic variables
-# (leaves and weights included in gamma variable)
+# (betabump and weights included in gamma variable)
 # gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell. 
 # if gamma > 0.1, then gammasum > 0.1 + 4 *lb > 0.	
 var azim{FACE} >= 0, <= 2*piU;
 var gamma{FACE} >= lb, <= 0.1; #lower 9455898160;  
 var gamma3a{QY} >= 0, <= 0.1;  #lower bound in GLFVCVK.
 var gamma3b{QY} >= 0, <= 0.1;
-var gamma2{QY} >= 0, <= 0.1;
+#var gamma2{QY} >= 0, <= 0.1;
 
 var y1 >= 2 * hminL, <= 2*hmax ; #critical edge
-var y2{FACE} >=2, <= 2*sqrt2;
-var y3{FACE} >=2, <=2*sqrt2;
-var y4{i in QU union QX} >=2, <= 2*sqrt2; 
-var y5{FACE} >=2, <=2*sqrt2;
-var y6{FACE} >=2, <=2*sqrt2;
+var y2{FACE} >=2, <= 2*sqrt2U;
+var y3{FACE} >=2, <=2*sqrt2U;
+var y4{i in QU union QX} >=2, <= 2*sqrt2U; 
+var y5{FACE} >=2, <=2*sqrt2U;
+var y6{FACE} >=2, <=2*sqrt2U;
 
 #report variables
 var gammasum;
@@ -101,12 +102,13 @@ var gammasum;
 minimize objective:  gammasum;
 
 ## equality constraints
-gamma_sum: sum {i in FACE} gamma[i] = gammasum;
+gamma_sum: sum {i in FACE} gamma[i] <= gammasum;
 azim_sumU:  sum {i in FACE} azim[i] <= 2.0*piU;
 azim_sumL:  sum {i in FACE} azim[i] >= 2.0*piL;
 y2y3{(i1,i2) in BLADE}: y3[i1] = y2[i2];
 y5y6{(i1,i2) in BLADE}: y5[i1]=  y6[i2];
-gamma23{i in QY}: gamma2[i]+gamma3a[i]+gamma3b[i]=gamma[i];
+#gamma23{i in QY}: gamma2[i]+gamma3a[i]+gamma3b[i]=gamma[i];
+gamma2{i in QY}: gamma3a[i]+gamma3b[i]<=gamma[i];
 
 
 ##inequalities by definition of branch.

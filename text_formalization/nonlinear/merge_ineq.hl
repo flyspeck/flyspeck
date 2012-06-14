@@ -35,6 +35,8 @@ module Merge_ineq = struct
 
   open Hales_tactic;;
 
+  let CALC_ID_TAC = Calc_derivative.CALC_ID_TAC;;
+
 (* ========================================================================== *)
 (* Merge ineqdata3q1h.hl into a single inequality *)
 (* ========================================================================== *)
@@ -486,7 +488,7 @@ let ox3q1h_merge = prove_by_refinement(
   (* }}} *)
 
 (* ========================================================================== *)
-(* Merge sol_x, sol_euler_x,  sol_euler_x_div_sqrtdelta etc.  *)
+(* Prove Ineq.TSKAJXY_DERIVED.ineq from the nonlinear inequalities            *)
 (* ========================================================================== *)
 
 
@@ -505,6 +507,29 @@ let pi2_sub_atn2 = prove_by_refinement(
   (* {{{ proof *)
   [
     ASM_MESON_TAC[Trigonometry1.ATN2_BREAKDOWN]
+  ]);;
+  (* }}} *)
+
+
+ let ups_x_pos24 = prove_by_refinement(
+  `!a b c. &2 <= a /\ a < &4 /\ &2 <= b /\ b < &4 /\ &2 <= c /\ c < &4 ==> &0 < ups_x (a pow 2) (b pow 2) (c pow 2)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[arith `a pow 2 = a * a`];
+  MATCH_MP_TAC Ysskqoy.TRI_UPS_X_STRICT_POS;
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  (BY(ASM_REAL_ARITH_TAC))
+  ]);;
+  (* }}} *)
+
+let sqrtpow2 = prove_by_refinement(
+  `!x. &0 <= x ==> sqrt x * sqrt x = x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (ISPEC `&0` Nonlinear_lemma.sq_pow2);
+  BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 
@@ -1205,5 +1230,211 @@ let GDRQXLGv2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let tsk_hyp =  
+  let  tsk_nonlinear = map (fun t -> t.ineq) (Ineq.getprefix "TSK") in
+    end_itlist (curry mk_conj) tsk_nonlinear;;
+
+(*
+let tsk_concl = Ineq.TSKAJXY_DERIVED.ineq;;
+
+let tsk = mk_imp(tsk_hyp,tsk_concl);;
+*)
+
+let tsk_lemma1 = prove_by_refinement(
+  (mk_imp(tsk_hyp,`!y1 y2 y3 y4 y5 y6.
+		    ineq [#2.8,y1,sqrt8; 
+			  &2,y2,#2.01; 
+			  &2,y3,#2.01;
+			  #2.8,y4,sqrt8;
+			  &2,y5,#2.01;
+			  &2,y6,#2.01]
+		    (&0 <  delta_y y1 y2 y3 y4 y5 y6 ==>
+		    gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun >= &0)`)),		    
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `delta_x4` MP_TAC);
+  REPEAT (FIRST_X_ASSUM_ST `eulerA_x` MP_TAC);
+  REPEAT (FIRST_X_ASSUM_ST `mm1` MP_TAC);
+  REPEAT (FIRST_X_ASSUM (fun t -> ALL_TAC));
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `y1 = sqrt (y1 * y1) /\ y2 = sqrt(y2 * y2) /\ y3 = sqrt(y3 * y3) /\ y4 = sqrt (y4 * y4) /\ y5 = sqrt(y5 *y5) /\ y6 = sqrt(y6 * y6)` (fun t -> ONCE_REWRITE_TAC[t]);
+    REPEAT (GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC gamma4fgcy_div_sqrtdelta;
+  REPEAT (GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx);
+  REWRITE_TAC[Collect_geom2.REAL_POSSQ];
+  REWRITE_TAC[GSYM CONJ_ASSOC];
+  REPLICATE_TAC 18 (CONJ_TAC THENL [(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[Sphere.h0] THEN MP_TAC Flyspeck_constants.bounds THEN REAL_ARITH_TAC);ALL_TAC]);
+  REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[arith `y1 pow 2 = y1 * y1`] ups_x_pos24));
+  REPLICATE_TAC 4 (CONJ_TAC THENL [(REPEAT (FIRST_X_ASSUM MP_TAC) THEN MP_TAC Flyspeck_constants.bounds THEN REAL_ARITH_TAC);ALL_TAC]);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REPLICATE_TAC 3 DISCH_TAC;
+  REWRITE_TAC[TAUT `(a <= y ==> y <= b ==> c) <=> (a <= y /\ y <= b) ==> c`];
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  EVERY (map SPEC_TAC [(`y6:real`,`y6:real`);(`y5:real`,`y5:real`);(`y4:real`,`y4:real`);(`y3:real`,`y3:real`);(`y2:real`,`y2:real`);(`y1:real`,`y1:real`)]);
+  MATCH_MP_TAC Nonlinear_lemma.ineq_square2;
+  (CONJ_TAC THENL [(REPEAT (FIRST_X_ASSUM MP_TAC) THEN MP_TAC Flyspeck_constants.bounds THEN REAL_ARITH_TAC);ALL_TAC]);
+  REWRITE_TAC[Sphere.delta_y;Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT (GMATCH_SIMP_TAC sqrtpow2);
+  REPLICATE_TAC 6 (CONJ_TAC THENL [(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);ALL_TAC]);
+  SUBGOAL_THEN `delta_x4 x3 x1 x2 x6 x4 x5 = delta_x4 x3 x2 x1 x6 x5 x4 /\ delta_x4 x6 x1 x5 x3 x4 x2 = delta_x4 x6 x5 x1 x3 x2 x4` (fun t -> REWRITE_TAC[t]);
+    BY(REWRITE_TAC[Sphere.delta_x4] THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM_ST `delta_x4` MP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  DISCH_THEN (fun t -> REPEAT (GMATCH_SIMP_TAC t));
+  ASM_REWRITE_TAC[];
+  REPLICATE_TAC 12 (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[REWRITE_RULE[arith `x * x = x pow 2`] Nonlinear_lemma.sqrt8_2];
+  REWRITE_TAC[arith `#8.0 = &8 /\ &2 pow 2 = &4`];
+  REPLICATE_TAC 12 (DISCH_TAC);
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `eulerA_x` MP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  SUBGOAL_THEN `eulerA_x x5 x3 x4 x2 x6 x1 = eulerA_x x4 x3 x5 x1 x6 x2 /\ eulerA_x x6 x1 x5 x3 x4 x2 = eulerA_x x1 x5 x6 x4 x2 x3` (fun t-> REWRITE_TAC[t]);
+    REWRITE_TAC[Sphere.eulerA_x];
+    BY(REAL_ARITH_TAC);
+  DISCH_THEN (fun t -> REPEAT(GMATCH_SIMP_TAC t));
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `a >= b <=> b <= a`];
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  CONJ_TAC;
+    MATCH_MP_TAC SQRT_POS_LE;
+    BY((FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `b <= a <=> a >= b`];
+  FIRST_X_ASSUM MP_TAC;
+  MATCH_MP_TAC (arith `(f >= &0 \/ d < &0) ==> (&0 < d ==> f >= &0)`);
+  FIRST_X_ASSUM_ST `mm1` MP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  DISCH_THEN (GMATCH_SIMP_TAC);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let specl x = concl o (SPECL x) o ASSUME;;
+
+(* THIS APPROACH TO PROVING REAL_WLOG_SIMPLEX CRASHES OCAML ---
+let real_ty = `:real`;;
+let mk_y i = mk_var("y"^string_of_int i,real_ty);;
+
+let [y1;y2;y3;y4;y5;y6] = map mk_y (1--6);;
+
+let simplex_orders = 
+  [[y1;y2;y3;y4;y5;y6];[y1;y3;y2;y4;y6;y5];[y1;y5;y6;y4;y2;y3];[y1;y6;y5;y4;y3;y2];
+   [y2;y1;y3;y5;y4;y6];[y2;y3;y1;y5;y6;y4];[y2;y4;y6;y5;y1;y3];[y2;y6;y4;y5;y3;y1];
+   [y3;y1;y2;y6;y4;y5];[y3;y2;y1;y6;y5;y4];[y3;y4;y5;y6;y1;y2];[y3;y5;y4;y6;y2;y1];
+   [y4;y2;y6;y1;y5;y3];[y4;y3;y5;y1;y6;y2];[y4;y5;y3;y1;y2;y6];[y4;y6;y2;y1;y3;y5];
+   [y5;y1;y6;y2;y4;y3];[y5;y3;y4;y2;y6;y1];[y5;y4;y3;y2;y1;y6];[y5;y6;y1;y2;y3;y4];
+   [y6;y1;y5;y3;y4;y2];[y6;y2;y4;y3;y5;y1];[y6;y4;y2;y3;y1;y5];[y6;y5;y1;y3;y2;y4]];;
+
+let symtt = 
+  let symt = `!y1 y2 y3 y4 y5 y6. (y6 <= y1) /\ (y5 <= y1) /\ (y4 <= y1) /\
+       (y3 <= y1) /\ (y2 <= y1) /\ (y6 <= y2) /\ (y5 <= y2) /\ (y3 <= y2)` in
+  let cs = map (fun t -> specl t symt) simplex_orders in
+    end_itlist (curry  mk_disj) cs;;
+
+let SYM_CASES = time REAL_ARITH symtt;;  (* THIS IS THE KILLER LINE *)
+*)
+
+
+
+let (* Packing3. *) REAL_FINITE_MAX_EXISTS = 
+prove(`!S:real->bool. FINITE S /\ ~(S = {}) ==> ?m. m IN S /\ (!x. x IN S ==> x <= m)`,
+		MESON_TAC[SUP_FINITE]);;
+
+
+let REAL_WLOG_SIMPLEX_LEMMA = prove_by_refinement(
+  `!P. (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y2 y1 y3 y5 y4 y6 /\
+     P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5 /\
+      P y1 y2 y3 y4 y5 y6 = P y5 y4 y3 y2 y1 y6) /\
+    (!y1 y2 y3 y4 y5 y6. (y6 <= y1) /\ (y5 <= y1) /\ (y4 <= y1) /\
+       (y3 <= y1) /\ (y2 <= y1)  ==>
+       P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `?a.  a IN {y1,y2,y3,y4,y5,y6} /\ (!x. x IN {y1,y2,y3,y4,y5,y6} ==> x <= a)` MP_TAC;
+    MATCH_MP_TAC REAL_FINITE_MAX_EXISTS;
+    BY(REWRITE_TAC[ FINITE_INSERT ; FINITE_EMPTY;NOT_INSERT_EMPTY]);
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+  REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+  REWRITE_TAC[MESON[] `(!x. x = y1 \/ x = y2 \/ x = y3 \/ x = y4 \/ x = y5 \/ x = y6 ==> x <= a) = (y1 <= a /\ y2 <= a /\ y3 <= a /\ y4 <= a /\ y5 <= a /\ y6 <= a)`];
+  BY(DISCH_THEN STRIP_ASSUME_TAC THEN ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let REAL_WLOG_SIMPLEX_SYM = prove_by_refinement(
+  `!P. (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y2 y1 y3 y5 y4 y6 /\
+     P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5 /\
+      P y1 y2 y3 y4 y5 y6 = P y5 y4 y3 y2 y1 y6) ==>
+    ((!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5) /\
+    (!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y6 y5 y4 y3 y2))`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let REAL_WLOG_SIMPLEX_LEMMA2 = prove_by_refinement(
+  `!P (y1:real) (y4:real). 
+    ((!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5) /\
+    (!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y6 y5 y4 y3 y2))
+    /\
+    (! y2 y3  y5 y6. (y3 <= y2) /\ (y5 <= y2) /\ (y6 <= y2) ==>
+       P y1 y2 y3 y4 y5 y6) ==>
+    (!y2 y3  y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `?a.  a IN {y2,y3,y5,y6} /\ (!x. x IN {y2,y3,y5,y6} ==> x <= a)` MP_TAC;
+    MATCH_MP_TAC REAL_FINITE_MAX_EXISTS;
+    BY(BY(BY(REWRITE_TAC[ FINITE_INSERT ; FINITE_EMPTY;NOT_INSERT_EMPTY])));
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+  REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+  REWRITE_TAC[MESON[] `(!x. x = y1 \/ x = y2 \/ x = y3 \/ x = y4 \/ x = y5 \/ x = y6 ==> x <= a) = (y1 <= a /\ y2 <= a /\ y3 <= a /\ y4 <= a /\ y5 <= a /\ y6 <= a)`];
+  BY(BY(BY(DISCH_THEN STRIP_ASSUME_TAC THEN ASM_MESON_TAC[])))
+  ]);;
+  (* }}} *)
+
+let REAL_WLOG_SIMPLEX = prove_by_refinement(
+  `!P. (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y2 y1 y3 y5 y4 y6 /\
+     P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5 /\
+      P y1 y2 y3 y4 y5 y6 = P y5 y4 y3 y2 y1 y6) /\
+    (!y1 y2 y3 y4 y5 y6. (y6 <= y1) /\ (y5 <= y1) /\ (y4 <= y1) /\
+       (y3 <= y1) /\ (y2 <= y1) /\ (y3 <= y2) /\ (y5 <= y2) /\ (y6 <= y2)  ==>
+       P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_SIMPLEX_LEMMA;
+  ASM_REWRITE_TAC[];
+  REPEAT GEN_TAC;
+  SUBGOAL_THEN `(y6 <= y1 /\ y5 <= y1 /\ y4 <= y1 /\ y3 <= y1 /\ y2 <= y1  ==> P y1 y2 y3 y4 y5 y6) = (\y1 y2 y3 y4 y5 y6. y6 <= y1 /\ y5 <= y1 /\ y4 <= y1 /\ y3 <= y1 /\ y2 <= y1  ==> P y1 y2 y3 y4 y5 y6) y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+    BY(MESON_TAC[]);
+  EVERY (map SPEC_TAC [(`y6:real`,`y6:real`);(`y5:real`,`y5:real`);(`y3:real`,`y3:real`);(`y2:real`,`y2:real`)]);
+  ABBREV_TAC `Q = (\y1 y2 y3 y4 y5 y6.          y6 <= y1 /\ y5 <= y1 /\ y4 <= y1 /\ y3 <= y1 /\ y2 <= y1          ==> P y1 y2 y3 y4 y5 y6)`;
+  MATCH_MP_TAC REAL_WLOG_SIMPLEX_LEMMA2;
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM (fun t -> ASSUME_TAC (MATCH_MP REAL_WLOG_SIMPLEX_SYM t));
+    EXPAND_TAC "Q";
+    BY(ASM_MESON_TAC[]);
+  EXPAND_TAC "Q";
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
 
  end;;

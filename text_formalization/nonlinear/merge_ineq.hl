@@ -1449,4 +1449,264 @@ let REAL_WLOG_SIMPLEX = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
+let rad2_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    rad2_x x1 x2 x3 x4 x5 x6 = rad2_x x2 x1 x3 x5 x4 x6 /\
+    rad2_x x1 x2 x3 x4 x5 x6 = rad2_x x1 x3 x2 x4 x6 x5 /\
+    rad2_x x1 x2 x3 x4 x5 x6 = rad2_x x5 x4 x3 x2 x1 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rad2_x];
+  REPEAT WEAK_STRIP_TAC;
+  BY(REPEAT CONJ_TAC THEN BINOP_TAC THEN REWRITE_TAC[Sphere.rho_x;Sphere.delta_x] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rad2_y_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    rad2_y x1 x2 x3 x4 x5 x6 = rad2_y x2 x1 x3 x5 x4 x6 /\
+    rad2_y x1 x2 x3 x4 x5 x6 = rad2_y x1 x3 x2 x4 x6 x5 /\
+    rad2_y x1 x2 x3 x4 x5 x6 = rad2_y x5 x4 x3 x2 x1 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rad2_y;Sphere.y_of_x];
+  BY(MESON_TAC[rad2_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    delta_x x1 x2 x3 x4 x5 x6 = delta_x x2 x1 x3 x5 x4 x6 /\
+    delta_x x1 x2 x3 x4 x5 x6 = delta_x x1 x3 x2 x4 x6 x5 /\
+    delta_x x1 x2 x3 x4 x5 x6 = delta_x x5 x4 x3 x2 x1 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_x];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_y_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    delta_y x1 x2 x3 x4 x5 x6 = delta_y x2 x1 x3 x5 x4 x6 /\
+    delta_y x1 x2 x3 x4 x5 x6 = delta_y x1 x3 x2 x4 x6 x5 /\
+    delta_y x1 x2 x3 x4 x5 x6 = delta_y x5 x4 x3 x2 x1 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_y;Sphere.delta_x];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let ineq_critical_edge = prove_by_refinement(
+  `!u v y f.
+    ~critical_edge_y y /\
+    ineq (APPEND u (CONS (&2,y,&2 * hminus) v)) f /\
+    ineq (APPEND u (CONS (&2 * hplus,y,sqrt8) v)) f ==>
+    ineq (APPEND u (CONS (&2,y,sqrt8) v)) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq_APPEND;Pack_defs.critical_edge_y];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `&2 <= y /\ y <= sqrt8 ==> y <= &2 * hminus \/ &2 * hplus <= y` ASSUME_TAC;
+    FIRST_X_ASSUM_ST `~` MP_TAC;
+    REWRITE_TAC[Sphere.hplus];
+    MP_TAC Nonlinear_lemma.hminus_prop;
+    BY(REAL_ARITH_TAC);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  BY(ASM_CASES_TAC `&2 <= y` THEN ASM_CASES_TAC `y <= sqrt8` THEN ASM_CASES_TAC `y <= &2 * hminus` THEN ASM_CASES_TAC `&2 * hplus <= y` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let ineq_branch_edge = prove_by_refinement(
+  `!c a b u v y f. 
+     ineq (APPEND u (CONS (a,y,c) v)) f /\
+    ineq (APPEND u (CONS (c,y,b) v)) f ==>
+    ineq (APPEND u (CONS (a,y,b) v)) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq_APPEND];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  ASSUME_TAC (arith  `y <= c \/ c <= y`);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  BY(ASM_CASES_TAC `a <= y` THEN ASM_CASES_TAC `y <= b` THEN ASM_CASES_TAC `y <= c` THEN ASM_CASES_TAC `c <= y` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let BRANCH_TAC n c = 
+  CHOP_LIST_TAC n THEN
+    MATCH_MP_TAC (SPEC c ineq_branch_edge)
+    THEN REWRITE_TAC[APPEND];;
+
+let CRIT_TAC n  = 
+  CHOP_LIST_TAC n THEN
+    MATCH_MP_TAC ( ineq_critical_edge)
+    THEN ASM_REWRITE_TAC[APPEND];;
+
+let hminus_lt_hplus = prove_by_refinement(
+  `&2 * hminus < &2 * hplus`,
+  (* {{{ proof *)
+  [
+  ASM_MESON_TAC[arith `x < h0 /\ h0 < y ==> &2 * x < &2 * y` ; Nonlinear_lemma.hminus_lt_h0;Nonlinear_lemma.h0_lt_hplus;]
+  ]);;
+  (* }}} *)
+
+let y1y2_lt = prove_by_refinement(
+  `!y1 y2. y1 <= &2 * hminus /\ &2 * hplus <= y2 ==> ~(y2 <= y1)`,
+  (* {{{ proof *)
+  [
+  MP_TAC hminus_lt_hplus THEN REAL_ARITH_TAC
+  ]);;
+  (* }}} *)
+
+let real_ty = `:real`;;
+let mk_y i = mk_var("y"^string_of_int i,real_ty);;
+let ys = map mk_y (1--6);;
+let [y1;y2;y3;y4;y5;y6] = ys;;
+
+
+
+let TSKAJXY_DERIVED4 = prove_by_refinement(
+   tsk,
+  (* {{{ proof *)
+  [
+  REPEAT DISCH_TAC;
+  MP_TAC tsk_lemma1;
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_SIMPLEX;
+  REPEAT STRIP_TAC;
+        REWRITE_TAC[Sphere.ineq];
+        BY(MESON_TAC[delta_y_sym;rad2_y_sym;gamma4fgcy_sym12]);
+      REWRITE_TAC[Sphere.ineq];
+      BY(MESON_TAC[delta_y_sym;rad2_y_sym;gamma4fgcy_sym23]);
+    REWRITE_TAC[Sphere.ineq];
+    BY(MESON_TAC[delta_y_sym;rad2_y_sym;gamma4fgcy_sym03]);
+  REWRITE_TAC[Sphere.ineq];
+  REPLICATE_TAC 6 DISCH_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  REPLICATE_TAC 6 (FIRST_X_ASSUM_ST `/\` MP_TAC);
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM (BURY_TAC);
+  FIRST_X_ASSUM_ST `ineq` (BURY_TAC);
+  FIRST_X_ASSUM_ST `ineq` MP_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `rad2_x` MP_TAC;
+  REWRITE_TAC[GSYM Sphere.rad2_y];
+  DISCH_THEN BURY_TAC;
+  FIRST_X_ASSUM_ST `mm1` (K ALL_TAC);
+  FIRST_X_ASSUM_ST `~ineq a b` MP_TAC;
+  REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[arith `#2.0 = &2`];
+  REPEAT WEAK_STRIP_TAC;
+  CRIT_TAC 0;
+  CONJ_TAC;
+    CRIT_TAC 1;
+    ONCE_REWRITE_TAC[ (CONJ_SYM)];
+    CONJ_TAC;
+      REWRITE_TAC[Sphere.ineq];
+      BY(ASM_MESON_TAC[y1y2_lt]);
+    CRIT_TAC 2;
+    ONCE_REWRITE_TAC[CONJ_SYM];
+    CONJ_TAC;
+      BY(REWRITE_TAC[Sphere.ineq] THEN ASM_MESON_TAC[y1y2_lt]);
+    CRIT_TAC 4;
+    ONCE_REWRITE_TAC[CONJ_SYM];
+    CONJ_TAC;
+      BY(REWRITE_TAC[Sphere.ineq] THEN ASM_MESON_TAC[y1y2_lt]);
+    CRIT_TAC 5;
+    ONCE_REWRITE_TAC[CONJ_SYM];
+    CONJ_TAC;
+      BY(REWRITE_TAC[Sphere.ineq] THEN ASM_MESON_TAC[y1y2_lt]);
+    BRANCH_TAC 0 `#2.001`;
+    ONCE_REWRITE_TAC[CONJ_SYM];
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `(#2.001,y,t)` (fun t -> MP_TAC (ISPECL ys t));
+      ASM_SIMP_TAC[arith `b <= a ==> ~(a < b)`];
+      REWRITE_TAC[Sphere.ineq];
+      REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+      BY(REAL_ARITH_TAC);
+    FIRST_X_ASSUM_ST `(&2,y,#2.001)` (fun t -> MP_TAC(ISPECL ys t));
+    REWRITE_TAC[Sphere.ineq];
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  CRIT_TAC 1;
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `rad2_y` MP_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    DISCH_THEN (fun t -> MP_TAC (ISPECL ys t));
+    BY(REAL_ARITH_TAC);
+  CRIT_TAC 2;
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `rad2_y` MP_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    DISCH_THEN (fun t -> MP_TAC (ISPECL [y1;y3;y2;y4;y6;y5] t));
+    SUBGOAL_THEN `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(MESON_TAC[rad2_y_sym]);
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  CRIT_TAC 4;
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `rad2_y` MP_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    DISCH_THEN (fun t -> MP_TAC (ISPECL [y1;y5;y6;y4;y2;y3] t));
+    SUBGOAL_THEN `rad2_y y1 y5 y6 y4 y2 y3 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(MESON_TAC[rad2_y_sym]);
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  CRIT_TAC 5;
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `rad2_y` MP_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    DISCH_THEN (fun t -> MP_TAC (ISPECL [y1;y6;y5;y4;y3;y2] t));
+    SUBGOAL_THEN `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(MESON_TAC[rad2_y_sym]);
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  CRIT_TAC 3;
+  FIRST_X_ASSUM_ST `ineq (CONS (&2,y,#2.001) v) u` (K ALL_TAC);
+  FIRST_X_ASSUM_ST `ineq (CONS (#2.001,y1,&2*hminus) v) u` (K ALL_TAC);
+  CONJ_TAC;
+    BRANCH_TAC 1 `#2.001`;
+    ONCE_REWRITE_TAC[CONJ_SYM];
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `#2.001` (fun t -> MP_TAC ( ISPECL ys t));
+      BY(ASM_SIMP_TAC[arith `b <= a ==> ~(a < b)`]);
+    FIRST_X_ASSUM_ST `(a,b,#2.001)` (MP_TAC o (ISPECL ys));
+    REWRITE_TAC[Sphere.ineq];
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  REPEAT (FIRST_X_ASSUM_ST `#2.001` (K ALL_TAC));
+  BRANCH_TAC 1 `#2.01`;
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `(#2.01,a,b)` (MP_TAC o (ISPECL ys));
+    ASM_SIMP_TAC[arith `b <= a ==> ~(a < b)`];
+    REWRITE_TAC[Sphere.ineq];
+    BY(REAL_ARITH_TAC);
+  BRANCH_TAC 3 `#2.8`;
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `(a,b,#2.8)` (MP_TAC o (ISPECL ys));
+    REWRITE_TAC[Sphere.ineq];
+    REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  FIRST_X_ASSUM_ST `(#2.8,a,b)` (MP_TAC o (ISPECL ys));
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
+  REWRITE_TAC[Sphere.ineq];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
  end;;

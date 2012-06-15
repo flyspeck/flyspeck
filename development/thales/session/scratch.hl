@@ -13,10 +13,32 @@ open Hales_tactic;;
 
 let CALC_ID_TAC = Calc_derivative.CALC_ID_TAC;;
 
-module test = struct
+module Test = struct
   open Sphere;;
   open Ineq;;
+add
+  {
+    idv= "TSKAJXY-XLLIPLS";
+    ineq = (all_forall `ineq
+	      [ 
+		(&2 * hplus,y1,sqrt8);
+		(#2.0,y2,#2.01);
+		(#2.0,y3,#2.01);
+		(&2 * hplus,y4,#2.8);
+		(#2.0,y5,#2.01);
+		(#2.0,y6,#2.01)
+	      ]
+	      ((gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0) )`);
+    doc=      "If a simplex does not have any critical edges then it is non-negative.
+     Case y1,y4 long,  y1 <= 2.8, and all other edges at most 2.01.
+     Swapped upper bounds on y1,y4 on 2012-06-15. This form is equivalent,
+     but easier to use.
+     ";
+     tags=[Marchal;Flypaper["OXLZLEZ";"TSKAJXY";];Tex;Branching;Cfsqp;Xconvert;];
+  };;
 end;;
+
+Ineq.remove "TSKAJXY-IYOUOBF sharp";;
 
 let rad2_x_sym = prove_by_refinement(
   `!x1 x2 x3 x4 x5 x6.
@@ -68,6 +90,8 @@ let delta_y_sym = prove_by_refinement(
   (* }}} *)
 
 Merge_ineq.gamma4fgcy_sym03;;
+
+
 let tsk_hyp = Merge_ineq.tsk_hyp;;
 
 let tsk_concl = Ineq.TSKAJXY_DERIVED.ineq;;
@@ -142,6 +166,10 @@ let y1y2_lt = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let real_ty = `:real`;;
+let mk_y i = mk_var("y"^string_of_int i,real_ty);;
+let ys = map mk_y (1--6);;
+let [y1;y2;y3;y4;y5;y6] = ys;;
 
 g(tsk);;
 
@@ -202,15 +230,87 @@ rt[Sphere.ineq] then amt[y1y2_lt]
 BRANCH_TAC 0 `#2.001`
 ort[CONJ_SYM]
 conj
-fxast `(#2.001,y,t)` mptac
+fxast `(#2.001,y,t)` (fun t -> mptac (specl ys t))
+asimp[arith `b <= a ==> ~(a < b)`]
 rt[Sphere.ineq]
-rt[TAUT `(a ==> g \/ h) = (a ==> ~h ==> g)`]
+repeat (fxast `y <= x` mptac)
+rat
+fxast `(&2,y,#2.001)` (fun t -> mptac(specl ys t))
+rt[Sphere.ineq]
+repeat (fxast `y <= x` mptac)
+rat
+(* 1 *)
+CRIT_TAC 1
+ort[CONJ_SYM]
+conj
+repeat (fxast `rad2_y` mptac)
+rt[Sphere.ineq]
+dthen (fun t -> mptac (specl ys t))
+rat
+CRIT_TAC 2
+ort[CONJ_SYM]
+conj
+repeat (fxast `rad2_y` mptac)
+rt[Sphere.ineq]
+dthen (fun t -> mptac (specl [y1;y3;y2;y4;y6;y5] t))
+sgth `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+repeat (fxast `y <= x` mptac)
+rat
 
-mmp (arith `x > y ==> x >=y`)
-(* to here *)
+CRIT_TAC 4
+ort[CONJ_SYM]
+conj
+repeat (fxast `rad2_y` mptac)
+rt[Sphere.ineq]
+dthen (fun t -> mptac (specl [y1;y5;y6;y4;y2;y3] t))
+sgth `rad2_y y1 y5 y6 y4 y2 y3 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+repeat (fxast `y <= x` mptac)
+rat
 
+CRIT_TAC 5
+ort[CONJ_SYM]
+conj
+repeat (fxast `rad2_y` mptac)
+rt[Sphere.ineq]
+dthen (fun t -> mptac (specl [y1;y6;y5;y4;y3;y2] t))
+sgth `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+repeat (fxast `y <= x` mptac)
+rat
 
-dischthen (fun t -> rep 6 dischtac then mmp (arith `x > y ==> x >=y`) then mmp t )
+CRIT_TAC 3  (* quarters *)
+fxast `ineq (CONS (&2,y,#2.001) v) u` (K ALL_TAC)
+fxast `ineq (CONS (#2.001,y1,&2*hminus) v) u` (K ALL_TAC)
+conj
+BRANCH_TAC 1 `#2.001`
+ort[CONJ_SYM]
+conj
+fxast `#2.001` (fun t -> mptac ( specl ys t))
+asimp[arith `b <= a ==> ~(a < b)`]
+
+(* sharp quarters *)
+fxast `(a,b,#2.001)` (mptac o (specl ys))
+rt[Sphere.ineq]
+repeat (fxast `y <= x` mptac)
+rat
+repeat (fxast `#2.001` (K ALL_TAC))
+(* flats *)
+BRANCH_TAC 1 `#2.01`
+ort[CONJ_SYM]
+conj
+fxast `(#2.01,a,b)` (mptac o (specl ys))
+asimp[arith `b <= a ==> ~(a < b)`]
+rt[Sphere.ineq]
+rat
+BRANCH_TAC 3 `#2.8`
+conj
+fxast `(a,b,#2.8)` (mptac o (specl ys))
+rt[Sphere.ineq]
+repeat (fxast `y <= x` mptac)
+rat
+fxast `(#2.8,a,b)` (mptac o (specl ys))
   ]);;
   (* }}} *)
 

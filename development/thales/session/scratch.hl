@@ -73,12 +73,78 @@ let tsk_hyp = Merge_ineq.tsk_hyp;;
 let tsk_concl = Ineq.TSKAJXY_DERIVED.ineq;;
 
 let tsk = mk_imp(tsk_hyp,tsk_concl);;
-g(tsk);;
 
 open Merge_ineq;;
 
 
 help "LABEL_TAC";;
+
+let ineq_critical_edge = prove_by_refinement(
+  `!u v y f.
+    ~critical_edge_y y /\
+    ineq (APPEND u (CONS (&2,y,&2 * hminus) v)) f /\
+    ineq (APPEND u (CONS (&2 * hplus,y,sqrt8) v)) f ==>
+    ineq (APPEND u (CONS (&2,y,sqrt8) v)) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq_APPEND;Pack_defs.critical_edge_y];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `&2 <= y /\ y <= sqrt8 ==> y <= &2 * hminus \/ &2 * hplus <= y` ASSUME_TAC;
+    FIRST_X_ASSUM_ST `~` MP_TAC;
+    REWRITE_TAC[Sphere.hplus];
+    MP_TAC Nonlinear_lemma.hminus_prop;
+    BY(REAL_ARITH_TAC);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  BY(ASM_CASES_TAC `&2 <= y` THEN ASM_CASES_TAC `y <= sqrt8` THEN ASM_CASES_TAC `y <= &2 * hminus` THEN ASM_CASES_TAC `&2 * hplus <= y` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let ineq_branch_edge = prove_by_refinement(
+  `!c a b u v y f. 
+     ineq (APPEND u (CONS (a,y,c) v)) f /\
+    ineq (APPEND u (CONS (c,y,b) v)) f ==>
+    ineq (APPEND u (CONS (a,y,b) v)) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq_APPEND];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  ASSUME_TAC (arith  `y <= c \/ c <= y`);
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  BY(ASM_CASES_TAC `a <= y` THEN ASM_CASES_TAC `y <= b` THEN ASM_CASES_TAC `y <= c` THEN ASM_CASES_TAC `c <= y` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let BRANCH_TAC n c = 
+  CHOP_LIST_TAC n THEN
+    MATCH_MP_TAC (SPEC c ineq_branch_edge)
+    THEN REWRITE_TAC[APPEND];;
+
+let CRIT_TAC n  = 
+  CHOP_LIST_TAC n THEN
+    MATCH_MP_TAC ( ineq_critical_edge)
+    THEN ASM_REWRITE_TAC[APPEND];;
+
+let hminus_lt_hplus = prove_by_refinement(
+  `&2 * hminus < &2 * hplus`,
+  (* {{{ proof *)
+  [
+  ASM_MESON_TAC[arith `x < h0 /\ h0 < y ==> &2 * x < &2 * y` ; Nonlinear_lemma.hminus_lt_h0;Nonlinear_lemma.h0_lt_hplus;]
+  ]);;
+  (* }}} *)
+
+let y1y2_lt = prove_by_refinement(
+  `!y1 y2. y1 <= &2 * hminus /\ &2 * hplus <= y2 ==> ~(y2 <= y1)`,
+  (* {{{ proof *)
+  [
+  MP_TAC hminus_lt_hplus THEN REAL_ARITH_TAC
+  ]);;
+  (* }}} *)
+
+
+g(tsk);;
+
 
 let TSKAJXY_DERIVED4 = prove_by_refinement(
    tsk,
@@ -101,17 +167,71 @@ st/r
 rep 6 (fxast `/\` mptac)
 REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6]
 contr
-fxa (LABEL_TAC "goal")
 fxa (BURY_TAC)
 fxast `ineq` mptac
 st/r
-fxast `ineq` mptac
+fxast `rad2_x` mptac
 rt[GSYM Sphere.rad2_y]
-dthen (LABEL_TAC "rad")
+dischthen BURY_TAC
+fxast `mm1` (K ALL_TAC)
+fxast `~ineq a b` mptac
+rt[]
+repeat (fxa mptac)
+rt[arith `#2.0 = &2`]
+st/r
+(* split y1 *)
+CRIT_TAC 0;
+conj
+CRIT_TAC 1;
+ort[ (CONJ_SYM)]
+conj
+rt[Sphere.ineq]
+amt[y1y2_lt]
+CRIT_TAC 2;
+ort[CONJ_SYM]
+conj 
+rt[Sphere.ineq] then amt[y1y2_lt]
+CRIT_TAC 4;
+ort[CONJ_SYM]
+conj 
+rt[Sphere.ineq] then amt[y1y2_lt]
+CRIT_TAC 5;
+ort[CONJ_SYM]
+conj 
+rt[Sphere.ineq] then amt[y1y2_lt]
+BRANCH_TAC 0 `#2.001`
+ort[CONJ_SYM]
+conj
+fxast `(#2.001,y,t)` mptac
+rt[Sphere.ineq]
+rt[TAUT `(a ==> g \/ h) = (a ==> ~h ==> g)`]
+
+mmp (arith `x > y ==> x >=y`)
+(* to here *)
+
+
+dischthen (fun t -> rep 6 dischtac then mmp (arith `x > y ==> x >=y`) then mmp t )
+  ]);;
+  (* }}} *)
+
+repeat (fxast `y <= x` mptac)
+CONJ_SYM;;
+searcht 5 [`hminus < hplus`];;
+q;;
+(*
+
+
+(* do some preprocessing of assumptions.  Not a good idea. It depends
+on ordering of assumptiosn. *)
+
+fxast `ineq` mptac
+st/r
+fxast `ineq` mptac
+
+dt
 fxa BURY_TAC
 fxast `ineq` mptac
-dthen (LABEL_TAC "qrtet001")
-fxast `ineq` BURY_TAC
+dischthen BURY_TAC
 fxast `ineq` mptac
 rt[NOT_FORALL_THM]
 et `y1:real`;
@@ -121,9 +241,39 @@ et `y4:real`;
 et `y5:real`;
 et `y6:real`;
 asimp[arith `a <= b ==> ~(b < a)`]
-  ]);;
-  (* }}} *)
+dischthen BURY_TAC
+fxast `ineq` mptac
+rt[NOT_FORALL_THM]
+et `y1:real`;
+et `y2:real`;
+et `y3:real`;
+et `y4:real`;
+et `y5:real`;
+et `y6:real`;
+asimp[arith `a <= b ==> ~(b < a)`]
+dischthen BURY_TAC
+fxa BURY_TAC 
+fxast `ineq` mptac
+rt[NOT_FORALL_THM]
+et `y1:real`;
+et `y2:real`;
+et `y3:real`;
+et `y4:real`;
+et `y5:real`;
+et `y6:real`;
+asimp[arith `a <= b ==> ~(b < a)`]
+dischthen BURY_TAC
+fxa BURY_TAC
+fxa (K ALL_TAC)
+fxa (K ALL_TAC)
+fxa (K ALL_TAC)
+fxast `gamma4fgcy` mptac
+rt[]
 
+*)
+
+
+K ALL_TAC;;
 searcht 5 [`~(!x. P )`];;
 searcht 5 [`delta_x x1 x2 x3 x4 x5 x6 = delta_x a b c d e f`];;
 

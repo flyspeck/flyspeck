@@ -1245,12 +1245,9 @@ let tsk_hyp =
   let tsk_nonlinear = map (fun t -> (hd(Ineq.getexact t)).ineq) tsks in
     end_itlist (curry mk_conj) tsk_nonlinear;;
 
-
-(*
-let tsk_concl = Ineq.TSKAJXY_DERIVED.ineq;;
-
-let tsk = mk_imp(tsk_hyp,tsk_concl);;
-*)
+let tsk = 
+  let tsk_concl = Ineq.TSKAJXY_DERIVED.ineq in
+    mk_imp(tsk_hyp,tsk_concl);;
 
 let tsk_lemma1 = prove_by_refinement(
   (mk_imp(tsk_hyp,`!y1 y2 y3 y4 y5 y6.
@@ -1568,8 +1565,6 @@ let mk_y i = mk_var("y"^string_of_int i,real_ty);;
 let ys = map mk_y (1--6);;
 let [y1;y2;y3;y4;y5;y6] = ys;;
 
-
-
 let TSKAJXY_DERIVED4 = prove_by_refinement(
    tsk,
   (* {{{ proof *)
@@ -1705,6 +1700,1191 @@ let TSKAJXY_DERIVED4 = prove_by_refinement(
   REPEAT (FIRST_X_ASSUM_ST `y <= x` MP_TAC);
   REWRITE_TAC[Sphere.ineq];
   BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* ========================================================================== *)
+(* Merge "ZTGIJCF4" inequalities. The main result is ztg4.   *)
+(* ========================================================================== *)
+
+let REAL_FINITE_MIN_EXISTS = 
+prove(`!S:real->bool. FINITE S /\ ~(S = {}) ==> ?m. m IN S /\ (!x. x IN S ==> m <= x)`,
+		MESON_TAC[INF_FINITE]);;
+
+
+let REAL_WLOG_SIMPLEX_LEMMA2_LE = prove_by_refinement(
+  `!P . 
+    ((!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5) /\
+    (!y1 y2 y3 y4 y5 y6.  P y1 y2 y3 y4 y5 y6 = P y1 y6 y5 y4 y3 y2))
+    /\
+    (!y1 y2 y3 y4 y5 y6. (y2 <= y3) /\ (y2 <= y5 ) /\ (y2 <= y6 ) ==>
+       P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `?a.  a IN {y2,y3,y5,y6} /\ (!x. x IN {y2,y3,y5,y6} ==> a <= x)` MP_TAC;
+    MATCH_MP_TAC REAL_FINITE_MIN_EXISTS;
+    BY(BY(BY(REWRITE_TAC[ FINITE_INSERT ; FINITE_EMPTY;NOT_INSERT_EMPTY])));
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+  REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+  REWRITE_TAC[MESON[] `(!x. x = y1 \/ x = y2 \/ x = y3 \/ x = y4 \/ x = y5 \/ x = y6 ==> a <= x) = (a <= y1 /\ a <= y2 /\ a <= y3 /\ a <= y4 /\ a <= y5 /\ a <= y6)`];
+  BY(BY(BY(DISCH_THEN STRIP_ASSUME_TAC THEN ASM_MESON_TAC[])))
+  ]);;
+  (* }}} *)
+
+let beta_ub = prove_by_refinement(
+  `!h. bump h <= #0.005`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.bump];
+  GEN_TAC;
+  REWRITE_TAC[arith `a * (&1 - c) <= a <=> &0 <= a * c`];
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  REWRITE_TAC[Calc_derivative.invert_den_le];
+  GMATCH_SIMP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  REWRITE_TAC[REAL_LE_POW_2];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let beta_lb = prove_by_refinement(
+  `!h. hminus <= h /\ h <= hplus ==> &0 <= bump h`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.bump];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  CONJ_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC (arith `x <= y ==> &0 <= y - x`);
+  REWRITE_TAC[GSYM Trigonometry2.DIV_POW2];
+  REWRITE_TAC[ABS_SQUARE_LE_1;Sphere.h0];
+  REPEAT( FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[Sphere.hplus];
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let beta_bump_y_lb = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6.
+    -- #0.005 <= beta_bump_y y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.beta_bump_y];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC `critical_edge_y y6` THEN ASM_CASES_TAC `critical_edge_y y4` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `-- #0.005 <= &0`];
+  ASM_CASES_TAC `critical_edge_y y2` THEN ASM_CASES_TAC `critical_edge_y y3` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `-- #0.005 <= &0`];
+  ASM_CASES_TAC `critical_edge_y y5` THEN ASM_CASES_TAC `critical_edge_y y1` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `-- #0.005 <= &0`];
+  REWRITE_TAC[arith `&1 * x = x`];
+  MATCH_MP_TAC (arith `&0 <= x /\ y <= #0.005 ==> -- #0.005 <= x - y`);
+  GMATCH_SIMP_TAC beta_lb;
+  REWRITE_TAC[beta_ub];
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[Sphere.critical_edge_y];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hmin22 = prove_by_refinement(
+  `&2 <= &2 * hminus`,
+  (* {{{ proof *)
+  [
+  MP_TAC Nonlinear_lemma.hminus_gt THEN REAL_ARITH_TAC
+  ]);;
+  (* }}} *)
+
+
+let ineq_branch_2hmin = prove_by_refinement(
+  `! a b u v y f. 
+    (a <= &2 * hminus) /\
+     ((~critical_edge_y y) ==> ineq (APPEND u (CONS (a,y, &2 * hminus) v)) f) /\
+    ineq (APPEND u (CONS (&2 * hminus,y,b) v)) f ==>
+    ineq (APPEND u (CONS (a,y,b) v)) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq_APPEND;Sphere.critical_edge_y];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAK_STRIP_TAC;
+  DISJ_CASES_TAC (arith `y < &2 * hminus \/ &2 * hminus <= y`);
+    FIRST_X_ASSUM_ST `hplus` MP_TAC;
+    ANTS_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    SUBGOAL_THEN `y <= &2 * hminus` ASSUME_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT (FIRST_X_ASSUM_ST `ineq` MP_TAC);
+    BY((ASM_CASES_TAC `a <= y` THEN ASM_CASES_TAC `y <= b` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[])));
+  REPEAT (FIRST_X_ASSUM_ST `ineq` MP_TAC);
+  (ASM_CASES_TAC `a <= y` THEN ASM_CASES_TAC `y <= b` THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]));
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let ineq_T = prove_by_refinement(
+  `!a. ineq a T`,
+  (* {{{ proof *)
+  [LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Sphere.ineq]);
+  SUBGOAL_THEN `?(a:real) (x:real) (b:real). h = (a,x,b)` MP_TAC;
+    BY(BY(MESON_TAC[PAIR_SURJECTIVE]));
+  WEAK_STRIP_TAC;
+  BY(ASM_REWRITE_TAC[Sphere.ineq])
+  ]);;
+  (* }}} *)
+
+let ineq_MP = prove_by_refinement(
+  `! b c a. ineq a (b==>c) ==> ineq a b ==> ineq a c`,
+  (* {{{ proof *)
+  [
+  REPLICATE_TAC 2 GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Sphere.ineq]);
+  SUBGOAL_THEN `?(a:real) (x:real) (b:real). h = (a,x,b)` MP_TAC;
+    BY(BY(BY(MESON_TAC[PAIR_SURJECTIVE])));
+  WEAK_STRIP_TAC;
+  (ASM_REWRITE_TAC[Sphere.ineq]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let ineq_CONJ = prove_by_refinement(
+  `!b c a. ineq a b /\ ineq a c ==> ineq a (b /\ c)`,
+  (* {{{ proof *)
+  [
+  REPLICATE_TAC 2 GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(BY(REWRITE_TAC[Sphere.ineq]));
+  SUBGOAL_THEN `?(a:real) (x:real) (b:real). h = (a,x,b)` MP_TAC;
+    BY(BY(BY(BY(MESON_TAC[PAIR_SURJECTIVE]))));
+  WEAK_STRIP_TAC;
+  (ASM_REWRITE_TAC[Sphere.ineq]);
+  BY(BY(ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+
+let ineq_af = prove_by_refinement(
+  `!f a. f ==> ineq a f`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(BY(REWRITE_TAC[Sphere.ineq]));
+  SUBGOAL_THEN `?(a:real) (x:real) (b:real). h = (a,x,b)` MP_TAC;
+    BY(BY(BY(BY(MESON_TAC[PAIR_SURJECTIVE]))));
+  WEAK_STRIP_TAC;
+  (ASM_REWRITE_TAC[Sphere.ineq]);
+  BY(BY(ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+
+let ineq_monotone = prove_by_refinement(
+  `! f f' a. (f ==> f') ==> (ineq a f ==> ineq a f')`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Sphere.ineq]);
+  REWRITE_TAC[Sphere.ineq];
+  SUBGOAL_THEN `?(a:real) (x:real) (b:real). h = (a,x,b)` MP_TAC;
+    BY(MESON_TAC[PAIR_SURJECTIVE]);
+  WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[Sphere.ineq];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(*
+let ineq_approx_ztg4 = prove_by_refinement(
+  `!w' m a y1 y2 y3 y4 y5 y6.
+     gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &w' <= 
+    gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun/ &(wtcount6_y y1 y2 y3 y4 y5 y6) /\
+      &m * beta_bump_lb <= beta_bump_y y1 y2 y3 y4 y5 y6 /\
+      ineq a ((gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &w' + &m * beta_bump_lb >
+		a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6) \/
+	      (
+    (y_of_x rad2_x y1 y2 y3 y4 y5 y6 > &2))) ==>
+      ineq a ( (rad2_y y1 y2 y3 y4 y5 y6 < &2) ==> 
+		 (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun /
+            &(wtcount6_y y1 y2 y3 y4 y5 y6) +
+            beta_bump_y y1 y2 y3 y4 y5 y6 >
+            a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  MATCH_MP_TAC ineq_monotone;
+  REWRITE_TAC[GSYM Sphere.rad2_y];
+  MATCH_MP_TAC (TAUT `(b ==> a ==> c) ==> (a ==> b ==> c)`);
+  DISCH_TAC;
+  ASM_SIMP_TAC[ (arith `x < &2 ==> ~(x > &2)`)];
+  MATCH_MP_TAC (arith `a' <= a /\ b' <= b ==> (a'+b' > c ==> a + b > c)`);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let ineq_approx_ztg4 = prove_by_refinement(
+  `!w' m a y1 y2 y3 y4 y5 y6.
+    ineq a (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &w' <= 
+    gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun/ &(wtcount6_y y1 y2 y3 y4 y5 y6) /\
+      &m * beta_bump_lb <= beta_bump_y y1 y2 y3 y4 y5 y6 /\
+     rad2_y y1 y2 y3 y4 y5 y6 < &2)
+    ==>
+      (ineq a ((gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &w' + &m * beta_bump_lb >
+		a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6) \/
+	  rad2_y y1 y2 y3 y4 y5 y6 > &2   ) ==>
+      ineq a (
+		 (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun /
+            &(wtcount6_y y1 y2 y3 y4 y5 y6) +
+            beta_bump_y y1 y2 y3 y4 y5 y6 >
+            a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  DISCH_TAC;
+  MATCH_MP_TAC ineq_MP;
+  FIRST_X_ASSUM MP_TAC;
+  MATCH_MP_TAC ineq_MP;
+  ASM_SIMP_TAC[arith `x < &2 ==> ~(x > &2)`];
+  MATCH_MP_TAC ineq_af;
+  DISCH_TAC;
+  MATCH_MP_TAC (arith `a' <= a /\ b' <= b ==> (a'+b' > c ==> a + b > c)`);
+  BY(BY(BY(ASM_REWRITE_TAC[])))
+  ]);;
+  (* }}} *)
+
+
+let beta_bump_lb1 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. &1 * beta_bump_lb <= beta_bump_y y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[beta_bump_y_lb;Sphere.beta_bump_lb;arith `&1 * x = x`])
+  ]);;
+  (* }}} *)
+
+let beta_bump_lb0 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. 
+  (~critical_edge_y y1 \/ critical_edge_y y2 \/ critical_edge_y y3 \/ critical_edge_y y5 \/ critical_edge_y y6 \/ ~critical_edge_y y4) 
+  ==> &0 * beta_bump_lb <= beta_bump_y y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.beta_bump_y;arith `&0 * x = &0`];
+  REPEAT GEN_TAC;
+  DISCH_TAC;
+  ASM_CASES_TAC `critical_edge_y y6` THEN ASM_CASES_TAC `critical_edge_y y4` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `&0 <= &0`];
+  ASM_CASES_TAC `critical_edge_y y2` THEN ASM_CASES_TAC `critical_edge_y y3` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `&0 <= &0`];
+  ASM_CASES_TAC `critical_edge_y y5` THEN ASM_CASES_TAC `critical_edge_y y1` THEN ASM_REWRITE_TAC[arith `&0 * x = &0 /\ x * &0 = &0`;arith `&0 <= &0`];
+  FIRST_X_ASSUM_ST `\/` MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let quarter_lemma  = prove_by_refinement(
+  `!x u a.   x <= u ==> x <= a pow 2 + u`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  MP_TAC (ISPEC `a:real` REAL_LE_POW_2);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let quarter_lemma2 = prove_by_refinement(
+  `!x u a. x - a pow 2 <= u ==>    x <= a pow 2 + u`,
+  (* {{{ proof *)
+  [
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let quarter_lemma3 = prove_by_refinement(
+  `!x  a .   abs(x) <= abs(y) ==>         x pow 2 - y pow 2 <= a pow 2`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[REAL_LE_SQUARE_ABS];
+  MP_TAC (ISPEC `a:real` REAL_LE_POW_2);
+  BY(BY(REAL_ARITH_TAC))
+  ]);;
+  (* }}} *)
+
+let quarter_norm2hh = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. (norm2hh y1 y2 y3 y4 y5 y6 <  (hplus- hminus) pow 2) ==>
+    critical_edge_y y1 /\ (y2 < &2 * hminus) /\ (y3 < &2*hminus) /\
+    (y4 < &2 * hminus) /\ (y5 < &2 * hminus) /\ (y6 < &2*hminus)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.critical_edge_y;Sphere.norm2hh];
+  REPEAT GEN_TAC;
+  REWRITE_TAC[GSYM CONJ_ASSOC];
+  MATCH_MP_TAC (TAUT `((~b) ==> ~a) ==> (a ==> b)`);
+  REWRITE_TAC[DE_MORGAN_THM;arith `(~(a < b) <=> (b <= a)) /\ (~(a <= b) <=> (b < a))`];
+  REPEAT STRIP_TAC;
+              MATCH_MP_TAC quarter_lemma2;
+              REPEAT (MATCH_MP_TAC quarter_lemma);
+              MATCH_MP_TAC quarter_lemma3;
+              BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+            MATCH_MP_TAC quarter_lemma2;
+            REPEAT (MATCH_MP_TAC quarter_lemma);
+            MATCH_MP_TAC quarter_lemma3;
+            BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+          MATCH_MP_TAC quarter_lemma;
+          MATCH_MP_TAC quarter_lemma2;
+          REPEAT (MATCH_MP_TAC quarter_lemma);
+          MATCH_MP_TAC quarter_lemma3;
+          BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+        REPLICATE_TAC 2 (MATCH_MP_TAC quarter_lemma);
+        MATCH_MP_TAC quarter_lemma2;
+        REPEAT (MATCH_MP_TAC quarter_lemma);
+        MATCH_MP_TAC quarter_lemma3;
+        BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+      REPLICATE_TAC 3 (MATCH_MP_TAC quarter_lemma);
+      MATCH_MP_TAC quarter_lemma2;
+      REPEAT (MATCH_MP_TAC quarter_lemma);
+      MATCH_MP_TAC quarter_lemma3;
+      BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+    REPLICATE_TAC 4 (MATCH_MP_TAC quarter_lemma);
+    MATCH_MP_TAC quarter_lemma2;
+    REPEAT (MATCH_MP_TAC quarter_lemma);
+    MATCH_MP_TAC quarter_lemma3;
+    BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC);
+  REPLICATE_TAC 5 (MATCH_MP_TAC quarter_lemma);
+  ONCE_REWRITE_TAC[arith `x <= y <=> x <= y + &0 pow 2`];
+  MATCH_MP_TAC quarter_lemma2;
+  MATCH_MP_TAC quarter_lemma3;
+  BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.hplus;] THEN MP_TAC Nonlinear_lemma.hminus_prop THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let gamma_wte = prove_by_refinement(
+  `!w' y1 y2 y3 y4 y5 y6.
+    (w' = wtcount6_y y1 y2 y3 y4 y5 y6) ==>
+    (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun/ &w' <= 
+	gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &(wtcount6_y y1 y2 y3 y4 y5 y6))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+    DISCH_THEN SUBST1_TAC;
+      REWRITE_TAC[REAL_ARITH `x <= x`]
+  ]);;
+  (* }}} *)
+
+let critical_y_range = prove_by_refinement(
+  `!y. &2 * hminus <= y /\ y <= &2 * hplus ==> critical_edge_y y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[critical_edge_y]
+  ]);;
+  (* }}} *)
+
+
+let gamma_wt = prove_by_refinement(
+  `!w' y1 y2 y3 y4 y5 y6.
+    (0 < wtcount6_y y1 y2 y3 y4 y5 y6 /\
+        (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0) /\
+       wtcount6_y y1 y2 y3 y4 y5 y6 <= w'
+      ) ==>
+       gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &w' <= gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun/ &(wtcount6_y y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[arith `a / b <= a /c <=>  &0 <= a * (&1/c - &1/b)`];
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  ASM_SIMP_TAC[arith `x > &0 ==> &0 <= x`];
+  REWRITE_TAC[arith `&0 <= x - y <=> y <= x`;real_div;arith `&1 * x = x`];
+  MATCH_MP_TAC REAL_LE_INV2;
+  BY(ASM_REWRITE_TAC[REAL_OF_NUM_LT;REAL_OF_NUM_LE])
+  ]);;
+  (* }}} *)
+
+let critical_edge_bound = prove_by_refinement(
+  `!y. 0 <= (if critical_edge_y y then 1 else 0) /\ (if critical_edge_y y then 1 else 0) <= 1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.critical_edge_y];
+    MESON_TAC[ARITH_RULE `0 <= 0 /\ 0 <= 1 /\ 1 <= 1`]
+  ]);;
+  (* }}} *)
+
+let ztg4_concl = 
+  all_forall `ineq
+    [&2 * hminus,y1,&2 * hplus;
+     (&2,y2,sqrt8);
+     (&2,y3,sqrt8);
+     (&2,y4,sqrt8);
+     (&2,y5,sqrt8);
+     (&2,y6,sqrt8)]
+    (rad2_y y1 y2 y3 y4 y5 y6 < &2 ==>
+    (gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun / &(wtcount6_y y1 y2 y3 y4 y5 y6) +
+    beta_bump_y y1 y2 y3 y4 y5 y6 >
+    a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6))`;;
+
+(* need to include beta ge betalb,
+   Uses. gamma >= 0, when not a quarter, so throw that in, and that uses rad  *)
+
+let ztg4_hyp = 
+  let ztgs = 
+    ["GLFVCVK4 2477216213";"MKFKQWU halfwt";"MKFKQWU";
+     "ZTGIJCF4 1 1 1 1 1821661595"; "ZTGIJCF4 1 1 1 0 1821661595";
+   "ZTGIJCF4 1 1 0 1 1821661595"; "ZTGIJCF4 1 1 0 0 1821661595";
+   "ZTGIJCF4 1 0 1 1 1821661595"; "ZTGIJCF4 1 0 1 0 1821661595";
+   "ZTGIJCF4 1 0 0 1 1821661595"; "ZTGIJCF4 1 0 0 0 1821661595";
+   "ZTGIJCF4 0 1 1 1 1821661595"; "ZTGIJCF4 0 1 1 0 1821661595";
+   "ZTGIJCF4 0 1 0 1 1821661595"; "ZTGIJCF4 0 1 0 0 1821661595";
+   "ZTGIJCF4 0 0 1 1 1821661595"; "ZTGIJCF4 0 0 1 0 1821661595";
+   "ZTGIJCF4 0 0 0 1 1821661595"; "ZTGIJCF4 0 0 0 0 1821661595"] in
+  let ztg_nonlinear = map (fun t -> (hd(Ineq.getexact t)).ineq) ztgs in
+    end_itlist (curry mk_conj) ztg_nonlinear;;
+
+let ztg4_concl' = 
+    mk_imp(ztg4_hyp,ztg4_concl);;
+
+let ztg4 = prove_by_refinement(
+  ztg4_concl',
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_SIMPLEX_LEMMA2_LE;
+  CONJ_TAC;
+    CONJ_TAC;
+      REPEAT GEN_TAC;
+      SUBGOAL_THEN `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        BY(BY(MESON_TAC[rad2_y_sym]));
+      SUBGOAL_THEN `beta_bump_y y1 y3 y2 y4 y6 y5 = beta_bump_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        BY(BY(REWRITE_TAC[Sphere.beta_bump_y;REAL_MUL_AC]));
+      SUBGOAL_THEN `wtcount6_y y1 y3 y2 y4 y6 y5 = wtcount6_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+        BY(BY(REWRITE_TAC[ADD_AC]));
+      SUBGOAL_THEN `dih_y y1 y3 y2 y4 y6 y5 = dih_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+        BY(BY(ASM_MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2]));
+      SUBGOAL_THEN `gamma4fgcy y1 y3 y2 y4 y6 y5 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` SUBST1_TAC;
+        BY(BY(MESON_TAC[gamma4fgcy_sym12;gamma4fgcy_sym23;gamma4fgcy_sym03;]));
+      REWRITE_TAC[Sphere.ineq];
+      BY(BY(MESON_TAC[]));
+    REPEAT GEN_TAC;
+    SUBGOAL_THEN `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(BY(MESON_TAC[rad2_y_sym]));
+    SUBGOAL_THEN `beta_bump_y y1 y6 y5 y4 y3 y2 = beta_bump_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(BY(REWRITE_TAC[Sphere.beta_bump_y;REAL_MUL_AC]));
+    SUBGOAL_THEN `wtcount6_y y1 y6 y5 y4 y3 y2 = wtcount6_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+      BY(BY(REWRITE_TAC[ADD_AC]));
+    SUBGOAL_THEN `dih_y y1 y6 y5 y4 y3 y2 = dih_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+      BY(BY(ASM_MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2]));
+    SUBGOAL_THEN `gamma4fgcy y1 y6 y5 y4 y3 y2 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` SUBST1_TAC;
+      BY(BY(MESON_TAC[gamma4fgcy_sym12;gamma4fgcy_sym23;gamma4fgcy_sym03;]));
+    REWRITE_TAC[Sphere.ineq];
+    BY(BY(MESON_TAC[]));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[GSYM rad2_y];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT DISCH_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `/\` MP_TAC);
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `critical_edge_y y1` ASSUME_TAC;
+    BY(ASM_SIMP_TAC[critical_y_range]);
+  REPLICATE_TAC 6 (FIRST_X_ASSUM_ST `/\` MP_TAC);
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  FIRST_X_ASSUM_ST `gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0` (MP_TAC o (ISPECL ys));
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  REPLICATE_TAC 6 (DISCH_THEN (fun t -> BURY_TAC t THEN ASSUME_TAC t));
+  REPLICATE_TAC 6 (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `rad2_y` MP_TAC;
+  ASM_REWRITE_TAC[Sphere.ineq];
+  ASM_SIMP_TAC[arith `x < &2 ==> ~(x > &2)`];
+  DISCH_TAC;
+  SUBGOAL_THEN `(&2*hminus <= y3 \/ &2 * hminus <= y4 \/ &2 * hminus <= y5 \/ &2*hminus <= y6 ==> gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0)` ASSUME_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    BY(MESON_TAC[quarter_norm2hh;arith `x <= y <=> ~(y < x)`]);
+  FIRST_X_ASSUM_ST `~` MP_TAC;
+  REWRITE_TAC[];
+  CHOP_LIST_TAC 1;
+  MATCH_MP_TAC ineq_branch_2hmin;
+  REWRITE_TAC[APPEND;hmin22];
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `rad2_y` MP_TAC;
+    FIRST_X_ASSUM_ST `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> MP_TAC (ISPECL ys t ));
+    REPEAT (FIRST_X_ASSUM_ST `a <= b` MP_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    BY(REAL_ARITH_TAC);
+  DISCH_TAC;
+  SUBGOAL_THEN `~(rad2_y y1 y2 y3 y4 y5 y6 > &2)` ASSUME_TAC;
+    FIRST_X_ASSUM_ST `rad2_y` MP_TAC;
+    BY(REAL_ARITH_TAC);
+  COMMENT" start on branch with y4 ";
+  CHOP_LIST_TAC 3;
+  MATCH_MP_TAC ineq_branch_2hmin;
+  REWRITE_TAC[hmin22;APPEND];
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+    REWRITE_TAC[Sphere.ineq];
+    REPLICATE_TAC 3 DISCH_TAC;
+    DISCH_THEN (fun t -> BURY_TAC t THEN ASSUME_TAC t);
+    REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+    SUBGOAL_THEN `(y3 <= &2 * hplus /\ y5 <= &2 * hplus /\ y6 <= &2 * hplus)` MP_TAC THEN REPEAT WEAK_STRIP_TAC;
+      FIRST_X_ASSUM_ST `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` BURY_TAC;
+      CONJ_TAC;
+        MATCH_MP_TAC (arith `~(x <= y3) ==> (y3 <= x)`);
+        DISCH_TAC;
+        FIRST_X_ASSUM_ST `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> MP_TAC (ISPECL [y1;y3;y2;y4;y6;y5] t));
+        REWRITE_TAC[Sphere.ineq];
+        ASM_REWRITE_TAC[];
+        SUBGOAL_THEN `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+          BY(MESON_TAC[rad2_y_sym]);
+        BY(ASM_REWRITE_TAC[]);
+      CONJ_TAC;
+        MATCH_MP_TAC (arith `~(x <= y3) ==> (y3 <= x)`);
+        DISCH_TAC;
+        FIRST_X_ASSUM_ST `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> MP_TAC (ISPECL [y1;y5;y6;y4;y2;y3] t));
+        REWRITE_TAC[Sphere.ineq];
+        ASM_REWRITE_TAC[];
+        SUBGOAL_THEN `rad2_y y1 y5 y6 y4 y2 y3 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+          BY(MESON_TAC[rad2_y_sym]);
+        BY(ASM_REWRITE_TAC[]);
+      MATCH_MP_TAC (arith `~(x <= y3) ==> (y3 <= x)`);
+      DISCH_TAC;
+      FIRST_X_ASSUM_ST `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> MP_TAC (ISPECL [y1;y6;y5;y4;y3;y2] t));
+      REWRITE_TAC[Sphere.ineq];
+      ASM_REWRITE_TAC[];
+      SUBGOAL_THEN `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        BY(MESON_TAC[rad2_y_sym]);
+      BY(ASM_REWRITE_TAC[]);
+    COMMENT "2nd rad ineq here";
+    CHOP_LIST_TAC 2 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN CHOP_LIST_TAC 4 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN CHOP_LIST_TAC 5 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN FIRST_X_ASSUM (fun t -> (MP_TAC (SPECL ys t) THEN MATCH_MP_TAC ineq_approx_ztg4));
+                  COMMENT " 1st case ";
+                  ASM_REWRITE_TAC[Sphere.ineq;beta_bump_lb1];
+                  REPEAT WEAK_STRIP_TAC;
+                  MATCH_MP_TAC gamma_wt;
+                  ASM_SIMP_TAC[];
+                  ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+                  MP_TAC (ISPEC `y4:real` critical_edge_bound);
+                  BY(ARITH_TAC);
+                COMMENT " 2nd case ";
+                ASM_REWRITE_TAC[];
+                MATCH_MP_TAC ineq_CONJ;
+                CONJ_TAC;
+                  REWRITE_TAC[Sphere.ineq];
+                  REPEAT WEAK_STRIP_TAC;
+                  MATCH_MP_TAC gamma_wt;
+                  ASM_SIMP_TAC[];
+                  ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+                  MP_TAC (ISPEC y4 critical_edge_bound);
+                  MP_TAC (ISPEC y6 critical_edge_bound);
+                  BY(ARITH_TAC);
+                REWRITE_TAC[Sphere.ineq];
+                REPEAT WEAK_STRIP_TAC;
+                MATCH_MP_TAC beta_bump_lb0;
+                BY(ASM_SIMP_TAC[critical_y_range]);
+              COMMENT " 3rd case ";
+              ASM_REWRITE_TAC[];
+              MATCH_MP_TAC ineq_CONJ;
+              CONJ_TAC;
+                REWRITE_TAC[Sphere.ineq];
+                REPEAT WEAK_STRIP_TAC;
+                MATCH_MP_TAC gamma_wt;
+                ASM_SIMP_TAC[];
+                ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+                MP_TAC (ISPEC y4 critical_edge_bound);
+                MP_TAC (ISPEC y5 critical_edge_bound);
+                BY(ARITH_TAC);
+              REWRITE_TAC[Sphere.ineq];
+              REPEAT WEAK_STRIP_TAC;
+              MATCH_MP_TAC beta_bump_lb0;
+              BY(ASM_SIMP_TAC[critical_y_range]);
+            COMMENT " 4th case ";
+            ASM_REWRITE_TAC[];
+            MATCH_MP_TAC ineq_CONJ;
+            CONJ_TAC;
+              REWRITE_TAC[Sphere.ineq];
+              REPEAT WEAK_STRIP_TAC;
+              MATCH_MP_TAC gamma_wt;
+              ASM_SIMP_TAC[];
+              ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+              MP_TAC (ISPEC y4 critical_edge_bound);
+              MP_TAC (ISPEC y5 critical_edge_bound);
+              MP_TAC (ISPEC y6 critical_edge_bound);
+              BY(ARITH_TAC);
+            REWRITE_TAC[Sphere.ineq];
+            REPEAT WEAK_STRIP_TAC;
+            MATCH_MP_TAC beta_bump_lb0;
+            BY(ASM_SIMP_TAC[critical_y_range]);
+          COMMENT " 5th case ";
+          ASM_REWRITE_TAC[];
+          MATCH_MP_TAC ineq_CONJ;
+          CONJ_TAC;
+            REWRITE_TAC[Sphere.ineq];
+            REPEAT WEAK_STRIP_TAC;
+            MATCH_MP_TAC gamma_wt;
+            ASM_SIMP_TAC[];
+            ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+            MP_TAC (ISPEC y3 critical_edge_bound);
+            MP_TAC (ISPEC y4 critical_edge_bound);
+            BY(ARITH_TAC);
+          REWRITE_TAC[Sphere.ineq];
+          REPEAT WEAK_STRIP_TAC;
+          MATCH_MP_TAC beta_bump_lb0;
+          BY(ASM_SIMP_TAC[critical_y_range]);
+        COMMENT "6th case";
+        ASM_REWRITE_TAC[];
+        MATCH_MP_TAC ineq_CONJ;
+        CONJ_TAC;
+          REWRITE_TAC[Sphere.ineq];
+          REPEAT WEAK_STRIP_TAC;
+          MATCH_MP_TAC gamma_wt;
+          ASM_SIMP_TAC[];
+          ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+          MP_TAC (ISPEC y3 critical_edge_bound);
+          MP_TAC (ISPEC y4 critical_edge_bound);
+          MP_TAC (ISPEC y6 critical_edge_bound);
+          BY(ARITH_TAC);
+        REWRITE_TAC[Sphere.ineq];
+        REPEAT WEAK_STRIP_TAC;
+        MATCH_MP_TAC beta_bump_lb0;
+        BY(ASM_SIMP_TAC[critical_y_range]);
+      COMMENT "7th case";
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC ineq_CONJ;
+      CONJ_TAC;
+        REWRITE_TAC[Sphere.ineq];
+        REPEAT WEAK_STRIP_TAC;
+        MATCH_MP_TAC gamma_wt;
+        ASM_SIMP_TAC[];
+        ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+        MP_TAC (ISPEC y3 critical_edge_bound);
+        MP_TAC (ISPEC y4 critical_edge_bound);
+        MP_TAC (ISPEC y5 critical_edge_bound);
+        BY(ARITH_TAC);
+      REWRITE_TAC[Sphere.ineq];
+      REPEAT WEAK_STRIP_TAC;
+      MATCH_MP_TAC beta_bump_lb0;
+      BY(ASM_SIMP_TAC[critical_y_range]);
+    COMMENT "8th case";
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC ineq_CONJ;
+    CONJ_TAC;
+      REWRITE_TAC[Sphere.ineq];
+      REPEAT WEAK_STRIP_TAC;
+      MATCH_MP_TAC gamma_wt;
+      ASM_SIMP_TAC[];
+      ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+      MP_TAC (ISPEC y3 critical_edge_bound);
+      MP_TAC (ISPEC y4 critical_edge_bound);
+      MP_TAC (ISPEC y5 critical_edge_bound);
+      MP_TAC (ISPEC y6 critical_edge_bound);
+      BY(ARITH_TAC);
+    REWRITE_TAC[Sphere.ineq];
+    REPEAT WEAK_STRIP_TAC;
+    MATCH_MP_TAC beta_bump_lb0;
+    BY(ASM_SIMP_TAC[critical_y_range]);
+  DISCH_TAC;
+  CHOP_LIST_TAC 2 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN CHOP_LIST_TAC 4 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN CHOP_LIST_TAC 5 THEN MATCH_MP_TAC ineq_branch_2hmin THEN REWRITE_TAC[hmin22;APPEND] THEN CONJ_TAC THEN TRY DISCH_TAC THEN FIRST_X_ASSUM (fun t -> (MP_TAC (SPECL ys t) THEN MATCH_MP_TAC ineq_approx_ztg4));
+                COMMENT "1st' case";
+                ASM_REWRITE_TAC[];
+                MATCH_MP_TAC ineq_CONJ;
+                CONJ_TAC;
+                  REWRITE_TAC[Sphere.ineq];
+                  REPEAT WEAK_STRIP_TAC;
+                  MATCH_MP_TAC gamma_wte;
+                  ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+                  BY(ARITH_TAC);
+                REWRITE_TAC[Sphere.ineq];
+                REPEAT WEAK_STRIP_TAC;
+                MATCH_MP_TAC beta_bump_lb0;
+                BY(ASM_SIMP_TAC[critical_y_range]);
+              COMMENT "2nd' case";
+              ASM_REWRITE_TAC[];
+              MATCH_MP_TAC ineq_CONJ;
+              CONJ_TAC;
+                REWRITE_TAC[Sphere.ineq];
+                REPEAT WEAK_STRIP_TAC;
+                MATCH_MP_TAC gamma_wt;
+                ASM_SIMP_TAC[];
+                ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+                MP_TAC (ISPEC y6 critical_edge_bound);
+                BY(ARITH_TAC);
+              REWRITE_TAC[Sphere.ineq];
+              REPEAT WEAK_STRIP_TAC;
+              MATCH_MP_TAC beta_bump_lb0;
+              BY(ASM_REWRITE_TAC[]);
+            COMMENT "3rd' case";
+            ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+              MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+              MP_TAC (ISPEC y5 critical_edge_bound);
+              BY(ARITH_TAC);
+            BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[]);
+          COMMENT "4th' case";
+          ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+            MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+            MP_TAC (ISPEC y5 critical_edge_bound);
+            MP_TAC (ISPEC y6 critical_edge_bound);
+            BY(ARITH_TAC);
+          BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[]);
+        COMMENT "5th' case";
+        ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+          MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+          MP_TAC (ISPEC y3 critical_edge_bound);
+          BY(ARITH_TAC);
+        BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[]);
+      COMMENT "6th' case";
+      ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+        MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+        MP_TAC (ISPEC y3 critical_edge_bound);
+        MP_TAC (ISPEC y6 critical_edge_bound);
+        BY(ARITH_TAC);
+      BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[]);
+    COMMENT "7th' case";
+    ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+      MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+      MP_TAC (ISPEC y3 critical_edge_bound);
+      MP_TAC (ISPEC y5 critical_edge_bound);
+      BY(ARITH_TAC);
+    BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[]);
+  COMMENT "8th' case";
+  ASM_REWRITE_TAC[] THEN MATCH_MP_TAC ineq_CONJ THEN CONJ_TAC THEN REWRITE_TAC[Sphere.ineq] THEN REPEAT WEAK_STRIP_TAC;
+    MATCH_MP_TAC gamma_wt THEN ASM_SIMP_TAC[] THEN ASM_REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+    MP_TAC (ISPEC y3 critical_edge_bound);
+    MP_TAC (ISPEC y5 critical_edge_bound);
+    MP_TAC (ISPEC y6 critical_edge_bound);
+    BY(ARITH_TAC);
+  BY(MATCH_MP_TAC beta_bump_lb0 THEN ASM_REWRITE_TAC[])
+(*
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_SIMPLEX_LEMMA2_LE;
+  CONJ_TAC;
+    CONJ_TAC;
+      REPEAT GEN_TAC;
+      SUBGOAL_THEN `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        BY(MESON_TAC[rad2_y_sym]);
+      SUBGOAL_THEN `beta_bump_y y1 y3 y2 y4 y6 y5 = beta_bump_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        BY(REWRITE_TAC[Sphere.beta_bump_y;REAL_MUL_AC]);
+      SUBGOAL_THEN `wtcount6_y y1 y3 y2 y4 y6 y5 = wtcount6_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+        BY(REWRITE_TAC[ADD_AC]);
+      SUBGOAL_THEN `dih_y y1 y3 y2 y4 y6 y5 = dih_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+        REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+        BY(ASM_MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2]);
+      SUBGOAL_THEN `gamma4fgcy y1 y3 y2 y4 y6 y5 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` SUBST1_TAC;
+        BY(MESON_TAC[gamma4fgcy_sym12;gamma4fgcy_sym23;gamma4fgcy_sym03;]);
+      REWRITE_TAC[Sphere.ineq];
+      BY(MESON_TAC[]);
+    REPEAT GEN_TAC;
+    SUBGOAL_THEN `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(MESON_TAC[rad2_y_sym]);
+    SUBGOAL_THEN `beta_bump_y y1 y6 y5 y4 y3 y2 = beta_bump_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(REWRITE_TAC[Sphere.beta_bump_y;REAL_MUL_AC]);
+    SUBGOAL_THEN `wtcount6_y y1 y6 y5 y4 y3 y2 = wtcount6_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y];
+      BY(REWRITE_TAC[ADD_AC]);
+    SUBGOAL_THEN `dih_y y1 y6 y5 y4 y3 y2 = dih_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+      BY(ASM_MESON_TAC[Nonlinear_lemma.dih_x_sym;Nonlinear_lemma.dih_x_sym2]);
+    SUBGOAL_THEN `gamma4fgcy y1 y6 y5 y4 y3 y2 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` SUBST1_TAC;
+      BY(MESON_TAC[gamma4fgcy_sym12;gamma4fgcy_sym23;gamma4fgcy_sym03;]);
+    REWRITE_TAC[Sphere.ineq];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  rt[GSYM rad2_y]
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT DISCH_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `/\` MP_TAC);
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+rt[Sphere.ineq]
+dt/r
+sgth `critical_edge_y y1` assume
+asimp[critical_y_range]
+rep 6 (fxast `/\` mptac)
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+fxast `gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0` (mptac o (specl ys))
+art[]
+dt
+rt[Sphere.ineq]
+rep 6 (dthen (fun t -> BURY_TAC t then ASSUME_TAC t))
+rep 6 (fxa mptac)
+rt[GSYM Nonlinear_lemma.ineq_expand6];
+contr
+fxast `rad2_y` mptac
+art[Sphere.ineq]
+asimp[arith `x < &2 ==> ~(x > &2)`]
+dt
+sgth `(&2*hminus <= y3 \/ &2 * hminus <= y4 \/ &2 * hminus <= y5 \/ &2*hminus <= y6 ==> gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun > &0)` assume
+fxa mptac
+mt[quarter_norm2hh;arith `x <= y <=> ~(y < x)`]
+fxast `~` mptac
+rt[]
+  CHOP_LIST_TAC 1;
+  MATCH_MP_TAC ineq_branch_2hmin;
+  REWRITE_TAC[APPEND;hmin22];
+  ONCE_REWRITE_TAC[CONJ_SYM];
+  CONJ_TAC;
+  fxast `rad2_y` mptac
+    fxast `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> mptac (specl ys t ))
+    repeat (fxast `a <= b` mptac)
+    rt[Sphere.ineq]
+rat
+dt
+subthen `~(rad2_y y1 y2 y3 y4 y5 y6 > &2)` assume
+fxast `rad2_y` mptac
+rat
+comment" start on branch with y4 "
+CHOP_LIST_TAC 3;
+mmp ineq_branch_2hmin
+rt[hmin22;APPEND]
+ort[CONJ_SYM]
+conj
+rt[Sphere.ineq]
+rep 3 dt
+dthen (fun t -> BURY_TAC t then ASSUME_TAC t)
+rep 4 (fxa mptac)
+rt[GSYM Nonlinear_lemma.ineq_expand6];
+sgth `(y3 <= &2 * hplus /\ y5 <= &2 * hplus /\ y6 <= &2 * hplus)` mptac then st/r
+fxast `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` BURY_TAC
+conj
+mmp (arith `~(x <= y3) ==> (y3 <= x)`)
+dt
+fxast `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> mptac (specl [y1;y3;y2;y4;y6;y5] t))
+rt[Sphere.ineq]
+art[]
+sgth `rad2_y y1 y3 y2 y4 y6 y5 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+art[]
+conj
+mmp (arith `~(x <= y3) ==> (y3 <= x)`)
+dt
+fxast `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> mptac (specl [y1;y5;y6;y4;y2;y3] t))
+rt[Sphere.ineq]
+art[]
+sgth `rad2_y y1 y5 y6 y4 y2 y3 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+art[]
+mmp (arith `~(x <= y3) ==> (y3 <= x)`)
+dt
+fxast `ineq a (rad2_y y1 y2 y3 y4 y5 y6 > &2)` (fun t -> mptac (specl [y1;y6;y5;y4;y3;y2] t))
+rt[Sphere.ineq]
+art[]
+sgth `rad2_y y1 y6 y5 y4 y3 y2 = rad2_y y1 y2 y3 y4 y5 y6` subst1
+mt[rad2_y_sym]
+art[]
+comment "2nd rad ineq here"
+CHOP_LIST_TAC 2 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then  conj then TRY dt then CHOP_LIST_TAC 4 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then conj then TRY dt then CHOP_LIST_TAC 5 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then conj then TRY dt then fxa (fun t -> (mptac (SPECL ys t) then mmp ineq_approx_ztg4))
+comment " 1st case "
+art[Sphere.ineq;beta_bump_lb1]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec `y4:real` critical_edge_bound)
+ARITH_TAC
+comment " 2nd case "
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y4 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment " 3rd case "
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y4 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment " 4th case "
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y4 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment " 5th case "
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y4 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment "6th case"
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y4 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment "7th case"
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y4 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment "8th case"
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y4 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment "HALF WAY POINT"
+dt
+CHOP_LIST_TAC 2 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then  conj then TRY dt then CHOP_LIST_TAC 4 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then conj then TRY dt then CHOP_LIST_TAC 5 then mmp ineq_branch_2hmin then rt[hmin22;APPEND] then conj then TRY dt then fxa (fun t -> (mptac (SPECL ys t) then mmp ineq_approx_ztg4))
+comment "1st' case"
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wte
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+asimp[critical_y_range]
+comment "2nd' case"
+art[]
+mmp ineq_CONJ
+conj
+rt[Sphere.ineq]
+st/r
+mmp gamma_wt
+asimp[]
+art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+rt[Sphere.ineq]
+st/r
+mmp beta_bump_lb0
+art[]
+comment "3rd' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y5 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+comment "4th' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y5 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+comment "5th' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+comment "6th' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+comment "7th' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+comment "8th' case"
+art[] then mmp ineq_CONJ then conj then rt[Sphere.ineq] then st/r
+mmp gamma_wt then asimp[] then art[Sphere.wtcount6_y;Sphere.wtcount3_y]
+mptac (spec y3 critical_edge_bound)
+mptac (spec y5 critical_edge_bound)
+mptac (spec y6 critical_edge_bound)
+ARITH_TAC
+mmp beta_bump_lb0 then art[]
+  *)
+  ]);;
+  (* }}} *)
+
+
+let lindih_lt = prove_by_refinement(
+  `!u x1 x2 x3 x4 x5 x6. abs u < pi/ & 2 /\
+    &0 < x1 /\ &0 < delta_x x1 x2 x3 x4 x4 x5 /\
+    &0 < delta_x4 x1 x2 x3 x4 x5 x6 ==> (dih_x x1 x2 x3 x4 x5 x6 < u <=>
+    sqrt(&4 * x1 * delta_x x1 x2 x3 x4 x5 x6) < 
+    tan(u) * delta_x4 x1 x2 x3 x4 x5 x6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  GMATCH_SIMP_TAC (MESON[Trigonometry1.ATN2_BREAKDOWN] `y < &0 ==> atn2(x,y) = --(pi/ &2) - atn(x/y)`);
+  ASM_REWRITE_TAC[arith `-- x < &0 <=> &0 < x`;arith `pi / &2 + -- (pi/ &2) - x = -- x`];
+  REWRITE_TAC[real_div;REAL_INV_NEG;arith `x * -- y = --(x * y)`;ATN_NEG;arith `-- (-- x) = x`];
+  ABBREV_TAC `t = sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6) <  tan u * delta_x4 x1 x2 x3 x4 x5 x6`;
+  GMATCH_SIMP_TAC (GSYM TAN_MONO_LT_EQ);
+  REWRITE_TAC[ATN_TAN;ATN_BOUNDS];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `abs` MP_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[GSYM real_div];
+  GMATCH_SIMP_TAC REAL_LT_LDIV_EQ;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let lindih_gt = prove_by_refinement(
+  `!u x1 x2 x3 x4 x5 x6. abs u < pi/ & 2 /\
+    &0 < x1 /\ &0 < delta_x x1 x2 x3 x4 x4 x5 /\
+    &0 < delta_x4 x1 x2 x3 x4 x5 x6 ==> (u < dih_x x1 x2 x3 x4 x5 x6 <=>
+     (tan(u) * delta_x4 x1 x2 x3 x4 x5 x6) < sqrt(&4 * x1 * delta_x x1 x2 x3 x4 x5 x6))   `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  GMATCH_SIMP_TAC (MESON[Trigonometry1.ATN2_BREAKDOWN] `y < &0 ==> atn2(x,y) = --(pi/ &2) - atn(x/y)`);
+  ASM_REWRITE_TAC[arith `-- x < &0 <=> &0 < x`;arith `pi / &2 + -- (pi/ &2) - x = -- x`];
+  REWRITE_TAC[real_div;REAL_INV_NEG;arith `x * -- y = --(x * y)`;ATN_NEG;arith `-- (-- x) = x`];
+  ABBREV_TAC `t =  tan u * delta_x4 x1 x2 x3 x4 x5 x6 < sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6)`;
+  GMATCH_SIMP_TAC (GSYM TAN_MONO_LT_EQ);
+  REWRITE_TAC[ATN_TAN;ATN_BOUNDS];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `abs` MP_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[GSYM real_div];
+  GMATCH_SIMP_TAC REAL_LT_RDIV_EQ;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let lindihpi_lt = prove_by_refinement(
+  `!u x1 x2 x3 x4 x5 x6. abs u < pi/ & 2 /\
+    &0 < x1 /\ &0 < delta_x x1 x2 x3 x4 x4 x5 /\
+     delta_x4 x1 x2 x3 x4 x5 x6 < &0 ==> (dih_x x1 x2 x3 x4 x5 x6 < pi - u <=>
+    -- tan(u) * delta_x4 x1 x2 x3 x4 x5 x6 < sqrt(&4 * x1 * delta_x x1 x2 x3 x4 x5 x6) 
+    )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  GMATCH_SIMP_TAC (MESON[Trigonometry1.ATN2_BREAKDOWN] `&0 < y ==> atn2(x,y) = (pi/ &2) - atn(x/y)`);
+  ASM_REWRITE_TAC[arith `&0 < --x <=> x < &0`;arith `pi / &2 + (pi/ &2) - x = pi - x`];
+  ABBREV_TAC `t = --tan u * delta_x4 x1 x2 x3 x4 x5 x6 <  sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6)`;
+  REWRITE_TAC[arith `pi - t < pi - u <=> u < t`];
+  GMATCH_SIMP_TAC (GSYM TAN_MONO_LT_EQ);
+  REWRITE_TAC[ATN_TAN;ATN_BOUNDS];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `abs` MP_TAC;
+    BY(BY(REAL_ARITH_TAC));
+  GMATCH_SIMP_TAC REAL_LT_RDIV_EQ;
+  ASM_REWRITE_TAC[arith `&0 < --x <=> x < &0`];
+  EXPAND_TAC "t";
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let lindihpi_gt = prove_by_refinement(
+  `!u x1 x2 x3 x4 x5 x6. abs u < pi/ & 2 /\
+    &0 < x1 /\ &0 < delta_x x1 x2 x3 x4 x4 x5 /\
+     delta_x4 x1 x2 x3 x4 x5 x6 < &0 ==> ( pi - u < dih_x x1 x2 x3 x4 x5 x6  <=>
+    (sqrt(&4 * x1 * delta_x x1 x2 x3 x4 x5 x6)  < -- tan(u) * delta_x4 x1 x2 x3 x4 x5 x6 
+    ))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  GMATCH_SIMP_TAC (MESON[Trigonometry1.ATN2_BREAKDOWN] `&0 < y ==> atn2(x,y) = (pi/ &2) - atn(x/y)`);
+  ASM_REWRITE_TAC[arith `&0 < --x <=> x < &0`;arith `pi / &2 + (pi/ &2) - x = pi - x`];
+  ABBREV_TAC `t = sqrt (&4 * x1 * delta_x x1 x2 x3 x4 x5 x6) <  --tan u * delta_x4 x1 x2 x3 x4 x5 x6`;
+  REWRITE_TAC[arith `pi - t < pi - u <=> u < t`];
+  GMATCH_SIMP_TAC (GSYM TAN_MONO_LT_EQ);
+  REWRITE_TAC[ATN_TAN;ATN_BOUNDS];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `abs` MP_TAC;
+    BY(BY(BY(REAL_ARITH_TAC)));
+  GMATCH_SIMP_TAC REAL_LT_LDIV_EQ;
+  ASM_REWRITE_TAC[arith `&0 < --x <=> x < &0`];
+  EXPAND_TAC "t";
+  BY(BY(REAL_ARITH_TAC))
   ]);;
   (* }}} *)
 

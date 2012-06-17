@@ -2289,7 +2289,7 @@ static void testProcedure(Function F,lineInterval (*G)(const domain&),
 
 void legacy_simplex::selfTest()
 {
-  cout << " -- loading legacy_simplex testng routines " << endl << flush;
+  cout << " -- loading legacy_simplex testing routines " << endl << flush;
 
 
   /* test primitiveA. */

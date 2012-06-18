@@ -1,0 +1,462 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Nonlinear                                                  *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2012-06-15                                                           *)
+(* ========================================================================== *)
+
+
+Functional_equation.functional_overload();;
+
+
+(*
+let truncate_vol3f_456 = new_definition `truncate_vol3f_456 c f = 
+    scalar6 ( mk_456 (rotate5 (truncate_sol_x c)) +
+		mk_456 (rotate6 (truncate_sol_x c)) + 
+		mk_456 (rotate4 (truncate_sol_x c)) 
+	       )  (&2 * mm1/ pi)    
+    -       
+      scalar6 (
+	(uni(f,(scalar6 proj_y4  #0.5))) * mk_456 (rotate4 (truncate_dih_x c)) +
+	(uni(f,(scalar6 proj_y5  #0.5))) * mk_456 (rotate5 (truncate_dih_x c)) +
+	(uni(f,(scalar6 proj_y6  #0.5))) * mk_456 (rotate6 (truncate_dih_x c))
+      )  (&8 * mm2 / pi)`;;
+*)
+
+(*
+let gamma2_x = 
+  new_definition `gamma2_x f x = (&8 - x)* sqrt x / (&24) -
+  ( (&2 * mm1/ pi) * (&1 - sqrt x / sqrt8) - (&8 * mm2 / pi) * f (sqrt x / &2))`;;
+*)
+
+
+
+
+(*
+let gamma3f_x = new_definition `gamma3f_x d f  = 
+  truncate_vol3r_456 d  - 
+    truncate_vol3f_456 d f`;;
+
+let gamma23_x = new_definition `gamma23_x iw1 iw2 f  =
+  scalar6 
+    (compose6 (gamma3f_x (#0.14) f) dummy6 dummy6 dummy6 proj_x1 proj_x2 proj_x6)
+    iw1  + 
+    scalar6 
+    (compose6 (gamma3f_x (#0.14) f) dummy6 dummy6 dummy6 proj_x1 proj_x3 proj_x5)
+    iw2
+  + (dih_x - 
+       (mk_126 (truncate_dih_x (#0.14)) +
+	  mk_135 (truncate_dih_x (#0.14)))) * 
+    uni(gamma2_x f,proj_x1)`;;
+
+let gamma23_x_A = new_definition `gamma23_x_A iw1 f =
+  scalar6 
+    (compose6 (gamma3f_x (#0.14) f) dummy6 dummy6 dummy6 proj_x1 proj_x2 proj_x6)
+    iw1
+  + (dih_x - (mk_126 (truncate_dih_x (#0.14)) + constant6 (#0.08))) * 
+       uni(gamma2_x f, proj_x1)`;;
+
+let gamma23_x_B = new_definition 
+  `gamma23_x_B f  =
+       (dih_x  - constant6 (&2 * #0.08)) * 
+	 uni(gamma2_x f,proj_x1)`;;
+
+*)
+
+let gamma2_x_gamma2f = prove_by_refinement(
+  `!y f. 
+    (&0 <= y ==> ((&2 * pi) * (gamma2_x f (y*y)) = 
+	 (vol2r y sqrt2)*(y / &2) - vol2f y sqrt2 f ))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[gamma2_x;Sphere.vol2r;Sphere.vol2f;Nonlinear_lemma.sqrt8_sqrt2;Nonlinear_lemma.sqrt2_sqrt2];
+  DISCH_TAC;
+  REPEAT (GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx);
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+
+let truncate_dih_x_dih_x = prove_by_refinement(
+  `!c. domain6
+    (\x1 x2 x3 x4 x5 x6. &0 <= x1 /\ &0 <= c /\ c <= delta_x x1 x2 x3 x4 x5 x6)
+    (truncate_dih_x c) (dih_x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[domain6;truncate_dih_x;Sphere.dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT STRIP_TAC;
+  ABBREV_TAC `d  =delta_x x1 x2 x3 x4 x5 x6`;
+  REPEAT (AP_THM_TAC ORELSE AP_TERM_TAC);
+  SUBGOAL_THEN `&0 <= d` ASSUME_TAC;
+    BY(ASM_MESON_TAC[REAL_LE_TRANS]);
+  ASM_SIMP_TAC[SQRT_MUL;arith `&0 <= &4`;Real_ext.REAL_PROP_NN_MUL2;];
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[arith `c <= d /\ d <= c ==> (d = c)`;arith `a * b * c = (a*b)*(c:real)`]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_sol_x_sol_x = prove_by_refinement(
+  `!c. domain6
+    (\x1 x2 x3 x4 x5 x6. &0 <= x1 /\ &0 <= x2 /\ &0 <= x3 /\ &0 <= c /\ c <= delta_x x1 x2 x3 x4 x5 x6)
+    (truncate_sol_x c) (sol_x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[domain6;truncate_sol_x;Sphere.sol_x;add6;Sphere.rotate2;Sphere.rotate3;constant6;sub6];
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC (arith `(a=a') /\ (b = b') /\ (c = c') ==> (a+b+c-pi =a'+b'+c'-pi)`);
+  BY(REPEAT CONJ_TAC THEN GMATCH_SIMP_TAC (REWRITE_RULE[domain6] (SPEC `c:real` truncate_dih_x_dih_x)) THEN ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.delta_x] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_sqrt_le = prove_by_refinement(
+  `!c d. (c <= d) ==> (truncate_sqrt c d = sqrt d)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[truncate_sqrt];
+  COND_CASES_TAC;
+    REPEAT (POP_ASSUM MP_TAC);
+    BY(MESON_TAC[arith `c <= d /\ d <= c ==> (c = d)`]);
+  REPEAT (POP_ASSUM MP_TAC);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_dih_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 c. 
+    truncate_dih_x c x1 x2 x3 x4 x5 x6 = truncate_dih_x c x1 x3 x2 x4 x6 x5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[truncate_dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `delta_x x1 x3 x2 x4 x6 x5 = delta_x x1 x2 x3 x4 x5 x6` SUBST1_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(REAL_ARITH_TAC);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[Sphere.delta_x4];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_dih_x_sym2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 c. 
+    truncate_dih_x c x1 x2 x3 x4 x5 x6 = truncate_dih_x c x1 x5 x6 x4 x2 x3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[truncate_dih_x;truncate_sqrt;LET_DEF;LET_END_DEF];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `delta_x x1 x5 x6 x4 x2 x3 = delta_x x1 x2 x3 x4 x5 x6` SUBST1_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(REAL_ARITH_TAC);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[Sphere.delta_x4];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let gamma3f_lemma = prove_by_refinement(
+  `!f y4 y5 y6 (a:real) (b:real) (c:real) (d:real). 
+    (&0 <= y4 /\ &0 <= y5 /\ &0 <= y6 /\ (&0 <= d) /\
+     d <= delta_y sqrt2 sqrt2 sqrt2 y4 y5 y6) ==>
+    (gamma3f y4 y5 y6 sqrt2 f = 
+	truncate_vol3r_456 d  a b c (y4*y4) (y5*y5) (y6*y6) -
+	truncate_vol3f_456 d f a b c (y4*y4) (y5*y5) (y6*y6))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM;Sphere.delta_y;truncate_vol3f_456;truncate_vol3r_456;mk_456;uni;scalar6;proj_y1;Sphere.rotate4;Sphere.rotate5;Sphere.rotate6;compose6;proj_x4;proj_x5;proj_x6;scalar6;add6;mul6;sub6;two6;sol_x_123;Sphere.gamma3f;constant6;Sphere.vol3r;Sphere.vol3f;truncate_vol_x;Nonlinear_lemma.sqrt2_sqrt2;LET_DEF;LET_END_DEF;Sphere.vol_y;Sphere.y_of_x;proj_y4;proj_y5;proj_y6;Sphere.dih_y;sol_y_sol_x];
+  REPEAT STRIP_TAC;
+  ASM_SIMP_TAC[Nonlinear_lemma.sqrtxx;truncate_sqrt_le];
+  BINOP_TAC;
+    REWRITE_TAC[Sphere.vol_x];
+    BY(BY(REAL_ARITH_TAC));
+  BINOP_TAC;
+    REWRITE_TAC[arith `e * a * b/c = (a*b/c)*(e:real)`];
+    AP_TERM_TAC;
+    SUBGOAL_THEN `sol_x  (y4 * y4) (y5 * y5) (&2) (&2) (&2) (y6 * y6) = sol_x (y5 * y5) (&2) (y4 * y4) (&2) (y6 * y6) (&2)` SUBST1_TAC;
+      BY(MESON_TAC[sol_x_sym;sol_x_sym2]);
+    SUBGOAL_THEN `sol_x  (y5 * y5) (y6 * y6) (&2) (&2) (&2) (y4 * y4) = sol_x  (y6 * y6) (&2) (y5 * y5) (&2) (y4 * y4) (&2)` SUBST1_TAC;
+      BY(MESON_TAC[sol_x_sym;sol_x_sym2]);
+    SUBGOAL_THEN ` sol_x (y6 * y6) (y4 * y4) (&2) (&2) (&2) (y5 * y5) = sol_x (y4 * y4) (&2) (y6 * y6) (&2) (y5 * y5) (&2)` SUBST1_TAC;
+      BY(MESON_TAC[sol_x_sym;sol_x_sym2]);
+    MATCH_MP_TAC (arith `(a = a')/\(b = b')/\(c=c') ==> (a+b+c = a'+b'+(c':real))`);
+    BY(REPEAT CONJ_TAC THEN GMATCH_SIMP_TAC (REWRITE_RULE[domain6] (SPEC `d:real` truncate_sol_x_sol_x)) THEN ASM_REWRITE_TAC[arith `&0 <= &2`;REAL_LE_SQUARE] THEN FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Sphere.delta_x] THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `a * #0.5 = a/ &2`;arith ` d * a * b/pi= (a * b/pi) * d`];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  MATCH_MP_TAC (arith `(a = a')/\(b = b')/\(c=c') ==> (u*a + v*b +w*c = u*a' + v*b' + w*(c':real))`);
+  SUBGOAL_THEN `d <= delta_x (y4 * y4) (y5 * y5) (&2) (&2) (&2) (y6 * y6) /\ d <= delta_x (y5 * y5) (y6 * y6) (&2) (&2) (&2) (y4 * y4) /\ d <= delta_x (y6 * y6) (y4 * y4) (&2) (&2) (&2) (y5 * y5)` ASSUME_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[Sphere.delta_x];
+    BY(BY(REAL_ARITH_TAC));
+  SUBGOAL_THEN `truncate_dih_x (d) (y4 * y4) (&2) (y6 * y6) (&2) (y5 * y5) (&2) = truncate_dih_x (d) (y4 * y4) (y5 * y5) (&2) (&2) (&2) (y6 * y6) ` SUBST1_TAC;
+    BY(BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]));
+  SUBGOAL_THEN `truncate_dih_x (d) (y5 * y5) (&2) (y4 * y4) (&2) (y6 * y6) (&2) = truncate_dih_x (d)  (y5 * y5) (y6 * y6) (&2) (&2) (&2) (y4 * y4)` SUBST1_TAC;
+    BY(BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]));
+  SUBGOAL_THEN ` truncate_dih_x (d) (y6 * y6) (&2) (y5 * y5) (&2) (y4 * y4) (&2) =  truncate_dih_x (d)  (y6 * y6) (y4 * y4) (&2) (&2) (&2) (y5 * y5)` SUBST1_TAC;
+    BY(BY(MESON_TAC[truncate_dih_x_sym;truncate_dih_x_sym2]));
+  BY(BY(REPEAT CONJ_TAC THEN GMATCH_SIMP_TAC (REWRITE_RULE[domain6;] (SPEC `d:real` truncate_dih_x_dih_x)) THEN ASM_REWRITE_TAC[REAL_LE_SQUARE]))
+  ]);;
+  (* }}} *)
+
+
+(* Redo 2 and 3 cell calculations *)
+
+(* change to x *)
+
+module Test = struct
+  open Sphere;;
+  open Ineq;;
+add
+  {
+  idv = "GLFVCVK2v2 a";
+ ineq = all_forall `ineq
+  [     (#2.0 pow 2,x,(&2 * h0) pow 2 ) ]
+   (truncate_gamma2_x (&1) x > &0)`;
+  doc =   "If $X$ is a $2$-cell, then $\\gamma(X,L)\\ge0$.";
+    tags=[Marchal;Flypaper["OXLZLEZ";"TSKAJXY";];Tex;Cfsqp];  
+  };;
+
+add
+  {
+  idv = "GLFVCVK2v2 b";
+ ineq = all_forall `ineq
+  [     ((&2 * h0) pow 2,x, &8 ) ]
+   (truncate_gamma2_x (&0) x  > &0)`;
+  doc =   "If $X$ is a $2$-cell, then $\\gamma(X,L)\\ge0$.";
+    tags=[Marchal;Flypaper["OXLZLEZ";"TSKAJXY";];Tex;Cfsqp;Sharp;Eps 1.0e-15];  
+  };;
+
+add
+{
+  idv = "QITNPEA 4003532128 b sym v2";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (#2.1 ,y4, sqrt8);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+ (y2 < y3) \/ (y2 < y5) \/ (y2 < y6) \/
+     (y_of_x 
+	(truncate_gamma23_x (&1) (&1) (h0cut y1) (&1) (&1) (&1) (&1)) 
+	  y1 y2 y3 y4 y5 y6  - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) 
+   )`;
+  doc =   "
+     Note the lower bound on $y_4$ is $2.1$.
+     This is an inequality for $23$-cells used to prove the cluster inequality.
+     We may use monotonicity so that rad2 is exactly 2.
+    By symmetry we may assume that y2 is the longest of y2,y3,y5,y6";
+  tags=[Marchal;Cfsqp;Cfsqp_branch 6;
+         Clusterlp;Flypaper["OXLZLEZ"];Tex;Xconvert;Branching;Split[0];
+        Set_rad2;Delta126min (0.14-. 1.0e-12);
+	 Delta135min (0.14 -. 1.0e-12)];
+};;
+
+add
+{
+  idv = "QITNPEA 4003532128 b2 v2";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+    (&2,y3, &2 * hminus);
+    (#2.1 ,y4, #2.1);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+  (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+   (y_of_x (truncate_gamma23_x (&1) (&1) (h0cut y1) (&1) (&1) (&1) (&1)) 
+      y1 y2 y3 y4 y5 y6 - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0)
+   )`;
+  doc =   "
+     Note the lower bound on $y_4$ is $2.1$.
+     This is an inequality for $23$-cells used to prove the cluster inequality.
+     We may use monotonicity so that $y_4=2.1$";
+  tags=[Marchal;Cfsqp;Cfsqp_branch 3;Clusterlp;Flypaper["OXLZLEZ"];Tex;Xconvert;Branching;Split[0];Delta126min (0.14-. 1.0e-12);
+	 Delta135min (0.14 -. 1.0e-12)];
+};;
+
+add
+{
+  idv = "QITNPEA 4003532128 c v2";
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2 ,y2, &2 * hminus);
+     (&2,y3, &2 * hminus);
+    (#2.1 ,y4, #2.1);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    (    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0) \/  
+   (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14) \/
+   (y_of_x (truncate_gamma23_x_A (&1) (h0cut y1) (&1) (&1))
+       y1 y2 y3 y4 y5 y6
+       - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0)
+ )`;
+  doc =   "
+   Inititally, $y_4$ extends to $\\sqrt8$, but we use monotonicity
+to reduced it to the lower bound.
+     This gives an upper bound $0.08$ on the dihedral angle of the $3$-cell.
+     This is an inequality for $23$-cells used to prove the cluster inequality.";
+  tags=[Marchal;Cfsqp;Cfsqp_branch 3;Clusterlp;Flypaper["OXLZLEZ"];Tex;Xconvert;Branching;Split[0];Delta126min (0.14 -. 1.0e-12);
+    Delta135min (0.0); Delta135max(0.14 +. 1.0e-12)];
+  (* d4 > 67 > Tan[Pi/2 - 0.03] Sqrt[4 1.0] ==> dih <= 0.03. *)
+ (*   (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/ dropped 12/23/2010 *)
+};;
+
+add
+{
+  idv = "QITNPEA 4003532128 d v2";
+(* removed gamma3f y1 y2 y6 sqrt2 lmfun +  from term on Nov 29, 2010 *)
+  ineq = all_forall `ineq
+   [(&2 * hminus,y1, &2 * hplus);
+    (&2,y2, &2 * hminus);
+     (&2,y3, &2 * hminus);
+    (#2.1 ,y4, sqrt8);
+    (&2,y5, &2 * hminus);
+    (&2,y6, &2 * hminus)
+   ]
+    (   
+      (y_of_x (truncate_gamma23_x_B (h0cut y1)) y1 y2 y3 y4 y5 y6    
+	 - #0.00457511 
+    - #0.00609451*dih_y y1 y2 y3 y4 y5 y6 > #0.0) \/
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 > #0.14 ) \/
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < &0 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0)   )`;
+  doc =   "
+     This gives an upper bound $0.08$ on the dihedral angle of the $3$-cell.
+     This is an inequality for $23$-cells used to prove the cluster inequality.";
+  tags=[Marchal;Cfsqp;Clusterlp;Tex;Flypaper["OXLZLEZ"];Xconvert;Branching;Split[0]];
+  (* d4 > 25 > Tan[Pi/2 - 0.08] Sqrt[4 x1 0.14] ==> dih <= 0.08. *)
+};; 
+
+let template_F23b = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, sqrt8 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    ( (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+   (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+  (y_of_x (truncate_gamma23_x (&1/ &w1) (&1/ &w2) 
+    (h0cut y1) (h0cut y2) (h0cut y3) (h0cut y5) (h0cut y6)) y1 y2 y3 y4 y5 y6      >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+   )`;;
+
+let template_F23b2 = `\ y3m y3M y5m y5M y6m y6M w1 w2. ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, &2 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    (
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < #0.14) \/
+    (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+    (y_of_x (truncate_gamma23_x (&1/ &w1) (&1/ &w2)
+	       (h0cut y1) (h0cut y2) (h0cut y3) (h0cut y5) (h0cut y6)) 
+       y1 y2 y3 y4 y5 y6 >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+    )`;;
+
+let template_F23c = `\ y3m y3M y5m y5M y6m y6M (w1:num) (w2:num). ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, &2 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    (
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < #0.14 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0) \/
+    (y_of_x (truncate_gamma23_x_A (&1 / &w1) (h0cut y1) (h0cut y2) (h0cut y6)) y1 y2 y3 y4 y5 y6   >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6)
+    )`;;
+
+let template_F23d = `\ y3m y3M y5m y5M y6m y6M (w1:num) (w2:num). ineq
+   [(&2 *  hminus, y1, &2 * hplus);
+    (&2 ,y2, &2 *hminus);
+    (y3m,y3,y3M);
+    (&2 ,y4, sqrt8 );
+    (y5m,y5,y5M);
+    (y6m,y6,y6M)]
+    ((y_of_x (truncate_gamma23_x_B (h0cut y1)) y1 y2 y3 y4 y5 y6   >
+       a_spine5 + b_spine5 * dih_y y1 y2 y3 y4 y5 y6) \/ 
+    (y_of_x rad2_x y1 y2 y3 y4 y5 y6 < &2) \/
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 > #0.14 ) \/
+    (delta_y y1 y2 sqrt2 sqrt2 sqrt2 y6 < &0 ) \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 > #0.14)  \/
+    (delta_y y1 sqrt2 y3 sqrt2 y5 sqrt2 < &0)   )`;;
+
+let ineq_F23 i3 i5 i6 j = 
+  let template = List.nth [template_F23b;template_F23b2;template_F23c;template_F23d] j in
+  let x i = List.nth [`&2`; `&2 * hminus` ; `sqrt8`] i in
+  let X i = x (i+1) in
+  let mid i = if (i>0) then 1 else 0 in
+  let m = mk_small_numeral in
+  let w1 = 1 +  mid i6 in
+  let w2 = 1 + mid i3 + mid i5 in
+    mk_tplate template  [x i3;X i3; x i5;X i5; x i6 ;X i6; m w1; m w2];; 
+
+let tags_F23 =
+  let min14 = 0.14 -. 1.0e-12 in
+  let max14 = 0.14 +. 1.0e-12 in
+  let tag_all = [Marchal;Cfsqp_branch 3;Flypaper["OXLZLEZ";];
+	       Xconvert;Penalty(200.0,5000.0);Branching;] in
+    [[Set_rad2;Delta126min min14;Delta135min min14] @ tag_all;
+     [Delta126min min14;Delta135min min14] @ tag_all;
+     [Delta126min min14;Delta135min (0.0);Delta135max max14] @ tag_all;
+     tag_all];;
+
+let make_F23 i j = 
+  let (i3,i5,i6) = List.nth [(0,0,0);(0,0,1);(1,0,1);(0,1,1);(0,1,0)] i in (* wlog by symmetry *)
+  let ext = List.nth ["b";"b2";"c";"d"] j in
+  let tg0 = (List.nth tags_F23 j) in
+  let tg = (if (i=0) then [Tex] else []) @ [Split (split_F4 i3 0 i5 i6)] @ tg0 in
+   {
+    idv = Printf.sprintf "ZTGIJCF23v2 %d %d %d 7907792228 %s" i3 i5 i6 ext;
+    ineq = ineq_F23 i3 i5 i6 j;
+    doc = "This is the $2$- and $3$-cell inequality for five or more leaves.";
+    tags=tg 
+  };;
+
+for j=0 to 3 do
+  for i = 0 to 3 do
+    add (make_F23 i j) done done ;;
+
+add(make_F23 4 2);; 
+
+end;;
+
+cfsqp [ "QITNPEA 4003532128 b sym v2";];;
+cfsqp ["GLFVCVK2v2 a"; "GLFVCVK2v2 b";  "QITNPEA 4003532128 b sym v2";
+   "QITNPEA 4003532128 b2 v2"; "QITNPEA 4003532128 c"; "QITNPEA 4003532128 d";
+   "ZTGIJCF23v2 0 0 0 7907792228 b"; "ZTGIJCF23v2 0 0 0 7907792228 b2";
+   "ZTGIJCF23v2 0 0 0 7907792228 c"; "ZTGIJCF23v2 0 0 0 7907792228 d";
+   "ZTGIJCF23v2 0 0 1 7907792228 b"; "ZTGIJCF23v2 0 0 1 7907792228 b2";
+   "ZTGIJCF23v2 0 0 1 7907792228 c"; "ZTGIJCF23v2 0 0 1 7907792228 d";
+   "ZTGIJCF23v2 0 1 0 7907792228 c"; "ZTGIJCF23v2 0 1 1 7907792228 b";
+   "ZTGIJCF23v2 0 1 1 7907792228 b2"; "ZTGIJCF23v2 0 1 1 7907792228 c";
+   "ZTGIJCF23v2 0 1 1 7907792228 d"; "ZTGIJCF23v2 1 0 1 7907792228 b";
+   "ZTGIJCF23v2 1 0 1 7907792228 b2"; "ZTGIJCF23v2 1 0 1 7907792228 c";
+   "ZTGIJCF23v2 1 0 1 7907792228 d"];;
+
+

@@ -487,6 +487,8 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 }
 const Function legacy_simplex::dih= Function::mk_raw(linearization::dih,setAbsDihedral);
 
+
+
 const Function legacy_simplex::dih2 = legacy_simplex::rotate2(legacy_simplex::dih);
 const Function legacy_simplex::dih3 = legacy_simplex::rotate3(legacy_simplex::dih);
 const Function legacy_simplex::dih4 = legacy_simplex::rotate4(legacy_simplex::dih);

@@ -33,11 +33,11 @@ wide.o : wide.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c wide.cc
 
 taylorData.o : taylorData.cc error.h interval.h univariate.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorData.cc
+	$(CC) $(CCOPTS1) $(CCOPTS_NONE) -c taylorData.cc
 
 Lib.o : Lib.cc error.h interval.h univariate.h \
 	taylorData.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS2) -c Lib.cc
+	$(CC) $(CCOPTS1) $(CCOPTS_NONE) -c Lib.cc
 
 legacy_simplex.o : legacy_simplex.cc legacy_simplex.h error.h interval.h univariate.h \
 	taylorData.h
@@ -65,7 +65,7 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o \
 	../cfsqp/numerical.o ../cfsqp/sqp/qld.o \
 	../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o test_auto.cc \
-	-o test_auto -lm $(L)
+	-o  test_auto -lm $(L)
 
 
 jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \

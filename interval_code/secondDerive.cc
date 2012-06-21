@@ -1002,6 +1002,36 @@ int Dsqrt(const interval&u,const interval Du[6],const interval DDu[6][6],
 	return 1;
 	}
 
+int Dtruncate_sqrt
+  (const interval&u,const interval Du[6],const interval DDu[6][6],
+	interval& sqrt_u,interval Dsqrt_u[6],interval DDsqrt_u[6][6])
+	{
+	int i,j;
+	static const interval c14("0.14");
+	interval w(max(c14.lo,u.lo),max(c14.hi,u.hi));
+	if (interMath::inf(w)<=DBL_EPSILON) { throw unstable::x; }
+	sqrt_u = interMath::sqrt(w);
+	if (interMath::inf(sqrt_u)<DBL_EPSILON) { throw unstable::x; }
+	interval t = interval(   
+		(interMath::down(), 0.5/interMath::sup(sqrt_u)),
+		(interMath::up(), 0.5/interMath::inf(sqrt_u)));
+ 
+	for (i=0;i<6;i++) Dsqrt_u[i]= Du[i]*t;
+ 
+	interval v = interval((interMath::down(), (-0.5)/interMath::inf(w)),(interMath::up(), (-0.5)/interMath::sup(w)));
+ 
+	interval vDu[6];
+	for (i=0;i<6;i++) vDu[i] = Du[i]*v;
+ 
+	for (i=0;i<6;i++) for (j=i;j<6;j++)
+		DDsqrt_u[i][j] =(Du[i]*vDu[j] + DDu[i][j])*t;
+	for (i=0;i<6;i++) for (j=0;j<i;j++)
+		DDsqrt_u[i][j] = DDsqrt_u[j][i];
+	return 1;
+	}
+
+
+
 int Leibniz::quotient(const interval& a,const interval Da[6],const interval DDa[6][6],	
 	const interval& b,const interval Db[6],const interval DDb[6][6],
 	interval& v,interval Dv[6],interval DDv[6][6])
@@ -1282,6 +1312,14 @@ int secondDerive::setSqrtDelta(const double x[6],const double z[6],
 	return Dsqrt(d,Dd,DDd,sqrt_d,Dsqrt_d,DDsqrt_d);
 	}
 
+int setTruncateSqrtDelta(const double x[6],const double z[6],
+	interval& sqrt_d,interval Dsqrt_d[6],interval DDsqrt_d[6][6])
+	{
+	interval d,Dd[6],DDd[6][6];
+	::setDeltaFull(x,z,d,Dd,DDd);
+	return Dtruncate_sqrt(d,Dd,DDd,sqrt_d,Dsqrt_d,DDsqrt_d);
+	}
+
 int secondDerive::setAbsDihedral(const double x[6],const double z[6],double DDf[6][6])
 	{
 	int i,j;
@@ -1297,6 +1335,24 @@ int secondDerive::setAbsDihedral(const double x[6],const double z[6],double DDf[
 		DDf[i][j]= DDf[j][i];
 	return 1;
 	}
+
+int secondDerive::setAbsTruncateDihedral(const double x[6],const double z[6],double DDf[6][6])
+	{
+	int i,j;
+	interval s,Ds[6],DDs[6][6];
+	interval r,Dr[6],DDr[6][6];
+	if (!setTruncateSqrtDelta(x,z,s,Ds,DDs)) { throw unstable::x; }
+	if (!setDihedral(x,z,s,Ds,DDs,r,Dr,DDr)) { throw unstable::x; }
+	for (i=0;i<6;i++) for (j=i;j<6;j++)
+		{
+		DDf[i][j] = interMath::sup(interMath::max(DDr[i][j],-DDr[i][j]));
+		}
+	for (i=0;i<6;i++) for (j=0;j<i;j++)
+		DDf[i][j]= DDf[j][i];
+	return 1;
+	}
+
+
 
 	//////////
 	// Testing routines start here

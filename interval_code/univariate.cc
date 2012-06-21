@@ -82,13 +82,14 @@ static interval DDsqrt(const interval& x) {
 static uniprimitive psqrt(usqrt,Dsqrt,DDsqrt);
 
 
-// implement truncated sqrt i_truncate_sqrt;
-// We use 0.14 for now. We can generalize later if needed.
+// implement truncated sqrt i_truncate_sqrt; with 0.14.
+// 
 
-const static interval c14("0.14");;
+ const static interval c14("0.14");;
+
 
 static interval truncate(const interval&x ) {
-  interval t((c14.lo > x.lo ? c14.lo : x.lo), max(x.hi,c14.hi));
+  interval t(max(x.lo,c14.lo), max(x.hi,c14.hi));
   return t;
 }
 static interval tsqrt(const interval& x) {
@@ -653,7 +654,7 @@ static interval DDpow4(const interval& x) {
 // IMPLEMENT UNIVARIATE CLASS
 
 
-univariate::univariate(const univariate& rhs)
+ univariate::univariate(const univariate& rhs)
 {
   data.clear();
   //cout << "debug : univariate construct " << endl << flush;
@@ -661,16 +662,16 @@ univariate::univariate(const univariate& rhs)
       data[it->first]=it->second;
 }
 
-
-/*
 univariate univariate::operator=(const univariate& rhs)
 {
+  if (this == &rhs)
+    return *this;
   data.clear();
   //cout << "debug : univariate = " << endl << flush;
   for (mapType::const_iterator it = rhs.data.begin(); it!= rhs.data.end(); ++it)
-      data[it->first]=it->second;
+    data[it->first]=it->second;
 }
-*/
+
 
 univariate::univariate(uniprimitive* p) {
   //  cout << "debug : univariate primitive " << endl << flush;

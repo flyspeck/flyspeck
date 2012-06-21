@@ -91,6 +91,7 @@ namespace L {
   static const interval four ("4");
   static const interval eight ("8");
   static const interval sixteen ("16");
+  static const interval twentyfour("24");
   static const interval pi("3.1415926535897932385");
   static const interval const1 ("0.175479656091821810");
   static const interval sol0("0.5512855984325308079421");
@@ -115,7 +116,8 @@ namespace L {
 /* ========================================================================== */
 
   Function Lib::uni(const univariate& u,const Function& f) {
-   return Function::uni_compose(u,f);
+    Function t = Function::uni_compose(u,f);
+    return t;;
   }
 
 /* implement promote1_to_6 */
@@ -168,6 +170,23 @@ const univariate Lib::i_rho =
 
 /*   `!y. flat_term_x y = (sqrt y - &2 * h0) * rh0 * sol0 * (#0.5)` */
 const univariate Lib::i_flat_term_x = (univariate::i_sqrt + univariate::i_pow0 * (L::mone*L::two * L::h0)) * ( L::rh0 * L::sol0 * L::half);
+
+/* 
+         truncate_gamma2_x m x =
+         (&8 - x) * sqrt x / &24 -
+         ((&2 * mm1 / pi) * (&1 - sqrt x / sqrt8) -
+	 (&8 * mm2 / pi) * m * lfun (sqrt x / &2))  */
+const univariate Lib::i_truncate_gamma2_x(const interval& m) {
+  static const interval mm1x("0.644310692071541214963158104232");
+  static const interval mm2x("0.0647175113309960600618528362429"); 
+  univariate t =     
+   (L::i_sqrt * L::eight + univariate::i_pow3h2 * L::mone)*
+     (L::one/ L::twentyfour) +
+  ( L::i_sqrt * (L::one/ L::sqrt8) + L::i_pow0 * L::mone) * mm1x + 
+    (L::i_sqrt *L::half*L::mone + L::i_pow0 * L::h0 )
+  * 		       (L::rh0 * m * mm2x); 
+  return t;
+};
 
 /* implement halfbump_x (univariate) */
 /*
@@ -280,6 +299,43 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 }
 const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
 
+/*implement truncate_dih_x*/
+static int setAbsTruncateDihedral(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r = secondDerive::setAbsTruncateDihedral(X,Z,DD);
+  if (r) { testAbs(DD,"setAbsDihedral"); }
+  return r;
+}
+const Function truncate_dih_x_014= Function::mk_raw(linearization::truncate_dih,setAbsTruncateDihedral);
+
+ const Function Lib::truncate_dih_x(const interval& c) {
+   static const interval c14("0.14");
+   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
+     error::message("truncate_dih_x 0.14 out of range");
+   }
+   return truncate_dih_x_014;
+ }
+
+
+/*implement truncate_vol_x */ 
+static interval one("1");
+static interval twelve("12");
+static interval f12 =  (one/ twelve);
+const Function truncate_vol_x_014 = 
+  Lib::uni(univariate::i_truncate_sqrt,Lib::delta_x) *f12;
+
+ const Function Lib::truncate_vol_x(const interval& c) {
+   static const interval c14("0.14");
+   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
+     error::message("truncate_dih_x 0.14 out of range");
+   }
+   return truncate_vol_x_014;
+ }
+
+
 /*implement sol_x */
 static int setSol(const domain& x,const domain& z,double DD[6][6])
 {
@@ -321,6 +377,7 @@ static void epsValue(const char* s,const Function& f,double x) {
   domain d(6.36,4.2,4.3,4.4,4.5,4.6);
   double y = f.evalf(d,d).upperBound();
   epsilonCloseDoubles(s,x,y,eps);
+  //cout << "tested " << s << endl << flush;
 }
 
 void Lib::selfTest()
@@ -336,5 +393,36 @@ void Lib::selfTest()
   epsValue("y1",Lib::y1,sqrt(6.36));
   Function y2 =  (Function::compose(Lib::y1,(Lib::x2),(Lib::x3),(Lib::x1),(Lib::x5),(Lib::x6),(Lib::x4)));
   epsValue("y2",y2,sqrt(4.2));
-  cout << " -- done loadng LibA" << endl << flush;
+
+  /* i_flat_term_x */ {
+  Function f = Lib::promote1_to_6(Lib::i_flat_term_x);
+  epsValue("i_flat_term",f,0.00201859856768314477);
+  }
+
+  /* truncate_gamma2_x */ {
+  univariate f1 =  Lib::i_truncate_gamma2_x(interval::interval("1.1"));
+  Function f = Lib::promote1_to_6(f1);
+  epsValue("truncate_gamma2_x",f,0.102244026021654014);
+  Function g = (Lib::uni(f1 , (Lib::x1)));
+  epsValue("truncate_gamma2_x",g,0.102244026021654014);
+  }
+
+  /* truncate_dih_x */ {
+    Function f = Lib::truncate_dih_x(interval::interval("0.14"));
+    Function g = Lib::dih_x;
+    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
+    double x = g.evalf(d,d).upperBound();
+    epsValue("truncate_dih_x",Lib::truncate_dih_x(interval::interval("0.14")),x);
+  }
+
+  /* truncate vol_x */ {
+    Function f = uni(L::i_sqrt,Lib::delta_x) * (one/twelve);
+    Function g = Lib::truncate_vol_x(interval::interval("0.14"));
+    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
+    double x = f.evalf(d,d).upperBound();
+    epsValue("truncate_vol_x",g,x);
+  }
+
+  cout << " -- done loading LibA" << endl << flush;
+
 }

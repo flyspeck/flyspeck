@@ -30,6 +30,9 @@ double asn(double x);
 double sqp(double x);  // upper bound on sqrt that is analytic near 0.
 double sqn(double x);  // lower bound on sqrt that is analytic near 0.
 
+double h0cut(double x);
+double truncate_sqrt(double d , double c);
+
 // simplex:
 double delta_x(double x1,double x2,double x3,double x4,double x5,double x6);
 double delta_y(double y1,double y2,double y3,double y4,double y5,double y6);

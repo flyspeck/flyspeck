@@ -32,7 +32,10 @@ class Lib
 {
  public:
 
-  static const univariate i_halfbump_x,i_gchi,i_flat_term_x,i_lfun,i_rho;
+  static const univariate i_halfbump_x,i_gchi,i_flat_term_x,
+    i_lfun,i_rho;
+
+  static const univariate i_truncate_gamma2_x(const interval&);
 
   static const Function promote1_to_6(const univariate&);
 
@@ -55,6 +58,9 @@ class Lib
 
   static const Function unit,two6,edge_flat2_x,halfbump_x1,eta2_126,
     delta_x,delta_x4,dih_x,sol_x,rad2_x;
+
+  static const Function truncate_dih_x(const interval&);
+  static const Function truncate_vol_x(const interval&);
 
    static void selfTest();
 

@@ -25,11 +25,13 @@ open Nonlinear_lemma;;
 
 let length = List.length;;
 
+
 let svn_version = Flyspeck_lib.svn_version;;
 
 let ineq = Sphere.ineq;;
 let all_forall = Sphere.all_forall;;
 let add = Ineq.add;;
+
 
 let nub = Flyspeck_lib.nub;;
 
@@ -43,6 +45,8 @@ let dest_decimal = Flyspeck_lib.dest_decimal;;
 let strip_let_tm = Nonlinear_lemma.strip_let_tm;;
 
 let output_filestring = Flyspeck_lib.output_filestring;;
+
+let BY = Hales_tactic.BY;;
 
 (* from glpk_link.ml *)
 
@@ -116,6 +120,15 @@ let split_2h0 =
       `,  REAL_ARITH_TAC) in
     INST [(`&2 * h0`,`m:real`)] split_interval;;
 
+let split_2h0_strict = 
+  let split_interval = prove(
+    `! a b (y:real). (a <= y /\ y <= b) ==>
+      ((a <= y /\ y <= m) \/ (m < y /\ y <= b) )
+      `,  REAL_ARITH_TAC) in
+    INST [(`&2 * h0`,`m:real`)] split_interval;;
+
+
+(*  changed 2012-06-20
 let SPLIT_H0_TAC pos =  
  (REPEAT GEN_TAC) THEN
  (REWRITE_TAC[ineq_expand6]) THEN
@@ -124,6 +137,53 @@ let SPLIT_H0_TAC pos =
  DISCH_THEN DISJ_CASES_TAC    THEN 
  (REPEAT (POP_ASSUM MP_TAC)) THEN 
  (REWRITE_TAC[GSYM ineq_expand6]);;
+*)
+
+let h0cut = new_definition `h0cut y = if (y <= &2 * h0) then &1 else &0`;;
+
+let h0cutA = prove_by_refinement(
+  `!y. (y <= &2 * h0) ==> ((h0cut y) = &1)`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[h0cut]
+  ]);;
+  (* }}} *)
+
+let h0cutB = prove_by_refinement(
+  `!y. (&2 * h0 < y) ==> ((h0cut y) = &0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[h0cut];
+  REPEAT STRIP_TAC;
+  BY(COND_CASES_TAC THEN REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let h0cutC = prove_by_refinement(
+  `!y. (y <= &2 * hminus) ==> (h0cut y = &1)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  MATCH_MP_TAC h0cutA;
+  MP_TAC Nonlinear_lemma.hminus_lt_h0;
+  POP_ASSUM MP_TAC;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let SPLIT_H0_TAC pos =  
+  let destrict = REAL_ARITH `a < y /\ y <= b ==> a <= y /\ y <= b` in
+ (REPEAT GEN_TAC) THEN
+ (REWRITE_TAC[ineq_expand6]) THEN
+ (REPLICATE_TAC (pos) DISCH_TAC) THEN
+ (DISCH_THEN (fun t -> MP_TAC (MATCH_MP split_2h0_strict t))) THEN
+ DISCH_THEN DISJ_CASES_TAC    THEN 
+ ASM_SIMP_TAC[h0cutA;h0cutB;h0cutC] THENL
+   [ALL_TAC;POP_ASSUM ( ASSUME_TAC o (MATCH_MP destrict))] THEN
+ (REPEAT (POP_ASSUM MP_TAC)) THEN 
+ (REWRITE_TAC[GSYM ineq_expand6]);;
+
 
 (* WARNING: This disturbs the goal *)
 
@@ -168,9 +228,8 @@ let dest_nonlin t =
 
 let idem_assoc = [];; (* make it the default *)
 
-
 (* these names can change in cpp (hol_name,cpp_name).
-    Don't generated function defs for these.
+    Don't generate function defs for these.
     "NOT_IMPLEMENTED" is a special tag to suppress the
     production of test routines. We would be better
     off generating rho_x in a let statement in rad2_x. *)
@@ -189,6 +248,9 @@ let native_fun = [
   ("delta_x","Lib::delta_x");
   ("sol_x","Lib::sol_x");
   ("dih_x","Lib::dih_x");
+  ("truncate_dih_x","Lib::truncate_dih_x");
+  ("truncate_vol_x","Lib::truncate_vol_x");
+  ("truncate_gamma2_x","Lib::i_truncate_gamma2_x");
   ("rad2_x","Lib::rad2_x");
   ("rho_x","NOT_IMPLEMENTED");
   ("delta_x4","Lib::delta_x4");

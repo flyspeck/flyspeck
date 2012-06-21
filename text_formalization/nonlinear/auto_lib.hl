@@ -34,6 +34,7 @@ flyspeck_needs  "nonlinear/parse_ineq.hl";;
 module Auto_lib = struct
 
   let join_comma = Flyspeck_lib.join_comma;;
+  let join_space = Flyspeck_lib.join_space;;
   let join_lines = Flyspeck_lib.join_lines;;
 
 let functions() = 
@@ -227,8 +228,8 @@ Functional_equation.truncate_vol3f;
 Functional_equation.truncate_gamma2_x;
 Functional_equation.truncate_gamma3f_x;
 Functional_equation.truncate_gamma23_x;
-Functional_equation.truncate_gamma23_x_A;
 Functional_equation.truncate_gamma23_x_B;
+Functional_equation.truncate_gamma23_x_C;
    ];;
 
 let ocaml_code() = 
@@ -262,6 +263,14 @@ let break_functional_lemma thm =
 
 let break_term x = break_functional_lemma (ASSUME x);;
 
+let rec real_arity ty = 
+  let real_ty = `:real` in
+  if (is_vartype ty) then 0
+  else if (ty = real_ty) then 1 else
+      let (a,b) = dest_type ty in
+	if not(a = "fun" && hd b = real_ty && List.length b = 2) then 0
+	else 1 + real_arity (hd(tl b));;
+
 let mk_testing_string thm = 
   let native = Optimize.native_fun in
   let (name,body') = break_functional_lemma thm in
@@ -282,14 +291,51 @@ let mk_testing_string thm =
     Printf.sprintf "  epsValue(\"%s\",%s,%12.12f);" name' cname evalname in
     mk_string;;
 
+let mk_n_testing_string thm = 
+  let native = Optimize.native_fun in
+  let (name,body') = break_functional_lemma thm in
+  let name' = fst (strip_comb name) in
+  let (name',ty) = dest_const name' in
+  let rarity = real_arity ty in
+  let nargs = rarity - 7 in 
+  let _ = (rarity >= 8) or failwith "mk_n_testing_string" in 
+  let args = map (fun i -> 0.04 +. (float_of_int i)/. 10.0) (1--nargs) in 
+  let os = join_space (map (Printf.sprintf "%f") args) in
+  let sargs = join_comma (map (Printf.sprintf "interval::interval(\"%f\")") args) in
+  let cname = Lib.assocd name' native name' in
+  let _ = not(cname="NOT_IMPLEMENTED") or failwith "mk_testing:excluded" in
+  let evalname = 
+    let s = Printf.sprintf "Sphere2.%s %s 6.36 4.2 4.3 4.4 4.5 4.6" name' os in
+    let (b,s')=  eval_command s in
+    let _ = b or failwith ("evalname: "^name') in
+    let split = Str.split (Str.regexp "[ \n]") in
+    let r = hd (List.rev  (split s')) in
+    let f = float_of_string r in
+    let _ = not(0=Pervasives.compare nan f) or failwith "nan" in
+      f in
+  let mk_string = 
+    Printf.sprintf "  epsValue(\"%s\",%s(%s),%12.12f);" name' cname sargs evalname in
+    mk_string;;
+
+
+
 let all_testing_string() = 
   let can_test = filter (can  mk_testing_string) (functions()) in
-    Flyspeck_lib.join_lines (map mk_testing_string can_test);;
+  let can_test_n = filter (can mk_n_testing_string) (functions()) in
+    Flyspeck_lib.join_lines (
+      (map mk_testing_string can_test) @ (map mk_n_testing_string can_test_n));;
 
 let testing_code() = 
-  Printf.sprintf "void selfTest() { %s }\n" (all_testing_string());;
+  Printf.sprintf 
+   "\nvoid selfTest() { 
+       cout << \" --loading test_auto test\" << endl << flush;\n 
+       %s 
+       cout << \" --done loading test_auto test\" << endl << flush; }\n" 
+    (all_testing_string());;
 
-let not_tested = filter (not o (can mk_testing_string)) (functions());;
+let not_tested = filter (fun t -> 
+			  not (can mk_testing_string t) &&
+			not (can mk_n_testing_string t)) (functions());;
 
 (* following is copied and adapted from optimize.hl *)
 
@@ -308,6 +354,9 @@ let f6_ty = `:real->real->real->real->real->real->real` ;;
 let f7_ty = `:real->real->real->real->real->real->real->real` ;;
 let f8_ty = `:real->real->real->real->real->real->real->real->real` ;;
 let f9_ty = `:real->real->real->real->real->real->real->real->real->real` ;;
+
+
+real_arity `:real->real->real->real->real` =  5;;
 
 let f6to6_ty = `:(real->real->real->real->real->real->real) ->
   (real->real->real->real->real->real->real)`;;
@@ -337,6 +386,10 @@ List.length real_types;;
 let terms_with_type ty = 
   filter (fun t -> ty = type_of(fst(strip_comb(
     fst(break_term t))))) functional_terms;;
+
+let terms_with_real_arity_ge8 = 
+  filter (fun t -> 8 <= real_arity (type_of(fst(strip_comb(
+    fst(break_term t)))))) functional_terms;;
 
 let f0_terms =  (terms_with_type real_ty);;
 
@@ -459,7 +512,7 @@ let cpp_string_of_term =
 	  | "\\/" -> ifix "\\/"
 	  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
 	  | "real_of_num" -> let [a] = xs in i_mk(soh a)  
-	  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+	  | "NUMERAL" -> let [_] = xs in string_of_num' (dest_numeral t)
 	  | "<" -> let [a;b] = xs in paren(soh a ^ " < " ^ soh b)
 	  | ">" -> let [a;b] = xs in paren(soh a ^ " > " ^ soh b)
 	  | "+" -> let [a;b] = xs in paren(soh a ^ " + " ^ soh b)
@@ -508,8 +561,8 @@ let fn_code() =
     "static const Function %s(%s) { return (%s); }\n" in
   let fn_arg_template = Printf.sprintf
     "const interval& %s" in
-  let fn_terms = (terms_with_type f7_ty)@
-    (terms_with_type f8_ty) @ (terms_with_type f9_ty) in
+  let fn_terms = terms_with_real_arity_ge8 in  (* (terms_with_type f7_ty)@
+    (terms_with_type f8_ty) @ (terms_with_type f9_ty) in *)
   let fn_auto = 
     let b = (fst o dest_const o fst o strip_comb o fst o break_term) in
     let nat = map fst native_fun in

@@ -135,6 +135,10 @@ static int setDelta(const double x[6],const double z[6],interval DDf[6][6]);
 		//
 static int setAbsDihedral(const double x[6],const double z[6],double DDf[6][6]);
 
+// truncation at delta_x=0.14.
+static int setAbsTruncateDihedral(
+		    const double x[6],const double z[6],double DDf[6][6]);
+
 		//////////
 		// Compute the second derivative of the dihedral angle.
 		// The dihedral angle is that along the first edge of the simplex.
@@ -150,6 +154,7 @@ static int setAbsDihedral(const double x[6],const double z[6],double DDf[6][6]);
 static int setDihedral(const double x[6],const double z[6],const interval& s,
 	const interval Ds[6],const interval DDs[6][6],
 	interval& h,interval Dh[6],interval DDh[6][6]);
+
 
 
 		//////////

@@ -137,6 +137,21 @@ static lineInterval sqrt(lineInterval a)
 	return temp;
 	}
 
+static lineInterval truncate_sqrt(lineInterval a)  // truncate at 0.14.
+	{
+	static const interval two("2");
+	static const interval one("1");
+	static const interval c14("0.14");
+	lineInterval temp;
+	interval t(max(c14.lo,a.f.lo),max(c14.hi,a.f.hi));
+	temp.f = interMath::sqrt(t);
+	interval rs = one/(two*temp.f);
+	int i;
+	for (i=0;i<6;i++) temp.Df[i]=rs*a.Df[i];
+	return temp;
+	}
+
+
 static lineInterval atan(lineInterval a,lineInterval b) // atan(a/b);
 	{
 	static const interval one("1");
@@ -509,6 +524,25 @@ lineInterval linearization::dih(const domain& x)
 	if (! interMath::boundedFromZero(b.f)) { throw unstable::x; };
 	return p + atan(ax,b);
 	}
+
+lineInterval linearization::truncate_dih(const domain& x)
+	{
+	static const interval four("4");
+	double x1,x2,x3,x4,x5,x6;
+	x1 = x.getValue(0); x2 = x.getValue(1); x3 = x.getValue(2);
+	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
+	static const interval pi2 = "1.5707963267948966192313216916";
+	static lineInterval p = lineInterval(pi2);
+	lineInterval ax = -deltaX4(x1,x2,x3,x4,x5,x6);
+	double x14 = 4.0*x1;
+	lineInterval t = lineInterval(interval(x14,x14));  
+	t.Df[0]=four;
+	lineInterval b2 = linearization::delta(x)*t;
+	lineInterval b = truncate_sqrt(b2);
+	if (! interMath::boundedFromZero(b.f)) { throw unstable::x; };
+	return p + atan(ax,b);
+	}
+
 
 lineInterval linearization::dih2(const domain& x)
 	{

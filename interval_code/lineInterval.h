@@ -167,6 +167,14 @@ static lineInterval delta_x4(const domain&);
 static lineInterval dih(const domain&);
 
 	//////////
+	// The truncated dihedral angle of a simplex along the first edge.  
+	// Explicit formulas for this function appear in SP I.8.3.1.
+	// The edge numbering conventions are given in SP I.1.
+	//
+ static lineInterval truncate_dih(const domain&);
+
+
+	//////////
 	// The dihedral angle of a simplex along the second edge.  
 	// Explicit formulas for this function appear in SP I.8.3.1.
 	// The edge numbering conventions are given in SP I.1.

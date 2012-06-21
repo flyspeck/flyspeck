@@ -60,14 +60,14 @@ univariate operator*(const interval&) const;
 	//////////
 	// create a bitwise copy of a univariate
 	//
-univariate(const univariate&);
+ univariate(const univariate&) ;
 
 univariate(uniprimitive* ) ;
 
 	//////////
 	// assignment of a univariate
 	//
-//univariate operator=(const univariate& f);
+univariate operator=(const univariate&);
 
 	//////////
 	// Deallocate memory:

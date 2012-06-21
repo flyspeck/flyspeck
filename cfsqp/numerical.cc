@@ -25,6 +25,14 @@ double min(double a,double b) { return (a<b? a : b); }
 double real_pow(double a,double b) { return  pow(a,b);}
 double root(double n,double x) { return pow(x, (1.0/ n)); }
 
+double truncate_sqrt(double d,double x) {
+  return( (x <= d)  ? sqrt(d) : sqrt(x) );
+}
+
+double h0cut(double x) {
+  return ( (x <= 2.52) ? 1.0 : 0.0 );
+}
+
 double atn2(double x,double y) { return atan2(y,x); } // NB: variable ordering!
 double asn(double x) { return asin(x); }
 
@@ -429,7 +437,7 @@ double DUa(double a,double b,double c)
        }
 
 // debug
-void show(double y,char* s) {
+void show(double y,const char s[]) {
   //     cout << s << ": " << y << endl;
 }
 

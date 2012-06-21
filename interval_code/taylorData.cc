@@ -508,7 +508,7 @@ class primitive_univariate : public primitive
 {
 private:
   int slot;
-  const univariate* f;
+  univariate* f;
   
 public:
   
@@ -517,7 +517,13 @@ public:
   taylorData evalf4(const domain& w,const domain& x,
 			const domain& y,const domain& z) const;
   
-  primitive_univariate(const univariate&x, int slot0 ) { f = &x; slot = slot0; };
+  primitive_univariate(const univariate&x, int slot0 )   { 
+    slot = slot0; 
+    f = new univariate(x); 
+};
+
+  primitive_univariate(const primitive_univariate&);
+
 };
 
 /*
@@ -526,6 +532,11 @@ Function(const univariate&x, int slot0) {
   return t;
 }
 */
+
+primitive_univariate::primitive_univariate(const primitive_univariate& rhs) {
+  slot = rhs.slot;
+  f = new univariate(*(rhs.f));
+}
 
 lineInterval primitive_univariate::tangentAtEstimate(const domain& x) const {
   static interval zero("0");
@@ -1199,7 +1210,7 @@ void Function::selfTest()
   }
 
   /* test  */ {
-
+ 
   }
 
 

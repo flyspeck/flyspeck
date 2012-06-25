@@ -15,7 +15,7 @@
 
    scripts.hl generates ocaml Sphere2 module based on these lemmas.
 
-   There are some more to implement.  Search "TO HERE" in this file.
+   June 2012: truncate_* are all deprecated.  They can be deleted.
 
 autogen:
    see functional_* lemmas in this file.
@@ -318,6 +318,7 @@ let truncate_gamma23_x = new_definition `truncate_gamma23_x iw1 iw2 m1 m2 m3 m5 
 	  mk_135 (truncate_dih_x (#0.14)))) * 
     uni((truncate_gamma2_x m1),proj_x1)`;;
 
+(* version for large azimuth angles *)
 let truncate_gamma23a_x = new_definition   `
     truncate_gamma23a_x iw1 iw2 m1 m2 m3 m5 m6 x1 x2 x3 az4 x5 x6 = 
   truncate_gamma3f_x (&0) m1 m2 m6 (&0) (&0) (&0) x1 x2 x6 * iw1 +
@@ -848,6 +849,15 @@ let functional_eta2_135 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let functional_eta2_456 = prove_by_refinement(
+  `eta2_456 = rotate4 eta2_135`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM;Sphere.rotate4;Sphere.eta2_456;Sphere.eta2_135;Sphere.rotate3;Sphere.eta2_126];
+  BY(MESON_TAC[Collect_geom.ETA_Y_SYYM])
+  ]);;
+  (* }}} *)
+
 let functional_vol3_x_sqrt = prove_by_refinement(
   `domain6
     (\x1 x2 x3 x4 x5 x6.
@@ -1153,6 +1163,8 @@ BY(REWRITE_TAC[FUN_EQ_THM;Sphere.rotate3;Sphere.dih3_x_div_sqrtdelta_posbranch])
   ]);;
   (* }}} *)
 
+let functional_dih4_x_div_sqrtdelta_posbranch = 
+  Sphere.dih4_x_div_sqrtdelta_posbranch;;
 
 let functional_dih5_x_div_sqrtdelta_posbranch = prove_by_refinement(
   `dih5_x_div_sqrtdelta_posbranch = rotate5 dih_x_div_sqrtdelta_posbranch`,
@@ -1535,10 +1547,6 @@ let functional_ldih2_x_div_sqrtdelta_posbranch =
 let functional_ldih3_x_div_sqrtdelta_posbranch = 
   Sphere.ldih3_x_div_sqrtdelta_posbranch;;
 
-(*
-let functional_ldih4_x_div_sqrtdelta_posbranch = 
-  Sphere.ldih4_x_div_sqrtdelta_posbranch;;
-*)
 
 let functional_ldih5_x_div_sqrtdelta_posbranch = 
   Sphere.ldih5_x_div_sqrtdelta_posbranch;;
@@ -1894,6 +1902,137 @@ let functional_halfbump_x4 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let gamma2_x_div_azim =  (* same as truncate_gamma2_x *)
+  new_definition `gamma2_x_div_azim m x = (&8 - x)* sqrt x / (&24) -
+  ( (&2 * mm1/ pi) * (&1 - sqrt x / sqrt8) - 
+      (&8 * mm2 / pi) * m * lfun (sqrt x / &2))`;;
+
+let gamma2_x1_div_a = new_definition `gamma2_x1_div_a m = 
+  promote1_to_6 (gamma2_x_div_azim m)`;;
+
+let nonf_gamma2_x1_div_a = prove_by_refinement(
+  `!(m:real) (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real).
+    gamma2_x1_div_a m x1 x2 x3 x4 x5 x6 = gamma2_x_div_azim m x1`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[FUN_EQ_THM;promote1_to_6;gamma2_x1_div_a])
+  ]);;
+  (* }}} *)
+
+let gamma3f_x_div_sqrtdelta = new_definition `gamma3f_x_div_sqrtdelta m4 m5 m6  = 
+  constant6 (&1/ &12)  - 
+    (scalar6 ( mk_456 (rotate5 (sol_euler_x_div_sqrtdelta)) +
+		mk_456 (rotate6 (sol_euler_x_div_sqrtdelta)) + 
+		mk_456 (rotate4 (sol_euler_x_div_sqrtdelta)) 
+	       )  (&2 * mm1/ pi)    
+    -       
+      scalar6 (
+	(scalar6 (uni(lfun,(scalar6 proj_y4  #0.5))) m4) * 
+	  mk_456 (rotate4 (dih_x_div_sqrtdelta_posbranch)) +
+	(scalar6 (uni(lfun,(scalar6 proj_y5  #0.5))) m5) * 
+	  mk_456 (rotate5 (dih_x_div_sqrtdelta_posbranch)) +
+	(scalar6 (uni(lfun,(scalar6 proj_y6  #0.5))) m6) * 
+	  mk_456 (rotate6 (dih_x_div_sqrtdelta_posbranch))
+      )  (&8 * mm2 / pi))`;;
+
+let vol3f_456 = new_definition `vol3f_456 m4 = 
+  scalar6 ( mk_456 (rotate5 sol_x) +
+		mk_456 (rotate6 sol_x) + 
+		mk_456 (rotate4 sol_x) 
+	       )  (&2 * mm1/ pi)    
+    -       
+      scalar6 (
+	(scalar6 (uni(lfun,(scalar6 proj_y4  #0.5))) m4) * 
+	  mk_456 (rotate4 dih_x) +
+	(uni(lfun,(scalar6 proj_y5  #0.5))) * 
+	  mk_456 (rotate5 dih_x) +
+	(uni(lfun,(scalar6 proj_y6  #0.5))) * 
+	  mk_456 (rotate6 dih_x)
+      )  (&8 * mm2 / pi)`;;
+
+let gamma3_x = new_definition `gamma3_x m4  = 
+  mk_456 vol_x  -     vol3f_456 m4`;;
+
+let gamma23_full8_x = new_definition `gamma23_full8_x m1 =
+     (compose6 (gamma3_x m1) 
+       dummy6 dummy6 dummy6 proj_x1 proj_x2 proj_x6) + 
+     (compose6 (gamma3_x m1) 
+       dummy6 dummy6 dummy6 proj_x1 proj_x3 proj_x5) +
+       scalar6 (dih_x -(mk_126 dih_x + mk_135 dih_x)) (#0.008)`;;
+
+let gamma23_keep135_x = new_definition `gamma23_keep135_x m1 =
+     (compose6 (gamma3_x m1) 
+       dummy6 dummy6 dummy6 proj_x1 proj_x3 proj_x5) +
+       scalar6 (dih_x - mk_135 dih_x) (#0.008)`;;
+
+let nonf_gamma3_x = prove_by_refinement(
+  `!m1 x1 x2 x3 x4 x5 x6.
+    gamma3_x m1 x1 x2 x3 x4 x5 x6 =  vol_x (&2) (&2) (&2) x4 x5 x6 -
+     ((sol_x x5 (&2) x4 (&2) x6 (&2) +
+       sol_x x6 (&2) x5 (&2) x4 (&2) +
+       sol_x x4 (&2) x6 (&2) x5 (&2)) *
+      &2 *
+      mm1 / pi -
+      ((lfun (sqrt x4 * #0.5) * m1) * dih_x x4 (&2) x6 (&2) x5 (&2) +
+       lfun (sqrt x5 * #0.5) * dih_x x5 (&2) x4 (&2) x6 (&2) +
+       lfun (sqrt x6 * #0.5) * dih_x x6 (&2) x5 (&2) x4 (&2)) *
+      &8 *
+      mm2 / pi)`,
+  (* {{{ proof *)
+  [
+(REWRITE_TAC[gamma3_x;vol3f_456;mk_456;Sphere.rotate5;Sphere.rotate6;Sphere.rotate4;scalar6;sub6;add6;mul6;constant6;compose6;proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6;two6;uni;proj_y4;proj_y5;proj_y6;dummy6;mk_126;mk_135])
+  ]);;
+  (* }}} *)
+
+let nonf_gamma23_full8_x = prove_by_refinement(
+  `!m1 x1 x2 x3 x4 x5 x6.
+    gamma23_full8_x m1 x1 x2 x3 x4 x5 x6 =  
+    gamma3_x m1 (&0) (&0) (&0) x1 x2 x6 +
+     gamma3_x m1 (&0) (&0) (&0) x1 x3 x5 +
+     (dih_x x1 x2 x3 x4 x5 x6 -
+      (dih_x x1 x2 (&2) (&2) (&2) x6 + dih_x x1 (&2) x3 (&2) x5 (&2))) *
+     #0.008`,
+  (* {{{ proof *)
+  [
+(REWRITE_TAC[gamma23_full8_x;mk_456;Sphere.rotate5;Sphere.rotate6;Sphere.rotate4;scalar6;sub6;add6;mul6;constant6;compose6;proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6;two6;uni;proj_y4;proj_y5;proj_y6;dummy6;mk_126;mk_135])
+  ]);;
+  (* }}} *)
+
+let nonf_gamma23_keep135_x = prove_by_refinement(
+  `!m1 x1 x2 x3 x4 x5 x6.
+    gamma23_keep135_x m1 x1 x2 x3 x4 x5 x6 = 
+  gamma3_x m1 (&0) (&0) (&0) x1 x3 x5 +
+     (dih_x x1 x2 x3 x4 x5 x6 - dih_x x1 (&2) x3 (&2) x5 (&2)) * #0.008
+    `,
+  (* {{{ proof *)
+  [
+(REWRITE_TAC[gamma23_keep135_x;mk_456;Sphere.rotate5;Sphere.rotate6;Sphere.rotate4;scalar6;sub6;add6;mul6;constant6;compose6;proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6;two6;uni;proj_y4;proj_y5;proj_y6;dummy6;mk_126;mk_135])
+  ]);;
+  (* }}} *)
+
+let nonf_gamma3f_x_div_sqrtdelta = prove_by_refinement(
+  `!m4 m5 m6 x1 x2 x3 x4 x5 x6.
+    gamma3f_x_div_sqrtdelta m4 m5 m6 x1 x2 x3 x4 x5 x6 = &1 / &12 -
+     ((sol_euler_x_div_sqrtdelta x5 (&2) x4 (&2) x6 (&2) +
+       sol_euler_x_div_sqrtdelta x6 (&2) x5 (&2) x4 (&2) +
+       sol_euler_x_div_sqrtdelta x4 (&2) x6 (&2) x5 (&2)) *
+      &2 *
+      mm1 / pi -
+      ((lfun (sqrt x4 * #0.5) * m4) *
+       dih_x_div_sqrtdelta_posbranch x4 (&2) x6 (&2) x5 (&2) +
+       (lfun (sqrt x5 * #0.5) * m5) *
+       dih_x_div_sqrtdelta_posbranch x5 (&2) x4 (&2) x6 (&2) +
+       (lfun (sqrt x6 * #0.5) * m6) *
+       dih_x_div_sqrtdelta_posbranch x6 (&2) x5 (&2) x4 (&2)) *
+      &8 *
+      mm2 / pi)`,
+  (* {{{ proof *)
+  [
+BY(REWRITE_TAC[gamma3f_x_div_sqrtdelta;mk_456;Sphere.rotate5;Sphere.rotate6;Sphere.rotate4;scalar6;sub6;add6;mul6;constant6;compose6;proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6;two6;uni;proj_y4;proj_y5;proj_y6])
+  ]);;
+  (* }}} *)
+
+
 (*
 let functional1_vol2r_x = 
   new_definition `vol2r_x x = &2 * pi * (&2 - (x / &4)) / &3`;;
@@ -1934,42 +2073,11 @@ rt[arith `((a:real) - b + c = a - (b - c))`]
 AP_TERM_TAC
   ]);;
   (* }}} *)
-
-searcht 5 [`sqrt8`;`sqrt2`];;
-searcht 5 [`dih_x`;`dih_y`];;
-searcht 5 [`lfun_y1`];;
-searcht 5 [def "lfun_"];;
-searcht 5 [`lfun_sqrtx1_div2`];;
-searcht 5 [`mm2`];;
-functional_overload();;
-searcht 5 [`gamma3f_v_lfun`];;
 1;;
 *)
 
 (*
 extra parameter cases scratch
-
-searcht 5 [`tau_lowform_x`];;
-search [`rhazim_x_div_sqrtdelta_posbranch`];;
-functional_overload();;
-
-Sphere.delta_126_x;;
-Sphere.delta_234_x;;
-searcht 5 [`delta_126_x`];;
-searcht 5 [`lindih`];;
-Sphere.arclength;;
-Sphere.arclength_x_123;;
-Sphere.arclength_x1;;
-Sphere.arclength_y1;;
-searcht 5 [`sqrt(a * a) = a`];;
-Sphere.taum_x1;;
-Sphere.taum_y1;;
-Sphere.taum;;
-Sphere.taum_x;;
-searcht 5 [`rhazim`;`rhazim_x`];;
-searcht 5 [`sqrt (&4)`];;
-searcht 5 [`taum_x`;`taum`];;
-searcht 5 [`taum`;`rhazim`];;
 *)
 
  end;;  

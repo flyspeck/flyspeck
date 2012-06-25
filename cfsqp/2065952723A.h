@@ -37,6 +37,8 @@ class numerical_data {
   numerical_data() {
   };
 
+  static void selfTest();
+
 };
 
 

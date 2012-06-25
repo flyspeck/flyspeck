@@ -50,6 +50,10 @@ numerical.o : numerical.h numerical.cc
 2065952723B.o : 2065952723A.h 2065952723A.cc
 	$(CC) $(CCOPTS1) -c  2065952723A.cc -o 2065952723B.o
 
+2065952723A : 2065952723A.h 2065952723A.cc
+	$(CC) $(CCOPTS1) $(DOTS) 2065952723A.cc -o 2065952723A -lm $(L)
+
+
 
 #examples
 

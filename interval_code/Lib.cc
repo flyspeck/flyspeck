@@ -117,7 +117,7 @@ namespace L {
 
   Function Lib::uni(const univariate& u,const Function& f) {
     Function t = Function::uni_compose(u,f);
-    return t;;
+    return t;
   }
 
 /* implement promote1_to_6 */
@@ -176,7 +176,7 @@ const univariate Lib::i_flat_term_x = (univariate::i_sqrt + univariate::i_pow0 *
          (&8 - x) * sqrt x / &24 -
          ((&2 * mm1 / pi) * (&1 - sqrt x / sqrt8) -
 	 (&8 * mm2 / pi) * m * lfun (sqrt x / &2))  */
-const univariate Lib::i_truncate_gamma2_x(const interval& m) {
+const univariate Lib::i_gamma2_x_div_azim(const interval& m) {
   static const interval mm1x("0.644310692071541214963158104232");
   static const interval mm2x("0.0647175113309960600618528362429"); 
   univariate t =     
@@ -187,6 +187,11 @@ const univariate Lib::i_truncate_gamma2_x(const interval& m) {
   * 		       (L::rh0 * m * mm2x); 
   return t;
 };
+
+/*const Function gamma2_x1_div_a(const interval& m) {
+  univariate t = i_gamma2_x_div_azim(m);
+  return promote1_to_6(t);
+  }*/
 
 /* implement halfbump_x (univariate) */
 /*
@@ -206,6 +211,32 @@ const univariate Lib::i_halfbump_x = univariate::i_pow0 * (a0 / b0) +
 
 /* implement halfbump_x1 */
 const Function Lib::halfbump_x1 = Lib::promote1_to_6(Lib::i_halfbump_x);
+
+  // num1
+  /* thm =  |- !x1 x2 x3 x4 x5 x6.         num1 x1 x2 x3 x4 x5 x6 =
+         &64 * x1 * x4 -          &32 * x2 * x4 -         &32 * x3 * x4 -
+         &4 * x1 * x4 pow 2 -          &32 * x2 * x5 +         &32 * x3 * x5 +
+         &4 * x2 * x4 * x5 +         &32 * x2 * x6 - &32 * x3 * x6 +         &4 * x3 * x4 * x6 */
+  static const interval t64("64");
+  static const interval t32("32");
+  static const interval t16("16");
+
+const Function Lib::num1 = 
+    Lib::x1 * Lib::x4 * t64 +  Lib::x2 * Lib::x4 *L::mone * t32 +  
+    Lib::x3 * Lib::x4 *L::mone * t32 
+    + Lib::x1 * Lib::x4 * Lib::x4 * L::mone * L::four  +  
+    Lib::x2 * Lib::x5 * L::mone * t32 + Lib::x3 * Lib::x5 * t32
+    + Lib::x2 * Lib::x4 * Lib::x5  * L::four +  Lib::x2 * Lib::x6 * t32 + 
+    Lib::x3 * Lib::x6 * L::mone * t32 +  Lib::x3 * Lib::x4 * Lib::x6 * L::four;
+
+/*implement deltaLC */
+const Function Lib::delta_y_LC = Function::mk_LC(wide::delta_y);
+
+/*implement mdtau_y_LC */
+const Function Lib::mdtau_y_LC= Function::mk_LC(wide::mdtau_y);
+
+/*implement mdtau2uf_y_LC */
+const Function Lib::mdtau2uf_y_LC= Function::mk_LC(wide::mdtau2uf_y);
 
 /*implement delta */
 static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
@@ -300,6 +331,7 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
 
 /*implement truncate_dih_x*/
+/*
 static int setAbsTruncateDihedral(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -318,9 +350,10 @@ const Function truncate_dih_x_014= Function::mk_raw(linearization::truncate_dih,
    }
    return truncate_dih_x_014;
  }
-
+*/
 
 /*implement truncate_vol_x */ 
+ /*
 static interval one("1");
 static interval twelve("12");
 static interval f12 =  (one/ twelve);
@@ -334,7 +367,7 @@ const Function truncate_vol_x_014 =
    }
    return truncate_vol_x_014;
  }
-
+ */
 
 /*implement sol_x */
 static int setSol(const domain& x,const domain& z,double DD[6][6])
@@ -351,6 +384,79 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
   return 1;
 }
 const Function Lib::sol_x= Function::mk_raw(linearization::solid,setSol);
+
+//static const Function operator*(const Function& t,int j) {
+//  return t * interval(j * 1.0, j * 1.0);
+//}
+
+static const Function operator*(int j,const Function& t) {
+  return t * interval(j * 1.0, j * 1.0);
+}
+
+const Function Lib::num2 = 
+  (-2048)*Function::mk_monomial(0,0,1,0,0,3) + 6144*Function::mk_monomial(0,0,1,0,1,2) - 6144*Function::mk_monomial(0,0,1,0,2,1) + 
+   2048*Function::mk_monomial(0,0,1,0,3,0) + 10240*Function::mk_monomial(0,0,1,1,0,2) + 128*Function::mk_monomial(0,0,1,1,0,3) - 
+   4096*Function::mk_monomial(0,0,1,1,1,1) - 1664*Function::mk_monomial(0,0,1,1,1,2) - 6144*Function::mk_monomial(0,0,1,1,2,0) + 
+   1920*Function::mk_monomial(0,0,1,1,2,1) - 384*Function::mk_monomial(0,0,1,1,3,0) - 6144*Function::mk_monomial(0,0,1,2,0,1) - 
+   896*Function::mk_monomial(0,0,1,2,0,2) - 16*Function::mk_monomial(0,0,1,2,0,3) + 6144*Function::mk_monomial(0,0,1,2,1,0) - 
+   256*Function::mk_monomial(0,0,1,2,1,1) + 160*Function::mk_monomial(0,0,1,2,1,2) + 1152*Function::mk_monomial(0,0,1,2,2,0) - 
+   144*Function::mk_monomial(0,0,1,2,2,1) - 2048*Function::mk_monomial(0,0,1,3,0,0) + 384*Function::mk_monomial(0,0,1,3,0,1) + 
+   64*Function::mk_monomial(0,0,1,3,0,2) - 1152*Function::mk_monomial(0,0,1,3,1,0) + 128*Function::mk_monomial(0,0,1,3,1,1) - 
+   8*Function::mk_monomial(0,0,1,3,1,2) + 384*Function::mk_monomial(0,0,1,4,0,0) - 48*Function::mk_monomial(0,0,1,4,0,1) + 
+   2048*Function::mk_monomial(0,1,0,0,0,3) - 6144*Function::mk_monomial(0,1,0,0,1,2) + 6144*Function::mk_monomial(0,1,0,0,2,1) - 
+   2048*Function::mk_monomial(0,1,0,0,3,0) - 6144*Function::mk_monomial(0,1,0,1,0,2) - 384*Function::mk_monomial(0,1,0,1,0,3) - 
+   4096*Function::mk_monomial(0,1,0,1,1,1) + 1920*Function::mk_monomial(0,1,0,1,1,2) + 10240*Function::mk_monomial(0,1,0,1,2,0) - 
+   1664*Function::mk_monomial(0,1,0,1,2,1) + 128*Function::mk_monomial(0,1,0,1,3,0) + 6144*Function::mk_monomial(0,1,0,2,0,1) + 
+   1152*Function::mk_monomial(0,1,0,2,0,2) - 6144*Function::mk_monomial(0,1,0,2,1,0) - 256*Function::mk_monomial(0,1,0,2,1,1) - 
+   144*Function::mk_monomial(0,1,0,2,1,2) - 896*Function::mk_monomial(0,1,0,2,2,0) + 160*Function::mk_monomial(0,1,0,2,2,1) - 
+   16*Function::mk_monomial(0,1,0,2,3,0) - 2048*Function::mk_monomial(0,1,0,3,0,0) - 1152*Function::mk_monomial(0,1,0,3,0,1) + 
+   384*Function::mk_monomial(0,1,0,3,1,0) + 128*Function::mk_monomial(0,1,0,3,1,1) + 64*Function::mk_monomial(0,1,0,3,2,0) - 
+   8*Function::mk_monomial(0,1,0,3,2,1) + 384*Function::mk_monomial(0,1,0,4,0,0) - 48*Function::mk_monomial(0,1,0,4,1,0) - 
+   4096*Function::mk_monomial(1,0,0,1,0,2) + 8192*Function::mk_monomial(1,0,0,1,1,1) - 4096*Function::mk_monomial(1,0,0,1,2,0) + 
+   512*Function::mk_monomial(1,0,0,2,0,2) - 1024*Function::mk_monomial(1,0,0,2,1,1) + 512*Function::mk_monomial(1,0,0,2,2,0) + 
+   4096*Function::mk_monomial(1,0,0,3,0,0) - 16*Function::mk_monomial(1,0,0,3,0,2) + 32*Function::mk_monomial(1,0,0,3,1,1) - 
+16*Function::mk_monomial(1,0,0,3,2,0) - 512*Function::mk_monomial(1,0,0,4,0,0) + 16*Function::mk_monomial(1,0,0,5,0,0);
+
+static const interval t25("25");
+const Function Lib::num_combo1 = 
+(512*Function::mk_monomial(0,0,1,0,0,3) - 1536*Function::mk_monomial(0,0,1,0,1,2) + 1536*Function::mk_monomial(0,0,1,0,2,1) - 
+   512*Function::mk_monomial(0,0,1,0,3,0) - 2560*Function::mk_monomial(0,0,1,1,0,2) - 32*Function::mk_monomial(0,0,1,1,0,3) + 
+   1024*Function::mk_monomial(0,0,1,1,1,1) + 416*Function::mk_monomial(0,0,1,1,1,2) + 1536*Function::mk_monomial(0,0,1,1,2,0) - 
+   480*Function::mk_monomial(0,0,1,1,2,1) + 96*Function::mk_monomial(0,0,1,1,3,0) + 1536*Function::mk_monomial(0,0,1,2,0,1) + 
+   224*Function::mk_monomial(0,0,1,2,0,2) + 4*Function::mk_monomial(0,0,1,2,0,3) - 1536*Function::mk_monomial(0,0,1,2,1,0) + 
+   64*Function::mk_monomial(0,0,1,2,1,1) - 40*Function::mk_monomial(0,0,1,2,1,2) - 288*Function::mk_monomial(0,0,1,2,2,0) + 
+   36*Function::mk_monomial(0,0,1,2,2,1) + 512*Function::mk_monomial(0,0,1,3,0,0) - 96*Function::mk_monomial(0,0,1,3,0,1) - 
+   16*Function::mk_monomial(0,0,1,3,0,2) + 288*Function::mk_monomial(0,0,1,3,1,0) - 32*Function::mk_monomial(0,0,1,3,1,1) + 
+   2*Function::mk_monomial(0,0,1,3,1,2) - 96*Function::mk_monomial(0,0,1,4,0,0) + 12*Function::mk_monomial(0,0,1,4,0,1) + 
+   25600*Function::mk_monomial(0,0,2,0,0,2) - 51200*Function::mk_monomial(0,0,2,0,1,1) + 25600*Function::mk_monomial(0,0,2,0,2,0) + 
+   51200*Function::mk_monomial(0,0,2,1,0,1) - 6400*Function::mk_monomial(0,0,2,1,0,2) - 51200*Function::mk_monomial(0,0,2,1,1,0) + 
+   6400*Function::mk_monomial(0,0,2,1,1,1) + 25600*Function::mk_monomial(0,0,2,2,0,0) - 6400*Function::mk_monomial(0,0,2,2,0,1) + 
+   400*Function::mk_monomial(0,0,2,2,0,2) - 512*Function::mk_monomial(0,1,0,0,0,3) + 1536*Function::mk_monomial(0,1,0,0,1,2) - 
+   1536*Function::mk_monomial(0,1,0,0,2,1) + 512*Function::mk_monomial(0,1,0,0,3,0) + 1536*Function::mk_monomial(0,1,0,1,0,2) + 
+   96*Function::mk_monomial(0,1,0,1,0,3) + 1024*Function::mk_monomial(0,1,0,1,1,1) - 480*Function::mk_monomial(0,1,0,1,1,2) - 
+   2560*Function::mk_monomial(0,1,0,1,2,0) + 416*Function::mk_monomial(0,1,0,1,2,1) - 32*Function::mk_monomial(0,1,0,1,3,0) - 
+   1536*Function::mk_monomial(0,1,0,2,0,1) - 288*Function::mk_monomial(0,1,0,2,0,2) + 1536*Function::mk_monomial(0,1,0,2,1,0) + 
+   64*Function::mk_monomial(0,1,0,2,1,1) + 36*Function::mk_monomial(0,1,0,2,1,2) + 224*Function::mk_monomial(0,1,0,2,2,0) - 
+   40*Function::mk_monomial(0,1,0,2,2,1) + 4*Function::mk_monomial(0,1,0,2,3,0) + 512*Function::mk_monomial(0,1,0,3,0,0) + 
+   288*Function::mk_monomial(0,1,0,3,0,1) - 96*Function::mk_monomial(0,1,0,3,1,0) - 32*Function::mk_monomial(0,1,0,3,1,1) - 
+   16*Function::mk_monomial(0,1,0,3,2,0) + 2*Function::mk_monomial(0,1,0,3,2,1) - 96*Function::mk_monomial(0,1,0,4,0,0) + 
+   12*Function::mk_monomial(0,1,0,4,1,0) - 51200*Function::mk_monomial(0,1,1,0,0,2) + 102400*Function::mk_monomial(0,1,1,0,1,1) - 
+   51200*Function::mk_monomial(0,1,1,0,2,0) + 6400*Function::mk_monomial(0,1,1,1,0,2) - 12800*Function::mk_monomial(0,1,1,1,1,1) + 
+   6400*Function::mk_monomial(0,1,1,1,2,0) + 51200*Function::mk_monomial(0,1,1,2,0,0) - 6400*Function::mk_monomial(0,1,1,2,0,1) - 
+   6400*Function::mk_monomial(0,1,1,2,1,0) + 800*Function::mk_monomial(0,1,1,2,1,1) + 25600*Function::mk_monomial(0,2,0,0,0,2) - 
+   51200*Function::mk_monomial(0,2,0,0,1,1) + 25600*Function::mk_monomial(0,2,0,0,2,0) - 51200*Function::mk_monomial(0,2,0,1,0,1) + 
+   51200*Function::mk_monomial(0,2,0,1,1,0) + 6400*Function::mk_monomial(0,2,0,1,1,1) - 6400*Function::mk_monomial(0,2,0,1,2,0) + 
+   25600*Function::mk_monomial(0,2,0,2,0,0) - 6400*Function::mk_monomial(0,2,0,2,1,0) + 400*Function::mk_monomial(0,2,0,2,2,0) + 
+   1024*Function::mk_monomial(1,0,0,1,0,2) - 2048*Function::mk_monomial(1,0,0,1,1,1) + 1024*Function::mk_monomial(1,0,0,1,2,0) - 
+   128*Function::mk_monomial(1,0,0,2,0,2) + 256*Function::mk_monomial(1,0,0,2,1,1) - 128*Function::mk_monomial(1,0,0,2,2,0) - 
+   1024*Function::mk_monomial(1,0,0,3,0,0) + 4*Function::mk_monomial(1,0,0,3,0,2) - 8*Function::mk_monomial(1,0,0,3,1,1) + 
+   4*Function::mk_monomial(1,0,0,3,2,0) + 128*Function::mk_monomial(1,0,0,4,0,0) - 4*Function::mk_monomial(1,0,0,5,0,0) - 
+   102400*Function::mk_monomial(1,0,1,1,0,1) + 102400*Function::mk_monomial(1,0,1,1,1,0) - 
+   102400*Function::mk_monomial(1,0,1,2,0,0) + 19200*Function::mk_monomial(1,0,1,2,0,1) - 6400*Function::mk_monomial(1,0,1,2,1,0) + 
+   6400*Function::mk_monomial(1,0,1,3,0,0) - 800*Function::mk_monomial(1,0,1,3,0,1) + 102400*Function::mk_monomial(1,1,0,1,0,1) - 
+   102400*Function::mk_monomial(1,1,0,1,1,0) - 102400*Function::mk_monomial(1,1,0,2,0,0) - 6400*Function::mk_monomial(1,1,0,2,0,1) + 
+   19200*Function::mk_monomial(1,1,0,2,1,0) + 6400*Function::mk_monomial(1,1,0,3,0,0) - 800*Function::mk_monomial(1,1,0,3,1,0) + 
+ 102400*Function::mk_monomial(2,0,0,2,0,0) - 12800*Function::mk_monomial(2,0,0,3,0,0) + 400*Function::mk_monomial(2,0,0,4,0,0))*(L::one/t25);
 
 
 /* ========================================================================== */
@@ -399,29 +505,30 @@ void Lib::selfTest()
   epsValue("i_flat_term",f,0.00201859856768314477);
   }
 
-  /* truncate_gamma2_x */ {
-  univariate f1 =  Lib::i_truncate_gamma2_x(interval::interval("1.1"));
+  /* gamma2_x_div_azim */ {
+    univariate f1 =  Lib::i_gamma2_x_div_azim(interval::interval("1.1"));
   Function f = Lib::promote1_to_6(f1);
   epsValue("truncate_gamma2_x",f,0.102244026021654014);
   Function g = (Lib::uni(f1 , (Lib::x1)));
   epsValue("truncate_gamma2_x",g,0.102244026021654014);
   }
 
-  /* truncate_dih_x */ {
+  /* truncate_dih_x  {
     Function f = Lib::truncate_dih_x(interval::interval("0.14"));
     Function g = Lib::dih_x;
     domain d(6.36,4.2,4.3,4.4,4.5,4.6);
     double x = g.evalf(d,d).upperBound();
     epsValue("truncate_dih_x",Lib::truncate_dih_x(interval::interval("0.14")),x);
-  }
+    } */
 
-  /* truncate vol_x */ {
+  /* truncate vol_x  {
     Function f = uni(L::i_sqrt,Lib::delta_x) * (one/twelve);
     Function g = Lib::truncate_vol_x(interval::interval("0.14"));
     domain d(6.36,4.2,4.3,4.4,4.5,4.6);
     double x = f.evalf(d,d).upperBound();
     epsValue("truncate_vol_x",g,x);
   }
+  */
 
   cout << " -- done loading LibA" << endl << flush;
 

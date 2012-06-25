@@ -121,10 +121,10 @@ the Mathematica calculations and with the interval arithmetic calculations.
 It also approximates the results given by difference quotients.  Hopefully,
 this is bug-free!
  */
-double mdtau(double y1,double y2,double y3,double y4,double y5,double y6);
+//double mdtau_y(double y1,double y2,double y3,double y4,double y5,double y6);
 
-// a formula for  D[taum,{y1,2}], valid when delta4 <0, delta>0, various u factors >0.
-double mdtau2(double y1,double y2,double y3,double y4,double y5,double y6);
+// a formula for  uf * D[taum,{y1,2}], valid when delta4 <0, delta>0, various u factors >0.
+//double mdtau2uf_y(double y1,double y2,double y3,double y4,double y5,double y6);
 
 // cluster functions
 int critical_edge_y(double h) ;

@@ -33,11 +33,11 @@ wide.o : wide.cc error.h interval.h univariate.h #Can be opt. in level2
 	$(CC) $(CCOPTS1) $(CCOPTS2) -c wide.cc
 
 taylorData.o : taylorData.cc error.h interval.h univariate.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS_NONE) -c taylorData.cc
+	$(CC) $(CCOPTS1) $(CCOPTS2) -c taylorData.cc
 
 Lib.o : Lib.cc error.h interval.h univariate.h \
 	taylorData.h #Can be opt. in level2
-	$(CC) $(CCOPTS1) $(CCOPTS_NONE) -c Lib.cc
+	$(CC) $(CCOPTS1) $(CCOPTS2) -c Lib.cc
 
 legacy_simplex.o : legacy_simplex.cc legacy_simplex.h error.h interval.h univariate.h \
 	taylorData.h
@@ -58,10 +58,9 @@ test: test.cc error.h error.o interval.h interval.o lineInterval.h \
 test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
 	recurse.h recurse.o univariate.h univariate.o wide.h wide.o \
-	Lib.o legacy_simplex.o Lib.h legacy_simplex.h
+	Lib.o Lib.h
 	$(CC) $(CCOPTS1)  error.o interval.o lineInterval.o \
 	secondDerive.o univariate.o wide.o taylorData.o recurse.o Lib.o \
-	legacy_simplex.o \
 	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o \
 	../cfsqp/numerical.o ../cfsqp/sqp/qld.o \
 	../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o test_auto.cc \

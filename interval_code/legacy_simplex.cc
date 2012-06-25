@@ -207,16 +207,13 @@ const Function legacy_simplex::x6= Function::mk_raw(lineX6,setZero);
 
 
 /*implement deltaLC */
-//primitiveLC deltaLCPrim(wide::delta_y);
 const Function legacy_simplex::delta_y_LC = Function::mk_LC(wide::delta_y);
 
 /*implement mdtau_y_LC */
-//primitiveLC mdtau_y_Prim(wide::mdtau_y);
 const Function legacy_simplex::mdtau_y_LC= Function::mk_LC(wide::mdtau_y);
 
-/*implement mdtau2uf_y_LC */
-//primitiveLC mdtau2uf_y_Prim(wide::mdtau2uf_y);
-const Function legacy_simplex::mdtau2uf_y_LC= Function::mk_LC(wide::mdtau2uf_y);
+/*implement mdtau2_y_LC */
+const Function legacy_simplex::mdtau2_y_LC= Function::mk_LC(wide::mdtau2uf_y);
 
 /*implement y1 */
 static lineInterval sqrt(lineInterval a)
@@ -2469,17 +2466,17 @@ void legacy_simplex::selfTest()
     }
   }
 
-  /* test mdtau2uf_y */   { 
+  /* test mdtau2_y */   { 
     domain x(2.1,2.2,2.3,3.4,2.5,2.6);
     double mValue= 0.2804657791758259;
     double mathValueD[6]={0,0,0,0,0,0};
-    taylorData at = legacy_simplex::mdtau2uf_y_LC.evalf(x,x); 
-    /* NO LONGER ACCURATE.  THESE ARE CALCS OF mdtau2uf / uf = mdtau2
+    taylorData at = legacy_simplex::mdtau2_y_LC.evalf(x,x); 
+    /* NO LONGER ACCURATE.  THESE ARE CALCS OF mdtau2 / uf = mdtau2
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
-      cout << "mdtau2uf_y_LC  fails " << endl;
+      cout << "mdtau2_y_LC  fails " << endl;
     for (int i=0;i<6;i++) {
       if (!epsilonCloseDoubles(at.upperPartial(i),mathValueD[i],1.0e-12))
-	cout << "mdtau2uf_y_LC D " << i << "++ fails " << at.upperPartial(i) << endl;
+	cout << "mdtau2_y_LC D " << i << "++ fails " << at.upperPartial(i) << endl;
     }
         */
   }

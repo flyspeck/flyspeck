@@ -132,7 +132,7 @@ static int counter = 0;
 
 
 void show(const interval y,const char* s) {
-  if (counter % 500000 == 300) {
+  if (counter % 500000 == 300)  {
   cout << s << ": " << y.lo << " " << y.hi << endl;
   }
 }

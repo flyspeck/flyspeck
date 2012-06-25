@@ -13,9 +13,11 @@ preprocess_split_idq generates cases and does general preprocessing.
 Output is executable interval arithmetic code in C++.
 *)
 
+(*
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineq.hl";;
 flyspeck_needs "nonlinear/lemma.hl";;
+*)
 
 module Optimize = struct
 
@@ -232,7 +234,7 @@ let idem_assoc = [];; (* make it the default *)
     Don't generate function defs for these.
     "NOT_IMPLEMENTED" is a special tag to suppress the
     production of test routines. We would be better
-    off generating rho_x in a let statement in rad2_x. *)
+    off using an option. *)
 
 let native_fun = [
   ("unit6","Lib::unit");
@@ -253,6 +255,9 @@ let native_fun = [
   ("truncate_gamma2_x","Lib::i_truncate_gamma2_x");
   ("rad2_x","Lib::rad2_x");
   ("rho_x","NOT_IMPLEMENTED");
+  ("delta_y","NOT_IMPLEMENTED");
+  ("dih_y","NOT_IMPLEMENTED");
+  ("sol_y","NOT_IMPLEMENTED");
   ("delta_x4","Lib::delta_x4");
   ("edge_flat2_x","Lib::edge_flat2_x");
   ("halfbump_x1","Lib::halfbump_x1");
@@ -273,6 +278,16 @@ let native_fun = [
   ("rho","Lib::i_rho");
   ("flat_term_x","Lib::i_flat_term_x");
   ("sqn","univariate::i_sqn");
+  ("promote1_to_6","Lib::promote1_to_6");
+  ("gamma2_x_div_azim","Lib::i_gamma2_x_div_azim");
+  ("num1","Lib::num1");
+  ("num2","Lib::num2");
+  ("delta_y_LC","Lib::delta_y_LC");
+  ("mdtau_y_LC","Lib::mdtau_y_LC");
+  ("mdtau2uf_y_LC","Lib::mdtau2uf_y_LC");
+  ("mdtau_y","Lib::mdtau_y_LC");
+  ("mdtau2uf_y","Lib::mdtau2uf_y_LC");
+  ("num_combo1","Lib::num_combo1");
 ];;
 
 (* generate function defs for these. *)
@@ -376,8 +391,8 @@ let cpp_assoc =
   ("sqrt_x6","proj_y6");
   ("promote_pow2","x1square");
   ("promote_pow3","x1cube");
-  ("mdtau2_y_LC","mdtau2uf_y_LC");
 (*
+  ("mdtau2_y_LC","mdtau2uf_y_LC");
   ("norm2hh_x","norm2hhx");
   ("ldih2_x_126_n","ldih2_x_126_n"); (* was n_ in fst *)
   ("unit6","unit");
@@ -848,6 +863,7 @@ let X_SQRT_COMPOUND_ORDER =
    vol_x x1 x2 x3 x4 x5 x6 `;  
 `eta_y (sqrt x1) (sqrt x2) (sqrt x6) pow 2 = eta2_126 x1 x2 x3 x4 x5 x6 `;  
 `eta_y (sqrt x1) (sqrt x3) (sqrt x5) pow 2 = eta2_135 x1 x2 x3 x4 x5 x6 `;  
+`eta_y (sqrt x4) (sqrt x5) (sqrt x6) pow 2 = eta2_456 x1 x2 x3 x4 x5 x6 `;  
 `vol3f (sqrt x1) (sqrt x2) (sqrt x6)  sqrt2 lfun = vol3f_x_lfun x1 x2 x3 x4 x5 x6 `;  
 `vol_y sqrt2 sqrt2 sqrt2 (sqrt x1) (sqrt x2) (sqrt x6)  = vol3_x_sqrt x1 x2 x3 x4 x5 x6 `;  
 `vol3f_sqrt2_lmplus (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5)      (sqrt x6) =
@@ -870,7 +886,7 @@ EVERY[
       let fr = frees a in
       let vos = filter (fun t -> subset (frees t) fr ) X_SQRT_COMPOUND_ORDER  in
     let X_SQRT_COMPOUND_ORDER_FIL = list_mk_conj vos in
-  (SUBGOAL_THEN  X_SQRT_COMPOUND_ORDER_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;upper_dih_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) (asl,a)
+  (SUBGOAL_THEN  X_SQRT_COMPOUND_ORDER_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;upper_dih_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;Sphere.eta2_456;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) (asl,a)
 ;;
 
 
@@ -895,6 +911,7 @@ let X_FROZEN_COMPOUND =(map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
  GSYM ldih_x_135_n;GSYM ldih3_x_135_n;GSYM ldih5_x_135_n;
  GSYM arclength_x_234;
  GSYM arclength_x_126;
+ GSYM Functional_equation.nonf_gamma2_x1_div_a;
  ] ) (* @ [delta_top_x_alt] *);;
 
 

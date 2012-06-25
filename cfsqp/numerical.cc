@@ -445,7 +445,7 @@ void show(double y,const char s[]) {
 mdtau is a symbolic formula for Sqrt[del] D[taumar,y1].
  */
 
-double mdtau(double y1,double y2,double y3,double y4,double y5,double y6) {
+double native_mdtau(double y1,double y2,double y3,double y4,double y5,double y6) {
   double x1=y1*y1;
   double x2 = y2*y2;
   double x3 = y3*y3;
@@ -542,10 +542,12 @@ double mdtau(double y1,double y2,double y3,double y4,double y5,double y6) {
 
 /*
 mdtau2 =  D[taumar,{y1,2}],
+mdtau2uf_y = mdtau2 * uf,
+where uf = 4.0*u135*u126*u234*y1*y2*y3;
  Most of the code is the same as for mdtau.
  */
 
-double mdtau2(double y1,double y2,double y3,double y4,double y5,double y6) {
+double native_mdtau2uf_y(double y1,double y2,double y3,double y4,double y5,double y6) {
   double x1=y1*y1;
   double x2 = y2*y2;
   double x3 = y3*y3;
@@ -642,9 +644,10 @@ double mdtau2(double y1,double y2,double y3,double y4,double y5,double y6) {
   double PrrC = 2.0 * Prhoy1 * m4 + rhoy1 * Pm4 + rhoy2 * Pm5 + rhoy3 * Pm6;
   double P2tauNum = (PrrC) + (-Luf - 0.5 * Ldel) * rr;
   double P2tau = P2tauNum/ (uf * safesqrt(del));
+  double P2tau_uf = P2tauNum/ (safesqrt(del));
 
   show(Pm4,"Pm4"); show(Pm5,"Pm5"); show(Pm6,"Pm6"); show(PrrC,"Prrc");
   show(P2tauNum,"P2taunum"); show(P2tau,"P2tau");
 
-  return P2tau;
+  return P2tau_uf;
 }

@@ -1,3 +1,23 @@
+/* ========================================================================== */
+/* FLYSPECK - BOOK FORMALIZATION                                              */
+/*                                                                            */
+/* Chapter: Nonlinear                                                  */
+/* Author: Thomas C. Hales                                                    */
+/* Date: 2011-01-21                                                           */
+/* ========================================================================== */
+
+/*
+This is code that is used in the interval routines for
+the verification of main_estimate_ineq.hl:'2065952723 A1'
+num1^2 - #0.01 * num2 > 0.
+
+What we actually show is that num1 < 0 or num1 > 0 or num2 < 0 as follows.
+We subdivide the domain and show there exists alpha in [-1,1] on each subdomain
+such that  alpha * num1 - (1-abs(alpha))* num2 > 0.  
+So that if num1=0, then num2 <0.
+
+ */
+
 #include <iomanip>
 #include <iostream>
 #include <cmath>
@@ -7,13 +27,11 @@
 #include "numerical.h"
 #include "2065952723A.h"
 
-#define exec_206A // executable form.
+//#define exec_206A // executable form.
 
 using namespace std;
 
 class trialdata { public: trialdata(Minimizer M,char* s) { M.coutReport(s); };};
-
-
 
 
 // The top part of the code is machine generated.
@@ -91,6 +109,11 @@ double e1,double e2,double e3,double a2,double b2,double c2
 return ( (8. * ((2. * ((real_pow(a2,5.)) * e1)) + (((-256.) * ((real_pow((b2 + ((-1.) * c2)),3.)) * (e2 + ((-1.) * e3)))) + (((-1.) * ((real_pow(a2,3.)) * ((2. * (((-256.) + ((real_pow(b2,2.)) + (((-2.) * (b2 * c2)) + (real_pow(c2,2.))))) * e1)) + (((((real_pow(b2,2.)) * ((-8.) + c2)) + (((-16.) * (b2 * (3. + c2))) + (16. * (16. + (9. * c2))))) * e2) + (((b2 * (144. + (((-16.) * c2) + (real_pow(c2,2.))))) + ((-8.) * ((-32.) + ((6. * c2) + (real_pow(c2,2.)))))) * e3))))) + (((real_pow(a2,4.)) * (((-64.) * e1) + ((-6.) * ((((-8.) + b2) * e2) + (((-8.) + c2) * e3))))) + (((-2.) * ((real_pow(a2,2.)) * ((b2 + ((-1.) * c2)) * (((real_pow(b2,2.)) * e2) + ((8. * (c2 * ((4. * e1) + ((9. * e2) + ((-7.) * e3))))) + ((384. * (e2 + ((-1.) * e3))) + (((-1.) * ((real_pow(c2,2.)) * e3)) + (b2 * (((-32.) * e1) + (((56. + ((-9.) * c2)) * e2) + (9. * (((-8.) + c2) * e3)))))))))))) + (16. * (a2 * ((b2 + ((-1.) * c2)) * (((real_pow(b2,2.)) * (e2 + ((-3.) * e3))) + (((-4.) * (b2 * ((8. * e1) + ((((-20.) + (3. * c2)) * e2) + ((-3.) * (((-4.) + c2) * e3)))))) + (c2 * ((32. * e1) + ((3. * ((16. + c2) * e2)) + ((-1.) * ((80. + c2) * e3)))))))))))))))) ); 
 }
 
+double num2m(
+double e1,double e2,double e3,double a2,double b2,double c2
+) { 
+  return - num2(e1,e2,e3,a2,b2,c2);
+}
 
 double num_combo1(
 double e1,double e2,double e3,double a2,double b2,double c2
@@ -98,13 +121,6 @@ double e1,double e2,double e3,double a2,double b2,double c2
 return ( ((2. / 25.) * (((-2.) * ((real_pow(a2,5.)) * e1)) + ((256. * ((real_pow((b2 + ((-1.) * c2)),3.)) * (e2 + ((-1.) * e3)))) + (((real_pow(a2,3.)) * ((2. * (((-256.) + ((real_pow(b2,2.)) + (((-2.) * (b2 * c2)) + (real_pow(c2,2.))))) * e1)) + (((((real_pow(b2,2.)) * ((-8.) + c2)) + (((-16.) * (b2 * (3. + c2))) + (16. * (16. + (9. * c2))))) * e2) + (((b2 * (144. + (((-16.) * c2) + (real_pow(c2,2.))))) + ((-8.) * ((-32.) + ((6. * c2) + (real_pow(c2,2.)))))) * e3)))) + ((2. * ((real_pow(a2,4.)) * ((32. * e1) + (3. * ((((-8.) + b2) * e2) + (((-8.) + c2) * e3)))))) + ((200. * (real_pow((((real_pow(a2,2.)) * e1) + ((8. * ((b2 + ((-1.) * c2)) * (e2 + ((-1.) * e3)))) + ((-1.) * (a2 * ((16. * e1) + ((((-8.) + b2) * e2) + (((-8.) + c2) * e3))))))),2.))) + ((2. * ((real_pow(a2,2.)) * ((b2 + ((-1.) * c2)) * (((real_pow(b2,2.)) * e2) + ((8. * (c2 * ((4. * e1) + ((9. * e2) + ((-7.) * e3))))) + ((384. * (e2 + ((-1.) * e3))) + (((-1.) * ((real_pow(c2,2.)) * e3)) + (b2 * (((-32.) * e1) + (((56. + ((-9.) * c2)) * e2) + (9. * (((-8.) + c2) * e3)))))))))))) + ((-16.) * (a2 * ((b2 + ((-1.) * c2)) * (((real_pow(b2,2.)) * (e2 + ((-3.) * e3))) + (((-4.) * (b2 * ((8. * e1) + ((((-20.) + (3. * c2)) * e2) + ((-3.) * (((-4.) + c2) * e3)))))) + (c2 * ((32. * e1) + ((3. * ((16. + c2) * e2)) + ((-1.) * ((80. + c2) * e3))))))))))))))))) ); 
 }
 
-
-
-double num2m(
-double e1,double e2,double e3,double a2,double b2,double c2
-) { 
-  return - num2(e1,e2,e3,a2,b2,c2);
-}
 
 double eulerA_x(
 double x1,double x2,double x3,double x4,double x5,double x6
@@ -118,12 +134,6 @@ START OF HAND-CRAFTED CODE.   BASIC CFSQP functions
  ***************************************************/
 
 
-int near(double x,double y)
-  { double eps = 1.0e-8; return (mabs(x-y)<eps); } 
-
-void selfTest() {
-  assert(near (sol0(),0.5512855984325308));
-}
 
 
 void c0(int numargs,int whichFn,double* y_mangle__, double* ret,void*) {
@@ -179,7 +189,6 @@ double c2 = y_mangle__[5];
 *ret = (0.000000e+00) + (((num_combo1(e1,e2,e3,a2,b2,c2)) - 0.)) + (0.0);
 }
 
-
 void t_varcombo(int numargs,int whichFn,double* y_mangle__, double* ret,void*) { 
 double e1 = y_mangle__[0];
 double e2 = y_mangle__[1];
@@ -203,7 +212,6 @@ double c2 = y_mangle__[5];
  return num1m(e1,e2,e3,a2,b2,c2);
 }
 
-
 Minimizer m_num1m(double xmin[6],double xmax[6]) {
 	Minimizer M(nglobal::trialcount,6,0,xmin,xmax);
 	M.func = t_num1m;
@@ -224,7 +232,6 @@ Minimizer m_num2m(double xmin[6],double xmax[6]) {
 	M.cFunc = c0;
 	return M;
 }
-
 
 Minimizer m_combo(double xmin[6],double xmax[6]) {
 	Minimizer M(nglobal::trialcount,6,0,xmin,xmax);
@@ -312,32 +319,7 @@ double simplex2Dalpha(const double* data, int n) {
 }
 
 /***************************************************
-RECTANGLES
- ***************************************************/
-double rectangle_partial=0;
-double rectangle_total=0;
-
-double rectangle(double xmin[],double xmax[],int size) {
-  double v = 1;
-  for (int i=0;i<size;i++) { v *= (xmax[i] - xmin[i]); }
-  return v;
-}
-
-void add_rectangle(double xmin[],double xmax[],int size) {
-  rectangle_partial += rectangle(xmin,xmax,size);
-}
-
-
-double numerical_data::percent_done() {
-  return rectangle_partial / rectangle_total;
-}
-
-void numerical_data::set_rectangle(double xmin[],double xmax[],int size) {
-  rectangle_total = rectangle(xmin,xmax,size);
-}
-
-/***************************************************
-
+RECTANGLES FOR REPORTING STATS
  ***************************************************/
 
 int counter = 0;
@@ -350,7 +332,64 @@ int numerical_data::getCounter() {
   return counter;
 }
 
+double rectangle_partial=0;
+double rectangle_total=0;
+
+
+double rectangle(double xmin[],double xmax[],int size) {
+  double v = 1;
+  for (int i=0;i<size;i++) { v *= (xmax[i] - xmin[i]); }
+  return v;
+}
+
+void add_rectangle(double xmin[],double xmax[],int size) {
+  rectangle_partial += rectangle(xmin,xmax,size);
+}
+
+double numerical_data::percent_done() {
+  return 100.0 * rectangle_partial / rectangle_total;
+}
+
+void numerical_data::set_rectangle(double xmin[],double xmax[],int size) {
+  rectangle_total = rectangle(xmin,xmax,size);
+}
+
+
+
+/***************************************************
+TESTING
+ ***************************************************/
+
+
+int near(double x,double y)
+  { double eps = 1.0e-8; return (mabs(x-y)<eps); } 
+
+void numerical_data::selfTest() {
+  assert(near (sol0(),0.5512855984325308));
+
+  {
+  double data[4] = {1.0,4.0,2.0,3.0};
+  assert(1.0==simplex2Dalpha(data,2));
+  }
+
+  {
+  double data[4] = {1.0,4.0,3.0,2.0};
+  assert(0.5==simplex2Dalpha(data,2));
+  }
+
+  {
+    double data[8] = {0.99,10.0,1.0,9.0,11.0,12.0,9.0,1.0};
+  assert(0.5==simplex2Dalpha(data,4));
+  }
+
+}
+
+/***************************************************
+206 A1 SPECIFIC ROUTINES
+ ***************************************************/
+
 // bisection split on the final three variables
+// June 2012: this splits on all 6 variables, widest variable.
 
 int split3(const double xmin[6],const double xmax[6],
 	   double rmin[2][6],double rmax[2][6]) {  
@@ -369,22 +408,27 @@ int split3(const double xmin[6],const double xmax[6],
 	return j_wide;
 }
 
-/***************************************************
-206 A1 SPECIFIC ROUTINES
- ***************************************************/
-
 int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int recurse)
 {
   counter ++;
-  double eps = 10.0; // was 0.01.
-
+  // earliest version (2011), eps=0.01.
+  // eps=10.0,multiplier=1.0 Jun 25, 2012. secs(5451),  cells(2410176).
+  // eps=17.0,multiplier=1.0 Jun 26, 2012. secs(4918),  cells(2144620).
+  // doesn't seem to terminate with eps = 20.0,multiplier=1.0.
+  // eps=25.0,multiplier=4.0 June 26,2012, secs(4184),  cells(1896082), 2913 cases
+  // eps=50.0,m=8.0,Jun26,2012,  secs(3869),  cells(2443190), 6463 cases.
+  double eps = 50.0; 
+  double multiplier = 8.0;
+  nglobal::trialcount = 100;
   Minimizer zer1 = m_num1(xmin,xmax);
   Minimizer zer1m = m_num1m(xmin,xmax);
   Minimizer zer2m = m_num2m(xmin,xmax);
 
-  double m1 = zer1.optimize();
-  double m1m = zer1m.optimize();
+  double m1 = multiplier * zer1.optimize();
+  double m1m = multiplier * zer1m.optimize();
   double m2m = zer2m.optimize();
+  //cout << "m1 m1m m2m = " << m1 << " " << m1m << " " << m2m << endl;
+  // Jun 26, 2012 inserted 4.0 constant, encourage m1,m1m cases.
   double mm = max(m2m,max(m1,m1m));
   int which = (mm==m1 ? 1 : (mm==m1m ? 2 : 3));
   if (mm > eps) { 
@@ -400,7 +444,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
   // check for a C/E.
   double mc = m_combo(xmin,xmax).optimize();
   if (mc < 0) {
-    cout << "CE found: " << mc << flush << endl;
+    cout << "cfsqp CE found: " << mc << flush << endl;
     for (int i=0;i<6;i++) cout << xmin[i] << " " << xmax[i] << endl;
     exit(0);
   }
@@ -424,7 +468,7 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
   nglobal::alpha = sign1 *simplex2Dalpha(data,64);
   }
 
-  // check if it works
+  // check if combo works
   Minimizer znn = m_varcombo(xmin,xmax);
   double nn = znn.optimize();
   if (nn > eps) { 
@@ -437,10 +481,10 @@ int setStrategy (double xmin[6],double xmax[6],numerical_data::strategy& s,int r
   // print some statistics
   double w = 0;
   for (int i=0;i<5;i++) { w += xmax[i]-xmin[i]; }
-  if (mm < 0 && (lastprintcount + printspan<= counter)) {
+  if ( (lastprintcount + printspan<= counter)) {
       cout.precision(3);
       lastprintcount = counter;
-      cout << "w: " << which << " " << counter << " " <<  combcounter << " " << mm/w << " " << nn/w << " w:" << w << " a:" << nglobal::alpha ;
+      cout << "w: " << which << " " << counter << " " <<  combcounter << " mm= " << mm << " nn= " << nn << " w:" << w << " a:" << nglobal::alpha ;
       cout.precision(6);
       cout << " f:" << numerical_data::percent_done() << endl << flush; } 
 
@@ -465,37 +509,40 @@ int main206A()  { // constant changed to 15.53 on Jan 21, 2011.
 (1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),(1. + ((sol0()) / (pi()))),15.53,(real_pow(4.,2.)),(real_pow(4.,2.))
 };
 
+  numerical_data::selfTest();
+
   rectangle_total = rectangle(xmin,xmax,6);
-  cout << "r: " << rectangle_total << endl;
+  cout << "volume of rectangle to be analyzed: " << rectangle_total << endl;
   numerical_data::strategy s;
-  setStrategy(xmin,xmax,s,1);  // this does the cases.
+  nglobal::trialcount = 100;
+  int t = setStrategy(xmin,xmax,s,1);  // this runs through all cases recursively.
+  if (t > 0) {
+    cout << "domain successfully analyzed" << endl;
+    cout << "percent done : " << numerical_data::percent_done() << endl;
+    cout << "subdomains considered : " << numerical_data::getCounter() << endl;
+    cout << "trial count : " << nglobal::trialcount << endl;
+    cout << flush;
+  }
+  else {
+    cout << "domain analysis fault" << endl << flush;
+  }
+    
   //  setStrategy(xmin,xmax,s,0);
 
-  {
-  double data[4] = {1.0,4.0,2.0,3.0};
-  assert(1.0==simplex2Dalpha(data,2));
-  }
 
-  {
-  double data[4] = {1.0,4.0,3.0,2.0};
-  assert(0.5==simplex2Dalpha(data,2));
-  }
-
-  {
-    double data[8] = {0.99,10.0,1.0,9.0,11.0,12.0,9.0,1.0};
-  assert(0.5==simplex2Dalpha(data,4));
-  }
-
+  // DEBUGGING:
   nglobal::alpha = 0.99915589538304627748 ;
   double y[6]={0.99999999999999988898,0.99999999999999988898,0.99999999999999988898,2.5195263290501368481,2.5195263290501368481,7.8392912459240529088};
   double r;
   t_varcombo(6,1,y,&r,0);
-  
+  /*
   cout.precision(30);
+  cout << "debugging data :" << endl;
   cout << "alpha " << nglobal::alpha << endl;
   cout << "combo " << r << endl;
   cout << "num1 " << numsgn(1.0,y,1) << endl;
   cout << "num2 " << numsgn(1.0,y,0) << endl;
+  */
 
 }
 

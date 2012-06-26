@@ -61,9 +61,10 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	Lib.o Lib.h
 	$(CC) $(CCOPTS1)  error.o interval.o lineInterval.o \
 	secondDerive.o univariate.o wide.o taylorData.o recurse.o Lib.o \
-	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o \
-	../cfsqp/numerical.o ../cfsqp/sqp/qld.o \
-	../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o test_auto.cc \
+	../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o \
+	../cfsqp/Minimizer.o \
+	../cfsqp/numerical.o ../cfsqp/2065952723_link.o \
+	 test_auto.cc \
 	-o  test_auto -lm $(L)
 
 
@@ -72,6 +73,6 @@ jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \
 	recurse.h recurse.o univariate.h univariate.o
 	$(CC) $(CCOPTS1) jan4_test.cc error.o interval.o lineInterval.o \
 	secondDerive.o univariate.o taylorData.o recurse.o \
-	../cfsqp/2065952723B.o ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o  -o jan4_test -lm $(L)
+	 ../cfsqp/Minimizer.o ../cfsqp/numerical.o ../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o ../cfsqp/2065952723B.o -o jan4_test -lm $(L)
 
 

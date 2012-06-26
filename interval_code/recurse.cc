@@ -436,7 +436,7 @@ void stats(int force) {
       /*  206A case only. */ {
 	int c = numerical_data::getCounter();  
       if (c>0) { cout << "(" << numerical_data::getCounter() 
-		      << ":" << numerical_data::percent_done() << ")"; }
+		      << ":" << numerical_data::percent_done() << "%)"; }
       }
 #endif
       cout << "[" << statcounter/10000 << "*10^4]" << flush;
@@ -560,13 +560,14 @@ int recursiveVerifierWithLinear3(int depth,
     {
       x[j]=xD.getValue(j); z[j]=zD.getValue(j);
     }
+  // do 2^3 cases of 0 width on the first 3 variables.
   for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
 	double xr[6], zr[6];
 	xr[0] = (i ? z[0] : x[0]); 
 	xr[1] = (j ? z[1] : x[1]); 
 	xr[2] = (k ? z[2] : x[2]); 
 	for (int r=0;r<3;r++) { zr[r]=xr[r]; }
-	for (int r=3;r<6;r++) { xr[r]=x[r]; zr[r] = z[r]; }
+	for (int r=3;r<DIM6;r++) { xr[r]=x[r]; zr[r] = z[r]; }
 	cellOption opt1;
 	opt1.iterationCount = options.iterationCount;
 	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,I,count,opt1);
@@ -1089,6 +1090,7 @@ int prove::recursiveVerifierQ(int depth,
 
 int f206A(int depth,double xx[6],double zz[6],cellOption options) {
   numerical_data::strategy s;
+  nglobal::trialcount=100;
   numerical_data::setStrategy206A(xx,zz,s);
   if (s.mode == numerical_data::strategy::split) { return -1; }
   static interval one("1");
@@ -1104,7 +1106,6 @@ int f206A(int depth,double xx[6],double zz[6],cellOption options) {
 	 Lib::num1 * alpha) ) ) );
   const Function Fm = F * mone;
   const Function* J[1] = {&Fm};
-  // use linearity in e1,e2,e3 to do dimension reduction.
   /* stats */ {
     static int rc = 0;
     rc++;
@@ -1116,6 +1117,7 @@ int f206A(int depth,double xx[6],double zz[6],cellOption options) {
       cout << "mid: " << U.tangentVectorOf().hi() << endl;
     }
   }
+  // use linearity in e1,e2,e3 to do dimension reduction.
   // This block can be rewritten using recursiveVerifierWithLinear3
   for (int i=0;i<2;i++) for (int j=0;j<2;j++) for (int k=0;k<2;k++) {
 	double xr[6], zr[6];
@@ -1130,9 +1132,12 @@ int f206A(int depth,double xx[6],double zz[6],cellOption options) {
 	int rv = prove::recursiveVerifier(depth+1,xr,zr,xr,zr,J,1,opt1);
 	options.iterationCount   = opt1.iterationCount;
 	if (!rv) {
-	  cout << " i j k d " << i << " " << j << " " << k << " " << depth << endl;
-	  cout << "x r" << endl;
-	  for (int u=0;u<6;u++) {
+	  cout << "fatal error on linearization of first 3 variables " << endl;
+	  cout << "report: " << endl;
+	  cout << "branching on 3 edges: i j k depth " 
+	       << i << " " << j << " " << k << " " << depth << endl;
+	  cout << "x z" << endl;
+	  for (int u=0;u<DIM6;u++) {
 	    cout << xr[u] << " " << zr[u] << endl;
 	  }
 	  if (s.mode==numerical_data::strategy::merge) 
@@ -1145,6 +1150,8 @@ int f206A(int depth,double xx[6],double zz[6],cellOption options) {
 	  case numerical_data::strategy::merge : cout << "strategy merge"; break;
 	  default: cout << "strategy unknown"; break;
 	  }
+	  cout << endl;
+	  error::fatal("end of failure report ");
 	  return 0;
 	}
       }

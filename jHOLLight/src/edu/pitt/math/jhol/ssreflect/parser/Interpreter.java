@@ -17,6 +17,7 @@ import edu.pitt.math.jhol.ssreflect.parser.tree.SectionHypothesisNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.SectionNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.SectionVariableNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.TacticNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.ModuleNode;
 
 /**
  * Converts the Coq-Ssreflect like text into HOL Light commands
@@ -47,6 +48,9 @@ public class Interpreter {
 	// Information about all executed commands
 	private final Stack<GlobalCommand> globalCommands;
 	private final Stack<ProofCommand> proofCommands;
+	
+	// True if a module is declared (only one module is allowed)
+	private boolean moduleFlag;
 
 	// Listen for goal state updates
 	private ArrayList<GoalListener> goalListeners = new ArrayList<GoalListener>();
@@ -196,6 +200,12 @@ public class Interpreter {
 			if (command == null)
 				return true;
 			
+			// A special action for modules
+			if (command instanceof ModuleNode) {
+				Interpreter.this.moduleFlag = false;
+				return true;
+			}
+			
 			String cmd = command.getRevertCommand();
 			if (cmd == null)
 				return true;
@@ -289,12 +299,10 @@ public class Interpreter {
 	public Interpreter(CamlEnvironment caml, String logName) {
 		assert(caml != null);
 		this.executor = new CommandExecutor(caml);
-		this.executor.initLog(logName);
-		this.mode = GLOBAL_MODE;
-		this.state = null;
-		
 		this.globalCommands = new Stack<GlobalCommand>();
 		this.proofCommands = new Stack<ProofCommand>();
+		
+		clearAndInit(logName);
 	}
 	
 	
@@ -309,6 +317,7 @@ public class Interpreter {
 		this.globalCommands.clear();
 		this.proofCommands.clear();
 		this.error = null;
+		this.moduleFlag = false;
 	}
 	
 	
@@ -455,7 +464,8 @@ public class Interpreter {
 				cmd = new SectionCommand((SectionNode) nodeCmd, end);
 			else if (nodeCmd instanceof RawNode || 
 					nodeCmd instanceof SectionHypothesisNode ||
-					nodeCmd instanceof SectionVariableNode)
+					nodeCmd instanceof SectionVariableNode ||
+					nodeCmd instanceof ModuleNode)
 				cmd = new GlobalCommand(nodeCmd, end);
 			else
 				throw new Exception("Unexpected global command: " + nodeCmd);
@@ -593,6 +603,17 @@ public class Interpreter {
 
 		Node node = builder.parseGlobal();
 
+		// Special treatment for modules
+		if (node instanceof ModuleNode) {
+			if (moduleFlag)
+				throw new Exception("Another module is already declared");
+			
+			if (getLastSection() != null)
+				throw new Exception("A module cannot be declared inside a section");
+			
+			moduleFlag = true;
+		}
+		
 		// Special treatment for End Section
 		if (node instanceof SectionNode && !((SectionNode) node).isStartSection()) {
 			// Finalize all theorems in the section
@@ -666,6 +687,7 @@ public class Interpreter {
 			getAndUpdateState();
 			mode = PROOF_MODE;
 		}
+
 	}
 	
 	/**

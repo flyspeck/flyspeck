@@ -39,6 +39,9 @@ public class TreeBuilder {
 		if (t.value == "Lemma" || t.value == "Theorem")
 			return parseLemma();
 		
+		if (t.value == "Module")
+			return parseModule();
+		
 		if (t.value == "Section" || t.value == "End")
 			return parseSection();
 		
@@ -49,6 +52,23 @@ public class TreeBuilder {
 			return parseHypothesis();
 		
 		throw new Exception("Unknown command: " + t);
+	}
+	
+	/**
+	 * Parses a module declaration
+	 */
+	private ModuleNode parseModule() throws Exception {
+		// Module
+		Token t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER || t.value != "Module")
+			throw new Exception("'Module' expected: " + t);
+		
+		// Module's name
+		t = scanner.nextToken();
+		if (t.type != TokenType.IDENTIFIER)
+			throw new Exception("IDENTIFIER expected: " + t);
+		
+		return new ModuleNode(t.value);
 	}
 	
 	

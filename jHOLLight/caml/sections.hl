@@ -2,6 +2,8 @@
 let revert_proof_step = b;;
 let begin_goal = g;;
 
+(* A flag for fast proof loading (using mk_thm) *)
+let fast_load_flag = ref false;;
 
 (* Section variables, hypotheses (with labels), and implicit types *)
 type section_info = term list * (string * term) list * (string * hol_type) list;;
@@ -237,7 +239,12 @@ let end_section_proof () =
 let section_proof names tm tac_list =
   let tm0, tac0 = prepare_section_proof names tm in
   let gstate = mk_goalstate ([], tm0) in
-  let _, sgs, just = rev_itlist by (tac0 :: tac_list) gstate in
+  let tac_list1 =
+    if !fast_load_flag then
+      [fun g -> ACCEPT_TAC(mk_thm([], snd g)) g]
+    else
+      tac_list in
+  let _, sgs, just = rev_itlist by (tac0 :: tac_list1) gstate in
   let th0 =
     if sgs = [] then just null_inst []
     else failwith "section_proof: unsolved goals" in

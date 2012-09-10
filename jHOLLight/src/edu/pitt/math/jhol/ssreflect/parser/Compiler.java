@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 
 import edu.pitt.math.jhol.ssreflect.parser.tree.LemmaNode;
+import edu.pitt.math.jhol.ssreflect.parser.tree.ModuleNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.Node;
 import edu.pitt.math.jhol.ssreflect.parser.tree.SectionNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.TacticNode;
@@ -20,6 +21,9 @@ public class Compiler {
 	private final Scanner scanner;
 	// The main parser
 	private final TreeBuilder builder;
+	
+	// A global module flag 
+	private boolean moduleFlag;
 
 	
 	// Describes a lemma
@@ -64,12 +68,13 @@ public class Compiler {
 			// Statement
 			buffer.append("let " + name + " = section_proof ");
 			node.translateParameters(buffer);
-			buffer.append(' ');
-			buffer.append(node.getGoalText());
+			out.println(buffer);
+
+			out.println(node.getGoalText());
 
 			// Proof
-			buffer.append(" [");
-			out.println(buffer);
+//			buffer.append(" [");
+			out.println('[');
 			
 			for (TacticNode tac : proof) {
 				out.print("   ");
@@ -232,6 +237,25 @@ public class Compiler {
 			if (t.type != TokenType.PERIOD)
 				throw new Exception(". expected: " + t);
 			
+			// Module
+			if (node instanceof ModuleNode) {
+				if (currentSection != null)
+					throw new Exception("A module cannot be declared inside a section");
+				
+				if (moduleFlag)
+					throw new Exception("Only one module can be declared");
+			
+				// Start the module
+				String moduleName = ((ModuleNode) node).getName();
+				out.println();
+				out.println("(* Module " + moduleName + "*)");
+				out.println("module " + moduleName + " = struct");
+				out.println();
+				
+				moduleFlag = true;
+				continue;
+			}
+			
 			// Section
 			if (node instanceof SectionNode) {
 				SectionNode sectionNode = (SectionNode) node;
@@ -279,7 +303,15 @@ public class Compiler {
 	 */
 	public void compile() throws Exception {
 		try {
+			moduleFlag = false;
 			processSection(null);
+			
+			// Close the module (if it is declared)
+			if (moduleFlag) {
+				out.println();
+				out.println("(* Close the module *)");
+				out.println("end;;");
+			}
 		}
 		finally {
 			out.flush();

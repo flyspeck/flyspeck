@@ -61,7 +61,12 @@ public class HOLLightWrapper {
 		StringBuilder str = new StringBuilder();
 		StringBuilder suppressedOutput = new StringBuilder();
 		char c;
+		boolean waitFlag = false;
+		
 		do {
+			if (waitFlag && !bout.ready())
+				break;
+			
 			c = (char) bout.read();
 
 			if (str.length() == 0 && c == '@') {
@@ -87,9 +92,12 @@ public class HOLLightWrapper {
 
 	
 			if (str.length() == 2) {
-				if (str.charAt(0) == '#')
+				if (str.charAt(0) == '#') {
 					if (!bout.ready())
 						break;
+					
+					waitFlag = true;
+				}
 			}
 		}
 		while (true);

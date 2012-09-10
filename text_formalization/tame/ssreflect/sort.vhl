@@ -1,0 +1,508 @@
+"needs \"tame/ssreflect/seq2-compiled.hl\"".
+
+(* A special tactic for proving existence of recursively defined functions *)
+"let general_rec_exists_tac g = ((apply_tac o DISCH_ALL o prove_general_recursive_function_exists o snd) g) g".
+
+
+(* New definitions *)
+
+"let ordered = (GEN_ALL o define) `(ordered R [] <=> T) /\
+        (ordered R (h :: t) <=> ordered R t /\ all (R h) t)`".
+
+"let sorted = new_definition `sorted R s s0 <=> ordered R s /\ perm_eq s s0`".
+
+"let merge = (GEN_ALL o define) `merge R [] s2 = s2 /\ merge R s1 [] = s1 /\
+        merge R (CONS h1 t1) (CONS h2 t2) =
+                if (R h1 h2) then CONS h1 (merge R t1 (CONS h2 t2)) else CONS h2 (merge R (CONS h1 t1) t2)`".
+
+
+Lemma merge_ineqs s: `~(LENGTH s <= 1) ==> LENGTH (take (LENGTH s DIV 2) s) < LENGTH s /\
+                                        LENGTH (dropl (LENGTH s DIV 2) s) < LENGTH s`.
+Proof.
+have n20: `~(2 = 0)` by arith.
+rewrite -size; set n := `sizel s`.
+by rewrite size_take size_drop n_def; arith.
+Qed.
+
+Lemma merge_sort_exists: `?f. !R s. f R s = if LENGTH s <= 1 then s else
+        merge R (f R (take (LENGTH s DIV 2) s)) (f R (dropl (LENGTH s DIV 2) s))`.
+Proof.
+"general_rec_exists_tac".
+exists `MEASURE (LENGTH o SND)`.
+by rewrite WF_MEASURE !andTb MEASURE /= !o_THM /=; split => s ineq; rewrite merge_ineqs.
+Qed.
+
+"let merge_sort = new_specification [\"merge_sort\"] merge_sort_exists".
+
+"let min_k = new_definition `min_k k (l:(real)list) = EL k (merge_sort (<=) l)`".
+
+
+
+(* Merge *)
+Section Merge.
+
+Lemma perm_eq_merge R s1 s2: `perm_eq (merge R s1 s2) (s1 ++ s2)`.
+Proof.
+rewrite perm_eqP count_cat => P.
+elim: s1 s2 => [|h1 t1 IH1]; elim => [|h2 t2 IH2]; rewrite merge !count; try arith.
+by case: `R h1 h2` => /=; rewrite count (IH1, IH2) count; arith.
+Qed.
+
+Lemma all_merge R s1 s2 P: `all P (merge R s1 s2) <=> all P s1 /\ all P s2`.
+Proof.
+elim: s1 s2 => [|h1 t1 IH1]; elim => [|h2 t2 IH2]; rewrite merge all //.
+by case: `R h1 h2` => /=; rewrite all (IH1, IH2) !all; "REWRITE_TAC[CONJ_ACI]".
+Qed.
+
+End Merge.
+
+
+(* Ordered *)
+Section Ordered.
+
+Variable x0: `:A`.
+Variable R: `:A->A->bool`.
+
+Lemma ordered1 x: `ordered R [x]`.
+Proof. by rewrite !ordered all. Qed.
+
+Lemma ordered_cat s1 s2: `ordered R (s1 ++ s2) <=>
+        ordered R s1 /\ ordered R s2 /\ all (\x. all (R x) s2) s1`.
+Proof.
+elim: s1 => [|h t IH]; rewrite cat !ordered all //= IH all_cat.
+by "REWRITE_TAC[CONJ_ACI]".
+Qed.
+
+Lemma ordered_nthP s: `ordered R s <=> (!i j. i < j /\ j < sizel s ==> R (nth x0 s i) (nth x0 s j))`.
+Proof.
+split; elim: s => [|h t IH]; rewrite ordered size LENGTH ?ltn0 // -size.
+  move => [ord all_t] [|i] [|j]; try arith; rewrite !ltSS !nth => ineqs; last by rewrite IH.
+  by move: all_t; rewrite -(all_nthP x0); exact.
+move => cond; split.
+  apply: IH => i j ineqs.
+  by move: (cond `SUC i` `SUC j`); rewrite !ltSS !ineqs !nth; exact.
+rewrite -(all_nthP x0) => j j_lt.
+move: (cond `0` `SUC j`); rewrite ltSS gtS0 j_lt !nth; exact.
+Qed.
+
+Lemma ordered_nseq n x: `R x x ==> ordered R (nseq n x)`.
+Proof.
+move => Rxx; rewrite ordered_nthP size_nseq => i j [i_lt_j] j_lt.
+rewrite !nth_nseq j_lt.
+suff ->: `i < n:num` by [].
+by move: j_lt i_lt_j; arith.
+Qed.
+
+Lemma ordered_subseq s1 s2: `subseq s1 s2 /\ ordered R s2 ==> ordered R s1`.
+Proof.
+elim: s1 s2 => [|h1 t1 IH1]; elim => [|h2 t2 IH2]; rewrite !ordered // "GEN_ALL subseq" //.
+case eq: `h1 = h2` => /=; move => [sub] [ord2 all2]; last first.
+  by move: IH2; rewrite ordered sub ord2.
+rewrite (IH1 sub) // andTb -allP => x /(mem_subseq sub) mem_x.
+by move: all2; rewrite -allP -eq; exact.
+Qed.
+
+Lemma ordered_delete_at i s: `ordered R s ==> ordered R (delete_at i s)`.
+Proof. by move/ordered_subseq; apply; exact: subseq_delete_at. Qed.
+
+Lemma ordered_delete1 x s: `ordered R s ==> ordered R (delete1 x s)`.
+Proof. by move/ordered_subseq; apply; exact: subseq_delete1. Qed.
+
+Lemma ordered_filter a s: `ordered R s ==> ordered R (filter a s)`.
+Proof. by move/ordered_subseq; apply; rewrite filter_subseq. Qed.
+
+
+Section OrderedMergeGeneral.
+
+Variable S : `:A -> bool`.
+Hypothesis R_trans: `!x y z. x IN S /\ y IN S /\ z IN S ==> R x y /\ R y z ==> R x z`.
+Hypothesis R_total: `!x y. x IN S /\ y IN S ==> R x y \/ R y x`.
+
+
+Lemma ordered_merge_general s1 s2: `set_of_list s1 SUBSET S /\ set_of_list s2 SUBSET S ==>
+        ordered R s1 /\ ordered R s2 ==> ordered R (merge R s1 s2)`.
+Proof.
+rewrite !SUBSET !IN_SET_OF_LIST.
+elim: s1 s2 => [|h1 t1 IH1]; elim => [|h2 t2 IH2]; rewrite merge !ordered //.
+move => [s1S s2S] [[ord1 all1] [ord2 all2]].
+have [t2S t1S]: `(!x. x <- t2 ==> x IN S) /\ (!x. x <- t1 ==> x IN S)`.
+  by move: s2S s1S; rewrite !MEM /=.
+have hS: `h1 IN S /\ h2 IN S` by move: (s1S h1) (s2S h2); rewrite !MEM /=.
+case h12: `R h1 h2` => /=; rewrite ordered.
+  rewrite IH1 ?ordered // all_merge all all1 h12 !andTb.
+  move: all2; rewrite -!allP => all2 x mem_x.
+  by rewrite (R_trans h12) !hS all2 // t2S.
+rewrite IH2 ?ordered // andTb all_merge all all2 andbT.
+move: (R_total h1 h2); rewrite !hS /= h12 orFb => h21; rewrite h21 andTb.
+move: all1; rewrite -!allP => all1 x mem_x.
+by rewrite (R_trans h21) !hS all1 // t1S.
+Qed.
+
+End OrderedMergeGeneral.
+
+
+
+Hypothesis R_asym: `!x y. R x y /\ R y x ==> x = y`.
+
+Lemma ordered_eq s1 s2: `perm_eq s1 s2 /\ ordered R s1 /\ ordered R s2 ==> s1 = s2`.
+Proof.
+elim: s1 s2 => [|h1 t1 IH1]; elim => [|h2 t2 IH2]; rewrite ?(perm_eq0l, perm_eq0r) ?NOT_CONS_NIL //.
+rewrite !ordered => [] [p_eq] [[ord1 all1]] [ord2 all2].
+suff eq12: `h1 = h2`.
+  rewrite eq12 in p_eq *; congr `CONS h2 _2`.
+  by apply: IH1; rewrite ord1 ord2 !andbT -(perm_cons h2).
+have mem_eq := perm_eq_mem p_eq.
+move: (mem_eq h1) (mem_eq h2); rewrite !MEM /=.
+case => /= mem12; case => /= mem21; apply: R_asym.
+by move: all1 all2; rewrite -!allP => /(_ mem21) R12 /(_ mem12) R21.
+Qed.
+
+Lemma ordered_merge_delete_at_eq x0 i s: `i < sizel s /\ ordered R s ==>
+        merge R [nth x0 s i] (delete_at i s) = s`.
+Proof.
+move => [i_lt ord]; apply: ordered_eq; rewrite ord andbT; split.
+  apply: perm_eq_trans; exists `nth x0 s i :: delete_at i s`.
+  by rewrite perm_eq_cons_delete_at // -(cat1s `nth x0 s i` `delete_at i s`) perm_eq_merge.
+elim: s ord i i_lt => [|h t IH]; rewrite size LENGTH ?ltn0 // ordered -size => [] [ord] h_all.
+elim => [|i iIH]; rewrite nth delete_at ?ltSS => i_lt.
+  suff ->: `merge R [h] t = h :: t` by rewrite ordered.
+  by case: t h_all => [|h' t']; rewrite !merge // all /=.
+rewrite !merge.
+set x := `nth x0 t i`.
+case Rxh: `R x h` => /=; last first.
+  rewrite ordered -{1}x_def IH // all_merge !all andTb andbT.
+  move: h_all; rewrite -!allP => h_all; split; first by rewrite h_all -x_def mem_nth.
+  by move => x' mem; rewrite h_all (mem_delete_at i).
+rewrite !ordered all Rxh ordered_delete_at // !andTb.
+suff ->: `x = h`.
+  by move: h_all; rewrite andbb -!allP => h_all x' mem; rewrite h_all; exact: (mem_delete_at i).
+apply: R_asym; rewrite Rxh andTb.
+move: h_all; rewrite -allP => /(_ x); apply.
+by rewrite -x_def mem_nth.
+Qed.
+
+Lemma ordered_merge_delete1_eq x s: `x <- s /\ ordered R s ==> merge R [x] (delete1 x s) = s`.
+Proof.
+move => [xs ord].
+by rewrite -{1}(nth_index `(@)(UNIV)` x s) // delete1_eq_at ordered_merge_delete_at_eq // ord index_mem.
+Qed.
+
+End Ordered.
+
+
+
+(* Sorted *)
+Section Sorted.
+
+Variable R : `:A->A->bool`.
+Variable x0 : `:A`.
+
+Lemma sorted_size s1 s2: `sorted R s1 s2 ==> sizel s1 = sizel s2`.
+Proof. by rewrite sorted => [] [_ /perm_eq_size]. Qed.
+
+Lemma sorted_mem s1 s2: `sorted R s1 s2 ==> (!x. x <- s1 <=> x <- s2)`.
+Proof. by rewrite sorted => [] [_ /perm_eq_mem]. Qed.
+
+Lemma size_merge s1 s2: `sizel (merge R s1 s2) = sizel s1 + sizel s2`.
+Proof. by rewrite -size_cat; apply perm_eq_size; apply perm_eq_merge. Qed.
+
+Lemma sorted_delete_at_1 i s1 s2: `i < sizel s1 /\ sorted R s1 s2 ==>
+        sorted R (delete_at i s1) (delete1 (nth x0 s1 i) s2)`.
+Proof. by rewrite !sorted => [] [i_lt] [ord p_eq]; rewrite ordered_delete_at // perm_eq_delete_at_1. Qed.
+
+Lemma sorted_delete_1_at i s1 s2: `i < sizel s2 /\ sorted R s1 s2 ==>
+        sorted R (delete1 (nth x0 s2 i) s1) (delete_at i s2)`.
+Proof.
+rewrite !sorted => [] [i_lt] [ord p_eq].
+by rewrite ordered_delete1 // perm_eq_sym perm_eq_delete_at_1 // perm_eq_sym.
+Qed.
+
+Lemma sorted_delete1 x s1 s2: `sorted R s1 s2 ==> sorted R (delete1 x s1) (delete1 x s2)`.
+Proof. by rewrite !sorted => [] [ord p_eq]; rewrite ordered_delete1 // perm_eq_delete1. Qed.
+
+Lemma sorted_filter a s l: `sorted R s l ==> sorted R (filter a s) (filter a l)`.
+Proof.
+rewrite !sorted => [] [ord_s perm_s].
+by rewrite (ordered_subseq ord_s) ?filter_subseq // perm_eq_filter.
+Qed.
+
+Lemma perm_eq_merge_sort s: `perm_eq (merge_sort R s) s`.
+Proof.
+apply seq_wf_ind: s => s IH.
+rewrite merge_sort; case ineq: `LENGTH s <= 1` => /=; rewrite ?perm_eq_refl.
+set n := `_ DIV 2`.
+apply: (perm_eq_trans `merge_sort R (take n s) ++ merge_sort R (dropl n s)`); split.
+  by rewrite perm_eq_merge.
+by rewrite -{3}(cat_take_drop n s); apply perm_eq_cat; rewrite !IH // -n_def merge_ineqs.
+Qed.
+
+Lemma size_merge_sort l: `sizel (merge_sort R l) = sizel l`.
+Proof. by apply perm_eq_size; rewrite perm_eq_merge_sort. Qed.
+
+
+(* SortedEq *)
+Section SortedEq.
+
+Hypothesis R_asym: `!x y. R x y /\ R y x ==> x = y`.
+
+Lemma sorted_eq s1 s2 s: `sorted R s1 s /\ sorted R s2 s ==> s1 = s2`.
+Proof.
+rewrite !sorted => [] [[ord1 p1] [ord2 p2]].
+by apply: (ordered_eq R_asym); rewrite ord1 ord2 !andbT (perm_eq_trans p1) perm_eq_sym.
+Qed.
+
+End SortedEq.
+
+(* SortedNth0 *)
+Section SortedNth0.
+
+Lemma nth0_sorted_imp l s: `sorted R s l ==> (!y. y <- l /\ ~(y = nth x0 s 0) ==> R (nth x0 s 0) y)`.
+Proof.
+rewrite sorted (ordered_nthP x0) => [] [sort perm] y.
+rewrite -(perm_eq_mem perm) => [] [ys y_neq].
+rewrite -(nth_index x0 ys) sort index_mem ys andbT.
+apply: contraR y_neq; rewrite lt0n negbK => eq0.
+by rewrite -(nth_index x0 ys) eq0.
+Qed.
+
+Hypothesis R_anti: `!x y. R x y /\ R y x ==> x = y`.
+
+Lemma nth0_sorted_eq x l s: `sorted R s l /\ 0 < sizel l ==>
+        (nth x0 s 0 = x <=> (x <- l /\ !y. y <- l /\ ~(y = x) ==> R x y))`.
+Proof.
+move => [sort size_gt0]; move: (sort); rewrite sorted => [] [ord perm].
+split => [<- | [mem_x r_xy]].
+  rewrite -(perm_eq_mem perm) mem_nth ?(perm_eq_size perm) // andTb.
+  exact: nth0_sorted_imp.
+apply: contraT => neq; move: (neq); rewrite implybF negbK.
+apply: R_anti; rewrite r_xy ?neq -?(perm_eq_mem perm) ?mem_nth ?(perm_eq_size perm) // andbT.
+by rewrite (nth0_sorted_imp sort).
+Qed.
+
+End SortedNth0.
+
+
+Hypothesis R_trans: `!x y z. R x y /\ R y z ==> R x z`.
+
+Lemma sorted_le l l' s s': `sorted R s l /\ sorted R s' l' /\ sizel l' = sizel l /\
+        (!i. i < sizel l ==> R (nth x0 l i) (nth x0 l' i)) ==>
+        (!i. i < sizel l ==> R (nth x0 s i) (nth x0 s' i))`.
+Proof.
+move => [sort_s] [sort_s'] [l_l'] ineqs i i_lt; move: (sort_s) (sort_s').
+set n := `sizel l`.
+rewrite !sorted => [] [ord_s perm_s] [ord_s' perm_s'].
+have sizes: `sizel s = n /\ sizel s' = n`.
+  by rewrite (perm_eq_size perm_s) (perm_eq_size perm_s').
+suff: `?t. t HAS_SIZE (n - i) /\ (!k. k IN t ==> k < n /\ R (nth x0 s i) (nth x0 s' k))`.
+  rewrite HAS_SIZE => [] [t] [] [fin_t] card_t R_in_t.
+  case: (EXCLUDED_MIDDLE `?k. k IN t /\ k < i:num`) => [[k] [kt k_lt] | ].
+    apply: R_trans; exists `nth x0 s' k`.
+    by rewrite R_in_t //; rewrite (ordered_nthP x0) in ord_s'; rewrite ord_s'.
+  rewrite NOT_EXISTS_THM negb_and => h.
+  suff t_eq: `t = i..n - 1` by rewrite R_in_t t_eq IN_NUMSEG; move: i_lt; arith.
+  apply CARD_SUBSET_EQ; rewrite CARD_NUMSEG card_t FINITE_NUMSEG /= SUBSET IN_NUMSEG.
+  split; last by move: i_lt; arith.
+  by move => k kt; move: (h k) (R_in_t kt); rewrite kt; arith.
+rewrite perm_eq_sym in perm_s.
+move: (perm_eq_bij perm_s x0) (perm_eq_bij perm_s' x0); rewrite n_def sizes.
+move => [p] [p_perm] p_eq [q] [q_perm] q_eq.
+have p_lt j: `j < n:num ==> p j < n`.
+  by move: (PERMUTES_IN_IMAGE p_perm j); rewrite !IN_NUMSEG leq0n; arith.
+have q_lt j: `j < n:num ==> q j < n`.
+  by move: (PERMUTES_IN_IMAGE q_perm j); rewrite !IN_NUMSEG leq0n; arith.
+exists `IMAGE (q o p) (i..n - 1)`; split.
+  rewrite HAS_SIZE FINITE_IMAGE ?FINITE_NUMSEG //.
+  rewrite CARD_IMAGE_INJ ?CARD_NUMSEG ?FINITE_NUMSEG ?andbT; last by move: i_lt; arith.
+  move => x y [_] [_].
+  by rewrite (PERMUTES_INJECTIVE `q o p` `0..n-1`) // PERMUTES_COMPOSE.
+rewrite IN_IMAGE IN_NUMSEG o_THM => k [j] [->] j_ineqs.
+have j_lt: `j < n:num` by move: j_ineqs i_lt; arith.
+rewrite q_lt ?p_lt // -q_eq ?p_lt // andTb.
+move: (ineqs (p_lt j_lt)); rewrite -p_eq // => Rj.
+case eq: `i = j` => /=; first by rewrite eq.
+apply: R_trans; exists `nth x0 s j`; rewrite Rj andbT.
+rewrite (ordered_nthP x0) in ord_s.
+by rewrite ord_s sizes j_lt LT_LE.
+Qed.
+
+
+Hypothesis R_total: `!x y. R x y \/ R y x`.
+
+Lemma ordered_merge s1 s2: `ordered R s1 /\ ordered R s2 ==> ordered R (merge R s1 s2)`.
+Proof. by move => [ord1 ord2]; rewrite (ordered_merge_general `UNIV`) !IN_UNIV !SUBSET_UNIV. Qed.
+
+Lemma ordered_merge_sort s: `ordered R (merge_sort R s)`.
+Proof.
+apply seq_wf_ind: s => s IH; rewrite merge_sort.
+case ineq: `LENGTH s <= 1` => /=.
+  by case: (length_le_1 ineq) => ->; rewrite !ordered // all.
+by apply: ordered_merge; rewrite !IH // merge_ineqs.
+Qed.
+
+Lemma sorted_merge_sort s: `sorted R (merge_sort R s) s`.
+Proof. by rewrite sorted ordered_merge_sort perm_eq_merge_sort. Qed.
+
+End Sorted.
+
+
+
+(* SortedReal *)
+Section SortedReal.
+
+"prioritize_real()".
+
+Lemma ordered_real_nseq n x: `ordered (<=) (nseq n x)`.
+Proof. by rewrite ordered_nseq REAL_LE_REFL. Qed.
+
+Lemma ordered_cat_filter s v: `ordered (<=) s ==>
+        s = filter (\x. x <= v) s ++ filter (predC (\x. x <= v)) s`.
+Proof.
+move => ord_s; set s2 := `_1 ++ _2`.
+rewrite (ordered_eq ord_s s2) //; split; first by move => x y; rewrite REAL_LE_ANTISYM.
+rewrite -s2_def perm_eq_sym perm_filterC perm_eq_refl ordered_cat.
+rewrite !ordered_filter //= -!allP /= !mem_filter predC /= => x [x_le mem_x] y [y_gt mem_y].
+by apply: REAL_LT_IMP_LE; apply: REAL_LET_TRANS; exists v; rewrite -REAL_NOT_LE.
+Qed.
+
+Lemma real_merge_sort s: `sorted (<=) (merge_sort (<=) s) s`.
+Proof. exact: (sorted_merge_sort REAL_LE_TRANS REAL_LE_TOTAL). Qed.
+
+Lemma ants P Q R: `P /\ (Q ==> R) ==> ((P ==> Q) ==> R)`.
+Proof. by move => [p qr] pq; rewrite qr pq. Qed.
+
+Lemma sort_continuous l l' s s' e: `sorted (<=) s l /\ sorted (<=) s' l' /\ sizel l = sizel l' /\
+        (!i. i < sizel l ==> abs (nth (&0) l i - nth (&0) l' i) < e) ==>
+        (!i. i < sizel l ==> abs (nth (&0) s i - nth (&0) s' i) < e)`.
+Proof.
+apply seq_wf_ind: l s s' l' => l IH s s' l' [sort_s] [sort_s'] [l_l'] ineqs i i_ineq.
+have h_size: `sizel s = sizel l /\ sizel s' = sizel l`.
+  by rewrite (sorted_size sort_s) (sorted_size sort_s') -l_l'.
+set x := `nth (&0) s i`.
+have xs: `x <- s` by rewrite -x_def mem_nth h_size.
+have xl: `x <- l` by rewrite -(sorted_mem sort_s).
+set x' := `nth (&0) l' (indexl x l)`.
+have x_ineq: `abs (x - x') < e`.
+  by rewrite -x'_def -{1}(nth_index `&0` x l) // ineqs index_mem.
+have x'_l': `x' <- l'` by rewrite -x'_def mem_nth -l_l' index_mem.
+have x'_s': `x' <- s'` by rewrite (sorted_mem sort_s').
+
+(* Use the induction hypothesis *)
+move: IH (IH `delete1 x l` `delete_at i s` `delete1 x' s'` `delete_at (indexl x l) l'`) => _.
+rewrite -size size_delete1 xl COND_CLAUSES; "ANTS_TAC"; first by move: i_ineq; arith.
+apply: ants; split => [| IH].
+  rewrite -{1}x_def sorted_delete_at_1 ?h_size //.
+  rewrite -x'_def sorted_delete_1_at -?l_l' ?index_mem //.
+  rewrite size_delete_at -l_l' index_mem xl /= => k k_lt.
+  move: (size_delete1 x l) (size_delete_at `indexl x l` l').
+  rewrite -l_l' index_mem !xl /= => size1 size2.
+  by rewrite nth_delete1 nth_delete_at ineqs; move: k_lt; arith.
+set y := `nth _1 _2 _3`.
+
+(* Consider two cases *)
+case i_le: `i <= indexl x' s'` => /=.
+
+(* 1 *)
+move: i_le; rewrite leq_eqVlt; case => [eq | i_lt].
+  by rewrite -y_def eq nth_index.
+have: `y <= x'`.
+  move: sort_s'; rewrite sorted (ordered_nthP `&0`) -(nth_index `&0` x' s') // -y_def => [] [->] //.
+  by rewrite index_mem.
+have Si: `SUC i < sizel l`.
+  by move: i_lt (iffRL (index_mem x' s') x'_s'); rewrite h_size; arith.
+have: `x <= nth (&0) s (SUC i)`.
+  move: sort_s; rewrite sorted (ordered_nthP `&0`) -x_def => [] [->] //.
+  by rewrite h_size Si ltnSn.
+move: (IH i) x_ineq; apply: ants; split; first by move: Si; arith.
+by rewrite nth_delete_at ltnn nth_delete1 i_lt /= y_def; arith.
+
+(* 2 *)
+rewrite -ltnNge in i_le.
+have: `x' <= y`.
+  move: sort_s'; rewrite sorted (ordered_nthP `&0`) -(nth_index `&0` x' s') // -y_def => [] [->] //.
+  by rewrite h_size.
+have Pi: `i - 1 < i` by move: i_le; arith.
+have: `nth (&0) s (i - 1) <= x`.
+  move: sort_s; rewrite sorted (ordered_nthP `&0`) -x_def => [] [->] //.
+  by rewrite h_size i_ineq.
+move: (IH `i - 1`) x_ineq; apply: ants; split; first by move: i_le i_ineq; arith.
+rewrite nth_delete_at Pi nth_delete1.
+have -> /=: `~(i - 1 < indexl x' s')` by move: i_le; arith.
+by rewrite (ltn_predK Pi) y_def; arith.
+Qed.
+
+Lemma min_exists P n: `P (n:num) ==> ?m. P m /\ (!i. P i ==> m <= i)`.
+Proof.
+apply num_WF: n => n IH Pn.
+case: (EXCLUDED_MIDDLE `!i:num. i < n ==> ~P i`) => [h | ].
+  exists n; rewrite Pn andTb => i.
+  by apply: contraLR; rewrite NOT_LE.
+rewrite NOT_FORALL_THM NOT_IMP negbK => [] [k] [k_lt] Pk.
+by move: (IH k_lt Pk) => [m] conds; exists m.
+Qed.
+
+Lemma min_exists_alt P: `(?n:num. P n) ==> ?m. P m /\ (!i. P i ==> m <= i)`.
+Proof. by move => [n] /min_exists. Qed.
+
+Lemma real_sorted_lt l l' s s': `sorted (<=) s l /\ sorted (<=) s' l' /\ sizel l' = sizel l /\
+        (!i. i < sizel l ==> EL i l <= EL i l') /\
+        (?i. i < sizel l /\ EL i l < EL i l') ==>
+        ?k. k < sizel l /\ (!i. i < k ==> EL i s = EL i s') /\ EL k s < EL k s'`.
+Proof.
+move => [sort_s] [sort_s'] [size_eq] [el_le] [r] [r_lt] el_lt.
+move: (sort_s) (sort_s'); rewrite !sorted => [] [ord_s perm_s] [ord_s' perm_s'].
+have sizes: `sizel s = sizel l /\ sizel s' = sizel l`.
+  by rewrite (perm_eq_size perm_s) (perm_eq_size perm_s').
+have not_nil: `~(l = []) /\ ~(l' = [])`.
+  by rewrite -!size_eq0 size_eq; move: r_lt; arith.
+have sum_neq: `list_sum l I < list_sum l' I`.
+  rewrite !list_sum_EL // size_eq SUM_LT FINITE_NUMSEG !I_THM IN_NUMSEG leq0n /=.
+  split => [i i_le | ]; first by rewrite el_le; move: i_le r_lt; arith.
+  by exists r; rewrite el_lt; move: r_lt; arith.
+have := sorted_le REAL_LE_TRANS sort_s sort_s' size_eq `&0`; "ANTS_TAC" => [i i_lt | s_le].
+  by rewrite -!EL_nth // el_le.
+suff: `?m. m < sizel l /\ ~(EL m s = EL m s')`.
+  move/min_exists_alt => [m] [] [m_lt m_neq] m_min.
+  exists m; rewrite m_lt andTb; split => [i i_lt|].
+    by apply: contraLR (i_lt) => /m_min; move: i_lt m_lt; arith.
+  by move: (s_le m_lt); rewrite -!EL_nth ?sizes // REAL_LE_LT m_neq.
+apply: contraLR sum_neq.
+rewrite NOT_EXISTS_THM negb_and negbK REAL_NOT_LT REAL_LE_LT => h; right.
+rewrite -(list_sum_perm_eq perm_s) -(list_sum_perm_eq perm_s').
+apply (list_sum_nth_eq `&0` `&0`); rewrite !sizes !I_THM /= => i i_lt.
+rewrite -!EL_nth ?sizes //.
+by move: (h i); rewrite i_lt /=.
+Qed.
+
+End SortedReal.
+
+
+
+(* MinK *)
+Section MinK.
+
+Lemma min_k_ordered i j list: `j < LENGTH list /\ i <= j ==> min_k i list <= min_k j list`.
+Proof.
+rewrite -size !min_k => [] [j_lt] i_le_j.
+have i_lt: `i < sizel list` by move: i_le_j j_lt; arith.
+rewrite !(EL_nth `&0`) ?size_merge_sort //.
+case: (iffLR (leq_eqVlt i j) i_le_j) => [-> | i_lt_j]; first by rewrite REAL_LE_REFL.
+by move: (real_merge_sort list); rewrite sorted (ordered_nthP `&0`) => ->; rewrite size_merge_sort.
+Qed.
+
+Lemma mem_min_k k list: `k < LENGTH list ==> min_k k list <- list`.
+Proof.
+rewrite min_k -size => k_lt.
+move: (real_merge_sort list); rewrite sorted => [] [_] /perm_eq_mem <-.
+by rewrite MEM_EL -size size_merge_sort.
+Qed.
+
+Lemma min_k0_le_EL l: `!i. i < sizel l ==> min_k 0 l <= EL i l`.
+Proof.
+move => i i_lt; rewrite min_k (EL_nth `&0`) ?size_merge_sort; first by move: i_lt; arith.
+rewrite "REAL_ARITH `!a b. a <= b <=> a <= b \/ a = b`"; case neq: `_1 = _2` => /=.
+apply/nth0_sorted_imp: (real_merge_sort l).
+by rewrite MEM_EL -?size.
+Qed.
+
+
+End MinK.

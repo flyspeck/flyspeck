@@ -1,0 +1,783 @@
+"needs \"Examples/seq-compiled.hl\"".
+
+(* New definitions *)
+
+"let delete_at = (GEN_ALL o define) `delete_at i [] = [] /\ delete_at 0 (h :: t) = t /\ 
+	delete_at (SUC i) (h :: t) = h :: delete_at i t`".
+
+"let delete1 = (GEN_ALL o define) 
+	`delete1 x [] = [] /\ delete1 x (h :: t) = if x = h then t else h :: delete1 x t`".
+
+"let list_sum = new_definition `list_sum list f = foldr (\a b. f a + b) (&0) list`".
+
+	
+"let EL = GEN_ALL EL".
+"let HD = GEN_ALL HD".
+"let TL = GEN_ALL TL".
+"let MEM = GEN_ALL MEM".
+"let ALL = GEN_ALL ALL".
+"let uniq = GEN_ALL uniq".
+"let foldr = GEN_ALL foldr".
+"let iter = GEN_ALL iter".
+"let undup = GEN_ALL undup".
+"let iota = GEN_ALL iota".
+"let map = GEN_ALL map".
+
+
+
+(* Some connections between standard HOL Light definitions and definitions in seq.vhl *)
+Section SeqList.
+
+Lemma ALL_all: `ALL = all`.
+Proof. by rewrite !FUN_EQ_THM => P; elim => [|h t IH]; rewrite ALL all. Qed.
+
+Lemma APPEND_cat: `APPEND = cat`.
+Proof. by rewrite !FUN_EQ_THM; elim => [|h t IH]; rewrite APPEND cat. Qed.
+
+Lemma EL_nth x0 s i: `i < sizel s ==> EL i s = nth x0 s i`.
+Proof.
+elim: i s => [|n IH] [|h t]; rewrite ?EL ?nth size LENGTH ?HD; try arith.
+by rewrite TL ltSS => n_lt; apply: IH; rewrite size.
+Qed.
+
+Lemma EL_map i s f: `i < LENGTH s ==> EL i (map f s) = f (EL i s)`.
+Proof.
+rewrite -size; move => i_lt; rewrite (EL_nth `(@)UNIV`) ?size_map //.
+rewrite (nth_map `(@)UNIV`); exists `(@)UNIV` => -> //.
+by rewrite -EL_nth.
+Qed.
+
+Lemma EL_mkseq i f n: `i < n ==> EL i (mkseq f n) = f i`.
+Proof. by move => i_lt; rewrite (EL_nth `(@)UNIV`) ?size_mkseq // nth_mkseq. Qed.
+
+Lemma all_EL_P a s: `(!i. i < sizel s ==> a (EL i s)) <=> all a s`.
+Proof.
+split => [h | all_s i i_lt].
+  rewrite -(all_nthP `(@)UNIV`) => i i_lt.
+  by rewrite -EL_nth // h.
+by rewrite -allP in all_s; rewrite all_s MEM_EL -size.
+Qed.
+
+Lemma EL_take n i s: `i < n /\ i < sizel s ==> EL i (take n s) = EL i s`.
+Proof.
+move => [i_lt_n i_lt].
+rewrite !(EL_nth `(@)UNIV`) // ?size_take; first by move: i_lt i_lt_n; arith.
+by rewrite nth_take.
+Qed.
+
+Lemma EL_index x s: `x <- s ==> EL (indexl x s) s = x`.
+Proof. by move => mem_x; rewrite (EL_nth `(@)UNIV`) ?index_mem // nth_index. Qed.
+
+
+End SeqList.
+
+
+
+(* Auxiliary results *)
+Section Misc.
+
+Lemma length_le_1 s: `LENGTH s <= 1 ==> s = [] \/ s = [HD s]`.
+Proof. by case: s => [|h [|h2 t]]; rewrite !LENGTH // HD //; arith. Qed.
+
+Lemma count0 P s: `count P s = 0 <=> all (predC P) s`.
+Proof. by rewrite all_predC has_count; arith. Qed.
+
+Lemma count_filterI a1 a2 s: `count a1 (filter a2 s) = count (predI a1 a2) s`.
+Proof.
+elim: s => [|h t IH]; rewrite filter !count // {1}predI /= -IH.
+by case: `a2 h` => /=; rewrite ?add0n // count.
+Qed.
+
+Lemma index_cons x h t: `indexl x (h :: t) = if x = h then 0 else SUC (indexl x t)`.
+Proof. by rewrite {1}index find pred1 /= -pred1 -index; case eq: `x = h` => /=. Qed.
+
+Lemma seq_eq_mkseq x0 s: `s = mkseq (nth x0 s) (sizel s)`.
+Proof. by apply (eq_from_nth x0); rewrite size_mkseq /= => i i_lt; rewrite nth_mkseq. Qed.
+
+Lemma seq_wf_ind P: `(!s:(A)list. (!l. LENGTH l < LENGTH s ==> P l) ==> P s) ==> (!s. P s)`.
+Proof.
+move: (WF_MEASURE `LENGTH:(A)list->num`).
+by rewrite "GEN_ALL WF_IND" MEASURE => /(_ P) h h2 s; exact: h.
+Qed.
+
+Lemma length_eq_imp_length_tl_eq s1 s2: `LENGTH (s1:(A)list) = LENGTH (s2:(A)list) ==> 
+	LENGTH (TL s1) = LENGTH (TL s2)`.
+Proof.
+case: s1 s2 => [|h t] s2; rewrite LENGTH.
+  by rewrite eq_sym LENGTH_EQ_NIL => ->.
+move => len_eq; rewrite TL LENGTH_TL.
+  by apply: contraL len_eq => ->; rewrite LENGTH; arith.
+by move: len_eq; arith.
+Qed.
+
+Lemma ge_length_imp_EL_eq k s1 s2: `LENGTH s1 = LENGTH s2 /\ LENGTH s1 <= k ==> EL k s1 = EL k s2`.
+Proof.
+elim: k s1 s2 => [|k IH] s1 s2; rewrite !EL.
+  rewrite leqn0 => [] [len_eq s1_0]; move: len_eq (s1_0).
+  by rewrite {1}s1_0 eq_sym !LENGTH_EQ_NIL => -> ->.
+move => [len_eq len_le].
+case s2_len: `LENGTH s2 = 0` => /=.
+  by move: len_eq (s2_len); rewrite {1}s2_len !LENGTH_EQ_NIL => -> ->.
+apply: IH; rewrite (length_eq_imp_length_tl_eq len_eq) /=.
+rewrite LENGTH_TL; first by apply: contra s2_len => ->; rewrite LENGTH.
+by move: s2_len len_le len_eq; arith.
+Qed.
+
+Lemma mem_nseq n x y: `y <- nseq n x <=> 0 < n /\ y = x`.
+Proof.
+rewrite MEM_EXISTS_EL -size size_nseq; split => [[i] [i_lt] -> | [n_gt0] ->].
+  by rewrite (EL_nth `(@)UNIV`) ?size_nseq // nth_nseq i_lt /=; move: i_lt; arith.
+by exists `0`; rewrite (EL_nth `(@)UNIV`) ?size_nseq // nth_nseq n_gt0.
+Qed.
+
+
+End Misc.
+
+
+(* More results about uniq *)
+Section MoreUniq.
+
+Lemma uniq_nthP x0 s: `uniq s <=> (!i j. i < j /\ j < sizel s ==> ~(nth x0 s i = nth x0 s j))`.
+Proof.
+elim: s => [|h t IH]; rewrite uniq ?size_nil ?size_cons; first by arith.
+split => [[n_mem uniq_t] i j [i_lt_j j_lt] | h].
+  case: i j i_lt_j j_lt => [|i] [|j]; try arith.
+    rewrite ltSS !nth => _ j_lt.
+    by apply: contra n_mem => ->; rewrite mem_nth.
+  rewrite !ltSS !nth => i_lt_j j_lt.
+  by rewrite (iffLR IH uniq_t).
+split.
+  apply: contraL h => mem_h; rewrite !NOT_FORALL_THM NOT_IMP negbK.
+  exists `0` `SUC (indexl h t)`.
+  by rewrite gtS0 ltSS !nth nth_index //= index_mem.
+rewrite IH => i j [i_lt_j j_lt].
+by move: (h `SUC i` `SUC j`); rewrite !ltSS j_lt i_lt_j !nth.
+Qed.
+
+Lemma uniq_map_nth x0 p s: `uniq s /\ uniq p /\ all (\i:num. i < sizel s) p 
+	==> uniq (map (nth x0 s) p)`.
+Proof.
+rewrite -allP /= => [] [uniq_s] [uniq_p] in_p.
+rewrite map_inj_in_uniq // => i j [] [i_p j_p].
+by rewrite (nth_uniq uniq_s) // !in_p.
+Qed.
+
+Lemma uniq_index_inj x y s: `uniq s /\ x <- s /\ y <- s ==> (indexl x s = indexl y s <=> x = y)`.
+Proof.
+move => [uniq_s] [xs] ys; split => [|-> //].
+move: xs ys; rewrite !MEM_EXISTS_EL -size => [] [i] [i_lt] -> [j] [j_lt] ->.
+by rewrite !(EL_nth `(@)UNIV`) // !index_uniq // => ->.
+Qed.
+
+
+End MoreUniq.
+
+
+(* More results about perm_eq *)
+Section MorePermEq.
+
+Lemma perm_eq_cat s1 t1 s2 t2: `perm_eq s1 s2 /\ perm_eq t1 t2 ==> perm_eq (s1 ++ t1) (s2 ++ t2)`.
+Proof. by rewrite !perm_eqP !count_cat => [] [-> ->]. Qed.
+
+Lemma perm_eq0r s: `perm_eq s [] <=> s = []`.
+Proof. by split => [/perm_eq_size | <-]; rewrite ?perm_eq_refl // size_nil size_eq0. Qed.
+
+Lemma perm_eq0l s: `perm_eq [] s <=> s = []`.
+Proof. by rewrite perm_eq_sym perm_eq0r. Qed.
+
+Lemma perm_eq_pred1P s1 s2: `perm_eq s1 s2 <=> (!x. count (pred1 x) s1 = count (pred1 x) s2)`.
+Proof.
+split => [|count_eq]; first by rewrite perm_eqP /=.
+by rewrite perm_eq -allP same_count1 => x _.
+Qed.
+
+Lemma perm_eq_filter a s1 s2: `perm_eq s1 s2 ==> perm_eq (filter a s1) (filter a s2)`.
+Proof. by rewrite !perm_eqP !count_filterI => ->. Qed.
+
+Lemma perm_eq_undup s1 s2: `perm_eq s1 s2 ==> perm_eq (undup s1) (undup s2)`.
+Proof.
+move/perm_eq_mem => h_mem.
+rewrite perm_eq_pred1P => x.
+by rewrite !count_uniq_mem ?undup_uniq !mem_undup h_mem.
+Qed.
+
+Lemma perm_eq_map f s1 s2: `perm_eq s1 s2 ==> perm_eq (map f s1) (map f s2)`.
+Proof. by rewrite !perm_eqP !count_map => eq P. Qed.
+
+Lemma uniq_perm_eq_alt s1 s2: `uniq s1 /\ sizel s1 = sizel s2 /\ (!x. x <- s1 <=> x <- s2)
+	==> perm_eq s1 s2`.
+Proof.
+move => [uniq1] [size_eq] mem.
+apply uniq_perm_eq; do !split => //.
+by rewrite -(perm_uniq mem).
+Qed.
+
+Lemma all_perm_eq a s1 s2: `perm_eq s1 s2 ==> (all a s1 <=> all a s2)`.
+Proof.
+move => perm; move: (perm); rewrite perm_eqP => eq.
+by rewrite !all_count (perm_eq_size perm) eq.
+Qed.
+
+
+End MorePermEq.
+
+
+
+(* More results about subseq *)
+Section MoreSubseq.
+
+Lemma all_subseq s1 s2 P: `subseq s1 s2 /\ all P s2 ==> all P s1`.
+Proof.
+rewrite -all_filterP => [] [sub eq]; move: sub.
+by rewrite -eq subseq_filter => ->.
+Qed.
+
+Lemma subseq_tl h t s: `subseq (h :: t) s ==> subseq t s`.
+Proof. by move => h; apply subseq_trans; exists `h :: t`; rewrite subseq_cons. Qed.
+
+End MoreSubseq.
+
+
+
+(* Results for delete_at and delete_at *)
+Section Delete.
+
+Implicit Type x: `:A`.
+Implicit Type s s1 s2: `:(A)list`.
+Variable x0: `:A`.
+
+Lemma delete1_eq_at x s: `delete1 x s = delete_at (indexl x s) s`.
+Proof.
+elim: s => [|h t IH]; rewrite delete1 ?delete_at // index_cons.
+by case eq: `x = h` => /=; rewrite delete_at // IH.
+Qed.
+
+Lemma delete1_hd h t: `delete1 h (h :: t) = t`.
+Proof. by rewrite delete1. Qed.
+
+Lemma count_delete_at i s P: `i < sizel s ==> 
+	count P (delete_at i s) = count P s - if P (nth x0 s i) then 1 else 0`.
+Proof.
+elim: s i => [|h t IH] [|i]; rewrite delete_at size LENGTH nth !count /=; try arith.
+rewrite -size ltSS => i_lt.
+rewrite IH //.
+set n := `if P h then 1 else 0`.
+set k := `if _1 then _2 else _3`.
+case eq: `count P t = 0` => /=; last first.
+(* "by move: eq; arith" is too slow *)
+  have: `k = 0 \/ k = 1` by move: k_def; arith.
+  by move: eq; arith.
+suff ->: `k = 0` by rewrite !subn0.
+rewrite -k_def; suff ->: `~P (nth x0 t i)` by [].
+by move: eq; rewrite count0 all_predC -hasPn; apply; rewrite mem_nth.
+Qed.
+
+Lemma count_delete1 x s P: `x <- s ==> count P (delete1 x s) = count P s - if P x then 1 else 0`.
+Proof. by move => mem_x; rewrite delete1_eq_at count_delete_at ?nth_index // index_mem. Qed.
+
+Lemma delete_at_eq i s: `delete_at i s = s <=> sizel s <= i`.
+Proof.
+elim: s i => [|h t IH] [|i]; rewrite delete_at size LENGTH; try arith; last first.
+  by rewrite leqSS -size -IH eqseq_cons.
+rewrite "ARITH_RULE `!n. ~(SUC n <= 0)`" /=.
+move: "ARITH_RULE `(!n. n = n:num)`" => /(_ `sizel t`).
+by apply: contraL => {1}->; rewrite size LENGTH; arith.
+Qed.
+
+Lemma delete_at_eq_imp i s: `~(i < sizel s) ==> delete_at i s = s`.
+Proof. by rewrite -leqNgt delete_at_eq. Qed.
+
+Lemma not_mem_delete1 x s: `~(x <- s) ==> delete1 x s = s`.
+Proof. by elim: s => [|h t IH]; rewrite MEM delete1 // negb_or => [] [-> /IH ->]. Qed.
+
+Lemma size_delete_at i s: `sizel (delete_at i s) = sizel s - if i < sizel s then 1 else 0`.
+Proof.
+case lt: `i < sizel s` => /=; last by rewrite delete_at_eq_imp // subn0.
+by rewrite -!count_predT count_delete_at // predT.
+Qed.
+
+Lemma size_delete1 x s: `sizel (delete1 x s) = sizel s - if x <- s then 1 else 0`.
+Proof. by rewrite delete1_eq_at size_delete_at index_mem. Qed.
+
+Lemma subseq_delete_at i s: `subseq (delete_at i s) s`.
+Proof.
+elim: s i => [|h t IH] [|i]; rewrite delete_at ?subseq0 ?subseq_cons //.
+by rewrite -cat1s -(cat1s h t) subseq_cat subseq_refl.
+Qed.
+
+Lemma subseq_delete1 x s: `subseq (delete1 x s) s`.
+Proof. by rewrite delete1_eq_at subseq_delete_at. Qed.
+
+Lemma mem_delete_at i s y: `y <- delete_at i s ==> y <- s`.
+Proof. by move/mem_subseq; apply; exact: subseq_delete_at. Qed.
+
+Lemma mem_delete1 x y s: `y <- delete1 x s ==> y <- s`.
+Proof. by move/mem_subseq; apply; exact: subseq_delete1. Qed.
+
+Lemma perm_eq_delete_at i s1 s2: `i < sizel s1 /\ perm_eq s1 s2 ==> 
+	perm_eq (delete_at i s1) (delete_at (indexl (nth x0 s1 i) s2) s2)`.
+Proof.
+move => [i_lt p_eq]; set x := `nth x0 s1 i`.
+have x_s2: `x <- s2` by rewrite -(perm_eq_mem p_eq) -x_def mem_nth.
+rewrite perm_eqP => P; rewrite !count_delete_at ?index_mem //.
+by move: p_eq; rewrite perm_eqP => ->; rewrite -x_def nth_index.
+Qed.
+
+Lemma perm_eq_delete_at_1 i s1 s2: `i < sizel s1 /\ perm_eq s1 s2 ==>
+	perm_eq (delete_at i s1) (delete1 (nth x0 s1 i) s2)`.
+Proof. by rewrite delete1_eq_at; exact: perm_eq_delete_at. Qed.
+
+Lemma perm_eq_delete1 x s1 s2: `perm_eq s1 s2 ==> perm_eq (delete1 x s1) (delete1 x s2)`.
+Proof.
+move => p_eq; case mem: `x <- s1` => /=; last first.
+  by rewrite !not_mem_delete1 // -(perm_eq_mem p_eq).
+rewrite perm_eqP => P; rewrite !count_delete1 -?(perm_eq_mem p_eq) //.
+by move: p_eq; rewrite perm_eqP => ->.
+Qed.
+
+Lemma perm_eq_cons_delete_at i s: `i < sizel s ==> perm_eq (nth x0 s i :: delete_at i s) s`.
+Proof.
+move => i_lt; rewrite perm_eqP => P; rewrite count count_delete_at //.
+case Px: `P _` => /=; last by rewrite subn0 add0n.
+suff: `0 < count P s` by arith.
+rewrite -has_count -hasP; exists `nth x0 s i`; rewrite Px andbT.
+by rewrite -EL_nth // MEM_EL -size.
+Qed.
+
+Lemma perm_eq_cons_delete1 x s: `x <- s ==> perm_eq (x :: delete1 x s) s`.
+Proof.
+(* Work around to put x0 into the context *)
+have th := perm_eq_cons_delete_at.
+by move => xs; rewrite delete1_eq_at -{1}(nth_index x0 x s) // th index_mem.
+Qed.
+
+Lemma nth_delete_at i s k: `nth x0 (delete_at k s) i = nth x0 s (if i < k then i else SUC i)`.
+Proof.
+elim: s k i => [|h t IHs] [|k] i; rewrite delete_at ?nth ?ltn0 /= ?nth //.
+case: i => [|i]; rewrite nth ?gtS0 /= ?nth //.
+by rewrite ltSS -fun_if nth IHs.
+Qed.
+
+Lemma nth_delete1 x0 x s i: `nth x0 (delete1 x s) i = nth x0 s (if i < indexl x s then i else SUC i)`.
+Proof. by rewrite delete1_eq_at nth_delete_at. Qed.
+
+Lemma EL_delete_at i k s: `i < sizel (delete_at k s) ==> 
+	EL i (delete_at k s) = EL (if i < k then i else SUC i) s`.
+Proof.
+rewrite size_delete_at.
+case k_lt: `k < sizel s` => /= i_lt; last first.
+  by rewrite delete_at_eq_imp //; move: i_lt k_lt; arith.
+have th := perm_eq_cons_delete_at.
+rewrite (EL_nth x0) ?size_delete_at ?k_lt //.
+by rewrite nth_delete_at -EL_nth //; move: i_lt; arith.
+Qed.
+
+Lemma uniq_delete_at i s: `uniq s ==> uniq (delete_at i s)`.
+Proof. by move/subseq_uniq; apply; apply subseq_delete_at. Qed.
+
+Lemma uniq_delete1 x s: `uniq s ==> uniq (delete1 x s)`.
+Proof. by move/subseq_uniq; apply; apply subseq_delete1. Qed.
+
+Lemma mem_delete1_uniq x s: `uniq s /\ x <- s ==> (!y. y <- delete1 x s <=> ~(y = x) /\ y <- s)`.
+Proof.
+elim: s => [|h t IH]; rewrite delete1 !MEM /= "GEN_ALL uniq" => [] [] [h_mem uniq_t].
+case eq: `x = h` => /=.
+  move => y; rewrite eq /=; split.
+    by move => y_mem; rewrite y_mem /=; apply: contra h_mem => <-.
+  by rewrite andb_orr andNb orFb /=.
+move => x_mem y; rewrite MEM.
+case eq2: `y = h` => /=; first by apply: contra eq => <-.
+by rewrite IH.
+Qed.
+
+
+End Delete.
+
+
+
+(* Lists and sets *)
+Section ListsAndSets.
+
+Lemma list_of_empty_set: `list_of_set {} = []`.
+Proof. by rewrite -LENGTH_EQ_NIL LENGTH_LIST_OF_SET ?CARD_CLAUSES // FINITE_EMPTY. Qed.
+
+Lemma set_of_list_subseq s1 s2: `subseq s1 s2 ==> set_of_list s1 SUBSET set_of_list s2`.
+Proof. by rewrite SUBSET => s12 x; rewrite !IN_SET_OF_LIST => mem; exact: (mem_subseq s12). Qed.
+
+Lemma uniq_list_of_set s: `FINITE s ==> uniq (list_of_set s)`.
+Proof.
+move => fin_s; apply count_mem_uniq => x.
+rewrite MEM_LIST_OF_SET //.
+case xs: `x IN s` => /=; last first.
+  rewrite count0 -allP => y; rewrite MEM_LIST_OF_SET // predC pred1 /= => ys.
+  by apply: contra xs => <-.
+set l := `list_of_set s`.
+have xl: `x <- l` by rewrite -l_def MEM_LIST_OF_SET.
+have l_gt0: `0 < sizel l` by move: xl; rewrite -has_pred1 has_find; arith.
+suff: `count (predC (pred1 x)) l = sizel l - 1`.
+  by move: xl (count_predC `pred1 x` l); rewrite -has_pred1 has_count; arith.
+rewrite count_filter; set l2 := `filter _1 l`.
+apply: anti_leq; split.
+  rewrite -l2_def; elim: l xl => [|h t IH]; rewrite MEM /= filter predC pred1 /= -predC -pred1.
+  case => [<- /= | mem_x].
+    rewrite size_cons -count_filter.
+    by move: (count_size `predC (pred1 x)` t); arith.
+  have: `0 < sizel t` by move: mem_x; rewrite -has_pred1 has_find; arith.
+  by case eq: `h = x` => /=; rewrite !size_cons; move: (IH mem_x); arith.
+move: (LENGTH_LIST_OF_SET fin_s); rewrite l_def -size => size_eq.
+apply: leq_trans; exists `CARD (set_of_list l DELETE x)`.
+rewrite {1}CARD_DELETE ?FINITE_SET_OF_LIST IN_SET_OF_LIST xl /=.
+rewrite -l_def SET_OF_LIST_OF_SET // l_def size_eq leqnn andTb.
+suff <-: `set_of_list l2 = s DELETE x`.
+  by rewrite size CARD_SET_OF_LIST_LE.
+rewrite EXTENSION IN_DELETE IN_SET_OF_LIST => y.
+by rewrite -l2_def mem_filter -l_def MEM_LIST_OF_SET // predC pred1 /= andbC.
+Qed.
+
+Lemma perm_eq_list_of_set l s: `FINITE s ==>
+	(perm_eq l (list_of_set s) <=> sizel l = CARD s /\ (!x. x <- l <=> x IN s))`.
+Proof.
+move => fin_s; split => [p_eq | [size_eq mem_eq]].
+  rewrite (perm_eq_size p_eq) size LENGTH_LIST_OF_SET //= => y.
+  by rewrite (perm_eq_mem p_eq) MEM_LIST_OF_SET.
+rewrite uniq_perm_eq; split => [|y]; last by rewrite MEM_LIST_OF_SET.
+rewrite uniq_list_of_set // andbT.
+rewrite (uniq_size_uniq (uniq_list_of_set fin_s)) ?{2}size ?LENGTH_LIST_OF_SET // => y.
+by rewrite MEM_LIST_OF_SET.
+Qed.
+
+Lemma perm_eq_set_of_list l s: `FINITE s /\ perm_eq l (list_of_set s) ==> set_of_list l = s`.
+Proof.
+move => [fin_s] /perm_eq_mem mem.
+by rewrite EXTENSION IN_SET_OF_LIST mem => x; rewrite MEM_LIST_OF_SET.
+Qed.
+
+Lemma card_set_of_list_uniq l: `uniq l ==> CARD (set_of_list l) = sizel l`.
+Proof.
+move => uniq_l; apply: anti_leq; rewrite {1}size CARD_SET_OF_LIST_LE andTb.
+rewrite -LENGTH_LIST_OF_SET ?FINITE_SET_OF_LIST -size uniq_leq_size uniq_l andTb => x mem_x.
+by rewrite MEM_LIST_OF_SET ?FINITE_SET_OF_LIST IN_SET_OF_LIST.
+Qed.
+
+Lemma BIJ_from_lists s1 s2: `uniq s1 /\ uniq s2 /\ sizel s1 = sizel s2 ==>
+	BIJ (\x. EL (indexl x s1) s2) (set_of_list s1) (set_of_list s2)`.
+Proof.
+move => [uniq_s1] [uniq_s2] size_eq.
+rewrite BIJ INJ SURJ /= !IN_SET_OF_LIST; split.
+  split => [x mem_x | x y [xs1] [ys2]].
+    by rewrite MEM_EL -size -size_eq index_mem.
+  rewrite !(EL_nth `(@)UNIV`) -?size_eq ?index_mem //.
+  by rewrite nth_uniq -?size_eq ?index_mem // uniq_index_inj.
+split => x mem_x; first by rewrite MEM_EL -size -size_eq index_mem.
+exists `nth ((@)UNIV) s1 (indexl x s2)`.
+rewrite mem_nth ?size_eq ?index_mem // andTb.
+by rewrite index_uniq ?size_eq ?index_mem // EL_index.
+Qed.
+
+Lemma set_of_list_iota m n: `set_of_list (iota m n) = if n = 0 then {} else m..m + n - 1`.
+Proof.
+rewrite EXTENSION IN_SET_OF_LIST mem_iota => i.
+by case: n => [|n]; rewrite ?eqS0 /= (NOT_IN_EMPTY, IN_NUMSEG); arith.
+Qed.
+
+
+End ListsAndSets.
+
+
+
+(* Sums over lists *)
+Section ListSum.
+
+
+Implicit Type f: `:A->real`.
+
+Lemma list_sum_nil f: `list_sum [] f = &0`.
+Proof. by rewrite list_sum foldr. Qed.
+
+Lemma list_sum_cons h t f: `list_sum (h :: t) f = f h + list_sum t f`.
+Proof. by rewrite list_sum foldr /= -list_sum. Qed.
+
+Lemma list_sum_cat s1 s2 f: `list_sum (s1 ++ s2) f = list_sum s1 f + list_sum s2 f`.
+Proof.
+elim: s1 => [|h t IH]; rewrite cat ?list_sum_nil ?REAL_ADD_LID //.
+by rewrite !list_sum_cons IH REAL_ADD_ASSOC.
+Qed.
+
+Lemma list_sum_add s f1 f2: `list_sum s (\x. f1 x + f2 x) = list_sum s f1 + list_sum s f2`.
+Proof.
+elim: s => [|h t IH]; rewrite ?list_sum_nil ?REAL_ADD_LID // !list_sum_cons /=.
+by rewrite IH; arith.
+Qed.
+
+Lemma list_sum_lmul s f c: `list_sum s (\x. c * f x) = c * list_sum s f`.
+Proof.
+elim: s => [|h t IH]; rewrite ?list_sum_nil ?REAL_MUL_RZERO //.
+by rewrite !list_sum_cons IH; arith.
+Qed.
+
+Lemma list_sum_rmul s f c: `list_sum s (\x. f x * c) = c * list_sum s f`.
+Proof. by rewrite -list_sum_lmul REAL_MUL_SYM. Qed.
+
+Lemma list_sum_delete1 x s f: `list_sum (delete1 x s) f = list_sum s f - if x <- s then f x else &0`.
+Proof.
+elim: s => [|h t IH]; rewrite delete1 MEM ?list_sum_nil /= ?REAL_SUB_RZERO //.
+case eq: `x = h` => /=; first by rewrite list_sum_cons eq; arith.
+by rewrite !list_sum_cons IH; arith.
+Qed.
+
+Lemma list_sum_perm_eq s1 s2 f: `perm_eq s1 s2 ==> list_sum s1 f = list_sum s2 f`.
+Proof.
+elim: s1 s2 => [|h t IH] s2; first by rewrite perm_eq0l => ->.
+move => p_eq; rewrite list_sum_cons.
+rewrite (IH `delete1 h s2`); last first.
+  by rewrite list_sum_delete1 -(perm_eq_mem p_eq) MEM /=; arith.
+suff ->: `t = delete1 h (h :: t)` by rewrite perm_eq_delete1.
+by rewrite delete1.
+Qed.
+
+Lemma list_sum_nseq x n f: `list_sum (nseq n x) f = &n * f x`.
+Proof.
+elim: n => [|n IH]; rewrite nseq ncons iter ?list_sum_nil ?REAL_MUL_LZERO //.
+by rewrite list_sum_cons -ncons -nseq IH ADD1 -REAL_OF_NUM_ADD; arith.
+Qed.
+
+Lemma list_sum_eq s f g: `(!x. x <- s ==> f x = g x) ==> list_sum s f = list_sum s g`.
+Proof.
+elim: s => [|h t IH]; rewrite ?list_sum_nil // MEM => eq.
+rewrite !list_sum_cons; congr `_1 + _2:real`; first by rewrite eq.
+by rewrite IH // => x mem_x; rewrite eq.
+Qed.
+
+Lemma list_sum_nth_eq x1 x2 s1 s2 f g: `sizel s1 = sizel s2 /\ 
+	(!i. i < sizel s1 ==> f (nth x1 s1 i) = g (nth x2 s2 i)) ==>
+	list_sum s1 f = list_sum s2 g`.
+Proof.
+elim: s1 s2 => [|h t IH] [|a b]; rewrite !(size_cons, size_nil) ?list_sum_nil; try arith.
+rewrite eqSS => [] [size_eq] el_eq; rewrite !list_sum_cons.
+congr `_1 + _2:real`; first by move: (el_eq (gtS0 `sizel t`)); rewrite !nth.
+rewrite (IH b) // -size_eq /= => i i_lt.
+by move/el_eq: (iffRL (ltSS i `sizel t`) i_lt); rewrite !nth.
+Qed.
+
+Lemma list_sum_const s c: `list_sum s (\x. c) = &(sizel s) * c`.
+Proof.
+elim: s => [|h t IH]; rewrite ?list_sum_nil ?size_nil ?REAL_MUL_LZERO //.
+by rewrite list_sum_cons size_cons ADD1 -REAL_OF_NUM_ADD IH /=; arith.
+Qed.
+
+Lemma list_sum_eq0 s f: `(!x. x <- s ==> f x = &0) ==> list_sum s f = &0`.
+Proof.
+move => eq0; rewrite -(REAL_MUL_RZERO `&(sizel s)`) -list_sum_const.
+by apply: list_sum_eq => x /eq0.
+Qed.
+
+Lemma list_sum_ge0 s f: `(!x. x <- s ==> &0 <= f x) ==> &0 <= list_sum s f`.
+Proof.
+elim: s => [|h t IH]; rewrite (list_sum_nil, list_sum_cons) ?REAL_LE_REFL //.
+rewrite MEM => f_ge0; rewrite REAL_LE_ADD IH ?andbT; last exact: f_ge0.
+by move => x mem_x; exact: f_ge0.
+Qed.
+
+Lemma list_sum_nth_le2 x1 x2 s t f g: `sizel t = sizel s /\ 
+	(!i. i < sizel s ==> f (nth x1 s i) <= g (nth x2 t i)) ==>
+	list_sum s f <= list_sum t g`.
+Proof.
+elim: s t => [|h1 t1 IH1] [|h2 t2]; 
+	rewrite !(list_sum_nil, list_sum_cons) ?REAL_LE_REFL ?size_cons ?size_nil //; try arith.
+rewrite eqSS => [] [size_eq] h.
+rewrite REAL_LE_ADD2 IH1 ?size_eq /=.
+  by move => i i_lt; move: (h `SUC i`); rewrite ltSS i_lt !nth.
+by move: (h `0`); rewrite gtS0 !nth.
+Qed.
+
+Lemma list_sum_undup s f: `list_sum s f = list_sum (undup s) (\x. &(count (pred1 x) s) * f x)`.
+Proof.
+elim: s => [|h t IH]; rewrite undup ?list_sum_nil // list_sum_cons.
+rewrite count -REAL_OF_NUM_ADD REAL_ADD_RDISTRIB list_sum_add.
+case mem_h: `h <- t` => /=.
+  rewrite -IH; congr `_1 + _2:real` => //.
+  rewrite (list_sum_perm_eq `undup t` `h :: delete1 h (undup t)`).
+    by rewrite perm_eq_sym perm_eq_cons_delete1 mem_undup.
+  rewrite list_sum_cons {1}pred1 /= REAL_MUL_LID -{1}(REAL_ADD_RID `f h`) REAL_EQ_ADD_LCANCEL.
+  rewrite eq_sym list_sum_eq0 // => x.
+  rewrite mem_delete1_uniq ?undup_uniq ?mem_undup // => h /=.
+  by rewrite pred1 /= -h /= REAL_MUL_LZERO.
+rewrite !list_sum_cons /= -IH {1}pred1 /= REAL_MUL_LID.
+rewrite !REAL_ADD_ASSOC REAL_EQ_ADD_RCANCEL.
+have ->: `count (pred1 h) t = 0`.
+  by move: mem_h; rewrite -has_pred1 has_count; arith.
+rewrite REAL_MUL_LZERO REAL_ADD_RID -{1}(REAL_ADD_RID `f h`) REAL_EQ_ADD_LCANCEL.
+rewrite eq_sym list_sum_eq0 // mem_undup pred1 => x mem_x /=.
+suff ->: `~(h = x)` by rewrite /= REAL_MUL_LZERO.
+by apply: contra mem_h => ->.
+Qed.
+
+Lemma list_sum_set_of_list s f: `uniq s ==> list_sum s f = sum (set_of_list s) f`.
+Proof.
+elim: s => [|h t IH]; rewrite set_of_list ?list_sum_nil ?SUM_CLAUSES ?FINITE_SET_OF_LIST //.
+by rewrite uniq IN_SET_OF_LIST list_sum_cons => [] [->] /IH ->.
+Qed.
+
+Lemma list_sum_list_of_set s f: `FINITE s ==> list_sum (list_of_set s) f = sum s f`.
+Proof. by move => fin_s; rewrite list_sum_set_of_list ?uniq_list_of_set // SET_OF_LIST_OF_SET. Qed.
+
+Lemma list_sum_nth x0 s f: `list_sum s f = list_sum (iota 0 (sizel s)) (\i. f (nth x0 s i))`.
+Proof.
+apply: (list_sum_nth_eq x0 `0`).
+rewrite size_iota /= => i i_lt.
+by rewrite nth_iota // add0n.
+Qed.
+
+Lemma list_sum_EL s f: `~(s = []) ==> list_sum s f = sum (0..sizel s - 1) (\i. f (EL i s))`.
+Proof.
+rewrite -size_eq0 => size_neq.
+rewrite (list_sum_nth `(@)UNIV`) list_sum_set_of_list ?iota_uniq.
+rewrite set_of_list_iota size_neq /= add0n.
+apply SUM_EQ; rewrite IN_NUMSEG => i ineqs /=.
+by rewrite -EL_nth //; move: ineqs size_neq; arith.
+Qed.
+
+Lemma list_sum_EL_alt s f: `list_sum s f = sum (1..sizel s) (\i. f (EL (i - 1) s))`.
+Proof.
+case: s => [|h t]; rewrite (size_nil, size_cons).
+  by rewrite list_sum_nil "GEN_ALL SUM_CLAUSES_NUMSEG"; arith.
+rewrite {1}ONE !ADD1 SUM_OFFSET list_sum_EL ?NOT_CONS_NIL // size_cons succnK.
+apply SUM_EQ; rewrite IN_NUMSEG => i ineqs /=.
+by rewrite -ADD1 succnK.
+Qed.
+
+Lemma list_sum_iota m n g: `list_sum (iota m n) g = if (n = 0) then &0 else sum (m..m + n - 1) g`.
+Proof.
+rewrite list_sum_set_of_list ?iota_uniq set_of_list_iota.
+by case: `n = 0` => /=; rewrite SUM_CLAUSES.
+Qed.
+
+Lemma count_eq_list_sum a s: `&(count a s) = list_sum s (\x. if a x then &1 else &0)`.
+Proof.
+elim: s => [|h t IH]; rewrite count (list_sum_nil, list_sum_cons) //.
+by rewrite -REAL_OF_NUM_ADD IH /= fun_if.
+Qed.
+
+Lemma count_eq_nsum a s: `~(s = []) ==> count a s = nsum (0..sizel s - 1) (\i. if a (EL i s) then 1 else 0)`.
+Proof.
+move => s_n_nil.
+by rewrite -REAL_OF_NUM_EQ count_eq_list_sum list_sum_EL //= REAL_OF_NUM_SUM ?FINITE_NUMSEG //= fun_if.
+Qed.
+
+Lemma count_eq_list_sum_iota x0 a s: 
+	`&(count a s) = list_sum (iota 0 (sizel s)) (\i. if a (nth x0 s i) then &1 else &0)`.
+Proof.
+rewrite count_eq_list_sum; apply (list_sum_nth_eq x0 `0`).
+by rewrite size_iota /= => i i_lt; rewrite nth_iota // add0n.
+Qed.
+
+
+End ListSum.
+
+
+
+(* perm_eq and permutes *)
+Section PermEqPermutes.
+
+Variable x0: `:A`.
+
+Lemma perm_eq_bij s1 s2: `perm_eq s1 s2 ==>
+	(?p. p permutes (0..sizel s1 - 1) /\ (!i. i < sizel s1 ==> nth x0 s2 i = nth x0 s1 (p i)))`.
+Proof.
+elim: s1 s2 => [|h t IH] s2.
+  rewrite perm_eq0l => ->; rewrite size_nil.
+  by exists `I`; rewrite sub0n NUMSEG_SING PERMUTES_SING ltn0.
+rewrite size_cons succnK => perm.
+move: IH (IH `delete1 h s2`) => _.
+rewrite -{1}(delete1_hd h t) (perm_eq_delete1 perm) /=.
+move => [q] [perm_q] del_eq.
+set k := `indexl h s2`.
+set p := `\i. if sizel t < i then i else 
+	if i = k then 0 else SUC (q (if i < k then i else i - 1))`.
+have hs2: `h <- s2` by rewrite -(perm_eq_mem perm) MEM.
+have k_lt: `k < sizel s2` by rewrite -k_def index_mem.
+have size_t: `sizel t = sizel s2 - 1` by rewrite -(perm_eq_size perm) size_cons succnK.
+have p1 i: `i < k:num ==> p i = SUC (q i)` by rewrite -p_def size_t; move: k_lt; arith.
+have p2: `p k = 0` by rewrite -p_def size_t; move: k_lt; arith.
+have p3 i: `k < i:num /\ i <= sizel t ==> p i = SUC (q (i - 1))`.
+  by rewrite -p_def size_t /=; move: k_lt; arith.
+have p4 i: `sizel t < i ==> p i = i` by rewrite -p_def /= => ->.
+move: (perm_q); rewrite PERMUTES_FINITE_SURJECTIVE ?FINITE_NUMSEG // !IN_NUMSEG !leq0n /=.
+move => [_] [q_in] q_exists.
+exists p; split.
+  rewrite PERMUTES_FINITE_SURJECTIVE ?FINITE_NUMSEG // !IN_NUMSEG !leq0n /=.
+  split => [n n_le|]; first by rewrite p4 // -NOT_LE.
+  split => n n_le; last first.
+    case: n n_le => [|n] n_le.
+      by exists k; rewrite p2 size_t; move: k_lt; arith.
+    move: (q_exists n); "ANTS_TAC"; first by move: n_le; arith.
+    move => [m] [m_le] q_eq.
+    exists `if m < k then m else m + 1`; split; first by move: m_le n_le; arith.
+    case m_lt_k: `m < k:num` => /=; first by rewrite p1.
+    rewrite p3 -?ADD1 ?succnK ?q_eq //.
+    by move: m_lt_k m_le n_le; arith.
+  case: (ltngtP n k) => [n_lt |].
+    by rewrite p1 //; move: (q_in n) n_le n_lt k_lt; rewrite size_t; arith.
+  case => [k_lt | ->]; last by rewrite p2 leq0n.
+  by rewrite p3 //; move: (q_in `n - 1`); rewrite leq_sub2r //=; move: k_lt n_le; arith.
+move => i i_lt.
+case: (ltngtP i k) => [i_lt_k |].
+  move: (del_eq i); "ANTS_TAC"; first by move: i_lt_k k_lt size_t; arith.
+  rewrite nth_delete1 k_def i_lt_k COND_CLAUSES => ->.
+  by rewrite p1 // nth.
+case => [k_lt_i | ->]; last by rewrite p2 nth -k_def nth_index.
+move: (del_eq `i - 1`); "ANTS_TAC"; first by move: i_lt k_lt_i; arith.
+rewrite nth_delete1 k_def !"ARITH_RULE `k < i ==> ~(i - 1 < k) /\ SUC (i - 1) = i`" // COND_CLAUSES => ->.
+by rewrite p3 ?nth // k_lt_i; move: i_lt; arith.
+Qed.
+
+Lemma permutes_imp_perm_eq_iota p n: `p permutes 0..n
+	==> perm_eq (mkseq p (n + 1)) (iota 0 (n + 1))`.
+Proof.
+move => p_perm.
+rewrite uniq_perm_eq_alt size_iota size_mkseq /=; split.
+  rewrite (uniq_nthP `0`) size_mkseq => i j [i_lt j_lt].
+  rewrite !nth_mkseq //; first by move: i_lt j_lt; arith.
+  by rewrite (PERMUTES_INJECTIVE p_perm); move: i_lt; arith.
+move: p_perm; rewrite PERMUTES_FINITE_SURJECTIVE ?FINITE_NUMSEG // !IN_NUMSEG !leq0n /=.
+move => [_] [p_ineqs] p_exists i.
+rewrite mem_iota MEM_EXISTS_EL -size size_mkseq leq0n add0n /=; split => [[j] [j_lt] -> | ].
+  rewrite (EL_nth `0`) ?size_mkseq // nth_mkseq //.
+  by move: (p_ineqs j) j_lt; arith.
+rewrite -ADD1 !ltE !leqSS => i_le.
+move: (p_exists i_le) => [j] [j_le] pj_eq.
+by exists j; rewrite (EL_nth `0`) ?size_mkseq ?ltE ?leqSS // nth_mkseq ?ltE ?leqSS.
+Qed.
+
+Lemma perm_eq_iota s1 s2: `perm_eq s1 s2 ==>
+	(?l. perm_eq l (iota 0 (sizel s1)) /\ s2 = map (nth x0 s1) l)`.
+Proof.
+case: s1 => [|h t].
+  rewrite perm_eq0l => ->; rewrite size_nil iota.
+  by exists `[]`; rewrite perm_eq_refl map.
+move => perm; move: (perm_eq_bij perm); rewrite size_cons succnK => [] [p] [p_perm] nth_eq.
+set n := `sizel t`.
+exists `mkseq p (SUC n)`.
+rewrite {1 2}ADD1 permutes_imp_perm_eq_iota // andTb.
+apply (eq_from_nth x0); rewrite size_map size_mkseq -(perm_eq_size perm) size_cons n_def /=.
+move => i i_lt.
+rewrite nth_map; exists x0 => ->; rewrite ?size_mkseq //.
+by rewrite nth_mkseq // nth_eq.
+Qed.
+
+Lemma perm_eq_permutesP s1 s2: `perm_eq s1 s2 <=>
+	sizel s1 = sizel s2 /\ 
+	?p. p permutes 0..sizel s1 - 1 /\ (!i. i < sizel s1 ==> nth x0 s2 i = nth x0 s1 (p i))`.
+Proof.
+split => [perm | [size_eq] [p] [/permutes_imp_perm_eq_iota perm nth_eq]].
+  by rewrite -(perm_eq_size perm) /=; apply perm_eq_bij.
+rewrite perm_eqP => a; rewrite -REAL_OF_NUM_EQ !(count_eq_list_sum_iota x0).
+case eq0: `sizel s1 = 0` => /=.
+  by rewrite -size_eq eq0 iota !list_sum_nil.
+rewrite ("ARITH_RULE `!n. ~(n = 0) ==> n - 1 + 1 = n`" eq0) in perm.
+rewrite -(list_sum_perm_eq perm); apply (list_sum_nth_eq `0` `0`).
+rewrite size_mkseq size_iota -size_eq /= => i i_lt.
+by rewrite nth_mkseq // nth_iota // add0n nth_eq.
+Qed.
+
+End PermEqPermutes.

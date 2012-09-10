@@ -1,0 +1,1710 @@
+--"needs \"/mnt/HOL Light/update_database.ml\"".
+
+(* "fast_load_flag := true". *)
+"needs \"tame/ssreflect/sort-compiled.hl\"".
+
+
+Lemma packing V: `packing V <=> (!u v. u IN V /\ v IN V /\ ~(u = v) ==> &2 <= dist (u,v))`.
+Proof. by rewrite Sphere.packing -!(IN V). Qed.
+
+"let inE = CONJUNCT2 IN_ELIM_THM".
+
+
+(* MoreList *)
+Section MoreList.
+
+Lemma uniq_small_size l: `sizel l < 2 ==> uniq l`.
+Proof.
+case: l => [|h t]; rewrite uniq //.
+by case: t => [|h2 t]; rewrite ?uniq MEM // !size_cons; arith.
+Qed.
+
+Lemma uniq_lift l: `uniq (map lift l) <=> uniq l`.
+Proof. by rewrite map_inj_uniq // LIFT_EQ. Qed.
+
+Lemma list_sum_continuous f s s' net: `lift o f continuous_on (UNIV:real^N->bool) /\
+        (!k. LENGTH (s' k) = LENGTH s) /\
+        (!i. i < LENGTH s ==> ((\k. EL i (s' k)) --> EL i s) net) ==>
+        ((\k. list_sum (s' k) f) ---> list_sum s f) net`.
+Proof.
+move => [f_cont]; elim: s s' => [|h t IH] s'; rewrite !LENGTH.
+  by rewrite LENGTH_EQ_NIL => [] [->] _; rewrite REALLIM_CONST.
+move => [len_eq] s'_to.
+have s'_eq: `!k. s' k = EL 0 (s' k) :: TL (s' k)`.
+  by move => k; rewrite EL -CONS_HD_TL // eq_sym -LENGTH_EQ_NIL len_eq NOT_SUC.
+rewrite s'_eq !list_sum_cons REALLIM_ADD; split; last first.
+  apply: IH; split; first by move => k; move: (len_eq k); rewrite {1}s'_eq LENGTH eqSS.
+  move => i i_lt; rewrite "GEN_ALL EL_TL".
+  by move: (s'_to `SUC i`); rewrite ltSS i_lt /= {1}ADD1 EL TL.
+rewrite LIM_REAL_CONTINUOUS_FUNCTION.
+rewrite "GEN_ALL REAL_CONTINUOUS_CONTINUOUS1"; split.
+  by apply CONTINUOUS_ON_INTERIOR; exists `UNIV`; rewrite INTERIOR_UNIV IN_UNIV.
+by move: (s'_to `0`); rewrite gtS0 /= !EL HD.
+Qed.
+
+Lemma list_sum_continuous_alt f s v net: `lift o f continuous_on (UNIV:real^N->bool) /\
+        (!i. i < LENGTH s ==> ((\k. v k i) --> EL i s) net) ==>
+        ((\k. list_sum (mkseq (v k) (LENGTH s)) f) ---> list_sum s f) net`.
+Proof.
+move => [f_cont v_to].
+rewrite list_sum_continuous f_cont -size size_mkseq /= => i i_lt.
+suff ->: `!k. EL i (mkseq (v k) (sizel s)) = v k i` by rewrite v_to -size.
+by move => k; rewrite (EL_nth `vec 0`) ?size_mkseq // nth_mkseq.
+Qed.
+
+End MoreList.
+
+
+(* MoreMinK *)
+Section MoreMinK.
+
+Lemma min_k_continuous k n f net: `(!i. i < n ==> f i real_continuous net) ==>
+        (\x. min_k k (mkseq (\i. f i x) n)) real_continuous net`.
+Proof.
+case k_lt: `k < n:num` => /=; last first.
+  rewrite min_k; set r := `\x. _ x`.
+  suff ->: `r = \x. EL k (nseq n ((@)UNIV))` by rewrite REAL_CONTINUOUS_CONST.
+  rewrite -r_def -eq_ext => m /=; apply ge_length_imp_EL_eq.
+  by rewrite -size size_merge_sort size_mkseq size_nseq leqNgt.
+rewrite !real_continuous !"GEN_ALL REALLIM".
+case: `trivial_limit net` => /= f_cont e e_gt0.
+suff: `?y. (?x. netord net x y) /\
+        (!x. netord net x y ==> (!i:num. i < n ==> abs (f i x - f i (netlimit net)) < e))`.
+  apply MONO_EXISTS => y [->] all_f; rewrite andTb => x net_x.
+  rewrite !min_k.
+  set s := `merge_sort (<=) _`; set s' := `merge_sort (<=) _`.
+  rewrite !(EL_nth `&0`) -?s_def -?s'_def ?size_merge_sort ?size_mkseq //.
+  rewrite s_def s'_def (sort_continuous `mkseq (\i. f i x) n` `mkseq (\i. f i (netlimit net)) n`).
+  rewrite -{1}s_def -{1}s'_def !real_merge_sort !size_mkseq k_lt /= => i i_lt.
+  by rewrite !nth_mkseq //= all_f.
+have ord_xy: `?y x. netord net x y`.
+  by move: (f_cont k_lt e_gt0) => [y] [] [x] h _; exists y x.
+elim: n f_cont => [|m IH]; rewrite ?ltn0 /=.
+  by move: ord_xy => [y] [x] ord_xy; exists y x.
+move => f_cont; move: IH; "ANTS_TAC" => [i i_lt_m e' e'_gt0|].
+  by rewrite f_cont e'_gt0; move: i_lt_m; arith.
+move: (f_cont m e_gt0 (ltnSn m)).
+rewr IMP_IMP => /NET_DILEMMA [y] [x_ord] h.
+exists y; rewrite x_ord andTb "ARITH_RULE `i < SUC m <=> i = m \/ i < m`" => x ord_xy i.
+case => [->|i_lt_m]; first by rewrite h.
+by rewrite (h ord_xy).
+Qed.
+
+Lemma min_k_limit k s s' net:
+        `(!n. LENGTH (s' n) = LENGTH s) /\
+        (!i. i < LENGTH s ==> ((\n. EL i (s' n)) ---> EL i s) net) ==>
+        ((\n. min_k k (s' n)) ---> min_k k s) net`.
+Proof.
+move => [len_eq s'_to].
+case k_lt: `k < LENGTH s` => /=; last first.
+  suff ->: `(\n. min_k k (s' n)) = (\n. min_k k s)` by rewrite REALLIM_CONST.
+  rewrite !min_k -eq_ext => m /=; apply ge_length_imp_EL_eq.
+  by rewrite -size !size_merge_sort size len_eq leqNgt.
+move: s'_to; rewrite !"GEN_ALL REALLIM".
+case: `trivial_limit net` => /= el_cont e e_gt0.
+suff: `?y. (?x. netord net x y) /\
+        (!x. netord net x y ==> (!i. i < LENGTH s ==> abs (EL i (s' x) - EL i s) < e))`.
+  apply MONO_EXISTS => y [->] all_el; rewrite andTb => x net_x.
+  rewrite !min_k.
+  set l := `merge_sort (<=) _`; set l' := `merge_sort (<=) _`.
+  rewrite !(EL_nth `&0`) -?l_def -?l'_def ?size_merge_sort ?size_mkseq ?size ?len_eq //.
+  rewrite l_def l'_def (sort_continuous `s' x` s).
+  rewrite -{1}l_def -{1}l'_def !real_merge_sort size len_eq k_lt /= => i i_lt.
+  by rewrite -!EL_nth ?size ?len_eq // all_el.
+have ord_xy: `?y x. netord net x y`.
+  by move: (el_cont k_lt e_gt0) => [y] [] [x] h _; exists y x.
+elim: s s' len_eq el_cont => [|h t IH]; rewrite !LENGTH ?ltn0 // => s' len_eq el_cont.
+move: (IH `\n. TL (s' n)`); do !"ANTS_TAC".
+  move => n; rewrite LENGTH_TL ?len_eq; last by arith.
+  by apply: contraL (len_eq n) => ->; rewrite LENGTH; arith.
+  move => i i_lt e' e'_gt0.
+  by move: (el_cont `SUC i` e'_gt0); rewrite ltSS i_lt /= !EL TL.
+move: (el_cont `0` e_gt0); rewrite gtS0 /=.
+rewr IMP_IMP => /NET_DILEMMA [y] [x_ord] h.
+exists y; rewrite x_ord andTb => x ord_xy [_|i]; first by rewrite h.
+by rewrite ltSS => i_lt; rewrite !EL TL (h ord_xy).
+Qed.
+
+
+"let min_dist_k = new_definition
+        `min_dist_k k (l:(real^N)list) = min_k 0 (map (\v. dist (v, EL k l)) (delete_at k l))`".
+
+Lemma min_dist_k_limit k s s' net:
+        `(!n. LENGTH (s' n) = LENGTH s) /\
+        (!i. i < LENGTH s ==> ((\n. EL i (s' n)) --> EL i s) net) ==>
+        ((\n. min_dist_k k (s' n)) ---> min_dist_k k s) net`.
+Proof.
+move => [len_eq] s'_to.
+rewrite !min_dist_k.
+apply min_k_limit; split => [n | i]; rewrite -size !size_map !size_delete_at size ?len_eq //.
+rewrite -size in len_eq *; move => i_lt.
+have ->: `(\n. EL i (map (\v. dist (v, EL k (s' n))) (delete_at k (s' n)))) =
+        (\n. norm (EL i (delete_at k (s' n)) - EL k (s' n)))`.
+  by rewrite -eq_ext dist => n /=; rewrite EL_map // -size size_delete_at len_eq.
+rewrite EL_map -?size ?size_delete_at // dist /=.
+apply LIM_REAL_CONTINUOUS_FUNCTION; rewrite REAL_CONTINUOUS_NORM_AT andTb LIM_SUB.
+case k_lt: `k < sizel s` i_lt => /= i_lt; last first.
+  have ->: `!n. delete_at k (s' n) = s' n`.
+    by move => n; rewrite delete_at_eq_imp // len_eq.
+  rewrite (delete_at_eq_imp k_lt) s'_to -?size; first by move: i_lt; arith.
+  suff ->: `!n. EL k (s' n) = EL k s` by rewrite LIM_CONST.
+  by move => n; apply ge_length_imp_EL_eq; rewrite -size len_eq leqNgt.
+have ->: `!n. EL i (delete_at k (s' n)) = EL (if i < k then i else SUC i) (s' n)`.
+  by move => n; rewrite EL_delete_at // size_delete_at len_eq k_lt.
+rewrite EL_delete_at ?size_delete_at ?k_lt //.
+by rewrite !s'_to // -size ?k_lt //; move: i_lt; arith.
+Qed.
+
+Lemma min_dist_min l k: `!i. i < sizel l /\ ~(i = k) ==> min_dist_k k l <= dist (EL i l, EL k l)`.
+Proof.
+move => i [i_lt neq]; rewrite min_dist_k min_k.
+set s := `map _1 _2`.
+have sort := real_merge_sort s.
+rewrite (EL_nth `&0`).
+  by rewrite size_merge_sort -s_def size_map size_delete_at; move: neq i_lt; arith.
+rewrite "REAL_ARITH `!a b. a <= b <=> a <= b \/ b = a`"; case eq: `_1 = _2` => /=.
+apply: (nth0_sorted_imp sort); rewrite eq /= -s_def mapP.
+exists `EL i l` => /=; rewrite MEM_EXISTS_EL.
+set j := `if i < k then i else i - 1`.
+have j_lt: `j < sizel (delete_at k l)`.
+  by rewrite size_delete_at -j_def; move: i_lt neq; arith.
+exists j; rewrite EL_delete_at // -size j_lt andTb.
+congr `EL _ l`.
+by rewrite -j_def; move: i_lt neq; arith.
+Qed.
+
+Lemma min_dist_exists l k: `2 <= sizel l ==>
+        ?m. m < sizel l /\ ~(m = k) /\ min_dist_k k l = dist (EL m l, EL k l)`.
+Proof.
+move => size_ge; rewrite min_dist_k.
+set s := `map _1 _2`.
+move: (mem_min_k `0` s); "ANTS_TAC".
+  by rewrite -size -s_def size_map size_delete_at; move: size_ge; arith.
+rewrite MEM_EXISTS_EL -size -{1}s_def size_map size_delete_at => [] [i] [i_lt] ->.
+set m := `if i < k then i else SUC i`.
+have m_lt: `m < sizel l` by rewrite -m_def; move: i_lt; arith.
+exists m; rewrite m_lt andTb; split; first by rewrite -m_def; arith.
+rewrite -s_def EL_map -?size ?size_delete_at //=.
+by rewrite EL_delete_at ?m_def // size_delete_at.
+Qed.
+
+Lemma min_distP l k x: `2 <= sizel l ==> (min_dist_k k l = x <=>
+        ?m. m < sizel l /\ ~(m = k) /\ dist (EL m l, EL k l) = x /\
+                (!i. i < sizel l /\ ~(i = k) ==> x <= dist (EL i l, EL k l)) )`.
+Proof.
+move => size_ge.
+move: (min_dist_exists size_ge k) => [r] [r_lt] [rnk] r_dist_eq.
+split => [<- | [m] [m_lt] [mnk] [dist_eq] dist_le].
+  exists r; rewrite r_lt rnk -r_dist_eq /= => i [i_lt] neq.
+  by rewrite min_dist_min.
+rewrite -REAL_LE_ANTISYM; split.
+  by rewrite -dist_eq min_dist_min.
+by rewrite r_dist_eq dist_le.
+Qed.
+
+Lemma min_dist_imp_packing l: `(!i. i < sizel l ==> &2 <= min_dist_k i l) ==> packing (set_of_list l)`.
+Proof.
+rewrite packing !IN_SET_OF_LIST => h u v.
+rewrite !MEM_EXISTS_EL -size => [] [] [i] [i_lt] -> [] [j] [j_lt] -> neq.
+apply: REAL_LE_TRANS; exists `min_dist_k j l`.
+rewrite h // andTb min_dist_min i_lt andTb.
+by apply: contra neq => ->.
+Qed.
+
+Lemma packing_eq_min_dist l: `uniq l /\ 2 <= sizel l ==>
+        (packing (set_of_list l) <=> !i. i < sizel l ==> &2 <= min_dist_k i l)`.
+Proof.
+move => [uniq_l size_ge]; split; last exact: min_dist_imp_packing.
+rewrite packing !IN_SET_OF_LIST => pack k k_lt.
+move: (min_dist_exists size_ge k) => [m] [m_lt] [n_mk] ->.
+by rewrite pack !MEM_EL ?(EL_nth `vec 0`) -?size // nth_uniq.
+Qed.
+
+Lemma min_dist_imp_uniq l: `(!i. i < sizel l ==> &0 < min_dist_k i l) ==> uniq l`.
+Proof.
+case: (EXCLUDED_MIDDLE `sizel l < 2`); first by move/uniq_small_size => ->.
+rewrite NOT_LT => size_ge n0.
+rewrite (uniq_nthP `vec 0`) => i j [i_lt_j] j_lt.
+have i_lt: `i < sizel l` by move: i_lt_j j_lt; arith.
+apply: contraL (n0 j_lt); rewrite -!EL_nth // => el_eq.
+move: (min_dist_exists size_ge j) => [m] [m_lt] [n_mj] dist_eq.
+rewrite dist_eq REAL_NOT_LT.
+move: (min_dist_min i_lt j); "ANTS_TAC"; first by move: i_lt_j; arith.
+by rewrite dist_eq el_eq DIST_REFL.
+Qed.
+
+Lemma uniq_min_distP l: `uniq l <=> sizel l < 2 \/ (!i. i < sizel l ==> &0 < min_dist_k i l)`.
+Proof.
+split; last by case => [/uniq_small_size | /min_dist_imp_uniq].
+move => uniq_l; case: (EXCLUDED_MIDDLE `sizel l < 2`) => [-> | ] //.
+rewrite NOT_LT => size_ge; right => k k_lt.
+move: (min_dist_exists size_ge k) => [m] [m_lt] [n_mk] ->.
+rewrite (uniq_nthP `vec 0`) in uniq_l.
+move: n_mk m_lt k_lt; wlog: m k / `m < k:num` => [h | m_lt_k] n_mk m_lt k_lt.
+  case: (EXCLUDED_MIDDLE `m < k:num`) => [/h ->| ] //.
+  by rewrite NOT_LT LE_LT eq_sym n_mk orbF DIST_SYM => /h ->.
+rewrite !(EL_nth `vec 0`) // REAL_LT_LE DIST_POS_LE /=.
+apply: contra (uniq_l m_lt_k k_lt).
+by rewrite eq_sym DIST_EQ_0.
+Qed.
+
+Lemma uniq_open l: `uniq l ==> ?e. &0 < e /\
+        (!s. sizel s = sizel l /\ (!i. i < sizel l ==> dist (EL i s, EL i l) < e) ==> uniq s)`.
+Proof.
+move => uniq_l; move: (uniq_l); rewrite uniq_min_distP.
+case size_ge: `sizel l < 2` => /=.
+  exists `&1`; rewrite REAL_LT_01 andTb => s [size_eq] _.
+  by rewrite uniq_small_size size_eq.
+rewrite NOT_LT in size_ge; move => h.
+set r := `mkseq (\i. min_dist_k i l) (sizel l)`.
+have size_r: `sizel r = sizel l` by rewrite -r_def size_mkseq.
+exists `min_k 0 r / &2`; split => [| s [size_eq dist_lt]].
+  move: (mem_min_k `0` r); "ANTS_TAC"; first by rewrite -size size_r; move: size_ge; arith.
+  move => mem_r; rewrite -(nth_index `&0` mem_r) REAL_LT_DIV.
+  by rewrite -{1}r_def nth_mkseq /= ?h -?size_r ?index_mem //; arith.
+rewrite (uniq_nthP `vec 0`) => i j [i_lt_j j_lt].
+have i_lt: `i < sizel s` by move: j_lt i_lt_j; arith.
+rewrite -!EL_nth // -DIST_LE_0 REAL_NOT_LE.
+suff: `min_k 0 r <= dist (EL i l, EL j l)`.
+  rewrite -size_eq in dist_lt.
+  move: (DIST_TRIANGLE `EL i l` `EL i s` `EL j l`).
+  move: (DIST_TRIANGLE `EL i s` `EL j s` `EL j l`).
+  by move: (dist_lt i_lt) (dist_lt j_lt); rewrite DIST_SYM; arith.
+apply: REAL_LE_TRANS; exists `min_dist_k j l`.
+rewrite min_dist_min -?size_eq ?i_lt ?andbT; first by move: i_lt_j; arith.
+move/(f_equal `\x. nth (&0) x j`): r_def.
+rewrite nth_mkseq -?size_eq // BETA_THM => ->.
+by rewrite -EL_nth ?size_r -?size_eq // min_k0_le_EL size_r -size_eq.
+Qed.
+
+Lemma uniq_real_open l: `uniq l ==> ?e. &0 < e /\
+        (!s. sizel s = sizel l /\ (!i. i < sizel l ==> abs (EL i s - EL i l) < e) ==> uniq s)`.
+Proof.
+rewrite -!uniq_lift => /uniq_open [e] [e_gt0] h.
+exists e; rewrite e_gt0 andTb -DIST_LIFT => s [size_eq] dist_lt.
+apply: h; rewrite !size_map size_eq /= => i i_lt.
+by rewrite !EL_map -?size ?size_eq // dist_lt.
+Qed.
+
+
+End MoreMinK.
+
+
+(* FiniteBijections *)
+Section FiniteBijections.
+
+Variable s: `:A->bool`.
+Variable t: `:B->bool`.
+
+Lemma permutes_imp_bij p: `p permutes s ==> BIJ p s s`.
+Proof.
+move => perm; rewrite BIJ INJ SURJ (PERMUTES_IN_IMAGE perm) /=.
+split => [x y [xs] [ys] p_eq | x xs]; first by rewrite -(PERMUTES_INJECTIVE perm).
+move: (PERMUTES_SURJECTIVE perm x) => [y] p_eq; exists y; split => //.
+by rewrite -(PERMUTES_IN_IMAGE perm) p_eq.
+Qed.
+
+Lemma surj_image f: `SURJ f s t ==> IMAGE f s = t`.
+Proof.
+rewrite SURJ EXTENSION IN_IMAGE => [] [f_in surj] y.
+by split => [[x] [->] xs | /surj [x] [xs eq]]; [exact: f_in | exists x].
+Qed.
+
+Lemma surj_imp_finite f: `FINITE s /\ SURJ f s t ==> FINITE t`.
+Proof. by move => [fin_s] /surj_image <-; apply FINITE_IMAGE. Qed.
+
+Lemma inj_imp_finite f: `FINITE t /\ INJ f s t ==> FINITE s`.
+Proof.
+rewrite INJ => [] [fin_t] [f_in] inj.
+rewrite -(FINITE_IMAGE_INJ_EQ inj) (FINITE_SUBSET fin_t) SUBSET IN_IMAGE.
+by move => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma bij_finite_eq f: `BIJ f s t ==> (FINITE s <=> FINITE t)`.
+Proof.
+rewrite BIJ => bij; split => [fin_s | fin_t].
+  by rewrite (surj_imp_finite fin_s f).
+by rewrite (inj_imp_finite fin_t f).
+Qed.
+
+Lemma surj_imp_card_le f: `FINITE s /\ SURJ f s t ==> CARD t <= CARD s`.
+Proof. by move => [fin_s] /surj_image <-; apply CARD_IMAGE_LE. Qed.
+
+Lemma inj_imp_card_le f: `FINITE t /\ INJ f s t ==> CARD s <= CARD t`.
+Proof.
+move => [fin_t] inj; move: (inj); rewrite INJ => [] [f_in] inj2.
+rewrite -(CARD_IMAGE_INJ inj2) ?(inj_imp_finite inj) //.
+by rewrite CARD_SUBSET fin_t andbT SUBSET IN_IMAGE => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma bij_card_eq f: `BIJ f s t /\ FINITE s ==> CARD t = CARD s`.
+Proof.
+rewrite BIJ => [] [] [inj surj] fin_s; apply: anti_leq.
+by rewrite (surj_imp_card_le surj) // (inj_imp_card_le inj) // (surj_imp_finite surj).
+Qed.
+
+
+Hypothesis fin_s: `FINITE s`.
+Hypothesis fin_t: `FINITE t`.
+Hypothesis card_eq: `CARD s = CARD t`.
+
+Lemma finite_inj_eq_surj f: `INJ f s t <=> SURJ f s t`.
+Proof.
+rewrite INJ SURJ; apply: andb_id2l => f_in.
+rewrite SURJECTIVE_IFF_INJECTIVE_GEN // fin_s fin_t card_eq /=.
+by rewrite SUBSET IN_IMAGE => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma finite_inj_eq_bij f: `INJ f s t <=> BIJ f s t`.
+Proof. by rewrite BIJ finite_inj_eq_surj andbb. Qed.
+
+Lemma finite_surj_eq_bij f: `SURJ f s t <=> BIJ f s t`.
+Proof. by rewrite BIJ finite_inj_eq_surj andbb. Qed.
+
+End FiniteBijections.
+
+
+(* More results about sorted real lists *)
+Section MoreSortedReal.
+
+Lemma real_sorted_lt2 l l' s s' r: `sorted (<=) s l /\ sorted (<=) s' l' /\ sizel l' = sizel l /\
+        r < sizel l /\ EL r l < EL r l' /\
+        (!i. i < sizel l /\ EL i l <= EL r l ==> EL i l <= EL i l') /\
+        (!i. i < sizel l /\ EL r l < EL i l ==> EL r l < EL i l') ==>
+        ?k. k < sizel l /\ (!i. i < k ==> EL i s = EL i s') /\ EL k s < EL k s'`.
+Proof.
+move => [sort_s] [sort_s'] [size_eq] [r_lt] [el_r_lt] [el_le] el_gt.
+move: (sort_s) (sort_s'); rewrite !sorted => [] [ord_s perm_s] [ord_s' perm_s'].
+set n := `sizel l`; set u := `EL r l`.
+set m := `mkseq (\i. if EL i l <= u then EL i l else u) n`.
+set t := `merge_sort (<=) m`.
+move: (real_merge_sort m); rewrite t_def => sort_t.
+have sizes: `sizel t = n /\ sizel m = n /\ sizel s' = n /\ sizel l' = n /\ sizel s = n`.
+  by rewrite (sorted_size sort_t) (sorted_size sort_s') (sorted_size sort_s) -m_def size_mkseq.
+have := real_sorted_lt sort_t sort_s'; "ANTS_TAC".
+  rewrite !sizes /=; split; last first.
+    exists r; rewrite r_lt -m_def EL_mkseq //=.
+    by rewrite u_def REAL_LE_REFL.
+  move => i i_lt; rewrite -m_def EL_mkseq //=.
+  case neq: `EL i l <= u` => /=; first by exact: el_le.
+  by rewrite REAL_LT_IMP_LE el_gt -REAL_NOT_LE.
+rewrite sizes => [] [k] [k_lt] [el_eq] el_k_lt.
+have perm_l0 := perm_eq_filter perm_s `\x. x <= u`.
+set a := `\x. x <= u`.
+set l0 := `filter a l`.
+set n0 := `sizel l0`.
+have n0_le: `n0 <= n:num`.
+  by rewrite -n0_def -l0_def -count_filter -n_def count_size.
+have take_eq: `filter a s = take n0 s`.
+  move/(f_equal `take n0`): (ordered_cat_filter ord_s u) => ->.
+  by rewrite a_def take_size_cat // -count_filter (iffLR (perm_eqP s l) perm_s) count_filter l0_def.
+have: `perm_eq l (l0 ++ filter (predC a) l)`.
+  by rewrite perm_eq_sym -l0_def perm_filterC perm_eq_refl.
+move/(perm_eq_bij `&0`); rewrite n_def => [] [p] [p_perm] nth_eq.
+have p_lt i: ` i < n ==> p i < n:num`.
+  by move: (PERMUTES_IN_IMAGE p_perm i); rewrite !IN_NUMSEG !leq0n /=; arith.
+have st_eq: `take n0 s = take n0 t`.
+(*  1 *)
+suff perm_m: `perm_eq m (l0 ++ nseq (n - n0) u)`.
+  rewrite (ordered_cat_filter ord_s u) a_def.
+  move: sort_t; rewrite sorted => [] [ord_t perm_t].
+  suff ->: `t = filter a s ++ nseq (n - n0) u`.
+    by rewrite !take_size_cat // take_eq size_takel.
+  set t2 := `_1 ++ _2`; rewrite (ordered_eq ord_t t2) //.
+  split => [x y|]; rewrite ?REAL_LE_ANTISYM // -t2_def; split.
+    apply perm_eq_trans; exists m; rewrite perm_t andTb.
+    by apply: (perm_eq_trans perm_m); rewrite perm_eq_cat perm_eq_refl perm_eq_sym.
+  rewrite ordered_cat ordered_filter // ordered_real_nseq -!allP /=.
+  by rewrite mem_filter mem_nseq -a_def /=.
+rewrite (perm_eq_permutesP `&0`) size_cat size_nseq n0_def sizes (subnKC n0_le) /=.
+exists p; rewrite p_perm /= => i i_lt; move: (nth_eq i_lt).
+case i_n0: `i < n0:num` => /=.
+  rewrite !nth_cat n0_def i_n0 // !COND_CLAUSES => eq.
+  rewrite eq -m_def nth_mkseq ?p_lt //= (EL_nth `&0`) ?n_def ?p_lt // -eq.
+  move: i_n0; rewrite -n0_def => /(mem_nth `&0`).
+  by rewrite -{2}l0_def mem_filter -a_def /=.
+rewrite !nth_cat n0_def i_n0 // !COND_CLAUSES nth_nseq ltn_sub2r /=.
+  by move: i_lt i_n0 n0_le; arith.
+rewrite -m_def nth_mkseq ?p_lt //= eq_sym -EL_nth ?n_def ?p_lt // => eq.
+move: (mem_nth `&0` `i - n0:num` `filter (predC a) l`); rewrite -count_filter.
+move: (count_predC a l); rewrite count_filter l0_def n0_def n_def.
+rewrite "ARITH_RULE `!x. n0 <= n:num ==> (n0 + x = n <=> x = n - n0)`" // => ->.
+rewrite ltn_sub2r /=; first by move: i_lt i_n0 n0_le; arith.
+by rewrite mem_filter -eq predC -a_def /=.
+(* 2 *)
+exists k; rewrite k_lt andTb.
+suff k_lt_n0: `k < n0:num`.
+  rewrite -(EL_take n0 k s) // st_eq EL_take // el_k_lt andbT => i i_lt.
+  rewrite -(EL_take n0 s) -?(EL_take n0 s') ?st_eq ?EL_take ?sizes; try (move: i_lt k_lt_n0 k_lt; arith).
+  by rewrite el_eq.
+apply: contraT; rewrite NOT_LT => n0_le_k.
+have: `count (predC a) s' <= n - n0`.
+  rewrite -(cat_take_drop n0 s') count_cat.
+  suff ->: `count (predC a) (take n0 s') = 0`.
+    rewrite add0n; apply: leq_trans; exists `sizel (dropl n0 s')`.
+    by rewrite count_size size_drop sizes leqnn.
+  rewrite count0 !predC /= ETA_AX -all_EL_P size_takel ?sizes // => i i_lt.
+  have i_lt2: `i < n:num /\ i < k` by move: i_lt n0_le n0_le_k; arith.
+  rewrite EL_take ?sizes // -el_eq // -(EL_take n0) ?sizes // -st_eq EL_take ?sizes //.
+  suff: `EL i s <- filter a s` by rewrite mem_filter => ->.
+  by rewrite take_eq -(EL_take n0) ?sizes // MEM_EL -size size_takel ?sizes.
+suff: `count (predC a) l' >= (n - n0) + 1`.
+  by rewrite (iffLR (perm_eqP s' l') perm_s'); arith.
+rewrite -REAL_OF_NUM_GE (count_eq_list_sum_iota `&0`).
+move: (permutes_imp_perm_eq_iota p_perm).
+rewrite "ARITH_RULE `0 < n ==> n - 1 + 1 = n`" ?sizes; first by move: k_lt; arith.
+move/list_sum_perm_eq => <-.
+rewrite (list_sum_nth `0`) /= size_mkseq -{1}(subnKC n0_le) iota_add list_sum_cat add0n.
+set s1 := `list_sum _1 _2`; set s2 := `list_sum _1 _2`.
+have C_size: `sizel (filter (predC a) l) = n - n0`.
+  rewrite -count_filter; move: (count_predC a l).
+  by rewrite count_filter l0_def n0_def n_def; move: n0_le; arith.
+have ->: `s2 = &(n - n0)`.
+  rewrite -C_size -count_predT (count_eq_list_sum_iota `&0`) C_size predT /= -s2_def.
+  apply (list_sum_nth_eq `0` `0`).
+  rewrite !size_iota /= => i i_lt.
+  have n0i: `n0 + i < n:num` by move: i_lt n0_le; arith.
+  rewrite nth_iota // nth_mkseq //.
+  move: (nth_eq n0i); rewrite nth_cat n0_def "ARITH_RULE `~(n0 + i < n0:num)`" /= addKn => eq.
+  move: (el_gt `p (n0 + i:num)`).
+  rewrite -EL_nth ?sizes ?p_lt // predC -a_def /= REAL_NOT_LE => -> //.
+  move: (mem_nth `&0` `filter (predC a) l` i); rewrite C_size i_lt /=.
+  by rewrite (EL_nth `&0`) ?n_def ?p_lt // mem_filter eq predC -a_def /= REAL_NOT_LE => ->.
+suff: `s1 >= &1`.
+  by rewrite -REAL_OF_NUM_ADD -(REAL_OF_NUM_SUB n0_le); arith.
+suff: `?i:num. p i = r /\ i < n0`.
+  move => [i] [pi_eq i_lt].
+  move: (count_uniq_mem `iota 0 n0` i); rewrite iota_uniq /= mem_iota leq0n add0n i_lt /=.
+  move => <-; rewrite (count_eq_list_sum_iota `0`) size_iota real_ge -s1_def.
+  apply (list_sum_nth_le2 `0` `0`); rewrite size_iota /= => j j_lt.
+  rewrite !nth_iota ?add0n // pred1 /=.
+  case eq: `j = i` => /=; last by arith.
+  have i_lt_n: `i < n:num` by move: i_lt n0_le; arith.
+  by rewrite eq nth_mkseq // pi_eq predC -a_def /= -EL_nth // REAL_NOT_LE el_r_lt /= REAL_LE_REFL.
+move: (PERMUTES_SURJECTIVE p_perm r) => [i] pi_eq.
+exists i; rewrite pi_eq /=; apply: contraT; rewrite NOT_LT => n0_le_i.
+have i_lt: `i < n:num`.
+  apply: contraT => not_lt.
+  move: p_perm; rewrite permutes => [] [/(_ i)].
+  rewrite IN_NUMSEG leq0n /= NOT_LE; "ANTS_TAC"; first by move: not_lt r_lt; arith.
+  by rewrite pi_eq => eq; move: not_lt; rewrite -eq r_lt.
+move: (nth_eq i_lt); rewrite pi_eq eq_sym -EL_nth ?n_def // u_def.
+rewrite nth_cat n0_def -NOT_LE n0_le_i /=.
+move: (mem_nth `&0` `filter (predC a) l` `i - n0:num`); "ANTS_TAC".
+  by rewrite C_size; move: n0_le_i i_lt; arith.
+apply: contraL => <-.
+by rewrite mem_filter predC -a_def /= REAL_LE_REFL.
+Qed.
+
+End MoreSortedReal.
+
+
+
+(* Some results *)
+Section SomeResults.
+
+Lemma packing_empty: `packing {}`.
+Proof. by rewrite "GEN_ALL Sphere.packing_lt" NOT_IN_EMPTY. Qed.
+
+Lemma in_ball_annulus v: `v IN ball_annulus <=> &2 <= norm v /\ norm v <= &2 * h0`.
+Proof.
+rewrite Pack_defs.ball_annulus IN_DIFF IN_CBALL IN_BALL DIST_SYM dist.
+by rewrite "GEN_ALL VECTOR_SUB_RZERO" REAL_NOT_LT CONJ_SYM.
+Qed.
+
+Lemma closed_ball_annulus: `closed ball_annulus`.
+Proof. by rewrite Pack_defs.ball_annulus CLOSED_DIFF OPEN_BALL CLOSED_CBALL. Qed.
+
+Lemma finite_packing_ball_annulus V:
+        `packing V /\ V SUBSET ball_annulus ==> FINITE V`.
+move => [pack subV].
+have [r]: `?r. V SUBSET ball(vec 0, r)`.
+  exists `&5`; move: subV; rewrite !SUBSET Pack_defs.ball_annulus IN_DIFF IN_CBALL !IN_BALL.
+  by move => h x /h; rewrite Pack_defs.h0; arith.
+rewrite SUBSET_INTER_ABSORPTION => <-.
+exact: Packing3.KIUMVTC.
+Qed.
+
+Lemma ECTC_sub_ESTD V: `ECTC V SUBSET ESTD V`.
+Proof.
+rewrite ECTC ESTD SUBSET !IN_ELIM_THM /= => x [v] [w] [h] x_eq.
+by exists v w; rewrite x_eq !h Sphere.h0 /=; arith.
+Qed.
+
+Lemma in_set_of_edge_ECTC V v: `v IN V ==> (!u. u IN set_of_edge v V (ECTC V) <=> u IN V /\ dist (u, v) = &2)`.
+Proof.
+rewrite set_of_edge inE ECTC IN_ELIM_THM /= => vV u.
+split => [[] [x] [y] [h] eq uV | [uV d_eq]]; rewrite uV (andTb, andbT); last first.
+  exists v u; do !split => //; last by rewrite DIST_SYM.
+  by apply: contraL d_eq => ->; rewrite DIST_REFL; arith.
+rewrite "GEN_ALL Collect_geom.PAIR_EQ_EXPAND" in eq.
+by move: eq => [] [-> ->] //; rewrite DIST_SYM.
+Qed.
+
+Lemma vector_eq_neg v: `(v:real^N = --v) <=> (v = vec 0)`.
+Proof. "VECTOR_ARITH_TAC". Qed.
+
+Lemma bij_scriptL f V W: `BIJ f V W /\ (!v. v IN V ==> norm v = norm (f v)) ==>
+        scriptL W = scriptL V`.
+Proof.
+rewrite BIJ INJ => [] [[[_ inj_f] surj_f]] norm_eq.
+rewrite !Tame_defs.scriptL -(surj_image surj_f) SUM_IMAGE.
+  by move => x y [x_in] [y_in] f_eq; apply: inj_f.
+by apply SUM_EQ => v v_in /=; rewrite o_THM /= -norm_eq.
+Qed.
+
+Lemma lmfun_ge0 h: `&0 <= lmfun h`.
+Proof. by rewrite Sphere.lmfun Sphere.h0; arith. Qed.
+
+Lemma lmfun_in_ball_annulus v: `v IN ball_annulus ==> lmfun (norm v / &2) <= &1`.
+Proof. by rewrite in_ball_annulus Sphere.lmfun Sphere.h0; arith. Qed.
+
+Lemma scriptL_le_card V: `packing V /\ V SUBSET ball_annulus ==> scriptL V <= &(CARD V)`.
+Proof.
+move => [packV subV]; rewrite -(REAL_MUL_RID `&(CARD V)`).
+rewrite Tame_defs.scriptL SUM_BOUND finite_packing_ball_annulus // andTb => v vV /=.
+by rewrite lmfun_in_ball_annulus; move: subV; rewrite SUBSET; apply.
+Qed.
+
+Lemma card_counterexample_ge13 V: `packing V /\ V SUBSET ball_annulus /\ scriptL V > &12
+        ==> 13 <= CARD V`.
+Proof.
+move => [packV] [subV].
+apply: contraLR; rewrite NOT_LE real_gt REAL_NOT_LT => card_lt.
+apply: REAL_LE_TRANS; exists `&(CARD V)`.
+by rewrite scriptL_le_card // andTb REAL_OF_NUM_LE; move: card_lt; arith.
+Qed.
+
+Lemma piecewise_real_continuous a b t f1 f2 f:
+        `f1 real_continuous_on (real_interval [a,t]) /\ f2 real_continuous_on (real_interval [t,b]) /\
+        f1 t = f2 t /\ f = (\x. if x <= t then f1 x else f2 x) ==>
+        f real_continuous_on (real_interval [a,b])`.
+Proof.
+rewrite !real_continuous_on !IN_REAL_INTERVAL => [] [f1_cont] [f2_cont] [f12_eq] f_eq x e [x_in e_gt0].
+case: "REAL_ARITH `x < t \/ t < x \/ x = t`" => [h|].
+  move: (f1_cont e_gt0 (REAL_LT_IMP_LE h)); rewrite x_in //= => [] [d] [d_gt0] ineq.
+  exists `min d (t - x)`; split; first by move: d_gt0 h; arith.
+  move => y [y_ineq xy_lt].
+  have y_lt: `y < t` by move: xy_lt h; arith.
+  by rewrite f_eq /= !REAL_LT_IMP_LE //= ineq; move: y_ineq y_lt xy_lt; arith.
+case => h.
+  move: (f2_cont e_gt0 (REAL_LT_IMP_LE h)); rewrite x_in //= => [] [d] [d_gt0] ineq.
+  exists `min d (x - t)`; split; first by move: d_gt0 h; arith.
+  move => y [y_ineq xy_lt].
+  have y_lt: `t < y` by move: xy_lt h; arith.
+  by rewrite f_eq /= -!REAL_NOT_LT y_lt h /= ineq; move: y_ineq y_lt xy_lt; arith.
+move: (f1_cont t e_gt0) (f2_cont t e_gt0); rewrite -h REAL_LE_REFL !x_in /=.
+move => [d1] [d1_gt0] ineq1 [d2] [d2_gt0] ineq2.
+exists `min d1 d2`; split; first by move: d1_gt0 d2_gt0; arith.
+move => y [y_ineq xy_lt].
+case: (REAL_LET_TOTAL y x) => xy_ineq.
+  by rewrite f_eq /= -h REAL_LE_REFL xy_ineq /= ineq1 xy_ineq y_ineq; move: xy_lt; arith.
+rewrite f_eq /= -h REAL_LE_REFL -REAL_NOT_LT xy_ineq /= h f12_eq -h.
+by rewrite ineq2; move: xy_ineq y_ineq xy_lt; arith.
+Qed.
+
+Lemma piecewise_real_continuous_univ t f1 f2 f:
+        `f1 real_continuous_on UNIV /\ f2 real_continuous_on UNIV /\ f1 t = f2 t /\
+        f = (\x. if x <= t then f1 x else f2 x) ==>
+        f real_continuous_on UNIV`.
+Proof.
+move => [f1_cont] [f2_con] [f12_eq] f_eq.
+suff cont_int: `!a b. f real_continuous_on real_interval (a,b)`.
+  rewrite REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT ?REAL_OPEN_UNIV // => x _.
+  move: (cont_int `x - &1` `x + &1`).
+  rewrite REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT ?REAL_OPEN_REAL_INTERVAL //; apply.
+  by rewrite IN_REAL_INTERVAL; arith.
+move => a b; apply: REAL_CONTINUOUS_ON_SUBSET; exists `real_interval [a,b]`.
+rewrite REAL_INTERVAL_OPEN_SUBSET_CLOSED (piecewise_real_continuous f_eq f12_eq) //.
+by split; rewrite (REAL_CONTINUOUS_ON_SUBSET `(:real)`) SUBSET_UNIV.
+Qed.
+
+Lemma lmfun_continuous: `lmfun real_continuous_on UNIV`.
+Proof.
+have eq: `lmfun = (\x. if x <= h0 then (h0 - x) / (h0 - &1) else &0)`.
+  by rewrite -eq_ext Sphere.lmfun.
+rewrite (piecewise_real_continuous_univ eq); split; first last.
+  by rewrite REAL_CONTINUOUS_ON_CONST; arith.
+rewrite real_div REAL_CONTINUOUS_ON_RMUL REAL_CONTINUOUS_ON_SUB.
+by rewrite REAL_CONTINUOUS_ON_ID REAL_CONTINUOUS_ON_CONST.
+Qed.
+
+Lemma lmfun_norm2_continuous: `lift o (\v:real^N. lmfun (norm v / &2)) continuous_on UNIV`.
+Proof.
+rewrite CONTINUOUS_AT_IMP_CONTINUOUS_ON => x _.
+rewrite -"GEN_ALL REAL_CONTINUOUS_CONTINUOUS1".
+have ->: `(\v. lmfun (norm v / &2)) = lmfun o (\v:real^N. norm v / &2)`.
+  by rewrite -eq_ext o_THM.
+rewrite REAL_CONTINUOUS_AT_COMPOSE real_div /= REAL_CONTINUOUS_RMUL ?REAL_CONTINUOUS_NORM_AT // andTb.
+rewrite REAL_CONTINUOUS_ATREAL_WITHINREAL.
+move: lmfun_continuous; rewrite REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT ?REAL_OPEN_UNIV //.
+by apply; rewrite IN_UNIV.
+Qed.
+
+Lemma simple_card_inequality r s t: `measurable s /\
+        pairwise DISJOINT t /\ &0 < r /\
+        (!x. x IN t ==> measurable x /\ r <= measure x /\ x SUBSET s) ==>
+        FINITE t /\ &(CARD t) <= floor (measure s / r)`.
+Proof.
+move => [vol_s] [disjoint] [r_gt0] in_t.
+have ineq: `!b. b SUBSET t /\ FINITE b ==> r * &(CARD b) <= measure (UNIONS b)`.
+  rewrite SUBSET => b [b_sub fin_b].
+  move: (HAS_MEASURE_DISJOINT_UNIONS `\x. measure x` fin_b).
+  rewrite !HAS_MEASURE_MEASURABLE_MEASURE => ->.
+    split => [y yb | x y in_b]; first by rewrite in_t // b_sub.
+    by move: disjoint; rewrite pairwise; apply; rewrite in_b !b_sub.
+  rewrite CARD_EQ_SUM // -SUM_LMUL SUM_LE fin_b andTb => x /b_sub xt /=.
+  by rewrite REAL_MUL_RID in_t.
+have ineq2: `!b. b SUBSET t /\ FINITE b ==> measure (UNIONS b) <= measure s`.
+  rewrite SUBSET => b [b_sub fin_b].
+  rewrite MEASURE_SUBSET vol_s andTb MEASURABLE_UNIONS.
+    by rewrite fin_b andTb => x /b_sub xt; rewrite in_t.
+  by rewrite UNIONS_SUBSET andTb => x /b_sub xt; rewrite in_t.
+have fin_t: `FINITE t`.
+  apply: contraT => inf_t.
+  move: (REAL_ARCH r_gt0 `measure s`) => [n] ineq3.
+  move: (CHOOSE_SUBSET_STRONG n t); rewrite inf_t HAS_SIZE; "ANTS_TAC"; first by [].
+  move => [b] [b_sub] [fin_b card_b].
+  move: (ineq b_sub fin_b) (ineq2 b_sub fin_b) ineq3.
+  by rewrite card_b; arith.
+rewrite fin_t andTb.
+move: (ineq (SUBSET_REFL t) fin_t) (ineq2 (SUBSET_REFL t) fin_t).
+move/REAL_LE_TRANS => h /h.
+by rewrite REAL_MUL_SYM -REAL_LE_RDIV_EQ // => /FLOOR_MONO; rewrite FLOOR_NUM.
+Qed.
+
+Lemma card_packing_ball_annulus V:
+        `packing V /\ V SUBSET ball_annulus ==> CARD V <= 43`.
+move => [pack subV].
+set t := `IMAGE (\v. ball (v, &1)) V`.
+rewrite -(CARD_IMAGE_INJ `\v. ball (v,&1)`).
+  rewrite finite_packing_ball_annulus // andbT EXTENSION => x y [xV] [yV] /= ball_eq.
+  rewrite Sphere.packing_lt in pack; apply: pack; rewrite yV xV !andTb.
+  by move: (ball_eq x); rewrite CENTRE_IN_BALL REAL_LT_01 /= IN_BALL; arith.
+rewrite -REAL_OF_NUM_LE.
+have ->: `&43 = floor (measure (ball (vec 0:real^3, #3.52)) / measure (ball (vec 0:real^3, &1)))`.
+  rewrite !VOLUME_BALL; try arith.
+  rewrite !REAL_MUL_ASSOC; set a := `_ * pi`.
+  rewrite real_div REAL_INV_MUL.
+  rewrite "REAL_ARITH `!x y. (a * x) * inv a * y = (a * inv a) * x * y`".
+  rewrite REAL_MUL_RINV; first by rewrite -a_def; move: PI_POS; arith.
+  by rewrite eq_sym -FLOOR_UNIQUE INTEGER_CLOSED; arith.
+rewrite simple_card_inequality MEASURABLE_BALL andTb; split.
+  rewrite pairwise !IN_IMAGE /= DISJOINT => x y [] [u] [->] uV [] [v] [->] vV.
+  apply: contraR; rewrite -MEMBER_NOT_EMPTY IN_INTER !IN_BALL => [] [x] [du dv].
+  suff ->: `u = v` by [].
+  rewrite Sphere.packing_lt in pack; apply: pack; rewrite uV vV !andTb.
+  by move: (DIST_TRIANGLE u x v); rewrite (DIST_SYM x); move: du dv; arith.
+split; first by rewrite VOLUME_BALL; move: PI_POS; arith.
+rewrite IN_IMAGE /= => x [v] [->] vV.
+rewrite MEASURABLE_BALL !VOLUME_BALL; try arith.
+rewrite REAL_LE_REFL !andTb SUBSET !IN_BALL => x.
+rewrite SUBSET Pack_defs.ball_annulus IN_DIFF IN_CBALL Sphere.h0 in subV.
+by move: (DIST_TRIANGLE `vec 0` v x) (subV vV); arith.
+Qed.
+
+Lemma SIN_NEG_PI_2PI x: `pi <= x /\ x <= &2 * pi ==> sin x <= &0`.
+Proof.
+move => x_ineq.
+rewrite "REAL_ARITH `x = (x - pi) + pi`" SIN_PERIODIC_PI REAL_NEG_LE0.
+by apply: SIN_POS_PI_LE; move: x_ineq; arith.
+Qed.
+
+Lemma not_surrounded_imp_on_one_side_of_plane V E v:
+        `FAN (vec 0,V,E) ==> v IN V ==> ~(set_of_edge v V E = {}) ==> ~(surrounded_node (V,E) v) ==>
+        ?n. ~(n = vec 0) /\ v dot n = &0 /\ (!w. w IN set_of_edge v V E ==> w dot n <= &0)`.
+Proof.
+rewrite surrounded_node NOT_FORALL_THM NOT_IMP REAL_NOT_LT.
+move => fan vV not_isolated [] [v1 w] /= [[in_vw] v1_eq ge_pi]; rewrite v1_eq in ge_pi in_vw.
+have in1_vw: `v,w IN dart1_of_fan (V,E)`.
+  move: in_vw; rewrite dart1_of_fan dart_of_fan IN_UNION IN_ELIM_PAIR_THM; case => //.
+  rewrite IN_ELIM_THM /= => [] [v'] [h1]; rewrite PAIR_EQ => eq.
+  by move: h1; rewrite -eq not_isolated.
+exists `v cross w`.
+rewrite DOT_CROSS_SELF CROSS_EQ_0 /=; split.
+  by apply: (Hypermap_and_fan.DART1_NOT_COLLINEAR fan).
+move => w2 in_w2.
+suff sin_le0: `sin (azim (vec 0) v w w2) <= &0`.
+  have := Trigonometry.JBDNJJB v w w2.
+  rewrite Trigonometry2.re_eqvl => [] [t] [t_gt0].
+  move/(f_equal `real_mul (inv t)`).
+  rewrite REAL_MUL_ASSOC REAL_MUL_LINV ?REAL_MUL_LID; first by move: t_gt0; arith.
+  rewrite DOT_SYM => <-.
+  rewrite -REAL_LE_NEG REAL_NEG_0 REAL_NEG_RMUL REAL_LE_MUL REAL_NEG_GE0 sin_le0 andbT.
+  by rewrite REAL_LE_INV; move: t_gt0; arith.
+case: (EXCLUDED_MIDDLE `w = w2`) => [<- | n_ww2].
+  by rewrite AZIM_REFL SIN_0 REAL_LE_REFL.
+apply: SIN_NEG_PI_2PI; split; last by rewrite REAL_LT_IMP_LE azim.
+apply: (REAL_LE_TRANS ge_pi); rewrite -real_ge.
+apply: (Fatugpd.azim_ge_azim_dart fan).
+rewrite (Hypermap_and_fan.PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fan in1_vw) -n_ww2 vV in_w2 /=.
+by rewrite (Hypermap_and_fan.PAIR_IN_DART1_OF_FAN fan in1_vw).
+Qed.
+
+Lemma perturbation_lemma d S v n:
+        `&0 < d /\ ~(n = vec 0) /\ v dot n = &0 /\ (!w. w IN S ==> w dot n <= &0 /\ &0 < w dot v) ==>
+        ?v2. norm v2 = norm v /\ (!w. w IN S ==> dist (v, w) < dist (v2, w)) /\ dist (v, v2) < d`.
+Proof.
+move => [d_gt0] [n_n0] [vn0] w_dot.
+case: (EXCLUDED_MIDDLE `S = {}`) => [-> | nS].
+  by exists v; rewrite DIST_REFL d_gt0 NOT_IN_EMPTY.
+have v_n0: `~(v = vec 0)`.
+  move: nS; rewrite -MEMBER_NOT_EMPTY => [] [x] xS.
+  move: (w_dot xS) => [_].
+  by apply: contraL => ->; rewrite DOT_RZERO REAL_LT_REFL.
+set a := `max (&0) (&1 - (d * d) / (&4 * (v dot v)))`.
+set b := `sqrt ((v dot v) * (&1 - a * a) / (n dot n))`.
+have a_ineq: `&0 <= a /\ a < &1`.
+  rewrite -a_def REAL_MAX_MAX andTb REAL_MAX_LT REAL_LT_01 andTb.
+  rewrite "REAL_ARITH `!x. &1 - x < &1 <=> &0 < x`".
+  by rewrite REAL_LT_DIV !REAL_LT_MUL ?d_gt0 // DOT_POS_LT v_n0; arith.
+exists `a % v + b % n`.
+have h1: `&0 <= (v dot v) * (&1 - a * a) / (n dot n)`.
+  rewrite REAL_LE_MUL REAL_LE_DIV DOT_POS_LE // "REAL_ARITH `&0 <= &1 - a * a <=> a * a <= &1`".
+  by rewrite -REAL_POW_2 ABS_SQUARE_LE_1; move: a_ineq; arith.
+have bn_eq: `b * b * (n dot n) = (&1 - a * a) * (v dot v)`.
+  rewrite REAL_MUL_ASSOC -REAL_POW_2 -b_def SQRT_POW_2 //.
+  by rewrite real_div -!REAL_MUL_ASSOC REAL_MUL_LINV ?DOT_EQ_0 // REAL_MUL_RID REAL_MUL_SYM.
+rewrite NORM_EQ !DOT_RADD !DOT_LADD !DOT_RMUL !DOT_LMUL (DOT_SYM n) vn0 bn_eq.
+split; first by arith.
+split; last first.
+  rewrite dist "GEN_ALL NORM_LT_SQUARE" d_gt0 andTb.
+  rewrite "VECTOR_ARITH `!v n a b. v - (a % v + b % n) = (&1 - a) % v - b % n`".
+  rewrite !DOT_RSUB !DOT_LSUB !DOT_RMUL !DOT_LMUL (DOT_SYM n) vn0 !REAL_MUL_RZERO bn_eq.
+  rewrite REAL_SUB_RZERO REAL_SUB_LZERO -REAL_MUL_LNEG REAL_MUL_ASSOC -REAL_SUB_RDISTRIB.
+  rewrite "REAL_ARITH `(&1 - a) * (&1 - a) - --(&1 - a * a) = &2 * (&1 - a)`".
+  rewrite -REAL_LT_RDIV_EQ ?DOT_POS_LT // REAL_MUL_SYM -REAL_LT_RDIV_EQ; first by arith.
+  rewrite "REAL_ARITH `!x. &0 < x /\ &1 - x / &4 <= a ==> &1 - a < x / &2`".
+  rewrite REAL_LT_DIV ?REAL_POW_2 ?REAL_LT_SQUARE ?DOT_POS_LT ?v_n0 ?REAL_POS_NZ //.
+  by rewrite !real_div -REAL_MUL_ASSOC -REAL_INV_MUL -real_div [`_ * &4`]REAL_MUL_SYM -a_def REAL_MAX_MAX.
+move => w wS.
+rewrite !dist NORM_LT !DOT_RSUB !DOT_LSUB !DOT_RADD !DOT_LADD !DOT_RMUL !DOT_LMUL (DOT_SYM n) vn0.
+rewrite !REAL_MUL_RZERO REAL_ADD_RID REAL_ADD_LID bn_eq.
+have ->: `a * a * (v dot v) + (&1 - a * a) * (v dot v) = v dot v` by arith.
+rewrite !real_sub !REAL_NEG_ADD !REAL_ADD_ASSOC REAL_LT_RADD -!REAL_ADD_ASSOC REAL_LT_LADD.
+rewrite (DOT_SYM v) (DOT_SYM n).
+have ->: `!x y. --x + --x < --(a * x) + --(b * y) + --(a * x) + --(b * y) <=> (a - &1) * x < b * --y` by arith.
+apply: REAL_LTE_TRANS; exists `&0`.
+rewrite REAL_LE_MUL ?REAL_NEG_GE0 ?(w_dot wS) ?andbT.
+  by rewrite -b_def SQRT_POS_LE.
+rewrite -REAL_NEG_GT0 REAL_NEG_LMUL REAL_LT_MUL (w_dot wS) andbT.
+by move: a_ineq; arith.
+Qed.
+
+Lemma COMPACT_SUP_SET f s: `compact s /\ lift o f continuous_on s
+        ==> compact {x | x IN s /\ (!y. y IN s ==> f y <= f x)}`.
+Proof.
+set c := `GSPEC _`.
+have cs: `c SUBSET s` by rewrite -c_def SUBSET inE /=.
+rewrite !COMPACT_EQ_BOUNDED_CLOSED => [] [] [boundedS closedS] f_cont; split.
+  by apply: (BOUNDED_SUBSET boundedS).
+rewrite !CLOSED_SEQUENTIAL_LIMITS in closedS *.
+move => x y [x_in_c x_to_y]; rewrite -c_def inE.
+have x_in_s: `!n. x n IN s` by move => n; move: cs; rewrite SUBSET; apply.
+have ys: `y IN s` by apply: (closedS x_to_y).
+rewrite ys andTb => a as.
+move: f_cont; rewrite CONTINUOUS_ON_SEQUENTIALLY => /(_ x_to_y ys x_in_s).
+rewrite o_THM -o_ASSOC -"GEN_ALL TENDSTO_REAL" => lim.
+apply: (REALLIM_LBOUND lim).
+rewrite TRIVIAL_LIMIT_SEQUENTIALLY /= "GEN_ALL ALWAYS_EVENTUALLY" /= o_THM => n.
+by move: (x_in_c n); rewrite -c_def inE => [] [_]; apply.
+Qed.
+
+
+End SomeResults.
+
+
+
+(*******************************)
+Section VectorOfList.
+
+"let vector_of_list = new_definition `vector_of_list d list =
+        lambda i. if (i - 1) DIV d < LENGTH list then (EL ((i - 1) DIV d) list)$((i - 1) MOD d + 1) else &0`".
+"let list_of_vector = new_definition `list_of_vector d n v = TABLE (\k. lambda i. v$(k * d + i)) n`".
+
+"let LAMBDA_BETA = GEN_ALL LAMBDA_BETA".
+
+Lemma vector_of_list_nil d: `vector_of_list d [] = vec 0`.
+Proof.
+rewrite vector_of_list -LAMBDA_UNIQUE vec => i i_ineq; rewrite LAMBDA_BETA //=.
+by rewrite LENGTH; arith.
+Qed.
+
+Lemma length_list_of_vector d n v: `LENGTH (list_of_vector d n v) = n`.
+Proof. by rewrite list_of_vector Packing3.LENGTH_TABLE. Qed.
+
+Lemma sum_lemma n k f: `sum (1..k * n) f = sum (1..n) (\j. sum (1..k) (\i. f ((j - 1) * k + i)))`.
+Proof.
+elim: n => [|n IH]; rewrite ?muln0 !"GEN_ALL SUM_CLAUSES_NUMSEG"; first by arith.
+rewrite "ARITH_RULE `1 <= SUC n`" /= mulnSr -IH SUM_ADD_SPLIT; first by arith.
+rewrite REAL_EQ_ADD_LCANCEL !(addnC `k * n:num`) SUM_OFFSET.
+by apply SUM_EQ => i; rewrite IN_NUMSEG succnK addnC mulnC.
+Qed.
+
+
+Variable d : `:num`.
+Variable list : `:(real^N)list`.
+Hypothesis d_eq: `dimindex (:N) = d`.
+Hypothesis dim_ge: `d * LENGTH list <= dimindex (:M)`.
+
+Lemma vector_of_list_comp0 i: `d * LENGTH list + 1 <= i /\ i <= dimindex (:M) ==>
+        (vector_of_list d list:real^M)$i = &0`.
+Proof.
+move => i_ineqs.
+rewrite vector_of_list LAMBDA_BETA /=; first by move: i_ineqs; arith.
+suff -> //: `~((i - 1) DIV d < LENGTH list)`.
+have dn0: `~(d = 0)`.
+  by move: (DIMINDEX_GE_1 `(:N)`); rewrite d_eq; arith.
+by rewrite NOT_LT -(DIV_MULT dn0) DIV_MONO dn0; move: i_ineqs; arith.
+Qed.
+
+
+Lemma vector_of_list_comp k i: `(1 <= i /\ i <= d) /\ k < LENGTH list ==>
+        (vector_of_list d list:real^M)$(k * d + i) = (EL k list)$i`.
+Proof.
+move => [i_ineq] k_lt.
+rewrite vector_of_list LAMBDA_BETA /=.
+  split; first by move: i_ineq; arith.
+  apply: LE_TRANS; exists `d * LENGTH list`; rewrite dim_ge andbT.
+  apply: LE_TRANS; exists `k * d + d:num`.
+  rewrite LE_ADD_LCANCEL i_ineq andTb "ARITH_RULE `k * d + d = d * SUC k`".
+  by rewrite LE_MULT_LCANCEL; move: k_lt; arith.
+have div_mod := DIVMOD_UNIQ `(k * d + i) - 1` d k `i - 1`.
+rewrite !div_mod ?k_lt /=; try (move: i_ineq; arith).
+suff ->: `i - 1 + 1 = i` by [].
+by move: i_ineq; arith.
+Qed.
+
+
+Lemma vector_of_list_left_inverse:
+        `list_of_vector d (LENGTH list) ((vector_of_list d list):real^M) = list`.
+Proof.
+rewrite Packing3.LIST_EL_EQ !list_of_vector Packing3.LENGTH_TABLE /= => k k_lt.
+rewrite Packing3.EL_TABLE //= -LAMBDA_UNIQUE /= d_eq => i i_ineq.
+by rewrite vector_of_list_comp.
+Qed.
+
+
+Lemma dot_vector_of_list:
+        `(vector_of_list d list:real^M) dot (vector_of_list d list) =
+        sum (1..LENGTH list) (\i. (EL (i - 1) list) dot (EL (i - 1) list))`.
+Proof.
+have d_n0: `~(d = 0)` by move: (DIMINDEX_GE_1 `(:N)`); rewrite d_eq; arith.
+have len_le: `LENGTH list <= dimindex (:M)`.
+  apply: LE_TRANS; exists `d * LENGTH list`; rewrite dim_ge andbT.
+  by rewrite {1}"ARITH_RULE `!a. a = 1 * a`" LE_MULT_RCANCEL; move: d_n0; arith.
+rewrite !dot -(subnKC dim_ge) SUM_ADD_SPLIT ?LE_ADDR //.
+rewrite -[`sum (1..LENGTH list) _`]REAL_ADD_RID.
+congr `_1 + _2:real`; last first.
+  apply SUM_EQ_0_NUMSEG => i i_ineq /=.
+  rewrite vector_of_list LAMBDA_BETA /=; first by move: dim_ge i_ineq; arith.
+  suff ->: `~((i - 1) DIV d < LENGTH list)` by rewrite /= REAL_MUL_LZERO.
+  by rewrite NOT_LT LE_RDIV_EQ //; move: i_ineq; arith.
+rewrite sum_lemma /=; apply SUM_EQ; rewrite IN_NUMSEG d_eq => k k_ineq /=.
+apply SUM_EQ => i; rewrite IN_NUMSEG => i_ineq /=.
+by rewrite vector_of_list_comp // !i_ineq; move: k_ineq; arith.
+Qed.
+
+
+Lemma vector_of_list_norm_bound r: `(!x:real^N. MEM x list ==> norm x <= r) ==>
+        norm (vector_of_list d list:real^M) <= sqrt (&(LENGTH list)) * r`.
+Proof.
+move => norm_le.
+case: (EXCLUDED_MIDDLE `list = []`) => [-> | list_not_nil].
+  by rewrite LENGTH vector_of_list_nil NORM_0 SQRT_0 REAL_MUL_LZERO REAL_LE_REFL.
+have r_pos: `&0 <= r`.
+  have len_pos: `0 < LENGTH list` by move: list_not_nil; rewrite -LENGTH_EQ_NIL; arith.
+  have := norm_le (MEM_EL len_pos).
+  by move: (NORM_POS_LE `EL 0 list`); arith.
+rewrite vector_norm dot_vector_of_list //.
+set n := `LENGTH list`.
+have ->: `sqrt (&n) * r = sqrt (&n * r pow 2)`.
+  by rewrite SQRT_MUL ?REAL_LE_POW_2 ?REAL_POS // POW_2_SQRT.
+rewrite SQRT_MONO_LE SUM_POS_LE_NUMSEG ?andTb.
+  by move => i _; rewrite DOT_POS_LE.
+rewrite -{2}(CARD_NUMSEG_1 n) SUM_BOUND FINITE_NUMSEG andTb IN_NUMSEG => i i_ineq /=.
+rewrite DOT_SQUARE_NORM -REAL_LE_SQUARE_ABS REAL_ABS_NORM (iffRL (REAL_ABS_REFL r)) //.
+by rewrite norm_le MEM_EL n_def; move: i_ineq; arith.
+Qed.
+
+End VectorOfList.
+
+
+
+Lemma infnorm_lt e: `!(v:real^N). (!i. 1 <= i /\ i <= dimindex (:N) ==> abs (v$i) < e) ==>
+        infnorm v < e`.
+Proof.
+move => v ineqs; rewrite "GEN_ALL infnorm" "GEN_ALL REAL_SUP_LT_FINITE"; last first.
+  by move => x; rewrite IN_ELIM_THM /= => [] [i] [/ineqs] /=.
+split.
+  set s := `GSPEC _`.
+  suff ->: `s = IMAGE (\i. abs (v$i)) (1..dimindex (:N))`.
+    by rewrite FINITE_IMAGE FINITE_NUMSEG.
+  by rewrite -s_def EXTENSION IN_IMAGE IN_NUMSEG IN_ELIM_THM /= "GEN_ALL CONJ_ACI".
+rewrite -MEMBER_NOT_EMPTY.
+exists `abs (v$1)`; rewrite IN_ELIM_THM /=; exists `1`.
+by rewrite DIMINDEX_GE_1 LE_REFL.
+Qed.
+
+Lemma lim_not_equal a b f g: `~(a = b) /\ (f --> a) sequentially /\ (g --> b) sequentially ==>
+        ?N. !n. N <= n ==> ~(f n = g n)`.
+Proof.
+rewrite !LIM_SEQUENTIALLY !DIST_NZ => [] [n_ab] [f_to_a g_to_b].
+set e := `dist (a, b) / &2`.
+have e_gt0: `&0 < e` by rewrite -e_def REAL_LT_DIV n_ab; arith.
+move: (f_to_a e_gt0) (g_to_b e_gt0) => [n1 ineq1] [n2 ineq2].
+exists `n1 + n2:num` => n le_n.
+have n_ineqs: `n1 <= n /\ n2 <= n:num` by move: le_n; arith.
+move: (ineq1 n) (ineq2 n); rewrite !n_ineqs /=.
+move: (DIST_TRIANGLE a `f n` b) (DIST_TRIANGLE `f n` `g n` b).
+by rewrite (DIST_SYM `f n` a); move: e_def; arith.
+Qed.
+
+
+(* VectorOfList_Sets *)
+Section VectorOfList_Sets.
+
+Variable k : `:num`.
+Hypothesis dim_ge: `3 * k <= dimindex (:M)`.
+
+(* Limits *)
+Section Lim_inS.
+
+Variable S : `:(real^3)list -> bool`.
+
+Lemma lim_inS_EL v y: `(!n. v n IN IMAGE (vector_of_list 3) S) /\ (v --> y:real^M) sequentially
+        ==> !i. i < k ==> ((\n. EL i (list_of_vector 3 k (v n):(real^3)list))
+                --> EL i (list_of_vector 3 k y:(real^3)list)) sequentially`.
+Proof.
+rewrite IN_IMAGE !LIM_SEQUENTIALLY => [] [vS] v_to_y i i_lt_k e e_gt0 /=.
+have e3_gt0: `&0 < e / sqrt (&3)` by rewrite REAL_LT_DIV e_gt0 SQRT_POS_LT; arith.
+move: (v_to_y e3_gt0) => [N] d_lt.
+exists N => n /d_lt; rewrite !dist => /NORM_BOUND_COMPONENT_LT bounds.
+rewrite !list_of_vector !Packing3.EL_TABLE //=.
+set z := `_1 - _2:real^3`.
+move: (NORM_LE_INFNORM z) => /REAL_LET_TRANS; apply.
+rewrite DIMINDEX_3; apply: REAL_LTE_TRANS; exists `sqrt (&3) * (e / sqrt (&3))`.
+split; last first.
+  rewrite real_div REAL_MUL_SYM -REAL_MUL_ASSOC REAL_MUL_LINV ?REAL_MUL_RID ?REAL_LE_REFL //.
+  by rewrite SQRT_EQ_0; arith.
+rewrite REAL_LT_LMUL SQRT_POS_LT ?andTb; first by arith.
+rewrite infnorm_lt DIMINDEX_3 => j j_ineqs.
+rewrite -z_def VECTOR_SUB_COMPONENT !LAMBDA_BETA ?DIMINDEX_3 //=.
+by rewrite -VECTOR_SUB_COMPONENT bounds; move: j_ineqs i_lt_k dim_ge; arith.
+Qed.
+
+
+Hypothesis inS_imp: `!l. l IN S ==> LENGTH l <= k`.
+
+Lemma lim_inS_eq v y: `(!n. v n IN IMAGE (vector_of_list 3) S) /\ (v --> y) sequentially
+        ==> vector_of_list 3 (list_of_vector 3 k y:(real^3)list):real^M = y`.
+Proof.
+rewrite IN_IMAGE LIM_SEQUENTIALLY => [] [vS v_to_y].
+rewrite vector_of_list -LAMBDA_UNIQUE length_list_of_vector => i i_ineqs.
+case h: `(i - 1) DIV 3 < k` => /=.
+  rewrite list_of_vector Packing3.EL_TABLE //= LAMBDA_BETA /= ?DIMINDEX_3; first by arith.
+  rewrite ADD_ASSOC -DIVISION; first by arith.
+  suff ->: `i - 1 + 1 = i` by [].
+  by move: i_ineqs; arith.
+suff: `!e. &0 < e ==> abs(y$i) < e`.
+  apply: contraLR; rewrite NOT_FORALL_THM NOT_IMP => yn0.
+  by exists `abs (y$i)`; move: yn0; arith.
+move => e /v_to_y [N] hh; move: (hh (LE_REFL N)).
+rewrite DIST_SYM dist => /NORM_BOUND_COMPONENT_LT /(_ i_ineqs).
+rewrite VECTOR_SUB_COMPONENT.
+suff ->: `v N$i = &0` by rewrite REAL_SUB_RZERO.
+move: (vS N) => [x] [->] /inS_imp len_leq.
+rewrite vector_of_list_comp0 // DIMINDEX_3 i_ineqs /=; split.
+  by apply: leq_trans; exists `3 * k`; rewrite dim_ge leq_mul2l.
+apply: leq_trans; exists `3 * k + 1`; split; first by move: len_leq; arith.
+have div a d: `(a DIV d) * d <= a`.
+  case eq: `d = 0` => /=; first by rewrite eq muln0 leq0n.
+  by rewrite {2}(DIVISION eq a); arith.
+move: h; rewrite -leqNgt -(leq_pmul2r `3`); first by arith.
+by move: (div `i - 1` `3`) i_ineqs; arith.
+Qed.
+
+End Lim_inS.
+
+
+(* Continuous on compact *)
+Section ContinuousOnCompact.
+
+Variable S: `:(real^3)list -> bool`.
+Hypothesis inS: `!l. l IN S ==> LENGTH l = k`.
+Hypothesis compactS: `compact (IMAGE (vector_of_list 3) S:real^M->bool)`.
+Hypothesis n_S_empty: `~(S = {})`.
+
+Lemma max_onS f: `(lift o f o set_of_list o (list_of_vector 3 k:real^M->(real^3)list))
+                continuous_on (IMAGE (vector_of_list 3) S) ==>
+        ?W. W IN IMAGE set_of_list S /\ (!V. V IN IMAGE set_of_list S ==> f V <= f W)`.
+Proof.
+move/CONTINUOUS_ATTAINS_SUP; rewrite compactS IMAGE_EQ_EMPTY n_S_empty /=.
+rewrite !IN_IMAGE => [] [v] [] [l] [->] lS le.
+exists `set_of_list l`; split; first by exists l.
+move => V [y] [->] yS.
+move: (le `vector_of_list 3 y:real^M`); "ANTS_TAC"; first by exists y.
+move: (inS yS) (inS lS) => y_eq l_eq.
+by rewrite !o_THM -{1}y_eq -l_eq !vector_of_list_left_inverse ?DIMINDEX_3 ?l_eq ?y_eq.
+Qed.
+
+
+End ContinuousOnCompact.
+
+
+Variable S: `:(real^3)list -> bool`.
+
+Section NormSet.
+
+Variable g: `:num -> real`.
+Hypothesis inS: `!l. l IN S <=> LENGTH l = k /\ (!i. i < k ==> norm (EL i l) = g i)`.
+
+Lemma closedNormS: `closed (IMAGE (vector_of_list 3) S:real^M->bool)`.
+Proof.
+rewrite CLOSED_SEQUENTIAL_LIMITS => v y [vn_eq v_to_y]; rewrite IN_IMAGE.
+exists `list_of_vector 3 k y`; split.
+  rewrite eq_sym; apply: (lim_inS_eq v_to_y S vn_eq) => l.
+  by rewrite inS => ->; exact: leqnn.
+rewrite inS length_list_of_vector /= => i i_lt_k.
+set x := `EL i _`.
+move: (CONTINUOUS_AT_LIFT_NORM x); rewrite CONTINUOUS_AT_SEQUENTIALLY.
+rewrite -x_def; move/(_ (lim_inS_EL vn_eq v_to_y i_lt_k)).
+set r := `(lift o norm) o _`.
+suff ->: `r = (\n. lift (g i))`.
+  by rewrite LIM_CONST_EQ TRIVIAL_LIMIT_SEQUENTIALLY !o_THM LIFT_EQ /=.
+rewrite -r_def -eq_ext !o_THM => n /=.
+move: (vn_eq n); rewrite IN_IMAGE inS => [] [l] [->] [len_eq] norm_eq.
+by rewrite -len_eq vector_of_list_left_inverse ?DIMINDEX_3 ?len_eq // norm_eq.
+Qed.
+
+
+End NormSet.
+
+
+Hypothesis inS: `!l. l IN S <=> set_of_list l SUBSET ball_annulus /\
+        packing (set_of_list l) /\ LENGTH l = k /\ uniq l`.
+
+
+Lemma closedS: `closed (IMAGE (vector_of_list 3) S:real^M->bool)`.
+Proof.
+rewrite CLOSED_SEQUENTIAL_LIMITS => v y [vn_eq v_to_y]; rewrite IN_IMAGE.
+exists `list_of_vector 3 k y`; split.
+  rewrite eq_sym; apply: (lim_inS_eq v_to_y S vn_eq) => l.
+  by rewrite inS => ->; exact: leqnn.
+rewrite inS length_list_of_vector /=; split.
+  rewrite SUBSET IN_SET_OF_LIST MEM_EXISTS_EL length_list_of_vector => a [i] [i_lt a_eq].
+  move: closed_ball_annulus; rewrite CLOSED_SEQUENTIAL_LIMITS; apply.
+  exists `\n. EL i (list_of_vector 3 k (v n))`.
+  rewrite a_eq (lim_inS_EL S) // andbT => n /=.
+  move: (vn_eq n); rewrite IN_IMAGE inS SUBSET => [] [l] [->] [sub_l] [_] len_eq.
+  rewrite -len_eq vector_of_list_left_inverse ?DIMINDEX_3 //.
+  by rewrite sub_l IN_SET_OF_LIST MEM_EL len_eq.
+split; last first.
+(* uniq *)
+rewrite (uniq_nthP `vec 0`) size length_list_of_vector => i j [i_lt_j j_lt].
+have i_lt: `i < k:num` by move: j_lt i_lt_j; arith.
+rewrite -!EL_nth ?size ?length_list_of_vector //.
+set a := `EL i _`; set b := `EL j _`.
+move: (lim_inS_EL vn_eq v_to_y i_lt).
+move: (lim_inS_EL vn_eq v_to_y j_lt).
+set f2 := `\n. _ n`.
+set f1 := `\n. _ n`.
+rewrite a_def b_def !LIM_SEQUENTIALLY.
+move => /(_ REAL_LT_01) [n1] d2b /(_ REAL_LT_01) [n2] d1a.
+move: (d1a (leq_addl n1 n2)) (d2b (leq_addr n2 n1)).
+rewrite -f1_def -f2_def /=.
+move: (vn_eq `n1 + n2:num`); rewrite IN_IMAGE inS => [] [l] [->] [_] [pack] [len_eq] uniq_l.
+rewrite -len_eq vector_of_list_left_inverse ?DIMINDEX_3 ?len_eq // => da db.
+rewrite (uniq_nthP `vec 0`) in uniq_l; rewrite "GEN_ALL Sphere.packing_lt" in pack.
+move: (uniq_l i j); rewrite i_lt_j size len_eq j_lt /= -!EL_nth ?size ?len_eq // => neq.
+apply: contra neq => eq; apply: pack.
+rewrite !IN_SET_OF_LIST !MEM_EL ?len_eq // !andTb.
+by move: (DIST_TRIANGLE `EL i l` a `EL j l`) db da; rewrite eq (DIST_SYM b); arith.
+(* packing *)
+rewrite "GEN_ALL Sphere.packing" => a b.
+rewrite -[`set_of_list _ a`]IN -[`set_of_list _ b`]IN !IN_SET_OF_LIST.
+rewrite !MEM_EXISTS_EL length_list_of_vector dist.
+move => [] [i] [i_lt a_eq] [] [j] [j_lt b_eq] n_ab.
+move: (lim_inS_EL vn_eq v_to_y i_lt).
+move: (lim_inS_EL vn_eq v_to_y j_lt).
+set f2 := `\n. _ n`.
+set f1 := `\n. _ n`.
+rewrite -a_eq -b_eq => f2b f1a.
+apply: (LIM_NORM_LBOUND `sequentially` `\n. f1 n - f2 n:real^3`).
+rewrite TRIVIAL_LIMIT_SEQUENTIALLY /= LIM_SUB // andTb EVENTUALLY_SEQUENTIALLY.
+move: (lim_not_equal n_ab f1a f2b) => [N] neq.
+exists N => n /neq; rewrite -dist -f1_def -f2_def /=.
+move: (vn_eq n); rewrite IN_IMAGE inS Sphere.packing => [] [l] [->] [_] [pack len_eq].
+rewrite -len_eq vector_of_list_left_inverse ?DIMINDEX_3 ?len_eq // => el_neq.
+by rewrite pack -[`set_of_list l _`]IN -[`set_of_list l _`]IN !IN_SET_OF_LIST !MEM_EL ?len_eq.
+Qed.
+
+
+Lemma compactS: `compact (IMAGE (vector_of_list 3) S:real^M->bool)`.
+Proof.
+rewrite COMPACT_EQ_BOUNDED_CLOSED closedS andbT bounded.
+exists `sqrt (&k) * (&2 * h0)`.
+rewrite IN_IMAGE inS SUBSET => v [l] [->] [sub_l] [_] len_eq.
+rewrite -len_eq in dim_ge *.
+rewrite (vector_of_list_norm_bound dim_ge) DIMINDEX_3 /= => x.
+rewrite -IN_SET_OF_LIST => /sub_l; rewrite Pack_defs.ball_annulus.
+by rewrite IN_DIFF IN_CBALL_0 /=.
+Qed.
+
+Lemma set_of_listS V: `V IN (IMAGE set_of_list S) <=>
+        packing V /\ V SUBSET ball_annulus /\ CARD V = k`.
+Proof.
+rewrite IN_IMAGE inS; split => [[l] [->] [->] [->] [len_eq uniq_l] | [pack] [sub] card_eq].
+  by rewrite card_set_of_list_uniq // size len_eq.
+exists `list_of_set V`.
+have finV := finite_packing_ball_annulus pack sub.
+by rewrite SET_OF_LIST_OF_SET // sub pack LENGTH_LIST_OF_SET // card_eq uniq_list_of_set.
+Qed.
+
+Lemma scriptL_eq v: `v:real^M IN IMAGE (vector_of_list 3) S ==>
+        scriptL (set_of_list (list_of_vector 3 k v))
+        = list_sum (list_of_vector 3 k v:(real^3)list) (\v. lmfun (norm v / &2))`.
+Proof.
+rewrite IN_IMAGE inS => [] [l] [->] [_] [_] [len_eq uniq_l].
+rewrite scriptL -len_eq !vector_of_list_left_inverse ?DIMINDEX_3 -?len_eq //.
+by rewrite -list_sum_set_of_list.
+Qed.
+
+Lemma scriptL_continuous:
+        `(lift o scriptL o set_of_list o (list_of_vector 3 k:real^M->(real^3)list))
+                continuous_on (IMAGE (vector_of_list 3) S)`.
+Proof.
+rewrite CONTINUOUS_ON_SEQUENTIALLY => v a [a_in] [v_in] v_to_a.
+set f := `_ o v`.
+have ->: `f = lift o (\n. list_sum (list_of_vector 3 k (v n)) (\v:real^3. lmfun (norm v / &2)))`.
+  by rewrite -f_def -eq_ext !o_THM => n; rewrite scriptL_eq.
+rewrite !o_THM scriptL_eq // -"GEN_ALL TENDSTO_REAL".
+rewrite list_sum_continuous lmfun_norm2_continuous andTb !length_list_of_vector /= => i i_lt.
+by rewrite (lim_inS_EL S).
+Qed.
+
+Lemma min_dist_k_continuous j:
+        `(lift o min_dist_k j o (list_of_vector 3 k:real^M->(real^3)list))
+                continuous_on (IMAGE (vector_of_list 3) S)`.
+Proof.
+rewrite CONTINUOUS_ON_SEQUENTIALLY => v a [a_in] [v_in] v_to_a.
+rewrite !o_THM -o_ASSOC -"GEN_ALL TENDSTO_REAL" -o_ASSOC.
+rewrite -(ETA_AX `min_dist_k j o _`) !o_THM min_dist_k_limit.
+rewrite !length_list_of_vector /= => i i_lt.
+by rewrite (lim_inS_EL S).
+Qed.
+
+
+End VectorOfList_Sets.
+
+
+
+(* FJLBXS *)
+Section FJLBXS.
+
+
+Lemma sup_in_unions f S: `FINITE S ==> ~(UNIONS S = {}) /\
+        (!s. s IN S ==> s = {} \/ ?u. u IN s /\ (!y. y IN s ==> f y <= f u)) ==>
+        ?v. v IN UNIONS S /\ (!y. y IN UNIONS S ==> f y <= f v)`.
+Proof.
+apply FINITE_INDUCT_STRONG: S; rewrite ?UNIONS_0 /= => t S [IH] [tnS] finS.
+rewrite !"GEN_ALL UNIONS_INSERT" IN_INSERT !IN_UNION => [] [not_empty] h.
+case eq: `UNIONS S = {}` IH => /=.
+  have t_not_empty: `~(t = {})`.
+    by apply: contra not_empty => ->; rewrite eq UNION_EMPTY.
+  by move: (h t); rewrite eq t_not_empty !NOT_IN_EMPTY /=.
+"ANTS_TAC"; first by move => s sS; apply: h.
+move => [u1] [u1_in] u1_ineq; move: (h t) => /=.
+case t_eq: `t = {}` => /=.
+  by exists u1; rewrite u1_in t_eq !NOT_IN_EMPTY /=.
+move: (h t) => /=; rewrite t_eq /= => [] [u0] [u0t] u0_ineq.
+case ineq: `f u1 <= f u0` => /=; [exists u0 | exists u1].
+  rewrite u0t /= => y.
+  by case => [/u0_ineq | /u1_ineq] //; move: ineq; arith.
+rewrite u1_in /= => y.
+by case => [/u0_ineq | /u1_ineq] //; move: ineq; arith.
+Qed.
+
+
+"let type150 = define_finite_type 150".
+Lemma type150_ineq: `!k. k <= 43 ==> 3 * k <= dimindex (:150)`.
+Proof. by rewrite (DIMINDEX_UNIQUE type150); arith. Qed.
+
+
+Lemma scriptL_attains_max_in_ball_annulus:
+        `?W. packing W /\ W SUBSET ball_annulus /\
+        (!V. packing V /\ V SUBSET ball_annulus ==> scriptL V <= scriptL W)`.
+Proof.
+set G := `\k. {V | packing V /\ V SUBSET ball_annulus /\ CARD V = k}`.
+have in_eq V: `packing V /\ V SUBSET ball_annulus <=> V IN UNIONS (IMAGE G (0..43))`.
+  rewrite UNIONS_IMAGE inE -G_def /= inE; split => [[packV subV] | [k] /=].
+  by exists `CARD V`; rewrite subV packV IN_NUMSEG leq0n card_packing_ball_annulus.
+rewrite CONJ_ASSOC !in_eq sup_in_unions FINITE_IMAGE ?FINITE_NUMSEG andTb; split.
+  rewrite -MEMBER_NOT_EMPTY UNIONS_IMAGE inE IN_NUMSEG -G_def /=; exists `{}` `0`.
+  split; first by arith.
+  by rewrite inE packing_empty EMPTY_SUBSET CARD_CLAUSES.
+rewrite IN_IMAGE IN_NUMSEG => s [k] [->] k_ineq.
+case Gk_n_empty: `G k = {}` => /=.
+move: (type150_ineq k); rewrite k_ineq /= => dim_ge.
+set S := `{l | set_of_list l SUBSET ball_annulus /\ packing (set_of_list l) /\
+        LENGTH l = k /\ uniq l}`.
+move: (set_of_listS S dim_ge); "ANTS_TAC" => [|inS]; first by rewrite -S_def inE /=.
+have Gk_eq: `G k = IMAGE set_of_list S`.
+  by rewrite -G_def /= EXTENSION inE inS.
+move: (max_onS S dim_ge); "ANTS_TAC"; first by rewrite -S_def inE /=.
+"ANTS_TAC"; first by rewrite (compactS dim_ge) /= -S_def inE /=.
+"ANTS_TAC"; first by rewrite -(IMAGE_EQ_EMPTY `set_of_list`) -Gk_eq.
+by rewrite -Gk_eq; apply; rewrite (scriptL_continuous dim_ge) -S_def inE.
+Qed.
+
+
+Theorem FJLBXS V: `packing V /\ V SUBSET ball_annulus ==>
+    (?W phi. BIJ phi V W /\ packing W /\ W SUBSET ball_annulus /\ (!v. v IN V ==> norm(v) = norm(phi v)) /\
+        (!w. w IN W ==>  (set_of_edge w W (ESTD W) = {}) \/ (surrounded_node (W,(ESTD W)) w)))`.
+Proof.
+move => [packV subV].
+move: (card_packing_ball_annulus packV subV) => /type150_ineq dim_ge.
+set k := `CARD V`.
+set S := `{l | set_of_list l SUBSET ball_annulus /\ packing (set_of_list l) /\ LENGTH l = k /\ uniq l}`.
+set N := `{l | LENGTH l = k /\ (!i. i < k ==> norm (EL i l:real^3) = norm (EL i (list_of_set V)))}`.
+set R := `IMAGE (vector_of_list 3) S INTER IMAGE (vector_of_list 3) N:real^150->bool`.
+have finV := finite_packing_ball_annulus packV subV.
+have compactR: `compact R`.
+  rewrite -R_def INTER_COMM CLOSED_INTER_COMPACT.
+  rewrite (compactS dim_ge) -?S_def ?inE //.
+  by rewrite (closedNormS dim_ge `\i. norm (EL i (list_of_set V))`) // -N_def inE.
+have R_n_empty: `~(R = {})`.
+  rewrite -MEMBER_NOT_EMPTY; exists `vector_of_list 3 (list_of_set V)`.
+  rewrite -R_def IN_INTER -S_def -N_def !FUN_IN_IMAGE // inE LENGTH_LIST_OF_SET //.
+  by rewrite SET_OF_LIST_OF_SET // uniq_list_of_set.
+set f := `\j. min_dist_k j o (list_of_vector 3 k:real^150 -> (real^3)list)`.
+set c := `\j x. min_k j (mkseq (\i. f i x) k)`.
+have c_cont j: `(lift o c j) continuous_on R`.
+  rewrite CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN -"GEN_ALL REAL_CONTINUOUS_CONTINUOUS1" => x xR.
+  rewrite -c_def /= min_k_continuous => i i_lt_k.
+  rewrite -f_def /= "GEN_ALL REAL_CONTINUOUS_CONTINUOUS1"; apply CONTINUOUS_WITHIN_SUBSET.
+  exists `IMAGE (vector_of_list 3) S`; rewrite -R_def INTER_SUBSET andbT.
+  move: xR; rewrite -R_def IN_INTER => [] [xS _].
+  move: x xS; rewrite -CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN.
+  by rewrite (min_dist_k_continuous dim_ge) -S_def inE.
+set sup_set := `\f s. {x:real^150 | x IN s /\ (!y. y IN s ==> f y <= f x)}`.
+have sup_sub f s: `sup_set f s SUBSET s` by rewrite -sup_set_def SUBSET /= inE /=.
+have sup_comp j s: `compact s /\ s SUBSET R ==> compact (sup_set (c j) s)`.
+  move => [comp_s s_sub]; rewrite -sup_set_def /=.
+  by rewrite COMPACT_SUP_SET comp_s andTb (CONTINUOUS_ON_SUBSET R) s_sub; rewr !ETA_AX.
+have sup_n_empty j s: `compact s /\ s SUBSET R /\ ~(s = {}) ==> ~(sup_set (c j) s = {})`.
+  move => [comp_s] [s_sub s_n].
+  rewrite -MEMBER_NOT_EMPTY -sup_set_def /= inE CONTINUOUS_ATTAINS_SUP s_n comp_s /=.
+  by rewr !ETA_AX; rewrite (CONTINUOUS_ON_SUBSET R).
+have [C [C0 CS]]: `?C. C 0 = sup_set (c 0) R /\ !i. C (SUC i) = sup_set (c i) (C i)`.
+  by "general_rec_exists_tac".
+have C_props i: `compact (C i) /\ C i SUBSET R /\ ~(C i = {})`.
+  elim: i => [|||i IH]; rewrite ?C0 ?CS ?sup_sub ?sup_comp ?SUBSET_REFL // ?andTb.
+    by rewrite sup_n_empty // SUBSET_REFL.
+  by rewrite sup_n_empty //=; apply SUBSET_TRANS; exists `C i`; rewrite IH sup_sub.
+have C_sub i j: `i <= j:num ==> C j SUBSET C i`.
+  case: i j => [|i]; elim => [|j jH]; rewrite ?SUBSET_REFL //; try arith.
+    by move => _; apply SUBSET_TRANS; exists `C j`; rewrite CS jH // leq0n.
+  rewrite leqSS leq_eqVlt; case => [->|i_lt_j]; first by rewrite SUBSET_REFL.
+  by apply SUBSET_TRANS; exists `C j`; rewrite CS sup_sub jH // -ltE.
+move: (C_props k); rewrite -MEMBER_NOT_EMPTY => [] [_] [Ck_sub] [w] w_in.
+move: (Packing3.IN_TRANS w_in Ck_sub).
+rewrite -R_def IN_INTER !IN_IMAGE -S_def -N_def !inE => [] [] [wl] [w_eq] wl_props [wl'] [w_eq'] wl'_props.
+have eq: `wl' = wl`.
+  move: w_eq; rewrite w_eq' => /(f_equal `list_of_vector 3 k:real^150->(real^3)list`).
+  by rewrite -{1}wl'_props -wl_props !vector_of_list_left_inverse // ?DIMINDEX_3 ?wl_props ?wl'_props.
+rewrite eq in wl'_props; move: eq w_eq' => _ _.
+exists `set_of_list wl` `\x. EL (indexl x (list_of_set V)) wl`; split.
+  rewrite -{2}(SET_OF_LIST_OF_SET finV) BIJ_from_lists uniq_list_of_set //.
+  by rewrite size !wl_props LENGTH_LIST_OF_SET.
+rewrite !wl_props /= IN_SET_OF_LIST; split => [v vV | y y_wl].
+  rewrite /= wl'_props ?EL_index ?MEM_LIST_OF_SET //.
+  by rewrite -k_def -LENGTH_LIST_OF_SET // -size index_mem MEM_LIST_OF_SET.
+have w_in_all i: `i <= k:num ==> w IN C i`.
+  by move => i_le; rewrite (Packing3.IN_TRANS w_in) C_sub.
+apply: contraT; rewrite negb_or => [] [not_iso not_surr].
+suff: `?wl'. wl' IN N /\ wl' IN S /\ (?n. n < k:num /\
+        (!i. i < n ==> c i (vector_of_list 3 wl') = c i w) /\ c n w < c n (vector_of_list 3 wl'))`.
+  rewrite implybF NOT_EXISTS_THM !negb_and NOT_EXISTS_THM => wl'.
+  case w'N: `wl' IN N` => /=; case w'S: `wl' IN S` => /= n.
+  rewrite -implybF => [] [n_lt] [ci_eq] cn_lt.
+  suff w'C i: `i <= n:num ==> vector_of_list 3 wl' IN C i`.
+    have: `w IN C (SUC n)` by rewrite (Packing3.IN_TRANS w_in) C_sub -ltE.
+    rewrite CS -sup_set_def /= inE negb_and NOT_FORALL_THM NOT_IMP REAL_NOT_LE.
+    by right; exists `vector_of_list 3 wl'`; rewrite w'C // leqnn.
+  elim: i => [|i IH] i_le; rewrite (C0, CS) -sup_set_def /= inE; last first.
+    rewrite IH ?andTb; first by move: i_le; arith.
+    move => y y_in; move: (w_in_all `SUC i`); "ANTS_TAC"; first by move: i_le n_lt; arith.
+    rewrite CS -sup_set_def /= inE => [] [_] /(_ y_in).
+    by rewrite ci_eq ?ltE.
+  rewrite -{1}R_def IN_INTER !FUN_IN_IMAGE // !andTb => y yR.
+  move: (w_in_all (leq0n k)); rewrite C0 -sup_set_def /= inE => [] [_] /(_ yR).
+  case n_eq: `n = 0` => /=; last by rewrite ci_eq // lt0n.
+  by move: cn_lt; rewrite n_eq; arith.
+move: (y_wl); rewrite MEM_EXISTS_EL -size => [] [r] [r_lt] y_eq.
+set dy := `min_dist_k r wl`.
+have size_eq: `sizel wl = k` by rewrite size wl_props.
+have [e [e_gt0 e_cond]]:
+        `?e. &0 < e /\ (!i. i < k /\ ~(i = r) ==> dist (EL i wl, y) = dy \/ dy + e <= dist (EL i wl, y))`.
+  set dl := `map (\v. dist (v, y)) wl`.
+  set a := `\x. x = &0 \/ x = dy`.
+  set e := `if all a dl then &1 else min_k 0 (filter (predC a) dl) - dy`.
+  exists e.
+  have in_dl: `!i. i < k ==> dist (EL i wl, y) <- dl`.
+    move => i i_ineqs; rewrite MEM_EXISTS_EL -dl_def -size size_map size_eq.
+    by exists i; rewrite EL_map -?size.
+  have dist_n0: `!i. i < k ==> (dist (EL i wl, y) = &0 <=> i = r)`.
+    move => i i_lt; split => [|->]; last by rewrite y_eq DIST_REFL.
+    by rewrite DIST_EQ_0 y_eq !(EL_nth `vec 0`) // nth_uniq.
+  case all_dl: `all a dl` e_def => /=.
+    move => <-; rewrite REAL_LT_01 andTb => i i_lt; left.
+    rewrite -allP -a_def /= in all_dl; move: (all_dl `dist (EL i wl, y)`).
+    by rewrite in_dl //= dist_n0.
+  rewrite -has_predC has_count count_filter size in all_dl.
+  set dl2 := `filter _1 _2`; move => e_eq; split.
+    move: (mem_min_k all_dl); rewrite -dl2_def mem_filter dl2_def -a_def predC /= negb_or.
+    rewrite -dl_def mapP /= MEM_EXISTS_EL -size => [] [neq] [v] [] [i] [i_lt] -> eq.
+    rewrite -e_eq eq REAL_SUB_LT REAL_LT_LE -{2}eq eq_sym neq /= -dy_def y_eq.
+    by rewrite min_dist_min i_lt andTb -dist_n0 -?size_eq // -eq.
+  move => i [i_lt n_ir]; case eq: `_1 = _2` => /=.
+  have: `dist (EL i wl, y) <- dl2`.
+    by rewrite -dl2_def mem_filter in_dl // predC -a_def /= negb_or dist_n0.
+  rewrite -e_eq REAL_SUB_ADD2 MEM_EXISTS_EL -size => [] [j] [j_lt] ->.
+  by rewrite min_k0_le_EL.
+set W := `set_of_list wl`.
+have yW: `y IN W` by rewrite -W_def IN_SET_OF_LIST.
+move: (Ckqowsa.CKQOWSA W); rewrite !wl_props /=; "ANTS_TAC" => [|fanW].
+  by rewrite -MEMBER_NOT_EMPTY; exists y.
+have k_ge2: `2 <= k`.
+  move: not_iso; rewrite set_of_edge ESTD -MEMBER_NOT_EMPTY !IN_ELIM_THM /=.
+  move => [u] [v] [] [] [u'] [v'] [] [u'W] [v'W] [neq_uv'] _ _ _ _.
+  suff: `2 <= CARD W` by rewrite -W_def card_set_of_list_uniq.
+  rewrite -(Hypermap.CARD_TWO_ELEMENTS v' u') // CARD_SUBSET.
+  by rewrite  -{2}W_def FINITE_SET_OF_LIST SUBSET !IN_INSERT NOT_IN_EMPTY /= => x [->].
+have := packing_eq_min_dist wl; "ANTS_TAC"; first by rewrite wl_props.
+rewrite W_def wl_props /= size_eq => min_dist_ge.
+have dy_le: `dy <= &2 * h0`.
+  move: not_iso; rewrite set_of_edge ESTD -MEMBER_NOT_EMPTY !IN_ELIM_THM /= -dy_def.
+  move => [u] [v] [] [] [u'] [v'] [] [u'W] [v'W] [neq_uv'] dist_le.
+  rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND" -W_def IN_SET_OF_LIST MEM_EXISTS_EL -size.
+  move => eq_cases [i] [i_lt] v_eq _.
+  case ir: `i = r` => /=; first by case: eq_cases neq_uv' => eq; rewrite -!eq v_eq y_eq ir.
+  apply: REAL_LE_TRANS; exists `dist (u',v')`; rewrite dist_le andbT.
+  by case: eq_cases => eq; rewrite -!eq ?(DIST_SYM y) v_eq y_eq min_dist_min.
+set X := `{w | w IN W /\ dist (w, y) = dy}`.
+rewrite size_eq in r_lt.
+have subX w: `w IN X ==> w IN set_of_edge y W (ESTD W)`.
+  rewrite set_of_edge ESTD -X_def !IN_ELIM_THM /= => [] [v] [] [vW] dist_eq eq.
+  exists v; do !split => //.
+  exists y v; rewrite vW yW DIST_SYM dist_eq dy_le /= -DIST_EQ_0 DIST_SYM dist_eq.
+  by move: (min_dist_ge r_lt); rewrite dy_def; arith.
+have inX w: `w IN X ==> dist (w, y) = dy /\ w IN W` by rewrite -X_def inE /=.
+have := not_surrounded_imp_on_one_side_of_plane fanW yW not_surr not_iso.
+move => [b] [b_n0] [y_dot_b] b_cond.
+have := perturbation_lemma e_gt0 b_n0 y_dot_b X; "ANTS_TAC" => [w wX|].
+  rewrite b_cond ?subX // andTb -real_gt Ckqowsa_3_points.dot_pos_lemma.
+  rewrite inX // dy_le andbT.
+  by rewrite SUBSET in wl_props; rewrite !wl_props ?yW // inX.
+move: b_cond y_dot_b b_n0 => _ _ _.
+move => [u] [norm_u] [dist_uX] dist_yu.
+set ul := `mkseq (\i. if i = r then u else EL i wl) k`.
+have size_ul: `sizel ul = k` by rewrite -ul_def size_mkseq.
+have el_ul: `EL r ul = u /\ (!i. i < k /\ ~(i = r) ==> EL i ul = EL i wl)`.
+  by rewrite -ul_def EL_mkseq //= => i i_ineqs; rewrite EL_mkseq.
+move: packV subV R_def compactR R_n_empty sup_set_def sup_sub sup_comp => _ _ _ _ _ _ _ _.
+exists ul; split.
+  rewrite -N_def inE -size size_ul /= => i i_lt.
+  move: wl'_props => [_] <- //.
+  by case ir: `i = r` => /=; rewrite ?ir el_ul -?y_eq.
+suff: `min_dist_k r wl < min_dist_k r ul /\
+        (!i. i < k /\ ~(i = r) /\ min_dist_k i wl <= dy ==> min_dist_k i wl <= min_dist_k i ul) /\
+        (!i. i < k /\ ~(i = r) /\ dy < min_dist_k i wl ==> dy < min_dist_k i ul)`.
+  move => [dist_r] [dist_le] dist_gt.
+  split; last first.
+   rewrite eq_sym -c_def /= !min_k.
+   have {1}->: `k = sizel (mkseq (\i. f i w) k)` by rewrite size_mkseq.
+   apply: real_sorted_lt2; exists `mkseq (\i. f i (vector_of_list 3 ul)) k` r.
+   rewrite !real_merge_sort !size_mkseq r_lt !EL_mkseq //=.
+   rewrite -f_def /= !o_THM w_eq; split.
+     by rewrite -{1}size_eq -size_ul size !vector_of_list_left_inverse ?DIMINDEX_3 -?size ?(size_ul, size_eq).
+   split => i [i_lt]; rewrite !EL_mkseq //= -{1 2 3}size_eq -size_ul size;
+        rewrite !vector_of_list_left_inverse ?DIMINDEX_3 -?size ?(size_ul, size_eq) // dy_def => h.
+     case eq: `i = r` => /=; last by rewrite dist_le.
+     by rewrite eq REAL_LT_IMP_LE.
+   case eq: `i = r` => /=; last by rewrite dist_gt.
+   by rewrite eq -dy_def.
+  rewrite -S_def inE -size size_ul /= SUBSET in_ball_annulus; split => [v | ].
+    rewrite IN_SET_OF_LIST MEM_EXISTS_EL -size size_ul => [] [i] [i_lt] ->.
+  move: wl_props; rewrite SUBSET -W_def IN_SET_OF_LIST => [] [in_ba] _.
+  case eq: `i = r` => /=; last by rewrite !el_ul // -in_ball_annulus in_ba MEM_EL -size size_eq.
+  by rewrite eq el_ul norm_u -in_ball_annulus in_ba.
+  suff ge2: `!i. i < sizel ul ==> &2 <= min_dist_k i ul`.
+    by rewrite (min_dist_imp_packing ge2) andTb min_dist_imp_uniq => i /ge2; arith.
+  rewrite size_ul => i i_lt.
+  case eq: `i = r` => /=.
+    by rewrite eq; apply REAL_LE_TRANS; exists dy; rewrite -dy_def min_dist_ge // REAL_LT_IMP_LE.
+  case neq: `dy < min_dist_k i wl` => /=.
+    by apply REAL_LE_TRANS; exists dy; rewrite -{1}dy_def min_dist_ge // REAL_LT_IMP_LE // dist_gt.
+  by apply REAL_LE_TRANS; exists `min_dist_k i wl`; rewrite min_dist_ge // dist_le // -REAL_NOT_LT.
+move: dim_ge k_def S_def N_def finV f_def c_def c_cont sup_n_empty C0 => _ _ _ _ _ _ _ _ _ _.
+move: CS C_props C_sub Ck_sub w_in w_eq wl_props wl'_props w_in_all not_iso not_surr => _ _ _ _ _ _ _ _ _ _ _.
+have [ul_ge2 wl_ge2]: `2 <= sizel ul /\ 2 <= sizel wl` by [].
+have dist_m_u m: `m < k /\ ~(m = r) ==> dy < dist (EL m wl, u)`.
+  move => [m_lt m_neq].
+  case el_inX: `EL m wl IN X` => /=.
+    rewrite DIST_SYM; apply: REAL_LET_TRANS; exists `dist (y, EL m wl)`.
+    by rewrite dist_uX // DIST_SYM inX ?REAL_LE_REFL.
+  move: dist_yu (DIST_TRIANGLE `EL m wl` u y); rewrite DIST_SYM.
+  case: (e_cond m_lt m_neq); last by arith.
+  apply: contraR el_inX; rewrite NOT_IMP => [] [dist_eq _].
+  by rewrite -X_def inE dist_eq -W_def IN_SET_OF_LIST MEM_EL // -size size_eq.
+split.
+  move: (min_dist_exists ul_ge2 r); rewrite size_ul => [] [m] [m_lt] [m_neq] ->.
+  by rewrite !el_ul // dy_def dist_m_u.
+split => i [i_lt] [i_neq] ineq;
+        move: (min_dist_exists ul_ge2 i); rewrite size_ul => [] [m] [m_lt] [m_neq] ->; last first.
+  case eq: `m = r` => /=; first by rewrite eq !el_ul // DIST_SYM dist_m_u.
+  rewrite !el_ul //; apply REAL_LTE_TRANS; exists `min_dist_k i wl`.
+  by rewrite ineq andTb min_dist_min size_eq.
+case mr: `m = r` => /=.
+  rewrite mr !el_ul // DIST_SYM; apply REAL_LE_TRANS; exists dy.
+  by rewrite ineq REAL_LT_IMP_LE // dist_m_u.
+by rewrite !el_ul // min_dist_min ?size_eq.
+Qed.
+
+
+End FJLBXS.
+
+
+(* FCDJDOT *)
+Section FCDJDOT.
+
+Lemma not_surrounded_ECTC V v: `packing V /\ V SUBSET ball_annulus /\
+        v IN V /\ ~(surrounded_node (V, ECTC V) v) ==>
+        (?W f. BIJ f V W /\ packing W /\ W SUBSET ball_annulus /\
+        (!u. u IN V ==> norm u = norm (f u)) /\
+        set_of_edge (f v) W (ECTC W) = {})`.
+Proof.
+move => [packV] [subV] [vV] n_surr.
+have finV := finite_packing_ball_annulus packV subV.
+have := Tame_general.UBHDEUU2 packV subV; "ANTS_TAC" => [|fanV].
+  by rewrite -MEMBER_NOT_EMPTY; exists v.
+case n_iso: `set_of_edge v V (ECTC V) = {}` => /=.
+  by exists V `I`; rewrite Hypermap.I_BIJ !I_THM.
+move: (not_surrounded_imp_on_one_side_of_plane fanV vV n_iso n_surr) => [n] [n_n0] [v_dot_n] w_dot_n.
+set X := `set_of_edge v V (ECTC V)`.
+set Y := `(V DELETE v) DIFF X`.
+have finY: `FINITE Y` by rewrite -Y_def FINITE_DIFF FINITE_DELETE.
+have inY y: `y IN Y <=> y IN V /\ &2 < dist (y, v)`.
+  rewrite -Y_def IN_DIFF IN_DELETE -X_def in_set_of_edge_ECTC // negb_and; split; last first.
+    move => [yV dist_gt]; rewrite yV /=; split; last by move: dist_gt; arith.
+    by apply: contraL dist_gt => ->; rewrite DIST_REFL; arith.
+  move => [] [yV] ynv; rewrite yV /= REAL_LT_LE eq_sym => -> /=.
+  by rewrite packing in packV; apply: packV.
+have inX x: `x IN X <=> x IN V /\ dist (x, v) = &2`.
+  by rewrite -X_def in_set_of_edge_ECTC.
+have not_inY y: `y IN V /\ ~(y = v) /\ ~(y IN Y) ==> y IN X`.
+  by rewrite -Y_def IN_DIFF IN_DELETE !negb_and !negbK => [] [->] [->].
+set e := `if Y = {} then &1 else min (&1) (inf (IMAGE (\x. dist (x,v) - &2) Y))`.
+have e_gt0: `&0 < e`.
+  rewrite -e_def; case Y0: `Y = {}` => /=; first exact: REAL_LT_01.
+  rewrite REAL_LT_MIN REAL_LT_01 andTb.
+  rewrite REAL_LT_INF_FINITE ?FINITE_IMAGE ?IMAGE_EQ_EMPTY // IN_IMAGE /= => x [y] [->].
+  by rewrite inY; arith.
+have e_le1: `e <= &1` by rewrite -e_def; arith.
+move: (perturbation_lemma X e_gt0 n_n0 v_dot_n); "ANTS_TAC".
+  move => w wX; rewrite w_dot_n // andTb.
+  move: subV wX; rewrite -X_def in_set_of_edge_ECTC // SUBSET -real_gt => subV [wV dist_eq].
+  by apply: Ckqowsa_3_points.dot_pos_lemma; rewrite !subV // Sphere.h0 dist_eq; arith.
+move => [u] [norm_eq] [dist_lt] dist_vu.
+have n_vu: `~(v = u)`.
+  apply: contraT; rewrite negbK => v_eq_u.
+  move: n_iso; rewrite -MEMBER_NOT_EMPTY => [] [x] /dist_lt.
+  by rewrite v_eq_u REAL_LT_REFL.
+have nuV: `~(u IN V)`.
+  apply: contraT; rewrite negbK => uV; rewrite packing in packV.
+  by move: (packV vV uV n_vu) dist_vu e_le1; arith.
+set W := `u INSERT (V DELETE v)`.
+set f := `\x. if x = v then u else x`.
+exists W f; split.
+  have card_n0: `~(CARD V = 0)` by rewrite CARD_EQ_0 // -MEMBER_NOT_EMPTY; exists v.
+  rewrite -finite_surj_eq_bij -W_def ?FINITE_INSERT ?CARD_CLAUSES ?FINITE_DELETE ?finV //.
+    by rewrite IN_DELETE nuV /= CARD_DELETE // vV /=; move: card_n0; arith.
+  rewrite SURJ !IN_INSERT !IN_DELETE -f_def /=; split => [x xV | ].
+    by case eq: `x = v` => /=; rewrite xV andTb eq.
+  by move => x [-> | [xV xnv]]; [exists v | exists x].
+have norm_eqV x: `x IN V ==> norm x = norm (f x)`.
+  by move => xV; rewrite -f_def /=; case eq: `x = v` => /=; rewrite eq norm_eq.
+have dist_gt2: `!x. x IN V /\ ~(x = v) ==> &2 < dist (x, u)`.
+  move => x [xV xnv]; rewrite packing in packV.
+  case xY: `x IN Y` => /=; last first.
+    rewrite DIST_SYM.
+    by move/dist_lt: (not_inY xY xV xnv); apply/REAL_LET_TRANS; apply: packV.
+  have Yn0: `~(Y = {})` by rewrite -MEMBER_NOT_EMPTY; exists x.
+  move: (DIST_TRIANGLE x u v) dist_vu (packV xV vV xnv); rewrite (DIST_SYM v).
+  suff: `e <= dist (x, v) - &2` by arith.
+  rewrite -e_def Yn0 /= REAL_MIN_LE; right.
+  rewrite REAL_INF_LE_FINITE ?FINITE_IMAGE ?IMAGE_EQ_EMPTY //.
+  by exists `dist (x, v) - &2`; rewrite REAL_LE_REFL IN_IMAGE /=; exists x.
+rewrite packing; split => [x y|].
+  rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing in packV.
+  move => [] [->| [xV xnv]] [] [->| [yV ynv]] // neq; last by apply: packV.
+    by rewrite DIST_SYM REAL_LT_IMP_LE dist_gt2.
+  by rewrite REAL_LT_IMP_LE dist_gt2.
+rewrite !SUBSET !in_ball_annulus in subV *; split => [x|].
+  rewrite -W_def IN_INSERT IN_DELETE.
+  by case => [->| [xV xnv]]; rewrite ?norm_eq !subV.
+split => [x /norm_eqV |] //.
+rewrite EXTENSION => x; rewrite in_set_of_edge_ECTC -f_def /= -W_def IN_INSERT // NOT_IN_EMPTY.
+apply: contraTF dist_gt2; rewrite NOT_FORALL_THM NOT_IMP IN_DELETE.
+move => [] [{1}-> | [xV xnv dist_eq2]]; first by rewrite DIST_REFL; arith.
+by exists x; do !split => //; rewrite dist_eq2 REAL_LT_REFL.
+Qed.
+
+Lemma isolated_node_norm_ECTC V v: `packing V /\ V SUBSET ball_annulus /\
+        (!W. packing W /\ W SUBSET ball_annulus ==> scriptL W <= scriptL V) /\
+        v IN V /\ set_of_edge v V (ECTC V) = {}
+        ==> norm v = &2`.
+Proof.
+move => [packV] [subV] [maxV] [vV] edges0.
+case: (REAL_LET_TOTAL `norm v` `&2`) => [| norm_gt2].
+  by rewrite SUBSET in subV; move: (subV vV); rewrite in_ball_annulus; arith.
+have finV := finite_packing_ball_annulus packV subV.
+set D := `{dist (u, v) - &2 | u | u IN V /\ ~(u = v)}`.
+have finD: `FINITE D`.
+  suff ->: `D = IMAGE (\x. dist (x,v) - &2) (V DELETE v)` by rewrite FINITE_IMAGE FINITE_DELETE.
+  rewrite EXTENSION IN_IMAGE -D_def IN_ELIM_THM /= IN_DELETE => x.
+  by split => [[u] [h] ->| [u] [x_eq] h]; exists u.
+have D_n0: `~(D = {})`.
+  suff: `~(V DELETE v = {})`.
+    rewrite -!MEMBER_NOT_EMPTY IN_DELETE => [] [u] [uV unv].
+    by exists `dist (u, v) - &2`; rewrite -D_def IN_ELIM_THM /=; exists u.
+  apply: contraL maxV; rewrite NOT_FORALL_THM EXTENSION NOT_IN_EMPTY IN_DELETE /= negb_and negbK => inV.
+  set w := `(&2 / norm v) % v`.
+  have norm_w: `norm w = &2`.
+    rewrite -w_def NORM_MUL real_div REAL_ABS_MUL REAL_ABS_INV REAL_ABS_NORM -REAL_MUL_ASSOC.
+    by rewrite REAL_MUL_LINV; move: norm_gt2; arith.
+  have neg_w: `~(w = --w:real^3)`.
+    by apply: contraL norm_w; rewrite vector_eq_neg => ->; rewrite NORM_0; arith.
+  exists `{w:real^3, --w}`; rewrite NOT_IMP REAL_NOT_LE.
+  have ->: `V = {v}`.
+    rewrite EXTENSION IN_SING => x; split => [xV |-> //].
+    by move: (inV x); rewrite xV /=.
+  split; last first.
+    rewrite !Tame_defs.scriptL SUM_SING SUM_CLAUSES ?FINITE_SING SUM_SING IN_SING neg_w /=.
+    rewrite NORM_NEG norm_w (Sphere.lmfun `&2 / &2`) Sphere.h0.
+    by rewrite SUBSET in subV; move: (lmfun_in_ball_annulus (subV vV)); arith.
+  rewrite packing SUBSET !IN_INSERT !NOT_IN_EMPTY /= in_ball_annulus; split.
+    by move => x y [] [->] [] [->] //; rewrite ?(DIST_SYM `--w:real^3`) dist;
+        rewrite "VECTOR_ARITH `w - --w = &2 % w:real^3`" NORM_MUL norm_w; arith.
+  by move => x [->]; rewrite ?NORM_NEG norm_w Sphere.h0; arith.
+set e := `min (inf D) (norm v - &2) / norm v`.
+have norm_gt0: `&0 < norm v` by move: norm_gt2; arith.
+have inf_gt0: `&0 < inf D`.
+  rewrite (REAL_LT_INF_FINITE finD D_n0) -D_def IN_ELIM_THM /= => x [u] [[uV nuv]] ->.
+  apply: contraLR edges0; rewrite -MEMBER_NOT_EMPTY REAL_SUB_LT REAL_NOT_LT => dist_le.
+  exists u; rewrite set_of_edge ECTC inE IN_ELIM_THM /= uV andbT.
+  exists v u; do !split => //.
+  by rewrite packing in packV; rewrite DIST_SYM -REAL_LE_ANTISYM dist_le packV.
+have e_gt0: `&0 < e`.
+  by rewrite -e_def REAL_LT_DIV REAL_LT_MIN inf_gt0; by move: norm_gt2; arith.
+have e_lt1: `e < &1`.
+  by rewrite -e_def Arc_properties.REAL_LT_ONE_LDIV REAL_MIN_LT; split; move: norm_gt2; arith.
+set w := `(&1 - e) % v`.
+have norm_w_lt: `norm w < norm v`.
+  rewrite -w_def NORM_MUL -{2}(REAL_MUL_LID `norm v`).
+  by rewrite REAL_LT_RMUL norm_gt0; move: e_lt1 e_gt0; arith.
+have norm_w_ge2: `&2 <= norm w`.
+  rewrite -w_def -e_def NORM_MUL -(REAL_DIV_1 `&1`) "GEN_ALL RAT_LEMMA3" ?norm_gt0 ?REAL_LT_01 //.
+  rewrite REAL_INV_1 !REAL_MUL_LID REAL_MUL_RID REAL_ABS_MUL REAL_ABS_INV REAL_ABS_NORM.
+  by rewrite -REAL_MUL_ASSOC REAL_MUL_LINV ?(REAL_POS_NZ norm_gt0) //; arith.
+rewrite SUBSET in_ball_annulus Sphere.h0 in subV.
+have d_vw: `dist (v, w) = min (inf D) (norm v - &2)`.
+  rewrite dist -w_def "VECTOR_ARITH `!v. v - (&1 - e) % v = e % v`" NORM_MUL.
+  rewrite -e_def real_div REAL_ABS_MUL REAL_ABS_INV REAL_ABS_NORM.
+  rewrite -REAL_MUL_ASSOC REAL_MUL_LINV ?(REAL_POS_NZ norm_gt0) // REAL_MUL_RID.
+  by move: (subV vV) inf_gt0 norm_gt2; arith.
+have in_w: `~(w IN V DELETE v)`.
+  rewrite IN_DELETE negb_and negbK; left.
+  apply: contraL packV => wV; rewrite packing !NOT_FORALL_THM NOT_IMP.
+  exists v w; do !split => //.
+    by apply: contraL norm_w_lt => ->; rewrite REAL_LT_REFL.
+  by rewrite d_vw; move: (subV vV) norm_gt2 inf_gt0; arith.
+set W := `w INSERT (V DELETE v)`.
+apply: contraLR maxV => _; rewrite NOT_FORALL_THM NOT_IMP REAL_NOT_LE.
+exists W; split; last first.
+  rewrite !Tame_defs.scriptL -W_def SUM_CLAUSES ?FINITE_DELETE //.
+  rewrite in_w /= SUM_DELETE //=.
+  suff: `lmfun (norm v / &2) < lmfun (norm w / &2)` by arith.
+  by move: (subV vV) norm_w_lt; rewrite !Sphere.lmfun Sphere.h0; arith.
+rewrite SUBSET packing; split => [x y | x]; last first.
+  rewrite -W_def in_ball_annulus IN_INSERT IN_DELETE Sphere.h0.
+  case => [->|]; first by move: norm_w_ge2 norm_w_lt (subV vV); arith.
+  by move => [/subV] [->] ->.
+rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing in packV.
+have h z: `z IN V /\ ~(z = v) ==> &2 <= dist (z, w)`.
+  move => [zV znv]; apply: REAL_LE_TRANS; exists `dist (z, v) - dist (v, w)`; split; last first.
+    by move: (DIST_TRIANGLE z w v); rewrite (DIST_SYM w); arith.
+  apply: REAL_LE_TRANS; exists `dist (z, v) - inf D`.
+  rewrite d_vw; split; last by arith.
+  suff: `inf D <= dist (z,v) - &2` by arith.
+  rewrite (REAL_INF_LE_FINITE finD D_n0).
+  exists `dist (z,v) - &2`; rewrite REAL_LE_REFL andbT -D_def IN_ELIM_THM /=.
+  by exists z.
+move => [] [->| [xV xnv]] [] [->| [yV ynv]] // neq; last by apply: packV.
+  by rewrite DIST_SYM h.
+by rewrite h.
+Qed.
+
+Lemma not_surrounded_node_norm_ECTC V v: `packing V /\ V SUBSET ball_annulus /\
+        (!W. packing W /\ W SUBSET ball_annulus ==> scriptL W <= scriptL V) /\
+        v IN V /\ ~(surrounded_node (V, ECTC V) v)
+        ==> norm v = &2`.
+Proof.
+move => [packV] [subV] [maxV] [vV] n_surr.
+have [W [f] [bij_f] [packW] [subW] [normW] isoW]:= not_surrounded_ECTC packV subV vV n_surr.
+have maxW U: `packing U /\ U SUBSET ball_annulus ==> scriptL U <= scriptL W`.
+  by move/maxV; rewrite (bij_scriptL bij_f).
+have := isolated_node_norm_ECTC packW subW maxW isoW; "ANTS_TAC"; last by rewrite -normW.
+by move: bij_f; rewrite BIJ INJ => ->.
+Qed.
+
+
+(* Hypotheses *)
+Hypothesis DLWCHEM: `!V. packing V /\ V SUBSET ball_annulus ==> CARD V <= 15`.
+Hypothesis XULJEPR: `!V v. packing V /\ V SUBSET ball_annulus /\ scriptL V > &12 /\
+        v IN V /\ norm v = &2 ==> ?u. u IN V /\ ~(u = v) /\ dist (v, u) < &2 * h0`.
+
+
+Theorem FCDJDOT: `(?W. packing W /\ W SUBSET ball_annulus /\ scriptL W > &12) ==>
+       (?V. contravening V)`.
+Proof.
+move => [W0] W0_props.
+move: scriptL_attains_max_in_ball_annulus => [W1] [packW1] [subW1] W1max.
+have W1_gt12: `scriptL W1 > &12`.
+  by move: (W1max W0); rewrite !W0_props /= real_gt; apply/REAL_LTE_TRANS; rewrite -real_gt.
+move: (FJLBXS packW1 subW1) => [V] [f] [bij_f] [packV] [subV] [norm_eq] V_ESTD.
+have LV_eq := bij_scriptL bij_f norm_eq.
+exists V; rewrite contravening packV subV LV_eq W1_gt12 /=.
+split => //; split.
+  move: (card_counterexample_ge13 packV subV) (DLWCHEM packV subV).
+  by rewrite LV_eq W1_gt12 /=; arith.
+split => v vV; last first.
+  case h: `surrounded_node _1 v` => /=.
+  by apply: (not_surrounded_node_norm_ECTC packV).
+move: (V_ESTD vV); case => // set0; apply: contraT => _.
+have norm_v: `norm v = &2`.
+  apply: (isolated_node_norm_ECTC packV); do !split => //.
+  apply: contraLR set0; rewrite -!MEMBER_NOT_EMPTY => [] [x].
+  rewrite !set_of_edge !inE; move: (ECTC_sub_ESTD V); rewrite SUBSET => subCS.
+  by move => [/subCS] inS xV; exists x.
+move: (XULJEPR packV subV vV norm_v); "ANTS_TAC"; first by rewrite LV_eq.
+move => [u] [uV] [nuv] dist_vu.
+move: set0 => /=; rewrite -MEMBER_NOT_EMPTY; exists u.
+rewrite set_of_edge inE uV andbT ESTD IN_ELIM_THM /=.
+by exists v u; rewrite REAL_LT_IMP_LE.
+Qed.
+
+
+End FCDJDOT.
+

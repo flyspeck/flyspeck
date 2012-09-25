@@ -45,17 +45,20 @@ var sol{STANDARD} >= 0, <= 4*pi;
 minimize objective:  optival;
 
 ## equality constraints
-optsum: - optival + sum {j in FACE} sol[j] = 4*pi + 10;
+optsum: - optival + sum {j in FACE} sol[j] = 4*pi;
 azim_sum{i in IVERTEX}:  sum {(i,j) in DART} azim[i,j] = 2.0*pi;
 sol_sum{j in FACE}: sum{(i,j) in DART} (azim[i,j] - pi) <= sol[j] - 2.0*pi;
 
+## error constraint: should be zero.
+error_bound: optival <= 0.5;
 
 # sol inequality (Main Estimate)
-# tau = sol + (2-j) sol0 >= d(j) = 0.206 + 0.2759 (j-4); for j>=4 gives:
+# constants updated sep 25, 2012.
+# tau = sol + (2-j) sol0 >= d(j) = 0.206 + 0.27 (j-4); for j>=4 gives:
 sol3{j in ITRIANGLE}: sol[j] >= delta0;
 sol4{j in IQUAD}: sol[j] >= 1.3085;
-sol5{j in IPENT}: sol[j] >= 2.1357;
-sol6{j in IHEX}: sol[j] >= 2.9629; 
+sol5{j in IPENT}: sol[j] >= 2.129;
+sol6{j in IHEX}: sol[j] >= 2.95; 
 
 # azim bounds #
 azim3eq {(i,j) in IDART3}: azim[i,j] = dih0;

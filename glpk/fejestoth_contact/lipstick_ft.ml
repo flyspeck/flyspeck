@@ -15,19 +15,25 @@ ocamlmktop unix.cma nums.cma str.cma -o ocampl
 ./ocampl
 
 glpk needs to be installed, and glpsol needs to be found in the path.
+
+*)
+
+(* 
+#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+#use  "glpk_link.ml";;
 *)
 
 module Lipstick_ft = struct
 
-#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
-#use  "glpk_link.ml";;
 open Glpk_link;;
 
 (* external files. Edit for local system. *)
-let datapath = "/Users/thomashales/Desktop/googlecode/flyspeck/graph_generator/output/";;
+(* let datapath = "/Users/thomashales/Desktop/googlecode/flyspeck/graph_generator/output/";; *)
+let datapath = "/tmp/";;
 let glpkpath = "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 
-let archiveraw = datapath ^ "fejesToth.txt";; (*read only *)
+(* let archiveraw = datapath ^ "fejesToth.txt";; (*read only *) *)
+let archiveraw = datapath ^ "graph_out.txt";; (*read only *)
 let model = glpkpath^ "fejesToth_contact/contact.mod";; (* read only *)
 let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
 let dumpfile = "/tmp/graph.out";; (* temp output *)
@@ -52,21 +58,27 @@ let mk_bb s =
 
 let std_faces bb = bb.std_faces;;
 
+let rec rangeA a i j  = if (i >= j) then a
+   else rangeA ((j-1)::a) i (j-1);;
+
+let upt =   rangeA [] 0;;
+
 let triples w = 
-  let r j = nth w (j mod length w)  in
+  let lw = List.length w in
+  let r j = List.nth w (j mod lw)  in
   let triple i = 
       [r i; r (i+1); r(i+2)] in
-    map triple (upto (length w));;
+    map triple (upt lw);;
 
 let cvertex bb =
-  1+ maxlist0 (flatten (std_faces bb));;
+  1+ maxlist0 (List.flatten (std_faces bb));;
 
-let cface bb = length(std_faces bb);;
+let cface bb = List.length(std_faces bb);;
 
 let std_face_of_size bb r= 
   let f = std_faces bb in
   let z = enumerate f in 
-    fst(split (filter (function _,y -> length y=r) z));;
+    fst(List.split (filter (function _,y -> List.length y=r) z));;
 
 let ampl_of_bb outs bb = 
   let fs = std_faces bb in
@@ -94,18 +106,20 @@ let ampl_of_bb outs bb =
 
 let archive = strip_archive archiveraw;;
 let bbn i = mk_bb (List.nth archive i);;
-map (fun i -> solve_branch_f model dumpfile ampl_of_bb (bbn i)) [0;1;2;3;4;5;6;7];;
+let exec() = map (fun i -> solve_branch_f model dumpfile "optival" ampl_of_bb (bbn i)) [0;1;2;3;4;5;6;7];;
 (* - : string list list =
-[["-10"]; ["-10"]; ["0"]; ["0"]; ["0"]; ["0"]; ["-9.25508116531845"];
- ["-10"]] *)
-(* interpretation:
-    The first one HCP is feasible
-   The second FCC is feasible
-   The next four are infeasible
-   The next is feasible but Girard's formula for solid angles cannot hold.
-   The last is feasible but flypaper. gives a geometric argument to rule it out.
+  [([], ["opt.val = 0"]); (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);
+   ([], ["opt.val = 0"]); (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);
+   (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);
+   (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);
+   (["PROBLEM HAS NO FEASIBLE SOLUTION"], []); ([], ["opt.val = 0"])]
 
+First two HCP, FCC. Next five infeasible.
+
+Last is ruled out by hexagons perimeter argument in text.
    We are done!
+
+rerun on Sept 25, 2012.
 *)
 
 end;;

@@ -1,0 +1,236 @@
+needs "verifier/m_verifier.hl";;
+needs "misc/vars.hl";;
+
+module M_verifier1 = struct
+
+open Arith_misc;;
+open Interval_arith;;
+open Eval_interval;;
+open More_float;;
+open M_verifier;;
+open M_verifier_build;;
+open M_taylor;;
+open Misc_vars;;
+
+
+(* Parameters *)
+type verification_parameters =
+{
+  allow_derivatives : bool;
+  convex_flag : bool;
+  mono_pass_flag : bool;
+  raw_intervals_flag : bool;
+  adaptive_precision : bool;
+  eps : float;
+};;
+
+let default_params = ref
+{
+  allow_derivatives = true;
+  convex_flag = true;
+  mono_pass_flag = true;
+  raw_intervals_flag = true;
+  adaptive_precision = true;
+  eps = 0.0;
+};;
+
+
+(********************************)
+
+
+(* Prepares verification functions *)
+(* fun_tm must be in the form `\x. f x` *)
+let mk_verification_functions params pp0 fun_tm =
+  mk_verification_functions_poly pp0 fun_tm;;
+
+
+(********************************)
+
+
+let convert_to_float_list pp lo_flag list_tm =
+  let tms = dest_list list_tm in
+  let i_funs = map build_interval_fun tms in
+  let ints = map (fun f -> eval_interval_fun pp f [] []) i_funs in
+  let extract = (if lo_flag then fst else snd) o dest_pair o rand o concl in
+    mk_list (map extract ints, real_ty);;
+
+
+(* Creates a theorem |- interval[xx_tm, zz_tm] SUBSET interval[float(xx_tm), float(zz_tm)]
+   and two lists: float(xx_tm) and float(zz_tm) *)
+let mk_float_domain pp (xx_tm, zz_tm) =
+  let xx_list = dest_list xx_tm and
+      zz_list = dest_list zz_tm in
+  let n = length xx_list in 
+  let get_intervals tms =
+    let i_funs = map build_interval_fun tms in
+      map (fun f -> eval_interval_fun pp f [] []) i_funs in
+  let xx_ints = get_intervals xx_list and
+      zz_ints = get_intervals zz_list in
+  let xx_ineqs = map (CONJUNCT1 o ONCE_REWRITE_RULE[interval_arith]) xx_ints and
+      zz_ineqs = map (CONJUNCT2 o ONCE_REWRITE_RULE[interval_arith]) zz_ints in
+  let a_vals = map (lhand o concl) xx_ineqs and
+      b_vals = map (rand o concl) zz_ineqs in
+  let a_vars = mk_real_vars n "a" and
+      b_vars = mk_real_vars n "b" and
+      c_vars = mk_real_vars n "c" and
+      d_vars = mk_real_vars n "d" in
+  let th0 = (INST (zip xx_list c_vars) o INST (zip zz_list d_vars) o
+	       INST (zip a_vals a_vars) o INST (zip b_vals b_vars)) 
+    subset_interval_thms_array.(n) in
+    itlist MY_PROVE_HYP (xx_ineqs @ zz_ineqs) th0, 
+  (mk_list (a_vals, real_ty), mk_list (b_vals, real_ty));;
+
+
+
+(* Given a term a < b, returns the theorem |- a - b < &0 <=> a < b *)
+let mk_standard_ineq =
+  let lemma = REAL_ARITH `a < b <=> a - b < &0` in
+    fun tm ->
+      let th0 = REWRITE_CONV[real_gt] tm in
+      let rhs = rand (concl th0) in
+      let th1 = ONCE_REWRITE_CONV[lemma] rhs in
+      let th2 = PURE_REWRITE_RULE[REAL_NEG_0; REAL_SUB_RZERO; REAL_SUB_LZERO] th1 in
+	TRANS th0 th2;;
+
+
+(* Converts a term in the form `x + y` into the term `\x:real^2. x$1 + x$2` *)
+let expr_to_vector_fun =
+  let comp_op = `$` in
+    fun expr_tm ->
+      let vars = List.sort Pervasives.compare (frees expr_tm) in
+      let n = length vars in
+      let x_var = mk_var ("x", n_vector_type_array.(if n = 0 then 1 else n)) in
+      let x_tm = mk_icomb (comp_op, x_var) in
+      let vars2 = map (fun i -> mk_comb (x_tm, mk_small_numeral i)) (1--n) in
+	mk_abs (x_var, subst (zip vars2 vars) expr_tm), mk_vector_list vars;;
+
+
+(* Given an inequality `P x y`, variable names and the corresponding bounds,
+   yields `(x0 <= x /\ x <= x1) /\ (y0 <= y /\ y <= y1) ==> P x y` *)
+let mk_ineq ineq_tm names dom_tm =
+  let lo_list = dest_list (fst dom_tm) and
+      hi_list = dest_list (snd dom_tm) in
+  let vars = map (fun name -> mk_var (name, real_ty)) names in
+  let lo_ineqs = map2 (fun tm1 tm2 -> mk_binop le_op_real tm1 tm2) lo_list vars and
+      hi_ineqs = map2 (fun tm1 tm2 -> mk_binop le_op_real tm1 tm2) vars hi_list in
+  let ineqs = map2 (fun tm1 tm2 -> mk_conj (tm1, tm2)) lo_ineqs hi_ineqs in
+  let cond = end_itlist (curry mk_conj) ineqs in
+    mk_imp (cond, ineq_tm);;
+
+let mk_real_list tms = mk_list (tms, real_ty);;
+
+
+(* Reverts the effect of mk_ineq function *)
+let dest_ineq ineq_tm =
+  let tm0 = (rand o concl o PURE_REWRITE_CONV[IMP_IMP; GSYM CONJ_ASSOC]) ineq_tm in
+  let cond, ineq = dest_imp tm0 in
+  let conds = striplist dest_conj cond in
+  let ineqs = ref [] in
+  let decode_ineq tm =
+    let lhs, rhs = dest_binop le_op_real tm in
+    let lo_flag = (frees lhs = []) in
+    let name = (fst o dest_var) (if lo_flag then rhs else lhs) in
+    let val_ref = 
+      try assoc name !ineqs
+      with Failure _ -> 
+	let val_ref = ref (x_var_real, x_var_real) in 
+	  ineqs := ((name, val_ref) :: !ineqs); val_ref in
+      val_ref := if lo_flag then (lhs, snd !val_ref) else (fst !val_ref, rhs) in
+  let _ = map (fun tm -> 
+		(try decode_ineq tm with Failure _ ->
+		   failwith ("Bad variable bound inequality: "^string_of_term tm))) conds in
+  let names, bounds0 = unzip !ineqs in
+  let lo, hi = unzip (map (fun r -> !r) bounds0) in
+  let test_bounds bounds bound_name =
+    let _ = map2 (fun tm name -> if frees tm <> [] then 
+		    failwith (bound_name^" bound is not defined for "^name) else ())
+      bounds names in () in
+  let _ = test_bounds hi "Upper"; test_bounds lo "Lower" in
+    ineq, names, (mk_real_list lo, mk_real_list hi);;
+
+(*********************************)
+
+(* Normalizes a verification result *)
+let normalize_result norm_flag v1 eq_th1 domain_sub_th pass_thm =
+  let th0 = REWRITE_RULE[m_cell_pass] pass_thm in
+  let n = (get_dim o fst o dest_forall o concl) th0 in
+  let th1 = SPEC v1 th0 in
+  let comp_thms = end_itlist CONJ (Array.to_list comp_thms_array.(n)) in
+  let th2 = REWRITE_RULE[comp_thms] th1 in
+  let th3 = (UNDISCH_ALL o REWRITE_RULE[GSYM eq_th1]) th2 in
+  let dom_th = (UNDISCH_ALL o SPEC v1 o REWRITE_RULE[SUBSET]) domain_sub_th in
+  let th4 = (DISCH_ALL o MY_PROVE_HYP dom_th) th3 in
+  let th5 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n); gen_in_interval n; comp_thms] th4 in
+    if norm_flag then GEN_ALL th5 else th4;;
+
+
+(* Verifies the given inequality *)
+let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) =
+  let total_start = Sys.time() in
+  let eq_th1 = mk_standard_ineq ineq_tm in
+  let ineq_tm1 = (lhand o rand o concl) eq_th1 in
+  let fun_tm, v1 = expr_to_vector_fun ineq_tm1 in
+  let vars = map (fst o dest_var) (dest_vector v1) in
+  let lo_list = dest_list lo_tm and
+      hi_list = dest_list hi_tm in
+  let bounds0 = zip var_names (zip lo_list hi_list) in
+  let bounds = itlist (fun name list -> assoc name bounds0 :: list) vars [] in
+  let xx, zz = unzip bounds in
+  let xx, zz = mk_real_list xx, mk_real_list zz in
+
+  let domain_sub_th, (xx1, zz1) = mk_float_domain pp (xx, zz) in
+  let n = (get_dim o fst o dest_abs) fun_tm in
+  let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+      zz2 = Informal_taylor.convert_to_float_list pp false zz in
+  let xx_float = map float_of_float_tm (dest_list xx1) and
+      zz_float = map float_of_float_tm (dest_list zz1) in
+
+  let params = ref params0 in
+  let eval_fs, tf, ti = mk_verification_functions params pp fun_tm in
+
+  let certificate = Verifier.run_test tf xx_float zz_float false 0.0 
+    !params.allow_derivatives !params.convex_flag !params.mono_pass_flag
+    !params.raw_intervals_flag !params.eps in
+
+  let c1 = Verifier.transform_result xx_float zz_float certificate in
+  let start, finish, result = 
+    if !params.adaptive_precision then
+      let c1p = Informal_verifier.m_verify_list pp 1 pp ti c1 xx2 zz2 in
+      let start = Sys.time() in
+      let result = m_p_verify_list n pp eval_fs c1p xx1 zz1 in
+      let finish = Sys.time() in
+	start, finish, result
+    else
+      let start = Sys.time() in
+      let result = m_verify_list n pp eval_fs c1 xx1 zz1 in
+      let finish = Sys.time() in
+	start, finish, result in
+
+  let _ = report 
+    (sprintf "Total time: %f; Verification time: %f" (finish -. total_start) (finish -. start)) in
+    normalize_result norm_flag v1 eq_th1 domain_sub_th result;;
+
+
+let verify_ineq params pp ineq_tm =
+  let ineq, vars, bounds = dest_ineq ineq_tm in
+    verify_ineq0 params true pp ineq vars bounds;;
+
+
+(********************************)
+
+(*
+let xx = `[-- &1; &0]`;;
+let zz = `[sqrt(&2); &1]`;;
+let test_ineq = `x1 pow 3 + x2 > -- #1.1`;;
+
+verify_ineq0 !default_params false 5 test_ineq ["x1"; "x2"] (xx,zz);;
+
+let ineq_tm = mk_ineq test_ineq ["x1"; "x2"] (xx,zz);;
+verify_ineq !default_params 5 ineq_tm;;
+
+let ineq_tm2 = `&0 <= a /\ b <= &2 ==> a <= &1 /\ &1 <= b ==> a * a + b < &3 + a`;;
+verify_ineq !default_params 5 ineq_tm2;;
+
+*)
+
+end;;

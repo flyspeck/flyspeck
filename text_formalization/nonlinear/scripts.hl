@@ -20,14 +20,15 @@ flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/ineq.hl";;
 flyspeck_needs "nonlinear/mdtau.hl";;
 flyspeck_needs "nonlinear/main_estimate_ineq.hl";;
-flyspeck_needs "nonlinear/strongdodec_ineq.hl";;
+(* flyspeck_needs "nonlinear/strongdodec_ineq.hl";; *)
 
 flyspeck_needs "nonlinear/lemma.hl";;
 flyspeck_needs "nonlinear/functional_equation.hl";;
 flyspeck_needs  "nonlinear/parse_ineq.hl";;
 flyspeck_needs "nonlinear/optimize.hl";;
+flyspeck_needs "general/flyspeck_lib.hl";;
 flyspeck_needs "nonlinear/auto_lib.hl";;
-flyspeck_needs "nonlinear/bcc_lattice.hl";;
+(* flyspeck_needs "../projects_discrete_geom/bcc_lattice.hl";; *)
 
 let idq_of_string s = hd(Ineq.getexact s);;
 let expand_string = map (fun t->t.idv) o Ineq.getprefix;;
@@ -244,3 +245,63 @@ let case_splits_execute =
       let vv = unify_splits (case_splits (map fst finished_times)) in
 	filter (fun (_,ls,r) -> not ((0--(r-1)) = sort (<) ls)) vv;;
 
+
+(* October, 2012 *)
+
+(* generate file of all preprocessed inequalities. *)
+
+(* edit "#" -> " #" in printer.ml to defuse "--#0.02" bug *)
+(* needs "printer.ml";; *)
+
+module Preprocess = struct
+  let add_inequality _ = ();;
+  let ineq = Sphere.ineq;;
+  let print_tag t = match t with
+  | Branching -> "Branching"
+  | Sharp  -> "Sharp"
+  | Disallow_derivatives  -> "Disallow_derivatives"
+  | Onlycheckderiv1negative -> "Onlycheckderiv1negative"
+  | Dim_red -> "Dim_red"
+  | Dim_red_backsym -> "Dim_red_backsym"
+  | Quad_cluster f -> "Quad_cluster "^(string_of_float f)
+  | Set_rad2 -> "Set_rad2"
+  | Delta126min f -> "Delta126min "^(string_of_float f)
+  | Delta126max f -> "Delta126max "^(string_of_float f)
+  | Widthcutoff f -> "Widthcutoff "^(string_of_float f)
+  | Delta135min f -> "Delta135min "^(string_of_float f)
+  | Delta135max f -> "Delta126max "^(string_of_float f)
+  | _ -> ""
+  ;;
+  let print_one (s,tgl,ii) = 
+    let p = Printf.sprintf in 
+    let tgs = filter (fun s -> not(s="")) (map print_tag tgl) in
+    let jsemi  = Flyspeck_lib.unsplit ";" (fun x-> x) in
+    let tl = jsemi tgs in
+    let is = print_to_string pp_print_qterm ii in
+       Flyspeck_lib.join_lines [
+      "add_inequality  { ";
+      p "  idv= \"%s\";" s;
+      "  doc=\"\";";
+      p "  tags= [%s];" tl;
+      p "  ineq= %s;" is;
+      p "};;\n\n";
+    ];;
+  let preprocess1 s = 
+    let v = 
+    join_lines (map print_one
+		  (Optimize.preprocess_split_idq 
+		     (hd (Ineq.getexact  (s))))) in
+    let _ = report v in
+      v;;
+  let preprocess filename = 
+    let cc0 = ["GRKIBMP"] in
+    let cc = subtract (finished_cases()) (disregard) in
+    let cc1 = fst(chop_list 5 cc) in
+    let header = "(* Auto generated file of preprocessed  inequalities *)\n\n" in
+    let h2 = "(* need to defuse --# in printer.ml *)\n\n" in
+    let p = map preprocess1 cc in
+    let v =     join_lines ( p) in
+      Flyspeck_lib.output_filestring filename (header^h2^v);;
+  let exec()=  preprocess "/tmp/prep.hl";;
+(* needs "/tmp/prep.hl";; *)
+end;;

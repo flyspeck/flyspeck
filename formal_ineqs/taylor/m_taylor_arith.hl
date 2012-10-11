@@ -673,7 +673,7 @@ let eval_m_taylor_mul n p_lin p_second taylor1_th taylor2_th =
 
 (*******************************************************)
 
-(* inv, sqrt, atn, acs *)
+(* neg, inv, sqrt, atn, acs *)
 
 
 
@@ -681,6 +681,44 @@ let partial_uni_compose' =
   REWRITE_RULE[SWAP_FORALL_THM; GSYM RIGHT_IMP_FORALL_THM] partial_uni_compose;;
 let second_partial_uni_compose' = 
   REWRITE_RULE[SWAP_FORALL_THM; GSYM RIGHT_IMP_FORALL_THM] second_partial_uni_compose;;
+
+  
+(* neg *)
+let MK_M_TAYLOR_NEG' = (MY_RULE_FLOAT o prove)
+  (`m_cell_domain domain (y:real^N) w ==>
+     (!x. x IN interval [domain] ==> interval_arith (f x) f_bounds) ==>
+     diff2c_domain domain f ==>
+     interval_arith (-- (f y)) bounds ==>
+     all_n 1 d_bounds_list (\i int. interval_arith (-- partial i f y) int) ==>
+     (!x. x IN interval [domain] ==> all_n 1 dd_bounds_list (\i list_i. all_n 1 list_i 
+	(\j int. interval_arith (-- partial2 j i f x) int))) ==>
+     m_taylor_interval (\x. -- (f x)) domain y w bounds d_bounds_list dd_bounds_list`,
+   REWRITE_TAC[m_taylor_interval; m_lin_approx; second_bounded] THEN 
+     REPEAT DISCH_TAC THEN
+     SUBGOAL_THEN `lift o f differentiable at (y:real^N)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN STRIP_TAC THEN
+	 REPEAT (new_rewrite [] [] diff2_imp_diff) THEN REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       new_rewrite [] [] diff2c_domain_neg THEN ASM_REWRITE_TAC[];
+       REWRITE_TAC[f_lift_neg] THEN
+	 new_rewrite [] [] DIFFERENTIABLE_NEG THEN
+	 ASM_REWRITE_TAC[ETA_AX];
+       ASM_SIMP_TAC[partial_neg];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+     REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN
+     REPEAT (DISCH_THEN (MP_TAC o SPEC `x:real^N` o CONJUNCT1) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC) THEN
+     ASM_SIMP_TAC[second_partial_neg]);;
 
 
 (* inv *)

@@ -428,56 +428,69 @@ let gen_diff_poly =
 
 let in_tm = `IN`;;
 
-let gen_partial_poly i poly_tm =
-  let i_tm = mk_small_numeral i in
-  let rec gen_rec poly_tm =
-    let x_var, expr = dest_abs poly_tm in
-    let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
-      if frees expr = [] then
-	(* const *)
-	(SPECL [i_tm; expr] o inst_first_type_var (n_type_array.(n))) partial_const
-      else
-	let lhs, r_tm = dest_comb expr in
-	  if lhs = neg_op_real then
-	    (* -- *)
-	    let r_poly = mk_abs (x_var, r_tm) in
-	    let r_diff = (SPEC_ALL o gen_diff_poly) r_poly and
-		r_partial = gen_rec r_poly in
-	    let th0 = SPEC i_tm (MATCH_MP partial_neg r_diff) in 
-	      REWRITE_RULE[r_partial] th0
-	    else
-	      let op, l_tm = dest_comb lhs in
-	      let name = (fst o dest_const) op in
-		if name = "$" then
-		  (* comp *)
-		  let dim_th = dimindex_array.(n) in
-		  let dim_tm = (lhand o concl) dim_th in
-		  let i_eq_k = NUM_EQ_CONV (mk_eq (i_tm, r_tm)) in
-		  let int_tm = mk_binop `..` `1` dim_tm in
-		  let k_in_dim = prove(mk_comb (mk_icomb(in_tm, r_tm), int_tm),
-				       REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC) in
-		    (REWRITE_RULE[i_eq_k] o MATCH_MP (SPECL [r_tm; i_tm] partial_x)) k_in_dim
-		else
-		  let l_poly = mk_abs (x_var, l_tm) in
-		  let l_partial = gen_rec l_poly in
-		  let l_diff = (SPEC_ALL o gen_diff_poly) l_poly in
-		    if name = "real_pow" then
-		      (* f pow n *)
-		      let th0 = SPECL [i_tm; r_tm] (MATCH_MP partial_pow l_diff) in
-			REWRITE_RULE[l_partial] th0
-		    else
-		      let r_poly = mk_abs (x_var, r_tm) in
-		      let r_partial = gen_rec r_poly in
-		      let r_diff = (SPEC_ALL o gen_diff_poly) r_poly in
-		      let imp_th = assoc op [add_op_real, partial_add; 
-					     sub_op_real, partial_sub;
-					     mul_op_real, partial_mul] in
-		      let th0 = SPEC i_tm (MATCH_MP (MATCH_MP imp_th l_diff) r_diff) in
-			REWRITE_RULE[l_partial; r_partial] th0 in
-    
-  let th1 = gen_rec poly_tm in
-  let th2 = ((NUM_REDUCE_CONV THENC REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV) o rand o concl) th1 in
-    (REWRITE_RULE[ETA_AX] o ONCE_REWRITE_RULE[eq_ext] o GEN_ALL) (TRANS th1 th2);;
+let add_to_hash tbl max_size key value =
+  let _ = if Hashtbl.length tbl >= max_size then Hashtbl.clear tbl else () in
+    Hashtbl.add tbl key value;;
+
+(* Formally computes partial derivatives of a polynomial *)
+let gen_partial_poly =
+  let max_hash = 1000 in
+  let hash = Hashtbl.create max_hash in
+    fun i poly_tm ->
+      let key = (i, poly_tm) in	
+	try Hashtbl.find hash (i, poly_tm)
+	with Not_found ->
+	  let i_tm = mk_small_numeral i in
+	  let rec gen_rec poly_tm =
+	    let x_var, expr = dest_abs poly_tm in
+	    let n = (int_of_string o fst o dest_type o hd o tl o snd o dest_type o type_of) x_var in
+	      if frees expr = [] then
+		(* const *)
+		(SPECL [i_tm; expr] o inst_first_type_var (n_type_array.(n))) partial_const
+	      else
+		let lhs, r_tm = dest_comb expr in
+		  if lhs = neg_op_real then
+		    (* -- *)
+		    let r_poly = mk_abs (x_var, r_tm) in
+		    let r_diff = (SPEC_ALL o gen_diff_poly) r_poly and
+			r_partial = gen_rec r_poly in
+		    let th0 = SPEC i_tm (MATCH_MP partial_neg r_diff) in 
+		      REWRITE_RULE[r_partial] th0
+		  else
+		    let op, l_tm = dest_comb lhs in
+		    let name = (fst o dest_const) op in
+		      if name = "$" then
+			(* comp *)
+			let dim_th = dimindex_array.(n) in
+			let dim_tm = (lhand o concl) dim_th in
+			let i_eq_k = NUM_EQ_CONV (mk_eq (i_tm, r_tm)) in
+			let int_tm = mk_binop `..` `1` dim_tm in
+			let k_in_dim = prove(mk_comb (mk_icomb(in_tm, r_tm), int_tm),
+					     REWRITE_TAC[IN_NUMSEG; dim_th] THEN ARITH_TAC) in
+			  (REWRITE_RULE[i_eq_k] o MATCH_MP (SPECL [r_tm; i_tm] partial_x)) k_in_dim
+		      else
+			let l_poly = mk_abs (x_var, l_tm) in
+			let l_partial = gen_rec l_poly in
+			let l_diff = (SPEC_ALL o gen_diff_poly) l_poly in
+			  if name = "real_pow" then
+			    (* f pow n *)
+			    let th0 = SPECL [i_tm; r_tm] (MATCH_MP partial_pow l_diff) in
+			      REWRITE_RULE[l_partial] th0
+			  else
+			    let r_poly = mk_abs (x_var, r_tm) in
+			    let r_partial = gen_rec r_poly in
+			    let r_diff = (SPEC_ALL o gen_diff_poly) r_poly in
+			    let imp_th = assoc op [add_op_real, partial_add; 
+						   sub_op_real, partial_sub;
+						   mul_op_real, partial_mul] in
+			    let th0 = SPEC i_tm (MATCH_MP (MATCH_MP imp_th l_diff) r_diff) in
+			      REWRITE_RULE[l_partial; r_partial] th0 in
+	    
+	  let th1 = gen_rec poly_tm in
+	  let th2 = ((NUM_REDUCE_CONV THENC REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV) o rand o concl) th1 in
+	  let th3 = (REWRITE_RULE[ETA_AX] o ONCE_REWRITE_RULE[eq_ext] o GEN_ALL) (TRANS th1 th2) in
+	  let _ = add_to_hash hash max_hash key th3 in
+	    th3;;
 
 
 let gen_partial2_poly i j poly_tm =

@@ -6,8 +6,8 @@ load_path := "path to the formal_ineq directory" :: !load_path;;
 (* (arithmetic options cannot be changed later) *)
 needs "arith_options.hl";;
 
-(* Set the base of natural number arithmetic to 200 *)
-Arith_options.base := 200;;
+(* Set the base of natural number arithmetic to 100 *)
+Arith_options.base := 100;;
 
 (* Load all verification libraries *)
 (* Note: the verification library loads Multivariate/realanalysis.ml,
@@ -43,8 +43,8 @@ let atn_approx1 = (GEN_ALL o DISCH_ALL o REWRITE_RULE[GSYM abs_th])
 let ineq1 = `-- &1 / &30 <= x /\ x <= &1 / &30 ==> x * (&1 - (x * x) * (&11184811 / &33554432 - (x * x) * (&13421773 / &67108864))) - atn x < #0.1 pow 7`;;
 let ineq2 = `-- &1 / &30 <= x /\ x <= &1 / &30 ==> -- (#0.1 pow 7) < x * (&1 - (x * x) * (&11184811 / &33554432 - (x * x) * (&13421773 / &67108864))) - atn x`;;
 
-let th1 = verify_ineq default_params 10 ineq1;;
-let th2 = verify_ineq default_params 10 ineq2;;
+let th1 = verify_ineq default_params 5 ineq1;;
+let th2 = verify_ineq default_params 5 ineq2;;
 let atn_approx2 = (GEN_ALL o DISCH_ALL o REWRITE_RULE[GSYM abs_th])
   (CONJ (MY_RULE th1) (MY_RULE th2));;
 
@@ -60,6 +60,7 @@ let ineq = define
     /\ (!a x b xs c. ineq (CONS (a,x,b) xs) c <=> a <= x /\ x <= b ==> ineq xs c)`;;
 
 (* A modified (only one case is considered, x > 0) definition of atn2 *)
+(* Add ' to some definitions to avoid conflicts with original Flyspeck definitions *)
 let atn2' = new_definition `atn2'(x,y) = atn(y / x)`
 
 
@@ -89,6 +90,10 @@ let rho_x = new_definition(`rho_x x1 x2 x3 x4 x5 x6 =
         --x1*x1*x4*x4 - x2*x2*x5*x5 - x3*x3*x6*x6 +
         (&2)*x1*x2*x4*x5 + (&2)*x1*x3*x4*x6 + (&2)*x2*x3*x5*x6`);;
 
+(* rad2_x *)		
+let rad2_x = new_definition(`rad2_x x1 x2 x3 x4 x5 x6 =
+        (rho_x x1 x2 x3 x4 x5 x6)/((delta_x x1 x2 x3 x4 x5 x6)*(&4))`);;
+
 (* dih_x', atn2 replaced with atan2 *)
 let dih_x' = new_definition(`dih_x' x1 x2 x3 x4 x5 x6 =
        let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
@@ -116,7 +121,17 @@ let sol_y' = new_definition(`sol_y' y1 y2 y3 y4 y5 y6 =
 
 		
 (* const1 *)
-let const1 = new_definition `const1 = sol_y' (&2) (&2) (&2) (&2) (&2) (&2) / pi`;;
+let const1' = new_definition `const1' = sol_y' (&2) (&2) (&2) (&2) (&2) (&2) / pi`;;
+
+(* h0 *)
+let h0 = new_definition `h0 = #1.26`;;
+
+(* lfun *)
+let lfun = new_definition `lfun h =  (h0 - h)/(h0 - &1)`;;
+
+(* lfun_y1 *)
+let lfun_y1 = new_definition `lfun_y1 (y1:real) (y2:real) (y3:real) 
+  (y4:real) (y5:real) (y6:real) =  lfun y1`;;
 
 		
 (* num1 *)
@@ -127,11 +142,36 @@ let num1 = new_definition `num1 e1 e2 e3 a2 b2 c2 =
 (* unit6 *)
 let unit6 = define `unit6 x1 x2 x3 x4 x5 x6 = &1`;;
 
+(* arc_hhn *)
+let arc_hhn' = new_definition `arc_hhn' = 
+  arclength' (&2 * h0) (&2 * h0) (&2)`;;
+
+(* arclength_y1 *)
+let arclength_y1' = new_definition 
+ `arclength_y1' a b 
+  (y1:real) (y2:real) (y3:real) (y4:real) (y5:real) (y6:real) =
+  arclength' y1 a b`;;
+
+(* arclength_x1 *)
+let arclength_x1' = new_definition 
+ `arclength_x1' a b x1 x2 x3 x4 x5 x6 = 
+  arclength_y1' a b (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6)`;;
+
+(* arclength_x_123 *)
+let arclength_x_123' = new_definition `arclength_x_123'  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+		arclength' (sqrt x1) (sqrt x2) (sqrt x3)`;;
+  
+(* acs_sqrt_x1_d4 *)  
+let acs_sqrt_x1_d4 = new_definition `acs_sqrt_x1_d4 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+  acs (sqrt(x1)/ &4)`;;
+
 
 (* All definitions in one list *)
 let flyspeck_defs = [atn2'; delta_x; delta_y; delta_x4;
 	      ups_x; rho_x; dih_x'; dih_y'; arclength';
-	      sol_x'; sol_y'; const1; num1; unit6];;
+	      sol_x'; sol_y'; const1'; num1; unit6; h0; lfun; lfun_y1;
+	      rad2_x; arc_hhn'; arclength_y1'; arclength_x1'; acs_sqrt_x1_d4;
+	      arclength_x_123'];;
 
 
 
@@ -163,8 +203,8 @@ verify_flyspeck_ineq 5 ineq_tm;;
 
 
 (* 5512912661 *)
-let ineq_tm = `ineq [&1,x1,&1 + (pi * const1) / pi; &1,x2,&1 + (pi * const1) / pi; 
-		     &1, x3, &1 + (pi * const1) / pi;  #2.38 * #2.38, x4, #3.01 * #3.01; 
+let ineq_tm = `ineq [&1,x1,&1 + (pi * const1') / pi; &1,x2,&1 + (pi * const1') / pi; 
+		     &1, x3, &1 + (pi * const1') / pi;  #2.38 * #2.38, x4, #3.01 * #3.01; 
 		     &2 * &2, x5, #2.52 *  #2.52;  #3.15 /  #1.26 *  #3.15 /  #1.26,x6, #15.53]
   (num1 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
 
@@ -172,8 +212,8 @@ verify_flyspeck_ineq 5 ineq_tm;;
 
 
 (* 6843920790 *)
-let ineq_tm = `ineq [&1,x1,&1 + (pi * const1) / pi; &1,x2,&1 + (pi * const1) / pi; 
-		     &1, x3, &1 + (pi * const1) / pi; &2 / #1.26 * &2 / #1.26, x4, #3.01 * #3.01; 
+let ineq_tm = `ineq [&1,x1,&1 + (pi * const1') / pi; &1,x2,&1 + (pi * const1') / pi; 
+		     &1, x3, &1 + (pi * const1') / pi; &2 / #1.26 * &2 / #1.26, x4, #3.01 * #3.01; 
 		     #2.38 *  #2.38, x5, #15.53;  #2.38 *  #2.38,x6, #15.53]
   (num1 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
 
@@ -190,110 +230,68 @@ let ineq_tm = `ineq [ #1.0,x1, #1.0; &1,x2,&1; &1,x3,&1; &1,x4,&1; &1,x5,&1; &1,
 
 verify_flyspeck_ineq 3 ineq_tm;;
 
-
-
-
-add_inequality  { 
-  idv= "SDCCMGA b";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [ #4.0,x1, #6.3504; &1 * &1,x2,&1 * &1; &1 * &1,x3,&1 * &1; &1 * &1,
-                                                             x4,
-                                                             &1 * &1; 
- &1 * &1,
- x5,
- &1 * &1; &1 * &1,x6,&1 * &1]
- (arclength_x1  #2.0 ( #2.0 *  #1.26) x1 x2 x3 x4 x5 x6 +
-  arclength_x1  #2.0 ( #2.0 *  #1.26) x1 x2 x3 x4 x5 x6 +
-  arclength_x1 ( #2.0 *  #1.26)  #2.0 x1 x2 x3 x4 x5 x6 * -- &1 +
-  unit6 x1 x2 x3 x4 x5 x6 * pi * --(&1 / &3) +
-  unit6 x1 x2 x3 x4 x5 x6 * --arc_hhn <
-  &0)`;
-};;
-
-
-add_inequality  { 
-  idv= "4717061266";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [ #4.0,x1, #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0,
-                                            x2,
-                                             #2.0 *  #1.26 *  #2.0 *  #1.26; 
-  #4.0,
- x3,
-  #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0,x4, #2.0 *  #1.26 *  #2.0 *  #1.26; 
-  #4.0,
- x5,
-  #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0,x6, #2.0 *  #1.26 *  #2.0 *  #1.26]
- (delta_x x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;
-};;
-
-
-
-
-add_inequality  { 
-  idv= "8055810915";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [&4,x1, #2.52 *  #2.52; &4,x2,&4; &2 *  #1.26 * &2 *  #1.26,
-                                   x3,
-                                   &2 *  #1.26 * &2 *  #1.26; &1,x4,&1; 
- &1,
- x5,
- &1; &1,x6,&1]
- (acs_sqrt_x1_d4 x1 x2 x3 x4 x5 x6 +
-  unit6 x1 x2 x3 x4 x5 x6 * pi * --(&1 / &6) +
-  unit6 x1 x2 x3 x4 x5 x6 *  #0.797 +
-  arclength_x_123 x1 x2 x3 x4 x5 x6 * -- &1 <
-  &0)`;
-};;
-
-
-add_inequality  { 
-  idv= "1965189142 34";
-  doc="";
-  tags= [];
-  ineq= `ineq [ #1.0,x1, #1.26; &1,x2,&1; &1,x3,&1; &1,x4,&1; &1,x5,&1; &1,x6,&1]
+(* 1965189142 34 *)
+let ineq_tm = `ineq [ #1.0,x1, #1.26; &1,x2,&1; &1,x3,&1; &1,x4,&1; &1,x5,&1; &1,x6,&1]
  (unit6 x1 x2 x3 x4 x5 x6 *  #0.591 +
   unit6 x1 x2 x3 x4 x5 x6 *  #0.0331 * -- &34 +
-  lfun_y1 x1 x2 x3 x4 x5 x6 *  #0.506 <
-  &0)`;
-};;
+  lfun_y1 x1 x2 x3 x4 x5 x6 *  #0.506 < &0)`;;
 
+verify_flyspeck_ineq 3 ineq_tm;;
 
-add_inequality  { 
-  idv= "5490182221";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,x4, #6.3504; 
-  #4.0,
- x5,
-  #6.3504;  #4.0,x6, #6.3504]
- (dih_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- #1.893 < &0)`;
-};;
+(* 4717061266 *)
+let ineq_tm = `ineq
+ [ #4.0,x1, #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0, x2, #2.0 *  #1.26 *  #2.0 *  #1.26; 
+  #4.0, x3, #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0,x4, #2.0 *  #1.26 *  #2.0 *  #1.26; 
+  #4.0, x5, #2.0 *  #1.26 *  #2.0 *  #1.26;  #4.0,x6, #2.0 *  #1.26 *  #2.0 *  #1.26]
+ (delta_x x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
 
+verify_flyspeck_ineq 3 ineq_tm;;
 
-add_inequality  { 
-  idv= "TSKAJXY-TADIAMB";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [ #2.0 *  #1.3254 *  #2.0 *  #1.3254,x1, #8.0;  #2.0 *
-                                                 #1.3254 *
-                                                 #2.0 *
-                                                 #1.3254,
-                                                x2,
-                                                 #8.0;  #4.0,x3, #8.0; 
-  #4.0,
- x4,
-  #8.0;  #4.0,x5, #8.0;  #4.0,x6, #8.0]
- (unit6 x1 x2 x3 x4 x5 x6 *  #2.0 + rad2_x x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;
-};;
+(* TSKAJXY-TADIAMB *)
+let ineq_tm = `ineq
+ [ #2.0 *  #1.3254 *  #2.0 *  #1.3254,x1, #8.0;  #2.0 * #1.3254 * #2.0 * #1.3254, x2, #8.0;  
+	#4.0,x3, #8.0; #4.0, x4, #8.0;  #4.0,x5, #8.0;  #4.0,x6, #8.0]
+ (unit6 x1 x2 x3 x4 x5 x6 *  #2.0 + rad2_x x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
 
+(* Too difficult:
+verify_flyspeck_ineq 3 ineq_tm;;
+*)
+
+let ineq1_tm = `ineq
+ [ #2.0 *  #1.3254 *  #2.0 *  #1.3254,x1, #8.0;  #2.0 * #1.3254 * #2.0 * #1.3254, x2, #8.0;  
+	#4.0,x3, #8.0; #4.0, x4, #8.0;  #4.0,x5, #8.0;  #4.0,x6, #8.0]
+ (&0 < delta_x x1 x2 x3 x4 x5 x6 * &4)`;;
+
+let ineq2_tm = `ineq
+ [ #2.0 *  #1.3254 *  #2.0 *  #1.3254,x1, #8.0;  #2.0 * #1.3254 * #2.0 * #1.3254, x2, #8.0;  
+	#4.0,x3, #8.0; #4.0, x4, #8.0;  #4.0,x5, #8.0;  #4.0,x6, #8.0]
+ ((unit6 x1 x2 x3 x4 x5 x6 * #2.0) * (delta_x x1 x2 x3 x4 x5 x6 * &4) < rho_x x1 x2 x3 x4 x5 x6)`;;
+
+(* easy *)
+let delta_x4_pos = verify_flyspeck_ineq 3 ineq1_tm;;
+(* easy *)
+let ineq2_th = verify_flyspeck_ineq 3 ineq2_tm;;
+
+let eq_th = REWRITE_CONV[ineq; IMP_IMP] ineq_tm;;
+let INEQ_RULE = UNDISCH_ALL o SPEC_ALL o REWRITE_RULE[ineq; IMP_IMP];;
+let th0 = INEQ_RULE delta_x4_pos;;
+let th1 = INEQ_RULE ineq2_th;;
+let th2 = MATCH_MP REAL_LT_RDIV_EQ th0;;
+let th3 = REWRITE_RULE[GSYM th2; GSYM rad2_x] th1;;
+let th4 = ONCE_REWRITE_RULE[REAL_ARITH `a < b <=> a + b * -- &1 < &0`] th3;;
+let result = (REWRITE_RULE[GSYM eq_th] o DISCH_ALL) th4;;
+
+(* SDCCMGA b *)
+let ineq_tm = `ineq [ #4.0,x1, #6.3504; &1 * &1,x2,&1 * &1; &1 * &1,x3,&1 * &1; 
+			&1 * &1, x4, &1 * &1; &1 * &1, x5, &1 * &1; &1 * &1,x6,&1 * &1]
+ (arclength_x1'  #2.0 ( #2.0 *  #1.26) x1 x2 x3 x4 x5 x6 +
+  arclength_x1'  #2.0 ( #2.0 *  #1.26) x1 x2 x3 x4 x5 x6 +
+  arclength_x1' ( #2.0 *  #1.26)  #2.0 x1 x2 x3 x4 x5 x6 * -- &1 +
+  unit6 x1 x2 x3 x4 x5 x6 * pi * --(&1 / &3) +
+  unit6 x1 x2 x3 x4 x5 x6 * --arc_hhn' < &0)`;;
+
+let th = verify_flyspeck_ineq 3 ineq_tm;;
+REWRITE_RULE (map GSYM flyspeck_defs) th;;
 
 
 (* 7067938795 *)
@@ -306,32 +304,6 @@ let ineq_tm = `ineq [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #
 
 (* base = 200: 690s (834s total) *)
 verify_flyspeck_ineq 4 ineq_tm;;
-
-
-
-
-add_inequality  { 
-  idv= "3318775219";
-  doc="";
-  tags= [];
-  ineq= `ineq
- [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #6.3504,x4, #8.0; 
-  #4.0,
- x5,
-  #6.3504;  #4.0,x6, #6.3504]
- (dih_x x1 x2 x3 x4 x5 x6 * -- &1 +
-  unit6 x1 x2 x3 x4 x5 x6 *  #1.629 +
-  sqrt_x2 x1 x2 x3 x4 x5 x6 * -- #0.414 +
-  sqrt_x3 x1 x2 x3 x4 x5 x6 * -- #0.414 +
-  sqrt_x5 x1 x2 x3 x4 x5 x6 * -- #0.414 +
-  sqrt_x6 x1 x2 x3 x4 x5 x6 * -- #0.414 +
-  unit6 x1 x2 x3 x4 x5 x6 *  #0.414 *  #8.0 +
-  sqrt_x4 x1 x2 x3 x4 x5 x6 *  #0.763 +
-  unit6 x1 x2 x3 x4 x5 x6 *  #0.763 * -- #2.52 +
-  sqrt_x1 x1 x2 x3 x4 x5 x6 *  #0.315 +
-  unit6 x1 x2 x3 x4 x5 x6 *  #0.315 * -- #2.0 <
-  &0)`;
-};;
 
 
 (* 3318775219 *)

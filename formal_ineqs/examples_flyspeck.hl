@@ -15,6 +15,14 @@ Arith_options.base := 100;;
    with preloaded realanalysis.ml *)
 needs "verifier/m_verifier_main.hl";;
 
+(*
+  Set the level of info/debug printing:
+  0 - no info/debug printing
+  1 - report important steps
+  2 - report everything
+*)
+needs "verifier_options.hl";;
+Verifier_options.info_print_level := 1;;
 
 (* Open the main verification module *)
 open M_verifier_main;;
@@ -47,7 +55,6 @@ let th1 = verify_ineq default_params 5 ineq1;;
 let th2 = verify_ineq default_params 5 ineq2;;
 let atn_approx2 = (GEN_ALL o DISCH_ALL o REWRITE_RULE[GSYM abs_th])
   (CONJ (MY_RULE th1) (MY_RULE th2));;
-
 
 
 (************************)
@@ -165,13 +172,25 @@ let arclength_x_123' = new_definition `arclength_x_123'  (x1:real) (x2:real) (x3
 let acs_sqrt_x1_d4 = new_definition `acs_sqrt_x1_d4 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
   acs (sqrt(x1)/ &4)`;;
 
+let sqrt_x1 = define `sqrt_x1 x1 x2 x3 x4 x5 x6 = sqrt x1`;;
+
+let sqrt_x2 = define `sqrt_x2 x1 x2 x3 x4 x5 x6 = sqrt x2`;;
+
+let sqrt_x3 = define `sqrt_x3 x1 x2 x3 x4 x5 x6 = sqrt x3`;;
+
+let sqrt_x4 = define `sqrt_x4 x1 x2 x3 x4 x5 x6 = sqrt x4`;;
+
+let sqrt_x5 = define `sqrt_x5 x1 x2 x3 x4 x5 x6 = sqrt x5`;;
+
+let sqrt_x6 = define `sqrt_x6 x1 x2 x3 x4 x5 x6 = sqrt x6`;;
+
 
 (* All definitions in one list *)
 let flyspeck_defs = [atn2'; delta_x; delta_y; delta_x4;
 	      ups_x; rho_x; dih_x'; dih_y'; arclength';
 	      sol_x'; sol_y'; const1'; num1; unit6; h0; lfun; lfun_y1;
 	      rad2_x; arc_hhn'; arclength_y1'; arclength_x1'; acs_sqrt_x1_d4;
-	      arclength_x_123'];;
+	      arclength_x_123'; sqrt_x1; sqrt_x2; sqrt_x3; sqrt_x4; sqrt_x5; sqrt_x6];;
 
 
 
@@ -291,7 +310,7 @@ let ineq_tm = `ineq [ #4.0,x1, #6.3504; &1 * &1,x2,&1 * &1; &1 * &1,x3,&1 * &1;
   unit6 x1 x2 x3 x4 x5 x6 * --arc_hhn' < &0)`;;
 
 let th = verify_flyspeck_ineq 3 ineq_tm;;
-REWRITE_RULE (map GSYM flyspeck_defs) th;;
+rev_itlist (fun def th -> REWRITE_RULE[GSYM def] th) flyspeck_defs th;;
 
 
 (* 7067938795 *)
@@ -302,7 +321,7 @@ let ineq_tm = `ineq [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #
      unit6 x1 x2 x3 x4 x5 x6 *  #0.46 <
    &0)`;;
 
-(* base = 200: 690s (834s total) *)
+(* base = 200: 690s (834s total) (386s (468s) Ubuntu 9/Ocaml 3.09.3)*)
 verify_flyspeck_ineq 4 ineq_tm;;
 
 
@@ -315,9 +334,26 @@ let ineq_tm = `ineq [&2, y1, #2.52; &2, y2, #2.52;
 	(#0.763 * (y4 - #2.52)) - 
 	(#0.315 * (y1 - #2.0))) * (-- &1)  < &0)`;;
 
-(* base = 200: 27946s (31514s total) *)
+(* base = 200: 27946s (31514s total) (Ubuntu 9: 15226 (17091)) *)
 verify_flyspeck_ineq 5 ineq_tm;;
 
+let ineq_tm2 = `ineq [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #6.3504,x4, #8.0; 
+  #4.0, x5, #6.3504;  #4.0,x6, #6.3504]
+ (dih_x' x1 x2 x3 x4 x5 x6 * -- &1 +
+  unit6 x1 x2 x3 x4 x5 x6 *  #1.629 +
+  sqrt_x2 x1 x2 x3 x4 x5 x6 * -- #0.414 +
+  sqrt_x3 x1 x2 x3 x4 x5 x6 * -- #0.414 +
+  sqrt_x5 x1 x2 x3 x4 x5 x6 * -- #0.414 +
+  sqrt_x6 x1 x2 x3 x4 x5 x6 * -- #0.414 +
+  unit6 x1 x2 x3 x4 x5 x6 *  #0.414 *  #8.0 +
+  sqrt_x4 x1 x2 x3 x4 x5 x6 *  #0.763 +
+  unit6 x1 x2 x3 x4 x5 x6 *  #0.763 * -- #2.52 +
+  sqrt_x1 x1 x2 x3 x4 x5 x6 *  #0.315 +
+  unit6 x1 x2 x3 x4 x5 x6 *  #0.315 * -- #2.0 <
+  &0)`;;
+
+(* Ubuntu 9: 6hr (16279s (14296s) with Sys.time()) *)
+verify_flyspeck_ineq 5 ineq_tm2;;
 
 (* 5490182221 *)
 let ineq_tm = `ineq [&2, y1, #2.52; &2, y2, #2.52;
@@ -327,3 +363,18 @@ let ineq_tm = `ineq [&2, y1, #2.52; &2, y2, #2.52;
 
 (* base = 200: 5570s (6480s total) *)
 verify_flyspeck_ineq 10 ineq_tm;;
+
+(* base = 200 (Ubuntu 9): 3600s total (2716s (3128s) with Sys.time()) *)
+verify_flyspeck_ineq 4 ineq_tm;;
+
+let ineq_tm2 = `ineq
+ [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,x4, #6.3504; 
+  #4.0, x5, #6.3504;  #4.0,x6, #6.3504]
+ (dih_x' x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- #1.893 < &0)`;;
+
+(* base = 200 (Ubuntu 9): 1593s (1450s) *)
+verify_flyspeck_ineq 4 ineq_tm2;;
+
+
+
+

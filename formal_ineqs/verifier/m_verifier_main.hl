@@ -2,6 +2,8 @@ needs "verifier/m_verifier.hl";;
 needs "taylor/m_taylor_arith2.hl";;
 needs "misc/vars.hl";;
 
+#load "unix.cma";;
+
 module M_verifier_main = struct
 
 open Arith_misc;;
@@ -14,6 +16,8 @@ open M_taylor;;
 open M_taylor_arith2;;
 open Taylor;;
 open Misc_vars;;
+open Verifier_options;;
+
 
 
 (* Parameters *)
@@ -360,7 +364,7 @@ let normalize_result norm_flag v1 eq_th1 domain_sub_th pass_thm =
 
 (* Verifies the given inequality *)
 let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms =
-  let total_start = Sys.time() in
+  let total_start = Unix.gettimeofday() in
   let eq_th1 = mk_standard_ineq rewrite_thms ineq_tm in
   let ineq_tm1 = (lhand o rand o concl) eq_th1 in
     if frees ineq_tm1 = [] then
@@ -388,22 +392,31 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let params = ref params0 in
       let eval_fs, tf, ti = mk_verification_functions params pp fun_tm in
 	
+      let _ = !info_print_level < 1 or (report "Constructing a solution certificate..."; true) in
       let certificate = Verifier.run_test tf xx_float zz_float false 0.0 
 	!params.allow_derivatives !params.convex_flag !params.mono_pass_flag
 	!params.raw_intervals_flag !params.eps in
+      let _ = !info_print_level < 1 or (Verifier.result_stat certificate; true) in
 
       let c1 = Verifier.transform_result xx_float zz_float certificate in
       let start, finish, result = 
 	if !params.adaptive_precision then
+	  let _ = !info_print_level < 1 or (report0 "Informal verification... "; true) in
 	  let c1p = Informal_verifier.m_verify_list pp 1 pp ti c1 xx2 zz2 in
-	  let start = Sys.time() in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+
+	  let _ = !info_print_level < 1 or (report0 "Formal verification... "; true) in
+	  let start = Unix.gettimeofday() in
 	  let result = m_p_verify_list n pp eval_fs c1p xx1 zz1 in
-	  let finish = Sys.time() in
+	  let finish = Unix.gettimeofday() in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
 	    start, finish, result
 	else
-	  let start = Sys.time() in
+	  let _ = !info_print_level < 1 or (report0 "Formal verification... "; true) in
+	  let start = Unix.gettimeofday() in
 	  let result = m_verify_list n pp eval_fs c1 xx1 zz1 in
-	  let finish = Sys.time() in
+	  let finish = Unix.gettimeofday() in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
 	    start, finish, result in
 
       let _ = report 

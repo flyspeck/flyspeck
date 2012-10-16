@@ -3,6 +3,7 @@ needs "arith/more_float.hl";;
 needs "taylor/m_taylor.hl";;
 needs "verifier/interval_m/taylor.ml";;
 needs "informal/informal_m_verifier.hl";;
+needs "verifier_options.hl";;
 needs "misc/vars.hl";;
 
 module M_verifier_build = struct
@@ -17,6 +18,7 @@ open Line_interval;;
 open Taylor;;
 
 open Misc_vars;;
+open Verifier_options;;
 
 (****************************)
 (* Interval polynomial functions for the native OCaml arithmetic *)
@@ -75,7 +77,6 @@ let rec build_poly_fun i_fun =
     | _ -> failwith "Unsupported function";;
 
 
-(* TODO: call find_and_replace_all *)
 let build_polyL pp lin_th =
   let funs = map (fst o dest_interval_arith) ((striplist dest_conj o rand o concl) lin_th) in
   let i_funs = map (eval_constants pp o build_interval_fun) funs in
@@ -153,8 +154,9 @@ let mk_verification_functions_poly pp0 poly_tm =
   let new_f = poly_tm in
   let n = get_dim x_tm in
 
+  let _ = !info_print_level = 0 or (report0 (sprintf "Computing partial derivatives (%d)..." n); true) in
   let partials = map (fun i -> 
-			let _ = report (sprintf "Partial %d/%d" i n) in
+			let _ = !info_print_level = 0 or (report0 (sprintf " %d" i); true) in
 			  gen_partial_poly i new_f) (1--n) in
   let get_partial i eq_th = 
     let partial_i = gen_partial_poly i (rand (concl eq_th)) in
@@ -162,8 +164,11 @@ let mk_verification_functions_poly pp0 poly_tm =
       REWRITE_RULE[GSYM partial2] (TRANS (AP_TERM pi eq_th) partial_i) in
   let partials2 = map (fun j -> 
 			 let th = List.nth partials (j - 1) in
-			 let _ = report (sprintf "Partial2 %d/%d" j n) in
-			   map (fun i -> get_partial i th) (1--j)) (1--n) in
+			   map (fun i -> 
+				  let _ = !info_print_level = 0 or (report0 (sprintf " %d,%d" j i); true) in
+				    get_partial i th) (1--j)) (1--n) in
+
+  let _ = !info_print_level = 0 or (report0 " done\n"; true) in
 
   let diff_th = gen_diff_poly new_f in
   let lin_th = gen_lin_approx_poly_thm new_f diff_th partials in

@@ -11,6 +11,8 @@
 #ifndef error_c
 #define error_c
 
+
+#include <sys/time.h>
 /* 
 CLASS
 	error
@@ -71,6 +73,18 @@ class unstable
 {
  public:
   static const unstable x;
+};
+
+class Timer
+{
+      struct timeval timer[2];
+  public:
+
+  timeval start();
+
+  timeval stop();
+
+  int duration() const;
 };
 
 

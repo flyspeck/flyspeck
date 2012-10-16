@@ -30,6 +30,7 @@ AUTHOR
 
 class Lib
 {
+
  public:
 
   static const univariate i_halfbump_x,i_gchi,i_flat_term_x,

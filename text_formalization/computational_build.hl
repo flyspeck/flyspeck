@@ -30,9 +30,16 @@ flyspeck_needs "../glpk/tame_archive/scaffolding.hl";;
 
 flyspeck_needs "../glpk/tame_archive/build_lp.hl";;
 
-(* nonlinear inequalities *)
+(* nonlinear inequalities needs *)
 
+flyspeck_needs "../glpk/sphere.ml";;
 flyspeck_needs "nonlinear/check_completeness.hl";;
+flyspeck_needs "nonlinear/optimize.hl";;
+flyspeck_needs "nonlinear/auto_lib.hl";;
+flyspeck_needs "nonlinear/scripts.hl";;
+
+
+
 
 module Computational_build = struct
 
@@ -68,9 +75,33 @@ module Computational_build = struct
 
 (* nonlinear (informal) *)
 
-  let interval_out = Scripts.execute_interval();;
+  let interval_out = Scripts.execute_interval_allbutdodec true;;
 
   let check_completeness_out = Check_completeness.execute();;
+
+
+(* nonlinear informal prep.hl form *)
+
+  let mk_prep_hl = Preprocess.exec();;  (* generate /tmp/prep.hl *)
+
+  let preplist = ref [];;
+  let add_inequality t = (preplist:= t::!preplist);;
+  let getprep idv = filter (fun t -> (t.idv = idv)) (!preplist);; 
+
+  flyspeck_needs "nonlinear/prep.hl";;  (* load after add_inequality has been defined *)
+  List.length !preplist;;
+
+  let testprep_idq ex idq = 
+    let (s,tags,ineq) = Optimize.idq_fields idq in
+      Auto_lib.execute_interval ex tags s ineq;;
+
+  let testprep ex s = testprep_idq ex (hd (getprep s));;
+
+  let runprep cases = 
+    map (fun t -> try (testprep true t) with Failure _ -> ()) cases;;
+
+(*  runprep (map fst Scripts.fast_cases);; *)
+
 
  end;;
 

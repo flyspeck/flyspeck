@@ -9,6 +9,8 @@
 
 (* Interactive scripts for the running of interval arithmetic code from 
     ineq.hl, 
+
+   Execution done in computational_build.hl
 *)
 
 (* START NONLINEAR INEQS *)
@@ -30,32 +32,14 @@ flyspeck_needs "general/flyspeck_lib.hl";;
 flyspeck_needs "nonlinear/auto_lib.hl";;
 (* flyspeck_needs "../projects_discrete_geom/bcc_lattice.hl";; *)
 
+
+module Scripts = struct
+
 let idq_of_string s = hd(Ineq.getexact s);;
+
 let expand_string = map (fun t->t.idv) o Ineq.getprefix;;
 
-let all_cases() = 
-  Parse_ineq.nub (map (fun t -> t.idv) (!Ineq.ineqs));;
-
-List.length  (all_cases());;
-
 let isquad s = Optimize.is_quad_cluster (idq_of_string s).tags;;
-
-let finished_cases() = 
-  let split_sp=  Str.split (Str.regexp "\n") in
-  let p = process_to_string ("cat "^flyspeck_dir
-			      ^"/../interval_code/qed_log_2012.txt   "
-			     ^"| sed 's!^//.*$!!'"
-			     ^"| sed  's/^.*ineq(/\"/' " 
-                             ^"| sed 's/., secs.*$/\";/'   "
-			     ^"| sed 's/ split(.*$//g' " 
-                             ^"| sed 's/\"//g' "
-			     ^" | sed 's/;//g' ") in
-    Parse_ineq.nub (split_sp p);;
-List.length (finished_cases());;
-
-let unfinished_cases() = subtract (all_cases()) (finished_cases());;
-List.length (unfinished_cases());;
-unfinished_cases();;
 
 (*
 let finished_splits = 
@@ -80,6 +64,28 @@ List.length hassplit;;
 
 (* lists of inequality ids *)
 
+let all_cases() = 
+  Parse_ineq.nub (map (fun t -> t.idv) (!Ineq.ineqs));;
+
+let finished_cases() = 
+  let split_sp=  Str.split (Str.regexp "\n") in
+  let p = process_to_string ("cat "^flyspeck_dir
+			      ^"/../interval_code/qed_log_2012.txt   "
+			     ^"| sed 's!^//.*$!!'"
+			     ^"| sed  's/^.*ineq(/\"/' " 
+                             ^"| sed 's/., secs.*$/\";/'   "
+			     ^"| sed 's/ split(.*$//g' " 
+                             ^"| sed 's/\"//g' "
+			     ^" | sed 's/;//g' ") in
+    Parse_ineq.nub (split_sp p);;
+
+
+let unfinished_cases() = subtract (all_cases()) (finished_cases());;
+
+let dodec_cases = 
+  let isdodec s = (mem Strongdodec (idq_of_string s).tags) in
+    filter isdodec (all_cases());;
+
 let disregard = 
    [
 "9563139965D"; (* derived lp, disregard it *)
@@ -95,10 +101,10 @@ let nocompile =
   "5512912661"; "6843920790"; "4828966562"; (* num1 *)
 ] @ disregard;;
 
-
 let testids = ref[];;
 
-unfinished_cases();;
+
+(*
 testids:=["5512912661"];;
 testids:=["5556646409"; "4322269127";];;
 testids:=["2065952723 A1";];;
@@ -112,6 +118,9 @@ testids := ["5556646409"; "4322269127";];;  (* mdtau_y_LC not defined *)
 testids := ["ZTGIJCF23 0 0 0 7907792228 b"];; (* split(1/2) *)
 List.length !testids;;
 setify !testids;;
+
+*)
+
 (*
 let view nth = idq_of_string (List.nth !testids nth);;
 idq_fields(view 0);;
@@ -130,15 +139,17 @@ Optimize.testsplit false testid;;
 map (Optimize.testsplit true) !testids;;
 *)
 
-map (Auto_lib.testsplit true) (!testids);;
+(* map (Auto_lib.testsplit true) (!testids);; *)
 
-let execute_interval bool = 
-  let cases = subtract (unfinished_cases()) nocompile in
-  let isquad s = Optimize.is_quad_cluster (idq_of_string s).tags in
-  let nonquad  = filter (not o isquad) cases in
-  map (fun t -> try (Auto_lib.testsplit bool t) with Failure _ -> [()]) nonquad;;
+let execute_interval_cases cases bool = 
+(*  let isquad s = Optimize.is_quad_cluster (idq_of_string s).tags in
+  let nonquad  = filter (not o isquad) cases in  *)
+  map (fun t -> try (Auto_lib.testsplit bool t) with Failure _ -> [()]) cases;;
 
-execute_interval true;;
+let execute_interval_allbutdodec bool = 
+  execute_interval_cases (subtract (all_cases()) (union disregard dodec_cases)) bool;;
+
+(* execute_interval_allbutdodec true;; *)
 (* goal *)
 
 (* open Optimize;; *)
@@ -175,7 +186,7 @@ let cfsqp ts =
   let us = map (idq_of_string) ts in
   !(Parse_ineq.execute_cfsqp_list us);;
 
-let execute_cfsqp() = cfsqp all_cases;;
+let execute_cfsqp() = cfsqp (all_cases());;
 
 (* Timing *)
 
@@ -190,15 +201,20 @@ let total r =
 
 let hour r = float_of_int r /. (60.0 *. 60.0);;
 
+
 let finished_times,finished_rejects = 
   let split_sp = Str.split (Str.regexp "\n") in
   let split_semi = Str.split (Str.regexp ";") in
-  let int_s [x;y] = (x,int_of_string y) in
+  let int_s [x;y] = try
+    (x,int_of_string y) 
+  with Failure s -> failwith (s ^ " " ^ x ^ " " ^ y)
+  in
   let p = process_to_string ("cat "^flyspeck_dir
 			      ^"/../interval_code/qed_log_2012.txt   "
 			      ^"| sed 's!^//.*$!!'"
 			     ^"| sed  's/^.*ineq(//' " 
                              ^"| sed 's/., svn.*$//'   "
+			      ^" | sed 's/., *msecs.*$//' "
                              ^"| sed 's/., *cell.*$//'   "
 			      ^"| sed 's/., secs./;/' "
                              ) in
@@ -213,15 +229,20 @@ let times =
   let fti = filter (fun (x,_) -> mem (hd (split x)) all) ft in
     sort (fun (_,y) (_,y') -> (y>y')) fti;;
 
+let fast_cases = filter (fun (_,t) -> t<=5) times;;
+
+(*
 hour (total times);;
 
-filter (fun (_,t) -> t>200) times;;
+
 
 hour(total(filter (fun (t,_) -> 
 		     Str.string_match (Str.regexp "QITNPEA 4003") t 0) times));;
 
 hour (total (filter (fun (t,_) -> 
 		       Str.string_match (Str.regexp "ZTGIJCF23") t 0) times));;
+*)
+
 
 (* splits, test for missing cases, -- none found! may 27, 2011 *)
 
@@ -245,15 +266,17 @@ let case_splits_execute =
       let vv = unify_splits (case_splits (map fst finished_times)) in
 	filter (fun (_,ls,r) -> not ((0--(r-1)) = sort (<) ls)) vv;;
 
+ end;;
+
 
 (* October, 2012 *)
 
-(* generate file of all preprocessed inequalities. *)
+(* generate file prep.hl of all preprocessed inequalities. *)
 
 (* edit "#" -> " #" in printer.ml to defuse "--#0.02" bug *)
 (* needs "printer.ml";; *)
 
-(* module Preprocess = struct *)
+module Preprocess = struct 
   let add_inequality _ = ();;
   let ineq = Sphere.ineq;;
   let print_tag t = match t with
@@ -288,7 +311,7 @@ let case_splits_execute =
     ];;
   let preprocess1 s = 
     let v = 
-    join_lines (map print_one
+    Flyspeck_lib.join_lines (map print_one
 		  (Optimize.preprocess_split_idq 
 		     (hd (Ineq.getexact  (s))))) in
     let _ = report v in
@@ -300,9 +323,8 @@ let case_splits_execute =
     let header = "(* Auto generated file of preprocessed  inequalities *)\n\n" in
     let h2 = "(* need to defuse --# in printer.ml *)\n\n" in
     let p = map preprocess1 cc in
-    let v =     join_lines ( p) in
+    let v =     Flyspeck_lib.join_lines ( p) in
       Flyspeck_lib.output_filestring filename (header^h2^v);;
   let exec()=  preprocess "/tmp/prep.hl";;
-  exec();;
-needs "/tmp/prep.hl";;
-(* end;; *)
+(*  exec();; needs "/tmp/prep.hl";; *)
+end;;

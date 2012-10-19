@@ -36,10 +36,11 @@ let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag raw_int_f
     raw_int_flag = raw_int_flag;
     eps = eps;
   } in
-    recursive_verifier(0,xx,zz,xx,zz,ff,opt);;
+    recursive_verifier(xx,zz,xx,zz,ff,opt);;
 
 
 (* A verification procedure which uses raw interval arithmetic only *)
+(*
 open Recurse0;;
 
 let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag eps =
@@ -67,7 +68,7 @@ let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag eps =
     eps = eps;
   } in
     recursive_verifier0(0,xx,zz,xx,zz,ff,opt);;
-
+*)
 
 
 (****************************************)

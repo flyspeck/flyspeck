@@ -14,6 +14,7 @@ a pass on each piece of the partition.
 
 needs "verifier/interval_m/taylor.ml";;
 needs "verifier/interval_m/report.ml";;
+needs "verifier_options.hl";;
 
 module Recurse = struct
 
@@ -22,6 +23,8 @@ open Interval;;
 open Univariate;;
 open Line_interval;;
 open Taylor;;
+open Verifier_options;;
+open List;;
 
 type cellOption = {
   only_check_deriv1_negative : bool;
@@ -208,7 +211,7 @@ whenever an inequality is tossed out.
 
 let rec verify_cell (x,z,x0,z0,tf,opt) =
   try (
-  let _ = not(periodic_count ()) or report_current (x,z,"periodic report") in
+  let _ = not(periodic_count () && !info_print_level >= 2) or report_current (x,z,"periodic report") in
   let (ti,x,z,x0,z0,maxwidth,mono) = going_strong(x,z,x0,z0,tf,opt,[]) in
     if opt.convex_flag then
       Cell_inconclusive_ti (mono,ti,x,z,x0,z0)
@@ -217,59 +220,89 @@ let rec verify_cell (x,z,x0,z0,tf,opt) =
   )
   with Return c -> c;;
 
-let rec recursive_verifier (depth,x,z,x0,z0,tf,opt) = 
-  let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "depth %d" depth) in
-  let split_and_verify j x z x0 z0 convex_flag =
-    let ( ++ ), ( / ) = up(); upadd, updiv in
-    let yj = (mth x j ++  mth z j) / 2.0 in
-    let delta b v = table (fun i-> if (i = j && b) then yj else mth v i) in
-    let x1, z1 =
-      if convex_flag then
-	x, table (fun i -> if i = j then mth x i else mth z i)
-      else
-	delta false x, delta true z in
-    let x2, z2 =
-      if convex_flag then
-	table (fun i -> if i = j then mth z i else mth x i), z
-      else
-	delta true x, delta false z in
-    let r1 = recursive_verifier(depth+1,x1,z1,x0,z0,tf,opt) in
-      match r1 with
-	| Result_false t -> Result_false t
-	| _ ->
-            (let r2 = recursive_verifier(depth+1,x2,z2,x0,z0,tf,opt) in
-	       match r2 with
-		 | Result_false t -> Result_false t
-		 | _ -> Result_glue (j, convex_flag, r1, r2)) in
-    
-  let add_mono mono r1 =
-    itlist (fun m r -> Result_mono (m, r)) mono r1 in
+let recursive_verifier (x,z,x0,z0,tf,opt) =
+  let w_init, indices = unzip (filter (fun p -> fst p > 1e-8) (zip (map2 (-.) z x) (1--length x))) in
+  let ws = map2 (-.) z x in
+  let total_vol = itlist ( *. ) w_init 1.0 in
+  let verified_vol = ref 0.0 in
+  let last_report = ref 0 in
+  let compute_vol x z w =
+    let rec compute i indices x z w =
+      match indices with
+	| [] -> 1.0
+	| (r :: t) when r = i ->
+	    let l = hd z -. hd x in
+	      (if l > 1e-8 then l else hd w) *. compute (i + 1) t (tl x) (tl z) (tl w)
+	| _ -> compute (i + 1) indices (tl x) (tl z) (tl w) in
+      compute 1 indices x z w in
+  let update_verified_vol x z w =
+    if !info_print_level > 0 then
+      let _ = verified_vol := !verified_vol +. compute_vol x z w in
+      let verified = int_of_float (!verified_vol /. total_vol *. 100.5) in
+      if verified > !last_report then
+	let _ = last_report := verified in report0 (sprintf "%d " !last_report) else ()
+    else () in
 
-    match verify_cell(x,z,x0,z0,tf,opt)  with
-      | Cell_counterexample -> Result_false (x,z)
-      | Cell_pass (mono, f0_flag) -> add_mono mono (Result_pass (f0_flag,x,z))
-      | Cell_pass_mono (mono, status) -> add_mono mono (Result_pass_mono status)
-      | Cell_inconclusive_ti(mono,ti,x,z,x0,z0) ->
-	  let dds = map (fun i -> mth (mth ti.dd i) i, i) iter8 in
-	  let convex_dds = filter (fun dd, i -> dd.lo >= opt.eps && mth x i < mth z i) dds in
-	  let convex_i = map snd convex_dds in
-	  let w2 = List.map2 upsub z x in
-	  let convex_flag, ws, ws_i = 
-	    if convex_dds = [] then 
-	      false, w2, iter8
-	    else 
-	      true, map (mth w2) convex_i, convex_i in
-	  let maxwidth2 = maxl ws in
-	  let j_wide =  try( find (fun i -> mth w2 i = maxwidth2) ws_i) with
-	    | _ -> failwith "recursive_verifier find" in
-	    add_mono mono (split_and_verify j_wide x z x0 z0 convex_flag)
+  let rec rec_verifier (depth,x,z,x0,z0,w0,tf) =
+    let _ = check_limit opt depth or report_fatal(x,z,Printf.sprintf "depth %d" depth) in
+    let split_and_verify j x z x0 z0 convex_flag =
+      let ( ++ ), ( / ) = up(); upadd, updiv in
+      let yj = (mth x j ++  mth z j) / 2.0 in
+      let delta b v = table (fun i-> if (i = j && b) then yj else mth v i) in
+      let x1, z1 =
+	if convex_flag then
+	  x, table (fun i -> if i = j then mth x i else mth z i)
+	else
+	  delta false x, delta true z in
+      let x2, z2 =
+	if convex_flag then
+	  table (fun i -> if i = j then mth z i else mth x i), z
+	else
+	  delta true x, delta false z in
+      let w1 = table (fun i -> if i = j then mth w0 i / 2.0 else mth w0 i) in
+      let r1 = rec_verifier(depth+1,x1,z1,x0,z0,w1,tf) in
+	match r1 with
+	  | Result_false t -> Result_false t
+	  | _ ->
+              (let r2 = rec_verifier(depth+1,x2,z2,x0,z0,w1,tf) in
+		 match r2 with
+		   | Result_false t -> Result_false t
+		   | _ -> Result_glue (j, convex_flag, r1, r2)) in
+      
+    let add_mono mono r1 =
+      itlist (fun m r -> Result_mono (m, r)) mono r1 in
+      
+      match verify_cell(x,z,x0,z0,tf,opt)  with
+	| Cell_counterexample -> Result_false (x,z)
+	| Cell_pass (mono, f0_flag) -> 
+	    let _ = update_verified_vol x z w0 in
+	      add_mono mono (Result_pass (f0_flag,x,z))
+	| Cell_pass_mono (mono, status) -> 
+	    let _ = update_verified_vol x z w0 in
+	      add_mono mono (Result_pass_mono status)
+	| Cell_inconclusive_ti(mono,ti,x,z,x0,z0) ->
+	    let dds = map (fun i -> mth (mth ti.dd i) i, i) iter8 in
+	    let convex_dds = filter (fun dd, i -> dd.lo >= opt.eps && mth x i < mth z i) dds in
+	    let convex_i = map snd convex_dds in
+	    let w2 = List.map2 upsub z x in
+	    let convex_flag, ws, ws_i = 
+	      if convex_dds = [] then 
+		false, w2, iter8
+	      else 
+		true, map (mth w2) convex_i, convex_i in
+	    let maxwidth2 = maxl ws in
+	    let j_wide =  try( find (fun i -> mth w2 i = maxwidth2) ws_i) with
+	      | _ -> failwith "recursive_verifier find" in
+	      add_mono mono (split_and_verify j_wide x z x0 z0 convex_flag)
 		
-      | Cell_inconclusive(mono,x,z,x0,z0) ->
-	  let w2 = List.map2 upsub z x in 
-	  let maxwidth2 = maxl w2 in
-	  let j_wide =  try( find (fun i -> mth w2 i = maxwidth2) iter8) with
-	    | _ -> failwith "recursive_verifier find" in
-	    add_mono mono (split_and_verify j_wide x z x0 z0 false);;
+	| Cell_inconclusive(mono,x,z,x0,z0) ->
+	    let w2 = List.map2 upsub z x in 
+	    let maxwidth2 = maxl w2 in
+	    let j_wide =  try( find (fun i -> mth w2 i = maxwidth2) iter8) with
+	      | _ -> failwith "recursive_verifier find" in
+	      add_mono mono (split_and_verify j_wide x z x0 z0 false) in
+    
+    rec_verifier (0,x,z,x0,z0,ws,tf);;
 
 
 

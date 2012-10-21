@@ -1,7 +1,7 @@
 needs "taylor/m_taylor.hl";;
-needs "verifier/m_verifier_build.hl";;
 needs "verifier/interval_m/verifier.ml";;
 needs "misc/vars.hl";;
+needs "verifier_options.hl";;
 
 module M_verifier = struct
 
@@ -11,6 +11,20 @@ open M_taylor;;
 open Misc_vars;;
 open Verifier_options;;
 
+
+type verification_funs =
+{
+  (* p_lin -> p_second -> domain_th -> taylor_th *)
+  taylor : int -> int -> thm -> thm;
+  (* pp -> lo -> hi -> interval_th *)
+  f : int -> term -> term -> thm;
+  (* i -> pp -> lo -> hi -> interval_th *)
+  df : int -> int -> term -> term -> thm;
+  (* i -> j -> pp -> lo -> hi -> interval_th *)
+  ddf : int -> int -> int -> term -> term -> thm;
+  (* lo -> hi -> diff2_th *)
+  diff2_f : term -> term -> thm;
+};;
 
 let mk_real_vars n name = map (fun i -> mk_var (sprintf "%s%d" name i, real_ty)) (1--n);;
 
@@ -874,14 +888,11 @@ let restrict_domain n j left_flag domain_th =
 
 open Verifier;;
 open Recurse;;
-open M_verifier_build;;
-
 
 let m_verify_raw (report_start, total_size) n pp fs certificate domain_th0 th_list =
   let r_size = result_size certificate in
   let r_size2 = float_of_int (if total_size > 0 then total_size else (if r_size > 0 then r_size else 1)) in
   let k = ref 0 in
-  let last_report = ref 0 in
   let kk = ref report_start in
   let last_report = ref (int_of_float (float_of_int !kk /. r_size2 *. 100.0)) in
 

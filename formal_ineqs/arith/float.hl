@@ -150,12 +150,12 @@ let dest_num_exp tm =
 let num_exp_const = `num_exp`;;
 let mk_num_exp n_tm e_tm = mk_binop num_exp_const n_tm e_tm;;
 
-(* float s n e -> "s", n, e *)
+(* float_num s n e -> "s", n, e *)
 let dest_float tm =
   let ltm, e_tm = dest_comb tm in
   let ltm, n_tm = dest_comb ltm in
   let float_tm, s_tm = dest_comb ltm in
-    if (fst o dest_const) float_tm <> "float" then
+    if (fst o dest_const) float_tm <> "float_num" then
       failwith "dest_float: not float"
     else
       (fst o dest_const) s_tm, n_tm, e_tm;;
@@ -785,24 +785,24 @@ module Float_ops = struct
 
 (* FLOAT_LT *)
 
-let FLOAT_LT_FF = prove(`float F n1 e1 < float F n2 e2 <=> num_exp n1 e1 < num_exp n2 e2`,
+let FLOAT_LT_FF = prove(`float_num F n1 e1 < float_num F n2 e2 <=> num_exp n1 e1 < num_exp n2 e2`,
 			REWRITE_TAC[float; GSYM REAL_OF_NUM_LT; REAL_MUL_LID; real_div] THEN
 			  MATCH_MP_TAC REAL_LT_RMUL_EQ THEN
 			  MATCH_MP_TAC REAL_LT_INV THEN
 			  REWRITE_TAC[REAL_OF_NUM_LT; LT_NZ; NUM_EXP_EQ_0] THEN
 			  ARITH_TAC);;
 
-let FLOAT_LT_TT = prove(`float T n1 e1 < float T n2 e2 <=> num_exp n2 e2 < num_exp n1 e1`,
+let FLOAT_LT_TT = prove(`float_num T n1 e1 < float_num T n2 e2 <=> num_exp n2 e2 < num_exp n1 e1`,
 			REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--a < --b <=> b < a`] THEN
 			  REWRITE_TAC[FLOAT_LT_FF]);;
 
-let FLOAT_LT_FT = prove(`float F n1 e1 < float T n2 e2 <=> F`,
+let FLOAT_LT_FT = prove(`float_num F n1 e1 < float_num T n2 e2 <=> F`,
 			MP_TAC (SPECL [`n2:num`; `e2:num`] FLOAT_T_NEG) THEN
 			  MP_TAC (SPECL [`n1:num`; `e1:num`] FLOAT_F_POS) THEN
 			  REAL_ARITH_TAC);;
 
 let FLOAT_LT_TF_00 = (PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`float T 0 e1 < float F 0 e2 <=> F`,
+  (`float_num T 0 e1 < float_num F 0 e2 <=> F`,
    MP_TAC (SPECL [`T`; `0`; `e1:num`] FLOAT_EQ_0) THEN
      MP_TAC (SPECL [`F`; `0`; `e2:num`] FLOAT_EQ_0) THEN
      REWRITE_TAC[] THEN
@@ -810,7 +810,7 @@ let FLOAT_LT_TF_00 = (PURE_REWRITE_RULE[NUMERAL] o prove)
      REAL_ARITH_TAC);;
 
 let FLOAT_LT_TF_1 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`(n1 = 0 <=> F) ==> (float T n1 e1 < float F n2 e2 <=> T)`,
+  (`(n1 = 0 <=> F) ==> (float_num T n1 e1 < float_num F n2 e2 <=> T)`,
    DISCH_TAC THEN
      MATCH_MP_TAC (REAL_ARITH `a < &0 /\ &0 <= b ==> (a < b <=> T)`) THEN
      REWRITE_TAC[FLOAT_F_POS] THEN
@@ -818,30 +818,30 @@ let FLOAT_LT_TF_1 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
      ASM_REWRITE_TAC[FLOAT_T_NEG; FLOAT_EQ_0]);;
 
 let FLOAT_LT_TF_2 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`(n2 = 0 <=> F) ==> (float T n1 e1 < float F n2 e2 <=> T)`,
+  (`(n2 = 0 <=> F) ==> (float_num T n1 e1 < float_num F n2 e2 <=> T)`,
    DISCH_TAC THEN
      MATCH_MP_TAC (REAL_ARITH `a <= &0 /\ &0 < b ==> (a < b <=> T)`) THEN
      REWRITE_TAC[FLOAT_T_NEG] THEN
      MATCH_MP_TAC (REAL_ARITH `~(a = &0) /\ &0 <= a ==> &0 < a`) THEN
      ASM_REWRITE_TAC[FLOAT_F_POS; FLOAT_EQ_0]);;
 
-let FLOAT_F_LT_0 = prove(`float F n e < &0 <=> F`,
+let FLOAT_F_LT_0 = prove(`float_num F n e < &0 <=> F`,
 			 MP_TAC (SPEC_ALL FLOAT_F_POS) THEN
 			   REAL_ARITH_TAC);;
 
 let FLOAT_T_LT_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
-  (`float T n e < &0 <=> (0 < n)`,
+  (`float_num T n e < &0 <=> (0 < n)`,
    REWRITE_TAC[REAL_ARITH `a < &0 <=> a <= &0 /\ ~(a = &0)`] THEN
      REWRITE_TAC[FLOAT_T_NEG; FLOAT_EQ_0] THEN
      ARITH_TAC);;
 
 let FLOAT_F_GT_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
-  (`&0 < float F n e <=> 0 < n`,
+  (`&0 < float_num F n e <=> 0 < n`,
    REWRITE_TAC[REAL_ARITH `&0 < a <=> &0 <= a /\ ~(a = &0)`] THEN
      REWRITE_TAC[FLOAT_F_POS; FLOAT_EQ_0] THEN
      ARITH_TAC);;
 
-let FLOAT_T_GT_0 = prove(`&0 < float T n e <=> F`,
+let FLOAT_T_GT_0 = prove(`&0 < float_num T n e <=> F`,
 			 MP_TAC (SPEC_ALL FLOAT_T_NEG) THEN
 			   REAL_ARITH_TAC);;
 
@@ -910,26 +910,26 @@ let float_lt f1 f2 =
 (**********************************)
 (* FLOAT_LE *)
 
-let FLOAT_LE_FF = prove(`float F n1 e1 <= float F n2 e2 <=> num_exp n1 e1 <= num_exp n2 e2`,
+let FLOAT_LE_FF = prove(`float_num F n1 e1 <= float_num F n2 e2 <=> num_exp n1 e1 <= num_exp n2 e2`,
 			REWRITE_TAC[float; GSYM REAL_OF_NUM_LE; REAL_MUL_LID; real_div] THEN
 			  MATCH_MP_TAC REAL_LE_RMUL_EQ THEN
 			  MATCH_MP_TAC REAL_LT_INV THEN
 			  REWRITE_TAC[REAL_OF_NUM_LT; LT_NZ; NUM_EXP_EQ_0] THEN
 			  ARITH_TAC);;
 
-let FLOAT_LE_TT = prove(`float T n1 e1 <= float T n2 e2 <=> num_exp n2 e2 <= num_exp n1 e1`,
+let FLOAT_LE_TT = prove(`float_num T n1 e1 <= float_num T n2 e2 <=> num_exp n2 e2 <= num_exp n1 e1`,
 			REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--a <= --b <=> b <= a`] THEN
 			  REWRITE_TAC[FLOAT_LE_FF]);;
 
-let FLOAT_LE_TF = prove(`float T n1 e1 <= float F n2 e2 <=> T`,
+let FLOAT_LE_TF = prove(`float_num T n1 e1 <= float_num F n2 e2 <=> T`,
 			MP_TAC (SPECL [`n1:num`; `e1:num`] FLOAT_T_NEG) THEN
 			  MP_TAC (SPECL [`n2:num`; `e2:num`] FLOAT_F_POS) THEN
 			  REAL_ARITH_TAC);;
 			
-let FLOAT_LE_FT = prove(`float F n1 e1 <= float T n2 e2 <=> n1 = 0 /\ n2 = 0`,
+let FLOAT_LE_FT = prove(`float_num F n1 e1 <= float_num T n2 e2 <=> n1 = 0 /\ n2 = 0`,
 			REWRITE_TAC[REAL_LE_LT; FLOAT_LT_FT] THEN EQ_TAC THENL
 			  [
-			    DISCH_TAC THEN SUBGOAL_THEN `float F n1 e1 = &0 /\ float T n2 e2 = &0` MP_TAC THENL
+			    DISCH_TAC THEN SUBGOAL_THEN `float_num F n1 e1 = &0 /\ float_num T n2 e2 = &0` MP_TAC THENL
 			      [
 				MP_TAC (SPECL [`n2:num`; `e2:num`] FLOAT_T_NEG) THEN
 				  MP_TAC (SPECL [`n1:num`; `e1:num`] FLOAT_F_POS) THEN
@@ -942,28 +942,28 @@ let FLOAT_LE_FT = prove(`float F n1 e1 <= float T n2 e2 <=> n1 = 0 /\ n2 = 0`,
 			  ]);;
 			
 let FLOAT_LE_FT_00 = (PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`float F 0 e1 <= float T 0 e2 <=> T`, REWRITE_TAC[FLOAT_LE_FT]);;
+  (`float_num F 0 e1 <= float_num T 0 e2 <=> T`, REWRITE_TAC[FLOAT_LE_FT]);;
 
 let FLOAT_LE_FT_1 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`(n1 = 0 <=> F) ==> (float F n1 e1 <= float T n2 e2 <=> F)`,
+  (`(n1 = 0 <=> F) ==> (float_num F n1 e1 <= float_num T n2 e2 <=> F)`,
    DISCH_TAC THEN ASM_REWRITE_TAC[FLOAT_LE_FT]);;
 
 let FLOAT_LE_FT_2 = (UNDISCH_ALL o PURE_REWRITE_RULE[NUMERAL] o prove)
-  (`(n2 = 0 <=> F) ==> (float F n1 e1 <= float T n2 e2 <=> F)`,
+  (`(n2 = 0 <=> F) ==> (float_num F n1 e1 <= float_num T n2 e2 <=> F)`,
    DISCH_TAC THEN ASM_REWRITE_TAC[FLOAT_LE_FT]);;
 
 let FLOAT_F_LE_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
-  (`float F n e <= &0 <=> n = 0`,
+  (`float_num F n e <= &0 <=> n = 0`,
    REWRITE_TAC[GSYM (SPEC `F` FLOAT_EQ_0)] THEN
      MP_TAC (SPEC_ALL FLOAT_F_POS) THEN
      REAL_ARITH_TAC);;
 
-let FLOAT_T_LE_0 = prove(`float T n e <= &0 <=> T`, REWRITE_TAC[FLOAT_T_NEG]);;
+let FLOAT_T_LE_0 = prove(`float_num T n e <= &0 <=> T`, REWRITE_TAC[FLOAT_T_NEG]);;
 
-let FLOAT_F_GE_0 = prove(`&0 <= float F n e <=> T`, REWRITE_TAC[FLOAT_F_POS]);;
+let FLOAT_F_GE_0 = prove(`&0 <= float_num F n e <=> T`, REWRITE_TAC[FLOAT_F_POS]);;
 
 let FLOAT_T_GE_0 = (CONV_RULE (RAND_CONV (REWRITE_CONV[NUMERAL])) o prove)
-  (`&0 <= float T n e <=> n = 0`,
+  (`&0 <= float_num T n e <=> n = 0`,
    REWRITE_TAC[GSYM (SPEC `T` FLOAT_EQ_0)] THEN
      MP_TAC (SPEC_ALL FLOAT_T_NEG) THEN
      REAL_ARITH_TAC);;
@@ -1073,8 +1073,8 @@ let float_min_max f1 f2 =
 (* FLOAT_MUL *)
 
 let FLOAT_MUL = prove(`!s1 s2. min_exp <= e /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e
-			  ==> float s1 n1 e1 * float s2 n2 e2 =
-			      float (mod_plus s1 s2) n (e - min_exp)`,
+			  ==> float_num s1 n1 e1 * float_num s2 n2 e2 =
+			      float_num (mod_plus s1 s2) n (e - min_exp)`,
    REPEAT STRIP_TAC THEN
      REWRITE_TAC[float] THEN
      ONCE_REWRITE_TAC[REAL_ARITH `(a * b / c) * (d * e / f) = (a * d) * (b * e) / c / f`] THEN
@@ -1100,23 +1100,23 @@ let FLOAT_MUL = prove(`!s1 s2. min_exp <= e /\ num_exp n1 e1 * num_exp n2 e2 = n
      ASM_REWRITE_TAC[REAL_OF_NUM_MUL]);;
 
 let FLOAT_MUL_FF = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
-			     float F n1 e1 * float F n2 e2 = float F n r`,
+			     float_num F n1 e1 * float_num F n2 e2 = float_num F n r`,
 			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
 let FLOAT_MUL_FT = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
-			     float F n1 e1 * float T n2 e2 = float T n r`,
+			     float_num F n1 e1 * float_num T n2 e2 = float_num T n r`,
 			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
 let FLOAT_MUL_TF = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
-			     float T n1 e1 * float F n2 e2 = float T n r`,
+			     float_num T n1 e1 * float_num F n2 e2 = float_num T n r`,
 			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
 let FLOAT_MUL_TT = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 = num_exp n e ==>
-			     float T n1 e1 * float T n2 e2 = float F n r`,
+			     float_num T n1 e1 * float_num T n2 e2 = float_num F n r`,
 			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
 
 let FLOAT_MUL_FF_hi, FLOAT_MUL_FF_lo =
   let ff_hi = `min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 <= num_exp n e
-                      ==> float F n1 e1 * float F n2 e2 <= float F n r` in
+                      ==> float_num F n1 e1 * float_num F n2 e2 <= float_num F n r` in
   let ff_lo = `min_exp <= e /\ e - min_exp = r /\ num_exp n e <= num_exp n1 e1 * num_exp n2 e2
-                      ==> float F n r <= float F n1 e1 * float F n2 e2` in
+                      ==> float_num F n r <= float_num F n1 e1 * float_num F n2 e2` in
   let proof =
     REPEAT STRIP_TAC THEN
       POP_ASSUM MP_TAC THEN
@@ -1140,9 +1140,9 @@ let FLOAT_MUL_FF_hi, FLOAT_MUL_FF_lo =
 
 let FLOAT_MUL_TT_hi, FLOAT_MUL_TT_lo =
   let tt_hi = `min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 <= num_exp n e
-                     ==> float T n1 e1 * float T n2 e2 <= float F n r` in
+                     ==> float_num T n1 e1 * float_num T n2 e2 <= float_num F n r` in
   let tt_lo = `min_exp <= e /\ e - min_exp = r /\ num_exp n e <= num_exp n1 e1 * num_exp n2 e2
-                     ==> float F n r <= float T n1 e1 * float T n2 e2` in
+                     ==> float_num F n r <= float_num T n1 e1 * float_num T n2 e2` in
   let proof =
     REWRITE_TAC[FLOAT_NEG_T] THEN
       REWRITE_TAC[REAL_ARITH `--a * --b = a * b`] THEN
@@ -1151,9 +1151,9 @@ let FLOAT_MUL_TT_hi, FLOAT_MUL_TT_lo =
 
 let FLOAT_MUL_FT_hi, FLOAT_MUL_FT_lo =
   let ft_hi = `min_exp <= e /\ e - min_exp = r /\ num_exp n e <= num_exp n1 e1 * num_exp n2 e2
-                     ==> float F n1 e1 * float T n2 e2 <= float T n r` in
+                     ==> float_num F n1 e1 * float_num T n2 e2 <= float_num T n r` in
   let ft_lo = `min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 <= num_exp n e
-                     ==> float T n r <= float F n1 e1 * float T n2 e2` in
+                     ==> float_num T n r <= float_num F n1 e1 * float_num T n2 e2` in
   let proof =
     REWRITE_TAC[FLOAT_NEG_T] THEN
       REWRITE_TAC[REAL_ARITH `a * --b <= --c <=> c <= a * b`] THEN
@@ -1163,9 +1163,9 @@ let FLOAT_MUL_FT_hi, FLOAT_MUL_FT_lo =
 
 let FLOAT_MUL_TF_hi, FLOAT_MUL_TF_lo =
   let ft_hi = `min_exp <= e /\ e - min_exp = r /\ num_exp n e <= num_exp n1 e1 * num_exp n2 e2
-                     ==> float T n1 e1 * float F n2 e2 <= float T n r` in
+                     ==> float_num T n1 e1 * float_num F n2 e2 <= float_num T n r` in
   let ft_lo = `min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 <= num_exp n e
-                     ==> float T n r <= float T n1 e1 * float F n2 e2` in
+                     ==> float_num T n r <= float_num T n1 e1 * float_num F n2 e2` in
   let proof =
     REWRITE_TAC[FLOAT_NEG_T] THEN
       REWRITE_TAC[REAL_ARITH `--a * b <= --c <=> c <= a * b`] THEN
@@ -1293,7 +1293,7 @@ let DIV_lemma = prove(`!x y. ~(y = 0) ==> &(x DIV y) <= &x / &y /\ &x / &y <= &(
 
 let FLOAT_DIV_FF = prove(`e2 + k <= min_exp + e + e1 /\ ~(n2 = 0) /\
                            num_exp n1 k DIV num_exp n2 0 = num_exp n e
-                             ==> float F n ((min_exp + e + e1) - (e2 + k)) <= float F n1 e1 / float F n2 e2`,
+                             ==> float_num F n ((min_exp + e + e1) - (e2 + k)) <= float_num F n1 e1 / float_num F n2 e2`,
    MAP_EVERY ABBREV_TAC [`z = num_exp n e`; `x = num_exp n1 k`; `y = num_exp n2 0`] THEN
      REPEAT STRIP_TAC THEN
      REWRITE_TAC[float; REAL_MUL_LID] THEN
@@ -1357,7 +1357,7 @@ let FLOAT_DIV_FF = prove(`e2 + k <= min_exp + e + e1 /\ ~(n2 = 0) /\
 let FLOAT_DIV_FF_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r /\
                              r1 <= r2 /\ ~(n2 = 0) /\
                            num_exp n e <= num_exp n1 k DIV num_exp n2 0
-                             ==> float F n r <= float F n1 e1 / float F n2 e2`,
+                             ==> float_num F n r <= float_num F n1 e1 / float_num F n2 e2`,
    MAP_EVERY ABBREV_TAC [`z = num_exp n e`; `x = num_exp n1 k`; `y = num_exp n2 0`] THEN
      REPEAT STRIP_TAC THEN
      REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
@@ -1427,7 +1427,7 @@ let FLOAT_DIV_FF_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r
 let FLOAT_DIV_FF_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r /\
                               r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n1 k DIV num_exp n2 0 < num_exp n e
-                              ==> float F n1 e1 / float F n2 e2 <= float F n r`,
+                              ==> float_num F n1 e1 / float_num F n2 e2 <= float_num F n r`,
    MAP_EVERY ABBREV_TAC [`z = num_exp n e`; `x = num_exp n1 k`; `y = num_exp n2 0`] THEN
      REPEAT STRIP_TAC THEN
      REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN
@@ -1499,7 +1499,7 @@ let FLOAT_DIV_FF_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r
 let FLOAT_DIV_TT_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r /\
                               r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n e <= num_exp n1 k DIV num_exp n2 0
-             ==> float F n r <= float T n1 e1 / float T n2 e2`,
+             ==> float_num F n r <= float_num T n1 e1 / float_num T n2 e2`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG; REAL_NEG_MUL2] THEN
      REWRITE_TAC[GSYM real_div] THEN
@@ -1508,7 +1508,7 @@ let FLOAT_DIV_TT_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r
 let FLOAT_DIV_TT_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
                               r2 - r1 = r /\ r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n1 k DIV num_exp n2 0 < num_exp n e
-             ==> float T n1 e1 / float T n2 e2 <= float F n r`,
+             ==> float_num T n1 e1 / float_num T n2 e2 <= float_num F n r`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG; REAL_NEG_MUL2] THEN
      REWRITE_TAC[GSYM real_div] THEN
@@ -1518,7 +1518,7 @@ let FLOAT_DIV_TT_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
 let FLOAT_DIV_FT_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
                               r2 - r1 = r /\ r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n1 k DIV num_exp n2 0 < num_exp n e
-             ==> float T n r <= float F n1 e1 / float T n2 e2`,
+             ==> float_num T n r <= float_num F n1 e1 / float_num T n2 e2`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
      REWRITE_TAC[REAL_ARITH `--a <= b * --c <=> b * c <= a`] THEN
@@ -1528,7 +1528,7 @@ let FLOAT_DIV_FT_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
 let FLOAT_DIV_FT_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
                               r2 - r1 = r /\ r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n e <= num_exp n1 k DIV num_exp n2 0
-             ==> float F n1 e1 / float T n2 e2 <= float T n r`,
+             ==> float_num F n1 e1 / float_num T n2 e2 <= float_num T n r`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
      REWRITE_TAC[REAL_ARITH `a * --b <= --c <=> c <= a * b`] THEN
@@ -1539,7 +1539,7 @@ let FLOAT_DIV_FT_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
 let FLOAT_DIV_TF_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
                               r2 - r1 = r /\ r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n1 k DIV num_exp n2 0 < num_exp n e
-             ==> float T n r <= float T n1 e1 / float F n2 e2`,
+             ==> float_num T n r <= float_num T n1 e1 / float_num F n2 e2`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
      REWRITE_TAC[REAL_ARITH `--a <= --b * c <=> b * c <= a`] THEN
@@ -1549,7 +1549,7 @@ let FLOAT_DIV_TF_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
 let FLOAT_DIV_TF_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
                               r2 - r1 = r /\ r1 <= r2 /\ ~(n2 = 0) /\
                               num_exp n e <= num_exp n1 k DIV num_exp n2 0
-             ==> float T n1 e1 / float F n2 e2 <= float T n r`,
+             ==> float_num T n1 e1 / float_num F n2 e2 <= float_num T n r`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
      REWRITE_TAC[REAL_ARITH `--a * b <= --c <=> c <= a * b`] THEN
@@ -1666,19 +1666,19 @@ let float_div_hi pp f1 f2 =
 (* FLOAT_ADD *)
 
 let FLOAT_ADD_FF = prove(`num_exp n1 e1 + num_exp n2 e2 = num_exp n e
-    ==> float F n1 e1 + float F n2 e2 = float F n e`,
+    ==> float_num F n1 e1 + float_num F n2 e2 = float_num F n e`,
    REPEAT STRIP_TAC THEN
      REWRITE_TAC[float; REAL_MUL_LID] THEN
      REWRITE_TAC[REAL_ARITH `a / b + c / b = (a + c) / b`] THEN
      ASM_REWRITE_TAC[REAL_OF_NUM_ADD]);;
 
 let FLOAT_ADD_TT = prove(`num_exp n1 e1 + num_exp n2 e2 = num_exp n e
-    ==> float T n1 e1 + float T n2 e2 = float T n e`,
+    ==> float_num T n1 e1 + float_num T n2 e2 = float_num T n e`,
    REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--a + --b = --c <=> a + b = c`] THEN
      REWRITE_TAC[FLOAT_ADD_FF]);;
 
 let FLOAT_ADD_FF_lo = prove(`num_exp n e <= num_exp n1 e1 + num_exp n2 e2
-                              ==> float F n e <= float F n1 e1 + float F n2 e2`,
+                              ==> float_num F n e <= float_num F n1 e1 + float_num F n2 e2`,
    REWRITE_TAC[GSYM REAL_OF_NUM_LE; GSYM REAL_OF_NUM_ADD] THEN
      REPEAT STRIP_TAC THEN
      MAP_EVERY ABBREV_TAC [`z = &(num_exp n e)`; `x = &(num_exp n1 e1)`; `y = &(num_exp n2 e2)`] THEN
@@ -1689,7 +1689,7 @@ let FLOAT_ADD_FF_lo = prove(`num_exp n e <= num_exp n1 e1 + num_exp n2 e2
      ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_POS]);;
 
 let FLOAT_ADD_FF_hi = prove(`num_exp n1 e1 + num_exp n2 e2 <= num_exp n e
-                              ==> float F n1 e1 + float F n2 e2 <= float F n e`,
+                              ==> float_num F n1 e1 + float_num F n2 e2 <= float_num F n e`,
    REWRITE_TAC[GSYM REAL_OF_NUM_LE; GSYM REAL_OF_NUM_ADD] THEN
      REPEAT STRIP_TAC THEN
      MAP_EVERY ABBREV_TAC [`z = &(num_exp n e)`; `x = &(num_exp n1 e1)`; `y = &(num_exp n2 e2)`] THEN
@@ -1700,18 +1700,18 @@ let FLOAT_ADD_FF_hi = prove(`num_exp n1 e1 + num_exp n2 e2 <= num_exp n e
      ASM_REWRITE_TAC[REAL_LE_INV_EQ; REAL_POS]);;
 
 let FLOAT_ADD_TT_lo = prove(`num_exp n1 e1 + num_exp n2 e2 <= num_exp n e
-			      ==> float T n e <= float T n1 e1 + float T n2 e2`,
+			      ==> float_num T n e <= float_num T n1 e1 + float_num T n2 e2`,
    REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--a <= --b + --c <=> b + c <= a`] THEN
      REWRITE_TAC[FLOAT_ADD_FF_hi]);;
 
 let FLOAT_ADD_TT_hi = prove(`num_exp n e <= num_exp n1 e1 + num_exp n2 e2
-			      ==> float T n1 e1 + float T n2 e2 <= float T n e`,
+			      ==> float_num T n1 e1 + float_num T n2 e2 <= float_num T n e`,
    REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `--b + --c <= --a <=> a <= b + c`] THEN
      REWRITE_TAC[FLOAT_ADD_FF_lo]);;
 
 let FLOAT_ADD_FT_F_lo = prove(`num_exp n2 e2 <= num_exp n1 e1 ==>
 				num_exp n e <= num_exp n1 e1 - num_exp n2 e2 
-				==> float F n e <= float F n1 e1 + float T n2 e2`,
+				==> float_num F n e <= float_num F n1 e1 + float_num T n2 e2`,
    MAP_EVERY ABBREV_TAC[`z = num_exp n e`; `x = num_exp n1 e1`; `y = num_exp n2 e2`] THEN
      ASM_REWRITE_TAC[FLOAT_NEG_T; float; REAL_MUL_LID] THEN
      DISCH_TAC THEN
@@ -1721,7 +1721,7 @@ let FLOAT_ADD_FT_F_lo = prove(`num_exp n2 e2 <= num_exp n1 e1 ==>
 
 let FLOAT_ADD_FT_T_lo = prove(`num_exp n1 e1 <= num_exp n2 e2 ==>
 				num_exp n2 e2 - num_exp n1 e1 <= num_exp n e
-				==> float T n e <= float F n1 e1 + float T n2 e2`,
+				==> float_num T n e <= float_num F n1 e1 + float_num T n2 e2`,
    MAP_EVERY ABBREV_TAC[`z = num_exp n e`; `x = num_exp n1 e1`; `y = num_exp n2 e2`] THEN
      ASM_REWRITE_TAC[FLOAT_NEG_T; float; REAL_MUL_LID] THEN
      DISCH_TAC THEN
@@ -1731,13 +1731,13 @@ let FLOAT_ADD_FT_T_lo = prove(`num_exp n1 e1 <= num_exp n2 e2 ==>
 
 let FLOAT_ADD_FT_F_hi = prove(`num_exp n2 e2 <= num_exp n1 e1 ==>
 				num_exp n1 e1 - num_exp n2 e2 <= num_exp n e
-				==> float F n1 e1 + float T n2 e2 <= float F n e`,
+				==> float_num F n1 e1 + float_num T n2 e2 <= float_num F n e`,
    REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `a + --b <= c <=> --c <= b + --a`] THEN
      REWRITE_TAC[GSYM FLOAT_NEG_T; FLOAT_ADD_FT_T_lo]);;
 
 let FLOAT_ADD_FT_T_hi = prove(`num_exp n1 e1 <= num_exp n2 e2 ==>
 				num_exp n e <= num_exp n2 e2 - num_exp n1 e1
-				==> float F n1 e1 + float T n2 e2 <= float T n e`,
+				==> float_num F n1 e1 + float_num T n2 e2 <= float_num T n e`,
    REWRITE_TAC[FLOAT_NEG_T; REAL_ARITH `a + --b <= --c <=> c <= b + --a`] THEN
      REWRITE_TAC[GSYM FLOAT_NEG_T; FLOAT_ADD_FT_F_lo]);;
      
@@ -1879,10 +1879,10 @@ let s1_var_bool = `s1:bool` and
     f1_var_real = `f1:real` and
     f2_var_real = `f2:real`;;
 
-let FLOAT_SUB_F_EQ_ADD = (SYM o prove)(`f1 - float F n2 e2 = f1 + float T n2 e2`,
+let FLOAT_SUB_F_EQ_ADD = (SYM o prove)(`f1 - float_num F n2 e2 = f1 + float_num T n2 e2`,
 				       REWRITE_TAC[FLOAT_NEG_T] THEN REAL_ARITH_TAC);;
 
-let FLOAT_SUB_T_EQ_ADD = (SYM o prove)(`f1 - float T n2 e2 = f1 + float F n2 e2`,
+let FLOAT_SUB_T_EQ_ADD = (SYM o prove)(`f1 - float_num T n2 e2 = f1 + float_num F n2 e2`,
 				       REWRITE_TAC[FLOAT_NEG_T] THEN REAL_ARITH_TAC);;
 
 let float_sub_lo pp f1 f2 =
@@ -1910,10 +1910,10 @@ let float_sub_hi pp f1 f2 =
 (*******************************************)
 (* FLOAT_SQRT *)
 
-(* float F m e = float F (B0 m) (PRE e) *)
+(* float_num F m e = float_num F (B0 m) (PRE e) *)
 let FLOAT_PRE_EXP = prove(mk_imp(`~(e = 0) /\ PRE e = e1`,
-				 mk_eq(`float F m e`,
-				       mk_comb(mk_comb(`float F`, mk_comb(b0_const, m_var_num)), `e1:num`))),
+				 mk_eq(`float_num F m e`,
+				       mk_comb(mk_comb(`float_num F`, mk_comb(b0_const, m_var_num)), `e1:num`))),
    STRIP_TAC THEN POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
      REWRITE_TAC[float; REAL_MUL_LID; real_div; REAL_EQ_MUL_RCANCEL] THEN
      DISJ1_TAC THEN
@@ -1941,7 +1941,7 @@ let FLOAT_SQRT_EVEN_lo = prove(`f1 * f1 = f2 /\ f2 <= x /\
  				   /\ EVEN e /\ e DIV 2 = e2 /\
 				   e1 + e2 + (min_exp DIV 2) = r /\ 
 				   p <= r /\ r - p = r2 
-				       ==> float F n1 r2 <= sqrt (float F m e)`,
+				       ==> float_num F n1 r2 <= sqrt (float_num F m e)`,
    STRIP_TAC THEN
      UNDISCH_TAC `f2 <= x:num` THEN
      UNDISCH_TAC `num_exp m (2 * p) = x` THEN
@@ -2037,7 +2037,7 @@ let FLOAT_SQRT_EVEN_hi = prove(`f1 * f1 = f2 /\ x <= f2 /\
  				   /\ EVEN e /\ e DIV 2 = e2 /\
 				   e1 + e2 + (min_exp DIV 2) = r /\ 
 				   p <= r /\ r - p = r2 
-				       ==> sqrt (float F m e) <= float F n1 r2`,
+				       ==> sqrt (float_num F m e) <= float_num F n1 r2`,
    STRIP_TAC THEN
      UNDISCH_TAC `x <= f2:num` THEN
      UNDISCH_TAC `num_exp m (2 * p) = x` THEN
@@ -2700,14 +2700,14 @@ let float_sqrt_hi =
 
 let FLOAT_OF_NUM' = (SPEC_ALL o REWRITE_RULE[min_exp_def]) FLOAT_OF_NUM;;
 
-let FLOAT_INTERVAL_OF_NUM = (NUMERALS_TO_NUM o REWRITE_RULE[min_exp_def] o prove)(`interval_arith (&n) (float F n min_exp, float F n min_exp)`,
+let FLOAT_INTERVAL_OF_NUM = (NUMERALS_TO_NUM o REWRITE_RULE[min_exp_def] o prove)(`interval_arith (&n) (float_num F n min_exp, float_num F n min_exp)`,
    REWRITE_TAC[FLOAT_OF_NUM; CONST_INTERVAL]);;
 
 let FLOAT_F_bound' = (UNDISCH_ALL o SPEC_ALL) FLOAT_F_bound;;
 
 let FLOAT_T_bound' = (UNDISCH_ALL o SPEC_ALL) FLOAT_T_bound;;
 
-(* interval_arith x (float s1 n1 e1, float s2 n2 e2) -> x, float s1 n1 e1, float s2 n2 e2 *)
+(* interval_arith x (float_num s1 n1 e1, float_num s2 n2 e2) -> x, float_num s1 n1 e1, float_num s2 n2 e2 *)
 let dest_float_interval tm =
   let ltm, rtm = dest_comb tm in
   let f1, f2 = dest_pair rtm in
@@ -2794,8 +2794,8 @@ let FLOAT_INTERVAL_LT = prove(`interval_arith x (lo1, hi1) /\ interval_arith y (
 (****************************************)
 (* float_interval_neg *)
 
-let FLOAT_INTERVAL_NEG = prove(`!s1 s2. interval_arith x (float s1 n1 e1, float s2 n2 e2)
-                                 ==> interval_arith (--x) (float (~s2) n2 e2, float (~s1) n1 e1)`,
+let FLOAT_INTERVAL_NEG = prove(`!s1 s2. interval_arith x (float_num s1 n1 e1, float_num s2 n2 e2)
+                                 ==> interval_arith (--x) (float_num (~s2) n2 e2, float_num (~s1) n1 e1)`,
    REPEAT GEN_TAC THEN
      DISCH_THEN (fun th -> MP_TAC (MATCH_MP INTERVAL_NEG th)) THEN
      SIMP_TAC[FLOAT_NEG]);;
@@ -2839,12 +2839,12 @@ let f1_var_real = `f1:real` and
 
 (* FF_FF *)
 let FLOAT_INTERVAL_MUL_FF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float F n1 e1, float F n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float F n1 e1 * float F m1 r1 /\
-    float F n2 e2 * float F m2 r2 <= f2
+  `interval_arith x (float_num F n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num F n1 e1 * float_num F m1 r1 /\
+    float_num F n2 e2 * float_num F m2 r2 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
-   MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+   MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
      SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` MP_TAC THENL
      [
        MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
@@ -2874,14 +2874,14 @@ let FLOAT_INTERVAL_MUL_FF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TT_TT *)
 let FLOAT_INTERVAL_MUL_TT_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float T n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float T n2 e2 * float T m2 r2 /\
-    float T n1 e1 * float T m1 r1 <= f2
+  `interval_arith x (float_num T n1 e1, float_num T n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num T n2 e2 * float_num T m2 r2 /\
+    float_num T n1 e1 * float_num T m1 r1 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   REWRITE_TAC[FLOAT_NEG_T] THEN
     REWRITE_TAC[interval_arith] THEN
-    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
     SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` MP_TAC THENL
     [
       MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
@@ -2915,14 +2915,14 @@ let FLOAT_INTERVAL_MUL_TT_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* FF_TT *)
 let FLOAT_INTERVAL_MUL_FF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float F n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float F n2 e2 * float T m1 r1 /\
-    float F n1 e1 * float T m2 r2 <= f2
+  `interval_arith x (float_num F n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num F n2 e2 * float_num T m1 r1 /\
+    float_num F n1 e1 * float_num T m2 r2 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   REWRITE_TAC[FLOAT_NEG_T] THEN
     REWRITE_TAC[interval_arith] THEN
-    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
     SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` MP_TAC THENL
     [
       MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN
@@ -2958,10 +2958,10 @@ let FLOAT_INTERVAL_MUL_FF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TT_FF *)
 let FLOAT_INTERVAL_MUL_TT_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float T n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float T n1 e1 * float F m2 r2 /\
-    float T n2 e2 * float F m1 r1 <= f2
+  `interval_arith x (float_num T n1 e1, float_num T n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num T n1 e1 * float_num F m2 r2 /\
+    float_num T n2 e2 * float_num F m1 r1 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
    STRIP_TAC THEN
      MP_TAC ((GEN_ALL o DISCH_ALL) FLOAT_INTERVAL_MUL_FF_TT) THEN
@@ -2972,14 +2972,14 @@ let FLOAT_INTERVAL_MUL_TT_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TF_FF *)
 let FLOAT_INTERVAL_MUL_TF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float F n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float T n1 e1 * float F m2 r2 /\
-    float F n2 e2 * float F m2 r2 <= f2
+  `interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num T n1 e1 * float_num F m2 r2 /\
+    float_num F n2 e2 * float_num F m2 r2 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   REWRITE_TAC[FLOAT_NEG_T] THEN
     REWRITE_TAC[interval_arith] THEN
-    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
     STRIP_TAC THEN
     SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
     [
@@ -3033,14 +3033,14 @@ let FLOAT_INTERVAL_MUL_TF_FF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TF_TT *)
 let FLOAT_INTERVAL_MUL_TF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float F n2 e2 * float T m1 r1 /\
-    float T n1 e1 * float T m1 r1 <= f2
+  `interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num F n2 e2 * float_num T m1 r1 /\
+    float_num T n1 e1 * float_num T m1 r1 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   REWRITE_TAC[FLOAT_NEG_T] THEN
     REWRITE_TAC[interval_arith] THEN
-    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
     STRIP_TAC THEN
     SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
     [
@@ -3098,10 +3098,10 @@ let FLOAT_INTERVAL_MUL_TF_TT = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* FF_TF *)
 let FLOAT_INTERVAL_MUL_FF_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float F n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float F m2 r2) /\
-    f1 <= float F n2 e2 * float T m1 r1 /\
-    float F n2 e2 * float F m2 r2 <= f2
+  `interval_arith x (float_num F n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num F m2 r2) /\
+    f1 <= float_num F n2 e2 * float_num T m1 r1 /\
+    float_num F n2 e2 * float_num F m2 r2 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   STRIP_TAC THEN
     MP_TAC ((SPECL [`n1:num`; `e1:num`; `n2:num`; `e2:num`; `m1:num`; `r1:num`; `m2:num`; `r2:num`; `y:real`; `x:real`; `f1:real`; `f2:real`] o GEN_ALL o DISCH_ALL) FLOAT_INTERVAL_MUL_TF_FF) THEN
@@ -3110,10 +3110,10 @@ let FLOAT_INTERVAL_MUL_FF_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TT_TF *)
 let FLOAT_INTERVAL_MUL_TT_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float T n2 e2) /\
-    interval_arith y (float T m1 r1, float F m2 r2) /\
-    f1 <= float T n1 e1 * float F m2 r2 /\
-    float T n1 e1 * float T m1 r1 <= f2
+  `interval_arith x (float_num T n1 e1, float_num T n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num F m2 r2) /\
+    f1 <= float_num T n1 e1 * float_num F m2 r2 /\
+    float_num T n1 e1 * float_num T m1 r1 <= f2
     ==> interval_arith (x * y) (f1, f2)`,
   STRIP_TAC THEN
     MP_TAC ((SPECL [`n1:num`; `e1:num`; `n2:num`; `e2:num`; `m1:num`; `r1:num`; `m2:num`; `r2:num`; `y:real`; `x:real`; `f1:real`; `f2:real`] o GEN_ALL o DISCH_ALL) FLOAT_INTERVAL_MUL_TF_TT) THEN
@@ -3122,18 +3122,18 @@ let FLOAT_INTERVAL_MUL_TT_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove
 
 (* TF_TF *)
 let FLOAT_INTERVAL_MUL_TF_TF = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o prove)(
-  `interval_arith x (float T n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float F m2 r2) /\
-    f1_1 <= float T n1 e1 * float F m2 r2 /\
-    f1_2 <= float F n2 e2 * float T m1 r1 /\
+  `interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num F m2 r2) /\
+    f1_1 <= float_num T n1 e1 * float_num F m2 r2 /\
+    f1_2 <= float_num F n2 e2 * float_num T m1 r1 /\
     min f1_1 f1_2 = f1 /\
-    float T n1 e1 * float T m1 r1 <= f2_1 /\
-    float F n2 e2 * float F m2 r2 <= f2_2 /\
+    float_num T n1 e1 * float_num T m1 r1 <= f2_1 /\
+    float_num F n2 e2 * float_num F m2 r2 <= f2_2 /\
     max f2_1 f2_2 = f2
     ==> interval_arith (x * y) (f1, f2)`,
   REWRITE_TAC[EQ_SYM_EQ; FLOAT_NEG_T] THEN
     REWRITE_TAC[interval_arith] THEN
-    MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+    MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
     STRIP_TAC THEN
     SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
     [
@@ -3335,12 +3335,12 @@ let float_interval_mul pp th1 th2 =
 (* FF_FF *)
 let FLOAT_INTERVAL_DIV_FF_FF = prove(
   `~(m1 = 0) /\
-    interval_arith x (float F n1 e1, float F n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float F n1 e1 / float F m2 r2 /\
-    float F n2 e2 / float F m1 r1 <= f2
+    interval_arith x (float_num F n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num F n1 e1 / float_num F m2 r2 /\
+    float_num F n2 e2 / float_num F m1 r1 <= f2
     ==> interval_arith (x / y) (f1, f2)`,
-   MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+   MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
      REWRITE_TAC[real_div] THEN
      STRIP_TAC THEN
      SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` MP_TAC THENL
@@ -3401,10 +3401,10 @@ let FLOAT_INTERVAL_DIV_FF_FF = prove(
 (* TT_TT *)
 let FLOAT_INTERVAL_DIV_TT_TT = prove(
   `~(m2 = 0) /\
-    interval_arith x (float T n1 e1, float T n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float T n2 e2 / float T m1 r1 /\
-    float T n1 e1 / float T m2 r2 <= f2
+    interval_arith x (float_num T n1 e1, float_num T n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num T n2 e2 / float_num T m1 r1 /\
+    float_num T n1 e1 / float_num T m2 r2 <= f2
     ==> interval_arith (x / y) (f1,f2)`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG; REAL_NEG_MUL2] THEN
@@ -3420,10 +3420,10 @@ let FLOAT_INTERVAL_DIV_TT_TT = prove(
 (* FF_TT *)
 let FLOAT_INTERVAL_DIV_FF_TT = prove(
   `~(m2 = 0) /\
-    interval_arith x (float F n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float F n2 e2 / float T m2 r2 /\
-    float F n1 e1 / float T m1 r1 <= f2
+    interval_arith x (float_num F n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num F n2 e2 / float_num T m2 r2 /\
+    float_num F n1 e1 / float_num T m1 r1 <= f2
     ==> interval_arith (x / y) (f1,f2)`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
@@ -3445,10 +3445,10 @@ let FLOAT_INTERVAL_DIV_FF_TT = prove(
 (* TT_FF *)
 let FLOAT_INTERVAL_DIV_TT_FF = prove(
   `~(m1 = 0) /\
-    interval_arith x (float T n1 e1, float T n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float T n1 e1 / float F m1 r1 /\
-    float T n2 e2 / float F m2 r2 <= f2
+    interval_arith x (float_num T n1 e1, float_num T n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num T n1 e1 / float_num F m1 r1 /\
+    float_num T n2 e2 / float_num F m2 r2 <= f2
     ==> interval_arith (x / y) (f1,f2)`,
    REWRITE_TAC[FLOAT_NEG_T] THEN
      REWRITE_TAC[real_div; REAL_INV_NEG] THEN
@@ -3467,18 +3467,18 @@ let FLOAT_INTERVAL_DIV_TT_FF = prove(
      REWRITE_TAC[real_div; REAL_INV_NEG; interval_arith] THEN
      REAL_ARITH_TAC);;
 
-let FLOAT_0 = prove(`!s e. float s 0 e = &0`, REWRITE_TAC[FLOAT_EQ_0]);;
+let FLOAT_0 = prove(`!s e. float_num s 0 e = &0`, REWRITE_TAC[FLOAT_EQ_0]);;
 
 (* TF_FF *)
 let FLOAT_INTERVAL_DIV_TF_FF = prove(
   `~(m1 = 0) /\
-    interval_arith x (float T n1 e1, float F n2 e2) /\
-    interval_arith y (float F m1 r1, float F m2 r2) /\
-    f1 <= float T n1 e1 / float F m1 r1 /\
-    float F n2 e2 / float F m1 r1 <= f2
+    interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num F m1 r1, float_num F m2 r2) /\
+    f1 <= float_num T n1 e1 / float_num F m1 r1 /\
+    float_num F n2 e2 / float_num F m1 r1 <= f2
     ==> interval_arith (x / y) (f1,f2)`,
    REWRITE_TAC[FLOAT_NEG_T] THEN STRIP_TAC THEN
-     MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+     MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
      SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
      [
        MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN REWRITE_TAC[FLOAT_F_POS];
@@ -3487,7 +3487,7 @@ let FLOAT_INTERVAL_DIV_TF_FF = prove(
 
      DISJ_CASES_TAC (REAL_ARITH `&0 <= x \/ x <= &0`) THENL
      [
-       SUBGOAL_THEN `interval_arith x (float F 0 0, b)` ASSUME_TAC THENL
+       SUBGOAL_THEN `interval_arith x (float_num F 0 0, b)` ASSUME_TAC THENL
 	 [
 	   UNDISCH_TAC `interval_arith x (--a, b)` THEN POP_ASSUM MP_TAC THEN
 	     REWRITE_TAC[interval_arith; FLOAT_0] THEN REAL_ARITH_TAC;
@@ -3509,7 +3509,7 @@ let FLOAT_INTERVAL_DIV_TF_FF = prove(
        ALL_TAC
      ] THEN
 
-     SUBGOAL_THEN `interval_arith x (--a, float T 0 0)` ASSUME_TAC THENL
+     SUBGOAL_THEN `interval_arith x (--a, float_num T 0 0)` ASSUME_TAC THENL
      [
        UNDISCH_TAC `interval_arith x (--a, b)` THEN POP_ASSUM MP_TAC THEN
 	 REWRITE_TAC[interval_arith; FLOAT_0] THEN REAL_ARITH_TAC;
@@ -3531,13 +3531,13 @@ let FLOAT_INTERVAL_DIV_TF_FF = prove(
 (* TF_TT *)
 let FLOAT_INTERVAL_DIV_TF_TT = prove(
   `~(m2 = 0) /\
-    interval_arith x (float T n1 e1, float F n2 e2) /\
-    interval_arith y (float T m1 r1, float T m2 r2) /\
-    f1 <= float F n2 e2 / float T m2 r2 /\
-    float T n1 e1 / float T m2 r2 <= f2
+    interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+    interval_arith y (float_num T m1 r1, float_num T m2 r2) /\
+    f1 <= float_num F n2 e2 / float_num T m2 r2 /\
+    float_num T n1 e1 / float_num T m2 r2 <= f2
     ==> interval_arith (x / y) (f1,f2)`,
    REWRITE_TAC[FLOAT_NEG_T] THEN STRIP_TAC THEN
-     MAP_EVERY ABBREV_TAC [`a = float F n1 e1`; `b = float F n2 e2`; `c = float F m1 r1`; `d = float F m2 r2`] THEN
+     MAP_EVERY ABBREV_TAC [`a = float_num F n1 e1`; `b = float_num F n2 e2`; `c = float_num F m1 r1`; `d = float_num F m2 r2`] THEN
      SUBGOAL_THEN `&0 <= a /\ &0 <= b /\ &0 <= c /\ &0 <= d` ASSUME_TAC THENL
      [
        MAP_EVERY EXPAND_TAC ["a"; "b"; "c"; "d"] THEN REWRITE_TAC[FLOAT_F_POS];
@@ -3546,7 +3546,7 @@ let FLOAT_INTERVAL_DIV_TF_TT = prove(
 
      DISJ_CASES_TAC (REAL_ARITH `x <= &0 \/ &0 <= x`) THENL
      [
-       SUBGOAL_THEN `interval_arith x (--a, float T 0 0)` ASSUME_TAC THENL
+       SUBGOAL_THEN `interval_arith x (--a, float_num T 0 0)` ASSUME_TAC THENL
 	 [
 	   UNDISCH_TAC `interval_arith x (--a, b)` THEN POP_ASSUM MP_TAC THEN
 	     REWRITE_TAC[interval_arith; FLOAT_0] THEN REAL_ARITH_TAC;
@@ -3569,7 +3569,7 @@ let FLOAT_INTERVAL_DIV_TF_TT = prove(
        ALL_TAC
      ] THEN
 
-     SUBGOAL_THEN `interval_arith x (float F 0 0, b)` ASSUME_TAC THENL
+     SUBGOAL_THEN `interval_arith x (float_num F 0 0, b)` ASSUME_TAC THENL
      [
        UNDISCH_TAC `interval_arith x (--a, b)` THEN POP_ASSUM MP_TAC THEN
 	 REWRITE_TAC[interval_arith; FLOAT_0] THEN REAL_ARITH_TAC;
@@ -3706,7 +3706,7 @@ let float_interval_sub pp th1 th2 =
 
 let s_var_bool = `s:bool`;;
 
-let FLOAT_ABS = prove(`abs (float s n e) = float F n e`,
+let FLOAT_ABS = prove(`abs (float_num s n e) = float_num F n e`,
    BOOL_CASES_TAC `s:bool` THEN
      REWRITE_TAC[FLOAT_NEG_T; REAL_ABS_NEG; REAL_ABS_REFL; FLOAT_F_POS]);;
 
@@ -3724,10 +3724,10 @@ let float_abs tm =
 (*******************************)
 (* float_interval_sqrt *)
 
-let FLOAT_INTERVAL_SQRT = prove(`interval_arith x (float F n1 e1, hi) /\
-				  f1 <= sqrt (float F n1 e1) /\ sqrt hi <= f2
+let FLOAT_INTERVAL_SQRT = prove(`interval_arith x (float_num F n1 e1, hi) /\
+				  f1 <= sqrt (float_num F n1 e1) /\ sqrt hi <= f2
 				  ==> interval_arith (sqrt x) (f1, f2)`,
-   ABBREV_TAC `lo = float F n1 e1` THEN
+   ABBREV_TAC `lo = float_num F n1 e1` THEN
      REWRITE_TAC[interval_arith] THEN
      STRIP_TAC THEN
      SUBGOAL_THEN `&0 <= lo /\ &0 <= hi` ASSUME_TAC THENL
@@ -3790,7 +3790,7 @@ let float_interval_sqrt pp th =
 let FLOAT_TO_NUM_CONV tm =
   let ltm, e_tm = dest_comb tm in
   let f_tm, n_tm = dest_comb ltm in
-    if (fst o dest_const o rator) f_tm <> "float" then
+    if (fst o dest_const o rator) f_tm <> "float_num" then
       failwith "FLOAT_TO_NUM_CONV"
     else
       let n_th' = SYM (INST[n_tm, n_var_num] Arith_hash.NUM_THM) in
@@ -3824,4 +3824,4 @@ let print_float tm=
   with _ -> failwith "print_float";;
 
 
-install_user_printer ("float", print_float);;
+install_user_printer ("float_num", print_float);;

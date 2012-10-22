@@ -14,6 +14,24 @@ flyspeck_needs "local/deformation.hl";;
 flyspeck_needs "local/NKEZBFC.hl";;
 flyspeck_needs "fan/GMLWKPK.hl";;
 flyspeck_needs "nonlinear/post.hl";;
+
+
+flyspeck_needs "../jHOLLight/caml/sections.hl";;
+flyspeck_needs "../jHOLLight/caml/ssreflect.hl";;
+flyspeck_needs "tame/ssreflect/seq2-compiled.hl";;
+rflyspeck_needs "tame/ssreflect/sort-compiled.hl";;
+flyspeck_needs "tame/ssreflect/FNJLBXS-compiled.hl";;
+
+hollight_dir;;
+load_path;;
+
+
+   load_path:= 
+     let dir = (Sys.getenv "FLYSPECK_DIR") in
+     let jdir = Filename.concat dir "../jHOLLight" in
+      jdir::dir::(!load_path);;
+!load_path;;
+
 type_of `x:A+B`;;
 searcht 5 [`x:A+B`];;
 Pcrttid.PCRTTID;;
@@ -22,7 +40,8 @@ Local_lemmas1.EJRCFJD;;
 `1`;;
 
 FLYSPECK_NEEDS "../DEVELOPMENT/thales/nonlinear/functional_equation.hl";;
-
+type_of `transitive`;;
+searcht 5 [def "transitive"];;
 open Hales_tactic;;
 open Merge_ineq;;
 let CALC_ID_TAC = Calc_derivative.CALC_ID_TAC;;
@@ -1516,61 +1535,50 @@ let rotate_proof n =
   let _ = reneeds "usr/thales/init_search.hl" in ();;
 
 
-(* for Fejes Toth 12 Kissing *)
-flyspeck_needs ("/../graph_generator/graph_control.hl");;
-Graph_control.run(Graph_control.fejes_toth_contact_conjecture_properties);;
 
-flyspeck_needs "../glpk/glpk_link.ml";;
-flyspeck_needs ("../glpk/fejestoth_contact/lipstick_ft.ml");;
-Lipstick_ft.exec();;
+let REAL_LEMMA = prove_by_refinement(
+  `!t s. (&0 < t ) ==> (?x. &0 < x /\ (&0 < s + t * x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC (`&0 < s + t `);
+    EXISTS_TAC `&1`;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  EXISTS_TAC `&1 - s/t`;
+  CONJ_TAC;
+    MATCH_MP_TAC (arith `&0 < (-- a)/b ==> &0 < &1 - a/b`);
+    MATCH_MP_TAC REAL_LT_DIV;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  SUBGOAL_THEN `s + t * (&1 - s/t) = t` SUBST1_TAC;
+    Calc_derivative.CALC_ID_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
 
-Auto_lib.functions();;
+Topology.th1;;
 
-(*
-  static const univariate i_halfbump_x,i_gchi,i_flat_term_x,
-  i_lfun,i_rho;
-  
-  static const univariate i_gamma2_x_div_azim(const interval&);
+let AZIM_ARG4 = prove_by_refinement(
+  `!x v u w t1 t2 t3.  &0 < t3 /\ ~collinear {x , v , u} /\ ~collinear {x,v,w} ==>
+    azim x v u w  = azim x v u (t1 % x + t2 % v + t3 % w)`,
+  (* {{{ proof *)
+  [
+  st/r
+  sgth `(?x. &0 < x /\ (&0 < (t1 + t2 + t3 * x)))` mptac
+    rt[arith `t1 + t2 + t3*x = (t1 + t2) + t3*x`]
+    mmp REAL_LEMMA
+    art[]
+    st
+    sgth `(t3 % w = (t3 * x') % (&1/x' % (w:real^3)))` subst1
+    rt[VECTOR_MUL_ASSOC]
+    repeat (apthmtac ORELSE aptermtac)
+    calc
+    repeat (fxa mptac) then rat
+      abbrev `s = t1 + t2 + t3 * x'`
+      sgth `t1 % x + t2 % v + (t3 * x') % (&1/x' % w) = 
+  ]);;
+  (* }}} *)
 
-  static const Function promote1_to_6(const univariate&);
+searcht 5 [`a % (b % c)`;`(a * b) % c`];;
 
-  static const Function constant6(const interval&);
-
-  static Function uni(const univariate&,const Function&);
-
-  static const Function 
-  x1,x2,x3,x4,x5,x6,y1;
-
-  static const Function unit,two6,edge_flat2_x,halfbump_x1,eta2_126,
-  delta_x,delta_x4,dih_x,sol_x,rad2_x,
-  num1,num2,num_combo1,delta_y_LC,mdtau_y_LC,mdtau2uf_y_LC;
-  *)
-
-Nonlinear_lemma.halfbump_x;;
-search [`halfbump_x`];;
-
-  module Nonlinear_def = struct
-
-    (* Definitions used in C++ code. *)
-    let halfbump_x = Nonlinear_lemma.halfbump_x_expand;;
-    let gchi = Sphere.gchi;;
-    let flat_term_x = Functional_equation.functional1_flat_term_x;;
-    let lfun = Functional_equation.functional1_lfun;;
-    let rho = Functional_equation.functional1_rho;;
-
-  end;;
-
-search [`rho x = y`];;
-search [def "delta"];;
-searcht 10 [`convex_local_fan`];;
-  type_of `convex_local_fan`;;
-helpgrep "search";;
-help "help";;
-help_flag 'd' "tau";;
-searcht 10 [def "tau_star"];;
-searcht 10 [`tau_star x y = z`];;
-  type_of `tau_star `;;
-searcht 10 [def "tau_fun"];;
-reset();;
-depend_reset();;
-graph;;
+*)

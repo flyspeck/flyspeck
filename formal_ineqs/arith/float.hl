@@ -1070,6 +1070,18 @@ let FLOAT_MUL_TT = prove(`min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num
 			     float_num T n1 e1 * float_num T n2 e2 = float_num F n r`,
 			 SIMP_TAC[FLOAT_MUL; mod_plus]);;
 
+
+let FLOAT_MUL_0x_hi, FLOAT_MUL_0x_lo, FLOAT_MUL_x0_hi, FLOAT_MUL_x0_lo =
+  let mul_0x_hi = `(n1 = 0 <=> T) ==> float_num s1 n1 e1 * f2 <= float_num F 0 min_exp` in
+  let mul_0x_lo = `(n1 = 0 <=> T) ==> float_num F 0 min_exp <= float_num s1 n1 e1 * f2` in
+  let mul_x0_hi = `(n2 = 0 <=> T) ==> f1 * float_num s2 n2 e2 <= float_num F 0 min_exp` in
+  let mul_x0_lo = `(n2 = 0 <=> T) ==> float_num F 0 min_exp <= f1 * float_num s2 n2 e2` in
+  let proof = MP_TAC (GEN_ALL (SPECL [`s:bool`; `0`] FLOAT_EQ_0)) THEN
+    SIMP_TAC[REAL_MUL_LZERO; REAL_MUL_RZERO; REAL_LE_REFL] in
+    prove(mul_0x_hi, proof), prove(mul_0x_lo, proof),
+  prove(mul_x0_hi, proof), prove(mul_x0_lo, proof);;
+
+
 let FLOAT_MUL_FF_hi, FLOAT_MUL_FF_lo =
   let ff_hi = `min_exp <= e /\ e - min_exp = r /\ num_exp n1 e1 * num_exp n2 e2 <= num_exp n e
                       ==> float_num F n1 e1 * float_num F n2 e2 <= float_num F n r` in
@@ -1135,7 +1147,7 @@ let FLOAT_MUL_TF_hi, FLOAT_MUL_TF_lo =
 (*********************************************)
 (* float_mul_lo, float_mul_hi *)
 
-let transform = UNDISCH_ALL o NUMERALS_TO_NUM o REWRITE_RULE[min_exp_def; GSYM IMP_IMP];;
+let transform = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[min_exp_def; GSYM IMP_IMP];;
 let FLOAT_MUL_FF_hi' = transform FLOAT_MUL_FF_hi and
     FLOAT_MUL_FF_lo' = transform FLOAT_MUL_FF_lo and
     FLOAT_MUL_TT_hi' = transform FLOAT_MUL_TT_hi and
@@ -1143,7 +1155,11 @@ let FLOAT_MUL_FF_hi' = transform FLOAT_MUL_FF_hi and
     FLOAT_MUL_FT_hi' = transform FLOAT_MUL_FT_hi and
     FLOAT_MUL_FT_lo' = transform FLOAT_MUL_FT_lo and
     FLOAT_MUL_TF_hi' = transform FLOAT_MUL_TF_hi and
-    FLOAT_MUL_TF_lo' = transform FLOAT_MUL_TF_lo;;
+    FLOAT_MUL_TF_lo' = transform FLOAT_MUL_TF_lo and
+    FLOAT_MUL_0x_hi' = transform FLOAT_MUL_0x_hi and
+    FLOAT_MUL_0x_lo' = transform FLOAT_MUL_0x_lo and
+    FLOAT_MUL_x0_hi' = transform FLOAT_MUL_x0_hi and
+    FLOAT_MUL_x0_lo' = transform FLOAT_MUL_x0_lo;;
 
 let FLOAT_MUL_FF' = transform FLOAT_MUL_FF and
     FLOAT_MUL_TT' = transform FLOAT_MUL_TT and
@@ -1162,7 +1178,7 @@ let float_mul_eq f1 f2 =
 
   let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
     if (rand(concl le_th) <> e_tm) then
-      failwith "float_mul_lo: underflow"
+      failwith "float_mul_eq: underflow"
     else
       let r_tm = rand(concl sub_th) in
       let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
@@ -1178,65 +1194,92 @@ let float_mul_eq f1 f2 =
 let float_mul_lo pp f1 f2 =
   let s1, n1, e1 = dest_float f1 and
       s2, n2, e2 = dest_float f2 in
-  let flag = s1 = s2 in
-  let num_exp1 = mk_num_exp n1 e1 and
-      num_exp2 = mk_num_exp n2 e2 in
-
-  let mul_th, n_tm, e_tm = 
-    if flag then
-      let th = num_exp_op_lo pp num_exp_mul num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (lhand (concl th)) in
-	th, n_tm, e_tm
-    else
-      let th = num_exp_op_hi pp num_exp_mul num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (rand (concl th)) in
-	th, n_tm, e_tm in
-
-  let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
-    if (rand(concl le_th) <> e_tm) then
-      failwith "float_mul_lo: underflow"
-    else
-      let r_tm = rand(concl sub_th) in
-      let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
-		      n1, n1_var_num; e1, e1_var_num; n2, n2_var_num; e2, e2_var_num] in
-      let th0 = inst
-	(if flag then
-	   if s1 = "F" then FLOAT_MUL_FF_lo' else FLOAT_MUL_TT_lo'
-	 else
-	   if s1 = "F" then FLOAT_MUL_FT_lo' else FLOAT_MUL_TF_lo') in
-	MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
+    (* Multiplication by zero *)
+  let n1_eq0_th = raw_eq0_hash_conv n1 in
+    if (rand o concl) n1_eq0_th = t_const then
+      (MY_PROVE_HYP n1_eq0_th o 
+	 INST[e1, e1_var_num; f2, f2_var_real; n1, n1_var_num;
+	      (if s1 = "T" then t_const else f_const), s1_var_bool]) FLOAT_MUL_0x_lo'
+    else 
+      let n2_eq0_th = raw_eq0_hash_conv n2 in
+	if (rand o concl) n2_eq0_th = t_const then
+	  (MY_PROVE_HYP n2_eq0_th o
+	     INST[e2, e2_var_num; f1, f1_var_real; n2, n2_var_num;
+		  (if s2 = "T" then t_const else f_const), s2_var_bool]) FLOAT_MUL_x0_lo'
+	else
+	  let flag = s1 = s2 in
+	  let num_exp1 = mk_num_exp n1 e1 and
+	      num_exp2 = mk_num_exp n2 e2 in
+	    
+	  let mul_th, n_tm, e_tm = 
+	    if flag then
+	      let th = num_exp_op_lo pp num_exp_mul num_exp1 num_exp2 in
+	      let n_tm, e_tm = dest_num_exp (lhand (concl th)) in
+		th, n_tm, e_tm
+	    else
+	      let th = num_exp_op_hi pp num_exp_mul num_exp1 num_exp2 in
+	      let n_tm, e_tm = dest_num_exp (rand (concl th)) in
+		th, n_tm, e_tm in
+	    
+	  let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
+	    if (rand(concl le_th) <> e_tm) then
+	      failwith "float_mul_lo: underflow"
+	    else
+	      let r_tm = rand(concl sub_th) in
+	      let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
+			      n1, n1_var_num; e1, e1_var_num; n2, n2_var_num; e2, e2_var_num] in
+	      let th0 = inst
+		(if flag then
+		   if s1 = "F" then FLOAT_MUL_FF_lo' else FLOAT_MUL_TT_lo'
+		 else
+		   if s1 = "F" then FLOAT_MUL_FT_lo' else FLOAT_MUL_TF_lo') in
+		MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
 
 
 let float_mul_hi pp f1 f2 =
   let s1, n1, e1 = dest_float f1 and
       s2, n2, e2 = dest_float f2 in
-  let flag = s1 = s2 in
-  let num_exp1 = mk_num_exp n1 e1 and
-      num_exp2 = mk_num_exp n2 e2 in
+    (* Multiplication by zero *)
+  let n1_eq0_th = raw_eq0_hash_conv n1 in
+    if (rand o concl) n1_eq0_th = t_const then
+      (MY_PROVE_HYP n1_eq0_th o 
+	 INST[e1, e1_var_num; f2, f2_var_real; n1, n1_var_num;
+	      (if s1 = "T" then t_const else f_const), s1_var_bool]) FLOAT_MUL_0x_hi'
+    else 
+      let n2_eq0_th = raw_eq0_hash_conv n2 in
+	if (rand o concl) n2_eq0_th = t_const then
+	  (MY_PROVE_HYP n2_eq0_th o
+	     INST[e2, e2_var_num; f1, f1_var_real; n2, n2_var_num;
+		  (if s2 = "T" then t_const else f_const), s2_var_bool]) FLOAT_MUL_x0_hi'
+	else
+	  let flag = s1 = s2 in
+	  let num_exp1 = mk_num_exp n1 e1 and
+	      num_exp2 = mk_num_exp n2 e2 in
+	    
+	  let mul_th, n_tm, e_tm = 
+	    if flag then
+	      let th = num_exp_op_hi pp num_exp_mul num_exp1 num_exp2 in
+	      let n_tm, e_tm = dest_num_exp (rand (concl th)) in
+		th, n_tm, e_tm
+	    else
+	      let th = num_exp_op_lo pp num_exp_mul num_exp1 num_exp2 in
+	      let n_tm, e_tm = dest_num_exp (lhand (concl th)) in
+		th, n_tm, e_tm in
+	    
+	  let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
+	    if (rand(concl le_th) <> e_tm) then
+	      failwith "float_mul_hi: underflow"
+	    else
+	      let r_tm = rand(concl sub_th) in
+	      let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
+			      n1, n1_var_num; e1, e1_var_num; n2, n2_var_num; e2, e2_var_num] in
+	      let th0 = inst
+		(if flag then
+		   if s1 = "F" then FLOAT_MUL_FF_hi' else FLOAT_MUL_TT_hi'
+		 else
+		   if s1 = "F" then FLOAT_MUL_FT_hi' else FLOAT_MUL_TF_hi') in
+		MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
 
-  let mul_th, n_tm, e_tm = 
-    if flag then
-      let th = num_exp_op_hi pp num_exp_mul num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (rand (concl th)) in
-	th, n_tm, e_tm
-    else
-      let th = num_exp_op_lo pp num_exp_mul num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (lhand (concl th)) in
-	th, n_tm, e_tm in
-
-  let sub_th, le_th = raw_sub_and_le_hash_conv e_tm min_exp_num_const in
-    if (rand(concl le_th) <> e_tm) then
-      failwith "float_mul_hi: underflow"
-    else
-      let r_tm = rand(concl sub_th) in
-      let inst = INST[e_tm, e_var_num; r_tm, r_var_num; n_tm, n_var_num;
-		      n1, n1_var_num; e1, e1_var_num; n2, n2_var_num; e2, e2_var_num] in
-      let th0 = inst
-	(if flag then
-	   if s1 = "F" then FLOAT_MUL_FF_hi' else FLOAT_MUL_TT_hi'
-	 else
-	   if s1 = "F" then FLOAT_MUL_FT_hi' else FLOAT_MUL_TF_hi') in
-	MY_PROVE_HYP sub_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP le_th th0));;
 
 
 (*********************************************)
@@ -1311,6 +1354,12 @@ let FLOAT_DIV_FF = prove(`e2 + k <= min_exp + e + e1 /\ ~(n2 = 0) /\
      ] THEN
 
      ASM_SIMP_TAC[]);;
+
+let FLOAT_DIV_0x_lo = prove(`(n1 = 0 <=> T) ==> float_num F 0 min_exp <= float_num s1 n1 e1 / f2`,
+			    SIMP_TAC[real_div; FLOAT_MUL_0x_lo]);;
+
+let FLOAT_DIV_0x_hi = prove(`(n1 = 0 <=> T) ==> float_num s1 n1 e1 / f2 <= float_num F 0 min_exp`,
+			    SIMP_TAC[real_div; FLOAT_MUL_0x_hi]);;
 
 let FLOAT_DIV_FF_lo = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\ r2 - r1 = r /\
                              r1 <= r2 /\ ~(n2 = 0) /\
@@ -1519,7 +1568,7 @@ let FLOAT_DIV_TF_hi = prove(`e2 + k = r1 /\ min_exp + e + e1 = r2 /\
 (* float_div_lo, float_div_hi *)
 
 let transform = UNDISCH_ALL o PURE_REWRITE_RULE[TAUT `~P <=> (P <=> F)`] o
-  NUMERALS_TO_NUM o REWRITE_RULE[GSYM IMP_IMP; min_exp_def];;
+  NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP; min_exp_def];;
 
 let FLOAT_DIV_FF_hi' = transform FLOAT_DIV_FF_hi and
     FLOAT_DIV_FF_lo' = transform FLOAT_DIV_FF_lo and
@@ -1528,96 +1577,110 @@ let FLOAT_DIV_FF_hi' = transform FLOAT_DIV_FF_hi and
     FLOAT_DIV_FT_hi' = transform FLOAT_DIV_FT_hi and
     FLOAT_DIV_FT_lo' = transform FLOAT_DIV_FT_lo and
     FLOAT_DIV_TF_hi' = transform FLOAT_DIV_TF_hi and
-    FLOAT_DIV_TF_lo' = transform FLOAT_DIV_TF_lo;;
+    FLOAT_DIV_TF_lo' = transform FLOAT_DIV_TF_lo and
+    FLOAT_DIV_0x_hi' = transform FLOAT_DIV_0x_hi and
+    FLOAT_DIV_0x_lo' = transform FLOAT_DIV_0x_lo;;
 
 let float_div_lo pp f1 f2 =
   let s1, n1, e1 = dest_float f1 and
       s2, n2, e2 = dest_float f2 in
-  let flag = s1 = s2 in
-
-  let k_tm = rand (mk_small_numeral_array (2 * pp)) in
-  let num_exp1 = mk_num_exp n1 k_tm and
-      num_exp2 = mk_num_exp n2 zero_const in
-  let div_th, n_tm, e_tm =
-    if flag then
-      let th = num_exp_op_lo pp num_exp_div num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (lhand(concl th)) in
-	th, n_tm, e_tm
+  let n1_eq0_th = raw_eq0_hash_conv n1 in
+    if (rand o concl) n1_eq0_th = t_const then
+      (MY_PROVE_HYP n1_eq0_th o 
+	 INST[e1, e1_var_num; f2, f2_var_real; n1, n1_var_num;
+	      (if s1 = "T" then t_const else f_const), s1_var_bool]) FLOAT_DIV_0x_lo'
     else
-      let th = num_exp_op_hi_lt pp num_exp_div num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (rand(concl th)) in
-	th, n_tm, e_tm in
+      let flag = s1 = s2 in
 
-  let r1_th = raw_add_conv_hash (mk_binop add_op_num e2 k_tm) in
-  let r1_tm = rand(concl r1_th) in
-  let e_plus_e1 = raw_add_conv_hash (mk_binop add_op_num e_tm e1) in
-  let ltm, rtm = dest_comb(concl e_plus_e1) in
-  let r2_th' = raw_add_conv_hash (mk_binop add_op_num min_exp_num_const rtm) in
-  let r2_th = TRANS (AP_TERM (mk_comb (add_op_num, min_exp_num_const)) e_plus_e1) r2_th' in
-  let r2_tm = rand(concl r2_th) in
-  let sub_th, le_th = raw_sub_and_le_hash_conv r2_tm r1_tm in
-    if rand(concl le_th) <> r2_tm then
-      failwith "float_div_lo: underflow"
-    else
-      let r_tm = rand(concl sub_th) in
-      let n2_not_zero = raw_eq0_hash_conv n2 in
-      let inst = INST[r1_tm, r1_var_num; r2_tm, r2_var_num;
-		      n1, n1_var_num; e1, e1_var_num;
-		      e_tm, e_var_num; k_tm, k_var_num;
-		      n2, n2_var_num; e2, e2_var_num;
-		      n_tm, n_var_num; r_tm, r_var_num] in
-      let th0 = inst
-	(if flag then
-	   if s1 = "F" then FLOAT_DIV_FF_lo' else FLOAT_DIV_TT_lo'
-	 else
-	   if s1 = "F" then FLOAT_DIV_FT_lo' else FLOAT_DIV_TF_lo') in
-      let th1 = MY_PROVE_HYP n2_not_zero (MY_PROVE_HYP div_th (MY_PROVE_HYP le_th th0)) in
-	MY_PROVE_HYP sub_th (MY_PROVE_HYP r2_th (MY_PROVE_HYP r1_th th1));;
+      let k_tm = rand (mk_small_numeral_array (2 * pp)) in
+      let num_exp1 = mk_num_exp n1 k_tm and
+	  num_exp2 = mk_num_exp n2 zero_const in
+      let div_th, n_tm, e_tm =
+	if flag then
+	  let th = num_exp_op_lo pp num_exp_div num_exp1 num_exp2 in
+	  let n_tm, e_tm = dest_num_exp (lhand(concl th)) in
+	    th, n_tm, e_tm
+	else
+	  let th = num_exp_op_hi_lt pp num_exp_div num_exp1 num_exp2 in
+	  let n_tm, e_tm = dest_num_exp (rand(concl th)) in
+	    th, n_tm, e_tm in
+	
+      let r1_th = raw_add_conv_hash (mk_binop add_op_num e2 k_tm) in
+      let r1_tm = rand(concl r1_th) in
+      let e_plus_e1 = raw_add_conv_hash (mk_binop add_op_num e_tm e1) in
+      let ltm, rtm = dest_comb(concl e_plus_e1) in
+      let r2_th' = raw_add_conv_hash (mk_binop add_op_num min_exp_num_const rtm) in
+      let r2_th = TRANS (AP_TERM (mk_comb (add_op_num, min_exp_num_const)) e_plus_e1) r2_th' in
+      let r2_tm = rand(concl r2_th) in
+      let sub_th, le_th = raw_sub_and_le_hash_conv r2_tm r1_tm in
+	if rand(concl le_th) <> r2_tm then
+	  failwith "float_div_lo: underflow"
+	else
+	  let r_tm = rand(concl sub_th) in
+	  let n2_not_zero = raw_eq0_hash_conv n2 in
+	  let inst = INST[r1_tm, r1_var_num; r2_tm, r2_var_num;
+			  n1, n1_var_num; e1, e1_var_num;
+			  e_tm, e_var_num; k_tm, k_var_num;
+			  n2, n2_var_num; e2, e2_var_num;
+			  n_tm, n_var_num; r_tm, r_var_num] in
+	  let th0 = inst
+	    (if flag then
+	       if s1 = "F" then FLOAT_DIV_FF_lo' else FLOAT_DIV_TT_lo'
+	     else
+	       if s1 = "F" then FLOAT_DIV_FT_lo' else FLOAT_DIV_TF_lo') in
+	  let th1 = MY_PROVE_HYP n2_not_zero (MY_PROVE_HYP div_th (MY_PROVE_HYP le_th th0)) in
+	    MY_PROVE_HYP sub_th (MY_PROVE_HYP r2_th (MY_PROVE_HYP r1_th th1));;
 
 
 let float_div_hi pp f1 f2 =
   let s1, n1, e1 = dest_float f1 and
       s2, n2, e2 = dest_float f2 in
-  let flag = s1 = s2 in
-
-  let k_tm = rand (mk_small_numeral_array (2 * pp)) in
-  let num_exp1 = mk_num_exp n1 k_tm and
-      num_exp2 = mk_num_exp n2 zero_const in
-  let div_th, n_tm, e_tm =
-    if flag then
-      let th = num_exp_op_hi_lt pp num_exp_div num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (rand(concl th)) in
-	th, n_tm, e_tm
+  let n1_eq0_th = raw_eq0_hash_conv n1 in
+    if (rand o concl) n1_eq0_th = t_const then
+      (MY_PROVE_HYP n1_eq0_th o 
+	 INST[e1, e1_var_num; f2, f2_var_real; n1, n1_var_num;
+	      (if s1 = "T" then t_const else f_const), s1_var_bool]) FLOAT_DIV_0x_hi'
     else
-      let th = num_exp_op_lo pp num_exp_div num_exp1 num_exp2 in
-      let n_tm, e_tm = dest_num_exp (lhand(concl th)) in
-	th, n_tm, e_tm in
-
-  let r1_th = raw_add_conv_hash (mk_binop add_op_num e2 k_tm) in
-  let r1_tm = rand(concl r1_th) in
-  let e_plus_e1 = raw_add_conv_hash (mk_binop add_op_num e_tm e1) in
-  let ltm, rtm = dest_comb(concl e_plus_e1) in
-  let r2_th' = raw_add_conv_hash (mk_binop add_op_num min_exp_num_const rtm) in
-  let r2_th = TRANS (AP_TERM (mk_comb (add_op_num, min_exp_num_const)) e_plus_e1) r2_th' in
-  let r2_tm = rand(concl r2_th) in
-  let sub_th, le_th = raw_sub_and_le_hash_conv r2_tm r1_tm in
-    if rand(concl le_th) <> r2_tm then
-      failwith "float_div_hi: underflow"
-    else
-      let r_tm = rand(concl sub_th) in
-      let n2_not_zero = raw_eq0_hash_conv n2 in
-      let inst = INST[r1_tm, r1_var_num; r2_tm, r2_var_num;
-		      n1, n1_var_num; e1, e1_var_num;
-		      e_tm, e_var_num; k_tm, k_var_num;
-		      n2, n2_var_num; e2, e2_var_num;
-		      n_tm, n_var_num; r_tm, r_var_num] in
-      let th0 = inst
-	(if flag then
-	   if s1 = "F" then FLOAT_DIV_FF_hi' else FLOAT_DIV_TT_hi'
-	 else
-	   if s1 = "F" then FLOAT_DIV_FT_hi' else FLOAT_DIV_TF_hi') in
-      let th1 = MY_PROVE_HYP n2_not_zero (MY_PROVE_HYP div_th (MY_PROVE_HYP le_th th0)) in
-	MY_PROVE_HYP sub_th (MY_PROVE_HYP r2_th (MY_PROVE_HYP r1_th th1));;
+      let flag = s1 = s2 in
+	
+      let k_tm = rand (mk_small_numeral_array (2 * pp)) in
+      let num_exp1 = mk_num_exp n1 k_tm and
+	  num_exp2 = mk_num_exp n2 zero_const in
+      let div_th, n_tm, e_tm =
+	if flag then
+	  let th = num_exp_op_hi_lt pp num_exp_div num_exp1 num_exp2 in
+	  let n_tm, e_tm = dest_num_exp (rand(concl th)) in
+	    th, n_tm, e_tm
+	else
+	  let th = num_exp_op_lo pp num_exp_div num_exp1 num_exp2 in
+	  let n_tm, e_tm = dest_num_exp (lhand(concl th)) in
+	    th, n_tm, e_tm in
+	
+      let r1_th = raw_add_conv_hash (mk_binop add_op_num e2 k_tm) in
+      let r1_tm = rand(concl r1_th) in
+      let e_plus_e1 = raw_add_conv_hash (mk_binop add_op_num e_tm e1) in
+      let ltm, rtm = dest_comb(concl e_plus_e1) in
+      let r2_th' = raw_add_conv_hash (mk_binop add_op_num min_exp_num_const rtm) in
+      let r2_th = TRANS (AP_TERM (mk_comb (add_op_num, min_exp_num_const)) e_plus_e1) r2_th' in
+      let r2_tm = rand(concl r2_th) in
+      let sub_th, le_th = raw_sub_and_le_hash_conv r2_tm r1_tm in
+	if rand(concl le_th) <> r2_tm then
+	  failwith "float_div_hi: underflow"
+	else
+	  let r_tm = rand(concl sub_th) in
+	  let n2_not_zero = raw_eq0_hash_conv n2 in
+	  let inst = INST[r1_tm, r1_var_num; r2_tm, r2_var_num;
+			  n1, n1_var_num; e1, e1_var_num;
+			  e_tm, e_var_num; k_tm, k_var_num;
+			  n2, n2_var_num; e2, e2_var_num;
+			  n_tm, n_var_num; r_tm, r_var_num] in
+	  let th0 = inst
+	    (if flag then
+	       if s1 = "F" then FLOAT_DIV_FF_hi' else FLOAT_DIV_TT_hi'
+	     else
+	       if s1 = "F" then FLOAT_DIV_FT_hi' else FLOAT_DIV_TF_hi') in
+	  let th1 = MY_PROVE_HYP n2_not_zero (MY_PROVE_HYP div_th (MY_PROVE_HYP le_th th0)) in
+	    MY_PROVE_HYP sub_th (MY_PROVE_HYP r2_th (MY_PROVE_HYP r1_th th1));;
 
 
 (***********************************)

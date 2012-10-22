@@ -56,7 +56,20 @@ let default_params =
 };;
 
 
+type verification_time =
+{
+  total : float;
+  formal : float;
+};;
+
+
 (********************************)
+
+(* Adds a constant approximation to the table of known constants *)
+let add_constant_interval int_th =
+  Eval_interval.add_constant_interval int_th;
+  Informal_eval_interval.add_constant_interval int_th;;
+
 
 (* Tests if an expression has only given binary and unary operations *)
 let test_expression bin_ops unary_ops =
@@ -285,9 +298,8 @@ let mk_standard_ineq =
     fun thms tm ->
       let th0 = (REWRITE_CONV([real_gt; real_div] @ thms) THENC DEPTH_CONV let_CONV) tm in
       let rhs = rand (concl th0) in
-      let th1 = ONCE_REWRITE_CONV[lemma] rhs in
-      let th2 = PURE_REWRITE_RULE[REAL_NEG_0; REAL_SUB_RZERO; REAL_SUB_LZERO] th1 in
-	TRANS th0 th2;;
+      let th1 = (ONCE_REWRITE_CONV[lemma] THENC PURE_REWRITE_CONV[REAL_NEG_0; REAL_SUB_RZERO; REAL_SUB_LZERO]) rhs in
+	TRANS th0 th1;;
 
 
 (* Converts a term in the form `x + y` into the term `\x:real^2. x$1 + x$2` *)
@@ -364,6 +376,7 @@ let normalize_result norm_flag v1 eq_th1 domain_sub_th pass_thm =
 
 
 (* Verifies the given inequality *)
+(* Returns the final theorem and verification time *)
 let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms =
   let total_start = Unix.gettimeofday() in
   let eq_th1 = mk_standard_ineq rewrite_thms ineq_tm in
@@ -372,7 +385,8 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let i_fun = build_interval_fun ineq_tm1 in
       let th0 = eval_interval_fun pp i_fun [] [] in
       let th1 = float_interval_lt0 th0 in
-	REWRITE_RULE[GSYM eq_th1] th1
+      let total = Unix.gettimeofday() -. total_start in
+	REWRITE_RULE[GSYM eq_th1] th1, {total = total; formal = total}
     else
       let fun_tm, v1 = expr_to_vector_fun ineq_tm1 in
       let vars = map (fst o dest_var) (dest_vector v1) in
@@ -420,11 +434,9 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
 	  let finish = Unix.gettimeofday() in
 	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
 	    start, finish, result in
-
-      let _ = report 
-	(sprintf "Total time: %f; Verification time: %f" (finish -. total_start) (finish -. start)) in
-	normalize_result norm_flag v1 eq_th1 domain_sub_th result;;
-
+	normalize_result norm_flag v1 eq_th1 domain_sub_th result,
+  {total = finish -. total_start; formal = finish -. start};;
+	
 
 (* A simple verification function which accepts 
    a list of rewrite theorems which are applied to the inequality

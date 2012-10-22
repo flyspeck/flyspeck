@@ -245,4 +245,25 @@ let eval_interval_fun_list pp (f_list, refs) vars =
     map (fun f -> eval_interval_fun pp f vars rs) f_list;;
 
 
+(* Approximate the bounds of the given interval with floating point numbers *)
+let interval_to_float_interval pp int_th =
+  let lo_tm, hi_tm = (dest_pair o rand o concl) int_th in
+  let f_lo = build_interval_fun lo_tm and
+      f_hi = build_interval_fun hi_tm in
+  let int_lo = eval_interval_fun pp f_lo [] [] and
+      int_hi = eval_interval_fun pp f_hi [] [] in
+  let a, _ = dest_interval int_lo and
+      _, b = dest_interval int_hi in
+    mk_interval (a, b);;
+		     
+
+(* Adds a new constant approximation to the table of constants *)
+let add_constant_interval int_th =
+  let c_tm = (rand o rator o concl) int_th in
+  let _ = is_const c_tm or failwith "add_constant_interval: not a constant" in
+  let interval = interval_to_float_interval 20 int_th in
+  let approx_array = Array.init 20 (fun i -> round_interval (if i = 0 then 1 else i) interval) in
+    Hashtbl.add interval_constants (fst (dest_const c_tm)) (fun pp -> approx_array.(pp));;
+
+	
 end;;

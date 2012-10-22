@@ -503,6 +503,7 @@ end;;
 module type Informal_interval_sig =
   sig
     type interval
+    val zero_interval : interval
     val one_interval : interval
     val two_interval : interval
     val mk_interval : Informal_float.ifloat * Informal_float.ifloat -> interval
@@ -538,6 +539,7 @@ let mk_num_interval n =
 let mk_small_num_interval n =
   let f = mk_small_num_float n in (f, f);;
 
+let zero_interval = mk_small_num_interval 0;;
 let one_interval = mk_small_num_interval 1;;
 let two_interval = mk_small_num_interval 2;;
 
@@ -567,44 +569,40 @@ let mul_interval pp (l_lo,l_hi) (r_lo,r_hi) =
       s2 = sign_float l_hi and
       s3 = sign_float r_lo and
       s4 = sign_float r_hi in
-    if s1 <> s2 && s3 <> s4 then
-      if not s1 or not s3 then
-	failwith "mul_interval: FT interval"
-      else
+    if s1 <> s2 && not s1 then
+      zero_interval
+    else if s3 <> s4 && not s3 then
+      zero_interval
+    else
+      if s1 <> s2 && s3 <> s4 then
 	let lo1, lo2 = mul_float_lo pp l_lo r_hi, mul_float_lo pp l_hi r_lo and
 	    hi1, hi2 = mul_float_hi pp l_lo r_lo, mul_float_hi pp l_hi r_hi in
 	  (min_float lo1 lo2, max_float hi1 hi2)
-    else
-      let lo1, lo2, hi1, hi2 =
-	if s1 <> s2 then
-	  if not s1 then
-	    failwith "mul_interval: FT interval"
-	  else
+      else
+	let lo1, lo2, hi1, hi2 =
+	  if s1 <> s2 then
 	    if not s3 then
 	      l_lo, r_hi, l_hi, r_hi
 	    else
 	      l_hi, r_lo, l_lo, r_lo
-	else
-	  if s3 <> s4 then
-	    if not s3 then
-	      failwith "mul_interval: FT interval"
-	    else
+	  else
+	    if s3 <> s4 then
 	      if not s1 then
 		l_hi, r_lo, l_hi, r_hi
 	      else
 		l_lo, r_hi, l_lo, r_lo
-	  else
-	    if not s1 then
-	      if not s3 then
-		l_lo, r_lo, l_hi, r_hi
-	      else
-		l_hi, r_lo, l_lo, r_hi
 	    else
-	      if not s3 then
-		l_lo, r_hi, l_hi, r_lo
+	      if not s1 then
+		if not s3 then
+		  l_lo, r_lo, l_hi, r_hi
+		else
+		  l_hi, r_lo, l_lo, r_hi
 	      else
-		l_hi, r_hi, l_lo, r_lo in
-	(mul_float_lo pp lo1 lo2, mul_float_hi pp hi1 hi2);;
+		if not s3 then
+		  l_lo, r_hi, l_hi, r_lo
+		else
+		  l_hi, r_hi, l_lo, r_lo in
+	  (mul_float_lo pp lo1 lo2, mul_float_hi pp hi1 hi2);;
 
 (* div *)
 let div_interval pp (l_lo,l_hi) (r_lo,r_hi) = 
@@ -612,7 +610,9 @@ let div_interval pp (l_lo,l_hi) (r_lo,r_hi) =
       s2 = sign_float l_hi and
       s3 = sign_float r_lo and
       s4 = sign_float r_hi in
-    if s3 <> s4 then
+    if s1 <> s2 && not s1 then
+      zero_interval
+    else if s3 <> s4 then
       failwith "div_interval: division by an interval containing 0"
     else
       let lo1, lo2, hi1, hi2 =
@@ -628,13 +628,10 @@ let div_interval pp (l_lo,l_hi) (r_lo,r_hi) =
 	    else
 	      l_hi, r_lo, l_lo, r_hi
 	else
-	  if not s1 then
-	    failwith "div_interval: FT interval"
+	  if not s3 then
+	    l_lo, r_lo, l_hi, r_lo
 	  else
-	    if not s3 then
-	      l_lo, r_lo, l_hi, r_lo
-	    else
-	      l_hi, r_hi, l_lo, r_hi in
+	    l_hi, r_hi, l_lo, r_hi in
 	(div_float_lo pp lo1 lo2, div_float_hi pp hi1 hi2);;
 
 (* inv *)

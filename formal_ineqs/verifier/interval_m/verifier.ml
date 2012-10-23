@@ -11,6 +11,24 @@ open Taylor;;
 open Recurse;;
 
 
+type certificate_stats =
+{
+  pass : int;
+  pass_raw : int;
+  pass_mono : int;
+  mono : int;
+  glue : int;
+  glue_convex : int;
+};;
+
+
+let dummy_stats =
+{
+  pass = 0; pass_raw = 0; pass_mono = 0;
+  mono = 0; glue = 0; glue_convex = 0;
+};;
+
+
 (**********************************)
 let run_test f x z min_flag min_max allow_d convex_flag mono_pass_flag raw_int_flag eps =
   let pad = replicate 0.0 (8 - length x) in
@@ -72,11 +90,6 @@ let run_test0 f x z min_flag min_max allow_d convex_flag mono_pass_flag eps =
 
 
 (****************************************)
-
-
-
-
-(*************)
 
 let domain_str x z =
   let s1 = map string_of_float x and
@@ -230,7 +243,7 @@ let transform_result x z r =
 
 (* Computes result statistics *)
 
-let result_stat result =
+let result_stats result =
   let pass = ref 0 and
       mono = ref 0 and
       glue = ref 0 and
@@ -252,12 +265,17 @@ let result_stat result =
 	  count r1; count r2 in
 
   let _ = count result in
+    {pass = !pass; pass_raw = !pass_raw; pass_mono = !pass_mono;
+     mono = !mono; glue = !glue; glue_convex = !glue_convex};;
+
+
+let report_stats stats =
   let s = sprintf "pass = %d (pass_raw = %d)\nmono = %d\nglue = %d (glue_convex = %d)\npass_mono = %d"
-    !pass !pass_raw !mono !glue !glue_convex !pass_mono in
+    stats.pass stats.pass_raw stats.mono stats.glue stats.glue_convex stats.pass_mono in
     report s;;
 
 
-let result_p_stat glue_flag p_result =
+let result_p_stats glue_flag p_result =
   let p_table = Hashtbl.create 10 in
   let add1 p =
     let c = if Hashtbl.mem p_table p then Hashtbl.find p_table p else 0 in

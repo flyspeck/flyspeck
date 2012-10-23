@@ -1,3 +1,6 @@
+(* Some inequalities from the Flyspeck project *)
+(* http://code.google.com/p/flyspeck/ *)
+
 (* Set up the loading path:
 load_path := "path to the formal_ineqs directory" :: !load_path;;
 *)
@@ -6,8 +9,8 @@ load_path := "path to the formal_ineqs directory" :: !load_path;;
 (* (arithmetic options cannot be changed later) *)
 needs "arith_options.hl";;
 
-(* Set the base of natural number arithmetic to 100 *)
-Arith_options.base := 100;;
+(* Set the base of natural number arithmetic to 200 *)
+Arith_options.base := 200;;
 
 (* Load all verification libraries *)
 (* Note: the verification library loads Multivariate/realanalysis.ml,
@@ -28,33 +31,6 @@ Verifier_options.info_print_level := 1;;
 open M_verifier_main;;
 
 
-(* Several simple tests *)
-
-(* default_params: default verification parameters *)
-(* 5: precision parameter for floating point arithmetic *)
-verify_ineq default_params 5 `sqrt(pi) < #1.773`;;
-verify_ineq default_params 11 `#1.230959417 < acs(&1 / &3)`;;
-verify_ineq default_params 11 `#1.230959418 > acs(&1 / &3)`;;
-
-(* An approximation of atn *)
-let ineq1 = `&0 <= x /\ x <= &1 ==> atn x - x / (&1 + #0.28 * x * x) < #0.005`;;
-let ineq2 = `&0 <= x /\ x <= &1 ==> -- #0.005 < atn x - x / (&1 + #0.28 * x * x)`;;
-let th1, _ = verify_ineq default_params 5 ineq1;;
-let th2, _ = verify_ineq default_params 6 ineq2;;
-
-let abs_th = REAL_ARITH `abs x < y <=> x < y /\ --y < x`;;
-let MY_RULE = UNDISCH_ALL o SPEC_ALL;;
-let atn_approx1 = (GEN_ALL o DISCH_ALL o REWRITE_RULE[GSYM abs_th])
-  (CONJ (MY_RULE th1) (MY_RULE th2));;
-
-(* A polynomial approximation of atn *)
-let ineq1 = `-- &1 / &30 <= x /\ x <= &1 / &30 ==> x * (&1 - (x * x) * (&11184811 / &33554432 - (x * x) * (&13421773 / &67108864))) - atn x < #0.1 pow 7`;;
-let ineq2 = `-- &1 / &30 <= x /\ x <= &1 / &30 ==> -- (#0.1 pow 7) < x * (&1 - (x * x) * (&11184811 / &33554432 - (x * x) * (&13421773 / &67108864))) - atn x`;;
-
-let th1, _ = verify_ineq default_params 5 ineq1;;
-let th2, _ = verify_ineq default_params 5 ineq2;;
-let atn_approx2 = (GEN_ALL o DISCH_ALL o REWRITE_RULE[GSYM abs_th])
-  (CONJ (MY_RULE th1) (MY_RULE th2));;
 
 
 (************************)
@@ -202,32 +178,47 @@ let verify_flyspeck_ineq pp ineq_tm =
   let th, time = verify_ineq default_params pp ineq_tm1 in
     REWRITE_RULE[GSYM eq_th] th, time;;
 
-  
-(* 2485876245a *)
-let ineq_tm = `ineq
-  [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,x4, #6.3504; 
-    #3.0 *  #3.0, x5, #2.0 *  #2.52 *  #2.0 *  #2.52;  #4.0,x6, #6.3504]
-  (delta_x4 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
 
-verify_flyspeck_ineq 5 ineq_tm;;
+(* Create a hashtable for saving inequalities *)
+
+type difficulty = Easy | Medium | Hard;;
+
+type flyspeck_example =
+{
+  difficulty : difficulty;
+  id : string;
+  ineq_tm : term;
+};;
+
+let examples = Hashtbl.create 20;;
+let add_example ex =
+  Hashtbl.add examples ex.id ex;;
+
+(* 2485876245a *)
+add_example {id = "2485876245a";
+	     difficulty = Easy;
+	     ineq_tm = `ineq
+    [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,x4, #6.3504; 
+      #3.0 *  #3.0, x5, #2.0 *  #2.52 *  #2.0 *  #2.52;  #4.0,x6, #6.3504]
+    (delta_x4 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`};;
 
 
 (* 4559601669b *)
-let ineq_tm = `ineq
-  [ #4.0,x1, #6.3504;  #4.0,x2, #4.0;  #4.0,x3, #6.3504;  
-    #3.01 *  #3.01, x4, #3.01 *  #3.01; #4.0, x5, #6.3504;  #4.0,x6, #4.0]
-  (delta_x4 x1 x2 x3 x4 x5 x6 < &0)`;;
-
-verify_flyspeck_ineq 5 ineq_tm;;
+add_example {id = "4559601669b";
+	     difficulty = Easy;
+	     ineq_tm = `ineq
+    [ #4.0,x1, #6.3504;  #4.0,x2, #4.0;  #4.0,x3, #6.3504;  
+      #3.01 *  #3.01, x4, #3.01 *  #3.01; #4.0, x5, #6.3504;  #4.0,x6, #4.0]
+    (delta_x4 x1 x2 x3 x4 x5 x6 < &0)`};;
 
 
 (* 5512912661 *)
-let ineq_tm = `ineq [&1,x1,&1 + (pi * const1') / pi; &1,x2,&1 + (pi * const1') / pi; 
-		     &1, x3, &1 + (pi * const1') / pi;  #2.38 * #2.38, x4, #3.01 * #3.01; 
-		     &2 * &2, x5, #2.52 *  #2.52;  #3.15 /  #1.26 *  #3.15 /  #1.26,x6, #15.53]
-  (num1 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;;
-
-verify_flyspeck_ineq 5 ineq_tm;;
+add_example {id = "5512912661";
+	     difficulty = Easy;
+	     ineq_tm = `ineq [&1,x1,&1 + (pi * const1') / pi; &1,x2,&1 + (pi * const1') / pi; 
+			      &1, x3, &1 + (pi * const1') / pi;  #2.38 * #2.38, x4, #3.01 * #3.01; 
+			      &2 * &2, x5, #2.52 *  #2.52;  #3.15 /  #1.26 *  #3.15 /  #1.26,x6, #15.53]
+    (num1 x1 x2 x3 x4 x5 x6 * -- &1 < &0)`};;
 
 
 (* 6843920790 *)

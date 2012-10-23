@@ -1,3 +1,4 @@
+needs "verifier/interval_m/verifier.ml";;
 needs "verifier/m_verifier.hl";;
 needs "verifier/m_verifier_build.hl";;
 needs "taylor/m_taylor_arith2.hl";;
@@ -56,10 +57,11 @@ let default_params =
 };;
 
 
-type verification_time =
+type verification_stats =
 {
-  total : float;
-  formal : float;
+  total_time : float;
+  formal_verification_time : float;
+  certificate : Verifier.certificate_stats;
 };;
 
 
@@ -376,7 +378,7 @@ let normalize_result norm_flag v1 eq_th1 domain_sub_th pass_thm =
 
 
 (* Verifies the given inequality *)
-(* Returns the final theorem and verification time *)
+(* Returns the final theorem and verification statistics *)
 let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms =
   let total_start = Unix.gettimeofday() in
   let eq_th1 = mk_standard_ineq rewrite_thms ineq_tm in
@@ -386,7 +388,8 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let th0 = eval_interval_fun pp i_fun [] [] in
       let th1 = float_interval_lt0 th0 in
       let total = Unix.gettimeofday() -. total_start in
-	REWRITE_RULE[GSYM eq_th1] th1, {total = total; formal = total}
+	REWRITE_RULE[GSYM eq_th1] th1, 
+  {total_time = total; formal_verification_time = total; certificate = Verifier.dummy_stats}
     else
       let fun_tm, v1 = expr_to_vector_fun ineq_tm1 in
       let vars = map (fst o dest_var) (dest_vector v1) in
@@ -411,8 +414,9 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let certificate = Verifier.run_test tf xx_float zz_float false 0.0 
 	!params.allow_derivatives !params.convex_flag !params.mono_pass_flag
 	!params.raw_intervals_flag !params.eps in
+      let stats = Verifier.result_stats certificate in
       let _ = !info_print_level < 1 or (report0 " done\n"; true) in
-      let _ = !info_print_level < 1 or (Verifier.result_stat certificate; true) in
+      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
 
       let c1 = Verifier.transform_result xx_float zz_float certificate in
       let start, finish, result = 
@@ -435,7 +439,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
 	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
 	    start, finish, result in
 	normalize_result norm_flag v1 eq_th1 domain_sub_th result,
-  {total = finish -. total_start; formal = finish -. start};;
+  {total_time = finish -. total_start; formal_verification_time = finish -. start; certificate = stats};;
 	
 
 (* A simple verification function which accepts 

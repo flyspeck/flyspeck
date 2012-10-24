@@ -8,6 +8,7 @@ needs "arith_options.hl";;
 module type Informal_nat_sig =
   sig
     type nat
+	val arith_base : int
     val mk_nat : num -> nat
     val mk_small_nat : int -> nat
     val dest_nat : nat -> num
@@ -42,10 +43,11 @@ module type Informal_nat_sig =
 module Informal_nat : Informal_nat_sig = struct
 
 open Arith_misc;;
-open Arith_options;;
 open Big_int;;
 
 type nat = big_int;;
+
+let arith_base = !Arith_options.base;;
 
 let mk_nat n = 
   let result = big_int_of_num n in
@@ -95,7 +97,7 @@ let odd_nat n = sign_big_int (mod_big_int n two_big_int) > 0;;
 (*******************************)
 (* num_exp *)
 
-let base_nat = mk_small_nat !base;;
+let base_nat = mk_small_nat arith_base;;
 
 (* normalize_nat m = (n, e) s.t. m = n * base^e, e >= 0 *)
 let normalize_nat =
@@ -110,11 +112,11 @@ let normalize_nat =
 
 
 let denormalize_nat (n, e) =
-  mult_big_int n (power_int_positive_int !base e);;
+  mult_big_int n (power_int_positive_int arith_base e);;
 
 
 let lo_nat pp =
-  let max = power_int_positive_int !base pp in
+  let max = power_int_positive_int arith_base pp in
   let rec lo m e =
     if lt_big_int m max then 
       (m, e)
@@ -132,7 +134,7 @@ let lo_nat pp =
 
 let hi_nat pp =
   if pp <= 0 then failwith "hi_nat: pp <= 0" else
-    let max = power_int_positive_int !base pp in
+    let max = power_int_positive_int arith_base pp in
     let rec hi m e =
       if lt_big_int m max then
 	(m, e)
@@ -164,6 +166,7 @@ end;;
 module type Informal_float_sig =
   sig
     type ifloat
+	val min_exp : int
     val mk_float : num -> int -> ifloat
     val mk_num_float : num -> ifloat
     val mk_small_num_float : int -> ifloat
@@ -198,17 +201,18 @@ module type Informal_float_sig =
 
 module Informal_float : Informal_float_sig = struct
 
-open Arith_options;;
 open Informal_nat;;
 
 type ifloat = bool * nat * int;;
 
+let min_exp = !Arith_options.min_exp;;
+
 (* Creates a non-negative float *)
-let mk_float n e : ifloat = false, mk_nat n, e + !min_exp;;
+let mk_float n e : ifloat = false, mk_nat n, e + min_exp;;
 
-let mk_num_float n = false, mk_nat n, !min_exp;;
+let mk_num_float n = false, mk_nat n, min_exp;;
 
-let mk_small_num_float n = false, mk_small_nat n, !min_exp;;
+let mk_small_num_float n = false, mk_small_nat n, min_exp;;
 
 let zero_float = mk_small_num_float 0;;
 
@@ -343,7 +347,7 @@ let badd b1 b2 =
 let mul_float_eq (s1,n1,e1) (s2,n2,e2) =
   let s = badd s1 s2 in
   let n = mul_nat n1 n2 in
-  let e = e1 + e2 - !min_exp in
+  let e = e1 + e2 - min_exp in
     if e < 0 then
       failwith "mul_float_eq: underflow"
     else
@@ -357,7 +361,7 @@ let mul_float_lo pp (s1,n1,e1) (s2,n2,e2) =
     let s = badd s1 s2 in
     let n' = mul_nat n1 n2 in
     let n, e' = if s1 = s2 then lo_nat pp n' else hi_nat pp n' in
-    let e = e1 + e2 + e' - !min_exp in
+    let e = e1 + e2 + e' - min_exp in
       if e < 0 then
 	failwith "mul_float_lo: underflow"
       else
@@ -371,7 +375,7 @@ let mul_float_hi pp (s1,n1,e1) (s2,n2,e2) =
     let s = badd s1 s2 in
     let n' = mul_nat n1 n2 in
     let n, e' = if s1 = s2 then hi_nat pp n' else lo_nat pp n' in
-    let e = e1 + e2 + e' - !min_exp in
+    let e = e1 + e2 + e' - min_exp in
       if e < 0 then
 	failwith "mul_float_hi: underflow"
       else
@@ -389,7 +393,7 @@ let div_float_lo pp (s1,n1,e1) (s2,n2,e2) =
     let nn1 = denormalize_nat (n1, k) in
     let n' = div_nat nn1 n2 in
     let n, e' = if s1 = s2 then lo_nat pp n' else hi_lt_nat pp n' in
-    let e = !min_exp + e' + e1 - e2 - k in
+    let e = min_exp + e' + e1 - e2 - k in
       if e < 0 then
 	failwith "div_float_lo: underflow"
       else
@@ -405,7 +409,7 @@ let div_float_hi pp (s1,n1,e1) (s2,n2,e2) =
     let nn1 = denormalize_nat (n1, k) in
     let n' = div_nat nn1 n2 in
     let n, e' = if s1 = s2 then hi_lt_nat pp n' else lo_nat pp n' in
-    let e = !min_exp + e' + e1 - e2 - k in
+    let e = min_exp + e' + e1 - e2 - k in
       if e < 0 then
 	failwith "div_float_hi: underflow"
       else
@@ -481,7 +485,7 @@ let rec sqrt_float_lo pp (s,n1,e1) =
       let f1' = denormalize_nat (n1, p2) in
       let f1 = Big_int.sqrt_big_int (big_int_of_num (dest_nat f1')) in
       let n, e' = lo_nat pp (mk_nat (num_of_big_int f1)) in
-      let e = ((e1 + !min_exp) lsr 1) + e' - pp in
+      let e = ((e1 + min_exp) lsr 1) + e' - pp in
 	if e < 0 then
 	  failwith "sqrt_float_lo: underflow"
 	else
@@ -503,7 +507,7 @@ let rec sqrt_float_hi pp (s,n1,e1) =
 	let ( * ) = Big_int.mult_big_int and
 	    (==) = Big_int.eq_big_int in
 	  hi_nat pp (if f1' * f1' == x then f1 else suc_nat f1) in
-      let e = ((e1 + !min_exp) lsr 1) + e' - pp in
+      let e = ((e1 + min_exp) lsr 1) + e' - pp in
 	if e < 0 then
 	  failwith "sqrt_float_hi: underflow"
 	else
@@ -753,7 +757,7 @@ let mk_atn_co_table pp n =
 
 (* Lookup tables *)
 let n_of_p pp =
-  let x = (float_of_int (pp + 1) *. log (float_of_int !Arith_options.base) /. log (2.0) -. 5.0) /. 6.0 in
+  let x = (float_of_int (pp + 1) *. log (float_of_int Informal_nat.arith_base) /. log (2.0) -. 5.0) /. 6.0 in
   let n = (int_of_float o ceil) x in
     if n < 1 then 1 else n;;
 

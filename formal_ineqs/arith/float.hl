@@ -71,7 +71,6 @@ end;;
 module Arith_float : Arith_float_sig = struct
 
 open Big_int;;
-open Arith_options;;
 open Arith_misc;;
 open Arith_nat;;
 open Num_exp_theory;;
@@ -88,7 +87,7 @@ let interval_const = `interval_arith` and
 
 let b0_const = (fst o dest_comb o lhand o concl) (Arith_hash.def_array.(0));;
 let b0_name = (fst o dest_const) b0_const;;
-let base_const = mk_small_numeral !base;;
+let base_const = mk_small_numeral Arith_hash.arith_base;;
 
 let NUM_REMOVE = prove(mk_eq(mk_comb(Arith_hash.num_const, n_var_num), n_var_num), 
 		       REWRITE_TAC[Arith_hash.num_def; NUMERAL]);;
@@ -220,10 +219,10 @@ let make_lo_thm i =
             REWRITE_TAC[ARITH_LE; LE_REFL] THEN
             ARITH_TAC);;
 
-let lo_thm_array = Array.init !base make_lo_thm;;
-let lo_thm_table = Hashtbl.create !base;;
+let lo_thm_array = Array.init Arith_hash.arith_base make_lo_thm;;
+let lo_thm_table = Hashtbl.create Arith_hash.arith_base;;
 
-for i = 0 to !base - 1 do
+for i = 0 to Arith_hash.arith_base - 1 do
   Hashtbl.add lo_thm_table Arith_hash.const_array.(i) lo_thm_array.(i);
 done;;
 
@@ -236,10 +235,10 @@ let make_lo_thm2 i =
           REWRITE_TAC[Arith_hash.def_array.(i); Arith_hash.def_array.(0); ARITH_LE] THEN
                           ARITH_TAC);;
 
-let lo_thm2_array = Array.init !base make_lo_thm2;;
-let lo_thm2_table = Hashtbl.create !base;;
+let lo_thm2_array = Array.init Arith_hash.arith_base make_lo_thm2;;
+let lo_thm2_table = Hashtbl.create Arith_hash.arith_base;;
 
-for i = 0 to !base - 1 do
+for i = 0 to Arith_hash.arith_base - 1 do
   Hashtbl.add lo_thm2_table Arith_hash.const_array.(i) lo_thm2_array.(i);
 done;;
 
@@ -253,10 +252,10 @@ let make_hi_thm i =
                            REWRITE_TAC[Arith_hash.def_array.(i); Arith_hash.def_array.(0); ARITH_LT] THEN
                              ARITH_TAC);;
 
-let hi_thm_array = Array.init !base make_hi_thm;;
-let hi_thm_table = Hashtbl.create !base;;
+let hi_thm_array = Array.init Arith_hash.arith_base make_hi_thm;;
+let hi_thm_table = Hashtbl.create Arith_hash.arith_base;;
 
-for i = 0 to !base - 1 do
+for i = 0 to Arith_hash.arith_base - 1 do
   Hashtbl.add hi_thm_table Arith_hash.const_array.(i) hi_thm_array.(i);
 done;;
 
@@ -2173,7 +2172,7 @@ let FLOAT_SQRT_EVEN_lo' = transform FLOAT_SQRT_EVEN_lo and
 let even_const = `EVEN` and
     pre_const = `PRE` and
     two_num = rand(mk_small_numeral_array 2) and
-    min_exp_div2 = rand(mk_small_numeral_array (!min_exp / 2)) and
+    min_exp_div2 = rand(mk_small_numeral_array (min_exp / 2)) and
     f2_var_num = `f2:num` and
     f1_var_num = `f1:num` and
     p_var_num = `p:num`;;
@@ -2251,7 +2250,7 @@ let rec float_sqrt_lo pp tm =
 	  let x_tm = rand(concl f1_2) in
 	  let x = raw_dest_hash x_tm in
 	  let f1' = Big_int.sqrt_big_int (big_int_of_num x) in
-	  let f1 = num_of_big_int (big_int_round_lo !base pp f1') in
+	  let f1 = num_of_big_int (big_int_round_lo Arith_hash.arith_base pp f1') in
 	  let f1_tm = rand(mk_numeral_array f1) in
 	  let f1_num_exp = to_num_exp f1_tm in
 
@@ -2318,7 +2317,7 @@ let rec float_sqrt_hi pp tm =
 	  let x = raw_dest_hash x_tm in
 	  let x' = big_int_of_num x in
 	  let f1' = sqrt_big_int x' in
-	  let f1 = (num_of_big_int o big_int_round_hi !base pp)
+	  let f1 = (num_of_big_int o big_int_round_hi Arith_hash.arith_base pp)
 	    (if eq_big_int (mult_big_int f1' f1') x' then f1' else succ_big_int f1') in
 	      
 	  let f1_tm = rand(mk_numeral_array f1) in
@@ -2384,7 +2383,7 @@ let lt0_c = ref 0 and
     sqrt_hi_c = ref 0;;
 
 (* Hash tables *)
-let cache_size = if !Arith_options.float_cached then !init_cache_size else 1;;
+let cache_size = if !Arith_options.float_cached then !Arith_options.init_cache_size else 1;;
 
 let my_add h key v =
   if Hashtbl.length h >= !Arith_options.max_cache_size then
@@ -2451,7 +2450,7 @@ let print_stat () =
 
 (* lt0 *)
 let float_lt0 =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm ->
       let _ = lt0_c := !lt0_c + 1 in
 	Float_ops.float_lt0 tm
@@ -2460,7 +2459,7 @@ let float_lt0 =
 
 (* gt0 *)
 let float_gt0 =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm ->
       let _ = gt0_c := !gt0_c + 1 in
 	Float_ops.float_gt0 tm
@@ -2469,7 +2468,7 @@ let float_gt0 =
 
 (* lt *)
 let float_lt =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm1 tm2 ->
       let _ = lt_c := !lt_c + 1 in
 	Float_ops.float_lt tm1 tm2
@@ -2478,7 +2477,7 @@ let float_lt =
 
 (* le0 *)
 let float_le0 =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm ->
       let _ = le0_c := !le0_c + 1 in
 	Float_ops.float_le0 tm
@@ -2487,7 +2486,7 @@ let float_le0 =
 
 (* ge0 *)
 let float_ge0 =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm ->
       let _ = ge0_c := !ge0_c + 1 in
 	Float_ops.float_ge0 tm
@@ -2496,7 +2495,7 @@ let float_ge0 =
 
 (* min *)
 let float_min =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm1 tm2 ->
       let _ = min_c := !min_c + 1 in
 	Float_ops.float_min tm1 tm2
@@ -2505,7 +2504,7 @@ let float_min =
 
 (* min_max *)
 let float_min_max =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm1 tm2 ->
       let _ = min_max_c := !min_max_c + 1 in
 	Float_ops.float_min_max tm1 tm2
@@ -2527,7 +2526,7 @@ let float_op_hash1 pp tm =
   
 (* le *)
 let float_le =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm1 tm2 ->
       let _ = le_c := !le_c + 1 in
       let hash = float_op_hash 0 tm1 tm2 in
@@ -2542,7 +2541,7 @@ let float_le =
 
 (* max *)
 let float_max =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun tm1 tm2 ->
       let _ = max_c := !max_c + 1 in
       let hash = float_op_hash 0 tm1 tm2 in
@@ -2560,7 +2559,7 @@ let float_mul_eq = Float_ops.float_mul_eq;;
 
 (* mul_lo *)
 let float_mul_lo =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = mul_lo_c := !mul_lo_c + 1 in
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
@@ -2575,7 +2574,7 @@ let float_mul_lo =
 
 (* mul_hi *)
 let float_mul_hi =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = mul_hi_c := !mul_hi_c + 1 in
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
@@ -2590,7 +2589,7 @@ let float_mul_hi =
 
 (* div_lo *)
 let float_div_lo =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = div_lo_c := !div_lo_c + 1 in
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
@@ -2605,7 +2604,7 @@ let float_div_lo =
 
 (* div_hi *)
 let float_div_hi =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = div_hi_c := !div_hi_c + 1 in
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
@@ -2620,7 +2619,7 @@ let float_div_hi =
 
 (* add_lo *)
 let float_add_lo =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = add_lo_c := !add_lo_c + 1 in
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
@@ -2635,7 +2634,7 @@ let float_add_lo =
 
 (* add_hi *)
 let float_add_hi =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = add_hi_c := !add_hi_c + 1 in
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
@@ -2650,7 +2649,7 @@ let float_add_hi =
 
 (* sub_lo *)
 let float_sub_lo =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = sub_lo_c := !sub_lo_c + 1 in
       let hash = "lo" ^ float_op_hash pp tm1 tm2 in
@@ -2665,7 +2664,7 @@ let float_sub_lo =
 
 (* sub_hi *)
 let float_sub_hi =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm1 tm2 ->
       let _ = sub_hi_c := !sub_hi_c + 1 in
       let hash = "hi" ^ float_op_hash pp tm1 tm2 in
@@ -2680,7 +2679,7 @@ let float_sub_hi =
 
 (* sqrt_lo *)
 let float_sqrt_lo =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm ->
       let _ = sqrt_lo_c := !sqrt_lo_c + 1 in
       let hash = "lo" ^ float_op_hash1 pp tm in
@@ -2695,7 +2694,7 @@ let float_sqrt_lo =
 
 (* sqrt_hi *)
 let float_sqrt_hi =
-  if !float_cached then
+  if !Arith_options.float_cached then
     fun pp tm ->
       let _ = sqrt_hi_c := !sqrt_hi_c + 1 in
       let hash = "hi" ^ float_op_hash1 pp tm in
@@ -3875,11 +3874,11 @@ let print_float tm=
   try
     let s, m_tm, e_tm = Arith_float.dest_float tm in
     let m = Arith_hash.raw_dest_hash m_tm and
-	e = Arith_hash.raw_dest_hash e_tm -/ Num.num_of_int !Arith_options.min_exp in
+	e = Arith_hash.raw_dest_hash e_tm -/ Num.num_of_int Float_theory.min_exp in
     let s_str = if s = "T" then "-" else "" in
     let m_str = Num.string_of_num m in
     let e_str = if e = num_0 then "" 
-    else "*" ^ string_of_int !Arith_options.base ^ "^" ^ Num.string_of_num e in
+    else "*" ^ string_of_int Arith_hash.arith_base ^ "^" ^ Num.string_of_num e in
     let str = "##" ^ s_str ^ m_str ^ e_str in
       Format.print_string str
   with _ -> failwith "print_float";;

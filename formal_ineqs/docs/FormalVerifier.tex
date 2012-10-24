@@ -1,0 +1,305 @@
+\documentclass[a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+\newcommand{\BITZ}{\mathop{\rm BIT0}}
+\newcommand{\BITO}{\mathop{\rm BIT1}}
+\newcommand{\SUC}{\mathop{\rm SUC}}
+\newcommand{\linf}{\mathop{\rm linf}}
+\newcommand{\issues}{{\bf Known issues:}\\}
+\newcommand{\xx}[1]{\mathop{\text{\bf #1}}}
+
+\parindent=0mm
+\parskip=5pt
+
+\title{A Tool for Formal Verification of Nonlinear Inequalities}
+
+\author{Alexey Solovyev}
+
+% Document
+\begin{document}
+% Title
+\maketitle
+
+% Content
+\tableofcontents
+
+\pagebreak
+% References
+\section{References}
+\begin{itemize}
+\item[1.] HOL Light home page\\ 
+	\url{http://www.cl.cam.ac.uk/~jrh13/hol-light}
+\item[2.] HOL Light reference manual\\
+	\url{http://www.cl.cam.ac.uk/~jrh13/hol-light/reference.html}
+\item[3.] HOL Light tutorial\\
+	\url{http://www.cl.cam.ac.uk/~jrh13/hol-light/tutorial_220.pdf}
+\item[4.] The Flyspeck project\\
+	\url{http://code.google.com/p/flyspeck/}
+\end{itemize}
+
+% Introduction
+\section{Introduction}
+This document describes a tool for verification of nonlinear inequalities in HOL Light proof assistant [ref]. This tool was developed as a part of the Flyspeck project (a formal proof of the Kepler conjecture) [ref]. The tool is capable to verify multivariate nonlinear strict inequalities on rectangular domains. More specifically, the tool can handle inequalities in the form
+\[\forall {\bf x} \in D \implies f({\bf x}) < g({\bf x}),\]
+where $D = \{(x_1, \ldots, x_n)\ |\ a_i \le x_i \le b_i\}$ and $f$, $g$ are functions which may include all usual arithmetic operations, square roots, arccosines, arctangents. The maximal number of variables is 8. Future releases of the tool will include all elementary functions and will have no restriction on the number of variables. Moreover, it will be possible to verify inequalities on non-rectangular domains.
+
+Internally, the tool uses interval arithmetic with Taylor approximations (with second-order error terms). Here are three examples which the tool is able to verify:
+
+[Examples]
+
+The document is organized as follows. The first section describes the installation process. Then follows a quick introduction of the tool functions. After that, a more detailed description of the tool functions given and special options are described. The last two sections describe several test cases with verification times.
+
+
+% Installation
+\section{Installation}
+First of all, if you don't have OCaml and HOL Light installed, then you need to install them. The verification tool was tested with Ocaml 3.09.3 and Ocaml 3.12.1 and with one of the latest versions of HOL Light (r149 in the HOL Light repository).  An installation instruction of HOL Light (and OCaml) can be found in
+[John's manual]
+
+Alternatively, it is possible to download and run the following script written by [...] at [...]. This script will download and install the latest version of HOL Light and other necessary programs.
+
+The installation of the tool for verification of nonlinear inequalities is very simple. Download the distribution from [...] or get the latest version from the Flyspeck repository with the shell command [svn ...].
+
+The tool can be placed in any directory on your computer. It is important to inform HOL Light about the tool location. It can be done with the following OCaml command:
+
+\verb|load_path := "path to the tool directory" :: !load_path;;|
+
+After the path is set, the tool can be loaded with the command
+
+\verb|needs "verifier/m_verifier_main.hl";;|
+
+The verifier loads the standard HOL Light library \verb|Multivariate/realanalysis.ml|. The loading process of this library could take pretty long time, so it is recommended to use a checkpointed version of HOL Light with preloaded multivariate analysis libraries.
+
+Before loading the tool, it is also possible to change some internal options. Options are described in the corresponding section.
+
+
+% Examples
+\section{Quick Start}
+
+The polynomial inequality
+\begin{multline*}
+-\frac{1}{\sqrt{3}} \le x \le \sqrt{2},\ -\sqrt{\pi} \le y \le 1\\
+\implies x^2 y - x y^4 + y^6 + x^4 - 7 > -7.17995
+\end{multline*}
+can be verified with the following script
+
+\begin{verbatim}
+(* make sure that the load_path contains the path to formal_ineq *)
+needs "verifier/m_verifier_main.hl";;
+open M_verifier_main;;
+
+let ineq = 
+  `-- &1 / sqrt(&3) <= x /\ x <= sqrt(&2) /\ 
+   -- sqrt(pi) <= y /\ y <= 1
+   ==> x pow 2 * y - x * y pow 4 + y pow 6 - &7 + x pow 4 > -- #7.17995`;;
+
+let th, stats = verify_ineq default_params 5 ineq;;
+\end{verbatim}
+
+The first parameter of the verification function \verb|verify_ineq| contains verification options. We use default values given by the constant \verb|default_params|. Available options are described in the next section.
+
+The second parameter specifies the precision of formal floating-point operations. This parameter determines the maximal number of significant digits of any result returned by a formal floating-point operation. Here, digits are not decimal. Internally all natural numbers are represented using a fixed base (see the Options section for more details). This base is relatively large (the default value is 100) to speed up arithmetic operations. Actual precision of formal floating-point operations depends on the precision parameter and on the base of the internal representation of natural numbers. If the base value is 100 and the precision parameter is 5 as in the example above, then the precision of formal floating-point operations is 10 decimal digits: $100^5 = 10^10$. Note that the verification of the example will fail if the precision parameter is 4 or less. On the other hand, if the precision parameter is 10, the verification will succeed but it will take more time. So it is important to get the right value of the precision parameter.
+
+The third parameter is the inequality itself given as a HOL Light term. The format of this term is simple: it is an implication with boundaries of variables in the antecedent and an inequality in the consequent. The bounds of all variables should be in the form $\text{\it constant expression} <= x$ or $x <= \text{\it constant expression}$. For each variable, upper and lower bounds must be given. The inequality must be a strict inequality ($<$ or $>$). The inequality may include \verb|sqrt|, \verb|atn|, and \verb|acs| functions. The constant \verb|pi| ($\pi$) is also available.
+
+The verification function returns a HOL Light theorem and a record with some verification information which include verification time.
+
+
+% Verification Functions
+\section{Verification Functions}
+The main verification function \verb|verify_ineq| is contained in \verb|M_verifier_main| module defined in \verb|verifier/m_verifier_main.hl|. The function has 3 arguments and its type is
+\begin{verbatim}
+verify_ineq : verification_parameters -> int -> term -> thm * verification_stats
+\end{verbatim}
+
+The first parameter contains verification options given by the following record
+\begin{verbatim}
+type verification_parameters =
+{
+  (* If true, then monotonicity properties can be used *)
+  (* to reduce the dimension of a problem *)
+  allow_derivatives : bool;
+  (* If true, then convexity can be used *)
+  (* to reduce the dimension of a problem *)
+  convex_flag : bool;
+  (* If true, then verification on internal subdomains can be skipped *)
+  (* for a monotone function *)
+  mono_pass_flag : bool;
+  (* If true, then raw interval arithmetic can be used *)
+  (* (without Taylor approximations) *)
+  raw_intervals_flag : bool;
+  (* If true, then an informal procedure is used to determine *)
+  (* the optimal precision for the formal verification *)
+  adaptive_precision : bool;
+  (* This parameter might be used in cases when the certificate search *)
+  (* procedure returns a wrong result due to rounding errors *)
+  (* (this parameter will be eliminated when the search procedure is corrected) *)
+  eps : float;
+};;
+\end{verbatim}
+A detailed description of these parameter is technical and is omitted in this document. In most cases, it is enough to use the constant \verb|default_params| which turns all verification flags on and sets \verb|eps = 0|. In rare cases, it is necessary to adjust \verb|eps| to get a result. This can be done with the command
+\begin{verbatim}
+verify_ineq {default_params with eps = 1e-10} 5 ineq_tm;;
+\end{verbatim}
+
+The second parameter of the verification function specifies the precision of formal floating-point operations. This parameter determines the maximal number of significant digits of any result returned by a formal floating-point operation. Here, digits are not decimal. Internally all natural numbers are represented using a fixed base (see the Options section for more details). This base is relatively large (the default value is 100) to speed up arithmetic operations. Actual precision of formal floating-point operations depends on the precision parameter and on the base of the internal representation of natural numbers. In many cases, if the verification function fails, it is enough to increase the precision parameter.
+
+The third parameter of the verification function is a HOL Light term which specifies an inequality itself. The format of this term is the following:
+\begin{verbatim}
+bounds of variables ==> an inequality
+\end{verbatim}
+The bounds of all variables should be in the form $\text{\it constant expression} <= x$ or $x <= \text{\it constant expression}$. For each variable, upper and lower bounds must be given. The order in which the bounds are given is irrelevant. Bounds of variables may be connected with \verb|/\| or with \verb|==>|. The inequality must be a strict inequality ($<$ or $>$). The inequality may include \verb|sqrt|, \verb|atn|, and \verb|acs| functions. The constant \verb|pi| ($\pi$) is also available.
+
+The verification function returns a theorem and some verification information given by the record
+\begin{verbatim}
+type verification_stats =
+{
+  total_time : float;
+  formal_verification_time : float;
+  certificate : Verifier.certificate_stats;
+};;
+\end{verbatim}
+The field \verb|total_time| contains total verification time. The field \verb|formal_verification_time| contains time taken by the formal verification procedure only (this time doesn't include time for constructing a solution certificate and for other preparations). The last field \verb|certificate| contains information about a solution certificate.
+
+The conclusion of the returned theorem is not exactly the same as the third parameter of the verification function: the order of bounds of variables may be switched and variables which are not used in the inequality are eliminated. For example, commands
+\begin{verbatim}
+let th1, _ = verify_ineq default_params 3 
+  `&1 <= y /\ y <= &2 /\ &1 <= x /\ x <= &3 ==> x + y < &6`;;
+let th2, _ = verify_ineq default_params 3 
+  `&1 <= y /\ y <= &2 /\ &1 <= x /\ x <= &3 ==> y < &3`;;
+\end{verbatim}
+return
+\begin{verbatim}
+th1 = |- (&1 <= x /\ x <= &3) /\ &1 <= y /\ y <= &2 ==> x + y < &6
+th2 = |- &1 <= y /\ y <= &2 ==> y < &3
+\end{verbatim}
+
+
+
+
+
+
+% Options
+\section{Options}
+The options which affect the arithmetic operations with natural and floating points numbers must be set before the verification tool is loaded. After the verification tool is loaded, arithmetic options may not be changed. To set arithmetic options, load the file \verb|arith_options.hl| located in the root directory of the tool. The available options are listed below.
+
+\begin{enumerate}
+% base
+\item[\bf base] Determines the base for representing natural numbers. Default HOL Light 
+representation of natural numbers is binary (i.e., its base is 2). A higher base increases speed of arithmetic operations but it also requires more memory to remember additional theorems. The default value of the base is \verb|100|. To set a new base, use the command
+
+\verb|Arith_options.base := 200;;|
+
+% min_exp
+\item[\bf min\_exp] Determines the minimal exponent in the representation of floating point numbers. Each floating point number is represented as a triple $(s, n, e)$ where $s$ is a boolean value which determines the sign of a number, $n$ and $e$ are natural numbers which represent the mantissa and the exponent. The value corresponding to $(s, n, e)$ is given by
+
+\[f = (-1)^{\text{if $s$ then $1$ else $0$}} \times n \times b^{e - min\_exp}\]
+where $b$ is the base of the representation of natural numbers.
+
+% cached
+\item[\bf cached] If this value is true, then results of all natural number operations are cached. The default value is \verb|true|.
+
+\verb|Arith_options.cached := false;;|
+
+% float_cached
+\item[\bf float\_cached] If this value is true, then results of all floating point operations are cached. The default value is \verb|true|.
+
+% init_cache_size
+\item[\bf init\_cache\_size] Determines the initial size of the cache for results of arithmetic operations. The default value is \verb|10000|.
+
+% max_cache_size
+\item[\bf max\_cache\_size] Determines the maximal size of the cache for results of arithmetic operations. The default value is \verb|20000|. Note: each cached operation has its own cache.
+
+\end{enumerate}
+
+The file \verb|verifier_options.hl| contains the option \verb|info_print_level| for controlling the amount of information printed by a verification process. This option can be changed at any time:
+
+\verb|Verifier_options.info_print_level := 0;;|
+
+Possible values are: 0 -- no information is printed; 1 -- all essential information is printed; 2 -- all information is printed. The default value is 1.
+
+Here is an example how to change default options:
+\begin{verbatim}
+(* The arithmetic options must be set before loading the verification tool *)
+needs "arith_options.hl";;
+
+(* Increase the arithmetic base *)
+Arith_options.base := 200;;
+
+(* Increase the cache size *)
+Arith_options.max_cache_size = 40000;;
+
+(* Load the verification tool *)
+needs "verifier/m_verifier_main.hl";;
+
+(* The only verification option can be changed at any time *)
+Verifier_options.info_print_level := 2;;
+
+open M_verifier_main;;
+\end{verbatim}
+
+% Additional Examples
+\section{Additional Examples}
+The verification tool distribution contains several example files. The file \verb|examples_poly.hl| contains polynomial equations from the paper \ref{Bernstein}. The command
+
+\verb|needs "examples_poly.hl";;|
+
+will load this file and run all polynomial inequality tests. To run all tests again, type \verb|run_tests();;|
+
+To run a specific test, type \verb|run_{test_name}();;| where \verb|{test_name}| is one of the following: \verb|schwefel|, \verb|rd|, \verb|caprasse|, \verb|lv|, \verb|butcher|, \verb|magnetism|, \verb|heart|.
+
+[list all inequalities]
+
+The file \verb|examples_flyspeck.hl| contains some inequalities from the Flyspeck project \ref{Flyspeck}. The command
+
+\verb|needs "examples_flyspeck.hl";;|
+
+will load this file and run some easy inequality tests. To rerun these tests, use the command \verb|test_easy();;|. To run more difficult tests, type \verb|test_medium();;| or \verb|test_hard();;|.
+(Warning: medium tests require about 30 minutes, hard tests require more than 5 hours.)
+
+[list all inequalities]
+
+The last section of this document contains time test results for inequalities from \verb|examples_poly.hl| and \verb|examples_flyspeck.hl|.
+
+
+
+% Some Results
+\section{Some Results}
+This section contains time tests for some inequalities. All tests were performed on Intel Core i5, 2.67GHz running Ubuntu 9.10 inside Virtual Box 4.2.0 on a Windows 7 host; the Ocaml version was 3.09.3; the base of arithmetic was 200; the caching was turned on.
+
+
+% base = 200, precision = 5, caching = on
+% schwefel 26.329, 19.145
+% rd 1.593, 0.017
+% caprasse 8.057, 1.286
+% lv 1.875, 0.030
+% butcher 3.609, 0.035
+% magnetism 7.007, 1.347
+% heart 17.298, 1.277
+
+
+% precision = 4
+% Easy
+%("2485876245a", 5.53043103218078613, 0.0577700138092041);
+%("4559601669b", 4.67884397506713867, 0.047634124755859375);
+%("4717061266", 27.0681829452514648, 0.250218868255615234);
+%("5512912661", 8.86010503768920898, 0.0855271816253662109);
+%("6096597438a", 0.0706501007080078125, 0.0706501007080078125);
+%("6843920790", 2.8237760066986084, 0.0759930610656738281);
+%("SDCCMGA b", 9.01168298721313477, 0.94852900505065918)
+
+% Medium
+%("5490182221", 1726.30890607833862, 1533.69058108329773);
+%("7067938795", 431.489268064498901, 387.306785106658936);
+%("TSKAJXY-TADIAMB", 75.9005398750305176, 21.1650679111480713)
+
+% Hard
+% "3318775219", 17091, 15226 
+
+\end{document}
+
+
+

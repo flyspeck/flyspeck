@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* OCaml interval arithmetic                                   *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* =========================================================== *)
+
 (* port of interval.cc,
 
 This file gives a simple implementation of interval arithmetic,

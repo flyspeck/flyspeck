@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* OCaml linear approximation of functions                     *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* =========================================================== *)
+
 (* port of lineInterval.cc.  
    Only the top section has been translated.  The rest should be
    automatically generated from HOL Light specs.

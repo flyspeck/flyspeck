@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* Declaration of types and exceptions                         *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* =========================================================== *)
+
 module Interval_types = struct
 
 exception Unstable;;  (* generally thrown when there is a divide by zero *)

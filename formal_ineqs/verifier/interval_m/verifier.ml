@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* OCaml verification and result transformation functions      *)
+(* Author: Alexey Solovyev                                     *)
+(* Date: 2012-10-27                                            *)
+(* =========================================================== *)
+
 needs "verifier/interval_m/recurse.ml";;
 needs "verifier/interval_m/recurse0.ml";;
 

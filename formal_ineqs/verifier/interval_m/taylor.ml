@@ -1,3 +1,10 @@
+(* =========================================================== *)
+(* OCaml taylor intervals                                      *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* Modified: Alexey Solovyev, 2012-10-27                       *)
+(* =========================================================== *)
+
 (* port of taylor functions, taylor interval *)
 
 (*

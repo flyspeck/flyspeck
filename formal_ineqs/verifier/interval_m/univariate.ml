@@ -1,3 +1,8 @@
+(* =========================================================== *)
+(* OCaml univariate functions                                  *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* =========================================================== *)
 
 (* port of univariate.cc
    a univariate represents a function u:real->real.

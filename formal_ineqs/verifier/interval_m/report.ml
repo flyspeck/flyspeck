@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* Report functions                                            *)
+(* Author: Thomas C. Hales                                     *)
+(* Date: 2011-08-21                                            *)
+(* =========================================================== *)
+
 (* port of error.cc 
     basic procedures to print messages to the standard output
    and to count errors.

@@ -1,3 +1,9 @@
+(* ============================================================= *)
+(* OCaml verification procedure (basic interval arithmetic only) *)
+(* Authors: Thomas C. Hales, Alexey Solovyev                     *)
+(* Date: 2012-10-27                                              *)
+(* ============================================================= *)
+
 (* Recursive verification of inequalities using the basic interval arithmetic only *)
 
 needs "verifier/interval_m/recurse.ml";;

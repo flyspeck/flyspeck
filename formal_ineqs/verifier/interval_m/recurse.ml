@@ -1,3 +1,9 @@
+(* =========================================================== *)
+(* OCaml verification procedure                                *)
+(* Authors: Thomas C. Hales, Alexey Solovyev                   *)
+(* Date: 2012-10-27                                            *)
+(* =========================================================== *)
+
 (* port of recurse.cc *)
 
 (*

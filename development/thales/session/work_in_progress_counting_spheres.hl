@@ -15,6 +15,10 @@ let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ packing_ineq_def_
  (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
 ==> (lmfun_ineq_center V)`;;
 
+(* ========================================================================== *)
+(* WORK IN PROGRESS *)
+(* ========================================================================== *)
+
 
 (* ========================================================================== *)
 (* COMPLETED LEMMAS  *)
@@ -277,8 +281,8 @@ let  AZIM_LE_PI_EQ_DIHV_ALT = prove_by_refinement(
   (* }}} *)
 
 
-
-let gotcjah_sol_lemma = prove_by_refinement(
+(*
+let gotcjah_sol_lemma_deprecated = prove_by_refinement(
   `!c3 v b P W t rho bet (w0:real^3) w1 w2 s.
     polyhedron P /\ bounded P /\ (&0 < b) /\
     (vec 0 IN interior P) /\
@@ -573,6 +577,150 @@ set[]
   REPEAT (FIRST_X_ASSUM_ST `aff_gt` MP_TAC);
   BY(SET_TAC[])
   ]);;
+*)
+
+let gotcjah_sol_lemma = prove_by_refinement(
+  `!c3 v b P W t rho bet (w0:real^3) w1 w2 s.
+    polyhedron P /\ bounded P /\ (&0 < b) /\
+    (vec 0 IN interior P) /\
+    (c3 facet_of P) /\
+    (fchanged c3 = W) /\
+    (&0 < t /\ t < &1 ) /\
+    (&0 < rho) /\
+    (&0 < s) /\
+    (P INTER { p | p dot v = b } = c3) /\ 
+    rcone_gt (vec 0) v t SUBSET W /\
+    ~(v = vec 0) /\
+    &0 < v dot v /\
+    cos (arcV(vec 0) v w0) = t /\
+    cos (arcV(vec 0) v w2) = t /\
+    s % v IN c3 /\
+    w0 IN c3 /\
+    w1 IN c3 /\
+    w2 IN c3 /\
+    ~collinear {(vec 0), v, w0} /\
+    ~collinear {(vec 0), v, w1} /\
+    ~collinear {(vec 0), v, w2} /\
+    s % v IN c3 /\
+    w0 IN c3 /\
+    w1 IN c3 /\
+    w2 IN c3 /\
+    azim (vec 0) v w0 w2 / &2 = bet /\
+    // &0 < azim (vec 0) v w0 w2 /\
+    azim (vec 0) v w0 w2 < pi /\
+    azim (vec 0) v w0 w1 = bet /\
+    azim (vec 0) v w1 w2 = bet /\
+    (w1 - w0) dot v = &0 /\
+    (w1 - w0) dot w0 = &0 /\
+    (w1 - w2) dot v = &0 /\
+    (w1 - w2) dot w2 = &0 
+  ==>
+    (?X.  X SUBSET (wedge (vec 0) v w0 w2 INTER W) /\
+       measurable (X INTER normball (vec 0) rho) /\
+       radial_norm rho (vec 0) (X INTER normball (vec 0) rho) /\
+       &2 * (bet - asn (sin bet * t)) = sol (vec 0) X)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `dihV (vec 0) v w0 w1 = bet /\ dihV (vec 0) v w1 w2 = bet`) MP_TAC));
+    GMATCH_SIMP_TAC AZIM_LE_PI_EQ_DIHV_ALT;
+    GMATCH_SIMP_TAC AZIM_LE_PI_EQ_DIHV_ALT;
+    ASM_REWRITE_TAC[];
+    REPEAT (FIRST_X_ASSUM_ST `azim` MP_TAC);
+    MP_TAC PI_POS;
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "CHANGE STARTS HERE";
+  SUBGOAL_THEN `azim (vec 0) v w0 w2 = &0 \/ &0 < azim (vec 0) v w0 w2` MP_TAC;
+    BY(MESON_TAC[AZIM_NN; arith `&0 <= x ==> (x = &0) \/ &0 < x`]);
+  DISCH_THEN DISJ_CASES_TAC;
+    EXISTS_TAC (`{}:real^3->bool`);
+    REWRITE_TAC[INTER_EMPTY ; MEASURABLE_EMPTY; Conforming.RADIAL_EMPTY ];
+    REWRITE_TAC[ EMPTY_SUBSET ];
+    REWRITE_TAC[ Conforming.SOL_EMPTY ];
+    FIRST_X_ASSUM_ST `&2` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[arith `&0/ &2 = bet <=> bet = &0`];
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[ SIN_0 ; ASN_0; arith `&0 * t = &0`];
+    BY(REAL_ARITH_TAC);
+    (COMMENT "CHANGE ENDS HERE");
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`~coplanar {(vec 0),v,w0,w1} /\ ~coplanar {(vec 0),v,w1,w2}`) MP_TAC));
+    ASSUME_TAC DIHV_EQ_0_PI_EQ_COPLANAR;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w`~(dihV (vec 0) v w0 w1 = &0) /\ ~(dihV (vec 0) v w0 w1 = pi) /\ ~(dihV (vec 0) v w1 w2 = &0) /\ ~(dihV( vec 0) v w1 w2 = pi)`)));
+      BY(ASM_MESON_TAC[]);
+    REPEAT (FIRST_X_ASSUM_ST `azim` MP_TAC);
+    MP_TAC PI_POS;
+    REPEAT (FIRST_X_ASSUM_ST `dihV` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `cone0 (vec 0) {v,w0,w1}  UNION cone0 (vec 0) {v,w2,w1}`)));
+  REWRITE_TAC[ UNION_SUBSET ];
+  ONCE_REWRITE_TAC[INTER_COMM];
+  REWRITE_TAC[UNION_OVER_INTER];
+  GMATCH_SIMP_TAC MEASURABLE_UNION;
+  GMATCH_SIMP_TAC Conforming.RADIAL_UNION;
+  GMATCH_SIMP_TAC Conforming.SOL_DISJOINT_UNION;
+  ONCE_REWRITE_TAC[arith `u2 = x + y <=> u2 - (x + y) = &0`];
+  GMATCH_SIMP_TAC (arith `u = x /\ u = y ==> &2 * u - ( x + y) = &0`);
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`c3`;`v`;`b`;`P`;`W`;`t`;`rho'`;`bet`;`w0`;`w1`;`s`]) gotcjah_sol_half)));
+  ASM_REWRITE_TAC[];
+  WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `cone0` (ASSUME_TAC o SYM);
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`c3`;`v`;`b`;`P`;`W`;`t`;`rho'`;`bet`;`w2`;`w1`;`s`]) gotcjah_sol_half)));
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+      GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w`{vec 0 , v,w1,w2} = {vec 0, v, w2,w1}`)));
+        BY(MESON_TAC[]);
+      BY(SET_TAC[]);
+    ONCE_REWRITE_TAC[ DIHV_SYM ];
+    BY(ASM_REWRITE_TAC[]);
+  WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `cone0` (ASSUME_TAC o SYM);
+  ASM_REWRITE_TAC[];
+  ONCE_REWRITE_TAC[INTER_COMM];
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (TAUT `b /\ c /\ a ==> a /\ b /\ c`);
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`(vec 0):real^3`;`v`;`w0`;`w2`;`w1`]) WEDGE_SPLIT)));
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    REWRITE_TAC[wedge; IN;IN_ELIM_THM];
+    ASM_REWRITE_TAC[];
+    MP_TAC PI_POS;
+    REPEAT (FIRST_X_ASSUM_ST `azim` MP_TAC);
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `wedge (vec 0) v w0 w1  = aff_gt {vec 0, v} {w0,w1} /\ wedge (vec 0) v w1 w2  = aff_gt {vec 0, v} {w2,w1}` MP_TAC;
+    GMATCH_SIMP_TAC WEDGE_LUNE_GT;
+    GMATCH_SIMP_TAC WEDGE_LUNE_GT;
+    ASM_REWRITE_TAC[];
+    ASSUME_TAC PI_POS;
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (TAUT `c /\ a /\ b ==> a /\ b /\ c`);
+  CONJ_TAC;
+    EXISTS_TAC `rho':real`;
+    ONCE_REWRITE_TAC[INTER_COMM];
+    ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[arith `&0 < x ==> x > &0`;DISJOINT];
+    ENOUGH_TO_SHOW_TAC `?Y Y'. X SUBSET Y /\ X' SUBSET Y' /\ Y INTER (Y':real^3->bool) = {}`;
+      BY(SET_TAC[]);
+    REPEAT (FIRST_X_ASSUM_ST `wedge` MP_TAC);
+    REPEAT (FIRST_X_ASSUM_ST `aff_gt` MP_TAC);
+    BY(MESON_TAC[ SUBSET_INTER]);
+  REPEAT (FIRST_X_ASSUM_ST `wedge` MP_TAC);
+  REPEAT (FIRST_X_ASSUM_ST `aff_gt` MP_TAC);
+  BY(SET_TAC[])
+  ]);;
 
 
 let c3_lemma = prove_by_refinement(
@@ -726,9 +874,6 @@ let gotcjah_prep = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* ========================================================================== *)
-(* WORK IN PROGRESS *)
-(* ========================================================================== *)
 
 
 let azim_pos = prove_by_refinement(
@@ -749,6 +894,86 @@ let azim_pos = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let convex_sum_corollary = prove_by_refinement(
+  `!n t bet. 0 < n /\ 
+  &0 < t /\ t < &1 /\  
+    sum (1..n) bet = pi /\ 
+  (!i. i IN 1..n ==> &0 <= bet i /\ bet i <= pi) ==>
+  (pi - &n * asn (sin (pi / &n) * t)) <= sum (1..n) (\i. bet i - asn (sin (bet i) * t))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[TAUT `(a /\ b ==> c) <=> (a ==> (b ==> c))`];
+  DISCH_TAC;
+  ASM_SIMP_TAC[ SUM_OFFSET_0 ; arith `0 < n ==> 1 <= n`];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC GOTCJAH_convex_sum;
+  ASM_REWRITE_TAC[];
+  SUBGOAL_THEN `pi <= &n * pi /\ &0 <= pi` (fun t -> REWRITE_TAC[t]);
+    ASSUME_TAC PI_POS;
+    SIMP_TAC[ arith `pi <= &n * pi <=> &0 <= pi * (&n - &1)`;];
+    GMATCH_SIMP_TAC Real_ext.REAL_PROP_NN_MUL2;
+    ONCE_REWRITE_TAC[arith `&0 <= &n - &1 <=> &1 <= &n`];
+    REWRITE_TAC[Real_ext.REAL_LE];
+    BY(ASM_MESON_TAC[arith `0<n ==> 1<=n`;arith `&0 < pi ==> &0 <= pi`]);
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  REWRITE_TAC[IN_NUMSEG];
+  BY(ASM_SIMP_TAC[arith `i < n ==> i+1 <=n`;arith `1 <= i + 1`])
+  ]);;
+  (* }}} *)
+
+let SOL_SUBSET = prove_by_refinement(
+  `!x s t r. r > &0 /\
+         measurable (s INTER normball x r) /\
+         measurable (t INTER normball x r) /\
+         s SUBSET t /\
+         radial_norm r x (s INTER normball x r) /\
+         radial_norm r x (t INTER normball x r)
+         ==> sol x s <= sol x t`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`x`;`s`;`t DIFF s`;`r`]) Conforming.SOL_DISJOINT_UNION)));
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `s UNION t DIFF s = t`) SUBST1_TAC));
+    FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+    BY(SET_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `DISJOINT s (t DIFF s)`) (fun t -> ONCE_REWRITE_TAC[t])));
+    BY(SET_TAC[]);
+  REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!u. (t DIFF s) INTER u = (t INTER u DIFF (s INTER u))`) ASSUME_TAC));
+    GEN_TAC;
+    FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+    BY(SET_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `measurable ((t DIFF s) INTER normball x r)`) ASSUME_TAC));
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC MEASURABLE_DIFF;
+    BY(ASM_REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `radial_norm r x ((t DIFF s) INTER normball x r)`) ASSUME_TAC));
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC Conforming.RADIAL_DIFF;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+    BY(SET_TAC[]);
+  ASM_REWRITE_TAC[];
+  ENOUGH_TO_SHOW_TAC ( `&0 <= sol x (t DIFF s)`);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC Vol1.sol;
+  EXISTS_TAC `r:real`;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  CONJ_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC REAL_LE_DIV;
+  CONJ_TAC;
+    MATCH_MP_TAC MEASURE_POS_LE;
+    BY(ASM_MESON_TAC[]);
+  MATCH_MP_TAC REAL_POW_LE;
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 
 let GOTCJAH_concl = `!c v b P  WF t n. 
     polyhedron P /\ bounded P /\  (&0 < b) /\
@@ -764,6 +989,7 @@ let GOTCJAH = prove_by_refinement(
   GOTCJAH_concl,
   (* {{{ proof *)
   [
+(*
   X_GENv_TAC "c3";
   REPEAT WEAK_STRIP_TAC;
   ABBREV_TAC (`A = { (p:real^3) | p dot v = b}`);
@@ -806,7 +1032,6 @@ let GOTCJAH = prove_by_refinement(
     rep 2 (fxast `1..n` mp)
       mt[]
       art[]
-      subconj
       asmcase `i = (n:num)`
       art[]
       fxa mmp
@@ -815,26 +1040,471 @@ let GOTCJAH = prove_by_refinement(
       fxa mp
           rep 2 (fxast `1..n` mp)
       mt[]
-      dt
-      mmp azim_pos
-      ex `u:real^3`
+      fxa mp
+      rt[SKOLEM_THM]
+      st/r
+      comment "Have bet and X"
+      ort[arith `&2 * pi - &2 * u <= s <=> (pi - u) <= s/ &2`]
+      mmp REAL_LE_TRANS
+      ex `sum (1..n) (\i. bet i - asn (sin (bet i) * t))`
+      ort [arith `t * sin u = sin u * t`]
+      conj
+      mmp convex_sum_corollary
+      asimp [arith `1 < n ==> 0 < n`]
+      mmp (taut `a /\ b ==> b /\ a`)
+      conj
+      st/r
+      sgth (`bet i = azim (vec 0) v (g i ) (g (i+1)) / &2`) subst1
       asimp[]
+      gm(arith `&0 <= x ==> &0 <= x/ &2`)
+      gm(arith `x < &2 * pi ==> x / &2 <= pi`)
+      rt[ ?q ]
+      sgth `sum (1..n) bet = sum (1..n) (\i. (&1/ &2) * azim (vec 0) v (g i) (g (i+1)))` subst1
+      mmp ?r
+      st/r
+      BETA_TAC
+      ort[arith ` (&1/ &2) * u = u / &2`]
+      asimp[]
+      rt[ ?s ]
+      rt[arith `(&1 / &2) * t = pi <=> t = &2 * pi`]
+      mmp ORDER_AZIM_SUM2Pi
+      ex `u:real^3`
+      art[]
+      comment "back to 1"      
+      sgth (%`!i j. (i IN 1..n) /\ (j IN 1..n) /\ ~(i = j) ==> DISJOINT (X i) (X j)`) assume
+      st/r
+      rt[DISJOINT]
+      sgth (% `(?a1 a2. X i SUBSET a1 /\ X j SUBSET a2 /\ ( a1 INTER a2 = {})) ==> (X i INTER X j = {})`) mmp
+      set[]
+      ex `wedge (vec 0) v (g i) (g (i+1))`
+      ex `wedge (vec 0) v (g j) (g (j+1))`
+      conj
+      amt[SUBSET_INTER]
+      conj
+      amt[SUBSET_INTER]
+      gm WEDGE_ORDER_DISJOINT
+      ex `u:real^3`
+      ex `n:num`
+      art[]
+      comment "1a"
+      ort[arith `x <= u/ &2 <=> &2 * x <= u`; ]
+      sgth `sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n))) = sum ((IMAGE X (1..n))) (\s. sol (vec 0) s)` assume
+      mmp ?y
+      ex `&1`
+      rt[ arith `&1 > &0`; IN_IMAGE ]
+      conj
+      mmp ?z
+      rt[ ?a ]
+      conj
+      g
+      amt[]
+      st/r
+      art[]
       fxa mmp
-
-      (* problem when i = n  *)
-#
-(* to here *)
-
+      amt[]
+      fxa mp
+      gm ?c
+      conj
+      rt[ FINITE_NUMSEG]
+      st/r
+      ets (% `X x = {}`)
+      dthen subst1
+      rt[ ?h ]
+      rep 5 (fxa mptac)
+      rt[ DISJOINT; ?5; IN_INTER ]
+      mt[]
+      comment "1b"
+      sgth (% `(\s. sol (vec 0) s) o X = (\i. sol (vec 0) (X i))`) subst1
+      ort[FUN_EQ_THM]
+      BETA_TAC
+      rt[o_THM]
+      dt
+      mmp REAL_LE_TRANS
+      ex (`sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n)))`)
+      conj
+      art[]
+      mmp (arith `x = y ==> x<= y`)
+      ort[ GSYM ?s ]
+      mmp ?r
+      st/r
+      BETA_TAC
+      amt[]
+      (* to here *)
+      comment "1c"
+      *)
+(* redo *)
+(*
+  X_GENv_TAC "c3";
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC (`A = { (p:real^3) | p dot v = b}`);
+  ABBREV_TAC `u0 = (b / (v dot v)) % (v:real^3)`;
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`c3`; `v`; `b`; `P`; `WF'`; `t`; `n`; `u0`; `A`]) gotcjah_prep)));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`P`; `c3`; `A`; `n`; `{ c | c facet_of c3 }`; `t`; `u`; `v`; `b`] ) EUSOTYP2_general)));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `1 IN 1..n /\ (!i. (i IN 1..n) ==> (i+1) IN 1..n \/ (i=n))` ASSUME_TAC;
+    FIRST_X_ASSUM_ST `1 < n` MP_TAC;
+    REWRITE_TAC[ IN_NUMSEG ];
+    (ARITH_TAC);
+  SUBGOAL_THEN `&0 < b/ ((v:real^3) dot v)` ASSUME_TAC;
+    MATCH_MP_TAC REAL_LT_DIV;
+    (ASM_REWRITE_TAC[]);
+  SUBGOAL_THEN `!i.  (?bet X. (i IN 1..n) ==> (azim (vec 0) v (g i) (g (i+1)) / &2 = bet) /\ X SUBSET (wedge (vec 0) v (g i) (g (i+1)) INTER WF') /\ measurable (X INTER normball (vec 0) (&1)) /\ radial_norm (&1) (vec 0) (X INTER normball (vec 0) (&1)) /\ (&2 * (bet - asn (sin bet * t)) = sol (vec 0) X))` ASSUME_TAC;
+    GEN_TAC;
+    REWRITE_TAC [MESON[] `(?X bet. (p ==> q X bet)) <=> p ==> (?X bet. q X bet)`];
+    DISCH_TAC;
+    ABBREV_TAC (`bet = azim (vec 0) v (g i) (g (i+1))/ &2 `);
+    EXISTS_TAC `bet:real`;
+    REWRITE_TAC[];
+    MATCH_MP_TAC ( gotcjah_sol_lemma);
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `c3`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `h i`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b / (v dot v)`)));
+    ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[arith `&0 < &1`];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `g (i+1) IN P INTER A /\ cos (arcV (vec 0) v (g (i+1))) = t` ) ASSUME_TAC));
+      ASM_CASES_TAC `i=(n:num)`;
+        ASM_REWRITE_TAC[];
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        (ASM_REWRITE_TAC[]);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      FIRST_X_ASSUM MP_TAC;
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `1..n` MP_TAC);
+      (MESON_TAC[]);
+    ASM_REWRITE_TAC[];
+    ASM_CASES_TAC `i = (n:num)`;
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      (ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `1..n` MP_TAC);
+    (MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[SKOLEM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "Have bet and X";
+  ONCE_REWRITE_TAC[arith `&2 * pi - &2 * u <= s <=> (pi - u) <= s/ &2`];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `sum (1..n) (\i. bet i - asn (sin (bet i) * t))`;
+  ONCE_REWRITE_TAC [arith `t * sin u = sin u * t`];
+  CONJ_TAC;
+    MATCH_MP_TAC convex_sum_corollary;
+    ASM_SIMP_TAC [arith `1 < n ==> 0 < n`];
+    MATCH_MP_TAC (TAUT `a /\ b ==> b /\ a`);
+    CONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      SUBGOAL_THEN (`bet i = azim (vec 0) v (g i ) (g (i+1)) / &2`) SUBST1_TAC;
+        (ASM_SIMP_TAC[]);
+      GMATCH_SIMP_TAC(arith `&0 <= x ==> &0 <= x/ &2`);
+      GMATCH_SIMP_TAC(arith `x < &2 * pi ==> x / &2 <= pi`);
+      (REWRITE_TAC[ Local_lemmas.AZIM_RANGE ]);
+    SUBGOAL_THEN `sum (1..n) bet = sum (1..n) (\i. (&1/ &2) * azim (vec 0) v (g i) (g (i+1)))` SUBST1_TAC;
+      MATCH_MP_TAC SUM_EQ;
+      REPEAT WEAK_STRIP_TAC;
+      BETA_TAC;
+      ONCE_REWRITE_TAC[arith ` (&1/ &2) * u = u / &2`];
+      (ASM_SIMP_TAC[]);
+    REWRITE_TAC[ SUM_LMUL ];
+    REWRITE_TAC[arith `(&1 / &2) * t = pi <=> t = &2 * pi`];
+    MATCH_MP_TAC ORDER_AZIM_SUM2Pi;
+    EXISTS_TAC `u:real^3`;
+    (ASM_REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`!i j. (i IN 1..n) /\ (j IN 1..n) /\ ~(i = j) ==> DISJOINT (X i) (X j)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[DISJOINT];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(?a1 a2. X i SUBSET a1 /\ X j SUBSET a2 /\ ( a1 INTER a2 = {})) ==> (X i INTER X j = {})`) MATCH_MP_TAC));
+      (SET_TAC[]);
+    EXISTS_TAC `wedge (vec 0) v (g i) (g (i+1))`;
+    EXISTS_TAC `wedge (vec 0) v (g j) (g (j+1))`;
+    CONJ_TAC;
+      (ASM_MESON_TAC[SUBSET_INTER]);
+    CONJ_TAC;
+      (ASM_MESON_TAC[SUBSET_INTER]);
+    GMATCH_SIMP_TAC WEDGE_ORDER_DISJOINT;
+    EXISTS_TAC `u:real^3`;
+    EXISTS_TAC `n:num`;
+    (ASM_REWRITE_TAC[]);
+  COMMENT "1a";
+  ONCE_REWRITE_TAC[arith `x <= u/ &2 <=> &2 * x <= u`; ];
+  SUBGOAL_THEN `sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n))) = sum ((IMAGE X (1..n))) (\s. sol (vec 0) s)` ASSUME_TAC;
+    MATCH_MP_TAC Conforming.SOL_UNIONS;
+    EXISTS_TAC `&1`;
+    REWRITE_TAC[ arith `&1 > &0`; IN_IMAGE ];
+    CONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      (REWRITE_TAC[ FINITE_NUMSEG ]);
+    CONJ_TAC;
+      GEN_TAC;
+      (ASM_MESON_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    (ASM_MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC SUM_IMAGE_NONZERO;
+  CONJ_TAC;
+    REWRITE_TAC[ FINITE_NUMSEG];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `X x = {}`)));
+      DISCH_THEN SUBST1_TAC;
+      (REWRITE_TAC[ Conforming.SOL_EMPTY ]);
+    REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[ DISJOINT; Local_lemmas.EMPTY_NOT_EXISTS_IN; IN_INTER ];
+    (MESON_TAC[]);
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(\s. sol (vec 0) s) o X = (\i. sol (vec 0) (X i))`) SUBST1_TAC));
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    BETA_TAC;
+    (REWRITE_TAC[o_THM]);
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC (`sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n)))`);
+  CONJ_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `x = y ==> x<= y`);
+    ONCE_REWRITE_TAC[ GSYM SUM_LMUL ];
+    MATCH_MP_TAC SUM_EQ;
+    REPEAT WEAK_STRIP_TAC;
+    BETA_TAC;
+    (ASM_MESON_TAC[]);
+  (COMMENT "1c")
+    mmp SOL_SUBSET
+    ex `&1`
+    conj
+    rat
+    conj
+    rt[ ?u ]
+    mmp ?v
+    conj
+    subthen (% `{s INTER normball (vec 0) (&1) | s IN IMAGE X (1..n)} = IMAGE (\k. X k INTER normball (vec 0) (&1)) (1..n)`) subst1
+    ort[ FUN_EQ_THM]
+    rt[ IN; IMAGE ;IN_ELIM_THM]
+    mt[ ]
+    mmp FINITE_IMAGE
+    rt[ FINITE_NUMSEG]
+    rt[IN_ELIM_THM]
+    rt[ IN_IMAGE ]
+    fxast `azim` mptac
+    mt[]
+    conj
+    expand "WF'"
+    mmp ?k
+    amt[]
+    conj
+    rt[ UNIONS_SUBSET ]
+    rt[ IN_IMAGE ]
+    fxast `azim` mptac
+    mt[ SUBSET_INTER ]
+    conj
+    rt[ ?u ]
+    mmp ?j
+    conj
+    subthen (% `{s INTER normball (vec 0) (&1) | s IN IMAGE X (1..n)} = IMAGE (\k. X k INTER normball (vec 0) (&1)) (1..n)`) subst1
+    ort[ FUN_EQ_THM]
+    rt[ IN; IMAGE ;IN_ELIM_THM]
+    mt[ ]
+    mmp FINITE_IMAGE
+    rt[ FINITE_NUMSEG]
+    rt[IN_ELIM_THM]
+    rt[ IN_IMAGE ]
+    fxast `azim` mptac
+    mt[]
+    expand "WF'"
+    rt[ GSYM ?l ]
+    mmp FCHANGED_RADIAL
+    amt[]
+    *)
+  X_GENv_TAC "c3";
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC (`A = { (p:real^3) | p dot v = b}`);
+  ABBREV_TAC `u0 = (b / (v dot v)) % (v:real^3)`;
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`c3`; `v`; `b`; `P`; `WF'`; `t`; `n`; `u0`; `A`]) gotcjah_prep)));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`P`; `c3`; `A`; `n`; `{ c | c facet_of c3 }`; `t`; `u`; `v`; `b`] ) EUSOTYP2_general)));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `1 IN 1..n /\ (!i. (i IN 1..n) ==> (i+1) IN 1..n \/ (i=n))` ASSUME_TAC;
+    FIRST_X_ASSUM_ST `1 < n` MP_TAC;
+    REWRITE_TAC[ IN_NUMSEG ];
+    BY((ARITH_TAC));
+  SUBGOAL_THEN `&0 < b/ ((v:real^3) dot v)` ASSUME_TAC;
+    MATCH_MP_TAC REAL_LT_DIV;
+    BY((ASM_REWRITE_TAC[]));
+  SUBGOAL_THEN `!i.  (?bet X. (i IN 1..n) ==> (azim (vec 0) v (g i) (g (i+1)) / &2 = bet) /\ X SUBSET (wedge (vec 0) v (g i) (g (i+1)) INTER WF') /\ measurable (X INTER normball (vec 0) (&1)) /\ radial_norm (&1) (vec 0) (X INTER normball (vec 0) (&1)) /\ (&2 * (bet - asn (sin bet * t)) = sol (vec 0) X))` ASSUME_TAC;
+    GEN_TAC;
+    REWRITE_TAC [MESON[] `(?X bet. (p ==> q X bet)) <=> p ==> (?X bet. q X bet)`];
+    DISCH_TAC;
+    ABBREV_TAC (`bet = azim (vec 0) v (g i) (g (i+1))/ &2 `);
+    EXISTS_TAC `bet:real`;
+    REWRITE_TAC[];
+    MATCH_MP_TAC ( gotcjah_sol_lemma);
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `c3`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `h i`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b / (v dot v)`)));
+    ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[arith `&0 < &1`];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `g (i+1) IN P INTER A /\ cos (arcV (vec 0) v (g (i+1))) = t` ) ASSUME_TAC));
+      ASM_CASES_TAC `i=(n:num)`;
+        ASM_REWRITE_TAC[];
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        BY((ASM_REWRITE_TAC[]));
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      FIRST_X_ASSUM MP_TAC;
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `1..n` MP_TAC);
+      BY((MESON_TAC[]));
+    ASM_REWRITE_TAC[];
+    ASM_CASES_TAC `i = (n:num)`;
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY((ASM_REWRITE_TAC[]));
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `1..n` MP_TAC);
+    BY((MESON_TAC[]));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[SKOLEM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "Have bet and X";
+  ONCE_REWRITE_TAC[arith `&2 * pi - &2 * u <= s <=> (pi - u) <= s/ &2`];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `sum (1..n) (\i. bet i - asn (sin (bet i) * t))`;
+  ONCE_REWRITE_TAC [arith `t * sin u = sin u * t`];
+  CONJ_TAC;
+    MATCH_MP_TAC convex_sum_corollary;
+    ASM_SIMP_TAC [arith `1 < n ==> 0 < n`];
+    MATCH_MP_TAC (TAUT `a /\ b ==> b /\ a`);
+    CONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      SUBGOAL_THEN (`bet i = azim (vec 0) v (g i ) (g (i+1)) / &2`) SUBST1_TAC;
+        BY((ASM_SIMP_TAC[]));
+      GMATCH_SIMP_TAC(arith `&0 <= x ==> &0 <= x/ &2`);
+      GMATCH_SIMP_TAC(arith `x < &2 * pi ==> x / &2 <= pi`);
+      BY((REWRITE_TAC[ Local_lemmas.AZIM_RANGE ]));
+    SUBGOAL_THEN `sum (1..n) bet = sum (1..n) (\i. (&1/ &2) * azim (vec 0) v (g i) (g (i+1)))` SUBST1_TAC;
+      MATCH_MP_TAC SUM_EQ;
+      REPEAT WEAK_STRIP_TAC;
+      BETA_TAC;
+      ONCE_REWRITE_TAC[arith ` (&1/ &2) * u = u / &2`];
+      BY((ASM_SIMP_TAC[]));
+    REWRITE_TAC[ SUM_LMUL ];
+    REWRITE_TAC[arith `(&1 / &2) * t = pi <=> t = &2 * pi`];
+    MATCH_MP_TAC ORDER_AZIM_SUM2Pi;
+    EXISTS_TAC `u:real^3`;
+    BY((ASM_REWRITE_TAC[]));
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`!i j. (i IN 1..n) /\ (j IN 1..n) /\ ~(i = j) ==> DISJOINT (X i) (X j)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[DISJOINT];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(?a1 a2. X i SUBSET a1 /\ X j SUBSET a2 /\ ( a1 INTER a2 = {})) ==> (X i INTER X j = {})`) MATCH_MP_TAC));
+      BY((SET_TAC[]));
+    EXISTS_TAC `wedge (vec 0) v (g i) (g (i+1))`;
+    EXISTS_TAC `wedge (vec 0) v (g j) (g (j+1))`;
+    CONJ_TAC;
+      BY((ASM_MESON_TAC[SUBSET_INTER]));
+    CONJ_TAC;
+      BY((ASM_MESON_TAC[SUBSET_INTER]));
+    GMATCH_SIMP_TAC WEDGE_ORDER_DISJOINT;
+    EXISTS_TAC `u:real^3`;
+    EXISTS_TAC `n:num`;
+    BY((ASM_REWRITE_TAC[]));
+  COMMENT "1a";
+  ONCE_REWRITE_TAC[arith `x <= u/ &2 <=> &2 * x <= u`; ];
+  SUBGOAL_THEN `sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n))) = sum ((IMAGE X (1..n))) (\s. sol (vec 0) s)` ASSUME_TAC;
+    MATCH_MP_TAC Conforming.SOL_UNIONS;
+    EXISTS_TAC `&1`;
+    REWRITE_TAC[ arith `&1 > &0`; IN_IMAGE ];
+    CONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY((REWRITE_TAC[ FINITE_NUMSEG ]));
+    CONJ_TAC;
+      GEN_TAC;
+      BY((ASM_MESON_TAC[]));
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY((ASM_MESON_TAC[]));
+  FIRST_X_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC SUM_IMAGE_NONZERO;
+  CONJ_TAC;
+    REWRITE_TAC[ FINITE_NUMSEG];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `X x = {}`)));
+      DISCH_THEN SUBST1_TAC;
+      BY((REWRITE_TAC[ Conforming.SOL_EMPTY ]));
+    REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[ DISJOINT; Local_lemmas.EMPTY_NOT_EXISTS_IN; IN_INTER ];
+    BY((MESON_TAC[]));
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(\s. sol (vec 0) s) o X = (\i. sol (vec 0) (X i))`) SUBST1_TAC));
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    BETA_TAC;
+    BY((REWRITE_TAC[o_THM]));
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC (`sol ((vec 0):real^3) (UNIONS (IMAGE X (1..n)))`);
+  CONJ_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `x = y ==> x<= y`);
+    ONCE_REWRITE_TAC[ GSYM SUM_LMUL ];
+    MATCH_MP_TAC SUM_EQ;
+    REPEAT WEAK_STRIP_TAC;
+    BETA_TAC;
+    BY((ASM_MESON_TAC[]));
+  (COMMENT "1c");
+  MATCH_MP_TAC SOL_SUBSET;
+  EXISTS_TAC `&1`;
+  CONJ_TAC;
+    BY(REAL_ARITH_TAC);
+  CONJ_TAC;
+    REWRITE_TAC[ Conforming.UNIONS_INTER ];
+    MATCH_MP_TAC MEASURABLE_UNIONS;
+    CONJ_TAC;
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{s INTER normball (vec 0) (&1) | s IN IMAGE X (1..n)} = IMAGE (\k. X k INTER normball (vec 0) (&1)) (1..n)`) SUBST1_TAC));
+        ONCE_REWRITE_TAC[ FUN_EQ_THM];
+        REWRITE_TAC[ IN; IMAGE ;IN_ELIM_THM];
+        BY(MESON_TAC[ ]);
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY(REWRITE_TAC[ FINITE_NUMSEG]);
+    REWRITE_TAC[IN_ELIM_THM];
+    REWRITE_TAC[ IN_IMAGE ];
+    FIRST_X_ASSUM_ST `azim` MP_TAC;
+    BY(MESON_TAC[]);
+  CONJ_TAC;
+    EXPAND_TAC "WF'";
+    MATCH_MP_TAC FCHANGED_MEASURABLE;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    REWRITE_TAC[ UNIONS_SUBSET ];
+    REWRITE_TAC[ IN_IMAGE ];
+    FIRST_X_ASSUM_ST `azim` MP_TAC;
+    BY(MESON_TAC[ SUBSET_INTER ]);
+  CONJ_TAC;
+    REWRITE_TAC[ Conforming.UNIONS_INTER ];
+    MATCH_MP_TAC Conforming.RADIAL_UNIONS;
+    CONJ_TAC;
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{s INTER normball (vec 0) (&1) | s IN IMAGE X (1..n)} = IMAGE (\k. X k INTER normball (vec 0) (&1)) (1..n)`) SUBST1_TAC));
+        ONCE_REWRITE_TAC[ FUN_EQ_THM];
+        REWRITE_TAC[ IN; IMAGE ;IN_ELIM_THM];
+        BY(MESON_TAC[ ]);
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY(REWRITE_TAC[ FINITE_NUMSEG]);
+    REWRITE_TAC[IN_ELIM_THM];
+    REWRITE_TAC[ IN_IMAGE ];
+    FIRST_X_ASSUM_ST `azim` MP_TAC;
+    BY(MESON_TAC[]);
+  EXPAND_TAC "WF'";
+  REWRITE_TAC[ GSYM Marchal_cells_2.RADIAL_VS_RADIAL_NORM ];
+  MATCH_MP_TAC FCHANGED_RADIAL;
+  BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
 
 
-`?X. X SUBSET wedge (vec 0) v (g i) (g (i + 1)) INTER WF' /\
-     measurable (X INTER normball (vec 0) (&1)) /\
-     radial_norm (&1) (vec 0) (X INTER normball (vec 0) (&1)) /\
-     &2 * (bet - asn (sin bet * t)) <= sol (vec 0) X`;;
 
-gotcjah_sol_lemma;;
-Print_types.print_goal_types();;
-
-(ISPECL (%% [`c3`;`v`;`b`;`P`;`WF'`;`t`;`&1`;`bet`;`g i`;`h i`;`g(i+1)`;`b / (v dot v)`]) gotcjah_sol_lemma);;

@@ -6478,5 +6478,265 @@ let GOTCJAH = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* Lemmas related to last two theorems in "Counting Spheres" *)
+
+
+
+let rcone_def_alt = prove_by_refinement(
+  `!(v:real^A) t p. p IN rcone_gt (vec 0) v t <=> norm p * norm v * t < p dot v`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rcone_gt;Sphere.rconesgn;varith `(x:real^A) - vec 0  = x`;IN;IN_ELIM_THM; DIST_0 ];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rcone_refl = prove_by_refinement(
+  `!(v:real^A) t.  t < &1 /\ ~(v = vec 0) ==> v IN rcone_gt (vec 0) v t`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[rcone_def_alt];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ DOT_SQUARE_NORM ];
+  REWRITE_TAC[ arith `x * x * t < x pow 2 <=> &0 < (&1 - t ) * (x * x)`];
+  (MATCH_MP_TAC REAL_LT_MUL );
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  (MATCH_MP_TAC REAL_LT_MUL);
+  BY(ASM_REWRITE_TAC [ NORM_POS_LT ])
+  ]);;
+  (* }}} *)
+
+
+let rcone_nz = prove_by_refinement(
+  `!(v:real^A) p t.  (&0 < t ) /\ (p IN rcone_gt (vec 0) v t) ==> ~(p = vec 0) /\ ~(v = vec 0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ rcone_def_alt ];
+  REPEAT WEAK_STRIP_TAC;
+  BY(CONJ_TAC THEN DISCH_TAC THEN (FIRST_X_ASSUM_ST `norm` MP_TAC) THEN ASM_REWRITE_TAC[ NORM_0 ; DOT_LZERO ; DOT_RZERO ; ] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rcone_dot_pos = prove_by_refinement(
+  `!(v:real^A) t p.  &0 < t /\
+      p IN rcone_gt (vec 0) v t ==> &0 < p dot v`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w` ~(p = vec 0) /\ ~(v = vec 0)`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[rcone_nz]);
+  FIRST_X_ASSUM_ST `rcone_gt` MP_TAC;
+  REWRITE_TAC[rcone_def_alt];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC REAL_LT_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `norm p * norm v * t`)));
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LT_MUL;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[ NORM_POS_LT ]);
+  MATCH_MP_TAC REAL_LT_MUL;
+  BY(ASM_REWRITE_TAC [ NORM_POS_LT ])
+  ]);;
+  (* }}} *)
+
+
+let rcone_hyperplane = prove_by_refinement(
+  `!(v:real^A) t b q p. 
+    (&0 < t /\ t < &1) /\
+    (p IN rcone_gt (vec 0) v t) /\
+     ( ( b / (p dot v)) % p = q) ==>
+ 	(q dot v = b)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ rcone_def_alt];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`&0 < (p dot v)`) ASSUME_TAC));
+    MATCH_MP_TAC rcone_dot_pos;
+    BY(ASM_MESON_TAC[ rcone_def_alt ]);
+  EXPAND_TAC "q";
+  REWRITE_TAC[ DOT_LMUL ];
+  Calc_derivative.CALC_ID_TAC;
+  BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rcone_gt_arcV = prove_by_refinement(
+  `!(v:real^3) g p.
+    (&0 < g) /\ (g < pi / &2) /\
+    p IN rcone_gt (vec 0) v (cos g) ==>
+    arcV (vec 0) p v < g `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w` ~(p = vec 0) /\ ~(v = vec 0)`) ASSUME_TAC));
+    MATCH_MP_TAC rcone_nz;
+    BY(ASM_MESON_TAC[COS_POS_PI2]);
+  GMATCH_SIMP_TAC (GSYM COS_MONO_LT_EQ);
+  REWRITE_TAC[ Local_lemmas1.ARCV_BOUNDS ];
+  ASSUME_TAC PI_POS;
+  ASM_SIMP_TAC [arith `&0 < pi /\ g < pi / &2 ==> g <= pi`;arith `&0 < g ==> &0 <= g`];
+  FIRST_X_ASSUM_ST `IN` MP_TAC;
+  REWRITE_TAC[ rcone_def_alt];
+  REWRITE_TAC[ Trigonometry1.DOT_COS ];
+  GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+  ASM_SIMP_TAC[ NORM_POS_LT ];
+  GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+  BY(ASM_SIMP_TAC[ NORM_POS_LT ])
+   ]);;
+  (* }}} *)
+
+let cos_bounds_0_Pi2 = prove_by_refinement(
+  `!x. &0 < x /\ x < pi / &2 ==>
+    &0 < cos x /\ cos x < &1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    BY(ASM_SIMP_TAC[ Trigonometry.CFXEKKP2 ]);
+  SUBGOAL_THEN `cos x <= &1` MP_TAC;
+    BY(MESON_TAC[ COS_BOUNDS ]);
+  DISCH_TAC;
+  GMATCH_SIMP_TAC ( arith `u <= &1 /\ ~( u = &1) ==> (u < &1 )`);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ COS_ONE_2PI ];
+  REWRITE_TAC[ NOT_EXISTS_THM; DE_MORGAN_THM ];
+  CONJ_TAC;
+    STRIP_TAC;
+    DISJ_CASES_TAC (ARITH_RULE `n = 0 \/ 1 <= n`);
+      ASM_REWRITE_TAC[];
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[ GSYM REAL_OF_NUM_LE ];
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM_ST `pi / &2` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ arith `~(&n * &2 * pi < pi/ &2)  <=> (&0 <= pi * (&n * &2 - &1 / &2))` ];
+    MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+    CONJ_TAC;
+      BY(MP_TAC PI_POS THEN REAL_ARITH_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  STRIP_TAC;
+  MATCH_MP_TAC (arith `(&0 < x /\ &0 <= u ==> ~(x = -- u))`);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  GMATCH_SIMP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  MP_TAC PI_POS;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rcone_gt_arc_triangle = prove_by_refinement(
+  `!(p:real^3) v w gv gw.
+    ~(w = vec 0) /\
+    (&0 < gv) /\ (gv < pi / &2) /\
+    p IN rcone_gt (vec 0) v (cos gv) /\
+    gv + gw <= arcV (vec 0) v w ==>
+    gw < arcV (vec 0) p w`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `&0 < cos gv /\ cos gv < &1` ASSUME_TAC;
+    BY(ASM_SIMP_TAC[ cos_bounds_0_Pi2 ]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`~(p = vec 0) /\ ~(v = vec 0)`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[rcone_nz]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`arcV (vec 0) v w <= arcV (vec 0) v p + arcV (vec 0) p w`) ASSUME_TAC));
+    MATCH_MP_TAC Trigonometry2.ARCV_INEQUALTY;
+    BY(ASM_REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`v`;`gv`;`p`]) rcone_gt_arcV)));
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (fun t -> MP_TAC (ONCE_REWRITE_RULE[ Trigonometry2.ARC_SYM ] t));
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(*
+    (&0 < gw) /\ (gw < pi / &2) /\
+
+      gm (GSYM ?j )
+      conj
+      assume PI_POS
+      art[ ?k ]
+      repeat (fxa mptac) then rat
+*)
+
+
+let rcone_gt_facet = prove_by_refinement(
+  `!gv gw v w q (p:real^3). 
+    (&0 < gv /\ gv < pi / &2) /\
+    (&0 < gw /\ gw < pi / &2) /\ 
+    ~(w = vec 0) /\
+    (p IN rcone_gt (vec 0) v (cos (gv))) /\
+    (q = (((norm v) * cos (gv)) / (p dot v)) % p) /\
+    (gv + gw <= arcV (vec 0) v w) ==>
+    (q dot w < norm w * cos gw)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `&0 < cos gv /\ cos gv < &1 /\ &0 < cos gw /\ cos gw < &1` ASSUME_TAC;
+    BY((ASM_SIMP_TAC[ cos_bounds_0_Pi2 ]));
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`~(p = vec 0) /\ ~(v = vec 0)`) ASSUME_TAC));
+    BY((ASM_MESON_TAC[rcone_nz]));
+  SUBGOAL_THEN `&0 < p dot (v:real^3)` ASSUME_TAC;
+    GMATCH_SIMP_TAC rcone_dot_pos;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[ DOT_LMUL ];
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `(p dot v) * ((norm v * cos gv) / (p dot v) * (p dot w)) < (p dot v) * norm w * cos gw`)));
+    BY(ASM_MESON_TAC[ REAL_LT_LMUL_EQ ]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(p dot v) * (norm v * cos gv) / (p dot v) * (p dot w) =  (norm v * cos gv) * (p dot w)`) (fun t -> ONCE_REWRITE_TAC[t])));
+    Calc_derivative.CALC_ID_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `&0 < norm w /\ &0 < norm p /\ &0 < norm v`) ASSUME_TAC));
+    BY(ASM_SIMP_TAC[ NORM_POS_LT ]);
+  ASM_SIMP_TAC [ Trigonometry1.DOT_COS ];
+  ONCE_REWRITE_TAC [arith `(a * b) * c * d *e < (c * a * f ) * d * g <=> (a * c * d) * b * e < (a*c*d)* (f *g)`];
+  GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC REAL_LT_MUL;
+    ASM_SIMP_TAC[];
+    GMATCH_SIMP_TAC REAL_LT_MUL;
+    BY(ASM_SIMP_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`&0 < cos (arcV (vec 0) p v)`) ASSUME_TAC));
+    FIRST_X_ASSUM_ST `dot` MP_TAC;
+    REWRITE_TAC[ Trigonometry1.DOT_COS ];
+    BY(ASM_SIMP_TAC[ REAL_LT_MUL_EQ ]);
+  GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w`&0 < cos (arcV (vec 0) p w)`)));
+    MATCH_MP_TAC REAL_LT_TRANS;
+    GOAL_TERM (fun w -> ((EXISTS_TAC ( env w`cos (arcV (vec 0) p v) * cos (arcV (vec 0) p w)`))));
+    CONJ_TAC;
+      ONCE_REWRITE_TAC[arith `x * y = y * x`];
+      GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+      ASM_REWRITE_TAC[];
+      GMATCH_SIMP_TAC COS_MONO_LT_EQ;
+      ASM_SIMP_TAC[ Local_lemmas1.ARCV_BOUNDS ];
+      CONJ_TAC;
+        MP_TAC PI_POS;
+        BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+      MATCH_MP_TAC rcone_gt_arcV;
+      BY(ASM_SIMP_TAC[]);
+    GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC COS_MONO_LT_EQ;
+    ASM_SIMP_TAC[ Local_lemmas1.ARCV_BOUNDS ];
+    CONJ_TAC;
+      MP_TAC PI_POS;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    MATCH_MP_TAC rcone_gt_arc_triangle;
+    BY(ASM_MESON_TAC[]);
+  MATCH_MP_TAC REAL_LET_TRANS;
+  EXISTS_TAC `&0`;
+  CONJ_TAC;
+    REWRITE_TAC[ arith `x * y <= &0 <=> &0 <= x * --y`];
+    MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC REAL_LT_MUL;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
 
 end;;

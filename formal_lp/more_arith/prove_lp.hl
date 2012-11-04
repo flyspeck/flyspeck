@@ -1,0 +1,410 @@
+needs "../formal_lp/more_arith/lin_f.hl";;
+needs "../formal_lp/more_arith/arith_int.hl";;
+
+
+module Prove_lp = struct
+
+open Linear_function;;
+open Arith_misc;;
+open Arith_nat;;
+open Arith_int;;
+open Misc_vars;;
+
+
+
+(* Special versions of the above theorems (for using with INST) *)
+
+
+let NUM_ZERO = prove(mk_eq(mk_comb(amp_op_real, mk_comb(Arith_hash.num_const, zero_const)), `&0`),
+                     REWRITE_TAC[Arith_hash.NUM_THM; NUMERAL]);;
+
+let LIN_F_SUM_HD',
+  LIN_F_SUM_HD_ZERO',
+  LIN_F_SUM_EMPTY1', LIN_F_SUM_EMPTY2',
+  LIN_F_SUM_MOVE1', LIN_F_SUM_MOVE2',
+  LIN_F_ADD_SINGLE' =
+     UNDISCH_ALL (SPEC_ALL LIN_F_SUM_HD),
+     UNDISCH_ALL (SPEC_ALL (ONCE_REWRITE_RULE[GSYM NUM_ZERO] LIN_F_SUM_HD_ZERO)),
+     SPEC_ALL LIN_F_SUM_EMPTY1, SPEC_ALL LIN_F_SUM_EMPTY2,
+     SPEC_ALL LIN_F_SUM_MOVE1, SPEC_ALL LIN_F_SUM_MOVE2,
+     SPEC_ALL LIN_F_ADD_SINGLE;;
+
+let LIN_F_MUL_HD', LIN_F_MUL_EMPTY' =
+  UNDISCH_ALL (SPEC_ALL LIN_F_MUL_HD), SPEC_ALL LIN_F_MUL_EMPTY;;
+
+let LIN_F_ADD_SING_RCANCEL', LIN_F_ADD_SING_LCANCEL' =
+  SPEC_ALL LIN_F_ADD_SING_RCANCEL, SPEC_ALL LIN_F_ADD_SING_LCANCEL;;
+
+
+
+(***********************************************)
+
+
+(* Constants *)
+
+let a1_var_real = `a1:real` and
+    a2_var_real = `a2:real` and
+    b1_var_real = `b1:real` and
+    b2_var_real = `b2:real` and
+    c1_var_real = `c1:real` and
+    c2_var_real = `c2:real` and
+    h_var = `h:real#real` and
+    r_var = `r:(real#real)list` and
+    x_var = `x:(real#real)list` and
+    y_var = `y:(real#real)list` and
+    t_var = `t:(real#real)list` and
+    x_var_real = `x:real` and
+    c1_var = `c1:real` and
+    c2_var = `c2:real` and
+    c_var = `c:real` and
+    v_var = `v:real` and
+    t1_var = `t1:(real#real)list` and
+    t2_var = `t2:(real#real)list` and
+    empty_const = `[]:(real)list`;;
+
+let ge_op_real = `(>=):real->real->bool`;;
+
+let cons_const = `CONS:(real#real)->(real#real)list->(real#real)list` and
+    empty_const = `[]:(real)list`;;
+
+
+(* HACK: for some reason Big_int.big_int_of_int64 is not defined *)
+let num_of_int64 n =
+  let big = Big_int.big_int_of_string (Int64.to_string n) in
+    Num.num_of_big_int big;;
+
+(* Term constructors *)
+let cons h t = mk_comb (mk_comb (cons_const, h), t);;
+let negate tm = mk_comb (neg_op_real, tm);;
+let mk_real_int n = mk_comb(amp_op_real, mk_numeral_array n);;
+let mk_real_int64 n = mk_comb(amp_op_real, mk_numeral_array (num_of_int64 n));;
+let mk_linear cs vars =
+  let mk_term (c, var) = mk_binop mul_op_real c (mk_var (var, real_ty)) in
+    list_mk_binop add_op_real (map mk_term (zip cs vars));;
+
+let mk_le_ineq lhs rhs = mk_binop le_op_real lhs rhs;;
+let mk_eq_ineq lhs rhs = mk_eq (lhs, rhs);;
+let mk_ge_ineq lhs rhs = mk_binop ge_op_real lhs rhs;;
+
+
+
+(************************************************)
+
+(* Computes (lin_f x + lin_f y) with REAL_BITS_ADD_CONV *)
+let lin_f_add_conv tm =
+  let rec lin_f_add_conv2 x y =
+    if (is_comb y) then
+      if (is_comb x) then
+        let hx = rand (rator x) in
+        let hy = rand (rator y) in
+        let c1, v1 = dest_pair hx in
+        let c2, v2 = dest_pair hy in
+
+          if v1 = v2 then
+            let tx, ty = rand x, rand y in
+            let c_thm = my_real_int_add_conv (mk_binop add_op_real c1 c2) in
+            let c = rand (concl c_thm) in
+              if (rand(rand c) = zero_const) then
+                let th0 = INST [v1, v_var; c1, c1_var; tx, t1_var; c2, c2_var; ty, t2_var]
+                  LIN_F_SUM_HD_ZERO' in
+                  TRANS (MY_PROVE_HYP c_thm th0) (lin_f_add_conv2 tx ty)
+              else
+                let th0 = INST[v1, v_var; c1, c1_var; tx, t1_var; c2, c2_var; ty, t2_var; c, c_var]
+                  LIN_F_SUM_HD' in
+                let ltm = rator (rand(concl th0)) in
+                let th1 = lin_f_add_conv2 tx ty in
+                let th2 = TRANS (MY_PROVE_HYP c_thm th0) (AP_TERM ltm th1) in
+                let th3 = INST[mk_pair (c, v1), h_var; rand(rand(concl th1)), t_var] LIN_F_ADD_SINGLE' in
+                  TRANS th2 th3
+          else
+            if (v1 < v2) then
+              let tx = rand x in
+              let th0 = INST[hx, h_var; tx, t_var; y, x_var] LIN_F_SUM_MOVE1' in
+              let ltm = rator (rand(concl th0)) in
+              let th1 = lin_f_add_conv2 tx y in
+              let th2 = TRANS th0 (AP_TERM ltm th1) in
+              let th3 = INST[hx, h_var; rand(rand(concl th1)), t_var] LIN_F_ADD_SINGLE' in
+                TRANS th2 th3
+            else
+              let ty = rand y in
+              let th0 = INST[hy, h_var; ty, t_var; x, x_var] LIN_F_SUM_MOVE2' in
+              let ltm = rator (rand(concl th0)) in
+              let th1 = lin_f_add_conv2 x ty in
+              let th2 = TRANS th0 (AP_TERM ltm th1) in
+              let th3 = INST[hy, h_var; rand(rand(concl th1)), t_var] LIN_F_ADD_SINGLE' in
+                TRANS th2 th3
+      else
+        (* x = [] *)
+        INST[y, x_var] LIN_F_SUM_EMPTY1'
+    else
+      (* y = [] *)
+      INST[x, x_var] LIN_F_SUM_EMPTY2' in
+
+  let larg, rarg = dest_comb tm in
+  let larg = rand larg in
+    lin_f_add_conv2 (rand larg) (rand rarg);;
+
+
+
+(*********************)
+(* lin_f conversions *)
+(*********************)
+
+
+(* Transforms a sum in the form `a * x + b * y + c * z` into `lin_f [(c,z); (b,y); (a,x)]` *)
+let LIN_F_RAW_CONV = ONCE_REWRITE_CONV[TO_LIN_F0] THENC REWRITE_CONV[TO_LIN_F];;
+
+let LIN_F_ADD_CONV = lin_f_add_conv;;
+
+(* Transforms a sum into `lin_f` and sorts the terms *)
+let LIN_F_CONV = (REWRITE_CONV[TO_LIN_F1] THENC (DEPTH_CONV LIN_F_ADD_CONV));;
+
+
+(* Computes `v * lin_f y` *)
+
+let rec LIN_F_MUL_CONV tm =
+  let x, f = dest_binop mul_op_real tm in
+  let list = rand f in
+    if (is_comb list) then
+      let cons_h, t = dest_comb list in
+      let h = rand cons_h in
+      let c, v = dest_pair h in
+
+      let product = my_real_int_mul_conv (mk_binop mul_op_real x c) in
+      let c1 = rand(concl product) in
+      let th = INST[x, x_var_real; c, c_var; v, v_var; t, t_var; c1, c1_var] LIN_F_MUL_HD' in
+      let th1 = MY_PROVE_HYP product th in
+      let lplus, tm = dest_comb(rand(concl th1)) in
+      let th2 = LIN_F_MUL_CONV tm in
+      let h = mk_pair (c1, v) in
+      let t = rand(rand(concl th2)) in
+      let th3 = TRANS th1 (AP_TERM lplus th2) in
+      let th4 = INST[h, h_var; t, t_var] LIN_F_ADD_SINGLE' in
+        TRANS th3 th4
+    else
+      INST[x, x_var_real] LIN_F_MUL_EMPTY';;
+
+
+(* Conversion without numerical multiplication *)
+let LIN_F_MUL_RAW_CONV = ONCE_REWRITE_CONV[LIN_F_MUL] THENC REWRITE_CONV[MAP];;
+
+
+
+(************************************************)
+
+
+(* Creates an inequality in the correct form *)
+let REAL_POS' = SPEC_ALL REAL_POS;;
+let REAL_LE_LMUL' = UNDISCH_ALL (REWRITE_RULE[GSYM IMP_IMP] (SPEC_ALL REAL_LE_LMUL));;
+
+
+let transform_le_ineq (ineq, m) =
+  let lhs, rhs = dest_binop le_op_real (concl ineq) in
+  let lhs_f_th = LIN_F_CONV lhs in
+  let original_th = EQ_MP (AP_THM (AP_TERM le_op_real lhs_f_th) rhs) ineq in
+  let lhs = rand(concl lhs_f_th) in
+  let pos_th = INST[rand m, n_var_num] REAL_POS' in
+  let th0 = INST[m, x_var_real; lhs, y_var_real; rhs, z_var_real] REAL_LE_LMUL' in
+  let th1 = MY_PROVE_HYP pos_th th0 in
+  let th2 = MY_PROVE_HYP original_th th1 in
+  let lhs, rhs = dest_binop le_op_real (concl th2) in
+  let lhs_th = LIN_F_MUL_CONV lhs in
+  let rhs_th = my_real_int_mul_conv rhs in
+  let th3 = MK_COMB(AP_TERM le_op_real lhs_th, rhs_th) in
+    EQ_MP th3 th2;;
+
+	
+let transform_le_ineq_tm (ineq, m) =
+  let lhs, rhs = dest_binop le_op_real ineq in
+  let lhs_f_th = LIN_F_CONV lhs in
+  let original_th = EQ_MP (AP_THM (AP_TERM le_op_real lhs_f_th) rhs) (ASSUME ineq) in
+  let lhs = rand(concl lhs_f_th) in
+  let pos_th = INST[rand m, n_var_num] REAL_POS' in
+  let th0 = INST[m, x_var_real; lhs, y_var_real; rhs, z_var_real] REAL_LE_LMUL' in
+  let th1 = MY_PROVE_HYP pos_th th0 in
+  let th2 = MY_PROVE_HYP original_th th1 in
+  let lhs, rhs = dest_binop le_op_real (concl th2) in
+  let lhs_th = LIN_F_MUL_CONV lhs in
+  let rhs_th = my_real_int_mul_conv rhs in
+  let th3 = MK_COMB(AP_TERM le_op_real lhs_th, rhs_th) in
+    EQ_MP th3 th2;;
+
+
+
+(* Computes the sum of two inequalities *)
+let REAL_LE_ADD2' = UNDISCH_ALL (REWRITE_RULE[GSYM IMP_IMP] (SPEC_ALL REAL_LE_ADD2));;
+
+(* Computes the sum of two inequalities (with LIN_F_ADD_CONV and REAL_BITS_ADD_CONV) *)
+let add_step' ineq1 ineq2 =
+  let lhs1, rhs1 = dest_binop le_op_real (concl ineq1) in
+  let lhs2, rhs2 = dest_binop le_op_real (concl ineq2) in
+  let th0 = INST [lhs1, w_var_real; rhs1, x_var_real; lhs2, y_var_real; rhs2, z_var_real]
+    REAL_LE_ADD2' in
+  let th1 = MY_PROVE_HYP ineq2 (MY_PROVE_HYP ineq1 th0) in
+  let lhs, rhs = dest_binop le_op_real (concl th1) in
+  let lhs_th = LIN_F_ADD_CONV lhs in
+  let rhs_th = my_real_int_add_conv rhs in
+    EQ_MP (MK_COMB(AP_TERM le_op_real lhs_th, rhs_th)) th1;;
+
+
+(* Computes the sum of lin_f[--c, x;...] and c * x *)
+let add_cancel_step ineq var_ineq =
+  let lhs1, rhs1 = dest_binop le_op_real (concl var_ineq) in
+  let lhs2, rhs2 = dest_binop le_op_real (concl ineq) in
+  let th0 = INST[lhs1, w_var_real; rhs1, x_var_real; lhs2, y_var_real; rhs2, z_var_real]
+    REAL_LE_ADD2' in
+  let th1 = MY_PROVE_HYP ineq (MY_PROVE_HYP var_ineq th0) in
+  let ctm, vtm = dest_binop mul_op_real lhs1 in
+  let ttm = rand(rand lhs2) in
+    if (rator ctm = neg_op_real) then
+      let lhs_th = INST[rand ctm, c_var; vtm, v_var; ttm, t_var] LIN_F_ADD_SING_LCANCEL' in
+      let rhs_th = my_real_int_add_conv (rand(concl th1)) in
+        EQ_MP (MK_COMB(AP_TERM le_op_real lhs_th, rhs_th)) th1
+    else
+      let lhs_th = INST[ctm, c_var; vtm, v_var; ttm, t_var] LIN_F_ADD_SING_RCANCEL' in
+      let rhs_th = my_real_int_add_conv (rand(concl th1)) in
+        EQ_MP (MK_COMB(AP_TERM le_op_real lhs_th, rhs_th)) th1;;
+
+
+
+let zero_const_real = `&0`;;
+
+(* Multiplies a linear inequality by a rational positive constant *)
+let mul_rat_step ineq c =
+  let pos_thm = REAL_ARITH (mk_le_ineq zero_const_real c) in
+  let hyp = CONJ pos_thm ineq in
+  let th0 = MATCH_MP REAL_LE_LMUL hyp in
+  let lhs, rhs = dest_binop le_op_real (concl th0) in
+  let lhs_th = (LIN_F_MUL_RAW_CONV THENC DEPTH_CONV REAL_RAT_MUL_CONV) lhs in
+  let rhs_th = REAL_RAT_MUL_CONV rhs in
+    EQ_MP (MK_COMB (AP_TERM le_op_real lhs_th, rhs_th)) th0;;
+
+
+
+(* Multiplies a linear inequality in the form lin_f x <= y by
+   a positive integer c *)
+let mul_step ineq c =
+  let lhs, rhs = dest_binop le_op_real (concl ineq) in
+  let pos_th = INST[rand c, n_var_num] REAL_POS' in
+  let th0 = INST[c, x_var_real; lhs, y_var_real; rhs, z_var_real] REAL_LE_LMUL' in
+  let th1 = MY_PROVE_HYP pos_th th0 in
+  let th2 = MY_PROVE_HYP ineq th1 in
+  let lhs, rhs = dest_binop le_op_real (concl th2) in
+  let lhs_th = LIN_F_MUL_CONV lhs in
+  let rhs_th = my_real_int_mul_conv rhs in
+  let th3 = MK_COMB(AP_TERM le_op_real lhs_th, rhs_th) in
+    EQ_MP th3 th2;;
+
+
+
+(* Transformations for variables *)
+
+let VAR_MUL_THM = prove(`!x c1 c2 a b v. &0 <= x /\ x * c1 = a /\ x * c2 = b /\ c1 * v <= c2
+    ==> a * v <= b`,
+   REPEAT STRIP_TAC THEN
+     UNDISCH_TAC `x * c1 = a:real` THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     UNDISCH_TAC `x * c2 = b:real` THEN DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
+     REWRITE_TAC[GSYM REAL_MUL_ASSOC] THEN
+     MATCH_MP_TAC REAL_LE_LMUL THEN
+     ASM_REWRITE_TAC[]);;
+
+
+let VAR_MUL_THM' = (UNDISCH_ALL o SPEC_ALL o (REWRITE_RULE[GSYM IMP_IMP])) VAR_MUL_THM;;
+
+let VAR_ADD_THM = prove(`!x a1 b1 a2 b2 c1 c2. a1 * x <= b1 /\ a2 * x <= b2 /\
+                          a1 + a2 = c1 /\ b1 + b2 = c2 ==> c1 * x <= c2`,
+                        REPEAT STRIP_TAC THEN
+                          EXPAND_TAC "c1" THEN EXPAND_TAC "c2" THEN
+                          REWRITE_TAC[REAL_ADD_RDISTRIB] THEN
+                          MATCH_MP_TAC REAL_LE_ADD2 THEN
+                          ASM_REWRITE_TAC[]);;
+
+let VAR_ADD_THM' = (UNDISCH_ALL o SPEC_ALL o (REWRITE_RULE[GSYM IMP_IMP])) VAR_ADD_THM;;
+
+
+(* Multiplies c1 * x <= c2 by m *)
+let var1_le_transform (var_ineq, m) =
+  let lhs, c2tm = dest_binop le_op_real (var_ineq) in
+  let pos_th = INST[rand m, n_var_num] REAL_POS' in
+  let c1tm, xtm = dest_binop mul_op_real lhs in
+  let c1_th = my_real_int_mul_conv (mk_binop mul_op_real m c1tm) in
+  let c2_th = my_real_int_mul_conv (mk_binop mul_op_real m c2tm) in
+  let th = INST[m, x_var_real; c1tm, c1_var; c2tm, c2_var; xtm, v_var;
+              rand(concl c1_th), a_var_real; rand(concl c2_th), b_var_real]
+    VAR_MUL_THM' in
+    MY_PROVE_HYP pos_th (MY_PROVE_HYP (ASSUME var_ineq) (MY_PROVE_HYP c1_th (MY_PROVE_HYP c2_th th)));;
+
+
+(* Multiplies the corresponding inequalities and finds the sum of results *)
+let var2_le_transform (var_ineq1,m1) (var_ineq2,m2) =
+  let ineq1 = var1_le_transform (var_ineq1, m1) and
+      ineq2 = var1_le_transform (var_ineq2, m2) in
+  let lhs1, b1tm = dest_binop le_op_real (concl ineq1) in
+  let lhs2, b2tm = dest_binop le_op_real (concl ineq2) in
+  let a1tm, xtm = dest_binop mul_op_real lhs1 in
+  let a2tm = rand(rator lhs2) in
+  let b_th = my_real_int_add_conv (mk_binop add_op_real b1tm b2tm) in
+  let a_th = my_real_int_add_conv (mk_binop add_op_real a1tm a2tm) in
+  let th0 = INST[a1tm, a1_var_real; a2tm, a2_var_real;
+                 b1tm, b1_var_real; b2tm, b2_var_real;
+                 rand(concl a_th), c1_var_real; rand(concl b_th), c2_var_real;
+                 xtm, x_var_real] VAR_ADD_THM' in
+    MY_PROVE_HYP ineq2 (MY_PROVE_HYP ineq1 (MY_PROVE_HYP b_th (MY_PROVE_HYP a_th th0)));;
+
+
+
+
+
+(* The main function *)
+(* Example: prove_lp ineqs var_ineqs target_vars `&12` (Int 100000) *)
+(* ineq - inequalities obtained from constraints with multipliers *)
+(* var_ineqs - bounds for variables as inequalities in the correct form *)
+(* target_vars - bounds and multipliers for variables in the objective function *)
+(* bound - a bound for the objective function which is proved *)
+(* m - a precision constant *)
+
+
+let LIN_F_EMPTY_LE_0 = prove(`lin_f [] <= &0`, REWRITE_TAC[LIN_F_EMPTY; REAL_LE_REFL]);;
+let dummy = REWRITE_RULE[GSYM NUM_ZERO] LIN_F_EMPTY_LE_0;;
+
+
+let prove_lp_tm ineqs var_ineqs target_vars target_bound precision_constant =
+  (* Compute the sum of all constraints *)
+  let r1 = map transform_le_ineq_tm ineqs in
+  let r2' = List.fold_left add_step' dummy r1 in
+  let r2 = mul_step r2' (mk_real_int precision_constant) in
+
+  (* Use bounds of variables *)
+  let r3 = List.fold_left add_cancel_step r2 var_ineqs in
+  let r4 = List.fold_left add_step' dummy (map transform_le_ineq_tm target_vars) in
+  let r5 = add_step' r3 r4 in
+
+  (* Convert the result into a usual form *)
+  let r6 = CONV_RULE (DEPTH_CONV NUM_TO_NUMERAL_CONV) r5 in
+  let m = term_of_rat (precision_constant */ precision_constant */ precision_constant) in
+  let r7 = mul_rat_step r6 (mk_comb (`(/) (&1)`, m)) in
+  let r8 = REWRITE_RULE[lin_f; ITLIST; REAL_ADD_RID] r7 in
+  let r9 = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real ((rand o concl) r8) target_bound)) in
+    MATCH_MP REAL_LE_TRANS (CONJ r8 r9);;
+
+
+let prove_lp ineqs var_ineqs target_vars target_bound precision_constant =
+  (* Compute the sum of all constraints *)
+  let r1 = map transform_le_ineq ineqs in
+  let r2' = List.fold_left add_step' dummy r1 in
+  let r2 = mul_step r2' (mk_real_int precision_constant) in
+
+  (* Use bounds of variables *)
+  let r3 = List.fold_left add_cancel_step r2 var_ineqs in
+  let r4 = List.fold_left add_step' dummy (map transform_le_ineq target_vars) in
+  let r5 = add_step' r3 r4 in
+
+  (* Convert the result into a usual form *)
+  let r6 = CONV_RULE (DEPTH_CONV NUM_TO_NUMERAL_CONV) r5 in
+  let m = term_of_rat (precision_constant */ precision_constant */ precision_constant) in
+  let r7 = mul_rat_step r6 (mk_comb (`(/) (&1)`, m)) in
+  let r8 = REWRITE_RULE[lin_f; ITLIST; REAL_ADD_RID] r7 in
+  let r9 = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real ((rand o concl) r8) target_bound)) in
+    MATCH_MP REAL_LE_TRANS (CONJ r8 r9);;
+
+end;;

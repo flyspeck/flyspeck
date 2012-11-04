@@ -1,12 +1,14 @@
-needs "../formal_lp/ineqs/list_hypermap.hl";;
-needs "../formal_lp/ineqs/list_hypermap_iso.hl";;
-needs "../formal_lp/ineqs/constants_approx.hl";;
-
+needs "../formal_lp/hypermap/list_hypermap.hl";;
+needs "../formal_lp/hypermap/list_hypermap_iso.hl";;
+needs "../formal_lp/hypermap/constants_approx.hl";;
 
 needs "arith/nat.hl";;
+needs "misc/vars.hl";;
 
-
+open Constant_approximations;;
+open Misc_vars;;
 open Sphere;;
+
 
 
 (* Definitions of variables *)
@@ -14,7 +16,6 @@ open Sphere;;
 
 (* Variables for fans *)
 (* TODO: these definitions are not necessary *)
-
 
 let azim2_fan = new_definition `azim2_fan (V,E) (x:real^3#real^3) = azim_dart (V,E) (f_fan_pair (V,E) x)`;;
 let azim3_fan = new_definition `azim3_fan (V,E) (x:real^3#real^3) = azim_dart (V,E) (inverse (f_fan_pair_ext (V,E)) x)`;;
@@ -87,8 +88,6 @@ let list_var_rewrites =
 
 (* All variables are nonnegative *)
 
-
-
 let AZIM_DART_POS = prove(`&0 <= azim_dart (V,E) x`,
    MP_TAC (ISPEC `x:real^3#real^3` PAIR_SURJECTIVE) THEN
      STRIP_TAC THEN
@@ -139,9 +138,7 @@ let list_var_pos = map (fun tm -> prove(tm,
 
 (* mod-file variables and definitions *)
 
-
 let var_bound_ineqs = Hashtbl.create 40;;
-
 
 let sets =
   ["dart", `dart H:A->bool`;
@@ -1510,13 +1507,6 @@ let th2 =
 
 (* Integral approximation of inequalities and equalities *)
 
-let neg_op_real = `(--):real->real` and
-    le_op_real = `(<=):real->real->bool` and
-    lt_op_real = `(<):real->real->bool` and
-    ge_op_real = `(>=):real->real->bool` and
-    plus_op_real = `(+):real->real->real` and
-    mul_op_real = `( * ):real->real->real`;;
-
 let mk_decimal (n,m) =
   let tm = mk_comb(mk_comb(`DECIMAL`, mk_numeral (abs_num n)), mk_numeral m) in
     if (n </ Int 0) then mk_comb(neg_op_real, tm) else tm;;
@@ -1554,18 +1544,15 @@ let sum_th0 = REAL_ARITH `x = x + &0 + &0` and
     sum_th2' = REAL_ARITH `x + b + c = b + (x + c):real`;;
 
 
-let x_var_real = `x:real` and
-    y_var_real = `y:real` and
-    b_var_real = `b:real` and
-    c_var_real = `c:real`;;
+let c_var_real = `c:real`;;
 
 
 let split_sum_conv tm =
   let rec split_sum_raw_conv tm =
-    let xy_tm, bc_tm = dest_binop plus_op_real tm in
-    let b_tm, c_tm = dest_binop plus_op_real bc_tm in
-      if (is_binop plus_op_real xy_tm) then
-        let x_tm, y_tm = dest_binop plus_op_real xy_tm in
+    let xy_tm, bc_tm = dest_binop add_op_real tm in
+    let b_tm, c_tm = dest_binop add_op_real bc_tm in
+      if (is_binop add_op_real xy_tm) then
+        let x_tm, y_tm = dest_binop add_op_real xy_tm in
         let inst_th = INST[x_tm, x_var_real; y_tm, y_var_real; b_tm, b_var_real; c_tm, c_var_real] in
         let th1 = if (frees x_tm <> []) then inst_th sum_th1 else inst_th sum_th2 in
         let th2 = split_sum_raw_conv (rand(concl th1)) in
@@ -1638,8 +1625,8 @@ let rec low_approx tm precision =
       else
         SPEC tm le_mul1_th in
 
-  if (is_binop plus_op_real tm && frees tm <> []) then
-    let lhs, rhs = dest_binop plus_op_real tm in
+  if (is_binop add_op_real tm && frees tm <> []) then
+    let lhs, rhs = dest_binop add_op_real tm in
     let l_th = low_approx1 lhs precision in
     let r_th = low_approx rhs precision in
       MATCH_MP REAL_LE_ADD2 (CONJ l_th r_th)
@@ -1661,8 +1648,8 @@ let rec hi_approx tm precision =
       else
         SPEC tm ge_mul1_th in
 
-  if (is_binop plus_op_real tm && frees tm <> []) then
-    let lhs, rhs = dest_binop plus_op_real tm in
+  if (is_binop add_op_real tm && frees tm <> []) then
+    let lhs, rhs = dest_binop add_op_real tm in
     let l_th = hi_approx1 lhs precision in
     let r_th = hi_approx rhs precision in
       MATCH_MP REAL_LE_ADD2 (CONJ l_th r_th)

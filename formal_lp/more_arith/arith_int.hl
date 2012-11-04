@@ -1,0 +1,274 @@
+needs "arith/nat.hl";;
+needs "misc/misc.hl";;
+needs "misc/vars.hl";;
+
+(* Based on the code of calc_int.ml *)
+
+module Arith_int :
+  sig
+    val my_mk_realintconst : num -> term
+    val my_dest_realintconst : term -> num
+    val my_real_int_neg_conv : term -> thm
+    val my_real_int_add_conv : term -> thm
+    val my_real_int_sub_conv : term -> thm
+    val my_real_int_mul_conv : term -> thm
+  end
+  = struct
+
+open Misc_vars;;
+
+let test = Arith_misc.test;;
+
+let to_numeral = Arith_nat.NUM_TO_NUMERAL_CONV;;
+let from_numeral = Arith_nat.NUMERAL_TO_NUM_CONV;;
+let mk_num = Arith_nat.mk_numeral_array;;
+let dest_num = Arith_hash.dest_numeral_hash;;
+let num_suc = Arith_nat.NUM_SUC_HASH_CONV;;
+let num_add = Arith_nat.NUM_ADD_HASH_CONV;;
+let num_mul = Arith_nat.NUM_MULT_HASH_CONV;;
+let num_gt0 = Arith_nat.NUM_GT0_HASH_CONV;;
+
+
+let my_mk_realintconst n = 
+  if n >=/ Int 0 then mk_comb(amp_op_real, mk_num n)
+  else mk_comb(neg_op_real, mk_comb(amp_op_real, mk_num (minus_num n)));;
+
+
+let my_dest_realintconst tm = 
+  let ltm, rtm = dest_comb tm in
+    if (ltm = neg_op_real) then
+      let amp_tm, n_tm = dest_comb rtm in
+	if (amp_tm = amp_op_real) then
+	  minus_num (dest_num n_tm)
+	else
+	  failwith "my_dest_realintconst: --(&n) expected"
+    else
+      if (ltm = amp_op_real) then
+	dest_num rtm
+      else
+	failwith "my_dest_realintconst: &n expected";;
+
+
+
+let is_neg_comb tm = is_comb tm && rator tm = neg_op_real;;
+
+
+let replace_numerals = (rand o concl o DEPTH_CONV from_numeral);;
+let REPLACE_NUMERALS = CONV_RULE (DEPTH_CONV from_numeral);;
+
+
+let zero_const = replace_numerals `&0`;;
+
+
+(***************************************)
+
+(* NEG *)
+
+let neg_0 = (REPLACE_NUMERALS o prove)(`-- &0 = &0`, REAL_ARITH_TAC) and
+    neg_neg = prove(`--(--(&n)) = &n`, REAL_ARITH_TAC);;
+
+
+let my_real_int_neg_conv tm =
+  let neg_tm, rtm = dest_comb tm in
+    if (neg_tm = neg_op_real) then
+      if (rtm = zero_const) then
+	neg_0
+      else
+	let neg_tm, rtm = dest_comb rtm in
+	let amp_tm, n_tm = dest_comb rtm in
+	  if (neg_tm = neg_op_real && amp_tm = amp_op_real) then
+	    INST[n_tm, n_var_num] neg_neg
+	  else
+	    failwith "my_real_int_neg_conv: --(--(&n)) expected"
+    else
+      failwith "my_real_int_neg_conv: --x expected";;
+
+
+(*
+let tm = `-- -- &12241`;;
+
+(* 1.880 *)
+test 100000 REAL_INT_NEG_CONV tm;;
+(* 0.292 *)
+test 100000 my_real_int_neg_conv tm;;
+*)
+
+
+
+(***************************************)
+
+(* ADD *)
+
+let pth1 = prove(`(--(&m) + --(&n) = --(&(m + n)))`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD; REAL_NEG_ADD]) and
+    pth2 = prove(`(--(&m) + &(m + n) = &n)`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC) and
+    pth3 = prove(`(--(&(m + n)) + &m = --(&n))`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC) and
+    pth4 = prove(`(&(m + n) + --(&m) = &n)`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC) and
+    pth5 = prove(`(&m + --(&(m + n)) = --(&n))`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC) and
+    pth6 = prove(`(&m + &n = &(m + n))`, REWRITE_TAC[GSYM REAL_OF_NUM_ADD]);;
+
+
+let my_real_int_add_conv =
+  let dest = dest_binop add_op_real in
+  (fun tm ->
+    try let l,r = dest tm in
+        if rator l = neg_op_real then
+          if rator r = neg_op_real then
+            let th1 = INST [rand(rand l), m_var_num; rand(rand r), n_var_num] pth1 in
+            let tm1 = rand(rand(rand(concl th1))) in
+            let th2 = AP_TERM neg_op_real (AP_TERM amp_op_real (num_add tm1)) in
+            TRANS th1 th2
+          else
+            let m = rand(rand l) and n = rand r in
+            let m' = dest_num m and n' = dest_num n in
+            if m' <=/ n' then
+              let p = mk_num (n' -/ m') in
+              let th1 = INST [m,m_var_num; p,n_var_num] pth2 in
+              let th2 = num_add (rand(rand(lhand(concl th1)))) in
+              let th3 = AP_TERM (rator tm) (AP_TERM amp_op_real (SYM th2)) in
+              TRANS th3 th1
+            else
+              let p = mk_num (m' -/ n') in
+              let th1 = INST [n,m_var_num; p,n_var_num] pth3 in
+              let th2 = num_add (rand(rand(lhand(lhand(concl th1))))) in
+              let th3 = AP_TERM neg_op_real (AP_TERM amp_op_real (SYM th2)) in
+              let th4 = AP_THM (AP_TERM add_op_real th3) (rand tm) in
+              TRANS th4 th1
+        else
+          if rator r = neg_op_real then
+            let m = rand l and n = rand(rand r) in
+            let m' = dest_num m and n' = dest_num n in
+            if n' <=/ m' then
+              let p = mk_num (m' -/ n') in
+              let th1 = INST [n,m_var_num; p,n_var_num] pth4 in
+              let th2 = num_add (rand(lhand(lhand(concl th1)))) in
+              let th3 = AP_TERM add_op_real (AP_TERM amp_op_real (SYM th2)) in
+              let th4 = AP_THM th3 (rand tm) in
+              TRANS th4 th1
+            else
+             let p = mk_num (n' -/ m') in
+             let th1 = INST [m,m_var_num; p,n_var_num] pth5 in
+             let th2 = num_add (rand(rand(rand(lhand(concl th1))))) in
+             let th3 = AP_TERM neg_op_real (AP_TERM amp_op_real (SYM th2)) in
+             let th4 = AP_TERM (rator tm) th3 in
+             TRANS th4 th1
+          else
+            let th1 = INST [rand l,m_var_num; rand r,n_var_num] pth6 in
+            let tm1 = rand(rand(concl th1)) in
+            let th2 = AP_TERM amp_op_real (num_add tm1) in
+            TRANS th1 th2
+    with Failure _ -> failwith "my_real_int_add_conv");;
+
+
+(*
+let tm = `&3252375395 + --(&3454570237434)`;;
+let tm' = replace_numerals tm;;
+
+(* 1.192 *)
+test 1000 REAL_INT_ADD_CONV tm;;
+(* 0.224 *)
+test 1000 my_real_int_add_conv tm';;
+*)
+
+
+(****************************************)
+
+(* SUB *)
+
+let real_sub' = SPEC_ALL real_sub;;
+
+let my_real_int_sub_conv tm =
+  let x_tm, y_tm = dest_binop sub_op_real tm in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real] real_sub' in
+    if (is_neg_comb y_tm) then
+      let ltm, rtm = dest_comb(rand(concl th0)) in
+      let neg_th = my_real_int_neg_conv rtm in
+      let th1 = AP_TERM ltm neg_th in
+      let th2 = my_real_int_add_conv (rand(concl th1)) in
+	TRANS th0 (TRANS th1 th2)
+    else
+      let th1 = my_real_int_add_conv (rand(concl th0)) in
+	TRANS th0 th1;;
+
+
+(*
+let tm = `-- &35252352362346236236 - (-- &12236236363523)`;;
+let tm' = replace_numerals tm;;
+
+(* 1.860 *)
+test 1000 REAL_INT_SUB_CONV tm;;
+(* 0.348 *)
+test 1000 my_real_int_sub_conv tm';;
+*)
+
+
+
+
+(****************************************)
+
+(* MUL *)
+
+
+let mul_pp = prove(`&m * &n = &(m * n)`, REWRITE_TAC[REAL_OF_NUM_MUL]);;
+let mul_nn = prove(`--(&m) * --(&n) = &(m * n)`, REWRITE_TAC[REAL_NEG_MUL2; mul_pp]) and
+    mul_np = prove(`--(&m) * &n = --(&(m * n))`, REWRITE_TAC[REAL_MUL_LNEG; mul_pp]) and
+    mul_pn = prove(`&m * --(&n) = --(&(m * n))`, REWRITE_TAC[REAL_MUL_RNEG; mul_pp]);;
+
+
+let my_real_int_mul_conv tm =
+  let l, r = dest_binop mul_op_real tm in
+    if rator l = neg_op_real then
+      if rator r = neg_op_real then
+        let th1 = INST [rand(rand l), m_var_num; rand(rand r), n_var_num] mul_nn in
+        let tm1 = rand(rand(concl th1)) in
+        let th2 = AP_TERM amp_op_real (num_mul tm1) in
+          TRANS th1 th2
+      else
+        let th1 = INST [rand(rand l), m_var_num; rand r, n_var_num] mul_np in
+        let tm1 = rand(rand(rand(concl th1))) in
+        let th2 = AP_TERM neg_op_real (AP_TERM amp_op_real (num_mul tm1)) in
+          TRANS th1 th2
+    else
+      if rator r = neg_op_real then
+        let th1 = INST[rand l, m_var_num; rand(rand r), n_var_num] mul_pn in
+        let tm1 = rand(rand(rand(concl th1))) in
+        let th2 = AP_TERM neg_op_real (AP_TERM amp_op_real (num_mul tm1)) in
+          TRANS th1 th2
+      else
+        let th1 = INST[rand l, m_var_num; rand r, n_var_num] mul_pp in
+        let tm1 = rand(rand(concl th1)) in
+        let th2 = AP_TERM amp_op_real (num_mul tm1) in
+          TRANS th1 th2;;
+
+
+
+(*
+let amp x = mk_comb(amp_op_real, x);;
+let negate x = mk_comb(neg_op_real, x);;
+
+let x = num_of_string "398537263103485";;
+let y = num_of_string "243089539573957";;
+
+
+let xx = amp (mk_num x) and yy = amp (mk_num y);;
+let xxx = amp (mk_numeral x) and yyy = amp (mk_numeral y);;
+
+
+(* 1.800 *)
+test 100 REAL_INT_MUL_CONV (mk_binop mul_op_real (negate xxx) yyy);;
+
+(* 0.108 *)
+test 100 my_real_int_mul_conv (mk_binop mul_op_real (negate xx) yy);;
+
+(DEPTH_CONV NUM_TO_NUMERAL_CONV) (concl(REAL_BITS_MUL_CONV (mk_binop mul_op_real xx yy)))
+
+*)
+
+
+
+end;;
+
+
+
+
+
+

@@ -1,0 +1,219 @@
+(* Sets *)
+
+let hyp_edge_pairs = new_definition `hyp_edge_pairs H = {x, edge_map H x | x | x IN dart H}`;;
+
+let hyp_dart3 = new_definition `hyp_dart3 H = {x | x IN dart H /\ CARD (face H x) = 3}`;;
+let hyp_dart4 = new_definition `hyp_dart4 H = {x | x IN dart H /\ CARD (face H x) = 4}`;;
+let hyp_dartX = new_definition `hyp_dartX H = {x | x IN dart H /\ 4 <= CARD (face H x)}`;;
+
+let hyp_face3 = new_definition `hyp_face3 H = {f | f IN face_set H /\ CARD f = 3}`;;
+let hyp_face4 = new_definition `hyp_face4 H = {f | f IN face_set H /\ CARD f = 4}`;;
+let hyp_face5 = new_definition `hyp_face5 H = {f | f IN face_set H /\ CARD f = 5}`;;
+let hyp_face6 = new_definition `hyp_face6 H = {f | f IN face_set H /\ CARD f = 6}`;;
+
+
+(* List operations *)
+
+let FLATTEN = new_definition `FLATTEN ll = ITLIST (\list all. APPEND list all) ll []`;;
+
+let REMOVE_DUPLICATES = define `REMOVE_DUPLICATES [] = [] /\ 
+  REMOVE_DUPLICATES (CONS h t) = if (MEM h t) then REMOVE_DUPLICATES t else CONS h (REMOVE_DUPLICATES t)`;;
+
+
+(* INDEX 2 [1;3;4;2] = 3 *)
+let INDEX = define `INDEX i [] = 0 /\ INDEX i (CONS h t) = if (i = h) then 0 else SUC (INDEX i t)`;;
+
+let ALL_DISTINCT = new_definition `ALL_DISTINCT list = (!i j. i < LENGTH list /\ j < LENGTH list /\ ~(i = j) ==> ~(EL i list = EL j list))`;;
+
+
+(* Sum of the list elements *)
+let list_sum = new_definition `list_sum list f = ITLIST (\t1 t2. f t1 + t2) list (&0)`;;
+
+
+
+(* shift_left [1;2;3] = [2;3;1] *)
+let shift_left = define `shift_left [] = [] /\ shift_left (CONS h t) = APPEND t [h]`;;
+
+let shift_right = new_definition `shift_right list = if (list = []) then [] else CONS (LAST list) (BUTLAST list)`;;
+
+
+(* Returns the next element in the cyclic order:
+ NEXT_EL [1;3;2] 3 = 2
+ NEXT_EL [1;3;2] 2 = 1 *)
+
+let NEXT_EL = new_definition `NEXT_EL x list = 
+  if (INDEX x list = LENGTH list - 1) then HD list else EL (INDEX x list + 1) list`;;
+
+let PREV_EL = new_definition `PREV_EL x list = 
+  if (INDEX x list = 0) then LAST list else EL (INDEX x list - 1) list`;;
+
+
+
+(* list_pairs [1;2;3] = {(1,2), (2,3), (3,1)} *)
+let list_pairs = new_definition `list_pairs list = ZIP list (shift_left list)`;;
+
+
+let list_of_darts = new_definition `list_of_darts ll = ITLIST (\list all. APPEND (list_pairs list) all) ll []`;;
+
+let darts_of_list = new_definition `darts_of_list ll = set_of_list (list_of_darts ll)`;;
+
+let list_of_edges = new_definition `list_of_edges L = MAP (\d:A#A. d, (SND d,FST d)) (list_of_darts L)`;;
+
+let list_of_faces = new_definition `list_of_faces ll = MAP list_pairs ll`;;
+
+let faces_of_list = new_definition `faces_of_list ll = MAP set_of_list (list_of_faces ll)`;;
+
+let list_of_elements = new_definition `list_of_elements ll = REMOVE_DUPLICATES (FLATTEN ll)`;;
+
+let elements_of_list = new_definition `elements_of_list ll = set_of_list (list_of_elements ll)`;;
+
+let list_of_nodes = new_definition `list_of_nodes ll = MAP (\x. FILTER (\d. FST d = x) (list_of_darts ll)) (list_of_elements ll)`;;
+
+let nodes_of_list = new_definition `nodes_of_list ll = MAP set_of_list (list_of_nodes ll)`;;
+
+
+(* Special lists *)
+
+let list_of_faces3 = new_definition `list_of_faces3 (L:((A)list)list) =
+  FILTER (\f. LENGTH f = 3) (list_of_faces L)`;;
+
+let list_of_faces4 = new_definition `list_of_faces4 (L:((A)list)list) =
+  FILTER (\f. LENGTH f = 4) (list_of_faces L)`;;
+
+let list_of_faces5 = new_definition `list_of_faces5 (L:((A)list)list) =
+  FILTER (\f. LENGTH f = 5) (list_of_faces L)`;;
+
+let list_of_faces6 = new_definition `list_of_faces6 (L:((A)list)list) =
+  FILTER (\f. LENGTH f = 6) (list_of_faces L)`;;
+  
+let list_of_faces456 = new_definition `list_of_faces456 (L:((A)list)list) =
+  FILTER (\f. 4 <= LENGTH f) (list_of_faces L)`;;
+
+
+let list_of_darts3 = new_definition `list_of_darts3 (L:((A)list)list) = 
+  FLATTEN (list_of_faces3 L)`;;
+
+let list_of_darts4 = new_definition `list_of_darts4 (L:((A)list)list) =
+  FLATTEN (list_of_faces4 L)`;;
+  
+let list_of_dartsX = new_definition `list_of_dartsX (L:((A)list)list) =
+  FLATTEN (list_of_faces456 L)`;;
+
+
+(* Faces *)
+
+let find_list = define `find_list x [] = [] /\ find_list x (CONS h t) = if (MEM x h) then h else find_list x t`;;
+
+let find_pair_list = define `find_pair_list d [] = [] /\ find_pair_list d (CONS h t) = if (MEM d (list_pairs h)) then h else find_pair_list d t`;;
+
+let find_face = new_definition `find_face d ll = find_list d (list_of_faces ll)`;;
+
+
+(* Hypermap maps *)
+
+let f_list = new_definition `f_list ll d = NEXT_EL d (find_face d ll)`;;
+
+let e_list = new_definition `e_list ll d = (SND d, FST d)`;;
+
+(* let n_list = new_definition `n_list ll d = (FST d, PREV_EL (FST d) (find_pair_list d ll))`;; *)
+let n_list = new_definition `n_list ll d = e_list ll (PREV_EL d (find_face d ll))`;;
+
+
+
+
+(* Hypermap definition *)
+
+let f_list_ext = new_definition `f_list_ext ll = res (f_list ll) (darts_of_list ll)`;;
+let e_list_ext = new_definition `e_list_ext ll = res (e_list ll) (darts_of_list ll)`;;
+let n_list_ext = new_definition `n_list_ext ll = res (n_list ll) (darts_of_list ll)`;;
+
+
+let hypermap_of_list = new_definition `hypermap_of_list (ll:((A)list)list) = hypermap (darts_of_list ll, e_list_ext ll, n_list_ext ll, f_list_ext ll)`;;
+
+
+
+(* Define "good" lists *)
+let good_list = new_definition `good_list ll <=> ALL_DISTINCT (list_of_darts ll) /\
+                                                 ALL (\l. ~(l = [])) ll /\
+                                                 (!d. MEM d (list_of_darts ll) ==> MEM (SND d, FST d) (list_of_darts ll))`;;
+
+
+
+
+
+
+
+(* Some general theorems *)
+
+let ALL_DISTINCT_ALT = prove(`!(h:A) t. (ALL_DISTINCT ([]:(A)list) <=> T) /\ (ALL_DISTINCT (CONS h t) <=> ALL_DISTINCT t /\ ~(MEM h t))`,
+   REPEAT STRIP_TAC THENL
+     [
+       REWRITE_TAC[ALL_DISTINCT; LENGTH] THEN
+	 REWRITE_TAC[ARITH_RULE `~(i < 0)`];
+       ALL_TAC
+     ] THEN
+
+     REWRITE_TAC[ALL_DISTINCT] THEN
+     EQ_TAC THENL
+     [
+       REPEAT STRIP_TAC THENL
+	 [
+	   FIRST_X_ASSUM (MP_TAC o SPECL [`SUC i`; `SUC j`]) THEN
+	     ASM_REWRITE_TAC[LENGTH; LT_SUC; SUC_INJ] THEN
+	     ASM_REWRITE_TAC[EL; TL];
+	   ALL_TAC
+	 ] THEN
+	 
+	 POP_ASSUM MP_TAC THEN REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 STRIP_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPECL [`0`; `SUC i`]) THEN
+	 ASM_REWRITE_TAC[LENGTH; LT_SUC; LT_0; GSYM NOT_SUC] THEN
+	 REWRITE_TAC[EL; HD; TL];
+       ALL_TAC
+     ] THEN
+
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM MP_TAC THEN
+     DISJ_CASES_TAC (SPEC `i:num` num_CASES) THENL
+     [
+       DISJ_CASES_TAC (SPEC `j:num` num_CASES) THENL
+	 [
+	   UNDISCH_TAC `~(i = j:num)` THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 POP_ASSUM CHOOSE_TAC THEN
+	 ASM_REWRITE_TAC[EL; HD; TL] THEN
+	 DISCH_TAC THEN UNDISCH_TAC `~MEM (h:A) t` THEN
+	 REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 EXISTS_TAC `n:num` THEN ASM_REWRITE_TAC[] THEN
+	 UNDISCH_TAC `j < LENGTH (CONS (h:A) t)` THEN
+	 ASM_REWRITE_TAC[LENGTH; LT_SUC];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM CHOOSE_TAC THEN
+     DISJ_CASES_TAC (SPEC `j:num` num_CASES) THENL
+     [
+       ASM_REWRITE_TAC[EL; HD; TL] THEN
+	 DISCH_TAC THEN UNDISCH_TAC `~MEM (h:A) t` THEN
+	 REWRITE_TAC[MEM_EXISTS_EL] THEN
+	 EXISTS_TAC `n:num` THEN ASM_REWRITE_TAC[] THEN
+	 UNDISCH_TAC `i < LENGTH (CONS (h:A) t)` THEN
+	 ASM_REWRITE_TAC[LENGTH; LT_SUC];
+       ALL_TAC
+     ] THEN
+
+     POP_ASSUM CHOOSE_TAC THEN
+     ASM_REWRITE_TAC[EL; TL] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`n:num`; `n':num`]) THEN
+     ANTS_TAC THENL
+     [
+       UNDISCH_TAC `i < LENGTH (CONS (h:A) t)` THEN UNDISCH_TAC `j < LENGTH (CONS (h:A) t)` THEN
+	 UNDISCH_TAC `~(i = j:num)` THEN
+	 ASM_SIMP_TAC[LENGTH; LT_SUC; SUC_INJ];
+       ALL_TAC
+     ] THEN
+
+     ASM_REWRITE_TAC[]);;

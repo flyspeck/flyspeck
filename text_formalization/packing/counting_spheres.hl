@@ -6739,4 +6739,921 @@ let rcone_gt_facet = prove_by_refinement(
   (* }}} *)
 
 
+let edges_of_facet_of = prove_by_refinement(
+  `!(P:real^3->bool)  f.
+    polyhedron P /\ bounded P /\ (vec 0 IN interior P) ==>
+    (f edge_of P <=> (?c. f facet_of c /\ c facet_of P))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[edge_of];
+  REWRITE_TAC [ Geomdetail.EQ_EXPAND ];
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC FACE_OF_POLYHEDRON_SUBSET_FACET [`P`;`f`];
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      REWRITE_TAC[ GSYM AFF_DIM_POS_LE ];
+      CONJ_TAC;
+        ASM_REWRITE_TAC[];
+        BY(INT_ARITH_TAC);
+      DISCH_TAC;
+      INTRO_TAC Polyhedron.AFF_DIM_INTERIOR_EQ_3 [`(vec 0):real^3`;`P`];
+      ASM_REWRITE_TAC[];
+      EXPAND_TAC "P";
+      ASM_REWRITE_TAC[];
+      BY(INT_ARITH_TAC);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `f'`)));
+    ASM_REWRITE_TAC[ ];
+    REWRITE_TAC[ facet_of ];
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      GMATCH_SIMP_TAC FACE_OF_FACE;
+      BY(ASM_MESON_TAC[ facet_of ]);
+    CONJ_TAC;
+      REWRITE_TAC[ GSYM AFF_DIM_POS_LE ];
+      ASM_REWRITE_TAC[];
+      BY(INT_ARITH_TAC);
+    GMATCH_SIMP_TAC FACET_AFF_DIM_2;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(INT_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC [ FACE_OF_TRANS ; facet_of ]);
+  INTRO_TAC FACET_AFF_DIM_2 [`P`;`c`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM kill;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ facet_of ];
+  DISCH_THEN (fun t-> REWRITE_TAC[t]);
+  DISCH_THEN (fun t-> REWRITE_TAC[t]);
+  BY(INT_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let BIJ_SYM = prove_by_refinement(
+  `!(a:A->bool) (b:B->bool). 
+    (?f. BIJ f a b) ==> (?g. BIJ g b a)`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[ Misc_defs_and_lemmas.INVERSE_BIJ ])
+  ]);;
+  (* }}} *)
+
+let BIJ_TRANS = prove_by_refinement(
+  `! (B:B->bool)  (A:A->bool) (C:C->bool) .
+    (?pab. BIJ pab A B) /\ (?pbc. BIJ pbc B C) ==> (?pab. BIJ pab A C)`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[ Hypermap.COMPOSE_BIJ ]
+  ]);;
+  (* }}} *)
+
+let SND_BIJ = prove_by_refinement(
+  `!(a:A) B:(B->bool). BIJ SND { (x,y) | x = a /\ B y } B`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM;IN];
+  BY(MESON_TAC[FST;SND])
+  ]);;
+  (* }}} *)
+
+let FST_BIJ = prove_by_refinement(
+  `!(A:A->bool) b:B. BIJ FST { (x,y) | A x  /\ ( y = b) } A`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM;IN];
+  BY(MESON_TAC[FST;SND])
+  ]);;
+  (* }}} *)
+
+let PREIMAGE_BIJ = prove_by_refinement(
+  `!(A:A->bool) (B:B->bool) (C:C->bool) f g.
+    (!a. (a IN A) ==> (f a IN C) ) /\
+    (!b. (b IN B) ==> (g b IN C)) /\
+    (!c. (c IN C) ==> ?p. BIJ p (preimage A f {c}) (preimage B g {c})) ==>
+    (?q. BIJ q A B)`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  DISCH_THEN (fun t -> MP_TAC(ONCE_REWRITE_RULE[ RIGHT_IMP_EXISTS_THM ] t));
+  ONCE_REWRITE_TAC[SKOLEM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `\a. p (f a) a`)));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[BIJ;INJ;SURJ; Misc_defs_and_lemmas.in_preimage ;IN_SING];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let BIJ_FACET_HYPERFACE = prove_by_refinement(
+  `!(p:real^3->bool).
+   polyhedron p /\ bounded p /\ (vec 0 IN interior p) ==>
+    (?b. BIJ b {f | f facet_of p} (face_set(hypermap1_of_fanx (vec 0,vertices p,edges p))))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (INST_TYPE [`:(real^3->bool)`,`:B`] BIJ_TRANS);
+  EXISTS_TAC (`(topological_component_yfan (vec 0,vertices p,edges p))`);
+  SUBGOAL_THEN `{(f:real^3 -> bool) | f facet_of p } = \f. f facet_of p` MP_TAC;
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    BETA_TAC;
+    BY(REWRITE_TAC[IN;IN_ELIM_THM]);
+  DISCH_THEN SUBST1_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[ Polyhedron.AMHFNXP_BIJ]);
+  BY(ASM_MESON_TAC[ Cfyxfty.WBLARHH_BIJ; BIJ_SYM; ])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_CONFORMING_FAN = prove_by_refinement(
+  `!(p:real^3->bool). bounded p /\ polyhedron p /\ vec 0 IN interior p ==>
+    (conforming_fan ((vec 0), vertices p, edges p))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Conforming.PIIJBJK;
+  ASM_SIMP_TAC[ Polyhedron.POLYHEDRON_FAN ];
+  ASM_SIMP_TAC[ Polyhedron.POLYTOPE_FAN80 ];
+  BY(ASM_SIMP_TAC[ Polyhedron.CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON ])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_D1_D = prove_by_refinement(
+  `!(p:real^3->bool). bounded p /\ polyhedron p /\ vec 0 IN interior p ==>
+    d_fan ((vec 0), vertices p,edges p) = d1_fan((vec 0),vertices p,edges p)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Fan.dartset_fully_surrounded_is_non_isolated_fan;
+  BY(ASM_MESON_TAC[ Polyhedron.POLYHEDRON_FAN ; Polyhedron.CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_PLAIN = prove_by_refinement(
+  `!(p:real^3->bool). bounded p /\ polyhedron p /\ vec 0 IN interior p ==>
+    (plain_hypermap (hypermap1_of_fanx ((vec 0), vertices p, edges p)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC POLYHEDRON_CONFORMING_FAN [`p`];
+  INTRO_TAC Polyhedron.POLYHEDRON_FAN [`p`;`(vec 0):real^3`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[plain_hypermap];
+  REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[I_DEF;o_DEF];
+  GEN_TAC;
+  ABBREV_TAC `r = (\t. res (t ((vec 0):real^3) (vertices p) (edges p)) (d1_fan (((vec 0):real^3),(vertices p), edges p)))`;
+  INTRO_TAC Fan.hypermap_of_fan_rep [`(vec 0):real^3`;`vertices p`;`edges p`;`r`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC POLYHEDRON_D1_D [`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `x IN d1_fan((vec 0),vertices p,edges p)`)));
+    INTRO_TAC (GEN_ALL Fan.into_domain_e_fan) [`r`;`(vec 0):real^3`;`vertices p`;`edges p`];
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `r e_fan x IN d1_fan (vec 0,vertices p,edges p)`) ASSUME_TAC));
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `r e_fan (r e_fan x) = e_fan  (vec 0) (vertices p) (edges p)  (r e_fan x)`) SUBST1_TAC));
+      BY(ASM_MESON_TAC[ Fan.into_domain_efn_fan ]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `r e_fan x = e_fan (vec 0) (vertices p) (edges p) x`) SUBST1_TAC));
+      BY(ASM_MESON_TAC[ Fan.into_domain_efn_fan ]);
+    BY(ASM_MESON_TAC[ Fan.plain_hypermap_fan; ]);
+  INTRO_TAC (GEN_ALL Fan.id_enf_fan ) [`r`;`(vec 0):real^3`;`vertices p`;`edges p`;`x`];
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_NODE_3 = prove_by_refinement(
+  `!(p:real^3->bool) x. bounded p /\ polyhedron p /\ vec 0 IN interior p /\
+    x IN d_fan (vec 0,vertices p,edges p) ==>
+    3 <= CARD (node (hypermap1_of_fanx (vec 0,vertices p,edges p)) x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC POLYHEDRON_CONFORMING_FAN [`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC Polyhedron.POLYHEDRON_FAN [`p`;`(vec 0):real^3`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Polyhedron.BSXAQBQ [`p`];
+  ASM_SIMP_TAC[];
+  DISCH_TAC;
+  MATCH_MP_TAC (arith `~(u <= 2) ==> (3 <= u)`);
+  DISCH_TAC;
+  INTRO_TAC Conforming.SUM_AZIM_FAN_OF_NODE_EQ_2PI_I_FAN [`(vec 0):real^3`;`vertices p`;`edges p`;`node (hypermap1_of_fanx ((vec 0):real^3,vertices p,edges p)) x`];
+  ASM_REWRITE_TAC[];
+  (ASM_SIMP_TAC[ Polyhedron.CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON ]);
+  REWRITE_TAC[ GSYM Hypermap.lemma_in_node_set ];
+  ABBREV_TAC `r = (\t. res (t ((vec 0):real^3) (vertices p) (edges p)) (d1_fan (((vec 0):real^3),(vertices p), edges p)))`;
+  INTRO_TAC Fan.hypermap_of_fan_rep [`(vec 0):real^3`;`vertices p`;`edges p`;`r`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (arith `(a < b) ==> ~(a = b)`);
+  MATCH_MP_TAC REAL_LTE_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `sum (node (hypermap1_of_fanx (vec 0,vertices p,edges p)) x) (\y. pi)`)));
+  CONJ_TAC;
+    MATCH_MP_TAC SUM_LT_ALL;
+    BETA_TAC;
+    CONJ_TAC;
+      BY(REWRITE_TAC[ Hypermap.NODE_FINITE ]);
+    CONJ_TAC;
+      REWRITE_TAC[ Misc_defs_and_lemmas.EMPTY_EXISTS ];
+      BY(MESON_TAC[ Hypermap.node_refl ]);
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[ Hypermap.lemma_node_subset ; SUBSET; IN ]);
+  GMATCH_SIMP_TAC SUM_CONST;
+  REWRITE_TAC[ Hypermap.NODE_FINITE ];
+  GMATCH_SIMP_TAC REAL_LE_RMUL_EQ;
+  REWRITE_TAC[PI_POS];
+  BY(ASM_MESON_TAC[ REAL_OF_NUM_LE ])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_TGJISOK = prove_by_refinement(
+  `!(p:real^3->bool) H. bounded p /\ polyhedron p /\ vec 0 IN interior p /\
+    (H= hypermap1_of_fanx ((vec 0), vertices p, edges p)) ==>
+    CARD (dart (H)) <= 6 * number_of_faces H - 12`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Hypermap.lemmaTGJISOK;
+  INTRO_TAC POLYHEDRON_CONFORMING_FAN [`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC Polyhedron.POLYHEDRON_FAN [`p`;`(vec 0):real^3`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Conforming.WGVWSKE;
+    BY(ASM_REWRITE_TAC[ ]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC POLYHEDRON_PLAIN;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_SIMP_TAC[ Conforming.GGRLKHP ]);
+  DISCH_TAC;
+  GEN_TAC;
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`dart (hypermap1_of_fanx ((vec 0),vertices p,edges p)) = d_fan ((vec 0),vertices p,edges p)`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[ Fan.hypermap_of_fan_rep ]);
+  ABBREV_TAC `r = (\t. res (t ((vec 0):real^3) (vertices p) (edges p)) (d1_fan (((vec 0):real^3),(vertices p), edges p)))`;
+  INTRO_TAC Fan.hypermap_of_fan_rep [`(vec 0):real^3`;`vertices p`;`edges p`;`r`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC POLYHEDRON_D1_D [`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `r e_fan x = e_fan (vec 0) (vertices p) (edges p) x`) SUBST1_TAC));
+    BY((ASM_MESON_TAC[ Fan.into_domain_efn_fan ]));
+  DISCH_TAC;
+  MATCH_MP_TAC (TAUT `a /\ b ==> b/\ a`);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[POLYHEDRON_NODE_3]);
+  BY(ASM_MESON_TAC[ Fan.e_fan_no_fix_point ])
+  ]);;
+  (* }}} *)
+
+let EDGE_PAIR_pr23 = prove_by_refinement(
+  `!x V E d d'. 
+    e_fan x V E d = d' ==>
+    pr2 d = pr3 d' /\ pr3 d = pr2 d'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ Fan.e_fan ];
+  REPEAT GEN_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?x0 v w w1. d = (x0,v,w,w1)`) MP_TAC));
+    BY(MESON_TAC[PAIR_SURJECTIVE]);
+  WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (fun t -> ONCE_REWRITE_TAC[GSYM t ]);
+  REWRITE_TAC[ Fan.pr2; Fan.pr3];
+  ]);;
+  (* }}} *)
+
+let EDGE_pr23 = prove_by_refinement(
+  `!x V E y y1.
+          FAN (x,V,E) /\
+          (!v. v IN V ==> CARD (set_of_edge v V E) > 1) /\
+          y IN d1_fan (x,V,E) /\
+          y1 IN d1_fan (x,V,E) /\
+          {pr2 y,pr3 y} = {pr2 y1,pr3 y1} /\ ~(y = y1) ==>
+       y = edge_map (hypermap1_of_fanx (x,V,E)) y1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `r = (\t. res (t (x:real^3) (V:real^3->bool) E ) (d1_fan (x,V,E)))`;
+  INTRO_TAC Fan.hypermap_of_fan_rep [`x`;`V`;`E`;`r`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC (GEN_ALL Fan.into_domain_efn_fan) [`r`;`x`;`V`;`E`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (fun t -> ASM_SIMP_TAC[t]);
+  FIRST_X_ASSUM_ST `pr2` MP_TAC;
+  REWRITE_TAC[ Geomdetail.PAIR_EQ_EXPAND ];
+  DISCH_THEN DISJ_CASES_TAC;
+    PROOF_BY_CONTR_TAC;
+    FIRST_X_ASSUM kill;
+    FIRST_X_ASSUM_ST `~` MP_TAC;
+    REWRITE_TAC[];
+    MATCH_MP_TAC Planarity.EQ_PAIR_IMP_EQ_4_FAN;
+    ASM_REWRITE_TAC[];
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `x`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `E`)));
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[ Fan.dartset_fully_surrounded_is_non_isolated_fan; PAIR_EQ ]);
+  INTRO_TAC EDGE_PAIR_pr23 [`x`;`V`;`E`;`y1`;`e_fan x V E y1`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `y2 = e_fan x V E y1`;
+  MATCH_MP_TAC Planarity.EQ_PAIR_IMP_EQ_4_FAN;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `x`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `E`)));
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[ Fan.dartset_fully_surrounded_is_non_isolated_fan; Fan.into_domain_e_fan ; Fan.into_domain_efn_fan ])
+  ]);;
+  (* }}} *)
+
+let SIMPLE_FACE_EDGE_INJ = prove_by_refinement(
+  `!H (y:A) y1. simple_hypermap H /\ (1 < CARD(node H (face_map H y))) /\
+    (y IN dart H) /\
+    (y IN face H y1) ==>
+    ~(y = edge_map H y1)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `(y1:A) = (node_map H o face_map H) y` MP_TAC;
+    ONCE_REWRITE_TAC[ GSYM Hypermap.inverse_hypermap_maps ];
+    ONCE_REWRITE_TAC[ EQ_SYM_EQ ];
+    GMATCH_SIMP_TAC PERMUTES_INVERSE_EQ;
+    ASM_REWRITE_TAC[];
+    BY(MESON_TAC [Hypermap.edge_map_and_darts]);
+  REWRITE_TAC[o_THM];
+  ABBREV_TAC `(y2:A) = face_map H y`;
+  DISCH_TAC;
+  SUBGOAL_THEN `y2 = node_map H (y2:A)` ASSUME_TAC;
+    MATCH_MP_TAC Hypermap_and_fan.SIMPLE_HYPERMAP_IMP_FACE_INJ;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `H`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `y2`)));
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ Hypermap.lemma_dart_invariant ]);
+    CONJ_TAC;
+      BY(REWRITE_TAC[ Hypermap.node_refl ]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC [Hypermap.lemma_in_node2; Hypermap.POWER_1]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `face H y2 = face H y`) SUBST1_TAC));
+      ONCE_REWRITE_TAC[ EQ_SYM_EQ ];
+      MATCH_MP_TAC Hypermap.lemma_face_identity;
+      BY(ASM_MESON_TAC[ Hypermap.lemma_in_face ; Hypermap.POWER_1 ]);
+    ONCE_REWRITE_TAC[ EQ_SYM_EQ ];
+    MATCH_MP_TAC Hypermap.lemma_face_identity;
+    BY(ASM_MESON_TAC[]);
+  SUBGOAL_THEN `node H (y2:A) = {y2 }` ASSUME_TAC;
+    REWRITE_TAC[ Hypermap.node ];
+    GMATCH_SIMP_TAC Hypermap.orbit_cyclic;
+    EXISTS_TAC `1`;
+    REWRITE_TAC[arith `~(1=0)`;Hypermap.POWER_1];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[REWRITE_RULE[IN] IN_SING;IN_ELIM_THM];
+    REWRITE_TAC[ arith `k < 1 <=> k=0`];
+    BY(MESON_TAC[ Hypermap.POWER_0 ; I_DEF]);
+  FIRST_X_ASSUM_ST `CARD` MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[ Hypermap.CARD_SINGLETON ];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let INJ_EDGES_FACE_pr23 = prove_by_refinement(
+  `!p:real^3->bool f y1 y.
+	bounded p /\ polyhedron p /\ vec 0 IN interior p /\
+	f IN face_set (hypermap1_of_fanx  (vec 0,vertices p,edges p)) /\
+	y IN f /\
+	y1 IN f /\
+	{ pr2 y,pr3 y} = {pr2 y1,pr3 y1} ==>
+    (y = y1)
+ `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  INTRO_TAC POLYHEDRON_CONFORMING_FAN [`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC Polyhedron.POLYHEDRON_FAN [`p`;`(vec 0):real^3`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(y = edge_map (hypermap1_of_fanx  (vec 0,vertices p,edges p)) y1)`) ASSUME_TAC));
+    MATCH_MP_TAC SIMPLE_FACE_EDGE_INJ;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ Conforming.SRPRNPL ]);
+    CONJ_TAC;
+      MATCH_MP_TAC (arith `3 <= x ==> 1 < x`);
+      MATCH_MP_TAC POLYHEDRON_NODE_3;
+      ASM_REWRITE_TAC[];
+      ABBREV_TAC `H = hypermap1_of_fanx  (vec 0,vertices p,edges p)`;
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`d_fan (vec 0,vertices p,edges p)= dart H `) ASSUME_TAC));
+        BY(ASM_MESON_TAC [Fan.hypermap_of_fan_rep]);
+      ASM_REWRITE_TAC[];
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `y IN dart H`) ASSUME_TAC));
+        BY(ASM_MESON_TAC[ Hypermap.lemma_face_representation; Hypermap.lemma_face_subset; SUBSET]);
+      BY(ASM_SIMP_TAC[ Hypermap.lemma_dart_invariant ]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ Hypermap.lemma_face_representation; Hypermap.lemma_face_subset; SUBSET]);
+    FIRST_X_ASSUM (fun t -> MP_TAC (MATCH_MP Hypermap.lemma_face_representation t));
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[ Hypermap.face_refl; Hypermap.lemma_face_identity]);
+  COMMENT "1";
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[];
+  MATCH_MP_TAC EDGE_pr23;
+  ASM_REWRITE_TAC[];
+  ABBREV_TAC `H = hypermap1_of_fanx  (vec 0,vertices p,edges p)`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`d_fan (vec 0,vertices p,edges p)= dart H `) ASSUME_TAC));
+    BY(ASM_MESON_TAC [Fan.hypermap_of_fan_rep]);
+  INTRO_TAC POLYHEDRON_D1_D[`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `y IN dart H /\ y1 IN dart H`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[ Hypermap.lemma_face_representation; Hypermap.lemma_face_subset; SUBSET]);
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_SIMP_TAC[ Polyhedron.CARD_SET_OF_EDGE_INEQ_1_POLYHEDRON ]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let BIJ_EDGES_DART_FACE = prove_by_refinement(
+  `!p:real^3->bool f f1.
+     bounded (p:real^3->bool) /\ polyhedron p /\ vec 0 IN interior p 
+     /\ f IN face_set (hypermap1_of_fanx  (vec 0,vertices p,edges p)) 
+     /\ f1 facet_of p /\ 							 
+    fchanged f1 =dartset_leads_into_fan (vec 0) (vertices p) (edges p) f
+    ==>   
+    (?b. BIJ b (edges f1) f)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `edges f1 = {{pr2 e,pr3 e} | e IN f}`) SUBST1_TAC));
+    ASM_SIMP_TAC[GSYM Cfyxfty.CFYXFTY0];
+    BY(ASM_SIMP_TAC[GSYM Cfyxfty.CFYXFTY1]);
+  MATCH_MP_TAC BIJ_SYM;
+  EXISTS_TAC (`(\e. {pr2 e, pr3 e}):real^3#real^3#real^3#real^3->real^3->bool`);
+  REWRITE_TAC[BIJ;SURJ];
+  MATCH_MP_TAC (TAUT `a /\ b ==> b /\ a`);
+  SUBCONJ_TAC;
+    REWRITE_TAC[IN;IN_ELIM_THM];
+    BY(MESON_TAC[]);
+  DISCH_TAC;
+  REWRITE_TAC[INJ];
+  (ASM_REWRITE_TAC[]);
+  BY(ASM_MESON_TAC[ INJ_EDGES_FACE_pr23])
+  ]);;
+  (* }}} *)
+
+let SEGMENT_EDGE_ONTO = prove_by_refinement(
+  `!(p:real^3->bool) e.
+    polyhedron p /\ bounded p /\
+    e edge_of p ==>
+    (?v w. e = segment [v,w])`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[ Polyhedron.EXPAND_EDGE_POLYTOPE; edge_of; POLYTOPE_EQ_BOUNDED_POLYHEDRON])
+  ]);;
+  (* }}} *)
+
+let EDGE_OF_FACET_OF = prove_by_refinement(
+  `!(p:real^3->bool) c f.
+    polyhedron p /\ bounded p /\ (vec 0 IN interior p) /\ c facet_of p ==> 
+    ((e edge_of c) <=> (e facet_of c))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[edge_of;facet_of];
+  MATCH_MP_TAC (TAUT `(a ==> (b <=>c)) ==> ((a /\ b) <=> (a /\ c))`);
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`aff_dim c = &2`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[ FACET_AFF_DIM_2 ]);
+  ASM_REWRITE_TAC[];
+  SUBGOAL_THEN `int_of_num 2 - &1 = &1` SUBST1_TAC;
+    BY(INT_ARITH_TAC);
+  MATCH_MP_TAC (TAUT `(a ==> (c)) ==> ((a) <=> (c /\ a))`);
+  ONCE_REWRITE_TAC [ GSYM AFF_DIM_POS_LE ];
+  BY(INT_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let EDGE_OF_FACET_EDGE = prove_by_refinement(
+  `!(p:real^3->bool) c e.
+   polyhedron p /\ bounded p /\ (vec 0 IN interior p) /\ c facet_of p /\ e facet_of c ==>
+    ((e edge_of p))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`e edge_of c`) MP_TAC));
+    BY(ASM_MESON_TAC[EDGE_OF_FACET_OF]);
+  REWRITE_TAC[ edge_of ];
+  BY(ASM_MESON_TAC[ FACE_OF_TRANS ; facet_of ])
+  ]);;
+  (* }}} *)
+
+let BIJ_FACET2_EDGE = prove_by_refinement(
+  `!(p:real^3 -> bool) c.
+   polyhedron p /\ bounded p /\ (vec 0 IN interior p) /\ c facet_of p ==>
+    (?b. BIJ b {e | e IN edges c } {u | u facet_of c} )
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  (REWRITE_TAC[edges;IN_ELIM_THM]);
+  EXISTS_TAC ( `((hull) convex):(real^3->bool)->real^3->bool`);
+  REWRITE_TAC[BIJ];
+  REWRITE_TAC[INJ];
+  SUBCONJ_TAC;
+    REWRITE_TAC[IN_ELIM_THM];
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[ SEGMENT_CONVEX_HULL ; EDGE_OF_FACET_OF ]);
+    DISCH_TAC;
+    BY(ASM_MESON_TAC[ SEGMENT_CONVEX_HULL ; SEGMENT_EQ; Collect_geom.PER_SET2 ]);
+  REWRITE_TAC[SURJ];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (MESON[] (`(?v w. p v w /\ R {v,w}) ==> (?y. (?v w. p v w /\ y = {v,w}) /\ R y)`));
+  INTRO_TAC SEGMENT_EDGE_ONTO [`p`;`x`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    MATCH_MP_TAC EDGE_OF_FACET_EDGE;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[ SEGMENT_CONVEX_HULL ; EDGE_OF_FACET_OF ])
+  ]);;
+  (* }}} *)
+
+let HYPERFACE_EXISTS = prove_by_refinement(
+ `!P:real^3->bool U.
+     bounded (P:real^3->bool) /\ polyhedron P /\ vec 0 IN interior P /\
+	topological_component_yfan (vec 0,vertices P,edges P) U ==>
+   (?!f. f IN (face_set (hypermap1_of_fanx (vec 0,vertices P,edges P))) /\
+      (dartset_leads_into_fan (vec 0) (vertices P) (edges P) f = U))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Polyhedron.WBLARHH_BIJ [`P`];
+  ASM_REWRITE_TAC[BIJ;INJ;SURJ];
+  BY(ASM_MESON_TAC[IN])
+  ]);;
+  (* }}} *)
+
+let BIJ_DART_POLYEDGE = prove_by_refinement(
+  `!P:real^3->bool.
+     bounded (P:real^3->bool) /\ polyhedron P /\ vec 0 IN interior P ==>
+   (?b. BIJ b (dart(hypermap1_of_fanx (vec 0,vertices P,edges P)))
+      {(e,f1) | e facet_of f1 /\ f1 facet_of P })`,
+  (* {{{ proof *)
+  [
+(*
+  st/r
+    mmp (INST_TYPE [`:(real^3)->bool`,`:C`] PREIMAGE_BIJ)
+    exists (% `IMAGE fchanged { f1 | f1 facet_of P }`)
+    abbrev `H = hypermap1_of_fanx (vec 0,vertices P,edges P)`
+    ex (% `dartset_leads_into_fan (vec 0) (vertices P) (edges P) o (face H)`)
+    ex (`(fchanged o SND): (real^3->bool)#(real^3->bool)->real^3->bool`)
+    subconj
+    rt[IN_IMAGE;o_THM]
+    rt[IN_ELIM_THM]
+    st/r
+    intro Polyhedron.WBLARHH [`P`]
+    art[]
+    dthen (fun t -> intro t [`(face H a)`])
+    art[ GSYM ?t ]
+    rt[ ?u ]
+    st/r
+    amt[]
+    dt
+    comment "1"
+    subconj
+    rt[IN_IMAGE;IN_ELIM_THM;o_THM]
+    amt[SND]
+    dt
+    g
+    rt[IN_IMAGE;IN_ELIM_THM]
+    st/r
+    comment "1"
+    mmp ( spec (% `{e | e facet_of x}`) BIJ_TRANS)
+    mmp (taut `a /\ b ==> b /\ a`)
+    conj
+    mmp BIJ_SYM
+    ex `FST:((real^3)->bool)#((real^3)->bool) -> real^3 -> bool`
+    rt[ ?v ]
+    rt[o_THM; ?w ]
+    rt[BIJ]
+    rt[INJ]
+    subconj
+    rt[IN_ELIM_THM]
+    subconj
+    gv "ef"
+    st/r
+    art[]
+    fxa mp
+    art[]
+    dt
+    ets (% `f1 = x`)
+    amt[]
+    mmp ?z
+    ex (% `P`)
+    art[]
+    rt[?b]
+    rt[ ?c]
+    mmp ?a
+    amt[]
+    st/r
+    art[?d]
+    repeat (fxast `FST` mptac)
+    repeat (fxast `SND` mptac)
+    art[FST;SND]
+    st/r
+    art[]
+    mmp ?z
+    ex (% `P`)
+    art[]
+    rt[ ?b; ?c ]
+    mmp ?a
+    amt[]
+    dt
+    rt[SURJ]
+    art[]
+    rt[IN_ELIM_THM]
+    st/r
+    amt[FST;SND]
+    comment "1g"
+*)
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (INST_TYPE [`:(real^3)->bool`,`:C`] PREIMAGE_BIJ);
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `IMAGE fchanged { f1 | f1 facet_of P }`)));
+  ABBREV_TAC `H = hypermap1_of_fanx (vec 0,vertices P,edges P)`;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `dartset_leads_into_fan (vec 0) (vertices P) (edges P) o (face H)`)));
+  EXISTS_TAC (`(fchanged o SND): (real^3->bool)#(real^3->bool)->real^3->bool`);
+  SUBCONJ_TAC;
+    REWRITE_TAC[IN_IMAGE;o_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC Polyhedron.WBLARHH [`P`];
+    ASM_REWRITE_TAC[];
+    DISCH_THEN (fun t -> INTRO_TAC t [`(face H a)`]);
+    ASM_REWRITE_TAC[ GSYM Hypermap.lemma_in_face_set ];
+    REWRITE_TAC[ EXISTS_UNIQUE_THM ];
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  COMMENT "1";
+  SUBCONJ_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_ELIM_THM;o_THM];
+    BY(ASM_MESON_TAC[SND]);
+  DISCH_TAC;
+  GEN_TAC;
+  REWRITE_TAC[IN_IMAGE;IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1";
+  GOAL_TERM (fun w -> (MATCH_MP_TAC ( ISPEC ( env w `{e | e facet_of x}`) BIJ_TRANS)));
+  MATCH_MP_TAC (TAUT `a /\ b ==> b /\ a`);
+  CONJ_TAC;
+    MATCH_MP_TAC BIJ_SYM;
+    EXISTS_TAC `FST:((real^3)->bool)#((real^3)->bool) -> real^3 -> bool`;
+    REWRITE_TAC[ Misc_defs_and_lemmas.preimage ];
+    REWRITE_TAC[o_THM; IN_SING ];
+    REWRITE_TAC[BIJ];
+    REWRITE_TAC[INJ];
+    SUBCONJ_TAC;
+      REWRITE_TAC[IN_ELIM_THM];
+      SUBCONJ_TAC;
+        X_GENv_TAC "ef";
+        REPEAT WEAK_STRIP_TAC;
+        ASM_REWRITE_TAC[];
+        FIRST_X_ASSUM MP_TAC;
+        ASM_REWRITE_TAC[];
+        DISCH_TAC;
+        GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `f1 = x`)));
+          BY(ASM_MESON_TAC[]);
+        MATCH_MP_TAC Polyhedron.FCHANGED_ONE_TO_ONE;
+        GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+        ASM_REWRITE_TAC[];
+        REWRITE_TAC[INTER_IDEMPOT];
+        REWRITE_TAC[ Misc_defs_and_lemmas.EMPTY_EXISTS];
+        MATCH_MP_TAC Polyhedron.EXISTS_POINT_IN_FCHANGED;
+        BY(ASM_MESON_TAC[]);
+      REPEAT WEAK_STRIP_TAC;
+      ASM_REWRITE_TAC[PAIR_EQ];
+      REPEAT (FIRST_X_ASSUM_ST `FST` MP_TAC);
+      REPEAT (FIRST_X_ASSUM_ST `SND` MP_TAC);
+      ASM_REWRITE_TAC[FST;SND];
+      REPEAT WEAK_STRIP_TAC;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC Polyhedron.FCHANGED_ONE_TO_ONE;
+      GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[ INTER_IDEMPOT; Misc_defs_and_lemmas.EMPTY_EXISTS ];
+      MATCH_MP_TAC Polyhedron.EXISTS_POINT_IN_FCHANGED;
+      BY(ASM_MESON_TAC[]);
+    DISCH_TAC;
+    REWRITE_TAC[SURJ];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[FST;SND]);
+  COMMENT "1g";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `topological_component_yfan (vec 0,vertices P,edges P) c`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[Polyhedron.AMHFNXP_BIJ; BIJ;SURJ;IN]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?!f. f IN face_set (hypermap1_of_fanx  (vec 0,vertices P,edges P)) /\ (dartset_leads_into_fan (vec 0) (vertices P) (edges P) f = c)`) MP_TAC));
+    MATCH_MP_TAC HYPERFACE_EXISTS;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[ EXISTS_UNIQUE ];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(preimage (dart H)       (dartset_leads_into_fan (vec 0) (vertices P) (edges P) o face H)      {c}) = f`) SUBST1_TAC));
+    REWRITE_TAC[Misc_defs_and_lemmas.preimage];
+    REWRITE_TAC[o_THM;IN_SING];
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    GEN_TAC;
+    REWRITE_TAC[IN_ELIM_THM];
+    REWRITE_TAC[ Geomdetail.EQ_EXPAND ];
+    CONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `face H x' = f`) ASSUME_TAC));
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        BY(ASM_MESON_TAC[IN;Hypermap.lemma_in_face_set;Conforming.identity_face_in_face_set]);
+      BY(ASM_MESON_TAC[IN;Hypermap.face_refl;Hypermap.lemma_in_face_set;Conforming.identity_face_in_face_set]);
+    BY(ASM_MESON_TAC[IN;Hypermap.face_refl;Hypermap.lemma_in_face_set;Conforming.identity_face_in_face_set]);
+  COMMENT "1h";
+  GOAL_TERM (fun w -> (MATCH_MP_TAC (ISPEC ( env w`{e | e IN edges x}`) BIJ_TRANS)));
+  CONJ2_TAC;
+    MATCH_MP_TAC BIJ_FACET2_EDGE;
+    BY(ASM_MESON_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{e | e IN edges x} = edges x`) SUBST1_TAC));
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    BY(REWRITE_TAC[IN_ELIM_THM;IN]);
+  MATCH_MP_TAC BIJ_SYM;
+  MATCH_MP_TAC BIJ_EDGES_DART_FACE;
+  BY(ASM_MESON_TAC[])
+(*
+(* to here *)
+  sgth (% `topological_component_yfan (vec 0,vertices P,edges P) c`) assume
+    amt[?c; BIJ;SURJ;IN]
+    sgth (% `?!f. f IN face_set (hypermap1_of_fanx  (vec 0,vertices P,edges P)) /\ (dartset_leads_into_fan (vec 0) (vertices P) (edges P) f = c)`) mp
+    mmp HYPERFACE_EXISTS
+    art[]
+    rt[ ?b ]
+    st/r
+    sgth (% `(preimage (dart H)       (dartset_leads_into_fan (vec 0) (vertices P) (edges P) o face H)      {c}) = f`) subst1
+    rt[?d]
+    rt[o_THM;IN_SING]
+    ort[FUN_EQ_THM]
+    g
+    rt[IN_ELIM_THM]
+    rt[ ?e ]
+    conj
+    st/r
+    sgth (% `face H x' = f`) assume
+    fxa mmp
+    amt[IN;?f;Hypermap.lemma_in_face_set;Conforming.identity_face_in_face_set]
+    amt[IN;?f;Hypermap.lemma_in_face_set;Conforming.identity_face_in_face_set]
+    comment "1h"
+    mmp (spec (%`{e | e IN edges x}`) BIJ_TRANS)
+    conj2
+    mmp BIJ_FACET2_EDGE
+    amt[]
+    sgth (% `{e | e IN edges x} = edges x`) subst1
+    ort[FUN_EQ_THM]
+    rt[IN_ELIM_THM;IN]
+    mmp BIJ_SYM
+    mmp BIJ_EDGES_DART_FACE
+    amt[]
+*)
+  ]);;
+  (* }}} *)
+
+let FINITE_EDGE = prove_by_refinement(
+  `!P:real^A->bool. polyhedron P  /\ bounded P ==> 
+    (!f. f facet_of P ==> FINITE { e | e facet_of f}) /\
+        FINITE { f | f facet_of P } /\
+   FINITE  {(f,e) | f facet_of P /\ e facet_of f}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `{e' | e' facet_of f } SUBSET {e' | e' face_of P}`)));
+      BY(ASM_MESON_TAC[FINITE_SUBSET; FINITE_POLYHEDRON_FACES ]);
+    REWRITE_TAC[SUBSET;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[FACET_OF_IMP_FACE_OF; FACE_OF_TRANS; SUBSET]);
+  CONJ_TAC;
+    MATCH_MP_TAC FINITE_POLYTOPE_FACETS;
+    BY(ASM_MESON_TAC[ POLYTOPE_EQ_BOUNDED_POLYHEDRON ]);
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w ` {(f,e) | f facet_of P /\ e facet_of f} SUBSET { f | f face_of P } CROSS {f | f face_of P}`)));
+    BY(BY(ASM_MESON_TAC[ FINITE_SUBSET; FINITE_CROSS ; FINITE_POLYHEDRON_FACES ]));
+  REWRITE_TAC[CROSS;SUBSET];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  BY(BY(ASM_MESON_TAC[PAIR; FACET_OF_IMP_FACE_OF; FACE_OF_TRANS]))
+  ]);;
+  (* }}} *)
+
+let polyhedron_sum_sum_edge = prove_by_refinement(
+  `!(P:real^3->bool) . bounded P /\ polyhedron P ==> 
+   sum {f | f facet_of P } (\f. &(CARD {e | e facet_of f })) = 
+     &( CARD {(f,e) | f facet_of P /\ e facet_of f})`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GMATCH_SIMP_TAC CARD_EQ_SUM;
+  ASM_SIMP_TAC[FINITE_EDGE];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `sum {f,e | f facet_of P /\ e facet_of f} (\x. &1) = sum {f,e | f IN {f' | f facet_of P} /\ e IN {e' | e' facet_of f}} (\ (f,e). &1 )`) SUBST1_TAC));
+    ONCE_REWRITE_TAC[ GSYM CARD_EQ_SUM ];
+    BINOP_TAC;
+      BY(REWRITE_TAC[IN_ELIM_THM]);
+    REWRITE_TAC[FUN_EQ_THM];
+    BY(REWRITE_TAC[ LAMBDA_PAIR ]);
+  INTRO_TAC SUM_SUM_PRODUCT [`{f | f facet_of P}`;`\f. {e' | e' facet_of (f:real^3->bool)}`];
+  DISCH_THEN (fun t -> MP_TAC (ISPEC (`(\ f e. &1):(real^3->bool)->(real^3->bool)->real`) t));
+  ANTS_TAC;
+    REWRITE_TAC[IN_ELIM_THM];
+    ASM_SIMP_TAC[FINITE_EDGE];
+    BY(ASM_MESON_TAC[FINITE_EDGE]);
+  MATCH_MP_TAC (MESON[] (`(x = x') /\ (y = y') ==> ((x = y) ==> (x' = y'))`));
+  CONJ_TAC;
+    MATCH_MP_TAC SUM_EQ;
+    REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    GMATCH_SIMP_TAC CARD_EQ_SUM;
+    BY(ASM_MESON_TAC[FINITE_EDGE]);
+  BETA_TAC;
+  BY(REWRITE_TAC[IN_ELIM_THM])
+  ]);;
+  (* }}} *)
+
+let polyhedron_edge_sum = prove_by_refinement(
+ `(!(P:real^3->bool) n. bounded P /\ polyhedron P /\ (vec 0) IN interior P /\
+     {f | f facet_of P} HAS_SIZE n /\ (2 <= n) ==>
+     sum {f | f facet_of P } (\f. &(CARD {e | e facet_of f })) <= &6 * &n - &12)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[polyhedron_sum_sum_edge];
+  ABBREV_TAC `m = CARD {f,e | f facet_of (P:real^3->bool) /\ e facet_of f}`;
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `m <= 6 * n - 12`)));
+    REWRITE_TAC[arith `&m <= x - &12 <=> &m + &12 <= x`];
+    REWRITE_TAC[REAL_OF_NUM_ADD;REAL_OF_NUM_MUL;REAL_OF_NUM_LE];
+    FIRST_X_ASSUM_ST `2` MP_TAC;
+    BY(ARITH_TAC);
+  ABBREV_TAC `H = hypermap1_of_fanx (vec 0,vertices P,edges (P:real^3->bool))`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `n = number_of_faces H`) SUBST1_TAC));
+    REWRITE_TAC[ Hypermap.number_of_faces ];
+    FIRST_X_ASSUM_ST `HAS_SIZE` MP_TAC;
+    REWRITE_TAC[HAS_SIZE];
+    REPEAT WEAK_STRIP_TAC;
+    EXPAND_TAC "n";
+    MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[ BIJ_FACET_HYPERFACE]);
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `m = CARD(dart H)`)));
+    BY(ASM_MESON_TAC[POLYHEDRON_TGJISOK]);
+  EXPAND_TAC "m";
+  MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+  ASM_SIMP_TAC[FINITE_EDGE];
+  GOAL_TERM (fun w -> (MATCH_MP_TAC (ISPEC ( env w`{(e,f) | e facet_of f /\ f facet_of P }`) BIJ_TRANS)));
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w`(\x. SND x,FST x): (real^3->bool)#(real^3->bool)->(real^3->bool)#(real^3->bool)`)));
+    REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM;FST;SND;PAIR_EQ];
+    BY(ASM_MESON_TAC[PAIR;FST;SND]);
+  MATCH_MP_TAC BIJ_SYM;
+  EXPAND_TAC "H";
+  MATCH_MP_TAC BIJ_DART_POLYEDGE;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
 end;;

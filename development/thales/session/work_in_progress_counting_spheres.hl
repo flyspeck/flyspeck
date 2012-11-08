@@ -39,22 +39,9 @@ let EXISTS_M_POLYHEDRON =
 
 (* need new versions of these *)
 
-FACET_OF_POLYHEDRON_EXPLICIT;;
-
-search [`relative_interior`;`<`];; 
-
- Polyhedron.IN_RELATIVE_INTERIOR1;;
-RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT;; (* via hyperplane ineqs *)
 
 
-let FACET_OF_POLYHEDRON_EXPLICIT_ALT = 
- `!(V:A->bool) (P:real^B->bool) h a b.
-   FINITE V /\
-   (!v. (v IN V ) ==> (h v  = { p | a v dot p <= b v })) /\
-   P = INTERS (IMAGE h V) /\
-  (!v. (v IN V ) ==> ~(a v = (vec 0))) /\
-  (!v. (v IN V)  ==> (?p. a v dot p = b v /\ (!w. (w IN V) /\ ~(v = w) ==> a w dot p < b w))) ==>
-  (BIJ (\v. P INTER {p | a v dot p = b v}) V { c | c facet_of P })`;;
+
 
 
 
@@ -269,4 +256,508 @@ let RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT_ALT  = prove_by_refinement(
 (* WORK IN PROGRESS *)
 (* ========================================================================== *)
 
+let FACET_RELEVANT = prove_by_refinement(
+  `!(V:A->bool) a b (p:real^B) v0.
+    FINITE V /\
+    (!v. v IN V ==> (&0 < b v)) /\
+    (a v0 dot p = b v0) /\ 
+    (v0 IN V) /\
+    (!w. w IN V /\ ~(v0 = w) ==> a w dot p < b w) ==>
+    (?t. b v0 < a v0 dot (t % p) /\ 
+       (!w. w IN V /\ ~(v0 = w) ==> a w dot (t % p) < b w))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `h = (\ (v:A). { q | a v dot (q:real^B)  < b v })`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(open:(real^B->bool)->bool) (INTERS (IMAGE (h:A->(real^B->bool)) ((V:A->bool) DIFF {v0})))`) ASSUME_TAC));
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      MATCH_MP_TAC FINITE_DIFF;
+      BY(BY(ASM_REWRITE_TAC[]));
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    EXPAND_TAC "h";
+    BY(BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+  REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING;IN_INTERS;SUBSET];
+  GOAL_TERM (fun w -> (DISCH_THEN (fun t -> MP_TAC (ISPEC ( env w `p`) t))));
+  ANTS_TAC;
+    EXPAND_TAC "h";
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[IN_ELIM_THM];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`~(p = vec 0)`) ASSUME_TAC));
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `u dot v = c` MP_TAC;
+    ASM_REWRITE_TAC[ DOT_RZERO ];
+    BY(ASM_MESON_TAC[arith `&0 < x ==> ~(&0 = x)`]);
+  ABBREV_TAC `s = &1 + e / (&2 * norm (p:real^B))`;
+  EXISTS_TAC `s:real`;
+  COMMENT "1";
+  SUBGOAL_THEN `&1 < s` ASSUME_TAC;
+    EXPAND_TAC "s";
+    MATCH_MP_TAC (arith `&0 < x ==> &1 < &1 +x `);
+    MATCH_MP_TAC REAL_LT_DIV;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `&0 < x ==> &0 < &2 * x`);
+    BY(ASM_REWRITE_TAC[ NORM_POS_LT ]);
+  CONJ_TAC;
+    ASM_REWRITE_TAC[ DOT_RMUL ];
+    MATCH_MP_TAC (arith `&1 * x < s * x ==> x < s * x`);
+    MATCH_MP_TAC REAL_LT_RMUL;
+    BY(ASM_SIMP_TAC[]);
+  COMMENT "1b";
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (FIRST_X_ASSUM (MP_TAC o (ISPEC ( env w `s % p`)))));
+  ANTS_TAC;
+    REWRITE_TAC[IN_BALL];
+    ONCE_REWRITE_TAC[DIST_SYM];
+    REWRITE_TAC[dist];
+    GOAL_TERM (fun w -> (REWRITE_TAC[varith ( env w `s % p - p = (s - &1) % p`)]));
+    REWRITE_TAC[ NORM_MUL ];
+    ASM_SIMP_TAC[arith `&1 < s ==> abs (s - &1) = (s - &1)`];
+    EXPAND_TAC "s";
+    REWRITE_TAC[arith `(&1 + x) - &1 = x`];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( ( env w`(e / (&2 * norm p) * norm p = e / &2)`)) SUBST1_TAC));
+      Calc_derivative.CALC_ID_TAC;
+      ASM_REWRITE_TAC[ NORM_EQ_0 ];
+      BY(REAL_ARITH_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "1c";
+  GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w `h w`)))));
+  EXPAND_TAC "h";
+  REWRITE_TAC[IN_ELIM_THM];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(*
+  st/r
+    abbrev `h = (\ (v:A). { q | a v dot (q:real^B)  < b v })`
+      sgth (% `(open:(real^B->bool)->bool) (INTERS (IMAGE (h:A->(real^B->bool)) ((V:A->bool) DIFF {v0})))`) assume
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      MATCH_MP_TAC FINITE_DIFF;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    expand "h"
+    BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+          REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING;IN_INTERS;SUBSET];
+  dthen (fun t -> mp (spec (% `p`) t))
+    ants
+    expand "h"
+    st/r
+    art[IN_ELIM_THM]
+    fxa mmp
+    amt[]
+    st/r
+    sgth (%`~(p = vec 0)`) assume
+    dt
+    fxast `u dot v = c` mp
+      art[ ?e ]
+      amt[arith `&0 < x ==> ~(&0 = x)`]
+abbrev `s = &1 + e / (&2 * norm (p:real^B))`
+      ex `s:real`
+      comment "1"
+      sgth `&1 < s` assume
+      expand "s"
+      mmp (arith `&0 < x ==> &1 < &1 +x `)
+      mmp ?h
+      art[]
+      mmp (arith `&0 < x ==> &0 < &2 * x`)
+      art[ ?i ]
+conj
+      art[ ?f ]
+      mmp (arith `&1 * x < s * x ==> x < s * x`)
+      mmp ?g
+      asimp[]
+      comment "1b"
+      st/r
+      fxa (mp o (spec (% `s % p`)))
+      ants
+      rt[IN_BALL]
+      ort[DIST_SYM]
+      rt[dist]
+      rt[varith (% `s % p - p = (s - &1) % p`)]
+      rt[ ?j ]
+      asimp[arith `&1 < s ==> abs (s - &1) = (s - &1)`]
+      expand "s"
+      rt[arith `(&1 + x) - &1 = x`]
+      sgth ( (%`(e / (&2 * norm p) * norm p = e / &2)`)) subst1
+      calc
+      art[ ?k ]
+      rat
+      repeat (fxa mptac) then rat
+	comment "1c"
+	dthen (mp o (spec (% `h w`)))
+	expand "h"
+	rt[IN_ELIM_THM]
+	dthen mmp
+	amt[]
+	*)
+
+
+let FACET_OF_POLYHEDRON_EXPLICIT_ALT  = prove_by_refinement(
+ `!(V:A->bool) (P:real^B->bool) h a b.
+   FINITE V /\
+   (vec 0) IN interior P /\
+   (!v. (v IN V ) ==> (h v  = { p | a v dot p <= b v })) /\
+   (!v. v IN V ==> (&0 < b v)) /\
+   INTERS (IMAGE h V) = P /\
+  (!v. (v IN V ) ==> ~(a v = (vec 0))) /\
+  (!v. (v IN V)  ==> (?p. a v dot p = b v /\ (!w. (w IN V) /\ ~(v = w) ==> a w dot p < b w))) ==>
+  (BIJ (\v. P INTER {p | a v dot p = b v}) V { c | c facet_of P })`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!f. (f IN IMAGE h V) ==> (?q. (q IN V) /\ f = h q)`) MP_TAC));
+    REWRITE_TAC[IN_IMAGE];
+    BY(MESON_TAC[]);
+  REWRITE_TAC[ RIGHT_IMP_EXISTS_THM ];
+  REWRITE_TAC[SKOLEM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC FACET_OF_POLYHEDRON_EXPLICIT [`P`;`(IMAGE h V)`;`(\f. a (q f))`;`(\f. b (q f))`];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(FINITE (IMAGE h V))`) ASSUME_TAC));
+    MATCH_MP_TAC FINITE_IMAGE;
+    BY(ASM_REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(affine hull P) = (:real^B)`) SUBST1_TAC));
+    BY(ASM_MESON_TAC[ AFFINE_HULL_NONEMPTY_INTERIOR; NOT_IN_EMPTY ]);
+  ASM_REWRITE_TAC[ INTER_UNIV ];
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(!f'. f' PSUBSET IMAGE h V ==> P PSUBSET INTERS f')`) ASSUME_TAC));
+    REWRITE_TAC[PSUBSET];
+    REWRITE_TAC[SUBSET_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    CONJ_TAC;
+      ASM_REWRITE_TAC[];
+      EXPAND_TAC "P";
+      FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+      REWRITE_TAC[INTERS;IN_IMAGE;SUBSET];
+      REWRITE_TAC[IN_ELIM_THM];
+      BY(MESON_TAC[]);
+    COMMENT "2";
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?v0. v0 IN V /\ ~(h v0 IN f')`) MP_TAC));
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `IMAGE` MP_TAC);
+      REWRITE_TAC[IMAGE];
+      ONCE_REWRITE_TAC[FUN_EQ_THM];
+      REWRITE_TAC[IN_ELIM_THM];
+      FIRST_X_ASSUM MP_TAC;
+      REWRITE_TAC[SUBSET;IN];
+      BY(MESON_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (fun t -> MP_TAC (ISPEC ( env w `v0`) t))));
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[NOT_EXISTS_THM];
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC FACET_RELEVANT [`V`;`a`;`b`;`p`;`v0`];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ NOT_EXISTS_THM ];
+    GEN_TAC;
+    MATCH_MP_TAC (TAUT `(b ==> ~a) ==> ~(a /\ b)`);
+    DISCH_TAC;
+    MATCH_MP_TAC (arith `x <= y ==> ~(y < x)`);
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `t % p IN P`)));
+      EXPAND_TAC "P";
+      REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+      GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w`v0`)))));
+      ASM_SIMP_TAC[];
+      BY(REWRITE_TAC[IN_ELIM_THM]);
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(v0 IN u)`) ASSUME_TAC));
+      DISCH_TAC;
+      REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+      ASM_REWRITE_TAC[IN_IMAGE];
+      BY(MESON_TAC[]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `x IN V`) ASSUME_TAC));
+      BY(ASM_MESON_TAC[SUBSET]);
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    MATCH_MP_TAC (arith `x < y ==> x <= y`);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v w. v IN V /\ w IN V /\ (h v = h w) ==> (v = w)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    ASM_SIMP_TAC[];
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    DISCH_TAC;
+    PROOF_BY_CONTR_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `interior {p | a v dot p <= b v} = interior {p | a w dot p <= b w}`) MP_TAC));
+      AP_TERM_TAC;
+      ONCE_REWRITE_TAC[FUN_EQ_THM];
+      REWRITE_TAC[IN_ELIM_THM];
+      BY(ASM_REWRITE_TAC[]);
+    ASM_SIMP_TAC[ INTERIOR_HALFSPACE_LE ];
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(ASM_MESON_TAC[arith `x = y ==> ~(x < y)`]);
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!x. x IN V ==> (q(h x) = x)`) MP_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    ONCE_REWRITE_TAC[ EQ_SYM_EQ ];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    REWRITE_TAC[IN_IMAGE];
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(!hv. hv IN IMAGE h V ==> ~(a (q hv) = vec 0) /\ hv = {x | a (q hv) dot x <= b (q hv)})`) ASSUME_TAC));
+    REWRITE_TAC[IN_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[IN_IMAGE]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `q (h x) = x`) SUBST1_TAC));
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "1c";
+  REWRITE_TAC[ BIJ; INJ ];
+  SUBCONJ_TAC;
+    SUBCONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      GOAL_TERM (fun w -> (FIRST_X_ASSUM (MP_TAC o (ISPEC ( env w `P INTER {p | a x dot p = b x}`)))));
+      REWRITE_TAC[IN_ELIM_THM];
+      DISCH_THEN SUBST1_TAC;
+      BY(ASM_MESON_TAC[IN_IMAGE]);
+    DISCH_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM_ST `<` (MP_TAC o (ISPEC ( env w `y`)))));
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM_ST `INTER` MP_TAC;
+    REWRITE_TAC[FUN_EQ_THM;X_IN IN_INTER;IN_ELIM_THM];
+    EXPAND_TAC "P";
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    RENAME_FREE_VAR (`x:A`,"v");
+    REBIND_TAC (`x:A`,"w");
+    REWRITE_TAC[ NOT_FORALL_THM ];
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `p`)));
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (TAUT (`a /\ ~b ==> (~(a /\ b <=> a))`));
+    CONJ2_TAC;
+      BY(ASM_MESON_TAC[arith `x < y ==> ~(x = y)`]);
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `y = w`)));
+      EXPAND_TAC "w";
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `dot` MP_TAC);
+      BY(REAL_ARITH_TAC);
+    MATCH_MP_TAC (arith `x < y ==> x <=y`);
+    REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC);
+    BY(MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1d:SUR";
+  REWRITE_TAC[SURJ];
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  RENAME_FREE_VAR (`x:real^B->bool`,"c");
+  FIRST_X_ASSUM MP_TAC;
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[IN_IMAGE];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `q h'`)));
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `h x IN IMAGE h V`) MP_TAC));
+    BY(ASM_MESON_TAC[IN_IMAGE]);
+  BY(ASM_MESON_TAC[])
+(*
+    st/r
+      sgth (% `!f. (f IN IMAGE h V) ==> (?q. (q IN V) /\ f = h q)`) mp
+      rt[IN_IMAGE]
+      mt[]
+      rt[ ?a ]
+      rt[SKOLEM_THM]
+      st/r
+      intro FACET_OF_POLYHEDRON_EXPLICIT [`P`;`(IMAGE h V)`;`(\f. a (q f))`;`(\f. b (q f))`]
+      sgth (% `(FINITE (IMAGE h V))`) assume
+      mmp FINITE_IMAGE
+      art[]
+      sgth (% `(affine hull P) = (:real^B)`) subst1
+      amt[ ?b; NOT_IN_EMPTY ]
+      art[ ?c ]
+      comment "1"
+      sgth (% `(!f'. f' PSUBSET IMAGE h V ==> P PSUBSET INTERS f')`) assume
+      rt[PSUBSET]
+      rt[SUBSET_IMAGE]
+      st/r
+      conj
+      art[]
+      expand "P"
+      fxast `SUBSET` mp
+      rt[INTERS;IN_IMAGE;SUBSET]
+      rt[IN_ELIM_THM]
+      mt[]
+      comment "2"
+      sgth (% `?v0. v0 IN V /\ ~(h v0 IN f')`) mp
+      rep 2 (fxast `IMAGE` mp)
+      rt[IMAGE]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      fxa mp
+      rt[SUBSET;IN]
+      mt[]
+      st/r
+      fxa (fun t -> mp (spec (% `v0`) t))
+      art[]
+      rt[?d]
+      st/r
+      intro FACET_RELEVANT [`V`;`a`;`b`;`p`;`v0`]
+      art[]
+      rt[ ?d ]
+      g
+      mmp (taut `(b ==> ~a) ==> ~(a /\ b)`)
+      dt
+      mmp (arith `x <= y ==> ~(y < x)`)
+      ets (% `t % p IN P`)
+      expand "P"
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      dthen (mp o (spec (%`v0`)))
+      asimp[]
+      rt[IN_ELIM_THM]
+      art[]
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      st/r
+      sgth (% `~(v0 IN u)`) assume
+      dt
+      repeat (fxast `IN` mp)
+      art[IN_IMAGE]
+      mt[]
+      sgth (% `x IN V`) assume
+      amt[SUBSET]
+      asimp[]
+      rt[IN_ELIM_THM]
+      mmp (arith `x < y ==> x <= y`)
+      fxa mmp
+      amt[]
+      comment "1"
+sgth (% `!v w. v IN V /\ w IN V /\ (h v = h w) ==> (v = w)`) assume
+      st/r
+      fxa mp
+      asimp[]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      dt
+      contr
+      sgth (% `interior {p | a v dot p <= b v} = interior {p | a w dot p <= b w}`) mp
+       apterm
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      art[]
+      asimp[ ?l ]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      amt[arith `x = y ==> ~(x < y)`]
+      comment "1b"
+      sgth (% `!x. x IN V ==> (q(h x) = x)`) mp
+      st/r
+      fxa mmp
+      art[]
+      ort[ ?m ]
+      fxa mmp
+      rt[IN_IMAGE]
+      amt[]
+      dt
+      art[]
+      comment "1b"
+      sgth (% `(!hv. hv IN IMAGE h V ==> ~(a (q hv) = vec 0) /\ hv = {x | a (q hv) dot x <= b (q hv)})`) assume
+      rt[IN_IMAGE]
+      st/r
+      art[]
+      conj
+      fxa mmp
+      amt[IN_IMAGE]
+      sgth (% `q (h x) = x`) subst1
+      fxa mmp
+      art[]
+      fxa mmp
+art[]
+      art[]
+      dt
+      comment "1c"
+      rt[ BIJ; INJ ]
+      subconj
+      subconj
+      st/r
+      fxa (mp o (spec (% `P INTER {p | a x dot p = b x}`)))
+      rt[IN_ELIM_THM]
+      dthen subst1
+      amt[IN_IMAGE]
+      dt
+      st/r
+      contr
+      fxast `<` (mp o (spec (% `y`)))
+      ants
+      art[]
+      st/r
+      fxast `INTER` mp
+      rt[FUN_EQ_THM;X_IN IN_INTER;IN_ELIM_THM]
+      expand "P"
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      name (`x:A`,"v")
+      rebind (`x:A`,"w")
+      rt[ ?n ]
+      ex (% `p`)
+art[]
+      mmp (taut (`a /\ ~b ==> (~(a /\ b <=> a))`))
+      conj2
+      amt[arith `x < y ==> ~(x = y)`]
+      st/r
+      asimp[]
+      rt[IN_ELIM_THM]
+      asmcase (% `y = w`)
+      expand "w"
+      rep 2 (fxast `dot` mptac)
+      rat
+      mmp (arith `x < y ==> x <=y`)
+      rep 3 (fxa mptac)
+      mt[]
+      st/r
+      comment "1d:SUR"
+      rt[SURJ]
+      conj
+      art[]
+      rt[IN_ELIM_THM]
+      st/r
+      name (`x:real^B->bool`,"c")
+      fxa mp
+      asimp[]
+      rt[IN_IMAGE]
+      st/r
+      ex (% `q h'`)
+      art[]
+      sgth (% `h x IN IMAGE h V`) mp
+      amt[IN_IMAGE]
+      amt[]
+    *)
+  ]);;
+  (* }}} *)
 

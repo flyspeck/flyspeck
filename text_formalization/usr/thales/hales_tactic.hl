@@ -264,9 +264,35 @@ let FULL_EXPAND_TAC s = FIRST_ASSUM (fun t ->
   let _ = (s = fst(dest_var(rhs(concl t)))) or failwith "" in
     (MP_ASM_THEN (SUBST1_TAC (SYM t) THEN BETA_TAC)));;
 
-let RENAME_VAR (t,s) = 
-  let svar = mk_var (s,snd(dest_var t)) in
-    MP_ASM_THEN (SPEC_TAC (t,svar) THEN GEN_TAC);;
+(*
+let RENAME_VAR (t,s) = (* rename free variable *)
+    let svar = mk_var (s,snd(dest_var t)) in
+    MP_ASM_THEN (SPEC_TAC (t,s) THEN X_GENv_TAC s);;
+*)
+let RENAME_FREE_VAR (t,s) = (* rename free variable *)
+    MP_ASM_THEN (SPEC_TAC (t,t) THEN X_GENv_TAC s);;
+
+(* rebind bound variables *)
+
+let rec rec_alpha_at (t,s) tm = match tm with 
+  | Comb (u,v) -> mk_comb (rec_alpha_at (t,s) u,rec_alpha_at (t,s) v)
+  | Abs (a,b)  -> if (a=t) then alpha s tm else mk_abs(a,rec_alpha_at (t,s) b)
+  | _ -> tm;;
+
+let alpha_at (t,s) = 
+  rec_alpha_at (t,mk_var(s,snd(dest_var t)));;
+
+let REBIND_CONV ts g = ALPHA g (alpha_at ts g);;
+
+REBIND_CONV (`x:real`,"y") (`pi + (\ x . x + pi) pi`);;
+
+let REBIND_RULE ts th1 = EQ_MP (REBIND_CONV ts (concl th1)) th1;;
+
+REBIND_RULE (`x:real`,"y") (ASSUME (`pi + (\ x . x + pi) pi = &1`));;
+
+let REBIND_TAC ts (asl,g) = (SUBST1_TAC (REBIND_CONV ts g)) (asl,g);;
+
+
 
 (* UNDISCHARGE BY SEARCH *)
 
@@ -292,5 +318,7 @@ let INTRO_TAC th1 tml =
    GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w tml) th1)));;
 
   let kill th = ALL_TAC;;
+
+
   
 end;;

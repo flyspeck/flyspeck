@@ -7656,4 +7656,1228 @@ let polyhedron_edge_sum = prove_by_refinement(
   (* }}} *)
 
 
+let  RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT_ALT  = prove_by_refinement(
+  `!(V:A->bool) (P:real^B ->bool) h a b p v0.
+    FINITE V /\
+   (!v. (v IN V ) ==> (h v  = { p | a v dot p <= b v })) /\
+   P = INTERS (IMAGE h V) /\
+  (v0 IN V) /\ a v0 dot p = b v0 /\ 
+  (!w. (w IN V) /\ ~(w = v0) ==> a w dot p < b w) ==> 
+  (p IN relative_interior (P INTER { p | a v0 dot p= b v0}))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[IN_RELATIVE_INTERIOR];
+  REWRITE_TAC[IN_INTER;IN_INTERS;IN_IMAGE];
+  REWRITE_TAC[IN_ELIM_THM];
+  SUBCONJ_TAC;
+    ASM_REWRITE_TAC[];
+    ASM_REWRITE_TAC[IN_INTERS;IN_IMAGE];
+    ASM_REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `x = v0`)));
+      BY(ASM_REWRITE_TAC[arith `u <= u`]);
+    MATCH_MP_TAC (arith `x < y ==> x <= y`);
+    BY(ASM_SIMP_TAC[]);
+  DISCH_TAC;
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(INTERS (IMAGE h (V DIFF {v0})) INTER {p | a v0 dot p = b v0} SUBSET P INTER {p | a v0 dot p = b v0})`) ASSUME_TAC));
+    ASM_REWRITE_TAC[SUBSET;IN_INTER;IN_INTERS;IN_IMAGE;IN_DIFF;IN_SING];
+    ASM_REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `x' = v0`)));
+      ASM_REWRITE_TAC[];
+      BY(REWRITE_TAC[arith `u <= u`]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `x IN h x'`) MP_TAC));
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[]);
+    ASM_SIMP_TAC[];
+    BY(REWRITE_TAC[IN_ELIM_THM]);
+  COMMENT "1b";
+  ABBREV_TAC `ho = \ (v:A). {(p : real^B) | a v dot p < b v}`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v. ho v = {p | a v dot p < b v}`) ASSUME_TAC));
+    GEN_TAC;
+    EXPAND_TAC "ho";
+    BY(REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `p IN INTERS (IMAGE ho (V DIFF {v0}))`) ASSUME_TAC));
+    REWRITE_TAC[IN_INTERS;IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `open (INTERS (IMAGE ho (V DIFF {v0})))`) ASSUME_TAC));
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      MATCH_MP_TAC FINITE_DIFF;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+  GOAL_TERM (fun w -> (DISCH_THEN (fun t -> MP_TAC (ISPEC ( env w `p`) t))));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `e:real`;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC SUBSET_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `ball(p,e) INTER { p | a v0 dot p = b v0}`)));
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w ` affine hull (INTERS (IMAGE h V) INTER {p | a v0 dot p = b v0}) SUBSET {p | a v0 dot p = b v0}`)));
+      BY(SET_TAC[]);
+    MATCH_MP_TAC SUBSET_TRANS;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `affine hull {p | a v0 dot p = b v0}`)));
+    CONJ_TAC;
+      MATCH_MP_TAC Marchal_cells_2.AFFINE_SUBSET_KY_LEMMA;
+      BY(SET_TAC[]);
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `affine hull {p | a v0 dot p = b v0 } = {p | a v0 dot p = b v0}`)));
+      BY(SET_TAC[]);
+    INTRO_TAC AFFINE_HYPERPLANE [`a v0`;`b v0`];
+    BY(MESON_TAC[ AFFINE_HULL_EQ ]);
+  COMMENT "1c";
+  MATCH_MP_TAC SUBSET_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `INTERS (IMAGE h (V DIFF {v0})) INTER {p  | a v0 dot p = b v0}`)));
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[]);
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w`INTERS (IMAGE ho (V DIFF {v0})) SUBSET INTERS (IMAGE h (V DIFF {v0}))`)));
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  REWRITE_TAC[INTERS_IMAGE;SUBSET;IN_ELIM_THM;IN_DIFF;IN_SING];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_SIMP_TAC[IN_ELIM_THM];
+  GOAL_TERM (fun w -> (FIRST_X_ASSUM (fun t -> MP_TAC (ISPEC ( env w `x'`) t))));
+  EXPAND_TAC "ho";
+  REWRITE_TAC[IN_ELIM_THM];
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(*
+  st/r
+    rt[IN_RELATIVE_INTERIOR]
+    rt[IN_INTER;IN_INTERS;IN_IMAGE]
+    rt[IN_ELIM_THM]
+    subconj
+    art[]
+    art[IN_INTERS;IN_IMAGE]
+    art[IN_ELIM_THM]
+    st/r
+    asimp[]
+    rt[IN_ELIM_THM]
+    asmcase (% `x = v0`)
+    art[arith `u <= u`]
+    mmp (arith `x < y ==> x <= y`)
+    asimp[]
+    dt
+    comment "1"
+    sgthen (% `(INTERS (IMAGE h (V DIFF {v0})) INTER {p | a v0 dot p = b v0} SUBSET P INTER {p | a v0 dot p = b v0})`) assume
+    art[SUBSET;IN_INTER;IN_INTERS;IN_IMAGE;IN_DIFF;IN_SING]
+    art[IN_ELIM_THM]
+    st/r
+    art[]
+    st/r
+    asimp[]
+    rt[IN_ELIM_THM]
+    asmcase (% `x' = v0`)
+    art[]
+    rt[arith `u <= u`]
+    sgth (% `x IN h x'`) mptac
+    fxa mmp
+    amt[]
+    asimp[]
+    rt[IN_ELIM_THM]
+    comment "1b"
+    abbrev `ho = \ (v:A). {(p : real^B) | a v dot p < b v}`
+      sgth (% `!v. ho v = {p | a v dot p < b v}`) assume
+      g
+      expand "ho"
+      rt[]
+    sgth (% `p IN INTERS (IMAGE ho (V DIFF {v0}))`) assume
+      rt[IN_INTERS;IN_IMAGE;IN_DIFF;IN_SING]
+      st/r
+      art[]
+      rt[IN_ELIM_THM]
+      amt[]
+      sgth (% `open (INTERS (IMAGE ho (V DIFF {v0})))`) assume
+      mmp ?q
+      subconj
+      mmp ?r
+      mmp ?s
+      art[]
+      dt
+      rt[IN_IMAGE;IN_DIFF;IN_SING]
+      st/r
+      art[]
+      rt[ ?t ]
+      fxa mp
+      rt[ ?u ]
+      dthen (fun t -> mp (spec (% `p`) t))
+      art[]
+      st/r
+      ex `e:real`
+      art[]
+      mmp SUBSET_TRANS
+      ex (% `ball(p,e) INTER { p | a v0 dot p = b v0}`)
+      conj
+      ets (% ` affine hull (INTERS (IMAGE h V) INTER {p | a v0 dot p = b v0}) SUBSET {p | a v0 dot p = b v0}`)
+      set[]
+      mmp SUBSET_TRANS
+      ex (% `affine hull {p | a v0 dot p = b v0}`)
+      conj
+      mmp ?w
+      set[] 
+      ets (% `affine hull {p | a v0 dot p = b v0 } = {p | a v0 dot p = b v0}`)
+      set[]
+      intro ?x [`a v0`;`b v0`]
+      mt[ ?v ]
+      comment "1c"
+      mmp SUBSET_TRANS
+      ex (% `INTERS (IMAGE h (V DIFF {v0})) INTER {p  | a v0 dot p = b v0}`)
+      conj2
+      amt[]
+      ets (%`INTERS (IMAGE ho (V DIFF {v0})) SUBSET INTERS (IMAGE h (V DIFF {v0}))`)
+      fxa mp
+      set[]
+      rt[INTERS_IMAGE;SUBSET;IN_ELIM_THM;IN_DIFF;IN_SING]
+      st/r
+      asimp[IN_ELIM_THM]
+      fxa (fun t -> mp (spec (% `x'`) t))
+      expand "ho"
+      rt[IN_ELIM_THM]
+      art[]
+      rat
+*)
+
+
+let FACET_RELEVANT = prove_by_refinement(
+  `!(V:A->bool) a b (p:real^B) v0.
+    FINITE V /\
+    (!v. v IN V ==> (&0 < b v)) /\
+    (a v0 dot p = b v0) /\ 
+    (v0 IN V) /\
+    (!w. w IN V /\ ~(v0 = w) ==> a w dot p < b w) ==>
+    (?t. b v0 < a v0 dot (t % p) /\ 
+       (!w. w IN V /\ ~(v0 = w) ==> a w dot (t % p) < b w))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `h = (\ (v:A). { q | a v dot (q:real^B)  < b v })`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(open:(real^B->bool)->bool) (INTERS (IMAGE (h:A->(real^B->bool)) ((V:A->bool) DIFF {v0})))`) ASSUME_TAC));
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      MATCH_MP_TAC FINITE_DIFF;
+      BY(BY(ASM_REWRITE_TAC[]));
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    EXPAND_TAC "h";
+    BY(BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+  REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING;IN_INTERS;SUBSET];
+  GOAL_TERM (fun w -> (DISCH_THEN (fun t -> MP_TAC (ISPEC ( env w `p`) t))));
+  ANTS_TAC;
+    EXPAND_TAC "h";
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[IN_ELIM_THM];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`~(p = vec 0)`) ASSUME_TAC));
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `u dot v = c` MP_TAC;
+    ASM_REWRITE_TAC[ DOT_RZERO ];
+    BY(ASM_MESON_TAC[arith `&0 < x ==> ~(&0 = x)`]);
+  ABBREV_TAC `s = &1 + e / (&2 * norm (p:real^B))`;
+  EXISTS_TAC `s:real`;
+  COMMENT "1";
+  SUBGOAL_THEN `&1 < s` ASSUME_TAC;
+    EXPAND_TAC "s";
+    MATCH_MP_TAC (arith `&0 < x ==> &1 < &1 +x `);
+    MATCH_MP_TAC REAL_LT_DIV;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `&0 < x ==> &0 < &2 * x`);
+    BY(ASM_REWRITE_TAC[ NORM_POS_LT ]);
+  CONJ_TAC;
+    ASM_REWRITE_TAC[ DOT_RMUL ];
+    MATCH_MP_TAC (arith `&1 * x < s * x ==> x < s * x`);
+    MATCH_MP_TAC REAL_LT_RMUL;
+    BY(ASM_SIMP_TAC[]);
+  COMMENT "1b";
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (FIRST_X_ASSUM (MP_TAC o (ISPEC ( env w `s % p`)))));
+  ANTS_TAC;
+    REWRITE_TAC[IN_BALL];
+    ONCE_REWRITE_TAC[DIST_SYM];
+    REWRITE_TAC[dist];
+    GOAL_TERM (fun w -> (REWRITE_TAC[varith ( env w `s % p - p = (s - &1) % p`)]));
+    REWRITE_TAC[ NORM_MUL ];
+    ASM_SIMP_TAC[arith `&1 < s ==> abs (s - &1) = (s - &1)`];
+    EXPAND_TAC "s";
+    REWRITE_TAC[arith `(&1 + x) - &1 = x`];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( ( env w`(e / (&2 * norm p) * norm p = e / &2)`)) SUBST1_TAC));
+      Calc_derivative.CALC_ID_TAC;
+      ASM_REWRITE_TAC[ NORM_EQ_0 ];
+      BY(REAL_ARITH_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "1c";
+  GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w `h w`)))));
+  EXPAND_TAC "h";
+  REWRITE_TAC[IN_ELIM_THM];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(*
+  st/r
+    abbrev `h = (\ (v:A). { q | a v dot (q:real^B)  < b v })`
+      sgth (% `(open:(real^B->bool)->bool) (INTERS (IMAGE (h:A->(real^B->bool)) ((V:A->bool) DIFF {v0})))`) assume
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      MATCH_MP_TAC FINITE_DIFF;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    expand "h"
+    BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+          REWRITE_TAC[IN_IMAGE;IN_DIFF;IN_SING;IN_INTERS;SUBSET];
+  dthen (fun t -> mp (spec (% `p`) t))
+    ants
+    expand "h"
+    st/r
+    art[IN_ELIM_THM]
+    fxa mmp
+    amt[]
+    st/r
+    sgth (%`~(p = vec 0)`) assume
+    dt
+    fxast `u dot v = c` mp
+      art[ ?e ]
+      amt[arith `&0 < x ==> ~(&0 = x)`]
+abbrev `s = &1 + e / (&2 * norm (p:real^B))`
+      ex `s:real`
+      comment "1"
+      sgth `&1 < s` assume
+      expand "s"
+      mmp (arith `&0 < x ==> &1 < &1 +x `)
+      mmp ?h
+      art[]
+      mmp (arith `&0 < x ==> &0 < &2 * x`)
+      art[ ?i ]
+conj
+      art[ ?f ]
+      mmp (arith `&1 * x < s * x ==> x < s * x`)
+      mmp ?g
+      asimp[]
+      comment "1b"
+      st/r
+      fxa (mp o (spec (% `s % p`)))
+      ants
+      rt[IN_BALL]
+      ort[DIST_SYM]
+      rt[dist]
+      rt[varith (% `s % p - p = (s - &1) % p`)]
+      rt[ ?j ]
+      asimp[arith `&1 < s ==> abs (s - &1) = (s - &1)`]
+      expand "s"
+      rt[arith `(&1 + x) - &1 = x`]
+      sgth ( (%`(e / (&2 * norm p) * norm p = e / &2)`)) subst1
+      calc
+      art[ ?k ]
+      rat
+      repeat (fxa mptac) then rat
+	comment "1c"
+	dthen (mp o (spec (% `h w`)))
+	expand "h"
+	rt[IN_ELIM_THM]
+	dthen mmp
+	amt[]
+	*)
+
+
+let FACET_OF_POLYHEDRON_EXPLICIT_ALT  = prove_by_refinement(
+ `!(V:A->bool) (P:real^B->bool) h a b.
+   FINITE V /\
+   (vec 0) IN interior P /\
+   (!v. (v IN V ) ==> (h v  = { p | a v dot p <= b v })) /\
+   (!v. v IN V ==> (&0 < b v)) /\
+   INTERS (IMAGE h V) = P /\
+  (!v. (v IN V ) ==> ~(a v = (vec 0))) /\
+  (!v. (v IN V)  ==> (?p. a v dot p = b v /\ (!w. (w IN V) /\ ~(v = w) ==> a w dot p < b w))) ==>
+  (BIJ (\v. P INTER {p | a v dot p = b v}) V { c | c facet_of P })`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!f. (f IN IMAGE h V) ==> (?q. (q IN V) /\ f = h q)`) MP_TAC));
+    REWRITE_TAC[IN_IMAGE];
+    BY(MESON_TAC[]);
+  REWRITE_TAC[ RIGHT_IMP_EXISTS_THM ];
+  REWRITE_TAC[SKOLEM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC FACET_OF_POLYHEDRON_EXPLICIT [`P`;`(IMAGE h V)`;`(\f. a (q f))`;`(\f. b (q f))`];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(FINITE (IMAGE h V))`) ASSUME_TAC));
+    MATCH_MP_TAC FINITE_IMAGE;
+    BY(ASM_REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(affine hull P) = (:real^B)`) SUBST1_TAC));
+    BY(ASM_MESON_TAC[ AFFINE_HULL_NONEMPTY_INTERIOR; NOT_IN_EMPTY ]);
+  ASM_REWRITE_TAC[ INTER_UNIV ];
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(!f'. f' PSUBSET IMAGE h V ==> P PSUBSET INTERS f')`) ASSUME_TAC));
+    REWRITE_TAC[PSUBSET];
+    REWRITE_TAC[SUBSET_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    CONJ_TAC;
+      ASM_REWRITE_TAC[];
+      EXPAND_TAC "P";
+      FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+      REWRITE_TAC[INTERS;IN_IMAGE;SUBSET];
+      REWRITE_TAC[IN_ELIM_THM];
+      BY(MESON_TAC[]);
+    COMMENT "2";
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?v0. v0 IN V /\ ~(h v0 IN f')`) MP_TAC));
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `IMAGE` MP_TAC);
+      REWRITE_TAC[IMAGE];
+      ONCE_REWRITE_TAC[FUN_EQ_THM];
+      REWRITE_TAC[IN_ELIM_THM];
+      FIRST_X_ASSUM MP_TAC;
+      REWRITE_TAC[SUBSET;IN];
+      BY(MESON_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (fun t -> MP_TAC (ISPEC ( env w `v0`) t))));
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[NOT_EXISTS_THM];
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC FACET_RELEVANT [`V`;`a`;`b`;`p`;`v0`];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ NOT_EXISTS_THM ];
+    GEN_TAC;
+    MATCH_MP_TAC (TAUT `(b ==> ~a) ==> ~(a /\ b)`);
+    DISCH_TAC;
+    MATCH_MP_TAC (arith `x <= y ==> ~(y < x)`);
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `t % p IN P`)));
+      EXPAND_TAC "P";
+      REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+      GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w`v0`)))));
+      ASM_SIMP_TAC[];
+      BY(REWRITE_TAC[IN_ELIM_THM]);
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(v0 IN u)`) ASSUME_TAC));
+      DISCH_TAC;
+      REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+      ASM_REWRITE_TAC[IN_IMAGE];
+      BY(MESON_TAC[]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `x IN V`) ASSUME_TAC));
+      BY(ASM_MESON_TAC[SUBSET]);
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    MATCH_MP_TAC (arith `x < y ==> x <= y`);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v w. v IN V /\ w IN V /\ (h v = h w) ==> (v = w)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    ASM_SIMP_TAC[];
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    DISCH_TAC;
+    PROOF_BY_CONTR_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `interior {p | a v dot p <= b v} = interior {p | a w dot p <= b w}`) MP_TAC));
+      AP_TERM_TAC;
+      ONCE_REWRITE_TAC[FUN_EQ_THM];
+      REWRITE_TAC[IN_ELIM_THM];
+      BY(ASM_REWRITE_TAC[]);
+    ASM_SIMP_TAC[ INTERIOR_HALFSPACE_LE ];
+    ONCE_REWRITE_TAC[FUN_EQ_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(ASM_MESON_TAC[arith `x = y ==> ~(x < y)`]);
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!x. x IN V ==> (q(h x) = x)`) MP_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    ONCE_REWRITE_TAC[ EQ_SYM_EQ ];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    REWRITE_TAC[IN_IMAGE];
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(!hv. hv IN IMAGE h V ==> ~(a (q hv) = vec 0) /\ hv = {x | a (q hv) dot x <= b (q hv)})`) ASSUME_TAC));
+    REWRITE_TAC[IN_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[IN_IMAGE]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `q (h x) = x`) SUBST1_TAC));
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "1c";
+  REWRITE_TAC[ BIJ; INJ ];
+  SUBCONJ_TAC;
+    SUBCONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      GOAL_TERM (fun w -> (FIRST_X_ASSUM (MP_TAC o (ISPEC ( env w `P INTER {p | a x dot p = b x}`)))));
+      REWRITE_TAC[IN_ELIM_THM];
+      DISCH_THEN SUBST1_TAC;
+      BY(ASM_MESON_TAC[IN_IMAGE]);
+    DISCH_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM_ST `<` (MP_TAC o (ISPEC ( env w `y`)))));
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM_ST `INTER` MP_TAC;
+    REWRITE_TAC[FUN_EQ_THM;X_IN IN_INTER;IN_ELIM_THM];
+    EXPAND_TAC "P";
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    RENAME_FREE_VAR (`x:A`,"v");
+    REBIND_TAC (`x:A`,"w");
+    REWRITE_TAC[ NOT_FORALL_THM ];
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `p`)));
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (TAUT (`a /\ ~b ==> (~(a /\ b <=> a))`));
+    CONJ2_TAC;
+      BY(ASM_MESON_TAC[arith `x < y ==> ~(x = y)`]);
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[IN_ELIM_THM];
+    GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `y = w`)));
+      EXPAND_TAC "w";
+      REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `dot` MP_TAC);
+      BY(REAL_ARITH_TAC);
+    MATCH_MP_TAC (arith `x < y ==> x <=y`);
+    REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC);
+    BY(MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1d:SUR";
+  REWRITE_TAC[SURJ];
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  RENAME_FREE_VAR (`x:real^B->bool`,"c");
+  FIRST_X_ASSUM MP_TAC;
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[IN_IMAGE];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `q h'`)));
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `h x IN IMAGE h V`) MP_TAC));
+    BY(ASM_MESON_TAC[IN_IMAGE]);
+  BY(ASM_MESON_TAC[])
+(*
+    st/r
+      sgth (% `!f. (f IN IMAGE h V) ==> (?q. (q IN V) /\ f = h q)`) mp
+      rt[IN_IMAGE]
+      mt[]
+      rt[ ?a ]
+      rt[SKOLEM_THM]
+      st/r
+      intro FACET_OF_POLYHEDRON_EXPLICIT [`P`;`(IMAGE h V)`;`(\f. a (q f))`;`(\f. b (q f))`]
+      sgth (% `(FINITE (IMAGE h V))`) assume
+      mmp FINITE_IMAGE
+      art[]
+      sgth (% `(affine hull P) = (:real^B)`) subst1
+      amt[ ?b; NOT_IN_EMPTY ]
+      art[ ?c ]
+      comment "1"
+      sgth (% `(!f'. f' PSUBSET IMAGE h V ==> P PSUBSET INTERS f')`) assume
+      rt[PSUBSET]
+      rt[SUBSET_IMAGE]
+      st/r
+      conj
+      art[]
+      expand "P"
+      fxast `SUBSET` mp
+      rt[INTERS;IN_IMAGE;SUBSET]
+      rt[IN_ELIM_THM]
+      mt[]
+      comment "2"
+      sgth (% `?v0. v0 IN V /\ ~(h v0 IN f')`) mp
+      rep 2 (fxast `IMAGE` mp)
+      rt[IMAGE]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      fxa mp
+      rt[SUBSET;IN]
+      mt[]
+      st/r
+      fxa (fun t -> mp (spec (% `v0`) t))
+      art[]
+      rt[?d]
+      st/r
+      intro FACET_RELEVANT [`V`;`a`;`b`;`p`;`v0`]
+      art[]
+      rt[ ?d ]
+      g
+      mmp (taut `(b ==> ~a) ==> ~(a /\ b)`)
+      dt
+      mmp (arith `x <= y ==> ~(y < x)`)
+      ets (% `t % p IN P`)
+      expand "P"
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      dthen (mp o (spec (%`v0`)))
+      asimp[]
+      rt[IN_ELIM_THM]
+      art[]
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      st/r
+      sgth (% `~(v0 IN u)`) assume
+      dt
+      repeat (fxast `IN` mp)
+      art[IN_IMAGE]
+      mt[]
+      sgth (% `x IN V`) assume
+      amt[SUBSET]
+      asimp[]
+      rt[IN_ELIM_THM]
+      mmp (arith `x < y ==> x <= y`)
+      fxa mmp
+      amt[]
+      comment "1"
+sgth (% `!v w. v IN V /\ w IN V /\ (h v = h w) ==> (v = w)`) assume
+      st/r
+      fxa mp
+      asimp[]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      dt
+      contr
+      sgth (% `interior {p | a v dot p <= b v} = interior {p | a w dot p <= b w}`) mp
+       apterm
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      art[]
+      asimp[ ?l ]
+      ort[FUN_EQ_THM]
+      rt[IN_ELIM_THM]
+      amt[arith `x = y ==> ~(x < y)`]
+      comment "1b"
+      sgth (% `!x. x IN V ==> (q(h x) = x)`) mp
+      st/r
+      fxa mmp
+      art[]
+      ort[ ?m ]
+      fxa mmp
+      rt[IN_IMAGE]
+      amt[]
+      dt
+      art[]
+      comment "1b"
+      sgth (% `(!hv. hv IN IMAGE h V ==> ~(a (q hv) = vec 0) /\ hv = {x | a (q hv) dot x <= b (q hv)})`) assume
+      rt[IN_IMAGE]
+      st/r
+      art[]
+      conj
+      fxa mmp
+      amt[IN_IMAGE]
+      sgth (% `q (h x) = x`) subst1
+      fxa mmp
+      art[]
+      fxa mmp
+art[]
+      art[]
+      dt
+      comment "1c"
+      rt[ BIJ; INJ ]
+      subconj
+      subconj
+      st/r
+      fxa (mp o (spec (% `P INTER {p | a x dot p = b x}`)))
+      rt[IN_ELIM_THM]
+      dthen subst1
+      amt[IN_IMAGE]
+      dt
+      st/r
+      contr
+      fxast `<` (mp o (spec (% `y`)))
+      ants
+      art[]
+      st/r
+      fxast `INTER` mp
+      rt[FUN_EQ_THM;X_IN IN_INTER;IN_ELIM_THM]
+      expand "P"
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      name (`x:A`,"v")
+      rebind (`x:A`,"w")
+      rt[ ?n ]
+      ex (% `p`)
+art[]
+      mmp (taut (`a /\ ~b ==> (~(a /\ b <=> a))`))
+      conj2
+      amt[arith `x < y ==> ~(x = y)`]
+      st/r
+      asimp[]
+      rt[IN_ELIM_THM]
+      asmcase (% `y = w`)
+      expand "w"
+      rep 2 (fxast `dot` mptac)
+      rat
+      mmp (arith `x < y ==> x <=y`)
+      rep 3 (fxa mptac)
+      mt[]
+      st/r
+      comment "1d:SUR"
+      rt[SURJ]
+      conj
+      art[]
+      rt[IN_ELIM_THM]
+      st/r
+      name (`x:real^B->bool`,"c")
+      fxa mp
+      asimp[]
+      rt[IN_IMAGE]
+      st/r
+      ex (% `q h'`)
+      art[]
+      sgth (% `h x IN IMAGE h V`) mp
+      amt[IN_IMAGE]
+      amt[]
+    *)
+  ]);;
+  (* }}} *)
+
+
+
+let EXISTS_M_POLYHEDRON = prove_by_refinement(
+`!(V:real^3 -> bool) theta r n.
+    V SUBSET ball_annulus /\ packing V /\ 
+    weakly_saturated V r (&2 * h0) /\
+    (V HAS_SIZE n) /\
+   ~(V = {}) /\ 
+    (&2 <= r /\ r <= &2 * h0) /\
+    (!v w. v IN V /\ w IN V /\ ~(v = w) ==> theta v + theta w <= arcV (vec 0) v w) /\
+    (!v. v IN V ==> &0 < theta v /\ theta v < pi/ &2) ==>
+    (?b f h P .
+       (!v. v IN V ==> h v = {p | v dot p <= b v}) /\
+        INTERS (IMAGE h V) = P /\
+	(!v. v IN V ==> &0 < b v) /\
+	polyhedron P /\
+	bounded P /\
+	(vec 0 IN interior P) /\
+	BIJ f V {c |c facet_of P} /\
+	(!v. v IN V ==> f v = P INTER { p | v dot p = b v}) /\
+	(!v. v IN V ==> b v = norm v * cos (theta v)) /\
+	(!v. v IN V ==> rcone_gt (vec 0) v (cos (theta v)) SUBSET fchanged (f v)) /\
+	(!v. v IN V ==> &0 < cos (theta v) /\ cos(theta v) < &1))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v. v IN V ==> ~(v = vec 0)`) ASSUME_TAC));
+    FIRST_X_ASSUM_ST `ball_annulus` MP_TAC;
+    REWRITE_TAC[ Pack_defs.ball_annulus ];
+    REWRITE_TAC[ SUBSET; DIFF ;IN_ELIM_THM;ball;];
+    ONCE_REWRITE_TAC[DIST_SYM];
+    REWRITE_TAC[dist;varith `x - vec 0 = x`];
+    BY(MESON_TAC[ NORM_0 ; arith `&0 < &2`]);
+  COMMENT "0";
+  ABBREV_TAC `b = \ (v:real^3). norm v * cos (theta v)`;
+  ABBREV_TAC `h = \ (v:real^3). { p | v dot p <= b v }`;
+  ABBREV_TAC `(P:real^3->bool) = INTERS (IMAGE h (V:real^3->bool))`;
+  ABBREV_TAC `f = \ (v:real^3). P INTER { p | v dot p = b v}`;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `f`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `h`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  SUBGOAL_THEN (`(!v. v IN V ==> &0 < cos (theta v) /\ cos (theta (v:real^3)) < &1)`) ASSUME_TAC;
+    BY(ASM_MESON_TAC[cos_bounds_0_Pi2]);
+  ASM_REWRITE_TAC[];
+  SUBGOAL_THEN (`(!v. v IN V ==> f v = P INTER {p | v dot p = b (v:real^3) })`) ASSUME_TAC;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  SUBGOAL_THEN (` (!v. v IN V ==> b v = norm v * cos (theta (v:real^3)))`) ASSUME_TAC;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `polyhedron P`) ASSUME_TAC));
+    REWRITE_TAC[ polyhedron ];
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `IMAGE h V`)));
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY(ASM_MESON_TAC[HAS_SIZE]);
+    REWRITE_TAC[IN_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `x`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b x`)));
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[FUN_EQ_THM;IN_ELIM_THM];
+    EXPAND_TAC "h";
+    BY(REWRITE_TAC[IN_ELIM_THM]);
+  ASM_REWRITE_TAC[];
+  COMMENT "1b";
+  SUBCONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC Real_ext.REAL_PROP_POS_MUL2;
+    ASM_SIMP_TAC[];
+    REWRITE_TAC[ NORM_POS_LT ];
+    BY(ASM_SIMP_TAC[]);
+  DISCH_TAC;
+  COMMENT "1c";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(vec 0) IN P`) ASSUME_TAC));
+    EXPAND_TAC "P";
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    EXPAND_TAC "h";
+    REWRITE_TAC[IN_ELIM_THM];
+    REWRITE_TAC[DOT_RZERO];
+    BY(ASM_MESON_TAC[arith `&0 < x ==> &0 <= x`]);
+  ABBREV_TAC `ho = \ (v:real^3). {(p : real^3) |  v dot p < b v}`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v. ho v = {p | v dot p < b v}`) ASSUME_TAC));
+    GEN_TAC;
+    EXPAND_TAC "ho";
+    BY(BY(REWRITE_TAC[]));
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(vec 0) IN INTERS (IMAGE ho V)`) ASSUME_TAC));
+    REWRITE_TAC[INTERS_IMAGE;IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    EXPAND_TAC "ho";
+    REWRITE_TAC[IN_ELIM_THM];
+    REWRITE_TAC[DOT_RZERO];
+    BY(ASM_MESON_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `open (INTERS (IMAGE ho (V )))`) ASSUME_TAC));
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY(ASM_MESON_TAC[HAS_SIZE]);
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+  GOAL_TERM (fun w -> (DISCH_THEN (fun t -> MP_TAC (ISPEC ( env w `(vec 0):real^3`) t))));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1d";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `vec 0 IN interior P`) ASSUME_TAC));
+    REWRITE_TAC[ IN_INTERIOR];
+    EXISTS_TAC `e:real`;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC SUBSET_TRANS;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `INTERS (IMAGE ho V)`)));
+    ASM_REWRITE_TAC[];
+    EXPAND_TAC "P";
+    REWRITE_TAC[SUBSET;INTERS_IMAGE];
+    REWRITE_TAC[IN_ELIM_THM];
+    EXPAND_TAC "ho";
+    EXPAND_TAC "h";
+    REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAK_STRIP_TAC;
+    MATCH_MP_TAC (arith `x < y ==> x <= y`);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  COMMENT "1e";
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Tarjjuw.TARJJUW;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b`)));
+    EXISTS_TAC `r:real`;
+    EXISTS_TAC `&2 * h0`;
+    ASM_REWRITE_TAC[];
+    SUBCONJ_TAC;
+      FIRST_X_ASSUM_ST `ball_annulus` MP_TAC;
+      REWRITE_TAC[Pack_defs.ball_annulus];
+      REWRITE_TAC[SUBSET;DIFF];
+      REWRITE_TAC[IN_UNIV;IN_ELIM_THM];
+      BY(MESON_TAC[]);
+    DISCH_TAC;
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[HAS_SIZE]);
+    DISCH_TAC;
+    EXPAND_TAC "P";
+    REWRITE_TAC[INTERS_IMAGE];
+    REWRITE_TAC[INTERS;IN_ELIM_THM];
+    REWRITE_TAC[FUN_EQ_THM;IN_ELIM_THM];
+    REBIND_TAC (`u:real^3`,"w");
+    EXPAND_TAC "h";
+    REWRITE_TAC[IN_ELIM_THM; Tarjjuw.half_spaces];
+    GEN_TAC;
+    ONCE_REWRITE_TAC[ Geomdetail.EQ_EXPAND];
+    SUBCONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+      REWRITE_TAC[IN];
+      BY(ASM_MESON_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (MP_TAC o (ISPEC ( env w `{x | x' dot x <= b x'}`)))));
+    REWRITE_TAC[IN_ELIM_THM];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  COMMENT "1f";
+  SUBCONJ_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(f = (\v. P INTER {p | I v dot p = b v}))`) SUBST1_TAC));
+      EXPAND_TAC "f";
+      BY(REWRITE_TAC[I_DEF]);
+    MATCH_MP_TAC FACET_OF_POLYHEDRON_EXPLICIT_ALT;
+    REWRITE_TAC[I_DEF];
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `h`)));
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[HAS_SIZE]);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `(b v / (v dot v)) % v`)));
+    CONJ_TAC;
+      REWRITE_TAC[ DOT_RMUL ];
+      Calc_derivative.CALC_ID_TAC;
+      BY(ASM_MESON_TAC[ DOT_EQ_0 ]);
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC rcone_gt_facet [`theta v`;`theta w`;`v`;`w`;`(b v / (v dot v)) % v`;`v`];
+    ASM_SIMP_TAC[];
+    ANTS_TAC;
+      MATCH_MP_TAC rcone_refl;
+      BY(ASM_MESON_TAC[]);
+    MATCH_MP_TAC (arith `(x = y) ==> (x < z ==> y < z)`);
+    REWRITE_TAC[DOT_RMUL;DOT_LMUL];
+    BY(MESON_TAC[DOT_SYM]);
+  DISCH_TAC;
+  COMMENT "1g";
+  REWRITE_TAC[SUBSET];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ Polyhedron.fchanged ];
+  REWRITE_TAC[ IN_ELIM_THM];
+  ABBREV_TAC `s = ((b:real^3->real) v)/ (x dot v)`;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `s % x`)));
+  EXISTS_TAC (`&1 / s`);
+  CONJ_TAC;
+    REWRITE_TAC[ VECTOR_MUL_ASSOC ];
+    REWRITE_TAC[ varith ` (x = u % x) <=> &1 % x = u % x `];
+    REWRITE_TAC[ VECTOR_MUL_RCANCEL ];
+    DISJ1_TAC;
+    EXPAND_TAC "s";
+    Calc_derivative.CALC_ID_TAC;
+    ASM_SIMP_TAC[arith `~(&1 = &0)`;arith `&0 < x ==> ~(x = &0)`];
+    MATCH_MP_TAC (arith `&0 < x ==> ~(x = &0)`);
+    MATCH_MP_TAC rcone_dot_pos;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `cos (theta v)`)));
+    BY(ASM_SIMP_TAC[]);
+  COMMENT "1h";
+  CONJ2_TAC;
+    EXPAND_TAC "s";
+    MATCH_MP_TAC (arith `&0 < x ==> x > &0`);
+    REWRITE_TAC[ GSYM Collect_geom.POS_EQ_INV_POS ];
+    MATCH_MP_TAC REAL_LT_DIV;
+    ASM_SIMP_TAC[];
+    MATCH_MP_TAC rcone_dot_pos;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `cos (theta v)`)));
+    BY(ASM_SIMP_TAC[]);
+  EXPAND_TAC "f";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{p | v dot p = b v} = {p |  I v dot p = b v}`) SUBST1_TAC));
+    BY(REWRITE_TAC[I_DEF]);
+  MATCH_MP_TAC RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT_ALT;
+  REWRITE_TAC[I_DEF];
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `h`)));
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[HAS_SIZE]);
+  SUBCONJ_TAC;
+    EXPAND_TAC "s";
+    REWRITE_TAC[DOT_RMUL];
+    Calc_derivative.CALC_ID_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC (arith `&0 < x ==> ~(x = &0)`);
+      MATCH_MP_TAC rcone_dot_pos;
+      GOAL_TERM (fun w -> (EXISTS_TAC ( env w `cos(theta v)`)));
+      BY(ASM_SIMP_TAC[]);
+    BY(ASM_MESON_TAC[DOT_SYM;arith `(x = z) ==> y * x - z * y = &0`]);
+  REPEAT WEAK_STRIP_TAC;
+  EXPAND_TAC "b";
+  ONCE_REWRITE_TAC[DOT_SYM];
+  MATCH_MP_TAC rcone_gt_facet;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `theta v`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `v`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `x`)));
+  ASM_SIMP_TAC[];
+  EXPAND_TAC "s";
+  EXPAND_TAC "b";
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+
+(*
+    st/r
+      sgth (% `!v. v IN V ==> ~(v = vec 0)`) assume
+      fxast `ball_annulus` mp
+      rt[ ?o ]
+      rt[ SUBSET; DIFF ;IN_ELIM_THM;ball;]
+      ort[DIST_SYM]
+      rt[dist;varith `x - vec 0 = x`]
+      mt[ ?p ; arith `&0 < &2`]
+      comment "0"
+      abbrev `b = \ (v:real^3). norm v * cos (theta v)`
+      abbrev `h = \ (v:real^3). { p | v dot p <= b v }`
+      abbrev `(P:real^3->bool) = INTERS (IMAGE h (V:real^3->bool))`
+      abbrev `f = \ (v:real^3). P INTER { p | v dot p = b v}`
+      ex (% `b`)
+      ex (% `f`)
+      ex (% `h`)
+      ex (% `P`)
+      subconj
+      amt[]
+      dt
+      subconj
+      art[]
+      dt
+      sgth (`(!v. v IN V ==> &0 < cos (theta v) /\ cos (theta (v:real^3)) < &1)`) assume
+      amt[cos_bounds_0_Pi2]
+      art[]
+      sgth (`(!v. v IN V ==> f v = P INTER {p | v dot p = b (v:real^3) })`) assume
+      amt[]
+      art[]
+      sgth (` (!v. v IN V ==> b v = norm v * cos (theta (v:real^3)))`) assume
+      amt[]
+      art[]
+      comment "1"
+      sgth (% `polyhedron P`) assume
+      rt[ polyhedron ]
+      ex (% `IMAGE h V`)
+      art[]
+      conj
+      mmp FINITE_IMAGE
+    amt[HAS_SIZE]
+      rt[IN_IMAGE]
+      st/r
+      ex (% `x`)
+      ex (% `b x`)
+      conj
+      fxa mmp
+      art[]
+      art[FUN_EQ_THM;IN_ELIM_THM]
+      expand "h"
+      rt[IN_ELIM_THM]
+      art[]
+      comment "1b"
+      subconj
+      st/r
+      asimp[]
+      mmp ?q
+      asimp[]
+      rt[ ?i ]
+      asimp[]
+      dt
+      comment "1c"
+      sgth (% `(vec 0) IN P`) assume
+      expand "P"
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      st/r
+      expand "h"
+      rt[IN_ELIM_THM]
+      rt[?e]
+      amt[arith `&0 < x ==> &0 <= x`]
+      (* to here *)
+  ABBREV_TAC `ho = \ (v:real^3). {(p : real^3) |  v dot p < b v}`;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v. ho v = {p | v dot p < b v}`) ASSUME_TAC));
+    GEN_TAC;
+    EXPAND_TAC "ho";
+    BY(REWRITE_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(vec 0) IN INTERS (IMAGE ho V)`) ASSUME_TAC));
+      rt[INTERS_IMAGE;IN_ELIM_THM]
+      st/r
+      expand "ho"
+      rt[IN_ELIM_THM]
+      rt[?e]
+	amt[]
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `open (INTERS (IMAGE ho (V )))`) ASSUME_TAC));
+    MATCH_MP_TAC OPEN_INTERS;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      amt[HAS_SIZE]
+    DISCH_TAC;
+    REWRITE_TAC[IN_IMAGE]
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[ OPEN_HALFSPACE_LT ]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ OPEN_CONTAINS_BALL ];
+  GOAL_TERM (fun w -> (DISCH_THEN (fun t -> MP_TAC (ISPEC ( env w `(vec 0):real^3`) t))));
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  comment "1d"
+    sgth (% `vec 0 IN interior P`) assume
+    rt[ ?r]
+    ex `e:real`
+    art[]
+    mmp SUBSET_TRANS
+    ex (% `INTERS (IMAGE ho V)`)
+    art[]
+    expand "P"
+    rt[SUBSET;INTERS_IMAGE]
+    rt[IN_ELIM_THM]
+    expand "ho"
+    expand "h"
+    rt[IN_ELIM_THM]
+    st/r
+    mmp (arith `x < y ==> x <= y`)
+    fxa mmp
+    art[]
+    art[]
+    comment "1e"
+    subconj
+    mmp Tarjjuw.TARJJUW
+    ex (% `V`)
+    ex (% `b`)
+    ex `r:real`
+    ex `&2 * h0`
+    art[]
+    subconj
+    fxast  `ball_annulus` mp
+    rt[?o]
+    rt[SUBSET;DIFF]
+    rt[IN_UNIV;IN_ELIM_THM]
+    mt[]
+    dt
+    subconj
+    amt[HAS_SIZE]
+    dt
+    expand "P"
+    rt[INTERS_IMAGE]
+    rt[INTERS;IN_ELIM_THM]
+    rt[FUN_EQ_THM;IN_ELIM_THM]
+    rebind (`u:real^3`,"w")
+    expand "h"
+    rt[IN_ELIM_THM; ?s]
+    g
+    ort[ ?t]
+    subconj
+    st/r
+    rt[IN]
+    amt[]
+    st/r
+    fxa (mp o (spec (% `{x | x' dot x <= b x'}`)))
+    rt[IN_ELIM_THM]
+    dthen mmp
+    amt[]
+    dt
+    comment "1f"
+    subconj
+    sgthen (% `(f = (\v. P INTER {p | I v dot p = b v}))`) subst1
+    expand "f"
+    rt[I_DEF]
+    mmp FACET_OF_POLYHEDRON_EXPLICIT_ALT
+    rt[I_DEF]
+    ex (% `h`)
+    art[]
+    conj
+    amt[HAS_SIZE]
+    st/r
+    ex (% `(b v / (v dot v)) % v`)
+    conj
+    rt[ DOT_RMUL ]
+    calc
+    amt[ ?u ]
+    st/r
+    intro rcone_gt_facet [`theta v`;`theta w`;`v`;`w`;`(b v / (v dot v)) % v`;`v`]
+    asimp[]
+    ants
+    mmp rcone_refl
+    amt[]
+    mmp (arith `(x = y) ==> (x < z ==> y < z)`)
+    rt[DOT_RMUL;DOT_LMUL]
+    mt[DOT_SYM]
+    dt
+    comment "1g"
+    rt[SUBSET]
+    st/r
+    rt[ ?v ]
+    rt[ IN_ELIM_THM]
+    abbrev `s = ((b:real^3->real) v)/ (x dot v)`
+    ex (% `s % x`)
+    ex (`&1 / s`)
+    conj
+    rt[ ?x ]
+    rt[ varith ` (x = u % x) <=> &1 % x = u % x `]
+    rt[ ?y ]
+    disj1
+    expand "s"
+    calc
+    asimp[arith `~(&1 = &0)`;arith `&0 < x ==> ~(x = &0)`]
+    mmp (arith `&0 < x ==> ~(x = &0)`)
+    mmp rcone_dot_pos
+    ex (% `cos (theta v)`)
+    asimp[]
+    comment "1h"
+    conj2
+    expand "s"
+    mmp (arith `&0 < x ==> x > &0`)
+    rt[ GSYM ?z ]
+    mmp ?h
+    asimp[]
+    mmp rcone_dot_pos
+    ex (% `cos (theta v)`)
+    asimp[]
+    expand "f"
+    sgthen (% `{p | v dot p = b v} = {p |  I v dot p = b v}`) subst1
+    rt[I_DEF]
+    mmp RELATIVE_INTERIOR_POLYHEDRON_EXPLICIT_ALT
+    rt[I_DEF]
+    ex (% `V`)
+    ex (% `h`)
+    art[]
+    conj
+    amt[HAS_SIZE]
+    subconj
+    expand "s"
+    rt[DOT_RMUL]
+    calc
+    conj
+    mmp (arith `&0 < x ==> ~(x = &0)`)
+    mmp rcone_dot_pos
+    ex (% `cos(theta v)`)
+    asimp[]
+    amt[DOT_SYM;arith `(x = z) ==> y * x - z * y = &0`]
+    st/r
+    expand "b"
+    ort[DOT_SYM]
+    mmp rcone_gt_facet
+    ex (% `theta v`)
+    ex (% `v`)
+    ex (% `x`)
+    asimp[]
+    expand "s"
+    expand "b"
+    rt[]
+      *)
+
+
 end;;

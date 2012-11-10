@@ -12,13 +12,497 @@ let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ packing_ineq_def_
  (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
 ==> (lmfun_ineq_center V)`;;
 
-(* ========================================================================== *)
-(* WORK IN PROGRESS *)
-(* ========================================================================== *)
-
 
 
 (* ========================================================================== *)
 (* COMPLETED LEMMAS  *)
 (* ========================================================================== *)
+
+
+(* ========================================================================== *)
+(* WORK IN PROGRESS *)
+(* ========================================================================== *)
+
+let LMFUN_LE_1 = prove_by_refinement(
+  `!h. &1 <= h ==> lmfun h <= &1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ Pack_defs.lmfun ];
+  COND_CASES_TAC;
+    ENOUGH_TO_SHOW_TAC (`(h0 - h)/ (h0 - &1) <= (h0 - &1) / (h0 - &1)`);
+      MATCH_MP_TAC (arith `(x = y) ==> (z <= x ==> z <= y)`);
+      Calc_derivative.CALC_ID_TAC;
+      REWRITE_TAC[ Sphere.h0 ];
+      BY(REAL_ARITH_TAC);
+    GMATCH_SIMP_TAC REAL_LE_DIV2_EQ;
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC [Sphere.h0];
+    BY(REAL_ARITH_TAC);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let LMFUN_INEQ_CENTER_IMP_13 = prove_by_refinement(
+  `!V. FINITE V /\ (V SUBSET ball_annulus) /\ ~(lmfun_ineq_center V) ==>
+    (13 <= CARD V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ Pack_defs.lmfun_ineq_center ];
+  REWRITE_TAC[SUBSET; Ckqowsa_3_points.in_ball_annulus ];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (arith `~(CARD V <= 12) ==> (13 <= CARD V)`);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `lmfun` MP_TAC;
+  REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `sum V (\v. &1)`)));
+  CONJ_TAC;
+    MATCH_MP_TAC SUM_LE;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[ Marchal_cells_3.HL_2 ];
+    REWRITE_TAC[ DIST_0 ];
+    MATCH_MP_TAC LMFUN_LE_1;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `&2 <= norm x`) MP_TAC));
+      BY(ASM_MESON_TAC[]);
+    BY(REAL_ARITH_TAC);
+  ASM_SIMP_TAC [ GSYM CARD_EQ_SUM ];
+  BY(ASM_REWRITE_TAC[ REAL_OF_NUM_LE ])
+  ]);;
+  (* }}} *)
+
+let  LMFUN_INEQ_CENTER_SUBSET = prove_by_refinement(
+  `!V W. FINITE V /\ W SUBSET V /\ (lmfun_ineq_center V)  ==>
+    (lmfun_ineq_center W)`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[ Pack_defs.lmfun_ineq_center ];
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `sum V (\v. lmfun (hl [vec 0; v]))`)));
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC SUM_SUBSET_SIMPLE;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[ Marchal_cells_3.lmfun_pos_le ])
+  ]);;
+  (* }}} *)
+
+let SATURATE_BALL_ANNULUS = prove_by_refinement(
+  `!W S r. packing W /\ W SUBSET ball_annulus /\ ~(lmfun_ineq_center W) /\ (S SUBSET W) /\
+     &2 <= r /\ r <= &2 * h0 /\ 
+    (!v w. S v /\ W w /\ dist(v,w) < r ==> (v = w)  ) ==>
+    (?V. V SUBSET ball_annulus /\ packing V /\ 
+      weakly_saturated V r (&2 * h0) /\ FINITE V /\ (W SUBSET V) /\
+      (!v w. S v /\ V w /\ dist(v,w)< r ==> (v = w)) /\
+    ~(lmfun_ineq_center V) /\ (13 <= CARD V))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC weak_saturation [`W`;`S`;`r`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[ LMFUN_INEQ_CENTER_SUBSET]);
+  DISCH_TAC;
+  MATCH_MP_TAC LMFUN_INEQ_CENTER_IMP_13;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let POLYHEDRON_FACET_SUM_2Pi = prove_by_refinement(
+  `!(P:real^3->bool). polyhedron P /\ bounded P /\
+    (vec 0) IN interior P ==>
+    (sum {c | c facet_of P } (\c. sol (vec 0) (fchanged c)) = &4 * pi)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC (GSYM Conforming.SUM_SOL_IN_FACE_SET_EQ_4PI) [`(vec 0):real^3`;`vertices P`;`edges P`];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(FAN (vec 0,vertices P,edges P) /\ conforming_fan (vec 0,vertices P,edges P))`) MP_TAC));
+    BY(ASM_SIMP_TAC[ Polyhedron.POLYHEDRON_FAN; POLYHEDRON_CONFORMING_FAN]);
+  WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  ASM_SIMP_TAC[GSYM Conforming.SUM_SOL_IN_TOPOLOGICAL_COMPONENET_EQ_IN_FACE_SET];
+  INTRO_TAC Polyhedron.AMHFNXP_BIJ [`P`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[BIJ;INJ];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(topological_component_yfan (vec 0,vertices P,edges P)) = IMAGE fchanged {c | c facet_of P}`) SUBST1_TAC));
+    MATCH_MP_TAC Misc_defs_and_lemmas.SURJ_IMAGE;
+    ASM_REWRITE_TAC[];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{c | c facet_of P} =  (\f. f facet_of P)`) ASSUME_TAC));
+      BY(REWRITE_TAC[FUN_EQ_THM;IN_ELIM_THM]);
+    BY(ASM_REWRITE_TAC[]);
+  GMATCH_SIMP_TAC SUM_IMAGE;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{c | c facet_of P} =  (\f. f facet_of P)`) SUBST1_TAC));
+    BY(REWRITE_TAC[FUN_EQ_THM;IN_ELIM_THM]);
+  ASM_REWRITE_TAC[];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[FUN_EQ_THM];
+  BY(REWRITE_TAC[o_DEF])
+  ]);;
+  (* }}} *)
+
+let COSG = prove_by_refinement(
+  `!h. -- &2 <= h /\ h <= &2 /\ g = acs (h/ &2) - pi / &6 ==> 
+      cos g = h * sqrt(&3) / &4 + sqrt (&1 - (h / &2) pow 2) / &2`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[ COS_SUB];
+  REWRITE_TAC[ COS_PI6; SIN_PI6];
+  GMATCH_SIMP_TAC COS_ACS;
+  GMATCH_SIMP_TAC SIN_ACS;
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let FACET_FINITE = prove_by_refinement(
+  `!(p:real^3->bool) f. polyhedron p /\ f facet_of p ==>
+    FINITE { e | e facet_of f}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC FINITE_SUBSET;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `{ e | e face_of p}`)));
+  ASM_SIMP_TAC[ FINITE_POLYHEDRON_FACES ];
+  REWRITE_TAC[SUBSET;IN_ELIM_THM];
+  BY(ASM_MESON_TAC[ FACET_OF_IMP_FACE_OF; FACE_OF_TRANS ])
+  ]);;
+  (* }}} *)
+
+let BIJ_SUM = prove_by_refinement(
+  `!(A:A->bool) (B:B->bool) f ab.
+    BIJ ab A B ==> (sum A (f o ab) = sum B f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ;INJ];
+  BY(ASM_MESON_TAC[ SUM_IMAGE ; Misc_defs_and_lemmas.SURJ_IMAGE ])
+  ]);;
+  (* }}} *)
+
+
+(*
+let CARD_FACET_3 = prove_by_refinement(
+  `!(P:real^3->bool) c.
+    polyhedron P /\ bounded P /\ (vec 0 IN interior P) /\ c facet_of P ==>
+    3 <= CARD {e | e facet_of c}`,
+  (* {{{ proof *)
+  [
+  st/r
+    intro BIJ_FACET2_EDGE [`P`;`c`]
+    art[]
+    st/r
+    intro ?i [`c`;`P`]
+    art[]
+    rt[IN]
+    dt
+    intro ?h [`P`;`fchanged c`]
+    art[]
+    rt[?j ]
+    st/r
+    fxa kill
+    intro ?b [`vertices P`;`edges P`]
+    ants
+    amt[ ?v; ?w ]
+
+  ]);;
+  (* }}} *)
+*)
+
+let CARD_AT_LEAST3 = prove_by_refinement(
+  `!x y z (A:A->bool). FINITE A /\ x IN A /\ y IN A /\ z IN A /\
+     ~(x = y) /\ ~(y = z) /\ ~(x = z) ==>
+    (3 <= CARD A)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC (arith `2 <= CARD A /\ ~(CARD A = 2) ==> (3 <= CARD A)`);
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Hypermap.CARD_ATLEAST_2;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `CARD {x,y} < CARD A`) ASSUME_TAC));
+    MATCH_MP_TAC CARD_PSUBSET;
+    ASM_REWRITE_TAC[ PSUBSET_MEMBER ];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `z`)));
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `CARD {x,y} = 2`) ASSUME_TAC));
+    MATCH_MP_TAC Hypermap.CARD_TWO_ELEMENTS;
+    BY(ASM_REWRITE_TAC[]);
+  REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC);
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let polyhedron_3_facets = prove_by_refinement(
+  `!(p:real^A->bool). polyhedron p /\ bounded p /\ (&1 < aff_dim p) ==>
+    FINITE { c | c facet_of p } /\ 3 <= CARD {c | c facet_of p }    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[ FINITE_POLYHEDRON_FACETS ]);
+  DISCH_TAC;
+  INTRO_TAC POLYTOPE_FACET_EXISTS [`p`];
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_REWRITE_TAC[ POLYTOPE_EQ_BOUNDED_POLYHEDRON ]);
+    FIRST_X_ASSUM_ST `aff_dim` MP_TAC;
+    BY(INT_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`f SUBSET p`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[facet_of;FACE_OF_IMP_SUBSET]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(f = p)`) ASSUME_TAC));
+    BY(ASM_MESON_TAC[ FACET_OF_REFL]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?x. x IN p DIFF f`) MP_TAC));
+    REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC);
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC KREIN_MILMAN_MINKOWSKI [`p`];
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_SIMP_TAC [ POLYHEDRON_IMP_CONVEX ]);
+    BY(ASM_MESON_TAC[POLYTOPE_IMP_COMPACT;POLYTOPE_EQ_BOUNDED_POLYHEDRON]);
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?y. y extreme_point_of p /\ ~(y IN f)`) MP_TAC));
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `~({x | x extreme_point_of p} SUBSET f)`)));
+      REWRITE_TAC[SUBSET;IN_ELIM_THM];
+      BY(MESON_TAC[]);
+    DISCH_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `p SUBSET convex hull f`) ASSUME_TAC));
+      FIRST_X_ASSUM_ST `convex` SUBST1_TAC;
+      MATCH_MP_TAC Marchal_cells.CONVEX_HULL_SUBSET;
+      BY(ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM MP_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`convex hull f = f`) SUBST1_TAC));
+      REWRITE_TAC[ CONVEX_HULL_EQ ];
+      BY(ASM_MESON_TAC[ FACET_OF_IMP_FACE_OF; FACE_OF_IMP_CONVEX; ]);
+    FIRST_X_ASSUM_ST `DIFF` MP_TAC;
+    BY(SET_TAC[]);
+  REWRITE_TAC[ GSYM FACE_OF_SING ];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC FACE_OF_POLYHEDRON [`p`;`{y}`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(SET_TAC[]);
+    INTRO_TAC AFF_DIM_SING [`y`];
+    REPEAT WEAK_STRIP_TAC;
+    SUBGOAL_THEN `~(&1 < (int_of_num 0))` ASSUME_TAC;
+      BY(INT_ARITH_TAC);
+    BY(ASM_MESON_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!f. {y} SUBSET f <=>  y IN f`) (fun t -> REWRITE_TAC[t])));
+    BY(SET_TAC[]);
+  ABBREV_TAC `(A = { c | c facet_of p /\ (y:real^A) IN c })`;
+  DISCH_TAC;
+  COMMENT "1";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(A = {})`) MP_TAC));
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `INTERS` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ INTERS_0 ];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `p SUBSET {y}`) MP_TAC));
+      BY(ASM_REWRITE_TAC[SUBSET_UNIV]);
+    DISCH_TAC;
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP AFF_DIM_SUBSET));
+    REWRITE_TAC[ AFF_DIM_SING ];
+    FIRST_X_ASSUM_ST `aff_dim` MP_TAC;
+    BY(INT_ARITH_TAC);
+  REWRITE_TAC[Misc_defs_and_lemmas.EMPTY_EXISTS ];
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1b";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `u facet_of p`) ASSUME_TAC));
+    FIRST_X_ASSUM MP_TAC;
+    EXPAND_TAC "A";
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(MESON_TAC[]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `&1 <= aff_dim u`) ASSUME_TAC));
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[facet_of];
+    FIRST_X_ASSUM_ST `aff_dim` MP_TAC;
+    BY(INT_ARITH_TAC);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `aff_dim {y } = &0`) ASSUME_TAC));
+    BY(REWRITE_TAC[ AFF_DIM_SING ]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~( A = {u})`) MP_TAC));
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `INTERS` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ INTERS_1 ];
+    DISCH_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `aff_dim` MP_TAC);
+    ASM_REWRITE_TAC[];
+    BY(INT_ARITH_TAC);
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?v. v IN A /\ ~(v = u)`) ASSUME_TAC));
+    FIRST_X_ASSUM MP_TAC;
+    FIRST_X_ASSUM_ST `IN` MP_TAC;
+    GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `{u} SUBSET A /\ ~(A = {u}) ==> (?v. v IN A DIFF {u})`)));
+      REWRITE_TAC[SUBSET;IN_DIFF;IN_SING];
+      BY(MESON_TAC[]);
+    BY(SET_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC CARD_AT_LEAST3;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `f`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `u`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `v`)));
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `IN` MP_TAC);
+  EXPAND_TAC "A";
+  REWRITE_TAC[IN_ELIM_THM];
+  BY(ASM_MESON_TAC[])
+(*
+  st/r
+  subconj
+    amt[ FINITE_POLYHEDRON_FACETS ]
+    dt
+    intro ?k [`p`]
+    ants
+    conj
+    art[ ?l ]
+    fxast `aff_dim` mp
+    INT_ARITH_TAC
+    st/r
+    sgth (%`f SUBSET p`) assume
+    amt[facet_of;FACE_OF_IMP_SUBSET]
+    sgth (% `~(f = p)`) assume
+    amt[ FACET_OF_REFL]
+    sgth (% `?x. x IN p DIFF f`) mp
+    rep 2 (fxa mp)
+    set[]
+    st/r
+    intro KREIN_MILMAN_MINKOWSKI [`p`]
+    ants
+    conj
+    asimp [ ?m ]
+    amt[?n;?l]
+    dt
+    sgth (% `?y. y extreme_point_of p /\ ~(y IN f)`) mp
+    ets (% `~({x | x extreme_point_of p} SUBSET f)`)
+    rt[SUBSET;IN_ELIM_THM]
+    mt[]
+    dt
+    subgth (% `p SUBSET convex hull f`) assume
+    fxast `convex` subst1
+    mmp ?o
+    art[]
+    fxa mp
+    subgth (%`convex hull f = f`) subst1
+    rt[ ?q ]
+    amt[ ?g; ?p; ]
+    fxast `DIFF` mp
+    set[]
+    rt[ GSYM ?r ]
+    st/r
+    intro ?s [`p`;`{y}`]
+    art[]
+    ants
+    conj
+    set[]
+    intro AFF_DIM_SING [`y`]
+    st/r
+    sgth `~(&1 < (int_of_num 0))` assume
+    INT_ARITH_TAC
+    amt[]
+    sgth (% `!f. {y} SUBSET f <=>  y IN f`) (fun t -> rt[t])
+    set[]
+    abbrev `(A = { c | c facet_of p /\ (y:real^A) IN c })`
+    dt
+    comment "1"
+    sgth (% `~(A = {})`) mp
+    dt
+    fxast `INTERS` mp
+    art[]
+   rt[ ?y ]
+    st/r
+    sgth (% `p SUBSET {y}`) mp
+    art[SUBSET_UNIV]
+    dt
+    fxa (mp o (mm ?z))
+    rt[ ?a ]
+    fxast `aff_dim` mp
+    INT_ARITH_TAC
+    rt[?u ]
+    st/r
+    comment "1b"
+    sgth (% `u facet_of p`) assume
+    fxa mp
+    expand "A"
+    rt[IN_ELIM_THM]
+    mt[]
+    sgth (% `&1 <= aff_dim u`) assume
+    fxa mp
+    rt[facet_of]
+    fxast `aff_dim` mp
+    INT_ARITH_TAC
+    sgth (% `aff_dim {y } = &0`) assume
+    rt[ ?a ]
+    sgth (% `~( A = {u})`) mp
+    dt
+    fxast `INTERS` mp
+    art[]
+    rt[ ?b ]
+    dt
+    repeat (fxast `aff_dim` mp)
+    art[]
+    INT_ARITH_TAC
+    dt
+    sgth (% `?v. v IN A /\ ~(v = u)`) assume
+    fxa mp
+    fxast `IN` mp
+    ets (% `{u} SUBSET A /\ ~(A = {u}) ==> (?v. v IN A DIFF {u})`)
+    rt[SUBSET;IN_DIFF;IN_SING]
+    mt[]
+    set[]
+    fxa mp
+    st/r
+      mmp CARD_AT_LEAST3
+    ex (% `f`) 
+    ex (% `u`)
+    ex (% `v`)
+    art[IN_ELIM_THM]
+    rep 2 (fxast `IN` mp)
+    expand "A"
+    rt[IN_ELIM_THM]
+    amt[]
+*)
+  ]);;
+  (* }}} *)
+
+let facet_3_facets = prove_by_refinement(
+  `!(p:real^3->bool) f. 
+    polyhedron p  /\ bounded p /\ (vec 0 IN interior p) /\
+    f facet_of p ==>
+    FINITE {e | e facet_of f} /\ 3 <= CARD {e | e facet_of f}
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC polyhedron_3_facets;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC FACE_OF_POLYHEDRON_POLYHEDRON;
+    BY(ASM_MESON_TAC[ FACET_OF_IMP_FACE_OF ]);
+  DISCH_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC BOUNDED_SUBSET;
+    BY(ASM_MESON_TAC[ FACET_OF_IMP_FACE_OF; FACE_OF_IMP_SUBSET]);
+  FIRST_X_ASSUM_ST `facet_of` MP_TAC;
+  REWRITE_TAC[facet_of];
+  ASM_SIMP_TAC[ (ISPEC `(vec 0):real^3` Polyhedron.AFF_DIM_INTERIOR_EQ_3) ];
+  BY(INT_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
 
